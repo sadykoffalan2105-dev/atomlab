@@ -1,0 +1,21 @@
+/** Подписи групп по номеру колонки 1–18 (IUPAC-стиль для шапки ПСХЭ). */
+export const IUPAC_GROUP_LABELS: readonly string[] = [
+  'IA',
+  'IIA',
+  'IIIB',
+  'IVB',
+  'VB',
+  'VIB',
+  'VIIB',
+  'VIII',
+  'VIII',
+  'VIII',
+  'IB',
+  'IIB',
+  'IIIA',
+  'IVA',
+  'VA',
+  'VIA',
+  'VIIA',
+  'VIIIA',
+] as const

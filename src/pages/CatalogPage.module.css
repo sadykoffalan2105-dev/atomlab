@@ -1,0 +1,129 @@
+.page {
+  padding: 1rem 1.25rem 2rem;
+  flex: 1;
+  overflow: auto;
+}
+
+.h {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.lead {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: rgba(180, 195, 230, 0.88);
+}
+
+.searchLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+  max-width: 28rem;
+}
+
+.searchHint {
+  font-size: 0.72rem;
+  color: rgba(160, 175, 210, 0.9);
+}
+
+.searchInput {
+  border-radius: 10px;
+  border: 1px solid rgba(61, 255, 236, 0.28);
+  background: rgba(8, 10, 24, 0.85);
+  color: #e8ecff;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.88rem;
+}
+
+.searchInput::placeholder {
+  color: rgba(140, 155, 190, 0.65);
+}
+
+.section {
+  margin-bottom: 1.75rem;
+}
+
+.sectionTitle {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(120, 255, 236, 0.92);
+  letter-spacing: 0.04em;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.cardBtn {
+  width: 100%;
+  margin: 0;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid rgba(61, 255, 236, 0.22);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  background: rgba(12, 14, 32, 0.75);
+  color: inherit;
+  font: inherit;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.cardBtn:hover {
+  border-color: rgba(61, 255, 236, 0.45);
+  background: rgba(18, 22, 44, 0.88);
+}
+
+.cardBtn:focus {
+  outline: none;
+}
+
+.cardBtn:focus-visible {
+  outline: 2px solid rgba(61, 255, 236, 0.75);
+  outline-offset: 2px;
+}
+
+.formula {
+  display: block;
+  font-family: ui-monospace, monospace;
+  font-size: 1.1rem;
+  color: #3dffec;
+  margin-bottom: 0.25rem;
+}
+
+.name {
+  font-weight: 600;
+  color: #f0f4ff;
+}
+
+.desc {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: rgba(180, 195, 230, 0.9);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.labRecipe {
+  margin: 0.4rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: rgba(150, 170, 215, 0.9);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}

@@ -1,0 +1,562 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  background: rgba(2, 4, 12, 0.58);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.backdrop[data-open='true'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 45;
+  background: linear-gradient(165deg, rgba(18, 22, 48, 0.92), rgba(8, 10, 26, 0.96));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(61, 255, 236, 0.14),
+    inset 0 0 0 1px rgba(181, 107, 255, 0.1);
+}
+
+/* Лаборатория: почти на весь экран, по центру (крупная сетка — базовые .grid без ужатия) */
+.panelModal {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  z-index: 45;
+  left: 50%;
+  top: 50%;
+  width: min(1200px, calc(100vw - 2 * clamp(12px, 3vw, 24px)));
+  max-width: calc(100vw - 1.5rem);
+  max-height: min(90vh, calc(100dvh - 2.5rem));
+  min-height: 0;
+  height: auto;
+  border: 1px solid rgba(61, 255, 236, 0.4);
+  border-radius: 16px;
+  transform: translate(-50%, -50%) scale(0.97);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.24s ease;
+}
+
+.panelModal[data-open='true'] {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.headModal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem 0.7rem;
+  border-bottom: 1px solid rgba(61, 255, 236, 0.16);
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.headTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #e8edff;
+  text-shadow: 0 0 20px rgba(61, 255, 236, 0.2);
+}
+
+.hintSub {
+  margin: 0.3rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: rgba(170, 185, 220, 0.88);
+  max-width: 40ch;
+}
+
+.panelModal .tableWrap {
+  flex: 1;
+  min-height: 0;
+  max-height: min(78vh, calc(100dvh - 7rem));
+  overflow: auto;
+  padding: 0.75rem 1rem 1rem;
+}
+
+.orbitDecor {
+  position: absolute;
+  inset: -20% -10%;
+  background: radial-gradient(ellipse at 30% 20%, rgba(61, 255, 236, 0.1), transparent 55%),
+    radial-gradient(ellipse at 80% 60%, rgba(181, 107, 255, 0.08), transparent 45%);
+  pointer-events: none;
+}
+
+.stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0.4;
+  background-image: radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 80% 70%, rgba(255, 255, 255, 0.35), transparent);
+  background-size: 120px 120px;
+  pointer-events: none;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem 0.85rem;
+  border-bottom: 1px solid rgba(61, 255, 236, 0.18);
+  position: relative;
+  z-index: 1;
+}
+
+.headText .title {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: 0.12em;
+  color: #f0f4ff;
+  text-shadow: 0 0 24px rgba(61, 255, 236, 0.25);
+}
+
+.headIntro {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(195, 205, 235, 0.92);
+  max-width: 62ch;
+}
+
+.headText .sub {
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: rgba(160, 175, 210, 0.88);
+  max-width: 62ch;
+}
+
+.close {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(139, 147, 184, 0.4);
+  background: rgba(24, 28, 52, 0.75);
+  color: #c8d0f0;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  border-color: rgba(61, 255, 236, 0.55);
+  color: #3dffec;
+  box-shadow: 0 0 16px rgba(61, 255, 236, 0.2);
+}
+
+.tableWrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.65rem 1rem 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.gridWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: min(100%, 880px);
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 34px repeat(18, minmax(48px, 1fr));
+  grid-template-rows: auto auto repeat(9, minmax(76px, auto));
+  gap: 4px;
+}
+
+.corner {
+  border-radius: 6px;
+}
+
+.axisHead,
+.axisSide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: rgba(180, 195, 230, 0.9);
+  font-family: ui-monospace, monospace;
+}
+
+.axisIupac {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.52rem;
+  font-weight: 500;
+  color: rgba(140, 155, 190, 0.75);
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.02em;
+}
+
+.cellBtn,
+.cellStatic {
+  position: relative;
+  border-radius: 8px;
+  padding: 4px 5px 5px;
+  text-align: center;
+  color: #f0f4ff;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 1px;
+  min-height: 56px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease,
+    background 0.15s ease;
+}
+
+.cellBtn {
+  cursor: pointer;
+  border: 1px solid transparent;
+  font: inherit;
+  text-align: center;
+}
+
+.cellStatic {
+  cursor: default;
+  border: 1px solid transparent;
+}
+
+.cellBtn:hover {
+  z-index: 1;
+  transform: translateY(-1px);
+}
+
+/* Неон по блокам: s — лайм, p — циан, d — золото, f — пурпур */
+.blockS {
+  background: rgba(180, 255, 80, 0.08);
+  border-color: rgba(190, 255, 100, 0.55);
+  box-shadow: 0 0 12px rgba(170, 255, 90, 0.12);
+}
+
+.blockP {
+  background: rgba(80, 220, 255, 0.08);
+  border-color: rgba(100, 230, 255, 0.55);
+  box-shadow: 0 0 12px rgba(80, 220, 255, 0.14);
+}
+
+.blockD {
+  background: rgba(255, 200, 80, 0.09);
+  border-color: rgba(255, 210, 120, 0.55);
+  box-shadow: 0 0 12px rgba(255, 200, 100, 0.12);
+}
+
+.blockF {
+  background: rgba(220, 120, 255, 0.09);
+  border-color: rgba(230, 140, 255, 0.55);
+  box-shadow: 0 0 12px rgba(210, 120, 255, 0.14);
+}
+
+.cellBtn.blockS:hover {
+  border-color: rgba(200, 255, 120, 0.95);
+  box-shadow: 0 0 22px rgba(180, 255, 100, 0.35);
+}
+
+.cellBtn.blockP:hover {
+  border-color: rgba(120, 240, 255, 0.95);
+  box-shadow: 0 0 22px rgba(100, 230, 255, 0.35);
+}
+
+.cellBtn.blockD:hover {
+  border-color: rgba(255, 220, 140, 0.95);
+  box-shadow: 0 0 22px rgba(255, 210, 120, 0.32);
+}
+
+.cellBtn.blockF:hover {
+  border-color: rgba(240, 160, 255, 0.95);
+  box-shadow: 0 0 22px rgba(220, 140, 255, 0.35);
+}
+
+.mendeleevLaw {
+  z-index: 0;
+  pointer-events: none;
+  padding: 0.35rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px dashed rgba(120, 140, 170, 0.45);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.mendeleevLawTitle {
+  display: block;
+  font-size: 0.62rem;
+  line-height: 1.25;
+  color: rgba(230, 235, 255, 0.95);
+  margin: 0 0 0.25rem;
+}
+
+.mendeleevLawText {
+  margin: 0;
+  font-size: 0.52rem;
+  line-height: 1.35;
+  color: rgba(185, 198, 230, 0.92);
+  max-width: 36ch;
+}
+
+.cellMassLine {
+  display: flex;
+  justify-content: flex-start;
+  align-items: baseline;
+  font-size: 0.52rem;
+  color: rgba(210, 218, 245, 0.88);
+  line-height: 1;
+  margin-bottom: 1px;
+}
+
+.cellMassLine .m {
+  opacity: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+.cellSymbolRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.2em;
+  line-height: 1.1;
+}
+
+.cellSymbolRow .z {
+  font-weight: 700;
+  font-size: 0.58rem;
+  color: rgba(120, 255, 236, 0.95);
+  text-shadow: 0 0 8px rgba(61, 255, 236, 0.35);
+}
+
+.sym {
+  font-weight: 800;
+  font-size: clamp(0.72rem, 1.1vw, 0.95rem);
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+
+.nameMini {
+  display: block;
+  font-size: 0.52rem;
+  color: rgba(200, 210, 240, 0.95);
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.25rem;
+  align-items: center;
+  padding: 0.5rem 0.25rem 0.15rem;
+  border-top: 1px solid rgba(100, 120, 180, 0.2);
+  font-size: 0.68rem;
+  color: rgba(190, 200, 230, 0.9);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.legendS {
+  background: rgba(190, 255, 100, 0.55);
+  box-shadow: 0 0 10px rgba(180, 255, 90, 0.45);
+}
+
+.legendP {
+  background: rgba(100, 220, 255, 0.55);
+  box-shadow: 0 0 10px rgba(80, 220, 255, 0.45);
+}
+
+.legendD {
+  background: rgba(255, 200, 100, 0.55);
+  box-shadow: 0 0 10px rgba(255, 200, 100, 0.4);
+}
+
+.legendF {
+  background: rgba(220, 130, 255, 0.55);
+  box-shadow: 0 0 10px rgba(210, 120, 255, 0.45);
+}
+
+/* Режим лаборатории: компактная таблица снизу, над панелью реактора (ширина как у крупного модала) */
+.panelModalLabCompact {
+  top: auto;
+  left: 50%;
+  right: auto;
+  bottom: calc(12px + min(42vh, 400px) + 8px);
+  width: min(1200px, calc(100vw - 1.5rem));
+  max-width: calc(100vw - 1.5rem);
+  max-height: min(66vh, 700px);
+  min-height: 0;
+  transform: translateX(-50%) scale(0.98);
+  z-index: 50;
+  border-radius: 14px;
+  box-shadow:
+    0 -8px 32px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(61, 255, 236, 0.1),
+    inset 0 0 0 1px rgba(181, 107, 255, 0.08);
+}
+
+.panelModalLabCompact[data-open='true'] {
+  transform: translateX(-50%) scale(1);
+}
+
+.headModalLabCompact {
+  padding: 0.35rem 0.5rem 0.35rem;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  min-height: 2.25rem;
+}
+
+.tableWrapLabCompact {
+  max-height: min(58vh, 600px) !important;
+  padding: 0.4rem 0.65rem 0.6rem;
+}
+
+/* Компактная сетка ПСХЭ: Z+символ в ячейке, без многострочного переполнения */
+.gridWrapCompact {
+  gap: 0.4rem;
+  min-width: min(100%, 100%);
+}
+
+.gridCompact {
+  /* Близко к полноразмерной: достаточная min-ширина колонок для чтения */
+  grid-template-columns: 26px repeat(18, minmax(2.1rem, 1fr));
+  grid-template-rows: auto auto repeat(9, minmax(2.7rem, auto));
+  gap: 3px;
+  align-content: start;
+}
+
+.gridCompact .cellBtn,
+.gridCompact .cellStatic {
+  min-height: 2.95rem;
+  padding: 1px 1px 2px;
+  gap: 0;
+  border-radius: 6px;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Уплотнённые оси — не съедают тело таблицы */
+.gridCompact .axisHead,
+.gridCompact .axisSide {
+  font-size: 0.56rem;
+  line-height: 1.1;
+  padding: 0 1px;
+}
+
+.gridCompact .axisIupac {
+  font-size: 0.45rem;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+/* Z, символ, короткое имя; mass в title у кнопки */
+.cellCompactInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  gap: 0;
+  line-height: 1.08;
+}
+
+.cellCompactZ {
+  font-size: 0.48rem;
+  font-weight: 600;
+  color: rgba(120, 255, 236, 0.9);
+  font-family: ui-monospace, system-ui, sans-serif;
+  text-shadow: 0 0 4px rgba(61, 255, 236, 0.25);
+}
+
+.cellCompactSym {
+  font-size: clamp(0.6rem, 0.7rem + 0.12vw, 0.75rem);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #f0f4ff;
+  flex-shrink: 0;
+}
+
+.cellCompactName {
+  width: 100%;
+  margin-top: 0.1em;
+  font-size: 0.45rem;
+  line-height: 1.1;
+  font-weight: 500;
+  color: rgba(195, 208, 242, 0.95);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+@media (max-width: 700px) {
+  .headModal {
+    flex-wrap: wrap;
+  }
+
+  .panelModal {
+    max-height: min(88vh, calc(100dvh - 1.5rem));
+  }
+
+  .panelModal .tableWrap {
+    max-height: min(72vh, calc(100dvh - 8.5rem));
+  }
+
+  .panelModalLabCompact {
+    max-height: min(62dvh, 580px);
+    width: calc(100vw - 1rem);
+    bottom: calc(8px + min(42dvh, 300px) + 6px);
+  }
+}

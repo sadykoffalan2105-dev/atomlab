@@ -1,0 +1,187 @@
+.root {
+  color: #e8ecff;
+}
+
+.rootCompact {
+  color: #e8ecff;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+/* Плотный вид для панели лаборатории: без внутренней прокрутки на типичных экранах */
+.rootLab {
+  color: #e8ecff;
+  font-size: 0.64rem;
+  line-height: 1.3;
+}
+
+.rootLab .head {
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.rootLab .symbol {
+  font-size: 1.1rem;
+  text-shadow: 0 0 8px rgba(61, 255, 236, 0.22);
+  letter-spacing: 0.04em;
+}
+
+.rootLab .name {
+  margin: 0.1rem 0 0;
+  font-size: 0.7rem;
+}
+
+.rootLab .zLine {
+  margin: 0.1rem 0 0;
+  font-size: 0.6rem;
+}
+
+.rootLab .dl {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 32%) 1fr;
+  gap: 0.2rem 0.45rem;
+  font-size: 0.62rem;
+  line-height: 1.28;
+}
+
+.rootLab .dt {
+  color: rgba(150, 168, 205, 0.92);
+}
+
+.rootLab .configBlock {
+  font-size: 0.58rem;
+  line-height: 1.28;
+}
+
+.rootLab .cpkSwatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid rgba(61, 255, 236, 0.2);
+}
+
+.rootCompact .head {
+  margin-bottom: 0.55rem;
+  padding-bottom: 0.5rem;
+}
+
+.symbol {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #3dffec;
+  text-shadow: 0 0 20px rgba(61, 255, 236, 0.35);
+}
+
+.rootCompact .symbol {
+  font-size: 1.4rem;
+  text-shadow: 0 0 12px rgba(61, 255, 236, 0.3);
+}
+
+.name {
+  margin: 0.2rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #f0f4ff;
+}
+
+.rootCompact .name {
+  margin: 0.1rem 0 0;
+  font-size: 0.82rem;
+}
+
+.zLine {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(180, 195, 230, 0.9);
+  font-family: ui-monospace, monospace;
+}
+
+.rootCompact .zLine {
+  margin: 0.2rem 0 0;
+  font-size: 0.7rem;
+}
+
+.dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(9rem, 38%) 1fr;
+  gap: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.rootCompact .dl {
+  grid-template-columns: 1fr;
+  gap: 0.2rem 0.35rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.rootCompact .dt {
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(61, 255, 236, 0.12);
+}
+
+.rootCompact .dt:first-of-type {
+  padding-top: 0;
+  border-top: none;
+}
+
+.dt {
+  margin: 0;
+  color: rgba(160, 175, 210, 0.95);
+  font-weight: 500;
+}
+
+.rootCompact .dt {
+  color: rgba(150, 168, 205, 0.92);
+}
+
+.dd {
+  margin: 0;
+  color: rgba(220, 228, 255, 0.96);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.configBlock {
+  white-space: pre-wrap;
+  font-family: ui-monospace, 'Cascadia Mono', monospace;
+  font-size: 0.86em;
+  line-height: 1.5;
+}
+
+.rootCompact .configBlock {
+  font-size: 0.85em;
+}
+
+.cpkRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rootCompact .cpkSwatch {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.cpkSwatch {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+}

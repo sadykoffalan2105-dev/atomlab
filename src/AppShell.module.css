@@ -1,0 +1,66 @@
+.root {
+  --app-header-h: 3.4rem; /* визуальная высота шапки, для calc(100dvh - …) */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(61, 255, 236, 0.06), transparent 50%),
+    linear-gradient(180deg, #05060e 0%, #0a0c18 40%, #05060e 100%);
+  color: #e8ecff;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 1.1rem;
+  border-bottom: 1px solid rgba(61, 255, 236, 0.2);
+  background: rgba(6, 8, 18, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.logo {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #f0f4ff;
+  text-decoration: none;
+}
+
+.logo:hover {
+  color: #3dffec;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.navLink {
+  color: rgba(180, 195, 230, 0.9);
+  text-decoration: none;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.navLink:hover {
+  color: #3dffec;
+  border-color: rgba(61, 255, 236, 0.25);
+}
+
+.navLinkActive {
+  color: #3dffec;
+  border-color: rgba(61, 255, 236, 0.45);
+  box-shadow: 0 0 16px rgba(61, 255, 236, 0.12);
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}

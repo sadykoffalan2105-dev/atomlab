@@ -1,0 +1,651 @@
+{
+  "total": 214,
+  "ok3d": 26,
+  "ok2d": 81,
+  "cidNotFound": 106,
+  "geometryNotFound": 1,
+  "failures": [
+    {
+      "id": "ago",
+      "nameRu": "Оксид серебра(I)",
+      "formulaUnicode": "Ag₂O",
+      "reason": "CID not found"
+    },
+    {
+      "id": "al_oh_3",
+      "nameRu": "Гидроксид алюминия",
+      "formulaUnicode": "Al(OH)₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "ba_oh_2",
+      "nameRu": "Гидроксид бария",
+      "formulaUnicode": "Ba(OH)₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "bao",
+      "nameRu": "Оксид бария",
+      "formulaUnicode": "BaO",
+      "reason": "CID not found"
+    },
+    {
+      "id": "ca_oh_2",
+      "nameRu": "Гидроксид кальция",
+      "formulaUnicode": "Ca(OH)₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "cao",
+      "nameRu": "Оксид кальция",
+      "formulaUnicode": "CaO",
+      "reason": "CID not found"
+    },
+    {
+      "id": "cr2o3",
+      "nameRu": "Оксид хрома(III)",
+      "formulaUnicode": "Cr₂O₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "cu_oh_2",
+      "nameRu": "Гидроксид меди(II)",
+      "formulaUnicode": "Cu(OH)₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "cuo",
+      "nameRu": "Оксид меди(II)",
+      "formulaUnicode": "CuO",
+      "reason": "CID not found"
+    },
+    {
+      "id": "fe3o4",
+      "nameRu": "Оксид железа(II,III)",
+      "formulaUnicode": "Fe₃O₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "fe_oh_2",
+      "nameRu": "Гидроксид железа(II)",
+      "formulaUnicode": "Fe(OH)₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "fe_oh_3",
+      "nameRu": "Гидроксид железа(III)",
+      "formulaUnicode": "Fe(OH)₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "feo",
+      "nameRu": "Оксид железа(II)",
+      "formulaUnicode": "FeO",
+      "reason": "CID not found"
+    },
+    {
+      "id": "h2sio3",
+      "nameRu": "Кремниевая кислота",
+      "formulaUnicode": "H₂SiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "k2o",
+      "nameRu": "Оксид калия",
+      "formulaUnicode": "K₂O",
+      "reason": "CID not found"
+    },
+    {
+      "id": "li2o",
+      "nameRu": "Оксид лития",
+      "formulaUnicode": "Li₂O",
+      "reason": "CID not found"
+    },
+    {
+      "id": "mg_oh_2",
+      "nameRu": "Гидроксид магния",
+      "formulaUnicode": "Mg(OH)₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "mgo",
+      "nameRu": "Оксид магния",
+      "formulaUnicode": "MgO",
+      "reason": "CID not found"
+    },
+    {
+      "id": "na2o2",
+      "nameRu": "Перекись натрия",
+      "formulaUnicode": "Na₂O₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "no2",
+      "nameRu": "Оксид азота(IV)",
+      "formulaUnicode": "NO₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "pbo2",
+      "nameRu": "Оксид свинца(IV)",
+      "formulaUnicode": "PbO₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ag_clo3",
+      "nameRu": "Хлорат серебра",
+      "formulaUnicode": "AgClO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ag_f",
+      "nameRu": "Фторид серебра",
+      "formulaUnicode": "AgF",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ag_mno4",
+      "nameRu": "Марганцовокислый серебра",
+      "formulaUnicode": "AgMnO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_al_po4",
+      "nameRu": "Фосфат алюминия",
+      "formulaUnicode": "AlPO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ba_cr2o7",
+      "nameRu": "Дихромат бария",
+      "formulaUnicode": "BaCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ba_s",
+      "nameRu": "Сульфид бария",
+      "formulaUnicode": "BaS",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ba_sio3",
+      "nameRu": "Силикат бария",
+      "formulaUnicode": "BaSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ba_so3",
+      "nameRu": "Сульфит бария",
+      "formulaUnicode": "BaSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ca_cr2o7",
+      "nameRu": "Дихромат кальция",
+      "formulaUnicode": "CaCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ca_cro4",
+      "nameRu": "Хромат кальция",
+      "formulaUnicode": "CaCrO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ca_hco3_2",
+      "nameRu": "Гидрокарбонат кальция",
+      "formulaUnicode": "Ca(HCO₃)₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ca_s",
+      "nameRu": "Сульфид кальция",
+      "formulaUnicode": "CaS",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ca_sio3",
+      "nameRu": "Силикат кальция",
+      "formulaUnicode": "CaSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ca_so3",
+      "nameRu": "Сульфит кальция",
+      "formulaUnicode": "CaSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cobalt_cr2o7",
+      "nameRu": "Дихромат кобальта(II)",
+      "formulaUnicode": "CoCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cobalt_cro4",
+      "nameRu": "Хромат кобальта(II)",
+      "formulaUnicode": "CoCrO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cobalt_sio3",
+      "nameRu": "Силикат кобальта(II)",
+      "formulaUnicode": "CoSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cobalt_so3",
+      "nameRu": "Сульфит кобальта(II)",
+      "formulaUnicode": "CoSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cr_po4",
+      "nameRu": "Фосфат хрома(III)",
+      "formulaUnicode": "CrPO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cs_clo3",
+      "nameRu": "Хлорат цезия",
+      "formulaUnicode": "CsClO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cs_clo4",
+      "nameRu": "Перхлорат цезия",
+      "formulaUnicode": "CsClO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cs_f",
+      "nameRu": "Фторид цезия",
+      "formulaUnicode": "CsF",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cs_i",
+      "nameRu": "Йодид цезия",
+      "formulaUnicode": "CsI",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cs_mno4",
+      "nameRu": "Марганцовокислый цезия",
+      "formulaUnicode": "CsMnO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cs_no2",
+      "nameRu": "Нитрит цезия",
+      "formulaUnicode": "CsNO₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cu_cr2o7",
+      "nameRu": "Дихромат меди(II)",
+      "formulaUnicode": "CuCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cu_cro4",
+      "nameRu": "Хромат меди(II)",
+      "formulaUnicode": "CuCrO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cu_s",
+      "nameRu": "Сульфид меди(II)",
+      "formulaUnicode": "CuS",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cu_sio3",
+      "nameRu": "Силикат меди(II)",
+      "formulaUnicode": "CuSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_cu_so3",
+      "nameRu": "Сульфит меди(II)",
+      "formulaUnicode": "CuSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_fe2_cr2o7",
+      "nameRu": "Дихромат железа(II)",
+      "formulaUnicode": "FeCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_fe2_cro4",
+      "nameRu": "Хромат железа(II)",
+      "formulaUnicode": "FeCrO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_fe2_s",
+      "nameRu": "Сульфид железа(II)",
+      "formulaUnicode": "FeS",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_fe2_sio3",
+      "nameRu": "Силикат железа(II)",
+      "formulaUnicode": "FeSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_fe2_so3",
+      "nameRu": "Сульфит железа(II)",
+      "formulaUnicode": "FeSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_k_clo3",
+      "nameRu": "Хлорат калия",
+      "formulaUnicode": "KClO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_k_f",
+      "nameRu": "Фторид калия",
+      "formulaUnicode": "KF",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_k_i",
+      "nameRu": "Йодид калия",
+      "formulaUnicode": "KI",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_k_no3",
+      "nameRu": "Нитрат калия",
+      "formulaUnicode": "KNO₃",
+      "reason": "SDF not found for CID 24434"
+    },
+    {
+      "id": "salt_li_clo3",
+      "nameRu": "Хлорат лития",
+      "formulaUnicode": "LiClO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_li_mno4",
+      "nameRu": "Марганцовокислый лития",
+      "formulaUnicode": "LiMnO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_mg_cr2o7",
+      "nameRu": "Дихромат магния",
+      "formulaUnicode": "MgCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_mg_cro4",
+      "nameRu": "Хромат магния",
+      "formulaUnicode": "MgCrO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_mg_sio3",
+      "nameRu": "Силикат магния",
+      "formulaUnicode": "MgSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_mg_so3",
+      "nameRu": "Сульфит магния",
+      "formulaUnicode": "MgSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_mn_cr2o7",
+      "nameRu": "Дихромат марганца(II)",
+      "formulaUnicode": "MnCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_mn_cro4",
+      "nameRu": "Хромат марганца(II)",
+      "formulaUnicode": "MnCrO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_mn_sio3",
+      "nameRu": "Силикат марганца(II)",
+      "formulaUnicode": "MnSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_mn_so3",
+      "nameRu": "Сульфит марганца(II)",
+      "formulaUnicode": "MnSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_na_i",
+      "nameRu": "Йодид натрия",
+      "formulaUnicode": "NaI",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_na_mno4",
+      "nameRu": "Марганцовокислый натрия",
+      "formulaUnicode": "NaMnO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_nh4_3_po4",
+      "nameRu": "Ортофосфат аммония",
+      "formulaUnicode": "(NH₄)₃PO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_nh4_clo3",
+      "nameRu": "Хлорат аммония",
+      "formulaUnicode": "NH₄ClO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_nh4_mno4",
+      "nameRu": "Марганцовокислый аммония",
+      "formulaUnicode": "NH₄MnO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_nh4_no2",
+      "nameRu": "Нитрит аммония",
+      "formulaUnicode": "NH₄NO₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_nh4_no3",
+      "nameRu": "Нитрат аммония",
+      "formulaUnicode": "NH₄NO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ni_co3",
+      "nameRu": "Карбонат никеля(II)",
+      "formulaUnicode": "NiCO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ni_cr2o7",
+      "nameRu": "Дихромат никеля(II)",
+      "formulaUnicode": "NiCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ni_sio3",
+      "nameRu": "Силикат никеля(II)",
+      "formulaUnicode": "NiSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_ni_so3",
+      "nameRu": "Сульфит никеля(II)",
+      "formulaUnicode": "NiSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_pb_cr2o7",
+      "nameRu": "Дихромат свинца(II)",
+      "formulaUnicode": "PbCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_pb_cro4",
+      "nameRu": "Хромат свинца(II)",
+      "formulaUnicode": "PbCrO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_pb_s",
+      "nameRu": "Сульфид свинца(II)",
+      "formulaUnicode": "PbS",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_pb_sio3",
+      "nameRu": "Силикат свинца(II)",
+      "formulaUnicode": "PbSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_pb_so3",
+      "nameRu": "Сульфит свинца(II)",
+      "formulaUnicode": "PbSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sn_co3",
+      "nameRu": "Карбонат олова(II)",
+      "formulaUnicode": "SnCO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sn_cr2o7",
+      "nameRu": "Дихромат олова(II)",
+      "formulaUnicode": "SnCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sn_cro4",
+      "nameRu": "Хромат олова(II)",
+      "formulaUnicode": "SnCrO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sn_s",
+      "nameRu": "Сульфид олова(II)",
+      "formulaUnicode": "SnS",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sn_sio3",
+      "nameRu": "Силикат олова(II)",
+      "formulaUnicode": "SnSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sn_so3",
+      "nameRu": "Сульфит олова(II)",
+      "formulaUnicode": "SnSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sn_so4",
+      "nameRu": "Сульфат олова(II)",
+      "formulaUnicode": "SnSO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sr_cr2o7",
+      "nameRu": "Дихромат стронция",
+      "formulaUnicode": "SrCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sr_cro4",
+      "nameRu": "Хромат стронция",
+      "formulaUnicode": "SrCrO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sr_s",
+      "nameRu": "Сульфид стронция",
+      "formulaUnicode": "SrS",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sr_sio3",
+      "nameRu": "Силикат стронция",
+      "formulaUnicode": "SrSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sr_so3",
+      "nameRu": "Сульфит стронция",
+      "formulaUnicode": "SrSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_sr_so4",
+      "nameRu": "Сульфат стронция",
+      "formulaUnicode": "SrSO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_zn_cr2o7",
+      "nameRu": "Дихромат цинка",
+      "formulaUnicode": "ZnCr₂O₇",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_zn_cro4",
+      "nameRu": "Хромат цинка",
+      "formulaUnicode": "ZnCrO₄",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_zn_sio3",
+      "nameRu": "Силикат цинка",
+      "formulaUnicode": "ZnSiO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "salt_zn_so3",
+      "nameRu": "Сульфит цинка",
+      "formulaUnicode": "ZnSO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "so3",
+      "nameRu": "Серный ангидрид",
+      "formulaUnicode": "SO₃",
+      "reason": "CID not found"
+    },
+    {
+      "id": "sr_oh_2",
+      "nameRu": "Гидроксид стронция",
+      "formulaUnicode": "Sr(OH)₂",
+      "reason": "CID not found"
+    },
+    {
+      "id": "sro",
+      "nameRu": "Оксид стронция",
+      "formulaUnicode": "SrO",
+      "reason": "CID not found"
+    },
+    {
+      "id": "zn_oh_2",
+      "nameRu": "Гидроксид цинка",
+      "formulaUnicode": "Zn(OH)₂",
+      "reason": "CID not found"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+.page {
+  padding: 1rem 1.25rem 2rem;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.headIntro {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(200, 210, 240, 0.92);
+  max-width: 70ch;
+}
+
+.lead {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  color: rgba(170, 185, 220, 0.88);
+  max-width: 56ch;
+}
+
+.tableWrap {
+  max-width: 1200px;
+  margin: 0 auto;
+}

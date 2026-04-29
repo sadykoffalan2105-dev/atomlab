@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./dist/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Виртуальная лаборатория</title>
+    <style>
+      body {
+        margin: 0;
+        background: #05060d;
+        color: #e8ecff;
+        font-family: system-ui, 'Segoe UI', sans-serif;
+      }
+      .boot-hint {
+        padding: 1.5rem;
+        max-width: 40rem;
+        line-height: 1.55;
+        font-size: 0.95rem;
+      }
+      .boot-hint code {
+        background: #14182a;
+        padding: 0.12em 0.4em;
+        border-radius: 6px;
+        font-size: 0.88em;
+      }
+      .boot-hint ul {
+        margin: 0.75rem 0 0;
+        padding-left: 1.2rem;
+      }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" src="./dist/assets/index-CqzGj-Mm.js"></script>
+    <link rel="stylesheet" href="./dist/assets/index-CNRYiNg9.css">
+  </head>
+  <body>
+    <div id="root">
+      <div class="boot-hint">
+        <p>
+          <strong>Если этот блок не исчезает за секунду,</strong> страница открыта как файл с диска (<code>file://</code>).
+          Корневой <code>index.html</code> в этой папке рассчитан на сервер разработки Vite, а не на двойной щелчок по
+          файлу.
+        </p>
+        <p>
+          После <code>npm run build</code> откройте из этой же папки проекта файл
+          <strong>open-from-folder.html</strong> (двойной щелчок) — так удобнее, чем лезть в
+          <code>dist</code>. Либо <a href="dist/index.html" style="color: #3dffec">dist/index.html</a>.
+        </p>
+        <ul>
+          <li>
+            <strong>Разработка:</strong> в папке проекта выполните <code>npm run dev</code> и откройте адрес из
+            терминала.
+          </li>
+          <li>
+            <strong>Запуск с диска:</strong> <code>npm run build</code>, затем этот же корень при открытии файла
+            перенаправит на <strong>dist/index.html</strong>, либо команда <code>npm run open-dist</code> (Windows).
+          </li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>
