@@ -557,11 +557,171 @@ function naMno4Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number,
     [0, 3],
     [0, 4],
     [0, 5],
+  ]
 
-    // Na–O (2 палочки)
+  return { atoms, bonds }
+}
+
+/**
+ * CoCrO₄ (хромат кобальта(II)): симметричный анион CrO₄²⁻ (тетраэдр) + Co²⁺ сбоку.
+ * Визуальная цель: палочки есть, фигура симметричная (как “учебниковая” модель).
+ */
+function cobaltCro4Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const cr: Vec3 = [0, 0, 0]
+  const o0: Vec3 = tetO(1, 1, 1)
+  const o1: Vec3 = tetO(1, -1, -1)
+  const o2: Vec3 = tetO(-1, 1, -1)
+  const o3: Vec3 = tetO(-1, -1, 1)
+
+  // Co²⁺ — вынесен в сторону и “подвязан” к двум O для видимых палочек.
+  const co: Vec3 = [-1.12, 0, 0]
+
+  // Индексы: 0 Co, 1 Cr, 2-5 O
+  const atoms: Atom3D[] = [
+    { symbol: 'Co', pos: co }, // 0
+    { symbol: 'Cr', pos: cr }, // 1
+    { symbol: 'O', pos: o0 }, // 2
+    { symbol: 'O', pos: o1 }, // 3
+    { symbol: 'O', pos: o2 }, // 4
+    { symbol: 'O', pos: o3 }, // 5
+  ]
+
+  const bonds: (readonly [number, number])[] = [
+    // CrO4 core
+    [1, 2],
+    [1, 3],
     [1, 4],
     [1, 5],
   ]
+
+  return { atoms, bonds }
+}
+
+/**
+ * NaNO₂: как на референсе — Na⁺ отдельно, анион NO₂⁻ связан палочками внутри (N–O).
+ * Визуальная цель: НЕТ палочек от Na к N/O.
+ */
+function nano2Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const na: Vec3 = [-1.45, -0.35, 0]
+  const n: Vec3 = [0.25, 0.15, 0]
+  const o0: Vec3 = [-0.35, -0.35, 0]
+  const o1: Vec3 = [0.85, -0.35, 0]
+
+  // Индексы: 0 Na, 1 N, 2 O, 3 O
+  const atoms: Atom3D[] = [
+    { symbol: 'Na', pos: na }, // 0
+    { symbol: 'N', pos: n }, // 1
+    { symbol: 'O', pos: o0 }, // 2
+    { symbol: 'O', pos: o1 }, // 3
+  ]
+
+  const bonds: (readonly [number, number])[] = [
+    [1, 2],
+    [1, 3],
+  ]
+  return { atoms, bonds }
+}
+
+/**
+ * KNO₃: ионная модель — K⁺ отдельно, анион NO₃⁻ с палочками N–O (симметрично, плоско ~120°).
+ */
+function kno3Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const k: Vec3 = [-1.55, -0.15, 0]
+  const n: Vec3 = [0, 0.1, 0]
+  const r = 0.68
+  const a = (2 * Math.PI) / 3
+  const o0: Vec3 = [r, -0.25, 0]
+  const o1: Vec3 = [r * Math.cos(a), -0.25 + r * Math.sin(a), 0]
+  const o2: Vec3 = [r * Math.cos(2 * a), -0.25 + r * Math.sin(2 * a), 0]
+
+  // Индексы: 0 K, 1 N, 2-4 O
+  const atoms: Atom3D[] = [
+    { symbol: 'K', pos: k },
+    { symbol: 'N', pos: n },
+    { symbol: 'O', pos: o0 },
+    { symbol: 'O', pos: o1 },
+    { symbol: 'O', pos: o2 },
+  ]
+  const bonds: (readonly [number, number])[] = [
+    [1, 2],
+    [1, 3],
+    [1, 4],
+  ]
+  return { atoms, bonds }
+}
+
+/**
+ * (NH₄)₃PO₄: симметричная “учебниковая” связная модель.
+ * - PO₄: P в центре, 4 O тетраэдром, палочки P–O.
+ * - 3×NH₄: три N вокруг, у каждого 4 H тетраэдром, палочки N–H.
+ * - Межионные палочки: N–O (чтобы всё было одной связной фигурой).
+ */
+function nh4_3_po4Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const scale = (v: Vec3, k: number): Vec3 => [v[0] * k, v[1] * k, v[2] * k]
+  const add = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+  const norm = (v: Vec3): Vec3 => {
+    const l = LEN(v)
+    return [v[0] / l, v[1] / l, v[2] / l]
+  }
+
+  // PO4 tetrahedron
+  const p: Vec3 = [0, 0, 0]
+  const rPO = 0.66
+  const o0 = scale(norm(tetO(1, 1, 1)), rPO)
+  const o1 = scale(norm(tetO(1, -1, -1)), rPO)
+  const o2 = scale(norm(tetO(-1, 1, -1)), rPO)
+  const o3 = scale(norm(tetO(-1, -1, 1)), rPO)
+
+  // Place three NH4 groups around (triangular symmetry), slightly outside PO4.
+  const rPN = 1.42
+  const nDirs: Vec3[] = [o0, o1, o2].map((v) => norm(v))
+  const n0 = scale(nDirs[0]!, rPN)
+  const n1 = scale(nDirs[1]!, rPN)
+  const n2 = scale(nDirs[2]!, rPN)
+
+  const rNH = 0.54
+  const hDirs: Vec3[] = [
+    norm(tetO(1, 1, 1)),
+    norm(tetO(1, -1, -1)),
+    norm(tetO(-1, 1, -1)),
+    norm(tetO(-1, -1, 1)),
+  ]
+
+  const atoms: Atom3D[] = [
+    { symbol: 'P', pos: p }, // 0
+    { symbol: 'O', pos: o0 }, // 1
+    { symbol: 'O', pos: o1 }, // 2
+    { symbol: 'O', pos: o2 }, // 3
+    { symbol: 'O', pos: o3 }, // 4
+
+    { symbol: 'N', pos: n0 }, // 5
+    { symbol: 'N', pos: n1 }, // 6
+    { symbol: 'N', pos: n2 }, // 7
+  ]
+
+  const bonds: (readonly [number, number])[] = [
+    // PO4
+    [0, 1],
+    [0, 2],
+    [0, 3],
+    [0, 4],
+  ]
+
+  const addNh4 = (nIdx: number) => {
+    const nPos = atoms[nIdx]!.pos
+    const start = atoms.length
+    for (let i = 0; i < 4; i++) {
+      const hPos = add(nPos, scale(hDirs[i]!, rNH))
+      atoms.push({ symbol: 'H', pos: hPos })
+      bonds.push([nIdx, start + i])
+    }
+  }
+
+  addNh4(5)
+  addNh4(6)
+  addNh4(7)
+
+  // Ionic model: NH₄⁺ and PO₄³⁻ are separate ions (no inter-ion sticks).
 
   return { atoms, bonds }
 }
@@ -686,14 +846,14 @@ function caHco32Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number
   // Правая группа: 6 C, 7 O(to Ca), 8 O(top), 9 O(bottom), 10 H(bottom)
   const ca: Vec3 = [0, 0, 0]
 
-  const cL: Vec3 = [-1.25, 0, 0]
-  const oL_ca: Vec3 = [-0.58, 0.18, 0] // ближе к Ca
+  const cL: Vec3 = [-1.35, 0, 0]
+  const oL_ca: Vec3 = [-0.78, 0.22, 0] // катион не должен "слипаться" с анионом
   const oL_top: Vec3 = [-1.55, 0.62, 0.15]
   const oL_bot: Vec3 = [-1.55, -0.62, -0.15]
   const hL: Vec3 = [-1.85, -0.88, -0.15]
 
-  const cR: Vec3 = [1.25, 0, 0]
-  const oR_ca: Vec3 = [0.58, 0.18, 0]
+  const cR: Vec3 = [1.35, 0, 0]
+  const oR_ca: Vec3 = [0.78, 0.22, 0]
   const oR_top: Vec3 = [1.55, 0.62, 0.15]
   const oR_bot: Vec3 = [1.55, -0.62, -0.15]
   const hR: Vec3 = [1.85, -0.88, -0.15]
@@ -722,9 +882,7 @@ function caHco32Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number
     [6, 8],
     [6, 9],
     [9, 10],
-    // Ca оставляем без “лишних” диагоналей (как на твоей схеме)
-    [0, 2],
-    [0, 7],
+    // Ionic model: Ca²⁺ отдельно, без палочек к HCO₃⁻
   ]
 
   return { atoms, bonds }
@@ -757,7 +915,6 @@ function khco3Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, 
     [1, 3],
     [1, 4],
     [4, 5],
-    [0, 2],
   ]
   return { atoms, bonds }
 }
@@ -792,9 +949,7 @@ function nahco3Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number,
     [1, 3],
     [1, 4],
     [4, 5],
-    // Na contacts (as dashed lines in reference, but we draw as bonds)
-    [0, 2],
-    [0, 3],
+    // Ionic model: Na⁺ отдельно, без палочек к HCO₃⁻
   ]
   return { atoms, bonds }
 }
@@ -827,10 +982,7 @@ function crpo4Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, 
     [1, 3],
     [1, 4],
     [1, 5],
-    // Cr coordination (to match dashed lines on reference)
-    [0, 2],
-    [0, 4],
-    [0, 5],
+    // Ionic model: Cr³⁺ отдельно, без палочек к PO₄³⁻
   ]
   return { atoms, bonds }
 }
@@ -863,9 +1015,7 @@ function alpo4Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, 
     [1, 3],
     [1, 4],
     [1, 5],
-    // Al coordination (two dashed contacts in reference)
-    [0, 2],
-    [0, 5],
+    // Ionic model: Al³⁺ отдельно, без палочек к PO₄³⁻
   ]
   return { atoms, bonds }
 }
@@ -982,8 +1132,38 @@ export function getMolecularGeometryOrNull(
       return aloh3Geometry()
     case 'salt_k2cr2o7':
       return k2cr2o7Geometry()
+    case 'salt_k_no3':
+      return kno3Geometry()
+    case 'salt_nh4_3_po4':
+      return nh4_3_po4Geometry()
+    case 'salt_na_no2':
+      {
+        const geo = nano2Geometry()
+      // #region agent log
+      fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dbdb64' },
+        body: JSON.stringify({
+          sessionId: 'dbdb64',
+          runId: 'na_no2_dbg',
+          hypothesisId: 'H3_override_selected',
+          location: 'src/chemistry/catalogGeometryOverrides.ts:getMolecularGeometryOrNull',
+          message: 'using manual override nano2Geometry()',
+          data: {
+            compoundId,
+            symbols: geo.atoms.map((a) => a.symbol),
+            bonds: geo.bonds,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+      // #endregion
+        return geo
+      }
     case 'salt_na_mno4':
       return naMno4Geometry()
+    case 'salt_cobalt_cro4':
+      return cobaltCro4Geometry()
     case 'salt_ca_hco3_2':
       return caHco32Geometry()
     case 'salt_khco3':
@@ -998,7 +1178,33 @@ export function getMolecularGeometryOrNull(
       return fepo4Geometry()
     default:
       {
+        // Ionic salts: do not trust PubChem "molecular" bonds between ions.
+        // Use generator/overrides instead.
+        if (compoundId.startsWith('salt_')) return null
         const g = pubchemById[compoundId]
+        // #region agent log
+        if (compoundId === 'salt_na_no2') {
+          fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dbdb64' },
+            body: JSON.stringify({
+              sessionId: 'dbdb64',
+              runId: 'na_no2_dbg',
+              hypothesisId: 'H1_pubchem_selected',
+              location: 'src/chemistry/catalogGeometryOverrides.ts:getMolecularGeometryOrNull',
+              message: 'default branch pubchem lookup',
+              data: {
+                found: !!g,
+                atomsLen: Array.isArray(g?.atoms) ? g?.atoms?.length : null,
+                bondsLen: Array.isArray(g?.bonds) ? g?.bonds?.length : null,
+                firstSymbols: Array.isArray(g?.atoms) ? g.atoms.slice(0, 6).map((a) => a.symbol) : null,
+                firstBonds: Array.isArray(g?.bonds) ? g.bonds.slice(0, 8) : null,
+              },
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {})
+        }
+        // #endregion
         if (!g || !Array.isArray(g.atoms) || !Array.isArray(g.bonds)) return null
         return { atoms: g.atoms, bonds: g.bonds }
       }

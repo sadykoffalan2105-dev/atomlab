@@ -107,6 +107,36 @@ function rotateZ(v: V3, ang: number): V3 {
   return [v[0] * c - v[1] * s, v[0] * s + v[1] * c, v[2]]
 }
 
+function pairKey(i: number, j: number): string {
+  const a = Math.min(i, j)
+  const b = Math.max(i, j)
+  return `${a}-${b}`
+}
+
+function minNonBondedDistance(pos: V3[], bonds: readonly (readonly [number, number])[]): number {
+  const bondSet = new Set<string>()
+  for (const [i, j] of bonds) bondSet.add(pairKey(i, j))
+  let m = Infinity
+  for (let i = 0; i < pos.length; i++) {
+    const a = pos[i]!
+    for (let j = i + 1; j < pos.length; j++) {
+      if (bondSet.has(pairKey(i, j))) continue
+      const b = pos[j]!
+      const d = Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
+      if (d < m) m = d
+    }
+  }
+  return m
+}
+
+function scaleAll(pos: number[][], s: number): void {
+  for (const p of pos) {
+    p[0]! *= s
+    p[1]! *= s
+    p[2]! *= s
+  }
+}
+
 function tetraDirs(): V3[] {
   const t = 1 / Math.sqrt(3)
   return [
@@ -511,50 +541,6 @@ function placeIonsSeparatedSymmetric(
   return { symbols, pos, bonds, placedUnits }
 }
 
-function addInterIonBondsAllConnected(
-  placed: { symbols: string[]; pos: V3[]; bonds: [number, number][]; placedUnits: PlacedUnit[] },
-): void {
-  const { symbols, pos, bonds, placedUnits } = placed
-  const isMetal = (sym: string) => ['NA', 'K', 'LI', 'CS', 'AG', 'MG', 'CA', 'BA', 'SR', 'ZN', 'CU', 'FE', 'PB', 'SN', 'MN', 'NI', 'CO', 'AL', 'CR'].includes(sym.toUpperCase())
-  const isGoodAnchor = (sym: string) => {
-    const s = sym.toUpperCase()
-    return s === 'O' || s === 'F' || s === 'CL' || s === 'BR' || s === 'I' || s === 'S' || s === 'N'
-  }
-
-  const leftUnits = placedUnits.filter((u) => u.side === -1)
-  const rightUnits = placedUnits.filter((u) => u.side === 1)
-  if (leftUnits.length === 0 || rightUnits.length === 0) return
-
-  // Collect candidate indices for anchors on the right (anions)
-  const rightAnchorIdx: number[] = []
-  for (const u of rightUnits) {
-    for (let i = u.start; i < u.end; i++) {
-      if (isGoodAnchor(symbols[i]!)) rightAnchorIdx.push(i)
-    }
-  }
-  if (rightAnchorIdx.length === 0) return
-
-  // For each left unit (cations), connect its first atom (usually metal center) to nearest anchors
-  for (const u of leftUnits) {
-    const catIdx = u.start
-    const catSym = symbols[catIdx] ?? ''
-    if (!isMetal(catSym)) continue
-    const pC = pos[catIdx]!
-
-    const scored = rightAnchorIdx
-      .map((ai) => {
-        const pA = pos[ai]!
-        const d = Math.hypot(pC[0] - pA[0], pC[1] - pA[1], pC[2] - pA[2])
-        return { ai, d }
-      })
-      .sort((a, b) => a.d - b.d)
-
-    // attach 2 bonds if possible to make the whole salt graph connected and “палочки везде”
-    const picks = scored.slice(0, 2)
-    for (const { ai } of picks) bonds.push([catIdx, ai])
-  }
-}
-
 function buildSaltGeometry(composition: Record<string, number>, compoundId: string) {
   const seed = hash32(compoundId) ^ 0x5c1f3a91
   const dec = tryDecomposeSalt(composition)
@@ -592,7 +578,8 @@ function buildSaltGeometry(composition: Record<string, number>, compoundId: stri
     units.push({ ...u, side: 1, unitIndex: i })
   }
   const placed = placeIonsSeparatedSymmetric(units)
-  addInterIonBondsAllConnected(placed)
+  // Ionic model: do NOT add inter-ion sticks.
+  // Keep only internal bonds inside polyatomic ions.
   // #region agent log
   fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
     method: 'POST',
@@ -627,6 +614,15 @@ function buildAutoMoleculeGeometry(
       const posArr = salt.pos.map((p) => [...p] as number[])
       centerAtOrigin(posArr)
       normalizeExtent(posArr, 0.92)
+      // Visual non-bonded overlap guard:
+      // in our renderer, non-hero spheres are ~0.32, so we must keep non-bonded atoms slightly apart
+      // to avoid “sticking” visuals in salts (especially oxygens in polyatomic ions).
+      const minOk = 0.32 * 2 * 1.02
+      const minD = minNonBondedDistance(posArr as unknown as V3[], salt.bonds)
+      if (Number.isFinite(minD) && minD > 1e-6 && minD < minOk) {
+        const k = (minOk / minD) * 1.04
+        scaleAll(posArr, k)
+      }
       const atoms: Atom3D[] = salt.symbols.map((symbol, i) => ({
         symbol,
         pos: [posArr[i]![0]!, posArr[i]![1]!, posArr[i]![2]!] as Vec3,

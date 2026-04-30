@@ -201,6 +201,62 @@ export function MoleculeMesh({
   }, [compound.id, compound.category, compound.atoms.length, compound.bonds.length])
   // #endregion
 
+  // #region agent log
+  useEffect(() => {
+    if (compound.id !== 'salt_na_no2') return
+    const atoms = compound.atoms ?? []
+    const bonds = compound.bonds ?? []
+    const naIdx = atoms.findIndex((a) => a.symbol.toUpperCase() === 'NA')
+    const naTouched = naIdx < 0 ? null : bonds.filter(([i, j]) => i === naIdx || j === naIdx).slice(0, 8)
+    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dbdb64' },
+      body: JSON.stringify({
+        sessionId: 'dbdb64',
+        runId: 'na_no2_dbg',
+        hypothesisId: 'H2_render_has_na_bonds',
+        location: 'src/components/lab/MoleculeMesh.tsx:MoleculeMesh',
+        message: 'render salt_na_no2 bonds summary',
+        data: {
+          atomsLen: atoms.length,
+          bondsLen: bonds.length,
+          naIdx,
+          naTouched,
+          firstSymbols: atoms.slice(0, 8).map((a) => a.symbol),
+          firstBonds: bonds.slice(0, 10),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+  }, [compound.id, compound.atoms, compound.bonds])
+  // #endregion
+
+  // #region agent log
+  useEffect(() => {
+    if (compound.id !== 'salt_k_no3') return
+    const atoms = compound.atoms ?? []
+    const bonds = compound.bonds ?? []
+    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dbdb64' },
+      body: JSON.stringify({
+        sessionId: 'dbdb64',
+        runId: 'kno3_dbg',
+        hypothesisId: 'H_kno3_render_input',
+        location: 'src/components/lab/MoleculeMesh.tsx:MoleculeMesh',
+        message: 'render salt_k_no3 atoms/bonds',
+        data: {
+          atomsLen: atoms.length,
+          bondsLen: bonds.length,
+          firstSymbols: atoms.slice(0, 8).map((a) => a.symbol),
+          firstBonds: bonds.slice(0, 12),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+  }, [compound.id, compound.atoms, compound.bonds])
+  // #endregion
+
   const degrees = useMemo(
     () => atomDegrees(compound.atoms.length, compound.bonds),
     [compound.atoms.length, compound.bonds],

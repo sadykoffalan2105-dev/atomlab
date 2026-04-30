@@ -63,6 +63,8 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
     const a = atoms ?? []
     const b = bonds ?? []
     if (a.length <= 1) return { atoms: a, bonds: b ?? [] }
+    // Salts: we allow separated ions (no inter-ion sticks).
+    if (p.category === 'salt') return { atoms: a, bonds: b ?? [] }
     if (Array.isArray(b) && b.length > 0) return { atoms: a, bonds: b }
     // If a compound provides atoms but no bonds, generate a connected “sticks” graph.
     // Keep it deterministic and chemically-plausible using the existing generator.
@@ -79,12 +81,75 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
     bonds: RawCompoundDef['bonds'],
   ): { atoms: NonNullable<RawCompoundDef['atoms']>; bonds: NonNullable<RawCompoundDef['bonds']> } | null => {
     const a = atoms ?? []
-    const b = bonds ?? []
+    const b0 = bonds ?? []
     if (a.length === 0) return null
     const expectedKey = keyFromCounts(p.composition)
     const gotKey = keyFromCounts(countsFromAtoms(a))
     const okCounts = expectedKey === gotKey
-    const okBonds = a.length <= 1 ? true : Array.isArray(b) && b.length > 0
+    const separateSaltCations = new Set(['Na', 'K', 'Li', 'Cs', 'Mg', 'Ca', 'Ba', 'Sr', 'Ag'])
+    const b =
+      p.category !== 'salt'
+        ? b0
+        : b0.filter(([i, j]) => {
+            const si = a[i]?.symbol
+            const sj = a[j]?.symbol
+            if (!si || !sj) return false
+            return !(separateSaltCations.has(si) || separateSaltCations.has(sj))
+          })
+
+    // If a salt has ONLY inter-ion bonds (often from PubChem 2D),
+    // filtering those cations can leave us with no sticks at all.
+    // Recover internal bonds deterministically from our generator, but still keep cations separated.
+    let bondsRecovered: typeof b = b
+    if (p.category === 'salt' && a.length > 1 && Array.isArray(bondsRecovered) && bondsRecovered.length === 0) {
+      const geo = buildSignatureMolecule(p.composition, p.id, p.category)
+      const rec = geo.bonds.filter(([i, j]) => {
+        const si = geo.atoms[i]?.symbol
+        const sj = geo.atoms[j]?.symbol
+        if (!si || !sj) return false
+        return !(separateSaltCations.has(si) || separateSaltCations.has(sj))
+      })
+      if (rec.length > 0) bondsRecovered = rec
+    }
+    // #region agent log
+    if (p.id === 'salt_k_no3') {
+      fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain', 'X-Debug-Session-Id': 'dbdb64' },
+        body: JSON.stringify({
+          sessionId: 'dbdb64',
+          runId: 'kno3_dbg',
+          hypothesisId: 'H_kno3_bonds_pipeline',
+          location: 'src/data/compounds.ts:validateGeometryOrNull',
+          message: 'salt_k_no3 bonds pipeline',
+          data: {
+            source,
+            atomsLen: a.length,
+            bondsLenRaw: Array.isArray(b0) ? b0.length : null,
+            bondsLenAfterFilter: Array.isArray(b) ? b.length : null,
+            bondsLenRecovered: Array.isArray(bondsRecovered) ? bondsRecovered.length : null,
+            symbolsA: a.slice(0, 8).map((x) => x.symbol),
+            firstBondsAfter: Array.isArray(b) ? b.slice(0, 12) : null,
+            firstBondsRecovered: Array.isArray(bondsRecovered) ? bondsRecovered.slice(0, 12) : null,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+    }
+    // #endregion
+
+    const okBonds =
+      a.length <= 1
+        ? true
+        : p.category === 'salt'
+          ? true
+          : Array.isArray(bondsRecovered) && bondsRecovered.length > 0
+    const okBondIdx =
+      a.length <= 1
+        ? true
+        : Array.isArray(bondsRecovered) &&
+          bondsRecovered.every(([i, j]) => Number.isInteger(i) && Number.isInteger(j) && i >= 0 && j >= 0 && i < a.length && j < a.length)
     dbg(
       source === 'handBuilt' ? 'H_pubchem_or_override_wrong' : 'H_raw_geometry',
       'src/data/compounds.ts:validateGeometryOrNull',
@@ -95,15 +160,19 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
         expectedKey,
         gotKey,
         atomsLen: a.length,
-        bondsLen: Array.isArray(b) ? b.length : null,
+        bondsLen: Array.isArray(b0) ? b0.length : null,
+        bondsLenAfter: Array.isArray(b) ? b.length : null,
+        bondsLenRecovered: Array.isArray(bondsRecovered) ? bondsRecovered.length : null,
         okCounts,
         okBonds,
+        okBondIdx,
         firstSymbols: a.slice(0, 6).map((x) => x.symbol),
       },
     )
     if (!okCounts) return null
     if (!okBonds) return null
-    return { atoms: a, bonds: b }
+    if (!okBondIdx) return null
+    return { atoms: a, bonds: bondsRecovered }
   }
 
   if (p.atoms && p.atoms.length > 0 && p.bonds !== undefined) {
@@ -177,7 +246,7 @@ const handRaw: RawCompoundDef[] = [
     ],
     accentColor: '#6ec8ff',
     descriptionRu: 'Полярная молекула, растворитель.',
-    laboratoryRecipeRu: '2H + O = H₂O',
+    laboratoryRecipeRu: '2H₂ + O₂ = 2H₂O',
   },
   {
     id: 'co2',
@@ -196,7 +265,7 @@ const handRaw: RawCompoundDef[] = [
     ],
     accentColor: '#b8c8ff',
     descriptionRu: 'Линейная молекула.',
-    laboratoryRecipeRu: 'C + 2O = CO₂',
+    laboratoryRecipeRu: 'C + O₂ = CO₂',
   },
   {
     id: 'nacl',
@@ -211,7 +280,7 @@ const handRaw: RawCompoundDef[] = [
     bonds: [],
     accentColor: '#ff9ec9',
     descriptionRu: 'Ионная соль.',
-    laboratoryRecipeRu: 'Na + Cl = NaCl',
+    laboratoryRecipeRu: '2Na + Cl₂ = 2NaCl',
   },
 ]
 

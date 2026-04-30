@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type MutableRefObject } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Sparkles } from '@react-three/drei'
 import { gsap } from 'gsap'
@@ -148,12 +148,18 @@ export function SynthesisOnLabScene({
   const productEntranceRef = useRef<THREE.Group>(null)
   const [phase, setPhase] = useState<Phase>('flying')
   const phaseRef = useRef<Phase>('flying')
-  phaseRef.current = phase
   const tAcc = useRef(0)
   const doneRef = useRef(false)
   const onDoneRef = useRef(onDone)
-  onDoneRef.current = onDone
   const slotsKey = zSlots.join(',')
+
+  useEffect(() => {
+    phaseRef.current = phase
+  }, [phase])
+
+  useEffect(() => {
+    onDoneRef.current = onDone
+  }, [onDone])
 
   useLayoutEffect(() => {
     const isSubstanceView =
@@ -166,6 +172,7 @@ export function SynthesisOnLabScene({
     doneRef.current = false
     tAcc.current = 0
     phaseRef.current = 'flying'
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPhase('flying')
     const xs = xPositionsAlongRow(n)
     for (let i = 0; i < n; i++) {

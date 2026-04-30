@@ -15,11 +15,12 @@ export function emptyReactorSlots(): ReactorSlot[] {
  */
 export function appendReactorZ(prev: readonly ReactorSlot[], z: number): ReactorSlot[] {
   const out: ReactorSlot[] = Array.from({ length: REACTOR_SLOT_COUNT }, (_, i) => (i < prev.length ? prev[i]! : null))
+  const delta = 1
 
   const existingIdx = out.findIndex((s) => s != null && s.z === z)
   if (existingIdx >= 0) {
     const s = out[existingIdx]!
-    out[existingIdx] = { z: s.z, count: s.count + 1 }
+    out[existingIdx] = { z: s.z, count: s.count + delta }
     // #region agent log
     fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
       method: 'POST',
@@ -31,7 +32,7 @@ export function appendReactorZ(prev: readonly ReactorSlot[], z: number): Reactor
         hypothesisId: 'H_slots',
         location: 'reactorSlots.ts:appendReactorZ',
         message: 'increment existing',
-        data: { z, existingIdx, countAfter: s.count + 1 },
+        data: { z, existingIdx, delta, countAfter: s.count + delta },
         timestamp: Date.now(),
       }),
     }).catch(() => {})
@@ -41,7 +42,7 @@ export function appendReactorZ(prev: readonly ReactorSlot[], z: number): Reactor
 
   const firstEmpty = out.findIndex((s) => s == null)
   if (firstEmpty >= 0) {
-    out[firstEmpty] = { z, count: 1 }
+    out[firstEmpty] = { z, count: delta }
     // #region agent log
     fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
       method: 'POST',
@@ -53,7 +54,7 @@ export function appendReactorZ(prev: readonly ReactorSlot[], z: number): Reactor
         hypothesisId: 'H_slots',
         location: 'reactorSlots.ts:appendReactorZ',
         message: 'insert new into empty',
-        data: { z, firstEmpty },
+        data: { z, firstEmpty, delta },
         timestamp: Date.now(),
       }),
     }).catch(() => {})
@@ -63,7 +64,7 @@ export function appendReactorZ(prev: readonly ReactorSlot[], z: number): Reactor
 
   // Сдвиг влево: удаляем самый старый уникальный элемент
   for (let i = 0; i < REACTOR_SLOT_COUNT - 1; i++) out[i] = out[i + 1]!
-  out[REACTOR_SLOT_COUNT - 1] = { z, count: 1 }
+  out[REACTOR_SLOT_COUNT - 1] = { z, count: delta }
   // #region agent log
   fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
     method: 'POST',
@@ -75,7 +76,7 @@ export function appendReactorZ(prev: readonly ReactorSlot[], z: number): Reactor
       hypothesisId: 'H_slots',
       location: 'reactorSlots.ts:appendReactorZ',
       message: 'shift left and insert',
-      data: { z },
+      data: { z, delta },
       timestamp: Date.now(),
     }),
   }).catch(() => {})
@@ -115,8 +116,8 @@ export function decrementReactorSlot(slots: readonly ReactorSlot[], index: numbe
   } else {
     out[index] = null
     // сдвиг влево, сохраняя порядок
-    const compact = out.filter((x) => x != null) as Exclude<ReactorSlot, null>[]
-    while (compact.length < REACTOR_SLOT_COUNT) compact.push(null as any)
+    const compact: ReactorSlot[] = out.filter((x) => x != null)
+    while (compact.length < REACTOR_SLOT_COUNT) compact.push(null)
     for (let i = 0; i < REACTOR_SLOT_COUNT; i++) out[i] = compact[i] ?? null
   }
   // #region agent log

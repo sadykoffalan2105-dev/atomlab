@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, Stars, DragControls } from '@react-three/drei'
 import * as THREE from 'three'
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { DecorativeAtom } from './DecorativeAtom'
 import { AtomStructureModel } from './AtomStructureModel'
 import { MoleculeMesh } from './MoleculeMesh'
@@ -128,7 +129,7 @@ function SceneContent({
   } | null
 }) {
   const { camera } = useThree()
-  const orbRef = useRef<any>(null)
+  const orbRef = useRef<OrbitControlsImpl | null>(null)
   const synthActive = synthesis != null
   const reagentRowVisible = reactorReagentZs != null && reactorReagentZs.length >= 2
   const showSettledHero =
@@ -180,9 +181,11 @@ function SceneContent({
     reagentRowVisible,
   ])
 
+  // eslint-disable-next-line react-hooks/immutability
   useEffect(() => {
     if (catalogViewMode) return
     const p = camera as THREE.PerspectiveCamera
+    // eslint-disable-next-line react-hooks/immutability
     p.fov = 50
     p.updateProjectionMatrix()
     camera.position.set(0, 1.1, 4.2)
@@ -192,9 +195,11 @@ function SceneContent({
     orbRef.current?.update?.()
   }, [camera, catalogViewMode])
 
+  // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {
     if (!catalogViewMode) return
     const p = camera as THREE.PerspectiveCamera
+    // eslint-disable-next-line react-hooks/immutability
     p.fov = CATALOG_HERO_VIEW.fov
     p.updateProjectionMatrix()
     const [x, y, z] = CATALOG_HERO_VIEW.cameraPosition

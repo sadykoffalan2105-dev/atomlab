@@ -304,19 +304,21 @@ export function CatalogMoleculeHero({ compoundId }: { compoundId: string }) {
   const webglOk = isWebGLAvailable()
 
   // #region agent log
-  fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a62735' },
-    body: JSON.stringify({
-      sessionId: 'a62735',
-      runId: 'pre-fix',
-      hypothesisId: 'H_branch',
-      location: 'CatalogMoleculeHero.tsx:CatalogMoleculeHero',
-      message: 'hero render branch',
-      data: { compoundId, found: !!c, webglOk },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
+  useEffect(() => {
+    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a62735' },
+      body: JSON.stringify({
+        sessionId: 'a62735',
+        runId: 'pre-fix',
+        hypothesisId: 'H_branch',
+        location: 'CatalogMoleculeHero.tsx:CatalogMoleculeHero',
+        message: 'hero render branch',
+        data: { compoundId, found: !!c, webglOk },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+  }, [compoundId, webglOk, c])
   // #endregion
 
   useEffect(() => {

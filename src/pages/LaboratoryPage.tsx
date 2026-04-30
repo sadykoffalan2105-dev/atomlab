@@ -184,10 +184,7 @@ export function LaboratoryPage() {
 
   const labSynthesis = useMemo(() => {
     if (!reactorOpen || runId <= 0) return null
-    const fromState = lastRunZs
-    const fromRef = lastRunZSlotsRef.current
-    const zSlots: readonly number[] =
-      fromState.length >= 2 ? fromState : fromRef.length >= 2 ? fromRef : fromState
+    const zSlots: readonly number[] = lastRunZs
     if (zSlots.length < 2) return null
     return {
       runId,
@@ -198,15 +195,11 @@ export function LaboratoryPage() {
     }
   }, [reactorOpen, runId, lastRunZs, lastRunProduct, onReactorAnimDone, onSynthesisStageChange])
 
-  const slotsKey = reactorSlots
-    .map((s) => (s == null ? '-' : `${s.z}x${s.count}`))
-    .join(',')
-
   const reactorReagentZs = useMemo(() => {
     if (!reactorOpen || runId !== 0) return null
     const z = getFilledReactorZ(reactorSlots)
     return z.length >= 2 ? z : null
-  }, [reactorOpen, runId, reactorSlots, slotsKey])
+  }, [reactorOpen, runId, reactorSlots])
 
   const synthRunActive = reactorOpen && runId > 0
   const showSettledSynthesisView = reactorOpen && !synthRunActive && synthesisSettledProduct != null
