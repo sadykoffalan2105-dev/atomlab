@@ -15,7 +15,10 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
+  /* UI scale: make 100% browser zoom look like ~50% for this app */
+  --ui-scale: 0.5;
+
+  font: calc(18px * var(--ui-scale))/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text);
@@ -26,7 +29,7 @@
   -moz-osx-font-smoothing: grayscale;
 
   @media (max-width: 1024px) {
-    font-size: 16px;
+    font-size: calc(16px * var(--ui-scale));
   }
 }
 
@@ -74,21 +77,21 @@ h2 {
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
+  font-size: 3.111rem; /* 56/18 */
+  letter-spacing: -0.03em;
+  margin: 1.777rem 0;
   @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+    font-size: 2rem; /* 36/18 */
+    margin: 1.111rem 0;
   }
 }
 h2 {
-  font-size: 24px;
+  font-size: 1.333rem; /* 24/18 */
   line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.444rem;
   @media (max-width: 1024px) {
-    font-size: 20px;
+    font-size: 1.111rem; /* 20/18 */
   }
 }
 p {
@@ -99,13 +102,13 @@ code,
 .counter {
   font-family: var(--mono);
   display: inline-flex;
-  border-radius: 4px;
+  border-radius: 0.222rem;
   color: var(--text-h);
 }
 
 code {
-  font-size: 15px;
+  font-size: 0.833rem;
   line-height: 135%;
-  padding: 4px 8px;
+  padding: 0.222rem 0.444rem;
   background: var(--code-bg);
 }

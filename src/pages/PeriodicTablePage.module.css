@@ -1,8 +1,35 @@
 .page {
-  padding: 1rem 1.25rem 2rem;
+  padding: 0.25rem 0.4rem 0.35rem;
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.introRow {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0.2rem 0.25rem;
+}
+
+.introToggle {
+  appearance: none;
+  border: 1px solid rgba(61, 255, 236, 0.28);
+  background: rgba(8, 10, 24, 0.7);
+  color: rgba(200, 210, 245, 0.92);
+  border-radius: 0.55rem;
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+}
+
+.introToggle:hover {
+  border-color: rgba(61, 255, 236, 0.5);
+  color: #3dffec;
 }
 
 .headIntro {
@@ -21,6 +48,31 @@
 }
 
 .tableWrap {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* Fit the periodic grid into the viewport: no scroll, always fully visible. */
+.tableFit {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+  padding-top: 0.35rem;
+  box-sizing: border-box;
+}
+
+.tableFitInner {
+  transform: scale(var(--pt-scale, 1));
+  transform-origin: top center;
+  will-change: transform;
+}
+
+.ptWrapNoScroll {
+  overflow: hidden !important;
+  padding: 0 !important;
 }

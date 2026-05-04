@@ -1,3 +1,4 @@
+import { defaultSynthesisConditionsText } from '../chemistry/synthesisConditionsDefaults'
 import { buildDefaultLaboratoryRecipeRu } from '../chemistry/laboratoryRecipeText'
 import { getMolecularGeometryOrNull } from '../chemistry/catalogGeometryOverrides'
 import { buildSignatureMolecule } from '../chemistry/placeholderMolecule'
@@ -22,6 +23,11 @@ function compositionKey(counts: Record<string, number>): string {
 
 function recipeIn(p: RawCompoundDef): string {
   return p.laboratoryRecipeRu ?? buildDefaultLaboratoryRecipeRu(p)
+}
+
+function synthesisConditionsIn(p: RawCompoundDef) {
+  const base = defaultSynthesisConditionsText(p.synthesisLab, p.category)
+  return { ...base, ...p.synthesisConditionsRu }
 }
 
 export function finalizeCompound(p: RawCompoundDef): CompoundDef {
@@ -189,6 +195,7 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
       atoms: fixed.atoms,
       bonds: fixed.bonds,
       laboratoryRecipeRu: recipeIn(p),
+      synthesisConditionsRu: synthesisConditionsIn(p),
     }
   }
   const handBuilt = getMolecularGeometryOrNull(p.id)
@@ -211,6 +218,7 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
       atoms: fixed.atoms,
       bonds: fixed.bonds,
       laboratoryRecipeRu: recipeIn(p),
+      synthesisConditionsRu: synthesisConditionsIn(p),
     }
   }
   const geo = buildSignatureMolecule(p.composition, p.id, p.category)
@@ -225,6 +233,7 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
     atoms: geo.atoms,
     bonds: geo.bonds,
     laboratoryRecipeRu: recipeIn(p),
+    synthesisConditionsRu: synthesisConditionsIn(p),
   }
 }
 
@@ -304,4 +313,9 @@ function atomCount(c: CompoundDef): number {
 
 export function compoundsSortedForMatch(): readonly CompoundDef[] {
   return [...list].sort((a, b) => atomCount(b) - atomCount(a))
+}
+
+/** Список для выпадающего списка в реакторе (по названию). */
+export function compoundsListAlphabeticalRu(): readonly CompoundDef[] {
+  return [...list].sort((a, b) => a.nameRu.localeCompare(b.nameRu, 'ru'))
 }

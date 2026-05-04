@@ -68,9 +68,9 @@
 
 .close {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 2.222rem;
+  height: 2.222rem;
+  border-radius: 0.556rem;
   border: 1px solid rgba(139, 147, 184, 0.45);
   background: rgba(24, 28, 52, 0.85);
   color: #c8d0f0;
@@ -91,7 +91,7 @@
 
 @media (min-width: 600px) {
   .body {
-    grid-template-columns: 1fr min(42%, 280px);
+    grid-template-columns: 1fr min(42%, 15.556rem);
     align-items: start;
   }
 }
@@ -119,6 +119,41 @@
   letter-spacing: 0.06em;
 }
 
+.synthConditions {
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(100, 140, 200, 0.22);
+  background: rgba(6, 10, 28, 0.55);
+}
+
+.synthRow {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 0.35rem 0.65rem;
+  align-items: start;
+  margin-bottom: 0.45rem;
+}
+
+.synthRow:last-child {
+  margin-bottom: 0;
+}
+
+.synthDt {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(61, 255, 236, 0.75);
+  letter-spacing: 0.04em;
+}
+
+.synthDd {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: rgba(200, 210, 245, 0.95);
+}
+
 .description {
   margin: 0;
   font-size: 0.88rem;
@@ -139,8 +174,8 @@
 }
 
 .previewWrap {
-  min-height: 300px;
-  height: 300px;
+  min-height: 16.667rem;
+  height: 16.667rem;
   border-radius: 12px;
   overflow: hidden;
   background: radial-gradient(circle at 50% 40%, rgba(61, 255, 236, 0.08), transparent 60%);

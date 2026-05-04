@@ -11,8 +11,8 @@
 /* Плотный вид для панели лаборатории: без внутренней прокрутки на типичных экранах */
 .rootLab {
   color: #e8ecff;
-  font-size: 0.64rem;
-  line-height: 1.3;
+  font-size: 0.72rem;
+  line-height: 1.32;
 }
 
 .rootLab .head {
@@ -21,27 +21,27 @@
 }
 
 .rootLab .symbol {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   text-shadow: 0 0 8px rgba(61, 255, 236, 0.22);
   letter-spacing: 0.04em;
 }
 
 .rootLab .name {
   margin: 0.1rem 0 0;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
 }
 
 .rootLab .zLine {
   margin: 0.1rem 0 0;
-  font-size: 0.6rem;
+  font-size: 0.68rem;
 }
 
 .rootLab .dl {
   display: grid;
   grid-template-columns: minmax(4.5rem, 32%) 1fr;
   gap: 0.2rem 0.45rem;
-  font-size: 0.62rem;
-  line-height: 1.28;
+  font-size: 0.7rem;
+  line-height: 1.3;
 }
 
 .rootLab .dt {
@@ -49,8 +49,8 @@
 }
 
 .rootLab .configBlock {
-  font-size: 0.58rem;
-  line-height: 1.28;
+  font-size: 0.66rem;
+  line-height: 1.3;
 }
 
 .rootLab .cpkSwatch {

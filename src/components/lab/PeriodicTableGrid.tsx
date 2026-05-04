@@ -58,15 +58,19 @@ export function PeriodicTableGrid({
   onPickElement,
   onAltPickElement,
   compact = false,
+  wrapClassName,
+  gridClassName,
 }: {
   mode: 'interactive' | 'static'
   onPickElement?: (z: number) => void
   onAltPickElement?: (z: number) => void
   compact?: boolean
+  wrapClassName?: string
+  gridClassName?: string
 }) {
   return (
-    <div className={`${styles.gridWrap} ${compact ? styles.gridWrapCompact : ''}`}>
-      <div className={`${styles.grid} ${compact ? styles.gridCompact : ''}`}>
+    <div className={`${styles.gridWrap} ${compact ? styles.gridWrapCompact : ''} ${wrapClassName ?? ''}`}>
+      <div className={`${styles.grid} ${compact ? styles.gridCompact : ''} ${gridClassName ?? ''}`}>
         <div className={styles.corner} aria-hidden style={{ gridColumn: 1, gridRow: '1 / span 2' }} />
         {Array.from({ length: GROUP_COUNT }, (_, i) => (
           <div

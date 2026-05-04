@@ -113,6 +113,21 @@ export function CompoundDetailModal({
             <p className={styles.labExample} aria-label="Упрощённый пример сопоставления атомов с формулой">
               {c.laboratoryRecipeRu}
             </p>
+            <span className={styles.metaLabel}>Условия синтеза (ориентир)</span>
+            <dl className={styles.synthConditions}>
+              <div className={styles.synthRow}>
+                <dt className={styles.synthDt}>Температура</dt>
+                <dd className={styles.synthDd}>{c.synthesisConditionsRu.temperature ?? '—'}</dd>
+              </div>
+              <div className={styles.synthRow}>
+                <dt className={styles.synthDt}>Давление</dt>
+                <dd className={styles.synthDd}>{c.synthesisConditionsRu.pressure ?? '—'}</dd>
+              </div>
+              <div className={styles.synthRow}>
+                <dt className={styles.synthDt}>Катализатор</dt>
+                <dd className={styles.synthDd}>{c.synthesisConditionsRu.catalyst ?? '—'}</dd>
+              </div>
+            </dl>
           </div>
           <div className={styles.previewWrap} aria-label="Трёхмерная модель вещества">
             <CatalogMoleculeHero compoundId={compoundId} />

@@ -69,6 +69,14 @@ export function CatalogPage() {
                     <span className={styles.name}>{c.nameRu}</span>
                     <p className={styles.desc}>{c.descriptionRu}</p>
                     <p className={styles.labRecipe}>{c.laboratoryRecipeRu}</p>
+                    <p className={styles.synthPreview} title={`T: ${c.synthesisConditionsRu.temperature ?? ''}\n${c.synthesisConditionsRu.pressure ?? ''}\n${c.synthesisConditionsRu.catalyst ?? ''}`}>
+                      <span className={styles.synthPreviewLabel}>Синтез</span>{' '}
+                      <span className={styles.synthPreviewT}>t°</span>
+                      <span className={styles.synthPreviewDot}>·</span>
+                      <span className={styles.synthPreviewP}>p</span>
+                      <span className={styles.synthPreviewDot}>·</span>
+                      <span className={styles.synthPreviewK}>кат.</span>
+                    </p>
                   </button>
                 </li>
               ))}

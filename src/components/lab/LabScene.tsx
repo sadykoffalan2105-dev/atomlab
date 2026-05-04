@@ -16,6 +16,9 @@ import { CATALOG_HERO_VIEW, LAB_ORBIT } from './labOrbitConstants'
 import { CanvasErrorBoundary } from '../common/CanvasErrorBoundary'
 import { isWebGLAvailable } from '../../utils/webgl'
 
+/** Совпадает с `<color attach="background" args={['#03040a']} />` в обычной ветке сцены */
+const LAB_SCENE_CLEAR_HEX = '#03040a'
+
 function hexToColor(hex: string): THREE.Color {
   const h = hex.startsWith('#') ? hex : '#' + hex.replace('#', '')
   return new THREE.Color(h)
@@ -186,10 +189,10 @@ function SceneContent({
     if (catalogViewMode) return
     const p = camera as THREE.PerspectiveCamera
     // eslint-disable-next-line react-hooks/immutability
-    p.fov = 50
+    p.fov = 58
     p.updateProjectionMatrix()
-    camera.position.set(0, 1.1, 4.2)
-    camera.lookAt(0, 0.2, 0)
+    camera.position.set(0, 1.25, 6.2)
+    camera.lookAt(0, 0.18, 0)
     const t = orbRef.current?.target
     if (t) t.set(0, 0.15, 0)
     orbRef.current?.update?.()
@@ -248,8 +251,8 @@ function SceneContent({
         </>
       ) : (
         <>
-          <color attach="background" args={['#03040a']} />
-          <fog attach="fog" args={['#03040a', 6, 28]} />
+          <color attach="background" args={[LAB_SCENE_CLEAR_HEX]} />
+          <fog attach="fog" args={[LAB_SCENE_CLEAR_HEX, 6, 28]} />
           <Stars radius={120} depth={60} count={7000} factor={3.5} saturation={0} fade speed={0.6} />
           <ambientLight intensity={0.22} />
           <directionalLight position={[4, 6, 2]} intensity={0.55} color="#b8c8ff" />
@@ -349,6 +352,9 @@ export function LabCanvas({
         gl={{ antialias: true, alpha: false }}
         dpr={[1, 2]}
         onCreated={(state) => {
+          const bg = hexToColor(LAB_SCENE_CLEAR_HEX)
+          state.gl.setClearColor(bg, 1)
+          state.scene.background = bg
           // #region agent log
           fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
             method: 'POST',

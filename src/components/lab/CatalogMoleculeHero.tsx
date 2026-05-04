@@ -10,6 +10,7 @@ import { MoleculeMesh } from './MoleculeMesh'
 import { CanvasErrorBoundary } from '../common/CanvasErrorBoundary'
 import { isWebGLAvailable } from '../../utils/webgl'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE, catalogMoleculeFitScale, categoryAccentRgb, rgbToHex } from './catalogMoleculeHeroShared'
+import { CATALOG_HERO_VIEW } from './labOrbitConstants'
 
 /** Полупрозрачная «капсула» вокруг молекулы в цвете вещества + тонкие кольца. */
 export function SubstanceAuraBubble({
@@ -196,7 +197,7 @@ export function CosmicStarfield({
 /** Post-processing как в мини-Canvas карточки каталога — к «космическому» блеску. */
 export function CatalogStyleBloom() {
   return (
-    <EffectComposer multisampling={4}>
+    <EffectComposer multisampling={0}>
       <Bloom luminanceThreshold={0.16} mipmapBlur intensity={0.72} radius={0.38} levels={7} />
     </EffectComposer>
   )
@@ -205,10 +206,15 @@ export function CatalogStyleBloom() {
 export function HeroMoleculeRig({
   compound,
   labScaleBoost = CATALOG_HERO_DEFAULT_LAB_SCALE,
+  renderQuality = 'high',
+  fxLevel = 'full',
 }: {
   compound: CompoundDef
   /** >1 — крупнее молекула в лаборатории относительно героя каталога */
   labScaleBoost?: number
+  renderQuality?: 'high' | 'synthesis'
+  /** Для внешних обёрток: можно отключить тяжёлые эффекты при синтезе */
+  fxLevel?: 'off' | 'low' | 'full'
 }) {
   const ref = useRef<THREE.Group>(null)
   const fit = useMemo(() => catalogMoleculeFitScale(compound.atoms), [compound.atoms])
@@ -226,7 +232,14 @@ export function HeroMoleculeRig({
 
   return (
     <group ref={ref} position={[0, 0, 0]}>
-      <MoleculeMesh compound={compound} scale={baseScale * fit} accentBoost={1.42} visualPreset="catalogHero" />
+      <MoleculeMesh
+        compound={compound}
+        scale={baseScale * fit}
+        accentBoost={1.42}
+        visualPreset="catalogHero"
+        renderQuality={renderQuality}
+        showLabels={fxLevel !== 'off'}
+      />
     </group>
   )
 }
@@ -369,7 +382,7 @@ export function CatalogMoleculeHero({ compoundId }: { compoundId: string }) {
   return (
     <CanvasErrorBoundary>
       <Canvas
-        camera={{ position: [0, 0.12, 2.7], fov: 42 }}
+        camera={{ position: CATALOG_HERO_VIEW.cameraPosition, fov: CATALOG_HERO_VIEW.fov }}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         dpr={[1, 1.75]}
         onCreated={(state) => {
@@ -435,9 +448,6 @@ export function CatalogMoleculeHero({ compoundId }: { compoundId: string }) {
         <Suspense fallback={<SuspenseFallbackLog compoundId={compoundId} />}>
           <CatalogHeroScene compoundId={compoundId} compound={c} />
         </Suspense>
-        <EffectComposer multisampling={4}>
-          <Bloom luminanceThreshold={0.16} mipmapBlur intensity={0.72} radius={0.38} levels={7} />
-        </EffectComposer>
       </Canvas>
     </CanvasErrorBoundary>
   )

@@ -3,6 +3,7 @@ import { OrbitControls } from '@react-three/drei'
 import { MoleculeMesh } from './MoleculeMesh'
 import { compoundById } from '../../data/compounds'
 import { useEffect, useRef } from 'react'
+import { CATALOG_HERO_VIEW } from './labOrbitConstants'
 
 export function MoleculePreview({ compoundId }: { compoundId: string }) {
   const c = compoundById[compoundId]
@@ -28,7 +29,10 @@ export function MoleculePreview({ compoundId }: { compoundId: string }) {
   // #endregion
   if (!c) return null
   return (
-    <Canvas camera={{ position: [0, 0.4, 2.8], fov: 45 }} gl={{ antialias: true }}>
+    <Canvas
+      camera={{ position: [0, 0.4, CATALOG_HERO_VIEW.cameraPosition[2]], fov: CATALOG_HERO_VIEW.fov }}
+      gl={{ antialias: true }}
+    >
       <color attach="background" args={['#0a0c18']} />
       <ambientLight intensity={0.5} />
       <directionalLight position={[3, 4, 2]} intensity={0.7} />

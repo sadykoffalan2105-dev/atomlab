@@ -1,4 +1,8 @@
-/** Число ячеек в ряду реактора (2–4 атома / подбор по составу). */
+/**
+ * Число ячеек в старой сетке реактора (legacy).
+ * Лаборатория использует уравнение с коэффициентами (`reactorEquationBalance.ts`);
+ * функции ниже оставлены для `composition.findCompoundMatchByReactorSlots` и совместимости.
+ */
 export const REACTOR_SLOT_COUNT = 4
 
 export type ReactorSlot = { z: number; count: number } | null

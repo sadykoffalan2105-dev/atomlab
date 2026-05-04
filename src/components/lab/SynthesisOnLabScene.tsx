@@ -5,15 +5,14 @@ import { gsap } from 'gsap'
 import * as THREE from 'three'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
-import { AtomStructureModel } from './AtomStructureModel'
+import { getElementByZ } from '../../data/elements'
 import type { CompoundDef } from '../../types/chemistry'
 
-const FLY_DUR = 0.7
+const FLY_DUR = 0.52
 const MERGE_FLASH_DUR = 0.2
-const PRODUCT_ENTRANCE_DUR = 0.32
-const PRODUCT_HOLD = 1.4
+const PRODUCT_ENTRANCE_DUR = 0.28
+const PRODUCT_HOLD = 0.95
 const FAIL_DUR = 0.45
-const X_SEP = 1.28
 const Y_ATOMS = 0.12
 const ATOM_SCALE = 0.44
 
@@ -27,12 +26,39 @@ const BG = {
 
 const FAIL_MERGE_COLOR = '#ff5c44'
 
-function xPositionsAlongRow(n: number, wideSep = 2.55): number[] {
+function positionsOnCircle(n: number, radius = 1.12): Array<[number, number]> {
   if (n <= 0) return []
-  if (n === 1) return [0]
-  const sep = n <= 2 ? X_SEP : Math.max(0.5, wideSep / (n - 0.4))
-  const w = (n - 1) * sep
-  return Array.from({ length: n }, (_, i) => -w * 0.5 + i * sep)
+  if (n === 1) return [[0, 0]]
+  if (n === 2) {
+    return [
+      [radius, 0],
+      [-radius, 0],
+    ]
+  }
+  if (n === 3) {
+    const angs = [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3]
+    return angs.map((a) => [Math.cos(a) * radius, Math.sin(a) * radius])
+  }
+  const angs = Array.from({ length: n }, (_, i) => (i / n) * Math.PI * 2 - Math.PI / 2)
+  return angs.map((a) => [Math.cos(a) * radius, Math.sin(a) * radius])
+}
+
+/** Лёгкий шар для фазы полёта (без ядра/электронов AtomStructureModel — до 24 слотов). */
+function SynthesisFlyAtom({ z }: { z: number }) {
+  const el = getElementByZ(z)
+  const color = el ? `#${el.cpkHex}` : '#8899aa'
+  return (
+    <mesh>
+      <sphereGeometry args={[0.48, 18, 14]} />
+      <meshStandardMaterial
+        color={color}
+        emissive={color}
+        emissiveIntensity={0.32}
+        metalness={0.22}
+        roughness={0.36}
+      />
+    </mesh>
+  )
 }
 
 function MergeFlashBurst({
@@ -148,6 +174,7 @@ export function SynthesisOnLabScene({
   const productEntranceRef = useRef<THREE.Group>(null)
   const [phase, setPhase] = useState<Phase>('flying')
   const phaseRef = useRef<Phase>('flying')
+  const [fxLevel, setFxLevel] = useState<'off' | 'low' | 'full'>('off')
   const tAcc = useRef(0)
   const doneRef = useRef(false)
   const onDoneRef = useRef(onDone)
@@ -174,11 +201,13 @@ export function SynthesisOnLabScene({
     phaseRef.current = 'flying'
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPhase('flying')
-    const xs = xPositionsAlongRow(n)
+    setFxLevel('off')
+    const pts = positionsOnCircle(n, 1.12)
     for (let i = 0; i < n; i++) {
       const g = atomGroupRefs.current[i] ?? null
       if (g) {
-        g.position.set(xs[i]!, Y_ATOMS, 0)
+        const [x, z] = pts[i] ?? [0, 0]
+        g.position.set(x, Y_ATOMS, z)
         g.scale.set(1, 1, 1)
         g.visible = true
       }
@@ -223,7 +252,7 @@ export function SynthesisOnLabScene({
     let activeCtx: ReturnType<typeof buildFlyTl> | null = null
     let cancelled = false
     let rafLoop = 0
-    const MAX_FLY_START_FRAMES = 90
+    const MAX_FLY_START_FRAMES = 12
 
     const readGroups = (): (THREE.Group | null)[] =>
       Array.from({ length: n }, (_, i) => atomGroupRefs.current[i] ?? null)
@@ -268,6 +297,7 @@ export function SynthesisOnLabScene({
         if (product) {
           phaseRef.current = 'product'
           setPhase('product')
+          setFxLevel('low')
         } else {
           phaseRef.current = 'failBounce'
           setPhase('failBounce')
@@ -300,7 +330,7 @@ export function SynthesisOnLabScene({
 
   useLayoutEffect(() => {
     if (phase !== 'failBounce') return
-    const xs = xPositionsAlongRow(n, 2.2)
+    const pts = positionsOnCircle(n, 1.08)
     const grps: (THREE.Group | null)[] = Array.from({ length: n }, (_, i) => atomGroupRefs.current[i] ?? null)
     for (const g of grps) {
       if (g) {
@@ -313,10 +343,11 @@ export function SynthesisOnLabScene({
     const ctx = gsap.context(() => {
       for (let i = 0; i < n; i++) {
         const g = grps[i]!
+        const [x, z] = pts[i] ?? [0, 0]
         gsap.to(g.position, {
-          x: xs[i]!,
+          x,
           y: Y_ATOMS,
-          z: 0,
+          z,
           duration: FAIL_DUR,
           ease: 'power2.inOut',
         })
@@ -333,6 +364,7 @@ export function SynthesisOnLabScene({
     }
   }, [phase, runId, n, slotsKey])
 
+  const mountCatalogSubstance = !!product && (phase === 'mergeFlash' || phase === 'product')
   const showCatalogSubstance = !!product && phase === 'product'
   const inMerge = phase === 'mergeFlash'
   const hasCatalogLights = showCatalogSubstance
@@ -373,12 +405,15 @@ export function SynthesisOnLabScene({
           />
         </>
       ) : null}
-      {showCatalogSubstance && product ? (
+      {mountCatalogSubstance && product ? (
         <group ref={productEntranceRef} position={[0, 0, 0]}>
           <CatalogSubstanceDisplay
             compound={product}
             labScaleBoost={CATALOG_HERO_DEFAULT_LAB_SCALE}
             reducedEffects
+            labSynthesisScene
+            fxLevel={phase === 'mergeFlash' ? 'off' : fxLevel}
+            renderQuality="synthesis"
           />
         </group>
       ) : null}
@@ -392,7 +427,7 @@ export function SynthesisOnLabScene({
               }}
             >
               <group scale={ATOM_SCALE} position={[0, 0, 0]}>
-                <AtomStructureModel z={z} animate={n <= 4} />
+                <SynthesisFlyAtom z={z} />
               </group>
             </group>
           ))

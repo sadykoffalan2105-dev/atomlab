@@ -172,13 +172,21 @@ export function MoleculeMesh({
   scale,
   accentBoost = 1,
   visualPreset = 'default',
+  renderQuality = 'high',
+  showLabels,
 }: {
   compound: CompoundDef
   scale: number
   accentBoost?: number
   visualPreset?: 'default' | 'catalogHero'
+  /** 'synthesis' = быстрый режим (без troika Text, меньше poly/эффектов) */
+  renderQuality?: 'high' | 'synthesis'
+  /** По умолчанию true, но в synthesis лучше отключать */
+  showLabels?: boolean
 }) {
   const hero = visualPreset === 'catalogHero'
+  const quality = renderQuality
+  const labels = showLabels ?? quality !== 'synthesis'
 
   // #region agent log
   const loggedRef = useRef<string | null>(null)
@@ -272,11 +280,13 @@ export function MoleculeMesh({
           ? heroAtomStyle(a.symbol, compound.category, { degree: degrees[i] ?? 0, maxDegree })
           : null
         const r = hero && st ? st.radius * CATALOG_BALL_STICK_RADIUS_SCALE : 0.32
+        const sphereSegW = hero ? (quality === 'synthesis' ? 16 : 36) : 18
+        const sphereSegH = hero ? (quality === 'synthesis' ? 14 : 32) : 18
         return (
           <group key={i} position={[a.pos[0], a.pos[1], a.pos[2]]}>
             <mesh>
               {hero ? (
-                <sphereGeometry args={[r, 36, 32]} />
+                <sphereGeometry args={[r, sphereSegW, sphereSegH]} />
               ) : (
                 <sphereGeometry args={[0.32, 18, 18]} />
               )}
@@ -305,7 +315,7 @@ export function MoleculeMesh({
                 />
               )}
             </mesh>
-            <AtomInSphereLabel symbol={a.symbol} r={r} />
+            {labels ? <AtomInSphereLabel symbol={a.symbol} r={r} /> : null}
           </group>
         )
       })}
@@ -313,7 +323,7 @@ export function MoleculeMesh({
         const ai = compound.atoms[i]
         const aj = compound.atoms[j]
         if (!ai || !aj) return null
-        if (hero) {
+        if (hero && quality !== 'synthesis') {
           return <BondPlasma key={k} from={ai.pos} to={aj.pos} core={bondPlasma.core} halo={bondPlasma.halo} />
         }
         return (

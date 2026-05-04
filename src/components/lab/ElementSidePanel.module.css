@@ -150,9 +150,9 @@
 
 .close {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 2.222rem;
+  height: 2.222rem;
+  border-radius: 0.556rem;
   border: 1px solid rgba(139, 147, 184, 0.4);
   background: rgba(24, 28, 52, 0.75);
   color: #c8d0f0;
@@ -180,19 +180,19 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  min-width: min(100%, 880px);
+  min-width: min(100%, 48.889rem);
   margin: 0 auto;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: 34px repeat(18, minmax(48px, 1fr));
-  grid-template-rows: auto auto repeat(9, minmax(76px, auto));
-  gap: 4px;
+  grid-template-columns: 1.889rem repeat(18, minmax(2.667rem, 1fr));
+  grid-template-rows: auto auto repeat(9, minmax(4.222rem, auto));
+  gap: 0.222rem;
 }
 
 .corner {
-  border-radius: 6px;
+  border-radius: 0.333rem;
 }
 
 .axisHead,
@@ -220,16 +220,16 @@
 .cellBtn,
 .cellStatic {
   position: relative;
-  border-radius: 8px;
-  padding: 4px 5px 5px;
+  border-radius: 0.444rem;
+  padding: 0.222rem 0.278rem 0.278rem;
   text-align: center;
   color: #f0f4ff;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  gap: 1px;
-  min-height: 56px;
+  gap: 0.056rem;
+  min-height: 3.111rem;
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease,
@@ -426,9 +426,9 @@
   top: auto;
   left: 50%;
   right: auto;
-  bottom: calc(12px + min(42vh, 400px) + 8px);
-  width: min(1200px, calc(100vw - 1.5rem));
-  max-width: calc(100vw - 1.5rem);
+  bottom: calc(12px + min(34vh, 320px) + 12px);
+  width: min(1200px, calc(100vw - 2.5rem));
+  max-width: calc(100vw - 2.5rem);
   max-height: min(66vh, 700px);
   min-height: 0;
   transform: translateX(-50%) scale(0.98);
@@ -453,7 +453,7 @@
 
 .tableWrapLabCompact {
   max-height: min(58vh, 600px) !important;
-  padding: 0.4rem 0.65rem 0.6rem;
+  padding: 0.55rem 0.85rem 0.8rem;
 }
 
 /* Компактная сетка ПСХЭ: Z+символ в ячейке, без многострочного переполнения */

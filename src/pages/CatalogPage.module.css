@@ -30,7 +30,7 @@
 }
 
 .searchInput {
-  border-radius: 10px;
+  border-radius: 0.556rem;
   border: 1px solid rgba(61, 255, 236, 0.28);
   background: rgba(8, 10, 24, 0.85);
   color: #e8ecff;
@@ -60,7 +60,7 @@
   margin: 0;
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(14.444rem, 1fr));
 }
 
 .cardBtn {
@@ -69,11 +69,14 @@
   text-align: left;
   cursor: pointer;
   border: 1px solid rgba(61, 255, 236, 0.22);
-  border-radius: 12px;
+  border-radius: 0.667rem;
   padding: 0.85rem 1rem;
   background: rgba(12, 14, 32, 0.75);
   color: inherit;
   font: inherit;
+  display: flex;
+  flex-direction: column;
+  min-height: 11.5rem;
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
@@ -116,8 +119,35 @@
   overflow: hidden;
 }
 
+.synthPreview {
+  margin: 0.35rem 0 0;
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: rgba(140, 165, 210, 0.88);
+  letter-spacing: 0.03em;
+}
+
+.synthPreviewLabel {
+  color: rgba(61, 255, 236, 0.55);
+  font-weight: 600;
+  margin-right: 0.2rem;
+}
+
+.synthPreviewT,
+.synthPreviewP,
+.synthPreviewK {
+  font-weight: 600;
+  color: rgba(180, 200, 235, 0.95);
+}
+
+.synthPreviewDot {
+  margin: 0 0.15rem;
+  opacity: 0.45;
+}
+
 .labRecipe {
   margin: 0.4rem 0 0;
+  margin-top: auto;
   font-size: 0.72rem;
   line-height: 1.4;
   color: rgba(150, 170, 215, 0.9);

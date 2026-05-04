@@ -3,12 +3,13 @@
  * Синтез + settled приводим к ним, чтобы весь кадр совпадал с каталогом 3D.
  */
 export const CATALOG_HERO_VIEW = {
-  cameraPosition: [0, 0.12, 2.7] as [number, number, number],
-  fov: 42,
+  // Slightly farther/wider so 100% browser zoom looks like prior ~50% framing.
+  cameraPosition: [0, 0.12, 3.6] as [number, number, number],
+  fov: 46,
   target: [0, 0, 0] as [number, number, number],
   /** Фиксированный радиус орбиты, как в карточке (без сильного «уезда» назад). */
-  minDistance: 2.7,
-  maxDistance: 2.7,
+  minDistance: 3.6,
+  maxDistance: 3.6,
   minPolarAngle: Math.PI * 0.38,
   maxPolarAngle: Math.PI * 0.62,
 } as const
@@ -18,8 +19,8 @@ export const CATALOG_HERO_VIEW = {
  * Синтез (synth) отключает только зум; вращение с демпфированием остаётся на всём FSM.
  */
 export const LAB_ORBIT = {
-  minDistance: 2.1,
-  maxDistance: 9.8,
+  minDistance: 3.0,
+  maxDistance: 12.5,
   minPolarAngle: Math.PI * 0.3,
   maxPolarAngle: Math.PI * 0.58,
   target: [0, 0.15, 0] as [number, number, number],

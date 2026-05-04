@@ -1,3 +1,15 @@
+@keyframes reactorArrowNudge {
+  0%,
+  100% {
+    opacity: 0.82;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(5px);
+  }
+}
+
 .reactor {
   position: fixed;
   bottom: 0;
@@ -6,7 +18,7 @@
   z-index: 48;
   display: flex;
   flex-direction: column;
-  max-height: min(42vh, 400px);
+  max-height: min(56vh, 540px);
   background: linear-gradient(180deg, rgba(8, 10, 24, 0.96) 0%, rgba(4, 6, 16, 0.99) 100%);
   border-top: 1px solid rgba(61, 255, 236, 0.35);
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
@@ -20,7 +32,6 @@
   pointer-events: auto;
 }
 
-/* Слабее, когда 3D-вещество на весь кадр (лаборатория) */
 .reactorDimHero {
   opacity: 0.55;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
@@ -36,13 +47,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.45rem 0.75rem 0.35rem;
+  padding: 0.42rem 0.75rem 0.35rem;
   border-bottom: 1px solid rgba(61, 255, 236, 0.12);
   flex-shrink: 0;
 }
 
 .reactorTitle {
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   color: #3dffec;
@@ -54,8 +65,8 @@
 }
 
 .reactorBtnSecondary {
-  font-size: 0.7rem;
-  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
+  padding: 0.28rem 0.55rem;
   border-radius: 8px;
   border: 1px solid rgba(139, 147, 184, 0.45);
   background: rgba(24, 28, 52, 0.8);
@@ -68,149 +79,686 @@
   color: #3dffec;
 }
 
-.slotsRow {
+.modeBar {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem 0.25rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(61, 255, 236, 0.08);
+}
+
+.modeBtn {
+  flex: 1;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.42rem 0.48rem;
+  border-radius: 9px;
+  border: 1px solid rgba(100, 120, 170, 0.4);
+  background: rgba(10, 14, 32, 0.9);
+  color: rgba(170, 188, 225, 0.95);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+
+.modeBtn:hover {
+  border-color: rgba(61, 255, 236, 0.35);
+  color: #e8f0ff;
+}
+
+.modeBtnActive {
+  border-color: rgba(61, 255, 236, 0.65);
+  color: #3dffec;
+  box-shadow: 0 0 12px rgba(61, 255, 236, 0.18);
+}
+
+.equationLineBlock {
+  padding: 0.42rem 0.8rem 0.32rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(61, 255, 236, 0.08);
+}
+
+.equationLineLabel {
+  display: block;
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(140, 165, 210, 0.88);
+  margin-bottom: 0.32rem;
+}
+
+.equationLineInput {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  padding: 0.48rem 0.58rem;
+  border-radius: 9px;
+  border: 1px solid rgba(61, 255, 236, 0.38);
+  background: rgba(6, 10, 22, 0.95);
+  color: #e8f4ff;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+}
+
+.equationLineInput:focus {
+  outline: none;
+  border-color: rgba(61, 255, 236, 0.65);
+  box-shadow: 0 0 12px rgba(61, 255, 236, 0.15);
+}
+
+.equationLineInput::placeholder {
+  color: rgba(120, 140, 180, 0.65);
+}
+
+.equationLineHint {
+  margin: 0.38rem 0 0;
+  font-size: 0.64rem;
+  line-height: 1.4;
+  color: rgba(150, 170, 210, 0.82);
+}
+
+.equationWrap {
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding: 0.4rem 0.65rem 0.28rem;
+}
+
+.equationWrapWithFab {
+  position: relative;
+  padding-bottom: 2.35rem;
+  padding-right: 6.5rem;
+}
+
+.reactorPeriodicFab {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.35rem;
+  z-index: 3;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.32rem 0.55rem;
+  border-radius: 9px;
+  border: 1px solid rgba(61, 255, 236, 0.5);
+  background: rgba(10, 14, 32, 0.95);
+  color: #3dffec;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(61, 255, 236, 0.12);
+}
+
+.reactorPeriodicFab:hover {
+  border-color: rgba(61, 255, 236, 0.85);
+  color: #e8ffff;
+}
+
+.equationTermsCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.28rem;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 520px) {
+  .equationWrapWithFab {
+    padding-right: 0.65rem;
+    padding-bottom: 2.6rem;
+  }
+
+  .reactorPeriodicFab {
+    right: 0.45rem;
+    bottom: 0.28rem;
+  }
+}
+
+.equationRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-radius: 12px;
+  padding: 0.2rem 0.15rem 0.15rem;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.equationRow[data-balanced='true'] {
+  border-color: rgba(80, 220, 140, 0.45);
+  box-shadow:
+    0 0 18px rgba(80, 220, 140, 0.18),
+    inset 0 0 20px rgba(80, 220, 140, 0.06);
+}
+
+.equationSideLabel {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(140, 160, 210, 0.8);
+}
+
+.equationMain {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
+/* Режим «По уравнению»: одна плотная строка реагенты = продукт */
+.equationMainEquationRow {
+  flex-wrap: nowrap;
+  align-items: center;
   justify-content: center;
-  row-gap: 0.4rem;
-  column-gap: 0.2rem;
-  padding: 0.35rem 0.4rem 0.25rem;
+  width: 100%;
+  gap: 0.45rem 0.65rem;
+}
+
+@media (max-width: 520px) {
+  .equationMainEquationRow {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+.equationTerms {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.15rem;
+  flex: 1;
+  min-width: min(100%, 10rem);
+}
+
+.equationTermsEquation {
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: 0.32rem 0.22rem;
+}
+
+.equationTermsEquation .reagentBubble {
+  padding: 0.5rem 0.68rem 0.5rem 0.48rem;
+  gap: 0.26rem;
+}
+
+.equalsColumn {
+  display: flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.15rem;
 }
 
-.slotsEmpty {
+.equalsSign {
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(61, 255, 236, 0.92);
+  text-shadow: 0 0 14px rgba(61, 255, 236, 0.35);
+  user-select: none;
+}
+
+.equationMainEquationRow .equalsSign {
+  font-size: 2.05rem;
+}
+
+.equationMainEquationRow .equalsColumn {
+  padding: 0 0.22rem;
+}
+
+.equationMainEquationRow .coeffStepper {
+  gap: 0.14rem;
+}
+
+.equationMainEquationRow .coeffStepBtn {
+  width: 1.72rem;
+  height: 1.16rem;
+  font-size: 0.92rem;
+}
+
+.equationMainEquationRow .stoichCoeff {
+  font-size: 1.52rem;
+}
+
+.equationMainEquationRow .stoichCoeffOne {
+  font-size: 1.08rem;
+}
+
+.equationMainEquationRow .stoichCoeffProduct {
+  font-size: 1.64rem;
+}
+
+.equationMainEquationRow .termSymbol {
+  font-size: 1.22rem;
+  min-width: 1.55rem;
+}
+
+.equationMainEquationRow .equationPlus {
+  font-size: 1.12rem;
+}
+
+.equationMainEquationRow .termRemove {
+  font-size: 1rem;
+  padding: 0.12rem 0.26rem;
+}
+
+.equationMainEquationRow .productBubble {
+  padding: 0.46rem 0.55rem 0.46rem 0.44rem;
+  gap: 0.28rem;
+  border-radius: 16px;
+}
+
+.equationMainEquationRow .catalogOpenBtnInBubble {
+  padding: 0.42rem 0.52rem;
+}
+
+.equationMainEquationRow .catalogFormula {
+  font-size: 1.02rem;
+}
+
+.equationMainEquationRow .catalogName {
   font-size: 0.72rem;
-  color: rgba(160, 175, 210, 0.7);
-  text-align: center;
-  padding: 0.25rem 0.6rem 0.1rem;
 }
 
-.slot {
+.equationMainEquationRow .productLabelCompact {
+  font-size: 0.62rem;
+}
+
+.equationMainEquationRow .productHint {
+  font-size: 0.66rem;
+}
+
+.equationMainEquationRow .balanceBadge {
+  width: 1.78rem;
+  height: 1.78rem;
+}
+
+.productBlockEquation {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(100%, 30rem);
+  gap: 0.34rem;
+}
+
+.productEquationMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.productLabelCompact {
+  font-size: 0.56rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(61, 255, 236, 0.78);
+  font-weight: 600;
+}
+
+.productBubble {
+  --product-glow: #3dffec;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.22rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.34rem 0.45rem 0.34rem 0.38rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--product-glow) 50%, transparent);
+  background: rgba(10, 12, 28, 0.92);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--product-glow) 28%, transparent),
+    inset 0 0 12px color-mix(in srgb, var(--product-glow) 10%, transparent);
+}
+
+.productBubbleError {
+  border-color: rgba(255, 120, 120, 0.65) !important;
+  box-shadow:
+    0 0 14px rgba(255, 80, 80, 0.22),
+    inset 0 0 10px rgba(255, 60, 60, 0.06) !important;
+}
+
+.catalogOpenBtnInBubble {
+  flex: 1 1 auto;
+  min-width: 0;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.productHintEquation {
+  width: 100%;
+  max-width: none;
+}
+
+.equationEmpty {
+  font-size: 0.72rem;
+  color: rgba(160, 175, 210, 0.78);
+  line-height: 1.4;
+  padding: 0.2rem 0;
+}
+
+.termCluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+.reagentBubble {
+  --reagent-glow: #8899aa;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.32rem 0.5rem 0.32rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--reagent-glow) 55%, transparent);
+  background: rgba(10, 12, 28, 0.88);
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--reagent-glow) 38%, transparent),
+    inset 0 0 14px color-mix(in srgb, var(--reagent-glow) 14%, transparent);
+}
+
+.reagentBubbleError {
+  border-color: rgba(255, 100, 100, 0.65) !important;
+  box-shadow:
+    0 0 14px rgba(255, 80, 80, 0.25),
+    inset 0 0 12px rgba(255, 60, 60, 0.08) !important;
+}
+
+.equationPlus {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(61, 255, 236, 0.55);
+  padding: 0 0.06rem;
+  user-select: none;
+}
+
+.coeffStepper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.coeffStepperError .coeffStepBtn {
+  border-color: rgba(255, 120, 120, 0.55);
+}
+
+.coeffStepBtn {
+  width: 1.55rem;
+  height: 1.05rem;
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 6px;
+  border: 1px solid rgba(61, 255, 236, 0.45);
+  background: rgba(8, 12, 28, 0.95);
+  color: #c8f0ff;
+  cursor: pointer;
+}
+
+.coeffStepBtn:hover:not(:disabled) {
+  border-color: rgba(61, 255, 236, 0.75);
+  color: #3dffec;
+}
+
+.coeffStepBtn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.stoichCoeff {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #f4f8ff;
+  min-width: 1.1rem;
+  text-align: center;
+  line-height: 1;
+}
+
+.stoichCoeffOne {
+  opacity: 0.22;
+  font-size: 1rem;
+}
+
+.stoichCoeffProduct {
+  font-size: 1.45rem;
+}
+
+.termSymbol {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #f0f4ff;
+  min-width: 1.45rem;
+  text-align: center;
+}
+
+.termRemove {
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0.1rem 0.22rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 140, 140, 0.9);
+  cursor: pointer;
+}
+
+.termRemove:hover {
+  color: #ffacac;
+}
+
+.arrowColumn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 2.5rem;
-  max-width: 2.9rem;
-  padding: 0.22rem 0.3rem;
-  border-radius: 8px;
-  border: 1px solid rgba(181, 107, 255, 0.28);
-  background: rgba(18, 20, 40, 0.6);
-  cursor: pointer;
-  user-select: none;
+  justify-content: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  min-width: 3.5rem;
+  padding: 0 0.15rem;
 }
 
-.slot:hover {
-  border-color: rgba(61, 255, 236, 0.35);
-}
-
-.slot:active {
-  transform: translateY(1px);
-}
-
-.slotLabel {
-  font-size: 0.58rem;
-  color: rgba(170, 185, 220, 0.7);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.slotSym {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #e8edff;
-  font-family: ui-sans-serif, system-ui, sans-serif;
+.reactionArrowWrap {
   position: relative;
-  display: inline-flex;
-  align-items: flex-start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.1rem 0.15rem 0;
+  animation: reactorArrowNudge 2.2s ease-in-out infinite;
+}
+
+.reactionArrowGlow {
+  position: absolute;
+  width: 3.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(61, 255, 236, 0.22) 0%, transparent 70%);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.reactionArrowSvg {
+  position: relative;
+  display: block;
+  filter: drop-shadow(0 0 6px rgba(61, 255, 236, 0.35));
+}
+
+.productBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.32rem;
+  min-width: min(100%, 16rem);
+}
+
+.productLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.productLabel {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(61, 255, 236, 0.75);
+  font-weight: 600;
+}
+
+.balanceBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 50%;
+  background: rgba(60, 200, 120, 0.18);
+  border: 1px solid rgba(80, 220, 140, 0.55);
+  color: #7ef0a8;
+}
+
+.balanceCheck {
+  display: block;
+}
+
+.ambiguousHint {
+  margin: 0;
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: rgba(255, 200, 120, 0.92);
+}
+
+.productRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.catalogOpenBtn {
+  flex: 1;
+  min-width: 8rem;
+  text-align: left;
+  padding: 0.38rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(61, 255, 236, 0.55);
+  background: rgba(8, 12, 28, 0.96);
+  color: #e8eeff;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(61, 255, 236, 0.1);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.catalogOpenBtn:hover {
+  border-color: rgba(61, 255, 236, 0.85);
+  box-shadow: 0 0 18px rgba(61, 255, 236, 0.2);
+}
+
+.catalogOpenBtnError {
+  border-color: rgba(255, 120, 120, 0.65) !important;
+  box-shadow: 0 0 12px rgba(255, 90, 90, 0.2) !important;
+}
+
+.catalogOpenPlaceholder {
+  font-size: 0.76rem;
+  color: rgba(160, 180, 220, 0.85);
+}
+
+.catalogOpenSummary {
+  display: flex;
+  flex-direction: column;
   gap: 0.08rem;
 }
 
-.slotCount {
-  font-size: 0.62em;
-  font-weight: 800;
-  color: rgba(232, 237, 255, 0.95);
-  line-height: 1;
-  transform: translateY(-0.14em);
-  text-shadow: 0 0 10px rgba(61, 255, 236, 0.18);
+.catalogFormula {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f2f6ff;
 }
 
-.slotJoin {
-  font-size: 1.05rem;
-  color: rgba(61, 255, 236, 0.5);
-  padding: 0 0.1rem 0.5rem;
-  user-select: none;
-  line-height: 1;
-  align-self: center;
+.catalogName {
+  font-size: 0.62rem;
+  color: rgba(170, 188, 225, 0.95);
 }
 
-.canvasBox {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.productHint {
+  font-size: 0.6rem;
+  line-height: 1.35;
+  color: rgba(150, 170, 215, 0.85);
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.miniCanvas {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 120px;
-  max-height: 200px;
-}
-
-.canvasPlaceholder {
-  min-height: 120px;
-  max-height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  font-size: 0.72rem;
-  color: rgba(160, 175, 210, 0.7);
-  text-align: center;
-  width: 100%;
-  box-sizing: border-box;
+.hintBox {
+  font-size: 0.64rem;
+  line-height: 1.4;
+  color: rgba(160, 175, 210, 0.75);
+  padding: 0.25rem 0.75rem 0.18rem;
+  flex-shrink: 0;
 }
 
 .reactorFooter {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.35rem;
-  padding: 0.4rem 0.75rem 0.6rem;
+  gap: 0.32rem;
+  padding: 0.4rem 0.75rem 0.55rem;
   flex-shrink: 0;
 }
 
 .reactorBtnPrimary {
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 0.45rem 0.75rem;
-  border-radius: 10px;
-  border: 1px solid rgba(61, 255, 236, 0.45);
-  background: linear-gradient(165deg, rgba(20, 48, 44, 0.9), rgba(8, 20, 22, 0.95));
-  color: #3dffec;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.55rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(61, 255, 236, 0.55);
+  background: linear-gradient(165deg, rgba(45, 120, 110, 0.95) 0%, rgba(12, 32, 48, 0.98) 55%, rgba(8, 18, 32, 1) 100%);
+  color: #b8fff6;
   cursor: pointer;
-  box-shadow: 0 0 16px rgba(61, 255, 236, 0.2);
+  letter-spacing: 0.03em;
+  box-shadow:
+    0 0 22px rgba(61, 255, 236, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.15s ease,
+    opacity 0.2s ease;
 }
 
 .reactorBtnPrimary:hover:not(:disabled) {
-  box-shadow: 0 0 24px rgba(61, 255, 236, 0.35);
+  box-shadow:
+    0 0 32px rgba(61, 255, 236, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.reactorBtnPrimary:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .reactorBtnPrimary:disabled {
-  opacity: 0.45;
   cursor: not-allowed;
+  transform: none;
+}
+
+.reactorBtnPrimaryMuted {
+  opacity: 0.38;
   box-shadow: none;
 }
 
 .reactorMsg {
   margin: 0;
-  font-size: 0.65rem;
-  line-height: 1.3;
-  color: rgba(200, 210, 245, 0.9);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: rgba(200, 210, 245, 0.92);
   text-align: center;
 }

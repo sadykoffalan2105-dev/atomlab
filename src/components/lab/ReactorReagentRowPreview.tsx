@@ -1,57 +1,74 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { AtomStructureModel } from './AtomStructureModel'
 
-const Y_ATOMS = 0.12
 const BASE_ATOM_SCALE = 0.44
 
+function basePosition(z: number, i: number): [number, number, number] {
+  const seed = (z + 1) * 0.713 + i * 1.091
+  const x = Math.sin(seed) * 0.95 + Math.cos(seed * 1.67) * 0.42
+  const y = Math.sin(seed * 0.83) * 0.18 + 0.14
+  const zz = Math.cos(seed * 1.11) * 0.82
+  return [
+    Math.max(-1.1, Math.min(1.1, x * 0.88)),
+    Math.max(0, Math.min(0.35, y)),
+    Math.max(-0.9, Math.min(0.9, zz)),
+  ]
+}
+
 /**
- * До запуска синтеза — ряд выбранных Z (2–4), плавный поворот.
+ * До запуска синтеза — «бульон» из выбранных Z: детерминированные позиции и лёгкий дрейф.
  */
 export function ReactorReagentRowPreview({ zs }: { zs: number[] }) {
   const n = Math.max(0, zs.length)
+  const groupRef = useRef<THREE.Group>(null)
   const atomGroupRefs = useRef<(THREE.Group | null)[]>([])
 
-  const xs = (() => {
-    if (n === 0) return []
-    // Keep total row width bounded; compress spacing for large n.
-    const maxWidth = 3.3
-    const minSep = 0.26
-    const idealSep = n <= 2 ? 1.28 : 2.45 / (n - 0.3)
-    const sep = Math.max(minSep, Math.min(idealSep, maxWidth / Math.max(1, n - 1)))
-    const w = (n - 1) * sep
-    return Array.from({ length: n }, (_, i) => -w * 0.5 + i * sep)
-  })()
+  const basePositions = useMemo(() => zs.map((z, i) => basePosition(z, i)), [zs])
 
   const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
   const atomScale = BASE_ATOM_SCALE * clamp(4 / Math.max(4, n), 0.55, 1)
 
   useFrame((s) => {
     const t = s.clock.elapsedTime
+    const root = groupRef.current
+    if (root) root.rotation.y = t * 0.085
+
     for (let i = 0; i < n; i++) {
       const g = atomGroupRefs.current[i] ?? null
-      if (g) g.rotation.y = t * (i % 2 === 0 ? 0.5 : -0.46)
+      if (!g) continue
+      const [bx, by, bz] = basePositions[i]!
+      const ph = i * 1.73 + zs[i]! * 0.41
+      const ax = 0.12
+      const ay = 0.09
+      const az = 0.14
+      g.position.set(
+        bx + Math.sin(t * 0.34 + ph) * ax,
+        by + Math.sin(t * 0.27 + ph * 0.91) * ay,
+        bz + Math.cos(t * 0.31 + ph * 1.07) * az,
+      )
+      g.rotation.y = t * (i % 2 === 0 ? 0.5 : -0.46)
     }
   })
 
   if (n === 0) return null
 
   return (
-    <>
+    <group ref={groupRef}>
       {zs.map((z, i) => (
         <group
           key={`${i}-${z}`}
+          position={basePositions[i]!}
           ref={(el) => {
             atomGroupRefs.current[i] = el
           }}
-          position={[xs[i]!, Y_ATOMS, 0]}
         >
           <group scale={atomScale}>
-            <AtomStructureModel z={z} animate={n <= 4} />
+            <AtomStructureModel z={z} animate={n <= 8} />
           </group>
         </group>
       ))}
-    </>
+    </group>
   )
 }
