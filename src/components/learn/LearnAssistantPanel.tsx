@@ -1,21 +1,50 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT, type MessageKey } from '../../i18n/useT'
-import {
-  buildLearnAssistantContext,
-  buildSystemPrompt,
-  type LearnAssistantContextPayload,
-} from '../../learn/learnAssistantContext'
+import { generateLocalLearnReply, type LearnLocalAssistantContext } from '../../learn/learnLocalAssistant'
 import type { LearnSection } from '../../types/learn'
+import { LearnAssistantMarkdown } from './LearnAssistantMarkdown'
 import styles from '../../pages/LearnPage.module.css'
 
-type ChatMessage = { role: 'user' | 'assistant'; text: string; at: number }
+const CHAT_URL = import.meta.env.VITE_LEARN_CHAT_URL ?? '/api/learn/chat'
+
+type ChatMessage = {
+  role: 'user' | 'assistant'
+  text: string
+  at: number
+  source?: 'openai' | 'local'
+}
 
 const QUICK_KEYS = [
   'learn.assistant.quick1',
   'learn.assistant.quick2',
   'learn.assistant.quick3',
   'learn.assistant.quick4',
+  'learn.assistant.quick5',
+  'learn.assistant.quick6',
 ] as const satisfies readonly MessageKey[]
+
+function storageKey(gradeId: string, chapterId: string, sectionId: string): string {
+  return `atomlab-learn-chat-${gradeId}-${chapterId}-${sectionId}`
+}
+
+function loadStored(key: string): ChatMessage[] {
+  try {
+    const raw = sessionStorage.getItem(key)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as ChatMessage[]
+    return Array.isArray(parsed) ? parsed.slice(-24) : []
+  } catch {
+    return []
+  }
+}
+
+function saveStored(key: string, messages: ChatMessage[]): void {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(messages.slice(-24)))
+  } catch {
+    /* quota */
+  }
+}
 
 export function LearnAssistantPanel({
   gradeId,
@@ -32,25 +61,80 @@ export function LearnAssistantPanel({
   slideTitle: string
   slideBody: string
 }) {
+  void slideIndex
   const { t, locale } = useT()
   const [mode, setMode] = useState<'teacher' | 'helper'>('teacher')
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const storeKey = storageKey(gradeId, chapterId, section.id)
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadStored(storeKey))
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastSource, setLastSource] = useState<'openai' | 'local' | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  const ctx: LearnAssistantContextPayload = buildLearnAssistantContext({
-    locale,
-    gradeId,
-    chapterId,
-    section,
-    slideIndex,
-    t: (k) => t(k as MessageKey),
-    mode,
-  })
-  ctx.slideTitle = slideTitle
-  ctx.slideBody = slideBody
+  useEffect(() => {
+    setMessages(loadStored(storeKey))
+  }, [storeKey])
+
+  useEffect(() => {
+    if (messages.length > 0) saveStored(storeKey, messages)
+  }, [messages, storeKey])
+
+  const localCtx: LearnLocalAssistantContext = useMemo(
+    () => ({
+      locale: locale === 'en' ? 'en' : 'ru',
+      gradeId,
+      chapterId,
+      sectionId: section.id,
+      sectionTitle: t(section.titleKey),
+      slideTitle,
+      slideBody,
+      mode,
+      kpNumber: section.kpNumber,
+    }),
+    [locale, gradeId, chapterId, section, slideTitle, slideBody, mode, t],
+  )
+
+  const replyFromApi = useCallback(
+    async (nextMessages: ChatMessage[]): Promise<{ text: string; source: 'openai' | 'local' }> => {
+      const payload = {
+        messages: nextMessages.map((m) => ({ role: m.role, content: m.text })),
+        context: localCtx,
+      }
+      try {
+        const res = await fetch(CHAT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const data = (await res.json()) as {
+          reply?: string | null
+          source?: 'openai' | 'local' | 'error'
+          error?: string
+        }
+        const reply = data.reply?.trim()
+        if (reply) {
+          return {
+            text: reply,
+            source: data.source === 'openai' ? 'openai' : 'local',
+          }
+        }
+        if (res.status === 429) {
+          throw new Error('rate_limit')
+        }
+      } catch {
+        /* network or static host without API */
+      }
+      return {
+        text: generateLocalLearnReply(
+          nextMessages.map((m) => ({ role: m.role, content: m.text })),
+          localCtx,
+        ),
+        source: 'local',
+      }
+    },
+    [localCtx],
+  )
 
   const sendText = useCallback(
     async (text: string) => {
@@ -61,34 +145,35 @@ export function LearnAssistantPanel({
       setMessages(nextMessages)
       setLoading(true)
       try {
-        const res = await fetch('/api/learn/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system: buildSystemPrompt(ctx),
-            messages: nextMessages.map((m) => ({ role: m.role, content: m.text })),
-          }),
-        })
-        if (!res.ok) throw new Error('api')
-        const data = (await res.json()) as { reply?: string }
-        const reply = data.reply?.trim() || t('learn.assistant.hintDefault')
-        setMessages((m) => [...m, { role: 'assistant', text: reply, at: Date.now() }])
+        const { text: reply, source } = await replyFromApi(nextMessages)
+        setLastSource(source)
+        setMessages((m) => [
+          ...m,
+          { role: 'assistant', text: reply, at: Date.now(), source },
+        ])
       } catch {
         setError(t('learn.assistant.error'))
+        setLastSource('local')
         setMessages((m) => [
           ...m,
           {
             role: 'assistant',
-            text: `${t('learn.assistant.offline')} ${t('learn.assistant.hintDefault')}`,
+            text: generateLocalLearnReply(
+              nextMessages.map((x) => ({ role: x.role, content: x.text })),
+              localCtx,
+            ),
             at: Date.now(),
+            source: 'local',
           },
         ])
       } finally {
         setLoading(false)
-        listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
+        requestAnimationFrame(() => {
+          listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
+        })
       }
     },
-    [loading, messages, ctx, t],
+    [loading, messages, replyFromApi, localCtx, t],
   )
 
   const send = useCallback(() => {
@@ -98,6 +183,24 @@ export function LearnAssistantPanel({
     void sendText(text)
   }, [input, sendText])
 
+  const clearChat = useCallback(() => {
+    setMessages([])
+    setLastSource(null)
+    setError(null)
+    try {
+      sessionStorage.removeItem(storeKey)
+    } catch {
+      /* ignore */
+    }
+  }, [storeKey])
+
+  const sourceLabel =
+    lastSource === 'openai'
+      ? t('learn.assistant.sourceOpenai')
+      : lastSource === 'local'
+        ? t('learn.assistant.sourceLocal')
+        : null
+
   return (
     <aside className={styles.learnAssistant} aria-label={t('learn.assistant.title')}>
       <div className={styles.learnAssistantHead}>
@@ -105,27 +208,45 @@ export function LearnAssistantPanel({
           <span className={styles.learnAssistantAvatar} aria-hidden>
             ✦
           </span>
-          <h3 className={styles.learnAssistantH}>{t('learn.assistant.title')}</h3>
+          <div>
+            <h3 className={styles.learnAssistantH}>{t('learn.assistant.title')}</h3>
+            {sourceLabel ? (
+              <span
+                className={
+                  lastSource === 'openai'
+                    ? styles.learnAssistantSourceOpenai
+                    : styles.learnAssistantSourceLocal
+                }
+              >
+                {sourceLabel}
+              </span>
+            ) : null}
+          </div>
         </div>
-        <div className={styles.learnAssistantModes} role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'teacher'}
-            className={mode === 'teacher' ? styles.learnAssistantModeOn : styles.learnAssistantMode}
-            onClick={() => setMode('teacher')}
-          >
-            {t('learn.assistant.modeTeacher')}
+        <div className={styles.learnAssistantHeadActions}>
+          <button type="button" className={styles.learnAssistantClear} onClick={clearChat}>
+            {t('learn.assistant.clear')}
           </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'helper'}
-            className={mode === 'helper' ? styles.learnAssistantModeOn : styles.learnAssistantMode}
-            onClick={() => setMode('helper')}
-          >
-            {t('learn.assistant.modeHelper')}
-          </button>
+          <div className={styles.learnAssistantModes} role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'teacher'}
+              className={mode === 'teacher' ? styles.learnAssistantModeOn : styles.learnAssistantMode}
+              onClick={() => setMode('teacher')}
+            >
+              {t('learn.assistant.modeTeacher')}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'helper'}
+              className={mode === 'helper' ? styles.learnAssistantModeOn : styles.learnAssistantMode}
+              onClick={() => setMode('helper')}
+            >
+              {t('learn.assistant.modeHelper')}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -153,9 +274,13 @@ export function LearnAssistantPanel({
               className={m.role === 'user' ? styles.learnAssistantBubbleUser : styles.learnAssistantBubbleBot}
             >
               <span className={styles.learnAssistantBubbleRole}>
-                {m.role === 'user' ? 'Вы' : 'ИИ'}
+                {m.role === 'user' ? t('learn.assistant.you') : t('learn.assistant.ai')}
               </span>
-              <p>{m.text}</p>
+              {m.role === 'assistant' ? (
+                <LearnAssistantMarkdown text={m.text} />
+              ) : (
+                <p>{m.text}</p>
+              )}
             </div>
           ))
         )}
@@ -174,6 +299,7 @@ export function LearnAssistantPanel({
           onKeyDown={(e) => e.key === 'Enter' && void send()}
           placeholder={t('learn.assistant.placeholder')}
           disabled={loading}
+          maxLength={2000}
         />
         <button
           type="button"

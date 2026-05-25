@@ -37,5 +37,8 @@ export const learnVisualI18nRu = {
   'learn.assistant.quick2': 'Пример из жизни',
   'learn.assistant.quick3': 'Что запомнить?',
   'learn.assistant.quick4': 'Проверь мой ответ',
-  'learn.assistant.welcome': 'Задайте вопрос по слайду — учитель видит тему § и текущий слайд.',
+  'learn.assistant.quick5': 'Реши задачу по шагам',
+  'learn.assistant.quick6': 'Связь с уроком',
+  'learn.assistant.welcome':
+    'Спросите что угодно по химии: реакции, расчёты, элементы, лаборатория. Учитель видит ваш § и слайд.',
 } as const

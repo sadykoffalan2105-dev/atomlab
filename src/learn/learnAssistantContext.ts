@@ -54,12 +54,10 @@ export function buildLearnAssistantContext(input: {
   }
 }
 
+/** @deprecated Use learnChatCore + buildAssistantSystemPrompt on server. */
 export function buildSystemPrompt(ctx: LearnAssistantContextPayload): string {
   const lang = ctx.locale === 'en' ? 'English' : 'Russian'
-  return `You are a chemistry teacher for secondary school (grades 7-9).
-Answer in ${lang}. Be accurate, concise, age-appropriate. Never invent formulas.
-Current: grade ${ctx.gradeId}, chapter ${ctx.chapterId}, section §${ctx.section.kpNumber}.
-Slide: ${ctx.slideTitle}. Content: ${ctx.slideBody.slice(0, 800)}.
-Mode: ${ctx.mode === 'teacher' ? 'explain like a teacher' : 'give hints without full solution'}.
-Refer to 3D models in ATOMLAB when helpful.`
+  return `Chemistry tutor ATOMLAB. Answer in ${lang}. Any chemistry question allowed.
+Lesson: ${ctx.gradeId} ${ctx.chapterId} §${ctx.section.kpNumber} — ${ctx.slideTitle}.
+${ctx.slideBody.slice(0, 400)}`
 }

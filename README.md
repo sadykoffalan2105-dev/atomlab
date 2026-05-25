@@ -1,3 +1,19 @@
+# ATOMLAB
+
+Интерактивная химия: лаборатория, каталог, обучение 7–9 класс, 3D-модели.
+
+## ИИ-учитель (химия)
+
+Отвечает на **любой вопрос по химии**, с контекстом текущего параграфа и каталога ATOMLAB.
+
+**Локально:** скопируйте `.env.example` → `.env`, укажите `OPENAI_API_KEY`, запустите `npm run dev`.
+
+**Сайт + Electron:** разверните API на [Vercel](https://vercel.com) (папка `api/`), задайте в Vercel `OPENAI_API_KEY` и `ALLOWED_ORIGINS`, в GitHub Secrets — `VITE_LEARN_CHAT_URL` (URL вида `https://….vercel.app/api/learn/chat`). Сборка Pages: workflow `.github/workflows/deploy-pages.yml`.
+
+Чеклист тестов: [`docs/LEARN_AI_QA.md`](docs/LEARN_AI_QA.md).
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

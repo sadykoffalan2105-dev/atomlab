@@ -1900,3 +1900,83 @@
 .learnAssistantMessages {
   max-height: 360px;
 }
+
+.learnAssistantHeadActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.learnAssistantClear {
+  font-size: 0.65rem;
+  color: rgba(160, 180, 220, 0.85);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.learnAssistantClear:hover {
+  color: #b8d4ff;
+}
+
+.learnAssistantSourceOpenai,
+.learnAssistantSourceLocal {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-top: 0.15rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.learnAssistantSourceOpenai {
+  color: #7dffb8;
+  background: rgba(40, 120, 80, 0.25);
+}
+
+.learnAssistantSourceLocal {
+  color: #ffd47d;
+  background: rgba(120, 90, 30, 0.25);
+}
+
+.learnAssistantMd {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: inherit;
+}
+
+.learnAssistantMd p {
+  margin: 0 0 0.5rem;
+}
+
+.learnAssistantMd p:last-child {
+  margin-bottom: 0;
+}
+
+.learnAssistantMd ul,
+.learnAssistantMd ol {
+  margin: 0.25rem 0 0.5rem 1.1rem;
+  padding: 0;
+}
+
+.learnAssistantMd li {
+  margin-bottom: 0.2rem;
+}
+
+.learnAssistantMd strong {
+  color: #e8f0ff;
+  font-weight: 600;
+}
+
+.learnAssistantMd code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78em;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.1rem 0.25rem;
+  border-radius: 3px;
+}

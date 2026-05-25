@@ -36,5 +36,8 @@ export const learnVisualI18nEn = {
   'learn.assistant.quick2': 'Real-life example',
   'learn.assistant.quick3': 'Key takeaway?',
   'learn.assistant.quick4': 'Check my answer',
-  'learn.assistant.welcome': 'Ask about this slide — the teacher sees your § topic and current slide.',
+  'learn.assistant.quick5': 'Solve step by step',
+  'learn.assistant.quick6': 'Link to lesson',
+  'learn.assistant.welcome':
+    'Ask any chemistry question: reactions, calculations, elements, lab safety. Context from your § is included.',
 } as const
