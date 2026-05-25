@@ -14,7 +14,9 @@
 .card {
   width: min(640px, 100%);
   max-height: min(90vh, 800px);
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   border-radius: 16px;
   border: 1px solid rgba(61, 255, 236, 0.35);
   background: linear-gradient(165deg, rgba(18, 22, 48, 0.98), rgba(8, 10, 26, 0.99));
@@ -30,6 +32,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+  flex-shrink: 0;
   margin-bottom: 1rem;
   padding-bottom: 0.85rem;
   border-bottom: 1px solid rgba(61, 255, 236, 0.2);
@@ -70,12 +73,20 @@
   flex-shrink: 0;
   width: 2.222rem;
   height: 2.222rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
   border-radius: 0.556rem;
   border: 1px solid rgba(139, 147, 184, 0.45);
   background: rgba(24, 28, 52, 0.85);
   color: #c8d0f0;
   font-size: 1.35rem;
   line-height: 1;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-weight: 600;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  transform: translateY(-0.02em);
   cursor: pointer;
 }
 
@@ -87,17 +98,25 @@
 .body {
   display: grid;
   gap: 1rem;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
 }
 
 @media (min-width: 600px) {
   .body {
-    grid-template-columns: 1fr min(42%, 15.556rem);
+    grid-template-columns: minmax(0, 1fr) min(44%, 17.5rem);
     align-items: start;
   }
 }
 
 .textCol {
   min-width: 0;
+  max-height: min(58vh, 520px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.35rem;
+  scrollbar-gutter: stable;
 }
 
 .compLine {
@@ -165,29 +184,56 @@
 
 .labExample {
   margin: 0.65rem 0 0;
+  padding: 0.5rem 0.55rem;
   font-size: 0.92rem;
-  line-height: 1.45;
+  line-height: 1.5;
   color: #b8e4ff;
   font-family: ui-monospace, 'Cascadia Code', monospace;
-  font-variant-ligatures: common-ligatures;
-  word-break: break-all;
+  font-variant-ligatures: none;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  border-radius: 8px;
+  background: rgba(4, 8, 24, 0.55);
+  border: 1px solid rgba(61, 255, 236, 0.12);
 }
 
 .previewWrap {
-  min-height: 16.667rem;
-  height: 16.667rem;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 17.5rem;
+  height: min(36vh, 20rem);
   border-radius: 12px;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 40%, rgba(61, 255, 236, 0.08), transparent 60%);
-  border: 1px solid rgba(61, 255, 236, 0.15);
+  background: radial-gradient(circle at 50% 40%, rgba(61, 255, 236, 0.1), transparent 58%),
+    linear-gradient(180deg, rgba(12, 16, 36, 0.5) 0%, rgba(4, 6, 18, 0.85) 100%);
+  border: 1px solid rgba(61, 255, 236, 0.2);
 }
 
-.previewWrap > :first-child {
+.previewInner {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+@media (min-width: 600px) {
+  .previewWrap {
+    position: sticky;
+    top: 0;
+    align-self: start;
+  }
+}
+
+.previewInner > :first-child {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
 }
 
-.previewWrap canvas {
+.previewInner canvas {
   display: block;
   width: 100% !important;
   height: 100% !important;

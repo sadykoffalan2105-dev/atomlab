@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useT } from '../../i18n/useT'
 import { PeriodicTableGrid } from './PeriodicTableGrid'
 import styles from './ElementSidePanel.module.css'
 
@@ -17,6 +18,7 @@ export function ElementSidePanel({
   onAltPickElement?: (z: number) => void
   layoutVariant?: 'modal' | 'labCompact'
 }) {
+  const { t } = useT()
   const panelRef = useRef<HTMLDivElement>(null)
   const tableWrapRef = useRef<HTMLDivElement>(null)
 
@@ -42,7 +44,7 @@ export function ElementSidePanel({
         role="dialog"
         aria-modal="true"
         aria-labelledby={layoutVariant === 'labCompact' ? undefined : PT_LAB_TITLE_ID}
-        aria-label={layoutVariant === 'labCompact' ? 'Периодическая таблица для выбора элементов' : undefined}
+        aria-label={layoutVariant === 'labCompact' ? t('element.ptAriaLab') : undefined}
         className={
           layoutVariant === 'labCompact'
             ? `${styles.panel} ${styles.panelModal} ${styles.panelModalLabCompact}`
@@ -62,14 +64,12 @@ export function ElementSidePanel({
           {layoutVariant === 'modal' ? (
             <div>
               <h2 id={PT_LAB_TITLE_ID} className={styles.headTitle}>
-                Периодическая система
+                {t('element.ptTitle')}
               </h2>
-              <p className={styles.hintSub}>
-                Тап по ячейке — 3D-структура в центре. Alt+тап — добавить атом-шар на сцену.
-              </p>
+              <p className={styles.hintSub}>{t('element.ptHint')}</p>
             </div>
           ) : null}
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Закрыть таблицу элементов">
+          <button type="button" className={styles.close} onClick={onClose} aria-label={t('element.closeTable')}>
             ×
           </button>
         </header>

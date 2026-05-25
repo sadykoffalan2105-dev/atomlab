@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo } from 'react'
+import { Suspense, useMemo } from 'react'
 import { Environment, Sparkles } from '@react-three/drei'
 import {
   CatalogStyleBloom,
@@ -52,32 +52,6 @@ export function CatalogSubstanceDisplay({
   const starPts = fxLevel === 'full' ? 260 : fxLevel === 'low' ? 100 : 0
   const sp1 = fxLevel === 'full' ? 96 : fxLevel === 'low' ? 32 : 0
   const sp2 = fxLevel === 'full' ? 48 : fxLevel === 'low' ? 16 : 0
-
-  useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dbdb64' },
-      body: JSON.stringify({
-        sessionId: 'dbdb64',
-        runId: 'aura-sphere-pre',
-        hypothesisId: 'H1_H2_H4',
-        location: 'CatalogSubstanceDisplay.tsx:fxLevel',
-        message: 'resolved fx + aura gate (full-only)',
-        data: {
-          compoundId: compound.id,
-          fxLevelIn: fxLevelIn ?? null,
-          reducedEffects,
-          resolvedFxLevel: fxLevel,
-          auraRenderedFullOnly: fxLevel === 'full',
-          auraWouldShowIfLowIncluded: fxLevel === 'full' || fxLevel === 'low',
-          substanceAuraBubbleOn: fxLevel === 'full' || fxLevel === 'low',
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
-  }, [compound.id, fxLevel, fxLevelIn, reducedEffects, labSynthesisScene])
 
   return (
     <>

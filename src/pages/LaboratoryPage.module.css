@@ -14,13 +14,28 @@
 
 .canvasWrap {
   flex: 1;
-  min-height: 17.778rem;
+  min-height: max(17.778rem, 40vh);
   position: relative;
   isolation: isolate;
   width: 100%;
   min-width: 0;
+  /* Изоляция layout/paint: соседние перерисовки панели реактора меньше дергают измерение Canvas */
+  contain: layout paint;
   /* Совпадает с scene background в LabScene — не просвечивает белый :root при смене веток / пропуске кадра */
   background-color: #03040a;
+}
+
+/*
+ * R3F измеряет внутренний контейнер через react-use-measure; если корневой div Canvas не заполняет
+ * .canvasWrap (только height:100% в flex без явного inset), в Electron/Chrome возможен размер 0×0 —
+ * тогда configure() не вызывается и остаётся «белый» пустой canvas / иконка сбоя контекста.
+ */
+.canvasWrap > :first-child {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 
 .canvasWrap[data-reactor-brew='true']::after {
@@ -41,19 +56,11 @@
   left: 0;
   z-index: 1;
   flex: none;
-  min-height: 0;
-  height: auto;
+  /* Явная высота: иначе fixed + только absolute-дети дают 0px и WebGL «пустой» */
+  min-height: calc(100dvh - var(--app-header-h, 3.4rem));
+  height: calc(100dvh - var(--app-header-h, 3.4rem));
   isolation: isolate;
   transition: opacity 0.35s ease;
-}
-
-/* R3F: корневой div Canvas на весь fixed-блок, остальные слои — position absolute выше */
-.canvasWrap[data-lab-synthesis-view='substance'] > :first-child {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
 }
 
 /* Поверх WebGL, не перекрывая кликабельные элементы (pointer-events: none) */
@@ -150,7 +157,7 @@
 .synthButton {
   position: absolute;
   right: 0.556rem;
-  top: 0.444rem;
+  top: 0.9rem;
   z-index: 48;
   padding: 0.784rem 1.47rem;
   border-radius: 12px;

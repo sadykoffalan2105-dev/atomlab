@@ -1,10 +1,12 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { PeriodicTableGrid } from '../components/lab/PeriodicTableGrid'
 import { ElementDetailModal } from '../components/lab/ElementDetailModal'
+import { useT } from '../i18n/useT'
 import pageStyles from './PeriodicTablePage.module.css'
 
 /** Полноэкранная таблица: клик по ячейке — карточка со всеми данными элемента. */
 export function PeriodicTablePage() {
+  const { t } = useT()
   const [detailZ, setDetailZ] = useState<number | null>(null)
   const fitRef = useRef<HTMLDivElement | null>(null)
   const innerRef = useRef<HTMLDivElement | null>(null)
@@ -21,12 +23,10 @@ export function PeriodicTablePage() {
       const aw = Math.max(1, fit.clientWidth)
       const ah = Math.max(1, fit.clientHeight)
 
-      // Note: offsetWidth/Height are not affected by CSS transform scale.
       const nw = Math.max(1, inner.offsetWidth)
       const nh = Math.max(1, inner.offsetHeight)
 
       const s = Math.min(aw / nw, ah / nh)
-      // Allow upscaling to fill the viewport (still strictly fit by min(w,h) ratio).
       const scale = clamp(s, 0.1, 6)
       inner.style.setProperty('--pt-scale', String(scale))
     }
@@ -51,18 +51,13 @@ export function PeriodicTablePage() {
           onClick={() => setShowIntro((v) => !v)}
           aria-expanded={showIntro}
         >
-          {showIntro ? 'Скрыть описание' : 'Показать описание'}
+          {showIntro ? t('periodic.introHide') : t('periodic.introShow')}
         </button>
       </div>
       {showIntro ? (
         <>
-          <p className={pageStyles.headIntro}>
-            Свойства элементов, в том числе валентность и строение атомов, периодически меняются с ростом заряда ядра.
-          </p>
-          <p className={pageStyles.lead}>
-            Справочная таблица. Нажмите на элемент — откроется окно с полными данными. В лаборатории (⊞) тот же стиль
-            связан с 3D-моделью в центре сцены.
-          </p>
+          <p className={pageStyles.headIntro}>{t('periodic.intro1')}</p>
+          <p className={pageStyles.lead}>{t('periodic.intro2')}</p>
         </>
       ) : null}
       <div className={pageStyles.tableWrap}>

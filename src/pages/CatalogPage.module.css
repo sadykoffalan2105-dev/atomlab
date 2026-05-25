@@ -61,10 +61,19 @@
   display: grid;
   gap: 0.75rem;
   grid-template-columns: repeat(auto-fill, minmax(14.444rem, 1fr));
+  align-items: stretch;
+}
+
+.list > li {
+  display: flex;
+  min-height: 0;
 }
 
 .cardBtn {
+  flex: 1 1 auto;
+  align-self: stretch;
   width: 100%;
+  min-height: 11.5rem;
   margin: 0;
   text-align: left;
   cursor: pointer;
@@ -76,7 +85,6 @@
   font: inherit;
   display: flex;
   flex-direction: column;
-  min-height: 11.5rem;
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
@@ -107,11 +115,19 @@
 .name {
   font-weight: 600;
   color: #f0f4ff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.25;
 }
 
 .desc {
+  flex: 1 1 auto;
+  min-height: 0;
   margin: 0.5rem 0 0;
   font-size: 0.8rem;
+  line-height: 1.45;
   color: rgba(180, 195, 230, 0.9);
   display: -webkit-box;
   -webkit-line-clamp: 3;

@@ -1,9 +1,12 @@
 import { useEffect } from 'react'
 import { getElementByZ } from '../../data/elements'
+import { useT } from '../../i18n/useT'
 import { ElementDetailContent } from './ElementDetailContent'
 import styles from './ElementDetailModal.module.css'
 
 export function ElementDetailModal({ z, onClose }: { z: number | null; onClose: () => void }) {
+  const { t } = useT()
+
   useEffect(() => {
     if (z == null) return
     const onKey = (e: KeyboardEvent) => {
@@ -28,9 +31,9 @@ export function ElementDetailModal({ z, onClose }: { z: number | null; onClose: 
         >
           <header className={styles.headFallback}>
             <p id="el-detail-title" className={styles.nameFallback}>
-              Элемент не найден.
+              {t('element.notFound')}
             </p>
-            <button type="button" className={styles.close} onClick={onClose} aria-label="Закрыть">
+            <button type="button" className={styles.close} onClick={onClose} aria-label={t('element.close')}>
               ×
             </button>
           </header>
@@ -48,15 +51,12 @@ export function ElementDetailModal({ z, onClose }: { z: number | null; onClose: 
         aria-labelledby="el-detail-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <ElementDetailContent
-          z={z}
-          titleId="el-detail-title"
-          headerEnd={
-            <button type="button" className={styles.close} onClick={onClose} aria-label="Закрыть">
-              ×
-            </button>
-          }
-        />
+        <header className={styles.head}>
+          <ElementDetailContent z={z} titleId="el-detail-title" variant="compact" />
+          <button type="button" className={styles.close} onClick={onClose} aria-label={t('element.close')}>
+            ×
+          </button>
+        </header>
       </div>
     </div>
   )

@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import { compoundById } from '../../data/compounds'
-import { COMPOUND_CATEGORY_KIND_LABEL } from '../../data/compoundCategoryLabels'
-import type { CompoundDef } from '../../types/chemistry'
+import { getCompoundLocaleStrings, type CompoundLocaleStrings } from '../../i18n/compoundLocale'
+import type { MessageKey } from '../../i18n/useT'
+import { useT } from '../../i18n/useT'
+import type { CompoundCategory, CompoundDef } from '../../types/chemistry'
 import { CatalogMoleculeHero } from './CatalogMoleculeHero'
 import styles from './CompoundDetailModal.module.css'
 
@@ -13,6 +15,17 @@ function formatComposition(comp: Record<string, number>): string {
     .join(', ')
 }
 
+function kindKey(category: CompoundCategory): MessageKey {
+  const m: Record<CompoundCategory, MessageKey> = {
+    oxide: 'category.kind.oxide',
+    acid: 'category.kind.acid',
+    base: 'category.kind.base',
+    salt: 'category.kind.salt',
+    other: 'category.kind.other',
+  }
+  return m[category] ?? 'category.kind.other'
+}
+
 export function CompoundDetailModal({
   compoundId,
   onClose,
@@ -20,28 +33,14 @@ export function CompoundDetailModal({
   compoundId: string | null
   onClose: () => void
 }) {
-  // #region agent log
-  const loggedRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (compoundId == null) return
-    if (loggedRef.current === compoundId) return
-    loggedRef.current = compoundId
-    const c = compoundById[compoundId]
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c09a52' },
-      body: JSON.stringify({
-        sessionId: 'c09a52',
-        runId: 'pre-fix',
-        hypothesisId: 'H_modal',
-        location: 'CompoundDetailModal.tsx:CompoundDetailModal',
-        message: 'modal open',
-        data: { compoundId, found: !!c, category: c?.category ?? null, atomsLen: c?.atoms.length ?? null, bondsLen: c?.bonds.length ?? null },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-  }, [compoundId])
-  // #endregion
+  const { locale, t } = useT()
+
+  const detail = useMemo((): { compound: CompoundDef; loc: CompoundLocaleStrings } | 'missing' | null => {
+    if (!compoundId) return null
+    const compound = compoundById[compoundId]
+    if (!compound) return 'missing'
+    return { compound, loc: getCompoundLocaleStrings(compound, locale, t) }
+  }, [compoundId, locale, t])
 
   useEffect(() => {
     if (compoundId == null) return
@@ -52,12 +51,11 @@ export function CompoundDetailModal({
     return () => window.removeEventListener('keydown', onKey)
   }, [compoundId, onClose])
 
-  if (compoundId == null) return null
-
-  const c: CompoundDef | undefined = compoundById[compoundId]
   const titleId = 'compound-detail-title'
 
-  if (!c) {
+  if (compoundId == null) return null
+
+  if (detail === 'missing') {
     return (
       <div className={styles.backdrop} role="presentation" onClick={onClose}>
         <div
@@ -69,9 +67,9 @@ export function CompoundDetailModal({
         >
           <header className={styles.head}>
             <p id={titleId} className={styles.name}>
-              Вещество не найдено.
+              {t('compound.notFound')}
             </p>
-            <button type="button" className={styles.close} onClick={onClose} aria-label="Закрыть">
+            <button type="button" className={styles.close} onClick={onClose} aria-label={t('element.close')}>
               ×
             </button>
           </header>
@@ -80,7 +78,10 @@ export function CompoundDetailModal({
     )
   }
 
-  const kind = COMPOUND_CATEGORY_KIND_LABEL[c.category] ?? c.category
+  if (!detail) return null
+
+  const { compound: c, loc } = detail
+  const kind = t(kindKey(c.category))
 
   return (
     <div className={styles.backdrop} role="presentation" onClick={onClose}>
@@ -96,40 +97,40 @@ export function CompoundDetailModal({
             <h2 id={titleId} className={styles.formula}>
               {c.formulaUnicode}
             </h2>
-            <p className={styles.name}>{c.nameRu}</p>
+            <p className={styles.name}>{loc.name}</p>
             <span className={styles.kind}>{kind}</span>
           </div>
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Закрыть">
+          <button type="button" className={styles.close} onClick={onClose} aria-label={t('element.close')}>
             ×
           </button>
         </header>
 
         <div className={styles.body}>
           <div className={styles.textCol}>
-            <span className={styles.metaLabel}>Состав</span>
+            <span className={styles.metaLabel}>{t('compound.composition')}</span>
             <p className={styles.compLine}>{formatComposition(c.composition)}</p>
-            <span className={styles.metaLabel}>О веществе</span>
-            <p className={styles.description}>{c.descriptionRu}</p>
-            <p className={styles.labExample} aria-label="Упрощённый пример сопоставления атомов с формулой">
-              {c.laboratoryRecipeRu}
+            <span className={styles.metaLabel}>{t('compound.about')}</span>
+            <p className={styles.description}>{loc.description}</p>
+            <p className={styles.labExample} aria-label={t('compound.labExampleAria')}>
+              {loc.laboratoryRecipe}
             </p>
-            <span className={styles.metaLabel}>Условия синтеза (ориентир)</span>
+            <span className={styles.metaLabel}>{t('compound.synthConditions')}</span>
             <dl className={styles.synthConditions}>
               <div className={styles.synthRow}>
-                <dt className={styles.synthDt}>Температура</dt>
-                <dd className={styles.synthDd}>{c.synthesisConditionsRu.temperature ?? '—'}</dd>
+                <dt className={styles.synthDt}>{t('compound.temp')}</dt>
+                <dd className={styles.synthDd}>{loc.synthesisConditions.temperature ?? '—'}</dd>
               </div>
               <div className={styles.synthRow}>
-                <dt className={styles.synthDt}>Давление</dt>
-                <dd className={styles.synthDd}>{c.synthesisConditionsRu.pressure ?? '—'}</dd>
+                <dt className={styles.synthDt}>{t('compound.pressure')}</dt>
+                <dd className={styles.synthDd}>{loc.synthesisConditions.pressure ?? '—'}</dd>
               </div>
               <div className={styles.synthRow}>
-                <dt className={styles.synthDt}>Катализатор</dt>
-                <dd className={styles.synthDd}>{c.synthesisConditionsRu.catalyst ?? '—'}</dd>
+                <dt className={styles.synthDt}>{t('compound.catalyst')}</dt>
+                <dd className={styles.synthDd}>{loc.synthesisConditions.catalyst ?? '—'}</dd>
               </div>
             </dl>
           </div>
-          <div className={styles.previewWrap} aria-label="Трёхмерная модель вещества">
+          <div className={styles.previewWrap} aria-label={t('compound.preview3d')}>
             <CatalogMoleculeHero compoundId={compoundId} />
           </div>
         </div>

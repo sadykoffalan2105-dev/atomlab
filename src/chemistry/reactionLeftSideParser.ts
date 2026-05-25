@@ -3,6 +3,21 @@ import { isDiatomicNativeElement } from './diatomicElements'
 import type { ReactorEquationTerm } from './reactorEquationBalance'
 import { getElementBySymbol, getElementByZ } from '../data/elements'
 
+export type ParseLeftSideErrorCode =
+  | 'LEFT_EMPTY'
+  | 'SEGMENT_PARSE_FAIL'
+  | 'UNKNOWN_ELEMENT_SYMBOL'
+  | 'MIXED_DIATOMIC'
+  | 'NO_ADDENDUMS'
+
+export type ParseLeftSideFail = {
+  ok: false
+  code: ParseLeftSideErrorCode
+  params?: Record<string, string | number>
+}
+
+export type LabRecipeWarnCode = 'noEquals' | 'rhsMismatch'
+
 /** Заменяет Unicode-подстрочные цифры на ASCII для разбора. */
 function normalizeSubscripts(s: string): string {
   const map: Record<string, string> = {
@@ -74,9 +89,9 @@ function parseOneAddendum(segment: string): { symbol: string; n: number; diatomi
 export function parseReactionLeftSide(
   input: string,
   newId: () => string,
-): { ok: true; terms: ReactorEquationTerm[] } | { ok: false; message: string } {
+): { ok: true; terms: ReactorEquationTerm[] } | ParseLeftSideFail {
   const raw = input.trim()
-  if (!raw) return { ok: false, message: 'Введите левую часть уравнения.' }
+  if (!raw) return { ok: false, code: 'LEFT_EMPTY' }
 
   const parts = raw.split(/\s*\+\s*/)
   const merged = new Map<string, { z: number; diatomic: boolean; n: number }>()
@@ -88,11 +103,12 @@ export function parseReactionLeftSide(
     if (!one) {
       return {
         ok: false,
-        message: `Не удалось разобрать слагаемое: «${p}». Пример: 4Cr + 4K + 7O₂.`,
+        code: 'SEGMENT_PARSE_FAIL',
+        params: { segment: p },
       }
     }
     const el = getElementBySymbol(one.symbol)
-    if (!el) return { ok: false, message: `Неизвестный элемент: ${one.symbol}.` }
+    if (!el) return { ok: false, code: 'UNKNOWN_ELEMENT_SYMBOL', params: { symbol: one.symbol } }
 
     const key = `${el.z}:${one.diatomic ? 'd' : 'a'}`
     const prev = merged.get(key)
@@ -100,7 +116,8 @@ export function parseReactionLeftSide(
       if (prev.diatomic !== one.diatomic) {
         return {
           ok: false,
-          message: `Нельзя смешивать для одного элемента молекулы X₂ и атомы X в одной записи: ${el.symbol}.`,
+          code: 'MIXED_DIATOMIC',
+          params: { symbol: el.symbol },
         }
       }
       merged.set(key, { z: el.z, diatomic: one.diatomic, n: prev.n + one.n })
@@ -109,7 +126,7 @@ export function parseReactionLeftSide(
     }
   }
 
-  if (merged.size === 0) return { ok: false, message: 'Добавьте хотя бы одно слагаемое.' }
+  if (merged.size === 0) return { ok: false, code: 'NO_ADDENDUMS' }
 
   const terms: ReactorEquationTerm[] = []
   for (const { z, n, diatomic } of merged.values()) {
@@ -131,7 +148,7 @@ export function parseReactionLeftSide(
 export function parseReactionLeftSideUnitCoeffs(
   input: string,
   newId: () => string,
-): { ok: true; terms: ReactorEquationTerm[] } | { ok: false; message: string } {
+): { ok: true; terms: ReactorEquationTerm[] } | ParseLeftSideFail {
   const parsed = parseReactionLeftSide(input, newId)
   if (!parsed.ok) return parsed
   return {
@@ -185,18 +202,16 @@ export function parseProductSideCoeffAndFormula(rhs: string): { coeff: number; f
 export function generateFromLaboratoryRecipe(compound: CompoundDef): {
   manualLeft: string
   productCoeff: number
-  warn?: string
+  warn?: LabRecipeWarnCode
 } {
   const sp = splitLaboratoryRecipe(compound.laboratoryRecipeRu)
   if (!sp) {
-    return { manualLeft: '', productCoeff: 1, warn: 'В эталоне нет «=» — введите левую часть вручную.' }
+    return { manualLeft: '', productCoeff: 1, warn: 'noEquals' }
   }
   const { coeff, formulaRest } = parseProductSideCoeffAndFormula(sp.right)
   const nc = normalizeFormulaCompare(formulaRest)
   const nf = normalizeFormulaCompare(compound.formulaUnicode)
-  const warn =
-    nc !== nf && formulaRest.length > 0
-      ? 'Правая часть эталона не совпала с формулой вещества — проверьте коэффициент вручную.'
-      : undefined
+  const warn: LabRecipeWarnCode | undefined =
+    nc !== nf && formulaRest.length > 0 ? 'rhsMismatch' : undefined
   return { manualLeft: sp.left, productCoeff: coeff, warn }
 }

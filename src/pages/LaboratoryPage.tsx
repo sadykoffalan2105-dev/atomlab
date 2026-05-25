@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  startTransition,
+} from 'react'
 import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
 import {
   expandLeftTermsToZSlots,
@@ -11,7 +20,17 @@ import {
   validateReactorEquation,
   type ReactorEquationTerm,
 } from '../chemistry/reactorEquationBalance'
+import { scheduleIdleMatch } from '../lab/labRenderGuards'
+import {
+  prepareGuaranteedSynthesisRun,
+  resolveCatalogProduct,
+  SYNTHESIS_WATCHDOG_MS,
+} from '../lab/synthesisGuarantee'
+import { useCatalogAutoMatches } from '../lab/useCatalogMatchWorker'
 import { generateFromLaboratoryRecipe, parseReactionLeftSideUnitCoeffs } from '../chemistry/reactionLeftSideParser'
+import { parseLeftSideMessageKey, reactorValidationMessageKey } from '../i18n/chemistryMessageKeys'
+import { getCompoundLocaleStrings } from '../i18n/compoundLocale'
+import { useT } from '../i18n/useT'
 import { ElementDetailContent } from '../components/lab/ElementDetailContent'
 import { LabCanvas } from '../components/lab/LabScene'
 import { ElementSidePanel } from '../components/lab/ElementSidePanel'
@@ -31,10 +50,16 @@ function newId(): string {
 
 function preserveReactorMessageOnEquationEdit(msg: string): boolean {
   const m = msg.toLowerCase()
-  return m.includes('верно! связь') || m.startsWith('получено:')
+  return (
+    m.includes('верно! связь') ||
+    m.includes('correct! bonding') ||
+    m.startsWith('получено:') ||
+    m.startsWith('obtained:')
+  )
 }
 
 export function LaboratoryPage() {
+  const { locale, t } = useT()
   const [panelOpen, setPanelOpen] = useState(false)
   const [structureZ, setStructureZ] = useState<number | null>(null)
   const [particles, setParticles] = useState<LabParticle[]>([])
@@ -48,14 +73,19 @@ export function LaboratoryPage() {
   const reactorCatalogPickModeRef = useRef<ReactorCatalogIntent>('selectProduct')
 
   const [runId, setRunId] = useState(0)
-  const [lastRunZs, setLastRunZs] = useState<number[]>([])
+  const [synthesisFlightSlots, setSynthesisFlightSlots] = useState<number[] | null>(null)
+  const [synthesisFlyTerms, setSynthesisFlyTerms] = useState<ReactorEquationTerm[] | null>(null)
   const lastRunZSlotsRef = useRef<number[]>([])
   const [lastRunProduct, setLastRunProduct] = useState<CompoundDef | null>(null)
   const lastRunProductRef = useRef<CompoundDef | null>(null)
+  const lastRunProductIdRef = useRef<string | null>(null)
+  const synthesisSettledProductRef = useRef<CompoundDef | null>(null)
 
   const [reactorMessage, setReactorMessage] = useState<string | null>(null)
   const [synthesisSettledProduct, setSynthesisSettledProduct] = useState<CompoundDef | null>(null)
   const [laboratorySynthesisView, setLaboratorySynthesisView] = useState<'reactor' | 'substance'>('reactor')
+  const productLockedRef = useRef(false)
+  const periodicUiHidden = reactorCatalogOpen && reactorCatalogIntent === 'generateEquation'
 
   const catalogList = useMemo(() => Object.values(compoundById), [])
 
@@ -64,34 +94,60 @@ export function LaboratoryPage() {
     [productCompoundId],
   )
 
-  const catalogAutoMatches = useMemo(
-    () => findCatalogMatchesForLeftTerms(leftTerms, catalogList),
-    [leftTerms, catalogList],
-  )
-
+  const deferredLeftTerms = useDeferredValue(leftTerms)
+  const catalogAutoMatches = useCatalogAutoMatches(deferredLeftTerms, catalogList)
   const ambiguousProductMatches = catalogAutoMatches.length > 1 ? catalogAutoMatches : []
 
+  const productCoeffRef = useRef(productCoeff)
+  useLayoutEffect(() => {
+    productCoeffRef.current = productCoeff
+  }, [productCoeff])
+
+  useLayoutEffect(() => {
+    synthesisSettledProductRef.current = synthesisSettledProduct
+  }, [synthesisSettledProduct])
+
   useEffect(() => {
-    const left = compositionFromLeftTerms(leftTerms)
-    if (!left || Object.keys(left).length === 0) return
-
-    const cur = productCompoundId ? compoundById[productCompoundId] : undefined
-    if (cur) {
-      const k = findMatchingProductCoeff(left, cur)
-      if (k != null) {
-        if (k !== productCoeff) queueMicrotask(() => setProductCoeff(k))
-        return
-      }
-    }
-
-    if (catalogAutoMatches.length === 1) {
-      const only = catalogAutoMatches[0]!
-      queueMicrotask(() => {
-        setProductCompoundId(only.compound.id)
-        setProductCoeff(only.k)
+    scheduleIdleMatch(() => {
+      startTransition(() => {
+        const left = compositionFromLeftTerms(leftTerms)
+        if (!left || Object.keys(left).length === 0) return
+        if (productLockedRef.current) return
+        const cur = productCompoundId ? compoundById[productCompoundId] : undefined
+        if (!cur) return
+        const k = findMatchingProductCoeff(left, cur)
+        if (k != null && k !== productCoeffRef.current) setProductCoeff(k)
       })
-    }
-  }, [leftTerms, productCompoundId, productCoeff, catalogAutoMatches])
+    })
+  }, [leftTerms, productCompoundId])
+
+  useEffect(() => {
+    if (catalogAutoMatches.length !== 1) return
+    if (productLockedRef.current) return
+
+    const timer = window.setTimeout(() => {
+      scheduleIdleMatch(() => {
+        startTransition(() => {
+          if (productLockedRef.current) return
+          const left = compositionFromLeftTerms(leftTerms)
+          if (!left || Object.keys(left).length === 0) return
+          const pid = productCompoundId
+          const cur = pid ? compoundById[pid] : undefined
+          if (cur) {
+            const k = findMatchingProductCoeff(left, cur)
+            if (k != null) return
+          }
+          const fresh = findCatalogMatchesForLeftTerms(leftTerms, catalogList)
+          if (fresh.length !== 1) return
+          const o = fresh[0]!
+          if (o.compound.id === pid && o.k === productCoeffRef.current) return
+          setProductCompoundId(o.compound.id)
+          setProductCoeff(o.k)
+        })
+      })
+    }, 75)
+    return () => window.clearTimeout(timer)
+  }, [catalogAutoMatches, leftTerms, productCompoundId, catalogList])
 
   const equationBalanced = useMemo(
     () => isReactorEquationBalanced(leftTerms, productCompound ?? undefined, productCoeff),
@@ -132,10 +188,10 @@ export function LaboratoryPage() {
         if (!getElementByZ(z)) return
         setLeftTerms((prev) => {
           const di = isDiatomicNativeElement(z)
-          const matchIndex = prev.findIndex((t) => t.z === z && Boolean(t.diatomic) === di)
+          const matchIndex = prev.findIndex((term) => term.z === z && Boolean(term.diatomic) === di)
           if (matchIndex >= 0) {
-            const t = prev[matchIndex]!
-            const nextCoeff = t.coeff + 1
+            const term = prev[matchIndex]!
+            const nextCoeff = term.coeff + 1
             if (nextCoeff > 999) return prev
             const trial = prev.map((x, i) => (i === matchIndex ? { ...x, coeff: nextCoeff } : x))
             if (expandLeftTermsToZSlots(trial).length > REACTOR_EQUATION_MAX_FLY_ATOMS) return prev
@@ -152,12 +208,12 @@ export function LaboratoryPage() {
   )
 
   const onRemoveTerm = useCallback((id: string) => {
-    setLeftTerms((prev) => prev.filter((t) => t.id !== id))
+    setLeftTerms((prev) => prev.filter((term) => term.id !== id))
   }, [])
 
   const onCoeffChange = useCallback((id: string, coeff: number) => {
     const c = Math.max(1, Math.min(999, Math.floor(Number.isFinite(coeff) ? coeff : 1)))
-    setLeftTerms((prev) => prev.map((t) => (t.id === id ? { ...t, coeff: c } : t)))
+    setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
   }, [])
 
   const openReactorCatalog = useCallback((intent: ReactorCatalogIntent) => {
@@ -166,44 +222,63 @@ export function LaboratoryPage() {
     setReactorCatalogOpen(true)
   }, [])
 
-  const handleReactorCatalogPick = useCallback((id: string) => {
-    setReactorCatalogOpen(false)
-    const mode = reactorCatalogPickModeRef.current
-    reactorCatalogPickModeRef.current = 'selectProduct'
-    setReactorCatalogIntent('selectProduct')
+  const handleReactorCatalogPick = useCallback(
+    (id: string) => {
+      setReactorCatalogOpen(false)
+      const mode = reactorCatalogPickModeRef.current
+      reactorCatalogPickModeRef.current = 'selectProduct'
+      setReactorCatalogIntent('selectProduct')
 
-    const c = compoundById[id]
-    if (!c) return
+      const c = compoundById[id]
+      if (!c) return
 
-    if (mode === 'selectProduct') {
+      if (mode === 'selectProduct') {
+        productLockedRef.current = true
+        setProductCompoundId(id)
+        return
+      }
+
+      productLockedRef.current = true
       setProductCompoundId(id)
-      return
-    }
-
-    setProductCompoundId(id)
-    setProductCoeff(1)
-    const g = generateFromLaboratoryRecipe(c)
-    const trimmed = g.manualLeft.trim()
-    if (!trimmed) {
-      setLeftTerms([])
-      setReactorMessage('В эталоне нет левой части — добавьте реагенты из таблицы (⊞).')
-      return
-    }
-    const r = parseReactionLeftSideUnitCoeffs(trimmed, newId)
-    if (!r.ok) {
-      setLeftTerms([])
-      setReactorMessage(r.message)
-      return
-    }
-    setLeftTerms(r.terms)
-    setReactorMessage(g.warn ?? null)
-  }, [])
+      setProductCoeff(1)
+      const g = generateFromLaboratoryRecipe(c)
+      const trimmed = g.manualLeft.trim()
+      if (!trimmed) {
+        setLeftTerms([])
+        setReactorMessage(t('lab.catalogNoLeft'))
+        return
+      }
+      const r = parseReactionLeftSideUnitCoeffs(trimmed, newId)
+      if (!r.ok) {
+        setLeftTerms([])
+        setReactorMessage(t(parseLeftSideMessageKey(r.code), r.params))
+        return
+      }
+      setLeftTerms(r.terms)
+      setReactorMessage(
+        g.warn === 'noEquals'
+          ? t('lab.recipeWarn.noEquals')
+          : g.warn === 'rhsMismatch'
+            ? t('lab.recipeWarn.rhsMismatch')
+            : null,
+      )
+    },
+    [t],
+  )
 
   const clearReactorSlots = useCallback(() => {
     resetEquation()
     setReactorMessage(null)
     setSynthesisSettledProduct(null)
+    synthesisSettledProductRef.current = null
+    setSynthesisFlightSlots(null)
+    setSynthesisFlyTerms(null)
+    setRunId(0)
+    lastRunZSlotsRef.current = []
+    lastRunProductIdRef.current = null
+    lastRunProductRef.current = null
     setLaboratorySynthesisView('reactor')
+    productLockedRef.current = false
     reactorCatalogPickModeRef.current = 'selectProduct'
     setReactorCatalogIntent('selectProduct')
     setReactorCatalogOpen(false)
@@ -216,105 +291,135 @@ export function LaboratoryPage() {
         resetEquation()
         setRunId(0)
         lastRunZSlotsRef.current = []
+        setSynthesisFlightSlots(null)
+        setSynthesisFlyTerms(null)
         setReactorMessage(null)
         setLastRunProduct(null)
         lastRunProductRef.current = null
+        lastRunProductIdRef.current = null
         setSynthesisSettledProduct(null)
+        synthesisSettledProductRef.current = null
         setLaboratorySynthesisView('reactor')
         setReactorCatalogOpen(false)
+        productLockedRef.current = false
         reactorCatalogPickModeRef.current = 'selectProduct'
         setReactorCatalogIntent('selectProduct')
       } else {
         setStructureZ(null)
-        setReactorMessage(
-          'Реагенты — таблица ⊞ справа. «Сгенерировать уравнение» — каталог: эталон без коэффициентов, затем уравняйте. Продукт — кнопка «Открыть каталог» в пузыре.',
-        )
+        setReactorMessage(t('lab.reactorOpenHint'))
       }
       return next
     })
-  }, [resetEquation])
+  }, [resetEquation, t])
 
-  const onReactorAnimDone = useCallback((kind: 'success' | 'fail') => {
-    if (kind === 'success') {
-      const c = lastRunProductRef.current
-      if (c) {
-        setReactorMessage(
-          `Получено: ${c.nameRu} ${c.formulaUnicode}. 3D показан в центре. Можно составить новое уравнение или закрыть реактор.`,
-        )
-        resetEquation()
-        setSynthesisSettledProduct(c)
-        setLaboratorySynthesisView('substance')
+  const completeSynthesisSuccess = useCallback(
+    (compound: CompoundDef) => {
+      const name = getCompoundLocaleStrings(compound, locale, t).name
+      setReactorMessage(t('reactor.successProduct', { name, formula: compound.formulaUnicode }))
+      resetEquation()
+      setSynthesisSettledProduct(compound)
+      synthesisSettledProductRef.current = compound
+      setLaboratorySynthesisView('substance')
+      lastRunZSlotsRef.current = []
+      setSynthesisFlightSlots(null)
+      setSynthesisFlyTerms(null)
+      setRunId(0)
+    },
+    [resetEquation, t, locale],
+  )
+
+  const onReactorAnimDone = useCallback(
+    (kind: 'success' | 'fail') => {
+      if (kind === 'success') {
+        const c =
+          lastRunProductRef.current ??
+          resolveCatalogProduct(compoundById, lastRunProductIdRef.current)
+        if (c) {
+          completeSynthesisSuccess(c)
+          return
+        }
+      } else {
+        setReactorMessage(t('lab.synthesisFail'))
       }
-    } else {
-      setReactorMessage('Синтез не удался. Проверьте уравнение и продукт.')
-    }
-    lastRunZSlotsRef.current = []
-    setLastRunZs([])
-    setRunId(0)
-  }, [resetEquation])
+      lastRunZSlotsRef.current = []
+      setSynthesisFlightSlots(null)
+      setSynthesisFlyTerms(null)
+      setRunId(0)
+    },
+    [completeSynthesisSuccess, t],
+  )
 
   const onSynthesisStageChange = useCallback((stage: 'reactor' | 'substance') => {
     setLaboratorySynthesisView(stage)
   }, [])
 
   const onRequestRun = useCallback(() => {
-    const product = productCompoundId ? compoundById[productCompoundId] : undefined
-    const result = validateReactorEquation(leftTerms, product, productCoeff)
-    if (!result.ok) {
-      setReactorMessage(result.message)
+    const prepared = prepareGuaranteedSynthesisRun({
+      leftTerms,
+      productId: productCompoundId,
+      productCoeff,
+      compoundById,
+    })
+    if (!prepared.ok) {
+      setReactorMessage(t(reactorValidationMessageKey(prepared.code), prepared.params))
       return
     }
 
+    const { payload } = prepared
     setLaboratorySynthesisView('reactor')
-    const zSlots = result.zSlots
-    lastRunZSlotsRef.current = zSlots.slice()
-
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        sessionId: 'dbdb64',
-        runId: 'reactor-equation',
-        hypothesisId: 'H1',
-        location: 'LaboratoryPage.tsx:onRequestRun',
-        message: 'balanced equation run',
-        data: {
-          zSlotsLen: zSlots.length,
-          compoundId: result.compound.id,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-
-    setLastRunZs(zSlots)
-    lastRunProductRef.current = result.compound
-    setLastRunProduct(result.compound)
+    const zCopy = payload.zSlots.slice()
+    lastRunZSlotsRef.current = zCopy
+    lastRunProductIdRef.current = payload.productId
+    lastRunProductRef.current = payload.compound
+    setSynthesisFlightSlots(zCopy)
+    setSynthesisFlyTerms([...payload.flyTerms])
+    setLastRunProduct(payload.compound)
     setRunId((k) => k + 1)
-    setReactorMessage(`Верно! Связь… ${result.compound.nameRu}`)
-    requestAnimationFrame(() => {
-      resetEquation()
-    })
-  }, [leftTerms, productCompoundId, productCoeff, resetEquation])
+    const name = getCompoundLocaleStrings(payload.compound, locale, t).name
+    setReactorMessage(t('reactor.successRunning', { name }))
+  }, [leftTerms, productCompoundId, productCoeff, t, locale])
 
   const labSynthesis = useMemo(() => {
     if (!reactorOpen || runId <= 0) return null
-    const zSlots: readonly number[] = lastRunZs
-    if (zSlots.length < 2) return null
+    const zSlots = synthesisFlightSlots
+    const flyTerms = synthesisFlyTerms
+    if (!zSlots || zSlots.length < 2 || !flyTerms || flyTerms.length < 1) return null
+    const product =
+      lastRunProductRef.current ??
+      resolveCatalogProduct(compoundById, lastRunProductIdRef.current) ??
+      lastRunProduct
+    if (!product) return null
     return {
       runId,
       zSlots,
-      product: lastRunProduct,
+      flyTerms,
+      product,
       onDone: onReactorAnimDone,
       onSynthesisStageChange,
     }
-  }, [reactorOpen, runId, lastRunZs, lastRunProduct, onReactorAnimDone, onSynthesisStageChange])
+  }, [
+    reactorOpen,
+    runId,
+    synthesisFlightSlots,
+    synthesisFlyTerms,
+    lastRunProduct,
+    onReactorAnimDone,
+    onSynthesisStageChange,
+  ])
 
-  const reactorReagentZs = useMemo(() => {
-    if (!reactorOpen || runId !== 0) return null
-    const zs = expandLeftTermsToZSlots(leftTerms)
-    return zs.length >= 2 ? zs : null
-  }, [reactorOpen, runId, leftTerms])
+  useEffect(() => {
+    if (!reactorOpen || runId <= 0) return
+    const productId = lastRunProductIdRef.current
+    const timer = window.setTimeout(() => {
+      if (synthesisSettledProductRef.current != null) return
+      const compound =
+        lastRunProductRef.current ?? resolveCatalogProduct(compoundById, productId)
+      if (compound) {
+        completeSynthesisSuccess(compound)
+      }
+    }, SYNTHESIS_WATCHDOG_MS)
+    return () => window.clearTimeout(timer)
+  }, [reactorOpen, runId, completeSynthesisSuccess])
 
   const canRunSynthesis = useMemo(() => {
     const product = productCompoundId ? compoundById[productCompoundId] : undefined
@@ -326,9 +431,13 @@ export function LaboratoryPage() {
     const m = reactorMessage.toLowerCase()
     return (
       m.includes('баланс') ||
+      m.includes('mass balance') ||
       m.includes('коэффициент') ||
+      m.includes('coefficient') ||
       m.includes('целым числом') ||
-      m.includes('не совпадает')
+      m.includes('integer') ||
+      m.includes('не совпадает') ||
+      m.includes('do not match')
     )
   }, [reactorMessage])
 
@@ -344,15 +453,36 @@ export function LaboratoryPage() {
 
   const synthRunActive = reactorOpen && runId > 0
   const showSettledSynthesisView = reactorOpen && !synthRunActive && synthesisSettledProduct != null
-  const showSynthProductHud = (synthRunActive && lastRunProduct != null) || showSettledSynthesisView
-  const productForHud = synthRunActive && lastRunProduct != null ? lastRunProduct : synthesisSettledProduct
+  const showProductPreviewHud =
+    reactorOpen && runId === 0 && productCompound != null && synthesisSettledProduct == null
+  const showSynthProductHud =
+    (synthRunActive && lastRunProduct != null) || showSettledSynthesisView || showProductPreviewHud
+  const productForHud =
+    showProductPreviewHud && productCompound
+      ? productCompound
+      : synthRunActive && lastRunProduct != null
+        ? lastRunProduct
+        : synthesisSettledProduct
+
+  const productHudStrings = useMemo(
+    () => (productForHud ? getCompoundLocaleStrings(productForHud, locale, t) : null),
+    [productForHud, locale, t],
+  )
+
+  const transformPreviewCompound =
+    reactorOpen && runId === 0 && productCompound && !synthesisSettledProduct ? productCompound : null
+
+  const reactorPreviewTerms = useMemo(() => {
+    if (!reactorOpen || runId !== 0) return null
+    return leftTerms.length >= 1 ? leftTerms : null
+  }, [reactorOpen, runId, leftTerms])
 
   const reactorBrewVignette =
     reactorOpen &&
     !synthRunActive &&
     laboratorySynthesisView !== 'substance' &&
-    reactorReagentZs != null &&
-    reactorReagentZs.length >= 2
+    reactorPreviewTerms != null &&
+    reactorPreviewTerms.length >= 1
 
   return (
     <div className={styles.wrap} data-lab-synthesis-view={laboratorySynthesisView}>
@@ -361,7 +491,7 @@ export function LaboratoryPage() {
         data-lab-synthesis-view={laboratorySynthesisView}
         data-reactor-brew={reactorBrewVignette ? 'true' : undefined}
         style={
-          synthRunActive || showSettledSynthesisView
+          synthRunActive || showSettledSynthesisView || showProductPreviewHud
             ? { ['--synth-glow' as string]: productForHud?.accentColor ?? '#0a0c18' }
             : undefined
         }
@@ -373,20 +503,21 @@ export function LaboratoryPage() {
           onInspectAtom={reactorOpen ? undefined : setStructureZ}
           synthesis={labSynthesis}
           synthesisRunActive={synthRunActive}
-          reactorReagentZs={reactorReagentZs}
+          reactorPreviewTerms={reactorPreviewTerms}
+          transformPreviewCompound={transformPreviewCompound}
           reactorViewOpen={reactorOpen}
           synthesisSettledProduct={synthesisSettledProduct}
           laboratorySynthesisView={laboratorySynthesisView}
         />
-        {synthRunActive || showSettledSynthesisView ? (
+        {synthRunActive || showSettledSynthesisView || showProductPreviewHud ? (
           <div className={styles.synthVignette} aria-hidden />
         ) : null}
         {showSynthProductHud && productForHud ? (
           <div className={styles.synthProductDock} role="status" aria-live="polite">
             <div className={styles.synthProductCard}>
               <span className={styles.synthFormula}>{productForHud.formulaUnicode}</span>
-              <span className={styles.synthName}>{productForHud.nameRu}</span>
-              <p className={styles.synthDesc}>{productForHud.descriptionRu}</p>
+              <span className={styles.synthName}>{productHudStrings?.name ?? productForHud.nameRu}</span>
+              <p className={styles.synthDesc}>{productHudStrings?.description ?? productForHud.descriptionRu}</p>
             </div>
           </div>
         ) : null}
@@ -440,15 +571,11 @@ export function LaboratoryPage() {
           className={`${styles.synthButton} ${reactorOpen ? styles.synthButtonActive : ''}`}
           onClick={toggleReactor}
           aria-pressed={reactorOpen}
-          title={
-            reactorOpen
-              ? 'Закрыть панель реактора'
-              : 'Открыть: реактор с реагентами из таблицы и проверкой баланса'
-          }
+          title={reactorOpen ? t('lab.synthButtonClose') : t('lab.synthButtonOpen')}
         >
-          Синтез
+          {t('lab.synthButton')}
         </button>
-        {!panelOpen ? (
+        {!panelOpen && !periodicUiHidden ? (
           <button
             type="button"
             className={
@@ -456,18 +583,20 @@ export function LaboratoryPage() {
             }
             onClick={() => setPanelOpen(true)}
             aria-expanded={panelOpen}
-            aria-label="Открыть периодическую таблицу Менделеева (кнопка справа от сцены)"
+            aria-label={t('lab.panelFabAria')}
           >
             ⊞
           </button>
         ) : null}
-        <ElementSidePanel
-          open={panelOpen}
-          onClose={() => setPanelOpen(false)}
-          onPickElement={onPickInTable}
-          onAltPickElement={addAtom}
-          layoutVariant={reactorOpen ? 'labCompact' : 'modal'}
-        />
+        {!periodicUiHidden ? (
+          <ElementSidePanel
+            open={panelOpen}
+            onClose={() => setPanelOpen(false)}
+            onPickElement={onPickInTable}
+            onAltPickElement={addAtom}
+            layoutVariant={reactorOpen ? 'labCompact' : 'modal'}
+          />
+        ) : null}
       </div>
     </div>
   )

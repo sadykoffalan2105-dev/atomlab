@@ -1,0 +1,195 @@
+import { learnPackEn } from './learnPackEn'
+import { learnGradePackEn } from './learnGradePacks'
+import type { MessageKey } from './messagesRu'
+
+/** English UI strings (same keys as messagesRu). */
+export const messagesEn: Record<MessageKey, string> = {
+  'nav.laboratory': 'Laboratory',
+  'nav.periodic': 'Periodic table',
+  'nav.catalog': 'Substance catalog',
+  'nav.learn': 'Learn',
+  'lang.toggle': 'Language: {current}. Click to switch',
+  'lang.switchToEn': 'Switch to English',
+  'lang.switchToRu': 'Switch to Russian',
+
+  'catalog.title': 'Substance catalog',
+  'catalog.lead':
+    'Inorganic substances for a school-level course: oxides, acids, bases, and salts. The same database is used in the laboratory (atoms, 3D view).',
+  'catalog.search': 'Search',
+  'catalog.placeholder': 'Formula, name, or id…',
+  'catalog.searchAria': 'Search catalog',
+  'catalog.synthPreviewLabel': 'Synthesis',
+  'catalog.synthPreviewT': 'T',
+  'catalog.synthPreviewP': 'p',
+  'catalog.synthPreviewK': 'cat.',
+  'catalog.moreDetails': 'Details: {name}, {formula}',
+  'catalog.fallbackDescription':
+    '{formula} — {category}. (Full English description for this entry is not available yet.)',
+  'catalog.category.oxide': 'oxide',
+  'catalog.category.acid': 'acid',
+  'catalog.category.base': 'base',
+  'catalog.category.salt': 'salt',
+  'catalog.category.other': 'substance',
+
+  'periodic.introShow': 'Show description',
+  'periodic.introHide': 'Hide description',
+  'periodic.intro1':
+    'Element properties—including valence and atomic structure—change periodically as nuclear charge increases.',
+  'periodic.intro2':
+    'Reference table. Click an element to open full data. In the laboratory (⊞), the same style links to the 3D model in the center.',
+  'periodic.lawTitle': "Mendeleev's periodic law",
+  'periodic.legendAria': 'Block legend',
+
+  'lab.synthButton': 'Synthesis',
+  'lab.synthButtonClose': 'Close reactor panel',
+  'lab.synthButtonOpen': 'Open: reactor with reagents from the table and balance check',
+  'lab.panelFabAria': 'Open Mendeleev periodic table (button to the right of the scene)',
+  'lab.reactorOpenHint':
+    'Reagents — periodic table ⊞ on the right. ⚗ — template from catalog. Product — small ◫ button in the bubble.',
+  'lab.catalogNoLeft': 'The template has no left side — add reagents from the table (⊞).',
+  'lab.synthesisFail': 'Synthesis failed. Check the equation and product.',
+  'lab.recipeWarn.noEquals': 'The template has no “=” — enter the left side manually.',
+  'lab.recipeWarn.rhsMismatch':
+    'The template’s right side did not match the substance formula — check the coefficient manually.',
+
+  'errors.reactor.NO_PRODUCT': 'Select a product substance from the list (right-hand side of the equation).',
+  'errors.reactor.PRODUCT_COEFF_INVALID': 'The product coefficient must be an integer ≥ 1.',
+  'errors.reactor.NO_REAGENTS':
+    'Add reagents on the left: “By equation” (text) or “From the table” (Mendeleev).',
+  'errors.reactor.MAX_TERMS': 'Too many terms (maximum {maxTerms}).',
+  'errors.reactor.TERM_COEFF_INVALID': 'Check coefficients: integers ≥ 1 are required.',
+  'errors.reactor.UNKNOWN_ELEMENT': 'Unknown element in the equation.',
+  'errors.reactor.TOO_FEW_ATOMS': 'There must be at least two atoms on the left in total (e.g. 2 H and 1 O).',
+  'errors.reactor.MAX_FLY_ATOMS':
+    'Too many atoms for the animation (maximum {maxAtoms}). Reduce coefficients.',
+  'errors.reactor.LEFT_PARSE_FAIL': 'Could not parse the left-hand side of the equation.',
+  'errors.reactor.BALANCE_MISMATCH':
+    'Mass balance error: atom counts on the left and right do not match. Check coefficients.',
+
+  'errors.parse.LEFT_EMPTY': 'Enter the left-hand side of the equation.',
+  'errors.parse.SEGMENT_PARSE_FAIL': 'Could not parse term: “{segment}”. Example: 4Cr + 4K + 7O₂.',
+  'errors.parse.UNKNOWN_ELEMENT_SYMBOL': 'Unknown element: {symbol}.',
+  'errors.parse.MIXED_DIATOMIC':
+    'Cannot mix X₂ molecules and X atoms in one entry for the same element: {symbol}.',
+  'errors.parse.NO_ADDENDUMS': 'Add at least one term.',
+
+  'reactor.title': 'Reactor',
+  'reactor.ariaRegion': 'Synthesis reactor',
+  'reactor.reset': 'Reset',
+  'reactor.equationAria': 'Reaction equation',
+  'reactor.reagents': 'Reagents',
+  'reactor.emptyHint':
+    'Elements — ⊞ button on the right (periodic table). “Generate equation” — catalog and template without coefficients.',
+  'reactor.coeffDecrease': 'Decrease coefficient',
+  'reactor.coeffIncrease': 'Increase coefficient',
+  'reactor.coeffFor': 'Coefficient for {symbol}',
+  'reactor.remove': 'Remove {symbol}',
+  'reactor.productGoal': 'Product (target)',
+  'reactor.balanced': 'Equation balanced',
+  'reactor.ambiguous': 'Several substances match this composition — pick one in the catalog.',
+  'reactor.productCoeffAria': 'Coefficient in front of the product',
+  'reactor.openCatalog': 'Substance catalog',
+  'reactor.productEmpty': 'Pick a product',
+  'reactor.recipeLabel': 'Template: {recipe}',
+  'reactor.generateEquation': 'Generate equation',
+  'reactor.generateEquationShort': 'Equation',
+  'reactor.generateEquationTitle':
+    'Open catalog: substance template as reagents with coefficient 1 — balance manually',
+  'reactor.hintBalance':
+    'Balance atoms on the left and right. Run when the balance is correct and a catalog product is selected.',
+  'reactor.run': 'Check and run synthesis',
+  'reactor.successRunning': 'Correct! Bonding… {name}',
+  'reactor.successProduct':
+    'Obtained: {name} {formula}. 3D is shown in the center. You can set up a new equation or close the reactor.',
+
+  'catalogPanel.title': 'Substance catalog',
+  'catalogPanel.subGenerate':
+    'Pick a substance: reagents will be filled from the template without coefficients — balance manually before running. Search by name, formula, or id.',
+  'catalogPanel.subProduct': 'Pick the reaction product. Search by name, formula, or id.',
+  'catalogPanel.close': 'Close catalog',
+  'catalogPanel.filterAria': 'Filter by type',
+  'catalogPanel.all': 'All',
+  'catalogPanel.empty': 'Nothing found — change the query or filter.',
+  'catalogPanel.pick': 'Select: {name}, {formula}',
+
+  'compound.notFound': 'Substance not found.',
+  'compound.composition': 'Composition',
+  'compound.about': 'About',
+  'compound.synthConditions': 'Synthesis conditions (guide)',
+  'compound.temp': 'Temperature',
+  'compound.pressure': 'Pressure',
+  'compound.catalyst': 'Catalyst',
+  'compound.preview3d': 'Three-dimensional model',
+  'compound.labExampleAria': 'Simplified atom-to-formula example',
+
+  'element.notFound': 'Element not found.',
+  'element.close': 'Close',
+  'element.closeTable': 'Close element table',
+  'element.ptTitle': 'Periodic system',
+  'element.ptHint': 'Tap a cell — 3D structure in the center. Alt+tap — add a ball atom to the scene.',
+  'element.ptAriaLab': 'Periodic table for selecting elements',
+
+  'elementDetail.atomicMass': 'Relative atomic mass',
+  'elementDetail.protons': 'Number of protons',
+  'elementDetail.electrons': 'Number of electrons (neutral atom)',
+  'elementDetail.neutrons': 'Number of neutrons (estimate from relative atomic mass)',
+  'elementDetail.electronConfig': 'Full electron configuration',
+  'elementDetail.oxidation': 'Oxidation states (valence)',
+  'elementDetail.category': 'Element category (IUPAC-style)',
+  'elementDetail.blockZone': 's / p / d / f block in table coloring',
+  'elementDetail.standardState': 'Physical state (standard conditions, reference)',
+  'elementDetail.cpkColor': 'Atom color in the diagram (CPK model)',
+  'elementDetail.cpkSwatchAria': 'CPK color',
+  'elementDetail.blockS': 's-block elements',
+  'elementDetail.blockP': 'p-block elements',
+  'elementDetail.blockD': 'd-block elements',
+  'elementDetail.blockF': 'f-block elements',
+
+  'canvas.errorTitle': '3D scene error',
+  'canvas.errorReload': 'Reload page',
+  'canvas.sceneFallback':
+    '3D could not be rendered. Open the browser console to see the WebGL/Three.js error.',
+  'lab.webglUnavailable':
+    'WebGL is unavailable — the laboratory 3D scene cannot be shown. Check hardware acceleration in your browser.',
+  'catalog.webglUnavailable':
+    'WebGL is unavailable — the 3D model cannot be shown. Check hardware acceleration in your browser settings.',
+
+  'elementDetail.cpkNotSet': 'not set',
+
+  'category.section.oxide': 'Oxides',
+  'category.section.acid': 'Acids',
+  'category.section.base': 'Bases',
+  'category.section.salt': 'Salts',
+  'category.section.other': 'Other',
+  'category.kind.oxide': 'Oxide',
+  'category.kind.acid': 'Acid',
+  'category.kind.base': 'Base',
+  'category.kind.salt': 'Salt',
+  'category.kind.other': 'Other',
+
+  'learn.title': 'Learn',
+  'learn.backTopics': 'Back to topics',
+  'learn.backTopic': 'Back to topic',
+  'learn.lessonsTitle': 'Lessons',
+  'learn.progressGlobal': 'Lessons completed: {done} of {total}',
+  'learn.progressTopic': '{done} of {total} lessons',
+  'learn.resume': 'Continue: {title}',
+  'learn.resumeAria': 'Continue last lesson',
+  'learn.preview3d': '3D model for this lesson',
+  'learn.openCompound': 'Open in catalog',
+  'learn.openCompoundAria': 'Open full substance card in the catalog',
+  'learn.tryLab': 'Open laboratory',
+  'learn.tryLabAria': 'Go to the laboratory and try the reactor',
+  'learn.prev': 'Back',
+  'learn.next': 'Next',
+  'learn.finish': 'Finish lesson',
+  'learn.lessonDone': 'Lesson complete',
+  'learn.lessonDoneLead': 'Pick another lesson or return to the topic list.',
+  'learn.estimatedMin': '≈ {n} min',
+  'learn.stepIndex': 'Step {current} of {total}',
+  'learn.stepperAria': 'Lesson steps',
+  'learn.stepAria': 'Step {n} of {total}',
+
+  ...learnPackEn,
+  ...learnGradePackEn,
+}

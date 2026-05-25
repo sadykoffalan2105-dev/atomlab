@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { Canvas, useThree } from '@react-three/fiber'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Stars, DragControls } from '@react-three/drei'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
@@ -8,16 +8,23 @@ import { AtomStructureModel } from './AtomStructureModel'
 import { MoleculeMesh } from './MoleculeMesh'
 import { SynthesisOnLabScene } from './SynthesisOnLabScene'
 import { SynthesisSettledProductHero } from './SynthesisSettledProductHero'
-import { ReactorReagentRowPreview } from './ReactorReagentRowPreview'
+import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
+import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
+import { ReactorTermsPreview } from './ReactorTermsPreview'
+import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import type { CompoundDef } from '../../types/chemistry'
 import type { LabParticle, Vec3 } from '../../types/chemistry'
 import { compoundById } from '../../data/compounds'
 import { CATALOG_HERO_VIEW, LAB_ORBIT } from './labOrbitConstants'
 import { CanvasErrorBoundary } from '../common/CanvasErrorBoundary'
+import { CanvasSceneErrorFallback } from '../common/CanvasSceneErrorFallback'
+import { useT } from '../../i18n/useT'
 import { isWebGLAvailable } from '../../utils/webgl'
 
 /** Совпадает с `<color attach="background" args={['#03040a']} />` в обычной ветке сцены */
 const LAB_SCENE_CLEAR_HEX = '#03040a'
+
+type PerfLevel = 'high' | 'low'
 
 function hexToColor(hex: string): THREE.Color {
   const h = hex.startsWith('#') ? hex : '#' + hex.replace('#', '')
@@ -56,7 +63,11 @@ function DraggableParticle({
     onParticleMove(p.id, [v.x, v.y, v.z])
   }, [onParticleMove, p.id])
 
-  const emissiveIntensity = 0.35
+  const atomCpkHex = p.type === 'atom' ? p.color : undefined
+  const atomColor = useMemo(
+    () => (atomCpkHex ? hexToColor(atomCpkHex) : null),
+    [atomCpkHex],
+  )
 
   return (
     <DragControls
@@ -76,11 +87,11 @@ function DraggableParticle({
               onInspectAtom?.(p.z)
             }}
           >
-            <sphereGeometry args={[0.24, 28, 28]} />
+            <sphereGeometry args={[0.24, 20, 20]} />
             <meshStandardMaterial
-              color={hexToColor(p.color)}
-              emissive={hexToColor(p.color)}
-              emissiveIntensity={emissiveIntensity}
+              color={atomColor!}
+              emissive={atomColor!}
+              emissiveIntensity={0.35}
               metalness={0.25}
               roughness={0.35}
             />
@@ -97,6 +108,27 @@ function DraggableParticle({
   )
 }
 
+const TRANSFORM_PREVIEW_BG = {
+  c: '#0a0c18' as const,
+  f: ['#0a0c18', 6.5, 16] as [string, number, number],
+}
+
+function TransformPreviewHero({ compound }: { compound: CompoundDef }) {
+  return (
+    <>
+      <color attach="background" args={[TRANSFORM_PREVIEW_BG.c]} />
+      <fog attach="fog" args={TRANSFORM_PREVIEW_BG.f} />
+      <CatalogSubstanceDisplay
+        compound={compound}
+        reducedEffects
+        labSynthesisScene
+        renderQuality="synthesis"
+        fxLevel="low"
+      />
+    </>
+  )
+}
+
 function SceneContent({
   particles,
   onParticleMove,
@@ -105,9 +137,10 @@ function SceneContent({
   synthesis,
   /** true, пока runId>0 на странице лаборатории: не показывать settled-герой поверх «пустой» ветки synth */
   synthesisRunActive = false,
-  reactorReagentZs,
+  onPerfLevelChange,
+  reactorPreviewTerms = null,
   reactorViewOpen,
-  /** После успешного синтеза — герой каталога, пока не сброшено */
+  transformPreviewCompound = null,
   synthesisSettledProduct,
   laboratorySynthesisView,
 }: {
@@ -116,8 +149,11 @@ function SceneContent({
   structureZ: number | null
   onInspectAtom?: (z: number) => void
   synthesisRunActive?: boolean
-  /** Ряд выбранных Z (2–4) до «Запустить синтез» */
-  reactorReagentZs: number[] | null
+  onPerfLevelChange?: (level: PerfLevel) => void
+  /** Слагаемые левой части для превью атомных структур */
+  reactorPreviewTerms?: readonly ReactorEquationTerm[] | null
+  /** Выбранное вещество до запуска — каталожная 3D-модель в центре */
+  transformPreviewCompound?: CompoundDef | null
   /** Реактор открыт: без пары в центре не показывать декоративный атом */
   reactorViewOpen: boolean
   synthesisSettledProduct: CompoundDef | null
@@ -126,6 +162,7 @@ function SceneContent({
   synthesis: {
     runId: number
     zSlots: readonly number[]
+    flyTerms: readonly ReactorEquationTerm[]
     product: CompoundDef | null
     onDone: (kind: 'success' | 'fail') => void
     onSynthesisStageChange?: (stage: 'reactor' | 'substance') => void
@@ -133,56 +170,32 @@ function SceneContent({
 }) {
   const { camera } = useThree()
   const orbRef = useRef<OrbitControlsImpl | null>(null)
+  const perfLevelRef = useRef<PerfLevel>('high')
+  const perfAcc = useRef({ t: 0, lowT: 0, highT: 0, fps: 60 })
   const synthActive = synthesis != null
-  const reagentRowVisible = reactorReagentZs != null && reactorReagentZs.length >= 2
+  const termsPreviewVisible =
+    reactorPreviewTerms != null &&
+    reactorPreviewTerms.length >= 1 &&
+    !synthesisRunActive &&
+    !synthActive
+  const previewActive =
+    transformPreviewCompound != null &&
+    reactorViewOpen &&
+    !synthActive &&
+    !synthesisRunActive &&
+    !termsPreviewVisible
   const showSettledHero =
     !synthActive &&
     !synthesisRunActive &&
-    !reagentRowVisible &&
+    !previewActive &&
+    !termsPreviewVisible &&
     synthesisSettledProduct != null
-  /** Каталожный кадр: settled или активный успешный ран, уже с `mergeFlash` (см. SynthesisOnLabScene) */
+  /** Каталожный кадр: превью продукта, settled или активный успешный ран в режиме substance */
   const catalogViewMode =
-    showSettledHero || (!!synthActive && !!synthesis?.product && laboratorySynthesisView === 'substance')
+    previewActive ||
+    showSettledHero ||
+    (!!synthActive && !!synthesis?.product && laboratorySynthesisView === 'substance')
 
-  useEffect(() => {
-    const branch =
-      synthActive && synthesis
-        ? 'synth'
-        : showSettledHero && synthesisSettledProduct
-          ? 'settled'
-          : 'default'
-    // #region agent log
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        sessionId: 'dbdb64',
-        location: 'LabScene.tsx:SceneContent',
-        message: 'scene branch',
-        data: {
-          branch,
-          synthActive,
-          synthesisRunActive,
-          reagentRowVisible,
-          showSettledHero,
-          hasSettled: synthesisSettledProduct != null,
-          zSlotsLen: synthesis?.zSlots?.length,
-        },
-        runId: 'post-fix',
-        hypothesisId: 'H_scene',
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
-  }, [
-    synthesis,
-    synthActive,
-    showSettledHero,
-    synthesisSettledProduct,
-    synthesisRunActive,
-    reagentRowVisible,
-  ])
 
   // eslint-disable-next-line react-hooks/immutability
   useEffect(() => {
@@ -213,7 +226,51 @@ function SceneContent({
       orbRef.current.target.set(tx, ty, tz)
       orbRef.current.update?.()
     }
-  }, [camera, catalogViewMode, showSettledHero, synthesis?.runId, synthesisSettledProduct?.id])
+  }, [camera, catalogViewMode, showSettledHero, previewActive, synthesis?.runId, synthesisSettledProduct?.id])
+
+  // Лёгкий авто-тюнинг: если FPS проседает — переключаемся на low и обратно с гистерезисом.
+  // Делается здесь (внутри Canvas), чтобы измерять delta из render-loop без внешних зависимостей.
+  useEffect(() => {
+    perfLevelRef.current = 'high'
+    perfAcc.current = { t: 0, lowT: 0, highT: 0, fps: 60 }
+    onPerfLevelChange?.('high')
+  }, [onPerfLevelChange])
+
+  useFrame((_, delta) => {
+    // delta может быть очень большим при сворачивании окна; ограничим.
+    const d = Math.min(0.25, Math.max(0.0005, delta))
+    const fps = 1 / d
+    const a = perfAcc.current
+    // EMA сглаживание
+    a.fps = a.fps * 0.9 + fps * 0.1
+    a.t += d
+    if (a.t < 0.25) return
+    a.t = 0
+
+    const cur = perfLevelRef.current
+    const LOW_ENTER_FPS = 50
+    const HIGH_EXIT_FPS = 58
+    const ENTER_SEC = 0.8
+    const EXIT_SEC = 1.5
+
+    if (cur === 'high') {
+      if (a.fps < LOW_ENTER_FPS) a.lowT += 0.25
+      else a.lowT = Math.max(0, a.lowT - 0.25)
+      if (a.lowT >= ENTER_SEC) {
+        perfLevelRef.current = 'low'
+        a.highT = 0
+        onPerfLevelChange?.('low')
+      }
+    } else {
+      if (a.fps > HIGH_EXIT_FPS) a.highT += 0.25
+      else a.highT = Math.max(0, a.highT - 0.25)
+      if (a.highT >= EXIT_SEC) {
+        perfLevelRef.current = 'high'
+        a.lowT = 0
+        onPerfLevelChange?.('high')
+      }
+    }
+  })
 
   return (
     <>
@@ -221,6 +278,7 @@ function SceneContent({
         <SynthesisOnLabScene
           key={synthesis.runId}
           zSlots={synthesis.zSlots}
+          flyTerms={synthesis.flyTerms}
           product={synthesis.product}
           runId={synthesis.runId}
           onDone={synthesis.onDone}
@@ -249,32 +307,45 @@ function SceneContent({
               />
             ))}
         </>
+      ) : termsPreviewVisible && reactorPreviewTerms ? (
+        <>
+          <color attach="background" args={[LAB_SCENE_CLEAR_HEX]} />
+          <fog attach="fog" args={[LAB_SCENE_CLEAR_HEX, 6, 28]} />
+          <ambientLight intensity={0.22} />
+          <directionalLight position={[4, 6, 2]} intensity={0.55} color="#b8c8ff" />
+          <ReactorTermsPreview terms={reactorPreviewTerms} />
+        </>
+      ) : previewActive && transformPreviewCompound ? (
+        <TransformPreviewHero compound={transformPreviewCompound} />
       ) : (
         <>
           <color attach="background" args={[LAB_SCENE_CLEAR_HEX]} />
           <fog attach="fog" args={[LAB_SCENE_CLEAR_HEX, 6, 28]} />
-          <Stars radius={120} depth={60} count={7000} factor={3.5} saturation={0} fade speed={0.6} />
+          {!reactorViewOpen && !synthActive ? (
+            <Stars radius={100} depth={50} count={1600} factor={3} saturation={0} fade speed={0.35} />
+          ) : null}
           <ambientLight intensity={0.22} />
           <directionalLight position={[4, 6, 2]} intensity={0.55} color="#b8c8ff" />
           <group position={[0, 0, 0]}>
-            {reactorReagentZs && reactorReagentZs.length >= 2 ? (
-              <ReactorReagentRowPreview zs={reactorReagentZs} />
-            ) : structureZ != null ? (
+            {structureZ != null ? (
               <AtomStructureModel z={structureZ} />
             ) : reactorViewOpen ? null : (
               <DecorativeAtom />
             )}
           </group>
-          {particles.map((p) => (
-            <DraggableParticle
-              key={p.id}
-              particle={p}
-              onParticleMove={onParticleMove}
-              onInspectAtom={onInspectAtom}
-            />
-          ))}
+          {!reactorViewOpen
+            ? particles.map((p) => (
+                <DraggableParticle
+                  key={p.id}
+                  particle={p}
+                  onParticleMove={onParticleMove}
+                  onInspectAtom={onInspectAtom}
+                />
+              ))
+            : null}
         </>
       )}
+      {catalogViewMode ? <CatalogCanvasResizeSync /> : null}
       <OrbitControls
         ref={orbRef}
         makeDefault
@@ -299,7 +370,8 @@ export function LabCanvas({
   onInspectAtom,
   synthesis,
   synthesisRunActive = false,
-  reactorReagentZs = null,
+  reactorPreviewTerms = null,
+  transformPreviewCompound = null,
   reactorViewOpen = false,
   synthesisSettledProduct = null,
   laboratorySynthesisView = 'reactor',
@@ -309,18 +381,24 @@ export function LabCanvas({
   structureZ: number | null
   onInspectAtom?: (z: number) => void
   synthesisRunActive?: boolean
-  reactorReagentZs?: number[] | null
+  reactorPreviewTerms?: readonly ReactorEquationTerm[] | null
+  transformPreviewCompound?: CompoundDef | null
   reactorViewOpen?: boolean
   synthesisSettledProduct?: CompoundDef | null
   laboratorySynthesisView?: 'reactor' | 'substance'
   synthesis: {
     runId: number
     zSlots: readonly number[]
+    flyTerms: readonly ReactorEquationTerm[]
     product: CompoundDef | null
     onDone: (kind: 'success' | 'fail') => void
     onSynthesisStageChange?: (stage: 'reactor' | 'substance') => void
   } | null
 }) {
+  const { t } = useT()
+  const [perfLevel, setPerfLevel] = useState<PerfLevel>('high')
+  const lowPower3d =
+    synthesisRunActive || reactorViewOpen || laboratorySynthesisView === 'substance'
   if (!isWebGLAvailable()) {
     return (
       <div
@@ -341,35 +419,35 @@ export function LabCanvas({
           boxSizing: 'border-box',
         }}
       >
-        WebGL недоступен — лабораторная 3D‑сцена не может быть показана. Проверьте аппаратное ускорение в
-        браузере.
+        {t('lab.webglUnavailable')}
       </div>
     )
   }
   return (
-    <CanvasErrorBoundary>
+    <CanvasErrorBoundary fallback={<CanvasSceneErrorFallback />}>
       <Canvas
-        gl={{ antialias: true, alpha: false }}
-        dpr={[1, 2]}
+        gl={{
+          antialias: !lowPower3d,
+          alpha: false,
+          powerPreference: 'high-performance',
+        }}
+        dpr={lowPower3d ? 1 : perfLevel === 'low' ? 1 : [1, 1.5]}
         onCreated={(state) => {
           const bg = hexToColor(LAB_SCENE_CLEAR_HEX)
           state.gl.setClearColor(bg, 1)
           state.scene.background = bg
-          // #region agent log
-          fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a62735' },
-            body: JSON.stringify({
-              sessionId: 'a62735',
-              runId: 'pre-fix',
-              hypothesisId: 'H_lab_canvas',
-              location: 'LabScene.tsx:LabCanvas.Canvas.onCreated',
-              message: 'LabCanvas created',
-              data: { size: state.size, dpr: state.viewport?.dpr ?? null, isWebGL2: state.gl.capabilities.isWebGL2 },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {})
-          // #endregion
+          const canvas = state.gl.domElement
+          const onLost = (e: Event) => {
+            e.preventDefault()
+          }
+          const onRestored = () => {
+            state.gl.setClearColor(bg, 1)
+            state.scene.background = bg
+            state.gl.setSize(state.size.width, state.size.height)
+            state.invalidate()
+          }
+          canvas.addEventListener('webglcontextlost', onLost)
+          canvas.addEventListener('webglcontextrestored', onRestored)
         }}
       >
         <SceneContent
@@ -379,7 +457,9 @@ export function LabCanvas({
           onInspectAtom={onInspectAtom}
           synthesis={synthesis}
           synthesisRunActive={synthesisRunActive}
-          reactorReagentZs={reactorReagentZs}
+          onPerfLevelChange={setPerfLevel}
+          reactorPreviewTerms={reactorPreviewTerms}
+          transformPreviewCompound={transformPreviewCompound}
           reactorViewOpen={reactorViewOpen}
           synthesisSettledProduct={synthesisSettledProduct}
           laboratorySynthesisView={laboratorySynthesisView}

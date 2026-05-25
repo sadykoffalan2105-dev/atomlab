@@ -1,13 +1,27 @@
-import { useEffect, useMemo, useState } from 'react'
-import { COMPOUND_CATEGORY_ORDER, COMPOUND_CATEGORY_SECTION_TITLE } from '../../data/compoundCategoryLabels'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { COMPOUND_CATEGORY_ORDER } from '../../data/compoundCategoryLabels'
 import { filterCompoundsForCatalog } from '../../data/compoundCatalogFilter'
 import { compoundById } from '../../data/compounds'
+import { compoundSearchBlob, getCompoundLocaleStrings } from '../../i18n/compoundLocale'
+import type { MessageKey } from '../../i18n/useT'
+import { useT } from '../../i18n/useT'
 import type { CompoundCategory, CompoundDef } from '../../types/chemistry'
 import styles from './ReactorCompoundCatalogPanel.module.css'
 
 const REACTOR_CATALOG_TITLE_ID = 'reactor-catalog-title'
 
 export type ReactorCatalogIntent = 'selectProduct' | 'generateEquation'
+
+function sectionTitleKey(cat: CompoundCategory): MessageKey {
+  const m: Record<CompoundCategory, MessageKey> = {
+    oxide: 'category.section.oxide',
+    acid: 'category.section.acid',
+    base: 'category.section.base',
+    salt: 'category.section.salt',
+    other: 'category.section.other',
+  }
+  return m[cat]
+}
 
 export function ReactorCompoundCatalogPanel({
   open,
@@ -20,6 +34,7 @@ export function ReactorCompoundCatalogPanel({
   onClose: () => void
   onPick: (id: string) => void
 }) {
+  const { locale, t } = useT()
   const [q, setQ] = useState('')
   const [category, setCategory] = useState<CompoundCategory | 'all'>('all')
 
@@ -34,9 +49,11 @@ export function ReactorCompoundCatalogPanel({
 
   const all = useMemo(() => Object.values(compoundById) as CompoundDef[], [])
 
+  const searchBlob = useCallback((c: CompoundDef) => compoundSearchBlob(c, locale, t), [locale, t])
+
   const filtered = useMemo(
-    () => filterCompoundsForCatalog(all, q, category),
-    [all, q, category],
+    () => filterCompoundsForCatalog(all, q, category, searchBlob),
+    [all, q, category, searchBlob],
   )
 
   const byCategory = useMemo(() => {
@@ -69,39 +86,37 @@ export function ReactorCompoundCatalogPanel({
         <header className={styles.head}>
           <div>
             <h2 id={REACTOR_CATALOG_TITLE_ID} className={styles.title}>
-              Каталог веществ
+              {t('catalogPanel.title')}
             </h2>
             <p className={styles.sub}>
-              {intent === 'generateEquation'
-                ? 'Выберите вещество: реагенты подставятся из эталона без коэффициентов — уравняйте вручную перед запуском. Поиск по названию, формуле или id.'
-                : 'Выберите продукт реакции. Поиск по названию, формуле или id.'}
+              {intent === 'generateEquation' ? t('catalogPanel.subGenerate') : t('catalogPanel.subProduct')}
             </p>
           </div>
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Закрыть каталог">
+          <button type="button" className={styles.close} onClick={onClose} aria-label={t('catalogPanel.close')}>
             ×
           </button>
         </header>
 
         <label className={styles.searchLabel}>
-          <span className={styles.searchHint}>Поиск</span>
+          <span className={styles.searchHint}>{t('catalog.search')}</span>
           <input
             className={styles.searchInput}
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Формула, название или id…"
-            aria-label="Поиск по каталогу"
+            placeholder={t('catalog.placeholder')}
+            aria-label={t('catalog.searchAria')}
           />
         </label>
 
-        <div className={styles.filterRow} role="group" aria-label="Фильтр по типу">
+        <div className={styles.filterRow} role="group" aria-label={t('catalogPanel.filterAria')}>
           <button
             type="button"
             className={styles.filterChip}
             data-active={category === 'all'}
             onClick={() => setCategory('all')}
           >
-            Все
+            {t('catalogPanel.all')}
           </button>
           {COMPOUND_CATEGORY_ORDER.map((cat) => (
             <button
@@ -111,35 +126,63 @@ export function ReactorCompoundCatalogPanel({
               data-active={category === cat}
               onClick={() => setCategory(cat)}
             >
-              {COMPOUND_CATEGORY_SECTION_TITLE[cat]}
+              {t(sectionTitleKey(cat))}
             </button>
           ))}
         </div>
 
         <div className={styles.list}>
           {filtered.length === 0 ? (
-            <p className={styles.empty}>Ничего не найдено — измените запрос или фильтр.</p>
+            <p className={styles.empty}>{t('catalogPanel.empty')}</p>
           ) : (
             COMPOUND_CATEGORY_ORDER.map((cat) => {
               const items = byCategory.get(cat) ?? []
               if (items.length === 0) return null
               return (
                 <section key={cat}>
-                  <h3 className={styles.sectionTitle}>{COMPOUND_CATEGORY_SECTION_TITLE[cat]}</h3>
-                  {items.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className={styles.card}
-                      onClick={() => {
-                        onPick(c.id)
-                        onClose()
-                      }}
-                    >
-                      <div className={styles.formula}>{c.formulaUnicode}</div>
-                      <div className={styles.name}>{c.nameRu}</div>
-                    </button>
-                  ))}
+                  <h3 className={styles.sectionTitle}>{t(sectionTitleKey(cat))}</h3>
+                  {intent === 'generateEquation' ? (
+                    <ul className={styles.grid}>
+                      {items.map((c) => {
+                        const loc = getCompoundLocaleStrings(c, locale, t)
+                        return (
+                          <li key={c.id}>
+                            <button
+                              type="button"
+                              className={styles.gridCard}
+                              onClick={() => {
+                                onPick(c.id)
+                                onClose()
+                              }}
+                              aria-label={t('catalogPanel.pick', { name: loc.name, formula: c.formulaUnicode })}
+                            >
+                              <span className={styles.gridFormula}>{c.formulaUnicode}</span>
+                              <span className={styles.gridName}>{loc.name}</span>
+                              <p className={styles.gridDesc}>{loc.description}</p>
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  ) : (
+                    items.map((c) => {
+                      const loc = getCompoundLocaleStrings(c, locale, t)
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className={styles.card}
+                          onClick={() => {
+                            onPick(c.id)
+                            onClose()
+                          }}
+                        >
+                          <div className={styles.formula}>{c.formulaUnicode}</div>
+                          <div className={styles.name}>{loc.name}</div>
+                        </button>
+                      )
+                    })
+                  )}
                 </section>
               )
             })

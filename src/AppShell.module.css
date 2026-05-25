@@ -32,10 +32,50 @@
   color: #3dffec;
 }
 
+.headerTools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
 .nav {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem 0.75rem;
+}
+
+.langToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(61, 255, 236, 0.28);
+  background: rgba(10, 14, 28, 0.75);
+  color: #e8ecff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.langToggle:hover {
+  border-color: rgba(61, 255, 236, 0.5);
+  color: #3dffec;
+}
+
+.langGlobe {
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.langCode {
+  min-width: 1.75rem;
+  text-align: center;
 }
 
 .navLink {

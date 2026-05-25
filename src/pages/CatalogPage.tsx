@@ -1,25 +1,37 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { CompoundDetailModal } from '../components/lab/CompoundDetailModal'
-import { COMPOUND_CATEGORY_ORDER, COMPOUND_CATEGORY_SECTION_TITLE } from '../data/compoundCategoryLabels'
+import { COMPOUND_CATEGORY_ORDER } from '../data/compoundCategoryLabels'
+import { filterCompoundsForCatalog } from '../data/compoundCatalogFilter'
 import { compoundById } from '../data/compounds'
+import { compoundSearchBlob, getCompoundLocaleStrings } from '../i18n/compoundLocale'
+import type { MessageKey } from '../i18n/useT'
+import { useT } from '../i18n/useT'
 import type { CompoundCategory } from '../types/chemistry'
 import styles from './CatalogPage.module.css'
 
+function sectionTitleKey(cat: CompoundCategory): MessageKey {
+  const m: Record<CompoundCategory, MessageKey> = {
+    oxide: 'category.section.oxide',
+    acid: 'category.section.acid',
+    base: 'category.section.base',
+    salt: 'category.section.salt',
+    other: 'category.section.other',
+  }
+  return m[cat]
+}
+
 export function CatalogPage() {
+  const { locale, t } = useT()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [q, setQ] = useState('')
   const list = useMemo(() => Object.values(compoundById), [])
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase()
-    if (!s) return list
-    return list.filter(
-      (c) =>
-        c.nameRu.toLowerCase().includes(s) ||
-        c.formulaUnicode.toLowerCase().includes(s) ||
-        c.id.toLowerCase().includes(s),
-    )
-  }, [list, q])
+  const searchBlob = useCallback((c: (typeof list)[number]) => compoundSearchBlob(c, locale, t), [locale, t])
+
+  const filtered = useMemo(
+    () => filterCompoundsForCatalog(list, q, 'all', searchBlob),
+    [list, q, searchBlob],
+  )
 
   const byCategory = useMemo(() => {
     const m = new Map<CompoundCategory, typeof list>()
@@ -33,20 +45,17 @@ export function CatalogPage() {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.h}>Каталог веществ</h1>
-      <p className={styles.lead}>
-        Неорганика школьного курса: оксиды, кислоты, основания и соли. Та же база веществ используется в лаборатории
-        (атомы, просмотр 3D).
-      </p>
+      <h1 className={styles.h}>{t('catalog.title')}</h1>
+      <p className={styles.lead}>{t('catalog.lead')}</p>
       <label className={styles.searchLabel}>
-        <span className={styles.searchHint}>Поиск</span>
+        <span className={styles.searchHint}>{t('catalog.search')}</span>
         <input
           className={styles.searchInput}
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Формула, название или id…"
-          aria-label="Поиск по каталогу"
+          placeholder={t('catalog.placeholder')}
+          aria-label={t('catalog.searchAria')}
         />
       </label>
 
@@ -55,31 +64,36 @@ export function CatalogPage() {
         if (items.length === 0) return null
         return (
           <section key={cat} className={styles.section}>
-            <h2 className={styles.sectionTitle}>{COMPOUND_CATEGORY_SECTION_TITLE[cat]}</h2>
+            <h2 className={styles.sectionTitle}>{t(sectionTitleKey(cat))}</h2>
             <ul className={styles.list}>
-              {items.map((c) => (
-                <li key={c.id}>
-                  <button
-                    type="button"
-                    className={styles.cardBtn}
-                    onClick={() => setSelectedId(c.id)}
-                    aria-label={`Подробнее: ${c.nameRu}, ${c.formulaUnicode}`}
-                  >
-                    <span className={styles.formula}>{c.formulaUnicode}</span>
-                    <span className={styles.name}>{c.nameRu}</span>
-                    <p className={styles.desc}>{c.descriptionRu}</p>
-                    <p className={styles.labRecipe}>{c.laboratoryRecipeRu}</p>
-                    <p className={styles.synthPreview} title={`T: ${c.synthesisConditionsRu.temperature ?? ''}\n${c.synthesisConditionsRu.pressure ?? ''}\n${c.synthesisConditionsRu.catalyst ?? ''}`}>
-                      <span className={styles.synthPreviewLabel}>Синтез</span>{' '}
-                      <span className={styles.synthPreviewT}>t°</span>
-                      <span className={styles.synthPreviewDot}>·</span>
-                      <span className={styles.synthPreviewP}>p</span>
-                      <span className={styles.synthPreviewDot}>·</span>
-                      <span className={styles.synthPreviewK}>кат.</span>
-                    </p>
-                  </button>
-                </li>
-              ))}
+              {items.map((c) => {
+                const loc = getCompoundLocaleStrings(c, locale, t)
+                const synth = loc.synthesisConditions
+                const synthTitle = `T: ${synth.temperature ?? ''}\n${synth.pressure ?? ''}\n${synth.catalyst ?? ''}`
+                return (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      className={styles.cardBtn}
+                      onClick={() => setSelectedId(c.id)}
+                      aria-label={t('catalog.moreDetails', { name: loc.name, formula: c.formulaUnicode })}
+                    >
+                      <span className={styles.formula}>{c.formulaUnicode}</span>
+                      <span className={styles.name}>{loc.name}</span>
+                      <p className={styles.desc}>{loc.description}</p>
+                      <p className={styles.labRecipe}>{loc.laboratoryRecipe}</p>
+                      <p className={styles.synthPreview} title={synthTitle}>
+                        <span className={styles.synthPreviewLabel}>{t('catalog.synthPreviewLabel')}</span>{' '}
+                        <span className={styles.synthPreviewT}>{t('catalog.synthPreviewT')}</span>
+                        <span className={styles.synthPreviewDot}>·</span>
+                        <span className={styles.synthPreviewP}>{t('catalog.synthPreviewP')}</span>
+                        <span className={styles.synthPreviewDot}>·</span>
+                        <span className={styles.synthPreviewK}>{t('catalog.synthPreviewK')}</span>
+                      </p>
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           </section>
         )

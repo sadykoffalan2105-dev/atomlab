@@ -5,6 +5,7 @@ export function filterCompoundsForCatalog(
   compounds: readonly CompoundDef[],
   query: string,
   category: CompoundCategory | 'all',
+  searchText?: (c: CompoundDef) => string,
 ): readonly CompoundDef[] {
   const s = query.trim().toLowerCase()
   let list = compounds
@@ -12,10 +13,10 @@ export function filterCompoundsForCatalog(
     list = list.filter((c) => c.category === category)
   }
   if (!s) return list
-  return list.filter(
-    (c) =>
-      c.nameRu.toLowerCase().includes(s) ||
-      c.formulaUnicode.toLowerCase().includes(s) ||
-      c.id.toLowerCase().includes(s),
-  )
+  return list.filter((c) => {
+    const blob = searchText
+      ? searchText(c).toLowerCase()
+      : `${c.nameRu} ${c.formulaUnicode} ${c.id}`.toLowerCase()
+    return blob.includes(s)
+  })
 }

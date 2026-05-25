@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getElementByZ, estimateNeutrons } from '../../data/elements'
@@ -20,8 +20,8 @@ function shellCap(n: number): number {
 function bohrShellElectronCounts(z: number): number[] {
   const out: number[] = []
   let rem = Math.max(0, Math.min(MAX_Z, Math.floor(z)))
-  for (let n = 1; n <= 7 && rem > 0; n++) {
-    const c = shellCap(n)
+  for (let shellN = 1; shellN <= 7 && rem > 0; shellN++) {
+    const c = shellCap(shellN)
     const t = Math.min(rem, c)
     out.push(t)
     rem -= t
@@ -65,15 +65,31 @@ function shellHue(shellIndex: number): THREE.Color {
   return c
 }
 
-export function AtomStructureModel({ z, animate = true }: { z: number; animate?: boolean }) {
+export function AtomStructureModel({
+  z,
+  animate = true,
+  localLight = true,
+  previewStatic = false,
+  previewEmphasis = false,
+  previewLite = false,
+}: {
+  z: number
+  animate?: boolean
+  localLight?: boolean
+  previewStatic?: boolean
+  previewEmphasis?: boolean
+  /** Плотное превью: электроны крутятся, без локального вращения группы (экономия GPU). */
+  previewLite?: boolean
+}) {
   const group = useRef<THREE.Group>(null)
   const protRef = useRef<THREE.InstancedMesh>(null)
   const neutRef = useRef<THREE.InstancedMesh>(null)
   const elecRef = useRef<THREE.InstancedMesh>(null)
   const dummy = useMemo(() => new THREE.Object3D(), [])
 
+  const elecRadius = previewEmphasis ? 0.042 : 0.036
   const protGeo = useMemo(() => new THREE.SphereGeometry(0.024, 8, 8), [])
-  const elecGeo = useMemo(() => new THREE.SphereGeometry(0.036, 8, 8), [])
+  const elecGeo = useMemo(() => new THREE.SphereGeometry(elecRadius, 8, 8), [elecRadius])
   const protMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -101,7 +117,7 @@ export function AtomStructureModel({ z, animate = true }: { z: number; animate?:
       new THREE.MeshStandardMaterial({
         color: ELECTRON_COLOR,
         emissive: ELECTRON_COLOR,
-        emissiveIntensity: 1.65,
+        emissiveIntensity: previewEmphasis ? 2 : 1.65,
         metalness: 0.2,
         roughness: 0.35,
       }),
@@ -116,7 +132,6 @@ export function AtomStructureModel({ z, animate = true }: { z: number; animate?:
   const shells = useMemo(() => bohrShellElectronCounts(zClamped), [zClamped])
   const nElec = useMemo(() => totalElectrons(shells), [shells])
 
-  /** Один компактный шар: все нуклоны делят общую плотную упаковку (как единое ядро). */
   const nucleusRadius = useMemo(() => {
     const n = Math.max(1, nNeutrons)
     const total = zClamped + n
@@ -124,11 +139,49 @@ export function AtomStructureModel({ z, animate = true }: { z: number; animate?:
   }, [zClamped, nNeutrons])
 
   const angles = useRef<number[]>([])
-  useEffect(() => {
+  const orbitOpacity = previewEmphasis ? 0.38 : 0.26
+
+  useLayoutEffect(() => {
     angles.current = Array.from({ length: nElec }, (_, i) => (i / Math.max(1, nElec)) * Math.PI * 2)
   }, [nElec])
 
   const totalNucleons = zClamped + Math.max(0, nNeutrons)
+
+  const writeElectronMatrices = useCallback(
+    (spin: number) => {
+      const mesh = elecRef.current
+      if (!mesh || nElec === 0) return
+      let idx = 0
+      shells.forEach((count, shellIdx) => {
+        if (count <= 0) return
+        const majorR = 0.38 + shellIdx * 0.21
+        const eRx = (shellIdx * Math.PI) / 6
+        const eRy = (shellIdx * Math.PI) / 5
+        const eRz = (shellIdx * Math.PI) / 7
+        const speed = 0.65 + shellIdx * 0.12
+        for (let i = 0; i < count; i++) {
+          angles.current[idx] = (angles.current[idx] ?? 0) + spin * speed
+          const phase = (i / count) * Math.PI * 2
+          setElectronOnTorusMajorCircle(
+            dummy.position,
+            majorR,
+            angles.current[idx]! + phase,
+            eRx,
+            eRy,
+            eRz,
+          )
+          dummy.quaternion.identity()
+          dummy.scale.setScalar(1)
+          dummy.updateMatrix()
+          mesh.setMatrixAt(idx, dummy.matrix)
+          idx++
+        }
+      })
+      mesh.count = nElec
+      mesh.instanceMatrix.needsUpdate = true
+    },
+    [dummy, nElec, shells],
+  )
 
   useLayoutEffect(() => {
     const mesh = protRef.current
@@ -162,32 +215,16 @@ export function AtomStructureModel({ z, animate = true }: { z: number; animate?:
     mesh.instanceMatrix.needsUpdate = true
   }, [nNeutrons, nucleusRadius, zClamped, dummy, totalNucleons])
 
+  useLayoutEffect(() => {
+    if (!previewStatic) return
+    writeElectronMatrices(0)
+  }, [previewStatic, writeElectronMatrices, nElec])
+
   useFrame((_, delta) => {
-    if (!animate) return
-    if (group.current) group.current.rotation.y += delta * 0.09
-    const mesh = elecRef.current
-    if (!mesh || nElec === 0) return
-    let idx = 0
-    shells.forEach((count, shellIdx) => {
-      if (count <= 0) return
-      const majorR = 0.38 + shellIdx * 0.21
-      const eRx = (shellIdx * Math.PI) / 6
-      const eRy = (shellIdx * Math.PI) / 5
-      const eRz = (shellIdx * Math.PI) / 7
-      const speed = 0.65 + shellIdx * 0.12
-      for (let i = 0; i < count; i++) {
-        angles.current[idx] += delta * speed
-        const phase = (i / count) * Math.PI * 2
-        setElectronOnTorusMajorCircle(dummy.position, majorR, angles.current[idx] + phase, eRx, eRy, eRz)
-        dummy.quaternion.identity()
-        dummy.scale.setScalar(1)
-        dummy.updateMatrix()
-        mesh.setMatrixAt(idx, dummy.matrix)
-        idx++
-      }
-    })
-    mesh.count = nElec
-    mesh.instanceMatrix.needsUpdate = true
+    if (previewStatic) return
+    const spin = animate && !previewLite
+    if (spin && group.current) group.current.rotation.y += delta * 0.09
+    writeElectronMatrices(animate ? delta : 0)
   })
 
   return (
@@ -203,13 +240,20 @@ export function AtomStructureModel({ z, animate = true }: { z: number; animate?:
         const eRz = (shellIdx * Math.PI) / 7
         return (
           <mesh key={`torus-${shellIdx}`} rotation={[eRx, eRy, eRz]}>
-            <torusGeometry args={[majorR, 0.005, 6, 48]} />
-            <meshBasicMaterial color={col} transparent opacity={0.22} />
+            <torusGeometry args={[majorR, 0.005, 6, previewLite ? 32 : 48]} />
+            <meshBasicMaterial
+              color={col}
+              transparent
+              opacity={orbitOpacity}
+              depthWrite={false}
+            />
           </mesh>
         )
       })}
       <instancedMesh ref={elecRef} args={[elecGeo, elecMat, MAX_Z]} frustumCulled={false} />
-      <pointLight position={[0, 0, 0]} intensity={1.05} distance={4.2} color="#7afcff" />
+      {localLight ? (
+        <pointLight position={[0, 0, 0]} intensity={1.05} distance={4.2} color="#7afcff" />
+      ) : null}
     </group>
   )
 }

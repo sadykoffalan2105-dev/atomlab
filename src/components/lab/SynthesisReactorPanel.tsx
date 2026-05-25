@@ -1,4 +1,7 @@
+import { useMemo } from 'react'
 import { getElementByZ } from '../../data/elements'
+import { getCompoundLocaleStrings } from '../../i18n/compoundLocale'
+import { useT } from '../../i18n/useT'
 import type { CompoundDef } from '../../types/chemistry'
 import type { LeftCatalogMatch, ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import { expandLeftTermsToZSlots, REACTOR_EQUATION_MAX_FLY_ATOMS } from '../../chemistry/reactorEquationBalance'
@@ -6,9 +9,6 @@ import panelStyles from './SynthesisReactorPanel.module.css'
 
 const COEFF_MAX_TERM = 999
 const COEFF_MAX_PRODUCT = 99
-
-const EMPTY_REAGENTS_HINT =
-  'Элементы — кнопка ⊞ справа (таблица Менделеева). «Сгенерировать уравнение» — каталог и эталон без коэффициентов.'
 
 function termSymbolDisplay(t: ReactorEquationTerm): string {
   const e = getElementByZ(t.z)
@@ -43,6 +43,8 @@ function CoeffStepper({
   onChange,
   ariaLabel,
   highlightError,
+  decLabel,
+  incLabel,
 }: {
   value: number
   min: number
@@ -50,6 +52,8 @@ function CoeffStepper({
   onChange: (n: number) => void
   ariaLabel: string
   highlightError: boolean
+  decLabel: string
+  incLabel: string
 }) {
   return (
     <div
@@ -62,7 +66,7 @@ function CoeffStepper({
         className={panelStyles.coeffStepBtn}
         disabled={value <= min}
         onClick={() => onChange(Math.max(min, value - 1))}
-        aria-label="Уменьшить коэффициент"
+        aria-label={decLabel}
       >
         −
       </button>
@@ -71,7 +75,7 @@ function CoeffStepper({
         className={panelStyles.coeffStepBtn}
         disabled={value >= max}
         onClick={() => onChange(Math.min(max, value + 1))}
-        aria-label="Увеличить коэффициент"
+        aria-label={incLabel}
       >
         +
       </button>
@@ -116,7 +120,13 @@ export function SynthesisReactorPanel({
   ambiguousProductMatches?: readonly LeftCatalogMatch[]
   dimInCatalogHeroView?: boolean
 }) {
+  const { locale, t } = useT()
   const coeffErr = highlightEquationError
+
+  const productStrings = useMemo(
+    () => (productCompound ? getCompoundLocaleStrings(productCompound, locale, t) : null),
+    [productCompound, locale, t],
+  )
 
   const termCoeffWithinAtomLimit = (id: string, next: number) => {
     const trial = leftTerms.map((t) => (t.id === id ? { ...t, coeff: next } : t))
@@ -129,13 +139,13 @@ export function SynthesisReactorPanel({
       data-open={open}
       data-dim-hero={dimInCatalogHeroView && open}
       role="region"
-      aria-label="Реактор синтеза"
+      aria-label={t('reactor.ariaRegion')}
     >
       <div className={panelStyles.reactorHead}>
-        <span className={panelStyles.reactorTitle}>Реактор</span>
+        <span className={panelStyles.reactorTitle}>{t('reactor.title')}</span>
         <div className={panelStyles.reactorActions}>
           <button type="button" className={panelStyles.reactorBtnSecondary} onClick={onClearSlots}>
-            Сбросить
+            {t('reactor.reset')}
           </button>
         </div>
       </div>
@@ -143,20 +153,20 @@ export function SynthesisReactorPanel({
       <div className={`${panelStyles.equationWrap} ${panelStyles.equationWrapWithFab}`}>
         <div
           className={panelStyles.equationRow}
-          aria-label="Уравнение реакции"
+          aria-label={t('reactor.equationAria')}
           data-balanced={equationBalanced ? 'true' : undefined}
         >
           <div className={`${panelStyles.equationMain} ${panelStyles.equationMainEquationRow}`}>
             <div className={panelStyles.equationTermsCol}>
-              <span className={panelStyles.equationSideLabel}>Реагенты</span>
+              <span className={panelStyles.equationSideLabel}>{t('reactor.reagents')}</span>
               <div className={`${panelStyles.equationTerms} ${panelStyles.equationTermsEquation}`}>
                 {leftTerms.length === 0 ? (
                   <div className={panelStyles.equationEmpty} role="note">
-                    {EMPTY_REAGENTS_HINT}
+                    {t('reactor.emptyHint')}
                   </div>
                 ) : null}
-                {leftTerms.map((t, idx) => (
-                  <div key={t.id} className={panelStyles.termCluster}>
+                {leftTerms.map((term, idx) => (
+                  <div key={term.id} className={panelStyles.termCluster}>
                     {idx > 0 ? (
                       <span className={panelStyles.equationPlus} aria-hidden>
                         +
@@ -164,31 +174,33 @@ export function SynthesisReactorPanel({
                     ) : null}
                     <div
                       className={`${panelStyles.reagentBubble} ${coeffErr ? panelStyles.reagentBubbleError : ''}`}
-                      style={{ ['--reagent-glow' as string]: reagentGlowHex(t.z) }}
+                      style={{ ['--reagent-glow' as string]: reagentGlowHex(term.z) }}
                     >
                       <CoeffStepper
-                        value={t.coeff}
+                        value={term.coeff}
                         min={1}
                         max={COEFF_MAX_TERM}
                         highlightError={coeffErr}
-                        ariaLabel={`Коэффициент для ${termSymbolDisplay(t)}`}
+                        ariaLabel={t('reactor.coeffFor', { symbol: termSymbolDisplay(term) })}
+                        decLabel={t('reactor.coeffDecrease')}
+                        incLabel={t('reactor.coeffIncrease')}
                         onChange={(n) => {
-                          if (!termCoeffWithinAtomLimit(t.id, n)) return
-                          onCoeffChange(t.id, n)
+                          if (!termCoeffWithinAtomLimit(term.id, n)) return
+                          onCoeffChange(term.id, n)
                         }}
                       />
                       <span
-                        className={`${panelStyles.stoichCoeff} ${t.coeff === 1 ? panelStyles.stoichCoeffOne : ''}`}
-                        aria-hidden={t.coeff === 1}
+                        className={`${panelStyles.stoichCoeff} ${term.coeff === 1 ? panelStyles.stoichCoeffOne : ''}`}
+                        aria-hidden={term.coeff === 1}
                       >
-                        {t.coeff === 1 ? '1' : t.coeff}
+                        {term.coeff === 1 ? '1' : term.coeff}
                       </span>
-                      <span className={panelStyles.termSymbol}>{termSymbolDisplay(t)}</span>
+                      <span className={panelStyles.termSymbol}>{termSymbolDisplay(term)}</span>
                       <button
                         type="button"
                         className={panelStyles.termRemove}
-                        onClick={() => onRemoveTerm(t.id)}
-                        aria-label={`Убрать ${termSymbolDisplay(t)}`}
+                        onClick={() => onRemoveTerm(term.id)}
+                        aria-label={t('reactor.remove', { symbol: termSymbolDisplay(term) })}
                       >
                         ×
                       </button>
@@ -204,28 +216,30 @@ export function SynthesisReactorPanel({
 
             <div className={`${panelStyles.productBlock} ${panelStyles.productBlockEquation}`}>
               <div className={panelStyles.productEquationMeta}>
-                <span className={panelStyles.productLabelCompact}>Продукт (цель)</span>
+                <span className={panelStyles.productLabelCompact}>{t('reactor.productGoal')}</span>
                 {equationBalanced ? (
-                  <span className={panelStyles.balanceBadge} role="status" aria-label="Уравнение сбалансировано">
+                  <span className={panelStyles.balanceBadge} role="status" aria-label={t('reactor.balanced')}>
                     <IconCheck className={panelStyles.balanceCheck} />
                   </span>
                 ) : null}
               </div>
               {ambiguousProductMatches.length > 1 ? (
                 <p className={panelStyles.ambiguousHint} role="status">
-                  Несколько веществ с этим составом — выберите в каталоге.
+                  {t('reactor.ambiguous')}
                 </p>
               ) : null}
               <div
                 className={`${panelStyles.productBubble} ${coeffErr ? panelStyles.productBubbleError : ''}`}
-                aria-label="Продукт и коэффициент"
+                aria-label={t('reactor.productCoeffAria')}
               >
                 <CoeffStepper
                   value={productCoeff}
                   min={1}
                   max={COEFF_MAX_PRODUCT}
                   highlightError={coeffErr}
-                  ariaLabel="Коэффициент перед продуктом"
+                  ariaLabel={t('reactor.productCoeffAria')}
+                  decLabel={t('reactor.coeffDecrease')}
+                  incLabel={t('reactor.coeffIncrease')}
                   onChange={onProductCoeffChange}
                 />
                 <span
@@ -233,27 +247,34 @@ export function SynthesisReactorPanel({
                 >
                   {productCoeff === 1 ? '1' : productCoeff}
                 </span>
+                {productCompound ? (
+                  <span className={panelStyles.catalogProductChip}>
+                    <span className={panelStyles.catalogFormula}>{productCompound.formulaUnicode}</span>
+                    <span className={panelStyles.catalogName}>
+                      {productStrings?.name ?? productCompound.nameRu}
+                    </span>
+                  </span>
+                ) : (
+                  <span className={panelStyles.catalogOpenPlaceholder}>{t('reactor.productEmpty')}</span>
+                )}
                 <button
                   type="button"
-                  className={`${panelStyles.catalogOpenBtn} ${panelStyles.catalogOpenBtnInBubble} ${coeffErr ? panelStyles.catalogOpenBtnError : ''}`}
+                  className={`${panelStyles.catalogFabCompact} ${coeffErr ? panelStyles.catalogFabCompactError : ''}`}
                   onClick={onOpenCatalog}
+                  title={t('reactor.openCatalog')}
+                  aria-label={t('reactor.openCatalog')}
                 >
-                  {productCompound ? (
-                    <span className={panelStyles.catalogOpenSummary}>
-                      <span className={panelStyles.catalogFormula}>{productCompound.formulaUnicode}</span>
-                      <span className={panelStyles.catalogName}>{productCompound.nameRu}</span>
-                    </span>
-                  ) : (
-                    <span className={panelStyles.catalogOpenPlaceholder}>Открыть каталог…</span>
-                  )}
+                  ◫
                 </button>
               </div>
               {productCompound ? (
                 <span
                   className={`${panelStyles.productHint} ${panelStyles.productHintEquation}`}
-                  title={productCompound.laboratoryRecipeRu}
+                  title={productStrings?.laboratoryRecipe ?? productCompound.laboratoryRecipeRu}
                 >
-                  Эталон: {productCompound.laboratoryRecipeRu}
+                  {t('reactor.recipeLabel', {
+                    recipe: productStrings?.laboratoryRecipe ?? productCompound.laboratoryRecipeRu,
+                  })}
                 </span>
               ) : null}
             </div>
@@ -262,16 +283,20 @@ export function SynthesisReactorPanel({
 
         <button
           type="button"
-          className={panelStyles.reactorPeriodicFab}
+          className={panelStyles.reactorGenerateFab}
           onClick={onOpenGenerateEquationCatalog}
-          title="Открыть каталог: эталон вещества как реагенты с коэффициентом 1 — уравняйте вручную"
+          title={t('reactor.generateEquationTitle')}
+          aria-label={t('reactor.generateEquation')}
         >
-          Сгенерировать уравнение
+          <span className={panelStyles.reactorGenerateFabIcon} aria-hidden>
+            ⚗
+          </span>
+          <span className={panelStyles.reactorGenerateFabLabel}>{t('reactor.generateEquationShort')}</span>
         </button>
       </div>
 
       <div className={panelStyles.hintBox} role="note">
-        Уравняйте атомы слева и справа. Запуск — при верном балансе и выбранном продукте из каталога.
+        {t('reactor.hintBalance')}
       </div>
 
       <div className={panelStyles.reactorFooter}>
@@ -281,7 +306,7 @@ export function SynthesisReactorPanel({
           onClick={onRequestRun}
           disabled={!canRun}
         >
-          Проверить и запустить синтез
+          {t('reactor.run')}
         </button>
         {message ? (
           <p className={panelStyles.reactorMsg} role="status">

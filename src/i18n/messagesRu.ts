@@ -1,0 +1,193 @@
+import { learnPackRu } from './learnPackRu'
+import { learnGradePackRu } from './learnGradePacks'
+
+/** Русские строки UI и ошибок (ключи совпадают с messagesEn). */
+export const messagesRu = {
+  'nav.laboratory': 'Лаборатория',
+  'nav.periodic': 'Таблица Менделеева',
+  'nav.catalog': 'Каталог веществ',
+  'nav.learn': 'Обучение',
+  'lang.toggle': 'Язык: {current}. Нажмите, чтобы переключить',
+  'lang.switchToEn': 'Переключить на English',
+  'lang.switchToRu': 'Переключить на русский',
+
+  'catalog.title': 'Каталог веществ',
+  'catalog.lead':
+    'Неорганика школьного курса: оксиды, кислоты, основания и соли. Та же база веществ используется в лаборатории (атомы, просмотр 3D).',
+  'catalog.search': 'Поиск',
+  'catalog.placeholder': 'Формула, название или id…',
+  'catalog.searchAria': 'Поиск по каталогу',
+  'catalog.synthPreviewLabel': 'Синтез',
+  'catalog.synthPreviewT': 't°',
+  'catalog.synthPreviewP': 'p',
+  'catalog.synthPreviewK': 'кат.',
+  'catalog.moreDetails': 'Подробнее: {name}, {formula}',
+  'catalog.fallbackDescription':
+    '{formula} — {category}. (Полное английское описание для этого вещества пока не задано.)',
+  'catalog.category.oxide': 'оксид',
+  'catalog.category.acid': 'кислота',
+  'catalog.category.base': 'основание',
+  'catalog.category.salt': 'соль',
+  'catalog.category.other': 'вещество',
+
+  'periodic.introShow': 'Показать описание',
+  'periodic.introHide': 'Скрыть описание',
+  'periodic.intro1':
+    'Свойства элементов, в том числе валентность и строение атомов, периодически меняются с ростом заряда ядра.',
+  'periodic.intro2':
+    'Справочная таблица. Нажмите на элемент — откроется окно с полными данными. В лаборатории (⊞) тот же стиль связан с 3D-моделью в центре сцены.',
+  'periodic.lawTitle': 'Периодический закон Д. И. Менделеева',
+  'periodic.legendAria': 'Легенда блоков',
+
+  'lab.synthButton': 'Синтез',
+  'lab.synthButtonClose': 'Закрыть панель реактора',
+  'lab.synthButtonOpen': 'Открыть: реактор с реагентами из таблицы и проверкой баланса',
+  'lab.panelFabAria': 'Открыть периодическую таблицу Менделеева (кнопка справа от сцены)',
+  'lab.reactorOpenHint':
+    'Реагенты — таблица ⊞ справа. Кнопка ⚗ — эталон из каталога. Продукт — маленькая кнопка ◫ в пузыре.',
+  'lab.catalogNoLeft': 'В эталоне нет левой части — добавьте реагенты из таблицы (⊞).',
+  'lab.synthesisFail': 'Синтез не удался. Проверьте уравнение и продукт.',
+  'lab.recipeWarn.noEquals': 'В эталоне нет «=» — введите левую часть вручную.',
+  'lab.recipeWarn.rhsMismatch': 'Правая часть эталона не совпала с формулой вещества — проверьте коэффициент вручную.',
+
+  'errors.reactor.NO_PRODUCT': 'Выберите вещество‑продукт из списка (правая часть уравнения).',
+  'errors.reactor.PRODUCT_COEFF_INVALID': 'Коэффициент перед продуктом должен быть целым числом ≥ 1.',
+  'errors.reactor.NO_REAGENTS':
+    'Добавьте реагенты слева: режим «По уравнению» (строка) или «Из таблицы» (Менделеев).',
+  'errors.reactor.MAX_TERMS': 'Слишком много слагаемых (максимум {maxTerms}).',
+  'errors.reactor.TERM_COEFF_INVALID': 'Проверь коэффициенты: нужны целые числа не меньше 1.',
+  'errors.reactor.UNKNOWN_ELEMENT': 'Неизвестный элемент в уравнении.',
+  'errors.reactor.TOO_FEW_ATOMS': 'Суммарно должно быть хотя бы два атома слева (например 2 H и 1 O).',
+  'errors.reactor.MAX_FLY_ATOMS':
+    'Слишком много атомов для анимации (максимум {maxAtoms}). Уменьшите коэффициенты.',
+  'errors.reactor.LEFT_PARSE_FAIL': 'Не удалось разобрать левую часть уравнения.',
+  'errors.reactor.BALANCE_MISMATCH':
+    'Ошибка в балансе масс: число атомов каждого элемента слева и справа не совпадает. Проверь коэффициенты.',
+
+  'errors.parse.LEFT_EMPTY': 'Введите левую часть уравнения.',
+  'errors.parse.SEGMENT_PARSE_FAIL': 'Не удалось разобрать слагаемое: «{segment}». Пример: 4Cr + 4K + 7O₂.',
+  'errors.parse.UNKNOWN_ELEMENT_SYMBOL': 'Неизвестный элемент: {symbol}.',
+  'errors.parse.MIXED_DIATOMIC':
+    'Нельзя смешивать для одного элемента молекулы X₂ и атомы X в одной записи: {symbol}.',
+  'errors.parse.NO_ADDENDUMS': 'Добавьте хотя бы одно слагаемое.',
+
+  'reactor.title': 'Реактор',
+  'reactor.ariaRegion': 'Реактор синтеза',
+  'reactor.reset': 'Сбросить',
+  'reactor.equationAria': 'Уравнение реакции',
+  'reactor.reagents': 'Реагенты',
+  'reactor.emptyHint':
+    'Элементы — кнопка ⊞ справа (таблица Менделеева). «Сгенерировать уравнение» — каталог и эталон без коэффициентов.',
+  'reactor.coeffDecrease': 'Уменьшить коэффициент',
+  'reactor.coeffIncrease': 'Увеличить коэффициент',
+  'reactor.coeffFor': 'Коэффициент для {symbol}',
+  'reactor.remove': 'Убрать {symbol}',
+  'reactor.productGoal': 'Продукт (цель)',
+  'reactor.balanced': 'Уравнение сбалансировано',
+  'reactor.ambiguous': 'Несколько веществ с этим составом — выберите в каталоге.',
+  'reactor.productCoeffAria': 'Коэффициент перед продуктом',
+  'reactor.openCatalog': 'Каталог веществ',
+  'reactor.productEmpty': 'Выберите продукт',
+  'reactor.recipeLabel': 'Эталон: {recipe}',
+  'reactor.generateEquation': 'Сгенерировать уравнение',
+  'reactor.generateEquationShort': 'Уравнение',
+  'reactor.generateEquationTitle':
+    'Открыть каталог: эталон вещества как реагенты с коэффициентом 1 — уравняйте вручную',
+  'reactor.hintBalance': 'Уравняйте атомы слева и справа. Запуск — при верном балансе и выбранном продукте из каталога.',
+  'reactor.run': 'Проверить и запустить синтез',
+  'reactor.successRunning': 'Верно! Связь… {name}',
+  'reactor.successProduct': 'Получено: {name} {formula}. 3D показан в центре. Можно составить новое уравнение или закрыть реактор.',
+
+  'catalogPanel.title': 'Каталог веществ',
+  'catalogPanel.subGenerate':
+    'Выберите вещество: реагенты подставятся из эталона без коэффициентов — уравняйте вручную перед запуском. Поиск по названию, формуле или id.',
+  'catalogPanel.subProduct': 'Выберите продукт реакции. Поиск по названию, формуле или id.',
+  'catalogPanel.close': 'Закрыть каталог',
+  'catalogPanel.filterAria': 'Фильтр по типу',
+  'catalogPanel.all': 'Все',
+  'catalogPanel.empty': 'Ничего не найдено — измените запрос или фильтр.',
+  'catalogPanel.pick': 'Выбрать: {name}, {formula}',
+
+  'compound.notFound': 'Вещество не найдено.',
+  'compound.composition': 'Состав',
+  'compound.about': 'О веществе',
+  'compound.synthConditions': 'Условия синтеза (ориентир)',
+  'compound.temp': 'Температура',
+  'compound.pressure': 'Давление',
+  'compound.catalyst': 'Катализатор',
+  'compound.preview3d': 'Трёхмерная модель вещества',
+  'compound.labExampleAria': 'Упрощённый пример сопоставления атомов с формулой',
+
+  'element.notFound': 'Элемент не найден.',
+  'element.close': 'Закрыть',
+  'element.closeTable': 'Закрыть таблицу элементов',
+  'element.ptTitle': 'Периодическая система',
+  'element.ptHint': 'Тап по ячейке — 3D-структура в центре. Alt+тап — добавить атом-шар на сцену.',
+  'element.ptAriaLab': 'Периодическая таблица для выбора элементов',
+
+  'elementDetail.atomicMass': 'Относительная атомная масса',
+  'elementDetail.protons': 'Количество протонов',
+  'elementDetail.electrons': 'Количество электронов (нейтральный атом)',
+  'elementDetail.neutrons': 'Количество нейтронов (оценка по относительной атомной массе)',
+  'elementDetail.electronConfig': 'Полная электронная конфигурация',
+  'elementDetail.oxidation': 'Степени окисления (валентные состояния)',
+  'elementDetail.category': 'Категория элемента (по классификации ПСХЭ)',
+  'elementDetail.blockZone': 'Зона s / p / d / f в раскраске таблицы',
+  'elementDetail.standardState': 'Агрегатное состояние (при н. у., по справочнику)',
+  'elementDetail.cpkColor': 'Цвет атома на схеме (модель CPK)',
+  'elementDetail.cpkSwatchAria': 'цвет CPK',
+  'elementDetail.blockS': 's-элементы',
+  'elementDetail.blockP': 'p-элементы',
+  'elementDetail.blockD': 'd-элементы',
+  'elementDetail.blockF': 'f-элементы',
+
+  'canvas.errorTitle': 'Ошибка 3D-сцены',
+  'canvas.errorReload': 'Перезагрузить страницу',
+  'canvas.sceneFallback':
+    '3D не удалось отрисовать. Откройте Console в браузере, чтобы увидеть ошибку WebGL/Three.js.',
+  'lab.webglUnavailable':
+    'WebGL недоступен — лабораторная 3D-сцена не может быть показана. Проверьте аппаратное ускорение в браузере.',
+  'catalog.webglUnavailable':
+    'WebGL недоступен — 3D-модель не может быть показана. Проверьте аппаратное ускорение в настройках браузера.',
+
+  'elementDetail.cpkNotSet': 'не задан',
+
+  'category.section.oxide': 'Оксиды',
+  'category.section.acid': 'Кислоты',
+  'category.section.base': 'Основания',
+  'category.section.salt': 'Соли',
+  'category.section.other': 'Прочее',
+  'category.kind.oxide': 'Оксид',
+  'category.kind.acid': 'Кислота',
+  'category.kind.base': 'Основание',
+  'category.kind.salt': 'Соль',
+  'category.kind.other': 'Прочее',
+
+  'learn.title': 'Обучение',
+  'learn.backTopics': 'К списку тем',
+  'learn.backTopic': 'К теме',
+  'learn.lessonsTitle': 'Уроки',
+  'learn.progressGlobal': 'Пройдено уроков: {done} из {total}',
+  'learn.progressTopic': '{done} из {total} уроков',
+  'learn.resume': 'Продолжить: {title}',
+  'learn.resumeAria': 'Продолжить последний урок',
+  'learn.preview3d': 'Трёхмерная модель для урока',
+  'learn.openCompound': 'Открыть в каталоге',
+  'learn.openCompoundAria': 'Открыть полную карточку вещества в каталоге',
+  'learn.tryLab': 'Открыть лабораторию',
+  'learn.tryLabAria': 'Перейти в лабораторию и попробовать реактор',
+  'learn.prev': 'Назад',
+  'learn.next': 'Далее',
+  'learn.finish': 'Завершить урок',
+  'learn.lessonDone': 'Урок завершён',
+  'learn.lessonDoneLead': 'Можно выбрать другой урок или вернуться к списку тем.',
+  'learn.estimatedMin': '≈ {n} мин',
+  'learn.stepIndex': 'Шаг {current} из {total}',
+  'learn.stepperAria': 'Шаги урока',
+  'learn.stepAria': 'Шаг {n} из {total}',
+
+  ...learnPackRu,
+  ...learnGradePackRu,
+} as const
+
+export type MessageKey = keyof typeof messagesRu

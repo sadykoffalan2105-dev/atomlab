@@ -1,3 +1,5 @@
+import { memo, useMemo } from 'react'
+import { elementDisplayName } from '../../data/elementDisplayName'
 import { ELEMENTS } from '../../data/elements'
 import { mendeleevBlock } from '../../data/mendeleevBlock'
 import {
@@ -7,6 +9,8 @@ import {
 } from '../../data/periodLabels'
 import { IUPAC_GROUP_LABELS } from '../../data/iupacGroupLabels'
 import { massDisplay } from '../../data/elementDisplay'
+import type { AppLocale } from '../../i18n/types'
+import { useT } from '../../i18n/useT'
 import styles from './ElementSidePanel.module.css'
 
 const GROUP_COUNT = 18
@@ -19,13 +23,15 @@ function blockClass(block: 's' | 'p' | 'd' | 'f'): string {
   return styles.blockF
 }
 
-function nameForCell(nameRu: string): string {
-  if (!nameRu) return nameRu
-  const first = nameRu.charAt(0).toLocaleLowerCase('ru-RU')
-  return first + nameRu.slice(1)
+function nameForCell(name: string, locale: AppLocale): string {
+  if (!name) return name
+  const loc = locale === 'en' ? 'en-US' : 'ru-RU'
+  const first = name.charAt(0).toLocaleLowerCase(loc)
+  return first + name.slice(1)
 }
 
-function cellInner(el: (typeof ELEMENTS)[number]) {
+function cellInner(el: (typeof ELEMENTS)[number], locale: AppLocale) {
+  const dn = elementDisplayName(el, locale)
   return (
     <>
       <div className={styles.cellMassLine}>
@@ -35,25 +41,25 @@ function cellInner(el: (typeof ELEMENTS)[number]) {
         <span className={styles.z}>{el.z}</span>
         <span className={styles.sym}>{el.symbol}</span>
       </div>
-      <span className={styles.nameMini}>{nameForCell(el.nameRu)}</span>
+      <span className={styles.nameMini}>{nameForCell(dn, locale)}</span>
     </>
   )
 }
 
-/** Компакт: Z, символ, подпись (название по-русски; масса в title) */
-function cellInnerCompact(el: (typeof ELEMENTS)[number]) {
+function cellInnerCompact(el: (typeof ELEMENTS)[number], locale: AppLocale) {
+  const dn = elementDisplayName(el, locale)
   return (
     <div className={styles.cellCompactInner}>
       <span className={styles.cellCompactZ}>{el.z}</span>
       <span className={styles.cellCompactSym}>{el.symbol}</span>
-      <span className={styles.cellCompactName} title={el.nameRu}>
-        {nameForCell(el.nameRu)}
+      <span className={styles.cellCompactName} title={dn}>
+        {nameForCell(dn, locale)}
       </span>
     </div>
   )
 }
 
-export function PeriodicTableGrid({
+export const PeriodicTableGrid = memo(function PeriodicTableGrid({
   mode,
   onPickElement,
   onAltPickElement,
@@ -68,6 +74,18 @@ export function PeriodicTableGrid({
   wrapClassName?: string
   gridClassName?: string
 }) {
+  const { locale, t } = useT()
+
+  const elementsForRender = useMemo(() => {
+    const actinides: (typeof ELEMENTS)[number][] = []
+    const rest: (typeof ELEMENTS)[number][] = []
+    for (const el of ELEMENTS) {
+      if (el.z >= 89 && el.z <= 103) actinides.push(el)
+      else rest.push(el)
+    }
+    return rest.concat(actinides)
+  }, [])
+
   return (
     <div className={`${styles.gridWrap} ${compact ? styles.gridWrapCompact : ''} ${wrapClassName ?? ''}`}>
       <div className={`${styles.grid} ${compact ? styles.gridCompact : ''} ${gridClassName ?? ''}`}>
@@ -106,18 +124,16 @@ export function PeriodicTableGrid({
 
         {!compact ? (
           <div className={styles.mendeleevLaw} style={{ gridColumn: '3 / 13', gridRow: '3 / 6' }}>
-            <strong className={styles.mendeleevLawTitle}>Периодический закон Д. И. Менделеева</strong>
-            <p className={styles.mendeleevLawText}>
-              Свойства элементов, в том числе валентность и строение атомов, периодически меняются с ростом заряда
-              ядра.
-            </p>
+            <strong className={styles.mendeleevLawTitle}>{t('periodic.lawTitle')}</strong>
+            <p className={styles.mendeleevLawText}>{t('periodic.intro1')}</p>
           </div>
         ) : null}
 
-        {ELEMENTS.map((el) => {
+        {elementsForRender.map((el) => {
           const block = mendeleevBlock(el)
           const bc = blockClass(block)
-          const fullTip = `${el.nameRu} · Z=${el.z} · A≈${massDisplay(el.atomicMass)} u`
+          const dn = elementDisplayName(el, locale)
+          const fullTip = `${dn} · Z=${el.z} · A≈${massDisplay(el.atomicMass)} u`
           const title = fullTip.length > 200 ? `${fullTip.slice(0, 197)}…` : fullTip
           const gridRow = visualGridRowFromDataY(el.gridY) + PERIODIC_GRID_HEADER_ROWS
 
@@ -137,7 +153,7 @@ export function PeriodicTableGrid({
                 }}
                 title={title}
               >
-                {compact ? cellInnerCompact(el) : cellInner(el)}
+                {compact ? cellInnerCompact(el, locale) : cellInner(el, locale)}
               </button>
             )
           }
@@ -153,32 +169,32 @@ export function PeriodicTableGrid({
               title={title}
               role="group"
             >
-              {compact ? cellInnerCompact(el) : cellInner(el)}
+              {compact ? cellInnerCompact(el, locale) : cellInner(el, locale)}
             </div>
           )
         })}
       </div>
 
       {!compact ? (
-        <div className={styles.legend} aria-label="Легенда блоков">
+        <div className={styles.legend} aria-label={t('periodic.legendAria')}>
           <div className={styles.legendItem}>
             <span className={`${styles.legendSwatch} ${styles.legendS}`} />
-            <span>s-элементы</span>
+            <span>{t('elementDetail.blockS')}</span>
           </div>
           <div className={styles.legendItem}>
             <span className={`${styles.legendSwatch} ${styles.legendP}`} />
-            <span>p-элементы</span>
+            <span>{t('elementDetail.blockP')}</span>
           </div>
           <div className={styles.legendItem}>
             <span className={`${styles.legendSwatch} ${styles.legendD}`} />
-            <span>d-элементы</span>
+            <span>{t('elementDetail.blockD')}</span>
           </div>
           <div className={styles.legendItem}>
             <span className={`${styles.legendSwatch} ${styles.legendF}`} />
-            <span>f-элементы</span>
+            <span>{t('elementDetail.blockF')}</span>
           </div>
         </div>
       ) : null}
     </div>
   )
-}
+})

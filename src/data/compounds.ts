@@ -32,24 +32,6 @@ function synthesisConditionsIn(p: RawCompoundDef) {
 
 export function finalizeCompound(p: RawCompoundDef): CompoundDef {
   const accent = p.accentColor ?? accentForCategory(p.category)
-  const dbg = (hypothesisId: string, location: string, message: string, data: unknown) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain', 'X-Debug-Session-Id': 'dbdb64' },
-      body: JSON.stringify({
-        sessionId: 'dbdb64',
-        runId: 'pre-fix',
-        hypothesisId,
-        location,
-        message,
-        data,
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
-  }
   const countsFromAtoms = (atoms: { symbol: string }[]) => {
     const m: Record<string, number> = {}
     for (const a of atoms) {
@@ -82,7 +64,7 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
   }
 
   const validateGeometryOrNull = (
-    source: 'raw' | 'handBuilt',
+    _source: 'raw' | 'handBuilt',
     atoms: RawCompoundDef['atoms'],
     bonds: RawCompoundDef['bonds'],
   ): { atoms: NonNullable<RawCompoundDef['atoms']>; bonds: NonNullable<RawCompoundDef['bonds']> } | null => {
@@ -117,34 +99,6 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
       })
       if (rec.length > 0) bondsRecovered = rec
     }
-    // #region agent log
-    if (p.id === 'salt_k_no3') {
-      fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain', 'X-Debug-Session-Id': 'dbdb64' },
-        body: JSON.stringify({
-          sessionId: 'dbdb64',
-          runId: 'kno3_dbg',
-          hypothesisId: 'H_kno3_bonds_pipeline',
-          location: 'src/data/compounds.ts:validateGeometryOrNull',
-          message: 'salt_k_no3 bonds pipeline',
-          data: {
-            source,
-            atomsLen: a.length,
-            bondsLenRaw: Array.isArray(b0) ? b0.length : null,
-            bondsLenAfterFilter: Array.isArray(b) ? b.length : null,
-            bondsLenRecovered: Array.isArray(bondsRecovered) ? bondsRecovered.length : null,
-            symbolsA: a.slice(0, 8).map((x) => x.symbol),
-            firstBondsAfter: Array.isArray(b) ? b.slice(0, 12) : null,
-            firstBondsRecovered: Array.isArray(bondsRecovered) ? bondsRecovered.slice(0, 12) : null,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {})
-    }
-    // #endregion
-
     const okBonds =
       a.length <= 1
         ? true
@@ -156,25 +110,6 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
         ? true
         : Array.isArray(bondsRecovered) &&
           bondsRecovered.every(([i, j]) => Number.isInteger(i) && Number.isInteger(j) && i >= 0 && j >= 0 && i < a.length && j < a.length)
-    dbg(
-      source === 'handBuilt' ? 'H_pubchem_or_override_wrong' : 'H_raw_geometry',
-      'src/data/compounds.ts:validateGeometryOrNull',
-      'geometry validation',
-      {
-        compoundId: p.id,
-        source,
-        expectedKey,
-        gotKey,
-        atomsLen: a.length,
-        bondsLen: Array.isArray(b0) ? b0.length : null,
-        bondsLenAfter: Array.isArray(b) ? b.length : null,
-        bondsLenRecovered: Array.isArray(bondsRecovered) ? bondsRecovered.length : null,
-        okCounts,
-        okBonds,
-        okBondIdx,
-        firstSymbols: a.slice(0, 6).map((x) => x.symbol),
-      },
-    )
     if (!okCounts) return null
     if (!okBonds) return null
     if (!okBondIdx) return null
@@ -184,11 +119,6 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
   if (p.atoms && p.atoms.length > 0 && p.bonds !== undefined) {
     const validated = validateGeometryOrNull('raw', p.atoms, p.bonds)
     const fixed = ensureHasBonds(validated?.atoms ?? p.atoms, validated?.bonds ?? p.bonds)
-    dbg('H_path_choice', 'src/data/compounds.ts:finalizeCompound', 'path=raw', {
-      compoundId: p.id,
-      atomsLen: fixed.atoms.length,
-      bondsLen: fixed.bonds.length,
-    })
     return {
       ...p,
       accentColor: accent,
@@ -201,17 +131,7 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
   const handBuilt = getMolecularGeometryOrNull(p.id)
   if (handBuilt) {
     const validated = validateGeometryOrNull('handBuilt', handBuilt.atoms, handBuilt.bonds)
-    if (!validated) {
-      dbg('H_reject_handBuilt', 'src/data/compounds.ts:finalizeCompound', 'reject handBuilt geometry (fallback to generator)', {
-        compoundId: p.id,
-      })
-    }
     const fixed = validated ? ensureHasBonds(validated.atoms, validated.bonds) : buildSignatureMolecule(p.composition, p.id, p.category)
-    dbg('H_path_choice', 'src/data/compounds.ts:finalizeCompound', validated ? 'path=handBuilt' : 'path=generator_after_reject', {
-      compoundId: p.id,
-      atomsLen: fixed.atoms.length,
-      bondsLen: fixed.bonds.length,
-    })
     return {
       ...p,
       accentColor: accent,
@@ -222,11 +142,6 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
     }
   }
   const geo = buildSignatureMolecule(p.composition, p.id, p.category)
-  dbg('H_path_choice', 'src/data/compounds.ts:finalizeCompound', 'path=generator', {
-    compoundId: p.id,
-    atomsLen: geo.atoms.length,
-    bondsLen: geo.bonds.length,
-  })
   return {
     ...p,
     accentColor: accent,

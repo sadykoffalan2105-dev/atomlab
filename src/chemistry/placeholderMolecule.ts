@@ -544,28 +544,6 @@ function placeIonsSeparatedSymmetric(
 function buildSaltGeometry(composition: Record<string, number>, compoundId: string) {
   const seed = hash32(compoundId) ^ 0x5c1f3a91
   const dec = tryDecomposeSalt(composition)
-  // #region agent log
-  fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c09a52' },
-    body: JSON.stringify({
-      sessionId: 'c09a52',
-      runId: 'pre-fix',
-      hypothesisId: 'H_salt_dec',
-      location: 'placeholderMolecule.ts:buildSaltGeometry',
-      message: 'salt decomposition',
-      data: {
-        compoundId,
-        ok: !!dec,
-        nCat: dec?.nCat ?? null,
-        nAn: dec?.nAn ?? null,
-        cation: dec ? { id: dec.cation.id, charge: dec.cation.charge, comp: dec.cation.comp } : null,
-        anion: dec ? { id: dec.anion.id, charge: dec.anion.charge, comp: dec.anion.comp } : null,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
   if (!dec) return null
 
   const units: { symbols: string[]; pos: V3[]; bonds: [number, number][]; side: -1 | 1; unitIndex: number }[] = []
@@ -578,23 +556,6 @@ function buildSaltGeometry(composition: Record<string, number>, compoundId: stri
     units.push({ ...u, side: 1, unitIndex: i })
   }
   const placed = placeIonsSeparatedSymmetric(units)
-  // Ionic model: do NOT add inter-ion sticks.
-  // Keep only internal bonds inside polyatomic ions.
-  // #region agent log
-  fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c09a52' },
-    body: JSON.stringify({
-      sessionId: 'c09a52',
-      runId: 'pre-fix',
-      hypothesisId: 'H_salt_out',
-      location: 'placeholderMolecule.ts:buildSaltGeometry',
-      message: 'salt geometry built',
-      data: { compoundId, symbolsLen: placed.symbols.length, bondsLen: placed.bonds.length, bonds: placed.bonds.slice(0, 24) },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
   return placed
 }
 
@@ -688,39 +649,5 @@ export function buildSignatureMolecule(
   compoundId: string,
   category: CompoundCategory,
 ): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
-  // #region agent log
-  fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c09a52' },
-    body: JSON.stringify({
-      sessionId: 'c09a52',
-      runId: 'pre-fix',
-      hypothesisId: 'H_entry',
-      location: 'placeholderMolecule.ts:buildSignatureMolecule',
-      message: 'buildSignatureMolecule entry',
-      data: { compoundId, category, composition },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
-
-  const out = buildAutoMoleculeGeometry(composition, compoundId, category)
-
-  // #region agent log
-  fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c09a52' },
-    body: JSON.stringify({
-      sessionId: 'c09a52',
-      runId: 'pre-fix',
-      hypothesisId: 'H_exit',
-      location: 'placeholderMolecule.ts:buildSignatureMolecule',
-      message: 'buildSignatureMolecule exit',
-      data: { compoundId, category, atomsLen: out.atoms.length, bondsLen: out.bonds.length, bonds: out.bonds.slice(0, 24) },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
-
-  return out
+  return buildAutoMoleculeGeometry(composition, compoundId, category)
 }

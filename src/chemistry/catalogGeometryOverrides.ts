@@ -1137,29 +1137,7 @@ export function getMolecularGeometryOrNull(
     case 'salt_nh4_3_po4':
       return nh4_3_po4Geometry()
     case 'salt_na_no2':
-      {
-        const geo = nano2Geometry()
-      // #region agent log
-      fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dbdb64' },
-        body: JSON.stringify({
-          sessionId: 'dbdb64',
-          runId: 'na_no2_dbg',
-          hypothesisId: 'H3_override_selected',
-          location: 'src/chemistry/catalogGeometryOverrides.ts:getMolecularGeometryOrNull',
-          message: 'using manual override nano2Geometry()',
-          data: {
-            compoundId,
-            symbols: geo.atoms.map((a) => a.symbol),
-            bonds: geo.bonds,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {})
-      // #endregion
-        return geo
-      }
+      return nano2Geometry()
     case 'salt_na_mno4':
       return naMno4Geometry()
     case 'salt_cobalt_cro4':
@@ -1182,29 +1160,6 @@ export function getMolecularGeometryOrNull(
         // Use generator/overrides instead.
         if (compoundId.startsWith('salt_')) return null
         const g = pubchemById[compoundId]
-        // #region agent log
-        if (compoundId === 'salt_na_no2') {
-          fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dbdb64' },
-            body: JSON.stringify({
-              sessionId: 'dbdb64',
-              runId: 'na_no2_dbg',
-              hypothesisId: 'H1_pubchem_selected',
-              location: 'src/chemistry/catalogGeometryOverrides.ts:getMolecularGeometryOrNull',
-              message: 'default branch pubchem lookup',
-              data: {
-                found: !!g,
-                atomsLen: Array.isArray(g?.atoms) ? g?.atoms?.length : null,
-                bondsLen: Array.isArray(g?.bonds) ? g?.bonds?.length : null,
-                firstSymbols: Array.isArray(g?.atoms) ? g.atoms.slice(0, 6).map((a) => a.symbol) : null,
-                firstBonds: Array.isArray(g?.bonds) ? g.bonds.slice(0, 8) : null,
-              },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {})
-        }
-        // #endregion
         if (!g || !Array.isArray(g.atoms) || !Array.isArray(g.bonds)) return null
         return { atoms: g.atoms, bonds: g.bonds }
       }

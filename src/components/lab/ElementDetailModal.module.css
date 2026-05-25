@@ -12,7 +12,8 @@
 }
 
 .card {
-  width: min(520px, 100%);
+  position: relative;
+  width: min(560px, 100%);
   max-height: min(88vh, 720px);
   overflow: auto;
   border-radius: 16px;
@@ -21,8 +22,12 @@
   box-shadow:
     0 24px 48px rgba(0, 0, 0, 0.55),
     0 0 32px rgba(61, 255, 236, 0.12);
-  padding: 1.1rem 1.25rem 1.25rem;
+  padding: 1.15rem 1.2rem 1.35rem;
   color: #e8ecff;
+}
+
+.cardInner {
+  padding-right: 2.75rem;
 }
 
 .headFallback {
@@ -42,12 +47,16 @@
 }
 
 .close {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  z-index: 2;
   flex-shrink: 0;
   width: 40px;
   height: 40px;
   border-radius: 10px;
   border: 1px solid rgba(139, 147, 184, 0.45);
-  background: rgba(24, 28, 52, 0.85);
+  background: rgba(24, 28, 52, 0.92);
   color: #c8d0f0;
   font-size: 1.35rem;
   line-height: 1;

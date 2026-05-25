@@ -25,66 +25,18 @@ export function appendReactorZ(prev: readonly ReactorSlot[], z: number): Reactor
   if (existingIdx >= 0) {
     const s = out[existingIdx]!
     out[existingIdx] = { z: s.z, count: s.count + delta }
-    // #region agent log
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        sessionId: 'dbdb64',
-        runId: 'reactor',
-        hypothesisId: 'H_slots',
-        location: 'reactorSlots.ts:appendReactorZ',
-        message: 'increment existing',
-        data: { z, existingIdx, delta, countAfter: s.count + delta },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
     return out
   }
 
   const firstEmpty = out.findIndex((s) => s == null)
   if (firstEmpty >= 0) {
     out[firstEmpty] = { z, count: delta }
-    // #region agent log
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        sessionId: 'dbdb64',
-        runId: 'reactor',
-        hypothesisId: 'H_slots',
-        location: 'reactorSlots.ts:appendReactorZ',
-        message: 'insert new into empty',
-        data: { z, firstEmpty, delta },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
     return out
   }
 
   // Сдвиг влево: удаляем самый старый уникальный элемент
   for (let i = 0; i < REACTOR_SLOT_COUNT - 1; i++) out[i] = out[i + 1]!
   out[REACTOR_SLOT_COUNT - 1] = { z, count: delta }
-  // #region agent log
-  fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({
-      sessionId: 'dbdb64',
-      runId: 'reactor',
-      hypothesisId: 'H_slots',
-      location: 'reactorSlots.ts:appendReactorZ',
-      message: 'shift left and insert',
-      data: { z, delta },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
   return out
 }
 
@@ -124,21 +76,5 @@ export function decrementReactorSlot(slots: readonly ReactorSlot[], index: numbe
     while (compact.length < REACTOR_SLOT_COUNT) compact.push(null)
     for (let i = 0; i < REACTOR_SLOT_COUNT; i++) out[i] = compact[i] ?? null
   }
-  // #region agent log
-  fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({
-      sessionId: 'dbdb64',
-      runId: 'reactor',
-      hypothesisId: 'H_slots',
-      location: 'reactorSlots.ts:decrementReactorSlot',
-      message: 'decrement slot',
-      data: { index, z: s.z, countBefore: s.count, countAfter: Math.max(0, nextCount) },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
   return out
 }

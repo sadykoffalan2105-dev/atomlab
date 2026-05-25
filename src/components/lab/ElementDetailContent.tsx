@@ -1,16 +1,24 @@
 import type { ReactNode } from 'react'
-import { getElementByZ } from '../../data/elements'
+import { useMemo } from 'react'
+import { estimateNeutrons, getElementByZ } from '../../data/elements'
+import { elementDisplayName } from '../../data/elementDisplayName'
+import {
+  groupBlockLabelEn,
+  groupBlockLabelRu,
+  standardStateLabelEn,
+  standardStateLabelRu,
+} from '../../data/elementI18n'
 import { toFullElectronConfiguration } from '../../data/electronConfigExpand'
-import { groupBlockLabelRu, standardStateLabelRu } from '../../data/elementI18n'
 import { mendeleevBlock } from '../../data/mendeleevBlock'
 import { massDisplay } from '../../data/elementDisplay'
+import { useT } from '../../i18n/useT'
 import styles from './ElementDetailContent.module.css'
 
-function blockLabelRu(block: 's' | 'p' | 'd' | 'f'): string {
-  if (block === 's') return 's-элементы'
-  if (block === 'p') return 'p-элементы'
-  if (block === 'd') return 'd-элементы'
-  return 'f-элементы'
+function blockLabelKey(block: 's' | 'p' | 'd' | 'f'): 'elementDetail.blockS' | 'elementDetail.blockP' | 'elementDetail.blockD' | 'elementDetail.blockF' {
+  if (block === 's') return 'elementDetail.blockS'
+  if (block === 'p') return 'elementDetail.blockP'
+  if (block === 'd') return 'elementDetail.blockD'
+  return 'elementDetail.blockF'
 }
 
 function isValidCpkHex(hex: string): boolean {
@@ -35,16 +43,21 @@ export function ElementDetailContent({
   /** default — широкая сетка; compact — в одну колонку; lab — плотно для панели лаборатории */
   variant?: 'default' | 'compact' | 'lab'
 }) {
+  const { locale, t } = useT()
   const el = getElementByZ(z)
+  const displayName = useMemo(() => (el ? elementDisplayName(el, locale) : ''), [el, locale])
   if (!el) return null
 
   const block = mendeleevBlock(el)
   const cpk = el.cpkHex.replace(/^#/, '')
   const fullConfig = toFullElectronConfiguration(el.electronConfiguration)
-  const categoryRu = groupBlockLabelRu(el.groupBlock)
-  const stateRu = standardStateLabelRu(el.standardState)
+  const categoryLabel =
+    locale === 'en' ? groupBlockLabelEn(el.groupBlock) : groupBlockLabelRu(el.groupBlock)
+  const stateLabel =
+    locale === 'en' ? standardStateLabelEn(el.standardState) : standardStateLabelRu(el.standardState)
   const showCpk = isValidCpkHex(cpk)
   const rootClass = variantClass[variant] ?? styles.root
+  const neutronEstimate = estimateNeutrons(el.atomicMass, el.z)
 
   return (
     <div className={rootClass}>
@@ -53,43 +66,52 @@ export function ElementDetailContent({
           <h2 id={titleId} className={styles.symbol}>
             {el.symbol}
           </h2>
-          <p className={styles.name}>{el.nameRu}</p>
+          <p className={styles.name}>{displayName}</p>
           <p className={styles.zLine}>Z = {el.z}</p>
         </div>
         {headerEnd}
       </header>
 
       <dl className={styles.dl}>
-        <dt className={styles.dt}>Относительная атомная масса</dt>
+        <dt className={styles.dt}>{t('elementDetail.atomicMass')}</dt>
         <dd className={styles.dd}>{massDisplay(el.atomicMass)} u</dd>
 
-        <dt className={styles.dt}>Полная электронная конфигурация</dt>
+        <dt className={styles.dt}>{t('elementDetail.protons')}</dt>
+        <dd className={styles.dd}>{el.z}</dd>
+
+        <dt className={styles.dt}>{t('elementDetail.electrons')}</dt>
+        <dd className={styles.dd}>{el.z}</dd>
+
+        <dt className={styles.dt}>{t('elementDetail.neutrons')}</dt>
+        <dd className={styles.dd}>{neutronEstimate}</dd>
+
+        <dt className={styles.dt}>{t('elementDetail.electronConfig')}</dt>
         <dd className={`${styles.dd} ${styles.configBlock}`}>{fullConfig}</dd>
 
-        <dt className={styles.dt}>Степени окисления (валентные состояния)</dt>
+        <dt className={styles.dt}>{t('elementDetail.oxidation')}</dt>
         <dd className={styles.dd}>{el.oxidationStates}</dd>
 
-        <dt className={styles.dt}>Категория элемента (по классификации ПСХЭ)</dt>
-        <dd className={styles.dd}>{categoryRu}</dd>
+        <dt className={styles.dt}>{t('elementDetail.category')}</dt>
+        <dd className={styles.dd}>{categoryLabel}</dd>
 
-        <dt className={styles.dt}>Зона s / p / d / f в раскраске таблицы</dt>
-        <dd className={styles.dd}>{blockLabelRu(block)}</dd>
+        <dt className={styles.dt}>{t('elementDetail.blockZone')}</dt>
+        <dd className={styles.dd}>{t(blockLabelKey(block))}</dd>
 
-        <dt className={styles.dt}>Агрегатное состояние (при н. у., по справочнику)</dt>
-        <dd className={styles.dd}>{stateRu}</dd>
+        <dt className={styles.dt}>{t('elementDetail.standardState')}</dt>
+        <dd className={styles.dd}>{stateLabel}</dd>
 
-        <dt className={styles.dt}>Цвет атома на схеме (модель CPK)</dt>
+        <dt className={styles.dt}>{t('elementDetail.cpkColor')}</dt>
         <dd className={styles.dd}>
           {showCpk ? (
             <span className={styles.cpkRow}>
               <span
                 className={styles.cpkSwatch}
                 style={{ backgroundColor: `#${cpk}` }}
-                aria-label="цвет CPK"
+                aria-label={t('elementDetail.cpkSwatchAria')}
               />
             </span>
           ) : (
-            'не задан'
+            t('elementDetail.cpkNotSet')
           )}
         </dd>
       </dl>

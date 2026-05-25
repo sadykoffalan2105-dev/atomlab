@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Billboard, Text } from '@react-three/drei'
 import * as THREE from 'three'
@@ -60,66 +60,83 @@ function BondCylinder({
   )
 }
 
-function BondPlasma({
-  from,
-  to,
+type PlasmaBondGeom = { mid: THREE.Vector3; len: number; quat: THREE.Quaternion }
+
+/**
+ * Все плазменные связи молекулы рендерятся в одном компоненте с одним useFrame.
+ * Это значительно снижает overhead по сравнению с отдельным useFrame на каждую связь.
+ */
+function BondPlasmaGroup({
+  bonds,
+  atoms,
   core,
   halo,
 }: {
-  from: Vec3
-  to: Vec3
+  bonds: readonly (readonly [number, number])[]
+  atoms: CompoundDef['atoms']
   core: string
   halo: string
 }) {
-  const { mid, len, quat } = useMemo(() => {
-    const a = new THREE.Vector3(...from)
-    const b = new THREE.Vector3(...to)
-    const mid = a.clone().add(b).multiplyScalar(0.5)
-    const len = Math.max(0.08, a.distanceTo(b))
-    const dir = b.clone().sub(a).normalize()
-    const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
-    return { mid, len, quat }
-  }, [from, to])
+  const geoms = useMemo<PlasmaBondGeom[]>(() => {
+    const out: PlasmaBondGeom[] = []
+    for (const [i, j] of bonds) {
+      const ai = atoms[i]
+      const aj = atoms[j]
+      if (!ai || !aj) continue
+      const a = new THREE.Vector3(...ai.pos)
+      const b = new THREE.Vector3(...aj.pos)
+      const mid = a.clone().add(b).multiplyScalar(0.5)
+      const len = Math.max(0.08, a.distanceTo(b))
+      const dir = b.clone().sub(a).normalize()
+      const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
+      out.push({ mid, len, quat })
+    }
+    return out
+  }, [bonds, atoms])
 
-  const coreMat = useRef<THREE.MeshStandardMaterial>(null)
-  const haloMat = useRef<THREE.MeshStandardMaterial>(null)
+  const coreMatsRef = useRef<(THREE.MeshStandardMaterial | null)[]>([])
+  const haloMatsRef = useRef<(THREE.MeshStandardMaterial | null)[]>([])
 
   useFrame((s) => {
     const t = s.clock.elapsedTime
-    const pulse = 0.78 + Math.sin(t * 3.1) * 0.22
-    const pulse2 = 0.65 + Math.sin(t * 2.2 + 0.7) * 0.2
-    if (coreMat.current) coreMat.current.emissiveIntensity = 1.05 * pulse
-    if (haloMat.current) haloMat.current.emissiveIntensity = 0.62 * pulse2
+    const ei1 = 0.78 + Math.sin(t * 3.1) * 0.22
+    const ei2 = 0.65 + Math.sin(t * 2.2 + 0.7) * 0.2
+    for (const m of coreMatsRef.current) if (m) m.emissiveIntensity = 1.05 * ei1
+    for (const m of haloMatsRef.current) if (m) m.emissiveIntensity = 0.62 * ei2
   })
 
   return (
-    <group position={mid} quaternion={quat}>
-      <mesh>
-        <cylinderGeometry args={[0.024, 0.024, len, 10, 1]} />
-        <meshStandardMaterial
-          ref={coreMat}
-          color={core}
-          emissive={core}
-          emissiveIntensity={1.05}
-          metalness={0.48}
-          roughness={0.28}
-        />
-      </mesh>
-      <mesh>
-        <cylinderGeometry args={[0.044, 0.044, len * 1.04, 8, 1]} />
-        <meshStandardMaterial
-          ref={haloMat}
-          color={halo}
-          emissive={halo}
-          emissiveIntensity={0.62}
-          metalness={0.35}
-          roughness={0.4}
-          transparent
-          opacity={0.38}
-          depthWrite={false}
-        />
-      </mesh>
-    </group>
+    <>
+      {geoms.map((bd, k) => (
+        <group key={k} position={bd.mid} quaternion={bd.quat}>
+          <mesh>
+            <cylinderGeometry args={[0.024, 0.024, bd.len, 8, 1]} />
+            <meshStandardMaterial
+              ref={(el) => { coreMatsRef.current[k] = el }}
+              color={core}
+              emissive={core}
+              emissiveIntensity={1.05}
+              metalness={0.48}
+              roughness={0.28}
+            />
+          </mesh>
+          <mesh>
+            <cylinderGeometry args={[0.044, 0.044, bd.len * 1.04, 6, 1]} />
+            <meshStandardMaterial
+              ref={(el) => { haloMatsRef.current[k] = el }}
+              color={halo}
+              emissive={halo}
+              emissiveIntensity={0.62}
+              metalness={0.35}
+              roughness={0.4}
+              transparent
+              opacity={0.38}
+              depthWrite={false}
+            />
+          </mesh>
+        </group>
+      ))}
+    </>
   )
 }
 
@@ -188,83 +205,6 @@ export function MoleculeMesh({
   const quality = renderQuality
   const labels = showLabels ?? quality !== 'synthesis'
 
-  // #region agent log
-  const loggedRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (loggedRef.current === compound.id) return
-    loggedRef.current = compound.id
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'c09a52' },
-      body: JSON.stringify({
-        sessionId: 'c09a52',
-        runId: 'pre-fix',
-        hypothesisId: 'H_render',
-        location: 'MoleculeMesh.tsx:MoleculeMesh',
-        message: 'render MoleculeMesh',
-        data: { id: compound.id, category: compound.category, atomsLen: compound.atoms.length, bondsLen: compound.bonds.length },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-  }, [compound.id, compound.category, compound.atoms.length, compound.bonds.length])
-  // #endregion
-
-  // #region agent log
-  useEffect(() => {
-    if (compound.id !== 'salt_na_no2') return
-    const atoms = compound.atoms ?? []
-    const bonds = compound.bonds ?? []
-    const naIdx = atoms.findIndex((a) => a.symbol.toUpperCase() === 'NA')
-    const naTouched = naIdx < 0 ? null : bonds.filter(([i, j]) => i === naIdx || j === naIdx).slice(0, 8)
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dbdb64' },
-      body: JSON.stringify({
-        sessionId: 'dbdb64',
-        runId: 'na_no2_dbg',
-        hypothesisId: 'H2_render_has_na_bonds',
-        location: 'src/components/lab/MoleculeMesh.tsx:MoleculeMesh',
-        message: 'render salt_na_no2 bonds summary',
-        data: {
-          atomsLen: atoms.length,
-          bondsLen: bonds.length,
-          naIdx,
-          naTouched,
-          firstSymbols: atoms.slice(0, 8).map((a) => a.symbol),
-          firstBonds: bonds.slice(0, 10),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-  }, [compound.id, compound.atoms, compound.bonds])
-  // #endregion
-
-  // #region agent log
-  useEffect(() => {
-    if (compound.id !== 'salt_k_no3') return
-    const atoms = compound.atoms ?? []
-    const bonds = compound.bonds ?? []
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dbdb64' },
-      body: JSON.stringify({
-        sessionId: 'dbdb64',
-        runId: 'kno3_dbg',
-        hypothesisId: 'H_kno3_render_input',
-        location: 'src/components/lab/MoleculeMesh.tsx:MoleculeMesh',
-        message: 'render salt_k_no3 atoms/bonds',
-        data: {
-          atomsLen: atoms.length,
-          bondsLen: bonds.length,
-          firstSymbols: atoms.slice(0, 8).map((a) => a.symbol),
-          firstBonds: bonds.slice(0, 12),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-  }, [compound.id, compound.atoms, compound.bonds])
-  // #endregion
-
   const degrees = useMemo(
     () => atomDegrees(compound.atoms.length, compound.bonds),
     [compound.atoms.length, compound.bonds],
@@ -272,6 +212,7 @@ export function MoleculeMesh({
   const maxDegree = useMemo(() => (degrees.length ? Math.max(...degrees) : 0), [degrees])
 
   const bondPlasma = useMemo(() => heroBondStyle(compound.category), [compound.category])
+  const usePlasma = hero && quality !== 'synthesis'
 
   return (
     <group scale={scale}>
@@ -319,23 +260,29 @@ export function MoleculeMesh({
           </group>
         )
       })}
-      {compound.bonds.map(([i, j], k) => {
-        const ai = compound.atoms[i]
-        const aj = compound.atoms[j]
-        if (!ai || !aj) return null
-        if (hero && quality !== 'synthesis') {
-          return <BondPlasma key={k} from={ai.pos} to={aj.pos} core={bondPlasma.core} halo={bondPlasma.halo} />
-        }
-        return (
-          <BondCylinder
-            key={k}
-            from={ai.pos}
-            to={aj.pos}
-            color={compound.accentColor}
-            visualPreset={visualPreset}
-          />
-        )
-      })}
+      {usePlasma ? (
+        <BondPlasmaGroup
+          bonds={compound.bonds}
+          atoms={compound.atoms}
+          core={bondPlasma.core}
+          halo={bondPlasma.halo}
+        />
+      ) : (
+        compound.bonds.map(([i, j], k) => {
+          const ai = compound.atoms[i]
+          const aj = compound.atoms[j]
+          if (!ai || !aj) return null
+          return (
+            <BondCylinder
+              key={k}
+              from={ai.pos}
+              to={aj.pos}
+              color={compound.accentColor}
+              visualPreset={visualPreset}
+            />
+          )
+        })
+      )}
     </group>
   )
 }

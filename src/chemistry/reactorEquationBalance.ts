@@ -7,9 +7,21 @@ export const REACTOR_EQUATION_MAX_FLY_ATOMS = 24
 /** coeff: для diatomic — число молекул X₂; иначе число атомов X. */
 export type ReactorEquationTerm = { id: string; z: number; coeff: number; diatomic?: boolean }
 
+export type ReactorValidationErrorCode =
+  | 'NO_PRODUCT'
+  | 'PRODUCT_COEFF_INVALID'
+  | 'NO_REAGENTS'
+  | 'MAX_TERMS'
+  | 'TERM_COEFF_INVALID'
+  | 'UNKNOWN_ELEMENT'
+  | 'TOO_FEW_ATOMS'
+  | 'MAX_FLY_ATOMS'
+  | 'LEFT_PARSE_FAIL'
+  | 'BALANCE_MISMATCH'
+
 export type ReactorValidationResult =
   | { ok: true; zSlots: number[]; compound: CompoundDef }
-  | { ok: false; message: string }
+  | { ok: false; code: ReactorValidationErrorCode; params?: Record<string, string | number> }
 
 function normalizeComposition(m: Record<string, number>): Record<string, number> {
   const o: Record<string, number> = {}
@@ -62,6 +74,19 @@ export function expandLeftTermsToZSlots(terms: readonly ReactorEquationTerm[]): 
   return zs
 }
 
+/**
+ * 3D-превью в реакторе: по одной модели на единицу коэффициента.
+ * O₂ с коэфф. 7 → 7 атомов O (не 14). Синтез по-прежнему через expandLeftTermsToZSlots.
+ */
+export function expandLeftTermsToPreviewSlots(terms: readonly ReactorEquationTerm[]): number[] {
+  const zs: number[] = []
+  for (const t of terms) {
+    const c = Math.max(0, Math.floor(t.coeff))
+    for (let i = 0; i < c; i++) zs.push(t.z)
+  }
+  return zs
+}
+
 /** Подбор k такого, что k × состав(вещество) совпадает с левым составом (по ключу). */
 export function findMatchingProductCoeff(
   left: Record<string, number>,
@@ -85,6 +110,25 @@ export function findMatchingProductCoeff(
 
 export type LeftCatalogMatch = { compound: CompoundDef; k: number }
 
+/**
+ * Быстрый отсев: у вещества есть символ, которого нет в левом составе — совпадение невозможно.
+ * Сильно сокращает число вызовов findMatchingProductCoeff при большом каталоге.
+ */
+export function filterCatalogCandidatesForLeft(
+  left: Record<string, number>,
+  catalog: readonly CompoundDef[],
+): CompoundDef[] {
+  const Ln = normalizeComposition(left)
+  return catalog.filter((compound) => {
+    for (const sym of Object.keys(compound.composition)) {
+      const need = Math.max(0, Math.floor(Number(compound.composition[sym])))
+      if (need <= 0) continue
+      if ((Ln[sym] ?? 0) < 1) return false
+    }
+    return true
+  })
+}
+
 /** Все вещества каталога, для которых левая часть = k × формульная единица. */
 export function findCatalogMatchesForLeftTerms(
   leftTerms: readonly ReactorEquationTerm[],
@@ -92,8 +136,9 @@ export function findCatalogMatchesForLeftTerms(
 ): LeftCatalogMatch[] {
   const left = compositionFromLeftTerms(leftTerms)
   if (!left || Object.keys(left).length === 0) return []
+  const candidates = filterCatalogCandidatesForLeft(left, catalog)
   const out: LeftCatalogMatch[] = []
-  for (const compound of catalog) {
+  for (const compound of candidates) {
     const k = findMatchingProductCoeff(left, compound)
     if (k != null) out.push({ compound, k })
   }
@@ -123,49 +168,47 @@ export function validateReactorEquation(
   productCoeff: number,
 ): ReactorValidationResult {
   if (!product) {
-    return { ok: false, message: 'Выберите вещество‑продукт из списка (правая часть уравнения).' }
+    return { ok: false, code: 'NO_PRODUCT' }
   }
 
   const pk = Math.max(0, Math.floor(productCoeff))
   if (pk <= 0) {
-    return { ok: false, message: 'Коэффициент перед продуктом должен быть целым числом ≥ 1.' }
+    return { ok: false, code: 'PRODUCT_COEFF_INVALID' }
   }
 
   if (leftTerms.length === 0) {
-    return {
-      ok: false,
-      message: 'Добавьте реагенты слева: режим «По уравнению» (строка) или «Из таблицы» (Менделеев).',
-    }
+    return { ok: false, code: 'NO_REAGENTS' }
   }
 
   if (leftTerms.length > REACTOR_EQUATION_MAX_TERMS) {
-    return { ok: false, message: `Слишком много слагаемых (максимум ${REACTOR_EQUATION_MAX_TERMS}).` }
+    return { ok: false, code: 'MAX_TERMS', params: { maxTerms: REACTOR_EQUATION_MAX_TERMS } }
   }
 
   for (const t of leftTerms) {
     const c = Math.floor(t.coeff)
     if (c < 1 || !Number.isFinite(t.coeff)) {
-      return { ok: false, message: 'Проверь коэффициенты: нужны целые числа не меньше 1.' }
+      return { ok: false, code: 'TERM_COEFF_INVALID' }
     }
     if (!getElementByZ(t.z)) {
-      return { ok: false, message: 'Неизвестный элемент в уравнении.' }
+      return { ok: false, code: 'UNKNOWN_ELEMENT' }
     }
   }
 
   const zSlots = expandLeftTermsToZSlots(leftTerms)
   if (zSlots.length < 2) {
-    return { ok: false, message: 'Суммарно должно быть хотя бы два атома слева (например 2 H и 1 O).' }
+    return { ok: false, code: 'TOO_FEW_ATOMS' }
   }
   if (zSlots.length > REACTOR_EQUATION_MAX_FLY_ATOMS) {
     return {
       ok: false,
-      message: `Слишком много атомов для анимации (максимум ${REACTOR_EQUATION_MAX_FLY_ATOMS}). Уменьшите коэффициенты.`,
+      code: 'MAX_FLY_ATOMS',
+      params: { maxAtoms: REACTOR_EQUATION_MAX_FLY_ATOMS },
     }
   }
 
   const left = compositionFromLeftTerms(leftTerms)
   if (!left) {
-    return { ok: false, message: 'Не удалось разобрать левую часть уравнения.' }
+    return { ok: false, code: 'LEFT_PARSE_FAIL' }
   }
 
   const right = normalizeComposition(compositionFromProduct(product, pk))
@@ -174,7 +217,7 @@ export function validateReactorEquation(
   if (lKey !== rKey) {
     return {
       ok: false,
-      message: 'Ошибка в балансе масс: число атомов каждого элемента слева и справа не совпадает. Проверь коэффициенты.',
+      code: 'BALANCE_MISMATCH',
     }
   }
 

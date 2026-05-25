@@ -1,10 +1,9 @@
+import type { AppLocale } from '../i18n/types'
 import type { CompoundCategory, SynthesisConditionsTextRu, SynthesisLabConditions } from '../types/chemistry'
 
-/** Шаблоны условий синтеза, если в данных не задано `synthesisConditionsRu`. */
-export function defaultSynthesisConditionsText(
-  lab: SynthesisLabConditions | undefined,
-  category: CompoundCategory,
-): SynthesisConditionsTextRu {
+type SynthPack = SynthesisConditionsTextRu
+
+function packRu(lab: SynthesisLabConditions | undefined, category: CompoundCategory): SynthPack {
   const heat = lab?.needsHeat
     ? 'Нагрев: повышение температуры по ходу реакции (конкретный режим — по опыту/методичке).'
     : 'Температура: обычно комнатная или слабый нагрев; при необходимости — по рецепту вещества.'
@@ -22,4 +21,41 @@ export function defaultSynthesisConditionsText(
   }
 
   return { temperature: heat, pressure, catalyst }
+}
+
+function packEn(lab: SynthesisLabConditions | undefined, category: CompoundCategory): SynthPack {
+  const heat = lab?.needsHeat
+    ? 'Heating: increase temperature along the reaction path (exact conditions depend on the procedure).'
+    : 'Temperature: usually room temperature or mild heating; follow the substance recipe if needed.'
+
+  const pressure = lab?.needsPressure
+    ? 'Pressure: elevated (autoclave, sealed reactor) — value per procedure.'
+    : 'Pressure: atmospheric (≈1 atm) unless otherwise required.'
+
+  let catalyst = 'Catalyst: not required for this example.'
+  if (lab?.needsCatalyst) {
+    catalyst =
+      'Catalyst: required (Pt, Ni, MnO₂, etc. — depends on the specific reaction); specify in the reactor panel.'
+  } else if (category === 'salt' || category === 'acid') {
+    catalyst = 'Catalyst: typically not used; for acid–base processes — depends on the reaction.'
+  }
+
+  return { temperature: heat, pressure, catalyst }
+}
+
+/** Шаблоны условий синтеза (RU), если в данных не задано `synthesisConditionsRu`. */
+export function defaultSynthesisConditionsText(
+  lab: SynthesisLabConditions | undefined,
+  category: CompoundCategory,
+): SynthesisConditionsTextRu {
+  return packRu(lab, category)
+}
+
+/** Локализованные шаблоны условий синтеза для отображения. */
+export function defaultSynthesisConditionsTextForLocale(
+  lab: SynthesisLabConditions | undefined,
+  category: CompoundCategory,
+  locale: AppLocale,
+): SynthesisConditionsTextRu {
+  return locale === 'en' ? packEn(lab, category) : packRu(lab, category)
 }

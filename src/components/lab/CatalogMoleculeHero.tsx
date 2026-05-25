@@ -8,6 +8,8 @@ import { compoundById } from '../../data/compounds'
 import type { CompoundCategory, CompoundDef } from '../../types/chemistry'
 import { MoleculeMesh } from './MoleculeMesh'
 import { CanvasErrorBoundary } from '../common/CanvasErrorBoundary'
+import { CanvasSceneErrorFallback } from '../common/CanvasSceneErrorFallback'
+import { useT } from '../../i18n/useT'
 import { isWebGLAvailable } from '../../utils/webgl'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE, catalogMoleculeFitScale, categoryAccentRgb, rgbToHex } from './catalogMoleculeHeroShared'
 import { CATALOG_HERO_VIEW } from './labOrbitConstants'
@@ -245,24 +247,6 @@ export function HeroMoleculeRig({
 }
 
 function CatalogHeroScene({ compoundId, compound }: { compoundId: string; compound: CompoundDef }) {
-  useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a62735' },
-      body: JSON.stringify({
-        sessionId: 'a62735',
-        runId: 'pre-fix',
-        hypothesisId: 'H_scene',
-        location: 'CatalogMoleculeHero.tsx:CatalogHeroScene',
-        message: 'CatalogHeroScene render',
-        data: { compoundId, atomsLen: compound.atoms.length, bondsLen: compound.bonds.length },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
-  }, [compoundId, compound.atoms.length, compound.bonds.length])
-
   const [sr, sg, sb] = categoryAccentRgb(compound.category)
   const sparkleHex = compound.accentColor
   const secondaryHex = useMemo(() => rgbToHex(sr * 0.5 + 0.2, sg * 0.5 + 0.15, sb * 0.55 + 0.25), [sr, sg, sb])
@@ -291,67 +275,11 @@ function CatalogHeroScene({ compoundId, compound }: { compoundId: string; compou
   )
 }
 
-function SuspenseFallbackLog({ compoundId }: { compoundId: string }) {
-  useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a62735' },
-      body: JSON.stringify({
-        sessionId: 'a62735',
-        runId: 'pre-fix',
-        hypothesisId: 'H_suspense',
-        location: 'CatalogMoleculeHero.tsx:SuspenseFallbackLog',
-        message: 'Suspense fallback active',
-        data: { compoundId },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
-  }, [compoundId])
-  return null
-}
 
 export function CatalogMoleculeHero({ compoundId }: { compoundId: string }) {
+  const { t } = useT()
   const c = compoundById[compoundId]
   const webglOk = isWebGLAvailable()
-
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a62735' },
-      body: JSON.stringify({
-        sessionId: 'a62735',
-        runId: 'pre-fix',
-        hypothesisId: 'H_branch',
-        location: 'CatalogMoleculeHero.tsx:CatalogMoleculeHero',
-        message: 'hero render branch',
-        data: { compoundId, found: !!c, webglOk },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-  }, [compoundId, webglOk, c])
-  // #endregion
-
-  useEffect(() => {
-    if (!c || !webglOk) return
-    // #region agent log
-    fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a62735' },
-      body: JSON.stringify({
-        sessionId: 'a62735',
-        runId: 'pre-fix',
-        hypothesisId: 'H_hero',
-        location: 'CatalogMoleculeHero.tsx:CatalogMoleculeHero',
-        message: 'CatalogMoleculeHero render',
-        data: { compoundId, category: c.category, atomsLen: c.atoms.length, bondsLen: c.bonds.length },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
-  }, [compoundId, webglOk, c])
 
   if (!c) return null
   if (!webglOk) {
@@ -373,79 +301,28 @@ export function CatalogMoleculeHero({ compoundId }: { compoundId: string }) {
           boxSizing: 'border-box',
         }}
       >
-        WebGL недоступен — 3D‑модель не может быть показана. Проверьте аппаратное ускорение в настройках
-        браузера.
+        {t('catalog.webglUnavailable')}
       </div>
     )
   }
 
   return (
-    <CanvasErrorBoundary>
+    <CanvasErrorBoundary fallback={<CanvasSceneErrorFallback />}>
       <Canvas
         camera={{ position: CATALOG_HERO_VIEW.cameraPosition, fov: CATALOG_HERO_VIEW.fov }}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         dpr={[1, 1.75]}
         onCreated={(state) => {
-          // #region agent log
-          fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a62735' },
-            body: JSON.stringify({
-              sessionId: 'a62735',
-              runId: 'pre-fix',
-              hypothesisId: 'H_canvas',
-              location: 'CatalogMoleculeHero.tsx:Canvas.onCreated',
-              message: 'Canvas created',
-              data: {
-                compoundId,
-                size: state.size,
-                dpr: state.viewport?.dpr ?? null,
-                gl: { isWebGL2: state.gl.capabilities.isWebGL2 },
-              },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {})
-          // #endregion
-
-          // #region agent log
-          const onLost = () => {
-            fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a62735' },
-              body: JSON.stringify({
-                sessionId: 'a62735',
-                runId: 'pre-fix',
-                hypothesisId: 'H_context',
-                location: 'CatalogMoleculeHero.tsx:Canvas.onCreated',
-                message: 'webglcontextlost',
-                data: { compoundId },
-                timestamp: Date.now(),
-              }),
-            }).catch(() => {})
-          }
-          const onRestored = () => {
-            fetch('http://127.0.0.1:7401/ingest/69edabaa-df50-4d14-987c-8fc52341b862', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'a62735' },
-              body: JSON.stringify({
-                sessionId: 'a62735',
-                runId: 'pre-fix',
-                hypothesisId: 'H_context',
-                location: 'CatalogMoleculeHero.tsx:Canvas.onCreated',
-                message: 'webglcontextrestored',
-                data: { compoundId },
-                timestamp: Date.now(),
-              }),
-            }).catch(() => {})
-          }
-          state.gl.domElement.addEventListener('webglcontextlost', onLost)
-          state.gl.domElement.addEventListener('webglcontextrestored', onRestored)
-          // #endregion
+          const canvas = state.gl.domElement
+          const onLost = (e: Event) => { e.preventDefault() }
+          const onRestored = () => { state.gl.setSize(state.size.width, state.size.height) }
+          canvas.addEventListener('webglcontextlost', onLost)
+          canvas.addEventListener('webglcontextrestored', onRestored)
         }}
       >
         <color attach="background" args={['#0a0c18']} />
         <fog attach="fog" args={['#0a0c18', 6.5, 16]} />
-        <Suspense fallback={<SuspenseFallbackLog compoundId={compoundId} />}>
+        <Suspense fallback={null}>
           <CatalogHeroScene compoundId={compoundId} compound={c} />
         </Suspense>
       </Canvas>
