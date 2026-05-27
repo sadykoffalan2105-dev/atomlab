@@ -1,5 +1,7 @@
 import { generateLocalLearnReply, type LearnLocalAssistantContext } from './learnLocalAssistant'
 import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
+import { buildSectionOutlineBlock } from './learnSectionKnowledge'
+import { filterAssistantReply } from './learnAssistantGuard'
 import { buildAssistantSystemPrompt } from './learnAssistantPrompt'
 
 export type LearnChatMessage = { role: 'user' | 'assistant'; content: string }
@@ -175,14 +177,17 @@ export async function processLearnChat(
   }
 
   const { block, topicSceneId } = buildAssistantKnowledgeBlock(userQuery, ctx)
+  const sectionOutlineBlock = buildSectionOutlineBlock(ctx)
   const system = buildAssistantSystemPrompt({
     ...ctx,
     knowledgeBlock: block,
+    sectionOutlineBlock,
     topicSceneId,
   })
 
   try {
-    const reply = await callOpenAI(system, messages, meta.runtime)
+    const raw = await callOpenAI(system, messages, meta.runtime)
+    const reply = raw ? filterAssistantReply(raw) : ''
     if (reply) {
       return { status: 200, reply, source: 'openai', headers }
     }
@@ -190,9 +195,11 @@ export async function processLearnChat(
     /* fallback below */
   }
 
-  const reply = generateLocalLearnReply(
-    messages.map((m) => ({ role: m.role, content: m.content })),
-    ctx,
+  const reply = filterAssistantReply(
+    generateLocalLearnReply(
+      messages.map((m) => ({ role: m.role, content: m.content })),
+      ctx,
+    ),
   )
   return { status: 200, reply, source: 'local', headers }
 }

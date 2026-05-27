@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { getLearnVisual } from '../../learn/learnVisualRegistry'
+import { compoundById } from '../../data/compounds'
+import { getCompoundLocaleStrings } from '../../i18n/compoundLocale'
 import { getTopicSceneLabel } from '../../learn/learnTopicSceneDefs'
 import type { LearnTopicArtId, LearnVisualSpec } from '../../types/learn'
 import { useT } from '../../i18n/useT'
@@ -10,10 +12,20 @@ import { LearnIllustrationBoard } from './LearnIllustrationBoard'
 import { LearnPremiumCanvas } from './LearnPremiumScene'
 import styles from '../../pages/LearnPage.module.css'
 
-function visualLabel(spec: LearnVisualSpec | null, fallback: string): string {
+function visualLabel(
+  spec: LearnVisualSpec | null,
+  fallback: string,
+  locale: 'ru' | 'en' | 'uz',
+  t: (key: import('../../i18n/messagesRu').MessageKey) => string,
+): string {
   if (!spec) return fallback
-  if (spec.kind === 'topicScene') {
-    return getTopicSceneLabel(spec.sceneId)
+  if (spec.kind === 'topicScene') return getTopicSceneLabel(spec.sceneId)
+  if (spec.kind === 'molecule') {
+    const c = compoundById[spec.compoundId]
+    if (c) return `${c.formulaUnicode} · ${getCompoundLocaleStrings(c, locale, t).name}`
+  }
+  if (spec.kind === 'diatomic' || spec.kind === 'atom' || spec.kind === 'element') {
+    return spec.kind === 'diatomic' ? `diatomic:${spec.z}` : `Z=${spec.z}`
   }
   return spec.id
 }
@@ -27,16 +39,23 @@ export function LearnVisual3DPanel({
   fallbackAccent?: string
   presentationMode?: boolean
 }) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const [autoRotate, setAutoRotate] = useState(true)
   const spec = getLearnVisual(visualId)
   const webglOk = isWebGLAvailable()
 
   const accent = fallbackAccent
 
-  const label = visualLabel(spec, t('learn.visual.fallback'))
+  const label = visualLabel(spec, t('learn.visual.fallback'), locale, t)
 
-  const isTopic3d = spec?.kind === 'topicScene'
+  const canAutoRotate =
+    spec?.kind === 'topicScene' ||
+    spec?.kind === 'molecule' ||
+    spec?.kind === 'diatomic' ||
+    spec?.kind === 'atom' ||
+    spec?.kind === 'element' ||
+    spec?.kind === 'bond' ||
+    spec?.kind === 'electrolysis'
 
   const frameClass = [
     styles.learnVisual3d,
@@ -54,7 +73,7 @@ export function LearnVisual3DPanel({
       </div>
       <div className={styles.learnVisualHudRight}>
         <span className={styles.learnVisualHudHint}>{t('learn.visual.rotateHint')}</span>
-        {spec && isTopic3d && webglOk ? (
+        {spec && canAutoRotate && webglOk ? (
           <button
             type="button"
             className={styles.learnVisualHudBtn}

@@ -1,6 +1,7 @@
 import type { MessageKey } from '../i18n/messagesRu'
 import type { LearnChapter, LearnGrade, LearnGradeId, LearnSection, LearnSlide } from '../types/learn'
 import { topicSceneVisualId } from '../learn/learnTopicScenes'
+import { sectionVisualOverride, totemCatalogVisualId } from './learnVisualMap'
 
 function sectionVisual(gradeId: LearnGradeId, chapterId: string, sectionId: string): string {
   return topicSceneVisualId({ gradeId, chapterId, id: sectionId })
@@ -105,18 +106,31 @@ function sectionI18nPrefix(titleKey: MessageKey): string {
 }
 
 function defaultSectionSlides(
-  gradeId: LearnGradeId,
-  chapterId: string,
-  sectionId: string,
   titleKey: MessageKey,
+  visualId: string,
   taskCategoryId?: string,
 ): LearnSlide[] {
-  const visual = sectionVisual(gradeId, chapterId, sectionId)
   const prefix = sectionI18nPrefix(titleKey)
-  return fullSectionSlides(prefix, visual, {
+  return fullSectionSlides(prefix, visualId, {
     taskId: taskCategoryId,
     correctIndex: 1,
   })
+}
+
+function resolveSectionVisualId(
+  gradeId: LearnGradeId,
+  chapterId: string,
+  sectionId: string,
+  totemCompoundId: string,
+  seedVisualId?: string,
+): string {
+  if (seedVisualId) return seedVisualId
+  const pathId = `${gradeId}-${chapterId}-${sectionId}`
+  const override = sectionVisualOverride(pathId)
+  if (override) return override
+  const totem = totemCatalogVisualId(totemCompoundId)
+  if (totem) return totem
+  return sectionVisual(gradeId, chapterId, sectionId)
 }
 
 function buildSection(
@@ -124,10 +138,10 @@ function buildSection(
   chapterId: string,
   order: number,
   seed: SectionSeed,
+  totemCompoundId: string,
 ): LearnSection {
-  const slides =
-    seed.slides ??
-    defaultSectionSlides(gradeId, chapterId, seed.id, seed.titleKey, seed.taskCategoryId)
+  const visualId = resolveSectionVisualId(gradeId, chapterId, seed.id, totemCompoundId, seed.defaultVisualId)
+  const slides = seed.slides ?? defaultSectionSlides(seed.titleKey, visualId, seed.taskCategoryId)
   return {
     id: seed.id,
     chapterId,
@@ -136,7 +150,7 @@ function buildSection(
     kpNumber: seed.kpNumber,
     titleKey: seed.titleKey,
     estimatedMin: seed.estimatedMin ?? 12,
-    defaultVisualId: seed.defaultVisualId ?? sectionVisual(gradeId, chapterId, seed.id),
+    defaultVisualId: visualId,
     slides,
     taskCategoryId: seed.taskCategoryId,
   }
@@ -158,7 +172,7 @@ function buildChapter(
     titleKey,
     summaryKey,
     totemCompoundId,
-    sections: sectionSeeds.map((s, i) => buildSection(gradeId, id, i + 1, s)),
+    sections: sectionSeeds.map((s, i) => buildSection(gradeId, id, i + 1, s, totemCompoundId)),
   }
 }
 

@@ -50,13 +50,33 @@ export const LEARN_VISUAL_REGISTRY: Readonly<Record<string, LearnVisualSpec>> = 
   ...LEGACY_VISUAL_REGISTRY,
 }
 
+function parseDynamicVisualId(id: string): LearnVisualSpec | null {
+  if (id.startsWith('molecule:')) {
+    const compoundId = id.slice('molecule:'.length)
+    if (!compoundId) return null
+    return { id, kind: 'molecule', compoundId }
+  }
+  if (id.startsWith('diatomic:')) {
+    const z = Number.parseInt(id.slice('diatomic:'.length), 10)
+    if (!Number.isFinite(z) || z < 1 || z > 118) return null
+    return { id, kind: 'diatomic', z }
+  }
+  if (id.startsWith('element:')) {
+    const z = Number.parseInt(id.slice('element:'.length), 10)
+    if (!Number.isFinite(z) || z < 1 || z > 118) return null
+    return { id, kind: 'element', z }
+  }
+  return null
+}
+
 export function getLearnVisual(id: string | undefined): LearnVisualSpec | null {
   if (!id) return null
   if (isTopicSceneId(id)) return topicSceneSpec(id)
-  return LEGACY_VISUAL_REGISTRY[id] ?? null
+  return LEGACY_VISUAL_REGISTRY[id] ?? parseDynamicVisualId(id)
 }
 
 export function isKnownVisualId(id: string): boolean {
   if (isTopicSceneId(id)) return true
-  return id in LEGACY_VISUAL_REGISTRY
+  if (id in LEGACY_VISUAL_REGISTRY) return true
+  return parseDynamicVisualId(id) != null
 }

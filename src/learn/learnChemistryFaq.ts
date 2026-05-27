@@ -76,6 +76,48 @@ n = m/M; n = V/Vm (газы при н.у.: Vm ≈ 22,4 л/моль). Задач�
 Гомологический ряд — отличие на CH₂. Реакции: горение, галогенирование, полимеризация (этилен).`,
     en: `School **organic chemistry**: hydrocarbons, alcohols, carboxylic acids; homologous series differ by CH₂.`,
   },
+  {
+    keywords: ['валентност', 'valency', 'валентн', 'степень окисл'],
+    ru: `**Валентность** — способность атома образовывать связи (число одно- или двухэлектронных связей). В школьном курсе часто указывают римскими цифрами: I, II, III.
+
+Примеры: H (I), O (II), N (III, V), C (IV), Fe (II, III). Степень окисления — формальный заряд в соединении; не путайте с валентностью.`,
+    en: `**Valency** is how many bonds an atom forms. **Oxidation state** is a formal charge assignment in compounds.`,
+  },
+  {
+    keywords: ['кислород', 'oxygen', 'o2', 'o₂', 'горен', 'combustion'],
+    ru: `**Кислород O₂** — газ, поддерживает горение. В лаборатории получают разложением KMnO₄ или H₂O₂ (с тягой).
+
+Свойства: бесцветен, малорастворим в воде, активный окислитель. В ATOMLAB откройте 3D-модель O₂ (двухатомная молекула).`,
+    en: `**Oxygen O₂** supports combustion; it is a colorless oxidizer. See the diatomic 3D model in ATOMLAB.`,
+  },
+  {
+    keywords: ['вода', 'water', 'h2o', 'h₂o', 'гидролиз воды'],
+    ru: `**Вода H₂O** — полярная молекула, растворитель многих веществ. Высокие теплоёмкость и температура кипения из-за водородных связей.
+
+В реакциях: гидролиз солей, нейтрализация, электролиз. Модель H₂O — в каталоге и в § о молекулах.`,
+    en: `**Water H₂O** is polar, a good solvent, with hydrogen bonding. See the catalog 3D model.`,
+  },
+  {
+    keywords: ['дихромат', 'dichromate', 'k2cr2o7', 'k₂cr₂o₇', 'хром'],
+    ru: `**Дихромат калия K₂Cr₂O₇** — оранжевый кристаллический окислитель Cr(VI). Применяют в кожевенном деле, травлении металлов, очистке посуды.
+
+Токсичен и канцерогенен — только под руководством учителя, в перчатках, с вытяжкой.`,
+    en: `**K₂Cr₂O₇** is a strong Cr(VI) oxidizer; toxic — school use only with supervision and ventilation.`,
+  },
+  {
+    keywords: ['углерод', 'carbon', 'co2', 'co₂', 'углекисл'],
+    ru: `**Углерод** — неметалл, аллотропы: графит, алмаз. **CO₂** — продукт горения, кислотный оксид углерода; не поддерживает горение, но участвует в фотосинтезе.
+
+В ATOMLAB: модель CO₂ — линейная молекула с двойными связями C=O.`,
+    en: `Carbon allotropes include graphite and diamond. **CO₂** is a linear molecule — see the catalog model.`,
+  },
+  {
+    keywords: ['натрий', 'sodium', 'калий', 'potassium', 'щелочной металл'],
+    ru: `**Щелочные металлы** (Na, K) — мягкие, активные, хранят под керосином. Реагируют с водой: 2Na + 2H₂O → 2NaOH + H₂↑.
+
+Ионы Na⁺, K⁺ — в солях и растворах; пламенные окраски (Na — жёлтый, K — фиолетовый).`,
+    en: `Alkali metals (Na, K) are very reactive with water. Flame tests: Na yellow, K violet.`,
+  },
 ]
 
 export function matchFaqEntry(query: string): FaqEntry | null {

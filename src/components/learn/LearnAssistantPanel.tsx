@@ -120,7 +120,13 @@ export function LearnAssistantPanel({
           }
         }
         if (res.status === 429) {
-          throw new Error('rate_limit')
+          return {
+            text: generateLocalLearnReply(
+              nextMessages.map((m) => ({ role: m.role, content: m.text })),
+              localCtx,
+            ),
+            source: 'local',
+          }
         }
       } catch {
         /* network or static host without API */
@@ -151,21 +157,19 @@ export function LearnAssistantPanel({
           ...m,
           { role: 'assistant', text: reply, at: Date.now(), source },
         ])
-      } catch {
-        setError(t('learn.assistant.error'))
+      } catch (err) {
+        const localText = generateLocalLearnReply(
+          nextMessages.map((x) => ({ role: x.role, content: x.text })),
+          localCtx,
+        )
         setLastSource('local')
         setMessages((m) => [
           ...m,
-          {
-            role: 'assistant',
-            text: generateLocalLearnReply(
-              nextMessages.map((x) => ({ role: x.role, content: x.text })),
-              localCtx,
-            ),
-            at: Date.now(),
-            source: 'local',
-          },
+          { role: 'assistant', text: localText, at: Date.now(), source: 'local' },
         ])
+        if (err instanceof Error && err.message === 'rate_limit') {
+          setError(t('learn.assistant.rateLimit'))
+        }
       } finally {
         setLoading(false)
         requestAnimationFrame(() => {

@@ -1,3 +1,5 @@
+import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
+import { buildSectionOutlineBlock } from './learnSectionKnowledge'
 import { matchFaqEntry, offlineNeedsApiMessage } from './learnChemistryFaq'
 
 /** Локальные ответы ИИ-учителя без внешнего API (офлайн / без ключа). */
@@ -248,6 +250,23 @@ export function generateLocalLearnReply(
   const faq = matchFaqEntry(q)
   if (faq) {
     return ru ? faq.ru : faq.en
+  }
+
+  const { block: catalogBlock } = buildAssistantKnowledgeBlock(q, ctx)
+  const sectionBlock = buildSectionOutlineBlock(ctx, 1600)
+  const hasCatalog =
+    catalogBlock.includes('Matching compounds') || catalogBlock.includes('Relevant elements')
+
+  if (hasCatalog) {
+    return ru
+      ? `По вашему вопросу в каталоге ATOMLAB:\n\n${catalogBlock}\n\nКонтекст §: ${ctx.sectionTitle}. Откройте вкладку «3D» для модели. Для развёрнутого объяснения подключите OpenAI (ключ в настройках деплоя).`
+      : `From the ATOMLAB catalog:\n\n${catalogBlock}\n\n§ context: ${ctx.sectionTitle}. Open the 3D tab for the model.`
+  }
+
+  if (sectionBlock.length > 80) {
+    return ru
+      ? `**${ctx.sectionTitle}** (офлайн-режим)\n\n${sectionBlock.slice(0, 900)}\n\nУточните вопрос — или включите онлайн-учителя для произвольных тем.`
+      : `**${ctx.sectionTitle}** (offline)\n\n${sectionBlock.slice(0, 900)}`
   }
 
   return offlineNeedsApiMessage(ru)

@@ -5,6 +5,7 @@ import { useT } from '../../i18n/useT'
 import type { CompoundDef } from '../../types/chemistry'
 import type { LeftCatalogMatch, ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import { expandLeftTermsToZSlots, REACTOR_EQUATION_MAX_FLY_ATOMS } from '../../chemistry/reactorEquationBalance'
+import { ReagentValencyInteract } from './ReagentValencyInteract'
 import panelStyles from './SynthesisReactorPanel.module.css'
 
 const COEFF_MAX_TERM = 999
@@ -95,6 +96,9 @@ export function SynthesisReactorPanel({
   onProductCoeffChange,
   onClearSlots,
   onRequestRun,
+  valencyPins,
+  onValencyChange,
+  valencyComplete,
   message,
   canRun,
   equationBalanced,
@@ -113,6 +117,9 @@ export function SynthesisReactorPanel({
   onProductCoeffChange: (coeff: number) => void
   onClearSlots: () => void
   onRequestRun: () => void
+  valencyPins: Readonly<Record<string, number>>
+  onValencyChange: (termId: string, bonds: number) => void
+  valencyComplete: boolean
   message: string | null
   canRun: boolean
   equationBalanced: boolean
@@ -152,7 +159,7 @@ export function SynthesisReactorPanel({
 
       <div className={`${panelStyles.equationWrap} ${panelStyles.equationWrapWithFab}`}>
         <div
-          className={panelStyles.equationRow}
+          className={`${panelStyles.equationRow} ${panelStyles.equationMissionBoard}`}
           aria-label={t('reactor.equationAria')}
           data-balanced={equationBalanced ? 'true' : undefined}
         >
@@ -196,6 +203,13 @@ export function SynthesisReactorPanel({
                         {term.coeff === 1 ? '1' : term.coeff}
                       </span>
                       <span className={panelStyles.termSymbol}>{termSymbolDisplay(term)}</span>
+                      <ReagentValencyInteract
+                        termId={term.id}
+                        z={term.z}
+                        symbol={termSymbolDisplay(term)}
+                        activeBonds={valencyPins[term.id] ?? 0}
+                        onChange={onValencyChange}
+                      />
                       <button
                         type="button"
                         className={panelStyles.termRemove}
@@ -296,7 +310,7 @@ export function SynthesisReactorPanel({
       </div>
 
       <div className={panelStyles.hintBox} role="note">
-        {t('reactor.hintBalance')}
+        {valencyComplete ? t('reactor.hintBalance') : t('reactor.hintValency')}
       </div>
 
       <div className={panelStyles.reactorFooter}>

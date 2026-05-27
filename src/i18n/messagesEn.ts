@@ -96,11 +96,21 @@ export const messagesEn: Record<MessageKey, string> = {
   'reactor.generateEquationTitle':
     'Open catalog: substance template as reagents with coefficient 1 — balance manually',
   'reactor.hintBalance':
-    'Balance atoms on the left and right. Run when the balance is correct and a catalog product is selected.',
+    'Balance atoms on the left and right. Mark valency on each reagent, then launch synthesis.',
+  'reactor.hintValency': 'Mark bond dots (valency) for each element in the equation — left to right.',
+  'reactor.valencyIncomplete': 'Assign valency: mark all bonds for every reagent.',
+  'reactor.valencyBondsAria': 'Valency bonds for {symbol}',
+  'reactor.valencyBondToggle': 'Bond {index} of {total} for {symbol}',
   'reactor.run': 'Check and run synthesis',
   'reactor.successRunning': 'Correct! Bonding… {name}',
   'reactor.successProduct':
     'Obtained: {name} {formula}. 3D is shown in the center. You can set up a new equation or close the reactor.',
+  'reactor.valencyHint': 'Valency of {symbol}: {valency}',
+  'lab.launch.title': 'Synthesis launch',
+  'lab.launch.phase1': 'Preparing launch pad…',
+  'lab.launch.phase2': 'Aligning reagents…',
+  'lab.launch.phase3': 'Converging streams…',
+  'lab.launch.phase4': 'Merge at center…',
 
   'catalogPanel.title': 'Substance catalog',
   'catalogPanel.subGenerate':

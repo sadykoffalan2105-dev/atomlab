@@ -10,7 +10,16 @@ function normalizeQuery(q: string): string {
   return q
     .toLowerCase()
     .replace(/ё/g, 'е')
-    .replace(/[^\p{L}\p{N}\s+\-()₂₃₄₅₆₇₈₉₀]/gu, ' ')
+    .replace(/₂/g, '2')
+    .replace(/₃/g, '3')
+    .replace(/₄/g, '4')
+    .replace(/₅/g, '5')
+    .replace(/₆/g, '6')
+    .replace(/₇/g, '7')
+    .replace(/₈/g, '8')
+    .replace(/₉/g, '9')
+    .replace(/₀/g, '0')
+    .replace(/[^\p{L}\p{N}\s+\-()]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }

@@ -89,6 +89,7 @@ export type LearnVisualKind =
   | 'atom'
   | 'molecule'
   | 'element'
+  | 'diatomic'
   | 'reaction'
   | 'bond'
   | 'electrolysis'
@@ -162,6 +163,7 @@ export type LearnVisualSpec =
   | { id: string; kind: 'atom'; z: number }
   | { id: string; kind: 'molecule'; compoundId: string }
   | { id: string; kind: 'element'; z: number }
+  | { id: string; kind: 'diatomic'; z: number }
   | { id: string; kind: 'bond'; mode: 'ionic' | 'covalent' | 'polar'; compoundId?: string }
   | { id: string; kind: 'reaction'; leftTerms: readonly { z: number; coeff: number; diatomic?: boolean }[] }
   | { id: string; kind: 'electrolysis'; compoundId: string }

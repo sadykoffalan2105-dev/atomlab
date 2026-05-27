@@ -2,6 +2,7 @@ import type { LearnLocalAssistantContext } from './learnLocalAssistant'
 
 export type LearnAssistantPromptInput = LearnLocalAssistantContext & {
   knowledgeBlock: string
+  sectionOutlineBlock?: string
   topicSceneId?: string
 }
 
@@ -38,6 +39,9 @@ Grade: ${input.gradeId} | Chapter: ${input.chapterId} | §${input.kpNumber}: ${i
 Slide: ${input.slideTitle}
 Slide content: ${input.slideBody.slice(0, 600)}
 ${input.topicSceneId ? `3D scene in app: ${input.topicSceneId} (suggest opening the 3D tab).` : ''}
+
+--- SECTION OUTLINE (textbook / slides in app) ---
+${input.sectionOutlineBlock || '(use slide content above)'}
 
 --- ATOMLAB KNOWLEDGE (catalog / elements) ---
 ${input.knowledgeBlock || '(no extra catalog matches)'}`

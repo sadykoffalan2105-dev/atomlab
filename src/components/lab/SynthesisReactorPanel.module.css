@@ -196,15 +196,21 @@
   font-size: 0.68rem;
   font-weight: 600;
   line-height: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   white-space: nowrap;
   border-radius: 10px;
-  border: 1px solid rgba(61, 255, 236, 0.5);
-  background: rgba(10, 14, 32, 0.95);
+  border: 1px solid rgba(61, 255, 236, 0.55);
+  background: linear-gradient(180deg, rgba(14, 20, 48, 0.98) 0%, rgba(6, 8, 22, 0.98) 100%);
   color: #3dffec;
   cursor: pointer;
-  box-shadow: 0 0 12px rgba(61, 255, 236, 0.12);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow:
+    0 0 14px rgba(61, 255, 236, 0.18),
+    inset 0 0 12px rgba(61, 255, 236, 0.06);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .reactorGenerateFab:hover {
@@ -285,6 +291,102 @@
     box-shadow 0.2s ease,
     border-color 0.2s ease;
   border: 1px solid transparent;
+}
+
+.equationMissionBoard {
+  position: relative;
+  padding: 0.35rem 0.4rem 0.3rem;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 10, 28, 0.55) 0%,
+    rgba(4, 6, 18, 0.35) 100%
+  );
+  border: 1px solid rgba(61, 255, 236, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(120, 180, 255, 0.08),
+    0 0 28px rgba(30, 80, 140, 0.12);
+  overflow: hidden;
+}
+
+.equationMissionBoard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(61, 255, 236, 0.03) 3px,
+    rgba(61, 255, 236, 0.03) 4px
+  );
+  opacity: 0.6;
+}
+
+.valencyStrip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  margin-left: 0.1rem;
+  padding: 0.08rem 0.2rem;
+  border-radius: 6px;
+  background: rgba(8, 12, 32, 0.65);
+  border: 1px solid rgba(100, 140, 220, 0.25);
+}
+
+.valencyRoman {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(180, 200, 255, 0.9);
+  line-height: 1;
+}
+
+.valencyBonds {
+  display: flex;
+  gap: 0.14rem;
+  align-items: center;
+}
+
+.valencyDot {
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 50%;
+  background: rgba(61, 255, 236, 0.75);
+  box-shadow: 0 0 6px rgba(61, 255, 236, 0.35);
+}
+
+.valencyStripComplete {
+  border-color: rgba(80, 220, 140, 0.55);
+  box-shadow: 0 0 10px rgba(80, 220, 140, 0.2);
+}
+
+.valencyDotBtn {
+  width: 0.34rem;
+  height: 0.34rem;
+  padding: 0;
+  border: 1px solid rgba(100, 160, 255, 0.45);
+  border-radius: 50%;
+  background: rgba(12, 18, 40, 0.9);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+.valencyDotBtn:hover {
+  transform: scale(1.15);
+  border-color: rgba(61, 255, 236, 0.7);
+}
+
+.valencyDotBtnOn {
+  background: rgba(61, 255, 236, 0.88);
+  border-color: rgba(61, 255, 236, 0.95);
+  box-shadow:
+    0 0 8px rgba(61, 255, 236, 0.55),
+    inset 0 0 4px rgba(255, 255, 255, 0.35);
 }
 
 .equationRow[data-balanced='true'] {

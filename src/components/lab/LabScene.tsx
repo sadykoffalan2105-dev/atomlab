@@ -7,6 +7,7 @@ import { DecorativeAtom } from './DecorativeAtom'
 import { AtomStructureModel } from './AtomStructureModel'
 import { MoleculeMesh } from './MoleculeMesh'
 import { SynthesisOnLabScene } from './SynthesisOnLabScene'
+import { SynthesisCrossfadeLayer } from './SynthesisCrossfadeLayer'
 import { SynthesisSettledProductHero } from './SynthesisSettledProductHero'
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
@@ -143,6 +144,9 @@ function SceneContent({
   transformPreviewCompound = null,
   synthesisSettledProduct,
   laboratorySynthesisView,
+  launchCrossfadeOpacity = 0,
+  launchCrossfadeTerms = null,
+  launchCrossfadeCompound = null,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -159,6 +163,9 @@ function SceneContent({
   synthesisSettledProduct: CompoundDef | null
   /** «Реактор» vs кадр с молекулой как в каталоге. */
   laboratorySynthesisView: 'reactor' | 'substance'
+  launchCrossfadeOpacity?: number
+  launchCrossfadeTerms?: readonly ReactorEquationTerm[] | null
+  launchCrossfadeCompound?: CompoundDef | null
   synthesis: {
     runId: number
     zSlots: readonly number[]
@@ -166,6 +173,7 @@ function SceneContent({
     product: CompoundDef | null
     onDone: (kind: 'success' | 'fail') => void
     onSynthesisStageChange?: (stage: 'reactor' | 'substance') => void
+    onPhaseChange?: (phase: string, launchProgress: number) => void
   } | null
 }) {
   const { camera } = useThree()
@@ -177,7 +185,8 @@ function SceneContent({
     reactorPreviewTerms != null &&
     reactorPreviewTerms.length >= 1 &&
     !synthesisRunActive &&
-    !synthActive
+    !synthActive &&
+    synthesisSettledProduct == null
   const previewActive =
     transformPreviewCompound != null &&
     reactorViewOpen &&
@@ -275,15 +284,25 @@ function SceneContent({
   return (
     <>
       {synthActive && synthesis ? (
-        <SynthesisOnLabScene
-          key={synthesis.runId}
-          zSlots={synthesis.zSlots}
-          flyTerms={synthesis.flyTerms}
-          product={synthesis.product}
-          runId={synthesis.runId}
-          onDone={synthesis.onDone}
-          onSynthesisStageChange={synthesis.onSynthesisStageChange}
-        />
+        <>
+          <SynthesisOnLabScene
+            key={synthesis.runId}
+            zSlots={synthesis.zSlots}
+            flyTerms={synthesis.flyTerms}
+            product={synthesis.product}
+            runId={synthesis.runId}
+            onDone={synthesis.onDone}
+            onSynthesisStageChange={synthesis.onSynthesisStageChange}
+            onPhaseChange={synthesis.onPhaseChange}
+          />
+          {launchCrossfadeOpacity > 0.02 ? (
+            <SynthesisCrossfadeLayer
+              opacity={launchCrossfadeOpacity}
+              terms={launchCrossfadeTerms}
+              compound={launchCrossfadeCompound}
+            />
+          ) : null}
+        </>
       ) : showSettledHero && synthesisSettledProduct ? (
         <>
           <SynthesisSettledProductHero
@@ -321,8 +340,8 @@ function SceneContent({
         <>
           <color attach="background" args={[LAB_SCENE_CLEAR_HEX]} />
           <fog attach="fog" args={[LAB_SCENE_CLEAR_HEX, 6, 28]} />
-          {!reactorViewOpen && !synthActive ? (
-            <Stars radius={100} depth={50} count={1600} factor={3} saturation={0} fade speed={0.35} />
+          {!reactorViewOpen ? (
+            <Stars radius={100} depth={50} count={1200} factor={3} saturation={0} fade speed={0.35} />
           ) : null}
           <ambientLight intensity={0.22} />
           <directionalLight position={[4, 6, 2]} intensity={0.55} color="#b8c8ff" />
@@ -350,6 +369,7 @@ function SceneContent({
         ref={orbRef}
         makeDefault
         enablePan={false}
+        enableRotate={!synthActive && !synthesisRunActive}
         enableZoom={!catalogViewMode && !synthActive && !synthesisRunActive}
         minDistance={catalogViewMode ? CATALOG_HERO_VIEW.minDistance : LAB_ORBIT.minDistance}
         maxDistance={catalogViewMode ? CATALOG_HERO_VIEW.maxDistance : LAB_ORBIT.maxDistance}
@@ -375,6 +395,9 @@ export function LabCanvas({
   reactorViewOpen = false,
   synthesisSettledProduct = null,
   laboratorySynthesisView = 'reactor',
+  launchCrossfadeOpacity = 0,
+  launchCrossfadeTerms = null,
+  launchCrossfadeCompound = null,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -386,6 +409,9 @@ export function LabCanvas({
   reactorViewOpen?: boolean
   synthesisSettledProduct?: CompoundDef | null
   laboratorySynthesisView?: 'reactor' | 'substance'
+  launchCrossfadeOpacity?: number
+  launchCrossfadeTerms?: readonly ReactorEquationTerm[] | null
+  launchCrossfadeCompound?: CompoundDef | null
   synthesis: {
     runId: number
     zSlots: readonly number[]
@@ -393,6 +419,7 @@ export function LabCanvas({
     product: CompoundDef | null
     onDone: (kind: 'success' | 'fail') => void
     onSynthesisStageChange?: (stage: 'reactor' | 'substance') => void
+    onPhaseChange?: (phase: string, launchProgress: number) => void
   } | null
 }) {
   const { t } = useT()
@@ -463,6 +490,9 @@ export function LabCanvas({
           reactorViewOpen={reactorViewOpen}
           synthesisSettledProduct={synthesisSettledProduct}
           laboratorySynthesisView={laboratorySynthesisView}
+          launchCrossfadeOpacity={launchCrossfadeOpacity}
+          launchCrossfadeTerms={launchCrossfadeTerms}
+          launchCrossfadeCompound={launchCrossfadeCompound}
         />
       </Canvas>
     </CanvasErrorBoundary>

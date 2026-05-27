@@ -22,10 +22,15 @@ import {
 } from '../chemistry/reactorEquationBalance'
 import { scheduleIdleMatch } from '../lab/labRenderGuards'
 import {
+  getSynthesisWatchdogMs,
   prepareGuaranteedSynthesisRun,
   resolveCatalogProduct,
-  SYNTHESIS_WATCHDOG_MS,
 } from '../lab/synthesisGuarantee'
+import {
+  areAllTermsValencyComplete,
+  syncValencyPins,
+} from '../lab/reactorValencyState'
+import { LaunchMissionHud } from '../components/lab/LaunchMissionHud'
 import { useCatalogAutoMatches } from '../lab/useCatalogMatchWorker'
 import { generateFromLaboratoryRecipe, parseReactionLeftSideUnitCoeffs } from '../chemistry/reactionLeftSideParser'
 import { parseLeftSideMessageKey, reactorValidationMessageKey } from '../i18n/chemistryMessageKeys'
@@ -79,9 +84,16 @@ export function LaboratoryPage() {
   const [lastRunProduct, setLastRunProduct] = useState<CompoundDef | null>(null)
   const lastRunProductRef = useRef<CompoundDef | null>(null)
   const lastRunProductIdRef = useRef<string | null>(null)
+  const synthesisWatchdogMsRef = useRef(4500)
   const synthesisSettledProductRef = useRef<CompoundDef | null>(null)
+  const [launchCrossfadeOpacity, setLaunchCrossfadeOpacity] = useState(0)
+  const [launchProgress, setLaunchProgress] = useState(0)
+  const [synthIgnite, setSynthIgnite] = useState(false)
+  const launchCrossfadeTermsRef = useRef<ReactorEquationTerm[] | null>(null)
+  const launchCrossfadeCompoundRef = useRef<CompoundDef | null>(null)
 
   const [reactorMessage, setReactorMessage] = useState<string | null>(null)
+  const [valencyPins, setValencyPins] = useState<Record<string, number>>({})
   const [synthesisSettledProduct, setSynthesisSettledProduct] = useState<CompoundDef | null>(null)
   const [laboratorySynthesisView, setLaboratorySynthesisView] = useState<'reactor' | 'substance'>('reactor')
   const productLockedRef = useRef(false)
@@ -106,6 +118,35 @@ export function LaboratoryPage() {
   useLayoutEffect(() => {
     synthesisSettledProductRef.current = synthesisSettledProduct
   }, [synthesisSettledProduct])
+
+  useEffect(() => {
+    setValencyPins((prev) => syncValencyPins(leftTerms, prev))
+  }, [leftTerms])
+
+  const equationSignature = useMemo(
+    () =>
+      JSON.stringify({
+        terms: leftTerms.map((t) => [t.id, t.z, t.coeff, t.diatomic ?? false]),
+        product: productCompoundId,
+        coeff: productCoeff,
+      }),
+    [leftTerms, productCompoundId, productCoeff],
+  )
+  const settledSnapshotRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (synthesisSettledProduct == null) return
+    if (settledSnapshotRef.current == null) {
+      settledSnapshotRef.current = equationSignature
+      return
+    }
+    if (settledSnapshotRef.current !== equationSignature) {
+      settledSnapshotRef.current = null
+      setSynthesisSettledProduct(null)
+      synthesisSettledProductRef.current = null
+      setLaboratorySynthesisView('reactor')
+    }
+  }, [equationSignature, synthesisSettledProduct])
 
   useEffect(() => {
     scheduleIdleMatch(() => {
@@ -268,8 +309,10 @@ export function LaboratoryPage() {
 
   const clearReactorSlots = useCallback(() => {
     resetEquation()
+    setValencyPins({})
     setReactorMessage(null)
     setSynthesisSettledProduct(null)
+    settledSnapshotRef.current = null
     synthesisSettledProductRef.current = null
     setSynthesisFlightSlots(null)
     setSynthesisFlyTerms(null)
@@ -299,6 +342,8 @@ export function LaboratoryPage() {
         lastRunProductIdRef.current = null
         setSynthesisSettledProduct(null)
         synthesisSettledProductRef.current = null
+        settledSnapshotRef.current = null
+        setValencyPins({})
         setLaboratorySynthesisView('reactor')
         setReactorCatalogOpen(false)
         productLockedRef.current = false
@@ -316,17 +361,24 @@ export function LaboratoryPage() {
     (compound: CompoundDef) => {
       const name = getCompoundLocaleStrings(compound, locale, t).name
       setReactorMessage(t('reactor.successProduct', { name, formula: compound.formulaUnicode }))
-      resetEquation()
       setSynthesisSettledProduct(compound)
       synthesisSettledProductRef.current = compound
-      setLaboratorySynthesisView('substance')
+      settledSnapshotRef.current = equationSignature
+      setLaboratorySynthesisView('reactor')
       lastRunZSlotsRef.current = []
       setSynthesisFlightSlots(null)
       setSynthesisFlyTerms(null)
       setRunId(0)
     },
-    [resetEquation, t, locale],
+    [t, locale, equationSignature],
   )
+
+  const onValencyChange = useCallback((termId: string, bonds: number) => {
+    setValencyPins((prev) => ({ ...prev, [termId]: bonds }))
+    setSynthesisSettledProduct(null)
+    synthesisSettledProductRef.current = null
+    settledSnapshotRef.current = null
+  }, [])
 
   const onReactorAnimDone = useCallback(
     (kind: 'success' | 'fail') => {
@@ -353,7 +405,22 @@ export function LaboratoryPage() {
     setLaboratorySynthesisView(stage)
   }, [])
 
+  const onSynthesisPhaseChange = useCallback((_phase: string, progress: number) => {
+    setLaunchProgress(progress)
+    if (_phase === 'ignite') setSynthIgnite(true)
+    if (_phase === 'converge' || _phase === 'mergeFlash') setSynthIgnite(false)
+  }, [])
+
+  const valencyComplete = useMemo(
+    () => areAllTermsValencyComplete(leftTerms, valencyPins),
+    [leftTerms, valencyPins],
+  )
+
   const onRequestRun = useCallback(() => {
+    if (!valencyComplete) {
+      setReactorMessage(t('reactor.valencyIncomplete'))
+      return
+    }
     const prepared = prepareGuaranteedSynthesisRun({
       leftTerms,
       productId: productCompoundId,
@@ -367,6 +434,9 @@ export function LaboratoryPage() {
 
     const { payload } = prepared
     setLaboratorySynthesisView('reactor')
+    launchCrossfadeTermsRef.current = leftTerms.length >= 1 ? leftTerms.map((t) => ({ ...t })) : null
+    launchCrossfadeCompoundRef.current = productCompound
+    setSynthIgnite(true)
     const zCopy = payload.zSlots.slice()
     lastRunZSlotsRef.current = zCopy
     lastRunProductIdRef.current = payload.productId
@@ -374,10 +444,11 @@ export function LaboratoryPage() {
     setSynthesisFlightSlots(zCopy)
     setSynthesisFlyTerms([...payload.flyTerms])
     setLastRunProduct(payload.compound)
+    synthesisWatchdogMsRef.current = getSynthesisWatchdogMs(payload.flyTerms, payload.zSlots)
     setRunId((k) => k + 1)
     const name = getCompoundLocaleStrings(payload.compound, locale, t).name
     setReactorMessage(t('reactor.successRunning', { name }))
-  }, [leftTerms, productCompoundId, productCoeff, t, locale])
+  }, [leftTerms, productCompoundId, productCoeff, t, locale, valencyComplete])
 
   const labSynthesis = useMemo(() => {
     if (!reactorOpen || runId <= 0) return null
@@ -396,6 +467,7 @@ export function LaboratoryPage() {
       product,
       onDone: onReactorAnimDone,
       onSynthesisStageChange,
+      onPhaseChange: onSynthesisPhaseChange,
     }
   }, [
     reactorOpen,
@@ -405,6 +477,7 @@ export function LaboratoryPage() {
     lastRunProduct,
     onReactorAnimDone,
     onSynthesisStageChange,
+    onSynthesisPhaseChange,
   ])
 
   useEffect(() => {
@@ -417,14 +490,14 @@ export function LaboratoryPage() {
       if (compound) {
         completeSynthesisSuccess(compound)
       }
-    }, SYNTHESIS_WATCHDOG_MS)
+    }, synthesisWatchdogMsRef.current)
     return () => window.clearTimeout(timer)
   }, [reactorOpen, runId, completeSynthesisSuccess])
 
   const canRunSynthesis = useMemo(() => {
     const product = productCompoundId ? compoundById[productCompoundId] : undefined
-    return validateReactorEquation(leftTerms, product, productCoeff).ok
-  }, [leftTerms, productCompoundId, productCoeff])
+    return validateReactorEquation(leftTerms, product, productCoeff).ok && valencyComplete
+  }, [leftTerms, productCompoundId, productCoeff, valencyComplete])
 
   const highlightEquationError = useMemo(() => {
     if (!reactorMessage) return false
@@ -452,6 +525,27 @@ export function LaboratoryPage() {
   }, [leftTerms, productCompoundId, productCoeff])
 
   const synthRunActive = reactorOpen && runId > 0
+
+  useEffect(() => {
+    if (!synthRunActive) {
+      setLaunchCrossfadeOpacity(0)
+      setLaunchProgress(0)
+      setSynthIgnite(false)
+      return
+    }
+    setLaunchCrossfadeOpacity(1)
+    let raf = 0
+    const start = performance.now()
+    const duration = 480
+    const tick = () => {
+      const o = Math.max(0, 1 - (performance.now() - start) / duration)
+      setLaunchCrossfadeOpacity(o)
+      if (o > 0.01) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [runId, synthRunActive])
+
   const showSettledSynthesisView = reactorOpen && !synthRunActive && synthesisSettledProduct != null
   const showProductPreviewHud =
     reactorOpen && runId === 0 && productCompound != null && synthesisSettledProduct == null
@@ -477,19 +571,13 @@ export function LaboratoryPage() {
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, runId, leftTerms])
 
-  const reactorBrewVignette =
-    reactorOpen &&
-    !synthRunActive &&
-    laboratorySynthesisView !== 'substance' &&
-    reactorPreviewTerms != null &&
-    reactorPreviewTerms.length >= 1
-
   return (
     <div className={styles.wrap} data-lab-synthesis-view={laboratorySynthesisView}>
       <div
         className={styles.canvasWrap}
         data-lab-synthesis-view={laboratorySynthesisView}
-        data-reactor-brew={reactorBrewVignette ? 'true' : undefined}
+        data-synth-launch={synthRunActive ? 'true' : undefined}
+        data-synth-ignite={synthIgnite ? 'true' : undefined}
         style={
           synthRunActive || showSettledSynthesisView || showProductPreviewHud
             ? { ['--synth-glow' as string]: productForHud?.accentColor ?? '#0a0c18' }
@@ -508,9 +596,19 @@ export function LaboratoryPage() {
           reactorViewOpen={reactorOpen}
           synthesisSettledProduct={synthesisSettledProduct}
           laboratorySynthesisView={laboratorySynthesisView}
+          launchCrossfadeOpacity={launchCrossfadeOpacity}
+          launchCrossfadeTerms={launchCrossfadeTermsRef.current}
+          launchCrossfadeCompound={launchCrossfadeCompoundRef.current}
         />
         {synthRunActive || showSettledSynthesisView || showProductPreviewHud ? (
           <div className={styles.synthVignette} aria-hidden />
+        ) : null}
+        {synthRunActive ? (
+          <LaunchMissionHud
+            active
+            launchProgress={launchProgress}
+            accentColor={lastRunProduct?.accentColor ?? productForHud?.accentColor ?? '#3dffec'}
+          />
         ) : null}
         {showSynthProductHud && productForHud ? (
           <div className={styles.synthProductDock} role="status" aria-live="polite">
@@ -547,6 +645,9 @@ export function LaboratoryPage() {
           }}
           onClearSlots={clearReactorSlots}
           onRequestRun={onRequestRun}
+          valencyPins={valencyPins}
+          onValencyChange={onValencyChange}
+          valencyComplete={valencyComplete}
           message={reactorMessage}
           canRun={canRunSynthesis}
           equationBalanced={equationBalanced}

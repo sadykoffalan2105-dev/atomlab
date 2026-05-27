@@ -5,6 +5,7 @@ import {
   type ReactorEquationTerm,
   type ReactorValidationErrorCode,
 } from '../chemistry/reactorEquationBalance'
+import { synthesisLaunchWatchdogMs } from './synthesisLaunchTiming'
 import type { CompoundDef } from '../types/chemistry'
 
 /**
@@ -12,7 +13,19 @@ import type { CompoundDef } from '../types/chemistry'
  * пользователь всегда должен увидеть 3D-продукт из каталога (CatalogSubstanceDisplay /
  * SynthesisSettledProductHero) — тот же CompoundDef, что в каталоге веществ.
  */
-export const SYNTHESIS_WATCHDOG_MS = 1200
+export const SYNTHESIS_WATCHDOG_MS = 4500
+
+/** Таймаут гарантии успеха под длительность космического «запуска». */
+export function getSynthesisWatchdogMs(
+  flyTerms: readonly ReactorEquationTerm[],
+  zSlots: readonly number[],
+): number {
+  if (flyTerms.length > 0) {
+    const atomCount = expandLeftTermsToPreviewSlots(flyTerms).length
+    return synthesisLaunchWatchdogMs(flyTerms.length, atomCount)
+  }
+  return synthesisLaunchWatchdogMs(Math.max(1, zSlots.length), zSlots.length)
+}
 
 /**
  * Визуальный контракт: при успешном синтезе (product != null) сцена использует только
