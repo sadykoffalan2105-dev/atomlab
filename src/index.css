@@ -33,6 +33,11 @@
   }
 }
 
+html,
+body {
+  background-color: #03040a;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #9ca3af;

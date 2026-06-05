@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { LearnAssistantPanel } from './LearnAssistantPanel'
 import { LearnTheoryRich } from './LearnTheoryRich'
-import { LearnVisual3DPanel } from './LearnVisual3DPanel'
+import { LearnSlideDeckVisual } from './LearnSlideDeckVisual'
+import { prefetchLearnImage } from './LearnSlideVisual'
 import { LearnWorkspace } from './LearnWorkspace'
 import type { LearnChapter, LearnGrade, LearnSection, LearnSlide } from '../../types/learn'
 import {
@@ -11,13 +12,17 @@ import {
   readLearnProgress,
   setLastPosition,
 } from '../../learn/learnProgressStorage'
-import { learnSectionPathId } from '../../data/learnCurriculumUz'
+import { getLearnFgosMeta } from '../../data/learnFgosMatrix'
+import { buildLabUrl, getLearnLabDeepLink } from '../../data/learnSectionLabLinks'
+import { getExtraQuizzesForSection } from '../../data/learnSectionQuizzes'
+import { learnNextSection, learnSectionPathId } from '../../data/learnCurriculumUz'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { compoundById } from '../../data/compounds'
 import styles from '../../pages/LearnPage.module.css'
 
 function slideVisualId(slide: LearnSlide, fallback?: string): string | undefined {
   if (slide.type === 'interactive3d') return slide.visualId
+  if (slide.type === 'visual') return fallback
   if ('visualId' in slide && slide.visualId) return slide.visualId
   return fallback
 }
@@ -27,6 +32,11 @@ function slideText(
   t: (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string,
 ): { title: string; body: string } {
   switch (slide.type) {
+    case 'visual':
+      return {
+        title: t(slide.titleKey),
+        body: slide.bodyKey ? t(slide.bodyKey) : '',
+      }
     case 'theory':
     case 'example':
       return { title: t(slide.titleKey), body: t(slide.bodyKey) }
@@ -74,6 +84,26 @@ export function LearnSectionRunner({
   const [doneBanner, setDoneBanner] = useState(false)
   const [mobileTab, setMobileTab] = useState<'theory' | '3d' | 'work' | 'assistant'>('theory')
   const [presentationMode, setPresentationMode] = useState(false)
+  const [extraQuizIndex, setExtraQuizIndex] = useState(0)
+  const [extraQuizPick, setExtraQuizPick] = useState<number | null>(null)
+  const [extraQuizPassed, setExtraQuizPassed] = useState(false)
+
+  const extraQuizzes = useMemo(
+    () => getExtraQuizzesForSection(grade.id, chapter.id, section.id),
+    [grade.id, chapter.id, section.id],
+  )
+  const fgosMeta = useMemo(
+    () => getLearnFgosMeta(section.gradeId, chapter.id, section.id),
+    [section.gradeId, chapter.id, section.id],
+  )
+  const labLink = useMemo(
+    () => getLearnLabDeepLink(grade.id, chapter.id, section.id),
+    [grade.id, chapter.id, section.id],
+  )
+  const nextSec = useMemo(
+    () => learnNextSection(grade.id, chapter.id, section.id),
+    [grade.id, chapter.id, section.id],
+  )
 
   const slides = section.slides
   const slide = slides[slideIndex]!
@@ -105,14 +135,31 @@ export function LearnSectionRunner({
   useEffect(() => {
     setLastPosition(grade.id, chapter.id, section.id, slideIndex)
     setCheckpointPick(null)
+    setExtraQuizIndex(0)
+    setExtraQuizPick(null)
+    setExtraQuizPassed(false)
   }, [grade.id, chapter.id, section.id, slideIndex])
 
   useEffect(() => {
     if (slide.type === 'interactive3d') setMobileTab('3d')
-  }, [slide.type, slideIndex])
+    if (slide.type === 'visual') setMobileTab('3d')
+    if (slide.type === 'visual' && slide.image) prefetchLearnImage(slide.image)
+    if (progressPct >= 80 && nextSec) {
+      const nextVisual = `topic_${nextSec.gradeId}_${nextSec.chapterId}_${nextSec.sectionId}`
+      prefetchLearnImage(`/learn/posters/${nextVisual}.png`)
+    }
+  }, [slide, slideIndex, progressPct, nextSec])
 
   const goNext = useCallback(() => {
     if (slide.type === 'checkpoint' && checkpointPick === null) return
+    if (
+      slide.type === 'checkpoint' &&
+      extraQuizzes.length > 0 &&
+      checkpointPick === slide.correctIndex &&
+      !extraQuizPassed
+    ) {
+      return
+    }
     if (isLast) {
       markSectionCompleted(pathId)
       clearLastPosition()
@@ -121,7 +168,16 @@ export function LearnSectionRunner({
       return
     }
     setSlideIndex((i) => Math.min(i + 1, slides.length - 1))
-  }, [checkpointPick, isLast, onRefresh, pathId, slide.type, slides.length])
+  }, [
+    checkpointPick,
+    extraQuizPassed,
+    extraQuizzes.length,
+    isLast,
+    onRefresh,
+    pathId,
+    slide,
+    slides.length,
+  ])
 
   const goPrev = useCallback(() => {
     setDoneBanner(false)
@@ -144,12 +200,26 @@ export function LearnSectionRunner({
           >
             {t('learn.sectionsTitle')}
           </button>
+          {nextSec ? (
+            <Link
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              to={`/learn/g/${nextSec.gradeId}/c/${nextSec.chapterId}/s/${nextSec.sectionId}`}
+            >
+              {t('learn.path.nextSection')}
+            </Link>
+          ) : null}
         </div>
       </div>
     )
   }
 
   const rich = richKeys(slide)
+
+  const inExtraExam =
+    slide.type === 'checkpoint' &&
+    extraQuizzes.length > 0 &&
+    checkpointPick === slide.correctIndex &&
+    !extraQuizPassed
 
   const theoryCol = (
     <div className={styles.learnSlideCol}>
@@ -176,35 +246,87 @@ export function LearnSectionRunner({
       {slideBody ? <p className={styles.stepBody}>{slideBody}</p> : null}
       <LearnTheoryRich {...rich} />
       {slide.type === 'checkpoint' ? (
-        <ul className={styles.taskMcqList}>
-          {slide.choiceKeys.map((key, idx) => (
-            <li key={key}>
-              <button
-                type="button"
-                className={`${styles.taskMcqBtn} ${
-                  checkpointPick === idx
-                    ? idx === slide.correctIndex
-                      ? styles.taskMcqCorrect
-                      : styles.taskMcqWrong
-                    : ''
-                }`}
-                onClick={() => setCheckpointPick(idx)}
-              >
-                {t(key)}
-              </button>
-            </li>
-          ))}
-          {checkpointPick !== null ? (
-            <p className={checkpointPick === slide.correctIndex ? styles.taskOk : styles.taskBad}>
-              {checkpointPick === slide.correctIndex
-                ? t('learn.checkpointCorrect')
-                : t('learn.checkpointWrong')}
-            </p>
+        <>
+          <ul className={styles.taskMcqList}>
+            {slide.choiceKeys.map((key, idx) => (
+              <li key={key}>
+                <button
+                  type="button"
+                  className={`${styles.taskMcqBtn} ${
+                    checkpointPick === idx
+                      ? idx === slide.correctIndex
+                        ? styles.taskMcqCorrect
+                        : styles.taskMcqWrong
+                      : ''
+                  }`}
+                  onClick={() => setCheckpointPick(idx)}
+                >
+                  {t(key)}
+                </button>
+              </li>
+            ))}
+            {checkpointPick !== null ? (
+              <p className={checkpointPick === slide.correctIndex ? styles.taskOk : styles.taskBad}>
+                {checkpointPick === slide.correctIndex
+                  ? t('learn.checkpointCorrect')
+                  : t('learn.checkpointWrong')}
+              </p>
+            ) : null}
+          </ul>
+          {inExtraExam && extraQuizzes[extraQuizIndex] ? (
+            <div className={styles.teacherBlock} role="region" aria-label={t('learn.exam.title')}>
+              <h3 className={styles.stepTitle}>{t('learn.exam.title')}</h3>
+              <p className={styles.learnSlideMeta}>
+                {t('learn.exam.progress', {
+                  n: extraQuizIndex + 1,
+                  total: extraQuizzes.length,
+                })}
+              </p>
+              {(() => {
+                const eq = extraQuizzes[extraQuizIndex]!
+                return (
+                  <ul className={styles.taskMcqList}>
+                    <li>
+                      <p className={styles.stepBody}>{t(eq.questionKey)}</p>
+                    </li>
+                    {eq.choiceKeys.map((key, idx) => (
+                      <li key={key}>
+                        <button
+                          type="button"
+                          className={`${styles.taskMcqBtn} ${
+                            extraQuizPick === idx
+                              ? idx === eq.correctIndex
+                                ? styles.taskMcqCorrect
+                                : styles.taskMcqWrong
+                              : ''
+                          }`}
+                          onClick={() => {
+                            setExtraQuizPick(idx)
+                            if (idx === eq.correctIndex) {
+                              if (extraQuizIndex + 1 >= extraQuizzes.length) {
+                                setExtraQuizPassed(true)
+                              } else {
+                                window.setTimeout(() => {
+                                  setExtraQuizIndex((i) => i + 1)
+                                  setExtraQuizPick(null)
+                                }, 600)
+                              }
+                            }
+                          }}
+                        >
+                          {t(key)}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              })()}
+            </div>
           ) : null}
-        </ul>
+        </>
       ) : null}
       {slide.type === 'labInvite' ? (
-        <Link className={styles.labLink} to="/">
+        <Link className={styles.labLink} to={buildLabUrl(labLink)}>
           {t('learn.tryLab')}
         </Link>
       ) : null}
@@ -236,6 +358,7 @@ export function LearnSectionRunner({
           <div>
             <h1 className={styles.lessonTitle}>{t(section.titleKey)}</h1>
             <p className={styles.lessonEst}>{t('learn.estimatedMin', { n: section.estimatedMin })}</p>
+            <p className={styles.fgosBadge}>{t('learn.fgos.badge', { block: fgosMeta.programBlock })}</p>
           </div>
           <button
             type="button"
@@ -278,9 +401,11 @@ export function LearnSectionRunner({
           {theoryCol}
         </div>
         <div className={`${styles.learnCol3d} ${mobileTab !== '3d' ? styles.learnColHideMobile : ''}`}>
-          <LearnVisual3DPanel
+          <LearnSlideDeckVisual
+            slide={slide}
             visualId={visualId}
-            fallbackAccent={accent}
+            sectionSceneId={section.defaultVisualId}
+            accent={accent}
             presentationMode={presentationMode}
           />
         </div>

@@ -13,6 +13,39 @@ const MAX_NEUTRONS = 220
 const _v = new THREE.Vector3()
 const _euler = new THREE.Euler()
 
+/** Shared GPU resources — не создавать 15× на каждый экземпляр. */
+const SHARED_PROT_GEO = new THREE.SphereGeometry(0.024, 8, 8)
+const SHARED_ELEC_GEO_STD = new THREE.SphereGeometry(0.036, 8, 8)
+const SHARED_ELEC_GEO_EMPH = new THREE.SphereGeometry(0.042, 8, 8)
+const SHARED_PROT_MAT = new THREE.MeshStandardMaterial({
+  color: PROTON_COLOR,
+  emissive: PROTON_COLOR,
+  emissiveIntensity: 0.5,
+  metalness: 0.12,
+  roughness: 0.42,
+})
+const SHARED_NEUT_MAT = new THREE.MeshStandardMaterial({
+  color: NEUTRON_COLOR,
+  emissive: NEUTRON_COLOR,
+  emissiveIntensity: 0.45,
+  metalness: 0.12,
+  roughness: 0.42,
+})
+const SHARED_ELEC_MAT = new THREE.MeshStandardMaterial({
+  color: ELECTRON_COLOR,
+  emissive: ELECTRON_COLOR,
+  emissiveIntensity: 1.65,
+  metalness: 0.2,
+  roughness: 0.35,
+})
+const SHARED_ELEC_MAT_EMPH = new THREE.MeshStandardMaterial({
+  color: ELECTRON_COLOR,
+  emissive: ELECTRON_COLOR,
+  emissiveIntensity: 2,
+  metalness: 0.2,
+  roughness: 0.35,
+})
+
 function shellCap(n: number): number {
   return 2 * n * n
 }
@@ -85,46 +118,17 @@ export function AtomStructureModel({
   const protRef = useRef<THREE.InstancedMesh>(null)
   const neutRef = useRef<THREE.InstancedMesh>(null)
   const elecRef = useRef<THREE.InstancedMesh>(null)
+  const frameTick = useRef(0)
   const dummy = useMemo(() => new THREE.Object3D(), [])
 
-  const elecRadius = previewEmphasis ? 0.042 : 0.036
-  const protGeo = useMemo(() => new THREE.SphereGeometry(0.024, 8, 8), [])
-  const elecGeo = useMemo(() => new THREE.SphereGeometry(elecRadius, 8, 8), [elecRadius])
-  const protMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: PROTON_COLOR,
-        emissive: PROTON_COLOR,
-        emissiveIntensity: 0.5,
-        metalness: 0.12,
-        roughness: 0.42,
-      }),
-    [],
-  )
-  const neutMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: NEUTRON_COLOR,
-        emissive: NEUTRON_COLOR,
-        emissiveIntensity: 0.45,
-        metalness: 0.12,
-        roughness: 0.42,
-      }),
-    [],
-  )
-  const elecMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: ELECTRON_COLOR,
-        emissive: ELECTRON_COLOR,
-        emissiveIntensity: previewEmphasis ? 2 : 1.65,
-        metalness: 0.2,
-        roughness: 0.35,
-      }),
-    [],
-  )
-
   const zClamped = Math.max(1, Math.min(MAX_Z, Math.floor(z)))
+  const lite = previewLite || zClamped > 18
+  const protGeo = SHARED_PROT_GEO
+  const elecGeo = previewEmphasis ? SHARED_ELEC_GEO_EMPH : SHARED_ELEC_GEO_STD
+  const protMat = SHARED_PROT_MAT
+  const neutMat = SHARED_NEUT_MAT
+  const elecMat = previewEmphasis ? SHARED_ELEC_MAT_EMPH : SHARED_ELEC_MAT
+
   const el = getElementByZ(zClamped)
   const mass = el?.atomicMass ?? zClamped * 2
   const nNeutrons = estimateNeutrons(mass, zClamped)
@@ -140,6 +144,7 @@ export function AtomStructureModel({
 
   const angles = useRef<number[]>([])
   const orbitOpacity = previewEmphasis ? 0.38 : 0.26
+  const torusSegments = lite ? 16 : previewLite ? 32 : 48
 
   useLayoutEffect(() => {
     angles.current = Array.from({ length: nElec }, (_, i) => (i / Math.max(1, nElec)) * Math.PI * 2)
@@ -222,7 +227,10 @@ export function AtomStructureModel({
 
   useFrame((_, delta) => {
     if (previewStatic) return
-    const spin = animate && !previewLite
+    frameTick.current += 1
+    if (lite && frameTick.current % 2 !== 0) return
+
+    const spin = animate && !lite
     if (spin && group.current) group.current.rotation.y += delta * 0.09
     writeElectronMatrices(animate ? delta : 0)
   })
@@ -240,7 +248,7 @@ export function AtomStructureModel({
         const eRz = (shellIdx * Math.PI) / 7
         return (
           <mesh key={`torus-${shellIdx}`} rotation={[eRx, eRy, eRz]}>
-            <torusGeometry args={[majorR, 0.005, 6, previewLite ? 32 : 48]} />
+            <torusGeometry args={[majorR, 0.005, 6, torusSegments]} />
             <meshBasicMaterial
               color={col}
               transparent
@@ -251,7 +259,7 @@ export function AtomStructureModel({
         )
       })}
       <instancedMesh ref={elecRef} args={[elecGeo, elecMat, MAX_Z]} frustumCulled={false} />
-      {localLight ? (
+      {localLight && !lite ? (
         <pointLight position={[0, 0, 0]} intensity={1.05} distance={4.2} color="#7afcff" />
       ) : null}
     </group>

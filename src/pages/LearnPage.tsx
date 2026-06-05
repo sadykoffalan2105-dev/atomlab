@@ -12,6 +12,7 @@ import {
   learnSectionPathId,
   learnTotalSectionCount,
 } from '../data/learnCurriculumUz'
+import { getLearnFgosMeta } from '../data/learnFgosMatrix'
 import {
   readLearnProgress,
   sectionProgress,
@@ -21,6 +22,7 @@ import { useT } from '../i18n/useT'
 import { LearnTaskRunner } from './LearnTaskRunner'
 import { LEARN_TASK_CATEGORY_IDS } from '../data/learnTaskCategories'
 import { LearnTasksHub } from './LearnTasksHub'
+import { prefetchLearnSectionHub, prefetchWasmCore } from '../learn/learnHubPrefetch'
 import styles from './LearnPage.module.css'
 
 function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
@@ -41,6 +43,9 @@ function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
       <ToolRow>
         <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/learn/tasks">
           {t('learn.grades.tasks')}
+        </Link>
+        <Link className={styles.btn} to="/learn/teacher">
+          {t('learn.teacher.linkGrades')}
         </Link>
         {resume?.sectionId ? (
           <Link
@@ -64,6 +69,7 @@ function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
               to={`/learn/g/${grade.id}`}
               className={styles.topicCard}
               style={{ ['--learn-accent' as string]: accent }}
+              onMouseEnter={() => prefetchWasmCore()}
             >
               <div className={styles.topicCardVisual} aria-hidden />
               <h2 className={styles.topicCardTitle}>{t(grade.titleKey)}</h2>
@@ -136,15 +142,30 @@ function ChapterHub({
         {chapter.sections.map((sec) => {
           const pathId = learnSectionPathId(sec)
           const complete = progress.completedSectionIds.includes(pathId)
+          const fgos = getLearnFgosMeta(sec.gradeId, chapterId, sec.id)
+          const tierKey =
+            fgos.contentTier === 'full'
+              ? 'learn.teacher.contentFull'
+              : fgos.contentTier === 'standard'
+                ? 'learn.teacher.contentStandard'
+                : 'learn.teacher.contentOutline'
           return (
             <li key={sec.id} className={styles.lessonRow}>
               <Link
                 className={styles.lessonLink}
                 to={`/learn/g/${gradeId}/c/${chapterId}/s/${sec.id}`}
+                onMouseEnter={() => {
+                  prefetchLearnSectionHub(sec.defaultVisualId)
+                  prefetchWasmCore()
+                }}
+                onFocus={() => prefetchLearnSectionHub(sec.defaultVisualId)}
               >
                 {t('learn.section.kp', { n: sec.kpNumber })} — {t(sec.titleKey)}
               </Link>
-              <span className={styles.lessonMeta}>{t('learn.estimatedMin', { n: sec.estimatedMin })}</span>
+              <span className={styles.lessonMeta}>
+                {t('learn.estimatedMin', { n: sec.estimatedMin })}
+                <span className={styles.contentTierBadge}> · {t(tierKey)}</span>
+              </span>
               {complete ? <span className={styles.doneBadge}>{t('learn.lessonDone')}</span> : null}
             </li>
           )

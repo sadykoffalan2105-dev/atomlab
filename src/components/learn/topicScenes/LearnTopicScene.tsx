@@ -1,10 +1,13 @@
 import type { ComponentType } from 'react'
+import { hasLifeScenePhotos } from '../../../learn/learnTopicLifePhotos'
+import { hasCyberDashboard } from '../../../learn/learnCyberDashboard'
 import { ConfiguredTopicScene } from './ConfiguredTopicScene'
+import { IsometricEduScene } from './isometric/IsometricEduScene'
+import { getIsometricSceneDef } from '../../../learn/learnIsometricScenes'
 import type { TopicSceneProps } from './scenesGrade7'
 import * as G7 from './scenesGrade7'
 
 const G7_MAP: Record<string, ComponentType<TopicSceneProps>> = {
-  topic_g7_c1_s01: G7.G7C1S01Scene,
   topic_g7_c1_s02: G7.G7C1S02Scene,
   topic_g7_c1_s03: G7.G7C1S03Scene,
   topic_g7_c1_s04: G7.G7C1S04Scene,
@@ -36,6 +39,9 @@ const G7_MAP: Record<string, ComponentType<TopicSceneProps>> = {
 }
 
 export function LearnTopicScene({ sceneId, autoRotate = true }: { sceneId: string; autoRotate?: boolean }) {
+  if (hasCyberDashboard(sceneId) || hasLifeScenePhotos(sceneId)) return null
+  const iso = getIsometricSceneDef(sceneId)
+  if (iso) return <IsometricEduScene def={iso} sceneId={sceneId} autoRotate={autoRotate} />
   const Explicit = G7_MAP[sceneId]
   if (Explicit) return <Explicit autoRotate={autoRotate} />
   return <ConfiguredTopicScene sceneId={sceneId} autoRotate={autoRotate} />

@@ -78,6 +78,14 @@ export const LEARN_TASK_CATEGORIES: readonly LearnTaskCategoryDef[] = [
     whatKey: 'learn.tasks.qualitative_id.what',
     exampleKey: 'learn.tasks.qualitative_id.example',
   },
+  {
+    id: 'oge_prep',
+    group: 'quant',
+    titleKey: 'learn.tasks.oge.title',
+    whatKey: 'learn.tasks.oge.what',
+    exampleKey: 'learn.tasks.oge.example',
+    gradeIds: ['g8', 'g9'],
+  },
 ] as const
 
 export const LEARN_TASK_CATEGORY_IDS = new Set(LEARN_TASK_CATEGORIES.map((c) => c.id))

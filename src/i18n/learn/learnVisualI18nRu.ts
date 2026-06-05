@@ -2,6 +2,9 @@
 export const learnVisualI18nRu = {
   'learn.visual.badge3d': 'ATOMLAB · 3D',
   'learn.visual.rotateHint': 'Вращайте мышью · колёсико — масштаб',
+  'learn.visual.lifeHint': 'Реальные примеры · наведите на карточку',
+  'learn.visual.lifeBadge': 'Из жизни и науки',
+  'learn.visual.cyberHint': 'Нажмите на задачу на схеме',
   'learn.visual.autoOn': 'Авто-вращение',
   'learn.visual.autoOff': 'Пауза',
   'learn.visual.fallback': 'Модель урока',

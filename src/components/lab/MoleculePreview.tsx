@@ -11,6 +11,7 @@ export function MoleculePreview({ compoundId }: { compoundId: string }) {
     <Canvas
       camera={{ position: [0, 0.4, CATALOG_HERO_VIEW.cameraPosition[2]], fov: CATALOG_HERO_VIEW.fov }}
       gl={{ antialias: true }}
+      frameloop="always"
     >
       <color attach="background" args={['#0a0c18']} />
       <ambientLight intensity={0.5} />

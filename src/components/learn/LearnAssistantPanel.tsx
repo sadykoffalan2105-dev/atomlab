@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { generateLocalLearnReply, type LearnLocalAssistantContext } from '../../learn/learnLocalAssistant'
+import { routeTeacherReply, type TeacherReplySource } from '../../learn/learnTeacherRouter'
 import type { LearnSection } from '../../types/learn'
 import { LearnAssistantMarkdown } from './LearnAssistantMarkdown'
 import styles from '../../pages/LearnPage.module.css'
@@ -11,7 +12,7 @@ type ChatMessage = {
   role: 'user' | 'assistant'
   text: string
   at: number
-  source?: 'openai' | 'local'
+  source?: 'openai' | 'local' | 'ollama'
 }
 
 const QUICK_KEYS = [
@@ -64,12 +65,20 @@ export function LearnAssistantPanel({
   void slideIndex
   const { t, locale } = useT()
   const [mode, setMode] = useState<'teacher' | 'helper'>('teacher')
+  const [curriculumOnly, setCurriculumOnly] = useState(true)
   const storeKey = storageKey(gradeId, chapterId, section.id)
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadStored(storeKey))
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [lastSource, setLastSource] = useState<'openai' | 'local' | null>(null)
+  const [preferOllama, setPreferOllama] = useState(() => {
+    try {
+      return localStorage.getItem('atomlab-learn-ollama') === '1'
+    } catch {
+      return false
+    }
+  })
+  const [lastSource, setLastSource] = useState<'openai' | 'local' | 'ollama' | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -91,55 +100,65 @@ export function LearnAssistantPanel({
       slideBody,
       mode,
       kpNumber: section.kpNumber,
+      curriculumOnly,
     }),
-    [locale, gradeId, chapterId, section, slideTitle, slideBody, mode, t],
+    [
+      locale,
+      gradeId,
+      chapterId,
+      section,
+      slideTitle,
+      slideBody,
+      mode,
+      curriculumOnly,
+      t,
+    ],
   )
 
+  const mapRoutedSource = (s: TeacherReplySource): 'openai' | 'local' | 'ollama' =>
+    s === 'ollama' ? 'ollama' : 'local'
+
   const replyFromApi = useCallback(
-    async (nextMessages: ChatMessage[]): Promise<{ text: string; source: 'openai' | 'local' }> => {
+    async (nextMessages: ChatMessage[]): Promise<{ text: string; source: 'openai' | 'local' | 'ollama' }> => {
       const payload = {
         messages: nextMessages.map((m) => ({ role: m.role, content: m.text })),
         context: localCtx,
       }
-      try {
-        const res = await fetch(CHAT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        const data = (await res.json()) as {
-          reply?: string | null
-          source?: 'openai' | 'local' | 'error'
-          error?: string
-        }
-        const reply = data.reply?.trim()
-        if (reply) {
-          return {
-            text: reply,
-            source: data.source === 'openai' ? 'openai' : 'local',
+      const apiUrl = import.meta.env.VITE_LEARN_CHAT_URL
+      if (apiUrl) {
+        try {
+          const res = await fetch(CHAT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+          const data = (await res.json()) as {
+            reply?: string | null
+            source?: 'openai' | 'local' | 'error'
           }
-        }
-        if (res.status === 429) {
-          return {
-            text: generateLocalLearnReply(
-              nextMessages.map((m) => ({ role: m.role, content: m.text })),
-              localCtx,
-            ),
-            source: 'local',
+          const reply = data.reply?.trim()
+          if (reply) {
+            return {
+              text: reply,
+              source: data.source === 'openai' ? 'openai' : 'local',
+            }
           }
+          if (res.status === 429) {
+            /* fall through to free router */
+          }
+        } catch {
+          /* network or static host without API */
         }
-      } catch {
-        /* network or static host without API */
       }
-      return {
-        text: generateLocalLearnReply(
-          nextMessages.map((m) => ({ role: m.role, content: m.text })),
-          localCtx,
-        ),
-        source: 'local',
-      }
+
+      const routed = await routeTeacherReply(
+        nextMessages.map((m) => ({ role: m.role, content: m.text })),
+        localCtx,
+        { preferOllama },
+      )
+      return { text: routed.text, source: mapRoutedSource(routed.source) }
     },
-    [localCtx],
+    [localCtx, preferOllama],
   )
 
   const sendText = useCallback(
@@ -201,9 +220,11 @@ export function LearnAssistantPanel({
   const sourceLabel =
     lastSource === 'openai'
       ? t('learn.assistant.sourceOpenai')
-      : lastSource === 'local'
-        ? t('learn.assistant.sourceLocal')
-        : null
+      : lastSource === 'ollama'
+        ? t('learn.assistant.sourceOllama')
+        : lastSource === 'local'
+          ? t('learn.assistant.sourceLocal')
+          : null
 
   return (
     <aside className={styles.learnAssistant} aria-label={t('learn.assistant.title')}>
@@ -251,6 +272,30 @@ export function LearnAssistantPanel({
               {t('learn.assistant.modeHelper')}
             </button>
           </div>
+          <label className={styles.learnAssistantCurriculumToggle}>
+            <input
+              type="checkbox"
+              checked={curriculumOnly}
+              onChange={(e) => setCurriculumOnly(e.target.checked)}
+            />
+            {t('learn.assistant.curriculumOnly')}
+          </label>
+          <label className={styles.learnAssistantCurriculumToggle}>
+            <input
+              type="checkbox"
+              checked={preferOllama}
+              onChange={(e) => {
+                const on = e.target.checked
+                setPreferOllama(on)
+                try {
+                  localStorage.setItem('atomlab-learn-ollama', on ? '1' : '0')
+                } catch {
+                  /* ignore */
+                }
+              }}
+            />
+            {t('learn.assistant.ollamaToggle')}
+          </label>
         </div>
       </div>
 

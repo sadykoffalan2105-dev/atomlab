@@ -1,0 +1,153 @@
+.root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #04070e;
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0.25rem;
+}
+
+.rootWithExplore .stage {
+  min-height: 220px;
+}
+
+.exploreLoading {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  background: rgba(4, 8, 18, 0.85);
+}
+
+.panel {
+  flex: 0 0 auto;
+  max-height: 44%;
+  overflow: auto;
+  padding: 0 1rem 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--cyber-panel-accent) 45%, transparent);
+  background: linear-gradient(165deg, rgba(10, 18, 36, 0.98), rgba(4, 8, 18, 0.99));
+  animation: panelIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panelAccentBar {
+  height: 3px;
+  margin: 0 -1rem 0.65rem;
+  background: linear-gradient(90deg, transparent, var(--cyber-panel-accent), transparent);
+}
+
+.panelHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-bottom: 0.5rem;
+}
+
+.panelOrder {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #041018;
+  background: var(--cyber-panel-accent);
+  border-radius: 6px;
+}
+
+.panelTitle {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--cyber-panel-accent);
+  line-height: 1.3;
+}
+
+.closeBtn {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--cyber-panel-accent) 50%, transparent);
+  background: rgba(8, 16, 32, 0.95);
+  color: #e8f0ff;
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  background: color-mix(in srgb, var(--cyber-panel-accent) 18%, rgba(8, 16, 32, 0.95));
+}
+
+.panelBody {
+  font-size: 0.8rem;
+  line-height: 1.58;
+  color: rgba(220, 230, 255, 0.94);
+}
+
+.panelPara {
+  margin: 0 0 0.55rem;
+}
+
+.present .panel {
+  max-height: 38%;
+}
+
+@media (min-width: 768px) {
+  .rootWithPanel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 34%);
+    grid-template-rows: 1fr;
+    align-items: stretch;
+  }
+
+  .rootWithPanel .stage {
+    min-height: 0;
+  }
+
+  .rootWithPanel .panel {
+    max-height: none;
+    border-top: none;
+    border-left: 1px solid color-mix(in srgb, var(--cyber-panel-accent) 40%, transparent);
+    animation: panelInSide 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @keyframes panelInSide {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}

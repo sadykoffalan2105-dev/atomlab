@@ -126,6 +126,15 @@ export type LearnSlide =
     }
   | { id: string; type: 'practice'; taskCategoryId: string }
   | { id: string; type: 'labInvite'; bodyKey: MessageKey }
+  | {
+      id: string
+      type: 'visual'
+      titleKey: MessageKey
+      bodyKey?: MessageKey
+      /** Путь от public: /learn/posters/... или /learn/slides/... */
+      image: string
+      kenBurns?: 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right'
+    }
 
 export interface LearnSection {
   id: string

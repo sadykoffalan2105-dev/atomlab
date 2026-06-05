@@ -13,8 +13,10 @@ import {
   LAUNCH_MERGE_FLASH_DUR,
   LAUNCH_PRODUCT_ENTRANCE_DUR,
   LAUNCH_PRODUCT_HOLD,
+  SYNTHESIS_IGNITE_SKIP_MS,
   synthesisConvergeDurationSec,
 } from '../../lab/synthesisLaunchTiming'
+import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 import {
   SYNTHESIS_ATOM_STAGGER,
   SYNTHESIS_STREAM_FLY_DUR,
@@ -26,10 +28,10 @@ import { SynthesisWarpStreaks } from './SynthesisWarpStreaks'
 import { SynthesisLaunchCamera } from './SynthesisLaunchCamera'
 import { SynthesisIgniteBurst } from './SynthesisIgniteBurst'
 import { SynthesisArcReactor } from './SynthesisArcReactor'
-import { LightweightElementBall } from './LightweightElementBall'
+import { AtomStructureModel } from './AtomStructureModel'
 import type { CompoundDef } from '../../types/chemistry'
 
-const FLY_DUR = 0.38
+const FLY_DUR = 0.26
 const MERGE_FLASH_DUR = LAUNCH_MERGE_FLASH_DUR
 const PRODUCT_ENTRANCE_DUR = LAUNCH_PRODUCT_ENTRANCE_DUR
 const PRODUCT_HOLD = LAUNCH_PRODUCT_HOLD
@@ -72,11 +74,13 @@ function MergeFlashBurst({
   total,
   isSuccess,
   flashHex,
+  minimalFx = false,
 }: {
   tInMergeRef: MutableRefObject<number>
   total: number
   isSuccess: boolean
   flashHex: string
+  minimalFx?: boolean
 }) {
   const ringG = useRef<THREE.Group>(null)
   const ringMat = useRef<THREE.MeshBasicMaterial>(null)
@@ -140,11 +144,11 @@ function MergeFlashBurst({
         </group>
       </group>
       <Sparkles
-        count={isSuccess ? 140 : 28}
-        scale={isSuccess ? 6.4 : 3.6}
-        size={isSuccess ? 3.2 : 2}
-        speed={isSuccess ? 2.8 : 1.2}
-        opacity={isSuccess ? 0.88 : 0.5}
+        count={minimalFx ? (isSuccess ? 36 : 14) : isSuccess ? 140 : 28}
+        scale={minimalFx ? (isSuccess ? 4.2 : 2.4) : isSuccess ? 6.4 : 3.6}
+        size={minimalFx ? (isSuccess ? 2.2 : 1.4) : isSuccess ? 3.2 : 2}
+        speed={minimalFx ? 1.6 : isSuccess ? 2.8 : 1.2}
+        opacity={minimalFx ? 0.65 : isSuccess ? 0.88 : 0.5}
         color={colorA}
         position={[0, 0.1, 0.15]}
       />
@@ -159,15 +163,6 @@ function cinematicPhase(phase: Phase): 'converge' | 'merge' | 'fail' | null {
   return null
 }
 
-function ProductSettleSky() {
-  return (
-    <>
-      <color attach="background" args={['#0a0c18']} />
-      <fog attach="fog" args={['#0a0c18', 6.5, 16]} />
-    </>
-  )
-}
-
 /**
  * Успешный синтез: потоки реагентов → вспышка → каталожная молекула (без шаров-пузырьков).
  */
@@ -179,6 +174,14 @@ export function SynthesisOnLabScene({
   onDone,
   onSynthesisStageChange,
   onPhaseChange,
+  externalProductSlot = false,
+  labLiteMode = false,
+  forceLiteFx = false,
+  onStreamsReady,
+  previewAtomGroupRefs,
+  previewAtomScaleGroupRefs,
+  onPreviewAtomFade,
+  onEarlyProductReveal,
 }: {
   zSlots: readonly number[]
   flyTerms?: readonly ReactorEquationTerm[]
@@ -187,9 +190,25 @@ export function SynthesisOnLabScene({
   onDone: (kind: 'success' | 'fail') => void
   onSynthesisStageChange?: (stage: 'reactor' | 'substance') => void
   onPhaseChange?: (phase: Phase, launchProgress: number) => void
+  /** Молекула рисуется в LabProductHeroSlot — без дубля и мигания */
+  externalProductSlot?: boolean
+  /** Лаборатория: без cinematic/camera — стабильный FPS */
+  labLiteMode?: boolean
+  forceLiteFx?: boolean
+  onStreamsReady?: () => void
+  previewAtomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
+  previewAtomScaleGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
+  onPreviewAtomFade?: () => void
+  onEarlyProductReveal?: () => void
 }) {
   const useConverge = !!product && flyTerms.length > 0
   const slotsKey = useConverge ? flyTerms.map((t) => `${t.z}:${t.coeff}`).join('|') : zSlots.join(',')
+  const atomCount = useMemo(
+    () => flyTerms.reduce((s, t) => s + t.coeff * (t.diatomic ? 2 : 1), 0),
+    [flyTerms],
+  )
+  const synthesisFxMinimal =
+    labLiteMode || forceLiteFx || atomCount >= SYNTHESIS_PERF.liteFxAtomThreshold
 
   const flyGroupRefs = useRef<(THREE.Group | null)[]>([])
   const flyTimelineCtxRef = useRef<ReturnType<typeof gsap.context> | null>(null)
@@ -197,8 +216,10 @@ export function SynthesisOnLabScene({
   const circlePtsRef = useRef<Array<[number, number]>>([])
 
   const productEntranceRef = useRef<THREE.Group>(null)
-  const [phase, setPhase] = useState<Phase>(useConverge ? 'ignite' : 'flying')
-  const phaseRef = useRef<Phase>(useConverge ? 'ignite' : 'flying')
+  const skipIgnite = labLiteMode || SYNTHESIS_IGNITE_SKIP_MS <= 0
+  const initialPhase: Phase = useConverge ? (skipIgnite ? 'converge' : 'ignite') : 'flying'
+  const [phase, setPhase] = useState<Phase>(initialPhase)
+  const phaseRef = useRef<Phase>(initialPhase)
   const [fxLevel, setFxLevel] = useState<'off' | 'low' | 'full'>('off')
   const tAcc = useRef(0)
   const convergeStartRef = useRef(0)
@@ -207,6 +228,8 @@ export function SynthesisOnLabScene({
   const launchBoostRef = useRef(0)
   const doneRef = useRef(false)
   const onDoneRef = useRef(onDone)
+  const onEarlyProductRevealRef = useRef(onEarlyProductReveal)
+  const earlyProductFiredRef = useRef(false)
   const productGuaranteedRef = useRef(product)
 
   useEffect(() => {
@@ -221,6 +244,10 @@ export function SynthesisOnLabScene({
   useEffect(() => {
     productGuaranteedRef.current = product
   }, [product])
+
+  useEffect(() => {
+    onEarlyProductRevealRef.current = onEarlyProductReveal
+  }, [onEarlyProductReveal])
 
   const convergeDurationSec = useMemo(
     () =>
@@ -240,6 +267,7 @@ export function SynthesisOnLabScene({
 
   const forceProductSuccess = useCallback(() => {
     if (!productGuaranteedRef.current || doneRef.current) return
+    if (phaseRef.current === 'product') return
     phaseRef.current = 'product'
     setPhase('product')
     setFxLevel('full')
@@ -315,6 +343,7 @@ export function SynthesisOnLabScene({
   useLayoutEffect(() => {
     doneRef.current = false
     flyStartedRef.current = false
+    earlyProductFiredRef.current = false
     flyTimelineCtxRef.current?.revert()
     flyTimelineCtxRef.current = null
     tAcc.current = 0
@@ -325,17 +354,22 @@ export function SynthesisOnLabScene({
       convergeStartRef.current = performance.now() / 1000
       launchProgressRef.current = 0
       impactPulseRef.current = 0
-      phaseRef.current = 'ignite'
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPhase('ignite')
       setFxLevel('low')
       launchBoostRef.current = 0.42
-      window.setTimeout(() => {
-        if (phaseRef.current !== 'ignite') return
+      if (labLiteMode || SYNTHESIS_IGNITE_SKIP_MS <= 0) {
         phaseRef.current = 'converge'
         setPhase('converge')
         convergeStartRef.current = performance.now() / 1000
-      }, 320)
+      } else {
+        phaseRef.current = 'ignite'
+        setPhase('ignite')
+        window.setTimeout(() => {
+          if (phaseRef.current !== 'ignite') return
+          phaseRef.current = 'converge'
+          setPhase('converge')
+          convergeStartRef.current = performance.now() / 1000
+        }, SYNTHESIS_IGNITE_SKIP_MS)
+      }
     } else {
       const n = zSlots.length
       if (n < 2) return
@@ -345,7 +379,7 @@ export function SynthesisOnLabScene({
       beginFlyingPhase()
     }
 
-    if (productEntranceRef.current) {
+    if (productEntranceRef.current && !externalProductSlot) {
       productEntranceRef.current.scale.set(0.001, 0.001, 0.001)
     }
 
@@ -353,7 +387,7 @@ export function SynthesisOnLabScene({
       flyTimelineCtxRef.current?.revert()
       flyTimelineCtxRef.current = null
     }
-  }, [runId, slotsKey, product, beginFlyingPhase, useConverge, zSlots.length])
+  }, [runId, slotsKey, product, beginFlyingPhase, useConverge, zSlots.length, labLiteMode])
 
   useEffect(() => {
     if (!product) return
@@ -387,6 +421,15 @@ export function SynthesisOnLabScene({
 
     if (ph === 'mergeFlash') {
       tAcc.current += delta
+      const overlap = SYNTHESIS_PERF.productRevealOverlapSec
+      if (
+        !earlyProductFiredRef.current &&
+        productGuaranteedRef.current &&
+        tAcc.current >= MERGE_FLASH_DUR - overlap
+      ) {
+        earlyProductFiredRef.current = true
+        onEarlyProductRevealRef.current?.()
+      }
       if (tAcc.current >= MERGE_FLASH_DUR) {
         tAcc.current = 0
         if (productGuaranteedRef.current) {
@@ -409,7 +452,7 @@ export function SynthesisOnLabScene({
   })
 
   useLayoutEffect(() => {
-    if (phase !== 'product' || !product || !productEntranceRef.current) return
+    if (externalProductSlot || phase !== 'product' || !product || !productEntranceRef.current) return
     const g = productEntranceRef.current
     g.scale.set(0.01, 0.01, 0.01)
     const t = gsap.to(g.scale, {
@@ -467,22 +510,20 @@ export function SynthesisOnLabScene({
     }
   }, [phase, runId, zSlots.length, slotsKey])
 
-  const showCatalogSubstance = !!product && phase === 'product'
+  const showCatalogSubstance = !!product && phase === 'product' && !externalProductSlot
   const inMerge = phase === 'mergeFlash'
-  const hasCatalogLights = showCatalogSubstance
-  const lightsHero =
-    inMerge || phase === 'ignite' || phase === 'converge' || (phase === 'product' && !!product)
+  const hideBeams = phase === 'mergeFlash' || phase === 'product'
+  const skipLocalLights = labLiteMode && externalProductSlot
   const showFailAtomModels = !useConverge && (phase === 'flying' || phase === 'failBounce') && zSlots.length >= 2
   const showConvergeStreams = useConverge && (phase === 'ignite' || phase === 'converge')
 
   const cinema = cinematicPhase(phase)
   const accentHex = product?.accentColor ?? '#3dffec'
-  const showCinematic = cinema != null
+  const showCinematic = cinema != null && !synthesisFxMinimal
 
   if (!useConverge && zSlots.length < 2) {
     return (
       <>
-        <ProductSettleSky />
         <ambientLight intensity={0.3} />
         <directionalLight position={[3.2, 5.5, 2.5]} intensity={0.55} color="#b8c8ff" />
       </>
@@ -500,20 +541,27 @@ export function SynthesisOnLabScene({
             accentHex={accentHex}
           />
         </>
-      ) : (
-        <ProductSettleSky />
-      )}
+      ) : null}
       {useConverge && showCinematic ? (
         <SynthesisLaunchCamera active progressRef={launchProgressRef} impactPulseRef={impactPulseRef} />
       ) : null}
 
-      {phase === 'ignite' ? <SynthesisIgniteBurst accentHex={accentHex} /> : null}
+      {phase === 'ignite' && !synthesisFxMinimal ? <SynthesisIgniteBurst accentHex={accentHex} /> : null}
 
-      {showConvergeStreams ? (
-        <SynthesisConvergeStreams terms={flyTerms} runId={runId} onImpact={beginMergeFlash} />
+      {showConvergeStreams && previewAtomGroupRefs && previewAtomScaleGroupRefs ? (
+        <SynthesisConvergeStreams
+          terms={flyTerms}
+          runId={runId}
+          onImpact={beginMergeFlash}
+          onStreamsReady={onStreamsReady}
+          beamsVisible={!hideBeams}
+          previewAtomGroupRefs={previewAtomGroupRefs}
+          previewAtomScaleGroupRefs={previewAtomScaleGroupRefs}
+          onBeginAtomFade={onPreviewAtomFade}
+        />
       ) : null}
 
-      {(inMerge || phase === 'converge' || phase === 'ignite') && useConverge ? (
+      {(inMerge || phase === 'converge' || phase === 'ignite') && useConverge && !synthesisFxMinimal ? (
         <SynthesisArcReactor
           active={phase === 'ignite' || phase === 'converge' || inMerge}
           accentHex={accentHex}
@@ -527,17 +575,14 @@ export function SynthesisOnLabScene({
           total={MERGE_FLASH_DUR}
           isSuccess={!!product}
           flashHex={sparkleHex}
+          minimalFx={synthesisFxMinimal}
         />
       )}
 
-      {!hasCatalogLights ? (
+      {!skipLocalLights ? (
         <>
-          <ambientLight intensity={lightsHero ? 0.36 : 0.2} />
-          <directionalLight
-            position={[3.2, 5.5, 2.5]}
-            intensity={lightsHero ? 0.72 : 0.45}
-            color="#b8c8ff"
-          />
+          <ambientLight intensity={0.44} />
+          <directionalLight position={[3.2, 5.5, 2.5]} intensity={0.85} color="#b8c8ff" />
         </>
       ) : null}
       {showCatalogSubstance && product ? (
@@ -557,7 +602,7 @@ export function SynthesisOnLabScene({
         ? zSlots.map((z, i) => (
             <group key={`${runId}-fail-${i}-${z}`} ref={bindFlyGroup(i)}>
               <group scale={ATOM_SCALE} position={[0, 0, 0]}>
-                <LightweightElementBall z={z} radius={0.48} segments={12} />
+                <AtomStructureModel z={z} animate previewEmphasis previewLite localLight={false} />
               </group>
             </group>
           ))

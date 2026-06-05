@@ -94,12 +94,13 @@ export const messagesRu = {
   'reactor.generateEquationTitle':
     'Открыть каталог: эталон вещества как реагенты с коэффициентом 1 — уравняйте вручную',
   'reactor.hintBalance':
-    'Уравняйте атомы слева и справа. Отметьте валентность у каждого реагента, затем запускайте синтез.',
+    'Уравняйте атомы слева и справа, выберите продукт из каталога и запустите синтез.',
   'reactor.hintValency': 'Отметьте точки связей (валентность) у каждого элемента в уравнении — слева направо.',
   'reactor.valencyIncomplete': 'Расставьте валентность: отметьте все связи у каждого реагента.',
   'reactor.valencyBondsAria': 'Связи валентности {symbol}',
   'reactor.valencyBondToggle': 'Связь {index} из {total} для {symbol}',
   'reactor.run': 'Проверить и запустить синтез',
+  'reactor.runRunning': 'Синтез выполняется…',
   'reactor.successRunning': 'Верно! Связь… {name}',
   'reactor.successProduct': 'Получено: {name} {formula}. 3D показан в центре. Можно составить новое уравнение или закрыть реактор.',
   'reactor.valencyHint': 'Валентность {symbol}: {valency}',

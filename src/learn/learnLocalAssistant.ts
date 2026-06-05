@@ -13,6 +13,7 @@ export type LearnLocalAssistantContext = {
   slideBody: string
   mode: 'teacher' | 'helper'
   kpNumber: number
+  curriculumOnly?: boolean
 }
 
 function isRu(locale: string): boolean {
@@ -259,13 +260,13 @@ export function generateLocalLearnReply(
 
   if (hasCatalog) {
     return ru
-      ? `По вашему вопросу в каталоге ATOMLAB:\n\n${catalogBlock}\n\nКонтекст §: ${ctx.sectionTitle}. Откройте вкладку «3D» для модели. Для развёрнутого объяснения подключите OpenAI (ключ в настройках деплоя).`
+      ? `По вашему вопросу в каталоге ATOMLAB:\n\n${catalogBlock}\n\nКонтекст §: ${ctx.sectionTitle}. Откройте вкладку «3D» для модели. Для сложных вопросов включите Ollama в панели учителя.`
       : `From the ATOMLAB catalog:\n\n${catalogBlock}\n\n§ context: ${ctx.sectionTitle}. Open the 3D tab for the model.`
   }
 
   if (sectionBlock.length > 80) {
     return ru
-      ? `**${ctx.sectionTitle}** (офлайн-режим)\n\n${sectionBlock.slice(0, 900)}\n\nУточните вопрос — или включите онлайн-учителя для произвольных тем.`
+      ? `**${ctx.sectionTitle}** (офлайн-режим)\n\n${sectionBlock.slice(0, 900)}\n\nУточните вопрос или включите Ollama (бесплатно на ПК).`
       : `**${ctx.sectionTitle}** (offline)\n\n${sectionBlock.slice(0, 900)}`
   }
 

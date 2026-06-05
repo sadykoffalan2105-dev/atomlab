@@ -1,0 +1,158 @@
+.wrap {
+  width: 100%;
+  height: 100%;
+  min-height: 76px;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* —— Task 1 molecule —— */
+.wrapAnimate .molCluster {
+  animation: molSpin 18s linear infinite;
+  transform-origin: 120px 58px;
+}
+
+/* —— Task 2 synthesis —— */
+.synthArmL {
+  transform-origin: 22px 108px;
+}
+
+.synthArmR {
+  transform-origin: 218px 108px;
+}
+
+.wrapAnimate .synthArmL {
+  animation: armSwingL 1.5s ease-in-out infinite;
+}
+
+.wrapAnimate .synthArmR {
+  animation: armSwingR 1.5s ease-in-out infinite;
+}
+
+.wrapAnimate .chamberMol {
+  animation: molSpin 4s linear infinite;
+  transform-origin: 0 0;
+}
+
+.wrapAnimate .armTipGlow {
+  animation: tipPulse 1.4s ease-in-out infinite;
+}
+
+.wrapAnimate .flaskLiquidAnim {
+  animation: liquidPulse 2.2s ease-in-out infinite;
+}
+
+.wrapAnimate .bubbleDot {
+  animation: bubbleRise 1.35s ease-in infinite;
+  animation-delay: calc(var(--bi, 0) * 0.28s);
+  opacity: 0;
+}
+
+/* —— Task 6 CH4 —— */
+.ch4Spin {
+  transform-origin: 0 0;
+}
+
+.wrapAnimate .ch4Spin {
+  animation: molSpin 14s linear infinite;
+}
+
+@keyframes molSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes armSwingL {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes armSwingR {
+  0%,
+  100% {
+    transform: rotate(6deg);
+  }
+  50% {
+    transform: rotate(-10deg);
+  }
+}
+
+@keyframes tipPulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px #ffb347);
+  }
+}
+
+@keyframes liquidPulse {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes bubbleRise {
+  0% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+}
+
+.miniLabel {
+  fill: #3dffec;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.sectionLabel {
+  fill: rgba(61, 255, 236, 0.75);
+  font-size: 7px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.badgeNew {
+  fill: #5cff8a;
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.formula {
+  fill: #ffe566;
+  font-size: 11px;
+  font-weight: 700;
+  filter: drop-shadow(0 0 4px rgba(255, 229, 102, 0.5));
+}
+
+.ptCell {
+  fill: #e8f4ff;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+/* Электроны task5 — SMIL в CyberAtomOrbitSvg, без reduced-motion */

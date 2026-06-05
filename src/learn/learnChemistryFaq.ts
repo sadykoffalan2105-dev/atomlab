@@ -56,6 +56,27 @@ n = m/M; n = V/Vm (газы при н.у.: Vm ≈ 22,4 л/моль). Задач�
     en: `Electrolytes dissociate into ions. Ion exchange forms precipitate, gas, or water. Salt hydrolysis changes solution pH.`,
   },
   {
+    keywords: ['амфотер', 'amphoteric', 'al2o3', 'zn', 'цинк'],
+    ru: `**Амфотерные оксиды** (Al₂O₃, ZnO) реагируют и с кислотами, и с основаниями.
+
+Пример: Al₂O₃ + 6HCl → 2AlCl₃ + 3H₂O; Al₂O₃ + 2NaOH → 2NaAlO₂ + H₂O.`,
+    en: `**Amphoteric oxides** react with both acids and bases (e.g. Al₂O₃, ZnO).`,
+  },
+  {
+    keywords: ['полимер', 'polymer', 'пластмасс', 'белок', 'крахмал'],
+    ru: `**Полимеры** — большие молекулы из повторяющихся звеньев (мономеров). Примеры: полиэтилен, белки, крахмал, целлюлоза.
+
+В школьном курсе органики изучают простые мономеры и идею полимеризации.`,
+    en: `**Polymers** are macromolecules built from repeating monomer units (polyethylene, proteins, starch).`,
+  },
+  {
+    keywords: ['огэ', 'oge', 'егэ', 'ege', 'экзамен', 'exam'],
+    ru: `**ОГЭ по химии**: расчёты (моль, масса, объём газа), уравнения, классы веществ, качественные реакции.
+
+В ATOMLAB: раздел «Задачи» → «Подготовка к ОГЭ», повторение § 9 класса, мини-тесты в параграфах.`,
+    en: `Exam prep: stoichiometry, equations, classification, qualitative tests — use ATOMLAB Tasks → OGE-style practice.`,
+  },
+  {
     keywords: ['период', 'менделеев', 'mendeleev', 'групп', 'периодич'],
     ru: `**Периодическая система**: периоды (строки) — электронные оболочки; группы (столбцы) — похожие свойства.
 
@@ -118,6 +139,111 @@ n = m/M; n = V/Vm (газы при н.у.: Vm ≈ 22,4 л/моль). Задач�
 Ионы Na⁺, K⁺ — в солях и растворах; пламенные окраски (Na — жёлтый, K — фиолетовый).`,
     en: `Alkali metals (Na, K) are very reactive with water. Flame tests: Na yellow, K violet.`,
   },
+  {
+    keywords: ['безопас', 'очки', 'перчат', 'вытяж', 'safety', 'goggles', 'ventilation', 'lab'],
+    ru: `**Безопасность в лаборатории:** очки, халат, перчатки; не пробовать вещества на вкус; работать у вытяжки с кислотами и газами; разбавлять кислоту водой (не наоборот).
+
+При ожоге — промыть водой, сообщить учителю. Отходы — в указанную тару.`,
+    en: `Lab safety: goggles, coat, gloves; never taste chemicals; use a fume hood; add acid to water, not water to acid.`,
+  },
+  {
+    keywords: ['индикатор', 'indicator', 'фенолфталеин', 'лакмус', 'litmus', 'ph'],
+    ru: `**Индикаторы** меняют цвет по pH: лакмус (кислота — красный, щёлочь — синий), фенолфталеин (бесцветен в кислой, малиновый в щелочной), метилоранж.
+
+Универсальный индикатор даёт шкалу цветов от pH 1 до 14.`,
+    en: `Indicators change color with pH: litmus, phenolphthalein, methyl orange, universal indicator.`,
+  },
+  {
+    keywords: ['осадок', 'precipitate', 'не раствор', 'solubility', 'растворим'],
+    ru: `**Растворимость** — из таблицы растворимости. **Осадок** образуется, если один из продуктов ионного обмена нерастворим (например, AgCl, BaSO₄).
+
+Запишите ионное уравнение и вычеркните «наблюдателей».`,
+    en: `Use a solubility table. A **precipitate** forms when a product is insoluble (e.g. AgCl, BaSO₄).`,
+  },
+  {
+    keywords: ['газ', 'закон', 'boyle', 'charles', 'pv', 'давлен', 'ideal gas'],
+    ru: `**Газы:** pV = nRT (идеальный газ). При постоянной T: p₁V₁ = p₂V₂ (Бойль-Мариотт). При постоянном p: V₁/T₁ = V₂/T₂.
+
+n = V/Vm (н.у. Vm ≈ 22,4 л/моль). Масса через M.`,
+    en: `Ideal gas law pV = nRT. At STP Vm ≈ 22.4 L/mol. Boyle and Charles laws relate p, V, and T.`,
+  },
+  {
+    keywords: ['электролиз', 'electrolysis', 'катод', 'анод', 'cathode', 'anode'],
+    ru: `**Электролиз** — разложение вещества током. На **катоде** (−) восстановление, на **аноде** (+) окисление.
+
+Пример: электролиз водного раствора NaCl даёт H₂ на катоде и Cl₂ на аноде (в промышленности).`,
+    en: `Electrolysis: reduction at cathode (−), oxidation at anode (+). Example: brine electrolysis gives H₂ and Cl₂.`,
+  },
+  {
+    keywords: ['номенклатур', 'nomenclature', 'назван', 'name compound', 'суффикс'],
+    ru: `**Номенклатура:** бинарные соединения — «оксид + металл» (оксид натрия), кислотные остатки в солях (-ат, -ит), органика — корень + окончание (-ан, -ен, -ол).
+
+В ATOMLAB ищите вещество по формуле в каталоге.`,
+    en: `Naming: metal oxides, acid residues in salts (-ate/-ite), organic roots (-ane, -ene, -ol). Search formulas in ATOMLAB.`,
+  },
+  {
+    keywords: ['галоген', 'halogen', 'хлор', 'bromine', 'йод', 'chlorine', 'fluorine'],
+    ru: `**Галогены** (F, Cl, Br, I) — активные неметаллы. Активность ↓ вниз по группе: F₂ > Cl₂ > Br₂ > I₂.
+
+Диспропорционирование Cl₂ в щёлочи; галогениды с серебром дают цветные осадки (AgCl белый).`,
+    en: `Halogens are reactive nonmetals; activity decreases down the group. Ag⁺ tests give characteristic precipitates.`,
+  },
+  {
+    keywords: ['азот', 'nitrogen', 'n2', 'n₂', 'аммиак', 'ammonia', 'nh3'],
+    ru: `**Азот N₂** — инертный газ (~78% воздуха). **NH₃** — слабое основание, пахучий, растворим в воде (фенолфталеин — малиновый).
+
+Синтез аммиака: N₂ + 3H₂ ⇄ 2NH₃ (катализ, высокое p и T).`,
+    en: `N₂ is abundant in air. NH₃ is a weak base; Haber process: N₂ + 3H₂ ⇄ 2NH₃.`,
+  },
+  {
+    keywords: ['сера', 'sulfur', 'so2', 'so₂', 'h2so4', 'сульфид'],
+    ru: `**Сера** — жёлтый неметалл, аллотропы. **SO₂** — газ-отбеливатель, кислотный оксид. **H₂SO₄** — сильная кислота (разбавлять осторожно!).
+
+Сульфиды с кислотами дают H₂S (ядовитый газ с запахом тухлых яиц — только в вытяжке).`,
+    en: `Sulfur forms SO₂ and H₂SO₄. Sulfides with acids release toxic H₂S — use a hood.`,
+  },
+  {
+    keywords: ['спирт', 'alcohol', 'этанол', 'ethanol', 'метанол', 'oh групп'],
+    ru: `**Спирты** содержат группу -OH. Этанол C₂H₅OH — растворитель, горюч. Метанол CH₃OH — ядовит.
+
+Реакции: с активными металлами (H₂), окисление до альдегидов/кетонов, этерификация с кислотами.`,
+    en: `Alcohols have -OH groups. Ethanol is common and flammable; methanol is toxic. Oxidation gives aldehydes/ketones.`,
+  },
+  {
+    keywords: ['глюкоз', 'glucose', 'сахар', 'крахмал', 'starch', 'углевод'],
+    ru: `**Углеводы:** глюкоза C₆H₁₂O₆ — моносахарид; крахмал — полисахарид, даёт синюю окраску с йодом.
+
+Горение и брожение — связь с органикой и биологией.`,
+    en: `Glucose is a monosaccharide; starch gives a blue color with iodine.`,
+  },
+  {
+    keywords: ['эндотерм', 'экзотерм', 'enthalpy', 'теплот', 'q>', 'q<'],
+    ru: `**Экзотермические** реакции выделяют тепло (горение). **Эндотермические** поглощают (растворение NH₄NO₃ в воде охлаждает).
+
+ΔH < 0 — экзотермия; ΔH > 0 — эндотермия.`,
+    en: `Exothermic reactions release heat; endothermic absorb heat. ΔH sign indicates the direction of heat flow.`,
+  },
+  {
+    keywords: ['алюмин', 'aluminum', 'aluminium', 'fe', 'железо', 'iron', 'корроз'],
+    ru: `**Алюминий** — лёгкий металл, пассивируется оксидной плёнкой. **Железо** — Fe²⁺ (бледно-зелёный) и Fe³⁺ (бурый/жёлтый в растворе).
+
+Коррозия железа — электрохимический процесс; защита — окраска, цинкование.`,
+    en: `Aluminum forms a protective oxide layer. Iron has Fe²⁺/Fe³⁺ chemistry; rust is electrochemical corrosion.`,
+  },
+  {
+    keywords: ['медь', 'copper', 'cu', 'патин', 'сульфат меди'],
+    ru: `**Медь Cu** — розовый металл, Cu²⁺ — голубые растворы, CuSO₄·5H₂O — синие кристаллы.
+
+Реакции: с конц. HNO₃ (NO₂), замещение (Fe + CuSO₄), осаждение Cu(OH)₂.`,
+    en: `Copper metal is reddish; Cu²⁺ solutions are blue. CuSO₄ is a common school reagent.`,
+  },
+  {
+    keywords: ['водород', 'hydrogen', 'h2', 'h₂', 'водородный показатель'],
+    ru: `**Водород H₂** — лёгкий газ, восстановитель. Получение: Zn + HCl, электролиз воды.
+
+**pH** = −lg[H⁺]; pH < 7 кислая среда, pH > 7 щелочная, pH = 7 нейтрально (чистая вода ~25 °C).`,
+    en: `Hydrogen H₂ is a light reducing gas. pH measures acidity: <7 acid, >7 base, 7 neutral.`,
+  },
 ]
 
 export function matchFaqEntry(query: string): FaqEntry | null {
@@ -139,12 +265,13 @@ export function matchFaqEntry(query: string): FaqEntry | null {
 
 export function offlineNeedsApiMessage(ru: boolean): string {
   return ru
-    ? `Для **произвольных** вопросов по химии нужен режим OpenAI.
+    ? `По этому вопросу в **офлайн-базе** нет готового ответа.
 
-Настройте ключ:
-1. Локально: файл \`.env\` → \`OPENAI_API_KEY=sk-...\`, перезапустите \`npm run dev\`
-2. На сайте: разверните API на Vercel и укажите \`VITE_LEARN_CHAT_URL\` при сборке
+Попробуйте:
+• переформулировать (кислоты, соли, ОВР, моль, pH…);
+• включить **Ollama** в панели учителя (бесплатно на вашем ПК, см. docs/TEACHER_AI.md);
+• позже — свой сервер через \`VITE_LEARN_CHAT_URL\`.
 
-Пока доступны ответы по типовым темам (кислоты, соли, ОВР, моль…) и по текущему параграфу.`
-    : `For **free-form** chemistry questions, configure OpenAI API key in \`.env\` or Vercel. Offline mode covers common topics and the current lesson only.`
+Сейчас доступны типовые темы и конспект текущего §.`
+    : `No offline match for this question. Rephrase (acids, salts, redox, mole, pH…), enable **Ollama** in the teacher panel, or set \`VITE_LEARN_CHAT_URL\` for your server.`
 }

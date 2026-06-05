@@ -1,39 +1,87 @@
-import { Component, type ReactNode } from 'react'
+import { Component, Fragment, type ReactNode } from 'react'
 
-export class CanvasErrorBoundary extends Component<
-  {
-    children: ReactNode
-    fallback?: ReactNode | ((error: unknown) => ReactNode)
-  },
-  { error: unknown | null }
-> {
-  state: { error: unknown | null } = { error: null }
+type Props = {
+  children: ReactNode
+  fallback?: ReactNode | ((error: unknown, retry: () => void) => ReactNode)
+  resetKey?: string | number
+}
 
-  static getDerivedStateFromError(error: unknown) {
+type State = { error: unknown | null; mountKey: number; retryCount: number }
+
+const RETRY_PLACEHOLDER = (
+  <div
+    aria-hidden
+    style={{
+      position: 'absolute',
+      inset: 0,
+      width: '100%',
+      height: '100%',
+      background: '#0a0c18',
+    }}
+  />
+)
+
+/**
+ * Ловит сбои WebGL/Three.js; одна автоматическая перезагрузка Canvas.
+ * Fragment без DOM-обёртки — не ломает .canvasWrap > :first-child для R3F.
+ */
+export class CanvasErrorBoundary extends Component<Props, State> {
+  state: State = { error: null, mountKey: 0, retryCount: 0 }
+
+  static getDerivedStateFromError(error: unknown): Partial<State> {
     return { error }
   }
 
-  componentDidCatch() {
-    // React will log the error to console; we only switch UI to fallback.
+  componentDidUpdate(prevProps: Props): void {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.error) {
+      this.setState({ error: null, retryCount: 0, mountKey: this.state.mountKey + 1 })
+    }
+  }
+
+  componentDidCatch(_error: unknown): void {
+    const { retryCount } = this.state
+    if (retryCount < 1) {
+      window.setTimeout(() => {
+        this.setState((s) => ({
+          error: null,
+          retryCount: s.retryCount + 1,
+          mountKey: s.mountKey + 1,
+        }))
+      }, 120)
+    }
+  }
+
+  private retry = (): void => {
+    this.setState((s) => ({
+      error: null,
+      retryCount: 0,
+      mountKey: s.mountKey + 1,
+    }))
   }
 
   render() {
-    const { error } = this.state
+    const { error, mountKey, retryCount } = this.state
+
     if (error) {
+      if (retryCount < 1) return RETRY_PLACEHOLDER
+
       const { fallback } = this.props
-      if (typeof fallback === 'function') return fallback(error)
+      if (typeof fallback === 'function') return fallback(error, this.retry)
       if (fallback != null) return fallback
       return (
         <div
           role="status"
           style={{
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
+            gap: 8,
+            position: 'absolute',
+            inset: 0,
             width: '100%',
             height: '100%',
             padding: 12,
-            borderRadius: 12,
             color: 'rgba(220,228,255,0.92)',
             background: 'rgba(8,10,26,0.92)',
             border: '1px solid rgba(61,255,236,0.22)',
@@ -41,12 +89,14 @@ export class CanvasErrorBoundary extends Component<
             boxSizing: 'border-box',
           }}
         >
-          3D не удалось отрисовать. Откройте Console в браузере, чтобы увидеть ошибку WebGL/Three.js.
+          <p>3D не удалось отрисовать.</p>
+          <button type="button" onClick={this.retry} style={{ cursor: 'pointer' }}>
+            Повторить
+          </button>
         </div>
       )
     }
 
-    return this.props.children
+    return <Fragment key={mountKey}>{this.props.children}</Fragment>
   }
 }
-

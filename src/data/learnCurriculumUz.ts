@@ -82,21 +82,49 @@ function slideLab(bodyKey: MessageKey): LearnSlide {
   return { id: 'sl_lab', type: 'labInvite', bodyKey }
 }
 
-/** Стандартный набор слайдов для полного § (пилот 7 класс). */
+function slideVisual(
+  id: string,
+  prefix: string,
+  n: number,
+  topicId: string,
+  file: 'poster' | 's02' | 's03' | 's04',
+  kenBurns: 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right' = 'zoom-in',
+): LearnSlide {
+  const base = `${prefix}.slide${n}` as const
+  const image =
+    file === 'poster'
+      ? `/learn/posters/${topicId}.png`
+      : `/learn/slides/${topicId}/${file}.jpg`
+  return {
+    id,
+    type: 'visual',
+    titleKey: `${base}.title` as MessageKey,
+    bodyKey: `${base}.body` as MessageKey,
+    image,
+    kenBurns,
+  }
+}
+
+/** Стандартный набор слайдов для полного § (7–9 класс): картинки + 3D + теория. */
 function fullSectionSlides(
   i18nPrefix: string,
   visualId: string,
   opts?: { taskId?: string; correctIndex?: number },
 ): LearnSlide[] {
   const correct = opts?.correctIndex ?? 1
+  const topicId = visualId.startsWith('topic_') ? visualId : visualId
   const slides: LearnSlide[] = [
+    slideVisual('slv0', i18nPrefix, 0, topicId, 'poster', 'zoom-in'),
     slideTheory(i18nPrefix, 0, visualId),
+    slideVisual('slv1', i18nPrefix, 1, topicId, 's02', 'pan-right'),
     slideExample(i18nPrefix, 1, visualId),
     slide3d(i18nPrefix, 2, visualId),
+    slideVisual('slv2', i18nPrefix, 3, topicId, 's03', 'zoom-out'),
     slideTheory(i18nPrefix, 3, visualId),
     slideCheckpoint(i18nPrefix, 4, 4, correct),
   ]
   if (opts?.taskId) slides.push(slidePractice(opts.taskId))
+  slides.push(slideVisual('slv3', i18nPrefix, 5, topicId, 's04', 'pan-left'))
   slides.push(slideLab(`${i18nPrefix}.slide5.body` as MessageKey))
   return slides
 }
@@ -445,11 +473,11 @@ const g9c6Sections = outlineSections('g9', 'c6', [
 ])
 
 const g9c7Sections = outlineSections('g9', 'c7', [
-  { id: 's01', kp: 49, titleKey: 'learn.g9.c7.s01.title' },
-  { id: 's02', kp: 50, titleKey: 'learn.g9.c7.s02.title' },
-  { id: 's03', kp: 51, titleKey: 'learn.g9.c7.s03.title' },
-  { id: 's04', kp: 52, titleKey: 'learn.g9.c7.s04.title' },
-  { id: 's05', kp: 53, titleKey: 'learn.g9.c7.s05.title' },
+  { id: 's01', kp: 49, titleKey: 'learn.g9.c7.s01.title', taskCategoryId: 'oge_prep' },
+  { id: 's02', kp: 50, titleKey: 'learn.g9.c7.s02.title', taskCategoryId: 'oge_prep' },
+  { id: 's03', kp: 51, titleKey: 'learn.g9.c7.s03.title', taskCategoryId: 'oge_prep' },
+  { id: 's04', kp: 52, titleKey: 'learn.g9.c7.s04.title', taskCategoryId: 'oge_prep' },
+  { id: 's05', kp: 53, titleKey: 'learn.g9.c7.s05.title', taskCategoryId: 'oge_prep' },
 ])
 
 export const LEARN_GRADES: readonly LearnGrade[] = [
@@ -531,4 +559,24 @@ export function learnAllSections(): LearnSection[] {
     }
   }
   return out
+}
+
+/** Следующий § в том же классе (для learning path). */
+export function learnNextSection(
+  gradeId: string,
+  chapterId: string,
+  sectionId: string,
+): { gradeId: string; chapterId: string; sectionId: string } | null {
+  const grade = learnGradeById(gradeId)
+  if (!grade) return null
+  const flat: { chapterId: string; sectionId: string }[] = []
+  for (const ch of grade.chapters) {
+    for (const s of ch.sections) {
+      flat.push({ chapterId: ch.id, sectionId: s.id })
+    }
+  }
+  const i = flat.findIndex((x) => x.chapterId === chapterId && x.sectionId === sectionId)
+  if (i < 0 || i >= flat.length - 1) return null
+  const next = flat[i + 1]!
+  return { gradeId, chapterId: next.chapterId, sectionId: next.sectionId }
 }

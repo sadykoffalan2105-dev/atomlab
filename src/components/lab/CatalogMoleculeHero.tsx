@@ -312,6 +312,7 @@ export function CatalogMoleculeHero({ compoundId }: { compoundId: string }) {
         camera={{ position: CATALOG_HERO_VIEW.cameraPosition, fov: CATALOG_HERO_VIEW.fov }}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         dpr={[1, 1.75]}
+        frameloop="always"
         onCreated={(state) => {
           const canvas = state.gl.domElement
           const onLost = (e: Event) => { e.preventDefault() }

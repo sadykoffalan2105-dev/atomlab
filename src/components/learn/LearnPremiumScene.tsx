@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { CATALOG_HERO_VIEW } from '../lab/labOrbitConstants'
 import type { LearnVisualSpec } from '../../types/learn'
+import { hasIsometricScene } from '../../learn/learnIsometricScenes'
 import { LearnTopicScene } from './topicScenes/LearnTopicScene'
 import {
   LearnBondVisual,
@@ -73,24 +74,38 @@ export function LearnPremiumCanvas({
   spec: LearnVisualSpec
   autoRotate?: boolean
 }) {
+  const isIso = spec.kind === 'topicScene' && hasIsometricScene(spec.sceneId)
+  const bg = isIso ? '#d4dae8' : '#05070f'
+  const isoCamera = { position: [5.2, 4.8, 5.2] as [number, number, number], fov: 38 }
   return (
     <Canvas
-      camera={{ position: CATALOG_HERO_VIEW.cameraPosition, fov: CATALOG_HERO_VIEW.fov }}
-      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
-      dpr={[1, 2]}
+      camera={
+        isIso
+          ? isoCamera
+          : { position: CATALOG_HERO_VIEW.cameraPosition, fov: CATALOG_HERO_VIEW.fov }
+      }
+      gl={{
+        antialias: true,
+        alpha: false,
+        powerPreference: 'high-performance',
+        failIfMajorPerformanceCaveat: false,
+      }}
+      dpr={[1, 1.5]}
+      frameloop="always"
     >
-      <color attach="background" args={['#05070f']} />
-      <fog attach="fog" args={['#05070f', 7, 18]} />
+      <color attach="background" args={[bg]} />
+      <fog attach="fog" args={[bg, isIso ? 12 : 7, isIso ? 22 : 18]} />
       <Suspense fallback={null}>
         <LearnPremiumSceneContent spec={spec} autoRotate={autoRotate} />
       </Suspense>
       <OrbitControls
         enablePan={false}
         enableZoom
-        minDistance={2.8}
-        maxDistance={5.5}
-        minPolarAngle={CATALOG_HERO_VIEW.minPolarAngle}
-        maxPolarAngle={CATALOG_HERO_VIEW.maxPolarAngle}
+        target={isIso ? [0, 0.35, 0] : undefined}
+        minDistance={isIso ? 4.5 : 2.8}
+        maxDistance={isIso ? 9 : 5.5}
+        minPolarAngle={isIso ? 0.35 : CATALOG_HERO_VIEW.minPolarAngle}
+        maxPolarAngle={isIso ? 1.35 : CATALOG_HERO_VIEW.maxPolarAngle}
         enableDamping
         dampingFactor={0.06}
       />

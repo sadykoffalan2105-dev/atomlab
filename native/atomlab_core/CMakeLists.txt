@@ -1,0 +1,10 @@
+# atomlab_core — WASM catalog matcher (Emscripten)
+
+cmake_minimum_required(VERSION 3.16)
+project(atomlab_core)
+
+add_library(atomlab_core STATIC
+  src/catalog_match.cpp
+)
+
+target_compile_features(atomlab_core PUBLIC cxx_std_17)

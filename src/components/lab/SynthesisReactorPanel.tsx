@@ -5,7 +5,6 @@ import { useT } from '../../i18n/useT'
 import type { CompoundDef } from '../../types/chemistry'
 import type { LeftCatalogMatch, ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import { expandLeftTermsToZSlots, REACTOR_EQUATION_MAX_FLY_ATOMS } from '../../chemistry/reactorEquationBalance'
-import { ReagentValencyInteract } from './ReagentValencyInteract'
 import panelStyles from './SynthesisReactorPanel.module.css'
 
 const COEFF_MAX_TERM = 999
@@ -96,11 +95,9 @@ export function SynthesisReactorPanel({
   onProductCoeffChange,
   onClearSlots,
   onRequestRun,
-  valencyPins,
-  onValencyChange,
-  valencyComplete,
   message,
   canRun,
+  synthesisRunning = false,
   equationBalanced,
   highlightEquationError = false,
   ambiguousProductMatches = [],
@@ -117,11 +114,9 @@ export function SynthesisReactorPanel({
   onProductCoeffChange: (coeff: number) => void
   onClearSlots: () => void
   onRequestRun: () => void
-  valencyPins: Readonly<Record<string, number>>
-  onValencyChange: (termId: string, bonds: number) => void
-  valencyComplete: boolean
   message: string | null
   canRun: boolean
+  synthesisRunning?: boolean
   equationBalanced: boolean
   highlightEquationError?: boolean
   ambiguousProductMatches?: readonly LeftCatalogMatch[]
@@ -203,13 +198,6 @@ export function SynthesisReactorPanel({
                         {term.coeff === 1 ? '1' : term.coeff}
                       </span>
                       <span className={panelStyles.termSymbol}>{termSymbolDisplay(term)}</span>
-                      <ReagentValencyInteract
-                        termId={term.id}
-                        z={term.z}
-                        symbol={termSymbolDisplay(term)}
-                        activeBonds={valencyPins[term.id] ?? 0}
-                        onChange={onValencyChange}
-                      />
                       <button
                         type="button"
                         className={panelStyles.termRemove}
@@ -310,17 +298,18 @@ export function SynthesisReactorPanel({
       </div>
 
       <div className={panelStyles.hintBox} role="note">
-        {valencyComplete ? t('reactor.hintBalance') : t('reactor.hintValency')}
+        {t('reactor.hintBalance')}
       </div>
 
       <div className={panelStyles.reactorFooter}>
         <button
           type="button"
-          className={`${panelStyles.reactorBtnPrimary} ${!canRun ? panelStyles.reactorBtnPrimaryMuted : ''}`}
+          className={`${panelStyles.reactorBtnPrimary} ${!canRun && !synthesisRunning ? panelStyles.reactorBtnPrimaryMuted : ''} ${synthesisRunning ? panelStyles.reactorBtnPrimaryRunning : ''}`}
           onClick={onRequestRun}
-          disabled={!canRun}
+          disabled={!canRun || synthesisRunning}
+          aria-busy={synthesisRunning}
         >
-          {t('reactor.run')}
+          {synthesisRunning ? t('reactor.runRunning') : t('reactor.run')}
         </button>
         {message ? (
           <p className={panelStyles.reactorMsg} role="status">

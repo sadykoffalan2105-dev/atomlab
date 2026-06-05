@@ -14,7 +14,15 @@
     "pubchem:sync": "tsx scripts/pubchem-sync-geometry.ts",
     "pubchem:sync:fast": "tsx scripts/pubchem-sync-geometry.ts",
     "preview": "vite preview",
-    "validate:learn": "tsx scripts/validate-learn.ts"
+    "validate:learn": "tsx scripts/validate-learn.ts",
+    "learn:nanobanana-prompts": "tsx scripts/export-nanobanana-prompts.ts",
+    "learn:capture-refs": "tsx scripts/capture-learn-refs.ts",
+    "learn:generate-all": "npm run build && npm run learn:nanobanana-prompts && npm run learn:capture-refs",
+    "learn:audit-visuals": "tsx scripts/audit-learn-visuals.ts",
+    "learn:prepare-slides": "node scripts/prepare-learn-slides.mjs",
+    "learn:prepare-cyber": "node scripts/prepare-cyber-dashboard.mjs",
+    "learn:fetch-placeholders": "node scripts/fetch-learn-placeholders.mjs",
+    "wasm:build": "node scripts/build-wasm.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -44,6 +52,8 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "playwright": "^1.58.2",
+    "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",

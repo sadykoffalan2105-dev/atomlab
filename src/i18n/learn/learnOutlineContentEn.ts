@@ -29,12 +29,13 @@ export const learnOutlineContentEn: Record<string, string> = (() => {
         `Practice “${topic}” in the ATOMLAB lab or task hub.`,
         {
           bullets0: [
-            `Curriculum topic: ${topic}`,
+            `Section: ${topic}`,
+            `Fun fact: chemistry is everywhere — from air to food.`,
             'Match theory with the 3D panel',
-            'Write definitions and examples',
+            'Learn one definition and one real-life example',
           ],
-          callout0: 'Use board mode for classroom projection.',
-          bullets3: [`Key idea: ${topic}`, 'Review your notes', 'Check yourself below'],
+          callout0: 'Discuss classroom examples: mixtures around you vs pure substances.',
+          bullets3: [`Key idea: ${topic}`, 'Review key terms', 'Check yourself below'],
         },
       ),
     )

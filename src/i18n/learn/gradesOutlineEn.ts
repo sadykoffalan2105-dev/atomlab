@@ -2,7 +2,7 @@
 export const learnGradesOutlineEn = {
   'learn.grades.title': 'Chemistry by grade',
   'learn.grades.lead':
-    'Uzbekistan curriculum (grades 7–9): Asqarov textbook topics, 3D models, and AI teacher.',
+    'Grades 7–9 chemistry (FGOS-aligned outline): sections, 3D models, problem trainer, teacher hub, and AI tutor.',
   'learn.grades.tasks': 'Problems & drills',
   'learn.backGrades': '← Grades',
   'learn.backChapters': '← Chapters',

@@ -1,0 +1,140 @@
+.wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse 90% 70% at 50% 35%, #0a1830 0%, #030508 65%);
+  pointer-events: none;
+}
+
+.depth {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 62%, rgba(0, 255, 255, 0.07), transparent 35%),
+    radial-gradient(circle at 82% 48%, rgba(255, 100, 200, 0.06), transparent 32%),
+    linear-gradient(180deg, #050a14 0%, #020408 100%);
+}
+
+.wires {
+  position: absolute;
+  inset: 0;
+  opacity: 0.45;
+}
+
+.wire {
+  position: absolute;
+  left: calc(var(--wi) * 4.2%);
+  top: 8%;
+  width: 2px;
+  height: 75%;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(0, 255, 255, 0.35) 25%,
+    rgba(120, 180, 255, 0.2) 55%,
+    transparent
+  );
+  transform: rotate(calc((var(--wi) - 12) * 2.5deg));
+  transform-origin: top center;
+  animation: wirePulse 4s ease-in-out infinite;
+  animation-delay: calc(var(--wi) * -0.18s);
+}
+
+@keyframes wirePulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+.racks {
+  position: absolute;
+  inset: 0;
+}
+
+.rack {
+  position: absolute;
+  bottom: 18%;
+  width: 14%;
+  height: 42%;
+  background: linear-gradient(90deg, rgba(8, 20, 40, 0.9), rgba(4, 10, 24, 0.7));
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  box-shadow: inset 0 0 30px rgba(0, 255, 255, 0.08);
+}
+
+.rack::before {
+  content: '';
+  position: absolute;
+  inset: 8% 12%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 255, 255, 0.12) 0 3px,
+    transparent 3px 14px
+  );
+}
+
+.rack:first-child {
+  left: 4%;
+}
+.rack:last-child {
+  right: 4%;
+}
+
+.cityGlow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 35%;
+  background: radial-gradient(ellipse 80% 100% at 50% 0%, rgba(255, 200, 80, 0.08), transparent 70%);
+}
+
+.floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 32%;
+  background: linear-gradient(180deg, transparent, rgba(0, 20, 40, 0.85) 40%, #020408);
+}
+
+.floorReflect {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  bottom: 2%;
+  height: 18%;
+  background: linear-gradient(180deg, rgba(0, 255, 255, 0.12), transparent);
+  filter: blur(8px);
+  opacity: 0.6;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 75% at 50% 45%, transparent 30%, rgba(0, 0, 0, 0.65) 100%);
+}
+
+.scan {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.1) 3px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  opacity: 0.35;
+  mix-blend-mode: overlay;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wire {
+    animation: none;
+    opacity: 0.4;
+  }
+}

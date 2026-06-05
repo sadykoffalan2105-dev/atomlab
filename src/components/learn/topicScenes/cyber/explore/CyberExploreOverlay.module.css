@@ -1,0 +1,128 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(165deg, rgba(6, 12, 24, 0.97), rgba(2, 6, 14, 0.99));
+  border: 1px solid color-mix(in srgb, var(--cyber-explore-accent) 45%, transparent);
+  animation: exploreIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes exploreIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(4, 10, 22, 0.9);
+}
+
+.mode {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cyber-explore-accent);
+}
+
+.hint {
+  flex: 1 1 auto;
+  font-size: 0.58rem;
+  color: rgba(180, 210, 255, 0.7);
+}
+
+.actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.btn,
+.btnPrimary {
+  font: inherit;
+  font-size: 0.65rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn {
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  background: rgba(8, 16, 32, 0.95);
+  color: #d8e8ff;
+}
+
+.btn:hover {
+  background: rgba(0, 255, 255, 0.1);
+}
+
+.btnPrimary {
+  border: 1px solid var(--cyber-explore-accent);
+  background: color-mix(in srgb, var(--cyber-explore-accent) 22%, rgba(8, 16, 32, 0.95));
+  color: #fff;
+  font-weight: 700;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.canvasCol {
+  min-height: 0;
+}
+
+.meta {
+  padding: 0.35rem 0.5rem;
+  border-top: 1px solid rgba(0, 255, 255, 0.12);
+}
+
+.title {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--cyber-explore-accent);
+}
+
+.detail {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: rgba(220, 232, 255, 0.92);
+}
+
+@media (min-width: 720px) {
+  .body {
+    grid-template-columns: minmax(0, 1.2fr) minmax(180px, 0.8fr);
+    grid-template-rows: 1fr;
+  }
+
+  .meta {
+    border-top: none;
+    border-left: 1px solid rgba(0, 255, 255, 0.12);
+    padding-left: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
+}

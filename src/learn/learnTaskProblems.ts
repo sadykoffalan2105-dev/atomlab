@@ -250,6 +250,48 @@ export function generateTaskProblem(categoryId: string): LearnTaskGenerated {
         correctIndex,
       }
     }
+    case 'oge_prep': {
+      if (Math.random() < 0.5) {
+        const m = randInt(5, 40)
+        const n = m / 100
+        const v = n * 22.4
+        const correct = roundTo(v, 2)
+        return {
+          kind: 'numeric',
+          categoryId,
+          compoundId: 'caco3',
+          questionKey: 'learn.task.oge.question',
+          answerLabelKey: 'learn.task.oge.answerLabel',
+          params: { m },
+          correct,
+          decimals: 2,
+        }
+      }
+      const variants = [
+        {
+          q: 'learn.task.oge.mcq.q',
+          choices: [
+            'learn.task.oge.mcq.o0',
+            'learn.task.oge.mcq.o1',
+            'learn.task.oge.mcq.o2',
+            'learn.task.oge.mcq.o3',
+          ] as const,
+          correctIndex: 0,
+        },
+      ] as const
+      const v = variants[0]!
+      const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5)
+      const permuted = order.map((i) => v.choices[i]!)
+      const correctIndex = permuted.indexOf(v.choices[v.correctIndex]!)
+      return {
+        kind: 'mcq',
+        categoryId,
+        compoundId: 'h2so4',
+        questionKey: v.q,
+        choiceKeys: permuted,
+        correctIndex,
+      }
+    }
     default: {
       return generateTaskProblem('solutions')
     }

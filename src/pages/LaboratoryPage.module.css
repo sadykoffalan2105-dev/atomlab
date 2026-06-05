@@ -21,8 +21,8 @@
   min-width: 0;
   /* Изоляция layout/paint: соседние перерисовки панели реактора меньше дергают измерение Canvas */
   contain: layout paint;
-  /* Совпадает с scene background в LabScene — не просвечивает белый :root при смене веток / пропуске кадра */
-  background-color: #03040a;
+  /* Совпадает с REACTOR_SCENE_HEX / LabReactorEnvironment */
+  background-color: #0a0c18;
 }
 
 /*
@@ -38,45 +38,13 @@
   min-height: 0;
 }
 
-.canvasWrap[data-synth-launch='true'][data-synth-ignite='true']::before {
-  animation-duration: 0.9s;
-  opacity: 1;
+.canvasWrap canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
 }
 
-.canvasWrap[data-synth-launch='true']::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      ellipse 95% 80% at 50% 42%,
-      color-mix(in srgb, var(--synth-glow, #3dffec) 28%, transparent) 0%,
-      transparent 58%
-    ),
-    radial-gradient(ellipse 120% 40% at 50% 100%, rgba(0, 0, 0, 0.65) 0%, transparent 70%);
-  animation: labLaunchGlow 1.6s ease-in-out infinite;
-}
-
-.canvasWrap[data-synth-launch='true']::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  box-shadow: inset 0 0 120px 48px rgba(0, 0, 0, 0.72);
-}
-
-@keyframes labLaunchGlow {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
-}
+/* Оверлеи синтеза отключены — давали сплошной чёрный экран поверх WebGL */
 
 .launchMissionHud {
   position: absolute;
@@ -188,16 +156,17 @@
 }
 
 /* Поверх WebGL, не перекрывая кликабельные элементы (pointer-events: none) */
+/* Только после успеха — не во время анимации */
 .synthVignette {
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
   background: radial-gradient(
-    ellipse 90% 85% at 50% 38%,
+    ellipse 88% 80% at 50% 40%,
     rgba(0, 0, 0, 0) 0%,
-    color-mix(in srgb, var(--synth-glow, #0a0c18) 22%, rgba(0, 0, 0, 0.35)) 72%,
-    rgba(2, 4, 12, 0.5) 100%
+    color-mix(in srgb, var(--synth-glow, #0a0c18) 12%, transparent) 78%,
+    rgba(2, 4, 12, 0.22) 100%
   );
 }
 

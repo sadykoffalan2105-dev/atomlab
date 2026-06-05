@@ -1,5 +1,5 @@
 import { learnAllSections } from '../data/learnCurriculumUz'
-import { messagesRu } from '../i18n/messagesRu'
+import { getIsometricSceneTitle } from './learnIsometricScenes'
 import { parseTopicSceneId } from './learnTopicScenes'
 
 export type TopicSceneDef =
@@ -96,16 +96,12 @@ for (const sec of learnAllSections()) {
 export function getTopicSceneDef(sceneId: string): TopicSceneDef | null {
   const parsed = parseTopicSceneId(sceneId)
   if (!parsed) return null
-  if (parsed.gradeId === 'g7') return null
+  if (parsed.gradeId === 'g7' || parsed.gradeId === 'g8' || parsed.gradeId === 'g9') return null
   const meta = sectionBySceneId.get(sceneId)
   const kp = meta?.kp ?? parseInt(parsed.sectionId.slice(1), 10)
   return defForSection(parsed.gradeId, parsed.chapterId, parsed.sectionId, kp)
 }
 
 export function getTopicSceneLabel(sceneId: string): string {
-  const meta = sectionBySceneId.get(sceneId)
-  if (meta && meta.titleKey in messagesRu) {
-    return messagesRu[meta.titleKey as keyof typeof messagesRu]
-  }
-  return sceneId
+  return getIsometricSceneTitle(sceneId)
 }

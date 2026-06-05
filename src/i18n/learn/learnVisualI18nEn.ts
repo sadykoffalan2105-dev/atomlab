@@ -1,6 +1,9 @@
 export const learnVisualI18nEn = {
   'learn.visual.badge3d': 'ATOMLAB · 3D',
   'learn.visual.rotateHint': 'Drag to rotate · scroll to zoom',
+  'learn.visual.lifeHint': 'Real-world photos · hover cards',
+  'learn.visual.lifeBadge': 'Science in real life',
+  'learn.visual.cyberHint': 'Tap a task on the dashboard',
   'learn.visual.autoOn': 'Auto-spin',
   'learn.visual.autoOff': 'Pause',
   'learn.visual.fallback': 'Lesson model',

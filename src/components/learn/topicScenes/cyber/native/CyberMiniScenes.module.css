@@ -1,0 +1,775 @@
+.scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.sceneGlow {
+  position: absolute;
+  inset: 10%;
+  background: radial-gradient(ellipse at center, rgba(61, 255, 236, 0.12), transparent 70%);
+  pointer-events: none;
+}
+
+/* —— Task 1 —— */
+.crystalCluster {
+  position: relative;
+  width: 100%;
+  max-width: 140px;
+  height: 88px;
+}
+
+.molecule {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: 70px;
+  height: 70px;
+  transform: translate(-50%, -50%);
+  animation: spinSlow 14s linear infinite;
+}
+
+.molCore {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff9ec4, #e84a7a 60%, #8a2040);
+  box-shadow:
+    0 0 16px #ff6b9d,
+    inset -2px -3px 6px rgba(0, 0, 0, 0.4);
+}
+
+.molOrbit {
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(94, 203, 255, 0.45);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(94, 203, 255, 0.2);
+}
+
+.molBond {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 22px;
+  margin: -11px 0 0 -1px;
+  background: linear-gradient(180deg, #3dffec, transparent);
+  transform: rotate(35deg);
+  opacity: 0.7;
+}
+
+.molDot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 28%, #9ee8ff, #3a9fd4);
+  box-shadow: 0 0 10px #5ecbff;
+}
+
+.molDotA {
+  top: 6px;
+  left: 50%;
+  margin-left: -5px;
+}
+.molDotB {
+  bottom: 10px;
+  left: 8px;
+}
+.molDotC {
+  bottom: 10px;
+  right: 8px;
+}
+
+.lattice3d {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%) perspective(80px) rotateX(52deg);
+  display: grid;
+  grid-template-columns: repeat(3, 14px);
+  gap: 5px;
+}
+
+.latticeNode {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #5ecbff, #1a5a80);
+  box-shadow: 0 0 8px rgba(61, 255, 236, 0.5);
+  animation: latticePulse 2.5s ease-in-out infinite;
+}
+
+.latticeNode:nth-child(odd) {
+  animation-delay: 0.4s;
+}
+
+/* —— Task 2: synth —— */
+.synthBench {
+  position: relative;
+  width: 100%;
+  max-width: 160px;
+  height: 92px;
+}
+
+.vacuumChamber {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 58px;
+}
+
+.chamberGlass {
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(180, 200, 220, 0.5);
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(30, 50, 80, 0.4) 40%,
+    rgba(10, 20, 40, 0.7) 100%
+  );
+  box-shadow:
+    inset 0 0 20px rgba(94, 203, 255, 0.15),
+    0 0 16px rgba(255, 179, 71, 0.2);
+}
+
+.chamberLabel {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.45rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(200, 220, 255, 0.85);
+  text-transform: uppercase;
+}
+
+.chamberMol {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, #a8d4ff, #4a7ec8);
+  box-shadow: 0 0 12px #7eb6ff;
+  animation: spinSlow 8s linear infinite;
+}
+
+.robotArmL,
+.robotArmR {
+  position: absolute;
+  top: 18%;
+  width: 36px;
+  height: 36px;
+}
+
+.robotArmL {
+  left: 4%;
+  animation: armSwingL 3s ease-in-out infinite;
+}
+
+.robotArmR {
+  right: 4%;
+  animation: armSwingR 3s ease-in-out infinite;
+}
+
+.armSeg {
+  position: absolute;
+  left: 0;
+  bottom: 8px;
+  width: 22px;
+  height: 4px;
+  background: linear-gradient(90deg, #6a7a8a, #c0ccd8);
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transform-origin: left center;
+}
+
+.armSeg + .armSeg {
+  left: 20px;
+  bottom: 18px;
+  width: 16px;
+  transform: rotate(-25deg);
+}
+
+.armTip {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffb347;
+  box-shadow: 0 0 8px #ffb347;
+}
+
+.robotArmR .armSeg {
+  left: auto;
+  right: 0;
+  transform-origin: right center;
+}
+
+.robotArmR .armSeg + .armSeg {
+  left: auto;
+  right: 18px;
+  transform: rotate(25deg);
+}
+
+.erlenmeyer {
+  position: absolute;
+  bottom: 4%;
+  width: 22px;
+  height: 34px;
+  clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(180, 200, 220, 0.08) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  border-bottom: 2px solid rgba(180, 200, 220, 0.4);
+}
+
+.flaskL {
+  left: 14%;
+}
+.flaskR {
+  right: 14%;
+}
+
+.flaskLiquid {
+  position: absolute;
+  bottom: 0;
+  left: 2px;
+  right: 2px;
+  height: 55%;
+  background: linear-gradient(180deg, rgba(120, 200, 255, 0.5), rgba(40, 100, 180, 0.8));
+  border-radius: 0 0 4px 4px;
+}
+
+.flaskLiquidGreen {
+  position: absolute;
+  bottom: 0;
+  left: 2px;
+  right: 2px;
+  height: 55%;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(180deg, rgba(140, 255, 180, 0.5), rgba(40, 140, 80, 0.85));
+}
+
+.bubble {
+  position: absolute;
+  left: calc(8px + var(--bi, 0) * 3px);
+  bottom: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9), rgba(92, 255, 138, 0.6));
+  animation: bubbleRise 2.2s ease-in infinite;
+  animation-delay: calc(var(--bi, 0) * 0.45s);
+}
+
+/* —— Task 3 —— */
+.techPanel {
+  position: relative;
+  width: 100%;
+  max-width: 150px;
+  padding-bottom: 12px;
+}
+
+.techTile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 38px;
+  margin: 0 4px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(20, 40, 70, 0.95), rgba(8, 16, 32, 0.98));
+  border: 1px solid rgba(94, 203, 255, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+  animation: tilePulse 2.4s ease-in-out infinite;
+}
+
+.techTile:nth-child(2) {
+  animation-delay: 0.35s;
+}
+.techTile:nth-child(3) {
+  animation-delay: 0.7s;
+}
+
+.techIconEnergy {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #3dffec, #1a6a80);
+  box-shadow: 0 0 12px rgba(61, 255, 236, 0.5);
+}
+
+.techIconChip {
+  width: 24px;
+  height: 18px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    #2a3a50 0,
+    #2a3a50 2px,
+    #4a6080 2px,
+    #4a6080 4px
+  );
+  box-shadow: 0 0 10px rgba(126, 182, 255, 0.4);
+}
+
+.techIconFactory {
+  width: 26px;
+  height: 14px;
+  background: linear-gradient(180deg, #8899aa 0%, #8899aa 40%, transparent 40%),
+    linear-gradient(90deg, #ffb347 0%, #ffb347 30%, transparent 30%, transparent 70%, #ffb347 70%);
+  background-size:
+    100% 100%,
+    100% 60%;
+  background-position:
+    0 0,
+    0 100%;
+  background-repeat: no-repeat;
+}
+
+.energyWave {
+  position: absolute;
+  bottom: 0;
+  left: 5%;
+  right: 5%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #3dffec, #7eb6ff, transparent);
+  filter: blur(0.5px);
+  animation: waveMove 2s linear infinite;
+}
+
+/* —— Task 4 —— */
+.pipeRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 86px;
+}
+
+.reactorTank {
+  position: relative;
+  width: 30px;
+  height: 62px;
+}
+
+.tankGlass {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(140, 180, 200, 0.45);
+  border-radius: 6px 6px 10px 10px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(20, 40, 50, 0.3) 50%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.4);
+}
+
+.liquid {
+  position: absolute;
+  bottom: 3px;
+  left: 3px;
+  right: 3px;
+  height: 52%;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(180deg, #7dff9a 0%, #2a9a50 55%, #1a6040 100%);
+  animation: liquidWave 2.8s ease-in-out infinite;
+}
+
+.liquidCyan {
+  height: 68%;
+  background: linear-gradient(180deg, #6ee8ff 0%, #2a8ab0 60%, #1a5070 100%);
+  animation-delay: 0.5s;
+}
+
+.tankGlow {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: #5cff8a;
+  filter: blur(6px);
+  opacity: 0.7;
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+.pipeH {
+  width: 14px;
+  height: 4px;
+  margin-bottom: 28px;
+  background: linear-gradient(90deg, #5a6a7a, #8a9aaa);
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(92, 255, 138, 0.3);
+}
+
+/* —— Task 5 —— */
+.mixBench {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.beaker {
+  position: relative;
+  width: 32px;
+  height: 52px;
+  clip-path: polygon(20% 0%, 80% 0%, 95% 100%, 5% 100%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(200, 180, 255, 0.05));
+  border-bottom: 2px solid rgba(199, 125, 255, 0.5);
+}
+
+.beakerLiquid {
+  position: absolute;
+  bottom: 0;
+  left: 4px;
+  right: 4px;
+  height: 48%;
+  background: linear-gradient(
+    180deg,
+    rgba(180, 120, 255, 0.5),
+    rgba(100, 50, 160, 0.85)
+  );
+  border-radius: 0 0 6px 6px;
+  animation: liquidWave 3s ease-in-out infinite;
+}
+
+.atomModel {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  animation: spinSlow 12s linear infinite;
+}
+
+.orbitRing {
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(94, 203, 255, 0.5);
+  border-radius: 50%;
+}
+
+.nucleus {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #8ed4ff, #3a8ac8);
+  box-shadow: 0 0 14px #5ecbff;
+}
+
+.electron {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px #5ecbff;
+}
+
+.mixIcons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mixIcon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #a8e0ff, #4a90c0);
+  box-shadow: 0 0 8px rgba(94, 203, 255, 0.4);
+}
+
+.mixIconSoil {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #6a5040, #3a2818);
+  box-shadow: 0 0 6px rgba(80, 60, 40, 0.5);
+}
+
+/* —— Task 6 —— */
+.formulaPanel {
+  position: relative;
+  width: 100%;
+  max-width: 155px;
+  height: 88px;
+}
+
+.periodicSnippet {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: grid;
+  grid-template-columns: repeat(3, 16px);
+  gap: 2px;
+}
+
+.ptCell {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 14px;
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: #3dffec;
+  border: 1px solid rgba(61, 255, 236, 0.35);
+  border-radius: 2px;
+  background: rgba(8, 20, 40, 0.85);
+}
+
+.formulaList {
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1.6;
+  color: #3dffec;
+  text-shadow: 0 0 8px rgba(61, 255, 236, 0.5);
+}
+
+.formulaList span:nth-child(2) {
+  color: #5cff8a;
+}
+.formulaList span:nth-child(3) {
+  color: #ffe566;
+}
+
+.ch4Model {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: 56px;
+  height: 56px;
+  margin-left: -28px;
+  animation: spinSlow 16s linear infinite;
+}
+
+.ch4C {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  display: grid;
+  place-items: center;
+  font-size: 0.55rem;
+  font-weight: 900;
+  color: #ffe566;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #555, #222);
+  border: 1px solid #ffe566;
+  box-shadow: 0 0 10px rgba(255, 229, 102, 0.5);
+  z-index: 2;
+}
+
+.ch4H {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 28%, #c8e8ff, #5a9fd4);
+  box-shadow: 0 0 6px #7eb6ff;
+}
+
+.ch4H1 {
+  top: 2px;
+  left: 50%;
+  margin-left: -4px;
+}
+.ch4H2 {
+  bottom: 4px;
+  left: 6px;
+}
+.ch4H3 {
+  bottom: 4px;
+  right: 6px;
+}
+.ch4H4 {
+  top: 50%;
+  right: 2px;
+  margin-top: -4px;
+}
+
+.ch4Bond {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 14px;
+  margin: -7px 0 0 -1px;
+  background: linear-gradient(180deg, #99bbdd, transparent);
+  transform-origin: center bottom;
+}
+
+.ch4Bond:nth-child(1) {
+  transform: rotate(0deg) translateY(-18px);
+}
+.ch4Bond:nth-child(2) {
+  transform: rotate(90deg) translateY(-18px);
+}
+.ch4Bond:nth-child(3) {
+  transform: rotate(180deg) translateY(-18px);
+}
+.ch4Bond:nth-child(4) {
+  transform: rotate(-90deg) translateY(-18px);
+}
+
+/* —— Keyframes —— */
+@keyframes spinSlow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes armSwingL {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes armSwingR {
+  0%,
+  100% {
+    transform: rotate(8deg);
+  }
+  50% {
+    transform: rotate(-10deg);
+  }
+}
+
+@keyframes bubbleRise {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.6);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-28px) scale(1.1);
+  }
+}
+
+@keyframes latticePulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tilePulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 0 8px rgba(61, 255, 236, 0.1);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 0 20px rgba(61, 255, 236, 0.45);
+  }
+}
+
+@keyframes waveMove {
+  0% {
+    transform: translateX(-15%);
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(15%);
+    opacity: 0.5;
+  }
+}
+
+@keyframes liquidWave {
+  0%,
+  100% {
+    transform: scaleY(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scaleY(1.06);
+    filter: brightness(1.15);
+  }
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.sceneStatic .molecule,
+.sceneStatic .ch4Model,
+.sceneStatic .atomModel,
+.sceneStatic .chamberMol,
+.sceneStatic .robotArmL,
+.sceneStatic .robotArmR,
+.sceneStatic .bubble,
+.sceneStatic .techTile,
+.sceneStatic .liquid,
+.sceneStatic .energyWave,
+.sceneStatic .latticeNode,
+.sceneStatic .beakerLiquid,
+.sceneStatic .tankGlow {
+  animation: none !important;
+}

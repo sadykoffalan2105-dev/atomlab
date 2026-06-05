@@ -10,6 +10,22 @@ export default defineConfig(({ mode }) => {
   return {
     // GitHub Pages: VITE_BASE=/atomlab/ ; Electron: default ./
     base: env.VITE_BASE || './',
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              { name: 'three-vendor', test: /node_modules[\\/](three|@react-three)/ },
+              { name: 'learn-3d', test: /LearnPremiumScene|LearnTopicScene/ },
+              {
+                name: 'learn-cyber',
+                test: /CyberDashboardGrid|CyberTaskSceneSvg|CyberExploreCanvas/,
+              },
+            ],
+          },
+        },
+      },
+    },
     plugins: [
       react(),
       {

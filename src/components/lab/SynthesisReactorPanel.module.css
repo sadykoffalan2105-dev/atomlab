@@ -958,6 +958,22 @@
   box-shadow: none;
 }
 
+.reactorBtnPrimaryRunning {
+  opacity: 0.88;
+  cursor: wait;
+  animation: reactorPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes reactorPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 18px rgba(61, 255, 236, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(61, 255, 236, 0.45);
+  }
+}
+
 .reactorMsg {
   margin: 0;
   font-size: 0.68rem;

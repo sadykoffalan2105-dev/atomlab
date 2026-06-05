@@ -1,10 +1,13 @@
-/** Плавные тайминги синтеза — «запуск корабля»: длиннее, постепеннее. */
-export const LAUNCH_STREAM_FLY_DUR = 0.72
-export const LAUNCH_TERM_STAGGER = 0.072
-export const LAUNCH_ATOM_STAGGER = 0.016
-export const LAUNCH_MERGE_FLASH_DUR = 0.42
-export const LAUNCH_PRODUCT_ENTRANCE_DUR = 0.62
-export const LAUNCH_PRODUCT_HOLD = 0.95
+import { SYNTHESIS_PERF } from './synthesisPerfPreset'
+
+/** Быстрый синтез — короткие фазы, читаемый полёт атомов (пресет video/README). */
+export const LAUNCH_STREAM_FLY_DUR = SYNTHESIS_PERF.streamFlyDur
+export const LAUNCH_TERM_STAGGER = SYNTHESIS_PERF.termStagger
+export const LAUNCH_ATOM_STAGGER = SYNTHESIS_PERF.atomStagger
+export const LAUNCH_MERGE_FLASH_DUR = SYNTHESIS_PERF.mergeFlashDur
+export const LAUNCH_PRODUCT_ENTRANCE_DUR = SYNTHESIS_PERF.productEntranceDur
+export const LAUNCH_PRODUCT_HOLD = SYNTHESIS_PERF.productHold
+export const SYNTHESIS_IGNITE_SKIP_MS = SYNTHESIS_PERF.igniteSkipMs
 
 export function synthesisConvergeDurationSec(termCount: number, atomCount: number): number {
   const maxTermIndex = Math.max(0, termCount - 1)
@@ -16,5 +19,8 @@ export function synthesisConvergeDurationSec(termCount: number, atomCount: numbe
 
 export function synthesisLaunchWatchdogMs(termCount: number, atomCount: number): number {
   const convergeDur = synthesisConvergeDurationSec(termCount, atomCount)
-  return Math.ceil((convergeDur + LAUNCH_MERGE_FLASH_DUR + LAUNCH_PRODUCT_ENTRANCE_DUR + LAUNCH_PRODUCT_HOLD + 0.45) * 1000)
+  return Math.ceil(
+    (convergeDur + LAUNCH_MERGE_FLASH_DUR + LAUNCH_PRODUCT_ENTRANCE_DUR + LAUNCH_PRODUCT_HOLD + 0.2) *
+      1000,
+  )
 }
