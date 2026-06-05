@@ -9,10 +9,12 @@ export function SynthesisArcReactor({
   active,
   accentHex,
   impactPulseRef,
+  lite = false,
 }: {
   active: boolean
   accentHex: string
   impactPulseRef: MutableRefObject<number>
+  lite?: boolean
 }) {
   const coreRef = useRef<THREE.Group>(null)
   const ringARef = useRef<THREE.Mesh>(null)
@@ -58,22 +60,31 @@ export function SynthesisArcReactor({
 
   return (
     <group position={[0, 0.08, 0]}>
-      <pointLight color={accent} intensity={2.2} distance={14} decay={2} />
-      <pointLight color={cyan} intensity={1.1} distance={9} position={[0.4, 0.2, 0.3]} />
+      <pointLight color={accent} intensity={lite ? 1.6 : 2.2} distance={14} decay={2} />
+      {!lite ? (
+        <pointLight color={cyan} intensity={1.1} distance={9} position={[0.4, 0.2, 0.3]} />
+      ) : null}
 
       <group ref={coreRef}>
         <mesh ref={ringARef} rotation={[Math.PI * 0.5, 0, 0]}>
-          <torusGeometry args={[1.05, 0.018, 8, 96]} />
+          <torusGeometry args={[1.05, 0.018, 6, lite ? 48 : 96]} />
           <meshBasicMaterial color={accent} transparent opacity={0.82} blending={THREE.AdditiveBlending} depthWrite={false} />
         </mesh>
         <mesh ref={ringBRef}>
-          <torusGeometry args={[0.78, 0.012, 8, 80]} />
+          <torusGeometry args={[0.78, 0.012, 6, lite ? 40 : 80]} />
           <meshBasicMaterial color={cyan} transparent opacity={0.55} blending={THREE.AdditiveBlending} depthWrite={false} />
         </mesh>
-        <mesh ref={ringCRef}>
-          <torusGeometry args={[1.28, 0.008, 6, 72]} />
-          <meshBasicMaterial color={gold} transparent opacity={0.38} blending={THREE.AdditiveBlending} depthWrite={false} />
-        </mesh>
+        {!lite ? (
+          <mesh ref={ringCRef}>
+            <torusGeometry args={[1.28, 0.008, 6, 72]} />
+            <meshBasicMaterial color={gold} transparent opacity={0.38} blending={THREE.AdditiveBlending} depthWrite={false} />
+          </mesh>
+        ) : (
+          <mesh ref={ringCRef} visible={false}>
+            <torusGeometry args={[1.28, 0.008, 6, 24]} />
+            <meshBasicMaterial color={gold} transparent opacity={0} />
+          </mesh>
+        )}
       </group>
 
       <mesh ref={hexRef} rotation={[-Math.PI * 0.5, 0, 0]} position={[0, -0.02, 0]}>
@@ -93,7 +104,7 @@ export function SynthesisArcReactor({
         <meshBasicMaterial color={cyan} transparent opacity={0.3} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
 
-      {Array.from({ length: 6 }, (_, i) => {
+      {Array.from({ length: lite ? 4 : 6 }, (_, i) => {
         const a = (i / 6) * Math.PI * 2
         return (
           <mesh key={i} position={[Math.cos(a) * 1.15, 0, Math.sin(a) * 1.15]} rotation={[0, -a, 0]}>

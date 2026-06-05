@@ -3,13 +3,9 @@ import { Stars, Sparkles } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-export type SynthesisCinematicPhase = 'converge' | 'merge' | 'fail'
-
-const SKY = {
-  converge: { c: '#010610', f: ['#010610', 10, 48] as [string, number, number] },
-  merge: { c: '#020818', f: ['#020818', 8, 36] as [string, number, number] },
-  fail: { c: '#140808', f: ['#120606', 5, 22] as [string, number, number] },
-} as const
+/** Единый фон реактора — без скачка при смене фаз. */
+export const LAB_COSMIC_BG = '#0a0c18'
+const FOG: [string, number, number] = [LAB_COSMIC_BG, 8, 28]
 
 function NebulaPlane({
   position,
@@ -17,20 +13,22 @@ function NebulaPlane({
   color,
   baseOpacity,
   spin,
-  intensityRef,
+  boostRef,
 }: {
   position: [number, number, number]
   scale: [number, number, number]
   color: string
   baseOpacity: number
   spin: number
-  intensityRef: MutableRefObject<number>
+  boostRef: MutableRefObject<number>
 }) {
   const ref = useRef<THREE.Mesh>(null)
   const matRef = useRef<THREE.MeshBasicMaterial>(null)
   useFrame((s) => {
     if (ref.current) ref.current.rotation.z = s.clock.elapsedTime * spin
-    if (matRef.current) matRef.current.opacity = baseOpacity * (0.55 + intensityRef.current * 0.9)
+    if (matRef.current) {
+      matRef.current.opacity = baseOpacity * (0.55 + boostRef.current * 0.9)
+    }
   })
   return (
     <mesh ref={ref} position={position} scale={scale} rotation={[Math.PI * 0.5, 0, 0]}>
@@ -48,122 +46,135 @@ function NebulaPlane({
   )
 }
 
-/** Кинематографичное космос-небо — только во время синтеза (соединение атомов). */
-export function SynthesisCinematicSky({
+/**
+ * Стабильный космос на весь run синтеза — не размонтируется между фазами (нет мигания фона).
+ */
+export function LabSynthesisCosmicBackdrop({
   phase,
-  intensityRef,
   accentHex = '#3dffec',
-  lite = false,
+  lite = true,
 }: {
-  phase: SynthesisCinematicPhase
-  intensityRef: MutableRefObject<number>
+  phase: string
   accentHex?: string
   lite?: boolean
 }) {
-  const bg = phase === 'fail' ? SKY.fail : phase === 'merge' ? SKY.merge : SKY.converge
+  const boostRef = useRef(0.42)
   const padGlow = useMemo(() => new THREE.Color(accentHex), [accentHex])
   const padRef = useRef<THREE.Mesh>(null)
   const padInnerRef = useRef<THREE.Mesh>(null)
   const shockwaveRef = useRef<THREE.Mesh>(null)
   const ptRef = useRef<THREE.PointLight>(null)
+
+  const inMerge = phase === 'mergeFlash'
+  const inProduct = phase === 'product' || phase === 'settled'
+  const starCount = lite ? 720 : 1800
+  const sparkleCount = lite ? 28 : 64
+
   useFrame((s) => {
     const t = s.clock.elapsedTime
-    const boost = intensityRef.current
+    let target = 0.38
+    if (inMerge) target = 0.72
+    else if (phase === 'converge' || phase === 'ignite' || phase === 'flying') target = 0.52
+    else if (inProduct) target = 0.28
+    boostRef.current += (target - boostRef.current) * 0.12
+
+    const boost = boostRef.current
     if (padRef.current) {
       const mat = padRef.current.material as THREE.MeshBasicMaterial
-      mat.opacity = (phase === 'merge' ? 0.55 : 0.28) + boost * 0.5 + Math.sin(t * 3.4) * 0.06 * boost
+      mat.opacity =
+        (inMerge ? 0.5 : 0.26) + boost * 0.45 + Math.sin(t * 3.4) * 0.05 * boost
     }
     if (padInnerRef.current) {
       const mat = padInnerRef.current.material as THREE.MeshBasicMaterial
-      mat.opacity = 0.15 + boost * 0.35
-      padInnerRef.current.scale.setScalar(1 + boost * 0.25 + Math.sin(t * 5.5) * 0.04)
+      mat.opacity = 0.14 + boost * 0.32
+      padInnerRef.current.scale.setScalar(1 + boost * 0.22 + Math.sin(t * 5.5) * 0.03)
     }
-    if (shockwaveRef.current && phase === 'merge') {
+    if (shockwaveRef.current && inMerge) {
       const mat = shockwaveRef.current.material as THREE.MeshBasicMaterial
       const pulse = (Math.sin(t * 8) + 1) * 0.5
-      mat.opacity = pulse * boost * 0.45
-      shockwaveRef.current.scale.setScalar(2.8 + pulse * 2.2)
+      mat.opacity = pulse * boost * 0.4
+      shockwaveRef.current.scale.setScalar(2.6 + pulse * 2)
     }
-    if (ptRef.current) ptRef.current.intensity = 0.6 + boost * 4.5
+    if (ptRef.current) ptRef.current.intensity = 0.5 + boost * 3.8
   })
 
   return (
     <>
-      <color attach="background" args={[bg.c]} />
-      <fog attach="fog" args={bg.f} />
+      <color attach="background" args={[LAB_COSMIC_BG]} />
+      <fog attach="fog" args={FOG} />
 
       <Stars
-        radius={lite ? 120 : 140}
-        depth={lite ? 70 : 80}
-        count={lite ? 720 : 2800}
-        factor={lite ? 3.2 : 5}
-        saturation={0.2}
+        radius={120}
+        depth={70}
+        count={starCount}
+        factor={lite ? 3.2 : 4.5}
+        saturation={0.18}
         fade
-        speed={lite ? 0.55 : 1.8}
+        speed={lite ? 0.55 : 1.2}
       />
       <Sparkles
-        count={lite ? 28 : 80}
+        count={sparkleCount}
         scale={lite ? 10 : 14}
         size={lite ? 1.8 : 2.4}
         speed={lite ? 1.4 : 2.2}
-        opacity={0.35}
+        opacity={0.28}
         color={accentHex}
         position={[0, 0.5, 0]}
       />
 
       <NebulaPlane
-        position={[0, 1.8, -10]}
-        scale={[lite ? 28 : 32, lite ? 28 : 32, 1]}
+        position={[0, 1.6, -9]}
+        scale={[28, 28, 1]}
         color="#1e4a8a"
-        baseOpacity={lite ? 0.11 : 0.14}
-        spin={0.018}
-        intensityRef={intensityRef}
+        baseOpacity={0.12}
+        spin={0.014}
+        boostRef={boostRef}
       />
       {!lite ? (
         <NebulaPlane
-          position={[3, 0.6, -7]}
-          scale={[20, 24, 1]}
+          position={[3, 0.5, -6]}
+          scale={[18, 20, 1]}
           color="#3d1f7a"
-          baseOpacity={0.1}
-          spin={-0.012}
-          intensityRef={intensityRef}
+          baseOpacity={0.09}
+          spin={-0.01}
+          boostRef={boostRef}
         />
       ) : null}
       <NebulaPlane
-        position={[-4, 0.2, -6]}
-        scale={[lite ? 14 : 16, lite ? 16 : 18, 1]}
+        position={[-3.5, 0.2, -5.5]}
+        scale={[14, 16, 1]}
         color={padGlow.getStyle()}
-        baseOpacity={lite ? 0.1 : 0.12}
-        spin={0.02}
-        intensityRef={intensityRef}
+        baseOpacity={0.1}
+        spin={0.016}
+        boostRef={boostRef}
       />
 
       <mesh ref={padRef} position={[0, -2.2, 1]} rotation={[-Math.PI * 0.44, 0, 0]}>
-        <ringGeometry args={[2.4, 6.2, 72]} />
+        <ringGeometry args={[2.4, 5.8, lite ? 48 : 72]} />
         <meshBasicMaterial
           color={padGlow}
           transparent
-          opacity={0.35}
+          opacity={0.32}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
           side={THREE.DoubleSide}
         />
       </mesh>
       <mesh ref={padInnerRef} position={[0, -2.15, 1.05]} rotation={[-Math.PI * 0.44, 0, 0]}>
-        <ringGeometry args={[0.5, 2.8, 48]} />
+        <ringGeometry args={[0.5, 2.6, 40]} />
         <meshBasicMaterial
           color="#ffffff"
           transparent
-          opacity={0.2}
+          opacity={0.18}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
           side={THREE.DoubleSide}
         />
       </mesh>
 
-      {phase === 'merge' ? (
+      {inMerge ? (
         <mesh ref={shockwaveRef} position={[0, 0.05, 0.2]} rotation={[-Math.PI * 0.5, 0, 0]}>
-          <ringGeometry args={[0.85, 1.05, 64]} />
+          <ringGeometry args={[0.85, 1.05, 48]} />
           <meshBasicMaterial
             color={padGlow}
             transparent
@@ -175,8 +186,8 @@ export function SynthesisCinematicSky({
         </mesh>
       ) : null}
 
-      <pointLight ref={ptRef} position={[0, -1.2, 2.5]} intensity={1} color={accentHex} distance={18} decay={2} />
-      <hemisphereLight color="#a8d4ff" groundColor="#050510" intensity={0.35} />
+      <pointLight ref={ptRef} position={[0, -1.2, 2.5]} intensity={1} color={accentHex} distance={16} decay={2} />
+      <hemisphereLight color="#a8d4ff" groundColor="#050510" intensity={0.32} />
     </>
   )
 }

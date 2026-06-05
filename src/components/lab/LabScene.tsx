@@ -9,6 +9,7 @@ import { AtomStructureModel } from './AtomStructureModel'
 import { MoleculeMesh } from './MoleculeMesh'
 import { SynthesisOnLabScene } from './SynthesisOnLabScene'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
+import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { assertNoProductHeroBeforeRun } from '../../lab/atomGuard/labPreviewGuard'
 import { createFpsGovernor } from '../../lab/atomGuard/synthesisRunGuard'
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
@@ -38,11 +39,9 @@ import {
 const LAB_SCENE_CLEAR_HEX = '#03040a'
 /** Реактор / синтез / каталожный кадр — один фон, без мигания между ветками. */
 const REACTOR_SCENE_HEX = '#0a0c18'
-/** Туман слабее во время полёта атомов — иначе сцена «чёрная». */
-const REACTOR_FOG_SYNTH: [string, number, number] = [REACTOR_SCENE_HEX, 8, 28]
 const REACTOR_FOG_IDLE: [string, number, number] = [REACTOR_SCENE_HEX, 6.5, 16]
 
-function LabReactorEnvironment({ synthesisActive = false }: { synthesisActive?: boolean }) {
+function LabReactorEnvironment() {
   const { gl, scene } = useThree()
   useLayoutEffect(() => {
     const c = hexToColor(REACTOR_SCENE_HEX)
@@ -52,7 +51,8 @@ function LabReactorEnvironment({ synthesisActive = false }: { synthesisActive?: 
   return (
     <>
       <color attach="background" args={[REACTOR_SCENE_HEX]} />
-      <fog attach="fog" args={synthesisActive ? REACTOR_FOG_SYNTH : REACTOR_FOG_IDLE} />
+      <fog attach="fog" args={REACTOR_FOG_IDLE} />
+      <Stars radius={110} depth={55} count={420} factor={2.8} saturation={0.12} fade speed={0.18} />
     </>
   )
 }
@@ -439,6 +439,7 @@ function SceneContent({
             synthesisPhase === 'converge' ||
             synthesisPhase === 'ignite' ||
             synthesisPhase === 'flying',
+          cosmicFx: synthesisRunActive || synthActive,
         },
         () => setForceProductSlot(true),
       )
@@ -495,10 +496,22 @@ function SceneContent({
     }
   })
 
+  const cosmicSynthActive = synthesisRunActive || synthActive
+  const cosmicAccent =
+    synthesis?.product?.accentColor ??
+    prewarmProductCompound?.accentColor ??
+    synthesisSettledProduct?.accentColor ??
+    '#3dffec'
+
   return (
     <>
-      {reactorBackdrop ? (
-        <LabReactorEnvironment synthesisActive={synthActive || synthesisRunActive} />
+      {reactorBackdrop && !cosmicSynthActive ? <LabReactorEnvironment /> : null}
+      {cosmicSynthActive ? (
+        <LabSynthesisCosmicBackdrop
+          phase={synthesisPhase || 'converge'}
+          accentHex={cosmicAccent}
+          lite
+        />
       ) : null}
       {reactorBackdrop ? <LabReactorLights /> : null}
       {(mountReactorPreview || productPrewarmActive) ? <ReactorSceneWarmup active /> : null}
@@ -559,6 +572,7 @@ function SceneContent({
               onPreviewAtomFade={fadePreviewAtoms}
               onEarlyProductReveal={onEarlyProductReveal}
               externalProductSlot
+              externalCosmicBackdrop
               labLiteMode
               forceLiteFx={forceLiteFxRef?.current ?? false}
             />

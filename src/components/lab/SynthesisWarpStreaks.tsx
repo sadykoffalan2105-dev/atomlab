@@ -3,7 +3,8 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { MutableRefObject } from 'react'
 
-const STREAK_COUNT = 120
+const STREAK_COUNT_FULL = 120
+const STREAK_COUNT_LITE = 48
 
 /**
  * «Гиперпространственные» полосы к центру — только во время сближения атомов.
@@ -12,17 +13,20 @@ export function SynthesisWarpStreaks({
   active,
   intensityRef,
   accentHex = '#3dffec',
+  lite = false,
 }: {
   active: boolean
   intensityRef: MutableRefObject<number>
   accentHex?: string
+  lite?: boolean
 }) {
+  const streakCount = lite ? STREAK_COUNT_LITE : STREAK_COUNT_FULL
   const pointsRef = useRef<THREE.Points>(null)
   const data = useMemo(() => {
-    const positions = new Float32Array(STREAK_COUNT * 3)
-    const speeds = new Float32Array(STREAK_COUNT)
-    const angles = new Float32Array(STREAK_COUNT)
-    for (let i = 0; i < STREAK_COUNT; i++) {
+    const positions = new Float32Array(streakCount * 3)
+    const speeds = new Float32Array(streakCount)
+    const angles = new Float32Array(streakCount)
+    for (let i = 0; i < streakCount; i++) {
       const a = Math.random() * Math.PI * 2
       const r = 4 + Math.random() * 10
       positions[i * 3] = Math.cos(a) * r
@@ -32,7 +36,7 @@ export function SynthesisWarpStreaks({
       angles[i] = a
     }
     return { positions, speeds, angles }
-  }, [])
+  }, [streakCount])
 
   const geom = useMemo(() => {
     const g = new THREE.BufferGeometry()
@@ -60,7 +64,7 @@ export function SynthesisWarpStreaks({
     const boost = intensityRef.current
     mat.opacity = 0.25 + boost * 0.55
     const d = delta * (1.2 + boost * 2.5)
-    for (let i = 0; i < STREAK_COUNT; i++) {
+    for (let i = 0; i < streakCount; i++) {
       let x = pos.getX(i)
       let y = pos.getY(i)
       let z = pos.getZ(i)

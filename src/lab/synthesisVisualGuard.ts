@@ -9,6 +9,7 @@ export type SynthesisCoverage = {
   product: boolean
   mergeFx: boolean
   convergeFx: boolean
+  cosmicFx?: boolean
 }
 
 export type SynthesisCoverageTracker = {
@@ -31,7 +32,8 @@ export function createSynthesisCoverageTracker(): SynthesisCoverageTracker {
         coverage.preview ||
         coverage.product ||
         coverage.mergeFx ||
-        coverage.convergeFx
+        coverage.convergeFx ||
+        coverage.cosmicFx
 
       if (covered) {
         emptyFrames = 0

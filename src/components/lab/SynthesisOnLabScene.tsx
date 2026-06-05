@@ -158,7 +158,7 @@ function MergeFlashBurst({
 
 function cinematicPhase(phase: Phase): 'converge' | 'merge' | 'fail' | null {
   if (phase === 'ignite' || phase === 'converge' || phase === 'flying') return 'converge'
-  if (phase === 'mergeFlash') return 'merge'
+  if (phase === 'mergeFlash' || phase === 'product') return 'merge'
   if (phase === 'failBounce') return 'fail'
   return null
 }
@@ -182,6 +182,7 @@ export function SynthesisOnLabScene({
   previewAtomScaleGroupRefs,
   onPreviewAtomFade,
   onEarlyProductReveal,
+  externalCosmicBackdrop = false,
 }: {
   zSlots: readonly number[]
   flyTerms?: readonly ReactorEquationTerm[]
@@ -192,8 +193,10 @@ export function SynthesisOnLabScene({
   onPhaseChange?: (phase: Phase, launchProgress: number) => void
   /** Молекула рисуется в LabProductHeroSlot — без дубля и мигания */
   externalProductSlot?: boolean
-  /** Лаборатория: без cinematic/camera — стабильный FPS */
+  /** Лаборатория: космос lite + без движения камеры (стабильный FPS) */
   labLiteMode?: boolean
+  /** Фон/звёзды рисует LabScene — без дубля SynthesisCinematicSky */
+  externalCosmicBackdrop?: boolean
   forceLiteFx?: boolean
   onStreamsReady?: () => void
   previewAtomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
@@ -208,7 +211,8 @@ export function SynthesisOnLabScene({
     [flyTerms],
   )
   const synthesisFxMinimal =
-    labLiteMode || forceLiteFx || atomCount >= SYNTHESIS_PERF.liteFxAtomThreshold
+    forceLiteFx || atomCount >= SYNTHESIS_PERF.liteFxAtomThreshold
+  const cosmicLite = labLiteMode || synthesisFxMinimal
 
   const flyGroupRefs = useRef<(THREE.Group | null)[]>([])
   const flyTimelineCtxRef = useRef<ReturnType<typeof gsap.context> | null>(null)
@@ -519,7 +523,8 @@ export function SynthesisOnLabScene({
 
   const cinema = cinematicPhase(phase)
   const accentHex = product?.accentColor ?? '#3dffec'
-  const showCinematic = cinema != null && !synthesisFxMinimal
+  const showCinematic = cinema != null && !externalCosmicBackdrop
+  const showWarpAndArc = cinema != null
 
   if (!useConverge && zSlots.length < 2) {
     return (
@@ -533,20 +538,26 @@ export function SynthesisOnLabScene({
   return (
     <>
       {showCinematic && cinema ? (
-        <>
-          <SynthesisCinematicSky phase={cinema} intensityRef={launchBoostRef} accentHex={accentHex} />
-          <SynthesisWarpStreaks
-            active={phase === 'ignite' || phase === 'converge'}
-            intensityRef={launchBoostRef}
-            accentHex={accentHex}
-          />
-        </>
+        <SynthesisCinematicSky
+          phase={cinema}
+          intensityRef={launchBoostRef}
+          accentHex={accentHex}
+          lite={cosmicLite}
+        />
       ) : null}
-      {useConverge && showCinematic ? (
+      {showWarpAndArc ? (
+        <SynthesisWarpStreaks
+          active={phase === 'ignite' || phase === 'converge'}
+          intensityRef={launchBoostRef}
+          accentHex={accentHex}
+          lite={cosmicLite}
+        />
+      ) : null}
+      {useConverge && showCinematic && !labLiteMode ? (
         <SynthesisLaunchCamera active progressRef={launchProgressRef} impactPulseRef={impactPulseRef} />
       ) : null}
 
-      {phase === 'ignite' && !synthesisFxMinimal ? <SynthesisIgniteBurst accentHex={accentHex} /> : null}
+      {phase === 'ignite' && !cosmicLite ? <SynthesisIgniteBurst accentHex={accentHex} /> : null}
 
       {showConvergeStreams && previewAtomGroupRefs && previewAtomScaleGroupRefs ? (
         <SynthesisConvergeStreams
@@ -561,11 +572,12 @@ export function SynthesisOnLabScene({
         />
       ) : null}
 
-      {(inMerge || phase === 'converge' || phase === 'ignite') && useConverge && !synthesisFxMinimal ? (
+      {(inMerge || phase === 'converge' || phase === 'ignite') && useConverge && showWarpAndArc ? (
         <SynthesisArcReactor
           active={phase === 'ignite' || phase === 'converge' || inMerge}
           accentHex={accentHex}
           impactPulseRef={impactPulseRef}
+          lite={cosmicLite}
         />
       ) : null}
 
