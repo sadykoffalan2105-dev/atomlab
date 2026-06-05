@@ -1,0 +1,141 @@
+.arena {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.canvasWrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 240px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--game-accent) 45%, transparent);
+  box-shadow:
+    0 0 28px color-mix(in srgb, var(--game-accent) 18%, transparent),
+    inset 0 0 36px rgba(0, 12, 28, 0.85);
+}
+
+.canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.scanBadge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.55rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #041018;
+  background: var(--game-accent);
+  border-radius: 6px;
+  animation: scanPulse 2s ease-in-out infinite;
+}
+
+@keyframes scanPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+.clueRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.clue {
+  flex: 1 1 140px;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  border-radius: 10px;
+  border: 1px solid rgba(180, 200, 255, 0.22);
+  background: rgba(8, 14, 32, 0.82);
+  color: rgba(210, 225, 255, 0.92);
+}
+
+.clueLabel {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--game-accent);
+  margin-bottom: 0.15rem;
+}
+
+.portalRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.portalBtn {
+  padding: 0.7rem 0.5rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.portalBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.portalBtnPure {
+  color: #d8fcff;
+  background: linear-gradient(145deg, rgba(20, 80, 90, 0.5), rgba(8, 20, 40, 0.9));
+  border-color: rgba(61, 255, 236, 0.55);
+}
+
+.portalBtnMix {
+  color: #f0e0ff;
+  background: linear-gradient(145deg, rgba(60, 30, 90, 0.5), rgba(8, 20, 40, 0.9));
+  border-color: rgba(176, 108, 255, 0.55);
+}
+
+.portalBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.portalSub {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.sepTitle {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e8f0ff;
+}
+
+.streak {
+  align-self: flex-start;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 230, 100, 0.45);
+  background: rgba(80, 60, 10, 0.35);
+  color: #ffe566;
+}

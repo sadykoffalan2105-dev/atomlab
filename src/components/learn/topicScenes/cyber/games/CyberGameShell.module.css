@@ -1,0 +1,172 @@
+.shell {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 1rem 1rem;
+  background: linear-gradient(165deg, rgba(6, 12, 28, 0.97), rgba(2, 6, 16, 0.99));
+  border: 1px solid color-mix(in srgb, var(--game-accent) 40%, transparent);
+  overflow: auto;
+}
+
+.head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--game-accent);
+  letter-spacing: 0.04em;
+}
+
+.intro {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(200, 220, 255, 0.82);
+  max-width: 42rem;
+}
+
+.score {
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #041018;
+  background: var(--game-accent);
+  border-radius: 8px;
+}
+
+.feedback {
+  margin: 0 0 0.5rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  border-radius: 8px;
+  background: rgba(61, 255, 236, 0.1);
+  border: 1px solid rgba(61, 255, 236, 0.28);
+  color: #c8f0ff;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.foot {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(61, 255, 236, 0.15);
+}
+
+.btn,
+.btnPrimary {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid rgba(61, 255, 236, 0.4);
+  background: rgba(8, 14, 32, 0.9);
+  color: #c8f0ff;
+}
+
+.btnPrimary {
+  background: color-mix(in srgb, var(--game-accent) 35%, #0a1428);
+  border-color: var(--game-accent);
+  color: #e8f8ff;
+}
+
+.gamePrompt {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e8f0ff;
+  margin: 0;
+}
+
+.gameChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.choiceBtn {
+  padding: 0.55rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--game-accent) 50%, transparent);
+  background: rgba(10, 18, 40, 0.85);
+  color: #d8ecff;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.choiceBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--game-accent);
+}
+
+.choiceBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.choiceBtnOk {
+  border-color: #5cff8a;
+  background: rgba(40, 120, 70, 0.25);
+}
+
+.choiceBtnBad {
+  border-color: #ff6b6b;
+  background: rgba(120, 40, 40, 0.2);
+}
+
+.slotRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.5rem;
+  border-radius: 10px;
+  border: 1px dashed rgba(61, 255, 236, 0.35);
+  background: rgba(4, 10, 24, 0.6);
+}
+
+.token {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  border-radius: 8px;
+  border: 1px solid rgba(200, 220, 255, 0.35);
+  background: rgba(20, 32, 60, 0.9);
+  color: #e8f4ff;
+  cursor: pointer;
+}
+
+.tokenUsed {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.winBanner {
+  padding: 0.65rem;
+  text-align: center;
+  font-weight: 800;
+  color: #5cff8a;
+  border: 1px solid rgba(92, 255, 138, 0.45);
+  border-radius: 10px;
+  background: rgba(20, 60, 40, 0.25);
+}

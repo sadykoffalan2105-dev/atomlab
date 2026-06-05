@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getCyberDashboard } from '../../../learn/learnCyberDashboard'
+import { getCyberGameForTask } from '../../../learn/learnCyberGames'
 import { useT } from '../../../i18n/useT'
 import { LearnAssistantMarkdown } from '../LearnAssistantMarkdown'
 import { CyberDashboardGrid } from './cyber/native/CyberDashboardGrid'
@@ -9,6 +10,12 @@ import styles from './LearnCyberDashboard.module.css'
 const CyberExploreOverlay = lazy(() =>
   import('./cyber/explore/CyberExploreOverlay').then((m) => ({
     default: m.CyberExploreOverlay,
+  })),
+)
+
+const CyberGameOverlay = lazy(() =>
+  import('./cyber/games/CyberGameOverlay').then((m) => ({
+    default: m.CyberGameOverlay,
   })),
 )
 
@@ -27,14 +34,18 @@ export function LearnCyberDashboard({
   const def = useMemo(() => getCyberDashboard(sceneId), [sceneId])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [explore, setExplore] = useState<{ taskId: string; hotspotId: string } | null>(null)
+  const [gameTaskId, setGameTaskId] = useState<string | null>(null)
   const [searchParams] = useSearchParams()
   const cyberDebug = searchParams.get('cyberDebug') === '1'
 
   const activeTask = def?.tasks.find((task) => task.id === activeId) ?? null
   const exploreTask = def?.tasks.find((task) => task.id === explore?.taskId) ?? null
+  const gameTask = def?.tasks.find((task) => task.id === gameTaskId) ?? null
+  const activeGame = gameTaskId ? getCyberGameForTask(gameTaskId) : null
 
   const closePanel = useCallback(() => setActiveId(null), [])
   const closeExplore = useCallback(() => setExplore(null), [])
+  const closeGame = useCallback(() => setGameTaskId(null), [])
 
   const onSelect = useCallback((taskId: string) => {
     setActiveId((prev) => (prev === taskId ? null : taskId))
@@ -46,15 +57,16 @@ export function LearnCyberDashboard({
   }, [])
 
   useEffect(() => {
-    if (!activeId && !explore) return
+    if (!activeId && !explore && !gameTaskId) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
-      if (explore) closeExplore()
+      if (gameTaskId) closeGame()
+      else if (explore) closeExplore()
       else closePanel()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [activeId, explore, closePanel, closeExplore])
+  }, [activeId, explore, gameTaskId, closePanel, closeExplore, closeGame])
 
   if (!def) return null
 
@@ -67,6 +79,7 @@ export function LearnCyberDashboard({
     styles.root,
     activeId ? styles.rootWithPanel : '',
     explore ? styles.rootWithExplore : '',
+    gameTaskId ? styles.rootWithGame : '',
     presentationMode ? styles.present : '',
     cyberDebug ? styles.rootDebug : '',
   ]
@@ -96,6 +109,15 @@ export function LearnCyberDashboard({
             />
           </Suspense>
         ) : null}
+        {activeGame ? (
+          <Suspense fallback={<div className={styles.exploreLoading} aria-busy />}>
+            <CyberGameOverlay
+              game={activeGame}
+              accent={gameTask?.accent ?? '#3dffec'}
+              onClose={closeGame}
+            />
+          </Suspense>
+        ) : null}
       </div>
 
       {activeTask ? (
@@ -121,6 +143,18 @@ export function LearnCyberDashboard({
                 <LearnAssistantMarkdown text={para} />
               </div>
             ))}
+            {getCyberGameForTask(activeTask.id) ? (
+              <button
+                type="button"
+                className={styles.playBtn}
+                onClick={() => {
+                  setGameTaskId(activeTask.id)
+                  setExplore(null)
+                }}
+              >
+                {t('learn.g7.c1.s01.game.play')}
+              </button>
+            ) : null}
           </div>
         </aside>
       ) : null}

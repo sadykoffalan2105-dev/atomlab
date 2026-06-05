@@ -111,6 +111,29 @@
   margin: 0 0 0.55rem;
 }
 
+.playBtn {
+  margin-top: 0.65rem;
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--cyber-panel-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--cyber-panel-accent) 22%, rgba(6, 12, 28, 0.95));
+  color: #e8f8ff;
+  cursor: pointer;
+}
+
+.playBtn:hover {
+  background: color-mix(in srgb, var(--cyber-panel-accent) 35%, rgba(6, 12, 28, 0.95));
+}
+
+.rootWithGame .stage {
+  min-height: 220px;
+}
+
 .present .panel {
   max-height: 38%;
 }
