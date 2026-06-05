@@ -105,6 +105,7 @@ export function AtomStructureModel({
   previewStatic = false,
   previewEmphasis = false,
   previewLite = false,
+  hideOrbitRings = false,
 }: {
   z: number
   animate?: boolean
@@ -113,6 +114,8 @@ export function AtomStructureModel({
   previewEmphasis?: boolean
   /** Плотное превью: электроны крутятся, без локального вращения группы (экономия GPU). */
   previewLite?: boolean
+  /** Реактор: только ядро и электроны, без цветных орбитальных колец. */
+  hideOrbitRings?: boolean
 }) {
   const group = useRef<THREE.Group>(null)
   const protRef = useRef<THREE.InstancedMesh>(null)
@@ -239,25 +242,27 @@ export function AtomStructureModel({
     <group ref={group}>
       <instancedMesh ref={protRef} args={[protGeo, protMat, MAX_Z]} frustumCulled={false} />
       <instancedMesh ref={neutRef} args={[protGeo, neutMat, MAX_NEUTRONS]} frustumCulled={false} />
-      {shells.map((count, shellIdx) => {
-        if (count <= 0) return null
-        const majorR = 0.38 + shellIdx * 0.21
-        const col = shellHue(shellIdx)
-        const eRx = (shellIdx * Math.PI) / 6
-        const eRy = (shellIdx * Math.PI) / 5
-        const eRz = (shellIdx * Math.PI) / 7
-        return (
-          <mesh key={`torus-${shellIdx}`} rotation={[eRx, eRy, eRz]}>
-            <torusGeometry args={[majorR, 0.005, 6, torusSegments]} />
-            <meshBasicMaterial
-              color={col}
-              transparent
-              opacity={orbitOpacity}
-              depthWrite={false}
-            />
-          </mesh>
-        )
-      })}
+      {!hideOrbitRings
+        ? shells.map((count, shellIdx) => {
+            if (count <= 0) return null
+            const majorR = 0.38 + shellIdx * 0.21
+            const col = shellHue(shellIdx)
+            const eRx = (shellIdx * Math.PI) / 6
+            const eRy = (shellIdx * Math.PI) / 5
+            const eRz = (shellIdx * Math.PI) / 7
+            return (
+              <mesh key={`torus-${shellIdx}`} rotation={[eRx, eRy, eRz]}>
+                <torusGeometry args={[majorR, 0.005, 6, torusSegments]} />
+                <meshBasicMaterial
+                  color={col}
+                  transparent
+                  opacity={orbitOpacity}
+                  depthWrite={false}
+                />
+              </mesh>
+            )
+          })
+        : null}
       <instancedMesh ref={elecRef} args={[elecGeo, elecMat, MAX_Z]} frustumCulled={false} />
       {localLight && !lite ? (
         <pointLight position={[0, 0, 0]} intensity={1.05} distance={4.2} color="#7afcff" />

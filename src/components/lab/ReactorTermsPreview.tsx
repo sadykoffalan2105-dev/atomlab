@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
@@ -6,6 +6,10 @@ import {
   assertPreviewElectronAnimation,
   PREVIEW_MAX_ATOM_MODELS,
 } from '../../lab/reactorPreviewGuarantee'
+import {
+  applyReactorPreviewLayout,
+  createReactorPreviewVisibilityGuard,
+} from '../../lab/reactorPreviewVisibilityGuard'
 import { AtomStructureModel } from './AtomStructureModel'
 import { buildReactorPreviewAtoms, reactorPreviewAtomScale } from './reactorPreviewLayout'
 
@@ -36,17 +40,22 @@ export function ReactorTermsPreview({
   previewRootRef?: MutableRefObject<THREE.Group | null>
 }) {
   const previewAtoms = useMemo(() => buildReactorPreviewAtoms(terms), [terms])
+  const termsSig = useMemo(
+    () => terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|'),
+    [terms],
+  )
 
   const n = previewAtoms.length
   const groupRef = useRef<THREE.Group>(null)
+  const visibilityGuardRef = useRef(createReactorPreviewVisibilityGuard())
   const atomGroupRefsLocal = useRef<(THREE.Group | null)[]>([])
   const atomScaleGroupRefsLocal = useRef<(THREE.Group | null)[]>([])
   const atomGroupRefs = atomGroupRefsExternal ?? atomGroupRefsLocal
   const atomScaleGroupRefs = atomScaleGroupRefsExternal ?? atomScaleGroupRefsLocal
   const scale = reactorPreviewAtomScale(n)
   const dense = n > 6
-  const slowSpin = n <= 12 && visible && !flightActive
-  const driftAtoms = n <= 12 && visible && !flightActive
+  const slowSpin = n <= PREVIEW_MAX_ATOM_MODELS && visible && !flightActive
+  const driftAtoms = n <= PREVIEW_MAX_ATOM_MODELS && visible && !flightActive
   const electronAnimate = n <= PREVIEW_MAX_ATOM_MODELS
 
   useEffect(() => {
@@ -61,17 +70,37 @@ export function ReactorTermsPreview({
     atomScaleGroupRefs.current.length = n
   }, [n, atomGroupRefs, atomScaleGroupRefs])
 
+  const syncLayout = useCallback(() => {
+    applyReactorPreviewLayout(previewAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
+  }, [previewAtoms, scale, atomGroupRefs, atomScaleGroupRefs])
+
+  useLayoutEffect(() => {
+    visibilityGuardRef.current.reset()
+  }, [termsSig, n])
+
   useLayoutEffect(() => {
     if (flightActive || poseLocked) return
-    previewAtoms.forEach((atom, i) => {
-      const posG = atomGroupRefs.current[i]
-      const scaleG = atomScaleGroupRefs.current[i]
-      if (posG) posG.position.set(atom.pos[0], atom.pos[1], atom.pos[2])
-      if (scaleG) scaleG.scale.set(scale, scale, scale)
-    })
-  }, [flightActive, poseLocked, previewAtoms, scale, atomGroupRefs, atomScaleGroupRefs])
+    syncLayout()
+  }, [flightActive, poseLocked, termsSig, syncLayout])
+
+  useEffect(() => {
+    if (flightActive || poseLocked || n === 0) return
+    const id = requestAnimationFrame(() => syncLayout())
+    return () => cancelAnimationFrame(id)
+  }, [flightActive, poseLocked, termsSig, n, syncLayout])
 
   useFrame((s) => {
+    visibilityGuardRef.current.tick({
+      atomCount: n,
+      atomGroupRefs,
+      atomScaleGroupRefs,
+      layoutScale: scale,
+      previewAtoms,
+      rootVisible: visible,
+      flightActive,
+      onRecover: syncLayout,
+    })
+
     if (!visible || flightActive) return
     const t = s.clock.elapsedTime
     const root = groupRef.current
@@ -130,6 +159,7 @@ export function ReactorTermsPreview({
               previewStatic={false}
               previewEmphasis
               previewLite={dense || atom.z > 18}
+              hideOrbitRings
               localLight={false}
             />
           </group>

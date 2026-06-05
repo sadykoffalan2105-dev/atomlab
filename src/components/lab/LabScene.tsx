@@ -249,11 +249,17 @@ function SceneContent({
     ? buildReactorPreviewAtoms(reactorPreviewTerms).length
     : 0
 
+  const showSettledHero =
+    !synthActive &&
+    !synthesisRunActive &&
+    !previewActive &&
+    synthesisSettledProduct != null
+
   const mountReactorPreview =
     reactorViewOpen &&
     reactorPreviewTerms != null &&
     reactorPreviewTerms.length >= 1 &&
-    (synthesisSettledProduct == null || synthActive || synthesisRunActive)
+    (!showSettledHero || synthActive || synthesisRunActive)
   /** Блокируем drift/GSAP с converge до product — иначе атомы «прыгают» на merge. */
   const previewMotionLocked = synthActive && synthesisPhase !== 'product'
   const previewPoseLocked = synthActive || synthesisRunActive
@@ -277,12 +283,6 @@ function SceneContent({
       })
     }
   }, [])
-
-  const showSettledHero =
-    !synthActive &&
-    !synthesisRunActive &&
-    !previewActive &&
-    synthesisSettledProduct != null
 
   const productForSlot =
     synthesisSettledProduct ??

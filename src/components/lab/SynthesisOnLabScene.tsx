@@ -516,7 +516,6 @@ export function SynthesisOnLabScene({
 
   const showCatalogSubstance = !!product && phase === 'product' && !externalProductSlot
   const inMerge = phase === 'mergeFlash'
-  const hideBeams = phase === 'mergeFlash' || phase === 'product'
   const skipLocalLights = labLiteMode && externalProductSlot
   const showFailAtomModels = !useConverge && (phase === 'flying' || phase === 'failBounce') && zSlots.length >= 2
   const showConvergeStreams = useConverge && (phase === 'ignite' || phase === 'converge')
@@ -565,7 +564,7 @@ export function SynthesisOnLabScene({
           runId={runId}
           onImpact={beginMergeFlash}
           onStreamsReady={onStreamsReady}
-          beamsVisible={!hideBeams}
+          beamsVisible={false}
           previewAtomGroupRefs={previewAtomGroupRefs}
           previewAtomScaleGroupRefs={previewAtomScaleGroupRefs}
           onBeginAtomFade={onPreviewAtomFade}

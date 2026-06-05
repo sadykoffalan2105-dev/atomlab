@@ -56,12 +56,6 @@ export function LaunchMissionHud({
       <div className={styles.launchMissionScan} aria-hidden />
       <p className={styles.launchMissionTitle}>{t('lab.launch.title')}</p>
       <p className={styles.launchMissionPhase}>{t(PHASES[phaseIdx] ?? PHASES[0])}</p>
-      <div className={styles.launchMissionBar} aria-hidden>
-        <span
-          className={styles.launchMissionBarFill}
-          style={{ transform: `translateX(${-120 + launchProgress * 320}%)` }}
-        />
-      </div>
     </div>
   )
 }

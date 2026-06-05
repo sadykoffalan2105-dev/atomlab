@@ -316,6 +316,9 @@ export function LaboratoryPage() {
         return
       }
       setLeftTerms(r.terms)
+      setSynthesisSettledProduct(null)
+      synthesisSettledProductRef.current = null
+      settledSnapshotRef.current = null
       setReactorMessage(
         g.warn === 'noEquals'
           ? t('lab.recipeWarn.noEquals')

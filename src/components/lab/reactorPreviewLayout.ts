@@ -90,12 +90,22 @@ export function buildReactorPreviewAtoms(terms: readonly ReactorEquationTerm[]):
   }
 
   if (out.length !== expected && expected > 0) {
-    return expandLeftTermsToPreviewSlots(terms).map((z, i) => ({
-      z,
-      pos: [0, 0.12, 0.24] as [number, number, number],
-      termIndex: 0,
-      atomInTerm: i,
-    }))
+    const slots = expandLeftTermsToPreviewSlots(terms)
+    const n = slots.length
+    const r = 0.55 + Math.min(n, 12) * 0.06
+    return slots.map((z, i) => {
+      const a = (i / Math.max(1, n)) * Math.PI * 2 - Math.PI / 2
+      return {
+        z,
+        pos: [Math.cos(a) * r, 0.12 + Math.sin(a * 0.5) * 0.04, 0.2 + Math.sin(a) * r * 0.35] as [
+          number,
+          number,
+          number,
+        ],
+        termIndex: 0,
+        atomInTerm: i,
+      }
+    })
   }
 
   return out
@@ -134,8 +144,9 @@ export function getTermGroupCenters(terms: readonly ReactorEquationTerm[]): Term
 
 export function reactorPreviewAtomScale(totalAtoms: number, base = 0.44): number {
   const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
-  const denseBoost = totalAtoms > 10 ? 1.06 : 1
-  return base * clamp(6 / Math.max(6, totalAtoms), 0.38, 1) * denseBoost
+  const denseBoost = totalAtoms > 10 ? 1.08 : 1
+  const scaled = base * clamp(6 / Math.max(6, totalAtoms), 0.42, 1) * denseBoost
+  return Math.max(0.34, scaled)
 }
 
 /** Центр реакции в лабораторной сцене (совпадает с SynthesisConvergeStreams). */
