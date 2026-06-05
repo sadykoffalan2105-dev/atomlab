@@ -12,6 +12,7 @@ export function CyberTaskCard({
   composite = false,
   onSelect,
   onHotspotFocus,
+  onFullscreen,
 }: {
   task: CyberTaskDef
   isActive: boolean
@@ -21,12 +22,12 @@ export function CyberTaskCard({
   composite?: boolean
   onSelect: (taskId: string) => void
   onHotspotFocus: (hotspotId: string) => void
+  onFullscreen: (taskId: string) => void
 }) {
   const { t } = useT()
 
   return (
-    <button
-      type="button"
+    <div
       className={[
         gridStyles.card,
         composite ? gridStyles.cardComposite : '',
@@ -40,10 +41,31 @@ export function CyberTaskCard({
         gridArea: task.gridArea,
         ['--card-accent' as string]: composite ? '#00ffff' : task.accent,
       }}
+      role="button"
+      tabIndex={0}
       aria-pressed={isActive}
       aria-label={t(task.titleKey)}
       onClick={() => onSelect(task.id)}
+      onDoubleClick={() => onFullscreen(task.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect(task.id)
+        }
+      }}
     >
+      <button
+        type="button"
+        className={gridStyles.expandBtn}
+        aria-label={t('learn.g7.c1.s01.cyber.fullscreen')}
+        title={t('learn.g7.c1.s01.cyber.fullscreen')}
+        onClick={(e) => {
+          e.stopPropagation()
+          onFullscreen(task.id)
+        }}
+      >
+        ⛶
+      </button>
       {composite ? null : (
         <>
           <span className={gridStyles.cardCorners} aria-hidden />
@@ -57,6 +79,6 @@ export function CyberTaskCard({
           />
         </>
       )}
-    </button>
+    </div>
   )
 }

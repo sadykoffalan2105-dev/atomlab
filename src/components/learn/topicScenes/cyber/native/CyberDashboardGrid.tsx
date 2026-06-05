@@ -12,6 +12,7 @@ export function CyberDashboardGrid({
   debug,
   onSelect,
   onHotspotFocus,
+  onFullscreen,
 }: {
   def: CyberDashboardDef
   activeId: string | null
@@ -20,6 +21,7 @@ export function CyberDashboardGrid({
   debug?: boolean
   onSelect: (taskId: string) => void
   onHotspotFocus: (taskId: string, hotspotId: string) => void
+  onFullscreen: (taskId: string) => void
 }) {
   const composite = def.visualMode === 'composite' && def.reference != null
   const ref = def.reference
@@ -77,6 +79,7 @@ export function CyberDashboardGrid({
             composite={composite}
             onSelect={onSelect}
             onHotspotFocus={(hotspotId) => onHotspotFocus(task.id, hotspotId)}
+            onFullscreen={onFullscreen}
           />
         ))}
       </div>

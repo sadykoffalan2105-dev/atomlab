@@ -1,0 +1,188 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(165deg, #04080f 0%, #020408 55%, #060a14 100%);
+  color: #e8f0ff;
+  animation: fsIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes fsIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--fs-accent) 35%, transparent);
+  background: rgba(6, 12, 24, 0.92);
+}
+
+.order {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #041018;
+  background: var(--fs-accent);
+  border-radius: 8px;
+}
+
+.title {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--fs-accent);
+  letter-spacing: 0.03em;
+  line-height: 1.25;
+}
+
+.toolbarActions {
+  display: flex;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.btn,
+.btnPrimary {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--fs-accent) 45%, transparent);
+  background: rgba(8, 16, 32, 0.95);
+  color: #e8f0ff;
+}
+
+.btnPrimary {
+  background: color-mix(in srgb, var(--fs-accent) 28%, rgba(8, 16, 32, 0.95));
+  border-color: var(--fs-accent);
+}
+
+.btn:hover,
+.btnPrimary:hover {
+  filter: brightness(1.08);
+}
+
+.layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 34%);
+  gap: 0;
+}
+
+.scene {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 1rem 1rem;
+  border-right: 1px solid color-mix(in srgb, var(--fs-accent) 22%, transparent);
+}
+
+.viewportWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--fs-accent) 40%, transparent);
+  box-shadow:
+    0 0 40px color-mix(in srgb, var(--fs-accent) 15%, transparent),
+    inset 0 0 50px rgba(0, 8, 20, 0.75);
+}
+
+.viewportWrap :global([class*='viewport']) {
+  flex: 1 1 auto;
+  min-height: 100%;
+  border-radius: 0;
+}
+
+.viewportWrap :global([class*='hint']) {
+  font-size: 0.72rem;
+  bottom: 0.65rem;
+}
+
+.sidebar {
+  min-height: 0;
+  overflow: auto;
+  padding: 0.85rem 1rem 1rem;
+  background: linear-gradient(180deg, rgba(10, 18, 36, 0.96), rgba(4, 8, 18, 0.99));
+}
+
+.sidebarAccent {
+  height: 3px;
+  margin: -0.85rem -1rem 0.65rem;
+  background: linear-gradient(90deg, transparent, var(--fs-accent), transparent);
+}
+
+.body {
+  font-size: 0.86rem;
+  line-height: 1.62;
+  color: rgba(220, 230, 255, 0.94);
+}
+
+.para {
+  margin: 0 0 0.65rem;
+}
+
+.playBtn {
+  margin-top: 0.75rem;
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--fs-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--fs-accent) 22%, rgba(6, 12, 28, 0.95));
+  color: #e8f8ff;
+  cursor: pointer;
+}
+
+.playBtn:hover {
+  background: color-mix(in srgb, var(--fs-accent) 35%, rgba(6, 12, 28, 0.95));
+}
+
+@media (max-width: 767px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  }
+
+  .scene {
+    border-right: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--fs-accent) 22%, transparent);
+    padding: 0.5rem 0.65rem;
+  }
+
+  .sidebar {
+    padding: 0.65rem 0.75rem 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
+}

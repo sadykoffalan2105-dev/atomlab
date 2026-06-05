@@ -4,6 +4,7 @@ import { LearnAssistantPanel } from './LearnAssistantPanel'
 import { LearnTheoryRich } from './LearnTheoryRich'
 import { LearnSlideDeckVisual } from './LearnSlideDeckVisual'
 import { prefetchLearnImage } from './LearnSlideVisual'
+import { LearnColumnExpandBtn } from './LearnColumnExpandBtn'
 import { LearnWorkspace } from './LearnWorkspace'
 import type { LearnChapter, LearnGrade, LearnSection, LearnSlide } from '../../types/learn'
 import {
@@ -84,6 +85,7 @@ export function LearnSectionRunner({
   const [doneBanner, setDoneBanner] = useState(false)
   const [mobileTab, setMobileTab] = useState<'theory' | '3d' | 'work' | 'assistant'>('theory')
   const [presentationMode, setPresentationMode] = useState(false)
+  const [expandedPanel, setExpandedPanel] = useState<'3d' | 'work' | 'assistant' | null>(null)
   const [extraQuizIndex, setExtraQuizIndex] = useState(0)
   const [extraQuizPick, setExtraQuizPick] = useState<number | null>(null)
   const [extraQuizPassed, setExtraQuizPassed] = useState(false)
@@ -341,12 +343,35 @@ export function LearnSectionRunner({
     </div>
   )
 
+  const toggleExpanded = useCallback((panel: '3d' | 'work' | 'assistant') => {
+    setExpandedPanel((prev) => (prev === panel ? null : panel))
+    setMobileTab(panel === '3d' ? '3d' : panel === 'work' ? 'work' : 'assistant')
+  }, [])
+
+  useEffect(() => {
+    if (!expandedPanel) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpandedPanel(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [expandedPanel])
+
   const layoutClass = [
     styles.learnLessonLayout,
     presentationMode ? styles.learnLessonLayoutPresent : '',
+    expandedPanel ? styles.learnLessonLayoutFs : '',
   ]
     .filter(Boolean)
     .join(' ')
+
+  const colFs = (id: '3d' | 'work' | 'assistant') =>
+    expandedPanel === id ? styles.learnColFullscreen : ''
 
   return (
     <div className={`${styles.page} ${presentationMode ? styles.learnPagePresent : ''}`}>
@@ -360,16 +385,56 @@ export function LearnSectionRunner({
             <p className={styles.lessonEst}>{t('learn.estimatedMin', { n: section.estimatedMin })}</p>
             <p className={styles.fgosBadge}>{t('learn.fgos.badge', { block: fgosMeta.programBlock })}</p>
           </div>
-          <button
-            type="button"
-            className={presentationMode ? styles.learnPresentBtnOn : styles.learnPresentBtn}
-            onClick={() => setPresentationMode((v) => !v)}
-            title={presentationMode ? t('learn.present.hint') : t('learn.present.hint')}
-          >
-            {presentationMode ? t('learn.present.off') : t('learn.present.on')}
-          </button>
+          <div className={styles.learnHeaderActions}>
+            <div className={styles.learnPanelMenu} role="group" aria-label={t('learn.panel.menu')}>
+              <button
+                type="button"
+                className={expandedPanel === '3d' ? styles.learnPanelMenuOn : styles.learnPanelMenuBtn}
+                onClick={() => toggleExpanded('3d')}
+              >
+                {t('learn.panel.open3d')}
+              </button>
+              {!presentationMode ? (
+                <>
+                  <button
+                    type="button"
+                    className={expandedPanel === 'work' ? styles.learnPanelMenuOn : styles.learnPanelMenuBtn}
+                    onClick={() => toggleExpanded('work')}
+                  >
+                    {t('learn.panel.openWork')}
+                  </button>
+                  <button
+                    type="button"
+                    className={
+                      expandedPanel === 'assistant' ? styles.learnPanelMenuOn : styles.learnPanelMenuBtn
+                    }
+                    onClick={() => toggleExpanded('assistant')}
+                  >
+                    {t('learn.panel.openAssistant')}
+                  </button>
+                </>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              className={presentationMode ? styles.learnPresentBtnOn : styles.learnPresentBtn}
+              onClick={() => setPresentationMode((v) => !v)}
+              title={t('learn.present.hint')}
+            >
+              {presentationMode ? t('learn.present.off') : t('learn.present.on')}
+            </button>
+          </div>
         </div>
       </header>
+
+      {expandedPanel ? (
+        <button
+          type="button"
+          className={styles.learnFsBackdrop}
+          aria-label={t('learn.panel.collapse')}
+          onClick={() => setExpandedPanel(null)}
+        />
+      ) : null}
 
       <div className={styles.learnMobileTabs} role="tablist">
         {(['theory', '3d', 'work', 'assistant'] as const).map((tab) => (
@@ -400,25 +465,60 @@ export function LearnSectionRunner({
         >
           {theoryCol}
         </div>
-        <div className={`${styles.learnCol3d} ${mobileTab !== '3d' ? styles.learnColHideMobile : ''}`}>
+        <div
+          className={[
+            styles.learnCol3d,
+            mobileTab !== '3d' && !expandedPanel ? styles.learnColHideMobile : '',
+            colFs('3d'),
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          <LearnColumnExpandBtn
+            expanded={expandedPanel === '3d'}
+            label={t('learn.lesson.tab3d')}
+            onClick={() => toggleExpanded('3d')}
+          />
           <LearnSlideDeckVisual
             slide={slide}
             visualId={visualId}
             sectionSceneId={section.defaultVisualId}
             accent={accent}
-            presentationMode={presentationMode}
+            presentationMode={presentationMode || expandedPanel === '3d'}
           />
         </div>
         {!presentationMode ? (
           <>
             <div
-              className={`${styles.learnColWork} ${mobileTab !== 'work' ? styles.learnColHideMobile : ''}`}
+              className={[
+                styles.learnColWork,
+                mobileTab !== 'work' && !expandedPanel ? styles.learnColHideMobile : '',
+                colFs('work'),
+              ]
+                .filter(Boolean)
+                .join(' ')}
             >
+              <LearnColumnExpandBtn
+                expanded={expandedPanel === 'work'}
+                label={t('learn.lesson.tabWork')}
+                onClick={() => toggleExpanded('work')}
+              />
               <LearnWorkspace sectionPathId={pathId} taskCategoryId={taskCategoryId} />
             </div>
             <div
-              className={`${styles.learnColAssistant} ${mobileTab !== 'assistant' ? styles.learnColHideMobile : ''}`}
+              className={[
+                styles.learnColAssistant,
+                mobileTab !== 'assistant' && !expandedPanel ? styles.learnColHideMobile : '',
+                colFs('assistant'),
+              ]
+                .filter(Boolean)
+                .join(' ')}
             >
+              <LearnColumnExpandBtn
+                expanded={expandedPanel === 'assistant'}
+                label={t('learn.lesson.tabAssistant')}
+                onClick={() => toggleExpanded('assistant')}
+              />
               <LearnAssistantPanel
                 gradeId={grade.id}
                 chapterId={chapter.id}

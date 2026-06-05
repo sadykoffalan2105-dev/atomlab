@@ -322,6 +322,46 @@
   outline: 1px dashed rgba(255, 220, 100, 0.5);
 }
 
+.expandBtn {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  font-size: 0.72rem;
+  line-height: 1;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--card-accent) 55%, transparent);
+  background: rgba(4, 10, 22, 0.88);
+  color: var(--card-accent);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover .expandBtn,
+.card:focus-within .expandBtn,
+.cardActive .expandBtn {
+  opacity: 1;
+}
+
+.expandBtn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--card-accent) 35%, transparent);
+}
+
+.cardComposite .expandBtn {
+  opacity: 0.35;
+}
+
+.cardComposite:hover .expandBtn,
+.cardCompositeActive .expandBtn {
+  opacity: 0.95;
+}
+
 .cardOrder {
   position: absolute;
   top: 7px;

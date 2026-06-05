@@ -5,6 +5,8 @@ export const learnCyberG7C1S01Ru = {
   'learn.g7.c1.s01.cyber.hint':
     'Нажмите на элемент схемы — рассмотрите в 3D. Карточка задачи — описание.',
   'learn.g7.c1.s01.cyber.close': 'Закрыть',
+  'learn.g7.c1.s01.cyber.fullscreen': 'На весь экран',
+  'learn.g7.c1.s01.cyber.fullscreenClose': 'К схеме',
   'learn.g7.c1.s01.cyber.explore.title': 'Режим рассмотрения',
   'learn.g7.c1.s01.cyber.explore.back': 'К схеме',
   'learn.g7.c1.s01.cyber.explore.reset': 'Сбросить вид',

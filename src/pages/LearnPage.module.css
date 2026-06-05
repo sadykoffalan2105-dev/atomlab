@@ -1031,9 +1031,163 @@
 .learnCol3d,
 .learnColWork,
 .learnColAssistant {
+  position: relative;
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+.learnColFullscreen {
+  position: fixed !important;
+  inset: 0;
+  z-index: 11600;
+  display: flex !important;
+  flex-direction: column;
+  padding: 0.65rem 0.85rem 0.85rem;
+  margin: 0;
+  background: linear-gradient(165deg, #050a14 0%, #020408 100%);
+  border: none;
+  animation: learnColFsIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes learnColFsIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.learnFsBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 11550;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: rgba(2, 4, 10, 0.72);
+  backdrop-filter: blur(3px);
+  cursor: pointer;
+}
+
+.learnLessonLayoutFs .learnColTheory {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.learnColExpand,
+.learnColExpandOn {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.28rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(61, 255, 236, 0.4);
+  background: rgba(6, 12, 28, 0.92);
+  color: #d8ecff;
+  cursor: pointer;
+}
+
+.learnColExpandOn {
+  border-color: rgba(255, 230, 100, 0.55);
+  background: rgba(50, 40, 10, 0.55);
+  color: #ffe566;
+}
+
+.learnColExpandLabel {
+  max-width: 5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learnColFullscreen .learnColExpand,
+.learnColFullscreen .learnColExpandOn {
+  top: 0.55rem;
+  right: 0.65rem;
+}
+
+.learnColFullscreen .learnVisual3d,
+.learnColFullscreen .learnWorkspace,
+.learnColFullscreen .learnAssistant {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+.learnColFullscreen .learnVisualStage {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.learnColFullscreen .learnWorkspaceLabel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.learnColFullscreen .learnScratchpad {
+  flex: 1 1 auto;
+  min-height: 12rem;
+  resize: none;
+}
+
+.learnColFullscreen .learnAssistantMessages {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+.learnHeaderActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.learnPanelMenu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(80, 120, 180, 0.35);
+  background: rgba(8, 12, 28, 0.75);
+}
+
+.learnPanelMenuBtn,
+.learnPanelMenuOn {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(210, 225, 255, 0.88);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.learnPanelMenuOn {
+  border-color: rgba(61, 255, 236, 0.55);
+  background: rgba(30, 70, 80, 0.45);
+  color: #e8f8ff;
+}
+
+.learnPanelMenuBtn:hover {
+  background: rgba(20, 40, 60, 0.45);
 }
 
 .learnSlideCol {

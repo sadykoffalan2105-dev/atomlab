@@ -4,6 +4,8 @@ export const learnCyberG7C1S01En = {
   'learn.g7.c1.s01.cyber.hint':
     'Tap a glowing element to explore in 3D. Tap the card frame for the full explanation.',
   'learn.g7.c1.s01.cyber.close': 'Close',
+  'learn.g7.c1.s01.cyber.fullscreen': 'Full screen',
+  'learn.g7.c1.s01.cyber.fullscreenClose': 'Back to map',
   'learn.g7.c1.s01.cyber.explore.title': 'Examine mode',
   'learn.g7.c1.s01.cyber.explore.back': 'Back to map',
   'learn.g7.c1.s01.cyber.explore.reset': 'Reset view',
