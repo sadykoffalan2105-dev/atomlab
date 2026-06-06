@@ -268,9 +268,9 @@
 }
 
 .descPanelOpen {
-  max-height: 1200px;
+  max-height: 2400px;
   opacity: 1;
-  padding: 1rem 1.1rem 1.15rem;
+  padding: 1.15rem 1.25rem 1.35rem;
 }
 
 .descTitle {
@@ -293,10 +293,16 @@
   width: 100%;
 }
 
+.descTextBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
 .descText {
   margin: 0;
-  font-size: clamp(0.92rem, 1.6vw, 1.05rem);
-  line-height: 1.62;
+  font-size: clamp(1rem, 1.85vw, 1.12rem);
+  line-height: 1.68;
   color: rgba(210, 225, 255, 0.94);
 }
 

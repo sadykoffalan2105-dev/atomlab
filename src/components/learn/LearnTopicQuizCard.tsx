@@ -36,6 +36,7 @@ type QuizUi = {
   descGrid?: string
   descVisual?: string
   descText?: string
+  descTextBlock?: string
   descBtn?: string
 }
 
@@ -58,6 +59,7 @@ const CARD_UI: QuizUi = {
   descGrid: styles.descGrid,
   descVisual: styles.descVisual,
   descText: styles.descText,
+  descTextBlock: styles.descTextBlock,
   descBtn: styles.descBtn,
 }
 
@@ -80,6 +82,7 @@ const FS_UI: QuizUi = {
   descGrid: fsStyles.descGrid,
   descVisual: fsStyles.descVisual,
   descText: fsStyles.descText,
+  descTextBlock: fsStyles.descTextBlock,
   descBtn: fsStyles.descBtn,
 }
 
@@ -115,7 +118,13 @@ function TopicQuizDescription({
             />
           </div>
         ) : null}
-        <p className={ui.descText}>{text}</p>
+        <div className={ui.descTextBlock}>
+          {text.split(/\n\n+/).map((para) => (
+            <p key={para.slice(0, 48)} className={ui.descText}>
+              {para}
+            </p>
+          ))}
+        </div>
       </div>
     </div>
   )
