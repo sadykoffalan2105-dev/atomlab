@@ -106,8 +106,7 @@ export function LabProductHeroSlot({
           labScaleBoost={CATALOG_HERO_DEFAULT_LAB_SCALE}
           reducedEffects
           labSynthesisScene
-          renderQuality="synthesis"
-          fxLevel="low"
+          fxLevel={visible ? 'low' : 'off'}
         />
       </group>
     </>

@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { Environment } from '@react-three/drei'
+import { Environment, Sparkles } from '@react-three/drei'
 import {
   CatalogStyleBloom,
   CosmicStarfield,
@@ -14,23 +14,23 @@ type Props = {
   /** >1 — крупнее, чем в карточке каталога, для лабораторного полотна */
   labScaleBoost?: number
   /**
-   * Синтез/лаборатория: без IBL-Environment и без Bloom, меньше sparkles/звёзд — плавнее 60 fps.
+   * Синтез/лаборатория: без IBL-Environment и без Bloom, меньше sparkles/звёzd — плавнее 60 fps.
    * Каталожная карточка/модалка передают false (по умолчанию).
    */
   reducedEffects?: boolean
   /** Управление эффектами для синтеза: off/low/full */
   fxLevel?: 'off' | 'low' | 'full'
-  /** Быстрый режим молекулы (меньше poly, без тяжелых штук) */
+  /** Быстрый режим молекулы (menьше poly); в labSynthesisScene для видимого продукта всё равно high */
   renderQuality?: 'high' | 'synthesis'
   /**
-   * Активная анимация синтеза в лаборатории: только молекула на общем свете сцены,
-   * без aura/sparkles/лишних источников света (нет оранжевых пятен).
+   * Лаборатория / синтез: как в каталоге (буквы на атомах, aura-кольца), но без HDR/Bloom
+   * и без дубля звёзд — фон даёт LabSynthesisCosmicBackdrop.
    */
   labSynthesisScene?: boolean
 }
 
 /**
- * 3D-слой для лаборатории / синтеза — совпадает с каталогом по HeroMoleculeRig.
+ * 3D-слой, совпадающий с каталогом (HeroMoleculeRig + aura), для модалки и лаборатории.
  */
 export function CatalogSubstanceDisplay({
   compound,
@@ -40,20 +40,57 @@ export function CatalogSubstanceDisplay({
   renderQuality = 'high',
   labSynthesisScene = false,
 }: Props) {
+  const rawFx: 'off' | 'low' | 'full' = fxLevelIn ?? (reducedEffects ? 'low' : 'full')
+  const fxLevel: 'off' | 'low' | 'full' =
+    labSynthesisScene && rawFx === 'full' ? 'low' : rawFx
+  const sparkleHex = compound.accentColor ?? '#3dffec'
+
   if (labSynthesisScene) {
+    const showDecor = fxLevel === 'low' || fxLevel === 'full'
+    const sp1 = fxLevel === 'full' ? 96 : 32
+    const sp2 = fxLevel === 'full' ? 48 : 16
     return (
-      <HeroMoleculeRig
-        compound={compound}
-        labScaleBoost={labScaleBoost}
-        renderQuality={renderQuality}
-        fxLevel="off"
-      />
+      <>
+        {showDecor ? (
+          <>
+            <SubstanceAuraBubble accentColor={compound.accentColor} compoundId={compound.id} />
+            {sp1 > 0 ? (
+              <Sparkles
+                count={sp1}
+                scale={5.5}
+                size={1.85}
+                speed={0.36}
+                opacity={0.55}
+                color={sparkleHex}
+                position={[0, 0.06, 0]}
+              />
+            ) : null}
+            {sp2 > 0 ? (
+              <Sparkles
+                count={sp2}
+                scale={4}
+                size={1.25}
+                speed={0.44}
+                opacity={0.35}
+                color="#cfefff"
+                position={[0.1, -0.02, -0.15]}
+              />
+            ) : null}
+          </>
+        ) : null}
+        <HeroMoleculeRig
+          compound={compound}
+          labScaleBoost={labScaleBoost}
+          renderQuality="high"
+          fxLevel={showDecor ? 'low' : 'off'}
+        />
+      </>
     )
   }
 
-  const rawFx: 'off' | 'low' | 'full' = fxLevelIn ?? (reducedEffects ? 'low' : 'full')
-  const fxLevel = rawFx
   const starPts = fxLevel === 'full' ? 260 : fxLevel === 'low' ? 100 : 0
+  const sp1 = fxLevel === 'full' ? 96 : fxLevel === 'low' ? 32 : 0
+  const sp2 = fxLevel === 'full' ? 48 : fxLevel === 'low' ? 16 : 0
 
   return (
     <>
@@ -74,6 +111,28 @@ export function CatalogSubstanceDisplay({
       ) : null}
       {fxLevel === 'full' || fxLevel === 'low' ? (
         <SubstanceAuraBubble accentColor={compound.accentColor} compoundId={compound.id} />
+      ) : null}
+      {sp1 > 0 ? (
+        <Sparkles
+          count={sp1}
+          scale={5.5}
+          size={1.85}
+          speed={0.36}
+          opacity={0.55}
+          color={sparkleHex}
+          position={[0, 0.06, 0]}
+        />
+      ) : null}
+      {sp2 > 0 ? (
+        <Sparkles
+          count={sp2}
+          scale={4}
+          size={1.25}
+          speed={0.44}
+          opacity={0.35}
+          color="#cfefff"
+          position={[0.1, -0.02, -0.15]}
+        />
       ) : null}
       <HeroMoleculeRig
         compound={compound}

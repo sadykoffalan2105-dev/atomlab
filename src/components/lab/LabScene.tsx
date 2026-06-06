@@ -177,7 +177,6 @@ function TransformPreviewHero({ compound }: { compound: CompoundDef }) {
         compound={compound}
         reducedEffects
         labSynthesisScene
-        renderQuality="synthesis"
         fxLevel="low"
       />
     </>

@@ -18,7 +18,6 @@ export function SynthesisSettledProductHero({ compound }: { compound: CompoundDe
         compound={compound}
         reducedEffects
         labSynthesisScene
-        renderQuality="synthesis"
         fxLevel="low"
       />
     </>
