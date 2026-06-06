@@ -35,6 +35,8 @@ export const learnGradesOutlineEn = {
   'learn.topicQuiz.placeholder': 'Click “Random question” to test yourself on this section.',
   'learn.topicQuiz.fullscreen': 'Full screen',
   'learn.topicQuiz.fullscreenClose': 'Close',
+  'learn.topicQuiz.showDescription': 'Question explanation',
+  'learn.topicQuiz.descriptionTitle': 'Topic explanation',
   'learn.outline.theory.body':
     'Curriculum-aligned material. Full 6+ slide lessons roll out gradually — use 3D and the AI teacher.',
   'learn.outline.visual.caption': '3D model for this section',

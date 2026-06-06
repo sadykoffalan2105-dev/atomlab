@@ -1,0 +1,34 @@
+.topicQuizVisual {
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(61, 255, 236, 0.28);
+  background: linear-gradient(165deg, rgba(8, 14, 32, 0.95), rgba(4, 8, 18, 0.98));
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+}
+
+.caption {
+  margin: 0;
+  padding: 0.55rem 0.75rem 0.65rem;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: rgba(170, 195, 235, 0.9);
+  border-top: 1px solid rgba(61, 255, 236, 0.12);
+}
+
+.compact .svg {
+  aspect-ratio: 16 / 9;
+  max-height: 11rem;
+}
+
+.compact .caption {
+  font-size: 0.7rem;
+  padding: 0.4rem 0.55rem;
+}

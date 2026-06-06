@@ -4,6 +4,7 @@ import { pickRandomTopicQuiz, topicQuizPoolSize } from '../../learn/g7TopicQuizE
 import type { TopicQuizItem } from '../../learn/topicQuizTypes'
 import { useT } from '../../i18n/useT'
 import { LearnTopicQuizFullscreen } from './LearnTopicQuizFullscreen'
+import { hasTopicQuizVisual, TopicQuizVisual } from './TopicQuizVisual'
 import styles from './LearnTopicQuizCard.module.css'
 import fsStyles from './LearnTopicQuizFullscreen.module.css'
 
@@ -27,6 +28,13 @@ type QuizUi = {
   feedbackOk: string
   feedbackBad: string
   explain: string
+  descPanel?: string
+  descPanelOpen?: string
+  descTitle?: string
+  descGrid?: string
+  descVisual?: string
+  descText?: string
+  descBtn?: string
 }
 
 const CARD_UI: QuizUi = {
@@ -42,6 +50,13 @@ const CARD_UI: QuizUi = {
   feedbackOk: styles.feedbackOk,
   feedbackBad: styles.feedbackBad,
   explain: styles.explain,
+  descPanel: styles.descPanel,
+  descPanelOpen: styles.descPanelOpen,
+  descTitle: styles.descTitle,
+  descGrid: styles.descGrid,
+  descVisual: styles.descVisual,
+  descText: styles.descText,
+  descBtn: styles.descBtn,
 }
 
 const FS_UI: QuizUi = {
@@ -57,6 +72,45 @@ const FS_UI: QuizUi = {
   feedbackOk: fsStyles.feedbackOk,
   feedbackBad: fsStyles.feedbackBad,
   explain: fsStyles.explain,
+  descPanel: fsStyles.descPanel,
+  descPanelOpen: fsStyles.descPanelOpen,
+  descTitle: fsStyles.descTitle,
+  descGrid: fsStyles.descGrid,
+  descVisual: fsStyles.descVisual,
+  descText: fsStyles.descText,
+  descBtn: fsStyles.descBtn,
+}
+
+function TopicQuizDescription({
+  ui,
+  question,
+  open,
+  visualCompact,
+}: {
+  ui: QuizUi
+  question: TopicQuizItem
+  open: boolean
+  visualCompact: boolean
+}) {
+  const { t } = useT()
+  const text = question.description ?? question.explanation
+  if (!open || !text) return null
+
+  const showVisual = question.visualId && hasTopicQuizVisual(question.visualId)
+
+  return (
+    <div className={`${ui.descPanel} ${ui.descPanelOpen}`} role="region" aria-label={t('learn.topicQuiz.descriptionTitle')}>
+      <h4 className={ui.descTitle}>{t('learn.topicQuiz.descriptionTitle')}</h4>
+      <div className={showVisual ? ui.descGrid : undefined}>
+        {showVisual ? (
+          <div className={ui.descVisual}>
+            <TopicQuizVisual visualId={question.visualId!} compact={visualCompact} />
+          </div>
+        ) : null}
+        <p className={ui.descText}>{text}</p>
+      </div>
+    </div>
+  )
 }
 
 function TopicQuizBody({
@@ -68,6 +122,9 @@ function TopicQuizBody({
   status,
   animKey,
   placeholder,
+  showDescription,
+  onToggleDescription,
+  visualCompact,
 }: {
   ui: QuizUi
   revealed: boolean
@@ -77,6 +134,9 @@ function TopicQuizBody({
   status: 'ok' | 'bad' | null
   animKey: number
   placeholder: string
+  showDescription: boolean
+  onToggleDescription: () => void
+  visualCompact: boolean
 }) {
   const { t } = useT()
 
@@ -87,6 +147,9 @@ function TopicQuizBody({
       </div>
     )
   }
+
+  const hasDescription = !!(question.description ?? question.explanation)
+  const answered = pick !== null
 
   return (
     <div key={animKey} className={ui.questionWrap}>
@@ -117,9 +180,20 @@ function TopicQuizBody({
       </ul>
       {status === 'ok' ? <p className={ui.feedbackOk}>{t('learn.topicQuiz.correct')}</p> : null}
       {status === 'bad' ? <p className={ui.feedbackBad}>{t('learn.topicQuiz.wrong')}</p> : null}
-      {status && question.explanation ? (
+      {answered && status === 'ok' && !showDescription && hasDescription && ui.descBtn ? (
+        <button type="button" className={ui.descBtn} onClick={onToggleDescription}>
+          {t('learn.topicQuiz.showDescription')}
+        </button>
+      ) : null}
+      {answered && status === 'bad' && !showDescription && hasDescription && question.explanation ? (
         <p className={ui.explain}>{question.explanation}</p>
       ) : null}
+      <TopicQuizDescription
+        ui={ui}
+        question={question}
+        open={showDescription && hasDescription}
+        visualCompact={visualCompact}
+      />
     </div>
   )
 }
@@ -133,12 +207,14 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
   const [seen, setSeen] = useState<Set<string>>(() => new Set())
   const [animKey, setAnimKey] = useState(0)
   const [fullscreen, setFullscreen] = useState(false)
+  const [showDescription, setShowDescription] = useState(false)
 
   const drawQuestion = useCallback(() => {
     const next = pickRandomTopicQuiz(grade.id, chapter.id, section.id, seen)
     setQuestion(next)
     setPick(null)
     setRevealed(true)
+    setShowDescription(false)
     setAnimKey((k) => k + 1)
     setSeen((prev) => {
       const n = new Set(prev)
@@ -151,6 +227,13 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
   useEffect(() => {
     if (autoReveal && !question) drawQuestion()
   }, [autoReveal, drawQuestion, question])
+
+  const handlePick = useCallback((idx: number) => {
+    setPick(idx)
+    if (!question) return
+    const ok = idx === question.correctIndex
+    setShowDescription(!ok)
+  }, [question])
 
   const status = useMemo((): 'ok' | 'bad' | null => {
     if (pick === null || !question) return null
@@ -173,11 +256,16 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
     revealed,
     question,
     pick,
-    onPick: setPick,
+    onPick: handlePick,
     status,
     animKey,
     placeholder,
+    showDescription,
+    onToggleDescription: () => setShowDescription((v) => !v),
+    visualCompact: false,
   }
+
+  const cardBodyProps = { ...bodyProps, visualCompact: true }
 
   return (
     <>
@@ -206,7 +294,7 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
             </button>
           </div>
         </div>
-        <TopicQuizBody ui={CARD_UI} {...bodyProps} />
+        <TopicQuizBody ui={CARD_UI} {...cardBodyProps} />
       </section>
 
       {fullscreen ? (

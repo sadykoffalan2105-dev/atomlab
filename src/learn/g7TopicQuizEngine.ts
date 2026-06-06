@@ -1,7 +1,14 @@
 import { learnSectionPathKey } from '../data/learnFgosMatrix'
+import { G7_C1_S01_QUIZ_ENRICHMENTS } from './g7C1S01QuizEnrichments'
 import type { TopicQuizItem } from './topicQuizTypes'
 
-type Template = Omit<TopicQuizItem, 'id'>
+type Template = {
+  templateKey: string
+  question: string
+  choices: [string, string, string, string]
+  correctIndex: 0 | 1 | 2 | 3
+  explanation?: string
+}
 
 function mulberry32(seed: number) {
   return () => {
@@ -38,8 +45,9 @@ function withChoices(
   }
 }
 
-function mk(_id: string, question: string, correct: string, pool: string[], explanation?: string): Template {
+function mk(templateKey: string, question: string, correct: string, pool: string[], explanation?: string): Template {
   return {
+    templateKey,
     question,
     choices: [correct, pool[0] ?? '—', pool[1] ?? '—', pool[2] ?? '—'],
     correctIndex: 0,
@@ -192,32 +200,44 @@ function numericPool(ch: number, sec: number, i: number): Template {
   )
 }
 
-function sectionTwist(_ch: number, sec: number, t: Template, i: number): Template {
-  const tag = `§${sec}`
-  if (i % 3 === 0 && !t.question.includes('§')) {
-    return { ...t, question: `${tag}: ${t.question}` }
-  }
-  return t
+function expandC1S01Pool(seed: number): TopicQuizItem[] {
+  const rand = mulberry32(seed)
+  const base = CHAPTER_TEMPLATES[1]!
+  return base.map((template, i) => {
+    const enrichment = G7_C1_S01_QUIZ_ENRICHMENTS[template.templateKey]!
+    const correct = template.choices[template.correctIndex]!
+    const distractorPool = [
+      ...template.choices.filter((_, idx) => idx !== template.correctIndex),
+      'Нужно повторить §',
+      'Зависит от условия',
+      'Неверное утверждение',
+    ]
+    const { choices, correctIndex } = withChoices(correct, distractorPool, rand)
+    return {
+      id: `g7-c1-s01-q${i + 1}`,
+      question: template.question,
+      choices,
+      correctIndex,
+      explanation: enrichment?.explanation ?? template.explanation,
+      description: enrichment?.description,
+      visualId: enrichment?.visualId,
+    }
+  })
 }
 
 function expandToPool(ch: number, sec: number, seed: number): TopicQuizItem[] {
   const rand = mulberry32(seed)
   const base = CHAPTER_TEMPLATES[ch] ?? CHAPTER_TEMPLATES[1]!
   const out: TopicQuizItem[] = []
-  const seen = new Set<string>()
 
   for (let i = 0; i < 50; i++) {
     let template: Template
     if (i < base.length) {
-      template = sectionTwist(ch, sec, base[i % base.length]!, i)
+      template = base[i % base.length]!
     } else if (i < 35 && ch >= 2) {
       template = numericPool(ch, sec, i)
     } else {
-      template = sectionTwist(ch, sec, base[i % base.length]!, i)
-      template = {
-        ...template,
-        question: `${template.question} (вариант ${i + 1})`,
-      }
+      template = base[i % base.length]!
     }
 
     const distractorPool = [...template.choices, 'Нужно повторить §', 'Зависит от условия', 'Неверное утверждение']
@@ -225,8 +245,6 @@ function expandToPool(ch: number, sec: number, seed: number): TopicQuizItem[] {
     const { choices, correctIndex } = withChoices(correct, distractorPool, rand)
 
     const id = `g7-c${ch}-s${String(sec).padStart(2, '0')}-q${i + 1}`
-    if (seen.has(template.question)) continue
-    seen.add(template.question)
 
     out.push({
       id,
@@ -263,7 +281,11 @@ export function getTopicQuizPool(gradeId: string, chapterId: string, sectionId: 
     const ch = Number(chapterId.replace(/^c/, '')) || 1
     const sec = Number(sectionId.replace(/^s/, '')) || 1
     const seed = ch * 1000 + sec * 17 + 42
-    pool = expandToPool(ch, sec, seed)
+    if (gradeId === 'g7' && chapterId === 'c1' && sectionId === 's01') {
+      pool = expandC1S01Pool(seed)
+    } else {
+      pool = expandToPool(ch, sec, seed)
+    }
     POOL_CACHE.set(key, pool)
   }
   return pool
