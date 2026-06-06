@@ -265,13 +265,14 @@
 
 .descGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: 1.1rem;
   align-items: start;
 }
 
 .descVisual {
   min-width: 0;
+  width: 100%;
 }
 
 .descText {

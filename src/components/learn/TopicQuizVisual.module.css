@@ -7,28 +7,55 @@
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
-.svg {
+.photo {
   display: block;
   width: 100%;
   height: auto;
   aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: center;
+  background: #060a14;
+}
+
+.photoFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(180, 200, 235, 0.88);
+  background: rgba(6, 12, 28, 0.9);
 }
 
 .caption {
   margin: 0;
-  padding: 0.55rem 0.75rem 0.65rem;
-  font-size: 0.76rem;
+  padding: 0.6rem 0.8rem 0.7rem;
+  font-size: 0.78rem;
   line-height: 1.45;
-  color: rgba(170, 195, 235, 0.9);
+  color: rgba(170, 195, 235, 0.92);
   border-top: 1px solid rgba(61, 255, 236, 0.12);
 }
 
-.compact .svg {
+.compact .photo {
   aspect-ratio: 16 / 9;
-  max-height: 11rem;
+  max-height: none;
+}
+
+.fullscreenPhoto .photo {
+  aspect-ratio: 16 / 9;
+  max-height: min(52vh, 28rem);
+  object-fit: contain;
+  background: #040810;
 }
 
 .compact .caption {
   font-size: 0.7rem;
-  padding: 0.4rem 0.55rem;
+  padding: 0.45rem 0.6rem;
+}
+
+.compact .photoFallback {
+  min-height: 8rem;
 }

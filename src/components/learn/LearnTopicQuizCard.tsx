@@ -4,7 +4,9 @@ import { pickRandomTopicQuiz, topicQuizPoolSize } from '../../learn/g7TopicQuizE
 import type { TopicQuizItem } from '../../learn/topicQuizTypes'
 import { useT } from '../../i18n/useT'
 import { LearnTopicQuizFullscreen } from './LearnTopicQuizFullscreen'
+import { prefetchLearnImage } from './LearnSlideVisual'
 import { hasTopicQuizVisual, TopicQuizVisual } from './TopicQuizVisual'
+import { getQuizVisualSpec } from '../../learn/quizVisualManifest'
 import styles from './LearnTopicQuizCard.module.css'
 import fsStyles from './LearnTopicQuizFullscreen.module.css'
 
@@ -86,11 +88,13 @@ function TopicQuizDescription({
   question,
   open,
   visualCompact,
+  visualFullscreen,
 }: {
   ui: QuizUi
   question: TopicQuizItem
   open: boolean
   visualCompact: boolean
+  visualFullscreen: boolean
 }) {
   const { t } = useT()
   const text = question.description ?? question.explanation
@@ -104,7 +108,11 @@ function TopicQuizDescription({
       <div className={showVisual ? ui.descGrid : undefined}>
         {showVisual ? (
           <div className={ui.descVisual}>
-            <TopicQuizVisual visualId={question.visualId!} compact={visualCompact} />
+            <TopicQuizVisual
+              visualId={question.visualId!}
+              compact={visualCompact}
+              fullscreen={visualFullscreen}
+            />
           </div>
         ) : null}
         <p className={ui.descText}>{text}</p>
@@ -125,6 +133,7 @@ function TopicQuizBody({
   showDescription,
   onToggleDescription,
   visualCompact,
+  visualFullscreen,
 }: {
   ui: QuizUi
   revealed: boolean
@@ -137,6 +146,7 @@ function TopicQuizBody({
   showDescription: boolean
   onToggleDescription: () => void
   visualCompact: boolean
+  visualFullscreen: boolean
 }) {
   const { t } = useT()
 
@@ -193,6 +203,7 @@ function TopicQuizBody({
         question={question}
         open={showDescription && hasDescription}
         visualCompact={visualCompact}
+        visualFullscreen={visualFullscreen}
       />
     </div>
   )
@@ -252,6 +263,12 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
 
   const closeFullscreen = useCallback(() => setFullscreen(false), [])
 
+  useEffect(() => {
+    if (!question?.visualId) return
+    const spec = getQuizVisualSpec(question.visualId)
+    if (spec) prefetchLearnImage(spec.src)
+  }, [question?.visualId])
+
   const bodyProps = {
     revealed,
     question,
@@ -263,9 +280,10 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
     showDescription,
     onToggleDescription: () => setShowDescription((v) => !v),
     visualCompact: false,
+    visualFullscreen: true,
   }
 
-  const cardBodyProps = { ...bodyProps, visualCompact: true }
+  const cardBodyProps = { ...bodyProps, visualCompact: true, visualFullscreen: false }
 
   return (
     <>

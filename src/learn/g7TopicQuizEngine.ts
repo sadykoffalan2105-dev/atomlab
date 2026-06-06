@@ -200,11 +200,21 @@ function numericPool(ch: number, sec: number, i: number): Template {
   )
 }
 
-function expandC1S01Pool(seed: number): TopicQuizItem[] {
+function applyTemplateEnrichment(template: Template, item: TopicQuizItem): TopicQuizItem {
+  const e = G7_C1_S01_QUIZ_ENRICHMENTS[template.templateKey]
+  if (!e) return item
+  return {
+    ...item,
+    explanation: e.explanation ?? item.explanation,
+    description: e.description,
+    visualId: e.visualId,
+  }
+}
+
+function expandC1EnrichedPool(ch: number, sec: number, seed: number): TopicQuizItem[] {
   const rand = mulberry32(seed)
   const base = CHAPTER_TEMPLATES[1]!
   return base.map((template, i) => {
-    const enrichment = G7_C1_S01_QUIZ_ENRICHMENTS[template.templateKey]!
     const correct = template.choices[template.correctIndex]!
     const distractorPool = [
       ...template.choices.filter((_, idx) => idx !== template.correctIndex),
@@ -213,15 +223,13 @@ function expandC1S01Pool(seed: number): TopicQuizItem[] {
       'Неверное утверждение',
     ]
     const { choices, correctIndex } = withChoices(correct, distractorPool, rand)
-    return {
-      id: `g7-c1-s01-q${i + 1}`,
+    return applyTemplateEnrichment(template, {
+      id: `g7-c${ch}-s${String(sec).padStart(2, '0')}-q${i + 1}`,
       question: template.question,
       choices,
       correctIndex,
-      explanation: enrichment?.explanation ?? template.explanation,
-      description: enrichment?.description,
-      visualId: enrichment?.visualId,
-    }
+      explanation: template.explanation,
+    })
   })
 }
 
@@ -246,13 +254,15 @@ function expandToPool(ch: number, sec: number, seed: number): TopicQuizItem[] {
 
     const id = `g7-c${ch}-s${String(sec).padStart(2, '0')}-q${i + 1}`
 
-    out.push({
-      id,
-      question: template.question,
-      choices,
-      correctIndex,
-      explanation: template.explanation,
-    })
+    out.push(
+      applyTemplateEnrichment(template, {
+        id,
+        question: template.question,
+        choices,
+        correctIndex,
+        explanation: template.explanation,
+      }),
+    )
   }
 
   while (out.length < 45) {
@@ -281,8 +291,8 @@ export function getTopicQuizPool(gradeId: string, chapterId: string, sectionId: 
     const ch = Number(chapterId.replace(/^c/, '')) || 1
     const sec = Number(sectionId.replace(/^s/, '')) || 1
     const seed = ch * 1000 + sec * 17 + 42
-    if (gradeId === 'g7' && chapterId === 'c1' && sectionId === 's01') {
-      pool = expandC1S01Pool(seed)
+    if (gradeId === 'g7' && chapterId === 'c1') {
+      pool = expandC1EnrichedPool(ch, sec, seed)
     } else {
       pool = expandToPool(ch, sec, seed)
     }
