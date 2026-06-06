@@ -7,9 +7,11 @@ type Props = {
   compact?: boolean
   /** Полноэкранный режим — крупнее и без обрезки */
   fullscreen?: boolean
+  /** Две колонки: компактное фото в панели описания */
+  split?: boolean
 }
 
-export function TopicQuizVisual({ visualId, compact = false, fullscreen = false }: Props) {
+export function TopicQuizVisual({ visualId, compact = false, fullscreen = false, split = false }: Props) {
   const spec = getQuizVisualSpec(visualId)
   const [failed, setFailed] = useState(false)
 
@@ -17,7 +19,7 @@ export function TopicQuizVisual({ visualId, compact = false, fullscreen = false 
 
   return (
     <figure
-      className={`${styles.topicQuizVisual} ${compact ? styles.compact : ''} ${fullscreen ? styles.fullscreenPhoto : ''}`}
+      className={`${styles.topicQuizVisual} ${compact ? styles.compact : ''} ${fullscreen ? styles.fullscreenPhoto : ''} ${split ? styles.splitPhoto : ''}`}
     >
       {!failed ? (
         <img

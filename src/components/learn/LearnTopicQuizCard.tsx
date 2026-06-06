@@ -38,6 +38,7 @@ type QuizUi = {
   descText?: string
   descTextBlock?: string
   descBtn?: string
+  questionWrapStacked?: string
 }
 
 const CARD_UI: QuizUi = {
@@ -84,6 +85,7 @@ const FS_UI: QuizUi = {
   descText: fsStyles.descText,
   descTextBlock: fsStyles.descTextBlock,
   descBtn: fsStyles.descBtn,
+  questionWrapStacked: fsStyles.questionWrapStacked,
 }
 
 function TopicQuizDescription({
@@ -92,12 +94,14 @@ function TopicQuizDescription({
   open,
   visualCompact,
   visualFullscreen,
+  visualSplit = false,
 }: {
   ui: QuizUi
   question: TopicQuizItem
   open: boolean
   visualCompact: boolean
   visualFullscreen: boolean
+  visualSplit?: boolean
 }) {
   const { t } = useT()
   const text = question.description ?? question.explanation
@@ -114,7 +118,8 @@ function TopicQuizDescription({
             <TopicQuizVisual
               visualId={question.visualId!}
               compact={visualCompact}
-              fullscreen={visualFullscreen}
+              fullscreen={visualFullscreen && !visualSplit}
+              split={visualSplit}
             />
           </div>
         ) : null}
@@ -169,9 +174,10 @@ function TopicQuizBody({
 
   const hasDescription = !!(question.description ?? question.explanation)
   const answered = pick !== null
+  const stackedLayout = visualFullscreen && showDescription && hasDescription
 
-  return (
-    <div key={animKey} className={ui.questionWrap}>
+  const quizBlock = (
+    <>
       <p className={ui.question}>{question.question}</p>
       <ul className={ui.choices}>
         {question.choices.map((choice, idx) => {
@@ -207,12 +213,22 @@ function TopicQuizBody({
       {answered && status === 'bad' && !showDescription && hasDescription && question.explanation ? (
         <p className={ui.explain}>{question.explanation}</p>
       ) : null}
+    </>
+  )
+
+  return (
+    <div
+      key={animKey}
+      className={`${ui.questionWrap}${stackedLayout && ui.questionWrapStacked ? ` ${ui.questionWrapStacked}` : ''}`}
+    >
+      {quizBlock}
       <TopicQuizDescription
         ui={ui}
         question={question}
         open={showDescription && hasDescription}
         visualCompact={visualCompact}
         visualFullscreen={visualFullscreen}
+        visualSplit={stackedLayout}
       />
     </div>
   )

@@ -94,6 +94,23 @@
   padding: 1.75rem 1.5rem 2.5rem;
 }
 
+.main:has(.questionWrapStacked) {
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 1rem 0.55rem;
+}
+
+.inner:has(.questionWrapStacked) {
+  width: min(46rem, 92vw);
+  max-width: none;
+  height: 100%;
+  max-height: calc(100dvh - 3.65rem);
+  margin: 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
 .inner {
   width: min(52rem, 94vw);
   margin: auto;
@@ -118,6 +135,22 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+}
+
+.questionWrapStacked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: min(46rem, 92vw);
+  width: 100%;
+  height: 100%;
+  max-height: calc(100dvh - 3.65rem);
+  min-height: 0;
+}
+
+.questionWrapStacked .choices {
+  width: 100%;
+  gap: 0.32rem;
 }
 
 @keyframes quizBodyIn {
@@ -306,9 +339,105 @@
   color: rgba(210, 225, 255, 0.94);
 }
 
+.questionWrapStacked .question {
+  font-size: clamp(1rem, 2vw, 1.28rem);
+  margin-bottom: 0.5rem;
+  text-align: center;
+  line-height: 1.35;
+  width: 100%;
+}
+
+.questionWrapStacked .choice {
+  padding: 0.42rem 0.75rem;
+  font-size: clamp(0.78rem, 1.3vw, 0.88rem);
+  border-radius: 9px;
+  gap: 0.55rem;
+}
+
+.questionWrapStacked .choiceLetter {
+  width: 1.35rem;
+  height: 1.35rem;
+  font-size: 0.66rem;
+  border-radius: 6px;
+}
+
+.questionWrapStacked .feedbackOk,
+.questionWrapStacked .feedbackBad {
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.questionWrapStacked .descPanel {
+  margin-top: 0.55rem;
+  width: 100%;
+  max-width: min(40rem, 100%);
+  align-self: center;
+  background: rgba(10, 18, 38, 0.94);
+  border-color: rgba(61, 255, 236, 0.35);
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.questionWrapStacked .descPanelOpen {
+  max-height: none;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0.65rem 0.85rem 0.7rem;
+}
+
+.questionWrapStacked .descTitle {
+  margin-bottom: 0.45rem;
+  font-size: 0.88rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.questionWrapStacked .descGrid {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.questionWrapStacked .descVisual {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.questionWrapStacked .descTextBlock {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  gap: 0.38rem;
+  width: 100%;
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+.questionWrapStacked .descText {
+  font-size: clamp(0.76rem, 1.05vw, 0.86rem);
+  line-height: 1.46;
+  color: #e6eeff;
+}
+
 @media (max-width: 720px) {
-  .descGrid {
-    grid-template-columns: 1fr;
+  .main:has(.questionWrapStacked) {
+    padding: 0.55rem 0.85rem 0.85rem;
+  }
+
+  .inner:has(.questionWrapStacked) {
+    width: 100%;
   }
 }
 

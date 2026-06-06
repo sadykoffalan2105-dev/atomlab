@@ -51,6 +51,39 @@
   background: #040810;
 }
 
+.splitPhoto {
+  width: min(82%, 32rem);
+  margin-inline: auto;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+  text-align: center;
+}
+
+.splitPhoto .photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(17vh, 10rem);
+  aspect-ratio: unset;
+  object-fit: contain;
+  object-position: center;
+  background: transparent;
+  border-radius: 10px;
+  border: 1px solid rgba(61, 255, 236, 0.3);
+  margin-inline: auto;
+}
+
+.splitPhoto .caption {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.1rem 0;
+  line-height: 1.4;
+  color: rgba(195, 215, 250, 0.95);
+  border-top: none;
+  text-align: center;
+}
+
 .compact .caption {
   font-size: 0.7rem;
   padding: 0.45rem 0.6rem;
