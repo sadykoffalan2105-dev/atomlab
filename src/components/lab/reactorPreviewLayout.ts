@@ -9,12 +9,12 @@ export type ReactorPreviewAtom = {
 }
 
 function layoutGroupRadius(groupCount: number): number {
-  return 0.78 + Math.min(groupCount, 6) * 0.1
+  return 1.05 + Math.min(groupCount, 6) * 0.14
 }
 
 function layoutMiniRadius(atomCount: number): number {
   if (atomCount <= 1) return 0
-  return 0.09 + Math.min(atomCount, 8) * 0.018
+  return 0.18 + Math.min(atomCount, 10) * 0.034
 }
 
 /** Центры слагаемых на передней дуге (Cr | K | O₂) — компактно к камере. */
@@ -24,7 +24,7 @@ function groupCentersOnFrontArc(
 ): Array<[number, number, number]> {
   if (groupCount <= 0) return []
   if (groupCount === 1) return [[0, 0.12, 0.24]]
-  const span = (148 * Math.PI) / 180
+  const span = (158 * Math.PI) / 180
   const start = -Math.PI / 2 - span / 2
   return Array.from({ length: groupCount }, (_, i) => {
     const t = i / (groupCount - 1)
@@ -142,18 +142,24 @@ export function getTermGroupCenters(terms: readonly ReactorEquationTerm[]): Term
     })
 }
 
-export function reactorPreviewAtomScale(totalAtoms: number, base = 0.44): number {
+export const PREVIEW_BASE_ATOM_SCALE = 0.88
+export const PREVIEW_MIN_ATOM_SCALE = 0.58
+
+export function reactorPreviewAtomScale(
+  totalAtoms: number,
+  base = PREVIEW_BASE_ATOM_SCALE,
+): number {
   const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
-  const denseBoost = totalAtoms > 10 ? 1.08 : 1
-  const scaled = base * clamp(6 / Math.max(6, totalAtoms), 0.42, 1) * denseBoost
-  return Math.max(0.34, scaled)
+  const countFactor = clamp(11 / Math.max(11, totalAtoms), 0.62, 1)
+  const denseBoost = totalAtoms > 14 ? 0.94 : 1
+  return Math.max(PREVIEW_MIN_ATOM_SCALE, base * countFactor * denseBoost)
 }
 
 /** Центр реакции в лабораторной сцене (совпадает с SynthesisConvergeStreams). */
 export const REACTION_CENTER: [number, number, number] = [0, 0.12, 0]
 
 /** Множитель «отдаления» стартовых точек полёта от превью-кластеров. */
-export const SYNTHESIS_APPROACH_SPREAD = 2.18
+export const SYNTHESIS_APPROACH_SPREAD = 1.92
 
 export function scalePositionOutwardFromCenter(
   pos: [number, number, number],

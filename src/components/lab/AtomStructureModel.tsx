@@ -106,6 +106,8 @@ export function AtomStructureModel({
   previewEmphasis = false,
   previewLite = false,
   hideOrbitRings = false,
+  /** Реактор/синтез: крупное ядро, орбиты и электроны как в режиме просмотра атома. */
+  synthesisDetail = false,
 }: {
   z: number
   animate?: boolean
@@ -116,6 +118,7 @@ export function AtomStructureModel({
   previewLite?: boolean
   /** Реактор: только ядро и электроны, без цветных орбитальных колец. */
   hideOrbitRings?: boolean
+  synthesisDetail?: boolean
 }) {
   const group = useRef<THREE.Group>(null)
   const protRef = useRef<THREE.InstancedMesh>(null)
@@ -125,12 +128,14 @@ export function AtomStructureModel({
   const dummy = useMemo(() => new THREE.Object3D(), [])
 
   const zClamped = Math.max(1, Math.min(MAX_Z, Math.floor(z)))
-  const lite = previewLite || zClamped > 18
+  const lite = synthesisDetail ? zClamped > 54 : previewLite || zClamped > 18
+  const showRings = synthesisDetail ? true : !hideOrbitRings
+  const shellMul = synthesisDetail ? 1.08 : 1
   const protGeo = SHARED_PROT_GEO
-  const elecGeo = previewEmphasis ? SHARED_ELEC_GEO_EMPH : SHARED_ELEC_GEO_STD
+  const elecGeo = previewEmphasis || synthesisDetail ? SHARED_ELEC_GEO_EMPH : SHARED_ELEC_GEO_STD
   const protMat = SHARED_PROT_MAT
   const neutMat = SHARED_NEUT_MAT
-  const elecMat = previewEmphasis ? SHARED_ELEC_MAT_EMPH : SHARED_ELEC_MAT
+  const elecMat = previewEmphasis || synthesisDetail ? SHARED_ELEC_MAT_EMPH : SHARED_ELEC_MAT
 
   const el = getElementByZ(zClamped)
   const mass = el?.atomicMass ?? zClamped * 2
@@ -142,12 +147,14 @@ export function AtomStructureModel({
   const nucleusRadius = useMemo(() => {
     const n = Math.max(1, nNeutrons)
     const total = zClamped + n
-    return Math.min(0.12, 0.024 + Math.cbrt(total) * 0.012)
-  }, [zClamped, nNeutrons])
+    const cap = synthesisDetail ? 0.145 : 0.12
+    const grow = synthesisDetail ? 1.14 : 1
+    return Math.min(cap, (0.024 + Math.cbrt(total) * 0.012) * grow)
+  }, [zClamped, nNeutrons, synthesisDetail])
 
   const angles = useRef<number[]>([])
-  const orbitOpacity = previewEmphasis ? 0.38 : 0.26
-  const torusSegments = lite ? 16 : previewLite ? 32 : 48
+  const orbitOpacity = synthesisDetail ? 0.42 : previewEmphasis ? 0.38 : 0.26
+  const torusSegments = lite ? 16 : synthesisDetail ? 48 : previewLite ? 32 : 48
 
   useLayoutEffect(() => {
     angles.current = Array.from({ length: nElec }, (_, i) => (i / Math.max(1, nElec)) * Math.PI * 2)
@@ -162,7 +169,7 @@ export function AtomStructureModel({
       let idx = 0
       shells.forEach((count, shellIdx) => {
         if (count <= 0) return
-        const majorR = 0.38 + shellIdx * 0.21
+        const majorR = (0.38 + shellIdx * 0.21) * shellMul
         const eRx = (shellIdx * Math.PI) / 6
         const eRy = (shellIdx * Math.PI) / 5
         const eRz = (shellIdx * Math.PI) / 7
@@ -188,7 +195,7 @@ export function AtomStructureModel({
       mesh.count = nElec
       mesh.instanceMatrix.needsUpdate = true
     },
-    [dummy, nElec, shells],
+    [dummy, nElec, shells, shellMul],
   )
 
   useLayoutEffect(() => {
@@ -242,10 +249,11 @@ export function AtomStructureModel({
     <group ref={group}>
       <instancedMesh ref={protRef} args={[protGeo, protMat, MAX_Z]} frustumCulled={false} />
       <instancedMesh ref={neutRef} args={[protGeo, neutMat, MAX_NEUTRONS]} frustumCulled={false} />
-      {!hideOrbitRings
-        ? shells.map((count, shellIdx) => {
+      {!showRings
+        ? null
+        : shells.map((count, shellIdx) => {
             if (count <= 0) return null
-            const majorR = 0.38 + shellIdx * 0.21
+            const majorR = (0.38 + shellIdx * 0.21) * shellMul
             const col = shellHue(shellIdx)
             const eRx = (shellIdx * Math.PI) / 6
             const eRy = (shellIdx * Math.PI) / 5
@@ -261,11 +269,10 @@ export function AtomStructureModel({
                 />
               </mesh>
             )
-          })
-        : null}
+          })}
       <instancedMesh ref={elecRef} args={[elecGeo, elecMat, MAX_Z]} frustumCulled={false} />
-      {localLight && !lite ? (
-        <pointLight position={[0, 0, 0]} intensity={1.05} distance={4.2} color="#7afcff" />
+      {localLight && (!lite || synthesisDetail) ? (
+        <pointLight position={[0, 0, 0]} intensity={synthesisDetail ? 1.35 : 1.05} distance={4.8} color="#7afcff" />
       ) : null}
     </group>
   )

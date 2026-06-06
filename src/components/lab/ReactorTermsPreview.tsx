@@ -53,10 +53,11 @@ export function ReactorTermsPreview({
   const atomGroupRefs = atomGroupRefsExternal ?? atomGroupRefsLocal
   const atomScaleGroupRefs = atomScaleGroupRefsExternal ?? atomScaleGroupRefsLocal
   const scale = reactorPreviewAtomScale(n)
-  const dense = n > 6
-  const slowSpin = n <= PREVIEW_MAX_ATOM_MODELS && visible && !flightActive
-  const driftAtoms = n <= PREVIEW_MAX_ATOM_MODELS && visible && !flightActive
-  const electronAnimate = n <= PREVIEW_MAX_ATOM_MODELS
+  const fullDetail = n <= PREVIEW_MAX_ATOM_MODELS
+  const dense = n > 18
+  const slowSpin = fullDetail && visible && !flightActive
+  const driftAtoms = fullDetail && visible && !flightActive
+  const electronAnimate = fullDetail
 
   useEffect(() => {
     assertPreviewElectronAnimation(electronAnimate, n)
@@ -113,7 +114,7 @@ export function ReactorTermsPreview({
       const { pos } = previewAtoms[i]!
       const [bx, by, bz] = pos
       const ph = i * 1.6 + previewAtoms[i]!.z * 0.37
-      const amp = dense ? 0.024 : 0.05
+      const amp = dense ? 0.028 : 0.042
       g.position.set(
         bx + Math.sin(t * 0.32 + ph) * amp,
         by + Math.sin(t * 0.25 + ph * 0.9) * amp * 0.7,
@@ -158,9 +159,10 @@ export function ReactorTermsPreview({
               animate={electronAnimate}
               previewStatic={false}
               previewEmphasis
-              previewLite={dense || atom.z > 18}
-              hideOrbitRings
-              localLight={false}
+              synthesisDetail={fullDetail}
+              previewLite={!fullDetail || atom.z > 54}
+              hideOrbitRings={false}
+              localLight={!sharedLighting}
             />
           </group>
         </group>

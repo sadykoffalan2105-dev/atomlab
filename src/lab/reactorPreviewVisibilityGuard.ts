@@ -1,9 +1,7 @@
 import type { MutableRefObject } from 'react'
 import * as THREE from 'three'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
-
-/** Минимальный scale атома в превью — ниже почти не видно на экране. */
-export const PREVIEW_MIN_ATOM_SCALE = 0.34
+import { PREVIEW_MIN_ATOM_SCALE } from '../components/lab/reactorPreviewLayout'
 
 /** Пустых refs подряд до принудительного восстановления. */
 export const PREVIEW_REF_RECOVER_FRAMES = 2

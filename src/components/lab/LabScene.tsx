@@ -61,8 +61,10 @@ function LabReactorEnvironment() {
 function LabReactorLights() {
   return (
     <>
-      <ambientLight intensity={0.44} />
-      <directionalLight position={[3.2, 5.5, 2.5]} intensity={0.85} color="#b8c8ff" />
+      <ambientLight intensity={0.48} />
+      <directionalLight position={[3.2, 5.5, 2.5]} intensity={0.92} color="#b8c8ff" />
+      <pointLight position={[0, 0.18, 1.6]} intensity={1.55} distance={18} color="#7afcff" />
+      <pointLight position={[-2.2, 1.1, 3.2]} intensity={0.42} distance={14} color="#ffd0ec" />
     </>
   )
 }
@@ -379,15 +381,16 @@ function SceneContent({
   useEffect(() => {
     if (catalogViewMode) return
     const p = camera as THREE.PerspectiveCamera
+    const manyAtoms = previewAtomCount > 8
     // eslint-disable-next-line react-hooks/immutability
-    p.fov = 58
+    p.fov = manyAtoms ? 61 : 58
     p.updateProjectionMatrix()
-    camera.position.set(0, 1.25, 6.2)
+    camera.position.set(0, manyAtoms ? 1.38 : 1.25, manyAtoms ? 7.15 : 6.2)
     camera.lookAt(0, 0.18, 0)
     const t = orbRef.current?.target
     if (t) t.set(0, 0.15, 0)
     orbRef.current?.update?.()
-  }, [camera, catalogViewMode])
+  }, [camera, catalogViewMode, previewAtomCount])
 
   // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {
