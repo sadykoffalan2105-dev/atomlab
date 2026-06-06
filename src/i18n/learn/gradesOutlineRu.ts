@@ -33,6 +33,8 @@ export const learnGradesOutlineRu = {
   'learn.topicQuiz.wrong': 'Неверно — попробуйте ещё раз',
   'learn.topicQuiz.poolMeta': 'В базе {n} вопросов',
   'learn.topicQuiz.placeholder': 'Нажмите «Случайный вопрос», чтобы проверить себя по этому §.',
+  'learn.topicQuiz.fullscreen': 'На весь экран',
+  'learn.topicQuiz.fullscreenClose': 'Закрыть',
   'learn.outline.theory.body':
     'Материал по школьной программе. Полная версия с 6+ слайдами и задачами добавляется поэтапно — используйте 3D и ИИ-учителя.',
   'learn.outline.visual.caption': '3D-модель по теме параграфа',

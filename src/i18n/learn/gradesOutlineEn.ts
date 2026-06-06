@@ -33,6 +33,8 @@ export const learnGradesOutlineEn = {
   'learn.topicQuiz.wrong': 'Wrong — try again',
   'learn.topicQuiz.poolMeta': '{n} questions in pool',
   'learn.topicQuiz.placeholder': 'Click “Random question” to test yourself on this section.',
+  'learn.topicQuiz.fullscreen': 'Full screen',
+  'learn.topicQuiz.fullscreenClose': 'Close',
   'learn.outline.theory.body':
     'Curriculum-aligned material. Full 6+ slide lessons roll out gradually — use 3D and the AI teacher.',
   'learn.outline.visual.caption': '3D model for this section',

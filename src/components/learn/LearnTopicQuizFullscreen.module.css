@@ -1,0 +1,236 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, rgba(61, 255, 236, 0.14), transparent 55%),
+    linear-gradient(165deg, #04080f 0%, #020408 55%, #060a14 100%);
+  color: #eef6ff;
+  animation: quizFsIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes quizFsIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.toolbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1.1rem;
+  border-bottom: 1px solid rgba(61, 255, 236, 0.28);
+  background: rgba(6, 12, 24, 0.94);
+}
+
+.titleBlock {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #d8fffb;
+}
+
+.meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: rgba(170, 190, 230, 0.88);
+  line-height: 1.45;
+}
+
+.toolbarActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.btn,
+.btnPrimary {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.48rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid rgba(61, 255, 236, 0.45);
+  background: rgba(8, 16, 32, 0.95);
+  color: #e8f8ff;
+}
+
+.btnPrimary {
+  background: rgba(20, 55, 60, 0.75);
+  border-color: rgba(61, 255, 236, 0.65);
+}
+
+.btn:hover,
+.btnPrimary:hover {
+  filter: brightness(1.08);
+}
+
+.main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1.25rem 2rem;
+}
+
+.inner {
+  width: min(52rem, 100%);
+}
+
+.placeholder {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: rgba(160, 180, 220, 0.88);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.questionWrap {
+  animation: quizBodyIn 0.4s ease both;
+}
+
+@keyframes quizBodyIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.question {
+  margin: 0 0 1.35rem;
+  font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+  line-height: 1.55;
+  font-weight: 700;
+  color: #f4f8ff;
+}
+
+.choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.choice {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  text-align: left;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(90, 120, 180, 0.42);
+  background: rgba(8, 12, 28, 0.82);
+  color: rgba(220, 230, 255, 0.96);
+  font: inherit;
+  font-size: clamp(0.92rem, 1.8vw, 1.05rem);
+  line-height: 1.45;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.12s ease;
+}
+
+.choice:hover:not(:disabled) {
+  border-color: rgba(61, 255, 236, 0.5);
+  transform: translateY(-1px);
+}
+
+.choiceSelected {
+  border-color: rgba(61, 255, 236, 0.65);
+  background: rgba(25, 55, 65, 0.6);
+}
+
+.choiceOk {
+  border-color: rgba(80, 220, 140, 0.7);
+  background: rgba(20, 60, 35, 0.6);
+}
+
+.choiceBad {
+  border-color: rgba(255, 120, 100, 0.6);
+  background: rgba(60, 25, 20, 0.6);
+}
+
+.choice:disabled {
+  cursor: default;
+}
+
+.choiceLetter {
+  flex-shrink: 0;
+  width: 1.65rem;
+  height: 1.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(61, 255, 236, 0.18);
+  color: #3dffec;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.feedbackOk {
+  margin: 1.1rem 0 0;
+  font-size: 0.95rem;
+  color: #7dffb0;
+  font-weight: 700;
+}
+
+.feedbackBad {
+  margin: 1.1rem 0 0;
+  font-size: 0.95rem;
+  color: #ffb199;
+  font-weight: 700;
+}
+
+.explain {
+  margin: 0.65rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(180, 200, 235, 0.92);
+}
+
+@media (max-width: 640px) {
+  .toolbar {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .main {
+    align-items: flex-start;
+    padding: 1rem 0.75rem 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .questionWrap {
+    animation: none;
+  }
+}

@@ -32,6 +32,30 @@
   max-width: 36rem;
 }
 
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fullscreenBtn {
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0.42rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid rgba(61, 255, 236, 0.38);
+  background: rgba(8, 16, 32, 0.75);
+  color: #d8fffb;
+  cursor: pointer;
+}
+
+.fullscreenBtn:hover {
+  background: rgba(20, 45, 55, 0.85);
+  border-color: rgba(61, 255, 236, 0.55);
+}
+
 .drawBtn {
   font: inherit;
   font-size: 0.78rem;
