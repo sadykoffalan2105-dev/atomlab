@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { LearnAssistantPanel } from './LearnAssistantPanel'
+import { LearnBookTopicPanel } from './LearnBookTopicPanel'
 import { LearnTheoryRich } from './LearnTheoryRich'
 import { LearnSlideDeckVisual } from './LearnSlideDeckVisual'
 import { prefetchLearnImage } from './LearnSlideVisual'
@@ -88,6 +89,8 @@ export function LearnSectionRunner({
 }) {
   const { t } = useT()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const fromBook = searchParams.get('from') === 'book'
   const [slideIndex, setSlideIndex] = useState(0)
   const [checkpointPick, setCheckpointPick] = useState<number | null>(null)
   const [doneBanner, setDoneBanner] = useState(false)
@@ -131,6 +134,14 @@ export function LearnSectionRunner({
     if (slide.type === 'practice') return slide.taskCategoryId
     return section.taskCategoryId
   }, [slide, section.taskCategoryId])
+
+  useEffect(() => {
+    if (!fromBook) return
+    const timer = window.setTimeout(() => {
+      document.getElementById('learn-topic-tools')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 150)
+    return () => window.clearTimeout(timer)
+  }, [fromBook, section.id])
 
   useEffect(() => {
     const p = readLearnProgress()
@@ -442,8 +453,15 @@ export function LearnSectionRunner({
 
   return (
     <div className={`${styles.page} ${presentationMode ? styles.learnPagePresent : ''}`}>
-      <Link className={styles.backLink} to={`/learn/g/${grade.id}/c/${chapter.id}`}>
-        {t('learn.backChapters')}
+      <Link
+        className={styles.backLink}
+        to={
+          fromBook && gradeHasTextbook(grade.id)
+            ? `/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${g7TextbookSectionPage(chapter.id, section.id)}`
+            : `/learn/g/${grade.id}/c/${chapter.id}`
+        }
+      >
+        {fromBook ? t('learn.bookTopic.backToBook') : t('learn.backChapters')}
       </Link>
       <header className={styles.lessonHeader}>
         <div className={styles.lessonHeaderRow}>
@@ -531,6 +549,15 @@ export function LearnSectionRunner({
           </div>
         </div>
       </header>
+
+      {grade.id === 'g7' ? (
+        <LearnBookTopicPanel
+          grade={grade}
+          chapter={chapter}
+          section={section}
+          fromBook={fromBook}
+        />
+      ) : null}
 
       {hiddenPanels.size > 0 && !presentationMode ? (
         <div className={styles.learnHiddenPanelsBar} role="region" aria-label={t('learn.panel.hiddenBar')}>

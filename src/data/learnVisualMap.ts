@@ -9,15 +9,21 @@ export const LEARN_SECTION_VISUAL_MAP: Readonly<Record<string, string>> = {
   'g7-c2-s03': 'element:8',
   'g7-c2-s06': 'molecule:h2o',
   'g7-c2-s07': 'molecule:h2o',
-  'g7-c3-s01': 'diatomic:7',
-  'g7-c3-s02': 'molecule:co2',
-  'g7-c3-s03': 'diatomic:8',
-  'g7-c3-s04': 'molecule:h2o',
-  'g7-c4-s01': 'molecule:h2',
-  'g7-c4-s02': 'molecule:h2o',
-  'g7-c4-s04': 'electrolysis_nacl',
-  'g7-c4-s05': 'molecule:nacl',
-  'g7-c5-s02': 'molecule:nacl',
+  'g7-c3-s01': 'element:8',
+  'g7-c3-s02': 'element:11',
+  'g7-c3-s03': 'svg_periodicity',
+  'g7-c4-s01': 'diatomic:7',
+  'g7-c4-s03': 'diatomic:8',
+  'g7-c4-s05': 'diatomic:8',
+  'g7-c4-s06': 'reaction_h2_o2',
+  'g7-c4-s10': 'molecule:co2',
+  'g7-c5-s01': 'molecule:h2',
+  'g7-c5-s04': 'molecule:hcl',
+  'g7-c6-s01': 'molecule:h2o',
+  'g7-c6-s04': 'molecule:h2o',
+  'g7-c6-s06': 'molecule:naoh',
+  'g7-c7-s02': 'molecule:nacl',
+  'g7-c8-s01': 'molecule:fe2o3',
   'g8-c1-s02': 'svg_bond_types',
   'g8-c1-s03': 'molecule:co2',
   'g8-c1-s04': 'molecule:hcl',
@@ -44,7 +50,6 @@ export const LEARN_SECTION_VISUAL_MAP: Readonly<Record<string, string>> = {
 
 /**
  * Визуал §: явные molecule/atom из карты ИЛИ изометрическая сцена topic_*.
- * Раньше CHAPTER_DEFAULT подставлял O₂ на весь g7-c3 — из-за этого «Озон» показывал diatomic:8.
  */
 export function sectionVisualOverride(sectionPathId: string): string | undefined {
   const direct = LEARN_SECTION_VISUAL_MAP[sectionPathId]

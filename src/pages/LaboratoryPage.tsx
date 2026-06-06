@@ -98,6 +98,7 @@ export function LaboratoryPage() {
   useCanvasSizeGuard(canvasWrapRef)
 
   const [reactorMessage, setReactorMessage] = useState<string | null>(null)
+  const [pendingGenEq, setPendingGenEq] = useState(false)
   const [synthesisSettledProduct, setSynthesisSettledProduct] = useState<CompoundDef | null>(null)
   const [laboratorySynthesisView, setLaboratorySynthesisView] = useState<'reactor' | 'substance'>('reactor')
   const productLockedRef = useRef(false)
@@ -114,6 +115,9 @@ export function LaboratoryPage() {
       setReactorOpen(true)
       setStructureZ(null)
       setPanelOpen(false)
+    }
+    if (params.get('genEq') === '1') {
+      setPendingGenEq(true)
     }
     const product = params.get('product')
     if (product && compoundById[product]) {
@@ -282,6 +286,12 @@ export function LaboratoryPage() {
     setReactorCatalogIntent(intent)
     setReactorCatalogOpen(true)
   }, [])
+
+  useEffect(() => {
+    if (!pendingGenEq || !reactorOpen) return
+    openReactorCatalog('generateEquation')
+    setPendingGenEq(false)
+  }, [pendingGenEq, reactorOpen, openReactorCatalog])
 
   const handleReactorCatalogPick = useCallback(
     (id: string) => {

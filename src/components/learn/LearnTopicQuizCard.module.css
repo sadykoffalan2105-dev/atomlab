@@ -1,0 +1,167 @@
+.card {
+  border-radius: 16px;
+  border: 1px solid rgba(61, 255, 236, 0.28);
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(61, 255, 236, 0.12), transparent 55%),
+    linear-gradient(155deg, rgba(14, 20, 42, 0.96), rgba(8, 10, 24, 0.98));
+  padding: 1rem 1.05rem 1.1rem;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.cardMeta {
+  margin: 0.25rem 0 0;
+  font-size: 0.74rem;
+  color: rgba(170, 190, 230, 0.88);
+  line-height: 1.45;
+  max-width: 36rem;
+}
+
+.drawBtn {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(61, 255, 236, 0.55);
+  background: rgba(20, 55, 60, 0.65);
+  color: #d8fffb;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.drawBtn:hover {
+  background: rgba(30, 80, 85, 0.75);
+}
+
+.placeholder {
+  padding: 1.5rem 0.75rem;
+  text-align: center;
+  color: rgba(160, 180, 220, 0.85);
+  font-size: 0.85rem;
+}
+
+.questionWrap {
+  animation: quizIn 0.45s ease both;
+}
+
+@keyframes quizIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.question {
+  margin: 0 0 0.85rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  font-weight: 600;
+  color: #eef6ff;
+}
+
+.choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.choice {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(90, 120, 180, 0.38);
+  background: rgba(8, 12, 28, 0.75);
+  color: rgba(220, 230, 255, 0.95);
+  font: inherit;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.12s ease;
+}
+
+.choice:hover:not(:disabled) {
+  border-color: rgba(61, 255, 236, 0.45);
+  transform: translateY(-1px);
+}
+
+.choiceSelected {
+  border-color: rgba(61, 255, 236, 0.6);
+  background: rgba(25, 55, 65, 0.55);
+}
+
+.choiceOk {
+  border-color: rgba(80, 220, 140, 0.65);
+  background: rgba(20, 60, 35, 0.55);
+}
+
+.choiceBad {
+  border-color: rgba(255, 120, 100, 0.55);
+  background: rgba(60, 25, 20, 0.55);
+}
+
+.choice:disabled {
+  cursor: default;
+}
+
+.choiceLetter {
+  flex-shrink: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(61, 255, 236, 0.15);
+  color: #3dffec;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.feedbackOk {
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+  color: #7dffb0;
+  font-weight: 600;
+}
+
+.feedbackBad {
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+  color: #ffb199;
+  font-weight: 600;
+}
+
+.explain {
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  color: rgba(180, 200, 235, 0.9);
+}

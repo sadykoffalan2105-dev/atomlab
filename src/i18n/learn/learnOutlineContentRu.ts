@@ -5,12 +5,6 @@ import { buildFullSectionSlides } from './g7PilotRu'
 const G7_PILOT_PREFIXES = new Set([
   ...Array.from({ length: 10 }, (_, i) => `learn.g7.c1.s${String(i + 1).padStart(2, '0')}`),
   ...Array.from({ length: 6 }, (_, i) => `learn.g7.c2.s${String(i + 1).padStart(2, '0')}`),
-  'learn.g7.c3.s01',
-  'learn.g7.c3.s02',
-  'learn.g7.c3.s03',
-  'learn.g7.c4.s01',
-  'learn.g7.c4.s02',
-  'learn.g7.c5.s01',
 ])
 
 function stripSectionTitle(title: string): string {

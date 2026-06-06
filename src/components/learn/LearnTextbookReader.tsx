@@ -88,7 +88,7 @@ export function LearnTextbookReader({ gradeId }: Props) {
         </div>
         <Link
           className={styles.lessonLink}
-          to={`/learn/g/${gradeId}/c/${chapterId}/s/${activeSection}`}
+          to={`/learn/g/${gradeId}/c/${chapterId}/s/${activeSection}?from=book`}
         >
           {t('learn.textbook.openLesson')}
         </Link>

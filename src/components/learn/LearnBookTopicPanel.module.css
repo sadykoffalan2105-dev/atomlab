@@ -1,0 +1,129 @@
+.panel {
+  margin: 0 0 1rem;
+  padding: 1rem 1.05rem 1.15rem;
+  border-radius: 18px;
+  border: 1px solid rgba(100, 130, 200, 0.32);
+  background: linear-gradient(160deg, rgba(12, 18, 38, 0.94), rgba(6, 8, 20, 0.98));
+}
+
+.bookBadge {
+  display: inline-block;
+  margin-bottom: 0.65rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #bffcff;
+  border: 1px solid rgba(61, 255, 236, 0.45);
+  background: rgba(20, 50, 55, 0.55);
+}
+
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  color: rgba(61, 255, 236, 0.85);
+  font-weight: 600;
+}
+
+.title {
+  margin: 0.2rem 0 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.35;
+  max-width: 42rem;
+}
+
+.lead {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(175, 195, 230, 0.9);
+  max-width: 40rem;
+}
+
+.bookLink {
+  font-size: 0.78rem;
+  color: #3dffec;
+  text-decoration: none;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgba(61, 255, 236, 0.35);
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.bookLink:hover {
+  text-decoration: underline;
+}
+
+.toolsRow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .toolsRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.equationCard {
+  padding: 0.85rem 0.95rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 180, 80, 0.28);
+  background: rgba(40, 28, 12, 0.35);
+}
+
+.toolTitle {
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.equation {
+  margin: 0 0 0.45rem;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.92rem;
+  color: #ffe8c0;
+  letter-spacing: 0.02em;
+}
+
+.hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(210, 200, 180, 0.9);
+}
+
+.genBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: #1a1208;
+  background: linear-gradient(135deg, #ffc86a, #ff9f43);
+  border: 1px solid rgba(255, 200, 100, 0.5);
+}
+
+.genBtn:hover {
+  filter: brightness(1.06);
+}
+
+.quizSlot {
+  min-width: 0;
+}

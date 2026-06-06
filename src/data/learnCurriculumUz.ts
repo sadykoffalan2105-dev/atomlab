@@ -1,5 +1,6 @@
 import type { MessageKey } from '../i18n/messagesRu'
 import type { LearnChapter, LearnGrade, LearnGradeId, LearnSection, LearnSlide } from '../types/learn'
+import { g7BookSectionSeeds } from './g7BookCurriculum'
 import { topicSceneVisualId } from '../learn/learnTopicScenes'
 import { sectionVisualOverride, totemCatalogVisualId } from './learnVisualMap'
 
@@ -15,6 +16,8 @@ type SectionSeed = {
   defaultVisualId?: string
   slides?: readonly LearnSlide[]
   taskCategoryId?: string
+  /** Без poster/slide-картинок — только теория, 3D, checkpoint (для § по оглавлению учебника). */
+  contentMode?: 'outline'
 }
 
 function slideTheory(
@@ -145,6 +148,22 @@ function defaultSectionSlides(
   })
 }
 
+function compactSectionSlides(
+  titleKey: MessageKey,
+  visualId: string,
+  taskCategoryId?: string,
+): LearnSlide[] {
+  const prefix = sectionI18nPrefix(titleKey)
+  const slides: LearnSlide[] = [
+    slideTheory(prefix, 0, visualId, true),
+    slide3d(prefix, 2, visualId),
+    slideCheckpoint(prefix, 4, 4, 1),
+  ]
+  if (taskCategoryId) slides.push(slidePractice(taskCategoryId))
+  slides.push(slideLab(`${prefix}.slide5.body` as MessageKey))
+  return slides
+}
+
 function resolveSectionVisualId(
   gradeId: LearnGradeId,
   chapterId: string,
@@ -169,7 +188,11 @@ function buildSection(
   totemCompoundId: string,
 ): LearnSection {
   const visualId = resolveSectionVisualId(gradeId, chapterId, seed.id, totemCompoundId, seed.defaultVisualId)
-  const slides = seed.slides ?? defaultSectionSlides(seed.titleKey, visualId, seed.taskCategoryId)
+  const slides =
+    seed.slides ??
+    (seed.contentMode === 'outline'
+      ? compactSectionSlides(seed.titleKey, visualId, seed.taskCategoryId)
+      : defaultSectionSlides(seed.titleKey, visualId, seed.taskCategoryId))
   return {
     id: seed.id,
     chapterId,
@@ -269,7 +292,7 @@ const g7c1Sections: SectionSeed[] = [
   },
 ]
 
-const g7c2Sections: SectionSeed[] = [
+const g7c2FullSections: SectionSeed[] = [
   {
     id: 's01',
     kpNumber: 1,
@@ -306,9 +329,24 @@ const g7c2Sections: SectionSeed[] = [
     titleKey: 'learn.g7.c2.s06.title',
     slides: fullSectionSlides('learn.g7.c2.s06', sectionVisual('g7', 'c2', 's06'), { correctIndex: 1, taskId: 'stoichiometry' }),
   },
-  { id: 's07', kpNumber: 7, titleKey: 'learn.g7.c2.s07.title' },
-  { id: 's08', kpNumber: 8, titleKey: 'learn.g7.c2.s08.title', taskCategoryId: 'stoichiometry' },
 ]
+
+const g7c2Sections: SectionSeed[] = [
+  ...g7c2FullSections,
+  ...outlineSections('g7', 'c2', g7BookSectionSeeds(2, { taskBySec: { 8: 'stoichiometry', 9: 'stoichiometry', 11: 'stoichiometry' } }).slice(6)),
+]
+
+const g7c3Sections = outlineSections('g7', 'c3', g7BookSectionSeeds(3))
+
+const g7c4Sections = outlineSections('g7', 'c4', g7BookSectionSeeds(4))
+
+const g7c5Sections = outlineSections('g7', 'c5', g7BookSectionSeeds(5))
+
+const g7c6Sections = outlineSections('g7', 'c6', g7BookSectionSeeds(6, { taskBySec: { 8: 'solutions' } }))
+
+const g7c7Sections = outlineSections('g7', 'c7', g7BookSectionSeeds(7))
+
+const g7c8Sections = outlineSections('g7', 'c8', g7BookSectionSeeds(8))
 
 function outlineSections(
   _gradeId: LearnGradeId,
@@ -320,33 +358,9 @@ function outlineSections(
     kpNumber: it.kp,
     titleKey: it.titleKey,
     taskCategoryId: it.taskCategoryId,
+    contentMode: 'outline' as const,
   }))
 }
-
-const g7c3Sections = outlineSections('g7', 'c3', [
-  { id: 's01', kp: 1, titleKey: 'learn.g7.c3.s01.title' },
-  { id: 's02', kp: 2, titleKey: 'learn.g7.c3.s02.title' },
-  { id: 's03', kp: 3, titleKey: 'learn.g7.c3.s03.title' },
-  { id: 's04', kp: 4, titleKey: 'learn.g7.c3.s04.title' },
-  { id: 's05', kp: 5, titleKey: 'learn.g7.c3.s05.title' },
-  { id: 's06', kp: 6, titleKey: 'learn.g7.c3.s06.title' },
-  { id: 's07', kp: 7, titleKey: 'learn.g7.c3.s07.title' },
-])
-
-const g7c4Sections = outlineSections('g7', 'c4', [
-  { id: 's01', kp: 1, titleKey: 'learn.g7.c4.s01.title' },
-  { id: 's02', kp: 2, titleKey: 'learn.g7.c4.s02.title' },
-  { id: 's03', kp: 3, titleKey: 'learn.g7.c4.s03.title' },
-  { id: 's04', kp: 4, titleKey: 'learn.g7.c4.s04.title' },
-  { id: 's05', kp: 5, titleKey: 'learn.g7.c4.s05.title' },
-  { id: 's06', kp: 6, titleKey: 'learn.g7.c4.s06.title', taskCategoryId: 'solutions' },
-])
-
-const g7c5Sections = outlineSections('g7', 'c5', [
-  { id: 's01', kp: 1, titleKey: 'learn.g7.c5.s01.title' },
-  { id: 's02', kp: 2, titleKey: 'learn.g7.c5.s02.title' },
-  { id: 's03', kp: 3, titleKey: 'learn.g7.c5.s03.title' },
-])
 
 const g8c1Sections = outlineSections('g8', 'c1', [
   { id: 's01', kp: 1, titleKey: 'learn.g8.c1.s01.title' },
@@ -489,9 +503,12 @@ export const LEARN_GRADES: readonly LearnGrade[] = [
     chapters: [
       buildChapter('g7', 'c1', 1, 'learn.g7.c1.title', 'learn.g7.c1.summary', 'h2o', g7c1Sections),
       buildChapter('g7', 'c2', 2, 'learn.g7.c2.title', 'learn.g7.c2.summary', 'h2o', g7c2Sections),
-      buildChapter('g7', 'c3', 3, 'learn.g7.c3.title', 'learn.g7.c3.summary', 'co2', g7c3Sections),
-      buildChapter('g7', 'c4', 4, 'learn.g7.c4.title', 'learn.g7.c4.summary', 'h2o', g7c4Sections),
-      buildChapter('g7', 'c5', 5, 'learn.g7.c5.title', 'learn.g7.c5.summary', 'nacl', g7c5Sections),
+      buildChapter('g7', 'c3', 3, 'learn.g7.c3.title', 'learn.g7.c3.summary', 'nacl', g7c3Sections),
+      buildChapter('g7', 'c4', 4, 'learn.g7.c4.title', 'learn.g7.c4.summary', 'co2', g7c4Sections),
+      buildChapter('g7', 'c5', 5, 'learn.g7.c5.title', 'learn.g7.c5.summary', 'h2o', g7c5Sections),
+      buildChapter('g7', 'c6', 6, 'learn.g7.c6.title', 'learn.g7.c6.summary', 'h2o', g7c6Sections),
+      buildChapter('g7', 'c7', 7, 'learn.g7.c7.title', 'learn.g7.c7.summary', 'nacl', g7c7Sections),
+      buildChapter('g7', 'c8', 8, 'learn.g7.c8.title', 'learn.g7.c8.summary', 'fe2o3', g7c8Sections),
     ],
   },
   {
