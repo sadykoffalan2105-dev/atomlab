@@ -1086,6 +1086,7 @@
   z-index: 5;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.3rem;
   font: inherit;
   font-size: 0.68rem;
@@ -1096,6 +1097,18 @@
   background: rgba(6, 12, 28, 0.92);
   color: #d8ecff;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Внутри панели инструментов — без absolute, иначе кнопки накладываются друг на друга */
+.learnColPanelTools .learnColExpand,
+.learnColPanelTools .learnColExpandOn {
+  position: static;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  min-height: 1.65rem;
+  padding: 0.28rem 0.45rem;
 }
 
 .learnColExpandOn {
@@ -1105,16 +1118,20 @@
 }
 
 .learnColExpandLabel {
-  max-width: 5rem;
+  max-width: 3.5rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+  opacity: 0.92;
 }
 
-.learnColFullscreen .learnColExpand,
-.learnColFullscreen .learnColExpandOn {
-  top: 0.55rem;
-  right: 0.65rem;
+.learnColFullscreen .learnColPanelTools .learnColExpand,
+.learnColFullscreen .learnColPanelTools .learnColExpandOn {
+  position: static;
+  top: auto;
+  right: auto;
 }
 
 .learnColFullscreen .learnVisual3d,
@@ -1188,6 +1205,119 @@
 
 .learnPanelMenuBtn:hover {
   background: rgba(20, 40, 60, 0.45);
+}
+
+.learnPanelMenuOff {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px dashed rgba(120, 140, 180, 0.45);
+  background: rgba(6, 10, 22, 0.55);
+  color: rgba(150, 170, 210, 0.72);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: line-through;
+  text-decoration-color: rgba(150, 170, 210, 0.35);
+}
+
+.learnPanelMenuOff:hover {
+  border-color: rgba(61, 255, 236, 0.45);
+  color: rgba(220, 240, 255, 0.95);
+  text-decoration: none;
+}
+
+.learnHiddenPanelsBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.65rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 10px;
+  border: 1px dashed rgba(80, 120, 180, 0.35);
+  background: rgba(8, 12, 28, 0.55);
+}
+
+.learnHiddenPanelsLabel {
+  font-size: 0.72rem;
+  color: rgba(160, 180, 220, 0.85);
+}
+
+.learnHiddenPanelsBtn {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(61, 255, 236, 0.4);
+  background: rgba(20, 45, 55, 0.45);
+  color: #d8f8ff;
+  cursor: pointer;
+}
+
+.learnHiddenPanelsBtn:hover {
+  background: rgba(30, 70, 80, 0.55);
+}
+
+.learnColPanelTools {
+  position: relative;
+  align-self: flex-end;
+  flex-shrink: 0;
+  z-index: 6;
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 0.4rem 0.4rem 0.3rem 0;
+  padding: 0.18rem;
+  border-radius: 10px;
+  border: 1px solid rgba(80, 120, 180, 0.38);
+  background: rgba(6, 12, 28, 0.94);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.32);
+}
+
+.learnColHide {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  width: 1.75rem;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 180, 120, 0.42);
+  background: rgba(40, 22, 12, 0.78);
+  color: #ffc899;
+  cursor: pointer;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.learnColHide:hover {
+  border-color: rgba(255, 200, 140, 0.65);
+  background: rgba(60, 32, 18, 0.88);
+}
+
+.learnColPanelTools .learnColExpand,
+.learnColPanelTools .learnColExpandOn {
+  margin-left: 0.18rem;
+  padding-left: 0.42rem;
+  padding-right: 0.42rem;
+  border-radius: 7px;
+  border-left: 1px solid rgba(80, 120, 180, 0.28);
+}
+
+.learnColPanelTools .learnColExpandOn {
+  min-width: 4.5rem;
+}
+
+.learnColFullscreen .learnColPanelTools {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.75rem;
+  margin: 0;
 }
 
 .learnSlideCol {

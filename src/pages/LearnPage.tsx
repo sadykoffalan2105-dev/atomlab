@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useMatch, useParams } from 'react-router-dom'
 import { LearnSectionRunner } from '../components/learn/LearnSectionRunner'
 import { compoundById } from '../data/compounds'
 import { legacyTopicRedirect } from '../data/learnLegacyRedirects'
@@ -22,6 +22,8 @@ import { useT } from '../i18n/useT'
 import { LearnTaskRunner } from './LearnTaskRunner'
 import { LEARN_TASK_CATEGORY_IDS } from '../data/learnTaskCategories'
 import { LearnTasksHub } from './LearnTasksHub'
+import { LearnTextbookReader } from '../components/learn/LearnTextbookReader'
+import { gradeHasTextbook } from '../data/learnTextbookG7'
 import { prefetchLearnSectionHub, prefetchWasmCore } from '../learn/learnHubPrefetch'
 import styles from './LearnPage.module.css'
 
@@ -97,6 +99,13 @@ function GradeHub({ gradeId, progress }: { gradeId: string; progress: LearnProgr
       </Link>
       <h1 className={styles.h}>{t(grade.titleKey)}</h1>
       <p className={styles.lead}>{t(grade.textbookRefKey)}</p>
+      <ToolRow>
+        {gradeHasTextbook(grade.id) ? (
+          <Link className={`${styles.btn} ${styles.btnPrimary}`} to={`/learn/g/${grade.id}/book`}>
+            {t('learn.textbook.open')}
+          </Link>
+        ) : null}
+      </ToolRow>
       <h2 className={styles.h}>{t('learn.chaptersTitle')}</h2>
       <ul className={styles.lessonList}>
         {grade.chapters.map((ch) => {
@@ -138,6 +147,16 @@ function ChapterHub({
       <h1 className={styles.h}>{t(chapter.titleKey)}</h1>
       <p className={styles.lead}>{t(chapter.summaryKey)}</p>
       <h2 className={styles.h}>{t('learn.sectionsTitle')}</h2>
+      {gradeHasTextbook(gradeId) ? (
+        <ToolRow>
+          <Link
+            className={styles.btn}
+            to={`/learn/g/${gradeId}/book?chapter=${chapterId}&section=${chapter.sections[0]?.id ?? 's01'}`}
+          >
+            {t('learn.textbook.open')}
+          </Link>
+        </ToolRow>
+      ) : null}
       <ul className={styles.lessonList}>
         {chapter.sections.map((sec) => {
           const pathId = learnSectionPathId(sec)
@@ -185,6 +204,7 @@ function ToolRow({ children }: { children: ReactNode }) {
 
 export function LearnPage() {
   const { t } = useT()
+  const bookMatch = useMatch('/learn/g/:gradeId/book')
   const params = useParams<{
     gradeId?: string
     chapterId?: string
@@ -200,6 +220,21 @@ export function LearnPage() {
   useEffect(() => {
     setProgress(readLearnProgress())
   }, [params.gradeId, params.chapterId, params.sectionId, params.topicId, params.lessonId])
+
+  if (bookMatch?.params.gradeId) {
+    const bookGradeId = bookMatch.params.gradeId
+    if (!gradeHasTextbook(bookGradeId)) {
+      return (
+        <PageShell>
+          <p className={styles.notFound}>{t('compound.notFound')}</p>
+          <Link className={styles.backLink} to={`/learn/g/${bookGradeId}`}>
+            {t('learn.backGrades')}
+          </Link>
+        </PageShell>
+      )
+    }
+    return <LearnTextbookReader gradeId={bookGradeId} />
+  }
 
   if (params.topicId === 'tasks') {
     if (params.lessonId) {

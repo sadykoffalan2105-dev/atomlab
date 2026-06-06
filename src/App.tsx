@@ -42,6 +42,7 @@ export default function App() {
             <Route path="learn/ref/:sceneId" element={<LearnRefCapturePage />} />
             <Route path="learn/tasks" element={<LearnPage />} />
             <Route path="learn/tasks/:lessonId" element={<LearnPage />} />
+            <Route path="learn/g/:gradeId/book" element={<LearnPage />} />
             <Route path="learn/g/:gradeId" element={<LearnPage />} />
             <Route path="learn/g/:gradeId/c/:chapterId" element={<LearnPage />} />
             <Route path="learn/g/:gradeId/c/:chapterId/s/:sectionId" element={<LearnPage />} />
