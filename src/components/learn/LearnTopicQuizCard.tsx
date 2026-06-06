@@ -38,7 +38,8 @@ type QuizUi = {
   descText?: string
   descTextBlock?: string
   descBtn?: string
-  questionWrapStacked?: string
+  questionWrapSplit?: string
+  quizCol?: string
 }
 
 const CARD_UI: QuizUi = {
@@ -85,7 +86,8 @@ const FS_UI: QuizUi = {
   descText: fsStyles.descText,
   descTextBlock: fsStyles.descTextBlock,
   descBtn: fsStyles.descBtn,
-  questionWrapStacked: fsStyles.questionWrapStacked,
+  questionWrapSplit: fsStyles.questionWrapSplit,
+  quizCol: fsStyles.quizCol,
 }
 
 function TopicQuizDescription({
@@ -174,7 +176,7 @@ function TopicQuizBody({
 
   const hasDescription = !!(question.description ?? question.explanation)
   const answered = pick !== null
-  const stackedLayout = visualFullscreen && showDescription && hasDescription
+  const splitLayout = visualFullscreen && showDescription && hasDescription
 
   const quizBlock = (
     <>
@@ -219,16 +221,16 @@ function TopicQuizBody({
   return (
     <div
       key={animKey}
-      className={`${ui.questionWrap}${stackedLayout && ui.questionWrapStacked ? ` ${ui.questionWrapStacked}` : ''}`}
+      className={`${ui.questionWrap}${splitLayout && ui.questionWrapSplit ? ` ${ui.questionWrapSplit}` : ''}`}
     >
-      {quizBlock}
+      {splitLayout && ui.quizCol ? <div className={ui.quizCol}>{quizBlock}</div> : quizBlock}
       <TopicQuizDescription
         ui={ui}
         question={question}
         open={showDescription && hasDescription}
         visualCompact={visualCompact}
         visualFullscreen={visualFullscreen}
-        visualSplit={stackedLayout}
+        visualSplit={splitLayout}
       />
     </div>
   )
