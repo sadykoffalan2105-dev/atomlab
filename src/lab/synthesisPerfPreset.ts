@@ -16,8 +16,8 @@ export const SYNTHESIS_PERF = {
   productRevealOverlapSec: 0.05,
   /** Фаза ignite перед converge (мс); 0 = сразу converge в лаборатории */
   igniteSkipMs: 0,
-  /** Порог атомов для облегчённых FX и lite-моделей */
-  liteFxAtomThreshold: 5,
+  /** Порог атомов для облегчённых FX (не замена модели — только меньше сегментов орбит). */
+  liteFxAtomThreshold: 16,
   /** Плотное превью: реже drift/guard */
   denseAtomThreshold: 10,
   /** Полная детализация AtomStructureModel (орбиты 48 seg) */

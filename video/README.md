@@ -22,7 +22,7 @@
 | Обучение §1, задача 5 | SVG SMIL — [`CyberAtomOrbitSvg.tsx`](../src/components/learn/topicScenes/cyber/native/CyberAtomOrbitSvg.tsx) |
 | Обучение → «Рассмотреть» | 3D + `frameloop="always"` |
 | Лаборатория → реактор (превью) | `electronAnimate` до 24 атомов — [`ReactorTermsPreview.tsx`](../src/components/lab/ReactorTermsPreview.tsx) |
-| Лаборатория → canvas | `frameloop="demand"` в idle; `always` при синтезе / превью / prewarm — [`LabScene.tsx`](../src/components/lab/LabScene.tsx) |
+| Лаборатория → canvas | `frameloop="always"` вне реактора (декоративный атом / элемент); в реакторе — `demand` в idle, `always` при синтезе и превью |
 
 ## Производительность синтеза
 

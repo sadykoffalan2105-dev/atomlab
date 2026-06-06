@@ -13,9 +13,9 @@ import {
   createReactorPreviewVisibilityGuard,
 } from '../../lab/reactorPreviewVisibilityGuard'
 import { AtomStructureModel } from './AtomStructureModel'
-import { LightweightElementBall } from './LightweightElementBall'
 import { buildReactorPreviewAtoms, reactorPreviewAtomScale } from './reactorPreviewLayout'
 import { getReactorVisualTier, type ReactorVisualTier } from '../../chemistry/reactorVisualTier'
+import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 
 /**
  * Превью реагентов: полная структура атома (протоны, нейтроны, электроны).
@@ -67,9 +67,10 @@ export function ReactorTermsPreview({
   const atomScaleGroupRefsLocal = useRef<(THREE.Group | null)[]>([])
   const atomGroupRefs = atomGroupRefsExternal ?? atomGroupRefsLocal
   const atomScaleGroupRefs = atomScaleGroupRefsExternal ?? atomScaleGroupRefsLocal
-  const useBallMesh = visualTier !== 'full' || forceLite
-
   const scale = reactorPreviewAtomScale(n)
+  /** Полная Bohr-модель до порога; lite только при очень плотном превью / cluster. */
+  const useFullDetail =
+    visualTier === 'full' && n <= SYNTHESIS_PERF.fullDetailAtomThreshold && !forceLite
 
   const previewPolicy = useMemo(
     () =>
@@ -191,21 +192,17 @@ export function ReactorTermsPreview({
                 atomScaleGroupRefs.current[i] = el
               }}
             >
-              {useBallMesh ? (
-                <LightweightElementBall z={atom.z} radius={0.42} segments={10} />
-              ) : (
-                <AtomStructureModel
-                  z={atom.z}
-                  animate={electronAnimate}
-                  previewStatic={false}
-                  previewEmphasis
-                  synthesisDetail={atomPolicy.synthesisDetail}
-                  previewLite={atomPolicy.previewLite}
-                  electronFrameSkip={atomPolicy.electronFrameSkip}
-                  hideOrbitRings={false}
-                  localLight={!sharedLighting}
-                />
-              )}
+              <AtomStructureModel
+                z={atom.z}
+                animate={electronAnimate}
+                previewStatic={false}
+                previewEmphasis
+                synthesisDetail={useFullDetail}
+                previewLite={!useFullDetail}
+                electronFrameSkip={atomPolicy.electronFrameSkip}
+                hideOrbitRings={visualTier === 'cluster'}
+                localLight={!sharedLighting}
+              />
             </group>
           </group>
         )

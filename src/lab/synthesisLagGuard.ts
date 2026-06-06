@@ -30,15 +30,15 @@ export function getReactorPreviewPolicy(opts: {
   visualTier?: 'full' | 'lite' | 'cluster'
 }): ReactorPreviewPolicy {
   const { atomCount, forceLite, flightActive, visible, visualTier = 'full' } = opts
-  const lite = forceLite || shouldForceLiteByAtomCount(atomCount) || visualTier !== 'full'
   const dense = atomCount > SYNTHESIS_PERF.denseAtomThreshold
+  const liteRender = forceLite || dense || visualTier === 'cluster'
 
   return {
     electronAnimate: atomCount <= SYNTHESIS_PERF.maxAnimatedAtoms && visible,
-    driftAtoms: visible && !flightActive && !lite && atomCount <= 10,
-    slowSpin: visible && !flightActive && !lite && atomCount <= 12,
-    visibilityGuardEvery: lite || dense ? 4 : atomCount > 6 ? 2 : 1,
-    coverageGuardEvery: lite ? 3 : 2,
+    driftAtoms: visible && !flightActive && atomCount <= 12 && visualTier === 'full',
+    slowSpin: visible && !flightActive && atomCount <= 12 && visualTier === 'full',
+    visibilityGuardEvery: liteRender ? 4 : atomCount > 6 ? 2 : 1,
+    coverageGuardEvery: liteRender ? 3 : 2,
   }
 }
 

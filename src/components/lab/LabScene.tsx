@@ -13,7 +13,6 @@ import { assertNoProductHeroBeforeRun } from '../../lab/atomGuard/labPreviewGuar
 import { createFpsGovernor } from '../../lab/atomGuard/synthesisRunGuard'
 import {
   getReactorPreviewPolicy,
-  shouldForceLiteByAtomCount,
   shouldRunGuardTick,
 } from '../../lab/synthesisLagGuard'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
@@ -56,6 +55,19 @@ function LabReactorClearColor() {
     gl.setClearColor(c, 1)
     scene.background = c
   }, [gl, scene])
+  return null
+}
+
+/** Синхронизация clear color при переходе idle ↔ реактор — убирает «призрак» обложечного атома. */
+function LabSceneClearSync({ reactorMode }: { reactorMode: boolean }) {
+  const { gl, scene, invalidate } = useThree()
+  useLayoutEffect(() => {
+    const hex = reactorMode ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX
+    const c = hexToColor(hex)
+    gl.setClearColor(c, 1)
+    if (!reactorMode) scene.background = c
+    invalidate()
+  }, [reactorMode, gl, scene, invalidate])
   return null
 }
 
@@ -197,7 +209,6 @@ function SceneContent({
   reactorViewOpen,
   transformPreviewCompound = null,
   synthesisSettledProduct,
-  laboratorySynthesisView,
   synthesisPhase = '',
   forceLiteFxRef,
   prewarmProductCompound = null,
@@ -216,7 +227,6 @@ function SceneContent({
   /** Реактор открыт: без пары в центре не показывать декоративный атом */
   reactorViewOpen: boolean
   synthesisSettledProduct: CompoundDef | null
-  laboratorySynthesisView: 'reactor' | 'substance'
   synthesisPhase?: string
   forceLiteFxRef?: React.MutableRefObject<boolean>
   /** Продукт для скрытого pre-warm (compile GPU) до запуска синтеза */
@@ -281,9 +291,6 @@ function SceneContent({
   /** Блокируем drift/GSAP с converge до product — иначе атомы «прыгают» на merge. */
   const previewMotionLocked = synthActive && synthesisPhase !== 'product'
   const previewPoseLocked = synthActive || synthesisRunActive
-  const reactorPreviewVisible =
-    mountReactorPreview &&
-    (synthesisPhase !== 'product' || previewOverlapActive)
 
   /** Атомы остаются до overlap с продуктом — merge flash перекрывает, без «исчезновения». */
   const fadePreviewAtoms = useCallback(() => {}, [])
@@ -298,6 +305,14 @@ function SceneContent({
       forceProductSlot ||
       earlyProductReveal ||
       (synthActive && synthesisPhase === 'product'))
+  /** Держим превью до handoff продукта — иначе кадр без атомов и мигание. */
+  const reactorPreviewVisible =
+    mountReactorPreview &&
+    (!synthActive ||
+      !productSlotVisible ||
+      previewOverlapActive ||
+      earlyProductReveal ||
+      forceProductSlot)
   const productPrewarmActive =
     productForSlot != null &&
     !productSlotVisible &&
@@ -342,7 +357,11 @@ function SceneContent({
     }
   }, [synthActive, synthesisPhase, synthesis?.runId])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (earlyProductReveal) setPreviewOverlapActive(true)
+  }, [earlyProductReveal])
+
+  useLayoutEffect(() => {
     if (!productSlotVisible || !synthActive) return
     crossfadeGuardRef.current?.signalProductReady()
     setPreviewOverlapActive(true)
@@ -370,21 +389,14 @@ function SceneContent({
         ? 'instant'
         : 'smooth'
 
-  const reactorBackdrop =
-    reactorViewOpen &&
-    (mountReactorPreview ||
-      previewActive ||
-      synthActive ||
-      synthesisRunActive ||
-      synthesisSettledProduct != null)
+  /** Фон реактора с первого кадра после «Синтез» — без чёрного провала и ghost-frame. */
+  const reactorBackdrop = reactorViewOpen
 
-  /** Каталожный кадр: превью продукта, settled, слот продукта */
-  /** Preload молекулы не переключает каталожную камеру — иначе чёрный кадр и resize. */
+  /** Каталожный кадр: settled / превью продукта вне анимации синтеза. */
   const catalogViewMode =
     previewActive ||
     showSettledHero ||
-    productSlotVisible ||
-    (!!synthActive && !!synthesis?.product && laboratorySynthesisView === 'substance')
+    (productSlotVisible && !synthesisRunActive && !synthActive)
 
   // eslint-disable-next-line react-hooks/immutability
   useEffect(() => {
@@ -492,14 +504,11 @@ function SceneContent({
     // EMA сглаживание
     a.fps = a.fps * 0.9 + fps * 0.1
 
-    const perfGuardActive =
-      synthActive ||
-      synthesisRunActive ||
-      (reactorViewOpen && shouldForceLiteByAtomCount(previewAtomCount))
+    const perfGuardActive = synthActive || synthesisRunActive
     if (perfGuardActive && forceLiteFxRef) {
       const gov = fpsGovRef.current
       gov.tick(a.fps)
-      const nextLite = gov.forceLite || shouldForceLiteByAtomCount(previewAtomCount)
+      const nextLite = gov.forceLite
       forceLiteFxRef.current = nextLite
       if (synthForceLiteRef.current !== nextLite) {
         synthForceLiteRef.current = nextLite
@@ -539,6 +548,7 @@ function SceneContent({
 
   return (
     <>
+      <LabSceneClearSync reactorMode={reactorViewOpen} />
       {reactorBackdrop ? <LabReactorClearColor /> : null}
       {reactorBackdrop ? (
         <LabSynthesisCosmicBackdrop />
@@ -717,15 +727,8 @@ export function LabCanvas({
     return buildReactorPreviewAtoms(reactorPreviewTerms, { tier }).length
   }, [reactorPreviewTerms])
 
-  const canvasFrameloop =
-    structureZ != null && !reactorViewOpen
-      ? 'always'
-      : synthesisRunActive || synthesis != null
-        ? 'always'
-        : reactorViewOpen &&
-            ((reactorPreviewTerms?.length ?? 0) > 0 || prewarmProductCompound != null)
-          ? 'always'
-          : 'demand'
+  /** always: декоративный атом, переход в реактор и синтез — без ghost-frame на demand. */
+  const canvasFrameloop = 'always' as const
   const densePreview = previewAtomCount > 6
 
   const lowPower3d =
@@ -806,7 +809,6 @@ export function LabCanvas({
           transformPreviewCompound={transformPreviewCompound}
           reactorViewOpen={reactorViewOpen}
           synthesisSettledProduct={synthesisSettledProduct ?? null}
-          laboratorySynthesisView={laboratorySynthesisView}
           synthesisPhase={synthesisPhase}
           forceLiteFxRef={forceLiteFxRef}
           prewarmProductCompound={prewarmProductCompound}
