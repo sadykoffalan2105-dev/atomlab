@@ -7,6 +7,7 @@ import {
 import { g7TextbookSectionPage, gradeHasTextbook } from '../../data/learnTextbookG7'
 import { useT } from '../../i18n/useT'
 import { LearnTopicQuizCard } from './LearnTopicQuizCard'
+import { LearnStudentTest } from './LearnStudentTest'
 import styles from './LearnBookTopicPanel.module.css'
 
 type Props = {
@@ -56,6 +57,8 @@ export function LearnBookTopicPanel({ grade, chapter, section, fromBook }: Props
           <LearnTopicQuizCard grade={grade} chapter={chapter} section={section} autoReveal={fromBook} />
         </div>
       </div>
+
+      <LearnStudentTest grade={grade} chapter={chapter} section={section} />
     </section>
   )
 }
