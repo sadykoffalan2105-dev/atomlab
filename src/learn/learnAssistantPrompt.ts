@@ -2,6 +2,7 @@ import type { LearnLocalAssistantContext } from './learnLocalAssistant'
 
 export type LearnAssistantPromptInput = LearnLocalAssistantContext & {
   knowledgeBlock: string
+  chemistryKnowledgeBlock?: string
   sectionOutlineBlock?: string
   topicSceneId?: string
 }
@@ -45,5 +46,8 @@ ${input.topicSceneId ? `3D scene in app: ${input.topicSceneId} (suggest opening 
 ${input.sectionOutlineBlock || '(use slide content above)'}
 
 --- ATOMLAB KNOWLEDGE (catalog / elements) ---
-${input.knowledgeBlock || '(no extra catalog matches)'}`
+${input.knowledgeBlock || '(no extra catalog matches)'}
+
+--- CHEMISTRY KNOWLEDGE BASE (school program 7–11, retrieved for this question) ---
+${input.chemistryKnowledgeBlock || '(use your chemistry expertise; no specific chunk matched)'}`
 }

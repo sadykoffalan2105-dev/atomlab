@@ -43,6 +43,11 @@ import {
 } from '../components/lab/ReactorCompoundCatalogPanel'
 import { SynthesisReactorPanel } from '../components/lab/SynthesisReactorPanel'
 import { compoundById } from '../data/compounds'
+import {
+  getSectionAllowedProductIds,
+  parseLearnEquationScope,
+  type LearnEquationScope,
+} from '../data/learnSectionEquations'
 import { getElementByZ } from '../data/elements'
 import type { CompoundDef, LabParticle, Vec3 } from '../types/chemistry'
 import styles from './LaboratoryPage.module.css'
@@ -101,6 +106,7 @@ export function LaboratoryPage() {
 
   const [reactorMessage, setReactorMessage] = useState<string | null>(null)
   const [pendingGenEq, setPendingGenEq] = useState(false)
+  const [learnEquationScope, setLearnEquationScope] = useState<LearnEquationScope | null>(null)
   const [synthesisSettledProduct, setSynthesisSettledProduct] = useState<CompoundDef | null>(null)
   const [laboratorySynthesisView, setLaboratorySynthesisView] = useState<'reactor' | 'substance'>('reactor')
   const productLockedRef = useRef(false)
@@ -121,12 +127,32 @@ export function LaboratoryPage() {
     if (params.get('genEq') === '1') {
       setPendingGenEq(true)
     }
+    const scope = parseLearnEquationScope(params)
+    if (scope) {
+      setLearnEquationScope(scope)
+    }
     const product = params.get('product')
     if (product && compoundById[product]) {
+      let productId = product
+      if (scope) {
+        const allowed = getSectionAllowedProductIds(scope.gradeId, scope.chapterId, scope.sectionId)
+        if (allowed.length > 0 && !allowed.includes(product)) {
+          productId = allowed[0]!
+        }
+      }
       productLockedRef.current = true
-      setProductCompoundId(product)
+      setProductCompoundId(productId)
     }
   }, [])
+
+  const learnAllowedProductIds = useMemo(() => {
+    if (!learnEquationScope) return undefined
+    return getSectionAllowedProductIds(
+      learnEquationScope.gradeId,
+      learnEquationScope.chapterId,
+      learnEquationScope.sectionId,
+    )
+  }, [learnEquationScope])
 
   const productCompound = useMemo(
     () => (productCompoundId ? (compoundById[productCompoundId] ?? null) : null),
@@ -362,6 +388,7 @@ export function LaboratoryPage() {
     lastRunProductRef.current = null
     setLaboratorySynthesisView('reactor')
     productLockedRef.current = false
+    setLearnEquationScope(null)
     reactorCatalogPickModeRef.current = 'selectProduct'
     setReactorCatalogIntent('selectProduct')
     setReactorCatalogOpen(false)
@@ -732,6 +759,9 @@ export function LaboratoryPage() {
         <ReactorCompoundCatalogPanel
           open={reactorCatalogOpen}
           intent={reactorCatalogIntent}
+          allowedProductIds={
+            reactorCatalogIntent === 'generateEquation' ? learnAllowedProductIds : undefined
+          }
           onClose={() => {
             setReactorCatalogOpen(false)
             reactorCatalogPickModeRef.current = 'selectProduct'

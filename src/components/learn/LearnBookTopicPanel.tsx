@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import {
   buildGenerateEquationLabUrl,
-  getSectionEquationOffer,
+  getSectionEquations,
 } from '../../data/learnSectionEquations'
 import { g7TextbookSectionPage, gradeHasTextbook } from '../../data/learnTextbookG7'
 import { useT } from '../../i18n/useT'
@@ -19,8 +19,8 @@ type Props = {
 
 export function LearnBookTopicPanel({ grade, chapter, section, fromBook }: Props) {
   const { t } = useT()
-  const offer = getSectionEquationOffer(grade.id, chapter.id, section.id)
-  const labUrl = buildGenerateEquationLabUrl(offer)
+  const equations = getSectionEquations(grade.id, chapter.id, section.id)
+  const labUrl = buildGenerateEquationLabUrl(grade.id, chapter.id, section.id)
 
   return (
     <section id="learn-topic-tools" className={styles.panel}>
@@ -47,8 +47,15 @@ export function LearnBookTopicPanel({ grade, chapter, section, fromBook }: Props
       <div className={styles.toolsRow}>
         <div className={styles.equationCard}>
           <h3 className={styles.toolTitle}>{t('learn.bookTopic.equationTitle')}</h3>
-          <p className={styles.equation}>{offer.equation}</p>
-          <p className={styles.hint}>{offer.hint}</p>
+          <ul className={styles.equationList}>
+            {equations.map((entry) => (
+              <li key={`${entry.productCompoundId}-${entry.equation}`} className={styles.equationItem}>
+                <p className={styles.equation}>{entry.equation}</p>
+                <p className={styles.hint}>{entry.hint}</p>
+              </li>
+            ))}
+          </ul>
+          <p className={styles.equationScopeHint}>{t('learn.bookTopic.equationScopeHint')}</p>
           <Link className={styles.genBtn} to={labUrl}>
             {t('learn.bookTopic.generateEquation')}
           </Link>

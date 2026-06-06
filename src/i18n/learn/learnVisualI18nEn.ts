@@ -42,5 +42,5 @@ export const learnVisualI18nEn = {
   'learn.assistant.quick5': 'Solve step by step',
   'learn.assistant.quick6': 'Link to lesson',
   'learn.assistant.welcome':
-    'Ask any chemistry question: reactions, calculations, elements, lab safety. Context from your § is included.',
+    'Ask any school chemistry question (grades 7–11): topics, reactions, calculations, lab safety. Use 🎤 voice input — the teacher can read answers aloud.',
 } as const

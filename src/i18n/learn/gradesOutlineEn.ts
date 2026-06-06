@@ -25,6 +25,8 @@ export const learnGradesOutlineEn = {
   'learn.bookTopic.lead': 'For this § — a sample equation in the lab and a random self-check question.',
   'learn.bookTopic.equationTitle': 'Equation for the topic',
   'learn.bookTopic.generateEquation': 'Generate equation',
+  'learn.bookTopic.equationScopeHint':
+    'In the lab, only equations from the list above are available for this topic.',
   'learn.bookTopic.backToBook': '← Back to book',
   'learn.topicQuiz.title': 'Topic question',
   'learn.topicQuiz.draw': 'Random question',
@@ -37,6 +39,12 @@ export const learnGradesOutlineEn = {
   'learn.topicQuiz.fullscreenClose': 'Close',
   'learn.topicQuiz.showDescription': 'Question explanation',
   'learn.topicQuiz.descriptionTitle': 'Topic explanation',
+  'learn.topicQuiz.teacherHint': 'Teacher help',
+  'learn.topicQuiz.teacherHintAgain': 'Another hint',
+  'learn.topicQuiz.teacherHintMore': 'Hint deeper',
+  'learn.topicQuiz.teacherHintTitle': 'AI teacher',
+  'learn.topicQuiz.teacherHintLead': 'I won’t give the answer — I’ll help you think.',
+  'learn.topicQuiz.teacherHintFoot': 'Now put it in your own words and pick an option.',
   'learn.studentTest.title': 'Test the student',
   'learn.studentTest.lead':
     'Mini exam for this §: pick 5 or 10 questions, answer in a row, and get a score. Great for the classroom board.',

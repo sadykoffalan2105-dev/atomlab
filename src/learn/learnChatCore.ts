@@ -3,6 +3,7 @@ import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
 import { buildSectionOutlineBlock } from './learnSectionKnowledge'
 import { filterAssistantReply } from './learnAssistantGuard'
 import { buildAssistantSystemPrompt } from './learnAssistantPrompt'
+import { buildRetrievedKnowledgeBlock } from './learnKnowledgeRetrieval'
 
 export type LearnChatMessage = { role: 'user' | 'assistant'; content: string }
 
@@ -178,9 +179,12 @@ export async function processLearnChat(
 
   const { block, topicSceneId } = buildAssistantKnowledgeBlock(userQuery, ctx)
   const sectionOutlineBlock = buildSectionOutlineBlock(ctx)
+  const speechLocale = ctx.locale === 'en' ? 'en' : 'ru'
+  const chemistryKnowledgeBlock = buildRetrievedKnowledgeBlock(userQuery, speechLocale, 4000)
   const system = buildAssistantSystemPrompt({
     ...ctx,
     knowledgeBlock: block,
+    chemistryKnowledgeBlock,
     sectionOutlineBlock,
     topicSceneId,
   })

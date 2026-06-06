@@ -2,6 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { generateLocalLearnReply, type LearnLocalAssistantContext } from '../../learn/learnLocalAssistant'
 import { routeTeacherReply, type TeacherReplySource } from '../../learn/learnTeacherRouter'
+import {
+  isSpeechOutputSupported,
+  isSpeechRecognitionSupported,
+  LearnSpeechController,
+  preloadSpeechVoices,
+  type SpeechOutputMode,
+} from '../../learn/learnSpeech'
 import type { LearnSection } from '../../types/learn'
 import { LearnAssistantMarkdown } from './LearnAssistantMarkdown'
 import styles from '../../pages/LearnPage.module.css'
@@ -65,7 +72,19 @@ export function LearnAssistantPanel({
   void slideIndex
   const { t, locale } = useT()
   const [mode, setMode] = useState<'teacher' | 'helper'>('teacher')
-  const [curriculumOnly, setCurriculumOnly] = useState(true)
+  const [curriculumOnly, setCurriculumOnly] = useState(false)
+  const [autoRead, setAutoRead] = useState(() => {
+    try {
+      return localStorage.getItem('atomlab-learn-autoread') === '1'
+    } catch {
+      return false
+    }
+  })
+  const [listening, setListening] = useState(false)
+  const [speakingId, setSpeakingId] = useState<number | null>(null)
+  const [preparingSpeechId, setPreparingSpeechId] = useState<number | null>(null)
+  const [voiceMode, setVoiceMode] = useState<SpeechOutputMode | null>(null)
+  const speechRef = useRef(new LearnSpeechController())
   const storeKey = storageKey(gradeId, chapterId, section.id)
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadStored(storeKey))
   const [input, setInput] = useState('')
@@ -84,6 +103,14 @@ export function LearnAssistantPanel({
   useEffect(() => {
     setMessages(loadStored(storeKey))
   }, [storeKey])
+
+  useEffect(() => {
+    preloadSpeechVoices()
+    return () => {
+      speechRef.current.stop()
+      speechRef.current.stopListening()
+    }
+  }, [])
 
   useEffect(() => {
     if (messages.length > 0) saveStored(storeKey, messages)
@@ -117,6 +144,58 @@ export function LearnAssistantPanel({
 
   const mapRoutedSource = (s: TeacherReplySource): 'openai' | 'local' | 'ollama' =>
     s === 'ollama' ? 'ollama' : 'local'
+
+  const speechLocale = locale === 'en' ? 'en' : 'ru'
+
+  const speakMessage = useCallback(
+    async (text: string, messageId: number) => {
+      if (!isSpeechOutputSupported()) return
+      setPreparingSpeechId(messageId)
+      setSpeakingId(messageId)
+      try {
+        await speechRef.current.speak(
+          text,
+          speechLocale,
+          () => {
+            setSpeakingId(null)
+            setPreparingSpeechId(null)
+          },
+          (mode) => {
+            setVoiceMode(mode)
+            if (mode === 'neural') setPreparingSpeechId(null)
+          },
+        )
+      } catch {
+        setSpeakingId(null)
+        setPreparingSpeechId(null)
+      }
+    },
+    [speechLocale],
+  )
+
+  const stopSpeaking = useCallback(() => {
+    speechRef.current.stop()
+    setSpeakingId(null)
+    setPreparingSpeechId(null)
+  }, [])
+
+  const toggleMic = useCallback(() => {
+    if (!isSpeechRecognitionSupported()) return
+    if (listening) {
+      speechRef.current.stopListening()
+      setListening(false)
+      return
+    }
+    const started = speechRef.current.startListening(
+      speechLocale,
+      (transcript) => {
+        setListening(false)
+        setInput(transcript)
+      },
+      () => setListening(false),
+    )
+    setListening(started)
+  }, [listening, speechLocale])
 
   const replyFromApi = useCallback(
     async (nextMessages: ChatMessage[]): Promise<{ text: string; source: 'openai' | 'local' | 'ollama' }> => {
@@ -172,10 +251,16 @@ export function LearnAssistantPanel({
       try {
         const { text: reply, source } = await replyFromApi(nextMessages)
         setLastSource(source)
-        setMessages((m) => [
-          ...m,
-          { role: 'assistant', text: reply, at: Date.now(), source },
-        ])
+        const assistantMsg: ChatMessage = {
+          role: 'assistant',
+          text: reply,
+          at: Date.now(),
+          source,
+        }
+        setMessages((m) => [...m, assistantMsg])
+        if (autoRead && isSpeechOutputSupported()) {
+          void speakMessage(reply, assistantMsg.at)
+        }
       } catch (err) {
         const localText = generateLocalLearnReply(
           nextMessages.map((x) => ({ role: x.role, content: x.text })),
@@ -196,7 +281,7 @@ export function LearnAssistantPanel({
         })
       }
     },
-    [loading, messages, replyFromApi, localCtx, t],
+    [loading, messages, replyFromApi, localCtx, t, autoRead, speakMessage],
   )
 
   const send = useCallback(() => {
@@ -283,6 +368,23 @@ export function LearnAssistantPanel({
           <label className={styles.learnAssistantCurriculumToggle}>
             <input
               type="checkbox"
+              checked={autoRead}
+              onChange={(e) => {
+                const on = e.target.checked
+                setAutoRead(on)
+                if (!on) stopSpeaking()
+                try {
+                  localStorage.setItem('atomlab-learn-autoread', on ? '1' : '0')
+                } catch {
+                  /* ignore */
+                }
+              }}
+            />
+            {t('learn.assistant.autoRead')}
+          </label>
+          <label className={styles.learnAssistantCurriculumToggle}>
+            <input
+              type="checkbox"
               checked={preferOllama}
               onChange={(e) => {
                 const on = e.target.checked
@@ -326,7 +428,34 @@ export function LearnAssistantPanel({
                 {m.role === 'user' ? t('learn.assistant.you') : t('learn.assistant.ai')}
               </span>
               {m.role === 'assistant' ? (
-                <LearnAssistantMarkdown text={m.text} />
+                <>
+                  <LearnAssistantMarkdown text={m.text} />
+                  {isSpeechOutputSupported() ? (
+                    <div className={styles.learnAssistantBubbleActions}>
+                      <button
+                        type="button"
+                        className={styles.learnAssistantVoiceBtn}
+                        disabled={preparingSpeechId === m.at && speakingId !== m.at}
+                        onClick={() =>
+                          speakingId === m.at || preparingSpeechId === m.at
+                            ? stopSpeaking()
+                            : void speakMessage(m.text, m.at)
+                        }
+                        aria-label={
+                          speakingId === m.at || preparingSpeechId === m.at
+                            ? t('learn.assistant.stopSpeak')
+                            : t('learn.assistant.speak')
+                        }
+                      >
+                        {preparingSpeechId === m.at
+                          ? t('learn.assistant.preparingVoice')
+                          : speakingId === m.at
+                            ? t('learn.assistant.stopSpeak')
+                            : t('learn.assistant.speak')}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
               ) : (
                 <p>{m.text}</p>
               )}
@@ -337,9 +466,32 @@ export function LearnAssistantPanel({
         {error ? <p className={styles.learnAssistantError}>{error}</p> : null}
       </div>
 
-      <p className={styles.learnAssistantDisclaimer}>{t('learn.assistant.disclaimer')}</p>
+      <p className={styles.learnAssistantDisclaimer}>
+        {t('learn.assistant.disclaimer')}
+        {voiceMode === 'neural' ? (
+          <span className={styles.learnAssistantVoiceHint}> · {t('learn.assistant.voiceNeural')}</span>
+        ) : null}
+      </p>
 
       <div className={styles.learnAssistantInputRow}>
+        {isSpeechRecognitionSupported() ? (
+          <button
+            type="button"
+            className={
+              listening ? styles.learnAssistantMicOn : styles.learnAssistantMic
+            }
+            onClick={toggleMic}
+            disabled={loading}
+            aria-label={
+              listening ? t('learn.assistant.micStop') : t('learn.assistant.micStart')
+            }
+            title={
+              listening ? t('learn.assistant.micStop') : t('learn.assistant.micStart')
+            }
+          >
+            {listening ? '■' : '🎤'}
+          </button>
+        ) : null}
         <input
           type="text"
           className={styles.learnAssistantInput}

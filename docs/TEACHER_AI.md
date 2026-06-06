@@ -19,13 +19,21 @@ VITE_OLLAMA_MODEL=llama3.2
 
 4. В панели «ИИ-учитель» включите переключатель **Ollama**.
 
-## Ваш сервер (позже)
+## Ваш сервер (OpenAI + нейроголос)
 
 ```env
+OPENAI_API_KEY=sk-...
+OPENAI_TTS_MODEL=tts-1-hd
+OPENAI_TTS_VOICE=shimmer
 VITE_LEARN_CHAT_URL=https://your-server.example/api/learn/chat
 ```
 
-Сервер должен принимать POST JSON `{ messages, context }` и возвращать `{ reply, source }`.
+- `POST /api/learn/chat` — `{ messages, context }` → `{ reply, source }`
+- `POST /api/learn/tts` — `{ text, locale }` → `{ audioBase64, mimeType, source: "openai" }`
+
+Голос **tts-1-hd** (как у ChatGPT/Gemini): естественная интонация, чёткое произношение формул. Без API-ключа — запасной голос браузера.
+
+Локально (`npm run dev`) TTS работает через тот же middleware, если в `.env` задан `OPENAI_API_KEY`.
 
 ## Безопасность
 

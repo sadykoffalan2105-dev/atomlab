@@ -28,11 +28,14 @@ export function ReactorCompoundCatalogPanel({
   intent = 'selectProduct',
   onClose,
   onPick,
+  allowedProductIds,
 }: {
   open: boolean
   intent?: ReactorCatalogIntent
   onClose: () => void
   onPick: (id: string) => void
+  /** Ограничение списка при переходе из урока (только уравнения темы) */
+  allowedProductIds?: readonly string[]
 }) {
   const { locale, t } = useT()
   const [q, setQ] = useState('')
@@ -49,11 +52,17 @@ export function ReactorCompoundCatalogPanel({
 
   const all = useMemo(() => Object.values(compoundById) as CompoundDef[], [])
 
+  const scoped = useMemo(() => {
+    if (!allowedProductIds?.length) return all
+    const allowed = new Set(allowedProductIds)
+    return all.filter((c) => allowed.has(c.id))
+  }, [all, allowedProductIds])
+
   const searchBlob = useCallback((c: CompoundDef) => compoundSearchBlob(c, locale, t), [locale, t])
 
   const filtered = useMemo(
-    () => filterCompoundsForCatalog(all, q, category, searchBlob),
-    [all, q, category, searchBlob],
+    () => filterCompoundsForCatalog(scoped, q, category, searchBlob),
+    [scoped, q, category, searchBlob],
   )
 
   const byCategory = useMemo(() => {

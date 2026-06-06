@@ -7,6 +7,7 @@ import { LearnTopicQuizFullscreen } from './LearnTopicQuizFullscreen'
 import { prefetchLearnImage } from './LearnSlideVisual'
 import { hasTopicQuizVisual, TopicQuizVisual } from './TopicQuizVisual'
 import { getQuizVisualSpec } from '../../learn/quizVisualManifest'
+import { QuizTeacherHint } from './QuizTeacherHint'
 import styles from './LearnTopicQuizCard.module.css'
 import fsStyles from './LearnTopicQuizFullscreen.module.css'
 
@@ -181,6 +182,7 @@ function TopicQuizBody({
   const quizBlock = (
     <>
       <p className={ui.question}>{question.question}</p>
+      <QuizTeacherHint question={question} disabled={pick !== null} />
       <ul className={ui.choices}>
         {question.choices.map((choice, idx) => {
           const selected = pick === idx

@@ -2218,6 +2218,60 @@
   flex-shrink: 0;
 }
 
+.learnAssistantMic,
+.learnAssistantMicOn {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 8px;
+  border: 1px solid rgba(100, 140, 220, 0.35);
+  background: rgba(30, 50, 80, 0.5);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+
+.learnAssistantMicOn {
+  border-color: rgba(255, 100, 100, 0.6);
+  background: rgba(80, 30, 35, 0.55);
+  color: #ffb0b0;
+}
+
+.learnAssistantMic:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.learnAssistantBubbleActions {
+  margin-top: 0.35rem;
+}
+
+.learnAssistantVoiceBtn {
+  font-size: 0.62rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid rgba(61, 255, 236, 0.25);
+  background: rgba(20, 45, 55, 0.5);
+  color: rgba(180, 230, 255, 0.9);
+  cursor: pointer;
+}
+
+.learnAssistantVoiceBtn:hover {
+  border-color: rgba(61, 255, 236, 0.45);
+  color: #d8f8ff;
+}
+
+.learnAssistantVoiceBtn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.learnAssistantVoiceHint {
+  color: rgba(120, 220, 200, 0.85);
+}
+
 .taskMcqWrong {
   border-color: rgba(255, 120, 120, 0.55) !important;
   background: rgba(60, 25, 30, 0.4) !important;

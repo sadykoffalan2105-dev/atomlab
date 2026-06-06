@@ -1,6 +1,7 @@
 import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
 import { buildSectionOutlineBlock } from './learnSectionKnowledge'
 import { matchFaqEntry, offlineNeedsApiMessage } from './learnChemistryFaq'
+import { buildRetrievedKnowledgeBlock, retrieveChemistryKnowledge } from './learnKnowledgeRetrieval'
 
 /** Локальные ответы ИИ-учителя без внешнего API (офлайн / без ключа). */
 export type LearnLocalAssistantContext = {
@@ -62,7 +63,35 @@ function mixturesAnswer(ctx: LearnLocalAssistantContext, ru: boolean): string {
     : `For "${ctx.sectionTitle}": air, milk, granite, and seawater are mixtures; distilled water or copper wire are pure substances. Separation methods: filtration, evaporation, magnet, distillation.`
 }
 
-function explainTopic(ctx: LearnLocalAssistantContext, ru: boolean): string {
+function speechLocale(ctx: LearnLocalAssistantContext): 'ru' | 'en' {
+  return ctx.locale === 'en' ? 'en' : 'ru'
+}
+
+function knowledgeBlockReply(query: string, ctx: LearnLocalAssistantContext, ru: boolean): string | null {
+  const loc = speechLocale(ctx)
+  const retrieved = retrieveChemistryKnowledge(query, { maxChunks: 4, minScore: 2 })
+  const block = buildRetrievedKnowledgeBlock(query, loc, 2800)
+  if (!block || retrieved.chunks.length === 0) return null
+
+  const topics = retrieved.chunks.map((c) => c.topic).join(', ')
+  return ru
+    ? `**${topics}**
+
+${block}
+
+${ctx.sectionTitle ? `Контекст урока: §${ctx.kpNumber} «${ctx.sectionTitle}».` : ''} Спросите подробнее или попросите пример / задачу.`
+    : `**${topics}**
+
+${block}
+
+Lesson context: §${ctx.kpNumber} "${ctx.sectionTitle}". Ask for examples or practice.`
+}
+
+function explainTopic(ctx: LearnLocalAssistantContext, ru: boolean, query?: string): string {
+  const q = query ?? ctx.sectionTitle
+  const fromKb = knowledgeBlockReply(q, ctx, ru)
+  if (fromKb) return fromKb
+
   const body = ctx.slideBody.slice(0, 400)
   return ru
     ? `§${ctx.kpNumber}. ${ctx.sectionTitle}
@@ -176,7 +205,7 @@ export function generateLocalLearnReply(
   }
 
   if (matchAny(q, ['объясни', 'explain', 'расскаж', 'tell me', 'что такое', 'what is'])) {
-    return explainTopic(ctx, ru)
+    return explainTopic(ctx, ru, q)
   }
 
   if (matchAny(q, ['проверь', 'check', 'пониман', 'understand', 'тест'])) {
@@ -252,6 +281,9 @@ export function generateLocalLearnReply(
   if (faq) {
     return ru ? faq.ru : faq.en
   }
+
+  const kbReply = knowledgeBlockReply(q, ctx, ru)
+  if (kbReply) return kbReply
 
   const { block: catalogBlock } = buildAssistantKnowledgeBlock(q, ctx)
   const sectionBlock = buildSectionOutlineBlock(ctx, 1600)

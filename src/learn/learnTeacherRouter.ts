@@ -1,5 +1,10 @@
 import { generateLocalLearnReply, type LearnLocalAssistantContext } from './learnLocalAssistant'
 import { matchFaqEntry } from './learnChemistryFaq'
+import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
+import { buildSectionOutlineBlock } from './learnSectionKnowledge'
+import { buildAssistantSystemPrompt } from './learnAssistantPrompt'
+import { buildRetrievedKnowledgeBlock } from './learnKnowledgeRetrieval'
+import { filterAssistantReply } from './learnAssistantGuard'
 
 export type TeacherReplySource = 'faq' | 'local' | 'ollama' | 'api'
 
@@ -30,9 +35,16 @@ async function tryOllamaReply(
     '',
   )
   const model = opts?.ollamaModel ?? import.meta.env.VITE_OLLAMA_MODEL ?? DEFAULT_MODEL
-  const system = `You are a school chemistry teacher (grades 7-11). Answer in ${
-    ctx.locale === 'en' ? 'English' : 'Russian'
-  }. Topic: ${ctx.sectionTitle}. Be accurate, concise, safe in lab.`
+  const q = lastUserText(messages)
+  const speechLocale = ctx.locale === 'en' ? 'en' : 'ru'
+  const { block, topicSceneId } = buildAssistantKnowledgeBlock(q, ctx)
+  const system = buildAssistantSystemPrompt({
+    ...ctx,
+    knowledgeBlock: block,
+    chemistryKnowledgeBlock: buildRetrievedKnowledgeBlock(q, speechLocale, 4000),
+    sectionOutlineBlock: buildSectionOutlineBlock(ctx),
+    topicSceneId,
+  })
   try {
     const res = await fetch(`${base}/api/chat`, {
       method: 'POST',
@@ -53,7 +65,8 @@ async function tryOllamaReply(
     if (!res.ok) return null
     const data = (await res.json()) as { message?: { content?: string } }
     const text = data.message?.content?.trim()
-    return text && text.length > 2 ? text : null
+    const filtered = text ? filterAssistantReply(text) : ''
+    return filtered.length > 2 ? filtered : null
   } catch {
     return null
   }

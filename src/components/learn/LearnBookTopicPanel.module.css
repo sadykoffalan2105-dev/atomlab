@@ -91,12 +91,38 @@
   font-weight: 700;
 }
 
+.equationList {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.equationItem {
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid rgba(255, 200, 100, 0.12);
+}
+
+.equationItem:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
 .equation {
-  margin: 0 0 0.45rem;
+  margin: 0 0 0.35rem;
   font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
   font-size: 0.92rem;
   color: #ffe8c0;
   letter-spacing: 0.02em;
+}
+
+.equationScopeHint {
+  margin: 0 0 0.65rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: rgba(200, 190, 170, 0.88);
 }
 
 .hint {

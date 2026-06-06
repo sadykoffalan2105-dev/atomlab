@@ -25,6 +25,8 @@ export const learnGradesOutlineRu = {
   'learn.bookTopic.lead': 'По теме § — пример уравнения в лаборатории и случайный вопрос для самопроверки.',
   'learn.bookTopic.equationTitle': 'Уравнение по теме',
   'learn.bookTopic.generateEquation': 'Сгенерировать уравнение',
+  'learn.bookTopic.equationScopeHint':
+    'В лаборатории для этой темы доступны только уравнения из списка выше.',
   'learn.bookTopic.backToBook': '← К учебнику',
   'learn.topicQuiz.title': 'Вопрос по теме',
   'learn.topicQuiz.draw': 'Случайный вопрос',
@@ -37,6 +39,12 @@ export const learnGradesOutlineRu = {
   'learn.topicQuiz.fullscreenClose': 'Закрыть',
   'learn.topicQuiz.showDescription': 'Описание вопроса',
   'learn.topicQuiz.descriptionTitle': 'Описание темы',
+  'learn.topicQuiz.teacherHint': 'Помощь учителя',
+  'learn.topicQuiz.teacherHintAgain': 'Ещё подсказка',
+  'learn.topicQuiz.teacherHintMore': 'Намекни глубже',
+  'learn.topicQuiz.teacherHintTitle': 'ИИ-учитель',
+  'learn.topicQuiz.teacherHintLead': 'Не скажу ответ — помогу подумать самому.',
+  'learn.topicQuiz.teacherHintFoot': 'Теперь сформулируй ответ своими словами и выбери вариант.',
   'learn.studentTest.title': 'Протестировать ученика',
   'learn.studentTest.lead':
     'Мини-экзамен по §: выберите 5 или 10 вопросов, ответьте подряд и получите оценку. Удобно для доски в классе.',

@@ -225,6 +225,7 @@ function expandC1EnrichedPool(ch: number, sec: number, seed: number): TopicQuizI
     const { choices, correctIndex } = withChoices(correct, distractorPool, rand)
     return applyTemplateEnrichment(template, {
       id: `g7-c${ch}-s${String(sec).padStart(2, '0')}-q${i + 1}`,
+      templateKey: template.templateKey,
       question: template.question,
       choices,
       correctIndex,
@@ -257,6 +258,7 @@ function expandToPool(ch: number, sec: number, seed: number): TopicQuizItem[] {
     out.push(
       applyTemplateEnrichment(template, {
         id,
+        templateKey: template.templateKey,
         question: template.question,
         choices,
         correctIndex,
@@ -272,6 +274,7 @@ function expandToPool(ch: number, sec: number, seed: number): TopicQuizItem[] {
     const { choices, correctIndex } = withChoices(correct, [...template.choices, '0 моль', '1 моль'], rand)
     out.push({
       id: `g7-c${ch}-s${String(sec).padStart(2, '0')}-extra${i}`,
+      templateKey: template.templateKey,
       question: template.question,
       choices,
       correctIndex,
