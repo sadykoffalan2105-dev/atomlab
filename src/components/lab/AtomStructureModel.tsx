@@ -108,6 +108,8 @@ export function AtomStructureModel({
   hideOrbitRings = false,
   /** Реактор/синтез: крупное ядро, орбиты и электроны как в режиме просмотра атома. */
   synthesisDetail = false,
+  /** Пропуск кадров анимации электронов (1 = каждый кадр, 2 = через один). */
+  electronFrameSkip = 1,
 }: {
   z: number
   animate?: boolean
@@ -119,6 +121,7 @@ export function AtomStructureModel({
   /** Реактор: только ядро и электроны, без цветных орбитальных колец. */
   hideOrbitRings?: boolean
   synthesisDetail?: boolean
+  electronFrameSkip?: number
 }) {
   const group = useRef<THREE.Group>(null)
   const protRef = useRef<THREE.InstancedMesh>(null)
@@ -154,7 +157,13 @@ export function AtomStructureModel({
 
   const angles = useRef<number[]>([])
   const orbitOpacity = synthesisDetail ? 0.42 : previewEmphasis ? 0.38 : 0.26
-  const torusSegments = lite ? 16 : synthesisDetail ? 48 : previewLite ? 32 : 48
+  const torusSegments = lite
+    ? 12
+    : synthesisDetail
+      ? 32
+      : previewLite
+        ? 24
+        : 40
 
   useLayoutEffect(() => {
     angles.current = Array.from({ length: nElec }, (_, i) => (i / Math.max(1, nElec)) * Math.PI * 2)
@@ -238,11 +247,12 @@ export function AtomStructureModel({
   useFrame((_, delta) => {
     if (previewStatic) return
     frameTick.current += 1
-    if (lite && frameTick.current % 2 !== 0) return
+    const skip = Math.max(1, Math.floor(electronFrameSkip))
+    if (frameTick.current % skip !== 0) return
 
     const spin = animate && !lite
     if (spin && group.current) group.current.rotation.y += delta * 0.09
-    writeElectronMatrices(animate ? delta : 0)
+    writeElectronMatrices(animate ? delta * skip : 0)
   })
 
   return (

@@ -82,13 +82,6 @@ export function buildReactorPreviewAtoms(terms: readonly ReactorEquationTerm[]):
     }
   })
 
-  if (import.meta.env.DEV && out.length !== expected && expected > 0) {
-    console.warn('[reactorPreview] layout count mismatch; using preview slots fallback', {
-      expected,
-      actual: out.length,
-    })
-  }
-
   if (out.length !== expected && expected > 0) {
     const slots = expandLeftTermsToPreviewSlots(terms)
     const n = slots.length

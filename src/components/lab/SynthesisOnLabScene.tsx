@@ -110,7 +110,7 @@ function MergeFlashBurst({
   return (
     <group>
       <mesh rotation={[-Math.PI * 0.5, 0, 0]}>
-        <ringGeometry args={[0.05, isSuccess ? 0.72 : 0.5, 48]} />
+        <ringGeometry args={[0.05, isSuccess ? 0.72 : 0.5, minimalFx ? 24 : 36]} />
         <meshBasicMaterial
           color={colorA}
           transparent
@@ -121,16 +121,18 @@ function MergeFlashBurst({
         />
       </mesh>
       <pointLight ref={ptLight} position={[0, 0.1, 0.45]} intensity={0} color={colorA} distance={16} />
-      <hemisphereLight
-        ref={hemi}
-        color={isSuccess ? '#9dd8ff' : '#ffccb0'}
-        groundColor="#0a0a0a"
-        intensity={0}
-      />
+      {!minimalFx ? (
+        <hemisphereLight
+          ref={hemi}
+          color={isSuccess ? '#9dd8ff' : '#ffccb0'}
+          groundColor="#0a0a0a"
+          intensity={0}
+        />
+      ) : null}
       <group rotation={[-Math.PI * 0.5, 0, 0]}>
         <group ref={ringG}>
           <mesh>
-            <ringGeometry args={[0.1, isSuccess ? 0.58 : 0.44, 56]} />
+            <ringGeometry args={[0.1, isSuccess ? 0.58 : 0.44, minimalFx ? 28 : 40]} />
             <meshBasicMaterial
               ref={ringMat}
               color={colorA}
@@ -144,11 +146,11 @@ function MergeFlashBurst({
         </group>
       </group>
       <Sparkles
-        count={minimalFx ? (isSuccess ? 36 : 14) : isSuccess ? 140 : 28}
-        scale={minimalFx ? (isSuccess ? 4.2 : 2.4) : isSuccess ? 6.4 : 3.6}
-        size={minimalFx ? (isSuccess ? 2.2 : 1.4) : isSuccess ? 3.2 : 2}
-        speed={minimalFx ? 1.6 : isSuccess ? 2.8 : 1.2}
-        opacity={minimalFx ? 0.65 : isSuccess ? 0.88 : 0.5}
+        count={minimalFx ? (isSuccess ? 24 : 10) : isSuccess ? 100 : 22}
+        scale={minimalFx ? (isSuccess ? 3.8 : 2.2) : isSuccess ? 6.4 : 3.6}
+        size={minimalFx ? (isSuccess ? 2 : 1.2) : isSuccess ? 3.2 : 2}
+        speed={minimalFx ? 1.4 : isSuccess ? 2.8 : 1.2}
+        opacity={minimalFx ? 0.55 : isSuccess ? 0.88 : 0.5}
         color={colorA}
         position={[0, 0.1, 0.15]}
       />
@@ -458,18 +460,9 @@ export function SynthesisOnLabScene({
   useLayoutEffect(() => {
     if (externalProductSlot || phase !== 'product' || !product || !productEntranceRef.current) return
     const g = productEntranceRef.current
-    g.scale.set(0.01, 0.01, 0.01)
-    const t = gsap.to(g.scale, {
-      x: 1,
-      y: 1,
-      z: 1,
-      duration: PRODUCT_ENTRANCE_DUR,
-      ease: 'power3.out',
-    })
-    return () => {
-      t.kill()
-    }
-  }, [phase, product, runId])
+    g.visible = true
+    g.scale.set(1, 1, 1)
+  }, [phase, product, runId, externalProductSlot])
 
   useLayoutEffect(() => {
     if (phase !== 'failBounce') return
@@ -523,7 +516,7 @@ export function SynthesisOnLabScene({
   const cinema = cinematicPhase(phase)
   const accentHex = product?.accentColor ?? '#3dffec'
   const showCinematic = cinema != null && !externalCosmicBackdrop
-  const showWarpAndArc = cinema != null
+  const showWarpAndArc = cinema != null && !labLiteMode && !externalCosmicBackdrop
 
   if (!useConverge && zSlots.length < 2) {
     return (
@@ -586,7 +579,7 @@ export function SynthesisOnLabScene({
           total={MERGE_FLASH_DUR}
           isSuccess={!!product}
           flashHex={sparkleHex}
-          minimalFx={synthesisFxMinimal}
+          minimalFx={synthesisFxMinimal || labLiteMode}
         />
       )}
 

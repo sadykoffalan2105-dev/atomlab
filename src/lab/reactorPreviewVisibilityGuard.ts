@@ -82,13 +82,6 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
         missingRefFrames = 0
       }
 
-      if (import.meta.env.DEV && missingRefFrames === PREVIEW_REF_RECOVER_FRAMES) {
-        console.warn('[reactorPreview] Восстановление видимости атомов', {
-          atomCount,
-          bound,
-        })
-      }
-
       if (missingRefFrames >= PREVIEW_REF_RECOVER_FRAMES) {
         const now = performance.now()
         if (now - lastRecoverMs > 120) {

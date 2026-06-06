@@ -1,8 +1,8 @@
-/** Сколько кадров держать превью после появления продукта (overlap, без мигания). */
-export const SYNTH_PREVIEW_RETAIN_FRAMES = 3
+/** Сколько ms держать превью поверх продукта после handoff (overlap, без мигания). */
+export const SYNTH_PREVIEW_OVERLAP_MS = 240
 
-/** Порог пустых кадров до авто-восстановления. */
-export const SYNTH_EMPTY_FRAME_RECOVER = 2
+/** Порог пустых кадров до авто-восстановления (выше — меньше ложных срабатываний). */
+export const SYNTH_EMPTY_FRAME_RECOVER = 4
 
 export type SynthesisCoverage = {
   preview: boolean
@@ -41,11 +41,6 @@ export function createSynthesisCoverageTracker(): SynthesisCoverageTracker {
       }
 
       emptyFrames += 1
-      if (import.meta.env.DEV && emptyFrames === SYNTH_EMPTY_FRAME_RECOVER) {
-        console.warn(
-          '[synthesisVisualGuard] Пустой кадр синтеза — форсируем показ продукта',
-        )
-      }
       if (emptyFrames >= SYNTH_EMPTY_FRAME_RECOVER) {
         const now = performance.now()
         if (now - lastRecoverMs > 180) {

@@ -45,9 +45,14 @@ export type FpsGovernorState = {
   reset: () => void
 }
 
-export function createFpsGovernor(opts?: { enterFps?: number; holdSec?: number }): FpsGovernorState {
-  const enterFps = opts?.enterFps ?? 50
-  const holdSec = opts?.holdSec ?? 0.5
+export function createFpsGovernor(opts?: {
+  enterFps?: number
+  exitFps?: number
+  holdSec?: number
+}): FpsGovernorState {
+  const enterFps = opts?.enterFps ?? 52
+  const exitFps = opts?.exitFps ?? 58
+  const holdSec = opts?.holdSec ?? 0.3
   let lowAccum = 0
   let forceLite = false
 
@@ -57,7 +62,12 @@ export function createFpsGovernor(opts?: { enterFps?: number; holdSec?: number }
     },
     tick(fps: number) {
       if (fps < enterFps) lowAccum += 0.25
-      else lowAccum = Math.max(0, lowAccum - 0.25)
+      else if (fps >= exitFps) {
+        lowAccum = Math.max(0, lowAccum - 0.5)
+        if (lowAccum <= 0) forceLite = false
+      } else {
+        lowAccum = Math.max(0, lowAccum - 0.12)
+      }
       if (lowAccum >= holdSec) forceLite = true
     },
     reset() {

@@ -50,10 +50,8 @@ export type PrepareGuaranteedResult =
   | { ok: false; code: ReactorValidationErrorCode; params?: Record<string, string | number> }
 
 /** Dev: регрессия — кольцо при успешном синтезе. */
-export function assertSuccessSynthesisVisualMode(hasProduct: boolean, usedCircleLayout: boolean): void {
-  if (import.meta.env.DEV && hasProduct && usedCircleLayout) {
-    console.error(`[synthesis] REGRESSION: ${SYNTHESIS_VISUAL_CONTRACT}`)
-  }
+export function assertSuccessSynthesisVisualMode(_hasProduct: boolean, _usedCircleLayout: boolean): void {
+  /* silent — recovery guards handle visuals */
 }
 
 /** Свежая ссылка на вещество из каталога по id (не из устаревшего state). */

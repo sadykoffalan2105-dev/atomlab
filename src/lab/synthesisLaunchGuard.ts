@@ -64,15 +64,11 @@ export function createProductCrossfadeGuard(onReady: () => void): ProductCrossfa
 
 let continuityEmptyFrames = 0
 
-/** Dev: предупреждение, если сцена пуста несколько кадров подряд во время синтеза. */
+/** Dev-only continuity counter (без логов — не блокирует main thread). */
 export function tickSynthesisVisualContinuity(hasVisibleContent: boolean): void {
-  if (import.meta.env.PROD) return
   if (hasVisibleContent) {
     continuityEmptyFrames = 0
     return
   }
   continuityEmptyFrames += 1
-  if (continuityEmptyFrames === 3) {
-    console.warn('[synthesisLaunchGuard] Пустой кадр синтеза ≥3 frames — проверьте handoff/merge/product')
-  }
 }

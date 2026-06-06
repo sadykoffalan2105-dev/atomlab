@@ -84,7 +84,7 @@ export function LabProductHeroSlot({
     }
   }, [visible, prewarm, entrance, compound.id, runId])
 
-  const showLights = visible || prewarm
+  const showLights = visible
   const ambientIntensity = visible ? 0.36 : 0.22
   const dirIntensity = visible ? 0.72 : 0.42
 
@@ -100,7 +100,7 @@ export function LabProductHeroSlot({
           />
         </>
       ) : null}
-      <group ref={groupRef} position={[0, 0, 0]} visible={visible || prewarm}>
+      <group ref={groupRef} position={[0, 0, 0]} visible={visible || prewarm} frustumCulled={!prewarm || visible}>
         <CatalogSubstanceDisplay
           compound={compound}
           labScaleBoost={CATALOG_HERO_DEFAULT_LAB_SCALE}

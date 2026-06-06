@@ -2,10 +2,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type MutableR
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
+import { assertPreviewElectronAnimation } from '../../lab/reactorPreviewGuarantee'
 import {
-  assertPreviewElectronAnimation,
-  PREVIEW_MAX_ATOM_MODELS,
-} from '../../lab/reactorPreviewGuarantee'
+  getReactorAtomRenderPolicy,
+  getReactorPreviewPolicy,
+  shouldRunGuardTick,
+} from '../../lab/synthesisLagGuard'
 import {
   applyReactorPreviewLayout,
   createReactorPreviewVisibilityGuard,
@@ -23,6 +25,7 @@ export function ReactorTermsPreview({
   flightActive = false,
   poseLocked = false,
   sharedLighting = false,
+  forceLite = false,
   atomGroupRefs: atomGroupRefsExternal,
   atomScaleGroupRefs: atomScaleGroupRefsExternal,
   previewRootRef,
@@ -35,6 +38,8 @@ export function ReactorTermsPreview({
   poseLocked?: boolean
   /** true: свет даёт LabReactorLights — без дубля и скачков яркости */
   sharedLighting?: boolean
+  /** FPS-governor / плотное превью — lite-модели и реже guard */
+  forceLite?: boolean
   atomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   atomScaleGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   previewRootRef?: MutableRefObject<THREE.Group | null>
@@ -48,16 +53,24 @@ export function ReactorTermsPreview({
   const n = previewAtoms.length
   const groupRef = useRef<THREE.Group>(null)
   const visibilityGuardRef = useRef(createReactorPreviewVisibilityGuard())
+  const guardFrameRef = useRef(0)
   const atomGroupRefsLocal = useRef<(THREE.Group | null)[]>([])
   const atomScaleGroupRefsLocal = useRef<(THREE.Group | null)[]>([])
   const atomGroupRefs = atomGroupRefsExternal ?? atomGroupRefsLocal
   const atomScaleGroupRefs = atomScaleGroupRefsExternal ?? atomScaleGroupRefsLocal
   const scale = reactorPreviewAtomScale(n)
-  const fullDetail = n <= PREVIEW_MAX_ATOM_MODELS
-  const dense = n > 18
-  const slowSpin = fullDetail && visible && !flightActive
-  const driftAtoms = fullDetail && visible && !flightActive
-  const electronAnimate = fullDetail
+
+  const previewPolicy = useMemo(
+    () =>
+      getReactorPreviewPolicy({
+        atomCount: n,
+        forceLite,
+        flightActive,
+        visible,
+      }),
+    [n, forceLite, flightActive, visible],
+  )
+  const { electronAnimate, driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
 
   useEffect(() => {
     assertPreviewElectronAnimation(electronAnimate, n)
@@ -77,6 +90,7 @@ export function ReactorTermsPreview({
 
   useLayoutEffect(() => {
     visibilityGuardRef.current.reset()
+    guardFrameRef.current = 0
   }, [termsSig, n])
 
   useLayoutEffect(() => {
@@ -91,21 +105,26 @@ export function ReactorTermsPreview({
   }, [flightActive, poseLocked, termsSig, n, syncLayout])
 
   useFrame((s) => {
-    visibilityGuardRef.current.tick({
-      atomCount: n,
-      atomGroupRefs,
-      atomScaleGroupRefs,
-      layoutScale: scale,
-      previewAtoms,
-      rootVisible: visible,
-      flightActive,
-      onRecover: syncLayout,
-    })
+    guardFrameRef.current += 1
+    if (
+      shouldRunGuardTick(guardFrameRef.current, visibilityGuardEvery)
+    ) {
+      visibilityGuardRef.current.tick({
+        atomCount: n,
+        atomGroupRefs,
+        atomScaleGroupRefs,
+        layoutScale: scale,
+        previewAtoms,
+        rootVisible: visible,
+        flightActive,
+        onRecover: syncLayout,
+      })
+    }
 
     if (!visible || flightActive) return
     const t = s.clock.elapsedTime
     const root = groupRef.current
-    if (root && slowSpin) root.rotation.y = t * (dense ? 0.032 : 0.04)
+    if (root && slowSpin) root.rotation.y = t * (n > 18 ? 0.032 : 0.04)
 
     if (!driftAtoms) return
     for (let i = 0; i < n; i++) {
@@ -114,7 +133,7 @@ export function ReactorTermsPreview({
       const { pos } = previewAtoms[i]!
       const [bx, by, bz] = pos
       const ph = i * 1.6 + previewAtoms[i]!.z * 0.37
-      const amp = dense ? 0.028 : 0.042
+      const amp = n > 18 ? 0.028 : 0.042
       g.position.set(
         bx + Math.sin(t * 0.32 + ph) * amp,
         by + Math.sin(t * 0.25 + ph * 0.9) * amp * 0.7,
@@ -133,40 +152,48 @@ export function ReactorTermsPreview({
     <group ref={groupRef} visible={visible}>
       {!sharedLighting ? (
         <>
-          <ambientLight intensity={dense ? 0.38 : 0.22} />
-          <directionalLight position={[4, 6, 2]} intensity={dense ? 0.72 : 0.55} color="#b8c8ff" />
-          {dense ? (
+          <ambientLight intensity={n > 18 ? 0.38 : 0.22} />
+          <directionalLight position={[4, 6, 2]} intensity={n > 18 ? 0.72 : 0.55} color="#b8c8ff" />
+          {n > 18 ? (
             <pointLight position={[0, 0.5, 2.5]} intensity={1.1} distance={12} color="#7afcff" />
           ) : null}
         </>
       ) : null}
-      {previewAtoms.map((atom, i) => (
-        <group
-          key={`${atom.termIndex}-${atom.atomInTerm}-${atom.z}-${i}`}
-          position={atom.pos}
-          ref={(el) => {
-            atomGroupRefs.current[i] = el
-          }}
-        >
+      {previewAtoms.map((atom, i) => {
+        const atomPolicy = getReactorAtomRenderPolicy({
+          atomCount: n,
+          atomZ: atom.z,
+          forceLite,
+        })
+        return (
           <group
-            scale={scale}
+            key={`${atom.termIndex}-${atom.atomInTerm}-${atom.z}-${i}`}
+            position={atom.pos}
             ref={(el) => {
-              atomScaleGroupRefs.current[i] = el
+              atomGroupRefs.current[i] = el
             }}
           >
-            <AtomStructureModel
-              z={atom.z}
-              animate={electronAnimate}
-              previewStatic={false}
-              previewEmphasis
-              synthesisDetail={fullDetail}
-              previewLite={!fullDetail || atom.z > 54}
-              hideOrbitRings={false}
-              localLight={!sharedLighting}
-            />
+            <group
+              scale={scale}
+              ref={(el) => {
+                atomScaleGroupRefs.current[i] = el
+              }}
+            >
+              <AtomStructureModel
+                z={atom.z}
+                animate={electronAnimate}
+                previewStatic={false}
+                previewEmphasis
+                synthesisDetail={atomPolicy.synthesisDetail}
+                previewLite={atomPolicy.previewLite}
+                electronFrameSkip={atomPolicy.electronFrameSkip}
+                hideOrbitRings={false}
+                localLight={!sharedLighting}
+              />
+            </group>
           </group>
-        </group>
-      ))}
+        )
+      })}
     </group>
   )
 }

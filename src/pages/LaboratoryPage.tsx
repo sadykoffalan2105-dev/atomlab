@@ -627,7 +627,7 @@ export function LaboratoryPage() {
           laboratorySynthesisView={laboratorySynthesisView}
           synthesisPhase={synthPhaseUi}
           forceLiteFxRef={forceLiteFxRef}
-          prewarmProductCompound={canRunSynthesis ? productCompound : null}
+          prewarmProductCompound={synthRunActive ? lastRunProduct : null}
         />
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />
