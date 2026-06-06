@@ -6,6 +6,7 @@ import {
   type ReactorValidationErrorCode,
 } from '../chemistry/reactorEquationBalance'
 import { synthesisLaunchWatchdogMs } from './synthesisLaunchTiming'
+import { getReactorVisualTier, type ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import type { CompoundDef } from '../types/chemistry'
 
 /**
@@ -22,9 +23,10 @@ export function getSynthesisWatchdogMs(
 ): number {
   if (flyTerms.length > 0) {
     const atomCount = expandLeftTermsToPreviewSlots(flyTerms).length
-    return synthesisLaunchWatchdogMs(flyTerms.length, atomCount)
+    const tier = getReactorVisualTier(flyTerms)
+    return synthesisLaunchWatchdogMs(flyTerms.length, atomCount, tier)
   }
-  return synthesisLaunchWatchdogMs(Math.max(1, zSlots.length), zSlots.length)
+  return synthesisLaunchWatchdogMs(Math.max(1, zSlots.length), zSlots.length, 'full')
 }
 
 /**
@@ -41,8 +43,10 @@ export type GuaranteedSynthesisRun = {
   zSlots: readonly number[]
   /** Снимок слагаемых на момент запуска. */
   flyTerms: readonly ReactorEquationTerm[]
-  /** Только отрисовка полёта (15 для 4Cr+4K+7O₂). */
+  /** Только отрисовка полёта (capped preview models). */
   visualFlyZs: readonly number[]
+  /** full | lite | cluster — tiered 3D performance. */
+  visualTier: ReactorVisualTier
 }
 
 export type PrepareGuaranteedResult =
@@ -107,6 +111,7 @@ export function prepareGuaranteedSynthesisRun(input: {
   }
 
   const flyTerms = snapshotFlyTerms(leftTerms)
+  const visualTier = getReactorVisualTier(flyTerms)
 
   return {
     ok: true,
@@ -116,6 +121,7 @@ export function prepareGuaranteedSynthesisRun(input: {
       zSlots: validated.zSlots.slice(),
       flyTerms,
       visualFlyZs: expandLeftTermsToPreviewSlots(flyTerms),
+      visualTier,
     },
   }
 }

@@ -2,73 +2,61 @@
 
 В этой папке — видео с проверкой UI (дашборд §1, синтез, электроны).
 
-## Электроны всегда крутятся
+Отчёт автопроверки каталога: [`lab-synthesis-audit.json`](lab-synthesis-audit.json) (`npm run validate:lab`).
+
+## Коэффициенты и tier-анимация
+
+| Параметр | Значение | Файл |
+|----------|----------|------|
+| Макс. коэффициент (UI) | 9999 | [`reactorLimits.ts`](../src/chemistry/reactorLimits.ts) |
+| Full 3D fly | ≤24 preview atoms | `REACTOR_VISUAL_FULL_ATOMS` |
+| Lite (шары CPK) | 25–64 | `REACTOR_VISUAL_LITE_ATOMS` |
+| Cluster (лучи + 1 модель/слагаемое) | >64 | [`SynthesisConvergeStreams.tsx`](../src/components/lab/SynthesisConvergeStreams.tsx) |
+
+Уравнение **не блокируется** по числу атомов — ограничение только на визуал.
+
+## Электроны и frameloop
 
 | Где | Решение |
 |-----|---------|
-| Обучение §1, задача 5 (карточка) | SVG SMIL `animateMotion` — [`CyberAtomOrbitSvg.tsx`](../src/components/learn/topicScenes/cyber/native/CyberAtomOrbitSvg.tsx) |
-| Обучение → «Рассмотреть» (атом) | 3D [`CyberExploreAtom.tsx`](../src/components/learn/topicScenes/cyber/explore/CyberExploreAtom.tsx), canvas `frameloop="always"` |
-| Лаборатория → реактор | `electronAnimate` до 24 атомов — [`ReactorTermsPreview.tsx`](../src/components/lab/ReactorTermsPreview.tsx) |
-| Лаборатория → canvas | `frameloop="always"` при открытом реакторе или просмотре структуры — [`LabScene.tsx`](../src/components/lab/LabScene.tsx) |
-
-### Чеклист после обновления
-
-1. **Обучение → §1 → задача 5** — не нажимая ничего: 3 белые точки непрерывно облетают ядро.
-2. **Клик по атому (pure)** — в 3D электроны движутся без вращения мышью.
-3. **Лаборатория → реактор** — уравнение с >14 атомами: электроны на превью **не замирают**.
+| Обучение §1, задача 5 | SVG SMIL — [`CyberAtomOrbitSvg.tsx`](../src/components/learn/topicScenes/cyber/native/CyberAtomOrbitSvg.tsx) |
+| Обучение → «Рассмотреть» | 3D + `frameloop="always"` |
+| Лаборатория → реактор (превью) | `electronAnimate` до 24 атомов — [`ReactorTermsPreview.tsx`](../src/components/lab/ReactorTermsPreview.tsx) |
+| Лаборатория → canvas | `frameloop="demand"` в idle; `always` при синтезе / превью / prewarm — [`LabScene.tsx`](../src/components/lab/LabScene.tsx) |
 
 ## Производительность синтеза
 
-Тайминги и пороги FX задаются в одном месте:
+Пресет: [`synthesisPerfPreset.ts`](../src/lab/synthesisPerfPreset.ts) → [`synthesisLaunchTiming.ts`](../src/lab/synthesisLaunchTiming.ts).
 
-- [`src/lab/synthesisPerfPreset.ts`](../src/lab/synthesisPerfPreset.ts)
-- [`src/lab/synthesisLaunchTiming.ts`](../src/lab/synthesisLaunchTiming.ts) — использует пресет
+| Фаза | ~длительность |
+|------|----------------|
+| Полёт | 0.15 с + stagger |
+| Вспышка | 0.07 с |
+| Продукт | 0.09 + 0.05 с hold |
+| Cluster mode | ~0.12 с / term |
 
-Цель: **короткий читаемый цикл** (полёт → вспышка → продукт) без лагов на средних GPU.
+### Handoff без чёрного кадра
 
-### Старт синтеза без чёрного экрана и мигания (v4 — космос)
+1. Один пул атомов — без remount.
+2. Pre-warm продукта за 300 ms после баланса уравнения.
+3. Overlap превью ↔ продукт синхронизирован с `productEntranceDur`.
+4. `synthesisVisualGuard` — recover после **2** пустых кадров.
+5. `poseLocked` на merge; settled → кнопка «Показать реагенты».
 
-- **`LabSynthesisCosmicBackdrop`** — звёзды, туманности, кольцо реактора на весь run (не мигает между фазами).
-- Warp-полосы + Arc Reactor в lite-режиме (без дёргания камеры).
-- Единый фон `#0a0c18` — нет скачка при merge → product.
+### Чеклист синтеза (ручной)
 
-### Старт синтеза без чёрного экрана и мигания (v3)
+1. **Ctrl+F5** → каталог → MgO: слева `2Mg + O₂`, атомы видны.
+2. **2Mg + O₂ → синтез** — цикл < 0.5 с, без чёрного кадра.
+3. **Повтор ×5** — без мигания.
+4. **(NH₄)₃PO₄** — coeff 12+, tier lite/cluster, запуск OK.
+5. **Win10 / доска** — ≥30 FPS в синтезе.
+6. `npm run validate:lab` + `npm run build` — OK.
 
-1. **Один пул атомов** — без remount; refs не сбрасываются в `useEffect`.
-2. **Live-старт полёта** — GSAP берёт текущие позиции атомов (после drift), дуга `power3.in` к центру.
-3. **Pre-warm** — продукт в `LabProductHeroSlot` (`prewarm`) + `gl.compile` через `scheduleIdleMatch` (не блокирует клик).
-4. **Merge → product overlap** — продукт за 50 мс до конца вспышки; превью держится ещё 3 кадра.
-5. **`synthesisVisualGuard`** — если кадр пустой ≥2 frames, форсируется показ продукта.
-6. **Повторный синтез** — settled сбрасывается при новом запуске; превью атомов не размонтируется.
-7. **poseLocked** — атомы не сбрасываются к layout на merge; drift заморожен до фазы product.
-8. **Единый свет** — `LabReactorLights` без дублей из превью/синтеза в `labLiteMode`.
+### Автопроверка
 
-### Чеклист синтеза
+```bash
+npm run validate:lab   # 214 веществ каталога
+npm run build
+```
 
-1. Холодный старт (Ctrl+F5) — нет провала > 2 кадров.
-2. 15 атомов (Cr/K/O) — без мигания на старте, в полёте, на merge.
-3. Молекула — crossfade с prewarm (0.001 → 1), без пустого кадра.
-4. **Повторный запуск подряд** (2–3 раза) — атомы сразу, без чёрных вспышек 21–24 с (см. `20260605-0521-04.mp4`).
-5. `npm run build` — без ошибок.
-
-### Что ускорено
-
-| Фаза | Было ~ | Стало ~ |
-|------|--------|---------|
-| Полёт атомов | 0.32 с + stagger | 0.22 с + меньший stagger |
-| Вспышка | 0.16 с | 0.11 с |
-| Появление продукта | 0.26 + 0.28 с | 0.16 + 0.12 с |
-| Ignite (пролог) | 320 мс | 0 мс (сразу converge) |
-
-### 3D «Задача 2: синтез» (Обучение)
-
-- Лёгкие материалы без `transmission`
-- Меньше пузырей и без `Sparkles` на превью
-- Canvas: `dpr=1`, `powerPreference: high-performance`
-
-### Лаборатория
-
-- `labLiteMode` — без cinematic/camera
-- При ≥3 атомах — облегчённые частицы и меньше сегментов геометрии
-
-После изменений пресета: **пересоберите** (`npm run build`) и обновите страницу (**Ctrl+F5**).
+После изменений пресета: **Ctrl+F5** на странице лаборатории.

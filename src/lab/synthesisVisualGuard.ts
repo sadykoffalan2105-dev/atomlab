@@ -1,8 +1,8 @@
 /** Сколько ms держать превью поверх продукта после handoff (overlap, без мигания). */
 export const SYNTH_PREVIEW_OVERLAP_MS = 240
 
-/** Порог пустых кадров до авто-восстановления (выше — меньше ложных срабатываний). */
-export const SYNTH_EMPTY_FRAME_RECOVER = 4
+/** Порог пустых кадров до авто-восстановления. */
+export const SYNTH_EMPTY_FRAME_RECOVER = 2
 
 export type SynthesisCoverage = {
   preview: boolean

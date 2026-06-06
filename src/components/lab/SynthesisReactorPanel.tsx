@@ -4,11 +4,11 @@ import { getCompoundLocaleStrings } from '../../i18n/compoundLocale'
 import { useT } from '../../i18n/useT'
 import type { CompoundDef } from '../../types/chemistry'
 import type { LeftCatalogMatch, ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
-import { expandLeftTermsToZSlots, REACTOR_EQUATION_MAX_FLY_ATOMS } from '../../chemistry/reactorEquationBalance'
+import { REACTOR_COEFF_MAX } from '../../chemistry/reactorLimits'
+import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import panelStyles from './SynthesisReactorPanel.module.css'
 
-const COEFF_MAX_TERM = 999
-const COEFF_MAX_PRODUCT = 99
+const COEFF_MAX = REACTOR_COEFF_MAX
 
 function termSymbolDisplay(t: ReactorEquationTerm): string {
   const e = getElementByZ(t.z)
@@ -130,10 +130,8 @@ export function SynthesisReactorPanel({
     [productCompound, locale, t],
   )
 
-  const termCoeffWithinAtomLimit = (id: string, next: number) => {
-    const trial = leftTerms.map((t) => (t.id === id ? { ...t, coeff: next } : t))
-    return expandLeftTermsToZSlots(trial).length <= REACTOR_EQUATION_MAX_FLY_ATOMS
-  }
+  const visualTier = useMemo(() => (leftTerms.length > 0 ? getReactorVisualTier(leftTerms) : 'full'), [leftTerms])
+  const hasDiatomic = leftTerms.some((t) => t.diatomic)
 
   return (
     <div
@@ -181,15 +179,12 @@ export function SynthesisReactorPanel({
                       <CoeffStepper
                         value={term.coeff}
                         min={1}
-                        max={COEFF_MAX_TERM}
+                        max={COEFF_MAX}
                         highlightError={coeffErr}
                         ariaLabel={t('reactor.coeffFor', { symbol: termSymbolDisplay(term) })}
                         decLabel={t('reactor.coeffDecrease')}
                         incLabel={t('reactor.coeffIncrease')}
-                        onChange={(n) => {
-                          if (!termCoeffWithinAtomLimit(term.id, n)) return
-                          onCoeffChange(term.id, n)
-                        }}
+                        onChange={(n) => onCoeffChange(term.id, n)}
                       />
                       <span
                         className={`${panelStyles.stoichCoeff} ${term.coeff === 1 ? panelStyles.stoichCoeffOne : ''}`}
@@ -237,7 +232,7 @@ export function SynthesisReactorPanel({
                 <CoeffStepper
                   value={productCoeff}
                   min={1}
-                  max={COEFF_MAX_PRODUCT}
+                  max={COEFF_MAX}
                   highlightError={coeffErr}
                   ariaLabel={t('reactor.productCoeffAria')}
                   decLabel={t('reactor.coeffDecrease')}
@@ -296,6 +291,17 @@ export function SynthesisReactorPanel({
           <span className={panelStyles.reactorGenerateFabLabel}>{t('reactor.generateEquationShort')}</span>
         </button>
       </div>
+
+      {visualTier !== 'full' && leftTerms.length > 0 ? (
+        <p className={panelStyles.visualTierBadge} role="status">
+          {t(`reactor.visualTier.${visualTier}`)}
+        </p>
+      ) : null}
+      {hasDiatomic ? (
+        <p className={panelStyles.diatomicHint} role="note">
+          {t('reactor.diatomicPreviewHint')}
+        </p>
+      ) : null}
 
       <div className={panelStyles.hintBox} role="note">
         {t('reactor.hintBalance')}

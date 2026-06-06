@@ -1,11 +1,24 @@
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import { expandLeftTermsToPreviewSlots } from '../../chemistry/reactorEquationBalance'
+import {
+  getReactorVisualTier,
+  previewModelsForTerm,
+  type ReactorVisualTier,
+} from '../../chemistry/reactorVisualTier'
 
 export type ReactorPreviewAtom = {
   z: number
   pos: [number, number, number]
   termIndex: number
   atomInTerm: number
+  /** Полный коэффициент слагаемого (для badge ×N). */
+  termCoeff?: number
+  /** Индекс визуальной модели 0..shown-1. */
+  visualIndex?: number
+}
+
+export type BuildReactorPreviewOptions = {
+  tier?: ReactorVisualTier
 }
 
 function layoutGroupRadius(groupCount: number): number {
@@ -59,30 +72,37 @@ function miniAtomOffset(
  * 4 Cr + 4 K + 7 O₂ → 15 моделей в трёх отдельных кластерах (O₂: один атом на коэффициент).
  * Для превью нельзя использовать expandLeftTermsToZSlots (удваивает O₂).
  */
-export function buildReactorPreviewAtoms(terms: readonly ReactorEquationTerm[]): ReactorPreviewAtom[] {
-  const expected = expandLeftTermsToPreviewSlots(terms).length
-  const groupR = layoutGroupRadius(terms.length)
-  const centers = groupCentersOnFrontArc(terms.length, groupR)
+export function buildReactorPreviewAtoms(
+  terms: readonly ReactorEquationTerm[],
+  opts?: BuildReactorPreviewOptions,
+): ReactorPreviewAtom[] {
+  const tier = opts?.tier ?? getReactorVisualTier(terms)
+  const activeTerms = terms.filter((t) => Math.floor(t.coeff) > 0)
+  const groupR = layoutGroupRadius(activeTerms.length)
+  const centers = groupCentersOnFrontArc(activeTerms.length, groupR)
   const out: ReactorPreviewAtom[] = []
 
-  terms.forEach((term, gi) => {
+  activeTerms.forEach((term, gi) => {
     const c = Math.max(0, Math.floor(term.coeff))
-    if (c <= 0) return
+    const shown = previewModelsForTerm(c, tier, activeTerms.length)
     const [cx, cy, cz] = centers[gi] ?? [0, 0.12, 0.24]
-    const miniR = layoutMiniRadius(c)
+    const miniR = layoutMiniRadius(shown)
 
-    for (let ai = 0; ai < c; ai++) {
-      const [ox, oy, oz] = miniAtomOffset(ai, c, miniR)
+    for (let ai = 0; ai < shown; ai++) {
+      const [ox, oy, oz] = miniAtomOffset(ai, shown, miniR)
       out.push({
         z: term.z,
         pos: [cx + ox, cy + oy, cz + oz],
         termIndex: gi,
         atomInTerm: ai,
+        termCoeff: c,
+        visualIndex: ai,
       })
     }
   })
 
-  if (out.length !== expected && expected > 0) {
+  const expectedFull = expandLeftTermsToPreviewSlots(terms).length
+  if (tier === 'full' && out.length !== expectedFull && expectedFull > 0) {
     const slots = expandLeftTermsToPreviewSlots(terms)
     const n = slots.length
     const r = 0.55 + Math.min(n, 12) * 0.06
@@ -105,8 +125,11 @@ export function buildReactorPreviewAtoms(terms: readonly ReactorEquationTerm[]):
 }
 
 /** Те же позиции, что превью — для сходящегося полёта при синтезе (без кольца). */
-export function buildSynthesisConvergeAtoms(terms: readonly ReactorEquationTerm[]): ReactorPreviewAtom[] {
-  return buildReactorPreviewAtoms(terms)
+export function buildSynthesisConvergeAtoms(
+  terms: readonly ReactorEquationTerm[],
+  opts?: BuildReactorPreviewOptions,
+): ReactorPreviewAtom[] {
+  return buildReactorPreviewAtoms(terms, opts)
 }
 
 export type TermGroupCenter = {

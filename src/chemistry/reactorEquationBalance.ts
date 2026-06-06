@@ -1,8 +1,13 @@
 import type { CompoundDef } from '../types/chemistry'
 import { getElementByZ } from '../data/elements'
+import {
+  REACTOR_COEFF_MAX,
+  REACTOR_EQUATION_MAX_TERMS,
+} from './reactorLimits'
 
-export const REACTOR_EQUATION_MAX_TERMS = 8
-export const REACTOR_EQUATION_MAX_FLY_ATOMS = 24
+export { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from './reactorLimits'
+/** @deprecated Используйте REACTOR_VISUAL_FULL_ATOMS из reactorLimits — не блокирует уравнение. */
+export { REACTOR_EQUATION_MAX_FLY_ATOMS } from './reactorLimits'
 
 /** coeff: для diatomic — число молекул X₂; иначе число атомов X. */
 export type ReactorEquationTerm = { id: string; z: number; coeff: number; diatomic?: boolean }
@@ -99,7 +104,7 @@ export function findMatchingProductCoeff(
   if (posCounts.length === 0) return null
   const minUnit = Math.min(...posCounts)
   const totalLeft = Object.values(Ln).reduce((a, b) => a + b, 0)
-  const maxK = Math.min(200, Math.max(REACTOR_EQUATION_MAX_FLY_ATOMS, Math.ceil(totalLeft / minUnit) + 2))
+  const maxK = Math.min(REACTOR_COEFF_MAX, Math.ceil(totalLeft / minUnit) + 4)
   for (let k = 1; k <= maxK; k++) {
     if (compositionKey(normalizeComposition(compositionFromProduct(compound, k))) === compositionKey(Ln)) {
       return k
@@ -197,13 +202,6 @@ export function validateReactorEquation(
   const zSlots = expandLeftTermsToZSlots(leftTerms)
   if (zSlots.length < 2) {
     return { ok: false, code: 'TOO_FEW_ATOMS' }
-  }
-  if (zSlots.length > REACTOR_EQUATION_MAX_FLY_ATOMS) {
-    return {
-      ok: false,
-      code: 'MAX_FLY_ATOMS',
-      params: { maxAtoms: REACTOR_EQUATION_MAX_FLY_ATOMS },
-    }
   }
 
   const left = compositionFromLeftTerms(leftTerms)

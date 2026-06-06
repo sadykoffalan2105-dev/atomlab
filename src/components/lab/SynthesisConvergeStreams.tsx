@@ -14,6 +14,8 @@ import {
   buildReactorPreviewAtoms,
   getTermGroupCenters,
 } from './reactorPreviewLayout'
+import type { ReactorVisualTier } from '../../chemistry/reactorVisualTier'
+import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 
 const STREAM_FLY_DUR = LAUNCH_STREAM_FLY_DUR
 const TERM_STAGGER = LAUNCH_TERM_STAGGER
@@ -79,6 +81,7 @@ export function SynthesisConvergeStreams({
   previewAtomGroupRefs,
   previewAtomScaleGroupRefs,
   onBeginAtomFade,
+  visualTier = 'full',
 }: {
   terms: readonly ReactorEquationTerm[]
   runId: number
@@ -88,8 +91,17 @@ export function SynthesisConvergeStreams({
   previewAtomGroupRefs: MutableRefObject<(THREE.Group | null)[]>
   previewAtomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>
   onBeginAtomFade?: () => void
+  visualTier?: ReactorVisualTier
 }) {
-  const approachAtoms = useMemo(() => buildReactorPreviewAtoms(terms), [terms, runId])
+  const clusterMode = visualTier === 'cluster'
+  const flyDur = clusterMode ? SYNTHESIS_PERF.clusterFlyDur : STREAM_FLY_DUR
+  const termStagger = clusterMode ? SYNTHESIS_PERF.clusterTermStagger : TERM_STAGGER
+  const atomStagger = clusterMode ? 0 : ATOM_STAGGER
+
+  const approachAtoms = useMemo(
+    () => buildReactorPreviewAtoms(terms, { tier: visualTier }),
+    [terms, runId, visualTier],
+  )
   const termStreams = useMemo(() => getTermGroupCenters(terms), [terms, runId])
   const denseFly = approachAtoms.length > 5
 
@@ -155,8 +167,8 @@ export function SynthesisConvergeStreams({
         termStreams.forEach((g, i) => {
           const node = streamRefs.current[i]
           if (!node) return
-          const stagger = g.termIndex * TERM_STAGGER
-          flyAtomArc(tl, node, stagger, STREAM_FLY_DUR)
+          const stagger = g.termIndex * termStagger
+          flyAtomArc(tl, node, stagger, flyDur)
           node.lookAt(REACTION_CENTER[0], REACTION_CENTER[1], REACTION_CENTER[2])
           tweensAdded++
           const mat = beamMatRefs.current[i]
@@ -165,52 +177,63 @@ export function SynthesisConvergeStreams({
             tl.fromTo(
               mat,
               { opacity: 0 },
-              { opacity: 0.9, duration: STREAM_FLY_DUR * 0.28, ease: 'power2.out' },
+              { opacity: 0.9, duration: flyDur * 0.28, ease: 'power2.out' },
               stagger,
             )
             tl.to(
               mat,
-              { opacity: 0, duration: STREAM_FLY_DUR * 0.35, ease: 'power2.in' },
-              stagger + STREAM_FLY_DUR * 0.65,
+              { opacity: 0, duration: flyDur * 0.35, ease: 'power2.in' },
+              stagger + flyDur * 0.65,
             )
           }
         })
 
-        approachAtoms.forEach((atom, i) => {
-          const node = previewAtomGroupRefs.current[i]
-          const scaleNode = previewAtomScaleGroupRefs.current[i]
-          if (!node) return
-          const stagger = atom.termIndex * TERM_STAGGER + atom.atomInTerm * ATOM_STAGGER
-          flyAtomArc(tl, node, stagger, STREAM_FLY_DUR)
-          tweensAdded++
-          if (scaleNode) {
-            const bx = scaleNode.scale.x
-            const by = scaleNode.scale.y
-            const bz = scaleNode.scale.z
-            tl.to(
-              scaleNode.scale,
-              {
-                x: bx * 1.1,
-                y: by * 1.1,
-                z: bz * 1.1,
-                duration: STREAM_FLY_DUR * 0.5,
-                ease: 'power2.out',
-              },
-              stagger,
-            )
-            tl.to(
-              scaleNode.scale,
-              {
-                x: bx * 1.05,
-                y: by * 1.05,
-                z: bz * 1.05,
-                duration: STREAM_FLY_DUR * 0.5,
-                ease: 'power2.inOut',
-              },
-              stagger + STREAM_FLY_DUR * 0.5,
-            )
-          }
-        })
+        if (!clusterMode) {
+          approachAtoms.forEach((atom, i) => {
+            const node = previewAtomGroupRefs.current[i]
+            const scaleNode = previewAtomScaleGroupRefs.current[i]
+            if (!node) return
+            const stagger = atom.termIndex * termStagger + atom.atomInTerm * atomStagger
+            flyAtomArc(tl, node, stagger, flyDur)
+            tweensAdded++
+            if (scaleNode) {
+              const bx = scaleNode.scale.x
+              const by = scaleNode.scale.y
+              const bz = scaleNode.scale.z
+              tl.to(
+                scaleNode.scale,
+                {
+                  x: bx * 1.1,
+                  y: by * 1.1,
+                  z: bz * 1.1,
+                  duration: flyDur * 0.5,
+                  ease: 'power2.out',
+                },
+                stagger,
+              )
+              tl.to(
+                scaleNode.scale,
+                {
+                  x: bx * 1.05,
+                  y: by * 1.05,
+                  z: bz * 1.05,
+                  duration: flyDur * 0.5,
+                  ease: 'power2.inOut',
+                },
+                stagger + flyDur * 0.5,
+              )
+            }
+          })
+        } else {
+          approachAtoms.forEach((atom, i) => {
+            const node = previewAtomGroupRefs.current[i]
+            if (!node) return
+            if (atom.visualIndex !== 0) return
+            const stagger = atom.termIndex * termStagger
+            flyAtomArc(tl, node, stagger, flyDur)
+            tweensAdded++
+          })
+        }
 
         if (tweensAdded === 0) {
           gsap.delayedCall(0.02, triggerMerge)
@@ -238,7 +261,7 @@ export function SynthesisConvergeStreams({
       ctx?.revert()
       timelineStartedRef.current = false
     }
-  }, [runId, approachAtoms, termStreams, previewAtomGroupRefs, previewAtomScaleGroupRefs])
+  }, [runId, approachAtoms, termStreams, previewAtomGroupRefs, previewAtomScaleGroupRefs, clusterMode, flyDur, termStagger, atomStagger])
 
   return (
     <group>

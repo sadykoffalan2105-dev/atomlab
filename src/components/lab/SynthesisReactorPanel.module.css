@@ -901,6 +901,22 @@
   text-overflow: ellipsis;
 }
 
+.visualTierBadge {
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: rgba(255, 200, 120, 0.92);
+  padding: 0.15rem 0.75rem 0;
+  flex-shrink: 0;
+}
+
+.diatomicHint {
+  font-size: 0.6rem;
+  line-height: 1.35;
+  color: rgba(140, 185, 255, 0.78);
+  padding: 0.1rem 0.75rem 0;
+  flex-shrink: 0;
+}
+
 .hintBox {
   font-size: 0.64rem;
   line-height: 1.4;

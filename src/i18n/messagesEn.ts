@@ -107,6 +107,11 @@ export const messagesEn: Record<MessageKey, string> = {
   'reactor.successProduct':
     'Obtained: {name} {formula}. 3D is shown in the center. You can set up a new equation or close the reactor.',
   'reactor.valencyHint': 'Valency of {symbol}: {valency}',
+  'reactor.diatomicPreviewHint': 'O₂, N₂, H₂: one 3D model = one molecule (not two atoms).',
+  'reactor.showReagents': 'Show reagents',
+  'reactor.hideReagents': 'Hide reagents',
+  'reactor.visualTier.lite': 'Simplified 3D animation (many atoms in the equation).',
+  'reactor.visualTier.cluster': 'Cluster synthesis mode — fast animation for large coefficients.',
   'lab.launch.title': 'Synthesis launch',
   'lab.launch.phase1': 'Preparing launch pad…',
   'lab.launch.phase2': 'Aligning reagents…',

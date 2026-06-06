@@ -13,7 +13,9 @@ import {
   createReactorPreviewVisibilityGuard,
 } from '../../lab/reactorPreviewVisibilityGuard'
 import { AtomStructureModel } from './AtomStructureModel'
+import { LightweightElementBall } from './LightweightElementBall'
 import { buildReactorPreviewAtoms, reactorPreviewAtomScale } from './reactorPreviewLayout'
+import { getReactorVisualTier, type ReactorVisualTier } from '../../chemistry/reactorVisualTier'
 
 /**
  * Превью реагентов: полная структура атома (протоны, нейтроны, электроны).
@@ -26,6 +28,7 @@ export function ReactorTermsPreview({
   poseLocked = false,
   sharedLighting = false,
   forceLite = false,
+  visualTier: visualTierProp,
   atomGroupRefs: atomGroupRefsExternal,
   atomScaleGroupRefs: atomScaleGroupRefsExternal,
   previewRootRef,
@@ -40,11 +43,17 @@ export function ReactorTermsPreview({
   sharedLighting?: boolean
   /** FPS-governor / плотное превью — lite-модели и реже guard */
   forceLite?: boolean
+  /** Tiered visual cap (full | lite | cluster). */
+  visualTier?: ReactorVisualTier
   atomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   atomScaleGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   previewRootRef?: MutableRefObject<THREE.Group | null>
 }) {
-  const previewAtoms = useMemo(() => buildReactorPreviewAtoms(terms), [terms])
+  const visualTier = visualTierProp ?? getReactorVisualTier(terms)
+  const previewAtoms = useMemo(
+    () => buildReactorPreviewAtoms(terms, { tier: visualTier }),
+    [terms, visualTier],
+  )
   const termsSig = useMemo(
     () => terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|'),
     [terms],
@@ -58,6 +67,8 @@ export function ReactorTermsPreview({
   const atomScaleGroupRefsLocal = useRef<(THREE.Group | null)[]>([])
   const atomGroupRefs = atomGroupRefsExternal ?? atomGroupRefsLocal
   const atomScaleGroupRefs = atomScaleGroupRefsExternal ?? atomScaleGroupRefsLocal
+  const useBallMesh = visualTier !== 'full' || forceLite
+
   const scale = reactorPreviewAtomScale(n)
 
   const previewPolicy = useMemo(
@@ -67,8 +78,9 @@ export function ReactorTermsPreview({
         forceLite,
         flightActive,
         visible,
+        visualTier,
       }),
-    [n, forceLite, flightActive, visible],
+    [n, forceLite, flightActive, visible, visualTier],
   )
   const { electronAnimate, driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
 
@@ -179,17 +191,21 @@ export function ReactorTermsPreview({
                 atomScaleGroupRefs.current[i] = el
               }}
             >
-              <AtomStructureModel
-                z={atom.z}
-                animate={electronAnimate}
-                previewStatic={false}
-                previewEmphasis
-                synthesisDetail={atomPolicy.synthesisDetail}
-                previewLite={atomPolicy.previewLite}
-                electronFrameSkip={atomPolicy.electronFrameSkip}
-                hideOrbitRings={false}
-                localLight={!sharedLighting}
-              />
+              {useBallMesh ? (
+                <LightweightElementBall z={atom.z} radius={0.42} segments={10} />
+              ) : (
+                <AtomStructureModel
+                  z={atom.z}
+                  animate={electronAnimate}
+                  previewStatic={false}
+                  previewEmphasis
+                  synthesisDetail={atomPolicy.synthesisDetail}
+                  previewLite={atomPolicy.previewLite}
+                  electronFrameSkip={atomPolicy.electronFrameSkip}
+                  hideOrbitRings={false}
+                  localLight={!sharedLighting}
+                />
+              )}
             </group>
           </group>
         )

@@ -21,6 +21,7 @@ import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
 import { ReactorTermsPreview } from './ReactorTermsPreview'
 import { buildReactorPreviewAtoms } from './reactorPreviewLayout'
+import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import type { CompoundDef } from '../../types/chemistry'
 import type { LabParticle, Vec3 } from '../../types/chemistry'
@@ -200,6 +201,7 @@ function SceneContent({
   synthesisPhase = '',
   forceLiteFxRef,
   prewarmProductCompound = null,
+  showSettledReagents = false,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -219,11 +221,14 @@ function SceneContent({
   forceLiteFxRef?: React.MutableRefObject<boolean>
   /** Продукт для скрытого pre-warm (compile GPU) до запуска синтеза */
   prewarmProductCompound?: CompoundDef | null
+  /** После settled — показать превью реагентов поверх продукта */
+  showSettledReagents?: boolean
   synthesis: {
     runId: number
     zSlots: readonly number[]
     flyTerms: readonly ReactorEquationTerm[]
     product: CompoundDef | null
+    visualTier?: import('../../chemistry/reactorVisualTier').ReactorVisualTier
     onDone: (kind: 'success' | 'fail') => void
     onSynthesisStageChange?: (stage: 'reactor' | 'substance') => void
     onPhaseChange?: (phase: string, launchProgress: number) => void
@@ -254,8 +259,12 @@ function SceneContent({
   const [previewOverlapActive, setPreviewOverlapActive] = useState(false)
   const crossfadeGuardRef = useRef<ProductCrossfadeGuard | null>(null)
   const coverageTrackerRef = useRef(createSynthesisCoverageTracker())
+  const previewVisualTier = useMemo(
+    () => (reactorPreviewTerms?.length ? getReactorVisualTier(reactorPreviewTerms) : 'full'),
+    [reactorPreviewTerms],
+  )
   const previewAtomCount = reactorPreviewTerms?.length
-    ? buildReactorPreviewAtoms(reactorPreviewTerms).length
+    ? buildReactorPreviewAtoms(reactorPreviewTerms, { tier: previewVisualTier }).length
     : 0
 
   const showSettledHero =
@@ -268,7 +277,7 @@ function SceneContent({
     reactorViewOpen &&
     reactorPreviewTerms != null &&
     reactorPreviewTerms.length >= 1 &&
-    (!showSettledHero || synthActive || synthesisRunActive)
+    (!showSettledHero || synthActive || synthesisRunActive || showSettledReagents)
   /** Блокируем drift/GSAP с converge до product — иначе атомы «прыгают» на merge. */
   const previewMotionLocked = synthActive && synthesisPhase !== 'product'
   const previewPoseLocked = synthActive || synthesisRunActive
@@ -574,6 +583,7 @@ function SceneContent({
               poseLocked={previewPoseLocked}
               sharedLighting={synthActive || synthesisRunActive}
               forceLite={synthForceLite}
+              visualTier={previewVisualTier}
               atomGroupRefs={previewAtomGroupRefs}
               atomScaleGroupRefs={previewAtomScaleGroupRefs}
               previewRootRef={previewRootRef}
@@ -599,6 +609,7 @@ function SceneContent({
               externalCosmicBackdrop
               labLiteMode
               forceLiteFx={synthForceLite}
+              visualTier={synthesis.visualTier ?? previewVisualTier}
             />
           ) : null}
           {showSettledHero && synthesisSettledProduct
@@ -665,6 +676,7 @@ export function LabCanvas({
   synthesisPhase = '',
   forceLiteFxRef,
   prewarmProductCompound = null,
+  showSettledReagents = false,
   sessionKey = 0,
 }: {
   particles: readonly LabParticle[]
@@ -680,6 +692,7 @@ export function LabCanvas({
   synthesisPhase?: string
   forceLiteFxRef?: React.MutableRefObject<boolean>
   prewarmProductCompound?: CompoundDef | null
+  showSettledReagents?: boolean
   /** Remount Canvas только при webglcontextlost (внутренний sessionKey). */
   sessionKey?: number
   synthesis: {
@@ -687,6 +700,7 @@ export function LabCanvas({
     zSlots: readonly number[]
     flyTerms: readonly ReactorEquationTerm[]
     product: CompoundDef | null
+    visualTier?: import('../../chemistry/reactorVisualTier').ReactorVisualTier
     onDone: (kind: 'success' | 'fail') => void
     onSynthesisStageChange?: (stage: 'reactor' | 'substance') => void
     onPhaseChange?: (phase: string, launchProgress: number) => void
@@ -699,8 +713,19 @@ export function LabCanvas({
 
   const previewAtomCount = useMemo(() => {
     if (!reactorPreviewTerms?.length) return 0
-    return buildReactorPreviewAtoms(reactorPreviewTerms).length
+    const tier = getReactorVisualTier(reactorPreviewTerms)
+    return buildReactorPreviewAtoms(reactorPreviewTerms, { tier }).length
   }, [reactorPreviewTerms])
+
+  const canvasFrameloop =
+    structureZ != null && !reactorViewOpen
+      ? 'always'
+      : synthesisRunActive || synthesis != null
+        ? 'always'
+        : reactorViewOpen &&
+            ((reactorPreviewTerms?.length ?? 0) > 0 || prewarmProductCompound != null)
+          ? 'always'
+          : 'demand'
   const densePreview = previewAtomCount > 6
 
   const lowPower3d =
@@ -747,8 +772,7 @@ export function LabCanvas({
           powerPreference: 'high-performance',
         }}
         dpr={canvasDpr}
-        /** always: DecorativeAtom, ReactorTermsPreview и AtomStructureModel крутят электроны в useFrame */
-        frameloop="always"
+        frameloop={canvasFrameloop}
         onCreated={(state) => {
           const bg = hexToColor(reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX)
           state.gl.setClearColor(bg, 1)
@@ -786,6 +810,7 @@ export function LabCanvas({
           synthesisPhase={synthesisPhase}
           forceLiteFxRef={forceLiteFxRef}
           prewarmProductCompound={prewarmProductCompound}
+          showSettledReagents={showSettledReagents}
         />
       </Canvas>
     </CanvasErrorBoundary>

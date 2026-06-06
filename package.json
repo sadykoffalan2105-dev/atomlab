@@ -15,6 +15,7 @@
     "pubchem:sync:fast": "tsx scripts/pubchem-sync-geometry.ts",
     "preview": "vite preview",
     "validate:learn": "tsx scripts/validate-learn.ts",
+    "validate:lab": "tsx scripts/validate-lab-synthesis.ts",
     "learn:nanobanana-prompts": "tsx scripts/export-nanobanana-prompts.ts",
     "learn:capture-refs": "tsx scripts/capture-learn-refs.ts",
     "learn:generate-all": "npm run build && npm run learn:nanobanana-prompts && npm run learn:capture-refs",

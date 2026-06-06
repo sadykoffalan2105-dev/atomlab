@@ -7,6 +7,7 @@ import { gsap } from 'gsap'
 import * as THREE from 'three'
 import { assertSuccessSynthesisVisualMode } from '../../lab/synthesisGuarantee'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
+import { getReactorVisualTier, type ReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import {
@@ -185,6 +186,7 @@ export function SynthesisOnLabScene({
   onPreviewAtomFade,
   onEarlyProductReveal,
   externalCosmicBackdrop = false,
+  visualTier: visualTierProp,
 }: {
   zSlots: readonly number[]
   flyTerms?: readonly ReactorEquationTerm[]
@@ -205,8 +207,11 @@ export function SynthesisOnLabScene({
   previewAtomScaleGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   onPreviewAtomFade?: () => void
   onEarlyProductReveal?: () => void
+  /** full | lite | cluster */
+  visualTier?: ReactorVisualTier
 }) {
   const useConverge = !!product && flyTerms.length > 0
+  const visualTier = visualTierProp ?? (flyTerms.length > 0 ? getReactorVisualTier(flyTerms) : 'full')
   const slotsKey = useConverge ? flyTerms.map((t) => `${t.z}:${t.coeff}`).join('|') : zSlots.join(',')
   const atomCount = useMemo(
     () => flyTerms.reduce((s, t) => s + t.coeff * (t.diatomic ? 2 : 1), 0),
@@ -258,9 +263,13 @@ export function SynthesisOnLabScene({
   const convergeDurationSec = useMemo(
     () =>
       useConverge
-        ? synthesisConvergeDurationSec(flyTerms.length, flyTerms.reduce((s, t) => s + t.coeff * (t.diatomic ? 2 : 1), 0))
+        ? synthesisConvergeDurationSec(
+            flyTerms.length,
+            flyTerms.reduce((s, t) => s + t.coeff * (t.diatomic ? 2 : 1), 0),
+            visualTier,
+          )
         : FLY_DUR,
-    [useConverge, flyTerms],
+    [useConverge, flyTerms, visualTier],
   )
 
   const beginMergeFlash = useCallback(() => {
@@ -561,6 +570,7 @@ export function SynthesisOnLabScene({
           previewAtomGroupRefs={previewAtomGroupRefs}
           previewAtomScaleGroupRefs={previewAtomScaleGroupRefs}
           onBeginAtomFade={onPreviewAtomFade}
+          visualTier={visualTier}
         />
       ) : null}
 

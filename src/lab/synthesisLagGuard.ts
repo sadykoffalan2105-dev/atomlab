@@ -27,9 +27,10 @@ export function getReactorPreviewPolicy(opts: {
   forceLite: boolean
   flightActive: boolean
   visible: boolean
+  visualTier?: 'full' | 'lite' | 'cluster'
 }): ReactorPreviewPolicy {
-  const { atomCount, forceLite, flightActive, visible } = opts
-  const lite = forceLite || shouldForceLiteByAtomCount(atomCount)
+  const { atomCount, forceLite, flightActive, visible, visualTier = 'full' } = opts
+  const lite = forceLite || shouldForceLiteByAtomCount(atomCount) || visualTier !== 'full'
   const dense = atomCount > SYNTHESIS_PERF.denseAtomThreshold
 
   return {
