@@ -1,4 +1,5 @@
 import { CHEMISTRY_KNOWLEDGE_EXTENDED } from './learnChemistryKnowledgeExtended'
+import { CHEMISTRY_KNOWLEDGE_CORPUS } from './learnChemistryKnowledgeCorpus'
 
 /** Школьная химия 7–11 класс — офлайн-база для ИИ-учителя. */
 export type ChemistryKnowledgeChunk = {
@@ -252,6 +253,7 @@ export const CHEMISTRY_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
     en: `Environmental chemistry: acid rain, greenhouse gases, ozone layer, wastewater treatment.`,
   },
   ...CHEMISTRY_KNOWLEDGE_EXTENDED,
+  ...CHEMISTRY_KNOWLEDGE_CORPUS,
 ]
 
 export const CHEMISTRY_KNOWLEDGE_CHUNK_COUNT = CHEMISTRY_KNOWLEDGE_CHUNKS.length

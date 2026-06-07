@@ -1,4 +1,4 @@
-import { matchFaqEntry } from './learnChemistryFaq'
+import { matchFaqEntry, LEARN_CHEMISTRY_FAQ } from './learnChemistryFaq'
 import { CHEMISTRY_KNOWLEDGE_CHUNKS, type ChemistryKnowledgeChunk } from './learnChemistryKnowledgeBase'
 
 export type RetrievedKnowledge = {
@@ -26,7 +26,9 @@ function scoreChunk(query: string, tokens: string[], chunk: ChemistryKnowledgeCh
     if (chunk.keywords.some((kw) => kw.toLowerCase().includes(tok) || tok.includes(kw.toLowerCase()))) {
       score += 1
     }
-    if (chunk.topic.toLowerCase().includes(tok)) score += 1
+    if (chunk.topic.toLowerCase().includes(tok)) score += 2
+    const body = `${chunk.ru} ${chunk.en}`.toLowerCase()
+    if (tok.length >= 4 && body.includes(tok)) score += 1
   }
   if (chunk.grades) {
     const gradeMatch = q.match(/\b([7-9]|1[01])\s*класс|\bgrade\s*([7-9]|1[01])\b/)
@@ -42,8 +44,8 @@ export function retrieveChemistryKnowledge(
   query: string,
   opts?: { maxChunks?: number; minScore?: number },
 ): RetrievedKnowledge {
-  const maxChunks = opts?.maxChunks ?? 3
-  const minScore = opts?.minScore ?? 3
+  const maxChunks = opts?.maxChunks ?? 5
+  const minScore = opts?.minScore ?? 1
   const tokens = tokenize(query)
   const faqHit = !!matchFaqEntry(query)
 
@@ -55,7 +57,7 @@ export function retrieveChemistryKnowledge(
     .sort((a, b) => b.score - a.score)
     .slice(0, maxChunks)
 
-  const totalScore = ranked.reduce((s, r) => s + r.score, 0) + (faqHit ? 5 : 0)
+  const totalScore = ranked.reduce((s, r) => s + r.score, 0) + (faqHit ? 8 : 0)
 
   return {
     chunks: ranked.map((r) => r.chunk),
@@ -67,13 +69,21 @@ export function retrieveChemistryKnowledge(
 export function buildRetrievedKnowledgeBlock(
   query: string,
   locale: 'ru' | 'en',
-  maxChars = 3200,
+  maxChars = 5500,
 ): string {
-  const { chunks } = retrieveChemistryKnowledge(query, { maxChunks: 4, minScore: 2 })
-  if (chunks.length === 0) return ''
+  const faq = matchFaqEntry(query)
+  const { chunks } = retrieveChemistryKnowledge(query, { maxChunks: 6, minScore: 1 })
 
   const parts: string[] = []
   let len = 0
+
+  if (faq) {
+    const faqText = locale === 'en' ? faq.en : faq.ru
+    const block = `[FAQ · ${locale === 'en' ? 'common question' : 'типовой вопрос'}]\n${faqText}`
+    parts.push(block)
+    len += block.length
+  }
+
   for (const c of chunks) {
     const text = locale === 'en' ? c.en : c.ru
     const header = `[${c.topic}${c.grades ? ` · ${c.grades.join('–')} кл.` : ''}]`
@@ -82,5 +92,24 @@ export function buildRetrievedKnowledgeBlock(
     parts.push(block)
     len += block.length
   }
+
+  if (parts.length === 0 && tokensFallback(query)) {
+    for (const entry of LEARN_CHEMISTRY_FAQ) {
+      let s = 0
+      for (const kw of entry.keywords) {
+        if (query.toLowerCase().includes(kw.toLowerCase())) s++
+      }
+      if (s >= 1) {
+        const block = locale === 'en' ? entry.en : entry.ru
+        parts.push(block)
+        break
+      }
+    }
+  }
+
   return parts.join('\n\n---\n\n')
+}
+
+function tokensFallback(query: string): boolean {
+  return query.trim().length >= 3
 }

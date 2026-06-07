@@ -2,6 +2,7 @@ import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
 import { buildSectionOutlineBlock } from './learnSectionKnowledge'
 import { matchFaqEntry, offlineNeedsApiMessage } from './learnChemistryFaq'
 import { buildRetrievedKnowledgeBlock, retrieveChemistryKnowledge } from './learnKnowledgeRetrieval'
+import { composeExpertLocalReply } from './learnExpertLocalReply'
 
 /** Локальные ответы ИИ-учителя без внешнего API (офлайн / без ключа). */
 export type LearnLocalAssistantContext = {
@@ -292,9 +293,12 @@ export function generateLocalLearnReply(
 
   if (hasCatalog) {
     return ru
-      ? `По вашему вопросу в каталоге ATOMLAB:\n\n${catalogBlock}\n\nКонтекст §: ${ctx.sectionTitle}. Откройте вкладку «3D» для модели. Для сложных вопросов включите Ollama в панели учителя.`
+      ? `По вашему вопросу в каталоге ATOMLAB:\n\n${catalogBlock}\n\nКонтекст §: ${ctx.sectionTitle}. Откройте вкладку «3D» для модели.`
       : `From the ATOMLAB catalog:\n\n${catalogBlock}\n\n§ context: ${ctx.sectionTitle}. Open the 3D tab for the model.`
   }
+
+  const expert = composeExpertLocalReply(q, ctx)
+  if (expert) return expert
 
   if (sectionBlock.length > 80) {
     return ru

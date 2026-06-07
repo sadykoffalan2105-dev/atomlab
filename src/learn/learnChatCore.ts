@@ -22,7 +22,7 @@ export type LearnChatResult = {
 
 const MAX_USER_CHARS = 2000
 const MAX_HISTORY = 12
-const MAX_TOKENS = 1400
+const MAX_TOKENS = 2200
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = 30
@@ -119,7 +119,7 @@ async function callOpenAI(
         model: runtime.openaiModel,
       messages: [{ role: 'system', content: system }, ...messages],
       max_tokens: MAX_TOKENS,
-      temperature: 0.35,
+      temperature: 0.55,
     }),
   })
 
@@ -180,7 +180,7 @@ export async function processLearnChat(
   const { block, topicSceneId } = buildAssistantKnowledgeBlock(userQuery, ctx)
   const sectionOutlineBlock = buildSectionOutlineBlock(ctx)
   const speechLocale = ctx.locale === 'en' ? 'en' : 'ru'
-  const chemistryKnowledgeBlock = buildRetrievedKnowledgeBlock(userQuery, speechLocale, 4000)
+  const chemistryKnowledgeBlock = buildRetrievedKnowledgeBlock(userQuery, speechLocale, 6500)
   const system = buildAssistantSystemPrompt({
     ...ctx,
     knowledgeBlock: block,

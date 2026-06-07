@@ -41,7 +41,7 @@ async function tryOllamaReply(
   const system = buildAssistantSystemPrompt({
     ...ctx,
     knowledgeBlock: block,
-    chemistryKnowledgeBlock: buildRetrievedKnowledgeBlock(q, speechLocale, 4000),
+    chemistryKnowledgeBlock: buildRetrievedKnowledgeBlock(q, speechLocale, 6500),
     sectionOutlineBlock: buildSectionOutlineBlock(ctx),
     topicSceneId,
   })

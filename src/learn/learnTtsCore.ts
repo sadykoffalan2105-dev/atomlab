@@ -39,8 +39,8 @@ export function learnTtsRuntimeFromEnv(
     openaiApiKey: env.OPENAI_API_KEY ?? env.VITE_OPENAI_API_KEY,
     openaiBaseUrl: env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
     openaiTtsModel: env.OPENAI_TTS_MODEL ?? 'tts-1-hd',
-    openaiTtsVoiceRu: voice ?? 'shimmer',
-    openaiTtsVoiceEn: voice ?? 'nova',
+    openaiTtsVoiceRu: env.OPENAI_TTS_VOICE_RU ?? voice ?? 'nova',
+    openaiTtsVoiceEn: env.OPENAI_TTS_VOICE_EN ?? voice ?? 'nova',
     allowedOrigins: (env.ALLOWED_ORIGINS ?? '')
       .split(',')
       .map((s) => s.trim())
@@ -105,7 +105,7 @@ async function callOpenAiTts(
       voice: voiceForLocale(locale, runtime),
       input: text,
       response_format: 'mp3',
-      speed: locale === 'ru' ? 0.97 : 1,
+      speed: locale === 'ru' ? 1.1 : 1.08,
     }),
   })
 

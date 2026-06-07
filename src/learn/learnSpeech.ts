@@ -168,6 +168,7 @@ export class LearnSpeechController {
       this.objectUrl = url
 
       const audio = new Audio(url)
+      audio.playbackRate = 1.04
       this.audio = audio
       audio.onended = () => resolve()
       audio.onerror = () => reject(new Error('audio_playback'))
@@ -206,8 +207,8 @@ export class LearnSpeechController {
 
     const utterance = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text))
     utterance.lang = SPEECH_LOCALE[locale]
-    utterance.rate = locale === 'ru' ? 0.92 : 0.96
-    utterance.pitch = 1
+    utterance.rate = locale === 'ru' ? 1.08 : 1.05
+    utterance.pitch = locale === 'ru' ? 1.02 : 1
     const voice = pickBrowserVoice(locale)
     if (voice) utterance.voice = voice
 
