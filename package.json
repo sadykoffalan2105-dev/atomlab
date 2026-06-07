@@ -1,7 +1,9 @@
 {
   "name": "atomlab",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "ATOMLAB — виртуальная химическая лаборатория (7–11 класс)",
+  "author": "ATOMLAB",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
@@ -9,7 +11,10 @@
     "electron:dev": "concurrently -k \"vite --port 5173 --strictPort\" \"wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
     "electron:dev:attach": "cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
     "build": "tsc -b && vite build",
-    "electron:build": "npm run build && electron-builder",
+    "desktop:icon": "node scripts/prepare-desktop-icon.mjs",
+    "desktop:build": "npm run desktop:icon && npm run build && electron-builder --win portable zip --x64",
+    "desktop:build:installer": "npm run desktop:icon && npm run build && electron-builder --win nsis --x64",
+    "electron:build": "npm run desktop:build",
     "lint": "eslint .",
     "pubchem:sync": "tsx scripts/pubchem-sync-geometry.ts",
     "pubchem:sync:fast": "tsx scripts/pubchem-sync-geometry.ts",
@@ -66,18 +71,37 @@
   "build": {
     "appId": "com.atomlab.app",
     "productName": "ATOMLAB",
+    "copyright": "Copyright © ATOMLAB",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
-      "dist/**",
-      "electron/**",
+      "dist/**/*",
+      "electron/**/*",
       "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.wasm",
+      "**/*worker*.js"
     ],
     "win": {
       "target": [
-        "nsis"
-      ]
+        { "target": "portable", "arch": ["x64"] },
+        { "target": "zip", "arch": ["x64"] }
+      ],
+      "artifactName": "${productName}-${version}-x64.${ext}",
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-${version}-setup.${ext}"
     }
   }
 }
