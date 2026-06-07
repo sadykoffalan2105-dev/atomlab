@@ -94,10 +94,14 @@ function ReactorSceneWarmup({ active, revision = 0 }: { active: boolean; revisio
       invalidate()
     }
     scheduleIdleMatch(compile)
-    const retry = window.setTimeout(compile, 96)
+    const raf = requestAnimationFrame(compile)
+    const retry = window.setTimeout(compile, 48)
+    const late = window.setTimeout(compile, 160)
     return () => {
       cancelled = true
+      cancelAnimationFrame(raf)
       window.clearTimeout(retry)
+      window.clearTimeout(late)
     }
   }, [active, revision, gl, scene, camera, invalidate])
   return null
@@ -267,6 +271,8 @@ function SceneContent({
   const [earlyProductReveal, setEarlyProductReveal] = useState(false)
   const [forceProductSlot, setForceProductSlot] = useState(false)
   const [prewarmReady, setPrewarmReady] = useState(false)
+  const prewarmReadyRef = useRef(false)
+  const prewarmCompoundIdRef = useRef<string | null>(null)
   const [previewOverlapActive, setPreviewOverlapActive] = useState(false)
   const crossfadeGuardRef = useRef<ProductCrossfadeGuard | null>(null)
   const coverageTrackerRef = useRef(createSynthesisCoverageTracker())
@@ -320,24 +326,55 @@ function SceneContent({
     !showSettledHero &&
     reactorViewOpen &&
     (prewarmProductCompound != null || synthActive) &&
-    prewarmReady
+    (prewarmReadyRef.current || prewarmReady)
 
   useEffect(() => {
     if (!reactorViewOpen) {
+      prewarmReadyRef.current = false
+      prewarmCompoundIdRef.current = null
       setPrewarmReady(false)
       return
     }
     const compound = prewarmProductCompound ?? (synthActive ? synthesis?.product : null)
     if (!compound) {
+      prewarmReadyRef.current = false
+      prewarmCompoundIdRef.current = null
       setPrewarmReady(false)
       return
     }
-    const id = requestAnimationFrame(() => setPrewarmReady(true))
-    return () => {
-      cancelAnimationFrame(id)
-      setPrewarmReady(false)
+    if (prewarmCompoundIdRef.current === compound.id && prewarmReadyRef.current) {
+      setPrewarmReady(true)
+      return
     }
-  }, [reactorViewOpen, prewarmProductCompound?.id, synthActive, synthesis?.product?.id, synthesis?.runId])
+    prewarmCompoundIdRef.current = compound.id
+    let cancelled = false
+    const markReady = () => {
+      if (cancelled) return
+      prewarmReadyRef.current = true
+      setPrewarmReady(true)
+    }
+    markReady()
+    const raf = requestAnimationFrame(markReady)
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf)
+    }
+  }, [reactorViewOpen, prewarmProductCompound?.id, synthActive, synthesis?.product?.id])
+
+  useLayoutEffect(() => {
+    if (!synthActive || !synthesis?.runId) return
+    setPreviewOverlapActive(true)
+    setEarlyProductReveal(true)
+  }, [synthActive, synthesis?.runId])
+
+  useLayoutEffect(() => {
+    if (synthesisPhase !== 'mergeFlash' || !synthActive) return
+    setPreviewOverlapActive(true)
+    if (prewarmReadyRef.current) {
+      setEarlyProductReveal(true)
+      setForceProductSlot(true)
+    }
+  }, [synthesisPhase, synthActive, synthesis?.runId])
 
   useEffect(() => {
     if (!synthActive) {
@@ -556,7 +593,10 @@ function SceneContent({
       ) : null}
       {reactorBackdrop ? <LabReactorLights /> : null}
       {reactorViewOpen ? (
-        <ReactorSceneWarmup active revision={prewarmReady ? 1 : 0} />
+        <ReactorSceneWarmup
+          active
+          revision={(prewarmReady ? 1 : 0) + (synthesis?.runId ?? 0) * 10}
+        />
       ) : null}
 
       {!reactorViewOpen ? (
@@ -772,6 +812,7 @@ export function LabCanvas({
           antialias: canvasAntialias,
           alpha: false,
           powerPreference: 'high-performance',
+          preserveDrawingBuffer: reactorViewOpen || synthesisRunActive,
         }}
         dpr={canvasDpr}
         frameloop={canvasFrameloop}

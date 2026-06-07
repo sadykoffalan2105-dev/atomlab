@@ -533,15 +533,11 @@ export function LaboratoryPage() {
     const name = getCompoundLocaleStrings(payload.compound, locale, t).name
     setReactorMessage(t('reactor.successRunning', { name }))
 
-    const launch = () => {
-      setSynthesisFlightSlots(zCopy)
-      setSynthesisFlyTerms(flyCopy)
-      setLastRunProduct(payload.compound)
-      setRunId(nextRunId)
-    }
-    requestAnimationFrame(() => {
-      requestAnimationFrame(launch)
-    })
+    setLastRunProduct(payload.compound)
+    setPrewarmCompound(payload.compound)
+    setSynthesisFlightSlots(zCopy)
+    setSynthesisFlyTerms(flyCopy)
+    setRunId(nextRunId)
   }, [leftTerms, productCompoundId, productCoeff, t, locale, runId])
 
   const labSynthesis = useMemo(() => {
@@ -623,8 +619,8 @@ export function LaboratoryPage() {
 
   const synthRunActive = reactorOpen && runId > 0
 
-  useEffect(() => {
-    if (!reactorOpen || synthRunActive) {
+  useLayoutEffect(() => {
+    if (!reactorOpen) {
       setPrewarmCompound(null)
       return
     }
@@ -633,14 +629,8 @@ export function LaboratoryPage() {
       setPrewarmCompound(null)
       return
     }
-    let cancelled = false
-    scheduleIdleMatch(() => {
-      if (!cancelled) setPrewarmCompound(product)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [reactorOpen, synthRunActive, canRunSynthesis, productCompoundId])
+    setPrewarmCompound(product)
+  }, [reactorOpen, canRunSynthesis, productCompoundId])
 
   useEffect(() => {
     if (!synthRunActive) {
@@ -701,7 +691,7 @@ export function LaboratoryPage() {
           laboratorySynthesisView={laboratorySynthesisView}
           synthesisPhase={synthPhaseUi}
           forceLiteFxRef={forceLiteFxRef}
-          prewarmProductCompound={synthRunActive ? lastRunProduct : prewarmCompound}
+          prewarmProductCompound={lastRunProduct ?? prewarmCompound}
         />
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />
