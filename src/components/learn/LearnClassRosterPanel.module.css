@@ -1,0 +1,146 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #e8eef8;
+}
+
+.lead {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(180, 195, 220, 0.92);
+}
+
+.fieldRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5cffd4;
+}
+
+.input,
+.textarea {
+  font: inherit;
+  font-size: 0.84rem;
+  border-radius: 12px;
+  border: 1px solid rgba(92, 255, 212, 0.35);
+  background: rgba(6, 12, 24, 0.9);
+  color: #e8eef8;
+  padding: 0.55rem 0.7rem;
+}
+
+.textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.importBtn {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  align-self: flex-start;
+  border-radius: 999px;
+  border: 1px solid rgba(92, 255, 212, 0.55);
+  background: rgba(92, 255, 212, 0.12);
+  color: #fff;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+}
+
+.importBtn:hover {
+  background: rgba(92, 255, 212, 0.2);
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.statChip {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 140, 180, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  color: #c8d6ef;
+}
+
+.studentList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: min(42vh, 360px);
+  overflow-y: auto;
+}
+
+.studentBtn {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.84rem;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 140, 180, 0.3);
+  background: rgba(255, 255, 255, 0.03);
+  color: #e8eef8;
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.studentBtn:hover {
+  border-color: rgba(92, 255, 212, 0.45);
+}
+
+.studentBtnActive {
+  border-color: #5cffd4;
+  background: rgba(92, 255, 212, 0.1);
+}
+
+.studentName {
+  font-weight: 600;
+}
+
+.studentScore {
+  font-size: 0.72rem;
+  color: #5cffd4;
+  white-space: nowrap;
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #8fa3c4;
+  padding: 0.65rem;
+  border-radius: 12px;
+  border: 1px dashed rgba(120, 140, 180, 0.35);
+}

@@ -1,0 +1,448 @@
+.learnElementLife {
+  --el-accent: #5cffd4;
+  --el-bg: #04070e;
+  --el-panel: rgba(8, 14, 28, 0.96);
+  --el-border: color-mix(in srgb, var(--el-accent) 35%, transparent);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--el-bg);
+  overflow: hidden;
+  color: #e8eef8;
+}
+
+.header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--el-border);
+  background: linear-gradient(180deg, rgba(12, 20, 40, 0.98), rgba(4, 8, 18, 0.92));
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.badge {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--el-accent);
+  font-weight: 700;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(0.95rem, 2vw, 1.15rem);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #8fa3c4;
+}
+
+.modeTabs {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.modeBtn {
+  border: 1px solid var(--el-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: #c8d6ef;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.modeBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.modeBtnActive {
+  background: color-mix(in srgb, var(--el-accent) 18%, transparent);
+  border-color: var(--el-accent);
+  color: #fff;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.75rem;
+}
+
+/* --- Learn grid --- */
+.learnToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.search {
+  flex: 1 1 180px;
+  min-width: 0;
+  border: 1px solid var(--el-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border-radius: 10px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+}
+
+.search::placeholder {
+  color: #6b7f9e;
+}
+
+.progress {
+  font-size: 0.78rem;
+  color: #8fa3c4;
+  white-space: nowrap;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.65rem;
+}
+
+.card {
+  border: 1px solid var(--el-border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--el-panel);
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--el-accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.cardImgWrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #0a1020;
+}
+
+.cardImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cardZ {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.cardSym {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: color-mix(in srgb, var(--el-accent) 75%, #000);
+  color: #041018;
+  border-radius: 8px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.cardMeta {
+  padding: 0.45rem 0.55rem 0.55rem;
+}
+
+.cardName {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.cardCaption {
+  margin: 0.2rem 0 0;
+  font-size: 0.65rem;
+  color: #8fa3c4;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --- Detail modal --- */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(2, 6, 14, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal {
+  width: min(720px, 100%);
+  max-height: min(92vh, 860px);
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid var(--el-border);
+  background: linear-gradient(165deg, #0c1428, #060a14);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.modalHero {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.modalHero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modalHeroOverlay {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 1rem 1.1rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+}
+
+.modalHeroTitle {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.modalHeroSub {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #c8d6ef;
+}
+
+.modalBody {
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.infoTabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.infoTab {
+  border: 1px solid var(--el-border);
+  background: transparent;
+  color: #a8bdd8;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.infoTabActive {
+  background: color-mix(in srgb, var(--el-accent) 15%, transparent);
+  border-color: var(--el-accent);
+  color: #fff;
+}
+
+.infoText {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #d4e0f4;
+}
+
+.usesList {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.btn {
+  border: 1px solid var(--el-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8eef8;
+  border-radius: 10px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnPrimary {
+  background: color-mix(in srgb, var(--el-accent) 22%, transparent);
+  border-color: var(--el-accent);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* --- Quiz --- */
+.quizWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0.5rem 0 1rem;
+}
+
+.quizScore {
+  font-size: 0.85rem;
+  color: var(--el-accent);
+  font-weight: 700;
+}
+
+.quizPhoto {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid var(--el-border);
+  aspect-ratio: 4 / 3;
+  background: #0a1020;
+}
+
+.quizPhoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.quizPrompt {
+  margin: 0;
+  font-size: 0.95rem;
+  text-align: center;
+  color: #c8d6ef;
+}
+
+.quizOptions {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.quizOption {
+  border: 1px solid var(--el-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8eef8;
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.quizOption:hover:not(:disabled) {
+  border-color: var(--el-accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.quizOptionCorrect {
+  border-color: #5cff8a !important;
+  background: rgba(92, 255, 138, 0.12) !important;
+}
+
+.quizOptionWrong {
+  border-color: #ff6b6b !important;
+  background: rgba(255, 107, 107, 0.1) !important;
+}
+
+.quizFeedback {
+  min-height: 1.5rem;
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.quizFeedbackOk {
+  color: #5cff8a;
+}
+
+.quizFeedbackBad {
+  color: #ff9a9a;
+}
+
+.quizActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lockedHint {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  border: 1px dashed var(--el-border);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.82rem;
+  color: #8fa3c4;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .quizOptions {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modeTabs {
+    justify-content: center;
+  }
+}

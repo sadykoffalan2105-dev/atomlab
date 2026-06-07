@@ -1,0 +1,50 @@
+/** Обучение + викторина по 3D-структуре молекул из каталога (§1, 7 класс) */
+export const learnMoleculeStructureRu = {
+  'learn.molecules.structure.badge': 'Каталог веществ',
+  'learn.molecules.structure.title': 'Структура молекул',
+  'learn.molecules.structure.subtitle': 'Крутите 3D-модель, изучайте форму связей, затем угадайте вещество',
+  'learn.molecules.structure.modeLearn': 'Обучение',
+  'learn.molecules.structure.modeTest': 'Тест',
+  'learn.molecules.structure.modeQuiz': 'Тест',
+  'learn.molecules.structure.search': 'Поиск по названию или формуле…',
+  'learn.molecules.structure.viewed': 'Изучено: {count} / {total}',
+  'learn.molecules.structure.pickCompound': 'Выберите вещество из списка слева',
+  'learn.molecules.structure.loading3d': 'Загрузка 3D-модели…',
+  'learn.molecules.structure.rotateHint': 'Тяните — вращение · колёсико — масштаб',
+  'learn.molecules.structure.tab.structure': 'Структура',
+  'learn.molecules.structure.tab.about': 'О веществе',
+  'learn.molecules.structure.tab.recipe': 'Получение',
+  'learn.molecules.structure.structureIntro':
+    'Рассмотрите расположение атомов и связи. По форме модели можно узнать вещество.',
+  'learn.molecules.structure.atoms': 'Атомов: {count}',
+  'learn.molecules.structure.bonds': 'Связей: {count}',
+  'learn.molecules.structure.quizLocked':
+    'Изучите минимум {need} молекул в режиме «Обучение» (сейчас {viewed}), затем переходите к тесту.',
+  'learn.molecules.structure.testLocked':
+    'Изучите минимум {need} молекул в режиме «Обучение» (сейчас {viewed}), затем начните тест.',
+  'learn.molecules.structure.testSetupTitle': 'Тест по 3D-структуре',
+  'learn.molecules.structure.testSetupLead':
+    'Выберите количество вопросов. Варианты ответов подобраны по похожим элементам — угадывайте по форме модели.',
+  'learn.molecules.structure.testForStudent': 'Ученик: {name}',
+  'learn.molecules.structure.testNoStudent':
+    'Выберите ученика в списке класса слева — результат сохранится в его статистике.',
+  'learn.molecules.structure.testProgress': 'Вопрос {current}/{total} · верно: {correct}',
+  'learn.molecules.structure.quizQuestion': 'Что это за молекула?',
+  'learn.molecules.structure.quizPrompt': 'Выберите правильный ответ по 3D-структуре',
+  'learn.molecules.structure.quizCorrect': 'Верно! Вы узнали молекулу по структуре.',
+  'learn.molecules.structure.quizWrong': 'Это {name} ({formula}).',
+  'learn.molecules.structure.quizNext': 'Следующий вопрос',
+  'learn.classRoster.title': 'Список класса',
+  'learn.classRoster.lead':
+    'Вставьте имена из Excel (по одному в строке или через запятую). Выберите ученика и проведите тест на 3D-панели.',
+  'learn.classRoster.className': 'Класс',
+  'learn.classRoster.classNamePh': 'Например: 7 «А»',
+  'learn.classRoster.pasteLabel': 'Имена учеников',
+  'learn.classRoster.pastePh': 'Иванов Иван\nПетрова Мария\n…',
+  'learn.classRoster.import': 'Загрузить список',
+  'learn.classRoster.count': 'Учеников: {n}',
+  'learn.classRoster.classAvg': 'Средний балл класса: {pct}%',
+  'learn.classRoster.empty': 'Загрузите список класса — затем выберите ученика для тестирования.',
+  'learn.classRoster.noAttempts': 'ещё не тестировался',
+  'learn.classRoster.lastScore': '{score}/{total}',
+} as const

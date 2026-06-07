@@ -34,3 +34,18 @@ export function catalogMoleculeFitScale(atoms: readonly { pos: Vec3 }[]): number
   return Math.min(1.28, Math.max(0.68, 0.94 / ext))
 }
 
+/** Смещение, чтобы геометрический центр молекулы был в (0,0,0) — без «уползания» при вращении. */
+export function moleculeCenterOffset(atoms: readonly { pos: Vec3 }[]): Vec3 {
+  if (atoms.length === 0) return [0, 0, 0]
+  let x = 0
+  let y = 0
+  let z = 0
+  for (const a of atoms) {
+    x += a.pos[0]
+    y += a.pos[1]
+    z += a.pos[2]
+  }
+  const n = atoms.length
+  return [-x / n, -y / n, -z / n]
+}
+

@@ -1,0 +1,50 @@
+/** Molecular structure game i18n (EN) */
+export const learnMoleculeStructureEn = {
+  'learn.molecules.structure.badge': 'Substance catalog',
+  'learn.molecules.structure.title': 'Molecular structure',
+  'learn.molecules.structure.subtitle': 'Rotate the 3D model, study bonds, then name the compound',
+  'learn.molecules.structure.modeLearn': 'Learn',
+  'learn.molecules.structure.modeTest': 'Test',
+  'learn.molecules.structure.modeQuiz': 'Test',
+  'learn.molecules.structure.search': 'Search by name or formula…',
+  'learn.molecules.structure.viewed': 'Studied: {count} / {total}',
+  'learn.molecules.structure.pickCompound': 'Pick a substance from the list',
+  'learn.molecules.structure.loading3d': 'Loading 3D model…',
+  'learn.molecules.structure.rotateHint': 'Drag to rotate · scroll to zoom',
+  'learn.molecules.structure.tab.structure': 'Structure',
+  'learn.molecules.structure.tab.about': 'About',
+  'learn.molecules.structure.tab.recipe': 'How it forms',
+  'learn.molecules.structure.structureIntro':
+    'Study atom positions and bonds. The 3D shape helps you recognize the substance.',
+  'learn.molecules.structure.atoms': 'Atoms: {count}',
+  'learn.molecules.structure.bonds': 'Bonds: {count}',
+  'learn.molecules.structure.quizLocked':
+    'Study at least {need} molecules in Learn mode (currently {viewed}), then start the test.',
+  'learn.molecules.structure.testLocked':
+    'Study at least {need} molecules in Learn mode (currently {viewed}), then start the test.',
+  'learn.molecules.structure.testSetupTitle': '3D structure test',
+  'learn.molecules.structure.testSetupLead':
+    'Pick 5 or 10 questions. Distractors share similar elements — identify the compound by shape.',
+  'learn.molecules.structure.testForStudent': 'Student: {name}',
+  'learn.molecules.structure.testNoStudent':
+    'Select a student in the class list on the left — the score will be saved to their record.',
+  'learn.molecules.structure.testProgress': 'Question {current}/{total} · correct: {correct}',
+  'learn.molecules.structure.quizQuestion': 'What molecule is this?',
+  'learn.molecules.structure.quizPrompt': 'Pick the answer that matches the 3D structure',
+  'learn.molecules.structure.quizCorrect': 'Correct! You recognized it by structure.',
+  'learn.molecules.structure.quizWrong': 'It is {name} ({formula}).',
+  'learn.molecules.structure.quizNext': 'Next question',
+  'learn.classRoster.title': 'Class roster',
+  'learn.classRoster.lead':
+    'Paste names from Excel (one per line or comma-separated). Pick a student and run the test on the 3D panel.',
+  'learn.classRoster.className': 'Class',
+  'learn.classRoster.classNamePh': 'e.g. Grade 7A',
+  'learn.classRoster.pasteLabel': 'Student names',
+  'learn.classRoster.pastePh': 'Alex Smith\nMaria Jones\n…',
+  'learn.classRoster.import': 'Load roster',
+  'learn.classRoster.count': 'Students: {n}',
+  'learn.classRoster.classAvg': 'Class average: {pct}%',
+  'learn.classRoster.empty': 'Load the class roster, then select a student for testing.',
+  'learn.classRoster.noAttempts': 'not tested yet',
+  'learn.classRoster.lastScore': '{score}/{total}',
+} as const

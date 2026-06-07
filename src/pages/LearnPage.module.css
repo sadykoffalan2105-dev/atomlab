@@ -1763,20 +1763,19 @@
 .learnVisualCyber {
   background: #060a12;
   border-color: rgba(61, 255, 236, 0.32);
-}
-
-.learnVisualCyber {
-  min-height: min(48vh, 480px);
+  min-height: min(56vh, 560px);
+  flex: 1 1 auto;
 }
 
 .learnVisualCyber .learnVisualStage {
-  min-height: 0;
+  flex: 1 1 auto;
+  min-height: min(48vh, 520px);
   display: flex;
   flex-direction: column;
 }
 
 .learnVisualCyber.learnVisual3dPresent {
-  min-height: min(62vh, 620px);
+  min-height: min(72vh, 720px);
 }
 
 .learnVisualStage canvas {

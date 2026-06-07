@@ -83,19 +83,23 @@ function LabReactorLights() {
 }
 
 /** Прогрев шейдеров в idle — не блокирует клик «Запустить». */
-function ReactorSceneWarmup({ active }: { active: boolean }) {
-  const { gl, scene, camera } = useThree()
+function ReactorSceneWarmup({ active, revision = 0 }: { active: boolean; revision?: number }) {
+  const { gl, scene, camera, invalidate } = useThree()
   useEffect(() => {
     if (!active) return
     let cancelled = false
-    scheduleIdleMatch(() => {
+    const compile = () => {
       if (cancelled) return
       gl.compile(scene, camera)
-    })
+      invalidate()
+    }
+    scheduleIdleMatch(compile)
+    const retry = window.setTimeout(compile, 96)
     return () => {
       cancelled = true
+      window.clearTimeout(retry)
     }
-  }, [active, gl, scene, camera])
+  }, [active, revision, gl, scene, camera, invalidate])
   return null
 }
 
@@ -212,7 +216,6 @@ function SceneContent({
   synthesisPhase = '',
   forceLiteFxRef,
   prewarmProductCompound = null,
-  showSettledReagents = false,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -231,8 +234,6 @@ function SceneContent({
   forceLiteFxRef?: React.MutableRefObject<boolean>
   /** Продукт для скрытого pre-warm (compile GPU) до запуска синтеза */
   prewarmProductCompound?: CompoundDef | null
-  /** После settled — показать превью реагентов поверх продукта */
-  showSettledReagents?: boolean
   synthesis: {
     runId: number
     zSlots: readonly number[]
@@ -287,7 +288,7 @@ function SceneContent({
     reactorViewOpen &&
     reactorPreviewTerms != null &&
     reactorPreviewTerms.length >= 1 &&
-    (!showSettledHero || synthActive || synthesisRunActive || showSettledReagents)
+    (!showSettledHero || synthActive || synthesisRunActive)
   /** Блокируем drift/GSAP с converge до product — иначе атомы «прыгают» на merge. */
   const previewMotionLocked = synthActive && synthesisPhase !== 'product'
   const previewPoseLocked = synthActive || synthesisRunActive
@@ -554,8 +555,8 @@ function SceneContent({
         <LabSynthesisCosmicBackdrop />
       ) : null}
       {reactorBackdrop ? <LabReactorLights /> : null}
-      {(mountReactorPreview && synthActive) || productPrewarmActive ? (
-        <ReactorSceneWarmup active />
+      {reactorViewOpen ? (
+        <ReactorSceneWarmup active revision={prewarmReady ? 1 : 0} />
       ) : null}
 
       {!reactorViewOpen ? (
@@ -686,7 +687,6 @@ export function LabCanvas({
   synthesisPhase = '',
   forceLiteFxRef,
   prewarmProductCompound = null,
-  showSettledReagents = false,
   sessionKey = 0,
 }: {
   particles: readonly LabParticle[]
@@ -702,7 +702,6 @@ export function LabCanvas({
   synthesisPhase?: string
   forceLiteFxRef?: React.MutableRefObject<boolean>
   prewarmProductCompound?: CompoundDef | null
-  showSettledReagents?: boolean
   /** Remount Canvas только при webglcontextlost (внутренний sessionKey). */
   sessionKey?: number
   synthesis: {
@@ -812,7 +811,6 @@ export function LabCanvas({
           synthesisPhase={synthesisPhase}
           forceLiteFxRef={forceLiteFxRef}
           prewarmProductCompound={prewarmProductCompound}
-          showSettledReagents={showSettledReagents}
         />
       </Canvas>
     </CanvasErrorBoundary>

@@ -8,6 +8,11 @@ import type { CatalogLite, CatalogMatchWorkerIn, CatalogMatchWorkerOut } from '.
 
 let worker: Worker | null = null
 
+/** Создать worker заранее — первый синтез не ждёт инициализацию. */
+export function warmupCatalogMatchWorker(): void {
+  getWorker()
+}
+
 function getWorker(): Worker | null {
   if (typeof Worker === 'undefined') return null
   if (!worker) {

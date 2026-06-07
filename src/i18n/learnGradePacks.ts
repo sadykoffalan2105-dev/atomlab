@@ -12,6 +12,10 @@ import { learnVisualI18nRu } from './learn/learnVisualI18nRu'
 import { learnTeacherI18nEn, learnTeacherI18nRu } from './learn/learnTeacherI18n'
 import { learnCyberG7C1S01Ru } from './learn/learnCyberG7C1S01Ru'
 import { learnCyberG7C1S01En } from './learn/learnCyberG7C1S01En'
+import { learnElementLifeRu } from './learn/learnElementLifeRu'
+import { learnElementLifeEn } from './learn/learnElementLifeEn'
+import { learnMoleculeStructureRu } from './learn/learnMoleculeStructureRu'
+import { learnMoleculeStructureEn } from './learn/learnMoleculeStructureEn'
 
 export const learnGradePackRu = {
   ...learnGradesOutlineRu,
@@ -21,6 +25,8 @@ export const learnGradePackRu = {
   ...learnVisualI18nRu,
   ...learnTeacherI18nRu,
   ...learnCyberG7C1S01Ru,
+  ...learnElementLifeRu,
+  ...learnMoleculeStructureRu,
 } as const
 
 export const learnGradePackEn = {
@@ -31,6 +37,8 @@ export const learnGradePackEn = {
   ...learnVisualI18nEn,
   ...learnTeacherI18nEn,
   ...learnCyberG7C1S01En,
+  ...learnElementLifeEn,
+  ...learnMoleculeStructureEn,
 } as const
 
 export const learnGradePackUz = {

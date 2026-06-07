@@ -194,23 +194,6 @@
   backdrop-filter: blur(8px) saturate(1.15);
 }
 
-.showReagentsBtn {
-  display: inline-block;
-  margin-top: 0.45rem;
-  padding: 0.28rem 0.65rem;
-  font-size: 0.72rem;
-  border-radius: 8px;
-  border: 1px solid rgba(100, 180, 255, 0.35);
-  background: rgba(20, 30, 55, 0.85);
-  color: rgba(180, 210, 255, 0.95);
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-.showReagentsBtn:hover {
-  border-color: rgba(120, 200, 255, 0.55);
-}
-
 .synthFormula {
   display: block;
   font-family: ui-monospace, "Cascadia Code", monospace;

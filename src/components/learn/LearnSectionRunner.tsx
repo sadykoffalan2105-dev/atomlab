@@ -6,6 +6,7 @@ import { LearnTheoryRich } from './LearnTheoryRich'
 import { LearnSlideDeckVisual } from './LearnSlideDeckVisual'
 import { prefetchLearnImage } from './LearnSlideVisual'
 import { LearnColumnPanelTools } from './LearnColumnPanelTools'
+import { LearnClassRosterPanel } from './LearnClassRosterPanel'
 import { LearnWorkspace } from './LearnWorkspace'
 import type { LearnChapter, LearnGrade, LearnSection, LearnSlide } from '../../types/learn'
 import {
@@ -26,6 +27,7 @@ import {
   writeLearnPanelLayout,
   type LearnPanelId,
 } from '../../learn/learnPanelLayoutStorage'
+import { hasCyberDashboard } from '../../learn/learnCyberDashboard'
 import styles from '../../pages/LearnPage.module.css'
 
 type OptionalPanel = LearnPanelId
@@ -288,7 +290,14 @@ export function LearnSectionRunner({
     checkpointPick === slide.correctIndex &&
     !extraQuizPassed
 
-  const theoryCol = (
+  const moleculeHubSection =
+    section.defaultVisualId != null && hasCyberDashboard(section.defaultVisualId)
+
+  const theoryCol = moleculeHubSection ? (
+    <div className={styles.learnSlideCol}>
+      <LearnClassRosterPanel sectionId={section.defaultVisualId!} />
+    </div>
+  ) : (
     <div className={styles.learnSlideCol}>
       <div className={styles.learnProgressBar} aria-hidden>
         <div className={styles.learnProgressFill} style={{ width: `${progressPct}%` }} />

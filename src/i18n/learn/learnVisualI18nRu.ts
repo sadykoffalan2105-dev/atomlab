@@ -4,7 +4,7 @@ export const learnVisualI18nRu = {
   'learn.visual.rotateHint': 'Вращайте мышью · колёсико — масштаб',
   'learn.visual.lifeHint': 'Реальные примеры · наведите на карточку',
   'learn.visual.lifeBadge': 'Из жизни и науки',
-  'learn.visual.cyberHint': 'Нажмите на задачу на схеме',
+  'learn.visual.cyberHint': '3D-структура молекул → викторина по форме',
   'learn.visual.autoOn': 'Авто-вращение',
   'learn.visual.autoOff': 'Пауза',
   'learn.visual.fallback': 'Модель урока',

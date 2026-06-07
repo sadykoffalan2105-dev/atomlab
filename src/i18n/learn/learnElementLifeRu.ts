@@ -1,0 +1,48 @@
+/** Карточки элементов в реальной жизни + викторина (§1, 7 класс) */
+export const learnElementLifeRu = {
+  'learn.elements.life.badge': '118 элементов',
+  'learn.elements.life.title': 'Элементы в реальной жизни',
+  'learn.elements.life.subtitle': 'Сначала изучите карточки, затем пройдите игру с фото',
+  'learn.elements.life.modeLearn': 'Обучение',
+  'learn.elements.life.modeQuiz': 'Игра',
+  'learn.elements.life.search': 'Поиск по названию или символу…',
+  'learn.elements.life.viewed': 'Изучено: {count} / {total}',
+  'learn.elements.life.tab.appearance': 'Как выглядит',
+  'learn.elements.life.tab.uses': 'Где используется',
+  'learn.elements.life.tab.extraction': 'Как добывают',
+  'learn.elements.life.close': 'Закрыть',
+  'learn.elements.life.prev': 'Назад',
+  'learn.elements.life.next': 'Далее',
+  'learn.elements.life.quizLocked':
+    'Откройте хотя бы {need} карточек в режиме «Обучение» (сейчас {viewed}), затем переходите к игре.',
+  'learn.elements.life.quizScore': 'Верных ответов: {score} · вопрос {round}',
+  'learn.elements.life.quizPhotoAlt': 'Фото элемента в реальной жизни',
+  'learn.elements.life.quizPrompt': 'Какой это элемент?',
+  'learn.elements.life.quizCorrect': 'Верно! Отличная работа.',
+  'learn.elements.life.quizWrong': 'Неверно. Это {name}.',
+  'learn.elements.life.quizNext': 'Следующий вопрос',
+} as const
+
+export const learnElementLifeEn = {
+  'learn.elements.life.badge': '118 elements',
+  'learn.elements.life.title': 'Elements in real life',
+  'learn.elements.life.subtitle': 'Study the cards first, then play the photo quiz',
+  'learn.elements.life.modeLearn': 'Learn',
+  'learn.elements.life.modeQuiz': 'Quiz',
+  'learn.elements.life.search': 'Search by name or symbol…',
+  'learn.elements.life.viewed': 'Studied: {count} / {total}',
+  'learn.elements.life.tab.appearance': 'Appearance',
+  'learn.elements.life.tab.uses': 'Uses',
+  'learn.elements.life.tab.extraction': 'How it is obtained',
+  'learn.elements.life.close': 'Close',
+  'learn.elements.life.prev': 'Previous',
+  'learn.elements.life.next': 'Next',
+  'learn.elements.life.quizLocked':
+    'Open at least {need} cards in Learn mode (currently {viewed}), then start the quiz.',
+  'learn.elements.life.quizScore': 'Correct: {score} · question {round}',
+  'learn.elements.life.quizPhotoAlt': 'Element in real life',
+  'learn.elements.life.quizPrompt': 'Which element is this?',
+  'learn.elements.life.quizCorrect': 'Correct! Well done.',
+  'learn.elements.life.quizWrong': 'Not quite. It is {name}.',
+  'learn.elements.life.quizNext': 'Next question',
+} as const

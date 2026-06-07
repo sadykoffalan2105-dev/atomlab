@@ -20,6 +20,7 @@ import {
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { scheduleIdleMatch } from '../lab/labRenderGuards'
+import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
 import {
   getSynthesisWatchdogMs,
   prepareGuaranteedSynthesisRun,
@@ -95,7 +96,6 @@ export function LaboratoryPage() {
   const [synthPhaseUi, setSynthPhaseUi] = useState('')
   const synthesisPhaseRef = useRef('')
   const synthesisCompletingRef = useRef(false)
-  const [showSettledReagents, setShowSettledReagents] = useState(false)
   const [prewarmCompound, setPrewarmCompound] = useState<CompoundDef | null>(null)
   const lastRunVisualTierRef = useRef<ReactorVisualTier>('full')
   const synthesisRunGuardRef = useRef(createSynthesisRunGuard())
@@ -113,6 +113,10 @@ export function LaboratoryPage() {
   const periodicUiHidden = reactorCatalogOpen && reactorCatalogIntent === 'generateEquation'
 
   const catalogList = useMemo(() => Object.values(compoundById), [])
+
+  useEffect(() => {
+    warmupLabSynthesisInfra(catalogList)
+  }, [catalogList])
 
   useEffect(() => {
     const hash = window.location.hash
@@ -192,7 +196,6 @@ export function LaboratoryPage() {
       setSynthesisSettledProduct(null)
       synthesisSettledProductRef.current = null
       settledSnapshotRef.current = null
-      setShowSettledReagents(false)
       setReactorMessage(
         g.warn === 'noEquals'
           ? t('lab.recipeWarn.noEquals')
@@ -225,7 +228,6 @@ export function LaboratoryPage() {
       settledSnapshotRef.current = null
       setSynthesisSettledProduct(null)
       synthesisSettledProductRef.current = null
-      setShowSettledReagents(false)
       setLaboratorySynthesisView('reactor')
     }
   }, [equationSignature, synthesisSettledProduct])
@@ -528,12 +530,18 @@ export function LaboratoryPage() {
     synthesisWatchdogMsRef.current = getSynthesisWatchdogMs(payload.flyTerms, payload.zSlots)
     const nextRunId = runId + 1
     synthesisRunGuardRef.current.beginRun(nextRunId)
-    setSynthesisFlightSlots(zCopy)
-    setSynthesisFlyTerms(flyCopy)
-    setLastRunProduct(payload.compound)
-    setRunId(nextRunId)
     const name = getCompoundLocaleStrings(payload.compound, locale, t).name
     setReactorMessage(t('reactor.successRunning', { name }))
+
+    const launch = () => {
+      setSynthesisFlightSlots(zCopy)
+      setSynthesisFlyTerms(flyCopy)
+      setLastRunProduct(payload.compound)
+      setRunId(nextRunId)
+    }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(launch)
+    })
   }, [leftTerms, productCompoundId, productCoeff, t, locale, runId])
 
   const labSynthesis = useMemo(() => {
@@ -625,10 +633,13 @@ export function LaboratoryPage() {
       setPrewarmCompound(null)
       return
     }
-    const timer = window.setTimeout(() => {
-      scheduleIdleMatch(() => setPrewarmCompound(product))
-    }, 300)
-    return () => window.clearTimeout(timer)
+    let cancelled = false
+    scheduleIdleMatch(() => {
+      if (!cancelled) setPrewarmCompound(product)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [reactorOpen, synthRunActive, canRunSynthesis, productCompoundId])
 
   useEffect(() => {
@@ -691,7 +702,6 @@ export function LaboratoryPage() {
           synthesisPhase={synthPhaseUi}
           forceLiteFxRef={forceLiteFxRef}
           prewarmProductCompound={synthRunActive ? lastRunProduct : prewarmCompound}
-          showSettledReagents={showSettledReagents}
         />
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />
@@ -709,15 +719,6 @@ export function LaboratoryPage() {
               <span className={styles.synthFormula}>{productForHud.formulaUnicode}</span>
               <span className={styles.synthName}>{productHudStrings?.name ?? productForHud.nameRu}</span>
               <p className={styles.synthDesc}>{productHudStrings?.description ?? productForHud.descriptionRu}</p>
-              {showSettledSynthesisView && leftTerms.length > 0 ? (
-                <button
-                  type="button"
-                  className={styles.showReagentsBtn}
-                  onClick={() => setShowSettledReagents((v) => !v)}
-                >
-                  {showSettledReagents ? t('reactor.hideReagents') : t('reactor.showReagents')}
-                </button>
-              ) : null}
             </div>
           </div>
         ) : null}

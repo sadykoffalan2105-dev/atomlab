@@ -11,7 +11,7 @@ import { CanvasErrorBoundary } from '../common/CanvasErrorBoundary'
 import { CanvasSceneErrorFallback } from '../common/CanvasSceneErrorFallback'
 import { useT } from '../../i18n/useT'
 import { isWebGLAvailable } from '../../utils/webgl'
-import { CATALOG_HERO_DEFAULT_LAB_SCALE, catalogMoleculeFitScale, categoryAccentRgb, rgbToHex } from './catalogMoleculeHeroShared'
+import { CATALOG_HERO_DEFAULT_LAB_SCALE, catalogMoleculeFitScale, categoryAccentRgb, moleculeCenterOffset, rgbToHex } from './catalogMoleculeHeroShared'
 import { CATALOG_HERO_VIEW } from './labOrbitConstants'
 
 /** Полупрозрачная «капсула» вокруг молекулы в цвете вещества + тонкие кольца. */
@@ -220,6 +220,7 @@ export function HeroMoleculeRig({
 }) {
   const ref = useRef<THREE.Group>(null)
   const fit = useMemo(() => catalogMoleculeFitScale(compound.atoms), [compound.atoms])
+  const center = useMemo(() => moleculeCenterOffset(compound.atoms), [compound.atoms])
   const baseScale = 0.78 * labScaleBoost
 
   useFrame((s) => {
@@ -234,14 +235,16 @@ export function HeroMoleculeRig({
 
   return (
     <group ref={ref} position={[0, 0, 0]}>
-      <MoleculeMesh
-        compound={compound}
-        scale={baseScale * fit}
-        accentBoost={1.42}
-        visualPreset="catalogHero"
-        renderQuality={renderQuality}
-        showLabels={fxLevel !== 'off'}
-      />
+      <group position={center}>
+        <MoleculeMesh
+          compound={compound}
+          scale={baseScale * fit}
+          accentBoost={1.42}
+          visualPreset="catalogHero"
+          renderQuality={renderQuality}
+          showLabels={fxLevel !== 'off'}
+        />
+      </group>
     </group>
   )
 }
