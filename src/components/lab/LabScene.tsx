@@ -32,6 +32,10 @@ import { useT } from '../../i18n/useT'
 import { isWebGLAvailable } from '../../utils/webgl'
 import { scheduleIdleMatch } from '../../lab/labRenderGuards'
 import {
+  createLabCanvasFrameHoldGuard,
+  shouldMountProductGpuPrewarm,
+} from '../../lab/labCanvasFrameGuard'
+import {
   createProductCrossfadeGuard,
   type ProductCrossfadeGuard,
 } from '../../lab/synthesisLaunchGuard'
@@ -82,11 +86,11 @@ function LabReactorLights() {
   )
 }
 
-/** Прогрев шейдеров в idle — не блокирует клик «Запустить». */
+/** Прогрев шейдеров только после старта синтеза — не при балансировке уравнения. */
 function ReactorSceneWarmup({ active, revision = 0 }: { active: boolean; revision?: number }) {
   const { gl, scene, camera, invalidate } = useThree()
   useEffect(() => {
-    if (!active) return
+    if (!active || revision <= 0) return
     let cancelled = false
     const compile = () => {
       if (cancelled) return
@@ -94,13 +98,9 @@ function ReactorSceneWarmup({ active, revision = 0 }: { active: boolean; revisio
       invalidate()
     }
     scheduleIdleMatch(compile)
-    const raf = requestAnimationFrame(compile)
-    const retry = window.setTimeout(compile, 48)
-    const late = window.setTimeout(compile, 160)
+    const late = window.setTimeout(compile, 220)
     return () => {
       cancelled = true
-      cancelAnimationFrame(raf)
-      window.clearTimeout(retry)
       window.clearTimeout(late)
     }
   }, [active, revision, gl, scene, camera, invalidate])
@@ -249,7 +249,7 @@ function SceneContent({
     onPhaseChange?: (phase: string, launchProgress: number) => void
   } | null
 }) {
-  const { camera } = useThree()
+  const { camera, invalidate } = useThree()
   const orbRef = useRef<OrbitControlsImpl | null>(null)
   const perfLevelRef = useRef<PerfLevel>('high')
   const perfAcc = useRef({ t: 0, lowT: 0, highT: 0, fps: 60 })
@@ -276,6 +276,7 @@ function SceneContent({
   const [previewOverlapActive, setPreviewOverlapActive] = useState(false)
   const crossfadeGuardRef = useRef<ProductCrossfadeGuard | null>(null)
   const coverageTrackerRef = useRef(createSynthesisCoverageTracker())
+  const frameHoldRef = useRef(createLabCanvasFrameHoldGuard())
   const previewVisualTier = useMemo(
     () => (reactorPreviewTerms?.length ? getReactorVisualTier(reactorPreviewTerms) : 'full'),
     [reactorPreviewTerms],
@@ -289,6 +290,13 @@ function SceneContent({
     !synthesisRunActive &&
     !previewActive &&
     synthesisSettledProduct != null
+
+  const gpuPrewarmAllowed = shouldMountProductGpuPrewarm({
+    policy: 'synthesis-only',
+    synthesisRunActive,
+    synthActive,
+    showSettledHero,
+  })
 
   const mountReactorPreview =
     reactorViewOpen &&
@@ -305,7 +313,7 @@ function SceneContent({
   const productForSlot =
     synthesisSettledProduct ??
     (synthActive && synthesis?.product ? synthesis.product : null) ??
-    prewarmProductCompound
+    (gpuPrewarmAllowed ? prewarmProductCompound : null)
   const productSlotVisible =
     productForSlot != null &&
     (showSettledHero ||
@@ -321,6 +329,7 @@ function SceneContent({
       earlyProductReveal ||
       forceProductSlot)
   const productPrewarmActive =
+    gpuPrewarmAllowed &&
     productForSlot != null &&
     !productSlotVisible &&
     !showSettledHero &&
@@ -329,6 +338,12 @@ function SceneContent({
     (prewarmReadyRef.current || prewarmReady)
 
   useEffect(() => {
+    if (!gpuPrewarmAllowed) {
+      prewarmReadyRef.current = false
+      prewarmCompoundIdRef.current = null
+      setPrewarmReady(false)
+      return
+    }
     if (!reactorViewOpen) {
       prewarmReadyRef.current = false
       prewarmCompoundIdRef.current = null
@@ -353,13 +368,11 @@ function SceneContent({
       prewarmReadyRef.current = true
       setPrewarmReady(true)
     }
-    markReady()
-    const raf = requestAnimationFrame(markReady)
+    scheduleIdleMatch(markReady)
     return () => {
       cancelled = true
-      cancelAnimationFrame(raf)
     }
-  }, [reactorViewOpen, prewarmProductCompound?.id, synthActive, synthesis?.product?.id])
+  }, [gpuPrewarmAllowed, reactorViewOpen, prewarmProductCompound?.id, synthActive, synthesis?.product?.id])
 
   useLayoutEffect(() => {
     if (!synthActive || !synthesis?.runId) return
@@ -503,14 +516,15 @@ function SceneContent({
   )
 
   useFrame((_, delta) => {
+    frameHoldRef.current.markRendered()
     coverageFrameRef.current += 1
     const coverageEvery = previewLagPolicy.coverageGuardEvery
     if (
-      (synthesisRunActive || synthActive) &&
+      (synthesisRunActive || synthActive || reactorViewOpen) &&
       shouldRunGuardTick(coverageFrameRef.current, coverageEvery)
     ) {
       coverageTrackerRef.current.tick(
-        true,
+        synthesisRunActive || synthActive,
         {
           preview: reactorPreviewVisible && mountReactorPreview,
           product: productSlotVisible || productPrewarmActive || earlyProductReveal,
@@ -519,11 +533,13 @@ function SceneContent({
             synthesisPhase === 'converge' ||
             synthesisPhase === 'ignite' ||
             synthesisPhase === 'flying',
-          cosmicFx: synthesisRunActive || synthActive,
+          cosmicFx: synthesisRunActive || synthActive || reactorViewOpen,
         },
         () => setForceProductSlot(true),
       )
     }
+
+    frameHoldRef.current.tick(() => invalidate(), reactorViewOpen)
 
     if (
       previewMotionLocked &&
@@ -593,10 +609,7 @@ function SceneContent({
       ) : null}
       {reactorBackdrop ? <LabReactorLights /> : null}
       {reactorViewOpen ? (
-        <ReactorSceneWarmup
-          active
-          revision={(prewarmReady ? 1 : 0) + (synthesis?.runId ?? 0) * 10}
-        />
+        <ReactorSceneWarmup active revision={synthesis?.runId ?? 0} />
       ) : null}
 
       {!reactorViewOpen ? (

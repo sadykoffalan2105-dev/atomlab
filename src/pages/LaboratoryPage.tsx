@@ -14,13 +14,13 @@ import {
   findCatalogMatchesForLeftTerms,
   findMatchingProductCoeff,
   isReactorEquationBalanced,
-  validateReactorEquation,
   type ReactorEquationTerm,
 } from '../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { scheduleIdleMatch } from '../lab/labRenderGuards'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
+import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
   getSynthesisWatchdogMs,
   prepareGuaranteedSynthesisRun,
@@ -589,7 +589,8 @@ export function LaboratoryPage() {
 
   const canRunSynthesis = useMemo(() => {
     const product = productCompoundId ? compoundById[productCompoundId] : undefined
-    return validateReactorEquation(leftTerms, product, productCoeff).ok
+    if (!product) return false
+    return isReactorBalancedFast(leftTerms, product, productCoeff)
   }, [leftTerms, productCompoundId, productCoeff])
 
   const highlightEquationError = useMemo(() => {
@@ -618,19 +619,6 @@ export function LaboratoryPage() {
   }, [leftTerms, productCompoundId, productCoeff])
 
   const synthRunActive = reactorOpen && runId > 0
-
-  useLayoutEffect(() => {
-    if (!reactorOpen) {
-      setPrewarmCompound(null)
-      return
-    }
-    const product = productCompoundId ? compoundById[productCompoundId] : undefined
-    if (!canRunSynthesis || !product) {
-      setPrewarmCompound(null)
-      return
-    }
-    setPrewarmCompound(product)
-  }, [reactorOpen, canRunSynthesis, productCompoundId])
 
   useEffect(() => {
     if (!synthRunActive) {
@@ -691,7 +679,9 @@ export function LaboratoryPage() {
           laboratorySynthesisView={laboratorySynthesisView}
           synthesisPhase={synthPhaseUi}
           forceLiteFxRef={forceLiteFxRef}
-          prewarmProductCompound={lastRunProduct ?? prewarmCompound}
+          prewarmProductCompound={
+            synthRunActive ? (lastRunProduct ?? prewarmCompound) : null
+          }
         />
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />

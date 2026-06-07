@@ -5,6 +5,7 @@ project(atomlab_core)
 
 add_library(atomlab_core STATIC
   src/catalog_match.cpp
+  src/reactor_balance.cpp
 )
 
 target_compile_features(atomlab_core PUBLIC cxx_std_17)
