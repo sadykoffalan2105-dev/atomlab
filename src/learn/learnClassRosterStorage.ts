@@ -2,11 +2,15 @@ import type { StudentTestLength } from './studentTestScoring'
 
 export const CLASS_ROSTER_CHANGED = 'atomlab:classRosterChanged'
 
+export type StudentTestKind = 'molecule' | 'topic' | 'ai'
+
 export type ClassTestAttempt = {
   at: string
+  kind: StudentTestKind
   score: number
   total: StudentTestLength
   correct: number
+  wrongQuestionIds?: string[]
 }
 
 export type ClassStudent = {
@@ -22,6 +26,25 @@ export type ClassRoster = {
 }
 
 const rosterKey = (sectionId: string) => `atomlab.moleculeClass.${sectionId}`
+
+function normalizeAttempt(raw: Partial<ClassTestAttempt>): ClassTestAttempt {
+  return {
+    at: raw.at ?? new Date().toISOString(),
+    kind: raw.kind ?? 'molecule',
+    score: raw.score ?? 0,
+    total: raw.total === 10 ? 10 : 5,
+    correct: raw.correct ?? 0,
+    wrongQuestionIds: Array.isArray(raw.wrongQuestionIds) ? raw.wrongQuestionIds : undefined,
+  }
+}
+
+function normalizeStudent(raw: Partial<ClassStudent>): ClassStudent {
+  return {
+    id: raw.id ?? `stu_${Date.now()}`,
+    name: raw.name ?? '',
+    attempts: Array.isArray(raw.attempts) ? raw.attempts.map((a) => normalizeAttempt(a)) : [],
+  }
+}
 
 function emptyRoster(): ClassRoster {
   return { className: '', students: [], activeStudentId: null }
@@ -41,7 +64,7 @@ export function readClassRoster(sectionId: string): ClassRoster {
     const parsed = JSON.parse(raw) as ClassRoster
     return {
       className: parsed.className ?? '',
-      students: Array.isArray(parsed.students) ? parsed.students : [],
+      students: Array.isArray(parsed.students) ? parsed.students.map((s) => normalizeStudent(s)) : [],
       activeStudentId: parsed.activeStudentId ?? null,
     }
   } catch {
@@ -84,14 +107,31 @@ export function recordStudentTestResult(
   result: Omit<ClassTestAttempt, 'at'>,
 ) {
   const roster = readClassRoster(sectionId)
+  const attempt = normalizeAttempt(result)
   const students = roster.students.map((s) => {
     if (s.id !== studentId) return s
     return {
       ...s,
-      attempts: [...s.attempts, { ...result, at: new Date().toISOString() }],
+      attempts: [...s.attempts, attempt],
     }
   })
   writeClassRoster(sectionId, { ...roster, students })
+}
+
+export function getStudentById(sectionId: string, studentId: string): ClassStudent | null {
+  const roster = readClassRoster(sectionId)
+  return roster.students.find((s) => s.id === studentId) ?? null
+}
+
+export function lastAttemptForKind(
+  student: ClassStudent,
+  kind: StudentTestKind,
+): ClassTestAttempt | null {
+  for (let i = student.attempts.length - 1; i >= 0; i--) {
+    const a = student.attempts[i]
+    if ((a?.kind ?? 'molecule') === kind) return a ?? null
+  }
+  return null
 }
 
 export function classAverageScore(sectionId: string): number | null {

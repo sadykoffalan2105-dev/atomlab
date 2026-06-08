@@ -1,0 +1,227 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(2, 4, 12, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+.card {
+  width: min(520px, 100%);
+  max-height: min(90vh, 720px);
+  overflow-y: auto;
+  border-radius: 20px;
+  border: 1px solid rgba(92, 255, 212, 0.35);
+  background: linear-gradient(160deg, rgba(10, 16, 32, 0.98), rgba(6, 10, 22, 0.99));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  padding: 1.1rem 1.2rem 1.25rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5cffd4;
+}
+
+.title {
+  margin: 0.2rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #eef4ff;
+}
+
+.closeBtn {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 160, 200, 0.4);
+  background: rgba(255, 255, 255, 0.04);
+  color: #c8d6ef;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.masteryBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  margin-bottom: 0.85rem;
+  border: 1px solid rgba(120, 140, 180, 0.35);
+}
+
+.masteryLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(200, 210, 230, 0.85);
+}
+
+.masteryPct {
+  margin-left: auto;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.masteryStrong {
+  background: rgba(92, 255, 212, 0.1);
+  border-color: rgba(92, 255, 212, 0.45);
+  color: #5cffd4;
+}
+
+.masteryGood {
+  background: rgba(120, 160, 255, 0.1);
+  border-color: rgba(120, 160, 255, 0.45);
+  color: #9eb8ff;
+}
+
+.masteryNeedsWork {
+  background: rgba(255, 180, 80, 0.1);
+  border-color: rgba(255, 180, 80, 0.45);
+  color: #ffc878;
+}
+
+.masteryNone {
+  background: rgba(255, 255, 255, 0.04);
+  color: #8fa3c4;
+}
+
+.kindGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+}
+
+.kindCard {
+  border-radius: 12px;
+  border: 1px solid rgba(120, 140, 180, 0.28);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.6rem 0.65rem;
+}
+
+.kindTitle {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #e8eef8;
+}
+
+.kindMeta {
+  margin: 0.25rem 0 0;
+  font-size: 0.68rem;
+  color: #8fa3c4;
+}
+
+.kindScore {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #5cffd4;
+}
+
+.kindLast {
+  margin: 0.2rem 0 0;
+  font-size: 0.68rem;
+  color: rgba(180, 195, 220, 0.85);
+}
+
+.weakBlock,
+.historyBlock {
+  margin-bottom: 0.75rem;
+}
+
+.weakTitle,
+.historyTitle {
+  margin: 0 0 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #e8eef8;
+}
+
+.weakList,
+.historyList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.weakList li {
+  font-size: 0.78rem;
+  color: #ffc878;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(255, 180, 80, 0.08);
+}
+
+.historyItem {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.78rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #c8d6ef;
+}
+
+.historyKind {
+  font-weight: 600;
+}
+
+.historyScore {
+  font-weight: 800;
+  color: #5cffd4;
+}
+
+.historyDate {
+  font-size: 0.68rem;
+  color: #8fa3c4;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.35rem;
+}
+
+.selectBtn {
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  border-radius: 999px;
+  border: 1px solid rgba(92, 255, 212, 0.55);
+  background: rgba(92, 255, 212, 0.14);
+  color: #fff;
+  padding: 0.5rem 1.1rem;
+  cursor: pointer;
+}
+
+@media (max-width: 520px) {
+  .kindGrid {
+    grid-template-columns: 1fr;
+  }
+}

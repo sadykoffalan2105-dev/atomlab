@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
+import {
+  getActiveStudent,
+  recordStudentTestResult,
+  type StudentTestKind,
+} from '../../learn/learnClassRosterStorage'
 import { pickStudentTestQuestions, studentTestMaxQuestions } from '../../learn/studentTestEngine'
 import {
   computeStudentTestScore,
@@ -8,13 +13,18 @@ import {
   type StudentTestLength,
 } from '../../learn/studentTestScoring'
 import type { TopicQuizItem } from '../../learn/topicQuizTypes'
-import { useT } from '../../i18n/useT'
+import { useT, type MessageKey } from '../../i18n/useT'
 import styles from './LearnStudentTest.module.css'
 
 type Props = {
   grade: LearnGrade
   chapter: LearnChapter
   section: LearnSection
+  rosterSectionId?: string
+  testKind?: StudentTestKind
+  variant?: 'default' | 'ai'
+  disabled?: boolean
+  embedded?: boolean
 }
 
 type Phase = 'setup' | 'running' | 'results'
@@ -55,6 +65,9 @@ function StudentTestOverlay({
   chapter,
   section,
   length,
+  rosterSectionId,
+  testKind,
+  variant,
   onClose,
 }: Props & { length: StudentTestLength; onClose: () => void }) {
   const { t } = useT()
@@ -64,8 +77,10 @@ function StudentTestOverlay({
   )
   const [index, setIndex] = useState(0)
   const [correctFlags, setCorrectFlags] = useState<boolean[]>([])
+  const [wrongIds, setWrongIds] = useState<string[]>([])
   const [pick, setPick] = useState<number | null>(null)
   const [showNext, setShowNext] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const question = questions[index] ?? null
   const total = questions.length
@@ -74,6 +89,24 @@ function StudentTestOverlay({
   const gradeKey = studentTestGradeLabel(score, length)
 
   const progressPct = total > 0 ? ((phase === 'results' ? total : index) / total) * 100 : 0
+
+  const saveResult = useCallback(
+    (flags: boolean[], wrong: string[]) => {
+      if (saved || !rosterSectionId) return
+      const student = getActiveStudent(rosterSectionId)
+      if (!student) return
+      const correct = flags.filter(Boolean).length
+      recordStudentTestResult(rosterSectionId, student.id, {
+        kind: testKind ?? 'topic',
+        score: computeStudentTestScore(correct, length),
+        total: length,
+        correct,
+        wrongQuestionIds: wrong.length > 0 ? wrong : undefined,
+      })
+      setSaved(true)
+    },
+    [length, rosterSectionId, saved, testKind],
+  )
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -94,6 +127,7 @@ function StudentTestOverlay({
       const ok = idx === question.correctIndex
       setPick(idx)
       setCorrectFlags((prev) => [...prev, ok])
+      if (!ok) setWrongIds((prev) => [...prev, question.id])
       setShowNext(true)
     },
     [pick, question],
@@ -101,20 +135,23 @@ function StudentTestOverlay({
 
   const handleNext = useCallback(() => {
     if (index + 1 >= total) {
+      saveResult(correctFlags, wrongIds)
       setPhase('results')
       return
     }
     setIndex((i) => i + 1)
     setPick(null)
     setShowNext(false)
-  }, [index, total])
+  }, [correctFlags, index, saveResult, total, wrongIds])
 
   const restart = useCallback(() => {
     setQuestions(pickStudentTestQuestions(grade.id, chapter.id, section.id, length))
     setIndex(0)
     setCorrectFlags([])
+    setWrongIds([])
     setPick(null)
     setShowNext(false)
+    setSaved(false)
     setPhase('running')
   }, [grade.id, chapter.id, section.id, length])
 
@@ -127,26 +164,22 @@ function StudentTestOverlay({
           ? styles.gradeFair
           : styles.gradeRetry
 
-  const gradeMessage =
-    gradeKey === 'excellent'
-      ? t('learn.studentTest.grade.excellent')
-      : gradeKey === 'good'
-        ? t('learn.studentTest.grade.good')
-        : gradeKey === 'fair'
-          ? t('learn.studentTest.grade.fair')
-          : t('learn.studentTest.grade.retry')
+  const gradeMessage = t(`learn.studentTest.grade.${gradeKey}` as MessageKey)
 
   const status =
-    pick !== null && question
-      ? pick === question.correctIndex
-        ? 'ok'
-        : 'bad'
-      : null
+    pick !== null && question ? (pick === question.correctIndex ? 'ok' : 'bad') : null
+
+  const overlayTitle =
+    variant === 'ai' ? t('learn.studentTestHub.modeAi') : t('learn.studentTest.title')
 
   return createPortal(
-    <div className={styles.overlay} role="dialog" aria-modal="true">
+    <div
+      className={`${styles.overlay} ${variant === 'ai' ? styles.overlayAi : ''}`}
+      role="dialog"
+      aria-modal="true"
+    >
       <header className={styles.toolbar}>
-        <h2 className={styles.toolbarTitle}>{t('learn.studentTest.title')}</h2>
+        <h2 className={styles.toolbarTitle}>{overlayTitle}</h2>
         {phase === 'running' ? (
           <>
             <div className={styles.progressWrap}>
@@ -165,7 +198,14 @@ function StudentTestOverlay({
       <main className={styles.main}>
         {phase === 'running' && question ? (
           <div key={question.id} className={styles.quizBody}>
-            <p className={styles.question}>{question.question}</p>
+            {variant === 'ai' ? (
+              <div className={styles.aiBubble}>
+                <span className={styles.aiBadge}>{t('learn.topicQuiz.teacherHintTitle')}</span>
+                <p className={styles.aiQuestion}>{question.question}</p>
+              </div>
+            ) : (
+              <p className={styles.question}>{question.question}</p>
+            )}
             <ul className={styles.choices}>
               {question.choices.map((choice, idx) => {
                 const isCorrect = idx === question.correctIndex
@@ -208,6 +248,9 @@ function StudentTestOverlay({
             <ScoreRing score={score} max={length} />
             <h3 className={styles.resultsTitle}>{t('learn.studentTest.resultsTitle')}</h3>
             <p className={`${styles.resultsGrade} ${gradeClass}`}>{gradeMessage}</p>
+            {rosterSectionId && saved ? (
+              <p className={styles.savedHint}>{t('learn.studentStats.saved')}</p>
+            ) : null}
             <div className={styles.statsRow}>
               <div className={styles.stat}>
                 <div className={styles.statValue}>{correctCount}</div>
@@ -235,13 +278,22 @@ function StudentTestOverlay({
   )
 }
 
-export function LearnStudentTest({ grade, chapter, section }: Props) {
+export function LearnStudentTest({
+  grade,
+  chapter,
+  section,
+  rosterSectionId,
+  testKind = 'topic',
+  variant = 'default',
+  disabled = false,
+  embedded = false,
+}: Props) {
   const { t } = useT()
   const maxPool = studentTestMaxQuestions(grade.id, chapter.id, section.id)
   const [length, setLength] = useState<StudentTestLength>(5)
   const [active, setActive] = useState(false)
 
-  const canStart = maxPool >= 3
+  const canStart = maxPool >= 3 && !disabled
 
   const start = useCallback(() => {
     if (!canStart) return
@@ -255,14 +307,18 @@ export function LearnStudentTest({ grade, chapter, section }: Props) {
     return length
   }, [length, maxPool])
 
+  const panelClass = embedded ? styles.panelEmbedded : styles.panel
+
   return (
-    <section className={styles.panel} aria-labelledby="learn-student-test-title">
-      <div className={styles.head}>
-        <h3 id="learn-student-test-title" className={styles.title}>
-          {t('learn.studentTest.title')}
-        </h3>
-        <p className={styles.lead}>{t('learn.studentTest.lead')}</p>
-      </div>
+    <section className={panelClass} aria-labelledby="learn-student-test-title">
+      {!embedded ? (
+        <div className={styles.head}>
+          <h3 id="learn-student-test-title" className={styles.title}>
+            {t('learn.studentTest.title')}
+          </h3>
+          <p className={styles.lead}>{t('learn.studentTest.lead')}</p>
+        </div>
+      ) : null}
       <div className={styles.setupRow}>
         <div className={styles.countPicker} role="group" aria-label={t('learn.studentTest.pickCount')}>
           <button
@@ -286,15 +342,20 @@ export function LearnStudentTest({ grade, chapter, section }: Props) {
         </button>
       </div>
       <p className={styles.hint}>
-        {canStart
-          ? t('learn.studentTest.poolHint', { n: maxPool })
-          : t('learn.studentTest.notEnough')}
+        {disabled
+          ? t('learn.molecules.structure.testNoStudent')
+          : canStart
+            ? t('learn.studentTest.poolHint', { n: maxPool })
+            : t('learn.studentTest.notEnough')}
       </p>
       {active ? (
         <StudentTestOverlay
           grade={grade}
           chapter={chapter}
           section={section}
+          rosterSectionId={rosterSectionId}
+          testKind={testKind}
+          variant={variant}
           length={effectiveLength}
           onClose={close}
         />

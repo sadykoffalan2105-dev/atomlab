@@ -1,0 +1,77 @@
+.hub {
+  padding: 0.85rem 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(120, 90, 255, 0.38);
+  background:
+    radial-gradient(ellipse 80% 55% at 15% 0%, rgba(120, 90, 255, 0.14), transparent 58%),
+    linear-gradient(155deg, rgba(16, 14, 42, 0.92), rgba(8, 10, 28, 0.96));
+  margin-bottom: 0.75rem;
+}
+
+.head {
+  margin-bottom: 0.65rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #e8e4ff;
+}
+
+.lead {
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(185, 180, 230, 0.9);
+}
+
+.modeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+}
+
+.modeBtn,
+.modeBtnActive {
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid rgba(140, 120, 255, 0.45);
+  background: rgba(12, 10, 32, 0.85);
+  color: #ddd8ff;
+}
+
+.modeBtnActive {
+  border-color: rgba(180, 150, 255, 0.75);
+  background: rgba(50, 35, 90, 0.75);
+  color: #fff;
+}
+
+.studentLine {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #5cffd4;
+}
+
+.studentHint {
+  margin: 0 0 0.35rem;
+  font-size: 0.76rem;
+  color: #ffc878;
+}
+
+.moleculeHint {
+  margin: 0 0 0.55rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: rgba(160, 175, 205, 0.9);
+  padding: 0.4rem 0.55rem;
+  border-radius: 10px;
+  border: 1px dashed rgba(92, 255, 212, 0.3);
+  background: rgba(92, 255, 212, 0.05);
+}

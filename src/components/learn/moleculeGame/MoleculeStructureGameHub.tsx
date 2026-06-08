@@ -152,6 +152,7 @@ function MoleculeStructureTest({
   const [questions, setQuestions] = useState<MoleculeTestQuestion[]>([])
   const [index, setIndex] = useState(0)
   const [correctFlags, setCorrectFlags] = useState<boolean[]>([])
+  const [wrongIds, setWrongIds] = useState<string[]>([])
   const [answered, setAnswered] = useState(false)
   const [pickedId, setPickedId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<'ok' | 'bad' | null>(null)
@@ -179,6 +180,7 @@ function MoleculeStructureTest({
     setQuestions(buildMoleculeTest(length))
     setIndex(0)
     setCorrectFlags([])
+    setWrongIds([])
     setAnswered(false)
     setPickedId(null)
     setFeedback(null)
@@ -186,14 +188,16 @@ function MoleculeStructureTest({
   }, [length])
 
   const finishAndSave = useCallback(
-    (flags: boolean[]) => {
+    (flags: boolean[], wrong: string[]) => {
       const correct = flags.filter(Boolean).length
       const finalScore = computeStudentTestScore(correct, length)
       if (sectionId && activeStudent) {
         recordStudentTestResult(sectionId, activeStudent.id, {
+          kind: 'molecule',
           score: finalScore,
           total: length,
           correct,
+          wrongQuestionIds: wrong.length > 0 ? wrong : undefined,
         })
       }
       setPhase('results')
@@ -209,12 +213,13 @@ function MoleculeStructureTest({
     setFeedback(ok ? 'ok' : 'bad')
     const nextFlags = [...correctFlags, ok]
     setCorrectFlags(nextFlags)
+    if (!ok) setWrongIds((prev) => [...prev, question.correct.id])
   }
 
   const goNext = () => {
     if (!question) return
     if (index + 1 >= total) {
-      finishAndSave(correctFlags)
+      finishAndSave(correctFlags, wrongIds)
       return
     }
     setIndex((i) => i + 1)
@@ -228,6 +233,7 @@ function MoleculeStructureTest({
     setQuestions([])
     setIndex(0)
     setCorrectFlags([])
+    setWrongIds([])
     setAnswered(false)
     setPickedId(null)
     setFeedback(null)

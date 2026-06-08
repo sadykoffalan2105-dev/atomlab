@@ -100,8 +100,14 @@
   overflow-y: auto;
 }
 
+.studentRow {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
 .studentBtn {
-  width: 100%;
+  flex: 1;
   text-align: left;
   font: inherit;
   font-size: 0.84rem;
@@ -134,6 +140,22 @@
   font-size: 0.72rem;
   color: #5cffd4;
   white-space: nowrap;
+}
+
+.statsBtn {
+  flex-shrink: 0;
+  width: 2.4rem;
+  font: inherit;
+  font-size: 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 140, 180, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+.statsBtn:hover {
+  border-color: rgba(92, 255, 212, 0.5);
+  background: rgba(92, 255, 212, 0.1);
 }
 
 .empty {

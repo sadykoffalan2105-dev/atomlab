@@ -295,7 +295,12 @@ export function LearnSectionRunner({
 
   const theoryCol = moleculeHubSection ? (
     <div className={styles.learnSlideCol}>
-      <LearnClassRosterPanel sectionId={section.defaultVisualId!} />
+      <LearnClassRosterPanel
+        sectionId={section.defaultVisualId!}
+        grade={grade}
+        chapter={chapter}
+        section={section}
+      />
     </div>
   ) : (
     <div className={styles.learnSlideCol}>
