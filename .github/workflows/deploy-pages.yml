@@ -35,8 +35,8 @@ jobs:
 
       - name: Verify molecule catalog bundle
         run: |
-          grep -rq "molecules.structure.title" dist/assets/ || (echo "Missing molecule catalog build" && exit 1)
-          grep -rq "classRoster.title" dist/assets/ || (echo "Missing class roster build" && exit 1)
+          grep -rq "learn.molecules.structure.title" dist/assets/ || (echo "Missing molecule catalog build" && exit 1)
+          grep -rq "learn.classRoster.title" dist/assets/ || (echo "Missing class roster build" && exit 1)
 
       - uses: actions/upload-pages-artifact@v3
         with:
