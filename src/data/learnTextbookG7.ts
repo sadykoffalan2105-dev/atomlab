@@ -7,7 +7,8 @@ import {
 
 export { G7_TEXTBOOK_CHAPTER_START, G7_TEXTBOOK_SECTION_PAGES }
 
-export const G7_TEXTBOOK_PDF = '/textbooks/kimyo-7-ru-2022.pdf'
+/** Путь к PDF с учётом Vite base (GitHub Pages: /atomlab/). */
+export const G7_TEXTBOOK_PDF = `${import.meta.env.BASE_URL}textbooks/kimyo-7-ru-2022.pdf`
 export const G7_TEXTBOOK_TOTAL_PAGES = 176
 
 export function g7TextbookSectionPage(chapterId: string, sectionId: string): number {
