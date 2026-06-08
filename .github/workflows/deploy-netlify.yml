@@ -1,0 +1,47 @@
+# Сборка и (опционально) деплой на Netlify при push в main.
+# Сайт: https://atomlab-alan-sadykov.netlify.app
+# Если секреты не заданы — Netlify подхватит netlify.toml из «Deploy from Git».
+
+name: Deploy Netlify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: netlify-deploy
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build (same as Netlify)
+        env:
+          VITE_BASE: /
+        run: npm run build
+
+      - name: Deploy to Netlify (if secrets configured)
+        if: ${{ secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_SITE_ID != '' }}
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: ./dist
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: 'Deploy ${{ github.sha }}'
+          enable-pull-request-comment: false
+          enable-commit-comment: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 5

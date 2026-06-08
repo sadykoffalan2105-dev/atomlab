@@ -2,18 +2,20 @@
 
 Интерактивная химия: лаборатория, каталог, обучение 7–9 класс, 3D-модели.
 
-## Приложение для Windows (флешка / Telegram)
+**Сайт:** https://atomlab-alan-sadykov.netlify.app
 
-Соберите **portable .exe** или **zip** — переносите на любой Windows-ПК без установки Node.js и браузера.
+## Локальная разработка
 
 ```bash
 npm install
-npm run desktop:build
+npm run dev
 ```
 
-Или запустите **`build-desktop.bat`**. Готовые файлы — в папке `release/`.
+## Деплой на Netlify
 
-Подробно: [`docs/DESKTOP.md`](docs/DESKTOP.md)
+В репозитории есть `netlify.toml` (сборка `npm run build`, папка `dist`, `VITE_BASE=/`).
+
+После `git push` в `main` Netlify должен пересобрать сайт. Если не обновляется — см. [`docs/NETLIFY.md`](docs/NETLIFY.md).
 
 ---
 
@@ -23,7 +25,7 @@ npm run desktop:build
 
 **Локально:** скопируйте `.env.example` → `.env`, укажите `OPENAI_API_KEY`, запустите `npm run dev`.
 
-**Сайт + Electron:** разверните API на [Vercel](https://vercel.com) (папка `api/`), задайте в Vercel `OPENAI_API_KEY` и `ALLOWED_ORIGINS`, в GitHub Secrets — `VITE_LEARN_CHAT_URL` (URL вида `https://….vercel.app/api/learn/chat`). Сборка Pages: workflow `.github/workflows/deploy-pages.yml`.
+**Сайт:** разверните API на [Vercel](https://vercel.com) (папка `api/`), задайте `OPENAI_API_KEY` и `ALLOWED_ORIGINS`, в Netlify/GitHub — `VITE_LEARN_CHAT_URL`.
 
 Чеклист тестов: [`docs/LEARN_AI_QA.md`](docs/LEARN_AI_QA.md).
 
