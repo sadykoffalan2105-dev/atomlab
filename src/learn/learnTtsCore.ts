@@ -28,6 +28,8 @@ export type LearnTtsRuntimeConfig = {
   openaiTtsModel: string
   openaiTtsVoiceRu: string
   openaiTtsVoiceEn: string
+  openaiTtsInstructionsRu?: string
+  openaiTtsInstructionsEn?: string
   allowedOrigins: string[]
 }
 
@@ -35,12 +37,18 @@ export function learnTtsRuntimeFromEnv(
   env: Record<string, string | undefined> = {},
 ): LearnTtsRuntimeConfig {
   const voice = env.OPENAI_TTS_VOICE
+  const defaultRuInstructions =
+    'Speak in Russian as a warm, confident school chemistry teacher. Natural conversational pace, clear pronunciation, gentle emphasis on formulas and key terms. Sound human, not robotic.'
+  const defaultEnInstructions =
+    'Speak as a warm, engaging high-school chemistry teacher. Natural pace, clear and friendly, slight emphasis on scientific terms.'
   return {
     openaiApiKey: env.OPENAI_API_KEY ?? env.VITE_OPENAI_API_KEY,
     openaiBaseUrl: env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
-    openaiTtsModel: env.OPENAI_TTS_MODEL ?? 'tts-1-hd',
-    openaiTtsVoiceRu: env.OPENAI_TTS_VOICE_RU ?? voice ?? 'nova',
+    openaiTtsModel: env.OPENAI_TTS_MODEL ?? 'gpt-4o-mini-tts',
+    openaiTtsVoiceRu: env.OPENAI_TTS_VOICE_RU ?? voice ?? 'shimmer',
     openaiTtsVoiceEn: env.OPENAI_TTS_VOICE_EN ?? voice ?? 'nova',
+    openaiTtsInstructionsRu: env.OPENAI_TTS_INSTRUCTIONS_RU ?? defaultRuInstructions,
+    openaiTtsInstructionsEn: env.OPENAI_TTS_INSTRUCTIONS_EN ?? defaultEnInstructions,
     allowedOrigins: (env.ALLOWED_ORIGINS ?? '')
       .split(',')
       .map((s) => s.trim())
@@ -86,7 +94,15 @@ function voiceForLocale(locale: LearnTtsLocale, runtime: LearnTtsRuntimeConfig):
   return locale === 'en' ? runtime.openaiTtsVoiceEn : runtime.openaiTtsVoiceRu
 }
 
-async function callOpenAiTts(
+function instructionsForLocale(locale: LearnTtsLocale, runtime: LearnTtsRuntimeConfig): string | undefined {
+  return locale === 'en' ? runtime.openaiTtsInstructionsEn : runtime.openaiTtsInstructionsRu
+}
+
+function supportsInstructions(model: string): boolean {
+  return model.includes('gpt-4o') || model.includes('mini-tts')
+}
+
+async function callOpenAiTtsFallback(
   text: string,
   locale: LearnTtsLocale,
   runtime: LearnTtsRuntimeConfig,
@@ -101,15 +117,58 @@ async function callOpenAiTts(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: runtime.openaiTtsModel,
+      model: 'tts-1-hd',
       voice: voiceForLocale(locale, runtime),
       input: text,
       response_format: 'mp3',
-      speed: locale === 'ru' ? 1.1 : 1.08,
+      speed: locale === 'ru' ? 0.98 : 1.0,
     }),
   })
 
+  if (!upstream.ok) throw new Error(`upstream_${upstream.status}`)
+
+  const bytes = new Uint8Array(await upstream.arrayBuffer())
+  let binary = ''
+  const step = 0x8000
+  for (let i = 0; i < bytes.length; i += step) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + step))
+  }
+  return btoa(binary)
+}
+
+async function callOpenAiTts(
+  text: string,
+  locale: LearnTtsLocale,
+  runtime: LearnTtsRuntimeConfig,
+): Promise<string> {
+  const apiKey = runtime.openaiApiKey
+  if (!apiKey) throw new Error('no_api_key')
+
+  const body: Record<string, string | number> = {
+    model: runtime.openaiTtsModel,
+    voice: voiceForLocale(locale, runtime),
+    input: text,
+    response_format: 'mp3',
+    speed: locale === 'ru' ? 0.98 : 1.0,
+  }
+  const instructions = instructionsForLocale(locale, runtime)
+  if (instructions && supportsInstructions(runtime.openaiTtsModel)) {
+    body.instructions = instructions
+  }
+
+  const upstream = await fetch(`${runtime.openaiBaseUrl}/audio/speech`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  })
+
   if (!upstream.ok) {
+    if (supportsInstructions(runtime.openaiTtsModel) && runtime.openaiTtsModel !== 'tts-1-hd') {
+      return callOpenAiTtsFallback(text, locale, runtime)
+    }
     throw new Error(`upstream_${upstream.status}`)
   }
 

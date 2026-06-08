@@ -1,5 +1,6 @@
 import { CHEMISTRY_KNOWLEDGE_EXTENDED } from './learnChemistryKnowledgeExtended'
 import { CHEMISTRY_KNOWLEDGE_CORPUS } from './learnChemistryKnowledgeCorpus'
+import { CHEMISTRY_KNOWLEDGE_BRAIN } from './learnChemistryBrain'
 
 /** Школьная химия 7–11 класс — офлайн-база для ИИ-учителя. */
 export type ChemistryKnowledgeChunk = {
@@ -9,6 +10,15 @@ export type ChemistryKnowledgeChunk = {
   keywords: string[]
   ru: string
   en: string
+  /** Привязка к учебнику Kimyo 7 класс */
+  textbook?: {
+    gradeId: 'g7'
+    chapterId: string
+    sectionId: string
+    page: number
+    rememberRu: string
+    rememberEn: string
+  }
 }
 
 export const CHEMISTRY_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
@@ -254,6 +264,7 @@ export const CHEMISTRY_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   },
   ...CHEMISTRY_KNOWLEDGE_EXTENDED,
   ...CHEMISTRY_KNOWLEDGE_CORPUS,
+  ...CHEMISTRY_KNOWLEDGE_BRAIN,
 ]
 
 export const CHEMISTRY_KNOWLEDGE_CHUNK_COUNT = CHEMISTRY_KNOWLEDGE_CHUNKS.length

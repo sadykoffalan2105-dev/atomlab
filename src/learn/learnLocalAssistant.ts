@@ -1,8 +1,9 @@
 import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
 import { buildSectionOutlineBlock } from './learnSectionKnowledge'
 import { matchFaqEntry, offlineNeedsApiMessage } from './learnChemistryFaq'
-import { buildRetrievedKnowledgeBlock, retrieveChemistryKnowledge } from './learnKnowledgeRetrieval'
+import { retrieveChemistryKnowledge } from './learnKnowledgeRetrieval'
 import { composeExpertLocalReply } from './learnExpertLocalReply'
+import { synthesizeKnowledgeAnswer } from './learnConversationalSynthesis'
 
 /** Локальные ответы ИИ-учителя без внешнего API (офлайн / без ключа). */
 export type LearnLocalAssistantContext = {
@@ -64,33 +65,24 @@ function mixturesAnswer(ctx: LearnLocalAssistantContext, ru: boolean): string {
     : `For "${ctx.sectionTitle}": air, milk, granite, and seawater are mixtures; distilled water or copper wire are pure substances. Separation methods: filtration, evaporation, magnet, distillation.`
 }
 
-function speechLocale(ctx: LearnLocalAssistantContext): 'ru' | 'en' {
-  return ctx.locale === 'en' ? 'en' : 'ru'
-}
+function knowledgeBlockReply(query: string, ctx: LearnLocalAssistantContext): string | null {
+  const faq = matchFaqEntry(query)
+  const retrieved = retrieveChemistryKnowledge(query, {
+    maxChunks: 4,
+    minScore: 2,
+    gradeId: ctx.gradeId,
+    sectionTitle: ctx.sectionTitle,
+    chapterId: ctx.chapterId,
+    sectionId: ctx.sectionId,
+  })
+  if (!faq && retrieved.chunks.length === 0) return null
 
-function knowledgeBlockReply(query: string, ctx: LearnLocalAssistantContext, ru: boolean): string | null {
-  const loc = speechLocale(ctx)
-  const retrieved = retrieveChemistryKnowledge(query, { maxChunks: 4, minScore: 2 })
-  const block = buildRetrievedKnowledgeBlock(query, loc, 2800)
-  if (!block || retrieved.chunks.length === 0) return null
-
-  const topics = retrieved.chunks.map((c) => c.topic).join(', ')
-  return ru
-    ? `**${topics}**
-
-${block}
-
-${ctx.sectionTitle ? `Контекст урока: §${ctx.kpNumber} «${ctx.sectionTitle}».` : ''} Спросите подробнее или попросите пример / задачу.`
-    : `**${topics}**
-
-${block}
-
-Lesson context: §${ctx.kpNumber} "${ctx.sectionTitle}". Ask for examples or practice.`
+  return synthesizeKnowledgeAnswer(query, retrieved.chunks, faq, ctx)
 }
 
 function explainTopic(ctx: LearnLocalAssistantContext, ru: boolean, query?: string): string {
   const q = query ?? ctx.sectionTitle
-  const fromKb = knowledgeBlockReply(q, ctx, ru)
+  const fromKb = knowledgeBlockReply(q, ctx)
   if (fromKb) return fromKb
 
   const body = ctx.slideBody.slice(0, 400)
@@ -283,7 +275,7 @@ export function generateLocalLearnReply(
     return ru ? faq.ru : faq.en
   }
 
-  const kbReply = knowledgeBlockReply(q, ctx, ru)
+  const kbReply = knowledgeBlockReply(q, ctx)
   if (kbReply) return kbReply
 
   const { block: catalogBlock } = buildAssistantKnowledgeBlock(q, ctx)

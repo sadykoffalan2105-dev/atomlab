@@ -1,10 +1,8 @@
 import { generateLocalLearnReply, type LearnLocalAssistantContext } from './learnLocalAssistant'
 import { matchFaqEntry } from './learnChemistryFaq'
-import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
-import { buildSectionOutlineBlock } from './learnSectionKnowledge'
 import { buildAssistantSystemPrompt } from './learnAssistantPrompt'
-import { buildRetrievedKnowledgeBlock } from './learnKnowledgeRetrieval'
 import { filterAssistantReply } from './learnAssistantGuard'
+import { buildTeacherBrainPack } from './learnTeacherBrain'
 
 export type TeacherReplySource = 'faq' | 'local' | 'ollama' | 'api'
 
@@ -36,14 +34,14 @@ async function tryOllamaReply(
   )
   const model = opts?.ollamaModel ?? import.meta.env.VITE_OLLAMA_MODEL ?? DEFAULT_MODEL
   const q = lastUserText(messages)
-  const speechLocale = ctx.locale === 'en' ? 'en' : 'ru'
-  const { block, topicSceneId } = buildAssistantKnowledgeBlock(q, ctx)
+  const pack = buildTeacherBrainPack(q, ctx, messages)
   const system = buildAssistantSystemPrompt({
     ...ctx,
-    knowledgeBlock: block,
-    chemistryKnowledgeBlock: buildRetrievedKnowledgeBlock(q, speechLocale, 6500),
-    sectionOutlineBlock: buildSectionOutlineBlock(ctx),
-    topicSceneId,
+    knowledgeBlock: pack.catalogBlock,
+    chemistryKnowledgeBlock: pack.chemistryKnowledgeBlock,
+    sectionOutlineBlock: pack.sectionOutlineBlock,
+    topicSceneId: pack.topicSceneId,
+    conversationHints: pack.conversationHints,
   })
   try {
     const res = await fetch(`${base}/api/chat`, {

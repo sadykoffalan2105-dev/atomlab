@@ -1,9 +1,7 @@
 import { generateLocalLearnReply, type LearnLocalAssistantContext } from './learnLocalAssistant'
-import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
-import { buildSectionOutlineBlock } from './learnSectionKnowledge'
 import { filterAssistantReply } from './learnAssistantGuard'
 import { buildAssistantSystemPrompt } from './learnAssistantPrompt'
-import { buildRetrievedKnowledgeBlock } from './learnKnowledgeRetrieval'
+import { buildTeacherBrainPack } from './learnTeacherBrain'
 
 export type LearnChatMessage = { role: 'user' | 'assistant'; content: string }
 
@@ -22,7 +20,7 @@ export type LearnChatResult = {
 
 const MAX_USER_CHARS = 2000
 const MAX_HISTORY = 12
-const MAX_TOKENS = 2200
+const MAX_TOKENS = 2800
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = 30
@@ -119,7 +117,7 @@ async function callOpenAI(
         model: runtime.openaiModel,
       messages: [{ role: 'system', content: system }, ...messages],
       max_tokens: MAX_TOKENS,
-      temperature: 0.55,
+      temperature: 0.72,
     }),
   })
 
@@ -177,16 +175,15 @@ export async function processLearnChat(
     }
   }
 
-  const { block, topicSceneId } = buildAssistantKnowledgeBlock(userQuery, ctx)
-  const sectionOutlineBlock = buildSectionOutlineBlock(ctx)
-  const speechLocale = ctx.locale === 'en' ? 'en' : 'ru'
-  const chemistryKnowledgeBlock = buildRetrievedKnowledgeBlock(userQuery, speechLocale, 6500)
+  const { catalogBlock, topicSceneId, chemistryKnowledgeBlock, sectionOutlineBlock, conversationHints } =
+    buildTeacherBrainPack(userQuery, ctx, messages)
   const system = buildAssistantSystemPrompt({
     ...ctx,
-    knowledgeBlock: block,
+    knowledgeBlock: catalogBlock,
     chemistryKnowledgeBlock,
     sectionOutlineBlock,
     topicSceneId,
+    conversationHints,
   })
 
   try {
