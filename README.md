@@ -2,7 +2,15 @@
 
 Интерактивная химия: лаборатория, каталог, обучение 7–9 класс, 3D-модели.
 
-**Сайт:** https://atomlab-alan-sadykov.netlify.app
+**Сайт (актуальная версия):** https://sadykoffalan2105-dev.github.io/atomlab/
+
+> Netlify (`atomlab-alan-sadykov.netlify.app`) сейчас **не обновляется** — исчерпан лимит сборок. Подробно: [`docs/NETLIFY.md`](docs/NETLIFY.md)
+
+### Включить GitHub Pages (один раз)
+
+Репозиторий → **Settings** → **Pages** → Source: **GitHub Actions**
+
+После каждого `git push` в `main` сайт пересобирается автоматически.
 
 ## Локальная разработка
 
@@ -11,11 +19,14 @@ npm install
 npm run dev
 ```
 
-## Деплой на Netlify
+## Деплой
 
-В репозитории есть `netlify.toml` (сборка `npm run build`, папка `dist`, `VITE_BASE=/`).
+| Платформа | URL | Статус |
+|-----------|-----|--------|
+| **GitHub Pages** | https://sadykoffalan2105-dev.github.io/atomlab/ | ✅ основной |
+| Netlify | https://atomlab-alan-sadykov.netlify.app | ⏸ лимит сборок |
 
-После `git push` в `main` Netlify должен пересобрать сайт. Если не обновляется — см. [`docs/NETLIFY.md`](docs/NETLIFY.md).
+Подробно: [`docs/NETLIFY.md`](docs/NETLIFY.md)
 
 ---
 
