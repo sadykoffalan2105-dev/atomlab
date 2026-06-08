@@ -19,19 +19,20 @@ VITE_OLLAMA_MODEL=llama3.2
 
 4. В панели «ИИ-учитель» включите переключатель **Ollama**.
 
-## Ваш сервер (OpenAI + нейроголос)
+## Голос учителя (максимально «живой»)
+
+**Порядок:** Microsoft Edge Neural (Dmitry/Jenny) → OpenAI marin/cedar → браузер.
 
 ```env
-OPENAI_API_KEY=sk-...
-OPENAI_TTS_MODEL=tts-1-hd
-OPENAI_TTS_VOICE=shimmer
+LEARN_TTS_PROVIDER=auto
+# Женский RU: EDGE_TTS_VOICE_RU=ru-RU-SvetlanaNeural
+OPENAI_TTS_MODEL=gpt-4o-mini-tts-2025-03-20
+OPENAI_TTS_VOICE_RU=marin
 VITE_LEARN_CHAT_URL=https://your-server.example/api/learn/chat
 ```
 
-- `POST /api/learn/chat` — `{ messages, context }` → `{ reply, source }`
-- `POST /api/learn/tts` — `{ text, locale }` → `{ audioBase64, mimeType, source: "openai" }`
-
-Голос **tts-1-hd** (как у ChatGPT/Gemini): естественная интонация, чёткое произношение формул. Без API-ключа — запасной голос браузера.
+- `POST /api/learn/tts` — `{ text, locale }` → `{ audioBase64, source: "edge"|"openai" }`
+- На Windows/Chrome часто есть **Microsoft Dmitry Online (Natural)** — используется автоматически, без API.
 
 Локально (`npm run dev`) TTS работает через тот же middleware, если в `.env` задан `OPENAI_API_KEY`.
 

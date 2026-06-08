@@ -1,33 +1,46 @@
-import { stripMarkdownForSpeech } from './learnSpeechText'
+import {
+  HUMAN_TTS_INSTRUCTIONS,
+  HUMAN_TTS_MODEL,
+  HUMAN_TTS_SPEED,
+  HUMAN_TTS_VOICE,
+  prepareTextForHumanTts,
+} from './learnSpeechText'
+import { synthesizeEdgeNeuralSpeech } from './learnEdgeTts'
 
 export type LearnTtsLocale = 'ru' | 'en'
+export type LearnTtsProvider = 'auto' | 'edge' | 'openai'
 
 export type LearnTtsRequestBody = {
   text?: string
   locale?: LearnTtsLocale
 }
 
+export type LearnTtsSource = 'edge' | 'openai' | 'browser' | 'error'
+
 export type LearnTtsResult = {
   status: number
   audioBase64?: string
   mimeType?: string
-  source: 'openai' | 'browser' | 'error'
+  source: LearnTtsSource
   error?: string
   headers?: Record<string, string>
 }
 
 const MAX_TTS_CHARS = 3600
-const RATE_LIMIT = 24
+const RATE_LIMIT = 28
 const RATE_WINDOW_MS = 60_000
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>()
 
 export type LearnTtsRuntimeConfig = {
+  provider: LearnTtsProvider
   openaiApiKey?: string
   openaiBaseUrl: string
   openaiTtsModel: string
   openaiTtsVoiceRu: string
   openaiTtsVoiceEn: string
+  edgeVoiceRu?: string
+  edgeVoiceEn?: string
   openaiTtsInstructionsRu?: string
   openaiTtsInstructionsEn?: string
   allowedOrigins: string[]
@@ -37,18 +50,21 @@ export function learnTtsRuntimeFromEnv(
   env: Record<string, string | undefined> = {},
 ): LearnTtsRuntimeConfig {
   const voice = env.OPENAI_TTS_VOICE
-  const defaultRuInstructions =
-    'Speak in Russian as a warm, confident school chemistry teacher. Natural conversational pace, clear pronunciation, gentle emphasis on formulas and key terms. Sound human, not robotic.'
-  const defaultEnInstructions =
-    'Speak as a warm, engaging high-school chemistry teacher. Natural pace, clear and friendly, slight emphasis on scientific terms.'
+  const providerRaw = (env.LEARN_TTS_PROVIDER ?? 'auto').toLowerCase()
+  const provider: LearnTtsProvider =
+    providerRaw === 'edge' || providerRaw === 'openai' ? providerRaw : 'auto'
+
   return {
+    provider,
     openaiApiKey: env.OPENAI_API_KEY ?? env.VITE_OPENAI_API_KEY,
     openaiBaseUrl: env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
-    openaiTtsModel: env.OPENAI_TTS_MODEL ?? 'gpt-4o-mini-tts',
-    openaiTtsVoiceRu: env.OPENAI_TTS_VOICE_RU ?? voice ?? 'shimmer',
-    openaiTtsVoiceEn: env.OPENAI_TTS_VOICE_EN ?? voice ?? 'nova',
-    openaiTtsInstructionsRu: env.OPENAI_TTS_INSTRUCTIONS_RU ?? defaultRuInstructions,
-    openaiTtsInstructionsEn: env.OPENAI_TTS_INSTRUCTIONS_EN ?? defaultEnInstructions,
+    openaiTtsModel: env.OPENAI_TTS_MODEL ?? HUMAN_TTS_MODEL,
+    openaiTtsVoiceRu: env.OPENAI_TTS_VOICE_RU ?? voice ?? HUMAN_TTS_VOICE.ru,
+    openaiTtsVoiceEn: env.OPENAI_TTS_VOICE_EN ?? voice ?? HUMAN_TTS_VOICE.en,
+    edgeVoiceRu: env.EDGE_TTS_VOICE_RU,
+    edgeVoiceEn: env.EDGE_TTS_VOICE_EN,
+    openaiTtsInstructionsRu: env.OPENAI_TTS_INSTRUCTIONS_RU ?? HUMAN_TTS_INSTRUCTIONS.ru,
+    openaiTtsInstructionsEn: env.OPENAI_TTS_INSTRUCTIONS_EN ?? HUMAN_TTS_INSTRUCTIONS.en,
     allowedOrigins: (env.ALLOWED_ORIGINS ?? '')
       .split(',')
       .map((s) => s.trim())
@@ -94,6 +110,10 @@ function voiceForLocale(locale: LearnTtsLocale, runtime: LearnTtsRuntimeConfig):
   return locale === 'en' ? runtime.openaiTtsVoiceEn : runtime.openaiTtsVoiceRu
 }
 
+function edgeVoiceForLocale(locale: LearnTtsLocale, runtime: LearnTtsRuntimeConfig): string | undefined {
+  return locale === 'en' ? runtime.edgeVoiceEn : runtime.edgeVoiceRu
+}
+
 function instructionsForLocale(locale: LearnTtsLocale, runtime: LearnTtsRuntimeConfig): string | undefined {
   return locale === 'en' ? runtime.openaiTtsInstructionsEn : runtime.openaiTtsInstructionsRu
 }
@@ -102,32 +122,11 @@ function supportsInstructions(model: string): boolean {
   return model.includes('gpt-4o') || model.includes('mini-tts')
 }
 
-async function callOpenAiTtsFallback(
-  text: string,
-  locale: LearnTtsLocale,
-  runtime: LearnTtsRuntimeConfig,
-): Promise<string> {
-  const apiKey = runtime.openaiApiKey
-  if (!apiKey) throw new Error('no_api_key')
+function ttsSpeed(locale: LearnTtsLocale): number {
+  return HUMAN_TTS_SPEED[locale]
+}
 
-  const upstream = await fetch(`${runtime.openaiBaseUrl}/audio/speech`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'tts-1-hd',
-      voice: voiceForLocale(locale, runtime),
-      input: text,
-      response_format: 'mp3',
-      speed: locale === 'ru' ? 0.98 : 1.0,
-    }),
-  })
-
-  if (!upstream.ok) throw new Error(`upstream_${upstream.status}`)
-
-  const bytes = new Uint8Array(await upstream.arrayBuffer())
+function bytesToBase64(bytes: Uint8Array): string {
   let binary = ''
   const step = 0x8000
   for (let i = 0; i < bytes.length; i += step) {
@@ -144,41 +143,48 @@ async function callOpenAiTts(
   const apiKey = runtime.openaiApiKey
   if (!apiKey) throw new Error('no_api_key')
 
-  const body: Record<string, string | number> = {
-    model: runtime.openaiTtsModel,
-    voice: voiceForLocale(locale, runtime),
-    input: text,
-    response_format: 'mp3',
-    speed: locale === 'ru' ? 0.98 : 1.0,
-  }
-  const instructions = instructionsForLocale(locale, runtime)
-  if (instructions && supportsInstructions(runtime.openaiTtsModel)) {
-    body.instructions = instructions
-  }
+  const models = [runtime.openaiTtsModel, HUMAN_TTS_MODEL, 'gpt-4o-mini-tts'].filter(
+    (m, i, arr) => arr.indexOf(m) === i,
+  )
 
-  const upstream = await fetch(`${runtime.openaiBaseUrl}/audio/speech`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(body),
-  })
-
-  if (!upstream.ok) {
-    if (supportsInstructions(runtime.openaiTtsModel) && runtime.openaiTtsModel !== 'tts-1-hd') {
-      return callOpenAiTtsFallback(text, locale, runtime)
+  let lastStatus = 502
+  for (const model of models) {
+    const body: Record<string, string | number> = {
+      model,
+      voice: voiceForLocale(locale, runtime),
+      input: text,
+      response_format: 'mp3',
+      speed: ttsSpeed(locale),
     }
-    throw new Error(`upstream_${upstream.status}`)
+    const instructions = instructionsForLocale(locale, runtime)
+    if (instructions && supportsInstructions(model)) {
+      body.instructions = instructions
+    }
+
+    const upstream = await fetch(`${runtime.openaiBaseUrl}/audio/speech`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (upstream.ok) {
+      return bytesToBase64(new Uint8Array(await upstream.arrayBuffer()))
+    }
+    lastStatus = upstream.status
   }
 
-  const bytes = new Uint8Array(await upstream.arrayBuffer())
-  let binary = ''
-  const step = 0x8000
-  for (let i = 0; i < bytes.length; i += step) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + step))
-  }
-  return btoa(binary)
+  throw new Error(`upstream_${lastStatus}`)
+}
+
+async function synthesizeWithEdge(
+  text: string,
+  locale: LearnTtsLocale,
+  runtime: LearnTtsRuntimeConfig,
+): Promise<{ audioBase64: string; mimeType: string } | null> {
+  return synthesizeEdgeNeuralSpeech(text, locale, edgeVoiceForLocale(locale, runtime))
 }
 
 export async function processLearnTts(
@@ -201,9 +207,31 @@ export async function processLearnTts(
   }
 
   const locale: LearnTtsLocale = body.locale === 'en' ? 'en' : 'ru'
-  const text = stripMarkdownForSpeech(raw).slice(0, MAX_TTS_CHARS)
+  const text = prepareTextForHumanTts(raw, locale).slice(0, MAX_TTS_CHARS)
   if (!text) {
     return { status: 400, source: 'error', error: 'empty_text', headers }
+  }
+
+  const { provider, openaiApiKey } = meta.runtime
+
+  if (provider === 'auto' || provider === 'edge') {
+    const edge = await synthesizeWithEdge(text, locale, meta.runtime)
+    if (edge) {
+      return {
+        status: 200,
+        audioBase64: edge.audioBase64,
+        mimeType: edge.mimeType,
+        source: 'edge',
+        headers,
+      }
+    }
+    if (provider === 'edge') {
+      return { status: 502, source: 'error', error: 'edge_unavailable', headers }
+    }
+  }
+
+  if (!openaiApiKey) {
+    return { status: 503, source: 'error', error: 'no_api_key', headers }
   }
 
   try {

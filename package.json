@@ -30,6 +30,7 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.0",
     "@react-three/postprocessing": "^3.0.4",
+    "@travisvn/edge-tts": "^1.0.2",
     "@types/three": "^0.184.0",
     "gsap": "^3.15.0",
     "periodic-table-data": "^1.1.1",
