@@ -1,8 +1,7 @@
 name: Deploy GitHub Pages
 
+# Отключён: сайт публикуется через publish-site.yml → ветка gh-pages.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

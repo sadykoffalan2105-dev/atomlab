@@ -6,11 +6,7 @@
 
 > Netlify (`atomlab-alan-sadykov.netlify.app`) сейчас **не обновляется** — исчерпан лимит сборок. Подробно: [`docs/NETLIFY.md`](docs/NETLIFY.md)
 
-### Включить GitHub Pages (один раз)
-
-Репозиторий → **Settings** → **Pages** → Source: **GitHub Actions**
-
-После каждого `git push` в `main` сайт пересобирается автоматически.
+После каждого `git push` в `main` workflow **Publish site** автоматически обновляет ветку `gh-pages`.
 
 ## Локальная разработка
 
