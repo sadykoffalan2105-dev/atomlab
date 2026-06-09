@@ -1,0 +1,144 @@
+.panel {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(92, 255, 212, 0.35);
+  background: linear-gradient(145deg, rgba(20, 55, 50, 0.35), rgba(8, 18, 28, 0.55));
+}
+
+.head {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  margin-bottom: 0.55rem;
+}
+
+.icon {
+  font-size: 1.2rem;
+  color: #5cffd4;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #5cffd4;
+}
+
+.lead {
+  margin: 0.2rem 0 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: rgba(180, 210, 200, 0.92);
+}
+
+.scratchLabel {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #9eb8ff;
+  margin-bottom: 0.25rem;
+}
+
+.scratch {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  border-radius: 10px;
+  border: 1px solid rgba(80, 120, 180, 0.35);
+  background: rgba(4, 8, 18, 0.85);
+  color: #e8eef8;
+  padding: 0.5rem 0.6rem;
+  resize: vertical;
+  min-height: 4.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.45rem;
+}
+
+.primaryBtn,
+.btn,
+.stopBtn {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+}
+
+.primaryBtn {
+  border: 1px solid rgba(92, 255, 212, 0.55);
+  background: rgba(92, 255, 212, 0.18);
+  color: #fff;
+}
+
+.btn {
+  border: 1px solid rgba(120, 160, 255, 0.45);
+  background: rgba(120, 160, 255, 0.12);
+  color: #e8eef8;
+}
+
+.stopBtn {
+  border: 1px solid rgba(255, 180, 120, 0.45);
+  background: rgba(60, 30, 15, 0.5);
+  color: #ffc899;
+}
+
+.primaryBtn:disabled,
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status {
+  margin: 0;
+  font-size: 0.72rem;
+  color: rgba(160, 180, 210, 0.9);
+}
+
+.error {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #ff9a9a;
+}
+
+.bubble {
+  margin-top: 0.35rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(92, 255, 212, 0.25);
+}
+
+.bubbleLabel {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5cffd4;
+  margin-bottom: 0.3rem;
+}
+
+.bubbleText {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: #e8eef8;
+}
+
+.bubbleFoot {
+  margin: 0.35rem 0 0;
+  font-size: 0.7rem;
+  color: rgba(160, 180, 200, 0.88);
+  line-height: 1.4;
+}

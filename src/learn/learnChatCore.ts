@@ -1,7 +1,10 @@
 import { generateLocalLearnReply, type LearnLocalAssistantContext } from './learnLocalAssistant'
-import { filterAssistantReply } from './learnAssistantGuard'
+import { filterAssistantReply, filterTaskCoachReply } from './learnAssistantGuard'
 import { buildAssistantSystemPrompt } from './learnAssistantPrompt'
+import { buildTaskCoachSystemPrompt } from './learnTaskCoachPrompt'
+import { generateTaskCoachLocalReply } from './learnTaskCoachLocal'
 import { buildTeacherBrainPack } from './learnTeacherBrain'
+import { retrieveChemistryKnowledge, buildRetrievedKnowledgeBlock } from './learnKnowledgeRetrieval'
 
 export type LearnChatMessage = { role: 'user' | 'assistant'; content: string }
 
@@ -173,6 +176,44 @@ export async function processLearnChat(
       error: 'empty_message',
       headers,
     }
+  }
+
+  if (ctx.taskCoach) {
+    const speechLocale = ctx.locale === 'en' ? 'en' : 'ru'
+    const retrieved = retrieveChemistryKnowledge(userQuery, {
+      maxChunks: 2,
+      minScore: 1,
+      gradeId: ctx.gradeId,
+      sectionTitle: ctx.taskCoach.categoryTitle,
+    })
+    const knowledgeBlock = buildRetrievedKnowledgeBlock(userQuery, speechLocale, {
+      maxChars: 1500,
+      gradeId: ctx.gradeId,
+      sectionTitle: ctx.taskCoach.categoryTitle,
+      preloaded: retrieved,
+    })
+    const system = buildTaskCoachSystemPrompt({ ...ctx, taskCoach: ctx.taskCoach, knowledgeBlock })
+
+    try {
+      const raw = await callOpenAI(system, messages, meta.runtime)
+      const reply = raw ? filterTaskCoachReply(raw, ctx.taskCoach) : ''
+      if (reply) {
+        return { status: 200, reply, source: 'openai', headers }
+      }
+    } catch {
+      /* fallback */
+    }
+
+    const reply = filterTaskCoachReply(
+      generateTaskCoachLocalReply(
+        messages.map((m) => ({ role: m.role, content: m.content })),
+        ctx.taskCoach,
+        null,
+        ctx.locale,
+      ),
+      ctx.taskCoach,
+    )
+    return { status: 200, reply, source: 'local', headers }
   }
 
   const { catalogBlock, topicSceneId, chemistryKnowledgeBlock, sectionOutlineBlock, conversationHints } =

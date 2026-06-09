@@ -85,6 +85,23 @@ export const learnPackRu = {
   'learn.task.teacherHintStep': 'Шаг {step}',
   'learn.task.teacherHintFoot': 'Попробуйте применить подсказку. Нужно ещё — нажмите «Ещё подсказка».',
   'learn.task.teacherHintLast': 'Это последний шаг перед ответом. Попробуйте решить сами.',
+
+  'learn.task.aiCoach.title': 'ИИ-учитель: следующий шаг',
+  'learn.task.aiCoach.lead':
+    'Учитель не даст готовый ответ — подскажет план, задаст вопрос и поможет думать самому. Так тренируется критическое мышление.',
+  'learn.task.aiCoach.scratchLabel': 'Черновик (Дано, Найти, ход решения)',
+  'learn.task.aiCoach.scratchPh': 'Запишите данные и свои рассуждения — учитель проверит логику, не подсказывая ответ…',
+  'learn.task.aiCoach.next': 'Какой следующий шаг?',
+  'learn.task.aiCoach.nextAgain': 'Ещё один шаг',
+  'learn.task.aiCoach.check': 'Проверить мои рассуждения',
+  'learn.task.aiCoach.bubbleLabel': 'Подсказка учителя',
+  'learn.task.aiCoach.foot': 'Попробуйте сами сделать этот шаг, затем снова спросите учителя.',
+  'learn.task.aiCoach.error': 'Не удалось получить подсказку. Попробуйте ещё раз.',
+  'learn.task.aiCoach.promptNext': 'Подскажи один следующий шаг к решению — без ответа и без готового расчёта.',
+  'learn.task.aiCoach.promptCheck': 'Проверь мои рассуждения в черновике — что верно, что уточнить? Не давай ответ.',
+  'learn.task.aiCoach.promptCheckEmpty': 'Как начать решать эту задачу? Только первый шаг, без ответа.',
+  'learn.tasks.aiCoachBanner':
+    'Новое: ИИ-учитель ведёт по шагам — подсказывает план и проверяет рассуждения, не выдавая готовый ответ.',
   'learn.task.activeStudent': 'Решает: {name}',
   'learn.tasksClass.title': 'Класс (режим задач)',
   'learn.tasksClass.lead': 'Вставьте список учеников — выберите активного. Результаты задач попадут в график успеваемости.',

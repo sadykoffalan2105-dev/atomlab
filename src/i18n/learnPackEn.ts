@@ -85,6 +85,23 @@ export const learnPackEn = {
   'learn.task.teacherHintStep': 'Step {step}',
   'learn.task.teacherHintFoot': 'Try applying the hint. Need more? Tap «More hint».',
   'learn.task.teacherHintLast': 'Last step before the answer. Try solving on your own.',
+
+  'learn.task.aiCoach.title': 'AI teacher: next step',
+  'learn.task.aiCoach.lead':
+    'The teacher will not give the answer — only a plan, questions, and reasoning checks to build critical thinking.',
+  'learn.task.aiCoach.scratchLabel': 'Scratchpad (Given, Find, your steps)',
+  'learn.task.aiCoach.scratchPh': 'Write data and your reasoning — the teacher checks logic without revealing the answer…',
+  'learn.task.aiCoach.next': 'What is the next step?',
+  'learn.task.aiCoach.nextAgain': 'One more step',
+  'learn.task.aiCoach.check': 'Check my reasoning',
+  'learn.task.aiCoach.bubbleLabel': 'Teacher hint',
+  'learn.task.aiCoach.foot': 'Try this step on your own, then ask the teacher again.',
+  'learn.task.aiCoach.error': 'Could not get a hint. Please try again.',
+  'learn.task.aiCoach.promptNext': 'Suggest one next step toward the solution — no answer and no full calculation.',
+  'learn.task.aiCoach.promptCheck': 'Check my scratchpad reasoning — what is right, what to clarify? Do not give the answer.',
+  'learn.task.aiCoach.promptCheckEmpty': 'How should I start this problem? Only the first step, no answer.',
+  'learn.tasks.aiCoachBanner':
+    'New: AI teacher guides step by step — plans your work and checks reasoning without giving the final answer.',
   'learn.task.activeStudent': 'Solving: {name}',
   'learn.tasksClass.title': 'Class (task mode)',
   'learn.tasksClass.lead': 'Paste student names — pick the active one. Task results go to the progress chart.',

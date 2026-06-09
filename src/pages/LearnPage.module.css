@@ -761,6 +761,18 @@
   gap: 0.65rem 1rem;
 }
 
+.tasksAiBanner {
+  margin: 0 0 1rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(92, 255, 212, 0.35);
+  background: rgba(92, 255, 212, 0.08);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(200, 230, 220, 0.95);
+  max-width: 52rem;
+}
+
 .tasksSectionTitle {
   margin: 1.25rem 0 0.65rem;
   font-size: 0.95rem;

@@ -18,6 +18,9 @@ export function LearnTasksHub() {
         {t('learn.tasksTitle')}
       </h1>
       <p className={styles.lead}>{t('learn.tasksLead')}</p>
+      <p className={styles.tasksAiBanner} role="note">
+        {t('learn.tasks.aiCoachBanner')}
+      </p>
 
       <LearnTasksClassPanel />
 

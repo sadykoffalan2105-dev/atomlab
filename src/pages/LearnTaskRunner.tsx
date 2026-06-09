@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CatalogMoleculeHero } from '../components/lab/CatalogMoleculeHero'
+import { TaskAiCoach } from '../components/learn/TaskAiCoach'
 import { TaskTeacherHint } from '../components/learn/TaskTeacherHint'
 import { LEARN_TASK_CATEGORIES, type LearnTaskCategoryDef } from '../data/learnTaskCategories'
 import { generateTaskProblem, answersClose, type LearnTaskGenerated } from '../learn/learnTaskProblems'
@@ -38,7 +39,9 @@ export function LearnTaskRunner({ categoryId, rosterSectionId = TASKS_ROSTER_SEC
   const [heroTick, setHeroTick] = useState(0)
   const [userText, setUserText] = useState('')
   const [feedback, setFeedback] = useState<Feedback>('idle')
-  const [hintsUsed, setHintsUsed] = useState(0)
+  const [staticHints, setStaticHints] = useState(0)
+  const [aiHints, setAiHints] = useState(0)
+  const hintsUsed = staticHints + aiHints
   const recordedRef = useRef(false)
   const webglOk = isWebGLAvailable()
 
@@ -46,7 +49,8 @@ export function LearnTaskRunner({ categoryId, rosterSectionId = TASKS_ROSTER_SEC
     setProblem(generateTaskProblem(categoryId))
     setUserText('')
     setFeedback('idle')
-    setHintsUsed(0)
+    setStaticHints(0)
+    setAiHints(0)
     recordedRef.current = false
     setHeroTick((k) => k + 1)
   }, [categoryId])
@@ -73,7 +77,8 @@ export function LearnTaskRunner({ categoryId, rosterSectionId = TASKS_ROSTER_SEC
     setProblem(generateTaskProblem(categoryId))
     setUserText('')
     setFeedback('idle')
-    setHintsUsed(0)
+    setStaticHints(0)
+    setAiHints(0)
     recordedRef.current = false
     setHeroTick((k) => k + 1)
   }, [categoryId])
@@ -101,9 +106,21 @@ export function LearnTaskRunner({ categoryId, rosterSectionId = TASKS_ROSTER_SEC
     [problem, hintsUsed, saveResult],
   )
 
-  const onHintUsed = useCallback((count: number) => {
-    setHintsUsed(count)
+  const onStaticHintUsed = useCallback((count: number) => {
+    setStaticHints(count)
   }, [])
+
+  const onAiHintsChange = useCallback((count: number) => {
+    setAiHints(count)
+  }, [])
+
+  const questionText =
+    problem.kind === 'numeric'
+      ? t(problem.questionKey as MessageKey, problem.params as Record<string, string | number>)
+      : t(problem.questionKey as MessageKey)
+
+  const choiceLabels =
+    problem.kind === 'mcq' ? problem.choiceKeys.map((key) => t(key as MessageKey)) : undefined
 
   const expectedDisplay =
     problem.kind === 'numeric'
@@ -157,7 +174,23 @@ export function LearnTaskRunner({ categoryId, rosterSectionId = TASKS_ROSTER_SEC
         <TaskTeacherHint
           problem={problem}
           disabled={feedback === 'correct'}
-          onHintUsed={onHintUsed}
+          onHintUsed={onStaticHintUsed}
+        />
+
+        <TaskAiCoach
+          problem={problem}
+          categoryId={categoryId}
+          categoryTitle={t(cat.titleKey as MessageKey)}
+          questionText={questionText}
+          answerLabel={
+            problem.kind === 'numeric' ? t(problem.answerLabelKey as MessageKey) : undefined
+          }
+          choiceLabels={choiceLabels}
+          staticHintsRevealed={staticHints}
+          feedback={feedback}
+          userAttempt={problem.kind === 'numeric' ? userText : undefined}
+          disabled={feedback === 'correct'}
+          onAiHintsChange={onAiHintsChange}
         />
 
         {problem.kind === 'numeric' ? (

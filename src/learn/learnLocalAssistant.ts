@@ -4,6 +4,7 @@ import { matchFaqEntry, offlineNeedsApiMessage } from './learnChemistryFaq'
 import { retrieveChemistryKnowledge } from './learnKnowledgeRetrieval'
 import { composeExpertLocalReply } from './learnExpertLocalReply'
 import { synthesizeKnowledgeAnswer } from './learnConversationalSynthesis'
+import type { LearnTaskCoachContext } from './learnTaskCoachTypes'
 
 /** Локальные ответы ИИ-учителя без внешнего API (офлайн / без ключа). */
 export type LearnLocalAssistantContext = {
@@ -17,6 +18,8 @@ export type LearnLocalAssistantContext = {
   mode: 'teacher' | 'helper'
   kpNumber: number
   curriculumOnly?: boolean
+  /** Режим сократического коуча по задаче — без выдачи ответа */
+  taskCoach?: LearnTaskCoachContext
 }
 
 function isRu(locale: string): boolean {
