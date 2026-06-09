@@ -7,6 +7,7 @@ import {
   type StudentMasteryStats,
 } from '../../learn/learnStudentStats'
 import { useT, type MessageKey } from '../../i18n/useT'
+import { StudentProgressChart } from './StudentProgressChart'
 import styles from './LearnStudentStatsModal.module.css'
 
 type Props = {
@@ -16,11 +17,14 @@ type Props = {
   onSelect: () => void
 }
 
-function kindLabel(t: (k: MessageKey) => string, kind: keyof StudentMasteryStats['byKind']) {
+const KINDS = ['molecule', 'topic', 'ai', 'task'] as const
+
+function kindLabel(t: (k: MessageKey) => string, kind: (typeof KINDS)[number]) {
   const map: Record<typeof kind, MessageKey> = {
     molecule: 'learn.studentStats.kind.molecule',
     topic: 'learn.studentStats.kind.topic',
     ai: 'learn.studentStats.kind.ai',
+    task: 'learn.studentStats.kind.task',
   }
   return t(map[kind])
 }
@@ -85,8 +89,10 @@ export function LearnStudentStatsModal({ student, sectionTitle, onClose, onSelec
           ) : null}
         </div>
 
+        <StudentProgressChart series={stats.progressSeries} trend={stats.progressTrend} />
+
         <div className={styles.kindGrid}>
-          {(['molecule', 'topic', 'ai'] as const).map((kind) => {
+          {KINDS.map((kind) => {
             const k = stats.byKind[kind]
             return (
               <div key={kind} className={styles.kindCard}>

@@ -8,14 +8,14 @@ import {
 import { synthesizeEdgeNeuralSpeech } from './learnEdgeTts'
 
 export type LearnTtsLocale = 'ru' | 'en'
-export type LearnTtsProvider = 'auto' | 'edge' | 'openai'
+export type LearnTtsProvider = 'auto' | 'clone' | 'edge' | 'openai'
 
 export type LearnTtsRequestBody = {
   text?: string
   locale?: LearnTtsLocale
 }
 
-export type LearnTtsSource = 'edge' | 'openai' | 'browser' | 'error'
+export type LearnTtsSource = 'clone' | 'edge' | 'openai' | 'browser' | 'error'
 
 export type LearnTtsResult = {
   status: number
@@ -34,6 +34,9 @@ const rateBuckets = new Map<string, { count: number; resetAt: number }>()
 
 export type LearnTtsRuntimeConfig = {
   provider: LearnTtsProvider
+  elevenLabsApiKey?: string
+  elevenLabsVoiceId?: string
+  elevenLabsModelId?: string
   openaiApiKey?: string
   openaiBaseUrl: string
   openaiTtsModel: string
@@ -52,10 +55,15 @@ export function learnTtsRuntimeFromEnv(
   const voice = env.OPENAI_TTS_VOICE
   const providerRaw = (env.LEARN_TTS_PROVIDER ?? 'auto').toLowerCase()
   const provider: LearnTtsProvider =
-    providerRaw === 'edge' || providerRaw === 'openai' ? providerRaw : 'auto'
+    providerRaw === 'clone' || providerRaw === 'edge' || providerRaw === 'openai'
+      ? providerRaw
+      : 'auto'
 
   return {
     provider,
+    elevenLabsApiKey: env.ELEVENLABS_API_KEY,
+    elevenLabsVoiceId: env.ELEVENLABS_VOICE_ID,
+    elevenLabsModelId: env.ELEVENLABS_MODEL_ID ?? 'eleven_multilingual_v2',
     openaiApiKey: env.OPENAI_API_KEY ?? env.VITE_OPENAI_API_KEY,
     openaiBaseUrl: env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
     openaiTtsModel: env.OPENAI_TTS_MODEL ?? HUMAN_TTS_MODEL,
@@ -135,6 +143,24 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
+async function synthesizeWithClone(
+  text: string,
+  locale: LearnTtsLocale,
+  runtime: LearnTtsRuntimeConfig,
+): Promise<{ audioBase64: string; mimeType: string } | null> {
+  if (!runtime.elevenLabsApiKey) return null
+  try {
+    const { synthesizeClonedTeacherSpeech } = await import('./learnElevenLabsTts')
+    return synthesizeClonedTeacherSpeech(text, locale, {
+      apiKey: runtime.elevenLabsApiKey,
+      voiceId: runtime.elevenLabsVoiceId,
+      modelId: runtime.elevenLabsModelId,
+    })
+  } catch {
+    return null
+  }
+}
+
 async function callOpenAiTts(
   text: string,
   locale: LearnTtsLocale,
@@ -187,6 +213,14 @@ async function synthesizeWithEdge(
   return synthesizeEdgeNeuralSpeech(text, locale, edgeVoiceForLocale(locale, runtime))
 }
 
+function prepNeuralText(raw: string, locale: LearnTtsLocale): string {
+  return prepareTextForHumanTts(raw, locale).slice(0, MAX_TTS_CHARS)
+}
+
+function prepCloneText(raw: string, locale: LearnTtsLocale): string {
+  return prepareTextForHumanTts(raw, locale, { forVoiceClone: true }).slice(0, MAX_TTS_CHARS)
+}
+
 export async function processLearnTts(
   body: LearnTtsRequestBody,
   meta: { origin?: string; clientIp?: string; runtime: LearnTtsRuntimeConfig },
@@ -207,15 +241,16 @@ export async function processLearnTts(
   }
 
   const locale: LearnTtsLocale = body.locale === 'en' ? 'en' : 'ru'
-  const text = prepareTextForHumanTts(raw, locale).slice(0, MAX_TTS_CHARS)
-  if (!text) {
+  const { provider, openaiApiKey } = meta.runtime
+
+  const neuralText = prepNeuralText(raw, locale)
+  if (!neuralText) {
     return { status: 400, source: 'error', error: 'empty_text', headers }
   }
 
-  const { provider, openaiApiKey } = meta.runtime
-
+  // edge — лучшее произношение русского (Dmitry Neural)
   if (provider === 'auto' || provider === 'edge') {
-    const edge = await synthesizeWithEdge(text, locale, meta.runtime)
+    const edge = await synthesizeWithEdge(neuralText, locale, meta.runtime)
     if (edge) {
       return {
         status: 200,
@@ -230,26 +265,67 @@ export async function processLearnTts(
     }
   }
 
+  if (provider === 'clone') {
+    const cloneText = prepCloneText(raw, locale)
+    if (!cloneText) {
+      return { status: 400, source: 'error', error: 'empty_text', headers }
+    }
+    const cloned = await synthesizeWithClone(cloneText, locale, meta.runtime)
+    if (cloned) {
+      return {
+        status: 200,
+        audioBase64: cloned.audioBase64,
+        mimeType: cloned.mimeType,
+        source: 'clone',
+        headers,
+      }
+    }
+    return { status: 502, source: 'error', error: 'clone_unavailable', headers }
+  }
+
+  if (openaiApiKey && (provider === 'auto' || provider === 'openai')) {
+    try {
+      const audioBase64 = await callOpenAiTts(neuralText, locale, meta.runtime)
+      return {
+        status: 200,
+        audioBase64,
+        mimeType: 'audio/mpeg',
+        source: 'openai',
+        headers,
+      }
+    } catch (err) {
+      if (provider === 'openai') {
+        const code = err instanceof Error ? err.message : 'tts_failed'
+        return {
+          status: code === 'no_api_key' ? 503 : 502,
+          source: 'error',
+          error: code,
+          headers,
+        }
+      }
+    }
+  }
+
+  // auto fallback: клон (если настроен)
+  if (provider === 'auto') {
+    const cloneText = prepCloneText(raw, locale)
+    if (cloneText) {
+      const cloned = await synthesizeWithClone(cloneText, locale, meta.runtime)
+      if (cloned) {
+        return {
+          status: 200,
+          audioBase64: cloned.audioBase64,
+          mimeType: cloned.mimeType,
+          source: 'clone',
+          headers,
+        }
+      }
+    }
+  }
+
   if (!openaiApiKey) {
     return { status: 503, source: 'error', error: 'no_api_key', headers }
   }
 
-  try {
-    const audioBase64 = await callOpenAiTts(text, locale, meta.runtime)
-    return {
-      status: 200,
-      audioBase64,
-      mimeType: 'audio/mpeg',
-      source: 'openai',
-      headers,
-    }
-  } catch (err) {
-    const code = err instanceof Error ? err.message : 'tts_failed'
-    return {
-      status: code === 'no_api_key' ? 503 : 502,
-      source: 'error',
-      error: code,
-      headers,
-    }
-  }
+  return { status: 502, source: 'error', error: 'tts_failed', headers }
 }

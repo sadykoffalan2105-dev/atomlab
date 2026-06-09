@@ -166,3 +166,9 @@
   border-radius: 12px;
   border: 1px dashed rgba(120, 140, 180, 0.35);
 }
+
+.activeTag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #5cffd4;
+}

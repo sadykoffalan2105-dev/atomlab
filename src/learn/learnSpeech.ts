@@ -9,7 +9,16 @@ import {
 
 export { stripMarkdownForSpeech, prepareTextForHumanTts } from './learnSpeechText'
 
-/** Голос ИИ-учителя: Microsoft Neural → сервер → браузер. */
+import {
+  TEACHER_BROWSER_PITCH,
+  TEACHER_VOICE_REFERENCE_PATH,
+} from './learnTeacherVoiceProfile'
+
+export function teacherVoiceReferenceUrl(): string {
+  return `${import.meta.env.BASE_URL}${TEACHER_VOICE_REFERENCE_PATH}`
+}
+
+/** Голос ИИ-учителя: Microsoft Dmitry Neural → OpenAI → клон → браузер. */
 
 type SpeechRecognitionLike = {
   lang: string
@@ -62,6 +71,14 @@ function isNeuralVoiceName(name: string): boolean {
   return n.includes('neural') || n.includes('online (natural)') || n.includes('natural')
 }
 
+function isMaleVoiceName(name: string): boolean {
+  const n = lower(name)
+  if (n.includes('svetlana') || n.includes('irina') || n.includes('jenny') || n.includes('aria') || n.includes('nova') || n.includes('shimmer') || n.includes('coral')) {
+    return false
+  }
+  return n.includes('dmitry') || n.includes('guy') || n.includes('pavel') || n.includes('david') || n.includes('male') || n.includes('мужск')
+}
+
 function pickBrowserVoice(locale: LearnSpeechLocale, neuralOnly = false): SpeechSynthesisVoice | null {
   if (!speechSupported()) return null
   const voices = window.speechSynthesis.getVoices()
@@ -75,13 +92,14 @@ function pickBrowserVoice(locale: LearnSpeechLocale, neuralOnly = false): Speech
       if (!lang.startsWith(langPrefix) && !lang.includes(langPrefix)) return false
       return name.includes(hint)
     })
-    if (hit && (!neuralOnly || isNeuralVoiceName(hit.name))) return hit
+    if (hit && (!neuralOnly || isNeuralVoiceName(hit.name)) && isMaleVoiceName(hit.name)) return hit
   }
 
   const neural = voices.find(
     (v) =>
       lower(v.lang).startsWith(langPrefix) &&
       isNeuralVoiceName(v.name) &&
+      isMaleVoiceName(v.name) &&
       (v.localService || lower(v.name).includes('microsoft')),
   )
   if (neural) return neural
@@ -134,16 +152,6 @@ export class LearnSpeechController {
     if (!text.trim()) return false
     this.stop()
 
-    if (hasNativeBrowserNeuralVoice(locale)) {
-      const browserNeural = await this.speakBrowserQueued(text, locale, true)
-      if (browserNeural) {
-        this.lastMode = 'neural'
-        onMode?.('neural')
-        onEnd?.()
-        return true
-      }
-    }
-
     const neural = await this.speakNeural(text, locale, onMode)
     if (neural) {
       this.lastMode = 'neural'
@@ -195,7 +203,7 @@ export class LearnSpeechController {
       source?: string
       error?: string
     }
-    if (!data.audioBase64 || (data.source !== 'openai' && data.source !== 'edge')) return null
+    if (!data.audioBase64 || !['openai', 'edge', 'clone'].includes(data.source ?? '')) return null
 
     const entry = { audioBase64: data.audioBase64, mimeType: data.mimeType ?? 'audio/mpeg' }
     this.neuralCache.set(key, entry)
@@ -272,7 +280,7 @@ export class LearnSpeechController {
       const utterance = new SpeechSynthesisUtterance(sentence)
       utterance.lang = SPEECH_LOCALE[locale]
       utterance.rate = BROWSER_SPEECH_RATE[locale]
-      utterance.pitch = 1.0
+      utterance.pitch = TEACHER_BROWSER_PITCH
       utterance.volume = 1.0
       if (voice) utterance.voice = voice
 
@@ -403,4 +411,11 @@ export function preloadSpeechVoices(): void {
   window.speechSynthesis.onvoiceschanged = () => {
     window.speechSynthesis.getVoices()
   }
+}
+
+/** Проиграть образец голоса из video/male-voice-for-answering-machine.mp3 */
+export function playTeacherVoiceReference(): void {
+  if (typeof window === 'undefined') return
+  const audio = new Audio(teacherVoiceReferenceUrl())
+  void audio.play().catch(() => {})
 }

@@ -23,9 +23,9 @@ export function buildTeacherBrainPack(
 ): TeacherBrainPack {
   const speechLocale = ctx.locale === 'en' ? 'en' : 'ru'
   const { block, topicSceneId } = buildAssistantKnowledgeBlock(query, ctx)
-  const sectionOutlineBlock = buildSectionOutlineBlock(ctx, 2200)
+  const sectionOutlineBlock = buildSectionOutlineBlock(ctx, 1000)
   const retrieved = retrieveChemistryKnowledge(query, {
-    maxChunks: 8,
+    maxChunks: 4,
     minScore: 1,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
@@ -33,14 +33,14 @@ export function buildTeacherBrainPack(
     sectionId: ctx.sectionId,
   })
   let chemistryKnowledgeBlock = buildRetrievedKnowledgeBlock(query, speechLocale, {
-    maxChars: 9000,
+    maxChars: 3800,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
     preloaded: retrieved,
   })
 
   if (ctx.gradeId === 'g7' && ctx.chapterId && ctx.sectionId) {
-    const bookBlock = buildG7TextbookContextBlock(ctx.chapterId, ctx.sectionId, speechLocale, 8500)
+    const bookBlock = buildG7TextbookContextBlock(ctx.chapterId, ctx.sectionId, speechLocale, 3200)
     if (bookBlock && !chemistryKnowledgeBlock.includes(bookBlock.slice(0, 80))) {
       chemistryKnowledgeBlock = `[Текущий § учебника — главный источник]\n${bookBlock}\n\n--- Дополнительно ---\n${chemistryKnowledgeBlock}`
     }

@@ -24,6 +24,7 @@
     "learn:generate-element-profiles": "node scripts/generate-element-life-profiles.mjs",
     "learn:prepare-element-life": "node scripts/generate-element-life-profiles.mjs && node scripts/prepare-element-life-images.mjs",
     "learn:fetch-placeholders": "node scripts/fetch-learn-placeholders.mjs",
+    "clone:teacher-voice": "node scripts/clone-teacher-voice.mjs",
     "wasm:build": "node scripts/build-wasm.mjs"
   },
   "dependencies": {

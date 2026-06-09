@@ -1,4 +1,15 @@
-/** Подготовка текста ответа учителя для озвучивания. */
+import {
+  applyRussianPronunciationLexicon,
+  sanitizeRussianTtsSurface,
+} from './learnRussianPronunciation'
+import { naturalizeSpeechText, splitAtSpeechClauses, type NaturalizeSpeechOptions } from './learnSpeechNaturalize'
+import {
+  TEACHER_BROWSER_RATE,
+  TEACHER_BROWSER_VOICE_HINTS,
+  TEACHER_VOICE_OPENAI,
+  TEACHER_VOICE_OPENAI_INSTRUCTIONS,
+  TEACHER_VOICE_OPENAI_SPEED,
+} from './learnTeacherVoiceProfile'
 
 export type SpeechPrepLocale = 'ru' | 'en'
 
@@ -41,8 +52,12 @@ export function normalizeChemicalNotation(text: string): string {
     .replace(/⁻/g, '-')
 }
 
-/** Текст для живой речи — без лишних пауз (они делают голос «роботом»). */
-export function prepareTextForHumanTts(text: string, locale: SpeechPrepLocale): string {
+/** Текст для живой речи — разговорный, без «роботизированных» символов. */
+export function prepareTextForHumanTts(
+  text: string,
+  locale: SpeechPrepLocale,
+  options: NaturalizeSpeechOptions = {},
+): string {
   let t = stripMarkdownForSpeech(text)
   t = normalizeChemicalNotation(t)
 
@@ -67,6 +82,13 @@ export function prepareTextForHumanTts(text: string, locale: SpeechPrepLocale): 
       .replace(/…+/g, '.')
   }
 
+  t = naturalizeSpeechText(t, locale, options)
+
+  if (locale === 'ru') {
+    t = applyRussianPronunciationLexicon(t)
+    t = sanitizeRussianTtsSurface(t)
+  }
+
   return t
     .replace(/\s+([,.!?;:])/g, '$1')
     .replace(/([,;])\s*/g, '$1 ')
@@ -75,77 +97,40 @@ export function prepareTextForHumanTts(text: string, locale: SpeechPrepLocale): 
     .trim()
 }
 
-const CHUNK_MAX = 900
+/** Одно предложение = один запрос TTS — ничего не «проглатывается». */
+const CHUNK_MAX = 340
 
 export function splitTextForTts(text: string, locale: SpeechPrepLocale = 'ru', max = CHUNK_MAX): string[] {
   const clean = prepareTextForHumanTts(text, locale)
   if (!clean) return []
-  if (clean.length <= max) return [clean]
 
   const parts: string[] = []
-  let buf = ''
-  for (const sentence of clean.split(/(?<=[.!?])\s+/)) {
-    const next = buf ? `${buf} ${sentence}` : sentence
-    if (next.length > max) {
-      if (buf) parts.push(buf)
-      if (sentence.length > max) {
-        for (let i = 0; i < sentence.length; i += max) {
-          parts.push(sentence.slice(i, i + max))
-        }
-        buf = ''
-      } else {
-        buf = sentence
-      }
+  for (const raw of clean.split(/(?<=[.!?])\s+/)) {
+    const sentence = raw.trim()
+    if (!sentence) continue
+    if (sentence.length <= max) {
+      parts.push(sentence)
     } else {
-      buf = next
+      parts.push(...splitAtSpeechClauses(sentence, max))
     }
   }
-  if (buf) parts.push(buf)
-  return parts
+  return parts.length > 0 ? parts : [clean]
 }
 
-/** OpenAI fallback — marin/cedar, снимок без «роботизированных» пауз. */
-export const HUMAN_TTS_INSTRUCTIONS = {
-  ru: `Language: Russian only. You are a real school chemistry teacher speaking to students in class.
-
-Sound completely human: warm, calm, confident. Natural conversational rhythm — never monotone, never like GPS or a news anchor reading a teleprompter. Smooth flow between sentences without awkward gaps. Gentle emphasis on key terms. Questions sound inviting. Medium pace, unhurried.`,
-  en: `You are a real high-school chemistry teacher in a live class. Warm, natural, never robotic. Smooth sentence flow, conversational rhythm, clear emphasis on science terms. Medium pace.`,
-} as const
+/** OpenAI fallback — onyx (мужской), как образец автоответчика. */
+export const HUMAN_TTS_INSTRUCTIONS = TEACHER_VOICE_OPENAI_INSTRUCTIONS
 
 export const HUMAN_TTS_MODEL = 'gpt-4o-mini-tts-2025-03-20'
 
-export const HUMAN_TTS_SPEED: Record<SpeechPrepLocale, number> = {
-  ru: 1.0,
-  en: 1.0,
-}
+export const HUMAN_TTS_SPEED = TEACHER_VOICE_OPENAI_SPEED
 
-export const HUMAN_TTS_VOICE: Record<SpeechPrepLocale, string> = {
-  ru: 'marin',
-  en: 'cedar',
-}
+export const HUMAN_TTS_VOICE = TEACHER_VOICE_OPENAI
 
 /** Пауза между фрагментами (мс) — короткая, как между фразами учителя. */
-export const TTS_CHUNK_GAP_MS = 140
+export const TTS_CHUNK_GAP_MS = 120
 
-export const BROWSER_NEURAL_HINTS: Record<SpeechPrepLocale, string[]> = {
-  ru: [
-    'dmitryneural',
-    'dmitry online',
-    'svetlananeural',
-    'svetlana online',
-    'microsoft dmitry',
-    'microsoft svetlana',
-    'irina',
-    'pavel',
-    'yandex',
-    'google русский',
-  ],
-  en: ['jennyneural', 'jenny online', 'guyneural', 'aria online', 'microsoft aria', 'microsoft jenny'],
-}
+export const BROWSER_NEURAL_HINTS = TEACHER_BROWSER_VOICE_HINTS
 
-export const BROWSER_SPEECH_RATE: Record<SpeechPrepLocale, number> = {
-  ru: 0.94,
-  en: 0.96,
-}
+export const BROWSER_SPEECH_RATE = TEACHER_BROWSER_RATE
 
-export const BROWSER_SENTENCE_GAP_MS = 180
+export const BROWSER_SENTENCE_GAP_MS = 80

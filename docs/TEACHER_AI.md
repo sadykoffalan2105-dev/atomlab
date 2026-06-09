@@ -19,22 +19,41 @@ VITE_OLLAMA_MODEL=llama3.2
 
 4. В панели «ИИ-учитель» включите переключатель **Ollama**.
 
-## Голос учителя (максимально «живой»)
+## Голос учителя — клон из вашего MP3
 
-**Порядок:** Microsoft Edge Neural (Dmitry/Jenny) → OpenAI marin/cedar → браузер.
+**Порядок:** ElevenLabs клон (`male-voice-for-answering-machine.mp3`) → Edge Neural → OpenAI → браузер.
 
-```env
-LEARN_TTS_PROVIDER=auto
-# Женский RU: EDGE_TTS_VOICE_RU=ru-RU-SvetlanaNeural
-OPENAI_TTS_MODEL=gpt-4o-mini-tts-2025-03-20
-OPENAI_TTS_VOICE_RU=marin
-VITE_LEARN_CHAT_URL=https://your-server.example/api/learn/chat
+### Один раз: создать клон
+
+```bash
+ELEVENLABS_API_KEY=sk_... npm run clone:teacher-voice
 ```
 
-- `POST /api/learn/tts` — `{ text, locale }` → `{ audioBase64, source: "edge"|"openai" }`
-- На Windows/Chrome часто есть **Microsoft Dmitry Online (Natural)** — используется автоматически, без API.
+Скрипт сохранит `voice_id` в `src/data/teacherElevenLabsVoice.json`.
 
-Локально (`npm run dev`) TTS работает через тот же middleware, если в `.env` задан `OPENAI_API_KEY`.
+### На сервере (Vercel)
+
+```env
+LEARN_TTS_PROVIDER=clone
+ELEVENLABS_API_KEY=sk_...
+ELEVENLABS_VOICE_ID=...   # из clone:teacher-voice
+VITE_LEARN_CHAT_URL=https://your-project.vercel.app/api/learn/chat
+```
+
+- `POST /api/learn/tts` — `{ text, locale }` → `{ audioBase64, source: "clone"|"edge"|"openai" }`
+- **GitHub Pages** сам по себе не может озвучивать клоном — нужен API на Vercel (или локально `npm run dev` с `.env`).
+- Образец голоса: кнопка «Образец голоса» в панели учителя.
+
+Без ElevenLabs ключа используется похожий мужской голос (Dmitry Neural), но не точная копия MP3.
+
+```env
+# fallback
+LEARN_TTS_PROVIDER=auto
+EDGE_TTS_VOICE_RU=ru-RU-DmitryNeural
+OPENAI_TTS_VOICE_RU=onyx
+```
+
+Локально (`npm run dev`) TTS работает через middleware, если в `.env` задан `ELEVENLABS_API_KEY` или `OPENAI_API_KEY`.
 
 ## Безопасность
 

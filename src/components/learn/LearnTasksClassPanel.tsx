@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import {
   CLASS_ROSTER_CHANGED,
   classAverageScore,
@@ -8,60 +7,55 @@ import {
   parsePastedNames,
   readClassRoster,
   setActiveStudent,
+  TASKS_ROSTER_SECTION_ID,
   type ClassRoster,
   type ClassStudent,
   type StudentTestKind,
 } from '../../learn/learnClassRosterStorage'
 import { useT, type MessageKey } from '../../i18n/useT'
-import { LearnStudentTestHub } from './LearnStudentTestHub'
 import { LearnStudentStatsModal } from './LearnStudentStatsModal'
 import styles from './LearnClassRosterPanel.module.css'
 
-type Props = {
-  sectionId: string
-  grade: LearnGrade
-  chapter: LearnChapter
-  section: LearnSection
-}
+const SECTION_ID = TASKS_ROSTER_SECTION_ID
 
 function attemptLabel(
   t: (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string,
   student: ClassStudent,
 ) {
-  const kinds: StudentTestKind[] = ['molecule', 'topic', 'ai', 'task']
+  const kinds: StudentTestKind[] = ['task', 'molecule', 'topic', 'ai']
   for (const kind of kinds) {
     const last = lastAttemptForKind(student, kind)
     if (last) {
-      return t('learn.classRoster.lastScoreKind', {
-        score: String(last.score),
-        total: String(last.total),
-        kind: t(
-          kind === 'molecule'
+      const kindLabel =
+        kind === 'task'
+          ? 'learn.studentStats.kind.task'
+          : kind === 'molecule'
             ? 'learn.studentStats.kind.molecule'
             : kind === 'topic'
               ? 'learn.studentStats.kind.topic'
-              : kind === 'ai'
-                ? 'learn.studentStats.kind.ai'
-                : 'learn.studentStats.kind.task',
-        ),
+              : 'learn.studentStats.kind.ai'
+      return t('learn.classRoster.lastScoreKind', {
+        score: String(last.score),
+        total: String(last.total),
+        kind: t(kindLabel),
       })
     }
   }
   return t('learn.classRoster.noAttempts')
 }
 
-export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Props) {
+export function LearnTasksClassPanel() {
   const { t } = useT()
-  const [roster, setRoster] = useState<ClassRoster>(() => readClassRoster(sectionId))
+  const [roster, setRoster] = useState<ClassRoster>(() => readClassRoster(SECTION_ID))
   const [className, setClassName] = useState(roster.className)
   const [paste, setPaste] = useState('')
   const [statsStudentId, setStatsStudentId] = useState<string | null>(null)
 
   const reload = useCallback(() => {
-    const next = readClassRoster(sectionId)
+    const next = readClassRoster(SECTION_ID)
     setRoster(next)
     setClassName(next.className)
-  }, [sectionId])
+  }, [])
 
   useEffect(() => {
     reload()
@@ -70,13 +64,13 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
   useEffect(() => {
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent<{ sectionId?: string }>).detail
-      if (!detail?.sectionId || detail.sectionId === sectionId) reload()
+      if (!detail?.sectionId || detail.sectionId === SECTION_ID) reload()
     }
     window.addEventListener(CLASS_ROSTER_CHANGED, onChange)
     return () => window.removeEventListener(CLASS_ROSTER_CHANGED, onChange)
-  }, [reload, sectionId])
+  }, [reload])
 
-  const avg = classAverageScore(sectionId)
+  const avg = classAverageScore(SECTION_ID)
   const statsStudent = statsStudentId
     ? roster.students.find((s) => s.id === statsStudentId) ?? null
     : null
@@ -84,30 +78,25 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
   const onImport = () => {
     const names = parsePastedNames(paste)
     if (names.length === 0) return
-    importClassNames(sectionId, className, names)
+    importClassNames(SECTION_ID, className, names)
     setPaste('')
   }
 
   return (
-    <div className={styles.panel}>
-      <LearnStudentTestHub
-        grade={grade}
-        chapter={chapter}
-        section={section}
-        rosterSectionId={sectionId}
-      />
-
+    <section className={styles.panel} aria-labelledby="tasks-class-title">
       <div className={styles.head}>
-        <h2 className={styles.title}>{t('learn.classRoster.title')}</h2>
-        <p className={styles.lead}>{t('learn.classRoster.leadExtended')}</p>
+        <h2 id="tasks-class-title" className={styles.title}>
+          {t('learn.tasksClass.title')}
+        </h2>
+        <p className={styles.lead}>{t('learn.tasksClass.lead')}</p>
       </div>
 
       <div className={styles.fieldRow}>
-        <label className={styles.label} htmlFor="class-name">
+        <label className={styles.label} htmlFor="tasks-class-name">
           {t('learn.classRoster.className')}
         </label>
         <input
-          id="class-name"
+          id="tasks-class-name"
           className={styles.input}
           value={className}
           onChange={(e) => setClassName(e.target.value)}
@@ -116,11 +105,11 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
       </div>
 
       <div className={styles.fieldRow}>
-        <label className={styles.label} htmlFor="class-paste">
+        <label className={styles.label} htmlFor="tasks-class-paste">
           {t('learn.classRoster.pasteLabel')}
         </label>
         <textarea
-          id="class-paste"
+          id="tasks-class-paste"
           className={styles.textarea}
           value={paste}
           onChange={(e) => setPaste(e.target.value)}
@@ -143,7 +132,7 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
       </div>
 
       {roster.students.length === 0 ? (
-        <p className={styles.empty}>{t('learn.classRoster.empty')}</p>
+        <p className={styles.empty}>{t('learn.tasksClass.empty')}</p>
       ) : (
         <ul className={styles.studentList}>
           {roster.students.map((student) => {
@@ -153,9 +142,14 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
                 <button
                   type="button"
                   className={`${styles.studentBtn} ${active ? styles.studentBtnActive : ''}`}
-                  onClick={() => setActiveStudent(sectionId, student.id)}
+                  onClick={() => setActiveStudent(SECTION_ID, student.id)}
                 >
-                  <span className={styles.studentName}>{student.name}</span>
+                  <span className={styles.studentName}>
+                    {student.name}
+                    {active ? (
+                      <span className={styles.activeTag}> · {t('learn.tasksClass.active')}</span>
+                    ) : null}
+                  </span>
                   <span className={styles.studentScore}>{attemptLabel(t, student)}</span>
                 </button>
                 <button
@@ -176,14 +170,14 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
       {statsStudent ? (
         <LearnStudentStatsModal
           student={statsStudent}
-          sectionTitle={t(section.titleKey)}
+          sectionTitle={t('learn.tasksClass.title')}
           onClose={() => setStatsStudentId(null)}
           onSelect={() => {
-            setActiveStudent(sectionId, statsStudent.id)
+            setActiveStudent(SECTION_ID, statsStudent.id)
             setStatsStudentId(null)
           }}
         />
       ) : null}
-    </div>
+    </section>
   )
 }

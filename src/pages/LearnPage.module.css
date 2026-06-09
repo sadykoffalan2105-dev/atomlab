@@ -2271,6 +2271,22 @@
   color: rgba(120, 220, 200, 0.85);
 }
 
+.learnAssistantVoiceSample {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: rgba(140, 200, 255, 0.9);
+  font-size: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.learnAssistantVoiceSample:hover {
+  color: rgba(180, 230, 255, 1);
+}
+
 .taskMcqWrong {
   border-color: rgba(255, 120, 120, 0.55) !important;
   background: rgba(60, 25, 30, 0.4) !important;

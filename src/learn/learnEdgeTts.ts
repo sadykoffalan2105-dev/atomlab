@@ -1,16 +1,10 @@
 import type { SpeechPrepLocale } from './learnSpeechText'
+import {
+  TEACHER_VOICE_EDGE,
+  TEACHER_VOICE_EDGE_PROSODY,
+} from './learnTeacherVoiceProfile'
 
-/** Microsoft Edge Neural — нативный русский/английский, без API-ключа. */
-export const EDGE_NEURAL_VOICE: Record<SpeechPrepLocale, string> = {
-  ru: 'ru-RU-DmitryNeural',
-  en: 'en-US-JennyNeural',
-}
-
-/** Просодия: чуть медленнее и спокойнее — как учитель на уроке. */
-export const EDGE_NEURAL_PROSODY: Record<SpeechPrepLocale, { rate: string; pitch: string; volume: string }> = {
-  ru: { rate: '-8%', pitch: '-2Hz', volume: '+0%' },
-  en: { rate: '-5%', pitch: '-1Hz', volume: '+0%' },
-}
+export { TEACHER_VOICE_EDGE as EDGE_NEURAL_VOICE, TEACHER_VOICE_EDGE_PROSODY as EDGE_NEURAL_PROSODY }
 
 const EDGE_SYNTH_TIMEOUT_MS = 18_000
 
@@ -32,8 +26,8 @@ export async function synthesizeEdgeNeuralSpeech(
 
   try {
     const { EdgeTTS } = await import('@travisvn/edge-tts')
-    const voice = voiceOverride?.trim() || EDGE_NEURAL_VOICE[locale]
-    const prosody = EDGE_NEURAL_PROSODY[locale]
+    const voice = voiceOverride?.trim() || TEACHER_VOICE_EDGE[locale]
+    const prosody = TEACHER_VOICE_EDGE_PROSODY[locale]
     const tts = new EdgeTTS(text, voice, prosody)
 
     const result = await Promise.race([

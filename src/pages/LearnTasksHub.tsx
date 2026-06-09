@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { LearnTasksClassPanel } from '../components/learn/LearnTasksClassPanel'
 import { LEARN_TASK_CATEGORIES } from '../data/learnTaskCategories'
 import { useT, type MessageKey } from '../i18n/useT'
 import styles from './LearnPage.module.css'
@@ -17,6 +18,8 @@ export function LearnTasksHub() {
         {t('learn.tasksTitle')}
       </h1>
       <p className={styles.lead}>{t('learn.tasksLead')}</p>
+
+      <LearnTasksClassPanel />
 
       <h2 className={styles.tasksSectionTitle}>{t('learn.tasksGroupQuant')}</h2>
       <div className={styles.taskCategoryGrid} role="list">

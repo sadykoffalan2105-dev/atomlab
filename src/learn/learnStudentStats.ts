@@ -6,12 +6,23 @@ export type KindStats = {
   last: ClassTestAttempt | null
 }
 
+export type ProgressPoint = {
+  at: string
+  pct: number
+  kind: StudentTestKind
+  label?: string
+}
+
+export type ProgressTrend = 'rising' | 'falling' | 'stable' | 'none'
+
 export type StudentMasteryStats = {
   student: ClassStudent
   byKind: Record<StudentTestKind, KindStats>
   overallAvgPct: number | null
   masteryLevel: 'strong' | 'good' | 'needsWork' | 'none'
   recentAttempts: ClassTestAttempt[]
+  progressSeries: ProgressPoint[]
+  progressTrend: ProgressTrend
 }
 
 function attemptPct(a: ClassTestAttempt): number {
@@ -35,14 +46,40 @@ function kindStats(attempts: ClassTestAttempt[], kind: StudentTestKind): KindSta
   }
 }
 
+export function buildProgressSeries(student: ClassStudent, maxPoints = 16): ProgressPoint[] {
+  return student.attempts.slice(-maxPoints).map((a) => ({
+    at: a.at,
+    pct: attemptPct(a),
+    kind: normalizeKind(a.kind),
+    label: a.taskCategoryId,
+  }))
+}
+
+export function computeProgressTrend(series: ProgressPoint[]): ProgressTrend {
+  if (series.length < 2) return series.length === 0 ? 'none' : 'stable'
+
+  const firstHalf = series.slice(0, Math.floor(series.length / 2))
+  const secondHalf = series.slice(Math.floor(series.length / 2))
+  const avg = (pts: ProgressPoint[]) =>
+    pts.reduce((s, p) => s + p.pct, 0) / Math.max(pts.length, 1)
+
+  const delta = avg(secondHalf) - avg(firstHalf)
+  if (delta >= 8) return 'rising'
+  if (delta <= -8) return 'falling'
+  return 'stable'
+}
+
 export function computeStudentMastery(student: ClassStudent): StudentMasteryStats {
   const attempts = student.attempts
   const byKind: Record<StudentTestKind, KindStats> = {
     molecule: kindStats(attempts, 'molecule'),
     topic: kindStats(attempts, 'topic'),
     ai: kindStats(attempts, 'ai'),
+    task: kindStats(attempts, 'task'),
   }
 
+  const progressSeries = buildProgressSeries(student)
+  const progressTrend = computeProgressTrend(progressSeries)
   const lastAttempts = attempts.slice(-10).reverse()
   const lastScores = attempts.map(attemptPct)
   const overallAvgPct =
@@ -63,6 +100,8 @@ export function computeStudentMastery(student: ClassStudent): StudentMasteryStat
     overallAvgPct,
     masteryLevel,
     recentAttempts: lastAttempts,
+    progressSeries,
+    progressTrend,
   }
 }
 

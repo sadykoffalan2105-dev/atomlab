@@ -20,7 +20,7 @@ export type LearnChatResult = {
 
 const MAX_USER_CHARS = 2000
 const MAX_HISTORY = 12
-const MAX_TOKENS = 2800
+const MAX_TOKENS = 900
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = 30
@@ -117,7 +117,7 @@ async function callOpenAI(
         model: runtime.openaiModel,
       messages: [{ role: 'system', content: system }, ...messages],
       max_tokens: MAX_TOKENS,
-      temperature: 0.72,
+      temperature: 0.42,
     }),
   })
 

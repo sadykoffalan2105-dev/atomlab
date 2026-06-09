@@ -1,0 +1,5 @@
+{
+  "voiceId": "",
+  "source": "video/male-voice-for-answering-machine.mp3",
+  "note": "Запустите: npm run clone:teacher-voice (нужен ELEVENLABS_API_KEY)"
+}
