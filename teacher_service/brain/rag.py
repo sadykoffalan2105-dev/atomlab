@@ -1,0 +1,201 @@
+"""RAG index over g7 textbook + keyword retrieval."""
+
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass
+from typing import Any
+
+from teacher_service.config import G7_KNOWLEDGE_PATH
+
+_YO_MAP = str.maketrans({"ё": "е", "Ё": "Е"})
+_TOKEN_RE = re.compile(r"[a-zа-я0-9]+", re.I)
+
+
+def normalize_text(text: str) -> str:
+    return text.translate(_YO_MAP).lower()
+
+
+def tokenize(text: str) -> list[str]:
+    return _TOKEN_RE.findall(normalize_text(text))
+
+
+@dataclass
+class RagChunk:
+    chunk_id: str
+    section_key: str
+    topic: str
+    body_ru: str
+    body_en: str
+    keywords: list[str]
+    norm_text: str
+    kp: int
+    grade_id: str
+    chapter_id: str
+    section_id: str
+
+
+def _format_body(section: dict[str, Any], locale: str) -> str:
+    topic = section["topicEn"] if locale == "en" else section["topicRu"]
+    content = section["contentEn"] if locale == "en" else section["contentRu"]
+    remember = section["rememberEn"] if locale == "en" else section["rememberRu"]
+    page = section.get("page", "")
+    if locale == "en":
+        header = f"TEXTBOOK (Kimyo, grade 7, 2022) · page {page}"
+        remember_label = "REMEMBER"
+    else:
+        header = f"УЧЕБНИК (Kimyo, 7 класс, 2022) · стр. {page}"
+        remember_label = "ЗАПОМНИТЬ"
+    return f"{header}\n**{topic}**\n\n{content}\n\n--- {remember_label} ---\n{remember}"
+
+
+class RagIndex:
+    def __init__(self) -> None:
+        self.chunks: list[RagChunk] = []
+        self._by_id: dict[str, RagChunk] = {}
+        self._by_section: dict[str, RagChunk] = {}
+        self._native_ready = False
+
+    def load(self) -> None:
+        if not G7_KNOWLEDGE_PATH.is_file():
+            raise FileNotFoundError(f"Missing textbook knowledge: {G7_KNOWLEDGE_PATH}")
+
+        data = json.loads(G7_KNOWLEDGE_PATH.read_text(encoding="utf-8"))
+        sections = data.get("sections") or []
+        self.chunks.clear()
+        self._by_id.clear()
+        self._by_section.clear()
+
+        for section in sections:
+            keywords = list(section.get("keywords") or [])
+            keywords.extend(
+                [
+                    section.get("topicRu", ""),
+                    section.get("topicEn", ""),
+                    f"§{section.get('kp', 0)}",
+                    f"параграф {section.get('kp', 0)}",
+                    section.get("chapterId", ""),
+                    section.get("sectionId", ""),
+                    "учебник",
+                    "kimyo",
+                    "7 класс",
+                ]
+            )
+            kw_unique = [k for k in dict.fromkeys(k.strip() for k in keywords if k and k.strip())]
+            body_ru = _format_body(section, "ru")
+            body_en = _format_body(section, "en")
+            norm_parts = " ".join(
+                [
+                    section.get("topicRu", ""),
+                    section.get("topicEn", ""),
+                    section.get("contentRu", "")[:2000],
+                    " ".join(kw_unique),
+                ]
+            )
+            chunk = RagChunk(
+                chunk_id=section["id"],
+                section_key=f"{section.get('chapterId')}-{section.get('sectionId')}",
+                topic=f"§{section.get('kp', 0)}. {section.get('topicRu', '')}",
+                body_ru=body_ru,
+                body_en=body_en,
+                keywords=kw_unique,
+                norm_text=normalize_text(norm_parts),
+                kp=int(section.get("kp") or 0),
+                grade_id=section.get("gradeId", "g7"),
+                chapter_id=section.get("chapterId", ""),
+                section_id=section.get("sectionId", ""),
+            )
+            self.chunks.append(chunk)
+            self._by_id[chunk.chunk_id] = chunk
+            self._by_section[chunk.section_key] = chunk
+
+        self._native_ready = self._load_native()
+
+    def _load_native(self) -> bool:
+        try:
+            from teacher_service.native.rag_bridge import load_index_into_native
+
+            return load_index_into_native(self.chunks)
+        except Exception:
+            return False
+
+    def get_section(self, chapter_id: str, section_id: str) -> RagChunk | None:
+        return self._by_section.get(f"{chapter_id}-{section_id}")
+
+    def search(
+        self,
+        query: str,
+        *,
+        k: int = 5,
+        min_score: float = 1.0,
+        grade_id: str | None = None,
+        section_title: str | None = None,
+    ) -> list[tuple[RagChunk, float]]:
+        if not query.strip():
+            return []
+
+        if self._native_ready:
+            try:
+                from teacher_service.native.rag_bridge import native_top_k
+
+                hits = native_top_k(query, k * 2)
+                out: list[tuple[RagChunk, float]] = []
+                for chunk_id, score in hits:
+                    chunk = self._by_id.get(chunk_id)
+                    if chunk and score >= min_score:
+                        out.append((chunk, score))
+                if out:
+                    return out[:k]
+            except Exception:
+                pass
+
+        return self._python_search(query, k=k, min_score=min_score, grade_id=grade_id, section_title=section_title)
+
+    def _python_search(
+        self,
+        query: str,
+        *,
+        k: int,
+        min_score: float,
+        grade_id: str | None,
+        section_title: str | None,
+    ) -> list[tuple[RagChunk, float]]:
+        tokens = tokenize(query)
+        if not tokens:
+            return []
+
+        title_tokens = tokenize(section_title or "")
+        scored: list[tuple[RagChunk, float]] = []
+
+        for chunk in self.chunks:
+            if grade_id and chunk.grade_id != grade_id:
+                continue
+            score = 0.0
+            norm_kw = normalize_text(" ".join(chunk.keywords))
+            for tok in tokens:
+                if len(tok) < 2:
+                    continue
+                if tok in chunk.norm_text:
+                    score += 2.0
+                if tok in norm_kw:
+                    score += 3.0
+            for tok in title_tokens:
+                if tok in chunk.norm_text or tok in norm_kw:
+                    score += 1.5
+            if score >= min_score:
+                scored.append((chunk, score))
+
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored[:k]
+
+
+_INDEX: RagIndex | None = None
+
+
+def get_rag_index() -> RagIndex:
+    global _INDEX
+    if _INDEX is None:
+        _INDEX = RagIndex()
+        _INDEX.load()
+    return _INDEX

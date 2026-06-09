@@ -7,9 +7,20 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   Object.assign(process.env, env)
 
+  const teacherPort = env.TEACHER_SERVICE_PORT || '8765'
+
   return {
     // GitHub Pages: VITE_BASE=/atomlab/ ; Electron: default ./
     base: env.VITE_BASE || './',
+    server: {
+      proxy: {
+        '/teacher-api': {
+          target: `http://127.0.0.1:${teacherPort}`,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/teacher-api/, ''),
+        },
+      },
+    },
     build: {
       rolldownOptions: {
         output: {

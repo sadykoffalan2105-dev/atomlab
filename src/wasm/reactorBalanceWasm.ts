@@ -10,6 +10,7 @@ import {
   isReactorEquationBalanced,
 } from '../chemistry/reactorEquationBalance'
 import { getElementBySymbol } from '../data/elements'
+import { getAtomlabWasmInstance, getAtomlabWasmInstanceSync, prefetchAtomlabWasm } from './atomlabWasmShared'
 
 type WasmBalanceExports = {
   reactor_balance: (
@@ -21,8 +22,11 @@ type WasmBalanceExports = {
   memory: WebAssembly.Memory
 }
 
-let wasmModule: WasmBalanceExports | null = null
-let wasmLoad: Promise<boolean> | null = null
+function getExports(): WasmBalanceExports | null {
+  const inst = getAtomlabWasmInstanceSync()
+  if (!inst) return null
+  return inst.exports as unknown as WasmBalanceExports
+}
 
 function compositionToSortedPairs(comp: Record<string, number>): Uint16Array {
   const entries: { z: number; count: number }[] = []
@@ -42,36 +46,9 @@ function compositionToSortedPairs(comp: Record<string, number>): Uint16Array {
   return out
 }
 
-async function ensureWasm(): Promise<boolean> {
-  if (wasmModule) return true
-  if (!wasmLoad) {
-    wasmLoad = (async () => {
-      try {
-        const base = `${import.meta.env.BASE_URL || '/'}wasm/atomlab_core.wasm`
-          .replace(/\.\//g, '/')
-          .replace(/\/+/g, '/')
-        const url = base.startsWith('http')
-          ? base
-          : `${window.location.origin}${base.startsWith('/') ? '' : '/'}${base}`
-        const res = await fetch(url)
-        if (!res.ok) return false
-        const buf = await res.arrayBuffer()
-        const { instance } = await WebAssembly.instantiate(buf, {
-          env: { abort: () => { throw new Error('wasm abort') } },
-        })
-        wasmModule = instance.exports as unknown as WasmBalanceExports
-        return true
-      } catch {
-        return false
-      }
-    })()
-  }
-  return wasmLoad
-}
-
 /** Прогрев WASM-модуля (не блокирует UI). */
 export function warmupReactorBalanceWasm(): void {
-  void ensureWasm()
+  prefetchAtomlabWasm()
 }
 
 /**
@@ -82,6 +59,7 @@ export function tryWasmReactorBalance(
   product: CompoundDef | undefined,
   productCoeff: number,
 ): boolean | null {
+  const wasmModule = getExports()
   if (!wasmModule || !product) return null
   const left = compositionFromLeftTerms(leftTerms)
   if (!left) return null
@@ -95,7 +73,6 @@ export function tryWasmReactorBalance(
   const mem = wasmModule.memory
   const needBytes = (leftPairs.length + rightPairs.length) * 2
   if (mem.buffer.byteLength < needBytes + 256) {
-    /* grow not available on all builds — fallback */
     return null
   }
   const view = new Uint16Array(mem.buffer)
@@ -118,4 +95,10 @@ export function isReactorBalancedFast(
   const wasm = tryWasmReactorBalance(leftTerms, product, productCoeff)
   if (wasm != null) return wasm
   return isReactorEquationBalanced(leftTerms, product, productCoeff)
+}
+
+/** Дождаться WASM для первого синтеза (фон). */
+export async function ensureReactorBalanceWasmReady(): Promise<boolean> {
+  const inst = await getAtomlabWasmInstance()
+  return inst != null
 }

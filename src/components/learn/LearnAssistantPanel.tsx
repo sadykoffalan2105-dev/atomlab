@@ -11,6 +11,7 @@ import {
   type SpeechOutputMode,
 } from '../../learn/learnSpeech'
 import type { LearnSection } from '../../types/learn'
+import { checkTeacherServiceHealth, requestTeacherChat } from '../../learn/teacherServiceClient'
 import { LearnAssistantMarkdown } from './LearnAssistantMarkdown'
 import styles from '../../pages/LearnPage.module.css'
 
@@ -198,12 +199,22 @@ export function LearnAssistantPanel({
     setListening(started)
   }, [listening, speechLocale])
 
+  useEffect(() => {
+    void checkTeacherServiceHealth()
+  }, [])
+
   const replyFromApi = useCallback(
     async (nextMessages: ChatMessage[]): Promise<{ text: string; source: 'openai' | 'local' | 'ollama' }> => {
       const payload = {
         messages: nextMessages.map((m) => ({ role: m.role, content: m.text })),
         context: localCtx,
       }
+
+      const teacher = await requestTeacherChat(payload.messages, payload.context)
+      if (teacher?.text) {
+        return { text: teacher.text, source: 'ollama' }
+      }
+
       const apiUrl = import.meta.env.VITE_LEARN_CHAT_URL
       if (apiUrl) {
         try {

@@ -5,45 +5,20 @@
 import type { LeftCatalogMatch, ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { CompoundDef } from '../types/chemistry'
 import { requestCatalogMatchesFromWorker } from '../lab/catalogMatchWorkerClient'
+import { getAtomlabWasmInstance, prefetchAtomlabWasm } from './atomlabWasmShared'
 
 type WasmExports = {
   catalog_match: (termsPtr: number, termsLen: number, outPtr: number, outCap: number) => number
   memory: WebAssembly.Memory
 }
 
-let wasmReady: Promise<boolean> | null = null
-let wasmExports: WasmExports | null = null
 let catalogCache: CompoundDef[] = []
 
 export async function initAtomlabCore(catalog: readonly CompoundDef[]): Promise<boolean> {
   catalogCache = [...catalog]
-  if (!wasmReady) {
-    wasmReady = loadWasm()
-  }
-  return wasmReady
-}
-
-async function loadWasm(): Promise<boolean> {
-  try {
-    const wasmUrl = `${import.meta.env.BASE_URL || '/'}wasm/atomlab_core.wasm`.replace(/\.\//g, '/').replace(/\/+/g, '/')
-    const url = wasmUrl.startsWith('http')
-      ? wasmUrl
-      : `${window.location.origin}${wasmUrl.startsWith('/') ? '' : '/'}${wasmUrl}`
-    const res = await fetch(url)
-    if (!res.ok) return false
-    const buf = await res.arrayBuffer()
-    const { instance } = await WebAssembly.instantiate(buf, {
-      env: {
-        abort: () => {
-          throw new Error('wasm abort')
-        },
-      },
-    })
-    wasmExports = instance.exports as unknown as WasmExports
-    return true
-  } catch {
-    return false
-  }
+  prefetchAtomlabWasm()
+  const inst = await getAtomlabWasmInstance()
+  return inst != null
 }
 
 /** WASM match или null → caller uses worker */
@@ -51,12 +26,11 @@ export async function findCatalogMatchesWasm(
   terms: readonly ReactorEquationTerm[],
   catalog: readonly CompoundDef[],
 ): Promise<LeftCatalogMatch[] | null> {
-  if (!wasmExports && wasmReady) {
-    const ok = await wasmReady
-    if (!ok) return workerPromise(terms, catalog)
-  }
-  if (!wasmExports) return null
+  const inst = await getAtomlabWasmInstance()
+  if (!inst) return workerPromise(terms, catalog)
 
+  const _exports = inst.exports as unknown as WasmExports
+  void _exports
   // WASM ABI not wired yet — use worker path (off main thread)
   return null
 }

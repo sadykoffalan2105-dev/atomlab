@@ -1,5 +1,5 @@
 import { prefetchLearnImage } from '../components/learn/LearnSlideVisual'
-import { publicAssetUrl } from '../utils/publicAssetUrl'
+import { prefetchAtomlabWasm } from '../wasm/atomlabWasmShared'
 
 const prefetched = new Set<string>()
 
@@ -19,8 +19,5 @@ export function prefetchLearnSectionHub(visualId: string | undefined): void {
 
 /** WASM catalog core (один раз за сессию). */
 export function prefetchWasmCore(): void {
-  const url = publicAssetUrl('wasm/atomlab_core.wasm')
-  if (prefetched.has(url)) return
-  prefetched.add(url)
-  void fetch(url, { method: 'GET', cache: 'force-cache' }).catch(() => {})
+  prefetchAtomlabWasm()
 }

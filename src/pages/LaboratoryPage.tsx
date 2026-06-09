@@ -13,12 +13,12 @@ import {
   compositionFromLeftTerms,
   findCatalogMatchesForLeftTerms,
   findMatchingProductCoeff,
-  isReactorEquationBalanced,
   type ReactorEquationTerm,
 } from '../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { scheduleIdleMatch } from '../lab/labRenderGuards'
+import { CATALOG_AUTO_PRODUCT_MS } from '../lab/synthesisHangGuard'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
@@ -270,12 +270,12 @@ export function LaboratoryPage() {
           setProductCoeff(o.k)
         })
       })
-    }, 420)
+    }, CATALOG_AUTO_PRODUCT_MS)
     return () => window.clearTimeout(timer)
   }, [catalogAutoMatches, leftTerms, productCompoundId, catalogList])
 
   const equationBalanced = useMemo(
-    () => isReactorEquationBalanced(leftTerms, productCompound ?? undefined, productCoeff),
+    () => isReactorBalancedFast(leftTerms, productCompound ?? undefined, productCoeff),
     [leftTerms, productCompound, productCoeff],
   )
 
@@ -311,22 +311,23 @@ export function LaboratoryPage() {
     (z: number) => {
       if (reactorOpen) {
         if (!getElementByZ(z)) return
-        setLeftTerms((prev) => {
-          const di = isDiatomicNativeElement(z)
-          const matchIndex = prev.findIndex((term) => term.z === z && Boolean(term.diatomic) === di)
-          if (matchIndex >= 0) {
-            const term = prev[matchIndex]!
-            const nextCoeff = term.coeff + 1
-            if (nextCoeff > REACTOR_COEFF_MAX) return prev
-            const trial = prev.map((x, i) => (i === matchIndex ? { ...x, coeff: nextCoeff } : x))
-            return trial
-          }
-          if (prev.length >= REACTOR_EQUATION_MAX_TERMS) return prev
-          return [...prev, { id: newId(), z, coeff: 1, ...(di ? { diatomic: true as const } : {}) }]
+        startTransition(() => {
+          setLeftTerms((prev) => {
+            const di = isDiatomicNativeElement(z)
+            const matchIndex = prev.findIndex((term) => term.z === z && Boolean(term.diatomic) === di)
+            if (matchIndex >= 0) {
+              const term = prev[matchIndex]!
+              const nextCoeff = term.coeff + 1
+              if (nextCoeff > REACTOR_COEFF_MAX) return prev
+              return prev.map((x, i) => (i === matchIndex ? { ...x, coeff: nextCoeff } : x))
+            }
+            if (prev.length >= REACTOR_EQUATION_MAX_TERMS) return prev
+            return [...prev, { id: newId(), z, coeff: 1, ...(di ? { diatomic: true as const } : {}) }]
+          })
         })
         return
       }
-      if (getElementByZ(z)) setStructureZ(z)
+      if (getElementByZ(z)) startTransition(() => setStructureZ(z))
     },
     [reactorOpen],
   )

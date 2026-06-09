@@ -1,4 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect } from 'react'
+import { compoundById } from './data/compounds'
+import { warmupLabSynthesisInfra } from './lab/labSynthesisWarmup'
 import { useLocale } from './i18n/useLocale'
 import { useT } from './i18n/useT'
 import styles from './AppShell.module.css'
@@ -6,6 +9,10 @@ import styles from './AppShell.module.css'
 export function AppShell() {
   const { locale, toggleLocale } = useLocale()
   const { t } = useT()
+
+  useEffect(() => {
+    warmupLabSynthesisInfra(Object.values(compoundById))
+  }, [])
 
   return (
     <div className={styles.root}>

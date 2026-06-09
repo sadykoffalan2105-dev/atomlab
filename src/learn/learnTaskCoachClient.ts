@@ -3,6 +3,7 @@ import type { LearnTaskCoachContext } from './learnTaskCoachTypes'
 import type { LearnTaskGenerated } from './learnTaskProblems'
 import { filterTaskCoachReply } from './learnAssistantGuard'
 import { routeTaskCoachReply } from './learnTaskCoachRouter'
+import { requestTeacherChat } from './teacherServiceClient'
 
 const CHAT_URL = import.meta.env.VITE_LEARN_CHAT_URL ?? '/api/learn/chat'
 
@@ -21,6 +22,14 @@ export async function requestTaskCoachReply(
   }
 
   const payload = { messages, context }
+
+  const teacher = await requestTeacherChat(messages, context)
+  if (teacher?.text) {
+    return {
+      text: filterTaskCoachReply(teacher.text, taskCoach),
+      source: 'ollama',
+    }
+  }
 
   try {
     const res = await fetch(CHAT_URL, {

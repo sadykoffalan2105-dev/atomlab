@@ -55,6 +55,9 @@ function recognitionCtor(): (new () => SpeechRecognitionLike) | null {
 }
 
 export function resolveLearnTtsUrl(): string {
+  const teacher = import.meta.env.VITE_TEACHER_SERVICE_URL as string | undefined
+  if (teacher?.trim()) return `${teacher.trim().replace(/\/$/, '')}/v1/tts`
+  if (import.meta.env.DEV) return '/teacher-api/v1/tts'
   const explicit = import.meta.env.VITE_LEARN_TTS_URL as string | undefined
   if (explicit?.trim()) return explicit.trim()
   const chat = import.meta.env.VITE_LEARN_CHAT_URL as string | undefined

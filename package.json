@@ -25,7 +25,9 @@
     "learn:prepare-element-life": "node scripts/generate-element-life-profiles.mjs && node scripts/prepare-element-life-images.mjs",
     "learn:fetch-placeholders": "node scripts/fetch-learn-placeholders.mjs",
     "clone:teacher-voice": "node scripts/clone-teacher-voice.mjs",
-    "wasm:build": "node scripts/build-wasm.mjs"
+    "wasm:build": "node scripts/build-wasm.mjs",
+    "teacher:native": "node scripts/build-teacher-native.mjs",
+    "teacher:dev": "python -m teacher_service"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
