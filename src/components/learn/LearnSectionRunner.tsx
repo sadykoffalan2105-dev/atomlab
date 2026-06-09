@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { LearnAssistantPanel } from './LearnAssistantPanel'
-import { LearnBookTopicPanel } from './LearnBookTopicPanel'
 import { LearnTheoryRich } from './LearnTheoryRich'
 import { LearnSlideDeckVisual } from './LearnSlideDeckVisual'
 import { prefetchLearnImage } from './LearnSlideVisual'
 import { LearnColumnPanelTools } from './LearnColumnPanelTools'
-import { LearnClassRosterPanel } from './LearnClassRosterPanel'
+import { LearnLessonSidebar } from './LearnLessonSidebar'
 import { LearnWorkspace } from './LearnWorkspace'
 import type { LearnChapter, LearnGrade, LearnSection, LearnSlide } from '../../types/learn'
 import {
@@ -293,17 +292,11 @@ export function LearnSectionRunner({
   const moleculeHubSection =
     section.defaultVisualId != null && hasCyberDashboard(section.defaultVisualId)
 
-  const theoryCol = moleculeHubSection ? (
-    <div className={styles.learnSlideCol}>
-      <LearnClassRosterPanel
-        sectionId={section.defaultVisualId!}
-        grade={grade}
-        chapter={chapter}
-        section={section}
-      />
-    </div>
-  ) : (
-    <div className={styles.learnSlideCol}>
+  const rosterSectionId =
+    moleculeHubSection && section.defaultVisualId ? section.defaultVisualId : pathId
+
+  const lessonSlidesContent = (
+    <>
       <div className={styles.learnProgressBar} aria-hidden>
         <div className={styles.learnProgressFill} style={{ width: `${progressPct}%` }} />
       </div>
@@ -324,7 +317,7 @@ export function LearnSectionRunner({
         ))}
       </nav>
       <h2 className={styles.stepTitle}>{slideTitle}</h2>
-      {slideBody ? <p className={styles.stepBody}>{slideBody}</p> : null}
+      {slideBody ? <p className={styles.stepBodyCompact}>{slideBody}</p> : null}
       <LearnTheoryRich {...rich} />
       {slide.type === 'checkpoint' ? (
         <>
@@ -411,7 +404,7 @@ export function LearnSectionRunner({
           {t('learn.tryLab')}
         </Link>
       ) : null}
-      <div className={styles.footerNav}>
+      <div className={styles.footerNavCompact}>
         <button type="button" className={styles.btn} onClick={goPrev} disabled={slideIndex === 0}>
           {t('learn.prev')}
         </button>
@@ -419,7 +412,19 @@ export function LearnSectionRunner({
           {isLast ? t('learn.finish') : t('learn.next')}
         </button>
       </div>
-    </div>
+    </>
+  )
+
+  const theoryCol = (
+    <LearnLessonSidebar
+      grade={grade}
+      chapter={chapter}
+      section={section}
+      rosterSectionId={rosterSectionId}
+      lessonContent={lessonSlidesContent}
+      showLessonTab={!moleculeHubSection}
+      fromBook={fromBook}
+    />
   )
 
   const toggleExpanded = useCallback((panel: '3d' | 'work' | 'assistant') => {
@@ -466,25 +471,32 @@ export function LearnSectionRunner({
     expandedPanel === id ? styles.learnColFullscreen : ''
 
   return (
-    <div className={`${styles.page} ${presentationMode ? styles.learnPagePresent : ''}`}>
-      <Link
-        className={styles.backLink}
-        to={
-          fromBook && gradeHasTextbook(grade.id)
-            ? `/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${g7TextbookSectionPage(chapter.id, section.id)}`
-            : `/learn/g/${grade.id}/c/${chapter.id}`
-        }
-      >
-        {fromBook ? t('learn.bookTopic.backToBook') : t('learn.backChapters')}
-      </Link>
-      <header className={styles.lessonHeader}>
+    <div
+      className={`${styles.page} ${styles.learnLessonOneScreen} ${presentationMode ? styles.learnPagePresent : ''}`}
+    >
+      <header className={`${styles.lessonHeader} ${styles.lessonHeaderCompact}`}>
         <div className={styles.lessonHeaderRow}>
-          <div>
+          <div className={styles.lessonHeaderMain}>
+            <Link
+              className={styles.backLinkInline}
+              to={
+                fromBook && gradeHasTextbook(grade.id)
+                  ? `/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${g7TextbookSectionPage(chapter.id, section.id)}`
+                  : `/learn/g/${grade.id}/c/${chapter.id}`
+              }
+            >
+              {fromBook ? t('learn.bookTopic.backToBook') : t('learn.backChapters')}
+            </Link>
             <h1 className={styles.lessonTitle}>{t(section.titleKey)}</h1>
-            <p className={styles.lessonEst}>{t('learn.estimatedMin', { n: section.estimatedMin })}</p>
-            <p className={styles.fgosBadge}>{t('learn.fgos.badge', { block: fgosMeta.programBlock })}</p>
+            <p className={styles.lessonMetaInline}>
+              {t('learn.estimatedMin', { n: section.estimatedMin })} ·{' '}
+              {t('learn.fgos.badge', { block: fgosMeta.programBlock })}
+            </p>
           </div>
           <div className={styles.learnHeaderActions}>
+            <Link className={styles.btn} to="/learn/tasks">
+              {t('learn.grades.tasks')}
+            </Link>
             {gradeHasTextbook(grade.id) ? (
               <Link
                 className={styles.btn}
@@ -563,15 +575,6 @@ export function LearnSectionRunner({
           </div>
         </div>
       </header>
-
-      {grade.id === 'g7' ? (
-        <LearnBookTopicPanel
-          grade={grade}
-          chapter={chapter}
-          section={section}
-          fromBook={fromBook}
-        />
-      ) : null}
 
       {hiddenPanels.size > 0 && !presentationMode ? (
         <div className={styles.learnHiddenPanelsBar} role="region" aria-label={t('learn.panel.hiddenBar')}>

@@ -52,6 +52,10 @@ export const learnMoleculeStructureEn = {
   'learn.classRoster.lastScoreKind': '{kind}: {score}/{total}',
   'learn.studentTestHub.lead':
     'Section quiz or AI-style oral exam. Results are saved to the student profile.',
+  'learn.studentTestHub.leadUnified':
+    'Mini-exam on this §: 5 or 10 questions in a row. «Chemistry §» or AI oral mode. Results save to the student card — for the board or individual checks.',
+  'learn.studentTestHub.classMode':
+    'Board mode: start without picking a student. Select one in the list below to save results to the progress chart.',
   'learn.studentTestHub.modeLabel': 'Test type',
   'learn.studentTestHub.modeTopic': 'Chemistry §',
   'learn.studentTestHub.modeAi': 'AI oral exam',

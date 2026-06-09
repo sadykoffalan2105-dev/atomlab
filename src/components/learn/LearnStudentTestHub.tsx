@@ -16,9 +16,21 @@ type Props = {
   chapter: LearnChapter
   section: LearnSection
   rosterSectionId: string
+  /** Если false — можно начать без выбора ученика (режим доски) */
+  requireStudent?: boolean
+  showMoleculeHint?: boolean
+  compact?: boolean
 }
 
-export function LearnStudentTestHub({ grade, chapter, section, rosterSectionId }: Props) {
+export function LearnStudentTestHub({
+  grade,
+  chapter,
+  section,
+  rosterSectionId,
+  requireStudent = true,
+  showMoleculeHint = true,
+  compact = false,
+}: Props) {
   const { t } = useT()
   const [mode, setMode] = useState<TestMode>('topic')
   const [activeStudent, setActiveStudent] = useState<ClassStudent | null>(() =>
@@ -39,12 +51,16 @@ export function LearnStudentTestHub({ grade, chapter, section, rosterSectionId }
   const modeLabel = (m: TestMode) =>
     t(m === 'topic' ? 'learn.studentTestHub.modeTopic' : 'learn.studentTestHub.modeAi')
 
+  const testDisabled = requireStudent && !activeStudent
+
   return (
-    <div className={styles.hub}>
-      <div className={styles.head}>
-        <h3 className={styles.title}>{t('learn.studentTest.title')}</h3>
-        <p className={styles.lead}>{t('learn.studentTestHub.lead')}</p>
-      </div>
+    <div className={compact ? styles.hubCompact : styles.hub}>
+      {!compact ? (
+        <div className={styles.head}>
+          <h3 className={styles.title}>{t('learn.studentTest.title')}</h3>
+          <p className={styles.lead}>{t('learn.studentTestHub.leadUnified')}</p>
+        </div>
+      ) : null}
 
       <div className={styles.modeRow} role="tablist" aria-label={t('learn.studentTestHub.modeLabel')}>
         {(['topic', 'ai'] as const).map((m) => (
@@ -61,15 +77,25 @@ export function LearnStudentTestHub({ grade, chapter, section, rosterSectionId }
         ))}
       </div>
 
-      {activeStudent ? (
+      {requireStudent ? (
+        activeStudent ? (
+          <p className={styles.studentLine}>
+            {t('learn.molecules.structure.testForStudent', { name: activeStudent.name })}
+          </p>
+        ) : (
+          <p className={styles.studentHint}>{t('learn.molecules.structure.testNoStudent')}</p>
+        )
+      ) : activeStudent ? (
         <p className={styles.studentLine}>
           {t('learn.molecules.structure.testForStudent', { name: activeStudent.name })}
         </p>
       ) : (
-        <p className={styles.studentHint}>{t('learn.molecules.structure.testNoStudent')}</p>
+        <p className={styles.studentHintOptional}>{t('learn.studentTestHub.classMode')}</p>
       )}
 
-      <p className={styles.moleculeHint}>{t('learn.studentTestHub.moleculeHint')}</p>
+      {showMoleculeHint ? (
+        <p className={styles.moleculeHint}>{t('learn.studentTestHub.moleculeHint')}</p>
+      ) : null}
 
       <LearnStudentTest
         grade={grade}
@@ -78,7 +104,7 @@ export function LearnStudentTestHub({ grade, chapter, section, rosterSectionId }
         rosterSectionId={rosterSectionId}
         testKind={mode}
         variant={mode === 'ai' ? 'ai' : 'default'}
-        disabled={!activeStudent}
+        disabled={testDisabled}
         embedded
       />
     </div>

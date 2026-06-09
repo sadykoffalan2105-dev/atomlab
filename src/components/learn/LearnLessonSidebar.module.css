@@ -1,0 +1,253 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(80, 120, 180, 0.28);
+  background: rgba(8, 12, 28, 0.88);
+  overflow: hidden;
+}
+
+.tabRow {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.2rem;
+  padding: 0.35rem 0.4rem 0;
+  border-bottom: 1px solid rgba(80, 120, 180, 0.2);
+}
+
+.tab,
+.tabOn {
+  flex: 1;
+  font: inherit;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.38rem 0.25rem;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  background: transparent;
+  color: rgba(180, 195, 230, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tabOn {
+  background: rgba(30, 45, 80, 0.55);
+  color: #5cffd4;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0.45rem 0.5rem 0.5rem;
+}
+
+.lessonPane {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.lessonScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.toolsPane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.toolsLabel {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #9eb8ff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.equationBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.equationList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.72rem;
+  color: #e8eef8;
+}
+
+.equation {
+  font-family: ui-monospace, monospace;
+}
+
+.toolsLink {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #5cffd4;
+  text-decoration: none;
+}
+
+.toolsLink:hover {
+  text-decoration: underline;
+}
+
+.quizCompact {
+  transform: scale(0.92);
+  transform-origin: top left;
+  width: 108%;
+}
+
+.classPane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.importRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.3rem;
+  align-items: end;
+}
+
+.importInput {
+  font: inherit;
+  font-size: 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(92, 255, 212, 0.3);
+  background: rgba(6, 12, 24, 0.9);
+  color: #e8eef8;
+  padding: 0.35rem 0.45rem;
+  min-height: 2.2rem;
+  max-height: 2.2rem;
+  resize: none;
+  line-height: 1.2;
+}
+
+.importBtn {
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid rgba(92, 255, 212, 0.45);
+  background: rgba(92, 255, 212, 0.12);
+  color: #fff;
+  padding: 0.35rem 0.55rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.statRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.statChip {
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 140, 180, 0.35);
+  color: #c8d6ef;
+}
+
+.studentGrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.studentRow {
+  display: flex;
+  gap: 0.25rem;
+  align-items: stretch;
+}
+
+.studentBtn {
+  flex: 1;
+  text-align: left;
+  font: inherit;
+  font-size: 0.68rem;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 140, 180, 0.3);
+  background: rgba(255, 255, 255, 0.03);
+  color: #e8eef8;
+  padding: 0.35rem 0.45rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.studentBtnActive {
+  border-color: #5cffd4;
+  background: rgba(92, 255, 212, 0.1);
+}
+
+.studentName {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studentScore {
+  font-size: 0.6rem;
+  color: #5cffd4;
+  flex-shrink: 0;
+}
+
+.statsBtn {
+  width: 1.75rem;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 140, 180, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.68rem;
+  color: #8fa3c4;
+}
+
+.testPane {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}

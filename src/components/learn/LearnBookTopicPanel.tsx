@@ -6,8 +6,9 @@ import {
 } from '../../data/learnSectionEquations'
 import { g7TextbookSectionPage, gradeHasTextbook } from '../../data/learnTextbookG7'
 import { useT } from '../../i18n/useT'
+import { learnSectionPathId } from '../../data/learnCurriculumUz'
 import { LearnTopicQuizCard } from './LearnTopicQuizCard'
-import { LearnStudentTest } from './LearnStudentTest'
+import { LearnStudentTestHub } from './LearnStudentTestHub'
 import styles from './LearnBookTopicPanel.module.css'
 
 type Props = {
@@ -15,9 +16,17 @@ type Props = {
   chapter: LearnChapter
   section: LearnSection
   fromBook?: boolean
+  /** false = тест уже в панели класса слева (без дубля) */
+  showStudentTest?: boolean
 }
 
-export function LearnBookTopicPanel({ grade, chapter, section, fromBook }: Props) {
+export function LearnBookTopicPanel({
+  grade,
+  chapter,
+  section,
+  fromBook,
+  showStudentTest = true,
+}: Props) {
   const { t } = useT()
   const equations = getSectionEquations(grade.id, chapter.id, section.id)
   const labUrl = buildGenerateEquationLabUrl(grade.id, chapter.id, section.id)
@@ -65,7 +74,16 @@ export function LearnBookTopicPanel({ grade, chapter, section, fromBook }: Props
         </div>
       </div>
 
-      <LearnStudentTest grade={grade} chapter={chapter} section={section} />
+      {showStudentTest ? (
+        <LearnStudentTestHub
+          grade={grade}
+          chapter={chapter}
+          section={section}
+          rosterSectionId={learnSectionPathId(section)}
+          requireStudent={false}
+          showMoleculeHint={false}
+        />
+      ) : null}
     </section>
   )
 }

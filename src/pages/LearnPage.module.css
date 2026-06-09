@@ -2627,3 +2627,140 @@
   from { background-position: 42% center; background-size: 112%; }
   to { background-position: 58% center; background-size: 112%; }
 }
+
+/* --- One-screen lesson: всё на одном экране без прокрутки страницы --- */
+
+.learnLessonOneScreen {
+  height: calc(100dvh - var(--app-header-h, 3.4rem));
+  max-height: calc(100dvh - var(--app-header-h, 3.4rem));
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.4rem clamp(0.45rem, 1.2vw, 0.85rem) 0.45rem;
+  gap: 0.3rem;
+}
+
+.learnLessonOneScreen .lessonHeaderCompact {
+  flex-shrink: 0;
+  gap: 0.15rem;
+  margin-bottom: 0;
+}
+
+.learnLessonOneScreen .lessonHeaderMain {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.learnLessonOneScreen .backLinkInline {
+  display: inline-block;
+  margin-bottom: 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(160, 190, 255, 0.92);
+  text-decoration: none;
+}
+
+.learnLessonOneScreen .backLinkInline:hover {
+  color: #5cffd4;
+}
+
+.learnLessonOneScreen .lessonTitle {
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.learnLessonOneScreen .lessonMetaInline {
+  margin: 0.1rem 0 0;
+  font-size: 0.62rem;
+  color: rgba(150, 170, 210, 0.9);
+}
+
+.learnLessonOneScreen .learnHeaderActions .btn {
+  font-size: 0.68rem;
+  padding: 0.3rem 0.55rem;
+}
+
+.learnLessonOneScreen .learnLessonLayout {
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0.4rem;
+}
+
+.learnLessonOneScreen .learnColTheory,
+.learnLessonOneScreen .learnCol3d,
+.learnLessonOneScreen .learnColWork,
+.learnLessonOneScreen .learnColAssistant {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.learnLessonOneScreen .learnColTheory {
+  height: 100%;
+}
+
+.learnLessonOneScreen .learnVisual3d,
+.learnLessonOneScreen .learnVisualSvg,
+.learnLessonOneScreen .learnWorkspace,
+.learnLessonOneScreen .learnAssistant {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.learnLessonOneScreen .learnVisual3d canvas {
+  min-height: 0 !important;
+}
+
+.learnLessonOneScreen .learnWorkspace {
+  padding: 0.45rem 0.55rem;
+}
+
+.learnLessonOneScreen .learnAssistant {
+  padding: 0.45rem 0.55rem;
+}
+
+.learnLessonOneScreen .learnScratchpad {
+  min-height: 4.5rem;
+  flex: 1 1 auto;
+}
+
+.learnLessonOneScreen .stepTitle {
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+
+.stepBodyCompact {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: rgba(220, 228, 255, 0.96);
+}
+
+.footerNavCompact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(61, 255, 236, 0.12);
+}
+
+.footerNavCompact .btn {
+  font-size: 0.72rem;
+  padding: 0.32rem 0.6rem;
+}
+
+.learnLessonOneScreen .learnMobileTabs {
+  flex-shrink: 0;
+  margin-bottom: 0.25rem;
+}
+
+.learnLessonOneScreen .learnPagePresent .learnColTheory {
+  max-height: none;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .page.learnLessonOneScreen {
+    min-height: 0;
+  }
+}

@@ -52,6 +52,10 @@ export const learnMoleculeStructureRu = {
   'learn.classRoster.lastScoreKind': '{kind}: {score}/{total}',
   'learn.studentTestHub.lead':
     'Тест по вопросам § или устный опрос в формате ИИ-учителя. Результат сохраняется в карточку ученика.',
+  'learn.studentTestHub.leadUnified':
+    'Мини-экзамен по §: 5 или 10 вопросов подряд. Режим «Химия §» или устный «ИИ-опрос». Результат сохраняется в карточку ученика — удобно на доске и для индивидуальной проверки.',
+  'learn.studentTestHub.classMode':
+    'Режим доски: можно начать без ученика. Выберите ученика в списке ниже — результат попадёт в график успеваемости.',
   'learn.studentTestHub.modeLabel': 'Тип теста',
   'learn.studentTestHub.modeTopic': 'Химия §',
   'learn.studentTestHub.modeAi': 'ИИ-опрос',
