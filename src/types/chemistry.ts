@@ -86,4 +86,12 @@ export interface ElementViewModel {
   electronConfiguration: string
   /** English label from IUPAC-style data (e.g. Gas, Solid) */
   standardState: string
+  electronegativity?: number | null
+  atomicRadius?: number | null
+  ionizationEnergy?: number | null
+  electronAffinity?: number | null
+  meltingPoint?: number | null
+  boilingPoint?: number | null
+  density?: number | null
+  yearDiscovered?: string | null
 }

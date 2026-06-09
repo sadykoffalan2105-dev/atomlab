@@ -2,6 +2,17 @@
  * Камера/орбита мини-героя в карточке вещества (`CatalogMoleculeHero`).
  * Синтез + settled приводим к ним, чтобы весь кадр совпадал с каталогом 3D.
  */
+/** Компактное превью атома в карточке элемента таблицы Менделеева. */
+export const ELEMENT_ATOM_PREVIEW_VIEW = {
+  cameraPosition: [0, 0.06, 2.35] as [number, number, number],
+  fov: 44,
+  minDistance: 2.0,
+  maxDistance: 4.2,
+  minPolarAngle: Math.PI * 0.32,
+  maxPolarAngle: Math.PI * 0.68,
+  modelScale: 1.55,
+} as const
+
 export const CATALOG_HERO_VIEW = {
   // Slightly farther/wider so 100% browser zoom looks like prior ~50% framing.
   cameraPosition: [0, 0.12, 3.6] as [number, number, number],

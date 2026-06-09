@@ -1,24 +1,43 @@
 import { useEffect } from 'react'
-import { getElementByZ } from '../../data/elements'
+import { ELEMENTS, getElementByZ } from '../../data/elements'
 import { useT } from '../../i18n/useT'
 import { ElementDetailContent } from './ElementDetailContent'
 import styles from './ElementDetailModal.module.css'
 
-export function ElementDetailModal({ z, onClose }: { z: number | null; onClose: () => void }) {
+type Props = {
+  z: number | null
+  onClose: () => void
+  onNavigate?: (z: number) => void
+}
+
+export function ElementDetailModal({ z, onClose, onNavigate }: Props) {
   const { t } = useT()
 
   useEffect(() => {
     if (z == null) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
+      if (onNavigate) {
+        if (e.key === 'ArrowLeft') {
+          const prev = ELEMENTS.find((el) => el.z === z - 1)
+          if (prev) onNavigate(prev.z)
+        }
+        if (e.key === 'ArrowRight') {
+          const next = ELEMENTS.find((el) => el.z === z + 1)
+          if (next) onNavigate(next.z)
+        }
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [z, onClose])
+  }, [z, onClose, onNavigate])
 
   if (z == null) return null
 
   const el = getElementByZ(z)
+  const prev = ELEMENTS.find((e) => e.z === z - 1)
+  const next = ELEMENTS.find((e) => e.z === z + 1)
+
   if (!el) {
     return (
       <div className={styles.backdrop} role="presentation" onClick={onClose}>
@@ -34,7 +53,7 @@ export function ElementDetailModal({ z, onClose }: { z: number | null; onClose: 
               {t('element.notFound')}
             </p>
             <button type="button" className={styles.close} onClick={onClose} aria-label={t('element.close')}>
-              ×
+              <span className={styles.closeIcon} aria-hidden />
             </button>
           </header>
         </div>
@@ -51,12 +70,34 @@ export function ElementDetailModal({ z, onClose }: { z: number | null; onClose: 
         aria-labelledby="el-detail-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className={styles.head}>
-          <ElementDetailContent z={z} titleId="el-detail-title" variant="compact" />
-          <button type="button" className={styles.close} onClick={onClose} aria-label={t('element.close')}>
-            ×
+        {onNavigate && prev ? (
+          <button
+            type="button"
+            className={styles.navPrev}
+            onClick={() => onNavigate(prev.z)}
+            aria-label={t('elementDetail.prevElement')}
+          >
+            ‹
           </button>
-        </header>
+        ) : null}
+        {onNavigate && next ? (
+          <button
+            type="button"
+            className={styles.navNext}
+            onClick={() => onNavigate(next.z)}
+            aria-label={t('elementDetail.nextElement')}
+          >
+            ›
+          </button>
+        ) : null}
+
+        <button type="button" className={styles.close} onClick={onClose} aria-label={t('element.close')}>
+          <span className={styles.closeIcon} aria-hidden />
+        </button>
+
+        <div className={styles.cardInner}>
+          <ElementDetailContent z={z} titleId="el-detail-title" variant="default" />
+        </div>
       </div>
     </div>
   )

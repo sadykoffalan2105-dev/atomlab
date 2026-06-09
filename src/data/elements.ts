@@ -12,6 +12,14 @@ interface RawElement {
   oxidationStates?: string
   electronConfiguration?: string
   standardState?: string
+  electronegativity?: number | null
+  atomicRadius?: number | null
+  ionizationEnergy?: number | null
+  electronAffinity?: number | null
+  meltingPoint?: number | null
+  boilingPoint?: number | null
+  density?: number | null
+  yearDiscovered?: string | number | null
 }
 
 const gridByZ = new Map<number, { x: number; y: number }>(
@@ -37,6 +45,14 @@ export const ELEMENTS: readonly ElementViewModel[] = rawList
       oxidationStates: (e.oxidationStates ?? '—').replace(/\s*,\s*/g, ', '),
       electronConfiguration: (e.electronConfiguration ?? '—').replace(/\s+/g, ' ').trim(),
       standardState: (e.standardState ?? '—').replace(/\s+/g, ' ').trim() || '—',
+      electronegativity: e.electronegativity ?? null,
+      atomicRadius: e.atomicRadius ?? null,
+      ionizationEnergy: e.ionizationEnergy ?? null,
+      electronAffinity: e.electronAffinity ?? null,
+      meltingPoint: e.meltingPoint ?? null,
+      boilingPoint: e.boilingPoint ?? null,
+      density: e.density ?? null,
+      yearDiscovered: e.yearDiscovered != null ? String(e.yearDiscovered) : null,
     }
   })
   .sort((a, b) => a.z - b.z)
