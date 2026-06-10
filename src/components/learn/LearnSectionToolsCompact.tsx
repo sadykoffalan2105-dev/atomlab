@@ -43,6 +43,8 @@ export function LearnSectionToolsCompact({ grade, chapter, section, fromBook }: 
       <Link className={styles.toolsLink} to="/learn/tasks">
         {t('learn.lesson.openTasks')}
       </Link>
+      <p className={styles.toolsLabel}>{t('learn.balance.title')}</p>
+      <p className={styles.toolsHint}>{t('learn.teacherExam.balanceHint')}</p>
     </div>
   )
 }

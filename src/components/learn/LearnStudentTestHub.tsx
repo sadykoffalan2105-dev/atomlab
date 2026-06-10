@@ -5,13 +5,15 @@ import {
   getActiveStudent,
   type ClassStudent,
 } from '../../learn/learnClassRosterStorage'
-import { useT } from '../../i18n/useT'
+import { useT, type MessageKey } from '../../i18n/useT'
+import { FormulaLearningPanel } from './FormulaLearningPanel'
 import { LearnOralExamPanel } from './LearnOralExamPanel'
 import { LearnStudentTest } from './LearnStudentTest'
 import { LearnWrittenExamPanel } from './LearnWrittenExamPanel'
+import { ValencyBalanceTutor } from './ValencyBalanceTutor'
 import styles from './TeacherExamShell.module.css'
 
-type ExamMode = 'mcq' | 'oral' | 'written'
+type ExamMode = 'mcq' | 'oral' | 'written' | 'balance' | 'formulas'
 
 type Props = {
   grade: LearnGrade
@@ -23,11 +25,15 @@ type Props = {
   compact?: boolean
 }
 
-const MODE_HINT: Record<ExamMode, 'learn.teacherExam.mcqHint' | 'learn.teacherExam.oralHint' | 'learn.teacherExam.writtenHint'> = {
+const MODE_HINT: Record<ExamMode, MessageKey> = {
   mcq: 'learn.teacherExam.mcqHint',
   oral: 'learn.teacherExam.oralHint',
   written: 'learn.teacherExam.writtenHint',
+  balance: 'learn.teacherExam.balanceHint',
+  formulas: 'learn.teacherExam.formulasHint',
 }
+
+const MODES: ExamMode[] = ['mcq', 'oral', 'written', 'balance', 'formulas']
 
 export function LearnStudentTestHub({
   grade,
@@ -58,7 +64,9 @@ export function LearnStudentTestHub({
   const modeLabel = (m: ExamMode) => {
     if (m === 'mcq') return t('learn.teacherExam.modeMcq')
     if (m === 'oral') return t('learn.teacherExam.modeOral')
-    return t('learn.teacherExam.modeWritten')
+    if (m === 'written') return t('learn.teacherExam.modeWritten')
+    if (m === 'balance') return t('learn.teacherExam.modeBalance')
+    return t('learn.teacherExam.modeFormulas')
   }
 
   const testDisabled = requireStudent && !activeStudent
@@ -75,7 +83,7 @@ export function LearnStudentTestHub({
       ) : null}
 
       <div className={styles.modeRow} role="tablist" aria-label={t('learn.teacherExam.modeLabel')}>
-        {(['mcq', 'oral', 'written'] as const).map((m) => (
+        {MODES.map((m) => (
           <button
             key={m}
             type="button"
@@ -145,6 +153,17 @@ export function LearnStudentTestHub({
           embedded
         />
       ) : null}
+
+      {mode === 'balance' ? (
+        <ValencyBalanceTutor
+          gradeId={grade.id}
+          chapterId={chapter.id}
+          sectionId={section.id}
+          embedded
+        />
+      ) : null}
+
+      {mode === 'formulas' ? <FormulaLearningPanel embedded /> : null}
     </div>
   )
 }

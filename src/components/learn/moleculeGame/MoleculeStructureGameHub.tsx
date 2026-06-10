@@ -26,9 +26,10 @@ import {
 } from '../../../learn/studentTestScoring'
 import type { CompoundDef } from '../../../types/chemistry'
 import { MoleculeStructureCanvas } from './MoleculeStructureCanvas'
+import { ValencyBalanceTutor } from '../ValencyBalanceTutor'
 import styles from './MoleculeStructureGameHub.module.css'
 
-type Mode = 'learn' | 'test'
+type Mode = 'learn' | 'test' | 'balance'
 type InfoTab = 'structure' | 'about' | 'recipe'
 type TestPhase = 'setup' | 'running' | 'results'
 
@@ -454,6 +455,13 @@ export function MoleculeStructureGameHub({
       </button>
       <button
         type="button"
+        className={`${styles.modeBtn} ${mode === 'balance' ? styles.modeBtnActive : ''}`}
+        onClick={() => setMode('balance')}
+      >
+        {t('learn.molecules.structure.modeBalance')}
+      </button>
+      <button
+        type="button"
         className={`${styles.modeBtn} ${mode === 'test' ? styles.modeBtnActive : ''}`}
         onClick={() => setMode('test')}
       >
@@ -472,7 +480,9 @@ export function MoleculeStructureGameHub({
           <h2 className={styles.title}>
             {mode === 'test'
               ? t('learn.molecules.structure.modeTest')
-              : t('learn.molecules.structure.title')}
+              : mode === 'balance'
+                ? t('learn.balance.title')
+                : t('learn.molecules.structure.title')}
           </h2>
           {!presentationMode ? (
             <p className={styles.subtitle}>{t('learn.molecules.structure.subtitle')}</p>
@@ -533,6 +543,10 @@ export function MoleculeStructureGameHub({
                 <div className={styles.emptyDetail}>{t('learn.molecules.structure.pickCompound')}</div>
               )}
             </div>
+          </div>
+        ) : mode === 'balance' ? (
+          <div className={styles.balancePane}>
+            <ValencyBalanceTutor embedded />
           </div>
         ) : (
           <MoleculeStructureTest

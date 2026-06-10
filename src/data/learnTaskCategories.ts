@@ -51,6 +51,14 @@ export const LEARN_TASK_CATEGORIES: readonly LearnTaskCategoryDef[] = [
     exampleKey: 'learn.tasks.metal_plate.example',
   },
   {
+    id: 'formulas',
+    group: 'qual',
+    titleKey: 'learn.tasks.formulas.title',
+    whatKey: 'learn.tasks.formulas.what',
+    exampleKey: 'learn.tasks.formulas.example',
+    gradeIds: ['g7', 'g8', 'g9'],
+  },
+  {
     id: 'electron_balance',
     group: 'qual',
     titleKey: 'learn.tasks.electron_balance.title',

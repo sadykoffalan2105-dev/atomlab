@@ -1,0 +1,329 @@
+.balanceTutor,
+.formulaHub {
+  --skill-accent: #5cffd4;
+  --skill-border: color-mix(in srgb, var(--skill-accent) 32%, transparent);
+  --skill-text: #e8eef8;
+  --skill-muted: #8fa3c4;
+}
+
+.shell,
+.embedded {
+  padding: 0.85rem 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--skill-border);
+  background:
+    radial-gradient(ellipse 85% 60% at 12% 0%, color-mix(in srgb, var(--skill-accent) 12%, transparent), transparent 58%),
+    linear-gradient(155deg, rgba(10, 18, 36, 0.96), rgba(4, 8, 18, 0.98));
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.38);
+}
+
+.embedded {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.head {
+  margin-bottom: 0.75rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--skill-accent);
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--skill-text);
+}
+
+.lead {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--skill-muted);
+}
+
+.lessonPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.lessonTab,
+.lessonTabActive {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid var(--skill-border);
+}
+
+.lessonTab {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--skill-text);
+}
+
+.lessonTabActive {
+  background: color-mix(in srgb, var(--skill-accent) 16%, transparent);
+  color: #eafffa;
+  border-color: color-mix(in srgb, var(--skill-accent) 50%, transparent);
+}
+
+.lessonCard {
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--skill-border);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.lessonHead {
+  margin-bottom: 0.65rem;
+}
+
+.lessonTitle {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--skill-text);
+}
+
+.equationDisplay {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--skill-accent);
+  letter-spacing: 0.02em;
+}
+
+.diatomicNote {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #d8e8ff;
+  background: color-mix(in srgb, var(--skill-accent) 8%, rgba(0, 0, 0, 0.35));
+  border: 1px dashed var(--skill-border);
+}
+
+.valencyGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.valencyChip {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  color: #cfe8ff;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.equationBuilder {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.65rem;
+  align-items: start;
+  margin-bottom: 0.65rem;
+}
+
+.equationSide {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.sideLabel {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--skill-muted);
+}
+
+.arrow {
+  align-self: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--skill-accent);
+  padding-top: 1.2rem;
+}
+
+.termRow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.termControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--skill-border);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.coeffBtn {
+  font: inherit;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 50%;
+  border: none;
+  background: color-mix(in srgb, var(--skill-accent) 14%, transparent);
+  color: #eafffa;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.coeffBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.coeffValue {
+  min-width: 1.25rem;
+  text-align: center;
+  font-weight: 900;
+  color: var(--skill-accent);
+}
+
+.termFormula {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--skill-text);
+}
+
+.preview {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #eef6ff;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--skill-border);
+  text-align: center;
+}
+
+.atomHint {
+  margin: 0 0 0.55rem;
+  font-size: 0.72rem;
+  color: #ffd48a;
+}
+
+.stepBox {
+  margin: 0.75rem 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid var(--skill-border);
+  background: color-mix(in srgb, var(--skill-accent) 5%, rgba(0, 0, 0, 0.35));
+}
+
+.stepBadge {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--skill-accent);
+  margin-bottom: 0.35rem;
+}
+
+.stepText {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--skill-text);
+}
+
+.stepNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.primaryBtn {
+  border: 1px solid var(--skill-accent);
+  background: color-mix(in srgb, var(--skill-accent) 18%, transparent);
+  color: #eafffa;
+}
+
+.secondaryBtn {
+  border: 1px solid var(--skill-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--skill-text);
+}
+
+.feedbackOk {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6ee7a0;
+}
+
+.feedbackBad {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ff9a9a;
+}
+
+.labLink {
+  display: inline-block;
+  margin-top: 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--skill-accent);
+  text-decoration: none;
+}
+
+.labLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 720px) {
+  .equationBuilder {
+    grid-template-columns: 1fr;
+  }
+
+  .arrow {
+    padding-top: 0;
+    text-align: center;
+  }
+}
