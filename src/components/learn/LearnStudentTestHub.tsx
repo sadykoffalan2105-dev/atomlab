@@ -7,13 +7,14 @@ import {
 } from '../../learn/learnClassRosterStorage'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { FormulaLearningPanel } from './FormulaLearningPanel'
+import { ChemProblemTutor } from './ChemProblemTutor'
 import { LearnOralExamPanel } from './LearnOralExamPanel'
 import { LearnStudentTest } from './LearnStudentTest'
 import { LearnWrittenExamPanel } from './LearnWrittenExamPanel'
 import { ValencyBalanceTutor } from './ValencyBalanceTutor'
 import styles from './TeacherExamShell.module.css'
 
-type ExamMode = 'mcq' | 'oral' | 'written' | 'balance' | 'formulas'
+type ExamMode = 'mcq' | 'oral' | 'written' | 'balance' | 'formulas' | 'problems'
 
 type Props = {
   grade: LearnGrade
@@ -31,9 +32,10 @@ const MODE_HINT: Record<ExamMode, MessageKey> = {
   written: 'learn.teacherExam.writtenHint',
   balance: 'learn.teacherExam.balanceHint',
   formulas: 'learn.teacherExam.formulasHint',
+  problems: 'learn.teacherExam.problemsHint',
 }
 
-const MODES: ExamMode[] = ['mcq', 'oral', 'written', 'balance', 'formulas']
+const MODES: ExamMode[] = ['mcq', 'oral', 'written', 'balance', 'formulas', 'problems']
 
 export function LearnStudentTestHub({
   grade,
@@ -66,7 +68,8 @@ export function LearnStudentTestHub({
     if (m === 'oral') return t('learn.teacherExam.modeOral')
     if (m === 'written') return t('learn.teacherExam.modeWritten')
     if (m === 'balance') return t('learn.teacherExam.modeBalance')
-    return t('learn.teacherExam.modeFormulas')
+    if (m === 'formulas') return t('learn.teacherExam.modeFormulas')
+    return t('learn.teacherExam.modeProblems')
   }
 
   const testDisabled = requireStudent && !activeStudent
@@ -164,6 +167,8 @@ export function LearnStudentTestHub({
       ) : null}
 
       {mode === 'formulas' ? <FormulaLearningPanel embedded /> : null}
+
+      {mode === 'problems' ? <ChemProblemTutor embedded /> : null}
     </div>
   )
 }

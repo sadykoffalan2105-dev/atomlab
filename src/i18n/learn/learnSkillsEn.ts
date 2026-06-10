@@ -1,10 +1,13 @@
 export const learnSkillsEn = {
   'learn.teacherExam.modeBalance': 'Coefficients',
   'learn.teacherExam.modeFormulas': 'Formulas',
+  'learn.teacherExam.modeProblems': 'Problems',
   'learn.teacherExam.balanceHint':
     'Valency-based coefficient balancing for O₂, N₂, O₃ and other simple substances. Step trainer + lab.',
   'learn.teacherExam.formulasHint':
     'Formula writing by valency (cross rule) for grade 7 tasks. AI hints never give the final formula.',
+  'learn.teacherExam.problemsHint':
+    'Calculation formulas: moles, mass, Avogadro number, gas volume. Worked examples and practice trainer.',
 
   'learn.molecules.structure.modeBalance': 'Coefficients',
 

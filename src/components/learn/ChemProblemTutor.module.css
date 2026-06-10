@@ -1,0 +1,443 @@
+.shell,
+.embedded {
+  --prob-accent: #6eb8ff;
+  --prob-accent-2: #5cffd4;
+  --prob-border: color-mix(in srgb, var(--prob-accent) 34%, transparent);
+  --prob-text: #e8eef8;
+  --prob-muted: #8fa3c4;
+  padding: 0.85rem 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--prob-border);
+  background:
+    radial-gradient(ellipse 90% 55% at 88% 0%, color-mix(in srgb, var(--prob-accent) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 0% 100%, color-mix(in srgb, var(--prob-accent-2) 8%, transparent), transparent 50%),
+    linear-gradient(160deg, rgba(8, 14, 32, 0.97), rgba(3, 6, 16, 0.99));
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.42);
+}
+
+.embedded {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.head {
+  margin-bottom: 0.75rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--prob-accent);
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--prob-text);
+}
+
+.lead {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--prob-muted);
+}
+
+.modeRow,
+.pickerRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+}
+
+.modeBtn,
+.modeBtnActive,
+.pickerBtn,
+.pickerActive {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid var(--prob-border);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.modeBtn,
+.pickerBtn {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--prob-text);
+}
+
+.modeBtnActive,
+.pickerActive {
+  background: color-mix(in srgb, var(--prob-accent) 18%, transparent);
+  color: #eef6ff;
+  border-color: color-mix(in srgb, var(--prob-accent) 55%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--prob-accent) 12%, transparent);
+}
+
+.formulaCard,
+.exampleCard,
+.practiceCard {
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--prob-border);
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.cardTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 14rem);
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 0.85rem;
+}
+
+.cardHead {
+  min-width: 0;
+}
+
+.cardIndex {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--prob-accent-2);
+  margin-bottom: 0.35rem;
+}
+
+.cardTitle {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--prob-text);
+}
+
+.cardLead {
+  margin: 0 0 0.65rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--prob-muted);
+}
+
+.formulaBox {
+  padding: 0.65rem 0.85rem;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--prob-accent) 10%, rgba(0, 0, 0, 0.45)),
+    rgba(0, 0, 0, 0.35)
+  );
+  border: 1px solid color-mix(in srgb, var(--prob-accent) 35%, transparent);
+}
+
+.formulaMain {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #b8dcff;
+  letter-spacing: 0.02em;
+}
+
+.varBlock,
+.transformBlock,
+.givenBlock {
+  margin-bottom: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--prob-border);
+}
+
+.varLabel,
+.blockLabel,
+.filterLabel {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--prob-accent);
+  margin-bottom: 0.4rem;
+}
+
+.varList,
+.givenList,
+.transformList {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--prob-text);
+}
+
+.transformList code {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #c8e4ff;
+}
+
+.exampleLine {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--prob-muted);
+}
+
+.exampleBadge,
+.answerBadge {
+  display: inline-block;
+  margin-right: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #062018;
+  background: var(--prob-accent-2);
+}
+
+.findLine {
+  margin: 0.45rem 0 0;
+  font-size: 0.76rem;
+  color: var(--prob-text);
+}
+
+.findLine strong {
+  color: var(--prob-accent-2);
+}
+
+.stepBox {
+  display: block;
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid var(--prob-border);
+  background: color-mix(in srgb, var(--prob-accent) 5%, rgba(0, 0, 0, 0.35));
+}
+
+.stepBody {
+  min-width: 0;
+}
+
+.stepBadge {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--prob-accent);
+  margin-bottom: 0.35rem;
+}
+
+.stepLine {
+  margin-bottom: 0.45rem;
+}
+
+.stepText {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--prob-text);
+}
+
+.stepFormula {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #d4ecff;
+  background: rgba(110, 184, 255, 0.1);
+}
+
+.stepNav,
+.navRow,
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.answerLine {
+  margin: 0.55rem 0 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #d8f5ea;
+  background: color-mix(in srgb, var(--prob-accent-2) 10%, rgba(0, 0, 0, 0.35));
+  border-left: 3px solid var(--prob-accent-2);
+}
+
+.photoHero,
+.photoInline {
+  margin: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--prob-border);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.photoImg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 12rem;
+  object-fit: cover;
+  object-position: center;
+}
+
+.photoInline .photoImg {
+  max-height: 9rem;
+}
+
+.photoFallback {
+  min-height: 5.5rem;
+  padding: 0.75rem;
+  font-size: 0.72rem;
+  color: var(--prob-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.photoCaption {
+  margin: 0;
+  padding: 0.45rem 0.6rem 0.55rem;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--prob-muted);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.filterRow {
+  margin-bottom: 0.65rem;
+}
+
+.practiceCount {
+  margin: 0 0 0.55rem;
+  font-size: 0.7rem;
+  color: var(--prob-muted);
+}
+
+.practiceQ {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  font-weight: 700;
+  color: var(--prob-text);
+}
+
+.inputLabel {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--prob-muted);
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--prob-border);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--prob-text);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--prob-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--prob-accent) 18%, transparent);
+}
+
+.primaryBtn,
+.secondaryBtn {
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.primaryBtn {
+  border: 1px solid var(--prob-accent);
+  background: color-mix(in srgb, var(--prob-accent) 20%, transparent);
+  color: #eef6ff;
+}
+
+.secondaryBtn {
+  border: 1px solid var(--prob-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--prob-text);
+}
+
+.feedbackOk {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6ee7a0;
+}
+
+.feedbackBad {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ff9a9a;
+}
+
+.hintBox {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid var(--prob-border);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.hintTitle {
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--prob-accent);
+}
+
+.hintLine {
+  margin: 0.35rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--prob-text);
+}
+
+@media (max-width: 720px) {
+  .cardTop {
+    grid-template-columns: 1fr;
+  }
+
+  .stepBox {
+    grid-template-columns: 1fr;
+  }
+}

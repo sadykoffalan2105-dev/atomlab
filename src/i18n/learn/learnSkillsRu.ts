@@ -1,10 +1,13 @@
 export const learnSkillsRu = {
   'learn.teacherExam.modeBalance': 'Коэффициенты',
   'learn.teacherExam.modeFormulas': 'Формулы',
+  'learn.teacherExam.modeProblems': 'Задачи',
   'learn.teacherExam.balanceHint':
     'Расстановка коэффициентов по валентности: O₂, N₂, O₃ и другие простые вещества. Пошаговый тренажёр + лаборатория.',
   'learn.teacherExam.formulasHint':
     'Изучение формул по валентности (крест-метод) для задач 7 класса. Подсказки ИИ не дают готовый ответ.',
+  'learn.teacherExam.problemsHint':
+    'Формулы для расчётных задач: моль, масса, N_A, объём газа. Разобранные примеры и тренажёр с подсказками.',
 
   'learn.molecules.structure.modeBalance': 'Коэффициенты',
 
