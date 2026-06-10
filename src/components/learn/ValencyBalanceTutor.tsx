@@ -11,6 +11,8 @@ import {
   type BalanceLesson,
 } from '../../learn/valencyBalanceEngine'
 import { useT, type MessageKey } from '../../i18n/useT'
+import { getBalanceLessonVisual, getBalanceStepPhoto } from '../../learn/balanceLessonVisuals'
+import { BalanceLessonPhoto } from './BalanceLessonPhoto'
 import styles from './ValencyBalanceTutor.module.css'
 
 type Props = {
@@ -109,13 +111,18 @@ function BalanceLessonCard({
       : '/#/?reactor=1&genEq=1'
 
   const maxStep = lesson.stepKeys.length - 1
+  const visual = getBalanceLessonVisual(lesson.id)
+  const stepPhoto = getBalanceStepPhoto(lesson.id, step)
 
   return (
     <article className={styles.lessonCard}>
-      <header className={styles.lessonHead}>
-        <h4 className={styles.lessonTitle}>{t(lesson.titleKey as MessageKey)}</h4>
-        <p className={styles.equationDisplay}>{lesson.equationDisplay}</p>
-      </header>
+      <div className={styles.lessonTop}>
+        <header className={styles.lessonHead}>
+          <h4 className={styles.lessonTitle}>{t(lesson.titleKey as MessageKey)}</h4>
+          <p className={styles.equationDisplay}>{lesson.equationDisplay}</p>
+        </header>
+        {visual ? <BalanceLessonPhoto spec={visual.hero} variant="hero" /> : null}
+      </div>
 
       {lesson.diatomicNoteKey ? (
         <p className={styles.diatomicNote}>{t(lesson.diatomicNoteKey as MessageKey)}</p>
@@ -170,11 +177,13 @@ function BalanceLessonCard({
       ) : null}
 
       <div className={styles.stepBox}>
-        <span className={styles.stepBadge}>
-          {t('learn.balance.stepLabel', { n: String(step + 1), total: String(lesson.stepKeys.length) })}
-        </span>
-        <p className={styles.stepText}>{t(lesson.stepKeys[step]! as MessageKey)}</p>
-        <div className={styles.stepNav}>
+        {stepPhoto ? <BalanceLessonPhoto spec={stepPhoto} variant="step" /> : null}
+        <div className={styles.stepBody}>
+          <span className={styles.stepBadge}>
+            {t('learn.balance.stepLabel', { n: String(step + 1), total: String(lesson.stepKeys.length) })}
+          </span>
+          <p className={styles.stepText}>{t(lesson.stepKeys[step]! as MessageKey)}</p>
+          <div className={styles.stepNav}>
           <button
             type="button"
             className={styles.secondaryBtn}
@@ -191,6 +200,7 @@ function BalanceLessonCard({
           >
             {t('learn.balance.nextStep')}
           </button>
+        </div>
         </div>
       </div>
 
@@ -256,6 +266,7 @@ export function ValencyBalanceTutor({ gradeId, chapterId, sectionId, embedded = 
       </div>
 
       <BalanceLessonCard
+        key={lessonId}
         lesson={lesson}
         gradeId={gradeId}
         chapterId={chapterId}
