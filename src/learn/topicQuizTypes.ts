@@ -11,6 +11,32 @@ export type TopicQuizItem = {
   description?: string
   /** Ключ SVG-иллюстрации (TopicQuizVisual) */
   visualId?: string
+  /** Логический / развивающий вопрос */
+  logical?: boolean
+}
+
+export type WrittenExamItem = {
+  id: string
+  kind: 'written'
+  question: string
+  /** Ключевые пункты для оценки ответа */
+  rubric: readonly string[]
+  sampleAnswer?: string
+  explanation?: string
+  chapterNum?: number
+}
+
+export type OralExamItem = {
+  id: string
+  kind: 'oral'
+  /** Текст для озвучки учителем */
+  questionSpeak: string
+  /** Текст на экране (если отличается) */
+  questionDisplay?: string
+  rubric: readonly string[]
+  sampleAnswer?: string
+  explanation?: string
+  chapterNum?: number
 }
 
 export type SectionEquationEntry = {

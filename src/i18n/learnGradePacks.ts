@@ -16,6 +16,8 @@ import { learnElementLifeRu } from './learn/learnElementLifeRu'
 import { learnElementLifeEn } from './learn/learnElementLifeEn'
 import { learnMoleculeStructureRu } from './learn/learnMoleculeStructureRu'
 import { learnMoleculeStructureEn } from './learn/learnMoleculeStructureEn'
+import { learnTeacherExamRu } from './learn/learnTeacherExamRu'
+import { learnTeacherExamEn } from './learn/learnTeacherExamEn'
 
 export const learnGradePackRu = {
   ...learnGradesOutlineRu,
@@ -27,6 +29,7 @@ export const learnGradePackRu = {
   ...learnCyberG7C1S01Ru,
   ...learnElementLifeRu,
   ...learnMoleculeStructureRu,
+  ...learnTeacherExamRu,
 } as const
 
 export const learnGradePackEn = {
@@ -39,6 +42,7 @@ export const learnGradePackEn = {
   ...learnCyberG7C1S01En,
   ...learnElementLifeEn,
   ...learnMoleculeStructureEn,
+  ...learnTeacherExamEn,
 } as const
 
 export const learnGradePackUz = {

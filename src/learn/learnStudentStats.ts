@@ -75,6 +75,8 @@ export function computeStudentMastery(student: ClassStudent): StudentMasteryStat
     molecule: kindStats(attempts, 'molecule'),
     topic: kindStats(attempts, 'topic'),
     ai: kindStats(attempts, 'ai'),
+    oral: kindStats(attempts, 'oral'),
+    written: kindStats(attempts, 'written'),
     task: kindStats(attempts, 'task'),
   }
 

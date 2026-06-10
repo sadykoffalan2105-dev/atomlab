@@ -6,7 +6,11 @@ from pydantic import BaseModel, Field
 
 from teacher_service.brain.brain_pack import build_knowledge_block, build_task_coach_knowledge
 from teacher_service.brain.guard import filter_assistant_reply, filter_task_coach_reply
-from teacher_service.brain.prompts import build_assistant_system_prompt, build_task_coach_system_prompt
+from teacher_service.brain.prompts import (
+    build_assistant_system_prompt,
+    build_exam_grader_system_prompt,
+    build_task_coach_system_prompt,
+)
 from teacher_service.chat.ollama import OllamaError, chat_completion
 from teacher_service.config import MAX_HISTORY, MAX_USER_CHARS
 
@@ -52,6 +56,12 @@ async def handle_chat(body: ChatRequest) -> ChatResponse:
         return ChatResponse(reply=None, source="error", error="empty_message")
 
     try:
+        if ctx.get("examGrade"):
+            system = build_exam_grader_system_prompt(ctx)
+            raw = await chat_completion(system, messages)
+            reply = (raw or "").strip()
+            return ChatResponse(reply=reply, source="ollama")
+
         if ctx.get("taskCoach"):
             knowledge = build_task_coach_knowledge(user_query, ctx)
             system = build_task_coach_system_prompt(ctx, knowledge)

@@ -6,20 +6,27 @@ import {
   type ClassStudent,
 } from '../../learn/learnClassRosterStorage'
 import { useT } from '../../i18n/useT'
+import { LearnOralExamPanel } from './LearnOralExamPanel'
 import { LearnStudentTest } from './LearnStudentTest'
-import styles from './LearnStudentTestHub.module.css'
+import { LearnWrittenExamPanel } from './LearnWrittenExamPanel'
+import styles from './TeacherExamShell.module.css'
 
-type TestMode = 'topic' | 'ai'
+type ExamMode = 'mcq' | 'oral' | 'written'
 
 type Props = {
   grade: LearnGrade
   chapter: LearnChapter
   section: LearnSection
   rosterSectionId: string
-  /** Если false — можно начать без выбора ученика (режим доски) */
   requireStudent?: boolean
   showMoleculeHint?: boolean
   compact?: boolean
+}
+
+const MODE_HINT: Record<ExamMode, 'learn.teacherExam.mcqHint' | 'learn.teacherExam.oralHint' | 'learn.teacherExam.writtenHint'> = {
+  mcq: 'learn.teacherExam.mcqHint',
+  oral: 'learn.teacherExam.oralHint',
+  written: 'learn.teacherExam.writtenHint',
 }
 
 export function LearnStudentTestHub({
@@ -32,7 +39,7 @@ export function LearnStudentTestHub({
   compact = false,
 }: Props) {
   const { t } = useT()
-  const [mode, setMode] = useState<TestMode>('topic')
+  const [mode, setMode] = useState<ExamMode>('mcq')
   const [activeStudent, setActiveStudent] = useState<ClassStudent | null>(() =>
     getActiveStudent(rosterSectionId),
   )
@@ -48,22 +55,27 @@ export function LearnStudentTestHub({
     return () => window.removeEventListener(CLASS_ROSTER_CHANGED, onChange)
   }, [reload])
 
-  const modeLabel = (m: TestMode) =>
-    t(m === 'topic' ? 'learn.studentTestHub.modeTopic' : 'learn.studentTestHub.modeAi')
+  const modeLabel = (m: ExamMode) => {
+    if (m === 'mcq') return t('learn.teacherExam.modeMcq')
+    if (m === 'oral') return t('learn.teacherExam.modeOral')
+    return t('learn.teacherExam.modeWritten')
+  }
 
   const testDisabled = requireStudent && !activeStudent
+  const hubClass = compact ? styles.hubCompact : styles.hub
 
   return (
-    <div className={compact ? styles.hubCompact : styles.hub}>
+    <div className={hubClass}>
       {!compact ? (
         <div className={styles.head}>
-          <h3 className={styles.title}>{t('learn.studentTest.title')}</h3>
-          <p className={styles.lead}>{t('learn.studentTestHub.leadUnified')}</p>
+          <span className={styles.badge}>{t('learn.teacherExam.hubBadge')}</span>
+          <h3 className={styles.title}>{t('learn.teacherExam.hubTitle')}</h3>
+          <p className={styles.lead}>{t('learn.teacherExam.hubLead')}</p>
         </div>
       ) : null}
 
-      <div className={styles.modeRow} role="tablist" aria-label={t('learn.studentTestHub.modeLabel')}>
-        {(['topic', 'ai'] as const).map((m) => (
+      <div className={styles.modeRow} role="tablist" aria-label={t('learn.teacherExam.modeLabel')}>
+        {(['mcq', 'oral', 'written'] as const).map((m) => (
           <button
             key={m}
             type="button"
@@ -93,20 +105,46 @@ export function LearnStudentTestHub({
         <p className={styles.studentHintOptional}>{t('learn.studentTestHub.classMode')}</p>
       )}
 
-      {showMoleculeHint ? (
-        <p className={styles.moleculeHint}>{t('learn.studentTestHub.moleculeHint')}</p>
+      <p className={styles.featureHint}>{t(MODE_HINT[mode])}</p>
+
+      {showMoleculeHint && mode === 'mcq' ? (
+        <p className={styles.featureHint}>{t('learn.studentTestHub.moleculeHint')}</p>
       ) : null}
 
-      <LearnStudentTest
-        grade={grade}
-        chapter={chapter}
-        section={section}
-        rosterSectionId={rosterSectionId}
-        testKind={mode}
-        variant={mode === 'ai' ? 'ai' : 'default'}
-        disabled={testDisabled}
-        embedded
-      />
+      {mode === 'mcq' ? (
+        <LearnStudentTest
+          grade={grade}
+          chapter={chapter}
+          section={section}
+          rosterSectionId={rosterSectionId}
+          testKind="topic"
+          variant="default"
+          disabled={testDisabled}
+          embedded
+        />
+      ) : null}
+
+      {mode === 'oral' ? (
+        <LearnOralExamPanel
+          grade={grade}
+          chapter={chapter}
+          section={section}
+          rosterSectionId={rosterSectionId}
+          disabled={testDisabled}
+          embedded
+        />
+      ) : null}
+
+      {mode === 'written' ? (
+        <LearnWrittenExamPanel
+          grade={grade}
+          chapter={chapter}
+          section={section}
+          rosterSectionId={rosterSectionId}
+          disabled={testDisabled}
+          embedded
+        />
+      ) : null}
     </div>
   )
 }

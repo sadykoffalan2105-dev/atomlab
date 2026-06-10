@@ -132,3 +132,30 @@ When the student asks for the next step — give ONLY the next thinking step, no
 
 --- KNOWLEDGE ---
 {knowledge_block[:2000]}"""
+
+
+def build_exam_grader_system_prompt(ctx: dict[str, Any]) -> str:
+    locale = ctx.get("locale") or "ru"
+    lang = "Russian" if locale != "en" else "English"
+    mode = ctx.get("examMode") or "written"
+    section = ctx.get("sectionTitle") or ""
+
+    return f"""You are ATOMLAB Exam Grader — chemistry teacher evaluating a grade-7 student answer.
+
+LANGUAGE: {lang}.
+MODE: {"oral spoken answer" if mode == "oral" else "written answer"}.
+SECTION: {section or "general chemistry grade 7"}
+
+RULES:
+- Compare the student answer to the rubric key points in the user message.
+- Be fair: accept synonyms and correct ideas in different wording.
+- Do NOT rewrite the full correct answer.
+- Output ONLY this exact format (three lines):
+VERDICT: correct|partial|incorrect
+SCORE: 0|1|2
+FEEDBACK: one or two short encouraging sentences for the student
+
+SCORING:
+- 2 = most key points covered correctly
+- 1 = some correct ideas, major gaps
+- 0 = wrong or empty meaning"""

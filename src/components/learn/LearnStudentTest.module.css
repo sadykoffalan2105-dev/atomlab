@@ -2,10 +2,10 @@
   margin-top: 0.85rem;
   padding: 1rem 1.1rem 1.15rem;
   border-radius: 18px;
-  border: 1px solid rgba(120, 90, 255, 0.38);
+  border: 1px solid rgba(92, 255, 212, 0.35);
   background:
-    radial-gradient(ellipse 80% 55% at 15% 0%, rgba(120, 90, 255, 0.16), transparent 58%),
-    linear-gradient(155deg, rgba(16, 14, 42, 0.96), rgba(8, 10, 28, 0.98));
+    radial-gradient(ellipse 80% 55% at 15% 0%, rgba(92, 255, 212, 0.12), transparent 58%),
+    linear-gradient(155deg, rgba(10, 18, 36, 0.96), rgba(4, 8, 18, 0.98));
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.38);
 }
 
@@ -66,7 +66,7 @@
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.02em;
-  color: #e8e4ff;
+  color: #e8eef8;
 }
 
 .lead {
@@ -97,7 +97,7 @@
   padding: 0.5rem 0.95rem;
   border-radius: 999px;
   cursor: pointer;
-  border: 1px solid rgba(140, 120, 255, 0.45);
+  border: 1px solid rgba(92, 255, 212, 0.45);
   background: rgba(12, 10, 32, 0.85);
   color: #ddd8ff;
   transition:
@@ -112,7 +112,7 @@
 }
 
 .countBtnActive {
-  border-color: rgba(180, 150, 255, 0.75);
+  border-color: rgba(61, 255, 236, 0.75);
   background: rgba(50, 35, 90, 0.75);
   color: #fff;
   box-shadow: 0 0 20px rgba(140, 100, 255, 0.25);
@@ -125,7 +125,7 @@
   padding: 0.55rem 1.2rem;
   border-radius: 999px;
   cursor: pointer;
-  border: 1px solid rgba(180, 150, 255, 0.6);
+  border: 1px solid rgba(61, 255, 236, 0.6);
   background: linear-gradient(135deg, rgba(90, 60, 180, 0.9), rgba(60, 40, 140, 0.95));
   color: #fff;
   transition:
@@ -181,7 +181,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem 1.1rem;
-  border-bottom: 1px solid rgba(140, 120, 255, 0.3);
+  border-bottom: 1px solid rgba(92, 255, 212, 0.3);
   background: rgba(8, 6, 22, 0.94);
 }
 
@@ -223,9 +223,9 @@
   padding: 0.45rem 0.85rem;
   border-radius: 999px;
   cursor: pointer;
-  border: 1px solid rgba(140, 120, 255, 0.45);
+  border: 1px solid rgba(92, 255, 212, 0.45);
   background: rgba(12, 10, 32, 0.9);
-  color: #e8e4ff;
+  color: #e8eef8;
 }
 
 .main {
@@ -293,7 +293,7 @@
 }
 
 .choice:hover:not(:disabled) {
-  border-color: rgba(140, 120, 255, 0.55);
+  border-color: rgba(92, 255, 212, 0.55);
   transform: translateY(-1px);
 }
 
@@ -319,7 +319,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 9px;
-  background: rgba(140, 120, 255, 0.2);
+  background: rgba(92, 255, 212, 0.2);
   color: #c4a8ff;
   font-size: 0.9rem;
   font-weight: 800;
@@ -361,7 +361,7 @@
   padding: 0.6rem 1.4rem;
   border-radius: 999px;
   cursor: pointer;
-  border: 1px solid rgba(140, 120, 255, 0.55);
+  border: 1px solid rgba(92, 255, 212, 0.55);
   background: rgba(50, 35, 90, 0.75);
   color: #fff;
   animation: feedbackPop 0.35s ease 0.1s both;
@@ -449,7 +449,7 @@
   font-size: 3.2rem;
   font-weight: 900;
   line-height: 1;
-  background: linear-gradient(135deg, #e8e0ff, #a88bff);
+  background: linear-gradient(135deg, #eafffa, #5cffd4);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -506,7 +506,7 @@
 .statValue {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #e8e4ff;
+  color: #e8eef8;
 }
 
 .statLabel {
@@ -530,7 +530,7 @@
   padding: 0.55rem 1.1rem;
   border-radius: 999px;
   cursor: pointer;
-  border: 1px solid rgba(140, 120, 255, 0.55);
+  border: 1px solid rgba(92, 255, 212, 0.55);
   background: rgba(50, 35, 90, 0.75);
   color: #fff;
 }

@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useEffect } from 'react'
-import type { ClassStudent } from '../../learn/learnClassRosterStorage'
+import type { ClassStudent, StudentTestKind } from '../../learn/learnClassRosterStorage'
 import {
   collectWeakTopics,
   computeStudentMastery,
@@ -17,13 +17,15 @@ type Props = {
   onSelect: () => void
 }
 
-const KINDS = ['molecule', 'topic', 'ai', 'task'] as const
+const KINDS: StudentTestKind[] = ['molecule', 'topic', 'oral', 'written', 'ai', 'task']
 
-function kindLabel(t: (k: MessageKey) => string, kind: (typeof KINDS)[number]) {
-  const map: Record<typeof kind, MessageKey> = {
+function kindLabel(t: (k: MessageKey) => string, kind: StudentTestKind) {
+  const map: Record<StudentTestKind, MessageKey> = {
     molecule: 'learn.studentStats.kind.molecule',
     topic: 'learn.studentStats.kind.topic',
     ai: 'learn.studentStats.kind.ai',
+    oral: 'learn.studentStats.kind.oral',
+    written: 'learn.studentStats.kind.written',
     task: 'learn.studentStats.kind.task',
   }
   return t(map[kind])

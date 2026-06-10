@@ -39,8 +39,8 @@ function ScoreRing({ score, max }: { score: number; max: number }) {
       <svg viewBox="0 0 100 100" aria-hidden>
         <defs>
           <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#a88bff" />
-            <stop offset="100%" stopColor="#6b4fd4" />
+            <stop offset="0%" stopColor="#5cffd4" />
+            <stop offset="100%" stopColor="#3dd4b0" />
           </linearGradient>
         </defs>
         <circle className={styles.scoreRingBg} cx="50" cy="50" r="45" />

@@ -21,20 +21,20 @@
   padding: 0.42rem 0.85rem;
   border-radius: 999px;
   cursor: pointer;
-  border: 1px solid rgba(168, 139, 255, 0.55);
-  background: linear-gradient(135deg, rgba(55, 35, 95, 0.85), rgba(30, 45, 80, 0.9));
-  color: #ece4ff;
-  box-shadow: 0 0 18px rgba(120, 90, 220, 0.2);
+  border: 1px solid rgba(92, 255, 212, 0.55);
+  background: linear-gradient(135deg, rgba(12, 28, 38, 0.9), rgba(8, 18, 32, 0.92));
+  color: #eafffa;
+  box-shadow: 0 0 18px rgba(92, 255, 212, 0.15);
 }
 
 .teacherBtn:hover {
   filter: brightness(1.1);
-  border-color: rgba(200, 170, 255, 0.7);
+  border-color: rgba(92, 255, 212, 0.75);
 }
 
 .teacherIcon {
   font-size: 0.9rem;
-  color: #c9b0ff;
+  color: #5cffd4;
 }
 
 .moreBtn,
@@ -67,8 +67,8 @@
   margin-top: 0.65rem;
   padding: 0.65rem 0.85rem;
   border-radius: 12px;
-  border: 1px solid rgba(168, 139, 255, 0.35);
-  background: linear-gradient(145deg, rgba(25, 18, 45, 0.92), rgba(12, 22, 40, 0.88));
+  border: 1px solid rgba(92, 255, 212, 0.35);
+  background: linear-gradient(145deg, rgba(8, 18, 32, 0.92), rgba(4, 12, 24, 0.88));
   animation: hintIn 0.35s ease-out;
 }
 
@@ -89,7 +89,7 @@
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(200, 170, 255, 0.9);
+  color: #5cffd4;
   margin-bottom: 0.35rem;
 }
 

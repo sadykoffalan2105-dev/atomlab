@@ -1,0 +1,35 @@
+export const learnTeacherExamEn = {
+  'learn.teacherExam.hubBadge': 'AI Teacher',
+  'learn.teacherExam.hubTitle': 'Knowledge check',
+  'learn.teacherExam.hubLead':
+    'Three formats: multiple-choice logic test, voice Q&A, and written answers. Scores are saved to the class roster.',
+  'learn.teacherExam.modeLabel': 'Assessment format',
+  'learn.teacherExam.modeMcq': 'Testing',
+  'learn.teacherExam.modeOral': 'Voice Q&A',
+  'learn.teacherExam.modeWritten': 'Written answer',
+  'learn.teacherExam.mcqHint':
+    'Logic questions with answer choices — instant checking, same style as the molecule lab.',
+  'learn.teacherExam.oralHint':
+    'The teacher asks aloud. The student answers by voice; the reply is graded against key points.',
+  'learn.teacherExam.writtenHint':
+    'Open questions: the student writes in their own words. AI grades using a rubric.',
+  'learn.teacherExam.oralTitle': 'Voice Q&A',
+  'learn.teacherExam.writtenTitle': 'Written answer',
+  'learn.teacherExam.teacherAsks': 'Teacher asks',
+  'learn.teacherExam.writePrompt': 'Write a full answer',
+  'learn.teacherExam.startOral': 'Start voice exam',
+  'learn.teacherExam.startWritten': 'Start written test',
+  'learn.teacherExam.oralPoolHint': '{n} oral questions in the chapter bank',
+  'learn.teacherExam.writtenPoolHint': '{n} written tasks in the chapter bank',
+  'learn.teacherExam.speaking': 'Teacher is reading the question…',
+  'learn.teacherExam.micStart': 'Answer by voice',
+  'learn.teacherExam.micStop': 'Stop recording',
+  'learn.teacherExam.transcriptEmpty': 'Tap “Answer by voice” and speak your answer',
+  'learn.teacherExam.submitAnswer': 'Check answer',
+  'learn.teacherExam.grading': 'Grading…',
+  'learn.teacherExam.repeatQuestion': 'Repeat question',
+  'learn.teacherExam.answerPlaceholder': 'Write your answer in your own words…',
+  'learn.teacherExam.pointsEarned': 'Points for this question: {score} of {max}',
+  'learn.teacherExam.totalPoints': 'Points earned',
+  'learn.teacherExam.maxPoints': 'Maximum',
+} as const

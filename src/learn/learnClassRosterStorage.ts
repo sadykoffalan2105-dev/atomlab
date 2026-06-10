@@ -5,7 +5,7 @@ export const CLASS_ROSTER_CHANGED = 'atomlab:classRosterChanged'
 /** Отдельный roster для режима задач (/learn/tasks). */
 export const TASKS_ROSTER_SECTION_ID = 'learn-tasks-global'
 
-export type StudentTestKind = 'molecule' | 'topic' | 'ai' | 'task'
+export type StudentTestKind = 'molecule' | 'topic' | 'ai' | 'task' | 'oral' | 'written'
 
 export type ClassTestAttempt = {
   at: string

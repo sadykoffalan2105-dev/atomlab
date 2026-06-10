@@ -1,0 +1,35 @@
+export const learnTeacherExamRu = {
+  'learn.teacherExam.hubBadge': 'ИИ-преподаватель',
+  'learn.teacherExam.hubTitle': 'Проверка знаний',
+  'learn.teacherExam.hubLead':
+    'Три формата: логический тест с вариантами, голосовой опрос и письменный ответ. Оценка сохраняется в журнал класса.',
+  'learn.teacherExam.modeLabel': 'Формат проверки',
+  'learn.teacherExam.modeMcq': 'Тестирование',
+  'learn.teacherExam.modeOral': 'Голосовой опрос',
+  'learn.teacherExam.modeWritten': 'Письменный ответ',
+  'learn.teacherExam.mcqHint':
+    'Логические вопросы с вариантами ответа — как в молекулярной лаборатории. Мгновенная проверка.',
+  'learn.teacherExam.oralHint':
+    'Учитель задаёт вопрос вслух. Ученик отвечает голосом — ответ оценивается по ключевым пунктам.',
+  'learn.teacherExam.writtenHint':
+    'Развёрнутые вопросы: ученик пишет ответ своими словами. ИИ проверяет по рубрике.',
+  'learn.teacherExam.oralTitle': 'Голосовой опрос',
+  'learn.teacherExam.writtenTitle': 'Письменный ответ',
+  'learn.teacherExam.teacherAsks': 'Преподаватель спрашивает',
+  'learn.teacherExam.writePrompt': 'Напишите развёрнутый ответ',
+  'learn.teacherExam.startOral': 'Начать опрос',
+  'learn.teacherExam.startWritten': 'Начать письменный тест',
+  'learn.teacherExam.oralPoolHint': 'В базе {n} устных вопросов по главе',
+  'learn.teacherExam.writtenPoolHint': 'В базе {n} письменных заданий по главе',
+  'learn.teacherExam.speaking': 'Учитель озвучивает вопрос…',
+  'learn.teacherExam.micStart': 'Ответить голосом',
+  'learn.teacherExam.micStop': 'Остановить запись',
+  'learn.teacherExam.transcriptEmpty': 'Нажмите «Ответить голосом» и произнесите ответ',
+  'learn.teacherExam.submitAnswer': 'Проверить ответ',
+  'learn.teacherExam.grading': 'Проверка…',
+  'learn.teacherExam.repeatQuestion': 'Повторить вопрос',
+  'learn.teacherExam.answerPlaceholder': 'Запишите развёрнутый ответ своими словами…',
+  'learn.teacherExam.pointsEarned': 'Баллы за вопрос: {score} из {max}',
+  'learn.teacherExam.totalPoints': 'Набрано баллов',
+  'learn.teacherExam.maxPoints': 'Максимум',
+} as const
