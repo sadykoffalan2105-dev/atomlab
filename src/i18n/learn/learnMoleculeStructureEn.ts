@@ -73,7 +73,7 @@ export const learnMoleculeStructureEn = {
   'learn.studentStats.kind.topic': 'Testing',
   'learn.studentStats.kind.ai': 'AI exam',
   'learn.studentStats.kind.oral': 'Voice Q&A',
-  'learn.studentStats.kind.written': 'Written answer',
+  'learn.studentStats.kind.written': 'Written Q&A',
   'learn.studentStats.kind.task': 'Problems',
   'learn.studentStats.chartTitle': 'Progress over time',
   'learn.studentStats.chartCaption': 'All attempts: tests and problems. Rising line means improvement.',
