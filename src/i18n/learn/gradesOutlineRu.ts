@@ -41,6 +41,7 @@ export const learnGradesOutlineRu = {
   'learn.topicQuiz.fullscreen': 'На весь экран',
   'learn.topicQuiz.fullscreenClose': 'Закрыть',
   'learn.topicQuiz.showDescription': 'Описание вопроса',
+  'learn.topicQuiz.hideDescription': 'Скрыть описание',
   'learn.topicQuiz.descriptionTitle': 'Описание темы',
   'learn.topicQuiz.teacherHint': 'Помощь учителя',
   'learn.topicQuiz.teacherHintAgain': 'Ещё подсказка',

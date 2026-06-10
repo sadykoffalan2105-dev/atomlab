@@ -5,7 +5,7 @@ import {
   getActiveStudent,
   recordStudentTestResult,
 } from '../../learn/learnClassRosterStorage'
-import { pickOralExamQuestions, oralExamPoolSize } from '../../learn/g7ExamPools'
+import { pickOralExamQuestions, oralExamPoolSize, type OralExamCount } from '../../learn/g7ExamPools'
 import {
   examGradeLabelFromRatio,
   examPointsToTestScore,
@@ -13,8 +13,16 @@ import {
   type ExamGradeResult,
 } from '../../learn/learnExamGrader'
 import { LearnSpeechController, isSpeechRecognitionSupported } from '../../learn/learnSpeech'
+import { ensureMicrophonePermission, sleep } from '../../learn/oralExamMic'
+import {
+  ORAL_LISTEN_MAX_SECONDS,
+  ORAL_LISTEN_MIN_SECONDS,
+  ORAL_THINK_SECONDS,
+} from '../../learn/oralExamListenConfig'
+import { useOralExamMedia } from '../../learn/useOralExamMedia'
 import type { OralExamItem } from '../../learn/topicQuizTypes'
 import { useT, type MessageKey } from '../../i18n/useT'
+import { OralExamCameraPanel } from './OralExamCameraPanel'
 import styles from './TeacherExamShell.module.css'
 
 type Props = {
@@ -28,6 +36,10 @@ type Props = {
 
 type Phase = 'setup' | 'running' | 'results'
 type OralStep = 'ask' | 'listen' | 'grading' | 'feedback'
+
+type ListenError = 'unsupported' | 'denied' | 'capture' | 'start_failed' | 'unknown' | null
+
+type AnswerPhase = 'think' | 'recording' | 'ready'
 
 function ExamScoreRing({ score, max }: { score: number; max: number }) {
   const pct = max > 0 ? score / max : 0
@@ -59,9 +71,11 @@ function OralExamOverlay({
   count,
   rosterSectionId,
   onClose,
-}: Props & { count: 3 | 5; onClose: () => void }) {
+}: Props & { count: OralExamCount; onClose: () => void }) {
   const { t, locale } = useT()
   const speechRef = useRef(new LearnSpeechController())
+  const finalTranscriptRef = useRef('')
+  const listenSessionRef = useRef({ committed: '' })
   const [phase, setPhase] = useState<Phase>('running')
   const [questions] = useState<OralExamItem[]>(() =>
     pickOralExamQuestions(grade.id, chapter.id, count),
@@ -69,10 +83,16 @@ function OralExamOverlay({
   const [index, setIndex] = useState(0)
   const [step, setStep] = useState<OralStep>('ask')
   const [transcript, setTranscript] = useState('')
+  const [committedTranscript, setCommittedTranscript] = useState('')
+  const [interimTranscript, setInterimTranscript] = useState('')
   const [grades, setGrades] = useState<ExamGradeResult[]>([])
   const [lastFeedback, setLastFeedback] = useState<ExamGradeResult | null>(null)
   const [speaking, setSpeaking] = useState(false)
   const [listening, setListening] = useState(false)
+  const [listenError, setListenError] = useState<ListenError>(null)
+  const [answerPhase, setAnswerPhase] = useState<AnswerPhase>('think')
+  const [thinkLeft, setThinkLeft] = useState(ORAL_THINK_SECONDS)
+  const [recordElapsed, setRecordElapsed] = useState(0)
   const [saved, setSaved] = useState(false)
 
   const question = questions[index] ?? null
@@ -83,11 +103,22 @@ function OralExamOverlay({
   const gradeKey = examGradeLabelFromRatio(maxPoints > 0 ? totalPoints / maxPoints : 0)
   const progressPct = total > 0 ? ((phase === 'results' ? total : index) / total) * 100 : 0
 
+  const cameraActive = phase === 'running' && (step === 'listen' || step === 'grading')
+  const { videoRef, status, errorCode, start: startMedia, stop: stopMedia } = useOralExamMedia(cameraActive)
+
   const speakQuestion = useCallback(
     async (q: OralExamItem) => {
+      speechRef.current.stopOralListening()
+      setListening(false)
+      setListenError(null)
       setSpeaking(true)
       await speechRef.current.speak(q.questionSpeak, locale === 'en' ? 'en' : 'ru', () => setSpeaking(false))
+      await sleep(350)
       setSpeaking(false)
+      setAnswerPhase('think')
+      setThinkLeft(ORAL_THINK_SECONDS)
+      setRecordElapsed(0)
+      setInterimTranscript('')
       setStep('listen')
     },
     [locale],
@@ -97,6 +128,124 @@ function OralExamOverlay({
     if (!question || step !== 'ask') return
     void speakQuestion(question)
   }, [question, step, speakQuestion])
+
+  const stopListening = useCallback(() => {
+    speechRef.current.stopOralListening()
+    setListening(false)
+    setInterimTranscript('')
+    setCommittedTranscript('')
+    setTranscript((prev) => {
+      const trimmed = prev.trim()
+      finalTranscriptRef.current = trimmed
+      return trimmed
+    })
+    setAnswerPhase('ready')
+  }, [])
+
+  const mergeTranscript = useCallback((prefix: string, committed: string, interim: string) => {
+    const base = [prefix, committed].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
+    if (!interim) return base
+    return `${base}${base ? ' ' : ''}${interim}`.trim()
+  }, [])
+
+  const startListening = useCallback(async () => {
+    if (!isSpeechRecognitionSupported()) {
+      setListenError('unsupported')
+      setAnswerPhase('ready')
+      return
+    }
+
+    speechRef.current.stop()
+    await sleep(400)
+
+    const micOk = await ensureMicrophonePermission()
+    if (!micOk) {
+      setListenError('denied')
+      setAnswerPhase('ready')
+      return
+    }
+
+    setListenError(null)
+    setListening(true)
+    setAnswerPhase('recording')
+    setRecordElapsed(0)
+    setInterimTranscript('')
+    setCommittedTranscript('')
+
+    const prefix = finalTranscriptRef.current.trim()
+    listenSessionRef.current = { committed: '' }
+
+    const ok = speechRef.current.startOralListening(
+      locale === 'en' ? 'en' : 'ru',
+      listenSessionRef.current,
+      (committed, interim) => {
+        const confirmed = mergeTranscript(prefix, committed, '')
+        setCommittedTranscript(confirmed)
+        setInterimTranscript(interim)
+        const merged = mergeTranscript(prefix, committed, interim)
+        setTranscript(merged)
+        if (merged) setListenError(null)
+      },
+      (_code, fatal) => {
+        if (fatal) {
+          setListenError('denied')
+          speechRef.current.stopOralListening()
+          setListening(false)
+          setInterimTranscript('')
+          setAnswerPhase('ready')
+        }
+      },
+    )
+
+    if (!ok) {
+      setListening(false)
+      setListenError('start_failed')
+      setAnswerPhase('ready')
+    }
+  }, [locale, mergeTranscript])
+
+  const startAnswer = useCallback(() => {
+    setThinkLeft(0)
+    void startListening()
+  }, [startListening])
+
+  const finishRecording = useCallback(() => {
+    stopListening()
+  }, [stopListening])
+
+  useEffect(() => {
+    if (step !== 'listen' || answerPhase !== 'think' || thinkLeft <= 0) return
+    const id = window.setInterval(() => {
+      setThinkLeft((s) => Math.max(0, s - 1))
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [step, answerPhase, thinkLeft])
+
+  useEffect(() => {
+    if (!listening || answerPhase !== 'recording') return
+    const id = window.setInterval(() => {
+      setRecordElapsed((e) => {
+        const next = e + 1
+        if (next >= ORAL_LISTEN_MAX_SECONDS) {
+          window.setTimeout(() => stopListening(), 0)
+        }
+        return next
+      })
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [listening, answerPhase, stopListening])
+
+  const listenErrorMessage = useMemo((): string | null => {
+    if (!listenError) return null
+    const key: Record<NonNullable<ListenError>, MessageKey> = {
+      unsupported: 'learn.teacherExam.listenErrorUnsupported',
+      denied: 'learn.teacherExam.listenErrorDenied',
+      capture: 'learn.teacherExam.listenErrorCapture',
+      start_failed: 'learn.teacherExam.listenErrorStart',
+      unknown: 'learn.teacherExam.listenErrorUnknown',
+    }
+    return t(key[listenError])
+  }, [listenError, t])
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -109,9 +258,10 @@ function OralExamOverlay({
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
       speechRef.current.stop()
-      speechRef.current.stopListening()
+      speechRef.current.stopOralListening()
+      stopMedia()
     }
-  }, [onClose])
+  }, [onClose, stopMedia])
 
   const saveResult = useCallback(() => {
     if (saved || !rosterSectionId) return
@@ -128,6 +278,7 @@ function OralExamOverlay({
 
   const submitAnswer = useCallback(async () => {
     if (!question || !transcript.trim()) return
+    stopListening()
     setStep('grading')
     const result = await gradeExamAnswer({
       question: question.questionDisplay ?? question.questionSpeak,
@@ -145,9 +296,10 @@ function OralExamOverlay({
     setSpeaking(true)
     await speechRef.current.speak(result.feedback, locale === 'en' ? 'en' : 'ru', () => setSpeaking(false))
     setSpeaking(false)
-  }, [chapter.id, grade.id, locale, question, section.titleKey, transcript])
+  }, [chapter.id, grade.id, locale, question, section.titleKey, stopListening, transcript])
 
   const handleNext = useCallback(() => {
+    stopListening()
     if (index + 1 >= total) {
       saveResult()
       setPhase('results')
@@ -155,39 +307,52 @@ function OralExamOverlay({
     }
     setIndex((i) => i + 1)
     setTranscript('')
+    finalTranscriptRef.current = ''
+    setInterimTranscript('')
+    setCommittedTranscript('')
     setLastFeedback(null)
+    setListenError(null)
+    setAnswerPhase('think')
+    setThinkLeft(ORAL_THINK_SECONDS)
+    setRecordElapsed(0)
     setStep('ask')
-  }, [index, saveResult, total])
+  }, [index, saveResult, stopListening, total])
 
   const restart = useCallback(() => {
+    stopListening()
     setIndex(0)
     setGrades([])
     setTranscript('')
+    finalTranscriptRef.current = ''
+    setInterimTranscript('')
+    setCommittedTranscript('')
     setLastFeedback(null)
+    setListenError(null)
+    setAnswerPhase('think')
+    setThinkLeft(ORAL_THINK_SECONDS)
+    setRecordElapsed(0)
     setStep('ask')
     setSaved(false)
     setPhase('running')
-  }, [])
+  }, [stopListening])
 
   const toggleMic = useCallback(() => {
-    const speech = speechRef.current
-    if (speech.isListening()) {
-      speech.stopListening()
-      setListening(false)
+    if (listening) {
+      if (recordElapsed < ORAL_LISTEN_MIN_SECONDS && transcript.trim().length < 4) return
+      finishRecording()
       return
     }
-    speech.stop()
-    setListening(true)
-    const ok = speech.startListening(
-      locale === 'en' ? 'en' : 'ru',
-      (text) => {
-        setTranscript(text)
-        setListening(false)
-      },
-      () => setListening(false),
-    )
-    if (!ok) setListening(false)
-  }, [locale])
+    void startListening()
+  }, [finishRecording, listening, recordElapsed, startListening, transcript])
+
+  const thinkComplete = thinkLeft <= 0
+  const hasLiveText = committedTranscript.length > 0 || interimTranscript.length > 0
+
+  const canFinishRecording =
+    listening &&
+    (recordElapsed >= ORAL_LISTEN_MIN_SECONDS || transcript.trim().length >= 4)
+
+  const recordSecondsLeft = Math.max(0, ORAL_LISTEN_MAX_SECONDS - recordElapsed)
 
   const gradeClass =
     gradeKey === 'excellent'
@@ -221,67 +386,199 @@ function OralExamOverlay({
 
       <main className={styles.main}>
         {phase === 'running' && question ? (
-          <div className={styles.body}>
-            <div className={styles.teacherBubble}>
-              <span className={styles.teacherBadge}>{t('learn.teacherExam.teacherAsks')}</span>
-              <p className={styles.question}>{question.questionDisplay ?? question.questionSpeak}</p>
-              {speaking && step === 'ask' ? (
-                <p className={styles.speakingHint}>{t('learn.teacherExam.speaking')}</p>
+          <div className={`${styles.body} ${styles.oralLayout}`}>
+            <div className={styles.oralMain}>
+              <div className={styles.teacherBubble}>
+                <span className={styles.teacherBadge}>{t('learn.teacherExam.teacherAsks')}</span>
+                <p className={styles.question}>{question.questionDisplay ?? question.questionSpeak}</p>
+                {speaking && step === 'ask' ? (
+                  <p className={styles.speakingHint}>{t('learn.teacherExam.speaking')}</p>
+                ) : null}
+              </div>
+
+              {step === 'listen' || step === 'grading' ? (
+                <>
+                  {step === 'listen' && answerPhase === 'think' ? (
+                    <div className={`${styles.thinkBanner} ${thinkComplete ? styles.thinkBannerReady : ''}`}>
+                      <div className={styles.thinkHeader}>
+                        <p className={styles.thinkTitle}>{t('learn.teacherExam.thinkTitle')}</p>
+                        {!thinkComplete ? (
+                          <div className={styles.thinkRing} aria-hidden>
+                            <svg viewBox="0 0 44 44">
+                              <circle className={styles.thinkRingBg} cx="22" cy="22" r="18" />
+                              <circle
+                                className={styles.thinkRingFill}
+                                cx="22"
+                                cy="22"
+                                r="18"
+                                style={{
+                                  strokeDashoffset: 113 * (1 - thinkLeft / ORAL_THINK_SECONDS),
+                                }}
+                              />
+                            </svg>
+                            <span className={styles.thinkRingNum}>{thinkLeft}</span>
+                          </div>
+                        ) : null}
+                      </div>
+                      <p className={styles.thinkTimer}>
+                        {thinkComplete
+                          ? t('learn.teacherExam.thinkReady')
+                          : t('learn.teacherExam.thinkCountdown', { sec: String(thinkLeft) })}
+                      </p>
+                      <button
+                        type="button"
+                        className={thinkComplete ? styles.primaryBtn : styles.secondaryBtn}
+                        onClick={startAnswer}
+                      >
+                        {t('learn.teacherExam.skipThink')}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {step === 'listen' && answerPhase === 'recording' ? (
+                    <div className={styles.recordingBanner}>
+                      <div className={styles.recordingHeader}>
+                        <p className={styles.recordingLive}>{t('learn.teacherExam.recordingLive')}</p>
+                        <div className={styles.waveBars} aria-hidden>
+                          {[0, 1, 2, 3, 4].map((i) => (
+                            <span key={i} className={styles.waveBar} style={{ animationDelay: `${i * 0.12}s` }} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className={styles.recordingMeta}>
+                        {t('learn.teacherExam.recordingMeta', {
+                          elapsed: String(recordElapsed),
+                          left: String(recordSecondsLeft),
+                        })}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {step === 'listen' && answerPhase === 'ready' && !listening ? (
+                    <p className={styles.listenHint}>{t('learn.teacherExam.recordingDone')}</p>
+                  ) : null}
+
+                  {(step === 'listen' && (listening || hasLiveText || answerPhase === 'ready')) ||
+                  step === 'grading' ? (
+                    <div
+                      className={`${styles.liveTranscriptCard} ${listening ? styles.liveTranscriptActive : ''}`}
+                      aria-live="polite"
+                      aria-atomic="false"
+                    >
+                      <span className={styles.liveTranscriptBadge}>
+                        {listening
+                          ? t('learn.teacherExam.liveListening')
+                          : t('learn.teacherExam.liveWritten')}
+                      </span>
+                      <div className={styles.liveTranscriptBody}>
+                        {hasLiveText ? (
+                          <>
+                            <span className={styles.liveFinal}>{committedTranscript}</span>
+                            {interimTranscript ? (
+                              <span className={styles.liveInterim}>
+                                {committedTranscript ? ' ' : ''}
+                                {interimTranscript}
+                                <span className={styles.liveCursor} aria-hidden />
+                              </span>
+                            ) : listening ? (
+                              <span className={styles.liveCursor} aria-hidden />
+                            ) : null}
+                          </>
+                        ) : listening ? (
+                          <span className={styles.livePlaceholder}>{t('learn.teacherExam.liveWaiting')}</span>
+                        ) : (
+                          <span className={styles.livePlaceholder}>{t('learn.teacherExam.transcriptEmpty')}</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className={styles.voiceRow}>
+                    {answerPhase !== 'think' ? (
+                      <button
+                        type="button"
+                        className={listening ? styles.micBtnActive : styles.micBtn}
+                        onClick={toggleMic}
+                        disabled={step === 'grading' || (listening && !canFinishRecording)}
+                      >
+                        {listening
+                          ? t('learn.teacherExam.finishRecording')
+                          : t('learn.teacherExam.recordAgain')}
+                      </button>
+                    ) : null}
+                  </div>
+                  {listening && !canFinishRecording ? (
+                    <p className={styles.listenHint}>{t('learn.teacherExam.waitBeforeStop')}</p>
+                  ) : null}
+                  {listenErrorMessage && !listening ? (
+                    <p className={styles.listenError}>{listenErrorMessage}</p>
+                  ) : null}
+                  <label className={styles.hint} htmlFor="oral-exam-answer">
+                    {t('learn.teacherExam.transcriptEdit')}
+                  </label>
+                  <textarea
+                    id="oral-exam-answer"
+                    className={`${styles.transcriptInput} ${listening ? styles.transcriptInputLive : ''}`}
+                    value={transcript}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setTranscript(value)
+                      setCommittedTranscript(value)
+                      setInterimTranscript('')
+                      finalTranscriptRef.current = value
+                    }}
+                    placeholder={t('learn.teacherExam.transcriptEmpty')}
+                    disabled={step === 'grading'}
+                    rows={5}
+                  />
+                  <div className={styles.actionRow}>
+                    <button type="button" className={styles.primaryBtn} disabled={!canSubmit} onClick={() => void submitAnswer()}>
+                      {step === 'grading' ? t('learn.teacherExam.grading') : t('learn.teacherExam.submitAnswer')}
+                    </button>
+                    <button type="button" className={styles.secondaryBtn} onClick={() => void speakQuestion(question)}>
+                      {t('learn.teacherExam.repeatQuestion')}
+                    </button>
+                  </div>
+                </>
+              ) : null}
+
+              {step === 'feedback' && lastFeedback ? (
+                <>
+                  <p
+                    className={`${styles.feedback} ${
+                      lastFeedback.verdict === 'correct'
+                        ? styles.feedbackOk
+                        : lastFeedback.verdict === 'partial'
+                          ? styles.feedbackPartial
+                          : styles.feedbackBad
+                    }`}
+                  >
+                    {lastFeedback.feedback}
+                  </p>
+                  <p className={styles.hint}>
+                    {t('learn.teacherExam.pointsEarned', {
+                      score: lastFeedback.score,
+                      max: lastFeedback.maxScore,
+                    })}
+                  </p>
+                  <div className={styles.actionRow}>
+                    <button type="button" className={styles.primaryBtn} onClick={handleNext}>
+                      {index + 1 >= total ? t('learn.studentTest.seeResults') : t('learn.studentTest.next')}
+                    </button>
+                  </div>
+                </>
               ) : null}
             </div>
 
-            {step === 'listen' || step === 'grading' ? (
-              <>
-                <div className={styles.voiceRow}>
-                  <button
-                    type="button"
-                    className={listening ? styles.micBtnActive : styles.micBtn}
-                    onClick={toggleMic}
-                    disabled={step === 'grading' || !isSpeechRecognitionSupported()}
-                  >
-                    {listening ? t('learn.teacherExam.micStop') : t('learn.teacherExam.micStart')}
-                  </button>
-                  <div className={styles.transcript}>
-                    {transcript || t('learn.teacherExam.transcriptEmpty')}
-                  </div>
-                </div>
-                <div className={styles.actionRow}>
-                  <button type="button" className={styles.primaryBtn} disabled={!canSubmit} onClick={() => void submitAnswer()}>
-                    {step === 'grading' ? t('learn.teacherExam.grading') : t('learn.teacherExam.submitAnswer')}
-                  </button>
-                  <button type="button" className={styles.secondaryBtn} onClick={() => void speakQuestion(question)}>
-                    {t('learn.teacherExam.repeatQuestion')}
-                  </button>
-                </div>
-              </>
-            ) : null}
-
-            {step === 'feedback' && lastFeedback ? (
-              <>
-                <p
-                  className={`${styles.feedback} ${
-                    lastFeedback.verdict === 'correct'
-                      ? styles.feedbackOk
-                      : lastFeedback.verdict === 'partial'
-                        ? styles.feedbackPartial
-                        : styles.feedbackBad
-                  }`}
-                >
-                  {lastFeedback.feedback}
-                </p>
-                <p className={styles.hint}>
-                  {t('learn.teacherExam.pointsEarned', {
-                    score: lastFeedback.score,
-                    max: lastFeedback.maxScore,
-                  })}
-                </p>
-                <div className={styles.actionRow}>
-                  <button type="button" className={styles.primaryBtn} onClick={handleNext}>
-                    {index + 1 >= total ? t('learn.studentTest.seeResults') : t('learn.studentTest.next')}
-                  </button>
-                </div>
-              </>
-            ) : null}
+            <aside className={styles.oralSide}>
+              <OralExamCameraPanel
+                videoRef={videoRef}
+                status={status}
+                errorCode={errorCode}
+                listening={listening}
+                onRetry={() => void startMedia()}
+              />
+            </aside>
           </div>
         ) : null}
 
@@ -330,11 +627,14 @@ export function LearnOralExamPanel({
 }: Props) {
   const { t } = useT()
   const poolSize = oralExamPoolSize(grade.id, chapter.id)
-  const [count, setCount] = useState<3 | 5>(3)
+  const [count, setCount] = useState<OralExamCount>(10)
   const [active, setActive] = useState(false)
 
-  const canStart = poolSize >= 2 && !disabled
-  const effectiveCount = useMemo(() => (count === 5 && poolSize < 5 ? 3 : count), [count, poolSize])
+  const canStart = poolSize >= 5 && !disabled
+  const effectiveCount = useMemo(
+    () => (count === 10 && poolSize < 10 ? (5 as OralExamCount) : count),
+    [count, poolSize],
+  )
 
   return (
     <section className={styles.panel}>
@@ -342,21 +642,29 @@ export function LearnOralExamPanel({
         <div className={styles.countPicker} role="group" aria-label={t('learn.studentTest.pickCount')}>
           <button
             type="button"
-            className={count === 3 ? styles.countBtnActive : styles.countBtn}
-            onClick={() => setCount(3)}
+            className={count === 5 ? styles.countBtnActive : styles.countBtn}
+            onClick={() => setCount(5)}
           >
-            3
+            {t('learn.studentTest.questions5')}
           </button>
           <button
             type="button"
-            className={count === 5 ? styles.countBtnActive : styles.countBtn}
-            onClick={() => setCount(5)}
-            disabled={poolSize < 5}
+            className={count === 10 ? styles.countBtnActive : styles.countBtn}
+            onClick={() => setCount(10)}
+            disabled={poolSize < 10}
           >
-            5
+            {t('learn.studentTest.questions10')}
           </button>
         </div>
-        <button type="button" className={styles.primaryBtn} disabled={!canStart} onClick={() => setActive(true)}>
+        <button
+          type="button"
+          className={styles.primaryBtn}
+          disabled={!canStart}
+          onClick={() => {
+            void ensureMicrophonePermission()
+            setActive(true)
+          }}
+        >
           {t('learn.teacherExam.startOral')}
         </button>
       </div>

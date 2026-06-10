@@ -41,6 +41,7 @@ export const learnGradesOutlineEn = {
   'learn.topicQuiz.fullscreen': 'Full screen',
   'learn.topicQuiz.fullscreenClose': 'Close',
   'learn.topicQuiz.showDescription': 'Question explanation',
+  'learn.topicQuiz.hideDescription': 'Hide explanation',
   'learn.topicQuiz.descriptionTitle': 'Topic explanation',
   'learn.topicQuiz.teacherHint': 'Teacher help',
   'learn.topicQuiz.teacherHintAgain': 'Another hint',

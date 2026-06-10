@@ -207,6 +207,42 @@
   filter: brightness(1.08);
 }
 
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  width: 100%;
+}
+
+.actionRow .descBtn,
+.nextBtn {
+  flex: 1 1 9.5rem;
+  max-width: 12.5rem;
+  min-width: min(100%, 9rem);
+  margin-top: 0;
+  text-align: center;
+}
+
+.nextBtn {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(61, 255, 236, 0.55);
+  background: rgba(20, 55, 60, 0.65);
+  color: #d8fffb;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nextBtn:hover {
+  filter: brightness(1.08);
+}
+
 .descPanel {
   margin-top: 0.85rem;
   padding: 0;

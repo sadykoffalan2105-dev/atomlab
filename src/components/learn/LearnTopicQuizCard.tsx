@@ -39,6 +39,8 @@ type QuizUi = {
   descText?: string
   descTextBlock?: string
   descBtn?: string
+  actionRow?: string
+  nextBtn?: string
   questionWrapSplit?: string
   quizCol?: string
 }
@@ -64,6 +66,8 @@ const CARD_UI: QuizUi = {
   descText: styles.descText,
   descTextBlock: styles.descTextBlock,
   descBtn: styles.descBtn,
+  actionRow: styles.actionRow,
+  nextBtn: styles.nextBtn,
 }
 
 const FS_UI: QuizUi = {
@@ -87,6 +91,8 @@ const FS_UI: QuizUi = {
   descText: fsStyles.descText,
   descTextBlock: fsStyles.descTextBlock,
   descBtn: fsStyles.descBtn,
+  actionRow: fsStyles.actionRow,
+  nextBtn: fsStyles.nextBtn,
   questionWrapSplit: fsStyles.questionWrapSplit,
   quizCol: fsStyles.quizCol,
 }
@@ -151,6 +157,8 @@ function TopicQuizBody({
   onToggleDescription,
   visualCompact,
   visualFullscreen,
+  onDraw,
+  drawLabel,
 }: {
   ui: QuizUi
   revealed: boolean
@@ -164,6 +172,8 @@ function TopicQuizBody({
   onToggleDescription: () => void
   visualCompact: boolean
   visualFullscreen: boolean
+  onDraw?: () => void
+  drawLabel?: string
 }) {
   const { t } = useT()
 
@@ -209,13 +219,20 @@ function TopicQuizBody({
       </ul>
       {status === 'ok' ? <p className={ui.feedbackOk}>{t('learn.topicQuiz.correct')}</p> : null}
       {status === 'bad' ? <p className={ui.feedbackBad}>{t('learn.topicQuiz.wrong')}</p> : null}
-      {answered && status === 'ok' && !showDescription && hasDescription && ui.descBtn ? (
-        <button type="button" className={ui.descBtn} onClick={onToggleDescription}>
-          {t('learn.topicQuiz.showDescription')}
-        </button>
-      ) : null}
       {answered && status === 'bad' && !showDescription && hasDescription && question.explanation ? (
         <p className={ui.explain}>{question.explanation}</p>
+      ) : null}
+      {answered && onDraw && ui.actionRow ? (
+        <div className={ui.actionRow}>
+          {hasDescription && ui.descBtn ? (
+            <button type="button" className={ui.descBtn} onClick={onToggleDescription}>
+              {showDescription ? t('learn.topicQuiz.hideDescription') : t('learn.topicQuiz.showDescription')}
+            </button>
+          ) : null}
+          <button type="button" className={ui.nextBtn ?? ui.descBtn} onClick={onDraw}>
+            {drawLabel ?? t('learn.topicQuiz.next')}
+          </button>
+        </div>
       ) : null}
     </>
   )
@@ -310,9 +327,12 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
     onToggleDescription: () => setShowDescription((v) => !v),
     visualCompact: false,
     visualFullscreen: true,
+    onDraw: drawQuestion,
+    drawLabel,
   }
 
   const cardBodyProps = { ...bodyProps, visualCompact: true, visualFullscreen: false }
+  const showHeaderDraw = !revealed || pick === null
 
   return (
     <>
@@ -336,9 +356,11 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
             >
               ⛶
             </button>
-            <button type="button" className={styles.drawBtn} onClick={drawQuestion}>
-              {drawLabel}
-            </button>
+            {showHeaderDraw ? (
+              <button type="button" className={styles.drawBtn} onClick={drawQuestion}>
+                {drawLabel}
+              </button>
+            ) : null}
           </div>
         </div>
         <TopicQuizBody ui={CARD_UI} {...cardBodyProps} />
@@ -348,8 +370,6 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
         <LearnTopicQuizFullscreen
           title={t('learn.topicQuiz.title')}
           meta={`${poolMeta} · ${sectionTitle}`}
-          drawLabel={drawLabel}
-          onDraw={drawQuestion}
           onClose={closeFullscreen}
         >
           <TopicQuizBody ui={FS_UI} {...bodyProps} />

@@ -272,10 +272,13 @@
 
 .teacherBubble {
   margin-bottom: 1rem;
-  padding: 0.9rem 1rem;
-  border-radius: 16px 16px 16px 4px;
+  padding: 1rem 1.1rem;
+  border-radius: 18px 18px 18px 6px;
   border: 1px solid var(--exam-border);
-  background: color-mix(in srgb, var(--exam-accent) 8%, transparent);
+  background:
+    radial-gradient(ellipse 70% 80% at 0% 0%, color-mix(in srgb, var(--exam-accent) 14%, transparent), transparent 65%),
+    color-mix(in srgb, var(--exam-accent) 7%, rgba(0, 0, 0, 0.35));
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.22);
 }
 
 .teacherBadge {
@@ -446,6 +449,240 @@
   min-height: 2.5rem;
 }
 
+.transcriptInput {
+  flex: 1 1 100%;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 5.5rem;
+  margin-top: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--exam-border);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--exam-text);
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.transcriptInput:focus {
+  outline: none;
+  border-color: var(--exam-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--exam-accent) 18%, transparent);
+}
+
+.listenHint {
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: var(--exam-accent);
+  font-weight: 600;
+}
+
+.thinkBanner,
+.recordingBanner {
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--exam-border);
+  background:
+    radial-gradient(ellipse 80% 80% at 0% 0%, color-mix(in srgb, var(--exam-accent) 10%, transparent), transparent 60%),
+    color-mix(in srgb, var(--exam-accent) 5%, rgba(0, 0, 0, 0.38));
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+.thinkBannerReady {
+  border-color: color-mix(in srgb, var(--exam-accent) 55%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--exam-accent) 18%, transparent) inset,
+    0 10px 32px color-mix(in srgb, var(--exam-accent) 12%, transparent);
+}
+
+.thinkHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.thinkRing {
+  position: relative;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+}
+
+.thinkRing svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.thinkRingBg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 3;
+}
+
+.thinkRingFill {
+  fill: none;
+  stroke: var(--exam-accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 113;
+  transition: stroke-dashoffset 0.85s linear;
+}
+
+.thinkRingNum {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--exam-accent);
+}
+
+.recordingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.waveBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.18rem;
+  height: 1.1rem;
+}
+
+.waveBar {
+  display: block;
+  width: 0.22rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: #ff8a8a;
+  animation: wavePulse 0.9s ease-in-out infinite;
+}
+
+@keyframes wavePulse {
+  0%,
+  100% {
+    height: 0.35rem;
+    opacity: 0.45;
+  }
+  50% {
+    height: 1.05rem;
+    opacity: 1;
+  }
+}
+
+.liveTranscriptCard {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--exam-border);
+  background: linear-gradient(155deg, rgba(6, 12, 26, 0.96), rgba(2, 6, 16, 0.98));
+  min-height: 5.5rem;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.liveTranscriptActive {
+  border-color: color-mix(in srgb, var(--exam-accent) 50%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--exam-accent) 14%, transparent) inset,
+    0 0 28px color-mix(in srgb, var(--exam-accent) 10%, transparent);
+}
+
+.liveTranscriptBadge {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--exam-accent);
+  margin-bottom: 0.55rem;
+}
+
+.liveTranscriptBody {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--exam-text);
+  min-height: 3rem;
+  word-break: break-word;
+}
+
+.liveFinal {
+  color: #eef6ff;
+}
+
+.liveInterim {
+  color: color-mix(in srgb, var(--exam-accent) 72%, #fff);
+  font-style: italic;
+}
+
+.liveCursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--exam-accent);
+  animation: cursorBlink 1s step-end infinite;
+}
+
+@keyframes cursorBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.livePlaceholder {
+  color: var(--exam-muted);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.transcriptInputLive {
+  border-color: color-mix(in srgb, var(--exam-accent) 45%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--exam-accent) 10%, transparent);
+}
+
+.thinkTitle,
+.recordingLive {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--exam-text);
+}
+
+.thinkTimer,
+.recordingMeta {
+  margin: 0.35rem 0 0.55rem;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--exam-accent);
+  font-weight: 700;
+}
+
+.recordingLive {
+  color: #ff9a9a;
+}
+
+.listenError {
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: #ffb199;
+  line-height: 1.4;
+}
+
 .actionRow {
   display: flex;
   flex-wrap: wrap;
@@ -594,5 +831,34 @@
   .choice {
     min-height: 2.75rem;
     font-size: 0.92rem;
+  }
+}
+
+.oralLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  gap: 1.15rem;
+  width: min(980px, 100%);
+  align-items: start;
+}
+
+.oralMain {
+  min-width: 0;
+}
+
+.oralSide {
+  min-width: 0;
+  position: sticky;
+  top: 0;
+}
+
+@media (max-width: 820px) {
+  .oralLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .oralSide {
+    position: static;
+    order: -1;
   }
 }

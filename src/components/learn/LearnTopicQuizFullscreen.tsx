@@ -6,15 +6,11 @@ import styles from './LearnTopicQuizFullscreen.module.css'
 export function LearnTopicQuizFullscreen({
   title,
   meta,
-  drawLabel,
-  onDraw,
   onClose,
   children,
 }: {
   title: string
   meta: string
-  drawLabel: string
-  onDraw: () => void
   onClose: () => void
   children: ReactNode
 }) {
@@ -48,9 +44,6 @@ export function LearnTopicQuizFullscreen({
           <p className={styles.meta}>{meta}</p>
         </div>
         <div className={styles.toolbarActions}>
-          <button type="button" className={styles.btnPrimary} onClick={onDraw}>
-            {drawLabel}
-          </button>
           <button type="button" className={styles.btn} onClick={onClose}>
             {t('learn.topicQuiz.fullscreenClose')}
           </button>

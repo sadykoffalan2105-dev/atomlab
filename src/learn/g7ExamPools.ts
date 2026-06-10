@@ -5,8 +5,11 @@ import {
   getOralQuestionsForChapter,
   getWrittenQuestionsForChapter,
 } from './g7LogicalQuestions'
+import { G7_ORAL_EXAM_STARTER } from './g7OralExamStarter'
 import type { OralExamItem, TopicQuizItem, WrittenExamItem } from './topicQuizTypes'
 import type { StudentTestLength } from './studentTestScoring'
+
+export type OralExamCount = 5 | 10
 
 function shuffle<T>(items: T[]): T[] {
   const arr = [...items]
@@ -38,7 +41,10 @@ export function getWrittenExamPool(gradeId: string, chapterId: string): WrittenE
 
 export function getOralExamPool(gradeId: string, chapterId: string): OralExamItem[] {
   if (gradeId !== 'g7') return []
-  return getOralQuestionsForChapter(chapterNum(chapterId))
+  const chapter = getOralQuestionsForChapter(chapterNum(chapterId))
+  const seen = new Set(chapter.map((q) => q.id))
+  const starter = G7_ORAL_EXAM_STARTER.filter((q) => !seen.has(q.id))
+  return [...chapter, ...starter]
 }
 
 export function pickMcqExamQuestions(
@@ -67,7 +73,7 @@ export function pickWrittenExamQuestions(
 export function pickOralExamQuestions(
   gradeId: string,
   chapterId: string,
-  count: 3 | 5,
+  count: OralExamCount,
 ): OralExamItem[] {
   const pool = getOralExamPool(gradeId, chapterId)
   if (pool.length === 0) return []
