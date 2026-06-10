@@ -9,14 +9,7 @@ import {
 
 export { stripMarkdownForSpeech, prepareTextForHumanTts } from './learnSpeechText'
 
-import {
-  TEACHER_BROWSER_PITCH,
-  TEACHER_VOICE_REFERENCE_PATH,
-} from './learnTeacherVoiceProfile'
-
-export function teacherVoiceReferenceUrl(): string {
-  return `${import.meta.env.BASE_URL}${TEACHER_VOICE_REFERENCE_PATH}`
-}
+import { TEACHER_BROWSER_PITCH } from './learnTeacherVoiceProfile'
 
 /** Голос ИИ-учителя: Microsoft Dmitry Neural → OpenAI → клон → браузер. */
 
@@ -416,9 +409,3 @@ export function preloadSpeechVoices(): void {
   }
 }
 
-/** Проиграть образец голоса из video/male-voice-for-answering-machine.mp3 */
-export function playTeacherVoiceReference(): void {
-  if (typeof window === 'undefined') return
-  const audio = new Audio(teacherVoiceReferenceUrl())
-  void audio.play().catch(() => {})
-}

@@ -1,11 +1,6 @@
 import type { SpeechPrepLocale } from './learnSpeechText'
 
-/**
- * Профиль голоса ИИ-учителя — по образцу video/male-voice-for-answering-machine.mp3
- * Мужской, чёткий, спокойный, как профессиональный автоответчик / диктор.
- */
-export const TEACHER_VOICE_REFERENCE_PATH = 'learn/audio/teacher-voice-reference.mp3'
-
+/** Профиль голоса ИИ-учителя — мужской, чёткий, спокойный дикторский тембр. */
 export const TEACHER_VOICE_EDGE: Record<SpeechPrepLocale, string> = {
   ru: 'ru-RU-DmitryNeural',
   en: 'en-US-GuyNeural',

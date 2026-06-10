@@ -6,7 +6,6 @@ import {
   isSpeechOutputSupported,
   isSpeechRecognitionSupported,
   LearnSpeechController,
-  playTeacherVoiceReference,
   preloadSpeechVoices,
   type SpeechOutputMode,
 } from '../../learn/learnSpeech'
@@ -483,15 +482,6 @@ export function LearnAssistantPanel({
         {voiceMode === 'neural' ? (
           <span className={styles.learnAssistantVoiceHint}> · {t('learn.assistant.voiceNeural')}</span>
         ) : null}
-        {' · '}
-        <button
-          type="button"
-          className={styles.learnAssistantVoiceSample}
-          onClick={() => playTeacherVoiceReference()}
-          title={t('learn.assistant.voiceSample')}
-        >
-          🔊 {t('learn.assistant.voiceSample')}
-        </button>
       </p>
 
       <div className={styles.learnAssistantInputRow}>

@@ -9,16 +9,9 @@ import {
   startTransition,
 } from 'react'
 import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
-import {
-  compositionFromLeftTerms,
-  findCatalogMatchesForLeftTerms,
-  findMatchingProductCoeff,
-  type ReactorEquationTerm,
-} from '../chemistry/reactorEquationBalance'
+import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
-import { scheduleIdleMatch } from '../lab/labRenderGuards'
-import { CATALOG_AUTO_PRODUCT_MS } from '../lab/synthesisHangGuard'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
@@ -31,7 +24,11 @@ import { useCanvasSizeGuard } from '../lab/atomGuard/canvasGuard'
 import { createSynthesisRunGuard } from '../lab/atomGuard/synthesisRunGuard'
 import { LaunchMissionHud } from '../components/lab/LaunchMissionHud'
 import { useCatalogAutoMatches } from '../lab/useCatalogMatchWorker'
-import { generateFromLaboratoryRecipe, parseReactionLeftSide } from '../chemistry/reactionLeftSideParser'
+import {
+  generateFromLaboratoryRecipe,
+  parseReactionLeftSide,
+  stripLeftSideCoefficients,
+} from '../chemistry/reactionLeftSideParser'
 import { parseLeftSideMessageKey, reactorValidationMessageKey } from '../i18n/chemistryMessageKeys'
 import { getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import { useT } from '../i18n/useT'
@@ -167,20 +164,16 @@ export function LaboratoryPage() {
   const catalogAutoMatches = useCatalogAutoMatches(deferredLeftTerms, catalogList)
   const ambiguousProductMatches = catalogAutoMatches.length > 1 ? catalogAutoMatches : []
 
-  const productCoeffRef = useRef(productCoeff)
-  useLayoutEffect(() => {
-    productCoeffRef.current = productCoeff
-  }, [productCoeff])
-
   useLayoutEffect(() => {
     synthesisSettledProductRef.current = synthesisSettledProduct
   }, [synthesisSettledProduct])
 
-  const applyRecipeFromCompound = useCallback(
+  /** Подставляет реагенты из эталона с коэффициентом 1 — балансировку делает ученик. */
+  const applyGenerateEquationReagents = useCallback(
     (c: CompoundDef) => {
       setProductCoeff(1)
       const g = generateFromLaboratoryRecipe(c)
-      const trimmed = g.manualLeft.trim()
+      const trimmed = stripLeftSideCoefficients(g.manualLeft.trim())
       if (!trimmed) {
         setLeftTerms([])
         setReactorMessage(t('lab.catalogNoLeft'))
@@ -231,48 +224,6 @@ export function LaboratoryPage() {
       setLaboratorySynthesisView('reactor')
     }
   }, [equationSignature, synthesisSettledProduct])
-
-  useEffect(() => {
-    scheduleIdleMatch(() => {
-      startTransition(() => {
-        const left = compositionFromLeftTerms(leftTerms)
-        if (!left || Object.keys(left).length === 0) return
-        if (productLockedRef.current) return
-        const cur = productCompoundId ? compoundById[productCompoundId] : undefined
-        if (!cur) return
-        const k = findMatchingProductCoeff(left, cur)
-        if (k != null && k !== productCoeffRef.current) setProductCoeff(k)
-      })
-    })
-  }, [leftTerms, productCompoundId])
-
-  useEffect(() => {
-    if (catalogAutoMatches.length !== 1) return
-    if (productLockedRef.current) return
-
-    const timer = window.setTimeout(() => {
-      scheduleIdleMatch(() => {
-        startTransition(() => {
-          if (productLockedRef.current) return
-          const left = compositionFromLeftTerms(leftTerms)
-          if (!left || Object.keys(left).length === 0) return
-          const pid = productCompoundId
-          const cur = pid ? compoundById[pid] : undefined
-          if (cur) {
-            const k = findMatchingProductCoeff(left, cur)
-            if (k != null) return
-          }
-          const fresh = findCatalogMatchesForLeftTerms(leftTerms, catalogList)
-          if (fresh.length !== 1) return
-          const o = fresh[0]!
-          if (o.compound.id === pid && o.k === productCoeffRef.current) return
-          setProductCompoundId(o.compound.id)
-          setProductCoeff(o.k)
-        })
-      })
-    }, CATALOG_AUTO_PRODUCT_MS)
-    return () => window.clearTimeout(timer)
-  }, [catalogAutoMatches, leftTerms, productCompoundId, catalogList])
 
   const equationBalanced = useMemo(
     () => isReactorBalancedFast(leftTerms, productCompound ?? undefined, productCoeff),
@@ -363,18 +314,15 @@ export function LaboratoryPage() {
       const c = compoundById[id]
       if (!c) return
 
-      if (mode === 'selectProduct') {
-        productLockedRef.current = true
-        setProductCompoundId(id)
-        applyRecipeFromCompound(c)
-        return
-      }
-
       productLockedRef.current = true
       setProductCompoundId(id)
-      applyRecipeFromCompound(c)
+      setProductCoeff(1)
+
+      if (mode === 'generateEquation') {
+        applyGenerateEquationReagents(c)
+      }
     },
-    [applyRecipeFromCompound],
+    [applyGenerateEquationReagents],
   )
 
   const clearReactorSlots = useCallback(() => {

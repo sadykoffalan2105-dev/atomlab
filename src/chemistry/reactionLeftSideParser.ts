@@ -178,6 +178,15 @@ export function formatLeftSideFromTerms(terms: readonly ReactorEquationTerm[]): 
     .join(' + ')
 }
 
+/** Убирает стехиометрические коэффициенты слева от «=» — ученик расставляет их вручную. */
+export function stripLeftSideCoefficients(left: string): string {
+  return left
+    .split(/\s*\+\s*/)
+    .map((part) => part.trim().replace(/^\d+/, ''))
+    .filter((part) => part.length > 0)
+    .join(' + ')
+}
+
 export function splitLaboratoryRecipe(recipe: string): { left: string; right: string } | null {
   const idx = recipe.indexOf('=')
   if (idx === -1) return null

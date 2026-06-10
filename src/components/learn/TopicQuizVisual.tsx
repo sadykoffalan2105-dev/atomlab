@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getQuizVisualSpec, hasQuizVisualAsset } from '../../learn/quizVisualManifest'
+import { publicAssetUrl } from '../../utils/publicAssetUrl'
 import styles from './TopicQuizVisual.module.css'
 
 type Props = {
@@ -17,6 +18,8 @@ export function TopicQuizVisual({ visualId, compact = false, fullscreen = false,
 
   if (!spec || !hasQuizVisualAsset(visualId)) return null
 
+  const src = publicAssetUrl(spec.src)
+
   return (
     <figure
       className={`${styles.topicQuizVisual} ${compact ? styles.compact : ''} ${fullscreen ? styles.fullscreenPhoto : ''} ${split ? styles.splitPhoto : ''}`}
@@ -24,7 +27,7 @@ export function TopicQuizVisual({ visualId, compact = false, fullscreen = false,
       {!failed ? (
         <img
           className={styles.photo}
-          src={spec.src}
+          src={src}
           alt={spec.alt}
           loading="lazy"
           decoding="async"
