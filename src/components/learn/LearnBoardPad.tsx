@@ -18,6 +18,8 @@ type Props = {
   presentationMode?: boolean
 }
 
+type Point = { x: number; y: number }
+
 function clampZoom(z: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100))
 }
@@ -36,13 +38,16 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
   const { t } = useT()
   const [mode, setMode] = useState<BoardInputMode>(defaultInputMode)
   const [zoom, setZoom] = useState(() => (presentationMode ? 1.15 : 1))
+  const viewportRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const dprRef = useRef(1)
   const drawingRef = useRef(false)
-  const lastPtRef = useRef<{ x: number; y: number } | null>(null)
+  const lastPtRef = useRef<Point | null>(null)
   const saveInkTimerRef = useRef(0)
   const activePointerRef = useRef<number | null>(null)
   const canvasReadyRef = useRef(false)
+  const modeRef = useRef(mode)
+  modeRef.current = mode
 
   const canvasLogicalSize = useCallback(() => {
     const canvas = canvasRef.current
@@ -51,6 +56,12 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
       w: canvas.width / dprRef.current,
       h: canvas.height / dprRef.current,
     }
+  }, [])
+
+  const measureCanvasWidth = useCallback(() => {
+    const vp = viewportRef.current
+    if (!vp) return 280
+    return Math.max(280, Math.floor(vp.clientWidth))
   }, [])
 
   const prepareContext = useCallback((ctx: CanvasRenderingContext2D) => {
@@ -93,8 +104,6 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
     (restoreInk = true) => {
       const canvas = canvasRef.current
       if (!canvas) return
-      const shell = canvas.parentElement
-      if (!shell) return
 
       let inkRestore = readWorkspaceInk(sectionPathId)
       if (restoreInk && canvasReadyRef.current) {
@@ -104,13 +113,14 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
           /* ignore */
         }
       }
-      const w = Math.max(280, shell.clientWidth || shell.getBoundingClientRect().width)
+
+      const w = measureCanvasWidth()
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       dprRef.current = dpr
 
       canvas.width = Math.floor(w * dpr)
       canvas.height = Math.floor(INK_CANVAS_H * dpr)
-      canvas.style.width = `${w}px`
+      canvas.style.width = '100%'
       canvas.style.height = `${INK_CANVAS_H}px`
 
       const ctx = canvas.getContext('2d')
@@ -122,7 +132,7 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
       }
       canvasReadyRef.current = true
     },
-    [paintInkFromStorage, prepareContext, sectionPathId],
+    [measureCanvasWidth, paintInkFromStorage, prepareContext, sectionPathId],
   )
 
   useLayoutEffect(() => {
@@ -136,9 +146,12 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
 
   useEffect(() => {
     if (mode !== 'touch') return
-    const onResize = () => resizeCanvas(true)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    const vp = viewportRef.current
+    if (!vp) return
+
+    const ro = new ResizeObserver(() => resizeCanvas(true))
+    ro.observe(vp)
+    return () => ro.disconnect()
   }, [mode, resizeCanvas])
 
   const scheduleInkSave = useCallback(() => {
@@ -154,29 +167,84 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
     }, 350)
   }, [sectionPathId])
 
-  const canvasPoint = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return null
-    const rect = canvas.getBoundingClientRect()
-    if (rect.width <= 0 || rect.height <= 0) return null
-    const scaleX = canvasLogicalSize().w / rect.width
-    const scaleY = canvasLogicalSize().h / rect.height
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    }
-  }, [canvasLogicalSize])
+  const pointFromClient = useCallback(
+    (clientX: number, clientY: number): Point | null => {
+      const canvas = canvasRef.current
+      if (!canvas) return null
+      const rect = canvas.getBoundingClientRect()
+      if (rect.width <= 0 || rect.height <= 0) return null
+      const { w, h } = canvasLogicalSize()
+      return {
+        x: ((clientX - rect.left) / rect.width) * w,
+        y: ((clientY - rect.top) / rect.height) * h,
+      }
+    },
+    [canvasLogicalSize],
+  )
 
-  const onPointerDown = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (mode !== 'touch') return
-      if (e.pointerType === 'mouse' && e.buttons !== 1) return
+  const plotPoint = useCallback(
+    (pt: Point, start: boolean) => {
+      const ctx = canvasRef.current?.getContext('2d')
+      if (!ctx) return
+      prepareContext(ctx)
+      if (start) {
+        ctx.beginPath()
+        ctx.moveTo(pt.x, pt.y)
+        ctx.lineTo(pt.x + 0.05, pt.y + 0.05)
+        ctx.stroke()
+        return
+      }
+      const last = lastPtRef.current
+      if (!last) return
+      ctx.beginPath()
+      ctx.moveTo(last.x, last.y)
+      ctx.lineTo(pt.x, pt.y)
+      ctx.stroke()
+    },
+    [prepareContext],
+  )
+
+  const beginStroke = useCallback(
+    (pt: Point) => {
+      drawingRef.current = true
+      lastPtRef.current = pt
+      plotPoint(pt, true)
+    },
+    [plotPoint],
+  )
+
+  const extendStroke = useCallback(
+    (pt: Point) => {
+      if (!drawingRef.current) return
+      plotPoint(pt, false)
+      lastPtRef.current = pt
+    },
+    [plotPoint],
+  )
+
+  const finishStroke = useCallback(() => {
+    if (!drawingRef.current) return
+    drawingRef.current = false
+    activePointerRef.current = null
+    lastPtRef.current = null
+    scheduleInkSave()
+  }, [scheduleInkSave])
+
+  useEffect(() => {
+    if (mode !== 'touch') return
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const isDrawPointer = (type: string) => type === 'touch' || type === 'pen' || type === 'mouse'
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (modeRef.current !== 'touch') return
+      if (e.pointerType === 'touch') return
+      if (!isDrawPointer(e.pointerType)) return
+      if (e.pointerType === 'mouse' && e.button !== 0) return
 
       e.preventDefault()
       e.stopPropagation()
-
-      const canvas = canvasRef.current
-      if (!canvas) return
 
       try {
         canvas.setPointerCapture(e.pointerId)
@@ -185,67 +253,86 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
       }
 
       activePointerRef.current = e.pointerId
-      drawingRef.current = true
-
-      const pt = canvasPoint(e)
+      const pt = pointFromClient(e.clientX, e.clientY)
       if (!pt) return
-      lastPtRef.current = pt
+      beginStroke(pt)
+    }
 
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
-      prepareContext(ctx)
-      ctx.beginPath()
-      ctx.moveTo(pt.x, pt.y)
-      ctx.lineTo(pt.x + 0.01, pt.y + 0.01)
-      ctx.stroke()
-    },
-    [canvasPoint, mode, prepareContext],
-  )
-
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!drawingRef.current || mode !== 'touch') return
-      if (activePointerRef.current !== e.pointerId) return
-
-      e.preventDefault()
-
-      const pt = canvasPoint(e)
-      const ctx = canvasRef.current?.getContext('2d')
-      if (!pt || !ctx) return
-
-      prepareContext(ctx)
-      const last = lastPtRef.current
-      if (last) {
-        ctx.beginPath()
-        ctx.moveTo(last.x, last.y)
-        ctx.lineTo(pt.x, pt.y)
-        ctx.stroke()
-      }
-      lastPtRef.current = pt
-    },
-    [canvasPoint, mode, prepareContext],
-  )
-
-  const endStroke = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (activePointerRef.current !== e.pointerId) return
+    const onPointerMove = (e: PointerEvent) => {
+      if (modeRef.current !== 'touch') return
+      if (e.pointerType === 'touch') return
       if (!drawingRef.current) return
-
+      if (activePointerRef.current !== e.pointerId) return
       e.preventDefault()
-      drawingRef.current = false
-      activePointerRef.current = null
-      lastPtRef.current = null
+      const pt = pointFromClient(e.clientX, e.clientY)
+      if (!pt) return
+      extendStroke(pt)
+    }
 
+    const onPointerUp = (e: PointerEvent) => {
+      if (activePointerRef.current !== e.pointerId) return
+      e.preventDefault()
       try {
-        e.currentTarget.releasePointerCapture(e.pointerId)
+        canvas.releasePointerCapture(e.pointerId)
       } catch {
         /* ignore */
       }
+      finishStroke()
+    }
 
-      scheduleInkSave()
-    },
-    [scheduleInkSave],
-  )
+    const onTouchStart = (e: TouchEvent) => {
+      if (modeRef.current !== 'touch') return
+      if (e.touches.length !== 1) return
+      e.preventDefault()
+      e.stopPropagation()
+      const touch = e.touches[0]
+      if (!touch) return
+      activePointerRef.current = touch.identifier
+      const pt = pointFromClient(touch.clientX, touch.clientY)
+      if (!pt) return
+      beginStroke(pt)
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (modeRef.current !== 'touch') return
+      if (!drawingRef.current) return
+      e.preventDefault()
+      const touch = [...e.touches].find((t) => t.identifier === activePointerRef.current) ?? e.touches[0]
+      if (!touch) return
+      const pt = pointFromClient(touch.clientX, touch.clientY)
+      if (!pt) return
+      extendStroke(pt)
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!drawingRef.current) return
+      const ended = [...e.changedTouches].some((t) => t.identifier === activePointerRef.current)
+      if (!ended && e.touches.length > 0) return
+      e.preventDefault()
+      finishStroke()
+    }
+
+    const opts = { passive: false } as const
+    canvas.addEventListener('pointerdown', onPointerDown, opts)
+    canvas.addEventListener('pointermove', onPointerMove, opts)
+    canvas.addEventListener('pointerup', onPointerUp, opts)
+    canvas.addEventListener('pointercancel', onPointerUp, opts)
+    canvas.addEventListener('touchstart', onTouchStart, opts)
+    canvas.addEventListener('touchmove', onTouchMove, opts)
+    canvas.addEventListener('touchend', onTouchEnd, opts)
+    canvas.addEventListener('touchcancel', onTouchEnd, opts)
+
+    return () => {
+      canvas.removeEventListener('pointerdown', onPointerDown)
+      canvas.removeEventListener('pointermove', onPointerMove)
+      canvas.removeEventListener('pointerup', onPointerUp)
+      canvas.removeEventListener('pointercancel', onPointerUp)
+      canvas.removeEventListener('touchstart', onTouchStart)
+      canvas.removeEventListener('touchmove', onTouchMove)
+      canvas.removeEventListener('touchend', onTouchEnd)
+      canvas.removeEventListener('touchcancel', onTouchEnd)
+    }
+  }, [mode, beginStroke, extendStroke, finishStroke, pointFromClient])
 
   const clearInk = useCallback(() => {
     const canvas = canvasRef.current
@@ -259,6 +346,7 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
   }, [canvasLogicalSize, prepareContext, sectionPathId])
 
   const zoomLabel = `${Math.round(zoom * 100)}%`
+  const scrollContentHeight = Math.ceil(INK_CANVAS_H * zoom)
 
   return (
     <div
@@ -323,34 +411,29 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
         ) : null}
       </div>
 
-      <div className={styles.scrollViewport} aria-label={t('learn.board.scrollArea')}>
-        <div
-          className={styles.zoomShell}
-          style={{
-            transform: `scale(${zoom})`,
-            width: `${100 / zoom}%`,
-          }}
-        >
-          {mode === 'keyboard' ? (
-            <textarea
-              className={styles.textarea}
-              value={text}
-              onChange={(e) => onTextChange(e.target.value)}
-              placeholder={t('learn.workspace.scratchpad')}
-              spellCheck
-              rows={presentationMode ? 14 : 10}
-            />
-          ) : (
-            <canvas
-              ref={canvasRef}
-              className={styles.inkCanvas}
-              aria-label={t('learn.board.inkAria')}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={endStroke}
-              onPointerCancel={endStroke}
-            />
-          )}
+      <div ref={viewportRef} className={styles.scrollViewport} aria-label={t('learn.board.scrollArea')}>
+        <div className={styles.scrollContent} style={{ height: scrollContentHeight }}>
+          <div
+            className={styles.zoomShell}
+            style={{
+              transform: `scale(${zoom})`,
+              height: INK_CANVAS_H,
+            }}
+          >
+            {mode === 'keyboard' ? (
+              <textarea
+                className={styles.textarea}
+                value={text}
+                onChange={(e) => onTextChange(e.target.value)}
+                placeholder={t('learn.workspace.scratchpad')}
+                spellCheck
+                rows={presentationMode ? 14 : 10}
+                style={{ fontSize: `${0.88 * zoom}rem` }}
+              />
+            ) : (
+              <canvas ref={canvasRef} className={styles.inkCanvas} aria-label={t('learn.board.inkAria')} />
+            )}
+          </div>
         </div>
       </div>
       <p className={styles.hint}>{mode === 'touch' ? t('learn.board.touchHint') : t('learn.board.keyboardHint')}</p>
