@@ -16,6 +16,7 @@ export type LearnProgressV3 = {
     lessonId?: string
   }
   workspaceDrafts?: Record<string, string>
+  workspaceInkDrafts?: Record<string, string>
 }
 
 const empty: LearnProgressV3 = {
@@ -43,6 +44,10 @@ function parseV3(raw: string): LearnProgressV3 | null {
       last,
       workspaceDrafts:
         p.workspaceDrafts && typeof p.workspaceDrafts === 'object' ? { ...p.workspaceDrafts } : {},
+      workspaceInkDrafts:
+        p.workspaceInkDrafts && typeof p.workspaceInkDrafts === 'object'
+          ? { ...p.workspaceInkDrafts }
+          : {},
     }
   } catch {
     return null
@@ -74,6 +79,7 @@ function migrateFromV2(): LearnProgressV3 | null {
           }
         : undefined,
       workspaceDrafts: {},
+      workspaceInkDrafts: {},
     }
   } catch {
     return null
@@ -160,6 +166,22 @@ export function writeWorkspaceDraft(sectionPathId: string, text: string) {
   writeLearnProgress({
     ...cur,
     workspaceDrafts: { ...cur.workspaceDrafts, [sectionPathId]: text },
+  })
+}
+
+export function readWorkspaceInk(sectionPathId: string): string {
+  const cur = readLearnProgress()
+  return cur.workspaceInkDrafts?.[sectionPathId] ?? ''
+}
+
+export function writeWorkspaceInk(sectionPathId: string, dataUrl: string) {
+  const cur = readLearnProgress()
+  const next = { ...(cur.workspaceInkDrafts ?? {}) }
+  if (!dataUrl) delete next[sectionPathId]
+  else next[sectionPathId] = dataUrl
+  writeLearnProgress({
+    ...cur,
+    workspaceInkDrafts: next,
   })
 }
 

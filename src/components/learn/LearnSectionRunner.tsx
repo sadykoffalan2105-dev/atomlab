@@ -521,41 +521,39 @@ export function LearnSectionRunner({
               >
                 {t('learn.panel.open3d')}
               </button>
+              <button
+                type="button"
+                className={
+                  isPanelHidden('work')
+                    ? styles.learnPanelMenuOff
+                    : expandedPanel === 'work'
+                      ? styles.learnPanelMenuOn
+                      : styles.learnPanelMenuBtn
+                }
+                onClick={() => togglePanelVisibility('work')}
+                aria-pressed={!isPanelHidden('work')}
+                title={isPanelHidden('work') ? t('learn.panel.show') : t('learn.panel.hide')}
+              >
+                {t('learn.panel.openWork')}
+              </button>
               {!presentationMode ? (
-                <>
-                  <button
-                    type="button"
-                    className={
-                      isPanelHidden('work')
-                        ? styles.learnPanelMenuOff
-                        : expandedPanel === 'work'
-                          ? styles.learnPanelMenuOn
-                          : styles.learnPanelMenuBtn
-                    }
-                    onClick={() => togglePanelVisibility('work')}
-                    aria-pressed={!isPanelHidden('work')}
-                    title={isPanelHidden('work') ? t('learn.panel.show') : t('learn.panel.hide')}
-                  >
-                    {t('learn.panel.openWork')}
-                  </button>
-                  <button
-                    type="button"
-                    className={
-                      isPanelHidden('assistant')
-                        ? styles.learnPanelMenuOff
-                        : expandedPanel === 'assistant'
-                          ? styles.learnPanelMenuOn
-                          : styles.learnPanelMenuBtn
-                    }
-                    onClick={() => togglePanelVisibility('assistant')}
-                    aria-pressed={!isPanelHidden('assistant')}
-                    title={
-                      isPanelHidden('assistant') ? t('learn.panel.show') : t('learn.panel.hide')
-                    }
-                  >
-                    {t('learn.panel.openAssistant')}
-                  </button>
-                </>
+                <button
+                  type="button"
+                  className={
+                    isPanelHidden('assistant')
+                      ? styles.learnPanelMenuOff
+                      : expandedPanel === 'assistant'
+                        ? styles.learnPanelMenuOn
+                        : styles.learnPanelMenuBtn
+                  }
+                  onClick={() => togglePanelVisibility('assistant')}
+                  aria-pressed={!isPanelHidden('assistant')}
+                  title={
+                    isPanelHidden('assistant') ? t('learn.panel.show') : t('learn.panel.hide')
+                  }
+                >
+                  {t('learn.panel.openAssistant')}
+                </button>
               ) : null}
             </div>
             <button
@@ -564,7 +562,10 @@ export function LearnSectionRunner({
               onClick={() => {
                 setPresentationMode((v) => {
                   const next = !v
-                  if (next && hiddenPanels.has('3d')) showPanel('3d')
+                  if (next) {
+                    if (hiddenPanels.has('3d')) showPanel('3d')
+                    if (hiddenPanels.has('work')) showPanel('work')
+                  }
                   return next
                 })
               }}
@@ -576,7 +577,7 @@ export function LearnSectionRunner({
         </div>
       </header>
 
-      {hiddenPanels.size > 0 && !presentationMode ? (
+      {hiddenPanels.size > 0 ? (
         <div className={styles.learnHiddenPanelsBar} role="region" aria-label={t('learn.panel.hiddenBar')}>
           <span className={styles.learnHiddenPanelsLabel}>{t('learn.panel.hiddenBar')}:</span>
           {isPanelHidden('3d') ? (
@@ -589,7 +590,7 @@ export function LearnSectionRunner({
               {t('learn.panel.openWork')}
             </button>
           ) : null}
-          {isPanelHidden('assistant') ? (
+          {!presentationMode && isPanelHidden('assistant') ? (
             <button
               type="button"
               className={styles.learnHiddenPanelsBtn}
@@ -669,27 +670,31 @@ export function LearnSectionRunner({
             />
           </div>
         ) : null}
+        {!isPanelHidden('work') ? (
+          <div
+            className={[
+              styles.learnColWork,
+              mobileTab !== 'work' && !expandedPanel ? styles.learnColHideMobile : '',
+              colFs('work'),
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            <LearnColumnPanelTools
+              expanded={expandedPanel === 'work'}
+              label={t('learn.lesson.tabWork')}
+              onExpand={() => toggleExpanded('work')}
+              onHide={() => hidePanel('work')}
+            />
+            <LearnWorkspace
+              sectionPathId={pathId}
+              taskCategoryId={taskCategoryId}
+              presentationMode={presentationMode}
+            />
+          </div>
+        ) : null}
         {!presentationMode ? (
           <>
-            {!isPanelHidden('work') ? (
-              <div
-                className={[
-                  styles.learnColWork,
-                  mobileTab !== 'work' && !expandedPanel ? styles.learnColHideMobile : '',
-                  colFs('work'),
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                <LearnColumnPanelTools
-                  expanded={expandedPanel === 'work'}
-                  label={t('learn.lesson.tabWork')}
-                  onExpand={() => toggleExpanded('work')}
-                  onHide={() => hidePanel('work')}
-                />
-                <LearnWorkspace sectionPathId={pathId} taskCategoryId={taskCategoryId} />
-              </div>
-            ) : null}
             {!isPanelHidden('assistant') ? (
               <div
                 className={[

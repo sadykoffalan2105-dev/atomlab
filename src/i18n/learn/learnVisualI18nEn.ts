@@ -33,7 +33,21 @@ export const learnVisualI18nEn = {
 
   'learn.present.on': 'Board mode',
   'learn.present.off': 'Normal view',
-  'learn.present.hint': 'Enlarged 3D panel for projection',
+  'learn.present.hint': '3D + touch/keyboard workspace for projection',
+
+  'learn.board.toolbar': 'Board tools',
+  'learn.board.inputMode': 'Input mode',
+  'learn.board.modeTouch': 'Finger',
+  'learn.board.modeKeyboard': 'Keyboard',
+  'learn.board.zoom': 'Zoom',
+  'learn.board.zoomIn': 'Zoom in',
+  'learn.board.zoomOut': 'Zoom out',
+  'learn.board.zoomReset': 'Reset zoom',
+  'learn.board.clearInk': 'Clear',
+  'learn.board.scrollArea': 'Scrollable writing area',
+  'learn.board.inkAria': 'Draw with finger or stylus',
+  'learn.board.touchHint': 'Draw with finger or stylus. Scroll down when you need more space.',
+  'learn.board.keyboardHint': 'Type with the keyboard. Use + and − to zoom text.',
 
   'learn.assistant.quick1': 'Explain simply',
   'learn.assistant.quick2': 'Real-life example',

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { generateTaskProblem, answersClose, type LearnTaskGenerated } from '../../learn/learnTaskProblems'
 import { readWorkspaceDraft, writeWorkspaceDraft } from '../../learn/learnProgressStorage'
+import { LearnBoardPad } from './LearnBoardPad'
 import styles from '../../pages/LearnPage.module.css'
 
 function parseLocaleNumber(raw: string): number | null {
@@ -16,9 +17,11 @@ type Feedback = 'idle' | 'correct' | 'wrong'
 export function LearnWorkspace({
   sectionPathId,
   taskCategoryId,
+  presentationMode = false,
 }: {
   sectionPathId: string
   taskCategoryId?: string
+  presentationMode?: boolean
 }) {
   const { t } = useT()
   const [scratch, setScratch] = useState(() => readWorkspaceDraft(sectionPathId))
@@ -70,16 +73,12 @@ export function LearnWorkspace({
   return (
     <aside className={styles.learnWorkspace} aria-label={t('learn.workspace.title')}>
       <h3 className={styles.learnWorkspaceH}>{t('learn.workspace.title')}</h3>
-      <label className={styles.learnWorkspaceLabel}>
-        <span className={styles.srOnly}>{t('learn.workspace.scratchpad')}</span>
-        <textarea
-          className={styles.learnScratchpad}
-          value={scratch}
-          onChange={(e) => setScratch(e.target.value)}
-          placeholder={t('learn.workspace.scratchpad')}
-          rows={8}
-        />
-      </label>
+      <LearnBoardPad
+        sectionPathId={sectionPathId}
+        text={scratch}
+        onTextChange={setScratch}
+        presentationMode={presentationMode}
+      />
       <p className={styles.learnWorkspaceSaved} role="status">
         {t('learn.workspace.saved')}
       </p>

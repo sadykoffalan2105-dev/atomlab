@@ -34,7 +34,21 @@ export const learnVisualI18nRu = {
 
   'learn.present.on': 'Режим доски',
   'learn.present.off': 'Обычный вид',
-  'learn.present.hint': 'Увеличенная 3D-панель для проектора',
+  'learn.present.hint': '3D + рабочая зона с сенсором и клавиатурой для проектора',
+
+  'learn.board.toolbar': 'Панель доски',
+  'learn.board.inputMode': 'Способ ввода',
+  'learn.board.modeTouch': 'Палец',
+  'learn.board.modeKeyboard': 'Клавиатура',
+  'learn.board.zoom': 'Масштаб',
+  'learn.board.zoomIn': 'Увеличить',
+  'learn.board.zoomOut': 'Уменьшить',
+  'learn.board.zoomReset': 'Сбросить масштаб',
+  'learn.board.clearInk': 'Стереть',
+  'learn.board.scrollArea': 'Прокручиваемая область записи',
+  'learn.board.inkAria': 'Рисование пальцом или стилусом',
+  'learn.board.touchHint': 'Пишите пальцем или стилусом. Прокручивайте вниз, если места не хватает.',
+  'learn.board.keyboardHint': 'Ввод с клавиатуры. Увеличьте масштаб кнопками + и −.',
 
   'learn.assistant.quick1': 'Объясни проще',
   'learn.assistant.quick2': 'Пример из жизни',

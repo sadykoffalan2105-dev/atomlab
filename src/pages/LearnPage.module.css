@@ -1613,7 +1613,7 @@
 /* --- Premium learn lesson (3D, theory, board mode) --- */
 
 .learnLessonLayoutPresent {
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 2.15fr) !important;
+  grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.25fr) minmax(0, 0.9fr) !important;
 }
 
 .learnPagePresent .learnColTheory {
@@ -2713,9 +2713,8 @@
   padding: 0.45rem 0.55rem;
 }
 
-.learnLessonOneScreen .learnScratchpad {
-  min-height: 4.5rem;
-  flex: 1 1 auto;
+.learnLessonOneScreen .learnWorkspace {
+  overflow: hidden;
 }
 
 .learnLessonOneScreen .stepTitle {
