@@ -73,12 +73,14 @@ export function LearnWorkspace({
   return (
     <aside className={styles.learnWorkspace} aria-label={t('learn.workspace.title')}>
       <h3 className={styles.learnWorkspaceH}>{t('learn.workspace.title')}</h3>
-      <LearnBoardPad
-        sectionPathId={sectionPathId}
-        text={scratch}
-        onTextChange={setScratch}
-        presentationMode={presentationMode}
-      />
+      <div className={styles.learnWorkspaceBoard}>
+        <LearnBoardPad
+          sectionPathId={sectionPathId}
+          text={scratch}
+          onTextChange={setScratch}
+          presentationMode={presentationMode}
+        />
+      </div>
       <p className={styles.learnWorkspaceSaved} role="status">
         {t('learn.workspace.saved')}
       </p>
