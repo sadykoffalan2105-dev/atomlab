@@ -25,7 +25,7 @@ function blockClass(block: 's' | 'p' | 'd' | 'f'): string {
 
 function nameForCell(name: string, locale: AppLocale): string {
   if (!name) return name
-  const loc = locale === 'en' ? 'en-US' : 'ru-RU'
+  const loc = locale === 'en' ? 'en-US' : locale === 'uz' ? 'uz-Latn-UZ' : 'ru-RU'
   const first = name.charAt(0).toLocaleLowerCase(loc)
   return first + name.slice(1)
 }

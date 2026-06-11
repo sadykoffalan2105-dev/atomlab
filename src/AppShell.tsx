@@ -7,7 +7,7 @@ import { useT } from './i18n/useT'
 import styles from './AppShell.module.css'
 
 export function AppShell() {
-  const { locale, toggleLocale } = useLocale()
+  const { locale, setLocale } = useLocale()
   const { t } = useT()
 
   useEffect(() => {
@@ -56,18 +56,26 @@ export function AppShell() {
               {t('nav.learn')}
             </NavLink>
           </nav>
-          <button
-            type="button"
-            className={styles.langToggle}
-            onClick={toggleLocale}
-            title={locale === 'ru' ? t('lang.switchToEn') : t('lang.switchToRu')}
-            aria-label={t('lang.toggle', { current: locale.toUpperCase() })}
-          >
-            <span className={styles.langGlobe} aria-hidden>
-              🌐
-            </span>
-            <span className={styles.langCode}>{locale.toUpperCase()}</span>
-          </button>
+          <div className={styles.langPicker} role="group" aria-label={t('lang.toggle', { current: locale.toUpperCase() })}>
+            {(['ru', 'en', 'uz'] as const).map((code) => (
+              <button
+                key={code}
+                type="button"
+                className={locale === code ? styles.langBtnActive : styles.langBtn}
+                onClick={() => setLocale(code)}
+                title={
+                  code === 'ru'
+                    ? t('lang.switchToRu')
+                    : code === 'en'
+                      ? t('lang.switchToEn')
+                      : t('lang.switchToUz')
+                }
+                aria-pressed={locale === code}
+              >
+                {code.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
       <main className={styles.main}>

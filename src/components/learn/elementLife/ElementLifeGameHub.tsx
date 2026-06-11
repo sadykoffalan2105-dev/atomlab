@@ -6,7 +6,9 @@ import {
   shuffleArray,
   type ElementRealLifeCard,
 } from '../../../data/elementRealLife'
+import { ELEMENT_NAMES_UZ } from '../../../data/elementNamesUz'
 import { useLocale } from '../../../i18n/useLocale'
+import type { AppLocale } from '../../../i18n/types'
 import { useT } from '../../../i18n/useT'
 import styles from './ElementLifeGameHub.module.css'
 
@@ -29,11 +31,14 @@ function saveViewed(set: Set<number>) {
   localStorage.setItem(VIEWED_KEY, JSON.stringify([...set]))
 }
 
-function cardLabel(card: ElementRealLifeCard, locale: string): string {
-  return locale === 'en' ? card.nameEn : card.nameRu
+function cardLabel(card: ElementRealLifeCard, locale: AppLocale): string {
+  if (locale === 'en') return card.nameEn
+  if (locale === 'uz') return ELEMENT_NAMES_UZ[card.z - 1] ?? card.nameEn
+  return card.nameRu
 }
 
-function cardCaption(card: ElementRealLifeCard, locale: string): string {
+function cardCaption(card: ElementRealLifeCard, locale: AppLocale): string {
+  if (locale === 'uz') return card.captionEn
   return locale === 'en' ? card.captionEn : card.captionRu
 }
 
@@ -56,9 +61,9 @@ function ElementLifeCardModal({
   const { t } = useT()
   const [tab, setTab] = useState<InfoTab>('appearance')
 
-  const appearance = locale === 'en' ? card.appearanceEn : card.appearanceRu
-  const uses = locale === 'en' ? card.usesEn : card.usesRu
-  const extraction = locale === 'en' ? card.extractionEn : card.extractionRu
+  const appearance = locale === 'ru' ? card.appearanceRu : card.appearanceEn
+  const uses = locale === 'ru' ? card.usesRu : card.usesEn
+  const extraction = locale === 'ru' ? card.extractionRu : card.extractionEn
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

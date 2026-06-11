@@ -25,13 +25,14 @@ type SpeechRecognitionLike = {
   stop: () => void
 }
 
-export type LearnSpeechLocale = 'ru' | 'en'
+export type LearnSpeechLocale = 'ru' | 'en' | 'uz'
 
 export type SpeechOutputMode = 'neural' | 'browser'
 
 const SPEECH_LOCALE: Record<LearnSpeechLocale, string> = {
   ru: 'ru-RU',
   en: 'en-US',
+  uz: 'uz-UZ',
 }
 
 function speechSupported(): boolean {
@@ -78,7 +79,7 @@ function isMaleVoiceName(name: string): boolean {
 function pickBrowserVoice(locale: LearnSpeechLocale, neuralOnly = false): SpeechSynthesisVoice | null {
   if (!speechSupported()) return null
   const voices = window.speechSynthesis.getVoices()
-  const langPrefix = locale === 'ru' ? 'ru' : 'en'
+  const langPrefix = locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'
   const hints = BROWSER_NEURAL_HINTS[locale]
 
   for (const hint of hints) {
@@ -104,7 +105,10 @@ function pickBrowserVoice(locale: LearnSpeechLocale, neuralOnly = false): Speech
 
   const local = voices.find((v) => lower(v.lang).startsWith(langPrefix) && v.localService)
   if (local) return local
-  return voices.find((v) => lower(v.lang).startsWith(langPrefix)) ?? null
+  const any = voices.find((v) => lower(v.lang).startsWith(langPrefix))
+  if (any) return any
+  if (locale === 'uz') return pickBrowserVoice('ru', neuralOnly)
+  return null
 }
 
 export function hasNativeBrowserNeuralVoice(locale: LearnSpeechLocale): boolean {

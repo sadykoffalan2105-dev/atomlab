@@ -56,7 +56,8 @@ export function buildLearnAssistantContext(input: {
 
 /** @deprecated Use learnChatCore + buildAssistantSystemPrompt on server. */
 export function buildSystemPrompt(ctx: LearnAssistantContextPayload): string {
-  const lang = ctx.locale === 'en' ? 'English' : 'Russian'
+  const lang =
+    ctx.locale === 'en' ? 'English' : ctx.locale === 'uz' ? 'Uzbek (Latin script)' : 'Russian'
   return `Chemistry tutor ATOMLAB. Answer in ${lang}. Any chemistry question allowed.
 Lesson: ${ctx.gradeId} ${ctx.chapterId} §${ctx.section.kpNumber} — ${ctx.slideTitle}.
 ${ctx.slideBody.slice(0, 400)}`

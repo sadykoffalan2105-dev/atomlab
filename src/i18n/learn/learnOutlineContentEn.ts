@@ -1,5 +1,5 @@
 import { learnGradesOutlineEn } from './gradesOutlineEn'
-import { buildFullSectionSlides } from './g7PilotRu'
+import { buildFullSectionSlides } from './g7PilotSlideBuilder'
 
 const G7_PILOT_PREFIXES = new Set([
   ...Array.from({ length: 10 }, (_, i) => `learn.g7.c1.s${String(i + 1).padStart(2, '0')}`),
@@ -20,6 +20,7 @@ export const learnOutlineContentEn: Record<string, string> = (() => {
     Object.assign(
       out,
       buildFullSectionSlides(
+        'en',
         prefix,
         topic,
         `${topic}: study the textbook section and compare with the ATOMLAB 3D model.`,

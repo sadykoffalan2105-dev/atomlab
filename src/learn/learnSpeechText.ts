@@ -11,7 +11,7 @@ import {
   TEACHER_VOICE_OPENAI_SPEED,
 } from './learnTeacherVoiceProfile'
 
-export type SpeechPrepLocale = 'ru' | 'en'
+export type SpeechPrepLocale = 'ru' | 'en' | 'uz'
 
 const SUBSCRIPT_DIGITS = '₀₁₂₃₄₅₆₇₈₉'
 const SUPERSCRIPT_DIGITS = '⁰¹²³⁴⁵⁶⁷⁸⁹'

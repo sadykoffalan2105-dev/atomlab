@@ -1,5 +1,5 @@
 import { learnGradesOutlineRu } from './gradesOutlineRu'
-import { buildFullSectionSlides } from './g7PilotRu'
+import { buildFullSectionSlides } from './g7PilotSlideBuilder'
 
 /** Только § с полным текстом в g7PilotRu — остальные получают outline из topicContent(). */
 const G7_PILOT_PREFIXES = new Set([
@@ -319,7 +319,7 @@ function buildOutlinePack(): Record<string, string> {
     const c = topicContent(topic)
     Object.assign(
       out,
-      buildFullSectionSlides(prefix, topic, c.example, c.q, c.choices, c.correct, c.lab, {
+      buildFullSectionSlides('ru', prefix, topic, c.example, c.q, c.choices, c.correct, c.lab, {
         bullets0: [
           `Параграф: ${topic}`,
           `Интересно: ${c.example.split('.')[0]}.`,

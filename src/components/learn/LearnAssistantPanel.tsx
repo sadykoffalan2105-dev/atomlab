@@ -119,7 +119,7 @@ export function LearnAssistantPanel({
 
   const localCtx: LearnLocalAssistantContext = useMemo(
     () => ({
-      locale: locale === 'en' ? 'en' : 'ru',
+      locale,
       gradeId,
       chapterId,
       sectionId: section.id,
@@ -146,7 +146,7 @@ export function LearnAssistantPanel({
   const mapRoutedSource = (s: TeacherReplySource): 'openai' | 'local' | 'ollama' =>
     s === 'ollama' ? 'ollama' : 'local'
 
-  const speechLocale = locale === 'en' ? 'en' : 'ru'
+  const speechLocale = locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'
 
   const speakMessage = useCallback(
     async (text: string, messageId: number) => {

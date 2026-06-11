@@ -47,35 +47,38 @@
   gap: 0.35rem 0.75rem;
 }
 
-.langToggle {
+.langPicker {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.65rem;
+  gap: 0.2rem;
+  padding: 0.2rem;
   border-radius: 0.55rem;
   border: 1px solid rgba(61, 255, 236, 0.28);
   background: rgba(10, 14, 28, 0.75);
-  color: #e8ecff;
-  font-size: 0.78rem;
-  font-weight: 600;
+}
+
+.langBtn,
+.langBtnActive {
+  min-width: 2.1rem;
+  padding: 0.28rem 0.45rem;
+  border-radius: 0.4rem;
+  border: none;
+  background: transparent;
+  color: rgba(180, 195, 230, 0.9);
+  font-size: 0.72rem;
+  font-weight: 700;
   letter-spacing: 0.06em;
   cursor: pointer;
 }
 
-.langToggle:hover {
-  border-color: rgba(61, 255, 236, 0.5);
+.langBtn:hover {
   color: #3dffec;
 }
 
-.langGlobe {
-  font-size: 1rem;
-  line-height: 1;
-  opacity: 0.9;
-}
-
-.langCode {
-  min-width: 1.75rem;
-  text-align: center;
+.langBtnActive {
+  background: rgba(61, 255, 236, 0.16);
+  color: #3dffec;
+  box-shadow: inset 0 0 0 1px rgba(61, 255, 236, 0.35);
 }
 
 .navLink {

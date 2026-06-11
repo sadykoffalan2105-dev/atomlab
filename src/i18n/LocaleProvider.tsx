@@ -6,16 +6,14 @@ import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY } from './types'
 function readStoredLocale(): AppLocale {
   try {
     const raw = localStorage.getItem(LOCALE_STORAGE_KEY)
-    if (raw === 'uz') {
-      localStorage.setItem(LOCALE_STORAGE_KEY, 'ru')
-      return 'ru'
-    }
-    if (raw === 'en' || raw === 'ru') return raw
+    if (raw === 'en' || raw === 'ru' || raw === 'uz') return raw
   } catch {
     /* ignore */
   }
   return DEFAULT_LOCALE
 }
+
+const LOCALE_CYCLE: AppLocale[] = ['ru', 'en', 'uz']
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<AppLocale>(() =>
@@ -32,11 +30,13 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const toggleLocale = useCallback(() => {
-    setLocale(locale === 'ru' ? 'en' : 'ru')
+    const idx = LOCALE_CYCLE.indexOf(locale)
+    const next = LOCALE_CYCLE[(idx + 1) % LOCALE_CYCLE.length] ?? 'ru'
+    setLocale(next)
   }, [locale, setLocale])
 
   useEffect(() => {
-    document.documentElement.lang = locale === 'en' ? 'en' : 'ru'
+    document.documentElement.lang = locale
   }, [locale])
 
   const value = useMemo(

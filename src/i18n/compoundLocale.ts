@@ -1,7 +1,8 @@
 import { defaultSynthesisConditionsText, defaultSynthesisConditionsTextForLocale } from '../chemistry/synthesisConditionsDefaults'
 import type { CompoundDef } from '../types/chemistry'
 import type { AppLocale } from './types'
-import { COMPOUND_EN_OVERLAY } from './compoundEnOverlay'
+import { resolveCompoundDescription } from './compoundDescriptionResolver'
+import { resolveCompoundName } from './compoundNameResolver'
 import type { MessageKey } from './messagesRu'
 
 export type CompoundLocaleStrings = {
@@ -28,45 +29,58 @@ function categoryFallbackKey(category: CompoundDef['category']): MessageKey {
   return m[category] ?? 'catalog.category.other'
 }
 
+function localizedSynthesisConditions(
+  c: CompoundDef,
+  locale: AppLocale,
+): CompoundLocaleStrings['synthesisConditions'] {
+  const ruD = defaultSynthesisConditionsText(c.synthesisLab, c.category)
+  const locD = defaultSynthesisConditionsTextForLocale(c.synthesisLab, c.category, locale)
+  const cur = c.synthesisConditionsRu
+
+  const pick = (k: 'temperature' | 'pressure' | 'catalyst'): string | undefined => {
+    const v = cur[k]
+    const ruV = ruD[k]
+    const locV = locD[k]
+    if (v === undefined || v === '') return locV
+    if (locale !== 'ru' && v === ruV) return locV
+    if (locale === 'ru') return v
+    return locV
+  }
+
+  return {
+    temperature: pick('temperature'),
+    pressure: pick('pressure'),
+    catalyst: pick('catalyst'),
+  }
+}
+
 export function getCompoundLocaleStrings(c: CompoundDef, locale: AppLocale, t: TFn): CompoundLocaleStrings {
   if (locale === 'ru') {
     return {
       name: c.nameRu,
       description: c.descriptionRu,
       laboratoryRecipe: c.laboratoryRecipeRu,
-      synthesisConditions: { ...c.synthesisConditionsRu },
+      synthesisConditions: localizedSynthesisConditions(c, locale),
     }
   }
 
-  const ov = COMPOUND_EN_OVERLAY[c.id]
   const catLabel = t(categoryFallbackKey(c.category))
-  const name = ov?.nameEn ?? c.formulaUnicode
-  const description =
-    ov?.descriptionEn ??
-    t('catalog.fallbackDescription', { formula: c.formulaUnicode, category: catLabel })
-
-  const ruD = defaultSynthesisConditionsText(c.synthesisLab, c.category)
-  const enD = defaultSynthesisConditionsTextForLocale(c.synthesisLab, c.category, 'en')
-  const cur = c.synthesisConditionsRu
-
-  const pick = (k: 'temperature' | 'pressure' | 'catalyst'): string | undefined => {
-    const v = cur[k]
-    const ruV = ruD[k]
-    const enV = enD[k]
-    if (v === undefined || v === '') return enV
-    if (v === ruV) return enV
-    return v
-  }
+  const resolvedName = resolveCompoundName(c.id, locale)
+  const name = resolvedName ?? c.formulaUnicode
+  const description = resolveCompoundDescription(
+    c.id,
+    c.category,
+    locale,
+    (formula, category) => t('catalog.fallbackDescription', { formula, category }),
+    c.formulaUnicode,
+    catLabel,
+  )
 
   return {
     name,
     description,
     laboratoryRecipe: c.laboratoryRecipeRu,
-    synthesisConditions: {
-      temperature: pick('temperature'),
-      pressure: pick('pressure'),
-      catalyst: pick('catalyst'),
-    },
+    synthesisConditions: localizedSynthesisConditions(c, locale),
   }
 }
 

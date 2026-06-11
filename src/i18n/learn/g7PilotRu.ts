@@ -1,57 +1,19 @@
-/** Генератор строк слайдов для полного § (пилот 7 класс) — расширенная теория. */
-export function buildFullSectionSlides(
+import { buildFullSectionSlides as buildSlides } from './g7PilotSlideBuilder'
+
+export { buildFullSectionSlides } from './g7PilotSlideBuilder'
+
+const slide = (
   prefix: string,
   topic: string,
   example: string,
   checkpointQ: string,
   choices: [string, string, string, string],
-  _correctIndex: number,
+  correctIndex: number,
   labHint: string,
-  extra?: {
-    bullets0?: string[]
-    callout0?: string
-    diagram0?: [string, string]
-    bullets3?: string[]
-    callout3?: string
-  },
-): Record<string, string> {
-  const b0 = extra?.bullets0 ?? [
-    `Предмет урока: ${topic}`,
-    'Связывайте текст с 3D-моделью справа',
-    'Записывайте выводы в рабочую зону',
-  ]
-  const b3 = extra?.bullets3 ?? [
-    `Главное: ${topic}`,
-    'Повторите определение вслух',
-    'Проверьте себя вопросом ниже',
-  ]
-  return {
-    [`${prefix}.slide0.title`]: `${topic}`,
-    [`${prefix}.slide0.body`]: `Химия — экспериментальная наука о веществах, их составе, строении и превращениях. На уроке мы опираемся на учебник, 3D-модели ATOMLAB и ваши записи — так материал запоминается надёжнее.`,
-    [`${prefix}.slide0.bullets`]: b0.join('|'),
-    [`${prefix}.slide0.callout`]:
-      extra?.callout0 ?? 'На электронной доске удобно показывать 3D-панель крупно — включите «Режим доски».',
-    [`${prefix}.slide0.diagram`]: (extra?.diagram0 ?? [topic, 'Схема и модель дополняют друг друга']).join('|'),
-    [`${prefix}.slide1.title`]: 'Интересный факт',
-    [`${prefix}.slide1.body`]: example,
-    [`${prefix}.slide1.bullets`]: 'Наблюдайте явление|Сформулируйте вопрос|Сверьте с моделью',
-    [`${prefix}.slide2.caption`]:
-      'Интерактивная 3D-модель: вращайте, приближайте, обсуждайте строение на доске.',
-    [`${prefix}.slide3.title`]: 'Опыт и наблюдение',
-    [`${prefix}.slide3.body`]: `Итог параграфа: ${topic}. Сформулируйте определение своими словами и закрепите его задачей в рабочей зоне.`,
-    [`${prefix}.slide3.bullets`]: b3.join('|'),
-    [`${prefix}.slide3.callout`]: extra?.callout3 ?? 'ИИ-учитель справа поможет пересказать тему и проверить понимание.',
-    [`${prefix}.slide4.q`]: checkpointQ,
-    [`${prefix}.slide4.c0`]: choices[0],
-    [`${prefix}.slide4.c1`]: choices[1],
-    [`${prefix}.slide4.c2`]: choices[2],
-    [`${prefix}.slide4.c3`]: choices[3],
-    [`${prefix}.slide5.title`]: 'Связь с лабораторией ATOMLAB',
-    [`${prefix}.slide5.body`]: labHint,
-  }
-}
+  extra?: Parameters<typeof buildSlides>[8],
+) => buildSlides('ru', prefix, topic, example, checkpointQ, choices, correctIndex, labHint, extra)
 
-export const learnG7C1S01 = buildFullSectionSlides(
+export const learnG7C1S01 = slide(
   'learn.g7.c1.s01',
   'Химия как наука',
   'Химия изучает вещества и превращения: от состава воздуха и воды до реакций в организме и промышленности. В ATOMLAB те же идеи показаны в объёмных моделях — удобно для урока на проекторе.',
@@ -70,7 +32,7 @@ export const learnG7C1S01 = buildFullSectionSlides(
   },
 )
 
-export const learnG7C1S02 = buildFullSectionSlides(
+export const learnG7C1S02 = slide(
   'learn.g7.c1.s02',
   'Материя и свойства',
   'Лёд, вода и пар — одно вещество (H₂O) в разных агрегатных состояниях. Свойства зависят от строения частиц.',
@@ -80,7 +42,7 @@ export const learnG7C1S02 = buildFullSectionSlides(
   'В каталоге откройте воду и сравните формулу с 3D-моделью.',
 )
 
-export const learnG7C1S03 = buildFullSectionSlides(
+export const learnG7C1S03 = slide(
   'learn.g7.c1.s03',
   'Безопасность в химической лаборатории',
   'Очки, перчатки, вытяжка и осторожность с огнём — обязательны. В виртуальной лаборатории тоже привыкайте к порядку.',
@@ -90,7 +52,7 @@ export const learnG7C1S03 = buildFullSectionSlides(
   'Перед реальным опытом повторите правила; в ATOMLAB синтез безопасен, но привычки важны.',
 )
 
-export const learnG7C1S04 = buildFullSectionSlides(
+export const learnG7C1S04 = slide(
   'learn.g7.c1.s04',
   'Лабораторная посуда и нагревание',
   'Штатив, пробирки, спиртовка и газовая горелка — инструменты для опытов. Нагревание ускоряет многие реакции.',
@@ -100,7 +62,7 @@ export const learnG7C1S04 = buildFullSectionSlides(
   'В лаборатории ATOMLAB нагревание показано в панели синтеза — попробуйте подобрать реагенты.',
 )
 
-export const learnG7C1S05 = buildFullSectionSlides(
+export const learnG7C1S05 = slide(
   'learn.g7.c1.s05',
   'Чистые вещества и смеси',
   'Соль NaCl в магазине часто содержит примеси — это смесь. Выделение чистого вещества — важный навык.',
@@ -110,7 +72,7 @@ export const learnG7C1S05 = buildFullSectionSlides(
   'Решите задачу на растворы в правой панели — тип «Растворы и концентрации».',
 )
 
-export const learnG7C1S06 = buildFullSectionSlides(
+export const learnG7C1S06 = slide(
   'learn.g7.c1.s06',
   'Разделение смесей',
   'Фильтрация, выпаривание, магнитное отделение — способы очистки. Выберите метод по свойствам компонентов.',
@@ -120,7 +82,7 @@ export const learnG7C1S06 = buildFullSectionSlides(
   'Запишите последовательность шагов очистки соли в рабочей зоне.',
 )
 
-export const learnG7C1S07 = buildFullSectionSlides(
+export const learnG7C1S07 = slide(
   'learn.g7.c1.s07',
   'Агрегатные состояния',
   'Твёрдое, жидкое, газообразное — при нагревании/охлаждении вещество меняет состояние без смены состава (физическое явление).',
@@ -130,7 +92,7 @@ export const learnG7C1S07 = buildFullSectionSlides(
   'Сравните модели H₂O (лёд/вода) в каталоге.',
 )
 
-export const learnG7C1S08 = buildFullSectionSlides(
+export const learnG7C1S08 = slide(
   'learn.g7.c1.s08',
   'Физические и химические явления',
   'Растворение сахара — физическое; горение — химическое. Признак химии — новые вещества.',
@@ -140,7 +102,7 @@ export const learnG7C1S08 = buildFullSectionSlides(
   'Посмотрите анимацию реакции Mg + O₂ в 3D-панели.',
 )
 
-export const learnG7C1S09 = buildFullSectionSlides(
+export const learnG7C1S09 = slide(
   'learn.g7.c1.s09',
   'Химия в быту',
   'Готовка, кислородное отбеливание, брожение — повседневная химия. Наблюдайте и записывайте признаки реакций.',
@@ -150,7 +112,7 @@ export const learnG7C1S09 = buildFullSectionSlides(
   'Придумайте пример из кухни и спросите ИИ-учителя справа.',
 )
 
-export const learnG7C1S10 = buildFullSectionSlides(
+export const learnG7C1S10 = slide(
   'learn.g7.c1.s10',
   'Повторение: вещества',
   'Закрепляем: чистое/смесь, физ/хим, безопасность. Готовимся к атому и элементам.',
@@ -160,7 +122,7 @@ export const learnG7C1S10 = buildFullSectionSlides(
   'Пройдите задачу в правой панели и отметьте § завершённым.',
 )
 
-export const learnG7C2S01 = buildFullSectionSlides(
+export const learnG7C2S01 = slide(
   'learn.g7.c2.s01',
   'Атом — частица вещества',
   'Атом — наименьшая частица химического элемента. В 3D видны ядро и электронные оболочки.',
@@ -170,7 +132,7 @@ export const learnG7C2S01 = buildFullSectionSlides(
   'Откройте таблицу Менделеева и выберите H — сравните с моделью атома.',
 )
 
-export const learnG7C2S02 = buildFullSectionSlides(
+export const learnG7C2S02 = slide(
   'learn.g7.c2.s02',
   'Строение атома',
   'Ядро (протоны, нейтроны) и электроны на оболочках. Заряд ядра определяет элемент.',
@@ -180,7 +142,7 @@ export const learnG7C2S02 = buildFullSectionSlides(
   'Покрутите модель кислорода — обратите внимание на число оболочек.',
 )
 
-export const learnG7C2S03 = buildFullSectionSlides(
+export const learnG7C2S03 = slide(
   'learn.g7.c2.s03',
   'Химический элемент и символ',
   'Каждый элемент имеет символ (H, O, Cl) и порядковый номер в таблице Менделеева.',
@@ -190,7 +152,7 @@ export const learnG7C2S03 = buildFullSectionSlides(
   'Найдите Cl в периодической таблице приложения.',
 )
 
-export const learnG7C2S04 = buildFullSectionSlides(
+export const learnG7C2S04 = slide(
   'learn.g7.c2.s04',
   'Относительная атомная масса',
   'Ar — средняя масса атомов элемента. Нужна для расчёта молярных масс формул.',
@@ -200,7 +162,7 @@ export const learnG7C2S04 = buildFullSectionSlides(
   'Решите задачу «Молярная масса» в рабочей зоне.',
 )
 
-export const learnG7C2S05 = buildFullSectionSlides(
+export const learnG7C2S05 = slide(
   'learn.g7.c2.s05',
   'Изотопы',
   'Изотопы — атомы одного элемента с разным числом нейтронов. Химические свойства близки.',
@@ -210,7 +172,7 @@ export const learnG7C2S05 = buildFullSectionSlides(
   'Сравните модели атомов H и D (дейтерий) по учебнику и запишите вывод.',
 )
 
-export const learnG7C2S06 = buildFullSectionSlides(
+export const learnG7C2S06 = slide(
   'learn.g7.c2.s06',
   'Формула и валентность',
   'Формула показывает состав; валентность — способность атома образовать связи (H—I, O—II).',
@@ -220,7 +182,7 @@ export const learnG7C2S06 = buildFullSectionSlides(
   'Постройте формулу H₂O и проверьте в каталоге 3D-модель.',
 )
 
-export const learnG7C3S01 = buildFullSectionSlides(
+export const learnG7C3S01 = slide(
   'learn.g7.c3.s01',
   'Состав воздуха',
   'Воздух — смесь: ~78% N₂, ~21% O₂, Ar, CO₂. Кислород поддерживает горение.',
@@ -230,7 +192,7 @@ export const learnG7C3S01 = buildFullSectionSlides(
   'Откройте O₂ (diatomic:8) в 3D и обсудите роль в горении.',
 )
 
-export const learnG7C3S02 = buildFullSectionSlides(
+export const learnG7C3S02 = slide(
   'learn.g7.c3.s02',
   'Горение',
   'Горение — быстрое окисление с выделением тепла и света. Нужны горючее, окислитель, поджиг.',
@@ -240,7 +202,7 @@ export const learnG7C3S02 = buildFullSectionSlides(
   'Соберите реакцию горения в лаборатории (C + O₂).',
 )
 
-export const learnG7C3S03 = buildFullSectionSlides(
+export const learnG7C3S03 = slide(
   'learn.g7.c3.s03',
   'Кислород',
   'O₂ получают разложением пероксида водорода или электролизом воды; поддерживает горение.',
@@ -250,7 +212,7 @@ export const learnG7C3S03 = buildFullSectionSlides(
   '3D: diatomic:8. Проверьте реакцию с железом в учебнике.',
 )
 
-export const learnG7C4S01 = buildFullSectionSlides(
+export const learnG7C4S01 = slide(
   'learn.g7.c4.s01',
   'Водород',
   'H₂ — самый лёгкий газ; восстановитель; получают кислотами + Zn, Al.',
@@ -260,7 +222,7 @@ export const learnG7C4S01 = buildFullSectionSlides(
   'Модель H₂ в 3D (diatomic:1).',
 )
 
-export const learnG7C4S02 = buildFullSectionSlides(
+export const learnG7C4S02 = slide(
   'learn.g7.c4.s02',
   'Вода',
   'H₂O — полярная молекула; растворитель; участвует в гидролизе и электролизе.',
@@ -270,7 +232,7 @@ export const learnG7C4S02 = buildFullSectionSlides(
   'Откройте molecule:h2o и обсудите водородную связь.',
 )
 
-export const learnG7C5S01 = buildFullSectionSlides(
+export const learnG7C5S01 = slide(
   'learn.g7.c5.s01',
   'Химия в организме',
   'Белки, жиры, углеводы — органические вещества в клетках; вода — среда обмена.',

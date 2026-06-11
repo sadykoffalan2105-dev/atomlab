@@ -55,7 +55,7 @@ export async function synthesizeClonedTeacherSpeech(
     body: JSON.stringify({
       text,
       model_id: config.modelId ?? DEFAULT_MODEL,
-      language_code: locale === 'en' ? 'en' : 'ru',
+      language_code: locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru',
       apply_text_normalization: 'on',
       voice_settings: {
         stability: 0.68,

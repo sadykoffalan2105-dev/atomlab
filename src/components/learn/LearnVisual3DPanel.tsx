@@ -4,6 +4,8 @@ import { compoundById } from '../../data/compounds'
 import { getCompoundLocaleStrings } from '../../i18n/compoundLocale'
 import { getTopicSceneLabel } from '../../learn/learnTopicSceneDefs'
 import { ELEMENTS } from '../../data/elements'
+import { elementDisplayName } from '../../data/elementDisplayName'
+import type { AppLocale } from '../../i18n/types'
 import { buildNanoBananaPrompt } from '../../learn/learnNanoBananaPrompts'
 import type { LearnTopicArtId, LearnVisualSpec } from '../../types/learn'
 import { useT } from '../../i18n/useT'
@@ -25,7 +27,7 @@ const LearnPremiumCanvas = lazy(() =>
 function visualLabel(
   spec: LearnVisualSpec | null,
   fallback: string,
-  locale: 'ru' | 'en' | 'uz',
+  locale: AppLocale,
   t: (key: import('../../i18n/messagesRu').MessageKey) => string,
 ): string {
   if (!spec) return fallback
@@ -36,7 +38,10 @@ function visualLabel(
   }
   if (spec.kind === 'diatomic' || spec.kind === 'atom' || spec.kind === 'element') {
     const el = ELEMENTS.find((e) => e.z === spec.z)
-    if (el) return spec.kind === 'diatomic' ? `${el.symbol}₂` : `${el.symbol} · ${el.nameRu}`
+    if (el) {
+      const label = elementDisplayName(el, locale)
+      return spec.kind === 'diatomic' ? `${el.symbol}₂` : `${el.symbol} · ${label}`
+    }
     return spec.kind === 'diatomic' ? `diatomic:${spec.z}` : `Z=${spec.z}`
   }
   return spec.id

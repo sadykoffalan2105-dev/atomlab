@@ -11,6 +11,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'lang.toggle': 'Language: {current}. Click to switch',
   'lang.switchToEn': 'Switch to English',
   'lang.switchToRu': 'Switch to Russian',
+  'lang.switchToUz': 'Switch to Uzbek',
 
   'catalog.title': 'Substance catalog',
   'catalog.lead':

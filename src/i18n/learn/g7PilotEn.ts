@@ -1,4 +1,4 @@
-import { buildFullSectionSlides } from './g7PilotRu'
+import { buildFullSectionSlides } from './g7PilotSlideBuilder'
 
 const sections: [string, string][] = [
   ['learn.g7.c1.s01', 'Chemistry as a science'],
@@ -23,6 +23,7 @@ const built = Object.assign(
   {},
   ...sections.map(([prefix, topic]) =>
     buildFullSectionSlides(
+      'en',
       prefix,
       topic,
       `Explore ${topic.toLowerCase()} with the interactive 3D panel.`,

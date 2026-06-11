@@ -4,6 +4,7 @@ import type { SpeechPrepLocale } from './learnSpeechText'
 export const TEACHER_VOICE_EDGE: Record<SpeechPrepLocale, string> = {
   ru: 'ru-RU-DmitryNeural',
   en: 'en-US-GuyNeural',
+  uz: 'ru-RU-DmitryNeural',
 }
 
 /** Просодия: профессиональный диктор, чёткое произношение каждого слова. */
@@ -13,22 +14,26 @@ export const TEACHER_VOICE_EDGE_PROSODY: Record<
 > = {
   ru: { rate: '+4%', pitch: '+0Hz', volume: '+0%' },
   en: { rate: '+4%', pitch: '+0Hz', volume: '+0%' },
+  uz: { rate: '+4%', pitch: '+0Hz', volume: '+0%' },
 }
 
 export const TEACHER_VOICE_OPENAI: Record<SpeechPrepLocale, string> = {
   ru: 'onyx',
   en: 'onyx',
+  uz: 'onyx',
 }
 
 export const TEACHER_VOICE_OPENAI_SPEED: Record<SpeechPrepLocale, number> = {
   ru: 1.04,
   en: 1.04,
+  uz: 1.04,
 }
 
 /** ElevenLabs clone — множитель скорости (1.0 = норма). */
 export const TEACHER_VOICE_CLONE_SPEED: Record<SpeechPrepLocale, number> = {
   ru: 1.04,
   en: 1.04,
+  uz: 1.04,
 }
 
 export const TEACHER_VOICE_OPENAI_INSTRUCTIONS = {
@@ -48,11 +53,13 @@ export const TEACHER_BROWSER_VOICE_HINTS: Record<SpeechPrepLocale, string[]> = {
     'мужской',
   ],
   en: ['guyneural', 'guy online', 'microsoft guy', 'david', 'male'],
+  uz: ['uzbek', 'madina', 'sardor', 'microsoft', 'male'],
 }
 
 export const TEACHER_BROWSER_RATE: Record<SpeechPrepLocale, number> = {
   ru: 1.04,
   en: 1.04,
+  uz: 1.04,
 }
 
 /** Нейтральная высота — лучше разборчивость слов. */

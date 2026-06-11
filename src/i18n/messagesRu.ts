@@ -10,6 +10,7 @@ export const messagesRu = {
   'lang.toggle': 'Язык: {current}. Нажмите, чтобы переключить',
   'lang.switchToEn': 'Переключить на English',
   'lang.switchToRu': 'Переключить на русский',
+  'lang.switchToUz': 'Переключить на узбекский',
 
   'catalog.title': 'Каталог веществ',
   'catalog.lead':

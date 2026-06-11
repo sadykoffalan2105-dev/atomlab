@@ -23,6 +23,26 @@ function packRu(lab: SynthesisLabConditions | undefined, category: CompoundCateg
   return { temperature: heat, pressure, catalyst }
 }
 
+function packUz(lab: SynthesisLabConditions | undefined, category: CompoundCategory): SynthPack {
+  const heat = lab?.needsHeat
+    ? 'Harorat: reaksiya davomida oshiriladi (aniq rejim — tajriba/metodikaga qarab).'
+    : 'Harorat: odatda xona harorati yoki engil qizdirish; kerak bo\'lsa — modda retseptiga qarab.'
+
+  const pressure = lab?.needsPressure
+    ? 'Bosim: yuqori (avtoklav, germetik reaktor) — qiymat metodikaga qarab.'
+    : 'Bosim: atmosfera (~1 atm), boshqa talab qilinmasa.'
+
+  let catalyst = 'Katalizator: ushbu misol uchun shart emas.'
+  if (lab?.needsCatalyst) {
+    catalyst =
+      'Katalizator: kerak (Pt, Ni, MnO₂ va boshqalar — aniq reaksiyaga qarab); reaktor panelida ko\'rsating.'
+  } else if (category === 'salt' || category === 'acid') {
+    catalyst = 'Katalizator: odatda ishlatilmaydi; kislota–asos jarayonlari uchun — reaksiyaga qarab.'
+  }
+
+  return { temperature: heat, pressure, catalyst }
+}
+
 function packEn(lab: SynthesisLabConditions | undefined, category: CompoundCategory): SynthPack {
   const heat = lab?.needsHeat
     ? 'Heating: increase temperature along the reaction path (exact conditions depend on the procedure).'
@@ -57,5 +77,7 @@ export function defaultSynthesisConditionsTextForLocale(
   category: CompoundCategory,
   locale: AppLocale,
 ): SynthesisConditionsTextRu {
-  return locale === 'en' ? packEn(lab, category) : packRu(lab, category)
+  if (locale === 'en') return packEn(lab, category)
+  if (locale === 'uz') return packUz(lab, category)
+  return packRu(lab, category)
 }
