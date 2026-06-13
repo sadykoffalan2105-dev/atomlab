@@ -2,6 +2,7 @@ import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
 import { buildSectionOutlineBlock } from './learnSectionKnowledge'
 import { matchFaqEntry, offlineNeedsApiMessage } from './learnChemistryFaq'
 import { retrieveChemistryKnowledge } from './learnKnowledgeRetrieval'
+import { buildG7TextbookContextBlock, findG7TextbookByQuery } from './learnG7TextbookKnowledge'
 import { composeExpertLocalReply } from './learnExpertLocalReply'
 import { synthesizeKnowledgeAnswer } from './learnConversationalSynthesis'
 import type { LearnTaskCoachContext } from './learnTaskCoachTypes'
@@ -70,9 +71,12 @@ function mixturesAnswer(ctx: LearnLocalAssistantContext, ru: boolean): string {
 
 function knowledgeBlockReply(query: string, ctx: LearnLocalAssistantContext): string | null {
   const faq = matchFaqEntry(query)
+  const wantsFull =
+    /полност|подроб|по учебник|объясни|расскажи|что такое|explain|tell me about/i.test(query)
+
   const retrieved = retrieveChemistryKnowledge(query, {
-    maxChunks: 4,
-    minScore: 2,
+    maxChunks: wantsFull ? 8 : 5,
+    minScore: 1,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
     chapterId: ctx.chapterId,
@@ -80,7 +84,25 @@ function knowledgeBlockReply(query: string, ctx: LearnLocalAssistantContext): st
   })
   if (!faq && retrieved.chunks.length === 0) return null
 
-  return synthesizeKnowledgeAnswer(query, retrieved.chunks, faq, ctx)
+  let answer = synthesizeKnowledgeAnswer(query, retrieved.chunks, faq, ctx)
+
+  if (ctx.gradeId === 'g7' && wantsFull) {
+    const ru = isRu(ctx.locale)
+    const loc = ru ? 'ru' : 'en'
+    let book =
+      ctx.chapterId && ctx.sectionId
+        ? buildG7TextbookContextBlock(ctx.chapterId, ctx.sectionId, loc, 8000)
+        : ''
+    if (!book) {
+      const hit = findG7TextbookByQuery(query)
+      if (hit) book = buildG7TextbookContextBlock(hit.chapterId, hit.sectionId, loc, 8000)
+    }
+    if (book && !answer.includes(book.slice(0, 60))) {
+      answer = `${answer}\n\n---\n\n${book.slice(0, 6000)}`
+    }
+  }
+
+  return answer
 }
 
 function explainTopic(ctx: LearnLocalAssistantContext, ru: boolean, query?: string): string {

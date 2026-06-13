@@ -9,7 +9,7 @@ def build_knowledge_block(
     query: str,
     ctx: dict[str, Any],
     *,
-    max_chars: int = 3800,
+    max_chars: int = 9000,
 ) -> tuple[str, float]:
     locale = ctx.get("locale") or "ru"
     speech = "en" if locale == "en" else "ru"
@@ -31,7 +31,7 @@ def build_knowledge_block(
 
     hits = index.search(
         query,
-        k=4,
+        k=8,
         min_score=1.0,
         grade_id=grade_id if grade_id == "g7" else None,
         section_title=ctx.get("sectionTitle"),

@@ -21,6 +21,7 @@
     "learn:prepare-slides": "node scripts/prepare-learn-slides.mjs",
     "learn:prepare-cyber": "node scripts/prepare-cyber-dashboard.mjs",
     "build:g7-textbook-knowledge": "python scripts/build-g7-textbook-knowledge.py",
+    "validate:g7-textbook": "python scripts/validate-g7-textbook-knowledge.py",
     "learn:generate-element-profiles": "node scripts/generate-element-life-profiles.mjs",
     "learn:prepare-element-life": "node scripts/generate-element-life-profiles.mjs && node scripts/prepare-element-life-images.mjs",
     "learn:fetch-placeholders": "node scripts/fetch-learn-placeholders.mjs",

@@ -50,17 +50,23 @@ export function synthesizeKnowledgeAnswer(
 
   const main = chunks[0]!
   const mainText = ru ? main.ru : main.en
-  const lead = firstParagraph(mainText, main.textbook ? 360 : 260)
+  const wantsFull =
+    /полност|подроб|по учебник|объясни тем|объясни §|расскажи|что такое|explain fully|in detail|tell me about/i.test(
+      query,
+    )
+  const lead = firstParagraph(mainText, main.textbook && wantsFull ? 900 : main.textbook ? 360 : 260)
 
   const parts: string[] = [`${opener} **${main.topic}** — ${lead}`]
 
-  const wantsFull =
-    /полност|подроб|по учебник|объясни тем|объясни §|что запомн|explain fully|in detail/i.test(query)
-
   if (main.textbook && wantsFull) {
     const remember = ru ? main.textbook.rememberRu : main.textbook.rememberEn
-    const shortRemember = remember.split('\n').slice(0, 4).join('\n')
-    parts.push('', ru ? '**Запомнить:**' : '**Remember:**', shortRemember)
+    parts.push('', ru ? '**Запомнить:**' : '**Remember:**', remember)
+    const extra = chunks.slice(1, 3)
+    for (const c of extra) {
+      if (c.textbook && c.id !== main.id) {
+        parts.push('', `**${c.topic}**`, firstParagraph(ru ? c.ru : c.en, 420))
+      }
+    }
   }
 
   if (!wantsFull) {

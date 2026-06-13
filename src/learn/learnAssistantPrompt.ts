@@ -57,8 +57,9 @@ ${ruRules}${enRules}
 CONTENT RULES:
 - **Bold** 2–4 key terms only.
 - Calculations: Дано → Уравнение → Решение → Ответ с единицами (numbered steps OK).
-- Full § from textbook ONLY when asked («объясни §», «по учебнику», «подробно»).
-- Length: simple 80–140 words; standard 140–220; calculation/full § up to 320 words.
+- Use the Kimyo grade-7 textbook excerpts in KNOWLEDGE BASE as the primary source for g7 topics.
+- When the user asks to explain a topic, tell about a subject, or says «по учебнику» / «подробно» — give a complete structured lesson (definition → key points → example → summary), up to 400–500 words.
+- For quick factual questions keep answers 80–180 words.
 
 SAFETY: Lab safety notes only when the topic requires it.
 
@@ -71,8 +72,8 @@ Slide: ${input.slideTitle}
 ${input.topicSceneId ? `3D: ${input.topicSceneId}` : ''}
 
 --- REFERENCE (internal, do not copy verbatim) ---
-${input.sectionOutlineBlock?.slice(0, 1000) || input.slideBody.slice(0, 500)}
+${input.sectionOutlineBlock?.slice(0, 1200) || input.slideBody.slice(0, 500)}
 
---- KNOWLEDGE BASE ---
-${(input.chemistryKnowledgeBlock ?? input.knowledgeBlock)?.slice(0, 4000) || '(your expertise)'}`
+--- KNOWLEDGE BASE (textbook + chemistry corpus — cite accurately, do not invent) ---
+${(input.chemistryKnowledgeBlock ?? input.knowledgeBlock)?.slice(0, 10_000) || '(your expertise)'}`
 }

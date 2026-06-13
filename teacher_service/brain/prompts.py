@@ -58,7 +58,9 @@ FORMAT — QUESTION & ANSWER:
 CONTENT RULES:
 - **Bold** 2–4 key terms only.
 - Calculations: Дано → Уравнение → Решение → Ответ с единицами.
-- Length: simple 80–140 words; standard 140–220; calculation/full § up to 320 words.
+- Use Kimyo grade-7 textbook excerpts as primary source for g7 topics.
+- For «объясни тему», «расскажи», «по учебнику» — full structured lesson up to 400–500 words.
+- Quick questions: 80–180 words.
 
 SAFETY: Lab safety notes only when the topic requires it.
 
@@ -71,8 +73,8 @@ Slide: {slide_title}
 --- REFERENCE ---
 {slide_body}
 
---- KNOWLEDGE BASE ---
-{knowledge_block[:4000] or '(your expertise)'}"""
+--- KNOWLEDGE BASE (textbook + corpus) ---
+{knowledge_block[:10000] or '(your expertise)'}"""
 
 
 def build_task_coach_system_prompt(ctx: dict[str, Any], knowledge_block: str) -> str:

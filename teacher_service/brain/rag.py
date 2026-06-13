@@ -69,6 +69,7 @@ class RagIndex:
 
         for section in sections:
             keywords = list(section.get("keywords") or [])
+            keywords.extend(section.get("conceptsRu") or [])
             keywords.extend(
                 [
                     section.get("topicRu", ""),
@@ -83,32 +84,44 @@ class RagIndex:
                 ]
             )
             kw_unique = [k for k in dict.fromkeys(k.strip() for k in keywords if k and k.strip())]
-            body_ru = _format_body(section, "ru")
-            body_en = _format_body(section, "en")
-            norm_parts = " ".join(
-                [
-                    section.get("topicRu", ""),
-                    section.get("topicEn", ""),
-                    section.get("contentRu", "")[:2000],
-                    " ".join(kw_unique),
-                ]
-            )
-            chunk = RagChunk(
-                chunk_id=section["id"],
-                section_key=f"{section.get('chapterId')}-{section.get('sectionId')}",
-                topic=f"§{section.get('kp', 0)}. {section.get('topicRu', '')}",
-                body_ru=body_ru,
-                body_en=body_en,
-                keywords=kw_unique,
-                norm_text=normalize_text(norm_parts),
-                kp=int(section.get("kp") or 0),
-                grade_id=section.get("gradeId", "g7"),
-                chapter_id=section.get("chapterId", ""),
-                section_id=section.get("sectionId", ""),
-            )
-            self.chunks.append(chunk)
-            self._by_id[chunk.chunk_id] = chunk
-            self._by_section[chunk.section_key] = chunk
+            rag_parts = section.get("ragParts") or [section.get("contentRu", "")]
+            if not rag_parts:
+                rag_parts = [section.get("contentRu", "")]
+
+            for idx, part in enumerate(rag_parts):
+                if not (part and str(part).strip()):
+                    continue
+                part_id = section["id"] if len(rag_parts) == 1 else f"{section['id']}-p{idx + 1}"
+                topic_base = f"§{section.get('kp', 0)}. {section.get('topicRu', '')}"
+                topic = topic_base if len(rag_parts) == 1 else f"{topic_base} ({idx + 1}/{len(rag_parts)})"
+                section_copy = {**section, "contentRu": part, "contentEn": part if idx else section.get("contentEn", "")}
+                body_ru = _format_body(section_copy, "ru")
+                body_en = _format_body(section_copy, "en")
+                norm_parts = " ".join(
+                    [
+                        section.get("topicRu", ""),
+                        section.get("topicEn", ""),
+                        str(part)[:2500],
+                        " ".join(kw_unique),
+                    ]
+                )
+                chunk = RagChunk(
+                    chunk_id=part_id,
+                    section_key=f"{section.get('chapterId')}-{section.get('sectionId')}",
+                    topic=topic,
+                    body_ru=body_ru,
+                    body_en=body_en,
+                    keywords=kw_unique,
+                    norm_text=normalize_text(norm_parts),
+                    kp=int(section.get("kp") or 0),
+                    grade_id=section.get("gradeId", "g7"),
+                    chapter_id=section.get("chapterId", ""),
+                    section_id=section.get("sectionId", ""),
+                )
+                self.chunks.append(chunk)
+                self._by_id[chunk.chunk_id] = chunk
+                if part_id == section["id"] or idx == 0:
+                    self._by_section[chunk.section_key] = chunk
 
         self._native_ready = self._load_native()
 

@@ -160,6 +160,8 @@ export function retrieveChemistryKnowledge(
 export type BuildBlockOptions = {
   maxChars?: number
   gradeId?: string
+  chapterId?: string
+  sectionId?: string
   sectionTitle?: string
   preloaded?: RetrievedKnowledge
 }
@@ -177,9 +179,11 @@ export function buildRetrievedKnowledgeBlock(
   const { chunks } =
     opts.preloaded ??
     retrieveChemistryKnowledge(query, {
-      maxChunks: 8,
+      maxChunks: 10,
       minScore: 1,
       gradeId: opts.gradeId,
+      chapterId: opts.chapterId,
+      sectionId: opts.sectionId,
       sectionTitle: opts.sectionTitle,
     })
 
