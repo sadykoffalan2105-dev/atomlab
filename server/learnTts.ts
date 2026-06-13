@@ -3,8 +3,14 @@ import {
   learnTtsOptionsResponse,
   learnTtsRuntimeFromEnv,
   processLearnTts,
+  registerEdgeTtsBackend,
   type LearnTtsRequestBody,
 } from '../src/learn/learnTtsCore'
+import { synthesizeEdgeViaPython } from './edgeTtsPython'
+
+registerEdgeTtsBackend((text, locale, voice, prepared) =>
+  synthesizeEdgeViaPython(text, locale, voice, prepared),
+)
 
 const runtime = learnTtsRuntimeFromEnv(process.env as Record<string, string | undefined>)
 

@@ -11,8 +11,8 @@ OLLAMA_TIMEOUT_SEC = float(os.environ.get("OLLAMA_TIMEOUT_SEC", "120"))
 
 EDGE_VOICE_RU = os.environ.get("EDGE_TTS_VOICE_RU", "ru-RU-DmitryNeural")
 EDGE_VOICE_EN = os.environ.get("EDGE_TTS_VOICE_EN", "en-US-GuyNeural")
-EDGE_RATE = os.environ.get("EDGE_TTS_RATE", "-4%")
-EDGE_PITCH = os.environ.get("EDGE_TTS_PITCH", "+0Hz")
+EDGE_RATE = os.environ.get("EDGE_TTS_RATE", "-15%")
+EDGE_PITCH = os.environ.get("EDGE_TTS_PITCH", "-5Hz")
 
 MAX_USER_CHARS = 2000
 MAX_HISTORY = 12

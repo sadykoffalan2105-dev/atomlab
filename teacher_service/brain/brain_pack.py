@@ -3,6 +3,16 @@ from __future__ import annotations
 from typing import Any
 
 from teacher_service.brain.rag import RagChunk, get_rag_index
+from teacher_service.brain.topic_parse import parse_requested_topic_number
+
+
+def _section_by_kp(index, chapter_id: str | None, kp: int) -> RagChunk | None:
+    matches = [c for c in index.chunks if c.kp == kp]
+    if chapter_id:
+        in_chapter = [c for c in matches if c.chapter_id == chapter_id]
+        if in_chapter:
+            return in_chapter[0]
+    return matches[0] if matches else None
 
 
 def build_knowledge_block(
@@ -22,7 +32,16 @@ def build_knowledge_block(
     chapter_id = ctx.get("chapterId")
     section_id = ctx.get("sectionId")
 
-    if grade_id == "g7" and chapter_id and section_id:
+    requested_kp = parse_requested_topic_number(query)
+    requested_section: RagChunk | None = None
+    if requested_kp is not None and grade_id == "g7":
+        requested_section = _section_by_kp(index, chapter_id, requested_kp)
+
+    if requested_section:
+        body = requested_section.body_en if speech == "en" else requested_section.body_ru
+        blocks.append(f"[§{requested_kp} по запросу ученика — главный источник]\n{body}")
+        best_score = max(best_score, 20.0)
+    elif grade_id == "g7" and chapter_id and section_id:
         section = index.get_section(chapter_id, section_id)
         if section:
             body = section.body_en if speech == "en" else section.body_ru
@@ -35,6 +54,8 @@ def build_knowledge_block(
         min_score=1.0,
         grade_id=grade_id if grade_id == "g7" else None,
         section_title=ctx.get("sectionTitle"),
+        chapter_id=chapter_id if requested_kp is None else None,
+        requested_kp=requested_kp,
     )
     for chunk, score in hits:
         best_score = max(best_score, score)

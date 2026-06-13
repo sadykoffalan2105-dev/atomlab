@@ -1,17 +1,21 @@
 import {
   BROWSER_NEURAL_HINTS,
-  BROWSER_SENTENCE_GAP_MS,
-  BROWSER_SPEECH_RATE,
-  prepareTextForHumanTts,
   splitTextForTts,
   TTS_CHUNK_GAP_MS,
 } from './learnSpeechText'
 
 export { stripMarkdownForSpeech, prepareTextForHumanTts } from './learnSpeechText'
 
-import { TEACHER_BROWSER_PITCH } from './learnTeacherVoiceProfile'
+import {
+  TEACHER_BROWSER_PITCH,
+  TEACHER_BROWSER_RATE,
+} from './learnTeacherVoiceProfile'
+import { synthesizeEdgeNeuralSpeechBrowser } from './learnEdgeTtsBrowser'
+import { isNeuralPlaybackActive, playNeuralAudioBase64, stopNeuralPlayback, unlockAudioPlayback } from './learnSpeechPlayback'
+import { isPlausibleSpeechAudio } from './learnSpeechValidate'
+import { prepareTextForHumanTts } from './learnSpeechText'
 
-/** Голос ИИ-учителя: Microsoft Dmitry Neural → OpenAI → клон → браузер. */
+/** Голос: Python Edge (dev) → браузерный Edge Neural → Dmitry в системе. */
 
 type SpeechRecognitionLike = {
   lang: string
@@ -48,15 +52,37 @@ function recognitionCtor(): (new () => SpeechRecognitionLike) | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
 }
 
-export function resolveLearnTtsUrl(): string {
+export function resolveLearnTtsUrls(): string[] {
+  const urls: string[] = []
+
+  if (import.meta.env.DEV) {
+    urls.push('/api/learn/tts')
+  }
+
   const teacher = import.meta.env.VITE_TEACHER_SERVICE_URL as string | undefined
-  if (teacher?.trim()) return `${teacher.trim().replace(/\/$/, '')}/v1/tts`
-  if (import.meta.env.DEV) return '/teacher-api/v1/tts'
+  if (teacher?.trim()) {
+    urls.push(`${teacher.trim().replace(/\/$/, '')}/v1/tts`)
+  }
+
+  if (import.meta.env.DEV) {
+    urls.push('/teacher-api/v1/tts')
+  }
+
   const explicit = import.meta.env.VITE_LEARN_TTS_URL as string | undefined
-  if (explicit?.trim()) return explicit.trim()
+  if (explicit?.trim()) urls.push(explicit.trim())
+
   const chat = import.meta.env.VITE_LEARN_CHAT_URL as string | undefined
-  if (chat?.trim()) return chat.trim().replace(/\/chat\/?$/, '/tts')
-  return '/api/learn/tts'
+  if (chat?.trim()) urls.push(chat.trim().replace(/\/chat\/?$/, '/tts'))
+
+  if (!import.meta.env.DEV) {
+    urls.push('/api/learn/tts')
+  }
+
+  return [...new Set(urls)]
+}
+
+export function resolveLearnTtsUrl(): string {
+  return resolveLearnTtsUrls()[0] ?? '/api/learn/tts'
 }
 
 function lower(s: string): string {
@@ -70,10 +96,26 @@ function isNeuralVoiceName(name: string): boolean {
 
 function isMaleVoiceName(name: string): boolean {
   const n = lower(name)
-  if (n.includes('svetlana') || n.includes('irina') || n.includes('jenny') || n.includes('aria') || n.includes('nova') || n.includes('shimmer') || n.includes('coral')) {
+  if (
+    n.includes('svetlana') ||
+    n.includes('irina') ||
+    n.includes('jenny') ||
+    n.includes('aria') ||
+    n.includes('nova') ||
+    n.includes('shimmer') ||
+    n.includes('coral') ||
+    n.includes('madina')
+  ) {
     return false
   }
-  return n.includes('dmitry') || n.includes('guy') || n.includes('pavel') || n.includes('david') || n.includes('male') || n.includes('мужск')
+  return (
+    n.includes('dmitry') ||
+    n.includes('guy') ||
+    n.includes('pavel') ||
+    n.includes('david') ||
+    n.includes('male') ||
+    n.includes('мужск')
+  )
 }
 
 function pickBrowserVoice(locale: LearnSpeechLocale, neuralOnly = false): SpeechSynthesisVoice | null {
@@ -134,12 +176,10 @@ export class LearnSpeechController {
   private listening = false
   private oralListenActive = false
   private oralRestartTimer: ReturnType<typeof setTimeout> | null = null
-  private audio: HTMLAudioElement | null = null
-  private objectUrl: string | null = null
   private fetchAbort: AbortController | null = null
   private neuralCache = new Map<string, NeuralCacheEntry>()
-  private browserAbort = false
   private lastMode: SpeechOutputMode = 'browser'
+  private neuralPlaybackStarted = false
 
   getLastOutputMode(): SpeechOutputMode {
     return this.lastMode
@@ -153,6 +193,8 @@ export class LearnSpeechController {
   ): Promise<boolean> {
     if (!text.trim()) return false
     this.stop()
+    this.neuralPlaybackStarted = false
+    await unlockAudioPlayback()
 
     const neural = await this.speakNeural(text, locale, onMode)
     if (neural) {
@@ -162,12 +204,15 @@ export class LearnSpeechController {
       return true
     }
 
-    const browserOk = await this.speakBrowserQueued(text, locale, false)
-    if (browserOk) {
-      this.lastMode = 'browser'
-      onMode?.('browser')
-      onEnd?.()
-      return true
+    // Только если neural вообще не заиграл — системный Dmitry Neural (не робот Windows)
+    if (!this.neuralPlaybackStarted) {
+      const browserOk = await this.speakBrowserNeural(text, locale, onMode)
+      if (browserOk) {
+        this.lastMode = 'browser'
+        onMode?.('browser')
+        onEnd?.()
+        return true
+      }
     }
 
     onEnd?.()
@@ -175,11 +220,61 @@ export class LearnSpeechController {
   }
 
   private cacheKey(locale: LearnSpeechLocale, chunk: string): string {
-    return `${locale}:${chunk.slice(0, 120)}:${chunk.length}`
+    return `${locale}:${chunk}`
   }
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  private async fetchNeuralFromServer(
+    chunk: string,
+    locale: LearnSpeechLocale,
+    signal: AbortSignal,
+  ): Promise<NeuralCacheEntry | null> {
+    for (const url of resolveLearnTtsUrls()) {
+      if (signal.aborted) return null
+
+      const chunkAbort = AbortSignal.timeout?.(22_000)
+      const combined =
+        chunkAbort && typeof AbortSignal.any === 'function'
+          ? AbortSignal.any([signal, chunkAbort])
+          : signal
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: chunk, locale, prepared: true }),
+          signal: combined,
+        })
+        if (!res.ok) continue
+
+        const data = (await res.json()) as {
+          audioBase64?: string
+          mimeType?: string
+          source?: string
+        }
+        if (
+          data.audioBase64 &&
+          isPlausibleSpeechAudio(data.audioBase64, chunk) &&
+          ['openai', 'edge', 'clone'].includes(data.source ?? 'edge')
+        ) {
+          return { audioBase64: data.audioBase64, mimeType: data.mimeType ?? 'audio/mpeg' }
+        }
+      } catch {
+        /* try next endpoint */
+      }
+    }
+    return null
+  }
+
+  /** Мусорные фрагменты не отправляем в TTS. */
+  private isSpeakableChunk(chunk: string): boolean {
+    const t = chunk.trim()
+    if (t.length < 2) return false
+    if (!/[a-zA-Zа-яА-ЯёЁ0-9]/.test(t)) return false
+    return true
   }
 
   private async fetchNeuralChunk(
@@ -187,85 +282,56 @@ export class LearnSpeechController {
     locale: LearnSpeechLocale,
     signal: AbortSignal,
   ): Promise<NeuralCacheEntry | null> {
+    if (!this.isSpeakableChunk(chunk)) return null
+
     const key = this.cacheKey(locale, chunk)
     const cached = this.neuralCache.get(key)
     if (cached) return cached
 
-    const res = await fetch(resolveLearnTtsUrl(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: chunk, locale }),
-      signal,
-    })
-    if (!res.ok) return null
+    const speechLocale = locale === 'uz' ? 'ru' : locale
 
-    const data = (await res.json()) as {
-      audioBase64?: string
-      mimeType?: string
-      source?: string
-      error?: string
-    }
-    if (!data.audioBase64 || !['openai', 'edge', 'clone'].includes(data.source ?? '')) return null
+    // Dev: Python Edge точнее читает текст; production: браузерный Edge
+    const tryBrowserFirst = !import.meta.env.DEV
 
-    const entry = { audioBase64: data.audioBase64, mimeType: data.mimeType ?? 'audio/mpeg' }
-    this.neuralCache.set(key, entry)
-    return entry
-  }
-
-  private playBase64(entry: NeuralCacheEntry): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.revokeObjectUrl()
-      const binary = atob(entry.audioBase64)
-      const bytes = new Uint8Array(binary.length)
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-      const blob = new Blob([bytes], { type: entry.mimeType })
-      const url = URL.createObjectURL(blob)
-      this.objectUrl = url
-
-      const audio = new Audio(url)
-      audio.playbackRate = 1.0
-      audio.volume = 1.0
-      this.audio = audio
-      audio.onended = () => resolve()
-      audio.onerror = () => reject(new Error('audio_playback'))
-      void audio.play().catch(reject)
-    })
-  }
-
-  private async speakNeural(
-    text: string,
-    locale: LearnSpeechLocale,
-    onMode?: (mode: SpeechOutputMode) => void,
-  ): Promise<boolean> {
-    const chunks = splitTextForTts(text, locale)
-    if (chunks.length === 0) return false
-
-    this.fetchAbort = new AbortController()
-    const signal = this.fetchAbort.signal
-
-    try {
-      let pending: Promise<NeuralCacheEntry | null> = this.fetchNeuralChunk(chunks[0]!, locale, signal)
-
-      for (let i = 0; i < chunks.length; i++) {
-        if (signal.aborted) return false
-        const entry = await pending
-        if (!entry) return false
-
-        if (i + 1 < chunks.length) {
-          pending = this.fetchNeuralChunk(chunks[i + 1]!, locale, signal)
+    const tryBrowser = async (): Promise<NeuralCacheEntry | null> => {
+      if (signal.aborted) return null
+      try {
+        const browserEdge = await synthesizeEdgeNeuralSpeechBrowser(chunk, speechLocale)
+        if (
+          browserEdge &&
+          isPlausibleSpeechAudio(browserEdge.audioBase64, chunk)
+        ) {
+          return { audioBase64: browserEdge.audioBase64, mimeType: browserEdge.mimeType }
         }
-
-        onMode?.('neural')
-        await this.playBase64(entry)
-
-        if (i + 1 < chunks.length && !signal.aborted) {
-          await this.sleep(TTS_CHUNK_GAP_MS)
-        }
+      } catch {
+        /* ignore */
       }
-      return true
-    } catch {
-      return false
+      return null
     }
+
+    if (tryBrowserFirst) {
+      const browser = await tryBrowser()
+      if (browser) {
+        this.neuralCache.set(key, browser)
+        return browser
+      }
+    }
+
+    const server = await this.fetchNeuralFromServer(chunk, locale, signal)
+    if (server) {
+      this.neuralCache.set(key, server)
+      return server
+    }
+
+    if (!tryBrowserFirst) {
+      const browser = await tryBrowser()
+      if (browser) {
+        this.neuralCache.set(key, browser)
+        return browser
+      }
+    }
+
+    return null
   }
 
   private speakOneBrowserUtterance(
@@ -274,14 +340,14 @@ export class LearnSpeechController {
     voice: SpeechSynthesisVoice | null,
   ): Promise<void> {
     return new Promise((resolve) => {
-      if (!speechSupported() || this.browserAbort) {
+      if (!speechSupported()) {
         resolve()
         return
       }
 
       const utterance = new SpeechSynthesisUtterance(sentence)
       utterance.lang = SPEECH_LOCALE[locale]
-      utterance.rate = BROWSER_SPEECH_RATE[locale]
+      utterance.rate = TEACHER_BROWSER_RATE[locale === 'uz' ? 'ru' : locale]
       utterance.pitch = TEACHER_BROWSER_PITCH
       utterance.volume = 1.0
       if (voice) utterance.voice = voice
@@ -293,61 +359,89 @@ export class LearnSpeechController {
     })
   }
 
-  private async speakBrowserQueued(
+  /** Последний fallback: встроенный Dmitry Neural в Windows/Edge (если есть). */
+  private async speakBrowserNeural(
     text: string,
     locale: LearnSpeechLocale,
-    neuralOnly: boolean,
+    onMode?: (mode: SpeechOutputMode) => void,
   ): Promise<boolean> {
     if (!speechSupported()) return false
 
-    const voice = pickBrowserVoice(locale, neuralOnly)
-    if (neuralOnly && !voice) return false
+    const voice = pickBrowserVoice(locale, true) ?? pickBrowserVoice(locale, false)
+    if (!voice) return false
 
     const prepared = prepareTextForHumanTts(text, locale)
-    const sentences = prepared.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 0)
+    const sentences = prepared.split(/(?<=[.!?])\s+/).filter((s) => this.isSpeakableChunk(s))
     if (sentences.length === 0) return false
 
-    this.browserAbort = false
     window.speechSynthesis.cancel()
     await this.sleep(40)
 
+    onMode?.('browser')
     for (let i = 0; i < sentences.length; i++) {
-      if (this.browserAbort) return false
+      if (this.fetchAbort?.signal.aborted) return false
       await this.speakOneBrowserUtterance(sentences[i]!, locale, voice)
-      if (i + 1 < sentences.length && !this.browserAbort) {
-        await this.sleep(BROWSER_SENTENCE_GAP_MS)
-      }
+      if (i + 1 < sentences.length) await this.sleep(120)
     }
 
-    return !this.browserAbort
+    return true
+  }
+
+  private playBase64(entry: NeuralCacheEntry, signal?: AbortSignal): Promise<void> {
+    return playNeuralAudioBase64(entry.audioBase64, entry.mimeType, signal)
+  }
+
+  private async speakNeural(
+    text: string,
+    locale: LearnSpeechLocale,
+    onMode?: (mode: SpeechOutputMode) => void,
+  ): Promise<boolean> {
+    const chunks = splitTextForTts(text, locale).filter((c) => this.isSpeakableChunk(c))
+    if (chunks.length === 0) return false
+
+    this.fetchAbort = new AbortController()
+    const signal = this.fetchAbort.signal
+    const timeout = setTimeout(() => this.fetchAbort?.abort(), 180_000)
+
+    try {
+      let played = 0
+
+      for (let i = 0; i < chunks.length; i++) {
+        if (signal.aborted) break
+
+        const entry = await this.fetchNeuralChunk(chunks[i]!, locale, signal)
+        if (!entry) continue
+
+        onMode?.('neural')
+        await this.playBase64(entry, signal)
+        this.neuralPlaybackStarted = true
+        played++
+
+        if (i + 1 < chunks.length && !signal.aborted) {
+          await this.sleep(TTS_CHUNK_GAP_MS)
+        }
+      }
+
+      return played > 0
+    } catch {
+      return this.neuralPlaybackStarted
+    } finally {
+      clearTimeout(timeout)
+    }
   }
 
   stop(): void {
-    this.browserAbort = true
     this.fetchAbort?.abort()
     this.fetchAbort = null
-
-    if (this.audio) {
-      this.audio.pause()
-      this.audio.src = ''
-      this.audio = null
-    }
-    this.revokeObjectUrl()
+    stopNeuralPlayback()
 
     if (speechSupported()) {
       window.speechSynthesis.cancel()
     }
   }
 
-  private revokeObjectUrl(): void {
-    if (this.objectUrl) {
-      URL.revokeObjectURL(this.objectUrl)
-      this.objectUrl = null
-    }
-  }
-
   isSpeaking(): boolean {
-    if (this.audio && !this.audio.paused) return true
+    if (isNeuralPlaybackActive()) return true
     return speechSupported() && window.speechSynthesis.speaking
   }
 

@@ -1,5 +1,6 @@
 {
   "voiceId": "",
-  "source": "video/male-voice-for-answering-machine.mp3",
-  "note": "Запустите: npm run clone:teacher-voice (нужен ELEVENLABS_API_KEY)"
+  "source": "video/articulate-tutor-natural.mp3",
+  "profile": "Articulate Tutor Natural",
+  "note": "1) npm run prepare:teacher-voice  2) ELEVENLABS_API_KEY=sk_... npm run clone:teacher-voice"
 }

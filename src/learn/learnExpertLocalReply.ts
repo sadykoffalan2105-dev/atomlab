@@ -7,10 +7,11 @@ import { synthesizeKnowledgeAnswer } from './learnConversationalSynthesis'
 export function composeExpertLocalReply(
   query: string,
   ctx: LearnLocalAssistantContext,
+  messages: { role: string; content: string }[] = [],
 ): string | null {
   const faq = matchFaqEntry(query)
   const retrieved = retrieveChemistryKnowledge(query, {
-    maxChunks: 5,
+    maxChunks: 6,
     minScore: 1,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
@@ -22,5 +23,5 @@ export function composeExpertLocalReply(
     return null
   }
 
-  return synthesizeKnowledgeAnswer(query, retrieved.chunks, faq, ctx)
+  return synthesizeKnowledgeAnswer(query, retrieved.chunks, faq, ctx, messages)
 }

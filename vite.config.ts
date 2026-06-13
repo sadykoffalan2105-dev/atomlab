@@ -43,6 +43,12 @@ export default defineConfig(({ mode }) => {
         name: 'learn-chat-api',
         configureServer(server) {
           server.middlewares.use(learnChatMiddleware())
+          void import('./server/edgeTtsPython').then(({ synthesizeEdgeViaPython }) =>
+            synthesizeEdgeViaPython('Готов к уроку.', 'ru').then((r) => {
+              if (r) console.log('[teacher-voice] Neural TTS warmed up (ATOMLAB Teacher)')
+              else console.warn('[teacher-voice] TTS warmup failed — run: npm run setup:teacher-voice')
+            }),
+          )
         },
       },
     ],

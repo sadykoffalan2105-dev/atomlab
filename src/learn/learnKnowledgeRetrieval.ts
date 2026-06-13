@@ -3,6 +3,8 @@ import { CHEMISTRY_KNOWLEDGE_CHUNKS, type ChemistryKnowledgeChunk } from './lear
 import {
   findG7TextbookByQuery,
   g7TextbookKnowledgeChunks,
+  getG7TextbookByTopicNumber,
+  parseRequestedTopicNumber,
 } from './learnG7TextbookKnowledge'
 
 const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
@@ -96,8 +98,24 @@ function scoreChunk(
   if (chunk.textbook && opts?.gradeId === 'g7') {
     score += 4
     if (opts.chapterId && chunk.textbook.chapterId === opts.chapterId) score += 6
-    if (opts.sectionId && chunk.textbook.sectionId === opts.sectionId) score += 14
-    if (opts.sectionTitle) {
+
+    const requestedKp = parseRequestedTopicNumber(query)
+
+    if (requestedKp !== null) {
+      const hit = getG7TextbookByTopicNumber(requestedKp, opts.chapterId)
+      if (
+        hit &&
+        chunk.textbook &&
+        hit.section.chapterId === chunk.textbook.chapterId &&
+        hit.section.sectionId === chunk.textbook.sectionId
+      ) {
+        score += 50
+      }
+    } else if (opts.sectionId && chunk.textbook.sectionId === opts.sectionId) {
+      score += 14
+    }
+
+    if (opts.sectionTitle && requestedKp === null) {
       const st = opts.sectionTitle.toLowerCase()
       if (chunk.topic.toLowerCase().includes(st.slice(0, 20)) || st.includes(chunk.textbook.sectionId)) {
         score += 5
@@ -136,12 +154,17 @@ export function retrieveChemistryKnowledge(
     .filter((r) => r.score >= minScore)
     .sort((a, b) => b.score - a.score)
 
-  const directTextbook = findG7TextbookByQuery(query)
+  const directTextbook = findG7TextbookByQuery(query, { chapterId: opts?.chapterId })
   if (directTextbook) {
-    const directChunk = ranked.find((r) => r.chunk.id === directTextbook.id)
+    const directChunk = ranked.find(
+      (r) =>
+        r.chunk.id === directTextbook.id || r.chunk.id.startsWith(`${directTextbook.id}-p`),
+    )
     if (directChunk) directChunk.score += 25
     else {
-      const hit = ALL_KNOWLEDGE_CHUNKS.find((c) => c.id === directTextbook.id)
+      const hit = ALL_KNOWLEDGE_CHUNKS.find(
+        (c) => c.id === directTextbook.id || c.id.startsWith(`${directTextbook.id}-p`),
+      )
       if (hit) ranked.push({ chunk: hit, score: 30 })
     }
   }

@@ -1,20 +1,23 @@
 import type { SpeechPrepLocale } from './learnSpeechText'
 
-/** Профиль голоса ИИ-учителя — мужской, чёткий, спокойный дикторский тембр. */
+/**
+ * Голос Articulate Tutor Natural — мужской, спокойный, «живой» диктор.
+ * ru-RU-DmitryNeural — ближайший neural-аналог без клона ElevenLabs.
+ */
 export const TEACHER_VOICE_EDGE: Record<SpeechPrepLocale, string> = {
   ru: 'ru-RU-DmitryNeural',
   en: 'en-US-GuyNeural',
   uz: 'ru-RU-DmitryNeural',
 }
 
-/** Просодия: профессиональный диктор, чёткое произношение каждого слова. */
+/** Просодия ATOMLAB Teacher — спокойный живой мужской учитель. */
 export const TEACHER_VOICE_EDGE_PROSODY: Record<
   SpeechPrepLocale,
   { rate: string; pitch: string; volume: string }
 > = {
-  ru: { rate: '+4%', pitch: '+0Hz', volume: '+0%' },
-  en: { rate: '+4%', pitch: '+0Hz', volume: '+0%' },
-  uz: { rate: '+4%', pitch: '+0Hz', volume: '+0%' },
+  ru: { rate: '-15%', pitch: '-5Hz', volume: '+4%' },
+  en: { rate: '-15%', pitch: '-5Hz', volume: '+4%' },
+  uz: { rate: '-15%', pitch: '-5Hz', volume: '+4%' },
 }
 
 export const TEACHER_VOICE_OPENAI: Record<SpeechPrepLocale, string> = {
@@ -24,43 +27,40 @@ export const TEACHER_VOICE_OPENAI: Record<SpeechPrepLocale, string> = {
 }
 
 export const TEACHER_VOICE_OPENAI_SPEED: Record<SpeechPrepLocale, number> = {
-  ru: 1.04,
-  en: 1.04,
-  uz: 1.04,
+  ru: 0.94,
+  en: 0.94,
+  uz: 0.94,
 }
 
-/** ElevenLabs clone — множитель скорости (1.0 = норма). */
 export const TEACHER_VOICE_CLONE_SPEED: Record<SpeechPrepLocale, number> = {
-  ru: 1.04,
-  en: 1.04,
-  uz: 1.04,
+  ru: 0.94,
+  en: 0.94,
+  uz: 0.94,
 }
 
 export const TEACHER_VOICE_OPENAI_INSTRUCTIONS = {
-  ru: `Russian only. Professional male school teacher. Enunciate every word clearly. Natural classroom pace — not rushed. Correct grammar in speech rhythm. Pause briefly at commas.`,
-  en: `Professional male teacher. Clear enunciation, natural classroom pace.`,
+  ru: `Russian only. Warm male chemistry teacher, Articulate Tutor style. Calm storytelling pace, natural pauses at commas and periods. Enunciate clearly but conversationally — not robotic, not rushed.`,
+  en: `Warm male teacher, natural tutor pace, gentle pauses, conversational tone.`,
 } as const
 
-/** Браузер: только мужские neural / дикторские голоса. */
 export const TEACHER_BROWSER_VOICE_HINTS: Record<SpeechPrepLocale, string[]> = {
   ru: [
     'dmitryneural',
     'dmitry online',
     'microsoft dmitry',
     'pavel',
-    'yandex',
-    'male',
-    'мужской',
+    'svetlananeural',
+    'natural',
+    'neural',
   ],
-  en: ['guyneural', 'guy online', 'microsoft guy', 'david', 'male'],
-  uz: ['uzbek', 'madina', 'sardor', 'microsoft', 'male'],
+  en: ['guyneural', 'guy online', 'microsoft guy', 'david', 'natural', 'neural'],
+  uz: ['dmitryneural', 'sardor', 'microsoft', 'neural'],
 }
 
 export const TEACHER_BROWSER_RATE: Record<SpeechPrepLocale, number> = {
-  ru: 1.04,
-  en: 1.04,
-  uz: 1.04,
+  ru: 0.86,
+  en: 0.86,
+  uz: 0.86,
 }
 
-/** Нейтральная высота — лучше разборчивость слов. */
-export const TEACHER_BROWSER_PITCH = 1.0
+export const TEACHER_BROWSER_PITCH = 0.92

@@ -1,0 +1,23 @@
+{
+  "name": "ATOMLAB Teacher",
+  "profile": "Warm male chemistry teacher — calm, clear, conversational",
+  "engine": "microsoft-edge-neural",
+  "voices": {
+    "ru": "ru-RU-DmitryNeural",
+    "en": "en-US-GuyNeural",
+    "uz": "ru-RU-DmitryNeural"
+  },
+  "prosody": {
+    "rate": "-15%",
+    "pitch": "-5Hz",
+    "volume": "+4%"
+  },
+  "playback": {
+    "sentenceGapMs": 420,
+    "chunkMaxChars": 150,
+    "warmthLowShelfDb": 2.0,
+    "warmthHighShelfDb": -1.5
+  },
+  "requiresApiKey": false,
+  "note": "Локальный neural-голос. Для клона Articulate — ElevenLabs (опционально)."
+}

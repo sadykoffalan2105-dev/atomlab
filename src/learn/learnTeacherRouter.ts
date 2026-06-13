@@ -86,18 +86,30 @@ function isOfflineFallback(text: string): boolean {
   )
 }
 
-/** Бесплатный маршрут: FAQ → локальная база → Ollama (если включено) → fallback. */
+function isOpenEndedQuestion(query: string): boolean {
+  return /расскаж|объясни|по книг|из книг|что нибудь|что-нибудь|подроб|полност|explain|tell me|what is|textbook/i.test(
+    query,
+  )
+}
+
+/** Бесплатный маршрут: FAQ → Ollama (для развёрнутых вопросов) → локальная база → fallback. */
 export async function routeTeacherReply(
   messages: { role: string; content: string }[],
   ctx: LearnLocalAssistantContext,
   opts?: TeacherRouterOptions,
 ): Promise<{ text: string; source: TeacherReplySource }> {
   const q = lastUserText(messages)
-  const local = generateLocalLearnReply(messages, ctx)
 
   if (matchFaqEntry(q)) {
-    return { text: local, source: 'faq' }
+    return { text: generateLocalLearnReply(messages, ctx), source: 'faq' }
   }
+
+  if (ollamaEnabled(opts) && isOpenEndedQuestion(q)) {
+    const ollama = await tryOllamaReply(messages, ctx, opts)
+    if (ollama) return { text: ollama, source: 'ollama' }
+  }
+
+  const local = generateLocalLearnReply(messages, ctx)
 
   if (!isOfflineFallback(local)) {
     return { text: local, source: 'local' }

@@ -25,6 +25,8 @@
     "learn:generate-element-profiles": "node scripts/generate-element-life-profiles.mjs",
     "learn:prepare-element-life": "node scripts/generate-element-life-profiles.mjs && node scripts/prepare-element-life-images.mjs",
     "learn:fetch-placeholders": "node scripts/fetch-learn-placeholders.mjs",
+    "prepare:teacher-voice": "node scripts/prepare-teacher-voice.mjs",
+    "setup:teacher-voice": "node scripts/setup-teacher-voice.mjs",
     "clone:teacher-voice": "node scripts/clone-teacher-voice.mjs",
     "wasm:build": "node scripts/build-wasm.mjs",
     "teacher:native": "node scripts/build-teacher-native.mjs",
@@ -43,13 +45,15 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.14.2",
     "remark-gfm": "^4.0.1",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",

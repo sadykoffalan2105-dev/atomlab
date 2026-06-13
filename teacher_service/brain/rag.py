@@ -144,6 +144,8 @@ class RagIndex:
         min_score: float = 1.0,
         grade_id: str | None = None,
         section_title: str | None = None,
+        chapter_id: str | None = None,
+        requested_kp: int | None = None,
     ) -> list[tuple[RagChunk, float]]:
         if not query.strip():
             return []
@@ -157,13 +159,26 @@ class RagIndex:
                 for chunk_id, score in hits:
                     chunk = self._by_id.get(chunk_id)
                     if chunk and score >= min_score:
+                        if requested_kp is not None and chunk.kp == requested_kp:
+                            score += 15.0
+                        if chapter_id and chunk.chapter_id == chapter_id:
+                            score += 5.0
                         out.append((chunk, score))
                 if out:
+                    out.sort(key=lambda x: x[1], reverse=True)
                     return out[:k]
             except Exception:
                 pass
 
-        return self._python_search(query, k=k, min_score=min_score, grade_id=grade_id, section_title=section_title)
+        return self._python_search(
+            query,
+            k=k,
+            min_score=min_score,
+            grade_id=grade_id,
+            section_title=section_title,
+            chapter_id=chapter_id,
+            requested_kp=requested_kp,
+        )
 
     def _python_search(
         self,
@@ -173,12 +188,14 @@ class RagIndex:
         min_score: float,
         grade_id: str | None,
         section_title: str | None,
+        chapter_id: str | None = None,
+        requested_kp: int | None = None,
     ) -> list[tuple[RagChunk, float]]:
         tokens = tokenize(query)
         if not tokens:
             return []
 
-        title_tokens = tokenize(section_title or "")
+        title_tokens = tokenize(section_title or "") if requested_kp is None else []
         scored: list[tuple[RagChunk, float]] = []
 
         for chunk in self.chunks:
@@ -196,6 +213,13 @@ class RagIndex:
             for tok in title_tokens:
                 if tok in chunk.norm_text or tok in norm_kw:
                     score += 1.5
+            if requested_kp is not None:
+                if chunk.kp == requested_kp:
+                    score += 20.0
+                    if chapter_id and chunk.chapter_id == chapter_id:
+                        score += 10.0
+            elif chapter_id and chunk.chapter_id == chapter_id:
+                score += 3.0
             if score >= min_score:
                 scored.append((chunk, score))
 

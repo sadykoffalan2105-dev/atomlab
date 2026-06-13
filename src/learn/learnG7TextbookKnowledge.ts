@@ -33,6 +33,13 @@ const G7_SECTION_INDEX = new Map<string, G7TextbookSection>(
   G7_TEXTBOOK_KNOWLEDGE.sections.map((s) => [`${s.chapterId}-${s.sectionId}`, s]),
 )
 
+const G7_BY_CHAPTER = new Map<string, G7TextbookSection[]>()
+for (const s of G7_TEXTBOOK_KNOWLEDGE.sections) {
+  const list = G7_BY_CHAPTER.get(s.chapterId) ?? []
+  list.push(s)
+  G7_BY_CHAPTER.set(s.chapterId, list)
+}
+
 function formatChunkBody(
   section: G7TextbookSection,
   locale: 'ru' | 'en',
@@ -109,9 +116,85 @@ export function getG7TextbookSection(
   return G7_SECTION_INDEX.get(`${chapterId}-${sectionId}`)
 }
 
-export function findG7TextbookByQuery(query: string): G7TextbookSection | null {
+/** Номер темы/§ из запроса: «21 тему», «§4», «параграф 4». */
+export function parseRequestedTopicNumber(query: string): number | null {
   const q = query.toLowerCase().replace(/\s+/g, ' ').trim()
-  if (q.length < 3) return null
+
+  const patterns = [
+    /§\s*(\d+)/,
+    /параграф\s*(\d+)/,
+    /(?:об|про|о)\s+(\d+)\s*[-–]?\s*(?:я\s+)?тем[аеуыи]/,
+    /(?:^|\s)(\d+)\s*[-–]?\s*(?:я\s+)?тем[аеуыи](?:\s|$|[,.])/,
+    /тем[аеуыи]\s*(?:№\s*)?(\d+)/,
+    /topic\s*(\d+)/,
+  ]
+
+  for (const re of patterns) {
+    const m = q.match(re)
+    if (m?.[1]) {
+      const n = Number(m[1])
+      if (n >= 1 && n <= 99) return n
+    }
+  }
+  return null
+}
+
+/** § по kp внутри главы (legacy). */
+export function getG7TextbookByKp(kp: number, chapterId?: string): G7TextbookSection | undefined {
+  const matches = G7_TEXTBOOK_KNOWLEDGE.sections.filter((s) => s.kp === kp)
+  if (matches.length === 0) return undefined
+  if (chapterId) {
+    const inChapter = matches.find((s) => s.chapterId === chapterId)
+    if (inChapter) return inChapter
+  }
+  return matches[0]
+}
+
+/**
+ * «N тема» — сначала § N в текущей главе, иначе N-я тема по всей книге (1…65).
+ */
+export function getG7TextbookByTopicNumber(
+  topicNum: number,
+  chapterId?: string,
+): { section: G7TextbookSection; scope: 'chapter' | 'book' } | undefined {
+  if (chapterId) {
+    const inChapter = G7_BY_CHAPTER.get(chapterId) ?? []
+    const byKp = inChapter.find((s) => s.kp === topicNum)
+    if (byKp) return { section: byKp, scope: 'chapter' }
+    if (topicNum >= 1 && topicNum <= inChapter.length) {
+      return { section: inChapter[topicNum - 1]!, scope: 'chapter' }
+    }
+  }
+
+  const all = G7_TEXTBOOK_KNOWLEDGE.sections
+  if (topicNum >= 1 && topicNum <= all.length) {
+    return { section: all[topicNum - 1]!, scope: 'book' }
+  }
+
+  return undefined
+}
+
+export function globalTopicNumber(section: G7TextbookSection): number {
+  return G7_TEXTBOOK_KNOWLEDGE.sections.findIndex((s) => s.id === section.id) + 1
+}
+
+export function chapterLabel(chapterId: string, ru = true): string {
+  const n = chapterId.replace(/^c/i, '')
+  return ru ? `главе ${n}` : `chapter ${n}`
+}
+
+export function findG7TextbookByQuery(
+  query: string,
+  opts?: { chapterId?: string },
+): G7TextbookSection | null {
+  const q = query.toLowerCase().replace(/\s+/g, ' ').trim()
+  if (q.length < 2) return null
+
+  const requested = parseRequestedTopicNumber(query)
+  if (requested !== null) {
+    const hit = getG7TextbookByTopicNumber(requested, opts?.chapterId)
+    if (hit) return hit.section
+  }
 
   let best: { section: G7TextbookSection; score: number } | null = null
 
@@ -119,6 +202,8 @@ export function findG7TextbookByQuery(query: string): G7TextbookSection | null {
     let score = 0
     const title = s.topicRu.toLowerCase()
     const titleEn = s.topicEn.toLowerCase()
+
+    if (opts?.chapterId && s.chapterId === opts.chapterId) score += 8
 
     const secMatch = q.match(/§\s*(\d+)|параграф\s*(\d+)/)
     if (secMatch) {
@@ -160,7 +245,6 @@ export function buildG7TextbookContextBlock(
   return body.length > maxChars ? `${body.slice(0, maxChars)}…` : body
 }
 
-/** Полный текст § для запросов «объясни тему / по учебнику». */
 export function buildG7TextbookFullTopicBlock(
   section: G7TextbookSection,
   locale: 'ru' | 'en',

@@ -2,7 +2,6 @@ import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
 import { buildSectionOutlineBlock } from './learnSectionKnowledge'
 import { matchFaqEntry, offlineNeedsApiMessage } from './learnChemistryFaq'
 import { retrieveChemistryKnowledge } from './learnKnowledgeRetrieval'
-import { buildG7TextbookContextBlock, findG7TextbookByQuery } from './learnG7TextbookKnowledge'
 import { composeExpertLocalReply } from './learnExpertLocalReply'
 import { synthesizeKnowledgeAnswer } from './learnConversationalSynthesis'
 import type { LearnTaskCoachContext } from './learnTaskCoachTypes'
@@ -69,13 +68,19 @@ function mixturesAnswer(ctx: LearnLocalAssistantContext, ru: boolean): string {
     : `For "${ctx.sectionTitle}": air, milk, granite, and seawater are mixtures; distilled water or copper wire are pure substances. Separation methods: filtration, evaporation, magnet, distillation.`
 }
 
-function knowledgeBlockReply(query: string, ctx: LearnLocalAssistantContext): string | null {
+function knowledgeBlockReply(
+  query: string,
+  ctx: LearnLocalAssistantContext,
+  messages: { role: string; content: string }[] = [],
+): string | null {
   const faq = matchFaqEntry(query)
   const wantsFull =
-    /полност|подроб|по учебник|объясни|расскажи|что такое|explain|tell me about/i.test(query)
+    /полност|подроб|по учебник|по книг|из книг|объясни|расскаж|что такое|что нибудь|что-нибудь|explain|tell me about/i.test(
+      query,
+    )
 
   const retrieved = retrieveChemistryKnowledge(query, {
-    maxChunks: wantsFull ? 8 : 5,
+    maxChunks: wantsFull ? 10 : 6,
     minScore: 1,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
@@ -84,30 +89,17 @@ function knowledgeBlockReply(query: string, ctx: LearnLocalAssistantContext): st
   })
   if (!faq && retrieved.chunks.length === 0) return null
 
-  let answer = synthesizeKnowledgeAnswer(query, retrieved.chunks, faq, ctx)
-
-  if (ctx.gradeId === 'g7' && wantsFull) {
-    const ru = isRu(ctx.locale)
-    const loc = ru ? 'ru' : 'en'
-    let book =
-      ctx.chapterId && ctx.sectionId
-        ? buildG7TextbookContextBlock(ctx.chapterId, ctx.sectionId, loc, 8000)
-        : ''
-    if (!book) {
-      const hit = findG7TextbookByQuery(query)
-      if (hit) book = buildG7TextbookContextBlock(hit.chapterId, hit.sectionId, loc, 8000)
-    }
-    if (book && !answer.includes(book.slice(0, 60))) {
-      answer = `${answer}\n\n---\n\n${book.slice(0, 6000)}`
-    }
-  }
-
-  return answer
+  return synthesizeKnowledgeAnswer(query, retrieved.chunks, faq, ctx, messages)
 }
 
-function explainTopic(ctx: LearnLocalAssistantContext, ru: boolean, query?: string): string {
+function explainTopic(
+  ctx: LearnLocalAssistantContext,
+  ru: boolean,
+  query?: string,
+  messages: { role: string; content: string }[] = [],
+): string {
   const q = query ?? ctx.sectionTitle
-  const fromKb = knowledgeBlockReply(q, ctx)
+  const fromKb = knowledgeBlockReply(q, ctx, messages)
   if (fromKb) return fromKb
 
   const body = ctx.slideBody.slice(0, 400)
@@ -222,8 +214,22 @@ export function generateLocalLearnReply(
       : `Paste your answer here — I will compare it to §${ctx.kpNumber}.`
   }
 
-  if (matchAny(q, ['объясни', 'explain', 'расскаж', 'tell me', 'что такое', 'what is'])) {
-    return explainTopic(ctx, ru, q)
+  if (
+    matchAny(q, [
+      'объясни',
+      'explain',
+      'расскаж',
+      'tell me',
+      'что такое',
+      'what is',
+      'по книг',
+      'из книг',
+      'что нибудь',
+      'что-нибудь',
+      'интересн',
+    ])
+  ) {
+    return explainTopic(ctx, ru, q, messages)
   }
 
   if (matchAny(q, ['проверь', 'check', 'пониман', 'understand', 'тест'])) {
@@ -251,7 +257,7 @@ export function generateLocalLearnReply(
   }
 
   if (matchAny(q, ['связь с уроком', 'lesson link', 'тема урока', 'параграф'])) {
-    return explainTopic(ctx, ru)
+    return explainTopic(ctx, ru, q, messages)
   }
 
   if (
@@ -300,7 +306,7 @@ export function generateLocalLearnReply(
     return ru ? faq.ru : faq.en
   }
 
-  const kbReply = knowledgeBlockReply(q, ctx)
+  const kbReply = knowledgeBlockReply(q, ctx, messages)
   if (kbReply) return kbReply
 
   const { block: catalogBlock } = buildAssistantKnowledgeBlock(q, ctx)
@@ -314,7 +320,7 @@ export function generateLocalLearnReply(
       : `From the ATOMLAB catalog:\n\n${catalogBlock}\n\n§ context: ${ctx.sectionTitle}. Open the 3D tab for the model.`
   }
 
-  const expert = composeExpertLocalReply(q, ctx)
+  const expert = composeExpertLocalReply(q, ctx, messages)
   if (expert) return expert
 
   if (sectionBlock.length > 80) {

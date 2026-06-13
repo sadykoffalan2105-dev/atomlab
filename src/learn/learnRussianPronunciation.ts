@@ -88,11 +88,11 @@ export function applyRussianPronunciationLexicon(text: string): string {
   return out
 }
 
-/** Убирает латиницу и символы, из-за которых TTS «проглатывает» слова. */
+/** Убирает только «шумовые» символы, слова и формулы не трогаем. */
 export function sanitizeRussianTtsSurface(text: string): string {
   return text
-    .replace(/[A-Za-z]{2,}/g, ' ')
-    .replace(/[+*=<>@#$^&|\\~`]/g, ' ')
+    .replace(/(?<![A-Za-zА-Яа-яЁё0-9])[_=]{2,}(?![A-Za-zА-Яа-яЁё0-9])/g, ' ')
+    .replace(/(?<![A-Za-zА-Яа-яЁё0-9])[#]{2,}(?![A-Za-zА-Яа-яЁё0-9])/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim()
 }

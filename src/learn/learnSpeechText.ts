@@ -22,11 +22,12 @@ export function stripMarkdownForSpeech(text: string): string {
     .replace(/`([^`]+)`/g, '$1')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/\*\*/g, ' ')
+    .replace(/\*/g, ' ')
     .replace(/#{1,6}\s+/g, '')
+    .replace(/^-{3,}\s*$/gm, ' ')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/[📖✦•·▪|]/g, ' ')
-    .replace(/:\s*/g, ': ')
-    .replace(/;\s*/g, '; ')
     .replace(/\n{2,}/g, '. ')
     .replace(/\n/g, ' ')
     .replace(/\s{2,}/g, ' ')
@@ -64,8 +65,11 @@ export function prepareTextForHumanTts(
   if (locale === 'ru') {
     t = t
       .replace(/§\s*(\d+)/g, 'параграф $1')
-      .replace(/---\s*ЗАПОМНИТЬ\s*---/gi, '. Важно запомнить.')
-      .replace(/ЗАПОМНИТЬ|Запомнить по учебнику/gi, 'Важно запомнить')
+      .replace(/\*\*Обязательно запомнить[:\*]*/gi, '. Главное запомнить.')
+      .replace(/\*\*Совет учителя[:\*]*/gi, '. Совет.')
+      .replace(/\*\*Проверь себя[^*]*[:\*]*/gi, '. Вопрос для самопроверки.')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
       .replace(/\bKimyo\b/gi, 'Кимё')
       .replace(/→|⟶|->/g, ', затем ')
       .replace(/⇌|↔/g, ', реакция обратима, ')
@@ -97,8 +101,8 @@ export function prepareTextForHumanTts(
     .trim()
 }
 
-/** Одно предложение = один запрос TTS — ничего не «проглатывается». */
-const CHUNK_MAX = 340
+/** Предложения целиком — меньше обрывов и путаницы фрагментов. */
+const CHUNK_MAX = 480
 
 export function splitTextForTts(text: string, locale: SpeechPrepLocale = 'ru', max = CHUNK_MAX): string[] {
   const clean = prepareTextForHumanTts(text, locale)
@@ -126,8 +130,8 @@ export const HUMAN_TTS_SPEED = TEACHER_VOICE_OPENAI_SPEED
 
 export const HUMAN_TTS_VOICE = TEACHER_VOICE_OPENAI
 
-/** Пауза между фрагментами (мс) — короткая, как между фразами учителя. */
-export const TTS_CHUNK_GAP_MS = 120
+/** Пауза между фразами (мс) — «дыхание» между предложениями. */
+export const TTS_CHUNK_GAP_MS = 420
 
 export const BROWSER_NEURAL_HINTS = TEACHER_BROWSER_VOICE_HINTS
 

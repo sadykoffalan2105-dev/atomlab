@@ -5,7 +5,28 @@ import {
   HUMAN_TTS_VOICE,
   prepareTextForHumanTts,
 } from './learnSpeechText'
-import { synthesizeEdgeNeuralSpeech } from './learnEdgeTts'
+import { synthesizeEdgeNeuralSpeechNode } from './learnEdgeTts'
+
+export type EdgeTtsBackend = (
+  text: string,
+  locale: LearnTtsLocale,
+  voice?: string,
+  prepared?: boolean,
+) => Promise<{ audioBase64: string; mimeType: string } | null>
+
+let edgeTtsBackend: EdgeTtsBackend | null = null
+
+/** Регистрация Python edge_tts (Vite dev / локальный сервер). */
+export function registerEdgeTtsBackend(fn: EdgeTtsBackend): void {
+  edgeTtsBackend = fn
+}
+
+function isUsableApiKey(key?: string): boolean {
+  const k = key?.trim()
+  if (!k || k.length < 24) return false
+  if (k === 'sk-...' || k.endsWith('...')) return false
+  return k.startsWith('sk-') || k.startsWith('sk_')
+}
 
 export type LearnTtsLocale = 'ru' | 'en'
 export type LearnTtsProvider = 'auto' | 'clone' | 'edge' | 'openai'
@@ -13,6 +34,8 @@ export type LearnTtsProvider = 'auto' | 'clone' | 'edge' | 'openai'
 export type LearnTtsRequestBody = {
   text?: string
   locale?: LearnTtsLocale
+  /** Текст уже подготовлен на клиенте — не переписывать. */
+  prepared?: boolean
 }
 
 export type LearnTtsSource = 'clone' | 'edge' | 'openai' | 'browser' | 'error'
@@ -209,8 +232,14 @@ async function synthesizeWithEdge(
   text: string,
   locale: LearnTtsLocale,
   runtime: LearnTtsRuntimeConfig,
+  prepared = false,
 ): Promise<{ audioBase64: string; mimeType: string } | null> {
-  return synthesizeEdgeNeuralSpeech(text, locale, edgeVoiceForLocale(locale, runtime))
+  const voice = edgeVoiceForLocale(locale, runtime)
+  if (edgeTtsBackend) {
+    const python = await edgeTtsBackend(text, locale, voice, prepared)
+    if (python) return python
+  }
+  return synthesizeEdgeNeuralSpeechNode(text, locale, voice)
 }
 
 function prepNeuralText(raw: string, locale: LearnTtsLocale): string {
@@ -242,15 +271,37 @@ export async function processLearnTts(
 
   const locale: LearnTtsLocale = body.locale === 'en' ? 'en' : 'ru'
   const { provider, openaiApiKey } = meta.runtime
+  const hasOpenAi = isUsableApiKey(openaiApiKey)
+  const alreadyPrepared = body.prepared === true
 
-  const neuralText = prepNeuralText(raw, locale)
+  const neuralText = alreadyPrepared ? raw.slice(0, MAX_TTS_CHARS) : prepNeuralText(raw, locale)
   if (!neuralText) {
     return { status: 400, source: 'error', error: 'empty_text', headers }
   }
 
-  // edge — лучшее произношение русского (Dmitry Neural)
+  // clone — точный тембр Articulate Tutor (ElevenLabs), если настроен
+  if (provider === 'auto' || provider === 'clone') {
+    const cloneText = alreadyPrepared ? neuralText : prepCloneText(raw, locale)
+    if (cloneText) {
+      const cloned = await synthesizeWithClone(cloneText, locale, meta.runtime)
+      if (cloned) {
+        return {
+          status: 200,
+          audioBase64: cloned.audioBase64,
+          mimeType: cloned.mimeType,
+          source: 'clone',
+          headers,
+        }
+      }
+    }
+    if (provider === 'clone') {
+      return { status: 502, source: 'error', error: 'clone_unavailable', headers }
+    }
+  }
+
+  // edge — Microsoft Neural через Python (локально) или браузер
   if (provider === 'auto' || provider === 'edge') {
-    const edge = await synthesizeWithEdge(neuralText, locale, meta.runtime)
+    const edge = await synthesizeWithEdge(neuralText, locale, meta.runtime, alreadyPrepared)
     if (edge) {
       return {
         status: 200,
@@ -265,25 +316,7 @@ export async function processLearnTts(
     }
   }
 
-  if (provider === 'clone') {
-    const cloneText = prepCloneText(raw, locale)
-    if (!cloneText) {
-      return { status: 400, source: 'error', error: 'empty_text', headers }
-    }
-    const cloned = await synthesizeWithClone(cloneText, locale, meta.runtime)
-    if (cloned) {
-      return {
-        status: 200,
-        audioBase64: cloned.audioBase64,
-        mimeType: cloned.mimeType,
-        source: 'clone',
-        headers,
-      }
-    }
-    return { status: 502, source: 'error', error: 'clone_unavailable', headers }
-  }
-
-  if (openaiApiKey && (provider === 'auto' || provider === 'openai')) {
+  if (hasOpenAi && (provider === 'auto' || provider === 'openai')) {
     try {
       const audioBase64 = await callOpenAiTts(neuralText, locale, meta.runtime)
       return {
@@ -306,26 +339,5 @@ export async function processLearnTts(
     }
   }
 
-  // auto fallback: клон (если настроен)
-  if (provider === 'auto') {
-    const cloneText = prepCloneText(raw, locale)
-    if (cloneText) {
-      const cloned = await synthesizeWithClone(cloneText, locale, meta.runtime)
-      if (cloned) {
-        return {
-          status: 200,
-          audioBase64: cloned.audioBase64,
-          mimeType: cloned.mimeType,
-          source: 'clone',
-          headers,
-        }
-      }
-    }
-  }
-
-  if (!openaiApiKey) {
-    return { status: 503, source: 'error', error: 'no_api_key', headers }
-  }
-
-  return { status: 502, source: 'error', error: 'tts_failed', headers }
+  return { status: 502, source: 'error', error: 'tts_unavailable', headers }
 }

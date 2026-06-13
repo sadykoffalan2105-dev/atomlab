@@ -8,6 +8,7 @@ import {
   buildG7TextbookContextBlock,
   buildG7TextbookFullTopicBlock,
   findG7TextbookByQuery,
+  parseRequestedTopicNumber,
 } from './learnG7TextbookKnowledge'
 
 export type TeacherBrainPack = {
@@ -20,7 +21,7 @@ export type TeacherBrainPack = {
 }
 
 const FULL_TOPIC_RE =
-  /полност|подроб|по учебник|объясни тем|объясни §|расскажи про|расскажи о|что такое|explain fully|in detail|tell me about|textbook/i
+  /полност|подроб|по учебник|по книг|из книг|объясни тем|объясни §|расскаж|что такое|что нибудь|\d+\s*[-–]?\s*тем|тем[ае]\s*\d|explain fully|in detail|tell me about|textbook/i
 
 /** Собирает контекст «мозга» учителя: каталог + база + § + история диалога. */
 export function buildTeacherBrainPack(
@@ -51,7 +52,15 @@ export function buildTeacherBrainPack(
     preloaded: retrieved,
   })
 
-  if (ctx.gradeId === 'g7' && ctx.chapterId && ctx.sectionId) {
+  const requestedKp = parseRequestedTopicNumber(query)
+  const directBook = findG7TextbookByQuery(query, { chapterId: ctx.chapterId })
+
+  if (directBook && (wantsFullTopic || requestedKp !== null)) {
+    const full = buildG7TextbookFullTopicBlock(directBook, speechLocale, 14_000)
+    if (full) {
+      chemistryKnowledgeBlock = `[§${directBook.kp} «${directBook.topicRu}» — текст по запросу ученика]\n${full}\n\n--- Дополнительно ---\n${chemistryKnowledgeBlock}`
+    }
+  } else if (ctx.gradeId === 'g7' && ctx.chapterId && ctx.sectionId) {
     const bookBlock = buildG7TextbookContextBlock(
       ctx.chapterId,
       ctx.sectionId,
@@ -60,14 +69,6 @@ export function buildTeacherBrainPack(
     )
     if (bookBlock && !chemistryKnowledgeBlock.includes(bookBlock.slice(0, 80))) {
       chemistryKnowledgeBlock = `[Текущий § учебника Kimyo 7 — главный источник]\n${bookBlock}\n\n--- Дополнительно ---\n${chemistryKnowledgeBlock}`
-    }
-  }
-
-  const directBook = findG7TextbookByQuery(query)
-  if (directBook && wantsFullTopic) {
-    const full = buildG7TextbookFullTopicBlock(directBook, speechLocale, 14_000)
-    if (full && !chemistryKnowledgeBlock.includes(full.slice(0, 80))) {
-      chemistryKnowledgeBlock = `[§${directBook.kp} по запросу — полный текст учебника]\n${full}\n\n---\n${chemistryKnowledgeBlock}`
     }
   }
 

@@ -58,9 +58,9 @@ export async function synthesizeClonedTeacherSpeech(
       language_code: locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru',
       apply_text_normalization: 'on',
       voice_settings: {
-        stability: 0.68,
-        similarity_boost: 0.78,
-        style: 0.0,
+        stability: 0.55,
+        similarity_boost: 0.92,
+        style: 0.12,
         use_speaker_boost: true,
         speed: TEACHER_VOICE_CLONE_SPEED[locale],
       },
