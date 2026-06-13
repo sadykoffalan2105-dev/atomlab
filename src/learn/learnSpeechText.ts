@@ -103,6 +103,32 @@ export function prepareTextForHumanTts(
 
 /** Предложения целиком — меньше обрывов и путаницы фрагментов. */
 const CHUNK_MAX = 480
+/** Первый фрагмент короче — быстрее старт озвучки длинного ответа. */
+const FIRST_CHUNK_MAX = 200
+
+function splitFirstChunkForFastStart(parts: string[]): string[] {
+  if (parts.length === 0) return parts
+  const first = parts[0]!
+  if (first.length <= FIRST_CHUNK_MAX) return parts
+
+  const window = first.slice(60, FIRST_CHUNK_MAX + 1)
+  const rel = window.search(/[,;:—–-]\s/)
+  if (rel >= 0) {
+    const cut = 60 + rel + 1
+    const head = first.slice(0, cut).trim()
+    const tail = first.slice(cut).trim()
+    if (head.length >= 40 && tail.length >= 20) {
+      return [head, tail, ...parts.slice(1)]
+    }
+  }
+
+  const space = first.lastIndexOf(' ', FIRST_CHUNK_MAX)
+  if (space > 80) {
+    return [first.slice(0, space).trim(), first.slice(space + 1).trim(), ...parts.slice(1)]
+  }
+
+  return parts
+}
 
 export function splitTextForTts(text: string, locale: SpeechPrepLocale = 'ru', max = CHUNK_MAX): string[] {
   const clean = prepareTextForHumanTts(text, locale)
@@ -118,7 +144,8 @@ export function splitTextForTts(text: string, locale: SpeechPrepLocale = 'ru', m
       parts.push(...splitAtSpeechClauses(sentence, max))
     }
   }
-  return parts.length > 0 ? parts : [clean]
+  const base = parts.length > 0 ? parts : [clean]
+  return splitFirstChunkForFastStart(base)
 }
 
 /** OpenAI fallback — onyx (мужской), как образец автоответчика. */

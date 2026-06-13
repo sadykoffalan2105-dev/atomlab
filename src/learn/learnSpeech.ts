@@ -405,11 +405,21 @@ export class LearnSpeechController {
 
     try {
       let played = 0
+      let nextFetch: Promise<NeuralCacheEntry | null> | null = this.fetchNeuralChunk(
+        chunks[0]!,
+        locale,
+        signal,
+      )
 
       for (let i = 0; i < chunks.length; i++) {
         if (signal.aborted) break
 
-        const entry = await this.fetchNeuralChunk(chunks[i]!, locale, signal)
+        const entry = await nextFetch
+        nextFetch =
+          i + 1 < chunks.length
+            ? this.fetchNeuralChunk(chunks[i + 1]!, locale, signal)
+            : null
+
         if (!entry) continue
 
         onMode?.('neural')
