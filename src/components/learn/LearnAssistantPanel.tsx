@@ -7,7 +7,6 @@ import {
   isSpeechRecognitionSupported,
   LearnSpeechController,
   preloadSpeechVoices,
-  type SpeechOutputMode,
 } from '../../learn/learnSpeech'
 import type { LearnSection } from '../../types/learn'
 import { checkTeacherServiceHealth, requestTeacherChat } from '../../learn/teacherServiceClient'
@@ -83,8 +82,6 @@ export function LearnAssistantPanel({
   })
   const [listening, setListening] = useState(false)
   const [speakingId, setSpeakingId] = useState<number | null>(null)
-  const [preparingSpeechId, setPreparingSpeechId] = useState<number | null>(null)
-  const [voiceMode, setVoiceMode] = useState<SpeechOutputMode | null>(null)
   const [voiceError, setVoiceError] = useState(false)
   const speechRef = useRef(new LearnSpeechController())
   const storeKey = storageKey(gradeId, chapterId, section.id)
@@ -153,8 +150,6 @@ export function LearnAssistantPanel({
     async (text: string, messageId: number) => {
       if (!isSpeechOutputSupported()) return
       setVoiceError(false)
-      setVoiceMode(null)
-      setPreparingSpeechId(messageId)
       setSpeakingId(messageId)
       try {
         const ok = await speechRef.current.speak(
@@ -162,27 +157,19 @@ export function LearnAssistantPanel({
           speechLocale,
           () => {
             setSpeakingId(null)
-            setPreparingSpeechId(null)
           },
-          (mode) => {
-            setVoiceMode(mode)
-            setVoiceError(false)
-            setPreparingSpeechId(null)
-          },
+          undefined,
           (code) => {
             if (code === 'unavailable') {
-              setVoiceMode(null)
               setVoiceError(true)
             }
           },
         )
         if (!ok && !speechRef.current.isSpeaking()) {
-          setVoiceMode(null)
+          setSpeakingId(null)
         }
       } catch {
         setSpeakingId(null)
-        setPreparingSpeechId(null)
-        setVoiceMode(null)
         setVoiceError(true)
       }
     },
@@ -192,7 +179,6 @@ export function LearnAssistantPanel({
   const stopSpeaking = useCallback(() => {
     speechRef.current.stop()
     setSpeakingId(null)
-    setPreparingSpeechId(null)
   }, [])
 
   const toggleMic = useCallback(() => {
@@ -461,23 +447,18 @@ export function LearnAssistantPanel({
                       <button
                         type="button"
                         className={styles.learnAssistantVoiceBtn}
-                        disabled={preparingSpeechId === m.at && speakingId !== m.at}
                         onClick={() =>
-                          speakingId === m.at || preparingSpeechId === m.at
-                            ? stopSpeaking()
-                            : void speakMessage(m.text, m.at)
+                          speakingId === m.at ? stopSpeaking() : void speakMessage(m.text, m.at)
                         }
                         aria-label={
-                          speakingId === m.at || preparingSpeechId === m.at
+                          speakingId === m.at
                             ? t('learn.assistant.stopSpeak')
                             : t('learn.assistant.speak')
                         }
                       >
-                        {preparingSpeechId === m.at
-                          ? t('learn.assistant.preparingVoice')
-                          : speakingId === m.at
-                            ? t('learn.assistant.stopSpeak')
-                            : t('learn.assistant.speak')}
+                        {speakingId === m.at
+                          ? t('learn.assistant.stopSpeak')
+                          : t('learn.assistant.speak')}
                       </button>
                     </div>
                   ) : null}
@@ -496,9 +477,7 @@ export function LearnAssistantPanel({
         {t('learn.assistant.disclaimer')}
         {voiceError ? (
           <span className={styles.learnAssistantError}> · {t('learn.assistant.voiceUnavailable')}</span>
-        ) : voiceMode === 'neural' ? (
-          <span className={styles.learnAssistantVoiceHint}> · {t('learn.assistant.voiceNeural')}</span>
-        ) : voiceMode === 'browser' ? (
+        ) : speakingId !== null ? (
           <span className={styles.learnAssistantVoiceHint}> · {t('learn.assistant.voiceBrowser')}</span>
         ) : null}
       </p>

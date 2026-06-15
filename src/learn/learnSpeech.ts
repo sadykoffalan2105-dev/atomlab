@@ -1,12 +1,8 @@
 /**
- * ATOMLAB Teacher Voice v3
- *
- * Правило: один ответ = один голос. Никогда neural + браузер подряд.
- * 1. Подготовка текста
- * 2. Проба neural → если ВСЕ фрагменты готовы → Dmitry MP3
- * 3. Иначе только системный Dmitry (speechSynthesis)
+ * ATOMLAB Teacher Voice — браузерный синтез речи (Web Speech API).
+ * Без neural Dmitry / Python TTS: мгновенный старт, один системный голос.
  */
-import { splitTextForTts, TTS_CHUNK_GAP_MS } from './learnSpeechText'
+import { splitTextForTts } from './learnSpeechText'
 
 export { stripMarkdownForSpeech, prepareTextForHumanTts } from './learnSpeechText'
 
@@ -16,44 +12,21 @@ import {
   preloadBrowserSpeechVoices,
   speakWithBrowserVoice,
   stopBrowserSpeech,
-  hasNativeBrowserNeuralVoice,
 } from './learnSpeechBrowser'
 import { LearnSpeechRecognition, isSpeechRecognitionSupported } from './learnSpeechRecognition'
-import {
-  fetchAllTeacherTtsChunks,
-  isTeacherTtsAvailable,
-  primaryTeacherTtsUrl,
-  resolveTeacherTtsUrls,
-  teacherTtsLocale,
-} from './learnTeacherTtsClient'
-import {
-  isNeuralPlaybackActive,
-  playNeuralAudioBase64,
-  stopNeuralPlayback,
-  unlockAudioPlayback,
-} from './learnSpeechPlayback'
+import { unlockAudioPlayback } from './learnSpeechPlayback'
 
 export type LearnSpeechLocale = 'ru' | 'en' | 'uz'
-export type SpeechOutputMode = 'neural' | 'browser'
-
-type NeuralEntry = { audioBase64: string; mimeType: string }
-
-export function resolveLearnTtsUrls(): string[] {
-  return resolveTeacherTtsUrls()
-}
-
-export function resolveLearnTtsUrl(): string {
-  return primaryTeacherTtsUrl()
-}
+export type SpeechOutputMode = 'browser'
 
 export function isSpeechSynthesisSupported(): boolean {
   return isBrowserSpeechSupported()
 }
 
-export { isSpeechRecognitionSupported, hasNativeBrowserNeuralVoice }
+export { isSpeechRecognitionSupported }
 
 export function isSpeechOutputSupported(): boolean {
-  return isBrowserSpeechSupported() || isTeacherTtsAvailable()
+  return isBrowserSpeechSupported()
 }
 
 export function preloadSpeechVoices(): void {
@@ -62,7 +35,7 @@ export function preloadSpeechVoices(): void {
 
 export class LearnSpeechController {
   private recognition = new LearnSpeechRecognition()
-  private fetchAbort: AbortController | null = null
+  private speakAborted = false
   private lastMode: SpeechOutputMode = 'browser'
 
   getLastOutputMode(): SpeechOutputMode {
@@ -82,6 +55,12 @@ export class LearnSpeechController {
       return false
     }
 
+    if (!isBrowserSpeechSupported()) {
+      onError?.('unavailable')
+      onEnd?.()
+      return false
+    }
+
     this.stop()
     await unlockAudioPlayback()
 
@@ -92,63 +71,21 @@ export class LearnSpeechController {
       return false
     }
 
-    const ttsLocale = teacherTtsLocale(locale)
+    this.speakAborted = false
+    onMode?.('browser')
 
-    this.fetchAbort = new AbortController()
-    const signal = this.fetchAbort.signal
-    const timeout = setTimeout(() => this.fetchAbort?.abort(), 240_000)
-
-    try {
-      const entries = await fetchAllTeacherTtsChunks(chunks, ttsLocale, signal)
-      const allNeural = entries.length === chunks.length && entries.every((e) => e !== null)
-
-      if (allNeural && !signal.aborted) {
-        const played = await this.playNeuralEntries(entries as NeuralEntry[], signal)
-        if (played && !signal.aborted) {
-          this.lastMode = 'neural'
-          onMode?.('neural')
-          onEnd?.()
-          return true
-        }
-      }
-
-      if (signal.aborted) {
-        onEnd?.()
-        return false
-      }
-
-      const browserOk = await speakWithBrowserVoice(chunks, locale, () =>
-        Boolean(this.fetchAbort?.signal.aborted),
-      )
-      if (browserOk) {
-        this.lastMode = 'browser'
-        onMode?.('browser')
-        onEnd?.()
-        return true
-      }
-
-      if (!signal.aborted) {
-        onError?.('unavailable')
-      }
+    const browserOk = await speakWithBrowserVoice(chunks, locale, () => this.speakAborted)
+    if (browserOk && !this.speakAborted) {
+      this.lastMode = 'browser'
       onEnd?.()
-      return false
-    } catch {
-      if (!signal.aborted) {
-        const browserOk = await speakWithBrowserVoice(chunks, locale, () => true)
-        if (browserOk) {
-          this.lastMode = 'browser'
-          onMode?.('browser')
-          onEnd?.()
-          return true
-        }
-        onError?.('unavailable')
-      }
-      onEnd?.()
-      return false
-    } finally {
-      clearTimeout(timeout)
-      this.fetchAbort = null
+      return true
     }
+
+    if (!this.speakAborted) {
+      onError?.('unavailable')
+    }
+    onEnd?.()
+    return false
   }
 
   private isSpeakableChunk(chunk: string): boolean {
@@ -157,36 +94,13 @@ export class LearnSpeechController {
     return /[a-zA-Zа-яА-ЯёЁ0-9]/.test(t)
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms))
-  }
-
-  private async playNeuralEntries(
-    entries: NeuralEntry[],
-    signal: AbortSignal,
-  ): Promise<boolean> {
-    let played = 0
-    for (let i = 0; i < entries.length; i++) {
-      if (signal.aborted) break
-      const entry = entries[i]!
-      await playNeuralAudioBase64(entry.audioBase64, entry.mimeType, signal)
-      played++
-      if (i + 1 < entries.length && !signal.aborted) {
-        await this.sleep(TTS_CHUNK_GAP_MS)
-      }
-    }
-    return played > 0
-  }
-
   stop(): void {
-    this.fetchAbort?.abort()
-    this.fetchAbort = null
-    stopNeuralPlayback()
+    this.speakAborted = true
     stopBrowserSpeech()
   }
 
   isSpeaking(): boolean {
-    return isNeuralPlaybackActive() || isBrowserSpeechActive()
+    return isBrowserSpeechActive()
   }
 
   startListening(

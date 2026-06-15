@@ -43,24 +43,37 @@ export const TEACHER_VOICE_OPENAI_INSTRUCTIONS = {
   en: `Warm male teacher, natural tutor pace, gentle pauses, conversational tone.`,
 } as const
 
+/** Локальные системные голоса — «роботский» TTS, без Neural/Dmitry. */
 export const TEACHER_BROWSER_VOICE_HINTS: Record<SpeechPrepLocale, string[]> = {
   ru: [
-    'dmitryneural',
-    'dmitry online',
-    'microsoft dmitry',
-    'pavel',
-    'svetlananeural',
-    'natural',
-    'neural',
+    'microsoft pavel',
+    'google русский',
+    'milena',
+    'dmitri',
+    'yandex',
+    'ru-ru',
+    'russian',
   ],
-  en: ['guyneural', 'guy online', 'microsoft guy', 'david', 'natural', 'neural'],
-  uz: ['dmitryneural', 'sardor', 'microsoft', 'neural'],
+  en: [
+    'microsoft david',
+    'google us english',
+    'samantha',
+    'microsoft mark',
+    'en-us',
+    'english united states',
+  ],
+  uz: ['sardor', 'microsoft', 'google', 'uz-uz'],
 }
 
+/** Быстрее обычного темпа, но без «тараторения». */
 export const TEACHER_BROWSER_RATE: Record<SpeechPrepLocale, number> = {
-  ru: 0.86,
-  en: 0.86,
-  uz: 0.86,
+  ru: 1.14,
+  en: 1.1,
+  uz: 1.14,
 }
 
-export const TEACHER_BROWSER_PITCH = 0.92
+export const TEACHER_BROWSER_PITCH: Record<SpeechPrepLocale, number> = {
+  ru: 1.02,
+  en: 1.0,
+  uz: 1.02,
+}
