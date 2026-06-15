@@ -1,4 +1,5 @@
 import type { SpeechPrepLocale } from './learnSpeechText'
+import { expandElementSymbolsForRussianSpeech } from './learnElementSpeech'
 
 /** Формулы → как говорит учитель (длинные совпадения первыми). */
 const FORMULA_SPEECH_RU: ReadonlyArray<readonly [RegExp, string]> = [
@@ -139,7 +140,8 @@ function softenPunctuationForSpeech(text: string): string {
 /** Убирает символы, которые TTS «заклинивает». */
 function stripTtsNoise(text: string): string {
   return text
-    .replace(/[•·▪✦📖|]/g, ' ')
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, ' ')
+    .replace(/[•·▪✦📖|🎤🔊⚗️⚗🧪🔬]/g, ' ')
     .replace(/[=]{2,}/g, ' ')
     .replace(/[_]{2,}/g, ' ')
     .replace(/[#]{1,6}/g, ' ')
@@ -158,6 +160,9 @@ export function naturalizeSpeechText(
 ): string {
   let t = stripTtsNoise(text)
   t = expandFormulasForSpeech(t, locale)
+  if (locale === 'ru') {
+    t = expandElementSymbolsForRussianSpeech(t)
+  }
   t = normalizeUnitsForSpeech(t, locale)
   t = softenPunctuationForSpeech(t)
 

@@ -53,17 +53,20 @@ async def _synthesize_chunk(text: str, locale: str) -> bytes:
     return b"".join(chunks)
 
 
-async def synthesize_speech(text: str, locale: str = "ru") -> tuple[str, str]:
-    prepared = prepare_text_for_tts(text[:MAX_TTS_CHARS], locale)
-    if not prepared:
+async def synthesize_speech(text: str, locale: str = "ru", *, prepared: bool = False) -> tuple[str, str]:
+    spoken = text[:MAX_TTS_CHARS].strip() if prepared else prepare_text_for_tts(text[:MAX_TTS_CHARS], locale)
+    if not spoken:
         raise ValueError("empty_text")
 
-    key = _cache_key(prepared, locale)
+    key = _cache_key(spoken, locale)
     cached = _cache_get(key)
     if cached:
         return cached
 
-    parts = split_for_tts(prepared, TTS_CHUNK_CHARS)
+    if prepared:
+        parts = [spoken]
+    else:
+        parts = split_for_tts(spoken, TTS_CHUNK_CHARS)
     audio = b""
     for part in parts:
         audio += await _synthesize_chunk(part, locale)

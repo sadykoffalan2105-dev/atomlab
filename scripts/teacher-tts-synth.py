@@ -43,6 +43,7 @@ def normalize_teacher_text(text: str, locale: str) -> str:
 
     t = re.sub(r"…+", ".", t)
     t = re.sub(r"\.{2,}", ".", t)
+    t = re.sub(r"[\u200b-\u200d\ufeff\u00ad]", "", t)
     t = re.sub(r"\s+([,.!?;:])", r"\1", t)
     t = re.sub(r"([,;])\s*", r"\1 ", t)
     return t.strip()

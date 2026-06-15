@@ -67,6 +67,20 @@ export const RUSSIAN_PRONUNCIATION_LEXICON: Record<string, string> = {
   H2: 'водород',
   N2: 'азот',
   Cl2: 'хлор',
+  PDF: 'пи дэ эф',
+  MP3: 'эм пэ три',
+  MP4: 'эм пэ четыре',
+  USB: 'ю эс би',
+  URL: 'ю ар эл',
+  HTML: 'аш ти эм эл',
+  CSS: 'си си эс',
+  API: 'эй пи ай',
+  AI: 'эй ай',
+  ИИ: 'и и',
+  ФГОС: 'фэ гэ о эс',
+  WWW: 'вэ вэ вэ',
+  HTTP: 'аш ти ти пи',
+  HTTPS: 'аш ти ти пи эс',
 }
 
 const SORTED_KEYS = Object.keys(RUSSIAN_PRONUNCIATION_LEXICON).sort((a, b) => b.length - a.length)
@@ -91,6 +105,7 @@ export function applyRussianPronunciationLexicon(text: string): string {
 /** Убирает только «шумовые» символы, слова и формулы не трогаем. */
 export function sanitizeRussianTtsSurface(text: string): string {
   return text
+    .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, '')
     .replace(/(?<![A-Za-zА-Яа-яЁё0-9])[_=]{2,}(?![A-Za-zА-Яа-яЁё0-9])/g, ' ')
     .replace(/(?<![A-Za-zА-Яа-яЁё0-9])[#]{2,}(?![A-Za-zА-Яа-яЁё0-9])/g, ' ')
     .replace(/\s{2,}/g, ' ')

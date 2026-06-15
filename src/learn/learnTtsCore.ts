@@ -5,7 +5,6 @@ import {
   HUMAN_TTS_VOICE,
   prepareTextForHumanTts,
 } from './learnSpeechText'
-import { synthesizeEdgeNeuralSpeechNode } from './learnEdgeTts'
 
 export type EdgeTtsBackend = (
   text: string,
@@ -236,10 +235,9 @@ async function synthesizeWithEdge(
 ): Promise<{ audioBase64: string; mimeType: string } | null> {
   const voice = edgeVoiceForLocale(locale, runtime)
   if (edgeTtsBackend) {
-    const python = await edgeTtsBackend(text, locale, voice, prepared)
-    if (python) return python
+    return edgeTtsBackend(text, locale, voice, prepared)
   }
-  return synthesizeEdgeNeuralSpeechNode(text, locale, voice)
+  return null
 }
 
 function prepNeuralText(raw: string, locale: LearnTtsLocale): string {

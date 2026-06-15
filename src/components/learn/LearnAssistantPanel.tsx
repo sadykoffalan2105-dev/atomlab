@@ -85,6 +85,7 @@ export function LearnAssistantPanel({
   const [speakingId, setSpeakingId] = useState<number | null>(null)
   const [preparingSpeechId, setPreparingSpeechId] = useState<number | null>(null)
   const [voiceMode, setVoiceMode] = useState<SpeechOutputMode | null>(null)
+  const [voiceError, setVoiceError] = useState(false)
   const speechRef = useRef(new LearnSpeechController())
   const storeKey = storageKey(gradeId, chapterId, section.id)
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadStored(storeKey))
@@ -151,10 +152,12 @@ export function LearnAssistantPanel({
   const speakMessage = useCallback(
     async (text: string, messageId: number) => {
       if (!isSpeechOutputSupported()) return
+      setVoiceError(false)
+      setVoiceMode(null)
       setPreparingSpeechId(messageId)
       setSpeakingId(messageId)
       try {
-        await speechRef.current.speak(
+        const ok = await speechRef.current.speak(
           text,
           speechLocale,
           () => {
@@ -163,12 +166,24 @@ export function LearnAssistantPanel({
           },
           (mode) => {
             setVoiceMode(mode)
-            if (mode === 'neural') setPreparingSpeechId(null)
+            setVoiceError(false)
+            setPreparingSpeechId(null)
+          },
+          (code) => {
+            if (code === 'unavailable') {
+              setVoiceMode(null)
+              setVoiceError(true)
+            }
           },
         )
+        if (!ok && !speechRef.current.isSpeaking()) {
+          setVoiceMode(null)
+        }
       } catch {
         setSpeakingId(null)
         setPreparingSpeechId(null)
+        setVoiceMode(null)
+        setVoiceError(true)
       }
     },
     [speechLocale],
@@ -479,8 +494,12 @@ export function LearnAssistantPanel({
 
       <p className={styles.learnAssistantDisclaimer}>
         {t('learn.assistant.disclaimer')}
-        {voiceMode === 'neural' ? (
+        {voiceError ? (
+          <span className={styles.learnAssistantError}> · {t('learn.assistant.voiceUnavailable')}</span>
+        ) : voiceMode === 'neural' ? (
           <span className={styles.learnAssistantVoiceHint}> · {t('learn.assistant.voiceNeural')}</span>
+        ) : voiceMode === 'browser' ? (
+          <span className={styles.learnAssistantVoiceHint}> · {t('learn.assistant.voiceBrowser')}</span>
         ) : null}
       </p>
 

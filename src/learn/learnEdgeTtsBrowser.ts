@@ -1,5 +1,6 @@
 /**
- * Microsoft Edge Neural TTS — прямой WebSocket из браузера (без Node.js).
+ * Microsoft Edge Neural TTS — запасной WebSocket из браузера (без Python).
+ * Основной путь — серверный Python edge_tts (plain text, без prosody).
  */
 import {
   TEACHER_VOICE_EDGE,

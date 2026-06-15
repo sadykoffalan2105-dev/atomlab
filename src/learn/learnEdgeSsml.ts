@@ -6,6 +6,7 @@ export function escapeSsmlText(text: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
 }
 
 export function textToSsmlProsodyContent(text: string): string {
@@ -25,19 +26,18 @@ export function textToSsmlProsodyContent(text: string): string {
   return out.trim()
 }
 
+/** Минимальный SSML — prosody в браузерном Edge часто даёт «буквование». */
 export function buildTeacherSsml(
   text: string,
   voice: string,
-  rate: string,
-  pitch: string,
-  volume: string,
+  _rate: string,
+  _pitch: string,
+  _volume: string,
   lang: string,
 ): string {
   const body = escapeSsmlText(text)
   return (
     `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'>` +
-    `<voice name='${voice}'>` +
-    `<prosody rate='${rate}' pitch='${pitch}' volume='${volume}'>${body}</prosody>` +
-    `</voice></speak>`
+    `<voice name='${voice}'>${body}</voice></speak>`
   )
 }

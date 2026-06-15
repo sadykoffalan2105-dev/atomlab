@@ -25,9 +25,12 @@ export function stripMarkdownForSpeech(text: string): string {
     .replace(/\*\*/g, ' ')
     .replace(/\*/g, ' ')
     .replace(/#{1,6}\s+/g, '')
+    .replace(/---\s*(?:ЗАПОМНИТЬ|REMEMBER|ПРОВЕРЬ|CHECK)\s*---/gi, '. ')
     .replace(/^-{3,}\s*$/gm, ' ')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+[.)]\s+/gm, '')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/[📖✦•·▪|]/g, ' ')
+    .replace(/[📖✦•·▪|🎤🔊⚗️⚗🧪🔬]/g, ' ')
     .replace(/\n{2,}/g, '. ')
     .replace(/\n/g, ' ')
     .replace(/\s{2,}/g, ' ')
@@ -68,6 +71,9 @@ export function prepareTextForHumanTts(
       .replace(/\*\*Обязательно запомнить[:\*]*/gi, '. Главное запомнить.')
       .replace(/\*\*Совет учителя[:\*]*/gi, '. Совет.')
       .replace(/\*\*Проверь себя[^*]*[:\*]*/gi, '. Вопрос для самопроверки.')
+      .replace(/\*\*Must remember[:\*]*/gi, '. Important to remember.')
+      .replace(/\*\*Teacher tip[:\*]*/gi, '. Teacher tip.')
+      .replace(/\*\*Check yourself[^*]*[:\*]*/gi, '. Self-check question.')
       .replace(/\*\*([^*]+)\*\*/g, '$1')
       .replace(/\*([^*]+)\*/g, '$1')
       .replace(/\bKimyo\b/gi, 'Кимё')
@@ -112,7 +118,7 @@ function splitFirstChunkForFastStart(parts: string[]): string[] {
   if (first.length <= FIRST_CHUNK_MAX) return parts
 
   const window = first.slice(60, FIRST_CHUNK_MAX + 1)
-  const rel = window.search(/[,;:—–-]\s/)
+  const rel = window.search(/[,;:]\s/)
   if (rel >= 0) {
     const cut = 60 + rel + 1
     const head = first.slice(0, cut).trim()

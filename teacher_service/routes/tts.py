@@ -8,6 +8,7 @@ from teacher_service.tts.edge import synthesize_speech
 class TtsRequest(BaseModel):
     text: str = ""
     locale: str = "ru"
+    prepared: bool = False
 
 
 class TtsResponse(BaseModel):
@@ -24,7 +25,7 @@ async def handle_tts(body: TtsRequest) -> TtsResponse:
         return TtsResponse(error="empty_text")
 
     try:
-        audio_b64, mime = await synthesize_speech(text, locale)
+        audio_b64, mime = await synthesize_speech(text, locale, prepared=body.prepared)
         return TtsResponse(audioBase64=audio_b64, mimeType=mime, source="edge")
     except Exception as exc:
         return TtsResponse(error=str(exc))
