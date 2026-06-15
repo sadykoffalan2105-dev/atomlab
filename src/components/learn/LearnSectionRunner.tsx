@@ -18,7 +18,7 @@ import { getLearnFgosMeta } from '../../data/learnFgosMatrix'
 import { buildLabUrl, getLearnLabDeepLink } from '../../data/learnSectionLabLinks'
 import { getExtraQuizzesForSection } from '../../data/learnSectionQuizzes'
 import { learnNextSection, learnSectionPathId } from '../../data/learnCurriculumUz'
-import { g7TextbookSectionPage, gradeHasTextbook } from '../../data/learnTextbookG7'
+import { textbookSectionPage, gradeHasTextbook } from '../../data/learnTextbook'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { compoundById } from '../../data/compounds'
 import {
@@ -481,7 +481,7 @@ export function LearnSectionRunner({
               className={styles.backLinkInline}
               to={
                 fromBook && gradeHasTextbook(grade.id)
-                  ? `/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${g7TextbookSectionPage(chapter.id, section.id)}`
+                  ? `/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${textbookSectionPage(grade.id, chapter.id, section.id)}`
                   : `/learn/g/${grade.id}/c/${chapter.id}`
               }
             >
@@ -500,7 +500,7 @@ export function LearnSectionRunner({
             {gradeHasTextbook(grade.id) ? (
               <Link
                 className={styles.btn}
-                to={`/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${g7TextbookSectionPage(chapter.id, section.id)}`}
+                to={`/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${textbookSectionPage(grade.id, chapter.id, section.id)}`}
               >
                 {t('learn.textbook.openSection')}
               </Link>

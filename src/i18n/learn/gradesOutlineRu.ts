@@ -21,6 +21,8 @@ export const learnGradesOutlineRu = {
   'learn.textbook.go': 'Перейти',
   'learn.textbook.openTab': 'В новой вкладке',
   'learn.textbook.frameTitle': 'Просмотр учебника химии, 7 класс',
+  'learn.textbook.frameTitleG8': 'Просмотр учебника химии, 8 класс',
+  'learn.textbook.frameTitleG9': 'Просмотр учебника химии, 9 класс',
   'learn.textbook.fullscreen': 'На весь экран',
   'learn.textbook.fullscreenClose': 'Выйти',
   'learn.textbook.teacherToggle': 'ИИ-учитель',

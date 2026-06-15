@@ -10,9 +10,9 @@ export type ChemistryKnowledgeChunk = {
   keywords: string[]
   ru: string
   en: string
-  /** Привязка к учебнику Kimyo 7 класс */
+  /** Привязка к учебнику Kimyo */
   textbook?: {
-    gradeId: 'g7'
+    gradeId: 'g7' | 'g8' | 'g9'
     chapterId: string
     sectionId: string
     page: number

@@ -4,7 +4,7 @@ import {
   buildGenerateEquationLabUrl,
   getSectionEquations,
 } from '../../data/learnSectionEquations'
-import { g7TextbookSectionPage, gradeHasTextbook } from '../../data/learnTextbookG7'
+import { textbookSectionPage, gradeHasTextbook } from '../../data/learnTextbook'
 import { useT } from '../../i18n/useT'
 import { learnSectionPathId } from '../../data/learnCurriculumUz'
 import { LearnTopicQuizCard } from './LearnTopicQuizCard'
@@ -46,7 +46,7 @@ export function LearnBookTopicPanel({
         {gradeHasTextbook(grade.id) ? (
           <Link
             className={styles.bookLink}
-            to={`/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${g7TextbookSectionPage(chapter.id, section.id)}`}
+            to={`/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${textbookSectionPage(grade.id, chapter.id, section.id)}`}
           >
             {t('learn.textbook.openSection')}
           </Link>

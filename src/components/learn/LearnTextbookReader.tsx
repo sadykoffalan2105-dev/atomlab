@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
-  G7_TEXTBOOK_TOTAL_PAGES,
-  g7TextbookPdfUrl,
-  g7TextbookSectionPage,
-} from '../../data/learnTextbookG7'
+  getTextbookConfig,
+  textbookPdfUrl,
+  textbookSectionPage,
+} from '../../data/learnTextbook'
 import { learnChapterById, learnGradeById, learnSectionById } from '../../data/learnCurriculumUz'
 import { buildSectionOutlineBlock } from '../../learn/learnSectionKnowledge'
 import { useT } from '../../i18n/useT'
+import type { MessageKey } from '../../i18n/messagesRu'
 import { LearnAssistantPanel } from './LearnAssistantPanel'
 import styles from './LearnTextbookReader.module.css'
 
@@ -16,15 +17,8 @@ type Props = {
   gradeId: string
 }
 
-function TextbookPdfFrame({ page, title }: { page: number; title: string }) {
-  return (
-    <iframe
-      key={page}
-      className={styles.frame}
-      title={title}
-      src={g7TextbookPdfUrl(page)}
-    />
-  )
+function TextbookPdfFrame({ page, title, src }: { page: number; title: string; src: string }) {
+  return <iframe key={page} className={styles.frame} title={title} src={src} />
 }
 
 export function LearnTextbookReader({ gradeId }: Props) {
@@ -32,24 +26,29 @@ export function LearnTextbookReader({ gradeId }: Props) {
   const navigate = useNavigate()
   const [search, setSearch] = useSearchParams()
   const grade = learnGradeById(gradeId)
+  const textbook = getTextbookConfig(gradeId)
 
   const chapterId = search.get('chapter') ?? grade?.chapters[0]?.id ?? 'c1'
   const sectionId = search.get('section') ?? ''
   const chapter = learnChapterById(gradeId, chapterId)
 
   const defaultPage = useMemo(() => {
+    if (!textbook) return 1
     if (sectionId && chapter) {
-      return g7TextbookSectionPage(chapterId, sectionId)
+      return textbookSectionPage(gradeId, chapterId, sectionId)
     }
     if (chapter) {
       const first = chapter.sections[0]
-      return first ? g7TextbookSectionPage(chapterId, first.id) : 1
+      return first ? textbookSectionPage(gradeId, chapterId, first.id) : 1
     }
     return 1
-  }, [chapter, chapterId, sectionId])
+  }, [chapter, chapterId, gradeId, sectionId, textbook])
+
+  const totalPages = textbook?.totalPages ?? 1
+  const frameTitleKey = (textbook?.frameTitleKey ?? 'learn.textbook.frameTitle') as MessageKey
 
   const pageParam = search.get('page')
-  const page = pageParam ? Math.min(G7_TEXTBOOK_TOTAL_PAGES, Math.max(1, Number(pageParam) || defaultPage)) : defaultPage
+  const page = pageParam ? Math.min(totalPages, Math.max(1, Number(pageParam) || defaultPage)) : defaultPage
 
   const [pageInput, setPageInput] = useState(String(page))
   const [bookFullscreen, setBookFullscreen] = useState(false)
@@ -75,19 +74,19 @@ export function LearnTextbookReader({ gradeId }: Props) {
 
   const setPage = useCallback(
     (next: number) => {
-      const clamped = Math.min(G7_TEXTBOOK_TOTAL_PAGES, Math.max(1, next))
+      const clamped = Math.min(totalPages, Math.max(1, next))
       const nextParams = new URLSearchParams(search)
       nextParams.set('page', String(clamped))
       if (chapterId) nextParams.set('chapter', chapterId)
       if (sectionId) nextParams.set('section', sectionId)
       setSearch(nextParams, { replace: true })
     },
-    [chapterId, search, sectionId, setSearch],
+    [chapterId, search, sectionId, setSearch, totalPages],
   )
 
   const openSection = useCallback(
     (chId: string, secId: string) => {
-      const p = g7TextbookSectionPage(chId, secId)
+      const p = textbookSectionPage(gradeId, chId, secId)
       navigate(`/learn/g/${gradeId}/book?chapter=${chId}&section=${secId}&page=${p}`)
     },
     [gradeId, navigate],
@@ -115,6 +114,9 @@ export function LearnTextbookReader({ gradeId }: Props) {
     )
   }, [activeSectionId, chapterId, gradeId, locale, section, sectionTitle])
 
+  const pdfSrc = textbookPdfUrl(gradeId, page)
+  const frameTitle = t(frameTitleKey)
+
   const pageToolbar = (
     <>
       <button type="button" className={styles.toolBtn} onClick={() => setPage(page - 1)} disabled={page <= 1}>
@@ -137,7 +139,7 @@ export function LearnTextbookReader({ gradeId }: Props) {
             aria-label={t('learn.textbook.page')}
           />
         </label>
-        <span className={styles.pageTotal}>/ {G7_TEXTBOOK_TOTAL_PAGES}</span>
+        <span className={styles.pageTotal}>/ {totalPages}</span>
         <button type="submit" className={styles.toolBtn}>
           {t('learn.textbook.go')}
         </button>
@@ -146,7 +148,7 @@ export function LearnTextbookReader({ gradeId }: Props) {
         type="button"
         className={styles.toolBtn}
         onClick={() => setPage(page + 1)}
-        disabled={page >= G7_TEXTBOOK_TOTAL_PAGES}
+        disabled={page >= totalPages}
       >
         {t('learn.textbook.nextPage')}
       </button>
@@ -161,7 +163,7 @@ export function LearnTextbookReader({ gradeId }: Props) {
     </>
   )
 
-  if (!grade || !chapter) {
+  if (!grade || !chapter || !textbook) {
     return (
       <div className={styles.shell}>
         <p>{t('compound.notFound')}</p>
@@ -245,7 +247,7 @@ export function LearnTextbookReader({ gradeId }: Props) {
             {pageToolbar}
           </div>
           <div className={styles.frameWrap}>
-            <TextbookPdfFrame page={page} title={t('learn.textbook.frameTitle')} />
+            <TextbookPdfFrame page={page} title={frameTitle} src={pdfSrc} />
           </div>
         </div>
 
@@ -267,14 +269,16 @@ export function LearnTextbookReader({ gradeId }: Props) {
         ? createPortal(
             <div className={styles.fsOverlay} role="dialog" aria-modal="true">
               <header className={styles.fsToolbar}>
-                <span className={styles.fsTitle}>{t('learn.textbook.title')} · {t('learn.textbook.page')} {page}</span>
+                <span className={styles.fsTitle}>
+                  {t('learn.textbook.title')} · {t('learn.textbook.page')} {page}
+                </span>
                 <div className={styles.fsToolbarActions}>{pageToolbar}</div>
                 <button type="button" className={styles.fsClose} onClick={() => setBookFullscreen(false)}>
                   {t('learn.textbook.fullscreenClose')}
                 </button>
               </header>
               <div className={styles.fsFrameWrap}>
-                <TextbookPdfFrame page={page} title={t('learn.textbook.frameTitle')} />
+                <TextbookPdfFrame page={page} title={frameTitle} src={pdfSrc} />
               </div>
             </div>,
             document.body,

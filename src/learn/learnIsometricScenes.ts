@@ -295,12 +295,14 @@ function buildFromTemplate(sceneId: string, topic: string, chapterKey: string): 
 
 const REGISTRY = new Map<string, IsometricSceneDef>()
 
-/** §1 — cyber-дашборд (HTML), не изометрия в WebGL */
-const CYBER_DASHBOARD_SCENES = new Set(['topic_g7_c1_s01'])
+/** § с cyber-дашбордом (3D-каталог) — не изометрия в WebGL */
+function isCyberDashboardScene(sceneId: string): boolean {
+  return /^topic_g[789]_c\d+_s\d+$/i.test(sceneId)
+}
 
 for (const sec of learnAllSections()) {
   const sceneId = `topic_${sec.gradeId}_${sec.chapterId}_${sec.id}`
-  if (REGISTRY.has(sceneId) || CYBER_DASHBOARD_SCENES.has(sceneId)) continue
+  if (REGISTRY.has(sceneId) || isCyberDashboardScene(sceneId)) continue
   const title = t(sec.titleKey)
   const chapterKey = `${sec.gradeId}-${sec.chapterId}`
   REGISTRY.set(sceneId, buildFromTemplate(sceneId, title, chapterKey))

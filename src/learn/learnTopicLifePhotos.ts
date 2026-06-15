@@ -85,7 +85,12 @@ export function getLifeScenePhotos(sceneId: string): LifePhotoScene | null {
 
 const LIFE_PHOTO_EXCLUDE = new Set(['topic_g7_c1_s01'])
 
+function isCyberScene(sceneId: string): boolean {
+  return /^topic_g[789]_c\d+_s\d+$/i.test(sceneId)
+}
+
 export function hasLifeScenePhotos(sceneId: string): boolean {
+  if (isCyberScene(sceneId)) return false
   if (LIFE_PHOTO_EXCLUDE.has(sceneId)) return false
   return getIsometricSceneDef(sceneId) != null
 }

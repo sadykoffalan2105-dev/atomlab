@@ -1,15 +1,15 @@
 import { matchFaqEntry, LEARN_CHEMISTRY_FAQ } from './learnChemistryFaq'
 import { CHEMISTRY_KNOWLEDGE_CHUNKS, type ChemistryKnowledgeChunk } from './learnChemistryKnowledgeBase'
+import { parseRequestedTopicNumber } from './learnG7TextbookKnowledge'
 import {
-  findG7TextbookByQuery,
-  g7TextbookKnowledgeChunks,
-  getG7TextbookByTopicNumber,
-  parseRequestedTopicNumber,
-} from './learnG7TextbookKnowledge'
+  findTextbookByQuery,
+  getTextbookByTopicNumber,
+  textbookKnowledgeChunks,
+} from './learnTextbookKnowledge'
 
 const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...CHEMISTRY_KNOWLEDGE_CHUNKS,
-  ...g7TextbookKnowledgeChunks(),
+  ...textbookKnowledgeChunks(),
 ]
 
 export type RetrievedKnowledge = {
@@ -95,14 +95,14 @@ function scoreChunk(
   const grade = parseGrade(opts?.gradeId)
   if (grade && chunk.grades?.includes(grade)) score += 3
 
-  if (chunk.textbook && opts?.gradeId === 'g7') {
+  if (chunk.textbook && opts?.gradeId && chunk.textbook.gradeId === opts.gradeId) {
     score += 4
     if (opts.chapterId && chunk.textbook.chapterId === opts.chapterId) score += 6
 
     const requestedKp = parseRequestedTopicNumber(query)
 
-    if (requestedKp !== null) {
-      const hit = getG7TextbookByTopicNumber(requestedKp, opts.chapterId)
+    if (requestedKp !== null && opts.gradeId) {
+      const hit = getTextbookByTopicNumber(opts.gradeId, requestedKp, opts.chapterId)
       if (
         hit &&
         chunk.textbook &&
@@ -154,7 +154,10 @@ export function retrieveChemistryKnowledge(
     .filter((r) => r.score >= minScore)
     .sort((a, b) => b.score - a.score)
 
-  const directTextbook = findG7TextbookByQuery(query, { chapterId: opts?.chapterId })
+  const directTextbook = findTextbookByQuery(query, {
+    gradeId: opts?.gradeId,
+    chapterId: opts?.chapterId,
+  })
   if (directTextbook) {
     const directChunk = ranked.find(
       (r) =>

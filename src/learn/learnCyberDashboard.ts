@@ -99,10 +99,15 @@ const REGISTRY = new Map<string, CyberDashboardDef>([
   ],
 ])
 
+/** 3D-каталог молекул + тест по формулам — для всех § 7–9 классов. */
 export function hasCyberDashboard(sceneId: string): boolean {
+  if (/^topic_g[789]_c\d+_s\d+$/i.test(sceneId)) return true
   return PILOT_SCENES.has(sceneId) && REGISTRY.has(sceneId)
 }
 
 export function getCyberDashboard(sceneId: string): CyberDashboardDef | null {
+  if (/^topic_g[789]_c\d+_s\d+$/i.test(sceneId)) {
+    return REGISTRY.get('topic_g7_c1_s01') ?? null
+  }
   return REGISTRY.get(sceneId) ?? null
 }

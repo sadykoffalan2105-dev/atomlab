@@ -1,13 +1,17 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { PeriodicTableGrid } from '../components/lab/PeriodicTableGrid'
+import { PeriodicTableTextbook } from '../components/lab/PeriodicTableTextbook'
+import { SolubilityTable } from '../components/lab/SolubilityTable'
 import { ElementDetailModal } from '../components/lab/ElementDetailModal'
 import { useT } from '../i18n/useT'
 import pageStyles from './PeriodicTablePage.module.css'
+
+type TableTab = 'mendeleev' | 'solubility'
 
 /** Полноэкранная таблица: клик по ячейке — карточка со всеми данными элемента. */
 export function PeriodicTablePage() {
   const { t } = useT()
   const [detailZ, setDetailZ] = useState<number | null>(null)
+  const [tab, setTab] = useState<TableTab>('mendeleev')
   const fitRef = useRef<HTMLDivElement | null>(null)
   const innerRef = useRef<HTMLDivElement | null>(null)
   const [showIntro, setShowIntro] = useState(false)
@@ -17,34 +21,55 @@ export function PeriodicTablePage() {
     const inner = innerRef.current
     if (!fit || !inner) return
 
-    const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
-
     const compute = () => {
       const aw = Math.max(1, fit.clientWidth)
       const ah = Math.max(1, fit.clientHeight)
-
-      const nw = Math.max(1, inner.offsetWidth)
-      const nh = Math.max(1, inner.offsetHeight)
-
-      const s = Math.min(aw / nw, ah / nh)
-      const scale = clamp(s, 0.1, 6)
-      inner.style.setProperty('--pt-scale', String(scale))
+      const rows = 15.5
+      const gapPx = 3
+      const sideFr = 0.48
+      const elemCols = 10
+      const totalFr = sideFr + elemCols
+      const usableW = Math.max(1, aw - gapPx * 14)
+      const elemColW = (usableW * elemCols) / totalFr / elemCols
+      const hByHeight = (ah - gapPx * 16) / rows
+      const cell = Math.min(hByHeight, elemColW * 1.06)
+      const cellPx = Math.max(28, Math.min(cell, 80))
+      inner.style.setProperty('--pt-cell-h', `${cellPx}px`)
     }
 
     compute()
     const ro = new ResizeObserver(() => compute())
     ro.observe(fit)
-    ro.observe(inner)
     window.addEventListener('resize', compute)
     return () => {
       ro.disconnect()
       window.removeEventListener('resize', compute)
     }
-  }, [])
+  }, [tab])
 
   return (
     <div className={pageStyles.page}>
       <div className={pageStyles.introRow}>
+        <div className={pageStyles.tabBar} role="tablist" aria-label={t('periodic.tabListAria')}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'mendeleev'}
+            className={tab === 'mendeleev' ? pageStyles.tabActive : pageStyles.tab}
+            onClick={() => setTab('mendeleev')}
+          >
+            {t('periodic.tabMendeleev')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'solubility'}
+            className={tab === 'solubility' ? pageStyles.tabActive : pageStyles.tab}
+            onClick={() => setTab('solubility')}
+          >
+            {t('periodic.tabSolubility')}
+          </button>
+        </div>
         <button
           type="button"
           className={pageStyles.introToggle}
@@ -63,11 +88,14 @@ export function PeriodicTablePage() {
       <div className={pageStyles.tableWrap}>
         <div className={pageStyles.tableFit} ref={fitRef}>
           <div className={pageStyles.tableFitInner} ref={innerRef}>
-            <PeriodicTableGrid
-              mode="static"
-              onPickElement={setDetailZ}
-              wrapClassName={pageStyles.ptWrapNoScroll}
-            />
+            {tab === 'mendeleev' ? (
+              <PeriodicTableTextbook
+                onPickElement={setDetailZ}
+                wrapClassName={pageStyles.ptWrapNoScroll}
+              />
+            ) : (
+              <SolubilityTable wrapClassName={pageStyles.ptWrapNoScroll} />
+            )}
           </div>
         </div>
       </div>

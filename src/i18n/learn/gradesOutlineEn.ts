@@ -21,6 +21,8 @@ export const learnGradesOutlineEn = {
   'learn.textbook.go': 'Go',
   'learn.textbook.openTab': 'New tab',
   'learn.textbook.frameTitle': 'Chemistry textbook, grade 7',
+  'learn.textbook.frameTitleG8': 'Chemistry textbook, grade 8',
+  'learn.textbook.frameTitleG9': 'Chemistry textbook, grade 9',
   'learn.textbook.fullscreen': 'Full screen',
   'learn.textbook.fullscreenClose': 'Exit',
   'learn.textbook.teacherToggle': 'AI teacher',

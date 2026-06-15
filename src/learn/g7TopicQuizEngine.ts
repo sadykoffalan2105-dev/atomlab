@@ -1,5 +1,6 @@
 import { learnSectionPathKey } from '../data/learnFgosMatrix'
 import { G7_C1_S01_QUIZ_ENRICHMENTS } from './g7C1S01QuizEnrichments'
+import { getGradeChapterTemplates } from './g8g9TopicQuizTemplates'
 import type { TopicQuizItem } from './topicQuizTypes'
 
 type Template = {
@@ -234,9 +235,11 @@ function expandC1EnrichedPool(ch: number, sec: number, seed: number): TopicQuizI
   })
 }
 
-function expandToPool(ch: number, sec: number, seed: number): TopicQuizItem[] {
+function expandToPool(gradeId: string, ch: number, sec: number, seed: number): TopicQuizItem[] {
   const rand = mulberry32(seed)
-  const base = CHAPTER_TEMPLATES[ch] ?? CHAPTER_TEMPLATES[1]!
+  const gradeTemplates = getGradeChapterTemplates(gradeId, ch)
+  const base = gradeTemplates ?? CHAPTER_TEMPLATES[ch] ?? CHAPTER_TEMPLATES[1]!
+  const gradePrefix = gradeId === 'g8' || gradeId === 'g9' ? gradeId : 'g7'
   const out: TopicQuizItem[] = []
 
   for (let i = 0; i < 50; i++) {
@@ -253,7 +256,7 @@ function expandToPool(ch: number, sec: number, seed: number): TopicQuizItem[] {
     const correct = template.choices[template.correctIndex] ?? template.choices[0]!
     const { choices, correctIndex } = withChoices(correct, distractorPool, rand)
 
-    const id = `g7-c${ch}-s${String(sec).padStart(2, '0')}-q${i + 1}`
+    const id = `${gradePrefix}-c${ch}-s${String(sec).padStart(2, '0')}-q${i + 1}`
 
     out.push(
       applyTemplateEnrichment(template, {
@@ -273,7 +276,7 @@ function expandToPool(ch: number, sec: number, seed: number): TopicQuizItem[] {
     const correct = template.choices[0]!
     const { choices, correctIndex } = withChoices(correct, [...template.choices, '0 моль', '1 моль'], rand)
     out.push({
-      id: `g7-c${ch}-s${String(sec).padStart(2, '0')}-extra${i}`,
+      id: `${gradePrefix}-c${ch}-s${String(sec).padStart(2, '0')}-extra${i}`,
       templateKey: template.templateKey,
       question: template.question,
       choices,
@@ -293,11 +296,11 @@ export function getTopicQuizPool(gradeId: string, chapterId: string, sectionId: 
   if (!pool) {
     const ch = Number(chapterId.replace(/^c/, '')) || 1
     const sec = Number(sectionId.replace(/^s/, '')) || 1
-    const seed = ch * 1000 + sec * 17 + 42
+    const seed = ch * 1000 + sec * 17 + (gradeId === 'g8' ? 80 : gradeId === 'g9' ? 90 : 42)
     if (gradeId === 'g7' && chapterId === 'c1') {
       pool = expandC1EnrichedPool(ch, sec, seed)
     } else {
-      pool = expandToPool(ch, sec, seed)
+      pool = expandToPool(gradeId, ch, sec, seed)
     }
     POOL_CACHE.set(key, pool)
   }

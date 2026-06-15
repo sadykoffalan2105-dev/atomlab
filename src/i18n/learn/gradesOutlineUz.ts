@@ -21,6 +21,8 @@ export const learnGradesOutlineUz = {
   'learn.textbook.go': 'O\'tish',
   'learn.textbook.openTab': 'Yangi yorliqda',
   'learn.textbook.frameTitle': 'Kimyo darsligi ko\'rinishi, 7-sinf',
+  'learn.textbook.frameTitleG8': 'Kimyo darsligi ko\'rinishi, 8-sinf',
+  'learn.textbook.frameTitleG9': 'Kimyo darsligi ko\'rinishi, 9-sinf',
   'learn.textbook.fullscreen': 'To\'liq ekran',
   'learn.textbook.fullscreenClose': 'Chiqish',
   'learn.textbook.teacherToggle': 'SI o\'qituvchi',
