@@ -18,6 +18,9 @@ video/
 __pycache__/
 *.pyc
 
+# Generated scripts cache
+scripts/.g7-quiz-visual-catalog.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

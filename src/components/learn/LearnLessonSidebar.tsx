@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import {
   CLASS_ROSTER_CHANGED,
@@ -18,16 +18,13 @@ import { LearnStudentStatsModal } from './LearnStudentStatsModal'
 import { LearnSectionToolsCompact } from './LearnSectionToolsCompact'
 import styles from './LearnLessonSidebar.module.css'
 
-type SidebarTab = 'lesson' | 'test' | 'class' | 'tools'
+type SidebarTab = 'test' | 'class' | 'tools'
 
 type Props = {
   grade: LearnGrade
   chapter: LearnChapter
   section: LearnSection
   rosterSectionId: string
-  lessonContent: ReactNode
-  /** true = слайды в отдельной вкладке; false = только тест/класс/инструменты */
-  showLessonTab: boolean
   fromBook?: boolean
 }
 
@@ -62,13 +59,10 @@ export function LearnLessonSidebar({
   chapter,
   section,
   rosterSectionId,
-  lessonContent,
-  showLessonTab,
   fromBook,
 }: Props) {
   const { t } = useT()
-  const defaultTab: SidebarTab = showLessonTab ? 'lesson' : 'test'
-  const [tab, setTab] = useState<SidebarTab>(defaultTab)
+  const [tab, setTab] = useState<SidebarTab>('test')
   const [roster, setRoster] = useState<ClassRoster>(() => readClassRoster(rosterSectionId))
   const [paste, setPaste] = useState('')
   const [statsStudentId, setStatsStudentId] = useState<string | null>(null)
@@ -96,18 +90,11 @@ export function LearnLessonSidebar({
     setPaste('')
   }
 
-  const tabs: { id: SidebarTab; label: MessageKey }[] = showLessonTab
-    ? [
-        { id: 'lesson', label: 'learn.lesson.tabTheory' },
-        { id: 'test', label: 'learn.studentTest.title' },
-        { id: 'class', label: 'learn.classRoster.title' },
-        { id: 'tools', label: 'learn.lesson.tabTools' },
-      ]
-    : [
-        { id: 'test', label: 'learn.studentTest.title' },
-        { id: 'class', label: 'learn.classRoster.title' },
-        { id: 'tools', label: 'learn.lesson.tabTools' },
-      ]
+  const tabs: { id: SidebarTab; label: MessageKey }[] = [
+    { id: 'test', label: 'learn.studentTest.title' },
+    { id: 'class', label: 'learn.classRoster.title' },
+    { id: 'tools', label: 'learn.lesson.tabTools' },
+  ]
 
   return (
     <aside className={styles.sidebar} aria-label={t('learn.lesson.sidebar')}>
@@ -127,12 +114,6 @@ export function LearnLessonSidebar({
       </div>
 
       <div className={styles.body}>
-        {tab === 'lesson' && showLessonTab ? (
-          <div className={styles.lessonPane}>
-            <div className={styles.lessonScroll}>{lessonContent}</div>
-          </div>
-        ) : null}
-
         {tab === 'test' ? (
           <div className={styles.testPane}>
             <LearnStudentTestHub

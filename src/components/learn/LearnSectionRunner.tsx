@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { LearnAssistantPanel } from './LearnAssistantPanel'
-import { LearnTheoryRich } from './LearnTheoryRich'
 import { LearnSlideDeckVisual } from './LearnSlideDeckVisual'
-import { prefetchLearnImage } from './LearnSlideVisual'
 import { LearnColumnPanelTools } from './LearnColumnPanelTools'
 import { LearnLessonSidebar } from './LearnLessonSidebar'
 import { LearnWorkspace } from './LearnWorkspace'
@@ -15,8 +13,6 @@ import {
   setLastPosition,
 } from '../../learn/learnProgressStorage'
 import { getLearnFgosMeta } from '../../data/learnFgosMatrix'
-import { buildLabUrl, getLearnLabDeepLink } from '../../data/learnSectionLabLinks'
-import { getExtraQuizzesForSection } from '../../data/learnSectionQuizzes'
 import { learnNextSection, learnSectionPathId } from '../../data/learnCurriculumUz'
 import { textbookSectionPage, gradeHasTextbook } from '../../data/learnTextbook'
 import { useT, type MessageKey } from '../../i18n/useT'
@@ -64,19 +60,6 @@ function slideText(
   }
 }
 
-function richKeys(slide: LearnSlide): {
-  bulletsKey?: MessageKey
-  calloutKey?: MessageKey
-  diagramKey?: MessageKey
-} {
-  if (slide.type !== 'theory' && slide.type !== 'example') return {}
-  return {
-    bulletsKey: slide.bulletsKey,
-    calloutKey: slide.calloutKey,
-    diagramKey: slide.type === 'theory' ? slide.diagramKey : undefined,
-  }
-}
-
 export function LearnSectionRunner({
   grade,
   chapter,
@@ -93,29 +76,17 @@ export function LearnSectionRunner({
   const [searchParams] = useSearchParams()
   const fromBook = searchParams.get('from') === 'book'
   const [slideIndex, setSlideIndex] = useState(0)
-  const [checkpointPick, setCheckpointPick] = useState<number | null>(null)
   const [doneBanner, setDoneBanner] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'theory' | '3d' | 'work' | 'assistant'>('theory')
+  const [mobileTab, setMobileTab] = useState<'main' | '3d' | 'work' | 'assistant'>('main')
   const [presentationMode, setPresentationMode] = useState(false)
   const [expandedPanel, setExpandedPanel] = useState<'3d' | 'work' | 'assistant' | null>(null)
   const [hiddenPanels, setHiddenPanels] = useState<Set<OptionalPanel>>(
     () => new Set(readLearnPanelLayout().hidden),
   )
-  const [extraQuizIndex, setExtraQuizIndex] = useState(0)
-  const [extraQuizPick, setExtraQuizPick] = useState<number | null>(null)
-  const [extraQuizPassed, setExtraQuizPassed] = useState(false)
 
-  const extraQuizzes = useMemo(
-    () => getExtraQuizzesForSection(grade.id, chapter.id, section.id),
-    [grade.id, chapter.id, section.id],
-  )
   const fgosMeta = useMemo(
     () => getLearnFgosMeta(section.gradeId, chapter.id, section.id),
     [section.gradeId, chapter.id, section.id],
-  )
-  const labLink = useMemo(
-    () => getLearnLabDeepLink(grade.id, chapter.id, section.id),
-    [grade.id, chapter.id, section.id],
   )
   const nextSec = useMemo(
     () => learnNextSection(grade.id, chapter.id, section.id),
@@ -127,9 +98,14 @@ export function LearnSectionRunner({
   const pathId = learnSectionPathId(section)
   const accent = compoundById[chapter.totemCompoundId]?.accentColor ?? '#3dffec'
   const visualId = slideVisualId(slide, section.defaultVisualId)
-  const { title: slideTitle, body: slideBody } = slideText(slide, t)
-  const isLast = slideIndex >= slides.length - 1
-  const progressPct = Math.round(((slideIndex + 1) / slides.length) * 100)
+  const { title: slideTitle } = slideText(slide, t)
+
+  const finishSection = useCallback(() => {
+    markSectionCompleted(pathId)
+    clearLastPosition()
+    onRefresh()
+    setDoneBanner(true)
+  }, [onRefresh, pathId])
 
   const taskCategoryId = useMemo(() => {
     if (slide.type === 'practice') return slide.taskCategoryId
@@ -159,21 +135,7 @@ export function LearnSectionRunner({
 
   useEffect(() => {
     setLastPosition(grade.id, chapter.id, section.id, slideIndex)
-    setCheckpointPick(null)
-    setExtraQuizIndex(0)
-    setExtraQuizPick(null)
-    setExtraQuizPassed(false)
   }, [grade.id, chapter.id, section.id, slideIndex])
-
-  useEffect(() => {
-    if (slide.type === 'interactive3d' && !hiddenPanels.has('3d')) setMobileTab('3d')
-    if (slide.type === 'visual' && !hiddenPanels.has('3d')) setMobileTab('3d')
-    if (slide.type === 'visual' && slide.image) prefetchLearnImage(slide.image)
-    if (progressPct >= 80 && nextSec) {
-      const nextVisual = `topic_${nextSec.gradeId}_${nextSec.chapterId}_${nextSec.sectionId}`
-      prefetchLearnImage(`/learn/posters/${nextVisual}.png`)
-    }
-  }, [slide, slideIndex, progressPct, nextSec, hiddenPanels])
 
   const isPanelHidden = useCallback((id: OptionalPanel) => hiddenPanels.has(id), [hiddenPanels])
 
@@ -191,7 +153,7 @@ export function LearnSectionRunner({
         return next
       })
       setExpandedPanel((cur) => (cur === id ? null : cur))
-      if (mobileTab === id) setMobileTab('theory')
+      if (mobileTab === id) setMobileTab('main')
     },
     [mobileTab, persistHidden],
   )
@@ -217,40 +179,6 @@ export function LearnSectionRunner({
     },
     [hiddenPanels, hidePanel, showPanel],
   )
-
-  const goNext = useCallback(() => {
-    if (slide.type === 'checkpoint' && checkpointPick === null) return
-    if (
-      slide.type === 'checkpoint' &&
-      extraQuizzes.length > 0 &&
-      checkpointPick === slide.correctIndex &&
-      !extraQuizPassed
-    ) {
-      return
-    }
-    if (isLast) {
-      markSectionCompleted(pathId)
-      clearLastPosition()
-      onRefresh()
-      setDoneBanner(true)
-      return
-    }
-    setSlideIndex((i) => Math.min(i + 1, slides.length - 1))
-  }, [
-    checkpointPick,
-    extraQuizPassed,
-    extraQuizzes.length,
-    isLast,
-    onRefresh,
-    pathId,
-    slide,
-    slides.length,
-  ])
-
-  const goPrev = useCallback(() => {
-    setDoneBanner(false)
-    setSlideIndex((i) => Math.max(0, i - 1))
-  }, [])
 
   if (doneBanner) {
     return (
@@ -281,139 +209,11 @@ export function LearnSectionRunner({
     )
   }
 
-  const rich = richKeys(slide)
-
-  const inExtraExam =
-    slide.type === 'checkpoint' &&
-    extraQuizzes.length > 0 &&
-    checkpointPick === slide.correctIndex &&
-    !extraQuizPassed
-
   const moleculeHubSection =
     section.defaultVisualId != null && hasCyberDashboard(section.defaultVisualId)
 
   const rosterSectionId =
     moleculeHubSection && section.defaultVisualId ? section.defaultVisualId : pathId
-
-  const lessonSlidesContent = (
-    <>
-      <div className={styles.learnProgressBar} aria-hidden>
-        <div className={styles.learnProgressFill} style={{ width: `${progressPct}%` }} />
-      </div>
-      <p className={styles.learnSlideMeta}>
-        {t('learn.section.kp', { n: section.kpNumber })} · {t('learn.slideDeck')} {slideIndex + 1}/
-        {slides.length}
-      </p>
-      <nav className={styles.learnSlideNav} aria-label={t('learn.slideDeck')}>
-        {slides.map((s, i) => (
-          <button
-            key={s.id}
-            type="button"
-            className={`${styles.learnSlideTab} ${i === slideIndex ? styles.learnSlideTabOn : ''}`}
-            onClick={() => setSlideIndex(i)}
-          >
-            {i + 1}
-          </button>
-        ))}
-      </nav>
-      <h2 className={styles.stepTitle}>{slideTitle}</h2>
-      {slideBody ? <p className={styles.stepBodyCompact}>{slideBody}</p> : null}
-      <LearnTheoryRich {...rich} />
-      {slide.type === 'checkpoint' ? (
-        <>
-          <ul className={styles.taskMcqList}>
-            {slide.choiceKeys.map((key, idx) => (
-              <li key={key}>
-                <button
-                  type="button"
-                  className={`${styles.taskMcqBtn} ${
-                    checkpointPick === idx
-                      ? idx === slide.correctIndex
-                        ? styles.taskMcqCorrect
-                        : styles.taskMcqWrong
-                      : ''
-                  }`}
-                  onClick={() => setCheckpointPick(idx)}
-                >
-                  {t(key)}
-                </button>
-              </li>
-            ))}
-            {checkpointPick !== null ? (
-              <p className={checkpointPick === slide.correctIndex ? styles.taskOk : styles.taskBad}>
-                {checkpointPick === slide.correctIndex
-                  ? t('learn.checkpointCorrect')
-                  : t('learn.checkpointWrong')}
-              </p>
-            ) : null}
-          </ul>
-          {inExtraExam && extraQuizzes[extraQuizIndex] ? (
-            <div className={styles.teacherBlock} role="region" aria-label={t('learn.exam.title')}>
-              <h3 className={styles.stepTitle}>{t('learn.exam.title')}</h3>
-              <p className={styles.learnSlideMeta}>
-                {t('learn.exam.progress', {
-                  n: extraQuizIndex + 1,
-                  total: extraQuizzes.length,
-                })}
-              </p>
-              {(() => {
-                const eq = extraQuizzes[extraQuizIndex]!
-                return (
-                  <ul className={styles.taskMcqList}>
-                    <li>
-                      <p className={styles.stepBody}>{t(eq.questionKey)}</p>
-                    </li>
-                    {eq.choiceKeys.map((key, idx) => (
-                      <li key={key}>
-                        <button
-                          type="button"
-                          className={`${styles.taskMcqBtn} ${
-                            extraQuizPick === idx
-                              ? idx === eq.correctIndex
-                                ? styles.taskMcqCorrect
-                                : styles.taskMcqWrong
-                              : ''
-                          }`}
-                          onClick={() => {
-                            setExtraQuizPick(idx)
-                            if (idx === eq.correctIndex) {
-                              if (extraQuizIndex + 1 >= extraQuizzes.length) {
-                                setExtraQuizPassed(true)
-                              } else {
-                                window.setTimeout(() => {
-                                  setExtraQuizIndex((i) => i + 1)
-                                  setExtraQuizPick(null)
-                                }, 600)
-                              }
-                            }
-                          }}
-                        >
-                          {t(key)}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )
-              })()}
-            </div>
-          ) : null}
-        </>
-      ) : null}
-      {slide.type === 'labInvite' ? (
-        <Link className={styles.labLink} to={buildLabUrl(labLink)}>
-          {t('learn.tryLab')}
-        </Link>
-      ) : null}
-      <div className={styles.footerNavCompact}>
-        <button type="button" className={styles.btn} onClick={goPrev} disabled={slideIndex === 0}>
-          {t('learn.prev')}
-        </button>
-        <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={goNext}>
-          {isLast ? t('learn.finish') : t('learn.next')}
-        </button>
-      </div>
-    </>
-  )
 
   const theoryCol = (
     <LearnLessonSidebar
@@ -421,8 +221,6 @@ export function LearnSectionRunner({
       chapter={chapter}
       section={section}
       rosterSectionId={rosterSectionId}
-      lessonContent={lessonSlidesContent}
-      showLessonTab={!moleculeHubSection}
       fromBook={fromBook}
     />
   )
@@ -494,6 +292,9 @@ export function LearnSectionRunner({
             </p>
           </div>
           <div className={styles.learnHeaderActions}>
+            <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={finishSection}>
+              {t('learn.finish')}
+            </button>
             <Link className={styles.btn} to="/learn/tasks">
               {t('learn.grades.tasks')}
             </Link>
@@ -612,8 +413,8 @@ export function LearnSectionRunner({
       ) : null}
 
       <div className={styles.learnMobileTabs} role="tablist">
-        {(['theory', '3d', 'work', 'assistant'] as const)
-          .filter((tab) => tab === 'theory' || !isPanelHidden(tab))
+        {(['main', '3d', 'work', 'assistant'] as const)
+          .filter((tab) => tab === 'main' || !isPanelHidden(tab))
           .map((tab) => (
           <button
             key={tab}
@@ -624,8 +425,8 @@ export function LearnSectionRunner({
             onClick={() => setMobileTab(tab)}
           >
             {t(
-              tab === 'theory'
-                ? 'learn.lesson.tabTheory'
+              tab === 'main'
+                ? 'learn.studentTest.title'
                 : tab === '3d'
                   ? 'learn.lesson.tab3d'
                   : tab === 'work'
@@ -641,7 +442,7 @@ export function LearnSectionRunner({
         style={gridTemplateColumns ? { gridTemplateColumns } : undefined}
       >
         <div
-          className={`${styles.learnColTheory} ${mobileTab !== 'theory' ? styles.learnColHideMobile : ''}`}
+          className={`${styles.learnColTheory} ${mobileTab !== 'main' ? styles.learnColHideMobile : ''}`}
         >
           {theoryCol}
         </div>
@@ -717,7 +518,7 @@ export function LearnSectionRunner({
                   section={section}
                   slideIndex={slideIndex}
                   slideTitle={slideTitle}
-                  slideBody={slideBody}
+                  slideBody=""
                 />
               </div>
             ) : null}

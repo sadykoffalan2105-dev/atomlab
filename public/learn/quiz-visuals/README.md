@@ -1,13 +1,16 @@
 # Иллюстрации к вопросам (quiz)
 
-Фотореалистичные PNG для блока «Описание темы» в вопросах обучения.
+Фотореалистичные PNG для блока «Описание темы» в тестировании (вкладка «Инструменты»).
 
-- Имена: `{templateKey}.png`, напр. `c1-t03.png`
-- Манифест: `src/learn/quizVisualManifest.ts`
-- Тексты описаний: `src/learn/g7C1S01QuizEnrichments.ts` (глава I, 7 класс)
+- Имена: `{templateKey}.png`, напр. `c2-t03.png`
+- Манифест: `src/learn/quizVisualManifest.ts` (из `g7QuizVisualCatalog.ts`)
+- Тексты: `src/learn/g7QuizVisualCatalog.ts` + `g7C1S01QuizEnrichments.ts` (глава I)
 
-Добавление новой темы:
+## Генерация (7 класс, 61 вопрос)
 
-1. Положить PNG в эту папку
-2. Запись в `quizVisualManifest.ts`
-3. Запись в enrichments с `visualId`, `description`, `explanation`
+```bash
+npm run learn:quiz-visual-placeholders   # градиент-плейсхолдеры для отсутствующих PNG
+npm run learn:generate-quiz-visuals      # DALL-E 3 (нужен OPENAI_API_KEY в .env)
+npm run learn:generate-quiz-visuals -- --limit=10
+npm run learn:generate-quiz-visuals -- --id=c2-t01 --force
+```

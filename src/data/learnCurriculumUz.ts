@@ -20,49 +20,6 @@ type SectionSeed = {
   contentMode?: 'outline'
 }
 
-function slideTheory(
-  prefix: string,
-  n: number,
-  visualId?: string,
-  rich = n === 0 || n === 3,
-): LearnSlide {
-  const base = `${prefix}.slide${n}` as const
-  return {
-    id: `sl${n}`,
-    type: 'theory',
-    titleKey: `${base}.title` as MessageKey,
-    bodyKey: `${base}.body` as MessageKey,
-    visualId,
-    ...(rich
-      ? {
-          bulletsKey: `${base}.bullets` as MessageKey,
-          calloutKey: `${base}.callout` as MessageKey,
-          ...(n === 0 ? { diagramKey: `${base}.diagram` as MessageKey } : {}),
-        }
-      : {}),
-  }
-}
-
-function slideExample(prefix: string, n: number, visualId?: string): LearnSlide {
-  return {
-    id: `sl${n}`,
-    type: 'example',
-    titleKey: `${prefix}.slide${n}.title` as MessageKey,
-    bodyKey: `${prefix}.slide${n}.body` as MessageKey,
-    visualId,
-    bulletsKey: `${prefix}.slide${n}.bullets` as MessageKey,
-  }
-}
-
-function slide3d(prefix: string, n: number, visualId: string): LearnSlide {
-  return {
-    id: `sl${n}`,
-    type: 'interactive3d',
-    visualId,
-    captionKey: `${prefix}.slide${n}.caption` as MessageKey,
-  }
-}
-
 function slideCheckpoint(prefix: string, n: number, choices: number, correct: number): LearnSlide {
   const choiceKeys = Array.from(
     { length: choices },
@@ -81,54 +38,15 @@ function slidePractice(taskCategoryId: string): LearnSlide {
   return { id: 'sl_practice', type: 'practice', taskCategoryId }
 }
 
-function slideLab(bodyKey: MessageKey): LearnSlide {
-  return { id: 'sl_lab', type: 'labInvite', bodyKey }
-}
-
-function slideVisual(
-  id: string,
-  prefix: string,
-  n: number,
-  topicId: string,
-  file: 'poster' | 's02' | 's03' | 's04',
-  kenBurns: 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right' = 'zoom-in',
-): LearnSlide {
-  const base = `${prefix}.slide${n}` as const
-  const image =
-    file === 'poster'
-      ? `/learn/posters/${topicId}.png`
-      : `/learn/slides/${topicId}/${file}.jpg`
-  return {
-    id,
-    type: 'visual',
-    titleKey: `${base}.title` as MessageKey,
-    bodyKey: `${base}.body` as MessageKey,
-    image,
-    kenBurns,
-  }
-}
-
-/** Стандартный набор слайдов для полного § (7–9 класс): картинки + 3D + теория. */
+/** Минимальный набор: без шаблонных слайдов «Слайды урока» — только проверка + практика. */
 function fullSectionSlides(
   i18nPrefix: string,
-  visualId: string,
+  _visualId: string,
   opts?: { taskId?: string; correctIndex?: number },
 ): LearnSlide[] {
   const correct = opts?.correctIndex ?? 1
-  const topicId = visualId.startsWith('topic_') ? visualId : visualId
-  const slides: LearnSlide[] = [
-    slideVisual('slv0', i18nPrefix, 0, topicId, 'poster', 'zoom-in'),
-    slideTheory(i18nPrefix, 0, visualId),
-    slideVisual('slv1', i18nPrefix, 1, topicId, 's02', 'pan-right'),
-    slideExample(i18nPrefix, 1, visualId),
-    slide3d(i18nPrefix, 2, visualId),
-    slideVisual('slv2', i18nPrefix, 3, topicId, 's03', 'zoom-out'),
-    slideTheory(i18nPrefix, 3, visualId),
-    slideCheckpoint(i18nPrefix, 4, 4, correct),
-  ]
+  const slides: LearnSlide[] = [slideCheckpoint(i18nPrefix, 4, 4, correct)]
   if (opts?.taskId) slides.push(slidePractice(opts.taskId))
-  slides.push(slideVisual('slv3', i18nPrefix, 5, topicId, 's04', 'pan-left'))
-  slides.push(slideLab(`${i18nPrefix}.slide5.body` as MessageKey))
   return slides
 }
 
@@ -150,17 +68,12 @@ function defaultSectionSlides(
 
 function compactSectionSlides(
   titleKey: MessageKey,
-  visualId: string,
+  _visualId: string,
   taskCategoryId?: string,
 ): LearnSlide[] {
   const prefix = sectionI18nPrefix(titleKey)
-  const slides: LearnSlide[] = [
-    slideTheory(prefix, 0, visualId, true),
-    slide3d(prefix, 2, visualId),
-    slideCheckpoint(prefix, 4, 4, 1),
-  ]
+  const slides: LearnSlide[] = [slideCheckpoint(prefix, 4, 4, 1)]
   if (taskCategoryId) slides.push(slidePractice(taskCategoryId))
-  slides.push(slideLab(`${prefix}.slide5.body` as MessageKey))
   return slides
 }
 
