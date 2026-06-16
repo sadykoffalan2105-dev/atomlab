@@ -26,6 +26,14 @@ const gridByZ = new Map<number, { x: number; y: number }>(
   (gridPositions as { z: number; x: number; y: number }[]).map((e) => [e.z, e]),
 )
 
+/** Нормализация CPK hex: дополняем до 6 символов, пустые — fallback. */
+export function normalizeCpkHex(raw?: string | null, fallback = '8899AA'): string {
+  if (!raw?.trim()) return fallback
+  const clean = raw.replace(/^#/, '').trim()
+  if (!/^[0-9A-Fa-f]{1,6}$/.test(clean)) return fallback
+  return clean.padStart(6, '0').toUpperCase()
+}
+
 const rawList = periodicRaw as RawElement[]
 
 export const ELEMENTS: readonly ElementViewModel[] = rawList
@@ -38,7 +46,7 @@ export const ELEMENTS: readonly ElementViewModel[] = rawList
       symbol: e.symbol,
       nameRu,
       atomicMass: e.atomicMass,
-      cpkHex: e.cPKHexColor?.replace(/^#/, '') ?? '8899aa',
+      cpkHex: normalizeCpkHex(e.cPKHexColor),
       gridX: g.x,
       gridY: g.y,
       groupBlock: e.groupBlock ?? 'unknown',

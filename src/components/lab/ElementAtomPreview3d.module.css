@@ -8,9 +8,9 @@
 
 .canvasHost {
   position: relative;
-  width: 15rem;
-  height: 15rem;
-  border-radius: 16px;
+  width: 8.5rem;
+  height: 8.5rem;
+  border-radius: 0.45rem;
   overflow: hidden;
   box-shadow:
     0 0 20px rgba(92, 224, 255, 0.12),

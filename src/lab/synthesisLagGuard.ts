@@ -34,7 +34,8 @@ export function getReactorPreviewPolicy(opts: {
   const liteRender = forceLite || dense || visualTier === 'cluster'
 
   return {
-    electronAnimate: atomCount <= SYNTHESIS_PERF.maxAnimatedAtoms && visible,
+    electronAnimate:
+      visible && !flightActive && atomCount <= SYNTHESIS_PERF.maxAnimatedAtoms && visualTier === 'full',
     driftAtoms: visible && !flightActive && atomCount <= 12 && visualTier === 'full',
     slowSpin: visible && !flightActive && atomCount <= 12 && visualTier === 'full',
     visibilityGuardEvery: liteRender ? 4 : atomCount > 6 ? 2 : 1,

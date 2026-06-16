@@ -4,7 +4,7 @@ import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { PREVIEW_MIN_ATOM_SCALE } from '../components/lab/reactorPreviewLayout'
 
 /** Пустых refs подряд до принудительного восстановления. */
-export const PREVIEW_REF_RECOVER_FRAMES = 2
+export const PREVIEW_REF_RECOVER_FRAMES = 5
 
 export type ReactorPreviewVisibilityGuard = {
   reset: () => void
@@ -16,6 +16,8 @@ export type ReactorPreviewVisibilityGuard = {
     previewAtoms: readonly ReactorPreviewAtom[]
     rootVisible: boolean
     flightActive: boolean
+    /** После смены коэффициентов — refs ещё монтируются, recover не нужен. */
+    layoutSettling?: boolean
     onRecover: () => void
   }) => void
 }
@@ -38,10 +40,11 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
         previewAtoms,
         rootVisible,
         flightActive,
+        layoutSettling = false,
         onRecover,
       } = opts
 
-      if (!rootVisible || flightActive || atomCount <= 0) {
+      if (!rootVisible || flightActive || layoutSettling || atomCount <= 0) {
         missingRefFrames = 0
         return
       }
@@ -84,7 +87,7 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
 
       if (missingRefFrames >= PREVIEW_REF_RECOVER_FRAMES) {
         const now = performance.now()
-        if (now - lastRecoverMs > 120) {
+        if (now - lastRecoverMs > 240) {
           lastRecoverMs = now
           onRecover()
         }
@@ -111,7 +114,10 @@ export function applyReactorPreviewLayout(
     }
     if (scaleG) {
       scaleG.visible = true
-      scaleG.scale.set(scaleFloor, scaleFloor, scaleFloor)
+      const sx = scaleG.scale.x
+      if (Math.abs(sx - scaleFloor) > 0.012) {
+        scaleG.scale.set(scaleFloor, scaleFloor, scaleFloor)
+      }
     }
   })
 }

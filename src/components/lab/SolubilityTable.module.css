@@ -13,22 +13,25 @@
 .title {
   margin: 0;
   text-align: center;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  font-size: clamp(0.8rem, 1.5vw, 1rem);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: clamp(0.72rem, 1.35vw, 0.95rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
   line-height: 1.2;
   text-transform: uppercase;
-  color: rgba(235, 242, 255, 0.96);
-  text-shadow: 0 0 16px rgba(100, 200, 255, 0.35);
+  color: rgba(210, 230, 255, 0.9);
+  text-shadow:
+    0 0 18px rgba(0, 229, 255, 0.35),
+    0 0 36px rgba(255, 45, 149, 0.12);
 }
 
 .subtitle {
   text-align: center;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  font-size: clamp(0.55rem, 0.95vw, 0.72rem);
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: clamp(0.5rem, 0.88vw, 0.68rem);
   font-weight: 600;
-  color: rgba(120, 150, 200, 0.65);
+  letter-spacing: 0.35em;
+  color: rgba(0, 229, 255, 0.4);
   margin: 0 0 0.05rem;
 }
 
@@ -42,19 +45,22 @@
   --sol-gap: clamp(1px, 0.2vw, 3px);
   gap: var(--sol-gap);
   padding: var(--sol-gap);
-  border: 1px solid rgba(70, 160, 220, 0.35);
-  border-radius: 0.65rem;
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  border-radius: 0.5rem;
   box-shadow:
-    0 0 24px rgba(60, 180, 255, 0.1),
-    inset 0 0 40px rgba(0, 15, 40, 0.45);
+    0 0 40px rgba(0, 229, 255, 0.1),
+    0 0 70px rgba(255, 45, 149, 0.06),
+    inset 0 0 90px rgba(0, 0, 0, 0.6);
   grid-template-columns: minmax(2.6rem, 0.85fr) repeat(13, minmax(0, 1fr));
   grid-template-rows: minmax(var(--sol-head), auto) repeat(12, minmax(var(--sol-cell), auto)) auto;
-  background-color: #060a14;
+  background-color: rgba(2, 4, 12, 0.72);
   background-image:
-    radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(8, 12, 28, 0.98), rgba(4, 6, 16, 0.99));
-  background-size: 18px 18px, 100% 100%;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+    linear-gradient(rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 45, 149, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  backdrop-filter: blur(18px) saturate(1.1);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  font-family: ui-monospace, 'Cascadia Code', monospace;
   overflow: hidden;
 }
 
@@ -62,9 +68,11 @@
 .anionHead,
 .cationHead {
   box-sizing: border-box;
-  border: 1px solid rgba(60, 90, 140, 0.35);
-  border-radius: 0.28rem;
-  background: rgba(10, 14, 30, 0.92);
+  border: 1px solid rgba(0, 229, 255, 0.14);
+  border-radius: 0;
+  background: rgba(2, 6, 16, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .corner {
@@ -107,57 +115,66 @@
   line-height: 1;
   min-height: var(--sol-cell);
   max-height: var(--sol-cell);
-  border-radius: 0.32rem;
-  background: rgba(8, 12, 26, 0.88);
-  color: rgba(230, 238, 255, 0.95);
-  border: 1px solid transparent;
-  transition: box-shadow 0.14s ease, transform 0.12s ease;
+  border-radius: 0.28rem;
+  background: rgba(3, 6, 14, 0.9);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: rgba(180, 200, 230, 0.88);
+  border: 1px solid rgba(80, 100, 140, 0.22);
+  transition: box-shadow 0.18s ease, transform 0.16s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
 .cell:hover {
-  transform: scale(1.04);
+  transform: scale(1.03);
 }
 
 .markR {
-  border-color: rgba(80, 220, 255, 0.55);
-  box-shadow: 0 0 8px rgba(80, 220, 255, 0.22);
+  color: #4de8ff;
+  border-color: rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
 }
 
 .markR:hover {
-  box-shadow: 0 0 16px rgba(80, 220, 255, 0.4);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.45);
 }
 
 .markM {
-  border-color: rgba(255, 200, 80, 0.55);
-  box-shadow: 0 0 8px rgba(255, 200, 80, 0.2);
-  color: rgba(255, 245, 220, 0.95);
+  color: #ffb84d;
+  border-color: rgba(255, 140, 40, 0.5);
+  box-shadow: 0 0 10px rgba(255, 140, 40, 0.22);
+  text-shadow: 0 0 10px rgba(255, 140, 40, 0.35);
 }
 
 .markM:hover {
-  box-shadow: 0 0 16px rgba(255, 200, 80, 0.38);
+  box-shadow: 0 0 18px rgba(255, 140, 40, 0.4);
 }
 
 .markN {
-  border-color: rgba(255, 100, 120, 0.5);
-  box-shadow: 0 0 8px rgba(255, 100, 120, 0.2);
+  color: #ff5c7a;
+  border-color: rgba(255, 60, 100, 0.48);
+  box-shadow: 0 0 10px rgba(255, 60, 100, 0.22);
+  text-shadow: 0 0 10px rgba(255, 60, 100, 0.35);
 }
 
 .markN:hover {
-  box-shadow: 0 0 16px rgba(255, 100, 120, 0.35);
+  box-shadow: 0 0 18px rgba(255, 60, 100, 0.38);
 }
 
 .markX {
-  border-color: rgba(200, 100, 255, 0.55);
-  box-shadow: 0 0 8px rgba(200, 100, 255, 0.22);
+  color: #c77dff;
+  border-color: rgba(199, 125, 255, 0.5);
+  box-shadow: 0 0 10px rgba(199, 125, 255, 0.22);
+  text-shadow: 0 0 10px rgba(199, 125, 255, 0.35);
 }
 
 .markX:hover {
-  box-shadow: 0 0 16px rgba(200, 100, 255, 0.38);
+  box-shadow: 0 0 18px rgba(199, 125, 255, 0.4);
 }
 
 .markD {
-  border-color: rgba(60, 90, 140, 0.35);
-  color: rgba(100, 120, 160, 0.45);
+  border-color: rgba(60, 80, 110, 0.25);
+  color: rgba(80, 100, 130, 0.35);
   box-shadow: none;
 }
 
@@ -169,9 +186,11 @@
   justify-content: center;
   align-items: center;
   padding: 0.22rem 0.3rem;
-  border: 1px solid rgba(60, 90, 140, 0.3);
-  border-radius: 0.28rem;
-  background: rgba(10, 14, 30, 0.92);
+  border: 1px solid rgba(0, 229, 255, 0.14);
+  border-radius: 0;
+  background: rgba(2, 6, 16, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .legend {
@@ -191,32 +210,36 @@
 .legendSwatch {
   width: 0.85rem;
   height: 0.85rem;
-  border-radius: 0.2rem;
+  border-radius: 0.16rem;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.56rem;
   font-weight: 800;
-  background: rgba(8, 12, 26, 0.9);
+  background: rgba(3, 6, 14, 0.95);
 }
 
 .legendSwatch.markR {
-  border: 1px solid rgba(80, 220, 255, 0.6);
-  box-shadow: 0 0 6px rgba(80, 220, 255, 0.3);
+  border: 1px solid rgba(0, 229, 255, 0.55);
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.35);
+  color: #4de8ff;
 }
 
 .legendSwatch.markM {
-  border: 1px solid rgba(255, 200, 80, 0.6);
-  box-shadow: 0 0 6px rgba(255, 200, 80, 0.3);
+  border: 1px solid rgba(255, 140, 40, 0.55);
+  box-shadow: 0 0 6px rgba(255, 140, 40, 0.35);
+  color: #ffb84d;
 }
 
 .legendSwatch.markN {
-  border: 1px solid rgba(255, 100, 120, 0.55);
-  box-shadow: 0 0 6px rgba(255, 100, 120, 0.28);
+  border: 1px solid rgba(255, 60, 100, 0.5);
+  box-shadow: 0 0 6px rgba(255, 60, 100, 0.3);
+  color: #ff5c7a;
 }
 
 .legendSwatch.markX {
-  border: 1px solid rgba(200, 100, 255, 0.6);
-  box-shadow: 0 0 6px rgba(200, 100, 255, 0.3);
+  border: 1px solid rgba(199, 125, 255, 0.55);
+  box-shadow: 0 0 6px rgba(199, 125, 255, 0.35);
+  color: #c77dff;
 }

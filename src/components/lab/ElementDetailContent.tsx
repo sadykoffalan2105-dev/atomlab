@@ -24,6 +24,7 @@ import { mendeleevBlock } from '../../data/mendeleevBlock'
 import { massDisplay } from '../../data/elementDisplay'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { ElementAtomPreview3d } from './ElementAtomPreview3d'
+import { ElementNatureHero } from './ElementNatureHero'
 import styles from './ElementDetailContent.module.css'
 
 function blockLabelKey(block: 's' | 'p' | 'd' | 'f'): 'elementDetail.blockS' | 'elementDetail.blockP' | 'elementDetail.blockD' | 'elementDetail.blockF' {
@@ -114,6 +115,13 @@ function RichElementDetail({
         : life.usesRu
       : []
   const appearance = life ? (locale === 'en' ? life.appearanceEn : life.appearanceRu) : null
+  const photoCaption = life
+    ? locale === 'uz'
+      ? life.captionEn
+      : locale === 'en'
+        ? life.captionEn
+        : life.captionRu
+    : null
   const extraction = curated
     ? locale === 'en'
       ? (curated.extractionEn ?? (life ? life.extractionEn : null))
@@ -171,6 +179,16 @@ function RichElementDetail({
           <span className={styles.statValue}>{neutronEstimate}</span>
         </div>
       </div>
+
+      {life ? (
+        <ElementNatureHero
+          symbol={el.symbol}
+          displayName={displayName}
+          life={life}
+          caption={photoCaption ?? ''}
+          appearance={appearance}
+        />
+      ) : null}
 
       <div className={styles.richGrid}>
         <section className={styles.richCol} aria-label={t('elementDetail.structureSection')}>
@@ -293,13 +311,6 @@ function RichElementDetail({
               </li>
             ))}
           </ul>
-        </section>
-      ) : null}
-
-      {appearance ? (
-        <section className={styles.lifeSection}>
-          <h3 className={styles.sectionTitle}>{t('elementDetail.appearanceSection')}</h3>
-          <p className={styles.lifeText}>{appearance}</p>
         </section>
       ) : null}
 

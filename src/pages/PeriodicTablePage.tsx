@@ -1,5 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { PeriodicTableTextbook } from '../components/lab/PeriodicTableTextbook'
+import { PeriodicTableCosmos } from '../components/lab/PeriodicTableCosmos'
+import { IconAtomGrid, IconInfoHud, IconSolubility } from '../components/lab/PeriodicTableHudIcons'
 import { SolubilityTable } from '../components/lab/SolubilityTable'
 import { ElementDetailModal } from '../components/lab/ElementDetailModal'
 import { useT } from '../i18n/useT'
@@ -49,6 +51,8 @@ export function PeriodicTablePage() {
 
   return (
     <div className={pageStyles.page}>
+      <PeriodicTableCosmos />
+      <div className={pageStyles.pageContent}>
       <div className={pageStyles.introRow}>
         <div className={pageStyles.tabBar} role="tablist" aria-label={t('periodic.tabListAria')}>
           <button
@@ -58,7 +62,8 @@ export function PeriodicTablePage() {
             className={tab === 'mendeleev' ? pageStyles.tabActive : pageStyles.tab}
             onClick={() => setTab('mendeleev')}
           >
-            {t('periodic.tabMendeleev')}
+            <IconAtomGrid className={pageStyles.tabIcon} />
+            <span>{t('periodic.tabMendeleev')}</span>
           </button>
           <button
             type="button"
@@ -67,7 +72,8 @@ export function PeriodicTablePage() {
             className={tab === 'solubility' ? pageStyles.tabActive : pageStyles.tab}
             onClick={() => setTab('solubility')}
           >
-            {t('periodic.tabSolubility')}
+            <IconSolubility className={pageStyles.tabIcon} />
+            <span>{t('periodic.tabSolubility')}</span>
           </button>
         </div>
         <button
@@ -76,7 +82,8 @@ export function PeriodicTablePage() {
           onClick={() => setShowIntro((v) => !v)}
           aria-expanded={showIntro}
         >
-          {showIntro ? t('periodic.introHide') : t('periodic.introShow')}
+          <IconInfoHud className={pageStyles.tabIcon} />
+          <span>{showIntro ? t('periodic.introHide') : t('periodic.introShow')}</span>
         </button>
       </div>
       {showIntro ? (
@@ -99,7 +106,8 @@ export function PeriodicTablePage() {
           </div>
         </div>
       </div>
-      <ElementDetailModal z={detailZ} onClose={() => setDetailZ(null)} />
+      <ElementDetailModal z={detailZ} onClose={() => setDetailZ(null)} onNavigate={setDetailZ} />
+      </div>
     </div>
   )
 }

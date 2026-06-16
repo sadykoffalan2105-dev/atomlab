@@ -200,6 +200,9 @@ export const messagesRu = {
 
   'elementDetail.cpkNotSet': 'не задан',
   'elementDetail.photoAlt': 'Фото образца: {name}',
+  'elementDetail.natureSection': 'В природе',
+  'elementDetail.realPhoto': 'Реальный образец',
+  'elementDetail.nature3dHint': '3D-модель макрообразца',
   'elementDetail.structureSection': 'Строение атома',
   'elementDetail.physicalSection': 'Физические свойства',
   'elementDetail.usesSection': 'Применение',

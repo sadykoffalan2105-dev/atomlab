@@ -86,24 +86,19 @@ function LabReactorLights() {
   )
 }
 
-/** Прогрев шейдеров только после старта синтеза — не при балансировке уравнения. */
-function ReactorSceneWarmup({ active, revision = 0 }: { active: boolean; revision?: number }) {
-  const { gl, scene, camera, invalidate } = useThree()
+/** Прогрев кадра при открытии реактора — без gl.compile (блокирует main thread на секунды). */
+function ReactorSceneWarmup({ reactorOpen }: { reactorOpen: boolean }) {
+  const { invalidate } = useThree()
+  const warmedRef = useRef(false)
   useEffect(() => {
-    if (!active || revision <= 0) return
-    let cancelled = false
-    const compile = () => {
-      if (cancelled) return
-      gl.compile(scene, camera)
-      invalidate()
+    if (!reactorOpen) {
+      warmedRef.current = false
+      return
     }
-    scheduleIdleMatch(compile)
-    const late = window.setTimeout(compile, 220)
-    return () => {
-      cancelled = true
-      window.clearTimeout(late)
-    }
-  }, [active, revision, gl, scene, camera, invalidate])
+    if (warmedRef.current) return
+    warmedRef.current = true
+    invalidate()
+  }, [reactorOpen, invalidate])
   return null
 }
 
@@ -284,6 +279,7 @@ function SceneContent({
   const previewAtomCount = reactorPreviewTerms?.length
     ? buildReactorPreviewAtoms(reactorPreviewTerms, { tier: previewVisualTier }).length
     : 0
+  const manyAtomsCameraRef = useRef(previewAtomCount > 8)
 
   const showSettledHero =
     !synthActive &&
@@ -291,12 +287,30 @@ function SceneContent({
     !previewActive &&
     synthesisSettledProduct != null
 
-  const gpuPrewarmAllowed = shouldMountProductGpuPrewarm({
-    policy: 'synthesis-only',
-    synthesisRunActive,
-    synthActive,
-    showSettledHero,
-  })
+  /** Атомы остаются до overlap с продуктом — merge flash перекрывает, без «исчезновения». */
+  const fadePreviewAtoms = useCallback(() => {}, [])
+
+  /** Молекула продукта — не монтировать в converge (иначе compile + чёрный экран). */
+  const synthLatePhase =
+    synthesisPhase === 'mergeFlash' || synthesisPhase === 'product'
+  const allowProductMesh = showSettledHero || !synthActive || synthLatePhase
+
+  const gpuPrewarmAllowed =
+    shouldMountProductGpuPrewarm({
+      policy: 'synthesis-only',
+      synthesisRunActive,
+      synthActive,
+      showSettledHero,
+    }) ||
+    (!synthActive &&
+      !synthesisRunActive &&
+      reactorViewOpen &&
+      prewarmProductCompound != null)
+
+  const productForSlot =
+    synthesisSettledProduct ??
+    (allowProductMesh && synthActive && synthesis?.product ? synthesis.product : null) ??
+    (allowProductMesh && gpuPrewarmAllowed && prewarmProductCompound ? prewarmProductCompound : null)
 
   const mountReactorPreview =
     reactorViewOpen &&
@@ -306,14 +320,6 @@ function SceneContent({
   /** Блокируем drift/GSAP с converge до product — иначе атомы «прыгают» на merge. */
   const previewMotionLocked = synthActive && synthesisPhase !== 'product'
   const previewPoseLocked = synthActive || synthesisRunActive
-
-  /** Атомы остаются до overlap с продуктом — merge flash перекрывает, без «исчезновения». */
-  const fadePreviewAtoms = useCallback(() => {}, [])
-
-  const productForSlot =
-    synthesisSettledProduct ??
-    (synthActive && synthesis?.product ? synthesis.product : null) ??
-    (gpuPrewarmAllowed ? prewarmProductCompound : null)
   const productSlotVisible =
     productForSlot != null &&
     (showSettledHero ||
@@ -330,11 +336,11 @@ function SceneContent({
       forceProductSlot)
   const productPrewarmActive =
     gpuPrewarmAllowed &&
+    allowProductMesh &&
     productForSlot != null &&
     !productSlotVisible &&
     !showSettledHero &&
     reactorViewOpen &&
-    (prewarmProductCompound != null || synthActive) &&
     (prewarmReadyRef.current || prewarmReady)
 
   useEffect(() => {
@@ -350,7 +356,11 @@ function SceneContent({
       setPrewarmReady(false)
       return
     }
-    const compound = prewarmProductCompound ?? (synthActive ? synthesis?.product : null)
+    if (synthActive && !synthLatePhase) {
+      return
+    }
+    const compound =
+      prewarmProductCompound ?? (synthActive && synthLatePhase ? synthesis?.product : null)
     if (!compound) {
       prewarmReadyRef.current = false
       prewarmCompoundIdRef.current = null
@@ -372,12 +382,18 @@ function SceneContent({
     return () => {
       cancelled = true
     }
-  }, [gpuPrewarmAllowed, reactorViewOpen, prewarmProductCompound?.id, synthActive, synthesis?.product?.id])
+  }, [
+    gpuPrewarmAllowed,
+    reactorViewOpen,
+    prewarmProductCompound?.id,
+    synthActive,
+    synthLatePhase,
+    synthesis?.product?.id,
+  ])
 
   useLayoutEffect(() => {
     if (!synthActive || !synthesis?.runId) return
     setPreviewOverlapActive(true)
-    setEarlyProductReveal(true)
   }, [synthActive, synthesis?.runId])
 
   useLayoutEffect(() => {
@@ -452,8 +468,10 @@ function SceneContent({
   // eslint-disable-next-line react-hooks/immutability
   useEffect(() => {
     if (catalogViewMode) return
+    if (previewAtomCount > 9) manyAtomsCameraRef.current = true
+    else if (previewAtomCount < 7) manyAtomsCameraRef.current = false
+    const manyAtoms = manyAtomsCameraRef.current
     const p = camera as THREE.PerspectiveCamera
-    const manyAtoms = previewAtomCount > 8
     // eslint-disable-next-line react-hooks/immutability
     p.fov = manyAtoms ? 61 : 58
     p.updateProjectionMatrix()
@@ -491,10 +509,20 @@ function SceneContent({
 
   useEffect(() => {
     fpsGovRef.current.reset()
-    synthForceLiteRef.current = false
-    setSynthForceLite(false)
-    if (forceLiteFxRef) forceLiteFxRef.current = false
-  }, [synthesis?.runId, forceLiteFxRef])
+    if (!synthesis?.runId) {
+      synthForceLiteRef.current = false
+      setSynthForceLite(false)
+      if (forceLiteFxRef) forceLiteFxRef.current = false
+      return
+    }
+    const lite =
+      previewAtomCount >= SYNTHESIS_PERF.synthLiteStartThreshold ||
+      previewVisualTier === 'cluster' ||
+      previewVisualTier === 'lite'
+    synthForceLiteRef.current = lite
+    setSynthForceLite(lite)
+    if (forceLiteFxRef) forceLiteFxRef.current = lite
+  }, [synthesis?.runId, previewAtomCount, previewVisualTier, forceLiteFxRef])
 
   // Лёгкий авто-тюнинг: если FPS проседает — переключаемся на low и обратно с гистерезисом.
   // Делается здесь (внутри Canvas), чтобы измерять delta из render-loop без внешних зависимостей.
@@ -539,7 +567,7 @@ function SceneContent({
       )
     }
 
-    frameHoldRef.current.tick(() => invalidate(), reactorViewOpen)
+    frameHoldRef.current.tick(() => invalidate(), reactorViewOpen && !synthesisRunActive)
 
     if (
       previewMotionLocked &&
@@ -609,7 +637,7 @@ function SceneContent({
       ) : null}
       {reactorBackdrop ? <LabReactorLights /> : null}
       {reactorViewOpen ? (
-        <ReactorSceneWarmup active revision={synthesis?.runId ?? 0} />
+        <ReactorSceneWarmup reactorOpen={reactorViewOpen} />
       ) : null}
 
       {!reactorViewOpen ? (

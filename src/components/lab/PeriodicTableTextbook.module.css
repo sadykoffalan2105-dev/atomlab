@@ -1,4 +1,4 @@
-/* Космический HUD — карточки с неоновым свечением (структура ПСХЭ без изменений) */
+/* Кибер-космический HUD — стекло, неон, сканлайны (сетка ПСХЭ без изменений) */
 
 .textbookWrap {
   position: relative;
@@ -15,14 +15,23 @@
 
 .panelGlow {
   position: absolute;
-  inset: -6% -3% -3%;
+  inset: -8% -4% -4%;
   background:
-    radial-gradient(ellipse 60% 40% at 15% 20%, rgba(120, 255, 100, 0.12), transparent 55%),
-    radial-gradient(ellipse 55% 40% at 85% 25%, rgba(80, 220, 255, 0.14), transparent 55%),
-    radial-gradient(ellipse 50% 35% at 50% 90%, rgba(180, 80, 255, 0.14), transparent 50%),
-    radial-gradient(ellipse 40% 30% at 70% 60%, rgba(255, 200, 80, 0.1), transparent 50%);
+    radial-gradient(ellipse 50% 35% at 15% 20%, rgba(0, 229, 255, 0.08), transparent 58%),
+    radial-gradient(ellipse 45% 35% at 85% 18%, rgba(255, 45, 149, 0.09), transparent 58%),
+    radial-gradient(ellipse 50% 30% at 50% 95%, rgba(120, 60, 220, 0.1), transparent 52%);
   pointer-events: none;
   z-index: 0;
+  animation: panelGlowPulse 14s ease-in-out infinite alternate;
+}
+
+@keyframes panelGlowPulse {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .textbookTitle {
@@ -30,26 +39,181 @@
   z-index: 1;
   margin: 0;
   text-align: center;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  font-size: clamp(0.65rem, 1.1vw, 0.95rem);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1.15;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: clamp(0.58rem, 1vw, 0.88rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
   text-transform: uppercase;
-  color: rgba(235, 242, 255, 0.96);
-  text-shadow: 0 0 16px rgba(100, 200, 255, 0.35);
+  color: rgba(210, 230, 255, 0.92);
+  text-shadow:
+    0 0 20px rgba(0, 229, 255, 0.35),
+    0 0 40px rgba(255, 45, 149, 0.15);
+}
+
+.titleMark {
+  display: inline-block;
+  margin: 0 0.35em;
+  font-size: 0.85em;
+  color: rgba(255, 45, 149, 0.75);
+  text-shadow: 0 0 12px rgba(255, 45, 149, 0.5);
+  font-weight: 400;
+}
+
+.titleOrnament {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin: 0.06rem 0 0.04rem;
+  padding: 0 1rem;
+}
+
+.titleLine {
+  flex: 1;
+  max-width: 8rem;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 229, 255, 0.55) 30%,
+    rgba(255, 45, 149, 0.55) 70%,
+    transparent
+  );
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.25);
+}
+
+.titleGem {
+  font-size: 0.42rem;
+  color: rgba(0, 229, 255, 0.8);
+  text-shadow:
+    0 0 10px rgba(0, 229, 255, 0.6),
+    0 0 18px rgba(255, 45, 149, 0.35);
+  animation: gemPulse 3s ease-in-out infinite alternate;
+}
+
+@keyframes gemPulse {
+  from {
+    opacity: 0.65;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.08);
+  }
 }
 
 .textbookGroupsLabel {
   position: relative;
   z-index: 1;
   text-align: center;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  font-size: clamp(0.48rem, 0.85vw, 0.68rem);
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: clamp(0.44rem, 0.78vw, 0.62rem);
   font-weight: 600;
-  letter-spacing: 0.35em;
-  color: rgba(120, 150, 200, 0.65);
+  letter-spacing: 0.5em;
+  color: rgba(0, 229, 255, 0.42);
   margin: 0;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+
+.gridFrame {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 0.45rem 0.5rem;
+  box-sizing: border-box;
+}
+
+.orbitHalo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 88%;
+  height: 92%;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 229, 255, 0.05);
+  box-shadow:
+    0 0 50px rgba(0, 229, 255, 0.06),
+    inset 0 0 40px rgba(255, 45, 149, 0.04);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.frameTag {
+  position: absolute;
+  z-index: 4;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: clamp(0.38rem, 0.62vw, 0.5rem);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: rgba(0, 229, 255, 0.38);
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+  pointer-events: none;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.frameTag[data-side='left'] {
+  left: 0.05rem;
+  top: 50%;
+  translate: 0 -50%;
+}
+
+.frameTag[data-side='right'] {
+  right: 0.05rem;
+  top: 50%;
+  translate: 0 -50%;
+  color: rgba(255, 45, 149, 0.38);
+  text-shadow: 0 0 8px rgba(255, 45, 149, 0.2);
+}
+
+.gridScan {
+  position: absolute;
+  inset: 0.35rem;
+  border-radius: 0;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+  opacity: 0.4;
+}
+
+.gridScan::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 35%;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(0, 229, 255, 0.05) 45%,
+    rgba(255, 45, 149, 0.07) 55%,
+    transparent
+  );
+  animation: gridScanSweep 10s ease-in-out infinite;
+}
+
+@keyframes gridScanSweep {
+  0% {
+    top: -45%;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  45% {
+    top: 105%;
+    opacity: 1;
+  }
+  55%,
+  100% {
+    top: 105%;
+    opacity: 0;
+  }
 }
 
 .gridTextbook {
@@ -63,12 +227,13 @@
   --pt-gap: clamp(1px, 0.2vw, 3px);
   gap: var(--pt-gap);
   padding: var(--pt-gap);
-  border: 1px solid rgba(70, 160, 220, 0.35);
-  border-radius: 0.65rem;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  border-radius: 0.5rem;
   box-shadow:
-    0 0 24px rgba(60, 180, 255, 0.1),
-    0 0 48px rgba(120, 60, 200, 0.06),
-    inset 0 0 60px rgba(0, 15, 40, 0.5);
+    0 0 50px rgba(0, 229, 255, 0.12),
+    0 0 90px rgba(255, 45, 149, 0.08),
+    inset 0 0 100px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(0, 229, 255, 0.12);
   grid-template-columns:
     minmax(1rem, 0.24fr)
     minmax(1rem, 0.24fr)
@@ -80,14 +245,28 @@
     minmax(var(--pt-f-gap), auto)
     repeat(2, minmax(var(--pt-cell-h), auto))
     auto;
-  background-color: #060a14;
+  background-color: rgba(2, 4, 12, 0.72);
   background-image:
-    radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(8, 12, 28, 0.98), rgba(4, 6, 16, 0.99));
-  background-size: 18px 18px, 100% 100%;
-  color: rgba(230, 238, 255, 0.96);
-  font-family: 'Segoe UI', system-ui, sans-serif;
+    linear-gradient(rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 45, 149, 0.03) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px, 32px 32px, 24px 24px;
+  backdrop-filter: blur(18px) saturate(1.1);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  color: rgba(220, 230, 255, 0.94);
+  font-family: ui-monospace, 'Cascadia Code', monospace;
   overflow: hidden;
+}
+
+.gridTextbook::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 55% 40% at 50% 0%, rgba(0, 229, 255, 0.06), transparent 65%),
+    radial-gradient(ellipse 40% 30% at 50% 100%, rgba(255, 45, 149, 0.05), transparent 60%);
 }
 
 .gridTextbook > * {
@@ -95,25 +274,19 @@
   z-index: 1;
 }
 
-/* Цветные полосы за столбцами групп */
+/* Тонкие вертикальные лазерные полосы за группами */
 .columnBackdrop {
   z-index: 0 !important;
-  border-radius: 0.45rem;
+  border-radius: 0;
   background:
-    linear-gradient(
+    repeating-linear-gradient(
       90deg,
-      rgba(80, 220, 120, 0.08) 0%,
-      rgba(80, 220, 120, 0.08) 20%,
-      rgba(255, 210, 80, 0.09) 20%,
-      rgba(255, 210, 80, 0.09) 40%,
-      rgba(100, 180, 255, 0.08) 40%,
-      rgba(100, 180, 255, 0.08) 70%,
-      rgba(180, 120, 255, 0.09) 70%,
-      rgba(180, 120, 255, 0.09) 90%,
-      rgba(255, 200, 80, 0.09) 90%,
-      rgba(255, 200, 80, 0.09) 100%
+      transparent,
+      transparent calc(10% - 1px),
+      rgba(0, 229, 255, 0.04) calc(10% - 1px),
+      rgba(0, 229, 255, 0.04) 10%
     );
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.5);
   pointer-events: none;
 }
 
@@ -128,9 +301,11 @@
 .gridTextbook .fBlockLabel,
 .gridTextbook .legendRow {
   box-sizing: border-box;
-  border: 1px solid rgba(60, 90, 140, 0.35);
-  border-radius: 0.28rem;
-  background: rgba(10, 14, 30, 0.92);
+  border: 1px solid rgba(0, 229, 255, 0.14);
+  border-radius: 0;
+  background: rgba(2, 6, 16, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .gridTextbook .axisHead {
@@ -145,17 +320,19 @@
 }
 
 .headS {
-  border-color: rgba(120, 255, 100, 0.45) !important;
-  background: linear-gradient(180deg, rgba(30, 90, 50, 0.95), rgba(12, 35, 25, 0.95)) !important;
-  color: rgba(180, 255, 160, 0.98);
-  text-shadow: 0 0 10px rgba(120, 255, 100, 0.4);
+  border-color: rgba(0, 255, 170, 0.35) !important;
+  background: rgba(2, 10, 8, 0.9) !important;
+  color: rgba(0, 255, 170, 0.88);
+  text-shadow: 0 0 12px rgba(0, 255, 170, 0.4);
+  box-shadow: inset 0 -2px 0 rgba(0, 255, 170, 0.45);
 }
 
 .headP {
-  border-color: rgba(100, 210, 255, 0.45) !important;
-  background: linear-gradient(180deg, rgba(25, 70, 110, 0.95), rgba(12, 30, 55, 0.95)) !important;
-  color: rgba(160, 230, 255, 0.98);
-  text-shadow: 0 0 10px rgba(80, 200, 255, 0.4);
+  border-color: rgba(255, 45, 149, 0.35) !important;
+  background: rgba(12, 4, 14, 0.9) !important;
+  color: rgba(255, 120, 190, 0.9);
+  text-shadow: 0 0 12px rgba(255, 45, 149, 0.4);
+  box-shadow: inset 0 -2px 0 rgba(255, 45, 149, 0.45);
 }
 
 .gridTextbook .subHeadGroup {
@@ -207,27 +384,25 @@
 /* Пустые ячейки и декоративные панели */
 .voidCell {
   min-height: var(--pt-cell-h);
-  border-radius: 0.38rem;
-  border: 1px solid rgba(255, 190, 80, 0.12);
-  background: linear-gradient(145deg, rgba(30, 35, 55, 0.65), rgba(12, 16, 32, 0.8));
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+  border-radius: 0;
+  border: 1px dashed rgba(0, 229, 255, 0.1);
+  background: rgba(2, 4, 10, 0.6);
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.35);
 }
 
 .triadVoidPanel {
-  border-radius: 0.45rem;
-  border: 1px solid rgba(255, 200, 90, 0.28);
+  border-radius: 0;
+  border: 1px solid rgba(255, 45, 149, 0.15);
   background:
-    linear-gradient(160deg, rgba(55, 45, 25, 0.55), rgba(25, 30, 50, 0.75)),
     repeating-linear-gradient(
-      90deg,
-      rgba(255, 200, 80, 0.04) 0,
-      rgba(255, 200, 80, 0.04) 50%,
-      rgba(100, 170, 255, 0.04) 50%,
-      rgba(100, 170, 255, 0.04) 100%
-    );
-  box-shadow:
-    inset 0 0 20px rgba(255, 190, 80, 0.06),
-    0 0 12px rgba(255, 180, 60, 0.08);
+      -45deg,
+      rgba(0, 229, 255, 0.02) 0,
+      rgba(0, 229, 255, 0.02) 4px,
+      transparent 4px,
+      transparent 8px
+    ),
+    rgba(4, 6, 14, 0.75);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.4);
 }
 
 .centerLawPanel {
@@ -238,33 +413,31 @@
   gap: 0.2rem;
   text-align: center;
   padding: 0.25rem 0.5rem;
-  border-radius: 0.45rem;
-  border: 1px solid rgba(100, 200, 255, 0.35);
-  background:
-    linear-gradient(135deg, rgba(20, 50, 90, 0.82), rgba(50, 25, 80, 0.78)),
-    radial-gradient(ellipse 80% 80% at 50% 50%, rgba(80, 180, 255, 0.12), transparent 70%);
+  border-radius: 0;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  background: rgba(2, 8, 18, 0.88);
   box-shadow:
-    0 0 20px rgba(80, 180, 255, 0.15),
-    inset 0 0 24px rgba(60, 140, 220, 0.08);
+    0 0 24px rgba(0, 229, 255, 0.1),
+    inset 0 0 32px rgba(0, 0, 0, 0.45);
   min-height: var(--pt-cell-h);
   overflow: hidden;
 }
 
 .centerLawTitle {
-  font-size: clamp(0.5rem, 0.85vw, 0.68rem);
+  font-size: clamp(0.48rem, 0.82vw, 0.66rem);
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(180, 230, 255, 0.95);
-  text-shadow: 0 0 10px rgba(100, 200, 255, 0.45);
+  color: rgba(0, 229, 255, 0.9);
+  text-shadow: 0 0 14px rgba(0, 229, 255, 0.45);
   line-height: 1.2;
 }
 
 .centerLawText {
-  font-size: clamp(0.42rem, 0.72vw, 0.58rem);
+  font-size: clamp(0.4rem, 0.7vw, 0.56rem);
   font-weight: 600;
   line-height: 1.25;
-  color: rgba(160, 190, 235, 0.88);
+  color: rgba(140, 170, 210, 0.78);
   max-width: 28ch;
 }
 
@@ -276,7 +449,7 @@
   appearance: none;
   font: inherit;
   cursor: pointer;
-  border-radius: 0.38rem;
+  border-radius: 0.28rem;
   min-height: var(--pt-cell-h);
   max-height: var(--pt-cell-h);
   height: var(--pt-cell-h);
@@ -287,14 +460,15 @@
   align-items: stretch;
   overflow: hidden;
   text-align: left;
-  color: rgba(240, 246, 255, 0.98);
-  border: 1px solid transparent;
-  background: rgba(8, 12, 26, 0.75);
+  color: rgba(200, 210, 230, 0.9);
+  border: 1px solid rgba(80, 100, 140, 0.25);
+  background: rgba(3, 6, 14, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   transition:
-    box-shadow 0.16s ease,
-    transform 0.14s ease,
-    border-color 0.16s ease,
-    filter 0.16s ease;
+    box-shadow 0.2s ease,
+    transform 0.18s ease,
+    border-color 0.2s ease;
 }
 
 .gridTextbook .tbCellStatic {
@@ -303,8 +477,8 @@
 
 .gridTextbook .tbCellBtn:hover {
   z-index: 5;
-  transform: scale(1.05);
-  filter: brightness(1.12);
+  transform: scale(1.04) translateY(-1px);
+  filter: none;
 }
 
 .gridTextbook .cellSlotInner {
@@ -320,10 +494,10 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(80, 220, 120, 0.08),
-    rgba(80, 200, 255, 0.12),
-    rgba(200, 100, 255, 0.12),
-    rgba(255, 200, 80, 0.08),
+    rgba(0, 255, 170, 0.06),
+    rgba(0, 229, 255, 0.1),
+    rgba(255, 45, 149, 0.1),
+    rgba(170, 90, 255, 0.08),
     transparent
   ) !important;
   min-height: var(--pt-f-gap);
@@ -334,20 +508,19 @@
 .fBlockGap::after {
   content: '';
   position: absolute;
-  left: 4%;
-  right: 4%;
+  left: 3%;
+  right: 3%;
   top: 50%;
-  height: 2px;
+  height: 1px;
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(120, 255, 100, 0.5),
-    rgba(80, 220, 255, 0.55),
-    rgba(200, 100, 255, 0.55),
-    rgba(255, 200, 80, 0.5),
+    rgba(0, 229, 255, 0.6),
+    rgba(255, 45, 149, 0.65),
+    rgba(170, 90, 255, 0.55),
     transparent
   );
-  box-shadow: 0 0 10px rgba(100, 180, 255, 0.35);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.35);
 }
 
 .gridTextbook .fBlockLabel {
@@ -355,16 +528,17 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: clamp(0.54rem, 0.85vw, 0.68rem);
+  font-size: clamp(0.52rem, 0.82vw, 0.66rem);
   font-weight: 700;
   line-height: 1.15;
-  letter-spacing: 0.04em;
-  color: rgba(220, 170, 255, 0.95);
-  text-shadow: 0 0 10px rgba(180, 120, 255, 0.45);
+  letter-spacing: 0.08em;
+  color: rgba(200, 140, 255, 0.9);
+  text-shadow: 0 0 12px rgba(170, 90, 255, 0.45);
   padding: 0.18rem 0.1rem;
   min-height: var(--pt-cell-h);
-  border-color: rgba(200, 100, 255, 0.4) !important;
-  background: linear-gradient(135deg, rgba(70, 30, 100, 0.92), rgba(35, 15, 55, 0.95)) !important;
+  border-color: rgba(170, 90, 255, 0.35) !important;
+  background: rgba(8, 4, 16, 0.9) !important;
+  box-shadow: inset 0 -2px 0 rgba(170, 90, 255, 0.4);
 }
 
 .fBlockLabelWide {
@@ -373,13 +547,9 @@
 
 .fBlockBackdrop {
   z-index: 0 !important;
-  border-radius: 0.45rem;
-  background: linear-gradient(
-    180deg,
-    rgba(90, 40, 130, 0.14),
-    rgba(50, 25, 80, 0.1)
-  );
-  box-shadow: inset 0 0 28px rgba(120, 60, 180, 0.08);
+  border-radius: 0;
+  background: rgba(8, 4, 18, 0.35);
+  box-shadow: inset 0 0 40px rgba(170, 90, 255, 0.06);
   pointer-events: none;
 }
 
@@ -396,7 +566,7 @@
 
 .fRowBand .tbCellBtn,
 .fRowBand .tbCellStatic {
-  border-radius: 0.38rem;
+  border-radius: 0.28rem;
   min-height: var(--pt-cell-h);
   max-height: var(--pt-cell-h);
   height: var(--pt-cell-h);
@@ -416,122 +586,139 @@
   width: 100%;
 }
 
-/* Яркая раскраска блоков — селекторы с приоритетом над базовой ячейкой */
+/* Void-неон: тёмные ячейки + цветная обводка и символ */
 .gridTextbook .tbCellBtn.tbS,
 .gridTextbook .tbCellStatic.tbS,
 .fRowBand .tbCellBtn.tbS,
 .fRowBand .tbCellStatic.tbS {
-  background: linear-gradient(145deg, rgba(35, 130, 65, 0.94), rgba(18, 70, 40, 0.98));
-  border-color: rgba(140, 255, 100, 0.8);
+  --pt-neon: #00ffaa;
+  --pt-glow: rgba(0, 255, 170, 0.4);
+  background: rgba(2, 10, 8, 0.92);
+  border-color: rgba(0, 255, 170, 0.42);
   box-shadow:
-    0 0 10px rgba(140, 255, 100, 0.32),
-    inset 0 0 20px rgba(140, 255, 100, 0.12);
-  color: rgba(240, 255, 245, 0.98);
+    0 0 8px var(--pt-glow),
+    inset 0 0 16px rgba(0, 255, 170, 0.04);
 }
 
 .gridTextbook .tbCellBtn.tbS:hover,
 .fRowBand .tbCellBtn.tbS:hover {
-  border-color: rgba(180, 255, 140, 0.95);
+  border-color: rgba(0, 255, 170, 0.75);
   box-shadow:
-    0 0 18px rgba(140, 255, 100, 0.55),
-    0 0 36px rgba(140, 255, 100, 0.25),
-    inset 0 0 24px rgba(140, 255, 100, 0.15);
+    0 0 16px rgba(0, 255, 170, 0.55),
+    0 0 32px rgba(0, 255, 170, 0.2),
+    inset 0 0 20px rgba(0, 255, 170, 0.08);
 }
 
 .gridTextbook .tbCellBtn.tbP,
 .gridTextbook .tbCellStatic.tbP,
 .fRowBand .tbCellBtn.tbP,
 .fRowBand .tbCellStatic.tbP {
-  background: linear-gradient(145deg, rgba(235, 195, 55, 0.96), rgba(175, 130, 25, 0.98));
-  border-color: rgba(255, 240, 120, 0.85);
+  --pt-neon: #ff6eb4;
+  --pt-glow: rgba(255, 45, 149, 0.4);
+  background: rgba(12, 4, 10, 0.92);
+  border-color: rgba(255, 45, 149, 0.42);
   box-shadow:
-    0 0 10px rgba(255, 210, 80, 0.38),
-    inset 0 0 20px rgba(255, 240, 140, 0.15);
-  color: rgba(18, 22, 35, 0.96);
-}
-
-.gridTextbook .tbCellBtn.tbP .tbZ,
-.gridTextbook .tbCellBtn.tbP .tbMass,
-.gridTextbook .tbCellBtn.tbP .tbSym,
-.gridTextbook .tbCellBtn.tbP .tbRu,
-.gridTextbook .tbCellStatic.tbP .tbZ,
-.gridTextbook .tbCellStatic.tbP .tbMass,
-.gridTextbook .tbCellStatic.tbP .tbSym,
-.gridTextbook .tbCellStatic.tbP .tbRu {
-  color: rgba(15, 20, 35, 0.95);
-  text-shadow: none;
+    0 0 8px var(--pt-glow),
+    inset 0 0 16px rgba(255, 45, 149, 0.04);
 }
 
 .gridTextbook .tbCellBtn.tbP:hover,
 .fRowBand .tbCellBtn.tbP:hover {
-  border-color: rgba(255, 248, 160, 0.98);
+  border-color: rgba(255, 45, 149, 0.75);
   box-shadow:
-    0 0 18px rgba(255, 210, 80, 0.6),
-    0 0 36px rgba(255, 210, 80, 0.3),
-    inset 0 0 24px rgba(255, 240, 160, 0.2);
+    0 0 16px rgba(255, 45, 149, 0.55),
+    0 0 32px rgba(255, 45, 149, 0.2),
+    inset 0 0 20px rgba(255, 45, 149, 0.08);
 }
 
 .gridTextbook .tbCellBtn.tbD,
 .gridTextbook .tbCellStatic.tbD,
 .fRowBand .tbCellBtn.tbD,
 .fRowBand .tbCellStatic.tbD {
-  background: linear-gradient(145deg, rgba(50, 110, 215, 0.96), rgba(28, 60, 145, 0.98));
-  border-color: rgba(140, 200, 255, 0.82);
+  --pt-neon: #4da6ff;
+  --pt-glow: rgba(77, 166, 255, 0.4);
+  background: rgba(4, 8, 18, 0.92);
+  border-color: rgba(77, 166, 255, 0.42);
   box-shadow:
-    0 0 10px rgba(100, 170, 255, 0.38),
-    inset 0 0 20px rgba(100, 170, 255, 0.14);
-  color: rgba(240, 248, 255, 0.98);
+    0 0 8px var(--pt-glow),
+    inset 0 0 16px rgba(77, 166, 255, 0.04);
 }
 
 .gridTextbook .tbCellBtn.tbD:hover,
 .fRowBand .tbCellBtn.tbD:hover {
-  border-color: rgba(170, 220, 255, 0.96);
+  border-color: rgba(77, 166, 255, 0.75);
   box-shadow:
-    0 0 18px rgba(100, 170, 255, 0.58),
-    0 0 36px rgba(100, 170, 255, 0.28),
-    inset 0 0 24px rgba(100, 170, 255, 0.18);
+    0 0 16px rgba(77, 166, 255, 0.55),
+    0 0 32px rgba(77, 166, 255, 0.2),
+    inset 0 0 20px rgba(77, 166, 255, 0.08);
 }
 
 .gridTextbook .tbCellBtn.tbF,
 .gridTextbook .tbCellStatic.tbF,
 .fRowBand .tbCellBtn.tbF,
 .fRowBand .tbCellStatic.tbF {
-  background: linear-gradient(145deg, rgba(155, 80, 205, 0.96), rgba(85, 40, 125, 0.98));
-  border-color: rgba(230, 150, 255, 0.82);
+  --pt-neon: #c77dff;
+  --pt-glow: rgba(199, 125, 255, 0.4);
+  background: rgba(8, 4, 16, 0.92);
+  border-color: rgba(199, 125, 255, 0.42);
   box-shadow:
-    0 0 10px rgba(200, 100, 255, 0.38),
-    inset 0 0 20px rgba(200, 100, 255, 0.14);
-  color: rgba(248, 240, 255, 0.98);
+    0 0 8px var(--pt-glow),
+    inset 0 0 16px rgba(199, 125, 255, 0.04);
 }
 
 .gridTextbook .tbCellBtn.tbF:hover,
 .fRowBand .tbCellBtn.tbF:hover {
-  border-color: rgba(245, 180, 255, 0.96);
+  border-color: rgba(199, 125, 255, 0.75);
   box-shadow:
-    0 0 18px rgba(200, 100, 255, 0.58),
-    0 0 36px rgba(200, 100, 255, 0.28),
-    inset 0 0 24px rgba(200, 100, 255, 0.18);
+    0 0 16px rgba(199, 125, 255, 0.55),
+    0 0 32px rgba(199, 125, 255, 0.2),
+    inset 0 0 20px rgba(199, 125, 255, 0.08);
 }
 
 .gridTextbook .tbCellBtn.tbNoble,
 .gridTextbook .tbCellStatic.tbNoble,
 .fRowBand .tbCellBtn.tbNoble,
 .fRowBand .tbCellStatic.tbNoble {
-  background: linear-gradient(145deg, rgba(60, 95, 150, 0.96), rgba(35, 55, 95, 0.98));
-  border-color: rgba(190, 220, 255, 0.78);
+  --pt-neon: #a8e8ff;
+  --pt-glow: rgba(168, 232, 255, 0.35);
+  background: rgba(4, 10, 18, 0.92);
+  border-color: rgba(168, 232, 255, 0.38);
   box-shadow:
-    0 0 10px rgba(160, 200, 255, 0.34),
-    inset 0 0 20px rgba(160, 200, 255, 0.12);
-  color: rgba(235, 245, 255, 0.98);
+    0 0 8px var(--pt-glow),
+    inset 0 0 16px rgba(168, 232, 255, 0.04);
 }
 
 .gridTextbook .tbCellBtn.tbNoble:hover,
 .fRowBand .tbCellBtn.tbNoble:hover {
-  border-color: rgba(220, 235, 255, 0.95);
+  border-color: rgba(168, 232, 255, 0.7);
   box-shadow:
-    0 0 18px rgba(160, 200, 255, 0.55),
-    0 0 36px rgba(160, 200, 255, 0.24),
-    inset 0 0 24px rgba(160, 200, 255, 0.16);
+    0 0 16px rgba(168, 232, 255, 0.5),
+    0 0 32px rgba(168, 232, 255, 0.18),
+    inset 0 0 20px rgba(168, 232, 255, 0.08);
+}
+
+.gridTextbook .tbCellBtn.tbS .tbSym,
+.gridTextbook .tbCellStatic.tbS .tbSym,
+.fRowBand .tbCellBtn.tbS .tbSym,
+.fRowBand .tbCellStatic.tbS .tbSym,
+.gridTextbook .tbCellBtn.tbP .tbSym,
+.gridTextbook .tbCellStatic.tbP .tbSym,
+.fRowBand .tbCellBtn.tbP .tbSym,
+.fRowBand .tbCellStatic.tbP .tbSym,
+.gridTextbook .tbCellBtn.tbD .tbSym,
+.gridTextbook .tbCellStatic.tbD .tbSym,
+.fRowBand .tbCellBtn.tbD .tbSym,
+.fRowBand .tbCellStatic.tbD .tbSym,
+.gridTextbook .tbCellBtn.tbF .tbSym,
+.gridTextbook .tbCellStatic.tbF .tbSym,
+.fRowBand .tbCellBtn.tbF .tbSym,
+.fRowBand .tbCellStatic.tbF .tbSym,
+.gridTextbook .tbCellBtn.tbNoble .tbSym,
+.gridTextbook .tbCellStatic.tbNoble .tbSym,
+.fRowBand .tbCellBtn.tbNoble .tbSym,
+.fRowBand .tbCellStatic.tbNoble .tbSym {
+  color: var(--pt-neon);
+  text-shadow: 0 0 14px var(--pt-glow);
 }
 
 .tbCellInner {
@@ -554,7 +741,7 @@
   font-size: calc(var(--pt-cell-h) * 0.17);
   font-weight: 700;
   line-height: 1;
-  color: rgba(200, 215, 240, 0.85);
+  color: rgba(120, 140, 170, 0.7);
 }
 
 .tbMass {
@@ -566,7 +753,7 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  color: rgba(180, 195, 225, 0.75);
+  color: rgba(100, 120, 150, 0.6);
 }
 
 .tbSym {
@@ -575,8 +762,7 @@
   font-size: calc(var(--pt-cell-h) * 0.46);
   font-weight: 800;
   line-height: 1;
-  letter-spacing: 0.03em;
-  text-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.05em;
 }
 
 .tbRu {
@@ -591,7 +777,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: rgba(200, 210, 235, 0.88);
+  color: rgba(130, 145, 175, 0.65);
   padding-bottom: 0.02rem;
 }
 
@@ -611,8 +797,8 @@
   font-size: clamp(0.48rem, 0.72vw, 0.58rem);
   font-weight: 800;
   line-height: 1;
-  color: rgba(220, 140, 255, 0.9);
-  text-shadow: 0 0 6px rgba(200, 100, 255, 0.5);
+  color: rgba(255, 45, 149, 0.85);
+  text-shadow: 0 0 8px rgba(255, 45, 149, 0.55);
 }
 
 .gridTextbook .legendRow {
@@ -641,35 +827,43 @@
   width: 0.95rem;
   height: 0.95rem;
   flex-shrink: 0;
-  border-radius: 0.22rem;
+  border-radius: 0.18rem;
+  background: rgba(3, 6, 14, 0.95);
 }
 
 .legendTextbookSwatch.tbS {
-  background: linear-gradient(145deg, rgba(35, 130, 65, 0.95), rgba(18, 70, 40, 0.98));
-  border: 1px solid rgba(140, 255, 100, 0.75);
-  box-shadow: 0 0 8px rgba(140, 255, 100, 0.4);
+  border: 1px solid rgba(0, 255, 170, 0.65);
+  box-shadow: 0 0 8px rgba(0, 255, 170, 0.4);
 }
 
 .legendTextbookSwatch.tbP {
-  background: linear-gradient(145deg, rgba(210, 170, 35, 0.95), rgba(150, 115, 20, 0.98));
-  border: 1px solid rgba(255, 230, 100, 0.75);
-  box-shadow: 0 0 8px rgba(255, 210, 80, 0.4);
+  border: 1px solid rgba(255, 45, 149, 0.65);
+  box-shadow: 0 0 8px rgba(255, 45, 149, 0.4);
 }
 
 .legendTextbookSwatch.tbD {
-  background: linear-gradient(145deg, rgba(45, 100, 200, 0.95), rgba(25, 55, 130, 0.98));
-  border: 1px solid rgba(120, 190, 255, 0.75);
-  box-shadow: 0 0 8px rgba(100, 170, 255, 0.4);
+  border: 1px solid rgba(77, 166, 255, 0.65);
+  box-shadow: 0 0 8px rgba(77, 166, 255, 0.4);
 }
 
 .legendTextbookSwatch.tbF {
-  background: linear-gradient(145deg, rgba(140, 70, 190, 0.95), rgba(75, 35, 115, 0.98));
-  border: 1px solid rgba(220, 140, 255, 0.75);
-  box-shadow: 0 0 8px rgba(200, 100, 255, 0.4);
+  border: 1px solid rgba(199, 125, 255, 0.65);
+  box-shadow: 0 0 8px rgba(199, 125, 255, 0.4);
 }
 
 .legendTextbookSwatch.tbNoble {
-  background: linear-gradient(145deg, rgba(55, 80, 130, 0.95), rgba(30, 45, 80, 0.98));
-  border: 1px solid rgba(180, 210, 255, 0.7);
-  box-shadow: 0 0 8px rgba(160, 200, 255, 0.35);
+  border: 1px solid rgba(168, 232, 255, 0.6);
+  box-shadow: 0 0 8px rgba(168, 232, 255, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panelGlow,
+  .gridScan::after,
+  .titleGem {
+    animation: none;
+  }
+
+  .gridTextbook .tbCellBtn:hover {
+    transform: none;
+  }
 }

@@ -17,6 +17,9 @@ import { buildReactorPreviewAtoms, reactorPreviewAtomScale } from './reactorPrev
 import { getReactorVisualTier, type ReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 
+/** Кадры после смены коэффициентов — не дёргать layout/guard (refs ещё монтируются). */
+const LAYOUT_SETTLE_FRAMES = 8
+
 /**
  * Превью реагентов: полная структура атома (протоны, нейтроны, электроны).
  * При flightActive позиции управляет GSAP (SynthesisConvergeStreams), не useFrame.
@@ -58,11 +61,13 @@ export function ReactorTermsPreview({
     () => terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|'),
     [terms],
   )
+  const termIds = useMemo(() => terms.map((t) => t.id), [terms])
 
   const n = previewAtoms.length
   const groupRef = useRef<THREE.Group>(null)
   const visibilityGuardRef = useRef(createReactorPreviewVisibilityGuard())
   const guardFrameRef = useRef(0)
+  const settleFramesRef = useRef(0)
   const atomGroupRefsLocal = useRef<(THREE.Group | null)[]>([])
   const atomScaleGroupRefsLocal = useRef<(THREE.Group | null)[]>([])
   const atomGroupRefs = atomGroupRefsExternal ?? atomGroupRefsLocal
@@ -92,9 +97,9 @@ export function ReactorTermsPreview({
   /** Только расширяем массивы — не затираем refs после bind (гонка с SynthesisConvergeStreams). */
   useLayoutEffect(() => {
     while (atomGroupRefs.current.length < n) atomGroupRefs.current.push(null)
+    if (atomGroupRefs.current.length > n) atomGroupRefs.current.length = n
     while (atomScaleGroupRefs.current.length < n) atomScaleGroupRefs.current.push(null)
-    atomGroupRefs.current.length = n
-    atomScaleGroupRefs.current.length = n
+    if (atomScaleGroupRefs.current.length > n) atomScaleGroupRefs.current.length = n
   }, [n, atomGroupRefs, atomScaleGroupRefs])
 
   const syncLayout = useCallback(() => {
@@ -104,6 +109,7 @@ export function ReactorTermsPreview({
   useLayoutEffect(() => {
     visibilityGuardRef.current.reset()
     guardFrameRef.current = 0
+    settleFramesRef.current = LAYOUT_SETTLE_FRAMES
   }, [termsSig, n])
 
   useLayoutEffect(() => {
@@ -111,17 +117,12 @@ export function ReactorTermsPreview({
     syncLayout()
   }, [flightActive, poseLocked, termsSig, syncLayout])
 
-  useEffect(() => {
-    if (flightActive || poseLocked || n === 0) return
-    const id = requestAnimationFrame(() => syncLayout())
-    return () => cancelAnimationFrame(id)
-  }, [flightActive, poseLocked, termsSig, n, syncLayout])
-
   useFrame((s) => {
+    if (settleFramesRef.current > 0) settleFramesRef.current -= 1
+    const layoutSettling = settleFramesRef.current > 0
+
     guardFrameRef.current += 1
-    if (
-      shouldRunGuardTick(guardFrameRef.current, visibilityGuardEvery)
-    ) {
+    if (shouldRunGuardTick(guardFrameRef.current, visibilityGuardEvery)) {
       visibilityGuardRef.current.tick({
         atomCount: n,
         atomGroupRefs,
@@ -130,11 +131,12 @@ export function ReactorTermsPreview({
         previewAtoms,
         rootVisible: visible,
         flightActive,
+        layoutSettling,
         onRecover: syncLayout,
       })
     }
 
-    if (!visible || flightActive) return
+    if (!visible || flightActive || layoutSettling) return
     const t = s.clock.elapsedTime
     const root = groupRef.current
     if (root && slowSpin) root.rotation.y = t * (n > 18 ? 0.032 : 0.04)
@@ -178,9 +180,10 @@ export function ReactorTermsPreview({
           atomZ: atom.z,
           forceLite,
         })
+        const termKey = termIds[atom.termIndex] ?? `t${atom.termIndex}`
         return (
           <group
-            key={`${atom.termIndex}-${atom.atomInTerm}-${atom.z}-${i}`}
+            key={`${termKey}-${atom.atomInTerm}-${atom.z}`}
             position={atom.pos}
             ref={(el) => {
               atomGroupRefs.current[i] = el
@@ -195,10 +198,10 @@ export function ReactorTermsPreview({
               <AtomStructureModel
                 z={atom.z}
                 animate={electronAnimate}
-                previewStatic={false}
+                previewStatic={flightActive}
                 previewEmphasis
-                synthesisDetail={useFullDetail}
-                previewLite={!useFullDetail}
+                synthesisDetail={useFullDetail && !flightActive}
+                previewLite={!useFullDetail || flightActive}
                 electronFrameSkip={atomPolicy.electronFrameSkip}
                 hideOrbitRings={visualTier === 'cluster'}
                 localLight={!sharedLighting}

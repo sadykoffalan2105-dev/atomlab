@@ -20,6 +20,8 @@ export const SYNTHESIS_PERF = {
   liteFxAtomThreshold: 16,
   /** Плотное превью: реже drift/guard */
   denseAtomThreshold: 10,
+  /** Lite с первого кадра синтеза при ≥ N атомов */
+  synthLiteStartThreshold: 6,
   /** Полная детализация AtomStructureModel (орбиты 48 seg) */
   fullDetailAtomThreshold: 12,
   /** Макс. атомов с анимацией электронов */

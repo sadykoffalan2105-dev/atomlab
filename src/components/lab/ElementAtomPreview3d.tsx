@@ -1,7 +1,8 @@
 import { Suspense, useLayoutEffect, useRef } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { OrbitControls, Stars } from '@react-three/drei'
 import { LearnElementVisual } from '../learn/LearnCatalogVisual'
+import { AtomCosmicBloom } from './atom/AtomCosmicBloom'
 import { ELEMENT_ATOM_PREVIEW_VIEW } from './labOrbitConstants'
 import { CanvasErrorBoundary } from '../common/CanvasErrorBoundary'
 import { bohrShellCountsFromConfig } from '../../data/elementConfigDisplay'
@@ -48,15 +49,20 @@ function CanvasSizeBootstrap() {
   return null
 }
 
-function ElementAtomScene({ z }: { z: number }) {
+function ElementAtomScene({ z, cpkHex }: { z: number; cpkHex: string }) {
   const view = ELEMENT_ATOM_PREVIEW_VIEW
+  const accent = cpkHex.startsWith('#') ? cpkHex : `#${cpkHex}`
   return (
     <>
-      <color attach="background" args={['#0a1628']} />
-      <fog attach="fog" args={['#060a14', 3.5, 10]} />
+      <color attach="background" args={['#03040a']} />
+      <fog attach="fog" args={['#03040a', 4, 12]} />
+      <Stars radius={80} depth={40} count={600} factor={2.5} saturation={0} fade speed={0.2} />
+      <ambientLight intensity={0.12} />
+      <pointLight position={[1.2, 1, 2]} intensity={0.4} distance={10} color={accent} />
       <group scale={view.modelScale}>
-        <LearnElementVisual z={z} autoRotate />
+        <LearnElementVisual z={z} autoRotate cpkHex={accent} />
       </group>
+      <AtomCosmicBloom intensity={0.78} luminanceThreshold={0.36} />
       <OrbitControls
         enablePan={false}
         enableZoom
@@ -115,7 +121,7 @@ export function ElementAtomPreview3d({ z, fullConfig, cpkHex, symbol }: Props) {
           >
             <Suspense fallback={null}>
               <CanvasSizeBootstrap />
-              <ElementAtomScene z={z} />
+              <ElementAtomScene z={z} cpkHex={cpkHex} />
             </Suspense>
           </Canvas>
         </CanvasErrorBoundary>

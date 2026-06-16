@@ -27,13 +27,27 @@ try {
   process.exit(1)
 }
 
-async function fetchBuffer(url) {
+async function fetchBuffer(url, attempt = 1) {
   const res = await fetch(url, {
     redirect: 'follow',
     headers: { 'User-Agent': 'ATOMLAB/1.0 (education; element photos)' },
   })
+  if (res.status === 429 && attempt < 6) {
+    const wait = 4000 * attempt
+    console.warn(`  rate limit, retry in ${wait / 1000}s…`)
+    await sleep(wait)
+    return fetchBuffer(url, attempt + 1)
+  }
   if (!res.ok) throw new Error(`${res.status} ${url}`)
   return Buffer.from(await res.arrayBuffer())
+}
+
+function wikiMarkerPath(out) {
+  return `${out}.wiki`
+}
+
+function hasWikiPhoto(out) {
+  return fs.existsSync(wikiMarkerPath(out))
 }
 
 const raw = JSON.parse(fs.readFileSync(path.join(root, 'src/data/periodicTableRaw.json'), 'utf8'))
@@ -49,7 +63,9 @@ let skipped = 0
 for (const p of profiles) {
   const file = `${String(p.z).padStart(3, '0')}-${p.symbol}.webp`
   const out = path.join(outDir, file)
-  if (!force && fs.existsSync(out)) {
+  const wikiUrl = ELEMENT_WIKI_PHOTOS[p.symbol]
+
+  if (!force && fs.existsSync(out) && (!tryWiki || hasWikiPhoto(out) || !wikiUrl)) {
     skipped++
     continue
   }
@@ -57,21 +73,27 @@ for (const p of profiles) {
   const meta = metaByZ.get(p.z)
   const cpk = meta?.cPKHexColor?.replace(/^#/, '') ?? '8899aa'
 
-  if (tryWiki && ELEMENT_WIKI_PHOTOS[p.symbol]) {
+  if (tryWiki && wikiUrl) {
     try {
-      await sleep(2500)
-      const buf = await fetchBuffer(ELEMENT_WIKI_PHOTOS[p.symbol])
+      await sleep(4000)
+      const buf = await fetchBuffer(wikiUrl)
       await sharp(buf)
         .rotate()
         .resize(1200, 675, { fit: 'cover', position: 'attention' })
         .sharpen({ sigma: 0.6 })
         .webp({ quality: 88 })
         .toFile(out)
+      fs.writeFileSync(wikiMarkerPath(out), wikiUrl, 'utf8')
       wikiOk++
       console.log(`✓ ${file} (wiki)`)
       continue
     } catch (err) {
       console.warn(`✗ ${file} wiki: ${err.message}`)
+      if (hasWikiPhoto(out)) {
+        console.log(`  kept previous wiki ${file}`)
+        continue
+      }
+      continue
     }
   }
 

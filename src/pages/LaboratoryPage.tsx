@@ -289,7 +289,9 @@ export function LaboratoryPage() {
 
   const onCoeffChange = useCallback((id: string, coeff: number) => {
     const c = Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(Number.isFinite(coeff) ? coeff : 1)))
-    setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
+    startTransition(() => {
+      setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
+    })
   }, [])
 
   const openReactorCatalog = useCallback((intent: ReactorCatalogIntent) => {
@@ -598,6 +600,22 @@ export function LaboratoryPage() {
     if (!reactorOpen) return null
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
+  /** 3D-превью — отложенное обновление, чтобы при +/- коэффициента не мигали атомы. */
+  const deferredReactorPreviewTerms = useDeferredValue(reactorPreviewTerms)
+
+  const gpuPrewarmCompound = useMemo(() => {
+    if (!reactorOpen || !productCompound) return null
+    if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
+    if (equationBalanced) return productCompound
+    return null
+  }, [
+    reactorOpen,
+    productCompound,
+    equationBalanced,
+    synthRunActive,
+    lastRunProduct,
+    prewarmCompound,
+  ])
 
   return (
     <div className={styles.wrap} data-lab-synthesis-view={laboratorySynthesisView}>
@@ -621,16 +639,14 @@ export function LaboratoryPage() {
           onInspectAtom={reactorOpen ? undefined : setStructureZ}
           synthesis={labSynthesis}
           synthesisRunActive={synthRunActive}
-          reactorPreviewTerms={reactorPreviewTerms}
+          reactorPreviewTerms={deferredReactorPreviewTerms}
           transformPreviewCompound={transformPreviewCompound}
           reactorViewOpen={reactorOpen}
           synthesisSettledProduct={synthesisSettledProduct}
           laboratorySynthesisView={laboratorySynthesisView}
           synthesisPhase={synthPhaseUi}
           forceLiteFxRef={forceLiteFxRef}
-          prewarmProductCompound={
-            synthRunActive ? (lastRunProduct ?? prewarmCompound) : null
-          }
+          prewarmProductCompound={gpuPrewarmCompound}
         />
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />

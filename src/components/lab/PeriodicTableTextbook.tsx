@@ -151,8 +151,23 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
   return (
     <div className={`${tbStyles.textbookWrap} ${wrapClassName ?? ''}`}>
       <div className={tbStyles.panelGlow} aria-hidden />
-      <h2 className={tbStyles.textbookTitle}>{t('periodic.textbookTitle')}</h2>
+      <h2 className={tbStyles.textbookTitle}>
+        <span className={tbStyles.titleMark} aria-hidden>⟨</span>
+        {t('periodic.textbookTitle')}
+        <span className={tbStyles.titleMark} aria-hidden>⟩</span>
+      </h2>
+      <div className={tbStyles.titleOrnament} aria-hidden>
+        <span className={tbStyles.titleLine} />
+        <span className={tbStyles.titleGem}>◆</span>
+        <span className={tbStyles.titleLine} />
+      </div>
       <p className={tbStyles.textbookGroupsLabel}>{t('periodic.groupsAxis')}</p>
+
+      <div className={tbStyles.gridFrame}>
+        <div className={tbStyles.orbitHalo} aria-hidden />
+        <span className={tbStyles.frameTag} data-side="left" aria-hidden>PSХЭ·118</span>
+        <span className={tbStyles.frameTag} data-side="right" aria-hidden>ATOMLAB</span>
+        <div className={tbStyles.gridScan} aria-hidden />
 
       <div className={tbStyles.gridTextbook}>
         <div
@@ -303,6 +318,7 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   )

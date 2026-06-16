@@ -203,6 +203,9 @@ export const messagesEn: Record<MessageKey, string> = {
 
   'elementDetail.cpkNotSet': 'not set',
   'elementDetail.photoAlt': 'Sample photo: {name}',
+  'elementDetail.natureSection': 'In nature',
+  'elementDetail.realPhoto': 'Real sample',
+  'elementDetail.nature3dHint': '3D macro sample model',
   'elementDetail.structureSection': 'Atomic structure',
   'elementDetail.physicalSection': 'Physical properties',
   'elementDetail.usesSection': 'Applications',

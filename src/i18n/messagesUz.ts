@@ -203,6 +203,9 @@ export const messagesUz: Record<MessageKey, string> = {
 
   'elementDetail.cpkNotSet': 'belgilanmagan',
   'elementDetail.photoAlt': 'Namuna fotosi: {name}',
+  'elementDetail.natureSection': 'Tabiatda',
+  'elementDetail.realPhoto': 'Haqiqiy namuna',
+  'elementDetail.nature3dHint': '3D makro namuna modeli',
   'elementDetail.structureSection': 'Atom tuzilishi',
   'elementDetail.physicalSection': 'Fizik xossalar',
   'elementDetail.usesSection': 'Qo\'llanilishi',

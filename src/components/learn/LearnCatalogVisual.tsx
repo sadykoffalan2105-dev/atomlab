@@ -1,4 +1,5 @@
 import { AtomStructureModel } from '../lab/AtomStructureModel'
+import { getElementByZ } from '../../data/elements'
 import { CatalogSubstanceDisplay } from '../lab/CatalogSubstanceDisplay'
 import { compoundById } from '../../data/compounds'
 import type { CompoundDef } from '../../types/chemistry'
@@ -34,16 +35,27 @@ export function LearnCatalogVisual({
 export function LearnElementVisual({
   z,
   autoRotate = true,
+  cpkHex,
 }: {
   z: number
   autoRotate?: boolean
+  cpkHex?: string
 }) {
+  const el = getElementByZ(z)
+  const accent = cpkHex ?? (el?.cpkHex ? `#${el.cpkHex}` : '#4488ff')
   return (
     <>
-      <SceneLights accent="#3dffec" />
+      <SceneLights accent={accent} />
       <SpinGroup autoRotate={autoRotate} speed={0.1}>
         <group scale={1.15}>
-          <AtomStructureModel z={z} animate previewEmphasis previewLite />
+          <AtomStructureModel
+            z={z}
+            animate
+            previewEmphasis
+            previewLite
+            accentHex={accent}
+            cosmicStyle
+          />
         </group>
       </SpinGroup>
     </>

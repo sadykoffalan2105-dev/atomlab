@@ -1,49 +1,75 @@
-import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getElementByZ, estimateNeutrons } from '../../data/elements'
-
-const PROTON_COLOR = new THREE.Color('#ff5a6a')
-const NEUTRON_COLOR = new THREE.Color('#6bcfff')
-const ELECTRON_COLOR = new THREE.Color('#3dffec')
+import { AtomElementNebula } from './atom/AtomElementNebula'
+import { AtomOrbitRings } from './atom/AtomOrbitRings'
+import {
+  ATOM_ELECTRON_COLOR,
+  ATOM_ELECTRON_HALO,
+  ATOM_NEUTRON_COLOR,
+  ATOM_PROTON_COLOR,
+  orbitAspect,
+  setElectronOnEllipse,
+  shellMajorRadius,
+  shellOrbitEuler,
+} from './atom/atomCosmicShared'
 
 const MAX_Z = 118
 const MAX_NEUTRONS = 220
 
-const _v = new THREE.Vector3()
-const _euler = new THREE.Euler()
+const SHARED_ELEC_HALO_GEO = new THREE.SphereGeometry(0.055, 10, 10)
 
-/** Shared GPU resources — не создавать 15× на каждый экземпляр. */
-const SHARED_PROT_GEO = new THREE.SphereGeometry(0.024, 8, 8)
-const SHARED_ELEC_GEO_STD = new THREE.SphereGeometry(0.036, 8, 8)
-const SHARED_ELEC_GEO_EMPH = new THREE.SphereGeometry(0.042, 8, 8)
-const SHARED_PROT_MAT = new THREE.MeshStandardMaterial({
-  color: PROTON_COLOR,
-  emissive: PROTON_COLOR,
-  emissiveIntensity: 0.5,
-  metalness: 0.12,
-  roughness: 0.42,
-})
-const SHARED_NEUT_MAT = new THREE.MeshStandardMaterial({
-  color: NEUTRON_COLOR,
-  emissive: NEUTRON_COLOR,
-  emissiveIntensity: 0.45,
-  metalness: 0.12,
-  roughness: 0.42,
-})
+function createNucleonMaterials(cosmic: boolean) {
+  return {
+    prot: new THREE.MeshStandardMaterial({
+      color: ATOM_PROTON_COLOR,
+      emissive: ATOM_PROTON_COLOR,
+      emissiveIntensity: cosmic ? 0.62 : 0.4,
+      metalness: 0.1,
+      roughness: cosmic ? 0.48 : 0.6,
+    }),
+    neut: new THREE.MeshStandardMaterial({
+      color: ATOM_NEUTRON_COLOR,
+      emissive: ATOM_NEUTRON_COLOR,
+      emissiveIntensity: cosmic ? 0.45 : 0.25,
+      metalness: 0.1,
+      roughness: cosmic ? 0.52 : 0.64,
+    }),
+  }
+}
+
+function nucleonSphereRadius(cosmic: boolean, total: number): number {
+  if (!cosmic) return 0.022
+  if (total <= 14) return 0.044
+  if (total <= 36) return 0.038
+  if (total <= 70) return 0.031
+  return 0.026
+}
+
+const SHARED_ELEC_GEO_STD = new THREE.SphereGeometry(0.028, 12, 12)
+const SHARED_ELEC_GEO_EMPH = new THREE.SphereGeometry(0.036, 14, 14)
+
 const SHARED_ELEC_MAT = new THREE.MeshStandardMaterial({
-  color: ELECTRON_COLOR,
-  emissive: ELECTRON_COLOR,
-  emissiveIntensity: 1.65,
-  metalness: 0.2,
-  roughness: 0.35,
+  color: ATOM_ELECTRON_COLOR,
+  emissive: ATOM_ELECTRON_COLOR,
+  emissiveIntensity: 3.2,
+  metalness: 0.1,
+  roughness: 0.2,
 })
 const SHARED_ELEC_MAT_EMPH = new THREE.MeshStandardMaterial({
-  color: ELECTRON_COLOR,
-  emissive: ELECTRON_COLOR,
-  emissiveIntensity: 2,
-  metalness: 0.2,
-  roughness: 0.35,
+  color: ATOM_ELECTRON_COLOR,
+  emissive: ATOM_ELECTRON_COLOR,
+  emissiveIntensity: 4,
+  metalness: 0.1,
+  roughness: 0.16,
+})
+const SHARED_ELEC_HALO_MAT = new THREE.MeshBasicMaterial({
+  color: ATOM_ELECTRON_HALO,
+  transparent: true,
+  opacity: 0.35,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
 })
 
 function shellCap(n: number): number {
@@ -78,26 +104,6 @@ function nucleonOnSphere(i: number, total: number, radius: number, phase: number
   target.set(Math.cos(t) * rr * radius, y * radius, Math.sin(t) * rr * radius)
 }
 
-function setElectronOnTorusMajorCircle(
-  target: THREE.Vector3,
-  majorR: number,
-  angle: number,
-  torusEulerX: number,
-  torusEulerY: number,
-  torusEulerZ: number,
-): void {
-  _euler.set(torusEulerX, torusEulerY, torusEulerZ)
-  _v.set(majorR * Math.cos(angle), majorR * Math.sin(angle), 0)
-  _v.applyEuler(_euler)
-  target.copy(_v)
-}
-
-function shellHue(shellIndex: number): THREE.Color {
-  const c = new THREE.Color()
-  c.setHSL((0.52 + shellIndex * 0.09) % 1, 0.65, 0.55)
-  return c
-}
-
 export function AtomStructureModel({
   z,
   animate = true,
@@ -106,27 +112,28 @@ export function AtomStructureModel({
   previewEmphasis = false,
   previewLite = false,
   hideOrbitRings = false,
-  /** Реактор/синтез: крупное ядро, орбиты и электроны как в режиме просмотра атома. */
   synthesisDetail = false,
-  /** Пропуск кадров анимации электронов (1 = каждый кадр, 2 = через один). */
   electronFrameSkip = 1,
+  accentHex,
+  cosmicStyle = true,
 }: {
   z: number
   animate?: boolean
   localLight?: boolean
   previewStatic?: boolean
   previewEmphasis?: boolean
-  /** Плотное превью: электроны крутятся, без локального вращения группы (экономия GPU). */
   previewLite?: boolean
-  /** Реактор: только ядро и электроны, без цветных орбитальных колец. */
   hideOrbitRings?: boolean
   synthesisDetail?: boolean
   electronFrameSkip?: number
+  accentHex?: string
+  cosmicStyle?: boolean
 }) {
   const group = useRef<THREE.Group>(null)
   const protRef = useRef<THREE.InstancedMesh>(null)
   const neutRef = useRef<THREE.InstancedMesh>(null)
   const elecRef = useRef<THREE.InstancedMesh>(null)
+  const elecGlowRef = useRef<THREE.InstancedMesh>(null)
   const frameTick = useRef(0)
   const dummy = useMemo(() => new THREE.Object3D(), [])
 
@@ -134,62 +141,74 @@ export function AtomStructureModel({
   const lite = synthesisDetail ? zClamped > 54 : previewLite || zClamped > 18
   const showRings = synthesisDetail ? true : !hideOrbitRings
   const shellMul = synthesisDetail ? 1.08 : 1
-  const protGeo = SHARED_PROT_GEO
-  const elecGeo = previewEmphasis || synthesisDetail ? SHARED_ELEC_GEO_EMPH : SHARED_ELEC_GEO_STD
-  const protMat = SHARED_PROT_MAT
-  const neutMat = SHARED_NEUT_MAT
-  const elecMat = previewEmphasis || synthesisDetail ? SHARED_ELEC_MAT_EMPH : SHARED_ELEC_MAT
+  const showNebula = cosmicStyle && !hideOrbitRings
 
   const el = getElementByZ(zClamped)
   const mass = el?.atomicMass ?? zClamped * 2
   const nNeutrons = estimateNeutrons(mass, zClamped)
+  const nebulaHex = accentHex ?? (el?.cpkHex ? `#${el.cpkHex}` : '#4488ff')
+  const totalNucleons = zClamped + Math.max(0, nNeutrons)
+
+  const nucleonR = useMemo(
+    () => nucleonSphereRadius(cosmicStyle, totalNucleons),
+    [cosmicStyle, totalNucleons],
+  )
+  const nucleonGeo = useMemo(
+    () => new THREE.SphereGeometry(nucleonR, cosmicStyle ? 14 : 10, cosmicStyle ? 12 : 10),
+    [nucleonR, cosmicStyle],
+  )
+  const nucleonMats = useMemo(() => createNucleonMaterials(cosmicStyle), [cosmicStyle])
+
+  useEffect(() => () => nucleonGeo.dispose(), [nucleonGeo])
+
+  const elecGeo = previewEmphasis || synthesisDetail ? SHARED_ELEC_GEO_EMPH : SHARED_ELEC_GEO_STD
+  const elecMat = previewEmphasis || synthesisDetail ? SHARED_ELEC_MAT_EMPH : SHARED_ELEC_MAT
+  const showElectronHalos = cosmicStyle && !lite
 
   const shells = useMemo(() => bohrShellElectronCounts(zClamped), [zClamped])
   const nElec = useMemo(() => totalElectrons(shells), [shells])
 
+  const outerOrbitR = useMemo(() => {
+    let max = 0.36
+    shells.forEach((count, shellIdx) => {
+      if (count > 0) max = Math.max(max, shellMajorRadius(shellIdx, shellMul))
+    })
+    return max
+  }, [shells, shellMul])
+
   const nucleusRadius = useMemo(() => {
-    const n = Math.max(1, nNeutrons)
-    const total = zClamped + n
-    const cap = synthesisDetail ? 0.145 : 0.12
-    const grow = synthesisDetail ? 1.14 : 1
-    return Math.min(cap, (0.024 + Math.cbrt(total) * 0.012) * grow)
-  }, [zClamped, nNeutrons, synthesisDetail])
+    const total = totalNucleons
+    const cap = synthesisDetail ? 0.19 : cosmicStyle ? 0.17 : 0.11
+    const base = cosmicStyle ? 0.034 : 0.022
+    return Math.min(cap, base + Math.cbrt(Math.max(1, total)) * (cosmicStyle ? 0.018 : 0.01))
+  }, [totalNucleons, synthesisDetail, cosmicStyle])
 
   const angles = useRef<number[]>([])
-  const orbitOpacity = synthesisDetail ? 0.42 : previewEmphasis ? 0.38 : 0.26
-  const torusSegments = lite
-    ? 12
-    : synthesisDetail
-      ? 32
-      : previewLite
-        ? 24
-        : 40
 
   useLayoutEffect(() => {
     angles.current = Array.from({ length: nElec }, (_, i) => (i / Math.max(1, nElec)) * Math.PI * 2)
   }, [nElec])
 
-  const totalNucleons = zClamped + Math.max(0, nNeutrons)
-
   const writeElectronMatrices = useCallback(
     (spin: number) => {
       const mesh = elecRef.current
+      const glow = elecGlowRef.current
       if (!mesh || nElec === 0) return
       let idx = 0
       shells.forEach((count, shellIdx) => {
         if (count <= 0) return
-        const majorR = (0.38 + shellIdx * 0.21) * shellMul
-        const eRx = (shellIdx * Math.PI) / 6
-        const eRy = (shellIdx * Math.PI) / 5
-        const eRz = (shellIdx * Math.PI) / 7
+        const majorR = shellMajorRadius(shellIdx, shellMul)
+        const aspect = orbitAspect(shellIdx)
+        const [eRx, eRy, eRz] = shellOrbitEuler(shellIdx)
         const speed = 0.65 + shellIdx * 0.12
         for (let i = 0; i < count; i++) {
           angles.current[idx] = (angles.current[idx] ?? 0) + spin * speed
           const phase = (i / count) * Math.PI * 2
-          setElectronOnTorusMajorCircle(
+          setElectronOnEllipse(
             dummy.position,
             majorR,
             angles.current[idx]! + phase,
+            aspect,
             eRx,
             eRy,
             eRz,
@@ -198,11 +217,21 @@ export function AtomStructureModel({
           dummy.scale.setScalar(1)
           dummy.updateMatrix()
           mesh.setMatrixAt(idx, dummy.matrix)
+          if (glow) {
+            dummy.scale.setScalar(1.65)
+            dummy.updateMatrix()
+            glow.setMatrixAt(idx, dummy.matrix)
+            dummy.scale.setScalar(1)
+          }
           idx++
         }
       })
       mesh.count = nElec
       mesh.instanceMatrix.needsUpdate = true
+      if (glow) {
+        glow.count = nElec
+        glow.instanceMatrix.needsUpdate = true
+      }
     },
     [dummy, nElec, shells, shellMul],
   )
@@ -251,38 +280,76 @@ export function AtomStructureModel({
     if (frameTick.current % skip !== 0) return
 
     const spin = animate && !lite
-    if (spin && group.current) group.current.rotation.y += delta * 0.09
+    if (spin && group.current) group.current.rotation.y += delta * 0.055
     writeElectronMatrices(animate ? delta * skip : 0)
   })
 
   return (
     <group ref={group}>
-      <instancedMesh ref={protRef} args={[protGeo, protMat, MAX_Z]} frustumCulled={false} />
-      <instancedMesh ref={neutRef} args={[protGeo, neutMat, MAX_NEUTRONS]} frustumCulled={false} />
-      {!showRings
-        ? null
-        : shells.map((count, shellIdx) => {
-            if (count <= 0) return null
-            const majorR = (0.38 + shellIdx * 0.21) * shellMul
-            const col = shellHue(shellIdx)
-            const eRx = (shellIdx * Math.PI) / 6
-            const eRy = (shellIdx * Math.PI) / 5
-            const eRz = (shellIdx * Math.PI) / 7
-            return (
-              <mesh key={`torus-${shellIdx}`} rotation={[eRx, eRy, eRz]}>
-                <torusGeometry args={[majorR, 0.005, 6, torusSegments]} />
-                <meshBasicMaterial
-                  color={col}
-                  transparent
-                  opacity={orbitOpacity}
-                  depthWrite={false}
-                />
-              </mesh>
-            )
-          })}
-      <instancedMesh ref={elecRef} args={[elecGeo, elecMat, MAX_Z]} frustumCulled={false} />
+      {showNebula ? (
+        <AtomElementNebula
+          accentHex={nebulaHex}
+          lite={lite}
+          outerOrbitR={outerOrbitR}
+        />
+      ) : null}
+
+      <group renderOrder={4}>
+        <instancedMesh
+          key={`prot-${nucleonR}`}
+          ref={protRef}
+          args={[nucleonGeo, nucleonMats.prot, MAX_Z]}
+          frustumCulled={false}
+          renderOrder={6}
+        />
+        <instancedMesh
+          key={`neut-${nucleonR}`}
+          ref={neutRef}
+          args={[nucleonGeo, nucleonMats.neut, MAX_NEUTRONS]}
+          frustumCulled={false}
+          renderOrder={6}
+        />
+        {cosmicStyle ? (
+          <pointLight position={[0, 0, 0]} intensity={1.1} distance={nucleusRadius * 8} color="#ff7a55" />
+        ) : null}
+      </group>
+
+      {showRings ? (
+        <AtomOrbitRings
+          shells={shells}
+          shellMul={shellMul}
+          lite={lite}
+          synthesisDetail={synthesisDetail}
+          accentHex={nebulaHex}
+        />
+      ) : null}
+
+      {showElectronHalos ? (
+        <instancedMesh
+          ref={elecGlowRef}
+          args={[SHARED_ELEC_HALO_GEO, SHARED_ELEC_HALO_MAT, MAX_Z]}
+          frustumCulled={false}
+          renderOrder={3}
+        />
+      ) : null}
+
+      <instancedMesh
+        ref={elecRef}
+        args={[elecGeo, elecMat, MAX_Z]}
+        frustumCulled={false}
+        renderOrder={5}
+      />
+
       {localLight && (!lite || synthesisDetail) ? (
-        <pointLight position={[0, 0, 0]} intensity={synthesisDetail ? 1.35 : 1.05} distance={4.8} color="#7afcff" />
+        <>
+          <pointLight
+            position={[0, 0, 0]}
+            intensity={synthesisDetail ? 1.6 : 1.35}
+            distance={outerOrbitR * 3.5}
+            color={nebulaHex}
+          />
+          <pointLight position={[0.6, 0.4, 1]} intensity={0.55} distance={8} color={nebulaHex} />
+        </>
       ) : null}
     </group>
   )

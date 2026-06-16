@@ -1,0 +1,67 @@
+.strip {
+  display: flex;
+  align-items: stretch;
+  gap: 0.55rem;
+  margin: 0 0 0.65rem;
+  padding: 0.45rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  background: rgba(3, 8, 18, 0.82);
+  min-height: 0;
+}
+
+.photoWrap {
+  flex-shrink: 0;
+  width: 4.75rem;
+  height: 4.75rem;
+  border-radius: 0.32rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 45, 149, 0.28);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.1);
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #060a14;
+}
+
+.textCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
+.stripTitle {
+  margin: 0;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(0, 229, 255, 0.75);
+}
+
+.caption {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: rgba(230, 238, 255, 0.95);
+}
+
+.appearance {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: rgba(160, 180, 215, 0.88);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
