@@ -2,23 +2,20 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getElementByZ, estimateNeutrons } from '../../data/elements'
+import { bohrShellCountsFromConfig } from '../../data/elementConfigDisplay'
 import { AtomElementNebula } from './atom/AtomElementNebula'
 import { AtomOrbitRings } from './atom/AtomOrbitRings'
+import { electronOrbitLanes, electronVisualScale } from './atom/atomOrbitLayout'
 import {
   ATOM_ELECTRON_COLOR,
-  ATOM_ELECTRON_HALO,
   ATOM_NEUTRON_COLOR,
   ATOM_PROTON_COLOR,
-  orbitAspect,
   setElectronOnEllipse,
   shellMajorRadius,
-  shellOrbitEuler,
 } from './atom/atomCosmicShared'
 
 const MAX_Z = 118
 const MAX_NEUTRONS = 220
-
-const SHARED_ELEC_HALO_GEO = new THREE.SphereGeometry(0.055, 10, 10)
 
 function createNucleonMaterials(cosmic: boolean) {
   return {
@@ -47,33 +44,30 @@ function nucleonSphereRadius(cosmic: boolean, total: number): number {
   return 0.026
 }
 
-const SHARED_ELEC_GEO_STD = new THREE.SphereGeometry(0.028, 12, 12)
-const SHARED_ELEC_GEO_EMPH = new THREE.SphereGeometry(0.036, 14, 14)
+const SHARED_ELEC_GEO_STD = new THREE.SphereGeometry(0.028, 8, 8)
+/** Базовый радиус белой точки в превью. */
+const SHARED_ELEC_GEO_EMPH = new THREE.SphereGeometry(0.042, 10, 10)
 
-const SHARED_ELEC_MAT = new THREE.MeshStandardMaterial({
+/** Белые точки без ореола — MeshBasic не раздувается bloom-ом. */
+const SHARED_ELEC_MAT = new THREE.MeshBasicMaterial({
   color: ATOM_ELECTRON_COLOR,
-  emissive: ATOM_ELECTRON_COLOR,
-  emissiveIntensity: 3.2,
-  metalness: 0.1,
-  roughness: 0.2,
+  toneMapped: false,
 })
-const SHARED_ELEC_MAT_EMPH = new THREE.MeshStandardMaterial({
+const SHARED_ELEC_MAT_EMPH = new THREE.MeshBasicMaterial({
   color: ATOM_ELECTRON_COLOR,
-  emissive: ATOM_ELECTRON_COLOR,
-  emissiveIntensity: 4,
-  metalness: 0.1,
-  roughness: 0.16,
-})
-const SHARED_ELEC_HALO_MAT = new THREE.MeshBasicMaterial({
-  color: ATOM_ELECTRON_HALO,
-  transparent: true,
-  opacity: 0.35,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
+  toneMapped: false,
 })
 
 function shellCap(n: number): number {
   return 2 * n * n
+}
+
+function resolveShellCounts(z: number, electronConfiguration?: string): number[] {
+  const bohr = bohrShellElectronCounts(z)
+  if (!electronConfiguration || electronConfiguration === '—') return bohr
+  const fromConfig = bohrShellCountsFromConfig(electronConfiguration)
+  const configTotal = fromConfig.reduce((a, b) => a + b, 0)
+  return configTotal === z && fromConfig.length > 0 ? fromConfig : bohr
 }
 
 function bohrShellElectronCounts(z: number): number[] {
@@ -133,14 +127,18 @@ export function AtomStructureModel({
   const protRef = useRef<THREE.InstancedMesh>(null)
   const neutRef = useRef<THREE.InstancedMesh>(null)
   const elecRef = useRef<THREE.InstancedMesh>(null)
-  const elecGlowRef = useRef<THREE.InstancedMesh>(null)
   const frameTick = useRef(0)
   const dummy = useMemo(() => new THREE.Object3D(), [])
 
   const zClamped = Math.max(1, Math.min(MAX_Z, Math.floor(z)))
-  const lite = synthesisDetail ? zClamped > 54 : previewLite || zClamped > 18
+  const fullPreview = previewEmphasis && cosmicStyle && !synthesisDetail
+  const lite = fullPreview
+    ? false
+    : synthesisDetail
+      ? zClamped > 54
+      : previewLite || zClamped > 18
   const showRings = synthesisDetail ? true : !hideOrbitRings
-  const shellMul = synthesisDetail ? 1.08 : 1
+  const shellMul = synthesisDetail ? 1.08 : fullPreview ? 1.05 : 1
   const showNebula = cosmicStyle && !hideOrbitRings
 
   const el = getElementByZ(zClamped)
@@ -163,10 +161,21 @@ export function AtomStructureModel({
 
   const elecGeo = previewEmphasis || synthesisDetail ? SHARED_ELEC_GEO_EMPH : SHARED_ELEC_GEO_STD
   const elecMat = previewEmphasis || synthesisDetail ? SHARED_ELEC_MAT_EMPH : SHARED_ELEC_MAT
-  const showElectronHalos = cosmicStyle && !lite
 
-  const shells = useMemo(() => bohrShellElectronCounts(zClamped), [zClamped])
+  const shells = useMemo(
+    () => resolveShellCounts(zClamped, el?.electronConfiguration),
+    [zClamped, el?.electronConfiguration],
+  )
   const nElec = useMemo(() => totalElectrons(shells), [shells])
+  const electronScale = useMemo(
+    () => electronVisualScale(nElec, previewEmphasis || synthesisDetail),
+    [nElec, previewEmphasis, synthesisDetail],
+  )
+  const effectiveFrameSkip = fullPreview
+    ? nElec > 80
+      ? 2
+      : 1
+    : Math.max(1, Math.floor(electronFrameSkip))
 
   const outerOrbitR = useMemo(() => {
     let max = 0.36
@@ -192,48 +201,37 @@ export function AtomStructureModel({
   const writeElectronMatrices = useCallback(
     (spin: number) => {
       const mesh = elecRef.current
-      const glow = elecGlowRef.current
       if (!mesh || nElec === 0) return
       let idx = 0
-      shells.forEach((count, shellIdx) => {
+      const lanes = electronOrbitLanes(shells, shellMul)
+      lanes.forEach(({ count, radius, aspect, euler, shellIndex }) => {
         if (count <= 0) return
-        const majorR = shellMajorRadius(shellIdx, shellMul)
-        const aspect = orbitAspect(shellIdx)
-        const [eRx, eRy, eRz] = shellOrbitEuler(shellIdx)
-        const speed = 0.65 + shellIdx * 0.12
+        const [eRx, eRy, eRz] = euler
+        const speed = 0.58 + shellIndex * 0.11
         for (let i = 0; i < count; i++) {
-          angles.current[idx] = (angles.current[idx] ?? 0) + spin * speed
+          const angleIdx = idx
+          angles.current[angleIdx] = (angles.current[angleIdx] ?? 0) + spin * speed
           const phase = (i / count) * Math.PI * 2
           setElectronOnEllipse(
             dummy.position,
-            majorR,
-            angles.current[idx]! + phase,
+            radius,
+            angles.current[angleIdx]! + phase,
             aspect,
             eRx,
             eRy,
             eRz,
           )
           dummy.quaternion.identity()
-          dummy.scale.setScalar(1)
+          dummy.scale.setScalar(electronScale)
           dummy.updateMatrix()
-          mesh.setMatrixAt(idx, dummy.matrix)
-          if (glow) {
-            dummy.scale.setScalar(1.65)
-            dummy.updateMatrix()
-            glow.setMatrixAt(idx, dummy.matrix)
-            dummy.scale.setScalar(1)
-          }
+          mesh.setMatrixAt(angleIdx, dummy.matrix)
           idx++
         }
       })
       mesh.count = nElec
       mesh.instanceMatrix.needsUpdate = true
-      if (glow) {
-        glow.count = nElec
-        glow.instanceMatrix.needsUpdate = true
-      }
     },
-    [dummy, nElec, shells, shellMul],
+    [dummy, nElec, shells, shellMul, electronScale],
   )
 
   useLayoutEffect(() => {
@@ -276,10 +274,10 @@ export function AtomStructureModel({
   useFrame((_, delta) => {
     if (previewStatic) return
     frameTick.current += 1
-    const skip = Math.max(1, Math.floor(electronFrameSkip))
+    const skip = Math.max(1, effectiveFrameSkip)
     if (frameTick.current % skip !== 0) return
 
-    const spin = animate && !lite
+    const spin = animate && (fullPreview || !lite)
     if (spin && group.current) group.current.rotation.y += delta * 0.055
     writeElectronMatrices(animate ? delta * skip : 0)
   })
@@ -289,7 +287,7 @@ export function AtomStructureModel({
       {showNebula ? (
         <AtomElementNebula
           accentHex={nebulaHex}
-          lite={lite}
+          lite={lite || (fullPreview && zClamped > 54)}
           outerOrbitR={outerOrbitR}
         />
       ) : null}
@@ -324,15 +322,6 @@ export function AtomStructureModel({
         />
       ) : null}
 
-      {showElectronHalos ? (
-        <instancedMesh
-          ref={elecGlowRef}
-          args={[SHARED_ELEC_HALO_GEO, SHARED_ELEC_HALO_MAT, MAX_Z]}
-          frustumCulled={false}
-          renderOrder={3}
-        />
-      ) : null}
-
       <instancedMesh
         ref={elecRef}
         args={[elecGeo, elecMat, MAX_Z]}
@@ -340,7 +329,7 @@ export function AtomStructureModel({
         renderOrder={5}
       />
 
-      {localLight && (!lite || synthesisDetail) ? (
+      {localLight && (fullPreview || !lite || synthesisDetail) ? (
         <>
           <pointLight
             position={[0, 0, 0]}

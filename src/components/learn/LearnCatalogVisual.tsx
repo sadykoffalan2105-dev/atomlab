@@ -52,7 +52,6 @@ export function LearnElementVisual({
             z={z}
             animate
             previewEmphasis
-            previewLite
             accentHex={accent}
             cosmicStyle
           />

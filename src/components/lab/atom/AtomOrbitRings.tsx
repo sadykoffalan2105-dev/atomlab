@@ -1,42 +1,36 @@
 import { useMemo } from 'react'
 import { Line } from '@react-three/drei'
 import * as THREE from 'three'
+import { buildVisualOrbitLayout } from './atomOrbitLayout'
 import {
-  ATOM_MIN_VISUAL_ORBITS,
   ATOM_ORBIT_COLOR,
   ATOM_ORBIT_GLOW,
-  buildDecorativeOrbitRadii,
   buildOrbitCurve,
-  decorativeOrbitEuler,
-  orbitAspect,
   orbitColorsFromAccent,
-  shellMajorRadius,
-  shellOrbitEuler,
 } from './atomCosmicShared'
 
 function ThinOrbitEllipse({
   radius,
-  shellIdx,
+  aspect,
+  euler,
   segments,
   opacity,
   orbitColor,
   orbitGlow,
   orbitSolid,
   decorative = false,
-  eulerOverride,
 }: {
   radius: number
-  shellIdx: number
+  aspect: number
+  euler: [number, number, number]
   segments: number
   opacity: number
   orbitColor: THREE.Color
   orbitGlow: THREE.Color
   orbitSolid: THREE.Color
   decorative?: boolean
-  eulerOverride?: [number, number, number]
 }) {
-  const aspect = orbitAspect(shellIdx)
-  const [eRx, eRy, eRz] = eulerOverride ?? shellOrbitEuler(shellIdx)
+  const [eRx, eRy, eRz] = euler
 
   const linePts = useMemo(() => {
     const curve = buildOrbitCurve(radius, segments, aspect)
@@ -48,9 +42,9 @@ function ThinOrbitEllipse({
     return curve.getPoints(Math.max(32, Math.floor(segments * 0.6)))
   }, [radius, segments, aspect])
 
-  const lineOpacity = decorative ? opacity * 0.62 : opacity
-  const glowOpacity = decorative ? opacity * 0.26 : opacity * 0.38
-  const solidOpacity = decorative ? opacity * 0.88 : Math.min(1, opacity * 1.05)
+  const lineOpacity = decorative ? opacity * 0.55 : opacity
+  const glowOpacity = decorative ? opacity * 0.22 : opacity * 0.36
+  const solidOpacity = decorative ? opacity * 0.82 : Math.min(1, opacity * 1.08)
 
   return (
     <group rotation={[eRx, eRy, eRz]}>
@@ -61,7 +55,7 @@ function ThinOrbitEllipse({
         opacity={solidOpacity}
         depthWrite={false}
         blending={THREE.NormalBlending}
-        lineWidth={decorative ? 1.4 : 1.8}
+        lineWidth={decorative ? 1.3 : 1.9}
         renderOrder={2}
       />
       <Line
@@ -71,7 +65,7 @@ function ThinOrbitEllipse({
         opacity={lineOpacity}
         depthWrite={false}
         blending={THREE.AdditiveBlending}
-        lineWidth={decorative ? 1.2 : 1.5}
+        lineWidth={decorative ? 1.1 : 1.55}
         renderOrder={1}
       />
       <Line
@@ -81,14 +75,14 @@ function ThinOrbitEllipse({
         opacity={glowOpacity}
         depthWrite={false}
         blending={THREE.AdditiveBlending}
-        lineWidth={decorative ? 2.2 : 2.8}
+        lineWidth={decorative ? 2.0 : 2.9}
         renderOrder={0}
       />
     </group>
   )
 }
 
-/** Тонкие светящиеся эллиптические орбиты — цвет по CPK элемента. */
+/** Светящиеся эллиптические орбиты — цвет CPK, геометрия совпадает с электронами. */
 export function AtomOrbitRings({
   shells,
   shellMul = 1,
@@ -101,11 +95,10 @@ export function AtomOrbitRings({
   lite?: boolean
   synthesisDetail?: boolean
   electronTotal?: number
-  /** CPK / accent — если задан, орбиты совпадают с цветом элемента */
   accentHex?: string
 }) {
-  const segments = lite ? 48 : synthesisDetail ? 72 : 64
-  const opacity = synthesisDetail ? 0.82 : lite ? 0.58 : 0.74
+  const segments = lite ? 56 : synthesisDetail ? 72 : 68
+  const opacity = synthesisDetail ? 0.84 : lite ? 0.66 : 0.78
 
   const { core: orbitColor, glow: orbitGlow, solid: orbitSolid } = useMemo(() => {
     if (accentHex) return orbitColorsFromAccent(accentHex)
@@ -116,34 +109,25 @@ export function AtomOrbitRings({
     }
   }, [accentHex])
 
-  const orbitSpecs = useMemo(() => {
-    const shellRadii: number[] = []
-    shells.forEach((count, shellIdx) => {
-      if (count > 0) shellRadii.push(shellMajorRadius(shellIdx, shellMul))
-    })
-    const minOrbits = lite ? 3 : ATOM_MIN_VISUAL_ORBITS
-    const radii = buildDecorativeOrbitRadii(shellRadii, minOrbits)
-    return radii.map((spec, i) => ({
-      ...spec,
-      shellIdx: i,
-      euler: spec.decorative ? decorativeOrbitEuler(i) : undefined,
-    }))
-  }, [shells, shellMul, lite])
+  const orbitSpecs = useMemo(
+    () => buildVisualOrbitLayout(shells, shellMul).rings,
+    [shells, shellMul],
+  )
 
   return (
     <group>
-      {orbitSpecs.map((spec, i) => (
+      {orbitSpecs.map((spec) => (
         <ThinOrbitEllipse
-          key={`orbit-${i}-${spec.radius.toFixed(3)}`}
+          key={spec.id}
           radius={spec.radius}
-          shellIdx={spec.shellIdx}
+          aspect={spec.aspect}
+          euler={spec.euler}
           segments={segments}
           opacity={opacity}
           orbitColor={orbitColor}
           orbitGlow={orbitGlow}
           orbitSolid={orbitSolid}
           decorative={spec.decorative}
-          eulerOverride={spec.euler}
         />
       ))}
     </group>

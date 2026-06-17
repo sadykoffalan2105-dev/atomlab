@@ -1,42 +1,57 @@
-import { SYNTHESIS_PERF } from './synthesisPerfPreset'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { synthesisTimingScale } from '../chemistry/reactorVisualTier'
+import {
+  getSynthesisTimingProfile,
+  SYNTHESIS_TIMING_CINEMATIC,
+  type SynthesisTimingProfile,
+} from './synthesisTimingProfile'
 
-/** Быстрый синтез — короткие фазы, читаемый полёт атомов (пресет video/README). */
-export const LAUNCH_STREAM_FLY_DUR = SYNTHESIS_PERF.streamFlyDur
-export const LAUNCH_TERM_STAGGER = SYNTHESIS_PERF.termStagger
-export const LAUNCH_ATOM_STAGGER = SYNTHESIS_PERF.atomStagger
-export const LAUNCH_MERGE_FLASH_DUR = SYNTHESIS_PERF.mergeFlashDur
-export const LAUNCH_PRODUCT_ENTRANCE_DUR = SYNTHESIS_PERF.productEntranceDur
-export const LAUNCH_PRODUCT_HOLD = SYNTHESIS_PERF.productHold
-export const SYNTHESIS_IGNITE_SKIP_MS = SYNTHESIS_PERF.igniteSkipMs
+const DEFAULT_PROFILE = SYNTHESIS_TIMING_CINEMATIC
+
+/** @deprecated Используйте profile из getSynthesisTimingProfile */
+export const LAUNCH_STREAM_FLY_DUR = DEFAULT_PROFILE.streamFlyDur
+export const LAUNCH_TERM_STAGGER = DEFAULT_PROFILE.termStagger
+export const LAUNCH_ATOM_STAGGER = DEFAULT_PROFILE.atomStagger
+export const LAUNCH_MERGE_FLASH_DUR = DEFAULT_PROFILE.mergeFlashDur
+export const LAUNCH_PRODUCT_ENTRANCE_DUR = DEFAULT_PROFILE.productEntranceDur
+export const LAUNCH_PRODUCT_HOLD = DEFAULT_PROFILE.productHold
+export const SYNTHESIS_IGNITE_SKIP_MS = DEFAULT_PROFILE.igniteSkipMs
 
 export function synthesisConvergeDurationSec(
   termCount: number,
   atomCount: number,
   tier: ReactorVisualTier = 'full',
+  profile: SynthesisTimingProfile = DEFAULT_PROFILE,
 ): number {
   if (tier === 'cluster') {
     const maxTermIndex = Math.max(0, termCount - 1)
     return (
-      SYNTHESIS_PERF.clusterFlyDur + maxTermIndex * SYNTHESIS_PERF.clusterTermStagger
+      profile.clusterFlyDur + maxTermIndex * profile.clusterTermStagger
     ) * synthesisTimingScale(tier)
   }
   const maxTermIndex = Math.max(0, termCount - 1)
   const maxAtomsPerTerm = Math.max(1, Math.ceil(atomCount / Math.max(1, termCount)))
   const maxStagger =
-    maxTermIndex * LAUNCH_TERM_STAGGER + (maxAtomsPerTerm - 1) * LAUNCH_ATOM_STAGGER
-  return (LAUNCH_STREAM_FLY_DUR + maxStagger) * synthesisTimingScale(tier)
+    maxTermIndex * profile.termStagger + (maxAtomsPerTerm - 1) * profile.atomStagger
+  return (profile.streamFlyDur + maxStagger) * synthesisTimingScale(tier)
 }
 
 export function synthesisLaunchWatchdogMs(
   termCount: number,
   atomCount: number,
   tier: ReactorVisualTier = 'full',
+  forceLite = false,
 ): number {
-  const convergeDur = synthesisConvergeDurationSec(termCount, atomCount, tier)
+  const profile = getSynthesisTimingProfile(forceLite)
+  const convergeDur = synthesisConvergeDurationSec(termCount, atomCount, tier, profile)
   return Math.ceil(
-    (convergeDur + LAUNCH_MERGE_FLASH_DUR + LAUNCH_PRODUCT_ENTRANCE_DUR + LAUNCH_PRODUCT_HOLD + 0.15) *
+    (convergeDur +
+      profile.mergeFlashDur +
+      profile.productEntranceDur +
+      profile.productHold +
+      0.2) *
       1000,
   )
 }
+
+export { getSynthesisTimingProfile, type SynthesisTimingProfile }

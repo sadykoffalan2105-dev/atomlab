@@ -4,9 +4,17 @@ import * as THREE from 'three'
 export const ATOM_PROTON_COLOR = new THREE.Color('#ef3d4a')
 /** Нейтроны — холодный сине-серый. */
 export const ATOM_NEUTRON_COLOR = new THREE.Color('#7eb4d4')
-/** Электроны — яркий циан. */
-export const ATOM_ELECTRON_COLOR = new THREE.Color('#5ef0ff')
-export const ATOM_ELECTRON_HALO = new THREE.Color('#3de8ff')
+/** Электроны — яркие белые «шарики» как на референсе. */
+export const ATOM_ELECTRON_COLOR = new THREE.Color('#ffffff')
+export const ATOM_ELECTRON_HALO = new THREE.Color('#e6f6ff')
+
+/** Мягкое свечение вокруг электрона с лёгким оттенком CPK элемента. */
+export function electronHaloFromAccent(accentHex: string): THREE.Color {
+  const accent = hexToThreeColor(accentHex)
+  const halo = new THREE.Color('#ffffff')
+  halo.lerp(accent, 0.22)
+  return halo
+}
 /** Орбиты — по умолчанию золотистые; в cosmic-режиме берут CPK-цвет элемента. */
 export const ATOM_ORBIT_COLOR = new THREE.Color('#ffae42')
 export const ATOM_ORBIT_GLOW = new THREE.Color('#ff8c1a')

@@ -1,5 +1,5 @@
 import { learnSectionPathKey } from '../data/learnFgosMatrix'
-import { getTopicQuizPool } from './g7TopicQuizEngine'
+import { getTopicQuizPool, shuffleQuizChoices } from './g7TopicQuizEngine'
 import {
   getLogicalMcqForChapter,
   getOralQuestionsForChapter,
@@ -24,14 +24,15 @@ function chapterNum(chapterId: string): number {
   return Number(chapterId.replace(/^c/, '')) || 1
 }
 
-/** MCQ-пул: базовые вопросы § + логические вопросы главы. */
+/** MCQ-пул: только вопросы текущего § (логические — только в итоговом тесте главы). */
 export function getMcqExamPool(gradeId: string, chapterId: string, sectionId: string): TopicQuizItem[] {
-  const base = getTopicQuizPool(gradeId, chapterId, sectionId)
-  if (gradeId !== 'g7') return base
-  const logical = getLogicalMcqForChapter(chapterNum(chapterId))
-  const seen = new Set(base.map((q) => q.id))
-  const extra = logical.filter((q) => !seen.has(q.id))
-  return [...base, ...extra]
+  return getTopicQuizPool(gradeId, chapterId, sectionId)
+}
+
+/** Логические MCQ главы — отдельный пул для экзамена по главе. */
+export function getChapterLogicalMcqPool(gradeId: string, chapterId: string): TopicQuizItem[] {
+  if (gradeId !== 'g7') return []
+  return getLogicalMcqForChapter(chapterNum(chapterId)).map((q) => shuffleQuizChoices(q))
 }
 
 export function getWrittenExamPool(gradeId: string, chapterId: string): WrittenExamItem[] {
@@ -54,8 +55,10 @@ export function pickMcqExamQuestions(
   count: StudentTestLength,
 ): TopicQuizItem[] {
   const pool = getMcqExamPool(gradeId, chapterId, sectionId)
-  if (pool.length === 0) return []
-  const shuffled = shuffle(pool)
+  const logical = getChapterLogicalMcqPool(gradeId, chapterId)
+  const merged = shuffle([...pool, ...logical])
+  if (merged.length === 0) return []
+  const shuffled = merged.map((q) => shuffleQuizChoices(q))
   return shuffled.slice(0, Math.min(count, shuffled.length))
 }
 
@@ -82,7 +85,7 @@ export function pickOralExamQuestions(
 }
 
 export function mcqExamPoolSize(gradeId: string, chapterId: string, sectionId: string): number {
-  return getMcqExamPool(gradeId, chapterId, sectionId).length
+  return getMcqExamPool(gradeId, chapterId, sectionId).length + getChapterLogicalMcqPool(gradeId, chapterId).length
 }
 
 export function writtenExamPoolSize(gradeId: string, chapterId: string): number {

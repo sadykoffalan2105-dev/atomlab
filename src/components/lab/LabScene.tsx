@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Stars, DragControls } from '@react-three/drei'
+import { gsap } from 'gsap'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { DecorativeAtom } from './DecorativeAtom'
@@ -8,6 +9,7 @@ import { AtomStructureModel } from './AtomStructureModel'
 import { MoleculeMesh } from './MoleculeMesh'
 import { SynthesisOnLabScene } from './SynthesisOnLabScene'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
+import { SynthesisLabCinematicFx } from './SynthesisLabCinematicFx'
 import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { assertNoProductHeroBeforeRun } from '../../lab/atomGuard/labPreviewGuard'
 import { createFpsGovernor } from '../../lab/atomGuard/synthesisRunGuard'
@@ -41,9 +43,8 @@ import {
 } from '../../lab/synthesisLaunchGuard'
 import {
   createSynthesisCoverageTracker,
-  SYNTH_PREVIEW_OVERLAP_MS,
 } from '../../lab/synthesisVisualGuard'
-import { LAUNCH_PRODUCT_ENTRANCE_DUR } from '../../lab/synthesisLaunchTiming'
+import { getSynthesisTimingProfile } from '../../lab/synthesisTimingProfile'
 import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
 
 /** Свободная лаборатория (атомы на столе). */
@@ -281,14 +282,46 @@ function SceneContent({
     : 0
   const manyAtomsCameraRef = useRef(previewAtomCount > 8)
 
+  const synthTimingProfile = useMemo(
+    () => getSynthesisTimingProfile(synthForceLite),
+    [synthForceLite],
+  )
+
   const showSettledHero =
     !synthActive &&
     !synthesisRunActive &&
     !previewActive &&
     synthesisSettledProduct != null
 
-  /** Атомы остаются до overlap с продуктом — merge flash перекрывает, без «исчезновения». */
-  const fadePreviewAtoms = useCallback(() => {}, [])
+  /** Схлопывание атомов в центр при ударе — cosmic birth перед молекулой. */
+  const fadePreviewAtoms = useCallback(() => {
+    const groups = previewAtomGroupRefs.current
+    const scales = previewAtomScaleGroupRefs.current
+    const dur = synthTimingProfile.atomCollapseDur
+    groups.forEach((g, i) => {
+      if (!g) return
+      const sc = scales[i]
+      gsap.killTweensOf(g.position)
+      gsap.killTweensOf(g.scale)
+      if (sc) {
+        gsap.killTweensOf(sc.scale)
+        gsap.to(sc.scale, {
+          x: 0.001,
+          y: 0.001,
+          z: 0.001,
+          duration: dur,
+          ease: 'power4.in',
+        })
+      }
+      gsap.to(g.position, {
+        x: 0,
+        y: 0.12,
+        z: 0,
+        duration: dur * 0.9,
+        ease: 'power3.in',
+      })
+    })
+  }, [synthTimingProfile.atomCollapseDur])
 
   /** Молекула продукта — не монтировать в converge (иначе compile + чёрный экран). */
   const synthLatePhase =
@@ -433,12 +466,12 @@ function SceneContent({
     crossfadeGuardRef.current?.signalProductReady()
     setPreviewOverlapActive(true)
     const overlapMs = Math.max(
-      SYNTH_PREVIEW_OVERLAP_MS,
-      Math.ceil(LAUNCH_PRODUCT_ENTRANCE_DUR * 1000) + 60,
+      synthTimingProfile.previewOverlapMs,
+      Math.ceil(synthTimingProfile.productEntranceDur * 1000) + 80,
     )
     const timer = window.setTimeout(() => setPreviewOverlapActive(false), overlapMs)
     return () => window.clearTimeout(timer)
-  }, [productSlotVisible, synthActive, synthesis?.runId])
+  }, [productSlotVisible, synthActive, synthesis?.runId, synthTimingProfile])
 
   const onEarlyProductReveal = useCallback(() => {
     setEarlyProductReveal(true)
@@ -516,7 +549,7 @@ function SceneContent({
       return
     }
     const lite =
-      previewAtomCount >= SYNTHESIS_PERF.synthLiteStartThreshold ||
+      previewAtomCount >= SYNTHESIS_PERF.liteFxAtomThreshold ||
       previewVisualTier === 'cluster' ||
       previewVisualTier === 'lite'
     synthForceLiteRef.current = lite
@@ -649,7 +682,7 @@ function SceneContent({
           <directionalLight position={[4, 6, 2]} intensity={0.55} color="#b8c8ff" />
           <group position={[0, 0, 0]}>
             {structureZ != null ? (
-              <AtomStructureModel z={structureZ} />
+              <AtomStructureModel z={structureZ} previewEmphasis cosmicStyle />
             ) : (
               <DecorativeAtom />
             )}
@@ -699,9 +732,10 @@ function SceneContent({
               onEarlyProductReveal={onEarlyProductReveal}
               externalProductSlot
               externalCosmicBackdrop
-              labLiteMode
+              labLiteMode={synthForceLite}
               forceLiteFx={synthForceLite}
               visualTier={synthesis.visualTier ?? previewVisualTier}
+              timingProfile={synthTimingProfile}
             />
           ) : null}
           {showSettledHero && synthesisSettledProduct
@@ -733,7 +767,12 @@ function SceneContent({
           prewarm={productPrewarmActive}
           entrance={productSlotEntrance}
           runId={synthesis?.runId ?? 0}
+          birthEntrance={synthActive && !synthForceLite}
+          entranceDuration={synthTimingProfile.productEntranceDur}
         />
+      ) : null}
+      {synthActive ? (
+        <SynthesisLabCinematicFx phase={synthesisPhase} forceLite={synthForceLite} />
       ) : null}
       <OrbitControls
         ref={orbRef}

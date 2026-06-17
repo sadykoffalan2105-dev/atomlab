@@ -12,12 +12,12 @@ export function SynthesisLaunchCamera({
   active,
   progressRef,
   impactPulseRef,
+  cinematic = false,
 }: {
   active: boolean
-  /** 0…1 ход синтеза (converge) */
   progressRef: MutableRefObject<number>
-  /** 0…1 вспышка при слиянии */
   impactPulseRef: MutableRefObject<number>
+  cinematic?: boolean
 }) {
   const { camera } = useThree()
   const smoothProgress = useRef(0)
@@ -42,16 +42,17 @@ export function SynthesisLaunchCamera({
       (impactPulseRef.current - smoothImpact.current) * (1 - Math.exp(-14 * d))
 
     const p = smoothProgress.current
-    const pullBack = Math.sin(p * Math.PI * 0.85) * 1.35
-    const dip = Math.sin(p * Math.PI) * 0.22
-    const impactKick = smoothImpact.current * 0.65
-    const shake = smoothImpact.current * Math.sin(t * 42) * 0.04
+    const pullMul = cinematic ? 1.85 : 1.35
+    const pullBack = Math.sin(p * Math.PI * 0.85) * pullMul
+    const dip = Math.sin(p * Math.PI) * (cinematic ? 0.28 : 0.22)
+    const impactKick = smoothImpact.current * (cinematic ? 0.92 : 0.65)
+    const shake = smoothImpact.current * Math.sin(t * (cinematic ? 48 : 42)) * (cinematic ? 0.065 : 0.04)
 
     const cam = camera as THREE.PerspectiveCamera
     cam.position.set(
-      BASE_POS.x + Math.sin(p * 4.1) * 0.06 + shake,
+      BASE_POS.x + Math.sin(p * 4.1) * (cinematic ? 0.09 : 0.06) + shake,
       BASE_POS.y - dip + impactKick * 0.15,
-      BASE_POS.z + pullBack - impactKick * 1.1,
+      BASE_POS.z + pullBack - impactKick * (cinematic ? 1.35 : 1.1),
     )
     const lookY = BASE_TARGET.y + dip * 0.4
     cam.lookAt(0, lookY, 0)

@@ -62,7 +62,7 @@ function ElementAtomScene({ z, cpkHex }: { z: number; cpkHex: string }) {
       <group scale={view.modelScale}>
         <LearnElementVisual z={z} autoRotate cpkHex={accent} />
       </group>
-      <AtomCosmicBloom intensity={0.78} luminanceThreshold={0.36} />
+      <AtomCosmicBloom intensity={0.58} luminanceThreshold={0.62} />
       <OrbitControls
         enablePan={false}
         enableZoom

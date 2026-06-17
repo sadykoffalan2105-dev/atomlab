@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
-import { pickRandomTopicQuiz, topicQuizPoolSize } from '../../learn/g7TopicQuizEngine'
+import { pickRandomTopicQuiz, quizDedupeKey, topicQuizPoolSize } from '../../learn/g7TopicQuizEngine'
 import type { TopicQuizItem } from '../../learn/topicQuizTypes'
 import { useT } from '../../i18n/useT'
 import { LearnTopicQuizFullscreen } from './LearnTopicQuizFullscreen'
@@ -275,15 +275,22 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
     setAnimKey((k) => k + 1)
     setSeen((prev) => {
       const n = new Set(prev)
-      n.add(next.id)
-      if (n.size >= poolSize * 0.8) return new Set([next.id])
+      n.add(quizDedupeKey(next))
+      if (n.size >= poolSize * 0.8) return new Set([quizDedupeKey(next)])
       return n
     })
   }, [chapter.id, grade.id, poolSize, section.id, seen])
 
   useEffect(() => {
+    setSeen(new Set())
+    setQuestion(null)
+    setPick(null)
+    setRevealed(autoReveal)
+  }, [grade.id, chapter.id, section.id, autoReveal])
+
+  useEffect(() => {
     if (autoReveal && !question) drawQuestion()
-  }, [autoReveal, drawQuestion, question])
+  }, [autoReveal, drawQuestion, question, grade.id, chapter.id, section.id])
 
   const handlePick = useCallback((idx: number) => {
     setPick(idx)

@@ -15,17 +15,15 @@ import {
   getTermGroupCenters,
 } from './reactorPreviewLayout'
 import type { ReactorVisualTier } from '../../chemistry/reactorVisualTier'
-import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
+import type { SynthesisTimingProfile } from '../../lab/synthesisTimingProfile'
+import { SYNTHESIS_TIMING_CINEMATIC } from '../../lab/synthesisTimingProfile'
 
-const STREAM_FLY_DUR = LAUNCH_STREAM_FLY_DUR
-const TERM_STAGGER = LAUNCH_TERM_STAGGER
-const ATOM_STAGGER = LAUNCH_ATOM_STAGGER
 const ARC_FRAC = 0.55
 const REF_RETRY_MAX = 3
 
-const STREAM_FLY_DUR_EXPORT = STREAM_FLY_DUR
-const TERM_STAGGER_EXPORT = TERM_STAGGER
-const ATOM_STAGGER_EXPORT = ATOM_STAGGER
+const STREAM_FLY_DUR_EXPORT = LAUNCH_STREAM_FLY_DUR
+const TERM_STAGGER_EXPORT = LAUNCH_TERM_STAGGER
+const ATOM_STAGGER_EXPORT = LAUNCH_ATOM_STAGGER
 
 export const SYNTHESIS_STREAM_FLY_DUR = STREAM_FLY_DUR_EXPORT
 export const SYNTHESIS_STREAM_STAGGER = TERM_STAGGER_EXPORT
@@ -82,6 +80,7 @@ export function SynthesisConvergeStreams({
   previewAtomScaleGroupRefs,
   onBeginAtomFade,
   visualTier = 'full',
+  timingProfile = SYNTHESIS_TIMING_CINEMATIC,
 }: {
   terms: readonly ReactorEquationTerm[]
   runId: number
@@ -92,11 +91,12 @@ export function SynthesisConvergeStreams({
   previewAtomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>
   onBeginAtomFade?: () => void
   visualTier?: ReactorVisualTier
+  timingProfile?: SynthesisTimingProfile
 }) {
   const clusterMode = visualTier === 'cluster'
-  const flyDur = clusterMode ? SYNTHESIS_PERF.clusterFlyDur : STREAM_FLY_DUR
-  const termStagger = clusterMode ? SYNTHESIS_PERF.clusterTermStagger : TERM_STAGGER
-  const atomStagger = clusterMode ? 0 : ATOM_STAGGER
+  const flyDur = clusterMode ? timingProfile.clusterFlyDur : timingProfile.streamFlyDur
+  const termStagger = clusterMode ? timingProfile.clusterTermStagger : timingProfile.termStagger
+  const atomStagger = clusterMode ? 0 : timingProfile.atomStagger
 
   const approachAtoms = useMemo(
     () => buildReactorPreviewAtoms(terms, { tier: visualTier }),
@@ -261,7 +261,7 @@ export function SynthesisConvergeStreams({
       ctx?.revert()
       timelineStartedRef.current = false
     }
-  }, [runId, approachAtoms, termStreams, previewAtomGroupRefs, previewAtomScaleGroupRefs, clusterMode, flyDur, termStagger, atomStagger])
+  }, [runId, approachAtoms, termStreams, previewAtomGroupRefs, previewAtomScaleGroupRefs, clusterMode, flyDur, termStagger, atomStagger, timingProfile])
 
   return (
     <group>
