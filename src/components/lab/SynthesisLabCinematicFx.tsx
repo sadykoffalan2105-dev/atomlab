@@ -1,77 +1,65 @@
-import { Bloom, DepthOfField, EffectComposer } from '@react-three/postprocessing'
+import { useEffect, useRef, useState } from 'react'
+import { Bloom, EffectComposer } from '@react-three/postprocessing'
+import { useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
 import type { SynthesisQualityFeatures } from '../../lab/synthesisQualityLadder'
-import { REACTION_CENTER } from './reactorPreviewLayout'
-
-const FOCUS_TARGET: [number, number, number] = REACTION_CENTER
 
 /**
- * Bloom + опциональный DOF — только то, что разрешил quality ladder.
+ * Bloom на merge/product. Composer появляется через несколько кадров после старта
+ * (intensity=0), чтобы не блокировать первый кадр полёта атомов.
  */
 export function SynthesisLabCinematicFx({
+  runId,
   phase,
   features,
 }: {
+  runId: number
   phase: string
   features: SynthesisQualityFeatures
 }) {
   const mergeOrProduct = phase === 'mergeFlash' || phase === 'product'
-  const converge = phase === 'converge' || phase === 'ignite'
+  const bloomTarget = mergeOrProduct && features.bloomMerge ? 0.58 : 0
+  const intensityRef = useRef(0)
+  const bloomRef = useRef<{ intensity: number } | null>(null)
+  const [composerReady, setComposerReady] = useState(false)
 
-  const bloomOn =
-    (mergeOrProduct && features.bloomMerge) || (converge && features.bloomConverge)
-  if (!bloomOn && !features.depthOfField) return null
+  useEffect(() => {
+    intensityRef.current = 0
+    if (bloomRef.current) bloomRef.current.intensity = 0
+    setComposerReady(false)
+    let raf2 = 0
+    let raf3 = 0
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        raf3 = requestAnimationFrame(() => setComposerReady(true))
+      })
+    })
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+      cancelAnimationFrame(raf3)
+    }
+  }, [runId])
 
-  const bloomIntensity = mergeOrProduct ? 0.88 : 0.38
-  const bloomThreshold = mergeOrProduct ? 0.18 : 0.34
-  const useDof = mergeOrProduct && features.depthOfField
+  useFrame(() => {
+    if (!composerReady) return
+    const next = THREE.MathUtils.lerp(intensityRef.current, bloomTarget, 0.22)
+    intensityRef.current = next
+    if (bloomRef.current) bloomRef.current.intensity = next
+  })
 
-  if (useDof && bloomOn) {
-    return (
-      <EffectComposer multisampling={0} enableNormalPass>
-        <DepthOfField
-          target={FOCUS_TARGET}
-          focalLength={0.024}
-          bokehScale={2.8}
-          height={420}
-          worldFocusDistance={4.8}
-          worldFocusRange={2.4}
-        />
-        <Bloom
-          luminanceThreshold={bloomThreshold}
-          luminanceSmoothing={0.32}
-          mipmapBlur
-          intensity={bloomIntensity}
-          radius={0.48}
-          levels={5}
-        />
-      </EffectComposer>
-    )
-  }
-
-  if (useDof) {
-    return (
-      <EffectComposer multisampling={0} enableNormalPass>
-        <DepthOfField
-          target={FOCUS_TARGET}
-          focalLength={0.024}
-          bokehScale={2.8}
-          height={420}
-          worldFocusDistance={4.8}
-          worldFocusRange={2.4}
-        />
-      </EffectComposer>
-    )
-  }
+  if (!composerReady) return null
 
   return (
     <EffectComposer multisampling={0}>
       <Bloom
-        luminanceThreshold={bloomThreshold}
-        luminanceSmoothing={0.32}
+        ref={bloomRef}
+        luminanceThreshold={0.22}
+        luminanceSmoothing={0.34}
         mipmapBlur
-        intensity={bloomIntensity}
-        radius={mergeOrProduct ? 0.42 : 0.28}
-        levels={mergeOrProduct ? 4 : 3}
+        intensity={0}
+        radius={0.34}
+        levels={3}
       />
     </EffectComposer>
   )

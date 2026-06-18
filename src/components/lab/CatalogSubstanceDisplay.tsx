@@ -49,8 +49,8 @@ export function CatalogSubstanceDisplay({
 
   if (labSynthesisScene) {
     const showDecor = fxLevel === 'low' || fxLevel === 'full'
-    const sp1 = fxLevel === 'full' ? 96 : 32
-    const sp2 = fxLevel === 'full' ? 48 : 16
+    const sp1 = fxLevel === 'full' ? 96 : fxLevel === 'low' ? 16 : 0
+    const sp2 = fxLevel === 'full' ? 48 : 0
     return (
       <>
         {showDecor ? (
@@ -83,7 +83,7 @@ export function CatalogSubstanceDisplay({
         <HeroMoleculeRig
           compound={compound}
           labScaleBoost={labScaleBoost}
-          renderQuality="high"
+          renderQuality="synthesis"
           fxLevel={showDecor ? 'low' : 'off'}
           chaoticWobble={chaoticWobble}
         />

@@ -142,7 +142,9 @@ export function SynthesisConvergeStreams({
 
     const triggerMerge = () => {
       onBeginAtomFadeRef.current?.()
-      onImpactRef.current()
+      requestAnimationFrame(() => {
+        if (!cancelled) onImpactRef.current()
+      })
     }
 
     const startTimeline = () => {

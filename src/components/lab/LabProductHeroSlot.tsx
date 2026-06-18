@@ -132,7 +132,7 @@ export function LabProductHeroSlot({
             reducedEffects
             labSynthesisScene
             renderQuality="synthesis"
-            fxLevel={sceneActive ? 'low' : 'off'}
+            fxLevel={visible ? 'low' : 'off'}
             chaoticWobble={visible && birthEntrance}
           />
         </group>

@@ -109,7 +109,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     (showSettledHero ||
       stickyMatch ||
       (gpuPrewarmAllowed && prewarmReady) ||
-      (synthLive && latePhase))
+      (synthLive && runId > 0))
 
   const productSlotVisible =
     productMeshMounted &&

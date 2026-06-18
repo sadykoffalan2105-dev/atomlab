@@ -486,9 +486,11 @@ export function LaboratoryPage() {
 
     setLastRunProduct(payload.compound)
     setPrewarmCompound(payload.compound)
-    setSynthesisFlightSlots(zCopy)
-    setSynthesisFlyTerms(flyCopy)
-    setRunId(nextRunId)
+    startTransition(() => {
+      setSynthesisFlightSlots(zCopy)
+      setSynthesisFlyTerms(flyCopy)
+      setRunId(nextRunId)
+    })
   }, [leftTerms, productCompoundId, productCoeff, t, locale, runId])
 
   const labSynthesis = useMemo(() => {

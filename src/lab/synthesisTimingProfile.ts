@@ -51,7 +51,7 @@ export const SYNTHESIS_TIMING_BALANCED: SynthesisTimingProfile = {
   previewOverlapMs: 380,
   clusterFlyDur: 0.26,
   clusterTermStagger: 0.055,
-  collapseAtoms: true,
+  collapseAtoms: false,
 }
 
 /** Длинный cinematic — только мощные ПК без lite. */

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, startTransition } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Stars, DragControls } from '@react-three/drei'
 import { gsap } from 'gsap'
@@ -79,10 +79,10 @@ function LabReactorClearColor() {
 function LabSceneClearSync({ reactorMode }: { reactorMode: boolean }) {
   const { gl, scene, invalidate } = useThree()
   useLayoutEffect(() => {
-    const hex = reactorMode ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX
+    const hex = reactorMode ? LAB_COSMIC_BG : LAB_SCENE_CLEAR_HEX
     const c = hexToColor(hex)
     gl.setClearColor(c, 1)
-    if (!reactorMode) scene.background = c
+    scene.background = c
     invalidate()
   }, [reactorMode, gl, scene, invalidate])
   return null
@@ -265,8 +265,10 @@ function SceneContent({
     createSynthesisQualityGovernor(),
   )
   const synthForceLiteRef = useRef(false)
+  const synthQualityLevelRef = useRef<SynthesisQualityLevel>(3)
   const [synthQualityLevel, setSynthQualityLevel] = useState<SynthesisQualityLevel>(3)
   const synthForceLite = qualityLevelToForceLite(synthQualityLevel)
+  const qualityUiThrottleRef = useRef(0)
   const coverageFrameRef = useRef(0)
   const synthActive = synthesis != null
   const previewActive = false
@@ -308,11 +310,12 @@ function SceneContent({
     !previewActive &&
     synthesisSettledProduct != null
 
-  /** Схлопывание атомов — только после появления продукта, без пустого кадра. */
+  /** Схлопывание атомов — только когда продукт уже на сцене, без «пустого» кадра. */
   const fadePreviewAtoms = useCallback(() => {
-    if (!synthTimingProfile.collapseAtoms) return
     setForceProductSlot(true)
     setEarlyProductReveal(true)
+
+    if (!synthTimingProfile.collapseAtoms) return
 
     const groups = previewAtomGroupRefs.current
     const scales = previewAtomScaleGroupRefs.current
@@ -334,7 +337,7 @@ function SceneContent({
           })
         }
       })
-    }, 48)
+    }, 220)
   }, [synthTimingProfile.atomCollapseDur, synthTimingProfile.collapseAtoms])
 
   const productCompoundCandidate =
@@ -342,10 +345,11 @@ function SceneContent({
 
   const gpuPrewarmAllowed =
     shouldMountProductGpuPrewarm({
-      policy: 'synthesis-only',
+      policy: 'intent',
       synthesisRunActive,
       synthActive,
       showSettledHero,
+      hasPrewarmIntent: prewarmProductCompound != null,
     }) ||
     (!synthActive &&
       !synthesisRunActive &&
@@ -431,6 +435,17 @@ function SceneContent({
       prewarmCompoundIdRef.current = compound.id
       prewarmReadyRef.current = true
       setPrewarmReady(true)
+    }
+    const fastPrewarm = synthActive || synthesisRunActive
+    if (fastPrewarm) {
+      const raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(markReady)
+      })
+      return () => {
+        cancelled = true
+        cancelAnimationFrame(raf1)
+        cancelAnimationFrame(raf2)
+      }
     }
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(markReady)
@@ -549,7 +564,9 @@ function SceneContent({
     fpsGovRef.current.reset(cap)
     const initialLite = qualityLevelToForceLite(cap)
     synthForceLiteRef.current = initialLite
-    setSynthQualityLevel(cap)
+    startTransition(() => {
+      setSynthQualityLevel(cap)
+    })
     if (forceLiteFxRef) forceLiteFxRef.current = initialLite
   }, [synthesis?.runId, previewAtomCount, previewVisualTier, forceLiteFxRef])
 
@@ -594,8 +611,10 @@ function SceneContent({
           cosmicFx: synthesisRunActive || synthActive || reactorViewOpen,
         },
         () => {
-          if (!synthesisContinuityCovered(continuity, synthesisPhase === 'mergeFlash', synthesisPhase === 'converge')) {
-            setForceProductSlot(true)
+      if (!synthesisContinuityCovered(continuity, synthesisPhase === 'mergeFlash', synthesisPhase === 'converge')) {
+            if (synthesisPhase === 'mergeFlash' || synthesisPhase === 'product') {
+              setForceProductSlot(true)
+            }
           }
         },
       )
@@ -626,9 +645,14 @@ function SceneContent({
       gov.tick(a.fps)
       const nextLevel = gov.qualityLevel
       const nextLite = gov.forceLite
+      synthQualityLevelRef.current = nextLevel
       if (forceLiteFxRef) forceLiteFxRef.current = nextLite
-      if (synthForceLiteRef.current !== nextLite || synthQualityLevel !== nextLevel) {
-        synthForceLiteRef.current = nextLite
+      synthForceLiteRef.current = nextLite
+      const now = performance.now()
+      const levelChanged = synthQualityLevel !== nextLevel
+      const downgrade = nextLevel < synthQualityLevel
+      if (levelChanged && (downgrade || now - qualityUiThrottleRef.current > 480)) {
+        qualityUiThrottleRef.current = now
         setSynthQualityLevel(nextLevel)
       }
     }
@@ -777,8 +801,12 @@ function SceneContent({
           entranceDuration={synthTimingProfile.productEntranceDur}
         />
       ) : null}
-      {synthActive ? (
-        <SynthesisLabCinematicFx phase={synthesisPhase} features={synthQualityFeatures} />
+      {synthActive && synthQualityLevel > 0 ? (
+        <SynthesisLabCinematicFx
+          runId={synthesis?.runId ?? 0}
+          phase={synthesisPhase}
+          features={synthQualityFeatures}
+        />
       ) : null}
       <OrbitControls
         ref={orbRef}

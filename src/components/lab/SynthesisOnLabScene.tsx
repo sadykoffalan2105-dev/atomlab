@@ -272,6 +272,8 @@ export function SynthesisOnLabScene({
   const [phase, setPhase] = useState<Phase>(initialPhase)
   const phaseRef = useRef<Phase>(initialPhase)
   const [fxLevel, setFxLevel] = useState<'off' | 'low' | 'full'>('off')
+  const [heavyFxReady, setHeavyFxReady] = useState(false)
+  const [mergeBurstReady, setMergeBurstReady] = useState(false)
   const tAcc = useRef(0)
   const convergeStartRef = useRef(0)
   const launchProgressRef = useRef(0)
@@ -284,6 +286,26 @@ export function SynthesisOnLabScene({
   const onEarlyProductRevealRef = useRef(onEarlyProductReveal)
   const earlyProductFiredRef = useRef(false)
   const productGuaranteedRef = useRef(product)
+
+  useEffect(() => {
+    setHeavyFxReady(false)
+    setMergeBurstReady(false)
+    const raf = requestAnimationFrame(() => {
+      setHeavyFxReady(true)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [runId])
+
+  useEffect(() => {
+    if (phase !== 'mergeFlash') {
+      setMergeBurstReady(false)
+      return
+    }
+    const raf = requestAnimationFrame(() => {
+      setMergeBurstReady(true)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [phase, runId])
 
   useEffect(() => {
     phaseRef.current = phase
@@ -333,6 +355,8 @@ export function SynthesisOnLabScene({
     }
     phaseRef.current = 'mergeFlash'
     setPhase('mergeFlash')
+    earlyProductFiredRef.current = true
+    onEarlyProductRevealRef.current?.()
   }, [previewAtomGroupRefs, previewAtomScaleGroupRefs])
 
   const forceProductSuccess = useCallback(() => {
@@ -587,6 +611,7 @@ export function SynthesisOnLabScene({
   const showConvergeStreams = useConverge && (phase === 'ignite' || phase === 'converge')
 
   const showNeonBonds =
+    heavyFxReady &&
     useConverge &&
     !!product &&
     previewAtomGroupRefs != null &&
@@ -597,7 +622,11 @@ export function SynthesisOnLabScene({
   const showCinematic = cinema != null && !externalCosmicBackdrop
   const showWarpAndArc = cinema != null && cinematicMode && !externalCosmicBackdrop
   const showArcPulse =
-    useConverge && !externalCosmicBackdrop && !synthesisFxMinimal && (fx?.arcReactor ?? true)
+    heavyFxReady &&
+    useConverge &&
+    !externalCosmicBackdrop &&
+    !synthesisFxMinimal &&
+    (fx?.arcReactor ?? true)
 
   if (!useConverge && zSlots.length < 2) {
     return (
@@ -661,7 +690,7 @@ export function SynthesisOnLabScene({
         />
       ) : null}
 
-      {inMerge && (
+      {inMerge && mergeBurstReady && (
         <MergeFlashBurst
           tInMergeRef={tAcc}
           total={mergeFlashDur}

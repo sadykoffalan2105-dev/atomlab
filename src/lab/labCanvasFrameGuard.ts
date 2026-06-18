@@ -10,8 +10,8 @@ export type LabCanvasFrameHoldGuard = {
   reset: () => void
 }
 
-const STALL_MS = 28
-const REACTOR_STALL_MS = 20
+const STALL_MS = 48
+const REACTOR_STALL_MS = 36
 
 export function createLabCanvasFrameHoldGuard(): LabCanvasFrameHoldGuard {
   let lastRenderMs = performance.now()
@@ -43,7 +43,7 @@ export function createLabCanvasFrameHoldGuard(): LabCanvasFrameHoldGuard {
   }
 }
 
-/** Политика GPU-prewarm продукта: только при запуске синтеза, не при балансировке уравнения. */
+/** Политика GPU-prewarm продукта: при балансе уравнения и во время синтеза. */
 export type GpuPrewarmPolicy = 'off' | 'synthesis-only' | 'intent'
 
 export function shouldMountProductGpuPrewarm(opts: {
@@ -51,10 +51,12 @@ export function shouldMountProductGpuPrewarm(opts: {
   synthesisRunActive: boolean
   synthActive: boolean
   showSettledHero: boolean
+  hasPrewarmIntent?: boolean
 }): boolean {
-  const { policy, synthesisRunActive, synthActive, showSettledHero } = opts
+  const { policy, synthesisRunActive, synthActive, showSettledHero, hasPrewarmIntent } = opts
   if (showSettledHero) return false
   if (policy === 'off') return false
+  if (policy === 'intent') return hasPrewarmIntent === true || synthesisRunActive || synthActive
   if (policy === 'synthesis-only') return synthesisRunActive || synthActive
   return synthesisRunActive || synthActive
 }

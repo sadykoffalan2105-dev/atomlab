@@ -89,25 +89,25 @@ export function featuresForQuality(
       }
     case SYNTHESIS_QUALITY_HIGH:
       return {
-        bloomConverge: converge && !merge,
-        bloomMerge: merge || phase === 'converge',
+        bloomConverge: false,
+        bloomMerge: merge,
         depthOfField: false,
-        glassAtoms: converge,
-        neonBonds: converge,
+        glassAtoms: merge,
+        neonBonds: merge,
         arcReactor: converge,
         birthEntrance: true,
         electronDrift: false,
       }
     default:
       return {
-        bloomConverge: converge,
-        bloomMerge: true,
-        depthOfField: merge,
-        glassAtoms: converge,
-        neonBonds: converge,
+        bloomConverge: false,
+        bloomMerge: merge,
+        depthOfField: false,
+        glassAtoms: merge,
+        neonBonds: merge,
         arcReactor: converge,
         birthEntrance: true,
-        electronDrift: true,
+        electronDrift: false,
       }
   }
 }
