@@ -1,5 +1,6 @@
 import { learnPackUz } from './learnPackUz'
 import { learnGradePackUz } from './learnGradePacks'
+import { vrLabUz } from './vrLabUz'
 import type { MessageKey } from './messagesRu'
 
 /** O'zbek (lotin) UI satrlari (messagesRu bilan bir xil kalitlar). */
@@ -8,6 +9,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'nav.periodic': 'Mendeleev jadvali',
   'nav.catalog': 'Moddalar katalogi',
   'nav.learn': 'O\'rganish',
+  ...vrLabUz,
   'lang.toggle': 'Til: {current}. Almashish uchun bosing',
   'lang.switchToUz': 'O\'zbekchaga o\'tish',
   'lang.switchToRu': 'Rus tiliga o\'tish',

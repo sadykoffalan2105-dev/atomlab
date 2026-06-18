@@ -1,0 +1,107 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(80, 120, 180, 0.28);
+  background: rgba(8, 12, 28, 0.92);
+  overflow: hidden;
+}
+
+.title {
+  margin: 0;
+  padding: 0.85rem 0.9rem 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9eb8ff;
+}
+
+.search {
+  margin: 0 0.75rem 0.45rem;
+  font: inherit;
+  font-size: 0.82rem;
+  border-radius: 10px;
+  border: 1px solid rgba(92, 255, 212, 0.28);
+  background: rgba(4, 8, 18, 0.9);
+  color: #e8eef8;
+  padding: 0.5rem 0.65rem;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0.85rem 0.5rem;
+  font-size: 0.75rem;
+  color: #b8c8e8;
+  cursor: pointer;
+}
+
+.toggle input {
+  accent-color: #5cffd4;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.45rem 0.65rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.item,
+.itemOn {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.55rem;
+  align-items: center;
+  padding: 0.45rem 0.55rem;
+  margin-bottom: 0.25rem;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 140, 180, 0.25);
+  background: rgba(255, 255, 255, 0.03);
+  color: #dce6f8;
+  cursor: pointer;
+}
+
+.itemOn {
+  border-color: rgba(92, 255, 212, 0.5);
+  background: rgba(92, 255, 212, 0.08);
+}
+
+.swatch {
+  grid-row: span 2;
+  width: 0.65rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  background: var(--substance-color, #5ad8ff);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--substance-color, #5ad8ff) 55%, transparent);
+}
+
+.formula {
+  font-family: ui-monospace, monospace;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #f0f4ff;
+}
+
+.name {
+  font-size: 0.68rem;
+  color: #8fa3c4;
+}
+
+.hint {
+  margin: 0;
+  padding: 0.55rem 0.85rem 0.75rem;
+  font-size: 0.75rem;
+  color: #7dffb0;
+  border-top: 1px solid rgba(80, 120, 180, 0.18);
+}

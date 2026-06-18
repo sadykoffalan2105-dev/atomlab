@@ -8,6 +8,8 @@ import {
   useState,
   startTransition,
 } from 'react'
+import { Link } from 'react-router-dom'
+import { IconVrLab } from '../components/vrLab/IconVrLab'
 import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
@@ -707,6 +709,15 @@ export function LaboratoryPage() {
           }}
           onPick={handleReactorCatalogPick}
         />
+
+        <Link
+          to="/vr-lab"
+          className={styles.vrLabFab}
+          title={t('nav.vrLab')}
+          aria-label={t('nav.vrLab')}
+        >
+          <IconVrLab size={20} />
+        </Link>
 
         <button
           type="button"

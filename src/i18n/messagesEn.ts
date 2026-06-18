@@ -1,5 +1,6 @@
 import { learnPackEn } from './learnPackEn'
 import { learnGradePackEn } from './learnGradePacks'
+import { vrLabEn } from './vrLabEn'
 import type { MessageKey } from './messagesRu'
 
 /** English UI strings (same keys as messagesRu). */
@@ -8,6 +9,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'nav.periodic': 'Periodic table',
   'nav.catalog': 'Substance catalog',
   'nav.learn': 'Learn',
+  ...vrLabEn,
   'lang.toggle': 'Language: {current}. Click to switch',
   'lang.switchToEn': 'Switch to English',
   'lang.switchToRu': 'Switch to Russian',

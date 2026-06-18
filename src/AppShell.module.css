@@ -90,6 +90,12 @@
   border: 1px solid transparent;
 }
 
+.navLinkIcon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .navLink:hover {
   color: #3dffec;
   border-color: rgba(61, 255, 236, 0.25);

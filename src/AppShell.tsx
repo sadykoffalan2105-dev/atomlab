@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useEffect } from 'react'
+import { IconVrLab } from './components/vrLab/IconVrLab'
 import { compoundById } from './data/compounds'
 import { warmupLabSynthesisInfra } from './lab/labSynthesisWarmup'
 import { useLocale } from './i18n/useLocale'
@@ -30,6 +31,15 @@ export function AppShell() {
               }
             >
               {t('nav.laboratory')}
+            </NavLink>
+            <NavLink
+              to="/vr-lab"
+              className={({ isActive }) =>
+                `${styles.navLink} ${styles.navLinkIcon} ${isActive ? styles.navLinkActive : ''}`
+              }
+            >
+              <IconVrLab size={16} />
+              {t('nav.vrLab')}
             </NavLink>
             <NavLink
               to="/periodic"

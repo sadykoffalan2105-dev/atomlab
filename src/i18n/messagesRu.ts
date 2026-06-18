@@ -1,5 +1,6 @@
 import { learnPackRu } from './learnPackRu'
 import { learnGradePackRu } from './learnGradePacks'
+import { vrLabRu } from './vrLabRu'
 
 /** Русские строки UI и ошибок (ключи совпадают с messagesEn). */
 export const messagesRu = {
@@ -7,6 +8,7 @@ export const messagesRu = {
   'nav.periodic': 'Таблица Менделеева',
   'nav.catalog': 'Каталог веществ',
   'nav.learn': 'Обучение',
+  ...vrLabRu,
   'lang.toggle': 'Язык: {current}. Нажмите, чтобы переключить',
   'lang.switchToEn': 'Переключить на English',
   'lang.switchToRu': 'Переключить на русский',

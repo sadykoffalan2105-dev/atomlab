@@ -17,6 +17,7 @@ const LearnPathwaysHub = lazy(() =>
 const LearnPathwayPage = lazy(() =>
   import('./pages/LearnPathwayPage').then((m) => ({ default: m.LearnPathwayPage })),
 )
+const VrLabPage = lazy(() => import('./pages/VrLabPage').then((m) => ({ default: m.VrLabPage })))
 const LearnRefCapturePage = lazy(() =>
   import('./pages/LearnRefCapturePage').then((m) => ({ default: m.LearnRefCapturePage })),
 )
@@ -41,6 +42,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<AppShell />}>
             <Route index element={<LaboratoryPage />} />
+            <Route path="vr-lab" element={<VrLabPage />} />
             <Route path="periodic" element={<PeriodicTablePage />} />
             <Route path="catalog" element={<CatalogPage />} />
             <Route path="learn" element={<LearnPage />} />
