@@ -20,6 +20,27 @@ export type SynthesisTimingProfile = {
   collapseAtoms: boolean
 }
 
+/** Мгновенный — без полёта атомов и вспышек: сразу молекула (лаборатория по умолчанию). */
+export const SYNTHESIS_TIMING_INSTANT: SynthesisTimingProfile = {
+  streamFlyDur: 0,
+  termStagger: 0,
+  atomStagger: 0,
+  mergeFlashDur: 0,
+  productEntranceDur: 0,
+  productHold: 0.08,
+  productRevealOverlapSec: 0,
+  igniteSkipMs: 0,
+  atomCollapseDur: 0,
+  previewOverlapMs: 0,
+  clusterFlyDur: 0,
+  clusterTermStagger: 0,
+  collapseAtoms: false,
+}
+
+export function isInstantSynthesisProfile(profile: SynthesisTimingProfile): boolean {
+  return profile.streamFlyDur <= 0 && profile.mergeFlashDur <= 0
+}
+
 /** Минимальный — слабые устройства / просадка FPS. */
 export const SYNTHESIS_TIMING_FAST: SynthesisTimingProfile = {
   streamFlyDur: 0.22,
@@ -72,9 +93,8 @@ export const SYNTHESIS_TIMING_CINEMATIC: SynthesisTimingProfile = {
 }
 
 export function getSynthesisTimingProfile(
-  forceLite: boolean,
-  deviceTier: SynthesisDeviceTier = 'normal',
+  _forceLite: boolean,
+  _deviceTier: SynthesisDeviceTier = 'normal',
 ): SynthesisTimingProfile {
-  if (forceLite || deviceTier === 'low') return SYNTHESIS_TIMING_FAST
-  return SYNTHESIS_TIMING_BALANCED
+  return SYNTHESIS_TIMING_INSTANT
 }

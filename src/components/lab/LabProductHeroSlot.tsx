@@ -37,6 +37,16 @@ export function LabProductHeroSlot({
     const spin = spinRef.current
     if (!g) return
 
+    if (visible && (entrance === 'instant' || entrance === 'none')) {
+      wasPrewarmRef.current = false
+      gsap.killTweensOf(g.scale)
+      if (spin) gsap.killTweensOf(spin.rotation)
+      g.scale.set(1, 1, 1)
+      if (spin) spin.rotation.set(0, 0, 0)
+      revealedForRunRef.current = runId
+      return
+    }
+
     if (prewarm && !visible) {
       wasPrewarmRef.current = true
       gsap.killTweensOf(g.scale)
@@ -54,7 +64,7 @@ export function LabProductHeroSlot({
     gsap.killTweensOf(g.scale)
     if (spin) gsap.killTweensOf(spin.rotation)
 
-    if (entrance === 'none') {
+    if (entrance === 'none' || entrance === 'instant') {
       g.scale.set(1, 1, 1)
       if (spin) spin.rotation.set(0, 0, 0)
       revealedForRunRef.current = runId

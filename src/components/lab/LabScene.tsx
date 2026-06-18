@@ -9,7 +9,6 @@ import { AtomStructureModel } from './AtomStructureModel'
 import { MoleculeMesh } from './MoleculeMesh'
 import { SynthesisOnLabScene } from './SynthesisOnLabScene'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
-import { SynthesisLabCinematicFx } from './SynthesisLabCinematicFx'
 import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { assertNoProductHeroBeforeRun } from '../../lab/atomGuard/labPreviewGuard'
 import { createSynthesisQualityGovernor } from '../../lab/atomGuard/synthesisRunGuard'
@@ -56,7 +55,7 @@ import {
   type SynthesisStickyMountRef,
   type SynthesisPreviewStickyRef,
 } from '../../lab/synthesisAntiBlink'
-import { getSynthesisTimingProfile } from '../../lab/synthesisTimingProfile'
+import { getSynthesisTimingProfile, isInstantSynthesisProfile } from '../../lab/synthesisTimingProfile'
 import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
 
 /** Свободная лаборатория (атомы на столе). */
@@ -298,6 +297,7 @@ function SceneContent({
     () => getSynthesisTimingProfile(synthForceLite, getSynthesisDeviceTier()),
     [synthForceLite],
   )
+  const instantSynthesis = isInstantSynthesisProfile(synthTimingProfile)
 
   const synthQualityFeatures = useMemo(
     () => featuresForQuality(synthQualityLevel, synthesisPhase),
@@ -401,7 +401,8 @@ function SceneContent({
       ? productCompoundCandidate
       : null
 
-  const previewMotionLocked = synthActive && synthesisPhase !== 'product'
+  const previewMotionLocked =
+    synthActive && !instantSynthesis && synthesisPhase !== 'product'
   const previewPoseLocked = synthActive || synthesisRunActive
   const reactorPreviewMounted = continuity.reactorPreviewMounted
   const reactorPreviewVisible = continuity.reactorPreviewVisible
@@ -465,23 +466,47 @@ function SceneContent({
     synthesisRunActive,
   ])
 
+  useLayoutEffect(() => {
+    if (!synthActive) {
+      if (!showSettledHero) {
+        setEarlyProductReveal(false)
+        setForceProductSlot(false)
+      }
+      return
+    }
+    setForceProductSlot(true)
+    setEarlyProductReveal(true)
+    if (instantSynthesis && synthesis?.product) {
+      prewarmCompoundIdRef.current = synthesis.product.id
+      prewarmReadyRef.current = true
+      setPrewarmReady(true)
+    }
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id, instantSynthesis, showSettledHero])
+
   useEffect(() => {
     if (!synthActive) {
-      setEarlyProductReveal(false)
-      setForceProductSlot(false)
       coverageTrackerRef.current.reset()
       crossfadeGuardRef.current?.cancel()
       crossfadeGuardRef.current = null
       return
     }
-    if (synthesisPhase !== 'mergeFlash') return
+    if (instantSynthesis || synthesisPhase !== 'mergeFlash') return
     const guard = createProductCrossfadeGuard(() => setForceProductSlot(true))
     crossfadeGuardRef.current = guard
     return () => {
       guard.cancel()
       if (crossfadeGuardRef.current === guard) crossfadeGuardRef.current = null
     }
-  }, [synthActive, synthesisPhase, synthesis?.runId])
+  }, [synthActive, synthesisPhase, synthesis?.runId, synthesis?.product?.id, instantSynthesis, showSettledHero])
+
+  /** Мгновенный синтез: без анимации — сразу молекула, затем завершение. */
+  useEffect(() => {
+    if (!instantSynthesis || !synthesis?.runId) return
+    const onDone = synthesis.onDone
+    const holdMs = Math.max(60, synthTimingProfile.productHold * 1000)
+    const timer = window.setTimeout(() => onDone('success'), holdMs)
+    return () => window.clearTimeout(timer)
+  }, [instantSynthesis, synthesis?.runId, synthesis?.onDone, synthTimingProfile.productHold])
 
   const onEarlyProductReveal = useCallback(() => {
     setEarlyProductReveal(true)
@@ -494,7 +519,11 @@ function SceneContent({
     transformPreviewCompound != null,
   )
   const productSlotEntrance: 'smooth' | 'none' | 'instant' =
-    showSettledHero && !synthActive ? 'none' : 'smooth'
+    showSettledHero && !synthActive
+      ? 'none'
+      : instantSynthesis || synthActive
+        ? 'instant'
+        : 'smooth'
 
   /** Фон реактора с первого кадра после «Синтез» — без чёрного провала и ghost-frame. */
   const reactorBackdrop = reactorViewOpen
@@ -745,7 +774,7 @@ function SceneContent({
           {previewActive && transformPreviewCompound ? (
             <TransformPreviewHero compound={transformPreviewCompound} />
           ) : null}
-          {synthActive && synthesis ? (
+          {synthActive && synthesis && !instantSynthesis ? (
             <SynthesisOnLabScene
               zSlots={synthesis.zSlots}
               flyTerms={synthesis.flyTerms}
@@ -794,18 +823,11 @@ function SceneContent({
         <LabProductHeroSlot
           compound={productForSlot}
           visible={productSlotVisible}
-          prewarm={productPrewarmActive}
+          prewarm={productPrewarmActive && !instantSynthesis}
           entrance={productSlotEntrance}
           runId={synthesis?.runId ?? 0}
-          birthEntrance={synthQualityFeatures.birthEntrance}
+          birthEntrance={false}
           entranceDuration={synthTimingProfile.productEntranceDur}
-        />
-      ) : null}
-      {synthActive && synthQualityLevel > 0 ? (
-        <SynthesisLabCinematicFx
-          runId={synthesis?.runId ?? 0}
-          phase={synthesisPhase}
-          features={synthQualityFeatures}
         />
       ) : null}
       <OrbitControls

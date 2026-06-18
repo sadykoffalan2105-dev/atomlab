@@ -467,10 +467,11 @@ export function LaboratoryPage() {
     setSynthesisSettledProduct(null)
     synthesisSettledProductRef.current = null
     settledSnapshotRef.current = null
-    synthesisPhaseRef.current = 'converge'
-    setSynthPhaseUi('converge')
+    synthesisPhaseRef.current = 'product'
+    setSynthPhaseUi('product')
     setSynthIgnite(false)
-    launchProgressRef.current = 0.12
+    launchProgressRef.current = 1
+    forceLiteFxRef.current = true
     const zCopy = payload.zSlots.slice()
     const flyCopy = [...payload.flyTerms]
     lastRunZSlotsRef.current = zCopy

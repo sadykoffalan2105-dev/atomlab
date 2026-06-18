@@ -37,10 +37,6 @@ export type SynthesisContinuityView = {
   holdVisualOverlap: boolean
 }
 
-function isLateSynthPhase(phase: string): boolean {
-  return phase === 'mergeFlash' || phase === 'product'
-}
-
 /**
  * Инвариант: во время синтеза на сцене всегда есть атомы И/ИЛИ продукт.
  * Меш продукта не размонтируется после первого mount на runId.
@@ -50,7 +46,6 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     runId,
     synthActive,
     synthesisRunActive,
-    synthesisPhase,
     showSettledHero,
     mountReactorPreview,
     reactorViewOpen,
@@ -64,7 +59,6 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   } = input
 
   const synthLive = synthActive || synthesisRunActive
-  const latePhase = isLateSynthPhase(synthesisPhase)
 
   if (synthLive && runId > 0 && mountReactorPreview) {
     previewStickyRef.current = { runId, previewMounted: true }
@@ -116,14 +110,18 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     (showSettledHero ||
       earlyProductReveal ||
       forceProductSlot ||
-      (synthActive && latePhase))
+      (synthLive && runId > 0))
 
   const productPrewarm = productMeshMounted && !productSlotVisible && !showSettledHero
   const holdVisualOverlap = synthLive
 
-  /** Корень превью никогда не гасим во время синтеза — только scale/GSAP. */
+  /** Атомы скрываем, когда молекула уже на сцене — без наложения и мигания. */
+  const hidePreviewForProduct =
+    synthLive && productSlotVisible && !showSettledHero
+
   const reactorPreviewVisible =
     reactorPreviewMounted &&
+    !hidePreviewForProduct &&
     (!showSettledHero || synthLive || productPrewarm)
 
   return {

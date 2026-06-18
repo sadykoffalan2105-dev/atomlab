@@ -37,12 +37,10 @@ export function computeStaticQualityCap(opts: {
   visualTier: 'full' | 'lite' | 'cluster'
 }): SynthesisQualityLevel {
   const { deviceTier, atomCount, visualTier } = opts
-  if (deviceTier === 'low' || visualTier === 'cluster') return SYNTHESIS_QUALITY_LITE
-  if (visualTier === 'lite' || atomCount >= SYNTHESIS_PERF.liteFxAtomThreshold) {
-    return SYNTHESIS_QUALITY_LITE
-  }
-  if (atomCount >= SYNTHESIS_PERF.synthLiteStartThreshold) return SYNTHESIS_QUALITY_HIGH
-  return SYNTHESIS_QUALITY_ULTRA
+  void deviceTier
+  void atomCount
+  void visualTier
+  return SYNTHESIS_QUALITY_MINIMAL
 }
 
 export function featuresForQuality(
