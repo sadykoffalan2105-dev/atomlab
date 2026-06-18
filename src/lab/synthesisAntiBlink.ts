@@ -24,6 +24,8 @@ export type SynthesisContinuityInput = {
   productCompoundId: string | null
   earlyProductReveal: boolean
   forceProductSlot: boolean
+  /** true — молекула уже отрисована, можно скрыть превью атомов */
+  productRevealReady: boolean
   stickyMountRef: MutableRefObject<SynthesisStickyMountRef | null>
   previewStickyRef: MutableRefObject<SynthesisPreviewStickyRef | null>
 }
@@ -54,6 +56,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     productCompoundId,
     earlyProductReveal: _earlyProductReveal,
     forceProductSlot: _forceProductSlot,
+    productRevealReady,
     stickyMountRef,
     previewStickyRef,
   } = input
@@ -99,17 +102,17 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     reactorViewOpen &&
     (showSettledHero || (synthLive && runId > 0 && stickyMatch))
 
-  /** Видимость — строго после «Проверить и запустить синтез», не при балансе уравнения. */
+  /** Видимость — после короткого prewarm-кадра (атомы + электроны остаются до этого). */
   const productSlotVisible =
     productMeshMounted &&
-    (showSettledHero || (synthActive && runId > 0))
+    (showSettledHero || (synthActive && runId > 0 && productRevealReady))
 
   const productPrewarm = productMeshMounted && !productSlotVisible && !showSettledHero
   const holdVisualOverlap = synthLive
 
-  /** Атомы скрываем, когда молекула уже на сцене — без наложения и мигания. */
+  /** Атомы скрываем только когда молекула уже на экране — без чёрного кадра. */
   const hidePreviewForProduct =
-    synthLive && productSlotVisible && !showSettledHero
+    synthLive && productSlotVisible && productRevealReady && !showSettledHero
 
   const reactorPreviewVisible =
     reactorPreviewMounted &&

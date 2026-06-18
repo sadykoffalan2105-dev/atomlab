@@ -42,7 +42,6 @@ export function getReactorPreviewPolicy(opts: {
 
   return {
     electronAnimate:
-      !minimal &&
       visible &&
       !flightActive &&
       atomCount <= SYNTHESIS_PERF.maxAnimatedAtoms &&
@@ -54,7 +53,8 @@ export function getReactorPreviewPolicy(opts: {
       atomCount <= 12 &&
       visualTier === 'full' &&
       (qualityLevel ?? 4) >= 4,
-    slowSpin: visible && !flightActive && atomCount <= 12 && visualTier === 'full' && !liteRender,
+    slowSpin:
+      visible && !flightActive && atomCount <= 12 && visualTier === 'full' && !liteRender,
     visibilityGuardEvery: liteRender ? 4 : atomCount > 6 ? 2 : 1,
     coverageGuardEvery: liteRender ? 3 : 2,
   }

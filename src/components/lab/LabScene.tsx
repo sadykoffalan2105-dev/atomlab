@@ -276,6 +276,7 @@ function SceneContent({
   const previewRootRef = useRef<THREE.Group | null>(null)
   const [earlyProductReveal, setEarlyProductReveal] = useState(false)
   const [forceProductSlot, setForceProductSlot] = useState(false)
+  const [productRevealReady, setProductRevealReady] = useState(false)
   const [prewarmReady, setPrewarmReady] = useState(false)
   const prewarmReadyRef = useRef(false)
   const prewarmCompoundIdRef = useRef<string | null>(null)
@@ -368,10 +369,11 @@ function SceneContent({
         mountReactorPreview,
         reactorViewOpen,
         gpuPrewarmAllowed,
-    prewarmReady: prewarmReadyRef.current || prewarmReady,
-    productCompoundId: productCompoundCandidate?.id ?? null,
-    earlyProductReveal,
-    forceProductSlot,
+        prewarmReady: prewarmReadyRef.current || prewarmReady,
+        productCompoundId: productCompoundCandidate?.id ?? null,
+        earlyProductReveal,
+        forceProductSlot,
+        productRevealReady,
         stickyMountRef: productStickyMountRef,
         previewStickyRef: previewStickyMountRef,
       }),
@@ -388,6 +390,7 @@ function SceneContent({
       productCompoundCandidate?.id,
       earlyProductReveal,
       forceProductSlot,
+      productRevealReady,
     ],
   )
 
@@ -398,7 +401,7 @@ function SceneContent({
 
   const previewMotionLocked =
     synthActive && !instantSynthesis && synthesisPhase !== 'product'
-  const previewPoseLocked = synthActive || synthesisRunActive
+  const previewPoseLocked = synthesisRunActive && !synthActive
   const reactorPreviewMounted = continuity.reactorPreviewMounted
   const reactorPreviewVisible = continuity.reactorPreviewVisible
   const productSlotVisible = continuity.productSlotVisible
@@ -462,6 +465,26 @@ function SceneContent({
   ])
 
   useLayoutEffect(() => {
+    if (!synthActive || !synthesis?.runId) {
+      setProductRevealReady(false)
+      return
+    }
+    setProductRevealReady(false)
+    let raf2 = 0
+    let raf3 = 0
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        raf3 = requestAnimationFrame(() => setProductRevealReady(true))
+      })
+    })
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+      cancelAnimationFrame(raf3)
+    }
+  }, [synthActive, synthesis?.runId])
+
+  useLayoutEffect(() => {
     if (!synthActive || !synthesis?.runId) return
     setForceProductSlot(true)
     setEarlyProductReveal(true)
@@ -487,21 +510,25 @@ function SceneContent({
     }
   }, [synthActive, synthesisPhase, synthesis?.runId, synthesis?.product?.id, instantSynthesis, showSettledHero])
 
-  /** Мгновенный синтез: показать молекулу, выдержка, затем settled без мигания. */
+  /** Мгновенный синтез: 3 кадра атомы+электроны → молекула → пауза → settled. */
   useEffect(() => {
     if (!instantSynthesis || !synthesis?.runId) return
     const onDone = synthesis.onDone
     const holdMs = Math.max(420, synthTimingProfile.productHold * 1000)
     let raf2 = 0
+    let raf3 = 0
     let timer = 0
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
-        timer = window.setTimeout(() => onDone('success'), holdMs)
+        raf3 = requestAnimationFrame(() => {
+          timer = window.setTimeout(() => onDone('success'), holdMs)
+        })
       })
     })
     return () => {
       cancelAnimationFrame(raf1)
       cancelAnimationFrame(raf2)
+      cancelAnimationFrame(raf3)
       window.clearTimeout(timer)
     }
   }, [instantSynthesis, synthesis?.runId, synthesis?.onDone, synthTimingProfile.productHold])
@@ -760,7 +787,7 @@ function SceneContent({
               flightActive={previewMotionLocked}
               poseLocked={previewPoseLocked}
               sharedLighting={synthActive || synthesisRunActive}
-              forceLite={synthForceLite}
+              forceLite={synthActive || synthesisRunActive ? false : synthForceLite}
               qualityLevel={synthQualityLevel}
               synthesisGlass={synthQualityFeatures.glassAtoms}
               visualTier={previewVisualTier}
@@ -821,7 +848,7 @@ function SceneContent({
         <LabProductHeroSlot
           compound={productForSlot}
           visible={productSlotVisible}
-          prewarm={false}
+          prewarm={productPrewarmActive}
           entrance={productSlotEntrance}
           runId={synthesis?.runId ?? 0}
           birthEntrance={false}
