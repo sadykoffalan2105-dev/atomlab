@@ -49,11 +49,11 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     showSettledHero,
     mountReactorPreview,
     reactorViewOpen,
-    gpuPrewarmAllowed,
-    prewarmReady,
+    gpuPrewarmAllowed: _gpuPrewarmAllowed,
+    prewarmReady: _prewarmReady,
     productCompoundId,
-    earlyProductReveal,
-    forceProductSlot,
+    earlyProductReveal: _earlyProductReveal,
+    forceProductSlot: _forceProductSlot,
     stickyMountRef,
     previewStickyRef,
   } = input
@@ -77,13 +77,8 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     mountReactorPreview ||
     (previewSticky && reactorViewOpen && synthLive)
 
-  if (productCompoundId && reactorViewOpen) {
-    if (prewarmReady && gpuPrewarmAllowed && !showSettledHero) {
-      stickyMountRef.current = { runId, compoundId: productCompoundId, productMounted: true }
-    }
-    if (synthLive && runId > 0) {
-      stickyMountRef.current = { runId, compoundId: productCompoundId, productMounted: true }
-    }
+  if (productCompoundId && reactorViewOpen && synthLive && runId > 0) {
+    stickyMountRef.current = { runId, compoundId: productCompoundId, productMounted: true }
   }
 
   if (!synthLive && !showSettledHero) {
@@ -95,22 +90,19 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     sticky != null &&
     productCompoundId != null &&
     sticky.compoundId === productCompoundId &&
-    sticky.productMounted
+    sticky.productMounted &&
+    sticky.runId === runId
 
+  /** Меш продукта — только после запуска синтеза или в settled-кадре. */
   const productMeshMounted =
     productCompoundId != null &&
     reactorViewOpen &&
-    (showSettledHero ||
-      stickyMatch ||
-      (gpuPrewarmAllowed && prewarmReady) ||
-      (synthLive && runId > 0))
+    (showSettledHero || (synthLive && runId > 0 && stickyMatch))
 
+  /** Видимость — строго после «Проверить и запустить синтез», не при балансе уравнения. */
   const productSlotVisible =
     productMeshMounted &&
-    (showSettledHero ||
-      earlyProductReveal ||
-      forceProductSlot ||
-      (synthLive && runId > 0))
+    (showSettledHero || (synthActive && runId > 0))
 
   const productPrewarm = productMeshMounted && !productSlotVisible && !showSettledHero
   const holdVisualOverlap = synthLive

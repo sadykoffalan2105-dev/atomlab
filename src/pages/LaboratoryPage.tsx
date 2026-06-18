@@ -487,11 +487,9 @@ export function LaboratoryPage() {
 
     setLastRunProduct(payload.compound)
     setPrewarmCompound(payload.compound)
-    startTransition(() => {
-      setSynthesisFlightSlots(zCopy)
-      setSynthesisFlyTerms(flyCopy)
-      setRunId(nextRunId)
-    })
+    setSynthesisFlightSlots(zCopy)
+    setSynthesisFlyTerms(flyCopy)
+    setRunId(nextRunId)
   }, [leftTerms, productCompoundId, productCoeff, t, locale, runId])
 
   const labSynthesis = useMemo(() => {
@@ -607,18 +605,9 @@ export function LaboratoryPage() {
   const deferredReactorPreviewTerms = useDeferredValue(reactorPreviewTerms)
 
   const gpuPrewarmCompound = useMemo(() => {
-    if (!reactorOpen || !productCompound) return null
-    if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
-    if (equationBalanced) return productCompound
-    return null
-  }, [
-    reactorOpen,
-    productCompound,
-    equationBalanced,
-    synthRunActive,
-    lastRunProduct,
-    prewarmCompound,
-  ])
+    if (!reactorOpen || !productCompound || !synthRunActive) return null
+    return lastRunProduct ?? prewarmCompound ?? productCompound
+  }, [reactorOpen, productCompound, synthRunActive, lastRunProduct, prewarmCompound])
 
   return (
     <div className={styles.wrap} data-lab-synthesis-view={laboratorySynthesisView}>
