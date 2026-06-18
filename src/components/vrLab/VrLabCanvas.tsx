@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber'
 import { compoundById } from '../../data/compounds'
 import type { VrLabBenchState } from '../../vrLab/types'
 import { VrLabEnvironment, VrLabLighting } from './VrLabEnvironment'
+import { VrLabEquipmentScene } from './VrLabEquipment'
 import { VrLabBeaker, VrLabTestTube, VrLabTubeRack, useMixTilt } from './VrLabGlassware'
 import { VrLabReactionParticles } from './VrLabReactionParticles'
 
@@ -14,10 +15,10 @@ type Props = {
 
 function BenchScene({ bench, onSelectTube }: Props) {
   const tubePositions: [number, number, number][] = [
-    [-1.35, 0.02, 0.02],
-    [-1.11, 0.02, 0.02],
-    [-0.87, 0.02, 0.02],
-    [-0.63, 0.02, 0.02],
+    [-1.45, 0.02, 0.12],
+    [-1.18, 0.02, 0.12],
+    [-0.91, 0.02, 0.12],
+    [-0.64, 0.02, 0.12],
   ]
 
   const combineTilt = useMixTilt(bench.animPhase === 'combining' ? bench.animProgress : 0)
@@ -27,6 +28,7 @@ function BenchScene({ bench, onSelectTube }: Props) {
     <>
       <VrLabEnvironment />
       <VrLabLighting />
+      <VrLabEquipmentScene />
       <VrLabTubeRack tubeCount={4} />
 
       {bench.tubes.map((tube, i) => {
@@ -83,7 +85,7 @@ function BenchScene({ bench, onSelectTube }: Props) {
       })}
 
       <VrLabBeaker
-        position={[0.95, 0.02, 0.02]}
+        position={[0.75, 0.02, 0.12]}
         content={bench.beaker}
         mixing={bench.mixing || bench.animPhase === 'reacting'}
         mixColor={bench.mixColor ?? undefined}
@@ -91,7 +93,7 @@ function BenchScene({ bench, onSelectTube }: Props) {
       />
 
       <Text
-        position={[0.95, 0.005, 0.16]}
+        position={[0.75, 0.005, 0.26]}
         rotation={[-Math.PI / 2, 0, 0]}
         fontSize={0.055}
         color="#5a6570"
@@ -103,7 +105,7 @@ function BenchScene({ bench, onSelectTube }: Props) {
       <VrLabReactionParticles
         active={bench.mixing || bench.animPhase === 'reacting'}
         result={bench.lastMix}
-        position={[0.95, 0.28, 0.02]}
+        position={[0.75, 0.28, 0.12]}
         progress={bench.animPhase === 'reacting' ? bench.animProgress : 1}
       />
 
@@ -120,9 +122,9 @@ function BenchScene({ bench, onSelectTube }: Props) {
         makeDefault
         minPolarAngle={0.55}
         maxPolarAngle={Math.PI / 2.15}
-        minDistance={2.4}
-        maxDistance={5.5}
-        target={[0, 0.25, 0]}
+        minDistance={2.8}
+        maxDistance={6}
+        target={[0.15, 0.32, -0.05]}
         enableDamping
         dampingFactor={0.06}
       />
@@ -144,7 +146,7 @@ export function VrLabCanvas({ bench, onSelectTube }: Props) {
   return (
     <Canvas
       shadows
-      camera={{ position: [0.2, 1.05, 2.85], fov: 38 }}
+      camera={{ position: [0.15, 0.92, 3.35], fov: 42 }}
       gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       dpr={[1, 2]}
     >

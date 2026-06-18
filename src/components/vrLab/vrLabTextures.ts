@@ -10,9 +10,9 @@ export function useBenchTopTexture() {
     canvas.height = size
     const ctx = canvas.getContext('2d')!
     const grd = ctx.createLinearGradient(0, 0, size, size)
-    grd.addColorStop(0, '#8a939f')
-    grd.addColorStop(0.5, '#9aa3ae')
-    grd.addColorStop(1, '#7a848f')
+    grd.addColorStop(0, '#8e98a4')
+    grd.addColorStop(0.45, '#a0aab4')
+    grd.addColorStop(1, '#788290')
     ctx.fillStyle = grd
     ctx.fillRect(0, 0, size, size)
     for (let i = 0; i < 120; i++) {

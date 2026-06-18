@@ -161,7 +161,7 @@ export function VrLabBeaker({
 
 export function VrLabTubeRack({ tubeCount = 4 }: { tubeCount?: number }) {
   return (
-    <group position={[-1.35, 0.02, -0.05]}>
+    <group position={[-1.45, 0.02, 0.1]}>
       <mesh position={[0, 0.16, 0]} castShadow receiveShadow>
         <boxGeometry args={[1.08, 0.05, 0.32]} />
         <meshStandardMaterial color="#b8c4d4" roughness={0.35} metalness={0.45} />
