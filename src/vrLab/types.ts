@@ -40,6 +40,13 @@ export type VrLabBenchState = {
   selectedTubeId: string | null
   mixing: boolean
   lastMix: VrLabMixResult | null
+  /** 0…1 прогресс текущей анимации */
+  animProgress: number
+  /** idle | pouring | combining | reacting */
+  animPhase: 'idle' | 'pouring' | 'combining' | 'reacting'
+  pourTubeId: string | null
+  pourCompoundId: string | null
+  mixColor: string | null
 }
 
 export type VrLabSubstanceVisual = {

@@ -13,21 +13,21 @@ export function substanceVisual(compoundId: string): VrLabSubstanceVisual {
   const paletteHex = hslToHex(colorFromPalette(compoundId))
   const liquidColor = c?.accentColor?.startsWith('#') ? c.accentColor : baseHex
 
-  let glow = 0.35
-  let opacity = 0.88
+  let glow = 0.42
+  let opacity = 0.9
   let viscosity = 0.5
   if (c?.category === 'acid') {
-    glow = 0.45
+    glow = 0.52
     viscosity = 0.42
   } else if (c?.category === 'base') {
-    glow = 0.4
+    glow = 0.48
     viscosity = 0.55
   } else if (c?.category === 'salt') {
-    glow = 0.28
-    opacity = 0.82
+    glow = 0.35
+    opacity = 0.86
     viscosity = 0.48
   } else if (c?.category === 'oxide') {
-    glow = 0.32
+    glow = 0.4
     viscosity = 0.6
   }
 

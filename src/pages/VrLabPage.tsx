@@ -17,6 +17,7 @@ export function VrLabPage() {
 
   const selectedTube = state.tubes.find((tube) => tube.id === state.selectedTubeId)
   const last = state.lastMix
+  const busy = state.animPhase !== 'idle'
 
   return (
     <div className={styles.wrap}>
@@ -62,7 +63,7 @@ export function VrLabPage() {
             <button
               type="button"
               className={styles.btnPrimary}
-              disabled={!pickId}
+              disabled={!pickId || busy}
               onClick={() => pickId && fillSelectedTube(pickId)}
             >
               {t('vrLab.action.pour')}
@@ -70,6 +71,7 @@ export function VrLabPage() {
             <button
               type="button"
               className={styles.btnPrimary}
+              disabled={busy}
               onClick={mixSelectedPair}
             >
               {t('vrLab.action.mix')}

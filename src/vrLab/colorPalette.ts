@@ -69,7 +69,23 @@ export function hslToHex(hsl: string): string {
 }
 
 export function resolveLiquidHex(id: string, accentFallback?: string): string {
-  if (accentFallback?.startsWith('#')) return accentFallback
-  if (accentFallback?.startsWith('hsl')) return hslToHex(accentFallback)
-  return hslToHex(colorFromPalette(id))
+  if (accentFallback?.startsWith('#')) {
+    return saturateHex(accentFallback, 1.35)
+  }
+  if (accentFallback?.startsWith('hsl')) return saturateHex(hslToHex(accentFallback), 1.25)
+  return saturateHex(hslToHex(colorFromPalette(id)), 1.2)
+}
+
+function saturateHex(hex: string, boost: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex)
+  if (!m) return hex
+  const n = parseInt(m[1]!, 16)
+  let r = (n >> 16) & 255
+  let g = (n >> 8) & 255
+  let b = n & 255
+  const avg = (r + g + b) / 3
+  r = Math.min(255, Math.round(r + (r - avg) * (boost - 1) + 12))
+  g = Math.min(255, Math.round(g + (g - avg) * (boost - 1) + 12))
+  b = Math.min(255, Math.round(b + (b - avg) * (boost - 1) + 12))
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
 }
