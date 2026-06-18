@@ -2,11 +2,11 @@ import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { synthesisTimingScale } from '../chemistry/reactorVisualTier'
 import {
   getSynthesisTimingProfile,
-  SYNTHESIS_TIMING_CINEMATIC,
+  SYNTHESIS_TIMING_BALANCED,
   type SynthesisTimingProfile,
 } from './synthesisTimingProfile'
 
-const DEFAULT_PROFILE = SYNTHESIS_TIMING_CINEMATIC
+const DEFAULT_PROFILE = SYNTHESIS_TIMING_BALANCED
 
 /** @deprecated Используйте profile из getSynthesisTimingProfile */
 export const LAUNCH_STREAM_FLY_DUR = DEFAULT_PROFILE.streamFlyDur

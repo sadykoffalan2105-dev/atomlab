@@ -30,9 +30,9 @@ export const SYNTHESIS_PERF = {
   clusterFlyDur: 0.12,
   clusterTermStagger: 0.04,
   /** FPS ниже порога → forceLite (LabScene governor) */
-  fpsLiteEnter: 45,
-  fpsLiteExit: 52,
-  fpsLiteHoldSec: 0.35,
+  fpsLiteEnter: 48,
+  fpsLiteExit: 54,
+  fpsLiteHoldSec: 0.25,
   /** Cyber explore 3D */
   cyberCanvasDpr: 1 as number,
 } as const

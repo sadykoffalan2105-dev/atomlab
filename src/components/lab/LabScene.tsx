@@ -12,16 +12,22 @@ import { LabProductHeroSlot } from './LabProductHeroSlot'
 import { SynthesisLabCinematicFx } from './SynthesisLabCinematicFx'
 import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { assertNoProductHeroBeforeRun } from '../../lab/atomGuard/labPreviewGuard'
-import { createFpsGovernor } from '../../lab/atomGuard/synthesisRunGuard'
+import { createSynthesisQualityGovernor } from '../../lab/atomGuard/synthesisRunGuard'
+import {
+  computeStaticQualityCap,
+  featuresForQuality,
+  qualityLevelToForceLite,
+  type SynthesisQualityLevel,
+} from '../../lab/synthesisQualityLadder'
 import {
   getReactorPreviewPolicy,
   shouldRunGuardTick,
 } from '../../lab/synthesisLagGuard'
-import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
 import { ReactorTermsPreview } from './ReactorTermsPreview'
 import { buildReactorPreviewAtoms } from './reactorPreviewLayout'
+import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import type { CompoundDef } from '../../types/chemistry'
@@ -44,6 +50,12 @@ import {
 import {
   createSynthesisCoverageTracker,
 } from '../../lab/synthesisVisualGuard'
+import {
+  resolveSynthesisContinuity,
+  synthesisContinuityCovered,
+  type SynthesisStickyMountRef,
+  type SynthesisPreviewStickyRef,
+} from '../../lab/synthesisAntiBlink'
 import { getSynthesisTimingProfile } from '../../lab/synthesisTimingProfile'
 import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
 
@@ -250,14 +262,11 @@ function SceneContent({
   const perfLevelRef = useRef<PerfLevel>('high')
   const perfAcc = useRef({ t: 0, lowT: 0, highT: 0, fps: 60 })
   const fpsGovRef = useRef(
-    createFpsGovernor({
-      enterFps: SYNTHESIS_PERF.fpsLiteEnter,
-      exitFps: SYNTHESIS_PERF.fpsLiteExit,
-      holdSec: SYNTHESIS_PERF.fpsLiteHoldSec,
-    }),
+    createSynthesisQualityGovernor(),
   )
   const synthForceLiteRef = useRef(false)
-  const [synthForceLite, setSynthForceLite] = useState(false)
+  const [synthQualityLevel, setSynthQualityLevel] = useState<SynthesisQualityLevel>(3)
+  const synthForceLite = qualityLevelToForceLite(synthQualityLevel)
   const coverageFrameRef = useRef(0)
   const synthActive = synthesis != null
   const previewActive = false
@@ -269,7 +278,8 @@ function SceneContent({
   const [prewarmReady, setPrewarmReady] = useState(false)
   const prewarmReadyRef = useRef(false)
   const prewarmCompoundIdRef = useRef<string | null>(null)
-  const [previewOverlapActive, setPreviewOverlapActive] = useState(false)
+  const productStickyMountRef = useRef<SynthesisStickyMountRef | null>(null)
+  const previewStickyMountRef = useRef<SynthesisPreviewStickyRef | null>(null)
   const crossfadeGuardRef = useRef<ProductCrossfadeGuard | null>(null)
   const coverageTrackerRef = useRef(createSynthesisCoverageTracker())
   const frameHoldRef = useRef(createLabCanvasFrameHoldGuard())
@@ -283,8 +293,13 @@ function SceneContent({
   const manyAtomsCameraRef = useRef(previewAtomCount > 8)
 
   const synthTimingProfile = useMemo(
-    () => getSynthesisTimingProfile(synthForceLite),
+    () => getSynthesisTimingProfile(synthForceLite, getSynthesisDeviceTier()),
     [synthForceLite],
+  )
+
+  const synthQualityFeatures = useMemo(
+    () => featuresForQuality(synthQualityLevel, synthesisPhase),
+    [synthQualityLevel, synthesisPhase],
   )
 
   const showSettledHero =
@@ -293,40 +308,37 @@ function SceneContent({
     !previewActive &&
     synthesisSettledProduct != null
 
-  /** Схлопывание атомов в центр при ударе — cosmic birth перед молекулой. */
+  /** Схлопывание атомов — только после появления продукта, без пустого кадра. */
   const fadePreviewAtoms = useCallback(() => {
+    if (!synthTimingProfile.collapseAtoms) return
+    setForceProductSlot(true)
+    setEarlyProductReveal(true)
+
     const groups = previewAtomGroupRefs.current
     const scales = previewAtomScaleGroupRefs.current
     const dur = synthTimingProfile.atomCollapseDur
-    groups.forEach((g, i) => {
-      if (!g) return
-      const sc = scales[i]
-      gsap.killTweensOf(g.position)
-      gsap.killTweensOf(g.scale)
-      if (sc) {
-        gsap.killTweensOf(sc.scale)
-        gsap.to(sc.scale, {
-          x: 0.001,
-          y: 0.001,
-          z: 0.001,
-          duration: dur,
-          ease: 'power4.in',
-        })
-      }
-      gsap.to(g.position, {
-        x: 0,
-        y: 0.12,
-        z: 0,
-        duration: dur * 0.9,
-        ease: 'power3.in',
-      })
-    })
-  }, [synthTimingProfile.atomCollapseDur])
+    if (dur <= 0) return
 
-  /** Молекула продукта — не монтировать в converge (иначе compile + чёрный экран). */
-  const synthLatePhase =
-    synthesisPhase === 'mergeFlash' || synthesisPhase === 'product'
-  const allowProductMesh = showSettledHero || !synthActive || synthLatePhase
+    window.setTimeout(() => {
+      groups.forEach((g, i) => {
+        if (!g) return
+        const sc = scales[i]
+        if (sc) {
+          gsap.killTweensOf(sc.scale)
+          gsap.to(sc.scale, {
+            x: 0.06,
+            y: 0.06,
+            z: 0.06,
+            duration: dur,
+            ease: 'power3.in',
+          })
+        }
+      })
+    }, 48)
+  }, [synthTimingProfile.atomCollapseDur, synthTimingProfile.collapseAtoms])
+
+  const productCompoundCandidate =
+    synthesisSettledProduct ?? synthesis?.product ?? prewarmProductCompound
 
   const gpuPrewarmAllowed =
     shouldMountProductGpuPrewarm({
@@ -340,60 +352,68 @@ function SceneContent({
       reactorViewOpen &&
       prewarmProductCompound != null)
 
-  const productForSlot =
-    synthesisSettledProduct ??
-    (allowProductMesh && synthActive && synthesis?.product ? synthesis.product : null) ??
-    (allowProductMesh && gpuPrewarmAllowed && prewarmProductCompound ? prewarmProductCompound : null)
-
   const mountReactorPreview =
     reactorViewOpen &&
     reactorPreviewTerms != null &&
     reactorPreviewTerms.length >= 1 &&
     (!showSettledHero || synthActive || synthesisRunActive)
-  /** Блокируем drift/GSAP с converge до product — иначе атомы «прыгают» на merge. */
+
+  const continuity = useMemo(
+    () =>
+      resolveSynthesisContinuity({
+        runId: synthesis?.runId ?? 0,
+        synthActive,
+        synthesisRunActive,
+        synthesisPhase,
+        showSettledHero,
+        mountReactorPreview,
+        reactorViewOpen,
+        gpuPrewarmAllowed,
+        prewarmReady: prewarmReadyRef.current || prewarmReady,
+        productCompoundId: productCompoundCandidate?.id ?? null,
+        earlyProductReveal,
+        forceProductSlot,
+        stickyMountRef: productStickyMountRef,
+        previewStickyRef: previewStickyMountRef,
+      }),
+    [
+      synthesis?.runId,
+      synthActive,
+      synthesisRunActive,
+      synthesisPhase,
+      showSettledHero,
+      mountReactorPreview,
+      reactorViewOpen,
+      gpuPrewarmAllowed,
+      prewarmReady,
+      productCompoundCandidate?.id,
+      earlyProductReveal,
+      forceProductSlot,
+    ],
+  )
+
+  const productForSlot =
+    continuity.productMeshMounted && productCompoundCandidate
+      ? productCompoundCandidate
+      : null
+
   const previewMotionLocked = synthActive && synthesisPhase !== 'product'
   const previewPoseLocked = synthActive || synthesisRunActive
-  const productSlotVisible =
-    productForSlot != null &&
-    (showSettledHero ||
-      forceProductSlot ||
-      earlyProductReveal ||
-      (synthActive && synthesisPhase === 'product'))
-  /** Держим превью до handoff продукта — иначе кадр без атомов и мигание. */
-  const reactorPreviewVisible =
-    mountReactorPreview &&
-    (!synthActive ||
-      !productSlotVisible ||
-      previewOverlapActive ||
-      earlyProductReveal ||
-      forceProductSlot)
-  const productPrewarmActive =
-    gpuPrewarmAllowed &&
-    allowProductMesh &&
-    productForSlot != null &&
-    !productSlotVisible &&
-    !showSettledHero &&
-    reactorViewOpen &&
-    (prewarmReadyRef.current || prewarmReady)
+  const reactorPreviewMounted = continuity.reactorPreviewMounted
+  const reactorPreviewVisible = continuity.reactorPreviewVisible
+  const productSlotVisible = continuity.productSlotVisible
+  const productPrewarmActive = continuity.productPrewarm
 
   useEffect(() => {
-    if (!gpuPrewarmAllowed) {
-      prewarmReadyRef.current = false
-      prewarmCompoundIdRef.current = null
-      setPrewarmReady(false)
+    if (!gpuPrewarmAllowed || !reactorViewOpen) {
+      if (!synthActive && !synthesisRunActive) {
+        prewarmReadyRef.current = false
+        prewarmCompoundIdRef.current = null
+        setPrewarmReady(false)
+      }
       return
     }
-    if (!reactorViewOpen) {
-      prewarmReadyRef.current = false
-      prewarmCompoundIdRef.current = null
-      setPrewarmReady(false)
-      return
-    }
-    if (synthActive && !synthLatePhase) {
-      return
-    }
-    const compound =
-      prewarmProductCompound ?? (synthActive && synthLatePhase ? synthesis?.product : null)
+    const compound = prewarmProductCompound ?? synthesis?.product
     if (!compound) {
       prewarmReadyRef.current = false
       prewarmCompoundIdRef.current = null
@@ -404,45 +424,36 @@ function SceneContent({
       setPrewarmReady(true)
       return
     }
-    prewarmCompoundIdRef.current = compound.id
     let cancelled = false
+    let raf2 = 0
     const markReady = () => {
       if (cancelled) return
+      prewarmCompoundIdRef.current = compound.id
       prewarmReadyRef.current = true
       setPrewarmReady(true)
     }
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(markReady)
+    })
     scheduleIdleMatch(markReady)
     return () => {
       cancelled = true
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
     }
   }, [
     gpuPrewarmAllowed,
     reactorViewOpen,
     prewarmProductCompound?.id,
-    synthActive,
-    synthLatePhase,
     synthesis?.product?.id,
+    synthActive,
+    synthesisRunActive,
   ])
-
-  useLayoutEffect(() => {
-    if (!synthActive || !synthesis?.runId) return
-    setPreviewOverlapActive(true)
-  }, [synthActive, synthesis?.runId])
-
-  useLayoutEffect(() => {
-    if (synthesisPhase !== 'mergeFlash' || !synthActive) return
-    setPreviewOverlapActive(true)
-    if (prewarmReadyRef.current) {
-      setEarlyProductReveal(true)
-      setForceProductSlot(true)
-    }
-  }, [synthesisPhase, synthActive, synthesis?.runId])
 
   useEffect(() => {
     if (!synthActive) {
       setEarlyProductReveal(false)
       setForceProductSlot(false)
-      setPreviewOverlapActive(false)
       coverageTrackerRef.current.reset()
       crossfadeGuardRef.current?.cancel()
       crossfadeGuardRef.current = null
@@ -457,24 +468,9 @@ function SceneContent({
     }
   }, [synthActive, synthesisPhase, synthesis?.runId])
 
-  useLayoutEffect(() => {
-    if (earlyProductReveal) setPreviewOverlapActive(true)
-  }, [earlyProductReveal])
-
-  useLayoutEffect(() => {
-    if (!productSlotVisible || !synthActive) return
-    crossfadeGuardRef.current?.signalProductReady()
-    setPreviewOverlapActive(true)
-    const overlapMs = Math.max(
-      synthTimingProfile.previewOverlapMs,
-      Math.ceil(synthTimingProfile.productEntranceDur * 1000) + 80,
-    )
-    const timer = window.setTimeout(() => setPreviewOverlapActive(false), overlapMs)
-    return () => window.clearTimeout(timer)
-  }, [productSlotVisible, synthActive, synthesis?.runId, synthTimingProfile])
-
   const onEarlyProductReveal = useCallback(() => {
     setEarlyProductReveal(true)
+    setForceProductSlot(true)
   }, [])
 
   assertNoProductHeroBeforeRun(
@@ -483,11 +479,7 @@ function SceneContent({
     transformPreviewCompound != null,
   )
   const productSlotEntrance: 'smooth' | 'none' | 'instant' =
-    showSettledHero && !synthActive
-      ? 'none'
-      : synthActive && (productPrewarmActive || prewarmReady)
-        ? 'instant'
-        : 'smooth'
+    showSettledHero && !synthActive ? 'none' : 'smooth'
 
   /** Фон реактора с первого кадра после «Синтез» — без чёрного провала и ghost-frame. */
   const reactorBackdrop = reactorViewOpen
@@ -544,17 +536,21 @@ function SceneContent({
     fpsGovRef.current.reset()
     if (!synthesis?.runId) {
       synthForceLiteRef.current = false
-      setSynthForceLite(false)
+      setSynthQualityLevel(3)
       if (forceLiteFxRef) forceLiteFxRef.current = false
       return
     }
-    const lite =
-      previewAtomCount >= SYNTHESIS_PERF.liteFxAtomThreshold ||
-      previewVisualTier === 'cluster' ||
-      previewVisualTier === 'lite'
-    synthForceLiteRef.current = lite
-    setSynthForceLite(lite)
-    if (forceLiteFxRef) forceLiteFxRef.current = lite
+    const cap = computeStaticQualityCap({
+      deviceTier: getSynthesisDeviceTier(),
+      atomCount: previewAtomCount,
+      visualTier: previewVisualTier,
+    })
+    fpsGovRef.current.setCap(cap)
+    fpsGovRef.current.reset(cap)
+    const initialLite = qualityLevelToForceLite(cap)
+    synthForceLiteRef.current = initialLite
+    setSynthQualityLevel(cap)
+    if (forceLiteFxRef) forceLiteFxRef.current = initialLite
   }, [synthesis?.runId, previewAtomCount, previewVisualTier, forceLiteFxRef])
 
   // Лёгкий авто-тюнинг: если FPS проседает — переключаемся на low и обратно с гистерезисом.
@@ -570,10 +566,11 @@ function SceneContent({
       getReactorPreviewPolicy({
         atomCount: previewAtomCount,
         forceLite: synthForceLite,
+        qualityLevel: synthQualityLevel,
         flightActive: previewMotionLocked,
         visible: reactorPreviewVisible,
       }),
-    [previewAtomCount, synthForceLite, previewMotionLocked, reactorPreviewVisible],
+    [previewAtomCount, synthForceLite, synthQualityLevel, previewMotionLocked, reactorPreviewVisible],
   )
 
   useFrame((_, delta) => {
@@ -587,8 +584,8 @@ function SceneContent({
       coverageTrackerRef.current.tick(
         synthesisRunActive || synthActive,
         {
-          preview: reactorPreviewVisible && mountReactorPreview,
-          product: productSlotVisible || productPrewarmActive || earlyProductReveal,
+          preview: reactorPreviewVisible && reactorPreviewMounted,
+          product: productSlotVisible || productPrewarmActive,
           mergeFx: synthesisPhase === 'mergeFlash',
           convergeFx:
             synthesisPhase === 'converge' ||
@@ -596,7 +593,11 @@ function SceneContent({
             synthesisPhase === 'flying',
           cosmicFx: synthesisRunActive || synthActive || reactorViewOpen,
         },
-        () => setForceProductSlot(true),
+        () => {
+          if (!synthesisContinuityCovered(continuity, synthesisPhase === 'mergeFlash', synthesisPhase === 'converge')) {
+            setForceProductSlot(true)
+          }
+        },
       )
     }
 
@@ -620,14 +621,15 @@ function SceneContent({
     a.fps = a.fps * 0.9 + fps * 0.1
 
     const perfGuardActive = synthActive || synthesisRunActive
-    if (perfGuardActive && forceLiteFxRef) {
+    if (perfGuardActive) {
       const gov = fpsGovRef.current
       gov.tick(a.fps)
+      const nextLevel = gov.qualityLevel
       const nextLite = gov.forceLite
-      forceLiteFxRef.current = nextLite
-      if (synthForceLiteRef.current !== nextLite) {
+      if (forceLiteFxRef) forceLiteFxRef.current = nextLite
+      if (synthForceLiteRef.current !== nextLite || synthQualityLevel !== nextLevel) {
         synthForceLiteRef.current = nextLite
-        setSynthForceLite(nextLite)
+        setSynthQualityLevel(nextLevel)
       }
     }
     a.t += d
@@ -700,7 +702,7 @@ function SceneContent({
 
       {reactorViewOpen ? (
         <>
-          {mountReactorPreview && reactorPreviewTerms ? (
+          {reactorPreviewMounted && reactorPreviewTerms ? (
             <ReactorTermsPreview
               terms={reactorPreviewTerms}
               visible={reactorPreviewVisible}
@@ -708,6 +710,8 @@ function SceneContent({
               poseLocked={previewPoseLocked}
               sharedLighting={synthActive || synthesisRunActive}
               forceLite={synthForceLite}
+              qualityLevel={synthQualityLevel}
+              synthesisGlass={synthQualityFeatures.glassAtoms}
               visualTier={previewVisualTier}
               atomGroupRefs={previewAtomGroupRefs}
               atomScaleGroupRefs={previewAtomScaleGroupRefs}
@@ -734,6 +738,8 @@ function SceneContent({
               externalCosmicBackdrop
               labLiteMode={synthForceLite}
               forceLiteFx={synthForceLite}
+              qualityLevel={synthQualityLevel}
+              qualityFeatures={synthQualityFeatures}
               visualTier={synthesis.visualTier ?? previewVisualTier}
               timingProfile={synthTimingProfile}
             />
@@ -760,19 +766,19 @@ function SceneContent({
       ) : null}
 
       {catalogViewMode && !synthActive ? <CatalogCanvasResizeSync /> : null}
-      {(productSlotVisible || productPrewarmActive) && productForSlot ? (
+      {productForSlot ? (
         <LabProductHeroSlot
           compound={productForSlot}
           visible={productSlotVisible}
           prewarm={productPrewarmActive}
           entrance={productSlotEntrance}
           runId={synthesis?.runId ?? 0}
-          birthEntrance={synthActive && !synthForceLite}
+          birthEntrance={synthQualityFeatures.birthEntrance}
           entranceDuration={synthTimingProfile.productEntranceDur}
         />
       ) : null}
       {synthActive ? (
-        <SynthesisLabCinematicFx phase={synthesisPhase} forceLite={synthForceLite} />
+        <SynthesisLabCinematicFx phase={synthesisPhase} features={synthQualityFeatures} />
       ) : null}
       <OrbitControls
         ref={orbRef}
@@ -851,6 +857,7 @@ export function LabCanvas({
   const densePreview = previewAtomCount > 6
 
   const lowPower3d =
+    getSynthesisDeviceTier() === 'low' ||
     synthesisRunActive ||
     reactorViewOpen ||
     synthesisSettledProduct != null ||

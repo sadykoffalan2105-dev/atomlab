@@ -1,4 +1,6 @@
 import { SYNTHESIS_PERF } from './synthesisPerfPreset'
+import type { SynthesisQualityLevel } from './synthesisQualityLadder'
+import { qualityLevelToForceLite } from './synthesisQualityLadder'
 
 /** Политика рендера одного атома в превью реактора. */
 export type ReactorAtomRenderPolicy = {
@@ -25,19 +27,34 @@ export function shouldForceLiteByAtomCount(atomCount: number): boolean {
 export function getReactorPreviewPolicy(opts: {
   atomCount: number
   forceLite: boolean
+  qualityLevel?: SynthesisQualityLevel
   flightActive: boolean
   visible: boolean
   visualTier?: 'full' | 'lite' | 'cluster'
 }): ReactorPreviewPolicy {
-  const { atomCount, forceLite, flightActive, visible, visualTier = 'full' } = opts
-  const dense = atomCount > SYNTHESIS_PERF.denseAtomThreshold
-  const liteRender = forceLite || dense || visualTier === 'cluster'
+  const { atomCount, forceLite, qualityLevel, flightActive, visible, visualTier = 'full' } = opts
+  const liteRender =
+    forceLite ||
+    qualityLevelToForceLite(qualityLevel ?? 4) ||
+    atomCount > SYNTHESIS_PERF.denseAtomThreshold ||
+    visualTier === 'cluster'
+  const minimal = (qualityLevel ?? 4) <= 0
 
   return {
     electronAnimate:
-      visible && !flightActive && atomCount <= SYNTHESIS_PERF.maxAnimatedAtoms && visualTier === 'full',
-    driftAtoms: visible && !flightActive && atomCount <= 12 && visualTier === 'full',
-    slowSpin: visible && !flightActive && atomCount <= 12 && visualTier === 'full',
+      !minimal &&
+      visible &&
+      !flightActive &&
+      atomCount <= SYNTHESIS_PERF.maxAnimatedAtoms &&
+      visualTier === 'full',
+    driftAtoms:
+      !minimal &&
+      visible &&
+      !flightActive &&
+      atomCount <= 12 &&
+      visualTier === 'full' &&
+      (qualityLevel ?? 4) >= 4,
+    slowSpin: visible && !flightActive && atomCount <= 12 && visualTier === 'full' && !liteRender,
     visibilityGuardEvery: liteRender ? 4 : atomCount > 6 ? 2 : 1,
     coverageGuardEvery: liteRender ? 3 : 2,
   }
@@ -47,16 +64,20 @@ export function getReactorAtomRenderPolicy(opts: {
   atomCount: number
   atomZ: number
   forceLite: boolean
+  qualityLevel?: SynthesisQualityLevel
 }): ReactorAtomRenderPolicy {
-  const { atomCount, atomZ, forceLite } = opts
-  const lite = forceLite || shouldForceLiteByAtomCount(atomCount)
-  const dense = atomCount > SYNTHESIS_PERF.denseAtomThreshold
+  const { atomCount, atomZ, forceLite, qualityLevel } = opts
+  const lite =
+    forceLite ||
+    qualityLevelToForceLite(qualityLevel ?? 4) ||
+    shouldForceLiteByAtomCount(atomCount)
 
   const synthesisDetail =
     !lite && atomCount <= SYNTHESIS_PERF.fullDetailAtomThreshold && atomZ <= 54
   const previewLite = lite || atomCount > SYNTHESIS_PERF.fullDetailAtomThreshold || atomZ > 26
 
   let electronFrameSkip = 1
+  const dense = atomCount > SYNTHESIS_PERF.denseAtomThreshold
   if (lite) electronFrameSkip = 3
   else if (dense) electronFrameSkip = 2
   else if (atomZ > 18) electronFrameSkip = 2

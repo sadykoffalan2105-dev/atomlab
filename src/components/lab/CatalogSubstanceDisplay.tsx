@@ -27,6 +27,7 @@ type Props = {
    * и без дубля звёзд — фон даёт LabSynthesisCosmicBackdrop.
    */
   labSynthesisScene?: boolean
+  chaoticWobble?: boolean
 }
 
 /**
@@ -39,6 +40,7 @@ export function CatalogSubstanceDisplay({
   fxLevel: fxLevelIn,
   renderQuality = 'high',
   labSynthesisScene = false,
+  chaoticWobble = false,
 }: Props) {
   const rawFx: 'off' | 'low' | 'full' = fxLevelIn ?? (reducedEffects ? 'low' : 'full')
   const fxLevel: 'off' | 'low' | 'full' =
@@ -83,6 +85,7 @@ export function CatalogSubstanceDisplay({
           labScaleBoost={labScaleBoost}
           renderQuality="high"
           fxLevel={showDecor ? 'low' : 'off'}
+          chaoticWobble={chaoticWobble}
         />
       </>
     )

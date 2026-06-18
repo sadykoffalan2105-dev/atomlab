@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 import { gsap } from 'gsap'
-import * as THREE from 'three'
+import type * as THREE from 'three'
 import { LAUNCH_PRODUCT_ENTRANCE_DUR } from '../../lab/synthesisLaunchTiming'
 import type { CompoundDef } from '../../types/chemistry'
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
@@ -8,6 +8,7 @@ import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
+ * Не переключает visible=false при prewarm — только scale, без мигания.
  */
 export function LabProductHeroSlot({
   compound,
@@ -45,12 +46,15 @@ export function LabProductHeroSlot({
       return
     }
 
-    if (!visible) return
+    if (!visible) {
+      if (wasPrewarmRef.current) return
+      return
+    }
 
     gsap.killTweensOf(g.scale)
     if (spin) gsap.killTweensOf(spin.rotation)
 
-    if (entrance === 'instant' || entrance === 'none') {
+    if (entrance === 'none') {
       g.scale.set(1, 1, 1)
       if (spin) spin.rotation.set(0, 0, 0)
       revealedForRunRef.current = runId
@@ -58,8 +62,7 @@ export function LabProductHeroSlot({
       return
     }
 
-    if (revealedForRunRef.current === runId && !wasPrewarmRef.current) {
-      g.scale.set(1, 1, 1)
+    if (revealedForRunRef.current === runId && !wasPrewarmRef.current && g.scale.x > 0.9) {
       return
     }
 
@@ -68,20 +71,22 @@ export function LabProductHeroSlot({
     wasPrewarmRef.current = false
     const dur = entranceDuration
 
-    if (birthEntrance && fromPrewarm) {
-      g.scale.set(0.001, 0.001, 0.001)
+    if (birthEntrance || fromPrewarm) {
+      if (g.scale.x < 0.01) {
+        g.scale.set(0.001, 0.001, 0.001)
+      }
       if (spin) spin.rotation.set(0, 0, 0)
       const tl = gsap.timeline()
       tl.to(
         g.scale,
-        { x: 1.14, y: 1.14, z: 1.14, duration: dur * 0.68, ease: 'power2.out' },
+        { x: 1.1, y: 1.1, z: 1.1, duration: dur * 0.68, ease: 'power2.out' },
         0,
       )
       tl.to(g.scale, { x: 1, y: 1, z: 1, duration: dur * 0.32, ease: 'power2.inOut' })
-      if (spin) {
+      if (spin && birthEntrance) {
         tl.to(
           spin.rotation,
-          { y: Math.PI * 0.22, duration: dur * 0.92, ease: 'power3.out' },
+          { y: Math.PI * 0.18, duration: dur * 0.9, ease: 'power3.out' },
           0,
         )
       }
@@ -90,20 +95,9 @@ export function LabProductHeroSlot({
       }
     }
 
-    if (fromPrewarm) {
-      const t = gsap.to(g.scale, {
-        x: 1,
-        y: 1,
-        z: 1,
-        duration: dur,
-        ease: 'power3.out',
-      })
-      return () => {
-        t.kill()
-      }
+    if (g.scale.x < 0.5) {
+      g.scale.set(0.92, 0.92, 0.92)
     }
-
-    g.scale.set(0.92, 0.92, 0.92)
     const t = gsap.to(g.scale, {
       x: 1,
       y: 1,
@@ -116,23 +110,21 @@ export function LabProductHeroSlot({
     }
   }, [visible, prewarm, entrance, compound.id, runId, birthEntrance, entranceDuration])
 
-  const showLights = visible
-  const ambientIntensity = visible ? 0.36 : 0.22
-  const dirIntensity = visible ? 0.72 : 0.42
+  const sceneActive = visible || prewarm
 
   return (
     <>
-      {showLights ? (
+      {sceneActive ? (
         <>
-          <ambientLight intensity={ambientIntensity} />
+          <ambientLight intensity={0.34} />
           <directionalLight
             position={[3.2, 5.5, 2.5]}
-            intensity={dirIntensity}
+            intensity={0.68}
             color="#b8c8ff"
           />
         </>
       ) : null}
-      <group ref={groupRef} position={[0, 0, 0]} visible={visible || prewarm} frustumCulled={!prewarm || visible}>
+      <group ref={groupRef} position={[0, 0, 0]} visible frustumCulled={false} renderOrder={8}>
         <group ref={spinRef}>
           <CatalogSubstanceDisplay
             compound={compound}
@@ -140,7 +132,8 @@ export function LabProductHeroSlot({
             reducedEffects
             labSynthesisScene
             renderQuality="synthesis"
-            fxLevel={visible || prewarm ? 'low' : 'off'}
+            fxLevel={sceneActive ? 'low' : 'off'}
+            chaoticWobble={visible && birthEntrance}
           />
         </group>
       </group>

@@ -1,5 +1,8 @@
+import type { SynthesisDeviceTier } from './synthesisDeviceTier'
+
 /**
- * Профили таймингов синтеза: cinematic (по умолчанию) и fast (fallback при низком FPS / много атомов).
+ * Профили таймингов синтеза.
+ * balanced — плавная анимация ~1.1 с на обычных ПК.
  */
 export type SynthesisTimingProfile = {
   streamFlyDur: number
@@ -14,25 +17,44 @@ export type SynthesisTimingProfile = {
   previewOverlapMs: number
   clusterFlyDur: number
   clusterTermStagger: number
+  collapseAtoms: boolean
 }
 
-/** Быстрый синтез — для lite / governor / плотных реакций. */
+/** Минимальный — слабые устройства / просадка FPS. */
 export const SYNTHESIS_TIMING_FAST: SynthesisTimingProfile = {
-  streamFlyDur: 0.15,
-  termStagger: 0.006,
-  atomStagger: 0.0015,
-  mergeFlashDur: 0.07,
-  productEntranceDur: 0.09,
+  streamFlyDur: 0.22,
+  termStagger: 0.012,
+  atomStagger: 0.003,
+  mergeFlashDur: 0.1,
+  productEntranceDur: 0.14,
   productHold: 0.05,
-  productRevealOverlapSec: 0.05,
+  productRevealOverlapSec: 0.06,
   igniteSkipMs: 0,
-  atomCollapseDur: 0.08,
-  previewOverlapMs: 240,
-  clusterFlyDur: 0.12,
-  clusterTermStagger: 0.04,
+  atomCollapseDur: 0,
+  previewOverlapMs: 260,
+  clusterFlyDur: 0.16,
+  clusterTermStagger: 0.05,
+  collapseAtoms: false,
 }
 
-/** Кинематографичный «cosmic birth»: схождение → вспышка → рождение молекулы (~2 с). */
+/** Баланс: читаемый полёт + вспышка + рождение молекулы. */
+export const SYNTHESIS_TIMING_BALANCED: SynthesisTimingProfile = {
+  streamFlyDur: 0.52,
+  termStagger: 0.04,
+  atomStagger: 0.009,
+  mergeFlashDur: 0.28,
+  productEntranceDur: 0.32,
+  productHold: 0.08,
+  productRevealOverlapSec: 0.12,
+  igniteSkipMs: 0,
+  atomCollapseDur: 0.12,
+  previewOverlapMs: 380,
+  clusterFlyDur: 0.26,
+  clusterTermStagger: 0.055,
+  collapseAtoms: true,
+}
+
+/** Длинный cinematic — только мощные ПК без lite. */
 export const SYNTHESIS_TIMING_CINEMATIC: SynthesisTimingProfile = {
   streamFlyDur: 0.78,
   termStagger: 0.062,
@@ -46,8 +68,13 @@ export const SYNTHESIS_TIMING_CINEMATIC: SynthesisTimingProfile = {
   previewOverlapMs: 520,
   clusterFlyDur: 0.38,
   clusterTermStagger: 0.08,
+  collapseAtoms: true,
 }
 
-export function getSynthesisTimingProfile(forceLite: boolean): SynthesisTimingProfile {
-  return forceLite ? SYNTHESIS_TIMING_FAST : SYNTHESIS_TIMING_CINEMATIC
+export function getSynthesisTimingProfile(
+  forceLite: boolean,
+  deviceTier: SynthesisDeviceTier = 'normal',
+): SynthesisTimingProfile {
+  if (forceLite || deviceTier === 'low') return SYNTHESIS_TIMING_FAST
+  return SYNTHESIS_TIMING_BALANCED
 }

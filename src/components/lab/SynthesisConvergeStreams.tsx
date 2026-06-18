@@ -14,9 +14,10 @@ import {
   buildReactorPreviewAtoms,
   getTermGroupCenters,
 } from './reactorPreviewLayout'
+import { pulseAtomScaleOnImpact } from '../../lab/synthesisAtomImpact'
 import type { ReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import type { SynthesisTimingProfile } from '../../lab/synthesisTimingProfile'
-import { SYNTHESIS_TIMING_CINEMATIC } from '../../lab/synthesisTimingProfile'
+import { SYNTHESIS_TIMING_BALANCED } from '../../lab/synthesisTimingProfile'
 
 const ARC_FRAC = 0.55
 const REF_RETRY_MAX = 3
@@ -57,12 +58,12 @@ function flyAtomArc(
   const finalDur = dur * (1 - ARC_FRAC)
   tl.to(
     node.position,
-    { x: _arcMid.x, y: _arcMid.y, z: _arcMid.z, duration: arcDur, ease: 'power2.out' },
+    { x: _arcMid.x, y: _arcMid.y, z: _arcMid.z, duration: arcDur, ease: 'power3.out' },
     stagger,
   )
   tl.to(
     node.position,
-    { x: cx, y: cy, z: cz, duration: finalDur, ease: 'power3.in' },
+    { x: cx, y: cy, z: cz, duration: finalDur, ease: 'power3.out' },
     stagger + arcDur,
   )
 }
@@ -80,7 +81,7 @@ export function SynthesisConvergeStreams({
   previewAtomScaleGroupRefs,
   onBeginAtomFade,
   visualTier = 'full',
-  timingProfile = SYNTHESIS_TIMING_CINEMATIC,
+  timingProfile = SYNTHESIS_TIMING_BALANCED,
 }: {
   terms: readonly ReactorEquationTerm[]
   runId: number
@@ -207,7 +208,7 @@ export function SynthesisConvergeStreams({
                   y: by * 1.1,
                   z: bz * 1.1,
                   duration: flyDur * 0.5,
-                  ease: 'power2.out',
+                  ease: 'power3.out',
                 },
                 stagger,
               )
@@ -221,6 +222,13 @@ export function SynthesisConvergeStreams({
                   ease: 'power2.inOut',
                 },
                 stagger + flyDur * 0.5,
+              )
+              tl.call(
+                () => {
+                  pulseAtomScaleOnImpact(scaleNode, bx * 1.05)
+                },
+                undefined,
+                stagger + flyDur - 0.02,
               )
             }
           })

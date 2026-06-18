@@ -31,6 +31,8 @@ export function ReactorTermsPreview({
   poseLocked = false,
   sharedLighting = false,
   forceLite = false,
+  qualityLevel,
+  synthesisGlass = false,
   visualTier: visualTierProp,
   atomGroupRefs: atomGroupRefsExternal,
   atomScaleGroupRefs: atomScaleGroupRefsExternal,
@@ -46,6 +48,9 @@ export function ReactorTermsPreview({
   sharedLighting?: boolean
   /** FPS-governor / плотное превью — lite-модели и реже guard */
   forceLite?: boolean
+  qualityLevel?: import('../../lab/synthesisQualityLadder').SynthesisQualityLevel
+  /** Стеклянная оболочка атома (только когда разрешено quality ladder). */
+  synthesisGlass?: boolean
   /** Tiered visual cap (full | lite | cluster). */
   visualTier?: ReactorVisualTier
   atomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
@@ -85,8 +90,9 @@ export function ReactorTermsPreview({
         flightActive,
         visible,
         visualTier,
+        qualityLevel,
       }),
-    [n, forceLite, flightActive, visible, visualTier],
+    [n, forceLite, qualityLevel, flightActive, visible, visualTier],
   )
   const { electronAnimate, driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
 
@@ -164,7 +170,7 @@ export function ReactorTermsPreview({
   }, [previewRootRef])
 
   return (
-    <group ref={groupRef} visible={visible}>
+    <group ref={groupRef} visible frustumCulled={false}>
       {!sharedLighting ? (
         <>
           <ambientLight intensity={n > 18 ? 0.38 : 0.22} />
@@ -179,30 +185,38 @@ export function ReactorTermsPreview({
           atomCount: n,
           atomZ: atom.z,
           forceLite,
+          qualityLevel,
         })
         const termKey = termIds[atom.termIndex] ?? `t${atom.termIndex}`
+        const [ax, ay, az] = atom.pos
         return (
           <group
             key={`${termKey}-${atom.atomInTerm}-${atom.z}`}
-            position={atom.pos}
             ref={(el) => {
               atomGroupRefs.current[i] = el
+              if (el && !flightActive && !poseLocked) {
+                el.position.set(ax, ay, az)
+              }
             }}
           >
             <group
               scale={scale}
               ref={(el) => {
                 atomScaleGroupRefs.current[i] = el
+                if (el && !flightActive && !poseLocked) {
+                  el.scale.set(scale, scale, scale)
+                }
               }}
             >
               <AtomStructureModel
                 z={atom.z}
                 animate={electronAnimate}
-                previewStatic={flightActive}
+                previewStatic={false}
                 previewEmphasis
                 synthesisDetail={useFullDetail && !flightActive}
-                previewLite={!useFullDetail || flightActive}
-                electronFrameSkip={atomPolicy.electronFrameSkip}
+                synthesisGlass={synthesisGlass && (flightActive || poseLocked)}
+                previewLite={!useFullDetail}
+                electronFrameSkip={flightActive ? Math.max(atomPolicy.electronFrameSkip, 2) : atomPolicy.electronFrameSkip}
                 hideOrbitRings={visualTier === 'cluster'}
                 localLight={!sharedLighting}
               />

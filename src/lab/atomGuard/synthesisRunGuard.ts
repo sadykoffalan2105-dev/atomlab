@@ -38,41 +38,9 @@ export function createSynthesisRunGuard(): SynthesisRunGuard {
   }
 }
 
-/** Губернатор FPS: при просадке включаем lite-режим синтеза. */
-export type FpsGovernorState = {
-  forceLite: boolean
-  tick: (fps: number) => void
-  reset: () => void
-}
-
-export function createFpsGovernor(opts?: {
-  enterFps?: number
-  exitFps?: number
-  holdSec?: number
-}): FpsGovernorState {
-  const enterFps = opts?.enterFps ?? 52
-  const exitFps = opts?.exitFps ?? 58
-  const holdSec = opts?.holdSec ?? 0.3
-  let lowAccum = 0
-  let forceLite = false
-
-  return {
-    get forceLite() {
-      return forceLite
-    },
-    tick(fps: number) {
-      if (fps < enterFps) lowAccum += 0.25
-      else if (fps >= exitFps) {
-        lowAccum = Math.max(0, lowAccum - 0.5)
-        if (lowAccum <= 0) forceLite = false
-      } else {
-        lowAccum = Math.max(0, lowAccum - 0.12)
-      }
-      if (lowAccum >= holdSec) forceLite = true
-    },
-    reset() {
-      lowAccum = 0
-      forceLite = false
-    },
-  }
-}
+/** Губернатор FPS — см. synthesisQualityLadder.ts (адаптивные уровни 0–4). */
+export {
+  createFpsGovernor,
+  createSynthesisQualityGovernor,
+  type SynthesisQualityGovernor,
+} from '../synthesisQualityLadder'

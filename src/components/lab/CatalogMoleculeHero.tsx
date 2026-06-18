@@ -210,6 +210,7 @@ export function HeroMoleculeRig({
   labScaleBoost = CATALOG_HERO_DEFAULT_LAB_SCALE,
   renderQuality = 'high',
   fxLevel = 'full',
+  chaoticWobble = false,
 }: {
   compound: CompoundDef
   /** >1 — крупнее молекула в лаборатории относительно героя каталога */
@@ -217,6 +218,8 @@ export function HeroMoleculeRig({
   renderQuality?: 'high' | 'synthesis'
   /** Для внешних обёрток: можно отключить тяжёлые эффекты при синтезе */
   fxLevel?: 'off' | 'low' | 'full'
+  /** Лёгкое хаотичное покачивание после кинематографичной сборки */
+  chaoticWobble?: boolean
 }) {
   const ref = useRef<THREE.Group>(null)
   const fit = useMemo(() => catalogMoleculeFitScale(compound.atoms), [compound.atoms])
@@ -227,10 +230,16 @@ export function HeroMoleculeRig({
     const g = ref.current
     if (!g) return
     const t = s.clock.elapsedTime
-    g.rotation.y = t * 0.013
-    g.rotation.x = Math.sin(t * 0.29) * 0.038
-    g.rotation.z = Math.sin(t * 0.21 + 0.9) * 0.032
-    g.position.y = Math.sin(t * 0.47) * 0.042
+    const wobble = chaoticWobble ? 1.65 : 1
+    const chaos = chaoticWobble ? 0.024 : 0
+    g.rotation.y = t * (chaoticWobble ? 0.017 : 0.013)
+    g.rotation.x = Math.sin(t * 0.29) * 0.038 * wobble + Math.sin(t * 1.55) * chaos
+    g.rotation.z = Math.sin(t * 0.21 + 0.9) * 0.032 * wobble + Math.cos(t * 1.33) * chaos * 0.85
+    g.position.y = Math.sin(t * 0.47) * 0.042 * wobble
+    if (chaoticWobble) {
+      g.position.x = Math.sin(t * 0.37 + 0.6) * 0.028
+      g.position.z = Math.cos(t * 0.41) * 0.022
+    }
   })
 
   return (

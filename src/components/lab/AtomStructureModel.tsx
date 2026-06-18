@@ -107,6 +107,7 @@ export function AtomStructureModel({
   previewLite = false,
   hideOrbitRings = false,
   synthesisDetail = false,
+  synthesisGlass = false,
   electronFrameSkip = 1,
   accentHex,
   cosmicStyle = true,
@@ -119,6 +120,8 @@ export function AtomStructureModel({
   previewLite?: boolean
   hideOrbitRings?: boolean
   synthesisDetail?: boolean
+  /** Матовое стекло вокруг атома — кинематографичный синтез. */
+  synthesisGlass?: boolean
   electronFrameSkip?: number
   accentHex?: string
   cosmicStyle?: boolean
@@ -329,7 +332,28 @@ export function AtomStructureModel({
         renderOrder={5}
       />
 
-      {localLight && (fullPreview || !lite || synthesisDetail) ? (
+      {synthesisGlass ? (
+        <mesh renderOrder={3} frustumCulled={false}>
+          <sphereGeometry args={[outerOrbitR * 1.02, 18, 16]} />
+          <meshPhysicalMaterial
+            color={nebulaHex}
+            emissive={nebulaHex}
+            emissiveIntensity={0.22}
+            metalness={0.28}
+            roughness={0.14}
+            transmission={0.52}
+            thickness={0.38}
+            clearcoat={0.92}
+            clearcoatRoughness={0.1}
+            transparent
+            opacity={0.78}
+            depthWrite={false}
+            ior={1.35}
+          />
+        </mesh>
+      ) : null}
+
+      {localLight && (fullPreview || !lite || synthesisDetail || synthesisGlass) ? (
         <>
           <pointLight
             position={[0, 0, 0]}

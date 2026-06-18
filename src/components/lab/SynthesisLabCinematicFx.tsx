@@ -1,40 +1,77 @@
-import { Bloom, EffectComposer } from '@react-three/postprocessing'
+import { Bloom, DepthOfField, EffectComposer } from '@react-three/postprocessing'
+import type { SynthesisQualityFeatures } from '../../lab/synthesisQualityLadder'
+import { REACTION_CENTER } from './reactorPreviewLayout'
 
-/** Bloom на фазах синтеза — «big bang» при слиянии, мягкое свечение при рождении молекулы. */
+const FOCUS_TARGET: [number, number, number] = REACTION_CENTER
+
+/**
+ * Bloom + опциональный DOF — только то, что разрешил quality ladder.
+ */
 export function SynthesisLabCinematicFx({
   phase,
-  forceLite = false,
+  features,
 }: {
   phase: string
-  forceLite?: boolean
+  features: SynthesisQualityFeatures
 }) {
-  if (forceLite) return null
-
-  const active =
-    phase === 'ignite' ||
-    phase === 'converge' ||
-    phase === 'mergeFlash' ||
-    phase === 'product' ||
-    phase === 'flying'
-
-  if (!active) return null
-
-  const merge = phase === 'mergeFlash'
-  const product = phase === 'product'
+  const mergeOrProduct = phase === 'mergeFlash' || phase === 'product'
   const converge = phase === 'converge' || phase === 'ignite'
 
-  const intensity = merge ? 1.05 : product ? 0.68 : converge ? 0.42 : 0.32
-  const threshold = merge ? 0.18 : product ? 0.34 : 0.42
+  const bloomOn =
+    (mergeOrProduct && features.bloomMerge) || (converge && features.bloomConverge)
+  if (!bloomOn && !features.depthOfField) return null
+
+  const bloomIntensity = mergeOrProduct ? 0.88 : 0.38
+  const bloomThreshold = mergeOrProduct ? 0.18 : 0.34
+  const useDof = mergeOrProduct && features.depthOfField
+
+  if (useDof && bloomOn) {
+    return (
+      <EffectComposer multisampling={0} enableNormalPass>
+        <DepthOfField
+          target={FOCUS_TARGET}
+          focalLength={0.024}
+          bokehScale={2.8}
+          height={420}
+          worldFocusDistance={4.8}
+          worldFocusRange={2.4}
+        />
+        <Bloom
+          luminanceThreshold={bloomThreshold}
+          luminanceSmoothing={0.32}
+          mipmapBlur
+          intensity={bloomIntensity}
+          radius={0.48}
+          levels={5}
+        />
+      </EffectComposer>
+    )
+  }
+
+  if (useDof) {
+    return (
+      <EffectComposer multisampling={0} enableNormalPass>
+        <DepthOfField
+          target={FOCUS_TARGET}
+          focalLength={0.024}
+          bokehScale={2.8}
+          height={420}
+          worldFocusDistance={4.8}
+          worldFocusRange={2.4}
+        />
+      </EffectComposer>
+    )
+  }
 
   return (
     <EffectComposer multisampling={0}>
       <Bloom
-        luminanceThreshold={threshold}
+        luminanceThreshold={bloomThreshold}
         luminanceSmoothing={0.32}
         mipmapBlur
-        intensity={intensity}
-        radius={merge ? 0.55 : 0.42}
-        levels={6}
+        intensity={bloomIntensity}
+        radius={mergeOrProduct ? 0.42 : 0.28}
+        levels={mergeOrProduct ? 4 : 3}
       />
     </EffectComposer>
   )

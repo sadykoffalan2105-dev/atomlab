@@ -14,11 +14,16 @@ import {
   synthesisConvergeDurationSec,
 } from '../../lab/synthesisLaunchTiming'
 import type { SynthesisTimingProfile } from '../../lab/synthesisTimingProfile'
-import { SYNTHESIS_TIMING_CINEMATIC } from '../../lab/synthesisTimingProfile'
+import { SYNTHESIS_TIMING_BALANCED } from '../../lab/synthesisTimingProfile'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
+import type { SynthesisQualityFeatures, SynthesisQualityLevel } from '../../lab/synthesisQualityLadder'
+import { SYNTHESIS_QUALITY_MINIMAL } from '../../lab/synthesisQualityLadder'
 import {
   SynthesisConvergeStreams,
 } from './SynthesisConvergeStreams'
+import { SynthesisNeonBondFormation } from './SynthesisNeonBondFormation'
+import { buildReactorPreviewAtoms } from './reactorPreviewLayout'
+import { pulseAllPreviewAtomsOnMerge } from '../../lab/synthesisAtomImpact'
 import { SynthesisCinematicSky } from './SynthesisCinematicSky'
 import { SynthesisWarpStreaks } from './SynthesisWarpStreaks'
 import { SynthesisLaunchCamera } from './SynthesisLaunchCamera'
@@ -168,8 +173,8 @@ function MergeFlashBurst({
         </group>
       </group>
       <Sparkles
-        count={minimalFx ? (isSuccess ? 24 : 10) : isSuccess ? (cinematic ? 140 : 100) : 22}
-        scale={minimalFx ? (isSuccess ? 3.8 : 2.2) : isSuccess ? (cinematic ? 8.2 : 6.4) : 3.6}
+        count={minimalFx ? (isSuccess ? 20 : 10) : isSuccess ? (cinematic ? 72 : 48) : 18}
+        scale={minimalFx ? (isSuccess ? 3.4 : 2) : isSuccess ? (cinematic ? 5.8 : 4.8) : 3.2}
         size={minimalFx ? (isSuccess ? 2 : 1.2) : isSuccess ? 3.2 : 2}
         speed={minimalFx ? 1.4 : isSuccess ? 2.8 : 1.2}
         opacity={minimalFx ? 0.55 : isSuccess ? 0.88 : 0.5}
@@ -201,6 +206,8 @@ export function SynthesisOnLabScene({
   externalProductSlot = false,
   labLiteMode = false,
   forceLiteFx = false,
+  qualityLevel = 3,
+  qualityFeatures,
   onStreamsReady,
   previewAtomGroupRefs,
   previewAtomScaleGroupRefs,
@@ -208,7 +215,7 @@ export function SynthesisOnLabScene({
   onEarlyProductReveal,
   externalCosmicBackdrop = false,
   visualTier: visualTierProp,
-  timingProfile = SYNTHESIS_TIMING_CINEMATIC,
+  timingProfile = SYNTHESIS_TIMING_BALANCED,
 }: {
   zSlots: readonly number[]
   flyTerms?: readonly ReactorEquationTerm[]
@@ -224,6 +231,8 @@ export function SynthesisOnLabScene({
   /** Фон/звёзды рисует LabScene — без дубля SynthesisCinematicSky */
   externalCosmicBackdrop?: boolean
   forceLiteFx?: boolean
+  qualityLevel?: SynthesisQualityLevel
+  qualityFeatures?: SynthesisQualityFeatures
   onStreamsReady?: () => void
   previewAtomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   previewAtomScaleGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
@@ -241,8 +250,11 @@ export function SynthesisOnLabScene({
     [flyTerms],
   )
   const synthesisFxMinimal =
-    forceLiteFx || atomCount >= SYNTHESIS_PERF.liteFxAtomThreshold
-  const cinematicMode = !labLiteMode && !synthesisFxMinimal
+    forceLiteFx ||
+    qualityLevel <= SYNTHESIS_QUALITY_MINIMAL ||
+    atomCount >= SYNTHESIS_PERF.liteFxAtomThreshold
+  const fx = qualityFeatures
+  const cinematicMode = !labLiteMode && !synthesisFxMinimal && timingProfile.igniteSkipMs > 0
   const cosmicLite = labLiteMode || synthesisFxMinimal
 
   const mergeFlashDur = timingProfile.mergeFlashDur
@@ -264,6 +276,8 @@ export function SynthesisOnLabScene({
   const convergeStartRef = useRef(0)
   const launchProgressRef = useRef(0)
   const impactPulseRef = useRef(0)
+  const bondGrowRef = useRef(0)
+  const bondLockRef = useRef(0)
   const launchBoostRef = useRef(0)
   const doneRef = useRef(false)
   const onDoneRef = useRef(onDone)
@@ -301,13 +315,25 @@ export function SynthesisOnLabScene({
     [useConverge, flyTerms, visualTier, timingProfile],
   )
 
+  const previewZs = useMemo(
+    () => buildReactorPreviewAtoms(flyTerms, { tier: visualTier }).map((a) => a.z),
+    [flyTerms, visualTier, runId],
+  )
+
   const beginMergeFlash = useCallback(() => {
     tAcc.current = 0
     impactPulseRef.current = 1
+    bondLockRef.current = 0
     launchProgressRef.current = 1
+    if (previewAtomGroupRefs && previewAtomScaleGroupRefs) {
+      pulseAllPreviewAtomsOnMerge(
+        previewAtomGroupRefs.current,
+        previewAtomScaleGroupRefs.current,
+      )
+    }
     phaseRef.current = 'mergeFlash'
     setPhase('mergeFlash')
-  }, [])
+  }, [previewAtomGroupRefs, previewAtomScaleGroupRefs])
 
   const forceProductSuccess = useCallback(() => {
     if (!productGuaranteedRef.current || doneRef.current) return
@@ -456,6 +482,7 @@ export function SynthesisOnLabScene({
       const p = convergeDurationSec > 0.01 ? Math.min(1, elapsed / convergeDurationSec) : 1
       launchProgressRef.current = 0.1 + p * 0.85
       launchBoostRef.current = 0.12 + p * 0.88
+      bondGrowRef.current = Math.max(0, (p - 0.5) / 0.5)
     } else if (ph === 'mergeFlash') {
       impactPulseRef.current = Math.max(
         0,
@@ -463,10 +490,15 @@ export function SynthesisOnLabScene({
       )
       launchBoostRef.current = 0.55 + impactPulseRef.current * 0.45
     } else if (ph === 'product') {
+      bondGrowRef.current = 1
+      bondLockRef.current = 1
       launchBoostRef.current = 0.2
     }
 
     if (ph === 'mergeFlash') {
+      const tt = mergeFlashDur > 0.0001 ? Math.min(1, tAcc.current / mergeFlashDur) : 1
+      bondGrowRef.current = 0.55 + tt * 0.45
+      bondLockRef.current = tt > 0.65 ? Math.min(1, (tt - 0.65) / 0.35) : 0
       tAcc.current += delta
       const overlap = timingProfile.productRevealOverlapSec
       if (
@@ -554,10 +586,18 @@ export function SynthesisOnLabScene({
   const showFailAtomModels = !useConverge && (phase === 'flying' || phase === 'failBounce') && zSlots.length >= 2
   const showConvergeStreams = useConverge && (phase === 'ignite' || phase === 'converge')
 
+  const showNeonBonds =
+    useConverge &&
+    !!product &&
+    previewAtomGroupRefs != null &&
+    (phase === 'converge' || phase === 'mergeFlash' || phase === 'ignite')
+
   const cinema = cinematicPhase(phase)
   const accentHex = product?.accentColor ?? '#3dffec'
   const showCinematic = cinema != null && !externalCosmicBackdrop
   const showWarpAndArc = cinema != null && cinematicMode && !externalCosmicBackdrop
+  const showArcPulse =
+    useConverge && !externalCosmicBackdrop && !synthesisFxMinimal && (fx?.arcReactor ?? true)
 
   if (!useConverge && zSlots.length < 2) {
     return (
@@ -612,7 +652,7 @@ export function SynthesisOnLabScene({
         />
       ) : null}
 
-      {(inMerge || phase === 'converge' || phase === 'ignite') && useConverge && showWarpAndArc ? (
+      {(inMerge || phase === 'converge' || phase === 'ignite') && showArcPulse ? (
         <SynthesisArcReactor
           active={phase === 'ignite' || phase === 'converge' || inMerge}
           accentHex={accentHex}
@@ -628,9 +668,21 @@ export function SynthesisOnLabScene({
           isSuccess={!!product}
           flashHex={sparkleHex}
           minimalFx={synthesisFxMinimal || labLiteMode}
-          cinematic={cinematicMode}
+          cinematic={cinematicMode || !labLiteMode}
         />
       )}
+
+      {showNeonBonds && product && previewAtomGroupRefs ? (
+        <SynthesisNeonBondFormation
+          product={product}
+          previewZs={previewZs}
+          previewAtomGroupRefs={previewAtomGroupRefs}
+          growRef={bondGrowRef}
+          lockRef={bondLockRef}
+          impactRef={impactPulseRef}
+          active={(fx?.neonBonds ?? true) && !synthesisFxMinimal}
+        />
+      ) : null}
 
       {!skipLocalLights ? (
         <>
