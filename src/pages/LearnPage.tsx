@@ -43,7 +43,10 @@ function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
         {t('learn.progressSection', { done, total })}
       </p>
       <ToolRow>
-        <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/learn/tasks">
+        <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/learn/pathways">
+          {t('learn.pathways.open')}
+        </Link>
+        <Link className={styles.btn} to="/learn/tasks">
           {t('learn.grades.tasks')}
         </Link>
         <Link className={styles.btn} to="/learn/teacher">

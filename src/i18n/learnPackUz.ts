@@ -1,5 +1,6 @@
 import { learnHubI18nUz } from './learnHubI18nUz'
 import { learnLessonExtraUz } from './learnLessonExtraUz'
+import { learnPathwayUz } from './learnPathwayUz'
 import { learnPackRu } from './learnPackRu'
 
 /** O'zbek (lotin) — learnPackRu bilan bir xil kalitlar. */
@@ -466,6 +467,7 @@ export const learnPackUz = {
 
   ...learnHubI18nUz,
   ...learnLessonExtraUz,
+  ...learnPathwayUz,
 
   'learn.tryLabLessonBody':
     '«Laboratoriya» ga o\'ting, reaktorni oching (reagentlar — o\'ngdagi ⊞ jadval), katalogdan mahsulot tanlang va tenglamani muvozanatlang. Bu o\'quv modeli.',

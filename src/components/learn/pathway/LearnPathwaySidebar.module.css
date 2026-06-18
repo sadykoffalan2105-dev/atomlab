@@ -1,0 +1,120 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(80, 120, 180, 0.28);
+  background: rgba(6, 10, 24, 0.95);
+  overflow: hidden;
+}
+
+.header {
+  padding: 0.85rem 1rem 0.65rem;
+  border-bottom: 1px solid rgba(80, 120, 180, 0.2);
+}
+
+.title {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9eb8ff;
+}
+
+.pathTitle {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #f0f4ff;
+  line-height: 1.25;
+}
+
+.ringRow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.ring {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+}
+
+.ringText {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #c8d6ef;
+}
+
+.stepList {
+  list-style: none;
+  margin: 0;
+  padding: 0.45rem 0.5rem 0.65rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.stepBtn,
+.stepBtnActive,
+.stepBtnDone {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #b8c8e8;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.45rem;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.stepBtnActive {
+  border-color: rgba(92, 255, 212, 0.45);
+  background: rgba(92, 255, 212, 0.08);
+  color: #fff;
+}
+
+.stepBtnDone {
+  color: #8fdcb8;
+}
+
+.stepNum {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  border: 1px solid rgba(120, 140, 180, 0.35);
+  flex-shrink: 0;
+}
+
+.stepBtnActive .stepNum {
+  border-color: var(--pathway-accent, #5ad8ff);
+  color: var(--pathway-accent, #5ad8ff);
+}
+
+.stepBtnDone .stepNum {
+  border-color: rgba(92, 255, 120, 0.5);
+  background: rgba(92, 255, 120, 0.15);
+  color: #7dffb0;
+}
+
+.stepTasks {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #8fa3c4;
+}

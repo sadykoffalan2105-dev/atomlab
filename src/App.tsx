@@ -11,6 +11,12 @@ const LearnPage = lazy(() => import('./pages/LearnPage').then((m) => ({ default:
 const LearnTeacherHub = lazy(() =>
   import('./pages/LearnTeacherHub').then((m) => ({ default: m.LearnTeacherHub })),
 )
+const LearnPathwaysHub = lazy(() =>
+  import('./pages/LearnPathwaysHub').then((m) => ({ default: m.LearnPathwaysHub })),
+)
+const LearnPathwayPage = lazy(() =>
+  import('./pages/LearnPathwayPage').then((m) => ({ default: m.LearnPathwayPage })),
+)
 const LearnRefCapturePage = lazy(() =>
   import('./pages/LearnRefCapturePage').then((m) => ({ default: m.LearnRefCapturePage })),
 )
@@ -38,6 +44,9 @@ export default function App() {
             <Route path="periodic" element={<PeriodicTablePage />} />
             <Route path="catalog" element={<CatalogPage />} />
             <Route path="learn" element={<LearnPage />} />
+            <Route path="learn/pathways" element={<LearnPathwaysHub />} />
+            <Route path="learn/pathway/:pathwayId" element={<LearnPathwayPage />} />
+            <Route path="learn/pathway/:pathwayId/:stepId" element={<LearnPathwayPage />} />
             <Route path="learn/teacher" element={<LearnTeacherHub />} />
             <Route path="learn/ref/:sceneId" element={<LearnRefCapturePage />} />
             <Route path="learn/tasks" element={<LearnPage />} />

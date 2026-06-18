@@ -1,5 +1,6 @@
 import { learnHubI18nEn } from './learnHubI18nEn'
 import { learnLessonExtraEn } from './learnLessonExtraEn'
+import { learnPathwayEn } from './learnPathwayEn'
 import { learnPackRu } from './learnPackRu'
 
 /** English mirror of learnPackRu — keys must match exactly. */
@@ -465,6 +466,7 @@ export const learnPackEn = {
 
   ...learnHubI18nEn,
   ...learnLessonExtraEn,
+  ...learnPathwayEn,
 
   'learn.tryLabLessonBody':
     'Go to “Laboratory”, open the reactor (reagents — periodic table ⊞ on the right), pick a catalog product, and balance the reaction. This is a teaching model.',

@@ -1,5 +1,6 @@
 import { learnHubI18nRu } from './learnHubI18nRu'
 import { learnLessonExtraRu } from './learnLessonExtraRu'
+import { learnPathwayRu } from './learnPathwayRu'
 
 /** Тексты курса «Обучение» (~20 тем) — подмешиваются в messagesRu. */
 export const learnPackRu = {
@@ -461,6 +462,7 @@ export const learnPackRu = {
 
   ...learnHubI18nRu,
   ...learnLessonExtraRu,
+  ...learnPathwayRu,
 
   'learn.tryLabLessonBody':
     'Перейдите в «Лаборатория», откройте реактор (реагенты — таблица ⊞ справа), выберите продукт из каталога и уравняйте реакцию. Это учебная модель.',
