@@ -28,13 +28,14 @@
   font-size: clamp(1.15rem, 2.8vw, 1.55rem);
   font-weight: 800;
   color: #f0f4ff;
+  text-shadow: 0 0 24px rgba(168, 85, 247, 0.35);
 }
 
 .lead {
   margin: 0.25rem 0 0;
   font-size: 0.88rem;
   line-height: 1.5;
-  color: #b8c8e8;
+  color: #b8a8e8;
   max-width: 52rem;
 }
 
@@ -50,8 +51,9 @@
   font-weight: 700;
   padding: 0.28rem 0.55rem;
   border-radius: 999px;
-  border: 1px solid rgba(92, 255, 212, 0.35);
-  color: #9eb8ff;
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  color: #c4b5fd;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.15);
 }
 
 .canvasWrap {
@@ -59,11 +61,12 @@
   min-height: min(68vh, 720px);
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(120, 140, 160, 0.35);
-  background: #1a1f28;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  background: #0a0618;
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    0 4px 32px rgba(168, 85, 247, 0.12),
+    0 4px 24px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(168, 85, 247, 0.08);
 }
 
 .canvasWrap > :first-child {
@@ -82,9 +85,10 @@
 
 .controls {
   border-radius: 14px;
-  border: 1px solid rgba(80, 120, 180, 0.28);
-  background: rgba(8, 12, 28, 0.92);
+  border: 1px solid rgba(168, 85, 247, 0.28);
+  background: rgba(10, 6, 24, 0.94);
   padding: 0.75rem 0.85rem;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.08);
 }
 
 .controlsTitle {
@@ -93,7 +97,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #9eb8ff;
+  color: #c4b5fd;
 }
 
 .tubeRow {
@@ -111,15 +115,16 @@
   border-radius: 999px;
   padding: 0.35rem 0.65rem;
   cursor: pointer;
-  border: 1px solid rgba(120, 140, 180, 0.35);
+  border: 1px solid rgba(168, 85, 247, 0.3);
   background: rgba(255, 255, 255, 0.04);
   color: #dce6f8;
 }
 
 .tubeBtnOn {
-  border-color: rgba(92, 255, 212, 0.5);
-  background: rgba(92, 255, 212, 0.12);
+  border-color: rgba(168, 85, 247, 0.65);
+  background: rgba(168, 85, 247, 0.18);
   color: #fff;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.3);
 }
 
 .actions {
@@ -136,7 +141,7 @@
   border-radius: 10px;
   padding: 0.5rem 0.85rem;
   cursor: pointer;
-  border: 1px solid rgba(120, 140, 180, 0.35);
+  border: 1px solid rgba(168, 85, 247, 0.3);
   background: rgba(255, 255, 255, 0.04);
   color: #e8eef8;
   text-decoration: none;
@@ -146,9 +151,15 @@
 }
 
 .btnPrimary {
-  border-color: rgba(92, 255, 212, 0.45);
-  background: rgba(92, 255, 212, 0.14);
+  border-color: rgba(168, 85, 247, 0.55);
+  background: rgba(168, 85, 247, 0.2);
   color: #fff;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
+}
+
+.btn:hover:not(:disabled),
+.btnPrimary:hover:not(:disabled) {
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.25);
 }
 
 .btn:disabled,
@@ -160,15 +171,16 @@
 .result {
   margin-top: 0.65rem;
   padding-top: 0.55rem;
-  border-top: 1px solid rgba(80, 120, 180, 0.18);
+  border-top: 1px solid rgba(168, 85, 247, 0.18);
 }
 
 .resultEq {
   font-family: ui-monospace, monospace;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #5cffd4;
+  color: #c084fc;
   margin: 0.25rem 0 0;
+  text-shadow: 0 0 8px rgba(192, 132, 252, 0.4);
 }
 
 .resultMsg {
@@ -187,10 +199,11 @@
 .backLink {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #5cffd4;
+  color: #c084fc;
   text-decoration: none;
 }
 
 .backLink:hover {
   text-decoration: underline;
+  text-shadow: 0 0 8px rgba(192, 132, 252, 0.4);
 }

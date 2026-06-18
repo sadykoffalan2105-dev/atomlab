@@ -1,0 +1,23 @@
+/** Единая sci-fi палитра VR-лаборатории. */
+export const VR_THEME = {
+  bg: '#0a0618',
+  fog: '#12082a',
+  wall: '#3d2f5c',
+  wallDark: '#2a1f45',
+  panel: '#4a3a6a',
+  bench: '#2d2548',
+  benchEdge: '#22d3ee',
+  benchBase: '#16102a',
+  floor: '#140e24',
+  purple: '#a855f7',
+  purpleBright: '#c084fc',
+  cyan: '#22d3ee',
+  magenta: '#e879f9',
+  neonGreen: '#4ade80',
+  neonYellow: '#facc15',
+  neonRed: '#f87171',
+  chrome: '#8b9cb8',
+  darkMetal: '#1e1830',
+  holoBg: '#0c0820',
+  textMuted: '#9d8ec4',
+} as const

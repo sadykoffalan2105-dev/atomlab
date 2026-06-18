@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { clamp01, easeOutCubic, lerp } from '../../vrLab/vrLabAnimation'
+import { VR_THEME } from './vrLabTheme'
 
 type Props = {
   color: string
@@ -49,10 +50,9 @@ export function VrLabLiquid({
       const mat = meshRef.current.material as THREE.MeshPhysicalMaterial
       mat.color.copy(colorRef.current)
       mat.emissive.copy(colorRef.current)
-      const pulse = mixing
-        ? 0.45 + Math.sin(state.clock.elapsedTime * 8) * 0.2
-        : 0.22 + Math.sin(state.clock.elapsedTime * 2.5 + baseY) * 0.06
-      mat.emissiveIntensity = pulse
+      mat.emissiveIntensity = mixing
+        ? 0.75 + Math.sin(state.clock.elapsedTime * 8) * 0.2
+        : 0.55 + Math.sin(state.clock.elapsedTime * 2.5 + baseY) * 0.1
     }
 
     if (surfaceRef.current) {
@@ -62,7 +62,7 @@ export function VrLabLiquid({
       const smat = surfaceRef.current.material as THREE.MeshStandardMaterial
       smat.color.copy(colorRef.current)
       smat.emissive.copy(colorRef.current)
-      smat.emissiveIntensity = mixing ? 0.55 : 0.35
+      smat.emissiveIntensity = mixing ? 0.9 : 0.65
       surfaceRef.current.rotation.z = mixing ? state.clock.elapsedTime * 2 : 0
     }
   })
@@ -72,33 +72,107 @@ export function VrLabLiquid({
   return (
     <group>
       <mesh ref={meshRef} position={[0, baseY + maxHeight / 2, 0]}>
-        <cylinderGeometry args={[radiusTop, radiusBottom, maxHeight, 28, 1]} />
+        <cylinderGeometry args={[radiusTop, radiusBottom, maxHeight, 20, 1]} />
         <meshPhysicalMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={0.25}
+          emissiveIntensity={0.55}
           transparent
-          opacity={0.92}
-          roughness={0.12}
-          metalness={0.05}
-          clearcoat={0.85}
-          clearcoatRoughness={0.15}
-          transmission={0.08}
-          thickness={0.4}
+          opacity={0.9}
+          roughness={0.1}
+          metalness={0.04}
+          clearcoat={0.8}
+          clearcoatRoughness={0.12}
         />
       </mesh>
       <mesh ref={surfaceRef} position={[0, baseY + maxHeight, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[radiusTop * 0.88, 32]} />
+        <circleGeometry args={[radiusTop * 0.88, 20]} />
         <meshStandardMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={0.4}
+          emissiveIntensity={0.65}
           transparent
-          opacity={0.75}
-          roughness={0.05}
-          metalness={0.1}
+          opacity={0.78}
+          roughness={0.04}
+          metalness={0.08}
           side={THREE.DoubleSide}
           depthWrite={false}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+/** Двухцветная вихревая жидкость для ёмкости смешивания (как на референсе). */
+export function VrLabSwirlLiquid({
+  colorA,
+  colorB,
+  targetFill,
+  radius,
+  maxHeight,
+  baseY,
+  mixing = false,
+}: {
+  colorA: string
+  colorB: string
+  targetFill: number
+  radius: number
+  maxHeight: number
+  baseY: number
+  mixing?: boolean
+}) {
+  const layerA = useRef<THREE.Mesh>(null)
+  const layerB = useRef<THREE.Mesh>(null)
+  const fillRef = useRef(targetFill)
+
+  useFrame((state, dt) => {
+    fillRef.current = lerp(fillRef.current, targetFill, Math.min(1, dt * 3))
+    const f = clamp01(fillRef.current)
+    if (f < 0.02) return
+    const h = Math.max(0.03, f * maxHeight)
+    const pulse = mixing ? 0.85 + Math.sin(state.clock.elapsedTime * 6) * 0.15 : 0.65
+    const spin = state.clock.elapsedTime * (mixing ? 1.8 : 0.4)
+
+    if (layerA.current) {
+      layerA.current.position.y = baseY + h * 0.45
+      layerA.current.scale.set(radius * 0.92, h * 0.55, radius * 0.92)
+      layerA.current.rotation.y = spin
+      const m = layerA.current.material as THREE.MeshStandardMaterial
+      m.emissiveIntensity = pulse
+    }
+    if (layerB.current) {
+      layerB.current.position.y = baseY + h * 0.72
+      layerB.current.scale.set(radius * 0.78, h * 0.35, radius * 0.78)
+      layerB.current.rotation.y = -spin * 1.3
+      const m = layerB.current.material as THREE.MeshStandardMaterial
+      m.emissiveIntensity = pulse * 0.9
+    }
+  })
+
+  if (targetFill < 0.01 && fillRef.current < 0.01) return null
+
+  return (
+    <group>
+      <mesh ref={layerA} position={[0, baseY + maxHeight / 2, 0]}>
+        <cylinderGeometry args={[1, 1, 1, 24]} />
+        <meshStandardMaterial
+          color={colorA}
+          emissive={colorA}
+          emissiveIntensity={0.65}
+          transparent
+          opacity={0.88}
+          roughness={0.12}
+        />
+      </mesh>
+      <mesh ref={layerB} position={[0, baseY + maxHeight * 0.75, 0]}>
+        <cylinderGeometry args={[1, 0.85, 1, 24]} />
+        <meshStandardMaterial
+          color={colorB}
+          emissive={colorB}
+          emissiveIntensity={0.6}
+          transparent
+          opacity={0.82}
+          roughness={0.12}
         />
       </mesh>
     </group>
@@ -135,11 +209,11 @@ export function VrLabPourStream({
 
   return (
     <mesh ref={ref} position={from}>
-      <cylinderGeometry args={[0.018, 0.028, 1, 12]} />
+      <cylinderGeometry args={[0.016, 0.024, 1, 8]} />
       <meshStandardMaterial
         color={color}
         emissive={color}
-        emissiveIntensity={0.5}
+        emissiveIntensity={0.85}
         transparent
         opacity={0.8}
         depthWrite={false}
@@ -147,3 +221,32 @@ export function VrLabPourStream({
     </mesh>
   )
 }
+
+/** Декоративная неоновая жидкость в колбе (без анимации наливания). */
+export function VrLabStaticNeonLiquid({
+  color,
+  radius,
+  height,
+  baseY,
+}: {
+  color: string
+  radius: number
+  height: number
+  baseY: number
+}) {
+  return (
+    <mesh position={[0, baseY + height / 2, 0]}>
+      <cylinderGeometry args={[radius * 0.88, radius * 0.95, height, 16]} />
+      <meshStandardMaterial
+        color={color}
+        emissive={color}
+        emissiveIntensity={0.85}
+        transparent
+        opacity={0.9}
+        roughness={0.1}
+      />
+    </mesh>
+  )
+}
+
+export { VR_THEME }

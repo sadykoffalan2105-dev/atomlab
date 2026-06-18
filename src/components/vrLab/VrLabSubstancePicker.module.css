@@ -4,9 +4,10 @@
   min-height: 0;
   height: 100%;
   border-radius: 14px;
-  border: 1px solid rgba(80, 120, 180, 0.28);
-  background: rgba(8, 12, 28, 0.92);
+  border: 1px solid rgba(168, 85, 247, 0.28);
+  background: rgba(10, 6, 24, 0.94);
   overflow: hidden;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.08);
 }
 
 .title {
@@ -16,7 +17,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #9eb8ff;
+  color: #c4b5fd;
 }
 
 .search {
@@ -24,10 +25,15 @@
   font: inherit;
   font-size: 0.82rem;
   border-radius: 10px;
-  border: 1px solid rgba(92, 255, 212, 0.28);
-  background: rgba(4, 8, 18, 0.9);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  background: rgba(4, 2, 12, 0.9);
   color: #e8eef8;
   padding: 0.5rem 0.65rem;
+}
+
+.search:focus {
+  outline: none;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
 }
 
 .toggle {
@@ -36,12 +42,12 @@
   gap: 0.45rem;
   margin: 0 0.85rem 0.5rem;
   font-size: 0.75rem;
-  color: #b8c8e8;
+  color: #b8a8e8;
   cursor: pointer;
 }
 
 .toggle input {
-  accent-color: #5cffd4;
+  accent-color: #a855f7;
 }
 
 .list {
@@ -66,15 +72,16 @@
   padding: 0.45rem 0.55rem;
   margin-bottom: 0.25rem;
   border-radius: 10px;
-  border: 1px solid rgba(120, 140, 180, 0.25);
+  border: 1px solid rgba(168, 85, 247, 0.2);
   background: rgba(255, 255, 255, 0.03);
   color: #dce6f8;
   cursor: pointer;
 }
 
 .itemOn {
-  border-color: rgba(92, 255, 212, 0.5);
-  background: rgba(92, 255, 212, 0.08);
+  border-color: rgba(168, 85, 247, 0.55);
+  background: rgba(168, 85, 247, 0.12);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
 }
 
 .swatch {
@@ -82,8 +89,8 @@
   width: 0.65rem;
   height: 1.6rem;
   border-radius: 999px;
-  background: var(--substance-color, #5ad8ff);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--substance-color, #5ad8ff) 55%, transparent);
+  background: var(--substance-color, #a855f7);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--substance-color, #a855f7) 60%, transparent);
 }
 
 .formula {
@@ -95,13 +102,13 @@
 
 .name {
   font-size: 0.68rem;
-  color: #8fa3c4;
+  color: #9d8ec4;
 }
 
 .hint {
   margin: 0;
   padding: 0.55rem 0.85rem 0.75rem;
   font-size: 0.75rem;
-  color: #7dffb0;
-  border-top: 1px solid rgba(80, 120, 180, 0.18);
+  color: #c084fc;
+  border-top: 1px solid rgba(168, 85, 247, 0.18);
 }

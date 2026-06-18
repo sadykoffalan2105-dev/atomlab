@@ -1,10 +1,78 @@
 import { useMemo, useRef } from 'react'
-import { MeshTransmissionMaterial } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { VrLabTubeContent } from '../../vrLab/types'
 import { clamp01, easeInOutCubic, lerp } from '../../vrLab/vrLabAnimation'
-import { VrLabLiquid, VrLabPourStream } from './VrLabLiquid'
+import { VrLabGlassMaterial } from './vrLabGlassMaterials'
+import { VrLabLiquid, VrLabPourStream, VrLabSwirlLiquid } from './VrLabLiquid'
+import { useVrLabPerf } from './vrLabPerformance'
+import { VR_THEME } from './vrLabTheme'
+
+function latheProfile(points: [number, number][], segments: number) {
+  const pts = points.map(([r, y]) => new THREE.Vector2(r, y))
+  return new THREE.LatheGeometry(pts, segments)
+}
+
+/** Высокая пробирка с округлым дном — как на референсе. */
+function useTestTubeGeometry() {
+  const { latheSegments } = useVrLabPerf()
+  return useMemo(
+    () =>
+      latheProfile(
+        [
+          [0, 0],
+          [0.038, 0],
+          [0.042, 0.04],
+          [0.042, 0.5],
+          [0.018, 0.56],
+          [0.018, 0.62],
+        ],
+        latheSegments,
+      ),
+    [latheSegments],
+  )
+}
+
+/** Эrlenmeyer — конус + цилиндрическое горло. */
+export function useErlenmeyerGeometry(scale = 1) {
+  const { latheSegments } = useVrLabPerf()
+  return useMemo(
+    () =>
+      latheProfile(
+        [
+          [0, 0],
+          [0.055 * scale, 0],
+          [0.075 * scale, 0.05 * scale],
+          [0.028 * scale, 0.2 * scale],
+          [0.022 * scale, 0.24 * scale],
+        ],
+        latheSegments,
+      ),
+    [latheSegments, scale],
+  )
+}
+
+/** Широкая ёмкость для смешивания с «ушком». */
+function useMixingVesselGeometry() {
+  const { latheSegments } = useVrLabPerf()
+  return useMemo(
+    () =>
+      latheProfile(
+        [
+          [0, 0],
+          [0.06, 0],
+          [0.08, 0.015],
+          [0.34, 0.02],
+          [0.36, 0.06],
+          [0.35, 0.32],
+          [0.33, 0.36],
+          [0.28, 0.38],
+        ],
+        latheSegments,
+      ),
+    [latheSegments],
+  )
+}
 
 type TubeProps = {
   position?: [number, number, number]
@@ -16,42 +84,28 @@ type TubeProps = {
   tiltMix?: number
 }
 
-/** Профиль пробирки (lathe) — округлое дно как в реальности. */
-function TestTubeGlass({ selected }: { selected?: boolean }) {
-  const geo = useMemo(() => {
-    const pts: THREE.Vector2[] = []
-    pts.push(new THREE.Vector2(0, 0))
-    pts.push(new THREE.Vector2(0.1, 0))
-    pts.push(new THREE.Vector2(0.11, 0.08))
-    pts.push(new THREE.Vector2(0.11, 0.42))
-    pts.push(new THREE.Vector2(0.045, 0.48))
-    pts.push(new THREE.Vector2(0.045, 0.58))
-    return new THREE.LatheGeometry(pts, 32)
-  }, [])
+function TestTubeGlass({ selected, geo }: { selected?: boolean; geo: THREE.LatheGeometry }) {
+  const ringRef = useRef<THREE.Mesh>(null)
+
+  useFrame((state) => {
+    if (!ringRef.current || !selected) return
+    const mat = ringRef.current.material as THREE.MeshStandardMaterial
+    mat.emissiveIntensity = 1.4 + Math.sin(state.clock.elapsedTime * 4) * 0.35
+  })
 
   return (
     <group>
       <mesh geometry={geo} castShadow receiveShadow>
-        <MeshTransmissionMaterial
-          backside
-          samples={4}
-          thickness={0.35}
-          chromaticAberration={0.04}
-          anisotropy={0.12}
-          distortion={0.08}
-          distortionScale={0.15}
-          temporalDistortion={0.08}
-          iridescence={0.08}
-          iridescenceIOR={1.2}
-          roughness={0.06}
-          ior={1.52}
-          color="#f0f8ff"
-        />
+        <VrLabGlassMaterial color="#eef4ff" />
       </mesh>
       {selected ? (
-        <mesh position={[0, 0.52, 0]}>
-          <torusGeometry args={[0.13, 0.008, 8, 32]} />
-          <meshStandardMaterial color="#5cffd4" emissive="#5cffd4" emissiveIntensity={0.6} />
+        <mesh ref={ringRef} position={[0, 0.58, 0]}>
+          <torusGeometry args={[0.11, 0.008, 8, 24]} />
+          <meshStandardMaterial
+            color={VR_THEME.cyan}
+            emissive={VR_THEME.cyan}
+            emissiveIntensity={1.4}
+          />
         </mesh>
       ) : null}
     </group>
@@ -67,41 +121,42 @@ export function VrLabTestTube({
   pourActive = false,
   tiltMix = 0,
 }: TubeProps) {
+  const geo = useTestTubeGeometry()
   const groupRef = useRef<THREE.Group>(null)
   const fill = content?.fillLevel ?? 0
   const color = content?.liquidColor ?? '#3a4a6a'
 
   useFrame((_, dt) => {
     if (!groupRef.current) return
-    const targetTilt = tiltMix * -0.65
-    groupRef.current.rotation.z = lerp(groupRef.current.rotation.z, targetTilt, Math.min(1, dt * 4))
+    groupRef.current.rotation.z = lerp(groupRef.current.rotation.z, tiltMix * -0.65, Math.min(1, dt * 4))
   })
 
   return (
     <group ref={groupRef} position={position} onClick={onClick}>
-      <TestTubeGlass selected={selected} />
+      <TestTubeGlass selected={selected} geo={geo} />
       {content ? (
         <VrLabLiquid
           color={color}
           targetFill={fill}
-          radiusTop={0.1}
-          radiusBottom={0.09}
-          maxHeight={0.38}
-          baseY={0.06}
+          radiusTop={0.038}
+          radiusBottom={0.036}
+          maxHeight={0.42}
+          baseY={0.05}
           animateIn={pourActive}
         />
       ) : null}
       <VrLabPourStream
         active={pourActive}
         color={color}
-        from={[0, 0.75, 0.05]}
-        to={[0, 0.15, 0]}
+        from={[0, 0.78, 0.04]}
+        to={[0, 0.12, 0]}
         progress={pourProgress}
       />
     </group>
   )
 }
 
+/** Широкая колба-«ведро» с ручкой для смешивания реагентов. */
 export function VrLabBeaker({
   position = [0, 0, 0],
   content,
@@ -115,81 +170,174 @@ export function VrLabBeaker({
   mixColor?: string
   mixProgress?: number
 }) {
+  const vesselGeo = useMixingVesselGeometry()
   const fill = content?.fillLevel ?? 0
-  const baseColor = content?.liquidColor ?? '#2a3550'
+  const baseColor = content?.liquidColor ?? VR_THEME.magenta
   const displayColor = mixColor && mixing ? mixColor : baseColor
   const groupRef = useRef<THREE.Group>(null)
+  const glowRef = useRef<THREE.PointLight>(null)
+
+  const colorA = displayColor
+  const colorB = mixColor && mixing ? VR_THEME.cyan : VR_THEME.magenta
 
   useFrame((state) => {
-    if (!groupRef.current || !mixing) return
-    groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 14) * 0.006 * mixProgress
+    if (groupRef.current && mixing) {
+      groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 12) * 0.005 * mixProgress
+    }
+    if (glowRef.current) {
+      glowRef.current.intensity = content ? 0.35 + (mixing ? Math.sin(state.clock.elapsedTime * 5) * 0.15 : 0) : 0
+    }
   })
 
   return (
     <group ref={groupRef} position={position}>
-      <mesh position={[0, 0.14, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.26, 0.3, 0.42, 32]} />
-        <MeshTransmissionMaterial
-          backside
-          samples={4}
-          thickness={0.4}
-          roughness={0.05}
-          ior={1.5}
-          color="#eef6ff"
-          chromaticAberration={0.03}
-        />
+      <mesh geometry={vesselGeo} castShadow receiveShadow position={[0, 0.02, 0]}>
+        <VrLabGlassMaterial color="#f2eeff" roughness={0.05} />
       </mesh>
-      <mesh position={[0, 0.36, 0]}>
-        <torusGeometry args={[0.27, 0.012, 8, 32]} />
-        <meshStandardMaterial color="#d0dce8" metalness={0.4} roughness={0.3} />
+
+      {/* Дугообразная ручка */}
+      <mesh position={[0.36, 0.22, 0]} rotation={[0, 0, -Math.PI / 2]}>
+        <torusGeometry args={[0.12, 0.012, 8, 24, Math.PI]} />
+        <meshStandardMaterial color={VR_THEME.chrome} metalness={0.85} roughness={0.15} />
       </mesh>
+
       {content ? (
-        <VrLabLiquid
-          color={displayColor}
+        <VrLabSwirlLiquid
+          colorA={colorA}
+          colorB={colorB}
           targetFill={fill}
-          radiusTop={0.24}
-          radiusBottom={0.22}
-          maxHeight={0.32}
-          baseY={0.02}
+          radius={0.32}
+          maxHeight={0.3}
+          baseY={0.06}
           mixing={mixing}
-          animateIn={mixing && mixProgress < 0.4}
         />
       ) : null}
+
+      <pointLight ref={glowRef} position={[0, 0.2, 0.1]} color={displayColor} intensity={0.3} distance={1.2} />
     </group>
   )
 }
 
+/** Минималистичная стойка для пробирок — тонкий металл. */
 export function VrLabTubeRack({ tubeCount = 4 }: { tubeCount?: number }) {
   return (
-    <group position={[-1.45, 0.02, 0.1]}>
-      <mesh position={[0, 0.16, 0]} castShadow receiveShadow>
-        <boxGeometry args={[1.08, 0.05, 0.32]} />
-        <meshStandardMaterial color="#b8c4d4" roughness={0.35} metalness={0.45} />
+    <group position={[-1.42, 0.02, 0.08]}>
+      <mesh position={[0, 0.02, 0]} castShadow>
+        <boxGeometry args={[0.95, 0.025, 0.22]} />
+        <meshStandardMaterial color={VR_THEME.darkMetal} metalness={0.75} roughness={0.28} />
       </mesh>
-      <mesh position={[0, 0.08, 0]}>
-        <boxGeometry args={[1.02, 0.12, 0.26]} />
-        <meshStandardMaterial color="#9aa8ba" roughness={0.4} metalness={0.35} />
+      <mesh position={[0, 0.18, 0]}>
+        <boxGeometry args={[0.95, 0.018, 0.22]} />
+        <meshStandardMaterial color={VR_THEME.darkMetal} metalness={0.75} roughness={0.28} />
       </mesh>
-      {Array.from({ length: tubeCount }, (_, i) => (
-        <mesh key={i} position={[-0.36 + i * 0.24, 0.04, 0]} castShadow>
-          <cylinderGeometry args={[0.065, 0.065, 0.1, 20]} />
-          <meshStandardMaterial color="#8a98a8" metalness={0.5} roughness={0.32} />
-        </mesh>
-      ))}
+      {Array.from({ length: tubeCount }, (_, i) => {
+        const x = -0.33 + i * 0.22
+        return (
+          <group key={i} position={[x, 0.1, 0]}>
+            <mesh position={[0, 0.08, 0.09]}>
+              <boxGeometry args={[0.018, 0.16, 0.018]} />
+              <meshStandardMaterial color={VR_THEME.chrome} metalness={0.8} roughness={0.2} />
+            </mesh>
+            <mesh position={[0, 0.08, -0.09]}>
+              <boxGeometry args={[0.018, 0.16, 0.018]} />
+              <meshStandardMaterial color={VR_THEME.chrome} metalness={0.8} roughness={0.2} />
+            </mesh>
+          </group>
+        )
+      })}
+      <mesh position={[0, 0.034, 0]}>
+        <boxGeometry args={[0.95, 0.006, 0.22]} />
+        <meshStandardMaterial color={VR_THEME.cyan} emissive={VR_THEME.cyan} emissiveIntensity={1.6} />
+      </mesh>
     </group>
-  )
-}
-
-/** Метка на столе (зарезервировано под 3D-текст). */
-export function VrLabBenchLabel({ position }: { position: [number, number, number] }) {
-  return (
-    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[0.14, 0.14]} />
-      <meshStandardMaterial color="#5a6575" roughness={0.9} transparent opacity={0.01} />
-    </mesh>
   )
 }
 
 export function useMixTilt(progress: number): number {
   return easeInOutCubic(clamp01(progress))
+}
+
+/** Эrlenmeyer для декора (полка, стол). */
+export function VrLabErlenmeyerFlask({
+  position,
+  liquidColor,
+  scale = 1,
+}: {
+  position: [number, number, number]
+  liquidColor: string
+  scale?: number
+}) {
+  const geo = useErlenmeyerGeometry(scale)
+  return (
+    <group position={position}>
+      <mesh geometry={geo} castShadow>
+        <VrLabGlassMaterial color="#eef4ff" />
+      </mesh>
+      <mesh position={[0, 0.04 * scale, 0]}>
+        <cylinderGeometry args={[0.05 * scale, 0.065 * scale, 0.1 * scale, 16]} />
+        <meshStandardMaterial
+          color={liquidColor}
+          emissive={liquidColor}
+          emissiveIntensity={0.9}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+/** Круглодонная колба для ректификации. */
+export function VrLabRoundFlask({
+  position,
+  liquidColor,
+  liquidLevel = 0.12,
+}: {
+  position: [number, number, number]
+  liquidColor: string
+  liquidLevel?: number
+}) {
+  const { latheSegments } = useVrLabPerf()
+  const geo = useMemo(
+    () =>
+      latheProfile(
+        [
+          [0, 0],
+          [0.09, 0],
+          [0.1, 0.04],
+          [0.028, 0.12],
+          [0.022, 0.16],
+        ],
+        latheSegments,
+      ),
+    [latheSegments],
+  )
+
+  return (
+    <group position={position}>
+      <mesh geometry={geo} castShadow>
+        <VrLabGlassMaterial color="#f0ecff" />
+      </mesh>
+      <mesh position={[0, 0.03, 0]}>
+        <sphereGeometry args={[0.09, 16, 16]} />
+        <meshStandardMaterial
+          color={liquidColor}
+          emissive={liquidColor}
+          emissiveIntensity={0.95}
+          transparent
+          opacity={0.88}
+        />
+      </mesh>
+      <mesh position={[0, 0.03 + liquidLevel * 0.5, 0]}>
+        <cylinderGeometry args={[0.07, 0.08, liquidLevel, 16]} />
+        <meshStandardMaterial
+          color={liquidColor}
+          emissive={liquidColor}
+          emissiveIntensity={0.85}
+          transparent
+          opacity={0.85}
+        />
+      </mesh>
+    </group>
+  )
 }
