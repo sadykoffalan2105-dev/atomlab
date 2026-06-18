@@ -50,9 +50,15 @@ export function useVrLabBench() {
     (durationMs: number, phase: VrLabBenchState['animPhase'], onDone: () => void) => {
       clearAnim()
       const t0 = performance.now()
+      let lastUiUpdate = 0
       const tick = () => {
         const p = Math.min(1, (performance.now() - t0) / durationMs)
-        setState((s) => ({ ...s, animProgress: p, animPhase: phase }))
+        const now = performance.now()
+        // ~30 fps для React — меньше лагов при анимации наливания/смешивания
+        if (now - lastUiUpdate > 32 || p >= 1) {
+          setState((s) => ({ ...s, animProgress: p, animPhase: phase }))
+          lastUiUpdate = now
+        }
         if (p < 1) {
           animRef.current = requestAnimationFrame(tick)
         } else {

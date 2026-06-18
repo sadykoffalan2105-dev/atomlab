@@ -1,7 +1,16 @@
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing'
-import { ContactShadows, Html, OrbitControls, Text } from '@react-three/drei'
+import { ContactShadows, Html, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import { memo, useMemo } from 'react'
+import {
+  Component,
+  Suspense,
+  memo,
+  useEffect,
+  useMemo,
+  useState,
+  type ErrorInfo,
+  type ReactNode,
+} from 'react'
 import { compoundById } from '../../data/compounds'
 import type { VrLabBenchState } from '../../vrLab/types'
 import { VrLabEnvironment, VrLabLighting } from './VrLabEnvironment'
@@ -14,6 +23,8 @@ import { VR_THEME } from './vrLabTheme'
 type Props = {
   bench: VrLabBenchState
   onSelectTube: (id: string) => void
+  onReady?: () => void
+  onFail?: () => void
 }
 
 const TUBE_POSITIONS: [number, number, number][] = [
@@ -25,7 +36,52 @@ const TUBE_POSITIONS: [number, number, number][] = [
 
 const MIX_VESSEL_POS: [number, number, number] = [0.82, 0.02, 0.1]
 
-function BenchScene({ bench, onSelectTube }: Props) {
+function FloorLabel({ position, text }: { position: [number, number, number]; text: string }) {
+  return (
+    <Html
+      position={position}
+      center
+      distanceFactor={10}
+      style={{
+        pointerEvents: 'none',
+        fontSize: '11px',
+        fontWeight: 700,
+        color: VR_THEME.textMuted,
+        opacity: 0.85,
+        userSelect: 'none',
+      }}
+    >
+      {text}
+    </Html>
+  )
+}
+
+function VrLabPostFx() {
+  const perf = useVrLabPerf()
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setReady(true), 400)
+    return () => window.clearTimeout(t)
+  }, [])
+
+  if (!perf.postProcessing || !ready) return null
+
+  return (
+    <EffectComposer multisampling={0}>
+      <Bloom
+        luminanceThreshold={0.2}
+        mipmapBlur
+        intensity={perf.bloomIntensity}
+        radius={0.45}
+        levels={perf.bloomLevels}
+      />
+      <Vignette eskil={false} offset={0.1} darkness={0.45} />
+    </EffectComposer>
+  )
+}
+
+function BenchScene({ bench, onSelectTube, onReady }: Props) {
   const perf = useVrLabPerf()
   const combineTilt = useMixTilt(bench.animPhase === 'combining' ? bench.animProgress : 0)
   const isPouring = bench.animPhase === 'pouring'
@@ -40,11 +96,14 @@ function BenchScene({ bench, onSelectTube }: Props) {
       padding: '3px 10px',
       borderRadius: '8px',
       border: '1px solid rgba(168,85,247,0.45)',
-      boxShadow: '0 0 12px rgba(168,85,247,0.35)',
       whiteSpace: 'nowrap' as const,
     }),
     [],
   )
+
+  useEffect(() => {
+    onReady?.()
+  }, [onReady])
 
   return (
     <>
@@ -70,15 +129,7 @@ function BenchScene({ bench, onSelectTube }: Props) {
               pourProgress={isPourTube ? bench.animProgress : 0}
               tiltMix={tilt}
             />
-            <Text
-              position={[pos[0], 0.005, pos[2] + 0.12]}
-              rotation={[-Math.PI / 2, 0, 0]}
-              fontSize={0.065}
-              color={VR_THEME.textMuted}
-              anchorX="center"
-            >
-              {tube.label}
-            </Text>
+            <FloorLabel position={[pos[0], 0.04, pos[2] + 0.1]} text={tube.label} />
             {tube.content ? (
               <Html position={[pos[0], 0.62, pos[2]]} center distanceFactor={8} style={labelStyle}>
                 {compoundById[tube.content.compoundId]?.formulaUnicode ?? tube.content.compoundId}
@@ -96,15 +147,7 @@ function BenchScene({ bench, onSelectTube }: Props) {
         mixProgress={bench.animPhase === 'reacting' ? bench.animProgress : 0}
       />
 
-      <Text
-        position={[MIX_VESSEL_POS[0], 0.005, MIX_VESSEL_POS[2] + 0.22]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.055}
-        color={VR_THEME.textMuted}
-        anchorX="center"
-      >
-        Смесь
-      </Text>
+      <FloorLabel position={[MIX_VESSEL_POS[0], 0.04, MIX_VESSEL_POS[2] + 0.18]} text="Смесь" />
 
       <VrLabReactionParticles
         active={bench.mixing || bench.animPhase === 'reacting'}
@@ -116,10 +159,10 @@ function BenchScene({ bench, onSelectTube }: Props) {
       {perf.shadows ? (
         <ContactShadows
           position={[0, 0.001, 0]}
-          opacity={0.55}
-          scale={6}
-          blur={2.5}
-          far={3.5}
+          opacity={0.45}
+          scale={5}
+          blur={2}
+          far={3}
           color="#1a0a30"
           frames={1}
         />
@@ -136,43 +179,89 @@ function BenchScene({ bench, onSelectTube }: Props) {
         dampingFactor={0.07}
       />
 
-      {perf.postProcessing ? (
-        <EffectComposer multisampling={0}>
-          <Bloom
-            luminanceThreshold={0.15}
-            mipmapBlur
-            intensity={perf.bloomIntensity}
-            radius={0.5}
-            levels={perf.bloomLevels}
-          />
-          <Vignette eskil={false} offset={0.1} darkness={0.5} />
-        </EffectComposer>
-      ) : null}
+      <VrLabPostFx />
     </>
   )
 }
 
 const MemoBenchScene = memo(BenchScene)
 
-function VrLabCanvasInner({ bench, onSelectTube }: Props) {
+class VrLabErrorBoundary extends Component<
+  { children: ReactNode; onFail?: () => void },
+  { failed: boolean }
+> {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[VrLab] render error', error, info.componentStack)
+    this.props.onFail?.()
+  }
+
+  render() {
+    if (this.state.failed) return null
+    return this.props.children
+  }
+}
+
+function VrLabCanvasInner({ bench, onSelectTube, onReady, onFail }: Props) {
   const perf = useVrLabPerf()
+
   return (
     <Canvas
       shadows={perf.shadows}
       camera={{ position: [0.05, 0.82, 3.05], fov: 46 }}
-      gl={{ antialias: perf.tier !== 'low', alpha: false, powerPreference: 'high-performance' }}
+      gl={{
+        antialias: perf.tier !== 'low',
+        alpha: false,
+        powerPreference: 'high-performance',
+        failIfMajorPerformanceCaveat: false,
+      }}
       dpr={perf.dpr}
       frameloop="always"
+      onCreated={({ gl }) => {
+        gl.setClearColor(VR_THEME.bg)
+        const canvas = gl.domElement
+        const onLost = (e: Event) => {
+          e.preventDefault()
+          console.warn('[VrLab] WebGL context lost')
+          onFail?.()
+        }
+        canvas.addEventListener('webglcontextlost', onLost, { once: true })
+      }}
     >
-      <MemoBenchScene bench={bench} onSelectTube={onSelectTube} />
+      <Suspense fallback={null}>
+        <MemoBenchScene bench={bench} onSelectTube={onSelectTube} onReady={onReady} onFail={onFail} />
+      </Suspense>
     </Canvas>
   )
 }
 
-export function VrLabCanvas({ bench, onSelectTube }: Props) {
+export function VrLabCanvas({ bench, onSelectTube }: Omit<Props, 'onReady' | 'onFail'>) {
   return (
     <VrLabPerfProvider>
-      <VrLabCanvasInner bench={bench} onSelectTube={onSelectTube} />
+      <VrLabErrorBoundary>
+        <VrLabCanvasInner bench={bench} onSelectTube={onSelectTube} />
+      </VrLabErrorBoundary>
+    </VrLabPerfProvider>
+  )
+}
+
+export type VrLabCanvasShellProps = Props & {
+  mount: boolean
+}
+
+/** Оболочка: отложенный mount + колбэки загрузки/ошибки для UI. */
+export function VrLabCanvasShell({ mount, bench, onSelectTube, onReady, onFail }: VrLabCanvasShellProps) {
+  if (!mount) return null
+  return (
+    <VrLabPerfProvider>
+      <VrLabErrorBoundary onFail={onFail}>
+        <VrLabCanvasInner bench={bench} onSelectTube={onSelectTube} onReady={onReady} onFail={onFail} />
+      </VrLabErrorBoundary>
     </VrLabPerfProvider>
   )
 }

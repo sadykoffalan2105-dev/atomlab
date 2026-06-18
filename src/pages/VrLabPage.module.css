@@ -69,11 +69,50 @@
     inset 0 1px 0 rgba(168, 85, 247, 0.08);
 }
 
-.canvasWrap > :first-child {
+.canvasWrap > :last-child {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+.canvasOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #0a0618 0%, #1a1030 100%);
+  pointer-events: none;
+}
+
+.canvasLoader {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #c4b5fd;
+  animation: vrPulse 1.4s ease-in-out infinite;
+}
+
+.canvasError {
+  margin: 0;
+  padding: 0 1.5rem;
+  max-width: 28rem;
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #e8d5ff;
+}
+
+@keyframes vrPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .side {

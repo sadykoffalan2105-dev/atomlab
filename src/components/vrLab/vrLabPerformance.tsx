@@ -6,75 +6,75 @@ export interface VrLabPerfSettings {
   tier: VrLabQualityTier
   dpr: [number, number]
   shadows: boolean
-  useTransmission: boolean
-  useReflector: boolean
   bloomIntensity: number
   bloomLevels: number
   particleCount: number
   steamCount: number
   shadowMapSize: number
   latheSegments: number
-  decorPointLights: boolean
   postProcessing: boolean
 }
 
 const PRESETS: Record<VrLabQualityTier, Omit<VrLabPerfSettings, 'tier'>> = {
   high: {
-    dpr: [1, 2],
+    dpr: [1, 1.5],
     shadows: true,
-    useTransmission: true,
-    useReflector: true,
-    bloomIntensity: 0.95,
-    bloomLevels: 5,
-    particleCount: 36,
-    steamCount: 48,
-    shadowMapSize: 2048,
-    latheSegments: 24,
-    decorPointLights: true,
+    bloomIntensity: 0.75,
+    bloomLevels: 4,
+    particleCount: 24,
+    steamCount: 32,
+    shadowMapSize: 1024,
+    latheSegments: 20,
     postProcessing: true,
   },
   medium: {
-    dpr: [1, 1.5],
-    shadows: true,
-    useTransmission: false,
-    useReflector: true,
-    bloomIntensity: 0.7,
-    bloomLevels: 4,
-    particleCount: 20,
-    steamCount: 24,
-    shadowMapSize: 1024,
+    dpr: [1, 1.25],
+    shadows: false,
+    bloomIntensity: 0.55,
+    bloomLevels: 3,
+    particleCount: 16,
+    steamCount: 16,
+    shadowMapSize: 512,
     latheSegments: 16,
-    decorPointLights: false,
     postProcessing: true,
   },
   low: {
     dpr: [1, 1],
     shadows: false,
-    useTransmission: false,
-    useReflector: false,
-    bloomIntensity: 0.45,
-    bloomLevels: 3,
-    particleCount: 10,
+    bloomIntensity: 0.35,
+    bloomLevels: 2,
+    particleCount: 8,
     steamCount: 0,
     shadowMapSize: 512,
     latheSegments: 12,
-    decorPointLights: false,
-    postProcessing: true,
+    postProcessing: false,
   },
 }
 
-/** Авто-определение качества: защита от лагов на слабых устройствах. */
+function webglSupported(): boolean {
+  if (typeof document === 'undefined') return true
+  try {
+    const canvas = document.createElement('canvas')
+    return !!(canvas.getContext('webgl2') ?? canvas.getContext('webgl'))
+  } catch {
+    return false
+  }
+}
+
+/** Авто-определение качества — консервативно, чтобы сцена не зависала. */
 export function detectVrLabQuality(): VrLabQualityTier {
   if (typeof window === 'undefined') return 'medium'
+  if (!webglSupported()) return 'low'
   try {
     const cores = navigator.hardwareConcurrency ?? 4
     const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
-    if (isMobile || cores <= 2 || mem <= 2) return 'low'
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced || isMobile || cores <= 4 || mem <= 4) return 'low'
     if (cores >= 8 && mem >= 8 && !isMobile) return 'high'
     return 'medium'
   } catch {
-    return 'medium'
+    return 'low'
   }
 }
 
@@ -92,3 +92,5 @@ export function VrLabPerfProvider({ children, tier }: { children: ReactNode; tie
   const settings = useMemo(() => buildVrLabPerfSettings(tier ?? detectVrLabQuality()), [tier])
   return <VrLabPerfContext.Provider value={settings}>{children}</VrLabPerfContext.Provider>
 }
+
+export { webglSupported }

@@ -175,7 +175,6 @@ export function VrLabBeaker({
   const baseColor = content?.liquidColor ?? VR_THEME.magenta
   const displayColor = mixColor && mixing ? mixColor : baseColor
   const groupRef = useRef<THREE.Group>(null)
-  const glowRef = useRef<THREE.PointLight>(null)
 
   const colorA = displayColor
   const colorB = mixColor && mixing ? VR_THEME.cyan : VR_THEME.magenta
@@ -183,9 +182,6 @@ export function VrLabBeaker({
   useFrame((state) => {
     if (groupRef.current && mixing) {
       groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 12) * 0.005 * mixProgress
-    }
-    if (glowRef.current) {
-      glowRef.current.intensity = content ? 0.35 + (mixing ? Math.sin(state.clock.elapsedTime * 5) * 0.15 : 0) : 0
     }
   })
 
@@ -212,8 +208,6 @@ export function VrLabBeaker({
           mixing={mixing}
         />
       ) : null}
-
-      <pointLight ref={glowRef} position={[0, 0.2, 0.1]} color={displayColor} intensity={0.3} distance={1.2} />
     </group>
   )
 }

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { VrLabCanvas } from '../components/vrLab/VrLabCanvas'
+import { VrLabCanvasShell } from '../components/vrLab/VrLabCanvas'
 import { VrLabSubstancePicker } from '../components/vrLab/VrLabSubstancePicker'
+import { webglSupported } from '../components/vrLab/vrLabPerformance'
 import { compoundById } from '../data/compounds'
 import { useT, type MessageKey } from '../i18n/useT'
 import { VR_LAB_PALETTE } from '../vrLab/colorPalette'
@@ -18,6 +19,23 @@ export function VrLabPage() {
   const selectedTube = state.tubes.find((tube) => tube.id === state.selectedTubeId)
   const last = state.lastMix
   const busy = state.animPhase !== 'idle'
+
+  const [canvasMount, setCanvasMount] = useState(false)
+  const [canvasState, setCanvasState] = useState<'loading' | 'ready' | 'error'>('loading')
+
+  useEffect(() => {
+    if (!webglSupported()) {
+      setCanvasState('error')
+      return
+    }
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setCanvasMount(true))
+    })
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  const onCanvasReady = useCallback(() => setCanvasState('ready'), [])
+  const onCanvasFail = useCallback(() => setCanvasState('error'), [])
 
   return (
     <div className={styles.wrap}>
@@ -36,7 +54,24 @@ export function VrLabPage() {
       </header>
 
       <div className={styles.canvasWrap}>
-        <VrLabCanvas bench={state} onSelectTube={selectTube} />
+        {canvasState !== 'ready' ? (
+          <div className={styles.canvasOverlay} aria-live="polite">
+            {canvasState === 'error' ? (
+              <p className={styles.canvasError}>
+                3D-сцена недоступна. Обновите страницу или откройте в другом браузере с поддержкой WebGL.
+              </p>
+            ) : (
+              <p className={styles.canvasLoader}>Загрузка лаборатории…</p>
+            )}
+          </div>
+        ) : null}
+        <VrLabCanvasShell
+          mount={canvasMount && canvasState !== 'error'}
+          bench={state}
+          onSelectTube={selectTube}
+          onReady={onCanvasReady}
+          onFail={onCanvasFail}
+        />
       </div>
 
       <aside className={styles.side}>

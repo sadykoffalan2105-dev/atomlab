@@ -12,7 +12,6 @@ import {
   usePeriodicTablePosterTexture,
   useWaveformHoloTexture,
 } from './vrLabPosterTextures'
-import { useVrLabPerf } from './vrLabPerformance'
 import { VR_THEME } from './vrLabTheme'
 
 function makeHexRingGeometry(outerR: number, innerR: number) {
@@ -104,7 +103,6 @@ export function VrLabPeriodicTablePoster({
 
 /** Парящая полка с Erlenmeyer (справа вверху). */
 export function VrLabFloatingShelf({ position = [1.72, 0.74, -0.52] as [number, number, number] }) {
-  const { decorPointLights } = useVrLabPerf()
   const shelfRef = useRef<THREE.Group>(null)
 
   useFrame((state) => {
@@ -126,16 +124,12 @@ export function VrLabFloatingShelf({ position = [1.72, 0.74, -0.52] as [number, 
         <meshStandardMaterial color={VR_THEME.panel} metalness={0.7} roughness={0.3} />
       </mesh>
       {flasks.map((f, i) => (
-        <group key={i}>
-          <VrLabErlenmeyerFlask
-            position={[f.x, 0.1, 0]}
-            liquidColor={f.color}
-            scale={f.s}
-          />
-          {decorPointLights ? (
-            <pointLight position={[f.x, 0.12, 0.05]} intensity={0.15} color={f.color} distance={0.5} />
-          ) : null}
-        </group>
+        <VrLabErlenmeyerFlask
+          key={i}
+          position={[f.x, 0.1, 0]}
+          liquidColor={f.color}
+          scale={f.s}
+        />
       ))}
     </group>
   )

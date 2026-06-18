@@ -19,7 +19,7 @@ export function VrLabReactionParticles({
   position = [0.82, 0.3, 0.1],
   progress = 1,
 }: Props) {
-  const { particleCount, steamCount } = useVrLabPerf()
+  const { particleCount, steamCount, tier } = useVrLabPerf()
   const bubblesRef = useRef<THREE.InstancedMesh>(null)
   const steamRef = useRef<THREE.Points>(null)
   const dummy = useMemo(() => new THREE.Object3D(), [])
@@ -119,12 +119,12 @@ export function VrLabReactionParticles({
         </points>
       ) : null}
 
-      {heat > 0.55 ? (
-        <pointLight color={VR_THEME.magenta} intensity={lerp(0, heat * 2.5, progress)} distance={2.2} />
+      {tier === 'high' && heat > 0.55 ? (
+        <pointLight color={VR_THEME.magenta} intensity={lerp(0, heat * 2, progress)} distance={2} />
       ) : null}
 
-      {result?.effect === 'gasEvolution' ? (
-        <pointLight color={VR_THEME.cyan} intensity={progress * 1.4} distance={1.8} />
+      {tier === 'high' && result?.effect === 'gasEvolution' ? (
+        <pointLight color={VR_THEME.cyan} intensity={progress * 1.2} distance={1.6} />
       ) : null}
     </group>
   )
