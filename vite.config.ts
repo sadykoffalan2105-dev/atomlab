@@ -26,6 +26,10 @@ export default defineConfig(({ mode }) => {
         output: {
           codeSplitting: {
             groups: [
+              {
+                name: 'rapier-vendor',
+                test: /node_modules[\\/](@react-three\/rapier|@dimforge)/,
+              },
               { name: 'three-vendor', test: /node_modules[\\/](three|@react-three)/ },
               { name: 'learn-3d', test: /LearnPremiumScene|LearnTopicScene/ },
               {

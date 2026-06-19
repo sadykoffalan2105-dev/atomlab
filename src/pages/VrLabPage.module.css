@@ -558,3 +558,53 @@
   line-height: 1.4;
   color: #9fb8d8;
 }
+
+.catalogFormulaSub {
+  margin: 0.15rem 0 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: rgba(196, 181, 253, 0.85);
+}
+
+.reactionProgressList {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.reactionProgressItem,
+.reactionProgressFocus,
+.reactionProgressDone {
+  font-size: 0.66rem;
+  line-height: 1.35;
+  padding: 0.28rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  color: #b8c8e8;
+}
+
+.reactionProgressFocus {
+  border-color: rgba(34, 211, 238, 0.45);
+  background: rgba(34, 211, 238, 0.08);
+  color: #a5f3fc;
+}
+
+.reactionProgressDone {
+  border-color: rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.06);
+  color: #86efac;
+}
+
+.reactionFocusHint {
+  margin: 0.45rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: #9ecfe8;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  background: rgba(8, 18, 32, 0.5);
+}

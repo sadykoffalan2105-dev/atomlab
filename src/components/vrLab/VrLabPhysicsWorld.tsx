@@ -1,29 +1,24 @@
-import { CuboidCollider, Physics, RigidBody } from '@react-three/rapier'
+import { Suspense, lazy, type ReactNode } from 'react'
 import { useVrLabPerf } from './vrLabPerformance'
 
-function BenchColliders() {
-  return (
-    <>
-      <RigidBody type="fixed" colliders={false} position={[0, -0.01, 0.06]}>
-        <CuboidCollider args={[1.68, 0.01, 0.56]} />
-      </RigidBody>
-      <RigidBody type="fixed" colliders={false} position={[0.38, 0.03, 0.06]}>
-        <CuboidCollider args={[0.08, 0.03, 0.08]} />
-      </RigidBody>
-    </>
-  )
-}
+const RapierShell = lazy(() =>
+  import('./VrLabPhysicsRapier').then((m) => ({ default: m.VrLabPhysicsRapierShell })),
+)
 
-/** Rapier-физика стола (high tier). */
-export function VrLabPhysicsWorld({ children }: { children: React.ReactNode }) {
+/** Rapier-физика стола (high tier, lazy chunk). */
+export function VrLabPhysicsWorld({ children }: { children: ReactNode }) {
   const { physics } = useVrLabPerf()
 
   if (!physics) return <>{children}</>
 
   return (
-    <Physics gravity={[0, -9.81, 0]} timeStep="vary" paused={false}>
-      <BenchColliders />
-      {children}
-    </Physics>
+    <Suspense fallback={<>{children}</>}>
+      <RapierShell>{children}</RapierShell>
+    </Suspense>
   )
+}
+
+/** Предзагрузка Rapier на high tier до монтирования Canvas. */
+export function prefetchVrLabPhysics(): void {
+  void import('./VrLabPhysicsRapier')
 }

@@ -41,12 +41,15 @@ export function VrLabReactionCatalog({ onTryReaction }: Props) {
                 <li key={r.id} className={styles.catalogItem}>
                   <div className={styles.catalogItemHead}>
                     <span className={styles.catalogFormula}>
-                      {formulaA} + {formulaB}
+                      {t(r.titleKey as MessageKey)}
                     </span>
                     {done ? (
                       <span className={styles.catalogBadge}>{t('vrLab.catalog.done')}</span>
                     ) : null}
                   </div>
+                  <p className={styles.catalogFormulaSub}>
+                    {formulaA} + {formulaB}
+                  </p>
                   <p className={styles.catalogObs}>{t(r.practice.observationKey as MessageKey)}</p>
                   <button
                     type="button"

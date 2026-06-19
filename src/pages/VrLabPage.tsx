@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { VrLabLessonPanel } from '../components/vrLab/education/VrLabLessonPanel'
-import { VrLabReactionCatalog } from '../components/vrLab/education/VrLabReactionCatalog'
+import { VrLabReactionCatalog, reactionIdFromPair } from '../components/vrLab/education/VrLabReactionCatalog'
 import { VrLabCanvasShell } from '../components/vrLab/VrLabCanvas'
+import { prefetchVrLabPhysics } from '../components/vrLab/VrLabPhysicsWorld'
 import { VrLabSubstancePicker } from '../components/vrLab/VrLabSubstancePicker'
 import { detectVrLabQuality, webglSupported, type VrLabQualityTier } from '../components/vrLab/vrLabPerformance'
 import { useVrLabSoundFx } from '../vrLab/useVrLabSoundFx'
@@ -44,6 +45,7 @@ export function VrLabPage() {
   const [pickId, setPickId] = useState<string | null>('hcl')
   const [practiceTick, setPracticeTick] = useState(0)
   const [practiceTarget, setPracticeTarget] = useState<{ a: string; b: string } | null>(null)
+  const [activeReactionId, setActiveReactionId] = useState<CuratedReactionId | null>(null)
 
   const lessonIdFromUrl = searchParams.get('lesson')
   const reactionIdFromUrl = searchParams.get('reaction')
@@ -58,6 +60,7 @@ export function VrLabPage() {
     const r = curatedReactionById(reactionIdFromUrl as CuratedReactionId)
     if (!r) return
     setActiveLesson(r.lessonId)
+    setActiveReactionId(r.id)
     setPracticeTarget({ a: r.a, b: r.b })
     setPickId(r.a)
   }, [reactionIdFromUrl, setActiveLesson])
@@ -90,6 +93,10 @@ export function VrLabPage() {
   useVrLabSoundFx(state)
 
   useEffect(() => {
+    if (qualityTier === 'high') prefetchVrLabPhysics()
+  }, [qualityTier])
+
+  useEffect(() => {
     if (state.lastMix?.kind === 'reaction') setPracticeTick((n) => n + 1)
   }, [state.lastMix])
 
@@ -119,6 +126,7 @@ export function VrLabPage() {
   const startReactionPractice = useCallback(
     (lessonId: string, compoundA: string, compoundB: string) => {
       setActiveLesson(lessonId)
+      setActiveReactionId(reactionIdFromPair(compoundA, compoundB))
       setPracticeTarget({ a: compoundA, b: compoundB })
       setPickId(compoundA)
       const empty = state.shelfFlasks.find((f) => !f.content)
@@ -289,11 +297,11 @@ export function VrLabPage() {
 
         <VrLabLessonPanel
           activeLessonId={activeLessonId}
+          focusReactionId={activeReactionId}
+          practiceCompounds={practiceTarget}
           onSelectLesson={setActiveLesson}
           practiceDone={lessonProgress.practiceDone}
-          onStartPractice={(id, compoundA, compoundB) => {
-            startReactionPractice(id, compoundA, compoundB)
-          }}
+          onStartPractice={startReactionPractice}
         />
 
         <VrLabReactionCatalog onTryReaction={startReactionPractice} />

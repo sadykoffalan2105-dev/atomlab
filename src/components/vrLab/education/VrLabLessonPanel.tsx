@@ -2,8 +2,11 @@ import { useMemo, useState } from 'react'
 import { compoundById } from '../../../data/compounds'
 import { useT, type MessageKey } from '../../../i18n/useT'
 import type { LessonPhase } from '../../../vrLab/lessons/types'
+import type { CuratedReactionId } from '../../../vrLab/reactions/curatedReactions'
+import { curatedReactionById, curatedReactionByLesson } from '../../../vrLab/reactions/curatedReactions'
 import {
   isLessonPracticeUnlocked,
+  isReactionCompleted,
   markQuizResult,
   markTheoryDone,
   readLessonProgress,
@@ -13,6 +16,8 @@ import styles from '../../../pages/VrLabPage.module.css'
 
 type Props = {
   activeLessonId: string | null
+  focusReactionId?: CuratedReactionId | null
+  practiceCompounds?: { a: string; b: string } | null
   onSelectLesson: (id: string | null) => void
   onStartPractice: (lessonId: string, compoundA: string, compoundB: string) => void
   practiceDone: boolean
@@ -20,6 +25,8 @@ type Props = {
 
 export function VrLabLessonPanel({
   activeLessonId,
+  focusReactionId = null,
+  practiceCompounds = null,
   onSelectLesson,
   onStartPractice,
   practiceDone,
@@ -49,6 +56,12 @@ export function VrLabLessonPanel({
   const passed = progress?.quizPassed || score >= 0.8
 
   const allQuizAnswered = lesson.quiz.every((q) => quizAnswers[q.id] != null)
+
+  const lessonReactions = useMemo(() => curatedReactionByLesson(lesson.id), [lesson.id])
+  const focusedReaction = focusReactionId ? curatedReactionById(focusReactionId) : null
+
+  const practiceA = practiceCompounds?.a ?? lesson.compounds[0]
+  const practiceB = practiceCompounds?.b ?? lesson.compounds[1]
 
   const onSubmitQuiz = () => {
     let correct = 0
@@ -82,6 +95,36 @@ export function VrLabLessonPanel({
           ))}
         </select>
       </div>
+
+      {lessonReactions.length > 0 ? (
+        <ul className={styles.reactionProgressList}>
+          {lessonReactions.map((r) => {
+            const done = isReactionCompleted(lesson.id, r.id)
+            const focused = focusReactionId === r.id
+            return (
+              <li
+                key={r.id}
+                className={
+                  done
+                    ? styles.reactionProgressDone
+                    : focused
+                      ? styles.reactionProgressFocus
+                      : styles.reactionProgressItem
+                }
+              >
+                {t(r.titleKey as MessageKey)}
+                {done ? ` · ${t('vrLab.catalog.done')}` : ''}
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+
+      {focusedReaction ? (
+        <p className={styles.reactionFocusHint}>
+          {t(`${focusedReaction.titleKey}.theory` as MessageKey)}
+        </p>
+      ) : null}
 
       <div className={styles.lessonTabs}>
         {(['theory', 'quiz', 'practice'] as LessonPhase[]).map((tab) => (
@@ -175,16 +218,19 @@ export function VrLabLessonPanel({
           <p className={styles.lessonPara}>{t(lesson.practiceMissionKey as MessageKey)}</p>
           <ul className={styles.practiceChecklist}>
             <li>
-              {compoundById[lesson.compounds[0]]?.formulaUnicode ?? lesson.compounds[0]} +{' '}
-              {compoundById[lesson.compounds[1]]?.formulaUnicode ?? lesson.compounds[1]}
+              {compoundById[practiceA]?.formulaUnicode ?? practiceA} +{' '}
+              {compoundById[practiceB]?.formulaUnicode ?? practiceB}
             </li>
+            {focusedReaction ? (
+              <li>{t(focusedReaction.practice.observationKey as MessageKey)}</li>
+            ) : null}
             <li>{t('vrLab.lesson.practiceStepPour')}</li>
             <li>{t('vrLab.lesson.practiceStepObserve')}</li>
           </ul>
           <button
             type="button"
             className={styles.btnPrimary}
-            onClick={() => onStartPractice(lesson.id, lesson.compounds[0], lesson.compounds[1])}
+            onClick={() => onStartPractice(lesson.id, practiceA, practiceB)}
           >
             {t('vrLab.lesson.startPractice')}
           </button>
