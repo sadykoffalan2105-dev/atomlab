@@ -1,17 +1,22 @@
-import { useBenchTopTexture, useLabWallTexture } from './vrLabTextures'
+import * as THREE from 'three'
+import { useMemo } from 'react'
+import { useBenchCarbonNormal, useBenchCarbonWeave, useBenchTopTexture, useLabWallTexture } from './vrLabTextures'
 import { VrLabCeilingLights, VrLabPulsingNeon } from './VrLabAmbientLife'
 import { useVrLabPerf } from './vrLabPerformance'
 import { VR_THEME } from './vrLabTheme'
 
 export function VrLabEnvironment() {
   const benchTex = useBenchTopTexture()
+  const carbonWeave = useBenchCarbonWeave()
+  const carbonNormal = useBenchCarbonNormal()
   const wallTex = useLabWallTexture()
   const { tier } = useVrLabPerf()
+  const carbonNormalScale = useMemo(() => new THREE.Vector2(0.35, 0.35), [])
 
   return (
     <group>
       <color attach="background" args={[VR_THEME.bg]} />
-      <fog attach="fog" args={[VR_THEME.fog, 8, 22]} />
+      <fog attach="fog" args={[VR_THEME.fog, 6, 18]} />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]} receiveShadow>
         <planeGeometry args={[14, 10]} />
@@ -48,22 +53,27 @@ export function VrLabEnvironment() {
       </mesh>
       <mesh position={[0, 0.002, 0.06]} receiveShadow>
         <boxGeometry args={[3.35, 0.012, 1.12]} />
-        <meshStandardMaterial
-          map={benchTex}
+        <meshPhysicalMaterial
+          map={tier === 'high' ? carbonWeave : benchTex}
+          normalMap={tier !== 'low' ? carbonNormal : undefined}
+          normalScale={tier !== 'low' ? carbonNormalScale : undefined}
           color={VR_THEME.bench}
-          roughness={0.14}
-          metalness={0.58}
-          envMapIntensity={0.9}
+          roughness={tier === 'high' ? 0.08 : 0.14}
+          metalness={tier === 'high' ? 0.72 : 0.58}
+          clearcoat={1}
+          clearcoatRoughness={0.06}
+          envMapIntensity={tier === 'high' ? 1.6 : 0.9}
         />
       </mesh>
       <mesh position={[0, 0.009, 0.06]}>
         <boxGeometry args={[3.15, 0.002, 0.92]} />
-        <meshStandardMaterial
-          color="#1a1830"
-          roughness={0.08}
-          metalness={0.72}
+        <meshPhysicalMaterial
+          color="#12101a"
+          roughness={0.04}
+          metalness={0.82}
           transparent
-          opacity={0.35}
+          opacity={tier === 'high' ? 0.22 : 0.35}
+          envMapIntensity={1.2}
         />
       </mesh>
       <mesh position={[0, 0.011, 0.62]}>

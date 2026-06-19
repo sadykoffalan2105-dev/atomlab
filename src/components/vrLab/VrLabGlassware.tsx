@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { VrLabTubeContent } from '../../vrLab/types'
 import { clamp01, easeInOutCubic, lerp } from '../../vrLab/vrLabAnimation'
+import { SloshSimulator } from '../../vrLab/fluids/SloshSimulator'
 import { substanceVisual } from '../../vrLab/substanceVisuals'
 import {
   GLASS_PROFILES,
@@ -11,6 +12,8 @@ import {
   makeHexRingGeometry,
   useGlassGeometry,
 } from './vrLabGlassLibrary'
+import { resolveCondensationLevel } from './VrLabReactionVfx'
+import { GlassCondensation } from './vfx/GlassCondensation'
 import { VrLabGlassMaterial } from './vrLabGlassMaterials'
 import {
   liquidVisualFromContent,
@@ -20,6 +23,7 @@ import {
   VrLabReactorLiquid,
   type LiquidVisual,
 } from './VrLabLiquid'
+import { PourStreamLocal } from './liquid/PourStreamRibbon'
 import { useVrLabPerf } from './vrLabPerformance'
 import { VR_THEME } from './vrLabTheme'
 
@@ -119,6 +123,11 @@ export function VrLabBeaker({
   scale = 0.52,
   selected = false,
   onClick,
+  reactionHeat = 0,
+  vfxPhase = 'idle',
+  vfxProgress = 0,
+  vfxMixing = false,
+  lastMix = null,
 }: {
   position?: [number, number, number]
   content: VrLabTubeContent | null
@@ -128,6 +137,11 @@ export function VrLabBeaker({
   scale?: number
   selected?: boolean
   onClick?: () => void
+  reactionHeat?: number
+  vfxPhase?: 'idle' | 'pouring' | 'combining' | 'reacting'
+  vfxProgress?: number
+  vfxMixing?: boolean
+  lastMix?: import('../../vrLab/types').VrLabMixResult | null
 }) {
   const vesselGeo = useGlassGeometry(GLASS_PROFILES.mixingReactor)
   const hexBaseGeo = useMemo(() => makeHexRingGeometry(0.36, 0.3, 0.018), [])
@@ -146,6 +160,7 @@ export function VrLabBeaker({
   const groupRef = useRef<THREE.Group>(null)
   const stirRef = useRef<THREE.Mesh>(null)
   const rimRef = useRef<THREE.Mesh>(null)
+  const condensation = resolveCondensationLevel(lastMix, vfxProgress, vfxPhase, vfxMixing || mixing)
 
   useFrame((state) => {
     if (groupRef.current && mixing) {
@@ -184,6 +199,8 @@ export function VrLabBeaker({
         <VrLabGlassMaterial color="#f8fbff" variant="vessel" />
       </mesh>
 
+      <GlassCondensation level={condensation} active={mixing || vfxPhase === 'reacting'} />
+
       <mesh ref={rimRef} position={[0, 0.38, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.28, 0.004, 8, 32]} />
         <meshStandardMaterial
@@ -214,6 +231,9 @@ export function VrLabBeaker({
           maxHeight={0.3}
           baseY={0.06}
           mixing={mixing}
+          mixRatio={mixProgress}
+          mixProgress={mixProgress}
+          temperature={mixing ? reactionHeat * mixProgress : 0}
         />
       ) : null}
     </group>
@@ -271,40 +291,69 @@ export function VrLabErlenmeyerFlask({
   content,
   scale = 1,
   vapor = false,
+  pourActive = false,
+  pourProgress = 0,
+  fillToVat = false,
+  manualTilt = 0,
 }: {
   position: [number, number, number]
   content?: VrLabTubeContent | null
   scale?: number
   vapor?: boolean
+  pourActive?: boolean
+  pourProgress?: number
+  /** true — струя не рисуется локально (рисует VrLabPourBridge). */
+  fillToVat?: boolean
+  /** Наклон 0..1 (колёсико / R). */
+  manualTilt?: number
 }) {
   const geo = useErlenmeyerGeometry(scale)
-  const visual = useMemo(() => {
-    if (content) {
-      return {
-        liquidColor: content.liquidColor,
-        emissive: content.emissive,
-        glow: content.glow,
-        opacity: content.opacity,
-        viscosity: content.viscosity,
-      }
+  const groupRef = useRef<THREE.Group>(null)
+  const sloshSim = useRef(new SloshSimulator())
+  const slosh = useRef({ sloshX: 0, sloshZ: 0, tiltX: 0, tiltZ: 0 })
+
+  const visual = useMemo(() => liquidVisualFromContent(content ?? null), [content])
+  const fill = content?.fillLevel ?? 0
+  const rTop = 0.048 * scale
+  const rBot = 0.062 * scale
+  const maxH = 0.11 * scale
+  const baseY = 0.035 * scale
+  const tiltMix = pourActive
+    ? easeInOutCubic(clamp01(pourProgress * 1.15))
+    : manualTilt
+
+  useFrame((_, dt) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.z = lerp(groupRef.current.rotation.z, -tiltMix * 0.62, Math.min(1, dt * 5))
     }
-    return null
-  }, [content])
+    slosh.current = sloshSim.current.update(tiltMix * 0.38, 0, dt)
+  })
 
   return (
-    <group position={position}>
+    <group ref={groupRef} position={position}>
       <mesh geometry={geo} castShadow>
         <VrLabGlassMaterial color="#eef6ff" variant="lab" />
       </mesh>
       {visual ? (
-        <VrLabDecorLiquid
+        <VrLabLiquid
           visual={visual}
-          radiusTop={0.048 * scale}
-          radiusBottom={0.062 * scale}
-          height={0.11 * scale * (content?.fillLevel ?? 0.68)}
-          baseY={0.035 * scale}
-          vapor={vapor}
+          targetFill={fill}
+          radiusTop={rTop}
+          radiusBottom={rBot}
+          maxHeight={maxH}
+          baseY={baseY}
+          animateIn={pourActive && !fillToVat}
+          mixing={pourActive || vapor}
+          tiltX={slosh.current.tiltX}
+          tiltZ={slosh.current.tiltZ}
+          sloshX={slosh.current.sloshX}
+          sloshZ={slosh.current.sloshZ}
+          sloshRef={slosh}
+          temperature={vapor ? 0.35 : 0}
         />
+      ) : null}
+      {visual && pourActive && !fillToVat ? (
+        <PourStreamLocal active visual={visual} progress={pourProgress} tiltMix={tiltMix} />
       ) : null}
     </group>
   )

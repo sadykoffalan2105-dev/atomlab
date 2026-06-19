@@ -5,7 +5,8 @@ export const vrLabEn: Record<keyof typeof vrLabRu, string> = {
 
   'vrLab.title': 'VR 3D Laboratory',
   'vrLab.lead':
-    'Drag flasks to the bench, fill from the catalog, and mix in the reactor: first reagent into the vat, second starts the reaction.',
+    'Drag flasks, fill reagents from the catalog, and mix in the reactor. Over the vat: scroll or R to tilt; release to pour.',
+  'vrLab.controlsHint': 'Scroll / R — tilt · drag to cyan ring · use panel buttons',
   'vrLab.backLab': 'Back to reactor',
 
   'vrLab.picker.title': 'Substance catalog',
@@ -17,7 +18,8 @@ export const vrLabEn: Record<keyof typeof vrLabRu, string> = {
   'vrLab.shelf.selected': 'Flask {n}',
   'vrLab.vat.selected': 'Mixing reactor',
   'vrLab.section.shelf': 'Flasks (1–10)',
-  'vrLab.shelf.dragHint': 'Drag flasks to the bench or back to the shelf.',
+  'vrLab.shelf.dragHint':
+    'Drag flasks to the bench. Over the vat: scroll or R to tilt, release to pour.',
   'vrLab.shelf.onWall': 'On shelf',
   'vrLab.shelf.onBench': 'On bench',
   'vrLab.vat.waitSecond': '{formula} in vat — pour a second reagent.',
@@ -49,4 +51,7 @@ export const vrLabEn: Record<keyof typeof vrLabRu, string> = {
 
   'vrLab.stats.reactions': '{n} reactions in database',
   'vrLab.stats.colors': '{n} solution colors',
+  'vrLab.stats.tier.high': 'Cinematic',
+  'vrLab.stats.tier.medium': 'Medium quality',
+  'vrLab.stats.tier.low': 'Performance mode',
 }

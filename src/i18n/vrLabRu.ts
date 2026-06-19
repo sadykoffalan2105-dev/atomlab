@@ -4,7 +4,8 @@ export const vrLabRu = {
 
   'vrLab.title': 'VR 3D лаборатория',
   'vrLab.lead':
-    'Колбы на полке — перетаскивайте на стол, наливайте вещества из каталога и смешивайте в реакторе: первый реагент в чан, второй запускает реакцию.',
+    'Перетаскивайте колбы, наливайте реагенты из каталога и смешивайте в реакторе. Над чаном — колёсико или R для наклона; отпустите, чтобы влить.',
+  'vrLab.controlsHint': 'Колёсико / R — наклон · перетащите на cyan-кольцо · кнопки справа',
   'vrLab.backLab': 'К реактору',
 
   'vrLab.picker.title': 'Каталог веществ',
@@ -16,7 +17,8 @@ export const vrLabRu = {
   'vrLab.shelf.selected': 'Колба {n}',
   'vrLab.vat.selected': 'Реактор смешивания',
   'vrLab.section.shelf': 'Колбы (1–10)',
-  'vrLab.shelf.dragHint': 'Перетащите колбу на стол или верните на полку.',
+  'vrLab.shelf.dragHint':
+    'Перетащите колбу на стол. Над чаном — колёсико или R для наклона, отпустите чтобы влить.',
   'vrLab.shelf.onWall': 'На полке',
   'vrLab.shelf.onBench': 'На столе',
   'vrLab.vat.waitSecond': 'В чане {formula} — влейте второй реагент.',
@@ -48,4 +50,7 @@ export const vrLabRu = {
 
   'vrLab.stats.reactions': '{n} реакций в базе',
   'vrLab.stats.colors': '{n} цветов растворов',
+  'vrLab.stats.tier.high': 'Кино-графика',
+  'vrLab.stats.tier.medium': 'Среднее качество',
+  'vrLab.stats.tier.low': 'Экономный режим',
 } as const

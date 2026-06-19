@@ -1,4 +1,3 @@
-import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing'
 import { ContactShadows, Html, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import {
@@ -16,10 +15,16 @@ import { compoundById } from '../../data/compounds'
 import type { VrLabBenchState } from '../../vrLab/types'
 import { VAT_POSITION } from '../../vrLab/vrLabShelfLayout'
 import { VrLabAmbientDust } from './VrLabAmbientLife'
-import { VrLabEnvironment, VrLabLighting } from './VrLabEnvironment'
+import { VrLabBenchZones } from './VrLabBenchZones'
+import { CinematicPipeline } from './CinematicPipeline'
+import { VrLabGrabProvider } from './VrLabGrabContext'
+import { LabLightingRig } from './LabLightingRig'
+import { VrLabEnvironment } from './VrLabEnvironment'
 import { VrLabEquipmentScene } from './VrLabEquipment'
 import { VrLabBeaker } from './VrLabGlassware'
-import { VrLabReactionParticles } from './VrLabReactionParticles'
+import { VrLabPhysicsWorld } from './VrLabPhysicsWorld'
+import { VrLabPourBridge } from './VrLabPourBridge'
+import { VrLabReactionVfx } from './VrLabReactionVfx'
 import { VrLabShelfFlasksScene } from './VrLabShelfFlasks'
 import { useVrLabPerf, VrLabPerfProvider } from './vrLabPerformance'
 import { VR_THEME } from './vrLabTheme'
@@ -29,36 +34,12 @@ type Props = {
   onSelectShelfFlask: (id: string) => void
   onSelectVat: () => void
   onMoveShelfFlask: (id: string, position: [number, number, number]) => void
+  onPourFlaskToVat: (id: string) => void
   onReady?: () => void
   onFail?: () => void
 }
 
 const REACTOR_SCALE = 0.52
-
-function VrLabPostFx() {
-  const perf = useVrLabPerf()
-  const [ready, setReady] = useState(false)
-
-  useEffect(() => {
-    const t = window.setTimeout(() => setReady(true), 400)
-    return () => window.clearTimeout(t)
-  }, [])
-
-  if (!perf.postProcessing || !ready) return null
-
-  return (
-    <EffectComposer multisampling={0}>
-      <Bloom
-        luminanceThreshold={0.42}
-        mipmapBlur
-        intensity={perf.bloomIntensity * 0.85}
-        radius={0.38}
-        levels={perf.bloomLevels}
-      />
-      <Vignette eskil={false} offset={0.08} darkness={0.28} />
-    </EffectComposer>
-  )
-}
 
 function resolvePreviewCompound(bench: VrLabBenchState): string | null {
   if (bench.beaker?.compoundId) return bench.beaker.compoundId
@@ -71,7 +52,14 @@ function resolvePreviewCompound(bench: VrLabBenchState): string | null {
   return bench.shelfFlasks.find((f) => f.content)?.content?.compoundId ?? null
 }
 
-function BenchScene({ bench, onSelectShelfFlask, onSelectVat, onMoveShelfFlask, onReady }: Props) {
+function BenchScene({
+  bench,
+  onSelectShelfFlask,
+  onSelectVat,
+  onMoveShelfFlask,
+  onPourFlaskToVat,
+  onReady,
+}: Props) {
   const perf = useVrLabPerf()
   const controlsRef = useRef<{ enabled: boolean } | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -79,6 +67,15 @@ function BenchScene({ bench, onSelectShelfFlask, onSelectVat, onMoveShelfFlask, 
   const selectedShelfId =
     bench.selectedTarget?.kind === 'shelf' ? bench.selectedTarget.id : null
   const vatSelected = bench.selectedTarget?.kind === 'vat'
+  const vfxActive =
+    bench.mixing || bench.animPhase === 'reacting' || bench.animPhase === 'combining'
+  const vfxProgress =
+    bench.animPhase === 'reacting' || bench.animPhase === 'combining'
+      ? bench.animProgress
+      : bench.mixing
+        ? 0.72
+        : 0
+  const busy = bench.animPhase !== 'idle'
 
   const labelStyle = useMemo(
     () => ({
@@ -104,23 +101,27 @@ function BenchScene({ bench, onSelectShelfFlask, onSelectVat, onMoveShelfFlask, 
   }, [dragging])
 
   return (
-    <>
-      <VrLabEnvironment />
-      <VrLabLighting />
-      <VrLabAmbientDust />
-      <VrLabEquipmentScene previewCompoundId={previewCompoundId} />
-      <VrLabShelfFlasksScene
-        flasks={bench.shelfFlasks}
-        selectedId={selectedShelfId}
-        pourFlaskId={bench.pourShelfFlaskId}
-        pourProgress={bench.animProgress}
-        onSelect={onSelectShelfFlask}
-        onDragStart={() => setDragging(true)}
-        onDragEnd={(id, pos) => {
-          setDragging(false)
-          onMoveShelfFlask(id, pos)
-        }}
-      />
+    <VrLabGrabProvider selectedId={selectedShelfId} busy={busy}>
+      <VrLabPhysicsWorld>
+        <VrLabEnvironment />
+        <LabLightingRig />
+        <VrLabAmbientDust />
+        <VrLabEquipmentScene previewCompoundId={previewCompoundId} />
+        <VrLabBenchZones highlight={dragging} />
+        <VrLabShelfFlasksScene
+          flasks={bench.shelfFlasks}
+          selectedId={selectedShelfId}
+          pourFlaskId={bench.pourShelfFlaskId}
+          pourProgress={bench.animProgress}
+          busy={busy}
+          onSelect={onSelectShelfFlask}
+          onDragStart={() => setDragging(true)}
+          onDragEnd={(id, pos) => {
+            setDragging(false)
+            onMoveShelfFlask(id, pos)
+          }}
+          onPourFlaskToVat={onPourFlaskToVat}
+        />
 
       <VrLabBeaker
         position={VAT_POSITION}
@@ -129,9 +130,27 @@ function BenchScene({ bench, onSelectShelfFlask, onSelectVat, onMoveShelfFlask, 
         mixing={bench.mixing || bench.animPhase === 'reacting'}
         mixColor={bench.mixColor ?? undefined}
         mixProgress={bench.animPhase === 'reacting' ? bench.animProgress : 0}
+        reactionHeat={bench.lastMix?.heat ?? 0}
+        vfxPhase={bench.animPhase}
+        vfxProgress={vfxProgress}
+        vfxMixing={bench.mixing}
+        lastMix={bench.lastMix}
         selected={vatSelected}
         onClick={() => onSelectVat()}
       />
+
+      {bench.pourShelfFlaskId && bench.animPhase === 'pouring' ? (
+        <VrLabPourBridge
+          flask={bench.shelfFlasks.find((f) => f.id === bench.pourShelfFlaskId)}
+          target={VAT_POSITION}
+          progress={bench.animProgress}
+          compoundId={
+            bench.pourCompoundId ??
+            bench.shelfFlasks.find((f) => f.id === bench.pourShelfFlaskId)?.content?.compoundId ??
+            null
+          }
+        />
+      ) : null}
 
       {bench.beaker ? (
         <Html position={[VAT_POSITION[0], 0.32, VAT_POSITION[2]]} center distanceFactor={8} style={labelStyle}>
@@ -140,11 +159,13 @@ function BenchScene({ bench, onSelectShelfFlask, onSelectVat, onMoveShelfFlask, 
         </Html>
       ) : null}
 
-      <VrLabReactionParticles
-        active={bench.mixing || bench.animPhase === 'reacting'}
+      <VrLabReactionVfx
+        active={vfxActive}
         result={bench.lastMix}
+        phase={bench.animPhase}
+        mixing={bench.mixing}
+        progress={vfxProgress}
         position={[VAT_POSITION[0], 0.22, VAT_POSITION[2]]}
-        progress={bench.animPhase === 'reacting' ? bench.animProgress : 1}
       />
 
       {perf.shadows ? (
@@ -172,8 +193,9 @@ function BenchScene({ bench, onSelectShelfFlask, onSelectVat, onMoveShelfFlask, 
         enabled={!dragging}
       />
 
-      <VrLabPostFx />
-    </>
+      <CinematicPipeline />
+      </VrLabPhysicsWorld>
+    </VrLabGrabProvider>
   )
 }
 
@@ -205,6 +227,7 @@ function VrLabCanvasInner({
   onSelectShelfFlask,
   onSelectVat,
   onMoveShelfFlask,
+  onPourFlaskToVat,
   onReady,
   onFail,
 }: Props) {
@@ -239,6 +262,7 @@ function VrLabCanvasInner({
           onSelectShelfFlask={onSelectShelfFlask}
           onSelectVat={onSelectVat}
           onMoveShelfFlask={onMoveShelfFlask}
+          onPourFlaskToVat={onPourFlaskToVat}
           onReady={onReady}
           onFail={onFail}
         />
@@ -265,6 +289,7 @@ export function VrLabCanvasShell({
   onSelectShelfFlask,
   onSelectVat,
   onMoveShelfFlask,
+  onPourFlaskToVat,
   onReady,
   onFail,
 }: VrLabCanvasShellProps) {
@@ -277,6 +302,7 @@ export function VrLabCanvasShell({
           onSelectShelfFlask={onSelectShelfFlask}
           onSelectVat={onSelectVat}
           onMoveShelfFlask={onMoveShelfFlask}
+          onPourFlaskToVat={onPourFlaskToVat}
           onReady={onReady}
           onFail={onFail}
         />

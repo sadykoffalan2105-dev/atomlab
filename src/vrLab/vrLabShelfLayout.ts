@@ -68,3 +68,16 @@ export function shelfFlaskLabel(index: number): string {
 
 /** Центр реактора смешивания на столе. */
 export const VAT_POSITION: [number, number, number] = [0.38, BENCH_Y, BENCH_Z]
+
+export const VAT_ZONE_RADIUS = 0.28
+
+/** Колба над зоной реактора (можно влить наклоном). */
+export function isNearVat(
+  pos: [number, number, number],
+  vat: [number, number, number] = VAT_POSITION,
+  radius = VAT_ZONE_RADIUS,
+): boolean {
+  const dx = pos[0] - vat[0]
+  const dz = pos[2] - vat[2]
+  return dx * dx + dz * dz <= radius * radius
+}

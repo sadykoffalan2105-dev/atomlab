@@ -1,8 +1,10 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { clamp01, easeOutCubic, lerp } from '../../vrLab/vrLabAnimation'
 import type { VrLabTubeContent } from '../../vrLab/types'
+import { LiquidVolumeMaterialMesh, type SloshState } from './liquid/LiquidVolumeMaterial'
+import { useVrLabPerf } from './vrLabPerformance'
 import { VR_THEME } from './vrLabTheme'
 
 export type LiquidVisual = Pick<
@@ -111,6 +113,72 @@ type Props = {
 }
 
 export function VrLabLiquid({
+  visual,
+  targetFill,
+  radiusTop,
+  radiusBottom,
+  maxHeight,
+  baseY,
+  mixing = false,
+  animateIn = false,
+  tiltX = 0,
+  tiltZ = 0,
+  sloshX = 0,
+  sloshZ = 0,
+  mixRatio = 0,
+  visualB,
+  temperature = 0,
+  sloshRef,
+}: Props & {
+  tiltX?: number
+  tiltZ?: number
+  sloshX?: number
+  sloshZ?: number
+  mixRatio?: number
+  visualB?: LiquidVisual
+  temperature?: number
+  sloshRef?: RefObject<SloshState>
+}) {
+  const { liquidShader } = useVrLabPerf()
+
+  if (liquidShader === 'full') {
+    return (
+      <LiquidVolumeMaterialMesh
+        visual={visual}
+        visualB={visualB}
+        mixRatio={mixRatio}
+        targetFill={targetFill}
+        radiusTop={radiusTop}
+        radiusBottom={radiusBottom}
+        maxHeight={maxHeight}
+        baseY={baseY}
+        tiltX={tiltX}
+        tiltZ={tiltZ}
+        sloshX={sloshX}
+        sloshZ={sloshZ}
+        mixing={mixing}
+        temperature={temperature}
+        animateIn={animateIn}
+        sloshRef={sloshRef}
+      />
+    )
+  }
+
+  return (
+    <VrLabLiquidCylinder
+      visual={visual}
+      targetFill={targetFill}
+      radiusTop={radiusTop}
+      radiusBottom={radiusBottom}
+      maxHeight={maxHeight}
+      baseY={baseY}
+      mixing={mixing}
+      animateIn={animateIn}
+    />
+  )
+}
+
+function VrLabLiquidCylinder({
   visual,
   targetFill,
   radiusTop,
@@ -241,6 +309,62 @@ export function VrLabLiquid({
 
 /** Жидкость реактора смешивания — вихрь, пена, двухцветное смешение. */
 export function VrLabReactorLiquid({
+  visual,
+  visualB,
+  targetFill,
+  radius,
+  maxHeight,
+  baseY,
+  mixing = false,
+  mixRatio = 0,
+  mixProgress = 0,
+  temperature = 0,
+}: {
+  visual: LiquidVisual
+  visualB?: LiquidVisual
+  targetFill: number
+  radius: number
+  maxHeight: number
+  baseY: number
+  mixing?: boolean
+  mixRatio?: number
+  mixProgress?: number
+  temperature?: number
+}) {
+  const { liquidShader } = useVrLabPerf()
+  const effectiveMix = mixing ? Math.max(mixRatio, mixProgress) : mixRatio
+
+  if (liquidShader === 'full') {
+    return (
+      <LiquidVolumeMaterialMesh
+        visual={visual}
+        visualB={visualB}
+        mixRatio={effectiveMix}
+        targetFill={targetFill}
+        radiusTop={radius}
+        radiusBottom={radius * 0.94}
+        maxHeight={maxHeight}
+        baseY={baseY}
+        mixing={mixing}
+        temperature={temperature}
+      />
+    )
+  }
+
+  return (
+    <VrLabReactorLiquidCylinder
+      visual={visual}
+      visualB={visualB}
+      targetFill={targetFill}
+      radius={radius}
+      maxHeight={maxHeight}
+      baseY={baseY}
+      mixing={mixing}
+    />
+  )
+}
+
+function VrLabReactorLiquidCylinder({
   visual,
   visualB,
   targetFill,

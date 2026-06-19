@@ -139,11 +139,19 @@
   color: #c4b5fd;
 }
 
+.controlsHint {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  font-weight: 600;
+  color: rgba(0, 229, 255, 0.82);
+}
+
 .dragHint {
   margin: 0 0 0.5rem;
   font-size: 0.68rem;
   line-height: 1.4;
-  color: rgba(0, 229, 255, 0.45);
+  color: rgba(180, 160, 220, 0.72);
 }
 
 .vatHint {

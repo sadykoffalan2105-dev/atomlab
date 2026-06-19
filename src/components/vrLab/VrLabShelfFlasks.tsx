@@ -3,8 +3,11 @@ import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useCallback, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { compoundById } from '../../data/compounds'
+import { canPourFromTilt } from '../../vrLab/physics/PourSolver'
 import type { VrLabShelfFlask } from '../../vrLab/types'
-import { SHELF_SLOT_POSITIONS, SHELF_Y, SHELF_Z } from '../../vrLab/vrLabShelfLayout'
+import { isNearVat, SHELF_SLOT_POSITIONS, SHELF_Y, SHELF_Z, VAT_POSITION } from '../../vrLab/vrLabShelfLayout'
+import { VrLabPourBridge } from './VrLabPourBridge'
+import { useVrLabGrabOptional } from './VrLabGrabContext'
 import { VrLabErlenmeyerFlask } from './VrLabGlassware'
 import { liquidVisualFromContent } from './VrLabLiquid'
 import { VR_THEME } from './vrLabTheme'
@@ -18,9 +21,11 @@ type Props = {
   selectedId: string | null
   pourFlaskId: string | null
   pourProgress: number
+  busy?: boolean
   onSelect: (id: string) => void
   onDragStart: () => void
   onDragEnd: (id: string, position: [number, number, number]) => void
+  onPourFlaskToVat: (id: string) => void
 }
 
 function WallShelfRack() {
@@ -52,18 +57,23 @@ function DraggableShelfFlask({
   selected,
   pourActive,
   pourProgress,
+  busy,
   onSelect,
   onDragStart,
   onDragEnd,
+  onPourFlaskToVat,
 }: {
   flask: VrLabShelfFlask
   selected: boolean
   pourActive: boolean
   pourProgress: number
+  busy?: boolean
   onSelect: () => void
   onDragStart: () => void
   onDragEnd: (position: [number, number, number]) => void
+  onPourFlaskToVat: (id: string) => void
 }) {
+  const grab = useVrLabGrabOptional()
   const groupRef = useRef<THREE.Group>(null)
   const dragOffset = useRef(new THREE.Vector3())
   const dragging = useRef(false)
@@ -73,12 +83,24 @@ function DraggableShelfFlask({
   const intersect = useMemo(() => new THREE.Vector3(), [])
   const pointer = useMemo(() => new THREE.Vector2(), [])
 
+  const isGrabbed = grab?.grabbedId === flask.id
+  const manualTilt = grab?.activeTiltFlaskId === flask.id ? grab.tilt : 0
+  const fill = flask.content?.fillLevel ?? 0
+
   livePos.current.set(flask.position[0], flask.position[1], flask.position[2])
 
   useFrame((_, dt) => {
     if (!groupRef.current || dragging.current) return
     livePos.current.lerp(new THREE.Vector3(...flask.position), Math.min(1, dt * 10))
     groupRef.current.position.copy(livePos.current)
+  })
+
+  useFrame(() => {
+    if (!grab || !dragging.current || grab.grabbedId !== flask.id) return
+    const pos: [number, number, number] = [livePos.current.x, livePos.current.y, livePos.current.z]
+    const near = isNearVat(pos)
+    const streaming = near && canPourFromTilt(grab.tilt, fill) && !!flask.content
+    grab.setStreaming(streaming ? flask.id : null)
   })
 
   const pickPoint = useCallback(
@@ -99,6 +121,7 @@ function DraggableShelfFlask({
     e.stopPropagation()
     onSelect()
     dragging.current = true
+    grab?.setGrabbed(flask.id)
     onDragStart()
     const hit = pickPoint(e.clientX, e.clientY)
     if (hit && groupRef.current) {
@@ -121,7 +144,23 @@ function DraggableShelfFlask({
     e.stopPropagation()
     dragging.current = false
     const p = groupRef.current.position
-    onDragEnd([p.x, p.y, p.z])
+    const pos: [number, number, number] = [p.x, p.y, p.z]
+
+    const shouldPour =
+      !busy &&
+      flask.content &&
+      grab &&
+      isNearVat(pos) &&
+      canPourFromTilt(grab.tilt, fill)
+
+    grab?.setGrabbed(null)
+    onDragEnd(pos)
+    grab?.resetTilt()
+
+    if (shouldPour) {
+      onPourFlaskToVat(flask.id)
+    }
+
     gl.domElement.releasePointerCapture(e.pointerId)
   }
 
@@ -130,62 +169,74 @@ function DraggableShelfFlask({
     ? (compoundById[flask.content.compoundId]?.formulaUnicode ?? flask.content.compoundId)
     : null
 
+  const showStreamPreview =
+    grab?.streamingId === flask.id && !pourActive && !busy && visual
+
   return (
-    <group ref={groupRef} position={flask.position}>
-      <group
-        scale={flask.onShelf ? FLASK_SCALE_SHELF : FLASK_SCALE_BENCH}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-      >
-        <mesh visible={false}>
-          <cylinderGeometry args={[0.12, 0.14, 0.28, 10]} />
-          <meshBasicMaterial transparent opacity={0} />
-        </mesh>
-        <VrLabErlenmeyerFlask
-          position={[0, 0, 0]}
-          content={flask.content}
-          scale={1}
-          vapor={pourActive}
+    <>
+      {showStreamPreview && visual ? (
+        <VrLabPourBridge
+          flask={{ ...flask, position: [livePos.current.x, livePos.current.y, livePos.current.z] }}
+          target={VAT_POSITION}
+          progress={Math.max(0.35, grab?.tilt ?? 0.5)}
+          compoundId={flask.content?.compoundId ?? null}
         />
-      </group>
-      {selected ? (
-        <mesh position={[0, 0.14, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.07, 0.082, 24]} />
-          <meshStandardMaterial color={VR_THEME.magenta} emissive={VR_THEME.magenta} emissiveIntensity={1.3} />
-        </mesh>
       ) : null}
-      {formula ? (
-        <Html position={[0, 0.17, 0]} center distanceFactor={10} style={{ pointerEvents: 'none' }}>
-          <span
-            style={{
-              fontSize: '9px',
-              fontWeight: 700,
-              color: '#e9d5ff',
-              background: 'rgba(10,6,24,0.85)',
-              padding: '2px 6px',
-              borderRadius: '6px',
-              border: '1px solid rgba(168,85,247,0.4)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {formula}
-          </span>
-        </Html>
-      ) : null}
-      {pourActive && visual ? (
-        <mesh position={[0, 0.12, 0]}>
-          <sphereGeometry args={[0.012, 8, 8]} />
-          <meshStandardMaterial
-            color={visual.liquidColor}
-            emissive={visual.emissive}
-            emissiveIntensity={1.2}
-            transparent
-            opacity={0.85 * pourProgress}
+
+      <group ref={groupRef} position={flask.position}>
+        <group
+          scale={flask.onShelf ? FLASK_SCALE_SHELF : FLASK_SCALE_BENCH}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        >
+          <mesh visible={false}>
+            <cylinderGeometry args={[0.12, 0.14, 0.28, 10]} />
+            <meshBasicMaterial transparent opacity={0} />
+          </mesh>
+          <VrLabErlenmeyerFlask
+            position={[0, 0, 0]}
+            content={flask.content}
+            scale={1}
+            vapor={pourActive || (isGrabbed && manualTilt > 0.5)}
+            pourActive={pourActive}
+            pourProgress={pourProgress}
+            fillToVat
+            manualTilt={manualTilt}
           />
-        </mesh>
-      ) : null}
-    </group>
+        </group>
+        {selected ? (
+          <mesh position={[0, 0.14, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.07, 0.082, 24]} />
+            <meshStandardMaterial color={VR_THEME.magenta} emissive={VR_THEME.magenta} emissiveIntensity={1.3} />
+          </mesh>
+        ) : null}
+        {isGrabbed && manualTilt > 0.08 ? (
+          <mesh position={[0.06, 0.12, 0]} rotation={[0, 0, -manualTilt * 0.9]}>
+            <boxGeometry args={[0.002, 0.08, 0.002]} />
+            <meshStandardMaterial color={VR_THEME.cyan} emissive={VR_THEME.cyan} emissiveIntensity={1.5} />
+          </mesh>
+        ) : null}
+        {formula ? (
+          <Html position={[0, 0.17, 0]} center distanceFactor={10} style={{ pointerEvents: 'none' }}>
+            <span
+              style={{
+                fontSize: '9px',
+                fontWeight: 700,
+                color: '#e9d5ff',
+                background: 'rgba(10,6,24,0.85)',
+                padding: '2px 6px',
+                borderRadius: '6px',
+                border: '1px solid rgba(168,85,247,0.4)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {formula}
+            </span>
+          </Html>
+        ) : null}
+      </group>
+    </>
   )
 }
 
@@ -194,9 +245,11 @@ export function VrLabShelfFlasksScene({
   selectedId,
   pourFlaskId,
   pourProgress,
+  busy = false,
   onSelect,
   onDragStart,
   onDragEnd,
+  onPourFlaskToVat,
 }: Props) {
   return (
     <group>
@@ -208,9 +261,11 @@ export function VrLabShelfFlasksScene({
           selected={selectedId === flask.id}
           pourActive={pourFlaskId === flask.id}
           pourProgress={pourProgress}
+          busy={busy}
           onSelect={() => onSelect(flask.id)}
           onDragStart={onDragStart}
           onDragEnd={(pos) => onDragEnd(flask.id, pos)}
+          onPourFlaskToVat={onPourFlaskToVat}
         />
       ))}
     </group>

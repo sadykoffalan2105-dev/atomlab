@@ -10,7 +10,6 @@ import { substanceVisual } from '../../vrLab/substanceVisuals'
 import { VrLabRoundFlask } from './VrLabGlassware'
 import { VrLabGlassMaterial } from './vrLabGlassMaterials'
 import { getCatalogMoleculeTexture } from './vrLabCatalogMoleculeTexture'
-import { makeHexRingGeometry } from './vrLabGlassLibrary'
 import { VrLabDecorLiquid } from './VrLabLiquid'
 import { usePeriodicTablePosterTexture } from './vrLabPosterTextures'
 import { VR_THEME } from './vrLabTheme'
@@ -21,58 +20,6 @@ function resolvePreviewCompoundId(
 ): string {
   if (compoundId && compoundById[compoundId]) return compoundId
   return compoundById[fallback] ? fallback : 'hcl'
-}
-
-/** Гекс-HUD с молекулой из каталога (позже — 3D MoleculeMesh). */
-export function VrLabHexCatalogPanel({
-  compoundId,
-  position = [-0.55, 1.02, -0.82] as [number, number, number],
-  scale = 0.82,
-}: {
-  compoundId: string | null
-  position?: [number, number, number]
-  scale?: number
-}) {
-  const previewId = resolvePreviewCompoundId(compoundId, 'hcl')
-  const tex = useMemo(() => getCatalogMoleculeTexture(previewId), [previewId])
-  const frameGeo = useMemo(() => makeHexRingGeometry(0.38, 0.345), [])
-  const screenRef = useRef<THREE.Mesh>(null)
-  const outerRef = useRef<THREE.Mesh>(null)
-
-  useFrame((state) => {
-    const t = state.clock.elapsedTime
-    if (screenRef.current) {
-      const mat = screenRef.current.material as THREE.MeshStandardMaterial
-      mat.emissiveIntensity = 0.65 + Math.sin(t * 2.2) * 0.12
-    }
-    if (outerRef.current) {
-      const mat = outerRef.current.material as THREE.MeshStandardMaterial
-      mat.emissiveIntensity = 1.4 + Math.sin(t * 1.8) * 0.2
-    }
-  })
-
-  return (
-    <group position={position} scale={scale}>
-      <mesh ref={outerRef} geometry={frameGeo}>
-        <meshStandardMaterial
-          color={VR_THEME.cyan}
-          emissive={VR_THEME.cyan}
-          emissiveIntensity={1.4}
-          metalness={0.55}
-          roughness={0.18}
-        />
-      </mesh>
-      <mesh position={[0, 0, -0.004]}>
-        <circleGeometry args={[0.335, 6]} />
-        <meshStandardMaterial color="#060818" roughness={0.4} metalness={0.3} />
-      </mesh>
-      <mesh ref={screenRef} position={[0, 0, 0.018]}>
-        <circleGeometry args={[0.33, 6]} />
-        <meshStandardMaterial map={tex} emissive="#ffffff" emissiveIntensity={0.65} roughness={0.25} toneMapped={false} />
-      </mesh>
-      <pointLight position={[0, 0, 0.25]} intensity={0.45} color="#00e5ff" distance={1.6} />
-    </group>
-  )
 }
 
 /** Таблица Менделеева — кибер-HUD как на странице ПСХЭ. */
@@ -183,7 +130,7 @@ export function VrLabRoboticArm({ position = [-1.92, 0.06, 0.02] as [number, num
   )
 }
 
-export function VrLabDistillation({ position = [-0.05, 0.02, -0.06] as [number, number, number] }) {
+export function VrLabDistillation({ position = [-1.05, 0.02, 0.1] as [number, number, number] }) {
   const coilRef = useRef<THREE.Mesh>(null)
 
   useFrame((state) => {
@@ -258,7 +205,7 @@ export function VrLabBenchConsole({ position = [1.28, 0.06, 0.1] as [number, num
   )
 }
 
-export function VrLabReagentBottles({ position = [-0.55, 0.06, 0.02] as [number, number, number] }) {
+export function VrLabReagentBottles({ position = [-0.72, 0.06, 0.22] as [number, number, number] }) {
   const bottles = [
     { x: -0.14, id: 'hcl', h: 0.22, r: 0.045 },
     { x: 0, id: 'naoh', h: 0.26, r: 0.05 },
@@ -291,9 +238,12 @@ export function VrLabReagentBottles({ position = [-0.55, 0.06, 0.02] as [number,
 export function VrLabEquipmentScene({ previewCompoundId }: { previewCompoundId: string | null }) {
   return (
     <group>
-      <VrLabHexCatalogPanel compoundId={previewCompoundId} />
       <VrLabPeriodicTablePoster />
       <VrLabHoloMonitor compoundId={previewCompoundId} />
+      <group scale={0.78}>
+        <VrLabDistillation />
+      </group>
+      <VrLabReagentBottles />
       <VrLabNeonOverhead />
       <VrLabBenchConsole />
     </group>

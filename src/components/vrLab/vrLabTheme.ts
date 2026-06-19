@@ -5,7 +5,7 @@ export const VR_THEME = {
   wall: '#9a8fc0',
   wallDark: '#8578ad',
   panel: '#b0a4d0',
-  bench: '#3d3a52',
+  bench: '#1e1c2a',
   benchEdge: '#22d3ee',
   benchBase: '#2a2840',
   floor: '#3d3858',

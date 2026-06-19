@@ -13,30 +13,48 @@ export interface VrLabPerfSettings {
   shadowMapSize: number
   latheSegments: number
   postProcessing: boolean
+  cinematicGlass: boolean
+  ssao: boolean
+  chromaticAberration: boolean
+  toneMapping: boolean
+  liquidShader: 'full' | 'simple' | 'cylinder'
+  physics: boolean
 }
 
 const PRESETS: Record<VrLabQualityTier, Omit<VrLabPerfSettings, 'tier'>> = {
   high: {
     dpr: [1, 1.5],
     shadows: true,
-    bloomIntensity: 0.75,
-    bloomLevels: 4,
+    bloomIntensity: 0.88,
+    bloomLevels: 5,
     particleCount: 24,
     steamCount: 32,
     shadowMapSize: 1024,
     latheSegments: 20,
     postProcessing: true,
+    cinematicGlass: true,
+    ssao: true,
+    chromaticAberration: true,
+    toneMapping: true,
+    liquidShader: 'full',
+    physics: true,
   },
   medium: {
     dpr: [1, 1.25],
     shadows: false,
-    bloomIntensity: 0.55,
+    bloomIntensity: 0.62,
     bloomLevels: 3,
     particleCount: 16,
     steamCount: 16,
     shadowMapSize: 512,
     latheSegments: 16,
     postProcessing: true,
+    cinematicGlass: false,
+    ssao: true,
+    chromaticAberration: false,
+    toneMapping: true,
+    liquidShader: 'simple',
+    physics: false,
   },
   low: {
     dpr: [1, 1],
@@ -48,6 +66,12 @@ const PRESETS: Record<VrLabQualityTier, Omit<VrLabPerfSettings, 'tier'>> = {
     shadowMapSize: 512,
     latheSegments: 12,
     postProcessing: false,
+    cinematicGlass: false,
+    ssao: false,
+    chromaticAberration: false,
+    toneMapping: false,
+    liquidShader: 'cylinder',
+    physics: false,
   },
 }
 

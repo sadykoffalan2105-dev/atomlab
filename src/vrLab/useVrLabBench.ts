@@ -57,6 +57,8 @@ function emptyFlask(id: string, flasks: VrLabShelfFlask[]): VrLabShelfFlask[] {
 
 export function useVrLabBench() {
   const [state, setState] = useState<VrLabBenchState>(INITIAL)
+  const stateRef = useRef(state)
+  stateRef.current = state
   const animRef = useRef<number | null>(null)
 
   const clearAnim = useCallback(() => {
@@ -209,56 +211,66 @@ export function useVrLabBench() {
     [runAnim],
   )
 
+  /** Перелить колбу в чан (кнопка UI или наклон над зоной). */
+  const pourFlaskToVat = useCallback(
+    (flaskId: string) => {
+      clearAnim()
+      let afterPour: (() => void) | null = null
+      let shouldAnim = false
+
+      setState((s) => {
+        if (s.animPhase !== 'idle' && s.animPhase !== 'pouring') return s
+        const flask = s.shelfFlasks.find((f) => f.id === flaskId)
+        if (!flask?.content) return s
+
+        const content = { ...flask.content }
+        const base = {
+          selectedTarget: { kind: 'shelf' as const, id: flaskId },
+          pourShelfFlaskId: flaskId,
+          animPhase: 'pouring' as const,
+          animProgress: 0,
+          shelfFlasks: emptyFlask(flaskId, s.shelfFlasks),
+        }
+
+        if (!s.vatReagentA) {
+          shouldAnim = true
+          afterPour = () => {
+            setState((cur) => ({
+              ...cur,
+              animPhase: 'idle',
+              animProgress: 0,
+              pourShelfFlaskId: null,
+            }))
+          }
+          return {
+            ...s,
+            ...base,
+            vatReagentA: content,
+            beaker: { ...content, fillLevel: 0.38 },
+            lastMix: null,
+          }
+        }
+
+        const reagentA = s.vatReagentA
+        shouldAnim = true
+        afterPour = () => startVatReaction(reagentA, content, flaskId)
+        return { ...s, ...base }
+      })
+
+      if (!shouldAnim) return
+      runAnim(VR_POUR_MS, 'pouring', () => {
+        afterPour?.()
+      })
+    },
+    [clearAnim, runAnim, startVatReaction],
+  )
+
   /** Перелить выбранную колбу в чан. Второй реагент запускает смешивание. */
   const pourSelectedToVat = useCallback(() => {
-    clearAnim()
-    let afterPour: (() => void) | null = null
-    let shouldAnim = false
-
-    setState((s) => {
-      const shelfId = s.selectedTarget?.kind === 'shelf' ? s.selectedTarget.id : null
-      if (!shelfId) return s
-      const flask = s.shelfFlasks.find((f) => f.id === shelfId)
-      if (!flask?.content) return s
-
-      const content = { ...flask.content }
-      const base = {
-        pourShelfFlaskId: shelfId,
-        animPhase: 'pouring' as const,
-        animProgress: 0,
-        shelfFlasks: emptyFlask(shelfId, s.shelfFlasks),
-      }
-
-      if (!s.vatReagentA) {
-        shouldAnim = true
-        afterPour = () => {
-          setState((cur) => ({
-            ...cur,
-            animPhase: 'idle',
-            animProgress: 0,
-            pourShelfFlaskId: null,
-          }))
-        }
-        return {
-          ...s,
-          ...base,
-          vatReagentA: content,
-          beaker: { ...content, fillLevel: 0.38 },
-          lastMix: null,
-        }
-      }
-
-      const reagentA = s.vatReagentA
-      shouldAnim = true
-      afterPour = () => startVatReaction(reagentA, content, shelfId)
-      return { ...s, ...base }
-    })
-
-    if (!shouldAnim) return
-    runAnim(VR_POUR_MS, 'pouring', () => {
-      afterPour?.()
-    })
-  }, [clearAnim, runAnim, startVatReaction])
+    const id =
+      stateRef.current.selectedTarget?.kind === 'shelf' ? stateRef.current.selectedTarget.id : null
+    if (id) pourFlaskToVat(id)
+  }, [pourFlaskToVat])
 
   const emptyShelfFlask = useCallback((flaskId: string) => {
     clearAnim()
@@ -324,6 +336,7 @@ export function useVrLabBench() {
     selectVat,
     fillSelectedFlask,
     pourSelectedToVat,
+    pourFlaskToVat,
     emptyShelfFlask,
     emptyVat,
     emptyAll,

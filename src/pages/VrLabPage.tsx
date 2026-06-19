@@ -2,13 +2,20 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { VrLabCanvasShell } from '../components/vrLab/VrLabCanvas'
 import { VrLabSubstancePicker } from '../components/vrLab/VrLabSubstancePicker'
-import { webglSupported } from '../components/vrLab/vrLabPerformance'
+import { detectVrLabQuality, webglSupported, type VrLabQualityTier } from '../components/vrLab/vrLabPerformance'
+import { useVrLabSoundFx } from '../vrLab/useVrLabSoundFx'
 import { compoundById } from '../data/compounds'
 import { useT, type MessageKey } from '../i18n/useT'
 import { VR_LAB_PALETTE } from '../vrLab/colorPalette'
 import { vrLabReactionCount } from '../vrLab/mixEngine'
 import { useVrLabBench } from '../vrLab/useVrLabBench'
 import styles from './VrLabPage.module.css'
+
+const TIER_LABEL: Record<VrLabQualityTier, MessageKey> = {
+  high: 'vrLab.stats.tier.high',
+  medium: 'vrLab.stats.tier.medium',
+  low: 'vrLab.stats.tier.low',
+}
 
 export function VrLabPage() {
   const { t } = useT()
@@ -19,6 +26,7 @@ export function VrLabPage() {
     selectVat,
     fillSelectedFlask,
     pourSelectedToVat,
+    pourFlaskToVat,
     emptyAll,
     emptyShelfFlask,
     emptyVat,
@@ -37,6 +45,9 @@ export function VrLabPage() {
 
   const [canvasMount, setCanvasMount] = useState(false)
   const [canvasState, setCanvasState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const qualityTier = detectVrLabQuality()
+
+  useVrLabSoundFx(state)
 
   useEffect(() => {
     if (!webglSupported()) {
@@ -70,6 +81,7 @@ export function VrLabPage() {
         <div className={styles.meta}>
           <span className={styles.chip}>{t('vrLab.stats.reactions', { n: vrLabReactionCount() })}</span>
           <span className={styles.chip}>{t('vrLab.stats.colors', { n: VR_LAB_PALETTE.length })}</span>
+          <span className={styles.chip}>{t(TIER_LABEL[qualityTier])}</span>
         </div>
       </header>
 
@@ -91,6 +103,7 @@ export function VrLabPage() {
           onSelectShelfFlask={selectShelfFlask}
           onSelectVat={selectVat}
           onMoveShelfFlask={moveShelfFlask}
+          onPourFlaskToVat={pourFlaskToVat}
           onReady={onCanvasReady}
           onFail={onCanvasFail}
         />
@@ -99,6 +112,7 @@ export function VrLabPage() {
       <aside className={styles.side}>
         <div className={styles.controls}>
           <p className={styles.controlsTitle}>{targetLabel}</p>
+          <p className={styles.controlsHint}>{t('vrLab.controlsHint')}</p>
           <p className={styles.dragHint}>{t('vrLab.shelf.dragHint')}</p>
 
           {state.vatReagentA ? (

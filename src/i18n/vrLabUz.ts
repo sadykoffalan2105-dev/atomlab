@@ -5,7 +5,8 @@ export const vrLabUz: Record<keyof typeof vrLabRu, string> = {
 
   'vrLab.title': 'VR 3D laboratoriya',
   'vrLab.lead':
-    'Polka kolbalarini stolga torting, katalogdan modda quying va reaktorda aralashtiring: birinchi reagent changa, ikkinchisi reaksiyani boshlaydi.',
+    'Kolbalarni torting, katalogdan modda quying va reaktorda aralashtiring. Chann ustida: g\'ildirak yoki R — egish.',
+  'vrLab.controlsHint': 'G\'ildirak / R — egish · cyan halqaga torting',
   'vrLab.backLab': 'Reaktorga qaytish',
 
   'vrLab.picker.title': 'Moddalar katalogi',
@@ -17,7 +18,8 @@ export const vrLabUz: Record<keyof typeof vrLabRu, string> = {
   'vrLab.shelf.selected': 'Kolba {n}',
   'vrLab.vat.selected': 'Aralashtirish reaktori',
   'vrLab.section.shelf': 'Kolbalar (1–10)',
-  'vrLab.shelf.dragHint': 'Kolbani stolga yoki polkaga torting.',
+  'vrLab.shelf.dragHint':
+    'Kolbani stolga torting. Chann ustida: g\'ildirak yoki R — egish, qo\'yib yuboring.',
   'vrLab.shelf.onWall': 'Polkada',
   'vrLab.shelf.onBench': 'Stolda',
   'vrLab.vat.waitSecond': 'Chanda {formula} — ikkinchi reagent quying.',
@@ -49,4 +51,7 @@ export const vrLabUz: Record<keyof typeof vrLabRu, string> = {
 
   'vrLab.stats.reactions': 'Bazada {n} reaksiya',
   'vrLab.stats.colors': '{n} eritma rangi',
+  'vrLab.stats.tier.high': 'Kino-grafika',
+  'vrLab.stats.tier.medium': 'O\'rtacha sifat',
+  'vrLab.stats.tier.low': 'Tejamkor rejim',
 }
