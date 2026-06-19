@@ -62,7 +62,7 @@
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid rgba(168, 85, 247, 0.35);
-  background: #0a0618;
+  background: #2a2442;
   box-shadow:
     0 4px 32px rgba(168, 85, 247, 0.12),
     0 4px 24px rgba(0, 0, 0, 0.45),
@@ -83,7 +83,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #0a0618 0%, #1a1030 100%);
+  background: linear-gradient(160deg, #2a2442 0%, #3d3558 100%);
   pointer-events: none;
 }
 
@@ -131,12 +131,63 @@
 }
 
 .controlsTitle {
-  margin: 0 0 0.45rem;
+  margin: 0 0 0.35rem;
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #c4b5fd;
+}
+
+.dragHint {
+  margin: 0 0 0.5rem;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: rgba(0, 229, 255, 0.45);
+}
+
+.vatHint {
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: rgba(255, 110, 180, 0.75);
+}
+
+.sectionLabel {
+  margin: 0 0 0.3rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(180, 160, 220, 0.65);
+}
+
+.shelfRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  margin-bottom: 0.55rem;
+}
+
+.shelfBtn,
+.shelfBtnOn {
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 0.28rem 0.45rem;
+  cursor: pointer;
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  background: rgba(255, 255, 255, 0.03);
+  color: #b8e8ff;
+  min-width: 2rem;
+}
+
+.shelfBtnOn {
+  border-color: rgba(0, 229, 255, 0.55);
+  background: rgba(0, 229, 255, 0.12);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.22);
 }
 
 .tubeRow {

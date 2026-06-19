@@ -6,15 +6,15 @@ let sharedGlassMaterial: THREE.MeshPhysicalMaterial | null = null
 export function getSharedGlassMaterial(): THREE.MeshPhysicalMaterial {
   if (!sharedGlassMaterial) {
     sharedGlassMaterial = new THREE.MeshPhysicalMaterial({
-      color: '#eef4ff',
-      roughness: 0.08,
+      color: '#f8fbff',
+      roughness: 0.06,
       metalness: 0,
-      transmission: 0.82,
+      transmission: 0.75,
       thickness: 0.35,
       transparent: true,
-      opacity: 0.48,
+      opacity: 0.55,
       ior: 1.52,
-      envMapIntensity: 0.6,
+      envMapIntensity: 0.8,
     })
   }
   return sharedGlassMaterial

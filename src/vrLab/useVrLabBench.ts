@@ -1,36 +1,58 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { mixVrLabSubstances } from './mixEngine'
 import { productVisualAfterMix, substanceVisual } from './substanceVisuals'
-import type { VrLabBenchState, VrLabTubeContent } from './types'
+import type { VrLabBenchState, VrLabSelectionTarget, VrLabShelfFlask, VrLabTubeContent } from './types'
 import { VR_COMBINE_MS, VR_POUR_MS, VR_REACT_MS, mixHexColors } from './vrLabAnimation'
+import {
+  BENCH_Y,
+  BENCH_Z,
+  SHELF_FLASK_COUNT,
+  shelfFlaskId,
+  shelfFlaskLabel,
+  shelfSlotPosition,
+  snapFlaskPlacement,
+} from './vrLabShelfLayout'
 
-const DEFAULT_TUBES = [
-  { id: 'tube-1', label: '1' },
-  { id: 'tube-2', label: '2' },
-  { id: 'tube-3', label: '3' },
-  { id: 'tube-4', label: '4' },
-] as const
-
-function makeContent(compoundId: string, fillLevel = 0.72): VrLabTubeContent {
+function makeContent(compoundId: string, fillLevel = 0.68): VrLabTubeContent {
   const v = substanceVisual(compoundId)
   return {
     compoundId,
     fillLevel,
     liquidColor: v.liquidColor,
+    emissive: v.emissive,
+    glow: v.glow,
+    opacity: v.opacity,
+    viscosity: v.viscosity,
   }
 }
 
+function makeInitialShelfFlasks(): VrLabShelfFlask[] {
+  return Array.from({ length: SHELF_FLASK_COUNT }, (_, i) => ({
+    id: shelfFlaskId(i),
+    label: shelfFlaskLabel(i),
+    content: null,
+    slotIndex: i,
+    onShelf: true,
+    position: shelfSlotPosition(i),
+  }))
+}
+
 const INITIAL: VrLabBenchState = {
-  tubes: DEFAULT_TUBES.map((t) => ({ ...t, content: null })),
+  shelfFlasks: makeInitialShelfFlasks(),
   beaker: null,
-  selectedTubeId: 'tube-1',
+  vatReagentA: null,
+  selectedTarget: { kind: 'shelf', id: 'shelf-1' },
   mixing: false,
   lastMix: null,
   animProgress: 0,
   animPhase: 'idle',
-  pourTubeId: null,
+  pourShelfFlaskId: null,
   pourCompoundId: null,
   mixColor: null,
+}
+
+function emptyFlask(id: string, flasks: VrLabShelfFlask[]): VrLabShelfFlask[] {
+  return flasks.map((f) => (f.id === id ? { ...f, content: null } : f))
 }
 
 export function useVrLabBench() {
@@ -54,7 +76,6 @@ export function useVrLabBench() {
       const tick = () => {
         const p = Math.min(1, (performance.now() - t0) / durationMs)
         const now = performance.now()
-        // ~30 fps для React — меньше лагов при анимации наливания/смешивания
         if (now - lastUiUpdate > 32 || p >= 1) {
           setState((s) => ({ ...s, animProgress: p, animPhase: phase }))
           lastUiUpdate = now
@@ -71,25 +92,32 @@ export function useVrLabBench() {
     [clearAnim],
   )
 
-  const selectTube = useCallback((tubeId: string) => {
-    setState((s) => ({ ...s, selectedTubeId: tubeId }))
+  const selectTarget = useCallback((target: VrLabSelectionTarget) => {
+    setState((s) => ({ ...s, selectedTarget: target }))
   }, [])
 
-  const fillSelectedTube = useCallback(
+  const selectShelfFlask = useCallback(
+    (flaskId: string) => selectTarget({ kind: 'shelf', id: flaskId }),
+    [selectTarget],
+  )
+
+  const selectVat = useCallback(() => selectTarget({ kind: 'vat' }), [selectTarget])
+
+  const fillSelectedFlask = useCallback(
     (compoundId: string) => {
       clearAnim()
       setState((s) => {
-        const tubeId = s.selectedTubeId
-        if (!tubeId) return s
+        const target = s.selectedTarget
+        if (target?.kind !== 'shelf') return s
         return {
           ...s,
-          pourTubeId: tubeId,
+          pourShelfFlaskId: target.id,
           pourCompoundId: compoundId,
           animPhase: 'pouring' as const,
           animProgress: 0,
           lastMix: null,
-          tubes: s.tubes.map((t) =>
-            t.id === tubeId ? { ...t, content: makeContent(compoundId, 0.72) } : t,
+          shelfFlasks: s.shelfFlasks.map((f) =>
+            f.id === target.id ? { ...f, content: makeContent(compoundId, 0.68) } : f,
           ),
         }
       })
@@ -99,7 +127,7 @@ export function useVrLabBench() {
           ...s,
           animPhase: 'idle',
           animProgress: 0,
-          pourTubeId: null,
+          pourShelfFlaskId: null,
           pourCompoundId: null,
         }))
       })
@@ -107,11 +135,149 @@ export function useVrLabBench() {
     [clearAnim, runAnim],
   )
 
-  const emptyTube = useCallback((tubeId: string) => {
+  const startVatReaction = useCallback(
+    (a: VrLabTubeContent, b: VrLabTubeContent, shelfId: string) => {
+      const result = mixVrLabSubstances(a.compoundId, b.compoundId)
+      const blend = mixHexColors(a.liquidColor, b.liquidColor, 0.5)
+
+      if (result.kind === 'reaction' && result.productId) {
+        const vis = productVisualAfterMix(result.productId, result.heat)
+        setState((s) => ({
+          ...s,
+          mixing: true,
+          lastMix: result,
+          mixColor: blend,
+          vatReagentA: null,
+          shelfFlasks: emptyFlask(shelfId, s.shelfFlasks),
+          beaker: {
+            compoundId: result.productId!,
+            fillLevel: 0.18,
+            liquidColor: blend,
+            emissive: vis.emissive,
+            glow: vis.glow,
+            opacity: vis.opacity,
+            viscosity: vis.viscosity,
+          },
+          animPhase: 'combining',
+          animProgress: 0,
+        }))
+
+        runAnim(VR_COMBINE_MS, 'combining', () => {
+          setState((cur) => ({ ...cur, animPhase: 'reacting', animProgress: 0 }))
+          runAnim(VR_REACT_MS, 'reacting', () => {
+            setState((cur) => ({
+              ...cur,
+              mixing: false,
+              animPhase: 'idle',
+              animProgress: 0,
+              mixColor: null,
+              beaker: {
+                compoundId: result.productId!,
+                fillLevel: 0.72,
+                liquidColor: vis.liquidColor,
+                emissive: vis.emissive,
+                glow: vis.glow,
+                opacity: vis.opacity,
+                viscosity: vis.viscosity,
+              },
+            }))
+          })
+        })
+        return
+      }
+
+      setState((s) => ({
+        ...s,
+        mixing: result.kind !== 'empty' && result.kind !== 'noReaction',
+        lastMix: result,
+        vatReagentA: null,
+        shelfFlasks: emptyFlask(shelfId, s.shelfFlasks),
+        beaker:
+          result.kind === 'sameSubstance'
+            ? { ...a, fillLevel: Math.min(0.88, a.fillLevel + 0.12) }
+            : {
+                ...b,
+                fillLevel: 0.55,
+                liquidColor: blend,
+                emissive: mixHexColors(a.emissive, b.emissive, 0.5),
+              },
+        animPhase: 'idle',
+        animProgress: 0,
+        pourShelfFlaskId: null,
+      }))
+    },
+    [runAnim],
+  )
+
+  /** Перелить выбранную колбу в чан. Второй реагент запускает смешивание. */
+  const pourSelectedToVat = useCallback(() => {
+    clearAnim()
+    let afterPour: (() => void) | null = null
+    let shouldAnim = false
+
+    setState((s) => {
+      const shelfId = s.selectedTarget?.kind === 'shelf' ? s.selectedTarget.id : null
+      if (!shelfId) return s
+      const flask = s.shelfFlasks.find((f) => f.id === shelfId)
+      if (!flask?.content) return s
+
+      const content = { ...flask.content }
+      const base = {
+        pourShelfFlaskId: shelfId,
+        animPhase: 'pouring' as const,
+        animProgress: 0,
+        shelfFlasks: emptyFlask(shelfId, s.shelfFlasks),
+      }
+
+      if (!s.vatReagentA) {
+        shouldAnim = true
+        afterPour = () => {
+          setState((cur) => ({
+            ...cur,
+            animPhase: 'idle',
+            animProgress: 0,
+            pourShelfFlaskId: null,
+          }))
+        }
+        return {
+          ...s,
+          ...base,
+          vatReagentA: content,
+          beaker: { ...content, fillLevel: 0.38 },
+          lastMix: null,
+        }
+      }
+
+      const reagentA = s.vatReagentA
+      shouldAnim = true
+      afterPour = () => startVatReaction(reagentA, content, shelfId)
+      return { ...s, ...base }
+    })
+
+    if (!shouldAnim) return
+    runAnim(VR_POUR_MS, 'pouring', () => {
+      afterPour?.()
+    })
+  }, [clearAnim, runAnim, startVatReaction])
+
+  const emptyShelfFlask = useCallback((flaskId: string) => {
     clearAnim()
     setState((s) => ({
       ...s,
-      tubes: s.tubes.map((t) => (t.id === tubeId ? { ...t, content: null } : t)),
+      shelfFlasks: emptyFlask(flaskId, s.shelfFlasks),
+      animPhase: 'idle',
+      animProgress: 0,
+    }))
+  }, [clearAnim])
+
+  const emptyVat = useCallback(() => {
+    clearAnim()
+    setState((s) => ({
+      ...s,
+      beaker: null,
+      vatReagentA: null,
+      mixing: false,
+      mixColor: null,
       animPhase: 'idle',
       animProgress: 0,
     }))
@@ -119,90 +285,49 @@ export function useVrLabBench() {
 
   const emptyAll = useCallback(() => {
     clearAnim()
-    setState({ ...INITIAL, selectedTubeId: state.selectedTubeId })
-  }, [clearAnim, state.selectedTubeId])
+    setState((s) => ({
+      ...INITIAL,
+      selectedTarget: s.selectedTarget,
+    }))
+  }, [clearAnim])
 
-  const mixTubes = useCallback(
-    (tubeIdA: string, tubeIdB: string) => {
-      clearAnim()
-      setState((s) => {
-        const a = s.tubes.find((t) => t.id === tubeIdA)?.content
-        const b = s.tubes.find((t) => t.id === tubeIdB)?.content
-        const result = mixVrLabSubstances(a?.compoundId, b?.compoundId)
-
-        if (result.kind === 'reaction' && result.productId && a && b) {
-          const vis = productVisualAfterMix(result.productId, result.heat)
-          const blend = mixHexColors(a.liquidColor, b.liquidColor, 0.5)
-
-          requestAnimationFrame(() => {
-            runAnim(VR_COMBINE_MS, 'combining', () => {
-              setState((cur) => ({
-                ...cur,
-                tubes: cur.tubes.map((t) =>
-                  t.id === tubeIdA || t.id === tubeIdB ? { ...t, content: null } : t,
-                ),
-                beaker: {
-                  compoundId: result.productId!,
-                  fillLevel: 0.15,
-                  liquidColor: blend,
-                },
-                animPhase: 'reacting',
-                animProgress: 0,
-              }))
-
-              runAnim(VR_REACT_MS, 'reacting', () => {
-                setState((cur) => ({
-                  ...cur,
-                  mixing: false,
-                  animPhase: 'idle',
-                  animProgress: 0,
-                  mixColor: null,
-                  beaker: {
-                    compoundId: result.productId!,
-                    fillLevel: 0.78,
-                    liquidColor: vis.liquidColor,
-                  },
-                }))
-              })
-            })
-          })
-
+  const moveShelfFlask = useCallback((flaskId: string, pos: [number, number, number]) => {
+    setState((s) => {
+      const snapped = snapFlaskPlacement(pos)
+      const flasks = s.shelfFlasks.map((f) => {
+        if (f.id === flaskId) {
           return {
-            ...s,
-            mixing: true,
-            lastMix: result,
-            animPhase: 'combining' as const,
-            animProgress: 0,
-            mixColor: blend,
+            ...f,
+            position: snapped.position,
+            slotIndex: snapped.slotIndex,
+            onShelf: snapped.onShelf,
           }
         }
-
-        return {
-          ...s,
-          mixing: result.kind !== 'empty' && result.kind !== 'noReaction',
-          lastMix: result,
-          beaker:
-            result.kind === 'sameSubstance' && a
-              ? { ...a, fillLevel: Math.min(0.95, a.fillLevel + 0.08) }
-              : s.beaker,
+        if (snapped.slotIndex != null && f.slotIndex === snapped.slotIndex) {
+          return {
+            ...f,
+            slotIndex: null,
+            onShelf: false,
+            position: [f.position[0], BENCH_Y, BENCH_Z] as [number, number, number],
+          }
         }
+        return f
       })
-    },
-    [clearAnim, runAnim],
-  )
-
-  const mixSelectedPair = useCallback(() => {
-    mixTubes('tube-1', 'tube-2')
-  }, [mixTubes])
+      return { ...s, shelfFlasks: flasks }
+    })
+  }, [])
 
   return {
     state,
-    selectTube,
-    fillSelectedTube,
-    emptyTube,
+    selectTarget,
+    selectShelfFlask,
+    selectVat,
+    fillSelectedFlask,
+    pourSelectedToVat,
+    emptyShelfFlask,
+    emptyVat,
     emptyAll,
-    mixTubes,
-    mixSelectedPair,
+    moveShelfFlask,
   }
 }
 

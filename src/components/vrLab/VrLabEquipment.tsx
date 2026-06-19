@@ -5,155 +5,140 @@ import { RoundedBox } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { VrLabErlenmeyerFlask, VrLabRoundFlask } from './VrLabGlassware'
+import { compoundById } from '../../data/compounds'
+import { substanceVisual } from '../../vrLab/substanceVisuals'
+import { VrLabRoundFlask } from './VrLabGlassware'
 import { VrLabGlassMaterial } from './vrLabGlassMaterials'
-import {
-  useMoleculeHoloTexture,
-  usePeriodicTablePosterTexture,
-  useWaveformHoloTexture,
-} from './vrLabPosterTextures'
+import { getCatalogMoleculeTexture } from './vrLabCatalogMoleculeTexture'
+import { makeHexRingGeometry } from './vrLabGlassLibrary'
+import { VrLabDecorLiquid } from './VrLabLiquid'
+import { usePeriodicTablePosterTexture } from './vrLabPosterTextures'
 import { VR_THEME } from './vrLabTheme'
 
-function makeHexRingGeometry(outerR: number, innerR: number) {
-  const shape = new THREE.Shape()
-  for (let i = 0; i < 6; i++) {
-    const a = (Math.PI / 3) * i - Math.PI / 6
-    const x = Math.cos(a) * outerR
-    const y = Math.sin(a) * outerR
-    if (i === 0) shape.moveTo(x, y)
-    else shape.lineTo(x, y)
-  }
-  shape.closePath()
-  const hole = new THREE.Path()
-  for (let i = 0; i < 6; i++) {
-    const a = (Math.PI / 3) * i - Math.PI / 6
-    const x = Math.cos(a) * innerR
-    const y = Math.sin(a) * innerR
-    if (i === 0) hole.moveTo(x, y)
-    else hole.lineTo(x, y)
-  }
-  hole.closePath()
-  shape.holes.push(hole)
-  return new THREE.ExtrudeGeometry(shape, { depth: 0.022, bevelEnabled: false })
+function resolvePreviewCompoundId(
+  compoundId: string | null | undefined,
+  fallback: string,
+): string {
+  if (compoundId && compoundById[compoundId]) return compoundId
+  return compoundById[fallback] ? fallback : 'hcl'
 }
 
-/** Гекс-экран с осциллограммой (слева на стене). */
-export function VrLabHexWaveDisplay({ position = [-0.55, 1.02, -0.82] as [number, number, number] }) {
-  const tex = useWaveformHoloTexture()
+/** Гекс-HUD с молекулой из каталога (позже — 3D MoleculeMesh). */
+export function VrLabHexCatalogPanel({
+  compoundId,
+  position = [-0.55, 1.02, -0.82] as [number, number, number],
+  scale = 0.82,
+}: {
+  compoundId: string | null
+  position?: [number, number, number]
+  scale?: number
+}) {
+  const previewId = resolvePreviewCompoundId(compoundId, 'hcl')
+  const tex = useMemo(() => getCatalogMoleculeTexture(previewId), [previewId])
   const frameGeo = useMemo(() => makeHexRingGeometry(0.38, 0.345), [])
   const screenRef = useRef<THREE.Mesh>(null)
+  const outerRef = useRef<THREE.Mesh>(null)
 
   useFrame((state) => {
-    if (!screenRef.current) return
-    const mat = screenRef.current.material as THREE.MeshStandardMaterial
-    mat.emissiveIntensity = 1.1 + Math.sin(state.clock.elapsedTime * 2.5) * 0.25
+    const t = state.clock.elapsedTime
+    if (screenRef.current) {
+      const mat = screenRef.current.material as THREE.MeshStandardMaterial
+      mat.emissiveIntensity = 0.65 + Math.sin(t * 2.2) * 0.12
+    }
+    if (outerRef.current) {
+      const mat = outerRef.current.material as THREE.MeshStandardMaterial
+      mat.emissiveIntensity = 1.4 + Math.sin(t * 1.8) * 0.2
+    }
   })
 
   return (
-    <group position={position}>
-      <mesh geometry={frameGeo}>
+    <group position={position} scale={scale}>
+      <mesh ref={outerRef} geometry={frameGeo}>
         <meshStandardMaterial
           color={VR_THEME.cyan}
           emissive={VR_THEME.cyan}
-          emissiveIntensity={1.8}
+          emissiveIntensity={1.4}
           metalness={0.55}
-          roughness={0.2}
+          roughness={0.18}
         />
+      </mesh>
+      <mesh position={[0, 0, -0.004]}>
+        <circleGeometry args={[0.335, 6]} />
+        <meshStandardMaterial color="#060818" roughness={0.4} metalness={0.3} />
       </mesh>
       <mesh ref={screenRef} position={[0, 0, 0.018]}>
         <circleGeometry args={[0.33, 6]} />
-        <meshStandardMaterial map={tex} emissive={VR_THEME.cyan} emissiveIntensity={1.1} roughness={0.25} />
+        <meshStandardMaterial map={tex} emissive="#ffffff" emissiveIntensity={0.65} roughness={0.25} toneMapped={false} />
       </mesh>
+      <pointLight position={[0, 0, 0.25]} intensity={0.45} color="#00e5ff" distance={1.6} />
     </group>
   )
 }
 
-/** Таблица Менделеева — крупный экран на стене. */
+/** Таблица Менделеева — кибер-HUD как на странице ПСХЭ. */
 export function VrLabPeriodicTablePoster({
-  position = [0.72, 0.98, -0.84] as [number, number, number],
+  position = [0.55, 0.98, -0.84] as [number, number, number],
 }) {
   const tex = usePeriodicTablePosterTexture()
-  const w = 1.55
-  const h = 0.88
+  const w = 1.58
+  const h = 1.12
 
   return (
     <group position={position}>
+      <mesh position={[0, 0, -0.012]}>
+        <planeGeometry args={[w + 0.1, h + 0.1]} />
+        <meshStandardMaterial color="#0a0818" roughness={0.35} metalness={0.45} />
+      </mesh>
       <mesh position={[0, 0, -0.008]}>
         <planeGeometry args={[w + 0.06, h + 0.06]} />
         <meshStandardMaterial
-          color={VR_THEME.darkMetal}
-          emissive={VR_THEME.magenta}
-          emissiveIntensity={0.35}
-          roughness={0.35}
-          metalness={0.5}
+          color={VR_THEME.cyan}
+          emissive={VR_THEME.cyan}
+          emissiveIntensity={0.12}
+          transparent
+          opacity={0.35}
         />
       </mesh>
       <mesh position={[0, 0, 0.002]}>
         <planeGeometry args={[w, h]} />
-        <meshStandardMaterial
-          map={tex}
-          emissive={VR_THEME.magenta}
-          emissiveIntensity={0.75}
-          roughness={0.3}
-        />
+        <meshBasicMaterial map={tex} toneMapped={false} />
       </mesh>
+      <pointLight position={[0, 0, 0.35]} intensity={0.35} color="#00e5ff" distance={2.4} />
     </group>
   )
 }
 
-/** Парящая полка с Erlenmeyer (справа вверху). */
-export function VrLabFloatingShelf({ position = [1.72, 0.74, -0.52] as [number, number, number] }) {
-  const shelfRef = useRef<THREE.Group>(null)
-
-  useFrame((state) => {
-    if (shelfRef.current) {
-      shelfRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.5) * 0.006
-    }
-  })
-
-  const flasks = [
-    { x: -0.22, color: VR_THEME.neonYellow, s: 0.95 },
-    { x: 0, color: VR_THEME.neonRed, s: 1.05 },
-    { x: 0.22, color: VR_THEME.neonGreen, s: 0.9 },
-  ]
-
-  return (
-    <group ref={shelfRef} position={position}>
-      <mesh castShadow>
-        <boxGeometry args={[0.72, 0.028, 0.18]} />
-        <meshStandardMaterial color={VR_THEME.panel} metalness={0.7} roughness={0.3} />
-      </mesh>
-      {flasks.map((f, i) => (
-        <VrLabErlenmeyerFlask
-          key={i}
-          position={[f.x, 0.1, 0]}
-          liquidColor={f.color}
-          scale={f.s}
-        />
-      ))}
-    </group>
-  )
+/** Парящая полка — заменена на VrLabShelfFlasksScene (10 колб на стене). */
+export function VrLabFloatingShelf() {
+  return null
 }
 
-/** Монитор с молекулярной структурой (справа на столе). */
-export function VrLabHoloMonitor({ position = [1.62, 0.18, -0.08] as [number, number, number] }) {
-  const tex = useMoleculeHoloTexture()
+/** Монитор с молекулой выбранного вещества. */
+export function VrLabHoloMonitor({
+  compoundId,
+  position = [1.62, 0.18, -0.08] as [number, number, number],
+}: {
+  compoundId: string | null
+  position?: [number, number, number]
+}) {
+  const previewId = resolvePreviewCompoundId(compoundId, 'nacl')
+  const tex = useMemo(() => getCatalogMoleculeTexture(previewId), [previewId])
   const screenRef = useRef<THREE.Mesh>(null)
 
   useFrame((state) => {
     if (!screenRef.current) return
     const mat = screenRef.current.material as THREE.MeshStandardMaterial
-    mat.emissiveIntensity = 0.95 + Math.sin(state.clock.elapsedTime * 2) * 0.12
+    mat.emissiveIntensity = 0.85 + Math.sin(state.clock.elapsedTime * 2) * 0.12
   })
 
   return (
     <group position={position} rotation={[-0.1, -0.28, 0]}>
       <RoundedBox args={[0.34, 0.22, 0.035]} radius={0.01} castShadow>
-        <meshStandardMaterial color={VR_THEME.darkMetal} metalness={0.75} roughness={0.25} />
+        <meshStandardMaterial color={VR_THEME.darkMetal} metalness={0.75} roughness={0.22} />
       </RoundedBox>
       <mesh ref={screenRef} position={[0, 0.015, 0.02]}>
         <planeGeometry args={[0.28, 0.15]} />
-        <meshStandardMaterial map={tex} emissive={VR_THEME.purpleBright} emissiveIntensity={0.95} />
+        <meshStandardMaterial map={tex} emissive={VR_THEME.purpleBright} emissiveIntensity={0.85} toneMapped={false} />
       </mesh>
       <mesh position={[0, -0.13, 0]}>
         <boxGeometry args={[0.12, 0.04, 0.1]} />
@@ -163,7 +148,6 @@ export function VrLabHoloMonitor({ position = [1.62, 0.18, -0.08] as [number, nu
   )
 }
 
-/** Роботизированный манипулятор (слева). */
 export function VrLabRoboticArm({ position = [-1.92, 0.06, 0.02] as [number, number, number] }) {
   const armRef = useRef<THREE.Group>(null)
 
@@ -199,7 +183,6 @@ export function VrLabRoboticArm({ position = [-1.92, 0.06, 0.02] as [number, num
   )
 }
 
-/** Ректификация: круглодонная колба + спираль + пробирки. */
 export function VrLabDistillation({ position = [-0.05, 0.02, -0.06] as [number, number, number] }) {
   const coilRef = useRef<THREE.Mesh>(null)
 
@@ -211,28 +194,30 @@ export function VrLabDistillation({ position = [-0.05, 0.02, -0.06] as [number, 
 
   return (
     <group position={position}>
-      <VrLabRoundFlask position={[0, 0.04, 0]} liquidColor={VR_THEME.magenta} />
+      <VrLabRoundFlask position={[0, 0.04, 0]} liquidColor={VR_THEME.magenta} compoundId="h2o" vapor />
       <mesh ref={coilRef} position={[0.14, 0.24, 0]} rotation={[0, 0, Math.PI / 2]}>
         <torusGeometry args={[0.07, 0.01, 6, 24, Math.PI * 2.8]} />
         <meshStandardMaterial color="#ffffff" emissive={VR_THEME.cyan} emissiveIntensity={1.6} />
       </mesh>
-      {[VR_THEME.magenta, VR_THEME.neonGreen].map((color, i) => (
-        <group key={i} position={[0.26 + i * 0.1, 0.22, 0]}>
+      {(['hcl', 'naoh'] as const).map((id, i) => (
+        <group key={id} position={[0.26 + i * 0.1, 0.22, 0]}>
           <mesh>
             <cylinderGeometry args={[0.014, 0.014, 0.13, 10]} />
-            <VrLabGlassMaterial color="#f4f0ff" />
+            <VrLabGlassMaterial color="#f4f0ff" variant="accent" />
           </mesh>
-          <mesh position={[0, -0.035, 0]}>
-            <cylinderGeometry args={[0.012, 0.012, 0.055, 10]} />
-            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1} transparent opacity={0.9} />
-          </mesh>
+          <VrLabDecorLiquid
+            visual={substanceVisual(id)}
+            radiusTop={0.011}
+            radiusBottom={0.012}
+            height={0.05}
+            baseY={-0.035}
+          />
         </group>
       ))}
     </group>
   )
 }
 
-/** Неоновые лампы над столом + горизонтальные полосы на стене. */
 export function VrLabNeonOverhead() {
   return (
     <group>
@@ -251,7 +236,6 @@ export function VrLabNeonOverhead() {
   )
 }
 
-/** Мини-консоль с экраном (вместо спектрофотометра). */
 export function VrLabBenchConsole({ position = [1.28, 0.06, 0.1] as [number, number, number] }) {
   return (
     <group position={position}>
@@ -274,43 +258,43 @@ export function VrLabBenchConsole({ position = [1.28, 0.06, 0.1] as [number, num
   )
 }
 
-/** Реагентные бутыли (декор слева). */
 export function VrLabReagentBottles({ position = [-0.55, 0.06, 0.02] as [number, number, number] }) {
   const bottles = [
-    { x: -0.14, color: VR_THEME.cyan, h: 0.22, r: 0.045 },
-    { x: 0, color: VR_THEME.magenta, h: 0.26, r: 0.05 },
-    { x: 0.14, color: VR_THEME.neonYellow, h: 0.2, r: 0.042 },
+    { x: -0.14, id: 'hcl', h: 0.22, r: 0.045 },
+    { x: 0, id: 'naoh', h: 0.26, r: 0.05 },
+    { x: 0.14, id: 'h2o2', h: 0.2, r: 0.042 },
   ]
   return (
     <group position={position}>
-      {bottles.map((b, i) => (
-        <group key={i} position={[b.x, 0, 0]}>
-          <mesh castShadow>
-            <cylinderGeometry args={[b.r * 0.7, b.r, b.h, 12]} />
-            <VrLabGlassMaterial color="#f0f4ff" />
-          </mesh>
-          <mesh position={[0, -b.h / 2 + 0.05, 0]}>
-            <cylinderGeometry args={[b.r * 0.85, b.r * 0.85, b.h * 0.35, 12]} />
-            <meshStandardMaterial color={b.color} emissive={b.color} emissiveIntensity={0.9} transparent opacity={0.88} />
-          </mesh>
-        </group>
-      ))}
+      {bottles.map((b, i) => {
+        const visual = substanceVisual(b.id)
+        return (
+          <group key={i} position={[b.x, 0, 0]}>
+            <mesh castShadow>
+              <cylinderGeometry args={[b.r * 0.7, b.r, b.h, 14]} />
+              <VrLabGlassMaterial color="#f0f4ff" variant="lab" />
+            </mesh>
+            <VrLabDecorLiquid
+              visual={visual}
+              radiusTop={b.r * 0.82}
+              radiusBottom={b.r * 0.88}
+              height={b.h * 0.38}
+              baseY={-b.h / 2 + 0.05}
+            />
+          </group>
+        )
+      })}
     </group>
   )
 }
 
-/** Вся декоративная сцена. */
-export function VrLabEquipmentScene() {
+export function VrLabEquipmentScene({ previewCompoundId }: { previewCompoundId: string | null }) {
   return (
     <group>
-      <VrLabHexWaveDisplay />
+      <VrLabHexCatalogPanel compoundId={previewCompoundId} />
       <VrLabPeriodicTablePoster />
-      <VrLabFloatingShelf />
-      <VrLabHoloMonitor />
-      <VrLabRoboticArm />
-      <VrLabDistillation />
+      <VrLabHoloMonitor compoundId={previewCompoundId} />
       <VrLabNeonOverhead />
-      <VrLabReagentBottles />
       <VrLabBenchConsole />
     </group>
   )

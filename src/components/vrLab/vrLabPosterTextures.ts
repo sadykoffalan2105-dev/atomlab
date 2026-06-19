@@ -1,68 +1,8 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { ELEMENTS } from '../../data/elements'
-import { visualGridRowFromDataY } from '../../data/periodLabels'
 import { getCachedCanvasTexture } from './vrLabTextureCache'
+import { createCyberPeriodicTableTexture } from './vrLabCyberPeriodicTexture'
 import { VR_THEME } from './vrLabTheme'
-
-function createPeriodicTablePosterTexture(): THREE.CanvasTexture {
-  const cols = 18
-  const cellW = 36
-  const cellH = 28
-  const pad = 8
-  const titleH = 22
-  const w = cols * cellW + pad * 2
-  const h = 9 * cellH + pad * 2 + titleH
-
-  const canvas = document.createElement('canvas')
-  canvas.width = w
-  canvas.height = h
-  const ctx = canvas.getContext('2d')!
-
-  ctx.fillStyle = VR_THEME.holoBg
-  ctx.fillRect(0, 0, w, h)
-
-  ctx.strokeStyle = 'rgba(168,85,247,0.25)'
-  ctx.lineWidth = 1
-  for (let x = 0; x < w; x += 20) {
-    ctx.beginPath()
-    ctx.moveTo(x, 0)
-    ctx.lineTo(x, h)
-    ctx.stroke()
-  }
-
-  ctx.fillStyle = VR_THEME.purpleBright
-  ctx.font = 'bold 14px system-ui, sans-serif'
-  ctx.textAlign = 'center'
-  ctx.fillText('Периодическая система', w / 2, 16)
-
-  for (const el of ELEMENTS) {
-    const col = el.gridX - 1
-    const row = visualGridRowFromDataY(el.gridY) - 1
-    const x = pad + col * cellW
-    const y = pad + titleH + row * cellH
-
-    ctx.fillStyle = `#${el.cpkHex}`
-    ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2)
-
-    ctx.strokeStyle = 'rgba(168,85,247,0.35)'
-    ctx.strokeRect(x + 0.5, y + 0.5, cellW - 1, cellH - 1)
-
-    ctx.fillStyle = 'rgba(255,255,255,0.95)'
-    ctx.font = '8px system-ui, sans-serif'
-    ctx.textAlign = 'left'
-    ctx.fillText(String(el.z), x + 3, y + 10)
-
-    ctx.font = 'bold 12px system-ui, sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillText(el.symbol, x + cellW / 2, y + 22)
-  }
-
-  const tex = new THREE.CanvasTexture(canvas)
-  tex.colorSpace = THREE.SRGBColorSpace
-  tex.anisotropy = 4
-  return tex
-}
 
 function createWaveformHoloTexture(): THREE.CanvasTexture {
   const w = 256
@@ -224,7 +164,7 @@ function createMoleculeHoloTexture(): THREE.CanvasTexture {
 }
 
 export function usePeriodicTablePosterTexture() {
-  return useMemo(() => getCachedCanvasTexture('vr-poster-periodic', createPeriodicTablePosterTexture), [])
+  return useMemo(() => getCachedCanvasTexture('vr-poster-periodic-v3', createCyberPeriodicTableTexture), [])
 }
 
 export function useWaveformHoloTexture() {

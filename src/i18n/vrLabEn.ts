@@ -5,7 +5,7 @@ export const vrLabEn: Record<keyof typeof vrLabRu, string> = {
 
   'vrLab.title': 'VR 3D Laboratory',
   'vrLab.lead':
-    'Virtual lab bench: test tubes, beaker, mixing solutions and visible reactions. Pick a substance, pour into a tube, mix 1+2 — result appears in the beaker.',
+    'Drag flasks to the bench, fill from the catalog, and mix in the reactor: first reagent into the vat, second starts the reaction.',
   'vrLab.backLab': 'Back to reactor',
 
   'vrLab.picker.title': 'Substance catalog',
@@ -14,14 +14,23 @@ export const vrLabEn: Record<keyof typeof vrLabRu, string> = {
   'vrLab.picker.selected': 'Selected: {formula}',
 
   'vrLab.tube.selected': 'Tube {n}',
-  'vrLab.action.pour': 'Pour into tube',
-  'vrLab.action.mix': 'Mix 1 + 2',
-  'vrLab.action.empty': 'Clear bench',
-  'vrLab.action.emptyTube': 'Empty tube',
+  'vrLab.shelf.selected': 'Flask {n}',
+  'vrLab.vat.selected': 'Mixing reactor',
+  'vrLab.section.shelf': 'Flasks (1–10)',
+  'vrLab.shelf.dragHint': 'Drag flasks to the bench or back to the shelf.',
+  'vrLab.shelf.onWall': 'On shelf',
+  'vrLab.shelf.onBench': 'On bench',
+  'vrLab.vat.waitSecond': '{formula} in vat — pour a second reagent.',
+  'vrLab.action.pourShelf': 'Fill flask',
+  'vrLab.action.pourVat': 'Pour into vat',
+  'vrLab.action.selectVat': 'Select vat',
+  'vrLab.action.emptyVat': 'Empty vat',
+  'vrLab.action.emptyShelf': 'Empty flask',
+  'vrLab.action.empty': 'Reset all',
 
   'vrLab.result.title': 'Result',
   'vrLab.result.equation': 'Equation',
-  'vrLab.result.none': 'Put two different reagents in tubes 1 and 2.',
+  'vrLab.result.none': 'Pour two different reagents into the vat using filled flasks.',
 
   'vrLab.reaction.neutralization': 'Neutralization — salt and water formed, heat released.',
   'vrLab.reaction.hydration': 'Oxide hydration — base or acid formed.',
@@ -36,7 +45,7 @@ export const vrLabEn: Record<keyof typeof vrLabRu, string> = {
   'vrLab.reaction.noReaction': 'No visible reaction — mixture unchanged.',
   'vrLab.reaction.unlistedAcidBase': 'Acid and base mixed — neutralization possible (not in demo set).',
   'vrLab.reaction.same': 'Same substances — no new reaction.',
-  'vrLab.reaction.empty': 'Tubes empty — add reagents.',
+  'vrLab.reaction.empty': 'Flasks empty — fill reagents from the catalog.',
 
   'vrLab.stats.reactions': '{n} reactions in database',
   'vrLab.stats.colors': '{n} solution colors',

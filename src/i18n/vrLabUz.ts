@@ -5,7 +5,7 @@ export const vrLabUz: Record<keyof typeof vrLabRu, string> = {
 
   'vrLab.title': 'VR 3D laboratoriya',
   'vrLab.lead':
-    'Virtual laboratoriya stoli: probirka, stakan, eritmalar aralashtirish va ko\'rinadigan reaksiyalar. Modda tanlang, probirkaga quying, 1+2 aralashtiring — natija stakanda.',
+    'Polka kolbalarini stolga torting, katalogdan modda quying va reaktorda aralashtiring: birinchi reagent changa, ikkinchisi reaksiyani boshlaydi.',
   'vrLab.backLab': 'Reaktorga qaytish',
 
   'vrLab.picker.title': 'Moddalar katalogi',
@@ -14,14 +14,23 @@ export const vrLabUz: Record<keyof typeof vrLabRu, string> = {
   'vrLab.picker.selected': 'Tanlandi: {formula}',
 
   'vrLab.tube.selected': 'Probirka {n}',
-  'vrLab.action.pour': 'Probirkaga quyish',
-  'vrLab.action.mix': '1 + 2 aralashtirish',
-  'vrLab.action.empty': 'Stolni tozalash',
-  'vrLab.action.emptyTube': 'Probirkani bo\'shatish',
+  'vrLab.shelf.selected': 'Kolba {n}',
+  'vrLab.vat.selected': 'Aralashtirish reaktori',
+  'vrLab.section.shelf': 'Kolbalar (1–10)',
+  'vrLab.shelf.dragHint': 'Kolbani stolga yoki polkaga torting.',
+  'vrLab.shelf.onWall': 'Polkada',
+  'vrLab.shelf.onBench': 'Stolda',
+  'vrLab.vat.waitSecond': 'Chanda {formula} — ikkinchi reagent quying.',
+  'vrLab.action.pourShelf': 'Kolbaga quyish',
+  'vrLab.action.pourVat': 'Changa quyish',
+  'vrLab.action.selectVat': 'Channi tanlash',
+  'vrLab.action.emptyVat': 'Channi tozalash',
+  'vrLab.action.emptyShelf': 'Kolbani bo\'shatish',
+  'vrLab.action.empty': 'Hammasini tozalash',
 
   'vrLab.result.title': 'Natija',
   'vrLab.result.equation': 'Tenglama',
-  'vrLab.result.none': '1 va 2 probirkalarga ikki xil reagent qo\'ying.',
+  'vrLab.result.none': 'Changa ikki xil reagent quying — kolba tanlang va «Changa quyish».',
 
   'vrLab.reaction.neutralization': 'Neytrallash — tuz va suv hosil bo\'ldi, issiqlik ajraldi.',
   'vrLab.reaction.hydration': 'Oksid gidratlanishi — asos yoki kislota hosil bo\'ldi.',
@@ -36,7 +45,7 @@ export const vrLabUz: Record<keyof typeof vrLabRu, string> = {
   'vrLab.reaction.noReaction': 'Ko\'rinadigan reaksiya yo\'q.',
   'vrLab.reaction.unlistedAcidBase': 'Kislota va asos aralashdi — neytrallash mumkin.',
   'vrLab.reaction.same': 'Bir xil moddalar — yangi reaksiya yo\'q.',
-  'vrLab.reaction.empty': 'Probirkalar bo\'sh — reagent qo\'shing.',
+  'vrLab.reaction.empty': 'Kolbalar bo\'sh — katalogdan reagent quying.',
 
   'vrLab.stats.reactions': 'Bazada {n} reaksiya',
   'vrLab.stats.colors': '{n} eritma rangi',

@@ -4,7 +4,7 @@ export const vrLabRu = {
 
   'vrLab.title': 'VR 3D лаборатория',
   'vrLab.lead':
-    'Виртуальный лабораторный стол: пробирки, стакан, смешивание растворов и наглядные реакции. Выберите вещество, налейте в пробирку, смешайте 1+2 — результат появится в стакане.',
+    'Колбы на полке — перетаскивайте на стол, наливайте вещества из каталога и смешивайте в реакторе: первый реагент в чан, второй запускает реакцию.',
   'vrLab.backLab': 'К реактору',
 
   'vrLab.picker.title': 'Каталог веществ',
@@ -13,14 +13,23 @@ export const vrLabRu = {
   'vrLab.picker.selected': 'Выбрано: {formula}',
 
   'vrLab.tube.selected': 'Пробирка {n}',
-  'vrLab.action.pour': 'Налить в пробирку',
-  'vrLab.action.mix': 'Смешать 1 + 2',
-  'vrLab.action.empty': 'Очистить стол',
-  'vrLab.action.emptyTube': 'Опустошить пробирку',
+  'vrLab.shelf.selected': 'Колба {n}',
+  'vrLab.vat.selected': 'Реактор смешивания',
+  'vrLab.section.shelf': 'Колбы (1–10)',
+  'vrLab.shelf.dragHint': 'Перетащите колбу на стол или верните на полку.',
+  'vrLab.shelf.onWall': 'На полке',
+  'vrLab.shelf.onBench': 'На столе',
+  'vrLab.vat.waitSecond': 'В чане {formula} — влейте второй реагент.',
+  'vrLab.action.pourShelf': 'Налить в колбу',
+  'vrLab.action.pourVat': 'Влить в чан',
+  'vrLab.action.selectVat': 'Выбрать чан',
+  'vrLab.action.emptyVat': 'Очистить чан',
+  'vrLab.action.emptyShelf': 'Опустошить колбу',
+  'vrLab.action.empty': 'Сбросить всё',
 
   'vrLab.result.title': 'Результат',
   'vrLab.result.equation': 'Уравнение',
-  'vrLab.result.none': 'Выберите два разных реагента в пробирках 1 и 2.',
+  'vrLab.result.none': 'Налейте два разных реагента в чан — выберите колбу и нажмите «Влить в чан».',
 
   'vrLab.reaction.neutralization': 'Нейтрализация — образовалась соль и вода, выделилось тепло.',
   'vrLab.reaction.hydration': 'Гидратация оксида — образовалось основание или кислота.',
@@ -35,7 +44,7 @@ export const vrLabRu = {
   'vrLab.reaction.noReaction': 'Видимой реакции нет — смесь осталась без изменений.',
   'vrLab.reaction.unlistedAcidBase': 'Кислота и основание смешаны — возможна нейтрализация (реакция не в базе опытов).',
   'vrLab.reaction.same': 'Одинаковые вещества — смесь без новой реакции.',
-  'vrLab.reaction.empty': 'Пробирки пусты — добавьте реагенты.',
+  'vrLab.reaction.empty': 'Колбы пусты — налейте реагенты из каталога.',
 
   'vrLab.stats.reactions': '{n} реакций в базе',
   'vrLab.stats.colors': '{n} цветов растворов',

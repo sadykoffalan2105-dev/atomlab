@@ -13,12 +13,27 @@ import styles from './VrLabPage.module.css'
 export function VrLabPage() {
   const { t } = useT()
   const benchApi = useVrLabBench()
-  const { state, selectTube, fillSelectedTube, emptyAll, mixSelectedPair, emptyTube } = benchApi
+  const {
+    state,
+    selectShelfFlask,
+    selectVat,
+    fillSelectedFlask,
+    pourSelectedToVat,
+    emptyAll,
+    emptyShelfFlask,
+    emptyVat,
+    moveShelfFlask,
+  } = benchApi
   const [pickId, setPickId] = useState<string | null>('hcl')
 
-  const selectedTube = state.tubes.find((tube) => tube.id === state.selectedTubeId)
+  const target = state.selectedTarget
+  const selectedShelf =
+    target?.kind === 'shelf' ? state.shelfFlasks.find((f) => f.id === target.id) : null
   const last = state.lastMix
   const busy = state.animPhase !== 'idle'
+
+  const canPourVat = selectedShelf?.content != null && !busy
+  const canFillFlask = target?.kind === 'shelf' && !busy
 
   const [canvasMount, setCanvasMount] = useState(false)
   const [canvasState, setCanvasState] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -36,6 +51,11 @@ export function VrLabPage() {
 
   const onCanvasReady = useCallback(() => setCanvasState('ready'), [])
   const onCanvasFail = useCallback(() => setCanvasState('error'), [])
+
+  const targetLabel =
+    target?.kind === 'vat'
+      ? t('vrLab.vat.selected')
+      : t('vrLab.shelf.selected', { n: selectedShelf?.label ?? '—' })
 
   return (
     <div className={styles.wrap}>
@@ -68,7 +88,9 @@ export function VrLabPage() {
         <VrLabCanvasShell
           mount={canvasMount && canvasState !== 'error'}
           bench={state}
-          onSelectTube={selectTube}
+          onSelectShelfFlask={selectShelfFlask}
+          onSelectVat={selectVat}
+          onMoveShelfFlask={moveShelfFlask}
           onReady={onCanvasReady}
           onFail={onCanvasFail}
         />
@@ -76,48 +98,69 @@ export function VrLabPage() {
 
       <aside className={styles.side}>
         <div className={styles.controls}>
-          <p className={styles.controlsTitle}>
-            {t('vrLab.tube.selected', { n: selectedTube?.label ?? '—' })}
-          </p>
-          <div className={styles.tubeRow}>
-            {state.tubes.map((tube) => (
+          <p className={styles.controlsTitle}>{targetLabel}</p>
+          <p className={styles.dragHint}>{t('vrLab.shelf.dragHint')}</p>
+
+          {state.vatReagentA ? (
+            <p className={styles.vatHint}>
+              {t('vrLab.vat.waitSecond', {
+                formula:
+                  compoundById[state.vatReagentA.compoundId]?.formulaUnicode ??
+                  state.vatReagentA.compoundId,
+              })}
+            </p>
+          ) : null}
+
+          <p className={styles.sectionLabel}>{t('vrLab.section.shelf')}</p>
+          <div className={styles.shelfRow}>
+            {state.shelfFlasks.map((flask) => (
               <button
-                key={tube.id}
+                key={flask.id}
                 type="button"
-                className={state.selectedTubeId === tube.id ? styles.tubeBtnOn : styles.tubeBtn}
-                onClick={() => selectTube(tube.id)}
+                className={
+                  target?.kind === 'shelf' && target.id === flask.id ? styles.shelfBtnOn : styles.shelfBtn
+                }
+                onClick={() => selectShelfFlask(flask.id)}
+                title={flask.onShelf ? t('vrLab.shelf.onWall') : t('vrLab.shelf.onBench')}
               >
-                {tube.label}
-                {tube.content
-                  ? ` · ${compoundById[tube.content.compoundId]?.formulaUnicode ?? '?'}`
+                {flask.label}
+                {flask.content
+                  ? ` · ${compoundById[flask.content.compoundId]?.formulaUnicode ?? '?'}`
                   : ''}
               </button>
             ))}
           </div>
+
           <div className={styles.actions}>
             <button
               type="button"
               className={styles.btnPrimary}
-              disabled={!pickId || busy}
-              onClick={() => pickId && fillSelectedTube(pickId)}
+              disabled={!pickId || !canFillFlask}
+              onClick={() => pickId && fillSelectedFlask(pickId)}
             >
-              {t('vrLab.action.pour')}
+              {t('vrLab.action.pourShelf')}
             </button>
             <button
               type="button"
               className={styles.btnPrimary}
-              disabled={busy}
-              onClick={mixSelectedPair}
+              disabled={!canPourVat}
+              onClick={pourSelectedToVat}
             >
-              {t('vrLab.action.mix')}
+              {t('vrLab.action.pourVat')}
+            </button>
+            <button type="button" className={styles.btn} disabled={busy} onClick={selectVat}>
+              {t('vrLab.action.selectVat')}
             </button>
             <button
               type="button"
               className={styles.btn}
-              disabled={!state.selectedTubeId}
-              onClick={() => state.selectedTubeId && emptyTube(state.selectedTubeId)}
+              disabled={!target || busy}
+              onClick={() => {
+                if (target?.kind === 'shelf') emptyShelfFlask(target.id)
+                else emptyVat()
+              }}
             >
-              {t('vrLab.action.emptyTube')}
+              {target?.kind === 'vat' ? t('vrLab.action.emptyVat') : t('vrLab.action.emptyShelf')}
             </button>
             <button type="button" className={styles.btn} onClick={emptyAll}>
               {t('vrLab.action.empty')}

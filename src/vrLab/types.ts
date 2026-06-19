@@ -1,17 +1,25 @@
-/** Состояние одной пробирки на столе. */
+/** Состояние одной пробирки / колбы / чана. */
 export type VrLabTubeContent = {
   compoundId: string
-  /** 0…1 уровень жидкости */
   fillLevel: number
-  /** Цвет раствора (hex) */
   liquidColor: string
+  emissive: string
+  glow: number
+  opacity: number
+  viscosity: number
 }
 
-export type VrLabTubeSlot = {
+/** Колба на настенной полке или перенесённая на стол. */
+export type VrLabShelfFlask = {
   id: string
   label: string
   content: VrLabTubeContent | null
+  slotIndex: number | null
+  onShelf: boolean
+  position: [number, number, number]
 }
+
+export type VrLabSelectionTarget = { kind: 'shelf'; id: string } | { kind: 'vat' }
 
 export type VrLabReactionEffect =
   | 'neutralization'
@@ -35,16 +43,17 @@ export type VrLabMixResult = {
 }
 
 export type VrLabBenchState = {
-  tubes: VrLabTubeSlot[]
+  shelfFlasks: VrLabShelfFlask[]
+  /** Содержимое реактора смешивания. */
   beaker: VrLabTubeContent | null
-  selectedTubeId: string | null
+  /** Первый реагент, уже влитый в чан (ожидает второй). */
+  vatReagentA: VrLabTubeContent | null
+  selectedTarget: VrLabSelectionTarget | null
   mixing: boolean
   lastMix: VrLabMixResult | null
-  /** 0…1 прогресс текущей анимации */
   animProgress: number
-  /** idle | pouring | combining | reacting */
   animPhase: 'idle' | 'pouring' | 'combining' | 'reacting'
-  pourTubeId: string | null
+  pourShelfFlaskId: string | null
   pourCompoundId: string | null
   mixColor: string | null
 }

@@ -1,25 +1,7 @@
 import { useBenchTopTexture, useLabWallTexture } from './vrLabTextures'
+import { VrLabCeilingLights, VrLabPulsingNeon } from './VrLabAmbientLife'
 import { useVrLabPerf } from './vrLabPerformance'
 import { VR_THEME } from './vrLabTheme'
-
-function NeonStrip({
-  position,
-  rotation = [0, 0, 0] as [number, number, number],
-  args = [3, 0.015, 0.02] as [number, number, number],
-  color = VR_THEME.cyan,
-}: {
-  position: [number, number, number]
-  rotation?: [number, number, number]
-  args?: [number, number, number]
-  color?: string
-}) {
-  return (
-    <mesh position={position} rotation={rotation}>
-      <boxGeometry args={args} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.8} roughness={0.15} />
-    </mesh>
-  )
-}
 
 export function VrLabEnvironment() {
   const benchTex = useBenchTopTexture()
@@ -29,52 +11,70 @@ export function VrLabEnvironment() {
   return (
     <group>
       <color attach="background" args={[VR_THEME.bg]} />
-      <fog attach="fog" args={[VR_THEME.fog, 5, 14]} />
+      <fog attach="fog" args={[VR_THEME.fog, 8, 22]} />
 
-      {/* Простой пол — без MeshReflectorMaterial (частая причина чёрного экрана). */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]} receiveShadow>
         <planeGeometry args={[14, 10]} />
-        <meshStandardMaterial color={VR_THEME.floor} roughness={0.82} metalness={0.2} />
+        <meshStandardMaterial color={VR_THEME.floor} roughness={0.82} metalness={0.12} />
       </mesh>
 
       <mesh position={[0, 1.15, -1.05]} receiveShadow>
         <planeGeometry args={[12, 3.5]} />
-        <meshStandardMaterial map={wallTex} roughness={0.52} metalness={0.28} color={VR_THEME.wall} />
+        <meshStandardMaterial map={wallTex} roughness={0.48} metalness={0.12} color={VR_THEME.wall} />
       </mesh>
 
       <mesh position={[-3.8, 1, 0]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[8, 3.2]} />
-        <meshStandardMaterial map={wallTex} color={VR_THEME.wallDark} roughness={0.58} metalness={0.22} />
+        <meshStandardMaterial map={wallTex} color={VR_THEME.wallDark} roughness={0.52} metalness={0.1} />
       </mesh>
       <mesh position={[3.8, 1, 0]} rotation={[0, -Math.PI / 2, 0]}>
         <planeGeometry args={[8, 3.2]} />
-        <meshStandardMaterial map={wallTex} color={VR_THEME.wallDark} roughness={0.58} metalness={0.22} />
+        <meshStandardMaterial map={wallTex} color={VR_THEME.wallDark} roughness={0.52} metalness={0.1} />
       </mesh>
 
       {tier !== 'low' ? (
         <>
-          <NeonStrip position={[0, 0.52, -0.88]} args={[4.8, 0.01, 0.012]} color={VR_THEME.magenta} />
-          <NeonStrip position={[0, 1.38, -0.88]} args={[4.8, 0.008, 0.01]} color={VR_THEME.cyan} />
+          <VrLabPulsingNeon position={[0, 0.55, -0.88]} args={[4.8, 0.008, 0.008]} color={VR_THEME.magenta} />
+          <VrLabPulsingNeon position={[0, 1.32, -0.88]} args={[4.8, 0.008, 0.008]} color={VR_THEME.cyan} />
         </>
       ) : null}
 
-      <mesh position={[0, -0.01, 0.08]} receiveShadow castShadow>
-        <boxGeometry args={[4.8, 0.09, 1.85]} />
-        <meshStandardMaterial map={benchTex} roughness={0.22} metalness={0.58} color={VR_THEME.bench} />
+      <VrLabCeilingLights />
+
+      {/* Чистая рабочая поверхность */}
+      <mesh position={[0, -0.028, 0.06]} receiveShadow castShadow>
+        <boxGeometry args={[3.5, 0.06, 1.28]} />
+        <meshStandardMaterial color={VR_THEME.benchBase} roughness={0.35} metalness={0.4} />
       </mesh>
-      <mesh position={[0, -0.055, 0.98]}>
-        <boxGeometry args={[4.8, 0.032, 0.048]} />
+      <mesh position={[0, 0.002, 0.06]} receiveShadow>
+        <boxGeometry args={[3.35, 0.012, 1.12]} />
         <meshStandardMaterial
-          color={VR_THEME.benchEdge}
-          emissive={VR_THEME.benchEdge}
-          emissiveIntensity={1.6}
-          roughness={0.12}
-          metalness={0.45}
+          map={benchTex}
+          color={VR_THEME.bench}
+          roughness={0.14}
+          metalness={0.58}
+          envMapIntensity={0.9}
         />
       </mesh>
-      <mesh position={[0, -0.28, 0.08]}>
-        <boxGeometry args={[4.4, 0.38, 1.55]} />
-        <meshStandardMaterial color={VR_THEME.benchBase} roughness={0.42} metalness={0.38} />
+      <mesh position={[0, 0.009, 0.06]}>
+        <boxGeometry args={[3.15, 0.002, 0.92]} />
+        <meshStandardMaterial
+          color="#1a1830"
+          roughness={0.08}
+          metalness={0.72}
+          transparent
+          opacity={0.35}
+        />
+      </mesh>
+      <mesh position={[0, 0.011, 0.62]}>
+        <boxGeometry args={[3.35, 0.003, 0.004]} />
+        <meshStandardMaterial
+          color={VR_THEME.cyan}
+          emissive={VR_THEME.cyan}
+          emissiveIntensity={0.45}
+          transparent
+          opacity={0.7}
+        />
       </mesh>
     </group>
   )
@@ -85,10 +85,10 @@ export function VrLabLighting() {
 
   return (
     <>
-      <ambientLight intensity={0.35} color="#8b7cb8" />
+      <ambientLight intensity={0.58} color="#e8e4f8" />
       <directionalLight
-        position={[1.1, 3.8, 2.2]}
-        intensity={0.75}
+        position={[1.2, 4.2, 2.5]}
+        intensity={1.1}
         castShadow={shadows}
         shadow-mapSize={[shadowMapSize, shadowMapSize]}
         shadow-camera-far={12}
@@ -97,10 +97,11 @@ export function VrLabLighting() {
         shadow-camera-top={4}
         shadow-camera-bottom={-2}
         shadow-bias={-0.0002}
-        color="#c4b5fd"
+        color="#fff5f0"
       />
-      <directionalLight position={[-2.2, 1.8, 0.8]} intensity={0.32} color={VR_THEME.cyan} />
-      <hemisphereLight args={['#a855f7', '#1a1030', 0.45]} />
+      <directionalLight position={[-2, 2.5, 1.2]} intensity={0.48} color="#c4e8ff" />
+      <pointLight position={[0.4, 0.6, 0.35]} intensity={0.35} color="#00e5ff" distance={2.5} />
+      <hemisphereLight args={['#f0ecff', '#4a4468', 0.5]} />
     </>
   )
 }

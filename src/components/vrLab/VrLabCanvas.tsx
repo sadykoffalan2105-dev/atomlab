@@ -7,54 +7,33 @@ import {
   memo,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ErrorInfo,
   type ReactNode,
 } from 'react'
 import { compoundById } from '../../data/compounds'
 import type { VrLabBenchState } from '../../vrLab/types'
+import { VAT_POSITION } from '../../vrLab/vrLabShelfLayout'
+import { VrLabAmbientDust } from './VrLabAmbientLife'
 import { VrLabEnvironment, VrLabLighting } from './VrLabEnvironment'
 import { VrLabEquipmentScene } from './VrLabEquipment'
-import { VrLabBeaker, VrLabTestTube, VrLabTubeRack, useMixTilt } from './VrLabGlassware'
+import { VrLabBeaker } from './VrLabGlassware'
 import { VrLabReactionParticles } from './VrLabReactionParticles'
+import { VrLabShelfFlasksScene } from './VrLabShelfFlasks'
 import { useVrLabPerf, VrLabPerfProvider } from './vrLabPerformance'
 import { VR_THEME } from './vrLabTheme'
 
 type Props = {
   bench: VrLabBenchState
-  onSelectTube: (id: string) => void
+  onSelectShelfFlask: (id: string) => void
+  onSelectVat: () => void
+  onMoveShelfFlask: (id: string, position: [number, number, number]) => void
   onReady?: () => void
   onFail?: () => void
 }
 
-const TUBE_POSITIONS: [number, number, number][] = [
-  [-1.42, 0.02, 0.1],
-  [-1.2, 0.02, 0.1],
-  [-0.98, 0.02, 0.1],
-  [-0.76, 0.02, 0.1],
-]
-
-const MIX_VESSEL_POS: [number, number, number] = [0.82, 0.02, 0.1]
-
-function FloorLabel({ position, text }: { position: [number, number, number]; text: string }) {
-  return (
-    <Html
-      position={position}
-      center
-      distanceFactor={10}
-      style={{
-        pointerEvents: 'none',
-        fontSize: '11px',
-        fontWeight: 700,
-        color: VR_THEME.textMuted,
-        opacity: 0.85,
-        userSelect: 'none',
-      }}
-    >
-      {text}
-    </Html>
-  )
-}
+const REACTOR_SCALE = 0.52
 
 function VrLabPostFx() {
   const perf = useVrLabPerf()
@@ -70,21 +49,36 @@ function VrLabPostFx() {
   return (
     <EffectComposer multisampling={0}>
       <Bloom
-        luminanceThreshold={0.2}
+        luminanceThreshold={0.42}
         mipmapBlur
-        intensity={perf.bloomIntensity}
-        radius={0.45}
+        intensity={perf.bloomIntensity * 0.85}
+        radius={0.38}
         levels={perf.bloomLevels}
       />
-      <Vignette eskil={false} offset={0.1} darkness={0.45} />
+      <Vignette eskil={false} offset={0.08} darkness={0.28} />
     </EffectComposer>
   )
 }
 
-function BenchScene({ bench, onSelectTube, onReady }: Props) {
+function resolvePreviewCompound(bench: VrLabBenchState): string | null {
+  if (bench.beaker?.compoundId) return bench.beaker.compoundId
+  const target = bench.selectedTarget
+  if (target?.kind === 'shelf') {
+    const flask = bench.shelfFlasks.find((f) => f.id === target.id)
+    if (flask?.content?.compoundId) return flask.content.compoundId
+  }
+  if (bench.vatReagentA?.compoundId) return bench.vatReagentA.compoundId
+  return bench.shelfFlasks.find((f) => f.content)?.content?.compoundId ?? null
+}
+
+function BenchScene({ bench, onSelectShelfFlask, onSelectVat, onMoveShelfFlask, onReady }: Props) {
   const perf = useVrLabPerf()
-  const combineTilt = useMixTilt(bench.animPhase === 'combining' ? bench.animProgress : 0)
-  const isPouring = bench.animPhase === 'pouring'
+  const controlsRef = useRef<{ enabled: boolean } | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const previewCompoundId = useMemo(() => resolvePreviewCompound(bench), [bench])
+  const selectedShelfId =
+    bench.selectedTarget?.kind === 'shelf' ? bench.selectedTarget.id : null
+  const vatSelected = bench.selectedTarget?.kind === 'vat'
 
   const labelStyle = useMemo(
     () => ({
@@ -105,78 +99,77 @@ function BenchScene({ bench, onSelectTube, onReady }: Props) {
     onReady?.()
   }, [onReady])
 
+  useEffect(() => {
+    if (controlsRef.current) controlsRef.current.enabled = !dragging
+  }, [dragging])
+
   return (
     <>
       <VrLabEnvironment />
       <VrLabLighting />
-      <VrLabEquipmentScene />
-      <VrLabTubeRack tubeCount={4} />
-
-      {bench.tubes.map((tube, i) => {
-        const pos = TUBE_POSITIONS[i] ?? [0, 0.02, 0.1]
-        const isPourTube = bench.pourTubeId === tube.id && isPouring
-        const tilt =
-          combineTilt > 0 && (tube.id === 'tube-1' || tube.id === 'tube-2') ? combineTilt : 0
-
-        return (
-          <group key={tube.id}>
-            <VrLabTestTube
-              position={pos}
-              content={tube.content}
-              selected={bench.selectedTubeId === tube.id}
-              onClick={() => onSelectTube(tube.id)}
-              pourActive={isPourTube}
-              pourProgress={isPourTube ? bench.animProgress : 0}
-              tiltMix={tilt}
-            />
-            <FloorLabel position={[pos[0], 0.04, pos[2] + 0.1]} text={tube.label} />
-            {tube.content ? (
-              <Html position={[pos[0], 0.62, pos[2]]} center distanceFactor={8} style={labelStyle}>
-                {compoundById[tube.content.compoundId]?.formulaUnicode ?? tube.content.compoundId}
-              </Html>
-            ) : null}
-          </group>
-        )
-      })}
+      <VrLabAmbientDust />
+      <VrLabEquipmentScene previewCompoundId={previewCompoundId} />
+      <VrLabShelfFlasksScene
+        flasks={bench.shelfFlasks}
+        selectedId={selectedShelfId}
+        pourFlaskId={bench.pourShelfFlaskId}
+        pourProgress={bench.animProgress}
+        onSelect={onSelectShelfFlask}
+        onDragStart={() => setDragging(true)}
+        onDragEnd={(id, pos) => {
+          setDragging(false)
+          onMoveShelfFlask(id, pos)
+        }}
+      />
 
       <VrLabBeaker
-        position={MIX_VESSEL_POS}
+        position={VAT_POSITION}
+        scale={REACTOR_SCALE}
         content={bench.beaker}
         mixing={bench.mixing || bench.animPhase === 'reacting'}
         mixColor={bench.mixColor ?? undefined}
         mixProgress={bench.animPhase === 'reacting' ? bench.animProgress : 0}
+        selected={vatSelected}
+        onClick={() => onSelectVat()}
       />
 
-      <FloorLabel position={[MIX_VESSEL_POS[0], 0.04, MIX_VESSEL_POS[2] + 0.18]} text="Смесь" />
+      {bench.beaker ? (
+        <Html position={[VAT_POSITION[0], 0.32, VAT_POSITION[2]]} center distanceFactor={8} style={labelStyle}>
+          {compoundById[bench.beaker.compoundId]?.formulaUnicode ?? bench.beaker.compoundId}
+          {bench.vatReagentA ? ' + ?' : ''}
+        </Html>
+      ) : null}
 
       <VrLabReactionParticles
         active={bench.mixing || bench.animPhase === 'reacting'}
         result={bench.lastMix}
-        position={[MIX_VESSEL_POS[0], 0.3, MIX_VESSEL_POS[2]]}
+        position={[VAT_POSITION[0], 0.22, VAT_POSITION[2]]}
         progress={bench.animPhase === 'reacting' ? bench.animProgress : 1}
       />
 
       {perf.shadows ? (
         <ContactShadows
-          position={[0, 0.001, 0]}
-          opacity={0.45}
-          scale={5}
-          blur={2}
-          far={3}
+          position={[0, 0.001, 0.06]}
+          opacity={0.38}
+          scale={3.5}
+          blur={2.2}
+          far={2.5}
           color="#1a0a30"
           frames={1}
         />
       ) : null}
 
       <OrbitControls
+        ref={controlsRef as never}
         makeDefault
         minPolarAngle={0.52}
         maxPolarAngle={Math.PI / 2.12}
-        minDistance={2.6}
+        minDistance={2.4}
         maxDistance={5.5}
-        target={[0.05, 0.28, -0.02]}
+        target={[0.05, 0.32, -0.04]}
         enableDamping
         dampingFactor={0.07}
+        enabled={!dragging}
       />
 
       <VrLabPostFx />
@@ -207,7 +200,14 @@ class VrLabErrorBoundary extends Component<
   }
 }
 
-function VrLabCanvasInner({ bench, onSelectTube, onReady, onFail }: Props) {
+function VrLabCanvasInner({
+  bench,
+  onSelectShelfFlask,
+  onSelectVat,
+  onMoveShelfFlask,
+  onReady,
+  onFail,
+}: Props) {
   const perf = useVrLabPerf()
 
   return (
@@ -234,33 +234,52 @@ function VrLabCanvasInner({ bench, onSelectTube, onReady, onFail }: Props) {
       }}
     >
       <Suspense fallback={null}>
-        <MemoBenchScene bench={bench} onSelectTube={onSelectTube} onReady={onReady} onFail={onFail} />
+        <MemoBenchScene
+          bench={bench}
+          onSelectShelfFlask={onSelectShelfFlask}
+          onSelectVat={onSelectVat}
+          onMoveShelfFlask={onMoveShelfFlask}
+          onReady={onReady}
+          onFail={onFail}
+        />
       </Suspense>
     </Canvas>
   )
 }
 
-export function VrLabCanvas({ bench, onSelectTube }: Omit<Props, 'onReady' | 'onFail'>) {
+export function VrLabCanvas(props: Omit<Props, 'onReady' | 'onFail'>) {
   return (
     <VrLabPerfProvider>
       <VrLabErrorBoundary>
-        <VrLabCanvasInner bench={bench} onSelectTube={onSelectTube} />
+        <VrLabCanvasInner {...props} />
       </VrLabErrorBoundary>
     </VrLabPerfProvider>
   )
 }
 
-export type VrLabCanvasShellProps = Props & {
-  mount: boolean
-}
+export type VrLabCanvasShellProps = Props & { mount: boolean }
 
-/** Оболочка: отложенный mount + колбэки загрузки/ошибки для UI. */
-export function VrLabCanvasShell({ mount, bench, onSelectTube, onReady, onFail }: VrLabCanvasShellProps) {
+export function VrLabCanvasShell({
+  mount,
+  bench,
+  onSelectShelfFlask,
+  onSelectVat,
+  onMoveShelfFlask,
+  onReady,
+  onFail,
+}: VrLabCanvasShellProps) {
   if (!mount) return null
   return (
     <VrLabPerfProvider>
       <VrLabErrorBoundary onFail={onFail}>
-        <VrLabCanvasInner bench={bench} onSelectTube={onSelectTube} onReady={onReady} onFail={onFail} />
+        <VrLabCanvasInner
+          bench={bench}
+          onSelectShelfFlask={onSelectShelfFlask}
+          onSelectVat={onSelectVat}
+          onMoveShelfFlask={onMoveShelfFlask}
+          onReady={onReady}
+          onFail={onFail}
+        />
       </VrLabErrorBoundary>
     </VrLabPerfProvider>
   )
