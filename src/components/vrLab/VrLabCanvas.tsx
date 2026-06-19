@@ -25,12 +25,15 @@ import { VrLabBeaker } from './VrLabGlassware'
 import { VrLabPhysicsWorld } from './VrLabPhysicsWorld'
 import { VrLabPourBridge } from './VrLabPourBridge'
 import { VrLabReactionVfx } from './VrLabReactionVfx'
+import { VrLabPracticeMissionRing } from './education/VrLabPracticeMissionRing'
+import { VrLabSceneDriver } from './VrLabSceneDriver'
 import { VrLabShelfFlasksScene } from './VrLabShelfFlasks'
 import { useVrLabPerf, VrLabPerfProvider } from './vrLabPerformance'
 import { VR_THEME } from './vrLabTheme'
 
 type Props = {
   bench: VrLabBenchState
+  practiceTarget?: { a: string; b: string } | null
   onSelectShelfFlask: (id: string) => void
   onSelectVat: () => void
   onMoveShelfFlask: (id: string, position: [number, number, number]) => void
@@ -39,7 +42,7 @@ type Props = {
   onFail?: () => void
 }
 
-const REACTOR_SCALE = 0.52
+const REACTOR_SCALE = 0.72
 
 function resolvePreviewCompound(bench: VrLabBenchState): string | null {
   if (bench.beaker?.compoundId) return bench.beaker.compoundId
@@ -54,6 +57,7 @@ function resolvePreviewCompound(bench: VrLabBenchState): string | null {
 
 function BenchScene({
   bench,
+  practiceTarget = null,
   onSelectShelfFlask,
   onSelectVat,
   onMoveShelfFlask,
@@ -102,6 +106,12 @@ function BenchScene({
 
   return (
     <VrLabGrabProvider selectedId={selectedShelfId} busy={busy}>
+      <VrLabSceneDriver
+        animPhase={bench.animPhase}
+        dragging={dragging}
+        mixing={bench.mixing}
+        autoMixActive={bench.autoMixFlaskId != null}
+      />
       <VrLabPhysicsWorld>
         <VrLabEnvironment />
         <LabLightingRig />
@@ -114,6 +124,10 @@ function BenchScene({
           pourFlaskId={bench.pourShelfFlaskId}
           pourProgress={bench.animProgress}
           busy={busy}
+          autoMixFlaskId={bench.autoMixFlaskId}
+          autoMixOverridePos={bench.autoMixOverridePos}
+          autoMixTilt={bench.autoMixTilt}
+          practiceTarget={practiceTarget}
           onSelect={onSelectShelfFlask}
           onDragStart={() => setDragging(true)}
           onDragEnd={(id, pos) => {
@@ -135,7 +149,9 @@ function BenchScene({
         vfxProgress={vfxProgress}
         vfxMixing={bench.mixing}
         lastMix={bench.lastMix}
+        lastReactionPair={bench.lastReactionPair}
         selected={vatSelected}
+        glassHighlight={vatSelected || bench.mixing || bench.animPhase !== 'idle'}
         onClick={() => onSelectVat()}
       />
 
@@ -159,13 +175,19 @@ function BenchScene({
         </Html>
       ) : null}
 
+      <VrLabPracticeMissionRing
+        active={!!practiceTarget && !bench.beaker}
+        position={VAT_POSITION}
+      />
+
       <VrLabReactionVfx
         active={vfxActive}
         result={bench.lastMix}
         phase={bench.animPhase}
         mixing={bench.mixing}
         progress={vfxProgress}
-        position={[VAT_POSITION[0], 0.22, VAT_POSITION[2]]}
+        position={[VAT_POSITION[0], 0.12, VAT_POSITION[2]]}
+        reactionPair={bench.lastReactionPair}
       />
 
       {perf.shadows ? (
@@ -224,6 +246,7 @@ class VrLabErrorBoundary extends Component<
 
 function VrLabCanvasInner({
   bench,
+  practiceTarget = null,
   onSelectShelfFlask,
   onSelectVat,
   onMoveShelfFlask,
@@ -244,7 +267,7 @@ function VrLabCanvasInner({
         failIfMajorPerformanceCaveat: false,
       }}
       dpr={perf.dpr}
-      frameloop="always"
+      frameloop="demand"
       onCreated={({ gl }) => {
         gl.setClearColor(VR_THEME.bg)
         const canvas = gl.domElement
@@ -259,6 +282,7 @@ function VrLabCanvasInner({
       <Suspense fallback={null}>
         <MemoBenchScene
           bench={bench}
+          practiceTarget={practiceTarget}
           onSelectShelfFlask={onSelectShelfFlask}
           onSelectVat={onSelectVat}
           onMoveShelfFlask={onMoveShelfFlask}
@@ -286,6 +310,7 @@ export type VrLabCanvasShellProps = Props & { mount: boolean }
 export function VrLabCanvasShell({
   mount,
   bench,
+  practiceTarget = null,
   onSelectShelfFlask,
   onSelectVat,
   onMoveShelfFlask,
@@ -299,6 +324,7 @@ export function VrLabCanvasShell({
       <VrLabErrorBoundary onFail={onFail}>
         <VrLabCanvasInner
           bench={bench}
+          practiceTarget={practiceTarget}
           onSelectShelfFlask={onSelectShelfFlask}
           onSelectVat={onSelectVat}
           onMoveShelfFlask={onMoveShelfFlask}

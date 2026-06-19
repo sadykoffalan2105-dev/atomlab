@@ -15,6 +15,8 @@ import { VR_THEME } from './vrLabTheme'
 const FLASK_SCALE_SHELF = 0.4
 const FLASK_SCALE_BENCH = 0.52
 const DRAG_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+const TARGET_POS = new THREE.Vector3()
+const PICK_RESULT = new THREE.Vector3()
 
 type Props = {
   flasks: VrLabShelfFlask[]
@@ -22,6 +24,10 @@ type Props = {
   pourFlaskId: string | null
   pourProgress: number
   busy?: boolean
+  autoMixFlaskId?: string | null
+  autoMixOverridePos?: [number, number, number] | null
+  autoMixTilt?: number
+  practiceTarget?: { a: string; b: string } | null
   onSelect: (id: string) => void
   onDragStart: () => void
   onDragEnd: (id: string, position: [number, number, number]) => void
@@ -58,6 +64,9 @@ function DraggableShelfFlask({
   pourActive,
   pourProgress,
   busy,
+  autoMixOverridePos,
+  autoMixTilt = 0,
+  practiceTarget = null,
   onSelect,
   onDragStart,
   onDragEnd,
@@ -68,6 +77,9 @@ function DraggableShelfFlask({
   pourActive: boolean
   pourProgress: number
   busy?: boolean
+  autoMixOverridePos?: [number, number, number] | null
+  autoMixTilt?: number
+  practiceTarget?: { a: string; b: string } | null
   onSelect: () => void
   onDragStart: () => void
   onDragEnd: (position: [number, number, number]) => void
@@ -84,15 +96,30 @@ function DraggableShelfFlask({
   const pointer = useMemo(() => new THREE.Vector2(), [])
 
   const isGrabbed = grab?.grabbedId === flask.id
-  const manualTilt = grab?.activeTiltFlaskId === flask.id ? grab.tilt : 0
+  const manualTilt =
+    autoMixOverridePos && autoMixTilt > 0
+      ? autoMixTilt
+      : grab?.activeTiltFlaskId === flask.id
+        ? grab.tilt
+        : 0
   const fill = flask.content?.fillLevel ?? 0
 
   livePos.current.set(flask.position[0], flask.position[1], flask.position[2])
+  if (autoMixOverridePos) {
+    livePos.current.set(autoMixOverridePos[0], autoMixOverridePos[1], autoMixOverridePos[2])
+  }
 
   useFrame((_, dt) => {
-    if (!groupRef.current || dragging.current) return
-    livePos.current.lerp(new THREE.Vector3(...flask.position), Math.min(1, dt * 10))
+    if (!groupRef.current || dragging.current || autoMixOverridePos) return
+    TARGET_POS.set(flask.position[0], flask.position[1], flask.position[2])
+    livePos.current.lerp(TARGET_POS, Math.min(1, dt * 10))
     groupRef.current.position.copy(livePos.current)
+  })
+
+  useFrame(() => {
+    if (autoMixOverridePos && groupRef.current) {
+      groupRef.current.position.copy(livePos.current)
+    }
   })
 
   useFrame(() => {
@@ -100,7 +127,9 @@ function DraggableShelfFlask({
     const pos: [number, number, number] = [livePos.current.x, livePos.current.y, livePos.current.z]
     const near = isNearVat(pos)
     const streaming = near && canPourFromTilt(grab.tilt, fill) && !!flask.content
-    grab.setStreaming(streaming ? flask.id : null)
+    if (grab.streamingId !== (streaming ? flask.id : null)) {
+      grab.setStreaming(streaming ? flask.id : null)
+    }
   })
 
   const pickPoint = useCallback(
@@ -111,7 +140,10 @@ function DraggableShelfFlask({
       raycaster.setFromCamera(pointer, camera)
       DRAG_PLANE.constant = -(groupRef.current?.position.y ?? flask.position[1])
       DRAG_PLANE.normal.set(0, 1, 0)
-      if (raycaster.ray.intersectPlane(DRAG_PLANE, intersect)) return intersect.clone()
+      if (raycaster.ray.intersectPlane(DRAG_PLANE, intersect)) {
+        PICK_RESULT.copy(intersect)
+        return PICK_RESULT
+      }
       return null
     },
     [camera, flask.position[1], gl.domElement, pointer, raycaster, intersect],
@@ -172,6 +204,11 @@ function DraggableShelfFlask({
   const showStreamPreview =
     grab?.streamingId === flask.id && !pourActive && !busy && visual
 
+  const practiceMatch =
+    practiceTarget &&
+    flask.content?.compoundId &&
+    (flask.content.compoundId === practiceTarget.a || flask.content.compoundId === practiceTarget.b)
+
   return (
     <>
       {showStreamPreview && visual ? (
@@ -203,12 +240,19 @@ function DraggableShelfFlask({
             pourProgress={pourProgress}
             fillToVat
             manualTilt={manualTilt}
+            glassHighlight={selected || isGrabbed || pourActive}
           />
         </group>
         {selected ? (
           <mesh position={[0, 0.14, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <ringGeometry args={[0.07, 0.082, 24]} />
             <meshStandardMaterial color={VR_THEME.magenta} emissive={VR_THEME.magenta} emissiveIntensity={1.3} />
+          </mesh>
+        ) : null}
+        {practiceMatch ? (
+          <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.055, 0.068, 24]} />
+            <meshStandardMaterial color={VR_THEME.cyan} emissive={VR_THEME.cyan} emissiveIntensity={1.45} />
           </mesh>
         ) : null}
         {isGrabbed && manualTilt > 0.08 ? (
@@ -246,6 +290,10 @@ export function VrLabShelfFlasksScene({
   pourFlaskId,
   pourProgress,
   busy = false,
+  autoMixFlaskId = null,
+  autoMixOverridePos = null,
+  autoMixTilt = 0,
+  practiceTarget = null,
   onSelect,
   onDragStart,
   onDragEnd,
@@ -262,6 +310,9 @@ export function VrLabShelfFlasksScene({
           pourActive={pourFlaskId === flask.id}
           pourProgress={pourProgress}
           busy={busy}
+          autoMixOverridePos={flask.id === autoMixFlaskId ? autoMixOverridePos : null}
+          autoMixTilt={flask.id === autoMixFlaskId ? autoMixTilt : 0}
+          practiceTarget={practiceTarget}
           onSelect={() => onSelect(flask.id)}
           onDragStart={onDragStart}
           onDragEnd={(pos) => onDragEnd(flask.id, pos)}

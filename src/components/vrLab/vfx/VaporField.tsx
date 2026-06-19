@@ -13,7 +13,7 @@ type Props = {
   position?: [number, number, number]
 }
 
-/** Пар / дым над реактором с турбулентностью. */
+/** Пар / дым — CPU positions без аллокаций, throttled update. */
 export function VaporField({
   active,
   intensity,
@@ -25,6 +25,7 @@ export function VaporField({
   const { steamCount, tier } = useVrLabPerf()
   const ref = useRef<THREE.Points>(null)
   const count = tier === 'high' ? steamCount : Math.max(8, Math.floor(steamCount * 0.55))
+  const tick = useRef(0)
 
   const seeds = useMemo(
     () =>
@@ -34,41 +35,48 @@ export function VaporField({
         y: Math.random() * 0.08,
         speed: 0.06 + Math.random() * 0.12,
         phase: Math.random() * Math.PI * 2,
-        size: 0.025 + Math.random() * 0.035,
       })),
     [count, spread],
   )
 
-  const positions = useMemo(() => new Float32Array(count * 3), [count])
+  const positions = useMemo(() => {
+    const buf = new Float32Array(count * 3)
+    for (let i = 0; i < count; i++) {
+      const s = seeds[i]!
+      buf[i * 3] = s.x
+      buf[i * 3 + 1] = s.y + 0.06
+      buf[i * 3 + 2] = s.z
+    }
+    return buf
+  }, [count, seeds])
 
   useFrame((state, dt) => {
     if (!ref.current || !active || intensity < 0.04) return
+    tick.current += dt
+    if (tick.current < 1 / 30) return
+    tick.current = 0
+
     const attr = ref.current.geometry.getAttribute('position') as THREE.BufferAttribute
     const t = state.clock.elapsedTime
+    const maxY = 0.42 + spread * 0.3
+    const speedMul = intensity * (gasPlume ? 1.35 : 1)
 
     for (let i = 0; i < count; i++) {
       const s = seeds[i]!
-      let y = s.y + dt * s.speed * intensity * (gasPlume ? 1.35 : 1)
+      s.y += s.speed * speedMul * 0.033
       const curl =
         Math.sin(t * 1.8 + s.phase) * 0.012 * intensity +
         Math.cos(t * 1.3 + s.phase * 1.7) * 0.008 * intensity
-      let x = s.x + curl
-      let z = s.z + Math.cos(t * 2.1 + s.phase) * 0.01 * intensity
+      s.x += Math.sin(t * 1.8 + s.phase) * 0.0004 * intensity
+      s.z += Math.cos(t * 2.1 + s.phase) * 0.0004 * intensity
 
-      if (y > 0.42 + spread * 0.3) {
-        y = 0
-        x = (Math.random() - 0.5) * spread * 0.8
-        z = (Math.random() - 0.5) * spread * 0.8
-        s.x = x
-        s.z = z
+      if (s.y > maxY) {
         s.y = 0
-      } else {
-        s.y = y
-        s.x = x
-        s.z = z
+        s.x = (Math.random() - 0.5) * spread * 0.8
+        s.z = (Math.random() - 0.5) * spread * 0.8
       }
 
-      attr.setXYZ(i, x, y + 0.06, z)
+      attr.setXYZ(i, s.x + curl, s.y + 0.06, s.z + Math.cos(t * 2.1 + s.phase) * 0.01 * intensity)
     }
     attr.needsUpdate = true
 
@@ -79,16 +87,9 @@ export function VaporField({
 
   if (!active || intensity < 0.04 || count === 0) return null
 
-  for (let i = 0; i < count; i++) {
-    const s = seeds[i]!
-    positions[i * 3] = s.x
-    positions[i * 3 + 1] = s.y + 0.06
-    positions[i * 3 + 2] = s.z
-  }
-
   return (
     <group position={position}>
-      <points ref={ref}>
+      <points ref={ref} frustumCulled>
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[positions, 3]} />
         </bufferGeometry>

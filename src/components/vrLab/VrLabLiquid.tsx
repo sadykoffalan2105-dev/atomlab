@@ -1,4 +1,4 @@
-import { useMemo, useRef, type RefObject } from 'react'
+import { useRef, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { clamp01, easeOutCubic, lerp } from '../../vrLab/vrLabAnimation'
@@ -34,73 +34,7 @@ function liquidVisualOrDefaults(
     viscosity: visual.viscosity ?? 0.5,
   }
 }
-
-/** Пузырьки внутри жидкости. */
-function LiquidBubbles({
-  count = 10,
-  radius,
-  baseY,
-  maxHeight,
-  fill,
-  color,
-  active,
-}: {
-  count?: number
-  radius: number
-  baseY: number
-  maxHeight: number
-  fill: number
-  color: string
-  active: boolean
-}) {
-  const ref = useRef<THREE.Group>(null)
-  const seeds = useMemo(
-    () =>
-      Array.from({ length: count }, (_, i) => ({
-        phase: (i / count) * Math.PI * 2,
-        rx: (Math.random() - 0.5) * radius * 1.4,
-        rz: (Math.random() - 0.5) * radius * 1.4,
-        size: 0.004 + Math.random() * 0.007,
-        speed: 0.25 + Math.random() * 0.45,
-      })),
-    [count, radius],
-  )
-
-  useFrame((state) => {
-    if (!ref.current || fill < 0.08) return
-    const h = fill * maxHeight
-    const t = state.clock.elapsedTime
-    ref.current.children.forEach((child, i) => {
-      const s = seeds[i]
-      if (!s) return
-      const yNorm = ((t * s.speed + s.phase) % 1)
-      child.position.set(s.rx * (1 - yNorm * 0.3), baseY + yNorm * h * 0.85 + 0.02, s.rz * (1 - yNorm * 0.3))
-      const scale = active ? s.size * (1 + Math.sin(t * 8 + s.phase) * 0.2) : s.size
-      child.scale.setScalar(scale / 0.006)
-    })
-  })
-
-  if (fill < 0.08) return null
-
-  return (
-    <group ref={ref}>
-      {seeds.map((_, i) => (
-        <mesh key={i}>
-          <sphereGeometry args={[0.006, 6, 6]} />
-          <meshStandardMaterial
-            color={color}
-            emissive={color}
-            emissiveIntensity={active ? 1.4 : 0.9}
-            transparent
-            opacity={0.75}
-            depthWrite={false}
-          />
-        </mesh>
-      ))}
-    </group>
-  )
-}
-
+import { InstancedBubbleField } from './gpu/InstancedBubbleField'
 type Props = {
   visual: LiquidVisual
   targetFill: number
@@ -195,10 +129,12 @@ function VrLabLiquidCylinder({
   const displayFill = useRef(animateIn ? 0 : targetFill)
   const colorRef = useRef(new THREE.Color(v.liquidColor))
   const emissiveRef = useRef(new THREE.Color(v.emissive))
+  const attenuationRef = useRef(new THREE.Color(v.liquidColor))
 
   useFrame((state, dt) => {
     colorRef.current.set(v.liquidColor)
     emissiveRef.current.set(v.emissive)
+    attenuationRef.current.set(v.liquidColor)
     const fillSpeed = animateIn ? 1.8 : 4.5
     displayFill.current = lerp(displayFill.current, targetFill, Math.min(1, dt * fillSpeed))
     const f = clamp01(displayFill.current)
@@ -265,7 +201,7 @@ function VrLabLiquidCylinder({
           transmission={0.12}
           thickness={0.4}
           ior={1.33}
-          attenuationColor={new THREE.Color(v.liquidColor)}
+          attenuationColor={attenuationRef.current}
           attenuationDistance={0.6}
         />
       </mesh>
@@ -295,11 +231,11 @@ function VrLabLiquidCylinder({
           depthWrite={false}
         />
       </mesh>
-      <LiquidBubbles
+      <InstancedBubbleField
         radius={radiusTop * 0.7}
         baseY={baseY}
         maxHeight={maxHeight}
-        fill={displayFill.current}
+        fillRef={displayFill}
         color={v.emissive}
         active={mixing}
       />
@@ -464,12 +400,12 @@ function VrLabReactorLiquidCylinder({
           depthWrite={false}
         />
       </mesh>
-      <LiquidBubbles
+      <InstancedBubbleField
         count={14}
         radius={radius * 0.75}
         baseY={baseY}
         maxHeight={maxHeight}
-        fill={fillRef.current}
+        fillRef={fillRef}
         color={vA.emissive}
         active={mixing}
       />
@@ -589,7 +525,7 @@ export function VrLabDecorLiquid({
           />
         </mesh>
       ) : null}
-      <LiquidBubbles
+      <InstancedBubbleField
         count={6}
         radius={radiusTop * 0.65}
         baseY={baseY}

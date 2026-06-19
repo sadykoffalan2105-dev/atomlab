@@ -45,7 +45,7 @@ export function VrLabPourBridge({
   }, [flask, progress])
 
   const to = useMemo((): [number, number, number] => {
-    return [target[0], target[1] + 0.28, target[2]]
+    return [target[0], target[1] + 0.12, target[2]]
   }, [target])
 
   if (!visual || !flask) return null

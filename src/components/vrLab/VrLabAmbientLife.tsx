@@ -1,52 +1,17 @@
 import { useFrame } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
+import { useRef } from 'react'
 import * as THREE from 'three'
+import { GPUParticleField } from './gpu/GPUParticleField'
 import { useVrLabPerf } from './vrLabPerformance'
 import { VR_THEME } from './vrLabTheme'
 
-/** Мягкие «пылинки» в воздухе — оживляет сцену без нагрузки на GPU. */
+/** Мягкие «пылинки» в воздухе — GPU instanced. */
 export function VrLabAmbientDust({ count = 40 }: { count?: number }) {
   const { tier } = useVrLabPerf()
-  const n = tier === 'low' ? Math.min(16, count) : count
-  const ref = useRef<THREE.Points>(null)
-
-  const positions = useMemo(() => {
-    const arr = new Float32Array(n * 3)
-    for (let i = 0; i < n; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 4.5
-      arr[i * 3 + 1] = 0.15 + Math.random() * 1.1
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 2.2
-    }
-    return arr
-  }, [n])
-
-  useFrame((state, dt) => {
-    if (!ref.current) return
-    const attr = ref.current.geometry.getAttribute('position') as THREE.BufferAttribute
-    for (let i = 0; i < n; i++) {
-      let y = attr.getY(i) + dt * (0.015 + (i % 5) * 0.004)
-      let x = attr.getX(i) + Math.sin(state.clock.elapsedTime * 0.4 + i) * dt * 0.008
-      if (y > 1.35) y = 0.12
-      attr.setXYZ(i, x, y, attr.getZ(i))
-    }
-    attr.needsUpdate = true
-  })
-
-  return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.012}
-        color={VR_THEME.cyan}
-        transparent
-        opacity={0.35}
-        depthWrite={false}
-        sizeAttenuation
-      />
-    </points>
-  )
+  if (tier === 'low' && count > 16) {
+    return <GPUParticleField mode="dust" count={16} />
+  }
+  return <GPUParticleField mode="dust" count={count} />
 }
 
 /** Пульсирующие LED-полосы на стене. */

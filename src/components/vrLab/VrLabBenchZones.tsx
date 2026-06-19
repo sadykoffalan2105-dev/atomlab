@@ -22,7 +22,7 @@ export function VrLabBenchZones({ highlight = false }: { highlight?: boolean }) 
   return (
     <group position={[VAT_POSITION[0], 0.013, VAT_POSITION[2]]}>
       <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.16, 0.24, 32]} />
+        <ringGeometry args={[0.1, 0.15, 32]} />
         <meshStandardMaterial
           color={VR_THEME.cyan}
           emissive={VR_THEME.cyan}
@@ -34,7 +34,7 @@ export function VrLabBenchZones({ highlight = false }: { highlight?: boolean }) 
         />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.15, 32]} />
+        <circleGeometry args={[0.095, 32]} />
         <meshStandardMaterial
           color={VR_THEME.magenta}
           emissive={VR_THEME.magenta}

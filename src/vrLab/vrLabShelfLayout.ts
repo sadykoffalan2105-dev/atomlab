@@ -69,7 +69,7 @@ export function shelfFlaskLabel(index: number): string {
 /** Центр реактора смешивания на столе. */
 export const VAT_POSITION: [number, number, number] = [0.38, BENCH_Y, BENCH_Z]
 
-export const VAT_ZONE_RADIUS = 0.28
+export const VAT_ZONE_RADIUS = 0.18
 
 /** Колба над зоной реактора (можно влить наклоном). */
 export function isNearVat(

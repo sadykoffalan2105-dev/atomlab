@@ -56,6 +56,14 @@ export type VrLabBenchState = {
   pourShelfFlaskId: string | null
   pourCompoundId: string | null
   mixColor: string | null
+  /** Пара реагентов последней реакции (для curated VFX). */
+  lastReactionPair: { a: string; b: string } | null
+  /** Авто-смешивание: колба в анимации. */
+  autoMixFlaskId: string | null
+  autoMixOverridePos: [number, number, number] | null
+  autoMixTilt: number
+  /** ID урока для практики (deep link). */
+  activeLessonId: string | null
 }
 
 export type VrLabSubstanceVisual = {

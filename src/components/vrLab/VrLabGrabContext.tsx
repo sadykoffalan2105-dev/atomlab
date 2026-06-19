@@ -43,7 +43,7 @@ type ProviderProps = {
 }
 
 export function VrLabGrabProvider({ children, selectedId, busy }: ProviderProps) {
-  const { gl } = useThree()
+  const { gl, invalidate } = useThree()
   const [grabbedId, setGrabbedId] = useState<string | null>(null)
   const [tilt, setTiltState] = useState(0)
   const [streamingId, setStreamingId] = useState<string | null>(null)
@@ -107,6 +107,10 @@ export function VrLabGrabProvider({ children, selectedId, busy }: ProviderProps)
   useEffect(() => {
     if (selectedId) setActiveTiltFlaskId(selectedId)
   }, [selectedId])
+
+  useEffect(() => {
+    invalidate()
+  }, [tilt, grabbedId, streamingId, invalidate])
 
   const value = useMemo(
     () => ({

@@ -1,5 +1,6 @@
 import type { VrLabMixResult, VrLabReactionEffect } from '../types'
 import { clamp01, easeOutCubic } from '../vrLabAnimation'
+import { findCuratedReaction } from './curatedReactions'
 
 export type VfxPreset = {
   steamRate: number
@@ -138,11 +139,12 @@ export function resolveReactionVfx(
   progress: number,
   phase: 'idle' | 'pouring' | 'combining' | 'reacting',
   mixing: boolean,
+  reactionPair?: { a: string; b: string } | null,
 ): VfxRuntime | null {
   if (!result && !mixing) return null
 
   const effect = result?.effect ?? 'noReaction'
-  const preset = REACTION_VFX[effect]
+  let preset = REACTION_VFX[effect]
   const heat = result?.heat ?? 0.3
   const bubbles = result?.bubbleIntensity ?? 0.2
   const p = clamp01(progress)
@@ -158,10 +160,20 @@ export function resolveReactionVfx(
 
   if (intensity <= 0.02) return null
 
-  const steamIntensity = preset.steamRate * intensity * (0.4 + heat * 0.6)
-  const bubbleIntensity = preset.bubbleRate * intensity * (0.35 + bubbles * 0.65)
-  const condensation = preset.condensation * intensity * (0.3 + heat * 0.7)
-  const heatGlow = preset.heatGlow * intensity * (0.35 + heat * 0.65)
+  const curated = reactionPair ? findCuratedReaction(reactionPair.a, reactionPair.b) : null
+  const vfxMul = curated?.vfx
+
+  let steamIntensity = preset.steamRate * intensity * (0.4 + heat * 0.6)
+  let bubbleIntensity = preset.bubbleRate * intensity * (0.35 + bubbles * 0.65)
+  let condensation = preset.condensation * intensity * (0.3 + heat * 0.7)
+  let heatGlow = preset.heatGlow * intensity * (0.35 + heat * 0.65)
+
+  if (vfxMul) {
+    steamIntensity *= vfxMul.steamDensity
+    bubbleIntensity *= vfxMul.bubbleRate
+    heatGlow *= vfxMul.heatGlow
+    if (vfxMul.gasPlume) preset = { ...preset, gasPlume: true }
+  }
   const showFlash = phase === 'reacting' && p < 0.22
   const flashStrength = showFlash ? preset.flashIntensity * (1 - p / 0.22) : 0
 

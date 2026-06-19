@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { VrLabLessonPanel } from '../components/vrLab/education/VrLabLessonPanel'
 import { VrLabCanvasShell } from '../components/vrLab/VrLabCanvas'
 import { VrLabSubstancePicker } from '../components/vrLab/VrLabSubstancePicker'
 import { detectVrLabQuality, webglSupported, type VrLabQualityTier } from '../components/vrLab/vrLabPerformance'
 import { useVrLabSoundFx } from '../vrLab/useVrLabSoundFx'
+import { canAutoMix } from '../vrLab/vrLabAutoMix'
+import { readLessonProgress } from '../vrLab/lessons/vrLabLessonProgress'
+import { vrLabLessonById } from '../vrLab/lessons/vrLabLessonModules'
 import { compoundById } from '../data/compounds'
 import { useT, type MessageKey } from '../i18n/useT'
 import { VR_LAB_PALETTE } from '../vrLab/colorPalette'
@@ -31,23 +35,53 @@ export function VrLabPage() {
     emptyShelfFlask,
     emptyVat,
     moveShelfFlask,
+    autoMix,
+    setActiveLesson,
   } = benchApi
+  const [searchParams] = useSearchParams()
   const [pickId, setPickId] = useState<string | null>('hcl')
+  const [practiceTick, setPracticeTick] = useState(0)
+  const [practiceTarget, setPracticeTarget] = useState<{ a: string; b: string } | null>(null)
+
+  const lessonIdFromUrl = searchParams.get('lesson')
+  useEffect(() => {
+    if (lessonIdFromUrl) setActiveLesson(lessonIdFromUrl)
+  }, [lessonIdFromUrl, setActiveLesson])
+
+  const activeLessonId = state.activeLessonId ?? lessonIdFromUrl ?? 'vr-lesson-neutralization'
+  const lessonProgress = useMemo(
+    () => readLessonProgress(activeLessonId),
+    [activeLessonId, practiceTick, state.lastMix],
+  )
 
   const target = state.selectedTarget
   const selectedShelf =
     target?.kind === 'shelf' ? state.shelfFlasks.find((f) => f.id === target.id) : null
   const last = state.lastMix
-  const busy = state.animPhase !== 'idle'
+  const busy = state.animPhase !== 'idle' || state.autoMixFlaskId != null
 
   const canPourVat = selectedShelf?.content != null && !busy
   const canFillFlask = target?.kind === 'shelf' && !busy
+  const canAutoMixNow = canAutoMix(
+    state.shelfFlasks,
+    state.vatReagentA,
+    target?.kind === 'shelf' ? target.id : null,
+    busy,
+  )
 
   const [canvasMount, setCanvasMount] = useState(false)
   const [canvasState, setCanvasState] = useState<'loading' | 'ready' | 'error'>('loading')
   const qualityTier = detectVrLabQuality()
 
   useVrLabSoundFx(state)
+
+  useEffect(() => {
+    if (state.lastMix?.kind === 'reaction') setPracticeTick((n) => n + 1)
+  }, [state.lastMix])
+
+  useEffect(() => {
+    if (lessonProgress.practiceDone) setPracticeTarget(null)
+  }, [lessonProgress.practiceDone])
 
   useEffect(() => {
     if (!webglSupported()) {
@@ -62,6 +96,11 @@ export function VrLabPage() {
 
   const onCanvasReady = useCallback(() => setCanvasState('ready'), [])
   const onCanvasFail = useCallback(() => setCanvasState('error'), [])
+
+  const activeLesson = vrLabLessonById(activeLessonId)
+  const practiceMissionText = activeLesson
+    ? t(activeLesson.practiceMissionKey as MessageKey)
+    : ''
 
   const targetLabel =
     target?.kind === 'vat'
@@ -97,9 +136,15 @@ export function VrLabPage() {
             )}
           </div>
         ) : null}
+        {practiceTarget && !lessonProgress.practiceDone ? (
+          <div className={styles.practiceBanner} aria-live="polite">
+            {t('vrLab.lesson.practiceActive', { mission: practiceMissionText })}
+          </div>
+        ) : null}
         <VrLabCanvasShell
           mount={canvasMount && canvasState !== 'error'}
           bench={state}
+          practiceTarget={practiceTarget}
           onSelectShelfFlask={selectShelfFlask}
           onSelectVat={selectVat}
           onMoveShelfFlask={moveShelfFlask}
@@ -162,6 +207,14 @@ export function VrLabPage() {
             >
               {t('vrLab.action.pourVat')}
             </button>
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              disabled={!canAutoMixNow}
+              onClick={autoMix}
+            >
+              {t('vrLab.action.autoMix')}
+            </button>
             <button type="button" className={styles.btn} disabled={busy} onClick={selectVat}>
               {t('vrLab.action.selectVat')}
             </button>
@@ -193,6 +246,23 @@ export function VrLabPage() {
             )}
           </div>
         </div>
+
+        <VrLabLessonPanel
+          activeLessonId={activeLessonId}
+          onSelectLesson={setActiveLesson}
+          practiceDone={lessonProgress.practiceDone}
+          onStartPractice={(id, compoundA, compoundB) => {
+            setActiveLesson(id)
+            setPracticeTarget({ a: compoundA, b: compoundB })
+            setPickId(compoundA)
+            const empty = state.shelfFlasks.find((f) => !f.content)
+            if (empty) {
+              selectShelfFlask(empty.id)
+              requestAnimationFrame(() => fillSelectedFlask(compoundA))
+            }
+            setPracticeTick((n) => n + 1)
+          }}
+        />
 
         <div className={styles.pickerWrap}>
           <VrLabSubstancePicker

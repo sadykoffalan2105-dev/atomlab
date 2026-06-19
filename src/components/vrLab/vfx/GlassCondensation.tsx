@@ -32,10 +32,12 @@ let frostCache: THREE.CanvasTexture | null = null
 type Props = {
   level: number
   active?: boolean
+  radius?: number
+  height?: number
 }
 
 /** Запотевание внутренней поверхности реактора. */
-export function GlassCondensation({ level, active = true }: Props) {
+export function GlassCondensation({ level, active = true, radius = 0.26, height = 0.34 }: Props) {
   const { tier } = useVrLabPerf()
   const meshRef = useRef<THREE.Mesh>(null)
   const frost = useMemo(() => {
@@ -54,8 +56,8 @@ export function GlassCondensation({ level, active = true }: Props) {
   if (!active || level < 0.03) return null
 
   return (
-    <mesh ref={meshRef} position={[0, 0.2, 0]}>
-      <cylinderGeometry args={[0.26, 0.28, 0.34, 24, 1, true]} />
+    <mesh ref={meshRef} position={[0, height * 0.55, 0]}>
+      <cylinderGeometry args={[radius, radius * 1.06, height, 24, 1, true]} />
       <meshStandardMaterial
         map={frost}
         color="#c8e8ff"

@@ -66,18 +66,22 @@ function PhysicalGlassMaterial({ color, variant }: { color: string; variant: Gla
   return <primitive attach="material" object={mat} />
 }
 
-/** Стекло: cinematic transmission на high tier, physical fallback на medium/low. */
+/** Стекло: transmission только на highlight-сосудах (LOD), иначе physical. */
 export function VrLabGlassMaterial({
   color = '#eef6ff',
   variant = 'lab',
+  highlight = false,
 }: {
   color?: string
   variant?: GlassVariant
+  /** true — cinematic transmission на high tier (grabbed / selected / reactor). */
+  highlight?: boolean
 }) {
   const { cinematicGlass } = useVrLabPerf()
   const t = TRANSMISSION[variant]
+  const useTransmission = cinematicGlass && highlight
 
-  if (cinematicGlass) {
+  if (useTransmission) {
     return (
       <MeshTransmissionMaterial
         transmission={1}
@@ -86,8 +90,8 @@ export function VrLabGlassMaterial({
         roughness={t.roughness}
         chromaticAberration={t.chromaticAberration}
         anisotropy={0.12}
-        samples={t.samples}
-        resolution={512}
+        samples={Math.min(3, t.samples)}
+        resolution={384}
         backside
         backsideThickness={t.thickness * 0.6}
         color={color}

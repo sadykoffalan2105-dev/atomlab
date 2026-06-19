@@ -6,7 +6,7 @@ import { resolveReactionVfx } from '../../vrLab/reactions/effectPresets'
 import { clamp01, lerp } from '../../vrLab/vrLabAnimation'
 import { useVrLabPerf } from './vrLabPerformance'
 import { VR_THEME } from './vrLabTheme'
-import { VaporField } from './vfx/VaporField'
+import { GPUParticleField } from './gpu/GPUParticleField'
 
 type Props = {
   active: boolean
@@ -15,6 +15,7 @@ type Props = {
   mixing: boolean
   progress?: number
   position?: [number, number, number]
+  reactionPair?: { a: string; b: string } | null
 }
 
 /** Оркестратор VFX реакции: пузырьки, пар, вспышка, подсветка. */
@@ -25,6 +26,7 @@ export function VrLabReactionVfx({
   mixing,
   progress = 1,
   position = [0, 0.22, 0],
+  reactionPair = null,
 }: Props) {
   const { particleCount, tier } = useVrLabPerf()
   const bubblesRef = useRef<THREE.InstancedMesh>(null)
@@ -32,8 +34,8 @@ export function VrLabReactionVfx({
   const dummy = useMemo(() => new THREE.Object3D(), [])
 
   const vfx = useMemo(
-    () => resolveReactionVfx(result, progress, phase, mixing),
-    [mixing, phase, progress, result],
+    () => resolveReactionVfx(result, progress, phase, mixing, reactionPair),
+    [mixing, phase, progress, reactionPair, result],
   )
 
   const spread = vfx?.preset.particleSpread ?? 0.22
@@ -88,7 +90,8 @@ export function VrLabReactionVfx({
 
   return (
     <group position={position}>
-      <VaporField
+      <GPUParticleField
+        mode="steam"
         active
         intensity={vfx.steamIntensity}
         color={vfx.preset.steamColor}
@@ -137,6 +140,7 @@ export function resolveCondensationLevel(
   progress: number,
   phase: Props['phase'],
   mixing: boolean,
+  reactionPair?: { a: string; b: string } | null,
 ): number {
-  return resolveReactionVfx(result, progress, phase, mixing)?.condensation ?? 0
+  return resolveReactionVfx(result, progress, phase, mixing, reactionPair)?.condensation ?? 0
 }

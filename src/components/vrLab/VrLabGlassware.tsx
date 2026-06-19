@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { VrLabTubeContent } from '../../vrLab/types'
 import { clamp01, easeInOutCubic, lerp } from '../../vrLab/vrLabAnimation'
+import { advanceMixBlend, createMixBlend } from '../../vrLab/fluids/MixingBlender'
 import { SloshSimulator } from '../../vrLab/fluids/SloshSimulator'
 import { substanceVisual } from '../../vrLab/substanceVisuals'
 import {
@@ -120,7 +121,7 @@ export function VrLabBeaker({
   mixing = false,
   mixColor,
   mixProgress = 0,
-  scale = 0.52,
+  scale = 0.72,
   selected = false,
   onClick,
   reactionHeat = 0,
@@ -128,6 +129,8 @@ export function VrLabBeaker({
   vfxProgress = 0,
   vfxMixing = false,
   lastMix = null,
+  lastReactionPair = null,
+  glassHighlight = false,
 }: {
   position?: [number, number, number]
   content: VrLabTubeContent | null
@@ -142,16 +145,33 @@ export function VrLabBeaker({
   vfxProgress?: number
   vfxMixing?: boolean
   lastMix?: import('../../vrLab/types').VrLabMixResult | null
+  lastReactionPair?: { a: string; b: string } | null
+  glassHighlight?: boolean
 }) {
-  const vesselGeo = useGlassGeometry(GLASS_PROFILES.mixingReactor)
-  const hexBaseGeo = useMemo(() => makeHexRingGeometry(0.36, 0.3, 0.018), [])
+  const vesselGeo = useGlassGeometry(GLASS_PROFILES.microReactor)
+  const hexBaseGeo = useMemo(() => makeHexRingGeometry(0.11, 0.088, 0.012), [])
   const fill = content?.fillLevel ?? 0
   const visualA = liquidVisualFromContent(content)
+
+  const mixBlend = useMemo(() => {
+    if (!content || !mixColor || !mixing) return null
+    const bContent = {
+      compoundId: '_mix_b',
+      fillLevel: 0.68,
+      liquidColor: mixColor,
+      emissive: mixColor,
+      glow: 0.72,
+      opacity: 0.88,
+      viscosity: 0.4,
+    }
+    return advanceMixBlend(createMixBlend(content, bContent), mixProgress, reactionHeat)
+  }, [content, mixColor, mixing, mixProgress, reactionHeat])
+
   const visualB: LiquidVisual | undefined =
     mixColor && mixing
       ? {
-          liquidColor: mixColor,
-          emissive: mixColor,
+          liquidColor: mixBlend?.displayColor ?? mixColor,
+          emissive: mixBlend?.displayColor ?? mixColor,
           glow: 0.72,
           opacity: 0.88,
           viscosity: 0.4,
@@ -160,7 +180,13 @@ export function VrLabBeaker({
   const groupRef = useRef<THREE.Group>(null)
   const stirRef = useRef<THREE.Mesh>(null)
   const rimRef = useRef<THREE.Mesh>(null)
-  const condensation = resolveCondensationLevel(lastMix, vfxProgress, vfxPhase, vfxMixing || mixing)
+  const condensation = resolveCondensationLevel(
+    lastMix,
+    vfxProgress,
+    vfxPhase,
+    vfxMixing || mixing,
+    lastReactionPair,
+  )
 
   useFrame((state) => {
     if (groupRef.current && mixing) {
@@ -178,14 +204,14 @@ export function VrLabBeaker({
   return (
     <group ref={groupRef} position={position} scale={scale} onClick={onClick}>
       <mesh visible={false}>
-        <cylinderGeometry args={[0.38, 0.4, 0.5, 12]} />
+        <cylinderGeometry args={[0.12, 0.13, 0.22, 12]} />
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
-      <mesh geometry={hexBaseGeo} position={[0, 0.008, 0]}>
+      <mesh geometry={hexBaseGeo} position={[0, 0.006, 0]}>
         <meshStandardMaterial color="#0e0c1a" metalness={0.82} roughness={0.22} />
       </mesh>
-      <mesh position={[0, 0.018, 0]}>
-        <cylinderGeometry args={[0.28, 0.3, 0.008, 6]} />
+      <mesh position={[0, 0.012, 0]}>
+        <cylinderGeometry args={[0.09, 0.095, 0.006, 6]} />
         <meshStandardMaterial
           color={VR_THEME.cyan}
           emissive={VR_THEME.cyan}
@@ -195,14 +221,19 @@ export function VrLabBeaker({
         />
       </mesh>
 
-      <mesh geometry={vesselGeo} castShadow receiveShadow position={[0, 0.018, 0]}>
-        <VrLabGlassMaterial color="#f8fbff" variant="vessel" />
+      <mesh geometry={vesselGeo} castShadow receiveShadow position={[0, 0.012, 0]}>
+        <VrLabGlassMaterial color="#f8fbff" variant="vessel" highlight={glassHighlight} />
       </mesh>
 
-      <GlassCondensation level={condensation} active={mixing || vfxPhase === 'reacting'} />
+      <GlassCondensation
+        level={condensation}
+        active={mixing || vfxPhase === 'reacting'}
+        radius={0.09}
+        height={0.14}
+      />
 
-      <mesh ref={rimRef} position={[0, 0.38, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.28, 0.004, 8, 32]} />
+      <mesh ref={rimRef} position={[0, 0.155, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.095, 0.003, 8, 24]} />
         <meshStandardMaterial
           color={selected ? VR_THEME.magenta : VR_THEME.cyan}
           emissive={selected ? VR_THEME.magenta : VR_THEME.cyan}
@@ -211,14 +242,14 @@ export function VrLabBeaker({
       </mesh>
 
       {selected ? (
-        <mesh position={[0, 0.42, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.3, 0.34, 6]} />
+        <mesh position={[0, 0.168, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.1, 0.112, 6]} />
           <meshStandardMaterial color={VR_THEME.magenta} emissive={VR_THEME.magenta} emissiveIntensity={1.2} />
         </mesh>
       ) : null}
 
-      <mesh ref={stirRef} position={[0, 0.055, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <boxGeometry args={[0.14, 0.012, 0.024]} />
+      <mesh ref={stirRef} position={[0, 0.048, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <boxGeometry args={[0.07, 0.008, 0.016]} />
         <meshStandardMaterial color="#ffffff" emissive={VR_THEME.cyan} emissiveIntensity={mixing ? 1.1 : 0.35} />
       </mesh>
 
@@ -227,13 +258,13 @@ export function VrLabBeaker({
           visual={visualA}
           visualB={visualB}
           targetFill={fill}
-          radius={0.3}
-          maxHeight={0.3}
-          baseY={0.06}
+          radius={0.085}
+          maxHeight={0.115}
+          baseY={0.032}
           mixing={mixing}
-          mixRatio={mixProgress}
+          mixRatio={mixBlend?.mixRatio ?? mixProgress}
           mixProgress={mixProgress}
-          temperature={mixing ? reactionHeat * mixProgress : 0}
+          temperature={mixBlend?.temperature ?? (mixing ? reactionHeat * mixProgress : 0)}
         />
       ) : null}
     </group>
@@ -295,6 +326,7 @@ export function VrLabErlenmeyerFlask({
   pourProgress = 0,
   fillToVat = false,
   manualTilt = 0,
+  glassHighlight = false,
 }: {
   position: [number, number, number]
   content?: VrLabTubeContent | null
@@ -306,6 +338,7 @@ export function VrLabErlenmeyerFlask({
   fillToVat?: boolean
   /** Наклон 0..1 (колёсико / R). */
   manualTilt?: number
+  glassHighlight?: boolean
 }) {
   const geo = useErlenmeyerGeometry(scale)
   const groupRef = useRef<THREE.Group>(null)
@@ -332,7 +365,7 @@ export function VrLabErlenmeyerFlask({
   return (
     <group ref={groupRef} position={position}>
       <mesh geometry={geo} castShadow>
-        <VrLabGlassMaterial color="#eef6ff" variant="lab" />
+        <VrLabGlassMaterial color="#eef6ff" variant="lab" highlight={glassHighlight} />
       </mesh>
       {visual ? (
         <VrLabLiquid

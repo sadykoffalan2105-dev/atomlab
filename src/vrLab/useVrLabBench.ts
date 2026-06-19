@@ -3,6 +3,9 @@ import { mixVrLabSubstances } from './mixEngine'
 import { productVisualAfterMix, substanceVisual } from './substanceVisuals'
 import type { VrLabBenchState, VrLabSelectionTarget, VrLabShelfFlask, VrLabTubeContent } from './types'
 import { VR_COMBINE_MS, VR_POUR_MS, VR_REACT_MS, mixHexColors } from './vrLabAnimation'
+import { autoMixPourPosition, resolveAutoMixPlan, type AutoMixPlan } from './vrLabAutoMix'
+import { findCuratedReaction } from './reactions/curatedReactions'
+import { markPracticeDone } from './lessons/vrLabLessonProgress'
 import {
   BENCH_Y,
   BENCH_Z,
@@ -49,6 +52,11 @@ const INITIAL: VrLabBenchState = {
   pourShelfFlaskId: null,
   pourCompoundId: null,
   mixColor: null,
+  lastReactionPair: null,
+  autoMixFlaskId: null,
+  autoMixOverridePos: null,
+  autoMixTilt: 0,
+  activeLessonId: null,
 }
 
 function emptyFlask(id: string, flasks: VrLabShelfFlask[]): VrLabShelfFlask[] {
@@ -148,17 +156,18 @@ export function useVrLabBench() {
           ...s,
           mixing: true,
           lastMix: result,
-          mixColor: blend,
+          mixColor: b.liquidColor,
+          lastReactionPair: { a: a.compoundId, b: b.compoundId },
           vatReagentA: null,
           shelfFlasks: emptyFlask(shelfId, s.shelfFlasks),
           beaker: {
             compoundId: result.productId!,
             fillLevel: 0.18,
-            liquidColor: blend,
-            emissive: vis.emissive,
-            glow: vis.glow,
-            opacity: vis.opacity,
-            viscosity: vis.viscosity,
+            liquidColor: a.liquidColor,
+            emissive: a.emissive,
+            glow: a.glow,
+            opacity: a.opacity,
+            viscosity: a.viscosity,
           },
           animPhase: 'combining',
           animProgress: 0,
@@ -167,12 +176,18 @@ export function useVrLabBench() {
         runAnim(VR_COMBINE_MS, 'combining', () => {
           setState((cur) => ({ ...cur, animPhase: 'reacting', animProgress: 0 }))
           runAnim(VR_REACT_MS, 'reacting', () => {
+            const lessonId = stateRef.current.activeLessonId
+            if (lessonId) {
+              const curated = findCuratedReaction(a.compoundId, b.compoundId)
+              if (curated?.lessonId === lessonId) markPracticeDone(lessonId)
+            }
             setState((cur) => ({
               ...cur,
               mixing: false,
               animPhase: 'idle',
               animProgress: 0,
               mixColor: null,
+              lastReactionPair: { a: a.compoundId, b: b.compoundId },
               beaker: {
                 compoundId: result.productId!,
                 fillLevel: 0.72,
@@ -303,6 +318,102 @@ export function useVrLabBench() {
     }))
   }, [clearAnim])
 
+  const runMoveFlask = useCallback(
+    (flaskId: string, target: [number, number, number], tilt: number, durationMs: number, onDone: () => void) => {
+      clearAnim()
+      const t0 = performance.now()
+      const start = stateRef.current.shelfFlasks.find((f) => f.id === flaskId)?.position
+      if (!start) {
+        onDone()
+        return
+      }
+      setState((s) => ({
+        ...s,
+        autoMixFlaskId: flaskId,
+        autoMixOverridePos: [...start] as [number, number, number],
+        autoMixTilt: 0,
+      }))
+      const tick = () => {
+        const p = Math.min(1, (performance.now() - t0) / durationMs)
+        const eased = p * p * (3 - 2 * p)
+        const pos: [number, number, number] = [
+          start[0] + (target[0] - start[0]) * eased,
+          start[1] + (target[1] - start[1]) * eased,
+          start[2] + (target[2] - start[2]) * eased,
+        ]
+        setState((s) => ({
+          ...s,
+          autoMixOverridePos: pos,
+          autoMixTilt: tilt * eased,
+          animProgress: eased,
+        }))
+        if (p < 1) {
+          animRef.current = requestAnimationFrame(tick)
+        } else {
+          animRef.current = null
+          onDone()
+        }
+      }
+      animRef.current = requestAnimationFrame(tick)
+    },
+    [clearAnim],
+  )
+
+  const clearAutoMixVisual = useCallback(() => {
+    setState((s) => ({
+      ...s,
+      autoMixFlaskId: null,
+      autoMixOverridePos: null,
+      autoMixTilt: 0,
+    }))
+  }, [])
+
+  const executeAutoMixPlan = useCallback(
+    (plan: AutoMixPlan) => {
+      if (!plan) return
+      const pourPos = autoMixPourPosition()
+
+      if (plan.kind === 'pourSecond') {
+        runMoveFlask(plan.flaskId, pourPos, 0.82, 900, () => {
+          pourFlaskToVat(plan.flaskId)
+          setTimeout(clearAutoMixVisual, VR_POUR_MS + 200)
+        })
+        return
+      }
+
+      if (plan.kind === 'pourBoth') {
+        runMoveFlask(plan.flaskAId, pourPos, 0.75, 900, () => {
+          pourFlaskToVat(plan.flaskAId)
+          setTimeout(() => {
+            clearAutoMixVisual()
+            setTimeout(() => {
+              runMoveFlask(plan.flaskBId, pourPos, 0.85, 900, () => {
+                pourFlaskToVat(plan.flaskBId)
+                setTimeout(clearAutoMixVisual, VR_POUR_MS + 200)
+              })
+            }, VR_POUR_MS + 400)
+          }, VR_POUR_MS + 300)
+        })
+      }
+    },
+    [clearAutoMixVisual, pourFlaskToVat, runMoveFlask],
+  )
+
+  const autoMix = useCallback(() => {
+    const s = stateRef.current
+    if (s.animPhase !== 'idle') return
+    const plan = resolveAutoMixPlan(
+      s.shelfFlasks,
+      s.vatReagentA,
+      s.selectedTarget?.kind === 'shelf' ? s.selectedTarget.id : null,
+    )
+    executeAutoMixPlan(plan)
+  }, [executeAutoMixPlan])
+
+  const setActiveLesson = useCallback((lessonId: string | null) => {
+    setState((s) => ({ ...s, activeLessonId: lessonId }))
+  }, [])
+
   const moveShelfFlask = useCallback((flaskId: string, pos: [number, number, number]) => {
     setState((s) => {
       const snapped = snapFlaskPlacement(pos)
@@ -341,6 +452,8 @@ export function useVrLabBench() {
     emptyVat,
     emptyAll,
     moveShelfFlask,
+    autoMix,
+    setActiveLesson,
   }
 }
 
