@@ -82,4 +82,21 @@ export const learnPathwayUz: Record<keyof typeof learnPathwayRu, string> = {
   'learn.pathway.summary.badge': 'Suv sintezi',
   'learn.pathway.summary.toGrade': '7-sinf mavzulari',
   'learn.pathway.summary.toLab': 'Yana reaktorda',
+
+  'learn.pathway.vrNeutralization.title': 'VR: HCl + NaOH neytrallashuvi',
+  'learn.pathway.vrNeutralization.lead':
+    'Nazariya → bashorat → ATOMLAB 3D VR laboratoriyasida amaliyot.',
+  'learn.pathway.vrNeutralization.context':
+    'Neytrallash: kislota + asos → tuz + suv. HCl + NaOH → NaCl + H₂O.',
+  'learn.pathway.vrNeutralization.q1': 'HCl + NaOH mahsulotlari?',
+  'learn.pathway.vrNeutralization.q1a': 'NaCl va H₂O',
+  'learn.pathway.vrNeutralization.q1b': 'Faqat NaCl',
+  'learn.pathway.vrNeutralization.q1c': 'Cl₂ va H₂',
+  'learn.pathway.vrNeutralization.protocol':
+    'VR laboratoriyani oching, HCl va NaOH ni reaktorga quying. Qaytib keling — progress sinxronlanadi.',
+  'learn.pathway.vrNeutralization.openVr': 'VR laboratoriyani ochish',
+  'learn.pathway.vrNeutralization.openedLab': 'VR laboratoriya ochildi',
+  'learn.pathway.vrNeutralization.practiceDone': 'HCl + NaOH VR da bajarildi',
+  'learn.pathway.vrNeutralization.summary':
+    'VR neytrallashuv yo\'lini tugatdingiz. VR katalogidagi boshqa reaksiyalarni sinab ko\'ring.',
 }

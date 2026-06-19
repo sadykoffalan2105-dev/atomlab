@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { VrLabBenchState } from './types'
+import { findCuratedReaction } from './reactions/curatedReactions'
 import {
   playVrLabCombineSound,
   playVrLabPourSound,
@@ -21,9 +22,11 @@ export function useVrLabSoundFx(state: VrLabBenchState) {
       playVrLabCombineSound()
     }
     if (phase === 'reacting' && prev !== 'reacting' && state.lastMix) {
-      playVrLabReactionSound(state.lastMix.effect, state.lastMix.heat)
+      const pair = state.lastReactionPair
+      const curated = pair ? findCuratedReaction(pair.a, pair.b) : null
+      playVrLabReactionSound(state.lastMix.effect, state.lastMix.heat, curated?.id)
     }
 
     prevPhase.current = phase
-  }, [state.animPhase, state.lastMix])
+  }, [state.animPhase, state.lastMix, state.lastReactionPair])
 }

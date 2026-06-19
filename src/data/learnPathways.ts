@@ -1,4 +1,5 @@
 import type { LearnPathwayDef } from '../types/learnPathway'
+import { buildVrLabUrl } from '../vrLab/lessons/vrLabLearnBridge'
 
 export const LEARN_PATHWAY_STEPS_ORDER = [
   'context',
@@ -33,13 +34,41 @@ export const PATHWAY_H2O_SYNTHESIS: LearnPathwayDef = {
   ],
 }
 
-export const LEARN_PATHWAYS: readonly LearnPathwayDef[] = [PATHWAY_H2O_SYNTHESIS]
+export const PATHWAY_VR_NEUTRALIZATION: LearnPathwayDef = {
+  id: 'vr-neutralization',
+  kind: 'vr',
+  titleKey: 'learn.pathway.vrNeutralization.title',
+  leadKey: 'learn.pathway.vrNeutralization.lead',
+  accentColor: '#22d3ee',
+  gradeId: 'g8',
+  chapterId: 'c2',
+  sectionId: 's03',
+  productCompoundId: 'nacl',
+  equationUnicode: 'HCl + NaOH → NaCl + H₂O',
+  estimatedMin: 12,
+  vrLessonId: 'vr-lesson-neutralization',
+  vrReactionId: 'neutralization_hcl_naoh',
+  steps: [
+    { id: 'context', taskCount: 1, titleKey: 'learn.pathway.step.context' },
+    { id: 'predictions', taskCount: 1, titleKey: 'learn.pathway.step.predictions' },
+    { id: 'protocol', taskCount: 2, titleKey: 'learn.pathway.step.protocol' },
+    { id: 'summary', taskCount: 1, titleKey: 'learn.pathway.step.summary' },
+  ],
+}
+
+export const LEARN_PATHWAYS: readonly LearnPathwayDef[] = [
+  PATHWAY_H2O_SYNTHESIS,
+  PATHWAY_VR_NEUTRALIZATION,
+]
 
 export function learnPathwayById(id: string): LearnPathwayDef | undefined {
   return LEARN_PATHWAYS.find((p) => p.id === id)
 }
 
 export function buildPathwayLabUrl(pathway: LearnPathwayDef): string {
+  if (pathway.kind === 'vr' && pathway.vrLessonId) {
+    return buildVrLabUrl(pathway.vrLessonId, pathway.vrReactionId, true)
+  }
   const params = new URLSearchParams()
   params.set('reactor', '1')
   params.set('genEq', '1')

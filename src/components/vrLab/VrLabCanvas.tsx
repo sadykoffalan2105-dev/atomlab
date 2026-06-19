@@ -24,6 +24,8 @@ import { VrLabEquipmentScene } from './VrLabEquipment'
 import { VrLabBeaker } from './VrLabGlassware'
 import { VrLabPhysicsWorld } from './VrLabPhysicsWorld'
 import { VrLabPourBridge } from './VrLabPourBridge'
+import { resolveReactionVfx } from '../../vrLab/reactions/effectPresets'
+import { ReactionGodRays } from './vfx/ReactionGodRays'
 import { VrLabReactionVfx } from './VrLabReactionVfx'
 import { VrLabPracticeMissionRing } from './education/VrLabPracticeMissionRing'
 import { VrLabSceneDriver } from './VrLabSceneDriver'
@@ -80,6 +82,18 @@ function BenchScene({
         ? 0.72
         : 0
   const busy = bench.animPhase !== 'idle'
+
+  const reactionVfx = useMemo(
+    () =>
+      resolveReactionVfx(
+        bench.lastMix,
+        vfxProgress,
+        bench.animPhase,
+        bench.mixing,
+        bench.lastReactionPair,
+      ),
+    [bench.animPhase, bench.lastMix, bench.lastReactionPair, bench.mixing, vfxProgress],
+  )
 
   const labelStyle = useMemo(
     () => ({
@@ -188,6 +202,13 @@ function BenchScene({
         progress={vfxProgress}
         position={[VAT_POSITION[0], 0.12, VAT_POSITION[2]]}
         reactionPair={bench.lastReactionPair}
+      />
+
+      <ReactionGodRays
+        active={vfxActive}
+        intensity={reactionVfx?.heatGlow ?? 0}
+        color={reactionVfx?.preset.emissiveColor ?? VR_THEME.cyan}
+        position={[VAT_POSITION[0], 0.12, VAT_POSITION[2]]}
       />
 
       {perf.shadows ? (

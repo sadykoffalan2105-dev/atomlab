@@ -81,4 +81,21 @@ export const learnPathwayRu = {
   'learn.pathway.summary.badge': 'Синтез воды',
   'learn.pathway.summary.toGrade': 'К темам 7 класса',
   'learn.pathway.summary.toLab': 'Ещё раз в реакторе',
+
+  'learn.pathway.vrNeutralization.title': 'VR: нейтрализация HCl + NaOH',
+  'learn.pathway.vrNeutralization.lead':
+    'Теория → прогноз → практика в 3D VR лаборатории ATOMLAB. Наблюдайте тепло, пар и образование NaCl.',
+  'learn.pathway.vrNeutralization.context':
+    'Нейтрализация — реакция кислоты и основания с образованием соли и воды. HCl + NaOH → NaCl + H₂O. Реакция экзотермическая.',
+  'learn.pathway.vrNeutralization.q1': 'Что образуется при нейтрализации HCl и NaOH?',
+  'learn.pathway.vrNeutralization.q1a': 'NaCl и H₂O',
+  'learn.pathway.vrNeutralization.q1b': 'Только NaCl',
+  'learn.pathway.vrNeutralization.q1c': 'Cl₂ и H₂',
+  'learn.pathway.vrNeutralization.protocol':
+    'Откройте VR лабораторию, налейте HCl и NaOH в реактор и выполните реакцию. Вернитесь сюда — прогресс подтянется автоматически.',
+  'learn.pathway.vrNeutralization.openVr': 'Открыть VR лабораторию',
+  'learn.pathway.vrNeutralization.openedLab': 'VR лаборатория открыта',
+  'learn.pathway.vrNeutralization.practiceDone': 'Реакция HCl + NaOH выполнена в VR',
+  'learn.pathway.vrNeutralization.summary':
+    'Вы прошли VR-путь нейтрализации. Попробуйте другие реакции в каталоге VR lab.',
 } as const

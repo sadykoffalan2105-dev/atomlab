@@ -13,6 +13,7 @@ import type { LearnPathwayStepId } from '../../../types/learnPathway'
 import { useT } from '../../../i18n/useT'
 import { LearnPathwaySidebar } from './LearnPathwaySidebar'
 import { renderPathwayStep } from './LearnPathwaySteps'
+import { renderVrPathwayStep } from './VrPathwaySteps'
 import styles from './LearnPathway.module.css'
 
 const STEP_ORDER: LearnPathwayStepId[] = [
@@ -40,24 +41,32 @@ export function LearnPathwayRunner() {
     setProgress(readPathwayProgress(pathwayId))
   }, [pathwayId])
 
+  const stepOrder = useMemo(
+    () => (pathway ? pathway.steps.map((s) => s.id) : STEP_ORDER),
+    [pathway],
+  )
+
   const currentStepId: LearnPathwayStepId = useMemo(() => {
-    if (stepParam && STEP_ORDER.includes(stepParam as LearnPathwayStepId)) {
+    if (stepParam && stepOrder.includes(stepParam as LearnPathwayStepId)) {
       return stepParam as LearnPathwayStepId
     }
-    return progress.currentStep
-  }, [stepParam, progress.currentStep])
+    const fallback = (pathway?.steps[0]?.id ?? 'context') as LearnPathwayStepId
+    return progress.currentStep && stepOrder.includes(progress.currentStep)
+      ? progress.currentStep
+      : fallback
+  }, [stepParam, progress.currentStep, stepOrder, pathway?.steps])
 
   useEffect(() => {
     if (!pathwayId || !pathway) return
-    if (stepParam && STEP_ORDER.includes(stepParam as LearnPathwayStepId)) {
+    if (stepParam && stepOrder.includes(stepParam as LearnPathwayStepId)) {
       if (progress.currentStep !== stepParam) {
         const next = setPathwayCurrentStep(pathwayId, stepParam as LearnPathwayStepId)
         setProgress(next)
       }
     } else if (!stepParam) {
-      navigate(`/learn/pathway/${pathwayId}/${progress.currentStep}`, { replace: true })
+      navigate(`/learn/pathway/${pathwayId}/${currentStepId}`, { replace: true })
     }
-  }, [pathwayId, pathway, stepParam, progress.currentStep, navigate])
+  }, [pathwayId, pathway, stepParam, progress.currentStep, navigate, stepOrder, currentStepId])
 
   const stepDef = pathway?.steps.find((s) => s.id === currentStepId)
   const stepProgress = progress.steps[currentStepId]
@@ -85,19 +94,19 @@ export function LearnPathwayRunner() {
     [pathwayId, stepDef, currentStepId],
   )
 
-  const stepIndex = STEP_ORDER.indexOf(currentStepId)
+  const stepIndex = stepOrder.indexOf(currentStepId)
   const canNext = stepComplete || (stepDef && doneOnStep >= stepDef.taskCount)
 
   const onNext = () => {
-    if (stepIndex < STEP_ORDER.length - 1) {
-      goStep(STEP_ORDER[stepIndex + 1]!)
+    if (stepIndex < stepOrder.length - 1) {
+      goStep(stepOrder[stepIndex + 1]!)
     } else if (pathwayId) {
       setProgress(completePathway(pathwayId))
     }
   }
 
   const onPrev = () => {
-    if (stepIndex > 0) goStep(STEP_ORDER[stepIndex - 1]!)
+    if (stepIndex > 0) goStep(stepOrder[stepIndex - 1]!)
   }
 
   if (!pathway || !pathwayId) {
@@ -137,11 +146,17 @@ export function LearnPathwayRunner() {
           </h1>
         </header>
         <div className={styles.mainBody}>
-          {renderPathwayStep(currentStepId, {
-            pathway,
-            done: doneOnStep,
-            onProgress,
-          })}
+          {pathway.kind === 'vr'
+            ? renderVrPathwayStep(currentStepId, {
+                pathway,
+                done: doneOnStep,
+                onProgress,
+              })
+            : renderPathwayStep(currentStepId, {
+                pathway,
+                done: doneOnStep,
+                onProgress,
+              })}
         </div>
         <footer className={styles.mainFooter}>
           <button
@@ -152,7 +167,7 @@ export function LearnPathwayRunner() {
           >
             {t('learn.pathway.nav.prev')}
           </button>
-          {stepIndex < STEP_ORDER.length - 1 ? (
+          {stepIndex < stepOrder.length - 1 ? (
             <button
               type="button"
               className={styles.btnPrimary}

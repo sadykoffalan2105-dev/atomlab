@@ -10,9 +10,10 @@ export function syncVrPracticeToLearn(vrLessonId: string): void {
   markLessonCompleted(vrLabLearnLessonId(vrLessonId))
 }
 
-export function buildVrLabUrl(lessonId: string, reactionId?: string): string {
+export function buildVrLabUrl(lessonId: string, reactionId?: string, fromLearn = false): string {
   const params = new URLSearchParams()
   params.set('lesson', lessonId)
   if (reactionId) params.set('reaction', reactionId)
+  if (fromLearn) params.set('from', 'learn')
   return `/#/vr-lab?${params.toString()}`
 }

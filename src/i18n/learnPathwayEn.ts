@@ -82,4 +82,21 @@ export const learnPathwayEn: Record<keyof typeof learnPathwayRu, string> = {
   'learn.pathway.summary.badge': 'Water synthesis',
   'learn.pathway.summary.toGrade': 'Grade 7 topics',
   'learn.pathway.summary.toLab': 'Reactor again',
+
+  'learn.pathway.vrNeutralization.title': 'VR: HCl + NaOH neutralization',
+  'learn.pathway.vrNeutralization.lead':
+    'Theory → prediction → practice in the ATOMLAB 3D VR lab. Observe heat, steam, and NaCl formation.',
+  'learn.pathway.vrNeutralization.context':
+    'Neutralization: acid + base → salt + water. HCl + NaOH → NaCl + H₂O. Exothermic reaction.',
+  'learn.pathway.vrNeutralization.q1': 'Products of HCl + NaOH neutralization?',
+  'learn.pathway.vrNeutralization.q1a': 'NaCl and H₂O',
+  'learn.pathway.vrNeutralization.q1b': 'NaCl only',
+  'learn.pathway.vrNeutralization.q1c': 'Cl₂ and H₂',
+  'learn.pathway.vrNeutralization.protocol':
+    'Open the VR lab, pour HCl and NaOH into the reactor, and run the reaction. Return here — progress syncs automatically.',
+  'learn.pathway.vrNeutralization.openVr': 'Open VR laboratory',
+  'learn.pathway.vrNeutralization.openedLab': 'VR lab opened',
+  'learn.pathway.vrNeutralization.practiceDone': 'HCl + NaOH reaction completed in VR',
+  'learn.pathway.vrNeutralization.summary':
+    'You completed the VR neutralization pathway. Try more reactions in the VR catalog.',
 }

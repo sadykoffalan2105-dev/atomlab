@@ -17,6 +17,8 @@ export type LearnPathwayStepDef = {
   titleKey: MessageKey
 }
 
+export type LearnPathwayKind = 'reactor' | 'vr'
+
 export type LearnPathwayDef = {
   id: string
   titleKey: MessageKey
@@ -29,4 +31,8 @@ export type LearnPathwayDef = {
   equationUnicode: string
   steps: readonly LearnPathwayStepDef[]
   estimatedMin: number
+  /** reactor — классический реактор; vr — VR 3D лаборатория */
+  kind?: LearnPathwayKind
+  vrLessonId?: string
+  vrReactionId?: string
 }

@@ -1,3 +1,4 @@
+import type { CuratedReactionId } from './reactions/curatedReactions'
 import type { VrLabReactionEffect } from './types'
 
 let ctx: AudioContext | null = null
@@ -38,7 +39,7 @@ function tone(
   osc.stop(t0 + duration + 0.05)
 }
 
-function noiseBurst(duration: number, volume = 0.04) {
+function noiseBurst(duration: number, volume = 0.04, filterHz = 900) {
   const ac = audioContext()
   if (!ac) return
 
@@ -54,7 +55,7 @@ function noiseBurst(duration: number, volume = 0.04) {
   const gain = ac.createGain()
   const filter = ac.createBiquadFilter()
   filter.type = 'bandpass'
-  filter.frequency.value = 900
+  filter.frequency.value = filterHz
   filter.Q.value = 0.6
 
   gain.gain.value = volume
@@ -62,6 +63,23 @@ function noiseBurst(duration: number, volume = 0.04) {
   filter.connect(gain)
   gain.connect(ac.destination)
   src.start()
+}
+
+function fizzBurst(heat: number) {
+  noiseBurst(0.38, 0.055 * heat, 1200)
+  tone(640, 0.12, 'square', 0.022)
+  tone(480, 0.18, 'triangle', 0.018, 30)
+}
+
+function steamHiss(heat: number) {
+  noiseBurst(0.28, 0.04 * heat, 700)
+  tone(260, 0.24, 'sine', 0.045 * heat)
+  tone(180, 0.32, 'sine', 0.028 * heat, -20)
+}
+
+function chimePing() {
+  tone(720, 0.18, 'sine', 0.035)
+  tone(960, 0.14, 'triangle', 0.022, 12)
 }
 
 export function setVrLabSoundMuted(value: boolean) {
@@ -77,25 +95,72 @@ export function playVrLabPourSound() {
   tone(780, 0.14, 'triangle', 0.035, 40)
 }
 
-export function playVrLabReactionSound(effect: VrLabReactionEffect, heat: number) {
+export function playVrLabCuratedReactionSound(reactionId: CuratedReactionId, heat: number) {
+  const h = Math.max(0.2, heat)
+
+  switch (reactionId) {
+    case 'gas_co2_carbonate':
+    case 'gas_h2o2_catalysis':
+    case 'gas_co2_water':
+      fizzBurst(h)
+      return
+    case 'gas_nh3_hcl':
+      noiseBurst(0.22, 0.03, 1400)
+      chimePing()
+      return
+    case 'hydration_cao':
+      steamHiss(h * 1.15)
+      tone(140, 0.28, 'sine', 0.04)
+      return
+    case 'color_cuo_h2so4':
+      tone(520, 0.2, 'sine', 0.04)
+      tone(780, 0.16, 'triangle', 0.025)
+      return
+    case 'color_fe2o3_hcl':
+      tone(380, 0.22, 'triangle', 0.038)
+      return
+    case 'neutralization_h2so4_naoh':
+      steamHiss(h * 1.2)
+      return
+    case 'neutralization_hcl_naoh':
+    case 'neutralization_hcl_koh':
+      steamHiss(h)
+      return
+    default:
+      break
+  }
+}
+
+export function playVrLabReactionSound(
+  effect: VrLabReactionEffect,
+  heat: number,
+  curatedId?: CuratedReactionId | null,
+) {
+  if (curatedId) {
+    playVrLabCuratedReactionSound(curatedId, heat)
+    return
+  }
+
   const h = Math.max(0.2, heat)
 
   if (effect === 'gasEvolution') {
-    noiseBurst(0.35, 0.05 * h)
-    tone(420, 0.2, 'square', 0.025)
+    fizzBurst(h)
     return
   }
 
   if (effect === 'neutralization' || effect === 'hydration' || effect === 'exothermic') {
-    noiseBurst(0.25, 0.035 * h)
-    tone(280, 0.22, 'sine', 0.05 * h)
-    tone(190, 0.3, 'sine', 0.03 * h, -20)
+    steamHiss(h)
     return
   }
 
   if (effect === 'combustion') {
-    noiseBurst(0.45, 0.06)
+    noiseBurst(0.45, 0.06, 500)
     tone(160, 0.35, 'sawtooth', 0.03)
+    return
+  }
+
+  if (effect === 'colorShift') {
+    chimePing()
     return
   }
 
