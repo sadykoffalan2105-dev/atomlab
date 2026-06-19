@@ -7,6 +7,7 @@ type Props = {
   from: [number, number, number]
   to: [number, number, number]
   progress: number
+  flowRate?: number
   arc?: number
   radius?: number
 }

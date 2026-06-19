@@ -3,7 +3,7 @@ import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useCallback, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { compoundById } from '../../data/compounds'
-import { canPourFromTilt } from '../../vrLab/physics/PourSolver'
+import { canPourFromTilt, computePourFlow } from '../../vrLab/physics/PourSolver'
 import type { VrLabShelfFlask } from '../../vrLab/types'
 import { isNearVat, SHELF_SLOT_POSITIONS, SHELF_Y, SHELF_Z, VAT_POSITION } from '../../vrLab/vrLabShelfLayout'
 import { VrLabPourBridge } from './VrLabPourBridge'
@@ -204,6 +204,11 @@ function DraggableShelfFlask({
   const showStreamPreview =
     grab?.streamingId === flask.id && !pourActive && !busy && visual
 
+  const pourFlow =
+    grab && flask.content
+      ? computePourFlow(grab.tilt, fill, flask.content.viscosity ?? 0.35)
+      : 0
+
   const practiceMatch =
     practiceTarget &&
     flask.content?.compoundId &&
@@ -211,11 +216,12 @@ function DraggableShelfFlask({
 
   return (
     <>
-      {showStreamPreview && visual ? (
+      {showStreamPreview && visual && pourFlow > 0.02 ? (
         <VrLabPourBridge
           flask={{ ...flask, position: [livePos.current.x, livePos.current.y, livePos.current.z] }}
           target={VAT_POSITION}
           progress={Math.max(0.35, grab?.tilt ?? 0.5)}
+          flowRate={pourFlow}
           compoundId={flask.content?.compoundId ?? null}
         />
       ) : null}

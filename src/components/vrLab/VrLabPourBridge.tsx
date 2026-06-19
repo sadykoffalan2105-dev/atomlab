@@ -22,11 +22,13 @@ export function VrLabPourBridge({
   target,
   progress,
   compoundId,
+  flowRate,
 }: {
   flask: VrLabShelfFlask | undefined
   target: [number, number, number]
   progress: number
   compoundId: string | null
+  flowRate?: number
 }) {
   const visual = useMemo(
     () => resolvePourVisual(flask, compoundId),
@@ -57,6 +59,7 @@ export function VrLabPourBridge({
       from={from}
       to={to}
       progress={progress}
+      flowRate={flowRate}
       arc={0.14}
       radius={0.011}
     />

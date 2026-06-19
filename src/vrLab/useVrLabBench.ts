@@ -179,7 +179,7 @@ export function useVrLabBench() {
             const lessonId = stateRef.current.activeLessonId
             if (lessonId) {
               const curated = findCuratedReaction(a.compoundId, b.compoundId)
-              if (curated?.lessonId === lessonId) markPracticeDone(lessonId)
+              if (curated?.lessonId === lessonId) markPracticeDone(lessonId, curated.id)
             }
             setState((cur) => ({
               ...cur,

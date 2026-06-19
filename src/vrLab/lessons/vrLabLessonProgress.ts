@@ -1,3 +1,7 @@
+import type { CuratedReactionId } from '../reactions/curatedReactions'
+import { CURATED_REACTIONS } from '../reactions/curatedReactions'
+import { syncVrPracticeToLearn } from './vrLabLearnBridge'
+import { VR_LAB_LESSONS } from './vrLabLessonModules'
 import type { LessonProgress } from './types'
 
 const STORAGE_KEY = 'atomlab.vrLab.lessonProgress'
@@ -19,15 +23,25 @@ function writeAll(data: Record<string, LessonProgress>) {
 
 export function readLessonProgress(lessonId: string): LessonProgress {
   const all = readAll()
-  return (
-    all[lessonId] ?? {
+  const raw = all[lessonId]
+  if (!raw) {
+    return {
       lessonId,
       theoryDone: false,
       quizScore: 0,
       quizPassed: false,
       practiceDone: false,
+      completedReactionIds: [],
     }
-  )
+  }
+  return {
+    ...raw,
+    completedReactionIds: raw.completedReactionIds ?? [],
+  }
+}
+
+export function isReactionCompleted(lessonId: string, reactionId: string): boolean {
+  return readLessonProgress(lessonId).completedReactionIds.includes(reactionId)
 }
 
 export function markTheoryDone(lessonId: string): LessonProgress {
@@ -48,17 +62,44 @@ export function markQuizResult(lessonId: string, score: number, passed: boolean)
   return next
 }
 
-export function markPracticeDone(lessonId: string): LessonProgress {
+export function markPracticeDone(lessonId: string, reactionId?: CuratedReactionId): LessonProgress {
   const all = readAll()
   const cur = readLessonProgress(lessonId)
+  const reactions = reactionId
+    ? [...new Set([...cur.completedReactionIds, reactionId])]
+    : cur.completedReactionIds
   const next = {
     ...cur,
     practiceDone: true,
-    completedAt: new Date().toISOString(),
+    completedReactionIds: reactions,
+    completedAt: cur.completedAt ?? new Date().toISOString(),
   }
   all[lessonId] = next
   writeAll(all)
+  syncVrPracticeToLearn(lessonId)
   return next
+}
+
+export function vrLabLessonSummary(): {
+  lessonsDone: number
+  reactionsDone: number
+  lessonTotal: number
+  reactionTotal: number
+} {
+  const all = readAll()
+  let lessonsDone = 0
+  let reactionsDone = 0
+  for (const lesson of VR_LAB_LESSONS) {
+    const p = all[lesson.id] ?? readLessonProgress(lesson.id)
+    if (p.practiceDone) lessonsDone++
+    reactionsDone += p.completedReactionIds.length
+  }
+  return {
+    lessonsDone,
+    reactionsDone,
+    lessonTotal: VR_LAB_LESSONS.length,
+    reactionTotal: CURATED_REACTIONS.length,
+  }
 }
 
 export function isLessonPracticeUnlocked(lessonId: string): boolean {

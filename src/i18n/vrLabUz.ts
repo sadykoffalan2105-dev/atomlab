@@ -55,6 +55,13 @@ export const vrLabUz: Record<keyof typeof vrLabRu, string> = {
   'vrLab.stats.tier.high': 'Kino-grafika',
   'vrLab.stats.tier.medium': 'O\'rtacha sifat',
   'vrLab.stats.tier.low': 'Tejamkor rejim',
+  'vrLab.stats.curated': 'Tajribalar: {done}/{total}',
+
+  'vrLab.catalog.kicker': '10 asosiy reaksiya',
+  'vrLab.catalog.title': 'Tajribalar katalogi',
+  'vrLab.catalog.lead': 'Reagent juftini tanlang — kolbalar yoritiladi, birinchi reagent avtomatik quyiladi.',
+  'vrLab.catalog.try': 'Sinab ko\'rish',
+  'vrLab.catalog.done': '✓',
 
   'vrLab.lesson.kicker': 'O\'qish · Nazariya → Test → Amaliyot',
   'vrLab.lesson.phase.theory': 'Nazariya',

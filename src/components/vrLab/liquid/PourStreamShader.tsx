@@ -88,6 +88,8 @@ type Props = {
   from: [number, number, number]
   to: [number, number, number]
   progress: number
+  /** Скорость потока 0..1 от computePourFlow; при наличии заменяет progress для визуала. */
+  flowRate?: number
   arc?: number
   radius?: number
 }
@@ -99,12 +101,14 @@ export function PourStreamShader({
   from,
   to,
   progress,
+  flowRate,
   arc = 0.12,
   radius = 0.013,
 }: Props) {
   const matRef = useRef<THREE.ShaderMaterial>(null)
   const dropRef = useRef<THREE.Mesh>(null)
-  const t = clamp01(progress)
+  const streamT = flowRate != null ? clamp01(flowRate) : clamp01(progress)
+  const t = streamT
 
   const geometry = useMemo(() => buildRibbonGeometry(), [])
 
@@ -124,8 +128,10 @@ export function PourStreamShader({
   )
 
   useFrame(() => {
-    if (!active || t >= 1 || t <= 0.01) return
-    const eased = easeOutCubic(t)
+    if (!active) return
+    const eased = flowRate != null ? clamp01(0.12 + streamT * 0.88) : easeOutCubic(t)
+    if (flowRate != null && streamT < 0.02) return
+    if (flowRate == null && (t >= 1 || t <= 0.01)) return
 
     if (matRef.current) {
       matRef.current.uniforms.uProgress.value = Math.max(0.08, eased)
@@ -134,7 +140,10 @@ export function PourStreamShader({
       matRef.current.uniforms.uFrom.value.copy(FROM)
       matRef.current.uniforms.uTo.value.copy(TO)
       matRef.current.uniforms.uArc.value = arc
-      matRef.current.uniforms.uOpacity.value = visual.opacity * (0.92 - eased * 0.15)
+      const flowMul = flowRate != null ? 0.55 + streamT * 0.65 : 1
+      matRef.current.uniforms.uWidth.value = radius * 1.8 * flowMul
+      matRef.current.uniforms.uOpacity.value =
+        visual.opacity * (flowRate != null ? 0.45 + streamT * 0.5 : 0.92 - eased * 0.15)
     }
 
     if (dropRef.current) {
@@ -148,7 +157,9 @@ export function PourStreamShader({
     }
   })
 
-  if (!active || t >= 1 || t <= 0.01) return null
+  if (!active) return null
+  if (flowRate == null && (t >= 1 || t <= 0.01)) return null
+  if (flowRate != null && streamT < 0.02) return null
 
   return (
     <group>

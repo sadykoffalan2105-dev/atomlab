@@ -55,6 +55,13 @@ export const vrLabEn: Record<keyof typeof vrLabRu, string> = {
   'vrLab.stats.tier.high': 'Cinematic',
   'vrLab.stats.tier.medium': 'Medium quality',
   'vrLab.stats.tier.low': 'Performance mode',
+  'vrLab.stats.curated': 'Experiments: {done}/{total}',
+
+  'vrLab.catalog.kicker': '10 key reactions',
+  'vrLab.catalog.title': 'Experiment catalog',
+  'vrLab.catalog.lead': 'Pick a reagent pair — flasks highlight and the first reagent auto-fills.',
+  'vrLab.catalog.try': 'Try it',
+  'vrLab.catalog.done': '✓',
 
   'vrLab.lesson.kicker': 'Learning · Theory → Quiz → Practice',
   'vrLab.lesson.phase.theory': 'Theory',

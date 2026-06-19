@@ -54,6 +54,13 @@ export const vrLabRu = {
   'vrLab.stats.tier.high': 'Кино-графика',
   'vrLab.stats.tier.medium': 'Среднее качество',
   'vrLab.stats.tier.low': 'Экономный режим',
+  'vrLab.stats.curated': 'Опыты: {done}/{total}',
+
+  'vrLab.catalog.kicker': '10 ключевых реакций',
+  'vrLab.catalog.title': 'Каталог опытов',
+  'vrLab.catalog.lead': 'Выберите пару реагентов — колбы подсветятся, первый реагент нальётся автоматически.',
+  'vrLab.catalog.try': 'Попробовать',
+  'vrLab.catalog.done': '✓',
 
   'vrLab.lesson.kicker': 'Обучение · Theory → Quiz → Practice',
   'vrLab.lesson.phase.theory': 'Теория',

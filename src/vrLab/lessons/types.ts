@@ -25,5 +25,7 @@ export type LessonProgress = {
   quizScore: number
   quizPassed: boolean
   practiceDone: boolean
+  /** Выполненные curated-реакции в рамках урока. */
+  completedReactionIds: string[]
   completedAt?: string
 }

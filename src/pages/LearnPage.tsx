@@ -52,6 +52,9 @@ function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
         <Link className={styles.btn} to="/learn/teacher">
           {t('learn.teacher.linkGrades')}
         </Link>
+        <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/vr-lab?from=learn">
+          {t('learn.vrLab.open')}
+        </Link>
         {resume?.sectionId ? (
           <Link
             className={styles.resumeLink}
@@ -61,6 +64,18 @@ function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
           </Link>
         ) : null}
       </ToolRow>
+      <Link
+        to="/vr-lab?from=learn"
+        className={styles.topicCard}
+        style={{ ['--learn-accent' as string]: '#22d3ee', marginBottom: '0.85rem' }}
+      >
+        <div className={styles.topicCardVisual} aria-hidden />
+        <h2 className={styles.topicCardTitle}>{t('learn.vrLab.title')}</h2>
+        <p className={styles.topicCardSummary}>{t('learn.vrLab.lead')}</p>
+        <span className={styles.btn} style={{ marginTop: '0.65rem', width: 'fit-content' }}>
+          {t('learn.vrLab.open')}
+        </span>
+      </Link>
       <div className={styles.topicGrid}>
         {LEARN_GRADES.map((grade) => {
           const sectionIds = grade.chapters.flatMap((c) =>

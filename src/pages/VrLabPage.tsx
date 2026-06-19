@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { VrLabLessonPanel } from '../components/vrLab/education/VrLabLessonPanel'
+import { VrLabReactionCatalog } from '../components/vrLab/education/VrLabReactionCatalog'
 import { VrLabCanvasShell } from '../components/vrLab/VrLabCanvas'
 import { VrLabSubstancePicker } from '../components/vrLab/VrLabSubstancePicker'
 import { detectVrLabQuality, webglSupported, type VrLabQualityTier } from '../components/vrLab/vrLabPerformance'
 import { useVrLabSoundFx } from '../vrLab/useVrLabSoundFx'
 import { canAutoMix } from '../vrLab/vrLabAutoMix'
-import { readLessonProgress } from '../vrLab/lessons/vrLabLessonProgress'
+import { readLessonProgress, vrLabLessonSummary } from '../vrLab/lessons/vrLabLessonProgress'
 import { vrLabLessonById } from '../vrLab/lessons/vrLabLessonModules'
+import { curatedReactionById, type CuratedReactionId } from '../vrLab/reactions/curatedReactions'
 import { compoundById } from '../data/compounds'
 import { useT, type MessageKey } from '../i18n/useT'
 import { VR_LAB_PALETTE } from '../vrLab/colorPalette'
@@ -44,9 +46,21 @@ export function VrLabPage() {
   const [practiceTarget, setPracticeTarget] = useState<{ a: string; b: string } | null>(null)
 
   const lessonIdFromUrl = searchParams.get('lesson')
+  const reactionIdFromUrl = searchParams.get('reaction')
+  const fromLearn = searchParams.get('from') === 'learn'
+
   useEffect(() => {
     if (lessonIdFromUrl) setActiveLesson(lessonIdFromUrl)
   }, [lessonIdFromUrl, setActiveLesson])
+
+  useEffect(() => {
+    if (!reactionIdFromUrl) return
+    const r = curatedReactionById(reactionIdFromUrl as CuratedReactionId)
+    if (!r) return
+    setActiveLesson(r.lessonId)
+    setPracticeTarget({ a: r.a, b: r.b })
+    setPickId(r.a)
+  }, [reactionIdFromUrl, setActiveLesson])
 
   const activeLessonId = state.activeLessonId ?? lessonIdFromUrl ?? 'vr-lesson-neutralization'
   const lessonProgress = useMemo(
@@ -97,6 +111,26 @@ export function VrLabPage() {
   const onCanvasReady = useCallback(() => setCanvasState('ready'), [])
   const onCanvasFail = useCallback(() => setCanvasState('error'), [])
 
+  const labSummary = useMemo(
+    () => vrLabLessonSummary(),
+    [practiceTick, state.lastMix],
+  )
+
+  const startReactionPractice = useCallback(
+    (lessonId: string, compoundA: string, compoundB: string) => {
+      setActiveLesson(lessonId)
+      setPracticeTarget({ a: compoundA, b: compoundB })
+      setPickId(compoundA)
+      const empty = state.shelfFlasks.find((f) => !f.content)
+      if (empty) {
+        selectShelfFlask(empty.id)
+        requestAnimationFrame(() => fillSelectedFlask(compoundA))
+      }
+      setPracticeTick((n) => n + 1)
+    },
+    [fillSelectedFlask, selectShelfFlask, setActiveLesson, state.shelfFlasks],
+  )
+
   const activeLesson = vrLabLessonById(activeLessonId)
   const practiceMissionText = activeLesson
     ? t(activeLesson.practiceMissionKey as MessageKey)
@@ -111,8 +145,8 @@ export function VrLabPage() {
     <div className={styles.wrap}>
       <header className={styles.header}>
         <div>
-          <Link className={styles.backLink} to="/">
-            {t('vrLab.backLab')}
+          <Link className={styles.backLink} to={fromLearn ? '/learn' : '/'}>
+            {fromLearn ? t('learn.vrLab.backLearn') : t('vrLab.backLab')}
           </Link>
           <h1 className={styles.h}>{t('vrLab.title')}</h1>
           <p className={styles.lead}>{t('vrLab.lead')}</p>
@@ -120,6 +154,12 @@ export function VrLabPage() {
         <div className={styles.meta}>
           <span className={styles.chip}>{t('vrLab.stats.reactions', { n: vrLabReactionCount() })}</span>
           <span className={styles.chip}>{t('vrLab.stats.colors', { n: VR_LAB_PALETTE.length })}</span>
+          <span className={styles.chip}>
+            {t('vrLab.stats.curated', {
+              done: labSummary.reactionsDone,
+              total: labSummary.reactionTotal,
+            })}
+          </span>
           <span className={styles.chip}>{t(TIER_LABEL[qualityTier])}</span>
         </div>
       </header>
@@ -252,17 +292,11 @@ export function VrLabPage() {
           onSelectLesson={setActiveLesson}
           practiceDone={lessonProgress.practiceDone}
           onStartPractice={(id, compoundA, compoundB) => {
-            setActiveLesson(id)
-            setPracticeTarget({ a: compoundA, b: compoundB })
-            setPickId(compoundA)
-            const empty = state.shelfFlasks.find((f) => !f.content)
-            if (empty) {
-              selectShelfFlask(empty.id)
-              requestAnimationFrame(() => fillSelectedFlask(compoundA))
-            }
-            setPracticeTick((n) => n + 1)
+            startReactionPractice(id, compoundA, compoundB)
           }}
         />
+
+        <VrLabReactionCatalog onTryReaction={startReactionPractice} />
 
         <div className={styles.pickerWrap}>
           <VrLabSubstancePicker

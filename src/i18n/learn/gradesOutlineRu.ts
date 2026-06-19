@@ -4,6 +4,10 @@ export const learnGradesOutlineRu = {
   'learn.grades.lead':
     'Курс химии 7–9 класс (ФГОС, базовый уровень): параграфы по программе, 3D-модели, задачи, кабинет учителя и ИИ-наставник.',
   'learn.grades.tasks': 'Задачи и тренажёр',
+  'learn.vrLab.title': 'VR 3D лаборатория',
+  'learn.vrLab.lead': '10 реакций с Theory → Quiz → Practice в интерактивной 3D-сцене.',
+  'learn.vrLab.open': 'Открыть VR лабораторию',
+  'learn.vrLab.backLearn': '← К обучению',
   'learn.backGrades': '← К классам',
   'learn.backChapters': '← К главам',
   'learn.chaptersTitle': 'Главы учебника',
