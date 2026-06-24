@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
-import { assertPreviewElectronAnimation } from '../../lab/reactorPreviewGuarantee'
 import {
-  getReactorAtomRenderPolicy,
   getReactorPreviewPolicy,
   shouldRunGuardTick,
 } from '../../lab/synthesisLagGuard'
@@ -12,13 +10,16 @@ import {
   applyReactorPreviewLayout,
   createReactorPreviewVisibilityGuard,
 } from '../../lab/reactorPreviewVisibilityGuard'
-import { AtomStructureModel } from './AtomStructureModel'
+import { LightweightElementBall } from './LightweightElementBall'
 import { buildReactorPreviewAtoms, reactorPreviewAtomScale } from './reactorPreviewLayout'
 import { getReactorVisualTier, type ReactorVisualTier } from '../../chemistry/reactorVisualTier'
-import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 
-/** Кадры после смены коэффициентов — не дёргать layout/guard (refs ещё монтируются). */
-const LAYOUT_SETTLE_FRAMES = 8
+/**
+ * Кадры после смены коэффициентов — короткое окно, чтобы refs успели смонтироваться.
+ * Лёгкие шары монтируются дёшево, поэтому хватает 1–2 кадров; держим маленьким,
+ * чтобы атомы не «пропадали» при быстрой смене коэффициентов.
+ */
+const LAYOUT_SETTLE_FRAMES = 2
 
 /**
  * Превью реагентов: полная структура атома (протоны, нейтроны, электроны).
@@ -32,7 +33,7 @@ export function ReactorTermsPreview({
   sharedLighting = false,
   forceLite = false,
   qualityLevel,
-  synthesisGlass = false,
+  synthesisGlass: _synthesisGlass = false,
   visualTier: visualTierProp,
   atomGroupRefs: atomGroupRefsExternal,
   atomScaleGroupRefs: atomScaleGroupRefsExternal,
@@ -78,9 +79,6 @@ export function ReactorTermsPreview({
   const atomGroupRefs = atomGroupRefsExternal ?? atomGroupRefsLocal
   const atomScaleGroupRefs = atomScaleGroupRefsExternal ?? atomScaleGroupRefsLocal
   const scale = reactorPreviewAtomScale(n)
-  /** Полная Bohr-модель до порога; lite только при очень плотном превью / cluster. */
-  const useFullDetail =
-    visualTier === 'full' && n <= SYNTHESIS_PERF.fullDetailAtomThreshold && !forceLite
 
   const previewPolicy = useMemo(
     () =>
@@ -94,11 +92,7 @@ export function ReactorTermsPreview({
       }),
     [n, forceLite, qualityLevel, flightActive, visible, visualTier],
   )
-  const { electronAnimate, driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
-
-  useEffect(() => {
-    assertPreviewElectronAnimation(electronAnimate, n)
-  }, [electronAnimate, n])
+  const { driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
 
   /** Только расширяем массивы — не затираем refs после bind (гонка с SynthesisConvergeStreams). */
   useLayoutEffect(() => {
@@ -181,12 +175,6 @@ export function ReactorTermsPreview({
         </>
       ) : null}
       {previewAtoms.map((atom, i) => {
-        const atomPolicy = getReactorAtomRenderPolicy({
-          atomCount: n,
-          atomZ: atom.z,
-          forceLite,
-          qualityLevel,
-        })
         const termKey = termIds[atom.termIndex] ?? `t${atom.termIndex}`
         const [ax, ay, az] = atom.pos
         return (
@@ -208,18 +196,9 @@ export function ReactorTermsPreview({
                 }
               }}
             >
-              <AtomStructureModel
-                z={atom.z}
-                animate={electronAnimate}
-                previewStatic={false}
-                previewEmphasis
-                synthesisDetail={useFullDetail && !flightActive}
-                synthesisGlass={synthesisGlass && (flightActive || poseLocked)}
-                previewLite={!useFullDetail}
-                electronFrameSkip={flightActive ? Math.max(atomPolicy.electronFrameSkip, 2) : atomPolicy.electronFrameSkip}
-                hideOrbitRings={visualTier === 'cluster'}
-                localLight={!sharedLighting}
-              />
+              {/* Лёгкий CPK-шар вместо тяжёлой Bohr-модели: дешёвый монтаж/демонтаж,
+                  поэтому смена коэффициентов не лагает и атомы не исчезают. */}
+              <LightweightElementBall z={atom.z} radius={0.48} segments={n > 14 ? 10 : 14} />
             </group>
           </group>
         )

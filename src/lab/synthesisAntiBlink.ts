@@ -26,6 +26,8 @@ export type SynthesisContinuityInput = {
   forceProductSlot: boolean
   /** true — молекула уже отрисована, можно скрыть превью атомов */
   productRevealReady: boolean
+  /** true — меш молекулы реально отрисован ≥1 кадра на полном масштабе (first-paint latch). */
+  productPainted?: boolean
   stickyMountRef: MutableRefObject<SynthesisStickyMountRef | null>
   previewStickyRef: MutableRefObject<SynthesisPreviewStickyRef | null>
 }
@@ -58,6 +60,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     earlyProductReveal: _earlyProductReveal,
     forceProductSlot: _forceProductSlot,
     productRevealReady,
+    productPainted = false,
     stickyMountRef,
     previewStickyRef,
   } = input
@@ -112,10 +115,11 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   const holdVisualOverlap = synthLive
 
   /**
-   * Атомы держим на экране всю анимацию (полёт + вспышка) и скрываем ТОЛЬКО
-   * на фазе 'product', когда молекула уже отрисована. Это гарантирует, что в
-   * момент слияния всегда есть что показать — никакого чёрного кадра, пока
-   * тяжёлый меш молекулы компилируется на GPU.
+   * Превью атомов скрываем ТОЛЬКО когда меш молекулы реально отрисован
+   * (productPainted) — первый кадр продукта на полном масштабе. До этого
+   * атомы остаются на сцене, поэтому при мгновенном синтезе нет чёрного
+   * кадра, пока продукт впервые рисуется на GPU.
+   * Дополнительно держим атомы во время анимационных фаз (если они включены).
    */
   const midAnimation =
     synthesisPhase === 'ignite' ||
@@ -126,6 +130,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     synthLive &&
     productSlotVisible &&
     productRevealReady &&
+    productPainted &&
     !showSettledHero &&
     !midAnimation
 

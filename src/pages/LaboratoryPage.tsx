@@ -56,6 +56,19 @@ function newId(): string {
   return crypto.randomUUID()
 }
 
+/**
+ * Дебаунс значения: при быстрой смене коэффициентов 3D-превью пересобирается
+ * один раз после паузы ввода (числа в панели обновляются мгновенно через state).
+ */
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(value), delayMs)
+    return () => window.clearTimeout(id)
+  }, [value, delayMs])
+  return debounced
+}
+
 function preserveReactorMessageOnEquationEdit(msg: string): boolean {
   const m = msg.toLowerCase()
   return (
@@ -469,13 +482,13 @@ export function LaboratoryPage() {
     setSynthesisSettledProduct(null)
     synthesisSettledProductRef.current = null
     settledSnapshotRef.current = null
-    // Старт анимации синтеза: фаза converge, прогресс 0. НЕ ставим 'product'
-    // заранее — иначе previewMotionLocked=false и GSAP-полёт атомов не запустится
-    // (был мгновенный pop-in и чёрный экран). Реальные фазы придут через onPhaseChange.
-    synthesisPhaseRef.current = 'converge'
-    setSynthPhaseUi('converge')
+    // Мгновенный синтез без анимации: сразу фаза 'product'. Чёрный экран при
+    // появлении молекулы устраняется превью-мостом (атомы видны, пока молекула
+    // не отрисована) и постоянным fxLevel продукта (без перекомпиляции на reveal).
+    synthesisPhaseRef.current = 'product'
+    setSynthPhaseUi('product')
     setSynthIgnite(false)
-    launchProgressRef.current = 0
+    launchProgressRef.current = 1
     forceLiteFxRef.current = true
     const zCopy = payload.zSlots.slice()
     const flyCopy = [...payload.flyTerms]
@@ -606,8 +619,12 @@ export function LaboratoryPage() {
     if (!reactorOpen) return null
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
-  /** 3D-превью — отложенное обновление, чтобы при +/- коэффициента не мигали атомы. */
-  const deferredReactorPreviewTerms = useDeferredValue(reactorPreviewTerms)
+  /**
+   * 3D-превью — дебаунс + deferred: при быстром нажатии +/- коэффициента сцена
+   * пересобирается один раз после паузы, без лагов и мигания атомов.
+   */
+  const debouncedReactorPreviewTerms = useDebouncedValue(reactorPreviewTerms, 140)
+  const deferredReactorPreviewTerms = useDeferredValue(debouncedReactorPreviewTerms)
 
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound || !synthRunActive) return null

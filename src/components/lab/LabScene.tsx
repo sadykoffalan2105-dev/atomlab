@@ -277,6 +277,9 @@ function SceneContent({
   const [earlyProductReveal, setEarlyProductReveal] = useState(false)
   const [forceProductSlot, setForceProductSlot] = useState(false)
   const [productRevealReady, setProductRevealReady] = useState(false)
+  const [productPainted, setProductPainted] = useState(false)
+  const productPaintedRef = useRef(false)
+  const productPaintFramesRef = useRef(0)
   const [prewarmReady, setPrewarmReady] = useState(false)
   const prewarmReadyRef = useRef(false)
   const prewarmCompoundIdRef = useRef<string | null>(null)
@@ -374,6 +377,7 @@ function SceneContent({
         earlyProductReveal,
         forceProductSlot,
         productRevealReady,
+        productPainted,
         stickyMountRef: productStickyMountRef,
         previewStickyRef: previewStickyMountRef,
       }),
@@ -391,6 +395,7 @@ function SceneContent({
       earlyProductReveal,
       forceProductSlot,
       productRevealReady,
+      productPainted,
     ],
   )
 
@@ -465,6 +470,10 @@ function SceneContent({
   ])
 
   useLayoutEffect(() => {
+    // Сброс first-paint latch на каждый новый прогон/выход из синтеза.
+    productPaintedRef.current = false
+    productPaintFramesRef.current = 0
+    setProductPainted(false)
     if (!synthActive || !synthesis?.runId) {
       setProductRevealReady(false)
       return
@@ -546,7 +555,7 @@ function SceneContent({
   const productSlotEntrance: 'smooth' | 'none' | 'instant' =
     showSettledHero && !synthActive
       ? 'none'
-      : instantSynthesis
+      : instantSynthesis || synthActive
         ? 'instant'
         : 'smooth'
 
@@ -646,6 +655,18 @@ function SceneContent({
 
   useFrame((_, delta) => {
     frameHoldRef.current.markRendered()
+
+    // First-paint latch: как только меш молекулы виден на полном масштабе,
+    // ждём 2 реально отрисованных кадра и затем разрешаем скрыть превью атомов.
+    // Это исключает чёрный кадр при мгновенном появлении продукта.
+    if (synthActive && productSlotVisible && !productPaintedRef.current) {
+      productPaintFramesRef.current += 1
+      if (productPaintFramesRef.current >= 2) {
+        productPaintedRef.current = true
+        setProductPainted(true)
+      }
+    }
+
     coverageFrameRef.current += 1
     const coverageEvery = previewLagPolicy.coverageGuardEvery
     if (
@@ -851,8 +872,8 @@ function SceneContent({
           prewarm={productPrewarmActive}
           entrance={productSlotEntrance}
           runId={synthesis?.runId ?? 0}
-          birthEntrance={synthActive && !instantSynthesis}
-          entranceDuration={synthActive && !instantSynthesis ? synthTimingProfile.productEntranceDur : 0}
+          birthEntrance={false}
+          entranceDuration={0}
         />
       ) : null}
       <OrbitControls

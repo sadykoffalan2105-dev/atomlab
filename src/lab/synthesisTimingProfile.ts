@@ -94,18 +94,12 @@ export const SYNTHESIS_TIMING_CINEMATIC: SynthesisTimingProfile = {
 
 /**
  * Профиль таймингов синтеза.
- * Зависит ТОЛЬКО от device tier (кэшируется на сессию), поэтому объект
- * стабилен в течение всего прогона — никаких перезапусков анимации, если
- * FPS-губернатор переключает forceLite на лету (он влияет лишь на богатство
- * эффектов внутри SynthesisOnLabScene, а не на длительности).
- *
- * low / слабое устройство → FAST (короткая ~0.4 с, дешёвые эффекты)
- * normal / мощное         → BALANCED (читаемая анимация ~0.8–1.1 с)
+ * Анимация синтеза отключена — молекула появляется мгновенно (упор на скорость
+ * и отсутствие чёрного экрана). SynthesisOnLabScene при INSTANT не монтируется.
  */
 export function getSynthesisTimingProfile(
   _forceLite: boolean,
-  deviceTier: SynthesisDeviceTier = 'normal',
+  _deviceTier: SynthesisDeviceTier = 'normal',
 ): SynthesisTimingProfile {
-  if (deviceTier === 'low') return SYNTHESIS_TIMING_FAST
-  return SYNTHESIS_TIMING_BALANCED
+  return SYNTHESIS_TIMING_INSTANT
 }

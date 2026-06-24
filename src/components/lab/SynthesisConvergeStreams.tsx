@@ -48,8 +48,6 @@ function flyAtomArc(
   node: THREE.Object3D,
   stagger: number,
   dur: number,
-  tumble = false,
-  tumbleSeed = 0,
 ): void {
   const sx = node.position.x
   const sy = node.position.y
@@ -65,22 +63,9 @@ function flyAtomArc(
   )
   tl.to(
     node.position,
-    { x: cx, y: cy, z: cz, duration: finalDur, ease: 'power3.in' },
+    { x: cx, y: cy, z: cz, duration: finalDur, ease: 'power3.out' },
     stagger + arcDur,
   )
-
-  if (tumble) {
-    // Атом вращается, разгоняясь к центру (затягивается в реакцию).
-    const dir = tumbleSeed % 2 === 0 ? 1 : -1
-    const spinY = dir * (Math.PI * (1.6 + (tumbleSeed % 3) * 0.45))
-    const spinX = dir * (Math.PI * (0.7 + (tumbleSeed % 2) * 0.4))
-    node.rotation.set(0, 0, 0)
-    tl.to(
-      node.rotation,
-      { y: spinY, x: spinX, duration: dur, ease: 'power2.in' },
-      stagger,
-    )
-  }
 }
 
 /**
@@ -212,7 +197,7 @@ export function SynthesisConvergeStreams({
             const scaleNode = previewAtomScaleGroupRefs.current[i]
             if (!node) return
             const stagger = atom.termIndex * termStagger + atom.atomInTerm * atomStagger
-            flyAtomArc(tl, node, stagger, flyDur, true, i)
+            flyAtomArc(tl, node, stagger, flyDur)
             tweensAdded++
             if (scaleNode) {
               const bx = scaleNode.scale.x
@@ -255,7 +240,7 @@ export function SynthesisConvergeStreams({
             if (!node) return
             if (atom.visualIndex !== 0) return
             const stagger = atom.termIndex * termStagger
-            flyAtomArc(tl, node, stagger, flyDur, true, i)
+            flyAtomArc(tl, node, stagger, flyDur)
             tweensAdded++
           })
         }
