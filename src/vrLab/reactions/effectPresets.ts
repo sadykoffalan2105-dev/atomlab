@@ -13,11 +13,26 @@ export type VfxPreset = {
   emissiveColor: string
   steamColor: string
   bubbleColor: string
+  gasColor: string
+  precipitateRate: number
+  precipitateColor: string
+  flameIntensity: number
   particleSpread: number
 }
 
+const VFX_DEFAULTS = {
+  gasColor: '#c8e8ff',
+  precipitateRate: 0,
+  precipitateColor: '#f0f0f0',
+  flameIntensity: 0,
+} as const
+
+function vfx(p: Partial<VfxPreset> & Pick<VfxPreset, 'steamRate' | 'bubbleRate' | 'heatGlow' | 'condensation' | 'gasPlume' | 'rippleSpeed' | 'flashIntensity' | 'emissiveColor' | 'steamColor' | 'bubbleColor' | 'particleSpread'>): VfxPreset {
+  return { ...VFX_DEFAULTS, ...p }
+}
+
 export const REACTION_VFX: Record<VrLabReactionEffect, VfxPreset> = {
-  neutralization: {
+  neutralization: vfx({
     steamRate: 0.72,
     bubbleRate: 0.28,
     heatGlow: 0.58,
@@ -29,8 +44,8 @@ export const REACTION_VFX: Record<VrLabReactionEffect, VfxPreset> = {
     steamColor: '#e8f4ff',
     bubbleColor: '#fde68a',
     particleSpread: 0.22,
-  },
-  precipitate: {
+  }),
+  precipitate: vfx({
     steamRate: 0.15,
     bubbleRate: 0.35,
     heatGlow: 0.25,
@@ -41,9 +56,11 @@ export const REACTION_VFX: Record<VrLabReactionEffect, VfxPreset> = {
     emissiveColor: '#a78bfa',
     steamColor: '#ddd6fe',
     bubbleColor: '#c4b5fd',
+    precipitateRate: 0.85,
+    precipitateColor: '#f5f5f0',
     particleSpread: 0.18,
-  },
-  gasEvolution: {
+  }),
+  gasEvolution: vfx({
     steamRate: 0.38,
     bubbleRate: 0.95,
     heatGlow: 0.35,
@@ -54,9 +71,10 @@ export const REACTION_VFX: Record<VrLabReactionEffect, VfxPreset> = {
     emissiveColor: '#22d3ee',
     steamColor: '#a5f3fc',
     bubbleColor: '#67e8f9',
+    gasColor: '#a5f3fc',
     particleSpread: 0.32,
-  },
-  combustion: {
+  }),
+  combustion: vfx({
     steamRate: 0.55,
     bubbleRate: 0.65,
     heatGlow: 0.92,
@@ -67,9 +85,10 @@ export const REACTION_VFX: Record<VrLabReactionEffect, VfxPreset> = {
     emissiveColor: '#fb923c',
     steamColor: '#fed7aa',
     bubbleColor: '#fdba74',
+    flameIntensity: 0.9,
     particleSpread: 0.38,
-  },
-  hydration: {
+  }),
+  hydration: vfx({
     steamRate: 0.88,
     bubbleRate: 0.52,
     heatGlow: 0.82,
@@ -81,8 +100,8 @@ export const REACTION_VFX: Record<VrLabReactionEffect, VfxPreset> = {
     steamColor: '#f5d0fe',
     bubbleColor: '#e879f9',
     particleSpread: 0.26,
-  },
-  colorShift: {
+  }),
+  colorShift: vfx({
     steamRate: 0.22,
     bubbleRate: 0.18,
     heatGlow: 0.32,
@@ -94,8 +113,8 @@ export const REACTION_VFX: Record<VrLabReactionEffect, VfxPreset> = {
     steamColor: '#bbf7d0',
     bubbleColor: '#86efac',
     particleSpread: 0.16,
-  },
-  exothermic: {
+  }),
+  exothermic: vfx({
     steamRate: 0.9,
     bubbleRate: 0.55,
     heatGlow: 0.95,
@@ -106,9 +125,10 @@ export const REACTION_VFX: Record<VrLabReactionEffect, VfxPreset> = {
     emissiveColor: '#f97316',
     steamColor: '#ffedd5',
     bubbleColor: '#fdba74',
+    flameIntensity: 0.75,
     particleSpread: 0.3,
-  },
-  noReaction: {
+  }),
+  noReaction: vfx({
     steamRate: 0.05,
     bubbleRate: 0.08,
     heatGlow: 0.1,
@@ -120,7 +140,7 @@ export const REACTION_VFX: Record<VrLabReactionEffect, VfxPreset> = {
     steamColor: '#cbd5e1',
     bubbleColor: '#94a3b8',
     particleSpread: 0.12,
-  },
+  }),
 }
 
 export type VfxRuntime = {
@@ -128,6 +148,7 @@ export type VfxRuntime = {
   intensity: number
   steamIntensity: number
   bubbleIntensity: number
+  precipitateIntensity: number
   condensation: number
   heatGlow: number
   showFlash: boolean
@@ -165,8 +186,11 @@ export function resolveReactionVfx(
 
   let steamIntensity = preset.steamRate * intensity * (0.4 + heat * 0.6)
   let bubbleIntensity = preset.bubbleRate * intensity * (0.35 + bubbles * 0.65)
+  let precipitateIntensity = preset.precipitateRate * intensity
   let condensation = preset.condensation * intensity * (0.3 + heat * 0.7)
   let heatGlow = preset.heatGlow * intensity * (0.35 + heat * 0.65)
+
+  if (result?.effect === 'precipitate') precipitateIntensity = Math.max(precipitateIntensity, 0.5 * intensity)
 
   if (vfxMul) {
     steamIntensity *= vfxMul.steamDensity
@@ -182,6 +206,7 @@ export function resolveReactionVfx(
     intensity,
     steamIntensity,
     bubbleIntensity,
+    precipitateIntensity,
     condensation,
     heatGlow,
     showFlash,

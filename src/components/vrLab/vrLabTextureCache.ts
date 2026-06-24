@@ -23,6 +23,40 @@ export function getSharedGlassMaterial(): THREE.MeshPhysicalMaterial {
 /** Ленивый кэш canvas-текстур — создаётся один раз, не блокирует каждый mount. */
 const textureCache = new Map<string, THREE.CanvasTexture>()
 
+/** Procedural scratch normal for glass realism. */
+export function getGlassScratchNormal(): THREE.CanvasTexture {
+  return getCachedCanvasTexture('glass-scratch-normal', () => {
+    const size = 256
+    const canvas = document.createElement('canvas')
+    canvas.width = size
+    canvas.height = size
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = '#8080ff'
+    ctx.fillRect(0, 0, size, size)
+    for (let i = 0; i < 120; i++) {
+      ctx.strokeStyle = `rgba(${120 + Math.random() * 40},${120 + Math.random() * 40},255,${0.08 + Math.random() * 0.12})`
+      ctx.lineWidth = 0.5 + Math.random()
+      ctx.beginPath()
+      ctx.moveTo(Math.random() * size, Math.random() * size)
+      ctx.lineTo(Math.random() * size, Math.random() * size)
+      ctx.stroke()
+    }
+    const tex = new THREE.CanvasTexture(canvas)
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+    tex.repeat.set(2, 2)
+    return tex
+  })
+}
+
+/** Shared low-poly sphere for molecule LOD dots. */
+let moleculeDotGeo: THREE.SphereGeometry | null = null
+
+export function getMoleculeDotGeometry(): THREE.SphereGeometry {
+  if (!moleculeDotGeo) moleculeDotGeo = new THREE.SphereGeometry(0.012, 6, 6)
+  return moleculeDotGeo
+}
+
+
 export function getCachedCanvasTexture(key: string, factory: () => THREE.CanvasTexture): THREE.CanvasTexture {
   let tex = textureCache.get(key)
   if (!tex) {

@@ -125,6 +125,8 @@ export function VrLabBeaker({
   selected = false,
   onClick,
   reactionHeat = 0,
+  experimentTemperature = 20,
+  concentrationLevel = 0.5,
   vfxPhase = 'idle',
   vfxProgress = 0,
   vfxMixing = false,
@@ -141,6 +143,8 @@ export function VrLabBeaker({
   selected?: boolean
   onClick?: () => void
   reactionHeat?: number
+  experimentTemperature?: number
+  concentrationLevel?: number
   vfxPhase?: 'idle' | 'pouring' | 'combining' | 'reacting'
   vfxProgress?: number
   vfxMixing?: boolean
@@ -264,7 +268,11 @@ export function VrLabBeaker({
           mixing={mixing}
           mixRatio={mixBlend?.mixRatio ?? mixProgress}
           mixProgress={mixProgress}
-          temperature={mixBlend?.temperature ?? (mixing ? reactionHeat * mixProgress : 0)}
+          temperature={
+            (mixBlend?.temperature ?? (mixing ? reactionHeat * mixProgress : 0)) +
+            experimentTemperature * 0.01
+          }
+          concentration={concentrationLevel}
         />
       ) : null}
     </group>

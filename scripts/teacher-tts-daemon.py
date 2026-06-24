@@ -9,6 +9,13 @@ import runpy
 import sys
 from pathlib import Path
 
+# Windows: stdin/stdout по умолчанию cp1251 — кириллица из Node (UTF-8) ломается.
+for _stream in (sys.stdin, sys.stdout):
+    try:
+        _stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    except Exception:
+        pass
+
 _mod = runpy.run_path(str(Path(__file__).with_name("teacher-tts-synth.py")))
 synthesize_teacher = _mod["synthesize_teacher"]
 

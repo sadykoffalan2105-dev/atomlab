@@ -159,6 +159,12 @@ export function playVrLabReactionSound(
     return
   }
 
+  if (effect === 'precipitate') {
+    tone(220, 0.2, 'triangle', 0.045)
+    noiseBurst(0.15, 0.025, 400)
+    return
+  }
+
   if (effect === 'colorShift') {
     chimePing()
     return

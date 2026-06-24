@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { mixVrLabSubstances } from './mixEngine'
+import { getVrLabPhysProps } from './chemistry/vrLabPhysProps'
 import { productVisualAfterMix, substanceVisual } from './substanceVisuals'
 import type { VrLabBenchState, VrLabSelectionTarget, VrLabShelfFlask, VrLabTubeContent } from './types'
 import { VR_COMBINE_MS, VR_POUR_MS, VR_REACT_MS, mixHexColors } from './vrLabAnimation'
@@ -16,8 +17,9 @@ import {
   snapFlaskPlacement,
 } from './vrLabShelfLayout'
 
-function makeContent(compoundId: string, fillLevel = 0.68): VrLabTubeContent {
+function makeContent(compoundId: string, fillLevel = 0.68, temperature = 20): VrLabTubeContent {
   const v = substanceVisual(compoundId)
+  const phys = getVrLabPhysProps(compoundId)
   return {
     compoundId,
     fillLevel,
@@ -26,6 +28,8 @@ function makeContent(compoundId: string, fillLevel = 0.68): VrLabTubeContent {
     glow: v.glow,
     opacity: v.opacity,
     viscosity: v.viscosity,
+    temperature,
+    density: phys.density,
   }
 }
 
@@ -57,6 +61,9 @@ const INITIAL: VrLabBenchState = {
   autoMixOverridePos: null,
   autoMixTilt: 0,
   activeLessonId: null,
+  timeScale: 1,
+  concentration: 'normal',
+  experimentTemperature: 20,
 }
 
 function emptyFlask(id: string, flasks: VrLabShelfFlask[]): VrLabShelfFlask[] {
@@ -84,7 +91,8 @@ export function useVrLabBench() {
       const t0 = performance.now()
       let lastUiUpdate = 0
       const tick = () => {
-        const p = Math.min(1, (performance.now() - t0) / durationMs)
+        const scale = Math.max(0.1, Math.min(5, stateRef.current.timeScale))
+        const p = Math.min(1, ((performance.now() - t0) / durationMs) * scale)
         const now = performance.now()
         if (now - lastUiUpdate > 32 || p >= 1) {
           setState((s) => ({ ...s, animProgress: p, animPhase: phase }))
@@ -414,6 +422,18 @@ export function useVrLabBench() {
     setState((s) => ({ ...s, activeLessonId: lessonId }))
   }, [])
 
+  const setTimeScale = useCallback((timeScale: number) => {
+    setState((s) => ({ ...s, timeScale: Math.max(0.1, Math.min(5, timeScale)) }))
+  }, [])
+
+  const setConcentration = useCallback((concentration: VrLabBenchState['concentration']) => {
+    setState((s) => ({ ...s, concentration }))
+  }, [])
+
+  const setExperimentTemperature = useCallback((experimentTemperature: number) => {
+    setState((s) => ({ ...s, experimentTemperature: Math.max(-20, Math.min(120, experimentTemperature)) }))
+  }, [])
+
   const moveShelfFlask = useCallback((flaskId: string, pos: [number, number, number]) => {
     setState((s) => {
       const snapped = snapFlaskPlacement(pos)
@@ -454,6 +474,9 @@ export function useVrLabBench() {
     moveShelfFlask,
     autoMix,
     setActiveLesson,
+    setTimeScale,
+    setConcentration,
+    setExperimentTemperature,
   }
 }
 

@@ -1,6 +1,7 @@
 import { MeshTransmissionMaterial } from '@react-three/drei'
 import { useMemo } from 'react'
 import * as THREE from 'three'
+import { getGlassScratchNormal, getSharedGlassMaterial } from './vrLabTextureCache'
 import { useVrLabPerf } from './vrLabPerformance'
 
 export type GlassVariant = 'lab' | 'vessel' | 'accent'
@@ -50,7 +51,16 @@ const TRANSMISSION: Record<
   accent: { ior: 1.48, thickness: 0.45, roughness: 0.05, chromaticAberration: 0.02, samples: 3 },
 }
 
-function PhysicalGlassMaterial({ color, variant }: { color: string; variant: GlassVariant }) {
+function PhysicalGlassMaterial({
+  color,
+  variant,
+  useScratch,
+}: {
+  color: string
+  variant: GlassVariant
+  useScratch: boolean
+}) {
+  const scratch = useMemo(() => (useScratch ? getGlassScratchNormal() : null), [useScratch])
   const mat = useMemo(() => {
     const p = PHYSICAL[variant]
     return new THREE.MeshPhysicalMaterial({
@@ -59,9 +69,11 @@ function PhysicalGlassMaterial({ color, variant }: { color: string; variant: Gla
       envMapIntensity: 1.6,
       transparent: true,
       side: THREE.FrontSide,
+      normalMap: scratch ?? undefined,
+      normalScale: scratch ? new THREE.Vector2(0.15, 0.15) : undefined,
       ...p,
     })
-  }, [color, variant])
+  }, [color, scratch, variant])
 
   return <primitive attach="material" object={mat} />
 }
@@ -74,12 +86,16 @@ export function VrLabGlassMaterial({
 }: {
   color?: string
   variant?: GlassVariant
-  /** true — cinematic transmission на high tier (grabbed / selected / reactor). */
   highlight?: boolean
 }) {
-  const { cinematicGlass } = useVrLabPerf()
+  const { cinematicGlass, tier } = useVrLabPerf()
   const t = TRANSMISSION[variant]
   const useTransmission = cinematicGlass && highlight
+
+  if (tier === 'low') {
+    const shared = getSharedGlassMaterial()
+    return <primitive attach="material" object={shared} />
+  }
 
   if (useTransmission) {
     return (
@@ -102,5 +118,32 @@ export function VrLabGlassMaterial({
     )
   }
 
-  return <PhysicalGlassMaterial color={color} variant={variant} />
+  return <PhysicalGlassMaterial color={color} variant={variant} useScratch={tier === 'high'} />
+}
+
+/** Inner shell for rim refraction (high tier only). */
+export function VrLabGlassInnerShell({
+  geometry,
+  color = '#eef6ff',
+}: {
+  geometry: THREE.BufferGeometry
+  color?: string
+}) {
+  const { tier } = useVrLabPerf()
+  if (tier !== 'high') return null
+  return (
+    <mesh geometry={geometry} scale={0.96}>
+      <meshPhysicalMaterial
+        color={color}
+        side={THREE.BackSide}
+        transmission={0.35}
+        thickness={0.2}
+        roughness={0.08}
+        transparent
+        opacity={0.25}
+        ior={1.52}
+        envMapIntensity={1.2}
+      />
+    </mesh>
+  )
 }

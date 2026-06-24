@@ -1,6 +1,7 @@
 import {
   Bloom,
   ChromaticAberration,
+  DepthOfField,
   EffectComposer,
   N8AO,
   ToneMapping,
@@ -42,6 +43,7 @@ export function CinematicPipeline() {
           radius={0.42}
           levels={perf.bloomLevels}
         />
+        <DepthOfField focusDistance={0.012} focalLength={0.024} bokehScale={2.2} height={480} />
         <ChromaticAberration offset={[0.0006, 0.001]} radialModulation modulationOffset={0.15} />
         <ToneMapping adaptive />
         <Vignette eskil={false} offset={0.1} darkness={0.32} />

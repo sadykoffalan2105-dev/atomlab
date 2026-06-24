@@ -159,6 +159,10 @@ function BenchScene({
         mixColor={bench.mixColor ?? undefined}
         mixProgress={bench.animPhase === 'reacting' ? bench.animProgress : 0}
         reactionHeat={bench.lastMix?.heat ?? 0}
+        experimentTemperature={bench.experimentTemperature}
+        concentrationLevel={
+          bench.concentration === 'dilute' ? 0.25 : bench.concentration === 'concentrated' ? 0.85 : 0.5
+        }
         vfxPhase={bench.animPhase}
         vfxProgress={vfxProgress}
         vfxMixing={bench.mixing}

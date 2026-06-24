@@ -8,6 +8,9 @@ const ONESHOT = join(ROOT, 'scripts', 'teacher-tts-synth.py')
 const TIMEOUT_MS = 45_000
 const PY = process.platform === 'win32' ? 'python' : 'python3'
 
+/** UTF-8 для stdin/stdout Python — иначе кириллица (cp1251 на Windows) превращается в мусор. */
+const PY_ENV = { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' }
+
 type TtsResult = { audioBase64: string; mimeType: string } | null
 
 type Pending = {
@@ -27,6 +30,7 @@ class EdgeTtsDaemon {
       const child = spawn(PY, [DAEMON], {
         stdio: ['pipe', 'pipe', 'pipe'],
         windowsHide: true,
+        env: PY_ENV,
       }) as ChildProcessWithoutNullStreams
 
       child.stdout.on('data', (chunk: Buffer) => {
@@ -153,7 +157,11 @@ function synthesizeOneShot(
   return new Promise((resolve) => {
     let child: ReturnType<typeof spawn>
     try {
-      child = spawn(PY, [ONESHOT], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true })
+      child = spawn(PY, [ONESHOT], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        windowsHide: true,
+        env: PY_ENV,
+      })
     } catch {
       resolve(null)
       return

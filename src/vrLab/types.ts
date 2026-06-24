@@ -7,6 +7,10 @@ export type VrLabTubeContent = {
   glow: number
   opacity: number
   viscosity: number
+  /** Температура раствора °C (для кипения/замерзания). */
+  temperature?: number
+  /** Плотность g/mL для расслоения жидкостей. */
+  density?: number
 }
 
 /** Колба на настенной полке или перенесённая на стол. */
@@ -40,6 +44,10 @@ export type VrLabMixResult = {
   messageKey: string
   heat: number
   bubbleIntensity: number
+  products?: { compoundId: string; phase: 'liquid' | 'solid' | 'gas'; coeff: number }[]
+  precipitateId?: string
+  gasIds?: string[]
+  confidence?: 'curated' | 'rule' | 'none'
 }
 
 export type VrLabBenchState = {
@@ -64,6 +72,12 @@ export type VrLabBenchState = {
   autoMixTilt: number
   /** ID урока для практики (deep link). */
   activeLessonId: string | null
+  /** Масштаб времени анимации (0.1–5). */
+  timeScale: number
+  /** Качественная концентрация раствора. */
+  concentration: 'dilute' | 'normal' | 'concentrated'
+  /** Базовая температура эксперимента °C. */
+  experimentTemperature: number
 }
 
 export type VrLabSubstanceVisual = {

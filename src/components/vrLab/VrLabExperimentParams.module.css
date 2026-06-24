@@ -1,0 +1,48 @@
+.panel {
+  border-radius: 12px;
+  border: 1px solid rgba(168, 85, 247, 0.22);
+  background: rgba(10, 6, 24, 0.88);
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #c4b5fd;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #b8a8e8;
+  margin-bottom: 0.45rem;
+}
+
+.row input[type='range'] {
+  grid-column: 1 / -1;
+  accent-color: #a855f7;
+}
+
+.val {
+  font-variant-numeric: tabular-nums;
+  color: #e8eef8;
+  font-weight: 700;
+}
+
+.row select {
+  grid-column: 1 / -1;
+  font: inherit;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: rgba(4, 2, 12, 0.9);
+  color: #e8eef8;
+  padding: 0.35rem 0.5rem;
+}

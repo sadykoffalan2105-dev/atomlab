@@ -12,6 +12,14 @@ import json
 import re
 import sys
 
+# Windows: stdin/stdout по умолчанию cp1251 — кириллица из Node (UTF-8) ломается.
+# Принудительно переключаем оба потока на UTF-8, иначе TTS читает «кракозябры».
+for _stream in (sys.stdin, sys.stdout):
+    try:
+        _stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    except Exception:
+        pass
+
 import edge_tts
 
 VOICE_RU = "ru-RU-DmitryNeural"
@@ -81,18 +89,30 @@ def split_sentences(text: str, max_len: int = 180) -> list[str]:
     return parts
 
 
+# Серверы Microsoft иногда отдают «No audio was received» — транзиентный сбой.
+# Ретраим, иначе фраза молча падает на браузерный (роботизированный) голос.
+_TTS_ATTEMPTS = 3
+
+
 async def synth_text(text: str, voice: str) -> bytes:
-    communicate = edge_tts.Communicate(
-        text,
-        voice,
-        rate=RATE,
-        pitch=PITCH,
-    )
-    chunks: list[bytes] = []
-    async for chunk in communicate.stream():
-        if chunk["type"] == "audio":
-            chunks.append(chunk["data"])
-    return b"".join(chunks)
+    last_err: Exception | None = None
+    for attempt in range(_TTS_ATTEMPTS):
+        try:
+            communicate = edge_tts.Communicate(text, voice, rate=RATE, pitch=PITCH)
+            chunks: list[bytes] = []
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    chunks.append(chunk["data"])
+            audio = b"".join(chunks)
+            if audio:
+                return audio
+        except Exception as exc:  # network / no-audio / token refresh
+            last_err = exc
+        if attempt + 1 < _TTS_ATTEMPTS:
+            await asyncio.sleep(0.6 * (attempt + 1))
+    if last_err is not None:
+        raise last_err
+    return b""
 
 
 async def synthesize_teacher(text: str, locale: str, voice: str | None, *, prepared: bool = False) -> bytes:

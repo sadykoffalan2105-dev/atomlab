@@ -34,10 +34,28 @@ const fragmentShader = /* glsl */ `
   uniform float uRadius;
   uniform float uMixing;
   uniform float uTemperature;
+  uniform float uDensityA;
+  uniform float uDensityB;
+  uniform float uConcentration;
 
   varying vec3 vLocalPos;
   varying vec3 vNormalW;
   varying vec3 vViewDir;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+
+  float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  }
 
   void main() {
     float fillH = max(0.02, uFill * uMaxHeight);
@@ -50,47 +68,60 @@ const fragmentShader = /* glsl */ `
     if (vLocalPos.y > surfaceY + meniscus) discard;
     if (vLocalPos.y < uBaseY - 0.002) discard;
 
-    vec3 col = mix(uColorA, uColorB, uMixRatio);
     float depth = clamp((vLocalPos.y - uBaseY) / fillH, 0.0, 1.0);
     float fresnel = pow(1.0 - max(dot(normalize(vNormalW), vViewDir), 0.0), 2.5);
+
+    float swirl = 0.0;
+    if (uMixing > 0.5) {
+      float angle = atan(vLocalPos.z, vLocalPos.x) + uTime * 3.5;
+      swirl = sin(angle * 3.0 + depth * 8.0 + uTime * 4.0) * 0.5 + 0.5;
+    }
+    float mixT = clamp(uMixRatio + swirl * uMixing * 0.35, 0.0, 1.0);
+
+    float stratify = step(depth, uDensityB / max(uDensityA + uDensityB, 0.001));
+    vec3 col = mix(uColorA, uColorB, mix(stratify, mixT, uMixing > 0.5 ? 0.65 : 1.0));
 
     float wave = sin(vLocalPos.x * 18.0 + uTime * 3.0) * sin(vLocalPos.z * 16.0 + uTime * 2.6);
     float surfaceGlow = smoothstep(surfaceY - 0.025, surfaceY, vLocalPos.y) * (0.35 + wave * 0.08);
 
     float boil = 0.0;
-    if (uTemperature > 0.15) {
+    float tempNorm = clamp((uTemperature - 20.0) / 80.0, 0.0, 1.0);
+    if (tempNorm > 0.15) {
       boil = smoothstep(0.55, 1.0, sin(vLocalPos.x * 24.0 + uTime * 5.0) * sin(vLocalPos.z * 22.0 + uTime * 4.2));
-      boil *= uTemperature * 0.35;
+      boil *= tempNorm * 0.45;
+    }
+
+    float freeze = 0.0;
+    if (uTemperature < 5.0) {
+      freeze = smoothstep(5.0, -10.0, uTemperature) * 0.25;
+    }
+
+    float caustic = 0.0;
+    if (depth < 0.12) {
+      vec2 cuv = vec2(vLocalPos.x, vLocalPos.z) * 12.0 + uTime * 0.8;
+      caustic = noise(cuv) * noise(cuv * 1.7 + 1.3) * uFill * (0.4 + uConcentration * 0.3);
     }
 
     vec3 emissive = col * uGlow * (0.35 + depth * 0.45 + surfaceGlow);
     emissive += vec3(1.0, 0.92, 0.75) * boil;
+    emissive += vec3(0.85, 0.95, 1.0) * caustic;
     emissive += col * fresnel * 0.18;
+    emissive *= 1.0 - freeze;
 
-    float alpha = uOpacity * (0.88 + fresnel * 0.1);
-    if (uMixing > 0.5) {
-      emissive *= 1.0 + sin(uTime * 8.0) * 0.12;
+    float foam = 0.0;
+    if (uMixing > 0.5 && vLocalPos.y > surfaceY - 0.018) {
+      foam = 0.35 + sin(uTime * 10.0 + vLocalPos.x * 30.0) * 0.12;
     }
 
-    gl_FragColor = vec4(col * 0.55 + emissive, alpha);
+    vec3 finalCol = mix(col * 0.55 + emissive, vec3(1.0), foam * 0.35);
+    float alpha = uOpacity * (0.88 + fresnel * 0.1) * (0.85 + uConcentration * 0.1);
+    if (uMixing > 0.5) {
+      finalCol *= 1.0 + sin(uTime * 8.0) * 0.08;
+    }
+
+    gl_FragColor = vec4(finalCol, alpha);
   }
 `
-
-export type LiquidVolumeUniforms = {
-  uFill: number
-  uTilt: THREE.Vector2
-  uSlosh: THREE.Vector2
-  uColorA: THREE.Color
-  uColorB: THREE.Color
-  uMixRatio: number
-  uGlow: number
-  uOpacity: number
-  uMaxHeight: number
-  uBaseY: number
-  uRadius: number
-  uMixing: number
-  uTemperature: number
-}
 
 type Props = {
   visual: LiquidVisual
@@ -107,6 +138,9 @@ type Props = {
   sloshZ?: number
   mixing?: boolean
   temperature?: number
+  densityA?: number
+  densityB?: number
+  concentration?: number
   animateIn?: boolean
   sloshRef?: RefObject<SloshState>
 }
@@ -125,7 +159,10 @@ export function LiquidVolumeMaterialMesh({
   sloshX = 0,
   sloshZ = 0,
   mixing = false,
-  temperature = 0,
+  temperature = 20,
+  densityA = 1,
+  densityB = 1,
+  concentration = 0.5,
   animateIn = false,
   sloshRef,
 }: Props) {
@@ -160,12 +197,30 @@ export function LiquidVolumeMaterialMesh({
           uRadius: { value: radius },
           uMixing: { value: mixing ? 1 : 0 },
           uTemperature: { value: temperature },
+          uDensityA: { value: densityA },
+          uDensityB: { value: densityB },
+          uConcentration: { value: concentration },
         },
         transparent: true,
         side: THREE.DoubleSide,
         depthWrite: true,
       }),
-    [baseY, colorA, colorB, maxHeight, mixRatio, mixing, radius, targetFill, temperature, visual.glow, visual.opacity],
+    [
+      baseY,
+      colorA,
+      colorB,
+      concentration,
+      densityA,
+      densityB,
+      maxHeight,
+      mixRatio,
+      mixing,
+      radius,
+      targetFill,
+      temperature,
+      visual.glow,
+      visual.opacity,
+    ],
   )
 
   useFrame((state, dt) => {
@@ -189,6 +244,9 @@ export function LiquidVolumeMaterialMesh({
     material.uniforms.uTime!.value = state.clock.elapsedTime
     material.uniforms.uMixing!.value = mixing ? 1 : 0
     material.uniforms.uTemperature!.value = temperature
+    material.uniforms.uDensityA!.value = densityA
+    material.uniforms.uDensityB!.value = densityB
+    material.uniforms.uConcentration!.value = concentration
   })
 
   if (targetFill < 0.008) return null

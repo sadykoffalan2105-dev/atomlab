@@ -4,6 +4,7 @@ import { VrLabLessonPanel } from '../components/vrLab/education/VrLabLessonPanel
 import { VrLabReactionCatalog, reactionIdFromPair } from '../components/vrLab/education/VrLabReactionCatalog'
 import { VrLabCanvasShell } from '../components/vrLab/VrLabCanvas'
 import { prefetchVrLabPhysics } from '../components/vrLab/VrLabPhysicsWorld'
+import { VrLabExperimentParams } from '../components/vrLab/VrLabExperimentParams'
 import { VrLabSubstancePicker } from '../components/vrLab/VrLabSubstancePicker'
 import { detectVrLabQuality, webglSupported, type VrLabQualityTier } from '../components/vrLab/vrLabPerformance'
 import { useVrLabSoundFx } from '../vrLab/useVrLabSoundFx'
@@ -40,6 +41,9 @@ export function VrLabPage() {
     moveShelfFlask,
     autoMix,
     setActiveLesson,
+    setTimeScale,
+    setConcentration,
+    setExperimentTemperature,
   } = benchApi
   const [searchParams] = useSearchParams()
   const [pickId, setPickId] = useState<string | null>('hcl')
@@ -305,6 +309,15 @@ export function VrLabPage() {
         />
 
         <VrLabReactionCatalog onTryReaction={startReactionPractice} />
+
+        <VrLabExperimentParams
+          timeScale={state.timeScale}
+          concentration={state.concentration}
+          experimentTemperature={state.experimentTemperature}
+          onTimeScale={setTimeScale}
+          onConcentration={setConcentration}
+          onTemperature={setExperimentTemperature}
+        />
 
         <div className={styles.pickerWrap}>
           <VrLabSubstancePicker

@@ -43,6 +43,29 @@ export const GLASS_PROFILES = {
     [0.085, 0.155],
     [0.055, 0.16],
   ],
+  /** Коническая колба (воронка). */
+  conical: (scale = 1) =>
+    [
+      [0, 0],
+      [0.02 * scale, 0],
+      [0.055 * scale, 0.12 * scale],
+      [0.018 * scale, 0.28 * scale],
+    ] as const,
+  /** Мерный цилиндр. */
+  graduatedCylinder: [
+    [0, 0],
+    [0.042, 0],
+    [0.044, 0.38],
+    [0.042, 0.395],
+  ],
+  /** Бюретка для титрования. */
+  burette: [
+    [0, 0],
+    [0.012, 0],
+    [0.014, 0.42],
+    [0.018, 0.44],
+    [0.016, 0.48],
+  ],
   /** @deprecated Используйте microReactor */
   mixingReactor: [
     [0, 0],
@@ -65,6 +88,22 @@ export const GLASS_PROFILES = {
       [r * 0.55, h + 0.028],
     ] as const,
 } as const
+
+/** Параметры сосуда для жидкости и налива. */
+export type VesselProfile = {
+  innerRadius: number
+  maxHeight: number
+  neckRatio: number
+  pourAngle: number
+}
+
+export const VESSEL_PROFILES: Record<string, VesselProfile> = {
+  testTube: { innerRadius: 0.038, maxHeight: 0.55, neckRatio: 0.55, pourAngle: 0.72 },
+  erlenmeyer: { innerRadius: 0.09, maxHeight: 0.24, neckRatio: 0.35, pourAngle: 0.65 },
+  microReactor: { innerRadius: 0.095, maxHeight: 0.16, neckRatio: 0.58, pourAngle: 0.68 },
+  graduatedCylinder: { innerRadius: 0.042, maxHeight: 0.38, neckRatio: 0.95, pourAngle: 0.85 },
+  burette: { innerRadius: 0.014, maxHeight: 0.48, neckRatio: 0.7, pourAngle: 0.9 },
+}
 
 export function latheFromProfile(points: GlassProfile | readonly (readonly [number, number])[], segments: number) {
   const pts = points.map(([r, y]) => new THREE.Vector2(r, y))

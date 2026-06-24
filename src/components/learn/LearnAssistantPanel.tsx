@@ -7,6 +7,7 @@ import {
   isSpeechRecognitionSupported,
   LearnSpeechController,
   preloadSpeechVoices,
+  type SpeechOutputMode,
 } from '../../learn/learnSpeech'
 import type { LearnSection } from '../../types/learn'
 import { checkTeacherServiceHealth, requestTeacherChat } from '../../learn/teacherServiceClient'
@@ -82,6 +83,7 @@ export function LearnAssistantPanel({
   })
   const [listening, setListening] = useState(false)
   const [speakingId, setSpeakingId] = useState<number | null>(null)
+  const [voiceMode, setVoiceMode] = useState<SpeechOutputMode>('neural')
   const [voiceError, setVoiceError] = useState(false)
   const speechRef = useRef(new LearnSpeechController())
   const storeKey = storageKey(gradeId, chapterId, section.id)
@@ -158,7 +160,9 @@ export function LearnAssistantPanel({
           () => {
             setSpeakingId(null)
           },
-          undefined,
+          (mode) => {
+            setVoiceMode(mode)
+          },
           (code) => {
             if (code === 'unavailable') {
               setVoiceError(true)
@@ -478,7 +482,13 @@ export function LearnAssistantPanel({
         {voiceError ? (
           <span className={styles.learnAssistantError}> · {t('learn.assistant.voiceUnavailable')}</span>
         ) : speakingId !== null ? (
-          <span className={styles.learnAssistantVoiceHint}> · {t('learn.assistant.voiceBrowser')}</span>
+          <span className={styles.learnAssistantVoiceHint}>
+            {' '}
+            ·{' '}
+            {voiceMode === 'neural'
+              ? t('learn.assistant.voiceNeural')
+              : t('learn.assistant.voiceBrowser')}
+          </span>
         ) : null}
       </p>
 

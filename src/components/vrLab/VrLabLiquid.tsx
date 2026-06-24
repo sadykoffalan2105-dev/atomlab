@@ -255,6 +255,7 @@ export function VrLabReactorLiquid({
   mixRatio = 0,
   mixProgress = 0,
   temperature = 0,
+  concentration = 0.5,
 }: {
   visual: LiquidVisual
   visualB?: LiquidVisual
@@ -266,6 +267,7 @@ export function VrLabReactorLiquid({
   mixRatio?: number
   mixProgress?: number
   temperature?: number
+  concentration?: number
 }) {
   const { liquidShader } = useVrLabPerf()
   const effectiveMix = mixing ? Math.max(mixRatio, mixProgress) : mixRatio
@@ -283,6 +285,7 @@ export function VrLabReactorLiquid({
         baseY={baseY}
         mixing={mixing}
         temperature={temperature}
+        concentration={concentration}
       />
     )
   }
