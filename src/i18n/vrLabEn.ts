@@ -5,8 +5,12 @@ export const vrLabEn: Record<keyof typeof vrLabRu, string> = {
 
   'vrLab.title': 'VR 3D Laboratory',
   'vrLab.lead':
-    'Drag flasks, fill reagents from the catalog, and mix in the reactor. Over the vat: scroll or R to tilt; release to pour.',
-  'vrLab.controlsHint': 'Scroll / R — tilt · drag to cyan ring · use panel buttons',
+    'Drag flasks on the shelf and bench, pick substances from the catalog, and mix in the vat. Over the vat: scroll or R to tilt; release to pour.',
+  'vrLab.controlsHint': 'Scroll / R — tilt · Shift+R — back · catalog click fills flask',
+  'vrLab.hint.dragAndPour': 'Drag a flask to the cyan ring, tilt with scroll/R, release to pour',
+  'vrLab.hint.fillFromCatalog': 'Pick a substance in the catalog — it fills the selected flask',
+  'vrLab.hint.pourToVat': 'Drag the flask to the vat or tap «Pour into vat»',
+  'vrLab.hint.busy': 'Please wait — animation in progress…',
   'vrLab.backLab': 'Back to reactor',
 
   'vrLab.picker.title': 'Substance catalog',
@@ -28,7 +32,7 @@ export const vrLabEn: Record<keyof typeof vrLabRu, string> = {
   'vrLab.vat.selected': 'Mixing reactor',
   'vrLab.section.shelf': 'Flasks (1–10)',
   'vrLab.shelf.dragHint':
-    'Drag flasks to the bench. Over the vat: scroll or R to tilt, release to pour.',
+    'Move flasks directly on the shelf. Drag forward onto the bench; over the vat tilt with scroll/R and release to pour.',
   'vrLab.shelf.onWall': 'On shelf',
   'vrLab.shelf.onBench': 'On bench',
   'vrLab.vat.waitSecond': '{formula} in vat — pour a second reagent.',

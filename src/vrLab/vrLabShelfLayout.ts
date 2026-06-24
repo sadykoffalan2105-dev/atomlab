@@ -33,7 +33,7 @@ export function nearestShelfSlot(x: number): number {
 }
 
 const SNAP_SLOT_X = 0.07
-const SHELF_ZONE_Z = -0.48
+export const SHELF_ZONE_Z = -0.48
 
 export function snapFlaskPlacement(pos: [number, number, number]): {
   position: [number, number, number]
@@ -41,20 +41,23 @@ export function snapFlaskPlacement(pos: [number, number, number]): {
   onShelf: boolean
 } {
   if (pos[2] <= SHELF_ZONE_Z) {
-    const slotIndex = nearestShelfSlot(pos[0])
+    const xMin = SHELF_X0 - 0.04
+    const xMax = SHELF_X0 + (SHELF_FLASK_COUNT - 1) * SHELF_SPACING + 0.04
+    const x = Math.max(xMin, Math.min(xMax, pos[0]))
+    const slotIndex = nearestShelfSlot(x)
     const slot = SHELF_SLOT_POSITIONS[slotIndex]!
-    if (Math.abs(pos[0] - slot[0]) <= SNAP_SLOT_X * 2.2) {
+    if (Math.abs(x - slot[0]) <= SNAP_SLOT_X) {
       return { position: [...slot], slotIndex, onShelf: true }
     }
     return {
-      position: [pos[0], SHELF_Y, SHELF_Z],
+      position: [x, SHELF_Y, SHELF_Z],
       slotIndex: null,
       onShelf: true,
     }
   }
 
   const x = Math.max(-1.05, Math.min(0.95, pos[0]))
-  const z = Math.max(0.02, Math.min(0.28, pos[2]))
+  const z = Math.max(0.02, Math.min(0.32, pos[2]))
   return { position: [x, BENCH_Y, z], slotIndex: null, onShelf: false }
 }
 
@@ -69,7 +72,7 @@ export function shelfFlaskLabel(index: number): string {
 /** Центр реактора смешивания на столе. */
 export const VAT_POSITION: [number, number, number] = [0.38, BENCH_Y, BENCH_Z]
 
-export const VAT_ZONE_RADIUS = 0.18
+export const VAT_ZONE_RADIUS = 0.28
 
 /** Колба над зоной реактора (можно влить наклоном). */
 export function isNearVat(

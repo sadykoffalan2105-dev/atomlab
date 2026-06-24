@@ -5,7 +5,15 @@ import * as THREE from 'three'
 import { compoundById } from '../../data/compounds'
 import { canPourFromTilt, computePourFlow } from '../../vrLab/physics/PourSolver'
 import type { VrLabShelfFlask } from '../../vrLab/types'
-import { isNearVat, SHELF_SLOT_POSITIONS, SHELF_Y, SHELF_Z, VAT_POSITION } from '../../vrLab/vrLabShelfLayout'
+import {
+  BENCH_Y,
+  isNearVat,
+  SHELF_SLOT_POSITIONS,
+  SHELF_Y,
+  SHELF_Z,
+  SHELF_ZONE_Z,
+  VAT_POSITION,
+} from '../../vrLab/vrLabShelfLayout'
 import { VrLabPourBridge } from './VrLabPourBridge'
 import { useVrLabGrabOptional } from './VrLabGrabContext'
 import { VrLabErlenmeyerFlask } from './VrLabGlassware'
@@ -58,6 +66,17 @@ function WallShelfRack() {
   )
 }
 
+function constrainDragPosition(x: number, z: number, out: THREE.Vector3): THREE.Vector3 {
+  if (z <= SHELF_ZONE_Z) {
+    return out.set(x, SHELF_Y, SHELF_Z)
+  }
+  return out.set(
+    Math.max(-1.05, Math.min(0.95, x)),
+    BENCH_Y,
+    Math.max(0.02, Math.min(0.32, z)),
+  )
+}
+
 function DraggableShelfFlask({
   flask,
   selected,
@@ -89,6 +108,9 @@ function DraggableShelfFlask({
   const groupRef = useRef<THREE.Group>(null)
   const dragOffset = useRef(new THREE.Vector3())
   const dragging = useRef(false)
+  const dragPlaneY = useRef(flask.position[1])
+  const nearVatRef = useRef(false)
+  const dragPosScratch = useRef(new THREE.Vector3())
   const livePos = useRef(new THREE.Vector3(...flask.position))
   const { camera, gl } = useThree()
   const raycaster = useMemo(() => new THREE.Raycaster(), [])
@@ -126,6 +148,7 @@ function DraggableShelfFlask({
     if (!grab || !dragging.current || grab.grabbedId !== flask.id) return
     const pos: [number, number, number] = [livePos.current.x, livePos.current.y, livePos.current.z]
     const near = isNearVat(pos)
+    nearVatRef.current = near
     const streaming = near && canPourFromTilt(grab.tilt, fill) && !!flask.content
     if (grab.streamingId !== (streaming ? flask.id : null)) {
       grab.setStreaming(streaming ? flask.id : null)
@@ -138,7 +161,7 @@ function DraggableShelfFlask({
       pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
       pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
       raycaster.setFromCamera(pointer, camera)
-      DRAG_PLANE.constant = -(groupRef.current?.position.y ?? flask.position[1])
+      DRAG_PLANE.constant = -dragPlaneY.current
       DRAG_PLANE.normal.set(0, 1, 0)
       if (raycaster.ray.intersectPlane(DRAG_PLANE, intersect)) {
         PICK_RESULT.copy(intersect)
@@ -146,13 +169,14 @@ function DraggableShelfFlask({
       }
       return null
     },
-    [camera, flask.position[1], gl.domElement, pointer, raycaster, intersect],
+    [camera, gl.domElement, pointer, raycaster, intersect],
   )
 
   const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
     onSelect()
     dragging.current = true
+    dragPlaneY.current = flask.onShelf ? SHELF_Y : flask.position[1]
     grab?.setGrabbed(flask.id)
     onDragStart()
     const hit = pickPoint(e.clientX, e.clientY)
@@ -167,8 +191,13 @@ function DraggableShelfFlask({
     e.stopPropagation()
     const hit = pickPoint(e.clientX, e.clientY)
     if (!hit) return
-    groupRef.current.position.copy(hit.add(dragOffset.current))
-    livePos.current.copy(groupRef.current.position)
+    const raw = hit.add(dragOffset.current)
+    const constrained = constrainDragPosition(raw.x, raw.z, dragPosScratch.current)
+    if (constrained.z > SHELF_ZONE_Z) {
+      dragPlaneY.current = BENCH_Y
+    }
+    groupRef.current.position.copy(constrained)
+    livePos.current.copy(constrained)
   }
 
   const onPointerUp = (e: ThreeEvent<PointerEvent>) => {
@@ -214,6 +243,8 @@ function DraggableShelfFlask({
     flask.content?.compoundId &&
     (flask.content.compoundId === practiceTarget.a || flask.content.compoundId === practiceTarget.b)
 
+  const nearVatWhileGrabbed = isGrabbed && nearVatRef.current && !!flask.content
+
   return (
     <>
       {showStreamPreview && visual && pourFlow > 0.02 ? (
@@ -234,7 +265,7 @@ function DraggableShelfFlask({
           onPointerUp={onPointerUp}
         >
           <mesh visible={false}>
-            <cylinderGeometry args={[0.12, 0.14, 0.28, 10]} />
+            <cylinderGeometry args={[0.17, 0.19, 0.34, 12]} />
             <meshBasicMaterial transparent opacity={0} />
           </mesh>
           <VrLabErlenmeyerFlask
@@ -253,6 +284,19 @@ function DraggableShelfFlask({
           <mesh position={[0, 0.14, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <ringGeometry args={[0.07, 0.082, 24]} />
             <meshStandardMaterial color={VR_THEME.magenta} emissive={VR_THEME.magenta} emissiveIntensity={1.3} />
+          </mesh>
+        ) : null}
+        {nearVatWhileGrabbed ? (
+          <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.08, 0.1, 28]} />
+            <meshStandardMaterial
+              color={VR_THEME.cyan}
+              emissive={VR_THEME.cyan}
+              emissiveIntensity={canPourFromTilt(manualTilt, fill) ? 1.6 : 0.9}
+              transparent
+              opacity={0.75}
+              depthWrite={false}
+            />
           </mesh>
         ) : null}
         {practiceMatch ? (

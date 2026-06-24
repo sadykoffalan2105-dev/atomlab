@@ -83,7 +83,7 @@ export function VrLabGrabProvider({ children, selectedId, busy }: ProviderProps)
     const onWheel = (e: WheelEvent) => {
       if (!tiltTargetId) return
       e.preventDefault()
-      addTilt(-e.deltaY * 0.0018)
+      addTilt(-e.deltaY * 0.0024)
     }
 
     const onKey = (e: KeyboardEvent) => {

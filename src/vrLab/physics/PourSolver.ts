@@ -1,6 +1,6 @@
 /** Расчёт скорости переливания от наклона колбы. */
-export const POUR_TILT_THRESHOLD = 0.42
-export const POUR_TILT_DEG_THRESHOLD = 48
+export const POUR_TILT_THRESHOLD = 0.28
+export const POUR_TILT_DEG_THRESHOLD = 38
 
 export function tiltNormToDeg(tilt: number): number {
   return tilt * 75

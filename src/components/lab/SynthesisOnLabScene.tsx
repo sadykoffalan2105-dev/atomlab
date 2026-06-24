@@ -94,6 +94,8 @@ function MergeFlashBurst({
   const coreMat = useRef<THREE.MeshBasicMaterial>(null)
   const ptLight = useRef<THREE.PointLight>(null)
   const hemi = useRef<THREE.HemisphereLight>(null)
+  const shockG = useRef<THREE.Group>(null)
+  const shockMat = useRef<THREE.MeshBasicMaterial>(null)
   const colorA = (isSuccess ? flashHex : FAIL_MERGE_COLOR) as THREE.ColorRepresentation
 
   useFrame(() => {
@@ -103,9 +105,13 @@ function MergeFlashBurst({
     const grow = 1 - Math.exp(-(cinematic ? 3.2 : 4.2) * tt)
     const peak = tt < 0.28 ? tt / 0.28 : 1 - (tt - 0.28) / 0.72
     if (ptLight.current) {
-      const base = isSuccess ? 4 + 6 * easeOut : 2.2 + 4 * easeOut
-      const cinematicBoost = cinematic && isSuccess ? 1.45 : 1
-      ptLight.current.intensity = base * (1 - tt * 0.88) * (isSuccess ? 1.2 + peak * 0.6 : 1) * cinematicBoost
+      // Резкий пик света в момент удара — ощущение взрыва.
+      const flash = Math.exp(-7 * tt)
+      const base = isSuccess ? 5 + 7 * easeOut : 2.6 + 4 * easeOut
+      const cinematicBoost = cinematic && isSuccess ? 1.5 : 1
+      ptLight.current.intensity =
+        (base * (1 - tt * 0.85) * (isSuccess ? 1.2 + peak * 0.6 : 1) + flash * (isSuccess ? 9 : 5)) *
+        cinematicBoost
     }
     if (hemi.current) {
       hemi.current.intensity = 0.7 * (1 - tt) * (isSuccess ? 0.9 : 0.55)
@@ -119,10 +125,34 @@ function MergeFlashBurst({
     if (coreMat.current) {
       coreMat.current.opacity = cinematic && isSuccess ? (1 - tt) * 0.95 * peak : 0
     }
+    // Ударная сфера: очень быстро расширяется и гаснет (фронт взрыва).
+    if (shockG.current) {
+      const shock = 1 - Math.exp(-(cinematic ? 9 : 11) * tt)
+      shockG.current.scale.setScalar(0.2 + (isSuccess ? 6.4 : 4.2) * shock)
+    }
+    if (shockMat.current) {
+      shockMat.current.opacity = (isSuccess ? 0.7 : 0.45) * Math.max(0, 1 - tt * 1.65)
+    }
   })
 
   return (
     <group>
+      {!minimalFx ? (
+        <group ref={shockG}>
+          <mesh>
+            <sphereGeometry args={[0.16, 20, 20]} />
+            <meshBasicMaterial
+              ref={shockMat}
+              color={colorA}
+              transparent
+              opacity={0.6}
+              depthWrite={false}
+              side={THREE.BackSide}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
+        </group>
+      ) : null}
       {cinematic && isSuccess && !minimalFx ? (
         <mesh position={[0, 0.1, 0.12]}>
           <sphereGeometry args={[0.22, 24, 24]} />

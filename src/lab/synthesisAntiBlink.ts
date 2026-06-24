@@ -48,6 +48,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     runId,
     synthActive,
     synthesisRunActive,
+    synthesisPhase,
     showSettledHero,
     mountReactorPreview,
     reactorViewOpen,
@@ -110,9 +111,23 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   const productPrewarm = productMeshMounted && !productSlotVisible && !showSettledHero
   const holdVisualOverlap = synthLive
 
-  /** Атомы скрываем только когда молекула уже на экране — без чёрного кадра. */
+  /**
+   * Атомы держим на экране всю анимацию (полёт + вспышка) и скрываем ТОЛЬКО
+   * на фазе 'product', когда молекула уже отрисована. Это гарантирует, что в
+   * момент слияния всегда есть что показать — никакого чёрного кадра, пока
+   * тяжёлый меш молекулы компилируется на GPU.
+   */
+  const midAnimation =
+    synthesisPhase === 'ignite' ||
+    synthesisPhase === 'converge' ||
+    synthesisPhase === 'flying' ||
+    synthesisPhase === 'mergeFlash'
   const hidePreviewForProduct =
-    synthLive && productSlotVisible && productRevealReady && !showSettledHero
+    synthLive &&
+    productSlotVisible &&
+    productRevealReady &&
+    !showSettledHero &&
+    !midAnimation
 
   const reactorPreviewVisible =
     reactorPreviewMounted &&

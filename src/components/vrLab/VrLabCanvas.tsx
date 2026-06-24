@@ -237,6 +237,8 @@ function BenchScene({
         target={[0.05, 0.32, -0.04]}
         enableDamping
         dampingFactor={0.07}
+        enableZoom={false}
+        enablePan={!dragging}
         enabled={!dragging}
       />
 

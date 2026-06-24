@@ -469,10 +469,13 @@ export function LaboratoryPage() {
     setSynthesisSettledProduct(null)
     synthesisSettledProductRef.current = null
     settledSnapshotRef.current = null
-    synthesisPhaseRef.current = 'product'
-    setSynthPhaseUi('product')
+    // Старт анимации синтеза: фаза converge, прогресс 0. НЕ ставим 'product'
+    // заранее — иначе previewMotionLocked=false и GSAP-полёт атомов не запустится
+    // (был мгновенный pop-in и чёрный экран). Реальные фазы придут через onPhaseChange.
+    synthesisPhaseRef.current = 'converge'
+    setSynthPhaseUi('converge')
     setSynthIgnite(false)
-    launchProgressRef.current = 1
+    launchProgressRef.current = 0
     forceLiteFxRef.current = true
     const zCopy = payload.zSlots.slice()
     const flyCopy = [...payload.flyTerms]

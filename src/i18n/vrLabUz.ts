@@ -5,8 +5,12 @@ export const vrLabUz: Record<keyof typeof vrLabRu, string> = {
 
   'vrLab.title': 'VR 3D laboratoriya',
   'vrLab.lead':
-    'Kolbalarni torting, katalogdan modda quying va reaktorda aralashtiring. Chann ustida: g\'ildirak yoki R — egish.',
-  'vrLab.controlsHint': 'G\'ildirak / R — egish · cyan halqaga torting',
+    'Kolbalarni polka va stolda harakatlantiring, katalogdan modda tanlang va chanda aralashtiring. Chann ustida: g\'ildirak yoki R — egish.',
+  'vrLab.controlsHint': 'G\'ildirak / R — egish · Shift+R — orqaga · katalog — kolbaga quyish',
+  'vrLab.hint.dragAndPour': 'Kolbani cyan halqaga torting, g\'ildirak/R bilan egiting, quyish uchun qo\'yib yuboring',
+  'vrLab.hint.fillFromCatalog': 'Katalogdan modda tanlang — u darhol kolbaga tushadi',
+  'vrLab.hint.pourToVat': 'Kolbani changa torting yoki «Changa quyish» ni bosing',
+  'vrLab.hint.busy': 'Kuting — animatsiya davom etmoqda…',
   'vrLab.backLab': 'Reaktorga qaytish',
 
   'vrLab.picker.title': 'Moddalar katalogi',
@@ -28,7 +32,7 @@ export const vrLabUz: Record<keyof typeof vrLabRu, string> = {
   'vrLab.vat.selected': 'Aralashtirish reaktori',
   'vrLab.section.shelf': 'Kolbalar (1–10)',
   'vrLab.shelf.dragHint':
-    'Kolbani stolga torting. Chann ustida: g\'ildirak yoki R — egish, qo\'yib yuboring.',
+    'Kolbalarni to\'g\'ridan-to\'g\'ri polkada siljiting. Stolga torting; chann ustida g\'ildirak/R bilan egiting va quyish uchun qo\'yib yuboring.',
   'vrLab.shelf.onWall': 'Polkada',
   'vrLab.shelf.onBench': 'Stolda',
   'vrLab.vat.waitSecond': 'Chanda {formula} — ikkinchi reagent quying.',

@@ -546,7 +546,7 @@ function SceneContent({
   const productSlotEntrance: 'smooth' | 'none' | 'instant' =
     showSettledHero && !synthActive
       ? 'none'
-      : instantSynthesis || synthActive
+      : instantSynthesis
         ? 'instant'
         : 'smooth'
 
@@ -851,8 +851,8 @@ function SceneContent({
           prewarm={productPrewarmActive}
           entrance={productSlotEntrance}
           runId={synthesis?.runId ?? 0}
-          birthEntrance={false}
-          entranceDuration={0}
+          birthEntrance={synthActive && !instantSynthesis}
+          entranceDuration={synthActive && !instantSynthesis ? synthTimingProfile.productEntranceDur : 0}
         />
       ) : null}
       <OrbitControls

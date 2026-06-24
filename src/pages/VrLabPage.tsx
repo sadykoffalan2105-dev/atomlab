@@ -153,6 +153,13 @@ export function VrLabPage() {
       ? t('vrLab.vat.selected')
       : t('vrLab.shelf.selected', { n: selectedShelf?.label ?? '—' })
 
+  const interactionHint = useMemo((): MessageKey => {
+    if (busy) return 'vrLab.hint.busy'
+    if (canFillFlask && !selectedShelf?.content) return 'vrLab.hint.fillFromCatalog'
+    if (canPourVat) return 'vrLab.hint.pourToVat'
+    return 'vrLab.hint.dragAndPour'
+  }, [busy, canFillFlask, canPourVat, selectedShelf?.content])
+
   return (
     <div className={styles.wrap}>
       <header className={styles.header}>
@@ -191,6 +198,11 @@ export function VrLabPage() {
         {practiceTarget && !lessonProgress.practiceDone ? (
           <div className={styles.practiceBanner} aria-live="polite">
             {t('vrLab.lesson.practiceActive', { mission: practiceMissionText })}
+          </div>
+        ) : null}
+        {canvasState === 'ready' ? (
+          <div className={styles.interactionBanner} aria-live="polite">
+            {t(interactionHint)}
           </div>
         ) : null}
         <VrLabCanvasShell
@@ -324,6 +336,9 @@ export function VrLabPage() {
             selectedCompoundId={pickId}
             onSelect={(id) => {
               setPickId(id)
+              if (canFillFlask && target?.kind === 'shelf') {
+                fillSelectedFlask(id)
+              }
             }}
           />
         </div>

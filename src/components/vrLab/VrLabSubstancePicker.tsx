@@ -78,7 +78,7 @@ function VirtualList({
 export function VrLabSubstancePicker({ selectedCompoundId, onSelect }: Props) {
   const { t } = useT()
   const [query, setQuery] = useState('')
-  const [starterOnly, setStarterOnly] = useState(true)
+  const [starterOnly, setStarterOnly] = useState(false)
   const [catalog, setCatalog] = useState<VrLabCatalogEntry[] | null>(null)
 
   const starterSet = useMemo(() => new Set(listVrLabStarterSubstanceIds()), [])
