@@ -1,9 +1,16 @@
 import { isPlausibleSpeechAudio } from './learnSpeechValidate'
+import { synthesizeEdgeNeuralSpeechBrowser } from './learnEdgeTtsBrowser'
 
 export type TeacherTtsLocale = 'ru' | 'en'
 
 const CHUNK_TIMEOUT_MS = 50_000
 const PROBE_TIMEOUT_MS = 12_000
+
+/**
+ * Когда серверный /api/learn/tts отсутствует (статический хостинг — GitHub Pages),
+ * перестаём ходить на него и сразу синтезируем тот же neural-голос прямо в браузере.
+ */
+let serverTtsDisabled = false
 
 /** uz озвучиваем русским neural-голосом Dmitry. */
 export function teacherTtsLocale(appLocale: 'ru' | 'en' | 'uz'): TeacherTtsLocale {
@@ -51,7 +58,11 @@ async function postTts(
     body: JSON.stringify({ text: chunk, locale, prepared: true }),
     signal,
   })
-  if (!res.ok) return null
+  if (!res.ok) {
+    // 404/405 => серверной TTS-функции на этом хостинге нет (статический сайт).
+    if (res.status === 404 || res.status === 405) serverTtsDisabled = true
+    return null
+  }
 
   const data = (await res.json()) as TtsPayload
   if (
@@ -64,7 +75,24 @@ async function postTts(
   return null
 }
 
-/** Один фрагмент → MP3 (Python Dmitry / OpenAI). */
+/** Тот же neural-голос (ru-RU-DmitryNeural) напрямую из браузера — без сервера. */
+async function fetchTeacherTtsChunkBrowser(
+  chunk: string,
+  locale: TeacherTtsLocale,
+  signal: AbortSignal,
+): Promise<{ audioBase64: string; mimeType: string } | null> {
+  if (signal.aborted) return null
+  try {
+    const entry = await synthesizeEdgeNeuralSpeechBrowser(chunk, locale)
+    if (signal.aborted) return null
+    if (entry && isPlausibleSpeechAudio(entry.audioBase64, chunk)) return entry
+  } catch {
+    /* fallthrough */
+  }
+  return null
+}
+
+/** Один фрагмент → MP3 (серверный Python Dmitry / OpenAI, иначе браузерный Edge Neural). */
 export async function fetchTeacherTtsChunk(
   chunk: string,
   locale: TeacherTtsLocale,
@@ -78,16 +106,21 @@ export async function fetchTeacherTtsChunk(
       ? AbortSignal.any([signal, timeout])
       : signal
 
-  for (const url of resolveTeacherTtsUrls()) {
-    if (signal.aborted) return null
-    try {
-      const entry = await postTts(url, chunk, locale, combined)
-      if (entry) return entry
-    } catch {
-      /* next */
+  // Сервер пробуем, пока он не оказался отсутствующим (на статическом хостинге — нет /api).
+  if (!serverTtsDisabled) {
+    for (const url of resolveTeacherTtsUrls()) {
+      if (signal.aborted) return null
+      try {
+        const entry = await postTts(url, chunk, locale, combined)
+        if (entry) return entry
+      } catch {
+        /* next */
+      }
     }
   }
-  return null
+
+  // Запасной путь без сервера: тот же Microsoft Edge Neural прямо из браузера (WebSocket).
+  return fetchTeacherTtsChunkBrowser(chunk, locale, signal)
 }
 
 /** Проверка: neural доступен для первой фразы (без воспроизведения). */
