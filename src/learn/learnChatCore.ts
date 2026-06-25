@@ -5,6 +5,7 @@ import { buildTaskCoachSystemPrompt } from './learnTaskCoachPrompt'
 import { generateTaskCoachLocalReply } from './learnTaskCoachLocal'
 import { buildTeacherBrainPack } from './learnTeacherBrain'
 import { retrieveChemistryKnowledge, buildRetrievedKnowledgeBlock } from './learnKnowledgeRetrieval'
+import { learnApiCorsHeaders } from './learnApiCors'
 
 export type LearnChatMessage = { role: 'user' | 'assistant'; content: string }
 
@@ -80,14 +81,7 @@ function trimMessages(messages: LearnChatMessage[]): LearnChatMessage[] {
 }
 
 function corsHeaders(origin: string | undefined, allowedOrigins: string[]): Record<string, string> {
-  const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173']
-  const all = [...allowedOrigins, ...devOrigins]
-  const ok = origin && all.some((o) => origin === o || origin.startsWith(o))
-  return {
-    'Access-Control-Allow-Origin': ok && origin ? origin : (all[0] ?? '*'),
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  }
+  return learnApiCorsHeaders(origin, allowedOrigins)
 }
 
 export function learnChatOptionsResponse(

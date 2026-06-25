@@ -5,6 +5,7 @@ import {
   HUMAN_TTS_VOICE,
   prepareTextForHumanTts,
 } from './learnSpeechText'
+import { learnApiCorsHeaders } from './learnApiCors'
 
 export type EdgeTtsBackend = (
   text: string,
@@ -115,14 +116,7 @@ function checkRateLimit(ip: string): boolean {
 }
 
 function corsHeaders(origin: string | undefined, allowedOrigins: string[]): Record<string, string> {
-  const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173']
-  const all = [...allowedOrigins, ...devOrigins]
-  const ok = origin && all.some((o) => origin === o || origin.startsWith(o))
-  return {
-    'Access-Control-Allow-Origin': ok && origin ? origin : (all[0] ?? '*'),
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  }
+  return learnApiCorsHeaders(origin, allowedOrigins)
 }
 
 export function learnTtsOptionsResponse(

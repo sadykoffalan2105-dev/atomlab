@@ -6,10 +6,7 @@ export type TeacherTtsLocale = 'ru' | 'en'
 const CHUNK_TIMEOUT_MS = 50_000
 const PROBE_TIMEOUT_MS = 12_000
 
-/**
- * Когда серверный /api/learn/tts отсутствует (статический хостинг — GitHub Pages),
- * перестаём ходить на него и сразу синтезируем тот же neural-голос прямо в браузере.
- */
+/** Нет serverless /api на статическом хостинге — не спамим 404 на каждый фрагмент. */
 let serverTtsDisabled = false
 
 /** uz озвучиваем русским neural-голосом Dmitry. */
@@ -17,18 +14,42 @@ export function teacherTtsLocale(appLocale: 'ru' | 'en' | 'uz'): TeacherTtsLocal
   return appLocale === 'en' ? 'en' : 'ru'
 }
 
+function normalizeTtsUrl(raw: string): string {
+  const t = raw.trim()
+  if (!t) return t
+  if (t.startsWith('http://') || t.startsWith('https://')) return t
+  if (typeof window !== 'undefined') {
+    try {
+      return new URL(t.startsWith('/') ? t : `/${t}`, window.location.origin).href
+    } catch {
+      return t
+    }
+  }
+  return t
+}
+
 /**
- * Только основной API — без /teacher-api (там текст переписывается во «эич два о»).
+ * URL для neural TTS:
+ * 1) VITE_LEARN_TTS_URL (явный)
+ * 2) VITE_LEARN_CHAT_URL → …/api/learn/tts (Vercel, как у чата)
+ * 3) same-origin BASE_URL/api/learn/tts (локальный Vite middleware)
  */
 export function resolveTeacherTtsUrls(): string[] {
   const urls: string[] = []
 
   const explicit = import.meta.env.VITE_LEARN_TTS_URL as string | undefined
-  if (explicit?.trim()) urls.push(explicit.trim())
+  if (explicit?.trim()) urls.push(normalizeTtsUrl(explicit))
 
-  urls.push('/api/learn/tts')
+  const chatUrl = import.meta.env.VITE_LEARN_CHAT_URL as string | undefined
+  if (chatUrl?.trim()) {
+    const derived = chatUrl.trim().replace(/\/api\/learn\/chat\/?$/i, '/api/learn/tts')
+    urls.push(normalizeTtsUrl(derived))
+  }
 
-  return [...new Set(urls)]
+  const base = (import.meta.env.BASE_URL ?? '/').replace(/\/?$/, '/')
+  urls.push(normalizeTtsUrl(`${base}api/learn/tts`))
+
+  return [...new Set(urls.filter(Boolean))]
 }
 
 export function primaryTeacherTtsUrl(): string {
@@ -58,13 +79,19 @@ async function postTts(
     body: JSON.stringify({ text: chunk, locale, prepared: true }),
     signal,
   })
-  if (!res.ok) {
-    // 404/405 => серверной TTS-функции на этом хостинге нет (статический сайт).
-    if (res.status === 404 || res.status === 405) serverTtsDisabled = true
+
+  const contentType = res.headers.get('content-type') ?? ''
+  if (!res.ok || !contentType.includes('json')) {
     return null
   }
 
-  const data = (await res.json()) as TtsPayload
+  let data: TtsPayload
+  try {
+    data = (await res.json()) as TtsPayload
+  } catch {
+    return null
+  }
+
   if (
     data.audioBase64 &&
     isPlausibleSpeechAudio(data.audioBase64, chunk) &&
@@ -92,7 +119,7 @@ async function fetchTeacherTtsChunkBrowser(
   return null
 }
 
-/** Один фрагмент → MP3 (серверный Python Dmitry / OpenAI, иначе браузерный Edge Neural). */
+/** Один фрагмент → MP3 (Vercel/Python Dmitry, иначе браузерный Edge Neural). */
 export async function fetchTeacherTtsChunk(
   chunk: string,
   locale: TeacherTtsLocale,
@@ -106,9 +133,9 @@ export async function fetchTeacherTtsChunk(
       ? AbortSignal.any([signal, timeout])
       : signal
 
-  // Сервер пробуем, пока он не оказался отсутствующим (на статическом хостинге — нет /api).
   if (!serverTtsDisabled) {
-    for (const url of resolveTeacherTtsUrls()) {
+    const urls = resolveTeacherTtsUrls()
+    for (const url of urls) {
       if (signal.aborted) return null
       try {
         const entry = await postTts(url, chunk, locale, combined)
@@ -117,9 +144,10 @@ export async function fetchTeacherTtsChunk(
         /* next */
       }
     }
+    // Все серверные URL недоступны (статический GitHub Pages) — дальше только браузерный Edge.
+    if (urls.length > 0) serverTtsDisabled = true
   }
 
-  // Запасной путь без сервера: тот же Microsoft Edge Neural прямо из браузера (WebSocket).
   return fetchTeacherTtsChunkBrowser(chunk, locale, signal)
 }
 
