@@ -13,6 +13,7 @@ import {
   speakWithBrowserVoice,
   stopBrowserSpeech,
 } from './learnSpeechBrowser'
+import { preloadPuterTts } from './learnPuterTts'
 import { LearnSpeechRecognition, isSpeechRecognitionSupported } from './learnSpeechRecognition'
 import {
   isNeuralPlaybackActive,
@@ -41,6 +42,7 @@ export function isSpeechOutputSupported(): boolean {
 
 export function preloadSpeechVoices(): void {
   preloadBrowserSpeechVoices()
+  preloadPuterTts()
 }
 
 export class LearnSpeechController {

@@ -1,5 +1,6 @@
 import { isPlausibleSpeechAudio } from './learnSpeechValidate'
 import { synthesizeEdgeNeuralSpeechBrowser } from './learnEdgeTtsBrowser'
+import { synthesizePuterSpeech } from './learnPuterTts'
 
 export type TeacherTtsLocale = 'ru' | 'en'
 
@@ -17,6 +18,10 @@ let cachedWorkingTtsUrl: string | null = null
 const PUBLIC_NEURAL_TTS_URLS = [
   'https://atomlab-alan-sadykov.netlify.app/api/learn/tts',
   'https://atomlab-learn-tts.onrender.com/api/learn/tts',
+  // Cloudflare Worker (после wrangler deploy): atomlab-learn-tts.<account>.workers.dev
+  ...(import.meta.env.VITE_LEARN_TTS_CF_URL
+    ? [String(import.meta.env.VITE_LEARN_TTS_CF_URL).trim()]
+    : []),
 ] as const
 
 /** uz озвучиваем русским neural-голосом Dmitry. */
@@ -201,7 +206,15 @@ export async function fetchTeacherTtsChunk(
     }
   }
 
-  // 1) В браузере Microsoft Edge — настоящий ru-RU-DmitryNeural напрямую.
+  // 2) Puter (мужской Maxim) — без сервера, если бэкенд не задеплоен.
+  try {
+    const puter = await synthesizePuterSpeech(chunk, locale, signal)
+    if (puter && isPlausibleSpeechAudio(puter.audioBase64, chunk)) return puter
+  } catch {
+    /* next */
+  }
+
+  // 3) Microsoft Edge — прямой ru-RU-DmitryNeural.
   return fetchTeacherTtsChunkBrowser(chunk, locale, signal)
 }
 

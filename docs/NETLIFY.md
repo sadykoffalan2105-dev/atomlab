@@ -4,17 +4,28 @@
 
 Статический сайт **не может** синтезировать голос сам — нужен serverless-бэкенд.
 
-### Автодеплой TTS (Netlify CLI)
+### Автодеплой TTS (Netlify CLI) — **обязательно для голоса на сайте**
 
-Workflow `.github/workflows/publish-site.yml` и `deploy-netlify.yml` загружают **функцию** `netlify/functions/learn-tts` через Netlify CLI (не тратит минуты сборки).
+Без этого шага GitHub Pages **не может** синтезировать голос — будет только запасной Puter/браузер.
 
-Нужны секреты в GitHub → **Settings** → **Secrets** → **Actions**:
+Workflow `.github/workflows/publish-site.yml` загружает функцию `netlify/functions/learn-tts` через Netlify CLI (не тратит минуты сборки).
 
-- `NETLIFY_AUTH_TOKEN` — [Personal access token](https://app.netlify.com/user/applications#personal-access-tokens)
-- `NETLIFY_SITE_ID` = `86490664-0bd1-4761-a7fb-0bce1581eca3`
+**Добавьте секреты** в GitHub → репозиторий **atomlab** → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
 
-После push в `main` проверьте:  
-`POST https://atomlab-alan-sadykov.netlify.app/api/learn/tts` → JSON с `audioBase64`.
+| Секрет | Значение |
+|--------|----------|
+| `NETLIFY_AUTH_TOKEN` | [Netlify → User settings → Applications → Personal access tokens](https://app.netlify.com/user/applications#personal-access-tokens) → Generate |
+| `NETLIFY_SITE_ID` | `86490664-0bd1-4761-a7fb-0bce1581eca3` |
+
+После следующего `git push` в `main` проверьте в терминале:
+
+```bash
+curl -X POST https://atomlab-alan-sadykov.netlify.app/api/learn/tts \
+  -H "Content-Type: application/json" \
+  -d "{\"text\":\"Привет\",\"locale\":\"ru\",\"prepared\":true}"
+```
+
+Ответ должен содержать `"source":"edge"` и длинный `audioBase64`.
 
 ### Запасной бэкенд (Render.com)
 
