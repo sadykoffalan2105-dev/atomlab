@@ -43,26 +43,35 @@ export const TEACHER_VOICE_OPENAI_INSTRUCTIONS = {
   en: `Warm male teacher, natural tutor pace, gentle pauses, conversational tone.`,
 } as const
 
-/** Локальные системные голоса — «роботский» TTS, без Neural/Dmitry. */
+/**
+ * Браузерные голоса Web Speech API — приоритет по «человечности».
+ * Google / Microsoft Online (Natural) / Neural звучат почти как neural-учитель и
+ * доступны прямо на статичном сайте (GitHub Pages) без сервера.
+ */
 export const TEACHER_BROWSER_VOICE_HINTS: Record<SpeechPrepLocale, string[]> = {
   ru: [
-    'microsoft pavel',
     'google русский',
-    'milena',
-    'dmitri',
+    'google russian',
+    'microsoft dmitry online',
+    'microsoft svetlana online',
+    'microsoft dariya online',
     'yandex',
-    'ru-ru',
+    'milena',
+    'microsoft pavel',
     'russian',
   ],
   en: [
-    'microsoft david',
     'google us english',
+    'microsoft guy online',
+    'microsoft andrew online',
+    'microsoft aria online',
+    'microsoft jenny online',
     'samantha',
+    'microsoft david',
     'microsoft mark',
-    'en-us',
     'english united states',
   ],
-  uz: ['sardor', 'microsoft', 'google', 'uz-uz'],
+  uz: ['microsoft sardor online', 'sardor', 'google', 'uz-uz'],
 }
 
 /** Быстрее обычного темпа, но без «тараторения». */

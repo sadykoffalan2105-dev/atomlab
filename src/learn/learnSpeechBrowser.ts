@@ -21,20 +21,32 @@ function lower(s: string): string {
   return s.toLowerCase()
 }
 
-function isNeuralVoiceName(name: string): boolean {
-  const n = lower(name)
-  return (
-    n.includes('neural') ||
-    n.includes('online (natural)') ||
-    n.includes('natural') ||
-    n.includes('premium')
-  )
+/**
+ * «Человечность» голоса: сетевые neural-голоса (Google, Microsoft Online Natural)
+ * звучат заметно лучше локальных системных. Чем выше балл — тем естественнее.
+ */
+function naturalnessScore(v: SpeechSynthesisVoice): number {
+  const n = lower(v.name)
+  let score = 0
+  if (n.includes('google')) score += 6
+  if (n.includes('natural')) score += 6
+  if (n.includes('neural')) score += 6
+  if (n.includes('online')) score += 4
+  if (n.includes('premium') || n.includes('enhanced')) score += 4
+  // Сетевые (нелокальные) голоса обычно качественнее системных «роботов».
+  if (!v.localService) score += 3
+  return score
 }
 
-/** Классический «роботский» системный голос — без Microsoft Neural / Dmitry. */
+/**
+ * Лучший доступный голос для локали: сначала по подсказкам (в порядке качества),
+ * затем — самый «человечный» голос нужного языка по эвристике.
+ */
 function pickBrowserVoice(locale: BrowserSpeechLocale): SpeechSynthesisVoice | null {
   if (!speechSupported()) return null
   const voices = window.speechSynthesis.getVoices()
+  if (voices.length === 0) return null
+
   const langPrefix = locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'
   const hints = TEACHER_BROWSER_VOICE_HINTS[locale === 'uz' ? 'ru' : locale]
 
@@ -43,32 +55,49 @@ function pickBrowserVoice(locale: BrowserSpeechLocale): SpeechSynthesisVoice | n
     return lang.startsWith(langPrefix) || lang.includes(langPrefix)
   }
 
+  const sameLang = voices.filter(matchesLang)
+
+  // 1) Точные подсказки в порядке приоритета (самые «живые» — первыми).
   for (const hint of hints) {
-    const hit = voices.find((v) => {
-      if (!matchesLang(v)) return false
-      if (isNeuralVoiceName(v.name)) return false
-      return lower(v.name).includes(hint)
-    })
+    const hit = sameLang.find((v) => lower(v.name).includes(hint))
     if (hit) return hit
   }
 
-  const localRobotic = voices.find(
-    (v) => matchesLang(v) && v.localService && !isNeuralVoiceName(v.name),
-  )
-  if (localRobotic) return localRobotic
+  // 2) Самый естественный голос нужного языка по эвристике.
+  if (sameLang.length > 0) {
+    return [...sameLang].sort((a, b) => naturalnessScore(b) - naturalnessScore(a))[0]!
+  }
 
-  const anyRobotic = voices.find((v) => matchesLang(v) && !isNeuralVoiceName(v.name))
-  if (anyRobotic) return anyRobotic
-
-  const anyLang = voices.find((v) => matchesLang(v))
-  if (anyLang) return anyLang
-
+  // 3) Узбекского голоса нет — читаем русским.
   if (locale === 'uz') return pickBrowserVoice('ru')
   return null
 }
 
 export function isBrowserSpeechSupported(): boolean {
   return speechSupported()
+}
+
+/** Голоса в Chrome приходят асинхронно — ждём событие voiceschanged. */
+function ensureVoicesLoaded(timeoutMs = 1500): Promise<void> {
+  if (!speechSupported()) return Promise.resolve()
+  if (window.speechSynthesis.getVoices().length > 0) return Promise.resolve()
+
+  return new Promise((resolve) => {
+    let done = false
+    const finish = () => {
+      if (done) return
+      done = true
+      window.speechSynthesis.onvoiceschanged = null
+      clearTimeout(timer)
+      resolve()
+    }
+    window.speechSynthesis.onvoiceschanged = () => {
+      if (window.speechSynthesis.getVoices().length > 0) finish()
+    }
+    const timer = setTimeout(finish, timeoutMs)
+    // На случай, если список уже наполнился между проверкой и подпиской.
+    if (window.speechSynthesis.getVoices().length > 0) finish()
+  })
 }
 
 export function preloadBrowserSpeechVoices(): void {
@@ -94,15 +123,39 @@ function speakOneUtterance(
       return
     }
     const utterance = new SpeechSynthesisUtterance(sentence)
-    utterance.lang = SPEECH_LOCALE[locale]
+    utterance.lang = voice?.lang || SPEECH_LOCALE[locale]
     utterance.rate = TEACHER_BROWSER_RATE[locale === 'uz' ? 'ru' : locale]
     utterance.pitch = TEACHER_BROWSER_PITCH[locale === 'uz' ? 'ru' : locale]
     utterance.volume = 1.0
     if (voice) utterance.voice = voice
-    utterance.onend = () => resolve()
-    utterance.onerror = () => resolve()
+
+    let settled = false
+    const done = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
+    utterance.onend = done
+    utterance.onerror = done
+
     window.speechSynthesis.speak(utterance)
   })
+}
+
+/**
+ * Chrome глушит синтез после ~15 c непрерывной речи. Периодический resume()
+ * не даёт движку «уснуть» на длинных репликах.
+ */
+function startChromeKeepAlive(): () => void {
+  if (!speechSupported()) return () => {}
+  const id = window.setInterval(() => {
+    const synth = window.speechSynthesis
+    if (synth.speaking && !synth.paused) {
+      synth.pause()
+      synth.resume()
+    }
+  }, 9000)
+  return () => window.clearInterval(id)
 }
 
 export async function speakWithBrowserVoice(
@@ -112,17 +165,26 @@ export async function speakWithBrowserVoice(
 ): Promise<boolean> {
   if (!speechSupported() || chunks.length === 0) return false
 
+  await ensureVoicesLoaded()
+  if (isAborted()) return false
+
   const voice = pickBrowserVoice(locale)
 
   window.speechSynthesis.cancel()
-  await sleep(24)
+  await sleep(40)
+  if (isAborted()) return false
 
-  for (let i = 0; i < chunks.length; i++) {
-    if (isAborted()) return false
-    await speakOneUtterance(chunks[i]!, locale, voice)
-    if (i + 1 < chunks.length && !isAborted()) {
-      await sleep(BROWSER_SENTENCE_GAP_MS)
+  const stopKeepAlive = startChromeKeepAlive()
+  try {
+    for (let i = 0; i < chunks.length; i++) {
+      if (isAborted()) return false
+      await speakOneUtterance(chunks[i]!, locale, voice)
+      if (i + 1 < chunks.length && !isAborted()) {
+        await sleep(BROWSER_SENTENCE_GAP_MS)
+      }
     }
+  } finally {
+    stopKeepAlive()
   }
 
   return !isAborted()

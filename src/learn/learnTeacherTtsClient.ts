@@ -29,10 +29,29 @@ function normalizeTtsUrl(raw: string): string {
 }
 
 /**
- * URL для neural TTS:
+ * Бэкенд neural-голоса по умолчанию (Netlify Function — Edge TTS на сервере).
+ * Используется, когда не задан явный VITE_LEARN_TTS_URL/VITE_LEARN_CHAT_URL,
+ * чтобы статичный GitHub Pages всё равно получал «человеческий» голос Дмитрия.
+ */
+const DEFAULT_NEURAL_TTS_URL = 'https://atomlab-alan-sadykov.netlify.app/api/learn/tts'
+
+/** Сейчас мы на самом Netlify-сайте? Тогда хватит same-origin /api/learn/tts. */
+function isNetlifyHost(): boolean {
+  return typeof window !== 'undefined' && /\.netlify\.app$/i.test(window.location.hostname)
+}
+
+/** Запущены как локальный статический preview/dev без серверного /api? */
+function isLocalHost(): boolean {
+  if (typeof window === 'undefined') return false
+  return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(window.location.hostname)
+}
+
+/**
+ * URL для neural TTS (по приоритету):
  * 1) VITE_LEARN_TTS_URL (явный)
  * 2) VITE_LEARN_CHAT_URL → …/api/learn/tts (Vercel, как у чата)
- * 3) same-origin BASE_URL/api/learn/tts (локальный Vite middleware)
+ * 3) same-origin BASE_URL/api/learn/tts (локальный Vite middleware / Netlify same-origin)
+ * 4) публичный Netlify-бэкенд (чтобы голос работал даже на статичном GitHub Pages)
  */
 export function resolveTeacherTtsUrls(): string[] {
   const urls: string[] = []
@@ -48,6 +67,11 @@ export function resolveTeacherTtsUrls(): string[] {
 
   const base = (import.meta.env.BASE_URL ?? '/').replace(/\/?$/, '/')
   urls.push(normalizeTtsUrl(`${base}api/learn/tts`))
+
+  // Статичный хостинг (GitHub Pages) без своего сервера — берём общий Netlify-бэкенд.
+  if (!isNetlifyHost() && !isLocalHost()) {
+    urls.push(DEFAULT_NEURAL_TTS_URL)
+  }
 
   return [...new Set(urls.filter(Boolean))]
 }
@@ -102,13 +126,25 @@ async function postTts(
   return null
 }
 
-/** Тот же neural-голос (ru-RU-DmitryNeural) напрямую из браузера — без сервера. */
+/**
+ * Прямой вызов Edge TTS из браузера работает ТОЛЬКО в Microsoft Edge:
+ * Chrome/Firefox/Safari не могут выставить обязательные WebSocket-заголовки
+ * (Microsoft, конец 2025) и получают 403. В остальных браузерах не тратим
+ * время на заведомо мёртвое соединение, а сразу идём на серверный бэкенд / Web Speech.
+ */
+function isMicrosoftEdgeBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return /\bEdg(?:A|iOS|)?\//.test(navigator.userAgent)
+}
+
+/** Тот же neural-голос (ru-RU-DmitryNeural) напрямую из браузера — только в Edge. */
 async function fetchTeacherTtsChunkBrowser(
   chunk: string,
   locale: TeacherTtsLocale,
   signal: AbortSignal,
 ): Promise<{ audioBase64: string; mimeType: string } | null> {
   if (signal.aborted) return null
+  if (!isMicrosoftEdgeBrowser()) return null
   try {
     const entry = await synthesizeEdgeNeuralSpeechBrowser(chunk, locale)
     if (signal.aborted) return null

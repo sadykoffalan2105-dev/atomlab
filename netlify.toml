@@ -8,6 +8,13 @@
   # HashRouter: корень сайта, не /atomlab/ (это только GitHub Pages)
   VITE_BASE = "/"
 
+# Serverless-функция neural-голоса учителя.
+# Edge TTS на сервере работает (в браузере Chrome — 403), поэтому /api/learn/tts
+# обслуживает функция. Маршрут задаётся через config.path внутри функции.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 # После деплоя не кэшировать index.html — иначе браузер тянет старый JS-бандл
 [[headers]]
   for = "/"
