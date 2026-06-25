@@ -44,35 +44,73 @@ export const TEACHER_VOICE_OPENAI_INSTRUCTIONS = {
 } as const
 
 /**
- * Браузерные голоса Web Speech API — приоритет по «человечности».
- * Google / Microsoft Online (Natural) / Neural звучат почти как neural-учитель и
- * доступны прямо на статичном сайте (GitHub Pages) без сервера.
+ * Браузерные голоса Web Speech API — учитель мужчина, поэтому МУЖСКИЕ голоса
+ * первыми (Дмитрий/Pavel/Maxim/Guy), затем — самые «человечные».
  */
 export const TEACHER_BROWSER_VOICE_HINTS: Record<SpeechPrepLocale, string[]> = {
   ru: [
-    'google русский',
-    'google russian',
-    'microsoft dmitry online',
-    'microsoft svetlana online',
-    'microsoft dariya online',
-    'yandex',
-    'milena',
+    'microsoft dmitry',
+    'dmitry',
+    'dmitri',
     'microsoft pavel',
+    'pavel',
+    'maxim',
+    'yuri',
+    'aleksandr',
     'russian',
   ],
   en: [
-    'google us english',
     'microsoft guy online',
     'microsoft andrew online',
-    'microsoft aria online',
-    'microsoft jenny online',
-    'samantha',
+    'microsoft guy',
     'microsoft david',
     'microsoft mark',
+    'google us english',
+    'daniel',
+    'alex',
     'english united states',
   ],
   uz: ['microsoft sardor online', 'sardor', 'google', 'uz-uz'],
 }
+
+/** Имена мужских голосов — повышаем приоритет (учитель мужчина). */
+export const TEACHER_VOICE_MALE_NAMES = [
+  'dmitry',
+  'dmitri',
+  'pavel',
+  'maxim',
+  'yuri',
+  'aleksandr',
+  'artem',
+  'guy',
+  'andrew',
+  'matthew',
+  'david',
+  'mark',
+  'daniel',
+  'alex',
+  'fred',
+  'male',
+]
+
+/** Имена женских голосов — понижаем приоритет. */
+export const TEACHER_VOICE_FEMALE_NAMES = [
+  'irina',
+  'tatyana',
+  'svetlana',
+  'dariya',
+  'milena',
+  'elena',
+  'katja',
+  'aria',
+  'jenny',
+  'zira',
+  'samantha',
+  'victoria',
+  'female',
+  'google русский',
+  'google russian',
+]
 
 /** Быстрее обычного темпа, но без «тараторения». */
 export const TEACHER_BROWSER_RATE: Record<SpeechPrepLocale, number> = {

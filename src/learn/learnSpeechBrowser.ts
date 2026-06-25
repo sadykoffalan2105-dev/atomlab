@@ -3,6 +3,8 @@ import {
   TEACHER_BROWSER_PITCH,
   TEACHER_BROWSER_RATE,
   TEACHER_BROWSER_VOICE_HINTS,
+  TEACHER_VOICE_FEMALE_NAMES,
+  TEACHER_VOICE_MALE_NAMES,
 } from './learnTeacherVoiceProfile'
 
 export type BrowserSpeechLocale = 'ru' | 'en' | 'uz'
@@ -21,26 +23,38 @@ function lower(s: string): string {
   return s.toLowerCase()
 }
 
+function isMaleVoice(name: string): boolean {
+  const n = lower(name)
+  return TEACHER_VOICE_MALE_NAMES.some((m) => n.includes(m))
+}
+
+function isFemaleVoice(name: string): boolean {
+  const n = lower(name)
+  return TEACHER_VOICE_FEMALE_NAMES.some((f) => n.includes(f))
+}
+
 /**
- * «Человечность» голоса: сетевые neural-голоса (Google, Microsoft Online Natural)
- * звучат заметно лучше локальных системных. Чем выше балл — тем естественнее.
+ * Балл голоса: учитель — мужчина, поэтому пол важнее «человечности».
+ * Сначала жёстко предпочитаем мужские голоса, затем — естественные (Google/Neural).
  */
-function naturalnessScore(v: SpeechSynthesisVoice): number {
+function voiceScore(v: SpeechSynthesisVoice): number {
   const n = lower(v.name)
   let score = 0
-  if (n.includes('google')) score += 6
+  if (isMaleVoice(n)) score += 100
+  if (isFemaleVoice(n)) score -= 100
   if (n.includes('natural')) score += 6
   if (n.includes('neural')) score += 6
   if (n.includes('online')) score += 4
   if (n.includes('premium') || n.includes('enhanced')) score += 4
-  // Сетевые (нелокальные) голоса обычно качественнее системных «роботов».
+  if (n.includes('google')) score += 3
   if (!v.localService) score += 3
   return score
 }
 
 /**
- * Лучший доступный голос для локали: сначала по подсказкам (в порядке качества),
- * затем — самый «человечный» голос нужного языка по эвристике.
+ * Лучший доступный голос для локали: сначала мужские по подсказкам, затем —
+ * максимум по баллу (мужской + естественный). Web Speech — последний фолбэк,
+ * мужской neural-голос обеспечивает серверный/Puter путь.
  */
 function pickBrowserVoice(locale: BrowserSpeechLocale): SpeechSynthesisVoice | null {
   if (!speechSupported()) return null
@@ -57,15 +71,18 @@ function pickBrowserVoice(locale: BrowserSpeechLocale): SpeechSynthesisVoice | n
 
   const sameLang = voices.filter(matchesLang)
 
-  // 1) Точные подсказки в порядке приоритета (самые «живые» — первыми).
+  // 1) Точные подсказки в порядке приоритета (мужские — первыми).
   for (const hint of hints) {
     const hit = sameLang.find((v) => lower(v.name).includes(hint))
     if (hit) return hit
   }
 
-  // 2) Самый естественный голос нужного языка по эвристике.
+  // 2) Лучший мужской голос языка — женские (Google русский и т.п.) не берём.
   if (sameLang.length > 0) {
-    return [...sameLang].sort((a, b) => naturalnessScore(b) - naturalnessScore(a))[0]!
+    const ranked = [...sameLang].sort((a, b) => voiceScore(b) - voiceScore(a))
+    const best = ranked.find((v) => isMaleVoice(v.name) && !isFemaleVoice(v.name))
+    if (best) return best
+    return null
   }
 
   // 3) Узбекского голоса нет — читаем русским.
@@ -169,6 +186,7 @@ export async function speakWithBrowserVoice(
   if (isAborted()) return false
 
   const voice = pickBrowserVoice(locale)
+  if (!voice) return false
 
   window.speechSynthesis.cancel()
   await sleep(40)

@@ -1,10 +1,5 @@
 /**
- * Netlify Function: серверный neural TTS учителя (тот же ru-RU-DmitryNeural).
- *
- * Зачем: Microsoft Edge Read-Aloud с конца 2025 требует WebSocket-заголовки,
- * которые браузеры Chrome/Firefox/Safari выставить НЕ могут → прямой вызов из
- * браузера падает с 403. На сервере (Node) заголовки доступны, поэтому синтез
- * работает. Статичный сайт (GitHub Pages) и Netlify-сайт ходят сюда по fetch.
+ * Netlify Function: серверный neural TTS (ru-RU-DmitryNeural) для статичного сайта.
  */
 import {
   learnTtsOptionsResponse,
@@ -19,18 +14,16 @@ registerEdgeTtsBackend(synthesizeEdgeForServerless)
 
 const runtime = learnTtsRuntimeFromEnv(process.env as Record<string, string | undefined>)
 
-function applyHeaders(base: Record<string, string> | undefined): Headers {
-  const headers = new Headers()
-  for (const [k, v] of Object.entries(base ?? {})) headers.set(k, v)
-  return headers
+function corsHeaders(base: Record<string, string> | undefined): Record<string, string> {
+  return { ...(base ?? {}) }
 }
 
-export default async function handler(req: Request): Promise<Response> {
+export default async (req: Request): Promise<Response> => {
   const origin = req.headers.get('origin') ?? undefined
 
   if (req.method === 'OPTIONS') {
     const result = learnTtsOptionsResponse(origin, runtime)
-    return new Response(null, { status: 204, headers: applyHeaders(result.headers) })
+    return new Response(null, { status: 204, headers: corsHeaders(result.headers) })
   }
 
   if (req.method !== 'POST') {
@@ -62,8 +55,6 @@ export default async function handler(req: Request): Promise<Response> {
       source: result.source,
       error: result.error,
     }),
-    { status: result.status, headers: applyHeaders(result.headers) },
+    { status: result.status, headers: corsHeaders(result.headers) },
   )
 }
-
-export const config = { path: '/api/learn/tts' }

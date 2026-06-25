@@ -1,11 +1,8 @@
-import { Communicate } from '@travisvn/edge-tts'
+import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts'
 import type { LearnTtsLocale } from '../src/learn/learnTtsCore'
-import {
-  TEACHER_VOICE_EDGE,
-  TEACHER_VOICE_EDGE_PROSODY,
-} from '../src/learn/learnTeacherVoiceProfile'
+import { TEACHER_VOICE_EDGE } from '../src/learn/learnTeacherVoiceProfile'
 
-/** Edge Neural TTS на Vercel/serverless (тот же Dmitry, что локальный Python). */
+/** Edge Neural TTS (ru-RU-DmitryNeural) — мужской голос на serverless/Netlify/Vercel. */
 export async function synthesizeEdgeForServerless(
   text: string,
   locale: LearnTtsLocale,
@@ -16,26 +13,17 @@ export async function synthesizeEdgeForServerless(
 
   const prepLocale = locale === 'en' ? 'en' : 'ru'
   const voiceName = voice?.trim() || TEACHER_VOICE_EDGE[prepLocale]
-  const prosody = TEACHER_VOICE_EDGE_PROSODY[prepLocale]
 
   try {
-    const communicate = new Communicate(text, {
-      voice: voiceName,
-      rate: prosody.rate,
-      pitch: prosody.pitch,
-      volume: prosody.volume,
-      connectionTimeout: 22_000,
-    })
-
-    const parts: Buffer[] = []
-    for await (const chunk of communicate.stream()) {
-      if (chunk.type === 'audio' && chunk.data && chunk.data.length > 0) {
-        parts.push(Buffer.from(chunk.data))
-      }
+    const tts = new MsEdgeTTS()
+    await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3)
+    const { audioStream } = await tts.toStream(text)
+    const chunks: Buffer[] = []
+    for await (const chunk of audioStream) {
+      chunks.push(Buffer.from(chunk))
     }
-    if (parts.length === 0) return null
-
-    const merged = Buffer.concat(parts)
+    if (chunks.length === 0) return null
+    const merged = Buffer.concat(chunks)
     return { audioBase64: merged.toString('base64'), mimeType: 'audio/mpeg' }
   } catch {
     return null

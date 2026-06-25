@@ -46,12 +46,18 @@ function isLocalHost(): boolean {
   return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(window.location.hostname)
 }
 
+/** Статичный GitHub Pages без своего /api? */
+function isGitHubPages(): boolean {
+  return typeof window !== 'undefined' && /\.github\.io$/i.test(window.location.hostname)
+}
+
 /**
  * URL для neural TTS (по приоритету):
  * 1) VITE_LEARN_TTS_URL (явный)
- * 2) VITE_LEARN_CHAT_URL → …/api/learn/tts (Vercel, как у чата)
- * 3) same-origin BASE_URL/api/learn/tts (локальный Vite middleware / Netlify same-origin)
- * 4) публичный Netlify-бэкенд (чтобы голос работал даже на статичном GitHub Pages)
+ * 2) VITE_LEARN_CHAT_URL → …/api/learn/tts (Vercel)
+ * 3) на GitHub Pages — сразу публичный Netlify-бэкенд (same-origin /api нет)
+ * 4) same-origin BASE_URL/api/learn/tts (локальный Vite / Netlify same-origin)
+ * 5) публичный Netlify-бэкенд (прочий статичный хостинг)
  */
 export function resolveTeacherTtsUrls(): string[] {
   const urls: string[] = []
@@ -65,11 +71,14 @@ export function resolveTeacherTtsUrls(): string[] {
     urls.push(normalizeTtsUrl(derived))
   }
 
+  if (isGitHubPages()) {
+    urls.push(DEFAULT_NEURAL_TTS_URL)
+  }
+
   const base = (import.meta.env.BASE_URL ?? '/').replace(/\/?$/, '/')
   urls.push(normalizeTtsUrl(`${base}api/learn/tts`))
 
-  // Статичный хостинг (GitHub Pages) без своего сервера — берём общий Netlify-бэкенд.
-  if (!isNetlifyHost() && !isLocalHost()) {
+  if (!isNetlifyHost() && !isLocalHost() && !isGitHubPages()) {
     urls.push(DEFAULT_NEURAL_TTS_URL)
   }
 
@@ -154,7 +163,6 @@ async function fetchTeacherTtsChunkBrowser(
   }
   return null
 }
-
 /** Один фрагмент → MP3 (Vercel/Python Dmitry, иначе браузерный Edge Neural). */
 export async function fetchTeacherTtsChunk(
   chunk: string,
@@ -180,10 +188,11 @@ export async function fetchTeacherTtsChunk(
         /* next */
       }
     }
-    // Все серверные URL недоступны (статический GitHub Pages) — дальше только браузерный Edge.
+    // Все серверные URL недоступны (статический GitHub Pages) — дальше браузерные пути.
     if (urls.length > 0) serverTtsDisabled = true
   }
 
+  // 1) В браузере Microsoft Edge — настоящий ru-RU-DmitryNeural напрямую.
   return fetchTeacherTtsChunkBrowser(chunk, locale, signal)
 }
 
