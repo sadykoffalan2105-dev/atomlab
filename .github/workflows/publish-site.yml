@@ -37,6 +37,13 @@ jobs:
           VITE_LEARN_TTS_URL: ${{ secrets.VITE_LEARN_TTS_URL != '' && secrets.VITE_LEARN_TTS_URL || 'https://atomlab-alan-sadykov.netlify.app/api/learn/tts' }}
         run: npm run build
 
+      - name: Deploy TTS function to Netlify (CLI, без минут сборки)
+        if: ${{ secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_SITE_ID != '' }}
+        run: npx netlify-cli@23 deploy --prod --dir=dist --functions=netlify/functions --message="TTS+site ${{ github.sha }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
       - name: Verify new learn UI in bundle
         run: |
           grep -rq "learn.molecules.structure.title" dist/assets/

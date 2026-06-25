@@ -1,60 +1,64 @@
 /**
- * Netlify Function: серверный neural TTS (ru-RU-DmitryNeural) для статичного сайта.
+ * Netlify Function: neural TTS учителя (ru-RU-DmitryNeural).
+ * Минимальный handler — быстрый cold start, CORS для GitHub Pages.
  */
-import {
-  learnTtsOptionsResponse,
-  learnTtsRuntimeFromEnv,
-  processLearnTts,
-  registerEdgeTtsBackend,
-} from '../../src/learn/learnTtsCore'
-import type { LearnTtsRequestBody } from '../../src/learn/learnTtsCore'
+import { learnApiCorsHeaders } from '../../src/learn/learnApiCors'
 import { synthesizeEdgeForServerless } from '../../server/edgeTtsServerless'
 
-registerEdgeTtsBackend(synthesizeEdgeForServerless)
+type Body = { text?: string; locale?: 'ru' | 'en'; prepared?: boolean }
 
-const runtime = learnTtsRuntimeFromEnv(process.env as Record<string, string | undefined>)
-
-function corsHeaders(base: Record<string, string> | undefined): Record<string, string> {
-  return { ...(base ?? {}) }
+function json(
+  data: unknown,
+  status: number,
+  origin?: string,
+): Response {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...learnApiCorsHeaders(origin, []),
+  }
+  return new Response(JSON.stringify(data), { status, headers })
 }
 
 export default async (req: Request): Promise<Response> => {
   const origin = req.headers.get('origin') ?? undefined
 
   if (req.method === 'OPTIONS') {
-    const result = learnTtsOptionsResponse(origin, runtime)
-    return new Response(null, { status: 204, headers: corsHeaders(result.headers) })
+    return new Response(null, {
+      status: 204,
+      headers: learnApiCorsHeaders(origin, []),
+    })
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return json({ error: 'method_not_allowed', source: 'error' }, 405, origin)
   }
 
-  let body: LearnTtsRequestBody
+  let body: Body
   try {
-    body = (await req.json()) as LearnTtsRequestBody
+    body = (await req.json()) as Body
   } catch {
-    return new Response(JSON.stringify({ error: 'invalid_json' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return json({ error: 'invalid_json', source: 'error' }, 400, origin)
   }
 
-  const fwd = req.headers.get('x-forwarded-for') ?? ''
-  const ip = fwd.split(',')[0]?.trim() || 'netlify'
+  const text = (body.text ?? '').trim()
+  if (!text) {
+    return json({ error: 'empty_text', source: 'error' }, 400, origin)
+  }
 
-  const result = await processLearnTts(body, { origin, clientIp: ip, runtime })
+  const locale = body.locale === 'en' ? 'en' : 'ru'
+  const result = await synthesizeEdgeForServerless(text, locale)
 
-  return new Response(
-    JSON.stringify({
+  if (!result) {
+    return json({ error: 'tts_unavailable', source: 'error' }, 502, origin)
+  }
+
+  return json(
+    {
       audioBase64: result.audioBase64,
       mimeType: result.mimeType,
-      source: result.source,
-      error: result.error,
-    }),
-    { status: result.status, headers: corsHeaders(result.headers) },
+      source: 'edge',
+    },
+    200,
+    origin,
   )
 }

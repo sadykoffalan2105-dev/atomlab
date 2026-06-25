@@ -1,5 +1,30 @@
 # Деплой сайта
 
+## Голос учителя (TTS) на GitHub Pages
+
+Статический сайт **не может** синтезировать голос сам — нужен serverless-бэкенд.
+
+### Автодеплой TTS (Netlify CLI)
+
+Workflow `.github/workflows/publish-site.yml` и `deploy-netlify.yml` загружают **функцию** `netlify/functions/learn-tts` через Netlify CLI (не тратит минуты сборки).
+
+Нужны секреты в GitHub → **Settings** → **Secrets** → **Actions**:
+
+- `NETLIFY_AUTH_TOKEN` — [Personal access token](https://app.netlify.com/user/applications#personal-access-tokens)
+- `NETLIFY_SITE_ID` = `86490664-0bd1-4761-a7fb-0bce1581eca3`
+
+После push в `main` проверьте:  
+`POST https://atomlab-alan-sadykov.netlify.app/api/learn/tts` → JSON с `audioBase64`.
+
+### Запасной бэкенд (Render.com)
+
+В репозитории есть `render.yaml` — сервис `atomlab-learn-tts`.  
+[Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → подключить репозиторий.
+
+URL: `https://atomlab-learn-tts.onrender.com/api/learn/tts`
+
+---
+
 ## Почему Netlify не обновлялся (найденная ошибка)
 
 Сайт **https://atomlab-alan-sadykov.netlify.app** подключён к GitHub (`sadykoffalan2105-dev/atomlab`, ветка `main`), но **последняя успешная сборка — 6 июня 2026**.

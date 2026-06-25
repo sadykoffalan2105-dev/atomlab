@@ -1,6 +1,6 @@
-# Сборка и (опционально) деплой на Netlify при push в main.
+# Сборка и деплой на Netlify (сайт + serverless TTS) при push в main.
+# CLI-деплой не тратит минуты сборки Netlify (в отличие от «Deploy from Git»).
 # Сайт: https://atomlab-alan-sadykov.netlify.app
-# Если секреты не заданы — Netlify подхватит netlify.toml из «Deploy from Git».
 
 name: Deploy Netlify
 
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,22 +26,14 @@ jobs:
 
       - run: npm ci
 
-      - name: Build (same as Netlify)
+      - name: Build frontend
         env:
           VITE_BASE: /
         run: npm run build
 
-      - name: Deploy to Netlify (if secrets configured)
+      - name: Deploy site + TTS function (Netlify CLI)
         if: ${{ secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_SITE_ID != '' }}
-        uses: nwtgck/actions-netlify@v3.0
-        with:
-          publish-dir: ./dist
-          production-branch: main
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: 'Deploy ${{ github.sha }}'
-          enable-pull-request-comment: false
-          enable-commit-comment: false
+        run: npx netlify-cli@23 deploy --prod --dir=dist --functions=netlify/functions --message="Deploy ${{ github.sha }}"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        timeout-minutes: 5

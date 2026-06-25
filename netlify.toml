@@ -5,8 +5,8 @@
 
 [build.environment]
   NODE_VERSION = "22"
-  # HashRouter: корень сайта, не /atomlab/ (это только GitHub Pages)
   VITE_BASE = "/"
+  LEARN_TTS_PROVIDER = "edge"
 
 # Serverless-функция neural-голоса учителя (ru-RU-DmitryNeural).
 [functions]

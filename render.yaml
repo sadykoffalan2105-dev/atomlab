@@ -1,0 +1,13 @@
+# Render.com — бесплатный бэкенд neural TTS (Dmitry) для GitHub Pages.
+# Подключите репозиторий: https://dashboard.render.com → New → Blueprint
+services:
+  - type: web
+    name: atomlab-learn-tts
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: node server/tts-standalone.mjs
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: '22'

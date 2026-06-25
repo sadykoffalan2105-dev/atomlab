@@ -7,7 +7,17 @@ const CHUNK_TIMEOUT_MS = 50_000
 const PROBE_TIMEOUT_MS = 12_000
 
 /** Нет serverless /api на статическом хостинге — не спамим 404 на каждый фрагмент. */
-let serverTtsDisabled = false
+let cachedWorkingTtsUrl: string | null = null
+
+/**
+ * Публичные бэкенды neural TTS (мужской Dmitry). Порядок важен.
+ * Netlify — основной (деплой через CLI в GitHub Actions).
+ * Render — запасной (render.yaml, если подключён репозиторий).
+ */
+const PUBLIC_NEURAL_TTS_URLS = [
+  'https://atomlab-alan-sadykov.netlify.app/api/learn/tts',
+  'https://atomlab-learn-tts.onrender.com/api/learn/tts',
+] as const
 
 /** uz озвучиваем русским neural-голосом Dmitry. */
 export function teacherTtsLocale(appLocale: 'ru' | 'en' | 'uz'): TeacherTtsLocale {
@@ -28,13 +38,6 @@ function normalizeTtsUrl(raw: string): string {
   return t
 }
 
-/**
- * Бэкенд neural-голоса по умолчанию (Netlify Function — Edge TTS на сервере).
- * Используется, когда не задан явный VITE_LEARN_TTS_URL/VITE_LEARN_CHAT_URL,
- * чтобы статичный GitHub Pages всё равно получал «человеческий» голос Дмитрия.
- */
-const DEFAULT_NEURAL_TTS_URL = 'https://atomlab-alan-sadykov.netlify.app/api/learn/tts'
-
 /** Сейчас мы на самом Netlify-сайте? Тогда хватит same-origin /api/learn/tts. */
 function isNetlifyHost(): boolean {
   return typeof window !== 'undefined' && /\.netlify\.app$/i.test(window.location.hostname)
@@ -53,11 +56,10 @@ function isGitHubPages(): boolean {
 
 /**
  * URL для neural TTS (по приоритету):
- * 1) VITE_LEARN_TTS_URL (явный)
+ * 1) VITE_LEARN_TTS_URL (явный, из сборки GitHub Pages)
  * 2) VITE_LEARN_CHAT_URL → …/api/learn/tts (Vercel)
- * 3) на GitHub Pages — сразу публичный Netlify-бэкенд (same-origin /api нет)
+ * 3) публичные бэкенды (Netlify CLI / Render) — для GitHub Pages и прочего статика
  * 4) same-origin BASE_URL/api/learn/tts (локальный Vite / Netlify same-origin)
- * 5) публичный Netlify-бэкенд (прочий статичный хостинг)
  */
 export function resolveTeacherTtsUrls(): string[] {
   const urls: string[] = []
@@ -71,15 +73,18 @@ export function resolveTeacherTtsUrls(): string[] {
     urls.push(normalizeTtsUrl(derived))
   }
 
-  if (isGitHubPages()) {
-    urls.push(DEFAULT_NEURAL_TTS_URL)
+  if (isGitHubPages() || (!isNetlifyHost() && !isLocalHost())) {
+    for (const u of PUBLIC_NEURAL_TTS_URLS) urls.push(u)
   }
 
-  const base = (import.meta.env.BASE_URL ?? '/').replace(/\/?$/, '/')
-  urls.push(normalizeTtsUrl(`${base}api/learn/tts`))
+  // same-origin /api — только если хостинг может отдавать serverless (не GitHub Pages).
+  if (!isGitHubPages()) {
+    const base = (import.meta.env.BASE_URL ?? '/').replace(/\/?$/, '/')
+    urls.push(normalizeTtsUrl(`${base}api/learn/tts`))
+  }
 
-  if (!isNetlifyHost() && !isLocalHost() && !isGitHubPages()) {
-    urls.push(DEFAULT_NEURAL_TTS_URL)
+  if (isNetlifyHost()) {
+    for (const u of PUBLIC_NEURAL_TTS_URLS) urls.push(u)
   }
 
   return [...new Set(urls.filter(Boolean))]
@@ -177,19 +182,23 @@ export async function fetchTeacherTtsChunk(
       ? AbortSignal.any([signal, timeout])
       : signal
 
-  if (!serverTtsDisabled) {
-    const urls = resolveTeacherTtsUrls()
-    for (const url of urls) {
-      if (signal.aborted) return null
-      try {
-        const entry = await postTts(url, chunk, locale, combined)
-        if (entry) return entry
-      } catch {
-        /* next */
+  const urls = resolveTeacherTtsUrls()
+  const ordered =
+    cachedWorkingTtsUrl && urls.includes(cachedWorkingTtsUrl)
+      ? [cachedWorkingTtsUrl, ...urls.filter((u) => u !== cachedWorkingTtsUrl)]
+      : urls
+
+  for (const url of ordered) {
+    if (signal.aborted) return null
+    try {
+      const entry = await postTts(url, chunk, locale, combined)
+      if (entry) {
+        cachedWorkingTtsUrl = url
+        return entry
       }
+    } catch {
+      /* next */
     }
-    // Все серверные URL недоступны (статический GitHub Pages) — дальше браузерные пути.
-    if (urls.length > 0) serverTtsDisabled = true
   }
 
   // 1) В браузере Microsoft Edge — настоящий ru-RU-DmitryNeural напрямую.
