@@ -83,7 +83,7 @@ export function CatalogSubstanceDisplay({
         <HeroMoleculeRig
           compound={compound}
           labScaleBoost={labScaleBoost}
-          renderQuality="synthesis"
+          renderQuality={renderQuality}
           fxLevel={showDecor ? 'low' : 'off'}
           chaoticWobble={chaoticWobble}
         />

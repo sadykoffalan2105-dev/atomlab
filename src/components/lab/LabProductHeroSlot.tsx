@@ -137,18 +137,17 @@ export function LabProductHeroSlot({
       <group ref={groupRef} position={[0, 0, 0]} visible frustumCulled={false} renderOrder={8}>
         <group ref={spinRef}>
           {/*
-            Постоянный fxLevel='off' и для prewarm, и для видимого продукта:
-            рисуется только сама молекула, без aura/sparkles. На reveal не
-            монтируются новые материалы → нет компиляции шейдеров на GPU →
-            нет чёрного экрана. Упор на скорость.
+            Постоянный fxLevel='low': aura-кольца и сфера как в каталоге.
+            Один и тот же уровень при prewarm и reveal — без новой
+            компиляции шейдеров и без чёрного кадра.
           */}
           <CatalogSubstanceDisplay
             compound={compound}
             labScaleBoost={CATALOG_HERO_DEFAULT_LAB_SCALE}
             reducedEffects
             labSynthesisScene
-            renderQuality="synthesis"
-            fxLevel="off"
+            renderQuality="high"
+            fxLevel="low"
             chaoticWobble={false}
           />
         </group>
