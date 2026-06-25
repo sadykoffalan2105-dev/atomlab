@@ -607,6 +607,9 @@ export function LaboratoryPage() {
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
 
+  /** 3D держит предыдущий кадр, пока React готовит новый — без пустого мигания. */
+  const reactorPreviewTermsFor3d = useDeferredValue(reactorPreviewTerms)
+
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound || !synthRunActive) return null
     return lastRunProduct ?? prewarmCompound ?? productCompound
@@ -634,7 +637,7 @@ export function LaboratoryPage() {
           onInspectAtom={reactorOpen ? undefined : setStructureZ}
           synthesis={labSynthesis}
           synthesisRunActive={synthRunActive}
-          reactorPreviewTerms={reactorPreviewTerms}
+          reactorPreviewTerms={reactorPreviewTermsFor3d}
           transformPreviewCompound={transformPreviewCompound}
           reactorViewOpen={reactorOpen}
           synthesisSettledProduct={synthesisSettledProduct}

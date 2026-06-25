@@ -55,7 +55,7 @@ export function getReactorPreviewPolicy(opts: {
       (qualityLevel ?? 4) >= 4,
     slowSpin:
       visible && !flightActive && atomCount <= 12 && visualTier === 'full' && !liteRender,
-    visibilityGuardEvery: liteRender ? 4 : atomCount > 6 ? 2 : 1,
+    visibilityGuardEvery: liteRender ? 4 : atomCount > 8 ? 3 : 2,
     coverageGuardEvery: liteRender ? 3 : 2,
   }
 }

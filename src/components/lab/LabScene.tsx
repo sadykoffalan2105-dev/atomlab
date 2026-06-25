@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, startTransition } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, startTransition, useDeferredValue } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Stars, DragControls } from '@react-three/drei'
 import { gsap } from 'gsap'
@@ -296,6 +296,7 @@ function SceneContent({
   const previewAtomCount = reactorPreviewTerms?.length
     ? buildReactorPreviewAtoms(reactorPreviewTerms, { tier: previewVisualTier }).length
     : 0
+  const deferredPreviewAtomCount = useDeferredValue(previewAtomCount)
   const manyAtomsCameraRef = useRef(previewAtomCount > 8)
 
   const synthTimingProfile = useMemo(
@@ -613,18 +614,19 @@ function SceneContent({
 
   useEffect(() => {
     if (!synthesis?.runId) {
-      // Редактирование уравнения: не сбрасывать в MINIMAL на каждый +/- коэффициента.
-      const editCap = computeReactorEditQualityCap(previewAtomCount)
+      const editCap = computeReactorEditQualityCap(deferredPreviewAtomCount)
       const editLite = qualityLevelToForceLite(editCap)
       synthForceLiteRef.current = editLite
-      setSynthQualityLevel(editCap)
       if (forceLiteFxRef) forceLiteFxRef.current = editLite
+      startTransition(() => {
+        setSynthQualityLevel((prev) => (prev === editCap ? prev : editCap))
+      })
       return
     }
     fpsGovRef.current.reset()
     const cap = computeStaticQualityCap({
       deviceTier: getSynthesisDeviceTier(),
-      atomCount: previewAtomCount,
+      atomCount: deferredPreviewAtomCount,
       visualTier: previewVisualTier,
     })
     fpsGovRef.current.setCap(cap)
@@ -635,7 +637,7 @@ function SceneContent({
       setSynthQualityLevel(cap)
     })
     if (forceLiteFxRef) forceLiteFxRef.current = initialLite
-  }, [synthesis?.runId, previewAtomCount, previewVisualTier, forceLiteFxRef])
+  }, [synthesis?.runId, deferredPreviewAtomCount, previewVisualTier, forceLiteFxRef])
 
   // Лёгкий авто-тюнинг: если FPS проседает — переключаемся на low и обратно с гистерезисом.
   // Делается здесь (внутри Canvas), чтобы измерять delta из render-loop без внешних зависимостей.

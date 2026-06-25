@@ -4,7 +4,7 @@ import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { PREVIEW_MIN_ATOM_SCALE } from '../components/lab/reactorPreviewLayout'
 
 /** Пустых refs подряд до принудительного восстановления. */
-export const PREVIEW_REF_RECOVER_FRAMES = 5
+export const PREVIEW_REF_RECOVER_FRAMES = 10
 
 export type ReactorPreviewVisibilityGuard = {
   reset: () => void
@@ -16,8 +16,6 @@ export type ReactorPreviewVisibilityGuard = {
     previewAtoms: readonly ReactorPreviewAtom[]
     rootVisible: boolean
     flightActive: boolean
-    /** После смены коэффициентов — refs ещё монтируются, recover не нужен. */
-    layoutSettling?: boolean
     onRecover: () => void
   }) => void
 }
@@ -40,7 +38,6 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
         previewAtoms,
         rootVisible,
         flightActive,
-        layoutSettling = false,
         onRecover,
       } = opts
 
@@ -51,15 +48,11 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
 
       const scaleFloor = Math.max(PREVIEW_MIN_ATOM_SCALE, layoutScale)
       let bound = 0
-      let needsRecover = false
 
       for (let i = 0; i < atomCount; i++) {
         const posG = atomGroupRefs.current[i]
         const scaleG = atomScaleGroupRefs.current[i]
-        if (!posG || !scaleG) {
-          needsRecover = true
-          continue
-        }
+        if (!posG || !scaleG) continue
         bound += 1
         posG.visible = true
         scaleG.visible = true
@@ -67,8 +60,6 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
         if (sx < scaleFloor * 0.5) {
           scaleG.scale.set(scaleFloor, scaleFloor, scaleFloor)
         }
-        // Во время settle только держим видимость; позиции не трогаем.
-        if (layoutSettling) continue
         const atom = previewAtoms[i]
         if (atom) {
           const [x, y, z] = atom.pos
@@ -81,20 +72,18 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
         }
       }
 
-      if (layoutSettling) {
-        missingRefFrames = 0
-        return
-      }
-
-      if (needsRecover || bound < atomCount) {
+      // Частичный mount при быстрой смене коэффициентов — не считаем ошибкой.
+      if (bound === 0) {
         missingRefFrames += 1
+      } else if (bound < atomCount) {
+        missingRefFrames = Math.max(0, missingRefFrames - 1)
       } else {
         missingRefFrames = 0
       }
 
       if (missingRefFrames >= PREVIEW_REF_RECOVER_FRAMES) {
         const now = performance.now()
-        if (now - lastRecoverMs > 240) {
+        if (now - lastRecoverMs > 320) {
           lastRecoverMs = now
           onRecover()
         }
