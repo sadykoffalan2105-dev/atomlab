@@ -144,26 +144,26 @@ function BondPlasmaGroup({
  * Символ в центре шара (каталог и лабо): troika + Billboard, depthTest off — и для стекла, и для CPK.
  */
 function AtomInSphereLabel({ symbol, r }: { symbol: string; r: number }) {
-  const fontSize = r * (symbol.length <= 1 ? 0.66 : 0.5)
-  const outline = fontSize * 0.07
+  const fontSize = r * (symbol.length <= 1 ? 0.88 : 0.64)
+  const outline = Math.max(fontSize * 0.14, 0.012)
   return (
     <Billboard follow>
       <Text
-        position={[0, 0, 0]}
+        position={[0, 0, r * 0.42]}
         fontSize={fontSize}
-        fontWeight={700}
+        fontWeight={800}
         color="#ffffff"
-        fillOpacity={0.99}
+        fillOpacity={1}
         outlineWidth={outline}
-        outlineColor="#0f172a"
-        outlineOpacity={0.75}
+        outlineColor="#020617"
+        outlineOpacity={0.92}
         anchorX="center"
         anchorY="middle"
-        depthOffset={0.04}
-        letterSpacing={symbol.length > 1 ? -0.03 * fontSize : 0}
-        renderOrder={2}
+        depthOffset={-0.02}
+        letterSpacing={symbol.length > 1 ? -0.04 * fontSize : 0}
+        renderOrder={12}
         onSync={(m) => {
-          m.renderOrder = 2
+          m.renderOrder = 12
           const mat = m.material
           const apply = (n: { depthWrite: boolean; depthTest: boolean; transparent: boolean; needsUpdate: boolean }) => {
             n.depthWrite = false
@@ -198,12 +198,12 @@ export function MoleculeMesh({
   visualPreset?: 'default' | 'catalogHero'
   /** 'synthesis' = быстрый режим (без troika Text, меньше poly/эффектов) */
   renderQuality?: 'high' | 'synthesis'
-  /** По умолчанию true, но в synthesis лучше отключать */
+  /** По умолчанию буквы на атомах всегда включены (и в synthesis, и при fxLevel=off). */
   showLabels?: boolean
 }) {
   const hero = visualPreset === 'catalogHero'
   const quality = renderQuality
-  const labels = showLabels ?? quality !== 'synthesis'
+  const labels = showLabels !== false
 
   const degrees = useMemo(
     () => atomDegrees(compound.atoms.length, compound.bonds),

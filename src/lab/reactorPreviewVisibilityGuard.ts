@@ -44,7 +44,7 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
         onRecover,
       } = opts
 
-      if (!rootVisible || flightActive || layoutSettling || atomCount <= 0) {
+      if (!rootVisible || flightActive || atomCount <= 0) {
         missingRefFrames = 0
         return
       }
@@ -67,6 +67,8 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
         if (sx < scaleFloor * 0.5) {
           scaleG.scale.set(scaleFloor, scaleFloor, scaleFloor)
         }
+        // Во время settle только держим видимость; позиции не трогаем.
+        if (layoutSettling) continue
         const atom = previewAtoms[i]
         if (atom) {
           const [x, y, z] = atom.pos
@@ -77,6 +79,11 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
             posG.position.set(x, y, z)
           }
         }
+      }
+
+      if (layoutSettling) {
+        missingRefFrames = 0
+        return
       }
 
       if (needsRecover || bound < atomCount) {

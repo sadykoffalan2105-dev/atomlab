@@ -209,14 +209,14 @@ export function HeroMoleculeRig({
   compound,
   labScaleBoost = CATALOG_HERO_DEFAULT_LAB_SCALE,
   renderQuality = 'high',
-  fxLevel = 'full',
+  fxLevel: _fxLevel = 'full',
   chaoticWobble = false,
 }: {
   compound: CompoundDef
   /** >1 — крупнее молекула в лаборатории относительно героя каталога */
   labScaleBoost?: number
   renderQuality?: 'high' | 'synthesis'
-  /** Для внешних обёрток: можно отключить тяжёлые эффекты при синтезе */
+  /** Для внешних обёрток: aura/sparkles (буквы на атомах не зависят от fxLevel). */
   fxLevel?: 'off' | 'low' | 'full'
   /** Лёгкое хаотичное покачивание после кинематографичной сборки */
   chaoticWobble?: boolean
@@ -251,7 +251,7 @@ export function HeroMoleculeRig({
           accentBoost={1.42}
           visualPreset="catalogHero"
           renderQuality={renderQuality}
-          showLabels={fxLevel !== 'off'}
+          showLabels
         />
       </group>
     </group>

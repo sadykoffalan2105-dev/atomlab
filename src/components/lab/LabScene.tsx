@@ -13,6 +13,7 @@ import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { assertNoProductHeroBeforeRun } from '../../lab/atomGuard/labPreviewGuard'
 import { createSynthesisQualityGovernor } from '../../lab/atomGuard/synthesisRunGuard'
 import {
+  computeReactorEditQualityCap,
   computeStaticQualityCap,
   featuresForQuality,
   qualityLevelToForceLite,
@@ -611,13 +612,16 @@ function SceneContent({
   ])
 
   useEffect(() => {
-    fpsGovRef.current.reset()
     if (!synthesis?.runId) {
-      synthForceLiteRef.current = true
-      setSynthQualityLevel(0)
-      if (forceLiteFxRef) forceLiteFxRef.current = true
+      // Редактирование уравнения: не сбрасывать в MINIMAL на каждый +/- коэффициента.
+      const editCap = computeReactorEditQualityCap(previewAtomCount)
+      const editLite = qualityLevelToForceLite(editCap)
+      synthForceLiteRef.current = editLite
+      setSynthQualityLevel(editCap)
+      if (forceLiteFxRef) forceLiteFxRef.current = editLite
       return
     }
+    fpsGovRef.current.reset()
     const cap = computeStaticQualityCap({
       deviceTier: getSynthesisDeviceTier(),
       atomCount: previewAtomCount,

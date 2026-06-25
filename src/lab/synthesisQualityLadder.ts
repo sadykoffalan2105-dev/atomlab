@@ -30,6 +30,13 @@ export type SynthesisQualityGovernor = {
   tick: (fps: number) => void
 }
 
+/** Качество превью при редактировании коэффициентов (без активного синтеза). */
+export function computeReactorEditQualityCap(atomCount: number): SynthesisQualityLevel {
+  if (atomCount > SYNTHESIS_PERF.liteFxAtomThreshold) return SYNTHESIS_QUALITY_LITE
+  if (atomCount > SYNTHESIS_PERF.denseAtomThreshold) return SYNTHESIS_QUALITY_BALANCED
+  return SYNTHESIS_QUALITY_HIGH
+}
+
 /** Статический потолок качества до старта FPS-губернатора. */
 export function computeStaticQualityCap(opts: {
   deviceTier: SynthesisDeviceTier
