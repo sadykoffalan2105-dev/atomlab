@@ -14,7 +14,6 @@ import { assertNoProductHeroBeforeRun } from '../../lab/atomGuard/labPreviewGuar
 import { createSynthesisQualityGovernor } from '../../lab/atomGuard/synthesisRunGuard'
 import {
   computeReactorEditQualityCap,
-  computeStaticQualityCap,
   featuresForQuality,
   qualityLevelToForceLite,
   type SynthesisQualityLevel,
@@ -273,6 +272,7 @@ function SceneContent({
   const coverageFrameRef = useRef(0)
   const synthActive = synthesis != null
   const previewActive = false
+  const previewForceLiteLatchRef = useRef<boolean | null>(null)
   const previewAtomGroupRefs = useRef<(THREE.Group | null)[]>([])
   const previewAtomScaleGroupRefs = useRef<(THREE.Group | null)[]>([])
   const previewRootRef = useRef<THREE.Group | null>(null)
@@ -348,15 +348,18 @@ function SceneContent({
   }, [synthTimingProfile.atomCollapseDur, synthTimingProfile.collapseAtoms])
 
   const productCompoundCandidate =
-    synthesisSettledProduct ?? (synthActive || synthesisRunActive ? synthesis?.product : null) ?? null
+    synthesisSettledProduct ??
+    synthesis?.product ??
+    prewarmProductCompound ??
+    null
 
-  const gpuPrewarmAllowed =
-    shouldMountProductGpuPrewarm({
-      policy: 'synthesis-only',
-      synthesisRunActive,
-      synthActive,
-      showSettledHero,
-    })
+  const gpuPrewarmAllowed = shouldMountProductGpuPrewarm({
+    policy: 'intent',
+    synthesisRunActive,
+    synthActive,
+    showSettledHero,
+    hasPrewarmIntent: prewarmProductCompound != null,
+  })
 
   const mountReactorPreview =
     reactorViewOpen &&
@@ -454,14 +457,19 @@ function SceneContent({
         cancelAnimationFrame(raf2)
       }
     }
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(markReady)
-    })
+    const IDLE_PREWARM_FRAMES = 8
+    let frame = 0
+    const tickFrames = () => {
+      if (cancelled) return
+      frame += 1
+      if (frame >= IDLE_PREWARM_FRAMES) markReady()
+      else requestAnimationFrame(tickFrames)
+    }
+    const raf1 = requestAnimationFrame(tickFrames)
     scheduleIdleMatch(markReady)
     return () => {
       cancelled = true
       cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
     }
   }, [
     gpuPrewarmAllowed,
@@ -481,20 +489,32 @@ function SceneContent({
       setProductRevealReady(false)
       return
     }
-    setProductRevealReady(false)
-    let raf2 = 0
-    let raf3 = 0
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        raf3 = requestAnimationFrame(() => setProductRevealReady(true))
-      })
-    })
-    return () => {
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
-      cancelAnimationFrame(raf3)
+    const productId = synthesis.product?.id
+    if (
+      prewarmReadyRef.current &&
+      productId != null &&
+      prewarmCompoundIdRef.current === productId
+    ) {
+      setProductRevealReady(true)
+      return
     }
-  }, [synthActive, synthesis?.runId])
+    setProductRevealReady(false)
+    const raf1 = requestAnimationFrame(() => setProductRevealReady(true))
+    return () => cancelAnimationFrame(raf1)
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id])
+
+  useLayoutEffect(() => {
+    if (!synthesis?.runId) return
+    if (previewForceLiteLatchRef.current === null) {
+      previewForceLiteLatchRef.current = synthForceLiteRef.current
+    }
+  }, [synthesis?.runId])
+
+  useEffect(() => {
+    if (!synthActive && !synthesisRunActive) {
+      previewForceLiteLatchRef.current = null
+    }
+  }, [synthActive, synthesisRunActive])
 
   useLayoutEffect(() => {
     if (!synthActive || !synthesis?.runId) return
@@ -549,6 +569,11 @@ function SceneContent({
     setEarlyProductReveal(true)
     setForceProductSlot(true)
   }, [])
+
+  const previewForceLite =
+    (synthActive || synthesisRunActive) && previewForceLiteLatchRef.current !== null
+      ? previewForceLiteLatchRef.current
+      : synthForceLite
 
   assertNoProductHeroBeforeRun(
     synthesis?.runId ?? 0,
@@ -625,11 +650,7 @@ function SceneContent({
       return
     }
     fpsGovRef.current.reset()
-    const cap = computeStaticQualityCap({
-      deviceTier: getSynthesisDeviceTier(),
-      atomCount: deferredPreviewAtomCount,
-      visualTier: previewVisualTier,
-    })
+    const cap = computeReactorEditQualityCap(deferredPreviewAtomCount)
     fpsGovRef.current.setCap(cap)
     fpsGovRef.current.reset(cap)
     const initialLite = qualityLevelToForceLite(cap)
@@ -668,7 +689,7 @@ function SceneContent({
     // Это исключает чёрный кадр при мгновенном появлении продукта.
     if (synthActive && productSlotVisible && !productPaintedRef.current) {
       productPaintFramesRef.current += 1
-      if (productPaintFramesRef.current >= 2) {
+      if (productPaintFramesRef.current >= 4) {
         productPaintedRef.current = true
         setProductPainted(true)
       }
@@ -815,7 +836,7 @@ function SceneContent({
               flightActive={previewMotionLocked}
               poseLocked={previewPoseLocked}
               sharedLighting={synthActive || synthesisRunActive}
-              forceLite={synthActive || synthesisRunActive ? false : synthForceLite}
+              forceLite={previewForceLite}
               qualityLevel={synthQualityLevel}
               synthesisGlass={synthQualityFeatures.glassAtoms}
               visualTier={previewVisualTier}

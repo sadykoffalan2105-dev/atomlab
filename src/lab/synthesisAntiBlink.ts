@@ -67,6 +67,14 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
 
   const synthLive = synthActive || synthesisRunActive
 
+  /** GPU-prewarm до клика «Синтез»: невидимый меш (scale≈0) пока уравнение сбалансировано. */
+  const earlyGpuPrewarm =
+    !synthLive &&
+    !showSettledHero &&
+    _gpuPrewarmAllowed &&
+    productCompoundId != null &&
+    reactorViewOpen
+
   if (synthLive && runId > 0 && mountReactorPreview) {
     previewStickyRef.current = { runId, previewMounted: true }
   }
@@ -84,11 +92,15 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     mountReactorPreview ||
     (previewSticky && reactorViewOpen && synthLive)
 
-  if (productCompoundId && reactorViewOpen && synthLive && runId > 0) {
-    stickyMountRef.current = { runId, compoundId: productCompoundId, productMounted: true }
+  if (productCompoundId && reactorViewOpen) {
+    if (synthLive && runId > 0) {
+      stickyMountRef.current = { runId, compoundId: productCompoundId, productMounted: true }
+    } else if (earlyGpuPrewarm) {
+      stickyMountRef.current = { runId: 0, compoundId: productCompoundId, productMounted: true }
+    }
   }
 
-  if (!synthLive && !showSettledHero) {
+  if (!synthLive && !showSettledHero && !earlyGpuPrewarm) {
     stickyMountRef.current = null
   }
 
@@ -97,14 +109,14 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     sticky != null &&
     productCompoundId != null &&
     sticky.compoundId === productCompoundId &&
-    sticky.productMounted &&
-    sticky.runId === runId
+    sticky.productMounted
 
-  /** Меш продукта — только после запуска синтеза или в settled-кадре. */
+  /** Меш продукта — после запуска, в settled или при раннем GPU-prewarm. */
   const productMeshMounted =
     productCompoundId != null &&
     reactorViewOpen &&
-    (showSettledHero || (synthLive && runId > 0 && stickyMatch))
+    (showSettledHero ||
+      (stickyMatch && ((synthLive && runId > 0) || earlyGpuPrewarm)))
 
   /** Видимость — после короткого prewarm-кадра (атомы + электроны остаются до этого). */
   const productSlotVisible =

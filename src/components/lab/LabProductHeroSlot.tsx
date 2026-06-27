@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import { gsap } from 'gsap'
 import type * as THREE from 'three'
 import { LAUNCH_PRODUCT_ENTRANCE_DUR } from '../../lab/synthesisLaunchTiming'
@@ -31,6 +32,12 @@ export function LabProductHeroSlot({
   const spinRef = useRef<THREE.Group>(null)
   const revealedForRunRef = useRef(-1)
   const wasPrewarmRef = useRef(false)
+  const { invalidate } = useThree()
+
+  // Пока меш невидим (scale≈0) — держим invalidate, чтобы GPU успел скомпилировать шейдеры.
+  useFrame(() => {
+    if (prewarm && !visible) invalidate()
+  })
 
   useLayoutEffect(() => {
     const g = groupRef.current
