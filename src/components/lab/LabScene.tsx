@@ -37,11 +37,11 @@ import { CanvasErrorBoundary } from '../common/CanvasErrorBoundary'
 import { CanvasSceneErrorFallback } from '../common/CanvasSceneErrorFallback'
 import { useT } from '../../i18n/useT'
 import { isWebGLAvailable } from '../../utils/webgl'
-import { scheduleIdleMatch } from '../../lab/labRenderGuards'
 import {
   createLabCanvasFrameHoldGuard,
   shouldMountProductGpuPrewarm,
 } from '../../lab/labCanvasFrameGuard'
+import { isProductGpuCompiled } from '../../lab/productGpuCompileCache'
 import {
   createProductCrossfadeGuard,
   type ProductCrossfadeGuard,
@@ -418,6 +418,12 @@ function SceneContent({
   const productSlotVisible = continuity.productSlotVisible
   const productPrewarmActive = continuity.productPrewarm
 
+  const handleProductGpuCompiled = useCallback((compoundId: string) => {
+    prewarmCompoundIdRef.current = compoundId
+    prewarmReadyRef.current = true
+    setPrewarmReady(true)
+  }, [])
+
   useEffect(() => {
     if (!gpuPrewarmAllowed || !reactorViewOpen) {
       if (!synthActive && !synthesisRunActive) {
@@ -434,42 +440,19 @@ function SceneContent({
       setPrewarmReady(false)
       return
     }
+    if (isProductGpuCompiled(compound.id)) {
+      prewarmCompoundIdRef.current = compound.id
+      prewarmReadyRef.current = true
+      setPrewarmReady(true)
+      return
+    }
     if (prewarmCompoundIdRef.current === compound.id && prewarmReadyRef.current) {
       setPrewarmReady(true)
       return
     }
-    let cancelled = false
-    let raf2 = 0
-    const markReady = () => {
-      if (cancelled) return
-      prewarmCompoundIdRef.current = compound.id
-      prewarmReadyRef.current = true
-      setPrewarmReady(true)
-    }
-    const fastPrewarm = synthActive || synthesisRunActive
-    if (fastPrewarm) {
-      const raf1 = requestAnimationFrame(() => {
-        raf2 = requestAnimationFrame(markReady)
-      })
-      return () => {
-        cancelled = true
-        cancelAnimationFrame(raf1)
-        cancelAnimationFrame(raf2)
-      }
-    }
-    const IDLE_PREWARM_FRAMES = 8
-    let frame = 0
-    const tickFrames = () => {
-      if (cancelled) return
-      frame += 1
-      if (frame >= IDLE_PREWARM_FRAMES) markReady()
-      else requestAnimationFrame(tickFrames)
-    }
-    const raf1 = requestAnimationFrame(tickFrames)
-    scheduleIdleMatch(markReady)
-    return () => {
-      cancelled = true
-      cancelAnimationFrame(raf1)
+    if (prewarmCompoundIdRef.current !== compound.id) {
+      prewarmReadyRef.current = false
+      setPrewarmReady(false)
     }
   }, [
     gpuPrewarmAllowed,
@@ -490,18 +473,16 @@ function SceneContent({
       return
     }
     const productId = synthesis.product?.id
-    if (
-      prewarmReadyRef.current &&
+    const gpuReady =
       productId != null &&
-      prewarmCompoundIdRef.current === productId
-    ) {
+      ((prewarmReadyRef.current || prewarmReady) &&
+        prewarmCompoundIdRef.current === productId)
+    if (gpuReady || (productId != null && isProductGpuCompiled(productId))) {
       setProductRevealReady(true)
       return
     }
     setProductRevealReady(false)
-    const raf1 = requestAnimationFrame(() => setProductRevealReady(true))
-    return () => cancelAnimationFrame(raf1)
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id])
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady])
 
   useLayoutEffect(() => {
     if (!synthesis?.runId) return
@@ -902,6 +883,7 @@ function SceneContent({
           runId={synthesis?.runId ?? 0}
           birthEntrance={false}
           entranceDuration={0}
+          onGpuCompiled={handleProductGpuCompiled}
         />
       ) : null}
       <OrbitControls

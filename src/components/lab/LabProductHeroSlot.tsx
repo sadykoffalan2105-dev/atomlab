@@ -1,11 +1,17 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { gsap } from 'gsap'
 import type * as THREE from 'three'
 import { LAUNCH_PRODUCT_ENTRANCE_DUR } from '../../lab/synthesisLaunchTiming'
+import {
+  isProductGpuCompiled,
+  markProductGpuCompiled,
+} from '../../lab/productGpuCompileCache'
 import type { CompoundDef } from '../../types/chemistry'
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
+
+const MICRO_SCALE = 0.001
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
@@ -19,6 +25,7 @@ export function LabProductHeroSlot({
   runId = 0,
   birthEntrance = false,
   entranceDuration = LAUNCH_PRODUCT_ENTRANCE_DUR,
+  onGpuCompiled,
 }: {
   compound: CompoundDef
   visible: boolean
@@ -27,16 +34,96 @@ export function LabProductHeroSlot({
   runId?: number
   birthEntrance?: boolean
   entranceDuration?: number
+  /** Вызывается после compileAsync меша (или из кэша) — можно показывать продукт. */
+  onGpuCompiled?: (compoundId: string) => void
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const spinRef = useRef<THREE.Group>(null)
   const revealedForRunRef = useRef(-1)
   const wasPrewarmRef = useRef(false)
-  const { invalidate } = useThree()
+  const compileGenRef = useRef(0)
+  const gpuCompiledRef = useRef(false)
+  const { gl, camera, scene, invalidate } = useThree()
 
-  // Пока меш невидим (scale≈0) — держим invalidate, чтобы GPU успел скомпилировать шейдеры.
+  const notifyGpuCompiled = useCallback(() => {
+    if (gpuCompiledRef.current) return
+    gpuCompiledRef.current = true
+    markProductGpuCompiled(compound.id)
+    onGpuCompiled?.(compound.id)
+  }, [compound.id, onGpuCompiled])
+
+  useEffect(() => {
+    gpuCompiledRef.current = isProductGpuCompiled(compound.id)
+    compileGenRef.current += 1
+  }, [compound.id])
+
+  // Cold-start: compileAsync в фоне на полном масштабе, пока меш ещё микроскопический.
+  useEffect(() => {
+    if (visible) return
+    if (!prewarm) return
+    if (isProductGpuCompiled(compound.id)) {
+      notifyGpuCompiled()
+      return
+    }
+
+    let cancelled = false
+    const gen = compileGenRef.current
+
+    const runCompile = () => {
+      if (cancelled || gen !== compileGenRef.current) return
+      const root = groupRef.current
+      if (!root) {
+        requestAnimationFrame(runCompile)
+        return
+      }
+
+      const prevScale = root.scale.clone()
+      root.scale.set(1, 1, 1)
+      invalidate()
+
+      requestAnimationFrame(() => {
+        if (cancelled || gen !== compileGenRef.current) return
+        const target = groupRef.current
+        if (!target) return
+
+        const compile =
+          typeof gl.compileAsync === 'function'
+            ? gl.compileAsync(target, camera, scene)
+            : Promise.resolve().then(() => {
+                gl.compile(scene, camera)
+              })
+
+        compile
+          .then(() => {
+            if (cancelled || gen !== compileGenRef.current) return
+            if (prewarm && !visible) {
+              target.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
+            } else {
+              target.scale.copy(prevScale)
+            }
+            invalidate()
+            notifyGpuCompiled()
+          })
+          .catch(() => {
+            if (cancelled || gen !== compileGenRef.current) return
+            if (prewarm && !visible) {
+              target.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
+            }
+            notifyGpuCompiled()
+          })
+      })
+    }
+
+    const boot = requestAnimationFrame(() => requestAnimationFrame(runCompile))
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(boot)
+    }
+  }, [prewarm, visible, compound.id, gl, camera, scene, invalidate, notifyGpuCompiled])
+
+  // Пока меш невидим (scale≈0) — invalidate до завершения compile.
   useFrame(() => {
-    if (prewarm && !visible) invalidate()
+    if (prewarm && !visible && !gpuCompiledRef.current) invalidate()
   })
 
   useLayoutEffect(() => {
@@ -58,7 +145,7 @@ export function LabProductHeroSlot({
       wasPrewarmRef.current = true
       gsap.killTweensOf(g.scale)
       if (spin) gsap.killTweensOf(spin.rotation)
-      g.scale.set(0.001, 0.001, 0.001)
+      g.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
       if (spin) spin.rotation.set(0, 0, 0)
       return
     }
@@ -90,7 +177,7 @@ export function LabProductHeroSlot({
 
     if (birthEntrance || fromPrewarm) {
       if (g.scale.x < 0.01) {
-        g.scale.set(0.001, 0.001, 0.001)
+        g.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
       }
       if (spin) spin.rotation.set(0, 0, 0)
       const tl = gsap.timeline()

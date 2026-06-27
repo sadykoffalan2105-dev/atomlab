@@ -610,17 +610,15 @@ export function LaboratoryPage() {
   /** 3D держит предыдущий кадр, пока React готовит новый — без пустого мигания. */
   const reactorPreviewTermsFor3d = useDeferredValue(reactorPreviewTerms)
 
-  /** GPU-prewarm продукта: при сбалансированном уравнении (до клика) и во время синтеза. */
+  /** GPU-prewarm продукта: сразу после выбора продукта (до клика «Синтез») и во время синтеза. */
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
-    if (canRunSynthesis) return productCompound
-    return null
+    return productCompound
   }, [
     reactorOpen,
     productCompound,
     synthRunActive,
-    canRunSynthesis,
     lastRunProduct,
     prewarmCompound,
   ])
