@@ -7,7 +7,6 @@ import { prefetchVrLabPhysics } from '../components/vrLab/VrLabPhysicsWorld'
 import { VrLabExperimentParams } from '../components/vrLab/VrLabExperimentParams'
 import { VrLabSubstancePicker } from '../components/vrLab/VrLabSubstancePicker'
 import { detectVrLabQuality, webglSupported, type VrLabQualityTier } from '../components/vrLab/vrLabPerformance'
-import { useGraphicsSettingsOptional } from '../perf/GraphicsSettingsProvider'
 import { useVrLabSoundFx } from '../vrLab/useVrLabSoundFx'
 import { canAutoMix } from '../vrLab/vrLabAutoMix'
 import { readLessonProgress, vrLabLessonSummary } from '../vrLab/lessons/vrLabLessonProgress'
@@ -93,8 +92,7 @@ export function VrLabPage() {
 
   const [canvasMount, setCanvasMount] = useState(false)
   const [canvasState, setCanvasState] = useState<'loading' | 'ready' | 'error'>('loading')
-  const gfx = useGraphicsSettingsOptional()
-  const qualityTier = gfx?.vrTier ?? detectVrLabQuality()
+  const qualityTier = detectVrLabQuality()
 
   useVrLabSoundFx(state)
 

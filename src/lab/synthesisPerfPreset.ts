@@ -17,11 +17,11 @@ export const SYNTHESIS_PERF = {
   /** Фаза ignite перед converge (мс); 0 = сразу converge в лаборатории */
   igniteSkipMs: 0,
   /** Порог атомов для облегчённых FX (не замена модели — только меньше сегментов орбит). */
-  liteFxAtomThreshold: 16,
+  liteFxAtomThreshold: 22,
   /** Плотное превью: реже drift/guard */
-  denseAtomThreshold: 10,
-  /** Lite с первого кадра синтеза при ≥ N атомов */
-  synthLiteStartThreshold: 6,
+  denseAtomThreshold: 14,
+  /** Lite с первого кадра синтеза только при очень плотном превью */
+  synthLiteStartThreshold: 14,
   /** Полная детализация AtomStructureModel (орбиты 48 seg) */
   fullDetailAtomThreshold: 12,
   /** Макс. атомов с анимацией электронов */

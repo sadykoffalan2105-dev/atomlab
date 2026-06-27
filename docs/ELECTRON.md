@@ -2,37 +2,21 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
-**Скачать v1.1.0:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.1.0)
-- `ATOMLAB-1.1.0-portable.exe` — без установки
-- `ATOMLAB-1.1.0-setup.exe` — установщик
+**Скачать v1.1.1:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.1.1)
+- `ATOMLAB-1.1.1-portable.exe` — без установки
+- `ATOMLAB-1.1.1-setup.exe` — установщик
 
 ## Возможности
 
 - **Полноэкранный режим** по умолчанию (F11 / меню «Вид»)
 - **Hardware acceleration + WebGPU** — GPU rasterization, без throttling в фоне
-- **Настройки графики** — Auto / Low / Medium / High / Ultra в шапке приложения
-- **Адаптивный FPS governor** — автоматически снижает качество при просадке
+- **Высокое качество графики** — фиксированный пресет High для синтеза и VR
+- **Адаптивный FPS governor** — только внутри синтеза, без ручных настроек
 - **Crash recovery** — перезагрузка при падении render/GPU process
 - **Portable `.exe`** — запуск без установки
 - **NSIS-установщик** — ярлык на рабочем столе и в меню «Пуск»
 - **Автообновление** через GitHub Releases (`electron-updater`)
 - **WASM** — ускорение баланса уравнений (`atomlab_core.wasm`)
-
----
-
-## Настройки графики (Low / Medium / High / Ultra)
-
-В шапке приложения — кнопка **«Графика»**:
-
-| Пресет | Синтез | VR-лаборатория |
-|---|---|---|
-| Auto | По железу ПК | По железу ПК |
-| Low | Lite-модели, минимум FX | Без post-FX, простые жидкости |
-| Medium | Сбалансировано | SSAO, без физики Rapier |
-| High | Полные атомы | Тени, bloom, Rapier |
-| Ultra | Максимум FX | High tier + все эффекты |
-
-При просадке FPS ниже ~40 кадров/с качество **автоматически** понижается на один уровень (и в лаборатории, и в VR).
 
 ---
 

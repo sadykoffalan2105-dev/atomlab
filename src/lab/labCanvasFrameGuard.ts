@@ -10,8 +10,8 @@ export type LabCanvasFrameHoldGuard = {
   reset: () => void
 }
 
-const STALL_MS = 48
-const REACTOR_STALL_MS = 36
+const STALL_MS = 36
+const REACTOR_STALL_MS = 28
 
 export function createLabCanvasFrameHoldGuard(): LabCanvasFrameHoldGuard {
   let lastRenderMs = performance.now()

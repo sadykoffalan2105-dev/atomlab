@@ -255,16 +255,6 @@ export const messagesEn: Record<MessageKey, string> = {
   'learn.stepperAria': 'Lesson steps',
   'learn.stepAria': 'Step {n} of {total}',
 
-  'graphics.title': 'Graphics quality',
-  'graphics.button': 'Graphics: {tier}',
-  'graphics.buttonAuto': 'Graphics: auto ({tier})',
-  'graphics.hint': 'FPS drops automatically lower quality. Ultra is for powerful PCs.',
-  'graphics.preset.auto': 'Auto',
-  'graphics.preset.low': 'Low',
-  'graphics.preset.medium': 'Medium',
-  'graphics.preset.high': 'High',
-  'graphics.preset.ultra': 'Ultra',
-
   ...learnPackEn,
   ...learnGradePackEn,
 }

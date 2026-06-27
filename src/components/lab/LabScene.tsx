@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, startTransition, useDeferredValue } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, startTransition } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Stars, DragControls } from '@react-three/drei'
 import { gsap } from 'gsap'
@@ -58,8 +58,7 @@ import {
 } from '../../lab/synthesisAntiBlink'
 import { getSynthesisTimingProfile, isInstantSynthesisProfile } from '../../lab/synthesisTimingProfile'
 import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
-import { useGraphicsSettingsOptional } from '../../perf/GraphicsSettingsProvider'
-import { useRuntimeFpsGovernor } from '../../perf/useRuntimeFpsGovernor'
+import { FIXED_SYNTHESIS_CAP } from '../../perf/graphicsSettings'
 
 /** Свободная лаборатория (атомы на столе). */
 const LAB_SCENE_CLEAR_HEX = '#03040a'
@@ -99,17 +98,6 @@ function LabReactorLights() {
       <pointLight position={[0, 0.18, 1.6]} intensity={1.55} distance={18} color="#7afcff" />
     </>
   )
-}
-
-/** Runtime FPS governor — понижает глобальный пресет при просадке. */
-function LabGlobalFpsBridge() {
-  const gfx = useGraphicsSettingsOptional()
-  useRuntimeFpsGovernor({
-    enabled: gfx != null,
-    onDowngrade: () => gfx?.runtimeDowngrade(),
-    enterFps: 40,
-  })
-  return null
 }
 
 /** Прогрев кадра при открытии реактора — без gl.compile (блокирует main thread на секунды). */
@@ -286,7 +274,6 @@ function SceneContent({
   } | null
 }) {
   const { camera, invalidate } = useThree()
-  const graphicsSettings = useGraphicsSettingsOptional()
   const orbRef = useRef<OrbitControlsImpl | null>(null)
   const perfLevelRef = useRef<PerfLevel>('high')
   const perfAcc = useRef({ t: 0, lowT: 0, highT: 0, fps: 60 })
@@ -295,7 +282,7 @@ function SceneContent({
   )
   const synthForceLiteRef = useRef(false)
   const synthQualityLevelRef = useRef<SynthesisQualityLevel>(3)
-  const [synthQualityLevel, setSynthQualityLevel] = useState<SynthesisQualityLevel>(0)
+  const [synthQualityLevel, setSynthQualityLevel] = useState<SynthesisQualityLevel>(FIXED_SYNTHESIS_CAP)
   const synthForceLite = qualityLevelToForceLite(synthQualityLevel)
   const qualityUiThrottleRef = useRef(0)
   const coverageFrameRef = useRef(0)
@@ -326,7 +313,6 @@ function SceneContent({
   const previewAtomCount = reactorPreviewTerms?.length
     ? buildReactorPreviewAtoms(reactorPreviewTerms, { tier: previewVisualTier }).length
     : 0
-  const deferredPreviewAtomCount = useDeferredValue(previewAtomCount)
   const manyAtomsCameraRef = useRef(previewAtomCount > 8)
 
   const synthTimingProfile = useMemo(
@@ -682,16 +668,14 @@ function SceneContent({
   ])
 
   useEffect(() => {
-    const userCap = graphicsSettings?.synthesisCap
     const staticCap = computeStaticQualityCap({
       deviceTier: getSynthesisDeviceTier(),
-      atomCount: deferredPreviewAtomCount,
+      atomCount: previewAtomCount,
       visualTier: previewVisualTier,
-      userCap,
     })
     if (!synthesis?.runId) {
       const editCap = Math.min(
-        computeReactorEditQualityCap(deferredPreviewAtomCount),
+        computeReactorEditQualityCap(previewAtomCount),
         staticCap,
       ) as SynthesisQualityLevel
       const editLite = qualityLevelToForceLite(editCap)
@@ -704,7 +688,7 @@ function SceneContent({
     }
     fpsGovRef.current.reset()
     const cap = Math.min(
-      computeReactorEditQualityCap(deferredPreviewAtomCount),
+      computeReactorEditQualityCap(previewAtomCount),
       staticCap,
     ) as SynthesisQualityLevel
     fpsGovRef.current.setCap(cap)
@@ -715,14 +699,7 @@ function SceneContent({
       setSynthQualityLevel(cap)
     })
     if (forceLiteFxRef) forceLiteFxRef.current = initialLite
-  }, [
-    synthesis?.runId,
-    deferredPreviewAtomCount,
-    previewVisualTier,
-    forceLiteFxRef,
-    graphicsSettings?.synthesisCap,
-    graphicsSettings?.effectivePreset,
-  ])
+  }, [synthesis?.runId, previewAtomCount, previewVisualTier, forceLiteFxRef])
 
   // Лёгкий авто-тюнинг: если FPS проседает — переключаемся на low и обратно с гистерезисом.
   // Делается здесь (внутри Canvas), чтобы измерять delta из render-loop без внешних зависимостей.
@@ -855,7 +832,6 @@ function SceneContent({
 
   return (
     <>
-      <LabGlobalFpsBridge />
       <LabSceneClearSync reactorMode={reactorViewOpen} />
       {reactorBackdrop ? <LabReactorClearColor /> : null}
       {reactorBackdrop ? (

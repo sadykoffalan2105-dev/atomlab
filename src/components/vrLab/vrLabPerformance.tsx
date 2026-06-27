@@ -1,10 +1,5 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
-import {
-  presetToVrTier,
-  readStoredGraphicsPreset,
-  resolveEffectiveGraphicsPreset,
-  type GraphicsPreset,
-} from '../../perf/graphicsSettings'
+import { FIXED_VR_TIER } from '../../perf/graphicsSettings'
 
 export type VrLabQualityTier = 'high' | 'medium' | 'low'
 
@@ -91,19 +86,9 @@ function webglSupported(): boolean {
   }
 }
 
-/** Авто-определение качества — консервативно, чтобы сцена не зависала. */
-export function detectVrLabQuality(preset?: GraphicsPreset): VrLabQualityTier {
-  if (preset && preset !== 'auto') {
-    return presetToVrTier(resolveEffectiveGraphicsPreset(preset))
-  }
-  if (typeof window === 'undefined') return 'medium'
-  if (!webglSupported()) return 'low'
-  try {
-    const effective = resolveEffectiveGraphicsPreset(readStoredGraphicsPreset())
-    return presetToVrTier(effective)
-  } catch {
-    return 'low'
-  }
+/** Качество VR — всегда high (без UI-переключателя). */
+export function detectVrLabQuality(): VrLabQualityTier {
+  return FIXED_VR_TIER
 }
 
 export function buildVrLabPerfSettings(tier: VrLabQualityTier = detectVrLabQuality()): VrLabPerfSettings {
@@ -119,19 +104,14 @@ export function useVrLabPerf(): VrLabPerfSettings {
 export function VrLabPerfProvider({
   children,
   tier,
-  runtimeTier,
 }: {
   children: ReactNode
   tier?: VrLabQualityTier
-  /** Runtime downgrade от FPS governor (ниже tier). */
-  runtimeTier?: VrLabQualityTier
 }) {
-  const settings = useMemo(() => {
-    const base = buildVrLabPerfSettings(tier ?? detectVrLabQuality())
-    if (!runtimeTier || runtimeTier === base.tier) return base
-    const down = buildVrLabPerfSettings(runtimeTier)
-    return down.tier === 'low' || base.tier === 'low' ? down : down
-  }, [tier, runtimeTier])
+  const settings = useMemo(
+    () => buildVrLabPerfSettings(tier ?? FIXED_VR_TIER),
+    [tier],
+  )
   return <VrLabPerfContext.Provider value={settings}>{children}</VrLabPerfContext.Provider>
 }
 
