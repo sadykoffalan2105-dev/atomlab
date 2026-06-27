@@ -2,6 +2,10 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
+**Скачать v1.1.0:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.1.0)
+- `ATOMLAB-1.1.0-portable.exe` — без установки
+- `ATOMLAB-1.1.0-setup.exe` — установщик
+
 ## Возможности
 
 - **Полноэкранный режим** по умолчанию (F11 / меню «Вид»)
