@@ -37,21 +37,6 @@ jobs:
           VITE_LEARN_TTS_URL: ${{ secrets.VITE_LEARN_TTS_URL != '' && secrets.VITE_LEARN_TTS_URL || secrets.VERCEL_TTS_URL != '' && secrets.VERCEL_TTS_URL || 'https://atomlab-alan-sadykov.netlify.app/api/learn/tts' }}
         run: npm run build
 
-      - name: Deploy TTS function to Netlify (CLI, без минут сборки)
-        if: ${{ secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_SITE_ID != '' }}
-        run: npx netlify-cli@23 deploy --prod --dir=dist --functions=netlify/functions --message="TTS+site ${{ github.sha }}"
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-
-      - name: Deploy TTS Cloudflare Worker (если заданы CF-секреты)
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
-
       - name: Verify new learn UI in bundle
         run: |
           grep -rq "learn.molecules.structure.title" dist/assets/
@@ -64,3 +49,20 @@ jobs:
           publish_dir: ./dist
           publish_branch: gh-pages
           commit_message: 'Deploy site ${{ github.sha }}'
+
+      - name: Deploy TTS function to Netlify (CLI, без минут сборки)
+        if: ${{ secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_SITE_ID != '' }}
+        continue-on-error: true
+        run: npx netlify-cli@23 deploy --prod --dir=dist --functions=netlify/functions --message="TTS+site ${{ github.sha }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+      - name: Deploy TTS Cloudflare Worker (если заданы CF-секреты)
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
