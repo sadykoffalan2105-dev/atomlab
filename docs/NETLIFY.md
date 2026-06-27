@@ -2,13 +2,23 @@
 
 ## Голос учителя (TTS) на GitHub Pages
 
-Статический сайт **не может** синтезировать голос сам — нужен serverless-бэкенд.
+Статический сайт **не может** синтезировать голос сам — нужен serverless-бэкенд или браузерный fallback.
 
-### Автодеплой TTS (Netlify CLI) — **обязательно для голоса на сайте**
+### Как работает голос в браузере (после обновления)
 
-Без этого шага GitHub Pages **не может** синтезировать голос — будет только запасной Puter/браузер.
+При нажатии «Озвучить» клиент пробует **по порядку**:
 
-Workflow `.github/workflows/publish-site.yml` загружает функцию `netlify/functions/learn-tts` через Netlify CLI (не тратит минуты сборки).
+1. **Edge Neural в браузере** — `ru-RU-DmitryNeural` (мужской Dmitry), без сервера
+2. **Puter Polly Maxim** — мужской голос через `js.puter.com` (может показать popup входа Puter при первом разе)
+3. **Serverless-бэкенд** — Netlify / Render / Vercel (`/api/learn/tts`)
+
+Только если все три не сработали — системный робот Web Speech.
+
+### Автодеплой TTS (Netlify CLI) — для serverless Dmitry
+
+Без этого шага GitHub Pages полагается на браузерный Edge и Puter.
+
+Workflow `.github/workflows/publish-site.yml` загружает функцию `netlify/functions/learn-tts` через Netlify CLI.
 
 **Добавьте секреты** в GitHub → репозиторий **atomlab** → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
 
@@ -17,22 +27,20 @@ Workflow `.github/workflows/publish-site.yml` загружает функцию 
 | `NETLIFY_AUTH_TOKEN` | [Netlify → User settings → Applications → Personal access tokens](https://app.netlify.com/user/applications#personal-access-tokens) → Generate |
 | `NETLIFY_SITE_ID` | `86490664-0bd1-4761-a7fb-0bce1581eca3` |
 
-После следующего `git push` в `main` проверьте в терминале:
+### Запасной бэкенд (Vercel)
 
-```bash
-curl -X POST https://atomlab-alan-sadykov.netlify.app/api/learn/tts \
-  -H "Content-Type: application/json" \
-  -d "{\"text\":\"Привет\",\"locale\":\"ru\",\"prepared\":true}"
-```
+Workflow `.github/workflows/deploy-vercel-tts.yml` деплоит `api/learn/tts.ts` на Vercel.
 
-Ответ должен содержать `"source":"edge"` и длинный `audioBase64`.
+Секреты GitHub Actions:
 
-### Запасной бэкенд (Render.com)
+| Секрет | Значение |
+|--------|----------|
+| `VERCEL_TOKEN` | [Vercel → Account → Tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | `vercel link` → `.vercel/project.json` |
+| `VERCEL_PROJECT_ID` | `vercel link` → `.vercel/project.json` |
+| `VERCEL_TTS_URL` | `https://<project>.vercel.app/api/learn/tts` (после первого деплоя) |
 
-В репозитории есть `render.yaml` — сервис `atomlab-learn-tts`.  
-[Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → подключить репозиторий.
-
-URL: `https://atomlab-learn-tts.onrender.com/api/learn/tts`
+После деплоя добавьте `VERCEL_TTS_URL` — сборка GitHub Pages подставит его в `VITE_LEARN_TTS_URL`.
 
 ---
 
