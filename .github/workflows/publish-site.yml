@@ -50,19 +50,26 @@ jobs:
           publish_branch: gh-pages
           commit_message: 'Deploy site ${{ github.sha }}'
 
-      - name: Deploy TTS function to Netlify (CLI, без минут сборки)
-        if: ${{ secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_SITE_ID != '' }}
+      - name: Deploy TTS function to Netlify (optional)
         continue-on-error: true
-        run: npx netlify-cli@23 deploy --prod --dir=dist --functions=netlify/functions --message="TTS+site ${{ github.sha }}"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ] || [ -z "$NETLIFY_SITE_ID" ]; then
+            echo "Skip Netlify — secrets not configured"
+            exit 0
+          fi
+          npx netlify-cli@23 deploy --prod --dir=dist --functions=netlify/functions --message="TTS+site ${{ github.sha }}"
 
-      - name: Deploy TTS Cloudflare Worker (если заданы CF-секреты)
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+      - name: Deploy TTS Cloudflare Worker (optional)
         continue-on-error: true
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "Skip Cloudflare — secrets not configured"
+            exit 0
+          fi
+          npx wrangler deploy
