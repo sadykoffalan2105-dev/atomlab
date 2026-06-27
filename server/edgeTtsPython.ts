@@ -1,6 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { synthesizeMsEdgeTeacherSpeech } from '../src/learn/learnMsEdgeTts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DAEMON = join(ROOT, 'scripts', 'teacher-tts-daemon.py')
@@ -224,7 +225,9 @@ export async function synthesizeEdgeViaPython(
 ): Promise<TtsResult> {
   const fromDaemon = await daemon.synth(text, locale, voice, prepared)
   if (fromDaemon) return fromDaemon
-  return synthesizeOneShot(text, locale, voice, prepared)
+  const oneShot = await synthesizeOneShot(text, locale, voice, prepared)
+  if (oneShot) return oneShot
+  return synthesizeMsEdgeTeacherSpeech(text, locale, voice)
 }
 
 export function warmupEdgeTtsDaemon(): Promise<TtsResult> {

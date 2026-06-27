@@ -2,10 +2,11 @@ import type { LearnTtsLocale } from './learnTtsCore'
 import { isPlausibleSpeechAudio } from './learnSpeechValidate'
 import { synthesizeEdgeNeuralSpeechBrowser } from './learnEdgeTtsBrowser'
 import { synthesizePuterSpeech, warmupPuterFromUserGesture } from './learnPuterTts'
+import { isAtomlabDesktop } from '../electronBridge.types'
 
 export type TeacherTtsLocale = LearnTtsLocale
 
-export type NeuralTtsSource = 'edge-browser' | 'edge-server' | 'puter'
+export type NeuralTtsSource = 'edge-browser' | 'edge-server' | 'edge-desktop' | 'puter'
 
 export type NeuralTtsResult = {
   audioBase64: string
@@ -73,6 +74,27 @@ async function postTtsOnce(
     }
   }
   return null
+}
+
+async function fetchViaDesktopElectron(
+  chunk: string,
+  locale: TeacherTtsLocale,
+  signal: AbortSignal,
+): Promise<NeuralTtsResult | null> {
+  if (signal.aborted || !isAtomlabDesktop()) return null
+  const api = window.atomlabDesktop
+  if (!api?.synthesizeTeacherTts) return null
+  try {
+    const entry = await withTimeout(
+      api.synthesizeTeacherTts(chunk, locale),
+      18_000,
+      signal,
+    )
+    if (!entry || signal.aborted || !isPlausibleSpeechAudio(entry.audioBase64, chunk)) return null
+    return { ...entry, source: 'edge-desktop' }
+  } catch {
+    return null
+  }
 }
 
 async function fetchViaBrowserEdge(
@@ -229,6 +251,9 @@ export function isTeacherTtsAvailable(): boolean {
 }
 
 export function primeTeacherVoiceOnUserGesture(): void {
+  if (isAtomlabDesktop() && window.atomlabDesktop?.synthesizeTeacherTts) {
+    void window.atomlabDesktop.synthesizeTeacherTts('Готов.', 'ru')
+  }
   void warmupPuterFromUserGesture()
 }
 
@@ -244,6 +269,9 @@ export async function fetchTeacherTtsChunk(
     cachedWorkingTtsUrl && urls.includes(cachedWorkingTtsUrl)
       ? [cachedWorkingTtsUrl, ...urls.filter((u) => u !== cachedWorkingTtsUrl)]
       : urls
+
+  const desktop = await fetchViaDesktopElectron(chunk, locale, signal)
+  if (desktop) return desktop
 
   const browserEdge = await fetchViaBrowserEdge(chunk, locale, signal)
   if (browserEdge) return browserEdge

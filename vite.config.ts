@@ -49,8 +49,15 @@ export default defineConfig(({ mode }) => {
           server.middlewares.use(learnChatMiddleware())
           void import('./server/edgeTtsPython').then(({ warmupEdgeTtsDaemon }) =>
             warmupEdgeTtsDaemon().then((r) => {
-              if (r) console.log('[teacher-voice] Neural TTS daemon warmed up (ATOMLAB Teacher)')
-              else console.warn('[teacher-voice] TTS warmup failed — run: npm run setup:teacher-voice')
+              if (r) console.log('[teacher-voice] Neural TTS warmed up (ATOMLAB Teacher)')
+              else {
+                void import('./src/learn/learnMsEdgeTts').then(({ synthesizeMsEdgeTeacherSpeech }) =>
+                  synthesizeMsEdgeTeacherSpeech('Готов к уроку.', 'ru').then((fallback) => {
+                    if (fallback) console.log('[teacher-voice] msedge-tts fallback ready')
+                    else console.warn('[teacher-voice] TTS warmup failed — check network')
+                  }),
+                )
+              }
             }),
           )
         },

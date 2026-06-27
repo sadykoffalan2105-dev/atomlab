@@ -11,6 +11,8 @@ const api = {
   installUpdate: () => ipcRenderer.invoke('atomlab:install-update'),
   toggleFullscreen: () => ipcRenderer.invoke('atomlab:toggle-fullscreen'),
   reloadApp: () => ipcRenderer.invoke('atomlab:reload-app'),
+  synthesizeTeacherTts: (text, locale) =>
+    ipcRenderer.invoke('atomlab:synthesize-teacher-tts', { text, locale }),
   onUpdateStatus: (callback) => {
     const listener = (_event, payload) => callback(payload)
     ipcRenderer.on('atomlab:update-status', listener)

@@ -1,23 +1,22 @@
 /**
- * Microsoft Edge Neural TTS — WebSocket из браузера (без Python).
- * Протокол с Sec-MS-GEC (обязателен с 2024+) — как @travisvn/edge-tts.
+ * Microsoft Edge Neural TTS — WebSocket из браузера.
+ * Протокол совпадает с msedge-tts@2.x (Sec-MS-GEC 143.x).
  */
 import {
   TEACHER_VOICE_EDGE,
   TEACHER_VOICE_EDGE_PROSODY,
 } from './learnTeacherVoiceProfile'
 import type { SpeechPrepLocale } from './learnSpeechText'
-import { buildTeacherSsml } from './learnEdgeSsml'
 import {
   EDGE_TTS_SEC_MS_GEC_VERSION,
-  edgeTtsUtcTimestamp,
   generateEdgeTtsSecMsGec,
 } from './edgeTtsSecMsGec'
 
 const TRUSTED_CLIENT_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4'
 const WSS_BASE =
   'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1'
-const SYNTH_TIMEOUT_MS = 22_000
+const SYNTH_TIMEOUT_MS = 24_000
+const JSON_XML_DELIM = '\r\n\r\n'
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = ''
@@ -28,39 +27,26 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
-function uuid(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0
-    const v = c === 'x' ? r : (r & 0x3) | 0x8
-    return v.toString(16)
-  })
+function randomHex(bytes: number): string {
+  const arr = new Uint8Array(bytes)
+  crypto.getRandomValues(arr)
+  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-function parseBinaryMessage(buf: Uint8Array): { path: string; data: Uint8Array } | null {
-  if (buf.length < 2) return null
-  const headerLength = (buf[0]! << 8) | buf[1]!
-  if (headerLength + 2 > buf.length) return null
-  const headerString = new TextDecoder().decode(buf.subarray(2, headerLength + 2))
-  const headers: Record<string, string> = {}
-  for (const line of headerString.split('\r\n')) {
-    const idx = line.indexOf(':')
-    if (idx > 0) headers[line.slice(0, idx).trim()] = line.slice(idx + 1).trim()
-  }
-  return {
-    path: headers.Path ?? '',
-    data: buf.subarray(headerLength + 2),
-  }
+function escapeSsmlText(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
 }
 
-function ssmlMessage(requestId: string, timestamp: string, ssml: string): string {
+function buildSsml(text: string, voice: string, lang: string, rate: string, pitch: string, volume: string): string {
+  const body = escapeSsmlText(text)
   return (
-    `X-RequestId:${requestId}\r` +
-    `Content-Type:application/ssml+xml\r` +
-    `X-Timestamp:${timestamp}Z\r` +
-    `Path:ssml\r` +
-    `\r` +
-    `${ssml}`
+    `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${lang}">` +
+    `<voice name="${voice}"><prosody pitch="${pitch}" rate="${rate}" volume="${volume}">${body}</prosody></voice></speak>`
   )
 }
 
@@ -74,16 +60,9 @@ export async function synthesizeEdgeNeuralSpeechBrowser(
   const voice = voiceOverride?.trim() || TEACHER_VOICE_EDGE[locale]
   const prosody = TEACHER_VOICE_EDGE_PROSODY[locale]
   const lang = locale === 'en' ? 'en-US' : 'ru-RU'
-  const ssml = buildTeacherSsml(
-    text,
-    voice,
-    prosody.rate,
-    prosody.pitch,
-    prosody.volume,
-    lang,
-  )
+  const ssml = buildSsml(text, voice, lang, prosody.rate, prosody.pitch, prosody.volume)
 
-  const connectionId = uuid().replace(/-/g, '')
+  const connectionId = randomHex(16)
   const secGec = await generateEdgeTtsSecMsGec()
   const url =
     `${WSS_BASE}?TrustedClientToken=${TRUSTED_CLIENT_TOKEN}` +
@@ -120,16 +99,26 @@ export async function synthesizeEdgeNeuralSpeechBrowser(
     ws.binaryType = 'arraybuffer'
 
     ws.onopen = () => {
-      const ts = edgeTtsUtcTimestamp()
-      const requestId = uuid().replace(/-/g, '')
       ws.send(
-        `X-Timestamp:${ts}\r` +
-          'Content-Type:application/json; charset=utf-8\r' +
-          'Path:speech.config\r' +
-          '\r' +
-          '{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r',
+        `Content-Type:application/json; charset=utf-8\r\nPath:speech.config${JSON_XML_DELIM}` +
+          JSON.stringify({
+            context: {
+              synthesis: {
+                audio: {
+                  metadataoptions: {
+                    sentenceBoundaryEnabled: 'false',
+                    wordBoundaryEnabled: 'false',
+                  },
+                  outputFormat: 'audio-24khz-48kbitrate-mono-mp3',
+                },
+              },
+            },
+          }),
       )
-      ws.send(ssmlMessage(requestId, ts, ssml))
+      const requestId = randomHex(16)
+      ws.send(
+        `X-RequestId:${requestId}\r\nContent-Type:application/ssml+xml\r\nPath:ssml${JSON_XML_DELIM}${ssml}`,
+      )
     }
 
     ws.onmessage = (ev) => {
@@ -147,9 +136,18 @@ export async function synthesizeEdgeNeuralSpeechBrowser(
         return
       }
 
-      const parsed = parseBinaryMessage(new Uint8Array(ev.data as ArrayBuffer))
-      if (parsed?.path === 'audio' && parsed.data.length > 0) {
-        audioParts.push(parsed.data)
+      const raw = new Uint8Array(ev.data as ArrayBuffer)
+      const delim = new TextEncoder().encode(JSON_XML_DELIM)
+      let headerEnd = -1
+      outer: for (let i = 0; i <= raw.length - delim.length; i++) {
+        for (let j = 0; j < delim.length; j++) {
+          if (raw[i + j] !== delim[j]) continue outer
+        }
+        headerEnd = i + delim.length - 1
+        break
+      }
+      if (headerEnd >= 0 && headerEnd + 1 < raw.length) {
+        audioParts.push(raw.subarray(headerEnd + 1))
       }
     }
 

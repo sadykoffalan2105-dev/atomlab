@@ -30,6 +30,10 @@ export type AtomlabDesktopApi = {
   installUpdate: () => Promise<boolean>
   toggleFullscreen: () => Promise<boolean>
   reloadApp: () => Promise<boolean>
+  synthesizeTeacherTts: (
+    text: string,
+    locale: 'ru' | 'en',
+  ) => Promise<{ audioBase64: string; mimeType: string } | null>
   onUpdateStatus: (callback: (status: AtomlabUpdateStatus) => void) => () => void
 }
 

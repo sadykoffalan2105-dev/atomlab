@@ -13,6 +13,7 @@ const {
 const { autoUpdater } = require('electron-updater')
 const path = require('node:path')
 const fs = require('node:fs')
+const { synthesizeTeacherSpeech, warmupTeacherTts } = require('./teacherTts.cjs')
 
 const isDev = !app.isPackaged
 const DEV_URL = process.env.VITE_DEV_SERVER_URL || 'http://127.0.0.1:5173'
@@ -189,7 +190,7 @@ function buildAppMenu() {
               title: 'ATOMLAB',
               message: `ATOMLAB v${app.getVersion()}`,
               detail:
-                'Виртуальная химическая лаборатория (7–11 класс).\n\nF11 — полный экран\nEsc — выход из полного экрана\n\nГрафика: меню «Графика» в шапке приложения.',
+                'Виртуальная химическая лаборатория (7–11 класс).\n\nF11 — полный экран\nEsc — выход из полного экрана',
             })
           },
         },
@@ -304,6 +305,18 @@ function registerIpc() {
     else loadProduction(mainWindow)
     return true
   })
+
+  ipcMain.handle('atomlab:synthesize-teacher-tts', async (_event, payload) => {
+    const text = typeof payload?.text === 'string' ? payload.text : ''
+    const locale = payload?.locale === 'en' ? 'en' : 'ru'
+    if (!text.trim()) return null
+    try {
+      return await synthesizeTeacherSpeech(text, locale)
+    } catch (err) {
+      console.warn('[ATOMLAB] teacher TTS failed', err?.message || err)
+      return null
+    }
+  })
 }
 
 const gotLock = app.requestSingleInstanceLock()
@@ -330,6 +343,12 @@ if (!gotLock) {
     createWindow()
 
     if (!isDev) setTimeout(() => checkForUpdates(false), 4000)
+    setTimeout(() => {
+      void warmupTeacherTts().then((r) => {
+        if (r?.audioBase64) console.log('[ATOMLAB] Teacher voice warmed up (Dmitry Neural)')
+        else console.warn('[ATOMLAB] Teacher voice warmup failed — check network')
+      })
+    }, 2500)
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()

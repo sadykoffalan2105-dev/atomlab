@@ -6,7 +6,7 @@
 const TRUSTED = '6A5AA1D4EAFF4E9FB37E23D68491D6F4'
 const WSS = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1'
 const WIN_EPOCH = 11644473600
-const GEC_VER = '1-130.0.2849.68'
+const GEC_VER = '1-143.0.3650.96'
 const VOICES = { ru: 'ru-RU-DmitryNeural', en: 'en-US-GuyNeural' }
 
 function cors(origin) {
