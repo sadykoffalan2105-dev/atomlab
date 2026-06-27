@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 release/
+build/icon-*.png
+!build/icon.png
 video/
 *.local
 

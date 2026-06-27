@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useEffect } from 'react'
 import { IconVrLab } from './components/vrLab/IconVrLab'
+import { DesktopUpdateBadge } from './components/desktop/DesktopUpdateBadge'
 import { compoundById } from './data/compounds'
 import { warmupLabSynthesisInfra } from './lab/labSynthesisWarmup'
 import { useLocale } from './i18n/useLocale'
@@ -66,6 +67,7 @@ export function AppShell() {
               {t('nav.learn')}
             </NavLink>
           </nav>
+          <DesktopUpdateBadge />
           <div className={styles.langPicker} role="group" aria-label={t('lang.toggle', { current: locale.toUpperCase() })}>
             {(['ru', 'en', 'uz'] as const).map((code) => (
               <button

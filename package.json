@@ -1,13 +1,22 @@
 {
   "name": "atomlab",
+  "productName": "ATOMLAB",
   "private": true,
   "version": "1.0.0",
   "description": "ATOMLAB — виртуальная химическая лаборатория (7–11 класс)",
   "author": "ATOMLAB",
+  "homepage": "https://github.com/sadykoffalan2105-dev/atomlab",
+  "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:electron": "concurrently -k \"cross-env VITE_ELECTRON=1 vite --host 127.0.0.1 --port 5173 --strictPort\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
     "build": "tsc -b && vite build",
+    "build:icon": "node scripts/generate-electron-icon.mjs",
+    "build:electron": "npm run build:icon && cross-env VITE_BASE=./ VITE_ELECTRON=1 npm run build",
+    "dist:electron": "node scripts/electron-dist.mjs",
+    "dist:electron:portable": "npm run build:electron && electron-builder --win portable --x64",
+    "publish:electron": "npm run build:electron && electron-builder --win --x64 --publish always",
     "lint": "eslint .",
     "pubchem:sync": "tsx scripts/pubchem-sync-geometry.ts",
     "pubchem:sync:fast": "tsx scripts/pubchem-sync-geometry.ts",
@@ -44,6 +53,7 @@
     "@react-three/rapier": "^2.2.0",
     "@travisvn/edge-tts": "^1.0.2",
     "@types/three": "^0.184.0",
+    "electron-updater": "^6.8.9",
     "gsap": "^3.15.0",
     "msedge-tts": "^2.0.6",
     "periodic-table-data": "^1.1.1",
@@ -62,15 +72,79 @@
     "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^10.0.3",
+    "cross-env": "^10.1.0",
+    "electron": "^42.5.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
     "playwright": "^1.58.2",
+    "png-to-ico": "^3.0.1",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "wait-on": "^9.0.10"
+  },
+  "build": {
+    "appId": "dev.atomlab.desktop",
+    "productName": "ATOMLAB",
+    "copyright": "Copyright © ATOMLAB",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "ATOMLAB-${version}-${arch}.${ext}",
+      "legalTrademarks": "ATOMLAB"
+    },
+    "portable": {
+      "artifactName": "ATOMLAB-${version}-portable.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ATOMLAB",
+      "artifactName": "ATOMLAB-${version}-setup.exe",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "sadykoffalan2105-dev",
+      "repo": "atomlab",
+      "releaseType": "release"
+    }
   }
 }

@@ -1,0 +1,60 @@
+# Сборка Windows-приложения ATOMLAB (Electron)
+
+name: Release Electron (Windows)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to GitHub Releases'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: write
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build renderer + icons
+        run: npm run build:electron
+        env:
+          VITE_LEARN_TTS_URL: ${{ secrets.VITE_LEARN_TTS_URL != '' && secrets.VITE_LEARN_TTS_URL || secrets.VERCEL_TTS_URL }}
+
+      - name: Package Windows (portable + NSIS)
+        run: npx electron-builder --win --x64 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ATOMLAB-Windows-${{ github.ref_name }}
+          path: |
+            release/*.exe
+            release/latest*.yml
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish == 'true'
+        run: npx electron-builder --win --x64 --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

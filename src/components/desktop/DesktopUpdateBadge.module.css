@@ -1,0 +1,44 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge {
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(61, 255, 236, 0.28);
+  background: rgba(10, 12, 24, 0.72);
+  color: rgba(200, 230, 255, 0.88);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.badge:hover:not(:disabled) {
+  border-color: rgba(61, 255, 236, 0.55);
+  color: #e8ffff;
+}
+
+.badge:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.install {
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #3dffec, #1a6bff);
+  color: #03040a;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.install:hover {
+  filter: brightness(1.08);
+}
