@@ -29,6 +29,7 @@ export type AtomlabDesktopApi = {
   getUpdateStatus: () => Promise<AtomlabUpdateStatus>
   installUpdate: () => Promise<boolean>
   toggleFullscreen: () => Promise<boolean>
+  reloadApp: () => Promise<boolean>
   onUpdateStatus: (callback: (status: AtomlabUpdateStatus) => void) => () => void
 }
 

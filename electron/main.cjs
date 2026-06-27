@@ -1,6 +1,6 @@
 /**
  * ATOMLAB — Electron main process.
- * Оптимизация под Three.js / WebGL / VR: GPU rasterization, без throttling фона.
+ * Оптимизация под Three.js / WebGL / VR: GPU, WebGPU, без throttling фона, crash recovery.
  */
 const {
   app,
@@ -17,24 +17,26 @@ const fs = require('node:fs')
 const isDev = !app.isPackaged
 const DEV_URL = process.env.VITE_DEV_SERVER_URL || 'http://127.0.0.1:5173'
 
-/** GitHub Releases — автообновление (electron-updater). */
 autoUpdater.autoDownload = true
 autoUpdater.autoInstallOnAppQuit = true
 autoUpdater.allowDowngrade = false
 
 let mainWindow = null
-/** Последний статус обновления для renderer. */
 let lastUpdateStatus = { state: 'idle', info: null, error: null }
+let crashRecoveryInFlight = false
 
-// ── GPU / WebGL ─────────────────────────────────────────────────────────────
+// ── GPU / WebGL / WebGPU ────────────────────────────────────────────────────
 app.commandLine.appendSwitch('enable-gpu-rasterization')
 app.commandLine.appendSwitch('enable-zero-copy')
 app.commandLine.appendSwitch('ignore-gpu-blocklist')
+app.commandLine.appendSwitch('enable-unsafe-webgpu')
 app.commandLine.appendSwitch(
   'enable-features',
-  'CanvasOopRasterization,Vulkan,UseSkiaRenderer',
+  'CanvasOopRasterization,Vulkan,UseSkiaRenderer,WebGPU',
 )
-// Не отключаем hardware acceleration — критично для Three.js.
+app.commandLine.appendSwitch('disable-renderer-backgrounding')
+app.commandLine.appendSwitch('disable-background-timer-throttling')
+
 if (process.env.ATOMLAB_DISABLE_HW_ACCEL === '1') {
   app.disableHardwareAcceleration()
 }
@@ -63,6 +65,59 @@ function loadProduction(window) {
   window.loadFile(indexHtml)
 }
 
+function recoverRenderer(reason) {
+  if (!mainWindow || mainWindow.isDestroyed() || crashRecoveryInFlight) return
+  crashRecoveryInFlight = true
+  dialog
+    .showMessageBox(mainWindow, {
+      type: 'warning',
+      title: 'ATOMLAB — восстановление',
+      message: '3D-движок перезапускается…',
+      detail: `Причина: ${reason}\n\nНажмите OK для перезагрузки интерфейса.`,
+      buttons: ['OK'],
+    })
+    .finally(() => {
+      crashRecoveryInFlight = false
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (isDev) {
+          mainWindow.loadURL(DEV_URL)
+        } else {
+          loadProduction(mainWindow)
+        }
+      }
+    })
+}
+
+function wireWebContents(window) {
+  window.webContents.on('render-process-gone', (_event, details) => {
+    if (details.reason === 'crashed' || details.reason === 'oom' || details.reason === 'killed') {
+      recoverRenderer(details.reason)
+    }
+  })
+
+  window.webContents.on('unresponsive', () => {
+    sendUpdateStatus({
+      state: 'idle',
+      info: { unresponsive: true },
+      error: null,
+    })
+  })
+
+  window.webContents.on('responsive', () => {
+    sendUpdateStatus({ state: 'idle', info: null, error: null })
+  })
+
+  window.webContents.on('did-fail-load', (_event, code, desc, url) => {
+    if (code === -3) return
+    console.error('[ATOMLAB] did-fail-load', code, desc, url)
+    if (!isDev && code !== -6) {
+      setTimeout(() => {
+        if (window && !window.isDestroyed()) loadProduction(window)
+      }, 800)
+    }
+  })
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     title: 'ATOMLAB',
@@ -79,8 +134,11 @@ function createWindow() {
       webgl: true,
       backgroundThrottling: false,
       spellcheck: false,
+      v8CacheOptions: 'bypassHeatCheck',
     },
   })
+
+  wireWebContents(mainWindow)
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
@@ -99,10 +157,7 @@ function createWindow() {
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
     if (isDev) return
-    const filePrefix = 'file://'
-    if (!url.startsWith(filePrefix)) {
-      event.preventDefault()
-    }
+    if (!url.startsWith('file://')) event.preventDefault()
   })
 
   if (isDev) {
@@ -124,10 +179,7 @@ function buildAppMenu() {
     {
       label: 'ATOMLAB',
       submenu: [
-        {
-          label: 'Проверить обновления…',
-          click: () => checkForUpdates(true),
-        },
+        { label: 'Проверить обновления…', click: () => checkForUpdates(true) },
         { type: 'separator' },
         {
           label: 'О программе',
@@ -137,7 +189,7 @@ function buildAppMenu() {
               title: 'ATOMLAB',
               message: `ATOMLAB v${app.getVersion()}`,
               detail:
-                'Виртуальная химическая лаборатория (7–11 класс).\n\nF11 — полноэкранный режим\nEsc — выход из полноэкранного режима',
+                'Виртуальная химическая лаборатория (7–11 класс).\n\nF11 — полный экран\nEsc — выход из полного экрана\n\nГрафика: меню «Графика» в шапке приложения.',
             })
           },
         },
@@ -164,19 +216,15 @@ function wireAutoUpdater() {
   autoUpdater.on('checking-for-update', () => {
     sendUpdateStatus({ state: 'checking', info: null, error: null })
   })
-
   autoUpdater.on('update-available', (info) => {
     sendUpdateStatus({ state: 'available', info, error: null })
   })
-
   autoUpdater.on('update-not-available', (info) => {
     sendUpdateStatus({ state: 'not-available', info, error: null })
   })
-
   autoUpdater.on('download-progress', (progress) => {
     sendUpdateStatus({ state: 'downloading', info: progress, error: null })
   })
-
   autoUpdater.on('update-downloaded', (info) => {
     sendUpdateStatus({ state: 'downloaded', info, error: null })
     dialog
@@ -190,12 +238,9 @@ function wireAutoUpdater() {
         cancelId: 1,
       })
       .then(({ response }) => {
-        if (response === 0) {
-          autoUpdater.quitAndInstall(false, true)
-        }
+        if (response === 0) autoUpdater.quitAndInstall(false, true)
       })
   })
-
   autoUpdater.on('error', (error) => {
     sendUpdateStatus({
       state: 'error',
@@ -218,9 +263,7 @@ function checkForUpdates(manual = false) {
     return
   }
   autoUpdater.checkForUpdates().catch((err) => {
-    if (manual) {
-      dialog.showErrorBox('ATOMLAB — обновление', err?.message || String(err))
-    }
+    if (manual) dialog.showErrorBox('ATOMLAB — обновление', err?.message || String(err))
   })
 }
 
@@ -233,23 +276,16 @@ function registerIpc() {
   }))
 
   ipcMain.handle('atomlab:check-updates', async () => {
-    if (isDev) {
-      return { state: 'dev', info: null, error: null }
-    }
+    if (isDev) return { state: 'dev', info: null, error: null }
     try {
       await autoUpdater.checkForUpdates()
       return lastUpdateStatus
     } catch (error) {
-      return {
-        state: 'error',
-        info: null,
-        error: error?.message || String(error),
-      }
+      return { state: 'error', info: null, error: error?.message || String(error) }
     }
   })
 
   ipcMain.handle('atomlab:get-update-status', () => lastUpdateStatus)
-
   ipcMain.handle('atomlab:install-update', () => {
     if (lastUpdateStatus.state === 'downloaded') {
       autoUpdater.quitAndInstall(false, true)
@@ -257,15 +293,19 @@ function registerIpc() {
     }
     return false
   })
-
   ipcMain.handle('atomlab:toggle-fullscreen', () => {
     if (!mainWindow) return false
     mainWindow.setFullScreen(!mainWindow.isFullScreen())
     return mainWindow.isFullScreen()
   })
+  ipcMain.handle('atomlab:reload-app', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return false
+    if (isDev) mainWindow.loadURL(DEV_URL)
+    else loadProduction(mainWindow)
+    return true
+  })
 }
 
-// ── App lifecycle ───────────────────────────────────────────────────────────
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
@@ -277,15 +317,19 @@ if (!gotLock) {
     }
   })
 
+  app.on('child-process-gone', (_event, details) => {
+    if (details.type === 'GPU' && details.reason === 'crashed') {
+      console.error('[ATOMLAB] GPU process crashed', details)
+    }
+  })
+
   app.whenReady().then(() => {
     buildAppMenu()
     wireAutoUpdater()
     registerIpc()
     createWindow()
 
-    if (!isDev) {
-      setTimeout(() => checkForUpdates(false), 4000)
-    }
+    if (!isDev) setTimeout(() => checkForUpdates(false), 4000)
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()

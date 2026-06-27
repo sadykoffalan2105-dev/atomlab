@@ -1,5 +1,11 @@
 import type { SynthesisDeviceTier } from './synthesisDeviceTier'
 import { SYNTHESIS_PERF } from './synthesisPerfPreset'
+import {
+  presetToSynthesisCap,
+  readStoredGraphicsPreset,
+  resolveEffectiveGraphicsPreset,
+  type GraphicsPreset,
+} from '../perf/graphicsSettings'
 
 /** 0=MINIMAL … 4=ULTRA */
 export type SynthesisQualityLevel = 0 | 1 | 2 | 3 | 4
@@ -42,12 +48,26 @@ export function computeStaticQualityCap(opts: {
   deviceTier: SynthesisDeviceTier
   atomCount: number
   visualTier: 'full' | 'lite' | 'cluster'
+  userPreset?: GraphicsPreset
+  userCap?: SynthesisQualityLevel
 }): SynthesisQualityLevel {
   const { deviceTier, atomCount, visualTier } = opts
-  void deviceTier
-  void atomCount
-  void visualTier
-  return SYNTHESIS_QUALITY_MINIMAL
+  const preset = opts.userPreset ?? readStoredGraphicsPreset()
+  let cap =
+    opts.userCap ?? presetToSynthesisCap(resolveEffectiveGraphicsPreset(preset))
+
+  if (deviceTier === 'low') {
+    cap = Math.min(cap, SYNTHESIS_QUALITY_BALANCED) as SynthesisQualityLevel
+  }
+  if (visualTier === 'cluster') {
+    cap = Math.min(cap, SYNTHESIS_QUALITY_LITE) as SynthesisQualityLevel
+  }
+  if (atomCount > SYNTHESIS_PERF.liteFxAtomThreshold) {
+    cap = Math.min(cap, SYNTHESIS_QUALITY_LITE) as SynthesisQualityLevel
+  } else if (atomCount > SYNTHESIS_PERF.denseAtomThreshold) {
+    cap = Math.min(cap, SYNTHESIS_QUALITY_BALANCED) as SynthesisQualityLevel
+  }
+  return cap
 }
 
 export function featuresForQuality(

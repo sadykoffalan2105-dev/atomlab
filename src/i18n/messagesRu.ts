@@ -252,6 +252,16 @@ export const messagesRu = {
   'learn.stepperAria': 'Шаги урока',
   'learn.stepAria': 'Шаг {n} из {total}',
 
+  'graphics.title': 'Качество графики',
+  'graphics.button': 'Графика: {tier}',
+  'graphics.buttonAuto': 'Графика: авто ({tier})',
+  'graphics.hint': 'При просадке FPS качество автоматически снижается. Ultra — для мощных ПК.',
+  'graphics.preset.auto': 'Авто',
+  'graphics.preset.low': 'Низкое',
+  'graphics.preset.medium': 'Среднее',
+  'graphics.preset.high': 'Высокое',
+  'graphics.preset.ultra': 'Ultra',
+
   ...learnPackRu,
   ...learnGradePackRu,
 } as const

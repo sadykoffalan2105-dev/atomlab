@@ -3,19 +3,14 @@ import type { VrLabMixResult } from '../types'
 import { applyAqueousRules } from './aqueousRules'
 import { findOverride, overrideReactionCount, listOverrideSubstanceIds } from './reactionOverrides'
 
-export function resolveReaction(a: string | null | undefined, b: string | null | undefined): VrLabMixResult {
-  if (!a || !b) {
-    return {
-      kind: 'empty',
-      effect: 'noReaction',
-      equationUnicode: '',
-      messageKey: 'vrLab.reaction.empty',
-      heat: 0,
-      bubbleIntensity: 0,
-      confidence: 'none',
-    }
-  }
+const REACTION_CACHE_MAX = 256
+const reactionCache = new Map<string, VrLabMixResult>()
 
+function cacheKey(a: string, b: string): string {
+  return a <= b ? `${a}|${b}` : `${b}|${a}`
+}
+
+function resolveReactionCore(a: string, b: string): VrLabMixResult {
   if (a === b) {
     return {
       kind: 'sameSubstance',
@@ -85,6 +80,32 @@ export function resolveReaction(a: string | null | undefined, b: string | null |
     bubbleIntensity: 0,
     confidence: 'none',
   }
+}
+
+export function resolveReaction(a: string | null | undefined, b: string | null | undefined): VrLabMixResult {
+  if (!a || !b) {
+    return {
+      kind: 'empty',
+      effect: 'noReaction',
+      equationUnicode: '',
+      messageKey: 'vrLab.reaction.empty',
+      heat: 0,
+      bubbleIntensity: 0,
+      confidence: 'none',
+    }
+  }
+
+  const key = cacheKey(a, b)
+  const cached = reactionCache.get(key)
+  if (cached) return cached
+
+  const result = resolveReactionCore(a, b)
+  if (reactionCache.size >= REACTION_CACHE_MAX) {
+    const first = reactionCache.keys().next().value
+    if (first) reactionCache.delete(first)
+  }
+  reactionCache.set(key, result)
+  return result
 }
 
 export { overrideReactionCount as vrLabReactionCount, listOverrideSubstanceIds as listVrLabStarterSubstanceIds }

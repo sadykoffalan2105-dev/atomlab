@@ -255,6 +255,16 @@ export const messagesUz: Record<MessageKey, string> = {
   'learn.stepperAria': 'Dars qadamlari',
   'learn.stepAria': '{n} / {total} qadam',
 
+  'graphics.title': 'Grafika sifati',
+  'graphics.button': 'Grafika: {tier}',
+  'graphics.buttonAuto': 'Grafika: avto ({tier})',
+  'graphics.hint': 'FPS tushsa sifat avtomatik pasayadi. Ultra — kuchli kompyuterlar uchun.',
+  'graphics.preset.auto': 'Avto',
+  'graphics.preset.low': 'Past',
+  'graphics.preset.medium': 'O\'rta',
+  'graphics.preset.high': 'Yuqori',
+  'graphics.preset.ultra': 'Ultra',
+
   ...learnPackUz,
   ...learnGradePackUz,
 }

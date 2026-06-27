@@ -31,7 +31,20 @@ import { VrLabPracticeMissionRing } from './education/VrLabPracticeMissionRing'
 import { VrLabSceneDriver } from './VrLabSceneDriver'
 import { VrLabShelfFlasksScene } from './VrLabShelfFlasks'
 import { useVrLabPerf, VrLabPerfProvider } from './vrLabPerformance'
+import { useGraphicsSettingsOptional } from '../../perf/GraphicsSettingsProvider'
+import { useRuntimeFpsGovernor } from '../../perf/useRuntimeFpsGovernor'
 import { VR_THEME } from './vrLabTheme'
+
+function VrLabFpsBridge() {
+  const gfx = useGraphicsSettingsOptional()
+  useRuntimeFpsGovernor({
+    enabled: gfx != null,
+    onDowngrade: () => gfx?.runtimeDowngrade(),
+    enterFps: 38,
+    sampleSec: 1,
+  })
+  return null
+}
 
 type Props = {
   bench: VrLabBenchState
@@ -307,6 +320,7 @@ function VrLabCanvasInner({
       }}
     >
       <Suspense fallback={null}>
+        <VrLabFpsBridge />
         <MemoBenchScene
           bench={bench}
           practiceTarget={practiceTarget}
@@ -323,8 +337,9 @@ function VrLabCanvasInner({
 }
 
 export function VrLabCanvas(props: Omit<Props, 'onReady' | 'onFail'>) {
+  const gfx = useGraphicsSettingsOptional()
   return (
-    <VrLabPerfProvider>
+    <VrLabPerfProvider tier={gfx?.vrTier}>
       <VrLabErrorBoundary>
         <VrLabCanvasInner {...props} />
       </VrLabErrorBoundary>
@@ -345,9 +360,10 @@ export function VrLabCanvasShell({
   onReady,
   onFail,
 }: VrLabCanvasShellProps) {
+  const gfx = useGraphicsSettingsOptional()
   if (!mount) return null
   return (
-    <VrLabPerfProvider>
+    <VrLabPerfProvider tier={gfx?.vrTier}>
       <VrLabErrorBoundary onFail={onFail}>
         <VrLabCanvasInner
           bench={bench}
