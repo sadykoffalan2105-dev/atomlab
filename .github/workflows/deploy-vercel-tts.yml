@@ -1,0 +1,42 @@
+# Деплой serverless TTS (api/learn/tts) на Vercel — бесплатный бэкенд для GitHub Pages.
+# Секреты: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID (vercel link)
+
+name: Deploy Vercel TTS API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/learn/tts.ts'
+      - 'server/edgeTtsServerless.ts'
+      - 'src/learn/learnTtsCore.ts'
+      - 'vercel.json'
+      - '.github/workflows/deploy-vercel-tts.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vercel-tts
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Deploy API to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./

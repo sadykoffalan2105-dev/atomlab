@@ -34,7 +34,7 @@ jobs:
         env:
           VITE_BASE: /atomlab/
           VITE_LEARN_CHAT_URL: ${{ secrets.VITE_LEARN_CHAT_URL }}
-          VITE_LEARN_TTS_URL: ${{ secrets.VITE_LEARN_TTS_URL != '' && secrets.VITE_LEARN_TTS_URL || 'https://atomlab-alan-sadykov.netlify.app/api/learn/tts' }}
+          VITE_LEARN_TTS_URL: ${{ secrets.VITE_LEARN_TTS_URL != '' && secrets.VITE_LEARN_TTS_URL || secrets.VERCEL_TTS_URL != '' && secrets.VERCEL_TTS_URL || 'https://atomlab-alan-sadykov.netlify.app/api/learn/tts' }}
         run: npm run build
 
       - name: Deploy TTS function to Netlify (CLI, без минут сборки)

@@ -24,6 +24,7 @@ import {
 import {
   fetchTeacherTtsChunk,
   isTeacherTtsAvailable,
+  primeTeacherVoiceOnUserGesture,
   teacherTtsLocale,
 } from './learnTeacherTtsClient'
 
@@ -70,6 +71,7 @@ export class LearnSpeechController {
 
     this.stop()
     this.speakAborted = false
+    primeTeacherVoiceOnUserGesture()
     await unlockAudioPlayback()
 
     const chunks = splitTextForTts(text, locale).filter((c) => this.isSpeakableChunk(c))
