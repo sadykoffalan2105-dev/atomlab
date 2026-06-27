@@ -110,6 +110,20 @@ function ReactorSceneWarmup({ reactorOpen }: { reactorOpen: boolean }) {
     if (warmedRef.current) return
     warmedRef.current = true
     invalidate()
+    let raf2 = 0
+    let raf3 = 0
+    const raf1 = requestAnimationFrame(() => {
+      invalidate()
+      raf2 = requestAnimationFrame(() => {
+        invalidate()
+        raf3 = requestAnimationFrame(() => invalidate())
+      })
+    })
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+      cancelAnimationFrame(raf3)
+    }
   }, [reactorOpen, invalidate])
   return null
 }
@@ -484,6 +498,39 @@ function SceneContent({
     setProductRevealReady(false)
   }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady])
 
+  // Когда prewarm завершился уже во время синтеза — сразу показываем продукт.
+  useEffect(() => {
+    if (!synthActive || !synthesis?.runId || productRevealReady) return
+    const productId = synthesis.product?.id
+    if (productId == null) return
+    if (
+      (prewarmReady && prewarmCompoundIdRef.current === productId) ||
+      isProductGpuCompiled(productId)
+    ) {
+      setProductRevealReady(true)
+    }
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, productRevealReady])
+
+  // Слабые GPU: если compile затянулся — всё равно показываем продукт (атомы до productPainted).
+  useEffect(() => {
+    if (!synthActive || !synthesis?.runId || productRevealReady) return
+    let frames = 0
+    let raf = 0
+    const tick = () => {
+      frames += 1
+      if (productRevealReady) return
+      if (frames >= 36) {
+        setProductRevealReady(true)
+        prewarmReadyRef.current = true
+        setPrewarmReady(true)
+        return
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [synthActive, synthesis?.runId, productRevealReady])
+
   useLayoutEffect(() => {
     if (!synthesis?.runId) return
     if (previewForceLiteLatchRef.current === null) {
@@ -670,7 +717,7 @@ function SceneContent({
     // Это исключает чёрный кадр при мгновенном появлении продукта.
     if (synthActive && productSlotVisible && !productPaintedRef.current) {
       productPaintFramesRef.current += 1
-      if (productPaintFramesRef.current >= 4) {
+      if (productPaintFramesRef.current >= 8) {
         productPaintedRef.current = true
         setProductPainted(true)
       }

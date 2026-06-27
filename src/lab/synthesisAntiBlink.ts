@@ -118,11 +118,14 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     (showSettledHero ||
       (stickyMatch && ((synthLive && runId > 0) || earlyGpuPrewarm)))
 
-  /** Видимость — только после GPU compile (prewarmReady) и productRevealReady. */
+  /** Видимость — после GPU compile или принудительного reveal (атомы держим до productPainted). */
   const productSlotVisible =
     productMeshMounted &&
     (showSettledHero ||
-      (synthActive && runId > 0 && productRevealReady && _prewarmReady))
+      (synthActive &&
+        runId > 0 &&
+        productRevealReady &&
+        (_prewarmReady || _forceProductSlot)))
 
   const productPrewarm = productMeshMounted && !productSlotVisible && !showSettledHero
   const holdVisualOverlap = synthLive

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import { assertPreviewElectronAnimation } from '../../lab/reactorPreviewGuarantee'
@@ -54,6 +54,7 @@ export function ReactorTermsPreview({
   atomScaleGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   previewRootRef?: MutableRefObject<THREE.Group | null>
 }) {
+  const { invalidate } = useThree()
   const visualTier = visualTierProp ?? getReactorVisualTier(terms)
   const previewAtoms = useMemo(
     () => buildReactorPreviewAtoms(terms, { tier: visualTier }),
@@ -118,7 +119,8 @@ export function ReactorTermsPreview({
   useLayoutEffect(() => {
     if (flightActive || poseLocked) return
     syncLayout()
-  }, [flightActive, poseLocked, termsSig, syncLayout])
+    invalidate()
+  }, [flightActive, poseLocked, termsSig, syncLayout, invalidate])
 
   useFrame((s) => {
     guardFrameRef.current += 1

@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { gsap } from 'gsap'
 import type * as THREE from 'three'
 import { LAUNCH_PRODUCT_ENTRANCE_DUR } from '../../lab/synthesisLaunchTiming'
+import { scheduleIdleMatch } from '../../lab/labRenderGuards'
 import {
   isProductGpuCompiled,
   markProductGpuCompiled,
@@ -12,6 +13,8 @@ import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
 
 const MICRO_SCALE = 0.001
+/** Кадров отрисовки на micro-scale до «готово» — даже на слабых GPU. */
+const PREWARM_PAINT_FRAMES = 6
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
@@ -43,6 +46,7 @@ export function LabProductHeroSlot({
   const wasPrewarmRef = useRef(false)
   const compileGenRef = useRef(0)
   const gpuCompiledRef = useRef(false)
+  const prewarmPaintFramesRef = useRef(0)
   const { gl, camera, scene, invalidate } = useThree()
 
   const notifyGpuCompiled = useCallback(() => {
@@ -54,10 +58,11 @@ export function LabProductHeroSlot({
 
   useEffect(() => {
     gpuCompiledRef.current = isProductGpuCompiled(compound.id)
+    prewarmPaintFramesRef.current = 0
     compileGenRef.current += 1
   }, [compound.id])
 
-  // Cold-start: compileAsync в фоне на полном масштабе, пока меш ещё микроскопический.
+  // Cold-start: compileAsync на micro-scale в idle — не блокируем кадр атомов.
   useEffect(() => {
     if (visible) return
     if (!prewarm) return
@@ -77,8 +82,8 @@ export function LabProductHeroSlot({
         return
       }
 
-      const prevScale = root.scale.clone()
-      root.scale.set(1, 1, 1)
+      // Не масштабируем до 1 — иначе flash и hitch на слабых GPU.
+      root.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
       invalidate()
 
       requestAnimationFrame(() => {
@@ -89,41 +94,44 @@ export function LabProductHeroSlot({
         const compile =
           typeof gl.compileAsync === 'function'
             ? gl.compileAsync(target, camera, scene)
-            : Promise.resolve().then(() => {
-                gl.compile(scene, camera)
-              })
+            : Promise.resolve()
 
         compile
           .then(() => {
             if (cancelled || gen !== compileGenRef.current) return
-            if (prewarm && !visible) {
-              target.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
-            } else {
-              target.scale.copy(prevScale)
-            }
+            prewarmPaintFramesRef.current = 0
             invalidate()
-            notifyGpuCompiled()
           })
           .catch(() => {
             if (cancelled || gen !== compileGenRef.current) return
-            if (prewarm && !visible) {
-              target.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
-            }
             notifyGpuCompiled()
           })
       })
     }
 
-    const boot = requestAnimationFrame(() => requestAnimationFrame(runCompile))
+    const boot = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scheduleIdleMatch(() => {
+          if (!cancelled) runCompile()
+        })
+      })
+    })
+
     return () => {
       cancelled = true
       cancelAnimationFrame(boot)
     }
   }, [prewarm, visible, compound.id, gl, camera, scene, invalidate, notifyGpuCompiled])
 
-  // Пока меш невидим (scale≈0) — invalidate до завершения compile.
+  // Считаем реально отрисованные кадры prewarm, затем «готово».
   useFrame(() => {
-    if (prewarm && !visible && !gpuCompiledRef.current) invalidate()
+    if (!prewarm || visible || gpuCompiledRef.current) return
+    invalidate()
+    if (isProductGpuCompiled(compound.id)) return
+    prewarmPaintFramesRef.current += 1
+    if (prewarmPaintFramesRef.current >= PREWARM_PAINT_FRAMES) {
+      notifyGpuCompiled()
+    }
   })
 
   useLayoutEffect(() => {
@@ -230,11 +238,6 @@ export function LabProductHeroSlot({
       ) : null}
       <group ref={groupRef} position={[0, 0, 0]} visible frustumCulled={false} renderOrder={8}>
         <group ref={spinRef}>
-          {/*
-            Постоянный fxLevel='low': aura-кольца и сфера как в каталоге.
-            Один и тот же уровень при prewarm и reveal — без новой
-            компиляции шейдеров и без чёрного кадра.
-          */}
           <CatalogSubstanceDisplay
             compound={compound}
             labScaleBoost={CATALOG_HERO_DEFAULT_LAB_SCALE}

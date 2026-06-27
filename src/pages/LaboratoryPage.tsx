@@ -607,13 +607,14 @@ export function LaboratoryPage() {
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
 
-  /** 3D держит предыдущий кадр, пока React готовит новый — без пустого мигания. */
-  const reactorPreviewTermsFor3d = useDeferredValue(reactorPreviewTerms)
+  /** 3D — сразу актуальные термы (deferred давал пустой кадр при первых коэффициентах). */
+  const reactorPreviewTermsFor3d = reactorPreviewTerms
 
-  /** GPU-prewarm продукта: сразу после выбора продукта (до клика «Синтез») и во время синтеза. */
+  /** GPU-prewarm продукта: только когда уравнение сбалансировано (не блокируем кадр при подборе коэффициентов). */
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
+    if (!canRunSynthesis) return null
     return productCompound
   }, [
     reactorOpen,
@@ -621,6 +622,7 @@ export function LaboratoryPage() {
     synthRunActive,
     lastRunProduct,
     prewarmCompound,
+    canRunSynthesis,
   ])
 
   return (
