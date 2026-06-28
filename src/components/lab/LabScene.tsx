@@ -54,10 +54,10 @@ import {
 } from '../../lab/synthesisVisualGuard'
 import {
   resolveSynthesisContinuity,
-  synthesisContinuityCovered,
   type SynthesisStickyMountRef,
   type SynthesisPreviewStickyRef,
 } from '../../lab/synthesisAntiBlink'
+import { synthesisContinuityCoveredV2 } from '../../lab/visualCoverageController'
 import { createReactorPreviewContinuityGuard } from '../../lab/reactorPreviewContinuityGuard'
 import { getSynthesisTimingProfile, isInstantSynthesisProfile } from '../../lab/synthesisTimingProfile'
 import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
@@ -449,8 +449,7 @@ function SceneContent({
       ? productCompoundCandidate
       : null
 
-  const previewMotionLocked =
-    synthActive && !instantSynthesis && synthesisPhase !== 'product'
+  const previewMotionLocked = synthActive && synthesisPhase !== 'product'
   const previewPoseLocked = synthesisRunActive && !synthActive
   if (previewAtomCount > 8) editLiteLatchRef.current = true
   else if (previewAtomCount < 6) editLiteLatchRef.current = false
@@ -605,30 +604,7 @@ function SceneContent({
       guard.cancel()
       if (crossfadeGuardRef.current === guard) crossfadeGuardRef.current = null
     }
-  }, [synthActive, synthesisPhase, synthesis?.runId, synthesis?.product?.id, instantSynthesis, showSettledHero])
-
-  /** Мгновенный синтез: 3 кадра атомы+электроны → молекула → пауза → settled. */
-  useEffect(() => {
-    if (!instantSynthesis || !synthesis?.runId) return
-    const onDone = synthesis.onDone
-    const holdMs = Math.max(420, synthTimingProfile.productHold * 1000)
-    let raf2 = 0
-    let raf3 = 0
-    let timer = 0
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        raf3 = requestAnimationFrame(() => {
-          timer = window.setTimeout(() => onDone('success'), holdMs)
-        })
-      })
-    })
-    return () => {
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
-      cancelAnimationFrame(raf3)
-      window.clearTimeout(timer)
-    }
-  }, [instantSynthesis, synthesis?.runId, synthesis?.onDone, synthTimingProfile.productHold])
+  }, [synthActive, synthesisPhase, synthesis?.runId, synthesis?.product?.id, showSettledHero])
 
   const onEarlyProductReveal = useCallback(() => {
     setEarlyProductReveal(true)
@@ -778,7 +754,15 @@ function SceneContent({
   useFrame((_, delta) => {
     frameHoldRef.current.markRendered()
 
-    // productPainted — только через onProductVisiblePaint из LabProductHeroSlot
+    // First-paint latch: callback из LabProductHeroSlot + fallback если callback не пришёл.
+    if (synthActive && productSlotVisible && !productPaintedRef.current) {
+      productPaintFramesRef.current += 1
+      if (productPaintFramesRef.current >= 12) {
+        productPaintedRef.current = true
+        setProductPainted(true)
+      }
+    }
+
     coverageFrameRef.current += 1
     const coverageEvery = previewLagPolicy.coverageGuardEvery
     if (
@@ -798,7 +782,17 @@ function SceneContent({
           cosmicFx: synthesisRunActive || synthActive || reactorViewOpen,
         },
         () => {
-      if (!synthesisContinuityCovered(continuity, synthesisPhase === 'mergeFlash', synthesisPhase === 'converge')) {
+      const editMode = reactorViewOpen && !synthesisRunActive && !synthActive
+      if (
+        !synthesisContinuityCoveredV2(
+          continuity,
+          synthesisPhase === 'mergeFlash',
+          synthesisPhase === 'converge' ||
+            synthesisPhase === 'ignite' ||
+            synthesisPhase === 'flying',
+          editMode,
+        )
+      ) {
             if (synthesisPhase === 'mergeFlash' || synthesisPhase === 'product') {
               setForceProductSlot(true)
             }
@@ -958,6 +952,7 @@ function SceneContent({
               synthesisGlass={synthQualityFeatures.glassAtoms}
               visualTier={previewVisualTier}
               coeffEditBurst={reactorCoeffEditBurst}
+              productPrewarm={productPrewarmActive}
               atomGroupRefs={previewAtomGroupRefs}
               atomScaleGroupRefs={previewAtomScaleGroupRefs}
               previewRootRef={previewRootRef}
@@ -966,7 +961,7 @@ function SceneContent({
           {previewActive && transformPreviewCompound ? (
             <TransformPreviewHero compound={transformPreviewCompound} />
           ) : null}
-          {synthActive && synthesis && !instantSynthesis ? (
+          {synthActive && synthesis ? (
             <SynthesisOnLabScene
               zSlots={synthesis.zSlots}
               flyTerms={synthesis.flyTerms}

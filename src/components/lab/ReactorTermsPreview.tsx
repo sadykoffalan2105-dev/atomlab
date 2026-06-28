@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
+import type * as THREE from 'three'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import { assertPreviewElectronAnimation } from '../../lab/reactorPreviewGuarantee'
 import {
-  getReactorAtomRenderPolicy,
   getReactorPreviewPolicy,
   shouldRunGuardTick,
 } from '../../lab/synthesisLagGuard'
@@ -12,18 +11,25 @@ import {
   applyReactorPreviewLayout,
   createReactorPreviewVisibilityGuard,
 } from '../../lab/reactorPreviewVisibilityGuard'
-import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
+import { requestPreviewLayout } from '../../lab/reactorPreviewLayoutWorkerClient'
 import {
   buildReactorPreviewAtoms,
+  getTermGroupCenters,
+  PREVIEW_ATOM_SCALE,
   reactorPreviewAtomScale,
   type ReactorPreviewAtom,
 } from './reactorPreviewLayout'
-import { getReactorVisualTier, type ReactorVisualTier } from '../../chemistry/reactorVisualTier'
-import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
+import {
+  getReactorVisualTier,
+  termBadgeCoeff,
+  type ReactorVisualTier,
+} from '../../chemistry/reactorVisualTier'
+import { ReactorInstancedAtoms } from './ReactorInstancedAtoms'
+import { ReactorCoeffBadge } from './ReactorCoeffBadge'
 
 /**
- * Превью реагентов: полная структура атома (протоны, нейтроны, электроны).
- * При flightActive позиции управляет GSAP (SynthesisConvergeStreams), не useFrame.
+ * Превью реагентов v1.2.0: instanced atoms, constant scale, coeff → count.
+ * GSAP flight uses proxy groups inside ReactorInstancedAtoms.
  */
 export function ReactorTermsPreview({
   terms,
@@ -33,9 +39,10 @@ export function ReactorTermsPreview({
   sharedLighting = false,
   forceLite = false,
   qualityLevel,
-  synthesisGlass = false,
+  synthesisGlass: _synthesisGlass = false,
   visualTier: visualTierProp,
   coeffEditBurst = false,
+  productPrewarm = false,
   atomGroupRefs: atomGroupRefsExternal,
   atomScaleGroupRefs: atomScaleGroupRefsExternal,
   previewRootRef,
@@ -50,28 +57,39 @@ export function ReactorTermsPreview({
   synthesisGlass?: boolean
   visualTier?: ReactorVisualTier
   coeffEditBurst?: boolean
+  productPrewarm?: boolean
   atomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   atomScaleGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   previewRootRef?: MutableRefObject<THREE.Group | null>
 }) {
   const { invalidate } = useThree()
-  const activeTermIds = useMemo(
-    () => terms.filter((t) => Math.floor(t.coeff) > 0).map((t) => t.id),
-    [terms],
-  )
   const visualTier = visualTierProp ?? getReactorVisualTier(terms)
-  const previewAtoms = useMemo(
+  const syncPreview = useMemo(
     () => buildReactorPreviewAtoms(terms, { tier: visualTier }),
     [terms, visualTier],
   )
+  const [workerAtoms, setWorkerAtoms] = useState<ReactorPreviewAtom[] | null>(null)
   const termsSig = useMemo(
     () => terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|'),
     [terms],
   )
 
+  useEffect(() => {
+    let cancelled = false
+    setWorkerAtoms(null)
+    void requestPreviewLayout(terms).then(({ atoms }) => {
+      if (!cancelled) setWorkerAtoms(atoms)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [termsSig, terms])
+
+  const previewAtoms = workerAtoms ?? syncPreview
+
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
   const shellEmptyFramesRef = useRef(0)
-  const SHELL_HOLD_FRAMES = 3
+  const SHELL_HOLD_FRAMES = 8
 
   if (previewAtoms.length > 0) {
     shellAtomsRef.current = previewAtoms
@@ -81,13 +99,15 @@ export function ReactorTermsPreview({
   const previewLenRef = useRef(previewAtoms.length)
   previewLenRef.current = previewAtoms.length
 
+  const shellHoldActive = coeffEditBurst || productPrewarm
   const useShell =
     previewAtoms.length === 0 &&
-    shellEmptyFramesRef.current < SHELL_HOLD_FRAMES &&
-    shellAtomsRef.current.length > 0
+    shellAtomsRef.current.length > 0 &&
+    (shellHoldActive || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES)
   const renderAtoms = previewAtoms.length > 0 ? previewAtoms : useShell ? shellAtomsRef.current : []
   const n = renderAtoms.length
-  const groupVisible = visible && n > 0
+  const groupVisible =
+    visible && (n > 0 || (shellHoldActive && shellAtomsRef.current.length > 0))
 
   const groupRef = useRef<THREE.Group>(null)
   const visibilityGuardRef = useRef(createReactorPreviewVisibilityGuard())
@@ -97,14 +117,23 @@ export function ReactorTermsPreview({
   const atomGroupRefs = atomGroupRefsExternal ?? atomGroupRefsLocal
   const atomScaleGroupRefs = atomScaleGroupRefsExternal ?? atomScaleGroupRefsLocal
   const scale = reactorPreviewAtomScale(n)
-  const fullDetailLatchRef = useRef(false)
-  const allowFullDetail = visualTier === 'full' && !forceLite && !coeffEditBurst
-  if (allowFullDetail && n <= SYNTHESIS_PERF.fullDetailAtomThreshold) {
-    fullDetailLatchRef.current = true
-  } else if (n > SYNTHESIS_PERF.fullDetailAtomThreshold + 4) {
-    fullDetailLatchRef.current = false
-  }
-  const useFullDetail = fullDetailLatchRef.current
+
+  const activeTerms = useMemo(
+    () => terms.filter((t) => Math.floor(t.coeff) > 0),
+    [terms],
+  )
+  const termCenters = useMemo(() => getTermGroupCenters(terms), [terms])
+  const badges = useMemo(() => {
+    return activeTerms
+      .map((t, ti) => {
+        const badge = termBadgeCoeff(t.coeff, visualTier, activeTerms.length)
+        if (badge == null) return null
+        const center = termCenters.find((c) => c.termIndex === ti)
+        if (!center) return null
+        return { coeff: badge, pos: center.pos as [number, number, number] }
+      })
+      .filter(Boolean) as { coeff: number; pos: [number, number, number] }[]
+  }, [activeTerms, visualTier, termCenters])
 
   const previewPolicy = useMemo(
     () =>
@@ -120,15 +149,11 @@ export function ReactorTermsPreview({
     [n, forceLite, qualityLevel, flightActive, visible, visualTier, coeffEditBurst],
   )
   const { electronAnimate, driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
+  const electronFrameSkip = coeffEditBurst ? 3 : flightActive ? 2 : 1
 
   useEffect(() => {
     assertPreviewElectronAnimation(electronAnimate, n)
   }, [electronAnimate, n])
-
-  useLayoutEffect(() => {
-    while (atomGroupRefs.current.length < n) atomGroupRefs.current.push(null)
-    while (atomScaleGroupRefs.current.length < n) atomScaleGroupRefs.current.push(null)
-  }, [n, atomGroupRefs, atomScaleGroupRefs])
 
   const syncLayout = useCallback(() => {
     applyReactorPreviewLayout(renderAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
@@ -149,11 +174,9 @@ export function ReactorTermsPreview({
   }, [flightActive, poseLocked, termsSig, syncLayout, invalidate, n])
 
   useFrame((s) => {
-    if (previewLenRef.current === 0 && shellAtomsRef.current.length > 0) {
+    if (previewLenRef.current === 0 && shellAtomsRef.current.length > 0 && !shellHoldActive) {
       shellEmptyFramesRef.current += 1
-      if (shellEmptyFramesRef.current <= SHELL_HOLD_FRAMES) {
-        invalidate()
-      }
+      if (shellEmptyFramesRef.current <= SHELL_HOLD_FRAMES) invalidate()
     }
 
     guardFrameRef.current += 1
@@ -207,62 +230,20 @@ export function ReactorTermsPreview({
           ) : null}
         </>
       ) : null}
-      {renderAtoms.map((atom, i) => {
-        const atomPolicy = getReactorAtomRenderPolicy({
-          atomCount: n,
-          atomZ: atom.z,
-          forceLite: forceLite || coeffEditBurst,
-          qualityLevel,
-          coeffEditBurst,
-        })
-        const termKey = activeTermIds[atom.termIndex] ?? `t${atom.termIndex}`
-        const slotKey = `${termKey}-${atom.atomInTerm}-${atom.z}`
-        const [ax, ay, az] = atom.pos
-        return (
-          <group
-            key={slotKey}
-            ref={(el) => {
-              atomGroupRefs.current[i] = el
-              if (el) {
-                el.visible = true
-                if (!flightActive && !poseLocked) {
-                  el.position.set(ax, ay, az)
-                }
-              }
-            }}
-          >
-            <group
-              scale={scale}
-              ref={(el) => {
-                atomScaleGroupRefs.current[i] = el
-                if (el) {
-                  el.visible = true
-                  if (!flightActive && !poseLocked) {
-                    el.scale.set(scale, scale, scale)
-                  }
-                }
-              }}
-            >
-              <ReactorPreviewAtomSlot
-                z={atom.z}
-                animate={electronAnimate}
-                useFullDetail={useFullDetail && !flightActive}
-                synthesisGlass={synthesisGlass && (flightActive || poseLocked)}
-                previewLite={!useFullDetail}
-                electronFrameSkip={
-                  coeffEditBurst
-                    ? Math.max(atomPolicy.electronFrameSkip, 2)
-                    : flightActive
-                      ? Math.max(atomPolicy.electronFrameSkip, 2)
-                      : atomPolicy.electronFrameSkip
-                }
-                hideOrbitRings={visualTier === 'cluster'}
-                localLight={!sharedLighting}
-              />
-            </group>
-          </group>
-        )
-      })}
+      <ReactorInstancedAtoms
+        atoms={renderAtoms}
+        visible={groupVisible}
+        scale={PREVIEW_ATOM_SCALE}
+        electronAnimate={electronAnimate}
+        electronFrameSkip={electronFrameSkip}
+        flightActive={flightActive}
+        poseLocked={poseLocked}
+        atomGroupRefs={atomGroupRefs}
+        atomScaleGroupRefs={atomScaleGroupRefs}
+      />
+      {badges.map((b, i) => (
+        <ReactorCoeffBadge key={`badge-${i}-${b.coeff}`} coeff={b.coeff} position={b.pos} />
+      ))}
     </group>
   )
 }

@@ -92,13 +92,10 @@ export const SYNTHESIS_TIMING_CINEMATIC: SynthesisTimingProfile = {
   collapseAtoms: true,
 }
 
-/**
- * Мгновенный синтез — без полёта и mergeFlash (нет hitch, нет чёрного кадра).
- * SynthesisOnLabScene не монтируется при INSTANT.
- */
+/** v1.2.0: CINEMATIC everywhere — perf via instancing, not skipping animation. */
 export function getSynthesisTimingProfile(
   _forceLite: boolean,
   _deviceTier: SynthesisDeviceTier = 'normal',
 ): SynthesisTimingProfile {
-  return SYNTHESIS_TIMING_INSTANT
+  return SYNTHESIS_TIMING_CINEMATIC
 }

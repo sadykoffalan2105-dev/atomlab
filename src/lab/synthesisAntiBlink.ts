@@ -1,4 +1,5 @@
 import type { MutableRefObject } from 'react'
+import { synthesisContinuityCoveredV2 } from './visualCoverageController'
 
 export type SynthesisStickyMountRef = {
   runId: number
@@ -183,12 +184,7 @@ export function synthesisContinuityCovered(
   view: SynthesisContinuityView,
   mergeFx: boolean,
   convergeFx: boolean,
+  editMode = false,
 ): boolean {
-  return (
-    (view.reactorPreviewVisible && view.reactorPreviewMounted) ||
-    view.productSlotVisible ||
-    view.productPrewarm ||
-    mergeFx ||
-    convergeFx
-  )
+  return synthesisContinuityCoveredV2(view, mergeFx, convergeFx, editMode)
 }

@@ -199,6 +199,8 @@ export function LabProductHeroSlot({
       if (spin) spin.rotation.set(0, 0, 0)
       revealedForRunRef.current = runId
       wasPrewarmRef.current = false
+      visiblePaintSentRef.current = true
+      onProductVisiblePaint?.()
       return
     }
 
@@ -216,7 +218,13 @@ export function LabProductHeroSlot({
         g.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
       }
       if (spin) spin.rotation.set(0, 0, 0)
-      const tl = gsap.timeline()
+      const tl = gsap.timeline({
+        onComplete: () => {
+          if (visiblePaintSentRef.current) return
+          visiblePaintSentRef.current = true
+          onProductVisiblePaint?.()
+        },
+      })
       tl.to(
         g.scale,
         { x: 1.1, y: 1.1, z: 1.1, duration: dur * 0.68, ease: 'power2.out' },
@@ -244,6 +252,11 @@ export function LabProductHeroSlot({
       z: 1,
       duration: dur,
       ease: 'power2.out',
+      onComplete: () => {
+        if (visiblePaintSentRef.current) return
+        visiblePaintSentRef.current = true
+        onProductVisiblePaint?.()
+      },
     })
     return () => {
       t.kill()

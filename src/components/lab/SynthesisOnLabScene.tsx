@@ -32,6 +32,7 @@ import { SynthesisCinematicSky } from './SynthesisCinematicSky'
 import { SynthesisWarpStreaks } from './SynthesisWarpStreaks'
 import { SynthesisLaunchCamera } from './SynthesisLaunchCamera'
 import { SynthesisIgniteBurst } from './SynthesisIgniteBurst'
+import { SynthesisBondBurst } from './SynthesisBondBurst'
 import { SynthesisArcReactor } from './SynthesisArcReactor'
 import { AtomStructureModel } from './AtomStructureModel'
 import type { CompoundDef } from '../../types/chemistry'
@@ -709,14 +710,22 @@ export function SynthesisOnLabScene({
       ) : null}
 
       {inMerge && mergeBurstReady && (
-        <MergeFlashBurst
-          tInMergeRef={tAcc}
-          total={mergeFlashDur}
-          isSuccess={!!product}
-          flashHex={sparkleHex}
-          minimalFx={synthesisFxMinimal || labLiteMode}
-          cinematic={cinematicMode || !labLiteMode}
-        />
+        <>
+          <MergeFlashBurst
+            tInMergeRef={tAcc}
+            total={mergeFlashDur}
+            isSuccess={!!product}
+            flashHex={sparkleHex}
+            minimalFx={synthesisFxMinimal || labLiteMode}
+            cinematic={cinematicMode || !labLiteMode}
+          />
+          <SynthesisBondBurst
+            active
+            progressRef={tAcc}
+            accentHex={accentHex}
+            minimalFx={synthesisFxMinimal || labLiteMode}
+          />
+        </>
       )}
 
       {showNeonBonds && product && previewAtomGroupRefs ? (

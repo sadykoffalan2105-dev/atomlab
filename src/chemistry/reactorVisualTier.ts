@@ -26,6 +26,14 @@ export function previewModelsForTerm(coeff: number, tier: ReactorVisualTier, ter
   return Math.min(c, 3)
 }
 
+/** Coeff for ×N badge when shown models < actual coeff. */
+export function termBadgeCoeff(coeff: number, tier: ReactorVisualTier, termCount: number): number | null {
+  const c = Math.max(0, Math.floor(coeff))
+  const shown = previewModelsForTerm(c, tier, termCount)
+  if (c <= 1 || shown >= c) return null
+  return c
+}
+
 export function synthesisTimingScale(tier: ReactorVisualTier): number {
   if (tier === 'cluster') return 0.55
   if (tier === 'lite') return 0.78

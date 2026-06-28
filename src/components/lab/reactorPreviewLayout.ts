@@ -168,22 +168,21 @@ export function getTermGroupCenters(terms: readonly ReactorEquationTerm[]): Term
 
 export const PREVIEW_BASE_ATOM_SCALE = 0.88
 export const PREVIEW_MIN_ATOM_SCALE = 0.58
+/** v1.2.0: fixed visual scale — coeff drives instance count, not size. */
+export const PREVIEW_ATOM_SCALE = PREVIEW_BASE_ATOM_SCALE
 
 export function reactorPreviewAtomScale(
-  totalAtoms: number,
-  base = PREVIEW_BASE_ATOM_SCALE,
+  _totalAtoms: number,
+  base = PREVIEW_ATOM_SCALE,
 ): number {
-  const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
-  const countFactor = clamp(11 / Math.max(11, totalAtoms), 0.62, 1)
-  const denseBoost = totalAtoms > 14 ? 0.94 : 1
-  return Math.max(PREVIEW_MIN_ATOM_SCALE, base * countFactor * denseBoost)
+  return base
 }
 
 /** Центр реакции в лабораторной сцене (совпадает с SynthesisConvergeStreams). */
 export const REACTION_CENTER: [number, number, number] = [0, 0.12, 0]
 
 /** Множитель «отдаления» стартовых точек полёта от превью-кластеров. */
-export const SYNTHESIS_APPROACH_SPREAD = 1.92
+export const SYNTHESIS_APPROACH_SPREAD = 2.35
 
 export function scalePositionOutwardFromCenter(
   pos: [number, number, number],
@@ -202,9 +201,11 @@ export function scalePositionOutwardFromCenter(
 /** Стартовые позиции каждого атома — дальше от центра, чем в превью. */
 export function buildSynthesisApproachAtoms(
   terms: readonly ReactorEquationTerm[],
-  spread = SYNTHESIS_APPROACH_SPREAD,
+  opts?: { spread?: number; tier?: import('../../chemistry/reactorVisualTier').ReactorVisualTier },
 ): ReactorPreviewAtom[] {
-  return buildReactorPreviewAtoms(terms).map((a) => ({
+  const spread = opts?.spread ?? SYNTHESIS_APPROACH_SPREAD
+  const tier = opts?.tier
+  return buildReactorPreviewAtoms(terms, tier ? { tier } : undefined).map((a) => ({
     ...a,
     pos: scalePositionOutwardFromCenter(a.pos, REACTION_CENTER, spread),
   }))

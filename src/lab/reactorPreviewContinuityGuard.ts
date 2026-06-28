@@ -47,7 +47,8 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
         violationFrames = 0
         return
       }
-      const ok = (previewMounted && previewVisible) || productPrewarm
+      const ok =
+        (previewMounted && previewVisible) || (productPrewarm && synthLive)
       if (ok) {
         violationFrames = 0
         return

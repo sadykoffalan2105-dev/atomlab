@@ -477,14 +477,11 @@ export function LaboratoryPage() {
     setSynthesisSettledProduct(null)
     synthesisSettledProductRef.current = null
     settledSnapshotRef.current = null
-    // Мгновенный синтез без анимации: сразу фаза 'product'. Чёрный экран при
-    // появлении молекулы устраняется превью-мостом (атомы видны, пока молекула
-    // не отрисована) и постоянным fxLevel продукта (без перекомпиляции на reveal).
-    synthesisPhaseRef.current = 'product'
-    setSynthPhaseUi('product')
-    setSynthIgnite(false)
-    launchProgressRef.current = 1
-    forceLiteFxRef.current = true
+    synthesisPhaseRef.current = 'ignite'
+    setSynthPhaseUi('ignite')
+    setSynthIgnite(true)
+    launchProgressRef.current = 0
+    forceLiteFxRef.current = false
     const zCopy = payload.zSlots.slice()
     const flyCopy = [...payload.flyTerms]
     lastRunZSlotsRef.current = zCopy

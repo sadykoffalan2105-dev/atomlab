@@ -19,7 +19,8 @@ export function isReactorPreviewZeroGapOk(input: ReactorPreviewZeroGapInput): bo
   } = input
   if (!reactorViewOpen || synthLive || previewAtomCount <= 0) return true
   if (previewVisible && previewMounted) return true
-  if (productPrewarm) return true
+  // micro-scale prewarm не заполняет центр — только во время синтеза считаем OK
+  if (productPrewarm && synthLive) return true
   return false
 }
 

@@ -11,10 +11,9 @@ import {
 } from '../../lab/synthesisLaunchTiming'
 import {
   REACTION_CENTER,
-  buildReactorPreviewAtoms,
-  getTermGroupCenters,
+  buildSynthesisApproachAtoms,
+  getTermApproachOrigins,
 } from './reactorPreviewLayout'
-import { pulseAtomScaleOnImpact } from '../../lab/synthesisAtomImpact'
 import type { ReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import type { SynthesisTimingProfile } from '../../lab/synthesisTimingProfile'
 import { SYNTHESIS_TIMING_BALANCED } from '../../lab/synthesisTimingProfile'
@@ -101,10 +100,10 @@ export function SynthesisConvergeStreams({
   const atomStagger = clusterMode ? 0 : timingProfile.atomStagger
 
   const approachAtoms = useMemo(
-    () => buildReactorPreviewAtoms(terms, { tier: visualTier }),
+    () => buildSynthesisApproachAtoms(terms, { tier: visualTier }),
     [terms, runId, visualTier],
   )
-  const termStreams = useMemo(() => getTermGroupCenters(terms), [terms, runId])
+  const termStreams = useMemo(() => getTermApproachOrigins(terms), [terms, runId])
   const denseFly = approachAtoms.length > 4
 
   const streamRefs = useRef<(THREE.Group | null)[]>([])
@@ -124,6 +123,15 @@ export function SynthesisConvergeStreams({
     onBeginAtomFadeRef.current = onBeginAtomFade
     streamsReadyFiredRef.current = false
   }, [onStreamsReady, onBeginAtomFade, runId])
+
+  useLayoutEffect(() => {
+    approachAtoms.forEach((atom, i) => {
+      const node = previewAtomGroupRefs.current[i]
+      if (!node) return
+      const [x, y, z] = atom.pos
+      node.position.set(x, y, z)
+    })
+  }, [runId, approachAtoms, previewAtomGroupRefs])
 
   useLayoutEffect(() => {
     streamRefs.current = new Array(termStreams.length).fill(null)
@@ -192,59 +200,16 @@ export function SynthesisConvergeStreams({
           }
         })
 
-        if (!clusterMode) {
-          approachAtoms.forEach((atom, i) => {
-            const node = previewAtomGroupRefs.current[i]
-            const scaleNode = previewAtomScaleGroupRefs.current[i]
-            if (!node) return
-            const stagger = atom.termIndex * termStagger + atom.atomInTerm * atomStagger
-            flyAtomArc(tl, node, stagger, flyDur)
-            tweensAdded++
-            if (scaleNode) {
-              const bx = scaleNode.scale.x
-              const by = scaleNode.scale.y
-              const bz = scaleNode.scale.z
-              tl.to(
-                scaleNode.scale,
-                {
-                  x: bx * 1.1,
-                  y: by * 1.1,
-                  z: bz * 1.1,
-                  duration: flyDur * 0.5,
-                  ease: 'power3.out',
-                },
-                stagger,
-              )
-              tl.to(
-                scaleNode.scale,
-                {
-                  x: bx * 1.05,
-                  y: by * 1.05,
-                  z: bz * 1.05,
-                  duration: flyDur * 0.5,
-                  ease: 'power2.inOut',
-                },
-                stagger + flyDur * 0.5,
-              )
-              tl.call(
-                () => {
-                  pulseAtomScaleOnImpact(scaleNode, bx * 1.05)
-                },
-                undefined,
-                stagger + flyDur - 0.02,
-              )
-            }
-          })
-        } else {
-          approachAtoms.forEach((atom, i) => {
-            const node = previewAtomGroupRefs.current[i]
-            if (!node) return
-            if (atom.visualIndex !== 0) return
-            const stagger = atom.termIndex * termStagger
-            flyAtomArc(tl, node, stagger, flyDur)
-            tweensAdded++
-          })
-        }
+        approachAtoms.forEach((atom, i) => {
+          const node = previewAtomGroupRefs.current[i]
+          if (!node) return
+          const stagger = clusterMode
+            ? atom.termIndex * termStagger + atom.atomInTerm * atomStagger * 0.35
+            : atom.termIndex * termStagger + atom.atomInTerm * atomStagger
+          flyAtomArc(tl, node, stagger, flyDur)
+          node.rotation.y += atom.atomInTerm * 0.4
+          tweensAdded++
+        })
 
         if (tweensAdded === 0) {
           gsap.delayedCall(0.02, triggerMerge)
