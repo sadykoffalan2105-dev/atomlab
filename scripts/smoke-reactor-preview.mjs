@@ -12,7 +12,7 @@ const checks = [
   'src/lab/visualCoverageController.ts',
   'src/lab/gpuCompileChunked.ts',
   'src/components/lab/ReactorTermsPreview.tsx',
-  'src/components/lab/ReactorInstancedAtoms.tsx',
+  'src/components/lab/ReactorPreviewAtomSlot.tsx',
 ]
 
 let ok = true

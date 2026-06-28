@@ -172,10 +172,13 @@ export const PREVIEW_MIN_ATOM_SCALE = 0.58
 export const PREVIEW_ATOM_SCALE = PREVIEW_BASE_ATOM_SCALE
 
 export function reactorPreviewAtomScale(
-  _totalAtoms: number,
+  totalAtoms: number,
   base = PREVIEW_ATOM_SCALE,
 ): number {
-  return base
+  const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
+  const countFactor = clamp(11 / Math.max(11, totalAtoms), 0.62, 1)
+  const denseBoost = totalAtoms > 14 ? 0.94 : 1
+  return Math.max(PREVIEW_MIN_ATOM_SCALE, base * countFactor * denseBoost)
 }
 
 /** Центр реакции в лабораторной сцене (совпадает с SynthesisConvergeStreams). */

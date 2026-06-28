@@ -34,8 +34,8 @@ if (!timing.includes('SYNTHESIS_TIMING_CINEMATIC')) {
   ok = false
 }
 const fnBody = timing.slice(timing.indexOf('export function getSynthesisTimingProfile'))
-if (!fnBody.includes('return SYNTHESIS_TIMING_CINEMATIC')) {
-  console.error('getSynthesisTimingProfile must return CINEMATIC')
+if (!fnBody.includes('SYNTHESIS_TIMING_BALANCED') && !fnBody.includes('SYNTHESIS_TIMING_FAST')) {
+  console.error('getSynthesisTimingProfile must return BALANCED or FAST')
   ok = false
 }
 
