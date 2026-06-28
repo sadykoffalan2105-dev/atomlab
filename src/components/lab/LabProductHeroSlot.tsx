@@ -5,6 +5,10 @@ import type * as THREE from 'three'
 import { LAUNCH_PRODUCT_ENTRANCE_DUR } from '../../lab/synthesisLaunchTiming'
 import { scheduleIdleMatch } from '../../lab/labRenderGuards'
 import {
+  scheduleGpuCompileWatchdog,
+  SYNTH_ANTI_STALL,
+} from '../../lab/synthesisAntiStall'
+import {
   isProductGpuCompiled,
   markProductGpuCompiled,
 } from '../../lab/productGpuCompileCache'
@@ -14,7 +18,7 @@ import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
 
 const MICRO_SCALE = 0.001
 /** Кадров отрисовки на micro-scale до «готово» — даже на слабых GPU. */
-const PREWARM_PAINT_FRAMES = 6
+const PREWARM_PAINT_FRAMES = SYNTH_ANTI_STALL.gpuCompileFallbackFrames
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
@@ -73,6 +77,9 @@ export function LabProductHeroSlot({
 
     let cancelled = false
     const gen = compileGenRef.current
+    const clearGpuWatch = scheduleGpuCompileWatchdog(() => {
+      if (!cancelled && gen === compileGenRef.current) notifyGpuCompiled()
+    })
 
     const runCompile = () => {
       if (cancelled || gen !== compileGenRef.current) return
@@ -119,6 +126,7 @@ export function LabProductHeroSlot({
 
     return () => {
       cancelled = true
+      clearGpuWatch()
       cancelAnimationFrame(boot)
     }
   }, [prewarm, visible, compound.id, gl, camera, scene, invalidate, notifyGpuCompiled])

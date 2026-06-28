@@ -15,6 +15,7 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
+import { useThrottledReactorPreviewTerms } from '../lab/reactorPreviewEditThrottle'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
   getSynthesisWatchdogMs,
@@ -228,8 +229,8 @@ export function LaboratoryPage() {
   }, [equationSignature, synthesisSettledProduct])
 
   const equationBalanced = useMemo(
-    () => isReactorBalancedFast(leftTerms, productCompound ?? undefined, productCoeff),
-    [leftTerms, productCompound, productCoeff],
+    () => isReactorBalancedFast(deferredLeftTerms, productCompound ?? undefined, productCoeff),
+    [deferredLeftTerms, productCompound, productCoeff],
   )
 
   const resetEquation = useCallback(() => {
@@ -264,19 +265,17 @@ export function LaboratoryPage() {
     (z: number) => {
       if (reactorOpen) {
         if (!getElementByZ(z)) return
-        startTransition(() => {
-          setLeftTerms((prev) => {
-            const di = isDiatomicNativeElement(z)
-            const matchIndex = prev.findIndex((term) => term.z === z && Boolean(term.diatomic) === di)
-            if (matchIndex >= 0) {
-              const term = prev[matchIndex]!
-              const nextCoeff = term.coeff + 1
-              if (nextCoeff > REACTOR_COEFF_MAX) return prev
-              return prev.map((x, i) => (i === matchIndex ? { ...x, coeff: nextCoeff } : x))
-            }
-            if (prev.length >= REACTOR_EQUATION_MAX_TERMS) return prev
-            return [...prev, { id: newId(), z, coeff: 1, ...(di ? { diatomic: true as const } : {}) }]
-          })
+        setLeftTerms((prev) => {
+          const di = isDiatomicNativeElement(z)
+          const matchIndex = prev.findIndex((term) => term.z === z && Boolean(term.diatomic) === di)
+          if (matchIndex >= 0) {
+            const term = prev[matchIndex]!
+            const nextCoeff = term.coeff + 1
+            if (nextCoeff > REACTOR_COEFF_MAX) return prev
+            return prev.map((x, i) => (i === matchIndex ? { ...x, coeff: nextCoeff } : x))
+          }
+          if (prev.length >= REACTOR_EQUATION_MAX_TERMS) return prev
+          return [...prev, { id: newId(), z, coeff: 1, ...(di ? { diatomic: true as const } : {}) }]
         })
         return
       }
@@ -291,9 +290,7 @@ export function LaboratoryPage() {
 
   const onCoeffChange = useCallback((id: string, coeff: number) => {
     const c = Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(Number.isFinite(coeff) ? coeff : 1)))
-    startTransition(() => {
-      setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
-    })
+    setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
   }, [])
 
   const openReactorCatalog = useCallback((intent: ReactorCatalogIntent) => {
@@ -449,6 +446,21 @@ export function LaboratoryPage() {
   }, [])
   const onSynthesisPhaseChange = useThrottledPhaseCallback(onSynthesisPhaseChangeRaw, 80)
 
+  const reactorPreviewTerms = useMemo(() => {
+    if (!reactorOpen) return null
+    return leftTerms.length >= 1 ? leftTerms : null
+  }, [reactorOpen, leftTerms])
+
+  const {
+    termsFor3d: reactorPreviewTermsFor3d,
+    coeffEditBurst,
+    flushPreviewTerms,
+  } = useThrottledReactorPreviewTerms(reactorPreviewTerms)
+
+  useEffect(() => {
+    if (coeffEditBurst) forceLiteFxRef.current = true
+  }, [coeffEditBurst])
+
   const onRequestRun = useCallback(() => {
     const prepared = prepareGuaranteedSynthesisRun({
       leftTerms,
@@ -462,6 +474,7 @@ export function LaboratoryPage() {
     }
 
     const { payload } = prepared
+    flushPreviewTerms()
     setLaboratorySynthesisView('reactor')
     synthesisCompletingRef.current = false
     forceLiteFxRef.current = false
@@ -495,7 +508,7 @@ export function LaboratoryPage() {
     setSynthesisFlightSlots(zCopy)
     setSynthesisFlyTerms(flyCopy)
     setRunId(nextRunId)
-  }, [leftTerms, productCompoundId, productCoeff, t, locale, runId])
+  }, [leftTerms, productCompoundId, productCoeff, t, locale, runId, flushPreviewTerms])
 
   const labSynthesis = useMemo(() => {
     if (!reactorOpen || runId <= 0) return null
@@ -547,8 +560,8 @@ export function LaboratoryPage() {
   const canRunSynthesis = useMemo(() => {
     const product = productCompoundId ? compoundById[productCompoundId] : undefined
     if (!product) return false
-    return isReactorBalancedFast(leftTerms, product, productCoeff)
-  }, [leftTerms, productCompoundId, productCoeff])
+    return isReactorBalancedFast(deferredLeftTerms, product, productCoeff)
+  }, [deferredLeftTerms, productCompoundId, productCoeff])
 
   const highlightEquationError = useMemo(() => {
     if (!reactorMessage) return false
@@ -602,14 +615,6 @@ export function LaboratoryPage() {
   /** До запуска синтеза — только превью реагентов; молекула продукта после анимации */
   const transformPreviewCompound = null
 
-  const reactorPreviewTerms = useMemo(() => {
-    if (!reactorOpen) return null
-    return leftTerms.length >= 1 ? leftTerms : null
-  }, [reactorOpen, leftTerms])
-
-  /** 3D — сразу актуальные термы (deferred давал пустой кадр при первых коэффициентах). */
-  const reactorPreviewTermsFor3d = reactorPreviewTerms
-
   /** GPU-prewarm продукта: только когда уравнение сбалансировано (не блокируем кадр при подборе коэффициентов). */
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
@@ -648,6 +653,7 @@ export function LaboratoryPage() {
           synthesis={labSynthesis}
           synthesisRunActive={synthRunActive}
           reactorPreviewTerms={reactorPreviewTermsFor3d}
+          reactorCoeffEditBurst={coeffEditBurst}
           transformPreviewCompound={transformPreviewCompound}
           reactorViewOpen={reactorOpen}
           synthesisSettledProduct={synthesisSettledProduct}

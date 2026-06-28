@@ -16,6 +16,10 @@ import {
 import type { SynthesisTimingProfile } from '../../lab/synthesisTimingProfile'
 import { SYNTHESIS_TIMING_BALANCED } from '../../lab/synthesisTimingProfile'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
+import {
+  computeSynthesisRunBudgetMs,
+  createSynthesisPhaseStallGuard,
+} from '../../lab/synthesisAntiStall'
 import type { SynthesisQualityFeatures, SynthesisQualityLevel } from '../../lab/synthesisQualityLadder'
 import { SYNTHESIS_QUALITY_MINIMAL } from '../../lab/synthesisQualityLadder'
 import {
@@ -47,14 +51,7 @@ function synthesisStuckSec(
   atomCount: number,
   profile: SynthesisTimingProfile,
 ): number {
-  const maxTermIndex = Math.max(0, termCount - 1)
-  const maxAtomsPerTerm = Math.max(1, Math.ceil(atomCount / Math.max(1, termCount)))
-  const maxStagger =
-    maxTermIndex * profile.termStagger + (maxAtomsPerTerm - 1) * profile.atomStagger
-  const convergeDur = useConverge ? profile.streamFlyDur + maxStagger : FLY_DUR
-  return (
-    convergeDur + profile.mergeFlashDur + profile.productEntranceDur + profile.productHold + 0.35
-  )
+  return computeSynthesisRunBudgetMs(useConverge, termCount, atomCount, profile, FLY_DUR) / 1000
 }
 
 function positionsOnCircle(n: number, radius = 1.12): Array<[number, number]> {
@@ -283,6 +280,7 @@ export function SynthesisOnLabScene({
   const launchBoostRef = useRef(0)
   const doneRef = useRef(false)
   const onDoneRef = useRef(onDone)
+  const phaseStallRef = useRef(createSynthesisPhaseStallGuard())
   const onEarlyProductRevealRef = useRef(onEarlyProductReveal)
   const earlyProductFiredRef = useRef(false)
   const productGuaranteedRef = useRef(product)
@@ -309,6 +307,7 @@ export function SynthesisOnLabScene({
 
   useEffect(() => {
     phaseRef.current = phase
+    phaseStallRef.current.enter(phase)
     onPhaseChange?.(phase, launchProgressRef.current)
   }, [phase, onPhaseChange])
 
@@ -436,6 +435,7 @@ export function SynthesisOnLabScene({
 
   useLayoutEffect(() => {
     doneRef.current = false
+    phaseStallRef.current.reset()
     flyStartedRef.current = false
     earlyProductFiredRef.current = false
     flyTimelineCtxRef.current?.revert()
@@ -551,6 +551,24 @@ export function SynthesisOnLabScene({
         doneRef.current = true
         onDoneRef.current('success')
       }
+    }
+
+    const stall = phaseStallRef.current.check(ph, {
+      convergeMs: convergeDurationSec * 1000,
+      mergeFlashMs: mergeFlashDur * 1000,
+      productDoneMs: (productEntranceDur + productHold) * 1000,
+    })
+    if (stall === 'converge' && ph === 'ignite') {
+      phaseRef.current = 'converge'
+      setPhase('converge')
+      convergeStartRef.current = performance.now() / 1000
+    } else if (stall === 'mergeFlash' && (ph === 'converge' || ph === 'flying' || ph === 'ignite')) {
+      beginMergeFlash()
+    } else if (stall === 'product' && ph !== 'product' && ph !== 'failBounce') {
+      forceProductSuccess()
+    } else if (stall === 'done' && ph === 'product' && !doneRef.current) {
+      doneRef.current = true
+      onDoneRef.current('success')
     }
   })
 

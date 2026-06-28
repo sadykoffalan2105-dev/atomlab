@@ -4,7 +4,7 @@ import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { PREVIEW_MIN_ATOM_SCALE } from '../components/lab/reactorPreviewLayout'
 
 /** Пустых refs подряд до принудительного восстановления. */
-export const PREVIEW_REF_RECOVER_FRAMES = 10
+export const PREVIEW_REF_RECOVER_FRAMES = 6
 
 export type ReactorPreviewVisibilityGuard = {
   reset: () => void

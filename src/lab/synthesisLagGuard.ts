@@ -31,8 +31,28 @@ export function getReactorPreviewPolicy(opts: {
   flightActive: boolean
   visible: boolean
   visualTier?: 'full' | 'lite' | 'cluster'
+  /** Быстрая серия +/- — без drift/spin и реже guard. */
+  coeffEditBurst?: boolean
 }): ReactorPreviewPolicy {
-  const { atomCount, forceLite, qualityLevel, flightActive, visible, visualTier = 'full' } = opts
+  const {
+    atomCount,
+    forceLite,
+    qualityLevel,
+    flightActive,
+    visible,
+    visualTier = 'full',
+    coeffEditBurst = false,
+  } = opts
+
+  if (coeffEditBurst && !flightActive) {
+    return {
+      electronAnimate: false,
+      driftAtoms: false,
+      slowSpin: false,
+      visibilityGuardEvery: 8,
+      coverageGuardEvery: 5,
+    }
+  }
   const liteRender =
     forceLite ||
     qualityLevelToForceLite(qualityLevel ?? 4) ||

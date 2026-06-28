@@ -39,9 +39,9 @@ import { CanvasSceneErrorFallback } from '../common/CanvasSceneErrorFallback'
 import { useT } from '../../i18n/useT'
 import { isWebGLAvailable } from '../../utils/webgl'
 import {
-  createLabCanvasFrameHoldGuard,
   shouldMountProductGpuPrewarm,
 } from '../../lab/labCanvasFrameGuard'
+import { createSynthesisAntiStallGuard } from '../../lab/synthesisAntiStall'
 import { isProductGpuCompiled } from '../../lab/productGpuCompileCache'
 import {
   createProductCrossfadeGuard,
@@ -244,6 +244,7 @@ function SceneContent({
   synthesisPhase = '',
   forceLiteFxRef,
   prewarmProductCompound = null,
+  reactorCoeffEditBurst = false,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -260,6 +261,8 @@ function SceneContent({
   synthesisSettledProduct: CompoundDef | null
   synthesisPhase?: string
   forceLiteFxRef?: React.MutableRefObject<boolean>
+  /** Быстрая серия +/- коэффициентов — lite-превью без лишних re-render. */
+  reactorCoeffEditBurst?: boolean
   /** Продукт для скрытого pre-warm (compile GPU) до запуска синтеза */
   prewarmProductCompound?: CompoundDef | null
   synthesis: {
@@ -305,15 +308,20 @@ function SceneContent({
   const previewStickyMountRef = useRef<SynthesisPreviewStickyRef | null>(null)
   const crossfadeGuardRef = useRef<ProductCrossfadeGuard | null>(null)
   const coverageTrackerRef = useRef(createSynthesisCoverageTracker())
-  const frameHoldRef = useRef(createLabCanvasFrameHoldGuard())
+  const frameHoldRef = useRef(createSynthesisAntiStallGuard())
   const previewVisualTier = useMemo(
     () => (reactorPreviewTerms?.length ? getReactorVisualTier(reactorPreviewTerms) : 'full'),
     [reactorPreviewTerms],
   )
-  const previewAtomCount = reactorPreviewTerms?.length
-    ? buildReactorPreviewAtoms(reactorPreviewTerms, { tier: previewVisualTier }).length
-    : 0
+  const previewAtomCount = useMemo(() => {
+    if (!reactorPreviewTerms?.length) return 0
+    return buildReactorPreviewAtoms(reactorPreviewTerms, { tier: previewVisualTier }).length
+  }, [reactorPreviewTerms, previewVisualTier])
   const manyAtomsCameraRef = useRef(previewAtomCount > 8)
+
+  useEffect(() => {
+    if (reactorCoeffEditBurst && reactorViewOpen) invalidate()
+  }, [reactorPreviewTerms, reactorCoeffEditBurst, reactorViewOpen, invalidate])
 
   const synthTimingProfile = useMemo(
     () => getSynthesisTimingProfile(synthForceLite, getSynthesisDeviceTier()),
@@ -628,19 +636,24 @@ function SceneContent({
   // eslint-disable-next-line react-hooks/immutability
   useEffect(() => {
     if (catalogViewMode) return
-    if (previewAtomCount > 9) manyAtomsCameraRef.current = true
-    else if (previewAtomCount < 7) manyAtomsCameraRef.current = false
-    const manyAtoms = manyAtomsCameraRef.current
-    const p = camera as THREE.PerspectiveCamera
-    // eslint-disable-next-line react-hooks/immutability
-    p.fov = manyAtoms ? 61 : 58
-    p.updateProjectionMatrix()
-    camera.position.set(0, manyAtoms ? 1.38 : 1.25, manyAtoms ? 7.15 : 6.2)
-    camera.lookAt(0, 0.18, 0)
-    const t = orbRef.current?.target
-    if (t) t.set(0, 0.15, 0)
-    orbRef.current?.update?.()
-  }, [camera, catalogViewMode, previewAtomCount])
+    const delay = reactorCoeffEditBurst ? 200 : 0
+    const timer = window.setTimeout(() => {
+      if (previewAtomCount > 9) manyAtomsCameraRef.current = true
+      else if (previewAtomCount < 7) manyAtomsCameraRef.current = false
+      const manyAtoms = manyAtomsCameraRef.current
+      const p = camera as THREE.PerspectiveCamera
+      // eslint-disable-next-line react-hooks/immutability
+      p.fov = manyAtoms ? 61 : 58
+      p.updateProjectionMatrix()
+      camera.position.set(0, manyAtoms ? 1.38 : 1.25, manyAtoms ? 7.15 : 6.2)
+      camera.lookAt(0, 0.18, 0)
+      const t = orbRef.current?.target
+      if (t) t.set(0, 0.15, 0)
+      orbRef.current?.update?.()
+      invalidate()
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [camera, catalogViewMode, previewAtomCount, reactorCoeffEditBurst, invalidate])
 
   // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {
@@ -675,20 +688,26 @@ function SceneContent({
     })
     if (!synthesis?.runId) {
       const editCap = Math.min(
-        computeReactorEditQualityCap(previewAtomCount),
+        computeReactorEditQualityCap(previewAtomCount, reactorCoeffEditBurst),
         staticCap,
       ) as SynthesisQualityLevel
-      const editLite = qualityLevelToForceLite(editCap)
+      const editLite = qualityLevelToForceLite(editCap) || reactorCoeffEditBurst
       synthForceLiteRef.current = editLite
       if (forceLiteFxRef) forceLiteFxRef.current = editLite
-      startTransition(() => {
+
+      const applyCap = () => {
         setSynthQualityLevel((prev) => (prev === editCap ? prev : editCap))
-      })
+      }
+      if (reactorCoeffEditBurst) {
+        const timer = window.setTimeout(applyCap, 220)
+        return () => clearTimeout(timer)
+      }
+      startTransition(applyCap)
       return
     }
     fpsGovRef.current.reset()
     const cap = Math.min(
-      computeReactorEditQualityCap(previewAtomCount),
+      computeReactorEditQualityCap(previewAtomCount, reactorCoeffEditBurst),
       staticCap,
     ) as SynthesisQualityLevel
     fpsGovRef.current.setCap(cap)
@@ -699,7 +718,13 @@ function SceneContent({
       setSynthQualityLevel(cap)
     })
     if (forceLiteFxRef) forceLiteFxRef.current = initialLite
-  }, [synthesis?.runId, previewAtomCount, previewVisualTier, forceLiteFxRef])
+  }, [
+    synthesis?.runId,
+    previewAtomCount,
+    previewVisualTier,
+    forceLiteFxRef,
+    reactorCoeffEditBurst,
+  ])
 
   // Лёгкий авто-тюнинг: если FPS проседает — переключаемся на low и обратно с гистерезисом.
   // Делается здесь (внутри Canvas), чтобы измерять delta из render-loop без внешних зависимостей.
@@ -713,12 +738,20 @@ function SceneContent({
     () =>
       getReactorPreviewPolicy({
         atomCount: previewAtomCount,
-        forceLite: synthForceLite,
+        forceLite: synthForceLite || reactorCoeffEditBurst,
         qualityLevel: synthQualityLevel,
         flightActive: previewMotionLocked,
         visible: reactorPreviewVisible,
+        coeffEditBurst: reactorCoeffEditBurst,
       }),
-    [previewAtomCount, synthForceLite, synthQualityLevel, previewMotionLocked, reactorPreviewVisible],
+    [
+      previewAtomCount,
+      synthForceLite,
+      synthQualityLevel,
+      previewMotionLocked,
+      reactorPreviewVisible,
+      reactorCoeffEditBurst,
+    ],
   )
 
   useFrame((_, delta) => {
@@ -763,7 +796,20 @@ function SceneContent({
       )
     }
 
-    frameHoldRef.current.tick(() => invalidate(), reactorViewOpen && !synthesisRunActive)
+    frameHoldRef.current.tick({
+      invalidate,
+      reactorEdit: reactorViewOpen && !synthesisRunActive,
+      synthesisLive: synthesisRunActive || synthActive,
+      onMainThreadStall: () => {
+        if (forceLiteFxRef) forceLiteFxRef.current = true
+        synthForceLiteRef.current = true
+        const floor = 2 as SynthesisQualityLevel
+        if (synthQualityLevelRef.current > floor) {
+          synthQualityLevelRef.current = floor
+          startTransition(() => setSynthQualityLevel(floor))
+        }
+      },
+    })
 
     if (
       previewMotionLocked &&
@@ -876,10 +922,11 @@ function SceneContent({
               flightActive={previewMotionLocked}
               poseLocked={previewPoseLocked}
               sharedLighting={synthActive || synthesisRunActive}
-              forceLite={previewForceLite}
+              forceLite={previewForceLite || reactorCoeffEditBurst}
               qualityLevel={synthQualityLevel}
               synthesisGlass={synthQualityFeatures.glassAtoms}
               visualTier={previewVisualTier}
+              coeffEditBurst={reactorCoeffEditBurst}
               atomGroupRefs={previewAtomGroupRefs}
               atomScaleGroupRefs={previewAtomScaleGroupRefs}
               previewRootRef={previewRootRef}
@@ -979,6 +1026,7 @@ export function LabCanvas({
   forceLiteFxRef,
   prewarmProductCompound = null,
   sessionKey = 0,
+  reactorCoeffEditBurst = false,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -995,6 +1043,7 @@ export function LabCanvas({
   prewarmProductCompound?: CompoundDef | null
   /** Remount Canvas только при webglcontextlost (внутренний sessionKey). */
   sessionKey?: number
+  reactorCoeffEditBurst?: boolean
   synthesis: {
     runId: number
     zSlots: readonly number[]
@@ -1017,8 +1066,13 @@ export function LabCanvas({
     return buildReactorPreviewAtoms(reactorPreviewTerms, { tier }).length
   }, [reactorPreviewTerms])
 
-  /** always: декоративный атом, переход в реактор и синтез — без ghost-frame на demand. */
-  const canvasFrameloop = 'always' as const
+  /** demand только при серии +/- — анимации отключены, invalidate по изменению layout. */
+  const canvasFrameloop =
+    synthesisRunActive || laboratorySynthesisView === 'substance'
+      ? ('always' as const)
+      : reactorCoeffEditBurst
+        ? ('demand' as const)
+        : ('always' as const)
   const densePreview = previewAtomCount > 6
 
   const lowPower3d =
@@ -1104,6 +1158,7 @@ export function LabCanvas({
           synthesisPhase={synthesisPhase}
           forceLiteFxRef={forceLiteFxRef}
           prewarmProductCompound={prewarmProductCompound}
+          reactorCoeffEditBurst={reactorCoeffEditBurst}
         />
       </Canvas>
     </CanvasErrorBoundary>

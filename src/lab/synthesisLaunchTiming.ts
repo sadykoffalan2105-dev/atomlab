@@ -5,6 +5,7 @@ import {
   SYNTHESIS_TIMING_BALANCED,
   type SynthesisTimingProfile,
 } from './synthesisTimingProfile'
+import { SYNTH_ANTI_STALL } from './synthesisAntiStall'
 
 const DEFAULT_PROFILE = SYNTHESIS_TIMING_BALANCED
 
@@ -44,14 +45,13 @@ export function synthesisLaunchWatchdogMs(
 ): number {
   const profile = getSynthesisTimingProfile(forceLite)
   const convergeDur = synthesisConvergeDurationSec(termCount, atomCount, tier, profile)
-  return Math.ceil(
-    (convergeDur +
-      profile.mergeFlashDur +
-      profile.productEntranceDur +
-      profile.productHold +
-      0.2) *
-      1000,
-  )
+  const sec =
+    convergeDur +
+    profile.mergeFlashDur +
+    profile.productEntranceDur +
+    profile.productHold +
+    0.28
+  return Math.ceil(sec * 1000 + SYNTH_ANTI_STALL.runBudgetGraceMs)
 }
 
 export { getSynthesisTimingProfile, type SynthesisTimingProfile }

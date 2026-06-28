@@ -31,6 +31,7 @@ export function ReactorTermsPreview({
   qualityLevel,
   synthesisGlass = false,
   visualTier: visualTierProp,
+  coeffEditBurst = false,
   atomGroupRefs: atomGroupRefsExternal,
   atomScaleGroupRefs: atomScaleGroupRefsExternal,
   previewRootRef,
@@ -50,6 +51,8 @@ export function ReactorTermsPreview({
   synthesisGlass?: boolean
   /** Tiered visual cap (full | lite | cluster). */
   visualTier?: ReactorVisualTier
+  /** Серия быстрых +/- — без drift и реже layout-sync. */
+  coeffEditBurst?: boolean
   atomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   atomScaleGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   previewRootRef?: MutableRefObject<THREE.Group | null>
@@ -92,13 +95,14 @@ export function ReactorTermsPreview({
     () =>
       getReactorPreviewPolicy({
         atomCount: n,
-        forceLite,
+        forceLite: forceLite || coeffEditBurst,
         flightActive,
         visible,
         visualTier,
         qualityLevel,
+        coeffEditBurst,
       }),
-    [n, forceLite, qualityLevel, flightActive, visible, visualTier],
+    [n, forceLite, qualityLevel, flightActive, visible, visualTier, coeffEditBurst],
   )
   const { electronAnimate, driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
 
@@ -116,10 +120,18 @@ export function ReactorTermsPreview({
     applyReactorPreviewLayout(previewAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
   }, [previewAtoms, scale, atomGroupRefs, atomScaleGroupRefs])
 
+  const layoutSyncRafRef = useRef<number | null>(null)
   useLayoutEffect(() => {
     if (flightActive || poseLocked) return
-    syncLayout()
-    invalidate()
+    if (layoutSyncRafRef.current != null) cancelAnimationFrame(layoutSyncRafRef.current)
+    layoutSyncRafRef.current = requestAnimationFrame(() => {
+      layoutSyncRafRef.current = null
+      syncLayout()
+      invalidate()
+    })
+    return () => {
+      if (layoutSyncRafRef.current != null) cancelAnimationFrame(layoutSyncRafRef.current)
+    }
   }, [flightActive, poseLocked, termsSig, syncLayout, invalidate])
 
   useFrame((s) => {
@@ -179,7 +191,7 @@ export function ReactorTermsPreview({
         const atomPolicy = getReactorAtomRenderPolicy({
           atomCount: n,
           atomZ: atom.z,
-          forceLite,
+          forceLite: forceLite || coeffEditBurst,
           qualityLevel,
         })
         const termKey = activeTermIds[atom.termIndex] ?? `t${atom.termIndex}`

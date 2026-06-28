@@ -18,6 +18,7 @@ import { pulseAtomScaleOnImpact } from '../../lab/synthesisAtomImpact'
 import type { ReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import type { SynthesisTimingProfile } from '../../lab/synthesisTimingProfile'
 import { SYNTHESIS_TIMING_BALANCED } from '../../lab/synthesisTimingProfile'
+import { SYNTH_ANTI_STALL } from '../../lab/synthesisAntiStall'
 
 const ARC_FRAC = 0.55
 const REF_RETRY_MAX = 3
@@ -265,8 +266,15 @@ export function SynthesisConvergeStreams({
 
     tryStart()
 
+    const refsWatchdog = window.setTimeout(() => {
+      if (cancelled || timelineStartedRef.current) return
+      signalStreamsReady()
+      triggerMerge()
+    }, SYNTH_ANTI_STALL.convergeRefsMaxMs)
+
     return () => {
       cancelled = true
+      window.clearTimeout(refsWatchdog)
       cancelAnimationFrame(raf)
       ctx?.revert()
       timelineStartedRef.current = false

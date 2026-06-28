@@ -1,8 +1,10 @@
+import { SYNTH_ANTI_STALL } from './synthesisAntiStall'
+
 /** Сколько ms держать превью поверх продукта после handoff (overlap, без мигания). */
 export const SYNTH_PREVIEW_OVERLAP_MS = 240
 
 /** Порог пустых кадров до авто-восстановления. */
-export const SYNTH_EMPTY_FRAME_RECOVER = 2
+export const SYNTH_EMPTY_FRAME_RECOVER = 1
 
 export type SynthesisCoverage = {
   preview: boolean
@@ -43,7 +45,7 @@ export function createSynthesisCoverageTracker(): SynthesisCoverageTracker {
       emptyFrames += 1
       if (emptyFrames >= SYNTH_EMPTY_FRAME_RECOVER) {
         const now = performance.now()
-        if (now - lastRecoverMs > 180) {
+        if (now - lastRecoverMs > SYNTH_ANTI_STALL.coverageRecoverMs) {
           lastRecoverMs = now
           recover()
         }

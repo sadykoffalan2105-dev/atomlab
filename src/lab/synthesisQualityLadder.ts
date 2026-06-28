@@ -32,7 +32,14 @@ export type SynthesisQualityGovernor = {
 }
 
 /** Качество превью при редактировании коэффициентов (без активного синтеза). */
-export function computeReactorEditQualityCap(atomCount: number): SynthesisQualityLevel {
+export function computeReactorEditQualityCap(
+  atomCount: number,
+  coeffEditBurst = false,
+): SynthesisQualityLevel {
+  if (coeffEditBurst) {
+    if (atomCount > 6) return SYNTHESIS_QUALITY_LITE
+    return SYNTHESIS_QUALITY_BALANCED
+  }
   if (atomCount > SYNTHESIS_PERF.liteFxAtomThreshold) return SYNTHESIS_QUALITY_LITE
   if (atomCount > SYNTHESIS_PERF.denseAtomThreshold) return SYNTHESIS_QUALITY_BALANCED
   return SYNTHESIS_QUALITY_HIGH
