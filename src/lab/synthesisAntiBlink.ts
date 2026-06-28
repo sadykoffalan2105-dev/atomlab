@@ -159,8 +159,18 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     !hidePreviewForProduct &&
     (!showSettledHero || synthLive || productPrewarm)
 
+  const reactorPreviewVisibleFinal =
+    synthLive &&
+    reactorPreviewMounted &&
+    !reactorPreviewVisible &&
+    !productSlotVisible &&
+    !productPrewarm &&
+    !showSettledHero
+      ? true
+      : reactorPreviewVisible
+
   return {
-    reactorPreviewVisible,
+    reactorPreviewVisible: reactorPreviewVisibleFinal,
     reactorPreviewMounted,
     productMeshMounted,
     productSlotVisible,

@@ -93,9 +93,8 @@ export const SYNTHESIS_TIMING_CINEMATIC: SynthesisTimingProfile = {
 }
 
 /**
- * Профиль таймингов синтеза.
- * Анимация синтеза отключена — молекула появляется мгновенно (упор на скорость
- * и отсутствие чёрного экрана). SynthesisOnLabScene при INSTANT не монтируется.
+ * Мгновенный синтез — без полёта и mergeFlash (нет hitch, нет чёрного кадра).
+ * SynthesisOnLabScene не монтируется при INSTANT.
  */
 export function getSynthesisTimingProfile(
   _forceLite: boolean,

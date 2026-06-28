@@ -5,6 +5,7 @@ import {
   previewModelsForTerm,
   type ReactorVisualTier,
 } from '../../chemistry/reactorVisualTier'
+import { getCachedPreviewAtoms } from '../../lab/reactorPreviewLayoutCache'
 
 export type ReactorPreviewAtom = {
   z: number
@@ -77,6 +78,13 @@ export function buildReactorPreviewAtoms(
   opts?: BuildReactorPreviewOptions,
 ): ReactorPreviewAtom[] {
   const tier = opts?.tier ?? getReactorVisualTier(terms)
+  return getCachedPreviewAtoms(terms, tier, () => buildReactorPreviewAtomsUncached(terms, tier))
+}
+
+function buildReactorPreviewAtomsUncached(
+  terms: readonly ReactorEquationTerm[],
+  tier: ReactorVisualTier,
+): ReactorPreviewAtom[] {
   const activeTerms = terms.filter((t) => Math.floor(t.coeff) > 0)
   const groupR = layoutGroupRadius(activeTerms.length)
   const centers = groupCentersOnFrontArc(activeTerms.length, groupR)

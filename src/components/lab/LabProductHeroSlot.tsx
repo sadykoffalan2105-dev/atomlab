@@ -4,6 +4,7 @@ import { gsap } from 'gsap'
 import type * as THREE from 'three'
 import { LAUNCH_PRODUCT_ENTRANCE_DUR } from '../../lab/synthesisLaunchTiming'
 import { scheduleIdleMatch } from '../../lab/labRenderGuards'
+import { compileObjectTreeChunked } from '../../lab/gpuCompileChunked'
 import {
   scheduleGpuCompileWatchdog,
   SYNTH_ANTI_STALL,
@@ -33,6 +34,7 @@ export function LabProductHeroSlot({
   birthEntrance = false,
   entranceDuration = LAUNCH_PRODUCT_ENTRANCE_DUR,
   onGpuCompiled,
+  onProductVisiblePaint,
 }: {
   compound: CompoundDef
   visible: boolean
@@ -43,6 +45,8 @@ export function LabProductHeroSlot({
   entranceDuration?: number
   /** Вызывается после compileAsync меша (или из кэша) — можно показывать продукт. */
   onGpuCompiled?: (compoundId: string) => void
+  /** Меш на полном масштабе отрисован ≥1 кадр — можно скрыть превью атомов. */
+  onProductVisiblePaint?: () => void
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const spinRef = useRef<THREE.Group>(null)
@@ -51,6 +55,7 @@ export function LabProductHeroSlot({
   const compileGenRef = useRef(0)
   const gpuCompiledRef = useRef(false)
   const prewarmPaintFramesRef = useRef(0)
+  const visiblePaintSentRef = useRef(false)
   const { gl, camera, scene, invalidate } = useThree()
 
   const notifyGpuCompiled = useCallback(() => {
@@ -63,6 +68,7 @@ export function LabProductHeroSlot({
   useEffect(() => {
     gpuCompiledRef.current = isProductGpuCompiled(compound.id)
     prewarmPaintFramesRef.current = 0
+    visiblePaintSentRef.current = false
     compileGenRef.current += 1
   }, [compound.id])
 
@@ -98,23 +104,23 @@ export function LabProductHeroSlot({
         const target = groupRef.current
         if (!target) return
 
-        const compile =
-          typeof gl.compileAsync === 'function'
-            ? gl.compileAsync(target, camera, scene)
-            : Promise.resolve()
-
-        compile
-          .then(() => {
+        cancelChunk = compileObjectTreeChunked(
+          gl,
+          target,
+          camera,
+          scene,
+          invalidate,
+          () => {
             if (cancelled || gen !== compileGenRef.current) return
             prewarmPaintFramesRef.current = 0
             invalidate()
-          })
-          .catch(() => {
-            if (cancelled || gen !== compileGenRef.current) return
             notifyGpuCompiled()
-          })
+          },
+        )
       })
     }
+
+    let cancelChunk: (() => void) | undefined
 
     const boot = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -128,12 +134,22 @@ export function LabProductHeroSlot({
       cancelled = true
       clearGpuWatch()
       cancelAnimationFrame(boot)
+      cancelChunk?.()
     }
   }, [prewarm, visible, compound.id, gl, camera, scene, invalidate, notifyGpuCompiled])
 
   // Считаем реально отрисованные кадры prewarm, затем «готово».
   useFrame(() => {
-    if (!prewarm || visible || gpuCompiledRef.current) return
+    if (!prewarm || visible || gpuCompiledRef.current) {
+      if (visible && !visiblePaintSentRef.current) {
+        const g = groupRef.current
+        if (g && g.scale.x >= 0.86) {
+          visiblePaintSentRef.current = true
+          onProductVisiblePaint?.()
+        }
+      }
+      return
+    }
     invalidate()
     if (isProductGpuCompiled(compound.id)) return
     prewarmPaintFramesRef.current += 1

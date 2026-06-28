@@ -105,7 +105,7 @@ export function SynthesisConvergeStreams({
     [terms, runId, visualTier],
   )
   const termStreams = useMemo(() => getTermGroupCenters(terms), [terms, runId])
-  const denseFly = approachAtoms.length > 5
+  const denseFly = approachAtoms.length > 4
 
   const streamRefs = useRef<(THREE.Group | null)[]>([])
   const beamMatRefs = useRef<(THREE.MeshBasicMaterial | null)[]>([])

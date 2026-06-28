@@ -466,6 +466,11 @@ function SceneContent({
     setPrewarmReady(true)
   }, [])
 
+  const handleProductVisiblePaint = useCallback(() => {
+    productPaintedRef.current = true
+    setProductPainted(true)
+  }, [])
+
   useEffect(() => {
     if (!gpuPrewarmAllowed || !reactorViewOpen) {
       if (!synthActive && !synthesisRunActive) {
@@ -773,12 +778,10 @@ function SceneContent({
   useFrame((_, delta) => {
     frameHoldRef.current.markRendered()
 
-    // First-paint latch: как только меш молекулы виден на полном масштабе,
-    // ждём 2 реально отрисованных кадра и затем разрешаем скрыть превью атомов.
-    // Это исключает чёрный кадр при мгновенном появлении продукта.
+    // First-paint latch: меш молекулы на полном масштабе (callback из LabProductHeroSlot).
     if (synthActive && productSlotVisible && !productPaintedRef.current) {
       productPaintFramesRef.current += 1
-      if (productPaintFramesRef.current >= 4) {
+      if (productPaintFramesRef.current >= 8) {
         productPaintedRef.current = true
         setProductPainted(true)
       }
@@ -1024,6 +1027,7 @@ function SceneContent({
           birthEntrance={false}
           entranceDuration={0}
           onGpuCompiled={handleProductGpuCompiled}
+          onProductVisiblePaint={handleProductVisiblePaint}
         />
       ) : null}
       <OrbitControls
