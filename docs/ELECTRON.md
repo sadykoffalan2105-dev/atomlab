@@ -65,7 +65,6 @@ npm run dist:electron:portable
 release/
 ├── ATOMLAB-1.1.4-portable.exe      ← portable, без установки
 ├── ATOMLAB-1.1.4-setup.exe         ← NSIS-установщик
-├── ATOMLAB-1.0.0-x64.exe           ← (alias portable, если настроен target)
 ├── win-unpacked/                   ← распакованное приложение (для отладки)
 ├── latest.yml                      ← манифест для electron-updater
 └── builder-effective-config.yaml
