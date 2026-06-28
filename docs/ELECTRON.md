@@ -2,9 +2,9 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
-**Скачать v1.1.5:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.1.5)
-- `ATOMLAB-1.1.5-portable.exe` — без установки
-- `ATOMLAB-1.1.5-setup.exe` — установщик
+**Скачать v1.1.6:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.1.6)
+- `ATOMLAB-1.1.6-portable.exe` — без установки
+- `ATOMLAB-1.1.6-setup.exe` — установщик
 
 ## Возможности
 
@@ -63,8 +63,8 @@ npm run dist:electron:portable
 
 ```
 release/
-├── ATOMLAB-1.1.5-portable.exe      ← portable, без установки
-├── ATOMLAB-1.1.5-setup.exe         ← NSIS-установщик
+├── ATOMLAB-1.1.6-portable.exe      ← portable, без установки
+├── ATOMLAB-1.1.6-setup.exe         ← NSIS-установщик
 ├── win-unpacked/                   ← распакованное приложение (для отладки)
 ├── latest.yml                      ← манифест для electron-updater
 └── builder-effective-config.yaml

@@ -31,10 +31,8 @@ export function getReactorPreviewPolicy(opts: {
   flightActive: boolean
   visible: boolean
   visualTier?: 'full' | 'lite' | 'cluster'
-  /** Быстрая серия +/- — без drift/spin и реже guard. */
+  /** Быстрая серия +/- — без drift/spin, электроны остаются. */
   coeffEditBurst?: boolean
-  /** Редактирование уравнения без синтеза — стабильный lite, без переключений. */
-  reactorEditStable?: boolean
 }): ReactorPreviewPolicy {
   const {
     atomCount,
@@ -44,23 +42,14 @@ export function getReactorPreviewPolicy(opts: {
     visible,
     visualTier = 'full',
     coeffEditBurst = false,
-    reactorEditStable = false,
   } = opts
 
-  if ((coeffEditBurst || reactorEditStable) && !flightActive) {
-    return {
-      electronAnimate: false,
-      driftAtoms: false,
-      slowSpin: false,
-      visibilityGuardEvery: 12,
-      coverageGuardEvery: 8,
-    }
-  }
   const liteRender =
     forceLite ||
     qualityLevelToForceLite(qualityLevel ?? 4) ||
     atomCount > SYNTHESIS_PERF.denseAtomThreshold ||
-    visualTier === 'cluster'
+    visualTier === 'cluster' ||
+    coeffEditBurst
   const minimal = (qualityLevel ?? 4) <= 0
 
   return {
@@ -70,6 +59,7 @@ export function getReactorPreviewPolicy(opts: {
       atomCount <= SYNTHESIS_PERF.maxAnimatedAtoms &&
       visualTier === 'full',
     driftAtoms:
+      !coeffEditBurst &&
       !minimal &&
       visible &&
       !flightActive &&
@@ -77,9 +67,14 @@ export function getReactorPreviewPolicy(opts: {
       visualTier === 'full' &&
       (qualityLevel ?? 4) >= 4,
     slowSpin:
-      visible && !flightActive && atomCount <= 12 && visualTier === 'full' && !liteRender,
-    visibilityGuardEvery: liteRender ? 4 : atomCount > 8 ? 3 : 2,
-    coverageGuardEvery: liteRender ? 3 : 2,
+      !coeffEditBurst &&
+      visible &&
+      !flightActive &&
+      atomCount <= 12 &&
+      visualTier === 'full' &&
+      !liteRender,
+    visibilityGuardEvery: coeffEditBurst ? 8 : liteRender ? 4 : atomCount > 8 ? 3 : 2,
+    coverageGuardEvery: coeffEditBurst ? 5 : liteRender ? 3 : 2,
   }
 }
 
@@ -88,12 +83,14 @@ export function getReactorAtomRenderPolicy(opts: {
   atomZ: number
   forceLite: boolean
   qualityLevel?: SynthesisQualityLevel
+  coeffEditBurst?: boolean
 }): ReactorAtomRenderPolicy {
-  const { atomCount, atomZ, forceLite, qualityLevel } = opts
+  const { atomCount, atomZ, forceLite, qualityLevel, coeffEditBurst = false } = opts
   const lite =
     forceLite ||
     qualityLevelToForceLite(qualityLevel ?? 4) ||
-    shouldForceLiteByAtomCount(atomCount)
+    shouldForceLiteByAtomCount(atomCount) ||
+    coeffEditBurst
 
   const synthesisDetail =
     !lite && atomCount <= SYNTHESIS_PERF.fullDetailAtomThreshold && atomZ <= 54

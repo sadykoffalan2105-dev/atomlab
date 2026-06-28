@@ -15,7 +15,7 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
-import { useThrottledReactorPreviewTerms } from '../lab/reactorPreviewEditThrottle'
+import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
   getSynthesisWatchdogMs,
@@ -451,11 +451,7 @@ export function LaboratoryPage() {
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
 
-  const {
-    termsFor3d: reactorPreviewTermsFor3d,
-    coeffEditBurst,
-    flushPreviewTerms,
-  } = useThrottledReactorPreviewTerms(reactorPreviewTerms)
+  const { coeffEditBurst, editIdle, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
 
   useEffect(() => {
     if (coeffEditBurst) forceLiteFxRef.current = true
@@ -474,7 +470,7 @@ export function LaboratoryPage() {
     }
 
     const { payload } = prepared
-    flushPreviewTerms()
+    resetEditBurst()
     setLaboratorySynthesisView('reactor')
     synthesisCompletingRef.current = false
     forceLiteFxRef.current = false
@@ -508,7 +504,7 @@ export function LaboratoryPage() {
     setSynthesisFlightSlots(zCopy)
     setSynthesisFlyTerms(flyCopy)
     setRunId(nextRunId)
-  }, [leftTerms, productCompoundId, productCoeff, t, locale, runId, flushPreviewTerms])
+  }, [leftTerms, productCompoundId, productCoeff, t, locale, runId, resetEditBurst])
 
   const labSynthesis = useMemo(() => {
     if (!reactorOpen || runId <= 0) return null
@@ -620,6 +616,7 @@ export function LaboratoryPage() {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
     if (!canRunSynthesis) return null
+    if (coeffEditBurst || !editIdle) return null
     return productCompound
   }, [
     reactorOpen,
@@ -628,6 +625,8 @@ export function LaboratoryPage() {
     lastRunProduct,
     prewarmCompound,
     canRunSynthesis,
+    coeffEditBurst,
+    editIdle,
   ])
 
   return (
@@ -652,7 +651,7 @@ export function LaboratoryPage() {
           onInspectAtom={reactorOpen ? undefined : setStructureZ}
           synthesis={labSynthesis}
           synthesisRunActive={synthRunActive}
-          reactorPreviewTerms={reactorPreviewTermsFor3d}
+          reactorPreviewTerms={reactorPreviewTerms}
           reactorCoeffEditBurst={coeffEditBurst}
           transformPreviewCompound={transformPreviewCompound}
           reactorViewOpen={reactorOpen}

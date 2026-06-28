@@ -56,9 +56,11 @@ import {
   type SynthesisStickyMountRef,
   type SynthesisPreviewStickyRef,
 } from '../../lab/synthesisAntiBlink'
+import { createReactorPreviewContinuityGuard } from '../../lab/reactorPreviewContinuityGuard'
 import { getSynthesisTimingProfile, isInstantSynthesisProfile } from '../../lab/synthesisTimingProfile'
 import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
 import { FIXED_SYNTHESIS_CAP } from '../../perf/graphicsSettings'
+import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 
 /** Свободная лаборатория (атомы на столе). */
 const LAB_SCENE_CLEAR_HEX = '#03040a'
@@ -261,7 +263,7 @@ function SceneContent({
   synthesisSettledProduct: CompoundDef | null
   synthesisPhase?: string
   forceLiteFxRef?: React.MutableRefObject<boolean>
-  /** Быстрая серия +/- коэффициентов — lite-превью без лишних re-render. */
+  /** Быстрая серия +/- — lite meshes, drift off; электроны остаются. */
   reactorCoeffEditBurst?: boolean
   /** Продукт для скрытого pre-warm (compile GPU) до запуска синтеза */
   prewarmProductCompound?: CompoundDef | null
@@ -309,6 +311,8 @@ function SceneContent({
   const crossfadeGuardRef = useRef<ProductCrossfadeGuard | null>(null)
   const coverageTrackerRef = useRef(createSynthesisCoverageTracker())
   const frameHoldRef = useRef(createSynthesisAntiStallGuard())
+  const previewContinuityRef = useRef(createReactorPreviewContinuityGuard())
+  const editLiteLatchRef = useRef(false)
   const previewVisualTier = useMemo(
     () => (reactorPreviewTerms?.length ? getReactorVisualTier(reactorPreviewTerms) : 'full'),
     [reactorPreviewTerms],
@@ -439,9 +443,9 @@ function SceneContent({
   const previewMotionLocked =
     synthActive && !instantSynthesis && synthesisPhase !== 'product'
   const previewPoseLocked = synthesisRunActive && !synthActive
-  /** Подбор коэффициентов: стабильный lite-режим без переключений full↔lite. */
-  const reactorEditStable =
-    reactorViewOpen && !synthesisRunActive && !synthActive && previewAtomCount > 0
+  if (previewAtomCount > 8) editLiteLatchRef.current = true
+  else if (previewAtomCount < 6) editLiteLatchRef.current = false
+  const editForceLite = editLiteLatchRef.current || reactorCoeffEditBurst
   const reactorPreviewMounted = continuity.reactorPreviewMounted
   const reactorPreviewVisible = continuity.reactorPreviewVisible
   const productSlotVisible = continuity.productSlotVisible
@@ -698,15 +702,13 @@ function SceneContent({
     })
     if (!synthesis?.runId) {
       const editLite =
-        reactorEditStable ||
-        reactorCoeffEditBurst ||
-        previewAtomCount > 6 ||
+        editForceLite ||
+        previewAtomCount > SYNTHESIS_PERF.liteFxAtomThreshold ||
         qualityLevelToForceLite(
           computeReactorEditQualityCap(previewAtomCount, reactorCoeffEditBurst) as SynthesisQualityLevel,
         )
       synthForceLiteRef.current = editLite
       if (forceLiteFxRef) forceLiteFxRef.current = editLite
-      // Без setSynthQualityLevel при +/- — иначе мигание всех AtomStructureModel.
       return
     }
     fpsGovRef.current.reset()
@@ -728,11 +730,10 @@ function SceneContent({
     previewVisualTier,
     forceLiteFxRef,
     reactorCoeffEditBurst,
-    reactorEditStable,
+    editForceLite,
   ])
 
-  // Лёгкий авто-тюнинг: если FPS проседает — переключаемся на low и обратно с гистерезисом.
-  // Делается здесь (внутри Canvas), чтобы измерять delta из render-loop без внешних зависимостей.
+  // Лёгкий авто-тюнинг
   useEffect(() => {
     perfLevelRef.current = 'high'
     perfAcc.current = { t: 0, lowT: 0, highT: 0, fps: 60 }
@@ -743,12 +744,11 @@ function SceneContent({
     () =>
       getReactorPreviewPolicy({
         atomCount: previewAtomCount,
-        forceLite: synthForceLite || reactorCoeffEditBurst || reactorEditStable,
+        forceLite: synthForceLite || editForceLite,
         qualityLevel: synthQualityLevel,
         flightActive: previewMotionLocked,
         visible: reactorPreviewVisible,
         coeffEditBurst: reactorCoeffEditBurst,
-        reactorEditStable,
       }),
     [
       previewAtomCount,
@@ -757,7 +757,7 @@ function SceneContent({
       previewMotionLocked,
       reactorPreviewVisible,
       reactorCoeffEditBurst,
-      reactorEditStable,
+      editForceLite,
     ],
   )
 
@@ -803,12 +803,21 @@ function SceneContent({
       )
     }
 
+    previewContinuityRef.current.tick({
+      reactorViewOpen,
+      synthLive: synthesisRunActive || synthActive,
+      previewMounted: reactorPreviewMounted,
+      previewVisible: reactorPreviewVisible,
+      previewAtomCount,
+      invalidate,
+    })
+
     frameHoldRef.current.tick({
       invalidate,
       reactorEdit: reactorViewOpen && !synthesisRunActive,
       synthesisLive: synthesisRunActive || synthActive,
       onMainThreadStall: () => {
-        if (reactorEditStable || (reactorViewOpen && !synthesisRunActive && !synthActive)) {
+        if (reactorViewOpen && !synthesisRunActive && !synthActive) {
           if (forceLiteFxRef) forceLiteFxRef.current = true
           synthForceLiteRef.current = true
           return
@@ -934,12 +943,11 @@ function SceneContent({
               flightActive={previewMotionLocked}
               poseLocked={previewPoseLocked}
               sharedLighting={synthActive || synthesisRunActive}
-              forceLite={previewForceLite || reactorCoeffEditBurst || reactorEditStable}
+              forceLite={previewForceLite || editForceLite}
               qualityLevel={synthQualityLevel}
               synthesisGlass={synthQualityFeatures.glassAtoms}
               visualTier={previewVisualTier}
               coeffEditBurst={reactorCoeffEditBurst}
-              reactorEditStable={reactorEditStable}
               atomGroupRefs={previewAtomGroupRefs}
               atomScaleGroupRefs={previewAtomScaleGroupRefs}
               previewRootRef={previewRootRef}
