@@ -407,6 +407,8 @@ function SceneContent({
         forceProductSlot,
         productRevealReady,
         productPainted,
+        keepPreviewDuringProduct:
+          instantSynthesis && synthActive && synthesisPhase === 'product',
         stickyMountRef: productStickyMountRef,
         previewStickyRef: previewStickyMountRef,
       }),
@@ -425,6 +427,7 @@ function SceneContent({
       forceProductSlot,
       productRevealReady,
       productPainted,
+      instantSynthesis,
     ],
   )
 
@@ -436,6 +439,9 @@ function SceneContent({
   const previewMotionLocked =
     synthActive && !instantSynthesis && synthesisPhase !== 'product'
   const previewPoseLocked = synthesisRunActive && !synthActive
+  /** Подбор коэффициентов: стабильный lite-режим без переключений full↔lite. */
+  const reactorEditStable =
+    reactorViewOpen && !synthesisRunActive && !synthActive && previewAtomCount > 0
   const reactorPreviewMounted = continuity.reactorPreviewMounted
   const reactorPreviewVisible = continuity.reactorPreviewVisible
   const productSlotVisible = continuity.productSlotVisible
@@ -504,8 +510,12 @@ function SceneContent({
       setProductRevealReady(true)
       return
     }
+    if (instantSynthesis) {
+      setProductRevealReady(true)
+      return
+    }
     setProductRevealReady(false)
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady])
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, instantSynthesis])
 
   // Когда prewarm завершился уже во время синтеза — сразу показываем продукт.
   useEffect(() => {
@@ -687,22 +697,16 @@ function SceneContent({
       visualTier: previewVisualTier,
     })
     if (!synthesis?.runId) {
-      const editCap = Math.min(
-        computeReactorEditQualityCap(previewAtomCount, reactorCoeffEditBurst),
-        staticCap,
-      ) as SynthesisQualityLevel
-      const editLite = qualityLevelToForceLite(editCap) || reactorCoeffEditBurst
+      const editLite =
+        reactorEditStable ||
+        reactorCoeffEditBurst ||
+        previewAtomCount > 6 ||
+        qualityLevelToForceLite(
+          computeReactorEditQualityCap(previewAtomCount, reactorCoeffEditBurst) as SynthesisQualityLevel,
+        )
       synthForceLiteRef.current = editLite
       if (forceLiteFxRef) forceLiteFxRef.current = editLite
-
-      const applyCap = () => {
-        setSynthQualityLevel((prev) => (prev === editCap ? prev : editCap))
-      }
-      if (reactorCoeffEditBurst) {
-        const timer = window.setTimeout(applyCap, 220)
-        return () => clearTimeout(timer)
-      }
-      startTransition(applyCap)
+      // Без setSynthQualityLevel при +/- — иначе мигание всех AtomStructureModel.
       return
     }
     fpsGovRef.current.reset()
@@ -724,6 +728,7 @@ function SceneContent({
     previewVisualTier,
     forceLiteFxRef,
     reactorCoeffEditBurst,
+    reactorEditStable,
   ])
 
   // Лёгкий авто-тюнинг: если FPS проседает — переключаемся на low и обратно с гистерезисом.
@@ -738,11 +743,12 @@ function SceneContent({
     () =>
       getReactorPreviewPolicy({
         atomCount: previewAtomCount,
-        forceLite: synthForceLite || reactorCoeffEditBurst,
+        forceLite: synthForceLite || reactorCoeffEditBurst || reactorEditStable,
         qualityLevel: synthQualityLevel,
         flightActive: previewMotionLocked,
         visible: reactorPreviewVisible,
         coeffEditBurst: reactorCoeffEditBurst,
+        reactorEditStable,
       }),
     [
       previewAtomCount,
@@ -751,6 +757,7 @@ function SceneContent({
       previewMotionLocked,
       reactorPreviewVisible,
       reactorCoeffEditBurst,
+      reactorEditStable,
     ],
   )
 
@@ -762,7 +769,7 @@ function SceneContent({
     // Это исключает чёрный кадр при мгновенном появлении продукта.
     if (synthActive && productSlotVisible && !productPaintedRef.current) {
       productPaintFramesRef.current += 1
-      if (productPaintFramesRef.current >= 8) {
+      if (productPaintFramesRef.current >= 4) {
         productPaintedRef.current = true
         setProductPainted(true)
       }
@@ -801,6 +808,11 @@ function SceneContent({
       reactorEdit: reactorViewOpen && !synthesisRunActive,
       synthesisLive: synthesisRunActive || synthActive,
       onMainThreadStall: () => {
+        if (reactorEditStable || (reactorViewOpen && !synthesisRunActive && !synthActive)) {
+          if (forceLiteFxRef) forceLiteFxRef.current = true
+          synthForceLiteRef.current = true
+          return
+        }
         if (forceLiteFxRef) forceLiteFxRef.current = true
         synthForceLiteRef.current = true
         const floor = 2 as SynthesisQualityLevel
@@ -922,11 +934,12 @@ function SceneContent({
               flightActive={previewMotionLocked}
               poseLocked={previewPoseLocked}
               sharedLighting={synthActive || synthesisRunActive}
-              forceLite={previewForceLite || reactorCoeffEditBurst}
+              forceLite={previewForceLite || reactorCoeffEditBurst || reactorEditStable}
               qualityLevel={synthQualityLevel}
               synthesisGlass={synthQualityFeatures.glassAtoms}
               visualTier={previewVisualTier}
               coeffEditBurst={reactorCoeffEditBurst}
+              reactorEditStable={reactorEditStable}
               atomGroupRefs={previewAtomGroupRefs}
               atomScaleGroupRefs={previewAtomScaleGroupRefs}
               previewRootRef={previewRootRef}
@@ -1066,13 +1079,8 @@ export function LabCanvas({
     return buildReactorPreviewAtoms(reactorPreviewTerms, { tier }).length
   }, [reactorPreviewTerms])
 
-  /** demand только при серии +/- — анимации отключены, invalidate по изменению layout. */
-  const canvasFrameloop =
-    synthesisRunActive || laboratorySynthesisView === 'substance'
-      ? ('always' as const)
-      : reactorCoeffEditBurst
-        ? ('demand' as const)
-        : ('always' as const)
+  /** always — demand давал чёрный центр при +/- коэффициентов. */
+  const canvasFrameloop = 'always' as const
   const densePreview = previewAtomCount > 6
 
   const lowPower3d =

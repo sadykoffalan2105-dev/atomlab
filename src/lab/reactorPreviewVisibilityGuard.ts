@@ -16,6 +16,8 @@ export type ReactorPreviewVisibilityGuard = {
     previewAtoms: readonly ReactorPreviewAtom[]
     rootVisible: boolean
     flightActive: boolean
+    /** false — только visible/scale, без syncLayout (не дёргать layout при +/-). */
+    allowRecover?: boolean
     onRecover: () => void
   }) => void
 }
@@ -38,6 +40,7 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
         previewAtoms,
         rootVisible,
         flightActive,
+        allowRecover = true,
         onRecover,
       } = opts
 
@@ -83,7 +86,7 @@ export function createReactorPreviewVisibilityGuard(): ReactorPreviewVisibilityG
 
       if (missingRefFrames >= PREVIEW_REF_RECOVER_FRAMES) {
         const now = performance.now()
-        if (now - lastRecoverMs > 320) {
+        if (allowRecover && now - lastRecoverMs > 320) {
           lastRecoverMs = now
           onRecover()
         }

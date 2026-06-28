@@ -32,6 +32,7 @@ export function ReactorTermsPreview({
   synthesisGlass = false,
   visualTier: visualTierProp,
   coeffEditBurst = false,
+  reactorEditStable = false,
   atomGroupRefs: atomGroupRefsExternal,
   atomScaleGroupRefs: atomScaleGroupRefsExternal,
   previewRootRef,
@@ -53,6 +54,8 @@ export function ReactorTermsPreview({
   visualTier?: ReactorVisualTier
   /** Серия быстрых +/- — без drift и реже layout-sync. */
   coeffEditBurst?: boolean
+  /** Стабильный lite при подборе коэффициентов (без мигания full↔lite). */
+  reactorEditStable?: boolean
   atomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   atomScaleGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   previewRootRef?: MutableRefObject<THREE.Group | null>
@@ -67,10 +70,6 @@ export function ReactorTermsPreview({
     () => terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|'),
     [terms],
   )
-  const activeTermIds = useMemo(
-    () => terms.filter((t) => Math.floor(t.coeff) > 0).map((t) => t.id),
-    [terms],
-  )
 
   const n = previewAtoms.length
   const groupRef = useRef<THREE.Group>(null)
@@ -83,7 +82,7 @@ export function ReactorTermsPreview({
   const scale = reactorPreviewAtomScale(n)
   /** Гистерезис: не переключать full↔lite при каждом +/- у порога 12 атомов. */
   const fullDetailLatchRef = useRef(false)
-  const allowFullDetail = visualTier === 'full' && !forceLite
+  const allowFullDetail = visualTier === 'full' && !forceLite && !coeffEditBurst && !reactorEditStable
   if (allowFullDetail && n <= SYNTHESIS_PERF.fullDetailAtomThreshold) {
     fullDetailLatchRef.current = true
   } else if (n > SYNTHESIS_PERF.fullDetailAtomThreshold + 4) {
@@ -95,14 +94,15 @@ export function ReactorTermsPreview({
     () =>
       getReactorPreviewPolicy({
         atomCount: n,
-        forceLite: forceLite || coeffEditBurst,
+        forceLite: forceLite || coeffEditBurst || reactorEditStable,
         flightActive,
         visible,
         visualTier,
         qualityLevel,
         coeffEditBurst,
+        reactorEditStable,
       }),
-    [n, forceLite, qualityLevel, flightActive, visible, visualTier, coeffEditBurst],
+    [n, forceLite, qualityLevel, flightActive, visible, visualTier, coeffEditBurst, reactorEditStable],
   )
   const { electronAnimate, driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
 
@@ -145,6 +145,7 @@ export function ReactorTermsPreview({
         previewAtoms,
         rootVisible: visible,
         flightActive,
+        allowRecover: !coeffEditBurst && !reactorEditStable,
         onRecover: syncLayout,
       })
     }
@@ -191,12 +192,11 @@ export function ReactorTermsPreview({
         const atomPolicy = getReactorAtomRenderPolicy({
           atomCount: n,
           atomZ: atom.z,
-          forceLite: forceLite || coeffEditBurst,
+          forceLite: forceLite || coeffEditBurst || reactorEditStable,
           qualityLevel,
         })
-        const termKey = activeTermIds[atom.termIndex] ?? `t${atom.termIndex}`
         const [ax, ay, az] = atom.pos
-        const slotKey = `${termKey}-${atom.atomInTerm}-${atom.z}`
+        const slotKey = `atom-${i}`
         return (
           <group
             key={slotKey}

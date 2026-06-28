@@ -28,6 +28,8 @@ export type SynthesisContinuityInput = {
   productRevealReady: boolean
   /** true — меш молекулы реально отрисован ≥1 кадра на полном масштабе (first-paint latch). */
   productPainted?: boolean
+  /** Мгновенный синтез — держим атомы до settled (нет чёрного кадра). */
+  keepPreviewDuringProduct?: boolean
   stickyMountRef: MutableRefObject<SynthesisStickyMountRef | null>
   previewStickyRef: MutableRefObject<SynthesisPreviewStickyRef | null>
 }
@@ -61,6 +63,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     forceProductSlot: _forceProductSlot,
     productRevealReady,
     productPainted = false,
+    keepPreviewDuringProduct = false,
     stickyMountRef,
     previewStickyRef,
   } = input
@@ -148,7 +151,8 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     productRevealReady &&
     productPainted &&
     !showSettledHero &&
-    !midAnimation
+    !midAnimation &&
+    !keepPreviewDuringProduct
 
   const reactorPreviewVisible =
     reactorPreviewMounted &&

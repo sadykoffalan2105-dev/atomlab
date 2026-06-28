@@ -33,6 +33,8 @@ export function getReactorPreviewPolicy(opts: {
   visualTier?: 'full' | 'lite' | 'cluster'
   /** Быстрая серия +/- — без drift/spin и реже guard. */
   coeffEditBurst?: boolean
+  /** Редактирование уравнения без синтеза — стабильный lite, без переключений. */
+  reactorEditStable?: boolean
 }): ReactorPreviewPolicy {
   const {
     atomCount,
@@ -42,15 +44,16 @@ export function getReactorPreviewPolicy(opts: {
     visible,
     visualTier = 'full',
     coeffEditBurst = false,
+    reactorEditStable = false,
   } = opts
 
-  if (coeffEditBurst && !flightActive) {
+  if ((coeffEditBurst || reactorEditStable) && !flightActive) {
     return {
       electronAnimate: false,
       driftAtoms: false,
       slowSpin: false,
-      visibilityGuardEvery: 8,
-      coverageGuardEvery: 5,
+      visibilityGuardEvery: 12,
+      coverageGuardEvery: 8,
     }
   }
   const liteRender =
