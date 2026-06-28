@@ -1,3 +1,7 @@
+import type { MutableRefObject } from 'react'
+import type * as THREE from 'three'
+import { assertReactorPreviewZeroGap } from './reactorPreviewZeroGap'
+
 export type ReactorPreviewContinuityGuard = {
   reset: () => void
   tick: (opts: {
@@ -6,6 +10,8 @@ export type ReactorPreviewContinuityGuard = {
     previewMounted: boolean
     previewVisible: boolean
     previewAtomCount: number
+    productPrewarm: boolean
+    previewRootRef?: MutableRefObject<THREE.Group | null>
     invalidate: () => void
   }) => void
 }
@@ -18,18 +24,40 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
     reset() {
       violationFrames = 0
     },
-    tick({ reactorViewOpen, synthLive, previewMounted, previewVisible, previewAtomCount, invalidate }) {
+    tick({
+      reactorViewOpen,
+      synthLive,
+      previewMounted,
+      previewVisible,
+      previewAtomCount,
+      productPrewarm,
+      previewRootRef,
+      invalidate,
+    }) {
+      assertReactorPreviewZeroGap({
+        reactorViewOpen,
+        synthLive,
+        previewAtomCount,
+        previewMounted,
+        previewVisible,
+        productPrewarm,
+      })
+
       if (!reactorViewOpen || synthLive || previewAtomCount <= 0) {
         violationFrames = 0
         return
       }
-      const ok = previewMounted && previewVisible
+      const ok = (previewMounted && previewVisible) || productPrewarm
       if (ok) {
         violationFrames = 0
         return
       }
       violationFrames += 1
-      if (violationFrames <= 6) {
+      const root = previewRootRef?.current
+      if (root) {
+        root.visible = true
+      }
+      if (violationFrames <= 8) {
         invalidate()
       }
     },

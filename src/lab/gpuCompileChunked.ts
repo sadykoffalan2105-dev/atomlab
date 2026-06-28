@@ -13,6 +13,7 @@ export function compileObjectTreeChunked(
   scene: THREE.Scene,
   invalidate: () => void,
   onDone: () => void,
+  opts?: { skipCompileAsync?: boolean },
 ): () => void {
   const meshes: THREE.Object3D[] = []
   root.traverse((obj) => {
@@ -29,6 +30,10 @@ export function compileObjectTreeChunked(
 
   const finish = () => {
     if (cancelled) return
+    if (opts?.skipCompileAsync) {
+      onDone()
+      return
+    }
     const compileAsync = gl.compileAsync?.bind(gl)
     if (compileAsync) {
       compileAsync(root, camera, scene)

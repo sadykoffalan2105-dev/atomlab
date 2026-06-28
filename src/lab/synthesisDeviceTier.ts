@@ -81,7 +81,7 @@ function scoreDevice(): number {
 
 export function getSynthesisDeviceTier(): SynthesisDeviceTier {
   if (cachedTier) return cachedTier
-  cachedTier = scoreDevice() < 36 ? 'low' : 'normal'
+  cachedTier = scoreDevice() < 42 ? 'low' : 'normal'
   return cachedTier
 }
 

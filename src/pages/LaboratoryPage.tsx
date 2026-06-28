@@ -16,6 +16,7 @@ import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reac
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
+import { isProductGpuCompiled } from '../lab/productGpuCompileCache'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
   getSynthesisWatchdogMs,
@@ -381,18 +382,16 @@ export function LaboratoryPage() {
       guard.tryCompleteSuccess(runIdForGuard, () => {
         synthesisCompletingRef.current = true
         const name = getCompoundLocaleStrings(compound, locale, t).name
-        startTransition(() => {
-          setReactorMessage(t('reactor.successProduct', { name, formula: compound.formulaUnicode }))
-          setSynthesisSettledProduct(compound)
-          synthesisSettledProductRef.current = compound
-          settledSnapshotRef.current = equationSignature
-          setLaboratorySynthesisView('reactor')
-          lastRunZSlotsRef.current = []
-          setSynthesisFlightSlots(null)
-          setSynthesisFlyTerms(null)
-          setRunId(0)
-          setSynthPhaseUi('settled')
-        })
+        setReactorMessage(t('reactor.successProduct', { name, formula: compound.formulaUnicode }))
+        setSynthesisSettledProduct(compound)
+        synthesisSettledProductRef.current = compound
+        settledSnapshotRef.current = equationSignature
+        setLaboratorySynthesisView('reactor')
+        lastRunZSlotsRef.current = []
+        setSynthesisFlightSlots(null)
+        setSynthesisFlyTerms(null)
+        setRunId(0)
+        setSynthPhaseUi('settled')
       })
     },
     [t, locale, equationSignature],
@@ -616,7 +615,10 @@ export function LaboratoryPage() {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
     if (!canRunSynthesis) return null
-    if (coeffEditBurst || !editIdle) return null
+    if (coeffEditBurst || !editIdle) {
+      if (isProductGpuCompiled(productCompound.id)) return productCompound
+      return null
+    }
     return productCompound
   }, [
     reactorOpen,

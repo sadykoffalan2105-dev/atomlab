@@ -70,11 +70,24 @@ export function ReactorTermsPreview({
   )
 
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
+  const shellEmptyFramesRef = useRef(0)
+  const SHELL_HOLD_FRAMES = 3
+
   if (previewAtoms.length > 0) {
     shellAtomsRef.current = previewAtoms
+    shellEmptyFramesRef.current = 0
   }
-  const renderAtoms = previewAtoms.length > 0 ? previewAtoms : shellAtomsRef.current
+
+  const previewLenRef = useRef(previewAtoms.length)
+  previewLenRef.current = previewAtoms.length
+
+  const useShell =
+    previewAtoms.length === 0 &&
+    shellEmptyFramesRef.current < SHELL_HOLD_FRAMES &&
+    shellAtomsRef.current.length > 0
+  const renderAtoms = previewAtoms.length > 0 ? previewAtoms : useShell ? shellAtomsRef.current : []
   const n = renderAtoms.length
+  const groupVisible = visible && n > 0
 
   const groupRef = useRef<THREE.Group>(null)
   const visibilityGuardRef = useRef(createReactorPreviewVisibilityGuard())
@@ -136,6 +149,13 @@ export function ReactorTermsPreview({
   }, [flightActive, poseLocked, termsSig, syncLayout, invalidate, n])
 
   useFrame((s) => {
+    if (previewLenRef.current === 0 && shellAtomsRef.current.length > 0) {
+      shellEmptyFramesRef.current += 1
+      if (shellEmptyFramesRef.current <= SHELL_HOLD_FRAMES) {
+        invalidate()
+      }
+    }
+
     guardFrameRef.current += 1
     if (shouldRunGuardTick(guardFrameRef.current, visibilityGuardEvery)) {
       visibilityGuardRef.current.tick({
@@ -144,14 +164,14 @@ export function ReactorTermsPreview({
         atomScaleGroupRefs,
         layoutScale: scale,
         previewAtoms: renderAtoms,
-        rootVisible: visible,
+        rootVisible: groupVisible,
         flightActive,
         allowRecover: true,
         onRecover: syncLayout,
       })
     }
 
-    if (!visible || flightActive || n === 0) return
+    if (!groupVisible || flightActive || n === 0) return
     const t = s.clock.elapsedTime
     const root = groupRef.current
     if (root && slowSpin) root.rotation.y = t * (n > 18 ? 0.032 : 0.04)
@@ -172,14 +192,12 @@ export function ReactorTermsPreview({
     }
   })
 
-  if (n === 0) return null
-
   useLayoutEffect(() => {
     if (previewRootRef) previewRootRef.current = groupRef.current
-  }, [previewRootRef])
+  }, [previewRootRef, n])
 
   return (
-    <group ref={groupRef} visible={visible && previewAtoms.length > 0} frustumCulled={false}>
+    <group ref={groupRef} visible={groupVisible} frustumCulled={false}>
       {!sharedLighting ? (
         <>
           <ambientLight intensity={n > 18 ? 0.38 : 0.22} />

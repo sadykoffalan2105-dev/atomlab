@@ -5,6 +5,7 @@ import type * as THREE from 'three'
 import { LAUNCH_PRODUCT_ENTRANCE_DUR } from '../../lab/synthesisLaunchTiming'
 import { scheduleIdleMatch } from '../../lab/labRenderGuards'
 import { compileObjectTreeChunked } from '../../lab/gpuCompileChunked'
+import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import {
   scheduleGpuCompileWatchdog,
   SYNTH_ANTI_STALL,
@@ -116,6 +117,7 @@ export function LabProductHeroSlot({
             invalidate()
             notifyGpuCompiled()
           },
+          { skipCompileAsync: getSynthesisDeviceTier() === 'low' },
         )
       })
     }
@@ -170,6 +172,8 @@ export function LabProductHeroSlot({
       g.scale.set(1, 1, 1)
       if (spin) spin.rotation.set(0, 0, 0)
       revealedForRunRef.current = runId
+      visiblePaintSentRef.current = true
+      onProductVisiblePaint?.()
       return
     }
 
@@ -244,7 +248,7 @@ export function LabProductHeroSlot({
     return () => {
       t.kill()
     }
-  }, [visible, prewarm, entrance, compound.id, runId, birthEntrance, entranceDuration])
+  }, [visible, prewarm, entrance, compound.id, runId, birthEntrance, entranceDuration, onProductVisiblePaint])
 
   const sceneActive = visible || prewarm
 

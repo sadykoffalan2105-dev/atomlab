@@ -778,15 +778,7 @@ function SceneContent({
   useFrame((_, delta) => {
     frameHoldRef.current.markRendered()
 
-    // First-paint latch: меш молекулы на полном масштабе (callback из LabProductHeroSlot).
-    if (synthActive && productSlotVisible && !productPaintedRef.current) {
-      productPaintFramesRef.current += 1
-      if (productPaintFramesRef.current >= 8) {
-        productPaintedRef.current = true
-        setProductPainted(true)
-      }
-    }
-
+    // productPainted — только через onProductVisiblePaint из LabProductHeroSlot
     coverageFrameRef.current += 1
     const coverageEvery = previewLagPolicy.coverageGuardEvery
     if (
@@ -821,6 +813,8 @@ function SceneContent({
       previewMounted: reactorPreviewMounted,
       previewVisible: reactorPreviewVisible,
       previewAtomCount,
+      productPrewarm: productPrewarmActive,
+      previewRootRef,
       invalidate,
     })
 
