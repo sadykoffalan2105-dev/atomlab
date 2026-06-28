@@ -1,6 +1,6 @@
 import type { SynthesisDeviceTier } from './synthesisDeviceTier'
 import { SYNTHESIS_PERF } from './synthesisPerfPreset'
-import { FIXED_SYNTHESIS_CAP } from '../perf/graphicsSettings'
+import { resolveDeviceSynthesisCap } from '../perf/graphicsSettings'
 
 /** 0=MINIMAL … 4=ULTRA */
 export type SynthesisQualityLevel = 0 | 1 | 2 | 3 | 4
@@ -45,14 +45,14 @@ export function computeReactorEditQualityCap(
   return SYNTHESIS_QUALITY_HIGH
 }
 
-/** Статический потолок качества — всегда High; только плотность атомов может снизить cap. */
+/** Статический потолок качества с учётом устройства и плотности атомов. */
 export function computeStaticQualityCap(opts: {
   deviceTier: SynthesisDeviceTier
   atomCount: number
   visualTier: 'full' | 'lite' | 'cluster'
 }): SynthesisQualityLevel {
-  const { atomCount, visualTier } = opts
-  let cap: SynthesisQualityLevel = FIXED_SYNTHESIS_CAP
+  const { atomCount, visualTier, deviceTier } = opts
+  let cap: SynthesisQualityLevel = resolveDeviceSynthesisCap(deviceTier)
 
   if (visualTier === 'cluster') {
     cap = Math.min(cap, SYNTHESIS_QUALITY_LITE) as SynthesisQualityLevel
@@ -139,14 +139,20 @@ export function qualityLevelToForceLite(level: SynthesisQualityLevel): boolean {
 /**
  * Адаптивный губернатор: быстро понижает уровень при просадке FPS, медленно повышает.
  */
-export function createSynthesisQualityGovernor(): SynthesisQualityGovernor {
-  let level: SynthesisQualityLevel = SYNTHESIS_QUALITY_HIGH
-  let cap: SynthesisQualityLevel = SYNTHESIS_QUALITY_HIGH
+export function createSynthesisQualityGovernor(opts?: {
+  floor?: SynthesisQualityLevel
+  cap?: SynthesisQualityLevel
+  initial?: SynthesisQualityLevel
+}): SynthesisQualityGovernor {
+  const floor = opts?.floor ?? SYNTHESIS_QUALITY_BALANCED
+  let cap: SynthesisQualityLevel = opts?.cap ?? SYNTHESIS_QUALITY_HIGH
+  let level: SynthesisQualityLevel = Math.min(
+    opts?.initial ?? cap,
+    cap,
+  ) as SynthesisQualityLevel
   let emaFps = 60
   let downgradeHold = 0
   let upgradeHold = 0
-  /** Не опускаем ниже BALANCED — визуально остаётся «высоким». */
-  const floor: SynthesisQualityLevel = SYNTHESIS_QUALITY_BALANCED
 
   const clampLevel = (v: number): SynthesisQualityLevel =>
     Math.max(floor, Math.min(cap, Math.round(v))) as SynthesisQualityLevel
@@ -174,8 +180,9 @@ export function createSynthesisQualityGovernor(): SynthesisQualityGovernor {
       const f = emaFps
 
       let target = level
-      if (f < 32) target = Math.min(target, SYNTHESIS_QUALITY_BALANCED) as SynthesisQualityLevel
-      else if (f < 42) target = Math.min(target, SYNTHESIS_QUALITY_HIGH) as SynthesisQualityLevel
+      if (f < 28) target = Math.min(target, SYNTHESIS_QUALITY_LITE) as SynthesisQualityLevel
+      else if (f < 38) target = Math.min(target, SYNTHESIS_QUALITY_BALANCED) as SynthesisQualityLevel
+      else if (f < 48) target = Math.min(target, SYNTHESIS_QUALITY_HIGH) as SynthesisQualityLevel
 
       if (target < level) {
         downgradeHold += 0.25

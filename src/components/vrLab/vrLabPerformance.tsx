@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
-import { FIXED_VR_TIER } from '../../perf/graphicsSettings'
+import { FIXED_VR_TIER, presetToVrTier } from '../../perf/graphicsSettings'
 
 export type VrLabQualityTier = 'high' | 'medium' | 'low'
 
@@ -86,9 +86,9 @@ function webglSupported(): boolean {
   }
 }
 
-/** Качество VR — всегда high (без UI-переключателя). */
+/** Качество VR: high на мощных устройствах, medium на слабых. */
 export function detectVrLabQuality(): VrLabQualityTier {
-  return FIXED_VR_TIER
+  return presetToVrTier()
 }
 
 export function buildVrLabPerfSettings(tier: VrLabQualityTier = detectVrLabQuality()): VrLabPerfSettings {

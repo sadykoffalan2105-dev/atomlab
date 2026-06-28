@@ -2,16 +2,16 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
-**Скачать v1.1.6:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.1.6)
-- `ATOMLAB-1.1.6-portable.exe` — без установки
-- `ATOMLAB-1.1.6-setup.exe` — установщик
+**Скачать v1.1.7:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.1.7)
+- `ATOMLAB-1.1.7-portable.exe` — без установки
+- `ATOMLAB-1.1.7-setup.exe` — установщик
 
 ## Возможности
 
 - **Полноэкранный режим** по умолчанию (F11 / меню «Вид»)
 - **Hardware acceleration + WebGPU** — GPU rasterization, без throttling в фоне
-- **Высокое качество графики** — фиксированный пресет High для синтеза и VR
-- **Адаптивный FPS governor** — только внутри синтеза, без ручных настроек
+- **Высокое качество графики** — High на мощных ПК; на слабых устройствах автоматически снижается нагрузка (DPR, FX), визуальный стиль сохраняется
+- **Адаптивный FPS governor** — в синтезе и на слабых GPU при редактировании реактора
 - **Crash recovery** — перезагрузка при падении render/GPU process
 - **Portable `.exe`** — запуск без установки
 - **NSIS-установщик** — ярлык на рабочем столе и в меню «Пуск»
@@ -63,8 +63,8 @@ npm run dist:electron:portable
 
 ```
 release/
-├── ATOMLAB-1.1.6-portable.exe      ← portable, без установки
-├── ATOMLAB-1.1.6-setup.exe         ← NSIS-установщик
+├── ATOMLAB-1.1.7-portable.exe      ← portable, без установки
+├── ATOMLAB-1.1.7-setup.exe         ← NSIS-установщик
 ├── win-unpacked/                   ← распакованное приложение (для отладки)
 ├── latest.yml                      ← манифест для electron-updater
 └── builder-effective-config.yaml

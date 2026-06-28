@@ -17,6 +17,8 @@ import {
   computeStaticQualityCap,
   featuresForQuality,
   qualityLevelToForceLite,
+  SYNTHESIS_QUALITY_BALANCED,
+  SYNTHESIS_QUALITY_LITE,
   type SynthesisQualityLevel,
 } from '../../lab/synthesisQualityLadder'
 import {
@@ -27,7 +29,7 @@ import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
 import { ReactorTermsPreview } from './ReactorTermsPreview'
 import { buildReactorPreviewAtoms } from './reactorPreviewLayout'
-import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
+import { getSynthesisDeviceTier, refineSynthesisDeviceTierFromFps } from '../../lab/synthesisDeviceTier'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import type { CompoundDef } from '../../types/chemistry'
@@ -59,7 +61,8 @@ import {
 import { createReactorPreviewContinuityGuard } from '../../lab/reactorPreviewContinuityGuard'
 import { getSynthesisTimingProfile, isInstantSynthesisProfile } from '../../lab/synthesisTimingProfile'
 import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
-import { FIXED_SYNTHESIS_CAP } from '../../perf/graphicsSettings'
+import { resolveDeviceSynthesisCap } from '../../perf/graphicsSettings'
+import { resolveLabCanvasPolicy } from '../../perf/deviceCanvasPolicy'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 
 /** Свободная лаборатория (атомы на столе). */
@@ -282,12 +285,18 @@ function SceneContent({
   const orbRef = useRef<OrbitControlsImpl | null>(null)
   const perfLevelRef = useRef<PerfLevel>('high')
   const perfAcc = useRef({ t: 0, lowT: 0, highT: 0, fps: 60 })
+  const deviceTier = useMemo(() => getSynthesisDeviceTier(), [])
+  const deviceSynthCap = useMemo(() => resolveDeviceSynthesisCap(deviceTier), [deviceTier])
   const fpsGovRef = useRef(
-    createSynthesisQualityGovernor(),
+    createSynthesisQualityGovernor({
+      floor: deviceTier === 'low' ? SYNTHESIS_QUALITY_LITE : SYNTHESIS_QUALITY_BALANCED,
+      cap: deviceSynthCap,
+      initial: deviceSynthCap,
+    }),
   )
   const synthForceLiteRef = useRef(false)
-  const synthQualityLevelRef = useRef<SynthesisQualityLevel>(3)
-  const [synthQualityLevel, setSynthQualityLevel] = useState<SynthesisQualityLevel>(FIXED_SYNTHESIS_CAP)
+  const synthQualityLevelRef = useRef<SynthesisQualityLevel>(deviceSynthCap)
+  const [synthQualityLevel, setSynthQualityLevel] = useState<SynthesisQualityLevel>(deviceSynthCap)
   const synthForceLite = qualityLevelToForceLite(synthQualityLevel)
   const qualityUiThrottleRef = useRef(0)
   const coverageFrameRef = useRef(0)
@@ -849,7 +858,10 @@ function SceneContent({
     // EMA сглаживание
     a.fps = a.fps * 0.9 + fps * 0.1
 
-    const perfGuardActive = synthActive || synthesisRunActive
+    const perfGuardActive =
+      synthActive ||
+      synthesisRunActive ||
+      (deviceTier === 'low' && reactorViewOpen && !synthesisRunActive)
     if (perfGuardActive) {
       const gov = fpsGovRef.current
       gov.tick(a.fps)
@@ -869,6 +881,7 @@ function SceneContent({
     a.t += d
     if (a.t < 0.25) return
     a.t = 0
+    refineSynthesisDeviceTierFromFps(a.fps)
 
     if (synthesisRunActive) return
 
@@ -1081,27 +1094,19 @@ export function LabCanvas({
   const [internalSessionKey, setInternalSessionKey] = useState(0)
   const canvasKey = `${sessionKey}-${internalSessionKey}`
 
-  const previewAtomCount = useMemo(() => {
-    if (!reactorPreviewTerms?.length) return 0
-    const tier = getReactorVisualTier(reactorPreviewTerms)
-    return buildReactorPreviewAtoms(reactorPreviewTerms, { tier }).length
-  }, [reactorPreviewTerms])
-
   /** always — demand давал чёрный центр при +/- коэффициентов. */
   const canvasFrameloop = 'always' as const
-  const densePreview = previewAtomCount > 6
-
-  const lowPower3d =
-    getSynthesisDeviceTier() === 'low' ||
-    synthesisRunActive ||
-    reactorViewOpen ||
-    synthesisSettledProduct != null ||
-    laboratorySynthesisView === 'substance' ||
-    densePreview ||
-    previewAtomCount > 0
-  const canvasDpr: number | [number, number] =
-    synthesisRunActive || lowPower3d ? 1 : perfLevel === 'low' ? 1 : [1, 1.5]
-  const canvasAntialias = !lowPower3d
+  const deviceTier = useMemo(() => getSynthesisDeviceTier(), [])
+  const canvasPolicy = resolveLabCanvasPolicy({
+    deviceTier,
+    perfLevel,
+    synthesisRunActive: synthesisRunActive ?? false,
+    reactorViewOpen: reactorViewOpen ?? false,
+    coeffEditBurst: reactorCoeffEditBurst,
+    substanceView: laboratorySynthesisView === 'substance' || synthesisSettledProduct != null,
+  })
+  const canvasDpr = canvasPolicy.dpr
+  const canvasAntialias = canvasPolicy.antialias
   if (!isWebGLAvailable()) {
     return (
       <div
