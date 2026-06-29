@@ -40,6 +40,15 @@ function ensureWorker(): Worker | null {
   }
 }
 
+function estimatePreviewAtomCount(terms: readonly ReactorEquationTerm[]): number {
+  let n = 0
+  for (const t of terms) {
+    const c = Math.floor(t.coeff)
+    if (c > 0) n += c
+  }
+  return n
+}
+
 /** Sync fallback — always available. */
 export function buildPreviewLayoutSync(terms: readonly ReactorEquationTerm[]): {
   tier: ReactorVisualTier
@@ -49,19 +58,31 @@ export function buildPreviewLayoutSync(terms: readonly ReactorEquationTerm[]): {
   return { tier, atoms: buildReactorPreviewAtoms(terms, { tier }) }
 }
 
+let latestRequestId = 0
+
 /** Worker path for heavy equations; falls back to sync on small N or worker failure. */
 export function requestPreviewLayout(
   terms: readonly ReactorEquationTerm[],
+  opts?: { coeffEditBurst?: boolean },
 ): Promise<{ tier: ReactorVisualTier; atoms: ReactorPreviewAtom[] }> {
-  const atomEstimate = buildPreviewLayoutSync(terms).atoms.length
+  const atomEstimate = estimatePreviewAtomCount(terms)
+  const burst = opts?.coeffEditBurst === true
+  const workerThreshold = burst ? 4 : 6
   const w = ensureWorker()
-  if (!w || atomEstimate <= 8) {
+  if (!w || atomEstimate <= workerThreshold) {
     return Promise.resolve(buildPreviewLayoutSync(terms))
   }
   const id = ++reqId
+  latestRequestId = id
   const msg: ReactorPreviewLayoutWorkerRequest = { id, terms: [...terms] }
   return new Promise((resolve, reject) => {
-    pending.set(id, { resolve, reject })
+    pending.set(id, {
+      resolve: (v) => {
+        if (id !== latestRequestId) return
+        resolve(v)
+      },
+      reject,
+    })
     w.postMessage(msg)
   })
 }

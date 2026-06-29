@@ -8,13 +8,13 @@ import {
   getReactorPreviewPolicy,
   shouldRunGuardTick,
 } from '../../lab/synthesisLagGuard'
+import { useReactorPreviewLayout } from '../../lab/useReactorPreviewLayout'
 import {
   applyReactorPreviewLayout,
   createReactorPreviewVisibilityGuard,
 } from '../../lab/reactorPreviewVisibilityGuard'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import {
-  buildReactorPreviewAtoms,
   reactorPreviewAtomScale,
   type ReactorPreviewAtom,
 } from './reactorPreviewLayout'
@@ -54,14 +54,7 @@ export function ReactorTermsPreview({
   previewRootRef?: MutableRefObject<THREE.Group | null>
 }) {
   const { invalidate } = useThree()
-  const activeTermIds = useMemo(
-    () => terms.filter((t) => Math.floor(t.coeff) > 0).map((t) => t.id),
-    [terms],
-  )
-  const previewAtoms = useMemo(
-    () => buildReactorPreviewAtoms(terms, { tier: 'full' }),
-    [terms],
-  )
+  const previewAtoms = useReactorPreviewLayout(terms, coeffEditBurst)
   const termsSig = useMemo(
     () => terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|'),
     [terms],
@@ -69,7 +62,8 @@ export function ReactorTermsPreview({
 
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
   const shellEmptyFramesRef = useRef(0)
-  const SHELL_HOLD_FRAMES = 32
+  const SHELL_HOLD_FRAMES = 64
+  const maxPoolRef = useRef(0)
 
   if (previewAtoms.length > 0) {
     shellAtomsRef.current = previewAtoms
@@ -86,6 +80,8 @@ export function ReactorTermsPreview({
     (shellHoldActive || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES)
   const renderAtoms = previewAtoms.length > 0 ? previewAtoms : useShell ? shellAtomsRef.current : []
   const n = renderAtoms.length
+  maxPoolRef.current = Math.max(maxPoolRef.current, n)
+  const poolSize = maxPoolRef.current
   const shouldRender =
     n > 0 ||
     ((shellHoldActive || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES) &&
@@ -130,9 +126,9 @@ export function ReactorTermsPreview({
   }, [electronAnimate, n])
 
   useLayoutEffect(() => {
-    while (atomGroupRefs.current.length < n) atomGroupRefs.current.push(null)
-    while (atomScaleGroupRefs.current.length < n) atomScaleGroupRefs.current.push(null)
-  }, [n, atomGroupRefs, atomScaleGroupRefs])
+    while (atomGroupRefs.current.length < poolSize) atomGroupRefs.current.push(null)
+    while (atomScaleGroupRefs.current.length < poolSize) atomScaleGroupRefs.current.push(null)
+  }, [poolSize, atomGroupRefs, atomScaleGroupRefs])
 
   const syncLayout = useCallback(() => {
     applyReactorPreviewLayout(renderAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
@@ -153,7 +149,7 @@ export function ReactorTermsPreview({
       invalidate()
     }
     if (coeffEditBurst) {
-      layoutSyncTimerRef.current = window.setTimeout(run, 56)
+      layoutSyncTimerRef.current = window.setTimeout(run, 32)
     } else {
       layoutSyncRafRef.current = requestAnimationFrame(run)
     }
@@ -226,23 +222,25 @@ export function ReactorTermsPreview({
           ) : null}
         </>
       ) : null}
-      {renderAtoms.map((atom, i) => {
+      {Array.from({ length: poolSize }, (_, i) => {
+        const atom = i < n ? renderAtoms[i]! : null
+        const active = atom != null
         const atomPolicy = getReactorAtomRenderPolicy({
           atomCount: n,
-          atomZ: atom.z,
+          atomZ: atom?.z ?? 1,
           forceLite: forceLite || coeffEditBurst,
           qualityLevel,
           coeffEditBurst,
         })
-        const termKey = activeTermIds[atom.termIndex] ?? `t${atom.termIndex}`
-        const slotKey = `${termKey}-${atom.atomInTerm}-${atom.z}`
-        const [ax, ay, az] = atom.pos
+        const slotZ = atom?.z ?? 1
+        const [ax, ay, az] = atom?.pos ?? [0, 0, 0]
         return (
           <group
-            key={slotKey}
+            key={`pool-${i}`}
+            visible={active && groupVisible}
             ref={(el) => {
               atomGroupRefs.current[i] = el
-              if (el) {
+              if (el && active) {
                 el.visible = true
                 if (!flightActive && !poseLocked) {
                   el.position.set(ax, ay, az)
@@ -252,9 +250,10 @@ export function ReactorTermsPreview({
           >
             <group
               scale={scale}
+              visible={active}
               ref={(el) => {
                 atomScaleGroupRefs.current[i] = el
-                if (el) {
+                if (el && active) {
                   el.visible = true
                   if (!flightActive && !poseLocked) {
                     el.scale.set(scale, scale, scale)
@@ -262,23 +261,25 @@ export function ReactorTermsPreview({
                 }
               }}
             >
-              <ReactorPreviewAtomSlot
-                z={atom.z}
-                animate={electronAnimate}
-                previewStatic={!electronAnimate}
-                useFullDetail={useFullDetail && !flightActive}
-                synthesisGlass={synthesisGlass && (flightActive || poseLocked)}
-                previewLite={!useFullDetail}
-                electronFrameSkip={
-                  coeffEditBurst
-                    ? Math.max(atomPolicy.electronFrameSkip, 2)
-                    : flightActive
+              {active ? (
+                <ReactorPreviewAtomSlot
+                  z={slotZ}
+                  animate={electronAnimate}
+                  previewStatic={!electronAnimate}
+                  useFullDetail={useFullDetail && !flightActive}
+                  synthesisGlass={synthesisGlass && (flightActive || poseLocked)}
+                  previewLite={!useFullDetail}
+                  electronFrameSkip={
+                    coeffEditBurst
                       ? Math.max(atomPolicy.electronFrameSkip, 2)
-                      : atomPolicy.electronFrameSkip
-                }
-                hideOrbitRings={false}
-                localLight={!sharedLighting}
-              />
+                      : flightActive
+                        ? Math.max(atomPolicy.electronFrameSkip, 2)
+                        : atomPolicy.electronFrameSkip
+                  }
+                  hideOrbitRings={false}
+                  localLight={!sharedLighting}
+                />
+              ) : null}
             </group>
           </group>
         )

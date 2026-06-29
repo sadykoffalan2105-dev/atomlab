@@ -16,6 +16,7 @@ import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reac
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
+import { useStableGpuPrewarmGate } from '../lab/deferredGpuPrewarm'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
   getSynthesisWatchdogMs,
@@ -448,7 +449,7 @@ export function LaboratoryPage() {
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
 
-  const { coeffEditBurst, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
+  const { coeffEditBurst, editIdle, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
 
   /** Canvas: всегда deferred terms — UI мгновенный, 3D без hitch при +/-. */
   const reactorPreviewTermsCanvas = useMemo(() => {
@@ -611,15 +612,27 @@ export function LaboratoryPage() {
   /** До запуска синтеза — только превью реагентов; молекула продукта после анимации */
   const transformPreviewCompound = null
 
-  /** GPU-prewarm: только во время активного синтеза (не при +/- коэффициентов). */
+  /** GPU-prewarm после паузы редактирования (800ms idle + баланс) или во время синтеза. */
+  const prewarmGateReady = useStableGpuPrewarmGate(
+    reactorOpen &&
+      editIdle &&
+      !coeffEditBurst &&
+      equationBalanced &&
+      productCompound != null &&
+      !synthRunActive,
+    equationSignature,
+  )
+
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
+    if (prewarmGateReady) return productCompound
     return null
   }, [
     reactorOpen,
     productCompound,
     synthRunActive,
+    prewarmGateReady,
     lastRunProduct,
     prewarmCompound,
   ])

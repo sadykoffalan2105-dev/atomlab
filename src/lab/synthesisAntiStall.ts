@@ -8,7 +8,7 @@ export const SYNTH_ANTI_STALL = {
   /** Пауза без отрисовки → invalidate (синтез). */
   canvasStallMs: 22,
   /** Пауза при редактировании уравнения. */
-  reactorStallMs: 18,
+  reactorStallMs: 14,
   /** Сколько раз подряд можно форсировать invalidate. */
   canvasBurstMax: 8,
   /** Δ между кадрами rAF — подозрение на блокировку main thread. */

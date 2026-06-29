@@ -44,6 +44,7 @@ import { isWebGLAvailable } from '../../utils/webgl'
 import {
   shouldMountProductGpuPrewarm,
 } from '../../lab/labCanvasFrameGuard'
+import { createReactorFrameBudget } from '../../lab/reactorFrameBudget'
 import { createSynthesisAntiStallGuard } from '../../lab/synthesisAntiStall'
 import { isProductGpuCompiled } from '../../lab/productGpuCompileCache'
 import {
@@ -324,6 +325,7 @@ function SceneContent({
   const crossfadeGuardRef = useRef<ProductCrossfadeGuard | null>(null)
   const coverageTrackerRef = useRef(createSynthesisCoverageTracker())
   const frameHoldRef = useRef(createSynthesisAntiStallGuard())
+  const frameBudgetRef = useRef(createReactorFrameBudget())
   const previewContinuityRef = useRef(createReactorPreviewContinuityGuard())
   const editLiteLatchRef = useRef(false)
   const previewVisualTier = useMemo(
@@ -477,8 +479,11 @@ function SceneContent({
   const previewMotionLocked = false
   const previewPoseLocked = synthesisRunActive && !synthActive
   if (previewAtomCount > 8) editLiteLatchRef.current = true
-  else if (previewAtomCount < 6) editLiteLatchRef.current = false
-  const editForceLite = editLiteLatchRef.current || reactorCoeffEditBurst
+  else if (previewAtomCount < 6 && !frameBudgetRef.current.shouldForceLite()) {
+    editLiteLatchRef.current = false
+  }
+  const editForceLite =
+    editLiteLatchRef.current || reactorCoeffEditBurst || frameBudgetRef.current.shouldForceLite()
   const reactorPreviewMounted = continuity.reactorPreviewMounted
   const reactorPreviewVisible = continuity.reactorPreviewVisible
   const productSlotVisible = continuity.productSlotVisible
@@ -795,6 +800,11 @@ function SceneContent({
 
   useFrame((_, delta) => {
     frameHoldRef.current.markRendered()
+    frameBudgetRef.current.sample(Math.min(120, Math.max(0.5, delta * 1000)))
+    if (frameBudgetRef.current.shouldForceLite() && reactorViewOpen) {
+      editLiteLatchRef.current = true
+      if (forceLiteFxRef) forceLiteFxRef.current = true
+    }
 
     // First-paint latch: callback из LabProductHeroSlot + fallback если callback не пришёл.
     if (synthActive && productSlotVisible && !productPaintedRef.current) {

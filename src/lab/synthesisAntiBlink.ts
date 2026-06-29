@@ -164,13 +164,23 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
       keepPreviewDuringProduct ||
       (!hidePreviewForProduct && (!showSettledHero || synthLive || productPrewarm)))
 
-  const reactorPreviewVisibleFinal =
-    synthLive &&
+  const editSafetyOverride =
+    !showSettledHero &&
+    mountReactorPreview &&
+    reactorViewOpen &&
     reactorPreviewMounted &&
-    !reactorPreviewVisible &&
     !productSlotVisible &&
     !productPrewarm &&
-    !showSettledHero
+    !reactorPreviewVisible
+
+  const reactorPreviewVisibleFinal =
+    editSafetyOverride ||
+    (synthLive &&
+      reactorPreviewMounted &&
+      !reactorPreviewVisible &&
+      !productSlotVisible &&
+      !productPrewarm &&
+      !showSettledHero)
       ? true
       : reactorPreviewVisible
 

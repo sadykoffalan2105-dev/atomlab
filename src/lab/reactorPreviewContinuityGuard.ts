@@ -60,7 +60,7 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
           obj.visible = true
         })
       }
-      if (violationFrames <= 24) {
+      if (violationFrames <= 48) {
         invalidate()
       }
     },
