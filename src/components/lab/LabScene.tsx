@@ -8,6 +8,7 @@ import { DecorativeAtom } from './DecorativeAtom'
 import { AtomStructureModel } from './AtomStructureModel'
 import { MoleculeMesh } from './MoleculeMesh'
 import { SynthesisOnLabScene } from './SynthesisOnLabScene'
+import { InstantLabSynthesis } from './InstantLabSynthesis'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
 import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { assertNoProductHeroBeforeRun } from '../../lab/atomGuard/labPreviewGuard'
@@ -473,7 +474,7 @@ function SceneContent({
       ? productCompoundCandidate
       : null
 
-  const previewMotionLocked = synthActive && synthesisPhase !== 'product'
+  const previewMotionLocked = false
   const previewPoseLocked = synthesisRunActive && !synthActive
   if (previewAtomCount > 8) editLiteLatchRef.current = true
   else if (previewAtomCount < 6) editLiteLatchRef.current = false
@@ -571,9 +572,26 @@ function SceneContent({
     }
   }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, productRevealReady])
 
-  // Слабые GPU: если compile затянулся — всё равно показываем продукт (атомы до productPainted).
+  // Слабые GPU: fallback productReveal (instant — 6 кадров).
   useEffect(() => {
     if (!synthActive || !synthesis?.runId || productRevealReady) return
+    if (instantSynthesis) {
+      let frames = 0
+      let raf = 0
+      const tick = () => {
+        frames += 1
+        if (productRevealReady) return
+        if (frames >= 6) {
+          setProductRevealReady(true)
+          prewarmReadyRef.current = true
+          setPrewarmReady(true)
+          return
+        }
+        raf = requestAnimationFrame(tick)
+      }
+      raf = requestAnimationFrame(tick)
+      return () => cancelAnimationFrame(raf)
+    }
     let frames = 0
     let raf = 0
     const tick = () => {
@@ -589,7 +607,7 @@ function SceneContent({
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [synthActive, synthesis?.runId, productRevealReady])
+  }, [synthActive, synthesis?.runId, productRevealReady, instantSynthesis])
 
   useLayoutEffect(() => {
     if (!synthesis?.runId) return
@@ -990,7 +1008,7 @@ function SceneContent({
           {previewActive && transformPreviewCompound ? (
             <TransformPreviewHero compound={transformPreviewCompound} />
           ) : null}
-          {synthActive && synthesis ? (
+          {synthActive && synthesis && !instantSynthesis ? (
             <SynthesisOnLabScene
               zSlots={synthesis.zSlots}
               flyTerms={synthesis.flyTerms}
@@ -1011,6 +1029,13 @@ function SceneContent({
               qualityFeatures={synthQualityFeatures}
               visualTier={synthesis.visualTier ?? previewVisualTier}
               timingProfile={synthTimingProfile}
+            />
+          ) : null}
+          {synthActive && synthesis && instantSynthesis ? (
+            <InstantLabSynthesis
+              runId={synthesis.runId}
+              onDone={synthesis.onDone}
+              onPhaseChange={synthesis.onPhaseChange}
             />
           ) : null}
           {showSettledHero && synthesisSettledProduct

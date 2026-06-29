@@ -69,7 +69,7 @@ export function ReactorTermsPreview({
 
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
   const shellEmptyFramesRef = useRef(0)
-  const SHELL_HOLD_FRAMES = 18
+  const SHELL_HOLD_FRAMES = 32
 
   if (previewAtoms.length > 0) {
     shellAtomsRef.current = previewAtoms

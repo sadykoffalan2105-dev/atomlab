@@ -79,9 +79,9 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     productCompoundId != null &&
     reactorViewOpen
 
-  /** Во время подбора коэффициентов превью атомов всегда видно — prewarm не скрывает центр. */
+  /** Во время подбора коэффициентов и синтеза превью атомов всегда видно. */
   const editPreviewLock =
-    !synthLive && !showSettledHero && mountReactorPreview && reactorViewOpen
+    !showSettledHero && mountReactorPreview && reactorViewOpen
 
   /** До first-paint продукта атомы не убираем — overlap против GPU hitch. */
   const synthPreviewLock =

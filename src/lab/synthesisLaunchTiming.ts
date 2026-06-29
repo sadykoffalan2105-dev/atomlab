@@ -44,6 +44,9 @@ export function synthesisLaunchWatchdogMs(
   forceLite = false,
 ): number {
   const profile = getSynthesisTimingProfile(forceLite)
+  if (profile.streamFlyDur <= 0 && profile.mergeFlashDur <= 0) {
+    return Math.ceil((profile.productHold + 0.35) * 1000 + SYNTH_ANTI_STALL.runBudgetGraceMs)
+  }
   const convergeDur = synthesisConvergeDurationSec(termCount, atomCount, tier, profile)
   const sec =
     convergeDur +

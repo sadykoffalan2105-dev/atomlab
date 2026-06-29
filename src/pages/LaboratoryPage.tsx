@@ -16,8 +16,6 @@ import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reac
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
-import { useStableGpuPrewarmGate } from '../lab/deferredGpuPrewarm'
-import { isProductGpuCompiled } from '../lab/productGpuCompileCache'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
   getSynthesisWatchdogMs,
@@ -27,7 +25,6 @@ import {
 import { useThrottledPhaseCallback } from '../lab/atomGuard/phaseThrottle'
 import { useCanvasSizeGuard } from '../lab/atomGuard/canvasGuard'
 import { createSynthesisRunGuard } from '../lab/atomGuard/synthesisRunGuard'
-import { LaunchMissionHud } from '../components/lab/LaunchMissionHud'
 import { useCatalogAutoMatches } from '../lab/useCatalogMatchWorker'
 import {
   generateFromLaboratoryRecipe,
@@ -451,21 +448,19 @@ export function LaboratoryPage() {
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
 
-  const { coeffEditBurst, editIdle, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
+  const { coeffEditBurst, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
 
-  /** Canvas: deferred terms при burst — меньше hitch main thread (см. video t≈16s). */
+  /** Canvas: всегда deferred terms — UI мгновенный, 3D без hitch при +/-. */
   const reactorPreviewTermsCanvas = useMemo(() => {
     if (!reactorOpen) return null
-    const terms = coeffEditBurst && !editIdle ? deferredLeftTerms : leftTerms
-    return terms.length >= 1 ? terms : null
-  }, [reactorOpen, leftTerms, deferredLeftTerms, coeffEditBurst, editIdle])
+    return deferredLeftTerms.length >= 1 ? deferredLeftTerms : null
+  }, [reactorOpen, deferredLeftTerms])
 
   useEffect(() => {
     if (coeffEditBurst) forceLiteFxRef.current = true
   }, [coeffEditBurst])
 
   const onRequestRun = useCallback(() => {
-    setGpuPrewarmIntent(true)
     const prepared = prepareGuaranteedSynthesisRun({
       leftTerms,
       productId: productCompoundId,
@@ -486,9 +481,9 @@ export function LaboratoryPage() {
     setSynthesisSettledProduct(null)
     synthesisSettledProductRef.current = null
     settledSnapshotRef.current = null
-    synthesisPhaseRef.current = 'ignite'
-    setSynthPhaseUi('ignite')
-    setSynthIgnite(true)
+    synthesisPhaseRef.current = 'product'
+    setSynthPhaseUi('product')
+    setSynthIgnite(false)
     launchProgressRef.current = 0
     forceLiteFxRef.current = false
     const zCopy = payload.zSlots.slice()
@@ -564,22 +559,6 @@ export function LaboratoryPage() {
     return isReactorBalancedFast(deferredLeftTerms, product, productCoeff)
   }, [deferredLeftTerms, productCompoundId, productCoeff])
 
-  /** Явный intent: выбор продукта, hover/focus «Синтез», не авто-prewarm при балансе. */
-  const [gpuPrewarmIntent, setGpuPrewarmIntent] = useState(false)
-
-  useEffect(() => {
-    if (productCompoundId) setGpuPrewarmIntent(true)
-  }, [productCompoundId])
-
-  const requestGpuPrewarmIntent = useCallback(() => {
-    setGpuPrewarmIntent(true)
-  }, [])
-
-  const prewarmGateReady = useStableGpuPrewarmGate(
-    gpuPrewarmIntent && canRunSynthesis && editIdle && !coeffEditBurst && reactorOpen,
-    equationSignature,
-  )
-
   const highlightEquationError = useMemo(() => {
     if (!reactorMessage) return false
     const m = reactorMessage.toLowerCase()
@@ -632,25 +611,17 @@ export function LaboratoryPage() {
   /** До запуска синтеза — только превью реагентов; молекула продукта после анимации */
   const transformPreviewCompound = null
 
-  /** GPU-prewarm: только при intent (каталог / hover «Синтез»), не сразу после баланса. */
+  /** GPU-prewarm: только во время активного синтеза (не при +/- коэффициентов). */
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
-    if (!canRunSynthesis) return null
-    if (isProductGpuCompiled(productCompound.id)) return productCompound
-    if (!gpuPrewarmIntent || coeffEditBurst || !editIdle || !prewarmGateReady) return null
-    return productCompound
+    return null
   }, [
     reactorOpen,
     productCompound,
     synthRunActive,
     lastRunProduct,
     prewarmCompound,
-    canRunSynthesis,
-    gpuPrewarmIntent,
-    coeffEditBurst,
-    editIdle,
-    prewarmGateReady,
   ])
 
   return (
@@ -688,13 +659,6 @@ export function LaboratoryPage() {
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />
         ) : null}
-        {synthRunActive ? (
-          <LaunchMissionHud
-            active
-            progressRef={launchProgressRef}
-            accentColor={lastRunProduct?.accentColor ?? productForHud?.accentColor ?? '#3dffec'}
-          />
-        ) : null}
         {showSynthProductHud && productForHud ? (
           <div className={styles.synthProductDock} role="status" aria-live="polite">
             <div className={styles.synthProductCard}>
@@ -730,7 +694,6 @@ export function LaboratoryPage() {
           }}
           onClearSlots={clearReactorSlots}
           onRequestRun={onRequestRun}
-          onSynthesisPrewarmIntent={requestGpuPrewarmIntent}
           message={reactorMessage}
           canRun={canRunSynthesis}
           synthesisRunning={synthRunActive}
