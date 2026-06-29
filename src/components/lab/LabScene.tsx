@@ -771,7 +771,7 @@ function SceneContent({
     // First-paint latch: callback из LabProductHeroSlot + fallback если callback не пришёл.
     if (synthActive && productSlotVisible && !productPaintedRef.current) {
       productPaintFramesRef.current += 1
-      if (productPaintFramesRef.current >= 18) {
+      if (productPaintFramesRef.current >= 24) {
         productPaintedRef.current = true
         setProductPainted(true)
       }
@@ -970,7 +970,6 @@ function SceneContent({
               forceLite={previewForceLite || editForceLite}
               qualityLevel={synthQualityLevel}
               synthesisGlass={synthQualityFeatures.glassAtoms}
-              visualTier={previewVisualTier}
               coeffEditBurst={reactorCoeffEditBurst}
               productPrewarm={productPrewarmActive}
               atomGroupRefs={previewAtomGroupRefs}

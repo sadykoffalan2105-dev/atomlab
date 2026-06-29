@@ -23,12 +23,13 @@ export type BuildReactorPreviewOptions = {
 }
 
 function layoutGroupRadius(groupCount: number): number {
-  return 1.05 + Math.min(groupCount, 6) * 0.14
+  return 1.28 + Math.min(groupCount, 6) * 0.2
 }
 
+/** Радиус кольца атомов внутри слагаемого — симметрично, с зазором. */
 function layoutMiniRadius(atomCount: number): number {
   if (atomCount <= 1) return 0
-  return 0.18 + Math.min(atomCount, 10) * 0.034
+  return 0.34 + Math.sqrt(Math.min(atomCount, 16)) * 0.11
 }
 
 /** Центры слагаемых на передней дуге (Cr | K | O₂) — компактно к камере. */
@@ -38,19 +39,20 @@ function groupCentersOnFrontArc(
 ): Array<[number, number, number]> {
   if (groupCount <= 0) return []
   if (groupCount === 1) return [[0, 0.12, 0.24]]
-  const span = (158 * Math.PI) / 180
+  const span = (172 * Math.PI) / 180
   const start = -Math.PI / 2 - span / 2
   return Array.from({ length: groupCount }, (_, i) => {
     const t = i / (groupCount - 1)
     const a = start + t * span
     const x = Math.sin(a) * radius
-    const z = Math.cos(a) * radius * 0.48 + 0.18
-    const y = 0.1 + Math.sin(a * 0.42) * 0.035
+    const z = Math.cos(a) * radius * 0.52 + 0.22
+    const y = 0.12 + Math.sin(a * 0.38) * 0.04
     return [x, y, z] as [number, number, number]
   })
 }
 
 /** Мини-дуга внутри кластера (для 7 O — не плотное кольцо). */
+/** Равномерное симметричное кольцо в плоскости XZ внутри кластера слагаемого. */
 function miniAtomOffset(
   atomIndex: number,
   atomCount: number,
@@ -58,15 +60,11 @@ function miniAtomOffset(
 ): [number, number, number] {
   if (atomCount <= 1) return [0, 0, 0]
   if (atomCount === 2) {
-    const x = atomIndex === 0 ? -miniR : miniR
+    const x = atomIndex === 0 ? -miniR * 0.62 : miniR * 0.62
     return [x, 0, 0]
   }
-  const useArc = atomCount >= 5
-  const span = useArc ? (110 * Math.PI) / 180 : Math.PI * 2
-  const start = useArc ? -span / 2 : -Math.PI / 2
-  const t = atomCount === 1 ? 0 : atomIndex / (atomCount - 1)
-  const a = start + t * span
-  return [Math.sin(a) * miniR, Math.cos(a) * miniR * 0.2, Math.cos(a) * miniR * 0.1]
+  const a = (atomIndex / atomCount) * Math.PI * 2 - Math.PI / 2
+  return [Math.cos(a) * miniR, 0, Math.sin(a) * miniR * 0.42]
 }
 
 /**
@@ -175,10 +173,10 @@ export function reactorPreviewAtomScale(
   totalAtoms: number,
   base = PREVIEW_ATOM_SCALE,
 ): number {
+  if (totalAtoms <= 24) return base
   const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
-  const countFactor = clamp(11 / Math.max(11, totalAtoms), 0.62, 1)
-  const denseBoost = totalAtoms > 14 ? 0.94 : 1
-  return Math.max(PREVIEW_MIN_ATOM_SCALE, base * countFactor * denseBoost)
+  const countFactor = clamp(22 / Math.max(22, totalAtoms), 0.72, 1)
+  return Math.max(PREVIEW_MIN_ATOM_SCALE, base * countFactor)
 }
 
 /** Центр реакции в лабораторной сцене (совпадает с SynthesisConvergeStreams). */

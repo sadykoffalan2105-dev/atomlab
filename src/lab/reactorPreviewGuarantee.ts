@@ -1,5 +1,5 @@
 /** Макс. моделей в превью реактора (expandLeftTermsToPreviewSlots). */
-export const PREVIEW_MAX_ATOM_MODELS = 24
+export const PREVIEW_MAX_ATOM_MODELS = 48
 
 /**
  * Контракт: электроны крутятся при любом допустимом числе атомов в превью.

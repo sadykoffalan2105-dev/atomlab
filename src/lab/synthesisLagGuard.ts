@@ -56,22 +56,19 @@ export function getReactorPreviewPolicy(opts: {
     electronAnimate:
       visible &&
       !flightActive &&
-      atomCount <= SYNTHESIS_PERF.maxAnimatedAtoms &&
-      visualTier === 'full',
+      atomCount <= SYNTHESIS_PERF.maxAnimatedAtoms,
     driftAtoms:
       !coeffEditBurst &&
       !minimal &&
       visible &&
       !flightActive &&
-      atomCount <= 12 &&
-      visualTier === 'full' &&
+      atomCount <= 16 &&
       (qualityLevel ?? 4) >= 4,
     slowSpin:
       !coeffEditBurst &&
       visible &&
       !flightActive &&
-      atomCount <= 12 &&
-      visualTier === 'full' &&
+      atomCount <= 16 &&
       !liteRender,
     visibilityGuardEvery: coeffEditBurst ? 8 : liteRender ? 4 : atomCount > 8 ? 3 : 2,
     coverageGuardEvery: coeffEditBurst ? 5 : liteRender ? 3 : 2,
@@ -98,7 +95,8 @@ export function getReactorAtomRenderPolicy(opts: {
 
   let electronFrameSkip = 1
   const dense = atomCount > SYNTHESIS_PERF.denseAtomThreshold
-  if (lite) electronFrameSkip = 3
+  if (coeffEditBurst) electronFrameSkip = 2
+  else if (lite) electronFrameSkip = 3
   else if (dense) electronFrameSkip = 2
   else if (atomZ > 18) electronFrameSkip = 2
 

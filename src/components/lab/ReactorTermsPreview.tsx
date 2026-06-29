@@ -15,21 +15,14 @@ import {
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import {
   buildReactorPreviewAtoms,
-  getTermGroupCenters,
   reactorPreviewAtomScale,
   type ReactorPreviewAtom,
 } from './reactorPreviewLayout'
-import {
-  getReactorVisualTier,
-  termBadgeCoeff,
-  type ReactorVisualTier,
-} from '../../chemistry/reactorVisualTier'
-import { ReactorCoeffBadge } from './ReactorCoeffBadge'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 
 /**
  * Превью реагентов: полная Bohr-модель (протоны, нейтроны, электроны).
- * При flightActive позиции управляет GSAP (SynthesisConvergeStreams), не useFrame.
+ * Число 3D-моделей = коэффициент. При flightActive позиции управляет GSAP.
  */
 export function ReactorTermsPreview({
   terms,
@@ -40,7 +33,6 @@ export function ReactorTermsPreview({
   forceLite = false,
   qualityLevel,
   synthesisGlass = false,
-  visualTier: visualTierProp,
   coeffEditBurst = false,
   productPrewarm = false,
   atomGroupRefs: atomGroupRefsExternal,
@@ -55,7 +47,6 @@ export function ReactorTermsPreview({
   forceLite?: boolean
   qualityLevel?: import('../../lab/synthesisQualityLadder').SynthesisQualityLevel
   synthesisGlass?: boolean
-  visualTier?: ReactorVisualTier
   coeffEditBurst?: boolean
   productPrewarm?: boolean
   atomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
@@ -67,13 +58,9 @@ export function ReactorTermsPreview({
     () => terms.filter((t) => Math.floor(t.coeff) > 0).map((t) => t.id),
     [terms],
   )
-  const visualTierComputed = visualTierProp ?? getReactorVisualTier(terms)
-  const visualTierLatchRef = useRef(visualTierComputed)
-  if (!coeffEditBurst) visualTierLatchRef.current = visualTierComputed
-  const visualTier = coeffEditBurst ? visualTierLatchRef.current : visualTierComputed
   const previewAtoms = useMemo(
-    () => buildReactorPreviewAtoms(terms, { tier: visualTier }),
-    [terms, visualTier],
+    () => buildReactorPreviewAtoms(terms, { tier: 'full' }),
+    [terms],
   )
   const termsSig = useMemo(
     () => terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|'),
@@ -82,7 +69,7 @@ export function ReactorTermsPreview({
 
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
   const shellEmptyFramesRef = useRef(0)
-  const SHELL_HOLD_FRAMES = 14
+  const SHELL_HOLD_FRAMES = 18
 
   if (previewAtoms.length > 0) {
     shellAtomsRef.current = previewAtoms
@@ -111,30 +98,13 @@ export function ReactorTermsPreview({
   const atomScaleGroupRefs = atomScaleGroupRefsExternal ?? atomScaleGroupRefsLocal
   const scale = reactorPreviewAtomScale(n)
   const fullDetailLatchRef = useRef(false)
-  const allowFullDetail = visualTier === 'full' && !forceLite && !coeffEditBurst
+  const allowFullDetail = !forceLite && !coeffEditBurst
   if (allowFullDetail && n <= SYNTHESIS_PERF.fullDetailAtomThreshold) {
     fullDetailLatchRef.current = true
   } else if (n > SYNTHESIS_PERF.fullDetailAtomThreshold + 4) {
     fullDetailLatchRef.current = false
   }
   const useFullDetail = fullDetailLatchRef.current
-
-  const activeTerms = useMemo(
-    () => terms.filter((t) => Math.floor(t.coeff) > 0),
-    [terms],
-  )
-  const termCenters = useMemo(() => getTermGroupCenters(terms), [terms])
-  const badges = useMemo(() => {
-    return activeTerms
-      .map((t, ti) => {
-        const badge = termBadgeCoeff(t.coeff, visualTier, activeTerms.length)
-        if (badge == null) return null
-        const center = termCenters.find((c) => c.termIndex === ti)
-        if (!center) return null
-        return { coeff: badge, pos: center.pos as [number, number, number] }
-      })
-      .filter(Boolean) as { coeff: number; pos: [number, number, number] }[]
-  }, [activeTerms, visualTier, termCenters])
 
   const previewPolicy = useMemo(
     () =>
@@ -143,23 +113,13 @@ export function ReactorTermsPreview({
         forceLite: forceLite || coeffEditBurst,
         flightActive,
         visible,
-        visualTier,
+        visualTier: 'full',
         qualityLevel,
         coeffEditBurst,
       }),
-    [n, forceLite, qualityLevel, flightActive, visible, visualTier, coeffEditBurst],
+    [n, forceLite, qualityLevel, flightActive, visible, coeffEditBurst],
   )
   const { electronAnimate, driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
-
-  /** Один анимированный master на элемент — остальные static (полная модель, меньше useFrame). */
-  const firstMasterIndexByZ = useMemo(() => {
-    const map = new Map<number, number>()
-    for (let i = 0; i < renderAtoms.length; i++) {
-      const z = renderAtoms[i]!.z
-      if (!map.has(z)) map.set(z, i)
-    }
-    return map
-  }, [renderAtoms])
 
   useEffect(() => {
     assertPreviewElectronAnimation(electronAnimate, n)
@@ -175,18 +135,29 @@ export function ReactorTermsPreview({
   }, [renderAtoms, scale, atomGroupRefs, atomScaleGroupRefs])
 
   const layoutSyncRafRef = useRef<number | null>(null)
+  const layoutSyncTimerRef = useRef<number | null>(null)
   useLayoutEffect(() => {
     if (flightActive || poseLocked || n === 0) return
+    if (layoutSyncTimerRef.current != null) window.clearTimeout(layoutSyncTimerRef.current)
     if (layoutSyncRafRef.current != null) cancelAnimationFrame(layoutSyncRafRef.current)
-    layoutSyncRafRef.current = requestAnimationFrame(() => {
+    layoutSyncTimerRef.current = null
+    layoutSyncRafRef.current = null
+    const run = () => {
+      layoutSyncTimerRef.current = null
       layoutSyncRafRef.current = null
       syncLayout()
       invalidate()
-    })
+    }
+    if (coeffEditBurst) {
+      layoutSyncTimerRef.current = window.setTimeout(run, 56)
+    } else {
+      layoutSyncRafRef.current = requestAnimationFrame(run)
+    }
     return () => {
+      if (layoutSyncTimerRef.current != null) window.clearTimeout(layoutSyncTimerRef.current)
       if (layoutSyncRafRef.current != null) cancelAnimationFrame(layoutSyncRafRef.current)
     }
-  }, [flightActive, poseLocked, termsSig, syncLayout, invalidate, n])
+  }, [flightActive, poseLocked, termsSig, syncLayout, invalidate, n, coeffEditBurst])
 
   useFrame((s) => {
     if (previewLenRef.current === 0 && shellAtomsRef.current.length > 0 && !shellHoldActive) {
@@ -204,7 +175,7 @@ export function ReactorTermsPreview({
         previewAtoms: renderAtoms,
         rootVisible: groupVisible,
         flightActive,
-        allowRecover: true,
+        allowRecover: !coeffEditBurst,
         onRecover: syncLayout,
       })
     }
@@ -221,7 +192,7 @@ export function ReactorTermsPreview({
       const { pos } = renderAtoms[i]!
       const [bx, by, bz] = pos
       const ph = i * 1.6 + renderAtoms[i]!.z * 0.37
-      const amp = n > 18 ? 0.028 : 0.042
+      const amp = n > 18 ? 0.022 : 0.032
       g.position.set(
         bx + Math.sin(t * 0.32 + ph) * amp,
         by + Math.sin(t * 0.25 + ph * 0.9) * amp * 0.7,
@@ -256,8 +227,6 @@ export function ReactorTermsPreview({
         const termKey = activeTermIds[atom.termIndex] ?? `t${atom.termIndex}`
         const slotKey = `${termKey}-${atom.atomInTerm}-${atom.z}`
         const [ax, ay, az] = atom.pos
-        const isMasterAnim = firstMasterIndexByZ.get(atom.z) === i
-        const atomAnimates = electronAnimate && isMasterAnim
         return (
           <group
             key={slotKey}
@@ -285,8 +254,8 @@ export function ReactorTermsPreview({
             >
               <ReactorPreviewAtomSlot
                 z={atom.z}
-                animate={atomAnimates}
-                previewStatic={!atomAnimates}
+                animate={electronAnimate}
+                previewStatic={!electronAnimate}
                 useFullDetail={useFullDetail && !flightActive}
                 synthesisGlass={synthesisGlass && (flightActive || poseLocked)}
                 previewLite={!useFullDetail}
@@ -297,16 +266,13 @@ export function ReactorTermsPreview({
                       ? Math.max(atomPolicy.electronFrameSkip, 2)
                       : atomPolicy.electronFrameSkip
                 }
-                hideOrbitRings={visualTier === 'cluster'}
+                hideOrbitRings={false}
                 localLight={!sharedLighting}
               />
             </group>
           </group>
         )
       })}
-      {badges.map((b, i) => (
-        <ReactorCoeffBadge key={`badge-${i}-${b.coeff}`} coeff={b.coeff} position={b.pos} />
-      ))}
     </group>
   )
 }

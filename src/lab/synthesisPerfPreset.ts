@@ -25,7 +25,7 @@ export const SYNTHESIS_PERF = {
   /** Полная детализация AtomStructureModel (орбиты 48 seg) */
   fullDetailAtomThreshold: 12,
   /** Макс. атомов с анимацией электронов */
-  maxAnimatedAtoms: 24,
+  maxAnimatedAtoms: 48,
   /** Cluster mode — короткий burst per term (с) */
   clusterFlyDur: 0.12,
   clusterTermStagger: 0.04,

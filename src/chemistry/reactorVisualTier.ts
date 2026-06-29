@@ -16,14 +16,9 @@ export function getReactorVisualTier(terms: readonly ReactorEquationTerm[]): Rea
   return 'full'
 }
 
-/** Сколько 3D-моделей показывать для слагаемого при tiered-режиме. */
-export function previewModelsForTerm(coeff: number, tier: ReactorVisualTier, termCount: number): number {
-  const c = Math.max(0, Math.floor(coeff))
-  if (c <= 0) return 0
-  if (tier === 'full') return c
-  const perTermLite = Math.max(2, Math.ceil(REACTOR_VISUAL_FULL_ATOMS / Math.max(1, termCount)))
-  if (tier === 'lite') return Math.min(c, perTermLite)
-  return Math.min(c, 3)
+/** Сколько 3D-моделей показывать — всегда равно коэффициенту (tier только для таймингов/perf). */
+export function previewModelsForTerm(coeff: number, _tier: ReactorVisualTier, _termCount: number): number {
+  return Math.max(0, Math.floor(coeff))
 }
 
 /** Coeff for ×N badge when shown models < actual coeff. */

@@ -100,8 +100,8 @@ export function SynthesisConvergeStreams({
   const atomStagger = clusterMode ? 0 : timingProfile.atomStagger
 
   const approachAtoms = useMemo(
-    () => buildSynthesisApproachAtoms(terms, { tier: visualTier }),
-    [terms, runId, visualTier],
+    () => buildSynthesisApproachAtoms(terms, { tier: 'full' }),
+    [terms, runId],
   )
   const termStreams = useMemo(() => getTermApproachOrigins(terms), [terms, runId])
   const denseFly = approachAtoms.length > 4
