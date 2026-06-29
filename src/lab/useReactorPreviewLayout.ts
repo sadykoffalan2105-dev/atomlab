@@ -38,12 +38,16 @@ export function useReactorPreviewLayout(
     if (syncAtoms.length > 0) {
       shellRef.current = syncAtoms
       setAtoms(syncAtoms)
+    } else if (shellRef.current.length > 0 && terms.length >= 1) {
+      // Layout hitch — держим последний кадр, пока terms ещё есть.
+      setAtoms(shellRef.current)
     }
 
     let cancelled = false
     let timer: number | null = null
 
     const runWorker = () => {
+      if (terms.length < 1) return
       void requestPreviewLayout(terms, { coeffEditBurst }).then((result) => {
         if (cancelled || gen !== genRef.current) return
         if (result.atoms.length > 0) {

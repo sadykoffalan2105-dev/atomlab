@@ -81,7 +81,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
 
   /** Во время подбора коэффициентов и синтеза превью атомов всегда видно. */
   const editPreviewLock =
-    !showSettledHero && mountReactorPreview && reactorViewOpen
+    !showSettledHero && reactorViewOpen && (mountReactorPreview || previewStickyRef.current?.previewMounted)
 
   /** До first-paint продукта атомы не убираем — overlap против GPU hitch. */
   const synthPreviewLock =
@@ -93,20 +93,19 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
 
   if (synthLive && runId > 0 && mountReactorPreview) {
     previewStickyRef.current = { runId, previewMounted: true }
+  } else if (mountReactorPreview && reactorViewOpen && !showSettledHero) {
+    previewStickyRef.current = { runId: runId > 0 ? runId : -1, previewMounted: true }
   }
 
-  if (!synthLive && !showSettledHero) {
+  if (!synthLive && !showSettledHero && !mountReactorPreview) {
     previewStickyRef.current = null
   }
 
   const previewSticky =
-    previewStickyRef.current != null &&
-    previewStickyRef.current.runId === runId &&
-    previewStickyRef.current.previewMounted
+    previewStickyRef.current != null && previewStickyRef.current.previewMounted
 
   const reactorPreviewMounted =
-    mountReactorPreview ||
-    (previewSticky && reactorViewOpen && synthLive)
+    mountReactorPreview || (previewSticky && reactorViewOpen)
 
   if (productCompoundId && reactorViewOpen) {
     if (synthLive && runId > 0) {

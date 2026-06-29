@@ -17,6 +17,7 @@ import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
 import { useStableGpuPrewarmGate } from '../lab/deferredGpuPrewarm'
+import { useReactorPreviewTermsStable } from '../lab/useReactorPreviewTermsStable'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
   getSynthesisWatchdogMs,
@@ -451,11 +452,13 @@ export function LaboratoryPage() {
 
   const { coeffEditBurst, editIdle, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
 
-  /** Canvas: всегда deferred terms — UI мгновенный, 3D без hitch при +/-. */
-  const reactorPreviewTermsCanvas = useMemo(() => {
-    if (!reactorOpen) return null
-    return deferredLeftTerms.length >= 1 ? deferredLeftTerms : null
-  }, [reactorOpen, deferredLeftTerms])
+  /** Canvas: stable shell + immediate при burst — атомы не пропадают при +/-. */
+  const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
+    reactorOpen,
+    leftTerms,
+    deferredLeftTerms,
+    coeffEditBurst,
+  )
 
   useEffect(() => {
     if (coeffEditBurst) forceLiteFxRef.current = true

@@ -328,14 +328,18 @@ function SceneContent({
   const frameBudgetRef = useRef(createReactorFrameBudget())
   const previewContinuityRef = useRef(createReactorPreviewContinuityGuard())
   const editLiteLatchRef = useRef(false)
+  const previewTermsShellRef = useRef<readonly ReactorEquationTerm[] | null>(null)
+  if (reactorPreviewTerms?.length) previewTermsShellRef.current = reactorPreviewTerms
+  const effectivePreviewTerms = reactorPreviewTerms ?? previewTermsShellRef.current
+
   const previewVisualTier = useMemo(
-    () => (reactorPreviewTerms?.length ? getReactorVisualTier(reactorPreviewTerms) : 'full'),
-    [reactorPreviewTerms],
+    () => (effectivePreviewTerms?.length ? getReactorVisualTier(effectivePreviewTerms) : 'full'),
+    [effectivePreviewTerms],
   )
   const previewAtomCount = useMemo(() => {
-    if (!reactorPreviewTerms?.length) return 0
-    return buildReactorPreviewAtoms(reactorPreviewTerms, { tier: previewVisualTier }).length
-  }, [reactorPreviewTerms, previewVisualTier])
+    if (!effectivePreviewTerms?.length) return 0
+    return buildReactorPreviewAtoms(effectivePreviewTerms, { tier: previewVisualTier }).length
+  }, [effectivePreviewTerms, previewVisualTier])
 
   /** Отмена idle-prewarm при hitch / во время ранних фаз синтеза (ignite/converge/flying). */
   const effectivePrewarmProduct = useMemo(() => {
@@ -426,8 +430,8 @@ function SceneContent({
 
   const mountReactorPreview =
     reactorViewOpen &&
-    reactorPreviewTerms != null &&
-    reactorPreviewTerms.length >= 1 &&
+    effectivePreviewTerms != null &&
+    effectivePreviewTerms.length >= 1 &&
     (!showSettledHero || synthActive || synthesisRunActive)
 
   const continuity = useMemo(
@@ -998,10 +1002,10 @@ function SceneContent({
 
       {reactorViewOpen ? (
         <>
-          {reactorPreviewMounted && reactorPreviewTerms ? (
+          {reactorPreviewMounted && effectivePreviewTerms ? (
             <ReactorTermsPreview
-              terms={reactorPreviewTerms}
-              visible={reactorPreviewVisible}
+              terms={effectivePreviewTerms}
+              visible={reactorPreviewVisible || previewAtomCount > 0}
               flightActive={previewMotionLocked}
               poseLocked={previewPoseLocked}
               sharedLighting={synthActive || synthesisRunActive}

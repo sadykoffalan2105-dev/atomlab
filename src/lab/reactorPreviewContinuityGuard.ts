@@ -47,7 +47,7 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
         violationFrames = 0
         return
       }
-      const ok = previewMounted && previewVisible
+      const ok = previewMounted && (previewVisible || previewAtomCount > 0)
       if (ok) {
         violationFrames = 0
         return
@@ -60,7 +60,7 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
           obj.visible = true
         })
       }
-      if (violationFrames <= 48) {
+      if (violationFrames <= 64) {
         invalidate()
       }
     },
