@@ -95,6 +95,7 @@ export function SynthesisReactorPanel({
   onProductCoeffChange,
   onClearSlots,
   onRequestRun,
+  onSynthesisPrewarmIntent,
   message,
   canRun,
   synthesisRunning = false,
@@ -114,6 +115,7 @@ export function SynthesisReactorPanel({
   onProductCoeffChange: (coeff: number) => void
   onClearSlots: () => void
   onRequestRun: () => void
+  onSynthesisPrewarmIntent?: () => void
   message: string | null
   canRun: boolean
   synthesisRunning?: boolean
@@ -312,6 +314,12 @@ export function SynthesisReactorPanel({
           type="button"
           className={`${panelStyles.reactorBtnPrimary} ${!canRun && !synthesisRunning ? panelStyles.reactorBtnPrimaryMuted : ''} ${synthesisRunning ? panelStyles.reactorBtnPrimaryRunning : ''}`}
           onClick={onRequestRun}
+          onMouseEnter={() => {
+            if (canRun && !synthesisRunning) onSynthesisPrewarmIntent?.()
+          }}
+          onFocus={() => {
+            if (canRun && !synthesisRunning) onSynthesisPrewarmIntent?.()
+          }}
           disabled={!canRun || synthesisRunning}
           aria-busy={synthesisRunning}
         >

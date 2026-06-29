@@ -458,6 +458,7 @@ export function LaboratoryPage() {
   }, [coeffEditBurst])
 
   const onRequestRun = useCallback(() => {
+    setGpuPrewarmIntent(true)
     const prepared = prepareGuaranteedSynthesisRun({
       leftTerms,
       productId: productCompoundId,
@@ -556,8 +557,19 @@ export function LaboratoryPage() {
     return isReactorBalancedFast(deferredLeftTerms, product, productCoeff)
   }, [deferredLeftTerms, productCompoundId, productCoeff])
 
+  /** Явный intent: выбор продукта, hover/focus «Синтез», не авто-prewarm при балансе. */
+  const [gpuPrewarmIntent, setGpuPrewarmIntent] = useState(false)
+
+  useEffect(() => {
+    if (productCompoundId) setGpuPrewarmIntent(true)
+  }, [productCompoundId])
+
+  const requestGpuPrewarmIntent = useCallback(() => {
+    setGpuPrewarmIntent(true)
+  }, [])
+
   const prewarmGateReady = useStableGpuPrewarmGate(
-    canRunSynthesis && editIdle && !coeffEditBurst && reactorOpen,
+    gpuPrewarmIntent && canRunSynthesis && editIdle && !coeffEditBurst && reactorOpen,
     equationSignature,
   )
 
@@ -613,13 +625,13 @@ export function LaboratoryPage() {
   /** До запуска синтеза — только превью реагентов; молекула продукта после анимации */
   const transformPreviewCompound = null
 
-  /** GPU-prewarm: только после стабильной паузы (не при burst и не сразу после последнего coeff). */
+  /** GPU-prewarm: только при intent (каталог / hover «Синтез»), не сразу после баланса. */
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
     if (!canRunSynthesis) return null
     if (isProductGpuCompiled(productCompound.id)) return productCompound
-    if (coeffEditBurst || !editIdle || !prewarmGateReady) return null
+    if (!gpuPrewarmIntent || coeffEditBurst || !editIdle || !prewarmGateReady) return null
     return productCompound
   }, [
     reactorOpen,
@@ -628,6 +640,7 @@ export function LaboratoryPage() {
     lastRunProduct,
     prewarmCompound,
     canRunSynthesis,
+    gpuPrewarmIntent,
     coeffEditBurst,
     editIdle,
     prewarmGateReady,
@@ -710,6 +723,7 @@ export function LaboratoryPage() {
           }}
           onClearSlots={clearReactorSlots}
           onRequestRun={onRequestRun}
+          onSynthesisPrewarmIntent={requestGpuPrewarmIntent}
           message={reactorMessage}
           canRun={canRunSynthesis}
           synthesisRunning={synthRunActive}

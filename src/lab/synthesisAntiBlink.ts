@@ -83,6 +83,14 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   const editPreviewLock =
     !synthLive && !showSettledHero && mountReactorPreview && reactorViewOpen
 
+  /** До first-paint продукта атомы не убираем — overlap против GPU hitch. */
+  const synthPreviewLock =
+    synthLive &&
+    mountReactorPreview &&
+    reactorViewOpen &&
+    !showSettledHero &&
+    !productPainted
+
   if (synthLive && runId > 0 && mountReactorPreview) {
     previewStickyRef.current = { runId, previewMounted: true }
   }
@@ -162,6 +170,8 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   const reactorPreviewVisible =
     reactorPreviewMounted &&
     (editPreviewLock ||
+      synthPreviewLock ||
+      keepPreviewDuringProduct ||
       (!hidePreviewForProduct && (!showSettledHero || synthLive || productPrewarm)))
 
   const reactorPreviewVisibleFinal =

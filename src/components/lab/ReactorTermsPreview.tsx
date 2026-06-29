@@ -82,7 +82,7 @@ export function ReactorTermsPreview({
 
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
   const shellEmptyFramesRef = useRef(0)
-  const SHELL_HOLD_FRAMES = 8
+  const SHELL_HOLD_FRAMES = 14
 
   if (previewAtoms.length > 0) {
     shellAtomsRef.current = previewAtoms
@@ -150,6 +150,16 @@ export function ReactorTermsPreview({
     [n, forceLite, qualityLevel, flightActive, visible, visualTier, coeffEditBurst],
   )
   const { electronAnimate, driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
+
+  /** Один анимированный master на элемент — остальные static (полная модель, меньше useFrame). */
+  const firstMasterIndexByZ = useMemo(() => {
+    const map = new Map<number, number>()
+    for (let i = 0; i < renderAtoms.length; i++) {
+      const z = renderAtoms[i]!.z
+      if (!map.has(z)) map.set(z, i)
+    }
+    return map
+  }, [renderAtoms])
 
   useEffect(() => {
     assertPreviewElectronAnimation(electronAnimate, n)
@@ -246,6 +256,8 @@ export function ReactorTermsPreview({
         const termKey = activeTermIds[atom.termIndex] ?? `t${atom.termIndex}`
         const slotKey = `${termKey}-${atom.atomInTerm}-${atom.z}`
         const [ax, ay, az] = atom.pos
+        const isMasterAnim = firstMasterIndexByZ.get(atom.z) === i
+        const atomAnimates = electronAnimate && isMasterAnim
         return (
           <group
             key={slotKey}
@@ -273,7 +285,8 @@ export function ReactorTermsPreview({
             >
               <ReactorPreviewAtomSlot
                 z={atom.z}
-                animate={electronAnimate}
+                animate={atomAnimates}
+                previewStatic={!atomAnimates}
                 useFullDetail={useFullDetail && !flightActive}
                 synthesisGlass={synthesisGlass && (flightActive || poseLocked)}
                 previewLite={!useFullDetail}

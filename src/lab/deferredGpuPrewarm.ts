@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
-/** Пауза после баланса / конца burst — только потом GPU-prewarm (не блокирует превью). */
-export const GPU_PREWARM_STABLE_MS = 1100
+/** Пауза после intent / конца burst — только потом GPU-prewarm (не блокирует превью). */
+export const GPU_PREWARM_STABLE_MS = 800
 
 /**
  * true только если условия стабильны ≥ GPU_PREWARM_STABLE_MS (баланс, idle, не burst).

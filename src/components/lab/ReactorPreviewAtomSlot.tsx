@@ -6,6 +6,7 @@ export const ReactorPreviewAtomSlot = memo(
   function ReactorPreviewAtomSlot({
     z,
     animate,
+    previewStatic = false,
     useFullDetail,
     synthesisGlass,
     previewLite,
@@ -15,6 +16,7 @@ export const ReactorPreviewAtomSlot = memo(
   }: {
     z: number
     animate: boolean
+    previewStatic?: boolean
     useFullDetail: boolean
     synthesisGlass: boolean
     previewLite: boolean
@@ -26,7 +28,7 @@ export const ReactorPreviewAtomSlot = memo(
       <AtomStructureModel
         z={z}
         animate={animate}
-        previewStatic={false}
+        previewStatic={previewStatic}
         previewEmphasis
         synthesisDetail={useFullDetail}
         synthesisGlass={synthesisGlass}
@@ -40,6 +42,7 @@ export const ReactorPreviewAtomSlot = memo(
   (a, b) =>
     a.z === b.z &&
     a.animate === b.animate &&
+    a.previewStatic === b.previewStatic &&
     a.useFullDetail === b.useFullDetail &&
     a.synthesisGlass === b.synthesisGlass &&
     a.previewLite === b.previewLite &&

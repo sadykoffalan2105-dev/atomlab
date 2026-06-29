@@ -312,6 +312,8 @@ function SceneContent({
   const [productPainted, setProductPainted] = useState(false)
   const productPaintedRef = useRef(false)
   const productPaintFramesRef = useRef(0)
+  const prewarmSuppressUntilRef = useRef(0)
+  const [prewarmSuppressRev, setPrewarmSuppressRev] = useState(0)
   const [prewarmReady, setPrewarmReady] = useState(false)
   const prewarmReadyRef = useRef(false)
   const prewarmCompoundIdRef = useRef<string | null>(null)
@@ -330,6 +332,18 @@ function SceneContent({
     if (!reactorPreviewTerms?.length) return 0
     return buildReactorPreviewAtoms(reactorPreviewTerms, { tier: previewVisualTier }).length
   }, [reactorPreviewTerms, previewVisualTier])
+
+  /** Отмена idle-prewarm при hitch main thread — атомы важнее compile. */
+  const effectivePrewarmProduct = useMemo(() => {
+    if (performance.now() < prewarmSuppressUntilRef.current) return null
+    return prewarmProductCompound ?? null
+  }, [prewarmProductCompound, prewarmSuppressRev])
+
+  const suppressGpuPrewarm = useCallback((holdMs = 2500) => {
+    prewarmSuppressUntilRef.current = performance.now() + holdMs
+    setPrewarmSuppressRev((v) => v + 1)
+    window.setTimeout(() => setPrewarmSuppressRev((v) => v + 1), holdMs + 80)
+  }, [])
   const manyAtomsCameraRef = useRef(previewAtomCount > 8)
 
   useEffect(() => {
@@ -386,7 +400,7 @@ function SceneContent({
   const productCompoundCandidate =
     synthesisSettledProduct ??
     synthesis?.product ??
-    prewarmProductCompound ??
+    effectivePrewarmProduct ??
     null
 
   const gpuPrewarmAllowed = shouldMountProductGpuPrewarm({
@@ -394,7 +408,7 @@ function SceneContent({
     synthesisRunActive,
     synthActive,
     showSettledHero,
-    hasPrewarmIntent: prewarmProductCompound != null,
+    hasPrewarmIntent: effectivePrewarmProduct != null,
   })
 
   const mountReactorPreview =
@@ -421,7 +435,7 @@ function SceneContent({
         productRevealReady,
         productPainted,
         keepPreviewDuringProduct:
-          instantSynthesis && synthActive && synthesisPhase === 'product',
+          (synthActive || synthesisRunActive) && !productPainted,
         stickyMountRef: productStickyMountRef,
         previewStickyRef: previewStickyMountRef,
       }),
@@ -479,7 +493,7 @@ function SceneContent({
       }
       return
     }
-    const compound = prewarmProductCompound ?? synthesis?.product
+    const compound = effectivePrewarmProduct ?? synthesis?.product
     if (!compound) {
       prewarmReadyRef.current = false
       prewarmCompoundIdRef.current = null
@@ -503,7 +517,7 @@ function SceneContent({
   }, [
     gpuPrewarmAllowed,
     reactorViewOpen,
-    prewarmProductCompound?.id,
+    effectivePrewarmProduct?.id,
     synthesis?.product?.id,
     synthActive,
     synthesisRunActive,
@@ -757,7 +771,7 @@ function SceneContent({
     // First-paint latch: callback из LabProductHeroSlot + fallback если callback не пришёл.
     if (synthActive && productSlotVisible && !productPaintedRef.current) {
       productPaintFramesRef.current += 1
-      if (productPaintFramesRef.current >= 12) {
+      if (productPaintFramesRef.current >= 18) {
         productPaintedRef.current = true
         setProductPainted(true)
       }
@@ -793,7 +807,7 @@ function SceneContent({
               editMode,
             )
           ) {
-            if (editMode && previewRootRef.current) {
+            if (previewRootRef.current && (editMode || synthActive || synthesisRunActive)) {
               previewRootRef.current.visible = true
               invalidate()
             }
@@ -822,10 +836,12 @@ function SceneContent({
       synthesisLive: synthesisRunActive || synthActive,
       onMainThreadStall: () => {
         if (reactorViewOpen && !synthesisRunActive && !synthActive) {
+          suppressGpuPrewarm()
           if (forceLiteFxRef) forceLiteFxRef.current = true
           synthForceLiteRef.current = true
           return
         }
+        suppressGpuPrewarm(1800)
         if (forceLiteFxRef) forceLiteFxRef.current = true
         synthForceLiteRef.current = true
         const floor = 2 as SynthesisQualityLevel

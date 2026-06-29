@@ -43,7 +43,7 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
         productPrewarm,
       })
 
-      if (!reactorViewOpen || synthLive || previewAtomCount <= 0) {
+      if (!reactorViewOpen || previewAtomCount <= 0) {
         violationFrames = 0
         return
       }

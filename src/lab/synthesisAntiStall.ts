@@ -12,7 +12,7 @@ export const SYNTH_ANTI_STALL = {
   /** Сколько раз подряд можно форсировать invalidate. */
   canvasBurstMax: 8,
   /** Δ между кадрами rAF — подозрение на блокировку main thread. */
-  mainThreadGapMs: 96,
+  mainThreadGapMs: 72,
   /** Макс. burst при main-thread stall. */
   mainThreadBurstMax: 10,
   /** Минимальный интервал между recover-колбэками coverage guard. */
