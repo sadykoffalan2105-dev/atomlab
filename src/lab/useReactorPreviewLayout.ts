@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, startTransition } from 'react'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
@@ -16,6 +16,7 @@ function termsSignature(terms: readonly ReactorEquationTerm[]): string {
 export function useReactorPreviewLayout(
   terms: readonly ReactorEquationTerm[],
   coeffEditBurst: boolean,
+  layoutDebounceMs = 0,
 ): readonly ReactorPreviewAtom[] {
   const termsSig = useMemo(() => termsSignature(terms), [terms])
   const syncAtoms = useMemo(
@@ -37,7 +38,11 @@ export function useReactorPreviewLayout(
 
     if (syncAtoms.length > 0) {
       shellRef.current = syncAtoms
-      setAtoms(syncAtoms)
+      if (coeffEditBurst || layoutDebounceMs > 0) {
+        startTransition(() => setAtoms(syncAtoms))
+      } else {
+        setAtoms(syncAtoms)
+      }
     } else if (shellRef.current.length > 0 && terms.length >= 1) {
       // Layout hitch — держим последний кадр, пока terms ещё есть.
       setAtoms(shellRef.current)
@@ -52,12 +57,12 @@ export function useReactorPreviewLayout(
         if (cancelled || gen !== genRef.current) return
         if (result.atoms.length > 0) {
           shellRef.current = result.atoms
-          setAtoms(result.atoms)
+          startTransition(() => setAtoms(result.atoms))
         }
       })
     }
 
-    const debounceMs = coeffEditBurst ? 40 : 0
+    const debounceMs = layoutDebounceMs > 0 ? layoutDebounceMs : coeffEditBurst ? 48 : 0
     if (debounceMs > 0) timer = window.setTimeout(runWorker, debounceMs)
     else runWorker()
 
@@ -65,7 +70,7 @@ export function useReactorPreviewLayout(
       cancelled = true
       if (timer != null) window.clearTimeout(timer)
     }
-  }, [termsSig, terms, coeffEditBurst, syncAtoms])
+  }, [termsSig, terms, coeffEditBurst, syncAtoms, layoutDebounceMs])
 
   if (atoms.length > 0) return atoms
   if (shellRef.current.length > 0) return shellRef.current

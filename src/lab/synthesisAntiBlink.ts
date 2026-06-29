@@ -107,9 +107,10 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
         productRevealReady &&
         (_prewarmReady || _forceProductSlot)))
 
-  /** Молекула на экране — атомы реагентов убираем. */
+  /** Молекула на экране — атомы реагентов убираем (только когда продукт реально виден). */
   const productTakeover =
-    showSettledHero || (productSlotVisible && productRevealReady && productPainted)
+    (showSettledHero && productSlotVisible) ||
+    (synthLive && productSlotVisible && productRevealReady && productPainted)
 
   const editingEquation =
     !synthLive && !showSettledHero && !productTakeover && mountReactorPreview && reactorViewOpen

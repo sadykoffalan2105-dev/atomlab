@@ -1,36 +1,43 @@
 import { useEffect, useRef } from 'react'
 
 /**
- * Мгновенный синтез лаборатории: без GSAP, полёта, вспышек.
- * Показываем продукт через LabProductHeroSlot, завершаем run за 2–3 кадра.
+ * Мгновенный синтез: без GSAP. onDone — только после кадров отрисовки продукта.
  */
 export function InstantLabSynthesis({
   runId,
   onDone,
   onPhaseChange,
+  minFrames = 10,
 }: {
   runId: number
   onDone: (kind: 'success' | 'fail') => void
   onPhaseChange?: (phase: string, launchProgress: number) => void
+  /** Минимум кадров до завершения — продукт успевает отрисоваться (нет чёрного экрана). */
+  minFrames?: number
 }) {
   const doneRef = useRef(false)
 
   useEffect(() => {
     doneRef.current = false
     onPhaseChange?.('product', 1)
-    let raf2 = 0
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        if (doneRef.current) return
+    let frames = 0
+    let raf = 0
+    const tick = () => {
+      frames += 1
+      if (doneRef.current) return
+      if (frames >= minFrames) {
         doneRef.current = true
         onDone('success')
-      })
-    })
-    return () => {
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
+        return
+      }
+      raf = requestAnimationFrame(tick)
     }
-  }, [runId, onDone, onPhaseChange])
+    raf = requestAnimationFrame(tick)
+    return () => {
+      doneRef.current = true
+      cancelAnimationFrame(raf)
+    }
+  }, [runId, onDone, onPhaseChange, minFrames])
 
   return null
 }

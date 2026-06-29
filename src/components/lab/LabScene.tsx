@@ -363,10 +363,7 @@ function SceneContent({
     window.setTimeout(() => setPrewarmSuppressRev((v) => v + 1), holdMs + 80)
   }, [])
   const manyAtomsCameraRef = useRef(previewAtomCount > 8)
-
-  useEffect(() => {
-    if (reactorCoeffEditBurst && reactorViewOpen) invalidate()
-  }, [reactorPreviewTerms, reactorCoeffEditBurst, reactorViewOpen, invalidate])
+  const lastSynthRunIdRef = useRef(0)
 
   const synthTimingProfile = useMemo(
     () => getSynthesisTimingProfile(synthForceLite, getSynthesisDeviceTier()),
@@ -512,6 +509,28 @@ function SceneContent({
     setProductPainted(true)
   }, [])
 
+  const handleInstantSynthDone = useCallback(
+    (kind: 'success' | 'fail') => {
+      if (!synthesis?.onDone) return
+      if (kind !== 'success') {
+        synthesis.onDone(kind)
+        return
+      }
+      let frames = 0
+      const minWait = Math.max(lowPowerProfile.productPaintLatchFrames + 6, 12)
+      const tick = () => {
+        frames += 1
+        if (productPaintedRef.current || frames >= minWait) {
+          synthesis.onDone(kind)
+          return
+        }
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    },
+    [synthesis, lowPowerProfile.productPaintLatchFrames],
+  )
+
   useEffect(() => {
     if (!gpuPrewarmAllowed || !reactorViewOpen) {
       if (!synthActive && !synthesisRunActive) {
@@ -563,15 +582,22 @@ function SceneContent({
   }, [productPainted, productSlotVisible])
 
   useLayoutEffect(() => {
-    // Сброс first-paint latch на каждый новый прогон/выход из синтеза.
-    productPaintedRef.current = false
-    productPaintFramesRef.current = 0
-    setProductPainted(false)
-    if (!synthActive || !synthesis?.runId) {
-      setProductRevealReady(false)
+    const rid = synthesis?.runId ?? 0
+    if (rid <= 0) {
+      if (!synthActive && !synthesisRunActive) {
+        setProductRevealReady(false)
+      }
       return
     }
-    const productId = synthesis.product?.id
+    if (lastSynthRunIdRef.current !== rid) {
+      lastSynthRunIdRef.current = rid
+      productPaintedRef.current = false
+      productPaintFramesRef.current = 0
+      setProductPainted(false)
+      setForceProductSlot(true)
+      setEarlyProductReveal(true)
+    }
+    const productId = synthesis?.product?.id
     const gpuReady =
       productId != null &&
       ((prewarmReadyRef.current || prewarmReady) &&
@@ -585,7 +611,7 @@ function SceneContent({
       return
     }
     setProductRevealReady(false)
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, instantSynthesis])
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, instantSynthesis, synthesisRunActive])
 
   // Когда prewarm завершился уже во время синтеза — сразу показываем продукт.
   useEffect(() => {
@@ -1028,11 +1054,12 @@ function SceneContent({
               visible={reactorPreviewVisible}
               flightActive={previewMotionLocked}
               poseLocked={previewPoseLocked}
-              sharedLighting={synthActive || synthesisRunActive}
+              sharedLighting
               forceLite={previewForceLite || editForceLite}
               qualityLevel={synthQualityLevel}
               synthesisGlass={synthQualityFeatures.glassAtoms}
               coeffEditBurst={reactorCoeffEditBurst}
+              lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}
               productPrewarm={productPrewarmActive}
               atomGroupRefs={previewAtomGroupRefs}
               atomScaleGroupRefs={previewAtomScaleGroupRefs}
@@ -1068,8 +1095,9 @@ function SceneContent({
           {synthActive && synthesis && instantSynthesis ? (
             <InstantLabSynthesis
               runId={synthesis.runId}
-              onDone={synthesis.onDone}
+              onDone={handleInstantSynthDone}
               onPhaseChange={synthesis.onPhaseChange}
+              minFrames={Math.max(lowPowerProfile.productPaintLatchFrames + 4, 10)}
             />
           ) : null}
           {showSettledHero && synthesisSettledProduct
@@ -1232,6 +1260,8 @@ export function LabCanvas({
           state.gl.setClearColor(bg, 1)
           state.scene.background = bg
           const canvas = state.gl.domElement
+          canvas.style.background = reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX
+          canvas.style.display = 'block'
           const onLost = (e: Event) => {
             e.preventDefault()
             webglRecoveryRef.current.onContextLost()
