@@ -25,11 +25,8 @@ export type SynthesisContinuityInput = {
   productCompoundId: string | null
   earlyProductReveal: boolean
   forceProductSlot: boolean
-  /** true — молекула уже отрисована, можно скрыть превью атомов */
   productRevealReady: boolean
-  /** true — меш молекулы реально отрисован ≥1 кадра на полном масштабе (first-paint latch). */
   productPainted?: boolean
-  /** Мгновенный синтез — держим атомы до settled (нет чёрного кадра). */
   keepPreviewDuringProduct?: boolean
   stickyMountRef: MutableRefObject<SynthesisStickyMountRef | null>
   previewStickyRef: MutableRefObject<SynthesisPreviewStickyRef | null>
@@ -45,22 +42,22 @@ export type SynthesisContinuityView = {
 }
 
 /**
- * Инвариант: во время синтеза на сцене всегда есть атомы И/ИЛИ продукт.
- * Меш продукта не размонтируется после первого mount на runId.
+ * Инвариант:
+ * - при редактировании +/- — атомы видны;
+ * - после отрисовки молекулы — только продукт (атомы скрыты);
+ * - settled — превью размонтировано.
  */
 export function resolveSynthesisContinuity(input: SynthesisContinuityInput): SynthesisContinuityView {
   const {
     runId,
     synthActive,
     synthesisRunActive,
-    synthesisPhase: _synthesisPhase,
     showSettledHero,
     mountReactorPreview,
     reactorViewOpen,
     gpuPrewarmAllowed: _gpuPrewarmAllowed,
     prewarmReady: _prewarmReady,
     productCompoundId,
-    earlyProductReveal: _earlyProductReveal,
     forceProductSlot: _forceProductSlot,
     productRevealReady,
     productPainted = false,
@@ -71,7 +68,6 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
 
   const synthLive = synthActive || synthesisRunActive
 
-  /** GPU-prewarm до клика «Синтез»: невидимый меш (scale≈0) пока уравнение сбалансировано. */
   const earlyGpuPrewarm =
     !synthLive &&
     !showSettledHero &&
@@ -79,43 +75,15 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     productCompoundId != null &&
     reactorViewOpen
 
-  /** Во время подбора коэффициентов и синтеза превью атомов всегда видно. */
-  const editPreviewLock =
-    !showSettledHero && reactorViewOpen && (mountReactorPreview || previewStickyRef.current?.previewMounted)
-
-  /** До first-paint продукта атомы не убираем — overlap против GPU hitch. */
-  const synthPreviewLock =
-    synthLive &&
-    mountReactorPreview &&
-    reactorViewOpen &&
-    !showSettledHero &&
-    !productPainted
-
-  if (synthLive && runId > 0 && mountReactorPreview) {
-    previewStickyRef.current = { runId, previewMounted: true }
-  } else if (mountReactorPreview && reactorViewOpen && !showSettledHero) {
-    previewStickyRef.current = { runId: runId > 0 ? runId : -1, previewMounted: true }
-  }
-
-  if (!synthLive && !showSettledHero && !mountReactorPreview) {
-    previewStickyRef.current = null
-  }
-
-  const previewSticky =
-    previewStickyRef.current != null && previewStickyRef.current.previewMounted
-
-  const reactorPreviewMounted =
-    mountReactorPreview || (previewSticky && reactorViewOpen)
-
   if (productCompoundId && reactorViewOpen) {
     if (synthLive && runId > 0) {
       stickyMountRef.current = { runId, compoundId: productCompoundId, productMounted: true }
-    } else if (earlyGpuPrewarm) {
+    } else if (earlyGpuPrewarm || showSettledHero) {
       stickyMountRef.current = { runId: 0, compoundId: productCompoundId, productMounted: true }
     }
   }
 
-  if (!synthLive && !showSettledHero && !earlyGpuPrewarm) {
+  if (!synthLive && !showSettledHero && !earlyGpuPrewarm && !productCompoundId) {
     stickyMountRef.current = null
   }
 
@@ -126,14 +94,11 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     sticky.compoundId === productCompoundId &&
     sticky.productMounted
 
-  /** Меш продукта — после запуска, в settled или при раннем GPU-prewarm. */
   const productMeshMounted =
     productCompoundId != null &&
     reactorViewOpen &&
-    (showSettledHero ||
-      (stickyMatch && ((synthLive && runId > 0) || earlyGpuPrewarm)))
+    (showSettledHero || (stickyMatch && ((synthLive && runId > 0) || earlyGpuPrewarm)))
 
-  /** Видимость — после GPU compile или принудительного reveal (атомы держим до productPainted). */
   const productSlotVisible =
     productMeshMounted &&
     (showSettledHero ||
@@ -142,49 +107,56 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
         productRevealReady &&
         (_prewarmReady || _forceProductSlot)))
 
-  const productPrewarm = productMeshMounted && !productSlotVisible && !showSettledHero
-  const holdVisualOverlap = synthLive
+  /** Молекула на экране — атомы реагентов убираем. */
+  const productTakeover =
+    showSettledHero || (productSlotVisible && productRevealReady && productPainted)
 
-  /**
-   * Превью атомов скрываем только в settled-режиме после отрисовки продукта.
-   * Во время synthLive атомы остаются — нет чёрного кадра в конце анимации.
-   */
-  const hidePreviewForProduct =
-    showSettledHero &&
-    productSlotVisible &&
-    productRevealReady &&
-    productPainted &&
-    !synthLive
+  const editingEquation =
+    !synthLive && !showSettledHero && !productTakeover && mountReactorPreview && reactorViewOpen
 
-  const reactorPreviewVisible =
-    reactorPreviewMounted &&
-    (editPreviewLock ||
-      synthPreviewLock ||
-      keepPreviewDuringProduct ||
-      (!hidePreviewForProduct && (!showSettledHero || synthLive || productPrewarm)))
-
-  const editSafetyOverride =
-    !showSettledHero &&
+  const synthPreviewLock =
+    synthLive &&
     mountReactorPreview &&
     reactorViewOpen &&
+    !showSettledHero &&
+    !productTakeover &&
+    (keepPreviewDuringProduct || !productPainted)
+
+  if (showSettledHero || productTakeover) {
+    previewStickyRef.current = null
+  } else if (editingEquation) {
+    previewStickyRef.current = { runId: runId > 0 ? runId : -1, previewMounted: true }
+  } else if (synthLive && runId > 0 && mountReactorPreview) {
+    previewStickyRef.current = { runId, previewMounted: true }
+  } else if (!synthLive && !showSettledHero && !mountReactorPreview) {
+    previewStickyRef.current = null
+  }
+
+  const previewSticky =
+    previewStickyRef.current != null && previewStickyRef.current.previewMounted
+
+  const reactorPreviewMounted =
+    !showSettledHero &&
+    !productTakeover &&
+    (mountReactorPreview || (previewSticky && reactorViewOpen && (editingEquation || synthPreviewLock)))
+
+  const productPrewarm = productMeshMounted && !productSlotVisible && !showSettledHero
+  const holdVisualOverlap = synthLive && !productTakeover
+
+  const reactorPreviewVisible =
+    reactorPreviewMounted && !productTakeover && (editingEquation || synthPreviewLock)
+
+  const synthEmptyGuard =
+    synthLive &&
     reactorPreviewMounted &&
+    !productTakeover &&
     !productSlotVisible &&
     !productPrewarm &&
+    !showSettledHero &&
     !reactorPreviewVisible
 
-  const reactorPreviewVisibleFinal =
-    editSafetyOverride ||
-    (synthLive &&
-      reactorPreviewMounted &&
-      !reactorPreviewVisible &&
-      !productSlotVisible &&
-      !productPrewarm &&
-      !showSettledHero)
-      ? true
-      : reactorPreviewVisible
-
   return {
-    reactorPreviewVisible: reactorPreviewVisibleFinal,
+    reactorPreviewVisible: synthEmptyGuard ? true : reactorPreviewVisible,
     reactorPreviewMounted,
     productMeshMounted,
     productSlotVisible,

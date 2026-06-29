@@ -34,7 +34,7 @@ export function ReactorTermsPreview({
   qualityLevel,
   synthesisGlass = false,
   coeffEditBurst = false,
-  productPrewarm = false,
+  productPrewarm: _productPrewarm = false,
   atomGroupRefs: atomGroupRefsExternal,
   atomScaleGroupRefs: atomScaleGroupRefsExternal,
   previewRootRef,
@@ -74,8 +74,7 @@ export function ReactorTermsPreview({
   const previewLenRef = useRef(previewAtoms.length)
   previewLenRef.current = previewAtoms.length
 
-  const hasTerms = terms.length >= 1
-  const shellHoldActive = hasTerms || coeffEditBurst || productPrewarm
+  const shellHoldActive = coeffEditBurst && !visible
   const useShell =
     previewAtoms.length === 0 &&
     shellAtomsRef.current.length > 0 &&
@@ -83,7 +82,7 @@ export function ReactorTermsPreview({
   const renderAtoms = previewAtoms.length > 0 ? previewAtoms : useShell ? shellAtomsRef.current : []
   const n = renderAtoms.length
   maxPoolRef.current = Math.max(maxPoolRef.current, n)
-  if (!hasTerms && n === 0) maxPoolRef.current = 0
+  if (terms.length === 0 && n === 0) maxPoolRef.current = 0
   const poolSize = maxPoolRef.current
 
   for (let i = 0; i < n; i++) {
@@ -91,12 +90,11 @@ export function ReactorTermsPreview({
   }
 
   const shouldRender =
-    n > 0 ||
-    ((shellHoldActive || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES) &&
-      shellAtomsRef.current.length > 0)
-  const forceVisible = hasTerms && n > 0
-  const displayVisible = forceVisible || visible || shellHoldActive || productPrewarm
-  const groupVisible = shouldRender && displayVisible
+    n > 0 &&
+    (visible ||
+      shellHoldActive ||
+      (shellEmptyFramesRef.current < SHELL_HOLD_FRAMES && shellAtomsRef.current.length > 0))
+  const groupVisible = shouldRender && (visible || shellHoldActive)
 
   const groupRef = useRef<THREE.Group>(null)
   const visibilityGuardRef = useRef(createReactorPreviewVisibilityGuard())
@@ -121,12 +119,12 @@ export function ReactorTermsPreview({
         atomCount: n,
         forceLite: forceLite || coeffEditBurst,
         flightActive,
-        visible: displayVisible,
+        visible: groupVisible,
         visualTier: 'full',
         qualityLevel,
         coeffEditBurst,
       }),
-    [n, forceLite, qualityLevel, flightActive, displayVisible, coeffEditBurst],
+    [n, forceLite, qualityLevel, flightActive, groupVisible, coeffEditBurst],
   )
   const { electronAnimate, driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
 
@@ -217,8 +215,16 @@ export function ReactorTermsPreview({
   useLayoutEffect(() => {
     const g = groupRef.current
     if (!g) return
-    g.visible = groupVisible || shouldRender
-  }, [groupVisible, shouldRender])
+    g.visible = groupVisible
+    if (!groupVisible) {
+      for (let i = 0; i < atomGroupRefs.current.length; i++) {
+        const posG = atomGroupRefs.current[i]
+        const scaleG = atomScaleGroupRefs.current[i]
+        if (posG) posG.visible = false
+        if (scaleG) scaleG.visible = false
+      }
+    }
+  }, [groupVisible, atomGroupRefs, atomScaleGroupRefs])
 
   return (
     <group ref={groupRef} visible frustumCulled={false}>

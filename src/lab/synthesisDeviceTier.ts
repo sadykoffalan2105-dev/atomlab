@@ -28,8 +28,8 @@ function classifyGpu(renderer: string): GpuClass {
   if (
     /swiftshader|llvmpipe|microsoft basic render|software rasterizer/.test(r) ||
     /intel.*(hd graphics|hd 4\d{3}|uhd graphics 6[0-2]\d)/.test(r) ||
-    /mali-4|mali-t[0-6]|adreno \(tm\) [34]/.test(r) ||
-    /angle.*intel.*hd/.test(r)
+    /mali-4|mali-t[0-6]|adreno \(tm\) [234567]/.test(r) ||
+    /angle.*intel.*hd|angle.*adreno/.test(r)
   ) {
     return 'weak'
   }
@@ -69,8 +69,12 @@ function scoreDevice(): number {
   else if (gpu === 'strong') score += 14
 
   if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent.toLowerCase()
     const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)
     if (mobile) score -= 16
+    if (/snapdragon|qualcomm|sm[0-9]{4}|xiaomi|redmi|poco|realme|oppo|vivo|oneplus/i.test(ua)) {
+      score -= 18
+    }
   }
 
   const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1

@@ -56,7 +56,11 @@ export function getReactorPreviewPolicy(opts: {
     electronAnimate:
       visible &&
       !flightActive &&
-      atomCount <= SYNTHESIS_PERF.maxAnimatedAtoms,
+      atomCount <=
+        (typeof window !== 'undefined' &&
+        /snapdragon|qualcomm|sm[0-9]{4}/i.test(navigator.userAgent)
+          ? 12
+          : SYNTHESIS_PERF.maxAnimatedAtoms),
     driftAtoms:
       !coeffEditBurst &&
       !minimal &&

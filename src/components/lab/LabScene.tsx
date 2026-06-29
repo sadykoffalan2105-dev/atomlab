@@ -66,6 +66,7 @@ import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
 import { resolveDeviceSynthesisCap } from '../../perf/graphicsSettings'
 import { resolveLabCanvasPolicy } from '../../perf/deviceCanvasPolicy'
 import { createWebGlRecoveryController } from '../../lab/webglRecoveryGuard'
+import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 
 /** Свободная лаборатория (атомы на столе). */
@@ -372,6 +373,10 @@ function SceneContent({
     [synthForceLite],
   )
   const instantSynthesis = isInstantSynthesisProfile(synthTimingProfile)
+  const lowPowerProfile = useMemo(
+    () => getLowPowerDeviceProfile(getSynthesisDeviceTier()),
+    [reactorCoeffEditBurst, synthesisRunActive],
+  )
 
   const synthQualityFeatures = useMemo(
     () => featuresForQuality(synthQualityLevel, synthesisPhase),
@@ -487,7 +492,10 @@ function SceneContent({
     editLiteLatchRef.current = false
   }
   const editForceLite =
-    editLiteLatchRef.current || reactorCoeffEditBurst || frameBudgetRef.current.shouldForceLite()
+    editLiteLatchRef.current ||
+    reactorCoeffEditBurst ||
+    frameBudgetRef.current.shouldForceLite() ||
+    lowPowerProfile.forceLiteReactor
   const reactorPreviewMounted = continuity.reactorPreviewMounted
   const reactorPreviewVisible = continuity.reactorPreviewVisible
   const productSlotVisible = continuity.productSlotVisible
@@ -542,6 +550,17 @@ function SceneContent({
     synthActive,
     synthesisRunActive,
   ])
+
+  useLayoutEffect(() => {
+    if (!productPainted || !productSlotVisible) return
+    previewStickyMountRef.current = null
+    const root = previewRootRef.current
+    if (!root) return
+    root.visible = false
+    root.traverse((obj) => {
+      obj.visible = false
+    })
+  }, [productPainted, productSlotVisible])
 
   useLayoutEffect(() => {
     // Сброс first-paint latch на каждый новый прогон/выход из синтеза.
@@ -813,7 +832,8 @@ function SceneContent({
     // First-paint latch: callback из LabProductHeroSlot + fallback если callback не пришёл.
     if (synthActive && productSlotVisible && !productPaintedRef.current) {
       productPaintFramesRef.current += 1
-      if (productPaintFramesRef.current >= 24) {
+      const latch = instantSynthesis ? lowPowerProfile.productPaintLatchFrames : 24
+      if (productPaintFramesRef.current >= latch) {
         productPaintedRef.current = true
         setProductPainted(true)
       }
@@ -1005,7 +1025,7 @@ function SceneContent({
           {reactorPreviewMounted && effectivePreviewTerms ? (
             <ReactorTermsPreview
               terms={effectivePreviewTerms}
-              visible={reactorPreviewVisible || previewAtomCount > 0}
+              visible={reactorPreviewVisible}
               flightActive={previewMotionLocked}
               poseLocked={previewPoseLocked}
               sharedLighting={synthActive || synthesisRunActive}
