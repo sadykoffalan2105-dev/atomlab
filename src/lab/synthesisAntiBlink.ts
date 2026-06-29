@@ -79,6 +79,10 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     productCompoundId != null &&
     reactorViewOpen
 
+  /** Во время подбора коэффициентов превью атомов всегда видно — prewarm не скрывает центр. */
+  const editPreviewLock =
+    !synthLive && !showSettledHero && mountReactorPreview && reactorViewOpen
+
   if (synthLive && runId > 0 && mountReactorPreview) {
     previewStickyRef.current = { runId, previewMounted: true }
   }
@@ -157,8 +161,8 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
 
   const reactorPreviewVisible =
     reactorPreviewMounted &&
-    !hidePreviewForProduct &&
-    (!showSettledHero || synthLive || productPrewarm)
+    (editPreviewLock ||
+      (!hidePreviewForProduct && (!showSettledHero || synthLive || productPrewarm)))
 
   const reactorPreviewVisibleFinal =
     synthLive &&

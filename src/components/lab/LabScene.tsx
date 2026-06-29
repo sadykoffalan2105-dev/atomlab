@@ -782,17 +782,21 @@ function SceneContent({
           cosmicFx: synthesisRunActive || synthActive || reactorViewOpen,
         },
         () => {
-      const editMode = reactorViewOpen && !synthesisRunActive && !synthActive
-      if (
-        !synthesisContinuityCoveredV2(
-          continuity,
-          synthesisPhase === 'mergeFlash',
-          synthesisPhase === 'converge' ||
-            synthesisPhase === 'ignite' ||
-            synthesisPhase === 'flying',
-          editMode,
-        )
-      ) {
+          const editMode = reactorViewOpen && !synthesisRunActive && !synthActive
+          if (
+            !synthesisContinuityCoveredV2(
+              continuity,
+              synthesisPhase === 'mergeFlash',
+              synthesisPhase === 'converge' ||
+                synthesisPhase === 'ignite' ||
+                synthesisPhase === 'flying',
+              editMode,
+            )
+          ) {
+            if (editMode && previewRootRef.current) {
+              previewRootRef.current.visible = true
+              invalidate()
+            }
             if (synthesisPhase === 'mergeFlash' || synthesisPhase === 'product') {
               setForceProductSlot(true)
             }

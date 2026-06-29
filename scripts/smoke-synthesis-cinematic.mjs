@@ -10,7 +10,6 @@ const checks = [
   'src/lab/visualCoverageController.ts',
   'src/lab/reactorPreviewLayoutWorkerClient.ts',
   'src/workers/reactorPreviewLayout.worker.ts',
-  'src/components/lab/ReactorInstancedAtoms.tsx',
   'src/components/lab/ReactorCoeffBadge.tsx',
   'src/components/lab/SynthesisBondBurst.tsx',
   'src/components/lab/SynthesisConvergeStreams.tsx',

@@ -47,8 +47,7 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
         violationFrames = 0
         return
       }
-      const ok =
-        (previewMounted && previewVisible) || (productPrewarm && synthLive)
+      const ok = previewMounted && previewVisible
       if (ok) {
         violationFrames = 0
         return
@@ -57,8 +56,11 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
       const root = previewRootRef?.current
       if (root) {
         root.visible = true
+        root.traverse((obj) => {
+          obj.visible = true
+        })
       }
-      if (violationFrames <= 8) {
+      if (violationFrames <= 24) {
         invalidate()
       }
     },

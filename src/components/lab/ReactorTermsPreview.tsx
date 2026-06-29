@@ -67,7 +67,10 @@ export function ReactorTermsPreview({
     () => terms.filter((t) => Math.floor(t.coeff) > 0).map((t) => t.id),
     [terms],
   )
-  const visualTier = visualTierProp ?? getReactorVisualTier(terms)
+  const visualTierComputed = visualTierProp ?? getReactorVisualTier(terms)
+  const visualTierLatchRef = useRef(visualTierComputed)
+  if (!coeffEditBurst) visualTierLatchRef.current = visualTierComputed
+  const visualTier = coeffEditBurst ? visualTierLatchRef.current : visualTierComputed
   const previewAtoms = useMemo(
     () => buildReactorPreviewAtoms(terms, { tier: visualTier }),
     [terms, visualTier],
@@ -97,7 +100,7 @@ export function ReactorTermsPreview({
   const renderAtoms = previewAtoms.length > 0 ? previewAtoms : useShell ? shellAtomsRef.current : []
   const n = renderAtoms.length
   const groupVisible =
-    visible && (n > 0 || (shellHoldActive && shellAtomsRef.current.length > 0))
+    visible && (n > 0 || ((shellHoldActive || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES) && shellAtomsRef.current.length > 0))
 
   const groupRef = useRef<THREE.Group>(null)
   const visibilityGuardRef = useRef(createReactorPreviewVisibilityGuard())

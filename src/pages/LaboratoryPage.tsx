@@ -16,6 +16,7 @@ import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reac
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
+import { useStableGpuPrewarmGate } from '../lab/deferredGpuPrewarm'
 import { isProductGpuCompiled } from '../lab/productGpuCompileCache'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
@@ -555,6 +556,11 @@ export function LaboratoryPage() {
     return isReactorBalancedFast(deferredLeftTerms, product, productCoeff)
   }, [deferredLeftTerms, productCompoundId, productCoeff])
 
+  const prewarmGateReady = useStableGpuPrewarmGate(
+    canRunSynthesis && editIdle && !coeffEditBurst && reactorOpen,
+    equationSignature,
+  )
+
   const highlightEquationError = useMemo(() => {
     if (!reactorMessage) return false
     const m = reactorMessage.toLowerCase()
@@ -607,15 +613,13 @@ export function LaboratoryPage() {
   /** До запуска синтеза — только превью реагентов; молекула продукта после анимации */
   const transformPreviewCompound = null
 
-  /** GPU-prewarm продукта: только когда уравнение сбалансировано (не блокируем кадр при подборе коэффициентов). */
+  /** GPU-prewarm: только после стабильной паузы (не при burst и не сразу после последнего coeff). */
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
     if (!canRunSynthesis) return null
-    if (coeffEditBurst || !editIdle) {
-      if (isProductGpuCompiled(productCompound.id)) return productCompound
-      return null
-    }
+    if (isProductGpuCompiled(productCompound.id)) return productCompound
+    if (coeffEditBurst || !editIdle || !prewarmGateReady) return null
     return productCompound
   }, [
     reactorOpen,
@@ -626,6 +630,7 @@ export function LaboratoryPage() {
     canRunSynthesis,
     coeffEditBurst,
     editIdle,
+    prewarmGateReady,
   ])
 
   return (

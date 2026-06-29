@@ -5,7 +5,6 @@ import type * as THREE from 'three'
 import { LAUNCH_PRODUCT_ENTRANCE_DUR } from '../../lab/synthesisLaunchTiming'
 import { scheduleIdleMatch } from '../../lab/labRenderGuards'
 import { compileObjectTreeChunked } from '../../lab/gpuCompileChunked'
-import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import {
   scheduleGpuCompileWatchdog,
   SYNTH_ANTI_STALL,
@@ -117,7 +116,7 @@ export function LabProductHeroSlot({
             invalidate()
             notifyGpuCompiled()
           },
-          { skipCompileAsync: getSynthesisDeviceTier() === 'low' },
+          { skipCompileAsync: true, meshesPerFrame: 1 },
         )
       })
     }

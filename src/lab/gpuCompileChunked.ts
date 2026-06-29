@@ -13,8 +13,9 @@ export function compileObjectTreeChunked(
   scene: THREE.Scene,
   invalidate: () => void,
   onDone: () => void,
-  opts?: { skipCompileAsync?: boolean },
+  opts?: { skipCompileAsync?: boolean; meshesPerFrame?: number },
 ): () => void {
+  const perFrame = Math.max(1, opts?.meshesPerFrame ?? MESHES_PER_FRAME)
   const meshes: THREE.Object3D[] = []
   root.traverse((obj) => {
     if ((obj as THREE.Mesh).isMesh) meshes.push(obj)
@@ -50,7 +51,7 @@ export function compileObjectTreeChunked(
 
   const step = () => {
     if (cancelled) return
-    const end = Math.min(idx + MESHES_PER_FRAME, meshes.length)
+    const end = Math.min(idx + perFrame, meshes.length)
     for (; idx < end; idx++) {
       try {
         gl.compile(meshes[idx]!, camera, scene)

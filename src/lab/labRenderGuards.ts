@@ -26,7 +26,7 @@ export function scheduleIdleMatch(fn: () => void): void {
       () => {
         fn()
       },
-      { timeout: 120 },
+      { timeout: 800 },
     )
     return
   }
