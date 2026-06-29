@@ -24,6 +24,17 @@ int32_t reactor_expand_z_slots(
 /** Catalog match stub (worker handles full catalog in JS). */
 int32_t catalog_match(const uint8_t* terms, int32_t terms_len, uint8_t* out, int32_t out_cap);
 
+/**
+ * Preview atom layout — coeff models, symmetric clusters.
+ * out: [x,y,z, z, termIndex, atomInTerm] * N (6 floats per atom).
+ */
+int32_t reactor_preview_layout(
+  const uint8_t* terms,
+  int32_t term_count,
+  float* out,
+  int32_t out_atom_cap
+);
+
 }
 
 #endif

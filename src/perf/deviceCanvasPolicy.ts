@@ -37,11 +37,7 @@ export function resolveLabCanvasPolicy(opts: {
     return { dpr: 1, antialias: false }
   }
 
-  if (heavyScene) {
-    return { dpr: synthesisRunActive ? [1, 1.25] : 1, antialias: false }
-  }
-
-  if (reactorViewOpen && coeffEditBurst) {
+  if (heavyScene || (reactorViewOpen && coeffEditBurst)) {
     return { dpr: 1, antialias: false }
   }
 

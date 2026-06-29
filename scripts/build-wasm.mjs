@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.join(__dirname, '..')
 const srcDir = path.join(root, 'native/atomlab_core/src')
-const sources = ['reactor_balance.cpp', 'catalog_match.cpp'].map((f) =>
+const sources = ['reactor_balance.cpp', 'catalog_match.cpp', 'reactor_preview_layout.cpp'].map((f) =>
   path.join(srcDir, f).replace(/\\/g, '/'),
 )
 const outDir = path.join(root, 'public/wasm')
@@ -20,6 +20,7 @@ const exports = [
   '_reactor_balance',
   '_reactor_expand_z_slots',
   '_catalog_match',
+  '_reactor_preview_layout',
 ].join(',')
 
 try {

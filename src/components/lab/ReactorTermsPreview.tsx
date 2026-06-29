@@ -86,8 +86,12 @@ export function ReactorTermsPreview({
     (shellHoldActive || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES)
   const renderAtoms = previewAtoms.length > 0 ? previewAtoms : useShell ? shellAtomsRef.current : []
   const n = renderAtoms.length
-  const groupVisible =
-    visible && (n > 0 || ((shellHoldActive || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES) && shellAtomsRef.current.length > 0))
+  const shouldRender =
+    n > 0 ||
+    ((shellHoldActive || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES) &&
+      shellAtomsRef.current.length > 0)
+  const displayVisible = visible || shellHoldActive || productPrewarm
+  const groupVisible = shouldRender && (displayVisible || shellHoldActive)
 
   const groupRef = useRef<THREE.Group>(null)
   const visibilityGuardRef = useRef(createReactorPreviewVisibilityGuard())
@@ -205,8 +209,14 @@ export function ReactorTermsPreview({
     if (previewRootRef) previewRootRef.current = groupRef.current
   }, [previewRootRef, n])
 
+  useLayoutEffect(() => {
+    const g = groupRef.current
+    if (!g) return
+    g.visible = groupVisible || shouldRender
+  }, [groupVisible, shouldRender])
+
   return (
-    <group ref={groupRef} visible={groupVisible} frustumCulled={false}>
+    <group ref={groupRef} visible frustumCulled={false}>
       {!sharedLighting ? (
         <>
           <ambientLight intensity={n > 18 ? 0.38 : 0.22} />

@@ -2,7 +2,6 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
-import { getReactorVisualTier } from '../chemistry/reactorVisualTier'
 import type {
   ReactorPreviewLayoutWorkerRequest,
   ReactorPreviewLayoutWorkerResponse,
@@ -46,7 +45,7 @@ export function buildPreviewLayoutSync(terms: readonly ReactorEquationTerm[]): {
   tier: ReactorVisualTier
   atoms: ReactorPreviewAtom[]
 } {
-  const tier = getReactorVisualTier(terms)
+  const tier = 'full' as ReactorVisualTier
   return { tier, atoms: buildReactorPreviewAtoms(terms, { tier }) }
 }
 
@@ -56,7 +55,7 @@ export function requestPreviewLayout(
 ): Promise<{ tier: ReactorVisualTier; atoms: ReactorPreviewAtom[] }> {
   const atomEstimate = buildPreviewLayoutSync(terms).atoms.length
   const w = ensureWorker()
-  if (!w || atomEstimate <= 12) {
+  if (!w || atomEstimate <= 8) {
     return Promise.resolve(buildPreviewLayoutSync(terms))
   }
   const id = ++reqId

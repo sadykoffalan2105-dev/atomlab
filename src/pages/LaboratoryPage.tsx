@@ -453,6 +453,13 @@ export function LaboratoryPage() {
 
   const { coeffEditBurst, editIdle, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
 
+  /** Canvas: deferred terms при burst — меньше hitch main thread (см. video t≈16s). */
+  const reactorPreviewTermsCanvas = useMemo(() => {
+    if (!reactorOpen) return null
+    const terms = coeffEditBurst && !editIdle ? deferredLeftTerms : leftTerms
+    return terms.length >= 1 ? terms : null
+  }, [reactorOpen, leftTerms, deferredLeftTerms, coeffEditBurst, editIdle])
+
   useEffect(() => {
     if (coeffEditBurst) forceLiteFxRef.current = true
   }, [coeffEditBurst])
@@ -668,7 +675,7 @@ export function LaboratoryPage() {
           onInspectAtom={reactorOpen ? undefined : setStructureZ}
           synthesis={labSynthesis}
           synthesisRunActive={synthRunActive}
-          reactorPreviewTerms={reactorPreviewTerms}
+          reactorPreviewTerms={reactorPreviewTermsCanvas}
           reactorCoeffEditBurst={coeffEditBurst}
           transformPreviewCompound={transformPreviewCompound}
           reactorViewOpen={reactorOpen}

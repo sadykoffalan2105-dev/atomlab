@@ -40,7 +40,7 @@ export class CanvasErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(_error: unknown): void {
     const { retryCount } = this.state
-    if (retryCount < 1) {
+    if (retryCount < 3) {
       window.setTimeout(() => {
         this.setState((s) => ({
           error: null,
@@ -63,7 +63,7 @@ export class CanvasErrorBoundary extends Component<Props, State> {
     const { error, mountKey, retryCount } = this.state
 
     if (error) {
-      if (retryCount < 1) return RETRY_PLACEHOLDER
+      if (retryCount < 3) return RETRY_PLACEHOLDER
 
       const { fallback } = this.props
       if (typeof fallback === 'function') return fallback(error, this.retry)

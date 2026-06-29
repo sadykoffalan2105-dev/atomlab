@@ -63,6 +63,7 @@ import { getSynthesisTimingProfile, isInstantSynthesisProfile } from '../../lab/
 import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
 import { resolveDeviceSynthesisCap } from '../../perf/graphicsSettings'
 import { resolveLabCanvasPolicy } from '../../perf/deviceCanvasPolicy'
+import { createWebGlRecoveryController } from '../../lab/webglRecoveryGuard'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 
 /** Свободная лаборатория (атомы на столе). */
@@ -333,11 +334,20 @@ function SceneContent({
     return buildReactorPreviewAtoms(reactorPreviewTerms, { tier: previewVisualTier }).length
   }, [reactorPreviewTerms, previewVisualTier])
 
-  /** Отмена idle-prewarm при hitch main thread — атомы важнее compile. */
+  /** Отмена idle-prewarm при hitch / во время ранних фаз синтеза (ignite/converge/flying). */
   const effectivePrewarmProduct = useMemo(() => {
     if (performance.now() < prewarmSuppressUntilRef.current) return null
+    if (
+      synthActive &&
+      synthesisPhase &&
+      synthesisPhase !== 'mergeFlash' &&
+      synthesisPhase !== 'product' &&
+      synthesisPhase !== ''
+    ) {
+      return null
+    }
     return prewarmProductCompound ?? null
-  }, [prewarmProductCompound, prewarmSuppressRev])
+  }, [prewarmProductCompound, prewarmSuppressRev, synthActive, synthesisPhase])
 
   const suppressGpuPrewarm = useCallback((holdMs = 2500) => {
     prewarmSuppressUntilRef.current = performance.now() + holdMs
@@ -1104,6 +1114,9 @@ export function LabCanvas({
   const { t } = useT()
   const [perfLevel, setPerfLevel] = useState<PerfLevel>('high')
   const [internalSessionKey, setInternalSessionKey] = useState(0)
+  const webglRecoveryRef = useRef(
+    createWebGlRecoveryController(() => setInternalSessionKey((k) => k + 1)),
+  )
   const canvasKey = `${sessionKey}-${internalSessionKey}`
 
   /** always — demand давал чёрный центр при +/- коэффициентов. */
@@ -1162,11 +1175,11 @@ export function LabCanvas({
           const canvas = state.gl.domElement
           const onLost = (e: Event) => {
             e.preventDefault()
-            requestAnimationFrame(() => {
-              setInternalSessionKey((k) => k + 1)
-            })
+            webglRecoveryRef.current.onContextLost()
+            state.invalidate()
           }
           const onRestored = () => {
+            webglRecoveryRef.current.onContextRestored()
             state.gl.setClearColor(bg, 1)
             state.scene.background = bg
             state.gl.setSize(state.size.width, state.size.height)
