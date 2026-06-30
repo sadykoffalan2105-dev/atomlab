@@ -13,6 +13,7 @@ import {
   isProductGpuCompiled,
   markProductGpuCompiled,
 } from '../../lab/productGpuCompileCache'
+import { enqueueGpuCompile } from '../../lab/gpuCompileBudget'
 import type { CompoundDef } from '../../types/chemistry'
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
@@ -90,6 +91,7 @@ export function LabProductHeroSlot({
 
     let cancelled = false
     const gen = compileGenRef.current
+    const compilePriority: 0 | 1 = visible ? 1 : 0
     const clearGpuWatch = scheduleGpuCompileWatchdog(() => {
       if (!cancelled && gen === compileGenRef.current) notifyGpuCompiled()
     })
@@ -102,7 +104,6 @@ export function LabProductHeroSlot({
         return
       }
 
-      // Не масштабируем до 1 — иначе flash и hitch на слабых GPU.
       root.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
       invalidate()
 
@@ -122,6 +123,8 @@ export function LabProductHeroSlot({
             prewarmPaintFramesRef.current = 0
             invalidate()
             notifyGpuCompiled()
+            releaseBudget?.()
+            releaseBudget = null
           },
           { skipCompileAsync: !shaderCompileAsync, meshesPerFrame: shaderCompileAsync ? 2 : 1 },
         )
@@ -129,11 +132,26 @@ export function LabProductHeroSlot({
     }
 
     let cancelChunk: (() => void) | undefined
+    let cancelBudget: (() => void) | undefined
+    let releaseBudget: (() => void) | null = null
 
     const boot = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         scheduleIdleMatch(() => {
-          if (!cancelled) runCompile()
+          if (cancelled) return
+          cancelBudget = enqueueGpuCompile(
+            `prewarm:${compound.id}:${runId}`,
+            (release) => {
+              releaseBudget = release
+              runCompile()
+              return () => {
+                cancelChunk?.()
+                releaseBudget?.()
+                releaseBudget = null
+              }
+            },
+            compilePriority,
+          )
         })
       })
     })
@@ -142,6 +160,7 @@ export function LabProductHeroSlot({
       cancelled = true
       clearGpuWatch()
       cancelAnimationFrame(boot)
+      cancelBudget?.()
       cancelChunk?.()
     }
   }, [prewarm, visible, compound.id, gl, camera, scene, invalidate, notifyGpuCompiled, shaderCompileAsync])

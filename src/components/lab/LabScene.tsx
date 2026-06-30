@@ -663,8 +663,6 @@ function SceneContent({
         if (productRevealReady) return
         if (frames >= 6) {
           setProductRevealReady(true)
-          prewarmReadyRef.current = true
-          setPrewarmReady(true)
           return
         }
         raf = requestAnimationFrame(tick)
@@ -679,8 +677,6 @@ function SceneContent({
       if (productRevealReady) return
       if (frames >= 36) {
         setProductRevealReady(true)
-        prewarmReadyRef.current = true
-        setPrewarmReady(true)
         return
       }
       raf = requestAnimationFrame(tick)

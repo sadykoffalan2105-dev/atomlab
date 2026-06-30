@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 /** Пауза после intent / конца burst — только потом GPU-prewarm (не блокирует превью). */
-export const GPU_PREWARM_STABLE_MS = 600
+export const GPU_PREWARM_STABLE_MS = 480
 /** Быстрый intent при hover на кнопку синтеза. */
 export const GPU_PREWARM_HOVER_MS = 80
 

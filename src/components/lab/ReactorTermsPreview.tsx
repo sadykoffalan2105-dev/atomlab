@@ -86,7 +86,7 @@ export function ReactorTermsPreview({
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
   const shellEmptyFramesRef = useRef(0)
   const slotZRef = useRef<number[]>([])
-  const SHELL_HOLD_FRAMES = coeffEditBurst ? 180 : 96
+  const SHELL_HOLD_FRAMES = coeffEditBurst ? 240 : 120
   const maxPoolRef = useRef(0)
 
   if (previewAtoms.length > 0) {

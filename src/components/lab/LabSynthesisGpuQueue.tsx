@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CompoundDef } from '../../types/chemistry'
+import { GPU_COMPILE_QUEUE_GAP_MS } from '../../lab/synthesisHangGuard'
 import { isProductGpuCompiled } from '../../lab/productGpuCompileCache'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
 
@@ -42,7 +43,7 @@ export function LabSynthesisGpuQueue({
         return next >= compounds.length * 2 ? 0 : next
       })
       void compoundId
-    }, 120)
+    }, GPU_COMPILE_QUEUE_GAP_MS)
   }
 
   if (!active || !compound || isProductGpuCompiled(compound.id)) return null
