@@ -68,6 +68,9 @@ import { resolveLabCanvasPolicy } from '../../perf/deviceCanvasPolicy'
 import { createWebGlRecoveryController } from '../../lab/webglRecoveryGuard'
 import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
+import { resolvePopularSynthesisCompounds } from '../../lab/synthesisPrewarmPolicy'
+import { ReactorAtomShaderWarmup } from './ReactorAtomShaderWarmup'
+import { LabSynthesisGpuQueue } from './LabSynthesisGpuQueue'
 
 /** Свободная лаборатория (атомы на столе). */
 const LAB_SCENE_CLEAR_HEX = '#03040a'
@@ -109,7 +112,7 @@ function LabReactorLights() {
   )
 }
 
-/** Прогрев кадра при открытии реактора — без gl.compile (блокирует main thread на секунды). */
+/** Прогрев кадра при открытии реактора + несколько invalidate для WebGL pipeline. */
 function ReactorSceneWarmup({ reactorOpen }: { reactorOpen: boolean }) {
   const { invalidate } = useThree()
   const warmedRef = useRef(false)
@@ -120,20 +123,18 @@ function ReactorSceneWarmup({ reactorOpen }: { reactorOpen: boolean }) {
     }
     if (warmedRef.current) return
     warmedRef.current = true
-    invalidate()
-    let raf2 = 0
-    let raf3 = 0
-    const raf1 = requestAnimationFrame(() => {
+    let cancelled = false
+    let count = 0
+    const maxFrames = 8
+    const tick = () => {
+      if (cancelled) return
       invalidate()
-      raf2 = requestAnimationFrame(() => {
-        invalidate()
-        raf3 = requestAnimationFrame(() => invalidate())
-      })
-    })
+      count += 1
+      if (count < maxFrames) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
     return () => {
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
-      cancelAnimationFrame(raf3)
+      cancelled = true
     }
   }, [reactorOpen, invalidate])
   return null
@@ -428,12 +429,24 @@ function SceneContent({
     null
 
   const gpuPrewarmAllowed = shouldMountProductGpuPrewarm({
-    policy: 'synthesis-only',
+    policy: 'intent',
     synthesisRunActive,
     synthActive,
     showSettledHero,
     hasPrewarmIntent: effectivePrewarmProduct != null,
   })
+
+  const popularPrewarmCompounds = useMemo(
+    () => resolvePopularSynthesisCompounds(compoundById),
+    [],
+  )
+
+  const gpuQueueActive =
+    reactorViewOpen &&
+    !reactorCoeffEditBurst &&
+    !synthesisRunActive &&
+    !synthActive &&
+    !showSettledHero
 
   const mountReactorPreview =
     reactorViewOpen &&
@@ -1025,6 +1038,12 @@ function SceneContent({
       {reactorViewOpen ? (
         <ReactorSceneWarmup reactorOpen={reactorViewOpen} />
       ) : null}
+      {reactorViewOpen && !reactorCoeffEditBurst ? (
+        <ReactorAtomShaderWarmup active={!synthesisRunActive && !synthActive} />
+      ) : null}
+      {gpuQueueActive ? (
+        <LabSynthesisGpuQueue compounds={popularPrewarmCompounds} active={gpuQueueActive} />
+      ) : null}
 
       {!reactorViewOpen ? (
         <>
@@ -1136,6 +1155,7 @@ function SceneContent({
           runId={synthesis?.runId ?? 0}
           birthEntrance={false}
           entranceDuration={0}
+          shaderCompileAsync={productPrewarmActive}
           onGpuCompiled={handleProductGpuCompiled}
           onProductVisiblePaint={handleProductVisiblePaint}
         />

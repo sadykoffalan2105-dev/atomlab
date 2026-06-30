@@ -2,9 +2,18 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
-**Скачать v1.3.6:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.6)
-- `ATOMLAB-1.3.6-portable.exe` — без установки
-- `ATOMLAB-1.3.6-setup.exe` — установщик
+**Скачать v1.3.7:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.7)
+- `ATOMLAB-1.3.7-portable.exe` — без установки
+- `ATOMLAB-1.3.7-setup.exe` — установщик
+
+### v1.3.7 — cold start синтеза (первый запуск без лагов)
+
+- Idle GPU-prewarm продукта после баланса уравнения (не во время +/-)
+- Hover intent на кнопку «Проверить и запустить» — ранний compile шейдеров
+- Фоновая очередь GPU-compile популярных веществ (H₂O, NaCl, K₂Cr₂O₇…)
+- Прогрев шейдеров Bohr-атомов при открытии реактора
+- `compileAsync` при idle-prewarm — убирает hitch первого синтеза
+- Расширенный WASM/worker warmup (тяжёлые уравнения)
 
 ### v1.3.6 — стабильность синтеза (Performance & Stability)
 

@@ -35,6 +35,8 @@ export function LabProductHeroSlot({
   runId = 0,
   birthEntrance = false,
   entranceDuration = LAUNCH_PRODUCT_ENTRANCE_DUR,
+  /** Idle prewarm: compileAsync шейдеров (убирает cold-start hitch). */
+  shaderCompileAsync = false,
   onGpuCompiled,
   onProductVisiblePaint,
 }: {
@@ -45,6 +47,7 @@ export function LabProductHeroSlot({
   runId?: number
   birthEntrance?: boolean
   entranceDuration?: number
+  shaderCompileAsync?: boolean
   /** Вызывается после compileAsync меша (или из кэша) — можно показывать продукт. */
   onGpuCompiled?: (compoundId: string) => void
   /** Меш на полном масштабе отрисован ≥1 кадр — можно скрыть превью атомов. */
@@ -120,7 +123,7 @@ export function LabProductHeroSlot({
             invalidate()
             notifyGpuCompiled()
           },
-          { skipCompileAsync: true, meshesPerFrame: 1 },
+          { skipCompileAsync: !shaderCompileAsync, meshesPerFrame: shaderCompileAsync ? 2 : 1 },
         )
       })
     }
@@ -141,7 +144,7 @@ export function LabProductHeroSlot({
       cancelAnimationFrame(boot)
       cancelChunk?.()
     }
-  }, [prewarm, visible, compound.id, gl, camera, scene, invalidate, notifyGpuCompiled])
+  }, [prewarm, visible, compound.id, gl, camera, scene, invalidate, notifyGpuCompiled, shaderCompileAsync])
 
   // Считаем реально отрисованные кадры prewarm / visible, затем «готово».
   useFrame(() => {

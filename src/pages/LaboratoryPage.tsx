@@ -16,7 +16,8 @@ import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reac
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
-import { useStableGpuPrewarmGate } from '../lab/deferredGpuPrewarm'
+import { useStableGpuPrewarmGate, GPU_PREWARM_HOVER_MS } from '../lab/deferredGpuPrewarm'
+import { canIdleGpuPrewarm } from '../lab/synthesisPrewarmPolicy'
 import { useReactorPreviewTermsStable } from '../lab/useReactorPreviewTermsStable'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
@@ -99,6 +100,7 @@ export function LaboratoryPage() {
   const synthesisPhaseRef = useRef('')
   const synthesisCompletingRef = useRef(false)
   const [prewarmCompound, setPrewarmCompound] = useState<CompoundDef | null>(null)
+  const [prewarmHoverRev, setPrewarmHoverRev] = useState(0)
   const lastRunVisualTierRef = useRef<ReactorVisualTier>('full')
   const synthesisRunGuardRef = useRef(createSynthesisRunGuard())
   const forceLiteFxRef = useRef(false)
@@ -451,7 +453,7 @@ export function LaboratoryPage() {
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
 
-  const { coeffEditBurst, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
+  const { coeffEditBurst, editIdle, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
 
   /** Canvas: stable shell + immediate при burst — атомы не пропадают при +/-. */
   const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
@@ -624,17 +626,53 @@ export function LaboratoryPage() {
   /** До запуска синтеза — только превью реагентов; молекула продукта после анимации */
   const transformPreviewCompound = null
 
-  /** GPU-prewarm только во время синтеза — не при подборе коэффициентов (блокирует WebGL → чёрный экран). */
-  useStableGpuPrewarmGate(synthRunActive && productCompound != null, `${equationSignature}:${runId}`)
+  /** GPU-prewarm: idle после баланса (не во время +/-) + hover intent + активный синтез. */
+  const idleGpuPrewarmEnabled = canIdleGpuPrewarm({
+    reactorOpen,
+    coeffEditBurst,
+    synthesisRunActive: synthRunActive,
+    hasProduct: productCompound != null && canRunSynthesis,
+  })
+
+  const idlePrewarmStable = useStableGpuPrewarmGate(
+    idleGpuPrewarmEnabled && editIdle,
+    `${equationSignature}:${productCompound?.id ?? ''}`,
+  )
+
+  useEffect(() => {
+    if (coeffEditBurst) setPrewarmHoverRev(0)
+  }, [coeffEditBurst])
+
+  const onSynthesisPrewarmIntent = useCallback(() => {
+    if (!canRunSynthesis || !productCompound || synthRunActive) return
+    setPrewarmHoverRev((v) => v + 1)
+  }, [canRunSynthesis, productCompound, synthRunActive])
+
+  useEffect(() => {
+    if (prewarmHoverRev <= 0) return
+    const t = window.setTimeout(() => setPrewarmHoverRev(0), GPU_PREWARM_HOVER_MS + 4000)
+    return () => window.clearTimeout(t)
+  }, [prewarmHoverRev])
 
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
+    if (
+      !coeffEditBurst &&
+      (idlePrewarmStable || prewarmHoverRev > 0) &&
+      canRunSynthesis
+    ) {
+      return productCompound
+    }
     return null
   }, [
     reactorOpen,
     productCompound,
     synthRunActive,
+    coeffEditBurst,
+    idlePrewarmStable,
+    prewarmHoverRev,
+    canRunSynthesis,
     lastRunProduct,
     prewarmCompound,
   ])
@@ -716,6 +754,7 @@ export function LaboratoryPage() {
           highlightEquationError={highlightEquationError}
           ambiguousProductMatches={ambiguousProductMatches}
           dimInCatalogHeroView={laboratorySynthesisView === 'substance'}
+          onSynthesisPrewarmIntent={onSynthesisPrewarmIntent}
         />
 
         <ReactorCompoundCatalogPanel

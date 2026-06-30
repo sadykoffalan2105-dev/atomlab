@@ -9,6 +9,7 @@ import type { ReactorEquationTerm } from '../src/chemistry/reactorEquationBalanc
 import { buildReactorPreviewAtoms, reactorPreviewAtomScale, PREVIEW_ATOM_SCALE } from '../src/components/lab/reactorPreviewLayout.ts'
 import { resolveSynthesisContinuity } from '../src/lab/synthesisAntiBlink.ts'
 import { isVisualCoverageOk } from '../src/lab/visualCoverageController.ts'
+import { canIdleGpuPrewarm } from '../src/lab/synthesisPrewarmPolicy.ts'
 import { getReactorPreviewPolicy } from '../src/lab/synthesisLagGuard.ts'
 
 const SYNC_BUILD_ATOM_CAP = 12
@@ -126,6 +127,28 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     const n = buildReactorPreviewAtoms(t, { tier: 'full' }).length
     assert.equal(n, expandLeftTermsToPreviewSlots(t).length)
   }
+}
+
+// --- idle GPU prewarm allowed when balanced, not during burst ---
+{
+  assert.equal(
+    canIdleGpuPrewarm({
+      reactorOpen: true,
+      coeffEditBurst: false,
+      synthesisRunActive: false,
+      hasProduct: true,
+    }),
+    true,
+  )
+  assert.equal(
+    canIdleGpuPrewarm({
+      reactorOpen: true,
+      coeffEditBurst: true,
+      synthesisRunActive: false,
+      hasProduct: true,
+    }),
+    false,
+  )
 }
 
 console.log('test-synthesis-stability: all passed')
