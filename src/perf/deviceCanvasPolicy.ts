@@ -9,27 +9,24 @@ export type LabCanvasPolicy = {
 
 /**
  * DPR и AA для Lab Canvas.
- * На мощных ПК — как раньше (до 1.5× DPR, AA в реакторе).
- * На слабых / при просадке FPS — 1× без AA.
+ * В режиме редактирования реактора — стабильная политика (смена DPR при +/- ломает WebGL → белый экран).
  */
 export function resolveLabCanvasPolicy(opts: {
   deviceTier: SynthesisDeviceTier
   perfLevel: LabPerfLevel
   synthesisRunActive: boolean
   reactorViewOpen: boolean
-  coeffEditBurst: boolean
+  coeffEditBurst?: boolean
   substanceView: boolean
 }): LabCanvasPolicy {
-  const {
-    deviceTier,
-    perfLevel,
-    synthesisRunActive,
-    reactorViewOpen,
-    coeffEditBurst,
-    substanceView,
-  } = opts
+  const { deviceTier, perfLevel, synthesisRunActive, reactorViewOpen, substanceView } = opts
 
   const deviceLow = deviceTier === 'low'
+
+  if (reactorViewOpen && !synthesisRunActive && !substanceView) {
+    return deviceLow ? { dpr: 1, antialias: false } : { dpr: [1, 1.25], antialias: true }
+  }
+
   const fpsLow = perfLevel === 'low'
   const heavyScene = synthesisRunActive || substanceView
 
@@ -37,13 +34,13 @@ export function resolveLabCanvasPolicy(opts: {
     return { dpr: 1, antialias: false }
   }
 
-  if (heavyScene || (reactorViewOpen && coeffEditBurst)) {
+  if (heavyScene) {
     return { dpr: 1, antialias: false }
   }
 
   if (reactorViewOpen) {
-    return { dpr: [1, 1.5], antialias: true }
+    return { dpr: [1, 1.25], antialias: true }
   }
 
-  return { dpr: [1, 1.5], antialias: true }
+  return { dpr: [1, 1.25], antialias: true }
 }

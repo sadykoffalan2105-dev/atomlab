@@ -28,6 +28,7 @@ import {
 } from '../../lab/synthesisLagGuard'
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
+import { debugSessionLog } from '../../lab/debugSessionLog'
 import { ReactorTermsPreview } from './ReactorTermsPreview'
 import { buildReactorPreviewAtoms } from './reactorPreviewLayout'
 import { getSynthesisDeviceTier, refineSynthesisDeviceTierFromFps } from '../../lab/synthesisDeviceTier'
@@ -1117,7 +1118,7 @@ function SceneContent({
         </>
       ) : null}
 
-      {catalogViewMode && !synthActive ? <CatalogCanvasResizeSync /> : null}
+      {reactorViewOpen ? <CatalogCanvasResizeSync touchDpr={false} /> : null}
       {productForSlot ? (
         <LabProductHeroSlot
           compound={productForSlot}
@@ -1197,8 +1198,13 @@ export function LabCanvas({
   const { t } = useT()
   const [perfLevel, setPerfLevel] = useState<PerfLevel>('high')
   const [internalSessionKey, setInternalSessionKey] = useState(0)
+  const coeffEditBurstRef = useRef(reactorCoeffEditBurst ?? false)
+  coeffEditBurstRef.current = reactorCoeffEditBurst ?? false
   const webglRecoveryRef = useRef(
-    createWebGlRecoveryController(() => setInternalSessionKey((k) => k + 1)),
+    createWebGlRecoveryController(() => {
+      if (coeffEditBurstRef.current) return
+      setInternalSessionKey((k) => k + 1)
+    }),
   )
   const canvasKey = `${sessionKey}-${internalSessionKey}`
 
@@ -1243,6 +1249,12 @@ export function LabCanvas({
     <CanvasErrorBoundary resetKey={canvasKey} fallback={<CanvasSceneErrorFallback />}>
       <Canvas
         key={canvasKey}
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '100%',
+          background: reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX,
+        }}
         gl={{
           antialias: canvasAntialias,
           alpha: false,
@@ -1258,8 +1270,29 @@ export function LabCanvas({
           const canvas = state.gl.domElement
           canvas.style.background = reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX
           canvas.style.display = 'block'
+          // #region agent log
+          debugSessionLog(
+            'LabScene.tsx:onCreated',
+            'canvas created',
+            {
+              w: canvas.clientWidth,
+              h: canvas.clientHeight,
+              reactorViewOpen,
+              coeffEditBurst: coeffEditBurstRef.current,
+            },
+            'H-A',
+          )
+          // #endregion
           const onLost = (e: Event) => {
             e.preventDefault()
+            // #region agent log
+            debugSessionLog(
+              'LabScene.tsx:webglcontextlost',
+              'webgl context lost',
+              { coeffEditBurst: coeffEditBurstRef.current },
+              'H-B',
+            )
+            // #endregion
             webglRecoveryRef.current.onContextLost()
             state.invalidate()
           }

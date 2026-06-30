@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, startTransition } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
@@ -38,11 +38,7 @@ export function useReactorPreviewLayout(
 
     if (syncAtoms.length > 0) {
       shellRef.current = syncAtoms
-      if (coeffEditBurst || layoutDebounceMs > 0) {
-        startTransition(() => setAtoms(syncAtoms))
-      } else {
-        setAtoms(syncAtoms)
-      }
+      setAtoms(syncAtoms)
     } else if (shellRef.current.length > 0 && terms.length >= 1) {
       // Layout hitch — держим последний кадр, пока terms ещё есть.
       setAtoms(shellRef.current)
@@ -57,7 +53,7 @@ export function useReactorPreviewLayout(
         if (cancelled || gen !== genRef.current) return
         if (result.atoms.length > 0) {
           shellRef.current = result.atoms
-          startTransition(() => setAtoms(result.atoms))
+          setAtoms(result.atoms)
         }
       })
     }

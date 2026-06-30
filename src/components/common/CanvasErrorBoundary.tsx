@@ -1,4 +1,5 @@
 import { Component, Fragment, type ReactNode } from 'react'
+import { debugSessionLog } from '../../lab/debugSessionLog'
 
 type Props = {
   children: ReactNode
@@ -38,7 +39,15 @@ export class CanvasErrorBoundary extends Component<Props, State> {
     }
   }
 
-  componentDidCatch(_error: unknown): void {
+  componentDidCatch(error: unknown): void {
+    // #region agent log
+    debugSessionLog(
+      'CanvasErrorBoundary.tsx:catch',
+      'canvas render error',
+      { message: error instanceof Error ? error.message : String(error), retryCount: this.state.retryCount },
+      'H-D',
+    )
+    // #endregion
     const { retryCount } = this.state
     if (retryCount < 3) {
       window.setTimeout(() => {

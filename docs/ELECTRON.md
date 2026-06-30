@@ -2,9 +2,16 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
-**Скачать v1.3.2:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.2)
-- `ATOMLAB-1.3.2-portable.exe` — без установки
-- `ATOMLAB-1.3.2-setup.exe` — установщик
+**Скачать v1.3.3:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.3)
+- `ATOMLAB-1.3.3-portable.exe` — без установки
+- `ATOMLAB-1.3.3-setup.exe` — установщик
+
+### v1.3.3 — белый/чёрный экран при +/- коэффициентов
+
+- Синхронизация размера WebGL-canvas при редактировании реактора (раньше только в catalog/settled)
+- Стабильный DPR/AA во время +/- — смена renderer больше не рвёт контекст
+- Мгновенный sync layout атомов без `startTransition` при burst
+- Тёмный fallback на контейнере Canvas; remount WebGL отложен во время burst
 
 ### v1.3.2 — конец синтеза без чёрного/белого экрана
 
@@ -77,8 +84,8 @@ npm run dist:electron:portable
 
 ```
 release/
-├── ATOMLAB-1.3.2-portable.exe      ← portable, без установки
-├── ATOMLAB-1.3.2-setup.exe         ← NSIS-установщик
+├── ATOMLAB-1.3.3-portable.exe      ← portable, без установки
+├── ATOMLAB-1.3.3-setup.exe         ← NSIS-установщик
 ├── win-unpacked/                   ← распакованное приложение (для отладки)
 ├── latest.yml                      ← манифест для electron-updater
 └── builder-effective-config.yaml
