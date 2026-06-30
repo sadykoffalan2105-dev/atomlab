@@ -2,9 +2,16 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
-**Скачать v1.3.1:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.1)
-- `ATOMLAB-1.3.1-portable.exe` — без установки
-- `ATOMLAB-1.3.1-setup.exe` — установщик
+**Скачать v1.3.2:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.2)
+- `ATOMLAB-1.3.2-portable.exe` — без установки
+- `ATOMLAB-1.3.2-setup.exe` — установщик
+
+### v1.3.2 — конец синтеза без чёрного/белого экрана
+
+- Молекула продукта отрисовывается до скрытия атомов (реальный paint callback, не счётчик кадров)
+- Shell превью остаётся смонтированным во время синтеза — нет «пустого» кадра
+- Атомарный переход settled (`flushSync`) и синхронный resize canvas (`useLayoutEffect`)
+- Исправлена гонка `forceProductSlot` при завершении синтеза
 
 ### v1.3.1 — восстановление визуала атомов
 
@@ -70,8 +77,8 @@ npm run dist:electron:portable
 
 ```
 release/
-├── ATOMLAB-1.3.1-portable.exe      ← portable, без установки
-├── ATOMLAB-1.3.1-setup.exe         ← NSIS-установщик
+├── ATOMLAB-1.3.2-portable.exe      ← portable, без установки
+├── ATOMLAB-1.3.2-setup.exe         ← NSIS-установщик
 ├── win-unpacked/                   ← распакованное приложение (для отладки)
 ├── latest.yml                      ← манифест для electron-updater
 └── builder-effective-config.yaml

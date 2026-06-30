@@ -517,10 +517,14 @@ function SceneContent({
         return
       }
       let frames = 0
-      const minWait = Math.max(lowPowerProfile.productPaintLatchFrames + 6, 12)
+      const maxWait = 180
       const tick = () => {
         frames += 1
-        if (productPaintedRef.current || frames >= minWait) {
+        if (productPaintedRef.current) {
+          synthesis.onDone(kind)
+          return
+        }
+        if (frames >= maxWait) {
           synthesis.onDone(kind)
           return
         }
@@ -528,7 +532,7 @@ function SceneContent({
       }
       requestAnimationFrame(tick)
     },
-    [synthesis, lowPowerProfile.productPaintLatchFrames],
+    [synthesis],
   )
 
   useEffect(() => {
@@ -682,12 +686,14 @@ function SceneContent({
     setEarlyProductReveal(true)
   }, [synthActive, synthesis?.runId])
 
+  useLayoutEffect(() => {
+    if (synthActive || synthesisRunActive || showSettledHero) return
+    setEarlyProductReveal(false)
+    setForceProductSlot(false)
+  }, [synthActive, synthesisRunActive, showSettledHero])
+
   useEffect(() => {
     if (!synthActive) {
-      if (!showSettledHero) {
-        setEarlyProductReveal(false)
-        setForceProductSlot(false)
-      }
       coverageTrackerRef.current.reset()
       crossfadeGuardRef.current?.cancel()
       crossfadeGuardRef.current = null
@@ -853,16 +859,6 @@ function SceneContent({
     if (frameBudgetRef.current.shouldForceLite() && reactorViewOpen) {
       editLiteLatchRef.current = true
       if (forceLiteFxRef) forceLiteFxRef.current = true
-    }
-
-    // First-paint latch: callback из LabProductHeroSlot + fallback если callback не пришёл.
-    if (synthActive && productSlotVisible && !productPaintedRef.current) {
-      productPaintFramesRef.current += 1
-      const latch = instantSynthesis ? lowPowerProfile.productPaintLatchFrames : 24
-      if (productPaintFramesRef.current >= latch) {
-        productPaintedRef.current = true
-        setProductPainted(true)
-      }
     }
 
     coverageFrameRef.current += 1

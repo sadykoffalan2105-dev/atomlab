@@ -8,6 +8,7 @@ import {
   useState,
   startTransition,
 } from 'react'
+import { flushSync } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { IconVrLab } from '../components/vrLab/IconVrLab'
 import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
@@ -383,14 +384,16 @@ export function LaboratoryPage() {
         synthesisCompletingRef.current = true
         const name = getCompoundLocaleStrings(compound, locale, t).name
         setReactorMessage(t('reactor.successProduct', { name, formula: compound.formulaUnicode }))
-        setSynthesisSettledProduct(compound)
-        synthesisSettledProductRef.current = compound
-        settledSnapshotRef.current = equationSignature
+        flushSync(() => {
+          setSynthesisSettledProduct(compound)
+          synthesisSettledProductRef.current = compound
+          settledSnapshotRef.current = equationSignature
+          setRunId(0)
+        })
         setLaboratorySynthesisView('reactor')
         lastRunZSlotsRef.current = []
         setSynthesisFlightSlots(null)
         setSynthesisFlyTerms(null)
-        setRunId(0)
         setSynthPhaseUi('settled')
       })
     },
