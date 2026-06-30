@@ -2,9 +2,16 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
-**Скачать v1.3.0:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.0)
-- `ATOMLAB-1.3.0-portable.exe` — без установки
-- `ATOMLAB-1.3.0-setup.exe` — установщик
+**Скачать v1.3.1:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.1)
+- `ATOMLAB-1.3.1-portable.exe` — без установки
+- `ATOMLAB-1.3.1-setup.exe` — установщик
+
+### v1.3.1 — восстановление визуала атомов
+
+- Орбитальные линии и анимация электронов снова всегда включены при редактировании коэффициентов
+- Per-atom освещение и цвета Bohr-модели как до v1.3.0
+- Ускорение сохранено: debounce layout, throttle invalidate, worker, anti-blink — без деградации графики
+- Контракт `reactorVisualPreservation.ts` защищает визуал от случайных perf-регрессий
 
 ## Возможности
 
@@ -63,8 +70,8 @@ npm run dist:electron:portable
 
 ```
 release/
-├── ATOMLAB-1.3.0-portable.exe      ← portable, без установки
-├── ATOMLAB-1.3.0-setup.exe         ← NSIS-установщик
+├── ATOMLAB-1.3.1-portable.exe      ← portable, без установки
+├── ATOMLAB-1.3.1-setup.exe         ← NSIS-установщик
 ├── win-unpacked/                   ← распакованное приложение (для отладки)
 ├── latest.yml                      ← манифест для electron-updater
 └── builder-effective-config.yaml

@@ -1054,7 +1054,7 @@ function SceneContent({
               visible={reactorPreviewVisible}
               flightActive={previewMotionLocked}
               poseLocked={previewPoseLocked}
-              sharedLighting
+              sharedLighting={synthActive || synthesisRunActive}
               forceLite={previewForceLite || editForceLite}
               qualityLevel={synthQualityLevel}
               synthesisGlass={synthQualityFeatures.glassAtoms}

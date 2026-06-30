@@ -90,8 +90,7 @@ export function getReactorAtomRenderPolicy(opts: {
   const lite =
     forceLite ||
     qualityLevelToForceLite(qualityLevel ?? 4) ||
-    shouldForceLiteByAtomCount(atomCount) ||
-    coeffEditBurst
+    shouldForceLiteByAtomCount(atomCount)
 
   const synthesisDetail =
     !lite && atomCount <= SYNTHESIS_PERF.fullDetailAtomThreshold && atomZ <= 54
