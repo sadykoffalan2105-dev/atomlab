@@ -41,10 +41,11 @@ export function useReactorPreviewLayout(
     lastBuiltSigRef.current = termsSig
     const shell = shellRef.current
     const heavy = atomEstimate > SYNC_BUILD_ATOM_CAP
-    const deferSync = heavy && shell.length > 0
+    /** Burst +/-: всегда sync-build — worker не откладывает layout. */
+    const deferSync = heavy && shell.length > 0 && !coeffEditBurst
     if (!deferSync || shell.length === 0) {
       const built = buildReactorPreviewAtoms(terms, { tier: 'full' })
-      syncAtomsRef.current = built
+      syncAtomsRef.current = built.length > 0 ? built : shell.length > 0 ? shell : built
       if (built.length > 0) shellRef.current = built
     } else {
       syncAtomsRef.current = shell
@@ -72,7 +73,7 @@ export function useReactorPreviewLayout(
       setAtoms(shellRef.current)
     }
 
-    const useWorker = atomEstimate > SYNC_BUILD_ATOM_CAP
+    const useWorker = atomEstimate > SYNC_BUILD_ATOM_CAP && !coeffEditBurst
     if (!useWorker) return
 
     let cancelled = false
@@ -85,6 +86,12 @@ export function useReactorPreviewLayout(
         if (result.atoms.length > 0) {
           shellRef.current = result.atoms
           setAtoms(result.atoms)
+          return
+        }
+        const syncFallback = buildReactorPreviewAtoms(terms, { tier: 'full' })
+        if (syncFallback.length > 0) {
+          shellRef.current = syncFallback
+          setAtoms(syncFallback)
         } else if (shellRef.current.length > 0) {
           setAtoms(shellRef.current)
         }

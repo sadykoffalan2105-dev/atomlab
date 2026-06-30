@@ -6,6 +6,7 @@ import type {
   ReactorPreviewLayoutWorkerRequest,
   ReactorPreviewLayoutWorkerResponse,
 } from '../workers/reactorPreviewLayout.worker'
+import { REACTOR_PREVIEW_LAYOUT_WORKER_TIMEOUT_MS } from './synthesisHangGuard'
 
 let worker: Worker | null = null
 let reqId = 0
@@ -60,14 +61,18 @@ export function buildPreviewLayoutSync(terms: readonly ReactorEquationTerm[]): {
 
 let latestRequestId = 0
 
-/** Worker path for heavy equations; falls back to sync on small N or worker failure. */
+/** Worker path for heavy equations; falls back to sync on small N, burst, timeout or worker failure. */
 export function requestPreviewLayout(
   terms: readonly ReactorEquationTerm[],
   opts?: { coeffEditBurst?: boolean },
 ): Promise<{ tier: ReactorVisualTier; atoms: ReactorPreviewAtom[] }> {
   const atomEstimate = estimatePreviewAtomCount(terms)
   const burst = opts?.coeffEditBurst === true
-  const workerThreshold = burst ? 12 : 6
+  /** При burst — только sync на main thread (стабильность +/- важнее offload). */
+  if (burst) {
+    return Promise.resolve(buildPreviewLayoutSync(terms))
+  }
+  const workerThreshold = 6
   const w = ensureWorker()
   if (!w || atomEstimate <= workerThreshold) {
     return Promise.resolve(buildPreviewLayoutSync(terms))
@@ -75,15 +80,28 @@ export function requestPreviewLayout(
   const id = ++reqId
   latestRequestId = id
   const msg: ReactorPreviewLayoutWorkerRequest = { id, terms: [...terms] }
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (v: { tier: ReactorVisualTier; atoms: ReactorPreviewAtom[] }) => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timeoutId)
+      pending.delete(id)
+      if (id !== latestRequestId) return
+      resolve(v)
+    }
+    const timeoutId = globalThis.setTimeout(() => {
+      finish(buildPreviewLayoutSync(terms))
+    }, REACTOR_PREVIEW_LAYOUT_WORKER_TIMEOUT_MS)
     pending.set(id, {
-      resolve: (v) => {
-        if (id !== latestRequestId) return
-        resolve(v)
-      },
-      reject,
+      resolve: (v) => finish(v),
+      reject: () => finish(buildPreviewLayoutSync(terms)),
     })
-    w.postMessage(msg)
+    try {
+      w.postMessage(msg)
+    } catch {
+      finish(buildPreviewLayoutSync(terms))
+    }
   })
 }
 

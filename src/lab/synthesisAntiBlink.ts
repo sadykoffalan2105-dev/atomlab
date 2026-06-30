@@ -68,6 +68,26 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     previewStickyRef,
   } = input
 
+  /** Жёсткий override: +/- — только превью атомов, без product GPU (zero black screen). */
+  if (
+    coeffEditBurst &&
+    mountReactorPreview &&
+    reactorViewOpen &&
+    !synthActive &&
+    !synthesisRunActive &&
+    !showSettledHero
+  ) {
+    previewStickyRef.current = { runId: -1, previewMounted: true }
+    return {
+      reactorPreviewVisible: true,
+      reactorPreviewMounted: true,
+      productMeshMounted: false,
+      productSlotVisible: false,
+      productPrewarm: false,
+      holdVisualOverlap: false,
+    }
+  }
+
   const synthLive = synthActive || synthesisRunActive
 
   const earlyGpuPrewarm =
