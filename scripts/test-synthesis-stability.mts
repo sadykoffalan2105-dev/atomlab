@@ -11,8 +11,14 @@ import { resolveSynthesisContinuity } from '../src/lab/synthesisAntiBlink.ts'
 import { isVisualCoverageOk } from '../src/lab/visualCoverageController.ts'
 import { canIdleGpuPrewarm } from '../src/lab/synthesisPrewarmPolicy.ts'
 import { getReactorPreviewPolicy } from '../src/lab/synthesisLagGuard.ts'
-
-const SYNC_BUILD_ATOM_CAP = 12
+import { buildPreviewLayoutSync } from '../src/lab/reactorPreviewLayoutWorkerClient.ts'
+import {
+  assertLayoutShellInvariant,
+  evaluateScenario,
+  expectedForScenario,
+  type SynthesisStabilityScenario,
+} from '../src/lab/synthesisStabilityContract.ts'
+import { SYNC_BUILD_ATOM_CAP } from '../src/lab/useReactorPreviewLayout.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
   return [
@@ -67,6 +73,7 @@ function mockSticky<T>(initial: T | null = null) {
   })
   assert.equal(view.reactorPreviewVisible, true, 'preview visible during coeff burst')
   assert.equal(view.productMeshMounted, false, 'no product mesh during coeff burst')
+  assert.equal(view.productSlotVisible, false, 'no product slot during coeff burst')
   const covered = isVisualCoverageOk({
     continuity: view,
     mergeFx: false,
@@ -149,6 +156,54 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     }),
     false,
   )
+}
+
+// --- burst layout: sync path always returns atoms for heavy equations ---
+{
+  const terms = k2cr2o7Terms()
+  const sync = buildPreviewLayoutSync(terms)
+  assert.equal(sync.atoms.length, 15, 'sync layout for K2Cr2O7')
+  assert.ok(
+    assertLayoutShellInvariant(terms, sync.atoms, sync.atoms),
+    'shell invariant for sync layout',
+  )
+}
+
+// --- stability contract: all documented scenarios ---
+{
+  const scenarios: SynthesisStabilityScenario[] = [
+    'coeff_burst_edit',
+    'coeff_burst_idle_gap',
+    'balanced_idle',
+    'synth_before_product_paint',
+    'synth_product_handoff',
+    'settled_handoff',
+  ]
+  for (const scenario of scenarios) {
+    const exp = expectedForScenario(scenario)
+    const { view, coverageOk, idlePrewarmOk } = evaluateScenario(scenario)
+    assert.equal(view.reactorPreviewVisible, exp.previewVisible, `${scenario}: previewVisible`)
+    assert.equal(view.reactorPreviewMounted, exp.previewMounted, `${scenario}: previewMounted`)
+    assert.equal(view.productMeshMounted, exp.productMesh, `${scenario}: productMesh`)
+    assert.equal(view.productSlotVisible, exp.productSlot, `${scenario}: productSlot`)
+    assert.equal(coverageOk, exp.coverageOk, `${scenario}: coverageOk`)
+    if (exp.idlePrewarmOk != null) {
+      assert.equal(idlePrewarmOk, exp.idlePrewarmOk, `${scenario}: idlePrewarmOk`)
+    }
+  }
+}
+
+// --- popular substances: layout never empty when terms valid ---
+{
+  const ids = ['h2o', 'nacl', 'co2'] as const
+  for (const id of ids) {
+    const terms: ReactorEquationTerm[] = [
+      { id: 'a', z: 1, coeff: 2 },
+      { id: 'b', z: 8, coeff: 1, diatomic: true },
+    ]
+    const atoms = buildReactorPreviewAtoms(terms, { tier: 'full' })
+    assert.ok(atoms.length >= 2, `layout atoms for mock ${id}`)
+  }
 }
 
 console.log('test-synthesis-stability: all passed')

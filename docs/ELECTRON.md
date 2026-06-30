@@ -2,9 +2,19 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
-**Скачать v1.3.7:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.7)
-- `ATOMLAB-1.3.7-portable.exe` — без установки
-- `ATOMLAB-1.3.7-setup.exe` — установщик
+**Скачать v1.3.8:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.8)
+- `ATOMLAB-1.3.8-portable.exe` — без установки
+- `ATOMLAB-1.3.8-setup.exe` — установщик
+
+### v1.3.8 — стабильность синтеза «раз и навсегда»
+
+- Жёсткий override continuity при +/-: только атомы, без product GPU
+- Burst layout всегда sync на main thread (worker не откладывает +/-)
+- Worker timeout 1.8s + sync-fallback; shell hold 240 кадров
+- GPU compile budget — одна compile-задача за раз (без storm)
+- SessionStorage кэш скомпилированных продуктов
+- Контракт сценариев `synthesisStabilityContract` + расширенные автотесты
+- Frame-fallback productReveal не фakes prewarmReady (превью до paint)
 
 ### v1.3.7 — cold start синтеза (первый запуск без лагов)
 
