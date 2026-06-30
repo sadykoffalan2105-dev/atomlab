@@ -11,6 +11,8 @@ import {
   shouldRunGuardTick,
 } from '../../lab/synthesisLagGuard'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
+import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
+import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import { warnIfReactorVisualDegraded } from '../../lab/reactorVisualPreservation'
 import { useReactorPreviewLayout } from '../../lab/useReactorPreviewLayout'
 import {
@@ -59,9 +61,16 @@ export function ReactorTermsPreview({
   previewRootRef?: MutableRefObject<THREE.Group | null>
 }) {
   const { invalidate } = useThree()
+  const lowPowerProfile = useMemo(() => getLowPowerDeviceProfile(getSynthesisDeviceTier()), [])
   const perf = useMemo(
-    () => resolveReactorEditPerfFlags({ coeffEditBurst, forceLite, lowPower }),
-    [coeffEditBurst, forceLite, lowPower],
+    () =>
+      resolveReactorEditPerfFlags({
+        coeffEditBurst,
+        forceLite,
+        lowPower,
+        layoutDebounceMs: lowPower ? lowPowerProfile.coeffEditLayoutDebounceMs : undefined,
+      }),
+    [coeffEditBurst, forceLite, lowPower, lowPowerProfile.coeffEditLayoutDebounceMs],
   )
   const invalidateThrottleRef = useRef(createReactorInvalidateThrottle(perf.maxInvalidateHz))
   useEffect(() => {
@@ -142,8 +151,9 @@ export function ReactorTermsPreview({
         visualTier: 'full',
         qualityLevel,
         coeffEditBurst,
+        maxAnimatedAtoms: lowPowerProfile.maxAnimatedAtoms,
       }),
-    [n, forceLite, qualityLevel, flightActive, groupVisible, coeffEditBurst],
+    [n, forceLite, qualityLevel, flightActive, groupVisible, coeffEditBurst, lowPowerProfile.maxAnimatedAtoms],
   )
   const { electronAnimate, driftAtoms, slowSpin, visibilityGuardEvery } = previewPolicy
 
@@ -273,6 +283,7 @@ export function ReactorTermsPreview({
           forceLite: forceLite || coeffEditBurst,
           qualityLevel,
           coeffEditBurst,
+          minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
         })
         const [ax, ay, az] = atom?.pos ?? [0, 0, 0]
         const slotVisible = active && groupVisible
@@ -306,7 +317,7 @@ export function ReactorTermsPreview({
               <ReactorPreviewAtomSlot
                 z={slotZ}
                 animate={active && electronAnimate}
-                previewStatic={!active || !electronAnimate}
+                previewStatic={!active || (!electronAnimate && !coeffEditBurst)}
                 useFullDetail={useFullDetail && !flightActive && active}
                 synthesisGlass={synthesisGlass && (flightActive || poseLocked) && active}
                 previewLite={!useFullDetail}

@@ -2,7 +2,7 @@
   "name": "atomlab",
   "productName": "ATOMLAB",
   "private": true,
-  "version": "1.3.5",
+  "version": "1.3.6",
   "description": "ATOMLAB — виртуальная химическая лаборатория (7–11 класс)",
   "author": "ATOMLAB",
   "homepage": "https://github.com/sadykoffalan2105-dev/atomlab",
@@ -43,6 +43,8 @@
     "setup:teacher-voice": "node scripts/setup-teacher-voice.mjs",
     "clone:teacher-voice": "node scripts/clone-teacher-voice.mjs",
     "wasm:build": "node scripts/build-wasm.mjs",
+    "test:synthesis-stability": "tsx scripts/test-synthesis-stability.mts",
+    "smoke:reactor-preview": "node scripts/smoke-reactor-preview.mjs",
     "teacher:native": "node scripts/build-teacher-native.mjs",
     "teacher:dev": "python -m teacher_service"
   },

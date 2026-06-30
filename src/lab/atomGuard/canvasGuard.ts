@@ -1,6 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import { LAB_CANVAS_MIN_HEIGHT_VH } from '../labRenderGuards'
-import { debugSessionLog } from '../debugSessionLog'
 
 export function ensureCanvasMinSize(el: HTMLElement | null): void {
   if (!el) return
@@ -10,7 +9,7 @@ export function ensureCanvasMinSize(el: HTMLElement | null): void {
   }
 }
 
-/** ResizeObserver: не даём Canvas схлопнуться в 0×0 (белый экран). */
+/** ResizeObserver: не даём Canvas схлопнуться в 0×0 (чёрный экран). */
 export function useCanvasSizeGuard(containerRef: RefObject<HTMLElement | null>): void {
   const roRef = useRef<ResizeObserver | null>(null)
   useEffect(() => {
@@ -20,14 +19,8 @@ export function useCanvasSizeGuard(containerRef: RefObject<HTMLElement | null>):
       ensureCanvasMinSize(el)
       const canvas = el.querySelector('canvas')
       if (canvas && (canvas.clientWidth < 8 || canvas.clientHeight < 8)) {
-        // #region agent log
-        debugSessionLog(
-          'canvasGuard.ts:zeroSize',
-          'canvas element collapsed',
-          { w: canvas.clientWidth, h: canvas.clientHeight, wrapW: el.clientWidth, wrapH: el.clientHeight },
-          'H-A',
-        )
-        // #endregion
+        window.dispatchEvent(new Event('resize'))
+        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')))
       }
     }
     syncCanvas()

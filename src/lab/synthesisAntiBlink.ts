@@ -28,6 +28,7 @@ export type SynthesisContinuityInput = {
   productRevealReady: boolean
   productPainted?: boolean
   keepPreviewDuringProduct?: boolean
+  coeffEditBurst?: boolean
   stickyMountRef: MutableRefObject<SynthesisStickyMountRef | null>
   previewStickyRef: MutableRefObject<SynthesisPreviewStickyRef | null>
 }
@@ -62,6 +63,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     productRevealReady,
     productPainted = false,
     keepPreviewDuringProduct = false,
+    coeffEditBurst = false,
     stickyMountRef,
     previewStickyRef,
   } = input
@@ -71,6 +73,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   const earlyGpuPrewarm =
     !synthLive &&
     !showSettledHero &&
+    !coeffEditBurst &&
     _gpuPrewarmAllowed &&
     productCompoundId != null &&
     reactorViewOpen
@@ -95,6 +98,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     sticky.productMounted
 
   const productMeshMounted =
+    !coeffEditBurst &&
     productCompoundId != null &&
     reactorViewOpen &&
     (showSettledHero || (stickyMatch && ((synthLive && runId > 0) || earlyGpuPrewarm)))

@@ -1,6 +1,5 @@
 import {
   SYNTHESIS_QUALITY_BALANCED,
-  SYNTHESIS_QUALITY_HIGH,
   type SynthesisQualityLevel,
 } from '../lab/synthesisQualityLadder'
 import type { VrLabQualityTier } from '../components/vrLab/vrLabPerformance'
@@ -9,8 +8,8 @@ import {
   type SynthesisDeviceTier,
 } from '../lab/synthesisDeviceTier'
 
-/** Потолок качества на мощных устройствах — High, без UI-переключателя. */
-export const FIXED_SYNTHESIS_CAP: SynthesisQualityLevel = SYNTHESIS_QUALITY_HIGH
+/** Потолок качества на мощных устройствах — High (3), без UI-переключателя. */
+export const FIXED_SYNTHESIS_CAP: SynthesisQualityLevel = 3
 export const FIXED_VR_TIER: VrLabQualityTier = 'high'
 
 /** Стартовый cap синтеза с учётом устройства (normal → High, low → Balanced). */

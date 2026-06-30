@@ -2,9 +2,18 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
-**Скачать v1.3.5:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.5)
-- `ATOMLAB-1.3.5-portable.exe` — без установки
-- `ATOMLAB-1.3.5-setup.exe` — установщик
+**Скачать v1.3.6:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.6)
+- `ATOMLAB-1.3.6-portable.exe` — без установки
+- `ATOMLAB-1.3.6-setup.exe` — установщик
+
+### v1.3.6 — стабильность синтеза (Performance & Stability)
+
+- Продукт не монтируется в GPU при +/- коэффициентов (`coeffEditBurst` блокирует mesh)
+- Электроны анимируются при burst до 48 атомов; на Snapdragon — до 24 в обычном режиме
+- Sync layout для ≤12 атомов без worker-задержки; тяжёлые уравнения — worker/WASM
+- Постоянный масштаб атомов (коэффициент = число моделей, не размер)
+- Восстановление canvas при схлопывании 0×0; WebGL remount после burst
+- Автотесты: `npm run test:synthesis-stability`
 
 ### v1.3.5 — чёрный экран при расстановке коэффициентов
 

@@ -173,10 +173,8 @@ export function reactorPreviewAtomScale(
   totalAtoms: number,
   base = PREVIEW_ATOM_SCALE,
 ): number {
-  if (totalAtoms <= 24) return base
-  const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
-  const countFactor = clamp(22 / Math.max(22, totalAtoms), 0.72, 1)
-  return Math.max(PREVIEW_MIN_ATOM_SCALE, base * countFactor)
+  void totalAtoms
+  return base
 }
 
 /** Центр реакции в лабораторной сцене (совпадает с SynthesisConvergeStreams). */

@@ -13,12 +13,14 @@ export function resolveReactorEditPerfFlags(opts: {
   coeffEditBurst: boolean
   forceLite: boolean
   lowPower: boolean
+  layoutDebounceMs?: number
 }): ReactorEditPerfFlags {
-  const { coeffEditBurst, forceLite, lowPower } = opts
+  const { coeffEditBurst, forceLite, lowPower, layoutDebounceMs } = opts
   const burst = coeffEditBurst || forceLite || lowPower
   return {
     burst,
-    layoutDebounceMs: lowPower ? 56 : coeffEditBurst ? 48 : 0,
-    maxInvalidateHz: burst ? 30 : 60,
+    layoutDebounceMs:
+      layoutDebounceMs ?? (lowPower ? 40 : coeffEditBurst ? 32 : 0),
+    maxInvalidateHz: burst ? 36 : 60,
   }
 }

@@ -18,8 +18,8 @@ function estimatePreviewAtomCount(terms: readonly ReactorEquationTerm[]): number
   return n
 }
 
-/** Порог: выше — sync-build на main thread пропускаем, держим shell до worker. */
-const SYNC_BUILD_ATOM_CAP = 10
+/** Порог sync-build на main thread; выше — worker + shell. */
+export const SYNC_BUILD_ATOM_CAP = 12
 
 /**
  * Layout превью: мгновенный sync для малых N + WASM/worker off-thread для тяжёлых уравнений.
@@ -40,9 +40,8 @@ export function useReactorPreviewLayout(
   if (termsSig !== lastBuiltSigRef.current) {
     lastBuiltSigRef.current = termsSig
     const shell = shellRef.current
-    const deferSync =
-      coeffEditBurst ||
-      (atomEstimate > SYNC_BUILD_ATOM_CAP && shell.length > 0)
+    const heavy = atomEstimate > SYNC_BUILD_ATOM_CAP
+    const deferSync = heavy && shell.length > 0
     if (!deferSync || shell.length === 0) {
       const built = buildReactorPreviewAtoms(terms, { tier: 'full' })
       syncAtomsRef.current = built
@@ -73,6 +72,9 @@ export function useReactorPreviewLayout(
       setAtoms(shellRef.current)
     }
 
+    const useWorker = atomEstimate > SYNC_BUILD_ATOM_CAP
+    if (!useWorker) return
+
     let cancelled = false
     let timer: number | null = null
 
@@ -90,7 +92,7 @@ export function useReactorPreviewLayout(
     }
 
     const debounceMs =
-      layoutDebounceMs > 0 ? layoutDebounceMs : coeffEditBurst ? 24 : atomEstimate > SYNC_BUILD_ATOM_CAP ? 16 : 0
+      layoutDebounceMs > 0 ? layoutDebounceMs : coeffEditBurst ? 20 : 12
     if (debounceMs > 0) timer = window.setTimeout(runWorker, debounceMs)
     else runWorker()
 

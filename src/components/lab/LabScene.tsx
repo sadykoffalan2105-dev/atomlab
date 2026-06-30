@@ -460,6 +460,7 @@ function SceneContent({
         productPainted,
         keepPreviewDuringProduct:
           (synthActive || synthesisRunActive) && !productPainted,
+        coeffEditBurst: reactorCoeffEditBurst,
         stickyMountRef: productStickyMountRef,
         previewStickyRef: previewStickyMountRef,
       }),
@@ -479,6 +480,7 @@ function SceneContent({
       productRevealReady,
       productPainted,
       instantSynthesis,
+      reactorCoeffEditBurst,
     ],
   )
 
@@ -1213,6 +1215,14 @@ export function LabCanvas({
     }),
   )
   const canvasKey = `${sessionKey}-${internalSessionKey}`
+
+  useEffect(() => {
+    if (reactorCoeffEditBurst) return
+    if (webglRecoveryRef.current.shouldRemount()) {
+      setInternalSessionKey((k) => k + 1)
+      webglRecoveryRef.current.reset()
+    }
+  }, [reactorCoeffEditBurst])
 
   /** always — demand давал чёрный центр при +/- коэффициентов. */
   const canvasFrameloop = 'always' as const

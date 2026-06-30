@@ -59,7 +59,7 @@ export function getLowPowerDeviceProfile(deviceTier: SynthesisDeviceTier): LowPo
     tier: deviceTier,
     isMobileSoc: mobileSoc,
     forceLiteReactor: low,
-    maxAnimatedAtoms: low ? 12 : SYNTHESIS_PERF.maxAnimatedAtoms,
+    maxAnimatedAtoms: low ? 24 : SYNTHESIS_PERF.maxAnimatedAtoms,
     minElectronFrameSkip: low ? 3 : 1,
     canvasDpr: low ? 1 : 1.5,
     disableAtomDrift: low,
