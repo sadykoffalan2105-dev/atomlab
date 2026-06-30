@@ -32,15 +32,7 @@ run('npx', [
   `--config.directories.output=${stagingDir.replace(/\\/g, '/')}`,
 ])
 
-await rm(releaseDir, { recursive: true, force: true })
 await mkdir(releaseDir, { recursive: true })
-
-const patterns = [
-  'ATOMLAB-*-portable.exe',
-  'ATOMLAB-*-setup.exe',
-  'latest.yml',
-  'builder-effective-config.yaml',
-]
 
 const { readdir } = await import('node:fs/promises')
 const files = await readdir(stagingDir)
@@ -51,8 +43,12 @@ for (const name of files) {
     name.endsWith('.yaml') ||
     name.endsWith('.blockmap')
   ) {
-    await cp(join(stagingDir, name), join(releaseDir, name))
-    console.log('[electron-dist] copied', name)
+    try {
+      await cp(join(stagingDir, name), join(releaseDir, name))
+      console.log('[electron-dist] copied', name)
+    } catch (err) {
+      console.warn('[electron-dist] skip locked file:', name, err instanceof Error ? err.message : err)
+    }
   }
 }
 
