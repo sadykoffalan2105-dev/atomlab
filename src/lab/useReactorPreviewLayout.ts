@@ -9,8 +9,20 @@ function termsSignature(terms: readonly ReactorEquationTerm[]): string {
   return terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|')
 }
 
+function estimatePreviewAtomCount(terms: readonly ReactorEquationTerm[]): number {
+  let n = 0
+  for (const t of terms) {
+    const c = Math.floor(t.coeff)
+    if (c > 0) n += c
+  }
+  return n
+}
+
+/** Порог: выше — sync-build на main thread пропускаем, держим shell до worker. */
+const SYNC_BUILD_ATOM_CAP = 10
+
 /**
- * Layout превью: мгновенный sync-кэш + WASM/worker off-thread для тяжёлых уравнений.
+ * Layout превью: мгновенный sync для малых N + WASM/worker off-thread для тяжёлых уравнений.
  * Shell ref не даёт вернуть пустой список между кадрами (zero-black-screen).
  */
 export function useReactorPreviewLayout(
@@ -19,14 +31,32 @@ export function useReactorPreviewLayout(
   layoutDebounceMs = 0,
 ): readonly ReactorPreviewAtom[] {
   const termsSig = useMemo(() => termsSignature(terms), [terms])
-  const syncAtoms = useMemo(
-    () => buildReactorPreviewAtoms(terms, { tier: 'full' }),
-    [termsSig, terms],
-  )
+  const atomEstimate = useMemo(() => estimatePreviewAtomCount(terms), [termsSig, terms])
 
-  const shellRef = useRef<readonly ReactorPreviewAtom[]>(syncAtoms)
+  const shellRef = useRef<readonly ReactorPreviewAtom[]>([])
+  const syncAtomsRef = useRef<readonly ReactorPreviewAtom[]>([])
+  const lastBuiltSigRef = useRef('')
+
+  if (termsSig !== lastBuiltSigRef.current) {
+    lastBuiltSigRef.current = termsSig
+    const shell = shellRef.current
+    const deferSync =
+      coeffEditBurst ||
+      (atomEstimate > SYNC_BUILD_ATOM_CAP && shell.length > 0)
+    if (!deferSync || shell.length === 0) {
+      const built = buildReactorPreviewAtoms(terms, { tier: 'full' })
+      syncAtomsRef.current = built
+      if (built.length > 0) shellRef.current = built
+    } else {
+      syncAtomsRef.current = shell
+    }
+  }
+
+  const syncAtoms = syncAtomsRef.current
   const genRef = useRef(0)
-  const [atoms, setAtoms] = useState<readonly ReactorPreviewAtom[]>(syncAtoms)
+  const [atoms, setAtoms] = useState<readonly ReactorPreviewAtom[]>(() =>
+    syncAtoms.length > 0 ? syncAtoms : shellRef.current,
+  )
 
   if (syncAtoms.length > 0) {
     shellRef.current = syncAtoms
@@ -40,7 +70,6 @@ export function useReactorPreviewLayout(
       shellRef.current = syncAtoms
       setAtoms(syncAtoms)
     } else if (shellRef.current.length > 0 && terms.length >= 1) {
-      // Layout hitch — держим последний кадр, пока terms ещё есть.
       setAtoms(shellRef.current)
     }
 
@@ -54,11 +83,14 @@ export function useReactorPreviewLayout(
         if (result.atoms.length > 0) {
           shellRef.current = result.atoms
           setAtoms(result.atoms)
+        } else if (shellRef.current.length > 0) {
+          setAtoms(shellRef.current)
         }
       })
     }
 
-    const debounceMs = layoutDebounceMs > 0 ? layoutDebounceMs : coeffEditBurst ? 48 : 0
+    const debounceMs =
+      layoutDebounceMs > 0 ? layoutDebounceMs : coeffEditBurst ? 24 : atomEstimate > SYNC_BUILD_ATOM_CAP ? 16 : 0
     if (debounceMs > 0) timer = window.setTimeout(runWorker, debounceMs)
     else runWorker()
 
@@ -66,7 +98,7 @@ export function useReactorPreviewLayout(
       cancelled = true
       if (timer != null) window.clearTimeout(timer)
     }
-  }, [termsSig, terms, coeffEditBurst, syncAtoms, layoutDebounceMs])
+  }, [termsSig, terms, coeffEditBurst, syncAtoms, layoutDebounceMs, atomEstimate])
 
   if (atoms.length > 0) return atoms
   if (shellRef.current.length > 0) return shellRef.current

@@ -64,6 +64,8 @@ function layoutFromWasm(
       atomInTerm: Math.round(floats[base + 5]!),
     })
   }
+  const expected = maxAtoms
+  if (expected > 0 && out.length !== expected) return null
   return out
 }
 

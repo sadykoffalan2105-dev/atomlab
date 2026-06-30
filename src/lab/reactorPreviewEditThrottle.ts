@@ -3,8 +3,8 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 
 const BURST_WINDOW_MS = 480
 const BURST_MIN_CHANGES = 2
-const BURST_HOLD_MS = 640
-const EDIT_IDLE_MS = 420
+const BURST_HOLD_MS = 960
+const EDIT_IDLE_MS = 520
 
 function termsSignature(terms: readonly ReactorEquationTerm[] | null): string {
   if (!terms?.length) return ''

@@ -107,10 +107,14 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
         productRevealReady &&
         (_prewarmReady || _forceProductSlot)))
 
-  /** Молекула на экране — атомы реагентов скрываем; shell превью держим до settled. */
+  /** Молекула на экране — атомы скрываем только после реальной отрисовки продукта. */
   const productTakeover =
-    (showSettledHero && productSlotVisible) ||
-    (synthLive && productSlotVisible && productRevealReady && productPainted)
+    productSlotVisible &&
+    productPainted &&
+    (showSettledHero || (synthLive && productRevealReady))
+
+  /** Settled, но продукт ещё не отрисован — держим shell превью (без чёрного кадра). */
+  const settledHandoff = showSettledHero && productSlotVisible && !productPainted
 
   const editingEquation =
     !synthLive && !showSettledHero && !productTakeover && mountReactorPreview && reactorViewOpen
@@ -123,7 +127,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     !productTakeover &&
     (keepPreviewDuringProduct || !productPainted)
 
-  if (showSettledHero) {
+  if (showSettledHero && productPainted) {
     previewStickyRef.current = null
   } else if (editingEquation) {
     previewStickyRef.current = { runId: runId > 0 ? runId : -1, previewMounted: true }
@@ -136,18 +140,23 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   const previewSticky =
     previewStickyRef.current != null && previewStickyRef.current.previewMounted
 
-  /** Держим shell превью во время synthLive (visible=false при takeover) — без «пустого» кадра. */
+  /** Держим shell превью во время synthLive и settled-handoff — без «пустого» кадра. */
   const reactorPreviewMounted =
-    !showSettledHero &&
     mountReactorPreview &&
     reactorViewOpen &&
-    (editingEquation || synthLive || synthPreviewLock || previewSticky)
+    (editingEquation || synthLive || synthPreviewLock || previewSticky || settledHandoff)
 
   const productPrewarm = productMeshMounted && !productSlotVisible && !showSettledHero
-  const holdVisualOverlap = synthLive && !productTakeover
+  const holdVisualOverlap = (synthLive || settledHandoff) && !productTakeover
+
+  /** Редактирование +/- — атомы всегда видны, пока есть terms (без takeover). */
+  const reactorEditVisible =
+    mountReactorPreview && reactorViewOpen && !synthLive && !showSettledHero && !productTakeover
 
   const reactorPreviewVisible =
-    reactorPreviewMounted && !productTakeover && (editingEquation || synthPreviewLock)
+    reactorPreviewMounted &&
+    !productTakeover &&
+    (reactorEditVisible || synthPreviewLock || settledHandoff)
 
   const synthEmptyGuard =
     synthLive &&

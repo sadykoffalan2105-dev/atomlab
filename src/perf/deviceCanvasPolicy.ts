@@ -23,7 +23,8 @@ export function resolveLabCanvasPolicy(opts: {
 
   const deviceLow = deviceTier === 'low'
 
-  if (reactorViewOpen && !synthesisRunActive && !substanceView) {
+  /** Стабильный DPR на всём сеансе реактора — смена при settled/синтезе рвёт WebGL. */
+  if (reactorViewOpen && !substanceView) {
     return deviceLow ? { dpr: 1, antialias: false } : { dpr: [1, 1.25], antialias: true }
   }
 

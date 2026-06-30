@@ -20,6 +20,8 @@ import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
 const MICRO_SCALE = 0.001
 /** Кадров отрисовки на micro-scale до «готово» — даже на слабых GPU. */
 const PREWARM_PAINT_FRAMES = SYNTH_ANTI_STALL.gpuCompileFallbackFrames
+/** Кадров полного масштаба до сигнала paint — не раньше реального GPU-кадра. */
+const VISIBLE_PAINT_FRAMES = 2
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
@@ -55,6 +57,7 @@ export function LabProductHeroSlot({
   const compileGenRef = useRef(0)
   const gpuCompiledRef = useRef(false)
   const prewarmPaintFramesRef = useRef(0)
+  const visiblePaintFramesRef = useRef(0)
   const visiblePaintSentRef = useRef(false)
   const { gl, camera, scene, invalidate } = useThree()
 
@@ -68,9 +71,10 @@ export function LabProductHeroSlot({
   useEffect(() => {
     gpuCompiledRef.current = isProductGpuCompiled(compound.id)
     prewarmPaintFramesRef.current = 0
+    visiblePaintFramesRef.current = 0
     visiblePaintSentRef.current = false
     compileGenRef.current += 1
-  }, [compound.id])
+  }, [compound.id, runId])
 
   // Cold-start: compileAsync на micro-scale в idle — не блокируем кадр атомов.
   useEffect(() => {
@@ -139,18 +143,19 @@ export function LabProductHeroSlot({
     }
   }, [prewarm, visible, compound.id, gl, camera, scene, invalidate, notifyGpuCompiled])
 
-  // Считаем реально отрисованные кадры prewarm, затем «готово».
+  // Считаем реально отрисованные кадры prewarm / visible, затем «готово».
   useFrame(() => {
-    if (!prewarm || visible || gpuCompiledRef.current) {
-      if (visible && !visiblePaintSentRef.current) {
-        const g = groupRef.current
-        if (g && g.scale.x >= 0.86) {
+    if (visible && !visiblePaintSentRef.current) {
+      const g = groupRef.current
+      if (g && g.scale.x >= 0.86) {
+        visiblePaintFramesRef.current += 1
+        if (visiblePaintFramesRef.current >= VISIBLE_PAINT_FRAMES) {
           visiblePaintSentRef.current = true
           onProductVisiblePaint?.()
         }
       }
-      return
     }
+    if (!prewarm || visible || gpuCompiledRef.current) return
     invalidate()
     if (isProductGpuCompiled(compound.id)) return
     prewarmPaintFramesRef.current += 1
@@ -171,8 +176,6 @@ export function LabProductHeroSlot({
       g.scale.set(1, 1, 1)
       if (spin) spin.rotation.set(0, 0, 0)
       revealedForRunRef.current = runId
-      visiblePaintSentRef.current = true
-      onProductVisiblePaint?.()
       return
     }
 
@@ -198,8 +201,6 @@ export function LabProductHeroSlot({
       if (spin) spin.rotation.set(0, 0, 0)
       revealedForRunRef.current = runId
       wasPrewarmRef.current = false
-      visiblePaintSentRef.current = true
-      onProductVisiblePaint?.()
       return
     }
 

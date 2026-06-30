@@ -1,8 +1,5 @@
-/**
- * Off-main-thread reactor preview layout (coeff edit / large equations).
- * Uses C++ WASM when available.
- */
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
+import { expandLeftTermsToPreviewSlots } from '../chemistry/reactorEquationBalance'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
@@ -21,8 +18,14 @@ export type ReactorPreviewLayoutWorkerResponse = {
 
 self.onmessage = async (ev: MessageEvent<ReactorPreviewLayoutWorkerRequest>) => {
   const { id, terms } = ev.data
+  const expected = expandLeftTermsToPreviewSlots(terms).length
   const wasmAtoms = await buildPreviewLayoutWasm(terms)
-  const atoms = wasmAtoms ?? buildReactorPreviewAtoms(terms, { tier: 'full' })
+  let atoms: ReactorPreviewAtom[]
+  if (wasmAtoms != null && (expected <= 0 || wasmAtoms.length === expected)) {
+    atoms = wasmAtoms
+  } else {
+    atoms = buildReactorPreviewAtoms(terms, { tier: 'full' })
+  }
   const msg: ReactorPreviewLayoutWorkerResponse = { id, tier: 'full', atoms }
   self.postMessage(msg)
 }

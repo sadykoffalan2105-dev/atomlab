@@ -2,9 +2,26 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
-**Скачать v1.3.3:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.3)
-- `ATOMLAB-1.3.3-portable.exe` — без установки
-- `ATOMLAB-1.3.3-setup.exe` — установщик
+**Скачать v1.3.5:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.5)
+- `ATOMLAB-1.3.5-portable.exe` — без установки
+- `ATOMLAB-1.3.5-setup.exe` — установщик
+
+### v1.3.5 — чёрный экран при расстановке коэффициентов
+
+- GPU-prewarm продукта **отключён** при редактировании уравнения (только во время синтеза) — compile молекулы больше не блокирует WebGL
+- Terms для 3D всегда immediate (без deferred-лаг)
+- Shell атомов держится 180 кадров при burst; layout уходит в worker на каждый +/-
+- Продукт не монтируется в сцену до запуска синтеза
+
+### v1.3.4 — синтез без чёрного экрана, атомы не пропадают
+
+- Превью атомов остаётся до **реальной** отрисовки молекулы (settled-handoff, paint ≥2 GPU-кадров)
+- Стабильный DPR на всём сеансе реактора — settled больше не переключает `substanceView`/DPR
+- Тяжёлый layout (>14 атомов) уходит в worker без sync-build на main thread при burst
+- Shell-hold 120 кадров при +/-, visibility guard восстанавливает refs во время burst
+- WASM layout валидируется по числу атомов — при расхождении TS fallback
+- Убран лимит 12 анимированных атомов на Snapdragon (до 48)
+- Debug ingest отключён в production-сборке
 
 ### v1.3.3 — белый/чёрный экран при +/- коэффициентов
 

@@ -67,7 +67,7 @@ export function requestPreviewLayout(
 ): Promise<{ tier: ReactorVisualTier; atoms: ReactorPreviewAtom[] }> {
   const atomEstimate = estimatePreviewAtomCount(terms)
   const burst = opts?.coeffEditBurst === true
-  const workerThreshold = burst ? 4 : 6
+  const workerThreshold = burst ? 0 : 4
   const w = ensureWorker()
   if (!w || atomEstimate <= workerThreshold) {
     return Promise.resolve(buildPreviewLayoutSync(terms))

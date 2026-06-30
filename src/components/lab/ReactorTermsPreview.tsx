@@ -77,7 +77,7 @@ export function ReactorTermsPreview({
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
   const shellEmptyFramesRef = useRef(0)
   const slotZRef = useRef<number[]>([])
-  const SHELL_HOLD_FRAMES = coeffEditBurst ? 24 : 48
+  const SHELL_HOLD_FRAMES = coeffEditBurst ? 180 : 96
   const maxPoolRef = useRef(0)
 
   if (previewAtoms.length > 0) {
@@ -88,10 +88,12 @@ export function ReactorTermsPreview({
   const previewLenRef = useRef(previewAtoms.length)
   previewLenRef.current = previewAtoms.length
 
-  const shellHoldActive = coeffEditBurst && !visible
+  const shellHoldActive =
+    coeffEditBurst && !visible && terms.length > 0 && shellAtomsRef.current.length > 0
   const useShell =
     previewAtoms.length === 0 &&
     shellAtomsRef.current.length > 0 &&
+    terms.length > 0 &&
     (shellHoldActive || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES)
   const renderAtoms = previewAtoms.length > 0 ? previewAtoms : useShell ? shellAtomsRef.current : []
   const n = renderAtoms.length
@@ -107,8 +109,10 @@ export function ReactorTermsPreview({
     n > 0 &&
     (visible ||
       shellHoldActive ||
-      (shellEmptyFramesRef.current < SHELL_HOLD_FRAMES && shellAtomsRef.current.length > 0))
-  const groupVisible = shouldRender && (visible || shellHoldActive)
+      (terms.length > 0 &&
+        shellEmptyFramesRef.current < SHELL_HOLD_FRAMES &&
+        shellAtomsRef.current.length > 0))
+  const groupVisible = shouldRender
 
   const groupRef = useRef<THREE.Group>(null)
   const visibilityGuardRef = useRef(createReactorPreviewVisibilityGuard())
@@ -204,7 +208,7 @@ export function ReactorTermsPreview({
         previewAtoms: renderAtoms,
         rootVisible: groupVisible,
         flightActive,
-        allowRecover: !coeffEditBurst,
+        allowRecover: !flightActive,
         onRecover: syncLayout,
       })
     }

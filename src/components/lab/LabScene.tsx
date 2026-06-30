@@ -30,7 +30,6 @@ import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
 import { debugSessionLog } from '../../lab/debugSessionLog'
 import { ReactorTermsPreview } from './ReactorTermsPreview'
-import { buildReactorPreviewAtoms } from './reactorPreviewLayout'
 import { getSynthesisDeviceTier, refineSynthesisDeviceTierFromFps } from '../../lab/synthesisDeviceTier'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
@@ -340,8 +339,13 @@ function SceneContent({
   )
   const previewAtomCount = useMemo(() => {
     if (!effectivePreviewTerms?.length) return 0
-    return buildReactorPreviewAtoms(effectivePreviewTerms, { tier: previewVisualTier }).length
-  }, [effectivePreviewTerms, previewVisualTier])
+    let n = 0
+    for (const t of effectivePreviewTerms) {
+      const c = Math.floor(t.coeff)
+      if (c > 0) n += c
+    }
+    return n
+  }, [effectivePreviewTerms])
 
   /** Отмена idle-prewarm при hitch / во время ранних фаз синтеза (ignite/converge/flying). */
   const effectivePrewarmProduct = useMemo(() => {
@@ -424,7 +428,7 @@ function SceneContent({
     null
 
   const gpuPrewarmAllowed = shouldMountProductGpuPrewarm({
-    policy: 'intent',
+    policy: 'synthesis-only',
     synthesisRunActive,
     synthActive,
     showSettledHero,
@@ -435,7 +439,7 @@ function SceneContent({
     reactorViewOpen &&
     effectivePreviewTerms != null &&
     effectivePreviewTerms.length >= 1 &&
-    (!showSettledHero || synthActive || synthesisRunActive)
+    (!showSettledHero || synthActive || synthesisRunActive || !productPainted)
 
   const continuity = useMemo(
     () =>
@@ -479,7 +483,9 @@ function SceneContent({
   )
 
   const productForSlot =
-    continuity.productMeshMounted && productCompoundCandidate
+    continuity.productMeshMounted &&
+    productCompoundCandidate &&
+    (synthActive || synthesisRunActive || showSettledHero)
       ? productCompoundCandidate
       : null
 
@@ -518,7 +524,7 @@ function SceneContent({
         return
       }
       let frames = 0
-      const maxWait = 180
+      const maxWait = 480
       const tick = () => {
         frames += 1
         if (productPaintedRef.current) {
@@ -1217,7 +1223,7 @@ export function LabCanvas({
     synthesisRunActive: synthesisRunActive ?? false,
     reactorViewOpen: reactorViewOpen ?? false,
     coeffEditBurst: reactorCoeffEditBurst,
-    substanceView: laboratorySynthesisView === 'substance' || synthesisSettledProduct != null,
+    substanceView: laboratorySynthesisView === 'substance',
   })
   const canvasDpr = canvasPolicy.dpr
   const canvasAntialias = canvasPolicy.antialias

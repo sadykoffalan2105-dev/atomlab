@@ -8,7 +8,6 @@ import {
   useState,
   startTransition,
 } from 'react'
-import { flushSync } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { IconVrLab } from '../components/vrLab/IconVrLab'
 import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
@@ -385,12 +384,10 @@ export function LaboratoryPage() {
         synthesisCompletingRef.current = true
         const name = getCompoundLocaleStrings(compound, locale, t).name
         setReactorMessage(t('reactor.successProduct', { name, formula: compound.formulaUnicode }))
-        flushSync(() => {
-          setSynthesisSettledProduct(compound)
-          synthesisSettledProductRef.current = compound
-          settledSnapshotRef.current = equationSignature
-          setRunId(0)
-        })
+        setSynthesisSettledProduct(compound)
+        synthesisSettledProductRef.current = compound
+        settledSnapshotRef.current = equationSignature
+        setRunId(0)
         setLaboratorySynthesisView('reactor')
         lastRunZSlotsRef.current = []
         setSynthesisFlightSlots(null)
@@ -454,7 +451,7 @@ export function LaboratoryPage() {
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
 
-  const { coeffEditBurst, editIdle, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
+  const { coeffEditBurst, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
 
   /** Canvas: stable shell + immediate при burst — атомы не пропадают при +/-. */
   const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
@@ -627,27 +624,17 @@ export function LaboratoryPage() {
   /** До запуска синтеза — только превью реагентов; молекула продукта после анимации */
   const transformPreviewCompound = null
 
-  /** GPU-prewarm после паузы редактирования (800ms idle + баланс) или во время синтеза. */
-  const prewarmGateReady = useStableGpuPrewarmGate(
-    reactorOpen &&
-      editIdle &&
-      !coeffEditBurst &&
-      equationBalanced &&
-      productCompound != null &&
-      !synthRunActive,
-    equationSignature,
-  )
+  /** GPU-prewarm только во время синтеза — не при подборе коэффициентов (блокирует WebGL → чёрный экран). */
+  useStableGpuPrewarmGate(synthRunActive && productCompound != null, `${equationSignature}:${runId}`)
 
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
-    if (prewarmGateReady) return productCompound
     return null
   }, [
     reactorOpen,
     productCompound,
     synthRunActive,
-    prewarmGateReady,
     lastRunProduct,
     prewarmCompound,
   ])

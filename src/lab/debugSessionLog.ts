@@ -1,4 +1,4 @@
-/** Debug session logger (NDJSON ingest + localStorage fallback). */
+/** Debug session logger — только в dev-сборке. */
 const LS_KEY = 'debug-1744a2'
 
 export function debugSessionLog(
@@ -7,6 +7,8 @@ export function debugSessionLog(
   data: Record<string, unknown>,
   hypothesisId: string,
 ): void {
+  if (!import.meta.env.DEV) return
+
   const payload = {
     sessionId: '1744a2',
     location,
@@ -15,7 +17,6 @@ export function debugSessionLog(
     hypothesisId,
     timestamp: Date.now(),
   }
-  // #region agent log
   try {
     const prev = JSON.parse(localStorage.getItem(LS_KEY) ?? '[]') as unknown[]
     prev.push(payload)
@@ -28,5 +29,4 @@ export function debugSessionLog(
     headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '1744a2' },
     body: JSON.stringify(payload),
   }).catch(() => {})
-  // #endregion
 }
