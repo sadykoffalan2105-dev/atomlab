@@ -22,7 +22,7 @@ export function resolveReactorEditPerfFlags(opts: {
   return {
     burst,
     layoutDebounceMs:
-      editing ? 0 : layoutDebounceMs ?? (lowPower ? 40 : coeffEditBurst ? 32 : 0),
+      editing ? 0 : layoutDebounceMs ?? (lowPower ? 40 : coeffEditBurst ? 32 : 200),
     maxInvalidateHz: burst ? 36 : 60,
   }
 }

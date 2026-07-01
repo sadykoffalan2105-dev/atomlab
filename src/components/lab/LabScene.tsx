@@ -46,6 +46,7 @@ import {
 import { createReactorFrameBudget } from '../../lab/reactorFrameBudget'
 import { createSynthesisAntiStallGuard } from '../../lab/synthesisAntiStall'
 import { isProductGpuCompiled } from '../../lab/productGpuCompileCache'
+import { allowProductGpuMount } from '../../lab/atomlabSynthesisGuard'
 import {
   createProductCrossfadeGuard,
   type ProductCrossfadeGuard,
@@ -392,8 +393,6 @@ function SceneContent({
     [synthForceLite],
   )
   const instantSynthesis = isInstantSynthesisProfile(synthTimingProfile)
-  const instantRunLive =
-    instantSynthesis && synthActive && (synthesis?.runId ?? 0) > 0
 
   useLayoutEffect(() => {
     if (reactorViewOpen) return
@@ -542,9 +541,16 @@ function SceneContent({
   const productForSlot =
     continuity.productMeshMounted &&
     productCompoundCandidate &&
+    allowProductGpuMount(reactorCoeffEditBurst, coeffEditingActive, synthActive || synthesisRunActive) &&
     (synthActive || synthesisRunActive || showSettledHero)
       ? productCompoundCandidate
       : null
+
+  const productGpuReady =
+    productForSlot != null &&
+    (isProductGpuCompiled(productForSlot.id) ||
+      ((prewarmReadyRef.current || prewarmReady) &&
+        prewarmCompoundIdRef.current === productForSlot.id))
 
   const previewMotionLocked = false
   const previewPoseLocked = synthesisRunActive && !synthActive
@@ -561,8 +567,13 @@ function SceneContent({
   const reactorPreviewVisible = continuity.reactorPreviewVisible
   const productSlotVisible = continuity.productSlotVisible
   const productPrewarmActive = continuity.productPrewarm
-  const productSlotVisibleResolved = instantRunLive ? true : productSlotVisible
-  const productPrewarmResolved = instantRunLive ? false : productPrewarmActive
+  const productSlotVisibleResolved =
+    productSlotVisible && (productGpuReady || showSettledHero)
+  const productPrewarmResolved =
+    productForSlot != null &&
+    !productGpuReady &&
+    (productPrewarmActive ||
+      ((synthActive || synthesisRunActive) && continuity.productMeshMounted))
 
   const handleProductGpuCompiled = useCallback(
     (compoundId: string) => {
@@ -1113,7 +1124,9 @@ function SceneContent({
         <ReactorSceneWarmup reactorOpen={reactorViewOpen} />
       ) : null}
       {reactorViewOpen ? (
-        <ReactorAtomShaderWarmup active={!synthesisRunActive && !synthActive} />
+        <ReactorAtomShaderWarmup
+          active={!productPainted && !showSettledHero}
+        />
       ) : null}
       {gpuQueueActive ? (
         <LabSynthesisGpuQueue

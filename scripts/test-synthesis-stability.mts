@@ -26,8 +26,14 @@ import {
 import {
   assertPreviewCoverage,
   deferHeavyLayoutRebuild,
+  allowProductGpuMount,
 } from '../src/lab/atomlabSynthesisGuard.ts'
 import { SYNC_BUILD_ATOM_CAP } from '../src/lab/useReactorPreviewLayout.ts'
+import {
+  buildPreviewLayoutForEdit,
+  simulateCoeffEditLayoutSteps,
+  shouldScheduleIdleLayoutRebuild,
+} from '../src/lab/previewLayoutPolicy.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
   return [
@@ -337,7 +343,46 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   assert.equal(shouldAllowWorkerPreviewLayout(15, false), true)
 }
 
-// --- C++ guard TS mirror ---
+// --- K2Cr2O7 rapid +/-: sync edit layout never empty ---
+{
+  const terms = k2cr2o7Terms()
+  const steps = simulateCoeffEditLayoutSteps(terms, 2, [1, 2, 3, 4, 5, 6, 7])
+  assert.equal(steps.length, 7)
+  for (let i = 0; i < steps.length; i++) {
+    const t = terms.map((x, j) => (j === 2 ? { ...x, coeff: i + 1 } : x))
+    assert.ok(
+      assertLayoutShellInvariant(t, steps[i]!, steps[i]!),
+      `K2Cr2O7 coeff step ${i + 1}: shell invariant`,
+    )
+    assert.ok(steps[i]!.length > 0, `K2Cr2O7 coeff step ${i + 1}: atoms visible`)
+  }
+}
+
+// --- coeff editing always sync-build (no defer during edit) ---
+{
+  const terms = k2cr2o7Terms()
+  const atoms = buildPreviewLayoutForEdit(terms, [])
+  assert.equal(atoms.length, 15)
+  assert.equal(deferHeavyLayoutRebuild(15, true), true, 'wasm defers only when editing flag set')
+  assert.equal(shouldScheduleIdleLayoutRebuild(15, true, true, false), false)
+  assert.equal(shouldScheduleIdleLayoutRebuild(15, false, true, false), true)
+}
+
+// --- product GPU mount gate ---
+{
+  assert.equal(allowProductGpuMount(true, true, false), false, 'no mount during coeff burst')
+  assert.equal(allowProductGpuMount(false, false, true), true, 'mount during synth')
+}
+
+// --- product slot: visible only after GPU ready (handoff invariant) ---
+{
+  const gpuReady = (slotVisible: boolean, ready: boolean, settled: boolean) =>
+    slotVisible && (ready || settled)
+  assert.equal(gpuReady(true, false, false), false, 'no visible slot before gpu compile')
+  assert.equal(gpuReady(true, true, false), true, 'visible after compile')
+  assert.equal(gpuReady(true, false, true), true, 'settled hero bypasses prewarm')
+}
+
 {
   assert.equal(deferHeavyLayoutRebuild(20, true), true)
   assert.equal(deferHeavyLayoutRebuild(8, true), false)

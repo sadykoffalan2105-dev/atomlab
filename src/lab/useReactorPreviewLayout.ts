@@ -3,36 +3,32 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
 import { shouldForceSyncPreviewLayout } from './atomlabPerfGuard'
-import { deferHeavyLayoutRebuild } from './atomlabSynthesisGuard'
+import {
+  estimatePreviewAtomCount,
+  pickLayoutAtoms,
+  SYNC_BUILD_ATOM_CAP,
+  termsSignature,
+} from './previewLayoutPolicy'
 import { scheduleIdleMatch } from './labRenderGuards'
 
-function termsSignature(terms: readonly ReactorEquationTerm[]): string {
-  if (!terms.length) return ''
-  return terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|')
-}
+export { SYNC_BUILD_ATOM_CAP } from './previewLayoutPolicy'
 
-function estimatePreviewAtomCount(terms: readonly ReactorEquationTerm[]): number {
-  let n = 0
-  for (const t of terms) {
-    const c = Math.floor(t.coeff)
-    if (c > 0) n += c
-  }
-  return n
+export type PreviewLayoutHookResult = {
+  atoms: readonly ReactorPreviewAtom[]
+  layoutPending: boolean
 }
-
-/** Порог sync-build на main thread; выше — worker + shell (только вне редактирования). */
-export const SYNC_BUILD_ATOM_CAP = 12
 
 /**
- * Layout превью: при +/- на тяжёлых уравнениях держим shell на экране,
- * rebuild — в idle/rAF (без 2–3 с «пустого» кадра).
+ * Layout превью: при +/- всегда sync (lite для >12 атомов).
+ * Вне редактирования — idle rebuild для тяжёлых уравнений, shell до готовности.
+ * Инвариант: при terms.length > 0 никогда не возвращаем пустой массив.
  */
 export function useReactorPreviewLayout(
   terms: readonly ReactorEquationTerm[],
   coeffEditBurst: boolean,
   layoutDebounceMs = 0,
   coeffEditing = coeffEditBurst,
-): readonly ReactorPreviewAtom[] {
+): PreviewLayoutHookResult {
   const termsSig = useMemo(() => termsSignature(terms), [terms])
   const atomEstimate = useMemo(() => estimatePreviewAtomCount(terms), [termsSig, terms])
 
@@ -42,29 +38,43 @@ export function useReactorPreviewLayout(
   const pendingSigRef = useRef<string | null>(null)
 
   const forceSync = shouldForceSyncPreviewLayout(atomEstimate, coeffEditing)
-  const deferHeavy = deferHeavyLayoutRebuild(atomEstimate, coeffEditing)
+  const heavyEquation = atomEstimate > SYNC_BUILD_ATOM_CAP
 
   if (termsSig !== lastBuiltSigRef.current) {
     lastBuiltSigRef.current = termsSig
     const shell = shellRef.current
 
-    if (deferHeavy && shell.length > 0) {
-      syncAtomsRef.current = shell
-      pendingSigRef.current = termsSig
+    if (coeffEditing) {
+      const built = buildReactorPreviewAtoms(terms, {
+        tier: heavyEquation ? 'lite' : 'full',
+      })
+      const picked = pickLayoutAtoms(built, shell)
+      syncAtomsRef.current = picked
+      if (picked.length > 0) shellRef.current = picked
+      pendingSigRef.current = null
     } else if (forceSync || shell.length === 0) {
       const built = buildReactorPreviewAtoms(terms, {
-        tier: deferHeavy ? 'lite' : 'full',
+        tier: heavyEquation ? 'lite' : 'full',
       })
-      syncAtomsRef.current = built.length > 0 ? built : shell.length > 0 ? shell : built
-      if (built.length > 0) shellRef.current = built
+      const picked = pickLayoutAtoms(built, shell)
+      syncAtomsRef.current = picked
+      if (picked.length > 0) shellRef.current = picked
       pendingSigRef.current = null
-    } else {
+    } else if (shell.length > 0) {
       syncAtomsRef.current = shell
+      pendingSigRef.current = termsSig
+    } else {
+      const built = buildReactorPreviewAtoms(terms, { tier: 'lite' })
+      const picked = pickLayoutAtoms(built, shell)
+      syncAtomsRef.current = picked
+      if (picked.length > 0) shellRef.current = picked
       pendingSigRef.current = null
     }
   }
 
   const syncAtoms = syncAtomsRef.current
+  const layoutPending = pendingSigRef.current != null
+
   const [atoms, setAtoms] = useState<readonly ReactorPreviewAtom[]>(() =>
     syncAtoms.length > 0 ? syncAtoms : shellRef.current,
   )
@@ -75,24 +85,34 @@ export function useReactorPreviewLayout(
 
   useLayoutEffect(() => {
     const pending = pendingSigRef.current
-    if (pending && pending === termsSig && deferHeavy) {
+    if (pending && pending === termsSig) {
       let cancelled = false
+      let debounceTimer: number | null = null
       const run = () => {
         if (cancelled) return
         const built = buildReactorPreviewAtoms(terms, { tier: 'lite' })
-        if (built.length > 0) {
-          shellRef.current = built
-          syncAtomsRef.current = built
-          setAtoms(built)
+        const picked = pickLayoutAtoms(built, shellRef.current)
+        if (picked.length > 0) {
+          shellRef.current = picked
+          syncAtomsRef.current = picked
+          setAtoms(picked)
         }
         pendingSigRef.current = null
       }
+      const scheduleRun = () => {
+        if (layoutDebounceMs > 0) {
+          debounceTimer = window.setTimeout(run, layoutDebounceMs)
+        } else {
+          run()
+        }
+      }
       const raf = requestAnimationFrame(() => {
-        scheduleIdleMatch(run)
+        scheduleIdleMatch(scheduleRun)
       })
       return () => {
         cancelled = true
         cancelAnimationFrame(raf)
+        if (debounceTimer != null) window.clearTimeout(debounceTimer)
       }
     }
 
@@ -107,15 +127,20 @@ export function useReactorPreviewLayout(
     }
     if (terms.length >= 1) {
       const built = buildReactorPreviewAtoms(terms, { tier: 'lite' })
-      if (built.length > 0) {
-        shellRef.current = built
-        syncAtomsRef.current = built
-        setAtoms(built)
+      const picked = pickLayoutAtoms(built, shellRef.current)
+      if (picked.length > 0) {
+        shellRef.current = picked
+        syncAtomsRef.current = picked
+        setAtoms(picked)
       }
     }
-  }, [termsSig, terms, syncAtoms, coeffEditing, layoutDebounceMs, atomEstimate, forceSync, deferHeavy])
+  }, [termsSig, terms, syncAtoms, coeffEditing, layoutDebounceMs, atomEstimate, forceSync, heavyEquation])
 
-  if (atoms.length > 0) return atoms
-  if (shellRef.current.length > 0) return shellRef.current
-  return atoms
+  const resolved =
+    atoms.length > 0 ? atoms : shellRef.current.length > 0 ? shellRef.current : atoms
+
+  return {
+    atoms: resolved,
+    layoutPending: layoutPending || (pendingSigRef.current != null),
+  }
 }

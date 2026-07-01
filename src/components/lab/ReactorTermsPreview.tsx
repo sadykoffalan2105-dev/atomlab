@@ -83,7 +83,12 @@ export function ReactorTermsPreview({
     invalidateThrottleRef.current = createReactorInvalidateThrottle(perf.maxInvalidateHz)
   }, [perf.maxInvalidateHz])
 
-  const previewAtoms = useReactorPreviewLayout(terms, coeffEditBurst, perf.layoutDebounceMs, coeffEditing)
+  const { atoms: previewAtoms, layoutPending } = useReactorPreviewLayout(
+    terms,
+    coeffEditBurst,
+    perf.layoutDebounceMs,
+    coeffEditing,
+  )
   const termsSig = useMemo(
     () => terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|'),
     [terms],
@@ -92,7 +97,7 @@ export function ReactorTermsPreview({
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
   const shellEmptyFramesRef = useRef(0)
   const slotZRef = useRef<number[]>([])
-  const SHELL_HOLD_FRAMES = coeffEditing ? 1200 : coeffEditBurst ? 360 : 120
+  const SHELL_HOLD_FRAMES = layoutPending ? 4800 : coeffEditing ? 1200 : coeffEditBurst ? 360 : 120
   const maxPoolRef = useRef(0)
 
   if (previewAtoms.length > 0) {
@@ -104,7 +109,9 @@ export function ReactorTermsPreview({
   previewLenRef.current = previewAtoms.length
 
   const shellHoldActive =
-    coeffEditing && terms.length > 0 && shellAtomsRef.current.length > 0
+    (coeffEditing || layoutPending) &&
+    terms.length > 0 &&
+    shellAtomsRef.current.length > 0
   const useShell =
     previewAtoms.length === 0 &&
     shellAtomsRef.current.length > 0 &&
@@ -121,15 +128,15 @@ export function ReactorTermsPreview({
   }
 
   const shouldRender =
-    (coeffEditing && terms.length > 0) ||
-    (n > 0 &&
-      (previewOnlyMode ||
-        coeffEditing ||
-        visible ||
-        shellHoldActive ||
-        (terms.length > 0 &&
-          shellEmptyFramesRef.current < SHELL_HOLD_FRAMES &&
-          shellAtomsRef.current.length > 0)))
+    terms.length > 0 &&
+    (coeffEditing ||
+      layoutPending ||
+      (n > 0 &&
+        (previewOnlyMode ||
+          visible ||
+          shellHoldActive ||
+          (shellEmptyFramesRef.current < SHELL_HOLD_FRAMES &&
+            shellAtomsRef.current.length > 0))))
   const groupVisible = shouldRender
 
   const groupRef = useRef<THREE.Group>(null)
@@ -215,7 +222,7 @@ export function ReactorTermsPreview({
   }, [flightActive, poseLocked, termsSig, syncLayout, invalidate, n, perf.layoutDebounceMs, coeffEditing])
 
   useFrame((s) => {
-    if (previewLenRef.current === 0 && shellAtomsRef.current.length > 0 && !shellHoldActive && !coeffEditing) {
+    if (previewLenRef.current === 0 && shellAtomsRef.current.length > 0 && !shellHoldActive && !coeffEditing && !layoutPending) {
       shellEmptyFramesRef.current += 1
       if (shellEmptyFramesRef.current <= SHELL_HOLD_FRAMES) {
         invalidateThrottleRef.current.request(invalidate)
@@ -232,7 +239,7 @@ export function ReactorTermsPreview({
         previewAtoms: renderAtoms,
         rootVisible: groupVisible,
         flightActive,
-        allowRecover: !flightActive && !coeffEditing,
+        allowRecover: !flightActive && !coeffEditing && !layoutPending,
         onRecover: syncLayout,
       })
     }

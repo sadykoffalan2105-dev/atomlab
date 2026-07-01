@@ -2,6 +2,17 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
+**Скачать v1.3.17:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.17)
+- `ATOMLAB-1.3.17-portable.exe` — без установки
+- `ATOMLAB-1.3.17-setup.exe` — установщик
+
+### v1.3.17 — синтез: стабильность K₂Cr₂O₇ и первый запуск
+
+- При +/- всегда sync layout (lite для >12 атомов) — атомы не исчезают на дихромате
+- Продукт показывается только после GPU compile; prewarm до отрисовки — без чёрного экрана
+- Shell-hold до завершения pending layout; debounce 200 ms вне редактирования
+- Shader warmup атомов до первой отрисовки продукта
+
 **Скачать v1.3.16:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.16)
 - `ATOMLAB-1.3.16-portable.exe` — без установки
 - `ATOMLAB-1.3.16-setup.exe` — установщик
