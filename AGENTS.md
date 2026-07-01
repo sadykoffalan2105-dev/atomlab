@@ -18,14 +18,21 @@ periodic table, and 7–11 grade learning content. The UI is in Russian. It is d
 - **`api/`, `netlify/`, `worker/` (deploy only):** serverless targets for the hosted AI teacher; not run locally for dev.
 
 ### Running / non-obvious caveats
-- **`npm run dev` currently renders a black screen** due to a pre-existing circular-import bug in the source:
-  `src/perf/graphicsSettings.ts` reads `SYNTHESIS_QUALITY_HIGH` at module top-level (line ~13) while
-  `src/lab/synthesisQualityLadder.ts` imports `resolveDeviceSynthesisCap` back from it, triggering
-  `Uncaught ReferenceError: Cannot access 'SYNTHESIS_QUALITY_HIGH' before initialization`. Vite's unbundled
-  dev ESM hits the temporal-dead-zone; the bundled production build does not (the deployed site works).
-  To actually view the app, use `npm run build` then `npm run preview`. A minimal fix is to break the cycle
-  (e.g. move `resolveDeviceSynthesisCap` into `synthesisQualityLadder.ts`), but that is a product code change
-  outside environment setup — leave it to a maintainer.
+- `npm run dev` works. (A prior circular-import bug — `graphicsSettings.ts` ↔ `synthesisQualityLadder.ts` — used
+  to blank the dev build with `Cannot access 'SYNTHESIS_QUALITY_HIGH' before initialization`; it is fixed:
+  `resolveDeviceSynthesisCap`/`FIXED_SYNTHESIS_CAP` now live in `synthesisQualityLadder.ts`. Keep that direction
+  one-way to avoid reintroducing the cycle.)
+- **This VM renders WebGL in software (SwiftShader), not on a real GPU.** Consequences when testing the 3D lab/reactor:
+  - Heavy scenes (many animated atoms) are CPU-bound and can visibly stutter here even though they are smooth on a
+    real GPU. Treat absolute smoothness on this VM as pessimistic; use relative before/after frame-time metrics.
+  - The console shows `Automatic fallback to software WebGL` and a shader-compile error for the atom "nebula"
+    (`AtomElementNebula`, `modelMatrix` used in a fragment shader) — SwiftShader is stricter than real drivers.
+    This is pre-existing and does not blank the app.
+  - The synthesis reactor's default view is a **dark space backdrop** — a dark canvas with no atoms is NOT a black-screen
+    bug. Open it via the "Синтез" button (Laboratory / `/`), then generate an equation to see atoms: click the
+    "⚗ Уравнение" button → pick a product (e.g. search "дихромат" → K₂Cr₂O₇). Reagent badges (Cr, K, O₂) with
+    `−`/`+` coefficient steppers then appear on the left and 3D atoms render. Coefficients also change via mouse-wheel
+    over a badge. Editing coefficients / running synthesis needs a generated equation first.
 - The dev server / `vite.config.ts` warms up a Python Edge-TTS daemon (`scripts/teacher-tts-daemon.py`). Without the
   `edge_tts` Python package this prints a `ModuleNotFoundError` traceback — it is **non-fatal**; the JS `msedge-tts`
   fallback loads and the web app is unaffected.
