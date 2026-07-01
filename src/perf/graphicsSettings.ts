@@ -1,24 +1,16 @@
 import {
-  SYNTHESIS_QUALITY_BALANCED,
-  SYNTHESIS_QUALITY_HIGH,
+  resolveDeviceSynthesisCap,
   type SynthesisQualityLevel,
 } from '../lab/synthesisQualityLadder'
 import type { VrLabQualityTier } from '../components/vrLab/vrLabPerformance'
-import {
-  getSynthesisDeviceTier,
-  type SynthesisDeviceTier,
-} from '../lab/synthesisDeviceTier'
+import { getSynthesisDeviceTier } from '../lab/synthesisDeviceTier'
 
-/** Потолок качества на мощных устройствах — High, без UI-переключателя. */
-export const FIXED_SYNTHESIS_CAP: SynthesisQualityLevel = SYNTHESIS_QUALITY_HIGH
+// resolveDeviceSynthesisCap / FIXED_SYNTHESIS_CAP теперь живут в synthesisQualityLadder
+// (разрыв циклической зависимости graphicsSettings ↔ synthesisQualityLadder).
+export { resolveDeviceSynthesisCap }
+export { FIXED_SYNTHESIS_CAP } from '../lab/synthesisQualityLadder'
+
 export const FIXED_VR_TIER: VrLabQualityTier = 'high'
-
-/** Стартовый cap синтеза с учётом устройства (normal → High, low → Balanced). */
-export function resolveDeviceSynthesisCap(
-  tier: SynthesisDeviceTier = getSynthesisDeviceTier(),
-): SynthesisQualityLevel {
-  return tier === 'low' ? SYNTHESIS_QUALITY_BALANCED : FIXED_SYNTHESIS_CAP
-}
 
 /** @deprecated UI удалён — всегда high на normal tier. */
 export function resolveEffectiveGraphicsPreset(): 'high' {

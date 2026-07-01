@@ -1,6 +1,5 @@
-import type { SynthesisDeviceTier } from './synthesisDeviceTier'
+import { getSynthesisDeviceTier, type SynthesisDeviceTier } from './synthesisDeviceTier'
 import { SYNTHESIS_PERF } from './synthesisPerfPreset'
-import { resolveDeviceSynthesisCap } from '../perf/graphicsSettings'
 
 /** 0=MINIMAL … 4=ULTRA */
 export type SynthesisQualityLevel = 0 | 1 | 2 | 3 | 4
@@ -10,6 +9,16 @@ export const SYNTHESIS_QUALITY_LITE = 1 as const
 export const SYNTHESIS_QUALITY_BALANCED = 2 as const
 export const SYNTHESIS_QUALITY_HIGH = 3 as const
 export const SYNTHESIS_QUALITY_ULTRA = 4 as const
+
+/** Потолок качества на мощных устройствах — High, без UI-переключателя. */
+export const FIXED_SYNTHESIS_CAP: SynthesisQualityLevel = SYNTHESIS_QUALITY_HIGH
+
+/** Стартовый cap синтеза с учётом устройства (normal → High, low → Balanced). */
+export function resolveDeviceSynthesisCap(
+  tier: SynthesisDeviceTier = getSynthesisDeviceTier(),
+): SynthesisQualityLevel {
+  return tier === 'low' ? SYNTHESIS_QUALITY_BALANCED : FIXED_SYNTHESIS_CAP
+}
 
 export type SynthesisQualityFeatures = {
   bloomConverge: boolean
