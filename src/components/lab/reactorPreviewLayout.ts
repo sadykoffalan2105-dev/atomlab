@@ -2,6 +2,7 @@ import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance
 import { expandLeftTermsToPreviewSlots } from '../../chemistry/reactorEquationBalance'
 import {
   getReactorVisualTier,
+  perTermModelCap,
   previewModelsForTerm,
   type ReactorVisualTier,
 } from '../../chemistry/reactorVisualTier'
@@ -107,9 +108,16 @@ function buildReactorPreviewAtomsUncached(
     }
   })
 
-  const expectedFull = expandLeftTermsToPreviewSlots(terms).length
-  if (tier === 'full' && out.length !== expectedFull && expectedFull > 0) {
-    const slots = expandLeftTermsToPreviewSlots(terms)
+  // Ожидаемое (с учётом перф-потолка) число моделей. Раньше сравнивали с
+  // полным expandLeftTermsToPreviewSlots, но теперь модели ограничены потолком,
+  // поэтому используем потолок — иначе fallback воссоздаёт тысячи атомов.
+  const cap = perTermModelCap(activeTerms.length)
+  const expectedCapped = activeTerms.reduce(
+    (s, t) => s + Math.min(Math.max(0, Math.floor(t.coeff)), cap),
+    0,
+  )
+  if (tier === 'full' && out.length !== expectedCapped && expectedCapped > 0) {
+    const slots = expandLeftTermsToPreviewSlots(terms).slice(0, expectedCapped)
     const n = slots.length
     const r = 0.55 + Math.min(n, 12) * 0.06
     return slots.map((z, i) => {

@@ -3,7 +3,13 @@ import {
   expandLeftTermsToZSlots,
   type ReactorEquationTerm,
 } from './reactorEquationBalance'
-import { REACTOR_VISUAL_FULL_ATOMS, REACTOR_VISUAL_LITE_ATOMS } from './reactorLimits'
+import {
+  REACTOR_PREVIEW_MODELS_PER_TERM_MAX,
+  REACTOR_PREVIEW_MODELS_PER_TERM_MIN,
+  REACTOR_PREVIEW_MODELS_TOTAL,
+  REACTOR_VISUAL_FULL_ATOMS,
+  REACTOR_VISUAL_LITE_ATOMS,
+} from './reactorLimits'
 
 export type ReactorVisualTier = 'full' | 'lite' | 'cluster'
 
@@ -16,9 +22,26 @@ export function getReactorVisualTier(terms: readonly ReactorEquationTerm[]): Rea
   return 'full'
 }
 
-/** Сколько 3D-моделей показывать — всегда равно коэффициенту (tier только для таймингов/perf). */
-export function previewModelsForTerm(coeff: number, _tier: ReactorVisualTier, _termCount: number): number {
-  return Math.max(0, Math.floor(coeff))
+/**
+ * Сколько 3D-моделей атомов показывать для слагаемого.
+ * До потолка — ровно коэффициент (визуально «коэффициент = число моделей»).
+ * Выше потолка число моделей фиксируется (перф), а реальный коэффициент
+ * остаётся виден числом в уравнении и через ×N badge.
+ */
+export function previewModelsForTerm(coeff: number, _tier: ReactorVisualTier, termCount: number): number {
+  const c = Math.max(0, Math.floor(coeff))
+  if (c <= 0) return 0
+  return Math.min(c, perTermModelCap(termCount))
+}
+
+/** Потолок числа моделей на слагаемое с учётом общего бюджета сцены. */
+export function perTermModelCap(termCount: number): number {
+  const terms = Math.max(1, Math.floor(termCount))
+  const byBudget = Math.floor(REACTOR_PREVIEW_MODELS_TOTAL / terms)
+  return Math.max(
+    REACTOR_PREVIEW_MODELS_PER_TERM_MIN,
+    Math.min(REACTOR_PREVIEW_MODELS_PER_TERM_MAX, byBudget),
+  )
 }
 
 /** Coeff for ×N badge when shown models < actual coeff. */

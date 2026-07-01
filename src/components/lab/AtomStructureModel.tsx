@@ -15,7 +15,6 @@ import {
 } from './atom/atomCosmicShared'
 
 const MAX_Z = 118
-const MAX_NEUTRONS = 220
 
 function createNucleonMaterials(cosmic: boolean) {
   return {
@@ -111,6 +110,7 @@ export function AtomStructureModel({
   electronFrameSkip = 1,
   accentHex,
   cosmicStyle = true,
+  nucleusLight = true,
 }: {
   z: number
   animate?: boolean
@@ -125,6 +125,13 @@ export function AtomStructureModel({
   electronFrameSkip?: number
   accentHex?: string
   cosmicStyle?: boolean
+  /**
+   * Точечный свет в ядре. Для одиночных атомов (карточка элемента, декор) — true.
+   * В превью реактора и при полёте синтеза ставим false: иначе каждый атом
+   * добавляет динамический свет, а смена их числа при правке коэффициентов
+   * заставляет Three.js пересобирать шейдеры всех материалов (лаги/чёрный экран).
+   */
+  nucleusLight?: boolean
 }) {
   const group = useRef<THREE.Group>(null)
   const protRef = useRef<THREE.InstancedMesh>(null)
@@ -297,20 +304,20 @@ export function AtomStructureModel({
 
       <group renderOrder={4}>
         <instancedMesh
-          key={`prot-${nucleonR}`}
+          key={`prot-${nucleonR}-${zClamped}`}
           ref={protRef}
-          args={[nucleonGeo, nucleonMats.prot, MAX_Z]}
+          args={[nucleonGeo, nucleonMats.prot, Math.max(1, zClamped)]}
           frustumCulled={false}
           renderOrder={6}
         />
         <instancedMesh
-          key={`neut-${nucleonR}`}
+          key={`neut-${nucleonR}-${nNeutrons}`}
           ref={neutRef}
-          args={[nucleonGeo, nucleonMats.neut, MAX_NEUTRONS]}
+          args={[nucleonGeo, nucleonMats.neut, Math.max(1, nNeutrons)]}
           frustumCulled={false}
           renderOrder={6}
         />
-        {cosmicStyle ? (
+        {cosmicStyle && nucleusLight ? (
           <pointLight position={[0, 0, 0]} intensity={1.1} distance={nucleusRadius * 8} color="#ff7a55" />
         ) : null}
       </group>
@@ -326,8 +333,9 @@ export function AtomStructureModel({
       ) : null}
 
       <instancedMesh
+        key={`elec-${nElec}`}
         ref={elecRef}
-        args={[elecGeo, elecMat, MAX_Z]}
+        args={[elecGeo, elecMat, Math.max(1, nElec)]}
         frustumCulled={false}
         renderOrder={5}
       />

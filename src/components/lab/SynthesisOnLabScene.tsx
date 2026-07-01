@@ -763,7 +763,7 @@ export function SynthesisOnLabScene({
         ? zSlots.map((z, i) => (
             <group key={`${runId}-fail-${i}-${z}`} ref={bindFlyGroup(i)}>
               <group scale={ATOM_SCALE} position={[0, 0, 0]}>
-                <AtomStructureModel z={z} animate previewEmphasis previewLite localLight={false} />
+                <AtomStructureModel z={z} animate previewEmphasis previewLite localLight={false} nucleusLight={false} />
               </group>
             </group>
           ))

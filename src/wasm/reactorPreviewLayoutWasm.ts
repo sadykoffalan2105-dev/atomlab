@@ -4,7 +4,13 @@
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
+import { perTermModelCap } from '../chemistry/reactorVisualTier'
 import { getAtomlabWasmInstance } from './atomlabWasmShared'
+
+/** Эффективный коэффициент с учётом перф-потолка моделей (как в TS-пути). */
+function cappedCoeff(coeff: number, cap: number): number {
+  return Math.min(Math.max(0, Math.floor(coeff)), cap)
+}
 
 type PreviewLayoutExports = {
   reactor_preview_layout: (
@@ -18,10 +24,11 @@ type PreviewLayoutExports = {
 
 function packTerms(terms: readonly ReactorEquationTerm[]): Uint8Array {
   const active = terms.filter((t) => Math.floor(t.coeff) > 0)
+  const cap = perTermModelCap(active.length)
   const buf = new Uint8Array(active.length * 3)
   active.forEach((t, i) => {
     buf[i * 3] = t.z
-    buf[i * 3 + 1] = Math.max(0, Math.min(255, Math.floor(t.coeff)))
+    buf[i * 3 + 1] = Math.max(0, Math.min(255, cappedCoeff(t.coeff, cap)))
     buf[i * 3 + 2] = t.diatomic ? 1 : 0
   })
   return buf
@@ -33,7 +40,8 @@ function layoutFromWasm(
 ): ReactorPreviewAtom[] | null {
   const active = terms.filter((t) => Math.floor(t.coeff) > 0)
   if (active.length === 0) return []
-  const maxAtoms = active.reduce((s, t) => s + Math.max(0, Math.floor(t.coeff)), 0)
+  const cap = perTermModelCap(active.length)
+  const maxAtoms = active.reduce((s, t) => s + cappedCoeff(t.coeff, cap), 0)
   if (maxAtoms <= 0) return []
 
   const mem = exports.memory

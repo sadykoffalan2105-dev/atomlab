@@ -36,6 +36,7 @@ export const ReactorPreviewAtomSlot = memo(
         electronFrameSkip={electronFrameSkip}
         hideOrbitRings={hideOrbitRings}
         localLight={localLight}
+        nucleusLight={false}
       />
     )
   },
