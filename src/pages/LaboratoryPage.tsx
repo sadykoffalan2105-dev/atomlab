@@ -14,7 +14,8 @@ import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
-import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
+import { warmupLabSynthesisInfra, warmupLabSynthesisReactorOpen, warmupReactorPreviewTerms } from '../lab/labSynthesisWarmup'
+import { scheduleIdleMatch } from '../lab/labRenderGuards'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
 import { isReactorCoeffEditing } from '../lab/reactorCoeffEditMode'
 import { useReactorPreviewTermsStable } from '../lab/useReactorPreviewTermsStable'
@@ -325,11 +326,13 @@ export function LaboratoryPage() {
       setProductCompoundId(id)
       setProductCoeff(1)
 
+      warmupLabSynthesisReactorOpen(catalogList, c)
+
       if (mode === 'generateEquation') {
         applyGenerateEquationReagents(c)
       }
     },
-    [applyGenerateEquationReagents],
+    [applyGenerateEquationReagents, catalogList],
   )
 
   const clearReactorSlots = useCallback(() => {
@@ -376,10 +379,11 @@ export function LaboratoryPage() {
       } else {
         setStructureZ(null)
         setReactorMessage(t('lab.reactorOpenHint'))
+        warmupLabSynthesisReactorOpen(catalogList, productCompound)
       }
       return next
     })
-  }, [resetEquation, t])
+  }, [resetEquation, t, catalogList, productCompound])
 
   const completeSynthesisSuccess = useCallback(
     (compound: CompoundDef, runIdForGuard: number) => {
@@ -477,6 +481,15 @@ export function LaboratoryPage() {
     )
     // #endregion
   }, [coeffEditBurst])
+
+  useEffect(() => {
+    if (!reactorOpen || !productCompound || reactorCoeffEditing) return
+    if (leftTerms.length < 1) return
+    scheduleIdleMatch(() => {
+      warmupReactorPreviewTerms(leftTerms)
+      warmupLabSynthesisReactorOpen(catalogList, productCompound, leftTerms)
+    })
+  }, [reactorOpen, productCompound, reactorCoeffEditing, leftTerms, catalogList])
 
   const onRequestRun = useCallback(() => {
     const prepared = prepareGuaranteedSynthesisRun({
@@ -635,6 +648,11 @@ export function LaboratoryPage() {
     return lastRunProduct ?? prewarmCompound ?? productCompound
   }, [reactorOpen, productCompound, synthRunActive, lastRunProduct, prewarmCompound])
 
+  const gpuQueuePriorityCompound = useMemo(() => {
+    if (!reactorOpen || reactorCoeffEditing || synthRunActive) return null
+    return productCompound
+  }, [reactorOpen, reactorCoeffEditing, synthRunActive, productCompound])
+
   const onSynthesisPrewarmIntent = useCallback(() => {
     /* pre-synthesis GPU prewarm отключён — вызывает чёрный экран до кнопки «Синтез» */
   }, [])
@@ -671,6 +689,7 @@ export function LaboratoryPage() {
           synthesisPhase={synthPhaseUi}
           forceLiteFxRef={forceLiteFxRef}
           prewarmProductCompound={gpuPrewarmCompound}
+          gpuQueuePriorityCompound={gpuQueuePriorityCompound}
         />
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />

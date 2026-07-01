@@ -2,9 +2,17 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
-**Скачать v1.3.10:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.10)
-- `ATOMLAB-1.3.10-portable.exe` — без установки
-- `ATOMLAB-1.3.10-setup.exe` — установщик
+**Скачать v1.3.11:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.11)
+- `ATOMLAB-1.3.11-portable.exe` — без установки
+- `ATOMLAB-1.3.11-setup.exe` — установщик
+
+### v1.3.11 — первый синтез без лагов (cold start)
+
+- Фоновая GPU-очередь в простое реактора (micro-scale, не трогает continuity)
+- Выбранный продукт — приоритет в очереди compile до кнопки «Синтез»
+- Прогрев WASM/worker/layout при открытии реактора и выборе вещества
+- Prefetch three-vendor chunk; layout-кэш больше не сбрасывается после warmup
+- `preSynthesisReactor` lock сохранён — нет чёрного экрана до синтеза
 
 ### v1.3.10 — нет чёрного экрана до синтеза, атомы при +/-
 
@@ -12,7 +20,7 @@
 - `preSynthesisReactor` lock в continuity — product GPU не монтируется
 - Layout всегда sync при редактировании (K₂Cr₂O₇ без worker-lag)
 - C++ `perf_guard.cpp`: лимиты 48 атомов, sync/worker политика
-- Фоновая GPU-очередь в реакторе отключена (без конкуренции с превью)
+- Фоновая GPU-очередь в v1.3.10 была отключена; в v1.3.11 возвращена безопасно (скрытый compile)
 
 ### v1.3.9 — атомы не пропадают при +/- (K₂Cr₂O₇ и др.)
 

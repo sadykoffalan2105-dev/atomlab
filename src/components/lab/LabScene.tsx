@@ -68,7 +68,10 @@ import { resolveLabCanvasPolicy } from '../../perf/deviceCanvasPolicy'
 import { createWebGlRecoveryController } from '../../lab/webglRecoveryGuard'
 import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
-import { resolvePopularSynthesisCompounds } from '../../lab/synthesisPrewarmPolicy'
+import {
+  canIdleGpuCompileQueue,
+  resolvePopularSynthesisCompounds,
+} from '../../lab/synthesisPrewarmPolicy'
 import { ReactorAtomShaderWarmup } from './ReactorAtomShaderWarmup'
 import { LabSynthesisGpuQueue } from './LabSynthesisGpuQueue'
 
@@ -125,7 +128,7 @@ function ReactorSceneWarmup({ reactorOpen }: { reactorOpen: boolean }) {
     warmedRef.current = true
     let cancelled = false
     let count = 0
-    const maxFrames = 8
+    const maxFrames = 12
     const tick = () => {
       if (cancelled) return
       invalidate()
@@ -254,6 +257,7 @@ function SceneContent({
   synthesisPhase = '',
   forceLiteFxRef,
   prewarmProductCompound = null,
+  gpuQueuePriorityCompound = null,
   reactorCoeffEditBurst = false,
   reactorCoeffEditing = false,
 }: {
@@ -278,6 +282,8 @@ function SceneContent({
   reactorCoeffEditing?: boolean
   /** Продукт для скрытого pre-warm (compile GPU) до запуска синтеза */
   prewarmProductCompound?: CompoundDef | null
+  /** Приоритет фоновой GPU-очереди — выбранный продукт компилируется первым */
+  gpuQueuePriorityCompound?: CompoundDef | null
   synthesis: {
     runId: number
     zSlots: readonly number[]
@@ -445,7 +451,13 @@ function SceneContent({
     [],
   )
 
-  const gpuQueueActive = false
+  const gpuQueueActive = canIdleGpuCompileQueue({
+    reactorOpen: reactorViewOpen,
+    coeffEditBurst: reactorCoeffEditBurst,
+    coeffEditing: coeffEditingActive,
+    synthesisRunActive: synthesisRunActive ?? false,
+    synthActive,
+  })
 
   const mountReactorPreview =
     reactorViewOpen &&
@@ -1060,7 +1072,11 @@ function SceneContent({
         <ReactorAtomShaderWarmup active={!synthesisRunActive && !synthActive} />
       ) : null}
       {gpuQueueActive ? (
-        <LabSynthesisGpuQueue compounds={popularPrewarmCompounds} active={gpuQueueActive} />
+        <LabSynthesisGpuQueue
+          compounds={popularPrewarmCompounds}
+          priorityCompound={gpuQueuePriorityCompound}
+          active={gpuQueueActive}
+        />
       ) : null}
 
       {!reactorViewOpen ? (
@@ -1213,6 +1229,7 @@ export function LabCanvas({
   synthesisPhase = '',
   forceLiteFxRef,
   prewarmProductCompound = null,
+  gpuQueuePriorityCompound = null,
   sessionKey = 0,
   reactorCoeffEditBurst = false,
   reactorCoeffEditing = false,
@@ -1230,6 +1247,7 @@ export function LabCanvas({
   synthesisPhase?: string
   forceLiteFxRef?: React.MutableRefObject<boolean>
   prewarmProductCompound?: CompoundDef | null
+  gpuQueuePriorityCompound?: CompoundDef | null
   /** Remount Canvas только при webglcontextlost (внутренний sessionKey). */
   sessionKey?: number
   reactorCoeffEditBurst?: boolean
@@ -1382,6 +1400,7 @@ export function LabCanvas({
           synthesisPhase={synthesisPhase}
           forceLiteFxRef={forceLiteFxRef}
           prewarmProductCompound={prewarmProductCompound}
+          gpuQueuePriorityCompound={gpuQueuePriorityCompound}
           reactorCoeffEditBurst={reactorCoeffEditBurst}
           reactorCoeffEditing={reactorCoeffEditing}
         />

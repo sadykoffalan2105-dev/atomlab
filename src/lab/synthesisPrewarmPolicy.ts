@@ -42,3 +42,24 @@ export function canIdleGpuPrewarm(opts: {
     !opts.synthesisRunActive
   )
 }
+
+/**
+ * Фоновая GPU-очередь (скрытый micro-scale compile) — не трогает continuity/product slot.
+ * Работает в простое реактора, пока нет синтеза и редактирования уравнения.
+ */
+export function canIdleGpuCompileQueue(opts: {
+  reactorOpen: boolean
+  coeffEditBurst: boolean
+  coeffEditing?: boolean
+  synthesisRunActive: boolean
+  synthActive?: boolean
+}): boolean {
+  const editing = opts.coeffEditing ?? opts.coeffEditBurst
+  return (
+    opts.reactorOpen &&
+    !editing &&
+    !opts.coeffEditBurst &&
+    !opts.synthesisRunActive &&
+    !opts.synthActive
+  )
+}

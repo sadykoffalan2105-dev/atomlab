@@ -1,24 +1,59 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CompoundDef } from '../../types/chemistry'
 import { GPU_COMPILE_QUEUE_GAP_MS } from '../../lab/synthesisHangGuard'
 import { isProductGpuCompiled } from '../../lab/productGpuCompileCache'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
 
+function buildQueueCompounds(
+  compounds: readonly CompoundDef[],
+  priorityCompound: CompoundDef | null | undefined,
+): CompoundDef[] {
+  const out: CompoundDef[] = []
+  const seen = new Set<string>()
+  if (priorityCompound && !seen.has(priorityCompound.id)) {
+    out.push(priorityCompound)
+    seen.add(priorityCompound.id)
+  }
+  for (const c of compounds) {
+    if (!seen.has(c.id)) {
+      out.push(c)
+      seen.add(c.id)
+    }
+  }
+  return out
+}
+
 /**
- * Фоновая очередь GPU-compile популярных веществ (idle, один за раз).
- * Первый синтез конкретного продукта не блокирует кадр.
+ * Фоновая очередь GPU-compile (idle, один за раз, micro-scale).
+ * Не влияет на continuity — отдельный скрытый слот, первый синтез без hitch.
  */
 export function LabSynthesisGpuQueue({
   compounds,
+  priorityCompound = null,
   active,
 }: {
   compounds: readonly CompoundDef[]
+  priorityCompound?: CompoundDef | null
   active: boolean
 }) {
+  const queueCompounds = useMemo(
+    () => buildQueueCompounds(compounds, priorityCompound),
+    [compounds, priorityCompound],
+  )
   const [queueIndex, setQueueIndex] = useState(0)
   const advanceTimerRef = useRef<number | null>(null)
+  const priorityIdRef = useRef<string | null>(null)
 
-  const compound = compounds.length > 0 ? compounds[queueIndex % compounds.length]! : null
+  useEffect(() => {
+    const pid = priorityCompound?.id ?? null
+    if (pid && pid !== priorityIdRef.current) {
+      priorityIdRef.current = pid
+      setQueueIndex(0)
+    }
+  }, [priorityCompound?.id])
+
+  const compound =
+    queueCompounds.length > 0 ? queueCompounds[queueIndex % queueCompounds.length]! : null
 
   useEffect(() => {
     if (!active || !compound) return
@@ -39,8 +74,8 @@ export function LabSynthesisGpuQueue({
       advanceTimerRef.current = null
       setQueueIndex((i) => {
         const next = i + 1
-        if (compounds.length === 0) return 0
-        return next >= compounds.length * 2 ? 0 : next
+        if (queueCompounds.length === 0) return 0
+        return next >= queueCompounds.length * 2 ? 0 : next
       })
       void compoundId
     }, GPU_COMPILE_QUEUE_GAP_MS)

@@ -3,7 +3,6 @@ import { warmupCatalogMatchWorker } from './catalogMatchWorkerClient'
 import { initAtomlabCore } from '../wasm/atomlabCore'
 import { ensureReactorBalanceWasmReady, warmupReactorBalanceWasm } from '../wasm/reactorBalanceWasm'
 import { requestPreviewLayout } from './reactorPreviewLayoutWorkerClient'
-import { clearReactorPreviewLayoutCache } from './reactorPreviewLayoutCache'
 import { scheduleIdleMatch } from './labRenderGuards'
 import { POPULAR_SYNTHESIS_COMPOUND_IDS } from './synthesisPrewarmPolicy'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
@@ -29,6 +28,22 @@ function warmupHeavyPreviewLayout(): void {
 }
 
 let infraWarmed = false
+let threeVendorPrefetched = false
+
+/** Подгрузка three-vendor chunk до первого Canvas — убирает hitch первого кадра. */
+export function prefetchLabThreeVendor(): void {
+  if (threeVendorPrefetched) return
+  threeVendorPrefetched = true
+  void import('@react-three/fiber')
+  void import('three')
+}
+
+/** Layout + worker для текущего уравнения (после выбора вещества / генерации). */
+export function warmupReactorPreviewTerms(terms: readonly ReactorEquationTerm[]): void {
+  if (terms.length < 1) return
+  buildReactorPreviewAtoms(terms, { tier: 'full' })
+  void requestPreviewLayout(terms, { coeffEditBurst: false })
+}
 
 /** Фоновый прогрев WASM, workers и layout-кэша. */
 export function warmupLabSynthesisInfra(catalog: readonly CompoundDef[]): void {
@@ -39,18 +54,40 @@ export function warmupLabSynthesisInfra(catalog: readonly CompoundDef[]): void {
   void ensureReactorBalanceWasmReady()
   warmupPreviewLayoutWorker()
   scheduleIdleMatch(() => {
+    prefetchLabThreeVendor()
     warmupHeavyPreviewLayout()
     void requestPreviewLayout(
       [{ id: 'h', z: 1, coeff: 2 }, { id: 'o', z: 8, coeff: 1, diatomic: true }],
       { coeffEditBurst: false },
     )
   })
-  clearReactorPreviewLayoutCache()
   infraWarmed = true
 }
 
 export function isLabSynthesisInfraWarmed(): boolean {
   return infraWarmed
+}
+
+/**
+ * Дополнительный прогрев при открытии реактора / выборе продукта.
+ * Не трогает GPU continuity — только WASM, layout и three chunk.
+ */
+export function warmupLabSynthesisReactorOpen(
+  catalog: readonly CompoundDef[],
+  product?: CompoundDef | null,
+  previewTerms?: readonly ReactorEquationTerm[] | null,
+): void {
+  warmupLabSynthesisInfra(catalog)
+  prefetchLabThreeVendor()
+  scheduleIdleMatch(() => {
+    warmupHeavyPreviewLayout()
+    if (previewTerms && previewTerms.length > 0) {
+      warmupReactorPreviewTerms(previewTerms)
+    } else if (product?.id === 'salt_k2cr2o7') {
+      warmupHeavyPreviewLayout()
+    }
+    void product?.id
+  })
 }
 
 /** ID популярных веществ для фоновой GPU-очереди. */

@@ -10,7 +10,7 @@ import { buildReactorPreviewAtoms, reactorPreviewAtomScale, PREVIEW_ATOM_SCALE }
 import { resolveSynthesisContinuity } from '../src/lab/synthesisAntiBlink.ts'
 import { isVisualCoverageOk } from '../src/lab/visualCoverageController.ts'
 import { isReactorCoeffEditing } from '../src/lab/reactorCoeffEditMode.ts'
-import { canIdleGpuPrewarm } from '../src/lab/synthesisPrewarmPolicy.ts'
+import { canIdleGpuPrewarm, canIdleGpuCompileQueue } from '../src/lab/synthesisPrewarmPolicy.ts'
 import { getReactorPreviewPolicy } from '../src/lab/synthesisLagGuard.ts'
 import { buildPreviewLayoutSync } from '../src/lab/reactorPreviewLayoutWorkerClient.ts'
 import {
@@ -158,6 +158,31 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
       coeffEditBurst: true,
       synthesisRunActive: false,
       hasProduct: true,
+    }),
+    false,
+  )
+  assert.equal(
+    canIdleGpuCompileQueue({
+      reactorOpen: true,
+      coeffEditBurst: false,
+      synthesisRunActive: false,
+      synthActive: false,
+    }),
+    true,
+  )
+  assert.equal(
+    canIdleGpuCompileQueue({
+      reactorOpen: true,
+      coeffEditBurst: true,
+      synthesisRunActive: false,
+    }),
+    false,
+  )
+  assert.equal(
+    canIdleGpuCompileQueue({
+      reactorOpen: true,
+      coeffEditBurst: false,
+      synthesisRunActive: true,
     }),
     false,
   )
