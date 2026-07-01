@@ -18,6 +18,7 @@ import { warmupLabSynthesisInfra, warmupLabSynthesisReactorOpen, warmupReactorPr
 import { scheduleIdleMatch } from '../lab/labRenderGuards'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
 import { isReactorCoeffEditing } from '../lab/reactorCoeffEditMode'
+import { estimatePreviewAtomCountFromTerms } from '../lab/atomlabPerfGuard'
 import { useReactorPreviewTermsStable } from '../lab/useReactorPreviewTermsStable'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
@@ -500,7 +501,10 @@ export function LaboratoryPage() {
     resetEditBurst()
     setLaboratorySynthesisView('reactor')
     synthesisCompletingRef.current = false
-    forceLiteFxRef.current = false
+    const previewAtoms = estimatePreviewAtomCountFromTerms(leftTerms)
+    if (previewAtoms <= 8) {
+      forceLiteFxRef.current = false
+    }
     synthesisRunGuardRef.current.reset()
     setSynthesisSettledProduct(null)
     synthesisSettledProductRef.current = null
@@ -509,7 +513,6 @@ export function LaboratoryPage() {
     setSynthPhaseUi('product')
     setSynthIgnite(false)
     launchProgressRef.current = 0
-    forceLiteFxRef.current = false
     const zCopy = payload.zSlots.slice()
     const flyCopy = [...payload.flyTerms]
     lastRunZSlotsRef.current = zCopy
@@ -643,8 +646,9 @@ export function LaboratoryPage() {
 
   const gpuQueuePriorityCompound = useMemo(() => {
     if (!reactorOpen || reactorCoeffEditing || synthRunActive) return null
+    if (canRunSynthesis && productCompound) return productCompound
     return productCompound
-  }, [reactorOpen, reactorCoeffEditing, synthRunActive, productCompound])
+  }, [reactorOpen, reactorCoeffEditing, synthRunActive, productCompound, canRunSynthesis])
 
   const onSynthesisPrewarmIntent = useCallback(() => {
     /* pre-synthesis GPU prewarm отключён — вызывает чёрный экран до кнопки «Синтез» */

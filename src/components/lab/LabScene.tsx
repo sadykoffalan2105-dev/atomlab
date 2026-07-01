@@ -662,9 +662,19 @@ function SceneContent({
     }
   }, [coeffEditingActive])
 
+  const restorePreviewRootVisibility = useCallback(() => {
+    const root = previewRootRef.current
+    if (!root) return
+    root.visible = true
+    root.traverse((obj) => {
+      obj.visible = true
+    })
+  }, [])
+
   useLayoutEffect(() => {
     if (coeffEditingActive) return
     if (!productPainted || !productSlotVisible) return
+    if (synthActive || synthesisRunActive) return
     previewStickyMountRef.current = null
     const root = previewRootRef.current
     if (!root) return
@@ -672,7 +682,7 @@ function SceneContent({
     root.traverse((obj) => {
       obj.visible = false
     })
-  }, [productPainted, productSlotVisible, coeffEditingActive])
+  }, [productPainted, productSlotVisible, coeffEditingActive, synthActive, synthesisRunActive])
 
   useLayoutEffect(() => {
     const rid = synthesis?.runId ?? 0
@@ -689,6 +699,7 @@ function SceneContent({
       setProductPainted(false)
       setForceProductSlot(true)
       setEarlyProductReveal(true)
+      restorePreviewRootVisibility()
     }
     const productId = synthesis?.product?.id
     const gpuReady =
@@ -703,7 +714,7 @@ function SceneContent({
       return
     }
     setProductRevealReady(false)
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, instantSynthesis, synthesisRunActive])
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, instantSynthesis, synthesisRunActive, restorePreviewRootVisibility])
 
   // Когда prewarm завершился уже во время синтеза — сразу показываем продукт.
   useEffect(() => {
@@ -994,6 +1005,7 @@ function SceneContent({
       previewVisible: reactorPreviewVisible,
       previewAtomCount,
       productPrewarm: productPrewarmActive,
+      productPainted,
       previewRootRef,
       invalidate,
     })
@@ -1100,7 +1112,7 @@ function SceneContent({
       {reactorViewOpen ? (
         <ReactorSceneWarmup reactorOpen={reactorViewOpen} />
       ) : null}
-      {reactorViewOpen && !coeffEditingActive ? (
+      {reactorViewOpen ? (
         <ReactorAtomShaderWarmup active={!synthesisRunActive && !synthActive} />
       ) : null}
       {gpuQueueActive ? (

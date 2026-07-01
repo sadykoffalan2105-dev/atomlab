@@ -28,8 +28,28 @@ int32_t catalog_match(const uint8_t* terms, int32_t terms_len, uint8_t* out, int
 int32_t atomlab_max_preview_atoms();
 int32_t atomlab_max_preview_terms();
 int32_t atomlab_sync_build_atom_cap();
-int32_t atomlab_force_sync_layout(const uint8_t* terms, int32_t term_count, int32_t coeff_burst);
-int32_t atomlab_allow_worker_layout(const uint8_t* terms, int32_t term_count, int32_t coeff_burst);
+int32_t atomlab_force_sync_layout(
+  const uint8_t* terms,
+  int32_t term_count,
+  int32_t coeff_burst,
+  int32_t coeff_editing);
+int32_t atomlab_allow_worker_layout(
+  const uint8_t* terms,
+  int32_t term_count,
+  int32_t coeff_burst,
+  int32_t coeff_editing);
+int32_t atomlab_defer_heavy_layout_rebuild(int32_t atom_count, int32_t coeff_editing);
+int32_t atomlab_layout_build_budget_ms(int32_t atom_count);
+int32_t atomlab_allow_product_gpu_mount(
+  int32_t coeff_burst,
+  int32_t coeff_editing,
+  int32_t synth_live);
+int32_t atomlab_assert_preview_coverage(
+  int32_t terms_nonempty,
+  int32_t preview_mounted,
+  int32_t root_visible,
+  int32_t product_painted,
+  int32_t synth_live);
 int32_t atomlab_validate_preview_terms(const uint8_t* terms, int32_t term_count);
 
 /**

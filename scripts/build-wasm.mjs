@@ -29,6 +29,10 @@ const exports = [
   '_atomlab_sync_build_atom_cap',
   '_atomlab_force_sync_layout',
   '_atomlab_allow_worker_layout',
+  '_atomlab_defer_heavy_layout_rebuild',
+  '_atomlab_layout_build_budget_ms',
+  '_atomlab_allow_product_gpu_mount',
+  '_atomlab_assert_preview_coverage',
   '_atomlab_validate_preview_terms',
 ].join(',')
 

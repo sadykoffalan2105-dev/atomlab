@@ -2,6 +2,7 @@ import type { CompoundDef } from '../types/chemistry'
 import { warmupCatalogMatchWorker } from './catalogMatchWorkerClient'
 import { initAtomlabCore } from '../wasm/atomlabCore'
 import { ensureReactorBalanceWasmReady, warmupReactorBalanceWasm } from '../wasm/reactorBalanceWasm'
+import { warmupAtomlabSynthesisGuard } from './atomlabSynthesisGuard'
 import { requestPreviewLayout } from './reactorPreviewLayoutWorkerClient'
 import { scheduleIdleMatch } from './labRenderGuards'
 import { POPULAR_SYNTHESIS_COMPOUND_IDS } from './synthesisPrewarmPolicy'
@@ -50,6 +51,7 @@ export function warmupLabSynthesisInfra(catalog: readonly CompoundDef[]): void {
   if (infraWarmed) return
   warmupCatalogMatchWorker()
   warmupReactorBalanceWasm()
+  warmupAtomlabSynthesisGuard()
   void initAtomlabCore(catalog)
   void ensureReactorBalanceWasmReady()
   warmupPreviewLayoutWorker()

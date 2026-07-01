@@ -23,6 +23,10 @@ import {
   shouldForceSyncPreviewLayout,
   shouldAllowWorkerPreviewLayout,
 } from '../src/lab/atomlabPerfGuard.ts'
+import {
+  assertPreviewCoverage,
+  deferHeavyLayoutRebuild,
+} from '../src/lab/atomlabSynthesisGuard.ts'
 import { SYNC_BUILD_ATOM_CAP } from '../src/lab/useReactorPreviewLayout.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
@@ -331,6 +335,32 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   assert.equal(shouldForceSyncPreviewLayout(15, true), true)
   assert.equal(shouldAllowWorkerPreviewLayout(15, true), false)
   assert.equal(shouldAllowWorkerPreviewLayout(15, false), true)
+}
+
+// --- C++ guard TS mirror ---
+{
+  assert.equal(deferHeavyLayoutRebuild(20, true), true)
+  assert.equal(deferHeavyLayoutRebuild(8, true), false)
+  assert.equal(
+    assertPreviewCoverage({
+      termsNonempty: true,
+      previewMounted: true,
+      rootVisible: false,
+      productPainted: false,
+      synthLive: false,
+    }),
+    'root_hidden',
+  )
+  assert.equal(
+    assertPreviewCoverage({
+      termsNonempty: true,
+      previewMounted: true,
+      rootVisible: true,
+      productPainted: true,
+      synthLive: true,
+    }),
+    'ok',
+  )
 }
 
 console.log('test-synthesis-stability: all passed')
