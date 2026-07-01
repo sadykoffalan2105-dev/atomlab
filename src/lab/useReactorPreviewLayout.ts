@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
-import { requestPreviewLayout } from './reactorPreviewLayoutWorkerClient'
+import { shouldForceSyncPreviewLayout } from './atomlabPerfGuard'
 
 function termsSignature(terms: readonly ReactorEquationTerm[]): string {
   if (!terms.length) return ''
@@ -18,12 +18,11 @@ function estimatePreviewAtomCount(terms: readonly ReactorEquationTerm[]): number
   return n
 }
 
-/** Порог sync-build на main thread; выше — worker + shell. */
+/** Порог sync-build на main thread; выше — worker + shell (только вне редактирования). */
 export const SYNC_BUILD_ATOM_CAP = 12
 
 /**
- * Layout превью: мгновенный sync для малых N + WASM/worker off-thread для тяжёлых уравнений.
- * Shell ref не даёт вернуть пустой список между кадрами (zero-black-screen).
+ * Layout превью: всегда sync при редактировании / до синтеза — zero-black-screen.
  */
 export function useReactorPreviewLayout(
   terms: readonly ReactorEquationTerm[],
@@ -38,13 +37,12 @@ export function useReactorPreviewLayout(
   const syncAtomsRef = useRef<readonly ReactorPreviewAtom[]>([])
   const lastBuiltSigRef = useRef('')
 
+  const forceSync = shouldForceSyncPreviewLayout(atomEstimate, coeffEditing)
+
   if (termsSig !== lastBuiltSigRef.current) {
     lastBuiltSigRef.current = termsSig
     const shell = shellRef.current
-    const heavy = atomEstimate > SYNC_BUILD_ATOM_CAP
-    /** Burst +/-: всегда sync-build — worker не откладывает layout. */
-    const deferSync = heavy && shell.length > 0 && !coeffEditing
-    if (!deferSync || shell.length === 0) {
+    if (forceSync || shell.length === 0) {
       const built = buildReactorPreviewAtoms(terms, { tier: 'full' })
       syncAtomsRef.current = built.length > 0 ? built : shell.length > 0 ? shell : built
       if (built.length > 0) shellRef.current = built
@@ -54,7 +52,6 @@ export function useReactorPreviewLayout(
   }
 
   const syncAtoms = syncAtomsRef.current
-  const genRef = useRef(0)
   const [atoms, setAtoms] = useState<readonly ReactorPreviewAtom[]>(() =>
     syncAtoms.length > 0 ? syncAtoms : shellRef.current,
   )
@@ -64,51 +61,24 @@ export function useReactorPreviewLayout(
   }
 
   useLayoutEffect(() => {
-    genRef.current += 1
-    const gen = genRef.current
-
     if (syncAtoms.length > 0) {
       shellRef.current = syncAtoms
       setAtoms(syncAtoms)
-    } else if (shellRef.current.length > 0 && terms.length >= 1) {
+      return
+    }
+    if (shellRef.current.length > 0 && terms.length >= 1) {
       setAtoms(shellRef.current)
+      return
     }
-
-    const useWorker = atomEstimate > SYNC_BUILD_ATOM_CAP && !coeffEditing
-    if (!useWorker) return
-
-    let cancelled = false
-    let timer: number | null = null
-
-    const runWorker = () => {
-      if (terms.length < 1) return
-      void requestPreviewLayout(terms, { coeffEditBurst }).then((result) => {
-        if (cancelled || gen !== genRef.current) return
-        if (result.atoms.length > 0) {
-          shellRef.current = result.atoms
-          setAtoms(result.atoms)
-          return
-        }
-        const syncFallback = buildReactorPreviewAtoms(terms, { tier: 'full' })
-        if (syncFallback.length > 0) {
-          shellRef.current = syncFallback
-          setAtoms(syncFallback)
-        } else if (shellRef.current.length > 0) {
-          setAtoms(shellRef.current)
-        }
-      })
+    if (terms.length >= 1) {
+      const built = buildReactorPreviewAtoms(terms, { tier: 'full' })
+      if (built.length > 0) {
+        shellRef.current = built
+        syncAtomsRef.current = built
+        setAtoms(built)
+      }
     }
-
-    const debounceMs =
-      coeffEditing ? 0 : layoutDebounceMs > 0 ? layoutDebounceMs : coeffEditBurst ? 20 : 12
-    if (debounceMs > 0) timer = window.setTimeout(runWorker, debounceMs)
-    else runWorker()
-
-    return () => {
-      cancelled = true
-      if (timer != null) window.clearTimeout(timer)
-    }
-  }, [termsSig, terms, coeffEditBurst, coeffEditing, syncAtoms, layoutDebounceMs, atomEstimate])
+  }, [termsSig, terms, syncAtoms, coeffEditing, layoutDebounceMs, atomEstimate, forceSync])
 
   if (atoms.length > 0) return atoms
   if (shellRef.current.length > 0) return shellRef.current

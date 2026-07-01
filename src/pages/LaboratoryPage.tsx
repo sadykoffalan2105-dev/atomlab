@@ -17,8 +17,6 @@ import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
 import { isReactorCoeffEditing } from '../lab/reactorCoeffEditMode'
-import { useStableGpuPrewarmGate, GPU_PREWARM_HOVER_MS } from '../lab/deferredGpuPrewarm'
-import { canIdleGpuPrewarm } from '../lab/synthesisPrewarmPolicy'
 import { useReactorPreviewTermsStable } from '../lab/useReactorPreviewTermsStable'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import {
@@ -101,7 +99,6 @@ export function LaboratoryPage() {
   const synthesisPhaseRef = useRef('')
   const synthesisCompletingRef = useRef(false)
   const [prewarmCompound, setPrewarmCompound] = useState<CompoundDef | null>(null)
-  const [prewarmHoverRev, setPrewarmHoverRev] = useState(0)
   const lastRunVisualTierRef = useRef<ReactorVisualTier>('full')
   const synthesisRunGuardRef = useRef(createSynthesisRunGuard())
   const forceLiteFxRef = useRef(false)
@@ -629,62 +626,18 @@ export function LaboratoryPage() {
     [productForHud, locale, t],
   )
 
-  /** До запуска синтеза — только превью реагентов; молекула продукта после анимации */
+  /** До запуска синтеза — только превью реагентов; GPU-prewarm только во время run. */
   const transformPreviewCompound = null
-
-  /** GPU-prewarm: idle после баланса (не во время +/-) + hover intent + активный синтез. */
-  const idleGpuPrewarmEnabled = canIdleGpuPrewarm({
-    reactorOpen,
-    coeffEditBurst,
-    coeffEditing: reactorCoeffEditing,
-    synthesisRunActive: synthRunActive,
-    hasProduct: productCompound != null && canRunSynthesis,
-  })
-
-  const idlePrewarmStable = useStableGpuPrewarmGate(
-    idleGpuPrewarmEnabled && editIdle,
-    `${equationSignature}:${productCompound?.id ?? ''}`,
-  )
-
-  useEffect(() => {
-    if (coeffEditBurst) setPrewarmHoverRev(0)
-  }, [coeffEditBurst])
-
-  const onSynthesisPrewarmIntent = useCallback(() => {
-    if (!canRunSynthesis || !productCompound || synthRunActive) return
-    setPrewarmHoverRev((v) => v + 1)
-  }, [canRunSynthesis, productCompound, synthRunActive])
-
-  useEffect(() => {
-    if (prewarmHoverRev <= 0) return
-    const t = window.setTimeout(() => setPrewarmHoverRev(0), GPU_PREWARM_HOVER_MS + 4000)
-    return () => window.clearTimeout(t)
-  }, [prewarmHoverRev])
 
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
-    if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
-    if (
-      !reactorCoeffEditing &&
-      !coeffEditBurst &&
-      (idlePrewarmStable || prewarmHoverRev > 0) &&
-      canRunSynthesis
-    ) {
-      return productCompound
-    }
-    return null
-  }, [
-    reactorOpen,
-    productCompound,
-    synthRunActive,
-    coeffEditBurst,
-    reactorCoeffEditing,
-    idlePrewarmStable,
-    prewarmHoverRev,
-    canRunSynthesis,
-    lastRunProduct,
-    prewarmCompound,
-  ])
+    if (!synthRunActive) return null
+    return lastRunProduct ?? prewarmCompound ?? productCompound
+  }, [reactorOpen, productCompound, synthRunActive, lastRunProduct, prewarmCompound])
+
+  const onSynthesisPrewarmIntent = useCallback(() => {
+    /* pre-synthesis GPU prewarm отключён — вызывает чёрный экран до кнопки «Синтез» */
+  }, [])
 
   return (
     <div className={styles.wrap} data-lab-synthesis-view={laboratorySynthesisView}>

@@ -78,6 +78,9 @@ extern "C" {
  * out: [x,y,z, z(u8 as float), term_index, atom_in_term] * written_atoms
  * Returns atom count or -1.
  */
+constexpr int32_t kMaxPreviewTerms = 16;
+constexpr int32_t kMaxPreviewAtoms = 48;
+
 int32_t reactor_preview_layout(
   const uint8_t* terms,
   int32_t term_count,
@@ -85,6 +88,16 @@ int32_t reactor_preview_layout(
   int32_t out_atom_cap
 ) {
   if (!terms || !out || term_count < 0 || out_atom_cap < 0) return -1;
+  if (term_count > kMaxPreviewTerms) return -1;
+
+  int32_t atom_budget = 0;
+  for (int32_t i = 0; i < term_count; ++i) {
+    const uint8_t coeff = terms[i * 3 + 1];
+    if (coeff > 0) atom_budget += static_cast<int32_t>(coeff);
+  }
+  if (atom_budget <= 0) return 0;
+  if (atom_budget > kMaxPreviewAtoms) return -1;
+  if (out_atom_cap < atom_budget) return -1;
 
   int32_t active = 0;
   for (int32_t i = 0; i < term_count; ++i) {

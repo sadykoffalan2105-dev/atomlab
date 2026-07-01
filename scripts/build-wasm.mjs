@@ -8,9 +8,12 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.join(__dirname, '..')
 const srcDir = path.join(root, 'native/atomlab_core/src')
-const sources = ['reactor_balance.cpp', 'catalog_match.cpp', 'reactor_preview_layout.cpp'].map((f) =>
-  path.join(srcDir, f).replace(/\\/g, '/'),
-)
+const sources = [
+  'reactor_balance.cpp',
+  'catalog_match.cpp',
+  'reactor_preview_layout.cpp',
+  'perf_guard.cpp',
+].map((f) => path.join(srcDir, f).replace(/\\/g, '/'))
 const outDir = path.join(root, 'public/wasm')
 const outWasm = path.join(outDir, 'atomlab_core.wasm')
 
@@ -21,6 +24,12 @@ const exports = [
   '_reactor_expand_z_slots',
   '_catalog_match',
   '_reactor_preview_layout',
+  '_atomlab_max_preview_atoms',
+  '_atomlab_max_preview_terms',
+  '_atomlab_sync_build_atom_cap',
+  '_atomlab_force_sync_layout',
+  '_atomlab_allow_worker_layout',
+  '_atomlab_validate_preview_terms',
 ].join(',')
 
 try {

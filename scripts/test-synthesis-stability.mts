@@ -19,6 +19,10 @@ import {
   expectedForScenario,
   type SynthesisStabilityScenario,
 } from '../src/lab/synthesisStabilityContract.ts'
+import {
+  shouldForceSyncPreviewLayout,
+  shouldAllowWorkerPreviewLayout,
+} from '../src/lab/atomlabPerfGuard.ts'
 import { SYNC_BUILD_ATOM_CAP } from '../src/lab/useReactorPreviewLayout.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
@@ -214,7 +218,7 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   assert.equal(isReactorCoeffEditing(false, true), false)
 }
 
-// --- settled product cleared: preview stays during coeff edit override ---
+// --- coeff edit pre-synthesis: preview only ---
 {
   const stickyMountRef = mockSticky(null)
   const previewStickyRef = mockSticky(null)
@@ -223,23 +227,59 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     synthActive: false,
     synthesisRunActive: false,
     synthesisPhase: '',
-    showSettledHero: true,
+    showSettledHero: false,
     mountReactorPreview: true,
     reactorViewOpen: true,
-    gpuPrewarmAllowed: false,
-    prewarmReady: false,
+    gpuPrewarmAllowed: true,
+    prewarmReady: true,
     productCompoundId: 'salt_k2cr2o7',
     earlyProductReveal: false,
     forceProductSlot: false,
     productRevealReady: false,
-    productPainted: true,
+    productPainted: false,
     coeffEditBurst: true,
     coeffEditing: true,
     stickyMountRef,
     previewStickyRef,
   })
-  assert.equal(view.reactorPreviewVisible, true, 'preview during coeff edit even if settled hero was set')
+  assert.equal(view.reactorPreviewVisible, true, 'preview during coeff edit')
   assert.equal(view.productMeshMounted, false)
+}
+
+// --- pre-synthesis balanced: only atoms, no GPU product ---
+{
+  const stickyMountRef = mockSticky(null)
+  const previewStickyRef = mockSticky(null)
+  const view = resolveSynthesisContinuity({
+    runId: 0,
+    synthActive: false,
+    synthesisRunActive: false,
+    synthesisPhase: '',
+    showSettledHero: false,
+    mountReactorPreview: true,
+    reactorViewOpen: true,
+    gpuPrewarmAllowed: true,
+    prewarmReady: true,
+    productCompoundId: 'salt_k2cr2o7',
+    earlyProductReveal: false,
+    forceProductSlot: false,
+    productRevealReady: false,
+    productPainted: false,
+    coeffEditBurst: false,
+    coeffEditing: false,
+    stickyMountRef,
+    previewStickyRef,
+  })
+  assert.equal(view.reactorPreviewVisible, true, 'balanced pre-run: preview visible')
+  assert.equal(view.productMeshMounted, false, 'balanced pre-run: no product GPU')
+  assert.equal(view.productPrewarm, false)
+}
+
+// --- perf guard ---
+{
+  assert.equal(shouldForceSyncPreviewLayout(15, true), true)
+  assert.equal(shouldAllowWorkerPreviewLayout(15, true), false)
+  assert.equal(shouldAllowWorkerPreviewLayout(15, false), true)
 }
 
 console.log('test-synthesis-stability: all passed')

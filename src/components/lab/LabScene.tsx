@@ -429,11 +429,11 @@ function SceneContent({
   const productCompoundCandidate =
     synthesisSettledProduct ??
     synthesis?.product ??
-    effectivePrewarmProduct ??
+    (synthActive || synthesisRunActive ? effectivePrewarmProduct : null) ??
     null
 
   const gpuPrewarmAllowed = shouldMountProductGpuPrewarm({
-    policy: 'intent',
+    policy: 'synthesis-only',
     synthesisRunActive,
     synthActive,
     showSettledHero,
@@ -445,13 +445,7 @@ function SceneContent({
     [],
   )
 
-  const gpuQueueActive =
-    reactorViewOpen &&
-    !coeffEditingActive &&
-    !reactorCoeffEditBurst &&
-    !synthesisRunActive &&
-    !synthActive &&
-    !showSettledHero
+  const gpuQueueActive = false
 
   const mountReactorPreview =
     reactorViewOpen &&
@@ -1108,6 +1102,7 @@ function SceneContent({
               synthesisGlass={synthQualityFeatures.glassAtoms}
               coeffEditBurst={reactorCoeffEditBurst}
               coeffEditing={coeffEditingActive}
+              previewOnlyMode={!synthesisRunActive && !synthActive && !showSettledHero}
               lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}
               productPrewarm={productPrewarmActive}
               atomGroupRefs={previewAtomGroupRefs}

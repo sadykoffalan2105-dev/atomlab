@@ -71,14 +71,15 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     previewStickyRef,
   } = input
 
-  /** Жёсткий override: +/- — только превью атомов, без product GPU (zero black screen). */
-  if (
-    coeffEditing &&
+  /** Жёсткий override: до запуска синтеза — только атомы (никакого product GPU). */
+  const preSynthesisReactor =
     mountReactorPreview &&
     reactorViewOpen &&
     !synthActive &&
-    !synthesisRunActive
-  ) {
+    !synthesisRunActive &&
+    !showSettledHero
+
+  if (preSynthesisReactor) {
     previewStickyRef.current = { runId: -1, previewMounted: true }
     return {
       reactorPreviewVisible: true,

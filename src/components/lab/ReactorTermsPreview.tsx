@@ -40,6 +40,7 @@ export function ReactorTermsPreview({
   synthesisGlass = false,
   coeffEditBurst = false,
   coeffEditing = coeffEditBurst,
+  previewOnlyMode = false,
   productPrewarm: _productPrewarm = false,
   lowPower = false,
   atomGroupRefs: atomGroupRefsExternal,
@@ -56,6 +57,8 @@ export function ReactorTermsPreview({
   synthesisGlass?: boolean
   coeffEditBurst?: boolean
   coeffEditing?: boolean
+  /** До запуска синтеза — атомы всегда на экране */
+  previewOnlyMode?: boolean
   productPrewarm?: boolean
   lowPower?: boolean
   atomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
@@ -119,7 +122,8 @@ export function ReactorTermsPreview({
 
   const shouldRender =
     n > 0 &&
-    (coeffEditing ||
+    (previewOnlyMode ||
+      coeffEditing ||
       visible ||
       shellHoldActive ||
       (terms.length > 0 &&
