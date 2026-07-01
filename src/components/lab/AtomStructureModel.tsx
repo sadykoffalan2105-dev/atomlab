@@ -15,6 +15,7 @@ import {
 } from './atom/atomCosmicShared'
 
 const MAX_Z = 118
+const MAX_NEUTRONS = 220
 
 function createNucleonMaterials(cosmic: boolean) {
   return {
@@ -304,16 +305,16 @@ export function AtomStructureModel({
 
       <group renderOrder={4}>
         <instancedMesh
-          key={`prot-${nucleonR}-${zClamped}`}
+          key={`prot-${nucleonR}`}
           ref={protRef}
-          args={[nucleonGeo, nucleonMats.prot, Math.max(1, zClamped)]}
+          args={[nucleonGeo, nucleonMats.prot, MAX_Z]}
           frustumCulled={false}
           renderOrder={6}
         />
         <instancedMesh
-          key={`neut-${nucleonR}-${nNeutrons}`}
+          key={`neut-${nucleonR}`}
           ref={neutRef}
-          args={[nucleonGeo, nucleonMats.neut, Math.max(1, nNeutrons)]}
+          args={[nucleonGeo, nucleonMats.neut, MAX_NEUTRONS]}
           frustumCulled={false}
           renderOrder={6}
         />
@@ -333,9 +334,8 @@ export function AtomStructureModel({
       ) : null}
 
       <instancedMesh
-        key={`elec-${nElec}`}
         ref={elecRef}
-        args={[elecGeo, elecMat, Math.max(1, nElec)]}
+        args={[elecGeo, elecMat, MAX_Z]}
         frustumCulled={false}
         renderOrder={5}
       />
