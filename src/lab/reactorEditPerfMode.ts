@@ -11,16 +11,18 @@ export type ReactorEditPerfFlags = {
 
 export function resolveReactorEditPerfFlags(opts: {
   coeffEditBurst: boolean
+  coeffEditing?: boolean
   forceLite: boolean
   lowPower: boolean
   layoutDebounceMs?: number
 }): ReactorEditPerfFlags {
   const { coeffEditBurst, forceLite, lowPower, layoutDebounceMs } = opts
-  const burst = coeffEditBurst || forceLite || lowPower
+  const editing = opts.coeffEditing ?? coeffEditBurst
+  const burst = editing || coeffEditBurst || forceLite || lowPower
   return {
     burst,
     layoutDebounceMs:
-      layoutDebounceMs ?? (lowPower ? 40 : coeffEditBurst ? 32 : 0),
+      editing ? 0 : layoutDebounceMs ?? (lowPower ? 40 : coeffEditBurst ? 32 : 0),
     maxInvalidateHz: burst ? 36 : 60,
   }
 }

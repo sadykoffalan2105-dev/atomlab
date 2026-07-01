@@ -9,6 +9,7 @@ import type { ReactorEquationTerm } from '../src/chemistry/reactorEquationBalanc
 import { buildReactorPreviewAtoms, reactorPreviewAtomScale, PREVIEW_ATOM_SCALE } from '../src/components/lab/reactorPreviewLayout.ts'
 import { resolveSynthesisContinuity } from '../src/lab/synthesisAntiBlink.ts'
 import { isVisualCoverageOk } from '../src/lab/visualCoverageController.ts'
+import { isReactorCoeffEditing } from '../src/lab/reactorCoeffEditMode.ts'
 import { canIdleGpuPrewarm } from '../src/lab/synthesisPrewarmPolicy.ts'
 import { getReactorPreviewPolicy } from '../src/lab/synthesisLagGuard.ts'
 import { buildPreviewLayoutSync } from '../src/lab/reactorPreviewLayoutWorkerClient.ts'
@@ -204,6 +205,41 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     const atoms = buildReactorPreviewAtoms(terms, { tier: 'full' })
     assert.ok(atoms.length >= 2, `layout atoms for mock ${id}`)
   }
+}
+
+// --- coeff editing flag ---
+{
+  assert.equal(isReactorCoeffEditing(true, true), true)
+  assert.equal(isReactorCoeffEditing(false, false), true)
+  assert.equal(isReactorCoeffEditing(false, true), false)
+}
+
+// --- settled product cleared: preview stays during coeff edit override ---
+{
+  const stickyMountRef = mockSticky(null)
+  const previewStickyRef = mockSticky(null)
+  const view = resolveSynthesisContinuity({
+    runId: 0,
+    synthActive: false,
+    synthesisRunActive: false,
+    synthesisPhase: '',
+    showSettledHero: true,
+    mountReactorPreview: true,
+    reactorViewOpen: true,
+    gpuPrewarmAllowed: false,
+    prewarmReady: false,
+    productCompoundId: 'salt_k2cr2o7',
+    earlyProductReveal: false,
+    forceProductSlot: false,
+    productRevealReady: false,
+    productPainted: true,
+    coeffEditBurst: true,
+    coeffEditing: true,
+    stickyMountRef,
+    previewStickyRef,
+  })
+  assert.equal(view.reactorPreviewVisible, true, 'preview during coeff edit even if settled hero was set')
+  assert.equal(view.productMeshMounted, false)
 }
 
 console.log('test-synthesis-stability: all passed')

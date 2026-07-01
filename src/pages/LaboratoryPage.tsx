@@ -16,6 +16,7 @@ import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reac
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { warmupLabSynthesisInfra } from '../lab/labSynthesisWarmup'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
+import { isReactorCoeffEditing } from '../lab/reactorCoeffEditMode'
 import { useStableGpuPrewarmGate, GPU_PREWARM_HOVER_MS } from '../lab/deferredGpuPrewarm'
 import { canIdleGpuPrewarm } from '../lab/synthesisPrewarmPolicy'
 import { useReactorPreviewTermsStable } from '../lab/useReactorPreviewTermsStable'
@@ -294,6 +295,10 @@ export function LaboratoryPage() {
 
   const onCoeffChange = useCallback((id: string, coeff: number) => {
     const c = Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(Number.isFinite(coeff) ? coeff : 1)))
+    setSynthesisSettledProduct(null)
+    synthesisSettledProductRef.current = null
+    settledSnapshotRef.current = null
+    setSynthPhaseUi('')
     setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
   }, [])
 
@@ -454,6 +459,7 @@ export function LaboratoryPage() {
   }, [reactorOpen, leftTerms])
 
   const { coeffEditBurst, editIdle, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
+  const reactorCoeffEditing = isReactorCoeffEditing(coeffEditBurst, editIdle)
 
   /** Canvas: stable shell + immediate при burst — атомы не пропадают при +/-. */
   const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
@@ -630,6 +636,7 @@ export function LaboratoryPage() {
   const idleGpuPrewarmEnabled = canIdleGpuPrewarm({
     reactorOpen,
     coeffEditBurst,
+    coeffEditing: reactorCoeffEditing,
     synthesisRunActive: synthRunActive,
     hasProduct: productCompound != null && canRunSynthesis,
   })
@@ -658,6 +665,7 @@ export function LaboratoryPage() {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
     if (
+      !reactorCoeffEditing &&
       !coeffEditBurst &&
       (idlePrewarmStable || prewarmHoverRev > 0) &&
       canRunSynthesis
@@ -670,6 +678,7 @@ export function LaboratoryPage() {
     productCompound,
     synthRunActive,
     coeffEditBurst,
+    reactorCoeffEditing,
     idlePrewarmStable,
     prewarmHoverRev,
     canRunSynthesis,
@@ -701,6 +710,7 @@ export function LaboratoryPage() {
           synthesisRunActive={synthRunActive}
           reactorPreviewTerms={reactorPreviewTermsCanvas}
           reactorCoeffEditBurst={coeffEditBurst}
+          reactorCoeffEditing={reactorCoeffEditing}
           transformPreviewCompound={transformPreviewCompound}
           reactorViewOpen={reactorOpen}
           synthesisSettledProduct={synthesisSettledProduct}

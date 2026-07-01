@@ -255,6 +255,7 @@ function SceneContent({
   forceLiteFxRef,
   prewarmProductCompound = null,
   reactorCoeffEditBurst = false,
+  reactorCoeffEditing = false,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -273,6 +274,8 @@ function SceneContent({
   forceLiteFxRef?: React.MutableRefObject<boolean>
   /** Быстрая серия +/- — lite meshes, drift off; электроны остаются. */
   reactorCoeffEditBurst?: boolean
+  /** Любое редактирование уравнения (burst или !editIdle). */
+  reactorCoeffEditing?: boolean
   /** Продукт для скрытого pre-warm (compile GPU) до запуска синтеза */
   prewarmProductCompound?: CompoundDef | null
   synthesis: {
@@ -331,6 +334,7 @@ function SceneContent({
   const previewContinuityRef = useRef(createReactorPreviewContinuityGuard())
   const editLiteLatchRef = useRef(false)
   const previewTermsShellRef = useRef<readonly ReactorEquationTerm[] | null>(null)
+  const coeffEditingActive = reactorCoeffEditing || reactorCoeffEditBurst
   if (reactorPreviewTerms?.length) previewTermsShellRef.current = reactorPreviewTerms
   const effectivePreviewTerms = reactorPreviewTerms ?? previewTermsShellRef.current
 
@@ -443,6 +447,7 @@ function SceneContent({
 
   const gpuQueueActive =
     reactorViewOpen &&
+    !coeffEditingActive &&
     !reactorCoeffEditBurst &&
     !synthesisRunActive &&
     !synthActive &&
@@ -452,7 +457,11 @@ function SceneContent({
     reactorViewOpen &&
     effectivePreviewTerms != null &&
     effectivePreviewTerms.length >= 1 &&
-    (!showSettledHero || synthActive || synthesisRunActive || !productPainted)
+    (coeffEditingActive ||
+      !showSettledHero ||
+      synthActive ||
+      synthesisRunActive ||
+      !productPainted)
 
   const continuity = useMemo(
     () =>
@@ -474,6 +483,7 @@ function SceneContent({
         keepPreviewDuringProduct:
           (synthActive || synthesisRunActive) && !productPainted,
         coeffEditBurst: reactorCoeffEditBurst,
+        coeffEditing: coeffEditingActive,
         stickyMountRef: productStickyMountRef,
         previewStickyRef: previewStickyMountRef,
       }),
@@ -494,6 +504,7 @@ function SceneContent({
       productPainted,
       instantSynthesis,
       reactorCoeffEditBurst,
+      reactorCoeffEditing,
     ],
   )
 
@@ -597,6 +608,23 @@ function SceneContent({
   ])
 
   useLayoutEffect(() => {
+    if (coeffEditingActive) {
+      productPaintedRef.current = false
+      productPaintFramesRef.current = 0
+      setProductPainted(false)
+      setProductRevealReady(false)
+      const root = previewRootRef.current
+      if (root) {
+        root.visible = true
+        root.traverse((obj) => {
+          if (obj !== root) obj.visible = true
+        })
+      }
+    }
+  }, [coeffEditingActive])
+
+  useLayoutEffect(() => {
+    if (coeffEditingActive) return
     if (!productPainted || !productSlotVisible) return
     previewStickyMountRef.current = null
     const root = previewRootRef.current
@@ -605,7 +633,7 @@ function SceneContent({
     root.traverse((obj) => {
       obj.visible = false
     })
-  }, [productPainted, productSlotVisible])
+  }, [productPainted, productSlotVisible, coeffEditingActive])
 
   useLayoutEffect(() => {
     const rid = synthesis?.runId ?? 0
@@ -1034,7 +1062,7 @@ function SceneContent({
       {reactorViewOpen ? (
         <ReactorSceneWarmup reactorOpen={reactorViewOpen} />
       ) : null}
-      {reactorViewOpen && !reactorCoeffEditBurst ? (
+      {reactorViewOpen && !coeffEditingActive ? (
         <ReactorAtomShaderWarmup active={!synthesisRunActive && !synthActive} />
       ) : null}
       {gpuQueueActive ? (
@@ -1079,6 +1107,7 @@ function SceneContent({
               qualityLevel={synthQualityLevel}
               synthesisGlass={synthQualityFeatures.glassAtoms}
               coeffEditBurst={reactorCoeffEditBurst}
+              coeffEditing={coeffEditingActive}
               lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}
               productPrewarm={productPrewarmActive}
               atomGroupRefs={previewAtomGroupRefs}
@@ -1191,6 +1220,7 @@ export function LabCanvas({
   prewarmProductCompound = null,
   sessionKey = 0,
   reactorCoeffEditBurst = false,
+  reactorCoeffEditing = false,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -1208,6 +1238,7 @@ export function LabCanvas({
   /** Remount Canvas только при webglcontextlost (внутренний sessionKey). */
   sessionKey?: number
   reactorCoeffEditBurst?: boolean
+  reactorCoeffEditing?: boolean
   synthesis: {
     runId: number
     zSlots: readonly number[]
@@ -1223,22 +1254,24 @@ export function LabCanvas({
   const [perfLevel, setPerfLevel] = useState<PerfLevel>('high')
   const [internalSessionKey, setInternalSessionKey] = useState(0)
   const coeffEditBurstRef = useRef(reactorCoeffEditBurst ?? false)
+  const coeffEditingRef = useRef(reactorCoeffEditing ?? false)
   coeffEditBurstRef.current = reactorCoeffEditBurst ?? false
+  coeffEditingRef.current = reactorCoeffEditing ?? false
   const webglRecoveryRef = useRef(
     createWebGlRecoveryController(() => {
-      if (coeffEditBurstRef.current) return
+      if (coeffEditBurstRef.current || coeffEditingRef.current) return
       setInternalSessionKey((k) => k + 1)
     }),
   )
   const canvasKey = `${sessionKey}-${internalSessionKey}`
 
   useEffect(() => {
-    if (reactorCoeffEditBurst) return
+    if (reactorCoeffEditBurst || reactorCoeffEditing) return
     if (webglRecoveryRef.current.shouldRemount()) {
       setInternalSessionKey((k) => k + 1)
       webglRecoveryRef.current.reset()
     }
-  }, [reactorCoeffEditBurst])
+  }, [reactorCoeffEditBurst, reactorCoeffEditing])
 
   /** always — demand давал чёрный центр при +/- коэффициентов. */
   const canvasFrameloop = 'always' as const
@@ -1355,6 +1388,7 @@ export function LabCanvas({
           forceLiteFxRef={forceLiteFxRef}
           prewarmProductCompound={prewarmProductCompound}
           reactorCoeffEditBurst={reactorCoeffEditBurst}
+          reactorCoeffEditing={reactorCoeffEditing}
         />
       </Canvas>
     </CanvasErrorBoundary>

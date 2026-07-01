@@ -29,6 +29,7 @@ export function useReactorPreviewLayout(
   terms: readonly ReactorEquationTerm[],
   coeffEditBurst: boolean,
   layoutDebounceMs = 0,
+  coeffEditing = coeffEditBurst,
 ): readonly ReactorPreviewAtom[] {
   const termsSig = useMemo(() => termsSignature(terms), [terms])
   const atomEstimate = useMemo(() => estimatePreviewAtomCount(terms), [termsSig, terms])
@@ -42,7 +43,7 @@ export function useReactorPreviewLayout(
     const shell = shellRef.current
     const heavy = atomEstimate > SYNC_BUILD_ATOM_CAP
     /** Burst +/-: всегда sync-build — worker не откладывает layout. */
-    const deferSync = heavy && shell.length > 0 && !coeffEditBurst
+    const deferSync = heavy && shell.length > 0 && !coeffEditing
     if (!deferSync || shell.length === 0) {
       const built = buildReactorPreviewAtoms(terms, { tier: 'full' })
       syncAtomsRef.current = built.length > 0 ? built : shell.length > 0 ? shell : built
@@ -73,7 +74,7 @@ export function useReactorPreviewLayout(
       setAtoms(shellRef.current)
     }
 
-    const useWorker = atomEstimate > SYNC_BUILD_ATOM_CAP && !coeffEditBurst
+    const useWorker = atomEstimate > SYNC_BUILD_ATOM_CAP && !coeffEditing
     if (!useWorker) return
 
     let cancelled = false
@@ -99,7 +100,7 @@ export function useReactorPreviewLayout(
     }
 
     const debounceMs =
-      layoutDebounceMs > 0 ? layoutDebounceMs : coeffEditBurst ? 20 : 12
+      coeffEditing ? 0 : layoutDebounceMs > 0 ? layoutDebounceMs : coeffEditBurst ? 20 : 12
     if (debounceMs > 0) timer = window.setTimeout(runWorker, debounceMs)
     else runWorker()
 
@@ -107,7 +108,7 @@ export function useReactorPreviewLayout(
       cancelled = true
       if (timer != null) window.clearTimeout(timer)
     }
-  }, [termsSig, terms, coeffEditBurst, syncAtoms, layoutDebounceMs, atomEstimate])
+  }, [termsSig, terms, coeffEditBurst, coeffEditing, syncAtoms, layoutDebounceMs, atomEstimate])
 
   if (atoms.length > 0) return atoms
   if (shellRef.current.length > 0) return shellRef.current

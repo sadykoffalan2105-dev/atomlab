@@ -39,6 +39,7 @@ export function ReactorTermsPreview({
   qualityLevel,
   synthesisGlass = false,
   coeffEditBurst = false,
+  coeffEditing = coeffEditBurst,
   productPrewarm: _productPrewarm = false,
   lowPower = false,
   atomGroupRefs: atomGroupRefsExternal,
@@ -54,6 +55,7 @@ export function ReactorTermsPreview({
   qualityLevel?: import('../../lab/synthesisQualityLadder').SynthesisQualityLevel
   synthesisGlass?: boolean
   coeffEditBurst?: boolean
+  coeffEditing?: boolean
   productPrewarm?: boolean
   lowPower?: boolean
   atomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
@@ -66,18 +68,19 @@ export function ReactorTermsPreview({
     () =>
       resolveReactorEditPerfFlags({
         coeffEditBurst,
+        coeffEditing,
         forceLite,
         lowPower,
         layoutDebounceMs: lowPower ? lowPowerProfile.coeffEditLayoutDebounceMs : undefined,
       }),
-    [coeffEditBurst, forceLite, lowPower, lowPowerProfile.coeffEditLayoutDebounceMs],
+    [coeffEditBurst, coeffEditing, forceLite, lowPower, lowPowerProfile.coeffEditLayoutDebounceMs],
   )
   const invalidateThrottleRef = useRef(createReactorInvalidateThrottle(perf.maxInvalidateHz))
   useEffect(() => {
     invalidateThrottleRef.current = createReactorInvalidateThrottle(perf.maxInvalidateHz)
   }, [perf.maxInvalidateHz])
 
-  const previewAtoms = useReactorPreviewLayout(terms, coeffEditBurst, perf.layoutDebounceMs)
+  const previewAtoms = useReactorPreviewLayout(terms, coeffEditBurst, perf.layoutDebounceMs, coeffEditing)
   const termsSig = useMemo(
     () => terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|'),
     [terms],
@@ -86,7 +89,7 @@ export function ReactorTermsPreview({
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
   const shellEmptyFramesRef = useRef(0)
   const slotZRef = useRef<number[]>([])
-  const SHELL_HOLD_FRAMES = coeffEditBurst ? 240 : 120
+  const SHELL_HOLD_FRAMES = coeffEditing ? 600 : coeffEditBurst ? 240 : 120
   const maxPoolRef = useRef(0)
 
   if (previewAtoms.length > 0) {
@@ -98,7 +101,7 @@ export function ReactorTermsPreview({
   previewLenRef.current = previewAtoms.length
 
   const shellHoldActive =
-    coeffEditBurst && !visible && terms.length > 0 && shellAtomsRef.current.length > 0
+    coeffEditing && terms.length > 0 && shellAtomsRef.current.length > 0
   const useShell =
     previewAtoms.length === 0 &&
     shellAtomsRef.current.length > 0 &&
@@ -116,7 +119,8 @@ export function ReactorTermsPreview({
 
   const shouldRender =
     n > 0 &&
-    (visible ||
+    (coeffEditing ||
+      visible ||
       shellHoldActive ||
       (terms.length > 0 &&
         shellEmptyFramesRef.current < SHELL_HOLD_FRAMES &&
@@ -178,6 +182,11 @@ export function ReactorTermsPreview({
   const layoutSyncTimerRef = useRef<number | null>(null)
   useLayoutEffect(() => {
     if (flightActive || poseLocked || n === 0) return
+    if (coeffEditing) {
+      syncLayout()
+      invalidateThrottleRef.current.request(invalidate)
+      return
+    }
     if (layoutSyncTimerRef.current != null) window.clearTimeout(layoutSyncTimerRef.current)
     if (layoutSyncRafRef.current != null) cancelAnimationFrame(layoutSyncRafRef.current)
     layoutSyncTimerRef.current = null
@@ -198,7 +207,7 @@ export function ReactorTermsPreview({
       if (layoutSyncTimerRef.current != null) window.clearTimeout(layoutSyncTimerRef.current)
       if (layoutSyncRafRef.current != null) cancelAnimationFrame(layoutSyncRafRef.current)
     }
-  }, [flightActive, poseLocked, termsSig, syncLayout, invalidate, n, perf.layoutDebounceMs])
+  }, [flightActive, poseLocked, termsSig, syncLayout, invalidate, n, perf.layoutDebounceMs, coeffEditing])
 
   useFrame((s) => {
     if (previewLenRef.current === 0 && shellAtomsRef.current.length > 0 && !shellHoldActive) {
@@ -218,7 +227,7 @@ export function ReactorTermsPreview({
         previewAtoms: renderAtoms,
         rootVisible: groupVisible,
         flightActive,
-        allowRecover: !flightActive,
+        allowRecover: !flightActive && !coeffEditing,
         onRecover: syncLayout,
       })
     }

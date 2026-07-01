@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 
 const BURST_WINDOW_MS = 480
-const BURST_MIN_CHANGES = 2
+/** Любое изменение коэффициента — сразу burst (не ждём 2-го клика). */
+const BURST_MIN_CHANGES = 1
 const BURST_HOLD_MS = 960
 const EDIT_IDLE_MS = 520
 
@@ -84,6 +85,8 @@ export function useReactorCoeffEditBurst(
     if (changeTimesRef.current.length >= BURST_MIN_CHANGES) {
       burstHoldUntilRef.current = Math.max(burstHoldUntilRef.current, now + BURST_HOLD_MS)
       setCoeffEditBurst(true)
+    } else {
+      setCoeffEditBurst(false)
     }
     scheduleIdle()
     scheduleBurstEnd()

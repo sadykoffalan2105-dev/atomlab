@@ -29,6 +29,8 @@ export type SynthesisContinuityInput = {
   productPainted?: boolean
   keepPreviewDuringProduct?: boolean
   coeffEditBurst?: boolean
+  /** burst или !editIdle — любое редактирование уравнения */
+  coeffEditing?: boolean
   stickyMountRef: MutableRefObject<SynthesisStickyMountRef | null>
   previewStickyRef: MutableRefObject<SynthesisPreviewStickyRef | null>
 }
@@ -64,18 +66,18 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     productPainted = false,
     keepPreviewDuringProduct = false,
     coeffEditBurst = false,
+    coeffEditing = coeffEditBurst,
     stickyMountRef,
     previewStickyRef,
   } = input
 
   /** Жёсткий override: +/- — только превью атомов, без product GPU (zero black screen). */
   if (
-    coeffEditBurst &&
+    coeffEditing &&
     mountReactorPreview &&
     reactorViewOpen &&
     !synthActive &&
-    !synthesisRunActive &&
-    !showSettledHero
+    !synthesisRunActive
   ) {
     previewStickyRef.current = { runId: -1, previewMounted: true }
     return {
@@ -93,6 +95,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   const earlyGpuPrewarm =
     !synthLive &&
     !showSettledHero &&
+    !coeffEditing &&
     !coeffEditBurst &&
     _gpuPrewarmAllowed &&
     productCompoundId != null &&
@@ -118,6 +121,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     sticky.productMounted
 
   const productMeshMounted =
+    !coeffEditing &&
     !coeffEditBurst &&
     productCompoundId != null &&
     reactorViewOpen &&
