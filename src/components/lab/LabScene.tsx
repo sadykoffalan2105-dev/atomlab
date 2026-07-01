@@ -341,8 +341,15 @@ function SceneContent({
   const editLiteLatchRef = useRef(false)
   const previewTermsShellRef = useRef<readonly ReactorEquationTerm[] | null>(null)
   const coeffEditingActive = reactorCoeffEditing || reactorCoeffEditBurst
-  if (reactorPreviewTerms?.length) previewTermsShellRef.current = reactorPreviewTerms
-  const effectivePreviewTerms = reactorPreviewTerms ?? previewTermsShellRef.current
+  if (reactorViewOpen && reactorPreviewTerms && reactorPreviewTerms.length >= 1) {
+    previewTermsShellRef.current = reactorPreviewTerms
+  } else if (!reactorPreviewTerms?.length) {
+    previewTermsShellRef.current = null
+  }
+  const effectivePreviewTerms =
+    reactorViewOpen && previewTermsShellRef.current?.length
+      ? previewTermsShellRef.current
+      : null
 
   const previewVisualTier = useMemo(
     () => (effectivePreviewTerms?.length ? getReactorVisualTier(effectivePreviewTerms) : 'full'),
@@ -386,6 +393,25 @@ function SceneContent({
     [synthForceLite],
   )
   const instantSynthesis = isInstantSynthesisProfile(synthTimingProfile)
+  const instantRunLive =
+    instantSynthesis && synthActive && (synthesis?.runId ?? 0) > 0
+
+  useLayoutEffect(() => {
+    if (reactorViewOpen) return
+    previewTermsShellRef.current = null
+    productStickyMountRef.current = null
+    previewStickyMountRef.current = null
+    prewarmReadyRef.current = false
+    prewarmCompoundIdRef.current = null
+    productPaintedRef.current = false
+    productPaintFramesRef.current = 0
+    lastSynthRunIdRef.current = 0
+    setPrewarmReady(false)
+    setProductRevealReady(false)
+    setProductPainted(false)
+    setEarlyProductReveal(false)
+    setForceProductSlot(false)
+  }, [reactorViewOpen])
   const lowPowerProfile = useMemo(
     () => getLowPowerDeviceProfile(getSynthesisDeviceTier()),
     [reactorCoeffEditBurst, synthesisRunActive],
@@ -536,6 +562,8 @@ function SceneContent({
   const reactorPreviewVisible = continuity.reactorPreviewVisible
   const productSlotVisible = continuity.productSlotVisible
   const productPrewarmActive = continuity.productPrewarm
+  const productSlotVisibleResolved = instantRunLive ? true : productSlotVisible
+  const productPrewarmResolved = instantRunLive ? false : productPrewarmActive
 
   const handleProductGpuCompiled = useCallback((compoundId: string) => {
     prewarmCompoundIdRef.current = compoundId
@@ -1157,7 +1185,7 @@ function SceneContent({
               runId={synthesis.runId}
               onDone={handleInstantSynthDone}
               onPhaseChange={synthesis.onPhaseChange}
-              minFrames={Math.max(lowPowerProfile.productPaintLatchFrames + 4, 10)}
+              minFrames={2}
             />
           ) : null}
           {showSettledHero && synthesisSettledProduct
@@ -1185,13 +1213,13 @@ function SceneContent({
       {productForSlot ? (
         <LabProductHeroSlot
           compound={productForSlot}
-          visible={productSlotVisible}
-          prewarm={productPrewarmActive}
+          visible={productSlotVisibleResolved}
+          prewarm={productPrewarmResolved}
           entrance={productSlotEntrance}
           runId={synthesis?.runId ?? 0}
           birthEntrance={false}
           entranceDuration={0}
-          shaderCompileAsync={productPrewarmActive}
+          shaderCompileAsync={productPrewarmResolved}
           onGpuCompiled={handleProductGpuCompiled}
           onProductVisiblePaint={handleProductVisiblePaint}
         />
@@ -1249,7 +1277,7 @@ export function LabCanvas({
   prewarmProductCompound?: CompoundDef | null
   gpuQueuePriorityCompound?: CompoundDef | null
   /** Remount Canvas только при webglcontextlost (внутренний sessionKey). */
-  sessionKey?: number
+  sessionKey?: number | string
   reactorCoeffEditBurst?: boolean
   reactorCoeffEditing?: boolean
   synthesis: {

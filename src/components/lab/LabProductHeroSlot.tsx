@@ -165,6 +165,71 @@ export function LabProductHeroSlot({
     }
   }, [prewarm, visible, compound.id, gl, camera, scene, invalidate, notifyGpuCompiled, shaderCompileAsync])
 
+  // Синтез: видимый продукт — приоритетный compile сразу (без idle-задержки).
+  useEffect(() => {
+    if (!visible || prewarm) return
+    if (isProductGpuCompiled(compound.id)) {
+      notifyGpuCompiled()
+      return
+    }
+
+    let cancelled = false
+    const gen = compileGenRef.current
+    const clearGpuWatch = scheduleGpuCompileWatchdog(() => {
+      if (!cancelled && gen === compileGenRef.current) notifyGpuCompiled()
+    })
+
+    let cancelChunk: (() => void) | undefined
+    let cancelBudget: (() => void) | undefined
+    let releaseBudget: (() => void) | null = null
+
+    const runCompile = () => {
+      if (cancelled || gen !== compileGenRef.current) return
+      const root = groupRef.current
+      if (!root) {
+        requestAnimationFrame(runCompile)
+        return
+      }
+      root.scale.set(1, 1, 1)
+      invalidate()
+      cancelChunk = compileObjectTreeChunked(
+        gl,
+        root,
+        camera,
+        scene,
+        invalidate,
+        () => {
+          if (cancelled || gen !== compileGenRef.current) return
+          notifyGpuCompiled()
+          releaseBudget?.()
+          releaseBudget = null
+        },
+        { skipCompileAsync: false, meshesPerFrame: 3 },
+      )
+    }
+
+    cancelBudget = enqueueGpuCompile(
+      `visible:${compound.id}:${runId}`,
+      (release) => {
+        releaseBudget = release
+        runCompile()
+        return () => {
+          cancelChunk?.()
+          releaseBudget?.()
+          releaseBudget = null
+        }
+      },
+      1,
+    )
+
+    return () => {
+      cancelled = true
+      clearGpuWatch()
+      cancelBudget?.()
+      cancelChunk?.()
+    }
+  }, [visible, prewarm, compound.id, runId, gl, camera, scene, invalidate, notifyGpuCompiled])
+
   // Считаем реально отрисованные кадры prewarm / visible, затем «готово».
   useFrame(() => {
     if (visible && !visiblePaintSentRef.current) {
@@ -198,6 +263,14 @@ export function LabProductHeroSlot({
       g.scale.set(1, 1, 1)
       if (spin) spin.rotation.set(0, 0, 0)
       revealedForRunRef.current = runId
+      if (!visiblePaintSentRef.current) {
+        requestAnimationFrame(() => {
+          if (visiblePaintSentRef.current) return
+          visiblePaintFramesRef.current = VISIBLE_PAINT_FRAMES
+          visiblePaintSentRef.current = true
+          onProductVisiblePaint?.()
+        })
+      }
       return
     }
 

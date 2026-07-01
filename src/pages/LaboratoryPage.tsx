@@ -105,6 +105,7 @@ export function LaboratoryPage() {
   const forceLiteFxRef = useRef(false)
   const canvasWrapRef = useRef<HTMLDivElement | null>(null)
   const [labCanvasKey] = useState(0)
+  const [reactorSessionKey, setReactorSessionKey] = useState(0)
   useCanvasSizeGuard(canvasWrapRef)
 
   const [reactorMessage, setReactorMessage] = useState<string | null>(null)
@@ -360,6 +361,7 @@ export function LaboratoryPage() {
       const next = !o
       if (!next) {
         resetEquation()
+        setReactorSessionKey((k) => k + 1)
         setRunId(0)
         lastRunZSlotsRef.current = []
         setSynthesisFlightSlots(null)
@@ -672,7 +674,7 @@ export function LaboratoryPage() {
         }
       >
         <LabCanvas
-          sessionKey={labCanvasKey}
+          sessionKey={`${labCanvasKey}-${reactorSessionKey}`}
           particles={particles}
           onParticleMove={onParticleMove}
           structureZ={reactorOpen ? null : structureZ}

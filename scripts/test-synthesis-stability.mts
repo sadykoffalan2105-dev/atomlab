@@ -300,7 +300,33 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   assert.equal(view.productPrewarm, false)
 }
 
-// --- perf guard ---
+// --- cleared equation: no stale preview shell ---
+{
+  const stickyMountRef = mockSticky(null)
+  const previewStickyRef = mockSticky(null)
+  const view = resolveSynthesisContinuity({
+    runId: 0,
+    synthActive: false,
+    synthesisRunActive: false,
+    synthesisPhase: '',
+    showSettledHero: false,
+    mountReactorPreview: false,
+    reactorViewOpen: true,
+    gpuPrewarmAllowed: false,
+    prewarmReady: false,
+    productCompoundId: null,
+    earlyProductReveal: false,
+    forceProductSlot: false,
+    productRevealReady: false,
+    productPainted: false,
+    coeffEditBurst: false,
+    stickyMountRef,
+    previewStickyRef,
+  })
+  assert.equal(view.reactorPreviewMounted, false, 'empty reactor: no preview mount')
+  assert.equal(view.reactorPreviewVisible, false)
+}
+
 {
   assert.equal(shouldForceSyncPreviewLayout(15, true), true)
   assert.equal(shouldAllowWorkerPreviewLayout(15, true), false)
