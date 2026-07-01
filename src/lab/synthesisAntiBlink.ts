@@ -188,10 +188,10 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
 
   const synthEmptyGuard =
     synthLive &&
-    reactorPreviewMounted &&
+    mountReactorPreview &&
+    reactorViewOpen &&
     !productTakeover &&
-    !productSlotVisible &&
-    !productPrewarm &&
+    !productPainted &&
     !showSettledHero &&
     !reactorPreviewVisible
 

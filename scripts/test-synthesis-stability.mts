@@ -34,6 +34,7 @@ import {
   simulateCoeffEditLayoutSteps,
   shouldScheduleIdleLayoutRebuild,
 } from '../src/lab/previewLayoutPolicy.ts'
+import { resolveSynthesisProductSlot } from '../src/lab/synthesisProductSlot.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
   return [
@@ -374,13 +375,32 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   assert.equal(allowProductGpuMount(false, false, true), true, 'mount during synth')
 }
 
-// --- product slot: visible only after GPU ready (handoff invariant) ---
+// --- product slot: prewarm then visible (no deadlock) ---
 {
-  const gpuReady = (slotVisible: boolean, ready: boolean, settled: boolean) =>
-    slotVisible && (ready || settled)
-  assert.equal(gpuReady(true, false, false), false, 'no visible slot before gpu compile')
-  assert.equal(gpuReady(true, true, false), true, 'visible after compile')
-  assert.equal(gpuReady(true, false, true), true, 'settled hero bypasses prewarm')
+  type CompoundDef = import('../src/types/chemistry.ts').CompoundDef
+  const compound = { id: 'salt_k2cr2o7' } as CompoundDef
+  const slot = resolveSynthesisProductSlot({
+    productForSlot: compound,
+    productSlotVisible: true,
+    productPrewarmActive: false,
+    showSettledHero: false,
+    synthLive: true,
+    prewarmReady: false,
+    prewarmCompoundId: null,
+  })
+  assert.equal(slot.visible, false, 'not visible before gpu compile')
+  assert.equal(slot.prewarm, true, 'prewarm compiles hidden')
+  const ready = resolveSynthesisProductSlot({
+    productForSlot: compound,
+    productSlotVisible: true,
+    productPrewarmActive: false,
+    showSettledHero: false,
+    synthLive: true,
+    prewarmReady: true,
+    prewarmCompoundId: 'salt_k2cr2o7',
+  })
+  assert.equal(ready.visible, true, 'visible after gpu compile')
+  assert.equal(ready.prewarm, false)
 }
 
 {

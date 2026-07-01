@@ -33,8 +33,12 @@ export default defineConfig(({ mode }) => {
               { name: 'three-vendor', test: /node_modules[\\/](three|@react-three)/ },
               { name: 'learn-3d', test: /LearnPremiumScene|LearnTopicScene/ },
               {
-                name: 'learn-cyber',
-                test: /CyberDashboardGrid|CyberTaskSceneSvg|CyberExploreCanvas/,
+                name: 'lab-scene',
+                test: /components[\\/]lab[\\/](LabScene|ReactorTermsPreview|LabProductHeroSlot|SynthesisOnLabScene)/,
+              },
+              {
+                name: 'compounds-data',
+                test: /data[\\/]compounds/,
               },
             ],
           },

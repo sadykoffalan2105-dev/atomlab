@@ -7,6 +7,8 @@ import {
   useRef,
   useState,
   startTransition,
+  lazy,
+  Suspense,
 } from 'react'
 import { Link } from 'react-router-dom'
 import { IconVrLab } from '../components/vrLab/IconVrLab'
@@ -39,7 +41,6 @@ import { parseLeftSideMessageKey, reactorValidationMessageKey } from '../i18n/ch
 import { getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import { useT } from '../i18n/useT'
 import { ElementDetailContent } from '../components/lab/ElementDetailContent'
-import { LabCanvas } from '../components/lab/LabScene'
 import { ElementSidePanel } from '../components/lab/ElementSidePanel'
 import {
   ReactorCompoundCatalogPanel,
@@ -55,6 +56,14 @@ import {
 import { getElementByZ } from '../data/elements'
 import type { CompoundDef, LabParticle, Vec3 } from '../types/chemistry'
 import styles from './LaboratoryPage.module.css'
+
+const LabCanvas = lazy(() =>
+  import('../components/lab/LabScene').then((m) => ({ default: m.LabCanvas })),
+)
+
+function LabCanvasFallback() {
+  return <div className={styles.canvasFallback} aria-hidden />
+}
 
 function newId(): string {
   return crypto.randomUUID()
@@ -668,26 +677,28 @@ export function LaboratoryPage() {
             : undefined
         }
       >
-        <LabCanvas
-          sessionKey={`${labCanvasKey}-${reactorSessionKey}`}
-          particles={particles}
-          onParticleMove={onParticleMove}
-          structureZ={reactorOpen ? null : structureZ}
-          onInspectAtom={reactorOpen ? undefined : setStructureZ}
-          synthesis={labSynthesis}
-          synthesisRunActive={synthRunActive}
-          reactorPreviewTerms={reactorPreviewTermsCanvas}
-          reactorCoeffEditBurst={coeffEditBurst}
-          reactorCoeffEditing={reactorCoeffEditing}
-          transformPreviewCompound={transformPreviewCompound}
-          reactorViewOpen={reactorOpen}
-          synthesisSettledProduct={synthesisSettledProduct}
-          laboratorySynthesisView={laboratorySynthesisView}
-          synthesisPhase={synthPhaseUi}
-          forceLiteFxRef={forceLiteFxRef}
-          prewarmProductCompound={gpuPrewarmCompound}
-          gpuQueuePriorityCompound={gpuQueuePriorityCompound}
-        />
+        <Suspense fallback={<LabCanvasFallback />}>
+          <LabCanvas
+            sessionKey={`${labCanvasKey}-${reactorSessionKey}`}
+            particles={particles}
+            onParticleMove={onParticleMove}
+            structureZ={reactorOpen ? null : structureZ}
+            onInspectAtom={reactorOpen ? undefined : setStructureZ}
+            synthesis={labSynthesis}
+            synthesisRunActive={synthRunActive}
+            reactorPreviewTerms={reactorPreviewTermsCanvas}
+            reactorCoeffEditBurst={coeffEditBurst}
+            reactorCoeffEditing={reactorCoeffEditing}
+            transformPreviewCompound={transformPreviewCompound}
+            reactorViewOpen={reactorOpen}
+            synthesisSettledProduct={synthesisSettledProduct}
+            laboratorySynthesisView={laboratorySynthesisView}
+            synthesisPhase={synthPhaseUi}
+            forceLiteFxRef={forceLiteFxRef}
+            prewarmProductCompound={gpuPrewarmCompound}
+            gpuQueuePriorityCompound={gpuQueuePriorityCompound}
+          />
+        </Suspense>
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />
         ) : null}

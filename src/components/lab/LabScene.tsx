@@ -46,7 +46,7 @@ import {
 import { createReactorFrameBudget } from '../../lab/reactorFrameBudget'
 import { createSynthesisAntiStallGuard } from '../../lab/synthesisAntiStall'
 import { isProductGpuCompiled } from '../../lab/productGpuCompileCache'
-import { allowProductGpuMount } from '../../lab/atomlabSynthesisGuard'
+import { resolveSynthesisProductSlot } from '../../lab/synthesisProductSlot'
 import {
   createProductCrossfadeGuard,
   type ProductCrossfadeGuard,
@@ -541,16 +541,20 @@ function SceneContent({
   const productForSlot =
     continuity.productMeshMounted &&
     productCompoundCandidate &&
-    allowProductGpuMount(reactorCoeffEditBurst, coeffEditingActive, synthActive || synthesisRunActive) &&
     (synthActive || synthesisRunActive || showSettledHero)
       ? productCompoundCandidate
       : null
 
-  const productGpuReady =
-    productForSlot != null &&
-    (isProductGpuCompiled(productForSlot.id) ||
-      ((prewarmReadyRef.current || prewarmReady) &&
-        prewarmCompoundIdRef.current === productForSlot.id))
+  const synthLive = synthActive || synthesisRunActive
+  const productSlotView = resolveSynthesisProductSlot({
+    productForSlot,
+    productSlotVisible: continuity.productSlotVisible,
+    productPrewarmActive: continuity.productPrewarm,
+    showSettledHero,
+    synthLive,
+    prewarmReady: prewarmReadyRef.current || prewarmReady,
+    prewarmCompoundId: prewarmCompoundIdRef.current,
+  })
 
   const previewMotionLocked = false
   const previewPoseLocked = synthesisRunActive && !synthActive
@@ -567,13 +571,9 @@ function SceneContent({
   const reactorPreviewVisible = continuity.reactorPreviewVisible
   const productSlotVisible = continuity.productSlotVisible
   const productPrewarmActive = continuity.productPrewarm
-  const productSlotVisibleResolved =
-    productSlotVisible && (productGpuReady || showSettledHero)
-  const productPrewarmResolved =
-    productForSlot != null &&
-    !productGpuReady &&
-    (productPrewarmActive ||
-      ((synthActive || synthesisRunActive) && continuity.productMeshMounted))
+  const productSlotVisibleResolved = productSlotView.visible
+  const productPrewarmResolved = productSlotView.prewarm
+  const synthHoldPreview = synthLive && !productPainted && effectivePreviewTerms != null
 
   const handleProductGpuCompiled = useCallback(
     (compoundId: string) => {
@@ -684,7 +684,7 @@ function SceneContent({
 
   useLayoutEffect(() => {
     if (coeffEditingActive) return
-    if (!productPainted || !productSlotVisible) return
+    if (!productPainted || !productSlotVisibleResolved) return
     if (synthActive || synthesisRunActive) return
     previewStickyMountRef.current = null
     const root = previewRootRef.current
@@ -693,7 +693,7 @@ function SceneContent({
     root.traverse((obj) => {
       obj.visible = false
     })
-  }, [productPainted, productSlotVisible, coeffEditingActive, synthActive, synthesisRunActive])
+  }, [productPainted, productSlotVisibleResolved, coeffEditingActive, synthActive, synthesisRunActive])
 
   useLayoutEffect(() => {
     const rid = synthesis?.runId ?? 0
@@ -1176,6 +1176,7 @@ function SceneContent({
               coeffEditBurst={reactorCoeffEditBurst}
               coeffEditing={coeffEditingActive}
               previewOnlyMode={!synthesisRunActive && !synthActive && !showSettledHero}
+              synthHoldPreview={synthHoldPreview}
               lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}
               productPrewarm={productPrewarmActive}
               atomGroupRefs={previewAtomGroupRefs}

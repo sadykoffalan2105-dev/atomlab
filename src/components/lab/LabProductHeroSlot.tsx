@@ -230,6 +230,18 @@ export function LabProductHeroSlot({
     }
   }, [visible, prewarm, compound.id, runId, gl, camera, scene, invalidate, notifyGpuCompiled])
 
+  // Переход prewarm → visible: масштаб и paint без повторного cold compile.
+  useLayoutEffect(() => {
+    if (!visible || prewarm) return
+    const g = groupRef.current
+    if (!g) return
+    if (gpuCompiledRef.current || isProductGpuCompiled(compound.id)) {
+      gpuCompiledRef.current = true
+      g.scale.set(1, 1, 1)
+      invalidate()
+    }
+  }, [visible, prewarm, compound.id, invalidate])
+
   // Считаем реально отрисованные кадры prewarm / visible, затем «готово».
   useFrame(() => {
     if (visible && !visiblePaintSentRef.current && gpuCompiledRef.current) {

@@ -25,6 +25,12 @@
   background-color: #0a0c18;
 }
 
+.canvasFallback {
+  position: absolute;
+  inset: 0;
+  background-color: #0a0c18;
+}
+
 /*
  * R3F измеряет внутренний контейнер через react-use-measure; если корневой div Canvas не заполняет
  * .canvasWrap (только height:100% в flex без явного inset), в Electron/Chrome возможен размер 0×0 —
