@@ -1,4 +1,5 @@
 import { G7_C1_S01_QUIZ_ENRICHMENTS } from './g7C1S01QuizEnrichments'
+import { G7_C1_S01_SECTION_ENRICHMENTS } from './g7C1S01SectionQuizEnrichments'
 import { G7_CHAPTER_TEMPLATES } from './g7TopicQuizTemplates'
 
 const PHOTO_STYLE =
@@ -59,6 +60,16 @@ function buildCatalog(): Record<string, G7QuizVisualEntry> {
       } else {
         out[t.templateKey] = buildEntry(chapter, t.question, t.choices[t.correctIndex]!, t.explanation)
       }
+    }
+  }
+
+  for (const [id, e] of Object.entries(G7_C1_S01_SECTION_ENRICHMENTS)) {
+    out[id] = {
+      caption: e.caption,
+      alt: e.alt,
+      prompt: e.imagePrompt,
+      description: e.description,
+      explanation: e.explanation,
     }
   }
 

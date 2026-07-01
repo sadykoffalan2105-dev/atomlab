@@ -1,6 +1,7 @@
 import g7Bank from '../data/g7SectionQuizBank.json'
 import g8Bank from '../data/g8SectionQuizBank.json'
 import g9Bank from '../data/g9SectionQuizBank.json'
+import { enrichG7SectionQuizItem } from './g7SectionQuizEnrichments'
 import type { TopicQuizItem } from './topicQuizTypes'
 
 export type SectionQuizBank = {
@@ -28,7 +29,8 @@ export function getSectionQuizPool(
 ): TopicQuizItem[] {
   const bank = BANKS[gradeId]
   if (!bank) return []
-  return bank.sections[sectionQuizKey(gradeId, chapterId, sectionId)] ?? []
+  const raw = bank.sections[sectionQuizKey(gradeId, chapterId, sectionId)] ?? []
+  return gradeId === 'g7' ? raw.map(enrichG7SectionQuizItem) : raw
 }
 
 /** @deprecated use getSectionQuizPool */

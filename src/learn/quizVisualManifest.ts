@@ -1,4 +1,5 @@
 import { G7_QUIZ_VISUAL_CATALOG } from './g7QuizVisualCatalog'
+import { G7_C1_S01_SECTION_ENRICHMENTS } from './g7C1S01SectionQuizEnrichments'
 
 /** Фотореалистичные иллюстрации к вопросам (public/learn/quiz-visuals). */
 export type QuizVisualSpec = {
@@ -8,16 +9,30 @@ export type QuizVisualSpec = {
   alt: string
 }
 
-export const QUIZ_VISUAL_MANIFEST: Record<string, QuizVisualSpec> = Object.fromEntries(
-  Object.entries(G7_QUIZ_VISUAL_CATALOG).map(([id, entry]) => [
+const SECTION_QUIZ_MANIFEST: Record<string, QuizVisualSpec> = Object.fromEntries(
+  Object.entries(G7_C1_S01_SECTION_ENRICHMENTS).map(([id, e]) => [
     id,
     {
       src: `/learn/quiz-visuals/${id}.png`,
-      caption: entry.caption,
-      alt: entry.alt,
+      caption: e.caption,
+      alt: e.alt,
     },
   ]),
 )
+
+export const QUIZ_VISUAL_MANIFEST: Record<string, QuizVisualSpec> = {
+  ...Object.fromEntries(
+    Object.entries(G7_QUIZ_VISUAL_CATALOG).map(([id, entry]) => [
+      id,
+      {
+        src: `/learn/quiz-visuals/${id}.png`,
+        caption: entry.caption,
+        alt: entry.alt,
+      },
+    ]),
+  ),
+  ...SECTION_QUIZ_MANIFEST,
+}
 
 export function getQuizVisualSpec(visualId?: string): QuizVisualSpec | null {
   if (!visualId) return null
