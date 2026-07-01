@@ -2,6 +2,16 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
+**Скачать v1.3.13:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.13)
+- `ATOMLAB-1.3.13-portable.exe` — без установки
+- `ATOMLAB-1.3.13-setup.exe` — установщик
+
+### v1.3.13 — подробные описания и иллюстрации к квизу §1 (7 класс)
+
+- Развёрнутые учебные описания ко всем 8 вопросам §1 «Химия и её задачи»
+- Уникальная иллюстрация к каждому вопросу (не одна общая картинка)
+- Портреты учёных с прорисованными лицами: аль-Кинди, ар-Рази, Ибн Сина
+
 **Скачать v1.3.12:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.12)
 - `ATOMLAB-1.3.12-portable.exe` — без установки
 - `ATOMLAB-1.3.12-setup.exe` — установщик
