@@ -92,7 +92,7 @@ export function ReactorTermsPreview({
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
   const shellEmptyFramesRef = useRef(0)
   const slotZRef = useRef<number[]>([])
-  const SHELL_HOLD_FRAMES = coeffEditing ? 600 : coeffEditBurst ? 240 : 120
+  const SHELL_HOLD_FRAMES = coeffEditing ? 1200 : coeffEditBurst ? 360 : 120
   const maxPoolRef = useRef(0)
 
   if (previewAtoms.length > 0) {
@@ -121,14 +121,15 @@ export function ReactorTermsPreview({
   }
 
   const shouldRender =
-    n > 0 &&
-    (previewOnlyMode ||
-      coeffEditing ||
-      visible ||
-      shellHoldActive ||
-      (terms.length > 0 &&
-        shellEmptyFramesRef.current < SHELL_HOLD_FRAMES &&
-        shellAtomsRef.current.length > 0))
+    (coeffEditing && terms.length > 0) ||
+    (n > 0 &&
+      (previewOnlyMode ||
+        coeffEditing ||
+        visible ||
+        shellHoldActive ||
+        (terms.length > 0 &&
+          shellEmptyFramesRef.current < SHELL_HOLD_FRAMES &&
+          shellAtomsRef.current.length > 0)))
   const groupVisible = shouldRender
 
   const groupRef = useRef<THREE.Group>(null)
@@ -214,7 +215,7 @@ export function ReactorTermsPreview({
   }, [flightActive, poseLocked, termsSig, syncLayout, invalidate, n, perf.layoutDebounceMs, coeffEditing])
 
   useFrame((s) => {
-    if (previewLenRef.current === 0 && shellAtomsRef.current.length > 0 && !shellHoldActive) {
+    if (previewLenRef.current === 0 && shellAtomsRef.current.length > 0 && !shellHoldActive && !coeffEditing) {
       shellEmptyFramesRef.current += 1
       if (shellEmptyFramesRef.current <= SHELL_HOLD_FRAMES) {
         invalidateThrottleRef.current.request(invalidate)

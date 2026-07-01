@@ -5,7 +5,7 @@ const BURST_WINDOW_MS = 480
 /** Любое изменение коэффициента — сразу burst (не ждём 2-го клика). */
 const BURST_MIN_CHANGES = 1
 const BURST_HOLD_MS = 960
-const EDIT_IDLE_MS = 520
+const EDIT_IDLE_MS = 720
 
 function termsSignature(terms: readonly ReactorEquationTerm[] | null): string {
   if (!terms?.length) return ''
@@ -95,15 +95,4 @@ export function useReactorCoeffEditBurst(
   useEffect(() => () => clearTimers(), [clearTimers])
 
   return { coeffEditBurst, editIdle, resetEditBurst }
-}
-
-/** @deprecated Используйте useReactorCoeffEditBurst */
-export function useThrottledReactorPreviewTerms(immediate: readonly ReactorEquationTerm[] | null) {
-  const { coeffEditBurst, editIdle, resetEditBurst } = useReactorCoeffEditBurst(immediate)
-  return {
-    termsFor3d: immediate,
-    coeffEditBurst,
-    editIdle,
-    flushPreviewTerms: resetEditBurst,
-  }
 }

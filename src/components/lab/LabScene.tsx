@@ -28,7 +28,6 @@ import {
 } from '../../lab/synthesisLagGuard'
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
-import { debugSessionLog } from '../../lab/debugSessionLog'
 import { ReactorTermsPreview } from './ReactorTermsPreview'
 import { getSynthesisDeviceTier, refineSynthesisDeviceTierFromFps } from '../../lab/synthesisDeviceTier'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
@@ -128,7 +127,7 @@ function ReactorSceneWarmup({ reactorOpen }: { reactorOpen: boolean }) {
     warmedRef.current = true
     let cancelled = false
     let count = 0
-    const maxFrames = 12
+    const maxFrames = 20
     const tick = () => {
       if (cancelled) return
       invalidate()
@@ -565,11 +564,17 @@ function SceneContent({
   const productSlotVisibleResolved = instantRunLive ? true : productSlotVisible
   const productPrewarmResolved = instantRunLive ? false : productPrewarmActive
 
-  const handleProductGpuCompiled = useCallback((compoundId: string) => {
-    prewarmCompoundIdRef.current = compoundId
-    prewarmReadyRef.current = true
-    setPrewarmReady(true)
-  }, [])
+  const handleProductGpuCompiled = useCallback(
+    (compoundId: string) => {
+      prewarmCompoundIdRef.current = compoundId
+      prewarmReadyRef.current = true
+      setPrewarmReady(true)
+      if (synthActive || synthesisRunActive) {
+        setProductRevealReady(true)
+      }
+    },
+    [synthActive, synthesisRunActive],
+  )
 
   const handleProductVisiblePaint = useCallback(() => {
     productPaintedRef.current = true
@@ -695,7 +700,6 @@ function SceneContent({
       return
     }
     if (instantSynthesis) {
-      setProductRevealReady(true)
       return
     }
     setProductRevealReady(false)
@@ -1376,29 +1380,8 @@ export function LabCanvas({
           const canvas = state.gl.domElement
           canvas.style.background = reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX
           canvas.style.display = 'block'
-          // #region agent log
-          debugSessionLog(
-            'LabScene.tsx:onCreated',
-            'canvas created',
-            {
-              w: canvas.clientWidth,
-              h: canvas.clientHeight,
-              reactorViewOpen,
-              coeffEditBurst: coeffEditBurstRef.current,
-            },
-            'H-A',
-          )
-          // #endregion
           const onLost = (e: Event) => {
             e.preventDefault()
-            // #region agent log
-            debugSessionLog(
-              'LabScene.tsx:webglcontextlost',
-              'webgl context lost',
-              { coeffEditBurst: coeffEditBurstRef.current },
-              'H-B',
-            )
-            // #endregion
             webglRecoveryRef.current.onContextLost()
             state.invalidate()
           }

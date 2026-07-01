@@ -22,9 +22,6 @@ export function useReactorPreviewTermsStable(
   }
 
   if (immediateOk) return immediateOk
-  if (immediate.length === 0) {
-    shellRef.current = null
-    return null
-  }
-  return shellRef.current
+  if (shellRef.current?.length) return shellRef.current
+  return null
 }

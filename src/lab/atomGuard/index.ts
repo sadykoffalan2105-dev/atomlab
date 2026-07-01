@@ -1,7 +1,6 @@
 /** Единый слой защиты лаборатории: canvas, синтез, производительность. */
 
 export { ensureCanvasMinSize, useCanvasSizeGuard } from './canvasGuard'
-export { SynthesisRunController, useSynthesisRunController } from './synthesisRunController'
 export { useThrottledPhaseCallback } from './phaseThrottle'
 export { createSynthesisRunGuard, createFpsGovernor, createSynthesisQualityGovernor } from './synthesisRunGuard'
 export type { SynthesisQualityGovernor, SynthesisQualityLevel, SynthesisQualityFeatures } from '../synthesisQualityLadder'

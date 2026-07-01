@@ -204,7 +204,7 @@ export function LabProductHeroSlot({
           releaseBudget?.()
           releaseBudget = null
         },
-        { skipCompileAsync: false, meshesPerFrame: 3 },
+        { skipCompileAsync: false, meshesPerFrame: 4 },
       )
     }
 
@@ -232,7 +232,7 @@ export function LabProductHeroSlot({
 
   // Считаем реально отрисованные кадры prewarm / visible, затем «готово».
   useFrame(() => {
-    if (visible && !visiblePaintSentRef.current) {
+    if (visible && !visiblePaintSentRef.current && gpuCompiledRef.current) {
       const g = groupRef.current
       if (g && g.scale.x >= 0.86) {
         visiblePaintFramesRef.current += 1
@@ -263,14 +263,6 @@ export function LabProductHeroSlot({
       g.scale.set(1, 1, 1)
       if (spin) spin.rotation.set(0, 0, 0)
       revealedForRunRef.current = runId
-      if (!visiblePaintSentRef.current) {
-        requestAnimationFrame(() => {
-          if (visiblePaintSentRef.current) return
-          visiblePaintFramesRef.current = VISIBLE_PAINT_FRAMES
-          visiblePaintSentRef.current = true
-          onProductVisiblePaint?.()
-        })
-      }
       return
     }
 

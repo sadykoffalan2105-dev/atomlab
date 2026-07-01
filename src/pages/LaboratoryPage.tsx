@@ -26,7 +26,6 @@ import {
   resolveCatalogProduct,
 } from '../lab/synthesisGuarantee'
 import { useThrottledPhaseCallback } from '../lab/atomGuard/phaseThrottle'
-import { debugSessionLog } from '../lab/debugSessionLog'
 import { useCanvasSizeGuard } from '../lab/atomGuard/canvasGuard'
 import { createSynthesisRunGuard } from '../lab/atomGuard/synthesisRunGuard'
 import { useCatalogAutoMatches } from '../lab/useCatalogMatchWorker'
@@ -474,14 +473,6 @@ export function LaboratoryPage() {
 
   useEffect(() => {
     if (coeffEditBurst) forceLiteFxRef.current = true
-    // #region agent log
-    debugSessionLog(
-      'LaboratoryPage.tsx:coeffEditBurst',
-      'coeff edit burst changed',
-      { coeffEditBurst, termCount: leftTerms.length },
-      'H-C',
-    )
-    // #endregion
   }, [coeffEditBurst])
 
   useEffect(() => {
