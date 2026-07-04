@@ -3,7 +3,6 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { gsap } from 'gsap'
 import type * as THREE from 'three'
 import { LAUNCH_PRODUCT_ENTRANCE_DUR } from '../../lab/synthesisLaunchTiming'
-import { scheduleIdleMatch } from '../../lab/labRenderGuards'
 import { compileObjectTreeChunked } from '../../lab/gpuCompileChunked'
 import {
   scheduleGpuCompileWatchdog,
@@ -136,24 +135,20 @@ export function LabProductHeroSlot({
     let releaseBudget: (() => void) | null = null
 
     const boot = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        scheduleIdleMatch(() => {
-          if (cancelled) return
-          cancelBudget = enqueueGpuCompile(
-            `prewarm:${compound.id}:${runId}`,
-            (release) => {
-              releaseBudget = release
-              runCompile()
-              return () => {
-                cancelChunk?.()
-                releaseBudget?.()
-                releaseBudget = null
-              }
-            },
-            compilePriority,
-          )
-        })
-      })
+      if (cancelled) return
+      cancelBudget = enqueueGpuCompile(
+        `prewarm:${compound.id}:${runId}`,
+        (release) => {
+          releaseBudget = release
+          runCompile()
+          return () => {
+            cancelChunk?.()
+            releaseBudget?.()
+            releaseBudget = null
+          }
+        },
+        compilePriority,
+      )
     })
 
     return () => {
@@ -204,7 +199,7 @@ export function LabProductHeroSlot({
           releaseBudget?.()
           releaseBudget = null
         },
-        { skipCompileAsync: false, meshesPerFrame: 8 },
+        { skipCompileAsync: false, meshesPerFrame: 10 },
       )
     }
 

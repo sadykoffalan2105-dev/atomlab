@@ -17,7 +17,6 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { warmupLabSynthesisInfra, warmupLabSynthesisReactorOpen, warmupReactorPreviewTerms } from '../lab/labSynthesisWarmup'
-import { scheduleIdleMatch } from '../lab/labRenderGuards'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
 import { isReactorCoeffEditing } from '../lab/reactorCoeffEditMode'
 import { estimatePreviewAtomCountFromTerms } from '../lab/atomlabPerfGuard'
@@ -470,8 +469,8 @@ export function LaboratoryPage() {
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
 
-  const { coeffEditBurst, editIdle, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
-  const reactorCoeffEditing = isReactorCoeffEditing(coeffEditBurst, editIdle)
+  const { coeffEditBurst, editIdle, visualHold, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
+  const reactorCoeffEditing = isReactorCoeffEditing(coeffEditBurst, editIdle, visualHold)
 
   /** Canvas: stable shell + immediate при burst — атомы не пропадают при +/-. */
   const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
@@ -488,10 +487,8 @@ export function LaboratoryPage() {
   useEffect(() => {
     if (!reactorOpen || !productCompound || reactorCoeffEditing) return
     if (leftTerms.length < 1) return
-    scheduleIdleMatch(() => {
-      warmupReactorPreviewTerms(leftTerms)
-      warmupLabSynthesisReactorOpen(catalogList, productCompound, leftTerms)
-    })
+    warmupReactorPreviewTerms(leftTerms)
+    warmupLabSynthesisReactorOpen(catalogList, productCompound, leftTerms)
   }, [reactorOpen, productCompound, reactorCoeffEditing, leftTerms, catalogList])
 
   const onRequestRun = useCallback(() => {
@@ -595,6 +592,11 @@ export function LaboratoryPage() {
     if (!product) return false
     return isReactorBalancedFast(deferredLeftTerms, product, productCoeff)
   }, [deferredLeftTerms, productCompoundId, productCoeff])
+
+  useEffect(() => {
+    if (!reactorOpen || !productCompound || !canRunSynthesis || reactorCoeffEditing) return
+    setPrewarmCompound(productCompound)
+  }, [reactorOpen, productCompound, canRunSynthesis, reactorCoeffEditing])
 
   const highlightEquationError = useMemo(() => {
     if (!reactorMessage) return false

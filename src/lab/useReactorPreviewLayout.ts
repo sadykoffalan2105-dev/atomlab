@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
@@ -17,8 +17,7 @@ export type PreviewLayoutHookResult = {
 }
 
 /**
- * Layout превью: при любом изменении terms — sync rebuild (кэш layout).
- * Инвариант: при terms.length > 0 и хотя бы одном coeff > 0 — никогда не пустой массив.
+ * Sync layout на каждое изменение terms — без useState (нет кадра с пустым массивом).
  */
 export function useReactorPreviewLayout(
   terms: readonly ReactorEquationTerm[],
@@ -30,7 +29,6 @@ export function useReactorPreviewLayout(
   const atomEstimate = useMemo(() => estimatePreviewAtomCount(terms), [termsSig, terms])
 
   const shellRef = useRef<readonly ReactorPreviewAtom[]>([])
-  const syncAtomsRef = useRef<readonly ReactorPreviewAtom[]>([])
   const lastBuiltSigRef = useRef('')
 
   const heavyEquation = atomEstimate > SYNC_BUILD_ATOM_CAP
@@ -38,47 +36,28 @@ export function useReactorPreviewLayout(
   if (termsSig !== lastBuiltSigRef.current) {
     lastBuiltSigRef.current = termsSig
     const shell = shellRef.current
-    const built = buildReactorPreviewAtoms(terms, {
-      tier: heavyEquation ? 'lite' : 'full',
-    })
-    const picked = pickLayoutAtoms(built, shell)
-    syncAtomsRef.current = picked
-    if (picked.length > 0) shellRef.current = picked
-  }
-
-  const syncAtoms = syncAtomsRef.current
-
-  const [atoms, setAtoms] = useState<readonly ReactorPreviewAtom[]>(() =>
-    syncAtoms.length > 0 ? syncAtoms : shellRef.current,
-  )
-
-  if (syncAtoms.length > 0) {
-    shellRef.current = syncAtoms
-  }
-
-  useLayoutEffect(() => {
-    if (syncAtoms.length > 0) {
-      shellRef.current = syncAtoms
-      setAtoms(syncAtoms)
-      return
-    }
-    if (shellRef.current.length > 0 && terms.length >= 1) {
-      setAtoms(shellRef.current)
-      return
-    }
     if (terms.length >= 1 && atomEstimate > 0) {
-      const built = buildReactorPreviewAtoms(terms, { tier: heavyEquation ? 'lite' : 'full' })
-      const picked = pickLayoutAtoms(built, shellRef.current)
-      if (picked.length > 0) {
-        shellRef.current = picked
-        syncAtomsRef.current = picked
-        setAtoms(picked)
-      }
+      const built = buildReactorPreviewAtoms(terms, {
+        tier: heavyEquation ? 'lite' : 'full',
+      })
+      const picked = pickLayoutAtoms(built, shell)
+      if (picked.length > 0) shellRef.current = picked
     }
-  }, [termsSig, syncAtoms, terms, atomEstimate, heavyEquation])
+  }
 
   const resolved =
-    atoms.length > 0 ? atoms : shellRef.current.length > 0 ? shellRef.current : atoms
+    shellRef.current.length > 0
+      ? shellRef.current
+      : terms.length >= 1 && atomEstimate > 0
+        ? pickLayoutAtoms(
+            buildReactorPreviewAtoms(terms, { tier: heavyEquation ? 'lite' : 'full' }),
+            shellRef.current,
+          )
+        : shellRef.current
+
+  if (resolved.length > 0) {
+    shellRef.current = resolved
+  }
 
   return {
     atoms: resolved,

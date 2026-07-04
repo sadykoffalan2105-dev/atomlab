@@ -380,20 +380,6 @@ function SceneContent({
     return prewarmProductCompound ?? null
   }, [prewarmProductCompound, prewarmSuppressRev, synthActive, synthesisPhase])
 
-  /** При запуске синтеза — сразу показываем продукт, если GPU уже прогрет. */
-  useLayoutEffect(() => {
-    if (!synthActive || !synthesis?.runId) return
-    const productId = synthesis.product?.id
-    if (productId == null) return
-    if (isProductGpuCompiled(productId)) {
-      prewarmCompoundIdRef.current = productId
-      prewarmReadyRef.current = true
-      setPrewarmReady(true)
-      setProductRevealReady(true)
-      setForceProductSlot(true)
-    }
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id])
-
   const suppressGpuPrewarm = useCallback((holdMs = 2500) => {
     prewarmSuppressUntilRef.current = performance.now() + holdMs
     setPrewarmSuppressRev((v) => v + 1)
@@ -407,6 +393,24 @@ function SceneContent({
     [synthForceLite],
   )
   const instantSynthesis = isInstantSynthesisProfile(synthTimingProfile)
+
+  /** При запуске синтеза — сразу показываем продукт (instant / GPU cache). */
+  useLayoutEffect(() => {
+    if (!synthActive || !synthesis?.runId) return
+    const productId = synthesis.product?.id
+    if (productId == null) return
+    setForceProductSlot(true)
+    setEarlyProductReveal(true)
+    if (instantSynthesis) {
+      setProductRevealReady(true)
+    }
+    if (isProductGpuCompiled(productId)) {
+      prewarmCompoundIdRef.current = productId
+      prewarmReadyRef.current = true
+      setPrewarmReady(true)
+      setProductRevealReady(true)
+    }
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id, instantSynthesis])
 
   useLayoutEffect(() => {
     if (reactorViewOpen) return
@@ -675,20 +679,19 @@ function SceneContent({
   ])
 
   useLayoutEffect(() => {
-    if (coeffEditingActive) {
-      productPaintedRef.current = false
-      productPaintFramesRef.current = 0
-      setProductPainted(false)
-      setProductRevealReady(false)
-      const root = previewRootRef.current
-      if (root) {
-        root.visible = true
-        root.traverse((obj) => {
-          if (obj !== root) obj.visible = true
-        })
-      }
+    if (!coeffEditingActive) return
+    if (synthActive || synthesisRunActive) return
+    productPaintedRef.current = false
+    productPaintFramesRef.current = 0
+    setProductPainted(false)
+    const root = previewRootRef.current
+    if (root) {
+      root.visible = true
+      root.traverse((obj) => {
+        if (obj !== root) obj.visible = true
+      })
     }
-  }, [coeffEditingActive])
+  }, [coeffEditingActive, synthActive, synthesisRunActive])
 
   const restorePreviewRootVisibility = useCallback(() => {
     const root = previewRootRef.current
@@ -728,6 +731,9 @@ function SceneContent({
       setForceProductSlot(true)
       setEarlyProductReveal(true)
       restorePreviewRootVisibility()
+      if (instantSynthesis) {
+        setProductRevealReady(true)
+      }
       const productId = synthesis?.product?.id
       if (
         productId != null &&
@@ -765,7 +771,7 @@ function SceneContent({
     }
   }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, productRevealReady])
 
-  // Слабые GPU: fallback productReveal (instant — 2 кадра).
+  // Слабые GPU: fallback productReveal (instant — 1 кадр).
   useEffect(() => {
     if (!synthActive || !synthesis?.runId || productRevealReady) return
     if (instantSynthesis) {
@@ -774,7 +780,7 @@ function SceneContent({
       const tick = () => {
         frames += 1
         if (productRevealReady) return
-        if (frames >= 2) {
+        if (frames >= 1) {
           setProductRevealReady(true)
           return
         }

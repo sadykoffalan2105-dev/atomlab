@@ -1,4 +1,8 @@
-/** Активное редактирование уравнения (+/-): burst или пауза после последнего изменения. */
-export function isReactorCoeffEditing(coeffEditBurst: boolean, editIdle: boolean): boolean {
-  return coeffEditBurst || !editIdle
+/** Активное редактирование уравнения (+/-): burst, пауза или visualHold после отпускания. */
+export function isReactorCoeffEditing(
+  coeffEditBurst: boolean,
+  editIdle: boolean,
+  visualHold = false,
+): boolean {
+  return coeffEditBurst || !editIdle || visualHold
 }

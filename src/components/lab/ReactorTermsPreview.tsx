@@ -31,7 +31,7 @@ import {
  */
 export function ReactorTermsPreview({
   terms,
-  visible = true,
+  visible: _visible = true,
   flightActive = false,
   poseLocked = false,
   sharedLighting = false,
@@ -111,17 +111,35 @@ export function ReactorTermsPreview({
   const previewLenRef = useRef(previewAtoms.length)
   previewLenRef.current = previewAtoms.length
 
-  const hasActiveTerms = terms.some((t) => Math.floor(t.coeff) > 0)
+  const expectedAtomCount = useMemo(() => {
+    let count = 0
+    for (const t of terms) {
+      const c = Math.floor(t.coeff)
+      if (c > 0) count += c
+    }
+    return count
+  }, [terms])
+
+  const hasActiveTerms = expectedAtomCount > 0
   const shellHoldActive =
     hasActiveTerms &&
     terms.length > 0 &&
     shellAtomsRef.current.length > 0 &&
-    (coeffEditing || layoutPending || synthHoldPreview || previewAtoms.length === 0)
+    (coeffEditing ||
+      layoutPending ||
+      synthHoldPreview ||
+      previewOnlyMode ||
+      previewAtoms.length === 0 ||
+      previewAtoms.length < expectedAtomCount)
+  const countGapHold =
+    previewAtoms.length > 0 &&
+    previewAtoms.length < expectedAtomCount &&
+    shellAtomsRef.current.length >= expectedAtomCount
   const useShell =
-    previewAtoms.length === 0 &&
-    shellAtomsRef.current.length > 0 &&
     hasActiveTerms &&
-    (shellHoldActive || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES)
+    shellAtomsRef.current.length > 0 &&
+    (previewAtoms.length === 0 || countGapHold) &&
+    (shellHoldActive || previewOnlyMode || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES)
   const renderAtoms = previewAtoms.length > 0 ? previewAtoms : useShell ? shellAtomsRef.current : []
   const n = renderAtoms.length
   maxPoolRef.current = Math.max(maxPoolRef.current, n)
@@ -134,15 +152,13 @@ export function ReactorTermsPreview({
 
   const shouldRender =
     terms.length > 0 &&
-    (synthHoldPreview ||
+    hasActiveTerms &&
+    (previewOnlyMode ||
+      synthHoldPreview ||
       coeffEditing ||
       layoutPending ||
-      (n > 0 &&
-        (previewOnlyMode ||
-          visible ||
-          shellHoldActive ||
-          (shellEmptyFramesRef.current < SHELL_HOLD_FRAMES &&
-            shellAtomsRef.current.length > 0))))
+      n > 0 ||
+      shellAtomsRef.current.length > 0)
   const groupVisible = shouldRender
 
   const groupRef = useRef<THREE.Group>(null)
@@ -200,11 +216,6 @@ export function ReactorTermsPreview({
   const layoutSyncTimerRef = useRef<number | null>(null)
   useLayoutEffect(() => {
     if (flightActive || poseLocked || n === 0) return
-    if (coeffEditing) {
-      syncLayout()
-      invalidateThrottleRef.current.request(invalidate)
-      return
-    }
     if (layoutSyncTimerRef.current != null) window.clearTimeout(layoutSyncTimerRef.current)
     if (layoutSyncRafRef.current != null) cancelAnimationFrame(layoutSyncRafRef.current)
     layoutSyncTimerRef.current = null
@@ -215,17 +226,26 @@ export function ReactorTermsPreview({
       syncLayout()
       invalidateThrottleRef.current.request(invalidate)
     }
-    const debounce = perf.layoutDebounceMs
-    if (debounce > 0) {
-      layoutSyncTimerRef.current = window.setTimeout(run, debounce)
-    } else {
-      layoutSyncRafRef.current = requestAnimationFrame(run)
+    if (coeffEditing || previewOnlyMode || perf.layoutDebounceMs <= 0) {
+      run()
+      return
     }
+    layoutSyncRafRef.current = requestAnimationFrame(run)
     return () => {
       if (layoutSyncTimerRef.current != null) window.clearTimeout(layoutSyncTimerRef.current)
       if (layoutSyncRafRef.current != null) cancelAnimationFrame(layoutSyncRafRef.current)
     }
-  }, [flightActive, poseLocked, termsSig, syncLayout, invalidate, n, perf.layoutDebounceMs, coeffEditing])
+  }, [
+    flightActive,
+    poseLocked,
+    termsSig,
+    syncLayout,
+    invalidate,
+    n,
+    perf.layoutDebounceMs,
+    coeffEditing,
+    previewOnlyMode,
+  ])
 
   useFrame((s) => {
     if (previewLenRef.current === 0 && shellAtomsRef.current.length > 0 && !shellHoldActive && !coeffEditing && !layoutPending) {
