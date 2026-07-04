@@ -111,14 +111,16 @@ export function ReactorTermsPreview({
   const previewLenRef = useRef(previewAtoms.length)
   previewLenRef.current = previewAtoms.length
 
+  const hasActiveTerms = terms.some((t) => Math.floor(t.coeff) > 0)
   const shellHoldActive =
-    (coeffEditing || layoutPending || synthHoldPreview) &&
+    hasActiveTerms &&
     terms.length > 0 &&
-    shellAtomsRef.current.length > 0
+    shellAtomsRef.current.length > 0 &&
+    (coeffEditing || layoutPending || synthHoldPreview || previewAtoms.length === 0)
   const useShell =
     previewAtoms.length === 0 &&
     shellAtomsRef.current.length > 0 &&
-    terms.length > 0 &&
+    hasActiveTerms &&
     (shellHoldActive || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES)
   const renderAtoms = previewAtoms.length > 0 ? previewAtoms : useShell ? shellAtomsRef.current : []
   const n = renderAtoms.length

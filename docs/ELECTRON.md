@@ -2,6 +2,16 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
+**Скачать v1.3.20:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.20)
+- `ATOMLAB-1.3.20-portable.exe` — без установки
+- `ATOMLAB-1.3.20-setup.exe` — установщик
+
+### v1.3.20 — синтез: атомы при +/-, молекула < 1 с
+
+- Атомы не пропадают при редактировании коэффициентов (15+ атомов, K₂Cr₂O₇)
+- Скрытый GPU-prewarm при сбалансированном уравнении — молекула сразу после «Синтез»
+- Мгновенный показ продукта (< 1 с даже для сложных формул)
+
 **Скачать v1.3.19:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.19)
 - `ATOMLAB-1.3.19-portable.exe` — без установки
 - `ATOMLAB-1.3.19-setup.exe` — установщик

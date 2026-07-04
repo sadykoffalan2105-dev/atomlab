@@ -22,7 +22,7 @@ const MICRO_SCALE = 0.001
 /** Кадров отрисовки на micro-scale до «готово» — даже на слабых GPU. */
 const PREWARM_PAINT_FRAMES = SYNTH_ANTI_STALL.gpuCompileFallbackFrames
 /** Кадров полного масштаба до сигнала paint — не раньше реального GPU-кадра. */
-const VISIBLE_PAINT_FRAMES = 2
+const VISIBLE_PAINT_FRAMES = 1
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
@@ -204,7 +204,7 @@ export function LabProductHeroSlot({
           releaseBudget?.()
           releaseBudget = null
         },
-        { skipCompileAsync: false, meshesPerFrame: 4 },
+        { skipCompileAsync: false, meshesPerFrame: 8 },
       )
     }
 
@@ -239,8 +239,15 @@ export function LabProductHeroSlot({
       gpuCompiledRef.current = true
       g.scale.set(1, 1, 1)
       invalidate()
+      if (
+        (entrance === 'instant' || entrance === 'none') &&
+        !visiblePaintSentRef.current
+      ) {
+        visiblePaintSentRef.current = true
+        onProductVisiblePaint?.()
+      }
     }
-  }, [visible, prewarm, compound.id, invalidate])
+  }, [visible, prewarm, compound.id, invalidate, entrance, onProductVisiblePaint])
 
   // Считаем реально отрисованные кадры prewarm / visible, затем «готово».
   useFrame(() => {

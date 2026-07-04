@@ -380,6 +380,20 @@ function SceneContent({
     return prewarmProductCompound ?? null
   }, [prewarmProductCompound, prewarmSuppressRev, synthActive, synthesisPhase])
 
+  /** При запуске синтеза — сразу показываем продукт, если GPU уже прогрет. */
+  useLayoutEffect(() => {
+    if (!synthActive || !synthesis?.runId) return
+    const productId = synthesis.product?.id
+    if (productId == null) return
+    if (isProductGpuCompiled(productId)) {
+      prewarmCompoundIdRef.current = productId
+      prewarmReadyRef.current = true
+      setPrewarmReady(true)
+      setProductRevealReady(true)
+      setForceProductSlot(true)
+    }
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id])
+
   const suppressGpuPrewarm = useCallback((holdMs = 2500) => {
     prewarmSuppressUntilRef.current = performance.now() + holdMs
     setPrewarmSuppressRev((v) => v + 1)
@@ -459,11 +473,11 @@ function SceneContent({
   const productCompoundCandidate =
     synthesisSettledProduct ??
     synthesis?.product ??
-    (synthActive || synthesisRunActive ? effectivePrewarmProduct : null) ??
+    effectivePrewarmProduct ??
     null
 
   const gpuPrewarmAllowed = shouldMountProductGpuPrewarm({
-    policy: 'synthesis-only',
+    policy: 'balanced-idle',
     synthesisRunActive,
     synthActive,
     showSettledHero,
@@ -541,7 +555,10 @@ function SceneContent({
   const productForSlot =
     continuity.productMeshMounted &&
     productCompoundCandidate &&
-    (synthActive || synthesisRunActive || showSettledHero)
+    (synthActive ||
+      synthesisRunActive ||
+      showSettledHero ||
+      continuity.productPrewarm)
       ? productCompoundCandidate
       : null
 
@@ -711,6 +728,14 @@ function SceneContent({
       setForceProductSlot(true)
       setEarlyProductReveal(true)
       restorePreviewRootVisibility()
+      const productId = synthesis?.product?.id
+      if (
+        productId != null &&
+        (isProductGpuCompiled(productId) ||
+          (prewarmReadyRef.current && prewarmCompoundIdRef.current === productId))
+      ) {
+        setProductRevealReady(true)
+      }
     }
     const productId = synthesis?.product?.id
     const gpuReady =
@@ -740,7 +765,7 @@ function SceneContent({
     }
   }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, productRevealReady])
 
-  // Слабые GPU: fallback productReveal (instant — 6 кадров).
+  // Слабые GPU: fallback productReveal (instant — 2 кадра).
   useEffect(() => {
     if (!synthActive || !synthesis?.runId || productRevealReady) return
     if (instantSynthesis) {
@@ -749,7 +774,7 @@ function SceneContent({
       const tick = () => {
         frames += 1
         if (productRevealReady) return
-        if (frames >= 6) {
+        if (frames >= 2) {
           setProductRevealReady(true)
           return
         }
@@ -1215,7 +1240,7 @@ function SceneContent({
               runId={synthesis.runId}
               onDone={handleInstantSynthDone}
               onPhaseChange={synthesis.onPhaseChange}
-              minFrames={2}
+              minFrames={1}
             />
           ) : null}
           {showSettledHero && synthesisSettledProduct

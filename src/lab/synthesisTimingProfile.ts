@@ -27,7 +27,7 @@ export const SYNTHESIS_TIMING_INSTANT: SynthesisTimingProfile = {
   atomStagger: 0,
   mergeFlashDur: 0,
   productEntranceDur: 0,
-  productHold: 0.45,
+  productHold: 0,
   productRevealOverlapSec: 0,
   igniteSkipMs: 0,
   atomCollapseDur: 0,

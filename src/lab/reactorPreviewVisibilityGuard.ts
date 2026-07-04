@@ -119,4 +119,10 @@ export function applyReactorPreviewLayout(
       }
     }
   })
+  for (let i = previewAtoms.length; i < atomGroupRefs.current.length; i++) {
+    const posG = atomGroupRefs.current[i]
+    const scaleG = atomScaleGroupRefs.current[i]
+    if (posG) posG.visible = false
+    if (scaleG) scaleG.visible = false
+  }
 }

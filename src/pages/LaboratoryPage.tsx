@@ -537,6 +537,7 @@ export function LaboratoryPage() {
 
     setLastRunProduct(payload.compound)
     setPrewarmCompound(payload.compound)
+    warmupLabSynthesisReactorOpen(catalogList, payload.compound, leftTerms)
     setSynthesisFlightSlots(zCopy)
     setSynthesisFlyTerms(flyCopy)
     setRunId(nextRunId)
@@ -649,9 +650,18 @@ export function LaboratoryPage() {
 
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
-    if (!synthRunActive) return null
-    return lastRunProduct ?? prewarmCompound ?? productCompound
-  }, [reactorOpen, productCompound, synthRunActive, lastRunProduct, prewarmCompound])
+    if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
+    if (canRunSynthesis && !reactorCoeffEditing) return productCompound
+    return null
+  }, [
+    reactorOpen,
+    productCompound,
+    synthRunActive,
+    lastRunProduct,
+    prewarmCompound,
+    canRunSynthesis,
+    reactorCoeffEditing,
+  ])
 
   const gpuQueuePriorityCompound = useMemo(() => {
     if (!reactorOpen || reactorCoeffEditing || synthRunActive) return null
@@ -660,8 +670,9 @@ export function LaboratoryPage() {
   }, [reactorOpen, reactorCoeffEditing, synthRunActive, productCompound, canRunSynthesis])
 
   const onSynthesisPrewarmIntent = useCallback(() => {
-    /* pre-synthesis GPU prewarm отключён — вызывает чёрный экран до кнопки «Синтез» */
-  }, [])
+    if (!productCompound || !canRunSynthesis || reactorCoeffEditing) return
+    setPrewarmCompound(productCompound)
+  }, [productCompound, canRunSynthesis, reactorCoeffEditing])
 
   return (
     <div className={styles.wrap} data-lab-synthesis-view={laboratorySynthesisView}>
