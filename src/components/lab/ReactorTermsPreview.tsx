@@ -106,11 +106,6 @@ export function ReactorTermsPreview({
   const SHELL_HOLD_FRAMES = layoutPending ? 4800 : coeffEditing ? 2400 : coeffEditBurst ? 480 : 240
   const maxPoolRef = useRef(0)
 
-  if (previewAtoms.length > 0) {
-    shellAtomsRef.current = previewAtoms
-    shellEmptyFramesRef.current = 0
-  }
-
   const previewLenRef = useRef(previewAtoms.length)
   previewLenRef.current = previewAtoms.length
 
@@ -159,7 +154,9 @@ export function ReactorTermsPreview({
 
   if (shouldRender && previewOnlyMode) visibleLatchRef.current = true
   const groupVisible =
-    shouldRender || (previewOnlyMode && visibleLatchRef.current && hasActiveTerms)
+    previewOnlyMode && visibleLatchRef.current && hasActiveTerms
+      ? true
+      : shouldRender || (previewOnlyMode && visibleLatchRef.current && hasActiveTerms)
 
   if (n > 16) denseLightLatchRef.current = true
   else if (n < 12) denseLightLatchRef.current = false
@@ -273,7 +270,7 @@ export function ReactorTermsPreview({
         previewAtoms: renderAtoms,
         rootVisible: groupVisible,
         flightActive,
-        allowRecover: !flightActive && !coeffEditing && !layoutPending,
+        allowRecover: !flightActive && !layoutPending,
         onRecover: syncLayout,
       })
     }
@@ -307,7 +304,7 @@ export function ReactorTermsPreview({
     const g = groupRef.current
     if (!g) return
     g.visible = groupVisible
-    if (!groupVisible) {
+    if (!groupVisible && !(previewOnlyMode && visibleLatchRef.current)) {
       for (let i = 0; i < atomGroupRefs.current.length; i++) {
         const posG = atomGroupRefs.current[i]
         const scaleG = atomScaleGroupRefs.current[i]
@@ -315,7 +312,7 @@ export function ReactorTermsPreview({
         if (scaleG) scaleG.visible = false
       }
     }
-  }, [groupVisible, atomGroupRefs, atomScaleGroupRefs])
+  }, [groupVisible, previewOnlyMode, atomGroupRefs, atomScaleGroupRefs])
 
   return (
     <group ref={groupRef} visible={groupVisible} frustumCulled={false}>

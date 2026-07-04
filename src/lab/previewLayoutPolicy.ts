@@ -8,15 +8,25 @@ export const SYNC_BUILD_ATOM_CAP = ATOMLAB_SYNC_BUILD_ATOM_CAP
 export function pickLayoutAtoms(
   built: readonly ReactorPreviewAtom[],
   shell: readonly ReactorPreviewAtom[],
+  editing = false,
+  expectedCount = 0,
 ): readonly ReactorPreviewAtom[] {
-  if (built.length > 0) return built
-  if (shell.length > 0) return shell
+  if (built.length === 0) {
+    return shell.length > 0 ? shell : built
+  }
+  if (!editing || expectedCount <= 0) {
+    return built
+  }
+  if (expectedCount > built.length && shell.length > built.length) {
+    return shell
+  }
   return built
 }
 
 export function buildPreviewLayoutForEdit(
   terms: readonly ReactorEquationTerm[],
   shell: readonly ReactorPreviewAtom[],
+  editing = true,
 ): readonly ReactorPreviewAtom[] {
   let atomEstimate = 0
   for (const t of terms) {
@@ -26,7 +36,7 @@ export function buildPreviewLayoutForEdit(
   const built = buildReactorPreviewAtoms(terms, {
     tier: atomEstimate > SYNC_BUILD_ATOM_CAP ? 'lite' : 'full',
   })
-  return pickLayoutAtoms(built, shell)
+  return pickLayoutAtoms(built, shell, editing, atomEstimate)
 }
 
 /** Симуляция rapid +/-: каждый шаг даёт ненулевой layout при валидных terms. */

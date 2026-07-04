@@ -116,12 +116,18 @@ function LabReactorLights() {
 }
 
 /** Прогрев кадра при открытии реактора + несколько invalidate для WebGL pipeline. */
-function ReactorSceneWarmup({ reactorOpen }: { reactorOpen: boolean }) {
+function ReactorSceneWarmup({
+  reactorOpen,
+  paused,
+}: {
+  reactorOpen: boolean
+  paused?: boolean
+}) {
   const { invalidate } = useThree()
   const warmedRef = useRef(false)
   useEffect(() => {
-    if (!reactorOpen) {
-      warmedRef.current = false
+    if (!reactorOpen || paused) {
+      if (!reactorOpen) warmedRef.current = false
       return
     }
     if (warmedRef.current) return
@@ -139,7 +145,7 @@ function ReactorSceneWarmup({ reactorOpen }: { reactorOpen: boolean }) {
     return () => {
       cancelled = true
     }
-  }, [reactorOpen, invalidate])
+  }, [reactorOpen, paused, invalidate])
   return null
 }
 
@@ -260,6 +266,7 @@ function SceneContent({
   gpuQueuePriorityCompound = null,
   reactorCoeffEditBurst = false,
   reactorCoeffEditing = false,
+  reactorGpuIdleReady = false,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -284,6 +291,8 @@ function SceneContent({
   prewarmProductCompound?: CompoundDef | null
   /** Приоритет фоновой GPU-очереди — выбранный продукт компилируется первым */
   gpuQueuePriorityCompound?: CompoundDef | null
+  /** Реактор стабилен после открытия — можно фоновый GPU-prewarm */
+  reactorGpuIdleReady?: boolean
   synthesis: {
     runId: number
     zSlots: readonly number[]
@@ -493,13 +502,18 @@ function SceneContent({
     [],
   )
 
-  const gpuQueueActive = canIdleGpuCompileQueue({
-    reactorOpen: reactorViewOpen,
-    coeffEditBurst: reactorCoeffEditBurst,
-    coeffEditing: coeffEditingActive,
-    synthesisRunActive: synthesisRunActive ?? false,
-    synthActive,
-  })
+  const gpuQueueActive =
+    reactorGpuIdleReady &&
+    canIdleGpuCompileQueue({
+      reactorOpen: reactorViewOpen,
+      coeffEditBurst: reactorCoeffEditBurst,
+      coeffEditing: coeffEditingActive,
+      synthesisRunActive: synthesisRunActive ?? false,
+      synthActive,
+    })
+
+  const preSynthesisPreview = !synthesisRunActive && !synthActive && !showSettledHero
+  const warmupPaused = !reactorGpuIdleReady || coeffEditingActive
 
   const mountReactorPreview =
     reactorViewOpen &&
@@ -877,25 +891,22 @@ function SceneContent({
     (productSlotVisible && !synthesisRunActive && !synthActive)
 
   // eslint-disable-next-line react-hooks/immutability
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (catalogViewMode) return
     if (previewAtomCount <= 0) return
-    const timer = window.setTimeout(() => {
-      if (previewAtomCount > 9) manyAtomsCameraRef.current = true
-      else if (previewAtomCount < 7) manyAtomsCameraRef.current = false
-      const manyAtoms = manyAtomsCameraRef.current
-      const p = camera as THREE.PerspectiveCamera
-      // eslint-disable-next-line react-hooks/immutability
-      p.fov = manyAtoms ? 61 : 58
-      p.updateProjectionMatrix()
-      camera.position.set(0, manyAtoms ? 1.38 : 1.25, manyAtoms ? 7.15 : 6.2)
-      camera.lookAt(0, 0.18, 0)
-      const t = orbRef.current?.target
-      if (t) t.set(0, 0.15, 0)
-      orbRef.current?.update?.()
-      invalidate()
-    }, 0)
-    return () => clearTimeout(timer)
+    if (previewAtomCount > 9) manyAtomsCameraRef.current = true
+    else if (previewAtomCount < 7) manyAtomsCameraRef.current = false
+    const manyAtoms = manyAtomsCameraRef.current
+    const p = camera as THREE.PerspectiveCamera
+    // eslint-disable-next-line react-hooks/immutability
+    p.fov = manyAtoms ? 61 : 58
+    p.updateProjectionMatrix()
+    camera.position.set(0, manyAtoms ? 1.38 : 1.25, manyAtoms ? 7.15 : 6.2)
+    camera.lookAt(0, 0.18, 0)
+    const t = orbRef.current?.target
+    if (t) t.set(0, 0.15, 0)
+    orbRef.current?.update?.()
+    invalidate()
   }, [camera, catalogViewMode, previewAtomCount, invalidate])
 
   // eslint-disable-next-line react-hooks/immutability
@@ -1152,9 +1163,9 @@ function SceneContent({
       ) : null}
       {reactorBackdrop ? <LabReactorLights /> : null}
       {reactorViewOpen ? (
-        <ReactorSceneWarmup reactorOpen={reactorViewOpen} />
+        <ReactorSceneWarmup reactorOpen={reactorViewOpen} paused={warmupPaused} />
       ) : null}
-      {reactorViewOpen ? (
+      {reactorViewOpen && reactorGpuIdleReady && !coeffEditingActive ? (
         <ReactorAtomShaderWarmup
           active={!productPainted && !showSettledHero}
         />
@@ -1200,7 +1211,7 @@ function SceneContent({
               visible={reactorPreviewVisible}
               flightActive={previewMotionLocked}
               poseLocked={previewPoseLocked}
-              sharedLighting={synthActive || synthesisRunActive}
+              sharedLighting={synthActive || synthesisRunActive || preSynthesisPreview}
               forceLite={previewForceLite || editForceLite}
               qualityLevel={synthQualityLevel}
               synthesisGlass={synthQualityFeatures.glassAtoms}
@@ -1322,6 +1333,7 @@ export function LabCanvas({
   sessionKey = 0,
   reactorCoeffEditBurst = false,
   reactorCoeffEditing = false,
+  reactorGpuIdleReady = false,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -1341,6 +1353,7 @@ export function LabCanvas({
   sessionKey?: number | string
   reactorCoeffEditBurst?: boolean
   reactorCoeffEditing?: boolean
+  reactorGpuIdleReady?: boolean
   synthesis: {
     runId: number
     zSlots: readonly number[]
@@ -1471,6 +1484,7 @@ export function LabCanvas({
           gpuQueuePriorityCompound={gpuQueuePriorityCompound}
           reactorCoeffEditBurst={reactorCoeffEditBurst}
           reactorCoeffEditing={reactorCoeffEditing}
+          reactorGpuIdleReady={reactorGpuIdleReady}
         />
       </Canvas>
     </CanvasErrorBoundary>

@@ -16,6 +16,7 @@ import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
+import { termsSignature } from '../lab/previewLayoutPolicy'
 import { warmupLabSynthesisInfra, warmupLabSynthesisReactorOpen, warmupReactorPreviewTerms } from '../lab/labSynthesisWarmup'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
 import { isReactorCoeffEditing } from '../lab/reactorCoeffEditMode'
@@ -483,7 +484,17 @@ export function LaboratoryPage() {
   }, [reactorOpen, leftTerms])
 
   const { coeffEditBurst, editIdle, visualHold, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
-  const reactorCoeffEditing = isReactorCoeffEditing(coeffEditBurst, editIdle, visualHold)
+
+  const leftTermsSig = useMemo(() => termsSignature(leftTerms), [leftTerms])
+  const prevLeftTermsSigRef = useRef<string | null>(null)
+  const coeffEditSync =
+    prevLeftTermsSigRef.current !== null &&
+    prevLeftTermsSigRef.current !== leftTermsSig &&
+    leftTerms.length > 0
+  prevLeftTermsSigRef.current = leftTermsSig
+
+  const reactorCoeffEditing =
+    isReactorCoeffEditing(coeffEditBurst, editIdle, visualHold) || coeffEditSync
 
   /** Canvas: stable shell + immediate при burst — атомы не пропадают при +/-. */
   const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
@@ -724,6 +735,7 @@ export function LaboratoryPage() {
             forceLiteFxRef={forceLiteFxRef}
             prewarmProductCompound={gpuPrewarmCompound}
             gpuQueuePriorityCompound={gpuQueuePriorityCompound}
+            reactorGpuIdleReady={reactorGpuIdleReady}
           />
         </Suspense>
         {showSettledSynthesisView ? (

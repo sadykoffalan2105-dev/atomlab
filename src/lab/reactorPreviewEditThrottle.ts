@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 
 const BURST_WINDOW_MS = 520
@@ -36,6 +36,7 @@ export function useReactorCoeffEditBurst(
   const idleTimerRef = useRef<number | null>(null)
   const burstEndTimerRef = useRef<number | null>(null)
   const visualHoldTimerRef = useRef<number | null>(null)
+  const baselineSigRef = useRef<string | null>(null)
 
   const clearTimers = useCallback(() => {
     if (idleTimerRef.current != null) {
@@ -60,6 +61,7 @@ export function useReactorCoeffEditBurst(
     changeTimesRef.current = []
     burstHoldUntilRef.current = 0
     visualHoldUntilRef.current = 0
+    baselineSigRef.current = null
   }, [clearTimers])
 
   const scheduleVisualHoldEnd = useCallback(() => {
@@ -98,11 +100,18 @@ export function useReactorCoeffEditBurst(
     }, EDIT_IDLE_MS)
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (terms == null || terms.length === 0) {
       resetEditBurst()
       return
     }
+
+    if (baselineSigRef.current === null) {
+      baselineSigRef.current = sig
+      return
+    }
+
+    if (baselineSigRef.current === sig) return
 
     const now = performance.now()
     changeTimesRef.current.push(now)

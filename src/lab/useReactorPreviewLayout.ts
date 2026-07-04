@@ -40,7 +40,7 @@ export function useReactorPreviewLayout(
       const built = buildReactorPreviewAtoms(terms, {
         tier: heavyEquation ? 'lite' : 'full',
       })
-      const picked = pickLayoutAtoms(built, shell)
+      const picked = pickLayoutAtoms(built, shell, _coeffEditing, atomEstimate)
       if (picked.length > 0) shellRef.current = picked
     }
   }
@@ -52,6 +52,8 @@ export function useReactorPreviewLayout(
         ? pickLayoutAtoms(
             buildReactorPreviewAtoms(terms, { tier: heavyEquation ? 'lite' : 'full' }),
             shellRef.current,
+            _coeffEditing,
+            atomEstimate,
           )
         : shellRef.current
 

@@ -31,9 +31,11 @@ import {
 import { SYNC_BUILD_ATOM_CAP } from '../src/lab/useReactorPreviewLayout.ts'
 import {
   buildPreviewLayoutForEdit,
+  pickLayoutAtoms,
   simulateCoeffEditLayoutSteps,
   shouldScheduleIdleLayoutRebuild,
 } from '../src/lab/previewLayoutPolicy.ts'
+import { resolveStablePreviewRenderAtoms } from '../src/lab/previewRenderAtoms.ts'
 import { resolveSynthesisProductSlot } from '../src/lab/synthesisProductSlot.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
@@ -342,6 +344,27 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   assert.equal(shouldForceSyncPreviewLayout(15, true), true)
   assert.equal(shouldAllowWorkerPreviewLayout(15, true), false)
   assert.equal(shouldAllowWorkerPreviewLayout(15, false), true)
+}
+
+// --- pickLayoutAtoms: hold shell while layout catches up during edit ---
+{
+  const terms = k2cr2o7Terms()
+  const full = buildPreviewLayoutForEdit(terms, [], false)
+  const partialTerms = terms.map((t, i) => (i === 2 ? { ...t, coeff: 3 } : t))
+  const partial = buildReactorPreviewAtoms(partialTerms, { tier: 'full' })
+  const held = pickLayoutAtoms(partial, full, true, 15)
+  assert.equal(held.length, full.length, 'edit hold keeps larger shell until built catches up')
+}
+
+// --- resolveStablePreviewRenderAtoms: shell not clobbered ---
+{
+  const terms = k2cr2o7Terms()
+  const shell = buildReactorPreviewAtoms(terms, { tier: 'full' })
+  const partialTerms = terms.map((t, i) => (i === 2 ? { ...t, coeff: 1 } : t))
+  const preview = buildReactorPreviewAtoms(partialTerms, { tier: 'full' })
+  const stable = resolveStablePreviewRenderAtoms(preview, shell, 15, true)
+  assert.ok(stable.length >= preview.length, 'stable render never shrinks below preview during edit lag')
+  assert.ok(stable.length >= 11, 'stable render holds shell while expected > preview')
 }
 
 // --- K2Cr2O7 rapid +/-: sync edit layout never empty ---
