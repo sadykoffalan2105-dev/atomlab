@@ -167,7 +167,6 @@ export function naturalizeSpeechText(
   t = softenPunctuationForSpeech(t)
 
   if (locale === 'ru') {
-    t = stripCombiningAcute(t)
     t = applyYoLetterFixes(t)
   }
 

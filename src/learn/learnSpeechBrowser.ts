@@ -62,7 +62,7 @@ function pickBrowserVoice(locale: BrowserSpeechLocale): SpeechSynthesisVoice | n
   if (voices.length === 0) return null
 
   const langPrefix = locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'
-  const hints = TEACHER_BROWSER_VOICE_HINTS[locale === 'uz' ? 'ru' : locale]
+  const hints = TEACHER_BROWSER_VOICE_HINTS[locale]
 
   const matchesLang = (v: SpeechSynthesisVoice) => {
     const lang = lower(v.lang)
@@ -141,8 +141,8 @@ function speakOneUtterance(
     }
     const utterance = new SpeechSynthesisUtterance(sentence)
     utterance.lang = voice?.lang || SPEECH_LOCALE[locale]
-    utterance.rate = TEACHER_BROWSER_RATE[locale === 'uz' ? 'ru' : locale]
-    utterance.pitch = TEACHER_BROWSER_PITCH[locale === 'uz' ? 'ru' : locale]
+    utterance.rate = TEACHER_BROWSER_RATE[locale]
+    utterance.pitch = TEACHER_BROWSER_PITCH[locale]
     utterance.volume = 1.0
     if (voice) utterance.voice = voice
 

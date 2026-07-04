@@ -72,7 +72,10 @@ export function buildTeacherBrainPack(
     }
   }
 
-  const conversationHints = buildConversationHints(messages, speechLocale === 'ru')
+  const conversationHints = buildConversationHints(
+    messages,
+    ctx.locale === 'ru' || ctx.locale === 'uz',
+  )
 
   return {
     catalogBlock: block,

@@ -2,6 +2,28 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
+**Скачать v1.3.19:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.19)
+- `ATOMLAB-1.3.19-portable.exe` — без установки
+- `ATOMLAB-1.3.19-setup.exe` — установщик
+
+### v1.3.19 — ИИ-учитель: RU / EN / UZ, ударения, быстрее
+
+- Полноценный узбекский: ответы LLM + голос SardorNeural
+- Русские ударения в химических терминах (280+ слов)
+- Темп речи чуть быстрее, паузы короче — без «зависаний»
+- Единый голос Dmitry / Guy / Sardor на всех платформах
+
+**Скачать v1.3.19:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.19)
+- `ATOMLAB-1.3.19-portable.exe` — без установки
+- `ATOMLAB-1.3.19-setup.exe` — установщик
+
+### v1.3.19 — ИИ-учитель: RU / EN / UZ, ударения, быстрее
+
+- Полноценный узбекский: ответы LLM + голос SardorNeural
+- Русские ударения в терминах химии (280+ слов)
+- Темп речи чуть быстрее, паузы короче — без «зависаний»
+- Dmitry / Guy / Sardor с единой просодией
+
 **Скачать v1.3.18:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.18)
 - `ATOMLAB-1.3.18-portable.exe` — без установки
 - `ATOMLAB-1.3.18-setup.exe` — установщик

@@ -19,7 +19,7 @@ class TtsResponse(BaseModel):
 
 
 async def handle_tts(body: TtsRequest) -> TtsResponse:
-    locale = "en" if body.locale == "en" else "ru"
+    locale = "en" if body.locale == "en" else "uz" if body.locale == "uz" else "ru"
     text = (body.text or "").strip()
     if not text:
         return TtsResponse(error="empty_text")

@@ -184,7 +184,9 @@ export const PUBLIC_NEURAL_TTS_URLS = [
 ] as const
 
 export function teacherTtsLocale(appLocale: 'ru' | 'en' | 'uz'): TeacherTtsLocale {
-  return appLocale === 'en' ? 'en' : 'ru'
+  if (appLocale === 'en') return 'en'
+  if (appLocale === 'uz') return 'uz'
+  return 'ru'
 }
 
 function normalizeTtsUrl(raw: string): string {
@@ -270,11 +272,11 @@ export async function fetchTeacherTtsChunk(
       ? [cachedWorkingTtsUrl, ...urls.filter((u) => u !== cachedWorkingTtsUrl)]
       : urls
 
-  const desktop = await fetchViaDesktopElectron(chunk, locale, signal)
-  if (desktop) return desktop
-
   const browserEdge = await fetchViaBrowserEdge(chunk, locale, signal)
   if (browserEdge) return browserEdge
+
+  const desktop = await fetchViaDesktopElectron(chunk, locale, signal)
+  if (desktop) return desktop
 
   const puter = await fetchViaPuter(chunk, locale, signal)
   if (puter) return puter

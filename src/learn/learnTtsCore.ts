@@ -28,7 +28,7 @@ function isUsableApiKey(key?: string): boolean {
   return k.startsWith('sk-') || k.startsWith('sk_')
 }
 
-export type LearnTtsLocale = 'ru' | 'en'
+export type LearnTtsLocale = 'ru' | 'en' | 'uz'
 export type LearnTtsProvider = 'auto' | 'clone' | 'edge' | 'openai'
 
 export type LearnTtsRequestBody = {
@@ -131,15 +131,20 @@ export function learnTtsOptionsResponse(
 }
 
 function voiceForLocale(locale: LearnTtsLocale, runtime: LearnTtsRuntimeConfig): string {
-  return locale === 'en' ? runtime.openaiTtsVoiceEn : runtime.openaiTtsVoiceRu
+  if (locale === 'en') return runtime.openaiTtsVoiceEn
+  return runtime.openaiTtsVoiceRu
 }
 
 function edgeVoiceForLocale(locale: LearnTtsLocale, runtime: LearnTtsRuntimeConfig): string | undefined {
-  return locale === 'en' ? runtime.edgeVoiceEn : runtime.edgeVoiceRu
+  if (locale === 'en') return runtime.edgeVoiceEn
+  if (locale === 'uz') return 'uz-UZ-SardorNeural'
+  return runtime.edgeVoiceRu
 }
 
 function instructionsForLocale(locale: LearnTtsLocale, runtime: LearnTtsRuntimeConfig): string | undefined {
-  return locale === 'en' ? runtime.openaiTtsInstructionsEn : runtime.openaiTtsInstructionsRu
+  if (locale === 'en') return runtime.openaiTtsInstructionsEn
+  if (locale === 'uz') return HUMAN_TTS_INSTRUCTIONS.uz
+  return runtime.openaiTtsInstructionsRu
 }
 
 function supportsInstructions(model: string): boolean {
@@ -261,7 +266,8 @@ export async function processLearnTts(
     return { status: 400, source: 'error', error: 'empty_text', headers }
   }
 
-  const locale: LearnTtsLocale = body.locale === 'en' ? 'en' : 'ru'
+  const locale: LearnTtsLocale =
+    body.locale === 'en' ? 'en' : body.locale === 'uz' ? 'uz' : 'ru'
   const { provider, openaiApiKey } = meta.runtime
   const hasOpenAi = isUsableApiKey(openaiApiKey)
   const alreadyPrepared = body.prepared === true

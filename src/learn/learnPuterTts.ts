@@ -29,14 +29,17 @@ declare global {
 const PUTER_VOICE: Record<LearnTtsLocale, string> = {
   ru: 'Maxim',
   en: 'Matthew',
+  uz: 'Maxim',
 }
 const PUTER_ENGINE: Record<LearnTtsLocale, string[]> = {
   ru: ['standard', 'neural'],
   en: ['neural', 'standard'],
+  uz: ['standard', 'neural'],
 }
 const PUTER_LANG: Record<LearnTtsLocale, string> = {
   ru: 'ru-RU',
   en: 'en-US',
+  uz: 'uz-UZ',
 }
 
 let puterLoad: Promise<boolean> | null = null

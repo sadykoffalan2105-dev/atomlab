@@ -5,7 +5,12 @@ from teacher_service.brain.guard import filter_assistant_reply, filter_task_coac
 
 def build_assistant_system_prompt(ctx: dict[str, Any], knowledge_block: str) -> str:
     locale = ctx.get("locale") or "ru"
-    lang = "English" if locale == "en" else "Russian"
+    if locale == "en":
+        lang = "English"
+    elif locale == "uz":
+        lang = "Uzbek (Latin script, o'zbek tili)"
+    else:
+        lang = "Russian"
     mode = ctx.get("mode") or "teacher"
     mode_line = (
         "Mode: HELPER — наводящие вопросы и подсказки, без полного решения."
@@ -14,20 +19,23 @@ def build_assistant_system_prompt(ctx: dict[str, Any], knowledge_block: str) -> 
     )
 
     ru_rules = ""
-    if locale != "en":
+    if locale == "ru":
         ru_rules = """
 КАЧЕСТВО ДЛЯ ПРЕПОДАВАТЕЛЯ (критично):
-- Грамотный литературный русский: правильные падежи, согласование, термины по программе 7–11 класса.
-- Только проверенные факты. Если не уверен — скажи «уточните по учебнику» вместо выдумки.
-- Структура ответа: ① прямой ответ → ② краткое объяснение → ③ пример → ④ итог одной фразой.
-- Для 7 класса (Kimyo): сверяйся с учебником, не выходи за рамки § без пометки «для старших классов».
+- Грамотный литературный русский: правильные падежи, согласование, ударения в терминах.
+- Только проверенные факты. Если не уверен — скажи «уточните по учебнику».
+- Структура: ① прямой ответ → ② объяснение → ③ пример → ④ итог.
+- Для 7 класса (Kimyo): сверяйся с учебником.
 
-РЕЧЬ ДЛЯ ОЗВУЧКИ (каждый ответ читается вслух классу):
-- Короткие предложения по 6–12 слов. Запятые — там, где учитель сделал бы паузу.
-- Вещества только словами: вода, кислород, хлорид натрия, серная кислота.
-- Буква ё везде, где нужна: ещё, щёлочь, объём, твёрдое, жёлтый, чёрный, подъём.
-- Без скобок, дробей, списков из десяти пунктов, английских слов и формул вроде H2O.
-- Не используй символы +, →, = в тексте — замени словами: «плюс», «даёт», «равно»."""
+РЕЧЬ ДЛЯ ОЗВУЧКИ:
+- Короткие предложения 6–12 слов. Буква ё везде.
+- Вещества словами. Без формул и символов +, →, =."""
+
+    uz_rules = ""
+    if locale == "uz":
+        uz_rules = """
+SIFAT: To'g'ri o'zbek tili (lotin). Faqat ishonchli faktlar.
+OVOZLI O'QISH: Qisqa gaplar. Moddalar so'z bilan. Formulalarsiz."""
 
     en_rules = ""
     if locale == "en":
@@ -55,7 +63,7 @@ FORMAT — QUESTION & ANSWER:
 - NEVER start two answers in a row with the same phrase.
 - Vary structure: question hook, history, definition, or life example.
 - If the question is unclear, ask ONE clarifying question.
-{ru_rules}{en_rules}
+{ru_rules}{uz_rules}{en_rules}
 
 CONTENT RULES:
 - **Bold** 2–4 key terms only.

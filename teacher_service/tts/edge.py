@@ -12,6 +12,7 @@ from teacher_service.config import (
     EDGE_RATE,
     EDGE_VOICE_EN,
     EDGE_VOICE_RU,
+    EDGE_VOICE_UZ,
     MAX_TTS_CHARS,
     TTS_CHUNK_CHARS,
 )
@@ -22,7 +23,11 @@ _CACHE_MAX = 128
 
 
 def _voice(locale: str) -> str:
-    return EDGE_VOICE_EN if locale == "en" else EDGE_VOICE_RU
+    if locale == "en":
+        return EDGE_VOICE_EN
+    if locale == "uz":
+        return EDGE_VOICE_UZ
+    return EDGE_VOICE_RU
 
 
 def _cache_key(text: str, locale: str) -> str:

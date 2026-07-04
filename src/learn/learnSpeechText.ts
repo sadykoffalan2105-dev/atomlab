@@ -2,6 +2,8 @@ import {
   applyRussianPronunciationLexicon,
   sanitizeRussianTtsSurface,
 } from './learnRussianPronunciation'
+import { applyRussianStressMarks } from './learnRussianStress'
+import { applyUzbekSpeechLexicon, sanitizeUzbekTtsSurface } from './learnUzbekSpeech'
 import { naturalizeSpeechText, splitAtSpeechClauses, type NaturalizeSpeechOptions } from './learnSpeechNaturalize'
 import {
   TEACHER_BROWSER_RATE,
@@ -83,6 +85,15 @@ export function prepareTextForHumanTts(
       .replace(/\bт\.?\s*е\.?\b/gi, 'то есть')
       .replace(/\bи\s+т\.?\s*п\.?\b/gi, 'и так далее')
       .replace(/…+/g, '.')
+  } else if (locale === 'uz') {
+    t = t
+      .replace(/§\s*(\d+)/g, 'paragraf $1')
+      .replace(/\*\*Eslab qoling[:\*]*/gi, '. Eslab qoling.')
+      .replace(/\*\*O'qituvchi maslahati[:\*]*/gi, '. Maslahat.')
+      .replace(/\*\*O'zingizni tekshiring[^*]*[:\*]*/gi, '. Tekshirish savoli.')
+      .replace(/→|⟶|->/g, ', keyin ')
+      .replace(/⇌|↔/g, ', teskari reaksiya, ')
+      .replace(/…+/g, '.')
   } else {
     t = t
       .replace(/§\s*(\d+)/g, 'section $1')
@@ -96,7 +107,11 @@ export function prepareTextForHumanTts(
 
   if (locale === 'ru') {
     t = applyRussianPronunciationLexicon(t)
+    t = applyRussianStressMarks(t)
     t = sanitizeRussianTtsSurface(t)
+  } else if (locale === 'uz') {
+    t = applyUzbekSpeechLexicon(t)
+    t = sanitizeUzbekTtsSurface(t)
   }
 
   return t
@@ -163,8 +178,8 @@ export const HUMAN_TTS_SPEED = TEACHER_VOICE_OPENAI_SPEED
 
 export const HUMAN_TTS_VOICE = TEACHER_VOICE_OPENAI
 
-/** Пауза между фразами (мс) — «дыхание» между предложениями. */
-export const TTS_CHUNK_GAP_MS = 420
+/** Пауза между фразами (мс) — короче для живого темпа. */
+export const TTS_CHUNK_GAP_MS = 260
 
 export const BROWSER_NEURAL_HINTS = TEACHER_BROWSER_VOICE_HINTS
 

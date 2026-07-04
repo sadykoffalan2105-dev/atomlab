@@ -185,7 +185,7 @@ export class LearnSpeechController {
   private isSpeakableChunk(chunk: string): boolean {
     const t = chunk.trim()
     if (t.length < 2) return false
-    return /[a-zA-Zа-яА-ЯёЁ0-9]/.test(t)
+    return /[a-zA-Zа-яА-ЯёЁ0-9ʻʼ'qwgʻshch]/i.test(t)
   }
 
   stop(): void {

@@ -32,7 +32,7 @@ export type AtomlabDesktopApi = {
   reloadApp: () => Promise<boolean>
   synthesizeTeacherTts: (
     text: string,
-    locale: 'ru' | 'en',
+    locale: 'ru' | 'en' | 'uz',
   ) => Promise<{ audioBase64: string; mimeType: string } | null>
   onUpdateStatus: (callback: (status: AtomlabUpdateStatus) => void) => () => void
 }

@@ -131,7 +131,7 @@ class EdgeTtsDaemon {
     }
   }
 
-  synth(text: string, locale: 'ru' | 'en', voice?: string, prepared = true): Promise<TtsResult> {
+  synth(text: string, locale: 'ru' | 'en' | 'uz', voice?: string, prepared = true): Promise<TtsResult> {
     if (!text.trim()) return Promise.resolve(null)
     return new Promise((resolve) => {
       this.queue.push({
@@ -142,7 +142,7 @@ class EdgeTtsDaemon {
     })
   }
 
-  warmup(text = 'Готов к уроку.', locale: 'ru' | 'en' = 'ru'): Promise<TtsResult> {
+  warmup(text = 'Готов к уроку.', locale: 'ru' | 'en' | 'uz' = 'ru'): Promise<TtsResult> {
     return this.synth(text, locale, undefined, true)
   }
 }
@@ -151,7 +151,7 @@ const daemon = new EdgeTtsDaemon()
 
 function synthesizeOneShot(
   text: string,
-  locale: 'ru' | 'en',
+  locale: 'ru' | 'en' | 'uz',
   voice?: string,
   prepared = true,
 ): Promise<TtsResult> {
@@ -219,7 +219,7 @@ function synthesizeOneShot(
 
 export async function synthesizeEdgeViaPython(
   text: string,
-  locale: 'ru' | 'en',
+  locale: 'ru' | 'en' | 'uz',
   voice?: string,
   prepared = true,
 ): Promise<TtsResult> {

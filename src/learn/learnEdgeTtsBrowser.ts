@@ -5,6 +5,7 @@
 import {
   TEACHER_VOICE_EDGE,
   TEACHER_VOICE_EDGE_PROSODY,
+  edgeLangForLocale,
 } from './learnTeacherVoiceProfile'
 import type { SpeechPrepLocale } from './learnSpeechText'
 import {
@@ -59,7 +60,7 @@ export async function synthesizeEdgeNeuralSpeechBrowser(
 
   const voice = voiceOverride?.trim() || TEACHER_VOICE_EDGE[locale]
   const prosody = TEACHER_VOICE_EDGE_PROSODY[locale]
-  const lang = locale === 'en' ? 'en-US' : 'ru-RU'
+  const lang = edgeLangForLocale(locale)
   const ssml = buildSsml(text, voice, lang, prosody.rate, prosody.pitch, prosody.volume)
 
   const connectionId = randomHex(16)

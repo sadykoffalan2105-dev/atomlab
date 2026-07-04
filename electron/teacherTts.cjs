@@ -6,30 +6,43 @@ const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts')
 const VOICES = {
   ru: 'ru-RU-DmitryNeural',
   en: 'en-US-GuyNeural',
+  uz: 'uz-UZ-SardorNeural',
+}
+
+const VOICE_LOCALE = {
+  ru: 'ru-RU',
+  en: 'en-US',
+  uz: 'uz-UZ',
 }
 
 /** @type {import('msedge-tts').MsEdgeTTS | null} */
 let ttsInstance = null
 /** @type {Promise<void> | null} */
 let readyPromise = null
-/** @type {'ru' | 'en' | null} */
+/** @type {'ru' | 'en' | 'uz' | null} */
 let activeLocale = null
 
+function normalizeLocale(locale) {
+  if (locale === 'en') return 'en'
+  if (locale === 'uz') return 'uz'
+  return 'ru'
+}
+
 function voiceForLocale(locale) {
-  return locale === 'en' ? VOICES.en : VOICES.ru
+  const loc = normalizeLocale(locale)
+  return VOICES[loc]
 }
 
 async function ensureReady(locale = 'ru') {
-  const voice = voiceForLocale(locale)
-  const voiceLocale = locale === 'en' ? 'en-US' : 'ru-RU'
-  if (ttsInstance && activeLocale === locale) return
-  if (!readyPromise || activeLocale !== locale) {
+  const loc = normalizeLocale(locale)
+  if (ttsInstance && activeLocale === loc) return
+  if (!readyPromise || activeLocale !== loc) {
     readyPromise = (async () => {
       ttsInstance = new MsEdgeTTS()
-      await ttsInstance.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3, {
-        voiceLocale,
+      await ttsInstance.setMetadata(voiceForLocale(loc), OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3, {
+        voiceLocale: VOICE_LOCALE[loc],
       })
-      activeLocale = locale
+      activeLocale = loc
     })()
   }
   await readyPromise
@@ -37,7 +50,7 @@ async function ensureReady(locale = 'ru') {
 
 /**
  * @param {string} text
- * @param {'ru' | 'en'} locale
+ * @param {'ru' | 'en' | 'uz'} locale
  * @returns {Promise<{ audioBase64: string, mimeType: string } | null>}
  */
 async function synthesizeTeacherSpeech(text, locale = 'ru') {

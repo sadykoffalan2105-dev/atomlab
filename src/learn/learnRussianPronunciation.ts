@@ -89,9 +89,9 @@ export function stripCombiningAcute(text: string): string {
   return text.replace(COMBINING_ACUTE, '')
 }
 
-/** Исправляет слова для естественного русского TTS. */
+/** Исправляет слова для естественного русского TTS (без удаления ударений). */
 export function applyRussianPronunciationLexicon(text: string): string {
-  let out = stripCombiningAcute(text)
+  let out = text
   for (const key of SORTED_KEYS) {
     const spoken = RUSSIAN_PRONUNCIATION_LEXICON[key]!
     if (spoken === key) continue
