@@ -15,6 +15,7 @@ import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
 import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import { warnIfReactorVisualDegraded } from '../../lab/reactorVisualPreservation'
 import { useReactorPreviewLayout } from '../../lab/useReactorPreviewLayout'
+import { resolveStablePreviewRenderAtoms } from '../../lab/previewRenderAtoms'
 import {
   applyReactorPreviewLayout,
   createReactorPreviewVisibilityGuard,
@@ -100,7 +101,9 @@ export function ReactorTermsPreview({
   const shellAtomsRef = useRef<readonly ReactorPreviewAtom[]>(previewAtoms)
   const shellEmptyFramesRef = useRef(0)
   const slotZRef = useRef<number[]>([])
-  const SHELL_HOLD_FRAMES = layoutPending ? 4800 : coeffEditing ? 1200 : coeffEditBurst ? 360 : 120
+  const visibleLatchRef = useRef(false)
+  const denseLightLatchRef = useRef(false)
+  const SHELL_HOLD_FRAMES = layoutPending ? 4800 : coeffEditing ? 2400 : coeffEditBurst ? 480 : 240
   const maxPoolRef = useRef(0)
 
   if (previewAtoms.length > 0) {
@@ -121,28 +124,22 @@ export function ReactorTermsPreview({
   }, [terms])
 
   const hasActiveTerms = expectedAtomCount > 0
-  const shellHoldActive =
-    hasActiveTerms &&
-    terms.length > 0 &&
-    shellAtomsRef.current.length > 0 &&
-    (coeffEditing ||
-      layoutPending ||
-      synthHoldPreview ||
-      previewOnlyMode ||
-      previewAtoms.length === 0 ||
-      previewAtoms.length < expectedAtomCount)
-  const countGapHold =
-    previewAtoms.length > 0 &&
-    previewAtoms.length < expectedAtomCount &&
-    shellAtomsRef.current.length >= expectedAtomCount
-  const useShell =
-    hasActiveTerms &&
-    shellAtomsRef.current.length > 0 &&
-    (previewAtoms.length === 0 || countGapHold) &&
-    (shellHoldActive || previewOnlyMode || shellEmptyFramesRef.current < SHELL_HOLD_FRAMES)
-  const renderAtoms = previewAtoms.length > 0 ? previewAtoms : useShell ? shellAtomsRef.current : []
+  const editingActive = coeffEditing || previewOnlyMode
+
+  const renderAtoms = resolveStablePreviewRenderAtoms(
+    previewAtoms,
+    shellAtomsRef.current,
+    expectedAtomCount,
+    editingActive,
+  )
+
+  if (renderAtoms.length > 0) {
+    shellAtomsRef.current = renderAtoms
+    shellEmptyFramesRef.current = 0
+  }
+
   const n = renderAtoms.length
-  maxPoolRef.current = Math.max(maxPoolRef.current, n)
+  maxPoolRef.current = Math.max(maxPoolRef.current, n, expectedAtomCount)
   if (terms.length === 0 && n === 0) maxPoolRef.current = 0
   const poolSize = maxPoolRef.current
 
@@ -159,7 +156,14 @@ export function ReactorTermsPreview({
       layoutPending ||
       n > 0 ||
       shellAtomsRef.current.length > 0)
-  const groupVisible = shouldRender
+
+  if (shouldRender && previewOnlyMode) visibleLatchRef.current = true
+  const groupVisible =
+    shouldRender || (previewOnlyMode && visibleLatchRef.current && hasActiveTerms)
+
+  if (n > 16) denseLightLatchRef.current = true
+  else if (n < 12) denseLightLatchRef.current = false
+  const useDenseLight = denseLightLatchRef.current
 
   const groupRef = useRef<THREE.Group>(null)
   const visibilityGuardRef = useRef(createReactorPreviewVisibilityGuard())
@@ -215,7 +219,14 @@ export function ReactorTermsPreview({
   const layoutSyncRafRef = useRef<number | null>(null)
   const layoutSyncTimerRef = useRef<number | null>(null)
   useLayoutEffect(() => {
-    if (flightActive || poseLocked || n === 0) return
+    if (flightActive || poseLocked) return
+    const layoutAtoms =
+      renderAtoms.length > 0
+        ? renderAtoms
+        : shellAtomsRef.current.length > 0
+          ? shellAtomsRef.current
+          : renderAtoms
+    if (layoutAtoms.length === 0) return
     if (layoutSyncTimerRef.current != null) window.clearTimeout(layoutSyncTimerRef.current)
     if (layoutSyncRafRef.current != null) cancelAnimationFrame(layoutSyncRafRef.current)
     layoutSyncTimerRef.current = null
@@ -223,31 +234,28 @@ export function ReactorTermsPreview({
     const run = () => {
       layoutSyncTimerRef.current = null
       layoutSyncRafRef.current = null
-      syncLayout()
+      applyReactorPreviewLayout(layoutAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
       invalidateThrottleRef.current.request(invalidate)
     }
-    if (coeffEditing || previewOnlyMode || perf.layoutDebounceMs <= 0) {
-      run()
-      return
-    }
-    layoutSyncRafRef.current = requestAnimationFrame(run)
-    return () => {
-      if (layoutSyncTimerRef.current != null) window.clearTimeout(layoutSyncTimerRef.current)
-      if (layoutSyncRafRef.current != null) cancelAnimationFrame(layoutSyncRafRef.current)
-    }
+    run()
   }, [
     flightActive,
     poseLocked,
     termsSig,
-    syncLayout,
     invalidate,
-    n,
-    perf.layoutDebounceMs,
-    coeffEditing,
-    previewOnlyMode,
+    renderAtoms,
+    scale,
+    atomGroupRefs,
+    atomScaleGroupRefs,
   ])
 
   useFrame((s) => {
+    const shellHoldActive =
+      editingActive &&
+      hasActiveTerms &&
+      shellAtomsRef.current.length > 0 &&
+      (previewLenRef.current === 0 || previewLenRef.current < expectedAtomCount)
+
     if (previewLenRef.current === 0 && shellAtomsRef.current.length > 0 && !shellHoldActive && !coeffEditing && !layoutPending) {
       shellEmptyFramesRef.current += 1
       if (shellEmptyFramesRef.current <= SHELL_HOLD_FRAMES) {
@@ -313,9 +321,9 @@ export function ReactorTermsPreview({
     <group ref={groupRef} visible={groupVisible} frustumCulled={false}>
       {!sharedLighting ? (
         <>
-          <ambientLight intensity={n > 18 ? 0.38 : 0.22} />
-          <directionalLight position={[4, 6, 2]} intensity={n > 18 ? 0.72 : 0.55} color="#b8c8ff" />
-          {n > 18 ? (
+          <ambientLight intensity={useDenseLight ? 0.38 : 0.22} />
+          <directionalLight position={[4, 6, 2]} intensity={useDenseLight ? 0.72 : 0.55} color="#b8c8ff" />
+          {useDenseLight ? (
             <pointLight position={[0, 0.5, 2.5]} intensity={1.1} distance={12} color="#7afcff" />
           ) : null}
         </>

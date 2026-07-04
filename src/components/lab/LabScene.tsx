@@ -879,7 +879,7 @@ function SceneContent({
   // eslint-disable-next-line react-hooks/immutability
   useEffect(() => {
     if (catalogViewMode) return
-    const delay = reactorCoeffEditBurst ? 200 : 0
+    if (previewAtomCount <= 0) return
     const timer = window.setTimeout(() => {
       if (previewAtomCount > 9) manyAtomsCameraRef.current = true
       else if (previewAtomCount < 7) manyAtomsCameraRef.current = false
@@ -894,9 +894,9 @@ function SceneContent({
       if (t) t.set(0, 0.15, 0)
       orbRef.current?.update?.()
       invalidate()
-    }, delay)
+    }, 0)
     return () => clearTimeout(timer)
-  }, [camera, catalogViewMode, previewAtomCount, reactorCoeffEditBurst, invalidate])
+  }, [camera, catalogViewMode, previewAtomCount, invalidate])
 
   // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {

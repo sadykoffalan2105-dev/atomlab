@@ -121,6 +121,7 @@ export function LaboratoryPage() {
   const [learnEquationScope, setLearnEquationScope] = useState<LearnEquationScope | null>(null)
   const [synthesisSettledProduct, setSynthesisSettledProduct] = useState<CompoundDef | null>(null)
   const [laboratorySynthesisView, setLaboratorySynthesisView] = useState<'reactor' | 'substance'>('reactor')
+  const [reactorGpuIdleReady, setReactorGpuIdleReady] = useState(false)
   const productLockedRef = useRef(false)
   const periodicUiHidden = reactorCatalogOpen && reactorCatalogIntent === 'generateEquation'
 
@@ -128,7 +129,17 @@ export function LaboratoryPage() {
 
   useEffect(() => {
     warmupLabSynthesisInfra(catalogList)
+    void import('../components/lab/LabScene')
   }, [catalogList])
+
+  useEffect(() => {
+    if (!reactorOpen) {
+      setReactorGpuIdleReady(false)
+      return
+    }
+    const timer = window.setTimeout(() => setReactorGpuIdleReady(true), 1400)
+    return () => window.clearTimeout(timer)
+  }, [reactorOpen])
 
   useEffect(() => {
     const hash = window.location.hash
@@ -201,6 +212,8 @@ export function LaboratoryPage() {
         return
       }
       setLeftTerms(r.terms)
+      warmupReactorPreviewTerms(r.terms)
+      warmupLabSynthesisReactorOpen(catalogList, c, r.terms)
       setSynthesisSettledProduct(null)
       synthesisSettledProductRef.current = null
       settledSnapshotRef.current = null
@@ -212,7 +225,7 @@ export function LaboratoryPage() {
             : null,
       )
     },
-    [t],
+    [t, catalogList],
   )
 
   const equationSignature = useMemo(
@@ -653,7 +666,7 @@ export function LaboratoryPage() {
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
-    if (canRunSynthesis && !reactorCoeffEditing) return productCompound
+    if (canRunSynthesis && !reactorCoeffEditing && reactorGpuIdleReady) return productCompound
     return null
   }, [
     reactorOpen,
@@ -663,13 +676,14 @@ export function LaboratoryPage() {
     prewarmCompound,
     canRunSynthesis,
     reactorCoeffEditing,
+    reactorGpuIdleReady,
   ])
 
   const gpuQueuePriorityCompound = useMemo(() => {
-    if (!reactorOpen || reactorCoeffEditing || synthRunActive) return null
+    if (!reactorOpen || reactorCoeffEditing || synthRunActive || !reactorGpuIdleReady) return null
     if (canRunSynthesis && productCompound) return productCompound
     return productCompound
-  }, [reactorOpen, reactorCoeffEditing, synthRunActive, productCompound, canRunSynthesis])
+  }, [reactorOpen, reactorCoeffEditing, synthRunActive, productCompound, canRunSynthesis, reactorGpuIdleReady])
 
   const onSynthesisPrewarmIntent = useCallback(() => {
     if (!productCompound || !canRunSynthesis || reactorCoeffEditing) return

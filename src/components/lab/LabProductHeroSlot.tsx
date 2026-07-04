@@ -364,11 +364,12 @@ export function LabProductHeroSlot({
     }
   }, [visible, prewarm, entrance, compound.id, runId, birthEntrance, entranceDuration, onProductVisiblePaint])
 
-  const sceneActive = visible || prewarm
+  /** prewarm-only: без локальных источников света (нет вспышки яркости). */
+  const showLocalLights = visible
 
   return (
     <>
-      {sceneActive ? (
+      {showLocalLights ? (
         <>
           <ambientLight intensity={0.34} />
           <directionalLight
