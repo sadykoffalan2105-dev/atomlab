@@ -4,7 +4,7 @@
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
-import { getAtomlabWasmInstance } from './atomlabWasmShared'
+import { getAtomlabWasmInstance, getAtomlabWasmInstanceSync } from './atomlabWasmShared'
 
 type PreviewLayoutExports = {
   reactor_preview_layout: (
@@ -69,6 +69,14 @@ function layoutFromWasm(
   return out
 }
 
+function tryWasmLayoutSync(terms: readonly ReactorEquationTerm[]): ReactorPreviewAtom[] | null {
+  const inst = getAtomlabWasmInstanceSync()
+  if (!inst) return null
+  const exp = inst.exports as unknown as PreviewLayoutExports
+  if (typeof exp.reactor_preview_layout !== 'function') return null
+  return layoutFromWasm(exp, terms)
+}
+
 /** WASM layout or null → caller uses TS fallback. */
 export async function buildPreviewLayoutWasm(
   terms: readonly ReactorEquationTerm[],
@@ -80,8 +88,12 @@ export async function buildPreviewLayoutWasm(
   return layoutFromWasm(exp, terms)
 }
 
+/** Sync: WASM (если загружен) → иначе TS build. Критично для burst +/-. */
 export function buildPreviewLayoutWasmSync(
   terms: readonly ReactorEquationTerm[],
+  tier: 'full' | 'lite' = 'full',
 ): ReactorPreviewAtom[] {
-  return buildReactorPreviewAtoms(terms, { tier: 'full' })
+  const wasm = tryWasmLayoutSync(terms)
+  if (wasm != null && wasm.length > 0) return wasm
+  return buildReactorPreviewAtoms(terms, { tier })
 }

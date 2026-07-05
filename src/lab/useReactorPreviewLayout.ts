@@ -1,13 +1,13 @@
 import { useMemo, useRef } from 'react'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
-import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
 import {
   estimatePreviewAtomCount,
   pickLayoutAtoms,
   SYNC_BUILD_ATOM_CAP,
   termsSignature,
 } from './previewLayoutPolicy'
+import { buildPreviewLayoutWasmSync } from '../wasm/reactorPreviewLayoutWasm'
 
 export { SYNC_BUILD_ATOM_CAP } from './previewLayoutPolicy'
 
@@ -16,8 +16,17 @@ export type PreviewLayoutHookResult = {
   layoutPending: boolean
 }
 
+function buildLayoutAtoms(
+  terms: readonly ReactorEquationTerm[],
+  heavyEquation: boolean,
+): ReactorPreviewAtom[] {
+  const tier = heavyEquation ? 'lite' : 'full'
+  return buildPreviewLayoutWasmSync(terms, tier)
+}
+
 /**
  * Sync layout на каждое изменение terms — без useState (нет кадра с пустым массивом).
+ * Layout через WASM sync (C++) с TS fallback.
  */
 export function useReactorPreviewLayout(
   terms: readonly ReactorEquationTerm[],
@@ -37,9 +46,7 @@ export function useReactorPreviewLayout(
     lastBuiltSigRef.current = termsSig
     const shell = shellRef.current
     if (terms.length >= 1 && atomEstimate > 0) {
-      const built = buildReactorPreviewAtoms(terms, {
-        tier: heavyEquation ? 'lite' : 'full',
-      })
+      const built = buildLayoutAtoms(terms, heavyEquation)
       const picked = pickLayoutAtoms(built, shell, _coeffEditing, atomEstimate)
       if (picked.length > 0) shellRef.current = picked
     }
@@ -50,7 +57,7 @@ export function useReactorPreviewLayout(
       ? shellRef.current
       : terms.length >= 1 && atomEstimate > 0
         ? pickLayoutAtoms(
-            buildReactorPreviewAtoms(terms, { tier: heavyEquation ? 'lite' : 'full' }),
+            buildLayoutAtoms(terms, heavyEquation),
             shellRef.current,
             _coeffEditing,
             atomEstimate,

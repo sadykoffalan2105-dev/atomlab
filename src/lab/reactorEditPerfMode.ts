@@ -23,6 +23,6 @@ export function resolveReactorEditPerfFlags(opts: {
     burst,
     layoutDebounceMs:
       editing ? 0 : layoutDebounceMs ?? (lowPower ? 40 : coeffEditBurst ? 32 : 200),
-    maxInvalidateHz: burst ? 36 : 60,
+    maxInvalidateHz: 60,
   }
 }

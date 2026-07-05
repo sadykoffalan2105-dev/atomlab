@@ -2,6 +2,16 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
+**Скачать v1.3.24:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.24)
+- `ATOMLAB-1.3.24-portable.exe` — без установки
+- `ATOMLAB-1.3.24-setup.exe` — установщик
+
+### v1.3.24 — синтез: WASM shell-hold, покадровая защита атомов
+
+- C++ `atomlab_shell_render_count` + sync WASM layout при +/-
+- `pinPreviewAtomsOnScreen` — атомы всегда visible при burst
+- Удалён мёртвый код (reactorPreviewWasm, synthesisRunController, …)
+
 **Скачать v1.3.23:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.23)
 - `ATOMLAB-1.3.23-portable.exe` — без установки
 - `ATOMLAB-1.3.23-setup.exe` — установщик

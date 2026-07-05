@@ -34,6 +34,7 @@ const exports = [
   '_atomlab_allow_product_gpu_mount',
   '_atomlab_assert_preview_coverage',
   '_atomlab_validate_preview_terms',
+  '_atomlab_shell_render_count',
 ].join(',')
 
 try {

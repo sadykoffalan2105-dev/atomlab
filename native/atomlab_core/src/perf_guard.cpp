@@ -104,4 +104,37 @@ int32_t atomlab_validate_preview_terms(const uint8_t* terms, int32_t term_count)
   return 0;
 }
 
+/**
+ * Сколько слотов атомов держать на экране при +/- (shell-hold).
+ * Зеркало TS resolveStablePreviewRenderAtoms — быстрый путь без аллокаций.
+ */
+int32_t atomlab_shell_render_count(
+  int32_t preview_count,
+  int32_t shell_count,
+  int32_t expected_count,
+  int32_t editing) {
+  if (expected_count <= 0) {
+    if (preview_count > 0) return preview_count;
+    return shell_count;
+  }
+  if (editing == 0) {
+    if (preview_count >= expected_count) return preview_count;
+    if (preview_count > 0) return preview_count;
+    return shell_count;
+  }
+  if (preview_count >= expected_count) return preview_count;
+  if (preview_count == 0 && shell_count > 0) {
+    return shell_count >= expected_count ? expected_count : shell_count;
+  }
+  if (expected_count > preview_count && shell_count > preview_count) {
+    if (shell_count >= expected_count) return expected_count;
+    return shell_count;
+  }
+  if (preview_count > 0) return preview_count;
+  if (shell_count > 0) {
+    return shell_count >= expected_count ? expected_count : shell_count;
+  }
+  return preview_count;
+}
+
 } // extern "C"

@@ -52,6 +52,13 @@ int32_t atomlab_assert_preview_coverage(
   int32_t synth_live);
 int32_t atomlab_validate_preview_terms(const uint8_t* terms, int32_t term_count);
 
+/** Shell-hold: render slot count during coeff edit (mirrors TS stable resolve). */
+int32_t atomlab_shell_render_count(
+  int32_t preview_count,
+  int32_t shell_count,
+  int32_t expected_count,
+  int32_t editing);
+
 /**
  * Preview atom layout — coeff models, symmetric clusters.
  * out: [x,y,z, z, termIndex, atomInTerm] * N (6 floats per atom).

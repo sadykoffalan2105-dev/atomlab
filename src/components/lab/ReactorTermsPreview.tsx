@@ -15,7 +15,8 @@ import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
 import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import { warnIfReactorVisualDegraded } from '../../lab/reactorVisualPreservation'
 import { useReactorPreviewLayout } from '../../lab/useReactorPreviewLayout'
-import { resolveStablePreviewRenderAtoms } from '../../lab/previewRenderAtoms'
+import { buildPreviewRenderSnapshot } from '../../lab/previewRenderAtoms'
+import { pinPreviewAtomsOnScreen } from '../../lab/previewAtomFrameGuard'
 import {
   applyReactorPreviewLayout,
   createReactorPreviewVisibilityGuard,
@@ -121,19 +122,20 @@ export function ReactorTermsPreview({
   const hasActiveTerms = expectedAtomCount > 0
   const editingActive = coeffEditing || previewOnlyMode
 
-  const renderAtoms = resolveStablePreviewRenderAtoms(
+  const snapshot = buildPreviewRenderSnapshot(
     previewAtoms,
     shellAtomsRef.current,
     expectedAtomCount,
     editingActive,
   )
+  const renderAtoms = snapshot.atoms
 
   if (renderAtoms.length > 0) {
     shellAtomsRef.current = renderAtoms
     shellEmptyFramesRef.current = 0
   }
 
-  const n = renderAtoms.length
+  const n = snapshot.renderCount > 0 ? snapshot.renderCount : renderAtoms.length
   maxPoolRef.current = Math.max(maxPoolRef.current, n, expectedAtomCount)
   if (terms.length === 0 && n === 0) maxPoolRef.current = 0
   const poolSize = maxPoolRef.current
@@ -247,6 +249,18 @@ export function ReactorTermsPreview({
   ])
 
   useFrame((s) => {
+    const pinEveryFrame = editingActive && hasActiveTerms && n > 0 && groupVisible
+    if (pinEveryFrame) {
+      pinPreviewAtomsOnScreen({
+        atomCount: n,
+        rootRef: groupRef.current,
+        atomGroupRefs,
+        atomScaleGroupRefs,
+        layoutScale: scale,
+        previewAtoms: renderAtoms,
+      })
+    }
+
     const shellHoldActive =
       editingActive &&
       hasActiveTerms &&
@@ -261,7 +275,8 @@ export function ReactorTermsPreview({
     }
 
     guardFrameRef.current += 1
-    if (shouldRunGuardTick(guardFrameRef.current, visibilityGuardEvery)) {
+    const guardEvery = pinEveryFrame ? 1 : visibilityGuardEvery
+    if (shouldRunGuardTick(guardFrameRef.current, guardEvery)) {
       visibilityGuardRef.current.tick({
         atomCount: n,
         atomGroupRefs,
@@ -326,7 +341,12 @@ export function ReactorTermsPreview({
         </>
       ) : null}
       {Array.from({ length: poolSize }, (_, i) => {
-        const atom = i < n ? renderAtoms[i]! : null
+        const atom =
+          i < renderAtoms.length
+            ? renderAtoms[i]!
+            : editingActive && i < n && shellAtomsRef.current[i]
+              ? shellAtomsRef.current[i]!
+              : null
         const active = atom != null
         const slotZ = atom?.z ?? slotZRef.current[i] ?? 1
         const atomPolicy = getReactorAtomRenderPolicy({
@@ -337,8 +357,8 @@ export function ReactorTermsPreview({
           coeffEditBurst,
           minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
         })
-        const [ax, ay, az] = atom?.pos ?? [0, 0, 0]
-        const slotVisible = active && groupVisible
+        const [ax, ay, az] = atom?.pos ?? shellAtomsRef.current[i]?.pos ?? [0, 0, 0]
+        const slotVisible = (active || (editingActive && i < n)) && groupVisible
         return (
           <group
             key={`pool-${i}`}

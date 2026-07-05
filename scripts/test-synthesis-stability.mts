@@ -35,7 +35,8 @@ import {
   simulateCoeffEditLayoutSteps,
   shouldScheduleIdleLayoutRebuild,
 } from '../src/lab/previewLayoutPolicy.ts'
-import { resolveStablePreviewRenderAtoms } from '../src/lab/previewRenderAtoms.ts'
+import { resolveStablePreviewRenderAtoms, buildPreviewRenderSnapshot } from '../src/lab/previewRenderAtoms.ts'
+import { shellRenderCountTs } from '../src/wasm/previewAtomShellWasm.ts'
 import { resolveSynthesisProductSlot } from '../src/lab/synthesisProductSlot.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
@@ -354,6 +355,17 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   const partial = buildReactorPreviewAtoms(partialTerms, { tier: 'full' })
   const held = pickLayoutAtoms(partial, full, true, 15)
   assert.equal(held.length, full.length, 'edit hold keeps larger shell until built catches up')
+}
+
+// --- shell render count (C++ mirror TS) ---
+{
+  assert.equal(shellRenderCountTs(3, 15, 15, true), 15)
+  assert.equal(shellRenderCountTs(0, 15, 15, true), 15)
+  assert.equal(shellRenderCountTs(7, 15, 7, true), 7)
+  const shell = buildReactorPreviewAtoms(k2cr2o7Terms(), { tier: 'full' })
+  const snap = buildPreviewRenderSnapshot([], shell, 15, true)
+  assert.equal(snap.renderCount, 15)
+  assert.ok(snap.atoms.length >= 15)
 }
 
 // --- resolveStablePreviewRenderAtoms: shell not clobbered ---

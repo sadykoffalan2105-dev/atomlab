@@ -1,4 +1,5 @@
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
+import { resolveShellRenderCount } from '../wasm/previewAtomShellWasm'
 
 /**
  * Стабильный список атомов для отрисовки: при +/- не уменьшаем count,
@@ -39,4 +40,42 @@ export function resolveStablePreviewRenderAtoms(
   if (preview.length > 0) return preview
   if (shell.length > 0) return shell.slice(0, expectedCount)
   return preview
+}
+
+export type PreviewRenderSnapshot = {
+  atoms: readonly ReactorPreviewAtom[]
+  renderCount: number
+}
+
+/**
+ * Финальный snapshot для рендера: stable atoms + WASM shell-hold count.
+ */
+export function buildPreviewRenderSnapshot(
+  preview: readonly ReactorPreviewAtom[],
+  shell: readonly ReactorPreviewAtom[],
+  expectedCount: number,
+  editing: boolean,
+): PreviewRenderSnapshot {
+  const atoms = resolveStablePreviewRenderAtoms(preview, shell, expectedCount, editing)
+  const renderCount = resolveShellRenderCount(
+    preview.length,
+    shell.length,
+    expectedCount,
+    editing,
+  )
+  const targetCount = Math.max(atoms.length, renderCount)
+
+  if (targetCount <= atoms.length) {
+    return { atoms, renderCount: atoms.length }
+  }
+
+  if (shell.length >= targetCount) {
+    const merged: ReactorPreviewAtom[] = atoms.slice() as ReactorPreviewAtom[]
+    for (let i = atoms.length; i < targetCount; i++) {
+      merged.push(shell[i]!)
+    }
+    return { atoms: merged, renderCount: merged.length }
+  }
+
+  return { atoms, renderCount: atoms.length }
 }

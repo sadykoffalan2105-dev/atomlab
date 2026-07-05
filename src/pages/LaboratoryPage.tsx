@@ -23,6 +23,7 @@ import { isReactorCoeffEditing } from '../lab/reactorCoeffEditMode'
 import { estimatePreviewAtomCountFromTerms } from '../lab/atomlabPerfGuard'
 import { useReactorPreviewTermsStable } from '../lab/useReactorPreviewTermsStable'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
+import { prefetchAtomlabWasm } from '../wasm/atomlabWasmShared'
 import {
   getSynthesisWatchdogMs,
   prepareGuaranteedSynthesisRun,
@@ -130,6 +131,7 @@ export function LaboratoryPage() {
 
   useEffect(() => {
     warmupLabSynthesisInfra(catalogList)
+    prefetchAtomlabWasm()
     void import('../components/lab/LabScene')
   }, [catalogList])
 
