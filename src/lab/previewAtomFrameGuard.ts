@@ -2,6 +2,7 @@ import type { MutableRefObject } from 'react'
 import type * as THREE from 'three'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { PREVIEW_MIN_ATOM_SCALE } from '../components/lab/reactorPreviewLayout'
+import { mergePreviewLayoutSlots } from './previewLayoutSlots'
 
 /**
  * Каждый кадр при +/-: принудительно держим root и слоты visible + scale.
@@ -14,20 +15,30 @@ export function pinPreviewAtomsOnScreen(opts: {
   atomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>
   layoutScale: number
   previewAtoms: readonly ReactorPreviewAtom[]
+  shellAtoms?: readonly ReactorPreviewAtom[]
 }): void {
-  const { atomCount, rootRef, atomGroupRefs, atomScaleGroupRefs, layoutScale, previewAtoms } = opts
+  const {
+    atomCount,
+    rootRef,
+    atomGroupRefs,
+    atomScaleGroupRefs,
+    layoutScale,
+    previewAtoms,
+    shellAtoms = [],
+  } = opts
   if (atomCount <= 0) return
 
   if (rootRef) rootRef.visible = true
 
   const scaleFloor = Math.max(PREVIEW_MIN_ATOM_SCALE, layoutScale)
+  const slots = mergePreviewLayoutSlots(atomCount, previewAtoms, shellAtoms)
 
   for (let i = 0; i < atomCount; i++) {
+    const atom = slots[i]
     const posG = atomGroupRefs.current[i]
     const scaleG = atomScaleGroupRefs.current[i]
     if (posG) {
       posG.visible = true
-      const atom = previewAtoms[i]
       if (atom) {
         const [x, y, z] = atom.pos
         if (
@@ -46,5 +57,12 @@ export function pinPreviewAtomsOnScreen(opts: {
         scaleG.scale.set(scaleFloor, scaleFloor, scaleFloor)
       }
     }
+  }
+
+  for (let i = atomCount; i < atomGroupRefs.current.length; i++) {
+    const posG = atomGroupRefs.current[i]
+    const scaleG = atomScaleGroupRefs.current[i]
+    if (posG) posG.visible = false
+    if (scaleG) scaleG.visible = false
   }
 }

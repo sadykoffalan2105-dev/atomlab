@@ -1,5 +1,6 @@
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { resolveShellRenderCount } from '../wasm/previewAtomShellWasm'
+import { mergePreviewLayoutSlots } from './previewLayoutSlots'
 
 /**
  * Стабильный список атомов для отрисовки: при +/- не уменьшаем count,
@@ -65,17 +66,26 @@ export function buildPreviewRenderSnapshot(
   )
   const targetCount = Math.max(atoms.length, renderCount)
 
+  if (targetCount <= 0) {
+    return { atoms, renderCount: 0 }
+  }
+
+  const merged = mergePreviewLayoutSlots(targetCount, atoms, shell)
+  if (merged.length >= targetCount) {
+    return { atoms: merged, renderCount: merged.length }
+  }
+
   if (targetCount <= atoms.length) {
     return { atoms, renderCount: atoms.length }
   }
 
   if (shell.length >= targetCount) {
-    const merged: ReactorPreviewAtom[] = atoms.slice() as ReactorPreviewAtom[]
+    const filled: ReactorPreviewAtom[] = atoms.slice() as ReactorPreviewAtom[]
     for (let i = atoms.length; i < targetCount; i++) {
-      merged.push(shell[i]!)
+      filled.push(shell[i]!)
     }
-    return { atoms: merged, renderCount: merged.length }
+    return { atoms: filled, renderCount: filled.length }
   }
 
-  return { atoms, renderCount: atoms.length }
+  return { atoms: merged.length > 0 ? merged : atoms, renderCount: Math.max(merged.length, atoms.length) }
 }

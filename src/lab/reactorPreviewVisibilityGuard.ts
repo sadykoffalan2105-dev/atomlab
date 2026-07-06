@@ -103,8 +103,30 @@ export function applyReactorPreviewLayout(
   atomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>,
   layoutScale: number,
 ): void {
+  applyReactorPreviewLayoutSlots(
+    previewAtoms.length,
+    previewAtoms,
+    [],
+    atomGroupRefs,
+    atomScaleGroupRefs,
+    layoutScale,
+  )
+}
+
+/** Layout для slotCount слотов с shell-hold. */
+export function applyReactorPreviewLayoutSlots(
+  slotCount: number,
+  previewAtoms: readonly ReactorPreviewAtom[],
+  shellAtoms: readonly ReactorPreviewAtom[],
+  atomGroupRefs: MutableRefObject<(THREE.Group | null)[]>,
+  atomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>,
+  layoutScale: number,
+): void {
+  if (slotCount <= 0) return
   const scaleFloor = Math.max(PREVIEW_MIN_ATOM_SCALE, layoutScale)
-  previewAtoms.forEach((atom, i) => {
+  for (let i = 0; i < slotCount; i++) {
+    const atom = previewAtoms[i] ?? shellAtoms[i]
+    if (!atom) continue
     const posG = atomGroupRefs.current[i]
     const scaleG = atomScaleGroupRefs.current[i]
     if (posG) {
@@ -118,8 +140,8 @@ export function applyReactorPreviewLayout(
         scaleG.scale.set(scaleFloor, scaleFloor, scaleFloor)
       }
     }
-  })
-  for (let i = previewAtoms.length; i < atomGroupRefs.current.length; i++) {
+  }
+  for (let i = slotCount; i < atomGroupRefs.current.length; i++) {
     const posG = atomGroupRefs.current[i]
     const scaleG = atomScaleGroupRefs.current[i]
     if (posG) posG.visible = false

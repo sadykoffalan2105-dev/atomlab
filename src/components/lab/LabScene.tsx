@@ -91,6 +91,18 @@ function LabReactorClearColor() {
   return null
 }
 
+/** Удерживает фон реактора при burst +/- — без чёрного кадра. */
+function LabReactorCanvasPin({ active }: { active: boolean }) {
+  const { gl, scene } = useThree()
+  const colorRef = useRef(hexToColor(LAB_COSMIC_BG))
+  useFrame(() => {
+    if (!active) return
+    gl.setClearColor(colorRef.current, 1)
+    scene.background = colorRef.current
+  })
+  return null
+}
+
 /** Синхронизация clear color при переходе idle ↔ реактор — убирает «призрак» обложечного атома. */
 function LabSceneClearSync({ reactorMode }: { reactorMode: boolean }) {
   const { gl, scene, invalidate } = useThree()
@@ -1157,6 +1169,11 @@ function SceneContent({
   return (
     <>
       <LabSceneClearSync reactorMode={reactorViewOpen} />
+      {reactorViewOpen ? (
+        <LabReactorCanvasPin
+          active={coeffEditingActive && !synthesisRunActive && !synthActive}
+        />
+      ) : null}
       {reactorBackdrop ? <LabReactorClearColor /> : null}
       {reactorBackdrop ? (
         <LabSynthesisCosmicBackdrop />

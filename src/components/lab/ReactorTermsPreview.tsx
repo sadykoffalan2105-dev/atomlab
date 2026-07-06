@@ -18,7 +18,7 @@ import { useReactorPreviewLayout } from '../../lab/useReactorPreviewLayout'
 import { buildPreviewRenderSnapshot } from '../../lab/previewRenderAtoms'
 import { pinPreviewAtomsOnScreen } from '../../lab/previewAtomFrameGuard'
 import {
-  applyReactorPreviewLayout,
+  applyReactorPreviewLayoutSlots,
   createReactorPreviewVisibilityGuard,
 } from '../../lab/reactorPreviewVisibilityGuard'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
@@ -212,20 +212,21 @@ export function ReactorTermsPreview({
   }, [poolSize, atomGroupRefs, atomScaleGroupRefs])
 
   const syncLayout = useCallback(() => {
-    applyReactorPreviewLayout(renderAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
-  }, [renderAtoms, scale, atomGroupRefs, atomScaleGroupRefs])
+    applyReactorPreviewLayoutSlots(
+      n,
+      renderAtoms,
+      shellAtomsRef.current,
+      atomGroupRefs,
+      atomScaleGroupRefs,
+      scale,
+    )
+  }, [renderAtoms, n, scale, atomGroupRefs, atomScaleGroupRefs])
 
   const layoutSyncRafRef = useRef<number | null>(null)
   const layoutSyncTimerRef = useRef<number | null>(null)
   useLayoutEffect(() => {
     if (flightActive || poseLocked) return
-    const layoutAtoms =
-      renderAtoms.length > 0
-        ? renderAtoms
-        : shellAtomsRef.current.length > 0
-          ? shellAtomsRef.current
-          : renderAtoms
-    if (layoutAtoms.length === 0) return
+    if (n === 0 && shellAtomsRef.current.length === 0) return
     if (layoutSyncTimerRef.current != null) window.clearTimeout(layoutSyncTimerRef.current)
     if (layoutSyncRafRef.current != null) cancelAnimationFrame(layoutSyncRafRef.current)
     layoutSyncTimerRef.current = null
@@ -233,7 +234,14 @@ export function ReactorTermsPreview({
     const run = () => {
       layoutSyncTimerRef.current = null
       layoutSyncRafRef.current = null
-      applyReactorPreviewLayout(layoutAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
+      applyReactorPreviewLayoutSlots(
+        n,
+        renderAtoms,
+        shellAtomsRef.current,
+        atomGroupRefs,
+        atomScaleGroupRefs,
+        scale,
+      )
       invalidateThrottleRef.current.request(invalidate)
     }
     run()
@@ -243,6 +251,7 @@ export function ReactorTermsPreview({
     termsSig,
     invalidate,
     renderAtoms,
+    n,
     scale,
     atomGroupRefs,
     atomScaleGroupRefs,
@@ -258,6 +267,7 @@ export function ReactorTermsPreview({
         atomScaleGroupRefs,
         layoutScale: scale,
         previewAtoms: renderAtoms,
+        shellAtoms: shellAtomsRef.current,
       })
     }
 
@@ -341,12 +351,7 @@ export function ReactorTermsPreview({
         </>
       ) : null}
       {Array.from({ length: poolSize }, (_, i) => {
-        const atom =
-          i < renderAtoms.length
-            ? renderAtoms[i]!
-            : editingActive && i < n && shellAtomsRef.current[i]
-              ? shellAtomsRef.current[i]!
-              : null
+        const atom = i < n ? (renderAtoms[i] ?? shellAtomsRef.current[i] ?? null) : null
         const active = atom != null
         const slotZ = atom?.z ?? slotZRef.current[i] ?? 1
         const atomPolicy = getReactorAtomRenderPolicy({
@@ -357,15 +362,15 @@ export function ReactorTermsPreview({
           coeffEditBurst,
           minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
         })
-        const [ax, ay, az] = atom?.pos ?? shellAtomsRef.current[i]?.pos ?? [0, 0, 0]
-        const slotVisible = (active || (editingActive && i < n)) && groupVisible
+        const [ax, ay, az] = atom?.pos ?? [0, 0, 0]
+        const slotVisible = active && groupVisible
         return (
           <group
             key={`pool-${i}`}
             visible={slotVisible}
             ref={(el) => {
               atomGroupRefs.current[i] = el
-              if (el && active) {
+              if (el && slotVisible) {
                 el.visible = true
                 if (!flightActive && !poseLocked) {
                   el.position.set(ax, ay, az)
@@ -378,7 +383,7 @@ export function ReactorTermsPreview({
               visible={slotVisible}
               ref={(el) => {
                 atomScaleGroupRefs.current[i] = el
-                if (el && active) {
+                if (el && slotVisible) {
                   el.visible = true
                   if (!flightActive && !poseLocked) {
                     el.scale.set(scale, scale, scale)

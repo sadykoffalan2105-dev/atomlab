@@ -37,6 +37,7 @@ import {
 } from '../src/lab/previewLayoutPolicy.ts'
 import { resolveStablePreviewRenderAtoms, buildPreviewRenderSnapshot } from '../src/lab/previewRenderAtoms.ts'
 import { shellRenderCountTs } from '../src/wasm/previewAtomShellWasm.ts'
+import { mergePreviewLayoutSlots } from '../src/lab/previewLayoutSlots.ts'
 import { resolveSynthesisProductSlot } from '../src/lab/synthesisProductSlot.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
@@ -355,6 +356,14 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   const partial = buildReactorPreviewAtoms(partialTerms, { tier: 'full' })
   const held = pickLayoutAtoms(partial, full, true, 15)
   assert.equal(held.length, full.length, 'edit hold keeps larger shell until built catches up')
+}
+
+// --- merge layout slots ---
+{
+  const shell = buildReactorPreviewAtoms(k2cr2o7Terms(), { tier: 'full' })
+  const partial = shell.slice(0, 7)
+  const merged = mergePreviewLayoutSlots(15, partial, shell)
+  assert.equal(merged.length, 15)
 }
 
 // --- shell render count (C++ mirror TS) ---
