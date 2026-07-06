@@ -606,13 +606,20 @@ function SceneContent({
   const previewMotionLocked = false
   const previewPoseLocked = synthesisRunActive && !synthActive
   if (previewAtomCount > 8) editLiteLatchRef.current = true
-  else if (previewAtomCount < 6 && !frameBudgetRef.current.shouldForceLite()) {
+  else if (
+    previewAtomCount < 6 &&
+    !coeffEditingActive &&
+    !frameBudgetRef.current.shouldForceLite()
+  ) {
     editLiteLatchRef.current = false
   }
+  const frameBudgetLite =
+    !coeffEditingActive && frameBudgetRef.current.shouldForceLite()
   const editForceLite =
     editLiteLatchRef.current ||
+    coeffEditingActive ||
     reactorCoeffEditBurst ||
-    frameBudgetRef.current.shouldForceLite() ||
+    frameBudgetLite ||
     lowPowerProfile.forceLiteReactor
   const reactorPreviewMounted = continuity.reactorPreviewMounted
   const reactorPreviewVisible = continuity.reactorPreviewVisible
@@ -1016,7 +1023,7 @@ function SceneContent({
   useFrame((_, delta) => {
     frameHoldRef.current.markRendered()
     frameBudgetRef.current.sample(Math.min(120, Math.max(0.5, delta * 1000)))
-    if (frameBudgetRef.current.shouldForceLite() && reactorViewOpen) {
+    if (frameBudgetRef.current.shouldForceLite() && reactorViewOpen && !coeffEditingActive) {
       editLiteLatchRef.current = true
       if (forceLiteFxRef) forceLiteFxRef.current = true
     }
@@ -1234,6 +1241,7 @@ function SceneContent({
               synthesisGlass={synthQualityFeatures.glassAtoms}
               coeffEditBurst={reactorCoeffEditBurst}
               coeffEditing={coeffEditingActive}
+              frameBudgetLite={frameBudgetLite}
               previewOnlyMode={!synthesisRunActive && !synthActive && !showSettledHero}
               synthHoldPreview={synthHoldPreview}
               lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}

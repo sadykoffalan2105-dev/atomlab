@@ -38,6 +38,11 @@ import {
 import { resolveStablePreviewRenderAtoms, buildPreviewRenderSnapshot } from '../src/lab/previewRenderAtoms.ts'
 import { shellRenderCountTs } from '../src/wasm/previewAtomShellWasm.ts'
 import { mergePreviewLayoutSlots } from '../src/lab/previewLayoutSlots.ts'
+import {
+  createPreviewEngineState,
+  resolvePreviewEngineFrame,
+  resolvePreviewFramePolicy,
+} from '../src/lab/synthesisPreviewEngine/index.ts'
 import { resolveSynthesisProductSlot } from '../src/lab/synthesisProductSlot.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
@@ -356,6 +361,51 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   const partial = buildReactorPreviewAtoms(partialTerms, { tier: 'full' })
   const held = pickLayoutAtoms(partial, full, true, 15)
   assert.equal(held.length, full.length, 'edit hold keeps larger shell until built catches up')
+}
+
+// --- synthesisPreviewEngine: shell hold during edit ---
+{
+  const state = createPreviewEngineState()
+  const terms = k2cr2o7Terms()
+  const full = buildReactorPreviewAtoms(terms, { tier: 'full' })
+  state.shellAtoms = full
+  const partial = full.slice(0, 7)
+  const frame = resolvePreviewEngineFrame(state, {
+    terms,
+    previewAtoms: partial,
+    editingActive: true,
+    previewOnlyMode: true,
+    synthHoldPreview: false,
+    coeffEditing: true,
+    layoutPending: false,
+    lockPoolSize: true,
+  })
+  assert.ok(frame.slotCount >= 15, 'engine holds shell count during edit')
+  assert.equal(frame.groupVisible, true)
+  const policy = resolvePreviewFramePolicy({
+    atomCount: frame.slotCount,
+    editingActive: true,
+    coeffEditBurst: true,
+    coeffEditing: true,
+    flightActive: false,
+    groupVisible: true,
+    forceLite: false,
+    frameBudgetLite: false,
+    lowPowerProfile: {
+      tier: 'mid',
+      isMobileSoc: false,
+      forceLiteReactor: false,
+      maxAnimatedAtoms: 48,
+      minElectronFrameSkip: 1,
+      canvasDpr: 1.5,
+      disableAtomDrift: false,
+      disableSlowSpin: false,
+      productPaintLatchFrames: 4,
+      coeffEditLayoutDebounceMs: 0,
+    },
+  })
+  assert.equal(policy.pinEveryFrame, true)
+  assert.equal(policy.visibilityGuardEvery, 1)
 }
 
 // --- merge layout slots ---

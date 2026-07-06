@@ -2,6 +2,16 @@
 
 Полноценное Windows-приложение на базе React + Vite + Three.js + VR-лаборатории.
 
+**Скачать v1.3.26:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.26)
+- `ATOMLAB-1.3.26-portable.exe` — без установки
+- `ATOMLAB-1.3.26-setup.exe` — установщик
+
+### v1.3.26 — synthesisPreviewEngine: стабильный +/- на слабом и мощном ПК
+
+- Собственная библиотека `synthesisPreviewEngine` (shell-hold, pin, policy)
+- Без мигания tier при burst; frame-budget не ломает edit
+- Guard каждый кадр при +/-; пул слотов не сжимается во время edit
+
 **Скачать v1.3.25:** [GitHub Releases](https://github.com/sadykoffalan2105-dev/atomlab/releases/tag/v1.3.25)
 - `ATOMLAB-1.3.25-portable.exe` — без установки
 - `ATOMLAB-1.3.25-setup.exe` — установщик
