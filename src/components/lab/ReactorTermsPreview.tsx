@@ -196,14 +196,20 @@ export function ReactorTermsPreview({
   const renderAtoms = frame.layoutAtoms
   const shellAtoms = engineRef.current.shellAtoms
 
+  /**
+   * Во время синтеза атомы летят и затухают через GSAP по тем же refs
+   * (SynthesisConvergeStreams / fadePreviewAtoms). Превью не должно трогать
+   * их трансформации — иначе drift/guard борются с анимацией и атомы мигают.
+   */
+  const externalAtomControl = flightActive || poseLocked || !previewOnlyMode
+
   // Последнее состояние layout — для стабильных ref-коллбэков (позиция при mount).
   const layoutStateRef = useRef({
     n,
     scale: 1,
     renderAtoms,
     shellAtoms,
-    flightActive,
-    poseLocked,
+    externalAtomControl,
     groupVisible: frame.groupVisible,
   })
   const posRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
@@ -220,7 +226,7 @@ export function ReactorTermsPreview({
           if (i < ls.n && ls.groupVisible) {
             el.visible = true
             const atom = ls.renderAtoms[i] ?? ls.shellAtoms[i]
-            if (atom && !ls.flightActive && !ls.poseLocked) {
+            if (atom && !ls.externalAtomControl) {
               el.position.set(atom.pos[0], atom.pos[1], atom.pos[2])
             }
           }
@@ -242,7 +248,7 @@ export function ReactorTermsPreview({
           const ls = layoutStateRef.current
           if (i < ls.n && ls.groupVisible) {
             el.visible = true
-            if (!ls.flightActive && !ls.poseLocked) {
+            if (!ls.externalAtomControl) {
               el.scale.set(ls.scale, ls.scale, ls.scale)
             }
           }
@@ -259,8 +265,7 @@ export function ReactorTermsPreview({
     scale,
     renderAtoms,
     shellAtoms,
-    flightActive,
-    poseLocked,
+    externalAtomControl,
     groupVisible: frame.groupVisible,
   }
 
@@ -289,13 +294,12 @@ export function ReactorTermsPreview({
   }, [renderAtoms, shellAtoms, n, scale, atomGroupRefs, atomScaleGroupRefs])
 
   useLayoutEffect(() => {
-    if (flightActive || poseLocked) return
+    if (externalAtomControl) return
     if (n === 0 && shellAtoms.length === 0) return
     syncPreviewLayoutSlots(n, renderAtoms, shellAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
     invalidateThrottleRef.current.request(invalidate)
   }, [
-    flightActive,
-    poseLocked,
+    externalAtomControl,
     termsSig,
     invalidate,
     renderAtoms,
@@ -311,7 +315,8 @@ export function ReactorTermsPreview({
       policy,
       slotCount: n,
       groupVisible: frame.groupVisible,
-      flightActive,
+      // Синтез владеет refs (GSAP): выключаем pin/guard, чтобы не мигали атомы.
+      flightActive: externalAtomControl,
       layoutPending,
       layoutScale: scale,
       layoutAtoms: renderAtoms,
@@ -324,7 +329,7 @@ export function ReactorTermsPreview({
       onRecoverLayout: syncLayout,
     })
 
-    if (!frame.groupVisible || flightActive || n === 0) return
+    if (!frame.groupVisible || externalAtomControl || n === 0) return
     const t = s.clock.elapsedTime
     const root = groupRef.current
     if (root && slowSpin) root.rotation.y = t * (n > 18 ? 0.032 : 0.04)
