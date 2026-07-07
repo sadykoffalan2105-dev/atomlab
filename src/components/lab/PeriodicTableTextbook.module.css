@@ -244,6 +244,7 @@
     repeat(11, minmax(var(--pt-cell-h), auto))
     minmax(var(--pt-f-gap), auto)
     repeat(2, minmax(var(--pt-cell-h), auto))
+    auto
     auto;
   background-color: rgba(2, 4, 12, 0.72);
   background-image:
@@ -299,7 +300,8 @@
 .gridTextbook .axisPeriod,
 .gridTextbook .axisRow,
 .gridTextbook .fBlockLabel,
-.gridTextbook .legendRow {
+.gridTextbook .legendRow,
+.gridTextbook .categoryFilterRow {
   box-sizing: border-box;
   border: 1px solid rgba(0, 229, 255, 0.14);
   border-radius: 0;
@@ -811,6 +813,148 @@
   padding: 0.26rem 0.35rem;
   border: 1px solid rgba(60, 90, 140, 0.3);
   min-height: auto;
+}
+
+.categoryFilterRow {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  background: rgba(2, 8, 18, 0.88);
+  box-shadow:
+    0 0 20px rgba(0, 229, 255, 0.08),
+    inset 0 0 24px rgba(0, 0, 0, 0.4);
+  min-height: auto;
+}
+
+.categoryFilterHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.75rem;
+}
+
+.categoryFilterTitle {
+  font-size: clamp(0.5rem, 0.8vw, 0.64rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(0, 229, 255, 0.88);
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
+}
+
+.categoryFilterHint {
+  font-size: clamp(0.44rem, 0.72vw, 0.56rem);
+  font-weight: 600;
+  color: rgba(130, 155, 195, 0.72);
+}
+
+.categoryFilterList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem 0.38rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.categoryFilterBtn {
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 0.22rem;
+  padding: 0.18rem 0.42rem;
+  font-size: clamp(0.46rem, 0.74vw, 0.58rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: rgba(150, 175, 215, 0.82);
+  background: rgba(4, 8, 18, 0.92);
+  border: 1px solid rgba(80, 110, 160, 0.35);
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.categoryFilterBtn:hover {
+  border-color: rgba(0, 229, 255, 0.55);
+  color: rgba(210, 230, 255, 0.95);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+
+.categoryFilterBtnActive {
+  border-color: rgba(255, 255, 255, 0.88) !important;
+  color: rgba(255, 255, 255, 0.98) !important;
+  background: rgba(12, 20, 36, 0.95) !important;
+  box-shadow:
+    0 0 14px rgba(255, 255, 255, 0.25),
+    inset 0 0 12px rgba(255, 255, 255, 0.06) !important;
+}
+
+.categoryFilterClear {
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 0.1rem 0.3rem;
+  font-size: clamp(0.44rem, 0.72vw, 0.56rem);
+  font-weight: 700;
+  color: rgba(255, 120, 170, 0.88);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.categoryFilterClear:hover {
+  color: rgba(255, 160, 200, 1);
+}
+
+/* Подсветка / затемнение при фильтре по классу */
+.gridTextbook .tbCategoryDimmed,
+.fRowBand .tbCategoryDimmed {
+  opacity: 0.22;
+  filter: saturate(0.15) brightness(0.55);
+  pointer-events: none;
+}
+
+.gridTextbook .tbCategoryDimmed:hover,
+.fRowBand .tbCategoryDimmed:hover {
+  transform: none;
+  filter: saturate(0.15) brightness(0.55);
+}
+
+.gridTextbook .tbCategoryHighlight,
+.fRowBand .tbCategoryHighlight {
+  opacity: 1;
+  z-index: 6;
+  border-color: rgba(255, 255, 255, 0.92) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.35),
+    0 0 18px rgba(255, 255, 255, 0.45),
+    0 0 36px rgba(0, 229, 255, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.08) !important;
+  filter: none;
+}
+
+.gridTextbook .tbCategoryHighlight .tbSym,
+.fRowBand .tbCategoryHighlight .tbSym {
+  color: rgba(255, 255, 255, 0.98) !important;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.65) !important;
+}
+
+.gridTextbook .tbCategoryHighlight .tbRu,
+.fRowBand .tbCategoryHighlight .tbRu {
+  color: rgba(230, 240, 255, 0.92) !important;
+}
+
+.gridTextbook .tbCategoryHighlight .tbZ,
+.gridTextbook .tbCategoryHighlight .tbMass,
+.fRowBand .tbCategoryHighlight .tbZ,
+.fRowBand .tbCategoryHighlight .tbMass {
+  color: rgba(200, 215, 240, 0.85) !important;
 }
 
 .legendTextbookItem {

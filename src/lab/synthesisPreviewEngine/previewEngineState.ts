@@ -32,6 +32,19 @@ export function estimateExpectedAtomCount(terms: readonly ReactorEquationTerm[])
   return count
 }
 
+/**
+ * Шаг квантизации пула слотов: при +/- длина массива слотов меняется реже,
+ * поэтому React не монтирует/размонтирует узлы на каждый шаг — только переключает
+ * visible у уже смонтированных слотов. Это убирает «мигание» на сложных
+ * уравнениях с большим числом коэффициентов.
+ */
+export const PREVIEW_POOL_STEP = 8
+
+export function quantizePoolSize(target: number): number {
+  if (target <= 0) return 0
+  return Math.ceil(target / PREVIEW_POOL_STEP) * PREVIEW_POOL_STEP
+}
+
 export type PreviewEngineFrame = {
   renderAtoms: readonly ReactorPreviewAtom[]
   layoutAtoms: readonly ReactorPreviewAtom[]
@@ -81,7 +94,8 @@ export function resolvePreviewEngineFrame(
   }
 
   const slotCount = snapshot.renderCount > 0 ? snapshot.renderCount : renderAtoms.length
-  state.maxPool = Math.max(state.maxPool, slotCount, expectedAtomCount)
+  const quantizedTarget = quantizePoolSize(Math.max(slotCount, expectedAtomCount))
+  state.maxPool = Math.max(state.maxPool, quantizedTarget)
   if (!lockPoolSize && terms.length === 0 && slotCount === 0) {
     state.maxPool = 0
   }

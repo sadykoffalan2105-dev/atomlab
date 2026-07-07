@@ -40,9 +40,14 @@ import { shellRenderCountTs } from '../src/wasm/previewAtomShellWasm.ts'
 import { mergePreviewLayoutSlots } from '../src/lab/previewLayoutSlots.ts'
 import {
   createPreviewEngineState,
+  estimateExpectedAtomCount,
   resolvePreviewEngineFrame,
   resolvePreviewFramePolicy,
 } from '../src/lab/synthesisPreviewEngine/index.ts'
+import {
+  PREVIEW_POOL_STEP,
+  quantizePoolSize,
+} from '../src/lab/synthesisPreviewEngine/previewEngineState.ts'
 import { resolveSynthesisProductSlot } from '../src/lab/synthesisProductSlot.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
@@ -520,6 +525,61 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     }),
     'ok',
   )
+}
+
+// --- pool quantization: длина массива слотов меняется реже ---
+{
+  assert.equal(quantizePoolSize(0), 0)
+  assert.equal(quantizePoolSize(1), PREVIEW_POOL_STEP)
+  assert.equal(quantizePoolSize(PREVIEW_POOL_STEP), PREVIEW_POOL_STEP)
+  assert.equal(quantizePoolSize(PREVIEW_POOL_STEP + 1), PREVIEW_POOL_STEP * 2)
+  // Пул всегда >= фактического числа атомов
+  for (let n = 1; n <= 60; n++) {
+    assert.ok(quantizePoolSize(n) >= n, `pool covers ${n} atoms`)
+  }
+}
+
+// --- сложное уравнение, быстрые +/-: движок не роняет видимые атомы ---
+{
+  const base: ReactorEquationTerm[] = [
+    { id: 'cr', z: 24, coeff: 2 },
+    { id: 'k', z: 19, coeff: 2 },
+    { id: 'o', z: 8, coeff: 7, diatomic: true },
+    { id: 'h', z: 1, coeff: 4, diatomic: true },
+    { id: 'cl', z: 17, coeff: 6, diatomic: true },
+    { id: 's', z: 16, coeff: 1 },
+  ]
+  const state = createPreviewEngineState()
+  let lastPool = 0
+  // Быстрое чередование коэффициентов (нервное +/-) на сложном веществе
+  const pattern = [4, 8, 2, 12, 3, 16, 1, 20, 5, 10, 2, 14, 6, 18, 3, 9]
+  for (const c of pattern) {
+    const terms = base.map((t, i) => (i === 3 ? { ...t, coeff: c } : t))
+    const expected = estimateExpectedAtomCount(terms)
+    const previewAtoms = buildReactorPreviewAtoms(terms, {
+      tier: expected > 12 ? 'lite' : 'full',
+    })
+    const frame = resolvePreviewEngineFrame(state, {
+      terms,
+      previewAtoms,
+      editingActive: true,
+      previewOnlyMode: true,
+      synthHoldPreview: false,
+      coeffEditing: true,
+      layoutPending: false,
+      lockPoolSize: true,
+    })
+    // Каждый слот < slotCount имеет непустой атом (нет дыр — нет пропадания)
+    for (let i = 0; i < frame.slotCount; i++) {
+      const a = frame.layoutAtoms[i] ?? state.shellAtoms[i]
+      assert.ok(a, `complex edit: slot ${i} has atom (coeff=${c})`)
+    }
+    // Пул монотонен во время editing (lockPoolSize) — React не размонтирует слоты
+    assert.ok(frame.poolSize >= lastPool, `pool monotonic during edit (coeff=${c})`)
+    assert.ok(frame.poolSize >= frame.slotCount, 'pool covers slotCount')
+    assert.ok(frame.slotCount >= expected, `slotCount holds >= expected (coeff=${c})`)
+    lastPool = frame.poolSize
+  }
 }
 
 console.log('test-synthesis-stability: all passed')

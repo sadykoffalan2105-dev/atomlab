@@ -196,6 +196,74 @@ export function ReactorTermsPreview({
   const renderAtoms = frame.layoutAtoms
   const shellAtoms = engineRef.current.shellAtoms
 
+  // Последнее состояние layout — для стабильных ref-коллбэков (позиция при mount).
+  const layoutStateRef = useRef({
+    n,
+    scale: 1,
+    renderAtoms,
+    shellAtoms,
+    flightActive,
+    poseLocked,
+    groupVisible: frame.groupVisible,
+  })
+  const posRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
+  const scaleRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
+
+  const getPosRef = useCallback(
+    (i: number) => {
+      let cb = posRefSettersRef.current[i]
+      if (!cb) {
+        cb = (el: THREE.Group | null) => {
+          atomGroupRefs.current[i] = el
+          if (!el) return
+          const ls = layoutStateRef.current
+          if (i < ls.n && ls.groupVisible) {
+            el.visible = true
+            const atom = ls.renderAtoms[i] ?? ls.shellAtoms[i]
+            if (atom && !ls.flightActive && !ls.poseLocked) {
+              el.position.set(atom.pos[0], atom.pos[1], atom.pos[2])
+            }
+          }
+        }
+        posRefSettersRef.current[i] = cb
+      }
+      return cb
+    },
+    [atomGroupRefs],
+  )
+
+  const getScaleRef = useCallback(
+    (i: number) => {
+      let cb = scaleRefSettersRef.current[i]
+      if (!cb) {
+        cb = (el: THREE.Group | null) => {
+          atomScaleGroupRefs.current[i] = el
+          if (!el) return
+          const ls = layoutStateRef.current
+          if (i < ls.n && ls.groupVisible) {
+            el.visible = true
+            if (!ls.flightActive && !ls.poseLocked) {
+              el.scale.set(ls.scale, ls.scale, ls.scale)
+            }
+          }
+        }
+        scaleRefSettersRef.current[i] = cb
+      }
+      return cb
+    },
+    [atomScaleGroupRefs],
+  )
+
+  layoutStateRef.current = {
+    n,
+    scale,
+    renderAtoms,
+    shellAtoms,
+    flightActive,
+    poseLocked,
+    groupVisible: frame.groupVisible,
+  }
+
   useEffect(() => {
     assertPreviewElectronAnimation(electronAnimate, n)
   }, [electronAnimate, n])
@@ -320,35 +388,10 @@ export function ReactorTermsPreview({
           coeffEditBurst: policy.pinEveryFrame,
           minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
         })
-        const [ax, ay, az] = atom?.pos ?? [0, 0, 0]
         const slotVisible = active && frame.groupVisible
         return (
-          <group
-            key={`pool-${i}`}
-            visible={slotVisible}
-            ref={(el) => {
-              atomGroupRefs.current[i] = el
-              if (el && slotVisible) {
-                el.visible = true
-                if (!flightActive && !poseLocked) {
-                  el.position.set(ax, ay, az)
-                }
-              }
-            }}
-          >
-            <group
-              scale={scale}
-              visible={slotVisible}
-              ref={(el) => {
-                atomScaleGroupRefs.current[i] = el
-                if (el && slotVisible) {
-                  el.visible = true
-                  if (!flightActive && !poseLocked) {
-                    el.scale.set(scale, scale, scale)
-                  }
-                }
-              }}
-            >
+          <group key={`pool-${i}`} visible={slotVisible} ref={getPosRef(i)}>
+            <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
               <ReactorPreviewAtomSlot
                 z={slotZ}
                 animate={active && electronAnimate}

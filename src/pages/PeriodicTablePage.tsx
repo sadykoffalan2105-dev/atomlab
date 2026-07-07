@@ -26,7 +26,7 @@ export function PeriodicTablePage() {
     const compute = () => {
       const aw = Math.max(1, fit.clientWidth)
       const ah = Math.max(1, fit.clientHeight)
-      const rows = 15.5
+      const rows = 16.5
       const gapPx = 3
       const sideFr = 0.48
       const elemCols = 10

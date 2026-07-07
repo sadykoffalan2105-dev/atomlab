@@ -1,8 +1,13 @@
-import { memo, useMemo } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { toFullElectronConfiguration } from '../../data/electronConfigExpand'
 import { elementDisplayName } from '../../data/elementDisplayName'
 import { massDisplay } from '../../data/elementDisplay'
 import { ELEMENTS } from '../../data/elements'
+import {
+  ELEMENT_CATEGORY_ORDER,
+  elementMatchesCategoryFilter,
+  type ElementCategoryFilterId,
+} from '../../data/elementCategory'
 import { RU_GROUP_LABELS } from '../../data/ruGroupLabels'
 import {
   CENTER_PANEL_COL_END,
@@ -28,8 +33,23 @@ import {
   triadGridColumn,
 } from '../../data/ruElementGrid'
 import { textbookBlockClass } from '../../data/mendeleevTextbookBlock'
+import type { MessageKey } from '../../i18n/messagesRu'
 import { useT } from '../../i18n/useT'
 import tbStyles from './PeriodicTableTextbook.module.css'
+
+const CATEGORY_I18N: Record<ElementCategoryFilterId, MessageKey> = {
+  'alkali-metal': 'periodic.categoryAlkaliMetal',
+  'alkaline-earth-metal': 'periodic.categoryAlkalineEarthMetal',
+  'transition-metal': 'periodic.categoryTransitionMetal',
+  'post-transition-metal': 'periodic.categoryPostTransitionMetal',
+  metalloid: 'periodic.categoryMetalloid',
+  nonmetal: 'periodic.categoryNonmetal',
+  halogen: 'periodic.categoryHalogen',
+  'noble-gas': 'periodic.categoryNobleGas',
+  lanthanide: 'periodic.categoryLanthanide',
+  actinide: 'periodic.categoryActinide',
+  'all-metals': 'periodic.categoryAllMetals',
+}
 
 const MAIN_ROWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const
 const LANTHANIDES = ELEMENTS.filter((e) => e.z >= 58 && e.z <= 71)
@@ -81,10 +101,19 @@ function TextbookCellInner({ el }: { el: (typeof ELEMENTS)[number] }) {
 function renderElementCell(
   el: (typeof ELEMENTS)[number],
   onPick: ((z: number) => void) | undefined,
+  categoryFilter: ElementCategoryFilterId | null,
   extraClass = '',
 ) {
   const pos = getRuGridPos(el.z)
   const block = tbBlockClass(el)
+  const filterActive = categoryFilter != null
+  const highlighted = filterActive && elementMatchesCategoryFilter(el, categoryFilter)
+  const dimmed = filterActive && !highlighted
+  const filterCls = highlighted
+    ? tbStyles.tbCategoryHighlight
+    : dimmed
+      ? tbStyles.tbCategoryDimmed
+      : ''
   const inner = (
     <div className={tbStyles.cellSlotInner}>
       <TextbookCellInner el={el} />
@@ -92,7 +121,7 @@ function renderElementCell(
   )
 
   if (pos?.f != null) {
-    const btnCls = `${onPick ? tbStyles.tbCellBtn : tbStyles.tbCellStatic} ${block} ${extraClass}`
+    const btnCls = `${onPick ? tbStyles.tbCellBtn : tbStyles.tbCellStatic} ${block} ${filterCls} ${extraClass}`
     return (
       <div key={el.z} className={tbStyles.fCell}>
         {onPick ? (
@@ -112,7 +141,7 @@ function renderElementCell(
 
   const ghost = el.z === 57 || el.z === 89
   const style = { gridColumn: col, gridRow: row }
-  const cls = `${onPick ? tbStyles.tbCellBtn : tbStyles.tbCellStatic} ${block} ${ghost ? tbStyles.tbGhost : ''} ${extraClass}`
+  const cls = `${onPick ? tbStyles.tbCellBtn : tbStyles.tbCellStatic} ${block} ${ghost ? tbStyles.tbGhost : ''} ${filterCls} ${extraClass}`
 
   if (onPick) {
     return (
@@ -139,6 +168,13 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
   wrapClassName?: string
 }) {
   const { t } = useT()
+  const [categoryFilter, setCategoryFilter] = useState<ElementCategoryFilterId | null>(null)
+
+  const toggleCategory = useCallback((id: ElementCategoryFilterId) => {
+    setCategoryFilter((prev) => (prev === id ? null : id))
+  }, [])
+
+  const clearCategory = useCallback(() => setCategoryFilter(null), [])
 
   const mainElements = useMemo(
     () => ELEMENTS.filter((e) => (e.z < 58 || e.z > 71) && (e.z < 90 || e.z > 103)),
@@ -240,7 +276,7 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
           )
         })}
 
-        {mainElements.map((el) => renderElementCell(el, onPickElement))}
+        {mainElements.map((el) => renderElementCell(el, onPickElement, categoryFilter))}
 
         <div
           className={tbStyles.centerLawPanel}
@@ -289,7 +325,7 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
           className={tbStyles.fRowBand}
           style={{ gridColumn: F_ROW_GRID_COLUMN, gridRow: ruFBlockGridRow(12) }}
         >
-          {LANTHANIDES.map((el) => renderElementCell(el, onPickElement))}
+          {LANTHANIDES.map((el) => renderElementCell(el, onPickElement, categoryFilter))}
         </div>
 
         <div
@@ -299,12 +335,45 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
           {t('periodic.actinidesLabel')}
         </div>
         <div className={tbStyles.fRowBand} style={{ gridColumn: F_ROW_GRID_COLUMN, gridRow: ruFBlockGridRow(13) }}>
-          {ACTINIDES.map((el) => renderElementCell(el, onPickElement))}
+          {ACTINIDES.map((el) => renderElementCell(el, onPickElement, categoryFilter))}
+        </div>
+
+        <div
+          className={tbStyles.categoryFilterRow}
+          style={{ gridRow: LEGEND_GRID_ROW }}
+          aria-label={t('periodic.categoryFilterAria')}
+        >
+          <div className={tbStyles.categoryFilterHead}>
+            <span className={tbStyles.categoryFilterTitle}>{t('periodic.categoryFilterTitle')}</span>
+            {categoryFilter ? (
+              <button type="button" className={tbStyles.categoryFilterClear} onClick={clearCategory}>
+                {t('periodic.categoryFilterClear')}
+              </button>
+            ) : (
+              <span className={tbStyles.categoryFilterHint}>{t('periodic.categoryFilterHint')}</span>
+            )}
+          </div>
+          <div className={tbStyles.categoryFilterList}>
+            {ELEMENT_CATEGORY_ORDER.map((id) => {
+              const active = categoryFilter === id
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`${tbStyles.categoryFilterBtn} ${active ? tbStyles.categoryFilterBtnActive : ''}`}
+                  aria-pressed={active}
+                  onClick={() => toggleCategory(id)}
+                >
+                  {t(CATEGORY_I18N[id])}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div
           className={tbStyles.legendRow}
-          style={{ gridRow: LEGEND_GRID_ROW }}
+          style={{ gridRow: LEGEND_GRID_ROW + 1 }}
           aria-label={t('periodic.legendAria')}
         >
           {(['tbS', 'tbP', 'tbD', 'tbF', 'tbNoble'] as const).map((key) => (
