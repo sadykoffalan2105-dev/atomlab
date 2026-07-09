@@ -371,8 +371,10 @@ export function ReactorTermsPreview({
   useLayoutEffect(() => {
     const g = groupRef.current
     if (!g) return
-    g.visible = frame.groupVisible
-    if (!frame.groupVisible && !(previewOnlyMode && engineRef.current.visibleLatch)) {
+    const latched =
+      previewOnlyMode && engineRef.current.visibleLatch && frame.slotCount > 0
+    g.visible = frame.groupVisible || latched
+    if (!frame.groupVisible && !latched) {
       for (let i = 0; i < atomGroupRefs.current.length; i++) {
         const posG = atomGroupRefs.current[i]
         const scaleG = atomScaleGroupRefs.current[i]
@@ -380,7 +382,7 @@ export function ReactorTermsPreview({
         if (scaleG) scaleG.visible = false
       }
     }
-  }, [frame.groupVisible, previewOnlyMode, atomGroupRefs, atomScaleGroupRefs])
+  }, [frame.groupVisible, frame.slotCount, previewOnlyMode, atomGroupRefs, atomScaleGroupRefs])
 
   return (
     <group ref={groupRef} visible={frame.groupVisible} frustumCulled={false}>

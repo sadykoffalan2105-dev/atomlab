@@ -37,7 +37,7 @@ import {
 } from '../src/lab/previewLayoutPolicy.ts'
 import { resolveStablePreviewRenderAtoms, buildPreviewRenderSnapshot } from '../src/lab/previewRenderAtoms.ts'
 import { shellRenderCountTs } from '../src/wasm/previewAtomShellWasm.ts'
-import { mergePreviewLayoutSlots } from '../src/lab/previewLayoutSlots.ts'
+import { mergePreviewLayoutSlots, resolvePreviewLayoutSlotAtom } from '../src/lab/previewLayoutSlots.ts'
 import {
   createPreviewEngineState,
   estimateExpectedAtomCount,
@@ -430,12 +430,17 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   assert.equal(policy.visibilityGuardEvery, 1)
 }
 
-// --- merge layout slots ---
+// --- merge layout slots: индексы pool = индексы слотов ---
 {
   const shell = buildReactorPreviewAtoms(k2cr2o7Terms(), { tier: 'full' })
   const partial = shell.slice(0, 7)
   const merged = mergePreviewLayoutSlots(15, partial, shell)
   assert.equal(merged.length, 15)
+  assert.equal(merged[0]?.z, shell[0]?.z)
+  assert.equal(merged[6]?.z, partial[6]?.z)
+  assert.equal(merged[7]?.z, shell[7]?.z)
+  assert.equal(merged[14]?.z, shell[14]?.z)
+  assert.equal(resolvePreviewLayoutSlotAtom(9, partial, shell)?.z, shell[9]?.z)
 }
 
 // --- shell render count (C++ mirror TS) ---

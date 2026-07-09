@@ -117,10 +117,13 @@ export function resolvePreviewEngineFrame(
       state.shellAtoms.length > 0)
 
   if (shouldRender && (previewOnlyMode || synthHoldPreview)) state.visibleLatch = true
+
   const groupVisible =
-    (previewOnlyMode || synthHoldPreview) && state.visibleLatch && hasActiveTerms
+    hasActiveTerms &&
+    terms.length > 0 &&
+    ((previewOnlyMode || synthHoldPreview) && state.visibleLatch
       ? true
-      : shouldRender || ((previewOnlyMode || synthHoldPreview) && state.visibleLatch && hasActiveTerms)
+      : shouldRender)
 
   if (slotCount > 16) state.denseLightLatch = true
   else if (!lockPoolSize && slotCount < 12) state.denseLightLatch = false

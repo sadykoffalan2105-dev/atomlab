@@ -50,7 +50,19 @@ export function resolveSynthesisProductSlot(
   }
 
   if (!productSlotVisible && !synthLive) {
-    return { visible: false, prewarm: false, gpuReady }
+    if (productPrewarmActive) {
+      const gpuReady =
+        isProductGpuCompiled(productForSlot.id) ||
+        (prewarmReady && prewarmCompoundId === productForSlot.id)
+      return { visible: false, prewarm: true, gpuReady }
+    }
+    return {
+      visible: false,
+      prewarm: false,
+      gpuReady:
+        isProductGpuCompiled(productForSlot.id) ||
+        (prewarmReady && prewarmCompoundId === productForSlot.id),
+    }
   }
 
   if (gpuReady) {

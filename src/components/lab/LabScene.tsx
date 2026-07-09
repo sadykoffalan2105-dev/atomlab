@@ -386,6 +386,13 @@ function SceneContent({
     return n
   }, [effectivePreviewTerms])
 
+  const previewTermsSig = useMemo(() => {
+    if (!effectivePreviewTerms?.length) return ''
+    return effectivePreviewTerms
+      .map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`)
+      .join('|')
+  }, [effectivePreviewTerms])
+
   /** Отмена idle-prewarm при hitch / во время ранних фаз синтеза (ignite/converge/flying). */
   const effectivePrewarmProduct = useMemo(() => {
     if (performance.now() < prewarmSuppressUntilRef.current) return null
@@ -755,6 +762,7 @@ function SceneContent({
 
   useLayoutEffect(() => {
     if (coeffEditingActive) return
+    if (preSynthesisPreview) return
     if (!productPainted || !productSlotVisibleResolved) return
     if (synthActive || synthesisRunActive) return
     previewStickyMountRef.current = null
@@ -764,7 +772,22 @@ function SceneContent({
     root.traverse((obj) => {
       obj.visible = false
     })
-  }, [productPainted, productSlotVisibleResolved, coeffEditingActive, synthActive, synthesisRunActive])
+  }, [
+    productPainted,
+    productSlotVisibleResolved,
+    coeffEditingActive,
+    synthActive,
+    synthesisRunActive,
+    preSynthesisPreview,
+  ])
+
+  useLayoutEffect(() => {
+    if (!preSynthesisPreview) return
+    productPaintedRef.current = false
+    productPaintFramesRef.current = 0
+    setProductPainted(false)
+    restorePreviewRootVisibility()
+  }, [previewTermsSig, preSynthesisPreview, restorePreviewRootVisibility])
 
   useLayoutEffect(() => {
     const rid = synthesis?.runId ?? 0

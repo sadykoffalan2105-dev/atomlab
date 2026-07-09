@@ -2,7 +2,7 @@ import type { MutableRefObject } from 'react'
 import type * as THREE from 'three'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { PREVIEW_MIN_ATOM_SCALE } from '../components/lab/reactorPreviewLayout'
-import { mergePreviewLayoutSlots } from './previewLayoutSlots'
+import { resolvePreviewLayoutSlotAtom } from './previewLayoutSlots'
 
 /**
  * Каждый кадр при +/-: принудительно держим root и слоты visible + scale.
@@ -31,10 +31,9 @@ export function pinPreviewAtomsOnScreen(opts: {
   if (rootRef) rootRef.visible = true
 
   const scaleFloor = Math.max(PREVIEW_MIN_ATOM_SCALE, layoutScale)
-  const slots = mergePreviewLayoutSlots(atomCount, previewAtoms, shellAtoms)
 
   for (let i = 0; i < atomCount; i++) {
-    const atom = slots[i]
+    const atom = resolvePreviewLayoutSlotAtom(i, previewAtoms, shellAtoms)
     const posG = atomGroupRefs.current[i]
     const scaleG = atomScaleGroupRefs.current[i]
     if (posG) {
