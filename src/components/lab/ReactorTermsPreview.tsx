@@ -32,7 +32,7 @@ import { reactorPreviewAtomScale } from './reactorPreviewLayout'
  */
 export function ReactorTermsPreview({
   terms,
-  visible: _visible = true,
+  visible = true,
   flightActive = false,
   poseLocked = false,
   sharedLighting = false,
@@ -204,6 +204,11 @@ export function ReactorTermsPreview({
   const renderAtoms = frame.layoutAtoms
   const shellAtoms = engineRef.current.shellAtoms
 
+  const previewLatched =
+    previewOnlyMode && engineRef.current.visibleLatch && frame.slotCount > 0
+  const effectiveGroupVisible =
+    frame.groupVisible || previewLatched || (visible && frame.slotCount > 0)
+
   /**
    * Во время синтеза атомы летят через GSAP (SynthesisConvergeStreams).
    * До начала полёта (synthHoldPreview) — pin/guard; после — только GSAP.
@@ -222,7 +227,7 @@ export function ReactorTermsPreview({
     renderAtoms,
     shellAtoms,
     externalAtomControl,
-    groupVisible: frame.groupVisible,
+    groupVisible: effectiveGroupVisible,
   })
   const posRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
   const scaleRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
@@ -278,7 +283,7 @@ export function ReactorTermsPreview({
     renderAtoms,
     shellAtoms,
     externalAtomControl,
-    groupVisible: frame.groupVisible,
+    groupVisible: effectiveGroupVisible,
   }
 
   useEffect(() => {
@@ -326,7 +331,7 @@ export function ReactorTermsPreview({
     guardFrameRef.current = tickSynthesisPreviewFrame({
       policy,
       slotCount: n,
-      groupVisible: frame.groupVisible,
+      groupVisible: effectiveGroupVisible,
       // Синтез владеет refs (GSAP): выключаем pin/guard, чтобы не мигали атомы.
       flightActive: externalAtomControl,
       layoutPending,
@@ -341,7 +346,7 @@ export function ReactorTermsPreview({
       onRecoverLayout: syncLayout,
     })
 
-    if (!frame.groupVisible || externalAtomControl || n === 0) return
+    if (!effectiveGroupVisible || externalAtomControl || n === 0) return
     const t = s.clock.elapsedTime
     const root = groupRef.current
     if (root && slowSpin) root.rotation.y = t * (n > 18 ? 0.032 : 0.04)
@@ -371,10 +376,8 @@ export function ReactorTermsPreview({
   useLayoutEffect(() => {
     const g = groupRef.current
     if (!g) return
-    const latched =
-      previewOnlyMode && engineRef.current.visibleLatch && frame.slotCount > 0
-    g.visible = frame.groupVisible || latched
-    if (!frame.groupVisible && !latched) {
+    g.visible = effectiveGroupVisible
+    if (!effectiveGroupVisible) {
       for (let i = 0; i < atomGroupRefs.current.length; i++) {
         const posG = atomGroupRefs.current[i]
         const scaleG = atomScaleGroupRefs.current[i]
@@ -382,10 +385,10 @@ export function ReactorTermsPreview({
         if (scaleG) scaleG.visible = false
       }
     }
-  }, [frame.groupVisible, frame.slotCount, previewOnlyMode, atomGroupRefs, atomScaleGroupRefs])
+  }, [effectiveGroupVisible, atomGroupRefs, atomScaleGroupRefs])
 
   return (
-    <group ref={groupRef} visible={frame.groupVisible} frustumCulled={false}>
+    <group ref={groupRef} visible={effectiveGroupVisible} frustumCulled={false}>
       {!sharedLighting ? (
         <>
           <ambientLight intensity={useDenseLight ? 0.38 : 0.22} />
@@ -397,8 +400,8 @@ export function ReactorTermsPreview({
       ) : null}
       {Array.from({ length: poolSize }, (_, i) => {
         const atom = i < n ? (renderAtoms[i] ?? shellAtoms[i] ?? null) : null
-        const active = atom != null
         const slotZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
+        const slotActive = atom != null || (i < n && slotZ > 0)
         const atomPolicy = getReactorAtomRenderPolicy({
           atomCount: n,
           atomZ: slotZ,
@@ -407,16 +410,16 @@ export function ReactorTermsPreview({
           coeffEditBurst: policy.pinEveryFrame,
           minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
         })
-        const slotVisible = active && frame.groupVisible
+        const slotVisible = slotActive && effectiveGroupVisible
         return (
           <group key={`pool-${i}`} visible={slotVisible} ref={getPosRef(i)}>
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
               <ReactorPreviewAtomSlot
                 z={slotZ}
-                animate={active && electronAnimate}
-                previewStatic={!active || (!electronAnimate && policy.pinEveryFrame)}
-                useFullDetail={useFullDetail && !flightActive && active}
-                synthesisGlass={synthesisGlass && (flightActive || poseLocked) && active}
+                animate={slotActive && electronAnimate}
+                previewStatic={!slotActive || (!electronAnimate && policy.pinEveryFrame)}
+                useFullDetail={useFullDetail && !flightActive && slotActive}
+                synthesisGlass={synthesisGlass && (flightActive || poseLocked) && slotActive}
                 previewLite={!useFullDetail}
                 electronFrameSkip={
                   policy.pinEveryFrame

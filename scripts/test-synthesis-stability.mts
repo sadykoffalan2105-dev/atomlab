@@ -656,4 +656,77 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   assert.ok(frame.slotCount >= 15)
 }
 
+// --- K2Cr2O7 user-reported coeff patterns: never empty viewport ---
+{
+  const base: ReactorEquationTerm[] = [
+    { id: 'cr', z: 24, coeff: 1 },
+    { id: 'k', z: 19, coeff: 1 },
+    { id: 'o2', z: 8, coeff: 1, diatomic: true },
+  ]
+  const state = createPreviewEngineState()
+  const sequences: ReactorEquationTerm[][] = []
+  for (let o = 1; o <= 7; o++) {
+    sequences.push(base.map((t, i) => (i === 2 ? { ...t, coeff: o } : t)))
+  }
+  for (let c = 1; c <= 4; c++) {
+    sequences.push([
+      { id: 'cr', z: 24, coeff: c },
+      { id: 'k', z: 19, coeff: 4 },
+      { id: 'o2', z: 8, coeff: 4, diatomic: true },
+    ])
+  }
+  for (let k = 1; k <= 4; k++) {
+    sequences.push([
+      { id: 'cr', z: 24, coeff: 2 },
+      { id: 'k', z: 19, coeff: k },
+      { id: 'o2', z: 8, coeff: 4, diatomic: true },
+    ])
+  }
+  sequences.push(k2cr2o7Terms())
+
+  for (const terms of sequences) {
+    const expected = estimateExpectedAtomCount(terms)
+    const preview = buildReactorPreviewAtoms(terms, {
+      tier: expected > 12 ? 'lite' : 'full',
+    })
+    const frame = resolvePreviewEngineFrame(state, {
+      terms,
+      previewAtoms: preview,
+      editingActive: true,
+      previewOnlyMode: true,
+      synthHoldPreview: false,
+      coeffEditing: true,
+      layoutPending: false,
+      lockPoolSize: true,
+    })
+    const label = terms.map((t) => `${t.id}=${t.coeff}`).join(',')
+    assert.ok(frame.slotCount > 0, `K2Cr2O7 pattern ${label}: slotCount > 0`)
+    assert.ok(frame.groupVisible, `K2Cr2O7 pattern ${label}: groupVisible`)
+    assert.ok(
+      frame.slotCount >= expected,
+      `K2Cr2O7 pattern ${label}: slotCount ${frame.slotCount} >= expected ${expected}`,
+    )
+    const merged = mergePreviewLayoutSlots(frame.slotCount, preview, state.shellAtoms)
+    assert.equal(
+      merged.length,
+      frame.slotCount,
+      `K2Cr2O7 pattern ${label}: merge length matches slotCount`,
+    )
+    for (let i = 0; i < frame.slotCount; i++) {
+      const atom = frame.layoutAtoms[i] ?? state.shellAtoms[i] ?? merged[i]
+      assert.ok(atom, `K2Cr2O7 pattern ${label}: slot ${i} has atom`)
+    }
+  }
+}
+
+// --- mergePreviewLayoutSlots: never returns short array when slotCount > 0 ---
+{
+  const shell = buildReactorPreviewAtoms(k2cr2o7Terms(), { tier: 'full' })
+  for (const slotCount of [1, 6, 7, 15, 16, 20]) {
+    const partial = shell.slice(0, Math.min(3, shell.length))
+    const merged = mergePreviewLayoutSlots(slotCount, partial, shell)
+    assert.equal(merged.length, slotCount, `merge pads to slotCount=${slotCount}`)
+  }
+}
+
 console.log('test-synthesis-stability: all passed')

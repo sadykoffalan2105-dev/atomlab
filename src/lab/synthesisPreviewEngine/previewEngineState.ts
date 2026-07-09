@@ -93,9 +93,20 @@ export function resolvePreviewEngineFrame(
     state.shellAtoms = renderAtoms
   }
 
-  const slotCount = snapshot.renderCount > 0 ? snapshot.renderCount : renderAtoms.length
+  let slotCount = snapshot.renderCount > 0 ? snapshot.renderCount : renderAtoms.length
+  if (expectedAtomCount > 0 && slotCount <= 0) {
+    slotCount = Math.max(
+      expectedAtomCount,
+      previewAtoms.length,
+      state.shellAtoms.length,
+      renderAtoms.length,
+    )
+  }
   const quantizedTarget = quantizePoolSize(Math.max(slotCount, expectedAtomCount))
   state.maxPool = Math.max(state.maxPool, quantizedTarget)
+  if (!hasActiveTerms || terms.length === 0) {
+    state.visibleLatch = false
+  }
   if (!lockPoolSize && terms.length === 0 && slotCount === 0) {
     state.maxPool = 0
   }

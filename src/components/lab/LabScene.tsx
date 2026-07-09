@@ -539,9 +539,9 @@ function SceneContent({
     effectivePreviewTerms != null &&
     effectivePreviewTerms.length >= 1 &&
     (coeffEditingActive ||
-      !showSettledHero ||
       synthActive ||
       synthesisRunActive ||
+      !showSettledHero ||
       !productPainted)
 
   const continuity = useMemo(
@@ -782,12 +782,12 @@ function SceneContent({
   ])
 
   useLayoutEffect(() => {
-    if (!preSynthesisPreview || !productPaintedRef.current) return
+    if (!reactorViewOpen || !preSynthesisPreview) return
     productPaintedRef.current = false
     productPaintFramesRef.current = 0
     setProductPainted(false)
     restorePreviewRootVisibility()
-  }, [previewTermsSig, preSynthesisPreview, restorePreviewRootVisibility])
+  }, [previewTermsSig, preSynthesisPreview, reactorViewOpen, restorePreviewRootVisibility])
 
   useLayoutEffect(() => {
     const rid = synthesis?.runId ?? 0

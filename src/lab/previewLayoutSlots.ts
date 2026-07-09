@@ -39,5 +39,11 @@ export function mergePreviewLayoutSlots(
     out.push(atom)
   }
   if (out.length === slotCount) return out
-  return preview.length > 0 ? preview : shell
+  while (out.length < slotCount) {
+    const atom = fallbackShellAtom(out.length, preview, shell)
+    if (!atom) break
+    out.push(atom)
+  }
+  if (out.length === slotCount) return out
+  return out.length > 0 ? out : preview.length > 0 ? preview : shell
 }

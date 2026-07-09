@@ -64,7 +64,11 @@ export function buildPreviewRenderSnapshot(
     expectedCount,
     editing,
   )
-  const targetCount = Math.max(atoms.length, renderCount)
+  const targetCount = Math.max(
+    atoms.length,
+    renderCount,
+    expectedCount > 0 && editing ? expectedCount : 0,
+  )
 
   if (targetCount <= 0) {
     return { atoms, renderCount: 0 }
