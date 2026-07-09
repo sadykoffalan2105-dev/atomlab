@@ -1,6 +1,7 @@
 import periodicRaw from './periodicTableRaw.json'
 import gridPositions from './elementGridPositions.json'
 import { ELEMENT_NAMES_RU } from './elementNamesRu'
+import { elementDiscoveryYear } from './elementDiscoveryYears'
 import type { ElementViewModel } from '../types/chemistry'
 
 interface RawElement {
@@ -60,7 +61,9 @@ export const ELEMENTS: readonly ElementViewModel[] = rawList
       meltingPoint: e.meltingPoint ?? null,
       boilingPoint: e.boilingPoint ?? null,
       density: e.density ?? null,
-      yearDiscovered: e.yearDiscovered != null ? String(e.yearDiscovered) : null,
+      yearDiscovered:
+        elementDiscoveryYear(e.atomicNumber) ??
+        (e.yearDiscovered != null ? String(e.yearDiscovered) : null),
     }
   })
   .sort((a, b) => a.z - b.z)

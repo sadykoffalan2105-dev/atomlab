@@ -233,6 +233,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'elementDetail.density': 'Zichlik',
   'elementDetail.electronegativity': 'Elektrsalbiyilik (Poling shkalasi)',
   'elementDetail.yearDiscovered': 'Kashf etilgan yil',
+  'elementDetail.yearAncient': 'Qadimiy',
   'elementDetail.prevElement': 'Oldingi element',
   'elementDetail.nextElement': 'Keyingi element',
 

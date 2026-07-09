@@ -230,6 +230,7 @@ export const messagesRu = {
   'elementDetail.density': 'Плотность',
   'elementDetail.electronegativity': 'Электроотрицательность (шкала Полинга)',
   'elementDetail.yearDiscovered': 'Год открытия',
+  'elementDetail.yearAncient': 'Древность',
   'elementDetail.prevElement': 'Предыдущий элемент',
   'elementDetail.nextElement': 'Следующий элемент',
 

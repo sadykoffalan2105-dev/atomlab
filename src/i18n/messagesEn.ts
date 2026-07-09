@@ -233,6 +233,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'elementDetail.density': 'Density',
   'elementDetail.electronegativity': 'Electronegativity (Pauling)',
   'elementDetail.yearDiscovered': 'Year discovered',
+  'elementDetail.yearAncient': 'Ancient',
   'elementDetail.prevElement': 'Previous element',
   'elementDetail.nextElement': 'Next element',
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
+import { isAncientDiscoveryYear } from '../../data/elementDiscoveryYears'
 import { estimateNeutrons, getElementByZ } from '../../data/elements'
 import { elementDisplayName } from '../../data/elementDisplayName'
 import {
@@ -278,7 +279,11 @@ function RichElementDetail({
             {el.yearDiscovered ? (
               <div className={styles.physRow}>
                 <dt>{t('elementDetail.yearDiscovered')}</dt>
-                <dd>{el.yearDiscovered}</dd>
+                <dd>
+                  {isAncientDiscoveryYear(el.yearDiscovered)
+                    ? t('elementDetail.yearAncient')
+                    : el.yearDiscovered}
+                </dd>
               </div>
             ) : null}
           </dl>
