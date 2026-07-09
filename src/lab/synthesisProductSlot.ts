@@ -73,9 +73,18 @@ export function resolveSynthesisProductSlot(
     }
   }
 
+  /** Синтез: показываем слот сразу, compile идёт на полном масштабе (не micro-prewarm). */
+  if (synthLive && productSlotVisible) {
+    return { visible: true, prewarm: false, gpuReady: false }
+  }
+
+  if (productPrewarmActive) {
+    return { visible: false, prewarm: true, gpuReady: false }
+  }
+
   return {
     visible: false,
-    prewarm: productPrewarmActive || synthLive || productSlotVisible,
+    prewarm: false,
     gpuReady: false,
   }
 }

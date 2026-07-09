@@ -497,7 +497,8 @@ export function LaboratoryPage() {
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
 
-  const { coeffEditBurst, editIdle, visualHold, resetEditBurst } = useReactorCoeffEditBurst(reactorPreviewTerms)
+  const { coeffEditBurst, coeffEditPulse, editIdle, visualHold, resetEditBurst } =
+    useReactorCoeffEditBurst(reactorPreviewTerms)
 
   const leftTermsSig = useMemo(() => termsSignature(leftTerms), [leftTerms])
   const prevLeftTermsSigRef = useRef<string | null>(null)
@@ -508,7 +509,9 @@ export function LaboratoryPage() {
   prevLeftTermsSigRef.current = leftTermsSig
 
   const reactorCoeffEditing =
-    isReactorCoeffEditing(coeffEditBurst, editIdle, visualHold) || coeffEditSync
+    isReactorCoeffEditing(coeffEditBurst, editIdle, visualHold) ||
+    coeffEditSync ||
+    coeffEditPulse
 
   /** Canvas: stable shell + immediate при burst — атомы не пропадают при +/-. */
   const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
@@ -632,9 +635,9 @@ export function LaboratoryPage() {
   }, [deferredLeftTerms, productCompoundId, productCoeff])
 
   useEffect(() => {
-    if (!reactorOpen || !productCompound || !canRunSynthesis || reactorCoeffEditing) return
+    if (!reactorOpen || !productCompound || !canRunSynthesis || coeffEditBurst) return
     setPrewarmCompound(productCompound)
-  }, [reactorOpen, productCompound, canRunSynthesis, reactorCoeffEditing])
+  }, [reactorOpen, productCompound, canRunSynthesis, coeffEditBurst])
 
   const highlightEquationError = useMemo(() => {
     if (!reactorMessage) return false

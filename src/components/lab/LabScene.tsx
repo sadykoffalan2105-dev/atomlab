@@ -782,7 +782,7 @@ function SceneContent({
   ])
 
   useLayoutEffect(() => {
-    if (!preSynthesisPreview) return
+    if (!preSynthesisPreview || !productPaintedRef.current) return
     productPaintedRef.current = false
     productPaintFramesRef.current = 0
     setProductPainted(false)
@@ -805,16 +805,7 @@ function SceneContent({
       setForceProductSlot(true)
       setEarlyProductReveal(true)
       restorePreviewRootVisibility()
-      const productId = synthesis?.product?.id
-      const gpuReadyOnLaunch =
-        productId != null &&
-        (isProductGpuCompiled(productId) ||
-          (prewarmReadyRef.current && prewarmCompoundIdRef.current === productId))
-      if (instantSynthesis || gpuReadyOnLaunch) {
-        setProductRevealReady(true)
-      } else {
-        setProductRevealReady(false)
-      }
+      setProductRevealReady(true)
       return
     }
     const productId = synthesis?.product?.id

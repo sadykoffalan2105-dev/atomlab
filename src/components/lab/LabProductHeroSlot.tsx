@@ -6,7 +6,6 @@ import { LAUNCH_PRODUCT_ENTRANCE_DUR } from '../../lab/synthesisLaunchTiming'
 import { compileObjectTreeChunked } from '../../lab/gpuCompileChunked'
 import {
   scheduleGpuCompileWatchdog,
-  SYNTH_ANTI_STALL,
 } from '../../lab/synthesisAntiStall'
 import {
   isProductGpuCompiled,
@@ -18,8 +17,8 @@ import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
 
 const MICRO_SCALE = 0.001
-/** Кадров отрисовки на micro-scale до «готово» — даже на слабых GPU. */
-const PREWARM_PAINT_FRAMES = SYNTH_ANTI_STALL.gpuCompileFallbackFrames
+/** Кадров отрисовки на micro-scale до «готово» — быстрый сигнал prewarm. */
+const PREWARM_PAINT_FRAMES = 2
 /** Кадров полного масштаба до сигнала paint — не раньше реального GPU-кадра. */
 const VISIBLE_PAINT_FRAMES = 1
 
@@ -199,7 +198,7 @@ export function LabProductHeroSlot({
           releaseBudget?.()
           releaseBudget = null
         },
-        { skipCompileAsync: false, meshesPerFrame: 10 },
+        { skipCompileAsync: false, meshesPerFrame: 24 },
       )
     }
 

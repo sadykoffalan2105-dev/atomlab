@@ -4,11 +4,13 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 const BURST_WINDOW_MS = 520
 const BURST_MIN_CHANGES = 1
 /** Удержание burst после последнего +/- — атомы не «мигают» при отпускании кнопки. */
-const BURST_HOLD_MS = 1800
+const BURST_HOLD_MS = 2200
 /** Пауза до editIdle после последнего изменения. */
-const EDIT_IDLE_MS = 900
-/** Доп. удержание pin после editIdle — короткое, не блокирует GPU prewarm надолго. */
-const VISUAL_HOLD_MS = 900
+const EDIT_IDLE_MS = 1100
+/** Доп. удержание pin после editIdle. */
+const VISUAL_HOLD_MS = 1100
+/** Удержание «editing» после последнего +/- — без мигания между кликами. */
+const EDIT_PULSE_MS = 650
 
 function termsSignature(terms: readonly ReactorEquationTerm[] | null): string {
   if (!terms?.length) return ''
@@ -22,6 +24,7 @@ export function useReactorCoeffEditBurst(
   terms: readonly ReactorEquationTerm[] | null,
 ): {
   coeffEditBurst: boolean
+  coeffEditPulse: boolean
   editIdle: boolean
   visualHold: boolean
   resetEditBurst: () => void
@@ -30,12 +33,14 @@ export function useReactorCoeffEditBurst(
   const [coeffEditBurst, setCoeffEditBurst] = useState(false)
   const [editIdle, setEditIdle] = useState(true)
   const [visualHold, setVisualHold] = useState(false)
+  const [coeffEditPulse, setCoeffEditPulse] = useState(false)
   const changeTimesRef = useRef<number[]>([])
   const burstHoldUntilRef = useRef(0)
   const visualHoldUntilRef = useRef(0)
   const idleTimerRef = useRef<number | null>(null)
   const burstEndTimerRef = useRef<number | null>(null)
   const visualHoldTimerRef = useRef<number | null>(null)
+  const pulseTimerRef = useRef<number | null>(null)
   const baselineSigRef = useRef<string | null>(null)
 
   const clearTimers = useCallback(() => {
@@ -51,6 +56,19 @@ export function useReactorCoeffEditBurst(
       clearTimeout(visualHoldTimerRef.current)
       visualHoldTimerRef.current = null
     }
+    if (pulseTimerRef.current != null) {
+      clearTimeout(pulseTimerRef.current)
+      pulseTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleEditPulse = useCallback(() => {
+    setCoeffEditPulse(true)
+    if (pulseTimerRef.current != null) clearTimeout(pulseTimerRef.current)
+    pulseTimerRef.current = window.setTimeout(() => {
+      pulseTimerRef.current = null
+      setCoeffEditPulse(false)
+    }, EDIT_PULSE_MS)
   }, [])
 
   const resetEditBurst = useCallback(() => {
@@ -58,6 +76,7 @@ export function useReactorCoeffEditBurst(
     setCoeffEditBurst(false)
     setEditIdle(true)
     setVisualHold(false)
+    setCoeffEditPulse(false)
     changeTimesRef.current = []
     burstHoldUntilRef.current = 0
     visualHoldUntilRef.current = 0
@@ -128,9 +147,10 @@ export function useReactorCoeffEditBurst(
     }
     scheduleIdle()
     scheduleBurstEnd()
-  }, [sig, terms, resetEditBurst, scheduleIdle, scheduleBurstEnd, scheduleVisualHoldEnd])
+    scheduleEditPulse()
+  }, [sig, terms, resetEditBurst, scheduleIdle, scheduleBurstEnd, scheduleVisualHoldEnd, scheduleEditPulse])
 
   useEffect(() => () => clearTimers(), [clearTimers])
 
-  return { coeffEditBurst, editIdle, visualHold, resetEditBurst }
+  return { coeffEditBurst, coeffEditPulse, editIdle, visualHold, resetEditBurst }
 }
