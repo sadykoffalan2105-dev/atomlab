@@ -140,7 +140,7 @@ export function LaboratoryPage() {
       setReactorGpuIdleReady(false)
       return
     }
-    const timer = window.setTimeout(() => setReactorGpuIdleReady(true), 1400)
+    const timer = window.setTimeout(() => setReactorGpuIdleReady(true), 700)
     return () => window.clearTimeout(timer)
   }, [reactorOpen])
 
@@ -541,8 +541,8 @@ export function LaboratoryPage() {
     setSynthesisSettledProduct(null)
     synthesisSettledProductRef.current = null
     settledSnapshotRef.current = null
-    synthesisPhaseRef.current = 'product'
-    setSynthPhaseUi('product')
+    synthesisPhaseRef.current = 'ignite'
+    setSynthPhaseUi('ignite')
     setSynthIgnite(false)
     launchProgressRef.current = 0
     const zCopy = payload.zSlots.slice()

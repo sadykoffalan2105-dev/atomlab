@@ -4,11 +4,11 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 const BURST_WINDOW_MS = 520
 const BURST_MIN_CHANGES = 1
 /** Удержание burst после последнего +/- — атомы не «мигают» при отпускании кнопки. */
-const BURST_HOLD_MS = 1400
+const BURST_HOLD_MS = 2200
 /** Пауза до editIdle после последнего изменения. */
-const EDIT_IDLE_MS = 960
+const EDIT_IDLE_MS = 1200
 /** Доп. удержание превью после editIdle — стабильность на последнем коэффициенте. */
-const VISUAL_HOLD_MS = 1600
+const VISUAL_HOLD_MS = 2400
 
 function termsSignature(terms: readonly ReactorEquationTerm[] | null): string {
   if (!terms?.length) return ''

@@ -18,6 +18,10 @@ import {
   syncPreviewLayoutSlots,
   tickSynthesisPreviewFrame,
 } from '../../lab/synthesisPreviewEngine'
+import {
+  resolvePreviewEditingActive,
+  resolvePreviewExternalAtomControl,
+} from '../../lab/synthesisPreviewEngine/previewExternalControl'
 import { createReactorPreviewVisibilityGuard } from '../../lab/reactorPreviewVisibilityGuard'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
@@ -68,7 +72,11 @@ export function ReactorTermsPreview({
   const { invalidate } = useThree()
   const engineRef = useRef(createPreviewEngineState())
   const lowPowerProfile = useMemo(() => getLowPowerDeviceProfile(getSynthesisDeviceTier()), [])
-  const editingActive = coeffEditing || previewOnlyMode
+  const editingActive = resolvePreviewEditingActive({
+    coeffEditing,
+    previewOnlyMode,
+    synthHoldPreview,
+  })
 
   const framePolicy = useMemo(
     () =>
@@ -197,11 +205,15 @@ export function ReactorTermsPreview({
   const shellAtoms = engineRef.current.shellAtoms
 
   /**
-   * Во время синтеза атомы летят и затухают через GSAP по тем же refs
-   * (SynthesisConvergeStreams / fadePreviewAtoms). Превью не должно трогать
-   * их трансформации — иначе drift/guard борются с анимацией и атомы мигают.
+   * Во время синтеза атомы летят через GSAP (SynthesisConvergeStreams).
+   * До начала полёта (synthHoldPreview) — pin/guard; после — только GSAP.
    */
-  const externalAtomControl = flightActive || poseLocked || !previewOnlyMode
+  const externalAtomControl = resolvePreviewExternalAtomControl({
+    flightActive,
+    poseLocked,
+    previewOnlyMode,
+    synthHoldPreview,
+  })
 
   // Последнее состояние layout — для стабильных ref-коллбэков (позиция при mount).
   const layoutStateRef = useRef({

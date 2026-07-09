@@ -48,6 +48,10 @@ import {
   PREVIEW_POOL_STEP,
   quantizePoolSize,
 } from '../src/lab/synthesisPreviewEngine/previewEngineState.ts'
+import {
+  resolvePreviewEditingActive,
+  resolvePreviewExternalAtomControl,
+} from '../src/lab/synthesisPreviewEngine/previewExternalControl.ts'
 import { resolveSynthesisProductSlot } from '../src/lab/synthesisProductSlot.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
@@ -580,6 +584,55 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     assert.ok(frame.slotCount >= expected, `slotCount holds >= expected (coeff=${c})`)
     lastPool = frame.poolSize
   }
+}
+
+// --- synth launch: pin preview until GSAP flight (no white frame) ---
+{
+  assert.equal(
+    resolvePreviewExternalAtomControl({
+      flightActive: false,
+      poseLocked: false,
+      previewOnlyMode: false,
+      synthHoldPreview: true,
+    }),
+    false,
+    'hold preview pin before flight',
+  )
+  assert.equal(
+    resolvePreviewExternalAtomControl({
+      flightActive: true,
+      poseLocked: false,
+      previewOnlyMode: false,
+      synthHoldPreview: true,
+    }),
+    true,
+    'GSAP owns refs during converge',
+  )
+  assert.equal(
+    resolvePreviewEditingActive({
+      coeffEditing: false,
+      previewOnlyMode: false,
+      synthHoldPreview: true,
+    }),
+    true,
+    'shell-hold during synth before product paint',
+  )
+  const state = createPreviewEngineState()
+  const terms = k2cr2o7Terms()
+  const full = buildReactorPreviewAtoms(terms, { tier: 'full' })
+  state.shellAtoms = full
+  const frame = resolvePreviewEngineFrame(state, {
+    terms,
+    previewAtoms: full,
+    editingActive: true,
+    previewOnlyMode: false,
+    synthHoldPreview: true,
+    coeffEditing: false,
+    layoutPending: false,
+    lockPoolSize: true,
+  })
+  assert.equal(frame.groupVisible, true, 'synth hold keeps preview visible')
+  assert.ok(frame.slotCount >= 15)
 }
 
 console.log('test-synthesis-stability: all passed')

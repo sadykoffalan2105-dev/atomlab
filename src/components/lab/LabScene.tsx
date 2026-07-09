@@ -604,6 +604,11 @@ function SceneContent({
   })
 
   const previewMotionLocked = false
+  const previewFlightActive =
+    synthLive &&
+    (synthesisPhase === 'converge' ||
+      synthesisPhase === 'flying' ||
+      synthesisPhase === 'mergeFlash')
   const previewPoseLocked = synthesisRunActive && !synthActive
   if (previewAtomCount > 8) editLiteLatchRef.current = true
   else if (
@@ -764,17 +769,17 @@ function SceneContent({
       setForceProductSlot(true)
       setEarlyProductReveal(true)
       restorePreviewRootVisibility()
-      if (instantSynthesis) {
-        setProductRevealReady(true)
-      }
       const productId = synthesis?.product?.id
-      if (
+      const gpuReadyOnLaunch =
         productId != null &&
         (isProductGpuCompiled(productId) ||
           (prewarmReadyRef.current && prewarmCompoundIdRef.current === productId))
-      ) {
+      if (instantSynthesis || gpuReadyOnLaunch) {
         setProductRevealReady(true)
+      } else {
+        setProductRevealReady(false)
       }
+      return
     }
     const productId = synthesis?.product?.id
     const gpuReady =
@@ -788,7 +793,6 @@ function SceneContent({
     if (instantSynthesis) {
       return
     }
-    setProductRevealReady(false)
   }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, instantSynthesis, synthesisRunActive, restorePreviewRootVisibility])
 
   // Когда prewarm завершился уже во время синтеза — сразу показываем продукт.
@@ -1233,7 +1237,7 @@ function SceneContent({
             <ReactorTermsPreview
               terms={effectivePreviewTerms}
               visible={reactorPreviewVisible}
-              flightActive={previewMotionLocked}
+              flightActive={previewFlightActive}
               poseLocked={previewPoseLocked}
               sharedLighting={synthActive || synthesisRunActive || preSynthesisPreview}
               forceLite={previewForceLite || editForceLite}
