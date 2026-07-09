@@ -46,6 +46,8 @@ import {
 } from '../src/lab/synthesisPreviewEngine/index.ts'
 import {
   PREVIEW_POOL_STEP,
+  PREVIEW_POOL_STEP_DENSE,
+  PREVIEW_POOL_DENSE_THRESHOLD,
   quantizePoolSize,
 } from '../src/lab/synthesisPreviewEngine/previewEngineState.ts'
 import {
@@ -189,6 +191,17 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
       hasProduct: true,
     }),
     false,
+  )
+  assert.equal(
+    canIdleGpuPrewarm({
+      reactorOpen: true,
+      coeffEditBurst: false,
+      coeffEditing: true,
+      synthesisRunActive: false,
+      hasProduct: true,
+    }),
+    true,
+    'visualHold alone does not block GPU prewarm',
   )
   assert.equal(
     canIdleGpuCompileQueue({
@@ -537,6 +550,9 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   assert.equal(quantizePoolSize(1), PREVIEW_POOL_STEP)
   assert.equal(quantizePoolSize(PREVIEW_POOL_STEP), PREVIEW_POOL_STEP)
   assert.equal(quantizePoolSize(PREVIEW_POOL_STEP + 1), PREVIEW_POOL_STEP * 2)
+  assert.equal(quantizePoolSize(17), 20, 'dense pool step for >16 atoms')
+  assert.equal(PREVIEW_POOL_STEP_DENSE, 4)
+  assert.equal(PREVIEW_POOL_DENSE_THRESHOLD, 16)
   // Пул всегда >= фактического числа атомов
   for (let n = 1; n <= 60; n++) {
     assert.ok(quantizePoolSize(n) >= n, `pool covers ${n} atoms`)

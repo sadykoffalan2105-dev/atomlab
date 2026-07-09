@@ -525,7 +525,7 @@ function SceneContent({
     })
 
   const preSynthesisPreview = !synthesisRunActive && !synthActive && !showSettledHero
-  const warmupPaused = !reactorGpuIdleReady || coeffEditingActive
+  const warmupPaused = !reactorGpuIdleReady || reactorCoeffEditBurst
 
   const mountReactorPreview =
     reactorViewOpen &&
@@ -658,11 +658,24 @@ function SceneContent({
         synthesis.onDone(kind)
         return
       }
+      const productId = synthesis.product?.id
+      if (productId != null && isProductGpuCompiled(productId)) {
+        synthesis.onDone(kind)
+        return
+      }
+      if (productPaintedRef.current || productRevealReady) {
+        synthesis.onDone(kind)
+        return
+      }
       let frames = 0
-      const maxWait = 480
+      const maxWait = 18
       const tick = () => {
         frames += 1
-        if (productPaintedRef.current) {
+        if (
+          productPaintedRef.current ||
+          productRevealReady ||
+          (productId != null && isProductGpuCompiled(productId))
+        ) {
           synthesis.onDone(kind)
           return
         }
@@ -674,7 +687,7 @@ function SceneContent({
       }
       requestAnimationFrame(tick)
     },
-    [synthesis],
+    [synthesis, productRevealReady],
   )
 
   useEffect(() => {
@@ -1193,7 +1206,7 @@ function SceneContent({
       {reactorViewOpen ? (
         <ReactorSceneWarmup reactorOpen={reactorViewOpen} paused={warmupPaused} />
       ) : null}
-      {reactorViewOpen && reactorGpuIdleReady && !coeffEditingActive ? (
+      {reactorViewOpen && reactorGpuIdleReady && !reactorCoeffEditBurst ? (
         <ReactorAtomShaderWarmup
           active={!productPainted && !showSettledHero}
         />

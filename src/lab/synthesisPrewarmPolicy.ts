@@ -25,7 +25,7 @@ export function resolvePopularSynthesisCompounds(
   return out
 }
 
-/** Можно ли безопасно GPU-prewarm (не во время +/- / редактирования). */
+/** Можно ли безопасно GPU-prewarm (не во время активного burst +/-). */
 export function canIdleGpuPrewarm(opts: {
   reactorOpen: boolean
   coeffEditBurst: boolean
@@ -33,11 +33,10 @@ export function canIdleGpuPrewarm(opts: {
   synthesisRunActive: boolean
   hasProduct: boolean
 }): boolean {
-  const editing = opts.coeffEditing ?? opts.coeffEditBurst
+  void opts.coeffEditing
   return (
     opts.reactorOpen &&
     opts.hasProduct &&
-    !editing &&
     !opts.coeffEditBurst &&
     !opts.synthesisRunActive
   )
@@ -54,10 +53,9 @@ export function canIdleGpuCompileQueue(opts: {
   synthesisRunActive: boolean
   synthActive?: boolean
 }): boolean {
-  const editing = opts.coeffEditing ?? opts.coeffEditBurst
+  void opts.coeffEditing
   return (
     opts.reactorOpen &&
-    !editing &&
     !opts.coeffEditBurst &&
     !opts.synthesisRunActive &&
     !opts.synthActive

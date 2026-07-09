@@ -140,8 +140,20 @@ export function LaboratoryPage() {
       setReactorGpuIdleReady(false)
       return
     }
-    const timer = window.setTimeout(() => setReactorGpuIdleReady(true), 700)
-    return () => window.clearTimeout(timer)
+    let cancelled = false
+    let raf1 = 0
+    let raf2 = 0
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        if (!cancelled) setReactorGpuIdleReady(true)
+      })
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+      setReactorGpuIdleReady(false)
+    }
   }, [reactorOpen])
 
   useEffect(() => {
@@ -511,11 +523,11 @@ export function LaboratoryPage() {
   }, [coeffEditBurst])
 
   useEffect(() => {
-    if (!reactorOpen || !productCompound || reactorCoeffEditing) return
+    if (!reactorOpen || !productCompound || coeffEditBurst) return
     if (leftTerms.length < 1) return
     warmupReactorPreviewTerms(leftTerms)
     warmupLabSynthesisReactorOpen(catalogList, productCompound, leftTerms)
-  }, [reactorOpen, productCompound, reactorCoeffEditing, leftTerms, catalogList])
+  }, [reactorOpen, productCompound, coeffEditBurst, leftTerms, catalogList])
 
   const onRequestRun = useCallback(() => {
     const prepared = prepareGuaranteedSynthesisRun({
@@ -679,7 +691,7 @@ export function LaboratoryPage() {
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
-    if (canRunSynthesis && !reactorCoeffEditing && reactorGpuIdleReady) return productCompound
+    if (canRunSynthesis && !coeffEditBurst && reactorGpuIdleReady) return productCompound
     return null
   }, [
     reactorOpen,
@@ -688,20 +700,20 @@ export function LaboratoryPage() {
     lastRunProduct,
     prewarmCompound,
     canRunSynthesis,
-    reactorCoeffEditing,
+    coeffEditBurst,
     reactorGpuIdleReady,
   ])
 
   const gpuQueuePriorityCompound = useMemo(() => {
-    if (!reactorOpen || reactorCoeffEditing || synthRunActive || !reactorGpuIdleReady) return null
+    if (!reactorOpen || coeffEditBurst || synthRunActive || !reactorGpuIdleReady) return null
     if (canRunSynthesis && productCompound) return productCompound
     return productCompound
-  }, [reactorOpen, reactorCoeffEditing, synthRunActive, productCompound, canRunSynthesis, reactorGpuIdleReady])
+  }, [reactorOpen, coeffEditBurst, synthRunActive, productCompound, canRunSynthesis, reactorGpuIdleReady])
 
   const onSynthesisPrewarmIntent = useCallback(() => {
-    if (!productCompound || !canRunSynthesis || reactorCoeffEditing) return
+    if (!productCompound || !canRunSynthesis || coeffEditBurst) return
     setPrewarmCompound(productCompound)
-  }, [productCompound, canRunSynthesis, reactorCoeffEditing])
+  }, [productCompound, canRunSynthesis, coeffEditBurst])
 
   return (
     <div className={styles.wrap} data-lab-synthesis-view={laboratorySynthesisView}>

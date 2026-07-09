@@ -32,17 +32,17 @@ export function estimateExpectedAtomCount(terms: readonly ReactorEquationTerm[])
   return count
 }
 
-/**
- * Шаг квантизации пула слотов: при +/- длина массива слотов меняется реже,
- * поэтому React не монтирует/размонтирует узлы на каждый шаг — только переключает
- * visible у уже смонтированных слотов. Это убирает «мигание» на сложных
- * уравнениях с большим числом коэффициентов.
- */
+/** Шаг квантизации пула слотов: при +/- длина массива слотов меняется реже. */
 export const PREVIEW_POOL_STEP = 8
+/** Меньший шаг для плотных уравнений — меньше «пустых» слотов при +/-. */
+export const PREVIEW_POOL_STEP_DENSE = 4
+export const PREVIEW_POOL_DENSE_THRESHOLD = 16
 
 export function quantizePoolSize(target: number): number {
   if (target <= 0) return 0
-  return Math.ceil(target / PREVIEW_POOL_STEP) * PREVIEW_POOL_STEP
+  const step =
+    target > PREVIEW_POOL_DENSE_THRESHOLD ? PREVIEW_POOL_STEP_DENSE : PREVIEW_POOL_STEP
+  return Math.ceil(target / step) * step
 }
 
 export type PreviewEngineFrame = {
@@ -123,7 +123,7 @@ export function resolvePreviewEngineFrame(
       : shouldRender || ((previewOnlyMode || synthHoldPreview) && state.visibleLatch && hasActiveTerms)
 
   if (slotCount > 16) state.denseLightLatch = true
-  else if (slotCount < 12) state.denseLightLatch = false
+  else if (!lockPoolSize && slotCount < 12) state.denseLightLatch = false
 
   return {
     renderAtoms,
