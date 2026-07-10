@@ -1,6 +1,14 @@
 import type { MessageKey } from '../i18n/messagesRu'
 import type { LearnChapter, LearnGrade, LearnGradeId, LearnSection, LearnSlide } from '../types/learn'
 import { g7BookSectionSeeds } from './g7BookCurriculum'
+import {
+  g10BookSectionSeeds,
+  g10ChapterNums,
+  g10ChapterTotem,
+  g11BookSectionSeeds,
+  g11ChapterNums,
+  g11ChapterTotem,
+} from './g10g11BookCurriculum'
 import { topicSceneVisualId } from '../learn/learnTopicScenes'
 import { sectionVisualOverride, totemCatalogVisualId } from './learnVisualMap'
 
@@ -407,6 +415,30 @@ const g9c7Sections = outlineSections('g9', 'c7', [
   { id: 's05', kp: 53, titleKey: 'learn.g9.c7.s05.title', taskCategoryId: 'oge_prep' },
 ])
 
+const g10Chapters = g10ChapterNums().map((n) =>
+  buildChapter(
+    'g10',
+    `c${n}`,
+    n,
+    `learn.g10.c${n}.title` as MessageKey,
+    `learn.g10.c${n}.summary` as MessageKey,
+    g10ChapterTotem(n),
+    outlineSections('g10', `c${n}`, g10BookSectionSeeds(n)),
+  ),
+)
+
+const g11Chapters = g11ChapterNums().map((n) =>
+  buildChapter(
+    'g11',
+    `c${n}`,
+    n,
+    `learn.g11.c${n}.title` as MessageKey,
+    `learn.g11.c${n}.summary` as MessageKey,
+    g11ChapterTotem(n),
+    outlineSections('g11', `c${n}`, g11BookSectionSeeds(n)),
+  ),
+)
+
 export const LEARN_GRADES: readonly LearnGrade[] = [
   {
     id: 'g7',
@@ -451,6 +483,20 @@ export const LEARN_GRADES: readonly LearnGrade[] = [
       buildChapter('g9', 'c6', 6, 'learn.g9.c6.title', 'learn.g9.c6.summary', 'nacl', g9c6Sections),
       buildChapter('g9', 'c7', 7, 'learn.g9.c7.title', 'learn.g9.c7.summary', 'h2so4', g9c7Sections),
     ],
+  },
+  {
+    id: 'g10',
+    order: 4,
+    titleKey: 'learn.g10.title',
+    textbookRefKey: 'learn.g10.textbook',
+    chapters: g10Chapters,
+  },
+  {
+    id: 'g11',
+    order: 5,
+    titleKey: 'learn.g11.title',
+    textbookRefKey: 'learn.g11.textbook',
+    chapters: g11Chapters,
   },
 ]
 

@@ -79,9 +79,9 @@ export interface LearnTopic {
   lessons: LearnLesson[]
 }
 
-// --- UZ curriculum (grades 7–9) ---
+// --- UZ curriculum (grades 7–11) ---
 
-export const LEARN_GRADE_IDS = ['g7', 'g8', 'g9'] as const
+export const LEARN_GRADE_IDS = ['g7', 'g8', 'g9', 'g10', 'g11'] as const
 export type LearnGradeId = (typeof LEARN_GRADE_IDS)[number]
 
 export type LearnVisualKind =

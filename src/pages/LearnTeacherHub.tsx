@@ -117,9 +117,6 @@ export function LearnTeacherHub() {
         <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={exportProgress}>
           {t('learn.teacher.exportProgress')}
         </button>
-        <a className={styles.btn} href="/learn/nano-banana-prompts.md" download="nano-banana-prompts.md">
-          {t('learn.teacher.nanoBananaPrompts')}
-        </a>
       </div>
 
       <section className={styles.teacherBlock}>
@@ -140,6 +137,8 @@ export function LearnTeacherHub() {
             <option value="g7">7</option>
             <option value="g8">8</option>
             <option value="g9">9</option>
+            <option value="g10">10</option>
+            <option value="g11">11</option>
           </select>
           <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={onCreateClass}>
             {t('learn.teacher.newClass')}
@@ -258,7 +257,7 @@ export function LearnTeacherHub() {
         <h2 className={styles.h}>{t('learn.teacher.fgosLabel')}</h2>
         <ul className={styles.lessonList}>
           {allSections.slice(0, 12).map((s) => {
-            const meta = getLearnFgosMeta(s.gradeId as 'g7' | 'g8' | 'g9', s.chapterId, s.sectionId)
+            const meta = getLearnFgosMeta(s.gradeId as import('../types/learn').LearnGradeId, s.chapterId, s.sectionId)
             const tierKey =
               meta.contentTier === 'full'
                 ? 'learn.teacher.contentFull'

@@ -1,0 +1,54 @@
+{
+  "g10": {
+    "1": {
+      "totem": "co2",
+      "sectionCount": 10
+    },
+    "2": {
+      "totem": "co2",
+      "sectionCount": 24
+    },
+    "3": {
+      "totem": "h2o",
+      "sectionCount": 25
+    },
+    "4": {
+      "totem": "co2",
+      "sectionCount": 3
+    }
+  },
+  "g11": {
+    "1": {
+      "totem": "h2o",
+      "sectionCount": 4
+    },
+    "2": {
+      "totem": "co2",
+      "sectionCount": 4
+    },
+    "3": {
+      "totem": "nacl",
+      "sectionCount": 3
+    },
+    "4": {
+      "totem": "h2o",
+      "sectionCount": 10
+    },
+    "5": {
+      "totem": "h2o",
+      "sectionCount": 3
+    },
+    "6": {
+      "totem": "h2o",
+      "sectionCount": 3
+    },
+    "7": {
+      "totem": "fe2o3",
+      "sectionCount": 3
+    },
+    "8": {
+      "totem": "nacl",
+      "sectionCount": 3
+    }
+  }
+}

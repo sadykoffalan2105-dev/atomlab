@@ -312,7 +312,7 @@ function topicContent(topic: string): {
 function buildOutlinePack(): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [key, title] of Object.entries(learnGradesOutlineRu)) {
-    if (!key.endsWith('.title') || !/^learn\.g[789]\./.test(key)) continue
+    if (!key.endsWith('.title') || !/^learn\.g(7|8|9|10|11)\./.test(key)) continue
     const prefix = key.slice(0, -'.title'.length)
     if (G7_PILOT_PREFIXES.has(prefix)) continue
     const topic = stripSectionTitle(title)

@@ -1,5 +1,7 @@
 import g8BookToc from './g8BookToc.json'
 import g9BookToc from './g9BookToc.json'
+import g10BookToc from './g10BookToc.json'
+import g11BookToc from './g11BookToc.json'
 import {
   G7_TEXTBOOK_CHAPTER_START,
   G7_TEXTBOOK_SECTION_PAGES,
@@ -26,10 +28,14 @@ function tocChapterStart(toc: TocEntry[]): Record<string, number> {
 
 const G8_SECTION_PAGES = tocSectionPages(g8BookToc as TocEntry[])
 const G9_SECTION_PAGES = tocSectionPages(g9BookToc as TocEntry[])
+const G10_SECTION_PAGES = tocSectionPages(g10BookToc as TocEntry[])
+const G11_SECTION_PAGES = tocSectionPages(g11BookToc as TocEntry[])
 const G8_CHAPTER_START = tocChapterStart(g8BookToc as TocEntry[])
 const G9_CHAPTER_START = tocChapterStart(g9BookToc as TocEntry[])
+const G10_CHAPTER_START = tocChapterStart(g10BookToc as TocEntry[])
+const G11_CHAPTER_START = tocChapterStart(g11BookToc as TocEntry[])
 
-export type LearnTextbookGradeId = 'g7' | 'g8' | 'g9'
+export type LearnTextbookGradeId = 'g7' | 'g8' | 'g9' | 'g10' | 'g11'
 
 export type TextbookConfig = {
   gradeId: LearnTextbookGradeId
@@ -47,6 +53,14 @@ const BASE = import.meta.env.BASE_URL
 function pdfUrl(file: string, page: number, total: number): string {
   const p = Math.min(Math.max(1, Math.round(page)), total)
   return `${BASE}textbooks/${file}#page=${p}&toolbar=0&navpanes=0&scrollbar=1`
+}
+
+function tocSectionLookup(pages: Record<string, number>) {
+  return (chapterId: string, sectionId: string) => pages[`${chapterId}-${sectionId}`]
+}
+
+function tocChapterLookup(start: Record<string, number>, fallback: number) {
+  return (n: number) => start[`c${n}`] ?? fallback
 }
 
 export const TEXTBOOK_BY_GRADE: Record<LearnTextbookGradeId, TextbookConfig> = {
@@ -67,8 +81,8 @@ export const TEXTBOOK_BY_GRADE: Record<LearnTextbookGradeId, TextbookConfig> = {
     frameTitleKey: 'learn.textbook.frameTitleG8',
     sectionPages: G8_SECTION_PAGES,
     chapterStart: G8_CHAPTER_START,
-    sectionPage: (chapterId, sectionId) => G8_SECTION_PAGES[`${chapterId}-${sectionId}`],
-    chapterStartPage: (n) => G8_CHAPTER_START[`c${n}`] ?? 8,
+    sectionPage: tocSectionLookup(G8_SECTION_PAGES),
+    chapterStartPage: tocChapterLookup(G8_CHAPTER_START, 8),
   },
   g9: {
     gradeId: 'g9',
@@ -77,13 +91,33 @@ export const TEXTBOOK_BY_GRADE: Record<LearnTextbookGradeId, TextbookConfig> = {
     frameTitleKey: 'learn.textbook.frameTitleG9',
     sectionPages: G9_SECTION_PAGES,
     chapterStart: G9_CHAPTER_START,
-    sectionPage: (chapterId, sectionId) => G9_SECTION_PAGES[`${chapterId}-${sectionId}`],
-    chapterStartPage: (n) => G9_CHAPTER_START[`c${n}`] ?? 8,
+    sectionPage: tocSectionLookup(G9_SECTION_PAGES),
+    chapterStartPage: tocChapterLookup(G9_CHAPTER_START, 8),
+  },
+  g10: {
+    gradeId: 'g10',
+    pdfFile: 'kimyo-10-ru-2022.pdf',
+    totalPages: 192,
+    frameTitleKey: 'learn.textbook.frameTitleG10',
+    sectionPages: G10_SECTION_PAGES,
+    chapterStart: G10_CHAPTER_START,
+    sectionPage: tocSectionLookup(G10_SECTION_PAGES),
+    chapterStartPage: tocChapterLookup(G10_CHAPTER_START, 7),
+  },
+  g11: {
+    gradeId: 'g11',
+    pdfFile: 'kimyo-11-ru.pdf',
+    totalPages: 160,
+    frameTitleKey: 'learn.textbook.frameTitleG11',
+    sectionPages: G11_SECTION_PAGES,
+    chapterStart: G11_CHAPTER_START,
+    sectionPage: tocSectionLookup(G11_SECTION_PAGES),
+    chapterStartPage: tocChapterLookup(G11_CHAPTER_START, 4),
   },
 }
 
 export function gradeHasTextbook(gradeId: string): gradeId is LearnTextbookGradeId {
-  return gradeId === 'g7' || gradeId === 'g8' || gradeId === 'g9'
+  return gradeId === 'g7' || gradeId === 'g8' || gradeId === 'g9' || gradeId === 'g10' || gradeId === 'g11'
 }
 
 export function getTextbookConfig(gradeId: string): TextbookConfig | null {
