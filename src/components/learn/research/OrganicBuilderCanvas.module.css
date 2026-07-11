@@ -30,6 +30,77 @@
   box-shadow: 0 0 16px rgba(52, 211, 153, 0.2);
 }
 
+.angleBadge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  padding: 0.12rem 0.35rem;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.angleBadge small {
+  font-weight: 500;
+  opacity: 0.85;
+  font-size: 0.58rem;
+}
+
+.angleOk {
+  color: #6ee7b7;
+  background: rgba(6, 40, 28, 0.85);
+  border-color: rgba(52, 211, 153, 0.45);
+}
+
+.angleClose {
+  color: #fde68a;
+  background: rgba(40, 30, 8, 0.85);
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.angleBad {
+  color: #fda4af;
+  background: rgba(40, 10, 18, 0.85);
+  border-color: rgba(251, 113, 133, 0.45);
+}
+
+.splitStudio {
+  display: grid;
+  grid-template-columns: 1.35fr minmax(16rem, 0.9fr);
+  gap: 0.65rem;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.splitEq {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.65rem 0.7rem;
+  border-radius: 14px;
+  border: 1px solid rgba(100, 140, 200, 0.28);
+  background: rgba(6, 10, 20, 0.72);
+  max-height: min(56vh, 32rem);
+  overflow: auto;
+}
+
+.splitEqTitle {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.splitEqFlash {
+  border-color: rgba(52, 211, 153, 0.75);
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.35), 0 0 24px rgba(52, 211, 153, 0.18);
+}
+
 .feedback {
   margin: 0;
   padding: 0.45rem 0.65rem;
@@ -38,6 +109,31 @@
   background: rgba(8, 16, 32, 0.75);
   font-size: 0.8rem;
   color: #bae6fd;
+}
+
+.tipsBar {
+  margin-top: 0.25rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  border: 1px dashed rgba(125, 211, 252, 0.3);
+  background: rgba(8, 16, 32, 0.55);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(186, 200, 230, 0.95);
+}
+
+.tipsBar strong {
+  color: #7dd3fc;
+}
+
+@media (max-width: 900px) {
+  .splitStudio {
+    grid-template-columns: 1fr;
+  }
+
+  .splitEq {
+    max-height: none;
+  }
 }
 
 .stageRow {

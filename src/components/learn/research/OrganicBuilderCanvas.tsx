@@ -11,6 +11,7 @@ import { freeValence, type OrganicGraph } from '../../../chemistry/organic/organ
 import { isWebGLAvailable } from '../../../utils/webgl'
 import { useT } from '../../../i18n/useT'
 import { Sn2AttackLayer } from './Sn2AttackLayer'
+import { AngleVectorGuides } from './AngleVectorGuides'
 import styles from './OrganicBuilderCanvas.module.css'
 
 type Props = {
@@ -22,6 +23,8 @@ type Props = {
   attackMode?: boolean
   /** Показывать молекулу рядом с SN2-слоем */
   keepMoleculeWithAttack?: boolean
+  /** Показывать градусы и векторы связей */
+  showAngleVectors?: boolean
   onAttackAngle?: (deg: number, delta: number, inZone: boolean) => void
   children?: ReactNode
 }
@@ -141,6 +144,7 @@ function BuilderScene({
   onSelectAtom,
   attackMode,
   keepMoleculeWithAttack,
+  showAngleVectors,
   onAttackAngle,
   orbitEnabled,
   setOrbitEnabled,
@@ -151,6 +155,7 @@ function BuilderScene({
   onSelectAtom: (id: string | null) => void
   attackMode: boolean
   keepMoleculeWithAttack: boolean
+  showAngleVectors: boolean
   onAttackAngle?: (deg: number, delta: number, inZone: boolean) => void
   orbitEnabled: boolean
   setOrbitEnabled: (v: boolean) => void
@@ -159,6 +164,7 @@ function BuilderScene({
   const n = graph.atoms.length
   const scale = n <= 5 ? 1.2 : n <= 10 ? 0.95 : n <= 15 ? 0.78 : 0.65
   const showMolecule = !attackMode || keepMoleculeWithAttack
+  const molScale = attackMode && keepMoleculeWithAttack ? scale * 0.75 : scale
 
   return (
     <>
@@ -175,7 +181,7 @@ function BuilderScene({
         <group position={attackMode && keepMoleculeWithAttack ? [-2.8, 0, 0] : [0, 0, 0]}>
           <MoleculeMesh
             compound={compound}
-            scale={attackMode && keepMoleculeWithAttack ? scale * 0.75 : scale}
+            scale={molScale}
             renderQuality="high"
             visualPreset="default"
             showLabels
@@ -189,6 +195,9 @@ function BuilderScene({
                 selectedId={selectedId}
                 onSelectAtom={onSelectAtom}
               />
+              {showAngleVectors ? (
+                <AngleVectorGuides graph={graph} scale={scale} selectedId={selectedId} />
+              ) : null}
             </>
           ) : null}
         </group>
@@ -224,6 +233,7 @@ export function OrganicBuilderCanvas({
   onSelectAtom,
   attackMode = false,
   keepMoleculeWithAttack = false,
+  showAngleVectors = true,
   onAttackAngle,
   children,
 }: Props) {
@@ -270,6 +280,7 @@ export function OrganicBuilderCanvas({
                   onSelectAtom={onSelectAtom}
                   attackMode={attackMode}
                   keepMoleculeWithAttack={keepMoleculeWithAttack}
+                  showAngleVectors={showAngleVectors}
                   onAttackAngle={onAttackAngle}
                   orbitEnabled={orbitEnabled}
                   setOrbitEnabled={setOrbitEnabled}

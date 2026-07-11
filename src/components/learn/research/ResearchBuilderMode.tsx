@@ -6,6 +6,7 @@ import {
   type OrganicBuildChallenge,
   type OrganicClassId,
 } from '../../../data/researchLab/organicBuildCatalog'
+import type { GradeEq } from '../../../data/researchLab/g10g11Equations'
 import {
   addBond,
   applySkeletonBonds,
@@ -41,7 +42,8 @@ import { OrganicBuilderCanvas } from './OrganicBuilderCanvas'
 import { ResearchEquationBuilder } from './ResearchEquationBuilder'
 import { ResearchEquilibriumMode } from './ResearchEquilibriumMode'
 
-type LabTool = 'build' | 'attack' | 'equation' | 'equilibrium'
+/** Молекула (+вектор) или Ле Шателье; уравнение всегда рядом со сценой. */
+type LabTool = 'build' | 'attack' | 'equilibrium'
 
 function pickTitle(c: OrganicBuildChallenge, locale: string) {
   if (locale === 'en') return c.titleEn
@@ -86,8 +88,45 @@ function expectedComposition(kit: OrganicBuildChallenge['kit']): Record<string, 
   return out
 }
 
+function asciiFormula(s: string): string {
+  return s
+    .replace(/[₀₁₂₃₄₅₆₇₈₉]/g, (d) => String('₀₁₂₃₄₅₆₇₈₉'.indexOf(d)))
+    .replace(/\s+/g, '')
+}
+
+function tokenCore(tok: string): string {
+  return asciiFormula(tok).replace(/^\d+/, '')
+}
+
+function isOrganicToken(f: string): boolean {
+  return /C/.test(f) && !/^CO2?$/.test(f) && f !== 'C'
+}
+
+/** Химически правильная 3D-структура по заданию (скелет + H + layout). */
+function buildCorrectGraph(challenge: OrganicBuildChallenge): OrganicGraph {
+  let g = createFormulaKit(challenge.kit)
+  g = applySkeletonBonds(g, challenge.skeleton)
+  g = autoBondKitHydrogens(g)
+  return layoutOrganicGraph(g)
+}
+
 function startKit(challenge: OrganicBuildChallenge): OrganicGraph {
   return createFormulaKit(challenge.kit)
+}
+
+/** По уравнению подобрать молекулу каталога для 3D. */
+function challengeFromEquation(eq: GradeEq): OrganicBuildChallenge | undefined {
+  const display = asciiFormula(eq.displayRu)
+  const byEq = STUDIO_CHALLENGES.find((c) => asciiFormula(c.equationRu) === display)
+  if (byEq) return byEq
+
+  const leftOrganic = eq.left.map(tokenCore).filter(isOrganicToken)
+  const rightOrganic = eq.right.map(tokenCore).filter(isOrganicToken)
+  for (const f of [...leftOrganic, ...rightOrganic]) {
+    const hit = STUDIO_CHALLENGES.find((c) => asciiFormula(c.formula) === f)
+    if (hit) return hit
+  }
+  return undefined
 }
 
 /** Без каркаса (адамантан и т.п.) — только цепи, кольца, функциональные классы. */
@@ -146,6 +185,8 @@ export function ResearchBuilderMode({
     }
   })
   const [feedback, setFeedback] = useState('')
+  const [eqHighlight, setEqHighlight] = useState(false)
+  const skipKitAnnounce = useRef(false)
 
   const say = (text: string) => {
     setFeedback(text)
@@ -181,6 +222,10 @@ export function ResearchBuilderMode({
   }, [classFilter])
 
   useEffect(() => {
+    if (skipKitAnnounce.current) {
+      skipKitAnnounce.current = false
+      return
+    }
     say(
       t('learn.research.builderKitReady', {
         n: kitTotal(challenge.kit),
@@ -190,19 +235,35 @@ export function ResearchBuilderMode({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challenge.id])
 
+  const applyChallenge = (
+    next: OrganicBuildChallenge,
+    mode: 'kit' | 'correct',
+    announce?: string,
+  ) => {
+    setChallengeId(next.id)
+    setGraph(mode === 'correct' ? buildCorrectGraph(next) : startKit(next))
+    setSelectedId(null)
+    setBondFrom(null)
+    setChecked(mode === 'correct')
+    setAngleNeighbor(null)
+    setClassFilter(next.classId)
+    setAttackResult('idle')
+    if (labTool === 'equilibrium') setLabTool('build')
+    if (announce) {
+      skipKitAnnounce.current = true
+      say(announce)
+    }
+  }
+
   const switchChallenge = (id: string) => {
     const next = STUDIO_CHALLENGES.find((c) => c.id === id)
     if (!next) return
-    setChallengeId(id)
-    setGraph(startKit(next))
-    setSelectedId(null)
-    setBondFrom(null)
-    setChecked(false)
-    setAngleNeighbor(null)
+    applyChallenge(
+      next,
+      'kit',
+      t('learn.research.builderKitReady', { n: kitTotal(next.kit), f: next.formula }),
+    )
     setLabTool('build')
-    setAttackResult('idle')
-    setClassFilter(next.classId)
-    say(t('learn.research.builderKitReady', { n: kitTotal(next.kit), f: next.formula }))
   }
 
   const resetKit = () => {
@@ -212,6 +273,25 @@ export function ResearchBuilderMode({
     setChecked(false)
     setAngleNeighbor(null)
     say(t('learn.research.builderKitReady', { n: kitTotal(challenge.kit), f: challenge.formula }))
+  }
+
+  /** Уравнение → правильная 3D-модель вещества. */
+  const onSelectEquation = (eq: GradeEq) => {
+    const next = challengeFromEquation(eq)
+    if (!next) {
+      say(t('learn.research.syncEqNoMolecule', { eq: eq.displayRu }))
+      return
+    }
+    applyChallenge(
+      next,
+      'correct',
+      t('learn.research.syncEqToMolecule', {
+        f: next.formula,
+        eq: eq.displayRu,
+      }),
+    )
+    setLabTool('build')
+    setEqHighlight(false)
   }
 
   const handleSelect = (id: string | null) => {
@@ -333,11 +413,21 @@ export function ResearchBuilderMode({
     ] as const
   ).filter(([, n]) => n && n > 0)
 
+  const tipText = (() => {
+    if (attackMode) return t('learn.research.studioSn2Lead3d')
+    if (coachStep === 1) return t('learn.research.tipsStep1')
+    if (coachStep === 2) return t('learn.research.tipsStep2')
+    if (coachStep === 3) return t('learn.research.tipsStep3')
+    if (coachStep === 4) return t('learn.research.tipsStep4')
+    return t('learn.research.tipsStep5')
+  })()
+
   const runCheck = () => {
     setChecked(true)
     if (complete) {
-      say(pickSuccess(challenge, locale))
-      setLabTool('equation')
+      say(`${pickSuccess(challenge, locale)} ${t('learn.research.syncMoleculeToEq')}`)
+      setEqHighlight(true)
+      setLabTool('build')
     } else {
       const parts: string[] = []
       if (!skeletonOk) parts.push(t('learn.research.builderFailSkeleton'))
@@ -345,6 +435,7 @@ export function ResearchBuilderMode({
       if (!anglesOk(graph)) parts.push(t('learn.research.builderFailAngles'))
       if (!formulaOk) parts.push(t('learn.research.builderFailFormula'))
       say(parts.join(' '))
+      setEqHighlight(false)
     }
   }
 
@@ -368,310 +459,353 @@ export function ResearchBuilderMode({
       <div className={styles.dock} role="tablist" aria-label={t('learn.research.labDockAria')}>
         {toolBtn('build', t('learn.research.labToolBuild'))}
         {toolBtn('attack', t('learn.research.labToolAttack'))}
-        {toolBtn('equation', t('learn.research.labToolEquation'))}
         {toolBtn('equilibrium', t('learn.research.labToolEq'))}
       </div>
 
-      <div className={styles.missionRow}>
-        <button
-          type="button"
-          className={`${styles.missionChip} ${classFilter === 'all' ? styles.missionChipActive : ''}`}
-          onClick={() => setClassFilter('all')}
-        >
-          {t('learn.research.builderAllClasses')} · {STUDIO_CHALLENGES.length}
-        </button>
-        {CLASS_ORDER.map((cid) => (
-          <button
-            key={cid}
-            type="button"
-            className={`${styles.missionChip} ${classFilter === cid ? styles.missionChipActive : ''}`}
-            onClick={() => setClassFilter(cid)}
-          >
-            {pickClass(cid, locale)}
-          </button>
-        ))}
-      </div>
-
-      <div className={styles.missionRow}>
-        {filtered.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            className={`${styles.missionChip} ${challengeId === c.id ? styles.missionChipActive : ''}`}
-            onClick={() => switchChallenge(c.id)}
-            title={pickTitle(c, locale)}
-          >
-            {c.formula}
-          </button>
-        ))}
-      </div>
-
-      <div className={styles.titleLine}>
-        <strong>{pickTitle(challenge, locale)}</strong>
-        <span className={styles.hintLine}>
-          {pickClass(challenge.classId, locale)} ·{' '}
-          {t('learn.research.builderAtomCount', {
-            n: graph.atoms.length,
-            target: kitTotal(challenge.kit),
-          })}{' '}
-          · {t('learn.research.builderBondCount', { n: graph.bonds.length })}
-        </span>
-      </div>
-      <p className={styles.hintLine}>{pickHint(challenge, locale)}</p>
-      {ringHint != null ? (
-        <p className={styles.hintLine}>
-          {t('learn.research.coachRingAngle', { n: ringHint, formula: challenge.formula })}
-        </p>
-      ) : null}
-
-      {showCoach ? (
-        <div className={styles.coach} role="note">
-          <div className={styles.coachHead}>
-            <strong>{t('learn.research.coachTitle')}</strong>
-            <button type="button" className={styles.tool} onClick={dismissCoach}>
-              {t('learn.research.coachHide')}
+      {labTool !== 'equilibrium' ? (
+        <>
+          <div className={styles.missionRow}>
+            <button
+              type="button"
+              className={`${styles.missionChip} ${classFilter === 'all' ? styles.missionChipActive : ''}`}
+              onClick={() => setClassFilter('all')}
+            >
+              {t('learn.research.builderAllClasses')} · {STUDIO_CHALLENGES.length}
             </button>
-          </div>
-          <ol className={styles.coachList}>
-            <li className={coachStep === 1 ? styles.coachActive : coachStep > 1 ? styles.coachDone : ''}>
-              {t('learn.research.coachStep1')}
-            </li>
-            <li className={coachStep === 2 ? styles.coachActive : coachStep > 2 ? styles.coachDone : ''}>
-              {t('learn.research.coachStep2')}
-            </li>
-            <li className={coachStep === 3 ? styles.coachActive : coachStep > 3 ? styles.coachDone : ''}>
-              {t('learn.research.coachStep3')}
-            </li>
-            <li className={coachStep === 4 ? styles.coachActive : coachStep > 4 ? styles.coachDone : ''}>
-              {t('learn.research.coachStep4')}
-            </li>
-            <li className={coachStep === 5 ? styles.coachActive : ''}>{t('learn.research.coachStep5')}</li>
-          </ol>
-          <p className={styles.hintLine}>{t('learn.research.coachHow')}</p>
-        </div>
-      ) : (
-        <button type="button" className={styles.tool} onClick={openCoach}>
-          {t('learn.research.coachShow')}
-        </button>
-      )}
-
-      {feedback ? <p className={styles.feedback}>{feedback}</p> : null}
-
-      {(labTool === 'build' || labTool === 'attack') && (
-        <OrganicBuilderCanvas
-          graph={graph}
-          selectedId={selectedId}
-          bondFromId={bondFrom}
-          onSelectAtom={handleSelect}
-          attackMode={attackMode}
-          keepMoleculeWithAttack
-          onAttackAngle={(d, del, ok) => {
-            attackRef.current = { inZone: ok }
-            const rd = Math.round(d)
-            const rdel = Math.round(del)
-            setAttackDeg((p) => (p === rd ? p : rd))
-            setAttackDelta((p) => (p === rdel ? p : rdel))
-            setAttackInZone((p) => (p === ok ? p : ok))
-          }}
-        >
-          <div className={styles.hudTop}>
-            <div className={styles.formulaPanel}>
-              {attackMode ? (
-                <>
-                  <span className={styles.formulaLive}>
-                    {t('learn.research.attackAngleLive', { n: attackDeg })}
-                  </span>
-                  <span className={attackInZone ? styles.statusOk : styles.hintLine}>
-                    {t('learn.research.attackDeltaLive', { n: attackDelta })}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className={styles.formulaTarget}>{challenge.formula}</span>
-                  <span className={styles.formulaLive}>
-                    {t('learn.research.builderFormulaNow', { f: formulaUnicode(graph) })}
-                  </span>
-                  <div className={styles.kitCounts}>
-                    {kitEntries.map(([el, n]) => (
-                      <span
-                        key={el}
-                        className={`${styles.kitPill} ${
-                          el === 'C' ? styles.kitPillC : el === 'H' ? styles.kitPillH : styles.kitPillO
-                        }`}
-                      >
-                        {el}×{n}
-                      </span>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-            {!attackMode ? (
-              <div className={styles.checks}>
-                <span className={`${styles.check} ${valenceOkPartial ? styles.checkOn : ''}`}>
-                  {t('learn.research.builderCheckValence')}
-                </span>
-                <span className={`${styles.check} ${skeletonOk ? styles.checkOn : ''}`}>
-                  {t('learn.research.builderCheckSkeleton')}
-                </span>
-                <span className={`${styles.check} ${angleStatus === 'ok' ? styles.checkOn : ''}`}>
-                  {t('learn.research.builderCheckAngles')}
-                </span>
-                <span className={`${styles.check} ${formulaOk ? styles.checkOn : ''}`}>
-                  {t('learn.research.builderCheckFormula')}
-                </span>
-              </div>
-            ) : null}
+            {CLASS_ORDER.map((cid) => (
+              <button
+                key={cid}
+                type="button"
+                className={`${styles.missionChip} ${classFilter === cid ? styles.missionChipActive : ''}`}
+                onClick={() => setClassFilter(cid)}
+              >
+                {pickClass(cid, locale)}
+              </button>
+            ))}
           </div>
 
-          <div className={styles.hudBottom}>
-            {attackMode ? (
-              <div className={styles.toolbar}>
-                <span className={styles.hintLine}>{t('learn.research.studioSn2Lead3d')}</span>
-                <button
-                  type="button"
-                  className={`${styles.tool} ${styles.toolPrimary}`}
-                  onClick={() => {
-                    const ok = attackRef.current.inZone
-                    setAttackResult(ok ? 'ok' : 'bad')
-                    say(ok ? t('learn.research.attackOkMacro') : t('learn.research.attackBadMacro'))
-                  }}
-                >
-                  {t('learn.research.attackCheck')}
+          <div className={styles.missionRow}>
+            {filtered.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`${styles.missionChip} ${challengeId === c.id ? styles.missionChipActive : ''}`}
+                onClick={() => switchChallenge(c.id)}
+                title={pickTitle(c, locale)}
+              >
+                {c.formula}
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.titleLine}>
+            <strong>{pickTitle(challenge, locale)}</strong>
+            <span className={styles.hintLine}>
+              {pickClass(challenge.classId, locale)} ·{' '}
+              {t('learn.research.builderAtomCount', {
+                n: graph.atoms.length,
+                target: kitTotal(challenge.kit),
+              })}{' '}
+              · {t('learn.research.builderBondCount', { n: graph.bonds.length })}
+              {angleHintDeg != null || ringHint != null
+                ? ` · ${ringHint ?? angleHintDeg}°`
+                : ''}
+            </span>
+          </div>
+          <p className={styles.hintLine}>{pickHint(challenge, locale)}</p>
+          {ringHint != null ? (
+            <p className={styles.hintLine}>
+              {t('learn.research.coachRingAngle', { n: ringHint, formula: challenge.formula })}
+            </p>
+          ) : null}
+
+          {showCoach ? (
+            <div className={styles.coach} role="note">
+              <div className={styles.coachHead}>
+                <strong>{t('learn.research.coachTitle')}</strong>
+                <button type="button" className={styles.tool} onClick={dismissCoach}>
+                  {t('learn.research.coachHide')}
                 </button>
-                {attackResult === 'ok' ? (
-                  <span className={styles.statusOk}>{t('learn.research.attackOk')}</span>
-                ) : null}
-                {attackResult === 'bad' ? (
-                  <span className={styles.statusBad}>{t('learn.research.attackBad')}</span>
+              </div>
+              <ol className={styles.coachList}>
+                <li className={coachStep === 1 ? styles.coachActive : coachStep > 1 ? styles.coachDone : ''}>
+                  {t('learn.research.coachStep1')}
+                </li>
+                <li className={coachStep === 2 ? styles.coachActive : coachStep > 2 ? styles.coachDone : ''}>
+                  {t('learn.research.coachStep2')}
+                </li>
+                <li className={coachStep === 3 ? styles.coachActive : coachStep > 3 ? styles.coachDone : ''}>
+                  {t('learn.research.coachStep3')}
+                </li>
+                <li className={coachStep === 4 ? styles.coachActive : coachStep > 4 ? styles.coachDone : ''}>
+                  {t('learn.research.coachStep4')}
+                </li>
+                <li className={coachStep === 5 ? styles.coachActive : ''}>{t('learn.research.coachStep5')}</li>
+              </ol>
+              <p className={styles.hintLine}>{t('learn.research.coachHow')}</p>
+            </div>
+          ) : (
+            <button type="button" className={styles.tool} onClick={openCoach}>
+              {t('learn.research.coachShow')}
+            </button>
+          )}
+
+          {feedback ? <p className={styles.feedback}>{feedback}</p> : null}
+
+          <div className={styles.splitStudio}>
+            <OrganicBuilderCanvas
+              graph={graph}
+              selectedId={selectedId}
+              bondFromId={bondFrom}
+              onSelectAtom={handleSelect}
+              attackMode={attackMode}
+              keepMoleculeWithAttack
+              showAngleVectors={!attackMode}
+              onAttackAngle={(d, del, ok) => {
+                attackRef.current = { inZone: ok }
+                const rd = Math.round(d)
+                const rdel = Math.round(del)
+                setAttackDeg((p) => (p === rd ? p : rd))
+                setAttackDelta((p) => (p === rdel ? p : rdel))
+                setAttackInZone((p) => (p === ok ? p : ok))
+              }}
+            >
+              <div className={styles.hudTop}>
+                <div className={styles.formulaPanel}>
+                  {attackMode ? (
+                    <>
+                      <span className={styles.formulaLive}>
+                        {t('learn.research.attackAngleLive', { n: attackDeg })}
+                      </span>
+                      <span className={attackInZone ? styles.statusOk : styles.hintLine}>
+                        {t('learn.research.attackDeltaLive', { n: attackDelta })}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className={styles.formulaTarget}>{challenge.formula}</span>
+                      <span className={styles.formulaLive}>
+                        {t('learn.research.builderFormulaNow', { f: formulaUnicode(graph) })}
+                      </span>
+                      <div className={styles.kitCounts}>
+                        {kitEntries.map(([el, n]) => (
+                          <span
+                            key={el}
+                            className={`${styles.kitPill} ${
+                              el === 'C' ? styles.kitPillC : el === 'H' ? styles.kitPillH : styles.kitPillO
+                            }`}
+                          >
+                            {el}×{n}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+                {!attackMode ? (
+                  <div className={styles.checks}>
+                    <span className={`${styles.check} ${valenceOkPartial ? styles.checkOn : ''}`}>
+                      {t('learn.research.builderCheckValence')}
+                    </span>
+                    <span className={`${styles.check} ${skeletonOk ? styles.checkOn : ''}`}>
+                      {t('learn.research.builderCheckSkeleton')}
+                    </span>
+                    <span className={`${styles.check} ${angleStatus === 'ok' ? styles.checkOn : ''}`}>
+                      {t('learn.research.builderCheckAngles')}
+                    </span>
+                    <span className={`${styles.check} ${formulaOk ? styles.checkOn : ''}`}>
+                      {t('learn.research.builderCheckFormula')}
+                    </span>
+                  </div>
                 ) : null}
               </div>
-            ) : (
-              <>
-                {selectedAtom ? (
-                  <div className={styles.inspect}>
-                    <span>
-                      <strong>{selectedAtom.element}</strong>
-                      {angleHintDeg != null
-                        ? ` · ${hyb && hyb !== 'terminal' ? `${hyb} · ` : ''}${angleHintDeg}°`
-                        : ''}
-                      {' · '}
-                      {t('learn.research.builderFreeValence', {
-                        n: freeValence(graph, selectedAtom.id),
-                      })}
-                    </span>
-                    {neighborsOfSelected.length > 0 ? (
-                      <>
-                        <select
-                          value={angleNeighbor ?? ''}
-                          onChange={(e) => setAngleNeighbor(e.target.value || null)}
-                          aria-label={t('learn.research.builderAngleArm')}
-                        >
-                          <option value="">{t('learn.research.builderPickNeighbor')}</option>
-                          {neighborsOfSelected.map((id) => {
-                            const a = graph.atoms.find((x) => x.id === id)
-                            return (
-                              <option key={id} value={id}>
-                                {a?.element ?? id}
-                              </option>
-                            )
-                          })}
-                        </select>
-                        <button type="button" className={styles.tool} disabled={!angleNeighbor} onClick={() => rotateSel(-5)}>
-                          −5°
-                        </button>
-                        <button type="button" className={styles.tool} disabled={!angleNeighbor} onClick={() => rotateSel(5)}>
-                          +5°
-                        </button>
-                        <button type="button" className={styles.tool} disabled={!angleNeighbor} onClick={raiseBondOrder}>
-                          {t('learn.research.builderBondOrder')}
-                        </button>
-                        <button type="button" className={styles.tool} disabled={!angleNeighbor} onClick={breakBond}>
-                          {t('learn.research.builderBreakBond')}
-                        </button>
-                      </>
-                    ) : (
-                      <span>{t('learn.research.builderClickBond')}</span>
-                    )}
+
+              <div className={styles.hudBottom}>
+                {attackMode ? (
+                  <div className={styles.toolbar}>
+                    <span className={styles.hintLine}>{t('learn.research.studioSn2Lead3d')}</span>
+                    <button
+                      type="button"
+                      className={`${styles.tool} ${styles.toolPrimary}`}
+                      onClick={() => {
+                        const ok = attackRef.current.inZone
+                        setAttackResult(ok ? 'ok' : 'bad')
+                        say(ok ? t('learn.research.attackOkMacro') : t('learn.research.attackBadMacro'))
+                      }}
+                    >
+                      {t('learn.research.attackCheck')}
+                    </button>
+                    {attackResult === 'ok' ? (
+                      <span className={styles.statusOk}>{t('learn.research.attackOk')}</span>
+                    ) : null}
+                    {attackResult === 'bad' ? (
+                      <span className={styles.statusBad}>{t('learn.research.attackBad')}</span>
+                    ) : null}
                   </div>
                 ) : (
-                  <div className={styles.inspect}>{t('learn.research.builderClickBond')}</div>
-                )}
-
-                <div className={styles.toolbar}>
-                  <button
-                    type="button"
-                    className={`${styles.tool} ${coachStep === 1 ? styles.toolPrimary : ''}`}
-                    onClick={doBuildSkeleton}
-                    title={t('learn.research.builderSkeletonHint')}
-                  >
-                    {t('learn.research.builderSkeleton')}
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.tool} ${bondFrom ? styles.toolActive : styles.toolPrimary}`}
-                    onClick={startBond}
-                    disabled={!selectedId}
-                  >
-                    {bondFrom ? t('learn.research.builderBondPick') : t('learn.research.builderBond')}
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.tool} ${bondOrder > 1 ? styles.toolActive : ''}`}
-                    onClick={() => setBondOrderUi((o) => (o === 1 ? 2 : o === 2 ? 3 : 1))}
-                    title={t('learn.research.builderBondOrderHint')}
-                  >
-                    {bondOrder === 1 ? '—' : bondOrder === 2 ? '=' : '≡'} ×{bondOrder}
-                  </button>
-                  <button type="button" className={`${styles.tool} ${coachStep === 2 ? styles.toolPrimary : ''}`} onClick={doAutoH}>
-                    {t('learn.research.builderAutoH')}
-                  </button>
-                  <button type="button" className={`${styles.tool} ${coachStep === 3 ? styles.toolPrimary : ''}`} onClick={doSnap}>
-                    {t('learn.research.builderSnap')}
-                  </button>
-                  <button type="button" className={styles.tool} onClick={resetKit}>
-                    {t('learn.research.builderResetKit')}
-                  </button>
-                  <button type="button" className={`${styles.tool} ${styles.toolPrimary}`} onClick={runCheck}>
-                    {t('learn.research.builderCheck')}
-                  </button>
-                  {checked ? (
-                    complete ? (
-                      <span className={styles.statusOk}>{t('learn.research.builderOk')}</span>
+                  <>
+                    {selectedAtom ? (
+                      <div className={styles.inspect}>
+                        <span>
+                          <strong>{selectedAtom.element}</strong>
+                          {angleHintDeg != null
+                            ? ` · ${hyb && hyb !== 'terminal' ? `${hyb} · ` : ''}${angleHintDeg}°`
+                            : ''}
+                          {' · '}
+                          {t('learn.research.builderFreeValence', {
+                            n: freeValence(graph, selectedAtom.id),
+                          })}
+                        </span>
+                        {neighborsOfSelected.length > 0 ? (
+                          <>
+                            <select
+                              value={angleNeighbor ?? ''}
+                              onChange={(e) => setAngleNeighbor(e.target.value || null)}
+                              aria-label={t('learn.research.builderAngleArm')}
+                            >
+                              <option value="">{t('learn.research.builderPickNeighbor')}</option>
+                              {neighborsOfSelected.map((id) => {
+                                const a = graph.atoms.find((x) => x.id === id)
+                                return (
+                                  <option key={id} value={id}>
+                                    {a?.element ?? id}
+                                  </option>
+                                )
+                              })}
+                            </select>
+                            <button
+                              type="button"
+                              className={styles.tool}
+                              disabled={!angleNeighbor}
+                              onClick={() => rotateSel(-5)}
+                            >
+                              −5°
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.tool}
+                              disabled={!angleNeighbor}
+                              onClick={() => rotateSel(5)}
+                            >
+                              +5°
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.tool}
+                              disabled={!angleNeighbor}
+                              onClick={raiseBondOrder}
+                            >
+                              {t('learn.research.builderBondOrder')}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.tool}
+                              disabled={!angleNeighbor}
+                              onClick={breakBond}
+                            >
+                              {t('learn.research.builderBreakBond')}
+                            </button>
+                          </>
+                        ) : (
+                          <span>{t('learn.research.builderClickBond')}</span>
+                        )}
+                      </div>
                     ) : (
-                      <span className={styles.statusBad}>{t('learn.research.builderBad')}</span>
-                    )
-                  ) : null}
-                </div>
-              </>
-            )}
+                      <div className={styles.inspect}>{t('learn.research.builderClickBond')}</div>
+                    )}
+
+                    <div className={styles.toolbar}>
+                      <button
+                        type="button"
+                        className={`${styles.tool} ${coachStep === 1 ? styles.toolPrimary : ''}`}
+                        onClick={doBuildSkeleton}
+                        title={t('learn.research.builderSkeletonHint')}
+                      >
+                        {t('learn.research.builderSkeleton')}
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.tool} ${bondFrom ? styles.toolActive : styles.toolPrimary}`}
+                        onClick={startBond}
+                        disabled={!selectedId}
+                      >
+                        {bondFrom ? t('learn.research.builderBondPick') : t('learn.research.builderBond')}
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.tool} ${bondOrder > 1 ? styles.toolActive : ''}`}
+                        onClick={() => setBondOrderUi((o) => (o === 1 ? 2 : o === 2 ? 3 : 1))}
+                        title={t('learn.research.builderBondOrderHint')}
+                      >
+                        {bondOrder === 1 ? '—' : bondOrder === 2 ? '=' : '≡'} ×{bondOrder}
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.tool} ${coachStep === 2 ? styles.toolPrimary : ''}`}
+                        onClick={doAutoH}
+                      >
+                        {t('learn.research.builderAutoH')}
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.tool} ${coachStep === 3 ? styles.toolPrimary : ''}`}
+                        onClick={doSnap}
+                      >
+                        {t('learn.research.builderSnap')}
+                      </button>
+                      <button type="button" className={styles.tool} onClick={resetKit}>
+                        {t('learn.research.builderResetKit')}
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.tool} ${styles.toolPrimary}`}
+                        onClick={runCheck}
+                      >
+                        {t('learn.research.builderCheck')}
+                      </button>
+                      {checked ? (
+                        complete ? (
+                          <span className={styles.statusOk}>{t('learn.research.builderOk')}</span>
+                        ) : (
+                          <span className={styles.statusBad}>{t('learn.research.builderBad')}</span>
+                        )
+                      ) : null}
+                    </div>
+                  </>
+                )}
+              </div>
+            </OrganicBuilderCanvas>
+
+            <aside
+              className={`${styles.splitEq} ${eqHighlight ? styles.splitEqFlash : ''}`}
+              aria-labelledby="studio-eq-title"
+            >
+              <h3 className={styles.splitEqTitle} id="studio-eq-title">
+                {t('learn.research.studioEquation')}
+              </h3>
+              <p className={styles.hintLine}>
+                {t('learn.research.studioEquationLinked')}{' '}
+                <span className={styles.formulaInline}>{pickEq(challenge, locale)}</span>
+              </p>
+              <ResearchEquationBuilder
+                onMacro={say}
+                compact
+                preferFormula={challenge.formula}
+                onSelectEquation={onSelectEquation}
+              />
+            </aside>
           </div>
-        </OrganicBuilderCanvas>
-      )}
 
-      {labTool === 'equation' ? (
-        <section className={styles.eqBelow} aria-labelledby="studio-eq-title">
-          <h3 className={styles.eqBelowTitle} id="studio-eq-title">
-            {t('learn.research.studioEquation')}
-          </h3>
-          <p className={styles.hintLine}>
-            {t('learn.research.studioEquationLinked')}{' '}
-            <span className={styles.formulaInline}>{pickEq(challenge, locale)}</span>
-          </p>
-          <ResearchEquationBuilder
-            onMacro={say}
-            compact
-            preferFormula={challenge.formula}
-          />
-        </section>
-      ) : null}
-
-      {labTool === 'equilibrium' ? (
+          <div className={styles.tipsBar} role="note">
+            <strong>{t('learn.research.tipsLabel')}</strong> {tipText}
+          </div>
+        </>
+      ) : (
         <section className={styles.eqBelow}>
           <h3 className={styles.eqBelowTitle}>{t('learn.research.labToolEq')}</h3>
           <ResearchEquilibriumMode onMacro={say} />
         </section>
-      ) : null}
+      )}
     </div>
   )
 }

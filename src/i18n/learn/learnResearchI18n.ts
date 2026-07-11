@@ -16,8 +16,8 @@ export const learnResearchI18nRu = {
   'learn.research.labDockAria': 'Инструменты лаборатории',
   'learn.research.labToolBuild': '1 · Молекула',
   'learn.research.labToolAttack': '2 · Вектор',
-  'learn.research.labToolEquation': '3 · Уравнение',
-  'learn.research.labToolEq': '4 · Ле Шателье',
+  'learn.research.labToolEquation': 'Уравнение',
+  'learn.research.labToolEq': '3 · Ле Шателье',
   'learn.research.stageAria': 'Этап сборки',
   'learn.research.stageChain': 'Цепь',
   'learn.research.stageRing': 'Кольцо',
@@ -135,10 +135,25 @@ export const learnResearchI18nRu = {
   'learn.research.coachStep2': '2. Нажмите «Связать H» — водороды по валентности.',
   'learn.research.coachStep3': '3. «Snap углы» — правильная 3D-геометрия (кольцо / тетраэдр).',
   'learn.research.coachStep4': '4. «Проверить молекулу» — скелет, валентность, углы, формула.',
-  'learn.research.coachStep5': '5. Готово! Можно собрать уравнение под сценой.',
+  'learn.research.coachStep5': '5. Готово! Справа соберите уравнение вещества.',
   'learn.research.coachRingAngle': 'Циклоалкан {formula}: целевой угол C–C–C ≈ {n}°.',
   'learn.research.builderSkeleton': 'Скелет',
   'learn.research.builderSkeletonHint': 'Соединить тяжёлые атомы как в задании (кольцо/цепь)',
+  'learn.research.tipsLabel': 'Подсказка:',
+  'learn.research.tipsStep1':
+    'Сначала скелет: соедините C (и другие тяжёлые атомы). Кнопка «Скелет» ставит связи по заданию. В 3D видны градусы: измеренный / целевой угол.',
+  'learn.research.tipsStep2':
+    'Закройте валентности: «Связать H». Каждый атом должен иметь правильное число связей (C=4, H=1, O=2…).',
+  'learn.research.tipsStep3':
+    'Выровняйте геометрию: «Snap углы» или ±5°. Алканы ~109.5° (sp³), алкены ~120°, алкины ~180°. Векторы связей — голубые линии.',
+  'learn.research.tipsStep4':
+    'Проверьте молекулу: скелет, валентность, углы и формула должны совпасть. Тогда справа откроется уравнение.',
+  'learn.research.tipsStep5':
+    'Молекула готова → соберите уравнение справа. Или выберите уравнение в списке — появится правильная 3D-модель вещества.',
+  'learn.research.syncMoleculeToEq': 'Теперь соберите уравнение справа — оно связано с этой молекулой.',
+  'learn.research.syncEqToMolecule': 'Уравнение «{eq}» → в 3D загружена правильная структура {f}.',
+  'learn.research.syncEqNoMolecule':
+    'Для «{eq}» нет модели в каталоге 3D — выберите другое уравнение или соберите молекулу вручную.',
 } as const
 
 export const learnResearchI18nEn: Record<keyof typeof learnResearchI18nRu, string> = {
@@ -158,8 +173,8 @@ export const learnResearchI18nEn: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.labDockAria': 'Lab tools',
   'learn.research.labToolBuild': '1 · Molecule',
   'learn.research.labToolAttack': '2 · Attack',
-  'learn.research.labToolEquation': '3 · Equation',
-  'learn.research.labToolEq': '4 · Le Chatelier',
+  'learn.research.labToolEquation': 'Equation',
+  'learn.research.labToolEq': '3 · Le Chatelier',
   'learn.research.stageAria': 'Build stage',
   'learn.research.stageChain': 'Chain',
   'learn.research.stageRing': 'Ring',
@@ -277,10 +292,25 @@ export const learnResearchI18nEn: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.coachStep2': '2. Tap Bond H — hydrogens by valence.',
   'learn.research.coachStep3': '3. Snap angles — correct 3D geometry (ring / tetrahedron).',
   'learn.research.coachStep4': '4. Check molecule — skeleton, valence, angles, formula.',
-  'learn.research.coachStep5': '5. Done! Build the equation below the scene.',
+  'learn.research.coachStep5': '5. Done! Build the equation on the right.',
   'learn.research.coachRingAngle': 'Cycloalkane {formula}: target C–C–C ≈ {n}°.',
   'learn.research.builderSkeleton': 'Skeleton',
   'learn.research.builderSkeletonHint': 'Bond heavy atoms as in the assignment',
+  'learn.research.tipsLabel': 'Tip:',
+  'learn.research.tipsStep1':
+    'Start with the skeleton: bond C (and other heavy atoms). Skeleton applies assignment bonds. Degrees in 3D show measured / target angle.',
+  'learn.research.tipsStep2':
+    'Close valences: Bond H. Each atom needs the right bond count (C=4, H=1, O=2…).',
+  'learn.research.tipsStep3':
+    'Fix geometry: Snap angles or ±5°. Alkanes ~109.5° (sp³), alkenes ~120°, alkynes ~180°. Bond vectors are cyan lines.',
+  'learn.research.tipsStep4':
+    'Check the molecule: skeleton, valence, angles, and formula must match. Then use the equation on the right.',
+  'learn.research.tipsStep5':
+    'Molecule ready → build the equation on the right. Or pick an equation — a correct 3D model loads.',
+  'learn.research.syncMoleculeToEq': 'Now build the equation on the right — it is linked to this molecule.',
+  'learn.research.syncEqToMolecule': 'Equation “{eq}” → correct 3D structure {f} loaded.',
+  'learn.research.syncEqNoMolecule':
+    'No 3D model for “{eq}” in the catalog — pick another equation or build manually.',
 }
 
 export const learnResearchI18nUz: Record<keyof typeof learnResearchI18nRu, string> = {
@@ -300,8 +330,8 @@ export const learnResearchI18nUz: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.labDockAria': 'Laboratoriya vositalari',
   'learn.research.labToolBuild': '1 · Molekula',
   'learn.research.labToolAttack': '2 · Hujum',
-  'learn.research.labToolEquation': '3 · Tenglama',
-  'learn.research.labToolEq': '4 · Le Shatelye',
+  'learn.research.labToolEquation': 'Tenglama',
+  'learn.research.labToolEq': '3 · Le Shatelye',
   'learn.research.stageAria': 'Yigʻish bosqichi',
   'learn.research.stageChain': 'Zanjir',
   'learn.research.stageRing': 'Halqa',
@@ -419,8 +449,23 @@ export const learnResearchI18nUz: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.coachStep2': '2. «H bogʻlash» — valentlik boʻyicha vodorodlar.',
   'learn.research.coachStep3': '3. Snap — toʻgʻri 3D geometriya.',
   'learn.research.coachStep4': '4. Tekshirish — skelet, valentlik, burchaklar, formula.',
-  'learn.research.coachStep5': '5. Tayyor! Pastda tenglama yigʻing.',
+  'learn.research.coachStep5': '5. Tayyor! Oʻngda tenglama yigʻing.',
   'learn.research.coachRingAngle': 'Tsikloalkan {formula}: C–C–C ≈ {n}°.',
   'learn.research.builderSkeleton': 'Skelet',
   'learn.research.builderSkeletonHint': 'Ogʻir atomlarni topshiriq boʻyicha bogʻlash',
+  'learn.research.tipsLabel': 'Maslahat:',
+  'learn.research.tipsStep1':
+    'Avval skelet: C (va ogʻir atomlar) bogʻlang. «Skelet» topshiriq bogʻlarini qoʻyadi. 3D da burchaklar: oʻlchangan / maqsad.',
+  'learn.research.tipsStep2':
+    'Valentlikni yoping: «H bogʻlash». Har atom toʻgʻri bogʻlar soniga ega boʻlsin (C=4, H=1, O=2…).',
+  'learn.research.tipsStep3':
+    'Geometriyani tuzating: Snap yoki ±5°. Alkanlar ~109.5° (sp³), alkenlar ~120°, alkinlar ~180°.',
+  'learn.research.tipsStep4':
+    'Molekulani tekshiring: skelet, valentlik, burchaklar, formula. Keyin oʻngdagi tenglama.',
+  'learn.research.tipsStep5':
+    'Molekula tayyor → oʻngda tenglama. Yoki tenglama tanlang — toʻgʻri 3D model yuklanadi.',
+  'learn.research.syncMoleculeToEq': 'Endi oʻngda tenglama yigʻing — u shu molekula bilan bogʻliq.',
+  'learn.research.syncEqToMolecule': '«{eq}» → 3D da toʻgʻri tuzilma {f} yuklandi.',
+  'learn.research.syncEqNoMolecule':
+    '«{eq}» uchun 3D model yoʻq — boshqa tenglama tanlang yoki qoʻlda yigʻing.',
 }

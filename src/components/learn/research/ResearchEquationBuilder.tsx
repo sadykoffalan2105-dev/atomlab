@@ -50,11 +50,14 @@ export function ResearchEquationBuilder({
   onMacro,
   compact,
   preferFormula,
+  onSelectEquation,
 }: {
   onMacro: (text: string) => void
   compact?: boolean
   /** Предпочесть уравнения, связанные с формулой текущей молекулы */
   preferFormula?: string
+  /** Выбор уравнения → загрузка правильной 3D-молекулы снаружи */
+  onSelectEquation?: (eq: GradeEq) => void
 }) {
   const { t } = useT()
   const { locale } = useLocale()
@@ -116,7 +119,10 @@ export function ResearchEquationBuilder({
   const onPickEq = (id: string) => {
     setEqId(id)
     const eq = pool.find((e) => e.id === id)
-    if (eq) resetFor(eq, pool)
+    if (eq) {
+      resetFor(eq, pool)
+      onSelectEquation?.(eq)
+    }
   }
 
   const moveToken = (token: string, from: Side, fromIdx: number, to: Side) => {
