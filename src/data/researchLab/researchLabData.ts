@@ -1,0 +1,345 @@
+/** Кабинет исследователя — данные режимов 10–11 классов. */
+
+export type ResearchLabModeId = 'isomers' | 'attack' | 'equilibrium' | 'detective' | 'builder'
+
+export type IrPeak = {
+  /** см⁻¹ */
+  wavenumber: number
+  /** 0..1 */
+  intensity: number
+  label: string
+}
+
+export type IsomerCandidate = {
+  id: string
+  nameRu: string
+  nameEn: string
+  nameUz: string
+  formula: string
+  /** Верный ответ для текущего задания */
+  correct: boolean
+  skeleton: 'n' | 'iso' | 'neo' | 'sec' | 'tert' | 'ether' | 'alcohol'
+  functionalGroups: readonly string[]
+  irPeaks: readonly IrPeak[]
+  /** Краткое свойство / «катастрофа» */
+  hazardRu: string
+  hazardEn: string
+  hazardUz: string
+  color: string
+}
+
+export type IsomerChallenge = {
+  id: string
+  formula: string
+  targetCount: number
+  titleRu: string
+  titleEn: string
+  titleUz: string
+  hintRu: string
+  hintEn: string
+  hintUz: string
+  candidates: readonly IsomerCandidate[]
+}
+
+const OH_PEAK: IrPeak = { wavenumber: 3350, intensity: 0.92, label: 'O–H' }
+const CH_PEAK: IrPeak = { wavenumber: 2920, intensity: 0.7, label: 'C–H' }
+const CO_PEAK: IrPeak = { wavenumber: 1100, intensity: 0.55, label: 'C–O' }
+const CO_ETHER: IrPeak = { wavenumber: 1120, intensity: 0.65, label: 'C–O (эфир)' }
+const NO_OH: IrPeak[] = [CH_PEAK, CO_ETHER]
+
+export const ISOMER_CHALLENGES: readonly IsomerChallenge[] = [
+  {
+    id: 'c5h12',
+    formula: 'C₅H₁₂',
+    targetCount: 3,
+    titleRu: 'Собери все изомеры пентана',
+    titleEn: 'Collect all pentane isomers',
+    titleUz: 'Pentaning barcha izomerlarini yigʻing',
+    hintRu: 'Три структурных изомера: н-, изо- и неопентан.',
+    hintEn: 'Three structural isomers: n-, iso- and neopentane.',
+    hintUz: 'Uchta tuzilish izomeri: n-, izo- va neopentan.',
+    candidates: [
+      {
+        id: 'n-pentane',
+        nameRu: 'н-Пентан',
+        nameEn: 'n-Pentane',
+        nameUz: 'n-Pentan',
+        formula: 'C₅H₁₂',
+        correct: true,
+        skeleton: 'n',
+        functionalGroups: ['alkane'],
+        irPeaks: [CH_PEAK],
+        hazardRu: 'Легковоспламеняющаяся жидкость, топливо.',
+        hazardEn: 'Flammable liquid, fuel component.',
+        hazardUz: 'Yonuvchan suyuqlik, yoqilgʻi.',
+        color: '#7dd3fc',
+      },
+      {
+        id: 'isopentane',
+        nameRu: '2-Метилбутан (изопентан)',
+        nameEn: '2-Methylbutane (isopentane)',
+        nameUz: '2-Metilbutan (izopentan)',
+        formula: 'C₅H₁₂',
+        correct: true,
+        skeleton: 'iso',
+        functionalGroups: ['alkane'],
+        irPeaks: [{ wavenumber: 2960, intensity: 0.75, label: 'C–H' }],
+        hazardRu: 'Более низкая tкип., чем у н-пентана.',
+        hazardEn: 'Lower boiling point than n-pentane.',
+        hazardUz: 'n-Pentanga qaraganda pastroq qaynash nuqtasi.',
+        color: '#a5b4fc',
+      },
+      {
+        id: 'neopentane',
+        nameRu: '2,2-Диметилпропан (неопентан)',
+        nameEn: '2,2-Dimethylpropane (neopentane)',
+        nameUz: '2,2-Dimetilpropan (neopentan)',
+        formula: 'C₅H₁₂',
+        correct: true,
+        skeleton: 'neo',
+        functionalGroups: ['alkane'],
+        irPeaks: [{ wavenumber: 2955, intensity: 0.68, label: 'C–H' }],
+        hazardRu: 'Компактная «клетка» — газ при комнатной t.',
+        hazardEn: 'Compact cage — gas at room temperature.',
+        hazardUz: 'Ixcham tuzilma — xona haroratida gaz.',
+        color: '#c4b5fd',
+      },
+      {
+        id: 'hexane-trap',
+        nameRu: 'н-Гексан',
+        nameEn: 'n-Hexane',
+        nameUz: 'n-Geksan',
+        formula: 'C₆H₁₄',
+        correct: false,
+        skeleton: 'n',
+        functionalGroups: ['alkane'],
+        irPeaks: [CH_PEAK],
+        hazardRu: 'Ловушка: другая формула!',
+        hazardEn: 'Trap: different formula!',
+        hazardUz: 'Tuzoq: boshqa formula!',
+        color: '#94a3b8',
+      },
+    ],
+  },
+  {
+    id: 'c4h10o',
+    formula: 'C₄H₁₀O',
+    targetCount: 2,
+    titleRu: 'Спирт или эфир? Одна формула — разные судьбы',
+    titleEn: 'Alcohol or ether? Same formula, different fates',
+    titleUz: 'Spirt yoki efir? Bir formula — turli taqdir',
+    hintRu: 'Выберите бутанол (есть −OH) и диэтиловый эфир (нет −OH). Сравните ИК.',
+    hintEn: 'Pick butanol (−OH) and diethyl ether (no −OH). Compare IR.',
+    hintUz: 'Butanol (−OH) va dietil efirini (−OH yoʻq) tanlang. IK solishtiring.',
+    candidates: [
+      {
+        id: 'n-butanol',
+        nameRu: 'Бутан-1-ол',
+        nameEn: 'Butan-1-ol',
+        nameUz: 'Butan-1-ol',
+        formula: 'C₄H₁₀O',
+        correct: true,
+        skeleton: 'alcohol',
+        functionalGroups: ['alcohol', 'OH'],
+        irPeaks: [OH_PEAK, CH_PEAK, CO_PEAK],
+        hazardRu: 'Спирт: широкий пик O–H ~3300 см⁻¹. Токсичен при злоупотреблении.',
+        hazardEn: 'Alcohol: broad O–H peak ~3300 cm⁻¹.',
+        hazardUz: 'Spirt: keng O–H choʻqqisi ~3300 cm⁻¹.',
+        color: '#fbbf24',
+      },
+      {
+        id: 'diethyl-ether',
+        nameRu: 'Диэтиловый эфир',
+        nameEn: 'Diethyl ether',
+        nameUz: 'Dietil efiri',
+        formula: 'C₄H₁₀O',
+        correct: true,
+        skeleton: 'ether',
+        functionalGroups: ['ether'],
+        irPeaks: NO_OH,
+        hazardRu: 'Мед. эфир: нет пика O–H! Легко воспламеняется, наркоз в истории медицины.',
+        hazardEn: 'Medical ether: no O–H peak! Highly flammable.',
+        hazardUz: 'Tibbiy efir: O–H choʻqqisi yoʻq! Oson yonadi.',
+        color: '#34d399',
+      },
+      {
+        id: 'sec-butanol',
+        nameRu: 'Бутан-2-ол',
+        nameEn: 'Butan-2-ol',
+        nameUz: 'Butan-2-ol',
+        formula: 'C₄H₁₀O',
+        correct: false,
+        skeleton: 'sec',
+        functionalGroups: ['alcohol', 'OH'],
+        irPeaks: [OH_PEAK, CH_PEAK, CO_PEAK],
+        hazardRu: 'Тоже спирт (есть O–H), но для задания достаточно одного спирта + эфир.',
+        hazardEn: 'Also an alcohol; challenge needs one alcohol + ether.',
+        hazardUz: 'Ham spirt; topshiriqda bitta spirt + efir yetarli.',
+        color: '#f59e0b',
+      },
+      {
+        id: 'acetone-trap',
+        nameRu: 'Ацетон',
+        nameEn: 'Acetone',
+        nameUz: 'Atseton',
+        formula: 'C₃H₆O',
+        correct: false,
+        skeleton: 'n',
+        functionalGroups: ['ketone', 'C=O'],
+        irPeaks: [
+          { wavenumber: 1715, intensity: 0.95, label: 'C=O' },
+          CH_PEAK,
+        ],
+        hazardRu: 'Ловушка: другая формула и сильный пик карбонила.',
+        hazardEn: 'Trap: different formula + carbonyl peak.',
+        hazardUz: 'Tuzoq: boshqa formula + karbonil choʻqqisi.',
+        color: '#fb7185',
+      },
+    ],
+  },
+]
+
+export type EquilibriumScenario = {
+  id: string
+  titleRu: string
+  titleEn: string
+  titleUz: string
+  equation: string
+  /** Цвет «реагентов» / «продуктов» */
+  colorLeft: string
+  colorRight: string
+  /** Базовое положение равновесия 0..1 (доля продукта) */
+  baseProduct: number
+  /** Знаки сдвига: +1 продукт растёт при росте параметра */
+  tempShift: number
+  pressureShift: number
+  concShift: number
+  explainRu: string
+  explainEn: string
+  explainUz: string
+}
+
+export const EQUILIBRIUM_SCENARIOS: readonly EquilibriumScenario[] = [
+  {
+    id: 'fescn',
+    titleRu: 'Fe³⁺ + SCN⁻ ⇌ FeSCN²⁺ (цвет)',
+    titleEn: 'Fe³⁺ + SCN⁻ ⇌ FeSCN²⁺ (color)',
+    titleUz: 'Fe³⁺ + SCN⁻ ⇌ FeSCN²⁺ (rang)',
+    equation: 'Fe³⁺ + SCN⁻ ⇌ [FeSCN]²⁺',
+    colorLeft: '#fef3c7',
+    colorRight: '#b91c1c',
+    baseProduct: 0.45,
+    tempShift: -0.08,
+    pressureShift: 0,
+    concShift: 0.12,
+    explainRu:
+      'Кроваво-красный комплекс — продукт. Нагрев смещает влево (экзотермично), добавка Fe³⁺/SCN⁻ — вправо.',
+    explainEn:
+      'Blood-red complex is the product. Heat shifts left (exothermic); adding Fe³⁺/SCN⁻ shifts right.',
+    explainUz:
+      'Qizil kompleks — mahsulot. Isitish chapga (ekzotermik), Fe³⁺/SCN⁻ qoʻshish — oʻngga.',
+  },
+  {
+    id: 'ammonia',
+    titleRu: 'Синтез аммиака (Габер)',
+    titleEn: 'Ammonia synthesis (Haber)',
+    titleUz: 'Ammiak sintezi (Gaber)',
+    equation: 'N₂ + 3H₂ ⇌ 2NH₃',
+    colorLeft: '#e0f2fe',
+    colorRight: '#67e8f9',
+    baseProduct: 0.35,
+    tempShift: -0.1,
+    pressureShift: 0.14,
+    concShift: 0.08,
+    explainRu:
+      'Экзотермическая реакция: ↑T → влево. ↑P → вправо (меньше молей газа). Катализатор ускоряет, но не смещает.',
+    explainEn:
+      'Exothermic: ↑T → left. ↑P → right (fewer gas moles). Catalyst speeds up but does not shift.',
+    explainUz:
+      'Ekzotermik: ↑T → chap. ↑P → oʻng (kamroq gaz mollari). Katalizator tezlatadi, siljitmaydi.',
+  },
+]
+
+export type DetectiveCase = {
+  id: string
+  titleRu: string
+  titleEn: string
+  titleUz: string
+  clueRu: string
+  clueEn: string
+  clueUz: string
+  /** id кандидата-изомера / вещества */
+  answerId: string
+  options: readonly { id: string; labelRu: string; labelEn: string; labelUz: string }[]
+  irPeaks: readonly IrPeak[]
+  macroHintRu: string
+  macroHintEn: string
+  macroHintUz: string
+}
+
+export const DETECTIVE_CASES: readonly DetectiveCase[] = [
+  {
+    id: 'aspirin-scene',
+    titleRu: 'Пробирка с места происшествия',
+    titleEn: 'Test tube from the crime scene',
+    titleUz: 'Hodisa joyidan probirka',
+    clueRu: 'Белый порошок. В ИК — сильный пик ~1700 см⁻¹ (C=O) и широкий O–H.',
+    clueEn: 'White powder. IR: strong ~1700 cm⁻¹ (C=O) and broad O–H.',
+    clueUz: 'Oq kukun. IK: kuchli ~1700 cm⁻¹ (C=O) va keng O–H.',
+    answerId: 'aspirin',
+    options: [
+      { id: 'aspirin', labelRu: 'Ацетилсалициловая кислота (аспирин)', labelEn: 'Acetylsalicylic acid (aspirin)', labelUz: 'Atsetilsalitsil kislota (aspirin)' },
+      { id: 'nacl', labelRu: 'Хлорид натрия', labelEn: 'Sodium chloride', labelUz: 'Natriy xlorid' },
+      { id: 'glucose', labelRu: 'Глюкоза', labelEn: 'Glucose', labelUz: 'Glyukoza' },
+      { id: 'ether', labelRu: 'Диэтиловый эфир', labelEn: 'Diethyl ether', labelUz: 'Dietil efiri' },
+    ],
+    irPeaks: [
+      { wavenumber: 1750, intensity: 0.9, label: 'C=O' },
+      { wavenumber: 3300, intensity: 0.7, label: 'O–H' },
+      CH_PEAK,
+    ],
+    macroHintRu: 'С щелочью растворяется; кислая среда по индикатору.',
+    macroHintEn: 'Dissolves in alkali; acidic to indicator.',
+    macroHintUz: 'Ishqorda eriydi; indikator boʻyicha kislotali.',
+  },
+]
+
+export function computeEquilibriumProduct(
+  scenario: EquilibriumScenario,
+  temp: number,
+  pressure: number,
+  conc: number,
+): number {
+  const t = (temp - 50) / 50
+  const p = (pressure - 50) / 50
+  const c = (conc - 50) / 50
+  const raw =
+    scenario.baseProduct +
+    scenario.tempShift * t +
+    scenario.pressureShift * p +
+    scenario.concShift * c
+  return Math.min(0.95, Math.max(0.05, raw))
+}
+
+export {
+  ORGANIC_BUILD_CHALLENGES,
+  ORGANIC_CLASS_LABELS,
+  organicBuildByIsomerCandidate,
+  organicBuildChallengeById,
+  organicChallengesByClass,
+  type OrganicBuildChallenge,
+  type OrganicClassId,
+  type OrganicKit,
+} from './organicBuildCatalog'
+
+export const RESEARCH_LAB_MODES: readonly {
+  id: ResearchLabModeId
+  accent: string
+  grades: readonly ('g10' | 'g11')[]
+}[] = [
+  { id: 'builder', accent: '#34d399', grades: ['g10', 'g11'] },
+  { id: 'isomers', accent: '#fbbf24', grades: ['g10', 'g11'] },
+  { id: 'attack', accent: '#22d3ee', grades: ['g10'] },
+  { id: 'equilibrium', accent: '#a78bfa', grades: ['g11'] },
+  { id: 'detective', accent: '#fb7185', grades: ['g10', 'g11'] },
+]

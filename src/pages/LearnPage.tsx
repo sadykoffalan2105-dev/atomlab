@@ -52,6 +52,9 @@ function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
         <Link className={styles.btn} to="/learn/teacher">
           {t('learn.teacher.linkGrades')}
         </Link>
+        <Link className={styles.btn} to="/learn/research">
+          {t('learn.research.open')}
+        </Link>
         <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/vr-lab?from=learn">
           {t('learn.vrLab.open')}
         </Link>
@@ -123,7 +126,26 @@ function GradeHub({ gradeId, progress }: { gradeId: string; progress: LearnProgr
             {t('learn.textbook.open')}
           </Link>
         ) : null}
+        {grade.id === 'g10' || grade.id === 'g11' ? (
+          <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/learn/research">
+            {t('learn.research.open')}
+          </Link>
+        ) : null}
       </ToolRow>
+      {(grade.id === 'g10' || grade.id === 'g11') && (
+        <Link
+          to="/learn/research"
+          className={styles.topicCard}
+          style={{ ['--learn-accent' as string]: '#fbbf24', marginBottom: '0.85rem' }}
+        >
+          <div className={styles.topicCardVisual} aria-hidden />
+          <h2 className={styles.topicCardTitle}>{t('learn.research.open')}</h2>
+          <p className={styles.topicCardSummary}>{t('learn.research.openLead')}</p>
+          <span className={styles.btn} style={{ marginTop: '0.65rem', width: 'fit-content' }}>
+            {t('learn.research.open')}
+          </span>
+        </Link>
+      )}
       <h2 className={styles.h}>{t('learn.chaptersTitle')}</h2>
       <ul className={styles.lessonList}>
         {grade.chapters.map((ch) => {

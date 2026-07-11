@@ -30,6 +30,11 @@ import { learnProblemsEn } from './learn/learnProblemsEn'
 import { learnSkillsUz } from './learn/learnSkillsUz'
 import { learnProblemsUz } from './learn/learnProblemsUz'
 import { learnTeacherExamUz } from './learn/learnTeacherExamUz'
+import {
+  learnResearchI18nEn,
+  learnResearchI18nRu,
+  learnResearchI18nUz,
+} from './learn/learnResearchI18n'
 
 export const learnGradePackRu = {
   ...learnGradesOutlineRu,
@@ -44,6 +49,7 @@ export const learnGradePackRu = {
   ...learnTeacherExamRu,
   ...learnSkillsRu,
   ...learnProblemsRu,
+  ...learnResearchI18nRu,
 } as const
 
 export const learnGradePackEn = {
@@ -59,6 +65,7 @@ export const learnGradePackEn = {
   ...learnTeacherExamEn,
   ...learnSkillsEn,
   ...learnProblemsEn,
+  ...learnResearchI18nEn,
 } as const
 
 export const learnGradePackUz = {
@@ -74,4 +81,5 @@ export const learnGradePackUz = {
   ...learnTeacherExamUz,
   ...learnSkillsUz,
   ...learnProblemsUz,
+  ...learnResearchI18nUz,
 } as const
