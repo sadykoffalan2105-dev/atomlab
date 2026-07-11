@@ -429,7 +429,7 @@ export function toCompoundPreview(
     const i = index.get(b.a)
     const j = index.get(b.b)
     if (i === undefined || j === undefined) continue
-    // кратные связи — несколько цилиндров чуть смещены в layout; здесь одна запись на ребро
+    // кратные связи — несколько записей; MoleculeMesh рисует параллельные стержни
     bonds.push([i, j])
     if (b.order >= 2) bonds.push([i, j])
     if (b.order >= 3) bonds.push([i, j])

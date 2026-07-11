@@ -1,8 +1,14 @@
 import { useCallback, useMemo, useState } from 'react'
 import { CompoundDetailModal } from '../components/lab/CompoundDetailModal'
+import { OrganicMoleculeDetailModal } from '../components/organicLab/OrganicMoleculeDetailModal'
 import { COMPOUND_CATEGORY_ORDER } from '../data/compoundCategoryLabels'
 import { filterCompoundsForCatalog } from '../data/compoundCatalogFilter'
 import { compoundById } from '../data/compounds'
+import {
+  ORGANIC_MOLECULES,
+  organicMoleculeById,
+} from '../data/organicLab/organicMoleculeRegistry'
+import type { OrganicMoleculeDef } from '../data/organicLab/organicMoleculeTypes'
 import { compoundSearchBlob, getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import type { MessageKey } from '../i18n/useT'
 import { useT } from '../i18n/useT'
@@ -20,9 +26,22 @@ function sectionTitleKey(cat: CompoundCategory): MessageKey {
   return m[cat]
 }
 
+function organicName(m: OrganicMoleculeDef, locale: string): string {
+  if (locale === 'en') return m.nameEn
+  if (locale === 'uz') return m.nameUz
+  return m.nameRu
+}
+
+function organicDesc(m: OrganicMoleculeDef, locale: string): string {
+  if (locale === 'en') return m.descriptionEn
+  if (locale === 'uz') return m.descriptionUz
+  return m.descriptionRu
+}
+
 export function CatalogPage() {
   const { locale, t } = useT()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedOrganic, setSelectedOrganic] = useState<OrganicMoleculeDef | null>(null)
   const [q, setQ] = useState('')
   const list = useMemo(() => Object.values(compoundById), [])
 
@@ -43,6 +62,15 @@ export function CatalogPage() {
     return m
   }, [filtered])
 
+  const organicFiltered = useMemo(() => {
+    const qq = q.trim().toLowerCase()
+    if (!qq) return ORGANIC_MOLECULES
+    return ORGANIC_MOLECULES.filter((m) => {
+      const blob = `${m.id} ${m.formula} ${m.nameRu} ${m.nameEn} ${m.nameUz}`.toLowerCase()
+      return blob.includes(qq)
+    })
+  }, [q])
+
   return (
     <div className={styles.page}>
       <h1 className={styles.h}>{t('catalog.title')}</h1>
@@ -58,6 +86,50 @@ export function CatalogPage() {
           aria-label={t('catalog.searchAria')}
         />
       </label>
+
+      {organicFiltered.length > 0 ? (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>{t('organicLab.catalogSection')}</h2>
+          <p className={styles.lead}>{t('organicLab.catalogLead')}</p>
+          <ul className={styles.list}>
+            {organicFiltered.map((m) => (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  className={styles.cardBtn}
+                  onClick={() => setSelectedOrganic(organicMoleculeById[m.id] ?? m)}
+                  aria-label={t('catalog.moreDetails', {
+                    name: organicName(m, locale),
+                    formula: m.formula,
+                  })}
+                >
+                  <span className={styles.formula}>{m.formula}</span>
+                  <span className={styles.name}>{organicName(m, locale)}</span>
+                  <p className={styles.desc}>{organicDesc(m, locale)}</p>
+                  <p className={styles.labRecipe}>{t('organicLab.openInLab')}</p>
+                  <div className={styles.atomDots} aria-hidden>
+                    {m.graph.atoms.some((a) => a.element === 'C') ? (
+                      <span className={styles.dotC} title="C" />
+                    ) : null}
+                    {m.graph.atoms.some((a) => a.element === 'H') ? (
+                      <span className={styles.dotH} title="H" />
+                    ) : null}
+                    {m.graph.atoms.some((a) => a.element === 'O') ? (
+                      <span className={styles.dotO} title="O" />
+                    ) : null}
+                    {m.graph.atoms.some((a) => a.element === 'N') ? (
+                      <span className={styles.dotN} title="N" />
+                    ) : null}
+                    {m.graph.atoms.some((a) => a.element === 'Cl') ? (
+                      <span className={styles.dotCl} title="Cl" />
+                    ) : null}
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {COMPOUND_CATEGORY_ORDER.map((cat) => {
         const items = byCategory.get(cat) ?? []
@@ -100,6 +172,7 @@ export function CatalogPage() {
       })}
 
       <CompoundDetailModal compoundId={selectedId} onClose={() => setSelectedId(null)} />
+      <OrganicMoleculeDetailModal mol={selectedOrganic} onClose={() => setSelectedOrganic(null)} />
     </div>
   )
 }

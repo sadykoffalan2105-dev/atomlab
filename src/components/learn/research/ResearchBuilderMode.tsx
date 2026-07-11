@@ -9,8 +9,6 @@ import {
 import type { GradeEq } from '../../../data/researchLab/g10g11Equations'
 import {
   addBond,
-  applySkeletonBonds,
-  autoBondKitHydrogens,
   canBond,
   compositionOf,
   compositionsEqual,
@@ -27,11 +25,9 @@ import {
 import {
   anglesOk,
   hybridizationOf,
-  layoutOrganicGraph,
   planarRingAngleDeg,
   rotateNeighborAround,
   scoreBondAngles,
-  snapAnglesHint,
   targetAngleDeg,
   targetAngleForTriple,
 } from '../../../chemistry/organic/organicLayout'
@@ -100,14 +96,6 @@ function tokenCore(tok: string): string {
 
 function isOrganicToken(f: string): boolean {
   return /C/.test(f) && !/^CO2?$/.test(f) && f !== 'C'
-}
-
-/** Химически правильная 3D-структура по заданию (скелет + H + layout). */
-function buildCorrectGraph(challenge: OrganicBuildChallenge): OrganicGraph {
-  let g = createFormulaKit(challenge.kit)
-  g = applySkeletonBonds(g, challenge.skeleton)
-  g = autoBondKitHydrogens(g)
-  return layoutOrganicGraph(g)
 }
 
 function startKit(challenge: OrganicBuildChallenge): OrganicGraph {
@@ -235,19 +223,16 @@ export function ResearchBuilderMode({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challenge.id])
 
-  const applyChallenge = (
-    next: OrganicBuildChallenge,
-    mode: 'kit' | 'correct',
-    announce?: string,
-  ) => {
+  const applyChallenge = (next: OrganicBuildChallenge, announce?: string) => {
     setChallengeId(next.id)
-    setGraph(mode === 'correct' ? buildCorrectGraph(next) : startKit(next))
+    setGraph(startKit(next))
     setSelectedId(null)
     setBondFrom(null)
-    setChecked(mode === 'correct')
+    setChecked(false)
     setAngleNeighbor(null)
     setClassFilter(next.classId)
     setAttackResult('idle')
+    setEqHighlight(false)
     if (labTool === 'equilibrium') setLabTool('build')
     if (announce) {
       skipKitAnnounce.current = true
@@ -260,7 +245,6 @@ export function ResearchBuilderMode({
     if (!next) return
     applyChallenge(
       next,
-      'kit',
       t('learn.research.builderKitReady', { n: kitTotal(next.kit), f: next.formula }),
     )
     setLabTool('build')
@@ -275,7 +259,7 @@ export function ResearchBuilderMode({
     say(t('learn.research.builderKitReady', { n: kitTotal(challenge.kit), f: challenge.formula }))
   }
 
-  /** Уравнение → правильная 3D-модель вещества. */
+  /** Уравнение → набор атомов этой молекулы (собрать вручную). */
   const onSelectEquation = (eq: GradeEq) => {
     const next = challengeFromEquation(eq)
     if (!next) {
@@ -284,23 +268,27 @@ export function ResearchBuilderMode({
     }
     applyChallenge(
       next,
-      'correct',
       t('learn.research.syncEqToMolecule', {
         f: next.formula,
         eq: eq.displayRu,
       }),
     )
     setLabTool('build')
-    setEqHighlight(false)
   }
 
+  /** Всегда режим связи: атом → атом. Без авто-геометрии. */
   const handleSelect = (id: string | null) => {
     if (attackMode) return
     setAngleNeighbor(null)
-    if (bondFrom && id && id !== bondFrom) {
+    if (!id) {
+      setSelectedId(null)
+      setBondFrom(null)
+      return
+    }
+    if (bondFrom && id !== bondFrom) {
       if (canBond(graph, bondFrom, id, bondOrder)) {
         const bonded = addBond(graph, bondFrom, id, bondOrder)
-        if (bonded) setGraph(layoutOrganicGraph(bonded))
+        if (bonded) setGraph(bonded)
       }
       setBondFrom(null)
       setSelectedId(id)
@@ -308,27 +296,7 @@ export function ResearchBuilderMode({
       return
     }
     setSelectedId(id)
-  }
-
-  const startBond = () => {
-    if (!selectedId || attackMode) return
-    setBondFrom(selectedId)
-  }
-
-  const doAutoH = () => {
-    setGraph((g) => layoutOrganicGraph(autoBondKitHydrogens(g)))
-    setChecked(false)
-  }
-
-  const doSnap = () => {
-    setGraph((g) => snapAnglesHint(g))
-    setChecked(false)
-  }
-
-  const doBuildSkeleton = () => {
-    setGraph((g) => layoutOrganicGraph(applySkeletonBonds(g, challenge.skeleton)))
-    setBondFrom(null)
-    setChecked(false)
+    setBondFrom(id)
   }
 
   const selectedAtom = graph.atoms.find((a) => a.id === selectedId) ?? null
@@ -655,6 +623,7 @@ export function ResearchBuilderMode({
                           {t('learn.research.builderFreeValence', {
                             n: freeValence(graph, selectedAtom.id),
                           })}
+                          {bondFrom ? ` · ${t('learn.research.builderBondPick')}` : ''}
                         </span>
                         {neighborsOfSelected.length > 0 ? (
                           <>
@@ -717,41 +686,11 @@ export function ResearchBuilderMode({
                     <div className={styles.toolbar}>
                       <button
                         type="button"
-                        className={`${styles.tool} ${coachStep === 1 ? styles.toolPrimary : ''}`}
-                        onClick={doBuildSkeleton}
-                        title={t('learn.research.builderSkeletonHint')}
-                      >
-                        {t('learn.research.builderSkeleton')}
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.tool} ${bondFrom ? styles.toolActive : styles.toolPrimary}`}
-                        onClick={startBond}
-                        disabled={!selectedId}
-                      >
-                        {bondFrom ? t('learn.research.builderBondPick') : t('learn.research.builderBond')}
-                      </button>
-                      <button
-                        type="button"
                         className={`${styles.tool} ${bondOrder > 1 ? styles.toolActive : ''}`}
                         onClick={() => setBondOrderUi((o) => (o === 1 ? 2 : o === 2 ? 3 : 1))}
                         title={t('learn.research.builderBondOrderHint')}
                       >
                         {bondOrder === 1 ? '—' : bondOrder === 2 ? '=' : '≡'} ×{bondOrder}
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.tool} ${coachStep === 2 ? styles.toolPrimary : ''}`}
-                        onClick={doAutoH}
-                      >
-                        {t('learn.research.builderAutoH')}
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.tool} ${coachStep === 3 ? styles.toolPrimary : ''}`}
-                        onClick={doSnap}
-                      >
-                        {t('learn.research.builderSnap')}
                       </button>
                       <button type="button" className={styles.tool} onClick={resetKit}>
                         {t('learn.research.builderResetKit')}

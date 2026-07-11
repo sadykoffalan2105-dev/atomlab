@@ -34,6 +34,14 @@ export function AppShell() {
               {t('nav.laboratory')}
             </NavLink>
             <NavLink
+              to="/organic"
+              className={({ isActive }) =>
+                `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+              }
+            >
+              {t('nav.organicLab')}
+            </NavLink>
+            <NavLink
               to="/vr-lab"
               className={({ isActive }) =>
                 `${styles.navLink} ${styles.navLinkIcon} ${isActive ? styles.navLinkActive : ''}`

@@ -1,6 +1,10 @@
 import { G7_C1_S01_QUIZ_ENRICHMENTS } from './g7C1S01QuizEnrichments'
-import { G7_C1_S01_SECTION_ENRICHMENTS } from './g7C1S01SectionQuizEnrichments'
+import {
+  G7_C1_S01_SECTION_ENRICHMENTS,
+  type SectionQuizEnrichment,
+} from './g7C1S01SectionQuizEnrichments'
 import { G7_CHAPTER_TEMPLATES } from './g7TopicQuizTemplates'
+import bankEnrichments from '../data/g7SectionQuizEnrichments.json'
 
 const PHOTO_STYLE =
   'Photorealistic educational photograph for Russian school chemistry textbook Kimyo grade 7, 16:9 landscape, bright modern laboratory or classroom demonstration, sharp focus, natural soft lighting, no text overlay, no watermark, no human faces, scientifically accurate props'
@@ -31,7 +35,12 @@ function buildDescription(question: string, correct: string, explanation?: strin
   return `${lead}\n\n${body}`
 }
 
-function buildEntry(chapter: number, question: string, correct: string, explanation?: string): G7QuizVisualEntry {
+function buildEntry(
+  chapter: number,
+  question: string,
+  correct: string,
+  explanation?: string,
+): G7QuizVisualEntry {
   const topic = topicFromQuestion(question)
   return {
     caption: `${topic} — ${correct}`,
@@ -39,6 +48,16 @@ function buildEntry(chapter: number, question: string, correct: string, explanat
     prompt: buildPrompt(chapter, question, correct),
     description: buildDescription(question, correct, explanation),
     explanation: explanation ?? correct,
+  }
+}
+
+function fromSectionEnrichment(e: SectionQuizEnrichment): G7QuizVisualEntry {
+  return {
+    caption: e.caption,
+    alt: e.alt,
+    prompt: e.imagePrompt,
+    description: e.description,
+    explanation: e.explanation,
   }
 }
 
@@ -58,25 +77,28 @@ function buildCatalog(): Record<string, G7QuizVisualEntry> {
           explanation: c1.explanation,
         }
       } else {
-        out[t.templateKey] = buildEntry(chapter, t.question, t.choices[t.correctIndex]!, t.explanation)
+        out[t.templateKey] = buildEntry(
+          chapter,
+          t.question,
+          t.choices[t.correctIndex]!,
+          t.explanation,
+        )
       }
     }
   }
 
+  for (const [id, e] of Object.entries(bankEnrichments as Record<string, SectionQuizEnrichment>)) {
+    out[id] = fromSectionEnrichment(e)
+  }
+
   for (const [id, e] of Object.entries(G7_C1_S01_SECTION_ENRICHMENTS)) {
-    out[id] = {
-      caption: e.caption,
-      alt: e.alt,
-      prompt: e.imagePrompt,
-      description: e.description,
-      explanation: e.explanation,
-    }
+    out[id] = fromSectionEnrichment(e)
   }
 
   return out
 }
 
-/** Все иллюстрации к вопросам теста 7 класса (61 шаблон). */
+/** Каталог иллюстраций: шаблоны глав + per-question enrichments. */
 export const G7_QUIZ_VISUAL_CATALOG: Record<string, G7QuizVisualEntry> = buildCatalog()
 
 export function getG7QuizVisualEntry(templateKey: string): G7QuizVisualEntry | null {

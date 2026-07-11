@@ -1,5 +1,6 @@
-import { G7_QUIZ_VISUAL_CATALOG } from './g7QuizVisualCatalog'
 import { G7_C1_S01_SECTION_ENRICHMENTS } from './g7C1S01SectionQuizEnrichments'
+import { G7_QUIZ_VISUAL_CATALOG } from './g7QuizVisualCatalog'
+import bankEnrichments from '../data/g7SectionQuizEnrichments.json'
 
 /** Фотореалистичные иллюстрации к вопросам (public/learn/quiz-visuals). */
 export type QuizVisualSpec = {
@@ -9,16 +10,29 @@ export type QuizVisualSpec = {
   alt: string
 }
 
-const SECTION_QUIZ_MANIFEST: Record<string, QuizVisualSpec> = Object.fromEntries(
-  Object.entries(G7_C1_S01_SECTION_ENRICHMENTS).map(([id, e]) => [
-    id,
-    {
-      src: `/learn/quiz-visuals/${id}.png`,
-      caption: e.caption,
-      alt: e.alt,
-    },
-  ]),
-)
+type EnrichmentLike = {
+  caption: string
+  alt: string
+  visualId?: string
+}
+
+function specsFromEnrichments(map: Record<string, EnrichmentLike>): Record<string, QuizVisualSpec> {
+  return Object.fromEntries(
+    Object.entries(map).map(([id, e]) => [
+      e.visualId ?? id,
+      {
+        src: `/learn/quiz-visuals/${e.visualId ?? id}.png`,
+        caption: e.caption,
+        alt: e.alt,
+      },
+    ]),
+  )
+}
+
+const SECTION_QUIZ_MANIFEST: Record<string, QuizVisualSpec> = {
+  ...specsFromEnrichments(bankEnrichments as Record<string, EnrichmentLike>),
+  ...specsFromEnrichments(G7_C1_S01_SECTION_ENRICHMENTS),
+}
 
 export const QUIZ_VISUAL_MANIFEST: Record<string, QuizVisualSpec> = {
   ...Object.fromEntries(
@@ -46,6 +60,15 @@ export function getQuizVisualSpec(visualId?: string): QuizVisualSpec | null {
       src: `/learn/posters/topic_g7_c${ch}_s${sec}.png`,
       caption: 'Иллюстрация по теме учебника',
       alt: `Тема g7 c${ch} s${sec}`,
+    }
+  }
+
+  // Per-question id even before catalog rebuild
+  if (/^g7-c\d+-s\d+-q\d+$/i.test(visualId)) {
+    return {
+      src: `/learn/quiz-visuals/${visualId}.png`,
+      caption: 'Иллюстрация к вопросу',
+      alt: `Вопрос ${visualId}`,
     }
   }
 

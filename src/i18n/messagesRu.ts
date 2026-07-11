@@ -5,10 +5,84 @@ import { vrLabRu } from './vrLabRu'
 /** Русские строки UI и ошибок (ключи совпадают с messagesEn). */
 export const messagesRu = {
   'nav.laboratory': 'Лаборатория',
+  'nav.organicLab': 'Органика',
   'nav.periodic': 'Таблица Менделеева',
   'nav.catalog': 'Каталог веществ',
   'nav.learn': 'Обучение',
   ...vrLabRu,
+  'lab.domainAria': 'Тип лаборатории',
+  'lab.domainInorganic': 'Неорганика',
+  'lab.domainOrganic': 'Органика',
+  'organicLab.lead':
+    'Синтез из атомов, каталог 3D-молекул Kimyo 10–11, цвета CPK, функциональные группы и сборка своими руками.',
+  'organicLab.classAria': 'Классы органических соединений',
+  'organicLab.allClasses': 'Все классы',
+  'organicLab.modeAria': 'Режим отображения молекулы',
+  'organicLab.modeBallStick': 'Шары и стержни',
+  'organicLab.modeSpaceFill': 'Пространственное заполнение',
+  'organicLab.modeSkeleton': 'Скелет (2D)',
+  'organicLab.modeHybrid': 'Гибридизация',
+  'organicLab.hybridHint': 'Центры с гибридизацией {h} подписаны на атомах.',
+  'organicLab.equation': 'Уравнение',
+  'organicLab.buildYourself': 'Собрать самому в 3D',
+  'organicLab.openBuilder': 'Открыть 3D-сборку',
+  'organicLab.catalogSection': 'Органика (10–11)',
+  'organicLab.catalogLead': 'Учебные 3D-модели — открыть в органической лаборатории.',
+  'organicLab.openInLab': 'Открыть 3D',
+  'organicLab.functionalGroups': 'Функциональные группы',
+  'organicLab.synthAria': 'Синтез органической молекулы из атомов',
+  'organicLab.synthTitle': 'Синтез из атомов',
+  'organicLab.synthHint':
+    'Наберите атомы (C, H, O, N, Cl) — как в формуле. Система найдёт вещество и покажет правильную 3D-структуру.',
+  'organicLab.synthAtoms': 'Атомы',
+  'organicLab.synthAdd': 'Добавить {el}',
+  'organicLab.synthBag': 'Набор',
+  'organicLab.synthTotal': 'атомов: {n}',
+  'organicLab.synthRun': 'Собрать молекулу',
+  'organicLab.synthReset': 'Сброс',
+  'organicLab.synthNeedAtoms': 'Добавьте хотя бы один атом.',
+  'organicLab.synthNoMatch': 'Нет вещества с составом {f} в каталоге органики.',
+  'organicLab.synthOk': 'Получено: {name} ({f}).',
+  'organicLab.synthIsomers': 'Найдено изомеров: {n} для {f} — выберите структуру.',
+  'organicLab.reactorTitle': 'Реактор органики',
+  'organicLab.reactorEmptyHint':
+    'Выберите продукт (◫) или нажмите «Уравнение» — слева появятся атомы с коэффициентом 1.',
+  'organicLab.reactorHint':
+    'Слева — атомы с коэффициентами, справа — органическая молекула. Уравняйте состав и запустите синтез.',
+  'organicLab.reactorAmbiguous': 'Найдено веществ с этим составом: {n}. Выберите продукт в каталоге.',
+  'organicLab.reactorOpenHint':
+    'Выберите продукт в каталоге (◫). Под каждым коэффициентом будет подсказка «нужно N» — подставьте числа как в учебнике.',
+  'organicLab.reactorGenReady':
+    'Атомы слева с коэффициентом 1. Поднимите их до чисел «нужно N» под каждым слотом.',
+  'organicLab.reactorProductReady':
+    'Продукт выбран. Расставьте коэффициенты слева по подсказкам «нужно N».',
+  'organicLab.catalogPanelTitle': 'Каталог органики',
+  'organicLab.catalogPanelSubProduct': 'Выберите продукт реакции (правая часть уравнения).',
+  'organicLab.catalogPanelSubGen':
+    'Выберите молекулу — слева появятся атомы с коэффициентом 1. Подсказки «нужно N» показывают правильные числа.',
+  'organicLab.catalogEmpty': 'Ничего не найдено.',
+  'organicLab.paletteTitle': 'Атомы органики',
+  'organicLab.paletteLead': 'C, H, O, N, Cl — добавить в уравнение вручную (обычно достаточно выбрать продукт).',
+  'organicLab.paletteFabAria': 'Открыть палитру атомов органики (C, H, O, N, Cl)',
+  'organicLab.idleTitle': 'Соберите уравнение',
+  'organicLab.idleHint':
+    'Нажмите «Синтез», выберите продукт, расставьте коэффициенты по подсказкам — молекула появится в 3D.',
+  'organicLab.reactorHintShort':
+    'Уравнение как в учебнике: коэффициент перед каждым атомом.',
+  'organicLab.reactorHintTextbook':
+    'Как в тетради: □ C + □ H + □ O = формула. Под коэффициентом — «нужно N». Введите число или жмите − / +.',
+  'organicLab.reactorEmptyTextbook':
+    'Сначала выберите продукт справа (◫) или нажмите «Уравнение» — слоты атомов появятся сами.',
+  'organicLab.coeffEditHint': 'число или − / +',
+  'organicLab.coeffMinus5': 'Уменьшить на 5',
+  'organicLab.coeffPlus5': 'Увеличить на 5',
+  'organicLab.coeffNeed': 'нужно {n}',
+  'organicLab.coeffOk': 'верно',
+  'organicLab.coeffPickProduct': 'выберите продукт',
+  'organicLab.productCoeffLabel': 'коэфф. продукта',
+  'organicLab.balanceAria': 'Баланс атомов в уравнении',
+  'organicLab.balanceTitle': 'Баланс',
+  'organicLab.balanceEmpty': 'Добавьте реагенты или продукт',
   'lang.toggle': 'Язык: {current}. Нажмите, чтобы переключить',
   'lang.switchToEn': 'Переключить на English',
   'lang.switchToRu': 'Переключить на русский',
@@ -16,7 +90,7 @@ export const messagesRu = {
 
   'catalog.title': 'Каталог веществ',
   'catalog.lead':
-    'Неорганика школьного курса: оксиды, кислоты, основания и соли. Та же база веществ используется в лаборатории (атомы, просмотр 3D).',
+    'Неорганика школьного курса и органика 10–11: оксиды, кислоты, основания, соли и 3D-молекулы углеводородов, кислорода, углеводов.',
   'catalog.search': 'Поиск',
   'catalog.placeholder': 'Формула, название или id…',
   'catalog.searchAria': 'Поиск по каталогу',

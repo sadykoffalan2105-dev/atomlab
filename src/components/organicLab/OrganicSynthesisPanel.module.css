@@ -1,0 +1,179 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid rgba(52, 211, 153, 0.32);
+  background: linear-gradient(160deg, rgba(8, 20, 24, 0.92), rgba(6, 10, 20, 0.95));
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ecfdf5;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(180, 200, 210, 0.9);
+  line-height: 1.4;
+}
+
+.atoms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.atomCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.atomOrb {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--atom) 70%, white 20%);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--atom) 70%, white), var(--atom));
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--atom) 45%, transparent),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.25);
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.atomOrb:hover {
+  transform: translateY(-1px) scale(1.04);
+}
+
+.atomCtrl {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mini {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 6px;
+  border: 1px solid rgba(100, 140, 200, 0.35);
+  background: rgba(8, 14, 28, 0.9);
+  color: #e2e8f0;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.mini:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.count {
+  min-width: 1.1rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.formulaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.75rem;
+}
+
+.formulaLabel {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.formula {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.05rem;
+  color: #67e8f9;
+  font-weight: 700;
+}
+
+.total {
+  font-size: 0.75rem;
+  color: rgba(160, 180, 200, 0.85);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.primary {
+  appearance: none;
+  border: 1px solid rgba(52, 211, 153, 0.65);
+  border-radius: 10px;
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #042f2e;
+  background: linear-gradient(135deg, #34d399, #2dd4bf);
+  cursor: pointer;
+}
+
+.ghost {
+  appearance: none;
+  border: 1px solid rgba(100, 140, 200, 0.35);
+  border-radius: 10px;
+  padding: 0.45rem 0.85rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(8, 14, 28, 0.9);
+  cursor: pointer;
+}
+
+.msg {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #bae6fd;
+  line-height: 1.4;
+}
+
+.isomerRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.isomerBtn {
+  appearance: none;
+  border: 1px solid rgba(125, 211, 252, 0.4);
+  border-radius: 10px;
+  padding: 0.35rem 0.65rem;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #e0f2fe;
+  background: rgba(12, 30, 48, 0.9);
+  cursor: pointer;
+}
+
+.isomerBtn:hover {
+  border-color: rgba(52, 211, 153, 0.7);
+}

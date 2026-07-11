@@ -85,6 +85,8 @@
   font: inherit;
   display: flex;
   flex-direction: column;
+  text-decoration: none;
+  box-sizing: border-box;
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
@@ -173,3 +175,26 @@
   overflow: hidden;
   word-break: break-word;
 }
+
+.atomDots {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.45rem;
+}
+
+.dotC,
+.dotH,
+.dotO,
+.dotN,
+.dotCl {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.dotC { background: #909090; color: #909090; }
+.dotH { background: #f1f5f9; color: #f1f5f9; }
+.dotO { background: #ff0d0d; color: #ff0d0d; }
+.dotN { background: #3050f8; color: #3050f8; }
+.dotCl { background: #1ff01f; color: #1ff01f; }

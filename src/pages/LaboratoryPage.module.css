@@ -7,6 +7,14 @@
   width: 100%;
 }
 
+.domainBar {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.75rem;
+  z-index: 6;
+  pointer-events: auto;
+}
+
 /* Резервируем высоту под порт, пока 3D в position: fixed (слабина flex-цепи) */
 .wrap[data-lab-synthesis-view='substance'] {
   min-height: calc(100dvh - var(--app-header-h, 3.4rem));

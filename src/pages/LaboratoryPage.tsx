@@ -11,6 +11,7 @@ import {
   Suspense,
 } from 'react'
 import { Link } from 'react-router-dom'
+import { LabDomainTabs } from '../components/lab/LabDomainTabs'
 import { IconVrLab } from '../components/vrLab/IconVrLab'
 import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
@@ -720,6 +721,9 @@ export function LaboratoryPage() {
 
   return (
     <div className={styles.wrap} data-lab-synthesis-view={laboratorySynthesisView}>
+      <div className={styles.domainBar}>
+        <LabDomainTabs active="inorganic" />
+      </div>
       <div
         ref={canvasWrapRef}
         className={styles.canvasWrap}

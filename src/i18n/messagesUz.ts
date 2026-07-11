@@ -6,10 +6,84 @@ import type { MessageKey } from './messagesRu'
 /** O'zbek (lotin) UI satrlari (messagesRu bilan bir xil kalitlar). */
 export const messagesUz: Record<MessageKey, string> = {
   'nav.laboratory': 'Laboratoriya',
+  'nav.organicLab': 'Organika',
   'nav.periodic': 'Mendeleev jadvali',
   'nav.catalog': 'Moddalar katalogi',
   'nav.learn': 'O\'rganish',
   ...vrLabUz,
+  'lab.domainAria': 'Laboratoriya turi',
+  'lab.domainInorganic': 'Anorganik',
+  'lab.domainOrganic': 'Organik',
+  'organicLab.lead':
+    'Kimyo 10–11 organika 3D: koʻrinish rejimlari, funksional guruhlar, tenglamalar va yigʻish.',
+  'organicLab.classAria': 'Organik birikmalar sinflari',
+  'organicLab.allClasses': 'Barcha sinflar',
+  'organicLab.modeAria': 'Molekula koʻrinishi',
+  'organicLab.modeBallStick': 'Shar va tayoq',
+  'organicLab.modeSpaceFill': 'Fazoviy toʻldirish',
+  'organicLab.modeSkeleton': 'Skelet (2D)',
+  'organicLab.modeHybrid': 'Gibridlashuv',
+  'organicLab.hybridHint': '{h} gibridlashuvli markazlar belgilangan.',
+  'organicLab.equation': 'Tenglama',
+  'organicLab.buildYourself': '3D da oʻzingiz yigʻing',
+  'organicLab.openBuilder': '3D yigʻishni ochish',
+  'organicLab.catalogSection': 'Organika (10–11)',
+  'organicLab.catalogLead': 'Oʻquv 3D modellari — organik laboratoriyada oching.',
+  'organicLab.openInLab': '3D ochish',
+  'organicLab.functionalGroups': 'Funksional guruhlar',
+  'organicLab.synthAria': 'Atomlardan organik molekula sintezi',
+  'organicLab.synthTitle': 'Atomlardan sintez',
+  'organicLab.synthHint':
+    'Atomlarni (C, H, O, N, Cl) formula boʻyicha qoʻshing. Lab moddani topadi va toʻgʻri 3D koʻrsatadi.',
+  'organicLab.synthAtoms': 'Atomlar',
+  'organicLab.synthAdd': '{el} qoʻshish',
+  'organicLab.synthBag': 'Toʻplam',
+  'organicLab.synthTotal': 'atomlar: {n}',
+  'organicLab.synthRun': 'Molekulani yigʻish',
+  'organicLab.synthReset': 'Tozalash',
+  'organicLab.synthNeedAtoms': 'Kamida bitta atom qoʻshing.',
+  'organicLab.synthNoMatch': '{f} tarkibli organik modda yoʻq.',
+  'organicLab.synthOk': 'Olingan: {name} ({f}).',
+  'organicLab.synthIsomers': '{f} uchun {n} izomer — tuzilmani tanlang.',
+  'organicLab.reactorTitle': 'Organik reaktor',
+  'organicLab.reactorEmptyHint':
+    'Mahsulotni tanlang (◫) yoki «Tenglama»ni bosing — chapda atomlar koeffitsiyent 1 bilan chiqadi.',
+  'organicLab.reactorHint':
+    'Chap — koeffitsiyentli atomlar, oʻng — organik molekula. Tarkibni tenglashtiring va sintezni ishga tushiring.',
+  'organicLab.reactorAmbiguous': 'Shu tarkibli {n} modda topildi — katalogdan mahsulotni tanlang.',
+  'organicLab.reactorOpenHint':
+    'Katalogdan mahsulotni tanlang (◫). Har koeffitsiyent ostida «kerak N» chiqadi — darslikdagi kabi raqamlarni qoʻying.',
+  'organicLab.reactorGenReady':
+    'Chapdagi atomlar 1 dan boshlanadi. Har slot ostidagi «kerak N» gacha koʻtaring.',
+  'organicLab.reactorProductReady':
+    'Mahsulot tanlandi. Chap koeffitsiyentlarni «kerak N» boʻyicha qoʻying.',
+  'organicLab.catalogPanelTitle': 'Organika katalogi',
+  'organicLab.catalogPanelSubProduct': 'Reaksiya mahsulotini tanlang (tenglama oʻng tomoni).',
+  'organicLab.catalogPanelSubGen':
+    'Molekulani tanlang — chapda atomlar 1 koeffitsiyent bilan chiqadi. «Kerak N» toʻgʻri sonlarni koʻrsatadi.',
+  'organicLab.catalogEmpty': 'Hech narsa topilmadi.',
+  'organicLab.paletteTitle': 'Organik atomlar',
+  'organicLab.paletteLead': 'C, H, O, N, Cl — qoʻlda qoʻshish (odatda mahsulotni tanlash yetarli).',
+  'organicLab.paletteFabAria': 'Organik atomlar palitrasini ochish (C, H, O, N, Cl)',
+  'organicLab.idleTitle': 'Tenglamani tuzing',
+  'organicLab.idleHint':
+    '«Sintez»ni bosing, mahsulotni tanlang, koeffitsiyentlarni maslahatlar boʻyicha qoʻying — 3D molekula chiqadi.',
+  'organicLab.reactorHintShort':
+    'Darslik uslubidagi tenglama: har atom oldida koeffitsiyent.',
+  'organicLab.reactorHintTextbook':
+    'Daftardagidek: □ C + □ H + □ O = formula. Koeffitsiyent ostida — «kerak N». Yozing yoki − / + bosing.',
+  'organicLab.reactorEmptyTextbook':
+    'Avval oʻngdan mahsulotni tanlang (◫) yoki «Tenglama»ni bosing — atom slotlari oʻzi chiqadi.',
+  'organicLab.coeffEditHint': 'raqam yoki − / +',
+  'organicLab.coeffMinus5': '5 ga kamaytirish',
+  'organicLab.coeffPlus5': '5 ga oshirish',
+  'organicLab.coeffNeed': 'kerak {n}',
+  'organicLab.coeffOk': 'toʻgʻri',
+  'organicLab.coeffPickProduct': 'mahsulotni tanlang',
+  'organicLab.productCoeffLabel': 'mahsulot koeff.',
+  'organicLab.balanceAria': 'Tenglamadagi atomlar balansi',
+  'organicLab.balanceTitle': 'Balans',
+  'organicLab.balanceEmpty': 'Reagent yoki mahsulot qoʻshing',
   'lang.toggle': 'Til: {current}. Almashish uchun bosing',
   'lang.switchToUz': 'O\'zbekchaga o\'tish',
   'lang.switchToRu': 'Rus tiliga o\'tish',
@@ -17,7 +91,7 @@ export const messagesUz: Record<MessageKey, string> = {
 
   'catalog.title': 'Moddalar katalogi',
   'catalog.lead':
-    'Maktab kursi norganikasi: oksidlar, kislotalar, asoslar va tuzlar. Xuddi shu moddalar bazasi laboratoriyada (atomlar, 3D ko\'rinish) ishlatiladi.',
+    'Maktab anorganikasi va 10–11 organika: oksidlar, kislotalar, asoslar, tuzlar va 3D uglevodorodlar, kislorodli birikmalar, uglevodlar.',
   'catalog.search': 'Qidirish',
   'catalog.placeholder': 'Formula, nom yoki id…',
   'catalog.searchAria': 'Katalog bo\'yicha qidirish',

@@ -22,8 +22,10 @@ const replacePlaceholders = args.includes('--replace-placeholders')
 const PLACEHOLDER_MAX_BYTES = 250_000
 const limitArg = args.find((a) => a.startsWith('--limit='))
 const idArg = args.find((a) => a.startsWith('--id='))
+const prefixArg = args.find((a) => a.startsWith('--prefix='))
 const limit = limitArg ? Number(limitArg.split('=')[1]) : Infinity
 const onlyId = idArg ? idArg.split('=')[1] : null
+const onlyPrefix = prefixArg ? prefixArg.split('=')[1] : null
 
 function loadEnv() {
   const envPath = path.join(root, '.env')
@@ -87,7 +89,11 @@ let done = 0
 let skipped = 0
 let failed = 0
 
-const entries = Object.entries(catalog).filter(([id]) => !onlyId || id === onlyId)
+const entries = Object.entries(catalog).filter(([id]) => {
+  if (onlyId && id !== onlyId) return false
+  if (onlyPrefix && !id.startsWith(onlyPrefix)) return false
+  return true
+})
 
 for (const [id, entry] of entries) {
   if (done >= limit) break

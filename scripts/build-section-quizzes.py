@@ -44,6 +44,7 @@ GRADE_CONFIG = {
 }
 
 TEMPLATES = ROOT / "scripts" / "g8g9-quiz-templates.json"
+G7_TEMPLATES = ROOT / "scripts" / "g7-quiz-templates.json"
 
 GARBAGE_PATTERNS = [
     r"какая информация вам",
@@ -62,6 +63,12 @@ GARBAGE_PATTERNS = [
     r"вспомните",
     r"^мысли",
     r"продолжите по учебнику",
+    r"фармонов",
+    r"хотя яблоко не",
+    r"позволило создать выс",
+    r"в результате было создано определ",
+    r"если какое\s*—\s*это",
+    r"урок закрепления.+\?\s*$",
 ]
 
 GENERIC_DISTRACTORS = [
@@ -252,7 +259,7 @@ def make_mcq(
         "correctIndex": correct_index,
         "explanation": shorten(explanation, 200),
         "description": f"§ «{topic_ru}» (Kimyo, {grade_label}). {shorten(explanation, 400)}",
-        "visualId": f"c{visual_ch}-t01",
+        "visualId": qid if str(qid).startswith("g7-") or str(qid).startswith("g8-") or str(qid).startswith("g9-") else f"c{visual_ch}-t01",
     }
 
 
@@ -264,7 +271,7 @@ def supplement_from_templates(
     chapter_templates: dict,
     grade_label: str,
 ) -> None:
-    if grade_id not in ("g8", "g9"):
+    if grade_id not in ("g7", "g8", "g9"):
         return
     ch = int(sec["chapterId"].replace("c", "")) if sec.get("chapterId") else 1
     sec_n = int(sec.get("sectionId", "s01").replace("s", "")) if sec.get("sectionId") else 1
@@ -279,7 +286,7 @@ def supplement_from_templates(
         return
 
     start = (sec_n - 1) * 2
-    for k in range(min(needed + 2, len(templates) * 2)):
+    for k in range(min(needed + 4, max(len(templates) * 2, needed + 1))):
         if len(items) >= MIN_PER_SECTION:
             break
         t = templates[(start + k) % len(templates)]
@@ -288,22 +295,24 @@ def supplement_from_templates(
         qkey = norm_key(f"{sid}:{qtext}")
         if qkey in global_questions:
             continue
+        if is_garbage(qtext) or is_garbage(correct):
+            continue
         global_questions.add(qkey)
         qnum = len(items) + 1
-        qid = f"{sid}-tpl{qnum:02d}"
+        qid = f"{sid}-q{qnum:02d}"
         wrong_pool = list(t.get("wrong") or []) + GENERIC_DISTRACTORS
         wrong = pick_distractors(correct, wrong_pool)
         items.append(
             make_mcq(
                 qid,
-                f"По § «{shorten(topic, 36)}»: {qtext}",
+                f"По теме §: {qtext}",
                 correct,
                 wrong,
                 t.get("explanation") or correct,
                 topic,
                 ch,
                 grade_label,
-                template_key=t.get("templateKey"),
+                template_key=qid,
             )
         )
 
@@ -315,13 +324,14 @@ def fill_minimum_section(
     global_questions: set[str],
     grade_label: str,
 ) -> None:
-    """Добор качественных вопросов из conceptsRu / rememberRu, если § бедный."""
+    """Добор качественных вопросов из conceptsRu / rememberRu / contentRu, если § бедный."""
     if len(items) >= MIN_PER_SECTION:
         return
     sid = sec["id"]
     topic = sec["topicRu"]
     ch = int(sec["chapterId"].replace("c", "")) if sec.get("chapterId") else 1
     used_correct = {clean(it["choices"][it["correctIndex"]]) for it in items}
+    pool = section_pool([sec], sec.get("chapterId", "c1"), sid)
 
     def try_add(question: str, correct: str, explanation: str) -> None:
         if len(items) >= MIN_PER_SECTION:
@@ -330,29 +340,50 @@ def fill_minimum_section(
         qkey = norm_key(f"{sid}:{question}")
         if len(correct) < 6 or correct in used_correct or qkey in global_questions or is_garbage(correct):
             return
+        if is_garbage(question):
+            return
         used_correct.add(correct)
         global_questions.add(qkey)
         qnum = len(items) + 1
-        qid = f"{sid}-fill{qnum:02d}"
-        wrong = pick_distractors(correct, GENERIC_DISTRACTORS)
-        items.append(make_mcq(qid, question, correct, wrong, explanation, topic, ch, grade_label))
+        qid = f"{sid}-q{qnum:02d}"
+        wrong = pick_distractors(correct, pool if pool else GENERIC_DISTRACTORS)
+        items.append(make_mcq(qid, question, correct, wrong, explanation, topic, ch, grade_label, template_key=qid))
 
     for concept in sec.get("conceptsRu", []):
         c = clean(concept)
         if len(c) >= 12 and not is_garbage(c):
-            try_add(f"Какое утверждение верно по § «{shorten(topic, 32)}»?", c, c)
+            try_add(f"Какое утверждение верно по теме «{shorten(topic, 40)}»?", c, c)
+
+    for d in sec.get("definitionsRu", []):
+        qa = parse_definition(d)
+        if qa:
+            try_add(f"{qa[0]} — это…", qa[1], d)
+
+    for subj, ans in extract_definitions_from_text(sec.get("contentRu", "")):
+        try_add(f"{subj} — это…", ans, f"{subj} – {ans}")
 
     for part in sec.get("ragParts", []):
         for sent in re.split(r"(?<=[.!?])\s+", part):
             s = clean(sent)
             if 25 <= len(s) <= 180 and not is_garbage(s):
-                try_add(f"По учебнику (§ «{shorten(topic, 28)}»): что верно?", s, s)
+                words = s.split()
+                if len(words) >= 5:
+                    lead = " ".join(words[:5])
+                    try_add(f"{lead}… — что верно?", s, s)
 
     remember = sec.get("rememberRu", "")
     for line in remember.split("\n"):
         line = clean(line.lstrip("•").strip())
         if len(line) >= 15 and not line.startswith("**") and not is_garbage(line):
-            try_add(f"Что нужно запомнить из § «{shorten(topic, 28)}»?", line, line)
+            try_add(f"Что важно запомнить по теме «{shorten(topic, 36)}»?", line, line)
+
+    # Последний добор: короткие факты из content
+    for sent in re.split(r"(?<=[.!?])\s+", sec.get("contentRu", "")):
+        if len(items) >= MIN_PER_SECTION:
+            break
+        s = clean(sent)
+        if 40 <= len(s) <= 160 and not is_garbage(s) and re.search(r"[а-яё]{4,}", s, re.I):
+            try_add(f"По учебнику Kimyo (7 класс), что верно о теме «{shorten(topic, 28)}»?", s, s)
 
 
 def build_section_questions(
@@ -437,7 +468,9 @@ def build_grade(grade_id: str) -> None:
     data = json.loads(cfg["knowledge"].read_text(encoding="utf-8"))
     sections = data["sections"]
     chapter_templates: dict = {}
-    if grade_id in ("g8", "g9") and TEMPLATES.is_file():
+    if grade_id == "g7" and G7_TEMPLATES.is_file():
+        chapter_templates = json.loads(G7_TEMPLATES.read_text(encoding="utf-8"))
+    elif grade_id in ("g8", "g9") and TEMPLATES.is_file():
         all_tpl = json.loads(TEMPLATES.read_text(encoding="utf-8"))
         chapter_templates = all_tpl.get(grade_id, {})
 

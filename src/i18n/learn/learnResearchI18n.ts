@@ -71,7 +71,7 @@ export const learnResearchI18nRu = {
   'learn.research.builderPickNeighbor': 'Сосед…',
   'learn.research.builderAngleOk': 'Углы ок (Δ≈{n}°)',
   'learn.research.builderAngleClose': 'Почти (Δ≈{n}°) — подкрутите ±5°',
-  'learn.research.builderAngleBad': 'Далеко от 109.5° (Δ≈{n}°) — Snap или ±5°',
+  'learn.research.builderAngleBad': 'Далеко от цели (Δ≈{n}°) — крутите ±5°',
   'learn.research.builderAngleIdle': 'Выберите атом с ≥2 соседями',
   'learn.research.builderFormulaNow': 'Сейчас: {f}',
   'learn.research.builderCheckValence': 'Валентность',
@@ -79,17 +79,19 @@ export const learnResearchI18nRu = {
   'learn.research.builderCheckAngles': 'Углы',
   'learn.research.builderCheckFormula': 'Формула',
   'learn.research.builderCheck': 'Проверить молекулу',
-  'learn.research.builderOk': 'Верно! Смотрите макро и ИК.',
+  'learn.research.builderOk': 'Верно! Структура и углы сходятся — соберите уравнение справа.',
   'learn.research.builderBad': 'Ещё не то — смотрите чекпоинты.',
   'learn.research.builderFailSkeleton': 'Скелет не совпал с заданием.',
-  'learn.research.builderFailValence': 'Закройте валентности («Связать H»).',
-  'learn.research.builderFailAngles': 'Подправьте углы (Snap / ±5°).',
+  'learn.research.builderFailValence': 'Закройте все валентности (присоедините H и др.).',
+  'learn.research.builderFailAngles': 'Подправьте углы ±5° по градусам в 3D.',
   'learn.research.builderFailFormula': 'Число атомов не совпадает с формулой.',
-  'learn.research.builderKitReady': 'На сцене {n} атомов формулы {f}. Соединяйте кликами.',
+  'learn.research.builderKitReady':
+    'Формула {f}: на сцене {n} атомов. Соедините сами (атом → атом), выставьте углы ±5° по симметрии.',
   'learn.research.builderAtomCount': 'Атомов: {n}/{target}',
   'learn.research.builderBondCount': 'связей: {n}',
   'learn.research.builderFreeValence': 'своб. вал. {n}',
-  'learn.research.builderClickBond': 'Кликните атом → «Связь» → второй атом. Или два клика в режиме связи.',
+  'learn.research.builderClickBond':
+    'Кликните первый атом, затем второй — связь. Потом ±5° до нужных градусов.',
   'learn.research.builderAllClasses': 'Все классы',
   'learn.research.builderBondOrder': 'Кратность +',
   'learn.research.builderBondOrderHint': 'Порядок новой связи: одинарная / двойная / тройная',
@@ -130,10 +132,10 @@ export const learnResearchI18nRu = {
   'learn.research.coachHide': 'Скрыть',
   'learn.research.coachShow': 'Показать обучение',
   'learn.research.coachHow':
-    'Клик по атому → «Связь» → второй атом. Для кольца закройте цепь последней связью. Или нажмите «Скелет» — связи по заданию, затем «Связать H» и «Snap».',
-  'learn.research.coachStep1': '1. Соедините углероды (цепь или кольцо) — кнопка «Скелет» помогает.',
-  'learn.research.coachStep2': '2. Нажмите «Связать H» — водороды по валентности.',
-  'learn.research.coachStep3': '3. «Snap углы» — правильная 3D-геометрия (кольцо / тетраэдр).',
+    'Формула даёт набор атомов. Соединяйте кликами, кратность —/=≡. Углы крутите ±5° (тетраэдр ~109.5°, sp² ~120°, sp ~180°). Без авто-сборки.',
+  'learn.research.coachStep1': '1. Соедините скелет (C и другие тяжёлые атомы) кликами.',
+  'learn.research.coachStep2': '2. Присоедините H и остальные атомы по валентности.',
+  'learn.research.coachStep3': '3. Выставьте углы ±5° по гибридизации и симметрии (смотрите градусы в 3D).',
   'learn.research.coachStep4': '4. «Проверить молекулу» — скелет, валентность, углы, формула.',
   'learn.research.coachStep5': '5. Готово! Справа соберите уравнение вещества.',
   'learn.research.coachRingAngle': 'Циклоалкан {formula}: целевой угол C–C–C ≈ {n}°.',
@@ -141,17 +143,18 @@ export const learnResearchI18nRu = {
   'learn.research.builderSkeletonHint': 'Соединить тяжёлые атомы как в задании (кольцо/цепь)',
   'learn.research.tipsLabel': 'Подсказка:',
   'learn.research.tipsStep1':
-    'Сначала скелет: соедините C (и другие тяжёлые атомы). Кнопка «Скелет» ставит связи по заданию. В 3D видны градусы: измеренный / целевой угол.',
+    'Выберите формулу сверху — появятся атомы. Клик → клик: связь. Сначала соберите углеродный скелет.',
   'learn.research.tipsStep2':
-    'Закройте валентности: «Связать H». Каждый атом должен иметь правильное число связей (C=4, H=1, O=2…).',
+    'Закройте валентности: каждый C=4 связи, H=1, O=2… Присоедините все H сами.',
   'learn.research.tipsStep3':
-    'Выровняйте геометрию: «Snap углы» или ±5°. Алканы ~109.5° (sp³), алкены ~120°, алкины ~180°. Векторы связей — голубые линии.',
+    'В 3D видны градусы (факт / цель). Выберите атом и соседа, крутите ±5° до совпадения (алканы ~109.5°).',
   'learn.research.tipsStep4':
-    'Проверьте молекулу: скелет, валентность, углы и формула должны совпасть. Тогда справа откроется уравнение.',
+    'Проверьте молекулу. Если всё зелёное — структура верна по химии.',
   'learn.research.tipsStep5':
-    'Молекула готова → соберите уравнение справа. Или выберите уравнение в списке — появится правильная 3D-модель вещества.',
+    'Молекула готова → уравнение справа. Или выберите уравнение — загрузится набор атомов, соберите сами.',
   'learn.research.syncMoleculeToEq': 'Теперь соберите уравнение справа — оно связано с этой молекулой.',
-  'learn.research.syncEqToMolecule': 'Уравнение «{eq}» → в 3D загружена правильная структура {f}.',
+  'learn.research.syncEqToMolecule':
+    'Уравнение «{eq}» → набор атомов {f}. Соберите молекулу сами по углам и симметрии.',
   'learn.research.syncEqNoMolecule':
     'Для «{eq}» нет модели в каталоге 3D — выберите другое уравнение или соберите молекулу вручную.',
 } as const
@@ -228,7 +231,7 @@ export const learnResearchI18nEn: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.builderPickNeighbor': 'Neighbor…',
   'learn.research.builderAngleOk': 'Angles OK (Δ≈{n}°)',
   'learn.research.builderAngleClose': 'Close (Δ≈{n}°) — nudge ±5°',
-  'learn.research.builderAngleBad': 'Far from 109.5° (Δ≈{n}°) — Snap or ±5°',
+  'learn.research.builderAngleBad': 'Far from target (Δ≈{n}°) — nudge ±5°',
   'learn.research.builderAngleIdle': 'Select an atom with ≥2 neighbors',
   'learn.research.builderFormulaNow': 'Now: {f}',
   'learn.research.builderCheckValence': 'Valence',
@@ -236,17 +239,19 @@ export const learnResearchI18nEn: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.builderCheckAngles': 'Angles',
   'learn.research.builderCheckFormula': 'Formula',
   'learn.research.builderCheck': 'Check molecule',
-  'learn.research.builderOk': 'Correct! See macro and IR.',
+  'learn.research.builderOk': 'Correct! Structure and angles match — build the equation on the right.',
   'learn.research.builderBad': 'Not yet — check the checkpoints.',
   'learn.research.builderFailSkeleton': 'Skeleton does not match the challenge.',
-  'learn.research.builderFailValence': 'Close valences (“Bond H”).',
-  'learn.research.builderFailAngles': 'Fix angles (Snap / ±5°).',
+  'learn.research.builderFailValence': 'Close all valences (attach H etc.).',
+  'learn.research.builderFailAngles': 'Adjust angles with ±5° using the 3D degree readouts.',
   'learn.research.builderFailFormula': 'Atom counts do not match the formula.',
-  'learn.research.builderKitReady': '{n} atoms of {f} on stage. Connect them by clicking.',
+  'learn.research.builderKitReady':
+    'Formula {f}: {n} atoms on stage. Bond them yourself (atom → atom), set angles ±5° by symmetry.',
   'learn.research.builderAtomCount': 'Atoms: {n}/{target}',
   'learn.research.builderBondCount': 'bonds: {n}',
   'learn.research.builderFreeValence': 'free val. {n}',
-  'learn.research.builderClickBond': 'Click atom → Bond → second atom. Or two clicks in bond mode.',
+  'learn.research.builderClickBond':
+    'Click the first atom, then the second — bond. Then ±5° to the target degrees.',
   'learn.research.builderAllClasses': 'All classes',
   'learn.research.builderBondOrder': 'Bond order +',
   'learn.research.builderBondOrderHint': 'New bond order: single / double / triple',
@@ -287,10 +292,10 @@ export const learnResearchI18nEn: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.coachHide': 'Hide',
   'learn.research.coachShow': 'Show tutorial',
   'learn.research.coachHow':
-    'Click an atom → Bond → second atom. For a ring, close the chain with the last bond. Or tap Skeleton for assignment bonds, then Bond H and Snap.',
-  'learn.research.coachStep1': '1. Connect carbons (chain or ring) — Skeleton helps.',
-  'learn.research.coachStep2': '2. Tap Bond H — hydrogens by valence.',
-  'learn.research.coachStep3': '3. Snap angles — correct 3D geometry (ring / tetrahedron).',
+    'The formula gives an atom kit. Bond by clicking; order —/=≡. Nudge angles ±5° (tetrahedron ~109.5°, sp² ~120°, sp ~180°). No auto-build.',
+  'learn.research.coachStep1': '1. Connect the skeleton (C and other heavy atoms) by clicking.',
+  'learn.research.coachStep2': '2. Attach H and the rest by valence.',
+  'learn.research.coachStep3': '3. Set angles ±5° by hybridization and symmetry (watch degrees in 3D).',
   'learn.research.coachStep4': '4. Check molecule — skeleton, valence, angles, formula.',
   'learn.research.coachStep5': '5. Done! Build the equation on the right.',
   'learn.research.coachRingAngle': 'Cycloalkane {formula}: target C–C–C ≈ {n}°.',
@@ -298,17 +303,18 @@ export const learnResearchI18nEn: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.builderSkeletonHint': 'Bond heavy atoms as in the assignment',
   'learn.research.tipsLabel': 'Tip:',
   'learn.research.tipsStep1':
-    'Start with the skeleton: bond C (and other heavy atoms). Skeleton applies assignment bonds. Degrees in 3D show measured / target angle.',
+    'Pick a formula above — atoms appear. Click → click to bond. Build the carbon skeleton first.',
   'learn.research.tipsStep2':
-    'Close valences: Bond H. Each atom needs the right bond count (C=4, H=1, O=2…).',
+    'Close valences: C=4 bonds, H=1, O=2… Attach every H yourself.',
   'learn.research.tipsStep3':
-    'Fix geometry: Snap angles or ±5°. Alkanes ~109.5° (sp³), alkenes ~120°, alkynes ~180°. Bond vectors are cyan lines.',
+    '3D shows degrees (measured / target). Pick an atom and neighbor, nudge ±5° until they match (alkanes ~109.5°).',
   'learn.research.tipsStep4':
-    'Check the molecule: skeleton, valence, angles, and formula must match. Then use the equation on the right.',
+    'Check the molecule. If everything is green — the structure is chemically correct.',
   'learn.research.tipsStep5':
-    'Molecule ready → build the equation on the right. Or pick an equation — a correct 3D model loads.',
+    'Molecule ready → equation on the right. Or pick an equation — an atom kit loads; assemble it yourself.',
   'learn.research.syncMoleculeToEq': 'Now build the equation on the right — it is linked to this molecule.',
-  'learn.research.syncEqToMolecule': 'Equation “{eq}” → correct 3D structure {f} loaded.',
+  'learn.research.syncEqToMolecule':
+    'Equation “{eq}” → atom kit for {f}. Assemble the molecule yourself by angles and symmetry.',
   'learn.research.syncEqNoMolecule':
     'No 3D model for “{eq}” in the catalog — pick another equation or build manually.',
 }
@@ -385,7 +391,7 @@ export const learnResearchI18nUz: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.builderPickNeighbor': 'Qoʻshni…',
   'learn.research.builderAngleOk': 'Burchaklar OK (Δ≈{n}°)',
   'learn.research.builderAngleClose': 'Yaqin (Δ≈{n}°) — ±5°',
-  'learn.research.builderAngleBad': '109.5° dan uzoq (Δ≈{n}°) — Snap yoki ±5°',
+  'learn.research.builderAngleBad': 'Maqsaddan uzoq (Δ≈{n}°) — ±5°',
   'learn.research.builderAngleIdle': '≥2 qoʻshnili atomni tanlang',
   'learn.research.builderFormulaNow': 'Hozir: {f}',
   'learn.research.builderCheckValence': 'Valentlik',
@@ -393,17 +399,19 @@ export const learnResearchI18nUz: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.builderCheckAngles': 'Burchaklar',
   'learn.research.builderCheckFormula': 'Formula',
   'learn.research.builderCheck': 'Molekulani tekshirish',
-  'learn.research.builderOk': 'Toʻgʻri! Makro va IKni koʻring.',
+  'learn.research.builderOk': 'Toʻgʻri! Tuzilma va burchaklar mos — oʻngda tenglama yigʻing.',
   'learn.research.builderBad': 'Hali emas — checkpointlarni koʻring.',
   'learn.research.builderFailSkeleton': 'Skelet topshiriqqa mos emas.',
-  'learn.research.builderFailValence': 'Valentlikni yoping («H bogʻlash»).',
-  'learn.research.builderFailAngles': 'Burchaklarni tuzating (Snap / ±5°).',
+  'learn.research.builderFailValence': 'Barcha valentlikni yoping (H va boshqalar).',
+  'learn.research.builderFailAngles': 'Burchaklarni ±5° bilan 3D graduslar boʻyicha tuzating.',
   'learn.research.builderFailFormula': 'Atomlar soni formulaga mos emas.',
-  'learn.research.builderKitReady': 'Sahnada {f} formulasining {n} atomi. Bosib bogʻlang.',
+  'learn.research.builderKitReady':
+    'Formula {f}: sahnada {n} atom. Oʻzingiz bogʻlang (atom → atom), burchaklarni ±5° bilan simmetriya boʻyicha qoʻying.',
   'learn.research.builderAtomCount': 'Atomlar: {n}/{target}',
   'learn.research.builderBondCount': 'bogʻlar: {n}',
   'learn.research.builderFreeValence': 'boʻsh val. {n}',
-  'learn.research.builderClickBond': 'Atom → Bogʻ → 2-atom. Yoki bogʻ rejimida ikki marta bosing.',
+  'learn.research.builderClickBond':
+    'Birinchi atom, keyin ikkinchi — bogʻ. Soʻng ±5° bilan kerakli gradusgacha.',
   'learn.research.builderAllClasses': 'Barcha sinflar',
   'learn.research.builderBondOrder': 'Bogʻ tartibi +',
   'learn.research.builderBondOrderHint': 'Yangi bogʻ: oddiy / qoʻsh / uch',
@@ -444,10 +452,10 @@ export const learnResearchI18nUz: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.coachHide': 'Yashirish',
   'learn.research.coachShow': 'Oʻqitishni koʻrsatish',
   'learn.research.coachHow':
-    'Atom → Bogʻ → 2-atom. Halqa uchun zanjirni yoping. Yoki «Skelet», keyin «H bogʻlash» va Snap.',
-  'learn.research.coachStep1': '1. Uglerodlarni bogʻlang — «Skelet» yordam beradi.',
-  'learn.research.coachStep2': '2. «H bogʻlash» — valentlik boʻyicha vodorodlar.',
-  'learn.research.coachStep3': '3. Snap — toʻgʻri 3D geometriya.',
+    'Formula atomlar toʻplamini beradi. Bosib bogʻlang; tartib —/=≡. Burchaklarni ±5° (tetraedr ~109.5°, sp² ~120°, sp ~180°). Avto-yigʻish yoʻq.',
+  'learn.research.coachStep1': '1. Skeletni (C va ogʻir atomlar) bosib bogʻlang.',
+  'learn.research.coachStep2': '2. H va qolganlarni valentlik boʻyicha ulang.',
+  'learn.research.coachStep3': '3. Burchaklarni ±5° bilan gibridlashuv va simmetriya boʻyicha qoʻying (3D graduslar).',
   'learn.research.coachStep4': '4. Tekshirish — skelet, valentlik, burchaklar, formula.',
   'learn.research.coachStep5': '5. Tayyor! Oʻngda tenglama yigʻing.',
   'learn.research.coachRingAngle': 'Tsikloalkan {formula}: C–C–C ≈ {n}°.',
@@ -455,17 +463,18 @@ export const learnResearchI18nUz: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.builderSkeletonHint': 'Ogʻir atomlarni topshiriq boʻyicha bogʻlash',
   'learn.research.tipsLabel': 'Maslahat:',
   'learn.research.tipsStep1':
-    'Avval skelet: C (va ogʻir atomlar) bogʻlang. «Skelet» topshiriq bogʻlarini qoʻyadi. 3D da burchaklar: oʻlchangan / maqsad.',
+    'Yuqoridan formula tanlang — atomlar chiqadi. Bosish → bogʻ. Avval uglerod skeleti.',
   'learn.research.tipsStep2':
-    'Valentlikni yoping: «H bogʻlash». Har atom toʻgʻri bogʻlar soniga ega boʻlsin (C=4, H=1, O=2…).',
+    'Valentlikni yoping: C=4, H=1, O=2… Barcha H ni oʻzingiz ulang.',
   'learn.research.tipsStep3':
-    'Geometriyani tuzating: Snap yoki ±5°. Alkanlar ~109.5° (sp³), alkenlar ~120°, alkinlar ~180°.',
+    '3D da graduslar (oʻlchangan / maqsad). Atom va qoʻshnini tanlab ±5° qiling (alkanlar ~109.5°).',
   'learn.research.tipsStep4':
-    'Molekulani tekshiring: skelet, valentlik, burchaklar, formula. Keyin oʻngdagi tenglama.',
+    'Molekulani tekshiring. Hammasi yashil boʻlsa — kimyoviy toʻgʻri.',
   'learn.research.tipsStep5':
-    'Molekula tayyor → oʻngda tenglama. Yoki tenglama tanlang — toʻgʻri 3D model yuklanadi.',
+    'Molekula tayyor → oʻngda tenglama. Yoki tenglama tanlang — atomlar toʻplami yuklanadi, oʻzingiz yigʻing.',
   'learn.research.syncMoleculeToEq': 'Endi oʻngda tenglama yigʻing — u shu molekula bilan bogʻliq.',
-  'learn.research.syncEqToMolecule': '«{eq}» → 3D da toʻgʻri tuzilma {f} yuklandi.',
+  'learn.research.syncEqToMolecule':
+    '«{eq}» → {f} uchun atomlar toʻplami. Molekulani burchak va simmetriya boʻyicha oʻzingiz yigʻing.',
   'learn.research.syncEqNoMolecule':
     '«{eq}» uchun 3D model yoʻq — boshqa tenglama tanlang yoki qoʻlda yigʻing.',
 }

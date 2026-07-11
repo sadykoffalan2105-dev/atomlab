@@ -1,0 +1,45 @@
+.wideCard {
+  width: min(720px, 100%);
+}
+
+.fgList {
+  margin: 0.25rem 0 0.75rem;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  color: rgba(200, 210, 235, 0.92);
+  line-height: 1.45;
+}
+
+.fgList code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #67e8f9;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.openLab,
+.buildLink {
+  text-decoration: none;
+  border-radius: 10px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.openLab {
+  color: #042f2e;
+  background: linear-gradient(135deg, #34d399, #2dd4bf);
+  border: 1px solid rgba(52, 211, 153, 0.6);
+}
+
+.buildLink {
+  color: #e0f2fe;
+  background: rgba(14, 30, 48, 0.95);
+  border: 1px solid rgba(125, 211, 252, 0.4);
+}

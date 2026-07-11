@@ -22,7 +22,7 @@ const CHAPTER_COLORS = {
 }
 
 function chapterOf(id) {
-  const m = id.match(/^c(\d+)-/)
+  const m = id.match(/^(?:g\d+-)?c(\d+)/i) || id.match(/^c(\d+)/i)
   return m ? Number(m[1]) : 1
 }
 

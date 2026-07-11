@@ -6,10 +6,84 @@ import type { MessageKey } from './messagesRu'
 /** English UI strings (same keys as messagesRu). */
 export const messagesEn: Record<MessageKey, string> = {
   'nav.laboratory': 'Laboratory',
+  'nav.organicLab': 'Organic',
   'nav.periodic': 'Periodic table',
   'nav.catalog': 'Substance catalog',
   'nav.learn': 'Learn',
   ...vrLabEn,
+  'lab.domainAria': 'Lab type',
+  'lab.domainInorganic': 'Inorganic',
+  'lab.domainOrganic': 'Organic',
+  'organicLab.lead':
+    'Organic 3D structures for Kimyo 10–11: view modes, functional groups, equations, and build-yourself links.',
+  'organicLab.classAria': 'Organic compound classes',
+  'organicLab.allClasses': 'All classes',
+  'organicLab.modeAria': 'Molecule display mode',
+  'organicLab.modeBallStick': 'Ball and stick',
+  'organicLab.modeSpaceFill': 'Space-filling',
+  'organicLab.modeSkeleton': 'Skeletal (2D)',
+  'organicLab.modeHybrid': 'Hybridization',
+  'organicLab.hybridHint': 'Atoms with {h} hybridization are labeled.',
+  'organicLab.equation': 'Equation',
+  'organicLab.buildYourself': 'Build yourself in 3D',
+  'organicLab.openBuilder': 'Open 3D builder',
+  'organicLab.catalogSection': 'Organic (grades 10–11)',
+  'organicLab.catalogLead': 'Teaching 3D models — open in the organic lab.',
+  'organicLab.openInLab': 'Open 3D',
+  'organicLab.functionalGroups': 'Functional groups',
+  'organicLab.synthAria': 'Build organic molecule from atoms',
+  'organicLab.synthTitle': 'Synthesis from atoms',
+  'organicLab.synthHint':
+    'Add atoms (C, H, O, N, Cl) as in the formula. The lab finds the substance and shows the correct 3D structure.',
+  'organicLab.synthAtoms': 'Atoms',
+  'organicLab.synthAdd': 'Add {el}',
+  'organicLab.synthBag': 'Kit',
+  'organicLab.synthTotal': 'atoms: {n}',
+  'organicLab.synthRun': 'Assemble molecule',
+  'organicLab.synthReset': 'Reset',
+  'organicLab.synthNeedAtoms': 'Add at least one atom.',
+  'organicLab.synthNoMatch': 'No organic catalog entry matches {f}.',
+  'organicLab.synthOk': 'Obtained: {name} ({f}).',
+  'organicLab.synthIsomers': 'Found {n} isomers for {f} — pick a structure.',
+  'organicLab.reactorTitle': 'Organic reactor',
+  'organicLab.reactorEmptyHint':
+    'Pick a product (◫) or tap Equation — atoms appear on the left with coefficient 1.',
+  'organicLab.reactorHint':
+    'Left: atoms with coefficients. Right: organic molecule. Balance the equation, then run synthesis.',
+  'organicLab.reactorAmbiguous': '{n} compounds match this composition — pick the product in the catalog.',
+  'organicLab.reactorOpenHint':
+    'Pick a product in the catalog (◫). Under each coefficient you will see “need N” — fill in the numbers like in a textbook.',
+  'organicLab.reactorGenReady':
+    'Left-side atoms start at 1. Raise them to the “need N” values under each slot.',
+  'organicLab.reactorProductReady':
+    'Product selected. Set left coefficients using the “need N” hints.',
+  'organicLab.catalogPanelTitle': 'Organic catalog',
+  'organicLab.catalogPanelSubProduct': 'Choose the reaction product (right-hand side).',
+  'organicLab.catalogPanelSubGen':
+    'Pick a molecule — left atoms appear with coefficient 1. “Need N” hints show the correct numbers.',
+  'organicLab.catalogEmpty': 'Nothing found.',
+  'organicLab.paletteTitle': 'Organic atoms',
+  'organicLab.paletteLead': 'C, H, O, N, Cl — add manually (usually picking a product is enough).',
+  'organicLab.paletteFabAria': 'Open organic atom palette (C, H, O, N, Cl)',
+  'organicLab.idleTitle': 'Build the equation',
+  'organicLab.idleHint':
+    'Tap Synthesis, pick a product, set coefficients from the hints — the 3D molecule appears.',
+  'organicLab.reactorHintShort':
+    'Textbook-style equation: a coefficient in front of each atom.',
+  'organicLab.reactorHintTextbook':
+    'Like in a notebook: □ C + □ H + □ O = formula. Under each coefficient — “need N”. Type or use − / +.',
+  'organicLab.reactorEmptyTextbook':
+    'First pick a product on the right (◫) or tap Equation — atom slots appear automatically.',
+  'organicLab.coeffEditHint': 'number or − / +',
+  'organicLab.coeffMinus5': 'Decrease by 5',
+  'organicLab.coeffPlus5': 'Increase by 5',
+  'organicLab.coeffNeed': 'need {n}',
+  'organicLab.coeffOk': 'ok',
+  'organicLab.coeffPickProduct': 'pick product',
+  'organicLab.productCoeffLabel': 'product coeff.',
+  'organicLab.balanceAria': 'Atom balance in the equation',
+  'organicLab.balanceTitle': 'Balance',
+  'organicLab.balanceEmpty': 'Add reagents or a product',
   'lang.toggle': 'Language: {current}. Click to switch',
   'lang.switchToEn': 'Switch to English',
   'lang.switchToRu': 'Switch to Russian',
@@ -17,7 +91,7 @@ export const messagesEn: Record<MessageKey, string> = {
 
   'catalog.title': 'Substance catalog',
   'catalog.lead':
-    'Inorganic substances for a school-level course: oxides, acids, bases, and salts. The same database is used in the laboratory (atoms, 3D view).',
+    'School inorganic chemistry plus organic 10–11: oxides, acids, bases, salts, and 3D hydrocarbons, oxygen compounds, carbohydrates.',
   'catalog.search': 'Search',
   'catalog.placeholder': 'Formula, name, or id…',
   'catalog.searchAria': 'Search catalog',

@@ -1,16 +1,22 @@
 # Иллюстрации к вопросам (quiz)
 
-Фотореалистичные PNG для блока «Описание темы» в тестировании (вкладка «Инструменты»).
+Фото к вопросам тестирования во вкладке **Инструменты** (блок «Описание темы»).
 
-- Имена: `{templateKey}.png`, напр. `c2-t03.png`
-- Манифест: `src/learn/quizVisualManifest.ts` (из `g7QuizVisualCatalog.ts`)
-- Тексты: `src/learn/g7QuizVisualCatalog.ts` + `g7C1S01QuizEnrichments.ts` (глава I)
+## Per-question (7 класс)
 
-## Генерация (7 класс, 61 вопрос)
+- Имена: `g7-c{глава}-s{§}-q{NN}.png`, напр. `g7-c1-s02-q01.png`
+- Описания: [`src/data/g7SectionQuizEnrichments.json`](../../../src/data/g7SectionQuizEnrichments.json)
+- Ручной эталон §1: [`src/learn/g7C1S01SectionQuizEnrichments.ts`](../../../src/learn/g7C1S01SectionQuizEnrichments.ts)
+- Манифест: [`src/learn/quizVisualManifest.ts`](../../../src/learn/quizVisualManifest.ts)
+
+## Сборка
 
 ```bash
-npm run learn:quiz-visual-placeholders   # градиент-плейсхолдеры для отсутствующих PNG
-npm run learn:generate-quiz-visuals      # DALL-E 3 (нужен OPENAI_API_KEY в .env)
-npm run learn:generate-quiz-visuals -- --limit=10
-npm run learn:generate-quiz-visuals -- --id=c2-t01 --force
+npm run build:g7-section-quizzes       # банк MCQ по всем §
+npm run build:g7-section-enrichments   # description + imagePrompt на каждый вопрос
+npm run learn:render-quiz-visuals      # уникальные фото из постеров/слайдов §
+npm run learn:generate-quiz-visuals    # опционально DALL·E 3 (нужен валидный OPENAI_API_KEY)
+npm run learn:generate-quiz-visuals -- --prefix=g7-c2-
 ```
+
+Эталонные PNG §1 (`g7-c1-s01-q01`…`q08`) при render не перезаписываются (размер ≥ 250 KB).

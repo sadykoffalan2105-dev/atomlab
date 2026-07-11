@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Billboard, Text } from '@react-three/drei'
 import * as THREE from 'three'
-import { CATALOG_BALL_STICK_RADIUS_SCALE, heroAtomStyle, heroBondStyle } from '../../chemistry/catalogHeroAppearance'
+import { CATALOG_BALL_STICK_RADIUS_SCALE, heroAtomStyle, heroBondStyle, organicHeroAtomStyle, organicHeroBondStyle } from '../../chemistry/catalogHeroAppearance'
 import { getElementBySymbol } from '../../data/elements'
 import type { CompoundDef } from '../../types/chemistry'
 import type { Vec3 } from '../../types/chemistry'
@@ -191,19 +191,24 @@ export function MoleculeMesh({
   visualPreset = 'default',
   renderQuality = 'high',
   showLabels,
+  displayMode = 'ballStick',
 }: {
   compound: CompoundDef
   scale: number
   accentBoost?: number
-  visualPreset?: 'default' | 'catalogHero'
+  visualPreset?: 'default' | 'catalogHero' | 'organicHero'
   /** 'synthesis' = быстрый режим (без troika Text, меньше poly/эффектов) */
   renderQuality?: 'high' | 'synthesis'
   /** По умолчанию буквы на атомах всегда включены (и в synthesis, и при fxLevel=off). */
   showLabels?: boolean
+  /** ballStick — стержни; spaceFill — ван-дер-ваальсовы сферы без стержней */
+  displayMode?: 'ballStick' | 'spaceFill'
 }) {
-  const hero = visualPreset === 'catalogHero'
+  const hero = visualPreset === 'catalogHero' || visualPreset === 'organicHero'
+  const organicHero = visualPreset === 'organicHero'
   const quality = renderQuality
   const labels = showLabels !== false
+  const spaceFill = displayMode === 'spaceFill'
 
   const degrees = useMemo(
     () => atomDegrees(compound.atoms.length, compound.bonds),
@@ -211,16 +216,41 @@ export function MoleculeMesh({
   )
   const maxDegree = useMemo(() => (degrees.length ? Math.max(...degrees) : 0), [degrees])
 
-  const bondPlasma = useMemo(() => heroBondStyle(compound.category), [compound.category])
-  const usePlasma = hero && quality !== 'synthesis'
+  const bondPlasma = useMemo(
+    () => (organicHero ? organicHeroBondStyle(compound.accentColor) : heroBondStyle(compound.category)),
+    [compound.category, compound.accentColor, organicHero],
+  )
+  const usePlasma = hero && quality !== 'synthesis' && !spaceFill && !organicHero
+  /** Органика: параллельные стержни CPK вместо плазмы — видны кратные связи. */
+  const useOrganicSticks = organicHero && !spaceFill
+
+  const bondDrawList = useMemo(() => {
+    const groups = new Map<string, { i: number; j: number; count: number }>()
+    for (const [i, j] of compound.bonds) {
+      const a = Math.min(i, j)
+      const b = Math.max(i, j)
+      const key = `${a}-${b}`
+      const g = groups.get(key)
+      if (g) g.count += 1
+      else groups.set(key, { i: a, j: b, count: 1 })
+    }
+    const out: { i: number; j: number; slot: number; total: number }[] = []
+    for (const g of groups.values()) {
+      for (let s = 0; s < g.count; s++) out.push({ i: g.i, j: g.j, slot: s, total: g.count })
+    }
+    return out
+  }, [compound.bonds])
 
   return (
     <group scale={scale}>
       {compound.atoms.map((a, i) => {
         const st = hero
-          ? heroAtomStyle(a.symbol, compound.category, { degree: degrees[i] ?? 0, maxDegree })
+          ? organicHero
+            ? organicHeroAtomStyle(a.symbol, { degree: degrees[i] ?? 0, maxDegree })
+            : heroAtomStyle(a.symbol, compound.category, { degree: degrees[i] ?? 0, maxDegree })
           : null
-        const r = hero && st ? st.radius * CATALOG_BALL_STICK_RADIUS_SCALE : 0.32
+        const baseR = hero && st ? st.radius * CATALOG_BALL_STICK_RADIUS_SCALE : 0.32
+        const r = spaceFill ? baseR * (a.symbol === 'H' ? 2.4 : 2.85) : baseR
         const sphereSegW = hero ? (quality === 'synthesis' ? 16 : 36) : 18
         const sphereSegH = hero ? (quality === 'synthesis' ? 14 : 32) : 18
         return (
@@ -229,7 +259,7 @@ export function MoleculeMesh({
               {hero ? (
                 <sphereGeometry args={[r, sphereSegW, sphereSegH]} />
               ) : (
-                <sphereGeometry args={[0.32, 18, 18]} />
+                <sphereGeometry args={[r, 18, 18]} />
               )}
               {hero && st ? (
                 <meshPhysicalMaterial
@@ -243,7 +273,7 @@ export function MoleculeMesh({
                   transmission={st.transmission}
                   thickness={st.thickness}
                   transparent
-                  opacity={st.opacity}
+                  opacity={spaceFill ? Math.min(0.92, st.opacity) : st.opacity}
                   envMapIntensity={st.envMapIntensity}
                 />
               ) : (
@@ -253,36 +283,62 @@ export function MoleculeMesh({
                   emissiveIntensity={0.22 * accentBoost}
                   metalness={0.2}
                   roughness={0.38}
+                  transparent={spaceFill}
+                  opacity={spaceFill ? 0.92 : 1}
                 />
               )}
             </mesh>
-            {labels ? <AtomInSphereLabel symbol={a.symbol} r={r} /> : null}
+            {labels && !spaceFill ? <AtomInSphereLabel symbol={a.symbol} r={r} /> : null}
           </group>
         )
       })}
-      {usePlasma ? (
+      {!spaceFill && usePlasma ? (
         <BondPlasmaGroup
           bonds={compound.bonds}
           atoms={compound.atoms}
           core={bondPlasma.core}
           halo={bondPlasma.halo}
         />
-      ) : (
-        compound.bonds.map(([i, j], k) => {
-          const ai = compound.atoms[i]
-          const aj = compound.atoms[j]
-          if (!ai || !aj) return null
-          return (
-            <BondCylinder
-              key={k}
-              from={ai.pos}
-              to={aj.pos}
-              color={compound.accentColor}
-              visualPreset={visualPreset}
-            />
-          )
-        })
-      )}
+      ) : null}
+      {!spaceFill && (useOrganicSticks || (!usePlasma && !organicHero))
+        ? bondDrawList.map((b, k) => {
+            const ai = compound.atoms[b.i]
+            const aj = compound.atoms[b.j]
+            if (!ai || !aj) return null
+            const from = offsetBondEnd(ai.pos, aj.pos, b.slot, b.total)
+            const to = offsetBondEnd(aj.pos, ai.pos, b.slot, b.total)
+            return (
+              <BondCylinder
+                key={k}
+                from={from}
+                to={to}
+                color={organicHero ? bondPlasma.core : compound.accentColor}
+                visualPreset={organicHero ? 'catalogHero' : visualPreset === 'catalogHero' ? 'catalogHero' : 'default'}
+              />
+            )
+          })
+        : null}
     </group>
   )
+}
+
+function offsetBondEnd(from: Vec3, to: Vec3, slot: number, total: number): Vec3 {
+  if (total <= 1) return from
+  const dx = to[0] - from[0]
+  const dz = to[2] - from[2]
+  let px = -dz
+  let py = 0
+  let pz = dx
+  const pl = Math.hypot(px, py, pz)
+  if (pl < 1e-6) {
+    px = 0
+    py = 1
+    pz = 0
+  } else {
+    px /= pl
+    pz /= pl
+  }
+  const mid = (total - 1) / 2
+  const off = (slot - mid) * 0.08
+  return [from[0] + px * off, from[1] + py * off, from[2] + pz * off]
 }

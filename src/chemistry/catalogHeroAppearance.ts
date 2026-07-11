@@ -122,3 +122,116 @@ export function heroBondStyle(category: CompoundCategory): HeroBondStyle {
       return { core: '#d060f0', halo: '#88a8ff' }
   }
 }
+
+/**
+ * Органика: стекло поверх настоящего CPK (C серый, H белый, O красный, N синий, Cl зелёный).
+ * Без «кино»-перекраски O/H как в неорганическом каталоге.
+ */
+export function organicHeroAtomStyle(
+  symbol: string,
+  opts: { degree: number; maxDegree: number },
+): HeroAtomStyle {
+  const hub = opts.maxDegree > 0 && opts.degree >= opts.maxDegree
+  const c = cpkHex(symbol)
+  const s = symbol
+
+  if (s === 'H') {
+    return {
+      baseColor: c,
+      emissive: '#e8f0ff',
+      emissiveIntensity: 0.28,
+      metalness: 0.12,
+      roughness: 0.14,
+      transmission: 0.55,
+      thickness: 0.22,
+      clearcoat: 0.95,
+      clearcoatRoughness: 0.12,
+      opacity: 0.9,
+      envMapIntensity: 1.1,
+      radius: 0.2,
+    }
+  }
+  if (s === 'C') {
+    return {
+      baseColor: c,
+      emissive: '#4a5568',
+      emissiveIntensity: 0.22,
+      metalness: 0.28,
+      roughness: 0.22,
+      transmission: 0.22,
+      thickness: 0.4,
+      clearcoat: 0.75,
+      clearcoatRoughness: 0.2,
+      opacity: 0.96,
+      envMapIntensity: 1.05,
+      radius: hub ? 0.34 : 0.28,
+    }
+  }
+  if (s === 'O') {
+    return {
+      baseColor: c,
+      emissive: '#ff3344',
+      emissiveIntensity: 0.38,
+      metalness: 0.22,
+      roughness: 0.16,
+      transmission: 0.42,
+      thickness: 0.4,
+      clearcoat: 0.95,
+      clearcoatRoughness: 0.12,
+      opacity: 0.92,
+      envMapIntensity: 1.2,
+      radius: 0.29,
+    }
+  }
+  if (s === 'N') {
+    return {
+      baseColor: c,
+      emissive: '#3b82f6',
+      emissiveIntensity: 0.34,
+      metalness: 0.24,
+      roughness: 0.18,
+      transmission: 0.35,
+      thickness: 0.38,
+      clearcoat: 0.9,
+      clearcoatRoughness: 0.14,
+      opacity: 0.93,
+      envMapIntensity: 1.15,
+      radius: 0.28,
+    }
+  }
+  if (s === 'Cl') {
+    return {
+      baseColor: c,
+      emissive: '#22c55e',
+      emissiveIntensity: 0.32,
+      metalness: 0.26,
+      roughness: 0.18,
+      transmission: 0.38,
+      thickness: 0.4,
+      clearcoat: 0.9,
+      clearcoatRoughness: 0.14,
+      opacity: 0.92,
+      envMapIntensity: 1.15,
+      radius: 0.31,
+    }
+  }
+
+  return {
+    baseColor: c,
+    emissive: c,
+    emissiveIntensity: 0.3,
+    metalness: 0.3,
+    roughness: 0.18,
+    transmission: 0.32,
+    thickness: 0.4,
+    clearcoat: 0.85,
+    clearcoatRoughness: 0.16,
+    opacity: 0.93,
+    envMapIntensity: 1.1,
+    radius: hub ? 0.33 : 0.27,
+  }
+}
+
+export function organicHeroBondStyle(accent?: string): HeroBondStyle {
+  return { core: accent ?? '#34d399', halo: '#67e8f9' }
+}
