@@ -66,6 +66,17 @@
   box-shadow: 0 0 18px color-mix(in srgb, var(--mode-accent, #3dffec) 22%, transparent);
 }
 
+.workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  border: 1px solid rgba(100, 140, 200, 0.28);
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(61, 255, 236, 0.06), transparent 55%),
+    linear-gradient(165deg, rgba(14, 18, 40, 0.96), rgba(6, 8, 20, 0.98));
+  padding: 0.75rem 0.85rem;
+}
+
 .zones {
   display: grid;
   grid-template-columns: 1.1fr 1fr;

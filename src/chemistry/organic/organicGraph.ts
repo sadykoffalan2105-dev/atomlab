@@ -388,6 +388,31 @@ export function matchesSkeletonSpec(graph: OrganicGraph, spec: SkeletonSpec): bo
   return skeletonsMatch(graph, graphFromSkeletonSpec(spec))
 }
 
+/**
+ * Связать тяжёлые атомы набора по эталону скелета (порядок атомов как в kit: C, O, N, Cl).
+ */
+export function applySkeletonBonds(graph: OrganicGraph, spec: SkeletonSpec): OrganicGraph {
+  const orderEls: OrganicElement[] = ['C', 'O', 'N', 'Cl']
+  const heavies: OrganicAtom[] = []
+  for (const el of orderEls) {
+    for (const a of graph.atoms) {
+      if (a.element === el) heavies.push(a)
+    }
+  }
+  if (heavies.length < spec.elements.length) return graph
+
+  let next = graph
+  for (const e of spec.edges) {
+    const order = (e[2] ?? 1) as 1 | 2 | 3
+    const a = heavies[e[0]]
+    const b = heavies[e[1]]
+    if (!a || !b) continue
+    const bonded = addBond(next, a.id, b.id, order)
+    if (bonded) next = bonded
+  }
+  return next
+}
+
 export function toCompoundPreview(
   graph: OrganicGraph,
   id = 'organic-preview',

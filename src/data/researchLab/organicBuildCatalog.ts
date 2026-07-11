@@ -29,12 +29,17 @@ export type OrganicClassId =
   | 'halo'
   | 'nitrogen'
 
+/** Учебный этап сборки: цепь → кольцо → каркас (как на схеме в учебнике). */
+export type OrganicBuildStage = 'chain' | 'ring' | 'cage'
+
 export type OrganicKit = Readonly<Partial<Record<'C' | 'H' | 'O' | 'N' | 'Cl', number>>>
 
 export type OrganicBuildChallenge = {
   id: string
   isomerCandidateId?: string
   classId: OrganicClassId
+  /** Этап 3D-студии; по умолчанию выводится из classId */
+  buildStage?: OrganicBuildStage
   formula: string
   kit: OrganicKit
   titleRu: string
@@ -83,8 +88,14 @@ function ch(partial: Omit<OrganicBuildChallenge, 'irPeaks' | 'equationEn' | 'equ
   equationEn?: string
   equationUz?: string
 }): OrganicBuildChallenge {
+  const buildStage =
+    partial.buildStage ??
+    (partial.classId === 'cycloalkane' || partial.classId === 'arene'
+      ? 'ring'
+      : 'chain')
   return {
     ...partial,
+    buildStage,
     irPeaks: partial.irPeaks ?? [CH],
     equationEn: partial.equationEn ?? partial.equationRu,
     equationUz: partial.equationUz ?? partial.equationRu,
@@ -306,38 +317,153 @@ export const ORGANIC_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
     equationRu: 'C₅H₁₂ (нео) — изомер н-пентана',
   }),
   ch({
-    id: 'hexane',
+    id: 'n-hexane',
+    isomerCandidateId: 'n-hexane',
     classId: 'alkane',
+    buildStage: 'chain',
     formula: 'C₆H₁₄',
     kit: { C: 6, H: 14 },
     titleRu: 'н-Гексан',
     titleEn: 'n-Hexane',
     titleUz: 'n-Geksan',
-    hintRu: 'Цепь из шести C.',
-    hintEn: 'Chain of six C.',
-    hintUz: 'Olti C zanjir.',
-    successRu: 'Гексан — растворитель, компонент бензина.',
-    successEn: 'Hexane — solvent, gasoline component.',
-    successUz: 'Geksan — erituvchi.',
+    hintRu: 'Неразветвлённая цепь из шести C: CH₃–(CH₂)₄–CH₃.',
+    hintEn: 'Unbranched chain of six C.',
+    hintUz: 'Shoxlanmagan olti C zanjir.',
+    successRu: 'н-Гексан — растворитель, компонент бензина.',
+    successEn: 'n-Hexane — solvent, gasoline component.',
+    successUz: 'n-Geksan — erituvchi.',
     skeleton: chain(6),
     equationRu: '2C₆H₁₄ + 19O₂ → 12CO₂ + 14H₂O',
+  }),
+  ch({
+    id: '2-methylpentane',
+    isomerCandidateId: '2-methylpentane',
+    classId: 'alkane',
+    formula: 'C₆H₁₄',
+    kit: { C: 6, H: 14 },
+    titleRu: '2-Метилпентан',
+    titleEn: '2-Methylpentane',
+    titleUz: '2-Metilpentan',
+    hintRu: 'Цепь C₅ + метил на 2-м углероде (изогексан).',
+    hintEn: 'C₅ chain + methyl on carbon 2.',
+    hintUz: 'C₅ zanjir + 2-uglerodda metil.',
+    successRu: '2-Метилпентан — структурный изомер гексана.',
+    successEn: '2-Methylpentane — structural isomer of hexane.',
+    successUz: '2-Metilpentan — geksan izomeri.',
+    skeleton: {
+      // C0–C1–C2–C3–C4  +  C5 на C1 (позиция 2)
+      elements: ['C', 'C', 'C', 'C', 'C', 'C'],
+      edges: [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 4],
+        [1, 5],
+      ],
+    },
+    equationRu: 'C₆H₁₄ (2-метилпентан) — изомер н-гексана',
+  }),
+  ch({
+    id: '3-methylpentane',
+    isomerCandidateId: '3-methylpentane',
+    classId: 'alkane',
+    formula: 'C₆H₁₄',
+    kit: { C: 6, H: 14 },
+    titleRu: '3-Метилпентан',
+    titleEn: '3-Methylpentane',
+    titleUz: '3-Metilpentan',
+    hintRu: 'Цепь C₅ + метил на 3-м (среднем) углероде.',
+    hintEn: 'C₅ chain + methyl on carbon 3.',
+    hintUz: 'C₅ + 3-uglerodda metil.',
+    successRu: '3-Метилпентан — изомер с ветвью в центре.',
+    successEn: '3-Methylpentane — branch in the middle.',
+    successUz: '3-Metilpentan — markazda shox.',
+    skeleton: {
+      // C0–C1–C2–C3–C4  +  C5 на C2
+      elements: ['C', 'C', 'C', 'C', 'C', 'C'],
+      edges: [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 4],
+        [2, 5],
+      ],
+    },
+    equationRu: 'C₆H₁₄ (3-метилпентан) — изомер н-гексана',
+  }),
+  ch({
+    id: '2-3-dimethylbutane',
+    isomerCandidateId: '2-3-dimethylbutane',
+    classId: 'alkane',
+    formula: 'C₆H₁₄',
+    kit: { C: 6, H: 14 },
+    titleRu: '2,3-Диметилбутан',
+    titleEn: '2,3-Dimethylbutane',
+    titleUz: '2,3-Dimetilbutan',
+    hintRu: 'Цепь C₄ + по метилу на 2-м и 3-м углеродах.',
+    hintEn: 'C₄ chain + methyls on carbons 2 and 3.',
+    hintUz: 'C₄ + 2- va 3-uglerodda metillar.',
+    successRu: '2,3-Диметилбутан — два соседних разветвления.',
+    successEn: '2,3-Dimethylbutane — two adjacent branches.',
+    successUz: '2,3-Dimetilbutan — ikki qoʻshni shox.',
+    skeleton: {
+      // C0–C1–C2–C3  +  C4 на C1, C5 на C2
+      elements: ['C', 'C', 'C', 'C', 'C', 'C'],
+      edges: [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [1, 4],
+        [2, 5],
+      ],
+    },
+    equationRu: 'C₆H₁₄ (2,3-диметилбутан) — изомер н-гексана',
+  }),
+  ch({
+    id: '2-2-dimethylbutane',
+    isomerCandidateId: '2-2-dimethylbutane',
+    classId: 'alkane',
+    formula: 'C₆H₁₄',
+    kit: { C: 6, H: 14 },
+    titleRu: '2,2-Диметилбутан',
+    titleEn: '2,2-Dimethylbutane',
+    titleUz: '2,2-Dimetilbutan',
+    hintRu: 'Цепь C₄ + два метила на одном (2-м) углероде.',
+    hintEn: 'C₄ chain + two methyls on carbon 2.',
+    hintUz: 'C₄ + 2-uglerodda ikki metil.',
+    successRu: '2,2-Диметилбутан — четвертичный углерод.',
+    successEn: '2,2-Dimethylbutane — quaternary carbon.',
+    successUz: '2,2-Dimetilbutan — toʻrtlamchi uglerod.',
+    skeleton: {
+      // C0–C1–C2–C3  +  C4 и C5 на C1
+      elements: ['C', 'C', 'C', 'C', 'C', 'C'],
+      edges: [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [1, 4],
+        [1, 5],
+      ],
+    },
+    equationRu: 'C₆H₁₄ (2,2-диметилбутан) — изомер н-гексана',
   }),
 
   // ——— Циклоалканы ———
   ch({
     id: 'cyclopropane',
     classId: 'cycloalkane',
+    buildStage: 'ring',
     formula: 'C₃H₆',
     kit: { C: 3, H: 6 },
     titleRu: 'Циклопропан',
     titleEn: 'Cyclopropane',
     titleUz: 'Tsiklopropan',
-    hintRu: 'Треугольник из трёх C (кольцо).',
-    hintEn: 'Triangle of three C (ring).',
-    hintUz: 'Uch C uchburchak.',
-    successRu: 'Циклопропан — напряжённое трёхчленное кольцо.',
-    successEn: 'Cyclopropane — strained three-membered ring.',
-    successUz: 'Tsiklopropan — kuchlanishli halqa.',
+    hintRu: 'Треугольник из трёх C. Угол C–C–C ≈ 60° (сильное напряжение кольца).',
+    hintEn: 'Triangle of three C. C–C–C ≈ 60° (high ring strain).',
+    hintUz: 'Uch C uchburchak. C–C–C ≈ 60°.',
+    successRu: 'Циклопропан — напряжённое трёхчленное кольцо (C₃H₆).',
+    successEn: 'Cyclopropane — strained three-membered ring (C₃H₆).',
+    successUz: 'Tsiklopropan — kuchlanishli uch aʼzoli halqa.',
     skeleton: {
       elements: ['C', 'C', 'C'],
       edges: [
@@ -349,18 +475,72 @@ export const ORGANIC_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
     equationRu: 'C₃H₆ — циклопропан',
   }),
   ch({
+    id: 'cyclobutane',
+    classId: 'cycloalkane',
+    buildStage: 'ring',
+    formula: 'C₄H₈',
+    kit: { C: 4, H: 8 },
+    titleRu: 'Циклобутан',
+    titleEn: 'Cyclobutane',
+    titleUz: 'Tsiklobutan',
+    hintRu: 'Квадрат из четырёх C. Угол C–C–C ≈ 90°.',
+    hintEn: 'Square of four C. C–C–C ≈ 90°.',
+    hintUz: 'Toʻrt C kvadrat. C–C–C ≈ 90°.',
+    successRu: 'Циклобутан — четырёхчленное кольцо (C₄H₈).',
+    successEn: 'Cyclobutane — four-membered ring (C₄H₈).',
+    successUz: 'Tsiklobutan — toʻrt aʼzoli halqa.',
+    skeleton: {
+      elements: ['C', 'C', 'C', 'C'],
+      edges: [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 0],
+      ],
+    },
+    equationRu: 'C₄H₈ — циклобутан',
+  }),
+  ch({
+    id: 'cyclopentane',
+    classId: 'cycloalkane',
+    buildStage: 'ring',
+    formula: 'C₅H₁₀',
+    kit: { C: 5, H: 10 },
+    titleRu: 'Циклопентан',
+    titleEn: 'Cyclopentane',
+    titleUz: 'Tsiklopentan',
+    hintRu: 'Пятиугольник из пяти C. Угол C–C–C ≈ 108° (почти тетраэдр).',
+    hintEn: 'Pentagon of five C. C–C–C ≈ 108° (near tetrahedral).',
+    hintUz: 'Besh C beshburchak. C–C–C ≈ 108°.',
+    successRu: 'Циклопентан — пятичленное кольцо (C₅H₁₀).',
+    successEn: 'Cyclopentane — five-membered ring (C₅H₁₀).',
+    successUz: 'Tsiklopentan — besh aʼzoli halqa.',
+    skeleton: {
+      elements: ['C', 'C', 'C', 'C', 'C'],
+      edges: [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 4],
+        [4, 0],
+      ],
+    },
+    equationRu: 'C₅H₁₀ — циклопентан',
+  }),
+  ch({
     id: 'cyclohexane',
     classId: 'cycloalkane',
+    buildStage: 'ring',
     formula: 'C₆H₁₂',
     kit: { C: 6, H: 12 },
     titleRu: 'Циклогексан',
     titleEn: 'Cyclohexane',
     titleUz: 'Tsikloheksan',
-    hintRu: 'Шестичленное кольцо C₆.',
-    hintEn: 'Six-membered C₆ ring.',
-    hintUz: 'Olti aʼzoli C₆ halqa.',
-    successRu: 'Циклогексан — «кресло», мало напряжён.',
-    successEn: 'Cyclohexane — chair form, low strain.',
+    hintRu: 'Шестичленное кольцо. В 3D — «кресло», углы ≈ 109.5°.',
+    hintEn: 'Six-membered ring. In 3D — chair, angles ≈ 109.5°.',
+    hintUz: 'Olti aʼzoli. 3D da — stul, ~109.5°.',
+    successRu: 'Циклогексан — «кресло», мало напряжён (C₆H₁₂).',
+    successEn: 'Cyclohexane — chair form, low strain (C₆H₁₂).',
     successUz: 'Tsikloheksan — stul shakli.',
     skeleton: {
       elements: ['C', 'C', 'C', 'C', 'C', 'C'],
@@ -374,6 +554,42 @@ export const ORGANIC_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
       ],
     },
     equationRu: 'C₆H₁₂ — циклогексан',
+  }),
+  ch({
+    id: 'adamantane',
+    classId: 'cycloalkane',
+    buildStage: 'cage',
+    formula: 'C₁₀H₁₆',
+    kit: { C: 10, H: 16 },
+    titleRu: 'Адамантан',
+    titleEn: 'Adamantane',
+    titleUz: 'Adamantan',
+    hintRu:
+      'Каркас: 4 третичных C (мостики) + 6 CH₂. Каждый мостиковый C связан с тремя CH₂.',
+    hintEn: 'Cage: 4 bridgehead C + 6 CH₂. Each bridgehead bonds to three CH₂.',
+    hintUz: 'Karkas: 4 koʻprik C + 6 CH₂.',
+    successRu: 'Адамантан — алмазоподобный каркас (алифатическое полициклическое).',
+    successEn: 'Adamantane — diamondoid cage.',
+    successUz: 'Adamantan — olmosga oʻxshash karkas.',
+    skeleton: {
+      // 0–3 bridgeheads, 4–9 methylene bridges
+      elements: ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C'],
+      edges: [
+        [0, 4],
+        [4, 1],
+        [0, 5],
+        [5, 2],
+        [0, 6],
+        [6, 3],
+        [1, 7],
+        [7, 2],
+        [1, 8],
+        [8, 3],
+        [2, 9],
+        [9, 3],
+      ],
+    },
+    equationRu: 'C₁₀H₁₆ — адамантан (каркас)',
   }),
 
   // ——— Алкены / алкины / диены ———
@@ -1092,6 +1308,7 @@ export const ORGANIC_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
 ]
 
 export function organicBuildChallengeById(id: string): OrganicBuildChallenge | undefined {
+  if (id === 'hexane') return ORGANIC_BUILD_CHALLENGES.find((c) => c.id === 'n-hexane')
   return ORGANIC_BUILD_CHALLENGES.find((c) => c.id === id)
 }
 
@@ -1103,4 +1320,20 @@ export function organicBuildByIsomerCandidate(
 
 export function organicChallengesByClass(classId: OrganicClassId): OrganicBuildChallenge[] {
   return ORGANIC_BUILD_CHALLENGES.filter((c) => c.classId === classId)
+}
+
+export function challengeBuildStage(c: OrganicBuildChallenge): OrganicBuildStage {
+  return c.buildStage ?? 'chain'
+}
+
+export function organicChallengesByStage(stage: OrganicBuildStage | 'all'): OrganicBuildChallenge[] {
+  if (stage === 'all') return [...ORGANIC_BUILD_CHALLENGES]
+  return ORGANIC_BUILD_CHALLENGES.filter((c) => challengeBuildStage(c) === stage)
+}
+
+/** Эталонные молекулы «как на фото»: цепь → кольцо → каркас */
+export const STAGE_SHOWCASE_IDS: Record<OrganicBuildStage, string> = {
+  chain: 'n-hexane',
+  ring: 'cyclohexane',
+  cage: 'adamantane',
 }

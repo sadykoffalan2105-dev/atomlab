@@ -1,6 +1,14 @@
 /** Кабинет исследователя — данные режимов 10–11 классов. */
 
-export type ResearchLabModeId = 'isomers' | 'attack' | 'equilibrium' | 'detective' | 'builder'
+export type ResearchLabModeId = 'builder' | 'isomers' | 'equilibrium'
+
+export const RESEARCH_LAB_MODES: readonly {
+  id: ResearchLabModeId
+  accent: string
+  grades: readonly ('g10' | 'g11')[]
+}[] = [
+  { id: 'builder', accent: '#34d399', grades: ['g10', 'g11'] },
+]
 
 export type IrPeak = {
   /** см⁻¹ */
@@ -117,6 +125,109 @@ export const ISOMER_CHALLENGES: readonly IsomerChallenge[] = [
         hazardRu: 'Ловушка: другая формула!',
         hazardEn: 'Trap: different formula!',
         hazardUz: 'Tuzoq: boshqa formula!',
+        color: '#94a3b8',
+      },
+    ],
+  },
+  {
+    id: 'c6h14',
+    formula: 'C₆H₁₄',
+    targetCount: 5,
+    titleRu: 'Собери все изомеры гексана',
+    titleEn: 'Collect all hexane isomers',
+    titleUz: 'Geksanning barcha izomerlarini yigʻing',
+    hintRu: 'Пять структурных изомеров: н-гексан, 2- и 3-метилпентан, 2,3- и 2,2-диметилбутан.',
+    hintEn: 'Five structural isomers: n-hexane, 2- and 3-methylpentane, 2,3- and 2,2-dimethylbutane.',
+    hintUz: 'Besh tuzilish izomeri: n-geksan, 2- va 3-metilpentan, 2,3- va 2,2-dimetilbutan.',
+    candidates: [
+      {
+        id: 'n-hexane',
+        nameRu: 'н-Гексан',
+        nameEn: 'n-Hexane',
+        nameUz: 'n-Geksan',
+        formula: 'C₆H₁₄',
+        correct: true,
+        skeleton: 'n',
+        functionalGroups: ['alkane'],
+        irPeaks: [CH_PEAK],
+        hazardRu: 'Линейная цепь CH₃–(CH₂)₄–CH₃.',
+        hazardEn: 'Linear chain CH₃–(CH₂)₄–CH₃.',
+        hazardUz: 'Chiziqli zanjir CH₃–(CH₂)₄–CH₃.',
+        color: '#7dd3fc',
+      },
+      {
+        id: '2-methylpentane',
+        nameRu: '2-Метилпентан',
+        nameEn: '2-Methylpentane',
+        nameUz: '2-Metilpentan',
+        formula: 'C₆H₁₄',
+        correct: true,
+        skeleton: 'iso',
+        functionalGroups: ['alkane'],
+        irPeaks: [{ wavenumber: 2960, intensity: 0.75, label: 'C–H' }],
+        hazardRu: 'Метил у 2-го углерода пентановой цепи.',
+        hazardEn: 'Methyl at carbon 2 of a pentane chain.',
+        hazardUz: 'Pentan zanjirining 2-uglerodida metil.',
+        color: '#a5b4fc',
+      },
+      {
+        id: '3-methylpentane',
+        nameRu: '3-Метилпентан',
+        nameEn: '3-Methylpentane',
+        nameUz: '3-Metilpentan',
+        formula: 'C₆H₁₄',
+        correct: true,
+        skeleton: 'iso',
+        functionalGroups: ['alkane'],
+        irPeaks: [{ wavenumber: 2958, intensity: 0.72, label: 'C–H' }],
+        hazardRu: 'Метил у 3-го (среднего) углерода.',
+        hazardEn: 'Methyl at carbon 3 (middle).',
+        hazardUz: '3-uglerodda (oʻrtada) metil.',
+        color: '#c4b5fd',
+      },
+      {
+        id: '2-3-dimethylbutane',
+        nameRu: '2,3-Диметилбутан',
+        nameEn: '2,3-Dimethylbutane',
+        nameUz: '2,3-Dimetilbutan',
+        formula: 'C₆H₁₄',
+        correct: true,
+        skeleton: 'iso',
+        functionalGroups: ['alkane'],
+        irPeaks: [{ wavenumber: 2955, intensity: 0.7, label: 'C–H' }],
+        hazardRu: 'Два соседних разветвления на бутановой цепи.',
+        hazardEn: 'Two adjacent branches on a butane chain.',
+        hazardUz: 'Butan zanjirida ikki qoʻshni shox.',
+        color: '#f0abfc',
+      },
+      {
+        id: '2-2-dimethylbutane',
+        nameRu: '2,2-Диметилбутан',
+        nameEn: '2,2-Dimethylbutane',
+        nameUz: '2,2-Dimetilbutan',
+        formula: 'C₆H₁₄',
+        correct: true,
+        skeleton: 'neo',
+        functionalGroups: ['alkane'],
+        irPeaks: [{ wavenumber: 2950, intensity: 0.68, label: 'C–H' }],
+        hazardRu: 'Четвертичный углерод: два метила на одном атоме.',
+        hazardEn: 'Quaternary carbon: two methyls on one atom.',
+        hazardUz: 'Toʻrtlamchi uglerod: bir atomda ikki metil.',
+        color: '#fda4af',
+      },
+      {
+        id: 'pentane-trap',
+        nameRu: 'н-Пентан',
+        nameEn: 'n-Pentane',
+        nameUz: 'n-Pentan',
+        formula: 'C₅H₁₂',
+        correct: false,
+        skeleton: 'n',
+        functionalGroups: ['alkane'],
+        irPeaks: [CH_PEAK],
+        hazardRu: 'Ловушка: другая формула (C₅)!',
+        hazardEn: 'Trap: different formula (C₅)!',
+        hazardUz: 'Tuzoq: boshqa formula (C₅)!',
         color: '#94a3b8',
       },
     ],
@@ -324,22 +435,14 @@ export function computeEquilibriumProduct(
 export {
   ORGANIC_BUILD_CHALLENGES,
   ORGANIC_CLASS_LABELS,
+  STAGE_SHOWCASE_IDS,
+  challengeBuildStage,
   organicBuildByIsomerCandidate,
   organicBuildChallengeById,
   organicChallengesByClass,
+  organicChallengesByStage,
   type OrganicBuildChallenge,
+  type OrganicBuildStage,
   type OrganicClassId,
   type OrganicKit,
 } from './organicBuildCatalog'
-
-export const RESEARCH_LAB_MODES: readonly {
-  id: ResearchLabModeId
-  accent: string
-  grades: readonly ('g10' | 'g11')[]
-}[] = [
-  { id: 'builder', accent: '#34d399', grades: ['g10', 'g11'] },
-  { id: 'isomers', accent: '#fbbf24', grades: ['g10', 'g11'] },
-  { id: 'attack', accent: '#22d3ee', grades: ['g10'] },
-  { id: 'equilibrium', accent: '#a78bfa', grades: ['g11'] },
-  { id: 'detective', accent: '#fb7185', grades: ['g10', 'g11'] },
-]
