@@ -1,37 +1,44 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { LabDomainTabs } from '../components/lab/LabDomainTabs'
-import { OrganicAtomPalettePanel } from '../components/organicLab/OrganicAtomPalettePanel'
-import {
-  OrganicMoleculeCatalogPanel,
-  type OrganicCatalogIntent,
-} from '../components/organicLab/OrganicMoleculeCatalogPanel'
 import { OrganicMoleculeViewer } from '../components/organicLab/OrganicMoleculeViewer'
-import { OrganicSynthesisReactorPanel } from '../components/organicLab/OrganicSynthesisReactorPanel'
-import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
-import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
-import { getElementByZ } from '../data/elements'
+import { ResearchBuilderMode } from '../components/learn/research/ResearchBuilderMode'
+import { ResearchEquationBuilder } from '../components/learn/research/ResearchEquationBuilder'
 import {
-  isOrganicElementZ,
-  isOrganicEquationBalanced,
-  leftTermsFromOrganicMolecule,
-  matchOrganicProductsForEquation,
-  mergeLeftTermsForOrganicProduct,
-  organicProductById,
-} from '../data/organicLab/organicReactorBalance'
+  defaultMolForLesson,
+  lessonForChallengeId,
+  lessonForMoleculeId,
+  lessonHasBuild,
+  lessonHasEquation,
+  ORGANIC_CURRICULUM,
+  ORGANIC_CURRICULUM_BY_ID,
+  pickChapterLabel,
+  pickLessonGoal,
+  pickLessonTitle,
+  resolveOrganicLessonFromLearn,
+  type OrganicLesson,
+  type OrganicLessonMode,
+} from '../data/organicLab/organicCurriculum'
 import {
-  ORGANIC_TIER1_IDS,
+  getLessonProgress,
+  isLessonComplete,
+  loadOrganicCurriculumProgress,
+  markLessonProgress,
+  type OrganicCurriculumProgressMap,
+} from '../data/organicLab/organicCurriculumProgress'
+import {
+  ORGANIC_BUILD_CHALLENGES,
+  challengeBuildStage,
+} from '../data/researchLab/organicBuildCatalog'
+import {
   organicMoleculeById,
+  pickOrganicClassLabel,
 } from '../data/organicLab/organicMoleculeRegistry'
 import type { OrganicDisplayMode, OrganicMoleculeDef } from '../data/organicLab/organicMoleculeTypes'
 import { useLocale } from '../i18n/useLocale'
 import { useT } from '../i18n/useT'
 import labStyles from './LaboratoryPage.module.css'
 import styles from './OrganicLabPage.module.css'
-
-function newId(): string {
-  return crypto.randomUUID()
-}
 
 function pickName(m: OrganicMoleculeDef, locale: string) {
   if (locale === 'en') return m.nameEn
@@ -51,15 +58,16 @@ function pickEq(m: OrganicMoleculeDef, locale: string) {
   return m.equationRu
 }
 
-function preserveReactorMessageOnEquationEdit(msg: string): boolean {
-  const m = msg.toLowerCase()
-  return (
-    m.includes('верно! связь') ||
-    m.includes('correct! bonding') ||
-    m.startsWith('получено:') ||
-    m.startsWith('obtained:') ||
-    m.startsWith('olingan:')
+function buildableIds(lesson: OrganicLesson): string[] {
+  const catalog = new Set(
+    ORGANIC_BUILD_CHALLENGES.filter((c) => challengeBuildStage(c) !== 'cage').map((c) => c.id),
   )
+  return lesson.challengeIds.filter((id) => catalog.has(id))
+}
+
+function parseMode(raw: string | null): OrganicLessonMode | null {
+  if (raw === 'view' || raw === 'build' || raw === 'equation') return raw
+  return null
 }
 
 export function OrganicLabPage() {
@@ -67,415 +75,361 @@ export function OrganicLabPage() {
   const { locale } = useLocale()
   const [params, setParams] = useSearchParams()
 
-  const initialBrowseId =
-    params.get('mol') && organicMoleculeById[params.get('mol')!]
-      ? params.get('mol')!
-      : ORGANIC_TIER1_IDS[0]!
+  const initialLesson = useMemo(() => {
+    const lessonParam = params.get('lesson')
+    if (lessonParam && ORGANIC_CURRICULUM_BY_ID[lessonParam]) {
+      return ORGANIC_CURRICULUM_BY_ID[lessonParam]!
+    }
+    const ch = Number(params.get('chapter'))
+    if (Number.isFinite(ch) && ch >= 1) {
+      const secRaw = params.get('section')
+      const sec = secRaw != null ? Number(secRaw) : undefined
+      return resolveOrganicLessonFromLearn(ch, sec)
+    }
+    const challenge = params.get('challenge')
+    if (challenge) {
+      const fromCh = lessonForChallengeId(challenge)
+      if (fromCh) return fromCh
+    }
+    const mol = params.get('mol')
+    if (mol) {
+      const fromMol = lessonForMoleculeId(mol)
+      if (fromMol) return fromMol
+    }
+    return ORGANIC_CURRICULUM[0]!
+  }, [params])
 
-  const [browseMolId, setBrowseMolId] = useState(initialBrowseId)
-  const [mode, setMode] = useState<OrganicDisplayMode>('ballStick')
+  const [lessonId, setLessonId] = useState(initialLesson.id)
+  const lesson = ORGANIC_CURRICULUM_BY_ID[lessonId] ?? ORGANIC_CURRICULUM[0]!
 
-  const [paletteOpen, setPaletteOpen] = useState(false)
-  const [reactorOpen, setReactorOpen] = useState(false)
-  const [leftTerms, setLeftTerms] = useState<ReactorEquationTerm[]>([])
-  const [productMoleculeId, setProductMoleculeId] = useState<string | null>(null)
-  const [productCoeff, setProductCoeff] = useState(1)
-  const [reactorCatalogOpen, setReactorCatalogOpen] = useState(false)
-  const [reactorCatalogIntent, setReactorCatalogIntent] =
-    useState<OrganicCatalogIntent>('selectProduct')
-  const reactorCatalogPickModeRef = useRef<OrganicCatalogIntent>('selectProduct')
+  const canBuild = lessonHasBuild(lesson) && buildableIds(lesson).length > 0
+  const canEquation = lessonHasEquation(lesson)
 
-  const [reactorMessage, setReactorMessage] = useState<string | null>(null)
-  const [synthesisSettledProduct, setSynthesisSettledProduct] = useState<OrganicMoleculeDef | null>(
-    null,
+  const resolvedMode = useMemo((): OrganicLessonMode => {
+    const m = parseMode(params.get('mode'))
+    const buildOk = lessonHasBuild(initialLesson) && buildableIds(initialLesson).length > 0
+    const eqOk = lessonHasEquation(initialLesson)
+    if (m === 'build' && buildOk) return 'build'
+    if (m === 'equation' && eqOk) return 'equation'
+    if (m === 'view') return 'view'
+    if (params.get('challenge') && buildOk) return 'build'
+    return 'view'
+  }, [params, initialLesson])
+
+  const [mode, setMode] = useState<OrganicLessonMode>(resolvedMode)
+  const [displayMode, setDisplayMode] = useState<OrganicDisplayMode>('ballStick')
+  const [showMoreModes, setShowMoreModes] = useState(false)
+  const [progressMap, setProgressMap] = useState<OrganicCurriculumProgressMap>(() =>
+    loadOrganicCurriculumProgress(),
   )
-  const [synthesisRunning, setSynthesisRunning] = useState(false)
-  const productLockedRef = useRef(false)
-  const settledSnapshotRef = useRef<string | null>(null)
 
-  const productMolecule = useMemo(
-    () => organicProductById(productMoleculeId),
-    [productMoleculeId],
-  )
+  const molCandidates = useMemo(() => {
+    return lesson.challengeIds
+      .map((id) => organicMoleculeById[id])
+      .filter((m): m is OrganicMoleculeDef => Boolean(m))
+  }, [lesson])
 
-  const deferredLeftTerms = useDeferredValue(leftTerms)
+  const resolvedMolId = useMemo(() => {
+    const mol = params.get('mol')
+    if (mol && initialLesson.challengeIds.includes(mol) && organicMoleculeById[mol]) return mol
+    const challenge = params.get('challenge')
+    if (
+      challenge &&
+      initialLesson.challengeIds.includes(challenge) &&
+      organicMoleculeById[challenge]
+    ) {
+      return challenge
+    }
+    return defaultMolForLesson(initialLesson)
+  }, [params, initialLesson])
 
-  const ambiguousMatches = useMemo(
-    () => matchOrganicProductsForEquation(deferredLeftTerms, productCoeff),
-    [deferredLeftTerms, productCoeff],
-  )
-
-  const equationSignature = useMemo(
-    () =>
-      JSON.stringify({
-        terms: leftTerms.map((term) => [term.id, term.z, term.coeff, term.diatomic ?? false]),
-        product: productMoleculeId,
-        coeff: productCoeff,
-      }),
-    [leftTerms, productMoleculeId, productCoeff],
-  )
+  const [browseMolId, setBrowseMolId] = useState(resolvedMolId)
 
   useEffect(() => {
-    if (synthesisSettledProduct == null) return
-    if (settledSnapshotRef.current == null) {
-      settledSnapshotRef.current = equationSignature
-      return
-    }
-    if (settledSnapshotRef.current !== equationSignature) {
-      settledSnapshotRef.current = null
-      setSynthesisSettledProduct(null)
-    }
-  }, [equationSignature, synthesisSettledProduct])
+    setLessonId(initialLesson.id)
+    setBrowseMolId(resolvedMolId)
+    setMode(resolvedMode)
+  }, [initialLesson.id, resolvedMolId, resolvedMode])
+  const displayMol = organicMoleculeById[browseMolId] ?? molCandidates[0] ?? null
 
-  const equationBalanced = useMemo(
-    () => isOrganicEquationBalanced(deferredLeftTerms, productMolecule, productCoeff),
-    [deferredLeftTerms, productMolecule, productCoeff],
-  )
+  const buildIds = useMemo(() => buildableIds(lesson), [lesson])
+  const buildInitialId = useMemo(() => {
+    const challenge = params.get('challenge')
+    if (challenge && buildIds.includes(challenge)) return challenge
+    if (buildIds.includes(browseMolId)) return browseMolId
+    return buildIds[0]
+  }, [params, buildIds, browseMolId])
 
-  const canRunSynthesis = equationBalanced && productMolecule != null && leftTerms.length >= 1
-
-  const resetEquation = useCallback(() => {
-    setLeftTerms([])
-    setProductMoleculeId(null)
-    setProductCoeff(1)
-  }, [])
-
-  const onPickAtomZ = useCallback(
-    (z: number) => {
-      if (!isOrganicElementZ(z) || !getElementByZ(z)) return
-      if (!reactorOpen) {
-        setReactorOpen(true)
-        setReactorMessage(t('organicLab.reactorOpenHint'))
-      }
-      setLeftTerms((prev) => {
-        const matchIndex = prev.findIndex((term) => term.z === z && !term.diatomic)
-        if (matchIndex >= 0) {
-          const term = prev[matchIndex]!
-          const nextCoeff = term.coeff + 1
-          if (nextCoeff > REACTOR_COEFF_MAX) return prev
-          return prev.map((x, i) => (i === matchIndex ? { ...x, coeff: nextCoeff } : x))
-        }
-        if (prev.length >= REACTOR_EQUATION_MAX_TERMS) return prev
-        return [...prev, { id: newId(), z, coeff: 1 }]
-      })
-      setPaletteOpen(false)
+  const syncParams = useCallback(
+    (next: { lessonId: string; mode: OrganicLessonMode; molId: string }) => {
+      const p = new URLSearchParams()
+      p.set('lesson', next.lessonId)
+      p.set('mode', next.mode)
+      p.set('mol', next.molId)
+      setParams(p, { replace: true })
     },
-    [reactorOpen, t],
+    [setParams],
   )
 
-  const onRemoveTerm = useCallback((id: string) => {
-    setLeftTerms((prev) => prev.filter((term) => term.id !== id))
-  }, [])
+  const selectLesson = useCallback(
+    (next: OrganicLesson) => {
+      const molId = defaultMolForLesson(next)
+      setLessonId(next.id)
+      setBrowseMolId(molId)
+      setMode('view')
+      setDisplayMode('ballStick')
+      syncParams({ lessonId: next.id, mode: 'view', molId })
+    },
+    [syncParams],
+  )
 
-  const onCoeffChange = useCallback((id: string, coeff: number) => {
-    const c = Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(Number.isFinite(coeff) ? coeff : 1)))
-    setSynthesisSettledProduct(null)
-    settledSnapshotRef.current = null
-    setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
-  }, [])
+  const selectMode = useCallback(
+    (next: OrganicLessonMode) => {
+      if (next === 'build' && !canBuild) return
+      if (next === 'equation' && !canEquation) return
+      setMode(next)
+      const molId = browseMolId || defaultMolForLesson(lesson)
+      syncParams({ lessonId: lesson.id, mode: next, molId })
+    },
+    [canBuild, canEquation, browseMolId, lesson, syncParams],
+  )
 
-  const openReactorCatalog = useCallback((intent: OrganicCatalogIntent) => {
-    reactorCatalogPickModeRef.current = intent
-    setReactorCatalogIntent(intent)
-    setReactorCatalogOpen(true)
-  }, [])
-
-  const handleReactorCatalogPick = useCallback(
+  const selectMol = useCallback(
     (id: string) => {
-      setReactorCatalogOpen(false)
-      const modePick = reactorCatalogPickModeRef.current
-      reactorCatalogPickModeRef.current = 'selectProduct'
-      setReactorCatalogIntent('selectProduct')
-
-      const mol = organicMoleculeById[id]
-      if (!mol) return
-
-      productLockedRef.current = true
-      setProductMoleculeId(id)
-      setProductCoeff(1)
+      if (!organicMoleculeById[id]) return
       setBrowseMolId(id)
-      setParams({ mol: id }, { replace: true })
-      setSynthesisSettledProduct(null)
-      settledSnapshotRef.current = null
-
-      if (modePick === 'generateEquation') {
-        setLeftTerms(leftTermsFromOrganicMolecule(mol))
-        setReactorMessage(t('organicLab.reactorGenReady'))
-      } else {
-        setLeftTerms((prev) =>
-          prev.length === 0
-            ? leftTermsFromOrganicMolecule(mol)
-            : mergeLeftTermsForOrganicProduct(prev, mol),
-        )
-        setReactorMessage(t('organicLab.reactorProductReady'))
-      }
+      syncParams({ lessonId: lesson.id, mode, molId: id })
     },
-    [setParams, t],
+    [lesson.id, mode, syncParams],
   )
 
-  const clearReactorSlots = useCallback(() => {
-    resetEquation()
-    setReactorMessage(null)
-    setSynthesisSettledProduct(null)
-    settledSnapshotRef.current = null
-    setSynthesisRunning(false)
-    productLockedRef.current = false
-    reactorCatalogPickModeRef.current = 'selectProduct'
-    setReactorCatalogIntent('selectProduct')
-    setReactorCatalogOpen(false)
-  }, [resetEquation])
-
-  const toggleReactor = useCallback(() => {
-    setReactorOpen((o) => {
-      const next = !o
-      if (!next) {
-        resetEquation()
-        setReactorMessage(null)
-        setSynthesisSettledProduct(null)
-        settledSnapshotRef.current = null
-        setSynthesisRunning(false)
-        setReactorCatalogOpen(false)
-        setPaletteOpen(false)
-        productLockedRef.current = false
-        reactorCatalogPickModeRef.current = 'selectProduct'
-        setReactorCatalogIntent('selectProduct')
-      } else {
-        setPaletteOpen(false)
-        setReactorMessage(t('organicLab.reactorOpenHint'))
-      }
-      return next
-    })
-  }, [resetEquation, t])
-
-  const onRequestRun = useCallback(() => {
-    if (!productMolecule) {
-      setReactorMessage(t('errors.reactor.NO_PRODUCT'))
-      return
-    }
-    if (leftTerms.length < 1) {
-      setReactorMessage(t('errors.reactor.NO_REAGENTS'))
-      return
-    }
-    if (!isOrganicEquationBalanced(leftTerms, productMolecule, productCoeff)) {
-      setReactorMessage(t('errors.reactor.BALANCE_MISMATCH'))
-      return
-    }
-
-    setSynthesisRunning(true)
-    const name = pickName(productMolecule, locale)
-    setReactorMessage(t('reactor.successRunning', { name }))
-
-    window.setTimeout(() => {
-      setSynthesisSettledProduct(productMolecule)
-      settledSnapshotRef.current = equationSignature
-      setBrowseMolId(productMolecule.id)
-      setParams({ mol: productMolecule.id }, { replace: true })
-      setSynthesisRunning(false)
-      setReactorMessage(
-        t('reactor.successProduct', {
-          name,
-          formula: productMolecule.formula,
-        }),
-      )
-    }, 650)
-  }, [productMolecule, leftTerms, productCoeff, locale, t, equationSignature, setParams])
-
-  const highlightEquationError = useMemo(() => {
-    if (!reactorMessage) return false
-    const m = reactorMessage.toLowerCase()
-    return (
-      m.includes('баланс') ||
-      m.includes('mass balance') ||
-      m.includes('коэффициент') ||
-      m.includes('coefficient') ||
-      m.includes('не совпадает') ||
-      m.includes('do not match') ||
-      m.includes('mos kelmaydi')
-    )
-  }, [reactorMessage])
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      setReactorMessage((prev) => {
-        if (!prev) return prev
-        if (preserveReactorMessageOnEquationEdit(prev)) return prev
-        return null
-      })
-    })
-  }, [leftTerms, productMoleculeId, productCoeff])
-
-  useEffect(() => {
-    const hash = window.location.hash
-    const qIdx = hash.indexOf('?')
-    if (qIdx < 0) return
-    const hp = new URLSearchParams(hash.slice(qIdx + 1))
-    if (hp.get('reactor') === '1') {
-      setReactorOpen(true)
-      setPaletteOpen(false)
-    }
+  const patchProgress = useCallback((lessonKey: string, patch: Parameters<typeof markLessonProgress>[1]) => {
+    setProgressMap(markLessonProgress(lessonKey, patch))
   }, [])
 
-  const showSettled = reactorOpen && !synthesisRunning && synthesisSettledProduct != null
-  const displayMol: OrganicMoleculeDef | null = showSettled
-    ? synthesisSettledProduct
-    : !reactorOpen
-      ? (organicMoleculeById[browseMolId] ?? organicMoleculeById[ORGANIC_TIER1_IDS[0]!] ?? null)
-      : null
+  useEffect(() => {
+    if (mode === 'view') {
+      patchProgress(lesson.id, { viewed: true })
+    }
+  }, [mode, lesson.id, patchProgress])
 
-  const modes: { id: OrganicDisplayMode; label: string }[] = [
+  const lessonProgress = getLessonProgress(progressMap, lesson.id)
+  const lessonDone = isLessonComplete(lessonProgress, {
+    requireBuild: canBuild,
+    requireEquation: canEquation,
+  })
+
+  const primaryModes: { id: OrganicDisplayMode; label: string }[] = [
     { id: 'ballStick', label: t('organicLab.modeBallStick') },
-    { id: 'spaceFill', label: t('organicLab.modeSpaceFill') },
     { id: 'skeleton2d', label: t('organicLab.modeSkeleton') },
+  ]
+  const extraModes: { id: OrganicDisplayMode; label: string }[] = [
+    { id: 'spaceFill', label: t('organicLab.modeSpaceFill') },
     { id: 'hybridization', label: t('organicLab.modeHybrid') },
   ]
 
-  const periodicUiHidden = reactorCatalogOpen && reactorCatalogIntent === 'generateEquation'
+  const chapters = [1, 2, 3, 4] as const
 
   return (
-    <div className={labStyles.wrap} data-lab-synthesis-view={showSettled ? 'substance' : 'reactor'}>
+    <div className={`${labStyles.wrap} ${styles.programWrap}`}>
       <div className={labStyles.domainBar}>
         <LabDomainTabs active="organic" />
       </div>
 
-      <div
-        className={labStyles.canvasWrap}
-        data-lab-synthesis-view={showSettled ? 'substance' : 'reactor'}
-        style={
-          displayMol
-            ? { ['--synth-glow' as string]: displayMol.accentColor ?? '#0a0c18' }
-            : undefined
-        }
-      >
-        {displayMol ? (
-          <OrganicMoleculeViewer mol={displayMol} mode={mode} fillParent key={displayMol.id}>
-            <div className={styles.hudTop}>
-              <div className={styles.titleCard}>
-                <strong>
-                  {pickName(displayMol, locale)} | {displayMol.formula}
-                </strong>
-                <p>{pickDesc(displayMol, locale)}</p>
-              </div>
-              <div className={styles.modeCol} role="group" aria-label={t('organicLab.modeAria')}>
-                {modes.map((m) => (
+      <div className={styles.programLayout}>
+        <aside className={styles.pathPanel} aria-label={t('organicLab.programAria')}>
+          <p className={styles.pathLead}>{t('organicLab.programLead')}</p>
+          {chapters.map((ch) => (
+            <div key={ch} className={styles.chapterBlock}>
+              <h2 className={styles.chapterTitle}>{pickChapterLabel(ch, locale)}</h2>
+              <ul className={styles.lessonList}>
+                {ORGANIC_CURRICULUM.filter((l) => l.chapter === ch).map((l) => {
+                  const prog = getLessonProgress(progressMap, l.id)
+                  const done = isLessonComplete(prog, {
+                    requireBuild: lessonHasBuild(l) && buildableIds(l).length > 0,
+                    requireEquation: lessonHasEquation(l),
+                  })
+                  const active = l.id === lesson.id
+                  return (
+                    <li key={l.id}>
+                      <button
+                        type="button"
+                        className={`${styles.lessonBtn} ${active ? styles.lessonBtnActive : ''} ${done ? styles.lessonBtnDone : ''}`}
+                        onClick={() => selectLesson(l)}
+                      >
+                        <span className={styles.lessonCheck} aria-hidden>
+                          {done ? '✓' : prog.viewed ? '·' : ''}
+                        </span>
+                        <span>{pickLessonTitle(l, locale)}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))}
+        </aside>
+
+        <div className={styles.mainCol}>
+          <header className={styles.lessonHeader}>
+            <div>
+              <h1 className={styles.lessonHeading}>{pickLessonTitle(lesson, locale)}</h1>
+              <p className={styles.lessonGoal}>
+                <span className={styles.goalLabel}>{t('organicLab.lessonGoal')}</span>{' '}
+                {pickLessonGoal(lesson, locale)}
+              </p>
+              {lessonDone ? (
+                <p className={styles.lessonComplete}>{t('organicLab.progressDone')}</p>
+              ) : null}
+            </div>
+            <div className={styles.modeTabs} role="tablist" aria-label={t('organicLab.activityAria')}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === 'view'}
+                className={`${styles.modeTab} ${mode === 'view' ? styles.modeTabActive : ''}`}
+                onClick={() => selectMode('view')}
+              >
+                {t('organicLab.modeView')}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === 'build'}
+                disabled={!canBuild}
+                className={`${styles.modeTab} ${mode === 'build' ? styles.modeTabActive : ''}`}
+                onClick={() => selectMode('build')}
+              >
+                {t('organicLab.modeBuild')}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === 'equation'}
+                disabled={!canEquation}
+                className={`${styles.modeTab} ${mode === 'equation' ? styles.modeTabActive : ''}`}
+                onClick={() => selectMode('equation')}
+              >
+                {t('organicLab.modeEquation')}
+              </button>
+            </div>
+          </header>
+
+          {mode === 'view' && displayMol ? (
+            <div
+              className={styles.viewStage}
+              style={{ ['--synth-glow' as string]: displayMol.accentColor ?? '#0a0c18' }}
+            >
+              <div className={styles.molChips} role="listbox" aria-label={t('organicLab.moleculesAria')}>
+                {molCandidates.map((m) => (
                   <button
                     key={m.id}
                     type="button"
-                    className={`${styles.modeBtn} ${mode === m.id ? styles.modeBtnActive : ''}`}
-                    onClick={() => setMode(m.id)}
+                    role="option"
+                    aria-selected={m.id === displayMol.id}
+                    className={`${styles.molChip} ${m.id === displayMol.id ? styles.molChipActive : ''}`}
+                    onClick={() => selectMol(m.id)}
                   >
-                    {m.label}
+                    {m.formula}
                   </button>
                 ))}
               </div>
+
+              <OrganicMoleculeViewer mol={displayMol} mode={displayMode} fillParent key={displayMol.id}>
+                <div className={styles.hudTop}>
+                  <div className={styles.titleCard}>
+                    <strong>
+                      {pickName(displayMol, locale)} | {displayMol.formula}
+                    </strong>
+                    <p>
+                      {pickOrganicClassLabel(displayMol.classId, locale)} · {pickDesc(displayMol, locale)}
+                    </p>
+                  </div>
+                  <div className={styles.modeCol} role="group" aria-label={t('organicLab.modeAria')}>
+                    {primaryModes.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        className={`${styles.modeBtn} ${displayMode === m.id ? styles.modeBtnActive : ''}`}
+                        onClick={() => setDisplayMode(m.id)}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className={styles.modeBtn}
+                      onClick={() => setShowMoreModes((v) => !v)}
+                    >
+                      {t('organicLab.moreModes')}
+                    </button>
+                    {showMoreModes
+                      ? extraModes.map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            className={`${styles.modeBtn} ${displayMode === m.id ? styles.modeBtnActive : ''}`}
+                            onClick={() => setDisplayMode(m.id)}
+                          >
+                            {m.label}
+                          </button>
+                        ))
+                      : null}
+                  </div>
+                </div>
+
+                {displayMode === 'hybridization' && displayMol.viewHints?.hybridFocus ? (
+                  <div className={styles.hybridPanel}>
+                    <span className={styles.hybridBadge}>{displayMol.viewHints.hybridFocus}</span>
+                    <span>{t('organicLab.hybridHint', { h: displayMol.viewHints.hybridFocus })}</span>
+                  </div>
+                ) : null}
+
+                <div className={styles.hudBottom}>
+                  <div className={styles.eqBar}>
+                    <span className={styles.eqLabel}>{t('organicLab.equation')}</span>
+                    <code className={styles.eqCode}>{pickEq(displayMol, locale)}</code>
+                  </div>
+                  {canBuild ? (
+                    <button type="button" className={styles.primaryLink} onClick={() => selectMode('build')}>
+                      {t('organicLab.modeBuild')}
+                    </button>
+                  ) : null}
+                </div>
+              </OrganicMoleculeViewer>
             </div>
+          ) : null}
 
-            {mode === 'hybridization' && displayMol.viewHints?.hybridFocus ? (
-              <div className={styles.hybridPanel}>
-                <span className={styles.hybridBadge}>{displayMol.viewHints.hybridFocus}</span>
-                <span>{t('organicLab.hybridHint', { h: displayMol.viewHints.hybridFocus })}</span>
-              </div>
-            ) : null}
-
-            <div className={`${styles.hudBottom} ${reactorOpen ? styles.hudBottomReactor : ''}`}>
-              <div className={styles.eqBar}>
-                <span className={styles.eqLabel}>{t('organicLab.equation')}</span>
-                <code className={styles.eqCode}>{pickEq(displayMol, locale)}</code>
-              </div>
-              <div className={styles.actions}>
-                {displayMol.challengeId ? (
-                  <Link
-                    className={styles.primaryLink}
-                    to={`/learn/research/builder?challenge=${encodeURIComponent(displayMol.challengeId)}`}
-                  >
-                    {t('organicLab.buildYourself')}
-                  </Link>
-                ) : (
-                  <Link className={styles.primaryLink} to="/learn/research/builder">
-                    {t('organicLab.openBuilder')}
-                  </Link>
-                )}
-              </div>
+          {mode === 'build' && canBuild ? (
+            <div className={styles.buildStage}>
+              <ResearchBuilderMode
+                key={`${lesson.id}-${buildInitialId ?? 'build'}`}
+                variant="labBuild"
+                allowedChallengeIds={buildIds}
+                initialChallengeId={buildInitialId}
+                hideEquationAside
+                onMacro={() => {}}
+                onBuildComplete={() => patchProgress(lesson.id, { built: true, viewed: true })}
+              />
             </div>
-          </OrganicMoleculeViewer>
-        ) : (
-          <div className={styles.idleStage} aria-live="polite">
-            <p className={styles.idleTitle}>{t('organicLab.idleTitle')}</p>
-            <p className={styles.idleLead}>{t('organicLab.idleHint')}</p>
-          </div>
-        )}
+          ) : null}
 
-        {showSettled ? <div className={labStyles.synthVignette} aria-hidden /> : null}
+          {mode === 'equation' && canEquation ? (
+            <div className={styles.equationStage}>
+              <ResearchEquationBuilder
+                key={lesson.id}
+                onMacro={() => {}}
+                allowedEquationIds={lesson.equationIds}
+                hideGradeFilters
+                onSolved={() => patchProgress(lesson.id, { equation: true, viewed: true })}
+              />
+            </div>
+          ) : null}
 
-        <OrganicSynthesisReactorPanel
-          open={reactorOpen}
-          onOpenGenerateEquationCatalog={() => openReactorCatalog('generateEquation')}
-          leftTerms={leftTerms}
-          productMolecule={productMolecule}
-          productCoeff={productCoeff}
-          onRemoveTerm={onRemoveTerm}
-          onCoeffChange={onCoeffChange}
-          onOpenCatalog={() => openReactorCatalog('selectProduct')}
-          onProductCoeffChange={(c) => {
-            setProductCoeff(Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(c))))
-          }}
-          onClearSlots={clearReactorSlots}
-          onRequestRun={onRequestRun}
-          message={reactorMessage}
-          canRun={canRunSynthesis}
-          synthesisRunning={synthesisRunning}
-          equationBalanced={equationBalanced}
-          highlightEquationError={highlightEquationError}
-          ambiguousCount={ambiguousMatches.length}
-        />
-
-        <OrganicMoleculeCatalogPanel
-          open={reactorCatalogOpen}
-          intent={reactorCatalogIntent}
-          onClose={() => {
-            setReactorCatalogOpen(false)
-            reactorCatalogPickModeRef.current = 'selectProduct'
-            setReactorCatalogIntent('selectProduct')
-          }}
-          onPick={handleReactorCatalogPick}
-        />
-
-        <OrganicAtomPalettePanel
-          open={paletteOpen}
-          onClose={() => setPaletteOpen(false)}
-          onPickZ={onPickAtomZ}
-        />
-
-        <button
-          type="button"
-          className={`${labStyles.synthButton} ${reactorOpen ? labStyles.synthButtonActive : ''}`}
-          onClick={toggleReactor}
-          aria-pressed={reactorOpen}
-          title={reactorOpen ? t('lab.synthButtonClose') : t('lab.synthButtonOpen')}
-        >
-          {t('lab.synthButton')}
-        </button>
-
-        {!paletteOpen && !periodicUiHidden ? (
-          <button
-            type="button"
-            className={
-              reactorOpen
-                ? `${labStyles.panelFab} ${labStyles.panelFabReactorOpen}`
-                : labStyles.panelFab
-            }
-            onClick={() => {
-              setPaletteOpen(true)
-              if (!reactorOpen) {
-                setReactorOpen(true)
-                setReactorMessage(t('organicLab.reactorOpenHint'))
-              }
-            }}
-            aria-expanded={paletteOpen}
-            aria-label={t('organicLab.paletteFabAria')}
-          >
-            ⊞
-          </button>
-        ) : null}
+          {mode === 'equation' && !canEquation ? (
+            <p className={styles.emptyNote}>{t('organicLab.eqEmpty')}</p>
+          ) : null}
+        </div>
       </div>
     </div>
   )

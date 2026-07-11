@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   equationSidesMatch,
   equationsByGrade,
+  G10_G11_EDU_EQUATIONS,
   type GradeEq,
 } from '../../../data/researchLab/g10g11Equations'
 import { useLocale } from '../../../i18n/useLocale'
@@ -51,6 +52,9 @@ export function ResearchEquationBuilder({
   compact,
   preferFormula,
   onSelectEquation,
+  allowedEquationIds,
+  hideGradeFilters = false,
+  onSolved,
 }: {
   onMacro: (text: string) => void
   compact?: boolean
@@ -58,11 +62,21 @@ export function ResearchEquationBuilder({
   preferFormula?: string
   /** Выбор уравнения → загрузка правильной 3D-молекулы снаружи */
   onSelectEquation?: (eq: GradeEq) => void
+  /** Ограничить пул (урок органической лаборатории) */
+  allowedEquationIds?: readonly string[]
+  hideGradeFilters?: boolean
+  onSolved?: () => void
 }) {
   const { t } = useT()
   const { locale } = useLocale()
   const [grade, setGrade] = useState<GradeFilter>('all')
-  const pool = useMemo(() => equationsByGrade(grade), [grade])
+  const pool = useMemo(() => {
+    const base = equationsByGrade(grade)
+    if (!allowedEquationIds?.length) return base
+    const set = new Set(allowedEquationIds)
+    const scoped = G10_G11_EDU_EQUATIONS.filter((e) => set.has(e.id))
+    return scoped.length > 0 ? scoped : base
+  }, [grade, allowedEquationIds])
 
   const preferredId = useMemo(() => {
     if (!preferFormula) return pool[0]?.id ?? ''
@@ -148,6 +162,7 @@ export function ResearchEquationBuilder({
     const ok = equationSidesMatch(left, right, target)
     setResult(ok ? 'ok' : 'bad')
     onMacro(ok ? target.displayRu : t('learn.research.eqBuilderBadMacro'))
+    if (ok) onSolved?.()
   }
 
   if (!target) {
@@ -158,25 +173,29 @@ export function ResearchEquationBuilder({
     <div className={styles.eqBuilder} key={`${target.id}-${seed}`}>
       {!compact ? <p className={styles.hintLine}>{t('learn.research.studioEquationLead')}</p> : null}
 
-      <div className={styles.eqFilters} role="group" aria-label={t('learn.research.eqBuilderGradeAria')}>
-        {(['all', 'g10', 'g11'] as const).map((g) => (
-          <button
-            key={g}
-            type="button"
-            className={`${styles.tool} ${grade === g ? styles.toolActive : ''}`}
-            onClick={() => onPickGrade(g)}
-          >
-            {g === 'all'
-              ? t('learn.research.eqBuilderAll')
-              : g === 'g10'
-                ? t('learn.research.eqBuilderG10')
-                : t('learn.research.eqBuilderG11')}
-          </button>
-        ))}
-        <span className={styles.hintLine}>
-          {t('learn.research.eqBuilderCount', { n: pool.length })}
-        </span>
-      </div>
+      {!hideGradeFilters && !allowedEquationIds?.length ? (
+        <div className={styles.eqFilters} role="group" aria-label={t('learn.research.eqBuilderGradeAria')}>
+          {(['all', 'g10', 'g11'] as const).map((g) => (
+            <button
+              key={g}
+              type="button"
+              className={`${styles.tool} ${grade === g ? styles.toolActive : ''}`}
+              onClick={() => onPickGrade(g)}
+            >
+              {g === 'all'
+                ? t('learn.research.eqBuilderAll')
+                : g === 'g10'
+                  ? t('learn.research.eqBuilderG10')
+                  : t('learn.research.eqBuilderG11')}
+            </button>
+          ))}
+          <span className={styles.hintLine}>
+            {t('learn.research.eqBuilderCount', { n: pool.length })}
+          </span>
+        </div>
+      ) : (
+        <p className={styles.hintLine}>{t('learn.research.eqBuilderCount', { n: pool.length })}</p>
+      )}
 
       <label className={styles.eqSelectLabel}>
         <span>{t('learn.research.eqBuilderPick')}</span>

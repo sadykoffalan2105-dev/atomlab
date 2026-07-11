@@ -52,7 +52,7 @@ function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
         <Link className={styles.btn} to="/learn/teacher">
           {t('learn.teacher.linkGrades')}
         </Link>
-        <Link className={styles.btn} to="/learn/research">
+        <Link className={styles.btn} to="/organic">
           {t('learn.research.open')}
         </Link>
         <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/vr-lab?from=learn">
@@ -126,15 +126,15 @@ function GradeHub({ gradeId, progress }: { gradeId: string; progress: LearnProgr
             {t('learn.textbook.open')}
           </Link>
         ) : null}
-        {grade.id === 'g10' || grade.id === 'g11' ? (
-          <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/learn/research">
+        {grade.id === 'g10' ? (
+          <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/organic">
             {t('learn.research.open')}
           </Link>
         ) : null}
       </ToolRow>
-      {(grade.id === 'g10' || grade.id === 'g11') && (
+      {grade.id === 'g10' && (
         <Link
-          to="/learn/research"
+          to="/organic"
           className={styles.topicCard}
           style={{ ['--learn-accent' as string]: '#fbbf24', marginBottom: '0.85rem' }}
         >
@@ -187,14 +187,24 @@ function ChapterHub({
       <h1 className={styles.h}>{t(chapter.titleKey)}</h1>
       <p className={styles.lead}>{t(chapter.summaryKey)}</p>
       <h2 className={styles.h}>{t('learn.sectionsTitle')}</h2>
-      {gradeHasTextbook(gradeId) ? (
+      {gradeHasTextbook(gradeId) || gradeId === 'g10' ? (
         <ToolRow>
-          <Link
-            className={styles.btn}
-            to={`/learn/g/${gradeId}/book?chapter=${chapterId}&section=${chapter.sections[0]?.id ?? 's01'}`}
-          >
-            {t('learn.textbook.open')}
-          </Link>
+          {gradeHasTextbook(gradeId) ? (
+            <Link
+              className={styles.btn}
+              to={`/learn/g/${gradeId}/book?chapter=${chapterId}&section=${chapter.sections[0]?.id ?? 's01'}`}
+            >
+              {t('learn.textbook.open')}
+            </Link>
+          ) : null}
+          {gradeId === 'g10' ? (
+            <Link
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              to={`/organic?chapter=${chapterId.replace(/\D/g, '') || '1'}`}
+            >
+              {t('organicLab.openInLab')}
+            </Link>
+          ) : null}
         </ToolRow>
       ) : null}
       <ul className={styles.lessonList}>

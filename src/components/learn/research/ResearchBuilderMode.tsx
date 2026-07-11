@@ -138,19 +138,38 @@ const CLASS_ORDER: OrganicClassId[] = [
 export function ResearchBuilderMode({
   onMacro,
   initialChallengeId,
+  variant = 'full',
+  allowedChallengeIds,
+  hideEquationAside = false,
+  onBuildComplete,
 }: {
   onSpectrum?: (peaks: OrganicBuildChallenge['irPeaks'], label: string) => void
   onMacro: (text: string) => void
   initialChallengeId?: string
+  /** full = research studio; labBuild = only structure build (organic lab curriculum) */
+  variant?: 'full' | 'labBuild'
+  allowedChallengeIds?: readonly string[]
+  hideEquationAside?: boolean
+  onBuildComplete?: () => void
 }) {
   const { t } = useT()
   const { locale } = useLocale()
-  const initial =
-    STUDIO_CHALLENGES.find((c) => c.id === initialChallengeId) ??
-    STUDIO_CHALLENGES.find((c) => c.id === 'methane') ??
-    STUDIO_CHALLENGES[0]!
+  const labBuild = variant === 'labBuild'
+  const pool = useMemo(() => {
+    if (!allowedChallengeIds?.length) return STUDIO_CHALLENGES
+    const set = new Set(allowedChallengeIds)
+    const filtered = STUDIO_CHALLENGES.filter((c) => set.has(c.id))
+    return filtered.length > 0 ? filtered : STUDIO_CHALLENGES
+  }, [allowedChallengeIds])
 
-  const [classFilter, setClassFilter] = useState<OrganicClassId | 'all'>(initial.classId)
+  const initial =
+    pool.find((c) => c.id === initialChallengeId) ??
+    pool.find((c) => c.id === 'methane') ??
+    pool[0]!
+
+  const [classFilter, setClassFilter] = useState<OrganicClassId | 'all'>(
+    labBuild ? 'all' : initial.classId,
+  )
   const [challengeId, setChallengeId] = useState(initial.id)
   const [graph, setGraph] = useState<OrganicGraph>(() => startKit(initial))
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -159,7 +178,7 @@ export function ResearchBuilderMode({
   const [checked, setChecked] = useState(false)
   const [angleNeighbor, setAngleNeighbor] = useState<string | null>(null)
   const [labTool, setLabTool] = useState<LabTool>('build')
-  const attackMode = labTool === 'attack'
+  const attackMode = !labBuild && labTool === 'attack'
   const [attackDeg, setAttackDeg] = useState(180)
   const [attackDelta, setAttackDelta] = useState(0)
   const [attackInZone, setAttackInZone] = useState(true)
@@ -200,14 +219,19 @@ export function ResearchBuilderMode({
   }
 
   const challenge = useMemo(
-    () => STUDIO_CHALLENGES.find((c) => c.id === challengeId) ?? STUDIO_CHALLENGES[0]!,
-    [challengeId],
+    () => pool.find((c) => c.id === challengeId) ?? pool[0]!,
+    [challengeId, pool],
   )
 
   const filtered = useMemo(() => {
-    if (classFilter === 'all') return STUDIO_CHALLENGES
-    return STUDIO_CHALLENGES.filter((c) => c.classId === classFilter)
-  }, [classFilter])
+    if (labBuild || classFilter === 'all') return pool
+    return pool.filter((c) => c.classId === classFilter)
+  }, [classFilter, labBuild, pool])
+
+  const classOrderShown = useMemo(() => {
+    if (labBuild) return [] as OrganicClassId[]
+    return CLASS_ORDER.filter((cid) => pool.some((c) => c.classId === cid))
+  }, [labBuild, pool])
 
   useEffect(() => {
     if (skipKitAnnounce.current) {
@@ -241,7 +265,7 @@ export function ResearchBuilderMode({
   }
 
   const switchChallenge = (id: string) => {
-    const next = STUDIO_CHALLENGES.find((c) => c.id === id)
+    const next = pool.find((c) => c.id === id)
     if (!next) return
     applyChallenge(
       next,
@@ -393,9 +417,14 @@ export function ResearchBuilderMode({
   const runCheck = () => {
     setChecked(true)
     if (complete) {
-      say(`${pickSuccess(challenge, locale)} ${t('learn.research.syncMoleculeToEq')}`)
-      setEqHighlight(true)
+      say(
+        labBuild || hideEquationAside
+          ? pickSuccess(challenge, locale)
+          : `${pickSuccess(challenge, locale)} ${t('learn.research.syncMoleculeToEq')}`,
+      )
+      setEqHighlight(!hideEquationAside && !labBuild)
       setLabTool('build')
+      onBuildComplete?.()
     } else {
       const parts: string[] = []
       if (!skeletonOk) parts.push(t('learn.research.builderFailSkeleton'))
@@ -423,34 +452,38 @@ export function ResearchBuilderMode({
   )
 
   return (
-    <div className={styles.studio}>
-      <div className={styles.dock} role="tablist" aria-label={t('learn.research.labDockAria')}>
-        {toolBtn('build', t('learn.research.labToolBuild'))}
-        {toolBtn('attack', t('learn.research.labToolAttack'))}
-        {toolBtn('equilibrium', t('learn.research.labToolEq'))}
-      </div>
+    <div className={`${styles.studio} ${labBuild ? styles.studioLabBuild : ''}`}>
+      {!labBuild ? (
+        <div className={styles.dock} role="tablist" aria-label={t('learn.research.labDockAria')}>
+          {toolBtn('build', t('learn.research.labToolBuild'))}
+          {toolBtn('attack', t('learn.research.labToolAttack'))}
+          {toolBtn('equilibrium', t('learn.research.labToolEq'))}
+        </div>
+      ) : null}
 
       {labTool !== 'equilibrium' ? (
         <>
-          <div className={styles.missionRow}>
-            <button
-              type="button"
-              className={`${styles.missionChip} ${classFilter === 'all' ? styles.missionChipActive : ''}`}
-              onClick={() => setClassFilter('all')}
-            >
-              {t('learn.research.builderAllClasses')} · {STUDIO_CHALLENGES.length}
-            </button>
-            {CLASS_ORDER.map((cid) => (
+          {!labBuild ? (
+            <div className={styles.missionRow}>
               <button
-                key={cid}
                 type="button"
-                className={`${styles.missionChip} ${classFilter === cid ? styles.missionChipActive : ''}`}
-                onClick={() => setClassFilter(cid)}
+                className={`${styles.missionChip} ${classFilter === 'all' ? styles.missionChipActive : ''}`}
+                onClick={() => setClassFilter('all')}
               >
-                {pickClass(cid, locale)}
+                {t('learn.research.builderAllClasses')} · {pool.length}
               </button>
-            ))}
-          </div>
+              {classOrderShown.map((cid) => (
+                <button
+                  key={cid}
+                  type="button"
+                  className={`${styles.missionChip} ${classFilter === cid ? styles.missionChipActive : ''}`}
+                  onClick={() => setClassFilter(cid)}
+                >
+                  {pickClass(cid, locale)}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           <div className={styles.missionRow}>
             {filtered.map((c) => (
@@ -715,24 +748,26 @@ export function ResearchBuilderMode({
               </div>
             </OrganicBuilderCanvas>
 
-            <aside
-              className={`${styles.splitEq} ${eqHighlight ? styles.splitEqFlash : ''}`}
-              aria-labelledby="studio-eq-title"
-            >
-              <h3 className={styles.splitEqTitle} id="studio-eq-title">
-                {t('learn.research.studioEquation')}
-              </h3>
-              <p className={styles.hintLine}>
-                {t('learn.research.studioEquationLinked')}{' '}
-                <span className={styles.formulaInline}>{pickEq(challenge, locale)}</span>
-              </p>
-              <ResearchEquationBuilder
-                onMacro={say}
-                compact
-                preferFormula={challenge.formula}
-                onSelectEquation={onSelectEquation}
-              />
-            </aside>
+            {!hideEquationAside && !labBuild ? (
+              <aside
+                className={`${styles.splitEq} ${eqHighlight ? styles.splitEqFlash : ''}`}
+                aria-labelledby="studio-eq-title"
+              >
+                <h3 className={styles.splitEqTitle} id="studio-eq-title">
+                  {t('learn.research.studioEquation')}
+                </h3>
+                <p className={styles.hintLine}>
+                  {t('learn.research.studioEquationLinked')}{' '}
+                  <span className={styles.formulaInline}>{pickEq(challenge, locale)}</span>
+                </p>
+                <ResearchEquationBuilder
+                  onMacro={say}
+                  compact
+                  preferFormula={challenge.formula}
+                  onSelectEquation={onSelectEquation}
+                />
+              </aside>
+            ) : null}
           </div>
 
           <div className={styles.tipsBar} role="note">

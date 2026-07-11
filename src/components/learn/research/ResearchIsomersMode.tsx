@@ -140,7 +140,7 @@ export function ResearchIsomersMode({
                     display: 'block',
                     boxSizing: 'border-box',
                   }}
-                  to={`/learn/research/builder?challenge=${build.id}`}
+                  to={`/organic?mode=build&challenge=${build.id}&mol=${build.id}`}
                 >
                   {t('learn.research.buildIn3d')}
                 </Link>

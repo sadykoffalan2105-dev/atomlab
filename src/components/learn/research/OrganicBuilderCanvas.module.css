@@ -76,6 +76,10 @@
   min-height: 0;
 }
 
+.studioLabBuild .splitStudio {
+  grid-template-columns: 1fr;
+}
+
 .splitEq {
   display: flex;
   flex-direction: column;

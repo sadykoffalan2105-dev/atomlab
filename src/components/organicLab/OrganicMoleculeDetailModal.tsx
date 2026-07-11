@@ -112,7 +112,7 @@ export function OrganicMoleculeDetailModal({
               {mol.challengeId ? (
                 <Link
                   className={own.buildLink}
-                  to={`/learn/research/builder?challenge=${encodeURIComponent(mol.challengeId)}`}
+                  to={`/organic?mode=build&challenge=${encodeURIComponent(mol.challengeId)}&mol=${encodeURIComponent(mol.challengeId)}`}
                   onClick={onClose}
                 >
                   {t('organicLab.buildYourself')}

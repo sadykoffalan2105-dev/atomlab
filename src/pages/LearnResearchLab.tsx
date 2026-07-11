@@ -1,12 +1,9 @@
 import { useEffect } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ResearchBuilderMode } from '../components/learn/research/ResearchBuilderMode'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { lessonForChallengeId } from '../data/organicLab/organicCurriculum'
 import { ORGANIC_BUILD_CHALLENGES } from '../data/researchLab/researchLabData'
 import { useT } from '../i18n/useT'
 import styles from './LearnResearchLab.module.css'
-
-/** Всё в одной 3D-студии; старые URL режимов → builder. */
-const LEGACY_REDIRECT = new Set(['attack', 'detective', 'equilibrium', 'isomers'])
 
 function resolveChallenge(raw: string | undefined): string | undefined {
   if (!raw) return undefined
@@ -15,19 +12,30 @@ function resolveChallenge(raw: string | undefined): string | undefined {
   return undefined
 }
 
+function organicLabUrl(challenge?: string): string {
+  const p = new URLSearchParams()
+  if (challenge) {
+    const lesson = lessonForChallengeId(challenge)
+    if (lesson) p.set('lesson', lesson.id)
+    p.set('challenge', challenge)
+    p.set('mol', challenge)
+    p.set('mode', 'build')
+  }
+  const qs = p.toString()
+  return qs ? `/organic?${qs}` : '/organic'
+}
+
+/** Старые URL research lab → программа органической лаборатории. */
 export function LearnResearchLab() {
   const { t } = useT()
-  const { mode: modeParam } = useParams<{ mode?: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const challenge = resolveChallenge(searchParams.get('challenge') ?? undefined)
+  const target = organicLabUrl(challenge)
 
   useEffect(() => {
-    if (modeParam && modeParam !== 'builder' && LEGACY_REDIRECT.has(modeParam)) {
-      navigate(`/learn/research/builder`, { replace: true })
-    }
-  }, [modeParam, navigate])
-
-  const initialBuilderChallenge = resolveChallenge(searchParams.get('challenge') ?? undefined)
+    navigate(target, { replace: true })
+  }, [target, navigate])
 
   return (
     <div className={styles.page}>
@@ -36,14 +44,9 @@ export function LearnResearchLab() {
       </Link>
       <h1 className={styles.h}>{t('learn.research.title')}</h1>
       <p className={styles.lead}>{t('learn.research.lead')}</p>
-
-      <div className={styles.workspace}>
-        <ResearchBuilderMode
-          key={initialBuilderChallenge ?? 'default'}
-          initialChallengeId={initialBuilderChallenge}
-          onMacro={() => {}}
-        />
-      </div>
+      <p className={styles.lead}>
+        <Link to={target}>{t('organicLab.openInLab')}</Link>
+      </p>
     </div>
   )
 }

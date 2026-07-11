@@ -1,6 +1,228 @@
+.programWrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.programLayout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr);
+  min-height: 0;
+  gap: 0;
+}
+
+.pathPanel {
+  overflow: auto;
+  padding: 0.85rem 0.75rem 1.25rem;
+  border-right: 1px solid rgba(100, 140, 200, 0.22);
+  background:
+    linear-gradient(180deg, rgba(8, 14, 28, 0.96), rgba(6, 10, 20, 0.98)),
+    #070b14;
+}
+
+.pathLead {
+  margin: 0 0 0.85rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgba(170, 190, 230, 0.88);
+}
+
+.chapterBlock {
+  margin-bottom: 0.85rem;
+}
+
+.chapterTitle {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.lessonList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lessonBtn {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(220, 230, 255, 0.9);
+  border-radius: 10px;
+  padding: 0.4rem 0.45rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.lessonBtn:hover {
+  background: rgba(45, 212, 191, 0.08);
+  border-color: rgba(100, 140, 200, 0.25);
+}
+
+.lessonBtnActive {
+  border-color: rgba(45, 212, 191, 0.55);
+  background: color-mix(in srgb, #2dd4bf 14%, rgba(8, 14, 28, 0.95));
+}
+
+.lessonBtnDone {
+  color: rgba(190, 255, 230, 0.95);
+}
+
+.lessonCheck {
+  flex: 0 0 0.9rem;
+  width: 0.9rem;
+  color: #34d399;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.mainCol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: #0a0c18;
+}
+
+.lessonHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem 0.55rem;
+  border-bottom: 1px solid rgba(100, 140, 200, 0.18);
+}
+
+.lessonHeading {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: #e8f0ff;
+}
+
+.lessonGoal {
+  margin: 0;
+  max-width: 40rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: rgba(180, 195, 230, 0.92);
+}
+
+.goalLabel {
+  color: #94a3b8;
+  font-weight: 650;
+}
+
+.lessonComplete {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: #6ee7b7;
+}
+
+.modeTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.modeTab {
+  appearance: none;
+  border: 1px solid rgba(100, 140, 200, 0.35);
+  background: rgba(8, 14, 28, 0.92);
+  color: rgba(220, 230, 255, 0.9);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.modeTab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.modeTabActive {
+  border-color: rgba(45, 212, 191, 0.85);
+  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.35);
+  background: color-mix(in srgb, #2dd4bf 18%, rgba(8, 14, 28, 0.95));
+}
+
+.viewStage {
+  position: relative;
+  flex: 1;
+  min-height: min(62vh, 36rem);
+}
+
+.molChips {
+  position: absolute;
+  top: 0.55rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem;
+  max-width: min(92%, 32rem);
+  pointer-events: auto;
+}
+
+.molChip {
+  appearance: none;
+  border: 1px solid rgba(100, 140, 200, 0.4);
+  background: rgba(6, 10, 22, 0.9);
+  color: #cbd5e1;
+  border-radius: 999px;
+  padding: 0.28rem 0.55rem;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 650;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  cursor: pointer;
+}
+
+.molChipActive {
+  border-color: rgba(45, 212, 191, 0.8);
+  color: #ecfeff;
+  background: color-mix(in srgb, #2dd4bf 16%, rgba(8, 14, 28, 0.95));
+}
+
+.buildStage,
+.equationStage {
+  flex: 1;
+  overflow: auto;
+  padding: 0.65rem 0.85rem 1.25rem;
+  min-height: 0;
+}
+
+.emptyNote {
+  margin: 2rem auto;
+  text-align: center;
+  color: rgba(180, 195, 230, 0.85);
+}
+
 .hudTop {
   position: absolute;
-  top: 0.65rem;
+  top: 2.6rem;
   left: 0.65rem;
   right: 0.65rem;
   z-index: 4;
@@ -103,10 +325,6 @@
   backdrop-filter: blur(8px);
 }
 
-.hudBottomReactor {
-  bottom: max(16rem, 36vh);
-}
-
 .eqBar {
   display: flex;
   flex-wrap: wrap;
@@ -127,57 +345,39 @@
   color: #a5f3fc;
 }
 
-.actions {
-  display: flex;
-  gap: 0.4rem;
-}
-
 .primaryLink {
+  appearance: none;
   text-decoration: none;
   border-radius: 10px;
   padding: 0.4rem 0.75rem;
+  font: inherit;
   font-size: 0.78rem;
   font-weight: 650;
   color: #042f2e;
   background: linear-gradient(135deg, #34d399, #2dd4bf);
   border: 1px solid rgba(52, 211, 153, 0.6);
+  cursor: pointer;
 }
 
 .primaryLink:hover {
   filter: brightness(1.06);
 }
 
-.idleStage {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-content: center;
-  gap: 0.45rem;
-  padding: 2rem;
-  text-align: center;
-  background:
-    radial-gradient(ellipse 70% 55% at 50% 40%, rgba(45, 212, 191, 0.08), transparent 70%),
-    #0a0c18;
-}
+@media (max-width: 900px) {
+  .programLayout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
 
-.idleTitle {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #e8f0ff;
-}
+  .pathPanel {
+    border-right: none;
+    border-bottom: 1px solid rgba(100, 140, 200, 0.22);
+    max-height: 11rem;
+  }
 
-.idleLead {
-  margin: 0;
-  max-width: 28rem;
-  font-size: 0.88rem;
-  line-height: 1.45;
-  color: rgba(180, 195, 230, 0.9);
-}
-
-@media (max-width: 720px) {
   .hudTop {
     flex-direction: column;
+    top: 2.4rem;
   }
 
   .titleCard {
@@ -187,9 +387,5 @@
   .modeCol {
     flex-direction: row;
     flex-wrap: wrap;
-  }
-
-  .hudBottomReactor {
-    bottom: max(18rem, 42vh);
   }
 }
