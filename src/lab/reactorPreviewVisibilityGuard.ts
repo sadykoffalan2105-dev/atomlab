@@ -13,7 +13,7 @@ export type ReactorPreviewVisibilityGuard = {
     atomGroupRefs: MutableRefObject<(THREE.Group | null)[]>
     atomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>
     layoutScale: number
-    previewAtoms: readonly ReactorPreviewAtom[]
+    previewAtoms: readonly (ReactorPreviewAtom | null | undefined)[]
     rootVisible: boolean
     flightActive: boolean
     /** false — только visible/scale, без syncLayout (не дёргать layout при +/-). */
