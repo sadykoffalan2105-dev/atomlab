@@ -10,6 +10,8 @@ export type PreviewEngineState = {
   fullDetailLatch: boolean
   denseLightLatch: boolean
   slotZ: number[]
+  /** Удержание числа видимых слотов при transient layout во время +/-. */
+  editHoldCount: number
 }
 
 export function createPreviewEngineState(): PreviewEngineState {
@@ -20,6 +22,7 @@ export function createPreviewEngineState(): PreviewEngineState {
     fullDetailLatch: false,
     denseLightLatch: false,
     slotZ: [],
+    editHoldCount: 0,
   }
 }
 
@@ -111,6 +114,24 @@ export function resolvePreviewEngineFrame(
   }
 
   let slotCount = snapshot.renderCount > 0 ? snapshot.renderCount : renderAtoms.length
+  if (editingActive) {
+    const layoutReady =
+      previewAtoms.length >= expectedAtomCount && renderAtoms.length >= expectedAtomCount
+    if (layoutReady) {
+      state.editHoldCount = expectedAtomCount
+    } else {
+      state.editHoldCount = Math.max(
+        state.editHoldCount,
+        expectedAtomCount,
+        renderAtoms.length,
+        state.shellAtoms.length,
+        previewAtoms.length,
+      )
+    }
+    slotCount = Math.max(slotCount, state.editHoldCount, expectedAtomCount)
+  } else {
+    state.editHoldCount = 0
+  }
   if (expectedAtomCount > 0 && slotCount <= 0) {
     slotCount = Math.max(
       expectedAtomCount,

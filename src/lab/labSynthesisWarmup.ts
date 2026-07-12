@@ -8,6 +8,11 @@ import { scheduleIdleMatch } from './labRenderGuards'
 import { POPULAR_SYNTHESIS_COMPOUND_IDS } from './synthesisPrewarmPolicy'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
+import {
+  K2CR2O7_PREVIEW_TERMS,
+  warmupDichromateCoeffStress,
+  warmupDichromateProductAssets,
+} from './labBootStressWarmup'
 
 /** Прогрев worker layout (WASM off main thread). */
 function warmupPreviewLayoutWorker(): void {
@@ -19,13 +24,10 @@ function warmupPreviewLayoutWorker(): void {
 
 /** Типичное тяжёлое уравнение K₂Cr₂O₇ — layout + cache. */
 function warmupHeavyPreviewLayout(): void {
-  const terms: ReactorEquationTerm[] = [
-    { id: 'cr', z: 24, coeff: 4 },
-    { id: 'k', z: 19, coeff: 4 },
-    { id: 'o2', z: 8, coeff: 7, diatomic: true },
-  ]
-  buildReactorPreviewAtoms(terms, { tier: 'full' })
-  void requestPreviewLayout(terms, { coeffEditBurst: false })
+  buildReactorPreviewAtoms(K2CR2O7_PREVIEW_TERMS, { tier: 'full' })
+  buildReactorPreviewAtoms(K2CR2O7_PREVIEW_TERMS, { tier: 'lite' })
+  void requestPreviewLayout(K2CR2O7_PREVIEW_TERMS, { coeffEditBurst: false })
+  warmupDichromateCoeffStress()
 }
 
 let infraWarmed = false
@@ -55,22 +57,39 @@ export function warmupReactorPreviewTerms(terms: readonly ReactorEquationTerm[])
   void requestPreviewLayout(terms, { coeffEditBurst: false })
 }
 
+export type BootWarmupProgress = {
+  stage: 'wasm' | 'three' | 'dichromate' | 'lab' | 'done'
+  label: string
+}
+
 /**
- * Полный набор промисов прогрева для boot-splash.
- * Ждём WASM + vendor + lab chunk + тяжёлый layout.
+ * Полный прогрев для boot-splash: WASM, three/drei, stress K₂Cr₂O₇, LabScene.
  */
-export async function warmupLabBootReady(catalog: readonly CompoundDef[]): Promise<void> {
+export async function warmupLabBootReady(
+  catalog: readonly CompoundDef[],
+  onProgress?: (p: BootWarmupProgress) => void,
+): Promise<void> {
+  onProgress?.({ stage: 'wasm', label: 'Подготовка расчётов…' })
   warmupLabSynthesisInfra(catalog)
   prefetchLabThreeVendor()
   prefetchLabSceneChunk()
-  warmupHeavyPreviewLayout()
+
+  onProgress?.({ stage: 'three', label: 'Загрузка 3D-движка…' })
   await Promise.all([
     ensureReactorBalanceWasmReady().catch(() => undefined),
     import('@react-three/fiber'),
     import('three'),
     import('@react-three/drei'),
-    import('../components/lab/LabScene'),
   ])
+
+  onProgress?.({ stage: 'dichromate', label: 'Прогрев синтеза (K₂Cr₂O₇)…' })
+  warmupHeavyPreviewLayout()
+  await warmupDichromateProductAssets().catch(() => undefined)
+
+  onProgress?.({ stage: 'lab', label: 'Загрузка лаборатории…' })
+  await import('../components/lab/LabScene')
+
+  onProgress?.({ stage: 'done', label: 'Готово' })
 }
 
 /** Фоновый прогрев WASM, workers и layout-кэша. */
@@ -100,7 +119,6 @@ export function isLabSynthesisInfraWarmed(): boolean {
 
 /**
  * Дополнительный прогрев при открытии реактора / выборе продукта.
- * Не трогает GPU continuity — только WASM, layout и three chunk.
  */
 export function warmupLabSynthesisReactorOpen(
   catalog: readonly CompoundDef[],
@@ -115,7 +133,7 @@ export function warmupLabSynthesisReactorOpen(
     if (previewTerms && previewTerms.length > 0) {
       warmupReactorPreviewTerms(previewTerms)
     } else if (product?.id === 'salt_k2cr2o7') {
-      warmupHeavyPreviewLayout()
+      warmupDichromateCoeffStress()
     }
     void product?.id
   })

@@ -415,21 +415,20 @@ export function ReactorTermsPreview({
           coeffEditBurst: policy.pinEveryFrame,
           minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
         })
-        /** Во время edit не гасим слот — иначе hitch = «атомы пропали». */
-        const slotVisible =
-          effectiveGroupVisible && (slotActive || (editingActive && i < n))
+        /** Во время edit слот всегда видим в пределах n — без пропадания. */
+        const slotVisible = effectiveGroupVisible && i < n
         return (
           <group key={slotKey} visible={slotVisible} ref={getPosRef(i)}>
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
               <ReactorPreviewAtomSlot
                 z={slotZ}
-                animate={slotActive && electronAnimate}
-                previewStatic={!slotActive || (!electronAnimate && policy.pinEveryFrame)}
-                useFullDetail={useFullDetail && !flightActive && slotActive && !editingActive}
+                animate={electronAnimate && (slotActive || editingActive)}
+                previewStatic={!editingActive && (!slotActive || (!electronAnimate && policy.pinEveryFrame))}
+                useFullDetail={useFullDetail && !flightActive && slotActive}
                 synthesisGlass={synthesisGlass && (flightActive || poseLocked) && slotActive}
-                previewLite={!useFullDetail || editingActive}
+                previewLite={!useFullDetail}
                 electronFrameSkip={
-                  editingActive || policy.pinEveryFrame
+                  policy.pinEveryFrame
                     ? Math.max(atomPolicy.electronFrameSkip, lowPowerProfile.isMobileSoc ? 3 : 2)
                     : flightActive
                       ? Math.max(atomPolicy.electronFrameSkip, 2)

@@ -3,10 +3,10 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import {
   estimatePreviewAtomCount,
-  pickLayoutAtoms,
   SYNC_BUILD_ATOM_CAP,
   termsSignature,
 } from './previewLayoutPolicy'
+import { mergeLayoutDuringEdit } from './previewEditHold'
 import { buildPreviewLayoutWasmSync } from '../wasm/reactorPreviewLayoutWasm'
 
 export { SYNC_BUILD_ATOM_CAP } from './previewLayoutPolicy'
@@ -26,7 +26,7 @@ function buildLayoutAtoms(
 
 /**
  * Sync layout на каждое изменение terms — без useState (нет кадра с пустым массивом).
- * Layout через WASM sync (C++) с TS fallback.
+ * При editing — mergeLayoutDuringEdit: атомы не исчезают, пока built не догнал expected.
  */
 export function useReactorPreviewLayout(
   terms: readonly ReactorEquationTerm[],
@@ -38,6 +38,7 @@ export function useReactorPreviewLayout(
   const atomEstimate = useMemo(() => estimatePreviewAtomCount(terms), [termsSig, terms])
 
   const shellRef = useRef<readonly ReactorPreviewAtom[]>([])
+  const holdCountRef = useRef(0)
   const lastBuiltSigRef = useRef('')
 
   const heavyEquation = atomEstimate > SYNC_BUILD_ATOM_CAP
@@ -47,21 +48,31 @@ export function useReactorPreviewLayout(
     const shell = shellRef.current
     if (terms.length >= 1 && atomEstimate > 0) {
       const built = buildLayoutAtoms(terms, heavyEquation)
-      const picked = pickLayoutAtoms(built, shell, _coeffEditing, atomEstimate)
-      if (picked.length > 0) shellRef.current = picked
+      if (_coeffEditing) {
+        const merged = mergeLayoutDuringEdit(
+          built,
+          shell,
+          atomEstimate,
+          holdCountRef.current,
+        )
+        holdCountRef.current = merged.holdCount
+        if (merged.atoms.length > 0) shellRef.current = merged.atoms
+      } else {
+        holdCountRef.current = atomEstimate
+        shellRef.current = built.length > 0 ? built : shell
+      }
     }
+  }
+
+  if (!_coeffEditing && holdCountRef.current !== atomEstimate) {
+    holdCountRef.current = atomEstimate
   }
 
   const resolved =
     shellRef.current.length > 0
       ? shellRef.current
       : terms.length >= 1 && atomEstimate > 0
-        ? pickLayoutAtoms(
-            buildLayoutAtoms(terms, heavyEquation),
-            shellRef.current,
-            _coeffEditing,
-            atomEstimate,
-          )
+        ? buildLayoutAtoms(terms, heavyEquation)
         : shellRef.current
 
   if (resolved.length > 0) {

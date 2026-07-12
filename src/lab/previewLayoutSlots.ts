@@ -1,4 +1,5 @@
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
+import { mergeLayoutDuringEdit } from './previewEditHold'
 
 /** Слот i → атом для layout/pin. Индекс слота совпадает с pool[i]. */
 export function resolvePreviewLayoutSlotAtom(
@@ -11,8 +12,7 @@ export function resolvePreviewLayoutSlotAtom(
 
 /**
  * Слоты 0..slotCount-1: preview[i] ?? shell[i].
- * Без early-break: дыра в середине не обрезает хвост (shell-hold).
- * Без дублирования последнего атома.
+ * Без дублирования — только per-index shell-hold.
  */
 export function mergePreviewLayoutSlots(
   slotCount: number,
@@ -21,29 +21,14 @@ export function mergePreviewLayoutSlots(
 ): readonly ReactorPreviewAtom[] {
   if (slotCount <= 0) return preview.length > 0 ? preview : shell
   const out: ReactorPreviewAtom[] = []
-  let last: ReactorPreviewAtom | null = null
   for (let i = 0; i < slotCount; i++) {
     const atom = resolvePreviewLayoutSlotAtom(i, preview, shell)
-    if (atom) {
-      out.push(atom)
-      last = atom
-      continue
-    }
-    // Gap: удерживаем last known atom в слоте (только pos/z для pin), не обрываем массив.
-    if (last) {
-      out.push(last)
-    } else if (shell.length > 0) {
-      out.push(shell[Math.min(i, shell.length - 1)]!)
-    } else if (preview.length > 0) {
-      out.push(preview[Math.min(i, preview.length - 1)]!)
-    } else {
-      break
-    }
+    if (atom) out.push(atom)
   }
   return out.length > 0 ? out : preview.length > 0 ? preview : shell
 }
 
-/** Стабильный identity key атома превью (для affinity / тестов). */
+/** Стабильный identity key атома превью (для тестов / affinity). */
 export function reactorPreviewAtomKey(atom: {
   termId?: string
   termIndex: number
@@ -52,3 +37,5 @@ export function reactorPreviewAtomKey(atom: {
 }): string {
   return `${atom.termId ?? `t${atom.termIndex}`}:${atom.atomInTerm}:${atom.z}`
 }
+
+export { mergeLayoutDuringEdit }

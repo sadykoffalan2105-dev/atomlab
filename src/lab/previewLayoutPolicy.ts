@@ -1,6 +1,7 @@
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
+import { mergeLayoutDuringEdit } from './previewEditHold'
 import { shouldForceSyncPreviewLayout, ATOMLAB_SYNC_BUILD_ATOM_CAP } from './atomlabPerfGuard'
 
 export const SYNC_BUILD_ATOM_CAP = ATOMLAB_SYNC_BUILD_ATOM_CAP
@@ -17,10 +18,7 @@ export function pickLayoutAtoms(
   if (!editing || expectedCount <= 0) {
     return built
   }
-  if (expectedCount > built.length && shell.length > built.length) {
-    return shell
-  }
-  return built
+  return mergeLayoutDuringEdit(built, shell, expectedCount, shell.length).atoms
 }
 
 export function buildPreviewLayoutForEdit(
