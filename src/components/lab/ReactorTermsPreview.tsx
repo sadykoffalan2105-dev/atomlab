@@ -23,7 +23,6 @@ import {
   resolvePreviewExternalAtomControl,
 } from '../../lab/synthesisPreviewEngine/previewExternalControl'
 import { createReactorPreviewVisibilityGuard } from '../../lab/reactorPreviewVisibilityGuard'
-import { reactorPreviewAtomKey } from '../../lab/previewLayoutSlots'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
 
@@ -404,12 +403,10 @@ export function ReactorTermsPreview({
       {Array.from({ length: poolSize }, (_, i) => {
         const atom = i < n ? (renderAtoms[i] ?? shellAtoms[i] ?? null) : null
         const slotZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
+        /** Активный слот: есть атом ИЛИ удерживаем last-Z во время edit (не unmount Bohr). */
         const slotActive = atom != null || (i < n && slotZ > 0)
-        /**
-         * Identity key (не pool-i): при +/- сдвиг индексов переносит fiber,
-         * Bohr-модель не remount — нет мигания анимации.
-         */
-        const slotKey = atom ? reactorPreviewAtomKey(atom) : `pool-empty-${i}`
+        /** Фиксированный pool-key: identity-keys давали remount при сдвиге индексов. */
+        const slotKey = `pool-${i}`
         const atomPolicy = getReactorAtomRenderPolicy({
           atomCount: n,
           atomZ: slotZ,
@@ -418,7 +415,9 @@ export function ReactorTermsPreview({
           coeffEditBurst: policy.pinEveryFrame,
           minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
         })
-        const slotVisible = slotActive && effectiveGroupVisible
+        /** Во время edit не гасим слот — иначе hitch = «атомы пропали». */
+        const slotVisible =
+          effectiveGroupVisible && (slotActive || (editingActive && i < n))
         return (
           <group key={slotKey} visible={slotVisible} ref={getPosRef(i)}>
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
@@ -426,11 +425,11 @@ export function ReactorTermsPreview({
                 z={slotZ}
                 animate={slotActive && electronAnimate}
                 previewStatic={!slotActive || (!electronAnimate && policy.pinEveryFrame)}
-                useFullDetail={useFullDetail && !flightActive && slotActive}
+                useFullDetail={useFullDetail && !flightActive && slotActive && !editingActive}
                 synthesisGlass={synthesisGlass && (flightActive || poseLocked) && slotActive}
-                previewLite={!useFullDetail}
+                previewLite={!useFullDetail || editingActive}
                 electronFrameSkip={
-                  policy.pinEveryFrame
+                  editingActive || policy.pinEveryFrame
                     ? Math.max(atomPolicy.electronFrameSkip, lowPowerProfile.isMobileSoc ? 3 : 2)
                     : flightActive
                       ? Math.max(atomPolicy.electronFrameSkip, 2)

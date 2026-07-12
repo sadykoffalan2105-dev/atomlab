@@ -20,7 +20,7 @@ export const SYNTH_ANTI_STALL = {
   /** Пустых кадров до recover (синтез). */
   emptyFrameRecover: 1,
   /** Жёсткий таймаут compileAsync продукта. */
-  gpuCompileMaxMs: 550,
+  gpuCompileMaxMs: 180,
   /** Кадров prewarm до «готово» без compileAsync — быстрый fallback. */
   gpuCompileFallbackFrames: 2,
   /** Макс. ожидание refs GSAP converge. */

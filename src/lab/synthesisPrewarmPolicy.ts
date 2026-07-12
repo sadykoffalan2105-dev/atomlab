@@ -33,11 +33,11 @@ export function canIdleGpuPrewarm(opts: {
   synthesisRunActive: boolean
   hasProduct: boolean
 }): boolean {
-  const editing = opts.coeffEditing === true || opts.coeffEditBurst
+  // Не блокируем prewarm длинным visualHold — только активный burst клика.
   return (
     opts.reactorOpen &&
     opts.hasProduct &&
-    !editing &&
+    !opts.coeffEditBurst &&
     !opts.synthesisRunActive
   )
 }
@@ -53,10 +53,11 @@ export function canIdleGpuCompileQueue(opts: {
   synthesisRunActive: boolean
   synthActive?: boolean
 }): boolean {
-  const editing = opts.coeffEditing === true || opts.coeffEditBurst
+  // Не блокируем всю очередь длинным burst — только активный pulse клика.
+  const clicking = opts.coeffEditBurst === true
   return (
     opts.reactorOpen &&
-    !editing &&
+    !clicking &&
     !opts.synthesisRunActive &&
     !opts.synthActive
   )

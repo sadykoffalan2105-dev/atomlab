@@ -113,7 +113,7 @@ export function applyReactorPreviewLayout(
   )
 }
 
-/** Layout для slotCount слотов с shell-hold. */
+/** Layout для slotCount слотов с shell-hold. Не гасим слот при кратком null. */
 export function applyReactorPreviewLayoutSlots(
   slotCount: number,
   previewAtoms: readonly (ReactorPreviewAtom | null | undefined)[],
@@ -128,14 +128,11 @@ export function applyReactorPreviewLayoutSlots(
     const atom = previewAtoms[i] ?? shellAtoms[i] ?? null
     const posG = atomGroupRefs.current[i]
     const scaleG = atomScaleGroupRefs.current[i]
-    if (!atom) {
-      if (posG) posG.visible = false
-      if (scaleG) scaleG.visible = false
-      continue
-    }
     if (posG) {
       posG.visible = true
-      posG.position.set(atom.pos[0], atom.pos[1], atom.pos[2])
+      if (atom) {
+        posG.position.set(atom.pos[0], atom.pos[1], atom.pos[2])
+      }
     }
     if (scaleG) {
       scaleG.visible = true

@@ -70,7 +70,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     previewStickyRef,
   } = input
 
-  /** Жёсткий override: до запуска синтеза — только атомы (никакого product GPU). */
+  /** До запуска: атомы видны; product GPU — micro-scale prewarm (без показа слота). */
   const preSynthesisReactor =
     mountReactorPreview &&
     reactorViewOpen &&
@@ -80,12 +80,21 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
 
   if (preSynthesisReactor) {
     previewStickyRef.current = { runId: -1, previewMounted: true }
+    const canPrewarmProduct =
+      productCompoundId != null && !coeffEditBurst && _gpuPrewarmAllowed
+    if (canPrewarmProduct) {
+      stickyMountRef.current = {
+        runId: 0,
+        compoundId: productCompoundId,
+        productMounted: true,
+      }
+    }
     return {
       reactorPreviewVisible: true,
       reactorPreviewMounted: true,
-      productMeshMounted: false,
+      productMeshMounted: canPrewarmProduct,
       productSlotVisible: false,
-      productPrewarm: false,
+      productPrewarm: canPrewarmProduct,
       holdVisualOverlap: false,
     }
   }

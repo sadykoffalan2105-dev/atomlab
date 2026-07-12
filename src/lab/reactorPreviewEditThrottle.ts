@@ -3,14 +3,14 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 
 const BURST_WINDOW_MS = 520
 const BURST_MIN_CHANGES = 1
-/** Удержание burst после последнего +/- — атомы не «мигают» при отпускании кнопки. */
-const BURST_HOLD_MS = 2200
+/** Короткий hold — GPU-очередь продукта снова работает через ~0.4с после +/-. */
+const BURST_HOLD_MS = 420
 /** Пауза до editIdle после последнего изменения. */
-const EDIT_IDLE_MS = 1100
+const EDIT_IDLE_MS = 380
 /** Доп. удержание pin после editIdle. */
-const VISUAL_HOLD_MS = 1100
+const VISUAL_HOLD_MS = 280
 /** Удержание «editing» после последнего +/- — без мигания между кликами. */
-const EDIT_PULSE_MS = 650
+const EDIT_PULSE_MS = 220
 
 function termsSignature(terms: readonly ReactorEquationTerm[] | null): string {
   if (!terms?.length) return ''

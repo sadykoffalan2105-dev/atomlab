@@ -634,7 +634,8 @@ export function LaboratoryPage() {
   }, [deferredLeftTerms, productCompoundId, productCoeff])
 
   useEffect(() => {
-    if (!reactorOpen || !productCompound || !canRunSynthesis || coeffEditBurst) return
+    if (!reactorOpen || !productCompound || !canRunSynthesis) return
+    if (coeffEditBurst) return
     setPrewarmCompound(productCompound)
   }, [reactorOpen, productCompound, canRunSynthesis, coeffEditBurst])
 
@@ -687,14 +688,15 @@ export function LaboratoryPage() {
     [productForHud, locale, t],
   )
 
-  /** До запуска синтеза — только превью реагентов; GPU-prewarm только во время run. */
+  /** До запуска синтеза — только превью реагентов. */
   const transformPreviewCompound = null
 
+  /** GPU-prewarm продукта как только уравнение сбалансировано (до Check). */
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
-    if (canRunSynthesis && !coeffEditBurst && reactorGpuIdleReady) return productCompound
-    return null
+    if (canRunSynthesis && reactorGpuIdleReady) return productCompound
+    return prewarmCompound
   }, [
     reactorOpen,
     productCompound,
@@ -702,20 +704,19 @@ export function LaboratoryPage() {
     lastRunProduct,
     prewarmCompound,
     canRunSynthesis,
-    coeffEditBurst,
     reactorGpuIdleReady,
   ])
 
   const gpuQueuePriorityCompound = useMemo(() => {
-    if (!reactorOpen || coeffEditBurst || synthRunActive || !reactorGpuIdleReady) return null
+    if (!reactorOpen || synthRunActive || !reactorGpuIdleReady) return null
     if (canRunSynthesis && productCompound) return productCompound
     return productCompound
-  }, [reactorOpen, coeffEditBurst, synthRunActive, productCompound, canRunSynthesis, reactorGpuIdleReady])
+  }, [reactorOpen, synthRunActive, productCompound, canRunSynthesis, reactorGpuIdleReady])
 
   const onSynthesisPrewarmIntent = useCallback(() => {
-    if (!productCompound || !canRunSynthesis || coeffEditBurst) return
+    if (!productCompound || !canRunSynthesis) return
     setPrewarmCompound(productCompound)
-  }, [productCompound, canRunSynthesis, coeffEditBurst])
+  }, [productCompound, canRunSynthesis])
 
   return (
     <div className={styles.wrap} data-lab-synthesis-view={laboratorySynthesisView}>

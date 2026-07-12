@@ -5,7 +5,7 @@ import { PREVIEW_MIN_ATOM_SCALE } from '../components/lab/reactorPreviewLayout'
 
 /**
  * Каждый кадр при +/-: принудительно держим root и слоты visible + scale.
- * Лёгкий путь — без перестройки layout (не влияет на FPS).
+ * Не гасим слоты при кратковременном null — иначе hitch = «атомы пропали».
  */
 export function pinPreviewAtomsOnScreen(opts: {
   atomCount: number
@@ -35,20 +35,17 @@ export function pinPreviewAtomsOnScreen(opts: {
     const atom = previewAtoms[i] ?? shellAtoms[i] ?? null
     const posG = atomGroupRefs.current[i]
     const scaleG = atomScaleGroupRefs.current[i]
-    if (!atom) {
-      if (posG) posG.visible = false
-      if (scaleG) scaleG.visible = false
-      continue
-    }
     if (posG) {
       posG.visible = true
-      const [x, y, z] = atom.pos
-      if (
-        Math.abs(posG.position.x - x) > 0.001 ||
-        Math.abs(posG.position.y - y) > 0.001 ||
-        Math.abs(posG.position.z - z) > 0.001
-      ) {
-        posG.position.set(x, y, z)
+      if (atom) {
+        const [x, y, z] = atom.pos
+        if (
+          Math.abs(posG.position.x - x) > 0.001 ||
+          Math.abs(posG.position.y - y) > 0.001 ||
+          Math.abs(posG.position.z - z) > 0.001
+        ) {
+          posG.position.set(x, y, z)
+        }
       }
     }
     if (scaleG) {

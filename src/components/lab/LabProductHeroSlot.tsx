@@ -198,7 +198,8 @@ export function LabProductHeroSlot({
           releaseBudget?.()
           releaseBudget = null
         },
-        { skipCompileAsync: false, meshesPerFrame: 24 },
+        // synthesis-quality mesh: sync compile быстрее compileAsync на Check/Run.
+        { skipCompileAsync: true, meshesPerFrame: 48 },
       )
     }
 
@@ -385,7 +386,7 @@ export function LabProductHeroSlot({
             labScaleBoost={CATALOG_HERO_DEFAULT_LAB_SCALE}
             reducedEffects
             labSynthesisScene
-            renderQuality="high"
+            renderQuality="synthesis"
             fxLevel="low"
             chaoticWobble={false}
           />

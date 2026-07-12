@@ -90,7 +90,24 @@ export function resolvePreviewEngineFrame(
   )
   const renderAtoms = snapshot.atoms
   if (renderAtoms.length > 0) {
-    state.shellAtoms = renderAtoms
+    if (!editingActive) {
+      state.shellAtoms = renderAtoms
+    } else if (renderAtoms.length >= state.shellAtoms.length) {
+      state.shellAtoms = renderAtoms
+    } else if (expectedAtomCount < state.shellAtoms.length) {
+      // Намеренное уменьшение коэффициентов — сжимаем к expected.
+      const target = Math.max(expectedAtomCount, renderAtoms.length)
+      const next = state.shellAtoms.slice(0, target)
+      for (let i = 0; i < Math.min(renderAtoms.length, next.length); i++) {
+        next[i] = renderAtoms[i]!
+      }
+      state.shellAtoms = next
+    } else {
+      // Короткий transient layout при том же expected — держим denser shell.
+      const next = state.shellAtoms.slice()
+      for (let i = 0; i < renderAtoms.length; i++) next[i] = renderAtoms[i]!
+      state.shellAtoms = next
+    }
   }
 
   let slotCount = snapshot.renderCount > 0 ? snapshot.renderCount : renderAtoms.length
