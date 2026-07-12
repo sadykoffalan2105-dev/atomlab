@@ -1,7 +1,11 @@
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../../components/lab/reactorPreviewLayout'
-import { buildPreviewRenderSnapshot } from '../previewRenderAtoms'
-import { mergePreviewLayoutSlots } from '../previewLayoutSlots'
+import { buildPreviewRenderSnapshot, buildPreviewLayoutIndexed } from '../previewRenderAtoms'
+import {
+  createPreviewSlotBuffer,
+  resolvePreviewSlotBuffer,
+  type PreviewSlotBuffer,
+} from '../previewSlotBuffer'
 
 export type PreviewEngineState = {
   shellAtoms: readonly ReactorPreviewAtom[]
@@ -10,8 +14,8 @@ export type PreviewEngineState = {
   fullDetailLatch: boolean
   denseLightLatch: boolean
   slotZ: number[]
-  /** Удержание числа видимых слотов при transient layout во время +/-. */
   editHoldCount: number
+  slotBuffer: PreviewSlotBuffer
 }
 
 export function createPreviewEngineState(): PreviewEngineState {
@@ -23,6 +27,7 @@ export function createPreviewEngineState(): PreviewEngineState {
     denseLightLatch: false,
     slotZ: [],
     editHoldCount: 0,
+    slotBuffer: createPreviewSlotBuffer(),
   }
 }
 
@@ -37,7 +42,6 @@ export function estimateExpectedAtomCount(terms: readonly ReactorEquationTerm[])
 
 /** Шаг квантизации пула слотов: при +/- длина массива слотов меняется реже. */
 export const PREVIEW_POOL_STEP = 8
-/** Меньший шаг для плотных уравнений — меньше «пустых» слотов при +/-. */
 export const PREVIEW_POOL_STEP_DENSE = 4
 export const PREVIEW_POOL_DENSE_THRESHOLD = 16
 
@@ -50,7 +54,7 @@ export function quantizePoolSize(target: number): number {
 
 export type PreviewEngineFrame = {
   renderAtoms: readonly ReactorPreviewAtom[]
-  layoutAtoms: readonly ReactorPreviewAtom[]
+  layoutAtoms: readonly (ReactorPreviewAtom | null)[]
   slotCount: number
   poolSize: number
   groupVisible: boolean
@@ -84,29 +88,36 @@ export function resolvePreviewEngineFrame(
 
   const expectedAtomCount = estimateExpectedAtomCount(terms)
   const hasActiveTerms = expectedAtomCount > 0
+  const editing = editingActive || coeffEditing
 
   const snapshot = buildPreviewRenderSnapshot(
     previewAtoms,
     state.shellAtoms,
     expectedAtomCount,
-    editingActive,
+    editing,
   )
   const renderAtoms = snapshot.atoms
+
   if (renderAtoms.length > 0) {
-    if (!editingActive) {
+    if (!editing) {
       state.shellAtoms = renderAtoms
     } else if (renderAtoms.length >= state.shellAtoms.length) {
       state.shellAtoms = renderAtoms
     } else if (expectedAtomCount < state.shellAtoms.length) {
-      // Намеренное уменьшение коэффициентов — сжимаем к expected.
-      const target = Math.max(expectedAtomCount, renderAtoms.length)
-      const next = state.shellAtoms.slice(0, target)
-      for (let i = 0; i < Math.min(renderAtoms.length, next.length); i++) {
-        next[i] = renderAtoms[i]!
+      const layoutReady = previewAtoms.length >= expectedAtomCount
+      if (layoutReady) {
+        const target = Math.max(expectedAtomCount, renderAtoms.length)
+        const next = state.shellAtoms.slice(0, target)
+        for (let i = 0; i < Math.min(renderAtoms.length, next.length); i++) {
+          next[i] = renderAtoms[i]!
+        }
+        state.shellAtoms = next
+      } else {
+        const next = state.shellAtoms.slice()
+        for (let i = 0; i < renderAtoms.length; i++) next[i] = renderAtoms[i]!
+        state.shellAtoms = next
       }
-      state.shellAtoms = next
     } else {
-      // Короткий transient layout при том же expected — держим denser shell.
       const next = state.shellAtoms.slice()
       for (let i = 0; i < renderAtoms.length; i++) next[i] = renderAtoms[i]!
       state.shellAtoms = next
@@ -114,24 +125,6 @@ export function resolvePreviewEngineFrame(
   }
 
   let slotCount = snapshot.renderCount > 0 ? snapshot.renderCount : renderAtoms.length
-  if (editingActive) {
-    const layoutReady =
-      previewAtoms.length >= expectedAtomCount && renderAtoms.length >= expectedAtomCount
-    if (layoutReady) {
-      state.editHoldCount = expectedAtomCount
-    } else {
-      state.editHoldCount = Math.max(
-        state.editHoldCount,
-        expectedAtomCount,
-        renderAtoms.length,
-        state.shellAtoms.length,
-        previewAtoms.length,
-      )
-    }
-    slotCount = Math.max(slotCount, state.editHoldCount, expectedAtomCount)
-  } else {
-    state.editHoldCount = 0
-  }
   if (expectedAtomCount > 0 && slotCount <= 0) {
     slotCount = Math.max(
       expectedAtomCount,
@@ -140,6 +133,25 @@ export function resolvePreviewEngineFrame(
       renderAtoms.length,
     )
   }
+
+  const indexedSpan = Math.max(
+    slotCount,
+    expectedAtomCount,
+    state.shellAtoms.length,
+    renderAtoms.length,
+  )
+  const indexed = buildPreviewLayoutIndexed(indexedSpan, renderAtoms, state.shellAtoms)
+  const buffered = resolvePreviewSlotBuffer(
+    state.slotBuffer,
+    indexed,
+    indexedSpan,
+    expectedAtomCount,
+    editing,
+  )
+  slotCount = buffered.displayCount
+
+  state.editHoldCount = editing ? buffered.displayCount : 0
+
   const quantizedTarget = quantizePoolSize(Math.max(slotCount, expectedAtomCount))
   state.maxPool = Math.max(state.maxPool, quantizedTarget)
   if (!hasActiveTerms || terms.length === 0) {
@@ -147,12 +159,14 @@ export function resolvePreviewEngineFrame(
   }
   if (!lockPoolSize && terms.length === 0 && slotCount === 0) {
     state.maxPool = 0
+    state.slotBuffer = createPreviewSlotBuffer()
   }
   const poolSize = state.maxPool
 
-  const layoutAtoms = mergePreviewLayoutSlots(slotCount, renderAtoms, state.shellAtoms)
+  const layoutAtoms = buffered.slots
   for (let i = 0; i < slotCount; i++) {
-    state.slotZ[i] = layoutAtoms[i]?.z ?? state.slotZ[i] ?? 1
+    const atom = layoutAtoms[i]
+    state.slotZ[i] = atom?.z ?? state.slotZ[i] ?? 1
   }
 
   const shouldRender =

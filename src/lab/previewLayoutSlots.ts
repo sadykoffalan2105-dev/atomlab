@@ -11,8 +11,8 @@ export function resolvePreviewLayoutSlotAtom(
 }
 
 /**
- * Слоты 0..slotCount-1: preview[i] ?? shell[i].
- * Без дублирования — только per-index shell-hold.
+ * Слоты 0..slotCount-1 — legacy dense array (без null-дыр).
+ * Для pool-рендера используйте mergePreviewLayoutSlotsIndexed.
  */
 export function mergePreviewLayoutSlots(
   slotCount: number,
@@ -28,7 +28,7 @@ export function mergePreviewLayoutSlots(
   return out.length > 0 ? out : preview.length > 0 ? preview : shell
 }
 
-/** Стабильный identity key атома превью (для тестов / affinity). */
+/** Стабильный identity key атома превью (для тестов). */
 export function reactorPreviewAtomKey(atom: {
   termId?: string
   termIndex: number

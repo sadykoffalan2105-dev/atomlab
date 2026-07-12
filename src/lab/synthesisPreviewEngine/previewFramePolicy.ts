@@ -49,8 +49,8 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
   const editing = coeffEditing || coeffEditBurst || editingActive
   const effectiveForceLite =
     forceLite || frameBudgetLite || lowPowerProfile.forceLiteReactor
-  // Не forceLite при edit — иначе lite/detail toggle remount'ит Bohr (Cr и др.).
-  const renderForceLite = editing ? forceLite || frameBudgetLite : effectiveForceLite
+  // При edit не переключаем lite/detail — иначе remount Bohr (Cr и др.).
+  const renderForceLite = editing ? frameBudgetLite : effectiveForceLite
 
   const base = getReactorPreviewPolicy({
     atomCount,

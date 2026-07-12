@@ -617,7 +617,6 @@ function SceneContent({
     !coeffEditingActive && frameBudgetRef.current.shouldForceLite()
   const editForceLite =
     editLiteLatchRef.current ||
-    coeffEditingActive ||
     reactorCoeffEditBurst ||
     frameBudgetLite ||
     lowPowerProfile.forceLiteReactor

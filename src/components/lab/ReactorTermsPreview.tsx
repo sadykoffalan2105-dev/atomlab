@@ -111,7 +111,6 @@ export function ReactorTermsPreview({
         coeffEditing,
         forceLite: framePolicy.effectiveForceLite,
         lowPower,
-        layoutDebounceMs: lowPower ? lowPowerProfile.coeffEditLayoutDebounceMs : 0,
         atomEstimate: terms.reduce((s, t) => s + Math.max(0, Math.floor(t.coeff)), 0),
       }),
     [
@@ -401,11 +400,12 @@ export function ReactorTermsPreview({
         </>
       ) : null}
       {Array.from({ length: poolSize }, (_, i) => {
-        const atom = i < n ? (renderAtoms[i] ?? shellAtoms[i] ?? null) : null
+        const layoutAtom = i < n ? renderAtoms[i] : null
+        const shellAtom = i < shellAtoms.length ? shellAtoms[i] : null
+        const atom = layoutAtom ?? shellAtom
         const slotZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
-        /** Активный слот: есть атом ИЛИ удерживаем last-Z во время edit (не unmount Bohr). */
-        const slotActive = atom != null || (i < n && slotZ > 0)
-        /** Фиксированный pool-key: identity-keys давали remount при сдвиге индексов. */
+        /** Активный слот: есть данные layout/shell или удерживаем last-Z (без unmount Bohr). */
+        const slotActive = atom != null || (i < n && (engineRef.current.slotZ[i] ?? 0) > 0)
         const slotKey = `pool-${i}`
         const atomPolicy = getReactorAtomRenderPolicy({
           atomCount: n,
@@ -415,15 +415,16 @@ export function ReactorTermsPreview({
           coeffEditBurst: policy.pinEveryFrame,
           minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
         })
-        /** Во время edit слот всегда видим в пределах n — без пропадания. */
-        const slotVisible = effectiveGroupVisible && i < n
+        const slotVisible = effectiveGroupVisible && i < n && (slotActive || editingActive)
         return (
           <group key={slotKey} visible={slotVisible} ref={getPosRef(i)}>
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
               <ReactorPreviewAtomSlot
                 z={slotZ}
                 animate={electronAnimate && (slotActive || editingActive)}
-                previewStatic={!editingActive && (!slotActive || (!electronAnimate && policy.pinEveryFrame))}
+                previewStatic={
+                  !editingActive && (!slotActive || (!electronAnimate && policy.pinEveryFrame))
+                }
                 useFullDetail={useFullDetail && !flightActive && slotActive}
                 synthesisGlass={synthesisGlass && (flightActive || poseLocked) && slotActive}
                 previewLite={!useFullDetail}
