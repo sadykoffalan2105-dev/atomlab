@@ -1,1 +1,0 @@
-import{n as e}from"./learnProgressStorage-BVYfZw-6.js";function t(e){return`vr-lab:${e}`}function n(n){e(t(n))}function r(e,t,n=!1){let r=new URLSearchParams;return r.set(`lesson`,e),t&&r.set(`reaction`,t),n&&r.set(`from`,`learn`),`/#/vr-lab?${r.toString()}`}export{n,r as t};
