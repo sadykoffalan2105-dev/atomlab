@@ -91,18 +91,6 @@ function LabReactorClearColor() {
   return null
 }
 
-/** Удерживает фон реактора при burst +/- — без чёрного кадра. */
-function LabReactorCanvasPin({ active }: { active: boolean }) {
-  const { gl, scene } = useThree()
-  const colorRef = useRef(hexToColor(LAB_COSMIC_BG))
-  useFrame(() => {
-    if (!active) return
-    gl.setClearColor(colorRef.current, 1)
-    scene.background = colorRef.current
-  })
-  return null
-}
-
 /** Синхронизация clear color при переходе idle ↔ реактор — убирает «призрак» обложечного атома. */
 function LabSceneClearSync({ reactorMode }: { reactorMode: boolean }) {
   const { gl, scene, invalidate } = useThree()
@@ -532,7 +520,7 @@ function SceneContent({
     })
 
   const preSynthesisPreview = !synthesisRunActive && !synthActive && !showSettledHero
-  const warmupPaused = !reactorGpuIdleReady || reactorCoeffEditBurst || coeffEditingActive
+  const warmupPaused = !reactorGpuIdleReady || reactorCoeffEditBurst
 
   const mountReactorPreview =
     reactorViewOpen &&
@@ -943,6 +931,7 @@ function SceneContent({
   // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {
     if (catalogViewMode) return
+    if (coeffEditingActive) return
     if (previewAtomCount <= 0) return
     if (previewAtomCount > 9) manyAtomsCameraRef.current = true
     else if (previewAtomCount < 7) manyAtomsCameraRef.current = false
@@ -957,7 +946,7 @@ function SceneContent({
     if (t) t.set(0, 0.15, 0)
     orbRef.current?.update?.()
     invalidate()
-  }, [camera, catalogViewMode, previewAtomCount, invalidate])
+  }, [camera, catalogViewMode, previewAtomCount, invalidate, coeffEditingActive])
 
   // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {
@@ -1207,22 +1196,16 @@ function SceneContent({
   return (
     <>
       <LabSceneClearSync reactorMode={reactorViewOpen} />
-      {reactorViewOpen ? (
-        <LabReactorCanvasPin
-          active={coeffEditingActive && !synthesisRunActive && !synthActive}
-        />
-      ) : null}
+      {/* Не pin'им clear каждый кадр при +/-: это даёт синий кадр без звёзд при hitch. */}
       {reactorBackdrop ? <LabReactorClearColor /> : null}
-      {reactorBackdrop ? (
-        <LabSynthesisCosmicBackdrop />
-      ) : null}
+      {reactorBackdrop ? <LabSynthesisCosmicBackdrop /> : null}
       {reactorBackdrop ? <LabReactorLights /> : null}
       {reactorViewOpen ? (
         <ReactorSceneWarmup reactorOpen={reactorViewOpen} paused={warmupPaused} />
       ) : null}
-      {reactorViewOpen && reactorGpuIdleReady && !coeffEditingActive ? (
+      {reactorViewOpen && reactorGpuIdleReady ? (
         <ReactorAtomShaderWarmup
-          active={!productPainted && !showSettledHero}
+          active={!productPainted && !showSettledHero && !coeffEditingActive}
         />
       ) : null}
       {gpuQueueActive ? (
@@ -1237,7 +1220,7 @@ function SceneContent({
         <>
           <color attach="background" args={[LAB_SCENE_CLEAR_HEX]} />
           <fog attach="fog" args={[LAB_SCENE_CLEAR_HEX, 6, 28]} />
-          <Stars radius={100} depth={50} count={1200} factor={3} saturation={0} fade speed={0.35} />
+          <Stars radius={100} depth={50} count={1200} factor={3} saturation={0} fade={false} speed={0.35} />
           <ambientLight intensity={0.22} />
           <directionalLight position={[4, 6, 2]} intensity={0.55} color="#b8c8ff" />
           <group position={[0, 0, 0]}>
@@ -1489,7 +1472,7 @@ export function LabCanvas({
           display: 'block',
           width: '100%',
           height: '100%',
-          background: reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX,
+          background: 'transparent',
         }}
         gl={{
           antialias: canvasAntialias,
@@ -1504,7 +1487,7 @@ export function LabCanvas({
           state.gl.setClearColor(bg, 1)
           state.scene.background = bg
           const canvas = state.gl.domElement
-          canvas.style.background = reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX
+          canvas.style.background = 'transparent'
           canvas.style.display = 'block'
           const onLost = (e: Event) => {
             e.preventDefault()

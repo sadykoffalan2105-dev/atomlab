@@ -6,9 +6,25 @@
   place-content: center;
   justify-items: center;
   gap: 0.85rem;
-  background:
+  background-color: #0a0c18;
+  background-image:
     radial-gradient(ellipse 90% 60% at 50% 20%, rgba(61, 255, 236, 0.12), transparent 55%),
+    radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 28% 62%, rgba(210, 230, 255, 0.45), transparent),
+    radial-gradient(1.2px 1.2px at 44% 28%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 58% 78%, rgba(180, 210, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 72% 22%, rgba(255, 255, 255, 0.48), transparent),
+    radial-gradient(1.1px 1.1px at 86% 54%, rgba(200, 220, 255, 0.42), transparent),
     linear-gradient(180deg, #05060e 0%, #0a0c18 45%, #05060e 100%);
+  background-size:
+    auto,
+    220px 220px,
+    260px 260px,
+    180px 180px,
+    240px 240px,
+    200px 200px,
+    280px 280px,
+    auto;
   color: #e8ecff;
 }
 

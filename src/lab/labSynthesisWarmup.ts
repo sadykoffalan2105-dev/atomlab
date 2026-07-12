@@ -30,6 +30,7 @@ function warmupHeavyPreviewLayout(): void {
 
 let infraWarmed = false
 let threeVendorPrefetched = false
+let labScenePrefetched = false
 
 /** Подгрузка three-vendor chunk до первого Canvas — убирает hitch первого кадра. */
 export function prefetchLabThreeVendor(): void {
@@ -37,6 +38,14 @@ export function prefetchLabThreeVendor(): void {
   threeVendorPrefetched = true
   void import('@react-three/fiber')
   void import('three')
+  void import('@react-three/drei')
+}
+
+/** Chunk LabScene / Canvas — до первого открытия лаборатории. */
+export function prefetchLabSceneChunk(): void {
+  if (labScenePrefetched) return
+  labScenePrefetched = true
+  void import('../components/lab/LabScene')
 }
 
 /** Layout + worker для текущего уравнения (после выбора вещества / генерации). */
@@ -44,6 +53,24 @@ export function warmupReactorPreviewTerms(terms: readonly ReactorEquationTerm[])
   if (terms.length < 1) return
   buildReactorPreviewAtoms(terms, { tier: 'full' })
   void requestPreviewLayout(terms, { coeffEditBurst: false })
+}
+
+/**
+ * Полный набор промисов прогрева для boot-splash.
+ * Ждём WASM + vendor + lab chunk + тяжёлый layout.
+ */
+export async function warmupLabBootReady(catalog: readonly CompoundDef[]): Promise<void> {
+  warmupLabSynthesisInfra(catalog)
+  prefetchLabThreeVendor()
+  prefetchLabSceneChunk()
+  warmupHeavyPreviewLayout()
+  await Promise.all([
+    ensureReactorBalanceWasmReady().catch(() => undefined),
+    import('@react-three/fiber'),
+    import('three'),
+    import('@react-three/drei'),
+    import('../components/lab/LabScene'),
+  ])
 }
 
 /** Фоновый прогрев WASM, workers и layout-кэша. */
@@ -57,6 +84,7 @@ export function warmupLabSynthesisInfra(catalog: readonly CompoundDef[]): void {
   warmupPreviewLayoutWorker()
   scheduleIdleMatch(() => {
     prefetchLabThreeVendor()
+    prefetchLabSceneChunk()
     warmupHeavyPreviewLayout()
     void requestPreviewLayout(
       [{ id: 'h', z: 1, coeff: 2 }, { id: 'o', z: 8, coeff: 1, diatomic: true }],
@@ -81,6 +109,7 @@ export function warmupLabSynthesisReactorOpen(
 ): void {
   warmupLabSynthesisInfra(catalog)
   prefetchLabThreeVendor()
+  prefetchLabSceneChunk()
   scheduleIdleMatch(() => {
     warmupHeavyPreviewLayout()
     if (previewTerms && previewTerms.length > 0) {

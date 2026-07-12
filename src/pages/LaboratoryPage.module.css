@@ -29,14 +29,29 @@
   min-width: 0;
   /* Изоляция layout/paint: соседние перерисовки панели реактора меньше дергают измерение Canvas */
   contain: layout paint;
-  /* Совпадает с REACTOR_SCENE_HEX / LabReactorEnvironment */
+  /* Совпадает с REACTOR_SCENE_HEX — CSS-звёзды под WebGL, чтобы hitch +/- не давал «синий пустой» кадр */
   background-color: #0a0c18;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 28% 62%, rgba(210, 230, 255, 0.45), transparent),
+    radial-gradient(1.2px 1.2px at 44% 28%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 58% 78%, rgba(180, 210, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 72% 22%, rgba(255, 255, 255, 0.48), transparent),
+    radial-gradient(1.1px 1.1px at 86% 54%, rgba(200, 220, 255, 0.42), transparent),
+    radial-gradient(1px 1px at 8% 84%, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1px 1px at 36% 8%, rgba(220, 235, 255, 0.4), transparent),
+    radial-gradient(1.2px 1.2px at 64% 46%, rgba(255, 255, 255, 0.52), transparent),
+    radial-gradient(1px 1px at 92% 88%, rgba(190, 215, 255, 0.38), transparent);
+  background-size: 220px 220px, 260px 260px, 180px 180px, 240px 240px, 200px 200px,
+    280px 280px, 190px 190px, 250px 250px, 210px 210px, 270px 270px;
 }
 
 .canvasFallback {
   position: absolute;
   inset: 0;
   background-color: #0a0c18;
+  background-image: inherit;
+  background-size: inherit;
 }
 
 /*
@@ -54,7 +69,8 @@
 
 .canvasWrap canvas {
   display: block;
-  background-color: #0a0c18;
+  /* Прозрачный CSS-фон: при hitch виден звёздный underlay .canvasWrap, не плоский синий */
+  background-color: transparent;
   width: 100% !important;
   height: 100% !important;
 }
