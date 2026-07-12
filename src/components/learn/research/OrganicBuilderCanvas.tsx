@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useState, type ReactNode } from 'react'
+import { Suspense, useMemo, type ReactNode } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
@@ -10,7 +10,6 @@ import { organicGraphToCompoundDef } from '../../../chemistry/organic/organicToC
 import { freeValence, type OrganicGraph } from '../../../chemistry/organic/organicGraph'
 import { isWebGLAvailable } from '../../../utils/webgl'
 import { useT } from '../../../i18n/useT'
-import { Sn2AttackLayer } from './Sn2AttackLayer'
 import { AngleVectorGuides } from './AngleVectorGuides'
 import styles from './OrganicBuilderCanvas.module.css'
 
@@ -19,13 +18,8 @@ type Props = {
   selectedId: string | null
   bondFromId: string | null
   onSelectAtom: (id: string | null) => void
-  /** Режим вектора атаки SN2 в той же сцене */
-  attackMode?: boolean
-  /** Показывать молекулу рядом с SN2-слоем */
-  keepMoleculeWithAttack?: boolean
   /** Показывать градусы и векторы связей */
   showAngleVectors?: boolean
-  onAttackAngle?: (deg: number, delta: number, inZone: boolean) => void
   children?: ReactNode
 }
 
@@ -142,29 +136,17 @@ function BuilderScene({
   selectedId,
   bondFromId,
   onSelectAtom,
-  attackMode,
-  keepMoleculeWithAttack,
   showAngleVectors,
-  onAttackAngle,
-  orbitEnabled,
-  setOrbitEnabled,
 }: {
   graph: OrganicGraph
   selectedId: string | null
   bondFromId: string | null
   onSelectAtom: (id: string | null) => void
-  attackMode: boolean
-  keepMoleculeWithAttack: boolean
   showAngleVectors: boolean
-  onAttackAngle?: (deg: number, delta: number, inZone: boolean) => void
-  orbitEnabled: boolean
-  setOrbitEnabled: (v: boolean) => void
 }) {
   const compound = useMemo(() => organicGraphToCompoundDef(graph), [graph])
   const n = graph.atoms.length
   const scale = n <= 5 ? 1.2 : n <= 10 ? 0.95 : n <= 15 ? 0.78 : 0.65
-  const showMolecule = !attackMode || keepMoleculeWithAttack
-  const molScale = attackMode && keepMoleculeWithAttack ? scale * 0.75 : scale
 
   return (
     <>
@@ -177,38 +159,25 @@ function BuilderScene({
       <pointLight position={[0, 2, 4]} intensity={0.35} color="#67e8f9" distance={14} />
       <GridFloor />
 
-      {showMolecule && graph.atoms.length > 0 ? (
-        <group position={attackMode && keepMoleculeWithAttack ? [-2.8, 0, 0] : [0, 0, 0]}>
+      {graph.atoms.length > 0 ? (
+        <group>
           <MoleculeMesh
             compound={compound}
-            scale={molScale}
+            scale={scale}
             renderQuality="high"
             visualPreset="default"
             showLabels
           />
-          {!attackMode ? (
-            <>
-              <ValenceHalo graph={graph} scale={scale} selectedId={selectedId} bondFromId={bondFromId} />
-              <PickSpheres
-                graph={graph}
-                scale={scale}
-                selectedId={selectedId}
-                onSelectAtom={onSelectAtom}
-              />
-              {showAngleVectors ? (
-                <AngleVectorGuides graph={graph} scale={scale} selectedId={selectedId} />
-              ) : null}
-            </>
-          ) : null}
-        </group>
-      ) : null}
-
-      {attackMode ? (
-        <group position={keepMoleculeWithAttack ? [2.6, 0, 0] : [0, 0, 0]}>
-          <Sn2AttackLayer
-            onAngle={(d, del, ok) => onAttackAngle?.(d, del, ok)}
-            onOrbitLock={(locked) => setOrbitEnabled(!locked)}
+          <ValenceHalo graph={graph} scale={scale} selectedId={selectedId} bondFromId={bondFromId} />
+          <PickSpheres
+            graph={graph}
+            scale={scale}
+            selectedId={selectedId}
+            onSelectAtom={onSelectAtom}
           />
+          {showAngleVectors ? (
+            <AngleVectorGuides graph={graph} scale={scale} selectedId={selectedId} />
+          ) : null}
         </group>
       ) : null}
 
@@ -220,7 +189,6 @@ function BuilderScene({
         minDistance={2.5}
         maxDistance={16}
         target={[0, 0, 0]}
-        enabled={orbitEnabled}
       />
     </>
   )
@@ -231,15 +199,11 @@ export function OrganicBuilderCanvas({
   selectedId,
   bondFromId,
   onSelectAtom,
-  attackMode = false,
-  keepMoleculeWithAttack = false,
   showAngleVectors = true,
-  onAttackAngle,
   children,
 }: Props) {
   const { t } = useT()
   const webglOk = isWebGLAvailable()
-  const [orbitEnabled, setOrbitEnabled] = useState(true)
 
   if (!webglOk) {
     return (
@@ -250,15 +214,15 @@ export function OrganicBuilderCanvas({
   }
 
   return (
-    <div className={`${styles.stage} ${attackMode ? styles.stageAttack : ''}`}>
+    <div className={styles.stage}>
       <div className={styles.canvasHost}>
         <CanvasErrorBoundary
-          resetKey={attackMode ? 'organic-builder-sn2' : 'organic-builder-scene'}
+          resetKey="organic-builder-scene"
           fallback={<CanvasSceneErrorFallback />}
         >
           <Canvas
             className={styles.canvas}
-            camera={{ position: attackMode ? [0, 3.8, 9] : [0, 2.2, 8.5], fov: 40 }}
+            camera={{ position: [0, 2.2, 8.5], fov: 40 }}
             gl={{
               antialias: true,
               alpha: false,
@@ -266,24 +230,17 @@ export function OrganicBuilderCanvas({
               stencil: false,
             }}
             dpr={[1, 1.35]}
-            frameloop={attackMode ? 'always' : 'demand'}
-            onPointerMissed={() => {
-              if (!attackMode) onSelectAtom(null)
-            }}
+            frameloop="demand"
+            onPointerMissed={() => onSelectAtom(null)}
           >
             <Suspense fallback={null}>
-              {attackMode || graph.atoms.length > 0 ? (
+              {graph.atoms.length > 0 ? (
                 <BuilderScene
                   graph={graph}
                   selectedId={selectedId}
                   bondFromId={bondFromId}
                   onSelectAtom={onSelectAtom}
-                  attackMode={attackMode}
-                  keepMoleculeWithAttack={keepMoleculeWithAttack}
                   showAngleVectors={showAngleVectors}
-                  onAttackAngle={onAttackAngle}
-                  orbitEnabled={orbitEnabled}
-                  setOrbitEnabled={setOrbitEnabled}
                 />
               ) : (
                 <>

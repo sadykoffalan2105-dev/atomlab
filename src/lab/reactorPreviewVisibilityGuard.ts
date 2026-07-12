@@ -116,7 +116,7 @@ export function applyReactorPreviewLayout(
 /** Layout для slotCount слотов с shell-hold. */
 export function applyReactorPreviewLayoutSlots(
   slotCount: number,
-  previewAtoms: readonly ReactorPreviewAtom[],
+  previewAtoms: readonly (ReactorPreviewAtom | null | undefined)[],
   shellAtoms: readonly ReactorPreviewAtom[],
   atomGroupRefs: MutableRefObject<(THREE.Group | null)[]>,
   atomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>,
@@ -125,10 +125,14 @@ export function applyReactorPreviewLayoutSlots(
   if (slotCount <= 0) return
   const scaleFloor = Math.max(PREVIEW_MIN_ATOM_SCALE, layoutScale)
   for (let i = 0; i < slotCount; i++) {
-    const atom = previewAtoms[i] ?? shellAtoms[i]
-    if (!atom) continue
+    const atom = previewAtoms[i] ?? shellAtoms[i] ?? null
     const posG = atomGroupRefs.current[i]
     const scaleG = atomScaleGroupRefs.current[i]
+    if (!atom) {
+      if (posG) posG.visible = false
+      if (scaleG) scaleG.visible = false
+      continue
+    }
     if (posG) {
       posG.visible = true
       posG.position.set(atom.pos[0], atom.pos[1], atom.pos[2])

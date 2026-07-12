@@ -9,22 +9,9 @@ export function resolvePreviewLayoutSlotAtom(
   return preview[index] ?? shell[index] ?? null
 }
 
-function fallbackShellAtom(
-  index: number,
-  preview: readonly ReactorPreviewAtom[],
-  shell: readonly ReactorPreviewAtom[],
-): ReactorPreviewAtom | null {
-  return (
-    resolvePreviewLayoutSlotAtom(index, preview, shell) ??
-    shell[shell.length - 1] ??
-    preview[preview.length - 1] ??
-    null
-  )
-}
-
 /**
  * Слоты 0..slotCount-1: preview[i] ?? shell[i].
- * Длина результата = slotCount — индексы pool-слотов не смещаются при +/-.
+ * Без дублирования последнего атома — иначе React key collision и remount Bohr.
  */
 export function mergePreviewLayoutSlots(
   slotCount: number,
@@ -34,16 +21,19 @@ export function mergePreviewLayoutSlots(
   if (slotCount <= 0) return preview.length > 0 ? preview : shell
   const out: ReactorPreviewAtom[] = []
   for (let i = 0; i < slotCount; i++) {
-    const atom = fallbackShellAtom(i, preview, shell)
+    const atom = resolvePreviewLayoutSlotAtom(i, preview, shell)
     if (!atom) break
     out.push(atom)
   }
-  if (out.length === slotCount) return out
-  while (out.length < slotCount) {
-    const atom = fallbackShellAtom(out.length, preview, shell)
-    if (!atom) break
-    out.push(atom)
-  }
-  if (out.length === slotCount) return out
   return out.length > 0 ? out : preview.length > 0 ? preview : shell
+}
+
+/** Стабильный identity key атома превью (не индекс пула). */
+export function reactorPreviewAtomKey(atom: {
+  termId?: string
+  termIndex: number
+  atomInTerm: number
+  z: number
+}): string {
+  return `${atom.termId ?? `t${atom.termIndex}`}:${atom.atomInTerm}:${atom.z}`
 }

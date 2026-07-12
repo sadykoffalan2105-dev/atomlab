@@ -262,30 +262,6 @@
   color: #e8ecff;
 }
 
-.vrLabFab {
-  position: absolute;
-  right: 0.556rem;
-  top: 3.65rem;
-  z-index: 48;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.65rem;
-  height: 2.65rem;
-  border-radius: 12px;
-  border: 1px solid rgba(92, 255, 212, 0.45);
-  background: rgba(12, 22, 32, 0.88);
-  color: #5cffd4;
-  text-decoration: none;
-  box-shadow: 0 0 18px rgba(92, 255, 212, 0.2);
-}
-
-.vrLabFab:hover {
-  border-color: rgba(92, 255, 212, 0.65);
-  color: #fff;
-  box-shadow: 0 0 24px rgba(92, 255, 212, 0.32);
-}
-
 .synthButton {
   position: absolute;
   right: 0.556rem;

@@ -2,14 +2,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { LabDomainTabs } from '../components/lab/LabDomainTabs'
 import { OrganicMoleculeViewer } from '../components/organicLab/OrganicMoleculeViewer'
+import { OrganicNomenclatureMode } from '../components/organicLab/OrganicNomenclatureMode'
 import { ResearchBuilderMode } from '../components/learn/research/ResearchBuilderMode'
 import { ResearchEquationBuilder } from '../components/learn/research/ResearchEquationBuilder'
+import { ResearchIsomersMode } from '../components/learn/research/ResearchIsomersMode'
 import {
   defaultMolForLesson,
   lessonForChallengeId,
   lessonForMoleculeId,
   lessonHasBuild,
   lessonHasEquation,
+  lessonHasIsomer,
+  lessonHasName,
   ORGANIC_CURRICULUM,
   ORGANIC_CURRICULUM_BY_ID,
   pickChapterLabel,
@@ -66,7 +70,9 @@ function buildableIds(lesson: OrganicLesson): string[] {
 }
 
 function parseMode(raw: string | null): OrganicLessonMode | null {
-  if (raw === 'view' || raw === 'build' || raw === 'equation') return raw
+  if (raw === 'view' || raw === 'build' || raw === 'equation' || raw === 'isomer' || raw === 'name') {
+    return raw
+  }
   return null
 }
 
@@ -104,13 +110,19 @@ export function OrganicLabPage() {
 
   const canBuild = lessonHasBuild(lesson) && buildableIds(lesson).length > 0
   const canEquation = lessonHasEquation(lesson)
+  const canIsomer = lessonHasIsomer(lesson)
+  const canName = lessonHasName(lesson)
 
   const resolvedMode = useMemo((): OrganicLessonMode => {
     const m = parseMode(params.get('mode'))
     const buildOk = lessonHasBuild(initialLesson) && buildableIds(initialLesson).length > 0
     const eqOk = lessonHasEquation(initialLesson)
+    const isoOk = lessonHasIsomer(initialLesson)
+    const nameOk = lessonHasName(initialLesson)
     if (m === 'build' && buildOk) return 'build'
     if (m === 'equation' && eqOk) return 'equation'
+    if (m === 'isomer' && isoOk) return 'isomer'
+    if (m === 'name' && nameOk) return 'name'
     if (m === 'view') return 'view'
     if (params.get('challenge') && buildOk) return 'build'
     return 'view'
@@ -187,11 +199,13 @@ export function OrganicLabPage() {
     (next: OrganicLessonMode) => {
       if (next === 'build' && !canBuild) return
       if (next === 'equation' && !canEquation) return
+      if (next === 'isomer' && !canIsomer) return
+      if (next === 'name' && !canName) return
       setMode(next)
       const molId = browseMolId || defaultMolForLesson(lesson)
       syncParams({ lessonId: lesson.id, mode: next, molId })
     },
-    [canBuild, canEquation, browseMolId, lesson, syncParams],
+    [canBuild, canEquation, canIsomer, canName, browseMolId, lesson, syncParams],
   )
 
   const selectMol = useCallback(
@@ -217,6 +231,8 @@ export function OrganicLabPage() {
   const lessonDone = isLessonComplete(lessonProgress, {
     requireBuild: canBuild,
     requireEquation: canEquation,
+    requireIsomer: canIsomer,
+    requireName: canName,
   })
 
   const primaryModes: { id: OrganicDisplayMode; label: string }[] = [
@@ -248,6 +264,8 @@ export function OrganicLabPage() {
                   const done = isLessonComplete(prog, {
                     requireBuild: lessonHasBuild(l) && buildableIds(l).length > 0,
                     requireEquation: lessonHasEquation(l),
+                    requireIsomer: lessonHasIsomer(l),
+                    requireName: lessonHasName(l),
                   })
                   const active = l.id === lesson.id
                   return (
@@ -312,6 +330,28 @@ export function OrganicLabPage() {
               >
                 {t('organicLab.modeEquation')}
               </button>
+              {canIsomer ? (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === 'isomer'}
+                  className={`${styles.modeTab} ${mode === 'isomer' ? styles.modeTabActive : ''}`}
+                  onClick={() => selectMode('isomer')}
+                >
+                  {t('organicLab.modeIsomer')}
+                </button>
+              ) : null}
+              {canName ? (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === 'name'}
+                  className={`${styles.modeTab} ${mode === 'name' ? styles.modeTabActive : ''}`}
+                  onClick={() => selectMode('name')}
+                >
+                  {t('organicLab.modeName')}
+                </button>
+              ) : null}
             </div>
           </header>
 
@@ -404,10 +444,8 @@ export function OrganicLabPage() {
             <div className={styles.buildStage}>
               <ResearchBuilderMode
                 key={`${lesson.id}-${buildInitialId ?? 'build'}`}
-                variant="labBuild"
                 allowedChallengeIds={buildIds}
                 initialChallengeId={buildInitialId}
-                hideEquationAside
                 onMacro={() => {}}
                 onBuildComplete={() => patchProgress(lesson.id, { built: true, viewed: true })}
               />
@@ -426,6 +464,26 @@ export function OrganicLabPage() {
             </div>
           ) : null}
 
+          {mode === 'isomer' && canIsomer ? (
+            <div className={styles.equationStage}>
+              <ResearchIsomersMode
+                key={lesson.id}
+                allowedChallengeIds={lesson.isomerChallengeIds}
+                onComplete={() => patchProgress(lesson.id, { isomer: true, viewed: true })}
+              />
+            </div>
+          ) : null}
+
+          {mode === 'name' && canName && lesson.nomenclatureQuizId ? (
+            <div className={styles.equationStage}>
+              <OrganicNomenclatureMode
+                key={lesson.id}
+                quizId={lesson.nomenclatureQuizId}
+                onComplete={() => patchProgress(lesson.id, { named: true, viewed: true })}
+              />
+            </div>
+          ) : null}
+
           {mode === 'equation' && !canEquation ? (
             <p className={styles.emptyNote}>{t('organicLab.eqEmpty')}</p>
           ) : null}
@@ -434,3 +492,4 @@ export function OrganicLabPage() {
     </div>
   )
 }
+

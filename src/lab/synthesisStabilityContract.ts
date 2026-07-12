@@ -190,6 +190,7 @@ export function evaluateScenario(scenario: SynthesisStabilityScenario): {
   const idlePrewarmOk = canIdleGpuPrewarm({
     reactorOpen: true,
     coeffEditBurst: input.coeffEditBurst === true,
+    coeffEditing: input.coeffEditBurst === true,
     synthesisRunActive: input.synthesisRunActive,
     hasProduct: input.productCompoundId != null,
   })

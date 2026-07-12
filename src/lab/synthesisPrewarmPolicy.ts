@@ -33,11 +33,11 @@ export function canIdleGpuPrewarm(opts: {
   synthesisRunActive: boolean
   hasProduct: boolean
 }): boolean {
-  void opts.coeffEditing
+  const editing = opts.coeffEditing === true || opts.coeffEditBurst
   return (
     opts.reactorOpen &&
     opts.hasProduct &&
-    !opts.coeffEditBurst &&
+    !editing &&
     !opts.synthesisRunActive
   )
 }
@@ -53,10 +53,10 @@ export function canIdleGpuCompileQueue(opts: {
   synthesisRunActive: boolean
   synthActive?: boolean
 }): boolean {
-  void opts.coeffEditing
+  const editing = opts.coeffEditing === true || opts.coeffEditBurst
   return (
     opts.reactorOpen &&
-    !opts.coeffEditBurst &&
+    !editing &&
     !opts.synthesisRunActive &&
     !opts.synthActive
   )

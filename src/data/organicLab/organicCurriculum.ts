@@ -1,12 +1,12 @@
 /**
  * Учебная программа органической лаборатории по Kimyo 10.
- * Модули (~уроки), не 1:1 с каждым § — практика смотреть / собрать / уравнение.
+ * Модули (~уроки): смотреть / собрать / уравнение / изомеры / название.
  */
 import type { OrganicClassId } from '../researchLab/organicBuildCatalog'
 import { G10_G11_EDU_EQUATIONS } from '../researchLab/g10g11Equations'
 import { organicMoleculeById } from './organicMoleculeRegistry'
 
-export type OrganicLessonMode = 'view' | 'build' | 'equation'
+export type OrganicLessonMode = 'view' | 'build' | 'equation' | 'isomer' | 'name'
 
 export type OrganicLesson = {
   id: string
@@ -24,16 +24,21 @@ export type OrganicLesson = {
   challengeIds: readonly string[]
   /** Уравнения g10 из g10g11Equations (пустой = режим уравнения скрыт) */
   equationIds: readonly string[]
+  /** Задания ISOMER_CHALLENGES (пустой = режим изомеров скрыт) */
+  isomerChallengeIds: readonly string[]
+  /** ID квиза NOMENCLATURE_QUIZZES (нет = режим названия скрыт) */
+  nomenclatureQuizId?: string
   /** Молекула по умолчанию при входе в урок */
   defaultMolId: string
 }
 
 function L(
-  partial: Omit<OrganicLesson, 'titleEn' | 'titleUz' | 'goalEn' | 'goalUz'> & {
+  partial: Omit<OrganicLesson, 'titleEn' | 'titleUz' | 'goalEn' | 'goalUz' | 'isomerChallengeIds'> & {
     titleEn?: string
     titleUz?: string
     goalEn?: string
     goalUz?: string
+    isomerChallengeIds?: readonly string[]
   },
 ): OrganicLesson {
   return {
@@ -42,8 +47,11 @@ function L(
     titleUz: partial.titleUz ?? partial.titleRu,
     goalEn: partial.goalEn ?? partial.goalRu,
     goalUz: partial.goalUz ?? partial.goalRu,
+    isomerChallengeIds: partial.isomerChallengeIds ?? [],
   }
 }
+
+const VIEW_ONLY = new Set(['glucose-pyranose', 'fructose', 'sucrose', 'triacetin'])
 
 export const ORGANIC_CURRICULUM: readonly OrganicLesson[] = [
   L({
@@ -61,6 +69,36 @@ export const ORGANIC_CURRICULUM: readonly OrganicLesson[] = [
     defaultMolId: 'methane',
   }),
   L({
+    id: 'isomers',
+    chapter: 1,
+    titleRu: 'Изомерия',
+    titleEn: 'Isomerism',
+    titleUz: 'Izomeriya',
+    goalRu: 'Найти все структурные изомеры пентана и отличить спирт от эфира.',
+    goalEn: 'Find all pentane isomers and tell alcohol from ether.',
+    goalUz: 'Pentanning barcha izomerlarini toping; spirtni efirdan ajrating.',
+    classId: 'alkane',
+    challengeIds: ['n-butane', 'isobutane', 'n-pentane', 'isopentane', 'neopentane'],
+    equationIds: ['g10-alkane-isomer'],
+    isomerChallengeIds: ['c5h12', 'c4h10o'],
+    defaultMolId: 'n-pentane',
+  }),
+  L({
+    id: 'nomenclature',
+    chapter: 1,
+    titleRu: 'Номенклатура',
+    titleEn: 'Nomenclature',
+    titleUz: 'Nomenklatura',
+    goalRu: 'Выбрать верный суффикс и название простых молекул.',
+    goalEn: 'Pick the right suffix and name for simple molecules.',
+    goalUz: 'Toʻgʻri suffiks va oddiy molekula nomini tanlang.',
+    classId: 'all',
+    challengeIds: ['methane', 'ethylene', 'ethanol', 'acetaldehyde', 'acetone'],
+    equationIds: [],
+    nomenclatureQuizId: 'basics-suffix',
+    defaultMolId: 'methane',
+  }),
+  L({
     id: 'alkanes',
     chapter: 2,
     titleRu: 'Алканы',
@@ -68,13 +106,15 @@ export const ORGANIC_CURRICULUM: readonly OrganicLesson[] = [
     titleUz: 'Alkanlar',
     goalRu: 'Собрать алканы и уравнять реакции галогенирования и горения.',
     classId: 'alkane',
-    challengeIds: ['methane', 'ethane', 'propane', 'n-butane', 'isobutane'],
+    challengeIds: ['methane', 'ethane', 'propane', 'n-butane', 'isobutane', 'n-pentane', 'isopentane'],
     equationIds: [
       'g10-alkane-ch4-cl2',
       'g10-alkane-ch4-burn',
       'g10-alkane-c2h6-burn',
       'g10-alkane-wurtz',
+      'g10-alkane-isomer',
     ],
+    isomerChallengeIds: ['c5h12', 'c6h14'],
     defaultMolId: 'methane',
   }),
   L({
@@ -83,10 +123,10 @@ export const ORGANIC_CURRICULUM: readonly OrganicLesson[] = [
     titleRu: 'Циклоалканы',
     titleEn: 'Cycloalkanes',
     titleUz: 'Tsikloalkanlar',
-    goalRu: 'Собрать кольцо и сравнить с цепными алканами.',
+    goalRu: 'Собрать кольцо и уравнять горение циклогексана.',
     classId: 'cycloalkane',
     challengeIds: ['cyclopropane', 'cyclopentane', 'cyclohexane'],
-    equationIds: [],
+    equationIds: ['g10-cyclo-burn'],
     defaultMolId: 'cyclohexane',
   }),
   L({
@@ -155,6 +195,18 @@ export const ORGANIC_CURRICULUM: readonly OrganicLesson[] = [
     defaultMolId: 'chloromethane',
   }),
   L({
+    id: 'sources-oil',
+    chapter: 2,
+    titleRu: 'Нефть, газ и уголь',
+    titleEn: 'Oil, gas and coal',
+    titleUz: 'Neft, gaz va koʻmir',
+    goalRu: 'Связать природные источники с крекингом и коксованием.',
+    classId: 'all',
+    challengeIds: ['methane', 'ethylene', 'benzene', 'propane'],
+    equationIds: ['g10-alkane-cracking', 'g10-oil-cracking', 'g10-coal-coke', 'g10-alkene-pe'],
+    defaultMolId: 'methane',
+  }),
+  L({
     id: 'alcohols',
     chapter: 3,
     titleRu: 'Спирты',
@@ -172,10 +224,10 @@ export const ORGANIC_CURRICULUM: readonly OrganicLesson[] = [
     titleRu: 'Многоатомные спирты',
     titleEn: 'Polyols',
     titleUz: 'Koʻp atomli spirtlar',
-    goalRu: 'Сравнить этиленгликоль и глицерин в 3D.',
+    goalRu: 'Сравнить этиленгликоль и глицерин; уравнение нитрования глицерина.',
     classId: 'polyol',
     challengeIds: ['ethylene-glycol', 'glycerol'],
-    equationIds: [],
+    equationIds: ['g10-polyol-hno3'],
     defaultMolId: 'glycerol',
   }),
   L({
@@ -196,10 +248,11 @@ export const ORGANIC_CURRICULUM: readonly OrganicLesson[] = [
     titleRu: 'Простые эфиры',
     titleEn: 'Ethers',
     titleUz: 'Oddiy efirlar',
-    goalRu: 'Собрать эфирную связь C–O–C.',
+    goalRu: 'Собрать эфирную связь C–O–C; отличить от спирта.',
     classId: 'ether',
     challengeIds: ['dimethyl-ether', 'diethyl-ether'],
     equationIds: ['g10-ether-etoh'],
+    isomerChallengeIds: ['c4h10o'],
     defaultMolId: 'diethyl-ether',
   }),
   L({
@@ -220,10 +273,10 @@ export const ORGANIC_CURRICULUM: readonly OrganicLesson[] = [
     titleRu: 'Кетоны',
     titleEn: 'Ketones',
     titleUz: 'Ketonlar',
-    goalRu: 'Собрать ацетон и отличить от альдегида.',
+    goalRu: 'Собрать ацетон и уравнять гидрирование.',
     classId: 'ketone',
     challengeIds: ['acetone'],
-    equationIds: [],
+    equationIds: ['g10-ketone-h2'],
     defaultMolId: 'acetone',
   }),
   L({
@@ -251,16 +304,40 @@ export const ORGANIC_CURRICULUM: readonly OrganicLesson[] = [
     defaultMolId: 'ethyl-acetate',
   }),
   L({
+    id: 'fats',
+    chapter: 3,
+    titleRu: 'Жиры и мыло',
+    titleEn: 'Fats and soap',
+    titleUz: 'Yogʻlar va sovun',
+    goalRu: 'Осмотреть модель триглицерида и уравнять омыление.',
+    classId: 'ester',
+    challengeIds: ['triacetin', 'glycerol', 'ethyl-acetate'],
+    equationIds: ['g10-fat-sapon', 'g10-ester-sapon'],
+    defaultMolId: 'triacetin',
+  }),
+  L({
     id: 'carbohydrates',
     chapter: 3,
-    titleRu: 'Углеводы',
-    titleEn: 'Carbohydrates',
-    titleUz: 'Uglevodlar',
-    goalRu: 'Осмотреть глюкозу и уравнения брожения / горения.',
+    titleRu: 'Моносахариды',
+    titleEn: 'Monosaccharides',
+    titleUz: 'Monosaxaridlar',
+    goalRu: 'Сравнить глюкозу и фруктозу; уравнения брожения и окисления.',
     classId: 'carb',
-    challengeIds: ['glucose-open', 'glucose-pyranose'],
-    equationIds: ['g10-carb-ferment', 'g10-carb-burn', 'g10-carb-sucrose'],
+    challengeIds: ['glucose-open', 'glucose-pyranose', 'fructose'],
+    equationIds: ['g10-carb-ferment', 'g10-carb-burn'],
     defaultMolId: 'glucose-pyranose',
+  }),
+  L({
+    id: 'disaccharides',
+    chapter: 3,
+    titleRu: 'Ди- и полисахариды',
+    titleEn: 'Di- and polysaccharides',
+    titleUz: 'Di- va polisaxaridlar',
+    goalRu: 'Увидеть сахарозу и уравнение гидролиза (путь к крахмалу и целлюлозе).',
+    classId: 'carb',
+    challengeIds: ['sucrose', 'glucose-pyranose', 'fructose'],
+    equationIds: ['g10-carb-sucrose'],
+    defaultMolId: 'sucrose',
   }),
   L({
     id: 'nitrogen',
@@ -275,16 +352,16 @@ export const ORGANIC_CURRICULUM: readonly OrganicLesson[] = [
     defaultMolId: 'aniline',
   }),
   L({
-    id: 'sources-overview',
+    id: 'industry-env',
     chapter: 4,
-    titleRu: 'Источники и обзор',
-    titleEn: 'Sources and overview',
-    titleUz: 'Manbalar va koʻrib chiqish',
-    goalRu: 'Повторить ключевые молекулы углеводородов из природного газа и нефти.',
+    titleRu: 'Промышленность и отходы',
+    titleEn: 'Industry and waste',
+    titleUz: 'Sanoat va chiqindilar',
+    goalRu: 'Связать полимеры и переработку с уравнениями крекинга и полиэтилена.',
     classId: 'all',
-    challengeIds: ['methane', 'ethylene', 'benzene', 'ethanol'],
-    equationIds: ['g10-alkane-cracking', 'g10-alkene-pe'],
-    defaultMolId: 'methane',
+    challengeIds: ['ethylene', 'styrene', 'benzene', 'ethanol'],
+    equationIds: ['g10-alkene-pe', 'g10-styrene-poly', 'g10-alkane-cracking'],
+    defaultMolId: 'ethylene',
   }),
 ]
 
@@ -312,9 +389,9 @@ export const ORGANIC_CHAPTER_LABELS: Record<
     uz: 'III. O- va N-birikmalar',
   },
   4: {
-    ru: 'IV. Обзор',
-    en: 'IV. Overview',
-    uz: 'IV. Koʻrib chiqish',
+    ru: 'IV. Промышленность и среда',
+    en: 'IV. Industry and environment',
+    uz: 'IV. Sanoat va muhit',
   },
 }
 
@@ -352,7 +429,6 @@ export function lessonForChallengeId(challengeId: string): OrganicLesson | undef
 
 /**
  * Маппинг Learn g10 chapter (+ опционально section) → ближайший урок лаборатории.
- * Не 1:1 с каждым § — chapter-level с грубой секционной эвристикой.
  */
 export function resolveOrganicLessonFromLearn(
   chapter: number,
@@ -361,7 +437,13 @@ export function resolveOrganicLessonFromLearn(
   const ch = Math.min(4, Math.max(1, Math.floor(chapter))) as 1 | 2 | 3 | 4
   const s = section != null && Number.isFinite(section) ? Math.floor(section) : undefined
 
-  if (ch === 1) return ORGANIC_CURRICULUM_BY_ID['intro-structure']!
+  if (ch === 1) {
+    if (s == null) return ORGANIC_CURRICULUM_BY_ID['intro-structure']!
+    if (s <= 3) return ORGANIC_CURRICULUM_BY_ID['intro-structure']!
+    if (s <= 4) return ORGANIC_CURRICULUM_BY_ID['isomers']!
+    if (s <= 8) return ORGANIC_CURRICULUM_BY_ID['nomenclature']!
+    return ORGANIC_CURRICULUM_BY_ID['intro-structure']!
+  }
 
   if (ch === 2) {
     if (s == null) return ORGANIC_CURRICULUM_BY_ID['alkanes']!
@@ -371,24 +453,26 @@ export function resolveOrganicLessonFromLearn(
     if (s <= 12) return ORGANIC_CURRICULUM_BY_ID['alkadienes']!
     if (s <= 14) return ORGANIC_CURRICULUM_BY_ID['alkynes']!
     if (s <= 17) return ORGANIC_CURRICULUM_BY_ID['arenes']!
-    return ORGANIC_CURRICULUM_BY_ID['sources-overview']!
+    return ORGANIC_CURRICULUM_BY_ID['sources-oil']!
   }
 
   if (ch === 3) {
     if (s == null) return ORGANIC_CURRICULUM_BY_ID['alcohols']!
-    if (s <= 4) return ORGANIC_CURRICULUM_BY_ID['alcohols']!
-    if (s <= 6) return ORGANIC_CURRICULUM_BY_ID['polyols']!
-    if (s <= 8) return ORGANIC_CURRICULUM_BY_ID['phenols']!
-    if (s <= 10) return ORGANIC_CURRICULUM_BY_ID['ethers']!
-    if (s <= 12) return ORGANIC_CURRICULUM_BY_ID['aldehydes']!
-    if (s <= 14) return ORGANIC_CURRICULUM_BY_ID['ketones']!
-    if (s <= 16) return ORGANIC_CURRICULUM_BY_ID['acids']!
-    if (s <= 18) return ORGANIC_CURRICULUM_BY_ID['esters']!
-    if (s <= 22) return ORGANIC_CURRICULUM_BY_ID['carbohydrates']!
+    if (s <= 2) return ORGANIC_CURRICULUM_BY_ID['alcohols']!
+    if (s <= 5) return ORGANIC_CURRICULUM_BY_ID['polyols']!
+    if (s <= 7) return ORGANIC_CURRICULUM_BY_ID['phenols']!
+    if (s <= 8) return ORGANIC_CURRICULUM_BY_ID['ethers']!
+    if (s <= 10) return ORGANIC_CURRICULUM_BY_ID['aldehydes']!
+    if (s <= 11) return ORGANIC_CURRICULUM_BY_ID['ketones']!
+    if (s <= 13) return ORGANIC_CURRICULUM_BY_ID['acids']!
+    if (s <= 15) return ORGANIC_CURRICULUM_BY_ID['esters']!
+    if (s <= 17) return ORGANIC_CURRICULUM_BY_ID['fats']!
+    if (s <= 18) return ORGANIC_CURRICULUM_BY_ID['carbohydrates']!
+    if (s <= 21) return ORGANIC_CURRICULUM_BY_ID['disaccharides']!
     return ORGANIC_CURRICULUM_BY_ID['nitrogen']!
   }
 
-  return ORGANIC_CURRICULUM_BY_ID['sources-overview']!
+  return ORGANIC_CURRICULUM_BY_ID['industry-env']!
 }
 
 /** Валидные equationIds урока (отфильтровать устаревшие). */
@@ -406,9 +490,17 @@ export function defaultMolForLesson(lesson: OrganicLesson): string {
 }
 
 export function lessonHasBuild(lesson: OrganicLesson): boolean {
-  return lesson.challengeIds.some((id) => id !== 'glucose-pyranose' && id !== 'fructose' && id !== 'sucrose')
+  return lesson.challengeIds.some((id) => !VIEW_ONLY.has(id) && organicMoleculeById[id]?.challengeId)
 }
 
 export function lessonHasEquation(lesson: OrganicLesson): boolean {
   return lesson.equationIds.length > 0
+}
+
+export function lessonHasIsomer(lesson: OrganicLesson): boolean {
+  return lesson.isomerChallengeIds.length > 0
+}
+
+export function lessonHasName(lesson: OrganicLesson): boolean {
+  return Boolean(lesson.nomenclatureQuizId)
 }

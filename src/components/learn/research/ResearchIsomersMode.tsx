@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
   ISOMER_CHALLENGES,
-  organicBuildByIsomerCandidate,
   type IsomerCandidate,
   type IsomerChallenge,
 } from '../../../data/researchLab/researchLabData'
@@ -16,28 +14,30 @@ function pickName(c: IsomerCandidate, locale: string) {
   return c.nameRu
 }
 
-function pickHazard(c: IsomerCandidate, locale: string) {
-  if (locale === 'en') return c.hazardEn
-  if (locale === 'uz') return c.hazardUz
-  return c.hazardRu
-}
-
+/** Режим «Изомеры» для органической программы (Kimyo 10). */
 export function ResearchIsomersMode({
-  onSpectrum,
-  onMacro,
+  allowedChallengeIds,
+  onComplete,
 }: {
-  onSpectrum: (peaks: IsomerCandidate['irPeaks'], label: string) => void
-  onMacro: (text: string) => void
+  allowedChallengeIds?: readonly string[]
+  onComplete?: () => void
 }) {
   const { t } = useT()
   const { locale } = useLocale()
-  const [challengeId, setChallengeId] = useState(ISOMER_CHALLENGES[0]!.id)
+  const pool = useMemo(() => {
+    if (!allowedChallengeIds?.length) return [...ISOMER_CHALLENGES]
+    const set = new Set(allowedChallengeIds)
+    const filtered = ISOMER_CHALLENGES.filter((c) => set.has(c.id))
+    return filtered.length > 0 ? filtered : [...ISOMER_CHALLENGES]
+  }, [allowedChallengeIds])
+
+  const [challengeId, setChallengeId] = useState(pool[0]!.id)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [checked, setChecked] = useState(false)
 
   const challenge = useMemo(
-    () => ISOMER_CHALLENGES.find((c) => c.id === challengeId) ?? ISOMER_CHALLENGES[0]!,
-    [challengeId],
+    () => pool.find((c) => c.id === challengeId) ?? pool[0]!,
+    [challengeId, pool],
   )
 
   const title =
@@ -55,11 +55,6 @@ export function ResearchIsomersMode({
     })
   }
 
-  const runIr = (c: IsomerCandidate) => {
-    onSpectrum(c.irPeaks, pickName(c, locale))
-    onMacro(pickHazard(c, locale))
-  }
-
   const correctIds = challenge.candidates.filter((c) => c.correct).map((c) => c.id)
   const selectedCorrect = [...selected].filter((id) => correctIds.includes(id))
   const hasWrong = [...selected].some((id) => !correctIds.includes(id))
@@ -71,7 +66,7 @@ export function ResearchIsomersMode({
   return (
     <div>
       <div className={styles.challengeBar}>
-        {ISOMER_CHALLENGES.map((c: IsomerChallenge) => (
+        {pool.map((c: IsomerChallenge) => (
           <button
             key={c.id}
             type="button"
@@ -80,8 +75,6 @@ export function ResearchIsomersMode({
               setChallengeId(c.id)
               setSelected(new Set())
               setChecked(false)
-              onSpectrum([], '')
-              onMacro('')
             }}
           >
             {c.formula}
@@ -96,7 +89,6 @@ export function ResearchIsomersMode({
       <div className={styles.cardGrid} style={{ marginTop: '0.65rem' }}>
         {challenge.candidates.map((c) => {
           const isOn = selected.has(c.id)
-          const build = organicBuildByIsomerCandidate(c.id)
           return (
             <div
               key={c.id}
@@ -122,29 +114,6 @@ export function ResearchIsomersMode({
                 <p className={styles.isoName}>{pickName(c, locale)}</p>
                 <p className={styles.isoMeta}>{c.formula}</p>
               </button>
-              <button
-                type="button"
-                className={styles.btn}
-                style={{ marginTop: '0.45rem', width: '100%' }}
-                onClick={() => runIr(c)}
-              >
-                {t('learn.research.irScan')}
-              </button>
-              {build ? (
-                <Link
-                  className={styles.btn}
-                  style={{
-                    marginTop: '0.35rem',
-                    width: '100%',
-                    textAlign: 'center',
-                    display: 'block',
-                    boxSizing: 'border-box',
-                  }}
-                  to={`/organic?mode=build&challenge=${build.id}&mol=${build.id}`}
-                >
-                  {t('learn.research.buildIn3d')}
-                </Link>
-              ) : null}
             </div>
           )
         })}
@@ -153,7 +122,16 @@ export function ResearchIsomersMode({
         <button
           type="button"
           className={`${styles.btn} ${styles.btnPrimary}`}
-          onClick={() => setChecked(true)}
+          onClick={() => {
+            setChecked(true)
+            if (
+              selectedCorrect.length === challenge.targetCount &&
+              !hasWrong &&
+              selected.size === challenge.targetCount
+            ) {
+              onComplete?.()
+            }
+          }}
           disabled={selected.size === 0}
         >
           {t('learn.research.checkIsomers')}

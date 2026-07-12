@@ -1,14 +1,4 @@
-/** Кабинет исследователя — данные режимов 10–11 классов. */
-
-export type ResearchLabModeId = 'builder' | 'isomers' | 'equilibrium'
-
-export const RESEARCH_LAB_MODES: readonly {
-  id: ResearchLabModeId
-  accent: string
-  grades: readonly ('g10' | 'g11')[]
-}[] = [
-  { id: 'builder', accent: '#34d399', grades: ['g10', 'g11'] },
-]
+/** Данные режимов органической лаборатории (изомеры и реэкспорт каталога сборки). */
 
 export type IrPeak = {
   /** см⁻¹ */
@@ -310,137 +300,12 @@ export const ISOMER_CHALLENGES: readonly IsomerChallenge[] = [
   },
 ]
 
-export type EquilibriumScenario = {
-  id: string
-  titleRu: string
-  titleEn: string
-  titleUz: string
-  equation: string
-  /** Цвет «реагентов» / «продуктов» */
-  colorLeft: string
-  colorRight: string
-  /** Базовое положение равновесия 0..1 (доля продукта) */
-  baseProduct: number
-  /** Знаки сдвига: +1 продукт растёт при росте параметра */
-  tempShift: number
-  pressureShift: number
-  concShift: number
-  explainRu: string
-  explainEn: string
-  explainUz: string
-}
-
-export const EQUILIBRIUM_SCENARIOS: readonly EquilibriumScenario[] = [
-  {
-    id: 'fescn',
-    titleRu: 'Fe³⁺ + SCN⁻ ⇌ FeSCN²⁺ (цвет)',
-    titleEn: 'Fe³⁺ + SCN⁻ ⇌ FeSCN²⁺ (color)',
-    titleUz: 'Fe³⁺ + SCN⁻ ⇌ FeSCN²⁺ (rang)',
-    equation: 'Fe³⁺ + SCN⁻ ⇌ [FeSCN]²⁺',
-    colorLeft: '#fef3c7',
-    colorRight: '#b91c1c',
-    baseProduct: 0.45,
-    tempShift: -0.08,
-    pressureShift: 0,
-    concShift: 0.12,
-    explainRu:
-      'Кроваво-красный комплекс — продукт. Нагрев смещает влево (экзотермично), добавка Fe³⁺/SCN⁻ — вправо.',
-    explainEn:
-      'Blood-red complex is the product. Heat shifts left (exothermic); adding Fe³⁺/SCN⁻ shifts right.',
-    explainUz:
-      'Qizil kompleks — mahsulot. Isitish chapga (ekzotermik), Fe³⁺/SCN⁻ qoʻshish — oʻngga.',
-  },
-  {
-    id: 'ammonia',
-    titleRu: 'Синтез аммиака (Габер)',
-    titleEn: 'Ammonia synthesis (Haber)',
-    titleUz: 'Ammiak sintezi (Gaber)',
-    equation: 'N₂ + 3H₂ ⇌ 2NH₃',
-    colorLeft: '#e0f2fe',
-    colorRight: '#67e8f9',
-    baseProduct: 0.35,
-    tempShift: -0.1,
-    pressureShift: 0.14,
-    concShift: 0.08,
-    explainRu:
-      'Экзотермическая реакция: ↑T → влево. ↑P → вправо (меньше молей газа). Катализатор ускоряет, но не смещает.',
-    explainEn:
-      'Exothermic: ↑T → left. ↑P → right (fewer gas moles). Catalyst speeds up but does not shift.',
-    explainUz:
-      'Ekzotermik: ↑T → chap. ↑P → oʻng (kamroq gaz mollari). Katalizator tezlatadi, siljitmaydi.',
-  },
-]
-
-export type DetectiveCase = {
-  id: string
-  titleRu: string
-  titleEn: string
-  titleUz: string
-  clueRu: string
-  clueEn: string
-  clueUz: string
-  /** id кандидата-изомера / вещества */
-  answerId: string
-  options: readonly { id: string; labelRu: string; labelEn: string; labelUz: string }[]
-  irPeaks: readonly IrPeak[]
-  macroHintRu: string
-  macroHintEn: string
-  macroHintUz: string
-}
-
-export const DETECTIVE_CASES: readonly DetectiveCase[] = [
-  {
-    id: 'aspirin-scene',
-    titleRu: 'Пробирка с места происшествия',
-    titleEn: 'Test tube from the crime scene',
-    titleUz: 'Hodisa joyidan probirka',
-    clueRu: 'Белый порошок. В ИК — сильный пик ~1700 см⁻¹ (C=O) и широкий O–H.',
-    clueEn: 'White powder. IR: strong ~1700 cm⁻¹ (C=O) and broad O–H.',
-    clueUz: 'Oq kukun. IK: kuchli ~1700 cm⁻¹ (C=O) va keng O–H.',
-    answerId: 'aspirin',
-    options: [
-      { id: 'aspirin', labelRu: 'Ацетилсалициловая кислота (аспирин)', labelEn: 'Acetylsalicylic acid (aspirin)', labelUz: 'Atsetilsalitsil kislota (aspirin)' },
-      { id: 'nacl', labelRu: 'Хлорид натрия', labelEn: 'Sodium chloride', labelUz: 'Natriy xlorid' },
-      { id: 'glucose', labelRu: 'Глюкоза', labelEn: 'Glucose', labelUz: 'Glyukoza' },
-      { id: 'ether', labelRu: 'Диэтиловый эфир', labelEn: 'Diethyl ether', labelUz: 'Dietil efiri' },
-    ],
-    irPeaks: [
-      { wavenumber: 1750, intensity: 0.9, label: 'C=O' },
-      { wavenumber: 3300, intensity: 0.7, label: 'O–H' },
-      CH_PEAK,
-    ],
-    macroHintRu: 'С щелочью растворяется; кислая среда по индикатору.',
-    macroHintEn: 'Dissolves in alkali; acidic to indicator.',
-    macroHintUz: 'Ishqorda eriydi; indikator boʻyicha kislotali.',
-  },
-]
-
-export function computeEquilibriumProduct(
-  scenario: EquilibriumScenario,
-  temp: number,
-  pressure: number,
-  conc: number,
-): number {
-  const t = (temp - 50) / 50
-  const p = (pressure - 50) / 50
-  const c = (conc - 50) / 50
-  const raw =
-    scenario.baseProduct +
-    scenario.tempShift * t +
-    scenario.pressureShift * p +
-    scenario.concShift * c
-  return Math.min(0.95, Math.max(0.05, raw))
-}
-
 export {
   ORGANIC_BUILD_CHALLENGES,
   ORGANIC_CLASS_LABELS,
-  STAGE_SHOWCASE_IDS,
   challengeBuildStage,
   organicBuildByIsomerCandidate,
   organicBuildChallengeById,
-  organicChallengesByClass,
-  organicChallengesByStage,
   type OrganicBuildChallenge,
   type OrganicBuildStage,
   type OrganicClassId,

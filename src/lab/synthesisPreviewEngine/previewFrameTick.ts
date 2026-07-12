@@ -16,7 +16,7 @@ export type PreviewFrameTickInput = {
   flightActive: boolean
   layoutPending: boolean
   layoutScale: number
-  layoutAtoms: readonly ReactorPreviewAtom[]
+  layoutAtoms: readonly (ReactorPreviewAtom | null | undefined)[]
   shellAtoms: readonly ReactorPreviewAtom[]
   rootRef: THREE.Group | null
   atomGroupRefs: MutableRefObject<(THREE.Group | null)[]>
@@ -80,7 +80,7 @@ export function tickSynthesisPreviewFrame(input: PreviewFrameTickInput): number 
 
 export function syncPreviewLayoutSlots(
   slotCount: number,
-  layoutAtoms: readonly ReactorPreviewAtom[],
+  layoutAtoms: readonly (ReactorPreviewAtom | null | undefined)[],
   shellAtoms: readonly ReactorPreviewAtom[],
   atomGroupRefs: MutableRefObject<(THREE.Group | null)[]>,
   atomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>,

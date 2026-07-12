@@ -12,6 +12,7 @@ import {
   glucosePyranoseGraph,
   sucroseSimplifiedGraph,
 } from './geometries/carbGeometries'
+import { triacetinGraph } from './geometries/fatGeometries'
 import type { OrganicMoleculeDef } from './organicMoleculeTypes'
 
 function fromChallenge(c: OrganicBuildChallenge, grade: 'g10' | 'g11' = 'g10'): OrganicMoleculeDef {
@@ -113,6 +114,27 @@ const extras: OrganicMoleculeDef[] = [
     'C₁₂H₂₂O₁₁',
     'C₁₂H₂₂O₁₁ + H₂O → C₆H₁₂O₆ + C₆H₁₂O₆',
   ),
+  {
+    id: 'triacetin',
+    classId: 'ester',
+    formula: 'C₉H₁₄O₆',
+    nameRu: 'Триацетин (модель жира)',
+    nameEn: 'Triacetin (fat model)',
+    nameUz: 'Triasetin (yogʻ modeli)',
+    descriptionRu:
+      'Учебная модель триглицерида: глицерин + три ацетата. В природе R — длинные жирные кислоты.',
+    descriptionEn:
+      'Teaching triglyceride model: glycerol + three acetates. In nature R are long fatty acids.',
+    descriptionUz:
+      'Triglisarid oʻquv modeli: glitserin + uch atsetat. Tabiatda R — uzun yogʻ kislotalari.',
+    grade: 'g10',
+    graph: triacetinGraph(),
+    functionalGroups: inferFunctionalGroups(triacetinGraph(), 'ester'),
+    equationRu: 'жир + 3NaOH → глицерин + 3RCOONa',
+    equationEn: 'fat + 3NaOH → glycerol + 3RCOONa',
+    equationUz: 'yogʻ + 3NaOH → glitserin + 3RCOONa',
+    accentColor: accentForClass('ester'),
+  },
 ]
 
 export const ORGANIC_MOLECULES: readonly OrganicMoleculeDef[] = [...fromCatalog, ...extras]

@@ -218,13 +218,6 @@
   height: min(56vh, 32rem);
 }
 
-.stageAttack {
-  border-color: rgba(34, 211, 238, 0.45);
-  background:
-    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(34, 211, 238, 0.12), transparent 55%),
-    linear-gradient(180deg, #0b1220 0%, #060a14 100%);
-}
-
 .canvasHost {
   position: absolute;
   inset: 0;

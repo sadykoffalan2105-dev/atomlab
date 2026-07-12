@@ -2,7 +2,6 @@ import type { MutableRefObject } from 'react'
 import type * as THREE from 'three'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { PREVIEW_MIN_ATOM_SCALE } from '../components/lab/reactorPreviewLayout'
-import { resolvePreviewLayoutSlotAtom } from './previewLayoutSlots'
 
 /**
  * Каждый кадр при +/-: принудительно держим root и слоты visible + scale.
@@ -14,7 +13,7 @@ export function pinPreviewAtomsOnScreen(opts: {
   atomGroupRefs: MutableRefObject<(THREE.Group | null)[]>
   atomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>
   layoutScale: number
-  previewAtoms: readonly ReactorPreviewAtom[]
+  previewAtoms: readonly (ReactorPreviewAtom | null | undefined)[]
   shellAtoms?: readonly ReactorPreviewAtom[]
 }): void {
   const {
@@ -33,20 +32,23 @@ export function pinPreviewAtomsOnScreen(opts: {
   const scaleFloor = Math.max(PREVIEW_MIN_ATOM_SCALE, layoutScale)
 
   for (let i = 0; i < atomCount; i++) {
-    const atom = resolvePreviewLayoutSlotAtom(i, previewAtoms, shellAtoms)
+    const atom = previewAtoms[i] ?? shellAtoms[i] ?? null
     const posG = atomGroupRefs.current[i]
     const scaleG = atomScaleGroupRefs.current[i]
+    if (!atom) {
+      if (posG) posG.visible = false
+      if (scaleG) scaleG.visible = false
+      continue
+    }
     if (posG) {
       posG.visible = true
-      if (atom) {
-        const [x, y, z] = atom.pos
-        if (
-          Math.abs(posG.position.x - x) > 0.001 ||
-          Math.abs(posG.position.y - y) > 0.001 ||
-          Math.abs(posG.position.z - z) > 0.001
-        ) {
-          posG.position.set(x, y, z)
-        }
+      const [x, y, z] = atom.pos
+      if (
+        Math.abs(posG.position.x - x) > 0.001 ||
+        Math.abs(posG.position.y - y) > 0.001 ||
+        Math.abs(posG.position.z - z) > 0.001
+      ) {
+        posG.position.set(x, y, z)
       }
     }
     if (scaleG) {

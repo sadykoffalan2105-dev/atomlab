@@ -532,7 +532,7 @@ function SceneContent({
     })
 
   const preSynthesisPreview = !synthesisRunActive && !synthActive && !showSettledHero
-  const warmupPaused = !reactorGpuIdleReady || reactorCoeffEditBurst
+  const warmupPaused = !reactorGpuIdleReady || reactorCoeffEditBurst || coeffEditingActive
 
   const mountReactorPreview =
     reactorViewOpen &&
@@ -1220,7 +1220,7 @@ function SceneContent({
       {reactorViewOpen ? (
         <ReactorSceneWarmup reactorOpen={reactorViewOpen} paused={warmupPaused} />
       ) : null}
-      {reactorViewOpen && reactorGpuIdleReady && !reactorCoeffEditBurst ? (
+      {reactorViewOpen && reactorGpuIdleReady && !coeffEditingActive ? (
         <ReactorAtomShaderWarmup
           active={!productPainted && !showSettledHero}
         />

@@ -4,6 +4,8 @@ export type OrganicLessonProgress = {
   viewed?: boolean
   built?: boolean
   equation?: boolean
+  isomer?: boolean
+  named?: boolean
 }
 
 export type OrganicCurriculumProgressMap = Record<string, OrganicLessonProgress>
@@ -43,11 +45,18 @@ export function getLessonProgress(
 
 export function isLessonComplete(
   progress: OrganicLessonProgress,
-  opts: { requireBuild: boolean; requireEquation: boolean },
+  opts: {
+    requireBuild: boolean
+    requireEquation: boolean
+    requireIsomer?: boolean
+    requireName?: boolean
+  },
 ): boolean {
   if (!progress.viewed) return false
   if (opts.requireBuild && !progress.built) return false
   if (opts.requireEquation && !progress.equation) return false
+  if (opts.requireIsomer && !progress.isomer) return false
+  if (opts.requireName && !progress.named) return false
   return true
 }
 

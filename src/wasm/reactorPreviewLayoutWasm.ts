@@ -57,11 +57,16 @@ function layoutFromWasm(
   const out: ReactorPreviewAtom[] = []
   for (let i = 0; i < count; i++) {
     const base = i * 6
+    const termIndex = Math.round(floats[base + 4]!)
+    const term = active[termIndex]
     out.push({
       z: Math.round(floats[base + 3]!),
       pos: [floats[base]!, floats[base + 1]!, floats[base + 2]!],
-      termIndex: Math.round(floats[base + 4]!),
+      termIndex,
       atomInTerm: Math.round(floats[base + 5]!),
+      termId: term?.id,
+      termCoeff: term ? Math.max(0, Math.floor(term.coeff)) : undefined,
+      visualIndex: Math.round(floats[base + 5]!),
     })
   }
   const expected = maxAtoms

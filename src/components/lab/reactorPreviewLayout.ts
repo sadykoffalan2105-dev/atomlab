@@ -12,6 +12,8 @@ export type ReactorPreviewAtom = {
   pos: [number, number, number]
   termIndex: number
   atomInTerm: number
+  /** Стабильный id слагаемого — для React key / без remount при +/- других членов. */
+  termId?: string
   /** Полный коэффициент слагаемого (для badge ×N). */
   termCoeff?: number
   /** Индекс визуальной модели 0..shown-1. */
@@ -101,6 +103,7 @@ function buildReactorPreviewAtomsUncached(
         pos: [cx + ox, cy + oy, cz + oz],
         termIndex: gi,
         atomInTerm: ai,
+        termId: term.id,
         termCoeff: c,
         visualIndex: ai,
       })
@@ -109,22 +112,33 @@ function buildReactorPreviewAtomsUncached(
 
   const expectedFull = expandLeftTermsToPreviewSlots(terms).length
   if (tier === 'full' && out.length !== expectedFull && expectedFull > 0) {
-    const slots = expandLeftTermsToPreviewSlots(terms)
-    const n = slots.length
+    const activeTerms = terms.filter((t) => Math.floor(t.coeff) > 0)
+    const n = expectedFull
     const r = 0.55 + Math.min(n, 12) * 0.06
-    return slots.map((z, i) => {
-      const a = (i / Math.max(1, n)) * Math.PI * 2 - Math.PI / 2
-      return {
-        z,
-        pos: [Math.cos(a) * r, 0.12 + Math.sin(a * 0.5) * 0.04, 0.2 + Math.sin(a) * r * 0.35] as [
-          number,
-          number,
-          number,
-        ],
-        termIndex: 0,
-        atomInTerm: i,
+    const flat: ReactorPreviewAtom[] = []
+    let i = 0
+    for (let ti = 0; ti < activeTerms.length; ti++) {
+      const term = activeTerms[ti]!
+      const c = Math.max(0, Math.floor(term.coeff))
+      for (let ai = 0; ai < c; ai++) {
+        const a = (i / Math.max(1, n)) * Math.PI * 2 - Math.PI / 2
+        flat.push({
+          z: term.z,
+          pos: [
+            Math.cos(a) * r,
+            0.12 + Math.sin(a * 0.5) * 0.04,
+            0.2 + Math.sin(a) * r * 0.35,
+          ],
+          termIndex: ti,
+          atomInTerm: ai,
+          termId: term.id,
+          termCoeff: c,
+          visualIndex: ai,
+        })
+        i++
       }
-    })
+    }
+    return flat
   }
 
   return out

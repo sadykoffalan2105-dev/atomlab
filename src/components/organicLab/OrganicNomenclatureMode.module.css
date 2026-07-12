@@ -1,0 +1,107 @@
+.wrap {
+  padding: 1rem 1.1rem 1.4rem;
+  max-width: 40rem;
+}
+
+.title {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.progress {
+  margin: 0 0 0.85rem;
+  font-size: 0.82rem;
+  opacity: 0.7;
+}
+
+.prompt {
+  margin: 0 0 0.55rem;
+  font-size: 1.02rem;
+  line-height: 1.45;
+}
+
+.formula {
+  display: inline-block;
+  margin-bottom: 0.85rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, canvas 88%, #38bdf8);
+  font-size: 0.95rem;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.opt {
+  appearance: none;
+  text-align: left;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.55rem;
+  border: 1px solid color-mix(in srgb, canvastext 18%, transparent);
+  background: color-mix(in srgb, canvas 92%, canvastext);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.opt:disabled {
+  cursor: default;
+}
+
+.optSelected {
+  border-color: color-mix(in srgb, #38bdf8 70%, canvastext);
+}
+
+.optOk {
+  border-color: #22c55e;
+  background: color-mix(in srgb, #22c55e 18%, canvas);
+}
+
+.optBad {
+  border-color: #ef4444;
+  background: color-mix(in srgb, #ef4444 14%, canvas);
+}
+
+.optReveal {
+  border-color: color-mix(in srgb, #22c55e 55%, canvastext);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.primary {
+  appearance: none;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.55rem 1rem;
+  background: #0ea5e9;
+  color: #0b1220;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ok {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.bad {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.empty {
+  padding: 1rem;
+  opacity: 0.75;
+}

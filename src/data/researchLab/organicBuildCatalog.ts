@@ -1318,22 +1318,6 @@ export function organicBuildByIsomerCandidate(
   return ORGANIC_BUILD_CHALLENGES.find((c) => c.isomerCandidateId === candidateId)
 }
 
-export function organicChallengesByClass(classId: OrganicClassId): OrganicBuildChallenge[] {
-  return ORGANIC_BUILD_CHALLENGES.filter((c) => c.classId === classId)
-}
-
 export function challengeBuildStage(c: OrganicBuildChallenge): OrganicBuildStage {
   return c.buildStage ?? 'chain'
-}
-
-export function organicChallengesByStage(stage: OrganicBuildStage | 'all'): OrganicBuildChallenge[] {
-  if (stage === 'all') return [...ORGANIC_BUILD_CHALLENGES]
-  return ORGANIC_BUILD_CHALLENGES.filter((c) => challengeBuildStage(c) === stage)
-}
-
-/** Эталонные молекулы «как на фото»: цепь → кольцо → каркас */
-export const STAGE_SHOWCASE_IDS: Record<OrganicBuildStage, string> = {
-  chain: 'n-hexane',
-  ring: 'cyclohexane',
-  cage: 'adamantane',
 }

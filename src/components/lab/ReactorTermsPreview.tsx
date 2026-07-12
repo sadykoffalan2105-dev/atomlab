@@ -23,6 +23,7 @@ import {
   resolvePreviewExternalAtomControl,
 } from '../../lab/synthesisPreviewEngine/previewExternalControl'
 import { createReactorPreviewVisibilityGuard } from '../../lab/reactorPreviewVisibilityGuard'
+import { reactorPreviewAtomKey } from '../../lab/previewLayoutSlots'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
 
@@ -112,6 +113,7 @@ export function ReactorTermsPreview({
         forceLite: framePolicy.effectiveForceLite,
         lowPower,
         layoutDebounceMs: lowPower ? lowPowerProfile.coeffEditLayoutDebounceMs : 0,
+        atomEstimate: terms.reduce((s, t) => s + Math.max(0, Math.floor(t.coeff)), 0),
       }),
     [
       coeffEditBurst,
@@ -119,6 +121,7 @@ export function ReactorTermsPreview({
       framePolicy.effectiveForceLite,
       lowPower,
       lowPowerProfile.coeffEditLayoutDebounceMs,
+      terms,
     ],
   )
 
@@ -402,6 +405,11 @@ export function ReactorTermsPreview({
         const atom = i < n ? (renderAtoms[i] ?? shellAtoms[i] ?? null) : null
         const slotZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
         const slotActive = atom != null || (i < n && slotZ > 0)
+        /**
+         * Identity key (не pool-i): при +/- сдвиг индексов переносит fiber,
+         * Bohr-модель не remount — нет мигания анимации.
+         */
+        const slotKey = atom ? reactorPreviewAtomKey(atom) : `pool-empty-${i}`
         const atomPolicy = getReactorAtomRenderPolicy({
           atomCount: n,
           atomZ: slotZ,
@@ -412,7 +420,7 @@ export function ReactorTermsPreview({
         })
         const slotVisible = slotActive && effectiveGroupVisible
         return (
-          <group key={`pool-${i}`} visible={slotVisible} ref={getPosRef(i)}>
+          <group key={slotKey} visible={slotVisible} ref={getPosRef(i)}>
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
               <ReactorPreviewAtomSlot
                 z={slotZ}
