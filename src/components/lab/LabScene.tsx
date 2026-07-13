@@ -1252,7 +1252,10 @@ function SceneContent({
 
       {reactorViewOpen ? (
         <>
-          {reactorPreviewMounted && effectivePreviewTerms ? (
+          {reactorPreviewMounted &&
+          effectivePreviewTerms &&
+          reactorPreviewVisible &&
+          !productSlotVisibleResolved ? (
             <ReactorTermsPreview
               terms={effectivePreviewTerms}
               visible={reactorPreviewVisible}

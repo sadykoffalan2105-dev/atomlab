@@ -55,8 +55,14 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
 
       const root = previewRootRef?.current
 
-      // Продукт уже на экране — Bohr-shell должен оставаться скрытым (не restore!).
-      if (productPainted && !previewVisible) {
+      // Продукт на экране / превью скрыто LabScene — Bohr never restore.
+      if (!previewVisible) {
+        violationFrames = 0
+        if (root && root.visible) hidePreviewRoot(root)
+        return
+      }
+
+      if (productPainted) {
         violationFrames = 0
         if (root && root.visible) hidePreviewRoot(root)
         return

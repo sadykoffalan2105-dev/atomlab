@@ -246,22 +246,28 @@ export function LabProductHeroSlot({
 
   // Считаем реально отрисованные кадры prewarm / visible, затем «готово».
   useFrame(() => {
-    if (visible && !visiblePaintSentRef.current && gpuCompiledRef.current) {
+    // Продукт на полном масштабе: paint сразу — иначе Bohr залипает поверх молекулы.
+    if (visible && !prewarm && !visiblePaintSentRef.current) {
       const g = groupRef.current
-      if (g && g.scale.x >= 0.86) {
+      if (g) {
+        if (g.scale.x < 0.86) g.scale.set(1, 1, 1)
         visiblePaintFramesRef.current += 1
         if (visiblePaintFramesRef.current >= VISIBLE_PAINT_FRAMES) {
           visiblePaintSentRef.current = true
+          gpuCompiledRef.current = true
           onProductVisiblePaint?.()
         }
       }
-    }
-    if (!prewarm || visible || gpuCompiledRef.current) return
-    invalidate()
-    if (isProductGpuCompiled(compound.id)) return
-    prewarmPaintFramesRef.current += 1
-    if (prewarmPaintFramesRef.current >= PREWARM_PAINT_FRAMES) {
-      notifyGpuCompiled()
+    } else if (!prewarm || visible || gpuCompiledRef.current) {
+      /* idle */
+    } else {
+      invalidate()
+      if (!isProductGpuCompiled(compound.id)) {
+        prewarmPaintFramesRef.current += 1
+        if (prewarmPaintFramesRef.current >= PREWARM_PAINT_FRAMES) {
+          notifyGpuCompiled()
+        }
+      }
     }
   })
 

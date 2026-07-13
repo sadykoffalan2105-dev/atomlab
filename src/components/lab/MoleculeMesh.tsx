@@ -267,13 +267,14 @@ export function MoleculeMesh({
                   emissive={st.emissive}
                   emissiveIntensity={st.emissiveIntensity * accentBoost}
                   metalness={st.metalness}
-                  roughness={st.roughness}
-                  clearcoat={st.clearcoat}
+                  roughness={quality === 'synthesis' ? Math.max(0.28, st.roughness) : st.roughness}
+                  clearcoat={quality === 'synthesis' ? 0.55 : st.clearcoat}
                   clearcoatRoughness={st.clearcoatRoughness}
-                  transmission={st.transmission}
-                  thickness={st.thickness}
-                  transparent
-                  opacity={spaceFill ? Math.min(0.92, st.opacity) : st.opacity}
+                  /** Синтез: непрозрачные сферы — иначе сквозь стекло видны sparkles как «атомы внутри». */
+                  transmission={quality === 'synthesis' ? 0 : st.transmission}
+                  thickness={quality === 'synthesis' ? 0 : st.thickness}
+                  transparent={quality === 'synthesis' ? false : true}
+                  opacity={quality === 'synthesis' ? 1 : spaceFill ? Math.min(0.92, st.opacity) : st.opacity}
                   envMapIntensity={st.envMapIntensity}
                 />
               ) : (

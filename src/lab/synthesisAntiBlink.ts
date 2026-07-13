@@ -45,9 +45,9 @@ export type SynthesisContinuityView = {
 
 /**
  * Инвариант:
- * - при редактировании +/- — атомы ВСЕГДА смонтированы и видны;
- * - после отрисовки молекулы — продукт виден, превью смонтировано скрытым (без cold remount);
- * - повторный +/- сразу показывает shell без пропадания.
+ * - при редактировании +/- — Bohr-атомы видны;
+ * - как только product slot на полном масштабе — Bohr СКРЫТ (молекула CPK без орбит);
+ * - shell остаётся смонтированным скрытым, чтобы +/- не делал cold remount.
  */
 export function resolveSynthesisContinuity(input: SynthesisContinuityInput): SynthesisContinuityView {
   const {
@@ -152,19 +152,21 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
         productRevealReady &&
         (_prewarmReady || _forceProductSlot)))
 
-  /** Молекула на экране — атомы скрываем только после реальной отрисовки продукта. */
-  const productTakeover =
+  /**
+   * Как только продукт в полном слоте — Bohr уходит.
+   * Не ждём productPainted: иначе орбиты/ядра залипают поверх молекулы навсегда.
+   */
+  const productOwnsScreen =
     !userEditing &&
     productSlotVisible &&
-    productPainted &&
-    (showSettledHero || (synthLive && productRevealReady))
+    (showSettledHero || productPainted || (synthLive && productRevealReady))
 
-  /** Settled, но продукт ещё не отрисован — держим shell превью (без чёрного кадра). */
-  const settledHandoff = showSettledHero && productSlotVisible && !productPainted
+  const settledWaitingPaint =
+    showSettledHero && productSlotVisible && !productPainted && !userEditing
 
   const editingEquation =
     !synthLive &&
-    !productTakeover &&
+    !productOwnsScreen &&
     mountReactorPreview &&
     reactorViewOpen &&
     (!showSettledHero || userEditing)
@@ -174,18 +176,15 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     mountReactorPreview &&
     reactorViewOpen &&
     !showSettledHero &&
-    !productTakeover &&
-    (keepPreviewDuringProduct || !productPainted)
+    !productOwnsScreen &&
+    (keepPreviewDuringProduct || !productPainted) &&
+    !productSlotVisible
 
-  /**
-   * После paint продукта shell остаётся смонтированным (hidden sticky),
-   * чтобы +/- не делал cold remount всех Bohr-моделей.
-   */
   if (userEditing || editingEquation) {
     previewStickyRef.current = { runId: runId > 0 ? runId : -1, previewMounted: true }
   } else if (synthLive && runId > 0 && mountReactorPreview) {
     previewStickyRef.current = { runId, previewMounted: true }
-  } else if (showSettledHero && productPainted && mountReactorPreview) {
+  } else if (showSettledHero && mountReactorPreview) {
     previewStickyRef.current = { runId: -1, previewMounted: true }
   } else if (!synthLive && !showSettledHero && !mountReactorPreview) {
     previewStickyRef.current = null
@@ -194,7 +193,6 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   const previewSticky =
     previewStickyRef.current != null && previewStickyRef.current.previewMounted
 
-  /** Shell всегда смонтирован при наличии terms — visibility отдельно. */
   const reactorPreviewMounted =
     mountReactorPreview &&
     reactorViewOpen &&
@@ -203,30 +201,32 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
       synthLive ||
       synthPreviewLock ||
       previewSticky ||
-      settledHandoff ||
+      settledWaitingPaint ||
       (showSettledHero && mountReactorPreview))
 
   const productPrewarm = productMeshMounted && !productSlotVisible && !showSettledHero
-  const holdVisualOverlap = (synthLive || settledHandoff) && !productTakeover
+  const holdVisualOverlap = synthLive && !productOwnsScreen && !productSlotVisible
 
-  /** Редактирование +/- — атомы всегда видны. */
   const reactorEditVisible =
     mountReactorPreview &&
     reactorViewOpen &&
     !synthLive &&
-    !productTakeover &&
+    !productOwnsScreen &&
     (!showSettledHero || userEditing)
 
+  /** Продукт на экране — Bohr never visible (даже без paint). */
   const reactorPreviewVisible =
     reactorPreviewMounted &&
-    !productTakeover &&
-    (reactorEditVisible || synthPreviewLock || settledHandoff || userEditing)
+    !productOwnsScreen &&
+    !productSlotVisible &&
+    (reactorEditVisible || synthPreviewLock || userEditing)
 
   const synthEmptyGuard =
     synthLive &&
     mountReactorPreview &&
     reactorViewOpen &&
-    !productTakeover &&
+    !productOwnsScreen &&
+    !productSlotVisible &&
     !productPainted &&
     !showSettledHero &&
     !reactorPreviewVisible
