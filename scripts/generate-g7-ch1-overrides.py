@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "src" / "data" / "g7SectionQuizOverrides.json"
 
 
-def mcq(sid: str, n: int, question: str, correct: str, wrong: list[str], explanation: str, visual: str = "c1-t01"):
+def mcq(sid: str, n: int, question: str, correct: str, wrong: list[str], explanation: str, visual: str | None = None):
     assert len(wrong) == 3
     qid = f"{sid}-q{n:02d}"
     return {
@@ -23,7 +23,7 @@ def mcq(sid: str, n: int, question: str, correct: str, wrong: list[str], explana
         "correctIndex": 0,
         "explanation": explanation,
         "description": explanation,
-        "visualId": visual,
+        "visualId": visual if visual is not None else qid,
     }
 
 
