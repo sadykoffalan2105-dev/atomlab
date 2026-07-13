@@ -3,7 +3,7 @@ export const ELEMENT_WIKI_PHOTOS: Readonly<Record<string, string>> = {
   H: 'https://upload.wikimedia.org/wikipedia/commons/8/83/Hydrogen_discharge_tube.jpg',
   He: 'https://upload.wikimedia.org/wikipedia/commons/8/82/Helium_discharge_tube.jpg',
   Li: 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Lithium_paraffin.jpg',
-  Be: 'https://upload.wikimedia.org/wikipedia/commons/9/9c/Beryllium_300_mg.jpg',
+  Be: 'https://upload.wikimedia.org/wikipedia/commons/5/54/Beryllium_%28Element_-_4%29_1.jpg',
   B: 'https://upload.wikimedia.org/wikipedia/commons/1/19/Boron_R105.jpg',
   C: 'https://upload.wikimedia.org/wikipedia/commons/3/3d/Graphite-233436.jpg',
   N: 'https://upload.wikimedia.org/wikipedia/commons/9/90/Liquid_nitrogen.jpg',
@@ -90,10 +90,16 @@ export const ELEMENT_WIKI_PHOTOS: Readonly<Record<string, string>> = {
   Th: 'https://upload.wikimedia.org/wikipedia/commons/b/bb/Thorium-2.jpg',
   Pa: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Protactinium.jpg',
   U: 'https://upload.wikimedia.org/wikipedia/commons/3/3d/Uranium_1.jpg',
-  Np: 'https://upload.wikimedia.org/wikipedia/commons/d/d3/Neptunium.jpg',
+  Np: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Neptunium_%28Element_-_93%29_1.jpg',
   Pu: 'https://upload.wikimedia.org/wikipedia/commons/1/1e/Plutonium.jpg',
   Am: 'https://upload.wikimedia.org/wikipedia/commons/d/dc/Americium.jpg',
   Cm: 'https://upload.wikimedia.org/wikipedia/commons/6/69/Curium.jpg',
+  Tc: 'https://upload.wikimedia.org/wikipedia/commons/3/37/Technetium-sample.jpg',
+  Pm: 'https://upload.wikimedia.org/wikipedia/commons/6/66/Promethium_%28Element_-_61%29_1.jpg',
+  Bk: 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Berkelium_%28Element_-_97%29_1.jpg',
+  Cf: 'https://upload.wikimedia.org/wikipedia/commons/8/8d/Californium_%28Element_-_98%29_1.jpg',
+  Es: 'https://upload.wikimedia.org/wikipedia/commons/2/26/Einsteinium_%28Element_-_99%29_1.jpg',
+  Fm: 'https://upload.wikimedia.org/wikipedia/commons/9/9e/Fermium-Ytterbium_Alloy.jpg',
 }
 
 export function getElementWikiPhotoUrl(symbol: string): string | undefined {

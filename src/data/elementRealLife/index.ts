@@ -7,8 +7,9 @@ const profiles = profilesJson as ElementRealLifeProfile[]
 
 const profileByZ = new Map(profiles.map((p) => [p.z, p]))
 
+/** Путь от `public/` без ведущего «/» — дальше через publicAssetUrl (GitHub Pages /atomlab/). */
 export function elementLifeImagePath(z: number, symbol: string): string {
-  return `/learn/elements/${String(z).padStart(3, '0')}-${symbol}.webp`
+  return `learn/elements/${String(z).padStart(3, '0')}-${symbol}.webp`
 }
 
 export function buildElementLifeCard(z: number): ElementRealLifeCard | null {

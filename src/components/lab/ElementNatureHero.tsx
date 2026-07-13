@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { ElementRealLifeCard } from '../../data/elementRealLife'
 import { getElementWikiPhotoUrl } from '../../data/elementWikiPhotos'
+import { publicAssetUrl } from '../../utils/publicAssetUrl'
 import { useT } from '../../i18n/useT'
 import styles from './ElementNatureHero.module.css'
 
-/** Компактная полоска: реальное фото (Wikimedia) + краткое описание. */
+/** Компактная полоска: фото образца (локальный webp) + краткое описание. */
 export function ElementNatureHero({
   symbol,
   displayName,
@@ -19,26 +20,40 @@ export function ElementNatureHero({
   appearance: string | null
 }) {
   const { t } = useT()
-  const wikiUrl = getElementWikiPhotoUrl(symbol)
-  const [src, setSrc] = useState(wikiUrl ?? life.image)
+  const localSrc = publicAssetUrl(life.image)
+  const wikiSrc = getElementWikiPhotoUrl(symbol)
+  const [src, setSrc] = useState(localSrc)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
-    setSrc(wikiUrl ?? life.image)
-  }, [symbol, wikiUrl, life.image])
+    setSrc(publicAssetUrl(life.image))
+    setFailed(false)
+  }, [life.image, symbol])
 
   return (
     <section className={styles.strip} aria-label={t('elementDetail.natureSection')}>
       <div className={styles.photoWrap}>
-        <img
-          src={src}
-          alt={t('elementDetail.photoAlt', { name: displayName })}
-          className={styles.photo}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={() => {
-            if (src !== life.image) setSrc(life.image)
-          }}
-        />
+        {!failed ? (
+          <img
+            key={src}
+            src={src}
+            alt={t('elementDetail.photoAlt', { name: displayName })}
+            className={styles.photo}
+            loading="lazy"
+            decoding="async"
+            onError={() => {
+              if (wikiSrc && src !== wikiSrc) {
+                setSrc(wikiSrc)
+                return
+              }
+              setFailed(true)
+            }}
+          />
+        ) : (
+          <div className={styles.photoFallback} aria-hidden>
+            {symbol}
+          </div>
+        )}
       </div>
       <div className={styles.textCol}>
         <p className={styles.stripTitle}>{t('elementDetail.natureSection')}</p>
