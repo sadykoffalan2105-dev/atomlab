@@ -763,8 +763,9 @@ function SceneContent({
     if (coeffEditingActive) return
     if (preSynthesisPreview) return
     if (!productPainted || !productSlotVisibleResolved) return
-    if (synthActive || synthesisRunActive) return
-    // Не размонтируем sticky — только скрываем root (мгновенный +/- без cold remount).
+    if (synthActive || synthesisRunActive) {
+      // Во время синтеза после paint — тоже держим Bohr скрытым.
+    }
     const root = previewRootRef.current
     if (!root) return
     root.visible = false

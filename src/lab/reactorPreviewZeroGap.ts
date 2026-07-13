@@ -25,7 +25,11 @@ export function isReactorPreviewZeroGapOk(input: ReactorPreviewZeroGapInput): bo
 }
 
 export function assertReactorPreviewZeroGap(input: ReactorPreviewZeroGapInput): void {
-  if (import.meta.env.PROD) return
+  try {
+    if (import.meta.env?.PROD) return
+  } catch {
+    return
+  }
   if (!isReactorPreviewZeroGapOk(input)) {
     console.warn('[reactorPreviewZeroGap] empty center during coeff edit', input)
   }

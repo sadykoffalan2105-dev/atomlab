@@ -76,6 +76,10 @@ export function allowProductGpuMount(
 }
 
 export function assertPreviewCoverage(input: PreviewCoverageInput): PreviewCoverageResult {
+  // Продукт на экране (settled) — скрытый preview root это норма, не «дыра».
+  if (input.productPainted && !input.synthLive) return 'ok'
+  if (input.synthLive && input.productPainted) return 'ok'
+
   const fn = guardExports()?.atomlab_assert_preview_coverage
   if (fn) {
     const code = fn(
@@ -90,7 +94,6 @@ export function assertPreviewCoverage(input: PreviewCoverageInput): PreviewCover
     return 'ok'
   }
   if (!input.termsNonempty) return 'ok'
-  if (input.synthLive && input.productPainted) return 'ok'
   if (!input.previewMounted) return 'not_mounted'
   if (!input.rootVisible) return 'root_hidden'
   return 'ok'

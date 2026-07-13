@@ -88,6 +88,8 @@ int32_t atomlab_assert_preview_coverage(
   int32_t product_painted,
   int32_t synth_live) {
   if (!terms_nonempty) return 0;
+  // Settled product on screen — hidden preview root is OK (not a coverage hole).
+  if (product_painted && !synth_live) return 0;
   if (synth_live && product_painted) return 0;
   if (!preview_mounted) return -1;
   if (!root_visible) return -2;

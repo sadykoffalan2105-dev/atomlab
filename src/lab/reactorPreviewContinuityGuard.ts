@@ -25,6 +25,10 @@ function restorePreviewRoot(root: THREE.Group): void {
   })
 }
 
+function hidePreviewRoot(root: THREE.Group): void {
+  root.visible = false
+}
+
 /** Инвариант: при edit с атомами превью не должно пропадать без синтеза. */
 export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityGuard {
   let violationFrames = 0
@@ -44,6 +48,20 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
       previewRootRef,
       invalidate,
     }) {
+      if (!reactorViewOpen || previewAtomCount <= 0) {
+        violationFrames = 0
+        return
+      }
+
+      const root = previewRootRef?.current
+
+      // Продукт уже на экране — Bohr-shell должен оставаться скрытым (не restore!).
+      if (productPainted && !previewVisible) {
+        violationFrames = 0
+        if (root && root.visible) hidePreviewRoot(root)
+        return
+      }
+
       assertReactorPreviewZeroGap({
         reactorViewOpen,
         synthLive,
@@ -53,12 +71,6 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
         productPrewarm,
       })
 
-      if (!reactorViewOpen || previewAtomCount <= 0) {
-        violationFrames = 0
-        return
-      }
-
-      const root = previewRootRef?.current
       const rootVisible = root ? root.visible : previewVisible
       const coverage = assertPreviewCoverage({
         termsNonempty: previewAtomCount > 0,
@@ -70,15 +82,22 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
 
       const ok =
         coverage === 'ok' ||
-        (previewMounted && (previewVisible || previewAtomCount > 0) && rootVisible)
+        (previewMounted && previewVisible && rootVisible)
 
       if (ok) {
         violationFrames = 0
         return
       }
 
+      // Не восстанавливаем shell, если LabScene намеренно скрыл превью (product takeover).
+      if (!previewVisible && productPainted) {
+        violationFrames = 0
+        if (root && root.visible) hidePreviewRoot(root)
+        return
+      }
+
       violationFrames += 1
-      if (root) {
+      if (root && previewVisible) {
         restorePreviewRoot(root)
       }
       if (violationFrames <= 96) {

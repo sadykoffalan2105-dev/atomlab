@@ -207,8 +207,10 @@ export function ReactorTermsPreview({
 
   const previewLatched =
     previewOnlyMode && engineRef.current.visibleLatch && frame.slotCount > 0
+  /** LabScene visibility — жёсткий gate: при продукте Bohr не должен «пробиваться». */
   const effectiveGroupVisible =
-    frame.groupVisible || previewLatched || (visible && frame.slotCount > 0)
+    Boolean(visible) &&
+    (frame.groupVisible || previewLatched || frame.slotCount > 0)
 
   /**
    * Во время синтеза атомы летят через GSAP (SynthesisConvergeStreams).
