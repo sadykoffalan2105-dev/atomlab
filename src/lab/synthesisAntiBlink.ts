@@ -45,9 +45,9 @@ export type SynthesisContinuityView = {
 
 /**
  * Инвариант:
- * - при редактировании +/- — атомы видны;
- * - после отрисовки молекулы — только продукт (атомы скрыты);
- * - settled — превью размонтировано.
+ * - при редактировании +/- — атомы ВСЕГДА смонтированы и видны;
+ * - после отрисовки молекулы — продукт виден, превью смонтировано скрытым (без cold remount);
+ * - повторный +/- сразу показывает shell без пропадания.
  */
 export function resolveSynthesisContinuity(input: SynthesisContinuityInput): SynthesisContinuityView {
   const {
@@ -70,18 +70,24 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     previewStickyRef,
   } = input
 
-  /** До запуска: атомы видны; product GPU — micro-scale prewarm (без показа слота). */
+  const userEditing = (coeffEditing || coeffEditBurst) && mountReactorPreview && reactorViewOpen
+
+  /** До запуска / при edit после settled: атомы видны; product GPU — micro-scale prewarm. */
   const preSynthesisReactor =
     mountReactorPreview &&
     reactorViewOpen &&
     !synthActive &&
     !synthesisRunActive &&
-    !showSettledHero
+    (!showSettledHero || userEditing)
 
   if (preSynthesisReactor) {
     previewStickyRef.current = { runId: -1, previewMounted: true }
     const canPrewarmProduct =
-      productCompoundId != null && !coeffEditBurst && _gpuPrewarmAllowed
+      productCompoundId != null &&
+      !coeffEditBurst &&
+      !coeffEditing &&
+      !userEditing &&
+      _gpuPrewarmAllowed
     if (canPrewarmProduct) {
       stickyMountRef.current = {
         runId: 0,
@@ -106,6 +112,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     !showSettledHero &&
     !coeffEditing &&
     !coeffEditBurst &&
+    !userEditing &&
     _gpuPrewarmAllowed &&
     productCompoundId != null &&
     reactorViewOpen
@@ -113,7 +120,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   if (productCompoundId && reactorViewOpen) {
     if (synthLive && runId > 0) {
       stickyMountRef.current = { runId, compoundId: productCompoundId, productMounted: true }
-    } else if (earlyGpuPrewarm || showSettledHero) {
+    } else if (earlyGpuPrewarm || (showSettledHero && !userEditing)) {
       stickyMountRef.current = { runId: 0, compoundId: productCompoundId, productMounted: true }
     }
   }
@@ -132,6 +139,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   const productMeshMounted =
     !coeffEditing &&
     !coeffEditBurst &&
+    !userEditing &&
     productCompoundId != null &&
     reactorViewOpen &&
     (showSettledHero || (stickyMatch && ((synthLive && runId > 0) || earlyGpuPrewarm)))
@@ -146,6 +154,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
 
   /** Молекула на экране — атомы скрываем только после реальной отрисовки продукта. */
   const productTakeover =
+    !userEditing &&
     productSlotVisible &&
     productPainted &&
     (showSettledHero || (synthLive && productRevealReady))
@@ -154,7 +163,11 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   const settledHandoff = showSettledHero && productSlotVisible && !productPainted
 
   const editingEquation =
-    !synthLive && !showSettledHero && !productTakeover && mountReactorPreview && reactorViewOpen
+    !synthLive &&
+    !productTakeover &&
+    mountReactorPreview &&
+    reactorViewOpen &&
+    (!showSettledHero || userEditing)
 
   const synthPreviewLock =
     synthLive &&
@@ -164,12 +177,16 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     !productTakeover &&
     (keepPreviewDuringProduct || !productPainted)
 
-  if (showSettledHero && productPainted) {
-    previewStickyRef.current = null
-  } else if (editingEquation) {
+  /**
+   * После paint продукта shell остаётся смонтированным (hidden sticky),
+   * чтобы +/- не делал cold remount всех Bohr-моделей.
+   */
+  if (userEditing || editingEquation) {
     previewStickyRef.current = { runId: runId > 0 ? runId : -1, previewMounted: true }
   } else if (synthLive && runId > 0 && mountReactorPreview) {
     previewStickyRef.current = { runId, previewMounted: true }
+  } else if (showSettledHero && productPainted && mountReactorPreview) {
+    previewStickyRef.current = { runId: -1, previewMounted: true }
   } else if (!synthLive && !showSettledHero && !mountReactorPreview) {
     previewStickyRef.current = null
   }
@@ -177,23 +194,33 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   const previewSticky =
     previewStickyRef.current != null && previewStickyRef.current.previewMounted
 
-  /** Держим shell превью во время synthLive и settled-handoff — без «пустого» кадра. */
+  /** Shell всегда смонтирован при наличии terms — visibility отдельно. */
   const reactorPreviewMounted =
     mountReactorPreview &&
     reactorViewOpen &&
-    (editingEquation || synthLive || synthPreviewLock || previewSticky || settledHandoff)
+    (editingEquation ||
+      userEditing ||
+      synthLive ||
+      synthPreviewLock ||
+      previewSticky ||
+      settledHandoff ||
+      (showSettledHero && mountReactorPreview))
 
   const productPrewarm = productMeshMounted && !productSlotVisible && !showSettledHero
   const holdVisualOverlap = (synthLive || settledHandoff) && !productTakeover
 
-  /** Редактирование +/- — атомы всегда видны, пока есть terms (без takeover). */
+  /** Редактирование +/- — атомы всегда видны. */
   const reactorEditVisible =
-    mountReactorPreview && reactorViewOpen && !synthLive && !showSettledHero && !productTakeover
+    mountReactorPreview &&
+    reactorViewOpen &&
+    !synthLive &&
+    !productTakeover &&
+    (!showSettledHero || userEditing)
 
   const reactorPreviewVisible =
     reactorPreviewMounted &&
     !productTakeover &&
-    (reactorEditVisible || synthPreviewLock || settledHandoff)
+    (reactorEditVisible || synthPreviewLock || settledHandoff || userEditing)
 
   const synthEmptyGuard =
     synthLive &&

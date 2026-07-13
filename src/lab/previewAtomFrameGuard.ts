@@ -6,6 +6,7 @@ import { PREVIEW_MIN_ATOM_SCALE } from '../components/lab/reactorPreviewLayout'
 /**
  * Каждый кадр при +/-: принудительно держим root и слоты visible + scale.
  * Не гасим слоты при кратковременном null — иначе hitch = «атомы пропали».
+ * Не гасим i >= atomCount во время pin (atomCount = display hold).
  */
 export function pinPreviewAtomsOnScreen(opts: {
   atomCount: number
@@ -51,12 +52,13 @@ export function pinPreviewAtomsOnScreen(opts: {
     if (scaleG) {
       scaleG.visible = true
       const sx = scaleG.scale.x
-      if (sx < scaleFloor * 0.45) {
+      if (sx < scaleFloor * 0.45 || Math.abs(sx - scaleFloor) > 0.05) {
         scaleG.scale.set(scaleFloor, scaleFloor, scaleFloor)
       }
     }
   }
 
+  // Pool slots beyond displayCount stay mounted but hidden — never collapse scale.
   for (let i = atomCount; i < atomGroupRefs.current.length; i++) {
     const posG = atomGroupRefs.current[i]
     const scaleG = atomScaleGroupRefs.current[i]

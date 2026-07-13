@@ -29,6 +29,7 @@ import {
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
 import { ReactorTermsPreview } from './ReactorTermsPreview'
+import { reactorPreviewAtomScale } from './reactorPreviewLayout'
 import { getSynthesisDeviceTier, refineSynthesisDeviceTierFromFps } from '../../lab/synthesisDeviceTier'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
@@ -522,15 +523,11 @@ function SceneContent({
   const preSynthesisPreview = !synthesisRunActive && !synthActive && !showSettledHero
   const warmupPaused = !reactorGpuIdleReady || reactorCoeffEditBurst
 
+  /** Всегда держим shell смонтированным при terms — иначе +/- после синтеза = cold remount Bohr. */
   const mountReactorPreview =
     reactorViewOpen &&
     effectivePreviewTerms != null &&
-    effectivePreviewTerms.length >= 1 &&
-    (coeffEditingActive ||
-      synthActive ||
-      synthesisRunActive ||
-      !showSettledHero ||
-      !productPainted)
+    effectivePreviewTerms.length >= 1
 
   const continuity = useMemo(
     () =>
@@ -616,8 +613,8 @@ function SceneContent({
   const frameBudgetLite =
     !coeffEditingActive && frameBudgetRef.current.shouldForceLite()
   const editForceLite =
-    editLiteLatchRef.current ||
-    reactorCoeffEditBurst ||
+    (!coeffEditingActive && editLiteLatchRef.current) ||
+    (!coeffEditingActive && reactorCoeffEditBurst) ||
     frameBudgetLite ||
     lowPowerProfile.forceLiteReactor
   const reactorPreviewMounted = continuity.reactorPreviewMounted
@@ -729,14 +726,29 @@ function SceneContent({
     productPaintedRef.current = false
     productPaintFramesRef.current = 0
     setProductPainted(false)
+    previewStickyMountRef.current = { runId: -1, previewMounted: true }
     const root = previewRootRef.current
     if (root) {
+      gsap.killTweensOf(root)
       root.visible = true
       root.traverse((obj) => {
-        if (obj !== root) obj.visible = true
+        gsap.killTweensOf(obj)
+        obj.visible = true
       })
     }
-  }, [coeffEditingActive, synthActive, synthesisRunActive])
+    const scaleFloor = reactorPreviewAtomScale(previewAtomCount)
+    for (let i = 0; i < previewAtomScaleGroupRefs.current.length; i++) {
+      const sc = previewAtomScaleGroupRefs.current[i]
+      if (!sc) continue
+      gsap.killTweensOf(sc.scale)
+      sc.visible = true
+      sc.scale.set(scaleFloor, scaleFloor, scaleFloor)
+    }
+    for (let i = 0; i < previewAtomGroupRefs.current.length; i++) {
+      const g = previewAtomGroupRefs.current[i]
+      if (g) g.visible = true
+    }
+  }, [coeffEditingActive, synthActive, synthesisRunActive, previewAtomCount])
 
   const restorePreviewRootVisibility = useCallback(() => {
     const root = previewRootRef.current
@@ -752,13 +764,10 @@ function SceneContent({
     if (preSynthesisPreview) return
     if (!productPainted || !productSlotVisibleResolved) return
     if (synthActive || synthesisRunActive) return
-    previewStickyMountRef.current = null
+    // Не размонтируем sticky — только скрываем root (мгновенный +/- без cold remount).
     const root = previewRootRef.current
     if (!root) return
     root.visible = false
-    root.traverse((obj) => {
-      obj.visible = false
-    })
   }, [
     productPainted,
     productSlotVisibleResolved,

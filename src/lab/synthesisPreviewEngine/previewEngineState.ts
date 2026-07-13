@@ -23,7 +23,7 @@ export function createPreviewEngineState(): PreviewEngineState {
     shellAtoms: [],
     maxPool: 0,
     visibleLatch: false,
-    fullDetailLatch: false,
+    fullDetailLatch: true,
     denseLightLatch: false,
     slotZ: [],
     editHoldCount: 0,
@@ -164,9 +164,15 @@ export function resolvePreviewEngineFrame(
   const poolSize = state.maxPool
 
   const layoutAtoms = buffered.slots
+  // Seed slotZ from terms flatten so new pool slots mount with correct Z, not H(1).
+  const termZs: number[] = []
+  for (const t of terms) {
+    const c = Math.max(0, Math.floor(t.coeff))
+    for (let k = 0; k < c; k++) termZs.push(t.z)
+  }
   for (let i = 0; i < slotCount; i++) {
     const atom = layoutAtoms[i]
-    state.slotZ[i] = atom?.z ?? state.slotZ[i] ?? 1
+    state.slotZ[i] = atom?.z ?? termZs[i] ?? state.slotZ[i] ?? 1
   }
 
   const shouldRender =

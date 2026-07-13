@@ -411,11 +411,19 @@ export function ReactorTermsPreview({
           atomCount: n,
           atomZ: slotZ,
           forceLite: policy.effectiveForceLite,
-          qualityLevel,
+          qualityLevel: editingActive ? undefined : qualityLevel,
           coeffEditBurst: policy.pinEveryFrame,
           minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
         })
-        const slotVisible = effectiveGroupVisible && i < n && (slotActive || editingActive)
+        const slotVisible = effectiveGroupVisible && i < n
+        /** Freeze frame-skip during edit — иначе memo remount Bohr. */
+        const frameSkip = editingActive
+          ? Math.max(atomPolicy.electronFrameSkip, lowPowerProfile.isMobileSoc ? 3 : 2)
+          : policy.pinEveryFrame
+            ? Math.max(atomPolicy.electronFrameSkip, lowPowerProfile.isMobileSoc ? 3 : 2)
+            : flightActive
+              ? Math.max(atomPolicy.electronFrameSkip, 2)
+              : atomPolicy.electronFrameSkip
         return (
           <group key={slotKey} visible={slotVisible} ref={getPosRef(i)}>
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
@@ -425,16 +433,10 @@ export function ReactorTermsPreview({
                 previewStatic={
                   !editingActive && (!slotActive || (!electronAnimate && policy.pinEveryFrame))
                 }
-                useFullDetail={useFullDetail && !flightActive && slotActive}
+                useFullDetail={useFullDetail && !flightActive}
                 synthesisGlass={synthesisGlass && (flightActive || poseLocked) && slotActive}
                 previewLite={!useFullDetail}
-                electronFrameSkip={
-                  policy.pinEveryFrame
-                    ? Math.max(atomPolicy.electronFrameSkip, lowPowerProfile.isMobileSoc ? 3 : 2)
-                    : flightActive
-                      ? Math.max(atomPolicy.electronFrameSkip, 2)
-                      : atomPolicy.electronFrameSkip
-                }
+                electronFrameSkip={frameSkip}
                 hideOrbitRings={false}
                 localLight={!sharedLighting}
               />

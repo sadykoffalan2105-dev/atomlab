@@ -3,6 +3,7 @@ import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 /**
  * Слияние layout при +/-: позиции из built, пропуски — из shell.
  * Никогда не сжимаем ниже expected, пока built не догнал (transient hold).
+ * При росте: новые индексы сразу из built (optimistic), иначе clone last shell.
  */
 export function mergeLayoutDuringEdit(
   built: readonly ReactorPreviewAtom[],
@@ -19,7 +20,7 @@ export function mergeLayoutDuringEdit(
     ? expectedCount
     : Math.max(prevHoldCount, expectedCount, built.length, shell.length)
 
-  const targetLen = layoutReady ? expectedCount : holdCount
+  const targetLen = Math.max(layoutReady ? expectedCount : holdCount, expectedCount)
   const out: ReactorPreviewAtom[] = []
 
   for (let i = 0; i < targetLen; i++) {
@@ -27,6 +28,19 @@ export function mergeLayoutDuringEdit(
       out.push(built[i]!)
     } else if (i < shell.length) {
       out.push(shell[i]!)
+    } else if (shell.length > 0) {
+      /** Optimistic placeholder: clone last shell atom offset — нет пустого слота. */
+      const base = shell[shell.length - 1]!
+      out.push({
+        ...base,
+        atomInTerm: base.atomInTerm + (i - shell.length) + 1,
+        visualIndex: (base.visualIndex ?? base.atomInTerm) + (i - shell.length) + 1,
+        pos: [
+          base.pos[0] + (i - shell.length + 1) * 0.08,
+          base.pos[1],
+          base.pos[2] + (i - shell.length + 1) * 0.04,
+        ],
+      })
     }
   }
 

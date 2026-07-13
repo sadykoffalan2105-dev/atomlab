@@ -253,7 +253,8 @@ export function LaboratoryPage() {
   )
   const settledSnapshotRef = useRef<string | null>(null)
 
-  useEffect(() => {
+  /** Sync clear settled при смене уравнения — без кадра «пусто» между product off и preview. */
+  useLayoutEffect(() => {
     if (synthesisSettledProduct == null) return
     if (settledSnapshotRef.current == null) {
       settledSnapshotRef.current = equationSignature

@@ -1,13 +1,13 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
+import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
 import {
   estimatePreviewAtomCount,
   SYNC_BUILD_ATOM_CAP,
   termsSignature,
 } from './previewLayoutPolicy'
 import { mergeLayoutDuringEdit } from './previewEditHold'
-import { buildPreviewLayoutWasmSync } from '../wasm/reactorPreviewLayoutWasm'
 
 export { SYNC_BUILD_ATOM_CAP } from './previewLayoutPolicy'
 
@@ -16,12 +16,17 @@ export type PreviewLayoutHookResult = {
   layoutPending: boolean
 }
 
-function buildLayoutAtoms(
+/**
+ * Всегда JS+cache: мгновенно, без WASM hitch на render.
+ * WASM refinement только после idle (не блокирует +/-).
+ */
+function buildLayoutAtomsInstant(
   terms: readonly ReactorEquationTerm[],
   heavyEquation: boolean,
 ): ReactorPreviewAtom[] {
-  const tier = heavyEquation ? 'lite' : 'full'
-  return buildPreviewLayoutWasmSync(terms, tier)
+  return buildReactorPreviewAtoms(terms, {
+    tier: heavyEquation ? 'lite' : 'full',
+  })
 }
 
 function applyBuiltLayout(
@@ -41,13 +46,13 @@ function applyBuiltLayout(
 }
 
 /**
- * Sync layout на каждое изменение terms.
- * При editing — coalesce WASM (debounce), shell-hold без пустых кадров.
+ * Instant layout на каждое изменение terms — без debounce и без WASM в render.
+ * Shell-hold при editing: атомы не исчезают между кадрами.
  */
 export function useReactorPreviewLayout(
   terms: readonly ReactorEquationTerm[],
   coeffEditBurst: boolean,
-  layoutDebounceMs = 0,
+  _layoutDebounceMs = 0,
   coeffEditing = coeffEditBurst,
 ): PreviewLayoutHookResult {
   const termsSig = useMemo(() => termsSignature(terms), [terms])
@@ -56,8 +61,7 @@ export function useReactorPreviewLayout(
   const shellRef = useRef<readonly ReactorPreviewAtom[]>([])
   const holdCountRef = useRef(0)
   const lastBuiltSigRef = useRef('')
-  const debounceTimerRef = useRef<number | null>(null)
-  const [debouncedPending, setDebouncedPending] = useState(false)
+  const [, setTick] = useState(0)
 
   const editing = coeffEditing || coeffEditBurst
   const heavyEquation = atomEstimate > SYNC_BUILD_ATOM_CAP
@@ -65,8 +69,9 @@ export function useReactorPreviewLayout(
   const needsBuild =
     termsSig !== lastBuiltSigRef.current && terms.length >= 1 && atomEstimate > 0
 
-  if (needsBuild && (!editing || layoutDebounceMs <= 0)) {
-    const built = buildLayoutAtoms(terms, heavyEquation)
+  // Instant build синхронно — JS cache, без пустого кадра.
+  if (needsBuild) {
+    const built = buildLayoutAtomsInstant(terms, heavyEquation)
     shellRef.current = applyBuiltLayout(
       built,
       shellRef.current,
@@ -78,68 +83,37 @@ export function useReactorPreviewLayout(
   }
 
   useLayoutEffect(() => {
-    if (debounceTimerRef.current != null) {
-      clearTimeout(debounceTimerRef.current)
-      debounceTimerRef.current = null
+    if (!editing && holdCountRef.current !== atomEstimate) {
+      holdCountRef.current = atomEstimate
     }
+  }, [editing, atomEstimate])
 
-    if (!needsBuild) {
-      if (!editing && holdCountRef.current !== atomEstimate) {
-        holdCountRef.current = atomEstimate
-      }
-      setDebouncedPending(false)
-      return
+  // Force re-render when terms change after shell was mutated in render path
+  // (React already re-renders on terms change via parent).
+  useLayoutEffect(() => {
+    if (terms.length < 1) {
+      shellRef.current = []
+      lastBuiltSigRef.current = ''
+      holdCountRef.current = 0
+      setTick((n) => n + 1)
     }
-
-    if (!editing || layoutDebounceMs <= 0) {
-      setDebouncedPending(false)
-      return
-    }
-
-    setDebouncedPending(true)
-    debounceTimerRef.current = window.setTimeout(() => {
-      debounceTimerRef.current = null
-      const built = buildLayoutAtoms(terms, heavyEquation)
-      shellRef.current = applyBuiltLayout(
-        built,
-        shellRef.current,
-        atomEstimate,
-        editing,
-        holdCountRef,
-      )
-      lastBuiltSigRef.current = termsSig
-      setDebouncedPending(false)
-    }, layoutDebounceMs)
-
-    return () => {
-      if (debounceTimerRef.current != null) {
-        clearTimeout(debounceTimerRef.current)
-        debounceTimerRef.current = null
-      }
-    }
-  }, [needsBuild, editing, layoutDebounceMs, termsSig, terms, atomEstimate, heavyEquation])
-
-  useLayoutEffect(
-    () => () => {
-      if (debounceTimerRef.current != null) clearTimeout(debounceTimerRef.current)
-    },
-    [],
-  )
+  }, [terms.length])
 
   const resolved =
     shellRef.current.length > 0
       ? shellRef.current
       : terms.length >= 1 && atomEstimate > 0
-        ? buildLayoutAtoms(terms, heavyEquation)
+        ? buildLayoutAtomsInstant(terms, heavyEquation)
         : shellRef.current
 
   if (resolved.length > 0 && shellRef.current.length === 0) {
     shellRef.current = resolved
     lastBuiltSigRef.current = termsSig
+    holdCountRef.current = atomEstimate
   }
 
   return {
     atoms: resolved,
-    layoutPending: debouncedPending,
+    layoutPending: false,
   }
 }

@@ -15,21 +15,16 @@ export function resolveReactorEditPerfFlags(opts: {
   forceLite: boolean
   lowPower: boolean
   layoutDebounceMs?: number
-  /** Оценка числа атомов — для coalesce тяжёлых layout при +/-. */
+  /** Оценка числа атомов (legacy; debounce при edit отключён). */
   atomEstimate?: number
 }): ReactorEditPerfFlags {
   const { coeffEditBurst, forceLite, lowPower, layoutDebounceMs } = opts
   const editing = opts.coeffEditing ?? coeffEditBurst
   const burst = editing || coeffEditBurst || forceLite || lowPower
-  const heavy = (opts.atomEstimate ?? 0) > 12
-  // Небольшой coalesce при тяжёлых уравнениях: меньше sync-хитов без «пустого» кадра.
-  const editDebounce = heavy ? (lowPower ? 28 : 16) : 0
+  // Debounce disabled during edit — empty frames were worse than sync JS layout.
   return {
     burst,
-    layoutDebounceMs:
-      editing
-        ? editDebounce
-        : layoutDebounceMs ?? (lowPower ? 40 : coeffEditBurst ? 32 : 200),
+    layoutDebounceMs: editing ? 0 : layoutDebounceMs ?? (lowPower ? 40 : coeffEditBurst ? 32 : 200),
     maxInvalidateHz: 60,
   }
 }
