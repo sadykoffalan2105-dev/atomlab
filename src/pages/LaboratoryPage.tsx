@@ -120,7 +120,7 @@ export function LaboratoryPage() {
   const [reactorSessionKey, setReactorSessionKey] = useState(0)
   useCanvasSizeGuard(canvasWrapRef)
 
-  /** Симметричные поля: одинаковый отступ слева/справа (= max до Неорганика / до Синтез). */
+  /** Одинаковый отступ со всех сторон (= max до «Неорганика» / до «Синтез»). */
   useLayoutEffect(() => {
     const wrap = labWrapRef.current
     const domain = domainBarRef.current
@@ -134,12 +134,8 @@ export function LaboratoryPage() {
       const gap = 12
       const leftRail = Math.max(8, domainRect?.left ?? 12)
       const rightRail = Math.max(8, vw - (synthRect?.left ?? vw - 140) + gap)
-      // Одинаковое расстояние слева и справа — по большему из полей HUD.
-      const insetX = Math.round(Math.max(leftRail, rightRail))
-      wrap.style.setProperty('--lab-pt-inset-x', `${insetX}px`)
-      const controlsBottom = Math.max(domainRect?.bottom ?? 48, synthRect?.bottom ?? 48)
-      wrap.style.setProperty('--lab-pt-top', `${Math.round(controlsBottom + 20)}px`)
-      wrap.style.setProperty('--lab-pt-bottom', '1.45rem')
+      const inset = Math.round(Math.max(leftRail, rightRail))
+      wrap.style.setProperty('--lab-pt-inset', `${inset}px`)
     }
 
     syncHudRails()

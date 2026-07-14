@@ -58,12 +58,9 @@
   pointer-events: auto;
 }
 
-/* Одинаковые поля слева и справа + воздух сверху/снизу */
+/* Одинаковый пробел сверху / снизу / слева / справа */
 .panelOpenCenter {
-  left: var(--lab-pt-inset-x, 8.5rem);
-  right: var(--lab-pt-inset-x, 8.5rem);
-  top: var(--lab-pt-top, 3.6rem);
-  bottom: var(--lab-pt-bottom, 1.45rem);
+  inset: var(--lab-pt-inset, 8.5rem);
   width: auto;
   max-width: none;
   height: auto;
@@ -77,10 +74,10 @@
 }
 
 .panelOpenCompact {
-  left: var(--lab-pt-inset-x, 8.5rem);
-  right: var(--lab-pt-inset-x, 8.5rem);
+  left: var(--lab-pt-inset, 8.5rem);
+  right: var(--lab-pt-inset, 8.5rem);
   top: auto;
-  bottom: calc(var(--lab-pt-bottom, 1.45rem) + min(34vh, 320px) + 6px);
+  bottom: calc(var(--lab-pt-inset, 8.5rem) + min(34vh, 320px) + 6px);
   width: auto;
   max-width: none;
   height: min(52vh, 680px);

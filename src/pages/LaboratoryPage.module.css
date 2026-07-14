@@ -5,10 +5,8 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  /* Fallback до измерения HUD; живые значения — --lab-pt-inset-x / top / bottom */
-  --lab-pt-inset-x: 8.5rem;
-  --lab-pt-top: 3.6rem;
-  --lab-pt-bottom: 1.45rem;
+  /* Fallback до измерения HUD; живое значение — --lab-pt-inset (все 4 стороны) */
+  --lab-pt-inset: 8.5rem;
 }
 
 .domainBar {
