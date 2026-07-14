@@ -120,7 +120,7 @@ export function LaboratoryPage() {
   const [reactorSessionKey, setReactorSessionKey] = useState(0)
   useCanvasSizeGuard(canvasWrapRef)
 
-  /** Границы таблицы = левый край «Неорганика» и левый край «Синтез». */
+  /** Симметричные поля: одинаковый отступ слева/справа (= max до Неорганика / до Синтез). */
   useLayoutEffect(() => {
     const wrap = labWrapRef.current
     const domain = domainBarRef.current
@@ -129,16 +129,17 @@ export function LaboratoryPage() {
 
     const syncHudRails = () => {
       const vw = window.innerWidth
-      const domainLeft = domain?.getBoundingClientRect().left ?? 12
-      const synthLeft = synth?.getBoundingClientRect().left ?? vw - 140
-      const gap = 10
-      const left = Math.max(8, Math.round(domainLeft))
-      const right = Math.max(8, Math.round(vw - synthLeft + gap))
-      wrap.style.setProperty('--lab-pt-left', `${left}px`)
-      wrap.style.setProperty('--lab-pt-right', `${right}px`)
-      const domainBottom = domain?.getBoundingClientRect().bottom ?? 48
-      const headerOffset = Math.round(domainBottom + 10)
-      wrap.style.setProperty('--lab-pt-top', `${headerOffset}px`)
+      const domainRect = domain?.getBoundingClientRect()
+      const synthRect = synth?.getBoundingClientRect()
+      const gap = 12
+      const leftRail = Math.max(8, domainRect?.left ?? 12)
+      const rightRail = Math.max(8, vw - (synthRect?.left ?? vw - 140) + gap)
+      // Одинаковое расстояние слева и справа — по большему из полей HUD.
+      const insetX = Math.round(Math.max(leftRail, rightRail))
+      wrap.style.setProperty('--lab-pt-inset-x', `${insetX}px`)
+      const controlsBottom = Math.max(domainRect?.bottom ?? 48, synthRect?.bottom ?? 48)
+      wrap.style.setProperty('--lab-pt-top', `${Math.round(controlsBottom + 20)}px`)
+      wrap.style.setProperty('--lab-pt-bottom', '1.45rem')
     }
 
     syncHudRails()
@@ -896,16 +897,17 @@ export function LaboratoryPage() {
             ⊞
           </button>
         ) : null}
-        {!periodicUiHidden ? (
-          <ElementSidePanel
-            open={panelOpen}
-            onClose={() => setPanelOpen(false)}
-            onPickElement={onPickInTable}
-            onAltPickElement={onAltPickInTable}
-            layoutVariant={reactorOpen ? 'labCompact' : 'modal'}
-          />
-        ) : null}
       </div>
+      {/* Вне canvasWrap: иначе contain:layout ломает fixed и отступы слева/справа */}
+      {!periodicUiHidden ? (
+        <ElementSidePanel
+          open={panelOpen}
+          onClose={() => setPanelOpen(false)}
+          onPickElement={onPickInTable}
+          onAltPickElement={onAltPickInTable}
+          layoutVariant={reactorOpen ? 'labCompact' : 'modal'}
+        />
+      ) : null}
     </div>
   )
 }

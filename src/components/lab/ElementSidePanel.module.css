@@ -58,12 +58,12 @@
   pointer-events: auto;
 }
 
-/* Края по красным меткам: левый край «Неорганика» → до начала «Синтез» */
+/* Одинаковые поля слева и справа + воздух сверху/снизу */
 .panelOpenCenter {
-  left: var(--lab-pt-left, 0.75rem);
-  right: var(--lab-pt-right, 8.5rem);
-  top: var(--lab-pt-top, 3.35rem);
-  bottom: 0.75rem;
+  left: var(--lab-pt-inset-x, 8.5rem);
+  right: var(--lab-pt-inset-x, 8.5rem);
+  top: var(--lab-pt-top, 3.6rem);
+  bottom: var(--lab-pt-bottom, 1.45rem);
   width: auto;
   max-width: none;
   height: auto;
@@ -77,14 +77,14 @@
 }
 
 .panelOpenCompact {
-  left: var(--lab-pt-left, 0.75rem);
-  right: var(--lab-pt-right, 8.5rem);
+  left: var(--lab-pt-inset-x, 8.5rem);
+  right: var(--lab-pt-inset-x, 8.5rem);
   top: auto;
-  bottom: calc(8px + min(34vh, 320px) + 6px);
+  bottom: calc(var(--lab-pt-bottom, 1.45rem) + min(34vh, 320px) + 6px);
   width: auto;
   max-width: none;
-  height: min(54vh, 700px);
-  max-height: min(54vh, 700px);
+  height: min(52vh, 680px);
+  max-height: min(52vh, 680px);
   transform: scale(0.988);
   transform-origin: center bottom;
 }
@@ -97,7 +97,7 @@
   flex: 1;
   min-height: 0;
   height: 100%;
-  padding: 0.15rem 0.2rem 0.1rem;
+  padding: 0.45rem 0.35rem 0.5rem;
   overflow: hidden !important;
   scrollbar-width: none;
   -ms-overflow-style: none;
