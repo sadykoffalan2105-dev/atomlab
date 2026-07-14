@@ -58,14 +58,15 @@
   pointer-events: auto;
 }
 
+/* ~60% экрана, строго по центру */
 .panelOpenCenter {
   left: 50%;
-  top: 48%;
-  width: min(1560px, calc(100vw - 0.6rem));
-  max-width: calc(100vw - 0.6rem);
-  max-height: min(88vh, calc(100dvh - 4.5rem));
-  height: min(88vh, calc(100dvh - 4.5rem));
-  transform: translate(-50%, -50%) scale(0.985);
+  top: 50%;
+  width: min(60vw, 920px);
+  max-width: 60vw;
+  height: min(68vh, calc(60vw * 1.08));
+  max-height: min(68vh, calc(100dvh - 5rem));
+  transform: translate(-50%, -50%) scale(0.96);
 }
 
 .panelOpenCenter[data-open='true'] {
@@ -76,11 +77,11 @@
   left: 50%;
   top: auto;
   bottom: calc(8px + min(34vh, 320px) + 6px);
-  width: min(1560px, calc(100vw - 0.5rem));
-  max-width: calc(100vw - 0.5rem);
-  max-height: min(76vh, 860px);
-  height: min(76vh, 860px);
-  transform: translateX(-50%) scale(0.985);
+  width: min(60vw, 920px);
+  max-width: 60vw;
+  height: min(52vh, calc(60vw * 0.95));
+  max-height: min(52vh, 640px);
+  transform: translateX(-50%) scale(0.96);
 }
 
 .panelOpenCompact[data-open='true'] {
@@ -724,18 +725,18 @@
 
   .panelOpenCenter,
   .panelOpenCompact {
-    width: calc(100vw - 0.35rem);
-    max-width: calc(100vw - 0.35rem);
+    width: min(92vw, 920px);
+    max-width: 92vw;
   }
 
   .panelOpenCompact {
-    max-height: min(64dvh, 620px);
-    height: min(64dvh, 620px);
+    height: min(48dvh, calc(92vw * 0.95));
+    max-height: min(48dvh, 520px);
     bottom: calc(6px + min(42dvh, 300px) + 4px);
   }
 
   .panelOpenCenter {
-    max-height: min(84vh, calc(100dvh - 3.5rem));
-    height: min(84vh, calc(100dvh - 3.5rem));
+    height: min(62vh, calc(92vw * 1.05));
+    max-height: min(62vh, calc(100dvh - 4rem));
   }
 }

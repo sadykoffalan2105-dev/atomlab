@@ -49,8 +49,8 @@ export function ElementSidePanel({
       // Шире, чем выше: читаемые названия; не выше отведённой высоты.
       const byWidth = elemColW * 0.82
       const cell = Math.min(hByHeight, byWidth)
-      const maxCell = isLabCompact ? 62 : 68
-      const cellPx = Math.max(28, Math.min(cell, maxCell))
+      const maxCell = isLabCompact ? 48 : 52
+      const cellPx = Math.max(24, Math.min(cell, maxCell))
       wrap.style.setProperty('--pt-cell-h', `${cellPx}px`)
       wrap.style.setProperty('--pt-cell-w', `${Math.max(cellPx * 1.15, elemColW)}px`)
     }

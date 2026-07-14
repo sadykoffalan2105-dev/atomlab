@@ -317,11 +317,23 @@ export function LaboratoryPage() {
           if (prev.length >= REACTOR_EQUATION_MAX_TERMS) return prev
           return [...prev, { id: newId(), z, coeff: 1, ...(di ? { diatomic: true as const } : {}) }]
         })
+        // В режиме синтеза оставляем таблицу открытой для быстрого набора.
         return
       }
-      if (getElementByZ(z)) startTransition(() => setStructureZ(z))
+      if (!getElementByZ(z)) return
+      // Тап по атому → модель на сцене, таблица сворачивается.
+      setPanelOpen(false)
+      startTransition(() => setStructureZ(z))
     },
     [reactorOpen],
+  )
+
+  const onAltPickInTable = useCallback(
+    (z: number) => {
+      addAtom(z)
+      if (!reactorOpen) setPanelOpen(false)
+    },
+    [addAtom, reactorOpen],
   )
 
   const onRemoveTerm = useCallback((id: string) => {
@@ -848,7 +860,7 @@ export function LaboratoryPage() {
             open={panelOpen}
             onClose={() => setPanelOpen(false)}
             onPickElement={onPickInTable}
-            onAltPickElement={addAtom}
+            onAltPickElement={onAltPickInTable}
             layoutVariant={reactorOpen ? 'labCompact' : 'modal'}
           />
         ) : null}
