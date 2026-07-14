@@ -38,21 +38,22 @@ export function ElementSidePanel({
     const compute = () => {
       const aw = Math.max(1, wrap.clientWidth - 2)
       const ah = Math.max(1, wrap.clientHeight - 2)
-      const rows = isLabCompact ? 13.4 : 13.2
+      // 11 основных рядов + лантаноиды + актиноиды; запас под заголовки I–VIII / A·B и f-gap.
+      const bodyRows = 13
+      const chromePx = isLabCompact ? 44 : 52
       const gapPx = 3
-      const sideFr = 0.22
+      const sideFr = 0.2
       const elemCols = 10
       const totalFr = sideFr + elemCols
       const usableW = Math.max(1, aw - gapPx * 12)
       const elemColW = (usableW * elemCols) / totalFr / elemCols
-      const hByHeight = (ah - gapPx * (rows + 1)) / rows
-      // Шире, чем выше: читаемые названия; не выше отведённой высоты.
-      const byWidth = elemColW * 0.82
-      const cell = Math.min(hByHeight, byWidth)
-      const maxCell = isLabCompact ? 48 : 52
-      const cellPx = Math.max(24, Math.min(cell, maxCell))
+      // Сначала влезают все ряды (включая актиноиды), потом ограничиваем шириной.
+      const hByHeight = (ah - chromePx - gapPx * (bodyRows + 3)) / bodyRows
+      const byWidth = elemColW * 0.88
+      const maxCell = isLabCompact ? 50 : 56
+      const cellPx = Math.max(22, Math.min(hByHeight, byWidth, maxCell))
       wrap.style.setProperty('--pt-cell-h', `${cellPx}px`)
-      wrap.style.setProperty('--pt-cell-w', `${Math.max(cellPx * 1.15, elemColW)}px`)
+      wrap.style.setProperty('--pt-cell-w', `${Math.max(cellPx * 1.12, elemColW)}px`)
     }
 
     compute()
