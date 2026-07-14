@@ -451,16 +451,62 @@
 }
 
 .headModalLabCompact {
-  padding: 0.4rem 0.55rem;
+  padding: 0.4rem 0.55rem 0.35rem;
   flex-shrink: 0;
-  justify-content: flex-end;
-  align-items: center;
+  justify-content: space-between;
+  align-items: flex-start;
   min-height: 2.25rem;
+  gap: 0.5rem;
 }
 
 .tableWrapLabCompact {
   max-height: min(58vh, 600px) !important;
   padding: 0.55rem 0.85rem 0.8rem;
+}
+
+.tableWrapTextbook {
+  display: flex;
+  flex-direction: column;
+  --pt-cell-h: 36px;
+}
+
+.textbookInLab {
+  flex: 1;
+  min-height: 0;
+}
+
+.headLabCompactMeta {
+  flex: 1;
+  min-width: 0;
+  padding-right: 0.5rem;
+}
+
+.headTitleLabCompact {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  color: #e8edff;
+}
+
+.hintSubLabCompact {
+  margin: 0.15rem 0 0;
+  font-size: 0.62rem;
+  line-height: 1.3;
+  color: rgba(170, 185, 220, 0.85);
+}
+
+.panelModal {
+  width: min(1280px, calc(100vw - 2 * clamp(12px, 3vw, 24px)));
+}
+
+.panelModalLabCompact {
+  width: min(1280px, calc(100vw - 2.5rem));
+  max-height: min(72vh, 760px);
+}
+
+.tableWrapLabCompact {
+  max-height: min(64vh, 680px) !important;
 }
 
 /* Компактная сетка ПСХЭ: Z+символ в ячейке, без многострочного переполнения */

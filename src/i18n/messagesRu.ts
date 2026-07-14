@@ -223,8 +223,8 @@ export const messagesRu = {
   'element.notFound': 'Элемент не найден.',
   'element.close': 'Закрыть',
   'element.closeTable': 'Закрыть таблицу элементов',
-  'element.ptTitle': 'Периодическая система',
-  'element.ptHint': 'Тап по ячейке — 3D-структура в центре. Alt+тап — добавить атом-шар на сцену.',
+  'element.ptTitle': 'Таблица Менделеева',
+  'element.ptHint': 'Тап по ячейке — 3D-структура. Alt+тап — атом-шар на сцену.',
   'element.ptAriaLab': 'Периодическая таблица для выбора элементов',
 
   'elementDetail.atomicMass': 'Относительная атомная масса',

@@ -226,8 +226,8 @@ export const messagesUz: Record<MessageKey, string> = {
   'element.notFound': 'Element topilmadi.',
   'element.close': 'Yopish',
   'element.closeTable': 'Elementlar jadvalini yopish',
-  'element.ptTitle': 'Davriy tizim',
-  'element.ptHint': 'Katakchaga bosing — markazda 3D tuzilma. Alt+bosish — sahnaga shar atom qo\'shish.',
+  'element.ptTitle': 'Mendeleyev jadvali',
+  'element.ptHint': 'Katakchaga bosing — 3D tuzilma. Alt+bosish — sahnaga shar atom.',
   'element.ptAriaLab': 'Elementlarni tanlash uchun davriy jadval',
 
   'elementDetail.atomicMass': 'Nisbiy atom massasi',

@@ -226,8 +226,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'element.notFound': 'Element not found.',
   'element.close': 'Close',
   'element.closeTable': 'Close element table',
-  'element.ptTitle': 'Periodic system',
-  'element.ptHint': 'Tap a cell — 3D structure in the center. Alt+tap — add a ball atom to the scene.',
+  'element.ptTitle': 'Mendeleev table',
+  'element.ptHint': 'Tap a cell — 3D structure. Alt+tap — add a ball atom to the scene.',
   'element.ptAriaLab': 'Periodic table for selecting elements',
 
   'elementDetail.atomicMass': 'Relative atomic mass',
