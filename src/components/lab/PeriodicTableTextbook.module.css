@@ -118,76 +118,97 @@
   padding: 0.18rem 0.22rem 0.16rem;
 }
 
-/* Широкие карточки без жёсткой обводки — заливка + мягкое свечение */
+/*
+ * Лаборатория: без backdrop-filter и тяжёлых blur-теней.
+ * Blur поверх continuously-рендерящегося WebGL давал периодическое «подмигивание».
+ */
 .textbookEmbed .gridTextbook .tbCellBtn,
 .textbookEmbed .gridTextbook .tbCellStatic,
 .textbookEmbed .fRowBand .tbCellBtn,
 .textbookEmbed .fRowBand .tbCellStatic {
   border: none;
   border-radius: 0.42rem;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-    0 4px 14px rgba(0, 0, 0, 0.35);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none;
+  transition: transform 0.14s ease, background-color 0.14s ease;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  will-change: auto;
 }
 
 .textbookEmbed .gridTextbook .tbCellBtn.tbS,
 .textbookEmbed .gridTextbook .tbCellStatic.tbS,
 .textbookEmbed .fRowBand .tbCellBtn.tbS,
 .textbookEmbed .fRowBand .tbCellStatic.tbS {
-  background: linear-gradient(160deg, rgba(0, 55, 42, 0.92), rgba(2, 14, 12, 0.96));
-  box-shadow:
-    0 0 0 1px rgba(0, 255, 170, 0.18) inset,
-    0 0 18px rgba(0, 255, 170, 0.12),
-    0 6px 16px rgba(0, 0, 0, 0.35);
+  background: #062820;
+  box-shadow: 0 0 0 1px rgba(0, 255, 170, 0.28) inset;
 }
 
 .textbookEmbed .gridTextbook .tbCellBtn.tbP,
 .textbookEmbed .gridTextbook .tbCellStatic.tbP,
 .textbookEmbed .fRowBand .tbCellBtn.tbP,
 .textbookEmbed .fRowBand .tbCellStatic.tbP {
-  background: linear-gradient(160deg, rgba(52, 12, 36, 0.94), rgba(12, 4, 12, 0.96));
-  box-shadow:
-    0 0 0 1px rgba(255, 80, 160, 0.2) inset,
-    0 0 18px rgba(255, 45, 149, 0.12),
-    0 6px 16px rgba(0, 0, 0, 0.35);
+  background: #2a1222;
+  box-shadow: 0 0 0 1px rgba(255, 80, 160, 0.3) inset;
 }
 
 .textbookEmbed .gridTextbook .tbCellBtn.tbD,
 .textbookEmbed .gridTextbook .tbCellStatic.tbD,
 .textbookEmbed .fRowBand .tbCellBtn.tbD,
 .textbookEmbed .fRowBand .tbCellStatic.tbD {
-  background: linear-gradient(160deg, rgba(10, 28, 58, 0.94), rgba(4, 8, 18, 0.96));
-  box-shadow:
-    0 0 0 1px rgba(90, 170, 255, 0.2) inset,
-    0 0 18px rgba(77, 166, 255, 0.12),
-    0 6px 16px rgba(0, 0, 0, 0.35);
+  background: #0c1a32;
+  box-shadow: 0 0 0 1px rgba(90, 170, 255, 0.3) inset;
 }
 
 .textbookEmbed .gridTextbook .tbCellBtn.tbF,
 .textbookEmbed .gridTextbook .tbCellStatic.tbF,
 .textbookEmbed .fRowBand .tbCellBtn.tbF,
 .textbookEmbed .fRowBand .tbCellStatic.tbF {
-  background: linear-gradient(160deg, rgba(36, 14, 58, 0.94), rgba(8, 4, 16, 0.96));
-  box-shadow:
-    0 0 0 1px rgba(190, 120, 255, 0.22) inset,
-    0 0 18px rgba(199, 125, 255, 0.14),
-    0 6px 16px rgba(0, 0, 0, 0.35);
+  background: #1c1230;
+  box-shadow: 0 0 0 1px rgba(190, 120, 255, 0.32) inset;
 }
 
 .textbookEmbed .gridTextbook .tbCellBtn.tbNoble,
 .textbookEmbed .gridTextbook .tbCellStatic.tbNoble,
 .textbookEmbed .fRowBand .tbCellBtn.tbNoble,
 .textbookEmbed .fRowBand .tbCellStatic.tbNoble {
-  background: linear-gradient(160deg, rgba(12, 36, 52, 0.94), rgba(4, 10, 18, 0.96));
-  box-shadow:
-    0 0 0 1px rgba(168, 232, 255, 0.22) inset,
-    0 0 18px rgba(168, 232, 255, 0.12),
-    0 6px 16px rgba(0, 0, 0, 0.35);
+  background: #0c2230;
+  box-shadow: 0 0 0 1px rgba(168, 232, 255, 0.3) inset;
 }
 
 .textbookEmbed .gridTextbook .tbCellBtn:hover {
-  transform: scale(1.06) translateY(-2px);
-  filter: brightness(1.08);
+  transform: scale(1.05) translateY(-1px);
+  filter: none;
+  z-index: 5;
+}
+
+.textbookEmbed .gridTextbook .tbCellBtn.tbS .tbSym,
+.textbookEmbed .gridTextbook .tbCellStatic.tbS .tbSym,
+.textbookEmbed .fRowBand .tbCellBtn.tbS .tbSym,
+.textbookEmbed .fRowBand .tbCellStatic.tbS .tbSym,
+.textbookEmbed .gridTextbook .tbCellBtn.tbP .tbSym,
+.textbookEmbed .gridTextbook .tbCellStatic.tbP .tbSym,
+.textbookEmbed .fRowBand .tbCellBtn.tbP .tbSym,
+.textbookEmbed .fRowBand .tbCellStatic.tbP .tbSym,
+.textbookEmbed .gridTextbook .tbCellBtn.tbD .tbSym,
+.textbookEmbed .gridTextbook .tbCellStatic.tbD .tbSym,
+.textbookEmbed .fRowBand .tbCellBtn.tbD .tbSym,
+.textbookEmbed .fRowBand .tbCellStatic.tbD .tbSym,
+.textbookEmbed .gridTextbook .tbCellBtn.tbF .tbSym,
+.textbookEmbed .gridTextbook .tbCellStatic.tbF .tbSym,
+.textbookEmbed .fRowBand .tbCellBtn.tbF .tbSym,
+.textbookEmbed .fRowBand .tbCellStatic.tbF .tbSym,
+.textbookEmbed .gridTextbook .tbCellBtn.tbNoble .tbSym,
+.textbookEmbed .gridTextbook .tbCellStatic.tbNoble .tbSym,
+.textbookEmbed .fRowBand .tbCellBtn.tbNoble .tbSym,
+.textbookEmbed .fRowBand .tbCellStatic.tbNoble .tbSym {
+  text-shadow: none;
+}
+
+.textbookEmbed .fBlockGap,
+.textbookEmbed .fBlockGap::after {
+  animation: none !important;
+  opacity: 0.55;
 }
 
 .tbCellInnerCompact {

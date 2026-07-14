@@ -127,6 +127,7 @@ export function LaboratoryPage() {
     const synth = synthButtonRef.current
     if (!wrap) return
 
+    let lastInset = Number.NaN
     const syncHudRails = () => {
       const vw = window.innerWidth
       const domainRect = domain?.getBoundingClientRect()
@@ -135,6 +136,8 @@ export function LaboratoryPage() {
       const leftRail = Math.max(8, domainRect?.left ?? 12)
       const rightRail = Math.max(8, vw - (synthRect?.left ?? vw - 140) + gap)
       const inset = Math.round(Math.max(leftRail, rightRail))
+      if (inset === lastInset) return
+      lastInset = inset
       wrap.style.setProperty('--lab-pt-inset', `${inset}px`)
     }
 
