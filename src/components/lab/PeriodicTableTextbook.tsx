@@ -97,11 +97,9 @@ function TextbookCellInner({
       <span className={tbStyles.tbSym} title={config || ruName}>
         {el.symbol}
       </span>
-      {!compact ? (
-        <span className={tbStyles.tbRu} title={ruName}>
-          {ruName}
-        </span>
-      ) : null}
+      <span className={tbStyles.tbRu} title={ruName}>
+        {ruName}
+      </span>
     </div>
   )
 }
