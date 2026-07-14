@@ -15,6 +15,128 @@
   pointer-events: auto;
 }
 
+/* Лёгкое затемнение без «шторки»-рамки */
+.backdropSoft {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  background: rgba(1, 3, 10, 0.28);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.backdropSoft[data-open='true'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Открытая таблица в лаборатории — без панели, только сетка */
+.panelOpen {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  z-index: 50;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease;
+}
+
+.panelOpen[data-open='true'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.panelOpenCenter {
+  left: 50%;
+  top: 48%;
+  width: min(1560px, calc(100vw - 0.6rem));
+  max-width: calc(100vw - 0.6rem);
+  max-height: min(88vh, calc(100dvh - 4.5rem));
+  height: min(88vh, calc(100dvh - 4.5rem));
+  transform: translate(-50%, -50%) scale(0.985);
+}
+
+.panelOpenCenter[data-open='true'] {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.panelOpenCompact {
+  left: 50%;
+  top: auto;
+  bottom: calc(8px + min(34vh, 320px) + 6px);
+  width: min(1560px, calc(100vw - 0.5rem));
+  max-width: calc(100vw - 0.5rem);
+  max-height: min(76vh, 860px);
+  height: min(76vh, 860px);
+  transform: translateX(-50%) scale(0.985);
+}
+
+.panelOpenCompact[data-open='true'] {
+  transform: translateX(-50%) scale(1);
+}
+
+.tableWrapOpen {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  padding: 0.15rem 0.2rem 0.1rem;
+  overflow: hidden !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  position: relative;
+  z-index: 1;
+}
+
+.tableWrapOpen::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.closeFloat {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.15rem;
+  z-index: 8;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  margin: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 170, 220, 0.28);
+  background: rgba(6, 10, 20, 0.62);
+  color: rgba(210, 220, 245, 0.92);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    background 0.18s ease;
+}
+
+.closeFloat:hover {
+  border-color: rgba(61, 255, 236, 0.55);
+  color: #3dffec;
+  background: rgba(8, 16, 28, 0.8);
+}
+
 .panel {
   display: flex;
   flex-direction: column;
@@ -60,10 +182,10 @@
 
 .headModal {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.75rem 1rem 0.75rem;
+  padding: 0.55rem 0.85rem;
   border-bottom: 1px solid rgba(61, 255, 236, 0.16);
   position: relative;
   z-index: 1;
@@ -433,8 +555,8 @@
   left: 50%;
   right: auto;
   bottom: calc(10px + min(34vh, 320px) + 8px);
-  width: min(1320px, calc(100vw - 1.25rem));
-  max-width: calc(100vw - 1.25rem);
+  width: min(1440px, calc(100vw - 0.75rem));
+  max-width: calc(100vw - 0.75rem);
   max-height: min(74vh, 820px);
   min-height: 0;
   transform: translateX(-50%) scale(0.98);
@@ -471,13 +593,14 @@
 .tableWrapTextbook {
   display: flex;
   flex-direction: column;
-  --pt-cell-h: 40px;
+  --pt-cell-h: 44px;
 }
 
 .textbookInLab {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  height: 100%;
 }
 
 .closeLabCompact {
@@ -597,5 +720,22 @@
     max-height: min(62dvh, 580px);
     width: calc(100vw - 1rem);
     bottom: calc(8px + min(42dvh, 300px) + 6px);
+  }
+
+  .panelOpenCenter,
+  .panelOpenCompact {
+    width: calc(100vw - 0.35rem);
+    max-width: calc(100vw - 0.35rem);
+  }
+
+  .panelOpenCompact {
+    max-height: min(64dvh, 620px);
+    height: min(64dvh, 620px);
+    bottom: calc(6px + min(42dvh, 300px) + 4px);
+  }
+
+  .panelOpenCenter {
+    max-height: min(84vh, calc(100dvh - 3.5rem));
+    height: min(84vh, calc(100dvh - 3.5rem));
   }
 }

@@ -18,22 +18,35 @@
   height: 100%;
 }
 
-.textbookEmbed .panelGlow {
-  inset: -2% -1%;
-  opacity: 0.55;
+.textbookEmbed .panelGlow,
+.textbookEmbed .orbitHalo,
+.textbookEmbed .gridScan,
+.textbookEmbed .columnBackdrop {
+  display: none;
 }
 
-/* Компактная сетка в лаборатории: только Z + символ, без нижних полос */
+/* Лаборатория: без внешней рамки и линий сетки, «плавающие» широкие ячейки */
 .textbookEmbed .gridTextbook {
-  --pt-f-gap: 0.1rem;
-  --pt-gap: 1px;
+  --pt-f-gap: 0.22rem;
+  --pt-gap: 3px;
   gap: var(--pt-gap);
-  padding: 2px;
-  border-radius: 0.4rem;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   min-width: 0;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+  color: rgba(230, 236, 255, 0.95);
+  grid-template-columns:
+    minmax(0.7rem, 0.14fr)
+    minmax(0.7rem, 0.14fr)
+    repeat(10, minmax(0, 1fr));
   grid-template-rows:
     auto
     auto
@@ -46,51 +59,205 @@
   padding: 0;
   overflow: hidden;
   min-width: 0;
+  height: 100%;
+}
+
+.textbookEmbed .gridTextbook .axisHead,
+.textbookEmbed .gridTextbook .subHeadGroup,
+.textbookEmbed .gridTextbook .subHeadSubgroup,
+.textbookEmbed .gridTextbook .cornerPeriod,
+.textbookEmbed .gridTextbook .cornerRow,
+.textbookEmbed .gridTextbook .axisPeriod,
+.textbookEmbed .gridTextbook .axisRow,
+.textbookEmbed .gridTextbook .fBlockLabel {
+  border: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border-radius: 0.2rem;
+}
+
+.textbookEmbed .gridTextbook .subHeadGroup span:first-child {
+  border-right: none;
+}
+
+.textbookEmbed .voidCell,
+.textbookEmbed .triadVoidPanel {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.textbookEmbed .fBlockGap {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 229, 255, 0.08),
+    rgba(255, 45, 149, 0.1),
+    transparent
+  ) !important;
+  opacity: 0.7;
+}
+
+.textbookEmbed .fBlockGap::after {
+  opacity: 0.55;
+}
+
+.textbookEmbed .fBlockBackdrop {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.textbookEmbed .fRowBand {
+  padding: 0;
+  gap: var(--pt-gap);
 }
 
 .textbookEmbed .cellSlotInner {
-  padding: 0.06rem 0.1rem 0.04rem;
+  padding: 0.18rem 0.22rem 0.16rem;
+}
+
+/* Широкие карточки без жёсткой обводки — заливка + мягкое свечение */
+.textbookEmbed .gridTextbook .tbCellBtn,
+.textbookEmbed .gridTextbook .tbCellStatic,
+.textbookEmbed .fRowBand .tbCellBtn,
+.textbookEmbed .fRowBand .tbCellStatic {
+  border: none;
+  border-radius: 0.42rem;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.textbookEmbed .gridTextbook .tbCellBtn.tbS,
+.textbookEmbed .gridTextbook .tbCellStatic.tbS,
+.textbookEmbed .fRowBand .tbCellBtn.tbS,
+.textbookEmbed .fRowBand .tbCellStatic.tbS {
+  background: linear-gradient(160deg, rgba(0, 55, 42, 0.92), rgba(2, 14, 12, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 170, 0.18) inset,
+    0 0 18px rgba(0, 255, 170, 0.12),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.textbookEmbed .gridTextbook .tbCellBtn.tbP,
+.textbookEmbed .gridTextbook .tbCellStatic.tbP,
+.textbookEmbed .fRowBand .tbCellBtn.tbP,
+.textbookEmbed .fRowBand .tbCellStatic.tbP {
+  background: linear-gradient(160deg, rgba(52, 12, 36, 0.94), rgba(12, 4, 12, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(255, 80, 160, 0.2) inset,
+    0 0 18px rgba(255, 45, 149, 0.12),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.textbookEmbed .gridTextbook .tbCellBtn.tbD,
+.textbookEmbed .gridTextbook .tbCellStatic.tbD,
+.textbookEmbed .fRowBand .tbCellBtn.tbD,
+.textbookEmbed .fRowBand .tbCellStatic.tbD {
+  background: linear-gradient(160deg, rgba(10, 28, 58, 0.94), rgba(4, 8, 18, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(90, 170, 255, 0.2) inset,
+    0 0 18px rgba(77, 166, 255, 0.12),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.textbookEmbed .gridTextbook .tbCellBtn.tbF,
+.textbookEmbed .gridTextbook .tbCellStatic.tbF,
+.textbookEmbed .fRowBand .tbCellBtn.tbF,
+.textbookEmbed .fRowBand .tbCellStatic.tbF {
+  background: linear-gradient(160deg, rgba(36, 14, 58, 0.94), rgba(8, 4, 16, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(190, 120, 255, 0.22) inset,
+    0 0 18px rgba(199, 125, 255, 0.14),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.textbookEmbed .gridTextbook .tbCellBtn.tbNoble,
+.textbookEmbed .gridTextbook .tbCellStatic.tbNoble,
+.textbookEmbed .fRowBand .tbCellBtn.tbNoble,
+.textbookEmbed .fRowBand .tbCellStatic.tbNoble {
+  background: linear-gradient(160deg, rgba(12, 36, 52, 0.94), rgba(4, 10, 18, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(168, 232, 255, 0.22) inset,
+    0 0 18px rgba(168, 232, 255, 0.12),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.textbookEmbed .gridTextbook .tbCellBtn:hover {
+  transform: scale(1.06) translateY(-2px);
+  filter: brightness(1.08);
 }
 
 .tbCellInnerCompact {
   grid-template-columns: 1fr;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto 1fr auto;
   justify-items: center;
+  gap: 0.02rem;
 }
 
 .tbCellInnerCompact .tbZ {
   grid-column: 1;
   grid-row: 1;
   justify-self: start;
-  font-size: calc(var(--pt-cell-h) * 0.2);
+  font-size: calc(var(--pt-cell-h) * 0.165);
+  font-weight: 700;
+  color: rgba(180, 198, 230, 0.72);
+  letter-spacing: 0.02em;
 }
 
 .tbCellInnerCompact .tbSym {
   grid-column: 1;
   grid-row: 2;
-  font-size: calc(var(--pt-cell-h) * 0.52);
-  letter-spacing: 0.02em;
+  align-self: center;
+  font-size: calc(var(--pt-cell-h) * 0.36);
+  letter-spacing: 0.03em;
+  font-weight: 800;
+}
+
+.tbCellInnerCompact .tbRu {
+  grid-column: 1;
+  grid-row: 3;
+  width: 100%;
+  font-size: calc(var(--pt-cell-h) * 0.2);
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: rgba(210, 220, 245, 0.92);
+  line-height: 1.05;
+  padding-inline: 0.06rem;
+  padding-bottom: 0.02rem;
 }
 
 .textbookEmbed .axisHead {
-  font-size: clamp(0.58rem, 0.85vw, 0.72rem);
-  padding: 0.05rem 0;
+  font-size: clamp(0.62rem, 0.95vw, 0.82rem);
+  padding: 0.12rem 0 0.04rem;
   min-height: 0;
+  color: rgba(200, 220, 255, 0.78);
+  letter-spacing: 0.08em;
 }
 
 .textbookEmbed .subHeadGroup,
 .textbookEmbed .subHeadSubgroup {
-  font-size: clamp(0.5rem, 0.7vw, 0.62rem);
-  padding: 0.02rem 0;
+  font-size: clamp(0.52rem, 0.75vw, 0.68rem);
+  padding: 0.04rem 0 0.1rem;
   min-height: 0;
+  color: rgba(150, 175, 220, 0.65);
 }
 
 .textbookEmbed .cornerPeriod,
 .textbookEmbed .cornerRow,
 .textbookEmbed .axisPeriod,
-.textbookEmbed .axisRow,
+.textbookEmbed .axisRow {
+  font-size: clamp(0.5rem, 0.7vw, 0.64rem);
+  color: rgba(140, 165, 210, 0.7);
+}
+
 .textbookEmbed .fBlockLabel {
-  font-size: clamp(0.48rem, 0.65vw, 0.6rem);
+  font-size: clamp(0.48rem, 0.7vw, 0.62rem);
+  letter-spacing: 0.06em;
+  color: rgba(210, 170, 255, 0.85);
+  text-shadow: 0 0 10px rgba(170, 90, 255, 0.35);
 }
 
 .panelGlow {

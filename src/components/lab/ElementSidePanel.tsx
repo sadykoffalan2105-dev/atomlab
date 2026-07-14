@@ -3,8 +3,6 @@ import { useT } from '../../i18n/useT'
 import { PeriodicTableTextbook } from './PeriodicTableTextbook'
 import styles from './ElementSidePanel.module.css'
 
-const PT_LAB_TITLE_ID = 'pt-lab-title'
-
 export function ElementSidePanel({
   open,
   onClose,
@@ -19,8 +17,8 @@ export function ElementSidePanel({
   layoutVariant?: 'modal' | 'labCompact'
 }) {
   const { t } = useT()
-  const panelRef = useRef<HTMLDivElement>(null)
   const tableWrapRef = useRef<HTMLDivElement>(null)
+  const isLabCompact = layoutVariant === 'labCompact'
 
   useEffect(() => {
     if (!open) return
@@ -31,94 +29,71 @@ export function ElementSidePanel({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  /** Подгонка ячеек школьной таблицы под размер панели лаборатории. */
+  /** Широкие ячейки: приоритет ширине колонки, хватает места под символ + название. */
   useLayoutEffect(() => {
     if (!open) return
     const wrap = tableWrapRef.current
     if (!wrap) return
 
     const compute = () => {
-      const aw = Math.max(1, wrap.clientWidth - 4)
-      const ah = Math.max(1, wrap.clientHeight - 4)
-      const rows = layoutVariant === 'labCompact' ? 13.6 : 16.5
-      const gapPx = layoutVariant === 'labCompact' ? 1 : 2
-      const sideFr = 0.42
+      const aw = Math.max(1, wrap.clientWidth - 2)
+      const ah = Math.max(1, wrap.clientHeight - 2)
+      const rows = isLabCompact ? 13.4 : 13.2
+      const gapPx = 3
+      const sideFr = 0.22
       const elemCols = 10
       const totalFr = sideFr + elemCols
-      const usableW = Math.max(1, aw - gapPx * 14)
+      const usableW = Math.max(1, aw - gapPx * 12)
       const elemColW = (usableW * elemCols) / totalFr / elemCols
       const hByHeight = (ah - gapPx * (rows + 1)) / rows
-      const cell = Math.min(hByHeight, elemColW * 1.12)
-      const maxCell = layoutVariant === 'labCompact' ? 58 : 72
-      const cellPx = Math.max(22, Math.min(cell, maxCell))
+      // Шире, чем выше: читаемые названия; не выше отведённой высоты.
+      const byWidth = elemColW * 0.82
+      const cell = Math.min(hByHeight, byWidth)
+      const maxCell = isLabCompact ? 62 : 68
+      const cellPx = Math.max(28, Math.min(cell, maxCell))
       wrap.style.setProperty('--pt-cell-h', `${cellPx}px`)
+      wrap.style.setProperty('--pt-cell-w', `${Math.max(cellPx * 1.15, elemColW)}px`)
     }
 
     compute()
     const ro = new ResizeObserver(compute)
     ro.observe(wrap)
     return () => ro.disconnect()
-  }, [open, layoutVariant])
-
-  const isLabCompact = layoutVariant === 'labCompact'
+  }, [open, isLabCompact])
 
   return (
     <>
-      {!isLabCompact ? (
-        <div
-          className={styles.backdrop}
-          data-open={open}
-          onClick={onClose}
-          aria-hidden={!open}
-        />
-      ) : null}
       <div
-        ref={panelRef}
+        className={styles.backdropSoft}
+        data-open={open}
+        onClick={onClose}
+        aria-hidden={!open}
+      />
+      <div
         role="dialog"
-        aria-modal={!isLabCompact}
-        aria-labelledby={isLabCompact ? undefined : PT_LAB_TITLE_ID}
-        aria-label={isLabCompact ? t('element.ptAriaLab') : undefined}
+        aria-modal="true"
+        aria-label={t('element.ptAriaLab')}
         className={
           isLabCompact
-            ? `${styles.panel} ${styles.panelModal} ${styles.panelModalLabCompact}`
-            : `${styles.panel} ${styles.panelModal}`
+            ? `${styles.panelOpen} ${styles.panelOpenCompact}`
+            : `${styles.panelOpen} ${styles.panelOpenCenter}`
         }
         data-open={open}
         data-layout={layoutVariant}
         aria-hidden={!open}
       >
-        {!isLabCompact ? <div className={styles.orbitDecor} aria-hidden /> : null}
-        {!isLabCompact ? <div className={styles.stars} aria-hidden /> : null}
-        {isLabCompact ? (
-          <button
-            type="button"
-            className={`${styles.close} ${styles.closeLabCompact}`}
-            onClick={onClose}
-            aria-label={t('element.closeTable')}
-          >
-            ×
-          </button>
-        ) : (
-          <header className={styles.headModal}>
-            <div>
-              <h2 id={PT_LAB_TITLE_ID} className={styles.headTitle}>
-                {t('element.ptTitle')}
-              </h2>
-              <p className={styles.hintSub}>{t('element.ptHint')}</p>
-            </div>
-            <button type="button" className={styles.close} onClick={onClose} aria-label={t('element.closeTable')}>
-              ×
-            </button>
-          </header>
-        )}
+        <button
+          type="button"
+          className={styles.closeFloat}
+          onClick={onClose}
+          aria-label={t('element.closeTable')}
+        >
+          ×
+        </button>
 
         <div
           ref={tableWrapRef}
-          className={
-            isLabCompact
-              ? `${styles.tableWrap} ${styles.tableWrapLabCompact} ${styles.tableWrapTextbook}`
-              : `${styles.tableWrap} ${styles.tableWrapTextbook}`
-          }
+          className={`${styles.tableWrapOpen} ${styles.tableWrapTextbook}`}
         >
           <PeriodicTableTextbook
             embedMode
