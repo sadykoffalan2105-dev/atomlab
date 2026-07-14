@@ -23,6 +23,76 @@
   opacity: 0.55;
 }
 
+/* Компактная сетка в лаборатории: только Z + символ, без нижних полос */
+.textbookEmbed .gridTextbook {
+  --pt-f-gap: 0.1rem;
+  --pt-gap: 1px;
+  gap: var(--pt-gap);
+  padding: 2px;
+  border-radius: 0.4rem;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  grid-template-rows:
+    auto
+    auto
+    repeat(11, minmax(var(--pt-cell-h), auto))
+    minmax(var(--pt-f-gap), auto)
+    repeat(2, minmax(var(--pt-cell-h), auto));
+}
+
+.textbookEmbed .gridFrame {
+  padding: 0;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.textbookEmbed .cellSlotInner {
+  padding: 0.06rem 0.1rem 0.04rem;
+}
+
+.tbCellInnerCompact {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  justify-items: center;
+}
+
+.tbCellInnerCompact .tbZ {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  font-size: calc(var(--pt-cell-h) * 0.2);
+}
+
+.tbCellInnerCompact .tbSym {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: calc(var(--pt-cell-h) * 0.52);
+  letter-spacing: 0.02em;
+}
+
+.textbookEmbed .axisHead {
+  font-size: clamp(0.58rem, 0.85vw, 0.72rem);
+  padding: 0.05rem 0;
+  min-height: 0;
+}
+
+.textbookEmbed .subHeadGroup,
+.textbookEmbed .subHeadSubgroup {
+  font-size: clamp(0.5rem, 0.7vw, 0.62rem);
+  padding: 0.02rem 0;
+  min-height: 0;
+}
+
+.textbookEmbed .cornerPeriod,
+.textbookEmbed .cornerRow,
+.textbookEmbed .axisPeriod,
+.textbookEmbed .axisRow,
+.textbookEmbed .fBlockLabel {
+  font-size: clamp(0.48rem, 0.65vw, 0.6rem);
+}
+
 .panelGlow {
   position: absolute;
   inset: -8% -4% -4%;

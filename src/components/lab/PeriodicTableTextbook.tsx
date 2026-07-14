@@ -79,21 +79,29 @@ function tbBlockClass(el: (typeof ELEMENTS)[number]): string {
   return tbStyles[key] ?? tbStyles.tbS
 }
 
-function TextbookCellInner({ el }: { el: (typeof ELEMENTS)[number] }) {
+function TextbookCellInner({
+  el,
+  compact = false,
+}: {
+  el: (typeof ELEMENTS)[number]
+  compact?: boolean
+}) {
   const { locale } = useT()
   const ruName = elementDisplayName(el, locale)
   const config = schoolConfigLabel(el.electronConfiguration)
 
   return (
-    <div className={tbStyles.tbCellInner}>
+    <div className={`${tbStyles.tbCellInner} ${compact ? tbStyles.tbCellInnerCompact : ''}`}>
       <span className={tbStyles.tbZ}>{el.z}</span>
-      <span className={tbStyles.tbMass}>{massDisplay(el.atomicMass)}</span>
-      <span className={tbStyles.tbSym} title={config}>
+      {!compact ? <span className={tbStyles.tbMass}>{massDisplay(el.atomicMass)}</span> : null}
+      <span className={tbStyles.tbSym} title={config || ruName}>
         {el.symbol}
       </span>
-      <span className={tbStyles.tbRu} title={ruName}>
-        {ruName}
-      </span>
+      {!compact ? (
+        <span className={tbStyles.tbRu} title={ruName}>
+          {ruName}
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -103,6 +111,7 @@ function renderElementCell(
   onPick: ((z: number) => void) | undefined,
   onAltPick: ((z: number) => void) | undefined,
   categoryFilter: ElementCategoryFilterId | null,
+  compact = false,
   extraClass = '',
 ) {
   const pos = getRuGridPos(el.z)
@@ -117,7 +126,7 @@ function renderElementCell(
       : ''
   const inner = (
     <div className={tbStyles.cellSlotInner}>
-      <TextbookCellInner el={el} />
+      <TextbookCellInner el={el} compact={compact} />
     </div>
   )
 
@@ -201,7 +210,7 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
   const voidCells = useMemo(() => ruMainVoidCells(), [])
 
   const cell = (el: (typeof ELEMENTS)[number], extra = '') =>
-    renderElementCell(el, onPickElement, onAltPickElement, categoryFilter, extra)
+    renderElementCell(el, onPickElement, onAltPickElement, categoryFilter, embedMode, extra)
 
   return (
     <div
@@ -230,12 +239,16 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
 
       <div className={tbStyles.gridFrame}>
         <div className={tbStyles.orbitHalo} aria-hidden />
-        <span className={tbStyles.frameTag} data-side="left" aria-hidden>
-          PSХЭ·118
-        </span>
-        <span className={tbStyles.frameTag} data-side="right" aria-hidden>
-          ATOMLAB
-        </span>
+        {!embedMode ? (
+          <>
+            <span className={tbStyles.frameTag} data-side="left" aria-hidden>
+              PSХЭ·118
+            </span>
+            <span className={tbStyles.frameTag} data-side="right" aria-hidden>
+              ATOMLAB
+            </span>
+          </>
+        ) : null}
         <div className={tbStyles.gridScan} aria-hidden />
 
         <div className={tbStyles.gridTextbook}>
@@ -314,16 +327,18 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
 
           {mainElements.map((el) => cell(el))}
 
-          <div
-            className={tbStyles.centerLawPanel}
-            style={{
-              gridColumn: `${CENTER_PANEL_COL_START} / ${CENTER_PANEL_COL_END}`,
-              gridRow: CENTER_PANEL_ROW,
-            }}
-          >
-            <span className={tbStyles.centerLawTitle}>{t('periodic.lawTitle')}</span>
-            <span className={tbStyles.centerLawText}>{t('periodic.intro1')}</span>
-          </div>
+          {!embedMode ? (
+            <div
+              className={tbStyles.centerLawPanel}
+              style={{
+                gridColumn: `${CENTER_PANEL_COL_START} / ${CENTER_PANEL_COL_END}`,
+                gridRow: CENTER_PANEL_ROW,
+              }}
+            >
+              <span className={tbStyles.centerLawTitle}>{t('periodic.lawTitle')}</span>
+              <span className={tbStyles.centerLawText}>{t('periodic.intro1')}</span>
+            </div>
+          ) : null}
 
           <div
             className={tbStyles.triadVoidPanel}
@@ -377,55 +392,59 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
             {ACTINIDES.map((el) => cell(el))}
           </div>
 
-          <div
-            className={tbStyles.categoryFilterRow}
-            style={{ gridRow: LEGEND_GRID_ROW }}
-            aria-label={t('periodic.categoryFilterAria')}
-          >
-            <div className={tbStyles.categoryFilterHead}>
-              <span className={tbStyles.categoryFilterTitle}>{t('periodic.categoryFilterTitle')}</span>
-              {categoryFilter ? (
-                <button type="button" className={tbStyles.categoryFilterClear} onClick={clearCategory}>
-                  {t('periodic.categoryFilterClear')}
-                </button>
-              ) : (
-                <span className={tbStyles.categoryFilterHint}>{t('periodic.categoryFilterHint')}</span>
-              )}
-            </div>
-            <div className={tbStyles.categoryFilterList}>
-              {ELEMENT_CATEGORY_ORDER.map((id) => {
-                const active = categoryFilter === id
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    className={`${tbStyles.categoryFilterBtn} ${active ? tbStyles.categoryFilterBtnActive : ''}`}
-                    aria-pressed={active}
-                    onClick={() => toggleCategory(id)}
-                  >
-                    {t(CATEGORY_I18N[id])}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div
-            className={tbStyles.legendRow}
-            style={{ gridRow: LEGEND_GRID_ROW + 1 }}
-            aria-label={t('periodic.legendAria')}
-          >
-            {(['tbS', 'tbP', 'tbD', 'tbF', 'tbNoble'] as const).map((key) => (
-              <div key={key} className={tbStyles.legendTextbookItem}>
-                <span className={`${tbStyles.legendTextbookSwatch} ${tbStyles[key]}`} />
-                <span>
-                  {key === 'tbNoble'
-                    ? t('periodic.legendNoble')
-                    : t(`periodic.legend${key.slice(2)}` as 'periodic.legendS')}
-                </span>
+          {!embedMode ? (
+            <>
+              <div
+                className={tbStyles.categoryFilterRow}
+                style={{ gridRow: LEGEND_GRID_ROW }}
+                aria-label={t('periodic.categoryFilterAria')}
+              >
+                <div className={tbStyles.categoryFilterHead}>
+                  <span className={tbStyles.categoryFilterTitle}>{t('periodic.categoryFilterTitle')}</span>
+                  {categoryFilter ? (
+                    <button type="button" className={tbStyles.categoryFilterClear} onClick={clearCategory}>
+                      {t('periodic.categoryFilterClear')}
+                    </button>
+                  ) : (
+                    <span className={tbStyles.categoryFilterHint}>{t('periodic.categoryFilterHint')}</span>
+                  )}
+                </div>
+                <div className={tbStyles.categoryFilterList}>
+                  {ELEMENT_CATEGORY_ORDER.map((id) => {
+                    const active = categoryFilter === id
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        className={`${tbStyles.categoryFilterBtn} ${active ? tbStyles.categoryFilterBtnActive : ''}`}
+                        aria-pressed={active}
+                        onClick={() => toggleCategory(id)}
+                      >
+                        {t(CATEGORY_I18N[id])}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            ))}
-          </div>
+
+              <div
+                className={tbStyles.legendRow}
+                style={{ gridRow: LEGEND_GRID_ROW + 1 }}
+                aria-label={t('periodic.legendAria')}
+              >
+                {(['tbS', 'tbP', 'tbD', 'tbF', 'tbNoble'] as const).map((key) => (
+                  <div key={key} className={tbStyles.legendTextbookItem}>
+                    <span className={`${tbStyles.legendTextbookSwatch} ${tbStyles[key]}`} />
+                    <span>
+                      {key === 'tbNoble'
+                        ? t('periodic.legendNoble')
+                        : t(`periodic.legend${key.slice(2)}` as 'periodic.legendS')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : null}
         </div>
       </div>
     </div>

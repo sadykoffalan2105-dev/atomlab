@@ -38,18 +38,18 @@ export function ElementSidePanel({
     if (!wrap) return
 
     const compute = () => {
-      const aw = Math.max(1, wrap.clientWidth - 8)
-      const ah = Math.max(1, wrap.clientHeight - 8)
-      const rows = 16.5
-      const gapPx = 2
-      const sideFr = 0.48
+      const aw = Math.max(1, wrap.clientWidth - 4)
+      const ah = Math.max(1, wrap.clientHeight - 4)
+      const rows = layoutVariant === 'labCompact' ? 13.6 : 16.5
+      const gapPx = layoutVariant === 'labCompact' ? 1 : 2
+      const sideFr = 0.42
       const elemCols = 10
       const totalFr = sideFr + elemCols
       const usableW = Math.max(1, aw - gapPx * 14)
       const elemColW = (usableW * elemCols) / totalFr / elemCols
-      const hByHeight = (ah - gapPx * 16) / rows
-      const cell = Math.min(hByHeight, elemColW * 1.06)
-      const maxCell = layoutVariant === 'labCompact' ? 52 : 72
+      const hByHeight = (ah - gapPx * (rows + 1)) / rows
+      const cell = Math.min(hByHeight, elemColW * 1.12)
+      const maxCell = layoutVariant === 'labCompact' ? 58 : 72
       const cellPx = Math.max(22, Math.min(cell, maxCell))
       wrap.style.setProperty('--pt-cell-h', `${cellPx}px`)
     }
@@ -60,22 +60,26 @@ export function ElementSidePanel({
     return () => ro.disconnect()
   }, [open, layoutVariant])
 
+  const isLabCompact = layoutVariant === 'labCompact'
+
   return (
     <>
-      <div
-        className={styles.backdrop}
-        data-open={open}
-        onClick={onClose}
-        aria-hidden={!open}
-      />
+      {!isLabCompact ? (
+        <div
+          className={styles.backdrop}
+          data-open={open}
+          onClick={onClose}
+          aria-hidden={!open}
+        />
+      ) : null}
       <div
         ref={panelRef}
         role="dialog"
-        aria-modal="true"
-        aria-labelledby={layoutVariant === 'labCompact' ? undefined : PT_LAB_TITLE_ID}
-        aria-label={layoutVariant === 'labCompact' ? t('element.ptAriaLab') : undefined}
+        aria-modal={!isLabCompact}
+        aria-labelledby={isLabCompact ? undefined : PT_LAB_TITLE_ID}
+        aria-label={isLabCompact ? t('element.ptAriaLab') : undefined}
         className={
-          layoutVariant === 'labCompact'
+          isLabCompact
             ? `${styles.panel} ${styles.panelModal} ${styles.panelModalLabCompact}`
             : `${styles.panel} ${styles.panelModal}`
         }
@@ -83,37 +87,35 @@ export function ElementSidePanel({
         data-layout={layoutVariant}
         aria-hidden={!open}
       >
-        {layoutVariant === 'modal' ? <div className={styles.orbitDecor} aria-hidden /> : null}
-        {layoutVariant === 'modal' ? <div className={styles.stars} aria-hidden /> : null}
-        <header
-          className={
-            layoutVariant === 'labCompact'
-              ? `${styles.headModal} ${styles.headModalLabCompact}`
-              : styles.headModal
-          }
-        >
-          {layoutVariant === 'modal' ? (
+        {!isLabCompact ? <div className={styles.orbitDecor} aria-hidden /> : null}
+        {!isLabCompact ? <div className={styles.stars} aria-hidden /> : null}
+        {isLabCompact ? (
+          <button
+            type="button"
+            className={`${styles.close} ${styles.closeLabCompact}`}
+            onClick={onClose}
+            aria-label={t('element.closeTable')}
+          >
+            ×
+          </button>
+        ) : (
+          <header className={styles.headModal}>
             <div>
               <h2 id={PT_LAB_TITLE_ID} className={styles.headTitle}>
                 {t('element.ptTitle')}
               </h2>
               <p className={styles.hintSub}>{t('element.ptHint')}</p>
             </div>
-          ) : (
-            <div className={styles.headLabCompactMeta}>
-              <h2 className={styles.headTitleLabCompact}>{t('element.ptTitle')}</h2>
-              <p className={styles.hintSubLabCompact}>{t('element.ptHint')}</p>
-            </div>
-          )}
-          <button type="button" className={styles.close} onClick={onClose} aria-label={t('element.closeTable')}>
-            ×
-          </button>
-        </header>
+            <button type="button" className={styles.close} onClick={onClose} aria-label={t('element.closeTable')}>
+              ×
+            </button>
+          </header>
+        )}
 
         <div
           ref={tableWrapRef}
           className={
-            layoutVariant === 'labCompact'
+            isLabCompact
               ? `${styles.tableWrap} ${styles.tableWrapLabCompact} ${styles.tableWrapTextbook}`
               : `${styles.tableWrap} ${styles.tableWrapTextbook}`
           }
