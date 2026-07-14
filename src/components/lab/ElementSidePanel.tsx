@@ -42,18 +42,19 @@ export function ElementSidePanel({
       const bodyRows = 13
       const chromePx = isLabCompact ? 44 : 52
       const gapPx = 3
-      const sideFr = 0.2
+      // 8 групп + 2 колонки триады VIII (Fe/Co/Ni…) — как в школьной сетке.
+      const sideFr = 0.18
       const elemCols = 10
       const totalFr = sideFr + elemCols
       const usableW = Math.max(1, aw - gapPx * 12)
       const elemColW = (usableW * elemCols) / totalFr / elemCols
-      // Сначала влезают все ряды (включая актиноиды), потом ограничиваем шириной.
+      // Влезают все ряды в высоту; ширина колонки даёт более «квадратные» ячейки.
       const hByHeight = (ah - chromePx - gapPx * (bodyRows + 3)) / bodyRows
-      const byWidth = elemColW * 0.88
-      const maxCell = isLabCompact ? 50 : 56
-      const cellPx = Math.max(22, Math.min(hByHeight, byWidth, maxCell))
+      const byWidth = elemColW * 0.92
+      const maxCell = isLabCompact ? 48 : 54
+      const cellPx = Math.max(20, Math.min(hByHeight, byWidth, maxCell))
       wrap.style.setProperty('--pt-cell-h', `${cellPx}px`)
-      wrap.style.setProperty('--pt-cell-w', `${Math.max(cellPx * 1.12, elemColW)}px`)
+      wrap.style.setProperty('--pt-cell-w', `${Math.max(cellPx * 1.1, elemColW)}px`)
     }
 
     compute()

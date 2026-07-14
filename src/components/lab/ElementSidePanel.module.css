@@ -58,17 +58,17 @@
   pointer-events: auto;
 }
 
-/* Края таблицы = линия «Неорганика» / «Синтез» (0.75rem), весь ядерный блок влезает */
+/* Края по красным меткам: левый край «Неорганика» → до начала «Синтез» */
 .panelOpenCenter {
-  left: 0.75rem;
-  right: 0.75rem;
-  top: 3.35rem;
-  bottom: 0.85rem;
+  left: var(--lab-pt-left, 0.75rem);
+  right: var(--lab-pt-right, 8.5rem);
+  top: var(--lab-pt-top, 3.35rem);
+  bottom: 0.75rem;
   width: auto;
   max-width: none;
   height: auto;
   max-height: none;
-  transform: scale(0.985);
+  transform: scale(0.988);
   transform-origin: center center;
 }
 
@@ -77,15 +77,15 @@
 }
 
 .panelOpenCompact {
-  left: 0.75rem;
-  right: 0.75rem;
+  left: var(--lab-pt-left, 0.75rem);
+  right: var(--lab-pt-right, 8.5rem);
   top: auto;
   bottom: calc(8px + min(34vh, 320px) + 6px);
   width: auto;
   max-width: none;
-  height: min(56vh, 720px);
-  max-height: min(56vh, 720px);
-  transform: scale(0.985);
+  height: min(54vh, 700px);
+  max-height: min(54vh, 700px);
+  transform: scale(0.988);
   transform-origin: center bottom;
 }
 
@@ -113,22 +113,23 @@
 
 .closeFloat {
   position: absolute;
-  top: 0.1rem;
-  right: 0.15rem;
+  top: 0.05rem;
+  left: 0.1rem;
+  right: auto;
   z-index: 8;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 1.7rem;
+  height: 1.7rem;
   padding: 0;
   margin: 0;
   border-radius: 999px;
   border: 1px solid rgba(140, 170, 220, 0.28);
   background: rgba(6, 10, 20, 0.62);
   color: rgba(210, 220, 245, 0.92);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   line-height: 1;
   cursor: pointer;
   transition:
@@ -729,17 +730,12 @@
   }
 
   .panelOpenCenter {
-    left: 0.45rem;
-    right: 0.45rem;
-    top: 3.1rem;
-    bottom: 0.55rem;
+    bottom: 0.5rem;
   }
 
   .panelOpenCompact {
-    left: 0.45rem;
-    right: 0.45rem;
-    height: min(48dvh, 520px);
-    max-height: min(48dvh, 520px);
+    height: min(46dvh, 500px);
+    max-height: min(46dvh, 500px);
     bottom: calc(6px + min(42dvh, 300px) + 4px);
   }
 }

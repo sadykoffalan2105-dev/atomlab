@@ -5,13 +5,17 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  /* Fallback до измерения HUD; живые значения пишутся в --lab-pt-* */
+  --lab-pt-left: 0.75rem;
+  --lab-pt-right: 8.5rem;
+  --lab-pt-top: 3.35rem;
 }
 
 .domainBar {
   position: absolute;
   top: 0.55rem;
   left: 0.75rem;
-  z-index: 6;
+  z-index: 54;
   pointer-events: auto;
 }
 
@@ -282,7 +286,7 @@
   position: absolute;
   right: 0.556rem;
   top: 0.9rem;
-  z-index: 48;
+  z-index: 54;
   padding: 0.784rem 1.47rem;
   border-radius: 12px;
   border: 1px solid rgba(181, 107, 255, 0.45);

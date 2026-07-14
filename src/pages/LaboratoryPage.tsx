@@ -113,9 +113,45 @@ export function LaboratoryPage() {
   const synthesisRunGuardRef = useRef(createSynthesisRunGuard())
   const forceLiteFxRef = useRef(false)
   const canvasWrapRef = useRef<HTMLDivElement | null>(null)
+  const labWrapRef = useRef<HTMLDivElement | null>(null)
+  const domainBarRef = useRef<HTMLDivElement | null>(null)
+  const synthButtonRef = useRef<HTMLButtonElement | null>(null)
   const [labCanvasKey] = useState(0)
   const [reactorSessionKey, setReactorSessionKey] = useState(0)
   useCanvasSizeGuard(canvasWrapRef)
+
+  /** Границы таблицы = левый край «Неорганика» и левый край «Синтез». */
+  useLayoutEffect(() => {
+    const wrap = labWrapRef.current
+    const domain = domainBarRef.current
+    const synth = synthButtonRef.current
+    if (!wrap) return
+
+    const syncHudRails = () => {
+      const vw = window.innerWidth
+      const domainLeft = domain?.getBoundingClientRect().left ?? 12
+      const synthLeft = synth?.getBoundingClientRect().left ?? vw - 140
+      const gap = 10
+      const left = Math.max(8, Math.round(domainLeft))
+      const right = Math.max(8, Math.round(vw - synthLeft + gap))
+      wrap.style.setProperty('--lab-pt-left', `${left}px`)
+      wrap.style.setProperty('--lab-pt-right', `${right}px`)
+      const domainBottom = domain?.getBoundingClientRect().bottom ?? 48
+      const headerOffset = Math.round(domainBottom + 10)
+      wrap.style.setProperty('--lab-pt-top', `${headerOffset}px`)
+    }
+
+    syncHudRails()
+    const ro = new ResizeObserver(syncHudRails)
+    ro.observe(wrap)
+    if (domain) ro.observe(domain)
+    if (synth) ro.observe(synth)
+    window.addEventListener('resize', syncHudRails)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', syncHudRails)
+    }
+  }, [])
 
   const [reactorMessage, setReactorMessage] = useState<string | null>(null)
   const [pendingGenEq, setPendingGenEq] = useState(false)
@@ -732,8 +768,12 @@ export function LaboratoryPage() {
   }, [productCompound, canRunSynthesis])
 
   return (
-    <div className={styles.wrap} data-lab-synthesis-view={laboratorySynthesisView}>
-      <div className={styles.domainBar}>
+    <div
+      ref={labWrapRef}
+      className={styles.wrap}
+      data-lab-synthesis-view={laboratorySynthesisView}
+    >
+      <div ref={domainBarRef} className={styles.domainBar}>
         <LabDomainTabs active="inorganic" />
       </div>
       <div
@@ -834,6 +874,7 @@ export function LaboratoryPage() {
         />
 
         <button
+          ref={synthButtonRef}
           type="button"
           className={`${styles.synthButton} ${reactorOpen ? styles.synthButtonActive : ''}`}
           onClick={toggleReactor}
