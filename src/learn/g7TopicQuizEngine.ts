@@ -1,4 +1,6 @@
+import type { AppLocale } from '../i18n/types'
 import { getSectionQuizPool } from './sectionQuizBank'
+import { localizeTopicQuiz } from './topicQuizLocale'
 import type { TopicQuizItem } from './topicQuizTypes'
 
 function shuffleWith<T>(items: T[], rand: () => number): T[] {
@@ -10,15 +12,24 @@ function shuffleWith<T>(items: T[], rand: () => number): T[] {
   return arr
 }
 
-/** Перемешивает варианты ответа — убирает «самый длинный = правильный». */
+/**
+ * Перемешивает варианты синхронно во всех языках, чтобы correctIndex
+ * оставался верным после localizeTopicQuiz.
+ */
 export function shuffleQuizChoices(item: TopicQuizItem, rand: () => number = Math.random): TopicQuizItem {
-  const correct = item.choices[item.correctIndex] ?? item.choices[0]!
-  const shuffled = shuffleWith([...item.choices], rand)
-  const correctIndex = shuffled.indexOf(correct) as 0 | 1 | 2 | 3
+  const order = [0, 1, 2, 3]
+  const shuffledOrder = shuffleWith(order, rand) as [number, number, number, number]
+  const pick = <T,>(arr: readonly T[] | undefined): [T, T, T, T] | undefined => {
+    if (!arr || arr.length !== 4) return undefined
+    return [arr[shuffledOrder[0]]!, arr[shuffledOrder[1]]!, arr[shuffledOrder[2]]!, arr[shuffledOrder[3]]!]
+  }
+  const correctPos = shuffledOrder.indexOf(item.correctIndex) as 0 | 1 | 2 | 3
   return {
     ...item,
-    choices: shuffled as [string, string, string, string],
-    correctIndex: correctIndex >= 0 ? correctIndex : 0,
+    choices: pick(item.choices)!,
+    choicesEn: pick(item.choicesEn),
+    choicesUz: pick(item.choicesUz),
+    correctIndex: correctPos >= 0 ? correctPos : 0,
   }
 }
 
@@ -37,12 +48,13 @@ export function pickRandomTopicQuiz(
   chapterId: string,
   sectionId: string,
   excludeKeys: ReadonlySet<string> = new Set(),
+  locale: AppLocale = 'ru',
 ): TopicQuizItem {
   const pool = getTopicQuizPool(gradeId, chapterId, sectionId)
   const available = pool.filter((q) => !excludeKeys.has(quizDedupeKey(q)))
   const list = available.length > 0 ? available : pool
   const idx = Math.floor(Math.random() * list.length)
-  return shuffleQuizChoices(list[idx]!)
+  return localizeTopicQuiz(shuffleQuizChoices(list[idx]!), locale)
 }
 
 export function topicQuizPoolSize(gradeId: string, chapterId: string, sectionId: string): number {

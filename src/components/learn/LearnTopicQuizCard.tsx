@@ -256,7 +256,7 @@ function TopicQuizBody({
 }
 
 export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false }: Props) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const poolSize = topicQuizPoolSize(grade.id, chapter.id, section.id)
   const [revealed, setRevealed] = useState(autoReveal)
   const [question, setQuestion] = useState<TopicQuizItem | null>(null)
@@ -267,7 +267,7 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
   const [showDescription, setShowDescription] = useState(false)
 
   const drawQuestion = useCallback(() => {
-    const next = pickRandomTopicQuiz(grade.id, chapter.id, section.id, seen)
+    const next = pickRandomTopicQuiz(grade.id, chapter.id, section.id, seen, locale)
     setQuestion(next)
     setPick(null)
     setRevealed(true)
@@ -279,14 +279,14 @@ export function LearnTopicQuizCard({ grade, chapter, section, autoReveal = false
       if (n.size >= poolSize * 0.8) return new Set([quizDedupeKey(next)])
       return n
     })
-  }, [chapter.id, grade.id, poolSize, section.id, seen])
+  }, [chapter.id, grade.id, locale, poolSize, section.id, seen])
 
   useEffect(() => {
     setSeen(new Set())
     setQuestion(null)
     setPick(null)
     setRevealed(autoReveal)
-  }, [grade.id, chapter.id, section.id, autoReveal])
+  }, [grade.id, chapter.id, section.id, autoReveal, locale])
 
   useEffect(() => {
     if (autoReveal && !question) drawQuestion()

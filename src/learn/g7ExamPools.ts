@@ -1,4 +1,5 @@
 import { learnSectionPathKey } from '../data/learnFgosMatrix'
+import type { AppLocale } from '../i18n/types'
 import { getTopicQuizPool, shuffleQuizChoices } from './g7TopicQuizEngine'
 import {
   getLogicalMcqForChapter,
@@ -6,6 +7,7 @@ import {
   getWrittenQuestionsForChapter,
 } from './g7LogicalQuestions'
 import { G7_ORAL_EXAM_STARTER } from './g7OralExamStarter'
+import { localizeTopicQuiz } from './topicQuizLocale'
 import type { OralExamItem, TopicQuizItem, WrittenExamItem } from './topicQuizTypes'
 import type { StudentTestLength } from './studentTestScoring'
 
@@ -32,7 +34,7 @@ export function getMcqExamPool(gradeId: string, chapterId: string, sectionId: st
 /** Логические MCQ главы — отдельный пул для экзамена по главе. */
 export function getChapterLogicalMcqPool(gradeId: string, chapterId: string): TopicQuizItem[] {
   if (gradeId !== 'g7') return []
-  return getLogicalMcqForChapter(chapterNum(chapterId)).map((q) => shuffleQuizChoices(q))
+  return getLogicalMcqForChapter(chapterNum(chapterId))
 }
 
 export function getWrittenExamPool(gradeId: string, chapterId: string): WrittenExamItem[] {
@@ -53,12 +55,13 @@ export function pickMcqExamQuestions(
   chapterId: string,
   sectionId: string,
   count: StudentTestLength,
+  locale: AppLocale = 'ru',
 ): TopicQuizItem[] {
   const pool = getMcqExamPool(gradeId, chapterId, sectionId)
   const logical = getChapterLogicalMcqPool(gradeId, chapterId)
   const merged = shuffle([...pool, ...logical])
   if (merged.length === 0) return []
-  const shuffled = merged.map((q) => shuffleQuizChoices(q))
+  const shuffled = merged.map((q) => localizeTopicQuiz(shuffleQuizChoices(q), locale))
   return shuffled.slice(0, Math.min(count, shuffled.length))
 }
 

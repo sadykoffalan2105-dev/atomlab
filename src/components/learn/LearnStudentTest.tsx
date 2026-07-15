@@ -70,10 +70,10 @@ function StudentTestOverlay({
   variant,
   onClose,
 }: Props & { length: StudentTestLength; onClose: () => void }) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const [phase, setPhase] = useState<Phase>('running')
   const [questions, setQuestions] = useState<TopicQuizItem[]>(() =>
-    pickStudentTestQuestions(grade.id, chapter.id, section.id, length),
+    pickStudentTestQuestions(grade.id, chapter.id, section.id, length, locale),
   )
   const [index, setIndex] = useState(0)
   const [correctFlags, setCorrectFlags] = useState<boolean[]>([])
@@ -145,7 +145,7 @@ function StudentTestOverlay({
   }, [correctFlags, index, saveResult, total, wrongIds])
 
   const restart = useCallback(() => {
-    setQuestions(pickStudentTestQuestions(grade.id, chapter.id, section.id, length))
+    setQuestions(pickStudentTestQuestions(grade.id, chapter.id, section.id, length, locale))
     setIndex(0)
     setCorrectFlags([])
     setWrongIds([])
@@ -153,7 +153,7 @@ function StudentTestOverlay({
     setShowNext(false)
     setSaved(false)
     setPhase('running')
-  }, [grade.id, chapter.id, section.id, length])
+  }, [grade.id, chapter.id, section.id, length, locale])
 
   const gradeClass =
     gradeKey === 'excellent'

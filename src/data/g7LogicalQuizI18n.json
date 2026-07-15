@@ -1,0 +1,1154 @@
+{
+  "logic-c1-05": {
+    "questionEn": "Can air be considered a pure substance? Justify it logically.",
+    "questionUz": "Havoni toza modda deb hisoblash mumkinmi? Buni mantiqiy asoslab bering.",
+    "choicesEn": [
+      "Yes, it's transparent",
+      "No, it's a mixture of gases with variable composition",
+      "Yes, if there is no dust",
+      "No, because he's invisible"
+    ],
+    "choicesUz": [
+      "Ha, shaffof",
+      "Yo'q, bu o'zgaruvchan tarkibli gazlar aralashmasi",
+      "Ha, agar chang bo'lmasa",
+      "Yo'q, chunki u ko'rinmas"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c1-01": {
+    "questionEn": "The student states: “Ice and water are different substances because they have different colors.” What is the error in reasoning?",
+    "questionUz": "Talaba shunday deydi: \"Muz va suv har xil moddalardir, chunki ular turli xil ranglarga ega\". Fikrlashda xato nima?",
+    "choicesEn": [
+      "Color is the main characteristic of a substance",
+      "Ice and water are one substance in different states of aggregation",
+      "Water cannot be solid",
+      "Ice is always white, which means it's a mixture"
+    ],
+    "choicesUz": [
+      "Rang - moddaning asosiy xususiyati",
+      "Muz va suv turli agregat holatlaridagi bitta moddadir",
+      "Suv qattiq bo'lishi mumkin emas",
+      "Muz har doim oq rangda bo'ladi, ya'ni bu aralashma"
+    ],
+    "explanationEn": "The state of aggregation changes without the formation of a new substance - this is a physical phenomenon.",
+    "explanationUz": "Agregatsiya holati yangi modda hosil bo'lmasdan o'zgaradi - bu fizik hodisa."
+  },
+  "logic-c1-03": {
+    "questionEn": "Why is a solution of salt in water a homogeneous mixture?",
+    "questionUz": "Nima uchun tuzning suvdagi eritmasi bir jinsli aralashma hisoblanadi?",
+    "choicesEn": [
+      "Salt crystals are visible to the naked eye",
+      "The composition is the same at any point in the solution",
+      "Salt and water are one substance",
+      "The mixture is always cloudy"
+    ],
+    "choicesUz": [
+      "Tuz kristallari yalang'och ko'z bilan ko'rinadi",
+      "Tarkibi eritmaning istalgan nuqtasida bir xil bo'ladi",
+      "Tuz va suv bitta moddadir",
+      "Aralash har doim bulutli bo'ladi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c1-04": {
+    "questionEn": "How to distinguish a pure substance from a mixture if there is no laboratory?",
+    "questionUz": "Laboratoriya bo'lmasa, sof moddani aralashmadan qanday ajratish mumkin?",
+    "choicesEn": [
+      "By color - pure are always colorless",
+      "By constant boiling or melting point",
+      "By smell - the mixtures do not smell",
+      "Mixtures are always heavier than water"
+    ],
+    "choicesUz": [
+      "Rangi bo'yicha - toza har doim rangsiz",
+      "Doimiy qaynash yoki erish nuqtasi bilan",
+      "Hidi bo'yicha - aralashmalar hidlamaydi",
+      "Aralashmalar har doim suvdan og'irroqdir"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c1-02": {
+    "questionEn": "If, when heated, a substance does not change its composition, but becomes gaseous, it...",
+    "questionUz": "Agar qizdirilganda modda o‘z tarkibini o‘zgartirmay, gazsimon bo‘lib qolsa, u...",
+    "choicesEn": [
+      "Chemical reaction",
+      "Physical phenomenon",
+      "Decomposition",
+      "burning"
+    ],
+    "choicesUz": [
+      "Kimyoviy reaksiya",
+      "Jismoniy hodisa",
+      "Parchalanish",
+      "yonish"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c1-06": {
+    "questionEn": "By distilling water, distilled water is obtained. What is the conclusion about the composition of the source water?",
+    "questionUz": "Suvni distillash orqali distillangan suv olinadi. Manba suvining tarkibi haqida qanday xulosa bor?",
+    "choicesEn": [
+      "Water was a mixture that was physically separated",
+      "A new substance has formed",
+      "Water decomposed into elements",
+      "Distillation is only a chemical method"
+    ],
+    "choicesUz": [
+      "Suv jismoniy jihatdan ajratilgan aralashma edi",
+      "Yangi modda hosil bo'ldi",
+      "Suv elementlarga parchalanadi",
+      "Distillash faqat kimyoviy usuldir"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c1-07": {
+    "questionEn": "If during the experiment a precipitate appears and gas is released, and the original substances disappear, this is most likely...",
+    "questionUz": "Agar tajriba davomida cho'kma paydo bo'lsa va gaz ajralib chiqsa va dastlabki moddalar yo'qolsa, bu katta ehtimol ...",
+    "choicesEn": [
+      "Physical mixing",
+      "Chemical transformation",
+      "Filtration",
+      "Evaporation"
+    ],
+    "choicesUz": [
+      "Jismoniy aralashtirish",
+      "Kimyoviy transformatsiya",
+      "Filtrlash",
+      "Bug'lanish"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c2-01": {
+    "questionEn": "The atom is electrically neutral. What follows from this?",
+    "questionUz": "Atom elektr jihatdan neytraldir. Bundan nima kelib chiqadi?",
+    "choicesEn": [
+      "The number of protons is equal to the number of electrons",
+      "There are no neutrons in an atom",
+      "All atoms are the same",
+      "Electrons do not participate in the structure"
+    ],
+    "choicesUz": [
+      "Protonlar soni elektronlar soniga teng",
+      "Atomda neytronlar mavjud emas",
+      "Barcha atomlar bir xil",
+      "Elektronlar strukturada qatnashmaydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c1-08": {
+    "questionEn": "Why does chemistry study transformations, and not just properties?",
+    "questionUz": "Nima uchun kimyo nafaqat xususiyatlarni, balki o'zgarishlarni o'rganadi?",
+    "choicesEn": [
+      "Because properties don't matter",
+      "To understand how to obtain the necessary substances and what happens in nature",
+      "Because physics prohibits studying properties",
+      "Just for remembering formulas"
+    ],
+    "choicesUz": [
+      "Chunki xususiyatlar muhim emas",
+      "Kerakli moddalarni qanday olish kerakligini va tabiatda nima sodir bo'lishini tushunish",
+      "Chunki fizika xususiyatlarni o'rganishni taqiqlaydi",
+      "Faqat formulalarni eslab qolish uchun"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c2-02": {
+    "questionEn": "Two atoms with the same number of protons but different numbers of neutrons are...",
+    "questionUz": "Protonlari bir xil, lekin neytronlari har xil bo'lgan ikkita atom ...",
+    "choicesEn": [
+      "Miscellaneous elements",
+      "Isotopes of one element",
+      "Ions",
+      "Molecules"
+    ],
+    "choicesUz": [
+      "Turli xil elementlar",
+      "Bir elementning izotoplari",
+      "Ionlar",
+      "Molekulalar"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c2-03": {
+    "questionEn": "If an atom loses an electron, it becomes...",
+    "questionUz": "Agar atom elektronni yo'qotsa, u ...",
+    "choicesEn": [
+      "Negative ion",
+      "Positive ion",
+      "Neutral",
+      "Isotope"
+    ],
+    "choicesUz": [
+      "Salbiy ion",
+      "Ijobiy ion",
+      "Neytral",
+      "Izotop"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c2-04": {
+    "questionEn": "Why are chemical properties determined by the electron shell and not by the entire nucleus?",
+    "questionUz": "Nima uchun kimyoviy xossalar butun yadro tomonidan emas, balki elektron qobiq tomonidan aniqlanadi?",
+    "choicesEn": [
+      "Because reactions involve mostly electrons",
+      "The core is always destroyed",
+      "Neutrons set the color",
+      "Protons have no effect on the element"
+    ],
+    "choicesUz": [
+      "Chunki reaksiyalarda asosan elektronlar ishtirok etadi",
+      "Yadro har doim buziladi",
+      "Neytronlar rangni belgilaydi",
+      "Protonlar elementga ta'sir qilmaydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c2-05": {
+    "questionEn": "A molecule is...",
+    "questionUz": "Molekula bu...",
+    "choicesEn": [
+      "Any particle of matter",
+      "The smallest particle of a substance that retains its chemical properties",
+      "Diatomic gas only",
+      "Mixture of atoms"
+    ],
+    "choicesUz": [
+      "Har qanday modda zarrasi",
+      "Kimyoviy xossalarini saqlaydigan moddaning eng kichik zarrasi",
+      "Faqat ikki atomli gaz",
+      "Atomlar aralashmasi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c2-07": {
+    "questionEn": "Why does relative atomic mass have no units in the table?",
+    "questionUz": "Nima uchun nisbiy atom massasi jadvalda birliklarga ega emas?",
+    "choicesEn": [
+      "This is a comparison with the mass of a carbon-12 atom taken to be 12",
+      "Because atoms have no mass",
+      "Forgot to specify units",
+      "Only for gases"
+    ],
+    "choicesUz": [
+      "Bu 12 deb qabul qilingan uglerod-12 atomining massasi bilan taqqoslash",
+      "Chunki atomlarning massasi yo'q",
+      "Birliklarni belgilashni unutdingiz",
+      "Faqat gazlar uchun"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c2-06": {
+    "questionEn": "If there are two hydrogen atoms in the formula H₂O, what is logically true?",
+    "questionUz": "Agar H₂O formulasida ikkita vodorod atomi bo'lsa, mantiqan nima to'g'ri?",
+    "choicesEn": [
+      "The molecule consists of three atoms",
+      "Water - element",
+      "Hydrogen and oxygen - mixture",
+      "The mass of water is equal to the mass of one atom"
+    ],
+    "choicesUz": [
+      "Molekula uchta atomdan iborat",
+      "Suv - element",
+      "Vodorod va kislorod aralashmasi",
+      "Suvning massasi bitta atomning massasiga teng"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c2-08": {
+    "questionEn": "What conclusion can be drawn from the fact that a chemical element is a type of atom with the same Z?",
+    "questionUz": "Kimyoviy element bir xil Z ga ega bo'lgan atom turi ekanligidan qanday xulosa chiqarish mumkin?",
+    "choicesEn": [
+      "Different isotopes - one element",
+      "Different numbers of neutrons change an element",
+      "Ions - new elements",
+      "Molecules - elements"
+    ],
+    "choicesUz": [
+      "Turli xil izotoplar - bitta element",
+      "Har xil miqdordagi neytronlar elementni o'zgartiradi",
+      "Ionlar - yangi elementlar",
+      "Molekulalar - elementlar"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c3-01": {
+    "questionEn": "Elements of the same group have similar properties. Why?",
+    "questionUz": "Xuddi shu guruhning elementlari o'xshash xususiyatlarga ega. Nega?",
+    "choicesEn": [
+      "They have the same number of electrons in the outer level",
+      "They have the same mass",
+      "They are close in mass",
+      "They have the same number of neutrons"
+    ],
+    "choicesUz": [
+      "Ularning tashqi sathida bir xil miqdordagi elektronlar mavjud",
+      "Ular bir xil massaga ega",
+      "Ular massaga yaqin",
+      "Ularda bir xil miqdordagi neytronlar mavjud"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c3-02": {
+    "questionEn": "The period is...",
+    "questionUz": "Davr - bu ...",
+    "choicesEn": [
+      "Table Column",
+      "Horizontal row of elements with the same number of electron layers",
+      "Group of metals",
+      "Alphabetical list"
+    ],
+    "choicesUz": [
+      "Jadval ustuni",
+      "Bir xil miqdordagi elektron qatlamli elementlarning gorizontal qatori",
+      "Metalllar guruhi",
+      "Alfavit ro'yxati"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c3-03": {
+    "questionEn": "From left to right in a period, metallicity is usually...",
+    "questionUz": "Bir davr ichida chapdan o'ngga metalllik odatda...",
+    "choicesEn": [
+      "Growing",
+      "Decreases",
+      "Doesn't change",
+      "Disappears completely"
+    ],
+    "choicesUz": [
+      "O'sish",
+      "Kamayadi",
+      "O'zgarmaydi",
+      "To'liq yo'qoladi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c3-04": {
+    "questionEn": "Why are noble gases inactive?",
+    "questionUz": "Nega asil gazlar faol emas?",
+    "choicesEn": [
+      "Outer layer full (octet)",
+      "They're too heavy",
+      "Do not have a core",
+      "Always liquid"
+    ],
+    "choicesUz": [
+      "Tashqi qatlam to'liq (okteta)",
+      "Ular juda og'ir",
+      "Yadroga ega bo'lmang",
+      "Har doim suyuqlik"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c3-05": {
+    "questionEn": "If an element is in group I, what ion charge does it most often form?",
+    "questionUz": "Agar element I guruhda bo'lsa, u ko'pincha qanday ion zaryadini hosil qiladi?",
+    "choicesEn": [
+      "+1",
+      "−1",
+      "+2",
+      "0"
+    ],
+    "choicesUz": [
+      "+1",
+      "−1",
+      "+2",
+      "0"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c3-06": {
+    "questionEn": "How can you tell from the table that sodium is more active than magnesium?",
+    "questionUz": "Jadvaldan natriy magniyga qaraganda faolroq ekanligini qanday aniqlash mumkin?",
+    "choicesEn": [
+      "Sodium is to the left and higher in its group of metals",
+      "Magnesium is heavier",
+      "Sodium is a non-metal",
+      "By color in the table"
+    ],
+    "choicesUz": [
+      "Natriy o'zining metallar guruhida chapda va undan yuqori",
+      "Magniy og'irroq",
+      "Natriy nometalldir",
+      "Jadvaldagi rang bo'yicha"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c3-07": {
+    "questionEn": "Why is the formula CO₂ and not CO for a stable carbon molecule with oxygen?",
+    "questionUz": "Nima uchun kislorodli barqaror uglerod molekulasi uchun CO₂ formulasi CO emas?",
+    "choicesEn": [
+      "Atoms tend towards a more stable electronic configuration (octet)",
+      "Carbon is always divalent",
+      "There is always twice as much oxygen",
+      "It's easier to write this way"
+    ],
+    "choicesUz": [
+      "Atomlar yanada barqaror elektron konfiguratsiyaga (okteta) intiladi.",
+      "Uglerod har doim ikki valentli",
+      "Har doim ikki barobar ko'p kislorod mavjud",
+      "Bu tarzda yozish osonroq"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c4-01": {
+    "questionEn": "The composition of the air is approximately constant. Why is combustion possible only in the presence of oxygen?",
+    "questionUz": "Havoning tarkibi taxminan doimiydir. Nima uchun yonish faqat kislorod ishtirokida mumkin?",
+    "choicesEn": [
+      "Oxygen is an oxidizing agent that supports combustion",
+      "Nitrogen burns better",
+      "The water in the air is burning",
+      "Oxygen is an inert gas"
+    ],
+    "choicesUz": [
+      "Kislorod yonishni qo'llab-quvvatlaydigan oksidlovchi moddadir",
+      "Azot yaxshiroq yonadi",
+      "Havodagi suv yonmoqda",
+      "Kislorod inert gazdir"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c4-02": {
+    "questionEn": "Oxygen supports combustion, but does not burn itself. How to explain this?",
+    "questionUz": "Kislorod yonishni qo'llab-quvvatlaydi, lekin o'zini yoqmaydi. Buni qanday tushuntirish mumkin?",
+    "choicesEn": [
+      "It accepts electrons from other substances (oxidizes)",
+      "It's too light",
+      "He's a mixture",
+      "He doesn't react with anything"
+    ],
+    "choicesUz": [
+      "Boshqa moddalardan elektronlarni qabul qiladi (oksidlanadi)",
+      "Bu juda yengil",
+      "U aralash",
+      "U hech narsaga munosabat bildirmaydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c3-08": {
+    "questionEn": "Metal + non-metal more often gives...",
+    "questionUz": "Metall + metall bo'lmaganlar ko'pincha ...",
+    "choicesEn": [
+      "Covalent molecule",
+      "Ionic compound",
+      "Mixture",
+      "Metal solution"
+    ],
+    "choicesUz": [
+      "Kovalent molekula",
+      "Ion birikmasi",
+      "Aralash",
+      "Metall eritma"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c4-03": {
+    "questionEn": "Why does a smoldering match in a vessel with oxygen flash brighter?",
+    "questionUz": "Nima uchun kislorodli idishda yonayotgan gugurt yorqinroq yonadi?",
+    "choicesEn": [
+      "The oxidizing agent concentration is higher than in air",
+      "Oxygen cools",
+      "There is no nitrogen in oxygen, which means there is no reaction",
+      "The match changes composition"
+    ],
+    "choicesUz": [
+      "Oksidlovchi moddaning konsentratsiyasi havodagidan yuqori",
+      "Kislorod soviydi",
+      "Kislorodda azot yo'q, ya'ni reaktsiya yo'q",
+      "Uchrashuv tarkibni o'zgartiradi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c4-04": {
+    "questionEn": "Oxides are compounds with oxygen. CO is an oxide, but it is toxic and not acidic. Conclusion?",
+    "questionUz": "Oksidlar kislorod bilan birikmalardir. CO - oksid, lekin u zaharli va kislotali emas. Xulosa?",
+    "choicesEn": [
+      "Not all oxides have the same properties",
+      "CO is not a chemical compound",
+      "Oxygen occurs only in acids",
+      "Oxides do not contain oxygen"
+    ],
+    "choicesUz": [
+      "Barcha oksidlar bir xil xususiyatlarga ega emas",
+      "CO kimyoviy birikma emas",
+      "Kislorod faqat kislotalarda bo'ladi",
+      "Oksidlar kislorodni o'z ichiga olmaydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c4-05": {
+    "questionEn": "How are breathing and combustion logically related?",
+    "questionUz": "Nafas olish va yonish mantiqiy jihatdan qanday bog'liq?",
+    "choicesEn": [
+      "Both - oxidation of organic substances with the participation of oxygen",
+      "It's the same phenomenon",
+      "Breathing does not require oxygen",
+      "Combustion - only in the laboratory"
+    ],
+    "choicesUz": [
+      "Ikkalasi ham - kislorod ishtirokida organik moddalarning oksidlanishi",
+      "Xuddi shu hodisa",
+      "Nafas olish kislorodga muhtoj emas",
+      "Yonish - faqat laboratoriyada"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c4-06": {
+    "questionEn": "Why don't laboratories apply oxygen to organic matter without caution?",
+    "questionUz": "Nega laboratoriyalar kislorodni organik moddalarga ehtiyotkorliksiz qo'llamaydi?",
+    "choicesEn": [
+      "Possible extreme uncontrolled heat and fire",
+      "Oxygen dissolves glass",
+      "Organics do not react",
+      "Oxygen is heavier than air and does not rise"
+    ],
+    "choicesUz": [
+      "Mumkin bo'lgan haddan tashqari nazoratsiz issiqlik va yong'in",
+      "Kislorod shishani eritadi",
+      "Organik moddalar reaksiyaga kirishmaydi",
+      "Kislorod havodan og'irroq va ko'tarilmaydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c4-07": {
+    "questionEn": "If CO₂ is formed when burning coal, the mass of products compared to coal and oxygen...",
+    "questionUz": "Agar ko'mir yoqilganda CO₂ hosil bo'lsa, mahsulot massasi ko'mir va kislorodga nisbatan ...",
+    "choicesEn": [
+      "Equal to the sum of the masses of the starting substances (law of conservation of mass)",
+      "Always less",
+      "Not associated with reagents",
+      "Doubles for gases only"
+    ],
+    "choicesUz": [
+      "Boshlang'ich moddalarning massalari yig'indisiga teng (massaning saqlanish qonuni)",
+      "Har doim kamroq",
+      "Reaktivlar bilan bog'liq emas",
+      "Faqat gazlar uchun ikki barobar"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c4-08": {
+    "questionEn": "Why is oxygen produced by decomposing hydrogen peroxide with a catalyst?",
+    "questionUz": "Nima uchun kislorod vodorod periksni katalizator bilan parchalash natijasida hosil bo'ladi?",
+    "choicesEn": [
+      "O₂ gas is released from solution - a convenient laboratory method",
+      "Because the water is burning",
+      "The catalyst is oxygen",
+      "Without a catalyst, hydrogen is formed"
+    ],
+    "choicesUz": [
+      "Eritmadan O₂ gaz chiqariladi - qulay laboratoriya usuli",
+      "Chunki suv yonmoqda",
+      "Katalizator kisloroddir",
+      "Katalizatorsiz vodorod hosil bo'ladi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c5-01": {
+    "questionEn": "Hydrogen is the lightest gas. How does this affect his behavior in the air?",
+    "questionUz": "Vodorod eng yengil gazdir. Bu uning havodagi xatti-harakatlariga qanday ta'sir qiladi?",
+    "choicesEn": [
+      "It quickly evaporates upward",
+      "He settles on the floor",
+      "He doesn't move",
+      "It dissolves completely in nitrogen"
+    ],
+    "choicesUz": [
+      "U tezda yuqoriga qarab bug'lanadi",
+      "U erga o'tiradi",
+      "U qimirlamaydi",
+      "Azotda butunlay eriydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c5-02": {
+    "questionEn": "Why is hydrogen dangerous when mixed with air?",
+    "questionUz": "Nima uchun vodorod havo bilan aralashganda xavfli?",
+    "choicesEn": [
+      "Forms an explosive mixture",
+      "He's poisonous",
+      "It doesn't burn",
+      "He only puts out the fire"
+    ],
+    "choicesUz": [
+      "Portlovchi aralashma hosil qiladi",
+      "U zaharli",
+      "U yonmaydi",
+      "U faqat olovni o'chiradi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c5-05": {
+    "questionEn": "Why can't hydrochloric acid be produced by the action of H₂SO₄ on NaCl in an open test tube?",
+    "questionUz": "Nima uchun ochiq probirkada NaCl ga H₂SO₄ ta'sirida xlorid kislota hosil bo'lmaydi?",
+    "choicesEn": [
+      "HCl is a volatile acid that leaves the mixture, shifting the equilibrium",
+      "NaCl does not react",
+      "Only water is formed",
+      "Need oxygen"
+    ],
+    "choicesUz": [
+      "HCl uchuvchi kislota bo'lib, aralashmani tark etadi va muvozanatni o'zgartiradi",
+      "NaCl reaksiyaga kirishmaydi",
+      "Faqat suv hosil bo'ladi",
+      "Kislorod kerak"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c5-03": {
+    "questionEn": "Acid + metal (active) → salt + ... What is the logical substitute?",
+    "questionUz": "Kislota + metall (faol) → tuz + ... Mantiqiy o'rinbosar nima?",
+    "choicesEn": [
+      "Water",
+      "Hydrogen",
+      "Oxygen",
+      "Carbon"
+    ],
+    "choicesUz": [
+      "Suv",
+      "Vodorod",
+      "Kislorod",
+      "Uglerod"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c5-04": {
+    "questionEn": "The indicator changes color in an acidic environment. So acids...",
+    "questionUz": "Ko'rsatkich kislotali muhitda rangini o'zgartiradi. Shunday qilib, kislotalar ...",
+    "choicesEn": [
+      "Contains H⁺ ions in aqueous solution",
+      "Always colorless",
+      "Do not dissolve",
+      "Does not react with metals"
+    ],
+    "choicesUz": [
+      "Suvli eritmada H⁺ ionlari mavjud",
+      "Har doim rangsiz",
+      "Eritib yubormang",
+      "Metalllar bilan reaksiyaga kirishmaydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c5-07": {
+    "questionEn": "Salt + water in solution gives ions. Why can a solution conduct current?",
+    "questionUz": "Eritmadagi tuz + suv ionlarni beradi. Nima uchun eritma oqim o'tkaza oladi?",
+    "choicesEn": [
+      "Mobile charged particles transfer charge",
+      "Salt molecules are neutral and move",
+      "Water loses oxygen",
+      "Only metals conduct"
+    ],
+    "choicesUz": [
+      "Mobil zaryadlangan zarralar zaryadini o'tkazish",
+      "Tuz molekulalari neytral va harakatlanadi",
+      "Suv kislorodni yo'qotadi",
+      "Faqat metallar o'tkazadi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c5-06": {
+    "questionEn": "Substitution in the activity series: if the metal is to the right, it...",
+    "questionUz": "Faoliyat seriyasida almashtirish: agar metall o'ngda bo'lsa, u ...",
+    "choicesEn": [
+      "Will not displace hydrogen from dilute acid",
+      "Always dissolves faster than sodium",
+      "Does not conduct current",
+      "Always liquid"
+    ],
+    "choicesUz": [
+      "Vodorodni suyultirilgan kislotadan siqib chiqarmaydi",
+      "Har doim natriydan tezroq eriydi",
+      "Tokni o'tkazmaydi",
+      "Har doim suyuqlik"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c5-08": {
+    "questionEn": "Acid + base → salt + water. This is a generalization for...",
+    "questionUz": "Kislota + asos → tuz + suv. Bu umumlashtirish ...",
+    "choicesEn": [
+      "burning",
+      "Neutralization",
+      "Electrolysis",
+      "Filtration"
+    ],
+    "choicesUz": [
+      "yonish",
+      "Neytrallashtirish",
+      "Elektroliz",
+      "Filtrlash"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c6-02": {
+    "questionEn": "The electrolysis of water produces H₂ and O₂. What conclusion about the composition of water?",
+    "questionUz": "Suvni elektroliz qilish natijasida H₂ va O₂ hosil bo'ladi. Suvning tarkibi haqida qanday xulosaga keldingiz?",
+    "choicesEn": [
+      "Water is a compound of hydrogen and oxygen",
+      "Water - element",
+      "Water is a mixture of gases",
+      "Electrolysis does not change the composition"
+    ],
+    "choicesUz": [
+      "Suv vodorod va kislorod birikmasidir",
+      "Suv - element",
+      "Suv gazlar aralashmasidir",
+      "Elektroliz tarkibini o'zgartirmaydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c6-01": {
+    "questionEn": "Water is a solvent for many substances. Why is this important for living organisms?",
+    "questionUz": "Suv ko'plab moddalar uchun erituvchidir. Nega bu tirik organizmlar uchun muhim?",
+    "choicesEn": [
+      "Processes take place in it with the participation of dissolved substances",
+      "Water does not participate in reactions",
+      "Only salts dissolve",
+      "Water is a mixture of gases"
+    ],
+    "choicesUz": [
+      "Unda erigan moddalar ishtirokida jarayonlar sodir bo'ladi",
+      "Suv reaksiyalarda qatnashmaydi",
+      "Faqat tuzlar eriydi",
+      "Suv gazlar aralashmasidir"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c6-03": {
+    "questionEn": "Solid NaOH is stored in a jar with a sealed stopper. Why?",
+    "questionUz": "Qattiq NaOH yopilgan tiqinli bankada saqlanadi. Nega?",
+    "choicesEn": [
+      "Hygroscopic - absorbs moisture from the air",
+      "Evaporates like gas",
+      "Decomposes into gold",
+      "Does not react with water"
+    ],
+    "choicesUz": [
+      "Gigroskopik - havodan namlikni yutadi",
+      "Gaz kabi bug'lanadi",
+      "Oltinga parchalanadi",
+      "Suv bilan reaksiyaga kirishmaydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c6-04": {
+    "questionEn": "The lye solution feels “soapy.” Logically this is connected with...",
+    "questionUz": "Suyuq eritma \"sovunli\" his qiladi. Mantiqan bu bilan bog'liq ...",
+    "choicesEn": [
+      "OH⁻ ions that increase pH",
+      "Presence of acid",
+      "Absence of ions",
+      "Only with color"
+    ],
+    "choicesUz": [
+      "PH ni oshiradigan OH⁻ ionlari",
+      "Kislota mavjudligi",
+      "Ionlarning yo'qligi",
+      "Faqat rang bilan"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c6-05": {
+    "questionEn": "Why is pure water rare in nature?",
+    "questionUz": "Nega tabiatda toza suv kam uchraydi?",
+    "choicesEn": [
+      "This is a good solvent - dissolves gases and salts",
+      "It decomposes instantly",
+      "She's always hard",
+      "Does not form solutions"
+    ],
+    "choicesUz": [
+      "Bu yaxshi hal qiluvchi - gazlar va tuzlarni eritadi",
+      "U bir zumda parchalanadi",
+      "U har doim qiyin",
+      "Yechimlarni hosil qilmaydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c6-07": {
+    "questionEn": "A qualitative reaction is...",
+    "questionUz": "Sifatli reaktsiya - bu ...",
+    "choicesEn": [
+      "An experiment proving the presence of a specific ion or substance",
+      "Mass measurement",
+      "Counting atoms",
+      "Only burning"
+    ],
+    "choicesUz": [
+      "Muayyan ion yoki moddaning mavjudligini isbotlovchi tajriba",
+      "Massani o'lchash",
+      "Atomlarni hisoblash",
+      "Faqat yonish"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c6-08": {
+    "questionEn": "Hard water contains Ca²⁺ and Mg²⁺ salts. Why doesn't it lather well with soap?",
+    "questionUz": "Qattiq suvda Ca²⁺ va Mg²⁺ tuzlari mavjud. Nega u sovun bilan yaxshi ko'piklanmaydi?",
+    "choicesEn": [
+      "Insoluble salts of fatty acids are formed",
+      "Calcium is a gas",
+      "Soap dissolves iron",
+      "The water becomes acidic"
+    ],
+    "choicesUz": [
+      "Yog 'kislotalarining erimaydigan tuzlari hosil bo'ladi",
+      "Kaltsiy gazdir",
+      "Sovun temirni eritadi",
+      "Suv kislotali bo'ladi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c6-06": {
+    "questionEn": "If a precipitate forms when mixing solutions,...",
+    "questionUz": "Eritmalarni aralashtirishda cho‘kma hosil bo‘lsa,...",
+    "choicesEn": [
+      "Exchange reaction with a slightly soluble product",
+      "Physical mixing only",
+      "Evaporation",
+      "Ice crystallization"
+    ],
+    "choicesUz": [
+      "Bir oz eriydigan mahsulot bilan almashinish reaktsiyasi",
+      "Faqat jismoniy aralashtirish",
+      "Bug'lanish",
+      "Muzning kristallanishi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c7-01": {
+    "questionEn": "Carbon dioxide is needed by plants for photosynthesis. Where does it come from in nature?",
+    "questionUz": "Karbonat angidrid o'simliklarga fotosintez uchun kerak. U tabiatda qayerdan keladi?",
+    "choicesEn": [
+      "Breathing, combustion, some reactions in industry",
+      "Only from volcanoes",
+      "Only from water",
+      "Does not form naturally"
+    ],
+    "choicesUz": [
+      "Nafas olish, yonish, sanoatda ba'zi reaktsiyalar",
+      "Faqat vulqonlardan",
+      "Faqat suvdan",
+      "Tabiiy shakllanmaydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c7-02": {
+    "questionEn": "Why does CO₂ extinguish fire, but O₂ supports it?",
+    "questionUz": "Nima uchun CO₂ olovni o'chiradi, lekin O₂ uni qo'llab-quvvatlaydi?",
+    "choicesEn": [
+      "CO₂ does not support combustion and displaces O₂",
+      "CO₂ burns brighter",
+      "O₂ - inert",
+      "They are the same"
+    ],
+    "choicesUz": [
+      "CO₂ yonishni qo'llab-quvvatlamaydi va O₂ ni almashtiradi",
+      "CO₂ yorqinroq yonadi",
+      "O₂ - inert",
+      "Ular bir xil"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c7-04": {
+    "questionEn": "Carbohydrates provide energy to the body. Glucose belongs to...",
+    "questionUz": "Uglevodlar tanani energiya bilan ta'minlaydi. Glyukoza quyidagilarga tegishli ...",
+    "choicesEn": [
+      "Squirrels",
+      "Carbohydrates",
+      "Fats",
+      "Minerals"
+    ],
+    "choicesUz": [
+      "Sincaplar",
+      "Uglevodlar",
+      "Yog'lar",
+      "Minerallar"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c7-03": {
+    "questionEn": "Proteins are polymers of amino acids. What is logically correct?",
+    "questionUz": "Proteinlar aminokislotalarning polimerlaridir. Mantiqan to'g'ri nima?",
+    "choicesEn": [
+      "Large molecules made up of repeating units",
+      "Mixture of metals",
+      "Only inorganic",
+      "Does not contain nitrogen"
+    ],
+    "choicesUz": [
+      "Takrorlanuvchi birliklardan tashkil topgan yirik molekulalar",
+      "Metalllarning aralashmasi",
+      "Faqat noorganik",
+      "Tarkibida azot yo'q"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c7-05": {
+    "questionEn": "Why is ethyl alcohol dangerous to health?",
+    "questionUz": "Nima uchun etil spirti sog'liq uchun xavfli?",
+    "choicesEn": [
+      "Toxic, affects the nervous system and liver",
+      "Because it's colorless",
+      "Does not dissolve in water",
+      "Is metal"
+    ],
+    "choicesUz": [
+      "Toksik, asab tizimi va jigarga ta'sir qiladi",
+      "Chunki u rangsiz",
+      "Suvda erimaydi",
+      "Metalldir"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c7-06": {
+    "questionEn": "Traces of elements in the body are needed, although they are few. An example of logic?",
+    "questionUz": "Tanadagi elementlarning izlari kam bo'lsa-da, kerak. Mantiq misoli?",
+    "choicesEn": [
+      "Fe in hemoglobin - without it O₂ cannot be transferred",
+      "Fe replaces calcium in bones completely",
+      "Microelements do not participate in reactions",
+      "Only carbohydrates are important"
+    ],
+    "choicesUz": [
+      "Gemoglobindagi Fe - usiz O₂ o'tkazilmaydi",
+      "Fe suyaklardagi kaltsiyni to'liq almashtiradi",
+      "Mikroelementlar reaksiyalarda qatnashmaydi",
+      "Faqat uglevodlar muhim ahamiyatga ega"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c7-07": {
+    "questionEn": "Organic matter mainly contains...",
+    "questionUz": "Organik moddalar asosan ...",
+    "choicesEn": [
+      "C and often H, O, N",
+      "Fe only",
+      "NaCl only",
+      "Noble gases"
+    ],
+    "choicesUz": [
+      "C va ko'pincha H, O, N",
+      "Faqat Fe",
+      "Faqat NaCl",
+      "Nodir gazlar"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c7-08": {
+    "questionEn": "Digestion is basically...",
+    "questionUz": "Ovqat hazm qilish asosan ...",
+    "choicesEn": [
+      "Chemical decomposition of complex substances into simpler ones",
+      "Physical mixing",
+      "Electrolysis",
+      "Crystallization"
+    ],
+    "choicesUz": [
+      "Murakkab moddalarning oddiyroq moddalarga kimyoviy parchalanishi",
+      "Jismoniy aralashtirish",
+      "Elektroliz",
+      "Kristallanish"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c8-01": {
+    "questionEn": "Coal and oil are fossils. Why are they called non-renewable?",
+    "questionUz": "Ko'mir va neft qazilma hisoblanadi. Nima uchun ular qayta tiklanmaydigan deb ataladi?",
+    "choicesEn": [
+      "It takes millions of years to form and is used up faster than it is replenished.",
+      "They don't burn",
+      "They can be grown in a year",
+      "These are pure metals"
+    ],
+    "choicesUz": [
+      "Uning shakllanishi uchun millionlab yillar kerak bo'ladi va u to'ldirilganidan ko'ra tezroq sarflanadi.",
+      "Ular yonmaydi",
+      "Ular bir yil ichida o'stirilishi mumkin",
+      "Bu toza metallar"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c8-02": {
+    "questionEn": "Burning coal produces CO₂ and other products. Ecological conclusion?",
+    "questionUz": "Ko'mirni yoqish CO₂ va boshqa mahsulotlarni ishlab chiqaradi. Ekologik xulosa?",
+    "choicesEn": [
+      "Rising emissions affect the atmosphere and climate",
+      "Coal does not affect the air",
+      "CO₂ disappears completely",
+      "Coal combustion is a physical phenomenon"
+    ],
+    "choicesUz": [
+      "Ko'tarilgan chiqindilar atmosfera va iqlimga ta'sir qiladi",
+      "Ko'mir havoga ta'sir qilmaydi",
+      "CO₂ butunlay yo'qoladi",
+      "Ko'mirning yonishi fizik hodisadir"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c8-03": {
+    "questionEn": "Metals are obtained from ores by reduction. Logically, ore is...",
+    "questionUz": "Rudalardan metallar qaytarilish yoʻli bilan olinadi. Mantiqan, ruda ...",
+    "choicesEn": [
+      "Source of metal compounds from which pure metal is obtained",
+      "Finished metal",
+      "Mixture of gases",
+      "Only organic"
+    ],
+    "choicesUz": [
+      "Sof metall olinadigan metall birikmalarining manbai",
+      "Tayyor metall",
+      "Gazlar aralashmasi",
+      "Faqat organik"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c8-04": {
+    "questionEn": "Why is aluminum stable in air, although active?",
+    "questionUz": "Nima uchun alyuminiy faol bo'lsa-da, havoda barqaror?",
+    "choicesEn": [
+      "A dense oxide film is formed, protecting the metal",
+      "Does not react with oxygen",
+      "Too heavy",
+      "Is a noble gas"
+    ],
+    "choicesUz": [
+      "Metallni himoya qiluvchi zich oksidli plyonka hosil bo'ladi",
+      "Kislorod bilan reaksiyaga kirishmaydi",
+      "Juda og'ir",
+      "Nonob gazdir"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c8-05": {
+    "questionEn": "Alloys (for example, steel) are created to...",
+    "questionUz": "Qotishmalar (masalan, po'lat) ...",
+    "choicesEn": [
+      "Improve properties compared to pure metal",
+      "Degrade strength",
+      "Make metal gas",
+      "Eliminate carbon"
+    ],
+    "choicesUz": [
+      "Sof metallga nisbatan xususiyatlarni yaxshilang",
+      "Kuchni pasaytirish",
+      "Metall gaz hosil qiling",
+      "Uglerodni yo'q qiling"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c8-06": {
+    "questionEn": "Plastics are organic polymers. Problem after use...",
+    "questionUz": "Plastmassalar organik polimerlardir. Foydalanishdan keyin muammo ...",
+    "choicesEn": [
+      "They take a long time to decompose and pollute the environment.",
+      "Disappear instantly",
+      "Turn into metal",
+      "They don't light up"
+    ],
+    "choicesUz": [
+      "Ularning parchalanishi va atrof-muhitni ifloslanishi uzoq vaqt talab etadi.",
+      "Bir zumda yo'qoling",
+      "Metallga aylantiring",
+      "Ular yonmaydi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c8-08": {
+    "questionEn": "If little metal is obtained from one ton of ore, the ore...",
+    "questionUz": "Bir tonna rudadan oz miqdorda metall olinsa, ruda...",
+    "choicesEn": [
+      "Poor in content of useful components",
+      "Rich",
+      "Does not contain metal",
+      "Is a gas"
+    ],
+    "choicesUz": [
+      "Foydali komponentlar tarkibida yomon",
+      "Boy",
+      "Metallni o'z ichiga olmaydi",
+      "Gaz hisoblanadi"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  },
+  "logic-c8-07": {
+    "questionEn": "Sustainable use of resources includes...",
+    "questionUz": "Resurslardan barqaror foydalanish quyidagilarni o'z ichiga oladi ...",
+    "choicesEn": [
+      "Recycling, saving, searching for renewable sources",
+      "Only more loot",
+      "Burning all waste",
+      "Refusal of metals"
+    ],
+    "choicesUz": [
+      "Qayta ishlash, tejash, qayta tiklanadigan manbalarni qidirish",
+      "Faqat ko'proq o'lja",
+      "Barcha chiqindilarni yoqish",
+      "Metalllardan voz kechish"
+    ],
+    "explanationEn": "",
+    "explanationUz": ""
+  }
+}

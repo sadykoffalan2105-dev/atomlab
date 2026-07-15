@@ -1,4 +1,8 @@
+import logicalQuizI18n from '../data/g7LogicalQuizI18n.json'
+import { mergeQuizI18n, type QuizI18nEntry } from './topicQuizLocale'
 import type { OralExamItem, TopicQuizItem, WrittenExamItem } from './topicQuizTypes'
+
+const LOGICAL_I18N = logicalQuizI18n as Record<string, QuizI18nEntry>
 
 type LogicalMcqTemplate = {
   templateKey: string
@@ -1062,9 +1066,10 @@ const ORAL_BY_CHAPTER: Record<number, Omit<OralExamItem, 'id' | 'kind'>[]> = {
 
 export function getLogicalMcqForChapter(chapterNum: number): TopicQuizItem[] {
   const templates = LOGICAL_MCQ_BY_CHAPTER[chapterNum] ?? []
-  return templates.map((t, i) =>
-    mcq(chapterNum, i + 1, t.templateKey, t.question, t.choices, t.correctIndex, t.explanation),
-  )
+  return templates.map((t, i) => {
+    const item = mcq(chapterNum, i + 1, t.templateKey, t.question, t.choices, t.correctIndex, t.explanation)
+    return mergeQuizI18n(item, LOGICAL_I18N[t.templateKey] ?? LOGICAL_I18N[item.id])
+  })
 }
 
 export function getAllLogicalMcq(): TopicQuizItem[] {

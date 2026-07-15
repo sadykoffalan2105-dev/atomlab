@@ -2,6 +2,7 @@ export type TopicQuizItem = {
   id: string
   /** Ключ шаблона для подсказок учителя (без выдачи ответа) */
   templateKey?: string
+  /** Канонический текст (русский) */
   question: string
   choices: readonly [string, string, string, string]
   correctIndex: 0 | 1 | 2 | 3
@@ -9,6 +10,15 @@ export type TopicQuizItem = {
   explanation?: string
   /** Развёрнутое описание темы вопроса */
   description?: string
+  /** EN/UZ — тот же порядок вариантов, что у `choices` (correctIndex не меняется) */
+  questionEn?: string
+  questionUz?: string
+  choicesEn?: readonly [string, string, string, string]
+  choicesUz?: readonly [string, string, string, string]
+  explanationEn?: string
+  explanationUz?: string
+  descriptionEn?: string
+  descriptionUz?: string
   /** Ключ SVG-иллюстрации (TopicQuizVisual) */
   visualId?: string
   /** Логический / развивающий вопрос */
