@@ -149,6 +149,38 @@ export function LaboratoryPage() {
     }
   }, [])
 
+  /** Высота реактора → нижний зазор таблицы, чтобы сетка не уезжала за верх экрана. */
+  useLayoutEffect(() => {
+    const wrap = labWrapRef.current
+    if (!wrap) return
+    if (!reactorOpen) {
+      wrap.style.removeProperty('--lab-reactor-clearance')
+      return
+    }
+
+    let lastClearance = Number.NaN
+    const syncReactorClearance = () => {
+      const reactor = wrap.querySelector<HTMLElement>('[data-lab-reactor]')
+      const h = reactor?.getBoundingClientRect().height ?? 0
+      if (h < 80) return
+      const clearance = Math.round(h + 10)
+      if (clearance === lastClearance) return
+      lastClearance = clearance
+      wrap.style.setProperty('--lab-reactor-clearance', `${clearance}px`)
+    }
+
+    syncReactorClearance()
+    const ro = new ResizeObserver(syncReactorClearance)
+    const reactor = wrap.querySelector<HTMLElement>('[data-lab-reactor]')
+    if (reactor) ro.observe(reactor)
+    window.addEventListener('resize', syncReactorClearance)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', syncReactorClearance)
+      wrap.style.removeProperty('--lab-reactor-clearance')
+    }
+  }, [reactorOpen])
+
   const [reactorMessage, setReactorMessage] = useState<string | null>(null)
   const [pendingGenEq, setPendingGenEq] = useState(false)
   const [learnEquationScope, setLearnEquationScope] = useState<LearnEquationScope | null>(null)

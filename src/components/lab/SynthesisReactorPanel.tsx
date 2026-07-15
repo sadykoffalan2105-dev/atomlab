@@ -139,6 +139,7 @@ export function SynthesisReactorPanel({
     <div
       className={dimInCatalogHeroView ? `${panelStyles.reactor} ${panelStyles.reactorDimHero}` : panelStyles.reactor}
       data-open={open}
+      data-lab-reactor=""
       data-dim-hero={dimInCatalogHeroView && open}
       role="region"
       aria-label={t('reactor.ariaRegion')}

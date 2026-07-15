@@ -69,15 +69,18 @@
   transform: none;
 }
 
+/* Над реактором: top+bottom заполняют доступную высоту.
+   Нельзя класть --lab-pt-inset в bottom — это ширина правого HUD,
+   из‑за неё таблица уезжала за верхний край экрана. */
 .panelOpenCompact {
   left: var(--lab-pt-inset, 8.5rem);
   right: var(--lab-pt-inset, 8.5rem);
-  top: auto;
-  bottom: calc(var(--lab-pt-inset, 8.5rem) + min(34vh, 320px) + 6px);
+  top: max(0.55rem, env(safe-area-inset-top, 0px));
+  bottom: var(--lab-reactor-clearance, calc(min(56vh, 540px) + 10px));
   width: auto;
   max-width: none;
-  height: min(52vh, 680px);
-  max-height: min(52vh, 680px);
+  height: auto;
+  max-height: none;
   transform: none;
 }
 
@@ -722,7 +725,7 @@
   }
 
   .panelOpenCompact {
-    height: min(46dvh, 500px);
-    max-height: min(46dvh, 500px);
+    top: max(0.4rem, env(safe-area-inset-top, 0px));
+    bottom: var(--lab-reactor-clearance, calc(min(50dvh, 420px) + 8px));
   }
 }
