@@ -3,6 +3,7 @@ import { getReactorPreviewPolicy } from '../synthesisLagGuard'
 import type { SynthesisQualityLevel } from '../synthesisQualityLadder'
 import type { LowPowerDeviceProfile } from '../lowPowerDeviceProfile'
 import { SYNTHESIS_PERF } from '../synthesisPerfPreset'
+import { resolvePreviewHotCoeffEdit } from './previewExternalControl'
 
 export type PreviewFramePolicyInput = {
   atomCount: number
@@ -27,10 +28,13 @@ export type PreviewFramePolicy = ReactorPreviewPolicy & {
   /** Эффективный forceLite для рендера (без осцилляций). */
   effectiveForceLite: boolean
   maxInvalidateHz: number
+  /** Горячий +/- (не просто открытое превью). */
+  hotCoeffEdit: boolean
 }
 
 /**
  * Единая политика кадра превью синтеза: слабый ПК — меньше FX, атомы всегда на экране.
+ * pinEveryFrame только при реальном +/-; idle превью не платит pin+guard каждый кадр.
  */
 export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): PreviewFramePolicy {
   const {
@@ -46,11 +50,13 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
     lowPowerProfile,
   } = input
 
-  const editing = coeffEditing || coeffEditBurst || editingActive
+  const hotCoeffEdit = resolvePreviewHotCoeffEdit({ coeffEditing, coeffEditBurst })
+  /** Shell/пул держим шире; тяжёлый pin — только hot. */
+  const shellHold = editingActive || hotCoeffEdit
   const effectiveForceLite =
     forceLite || frameBudgetLite || lowPowerProfile.forceLiteReactor
-  // При edit не переключаем lite/detail — иначе remount Bohr (Cr и др.).
-  const renderForceLite = editing ? frameBudgetLite : effectiveForceLite
+  // При hot-edit не переключаем lite/detail — иначе remount Bohr (Cr и др.).
+  const renderForceLite = hotCoeffEdit ? frameBudgetLite : effectiveForceLite
 
   const base = getReactorPreviewPolicy({
     atomCount,
@@ -58,11 +64,11 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
     flightActive,
     visible: groupVisible,
     qualityLevel,
-    coeffEditBurst: editing,
+    coeffEditBurst: hotCoeffEdit,
     maxAnimatedAtoms: lowPowerProfile.maxAnimatedAtoms,
   })
 
-  const pinEveryFrame = editing && groupVisible && atomCount > 0 && !flightActive
+  const pinEveryFrame = hotCoeffEdit && groupVisible && atomCount > 0 && !flightActive
 
   return {
     ...base,
@@ -73,13 +79,19 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
       pinEveryFrame ? false : base.driftAtoms && !lowPowerProfile.disableAtomDrift,
     slowSpin:
       pinEveryFrame ? false : base.slowSpin && !lowPowerProfile.disableSlowSpin,
-    visibilityGuardEvery: pinEveryFrame ? 1 : Math.min(base.visibilityGuardEvery, 2),
-    coverageGuardEvery: pinEveryFrame ? 1 : base.coverageGuardEvery,
+    // Pin уже удерживает visible/pos — не дублируем guard каждый кадр.
+    visibilityGuardEvery: pinEveryFrame
+      ? Math.max(base.visibilityGuardEvery, 4)
+      : Math.min(base.visibilityGuardEvery, 2),
+    coverageGuardEvery: pinEveryFrame
+      ? Math.max(base.coverageGuardEvery, 4)
+      : base.coverageGuardEvery,
     pinEveryFrame,
-    lockVisualTier: editing,
-    lockPoolSize: editing,
+    lockVisualTier: hotCoeffEdit,
+    lockPoolSize: shellHold,
     effectiveForceLite: renderForceLite,
-    maxInvalidateHz: pinEveryFrame ? 60 : 60,
+    maxInvalidateHz: 60,
+    hotCoeffEdit,
   }
 }
 

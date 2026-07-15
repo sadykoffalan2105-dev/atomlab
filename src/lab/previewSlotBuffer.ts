@@ -58,8 +58,8 @@ export function resolvePreviewSlotBuffer(
       const incoming = i < indexed.length ? indexed[i] : null
       buf.slots[i] = incoming ?? (i < expectedCount ? buf.slots[i] : null) ?? null
     }
-    buf.slots.length = displayCount
-    return { slots: buf.slots.slice(0, displayCount), displayCount }
+    if (buf.slots.length > displayCount) buf.slots.length = displayCount
+    return { slots: buf.slots, displayCount }
   }
 
   if (expectedCount > buf.lastExpected) {
@@ -79,6 +79,7 @@ export function resolvePreviewSlotBuffer(
   }
 
   while (buf.slots.length < displayCount) buf.slots.push(null)
+  if (buf.slots.length > displayCount) buf.slots.length = displayCount
 
   for (let i = 0; i < displayCount; i++) {
     const incoming = i < indexed.length ? indexed[i] : null
@@ -100,5 +101,6 @@ export function resolvePreviewSlotBuffer(
     }
   }
 
-  return { slots: buf.slots.slice(0, displayCount), displayCount }
+  // Без slice: тот же массив — меньше аллокаций при каждом +/-.
+  return { slots: buf.slots, displayCount }
 }

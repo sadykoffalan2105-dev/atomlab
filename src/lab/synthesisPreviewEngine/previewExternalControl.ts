@@ -12,11 +12,22 @@ export function resolvePreviewExternalAtomControl(opts: {
   return true
 }
 
-/** Редактирование / удержание shell: burst, visualHold или синтез до отрисовки продукта. */
+/**
+ * Удержание shell/пула: превью открыто или синтез до отрисовки продукта.
+ * Это НЕ означает «горячий» pinEachFrame — см. resolvePreviewHotCoeffEdit.
+ */
 export function resolvePreviewEditingActive(opts: {
   coeffEditing: boolean
   previewOnlyMode: boolean
   synthHoldPreview: boolean
 }): boolean {
   return opts.coeffEditing || opts.previewOnlyMode || opts.synthHoldPreview
+}
+
+/** Реальный burst +/- коэффициентов — тяжёлый pin/guard только здесь. */
+export function resolvePreviewHotCoeffEdit(opts: {
+  coeffEditing: boolean
+  coeffEditBurst: boolean
+}): boolean {
+  return opts.coeffEditing || opts.coeffEditBurst
 }

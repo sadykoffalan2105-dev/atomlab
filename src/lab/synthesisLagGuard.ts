@@ -107,7 +107,8 @@ export function getReactorAtomRenderPolicy(opts: {
 
   let electronFrameSkip = Math.max(1, minElectronFrameSkip)
   const dense = atomCount > SYNTHESIS_PERF.denseAtomThreshold
-  if (coeffEditBurst) electronFrameSkip = Math.max(electronFrameSkip, 2)
+  // Burst: электроны остаются в движении, но матрицы пишутся реже — успевают за +/-.
+  if (coeffEditBurst) electronFrameSkip = Math.max(electronFrameSkip, dense || atomZ > 26 ? 3 : 2)
   else if (lite) electronFrameSkip = Math.max(electronFrameSkip, 3)
   else if (dense) electronFrameSkip = Math.max(electronFrameSkip, 2)
   else if (atomZ > 18) electronFrameSkip = Math.max(electronFrameSkip, 2)

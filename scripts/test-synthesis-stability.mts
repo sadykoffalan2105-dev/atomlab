@@ -428,7 +428,38 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     },
   })
   assert.equal(policy.pinEveryFrame, true)
-  assert.equal(policy.visibilityGuardEvery, 1)
+  assert.equal(policy.hotCoeffEdit, true)
+  // Pin держит visible; guard не обязан каждый кадр (меньше работы при быстрых +/-).
+  assert.ok(policy.visibilityGuardEvery >= 2)
+}
+
+// Idle превью (открыт реактор, без +/-) — без pinEveryFrame, электроны не троттлятся лишне.
+{
+  const idle = resolvePreviewFramePolicy({
+    atomCount: 15,
+    editingActive: true,
+    coeffEditBurst: false,
+    coeffEditing: false,
+    flightActive: false,
+    groupVisible: true,
+    forceLite: false,
+    frameBudgetLite: false,
+    lowPowerProfile: {
+      tier: 'mid',
+      isMobileSoc: false,
+      forceLiteReactor: false,
+      maxAnimatedAtoms: 48,
+      minElectronFrameSkip: 1,
+      canvasDpr: 1.5,
+      disableAtomDrift: false,
+      disableSlowSpin: false,
+      productPaintLatchFrames: 4,
+      coeffEditLayoutDebounceMs: 0,
+    },
+  })
+  assert.equal(idle.hotCoeffEdit, false)
+  assert.equal(idle.pinEveryFrame, false)
+  assert.equal(idle.lockPoolSize, true)
 }
 
 // --- merge layout slots: индексы pool = индексы слотов ---

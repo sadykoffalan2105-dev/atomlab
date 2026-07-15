@@ -170,6 +170,8 @@ export function AtomStructureModel({
     [zClamped, el?.electronConfiguration],
   )
   const nElec = useMemo(() => totalElectrons(shells), [shells])
+  /** Кэш lanes: не пересобирать орбиты каждый кадр при быстром +/-. */
+  const orbitLanes = useMemo(() => electronOrbitLanes(shells, shellMul), [shells, shellMul])
   const electronScale = useMemo(
     () => electronVisualScale(nElec, previewEmphasis || synthesisDetail),
     [nElec, previewEmphasis, synthesisDetail],
@@ -204,9 +206,8 @@ export function AtomStructureModel({
       const mesh = elecRef.current
       if (!mesh || nElec === 0) return
       let idx = 0
-      const lanes = electronOrbitLanes(shells, shellMul)
-      lanes.forEach(({ count, radius, aspect, euler, shellIndex }) => {
-        if (count <= 0) return
+      for (const { count, radius, aspect, euler, shellIndex } of orbitLanes) {
+        if (count <= 0) continue
         const [eRx, eRy, eRz] = euler
         const speed = 0.58 + shellIndex * 0.11
         for (let i = 0; i < count; i++) {
@@ -228,11 +229,11 @@ export function AtomStructureModel({
           mesh.setMatrixAt(angleIdx, dummy.matrix)
           idx++
         }
-      })
+      }
       mesh.count = nElec
       mesh.instanceMatrix.needsUpdate = true
     },
-    [dummy, nElec, shells, shellMul, electronScale],
+    [dummy, nElec, orbitLanes, electronScale],
   )
 
   useLayoutEffect(() => {

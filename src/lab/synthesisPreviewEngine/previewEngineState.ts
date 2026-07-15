@@ -40,13 +40,18 @@ export function estimateExpectedAtomCount(terms: readonly ReactorEquationTerm[])
   return count
 }
 
-/** Шаг квантизации пула слотов: при +/- длина массива слотов меняется реже. */
+/** Шаг квантизации пула слотов: при idle длина массива слотов меняется реже. */
 export const PREVIEW_POOL_STEP = 8
 export const PREVIEW_POOL_STEP_DENSE = 4
 export const PREVIEW_POOL_DENSE_THRESHOLD = 16
+/** При горячем +/- растим пул мельче — меньше cold-mount Bohr за один клик. */
+export const PREVIEW_POOL_STEP_BURST = 2
 
-export function quantizePoolSize(target: number): number {
+export function quantizePoolSize(target: number, burst = false): number {
   if (target <= 0) return 0
+  if (burst) {
+    return Math.ceil(target / PREVIEW_POOL_STEP_BURST) * PREVIEW_POOL_STEP_BURST
+  }
   const step =
     target > PREVIEW_POOL_DENSE_THRESHOLD ? PREVIEW_POOL_STEP_DENSE : PREVIEW_POOL_STEP
   return Math.ceil(target / step) * step
@@ -73,6 +78,8 @@ export function resolvePreviewEngineFrame(
     coeffEditing: boolean
     layoutPending: boolean
     lockPoolSize: boolean
+    /** Горячий +/- — меньший шаг роста пула. */
+    hotCoeffEdit?: boolean
   },
 ): PreviewEngineFrame {
   const {
@@ -84,6 +91,7 @@ export function resolvePreviewEngineFrame(
     coeffEditing,
     layoutPending,
     lockPoolSize,
+    hotCoeffEdit = false,
   } = opts
 
   const expectedAtomCount = estimateExpectedAtomCount(terms)
@@ -152,9 +160,16 @@ export function resolvePreviewEngineFrame(
 
   state.editHoldCount = editing ? buffered.displayCount : 0
 
-  const quantizedTarget = quantizePoolSize(Math.max(slotCount, expectedAtomCount, buffered.displayCount))
+  const targetSlots = Math.max(slotCount, expectedAtomCount, buffered.displayCount)
+  const quantizedTarget = quantizePoolSize(targetSlots, hotCoeffEdit)
   /** При editing сразу растим pool — слоты React готовы до displayCount. */
-  state.maxPool = Math.max(state.maxPool, quantizedTarget)
+  if (hotCoeffEdit && quantizedTarget > state.maxPool) {
+    // Не прыгаем сразу на +8 слотов — максимум +2 за кадр при burst.
+    state.maxPool = Math.min(quantizedTarget, state.maxPool + PREVIEW_POOL_STEP_BURST)
+    if (state.maxPool < targetSlots) state.maxPool = targetSlots
+  } else {
+    state.maxPool = Math.max(state.maxPool, quantizedTarget)
+  }
   if (!hasActiveTerms || terms.length === 0) {
     state.visibleLatch = false
   }
