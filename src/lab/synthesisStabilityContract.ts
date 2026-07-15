@@ -148,7 +148,7 @@ export function expectedForScenario(scenario: SynthesisStabilityScenario): Scena
       }
     case 'synth_before_product_paint':
       return {
-        previewVisible: false,
+        previewVisible: true,
         previewMounted: true,
         productMesh: true,
         productSlot: true,

@@ -20,7 +20,7 @@ const MICRO_SCALE = 0.001
 /** Кадров отрисовки на micro-scale до «готово» — быстрый сигнал prewarm. */
 const PREWARM_PAINT_FRAMES = 2
 /** Кадров полного масштаба до сигнала paint — не раньше реального GPU-кадра. */
-const VISIBLE_PAINT_FRAMES = 1
+const VISIBLE_PAINT_FRAMES = 2
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).

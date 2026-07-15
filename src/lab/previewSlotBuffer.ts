@@ -82,7 +82,22 @@ export function resolvePreviewSlotBuffer(
 
   for (let i = 0; i < displayCount; i++) {
     const incoming = i < indexed.length ? indexed[i] : null
-    if (incoming) buf.slots[i] = incoming
+    if (incoming) {
+      buf.slots[i] = incoming
+      continue
+    }
+    /** Дыры при росте коэффициентов — клон соседа, атомы не пропадают. */
+    if (!buf.slots[i]) {
+      const prev = i > 0 ? buf.slots[i - 1] : null
+      if (prev) {
+        buf.slots[i] = {
+          ...prev,
+          atomInTerm: prev.atomInTerm + 1,
+          visualIndex: (prev.visualIndex ?? prev.atomInTerm) + 1,
+          pos: [prev.pos[0] + 0.08, prev.pos[1], prev.pos[2] + 0.04],
+        }
+      }
+    }
   }
 
   return { slots: buf.slots.slice(0, displayCount), displayCount }

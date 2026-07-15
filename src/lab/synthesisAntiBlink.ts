@@ -46,8 +46,9 @@ export type SynthesisContinuityView = {
 /**
  * Инвариант:
  * - при редактировании +/- — Bohr-атомы видны;
- * - как только product slot на полном масштабе — Bohr СКРЫТ (молекула CPK без орбит);
- * - shell остаётся смонтированным скрытым, чтобы +/- не делал cold remount.
+ * - во время синтеза Bohr держится до productPainted (нет кадра без атомов);
+ * - после paint продукт владеет экраном, Bohr скрыт (shell остаётся смонтированным);
+ * - shell не unmount'ится, чтобы +/- не делал cold remount.
  */
 export function resolveSynthesisContinuity(input: SynthesisContinuityInput): SynthesisContinuityView {
   const {
@@ -144,22 +145,24 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     reactorViewOpen &&
     (showSettledHero || (stickyMatch && ((synthLive && runId > 0) || earlyGpuPrewarm)))
 
+  /**
+   * Слот может подниматься для GPU paint (за Bohr), но только после productRevealReady.
+   * forceProductSlot без ready не открывает слот — иначе атомы уходят в пустоту.
+   */
   const productSlotVisible =
     productMeshMounted &&
     (showSettledHero ||
-      (synthActive &&
-        runId > 0 &&
-        productRevealReady &&
-        (_prewarmReady || _forceProductSlot)))
+      (synthActive && runId > 0 && productRevealReady && (_prewarmReady || _forceProductSlot)))
 
   /**
-   * Как только продукт в полном слоте — Bohr уходит.
-   * Не ждём productPainted: иначе орбиты/ядра залипают поверх молекулы навсегда.
+   * Продукт владеет экраном только после реального paint.
+   * До paint Bohr остаётся — нет кадра без атомов и без молекулы.
    */
   const productOwnsScreen =
     !userEditing &&
     productSlotVisible &&
-    (showSettledHero || productPainted || (synthLive && productRevealReady))
+    productPainted &&
+    (showSettledHero || synthLive || productRevealReady)
 
   const settledWaitingPaint =
     showSettledHero && productSlotVisible && !productPainted && !userEditing
@@ -171,14 +174,14 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     reactorViewOpen &&
     (!showSettledHero || userEditing)
 
+  /** Держим Bohr до paint даже если слот уже поднимается (overlap без дыры). */
   const synthPreviewLock =
     synthLive &&
     mountReactorPreview &&
     reactorViewOpen &&
     !showSettledHero &&
     !productOwnsScreen &&
-    (keepPreviewDuringProduct || !productPainted) &&
-    !productSlotVisible
+    (keepPreviewDuringProduct || !productPainted)
 
   if (userEditing || editingEquation) {
     previewStickyRef.current = { runId: runId > 0 ? runId : -1, previewMounted: true }
@@ -205,7 +208,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
       (showSettledHero && mountReactorPreview))
 
   const productPrewarm = productMeshMounted && !productSlotVisible && !showSettledHero
-  const holdVisualOverlap = synthLive && !productOwnsScreen && !productSlotVisible
+  const holdVisualOverlap = synthLive && !productOwnsScreen
 
   const reactorEditVisible =
     mountReactorPreview &&
@@ -214,19 +217,20 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     !productOwnsScreen &&
     (!showSettledHero || userEditing)
 
-  /** Продукт на экране — Bohr never visible (даже без paint). */
+  /** До paint Bohr виден; после paint — только продукт. */
   const reactorPreviewVisible =
     reactorPreviewMounted &&
     !productOwnsScreen &&
-    !productSlotVisible &&
-    (reactorEditVisible || synthPreviewLock || userEditing)
+    (reactorEditVisible ||
+      synthPreviewLock ||
+      userEditing ||
+      (synthLive && !productPainted && !showSettledHero))
 
   const synthEmptyGuard =
     synthLive &&
     mountReactorPreview &&
     reactorViewOpen &&
     !productOwnsScreen &&
-    !productSlotVisible &&
     !productPainted &&
     !showSettledHero &&
     !reactorPreviewVisible

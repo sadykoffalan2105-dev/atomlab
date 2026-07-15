@@ -32,6 +32,16 @@ export function buildPreviewRenderSnapshot(
   return { atoms: merged.atoms, renderCount }
 }
 
+/** Stable atoms list for edit lag — оболочка не схлопывается ниже expected. */
+export function resolveStablePreviewRenderAtoms(
+  preview: readonly ReactorPreviewAtom[],
+  shell: readonly ReactorPreviewAtom[],
+  expectedCount: number,
+  editing: boolean,
+): readonly ReactorPreviewAtom[] {
+  return buildPreviewRenderSnapshot(preview, shell, expectedCount, editing).atoms
+}
+
 /** Index-aligned layout для pool[i] — null = freeze предыдущий кадр. */
 export function buildPreviewLayoutIndexed(
   slotCount: number,

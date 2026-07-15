@@ -802,7 +802,13 @@ function SceneContent({
       setForceProductSlot(true)
       setEarlyProductReveal(true)
       restorePreviewRootVisibility()
-      setProductRevealReady(true)
+      // Не ставим reveal сразу: ждём GPU, иначе Bohr скрывается до молекулы.
+      const productId = synthesis?.product?.id
+      const gpuReadyNow =
+        productId != null &&
+        (isProductGpuCompiled(productId) ||
+          ((prewarmReadyRef.current || prewarmReady) && prewarmCompoundIdRef.current === productId))
+      setProductRevealReady(Boolean(gpuReadyNow || instantSynthesis))
       return
     }
     const productId = synthesis?.product?.id
@@ -815,6 +821,7 @@ function SceneContent({
       return
     }
     if (instantSynthesis) {
+      setProductRevealReady(true)
       return
     }
   }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, instantSynthesis, synthesisRunActive, restorePreviewRootVisibility])
@@ -1260,10 +1267,8 @@ function SceneContent({
 
       {reactorViewOpen ? (
         <>
-          {reactorPreviewMounted &&
-          effectivePreviewTerms &&
-          reactorPreviewVisible &&
-          !productSlotVisibleResolved ? (
+          {/* Sticky shell: не unmount при product slot — иначе +/- после синтеза cold remount. */}
+          {reactorPreviewMounted && effectivePreviewTerms ? (
             <ReactorTermsPreview
               terms={effectivePreviewTerms}
               visible={reactorPreviewVisible}

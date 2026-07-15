@@ -67,18 +67,22 @@ export function resolveSynthesisProductSlot(
 
   if (gpuReady) {
     return {
-      visible: productSlotVisible || synthLive,
-      prewarm: false,
+      visible: productSlotVisible,
+      prewarm: !productSlotVisible && (productPrewarmActive || synthLive),
       gpuReady: true,
     }
   }
 
-  /** Синтез: показываем слот сразу, compile идёт на полном масштабе (не micro-prewarm). */
+  /**
+   * Без GPU: во время синтеза сначала micro-prewarm compile.
+   * Полный слот — только когда continuity уже разрешила productSlotVisible
+   * (productRevealReady + prewarm/force), иначе атомы успевают исчезнуть.
+   */
   if (synthLive && productSlotVisible) {
     return { visible: true, prewarm: false, gpuReady: false }
   }
 
-  if (productPrewarmActive) {
+  if (productPrewarmActive || synthLive) {
     return { visible: false, prewarm: true, gpuReady: false }
   }
 

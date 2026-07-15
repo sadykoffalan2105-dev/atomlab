@@ -152,7 +152,8 @@ export function resolvePreviewEngineFrame(
 
   state.editHoldCount = editing ? buffered.displayCount : 0
 
-  const quantizedTarget = quantizePoolSize(Math.max(slotCount, expectedAtomCount))
+  const quantizedTarget = quantizePoolSize(Math.max(slotCount, expectedAtomCount, buffered.displayCount))
+  /** При editing сразу растим pool — слоты React готовы до displayCount. */
   state.maxPool = Math.max(state.maxPool, quantizedTarget)
   if (!hasActiveTerms || terms.length === 0) {
     state.visibleLatch = false

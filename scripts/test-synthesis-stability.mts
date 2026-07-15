@@ -338,8 +338,9 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     previewStickyRef,
   })
   assert.equal(view.reactorPreviewVisible, true, 'balanced pre-run: preview visible')
-  assert.equal(view.productMeshMounted, false, 'balanced pre-run: no product GPU')
-  assert.equal(view.productPrewarm, false)
+  assert.equal(view.productMeshMounted, true, 'balanced pre-run: micro GPU prewarm may mount')
+  assert.equal(view.productSlotVisible, false, 'balanced pre-run: product slot stays off')
+  assert.equal(view.productPrewarm, true, 'balanced pre-run: only micro-prewarm')
 }
 
 // --- cleared equation: no stale preview shell ---

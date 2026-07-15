@@ -11,8 +11,8 @@ export function resolvePreviewLayoutSlotAtom(
 }
 
 /**
- * Слоты 0..slotCount-1 — legacy dense array (без null-дыр).
- * Для pool-рендера используйте mergePreviewLayoutSlotsIndexed.
+ * Слоты 0..slotCount-1 — dense array без дыр.
+ * Если слотов больше, чем atoms/shell — клонируем крайний (рост коэффициентов).
  */
 export function mergePreviewLayoutSlots(
   slotCount: number,
@@ -23,7 +23,19 @@ export function mergePreviewLayoutSlots(
   const out: ReactorPreviewAtom[] = []
   for (let i = 0; i < slotCount; i++) {
     const atom = resolvePreviewLayoutSlotAtom(i, preview, shell)
-    if (atom) out.push(atom)
+    if (atom) {
+      out.push(atom)
+      continue
+    }
+    const prev = out[out.length - 1] ?? shell[shell.length - 1] ?? preview[preview.length - 1]
+    if (prev) {
+      out.push({
+        ...prev,
+        atomInTerm: prev.atomInTerm + (i - out.length) + 1,
+        visualIndex: (prev.visualIndex ?? prev.atomInTerm) + (i - out.length) + 1,
+        pos: [prev.pos[0] + 0.08, prev.pos[1], prev.pos[2] + 0.04],
+      })
+    }
   }
   return out.length > 0 ? out : preview.length > 0 ? preview : shell
 }
