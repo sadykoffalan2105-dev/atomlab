@@ -248,7 +248,7 @@ export function OrganicLabPage() {
 
   return (
     <div className={`${labStyles.wrap} ${styles.programWrap}`}>
-      <div className={labStyles.domainBar}>
+      <div className={labStyles.rightHud}>
         <LabDomainTabs active="organic" />
       </div>
 

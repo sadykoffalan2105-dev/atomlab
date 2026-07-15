@@ -1,11 +1,13 @@
 .tabs {
   display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  padding: 0.2rem;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem;
   border-radius: 12px;
   border: 1px solid rgba(100, 140, 200, 0.28);
-  background: rgba(6, 10, 22, 0.75);
+  background: rgba(6, 10, 22, 0.78);
+  flex-shrink: 0;
 }
 
 .tab {

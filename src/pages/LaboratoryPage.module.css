@@ -9,6 +9,11 @@
   --lab-pt-inset: 8.5rem;
 }
 
+/* Резервируем высоту под порт, пока 3D в position: fixed (слабина flex-цепи) */
+.wrap[data-lab-synthesis-view='substance'] {
+  min-height: calc(100dvh - var(--app-header-h, 3.4rem));
+}
+
 .domainBar {
   position: absolute;
   top: 0.55rem;
@@ -17,9 +22,61 @@
   pointer-events: auto;
 }
 
-/* Резервируем высоту под порт, пока 3D в position: fixed (слабина flex-цепи) */
-.wrap[data-lab-synthesis-view='substance'] {
-  min-height: calc(100dvh - var(--app-header-h, 3.4rem));
+/* Неорганика | Органика + Синтез — один блок справа сверху */
+.rightHud {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.556rem;
+  z-index: 54;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+  pointer-events: auto;
+}
+
+.elementInfoDock {
+  position: absolute;
+  top: 0.444rem;
+  left: 0.444rem;
+  right: auto;
+  z-index: 50;
+  width: clamp(22rem, 38vw, 40rem);
+  max-width: min(34rem, calc(100% - 0.889rem));
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+.elementInfoCard {
+  max-height: none;
+  overflow: visible;
+  border-radius: 12px;
+  border: 1px solid rgba(61, 255, 236, 0.35);
+  background: linear-gradient(165deg, rgba(18, 22, 48, 0.95), rgba(8, 10, 26, 0.97));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 16px rgba(61, 255, 236, 0.1);
+  padding: 0.75rem 0.85rem 0.9rem;
+  color: #e8ecff;
+}
+
+.synthButton {
+  position: relative;
+  right: auto;
+  top: auto;
+  z-index: 1;
+  padding: 0.7rem 1.35rem;
+  border-radius: 12px;
+  border: 1px solid rgba(181, 107, 255, 0.45);
+  background: rgba(24, 18, 40, 0.82);
+  color: #e4c4ff;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(181, 107, 255, 0.18);
+  user-select: none;
+  flex-shrink: 0;
 }
 
 .canvasWrap {
@@ -253,49 +310,6 @@
   overflow: hidden;
   line-height: 1.35;
   text-align: left;
-}
-
-.elementInfoDock {
-  position: absolute;
-  top: 0.444rem;
-  left: 0.444rem;
-  right: auto;
-  z-index: 50;
-  width: clamp(20rem, 36vw, 38rem);
-  max-width: min(31.111rem, calc(100% - 0.889rem));
-  overflow: visible;
-  display: flex;
-  flex-direction: column;
-  pointer-events: auto;
-}
-
-.elementInfoCard {
-  max-height: none;
-  overflow: visible;
-  border-radius: 12px;
-  border: 1px solid rgba(61, 255, 236, 0.35);
-  background: linear-gradient(165deg, rgba(18, 22, 48, 0.95), rgba(8, 10, 26, 0.97));
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 16px rgba(61, 255, 236, 0.1);
-  padding: 0.6rem 0.7rem 0.75rem;
-  color: #e8ecff;
-}
-
-.synthButton {
-  position: absolute;
-  right: 0.556rem;
-  top: 0.9rem;
-  z-index: 54;
-  padding: 0.784rem 1.47rem;
-  border-radius: 12px;
-  border: 1px solid rgba(181, 107, 255, 0.45);
-  background: rgba(24, 18, 40, 0.82);
-  color: #e4c4ff;
-  font-size: 1.344rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  box-shadow: 0 0 16px rgba(181, 107, 255, 0.18);
-  user-select: none;
 }
 
 .synthButton:hover {

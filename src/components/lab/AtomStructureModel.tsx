@@ -175,9 +175,7 @@ export function AtomStructureModel({
     [nElec, previewEmphasis, synthesisDetail],
   )
   const effectiveFrameSkip = fullPreview
-    ? nElec > 80
-      ? 2
-      : 1
+    ? 1
     : Math.max(1, Math.floor(electronFrameSkip))
 
   const outerOrbitR = useMemo(() => {

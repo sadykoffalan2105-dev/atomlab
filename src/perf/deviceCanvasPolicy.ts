@@ -28,6 +28,12 @@ export function resolveLabCanvasPolicy(opts: {
     return deviceLow ? { dpr: 1, antialias: false } : { dpr: [1, 1.25], antialias: true }
   }
 
+  // Free-lab / atom inspect: стабильный DPR.
+  // Смена [1,1.25]↔1 от perfLevel при просадке FPS даёт периодическое мигание модели.
+  if (!reactorViewOpen && !substanceView && !synthesisRunActive) {
+    return deviceLow ? { dpr: 1, antialias: false } : { dpr: [1, 1.25], antialias: true }
+  }
+
   const fpsLow = perfLevel === 'low'
   const heavyScene = synthesisRunActive || substanceView
 

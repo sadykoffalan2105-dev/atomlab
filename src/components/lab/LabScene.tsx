@@ -1176,6 +1176,8 @@ function SceneContent({
     refineSynthesisDeviceTierFromFps(a.fps)
 
     if (synthesisRunActive) return
+    // Не гоняем perfLevel↔React state в free-lab: лишние ререндеры Canvas без смены DPR.
+    if (!reactorViewOpen) return
 
     const cur = perfLevelRef.current
     const LOW_ENTER_FPS = 50
@@ -1229,12 +1231,18 @@ function SceneContent({
         <>
           <color attach="background" args={[LAB_SCENE_CLEAR_HEX]} />
           <fog attach="fog" args={[LAB_SCENE_CLEAR_HEX, 6, 28]} />
-          <Stars radius={100} depth={50} count={1200} factor={3} saturation={0} fade={false} speed={0.35} />
+          <Stars radius={100} depth={50} count={900} factor={2.6} saturation={0} fade speed={0.12} />
           <ambientLight intensity={0.22} />
           <directionalLight position={[4, 6, 2]} intensity={0.55} color="#b8c8ff" />
           <group position={[0, 0, 0]}>
             {structureZ != null ? (
-              <AtomStructureModel z={structureZ} previewEmphasis cosmicStyle />
+              <AtomStructureModel
+                key={`structure-${structureZ}`}
+                z={structureZ}
+                previewEmphasis
+                cosmicStyle
+                electronFrameSkip={1}
+              />
             ) : (
               <DecorativeAtom />
             )}
@@ -1484,7 +1492,7 @@ export function LabCanvas({
           display: 'block',
           width: '100%',
           height: '100%',
-          background: 'transparent',
+          background: reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX,
         }}
         gl={{
           antialias: canvasAntialias,
@@ -1499,7 +1507,8 @@ export function LabCanvas({
           state.gl.setClearColor(bg, 1)
           state.scene.background = bg
           const canvas = state.gl.domElement
-          canvas.style.background = 'transparent'
+          // Непрозрачный CSS-фон совпадает с clearColor — иначе компоновщик мигает поверх WebGL.
+          canvas.style.background = reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX
           canvas.style.display = 'block'
           const onLost = (e: Event) => {
             e.preventDefault()

@@ -114,28 +114,25 @@ export function LaboratoryPage() {
   const forceLiteFxRef = useRef(false)
   const canvasWrapRef = useRef<HTMLDivElement | null>(null)
   const labWrapRef = useRef<HTMLDivElement | null>(null)
-  const domainBarRef = useRef<HTMLDivElement | null>(null)
-  const synthButtonRef = useRef<HTMLButtonElement | null>(null)
+  const rightHudRef = useRef<HTMLDivElement | null>(null)
   const [labCanvasKey] = useState(0)
   const [reactorSessionKey, setReactorSessionKey] = useState(0)
   useCanvasSizeGuard(canvasWrapRef)
 
-  /** Одинаковый отступ со всех сторон (= max до «Неорганика» / до «Синтез»). */
+  /** Правый HUD: Неорганика | Органика рядом с Синтез; отступ таблицы = ширина этого блока. */
   useLayoutEffect(() => {
     const wrap = labWrapRef.current
-    const domain = domainBarRef.current
-    const synth = synthButtonRef.current
+    const rightHud = rightHudRef.current
     if (!wrap) return
 
     let lastInset = Number.NaN
     const syncHudRails = () => {
       const vw = window.innerWidth
-      const domainRect = domain?.getBoundingClientRect()
-      const synthRect = synth?.getBoundingClientRect()
+      const hudLeft = rightHud?.getBoundingClientRect().left ?? vw - 220
       const gap = 12
-      const leftRail = Math.max(8, domainRect?.left ?? 12)
-      const rightRail = Math.max(8, vw - (synthRect?.left ?? vw - 140) + gap)
-      const inset = Math.round(Math.max(leftRail, rightRail))
+      const leftPad = 12
+      const rightRail = Math.max(leftPad, Math.round(vw - hudLeft + gap))
+      const inset = Math.max(leftPad, rightRail)
       if (inset === lastInset) return
       lastInset = inset
       wrap.style.setProperty('--lab-pt-inset', `${inset}px`)
@@ -144,8 +141,7 @@ export function LaboratoryPage() {
     syncHudRails()
     const ro = new ResizeObserver(syncHudRails)
     ro.observe(wrap)
-    if (domain) ro.observe(domain)
-    if (synth) ro.observe(synth)
+    if (rightHud) ro.observe(rightHud)
     window.addEventListener('resize', syncHudRails)
     return () => {
       ro.disconnect()
@@ -773,8 +769,17 @@ export function LaboratoryPage() {
       className={styles.wrap}
       data-lab-synthesis-view={laboratorySynthesisView}
     >
-      <div ref={domainBarRef} className={styles.domainBar}>
+      <div ref={rightHudRef} className={styles.rightHud}>
         <LabDomainTabs active="inorganic" />
+        <button
+          type="button"
+          className={`${styles.synthButton} ${reactorOpen ? styles.synthButtonActive : ''}`}
+          onClick={toggleReactor}
+          aria-pressed={reactorOpen}
+          title={reactorOpen ? t('lab.synthButtonClose') : t('lab.synthButtonOpen')}
+        >
+          {t('lab.synthButton')}
+        </button>
       </div>
       <div
         ref={canvasWrapRef}
@@ -873,16 +878,6 @@ export function LaboratoryPage() {
           onPick={handleReactorCatalogPick}
         />
 
-        <button
-          ref={synthButtonRef}
-          type="button"
-          className={`${styles.synthButton} ${reactorOpen ? styles.synthButtonActive : ''}`}
-          onClick={toggleReactor}
-          aria-pressed={reactorOpen}
-          title={reactorOpen ? t('lab.synthButtonClose') : t('lab.synthButtonOpen')}
-        >
-          {t('lab.synthButton')}
-        </button>
         {!panelOpen && !periodicUiHidden ? (
           <button
             type="button"

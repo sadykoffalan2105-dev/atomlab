@@ -14,8 +14,7 @@
 
 .pathPanel {
   overflow: auto;
-  /* Отступ под абсолютный переключатель Неорганика/Органика */
-  padding: 3.35rem 0.75rem 1.25rem;
+  padding: 1rem 0.75rem 1.25rem;
   border-right: 1px solid rgba(100, 140, 200, 0.22);
   background:
     linear-gradient(180deg, rgba(8, 14, 28, 0.96), rgba(6, 10, 20, 0.98)),
