@@ -1,4 +1,5 @@
 import type { LearnLocalAssistantContext } from './learnLocalAssistant'
+import { knowledgeSourceLocale } from './learnAssistantLocale'
 import { buildAssistantKnowledgeBlock } from './learnAssistantKnowledge'
 import { buildSectionOutlineBlock } from './learnSectionKnowledge'
 import { matchFaqEntry } from './learnChemistryFaq'
@@ -21,7 +22,7 @@ export type TeacherBrainPack = {
 }
 
 const FULL_TOPIC_RE =
-  /полност|подроб|по учебник|по книг|из книг|объясни тем|объясни §|расскаж|что такое|что нибудь|\d+\s*[-–]?\s*тем|тем[ае]\s*\d|explain fully|in detail|tell me about|textbook/i
+  /полност|подроб|по учебник|по книг|из книг|объясни тем|объясни §|расскаж|что такое|что нибудь|\d+\s*[-–]?\s*тем|тем[ае]\s*\d|explain fully|in detail|tell me about|textbook|tushuntir|gapirib ber|mavzu haqida|to'liq|to‘liq/i
 
 /** Собирает контекст «мозга» учителя: каталог + база + § + история диалога. */
 export function buildTeacherBrainPack(
@@ -29,7 +30,7 @@ export function buildTeacherBrainPack(
   ctx: LearnLocalAssistantContext,
   messages: { role: string; content: string }[] = [],
 ): TeacherBrainPack {
-  const speechLocale = ctx.locale === 'en' ? 'en' : 'ru'
+  const sourceLocale = knowledgeSourceLocale(ctx.locale)
   const { block, topicSceneId } = buildAssistantKnowledgeBlock(query, ctx)
   const sectionOutlineBlock = buildSectionOutlineBlock(ctx, 1200)
   const wantsFullTopic = FULL_TOPIC_RE.test(query)
@@ -43,7 +44,7 @@ export function buildTeacherBrainPack(
     sectionId: ctx.sectionId,
   })
 
-  let chemistryKnowledgeBlock = buildRetrievedKnowledgeBlock(query, speechLocale, {
+  let chemistryKnowledgeBlock = buildRetrievedKnowledgeBlock(query, sourceLocale, {
     maxChars: wantsFullTopic ? 11_000 : 7_500,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
@@ -56,7 +57,7 @@ export function buildTeacherBrainPack(
   const directBook = findG7TextbookByQuery(query, { chapterId: ctx.chapterId })
 
   if (directBook && (wantsFullTopic || requestedKp !== null)) {
-    const full = buildG7TextbookFullTopicBlock(directBook, speechLocale, 14_000)
+    const full = buildG7TextbookFullTopicBlock(directBook, sourceLocale, 14_000)
     if (full) {
       chemistryKnowledgeBlock = `[§${directBook.kp} «${directBook.topicRu}» — текст по запросу ученика]\n${full}\n\n--- Дополнительно ---\n${chemistryKnowledgeBlock}`
     }
@@ -64,7 +65,7 @@ export function buildTeacherBrainPack(
     const bookBlock = buildG7TextbookContextBlock(
       ctx.chapterId,
       ctx.sectionId,
-      speechLocale,
+      sourceLocale,
       wantsFullTopic ? 12_000 : 6_000,
     )
     if (bookBlock && !chemistryKnowledgeBlock.includes(bookBlock.slice(0, 80))) {
@@ -72,10 +73,7 @@ export function buildTeacherBrainPack(
     }
   }
 
-  const conversationHints = buildConversationHints(
-    messages,
-    ctx.locale === 'ru' || ctx.locale === 'uz',
-  )
+  const conversationHints = buildConversationHints(messages, ctx.locale)
 
   return {
     catalogBlock: block,

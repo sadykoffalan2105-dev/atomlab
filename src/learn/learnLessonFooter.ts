@@ -1,9 +1,13 @@
 import type { G7TextbookSection } from './learnG7TextbookKnowledge'
 import { pickVariedItem } from './learnConversationVariety'
 import { extractRememberBullets } from './learnTextbookTextClean'
+import type { AssistantLocale } from './learnAssistantLocale'
+import { knowledgeSourceLocale } from './learnAssistantLocale'
 
 export type LessonFooterInput = {
-  ru: boolean
+  locale: AssistantLocale
+  /** @deprecated use locale */
+  ru?: boolean
   seed: number
   topic: string
   kp?: number
@@ -28,6 +32,13 @@ const ADVICE_EN = [
   'Review the section slides and note what is still unclear.',
 ] as const
 
+const ADVICE_UZ = [
+  'Mavzuni o‘z so‘zlaringiz bilan ovoz chiqarib aytib bering — shunda yaxshi esda qoladi.',
+  'Uchta asosiy so‘zni yozib qo‘ying va ko‘z oldingizda saqlang.',
+  'Darslikdagi ta’rifni hayotdagi misol bilan bog‘lang.',
+  'Slaydlarni yana ko‘rib chiqing va noaniq joylarni belgilang.',
+] as const
+
 const QUESTION_TEMPLATES_RU = [
   'Можете своими словами объяснить, что такое «{term}»?',
   'Приведите один пример из жизни, связанный с темой «{topic}».',
@@ -43,6 +54,17 @@ const QUESTION_TEMPLATES_EN = [
   'How would you explain §{kp} to a classmate who missed the lesson?',
 ] as const
 
+const QUESTION_TEMPLATES_UZ = [
+  '«{term}» nima ekanini o‘z so‘zlaringiz bilan tushuntira olasizmi?',
+  '«{topic}» mavzusiga bog‘liq hayotdan bitta misol keltiring.',
+  '§{kp} ni darsga kelmagan sinfdoshga qanday tushuntirardingiz?',
+] as const
+
+function resolveLocale(input: LessonFooterInput): AssistantLocale {
+  if (input.locale) return input.locale
+  return input.ru === false ? 'en' : 'ru'
+}
+
 function pickTerms(input: LessonFooterInput): { term: string; a: string; b: string } {
   const fromConcepts = input.concepts?.filter((c) => c.length >= 4 && c.length <= 40) ?? []
   const fromDefs =
@@ -51,8 +73,8 @@ function pickTerms(input: LessonFooterInput): { term: string; a: string; b: stri
       .filter((d): d is string => !!d && d.length >= 8 && d.length <= 50) ?? []
 
   const term = fromConcepts[0] ?? fromDefs[0]?.slice(0, 45) ?? input.topic.split(/[.,(]/)[0]?.trim() ?? input.topic
-  const a = fromConcepts[0] ?? 'чистое вещество'
-  const b = fromConcepts[1] ?? 'смесь'
+  const a = fromConcepts[0] ?? (resolveLocale(input) === 'en' ? 'pure substance' : resolveLocale(input) === 'uz' ? 'sof modda' : 'чистое вещество')
+  const b = fromConcepts[1] ?? (resolveLocale(input) === 'en' ? 'mixture' : resolveLocale(input) === 'uz' ? 'aralashma' : 'смесь')
   return { term, a, b }
 }
 
@@ -67,7 +89,7 @@ function fillTemplate(template: string, input: LessonFooterInput, terms: ReturnT
 
 /** Стандартный хвост учебного ответа: запомнить + совет + вопрос для самопроверки. */
 export function buildLessonFooter(input: LessonFooterInput): string {
-  const ru = input.ru
+  const locale = resolveLocale(input)
   const bullets = input.rememberRaw
     ? extractRememberBullets(input.rememberRaw, 4)
     : input.concepts?.slice(0, 3).map((c) => `${c}.`) ?? []
@@ -75,27 +97,49 @@ export function buildLessonFooter(input: LessonFooterInput): string {
   const parts: string[] = []
 
   parts.push('')
-  parts.push(ru ? '**Обязательно запомнить:**' : '**Must remember:**')
+  parts.push(
+    locale === 'uz'
+      ? '**Eslab qoling:**'
+      : locale === 'en'
+        ? '**Must remember:**'
+        : '**Обязательно запомнить:**',
+  )
   if (bullets.length > 0) {
     for (const b of bullets) parts.push(`• ${b}`)
   } else {
     parts.push(
-      ru
-        ? `• Главная идея §${input.kp ?? ''}: ${input.topic}.`
-        : `• Main idea: ${input.topic}.`,
+      locale === 'uz'
+        ? `• §${input.kp ?? ''} asosiy g‘oya: ${input.topic}.`
+        : locale === 'en'
+          ? `• Main idea: ${input.topic}.`
+          : `• Главная идея §${input.kp ?? ''}: ${input.topic}.`,
     )
   }
 
   parts.push('')
-  parts.push(ru ? '**Совет учителя:**' : '**Teacher tip:**')
-  parts.push(pickVariedItem(ru ? ADVICE_RU : ADVICE_EN, input.seed + 31))
+  parts.push(
+    locale === 'uz' ? '**O‘qituvchi maslahati:**' : locale === 'en' ? '**Teacher tip:**' : '**Совет учителя:**',
+  )
+  parts.push(
+    pickVariedItem(
+      locale === 'uz' ? ADVICE_UZ : locale === 'en' ? ADVICE_EN : ADVICE_RU,
+      input.seed + 31,
+    ),
+  )
 
   const terms = pickTerms(input)
-  const qTemplates = ru ? QUESTION_TEMPLATES_RU : QUESTION_TEMPLATES_EN
+  const qTemplates =
+    locale === 'uz' ? QUESTION_TEMPLATES_UZ : locale === 'en' ? QUESTION_TEMPLATES_EN : QUESTION_TEMPLATES_RU
   const question = fillTemplate(pickVariedItem(qTemplates, input.seed + 53), input, terms)
 
   parts.push('')
-  parts.push(ru ? '**Проверь себя — ответь в чат:**' : '**Check yourself — reply in chat:**')
+  parts.push(
+    locale === 'uz'
+      ? '**O‘zingizni tekshiring — chatga javob yozing:**'
+      : locale === 'en'
+        ? '**Check yourself — reply in chat:**'
+        : '**Проверь себя — ответь в чат:**',
+  )
   parts.push(question)
 
   return parts.join('\n')
@@ -103,15 +147,18 @@ export function buildLessonFooter(input: LessonFooterInput): string {
 
 export function buildLessonFooterFromSection(
   section: G7TextbookSection,
-  ru: boolean,
+  localeOrRu: AssistantLocale | boolean,
   seed: number,
 ): string {
+  const locale: AssistantLocale =
+    typeof localeOrRu === 'boolean' ? (localeOrRu ? 'ru' : 'en') : localeOrRu
+  const src = knowledgeSourceLocale(locale)
   return buildLessonFooter({
-    ru,
+    locale,
     seed,
-    topic: ru ? section.topicRu : section.topicEn,
+    topic: src === 'en' ? section.topicEn : section.topicRu,
     kp: section.kp,
-    rememberRaw: ru ? section.rememberRu : section.rememberEn,
+    rememberRaw: src === 'en' ? section.rememberEn : section.rememberRu,
     concepts: section.conceptsRu,
     definitions: section.definitionsRu,
   })
@@ -124,7 +171,11 @@ export function appendLessonFooterIfEducational(
   skipFooter: boolean,
 ): string {
   if (skipFooter) return body
-  if (body.includes('**Обязательно запомнить:**') || body.includes('**Must remember:**')) {
+  if (
+    body.includes('**Обязательно запомнить:**') ||
+    body.includes('**Must remember:**') ||
+    body.includes('**Eslab qoling:**')
+  ) {
     return body
   }
   return body + buildLessonFooter(input)

@@ -78,7 +78,7 @@ export function generateTaskCoachLocalReply(
   problem: LearnTaskGenerated | null,
   locale: 'ru' | 'en' | 'uz',
 ): string {
-  const ru = locale !== 'en'
+  const ru = locale === 'ru'
   let lastUser = ''
   for (let i = messages.length - 1; i >= 0; i--) {
     if (messages[i]?.role === 'user') {

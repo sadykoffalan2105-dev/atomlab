@@ -263,9 +263,22 @@ export function matchFaqEntry(query: string): FaqEntry | null {
   return bestScore >= 2 ? best : null
 }
 
-export function offlineNeedsApiMessage(ru: boolean): string {
-  return ru
-    ? `По этому вопросу в **офлайн-базе** нет готового ответа.
+export function offlineNeedsApiMessage(locale: boolean | 'ru' | 'en' | 'uz'): string {
+  const lang = typeof locale === 'boolean' ? (locale ? 'ru' : 'en') : locale
+  if (lang === 'uz') {
+    return `Bu savolga **oflayn bazada** tayyor javob yo‘q.
+
+Sinab ko‘ring:
+• savolni boshqacha yozing (kislotalar, tuzlar, OVR, mol, pH…);
+• o‘qituvchi panelida **Ollama** ni yoqing (kompyuterda bepul, docs/TEACHER_AI.md);
+• keyinroq — \`VITE_LEARN_CHAT_URL\` orqali o‘z serveringiz.
+
+Hozir tipik mavzular va joriy § konspekti mavjud.`
+  }
+  if (lang === 'en') {
+    return `No offline match for this question. Rephrase (acids, salts, redox, mole, pH…), enable **Ollama** in the teacher panel, or set \`VITE_LEARN_CHAT_URL\` for your server.`
+  }
+  return `По этому вопросу в **офлайн-базе** нет готового ответа.
 
 Попробуйте:
 • переформулировать (кислоты, соли, ОВР, моль, pH…);
@@ -273,5 +286,4 @@ export function offlineNeedsApiMessage(ru: boolean): string {
 • позже — свой сервер через \`VITE_LEARN_CHAT_URL\`.
 
 Сейчас доступны типовые темы и конспект текущего §.`
-    : `No offline match for this question. Rephrase (acids, salts, redox, mole, pH…), enable **Ollama** in the teacher panel, or set \`VITE_LEARN_CHAT_URL\` for your server.`
 }

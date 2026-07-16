@@ -173,7 +173,7 @@ export async function processLearnChat(
   }
 
   if (ctx.taskCoach) {
-    const speechLocale = ctx.locale === 'en' ? 'en' : 'ru'
+    const speechLocale = ctx.locale === 'ru' ? 'ru' : 'en'
     const retrieved = retrieveChemistryKnowledge(userQuery, {
       maxChunks: 2,
       minScore: 1,

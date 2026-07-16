@@ -87,24 +87,26 @@ function isOfflineFallback(text: string): boolean {
 }
 
 function isOpenEndedQuestion(query: string): boolean {
-  return /расскаж|объясни|по книг|из книг|что нибудь|что-нибудь|подроб|полност|explain|tell me|what is|textbook/i.test(
+  return /расскаж|объясни|по книг|из книг|что нибудь|что-нибудь|подроб|полност|explain|tell me|what is|textbook|tushuntir|gapir|aytib|misol|eslab|tekshir|yech|bog'liqlik|bog‘liqlik|dars bilan/i.test(
     query,
   )
 }
 
-/** Бесплатный маршрут: FAQ → Ollama (для развёрнутых вопросов) → локальная база → fallback. */
+/** Бесплатный маршрут: FAQ (RU) → Ollama → локальная база → fallback. */
 export async function routeTeacherReply(
   messages: { role: string; content: string }[],
   ctx: LearnLocalAssistantContext,
   opts?: TeacherRouterOptions,
 ): Promise<{ text: string; source: TeacherReplySource }> {
   const q = lastUserText(messages)
+  const preferLlmLanguage = ctx.locale === 'en' || ctx.locale === 'uz'
 
-  if (matchFaqEntry(q)) {
+  // Короткие FAQ на RU; для EN/UZ сначала модель (перевод/язык UI).
+  if (!preferLlmLanguage && matchFaqEntry(q)) {
     return { text: generateLocalLearnReply(messages, ctx), source: 'faq' }
   }
 
-  if (ollamaEnabled(opts) && isOpenEndedQuestion(q)) {
+  if (ollamaEnabled(opts) && (preferLlmLanguage || isOpenEndedQuestion(q))) {
     const ollama = await tryOllamaReply(messages, ctx, opts)
     if (ollama) return { text: ollama, source: 'ollama' }
   }

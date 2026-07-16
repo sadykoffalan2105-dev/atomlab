@@ -54,7 +54,7 @@ async function tryOllamaTaskCoach(
 
   const base = (opts?.ollamaUrl ?? import.meta.env.VITE_OLLAMA_URL ?? DEFAULT_OLLAMA).replace(/\/$/, '')
   const model = opts?.ollamaModel ?? import.meta.env.VITE_OLLAMA_MODEL ?? DEFAULT_MODEL
-  const speechLocale = ctx.locale === 'en' ? 'en' : 'ru'
+  const speechLocale = ctx.locale === 'ru' ? 'ru' : 'en'
   const q = messages.filter((m) => m.role === 'user').pop()?.content ?? tc.questionText
   const retrieved = retrieveChemistryKnowledge(q, {
     maxChunks: 2,

@@ -1,5 +1,7 @@
 /** Разнообразие формулировок — учитель не повторяет одни и те же фразы. */
 
+import type { AssistantLocale } from './learnAssistantLocale'
+
 function hashSeed(...parts: string[]): number {
   let h = 2166136261
   for (const p of parts) {
@@ -43,6 +45,15 @@ const OPENERS_EN = [
   'From the lesson section:',
 ] as const
 
+const OPENERS_UZ = [
+  'Keling, tushunib olaylik.',
+  'Yaxshi savol.',
+  'Hozir darslik bo‘yicha tushuntiraman.',
+  'Eng muhimi shu.',
+  'Asosiydan boshlaymiz.',
+  'Darsdagi kabi qaraylik.',
+] as const
+
 const CLOSERS_RU = [
   'Спросите, если нужен пример или задача по этой теме.',
   'Могу привести ещё один пример — просто напишите.',
@@ -57,6 +68,12 @@ const CLOSERS_EN = [
   'Tell me what part is unclear and we will focus on it.',
 ] as const
 
+const CLOSERS_UZ = [
+  'Yana misol yoki masala kerak bo‘lsa — yozing.',
+  'O‘z so‘zlaringiz bilan qayta aytib ko‘ring — shunda yaxshi esda qoladi.',
+  'Nima noaniq qolganini yozing — shu joyini ochamiz.',
+] as const
+
 const BOOK_CASUAL_RU = [
   'Вот интересный фрагмент из учебника.',
   'Из книги возьму историю, которая цепляет.',
@@ -64,15 +81,40 @@ const BOOK_CASUAL_RU = [
   'Сейчас расскажу кусочек из параграфа, который часто нравится ученикам.',
 ] as const
 
+const BOOK_CASUAL_UZ = [
+  'Darslikdan qiziq parcha.',
+  'Kitobdan o‘quvchilarga yoqadigan qismni aytaman.',
+  'Paragrafdan qisqa hikoya — tinglang.',
+] as const
+
+/** @deprecated use pickOpenerForLocale */
 export function pickOpener(ru: boolean, seed: number, bookCasual = false): string {
-  if (bookCasual && ru) return pickVariedItem(BOOK_CASUAL_RU, seed)
-  const list = ru ? OPENERS_RU : OPENERS_EN
+  return pickOpenerForLocale(ru ? 'ru' : 'en', seed, bookCasual)
+}
+
+export function pickOpenerForLocale(
+  locale: AssistantLocale,
+  seed: number,
+  bookCasual = false,
+): string {
+  if (bookCasual && locale === 'ru') return pickVariedItem(BOOK_CASUAL_RU, seed)
+  if (bookCasual && locale === 'uz') return pickVariedItem(BOOK_CASUAL_UZ, seed)
+  const list = locale === 'uz' ? OPENERS_UZ : locale === 'en' ? OPENERS_EN : OPENERS_RU
   return pickVariedItem(list, seed)
 }
 
+/** @deprecated use pickCloserForLocale */
 export function pickCloser(ru: boolean, seed: number, skipCloser: boolean): string | null {
+  return pickCloserForLocale(ru ? 'ru' : 'en', seed, skipCloser)
+}
+
+export function pickCloserForLocale(
+  locale: AssistantLocale,
+  seed: number,
+  skipCloser: boolean,
+): string | null {
   if (skipCloser) return null
-  const list = ru ? CLOSERS_RU : CLOSERS_EN
+  const list = locale === 'uz' ? CLOSERS_UZ : locale === 'en' ? CLOSERS_EN : CLOSERS_RU
   return pickVariedItem(list, seed + 17)
 }
 
@@ -81,18 +123,24 @@ export type QueryIntent = 'explain' | 'book_casual' | 'example' | 'definition' |
 export function detectQueryIntent(query: string): QueryIntent {
   const q = query.toLowerCase()
 
-  if (/пример|из жизни|real[- ]?life|daily|example/.test(q)) return 'example'
-  if (/запомн|главн|итог|summary|key takeaway|что запомнить/.test(q)) return 'recall'
-  if (/что такое|what is|определени|define/.test(q)) return 'definition'
+  if (/пример|из жизни|real[- ]?life|daily|example|hayotdan|misol/.test(q)) return 'example'
   if (
-    /расскаж|по книг|из книг|что[- ]?нибудь|что нибудь|интересн|tell me about|story|textbook/i.test(
+    /запомн|главн|итог|summary|key takeaway|что запомнить|eslab|nimani eslab|esda qol/.test(q)
+  ) {
+    return 'recall'
+  }
+  if (/что такое|what is|определени|define|nima (bu|ekan)/.test(q)) return 'definition'
+  if (
+    /расскаж|по книг|из книг|что[- ]?нибудь|что нибудь|интересн|tell me about|story|textbook|gapir|aytib ber/i.test(
       q,
     )
   ) {
     return 'book_casual'
   }
   if (
-    /полност|подроб|объясни|explain|разъясн|раскрой|опиши|describe|по учебник/i.test(q)
+    /полност|подроб|объясни|explain|разъясн|раскрой|опиши|describe|по учебник|tushuntir|oddiyroq|bog'liqlik|bog‘liqlik|dars bilan/i.test(
+      q,
+    )
   ) {
     return 'explain'
   }

@@ -1,6 +1,8 @@
 import type { ChemistryKnowledgeChunk } from './learnChemistryKnowledgeBase'
 import type { FaqEntry } from './learnChemistryFaq'
 import type { LearnLocalAssistantContext } from './learnLocalAssistant'
+import type { AssistantLocale } from './learnAssistantLocale'
+import { knowledgeSourceLocale, pickFaqText } from './learnAssistantLocale'
 import {
   chapterLabel,
   findG7TextbookByQuery,
@@ -13,7 +15,7 @@ import {
 import {
   conversationSeed,
   detectQueryIntent,
-  pickOpener,
+  pickOpenerForLocale,
   wantsFullAnswer,
   type QueryIntent,
 } from './learnConversationVariety'
@@ -22,10 +24,6 @@ import {
   buildLessonFooterFromSection,
 } from './learnLessonFooter'
 import { cleanPdfHyphenation } from './learnTextbookTextClean'
-
-function isRu(ctx: LearnLocalAssistantContext): boolean {
-  return ctx.locale !== 'en'
-}
 
 function stripBoilerplate(text: string): string {
   return cleanPdfHyphenation(
@@ -91,13 +89,28 @@ function resolveG7Section(
   return undefined
 }
 
-function bestDefinition(section: G7TextbookSection): string | null {
+function bestDefinition(section: G7TextbookSection, locale: AssistantLocale): string | null {
+  const src = knowledgeSourceLocale(locale)
+  // definitions currently only in Russian corpus
   const defs = section.definitionsRu ?? []
   for (const d of defs) {
     const clean = cleanPdfHyphenation(d.replace(/\s+/g, ' ').trim())
-    if (clean.length >= 40 && clean.length <= 280 && !/^\?/.test(clean)) return clean
+    if (clean.length >= 40 && clean.length <= 280 && !/^\?/.test(clean)) {
+      if (src === 'en') {
+        // keep short RU definition only when no EN body; prefer content lead
+        continue
+      }
+      return clean
+    }
   }
   return null
+}
+
+function sectionContent(section: G7TextbookSection, locale: AssistantLocale): string {
+  const src = knowledgeSourceLocale(locale)
+  const en = section.contentEn?.trim()
+  if (src === 'en' && en) return en
+  return section.contentRu
 }
 
 function buildSectionLesson(
@@ -107,70 +120,75 @@ function buildSectionLesson(
   seed: number,
   scope?: 'chapter' | 'book',
 ): string {
-  const ru = isRu(ctx)
-  const topic = ru ? section.topicRu : section.topicEn
-  const opener = pickOpener(ru, seed, intent === 'book_casual')
-  const def = bestDefinition(section)
+  const locale = ctx.locale
+  const src = knowledgeSourceLocale(locale)
+  const topic = src === 'en' ? section.topicEn : section.topicRu
+  const opener = pickOpenerForLocale(locale, seed, intent === 'book_casual')
+  const def = bestDefinition(section, locale)
   const globalNum = globalTopicNumber(section)
 
   const parts: string[] = []
 
   if (scope === 'book') {
     parts.push(
-      ru
-        ? `${opener} **Тема ${globalNum}** по учебнику Kimyo — ${chapterLabel(section.chapterId)}, §${section.kp}, стр. ${section.page}.`
-        : `${opener} **Topic ${globalNum}** — ${section.chapterId} §${section.kp}, p. ${section.page}.`,
+      locale === 'uz'
+        ? `${opener} **${globalNum}-mavzu** — Kimyo darsligi, ${chapterLabel(section.chapterId, false)}, §${section.kp}, ${section.page}-bet.`
+        : locale === 'en'
+          ? `${opener} **Topic ${globalNum}** — ${section.chapterId} §${section.kp}, p. ${section.page}.`
+          : `${opener} **Тема ${globalNum}** по учебнику Kimyo — ${chapterLabel(section.chapterId, true)}, §${section.kp}, стр. ${section.page}.`,
     )
   } else {
     parts.push(
-      ru
-        ? `${opener} **§${section.kp}. ${topic}** (стр. ${section.page}).`
-        : `${opener} **§${section.kp}. ${topic}** (p. ${section.page}).`,
+      locale === 'uz'
+        ? `${opener} **§${section.kp}. ${topic}** (${section.page}-bet).`
+        : locale === 'en'
+          ? `${opener} **§${section.kp}. ${topic}** (p. ${section.page}).`
+          : `${opener} **§${section.kp}. ${topic}** (стр. ${section.page}).`,
     )
   }
 
   parts.push('')
 
-  if (def) {
-    parts.push(ru ? '**Суть темы:**' : '**Core idea:**')
+  if (def && locale === 'ru') {
+    parts.push('**Суть темы:**')
     parts.push(def)
     parts.push('')
   }
 
   const mainText = takeCharsAtSentence(
-    section.contentRu,
+    sectionContent(section, locale),
     intent === 'book_casual' ? 1400 : intent === 'explain' ? 1700 : 1100,
     0,
   )
   parts.push(mainText)
 
-  if (section.conceptsRu?.length && wantsFullAnswer(intent)) {
+  if (section.conceptsRu?.length && wantsFullAnswer(intent) && locale === 'ru') {
     parts.push('')
-    parts.push(ru ? '**Ключевые понятия:**' : '**Key concepts:**')
+    parts.push('**Ключевые понятия:**')
     for (const c of section.conceptsRu.slice(0, 5)) {
       parts.push(`• ${cleanPdfHyphenation(c)}`)
     }
   }
 
   const lessonBody = parts.join('\n')
-  return lessonBody + buildLessonFooterFromSection(section, ru, seed)
+  return lessonBody + buildLessonFooterFromSection(section, locale, seed)
 }
 
 function buildFaqAnswer(
   faq: FaqEntry,
-  ru: boolean,
+  locale: AssistantLocale,
   seed: number,
   intent: QueryIntent,
   ctx: LearnLocalAssistantContext,
 ): string {
-  const core = stripBoilerplate(ru ? faq.ru : faq.en)
-  const opener = pickOpener(ru, seed)
+  const core = stripBoilerplate(pickFaqText(faq, locale))
+  const opener = pickOpenerForLocale(locale, seed)
   const body = takeCharsAtSentence(core, wantsFullAnswer(intent) ? 900 : 420)
   const main = `${opener}\n\n${body}`
   return appendLessonFooterIfEducational(
     main,
     {
-      ru,
+      locale,
       seed,
       topic: ctx.sectionTitle,
       kp: ctx.kpNumber,
@@ -185,19 +203,20 @@ function buildChunkFallback(
   intent: QueryIntent,
   seed: number,
 ): string {
-  const ru = isRu(ctx)
+  const locale = ctx.locale
   const section = resolveG7Section(chunk, ctx)
   if (section) return buildSectionLesson(section, ctx, intent, seed)
 
-  const opener = pickOpener(ru, seed)
-  const mainText = stripBoilerplate(ru ? chunk.ru : chunk.en)
+  const opener = pickOpenerForLocale(locale, seed)
+  const src = knowledgeSourceLocale(locale)
+  const mainText = stripBoilerplate(src === 'en' ? chunk.en : chunk.ru)
   const lead = takeCharsAtSentence(mainText, wantsFullAnswer(intent) ? 1000 : 380)
 
   const main = [`${opener}`, '', `**${chunk.topic}**`, '', lead].join('\n')
   return appendLessonFooterIfEducational(
     main,
     {
-      ru,
+      locale,
       seed,
       topic: chunk.topic.replace(/^§\d+\.\s*/, ''),
       kp: ctx.kpNumber,
@@ -214,13 +233,13 @@ export function synthesizeKnowledgeAnswer(
   ctx: LearnLocalAssistantContext,
   messages: { role: string; content: string }[] = [],
 ): string {
-  const ru = isRu(ctx)
+  const locale = ctx.locale
   const intent = detectQueryIntent(query)
   const turnIndex = messages.filter((m) => m.role === 'user').length
   const seed = conversationSeed(query, ctx.sectionId, turnIndex)
 
   if (faq) {
-    return buildFaqAnswer(faq, ru, seed, intent, ctx)
+    return buildFaqAnswer(faq, locale, seed, intent, ctx)
   }
 
   const explicit = resolveSectionFromQuery(query, ctx)
@@ -229,10 +248,14 @@ export function synthesizeKnowledgeAnswer(
   }
 
   if (chunks.length === 0) {
-    const opener = pickOpener(ru, seed)
-    return ru
-      ? `${opener} Уточните вопрос — по формуле, реакции или теме §${ctx.kpNumber} «${ctx.sectionTitle}».`
-      : `${opener} Narrow it down — formula, reaction, or §${ctx.kpNumber} topic?`
+    const opener = pickOpenerForLocale(locale, seed)
+    if (locale === 'uz') {
+      return `${opener} Savolni aniqlashtiring — formula, reaksiya yoki §${ctx.kpNumber} «${ctx.sectionTitle}» mavzusi.`
+    }
+    if (locale === 'en') {
+      return `${opener} Narrow it down — formula, reaction, or §${ctx.kpNumber} topic?`
+    }
+    return `${opener} Уточните вопрос — по формуле, реакции или теме §${ctx.kpNumber} «${ctx.sectionTitle}».`
   }
 
   const main = chunks[0]!
@@ -244,8 +267,9 @@ export function synthesizeKnowledgeAnswer(
 
   if (wantsFullAnswer(intent) && chunks.length > 1) {
     const primary = buildChunkFallback(main, ctx, intent, seed)
+    const src = knowledgeSourceLocale(locale)
     const extra = chunks.slice(1, 3).map((c) => {
-      const snippet = takeCharsAtSentence(stripBoilerplate(ru ? c.ru : c.en), 320)
+      const snippet = takeCharsAtSentence(stripBoilerplate(src === 'en' ? c.en : c.ru), 320)
       return snippet ? `\n\n**${c.topic}**\n${snippet}` : ''
     })
     return primary + extra.join('')
@@ -256,8 +280,9 @@ export function synthesizeKnowledgeAnswer(
 
 export function buildConversationHints(
   messages: { role: string; content: string }[],
-  ru: boolean,
+  locale: AssistantLocale | boolean,
 ): string {
+  const lang: AssistantLocale = typeof locale === 'boolean' ? (locale ? 'ru' : 'en') : locale
   const recent = messages.slice(-6)
   if (recent.length < 2) return ''
 
@@ -267,22 +292,37 @@ export function buildConversationHints(
 
   const lastBot = botTurns[botTurns.length - 1] ?? ''
   const antiRepeat = lastBot
-    ? ru
-      ? `\nАНТИ-ПОВТОР: не начинай ответ так же, как предыдущий («${lastBot.slice(0, 60)}…»). Другая структура и другие формулировки.`
-      : `\nANTI-REPEAT: do not start like the previous reply ("${lastBot.slice(0, 60)}…"). Use different structure and wording.`
+    ? lang === 'uz'
+      ? `\nTAKRORLANMASIN: oldingi javobdek boshlamang («${lastBot.slice(0, 60)}…»). Boshqa tuzilma va ifodalar.`
+      : lang === 'en'
+        ? `\nANTI-REPEAT: do not start like the previous reply ("${lastBot.slice(0, 60)}…"). Use different structure and wording.`
+        : `\nАНТИ-ПОВТОР: не начинай ответ так же, как предыдущий («${lastBot.slice(0, 60)}…»). Другая структура и другие формулировки.`
     : ''
 
-  return ru
-    ? `\nДИАЛОГ: ученик спрашивал: «${userTurns.join('» → «')}». Ответь развёрнуто на последний вопрос, минимум 120 слов для объяснений, не повторяй дословно прошлый ответ.${antiRepeat}
+  if (lang === 'uz') {
+    return `\nDIALOG: o‘quvchi so‘radi: «${userTurns.join('» → «')}». Oxirgi savolga to‘liq javob bering, tushuntirishlar kamida 120 so‘z, oldingi javobni so‘zma-so‘z takrorlamang.${antiRepeat}
 
-ОБЯЗАТЕЛЬНЫЙ ФИНАЛ КАЖДОГО УЧЕБНОГО ОТВЕТА (три блока):
-1) **Обязательно запомнить:** — 2–4 пункта из учебника
-2) **Совет учителя:** — один практический совет, как лучше запомнить
-3) **Проверь себя — ответь в чат:** — один вопрос для самопроверки по теме`
-    : `\nDIALOGUE: student asked: "${userTurns.join('" → "')}". Give a full answer to the latest question, at least 120 words for explanations, do not repeat the previous reply verbatim.${antiRepeat}
+HAR BIR O‘QUV JAVOBINING OXIRI (uch blok):
+1) **Eslab qoling:** — darslikdan 2–4 punkt
+2) **O‘qituvchi maslahati:** — bitta amaliy maslahat
+3) **O‘zingizni tekshiring:** — bitta savol
+
+Javob faqat o‘zbek lotin yozuvida.`
+  }
+
+  if (lang === 'en') {
+    return `\nDIALOGUE: student asked: "${userTurns.join('" → "')}". Give a full answer to the latest question, at least 120 words for explanations, do not repeat the previous reply verbatim.${antiRepeat}
 
 MANDATORY END OF EVERY EDUCATIONAL REPLY (three blocks):
 1) **Must remember:** — 2–4 bullet points from the textbook
 2) **Teacher tip:** — one practical study tip
 3) **Check yourself — reply in chat:** — one self-check question`
+  }
+
+  return `\nДИАЛОГ: ученик спрашивал: «${userTurns.join('» → «')}». Ответь развёрнуто на последний вопрос, минимум 120 слов для объяснений, не повторяй дословно прошлый ответ.${antiRepeat}
+
+ОБЯЗАТЕЛЬНЫЙ ФИНАЛ КАЖДОГО УЧЕБНОГО ОТВЕТА (три блока):
+1) **Обязательно запомнить:** — 2–4 пункта из учебника
+2) **Совет учителя:** — один практический совет, как лучше запомнить
+3) **Проверь себя — ответь в чат:** — один вопрос для самопроверки по теме`
 }

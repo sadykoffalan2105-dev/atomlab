@@ -8,16 +8,22 @@ export type TaskCoachPromptInput = LearnLocalAssistantContext & {
 
 export function buildTaskCoachSystemPrompt(input: TaskCoachPromptInput): string {
   const tc = input.taskCoach
-  const lang = input.locale === 'en' ? 'English' : 'Russian'
-  const ru = input.locale !== 'en'
+  const lang =
+    input.locale === 'en'
+      ? 'English'
+      : input.locale === 'uz'
+        ? "Uzbek (Latin script, o'zbek tili)"
+        : 'Russian'
+  const locale = input.locale
 
   const mcqBlock =
     tc.problemKind === 'mcq' && tc.choiceLabels?.length
       ? `Answer options (do NOT reveal which is correct):\n${tc.choiceLabels.map((c, i) => `${i + 1}) ${c}`).join('\n')}`
       : ''
 
-  const rulesRu = ru
-    ? `
+  const rules =
+    locale === 'ru'
+      ? `
 РЕЖИМ: СОКРАТИЧЕСКИЙ КОУЧ ПО ЗАДАЧЕ (развитие критического мышления).
 
 ЗАПРЕЩЕНО:
@@ -32,7 +38,14 @@ export function buildTaskCoachSystemPrompt(input: TaskCoachPromptInput): string 
 - Поощряй ученика записывать ход мыслей (черновик).
 - Тон: терпеливый учитель, 2–4 предложения, до 90 слов.
 - Русский язык школьной программы, без формул H2O — только словами.`
-    : `
+      : locale === 'uz'
+        ? `
+REJIM: SOCRATIC TOPSHIRIQ KOUCHI (tanqidiy fikrlash).
+
+TAQIQLANGAN: yakuniy sonli javob, to‘g‘ri variant harfi/raqami, to‘liq yechim.
+MAJBURIY: bitta qisqa qadam — savol, reja yoki fikr tekshiruvi; 2–4 gap, ko‘pi bilan 90 so‘z.
+Javob faqat o‘zbek lotin yozuvida.`
+        : `
 MODE: SOCRATIC TASK COACH (critical thinking).
 
 FORBIDDEN: final numeric answer, correct option letter/number, full solution.
@@ -40,8 +53,8 @@ REQUIRED: one short step — question, plan, or reasoning check; 2–4 sentences
 
   return `You are ATOMLAB Task Coach — chemistry problem tutor for school students (grades 7–11).
 
-LANGUAGE: ${lang}.
-${rulesRu}
+LANGUAGE (ABSOLUTE): ${lang}. Reply ONLY in this language.
+${rules}
 
 TASK TYPE: ${tc.categoryTitle} (${tc.categoryId})
 QUESTION: ${tc.questionText}

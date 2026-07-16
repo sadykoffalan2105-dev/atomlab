@@ -4,7 +4,7 @@
  */
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts'
 import type { SpeechPrepLocale } from './learnSpeechText'
-import { TEACHER_VOICE_EDGE } from './learnTeacherVoiceProfile'
+import { edgeLangForLocale, TEACHER_VOICE_EDGE } from './learnTeacherVoiceProfile'
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = ''
@@ -28,7 +28,7 @@ export async function synthesizeMsEdgeTeacherSpeech(
   try {
     const tts = new MsEdgeTTS()
     await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3, {
-      voiceLocale: locale === 'en' ? 'en-US' : 'ru-RU',
+      voiceLocale: edgeLangForLocale(locale),
     })
     const { audioStream } = tts.toStream(text)
     const chunks: Uint8Array[] = []
