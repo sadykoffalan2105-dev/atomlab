@@ -7,13 +7,25 @@
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
+.titleAbove {
+  margin: 0;
+  padding: 0.65rem 0.85rem 0.55rem;
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  font-weight: 700;
+  line-height: 1.35;
+  color: rgba(220, 235, 255, 0.96);
+  text-align: center;
+}
+
 .photo {
   display: block;
   width: 100%;
   height: auto;
   aspect-ratio: 16 / 10;
+  /* Скрываем вшитый в генерацию текст/водяной знак внизу кадра */
   object-fit: cover;
-  object-position: center;
+  object-position: center 28%;
+  clip-path: inset(0 0 12% 0);
   background: #060a14;
 }
 
@@ -30,15 +42,6 @@
   background: rgba(6, 12, 28, 0.9);
 }
 
-.caption {
-  margin: 0;
-  padding: 0.6rem 0.8rem 0.7rem;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: rgba(170, 195, 235, 0.92);
-  border-top: 1px solid rgba(61, 255, 236, 0.12);
-}
-
 .compact .photo {
   aspect-ratio: 16 / 9;
   max-height: none;
@@ -47,7 +50,9 @@
 .fullscreenPhoto .photo {
   aspect-ratio: 16 / 9;
   max-height: min(52vh, 28rem);
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center 28%;
+  clip-path: inset(0 0 12% 0);
   background: #040810;
 }
 
@@ -61,32 +66,29 @@
   text-align: center;
 }
 
+.splitPhoto .titleAbove {
+  padding: 0 0.15rem 0.55rem;
+  font-size: clamp(1rem, 1.7vw, 1.2rem);
+}
+
 .splitPhoto .photo {
   display: block;
   width: 100%;
   height: auto;
   max-height: min(38vh, 22rem);
   aspect-ratio: unset;
-  object-fit: contain;
-  object-position: center;
+  object-fit: cover;
+  object-position: center 28%;
+  clip-path: inset(0 0 12% 0);
   background: transparent;
   border-radius: 12px;
   border: 1px solid rgba(61, 255, 236, 0.3);
   margin-inline: auto;
 }
 
-.splitPhoto .caption {
-  font-size: clamp(0.95rem, 1.5vw, 1.1rem);
-  padding: 0.55rem 0.15rem 0;
-  line-height: 1.48;
-  color: rgba(210, 225, 255, 0.96);
-  border-top: none;
-  text-align: center;
-}
-
-.compact .caption {
-  font-size: 0.7rem;
-  padding: 0.45rem 0.6rem;
+.compact .titleAbove {
+  font-size: 0.85rem;
+  padding: 0.45rem 0.6rem 0.35rem;
 }
 
 .compact .photoFallback {

@@ -24,10 +24,11 @@ export function localizeTopicQuiz(item: TopicQuizItem, locale: AppLocale): Topic
 
   return {
     ...item,
-    question: item.questionUz?.trim() || item.question,
-    choices: asChoices(item.choicesUz, item.choices),
-    explanation: item.explanationUz?.trim() || item.explanation,
-    description: item.descriptionUz?.trim() || item.description,
+    question: item.questionUz?.trim() || item.questionEn?.trim() || item.question,
+    choices: asChoices(item.choicesUz, item.choicesEn ?? item.choices),
+    explanation: item.explanationUz?.trim() || item.explanationEn?.trim() || item.explanation,
+    // EN лучше русского fallback для UZ UI
+    description: item.descriptionUz?.trim() || item.descriptionEn?.trim() || item.description,
   }
 }
 
@@ -46,13 +47,13 @@ export function mergeQuizI18n(item: TopicQuizItem, i18n: QuizI18nEntry | undefin
   if (!i18n) return item
   return {
     ...item,
-    questionEn: i18n.questionEn ?? item.questionEn,
-    questionUz: i18n.questionUz ?? item.questionUz,
+    questionEn: i18n.questionEn?.trim() || item.questionEn,
+    questionUz: i18n.questionUz?.trim() || item.questionUz,
     choicesEn: asChoices(i18n.choicesEn, item.choicesEn ?? item.choices),
     choicesUz: asChoices(i18n.choicesUz, item.choicesUz ?? item.choices),
-    explanationEn: i18n.explanationEn ?? item.explanationEn,
-    explanationUz: i18n.explanationUz ?? item.explanationUz,
-    descriptionEn: i18n.descriptionEn ?? item.descriptionEn,
-    descriptionUz: i18n.descriptionUz ?? item.descriptionUz,
+    explanationEn: i18n.explanationEn?.trim() || item.explanationEn,
+    explanationUz: i18n.explanationUz?.trim() || item.explanationUz,
+    descriptionEn: i18n.descriptionEn?.trim() || item.descriptionEn,
+    descriptionUz: i18n.descriptionUz?.trim() || item.descriptionUz,
   }
 }
