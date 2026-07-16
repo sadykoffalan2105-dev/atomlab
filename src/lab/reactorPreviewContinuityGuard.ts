@@ -19,10 +19,8 @@ export type ReactorPreviewContinuityGuard = {
 }
 
 function restorePreviewRoot(root: THREE.Group): void {
+  // Только корень: pin/React владеют видимостью слотов. traverse(true) → ghost pool + hitch.
   root.visible = true
-  root.traverse((obj) => {
-    obj.visible = true
-  })
 }
 
 function hidePreviewRoot(root: THREE.Group): void {

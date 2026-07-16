@@ -55,12 +55,16 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
   const shellHold = editingActive || hotCoeffEdit
   const effectiveForceLite =
     forceLite || frameBudgetLite || lowPowerProfile.forceLiteReactor
-  // При hot-edit не переключаем lite/detail — иначе remount Bohr (Cr и др.).
-  const renderForceLite = hotCoeffEdit ? frameBudgetLite : effectiveForceLite
+  /**
+   * При hot-edit не поднимаем detail (remount), но при росте атомов
+   * обязаны уйти в lite — иначе WebGL white/freeze на Cr/K₂Cr₂O₇.
+   */
+  const denseHot = hotCoeffEdit && atomCount > SYNTHESIS_PERF.fullDetailAtomThreshold
+  const renderForceLite = denseHot || (!hotCoeffEdit && effectiveForceLite) || frameBudgetLite
 
   const base = getReactorPreviewPolicy({
     atomCount,
-    forceLite: renderForceLite,
+    forceLite: renderForceLite || (hotCoeffEdit && atomCount > 8),
     flightActive,
     visible: groupVisible,
     qualityLevel,
@@ -101,8 +105,10 @@ export function resolveFullDetailLatch(
   lockVisualTier: boolean,
   effectiveForceLite: boolean,
 ): boolean {
-  if (lockVisualTier) return current
+  // Downgrade всегда разрешён — иначе full Bohr × 15+ → white/context lost.
   if (effectiveForceLite) return false
+  if (atomCount > SYNTHESIS_PERF.fullDetailAtomThreshold) return false
+  if (lockVisualTier) return current
   if (atomCount <= SYNTHESIS_PERF.fullDetailAtomThreshold) return true
   if (atomCount > SYNTHESIS_PERF.fullDetailAtomThreshold + 4) return false
   return current

@@ -130,8 +130,8 @@
 
 .canvasWrap canvas {
   display: block;
-  /* Прозрачный CSS-фон: при hitch виден звёздный underlay .canvasWrap, не плоский синий */
-  background-color: transparent;
+  /* Тёмный фон = clearColor: при hitch/context-loss нет белого/красного вспышка. */
+  background-color: #0a0c18;
   width: 100% !important;
   height: 100% !important;
 }

@@ -403,6 +403,8 @@ function SceneContent({
     window.setTimeout(() => setPrewarmSuppressRev((v) => v + 1), holdMs + 80)
   }, [])
   const manyAtomsCameraRef = useRef(previewAtomCount > 8)
+  const previewAtomCountRef = useRef(previewAtomCount)
+  previewAtomCountRef.current = previewAtomCount
   const lastSynthRunIdRef = useRef(0)
 
   const synthTimingProfile = useMemo(
@@ -731,32 +733,38 @@ function SceneContent({
     if (root) {
       gsap.killTweensOf(root)
       root.visible = true
-      root.traverse((obj) => {
-        gsap.killTweensOf(obj)
-        obj.visible = true
-      })
+      // Не traverse(visible=true): иначе pool-слоты и pin дергаются каждый кадр → мигание / «пропали».
     }
-    const scaleFloor = reactorPreviewAtomScale(previewAtomCount)
-    for (let i = 0; i < previewAtomScaleGroupRefs.current.length; i++) {
+    const n = Math.max(0, previewAtomCountRef.current)
+    const scaleFloor = reactorPreviewAtomScale(n)
+    for (let i = 0; i < n; i++) {
       const sc = previewAtomScaleGroupRefs.current[i]
-      if (!sc) continue
-      gsap.killTweensOf(sc.scale)
-      sc.visible = true
-      sc.scale.set(scaleFloor, scaleFloor, scaleFloor)
-    }
-    for (let i = 0; i < previewAtomGroupRefs.current.length; i++) {
+      if (sc) {
+        gsap.killTweensOf(sc.scale)
+        sc.visible = true
+        if (sc.scale.x < scaleFloor * 0.45) {
+          sc.scale.set(scaleFloor, scaleFloor, scaleFloor)
+        }
+      }
       const g = previewAtomGroupRefs.current[i]
-      if (g) g.visible = true
+      if (g) {
+        gsap.killTweensOf(g)
+        g.visible = true
+      }
     }
-  }, [coeffEditingActive, synthActive, synthesisRunActive, previewAtomCount])
+    for (let i = n; i < previewAtomGroupRefs.current.length; i++) {
+      const g = previewAtomGroupRefs.current[i]
+      const sc = previewAtomScaleGroupRefs.current[i]
+      if (g) g.visible = false
+      if (sc) sc.visible = false
+    }
+    // previewAtomCount намеренно НЕ в deps: рост атомов ведёт pin/ReactorTermsPreview, не полный restore.
+  }, [coeffEditingActive, synthActive, synthesisRunActive])
 
   const restorePreviewRootVisibility = useCallback(() => {
     const root = previewRootRef.current
     if (!root) return
     root.visible = true
-    root.traverse((obj) => {
-      obj.visible = true
-    })
   }, [])
 
   useLayoutEffect(() => {
@@ -1503,7 +1511,8 @@ export function LabCanvas({
           antialias: canvasAntialias,
           alpha: false,
           powerPreference: 'high-performance',
-          preserveDrawingBuffer: reactorViewOpen || synthesisRunActive,
+          // preserveDrawingBuffer только во время синтеза — при +/- жрёт GPU и даёт white/blank.
+          preserveDrawingBuffer: Boolean(synthesisRunActive) && !reactorCoeffEditing && !reactorCoeffEditBurst,
         }}
         dpr={canvasDpr}
         frameloop={canvasFrameloop}

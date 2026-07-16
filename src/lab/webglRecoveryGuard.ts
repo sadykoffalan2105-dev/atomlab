@@ -12,7 +12,7 @@ export type WebGlRecoveryController = {
   reset: () => void
 }
 
-const REMOUNT_AFTER_MS = 3200
+const REMOUNT_AFTER_MS = 1600
 
 export function createWebGlRecoveryController(onRequestRemount: () => void): WebGlRecoveryController {
   let lostAt = 0

@@ -49,6 +49,7 @@
     "clone:teacher-voice": "node scripts/clone-teacher-voice.mjs",
     "wasm:build": "node scripts/build-wasm.mjs",
     "test:synthesis-stability": "tsx scripts/test-synthesis-stability.mts",
+    "test:catalog-coeff-stress": "tsx scripts/test-catalog-coeff-stress.mts",
     "smoke:reactor-preview": "node scripts/smoke-reactor-preview.mjs",
     "teacher:native": "node scripts/build-teacher-native.mjs",
     "teacher:dev": "python -m teacher_service"

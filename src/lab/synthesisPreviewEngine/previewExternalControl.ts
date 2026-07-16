@@ -24,10 +24,10 @@ export function resolvePreviewEditingActive(opts: {
   return opts.coeffEditing || opts.previewOnlyMode || opts.synthHoldPreview
 }
 
-/** Реальный burst +/- коэффициентов — тяжёлый pin/guard только здесь. */
+/** Hot pin при любом активном +/- (burst). Shell-hold шире — см. resolvePreviewEditingActive. */
 export function resolvePreviewHotCoeffEdit(opts: {
   coeffEditing: boolean
   coeffEditBurst: boolean
 }): boolean {
-  return opts.coeffEditing || opts.coeffEditBurst
+  return opts.coeffEditBurst || opts.coeffEditing
 }
