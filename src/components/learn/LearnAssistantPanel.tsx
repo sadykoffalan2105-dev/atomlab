@@ -217,7 +217,7 @@ export function LearnAssistantPanel({
 
       const teacher = await requestTeacherChat(payload.messages, payload.context)
       if (teacher?.text) {
-        return { text: teacher.text, source: 'ollama' }
+        return { text: filterAssistantReply(teacher.text, locale), source: 'ollama' }
       }
 
       const apiUrl = import.meta.env.VITE_LEARN_CHAT_URL
@@ -235,7 +235,7 @@ export function LearnAssistantPanel({
           const reply = data.reply?.trim()
           if (reply) {
             return {
-              text: reply,
+              text: filterAssistantReply(reply, locale),
               source: data.source === 'openai' ? 'openai' : 'local',
             }
           }
@@ -252,9 +252,9 @@ export function LearnAssistantPanel({
         localCtx,
         { preferOllama },
       )
-      return { text: routed.text, source: mapRoutedSource(routed.source) }
+      return { text: filterAssistantReply(routed.text, locale), source: mapRoutedSource(routed.source) }
     },
-    [localCtx, preferOllama],
+    [localCtx, preferOllama, locale],
   )
 
   const sendText = useCallback(
