@@ -31,14 +31,15 @@ export function mergeLayoutDuringEdit(
     } else if (shell.length > 0) {
       /** Optimistic placeholder: clone last shell atom offset — нет пустого слота. */
       const base = shell[shell.length - 1]!
+      const step = i - shell.length + 1
       out.push({
         ...base,
-        atomInTerm: base.atomInTerm + (i - shell.length) + 1,
-        visualIndex: (base.visualIndex ?? base.atomInTerm) + (i - shell.length) + 1,
+        atomInTerm: base.atomInTerm + step,
+        visualIndex: (base.visualIndex ?? base.atomInTerm) + step,
         pos: [
-          base.pos[0] + (i - shell.length + 1) * 0.08,
+          base.pos[0] + step * 0.52,
           base.pos[1],
-          base.pos[2] + (i - shell.length + 1) * 0.04,
+          base.pos[2] + step * 0.18,
         ],
       })
     }

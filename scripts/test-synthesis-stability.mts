@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict'
 import { expandLeftTermsToPreviewSlots } from '../src/chemistry/reactorEquationBalance.ts'
 import type { ReactorEquationTerm } from '../src/chemistry/reactorEquationBalance.ts'
-import { buildReactorPreviewAtoms, reactorPreviewAtomScale, PREVIEW_ATOM_SCALE } from '../src/components/lab/reactorPreviewLayout.ts'
+import { buildReactorPreviewAtoms, reactorPreviewAtomScale, PREVIEW_ATOM_SCALE, PREVIEW_ATOM_MIN_GAP, previewAtomsMinPairDistance } from '../src/components/lab/reactorPreviewLayout.ts'
 import { resolveSynthesisContinuity } from '../src/lab/synthesisAntiBlink.ts'
 import { isVisualCoverageOk } from '../src/lab/visualCoverageController.ts'
 import { isReactorCoeffEditing } from '../src/lab/reactorCoeffEditMode.ts'
@@ -758,6 +758,83 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     const partial = shell.slice(0, Math.min(3, shell.length))
     const merged = mergePreviewLayoutSlots(slotCount, partial, shell)
     assert.equal(merged.length, slotCount, `merge pads to slotCount=${slotCount}`)
+  }
+}
+
+// --- dense coeff packing: атомы не сливаются (визуально «не пропадают») ---
+{
+  const denseCases: ReactorEquationTerm[][] = [
+    k2cr2o7Terms(),
+    [
+      { id: 'cr', z: 24, coeff: 8 },
+      { id: 'k', z: 19, coeff: 8 },
+      { id: 'o2', z: 8, coeff: 14, diatomic: true },
+    ],
+    [{ id: 'a', z: 1, coeff: 16 }],
+    [{ id: 'a', z: 1, coeff: 24 }],
+    [{ id: 'a', z: 1, coeff: 32 }],
+    [{ id: 'a', z: 1, coeff: 48 }],
+    [
+      { id: 'a', z: 1, coeff: 12 },
+      { id: 'b', z: 2, coeff: 12 },
+      { id: 'c', z: 3, coeff: 12 },
+      { id: 'd', z: 4, coeff: 12 },
+    ],
+    [
+      { id: 'a', z: 1, coeff: 20 },
+      { id: 'b', z: 2, coeff: 20 },
+    ],
+  ]
+  const floor = PREVIEW_ATOM_MIN_GAP * 0.88
+  for (const terms of denseCases) {
+    const atoms = buildReactorPreviewAtoms(terms, { tier: 'full' })
+    const expected = estimateExpectedAtomCount(terms)
+    assert.equal(atoms.length, expected, `dense count ${terms.map((t) => t.coeff).join('+')}`)
+    const md = previewAtomsMinPairDistance(atoms)
+    assert.ok(
+      md >= floor,
+      `dense minDist ${md.toFixed(3)} >= ${floor.toFixed(3)} for ${terms.map((t) => t.coeff).join('+')}`,
+    )
+  }
+}
+
+// --- rapid +/- up to 48: engine never drops a slot atom ---
+{
+  const state = createPreviewEngineState()
+  const pattern = [1, 4, 8, 16, 24, 32, 40, 48, 36, 20, 12, 6, 2, 48, 1, 30]
+  for (const c of pattern) {
+    const terms: ReactorEquationTerm[] = [
+      { id: 'cr', z: 24, coeff: Math.max(1, Math.floor(c / 3)) },
+      { id: 'k', z: 19, coeff: Math.max(1, Math.floor(c / 3)) },
+      { id: 'o2', z: 8, coeff: Math.max(1, c - 2 * Math.max(1, Math.floor(c / 3))), diatomic: true },
+    ]
+    let total = estimateExpectedAtomCount(terms)
+    if (total > 48) {
+      terms[2] = { ...terms[2]!, coeff: Math.max(1, terms[2]!.coeff - (total - 48)) }
+      total = estimateExpectedAtomCount(terms)
+    }
+    const previewAtoms = buildReactorPreviewAtoms(terms, {
+      tier: total > 12 ? 'lite' : 'full',
+    })
+    const frame = resolvePreviewEngineFrame(state, {
+      terms,
+      previewAtoms,
+      editingActive: true,
+      previewOnlyMode: true,
+      synthHoldPreview: false,
+      coeffEditing: true,
+      layoutPending: false,
+      lockPoolSize: false,
+      hotCoeffEdit: true,
+    })
+    assert.ok(frame.poolSize >= frame.slotCount, `pool covers slots at c~${c}`)
+    assert.ok(frame.slotCount >= total, `slotCount >= expected at c~${c}`)
+    for (let i = 0; i < frame.slotCount; i++) {
+      const a = frame.layoutAtoms[i] ?? state.shellAtoms[i]
+      assert.ok(a, `no hole at slot ${i} (c~${c}, total=${total})`)
+    }
+    const md = previewAtomsMinPairDistance(previewAtoms)
+    assert.ok(md >= 0.45, `layout spacing ok at total=${total}: ${md.toFixed(3)}`)
   }
 }
 
