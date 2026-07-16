@@ -34,8 +34,8 @@ export function localizeTopicQuiz(item: TopicQuizItem, locale: AppLocale): Topic
 export type QuizI18nEntry = {
   questionEn?: string
   questionUz?: string
-  choicesEn?: [string, string, string, string]
-  choicesUz?: [string, string, string, string]
+  choicesEn?: readonly string[]
+  choicesUz?: readonly string[]
   explanationEn?: string
   explanationUz?: string
   descriptionEn?: string
@@ -48,8 +48,8 @@ export function mergeQuizI18n(item: TopicQuizItem, i18n: QuizI18nEntry | undefin
     ...item,
     questionEn: i18n.questionEn ?? item.questionEn,
     questionUz: i18n.questionUz ?? item.questionUz,
-    choicesEn: i18n.choicesEn ?? item.choicesEn,
-    choicesUz: i18n.choicesUz ?? item.choicesUz,
+    choicesEn: asChoices(i18n.choicesEn, item.choicesEn ?? item.choices),
+    choicesUz: asChoices(i18n.choicesUz, item.choicesUz ?? item.choices),
     explanationEn: i18n.explanationEn ?? item.explanationEn,
     explanationUz: i18n.explanationUz ?? item.explanationUz,
     descriptionEn: i18n.descriptionEn ?? item.descriptionEn,

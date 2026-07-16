@@ -20,7 +20,7 @@ const BANKS: Record<string, SectionQuizBank> = {
   g9: g9Bank as unknown as SectionQuizBank,
 }
 
-const I18N = sectionQuizI18n as Record<string, QuizI18nEntry>
+const I18N = sectionQuizI18n as unknown as Record<string, QuizI18nEntry>
 
 export function sectionQuizKey(gradeId: string, chapterId: string, sectionId: string): string {
   return `${gradeId}-${chapterId}-${sectionId}`

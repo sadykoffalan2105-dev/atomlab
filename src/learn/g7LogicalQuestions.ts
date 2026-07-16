@@ -2,7 +2,7 @@ import logicalQuizI18n from '../data/g7LogicalQuizI18n.json'
 import { mergeQuizI18n, type QuizI18nEntry } from './topicQuizLocale'
 import type { OralExamItem, TopicQuizItem, WrittenExamItem } from './topicQuizTypes'
 
-const LOGICAL_I18N = logicalQuizI18n as Record<string, QuizI18nEntry>
+const LOGICAL_I18N = logicalQuizI18n as unknown as Record<string, QuizI18nEntry>
 
 type LogicalMcqTemplate = {
   templateKey: string
