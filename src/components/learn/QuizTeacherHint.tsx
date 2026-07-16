@@ -6,6 +6,7 @@ import {
   LearnSpeechController,
   type LearnSpeechLocale,
 } from '../../learn/learnSpeech'
+import { speechLocaleFromApp } from '../../i18n/localeHelpers'
 import { useT } from '../../i18n/useT'
 import styles from './QuizTeacherHint.module.css'
 
@@ -19,7 +20,7 @@ export function QuizTeacherHint({
   className?: string
 }) {
   const { t, locale } = useT()
-  const speechLocale: LearnSpeechLocale = locale === 'en' ? 'en' : 'ru'
+  const speechLocale: LearnSpeechLocale = speechLocaleFromApp(locale)
   const speechRef = useRef(new LearnSpeechController())
   const [hintLevel, setHintLevel] = useState(-1)
   const [hintText, setHintText] = useState<string | null>(null)
@@ -38,7 +39,7 @@ export function QuizTeacherHint({
 
   const revealHint = useCallback(
     async (nextLevel: number) => {
-      const result = getQuizTeacherHint(question, nextLevel, speechLocale)
+      const result = getQuizTeacherHint(question, nextLevel, locale)
       if (!result) return
       setHintLevel(result.level)
       setHintText(result.text)
@@ -50,7 +51,7 @@ export function QuizTeacherHint({
         await speechRef.current.speak(result.text, speechLocale, () => setSpeaking(false))
       }
     },
-    [question, speechLocale],
+    [question, locale, speechLocale],
   )
 
   const onTeacherHelp = useCallback(() => {

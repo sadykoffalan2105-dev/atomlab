@@ -1,5 +1,8 @@
 import type { SectionQuizEnrichment } from './g7C1S01SectionQuizEnrichments'
-import { getG7C1S01SectionEnrichment } from './g7C1S01SectionQuizEnrichments'
+import {
+  G7_C1_S01_SECTION_ENRICHMENTS,
+  getG7C1S01SectionEnrichment,
+} from './g7C1S01SectionQuizEnrichments'
 import bankEnrichments from '../data/g7SectionQuizEnrichments.json'
 import type { TopicQuizItem } from './topicQuizTypes'
 
@@ -12,7 +15,7 @@ export function getG7SectionQuizEnrichment(key: string): SectionQuizEnrichment |
   return getG7C1S01SectionEnrichment(key) ?? JSON_ENRICHMENTS[key] ?? null
 }
 
-/** Подмешивает развёрнутые описания и visualId для § с enrichments. */
+/** Подмешивает развёрнутые описания и visualId для § с enrichments (+ EN/UZ если есть). */
 export function enrichG7SectionQuizItem(item: TopicQuizItem): TopicQuizItem {
   const key = item.templateKey ?? item.id
   const e = getG7SectionQuizEnrichment(key)
@@ -22,13 +25,13 @@ export function enrichG7SectionQuizItem(item: TopicQuizItem): TopicQuizItem {
     description: e.description,
     explanation: e.explanation,
     visualId: e.visualId,
+    descriptionEn: e.descriptionEn ?? item.descriptionEn,
+    descriptionUz: e.descriptionUz ?? item.descriptionUz,
+    explanationEn: e.explanationEn ?? item.explanationEn,
+    explanationUz: e.explanationUz ?? item.explanationUz,
   }
 }
 
 export function allG7SectionQuizEnrichmentIds(): string[] {
-  const ids = new Set<string>([
-    ...Object.keys(JSON_ENRICHMENTS),
-    // §1 ids always available via C1S01 module — listed in JSON after build too
-  ])
-  return [...ids]
+  return [...new Set([...Object.keys(JSON_ENRICHMENTS), ...Object.keys(G7_C1_S01_SECTION_ENRICHMENTS)])]
 }

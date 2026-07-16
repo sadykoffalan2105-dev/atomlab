@@ -1,6 +1,7 @@
+import type { AppLocale } from '../i18n/types'
 import type { TopicQuizItem } from './topicQuizTypes'
 
-type HintPack = { ru: readonly string[]; en: readonly string[] }
+type HintPack = { ru: readonly string[]; en: readonly string[]; uz?: readonly string[] }
 
 /** Сократические подсказки — без буквы и текста правильного ответа. */
 const QUIZ_TEACHER_HINTS: Record<string, HintPack> = {
@@ -174,7 +175,7 @@ const QUIZ_TEACHER_HINTS: Record<string, HintPack> = {
   },
 }
 
-function genericHints(question: TopicQuizItem, locale: 'ru' | 'en'): readonly string[] {
+function genericHints(question: TopicQuizItem, locale: AppLocale): readonly string[] {
   const stem = question.question.replace(/…$/, '').trim()
   if (locale === 'en') {
     return [
@@ -182,6 +183,14 @@ function genericHints(question: TopicQuizItem, locale: 'ru' | 'en'): readonly st
       'Cross out options that are too narrow (“only…”) or obviously unrelated to the topic.',
       'For each remaining option, ask: “Does the textbook support this?” Write your reasoning.',
       'Compare two most likely answers. What single fact from the § rules one of them out?',
+    ]
+  }
+  if (locale === 'uz') {
+    return [
+      `Savolni qayta o‘qing: «${stem}». § dagi qaysi ta’rif eng mos keladi?`,
+      'Juda tor («faqat…») yoki mavzuga aloqasi yo‘q variantlarni chizing.',
+      'Qolgan har bir variant uchun so‘rang: «Darslik shuni qo‘llab-quvvatlaydimi?» — asoslang.',
+      'Eng ehtimoliy ikkitasini solishtiring. § dagi qaysi bitta fakt birini chiqarib tashlaydi?',
     ]
   }
   return [
@@ -192,13 +201,21 @@ function genericHints(question: TopicQuizItem, locale: 'ru' | 'en'): readonly st
   ]
 }
 
-function numericHints(_question: TopicQuizItem, locale: 'ru' | 'en'): readonly string[] {
+function numericHints(_question: TopicQuizItem, locale: AppLocale): readonly string[] {
   if (locale === 'en') {
     return [
       'Write the formula n = m / M. What is M for water?',
       'Divide mass (g) by molar mass (g/mol). Units must give moles.',
       'Check: is your answer roughly mass/18? Too big or too small?',
       'Round sensibly — moles are often between 0.1 and 10 in school problems.',
+    ]
+  }
+  if (locale === 'uz') {
+    return [
+      'n = m / M formulasini yozing. Suv uchun M nima?',
+      'Massani (g) molar massaga (g/mol) bo‘ling. Natija mol bo‘lishi kerak.',
+      'Tekshiring: javob taxminan massa/18 ga yaqinmi? Juda katta yoki kichik emasmi?',
+      'Mantiqiy yaxlitlang — maktab masalalarida n ko‘pincha 0,1 dan 10 molgacha.',
     ]
   }
   return [
@@ -229,14 +246,16 @@ export type QuizTeacherHintResult = {
 export function getQuizTeacherHint(
   question: TopicQuizItem,
   level: number,
-  locale: 'ru' | 'en',
+  locale: AppLocale,
 ): QuizTeacherHintResult | null {
   const key = question.templateKey ?? ''
   let pack = QUIZ_TEACHER_HINTS[key]
   let hints: readonly string[]
 
   if (pack) {
-    hints = locale === 'en' ? pack.en : pack.ru
+    if (locale === 'en') hints = pack.en
+    else if (locale === 'uz') hints = pack.uz ?? pack.en
+    else hints = pack.ru
   } else if (key.startsWith('num-') || question.question.includes('моль') || question.question.includes('mole')) {
     hints = numericHints(question, locale)
   } else {
@@ -249,7 +268,9 @@ export function getQuizTeacherHint(
     text =
       locale === 'en'
         ? 'Reason step by step: which options contradict the textbook definition? Do not guess — eliminate.'
-        : 'Рассуждай по шагам: какие варианты противоречат определению в учебнике? Не угадывай — исключай.'
+        : locale === 'uz'
+          ? 'Bosqichma-bosqich mulohaza qiling: qaysi variantlar darslik ta’rifiga zid? Taxmin qilmang — chiqarib tashlang.'
+          : 'Рассуждай по шагам: какие варианты противоречат определению в учебнике? Не угадывай — исключай.'
   }
 
   return {
