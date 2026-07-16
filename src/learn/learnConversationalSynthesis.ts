@@ -2,7 +2,13 @@ import type { ChemistryKnowledgeChunk } from './learnChemistryKnowledgeBase'
 import type { FaqEntry } from './learnChemistryFaq'
 import type { LearnLocalAssistantContext } from './learnLocalAssistant'
 import type { AssistantLocale } from './learnAssistantLocale'
-import { knowledgeSourceLocale, pickFaqText } from './learnAssistantLocale'
+import { pickFaqText } from './learnAssistantLocale'
+import {
+  isSafeBodyForLocale,
+  normalizeTeacherReplyText,
+  pageLabel,
+  paragraphLabel,
+} from './learnTeacherTextNormalize'
 import {
   chapterLabel,
   findG7TextbookByQuery,
@@ -89,28 +95,79 @@ function resolveG7Section(
   return undefined
 }
 
-function bestDefinition(section: G7TextbookSection, locale: AssistantLocale): string | null {
-  const src = knowledgeSourceLocale(locale)
-  // definitions currently only in Russian corpus
+function bestDefinitionRu(section: G7TextbookSection): string | null {
   const defs = section.definitionsRu ?? []
   for (const d of defs) {
     const clean = cleanPdfHyphenation(d.replace(/\s+/g, ' ').trim())
-    if (clean.length >= 40 && clean.length <= 280 && !/^\?/.test(clean)) {
-      if (src === 'en') {
-        // keep short RU definition only when no EN body; prefer content lead
-        continue
-      }
-      return clean
-    }
+    if (clean.length >= 40 && clean.length <= 280 && !/^\?/.test(clean)) return clean
   }
   return null
 }
 
-function sectionContent(section: G7TextbookSection, locale: AssistantLocale): string {
-  const src = knowledgeSourceLocale(locale)
-  const en = section.contentEn?.trim()
-  if (src === 'en' && en) return en
-  return section.contentRu
+function stubSection(ctx: LearnLocalAssistantContext): G7TextbookSection {
+  return {
+    id: `${ctx.chapterId}-${ctx.sectionId}`,
+    gradeId: ctx.gradeId,
+    chapterId: ctx.chapterId,
+    sectionId: ctx.sectionId,
+    kp: ctx.kpNumber,
+    page: 1,
+    topicRu: ctx.sectionTitle,
+    topicEn: ctx.sectionTitle,
+    keywords: [],
+    contentRu: '',
+    contentEn: '',
+    rememberRu: '',
+    rememberEn: '',
+  }
+}
+
+/** Тело урока только на языке UI — без склейки RU/EN/UZ. */
+function sectionBodyForLocale(
+  section: G7TextbookSection,
+  locale: AssistantLocale,
+  ctx: LearnLocalAssistantContext,
+  intent: QueryIntent,
+): string {
+  if (locale === 'ru') {
+    return takeCharsAtSentence(
+      section.contentRu,
+      intent === 'book_casual' ? 1400 : intent === 'explain' ? 1700 : 1100,
+      0,
+    )
+  }
+
+  if (locale === 'en') {
+    const en = section.contentEn?.trim()
+    if (en && isSafeBodyForLocale(en, 'en')) {
+      return takeCharsAtSentence(
+        en,
+        intent === 'book_casual' ? 1400 : intent === 'explain' ? 1700 : 1100,
+        0,
+      )
+    }
+    const slide = ctx.slideBody?.trim()
+    if (slide && isSafeBodyForLocale(slide, 'en')) {
+      return takeCharsAtSentence(slide, 900, 0)
+    }
+    return [
+      `This is ${paragraphLabel('en', section.kp)}: «${ctx.sectionTitle || section.topicEn}» (${pageLabel('en', section.page)}).`,
+      `Open the Theory slides and the 3D model, then restate the main idea in your own words.`,
+      `Key focus: what the topic is about, one everyday example, and what to remember for the test.`,
+    ].join('\n\n')
+  }
+
+  const slide = ctx.slideBody?.trim()
+  if (slide && isSafeBodyForLocale(slide, 'uz')) {
+    return takeCharsAtSentence(slide, 900, 0)
+  }
+  const topic = ctx.sectionTitle || section.topicEn || section.topicRu
+  return [
+    `Bu ${paragraphLabel('uz', section.kp)}: «${topic}» (${pageLabel('uz', section.page)}).`,
+    `Mavzuda kimyo bo‘yicha asosiy g‘oyalar, hayotdan misollar va eslab qolish kerak bo‘lgan qoidalar ko‘riladi.`,
+    `«Nazariya» slaydlarini oching, 3D modelni ko‘ring va ta’rifni o‘z so‘zlaringiz bilan ayting — shunda yaxshi esda qoladi.`,
+    `Batafsilroq kerak bo‘lsa — Ollama yoqilganida savolni yana yozing: model javobni to‘liq o‘zbekcha beradi.`,
+  ].join('\n\n')
 }
 
 function buildSectionLesson(
@@ -121,46 +178,38 @@ function buildSectionLesson(
   scope?: 'chapter' | 'book',
 ): string {
   const locale = ctx.locale
-  const src = knowledgeSourceLocale(locale)
-  const topic = src === 'en' ? section.topicEn : section.topicRu
+  const topic = ctx.sectionTitle || (locale === 'ru' ? section.topicRu : section.topicEn)
   const opener = pickOpenerForLocale(locale, seed, intent === 'book_casual')
-  const def = bestDefinition(section, locale)
   const globalNum = globalTopicNumber(section)
+  const para = paragraphLabel(locale, section.kp)
+  const page = pageLabel(locale, section.page)
 
   const parts: string[] = []
 
   if (scope === 'book') {
     parts.push(
       locale === 'uz'
-        ? `${opener} **${globalNum}-mavzu** — Kimyo darsligi, ${chapterLabel(section.chapterId, false)}, §${section.kp}, ${section.page}-bet.`
+        ? `${opener} **${globalNum}-mavzu** — Kimyo darsligi, ${chapterLabel(section.chapterId, false)}, ${para}, ${page}.`
         : locale === 'en'
-          ? `${opener} **Topic ${globalNum}** — ${section.chapterId} §${section.kp}, p. ${section.page}.`
-          : `${opener} **Тема ${globalNum}** по учебнику Kimyo — ${chapterLabel(section.chapterId, true)}, §${section.kp}, стр. ${section.page}.`,
+          ? `${opener} **Topic ${globalNum}** — ${chapterLabel(section.chapterId, false)}, ${para}, ${page}.`
+          : `${opener} **Тема ${globalNum}** по учебнику Kimyo — ${chapterLabel(section.chapterId, true)}, ${para}, ${page}.`,
     )
   } else {
-    parts.push(
-      locale === 'uz'
-        ? `${opener} **§${section.kp}. ${topic}** (${section.page}-bet).`
-        : locale === 'en'
-          ? `${opener} **§${section.kp}. ${topic}** (p. ${section.page}).`
-          : `${opener} **§${section.kp}. ${topic}** (стр. ${section.page}).`,
-    )
+    parts.push(`${opener} **${para}. ${topic}** (${page}).`)
   }
 
   parts.push('')
 
-  if (def && locale === 'ru') {
-    parts.push('**Суть темы:**')
-    parts.push(def)
-    parts.push('')
+  if (locale === 'ru') {
+    const def = bestDefinitionRu(section)
+    if (def) {
+      parts.push('**Суть темы:**')
+      parts.push(def)
+      parts.push('')
+    }
   }
 
-  const mainText = takeCharsAtSentence(
-    sectionContent(section, locale),
-    intent === 'book_casual' ? 1400 : intent === 'explain' ? 1700 : 1100,
-    0,
-  )
-  parts.push(mainText)
+  parts.push(sectionBodyForLocale(section, locale, ctx, intent))
 
   if (section.conceptsRu?.length && wantsFullAnswer(intent) && locale === 'ru') {
     parts.push('')
@@ -171,7 +220,10 @@ function buildSectionLesson(
   }
 
   const lessonBody = parts.join('\n')
-  return lessonBody + buildLessonFooterFromSection(section, locale, seed)
+  return normalizeTeacherReplyText(
+    lessonBody + buildLessonFooterFromSection(section, locale, seed, ctx.sectionTitle),
+    locale,
+  )
 }
 
 function buildFaqAnswer(
@@ -181,19 +233,36 @@ function buildFaqAnswer(
   intent: QueryIntent,
   ctx: LearnLocalAssistantContext,
 ): string {
-  const core = stripBoilerplate(pickFaqText(faq, locale))
+  const raw = pickFaqText(faq, locale)
+  if (locale === 'uz' && !isSafeBodyForLocale(raw, 'uz')) {
+    const opener = pickOpenerForLocale(locale, seed)
+    return normalizeTeacherReplyText(
+      appendLessonFooterIfEducational(
+        `${opener}\n\n«${ctx.sectionTitle}» mavzusiga oid savol. Qisqa javob uchun savolni aniqlashtiring yoki Ollama orqali so‘rang.`,
+        { locale, seed, topic: ctx.sectionTitle, kp: ctx.kpNumber },
+        false,
+      ),
+      locale,
+    )
+  }
+  if (locale === 'en' && !isSafeBodyForLocale(raw, 'en')) {
+    const opener = pickOpenerForLocale(locale, seed)
+    return normalizeTeacherReplyText(
+      `${opener}\n\nPlease rephrase the question about «${ctx.sectionTitle}», or enable Ollama for a full English explanation.`,
+      locale,
+    )
+  }
+
+  const core = stripBoilerplate(raw)
   const opener = pickOpenerForLocale(locale, seed)
   const body = takeCharsAtSentence(core, wantsFullAnswer(intent) ? 900 : 420)
-  const main = `${opener}\n\n${body}`
-  return appendLessonFooterIfEducational(
-    main,
-    {
-      locale,
-      seed,
-      topic: ctx.sectionTitle,
-      kp: ctx.kpNumber,
-    },
-    false,
+  return normalizeTeacherReplyText(
+    appendLessonFooterIfEducational(
+      `${opener}\n\n${body}`,
+      { locale, seed, topic: ctx.sectionTitle, kp: ctx.kpNumber },
+      false,
+    ),
+    locale,
   )
 }
 
@@ -208,20 +277,21 @@ function buildChunkFallback(
   if (section) return buildSectionLesson(section, ctx, intent, seed)
 
   const opener = pickOpenerForLocale(locale, seed)
-  const src = knowledgeSourceLocale(locale)
-  const mainText = stripBoilerplate(src === 'en' ? chunk.en : chunk.ru)
-  const lead = takeCharsAtSentence(mainText, wantsFullAnswer(intent) ? 1000 : 380)
+  const candidate = locale === 'ru' ? chunk.ru : chunk.en
+  if (!isSafeBodyForLocale(candidate, locale)) {
+    const g7 = getG7TextbookSection(ctx.chapterId, ctx.sectionId)
+    return buildSectionLesson(g7 ?? stubSection(ctx), ctx, intent, seed)
+  }
 
-  const main = [`${opener}`, '', `**${chunk.topic}**`, '', lead].join('\n')
-  return appendLessonFooterIfEducational(
-    main,
-    {
-      locale,
-      seed,
-      topic: chunk.topic.replace(/^§\d+\.\s*/, ''),
-      kp: ctx.kpNumber,
-    },
-    false,
+  const lead = takeCharsAtSentence(stripBoilerplate(candidate), wantsFullAnswer(intent) ? 1000 : 380)
+  const topic = chunk.topic.replace(/^§\d+\.\s*/, '').replace(/^параграф\s*\d+\.?\s*/i, '')
+  return normalizeTeacherReplyText(
+    appendLessonFooterIfEducational(
+      [`${opener}`, '', `**${topic}**`, '', lead].join('\n'),
+      { locale, seed, topic, kp: ctx.kpNumber },
+      false,
+    ),
+    locale,
   )
 }
 
@@ -249,13 +319,23 @@ export function synthesizeKnowledgeAnswer(
 
   if (chunks.length === 0) {
     const opener = pickOpenerForLocale(locale, seed)
+    const para = paragraphLabel(locale, ctx.kpNumber)
     if (locale === 'uz') {
-      return `${opener} Savolni aniqlashtiring — formula, reaksiya yoki §${ctx.kpNumber} «${ctx.sectionTitle}» mavzusi.`
+      return normalizeTeacherReplyText(
+        `${opener} Savolni aniqlashtiring — formula, reaksiya yoki ${para} «${ctx.sectionTitle}» mavzusi.`,
+        locale,
+      )
     }
     if (locale === 'en') {
-      return `${opener} Narrow it down — formula, reaction, or §${ctx.kpNumber} topic?`
+      return normalizeTeacherReplyText(
+        `${opener} Narrow it down — formula, reaction, or ${para} topic?`,
+        locale,
+      )
     }
-    return `${opener} Уточните вопрос — по формуле, реакции или теме §${ctx.kpNumber} «${ctx.sectionTitle}».`
+    return normalizeTeacherReplyText(
+      `${opener} Уточните вопрос — по формуле, реакции или теме ${para} «${ctx.sectionTitle}».`,
+      locale,
+    )
   }
 
   const main = chunks[0]!
@@ -265,14 +345,13 @@ export function synthesizeKnowledgeAnswer(
     return buildSectionLesson(section, ctx, intent, seed)
   }
 
-  if (wantsFullAnswer(intent) && chunks.length > 1) {
+  if (wantsFullAnswer(intent) && chunks.length > 1 && locale === 'ru') {
     const primary = buildChunkFallback(main, ctx, intent, seed)
-    const src = knowledgeSourceLocale(locale)
     const extra = chunks.slice(1, 3).map((c) => {
-      const snippet = takeCharsAtSentence(stripBoilerplate(src === 'en' ? c.en : c.ru), 320)
+      const snippet = takeCharsAtSentence(stripBoilerplate(c.ru), 320)
       return snippet ? `\n\n**${c.topic}**\n${snippet}` : ''
     })
-    return primary + extra.join('')
+    return normalizeTeacherReplyText(primary + extra.join(''), locale)
   }
 
   return buildChunkFallback(main, ctx, intent, seed)
@@ -302,16 +381,19 @@ export function buildConversationHints(
   if (lang === 'uz') {
     return `\nDIALOG: o‘quvchi so‘radi: «${userTurns.join('» → «')}». Oxirgi savolga to‘liq javob bering, tushuntirishlar kamida 120 so‘z, oldingi javobni so‘zma-so‘z takrorlamang.${antiRepeat}
 
+TIL (MUHIM): faqat o‘zbek lotin. Ruscha yoki inglizcha matn qo‘ymang — tarjima qiling.
+Yozuv: «paragraf 1», «sahifa 7» — §, стр, bet ishlatmang.
+
 HAR BIR O‘QUV JAVOBINING OXIRI (uch blok):
 1) **Eslab qoling:** — darslikdan 2–4 punkt
 2) **O‘qituvchi maslahati:** — bitta amaliy maslahat
-3) **O‘zingizni tekshiring:** — bitta savol
-
-Javob faqat o‘zbek lotin yozuvida.`
+3) **O‘zingizni tekshiring:** — bitta savol`
   }
 
   if (lang === 'en') {
     return `\nDIALOGUE: student asked: "${userTurns.join('" → "')}". Give a full answer to the latest question, at least 120 words for explanations, do not repeat the previous reply verbatim.${antiRepeat}
+
+LANGUAGE: English only — never paste Russian or Uzbek. Write "paragraph 1", "page 7" — never § or стр.
 
 MANDATORY END OF EVERY EDUCATIONAL REPLY (three blocks):
 1) **Must remember:** — 2–4 bullet points from the textbook
@@ -320,6 +402,8 @@ MANDATORY END OF EVERY EDUCATIONAL REPLY (three blocks):
   }
 
   return `\nДИАЛОГ: ученик спрашивал: «${userTurns.join('» → «')}». Ответь развёрнуто на последний вопрос, минимум 120 слов для объяснений, не повторяй дословно прошлый ответ.${antiRepeat}
+
+Пиши «параграф 1», «страница 7» — без символа § и сокращения «стр.».
 
 ОБЯЗАТЕЛЬНЫЙ ФИНАЛ КАЖДОГО УЧЕБНОГО ОТВЕТА (три блока):
 1) **Обязательно запомнить:** — 2–4 пункта из учебника

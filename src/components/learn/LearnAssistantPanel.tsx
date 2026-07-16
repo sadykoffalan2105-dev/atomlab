@@ -11,6 +11,7 @@ import {
 } from '../../learn/learnSpeech'
 import type { LearnSection } from '../../types/learn'
 import { checkTeacherServiceHealth, requestTeacherChat } from '../../learn/teacherServiceClient'
+import { filterAssistantReply } from '../../learn/learnAssistantGuard'
 import { LearnAssistantMarkdown } from './LearnAssistantMarkdown'
 import styles from '../../pages/LearnPage.module.css'
 

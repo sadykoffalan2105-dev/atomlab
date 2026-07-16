@@ -20,7 +20,7 @@ const ADVICE_RU = [
   'Перескажите тему своими словами вслух — так информация «оседает» в памяти.',
   'Запишите три главных слова по теме на стикере и повесьте на стол.',
   'Сравните определение из учебника с примером из жизни — связь помогает запомнить.',
-  'Пройдите слайды § ещё раз и отметьте, что было непонятно — спросите об этом.',
+  'Пройдите слайды параграфа ещё раз и отметьте, что было непонятно — спросите об этом.',
   'Нарисуйте простую схему или таблицу по теме — зрительная память работает отлично.',
   'Объясните тему однокласснику или родителям — если получилось, вы поняли.',
 ] as const
@@ -43,21 +43,21 @@ const QUESTION_TEMPLATES_RU = [
   'Можете своими словами объяснить, что такое «{term}»?',
   'Приведите один пример из жизни, связанный с темой «{topic}».',
   'Чем {a} отличается от {b}? Сформулируйте одним предложением.',
-  'Как бы вы объяснили §{kp} однокласснику, который пропустил урок?',
-  'Назовите три главных понятия §{kp} и свяжите их в одну фразу.',
-  'Что было бы непонятно, если убрать из §{kp} понятие «{term}»?',
+  'Как бы вы объяснили параграф {kp} однокласснику, который пропустил урок?',
+  'Назовите три главных понятия параграфа {kp} и свяжите их в одну фразу.',
+  'Что было бы непонятно, если убрать из параграфа {kp} понятие «{term}»?',
 ] as const
 
 const QUESTION_TEMPLATES_EN = [
   'Can you explain «{term}» in your own words?',
   'Give one real-life example related to «{topic}».',
-  'How would you explain §{kp} to a classmate who missed the lesson?',
+  'How would you explain paragraph {kp} to a classmate who missed the lesson?',
 ] as const
 
 const QUESTION_TEMPLATES_UZ = [
   '«{term}» nima ekanini o‘z so‘zlaringiz bilan tushuntira olasizmi?',
   '«{topic}» mavzusiga bog‘liq hayotdan bitta misol keltiring.',
-  '§{kp} ni darsga kelmagan sinfdoshga qanday tushuntirardingiz?',
+  'Paragraf {kp} ni darsga kelmagan sinfdoshga qanday tushuntirardingiz?',
 ] as const
 
 function resolveLocale(input: LessonFooterInput): AssistantLocale {
@@ -109,10 +109,10 @@ export function buildLessonFooter(input: LessonFooterInput): string {
   } else {
     parts.push(
       locale === 'uz'
-        ? `• §${input.kp ?? ''} asosiy g‘oya: ${input.topic}.`
+        ? `• Paragraf ${input.kp ?? ''} asosiy g‘oyasi: ${input.topic}.`
         : locale === 'en'
-          ? `• Main idea: ${input.topic}.`
-          : `• Главная идея §${input.kp ?? ''}: ${input.topic}.`,
+          ? `• Main idea of paragraph ${input.kp ?? ''}: ${input.topic}.`
+          : `• Главная идея параграфа ${input.kp ?? ''}: ${input.topic}.`,
     )
   }
 
@@ -149,18 +149,26 @@ export function buildLessonFooterFromSection(
   section: G7TextbookSection,
   localeOrRu: AssistantLocale | boolean,
   seed: number,
+  localizedTopic?: string,
 ): string {
   const locale: AssistantLocale =
     typeof localeOrRu === 'boolean' ? (localeOrRu ? 'ru' : 'en') : localeOrRu
   const src = knowledgeSourceLocale(locale)
+  // Для EN/UZ не тащим русские «запомнить» — иначе смешение языков.
+  const rememberRaw =
+    locale === 'ru'
+      ? section.rememberRu
+      : locale === 'en' && section.rememberEn && !/[\u0400-\u04FF]/.test(section.rememberEn)
+        ? section.rememberEn
+        : undefined
   return buildLessonFooter({
     locale,
     seed,
-    topic: src === 'en' ? section.topicEn : section.topicRu,
+    topic: localizedTopic || (src === 'en' ? section.topicEn : section.topicRu),
     kp: section.kp,
-    rememberRaw: src === 'en' ? section.rememberEn : section.rememberRu,
-    concepts: section.conceptsRu,
-    definitions: section.definitionsRu,
+    rememberRaw,
+    concepts: locale === 'ru' ? section.conceptsRu : undefined,
+    definitions: locale === 'ru' ? section.definitionsRu : undefined,
   })
 }
 

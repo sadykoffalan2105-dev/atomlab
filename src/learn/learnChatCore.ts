@@ -190,7 +190,7 @@ export async function processLearnChat(
 
     try {
       const raw = await callOpenAI(system, messages, meta.runtime)
-      const reply = raw ? filterTaskCoachReply(raw, ctx.taskCoach) : ''
+      const reply = raw ? filterTaskCoachReply(raw, ctx.taskCoach, ctx.locale) : ''
       if (reply) {
         return { status: 200, reply, source: 'openai', headers }
       }
@@ -206,6 +206,7 @@ export async function processLearnChat(
         ctx.locale,
       ),
       ctx.taskCoach,
+      ctx.locale,
     )
     return { status: 200, reply, source: 'local', headers }
   }
@@ -223,7 +224,7 @@ export async function processLearnChat(
 
   try {
     const raw = await callOpenAI(system, messages, meta.runtime)
-    const reply = raw ? filterAssistantReply(raw) : ''
+    const reply = raw ? filterAssistantReply(raw, ctx.locale) : ''
     if (reply) {
       return { status: 200, reply, source: 'openai', headers }
     }
@@ -236,6 +237,7 @@ export async function processLearnChat(
       messages.map((m) => ({ role: m.role, content: m.content })),
       ctx,
     ),
+    ctx.locale,
   )
   return { status: 200, reply, source: 'local', headers }
 }

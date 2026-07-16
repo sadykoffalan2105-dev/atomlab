@@ -70,6 +70,10 @@ export function prepareTextForHumanTts(
   if (locale === 'ru') {
     t = t
       .replace(/§\s*(\d+)/g, 'параграф $1')
+      .replace(/\bстр\.?\s*(\d+)/gi, 'страница $1')
+      .replace(/\((\d+)\s*-?\s*bet\)/gi, 'страница $1')
+      .replace(/(\d+)\s*-?\s*bet\b/gi, 'страница $1')
+      .replace(/\bp\.?\s*(\d+)\b/gi, 'страница $1')
       .replace(/\*\*Обязательно запомнить[:\*]*/gi, '. Главное запомнить.')
       .replace(/\*\*Совет учителя[:\*]*/gi, '. Совет.')
       .replace(/\*\*Проверь себя[^*]*[:\*]*/gi, '. Вопрос для самопроверки.')
@@ -88,6 +92,12 @@ export function prepareTextForHumanTts(
   } else if (locale === 'uz') {
     t = t
       .replace(/§\s*(\d+)/g, 'paragraf $1')
+      .replace(/\bстр\.?\s*(\d+)/gi, 'sahifa $1')
+      .replace(/\bp\.?\s*(\d+)\b/gi, 'sahifa $1')
+      .replace(/\((\d+)\s*-?\s*bet\)/gi, 'sahifa $1')
+      .replace(/(\d+)\s*-?\s*bet\b/gi, 'sahifa $1')
+      .replace(/\bpage\s+(\d+)/gi, 'sahifa $1')
+      .replace(/\bparagraph\s+(\d+)/gi, 'paragraf $1')
       .replace(/\*\*Eslab qoling[:\*]*/gi, '. Eslab qoling.')
       .replace(/\*\*O'qituvchi maslahati[:\*]*/gi, '. Maslahat.')
       .replace(/\*\*O'zingizni tekshiring[^*]*[:\*]*/gi, '. Tekshirish savoli.')
@@ -96,7 +106,12 @@ export function prepareTextForHumanTts(
       .replace(/…+/g, '.')
   } else {
     t = t
-      .replace(/§\s*(\d+)/g, 'section $1')
+      .replace(/§\s*(\d+)/g, 'paragraph $1')
+      .replace(/\bстр\.?\s*(\d+)/gi, 'page $1')
+      .replace(/\bp\.?\s*(\d+)\b/gi, 'page $1')
+      .replace(/\((\d+)\s*-?\s*bet\)/gi, 'page $1')
+      .replace(/(\d+)\s*-?\s*bet\b/gi, 'page $1')
+      .replace(/\bsahifa\s+(\d+)/gi, 'page $1')
       .replace(/---\s*REMEMBER\s*---/gi, '. Important to remember.')
       .replace(/→|⟶|->/g, ', then ')
       .replace(/⇌|↔/g, ', reversible reaction, ')

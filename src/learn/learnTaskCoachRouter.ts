@@ -91,7 +91,7 @@ async function tryOllamaTaskCoach(
     if (!res.ok) return null
     const data = (await res.json()) as { message?: { content?: string } }
     const text = data.message?.content?.trim()
-    const filtered = text ? filterTaskCoachReply(text, tc) : ''
+    const filtered = text ? filterTaskCoachReply(text, tc, ctx.locale) : ''
     return filtered.length > 2 ? filtered : null
   } catch {
     return null

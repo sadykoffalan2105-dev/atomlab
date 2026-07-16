@@ -1,3 +1,5 @@
+import type { AssistantLocale } from './learnAssistantLocale'
+import { normalizeTeacherReplyText } from './learnTeacherTextNormalize'
 import type { LearnTaskCoachContext } from './learnTaskCoachTypes'
 
 const BLOCKED_PATTERNS = [
@@ -18,26 +20,42 @@ const TASK_ANSWER_LEAK = [
   /\bcorrect (option|answer)\s*(is|:)\s*/i,
 ]
 
-export function filterAssistantReply(text: string): string {
+export function filterAssistantReply(text: string, locale: AssistantLocale = 'ru'): string {
   const trimmed = text.trim()
   if (!trimmed) return trimmed
   for (const p of BLOCKED_PATTERNS) {
     if (p.test(trimmed)) {
+      if (locale === 'uz') {
+        return 'Xavfli yoki zararli moddalar bo‘yicha ko‘rsatmalar bera olmayman. Maktab kimyosi, laboratoriya xavfsizligi yoki hisoblar haqida so‘rang.'
+      }
+      if (locale === 'en') {
+        return 'I cannot give instructions on dangerous or harmful substances. Ask about school chemistry, lab safety, or calculations.'
+      }
       return 'Я не могу давать инструкции по опасным или вредным веществам. Задайте вопрос по школьной химии, лабораторной безопасности или расчётам — помогу в рамках учебной программы.'
     }
   }
-  return trimmed
+  return normalizeTeacherReplyText(trimmed, locale)
 }
 
-/** Дополнительная фильтрация подсказок коуча — без готового ответа. */
-export function filterTaskCoachReply(text: string, _taskCoach?: LearnTaskCoachContext): string {
-  let out = filterAssistantReply(text)
+export function filterTaskCoachReply(
+  text: string,
+  taskCoach?: LearnTaskCoachContext,
+  locale: AssistantLocale = 'ru',
+): string {
+  void taskCoach
+  let out = filterAssistantReply(text, locale)
   for (const p of TASK_ANSWER_LEAK) {
     if (p.test(out)) {
       out = out.replace(p, '').trim()
     }
   }
   if (!out || out.length < 12) {
+    if (locale === 'uz') {
+      return 'Qoralama da «Berilgan» va «Topish» ni yozing, keyin keyingi qadamni so‘rang — yo‘nalishni aytaman, javobni emas.'
+    }
+    if (locale === 'en') {
+      return 'Write “Given” and “Find” in your notes, then ask for the next step — I will guide, not give the answer.'
+    }
     return 'Запиши в черновик «Дано» и «Найти», затем спроси следующий шаг — я подскажу направление, не ответ.'
   }
   return out

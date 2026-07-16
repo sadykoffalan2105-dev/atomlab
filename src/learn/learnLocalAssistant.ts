@@ -5,6 +5,7 @@ import { retrieveChemistryKnowledge } from './learnKnowledgeRetrieval'
 import { composeExpertLocalReply } from './learnExpertLocalReply'
 import { synthesizeKnowledgeAnswer } from './learnConversationalSynthesis'
 import { isAssistantRu, pickFaqText } from './learnAssistantLocale'
+import { normalizeTeacherReplyText, paragraphLabel } from './learnTeacherTextNormalize'
 import type { LearnTaskCoachContext } from './learnTaskCoachTypes'
 
 /** Локальные ответы ИИ-учителя без внешнего API (офлайн / без ключа). */
@@ -82,7 +83,7 @@ Hozirgi slayd: ${ctx.slideTitle}. ${ctx.slideBody.slice(0, 200)}`
 • Гранит — смесь разных минералов.
 • Морская вода — смесь воды и солей.
 
-Чистое вещество — одно вещество (например, дистиллированная вода, медь, сахар). Смесь можно разделить физическими способами: фильтрация, выпаривание, магнит, дистилляция — см. §6.
+Чистое вещество — одно вещество (например, дистиллированная вода, медь, сахар). Смесь можно разделить физическими способами: фильтрация, выпаривание, магнит, дистилляция — см. параграф 6.
 
 Сейчас на слайде: ${ctx.slideTitle}. ${ctx.slideBody.slice(0, 200)}`
 }
@@ -121,8 +122,9 @@ function explainTopic(
   if (fromKb) return fromKb
 
   const body = ctx.slideBody.slice(0, 400)
+  const para = paragraphLabel(ctx.locale, ctx.kpNumber)
   if (ctx.locale === 'uz') {
-    return `§${ctx.kpNumber}. ${ctx.sectionTitle}
+    return `${para}. ${ctx.sectionTitle}
 
 Slayd: «${ctx.slideTitle}»
 
@@ -131,9 +133,9 @@ ${body || '«Nazariya» yorlig‘ini oching va slaydlarni ketma-ket o‘qing.'}
 Maslahat: o‘ngdagi 3D modelni yoqing va ta’rifni o‘z so‘zingiz bilan ayting.`
   }
   if (ctx.locale === 'en') {
-    return `§${ctx.kpNumber}. ${ctx.sectionTitle} — slide: "${ctx.slideTitle}". ${body}`
+    return `${para}. ${ctx.sectionTitle} — slide: "${ctx.slideTitle}". ${body}`
   }
-  return `§${ctx.kpNumber}. ${ctx.sectionTitle}
+  return `${para}. ${ctx.sectionTitle}
 
 Слайд: «${ctx.slideTitle}»
 
@@ -146,7 +148,7 @@ function hintMode(ctx: LearnLocalAssistantContext): string {
   if (ctx.locale === 'uz') {
     return `«Yordamchi» rejimi: tayyor javob bermayman, lekin fikrlash yo‘lini ko‘rsataman.
 
-1) § dan «sof modda» va «aralashma» ta’riflarini yozing.
+1) Paragrafdan «sof modda» va «aralashma» ta’riflarini yozing.
 2) Misolda nechta turli modda borligini toping.
 3) Kimyoviy reaksiyasiz ajratish mumkinmi? Ha bo‘lsa — bu aralashma.
 
@@ -157,7 +159,7 @@ Hozirgi slayd: «${ctx.slideTitle}». Aniq misol yozing — birga ko‘rib chiqa
   }
   return `Режим «Помощник»: не дам готовый ответ, но подскажу ход мыслей.
 
-1) Выпишите из § определения «чистое вещество» и «смесь».
+1) Выпишите из параграфа определения «чистое вещество» и «смесь».
 2) Найдите в примере, сколько разных веществ (компонентов).
 3) Можно ли разделить без химической реакции? Если да — это смесь.
 
@@ -165,8 +167,9 @@ Hozirgi slayd: «${ctx.slideTitle}». Aniq misol yozing — birga ko‘rib chiqa
 }
 
 function checkUnderstanding(ctx: LearnLocalAssistantContext): string {
+  const para = paragraphLabel(ctx.locale, ctx.kpNumber)
   if (ctx.locale === 'uz') {
-    return `§${ctx.kpNumber} bo‘yicha o‘zingizni tekshiring:
+    return `${para} bo‘yicha o‘zingizni tekshiring:
 
 1) Sof modda aralashmadan qanday farq qiladi?
 2) Aralashmalarni ajratishning 2 usulini ayting.
@@ -175,9 +178,9 @@ function checkUnderstanding(ctx: LearnLocalAssistantContext): string {
 Javoblarni «${ctx.slideTitle}» slaydi va 3D model bilan solishtiring.`
   }
   if (ctx.locale === 'en') {
-    return `Self-check: pure vs mixture, two separation methods, is air a mixture? Use slide "${ctx.slideTitle}".`
+    return `Self-check for ${para}: pure vs mixture, two separation methods, is air a mixture? Use slide "${ctx.slideTitle}".`
   }
-  return `Проверьте себя по §${ctx.kpNumber}:
+  return `Проверьте себя по ${para}:
 
 1) Чем чистое вещество отличается от смеси?
 2) Назовите 2 способа разделения смесей.
@@ -206,6 +209,13 @@ ${ctx.slideBody.slice(0, 350) || '• Чистые вещества и смес�
 
 /** Сгенерировать ответ без OpenAI. */
 export function generateLocalLearnReply(
+  messages: { role: string; content: string }[],
+  ctx: LearnLocalAssistantContext,
+): string {
+  return normalizeTeacherReplyText(generateLocalLearnReplyRaw(messages, ctx), ctx.locale)
+}
+
+function generateLocalLearnReplyRaw(
   messages: { role: string; content: string }[],
   ctx: LearnLocalAssistantContext,
 ): string {
@@ -287,11 +297,11 @@ export function generateLocalLearnReply(
 
   if (matchAny(q, ['проверь мой', 'check my', 'мой ответ', 'my answer', 'javobimni', 'tekshir'])) {
     if (locale === 'uz') {
-      return `Javobingizni chatga yozing — §${ctx.kpNumber} mavzusi bilan solishtiraman. Hozircha mo‘ljal: ${ctx.slideTitle}.`
+      return `Javobingizni chatga yozing — ${paragraphLabel(locale, ctx.kpNumber)} mavzusi bilan solishtiraman. Hozircha mo‘ljal: ${ctx.slideTitle}.`
     }
     return ru
-      ? `Напишите ваш ответ в чат — сравню с темой §${ctx.kpNumber}. Пока ориентир: ${ctx.slideTitle}. ${ctx.slideBody.slice(0, 180)}`
-      : `Paste your answer here — I will compare it to §${ctx.kpNumber}.`
+      ? `Напишите ваш ответ в чат — сравню с темой ${paragraphLabel(locale, ctx.kpNumber)}. Пока ориентир: ${ctx.slideTitle}. ${ctx.slideBody.slice(0, 180)}`
+      : `Paste your answer here — I will compare it to ${paragraphLabel(locale, ctx.kpNumber)}.`
   }
 
   if (
@@ -441,13 +451,16 @@ export function generateLocalLearnReply(
   const expert = composeExpertLocalReply(q, ctx, messages)
   if (expert) return expert
 
-  if (sectionBlock.length > 80) {
-    if (locale === 'uz') {
-      return `**${ctx.sectionTitle}** (oflayn rejim)\n\n${sectionBlock.slice(0, 900)}\n\nSavolni aniqlashtiring yoki Ollama ni yoqing (kompyuterda bepul).`
-    }
-    return ru
-      ? `**${ctx.sectionTitle}** (офлайн-режим)\n\n${sectionBlock.slice(0, 900)}\n\nУточните вопрос или включите Ollama (бесплатно на ПК).`
-      : `**${ctx.sectionTitle}** (offline)\n\n${sectionBlock.slice(0, 900)}`
+  if (sectionBlock.length > 80 && locale === 'ru') {
+    return `**${ctx.sectionTitle}** (офлайн-режим)\n\n${sectionBlock.slice(0, 900)}\n\nУточните вопрос или включите Ollama (бесплатно на ПК).`
+  }
+
+  if (sectionBlock.length > 80 && locale === 'en') {
+    return `**${ctx.sectionTitle}** (offline)\n\nOpen Theory slides for this paragraph, or enable Ollama for a full English explanation.`
+  }
+
+  if (sectionBlock.length > 80 && locale === 'uz') {
+    return `**${ctx.sectionTitle}** (oflayn)\n\n«Nazariya» slaydlarini oching yoki Ollama ni yoqing — to‘liq o‘zbekcha tushuntirish uchun.`
   }
 
   return offlineNeedsApiMessage(locale)

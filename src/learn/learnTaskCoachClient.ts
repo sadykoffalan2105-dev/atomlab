@@ -26,7 +26,7 @@ export async function requestTaskCoachReply(
   const teacher = await requestTeacherChat(messages, context)
   if (teacher?.text) {
     return {
-      text: filterTaskCoachReply(teacher.text, taskCoach),
+      text: filterTaskCoachReply(teacher.text, taskCoach, baseContext.locale),
       source: 'ollama',
     }
   }
@@ -44,7 +44,7 @@ export async function requestTaskCoachReply(
     const reply = data.reply?.trim()
     if (reply) {
       return {
-        text: filterTaskCoachReply(reply, taskCoach),
+        text: filterTaskCoachReply(reply, taskCoach, baseContext.locale),
         source: data.source === 'openai' ? 'openai' : 'local',
       }
     }
@@ -54,7 +54,7 @@ export async function requestTaskCoachReply(
 
   const routed = await routeTaskCoachReply(messages, context, problem)
   return {
-    text: filterTaskCoachReply(routed.text, taskCoach),
+    text: filterTaskCoachReply(routed.text, taskCoach, baseContext.locale),
     source: routed.source === 'ollama' ? 'ollama' : 'local',
   }
 }
