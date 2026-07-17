@@ -64,10 +64,10 @@ function WrittenExamOverlay({
   rosterSectionId,
   onClose,
 }: Props & { count: 3 | 5; onClose: () => void }) {
-  const { t } = useT()
+  const { t, locale } = useT()
   const [phase, setPhase] = useState<Phase>('running')
   const [questions] = useState<WrittenExamItem[]>(() =>
-    pickWrittenExamQuestions(grade.id, chapter.id, count),
+    pickWrittenExamQuestions(grade.id, chapter.id, count, locale),
   )
   const [index, setIndex] = useState(0)
   const [answer, setAnswer] = useState('')
@@ -120,6 +120,7 @@ function WrittenExamOverlay({
       sampleAnswer: question.sampleAnswer,
       studentAnswer: answer,
       mode: 'written',
+      locale,
       gradeId: grade.id,
       chapterId: chapter.id,
       sectionTitle: section.titleKey,
@@ -128,7 +129,7 @@ function WrittenExamOverlay({
     setLastFeedback(result)
     setShowFeedback(true)
     setGrading(false)
-  }, [answer, chapter.id, grade.id, grading, question, section.titleKey])
+  }, [answer, chapter.id, grade.id, grading, locale, question, section.titleKey])
 
   const handleNext = useCallback(() => {
     if (index + 1 >= total) {

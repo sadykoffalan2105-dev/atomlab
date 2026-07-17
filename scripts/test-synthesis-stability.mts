@@ -43,7 +43,12 @@ import {
   estimateExpectedAtomCount,
   resolvePreviewEngineFrame,
   resolvePreviewFramePolicy,
+  bumpSettlePinUntil,
+  isSettlePinActive,
+  withSettlePinPolicy,
+  PREVIEW_SETTLE_PIN_MS,
 } from '../src/lab/synthesisPreviewEngine/index.ts'
+import { restorePreviewActiveSlotVisibility } from '../src/lab/previewAtomFrameGuard.ts'
 import {
   PREVIEW_POOL_STEP,
   PREVIEW_POOL_STEP_DENSE,
@@ -219,6 +224,17 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
       synthesisRunActive: false,
     }),
     false,
+  )
+  assert.equal(
+    canIdleGpuCompileQueue({
+      reactorOpen: true,
+      coeffEditBurst: false,
+      coeffEditing: true,
+      synthesisRunActive: false,
+      synthActive: false,
+    }),
+    false,
+    'coeffEditing (visualHold/settle) blocks GPU compile queue',
   )
   assert.equal(
     canIdleGpuCompileQueue({
@@ -460,6 +476,68 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   assert.equal(idle.hotCoeffEdit, false)
   assert.equal(idle.pinEveryFrame, false)
   assert.equal(idle.lockPoolSize, true)
+}
+
+// --- settle pin: после hot +/- pin держится ещё PREVIEW_SETTLE_PIN_MS ---
+{
+  const idle = resolvePreviewFramePolicy({
+    atomCount: 15,
+    editingActive: true,
+    coeffEditBurst: false,
+    coeffEditing: false,
+    flightActive: false,
+    groupVisible: true,
+    forceLite: false,
+    frameBudgetLite: false,
+    lowPowerProfile: {
+      tier: 'mid',
+      isMobileSoc: false,
+      forceLiteReactor: false,
+      maxAnimatedAtoms: 48,
+      minElectronFrameSkip: 1,
+      canvasDpr: 1.5,
+      disableAtomDrift: false,
+      disableSlowSpin: false,
+      productPaintLatchFrames: 4,
+      coeffEditLayoutDebounceMs: 0,
+    },
+  })
+  const now = 1000
+  const until = bumpSettlePinUntil(true, now, 0)
+  assert.equal(until, now + PREVIEW_SETTLE_PIN_MS)
+  assert.equal(isSettlePinActive(now + 10, until), true)
+  assert.equal(isSettlePinActive(until + 1, until), false)
+  const settled = withSettlePinPolicy(idle, true, true)
+  assert.equal(settled.pinEveryFrame, true)
+  assert.equal(settled.lockVisualTier, true)
+  assert.equal(withSettlePinPolicy(idle, true, false).pinEveryFrame, false)
+}
+
+// --- restore slots after hide: children visible again without relying on React props ---
+{
+  const mkGroup = (visible: boolean) => ({ visible, scale: { x: 1, y: 1, z: 1, set() {} } })
+  const root = mkGroup(false)
+  const posRefs = { current: [mkGroup(false), mkGroup(false), mkGroup(false)] }
+  const scaleRefs = {
+    current: [
+      { visible: false, scale: { x: 0.1, y: 0.1, z: 0.1, set(x: number, y: number, z: number) { this.x = x; this.y = y; this.z = z } } },
+      { visible: false, scale: { x: 0.1, y: 0.1, z: 0.1, set(x: number, y: number, z: number) { this.x = x; this.y = y; this.z = z } } },
+      { visible: false, scale: { x: 0.1, y: 0.1, z: 0.1, set(x: number, y: number, z: number) { this.x = x; this.y = y; this.z = z } } },
+    ],
+  }
+  restorePreviewActiveSlotVisibility({
+    atomCount: 2,
+    rootRef: root as never,
+    atomGroupRefs: posRefs as never,
+    atomScaleGroupRefs: scaleRefs as never,
+    layoutScale: 1,
+  })
+  assert.equal(root.visible, true)
+  assert.equal(posRefs.current[0]!.visible, true)
+  assert.equal(posRefs.current[1]!.visible, true)
+  assert.equal(posRefs.current[2]!.visible, false, 'tail slot untouched by restore')
+  assert.equal(scaleRefs.current[0]!.visible, true)
+  assert.equal(scaleRefs.current[1]!.visible, true)
 }
 
 // --- merge layout slots: индексы pool = индексы слотов ---

@@ -4,14 +4,14 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 const BURST_WINDOW_MS = 520
 /** Каждый +/- — burst: pin держит атомы; lite при dense защищает GPU. */
 const BURST_MIN_CHANGES = 1
-/** Короткий hold — GPU-очередь продукта снова работает через ~0.4с после +/-. */
-const BURST_HOLD_MS = 380
+/** Hold после burst — GPU-очередь не стартует, пока атомы не осели. */
+const BURST_HOLD_MS = 520
 /** Пауза до editIdle после последнего изменения. */
-const EDIT_IDLE_MS = 300
-/** Доп. удержание pin после editIdle. */
-const VISUAL_HOLD_MS = 220
+const EDIT_IDLE_MS = 420
+/** Доп. удержание pin/editing после последнего +/- (оседание слотов). */
+const VISUAL_HOLD_MS = 520
 /** Удержание «editing» после последнего +/- — без мигания между кликами. */
-const EDIT_PULSE_MS = 260
+const EDIT_PULSE_MS = 360
 
 function termsSignature(terms: readonly ReactorEquationTerm[] | null): string {
   if (!terms?.length) return ''

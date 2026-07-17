@@ -737,6 +737,8 @@ function SceneContent({
     }
     const n = Math.max(0, previewAtomCountRef.current)
     const scaleFloor = reactorPreviewAtomScale(n)
+    // Только restore активных слотов. Хвост пула гасит pin/engine —
+    // hide i>=n со stale n оставлял слоты THREE.visible=false после роста коэффициентов.
     for (let i = 0; i < n; i++) {
       const sc = previewAtomScaleGroupRefs.current[i]
       if (sc) {
@@ -752,14 +754,7 @@ function SceneContent({
         g.visible = true
       }
     }
-    for (let i = n; i < previewAtomGroupRefs.current.length; i++) {
-      const g = previewAtomGroupRefs.current[i]
-      const sc = previewAtomScaleGroupRefs.current[i]
-      if (g) g.visible = false
-      if (sc) sc.visible = false
-    }
-    // previewAtomCount намеренно НЕ в deps: рост атомов ведёт pin/ReactorTermsPreview, не полный restore.
-  }, [coeffEditingActive, synthActive, synthesisRunActive])
+  }, [coeffEditingActive, synthActive, synthesisRunActive, previewAtomCount])
 
   const restorePreviewRootVisibility = useCallback(() => {
     const root = previewRootRef.current
@@ -1446,6 +1441,7 @@ export function LabCanvas({
   coeffEditingRef.current = reactorCoeffEditing ?? false
   const webglRecoveryRef = useRef(
     createWebGlRecoveryController(() => {
+      // Remount только вне edit; во время +/- откладываем (см. effect ниже).
       if (coeffEditBurstRef.current || coeffEditingRef.current) return
       setInternalSessionKey((k) => k + 1)
     }),
@@ -1454,10 +1450,17 @@ export function LabCanvas({
 
   useEffect(() => {
     if (reactorCoeffEditBurst || reactorCoeffEditing) return
-    if (webglRecoveryRef.current.shouldRemount()) {
+    if (!webglRecoveryRef.current.shouldRemount()) return
+    // После оседания коэффициентов даём pin/settle восстановить слоты,
+    // и только потом remount Canvas (иначе «все атомы пропали» на idle).
+    const settleMs = 780
+    const timer = window.setTimeout(() => {
+      if (coeffEditBurstRef.current || coeffEditingRef.current) return
+      if (!webglRecoveryRef.current.shouldRemount()) return
       setInternalSessionKey((k) => k + 1)
       webglRecoveryRef.current.reset()
-    }
+    }, settleMs)
+    return () => window.clearTimeout(timer)
   }, [reactorCoeffEditBurst, reactorCoeffEditing])
 
   /** always — demand давал чёрный центр при +/- коэффициентов. */

@@ -53,11 +53,12 @@ export function canIdleGpuCompileQueue(opts: {
   synthesisRunActive: boolean
   synthActive?: boolean
 }): boolean {
-  // Не блокируем всю очередь длинным burst — только активный pulse клика.
-  const clicking = opts.coeffEditBurst === true
+  // Не стартовать compile сразу после +/-: visualHold/editing ещё держит continuity,
+  // а GPU-очередь в этот момент даёт context loss → remount → «атомы пропали».
+  const editing = opts.coeffEditBurst === true || opts.coeffEditing === true
   return (
     opts.reactorOpen &&
-    !clicking &&
+    !editing &&
     !opts.synthesisRunActive &&
     !opts.synthActive
   )

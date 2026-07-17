@@ -107,7 +107,7 @@ export function OrganicMoleculeDetailModal({
             ) : null}
             <div className={own.actions}>
               <Link className={own.openLab} to={`/organic?mol=${encodeURIComponent(mol.id)}`} onClick={onClose}>
-                {t('organicLab.openInLab')}
+                {t('organicLab.open3d')}
               </Link>
               {mol.challengeId ? (
                 <Link

@@ -1,3 +1,5 @@
+import type { AppLocale } from '../i18n/types'
+
 export type ExamGradeVerdict = 'correct' | 'partial' | 'incorrect'
 
 export type ExamGradeResult = {
@@ -14,7 +16,7 @@ function normalize(text: string): string {
   return text
     .toLowerCase()
     .replace(/ё/g, 'е')
-    .replace(/[^a-zа-я0-9+\-\s]/gi, ' ')
+    .replace(/[^a-zа-яўқғҳʼ''0-9+\-\s]/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -43,7 +45,26 @@ function scoreFromRatio(ratio: number): number {
   return 0
 }
 
-function localFeedback(verdict: ExamGradeVerdict, hits: number, total: number): string {
+function localFeedback(
+  verdict: ExamGradeVerdict,
+  hits: number,
+  total: number,
+  locale: AppLocale = 'ru',
+): string {
+  if (locale === 'en') {
+    if (verdict === 'correct') return 'Complete answer. You covered the main key points.'
+    if (verdict === 'partial') {
+      return `Good ideas (${hits} of ${total} key points). Add more detail.`
+    }
+    return 'Incomplete answer. Review the topic and name the main concepts.'
+  }
+  if (locale === 'uz') {
+    if (verdict === 'correct') return 'Javob to\'liq. Asosiy kalit nuqtalarni aytib o\'tdingiz.'
+    if (verdict === 'partial') {
+      return `To\'g\'ri fikrlar bor (${hits}/${total} kalit band). Javobni to\'ldiring.`
+    }
+    return 'Javob to\'liq emas. Mavzuni takrorlang va asosiy tushunchalarni ayting.'
+  }
   if (verdict === 'correct') {
     return 'Ответ полный. Вы назвали основные ключевые моменты.'
   }
@@ -57,6 +78,7 @@ function localFeedback(verdict: ExamGradeVerdict, hits: number, total: number): 
 export function gradeExamAnswerLocal(
   studentAnswer: string,
   rubric: readonly string[],
+  locale: AppLocale = 'ru',
 ): ExamGradeResult {
   const total = Math.max(1, rubric.length)
   const hits = rubricHits(studentAnswer, rubric)
@@ -66,7 +88,7 @@ export function gradeExamAnswerLocal(
     verdict,
     score: scoreFromRatio(ratio),
     maxScore: MAX_SCORE,
-    feedback: localFeedback(verdict, hits, total),
+    feedback: localFeedback(verdict, hits, total, locale),
   }
 }
 
@@ -91,40 +113,50 @@ export type ExamGradeContext = {
   sampleAnswer?: string
   studentAnswer: string
   mode: 'written' | 'oral'
+  locale?: AppLocale
   gradeId?: string
   chapterId?: string
   sectionTitle?: string
 }
 
+function emptyAnswerFeedback(locale: AppLocale): string {
+  if (locale === 'en') return 'Empty answer. Try to write at least the main idea.'
+  if (locale === 'uz') return 'Javob bo\'sh. Hech bo\'lmaganda asosiy fikrni yozing.'
+  return 'Ответ пустой. Попробуйте сформулировать хотя бы основную мысль.'
+}
+
 /** Оценка с попыткой ИИ через teacher_service, иначе локально. */
 export async function gradeExamAnswer(ctx: ExamGradeContext): Promise<ExamGradeResult> {
+  const locale = ctx.locale ?? 'ru'
   const trimmed = ctx.studentAnswer.trim()
   if (!trimmed) {
     return {
       verdict: 'incorrect',
       score: 0,
       maxScore: MAX_SCORE,
-      feedback: 'Ответ пустой. Попробуйте сформулировать хотя бы основную мысль.',
+      feedback: emptyAnswerFeedback(locale),
     }
   }
 
   try {
     const { requestTeacherChat } = await import('./teacherServiceClient')
     const rubricText = ctx.rubric.map((r, i) => `${i + 1}. ${r}`).join('\n')
-    const prompt = `Оцени ответ ученика 7 класса по химии.
+    const lang =
+      locale === 'en' ? 'English' : locale === 'uz' ? 'Uzbek (Latin)' : 'Russian'
+    const prompt = `Grade a grade-7 chemistry student answer. Write FEEDBACK in ${lang}.
 
-Вопрос: ${ctx.question}
+Question: ${ctx.question}
 
-Ключевые пункты (рубрика):
+Rubric key points:
 ${rubricText}
 
-${ctx.sampleAnswer ? `Образец ответа: ${ctx.sampleAnswer}\n` : ''}
-Ответ ученика: ${trimmed}
+${ctx.sampleAnswer ? `Sample answer: ${ctx.sampleAnswer}\n` : ''}
+Student answer: ${trimmed}
 
-Ответь СТРОГО в формате:
+Reply STRICTLY in this format:
 VERDICT: correct|partial|incorrect
 SCORE: 0|1|2
-FEEDBACK: краткая обратная связь ученику (1–2 предложения, без формул)`
+FEEDBACK: short feedback to the student (1–2 sentences)`
 
     const result = await requestTeacherChat([{ role: 'user', content: prompt }], {
       examGrade: true,
@@ -142,7 +174,7 @@ FEEDBACK: краткая обратная связь ученику (1–2 пр�
     /* fallback */
   }
 
-  return gradeExamAnswerLocal(trimmed, ctx.rubric)
+  return gradeExamAnswerLocal(trimmed, ctx.rubric, locale)
 }
 
 export function examPointsToTestScore(totalPoints: number, maxPoints: number, questionCount: number): number {

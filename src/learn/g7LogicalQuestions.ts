@@ -1,5 +1,11 @@
 import logicalQuizI18n from '../data/g7LogicalQuizI18n.json'
-import { mergeQuizI18n, type QuizI18nEntry } from './topicQuizLocale'
+import { G7_ORAL_EXAM_I18N, G7_WRITTEN_EXAM_I18N } from './g7ExamQuestionI18n'
+import {
+  mergeOralExamI18n,
+  mergeQuizI18n,
+  mergeWrittenExamI18n,
+  type QuizI18nEntry,
+} from './topicQuizLocale'
 import type { OralExamItem, TopicQuizItem, WrittenExamItem } from './topicQuizTypes'
 
 const LOGICAL_I18N = logicalQuizI18n as unknown as Record<string, QuizI18nEntry>
@@ -1078,20 +1084,32 @@ export function getAllLogicalMcq(): TopicQuizItem[] {
 
 export function getWrittenQuestionsForChapter(chapterNum: number): WrittenExamItem[] {
   const items = WRITTEN_BY_CHAPTER[chapterNum] ?? []
-  return items.map((item, i) => ({
-    ...item,
-    id: `g7-written-c${chapterNum}-w${String(i + 1).padStart(2, '0')}`,
-    kind: 'written' as const,
-  }))
+  return items.map((item, i) => {
+    const id = `g7-written-c${chapterNum}-w${String(i + 1).padStart(2, '0')}`
+    return mergeWrittenExamI18n(
+      {
+        ...item,
+        id,
+        kind: 'written' as const,
+      },
+      G7_WRITTEN_EXAM_I18N[id],
+    )
+  })
 }
 
 export function getOralQuestionsForChapter(chapterNum: number): OralExamItem[] {
   const items = ORAL_BY_CHAPTER[chapterNum] ?? []
-  return items.map((item, i) => ({
-    ...item,
-    id: `g7-oral-c${chapterNum}-o${String(i + 1).padStart(2, '0')}`,
-    kind: 'oral' as const,
-  }))
+  return items.map((item, i) => {
+    const id = `g7-oral-c${chapterNum}-o${String(i + 1).padStart(2, '0')}`
+    return mergeOralExamI18n(
+      {
+        ...item,
+        id,
+        kind: 'oral' as const,
+      },
+      G7_ORAL_EXAM_I18N[id],
+    )
+  })
 }
 
 export function getAllWrittenQuestions(): WrittenExamItem[] {

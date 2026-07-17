@@ -12,6 +12,12 @@ export {
   type PreviewFramePolicyInput,
 } from './previewFramePolicy'
 export {
+  PREVIEW_SETTLE_PIN_MS,
+  bumpSettlePinUntil,
+  isSettlePinActive,
+  withSettlePinPolicy,
+} from './previewSettlePin'
+export {
   syncPreviewLayoutSlots,
   tickSynthesisPreviewFrame,
   type PreviewFrameTickInput,

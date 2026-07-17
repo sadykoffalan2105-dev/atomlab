@@ -17,11 +17,15 @@ import {
   resolvePreviewFramePolicy,
   syncPreviewLayoutSlots,
   tickSynthesisPreviewFrame,
+  bumpSettlePinUntil,
+  isSettlePinActive,
+  withSettlePinPolicy,
 } from '../../lab/synthesisPreviewEngine'
 import {
   resolvePreviewEditingActive,
   resolvePreviewExternalAtomControl,
 } from '../../lab/synthesisPreviewEngine/previewExternalControl'
+import { restorePreviewActiveSlotVisibility } from '../../lab/previewAtomFrameGuard'
 import { createReactorPreviewVisibilityGuard } from '../../lab/reactorPreviewVisibilityGuard'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
@@ -71,6 +75,7 @@ export function ReactorTermsPreview({
 }) {
   const { invalidate } = useThree()
   const engineRef = useRef(createPreviewEngineState())
+  const settlePinUntilRef = useRef(0)
   const lowPowerProfile = useMemo(() => getLowPowerDeviceProfile(getSynthesisDeviceTier()), [])
   const editingActive = resolvePreviewEditingActive({
     coeffEditing,
@@ -182,11 +187,19 @@ export function ReactorTermsPreview({
     ],
   )
 
+  settlePinUntilRef.current = bumpSettlePinUntil(
+    policy.hotCoeffEdit,
+    performance.now(),
+    settlePinUntilRef.current,
+  )
+  const settlePin = isSettlePinActive(performance.now(), settlePinUntilRef.current)
+  const tickPolicy = withSettlePinPolicy(policy, settlePin, frame.groupVisible)
+
   engineRef.current.fullDetailLatch = resolveFullDetailLatch(
     engineRef.current.fullDetailLatch,
     frame.slotCount,
-    policy.lockVisualTier,
-    policy.effectiveForceLite,
+    tickPolicy.lockVisualTier,
+    tickPolicy.effectiveForceLite,
   )
   const useFullDetail = engineRef.current.fullDetailLatch
   const useDenseLight = engineRef.current.denseLightLatch
@@ -333,7 +346,7 @@ export function ReactorTermsPreview({
 
   useFrame((s) => {
     guardFrameRef.current = tickSynthesisPreviewFrame({
-      policy,
+      policy: tickPolicy,
       slotCount: n,
       groupVisible: effectiveGroupVisible,
       // Синтез владеет refs (GSAP): выключаем pin/guard, чтобы не мигали атомы.
@@ -388,8 +401,32 @@ export function ReactorTermsPreview({
         if (posG) posG.visible = false
         if (scaleG) scaleG.visible = false
       }
+      return
     }
-  }, [effectiveGroupVisible, atomGroupRefs, atomScaleGroupRefs])
+    // После hide React может оставить THREE.visible=false при visible={true} —
+    // явно восстанавливаем активные слоты.
+    if (!externalAtomControl && n > 0) {
+      restorePreviewActiveSlotVisibility({
+        atomCount: n,
+        rootRef: g,
+        atomGroupRefs,
+        atomScaleGroupRefs,
+        layoutScale: scale,
+      })
+      syncPreviewLayoutSlots(n, renderAtoms, shellAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
+    }
+  }, [
+    effectiveGroupVisible,
+    externalAtomControl,
+    n,
+    scale,
+    renderAtoms,
+    shellAtoms,
+    atomGroupRefs,
+    atomScaleGroupRefs,
+  ])
+
+  const hotEdit = tickPolicy.hotCoeffEdit || tickPolicy.pinEveryFrame
 
   return (
     <group ref={groupRef} visible={effectiveGroupVisible} frustumCulled={false}>
@@ -410,11 +447,10 @@ export function ReactorTermsPreview({
         /** Активный слот: есть данные layout/shell или удерживаем last-Z (без unmount Bohr). */
         const slotActive = atom != null || (i < n && (engineRef.current.slotZ[i] ?? 0) > 0)
         const slotKey = `pool-${i}`
-        const hotEdit = policy.hotCoeffEdit || policy.pinEveryFrame
         const atomPolicy = getReactorAtomRenderPolicy({
           atomCount: n,
           atomZ: slotZ,
-          forceLite: policy.effectiveForceLite,
+          forceLite: tickPolicy.effectiveForceLite,
           qualityLevel: hotEdit ? undefined : qualityLevel,
           coeffEditBurst: hotEdit,
           minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
@@ -433,7 +469,7 @@ export function ReactorTermsPreview({
                 z={slotZ}
                 animate={electronAnimate && (slotActive || hotEdit)}
                 previewStatic={
-                  !hotEdit && (!slotActive || (!electronAnimate && policy.pinEveryFrame))
+                  !hotEdit && (!slotActive || (!electronAnimate && tickPolicy.pinEveryFrame))
                 }
                 useFullDetail={useFullDetail && !flightActive}
                 synthesisGlass={synthesisGlass && (flightActive || poseLocked) && slotActive}

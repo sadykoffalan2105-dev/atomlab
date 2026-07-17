@@ -34,6 +34,14 @@ export type WrittenExamItem = {
   sampleAnswer?: string
   explanation?: string
   chapterNum?: number
+  questionEn?: string
+  questionUz?: string
+  rubricEn?: readonly string[]
+  rubricUz?: readonly string[]
+  sampleAnswerEn?: string
+  sampleAnswerUz?: string
+  explanationEn?: string
+  explanationUz?: string
 }
 
 export type OralExamItem = {
@@ -47,6 +55,16 @@ export type OralExamItem = {
   sampleAnswer?: string
   explanation?: string
   chapterNum?: number
+  questionSpeakEn?: string
+  questionSpeakUz?: string
+  questionDisplayEn?: string
+  questionDisplayUz?: string
+  rubricEn?: readonly string[]
+  rubricUz?: readonly string[]
+  sampleAnswerEn?: string
+  sampleAnswerUz?: string
+  explanationEn?: string
+  explanationUz?: string
 }
 
 export type SectionEquationEntry = {

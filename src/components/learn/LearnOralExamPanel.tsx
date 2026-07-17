@@ -22,6 +22,7 @@ import {
 import { useOralExamMedia } from '../../learn/useOralExamMedia'
 import type { OralExamItem } from '../../learn/topicQuizTypes'
 import { useT, type MessageKey } from '../../i18n/useT'
+import { speechLocaleFromApp } from '../../i18n/localeHelpers'
 import { OralExamCameraPanel } from './OralExamCameraPanel'
 import styles from './TeacherExamShell.module.css'
 
@@ -78,7 +79,7 @@ function OralExamOverlay({
   const listenSessionRef = useRef({ committed: '' })
   const [phase, setPhase] = useState<Phase>('running')
   const [questions] = useState<OralExamItem[]>(() =>
-    pickOralExamQuestions(grade.id, chapter.id, count),
+    pickOralExamQuestions(grade.id, chapter.id, count, locale),
   )
   const [index, setIndex] = useState(0)
   const [step, setStep] = useState<OralStep>('ask')
@@ -112,7 +113,7 @@ function OralExamOverlay({
       setListening(false)
       setListenError(null)
       setSpeaking(true)
-      await speechRef.current.speak(q.questionSpeak, locale === 'en' ? 'en' : 'ru', () => setSpeaking(false))
+      await speechRef.current.speak(q.questionSpeak, speechLocaleFromApp(locale), () => setSpeaking(false))
       await sleep(350)
       setSpeaking(false)
       setAnswerPhase('think')
@@ -176,7 +177,7 @@ function OralExamOverlay({
     listenSessionRef.current = { committed: '' }
 
     const ok = speechRef.current.startOralListening(
-      locale === 'en' ? 'en' : 'ru',
+      speechLocaleFromApp(locale),
       listenSessionRef.current,
       (committed, interim) => {
         const confirmed = mergeTranscript(prefix, committed, '')
@@ -286,6 +287,7 @@ function OralExamOverlay({
       sampleAnswer: question.sampleAnswer,
       studentAnswer: transcript,
       mode: 'oral',
+      locale,
       gradeId: grade.id,
       chapterId: chapter.id,
       sectionTitle: section.titleKey,
@@ -294,7 +296,7 @@ function OralExamOverlay({
     setLastFeedback(result)
     setStep('feedback')
     setSpeaking(true)
-    await speechRef.current.speak(result.feedback, locale === 'en' ? 'en' : 'ru', () => setSpeaking(false))
+    await speechRef.current.speak(result.feedback, speechLocaleFromApp(locale), () => setSpeaking(false))
     setSpeaking(false)
   }, [chapter.id, grade.id, locale, question, section.titleKey, stopListening, transcript])
 

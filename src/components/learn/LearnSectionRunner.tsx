@@ -306,6 +306,14 @@ export function LearnSectionRunner({
                 {t('learn.textbook.openSection')}
               </Link>
             ) : null}
+            {grade.id === 'g10' ? (
+              <Link
+                className={styles.btn}
+                to={`/organic?chapter=${chapter.id.replace(/\D/g, '') || '1'}&section=${section.id.replace(/\D/g, '') || '1'}`}
+              >
+                {t('organicLab.openInLab')}
+              </Link>
+            ) : null}
             <div className={styles.learnPanelMenu} role="group" aria-label={t('learn.panel.menu')}>
               <button
                 type="button"

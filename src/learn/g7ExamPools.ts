@@ -7,7 +7,8 @@ import {
   getWrittenQuestionsForChapter,
 } from './g7LogicalQuestions'
 import { G7_ORAL_EXAM_STARTER } from './g7OralExamStarter'
-import { localizeTopicQuiz } from './topicQuizLocale'
+import { localizeTopicQuiz, localizeOralExam, localizeWrittenExam, mergeOralExamI18n } from './topicQuizLocale'
+import { G7_ORAL_EXAM_I18N } from './g7ExamQuestionI18n'
 import type { OralExamItem, TopicQuizItem, WrittenExamItem } from './topicQuizTypes'
 import type { StudentTestLength } from './studentTestScoring'
 
@@ -46,7 +47,9 @@ export function getOralExamPool(gradeId: string, chapterId: string): OralExamIte
   if (gradeId !== 'g7') return []
   const chapter = getOralQuestionsForChapter(chapterNum(chapterId))
   const seen = new Set(chapter.map((q) => q.id))
-  const starter = G7_ORAL_EXAM_STARTER.filter((q) => !seen.has(q.id))
+  const starter = G7_ORAL_EXAM_STARTER.filter((q) => !seen.has(q.id)).map((q) =>
+    mergeOralExamI18n(q, G7_ORAL_EXAM_I18N[q.id]),
+  )
   return [...chapter, ...starter]
 }
 
@@ -69,22 +72,28 @@ export function pickWrittenExamQuestions(
   gradeId: string,
   chapterId: string,
   count: 3 | 5,
+  locale: AppLocale = 'ru',
 ): WrittenExamItem[] {
   const pool = getWrittenExamPool(gradeId, chapterId)
   if (pool.length === 0) return []
   const shuffled = shuffle(pool)
-  return shuffled.slice(0, Math.min(count, shuffled.length))
+  return shuffled
+    .slice(0, Math.min(count, shuffled.length))
+    .map((q) => localizeWrittenExam(q, locale))
 }
 
 export function pickOralExamQuestions(
   gradeId: string,
   chapterId: string,
   count: OralExamCount,
+  locale: AppLocale = 'ru',
 ): OralExamItem[] {
   const pool = getOralExamPool(gradeId, chapterId)
   if (pool.length === 0) return []
   const shuffled = shuffle(pool)
-  return shuffled.slice(0, Math.min(count, shuffled.length))
+  return shuffled
+    .slice(0, Math.min(count, shuffled.length))
+    .map((q) => localizeOralExam(q, locale))
 }
 
 export function mcqExamPoolSize(gradeId: string, chapterId: string, sectionId: string): number {
