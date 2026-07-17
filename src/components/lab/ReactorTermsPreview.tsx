@@ -262,13 +262,13 @@ export function ReactorTermsPreview({
   const renderAtoms = frame.layoutAtoms
   const shellAtoms = engineRef.current.shellAtoms
 
-  const previewLatched =
-    previewOnlyMode && engineRef.current.visibleLatch && frame.slotCount > 0
-  /** Pre-synth / edit: группа ВСЕГДА visible. */
-  const effectiveGroupVisible =
+  /** Pre-synth / edit: группа ВСЕГДА visible. После синтеза (visible=false) — скрыта. */
+  const atomsOnScreen =
     previewOnlyMode || coeffEditing
       ? n > 0 || shellAtoms.length > 0
-      : Boolean(visible) && (frame.groupVisible || previewLatched || frame.slotCount > 0)
+      : Boolean(visible) && (n > 0 || shellAtoms.length > 0 || frame.groupVisible)
+
+  const effectiveGroupVisible = atomsOnScreen
 
   /**
    * Во время синтеза атомы летят через GSAP (SynthesisConvergeStreams).
@@ -289,6 +289,7 @@ export function ReactorTermsPreview({
     shellAtoms,
     externalAtomControl,
     groupVisible: effectiveGroupVisible,
+    atomsOnScreen,
   })
   const posRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
   const scaleRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
@@ -301,13 +302,14 @@ export function ReactorTermsPreview({
           atomGroupRefs.current[i] = el
           if (!el) return
           const ls = layoutStateRef.current
-          // Pre-synth / edit: всегда visible для активных слотов — groupVisible может быть stale на mount.
-          if (i < ls.n) {
+          if (i < ls.n && ls.atomsOnScreen) {
             el.visible = true
             const atom = ls.renderAtoms[i] ?? ls.shellAtoms[i]
             if (atom && !ls.externalAtomControl) {
               el.position.set(atom.pos[0], atom.pos[1], atom.pos[2])
             }
+          } else if (el && !ls.atomsOnScreen) {
+            el.visible = false
           }
         }
         posRefSettersRef.current[i] = cb
@@ -325,11 +327,13 @@ export function ReactorTermsPreview({
           atomScaleGroupRefs.current[i] = el
           if (!el) return
           const ls = layoutStateRef.current
-          if (i < ls.n) {
+          if (i < ls.n && ls.atomsOnScreen) {
             el.visible = true
             if (!ls.externalAtomControl) {
               el.scale.set(ls.scale, ls.scale, ls.scale)
             }
+          } else if (el && !ls.atomsOnScreen) {
+            el.visible = false
           }
         }
         scaleRefSettersRef.current[i] = cb
@@ -346,6 +350,7 @@ export function ReactorTermsPreview({
     shellAtoms,
     externalAtomControl,
     groupVisible: effectiveGroupVisible,
+    atomsOnScreen,
   }
 
   useEffect(() => {
@@ -373,11 +378,13 @@ export function ReactorTermsPreview({
   }, [renderAtoms, shellAtoms, n, scale, atomGroupRefs, atomScaleGroupRefs])
 
   useLayoutEffect(() => {
+    if (!atomsOnScreen) return
     if (externalAtomControl) return
     if (n === 0 && shellAtoms.length === 0) return
     syncPreviewLayoutSlots(n, renderAtoms, shellAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
     invalidateThrottleRef.current.request(invalidate)
   }, [
+    atomsOnScreen,
     externalAtomControl,
     termsSig,
     invalidate,
@@ -390,9 +397,21 @@ export function ReactorTermsPreview({
   ])
 
   useFrame((s) => {
+    const root = groupRef.current
+    // После синтеза продукт владеет экраном — Bohr полностью гасим каждый кадр.
+    if (!atomsOnScreen) {
+      if (root) root.visible = false
+      for (let i = 0; i < atomGroupRefs.current.length; i++) {
+        const posG = atomGroupRefs.current[i]
+        const scG = atomScaleGroupRefs.current[i]
+        if (posG) posG.visible = false
+        if (scG) scG.visible = false
+      }
+      return
+    }
+
     // Жёсткий pin каждый кадр в pre-synth — до любого early-return.
     if ((previewOnlyMode || coeffEditing) && !externalAtomControl) {
-      const root = groupRef.current
       if (root) root.visible = true
       const count = Math.max(n, 1)
       for (let i = 0; i < count; i++) {
@@ -409,7 +428,7 @@ export function ReactorTermsPreview({
     guardFrameRef.current = tickSynthesisPreviewFrame({
       policy: tickPolicy,
       slotCount: n,
-      groupVisible: true,
+      groupVisible: atomsOnScreen,
       flightActive: externalAtomControl,
       layoutPending,
       layoutScale: scale,
@@ -425,7 +444,6 @@ export function ReactorTermsPreview({
 
     if (externalAtomControl || n === 0) return
     const t = s.clock.elapsedTime
-    const root = groupRef.current
     if (root && slowSpin) root.rotation.y = t * (n > 18 ? 0.032 : 0.04)
 
     if (!driftAtoms) return
@@ -454,7 +472,7 @@ export function ReactorTermsPreview({
     const g = groupRef.current
     if (!g) return
     // Pre-synth: НИКОГДА не гасим детей — continuity/product false давал залипший hide.
-    if (previewOnlyMode) {
+    if (previewOnlyMode || coeffEditing) {
       g.visible = true
       if (!externalAtomControl && n > 0) {
         shieldForceShowActiveSlots({
@@ -468,12 +486,18 @@ export function ReactorTermsPreview({
       }
       return
     }
-    g.visible = effectiveGroupVisible
-    // Не гасим children поштучно — залипает visible=false при гонке с pin/synth start.
-    // Достаточно скрыть корень; pin восстановит слоты при следующем edit.
-    if (!effectiveGroupVisible) {
+    // После синтеза / productOwnsScreen: корень и слоты скрыты — только молекула.
+    if (!atomsOnScreen) {
+      g.visible = false
+      for (let i = 0; i < atomGroupRefs.current.length; i++) {
+        const posG = atomGroupRefs.current[i]
+        const scaleG = atomScaleGroupRefs.current[i]
+        if (posG) posG.visible = false
+        if (scaleG) scaleG.visible = false
+      }
       return
     }
+    g.visible = true
     if (!externalAtomControl && n > 0) {
       shieldForceShowActiveSlots({
         slotCount: n,
@@ -493,6 +517,8 @@ export function ReactorTermsPreview({
     }
   }, [
     previewOnlyMode,
+    coeffEditing,
+    atomsOnScreen,
     effectiveGroupVisible,
     externalAtomControl,
     n,
@@ -509,16 +535,16 @@ export function ReactorTermsPreview({
    * Presence — тонкий fallback при hot dense, не перекрывает ядро.
    */
   const hotDense = (policy.hotCoeffEdit || coeffEditing) && n >= 10
-  const showPresence = hotDense && (previewOnlyMode || coeffEditing)
+  const showPresence = hotDense && atomsOnScreen && (previewOnlyMode || coeffEditing)
   const mountBohrCount = Math.max(n, Math.min(poolSize, n + 2), previewOnlyMode || coeffEditing ? Math.min(n + 2, 20) : 0)
 
   return (
     <group
       ref={groupRef}
-      visible
+      visible={atomsOnScreen}
       frustumCulled={false}
     >
-      {!sharedLighting ? (
+      {!sharedLighting && atomsOnScreen ? (
         <>
           <ambientLight intensity={0.28} />
           <directionalLight position={[4, 6, 2]} intensity={0.65} color="#b8c8ff" />
@@ -542,8 +568,7 @@ export function ReactorTermsPreview({
         const incomingZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
         if (atom != null) engineRef.current.slotZ[i] = incomingZ
         const slotZ = engineRef.current.slotZ[i] ?? incomingZ
-        const slotVisible =
-          i < n && (previewOnlyMode || coeffEditing || effectiveGroupVisible)
+        const slotVisible = i < n && atomsOnScreen
         const atomPolicy = getReactorAtomRenderPolicy({
           atomCount: Math.max(n, 1),
           atomZ: slotZ,
@@ -559,14 +584,14 @@ export function ReactorTermsPreview({
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
               <ReactorPreviewAtomSlot
                 z={slotZ}
-                animate={forceElectronMotion}
-                previewStatic={false}
+                animate={forceElectronMotion && atomsOnScreen}
+                previewStatic={!atomsOnScreen}
                 useFullDetail={useFullDetail}
                 synthesisGlass={false}
                 previewLite={previewLite}
                 electronFrameSkip={Math.max(1, atomPolicy.electronFrameSkip)}
                 hideOrbitRings={false}
-                localLight={!sharedLighting}
+                localLight={!sharedLighting && atomsOnScreen}
               />
             </group>
           </group>
