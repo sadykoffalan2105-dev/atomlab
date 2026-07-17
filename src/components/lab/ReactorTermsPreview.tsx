@@ -5,7 +5,6 @@ import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance
 import { assertPreviewElectronAnimation } from '../../lab/reactorPreviewGuarantee'
 import { resolveReactorEditPerfFlags } from '../../lab/reactorEditPerfMode'
 import { createReactorInvalidateThrottle } from '../../lab/reactorInvalidateThrottle'
-import { getReactorAtomRenderPolicy } from '../../lab/synthesisLagGuard'
 import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
 import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import { warnIfReactorVisualDegraded } from '../../lab/reactorVisualPreservation'
@@ -391,11 +390,26 @@ export function ReactorTermsPreview({
   ])
 
   useFrame((s) => {
+    // Жёсткий pin каждый кадр в pre-synth — до любого early-return.
+    if ((previewOnlyMode || coeffEditing) && !externalAtomControl) {
+      const root = groupRef.current
+      if (root) root.visible = true
+      const count = Math.max(n, 1)
+      for (let i = 0; i < count; i++) {
+        const posG = atomGroupRefs.current[i]
+        const scG = atomScaleGroupRefs.current[i]
+        if (posG) posG.visible = true
+        if (scG) {
+          scG.visible = true
+          if (scG.scale.x < scale * 0.4) scG.scale.set(scale, scale, scale)
+        }
+      }
+    }
+
     guardFrameRef.current = tickSynthesisPreviewFrame({
       policy: tickPolicy,
       slotCount: n,
-      groupVisible: effectiveGroupVisible,
-      // Синтез владеет refs (GSAP): выключаем pin/guard, чтобы не мигали атомы.
+      groupVisible: true,
       flightActive: externalAtomControl,
       layoutPending,
       layoutScale: scale,
@@ -409,7 +423,7 @@ export function ReactorTermsPreview({
       onRecoverLayout: syncLayout,
     })
 
-    if (!effectiveGroupVisible || externalAtomControl || n === 0) return
+    if (externalAtomControl || n === 0) return
     const t = s.clock.elapsedTime
     const root = groupRef.current
     if (root && slowSpin) root.rotation.y = t * (n > 18 ? 0.032 : 0.04)
@@ -493,64 +507,59 @@ export function ReactorTermsPreview({
     atomScaleGroupRefs,
   ])
 
-  const hotEdit = true
   const forceElectronMotion = true
-  const showPresence = (previewOnlyMode || coeffEditing) && n > 0
+  /** Presence всегда в pre-synth — не зависит от React deps на мутируемый layout. */
+  const showPresence = previewOnlyMode || coeffEditing
+  const denseEdit = n >= 10
+  /** Пул не сжимаем при +/- — иначе remount Bohr = «пропали атомы». */
+  const mountBohrCount = Math.max(poolSize, n, previewOnlyMode || coeffEditing ? 32 : 0)
 
   return (
     <group
       ref={groupRef}
-      visible={previewOnlyMode || coeffEditing ? true : effectiveGroupVisible}
+      visible
       frustumCulled={false}
     >
       {!sharedLighting ? (
         <>
-          <ambientLight intensity={useDenseLight ? 0.38 : 0.22} />
-          <directionalLight position={[4, 6, 2]} intensity={useDenseLight ? 0.72 : 0.55} color="#b8c8ff" />
-          {useDenseLight ? (
-            <pointLight position={[0, 0.5, 2.5]} intensity={1.1} distance={12} color="#7afcff" />
-          ) : null}
+          <ambientLight intensity={0.45} />
+          <directionalLight position={[4, 6, 2]} intensity={0.85} color="#b8c8ff" />
+          <pointLight position={[0, 0.5, 2.5]} intensity={1.2} distance={14} color="#7afcff" />
         </>
       ) : null}
-      {/* Ultra presence: точки всегда на экране, даже при hitch Bohr. */}
-      <ReactorPreviewPresenceDots atoms={renderAtoms} visible={showPresence} maxCount={48} />
-      {Array.from({ length: poolSize }, (_, i) => {
+      {/* PRIMARY presence: каждый кадр, крупные цветные сферы — атомы не могут «пропасть». */}
+      <ReactorPreviewPresenceDots
+        atoms={renderAtoms}
+        shellAtoms={shellAtoms}
+        slotCount={Math.max(n, shellAtoms.length, 1)}
+        visible={showPresence}
+        maxCount={48}
+        radius={denseEdit ? 0.48 : 0.36}
+      />
+      {Array.from({ length: mountBohrCount }, (_, i) => {
         const layoutAtom = i < n ? renderAtoms[i] : null
         const shellAtom = i < shellAtoms.length ? shellAtoms[i] : null
         const atom = layoutAtom ?? shellAtom
         const incomingZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
-        // Фиксированный слот i: Z обновляем, ключ НИКОГДА не меняем (нет remount storm).
         if (atom != null) engineRef.current.slotZ[i] = incomingZ
         const slotZ = engineRef.current.slotZ[i] ?? incomingZ
-        const slotActive = atom != null || (i < n && slotZ > 0)
-        const atomPolicy = getReactorAtomRenderPolicy({
-          atomCount: Math.max(n, 1),
-          atomZ: slotZ,
-          forceLite: tickPolicy.effectiveForceLite || n >= 10,
-          qualityLevel: undefined,
-          coeffEditBurst: true,
-          minElectronFrameSkip: 1,
-        })
-        // Активные слоты всегда visible в pre-synth; хвост тоже не гасим React'ом —
-        // иначе THREE.visible залипает против pin.
         const slotVisible =
-          previewOnlyMode || coeffEditing
-            ? i < Math.max(n, poolSize > 0 && n > 0 ? n : 0) || slotActive
-            : effectiveGroupVisible && i < n
-        const frameSkip = Math.max(1, Math.min(2, atomPolicy.electronFrameSkip))
+          i < n && (previewOnlyMode || coeffEditing || effectiveGroupVisible)
+        const frameSkip = denseEdit ? 2 : 1
         return (
           <group key={`slot-${i}`} visible={slotVisible} ref={getPosRef(i)}>
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
+              {/* Всегда mount — visible управляет показом; без remount storm. */}
               <ReactorPreviewAtomSlot
                 z={slotZ}
                 animate={forceElectronMotion}
                 previewStatic={false}
-                useFullDetail={n > 0 && n <= 8 && !tickPolicy.effectiveForceLite}
+                useFullDetail={false}
                 synthesisGlass={false}
-                previewLite={n > 8 || tickPolicy.effectiveForceLite}
+                previewLite
                 electronFrameSkip={frameSkip}
-                hideOrbitRings={false}
-                localLight={!sharedLighting}
+                hideOrbitRings={denseEdit}
+                localLight={false}
               />
             </group>
           </group>
