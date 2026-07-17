@@ -51,7 +51,7 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
   } = input
 
   const hotCoeffEdit = resolvePreviewHotCoeffEdit({ coeffEditing, coeffEditBurst })
-  /** Shell/пул держим шире; тяжёлый pin — только hot. */
+  /** Shell/пул держим шире; pin — весь pre-synth, не только hot (иначе атомы «пропадают» после оседания). */
   const shellHold = editingActive || hotCoeffEdit
   const effectiveForceLite =
     forceLite || frameBudgetLite || lowPowerProfile.forceLiteReactor
@@ -63,22 +63,27 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
   const renderForceLite =
     denseHot ||
     (hotCoeffEdit && atomCount >= 10) ||
+    (editingActive && atomCount >= 10) ||
     (!hotCoeffEdit && effectiveForceLite) ||
     frameBudgetLite
 
   const base = getReactorPreviewPolicy({
     atomCount,
-    forceLite: renderForceLite || (hotCoeffEdit && atomCount > 8),
+    forceLite: renderForceLite || ((hotCoeffEdit || editingActive) && atomCount > 8),
     flightActive,
     visible: groupVisible || (editingActive && atomCount > 0),
     qualityLevel,
-    coeffEditBurst: hotCoeffEdit,
+    coeffEditBurst: hotCoeffEdit || editingActive,
     maxAnimatedAtoms: Math.max(lowPowerProfile.maxAnimatedAtoms, SYNTHESIS_PERF.maxAnimatedAtoms),
   })
 
-  const pinEveryFrame = hotCoeffEdit && groupVisible && atomCount > 0 && !flightActive
+  /**
+   * КРИТИЧНО: pin каждый кадр, пока превью открыто (editingActive=previewOnlyMode).
+   * Раньше pin падал после settle → THREE.visible=false залипал → «атомы пропали».
+   */
+  const pinEveryFrame =
+    !flightActive && atomCount > 0 && (hotCoeffEdit || editingActive)
 
-  // Pre-synth shell (editingActive) + атомы: электроны НИКОГДА не гасим.
   const electronAnimate =
     !flightActive &&
     atomCount > 0 &&
@@ -88,18 +93,12 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
   return {
     ...base,
     electronAnimate,
-    driftAtoms:
-      pinEveryFrame ? false : base.driftAtoms && !lowPowerProfile.disableAtomDrift,
-    slowSpin:
-      pinEveryFrame ? false : base.slowSpin && !lowPowerProfile.disableSlowSpin,
-    visibilityGuardEvery: pinEveryFrame
-      ? Math.max(base.visibilityGuardEvery, 4)
-      : Math.min(base.visibilityGuardEvery, 2),
-    coverageGuardEvery: pinEveryFrame
-      ? Math.max(base.coverageGuardEvery, 4)
-      : base.coverageGuardEvery,
+    driftAtoms: false,
+    slowSpin: pinEveryFrame ? false : base.slowSpin && !lowPowerProfile.disableSlowSpin,
+    visibilityGuardEvery: 1,
+    coverageGuardEvery: pinEveryFrame ? 2 : base.coverageGuardEvery,
     pinEveryFrame,
-    lockVisualTier: hotCoeffEdit || denseHot,
+    lockVisualTier: hotCoeffEdit || denseHot || (editingActive && atomCount >= 10),
     lockPoolSize: shellHold,
     effectiveForceLite: renderForceLite,
     maxInvalidateHz: 60,

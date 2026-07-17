@@ -53,6 +53,8 @@ export function tickSynthesisPreviewFrame(input: PreviewFrameTickInput): number 
       layoutScale,
       previewAtoms: layoutAtoms,
       shellAtoms,
+      // Pre-synth / editing: не гасим хвост — stale n давал «пропали» при росте coeff.
+      keepTailVisible: policy.lockPoolSize || policy.hotCoeffEdit,
     })
   }
 

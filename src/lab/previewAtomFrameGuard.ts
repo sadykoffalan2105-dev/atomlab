@@ -33,9 +33,9 @@ export function restorePreviewActiveSlotVisibility(opts: {
 }
 
 /**
- * Каждый кадр при +/-: принудительно держим root и слоты visible + scale.
+ * Каждый кадр при +/- / pre-synth: принудительно держим root и слоты visible + scale.
  * Не гасим слоты при кратковременном null — иначе hitch = «атомы пропали».
- * Не гасим i >= atomCount во время pin (atomCount = display hold).
+ * Хвост пула НЕ гасим, если keepTailVisible (pre-synth) — иначе stale hide.
  */
 export function pinPreviewAtomsOnScreen(opts: {
   atomCount: number
@@ -45,6 +45,8 @@ export function pinPreviewAtomsOnScreen(opts: {
   layoutScale: number
   previewAtoms: readonly (ReactorPreviewAtom | null | undefined)[]
   shellAtoms?: readonly ReactorPreviewAtom[]
+  /** true — не трогать i >= atomCount (pre-synth / dichromate). */
+  keepTailVisible?: boolean
 }): void {
   const {
     atomCount,
@@ -54,6 +56,7 @@ export function pinPreviewAtomsOnScreen(opts: {
     layoutScale,
     previewAtoms,
     shellAtoms = [],
+    keepTailVisible = false,
   } = opts
   if (atomCount <= 0) return
 
@@ -86,6 +89,8 @@ export function pinPreviewAtomsOnScreen(opts: {
       }
     }
   }
+
+  if (keepTailVisible) return
 
   // Pool slots beyond displayCount stay mounted but hidden — never collapse scale.
   for (let i = atomCount; i < atomGroupRefs.current.length; i++) {

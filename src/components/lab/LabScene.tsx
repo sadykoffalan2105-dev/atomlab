@@ -1119,13 +1119,27 @@ function SceneContent({
       reactorViewOpen,
       synthLive: synthesisRunActive || synthActive,
       previewMounted: reactorPreviewMounted,
-      previewVisible: reactorPreviewVisible,
+      // Pre-synth / coeff edit: никогда не отдаём hide корня continuity-guard'у.
+      previewVisible:
+        reactorPreviewVisible ||
+        (reactorViewOpen && !synthesisRunActive && !synthActive && !showSettledHero),
       previewAtomCount,
       productPrewarm: productPrewarmActive,
-      productPainted,
+      productPainted: productPainted && !coeffEditingActive,
       previewRootRef,
       invalidate,
     })
+
+    // Жёсткий restore корня каждый кадр в pre-synth — против залипшего visible=false.
+    if (
+      reactorViewOpen &&
+      !synthesisRunActive &&
+      !synthActive &&
+      !showSettledHero &&
+      previewRootRef.current
+    ) {
+      previewRootRef.current.visible = true
+    }
 
     frameHoldRef.current.tick({
       invalidate,

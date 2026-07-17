@@ -445,11 +445,11 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   })
   assert.equal(policy.pinEveryFrame, true)
   assert.equal(policy.hotCoeffEdit, true)
-  // Pin держит visible; guard не обязан каждый кадр (меньше работы при быстрых +/-).
-  assert.ok(policy.visibilityGuardEvery >= 2)
+  // Pin + guard каждый кадр — атомы не успевают «залипнуть» invisible.
+  assert.ok(policy.visibilityGuardEvery >= 1)
 }
 
-// Idle превью (открыт реактор, без +/-) — без pinEveryFrame, электроны не троттлятся лишне.
+// Idle превью (открыт реактор = editingActive) — pin ВСЕГДА, электроны живы.
 {
   const idle = resolvePreviewFramePolicy({
     atomCount: 15,
@@ -474,7 +474,8 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     },
   })
   assert.equal(idle.hotCoeffEdit, false)
-  assert.equal(idle.pinEveryFrame, false)
+  assert.equal(idle.pinEveryFrame, true, 'pre-synth must pin every frame')
+  assert.equal(idle.electronAnimate, true)
   assert.equal(idle.lockPoolSize, true)
 }
 
@@ -510,7 +511,9 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   const settled = withSettlePinPolicy(idle, true, true)
   assert.equal(settled.pinEveryFrame, true)
   assert.equal(settled.lockVisualTier, true)
-  assert.equal(withSettlePinPolicy(idle, true, false).pinEveryFrame, false)
+  // groupVisible=false → settle не меняет политику (возвращает как есть)
+  const blocked = withSettlePinPolicy(idle, true, false)
+  assert.equal(blocked.pinEveryFrame, idle.pinEveryFrame)
 }
 
 // --- restore slots after hide: children visible again without relying on React props ---

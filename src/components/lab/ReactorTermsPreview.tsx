@@ -196,36 +196,45 @@ export function ReactorTermsPreview({
   )
 
   settlePinUntilRef.current = bumpSettlePinUntil(
-    policy.hotCoeffEdit,
+    policy.hotCoeffEdit || previewOnlyMode,
     performance.now(),
     settlePinUntilRef.current,
   )
   const settlePin = isSettlePinActive(performance.now(), settlePinUntilRef.current)
-  let tickPolicy = withSettlePinPolicy(policy, settlePin, frame.groupVisible)
+  let tickPolicy = withSettlePinPolicy(policy, settlePin || previewOnlyMode, frame.groupVisible)
 
   // --- ReactorPreviewShield: единый закон видимости / электронов / lite ---
   {
     const now = performance.now()
-    if (policy.hotCoeffEdit || coeffEditBurst || coeffEditing) {
-      shieldRef.current = bumpShieldOnCoeffEdit(shieldRef.current, now, frame.slotCount)
+    if (policy.hotCoeffEdit || coeffEditBurst || coeffEditing || previewOnlyMode) {
+      shieldRef.current = bumpShieldOnCoeffEdit(
+        shieldRef.current,
+        now,
+        Math.max(frame.slotCount, 12),
+      )
     }
     shieldRef.current = tickShieldPhase(shieldRef.current, now)
     const shield = resolveShieldRenderPolicy({
       snap: shieldRef.current,
       nowMs: now,
-      hotCoeffEdit: policy.hotCoeffEdit,
+      hotCoeffEdit: policy.hotCoeffEdit || previewOnlyMode,
       preSynthesis: previewOnlyMode,
       atomCount: frame.slotCount,
-      groupVisible: frame.groupVisible || (previewOnlyMode && frame.slotCount > 0),
+      groupVisible: true,
       flightActive,
       externalForceLite: policy.effectiveForceLite,
     })
     tickPolicy = {
       ...tickPolicy,
-      pinEveryFrame: tickPolicy.pinEveryFrame || shield.pinEveryFrame,
-      lockVisualTier: tickPolicy.lockVisualTier || shield.lockVisualTier,
-      electronAnimate: shield.electronAnimate || tickPolicy.electronAnimate,
-      effectiveForceLite: shield.forceLite || tickPolicy.effectiveForceLite,
+      // Pre-synth: pin ВСЕГДА, пока есть атомы.
+      pinEveryFrame:
+        (!flightActive && previewOnlyMode && frame.slotCount > 0) ||
+        tickPolicy.pinEveryFrame ||
+        shield.pinEveryFrame,
+      lockVisualTier: true,
+      lockPoolSize: true,
+      electronAnimate: true,
+      effectiveForceLite: shield.forceLite || tickPolicy.effectiveForceLite || frame.slotCount >= 10,
     }
   }
 
@@ -246,19 +255,22 @@ export function ReactorTermsPreview({
   const atomScaleGroupRefsLocal = useRef<(THREE.Group | null)[]>([])
   const atomGroupRefs = atomGroupRefsExternal ?? atomGroupRefsLocal
   const atomScaleGroupRefs = atomScaleGroupRefsExternal ?? atomScaleGroupRefsLocal
+  /** Latch Z по identity — при сдвиге индексов Bohr не cold-remount. */
+  const zByIdentityRef = useRef<Map<string, number>>(new Map())
 
   const { electronAnimate, driftAtoms, slowSpin } = tickPolicy
   const n = frame.slotCount
-  const poolSize = frame.poolSize
+  /** Минимум пула 24 — dichromate/rapid +/- без cold-mount Bohr. */
+  const poolSize = Math.max(frame.poolSize, previewOnlyMode ? 24 : 0, n)
   const renderAtoms = frame.layoutAtoms
   const shellAtoms = engineRef.current.shellAtoms
 
   const previewLatched =
     previewOnlyMode && engineRef.current.visibleLatch && frame.slotCount > 0
-  /** LabScene visibility — жёсткий gate: при продукте Bohr не должен «пробиваться». */
-  const effectiveGroupVisible =
-    Boolean(visible) &&
-    (frame.groupVisible || previewLatched || frame.slotCount > 0)
+  /** Pre-synth: группа ВСЕГДА visible, пока есть слоты (игнор кратких false от continuity). */
+  const effectiveGroupVisible = previewOnlyMode
+    ? n > 0 || shellAtoms.length > 0
+    : Boolean(visible) && (frame.groupVisible || previewLatched || frame.slotCount > 0)
 
   /**
    * Во время синтеза атомы летят через GSAP (SynthesisConvergeStreams).
@@ -427,6 +439,21 @@ export function ReactorTermsPreview({
   useLayoutEffect(() => {
     const g = groupRef.current
     if (!g) return
+    // Pre-synth: НИКОГДА не гасим детей — continuity/product false давал залипший hide.
+    if (previewOnlyMode) {
+      g.visible = true
+      if (!externalAtomControl && n > 0) {
+        shieldForceShowActiveSlots({
+          slotCount: n,
+          root: g,
+          atomGroupRefs,
+          atomScaleGroupRefs,
+          layoutScale: scale,
+        })
+        syncPreviewLayoutSlots(n, renderAtoms, shellAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
+      }
+      return
+    }
     g.visible = effectiveGroupVisible
     if (!effectiveGroupVisible) {
       for (let i = 0; i < atomGroupRefs.current.length; i++) {
@@ -437,8 +464,6 @@ export function ReactorTermsPreview({
       }
       return
     }
-    // После hide React может оставить THREE.visible=false при visible={true} —
-    // явно восстанавливаем активные слоты.
     if (!externalAtomControl && n > 0) {
       shieldForceShowActiveSlots({
         slotCount: n,
@@ -457,6 +482,7 @@ export function ReactorTermsPreview({
       syncPreviewLayoutSlots(n, renderAtoms, shellAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
     }
   }, [
+    previewOnlyMode,
     effectiveGroupVisible,
     externalAtomControl,
     n,
@@ -467,12 +493,11 @@ export function ReactorTermsPreview({
     atomScaleGroupRefs,
   ])
 
-  const hotEdit = tickPolicy.hotCoeffEdit || tickPolicy.pinEveryFrame
-  /** Щит: в pre-synth электроны всегда крутятся — previewStatic запрещён. */
-  const forceElectronMotion = previewOnlyMode || hotEdit || tickPolicy.electronAnimate
+  const hotEdit = true
+  const forceElectronMotion = true
 
   return (
-    <group ref={groupRef} visible={effectiveGroupVisible} frustumCulled={false}>
+    <group ref={groupRef} visible={previewOnlyMode ? true : effectiveGroupVisible} frustumCulled={false}>
       {!sharedLighting ? (
         <>
           <ambientLight intensity={useDenseLight ? 0.38 : 0.22} />
@@ -486,34 +511,43 @@ export function ReactorTermsPreview({
         const layoutAtom = i < n ? renderAtoms[i] : null
         const shellAtom = i < shellAtoms.length ? shellAtoms[i] : null
         const atom = layoutAtom ?? shellAtom
-        const slotZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
-        /** Активный слот: есть данные layout/shell или удерживаем last-Z (без unmount Bohr). */
-        const slotActive = atom != null || (i < n && (engineRef.current.slotZ[i] ?? 0) > 0)
-        const slotKey = `pool-${i}`
+        const identity =
+          atom != null
+            ? `${atom.termId ?? `t${atom.termIndex}`}:${atom.atomInTerm}`
+            : `pool-${i}`
+        const incomingZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
+        // Latch Z по identity: смена плоского индекса не пересоздаёт Bohr.
+        const prevZ = zByIdentityRef.current.get(identity)
+        if (atom != null) {
+          zByIdentityRef.current.set(identity, incomingZ)
+        }
+        const slotZ = atom != null ? incomingZ : (prevZ ?? incomingZ)
+        engineRef.current.slotZ[i] = slotZ
+        const slotActive = atom != null || (i < n && slotZ > 0)
+        const slotKey = identity
         const atomPolicy = getReactorAtomRenderPolicy({
           atomCount: n,
           atomZ: slotZ,
           forceLite: tickPolicy.effectiveForceLite,
-          qualityLevel: hotEdit ? undefined : qualityLevel,
-          coeffEditBurst: hotEdit,
+          qualityLevel: undefined,
+          coeffEditBurst: true,
           minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
         })
-        const slotVisible = effectiveGroupVisible && i < n
-        const frameSkip = hotEdit
-          ? Math.max(atomPolicy.electronFrameSkip, lowPowerProfile.isMobileSoc ? 3 : 2)
-          : flightActive
-            ? Math.max(atomPolicy.electronFrameSkip, 2)
-            : atomPolicy.electronFrameSkip
+        const slotVisible = previewOnlyMode ? i < Math.max(n, 1) || slotActive : effectiveGroupVisible && i < n
+        const frameSkip = Math.max(
+          atomPolicy.electronFrameSkip,
+          lowPowerProfile.isMobileSoc ? 3 : 2,
+        )
         return (
-          <group key={slotKey} visible={slotVisible} ref={getPosRef(i)}>
-            <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
+          <group key={slotKey} visible={slotVisible || (previewOnlyMode && i < n)} ref={getPosRef(i)}>
+            <group scale={scale} visible={slotVisible || (previewOnlyMode && i < n)} ref={getScaleRef(i)}>
               <ReactorPreviewAtomSlot
                 z={slotZ}
-                animate={Boolean(forceElectronMotion && (slotActive || hotEdit || previewOnlyMode))}
+                animate={forceElectronMotion && (slotActive || previewOnlyMode)}
                 previewStatic={false}
-                useFullDetail={useFullDetail && !flightActive}
+                useFullDetail={false}
                 synthesisGlass={synthesisGlass && (flightActive || poseLocked) && slotActive}
-                previewLite={!useFullDetail}
+                previewLite
                 electronFrameSkip={frameSkip}
                 hideOrbitRings={false}
                 localLight={!sharedLighting}

@@ -50,33 +50,38 @@ export function resolvePreviewSlotBuffer(
     expectedCount <= 0 || countNonNull(indexed, scanLen) >= expectedCount
 
   if (!editing) {
-    buf.editPeakSlots = 0
+    // Pre-synth держит editing=true через previewOnlyMode. Если всё же idle —
+    // не обнуляем peak мгновенно: держим max(expected, prevPeak) один кадр через lastExpected.
+    const displayCount = Math.max(slotCount, expectedCount, buf.editPeakSlots)
     buf.lastExpected = expectedCount
-    const displayCount = Math.max(slotCount, expectedCount)
     while (buf.slots.length < displayCount) buf.slots.push(null)
     for (let i = 0; i < displayCount; i++) {
       const incoming = i < indexed.length ? indexed[i] : null
-      buf.slots[i] = incoming ?? (i < expectedCount ? buf.slots[i] : null) ?? null
+      buf.slots[i] = incoming ?? (i < Math.max(expectedCount, buf.editPeakSlots) ? buf.slots[i] : null) ?? null
+    }
+    if (expectedCount >= buf.editPeakSlots) {
+      buf.editPeakSlots = expectedCount
+    } else if (layoutReady) {
+      // Сжимаем peak только когда layout готов и expected стабильно ниже.
+      buf.editPeakSlots = Math.max(expectedCount, Math.min(buf.editPeakSlots, displayCount))
     }
     if (buf.slots.length > displayCount) buf.slots.length = displayCount
-    return { slots: buf.slots, displayCount }
+    return { slots: buf.slots, displayCount: Math.max(displayCount, expectedCount) }
   }
 
+  // Editing: peak только растёт (или сжимается при явном уменьшении coeff + layoutReady).
   if (expectedCount > buf.lastExpected) {
     buf.editPeakSlots = Math.max(buf.editPeakSlots, expectedCount, slotCount)
   } else if (expectedCount < buf.lastExpected && layoutReady) {
-    buf.editPeakSlots = expectedCount
+    // Не сжимаем резко: держим peak ещё кадр (защита rapid +/-).
+    buf.editPeakSlots = Math.max(expectedCount, Math.floor(buf.editPeakSlots * 0.85))
+    if (buf.editPeakSlots < expectedCount) buf.editPeakSlots = expectedCount
   } else {
     buf.editPeakSlots = Math.max(buf.editPeakSlots, expectedCount, slotCount)
   }
   buf.lastExpected = expectedCount
 
-  let displayCount: number
-  if (layoutReady && expectedCount <= buf.editPeakSlots) {
-    displayCount = Math.max(expectedCount, slotCount)
-  } else {
-    displayCount = Math.max(slotCount, expectedCount, buf.editPeakSlots)
-  }
+  const displayCount = Math.max(slotCount, expectedCount, buf.editPeakSlots)
 
   while (buf.slots.length < displayCount) buf.slots.push(null)
   if (buf.slots.length > displayCount) buf.slots.length = displayCount
