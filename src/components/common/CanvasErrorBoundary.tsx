@@ -5,6 +5,8 @@ type Props = {
   children: ReactNode
   fallback?: ReactNode | ((error: unknown, retry: () => void) => ReactNode)
   resetKey?: string | number
+  /** 0 = не remount'ить Canvas автоматически (нет красного/тёмного мигания в реакторе). */
+  maxAutoRetry?: number
 }
 
 type State = { error: unknown | null; mountKey: number; retryCount: number }
@@ -49,7 +51,8 @@ export class CanvasErrorBoundary extends Component<Props, State> {
     )
     // #endregion
     const { retryCount } = this.state
-    if (retryCount < 3) {
+    const maxAuto = this.props.maxAutoRetry ?? 3
+    if (retryCount < maxAuto) {
       window.setTimeout(() => {
         this.setState((s) => ({
           error: null,
@@ -72,7 +75,8 @@ export class CanvasErrorBoundary extends Component<Props, State> {
     const { error, mountKey, retryCount } = this.state
 
     if (error) {
-      if (retryCount < 3) return RETRY_PLACEHOLDER
+      const maxAuto = this.props.maxAutoRetry ?? 3
+      if (retryCount < maxAuto) return RETRY_PLACEHOLDER
 
       const { fallback } = this.props
       if (typeof fallback === 'function') return fallback(error, this.retry)

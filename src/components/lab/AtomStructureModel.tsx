@@ -275,6 +275,14 @@ export function AtomStructureModel({
 
   useFrame((_, delta) => {
     if (previewStatic) return
+    // Скрытые pool-слоты не крутят электроны — главный источник hitch при пуле > n.
+    const root = group.current
+    if (root && !root.visible) return
+    let parent: THREE.Object3D | null = root?.parent ?? null
+    while (parent) {
+      if (!parent.visible) return
+      parent = parent.parent
+    }
     frameTick.current += 1
     const skip = Math.max(1, effectiveFrameSkip)
     if (frameTick.current % skip !== 0) return

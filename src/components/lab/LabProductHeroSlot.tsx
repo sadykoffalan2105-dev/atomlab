@@ -20,7 +20,7 @@ const MICRO_SCALE = 0.001
 /** Кадров отрисовки на micro-scale до «готово» — быстрый сигнал prewarm. */
 const PREWARM_PAINT_FRAMES = 2
 /** Кадров полного масштаба до сигнала paint — не раньше реального GPU-кадра. */
-const VISIBLE_PAINT_FRAMES = 2
+const VISIBLE_PAINT_FRAMES = 4
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
@@ -198,8 +198,8 @@ export function LabProductHeroSlot({
           releaseBudget?.()
           releaseBudget = null
         },
-        // synthesis-quality mesh: sync compile быстрее compileAsync на Check/Run.
-        { skipCompileAsync: true, meshesPerFrame: 48 },
+        // Chunked compile: меньше main-thread hitch / white flash на старте синтеза.
+        { skipCompileAsync: true, meshesPerFrame: 12 },
       )
     }
 
@@ -225,7 +225,7 @@ export function LabProductHeroSlot({
     }
   }, [visible, prewarm, compound.id, runId, gl, camera, scene, invalidate, notifyGpuCompiled])
 
-  // Переход prewarm → visible: масштаб и paint без повторного cold compile.
+  // Переход prewarm → visible: масштаб без мгновенного paint (ждём useFrame ≥ VISIBLE_PAINT_FRAMES).
   useLayoutEffect(() => {
     if (!visible || prewarm) return
     const g = groupRef.current
@@ -234,19 +234,13 @@ export function LabProductHeroSlot({
       gpuCompiledRef.current = true
       g.scale.set(1, 1, 1)
       invalidate()
-      if (
-        (entrance === 'instant' || entrance === 'none') &&
-        !visiblePaintSentRef.current
-      ) {
-        visiblePaintSentRef.current = true
-        onProductVisiblePaint?.()
-      }
+      // Не вызываем onProductVisiblePaint из layout — иначе Bohr гасится до первого кадра молекулы.
     }
-  }, [visible, prewarm, compound.id, invalidate, entrance, onProductVisiblePaint])
+  }, [visible, prewarm, compound.id, invalidate])
 
   // Считаем реально отрисованные кадры prewarm / visible, затем «готово».
   useFrame(() => {
-    // Продукт на полном масштабе: paint сразу — иначе Bohr залипает поверх молекулы.
+    // Продукт на полном масштабе: paint только после нескольких видимых кадров.
     if (visible && !prewarm && !visiblePaintSentRef.current) {
       const g = groupRef.current
       if (g) {
@@ -370,8 +364,8 @@ export function LabProductHeroSlot({
     }
   }, [visible, prewarm, entrance, compound.id, runId, birthEntrance, entranceDuration, onProductVisiblePaint])
 
-  /** prewarm-only: без локальных источников света (нет вспышки яркости). */
-  const showLocalLights = visible
+  /** Локальный свет отключён: LabReactorLights уже освещает сцену — иначе вспышка на старте синтеза. */
+  const showLocalLights = false
 
   return (
     <>

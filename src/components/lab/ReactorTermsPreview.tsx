@@ -257,8 +257,8 @@ export function ReactorTermsPreview({
 
   const { electronAnimate, driftAtoms, slowSpin } = tickPolicy
   const n = frame.slotCount
-  /** Минимум пула 32 — dichromate/rapid +/- без cold-mount Bohr. */
-  const poolSize = Math.max(frame.poolSize, previewOnlyMode || coeffEditing ? 32 : 0, n)
+  /** Минимум пула = n (+engine); без жёстких 32 Bohr. */
+  const poolSize = Math.max(frame.poolSize, n)
   const renderAtoms = frame.layoutAtoms
   const shellAtoms = engineRef.current.shellAtoms
 
@@ -301,7 +301,8 @@ export function ReactorTermsPreview({
           atomGroupRefs.current[i] = el
           if (!el) return
           const ls = layoutStateRef.current
-          if (i < ls.n && ls.groupVisible) {
+          // Pre-synth / edit: всегда visible для активных слотов — groupVisible может быть stale на mount.
+          if (i < ls.n) {
             el.visible = true
             const atom = ls.renderAtoms[i] ?? ls.shellAtoms[i]
             if (atom && !ls.externalAtomControl) {
@@ -324,7 +325,7 @@ export function ReactorTermsPreview({
           atomScaleGroupRefs.current[i] = el
           if (!el) return
           const ls = layoutStateRef.current
-          if (i < ls.n && ls.groupVisible) {
+          if (i < ls.n) {
             el.visible = true
             if (!ls.externalAtomControl) {
               el.scale.set(ls.scale, ls.scale, ls.scale)
@@ -468,13 +469,9 @@ export function ReactorTermsPreview({
       return
     }
     g.visible = effectiveGroupVisible
+    // Не гасим children поштучно — залипает visible=false при гонке с pin/synth start.
+    // Достаточно скрыть корень; pin восстановит слоты при следующем edit.
     if (!effectiveGroupVisible) {
-      for (let i = 0; i < atomGroupRefs.current.length; i++) {
-        const posG = atomGroupRefs.current[i]
-        const scaleG = atomScaleGroupRefs.current[i]
-        if (posG) posG.visible = false
-        if (scaleG) scaleG.visible = false
-      }
       return
     }
     if (!externalAtomControl && n > 0) {
@@ -508,12 +505,12 @@ export function ReactorTermsPreview({
 
   const forceElectronMotion = true
   /**
-   * Presence-сферы только при dense hot-edit как emergency fallback.
-   * В обычном режиме — полная Bohr (протоны/нейтроны/электроны), без синих шаров поверх ядра.
+   * Mount только n (+2 запас). Раньше 32 Bohr → GPU hitch / white / пропажа атомов.
+   * Presence — тонкий fallback при hot dense, не перекрывает ядро.
    */
-  const hotDense = (policy.hotCoeffEdit || coeffEditing) && n >= 14
+  const hotDense = (policy.hotCoeffEdit || coeffEditing) && n >= 10
   const showPresence = hotDense && (previewOnlyMode || coeffEditing)
-  const mountBohrCount = Math.max(poolSize, n, previewOnlyMode || coeffEditing ? 32 : 0)
+  const mountBohrCount = Math.max(n, Math.min(poolSize, n + 2), previewOnlyMode || coeffEditing ? Math.min(n + 2, 20) : 0)
 
   return (
     <group
@@ -535,7 +532,7 @@ export function ReactorTermsPreview({
           slotCount={Math.max(n, shellAtoms.length, 1)}
           visible
           maxCount={48}
-          radius={0.14}
+          radius={0.09}
         />
       ) : null}
       {Array.from({ length: mountBohrCount }, (_, i) => {
@@ -555,9 +552,6 @@ export function ReactorTermsPreview({
           coeffEditBurst: policy.hotCoeffEdit || coeffEditBurst,
           minElectronFrameSkip: 1,
         })
-        // Полная структура: протоны+нейтроны. synthesisDetail при малом числе атомов.
-        // previewLite только для очень плотных сцен — и там ядро всё равно из нуклонов
-        // (AtomStructureModel: fullPreview при previewEmphasis отключает solid-lite ядра).
         const useFullDetail = atomPolicy.synthesisDetail && n <= 10
         const previewLite = !useFullDetail && (atomPolicy.previewLite || n >= 16)
         return (

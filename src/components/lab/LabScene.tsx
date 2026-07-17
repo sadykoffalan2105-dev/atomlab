@@ -1130,12 +1130,22 @@ function SceneContent({
       invalidate,
     })
 
-    // Жёсткий restore корня каждый кадр в pre-synth — против залипшего visible=false.
+    // Жёсткий restore корня каждый кадр в pre-synth / coeff-edit — против залипшего visible=false.
     if (
       reactorViewOpen &&
       !synthesisRunActive &&
       !synthActive &&
-      !showSettledHero &&
+      (!showSettledHero || coeffEditingActive) &&
+      previewRootRef.current
+    ) {
+      previewRootRef.current.visible = true
+    }
+
+    // На старте синтеза держим Bohr до productPainted — нет пустого/белого кадра.
+    if (
+      reactorViewOpen &&
+      (synthesisRunActive || synthActive) &&
+      !productPaintedRef.current &&
       previewRootRef.current
     ) {
       previewRootRef.current.visible = true
@@ -1195,7 +1205,12 @@ function SceneContent({
       const now = performance.now()
       const levelChanged = synthQualityLevel !== nextLevel
       const downgrade = nextLevel < synthQualityLevel
-      if (levelChanged && (downgrade || now - qualityUiThrottleRef.current > 480)) {
+      // Во время +/- не трогаем React quality — remount/hitch Bohr.
+      if (
+        !coeffEditingActive &&
+        levelChanged &&
+        (downgrade || now - qualityUiThrottleRef.current > 480)
+      ) {
         qualityUiThrottleRef.current = now
         setSynthQualityLevel(nextLevel)
       }
@@ -1246,7 +1261,13 @@ function SceneContent({
       ) : null}
       {reactorViewOpen && reactorGpuIdleReady ? (
         <ReactorAtomShaderWarmup
-          active={!productPainted && !showSettledHero && !coeffEditingActive}
+          active={
+            !productPainted &&
+            !showSettledHero &&
+            !coeffEditingActive &&
+            !synthActive &&
+            !synthesisRunActive
+          }
         />
       ) : null}
       {gpuQueueActive ? (
@@ -1348,7 +1369,7 @@ function SceneContent({
               runId={synthesis.runId}
               onDone={handleInstantSynthDone}
               onPhaseChange={synthesis.onPhaseChange}
-              minFrames={1}
+              minFrames={6}
             />
           ) : null}
           {showSettledHero && synthesisSettledProduct
@@ -1522,7 +1543,11 @@ export function LabCanvas({
     )
   }
   return (
-    <CanvasErrorBoundary resetKey={canvasKey} fallback={<CanvasSceneErrorFallback />}>
+    <CanvasErrorBoundary
+      resetKey={canvasKey}
+      maxAutoRetry={0}
+      fallback={<CanvasSceneErrorFallback />}
+    >
       <Canvas
         key={canvasKey}
         style={{
