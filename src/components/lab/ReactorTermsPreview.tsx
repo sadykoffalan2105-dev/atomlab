@@ -5,6 +5,7 @@ import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance
 import { assertPreviewElectronAnimation } from '../../lab/reactorPreviewGuarantee'
 import { resolveReactorEditPerfFlags } from '../../lab/reactorEditPerfMode'
 import { createReactorInvalidateThrottle } from '../../lab/reactorInvalidateThrottle'
+import { getReactorAtomRenderPolicy } from '../../lab/synthesisLagGuard'
 import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
 import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import { warnIfReactorVisualDegraded } from '../../lab/reactorVisualPreservation'
@@ -506,10 +507,12 @@ export function ReactorTermsPreview({
   ])
 
   const forceElectronMotion = true
-  /** Presence всегда в pre-synth — не зависит от React deps на мутируемый layout. */
-  const showPresence = previewOnlyMode || coeffEditing
-  const denseEdit = n >= 10
-  /** Пул не сжимаем при +/- — иначе remount Bohr = «пропали атомы». */
+  /**
+   * Presence-сферы только при dense hot-edit как emergency fallback.
+   * В обычном режиме — полная Bohr (протоны/нейтроны/электроны), без синих шаров поверх ядра.
+   */
+  const hotDense = (policy.hotCoeffEdit || coeffEditing) && n >= 14
+  const showPresence = hotDense && (previewOnlyMode || coeffEditing)
   const mountBohrCount = Math.max(poolSize, n, previewOnlyMode || coeffEditing ? 32 : 0)
 
   return (
@@ -520,20 +523,21 @@ export function ReactorTermsPreview({
     >
       {!sharedLighting ? (
         <>
-          <ambientLight intensity={0.45} />
-          <directionalLight position={[4, 6, 2]} intensity={0.85} color="#b8c8ff" />
-          <pointLight position={[0, 0.5, 2.5]} intensity={1.2} distance={14} color="#7afcff" />
+          <ambientLight intensity={0.28} />
+          <directionalLight position={[4, 6, 2]} intensity={0.65} color="#b8c8ff" />
+          <pointLight position={[0, 0.5, 2.5]} intensity={0.9} distance={12} color="#7afcff" />
         </>
       ) : null}
-      {/* PRIMARY presence: каждый кадр, крупные цветные сферы — атомы не могут «пропасть». */}
-      <ReactorPreviewPresenceDots
-        atoms={renderAtoms}
-        shellAtoms={shellAtoms}
-        slotCount={Math.max(n, shellAtoms.length, 1)}
-        visible={showPresence}
-        maxCount={48}
-        radius={denseEdit ? 0.48 : 0.36}
-      />
+      {showPresence ? (
+        <ReactorPreviewPresenceDots
+          atoms={renderAtoms}
+          shellAtoms={shellAtoms}
+          slotCount={Math.max(n, shellAtoms.length, 1)}
+          visible
+          maxCount={48}
+          radius={0.14}
+        />
+      ) : null}
       {Array.from({ length: mountBohrCount }, (_, i) => {
         const layoutAtom = i < n ? renderAtoms[i] : null
         const shellAtom = i < shellAtoms.length ? shellAtoms[i] : null
@@ -543,21 +547,32 @@ export function ReactorTermsPreview({
         const slotZ = engineRef.current.slotZ[i] ?? incomingZ
         const slotVisible =
           i < n && (previewOnlyMode || coeffEditing || effectiveGroupVisible)
-        const frameSkip = denseEdit ? 2 : 1
+        const atomPolicy = getReactorAtomRenderPolicy({
+          atomCount: Math.max(n, 1),
+          atomZ: slotZ,
+          forceLite: tickPolicy.effectiveForceLite && n >= 12,
+          qualityLevel,
+          coeffEditBurst: policy.hotCoeffEdit || coeffEditBurst,
+          minElectronFrameSkip: 1,
+        })
+        // Полная структура: протоны+нейтроны. synthesisDetail при малом числе атомов.
+        // previewLite только для очень плотных сцен — и там ядро всё равно из нуклонов
+        // (AtomStructureModel: fullPreview при previewEmphasis отключает solid-lite ядра).
+        const useFullDetail = atomPolicy.synthesisDetail && n <= 10
+        const previewLite = !useFullDetail && (atomPolicy.previewLite || n >= 16)
         return (
           <group key={`slot-${i}`} visible={slotVisible} ref={getPosRef(i)}>
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
-              {/* Всегда mount — visible управляет показом; без remount storm. */}
               <ReactorPreviewAtomSlot
                 z={slotZ}
                 animate={forceElectronMotion}
                 previewStatic={false}
-                useFullDetail={false}
+                useFullDetail={useFullDetail}
                 synthesisGlass={false}
-                previewLite
-                electronFrameSkip={frameSkip}
-                hideOrbitRings={denseEdit}
-                localLight={false}
+                previewLite={previewLite}
+                electronFrameSkip={Math.max(1, atomPolicy.electronFrameSkip)}
+                hideOrbitRings={false}
+                localLight={!sharedLighting}
               />
             </group>
           </group>
