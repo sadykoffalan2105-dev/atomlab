@@ -142,10 +142,6 @@ export function applyReactorPreviewLayoutSlots(
       }
     }
   }
-  for (let i = slotCount; i < atomGroupRefs.current.length; i++) {
-    const posG = atomGroupRefs.current[i]
-    const scaleG = atomScaleGroupRefs.current[i]
-    if (posG) posG.visible = false
-    if (scaleG) scaleG.visible = false
-  }
+  // НЕ гасим хвост пула здесь — pin/React владеют visibility.
+  // hide i>=slotCount давал залипший invisible при rapid +/- (K₂Cr₂O₇).
 }

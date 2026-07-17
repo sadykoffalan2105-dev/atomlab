@@ -5,11 +5,9 @@ export function resolvePreviewExternalAtomControl(opts: {
   previewOnlyMode: boolean
   synthHoldPreview: boolean
 }): boolean {
-  const { flightActive, poseLocked, previewOnlyMode, synthHoldPreview } = opts
-  if (flightActive || poseLocked) return true
-  if (previewOnlyMode) return false
-  if (synthHoldPreview) return false
-  return true
+  const { flightActive, poseLocked } = opts
+  // Только реальный полёт GSAP. Иначе pin владеет атомами (settled/idle больше не «воруют» превью).
+  return flightActive || poseLocked
 }
 
 /**

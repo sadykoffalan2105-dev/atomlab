@@ -1304,7 +1304,11 @@ function SceneContent({
               coeffEditBurst={reactorCoeffEditBurst}
               coeffEditing={coeffEditingActive}
               frameBudgetLite={frameBudgetLite}
-              previewOnlyMode={!synthesisRunActive && !synthActive && !showSettledHero}
+              previewOnlyMode={
+                !synthesisRunActive &&
+                !synthActive &&
+                (!showSettledHero || coeffEditingActive)
+              }
               synthHoldPreview={synthHoldPreview}
               lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}
               productPrewarm={productPrewarmActive}

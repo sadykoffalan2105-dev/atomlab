@@ -269,9 +269,9 @@ export function AtomStructureModel({
   }, [nNeutrons, nucleusRadius, zClamped, dummy, totalNucleons])
 
   useLayoutEffect(() => {
-    if (!previewStatic) return
+    // Всегда сидируем электроны сразу после mount/z-change — иначе 1–3 пустых кадра.
     writeElectronMatrices(0)
-  }, [previewStatic, writeElectronMatrices, nElec])
+  }, [writeElectronMatrices, nElec, zClamped, previewStatic])
 
   useFrame((_, delta) => {
     if (previewStatic) return

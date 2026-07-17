@@ -174,7 +174,7 @@ export function resolvePreviewEngineFrame(
   }
   // Pre-synth dichromate: минимум 24 слота сразу (нет cold-mount на rapid +/-).
   if ((previewOnlyMode || editing) && expectedAtomCount > 0) {
-    state.maxPool = Math.max(state.maxPool, 24, targetSlots)
+    state.maxPool = Math.max(state.maxPool, 32, targetSlots)
   }
   if (!hasActiveTerms || terms.length === 0) {
     state.visibleLatch = false
