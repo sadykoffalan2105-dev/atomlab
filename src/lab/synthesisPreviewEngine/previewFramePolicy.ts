@@ -56,34 +56,42 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
   const effectiveForceLite =
     forceLite || frameBudgetLite || lowPowerProfile.forceLiteReactor
   /**
-   * При hot-edit не поднимаем detail (remount), но при росте атомов
-   * обязаны уйти в lite — иначе WebGL white/freeze на Cr/K₂Cr₂O₇.
+   * При hot-edit / dense сразу lite и держим — без flip full↔lite (remount Bohr = «пропали»).
+   * Электроны при visible и atomCount>0 всегда анимируются в base; щит усиливает это.
    */
   const denseHot = hotCoeffEdit && atomCount > SYNTHESIS_PERF.fullDetailAtomThreshold
-  const renderForceLite = denseHot || (!hotCoeffEdit && effectiveForceLite) || frameBudgetLite
+  const renderForceLite =
+    denseHot ||
+    (hotCoeffEdit && atomCount >= 10) ||
+    (!hotCoeffEdit && effectiveForceLite) ||
+    frameBudgetLite
 
   const base = getReactorPreviewPolicy({
     atomCount,
     forceLite: renderForceLite || (hotCoeffEdit && atomCount > 8),
     flightActive,
-    visible: groupVisible,
+    visible: groupVisible || (editingActive && atomCount > 0),
     qualityLevel,
     coeffEditBurst: hotCoeffEdit,
-    maxAnimatedAtoms: lowPowerProfile.maxAnimatedAtoms,
+    maxAnimatedAtoms: Math.max(lowPowerProfile.maxAnimatedAtoms, SYNTHESIS_PERF.maxAnimatedAtoms),
   })
 
   const pinEveryFrame = hotCoeffEdit && groupVisible && atomCount > 0 && !flightActive
 
+  // Pre-synth shell (editingActive) + атомы: электроны НИКОГДА не гасим.
+  const electronAnimate =
+    !flightActive &&
+    atomCount > 0 &&
+    (hotCoeffEdit || editingActive || groupVisible) &&
+    atomCount <= SYNTHESIS_PERF.maxAnimatedAtoms
+
   return {
     ...base,
-    electronAnimate:
-      base.electronAnimate &&
-      (!lowPowerProfile.isMobileSoc || atomCount <= lowPowerProfile.maxAnimatedAtoms),
+    electronAnimate,
     driftAtoms:
       pinEveryFrame ? false : base.driftAtoms && !lowPowerProfile.disableAtomDrift,
     slowSpin:
       pinEveryFrame ? false : base.slowSpin && !lowPowerProfile.disableSlowSpin,
-    // Pin уже удерживает visible/pos — не дублируем guard каждый кадр.
     visibilityGuardEvery: pinEveryFrame
       ? Math.max(base.visibilityGuardEvery, 4)
       : Math.min(base.visibilityGuardEvery, 2),
@@ -91,7 +99,7 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
       ? Math.max(base.coverageGuardEvery, 4)
       : base.coverageGuardEvery,
     pinEveryFrame,
-    lockVisualTier: hotCoeffEdit,
+    lockVisualTier: hotCoeffEdit || denseHot,
     lockPoolSize: shellHold,
     effectiveForceLite: renderForceLite,
     maxInvalidateHz: 60,

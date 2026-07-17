@@ -204,17 +204,13 @@ export function LaboratoryPage() {
       return
     }
     let cancelled = false
-    let raf1 = 0
-    let raf2 = 0
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        if (!cancelled) setReactorGpuIdleReady(true)
-      })
-    })
+    // Даём Canvas/Bohr один кадр + паузу прогрева до GPU-очереди (дихромат).
+    const timer = window.setTimeout(() => {
+      if (!cancelled) setReactorGpuIdleReady(true)
+    }, 900)
     return () => {
       cancelled = true
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
+      window.clearTimeout(timer)
       setReactorGpuIdleReady(false)
     }
   }, [reactorOpen])

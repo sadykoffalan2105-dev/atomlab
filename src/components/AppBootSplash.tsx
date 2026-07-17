@@ -4,8 +4,8 @@ import { warmupLabBootReady, type BootWarmupProgress } from '../lab/labSynthesis
 import styles from './AppBootSplash.module.css'
 
 /** Минимум на экране — пользователь видит бренд; параллельно идёт полный прогрев. */
-const MIN_SPLASH_MS = 1400
-const MAX_SPLASH_MS = 5200
+const MIN_SPLASH_MS = 2200
+const MAX_SPLASH_MS = 8000
 
 /**
  * Boot-splash: WASM, three/drei, stress-симуляция K₂Cr₂O₇ (+/- коэфф.), LabScene.

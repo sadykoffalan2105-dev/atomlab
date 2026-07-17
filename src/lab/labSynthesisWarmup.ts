@@ -84,6 +84,10 @@ export async function warmupLabBootReady(
 
   onProgress?.({ stage: 'dichromate', label: 'Прогрев синтеза (K₂Cr₂O₇)…' })
   warmupHeavyPreviewLayout()
+  // Доп. циклы rapid +/- — кэш layout до первого клика в реакторе.
+  for (let round = 0; round < 3; round++) {
+    warmupDichromateCoeffStress()
+  }
   await warmupDichromateProductAssets().catch(() => undefined)
 
   onProgress?.({ stage: 'lab', label: 'Загрузка лаборатории…' })

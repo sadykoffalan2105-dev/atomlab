@@ -296,14 +296,14 @@ export function AtomStructureModel({
 
       <group renderOrder={4}>
         <instancedMesh
-          key={`prot-${nucleonR}`}
+          key="prot-core"
           ref={protRef}
           args={[nucleonGeo, nucleonMats.prot, MAX_Z]}
           frustumCulled={false}
           renderOrder={6}
         />
         <instancedMesh
-          key={`neut-${nucleonR}`}
+          key="neut-core"
           ref={neutRef}
           args={[nucleonGeo, nucleonMats.neut, MAX_NEUTRONS]}
           frustumCulled={false}

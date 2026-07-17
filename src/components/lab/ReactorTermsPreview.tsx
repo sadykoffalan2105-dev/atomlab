@@ -27,6 +27,13 @@ import {
 } from '../../lab/synthesisPreviewEngine/previewExternalControl'
 import { restorePreviewActiveSlotVisibility } from '../../lab/previewAtomFrameGuard'
 import { createReactorPreviewVisibilityGuard } from '../../lab/reactorPreviewVisibilityGuard'
+import {
+  bumpShieldOnCoeffEdit,
+  createShieldSnapshot,
+  resolveShieldRenderPolicy,
+  tickShieldPhase,
+  shieldForceShowActiveSlots,
+} from '../../lab/reactorPreviewShield'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
 
@@ -76,6 +83,7 @@ export function ReactorTermsPreview({
   const { invalidate } = useThree()
   const engineRef = useRef(createPreviewEngineState())
   const settlePinUntilRef = useRef(0)
+  const shieldRef = useRef(createShieldSnapshot())
   const lowPowerProfile = useMemo(() => getLowPowerDeviceProfile(getSynthesisDeviceTier()), [])
   const editingActive = resolvePreviewEditingActive({
     coeffEditing,
@@ -193,7 +201,33 @@ export function ReactorTermsPreview({
     settlePinUntilRef.current,
   )
   const settlePin = isSettlePinActive(performance.now(), settlePinUntilRef.current)
-  const tickPolicy = withSettlePinPolicy(policy, settlePin, frame.groupVisible)
+  let tickPolicy = withSettlePinPolicy(policy, settlePin, frame.groupVisible)
+
+  // --- ReactorPreviewShield: единый закон видимости / электронов / lite ---
+  {
+    const now = performance.now()
+    if (policy.hotCoeffEdit || coeffEditBurst || coeffEditing) {
+      shieldRef.current = bumpShieldOnCoeffEdit(shieldRef.current, now, frame.slotCount)
+    }
+    shieldRef.current = tickShieldPhase(shieldRef.current, now)
+    const shield = resolveShieldRenderPolicy({
+      snap: shieldRef.current,
+      nowMs: now,
+      hotCoeffEdit: policy.hotCoeffEdit,
+      preSynthesis: previewOnlyMode,
+      atomCount: frame.slotCount,
+      groupVisible: frame.groupVisible || (previewOnlyMode && frame.slotCount > 0),
+      flightActive,
+      externalForceLite: policy.effectiveForceLite,
+    })
+    tickPolicy = {
+      ...tickPolicy,
+      pinEveryFrame: tickPolicy.pinEveryFrame || shield.pinEveryFrame,
+      lockVisualTier: tickPolicy.lockVisualTier || shield.lockVisualTier,
+      electronAnimate: shield.electronAnimate || tickPolicy.electronAnimate,
+      effectiveForceLite: shield.forceLite || tickPolicy.effectiveForceLite,
+    }
+  }
 
   engineRef.current.fullDetailLatch = resolveFullDetailLatch(
     engineRef.current.fullDetailLatch,
@@ -213,7 +247,7 @@ export function ReactorTermsPreview({
   const atomGroupRefs = atomGroupRefsExternal ?? atomGroupRefsLocal
   const atomScaleGroupRefs = atomScaleGroupRefsExternal ?? atomScaleGroupRefsLocal
 
-  const { electronAnimate, driftAtoms, slowSpin } = policy
+  const { electronAnimate, driftAtoms, slowSpin } = tickPolicy
   const n = frame.slotCount
   const poolSize = frame.poolSize
   const renderAtoms = frame.layoutAtoms
@@ -406,6 +440,13 @@ export function ReactorTermsPreview({
     // После hide React может оставить THREE.visible=false при visible={true} —
     // явно восстанавливаем активные слоты.
     if (!externalAtomControl && n > 0) {
+      shieldForceShowActiveSlots({
+        slotCount: n,
+        root: g,
+        atomGroupRefs,
+        atomScaleGroupRefs,
+        layoutScale: scale,
+      })
       restorePreviewActiveSlotVisibility({
         atomCount: n,
         rootRef: g,
@@ -427,6 +468,8 @@ export function ReactorTermsPreview({
   ])
 
   const hotEdit = tickPolicy.hotCoeffEdit || tickPolicy.pinEveryFrame
+  /** Щит: в pre-synth электроны всегда крутятся — previewStatic запрещён. */
+  const forceElectronMotion = previewOnlyMode || hotEdit || tickPolicy.electronAnimate
 
   return (
     <group ref={groupRef} visible={effectiveGroupVisible} frustumCulled={false}>
@@ -456,7 +499,6 @@ export function ReactorTermsPreview({
           minElectronFrameSkip: lowPowerProfile.minElectronFrameSkip,
         })
         const slotVisible = effectiveGroupVisible && i < n
-        /** Повышенный skip только при горячем +/- — idle превью не троттлит электроны. */
         const frameSkip = hotEdit
           ? Math.max(atomPolicy.electronFrameSkip, lowPowerProfile.isMobileSoc ? 3 : 2)
           : flightActive
@@ -467,10 +509,8 @@ export function ReactorTermsPreview({
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
               <ReactorPreviewAtomSlot
                 z={slotZ}
-                animate={electronAnimate && (slotActive || hotEdit)}
-                previewStatic={
-                  !hotEdit && (!slotActive || (!electronAnimate && tickPolicy.pinEveryFrame))
-                }
+                animate={Boolean(forceElectronMotion && (slotActive || hotEdit || previewOnlyMode))}
+                previewStatic={false}
                 useFullDetail={useFullDetail && !flightActive}
                 synthesisGlass={synthesisGlass && (flightActive || poseLocked) && slotActive}
                 previewLite={!useFullDetail}

@@ -1,7 +1,7 @@
 import type { PreviewFramePolicy } from './previewFramePolicy'
 
 /** Удержание pin/lockVisualTier после последнего горячего +/- (оседание коэффициентов). */
-export const PREVIEW_SETTLE_PIN_MS = 720
+export const PREVIEW_SETTLE_PIN_MS = 1200
 
 /** Продлить settle-окно, пока идёт hot edit. */
 export function bumpSettlePinUntil(

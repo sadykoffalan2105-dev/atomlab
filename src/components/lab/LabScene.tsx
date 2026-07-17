@@ -67,6 +67,12 @@ import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
 import { resolveDeviceSynthesisCap } from '../../perf/graphicsSettings'
 import { resolveLabCanvasPolicy } from '../../perf/deviceCanvasPolicy'
 import { createWebGlRecoveryController } from '../../lab/webglRecoveryGuard'
+import {
+  bumpShieldOnCoeffEdit,
+  createShieldSnapshot,
+  createSoftWebGlRecovery,
+  tickShieldPhase,
+} from '../../lab/reactorPreviewShield'
 import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
 import { SYNTHESIS_PERF } from '../../lab/synthesisPerfPreset'
 import {
@@ -1434,34 +1440,31 @@ export function LabCanvas({
 }) {
   const { t } = useT()
   const [perfLevel, setPerfLevel] = useState<PerfLevel>('high')
-  const [internalSessionKey, setInternalSessionKey] = useState(0)
+  // internalSessionKey больше НЕ растёт от context loss — soft recover only (щит).
+  const [internalSessionKey] = useState(0)
   const coeffEditBurstRef = useRef(reactorCoeffEditBurst ?? false)
   const coeffEditingRef = useRef(reactorCoeffEditing ?? false)
   coeffEditBurstRef.current = reactorCoeffEditBurst ?? false
   coeffEditingRef.current = reactorCoeffEditing ?? false
+  const shieldSnapRef = useRef(createShieldSnapshot())
+  const softWebglRef = useRef(createSoftWebGlRecovery())
+  /** Legacy controller оставлен только для совместимости API shouldRemount=false path. */
   const webglRecoveryRef = useRef(
     createWebGlRecoveryController(() => {
-      // Remount только вне edit; во время +/- откладываем (см. effect ниже).
-      if (coeffEditBurstRef.current || coeffEditingRef.current) return
-      setInternalSessionKey((k) => k + 1)
+      /* remount запрещён щитом — no-op */
     }),
   )
   const canvasKey = `${sessionKey}-${internalSessionKey}`
 
   useEffect(() => {
-    if (reactorCoeffEditBurst || reactorCoeffEditing) return
-    if (!webglRecoveryRef.current.shouldRemount()) return
-    // После оседания коэффициентов даём pin/settle восстановить слоты,
-    // и только потом remount Canvas (иначе «все атомы пропали» на idle).
-    const settleMs = 780
-    const timer = window.setTimeout(() => {
-      if (coeffEditBurstRef.current || coeffEditingRef.current) return
-      if (!webglRecoveryRef.current.shouldRemount()) return
-      setInternalSessionKey((k) => k + 1)
-      webglRecoveryRef.current.reset()
-    }, settleMs)
-    return () => window.clearTimeout(timer)
+    const now = performance.now()
+    if (reactorCoeffEditBurst || reactorCoeffEditing) {
+      shieldSnapRef.current = bumpShieldOnCoeffEdit(shieldSnapRef.current, now, 24)
+    }
+    shieldSnapRef.current = tickShieldPhase(shieldSnapRef.current, now)
   }, [reactorCoeffEditBurst, reactorCoeffEditing])
+
+  // Remount Canvas отключён: soft webglcontextrestored + invalidate.
 
   /** always — demand давал чёрный центр при +/- коэффициентов. */
   const canvasFrameloop = 'always' as const
@@ -1529,10 +1532,12 @@ export function LabCanvas({
           canvas.style.display = 'block'
           const onLost = (e: Event) => {
             e.preventDefault()
+            softWebglRef.current.onContextLost()
             webglRecoveryRef.current.onContextLost()
             state.invalidate()
           }
           const onRestored = () => {
+            softWebglRef.current.onContextRestored(() => state.invalidate())
             webglRecoveryRef.current.onContextRestored()
             state.gl.setClearColor(bg, 1)
             state.scene.background = bg

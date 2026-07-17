@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 
-const BURST_WINDOW_MS = 520
+const BURST_WINDOW_MS = 640
 /** Каждый +/- — burst: pin держит атомы; lite при dense защищает GPU. */
 const BURST_MIN_CHANGES = 1
 /** Hold после burst — GPU-очередь не стартует, пока атомы не осели. */
-const BURST_HOLD_MS = 520
+const BURST_HOLD_MS = 720
 /** Пауза до editIdle после последнего изменения. */
-const EDIT_IDLE_MS = 420
+const EDIT_IDLE_MS = 560
 /** Доп. удержание pin/editing после последнего +/- (оседание слотов). */
-const VISUAL_HOLD_MS = 520
+const VISUAL_HOLD_MS = 720
 /** Удержание «editing» после последнего +/- — без мигания между кликами. */
-const EDIT_PULSE_MS = 360
+const EDIT_PULSE_MS = 480
 
 function termsSignature(terms: readonly ReactorEquationTerm[] | null): string {
   if (!terms?.length) return ''

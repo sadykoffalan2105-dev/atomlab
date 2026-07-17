@@ -1,0 +1,22 @@
+export {
+  REACTOR_SHIELD,
+  createShieldSnapshot,
+  bumpShieldOnCoeffEdit,
+  tickShieldPhase,
+  resolveShieldPhase,
+  resolveShieldRenderPolicy,
+  shieldAllowsCanvasRemount,
+  shieldAllowsGpuCompile,
+  type ShieldPhase,
+  type ShieldSnapshot,
+  type ShieldRenderPolicy,
+} from './reactorPreviewShield'
+export {
+  createShieldVisibilityState,
+  canHidePreview,
+  shieldForceShowActiveSlots,
+  shieldHideAllSlots,
+  type ShieldVisibilityReason,
+  type ShieldVisibilityState,
+} from './shieldVisibility'
+export { createSoftWebGlRecovery, type SoftWebGlRecovery } from './shieldWebgl'

@@ -162,12 +162,9 @@ export function resolvePreviewEngineFrame(
 
   const targetSlots = Math.max(slotCount, expectedAtomCount, buffered.displayCount)
   const quantizedTarget = quantizePoolSize(targetSlots, hotCoeffEdit)
-  /** При editing сразу растим pool — слоты React готовы до displayCount. */
-  if (hotCoeffEdit && quantizedTarget > state.maxPool) {
-    // Не прыгаем сразу на +8 слотов — максимум +2 за кадр при burst…
-    state.maxPool = Math.min(quantizedTarget, state.maxPool + PREVIEW_POOL_STEP_BURST)
-    // …но никогда не оставляем дыру: pool ≥ фактических атомов на этом кадре.
-    if (state.maxPool < targetSlots) state.maxPool = targetSlots
+  /** Hot/settle: пул сразу = target (щит). Без +2/кадр — иначе «дыры» на дихромате. */
+  if (hotCoeffEdit) {
+    state.maxPool = Math.max(state.maxPool, quantizedTarget, targetSlots)
   } else {
     state.maxPool = Math.max(state.maxPool, quantizedTarget, editing ? targetSlots : 0)
   }

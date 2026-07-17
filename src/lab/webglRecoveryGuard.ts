@@ -1,5 +1,6 @@
 /**
- * WebGL context loss — без мгновенного remount Canvas (иначе 3–5 с чёрного экрана).
+ * WebGL context loss — soft recover only.
+ * Remount Canvas ЗАПРЕЩЁН по умолчанию (красный/чёрный экран + cold Bohr).
  */
 
 export type WebGlRecoveryController = {
@@ -7,12 +8,14 @@ export type WebGlRecoveryController = {
   onContextLost: () => void
   /** Вызвать из webglcontextrestored. */
   onContextRestored: () => void
-  /** true — можно remount Canvas (только если restore не помог). */
+  /** true — можно remount Canvas (только если soft recover отключён и restore не помог). */
   shouldRemount: () => boolean
   reset: () => void
 }
 
-const REMOUNT_AFTER_MS = 1600
+/** Remount почти никогда — ReactorPreviewShield.softRecoverOnly. */
+const ALLOW_CANVAS_REMOUNT = false
+const REMOUNT_AFTER_MS = 4000
 
 export function createWebGlRecoveryController(onRequestRemount: () => void): WebGlRecoveryController {
   let lostAt = 0
@@ -31,6 +34,7 @@ export function createWebGlRecoveryController(onRequestRemount: () => void): Web
       lostAt = performance.now()
       remountScheduled = false
       clearTimer()
+      if (!ALLOW_CANVAS_REMOUNT) return
       remountTimer = window.setTimeout(() => {
         remountTimer = null
         if (performance.now() - lostAt >= REMOUNT_AFTER_MS - 40) {
@@ -45,7 +49,7 @@ export function createWebGlRecoveryController(onRequestRemount: () => void): Web
       remountScheduled = false
     },
     shouldRemount() {
-      return remountScheduled
+      return ALLOW_CANVAS_REMOUNT && remountScheduled
     },
     reset() {
       clearTimer()
