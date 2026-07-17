@@ -49,7 +49,7 @@ export function ReactorTermsPreview({
   sharedLighting = false,
   forceLite = false,
   qualityLevel,
-  synthesisGlass = false,
+  synthesisGlass: _synthesisGlass = false,
   coeffEditBurst = false,
   coeffEditing = coeffEditBurst,
   previewOnlyMode = false,
@@ -244,8 +244,6 @@ export function ReactorTermsPreview({
     tickPolicy.lockVisualTier,
     tickPolicy.effectiveForceLite,
   )
-  const useFullDetail = engineRef.current.fullDetailLatch
-  const useDenseLight = engineRef.current.denseLightLatch
 
   const scale = reactorPreviewAtomScale(frame.slotCount)
   const groupRef = useRef<THREE.Group>(null)

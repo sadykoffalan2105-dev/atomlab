@@ -30,6 +30,8 @@ export type PreviewFramePolicy = ReactorPreviewPolicy & {
   maxInvalidateHz: number
   /** Горячий +/- (не просто открытое превью). */
   hotCoeffEdit: boolean
+  /** GSAP владеет атомами — pin не трогает. */
+  flightActive: boolean
 }
 
 /**
@@ -103,6 +105,7 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
     effectiveForceLite: renderForceLite,
     maxInvalidateHz: 60,
     hotCoeffEdit,
+    flightActive,
   }
 }
 

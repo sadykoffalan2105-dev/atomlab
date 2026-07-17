@@ -134,7 +134,6 @@ export function resolveShieldRenderPolicy(opts: {
   } = opts
 
   const phase = resolveShieldPhase(snap, nowMs, hotCoeffEdit)
-  const shieldActive = phase === 'hot' || phase === 'settle' || (preSynthesis && atomCount > 0)
   const dense = atomCount >= REACTOR_SHIELD.denseLiteFromAtoms || snap.stickyLite
 
   const forceLite =
