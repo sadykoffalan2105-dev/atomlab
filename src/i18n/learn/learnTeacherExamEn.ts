@@ -63,5 +63,6 @@ export const learnTeacherExamEn = {
   'learn.teacherExam.cameraErrorUnsupported': 'Camera is not supported in this browser.',
   'learn.teacherExam.cameraErrorDenied': 'Camera access denied. Allow it in browser settings.',
   'learn.teacherExam.cameraErrorNotFound': 'No camera found on this device.',
+  'learn.teacherExam.cameraErrorInUse': 'The camera is used by another app (e.g. Zoom, Skype or another tab). Close it and press “Allow again”.',
   'learn.teacherExam.cameraErrorUnknown': 'Could not start the camera. Try again.',
 } as const

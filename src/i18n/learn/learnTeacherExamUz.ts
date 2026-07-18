@@ -63,5 +63,6 @@ export const learnTeacherExamUz = {
   'learn.teacherExam.cameraErrorUnsupported': 'Kamera bu brauzerda qo\'llab-quvvatlanmaydi.',
   'learn.teacherExam.cameraErrorDenied': 'Kameraga ruxsat yo\'q. Brauzer sozlamalarida ruxsat bering.',
   'learn.teacherExam.cameraErrorNotFound': 'Qurilmada kamera topilmadi.',
+  'learn.teacherExam.cameraErrorInUse': 'Kamera boshqa dastur tomonidan band (masalan Zoom, Skype yoki boshqa oyna). Uni yoping va «Yana ruxsat berish» ni bosing.',
   'learn.teacherExam.cameraErrorUnknown': 'Kamerani yoqib bo\'lmadi. Yana urinib ko\'ring.',
 } as const

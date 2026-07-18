@@ -63,5 +63,6 @@ export const learnTeacherExamRu = {
   'learn.teacherExam.cameraErrorUnsupported': 'Камера не поддерживается в этом браузере.',
   'learn.teacherExam.cameraErrorDenied': 'Нет доступа к камере. Разрешите в настройках браузера.',
   'learn.teacherExam.cameraErrorNotFound': 'Камера не найдена на устройстве.',
+  'learn.teacherExam.cameraErrorInUse': 'Камера занята другой программой (например Zoom, Skype или другой вкладкой). Закройте её и нажмите «Разрешить снова».',
   'learn.teacherExam.cameraErrorUnknown': 'Не удалось включить камеру. Попробуйте ещё раз.',
 } as const

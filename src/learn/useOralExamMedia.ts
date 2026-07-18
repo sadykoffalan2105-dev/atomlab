@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type OralMediaStatus = 'idle' | 'requesting' | 'active' | 'error'
 
-export type OralMediaErrorCode = 'not_supported' | 'denied' | 'not_found' | 'unknown'
+export type OralMediaErrorCode = 'not_supported' | 'denied' | 'not_found' | 'in_use' | 'unknown'
 
 function mapMediaError(err: unknown): OralMediaErrorCode {
   if (!err || typeof err !== 'object') return 'unknown'
@@ -11,11 +11,11 @@ function mapMediaError(err: unknown): OralMediaErrorCode {
     return 'denied'
   }
   if (name === 'NotFoundError' || name === 'DevicesNotFoundError') return 'not_found'
+  // Камера физически занята другим приложением (Zoom/Skype/другая вкладка).
+  if (name === 'NotReadableError' || name === 'TrackStartError' || name === 'AbortError') {
+    return 'in_use'
+  }
   return 'unknown'
-}
-
-function isDeniedError(err: unknown): boolean {
-  return mapMediaError(err) === 'denied'
 }
 
 export function isOralMediaSupported(): boolean {
@@ -43,9 +43,10 @@ async function acquireCameraStream(): Promise<MediaStream> {
       return await navigator.mediaDevices.getUserMedia(constraints)
     } catch (err) {
       lastErr = err
-      // Отказ в доступе или отсутствие камеры — повторять с другими параметрами
-      // бессмысленно, сразу выходим с понятной ошибкой.
-      if (isDeniedError(err) || mapMediaError(err) === 'not_found') throw err
+      // Отказ в доступе, отсутствие камеры или занятость другим приложением —
+      // повторять с другими параметрами бессмысленно, сразу выходим.
+      const code = mapMediaError(err)
+      if (code === 'denied' || code === 'not_found' || code === 'in_use') throw err
     }
   }
   throw lastErr
@@ -93,7 +94,19 @@ export function useOralExamMedia(active: boolean) {
     setErrorCode(null)
 
     try {
-      const stream = await acquireCameraStream()
+      let stream: MediaStream
+      try {
+        stream = await acquireCameraStream()
+      } catch (err) {
+        // Камера могла быть кратко занята (переключение с микрофона/другой
+        // вкладки) — даём устройству освободиться и пробуем ещё один раз.
+        if (mapMediaError(err) === 'in_use') {
+          await new Promise((r) => window.setTimeout(r, 700))
+          stream = await acquireCameraStream()
+        } else {
+          throw err
+        }
+      }
 
       streamRef.current = stream
       await attachStream(stream)

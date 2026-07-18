@@ -15,6 +15,7 @@ const ERROR_KEYS: Record<OralMediaErrorCode, MessageKey> = {
   not_supported: 'learn.teacherExam.cameraErrorUnsupported',
   denied: 'learn.teacherExam.cameraErrorDenied',
   not_found: 'learn.teacherExam.cameraErrorNotFound',
+  in_use: 'learn.teacherExam.cameraErrorInUse',
   unknown: 'learn.teacherExam.cameraErrorUnknown',
 }
 
