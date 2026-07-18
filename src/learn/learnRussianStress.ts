@@ -1,5 +1,7 @@
 /** Ударения для TTS: COMBINING ACUTE ACCENT (U+0301) на ударной гласной. */
 
+import { COMMON_STRESS_RU } from './learnRussianStressCommon'
+
 const A = '\u0301'
 
 /** Частые термины школьной химии — Edge/Dmitry читает точнее. */
@@ -410,7 +412,10 @@ export const CHEMISTRY_STRESS_RU: Record<string, string> = {
   авиценна: `авице${A}нна`,
 }
 
-const SORTED_KEYS = Object.keys(CHEMISTRY_STRESS_RU).sort((a, b) => b.length - a.length)
+/** Общие слова + химические (химия имеет приоритет при совпадении ключа). */
+const MERGED_STRESS_RU: Record<string, string> = { ...COMMON_STRESS_RU, ...CHEMISTRY_STRESS_RU }
+
+const SORTED_KEYS = Object.keys(MERGED_STRESS_RU).sort((a, b) => b.length - a.length)
 
 function stripExistingStressMarks(text: string): string {
   return text.replace(/\u0301/g, '')
@@ -420,7 +425,7 @@ function stripExistingStressMarks(text: string): string {
 export function applyRussianStressMarks(text: string): string {
   let out = stripExistingStressMarks(text)
   for (const key of SORTED_KEYS) {
-    const stressed = CHEMISTRY_STRESS_RU[key]!
+    const stressed = MERGED_STRESS_RU[key]!
     const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = new RegExp(`(?<![\\p{L}])${escaped}(?![\\p{L}])`, 'giu')
     out = out.replace(re, (match) => {

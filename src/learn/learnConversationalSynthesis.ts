@@ -350,6 +350,101 @@ function pickDirectEntityChunk(
   return null
 }
 
+/**
+ * Все конкретные сущности, чьё имя реально встречается в вопросе — по порядку
+ * появления. Нужно для сравнения «чем отличается X от Y», «сравни A и B».
+ */
+function pickEntityChunksForQuery(
+  query: string,
+  chunks: ChemistryKnowledgeChunk[],
+  limit = 3,
+): ChemistryKnowledgeChunk[] {
+  const q = normalizeForMatch(query)
+  const found: { c: ChemistryKnowledgeChunk; idx: number }[] = []
+  for (const c of chunks) {
+    if (!DIRECT_ENTITY_PREFIXES.some((p) => c.id.startsWith(p))) continue
+    let bestIdx = -1
+    for (const k of c.keywords) {
+      const kk = k.toLowerCase()
+      if (kk.length < 4 || GENERIC_ENTITY_WORDS.has(kk)) continue
+      const idx = q.indexOf(kk)
+      if (idx >= 0 && (bestIdx < 0 || idx < bestIdx)) bestIdx = idx
+    }
+    if (bestIdx >= 0) found.push({ c, idx: bestIdx })
+  }
+  const seen = new Set<string>()
+  return found
+    .sort((a, b) => a.idx - b.idx)
+    .filter((f) => (seen.has(f.c.id) ? false : (seen.add(f.c.id), true)))
+    .map((f) => f.c)
+    .slice(0, limit)
+}
+
+/** Вопрос-сравнение: «чем отличается», «сравни», «разница между», «difference». */
+function isComparisonQuery(query: string): boolean {
+  return /сравн|чем отлич|отлича[ею]тся|в чё?м разниц|разниц[аеы]|различи|отличие|общего между|сходств|difference|compare|vs\b|farq|taqqosla|solishtir/i.test(
+    query,
+  )
+}
+
+function entityLabel(chunk: ChemistryKnowledgeChunk): string {
+  return chunk.topic
+    .replace(/\s*—.*$/, '')
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/^Учёный:\s*/i, '')
+    .trim()
+}
+
+function firstMeaningfulSentence(text: string, maxLen = 300): string {
+  const sentences = splitSentences(stripBoilerplate(text))
+  const out = sentences[0] ?? stripBoilerplate(text)
+  return out.length > maxLen ? `${out.slice(0, maxLen - 1).trimEnd()}…` : out
+}
+
+/** Структурированное сравнение двух сущностей — как объяснил бы сильный учитель. */
+function buildComparisonAnswer(
+  a: ChemistryKnowledgeChunk,
+  b: ChemistryKnowledgeChunk,
+  ctx: LearnLocalAssistantContext,
+  seed: number,
+): string {
+  const locale = ctx.locale
+  const opener = pickOpenerForLocale(locale, seed)
+  const labelA = entityLabel(a)
+  const labelB = entityLabel(b)
+  const essA = firstMeaningfulSentence(locale === 'en' ? a.en || a.ru : a.ru)
+  const essB = firstMeaningfulSentence(locale === 'en' ? b.en || b.ru : b.ru)
+
+  const parts: string[] = []
+  if (locale === 'uz') {
+    parts.push(`${opener} **${labelA}** va **${labelB}** ni solishtiramiz.`)
+    parts.push('', `**${labelA}.** ${essA}`, '', `**${labelB}.** ${essB}`)
+    parts.push('', `**Asosiy farq:** har biri tarkibi, xossalari va qo‘llanishi bilan farqlanadi — yuqoridagi ta’riflarni taqqoslang.`)
+    if (ctx.mode !== 'helper') {
+      parts.push('', `**O‘zingizni tekshiring:** «${labelA}» va «${labelB}» o‘rtasidagi bitta asosiy farqni ayting.`)
+    }
+  } else if (locale === 'en') {
+    parts.push(`${opener} Let's compare **${labelA}** and **${labelB}**.`)
+    parts.push('', `**${labelA}.** ${essA}`, '', `**${labelB}.** ${essB}`)
+    parts.push('', `**Key difference:** they differ in composition, properties and use — compare the two descriptions above.`)
+    if (ctx.mode !== 'helper') {
+      parts.push('', `**Check yourself:** name one key difference between "${labelA}" and "${labelB}".`)
+    }
+  } else {
+    parts.push(`${opener} Сравним **${labelA}** и **${labelB}**.`)
+    parts.push('', `**${labelA}.** ${essA}`, '', `**${labelB}.** ${essB}`)
+    parts.push(
+      '',
+      `**Главное отличие:** вещества различаются по составу, свойствам и применению — сравните два определения выше и обратите внимание, что у них общего, а что разное.`,
+    )
+    if (ctx.mode !== 'helper') {
+      parts.push('', `**Проверь себя:** назовите одно ключевое отличие «${labelA}» от «${labelB}».`)
+    }
+  }
+
+  return normalizeTeacherReplyText(parts.join('\n'), locale)
+}
+
 /** Профессиональный прямой ответ по справочному чанку (без чужого §-контекста). */
 function buildDirectEntityAnswer(
   chunk: ChemistryKnowledgeChunk,
@@ -401,6 +496,14 @@ export function synthesizeKnowledgeAnswer(
   const explicit = resolveSectionFromQuery(query, ctx)
   if (explicit && parseRequestedTopicNumber(query) !== null) {
     return buildSectionLesson(explicit.section, ctx, intent, seed, explicit.scope)
+  }
+
+  // 1.5) Сравнение двух сущностей: «чем отличается X от Y», «сравни A и B».
+  if (isComparisonQuery(query)) {
+    const ents = pickEntityChunksForQuery(query, chunks, 2)
+    if (ents.length >= 2) {
+      return buildComparisonAnswer(ents[0]!, ents[1]!, ctx, seed)
+    }
   }
 
   // 2) Прямой вопрос о сущности (элемент/вещество/учёный/формула) — точный ответ.
