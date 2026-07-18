@@ -24,6 +24,7 @@ import type { OralExamItem } from '../../learn/topicQuizTypes'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { speechLocaleFromApp } from '../../i18n/localeHelpers'
 import { OralExamCameraPanel } from './OralExamCameraPanel'
+import { BrainInsightPanel } from './BrainInsightPanel'
 import styles from './TeacherExamShell.module.css'
 
 type Props = {
@@ -579,6 +580,12 @@ function OralExamOverlay({
                 errorCode={errorCode}
                 listening={listening}
                 onRetry={() => void startMedia()}
+              />
+              <BrainInsightPanel
+                videoRef={videoRef}
+                active={phase === 'running' && status === 'active'}
+                studentId={rosterSectionId ? getActiveStudent(rosterSectionId)?.id ?? 'guest' : 'guest'}
+                lang={locale}
               />
             </aside>
           </div>

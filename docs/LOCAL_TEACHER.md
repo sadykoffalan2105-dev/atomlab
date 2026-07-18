@@ -78,7 +78,7 @@ npm run dev
 Опционально в `.env`:
 
 ```env
-VITE_TEACHER_SERVICE_URL=http://127.0.0.1:8765
+VITE_TEACHER_SERVICE_URL=http://127.0.0.1:8765 
 TEACHER_SERVICE_PORT=8765
 OLLAMA_URL=http://127.0.0.1:11434
 OLLAMA_MODEL=llama3.2
@@ -186,3 +186,38 @@ teacher_service (FastAPI :8765)
 ```
 
 Подробный план реализации — в `.cursor/plans/local_python_ai_teacher_*.plan.md`.
+
+---
+
+## Super-Brain: голосовой опрос в реальном времени + зрение по камере
+
+Мультимодальное ядро ИИ-преподавателя живёт в `src/learn/brain/` и объединяет
+три потока сигналов (камера / аудио+STT / лаборатория) в единый контекст.
+
+```
+src/learn/brain/
+  brainTypes.ts            типы сигналов и решений
+  reasoningTrace.ts        журнал скрытых мыслей (Reasoning Log)
+  studentMemoryStore.ts    Big Data Layer (IndexedDB): память об ученике
+  contextGraph.ts          сведение 3 потоков в FusedContext (граф активаций)
+  pedagogicalStrategy.ts   выбор тона/действия/подсказки
+  brainPhrasing.ts         генерация живых реплик учителя
+  unifiedBrain.ts          ядро: ingest → reasoning → strategy → ответ
+  vision/engagementTracker.ts   CV: внимание, взгляд, эмоция, второй экран
+  voice/audioActivityDetector.ts  VAD (Web Audio RMS)
+  voice/interruptionController.ts барджин (перебивание ИИ)
+  voice/realtimeTransport.ts      duplex-канал (WebSocket | локальный контур)
+  voice/duplexVoiceSession.ts     движок непрерывного голосового диалога
+  voice/voiceExamOrchestrator.ts  голосовой опрос с корректирующими вопросами
+  useUnifiedBrainSession.ts       React-хук интеграции с UI
+```
+
+Мыслительный путь на каждый ход фиксируется в порядке:
+`[оценка ответа] → [сверка с эмоцией] → [вовлечённость] → [лаборатория] →
+[долгосрочная память] → [выбор стратегии] → [генерация реплики]`.
+
+Интеграция в UI: `src/components/learn/BrainInsightPanel.tsx` (HUD внимания и
+эмоций поверх голосового опроса, режим «только зрение» — микрофон не занимает).
+Для полного голосового опроса передайте `questions` в `useUnifiedBrainSession`.
+Транспорт реального времени: без `websocketUrl` работает локальный контур
+(браузерный STT/TTS + UnifiedBrain), с URL — двусторонний WebSocket-стриминг.
