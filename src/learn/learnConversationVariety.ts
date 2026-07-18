@@ -137,6 +137,15 @@ export function detectQueryIntent(query: string): QueryIntent {
   ) {
     return 'book_casual'
   }
+  // Вопросы «почему/зачем» и «как решить/как найти» требуют развёрнутого
+  // рассуждения — отвечаем полно, как живой учитель, а не одной фразой.
+  if (
+    /почему|отчего|зачем|по какой причине|why|nega|nima uchun|как решить|как найти|как определ|как вычисл|как посчит|как получ|как это работает|how to|how do|qanday (yech|top|hisobl|aniqla)/i.test(
+      q,
+    )
+  ) {
+    return 'explain'
+  }
   if (
     /полност|подроб|объясни|explain|разъясн|раскрой|опиши|describe|по учебник|tushuntir|oddiyroq|bog'liqlik|bog‘liqlik|dars bilan/i.test(
       q,
