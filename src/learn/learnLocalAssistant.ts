@@ -107,9 +107,21 @@ function knowledgeBlockReply(
     chapterId: ctx.chapterId,
     sectionId: ctx.sectionId,
   })
-  if (!faq && retrieved.chunks.length === 0) return null
 
-  return synthesizeKnowledgeAnswer(query, retrieved.chunks, faq, ctx, messages)
+  // Без §-контекста: чтобы точные сущности (элемент, вещество, учёный, формула)
+  // не тонули под бонусами текущего параграфа. Ставим их первыми.
+  const entity = retrieveChemistryKnowledge(query, { maxChunks: 8, minScore: 2 })
+
+  const seen = new Set<string>()
+  const chunks = [...entity.chunks, ...retrieved.chunks].filter((c) => {
+    if (seen.has(c.id)) return false
+    seen.add(c.id)
+    return true
+  })
+
+  if (!faq && chunks.length === 0) return null
+
+  return synthesizeKnowledgeAnswer(query, chunks, faq, ctx, messages)
 }
 
 function explainTopic(
@@ -312,6 +324,20 @@ function generateLocalLearnReplyRaw(
       'tell me',
       'что такое',
       'what is',
+      'кто такой',
+      'кто такая',
+      'кто это',
+      'что сделал',
+      'что открыл',
+      'чем известен',
+      'чем знаменит',
+      'вклад',
+      'биограф',
+      'где применя',
+      'как получа',
+      'для чего',
+      'зачем нужен',
+      'свойства',
       'по книг',
       'из книг',
       'что нибудь',
@@ -426,13 +452,15 @@ function generateLocalLearnReplyRaw(
       : 'I specialize in **chemistry**. Ask about substances, reactions, calculations, or lab safety.'
   }
 
+  // Сначала пробуем базу знаний (элементы, вещества, учёные, формулы, учебник),
+  // и только потом — сырой типовой FAQ, чтобы не отвечать «мимо вопроса».
+  const kbReply = knowledgeBlockReply(q, ctx, messages)
+  if (kbReply) return kbReply
+
   const faq = matchFaqEntry(q)
   if (faq) {
     return pickFaqText(faq, locale)
   }
-
-  const kbReply = knowledgeBlockReply(q, ctx, messages)
-  if (kbReply) return kbReply
 
   const { block: catalogBlock } = buildAssistantKnowledgeBlock(q, ctx)
   const sectionBlock = buildSectionOutlineBlock(ctx, 1600)

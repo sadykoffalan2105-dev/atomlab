@@ -56,14 +56,6 @@ function buildCompoundChunk(c: CompoundDef): ChemistryKnowledgeChunk {
   if (c.laboratoryRecipeRu?.trim()) {
     ru.push(`Пример получения: ${c.laboratoryRecipeRu.trim()}.`)
   }
-  const cond = c.synthesisConditionsRu
-  if (cond) {
-    const bits: string[] = []
-    if (cond.temperature) bits.push(`t: ${cond.temperature}`)
-    if (cond.pressure) bits.push(`давление: ${cond.pressure}`)
-    if (cond.catalyst) bits.push(`катализатор: ${cond.catalyst}`)
-    if (bits.length > 0) ru.push(`Условия: ${bits.join(', ')}.`)
-  }
 
   const keywords = new Set<string>()
   keywords.add(c.nameRu.toLowerCase())

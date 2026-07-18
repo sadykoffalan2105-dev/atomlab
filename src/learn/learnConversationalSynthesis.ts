@@ -295,6 +295,95 @@ function buildChunkFallback(
   )
 }
 
+/** Прямые справочные чанки (элемент / вещество / органика / учёный / формула). */
+const DIRECT_ENTITY_PREFIXES = ['el-', 'cmp-', 'org-', 'sci-', 'formula-']
+
+function normalizeForMatch(q: string): string {
+  return q
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[\u2080-\u2089]/g, (ch) => String('₀₁₂₃₄₅₆₇₈₉'.indexOf(ch)))
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * Если вопрос напрямую про конкретную сущность (что такое водород, кто такой
+ * Менделеев, формула массовой доли), выбираем самый релевантный справочный чанк
+ * — его имя должно реально встречаться в вопросе, чтобы не отвечать «мимо».
+ */
+/** Обобщённые слова — не считаются точным попаданием в конкретную сущность. */
+const GENERIC_ENTITY_WORDS = new Set([
+  'кислота',
+  'кислоты',
+  'оксид',
+  'оксиды',
+  'основание',
+  'основания',
+  'гидроксид',
+  'соль',
+  'соли',
+  'вещество',
+  'вещества',
+  'углевод',
+  'спирт',
+  'кислота (гидроксид)',
+  'основание (гидроксид)',
+  'элемент',
+  'газ',
+  'металл',
+  'неметалл',
+])
+
+function pickDirectEntityChunk(
+  query: string,
+  chunks: ChemistryKnowledgeChunk[],
+): ChemistryKnowledgeChunk | null {
+  const q = normalizeForMatch(query)
+  for (const c of chunks) {
+    if (!DIRECT_ENTITY_PREFIXES.some((p) => c.id.startsWith(p))) continue
+    const nameHit = c.keywords.some(
+      (k) => k.length >= 4 && !GENERIC_ENTITY_WORDS.has(k.toLowerCase()) && q.includes(k.toLowerCase()),
+    )
+    if (nameHit) return c
+  }
+  return null
+}
+
+/** Профессиональный прямой ответ по справочному чанку (без чужого §-контекста). */
+function buildDirectEntityAnswer(
+  chunk: ChemistryKnowledgeChunk,
+  ctx: LearnLocalAssistantContext,
+  intent: QueryIntent,
+  seed: number,
+): string {
+  const locale = ctx.locale
+  const opener = pickOpenerForLocale(locale, seed)
+
+  let body = locale === 'ru' ? chunk.ru : chunk.en
+  if (!isSafeBodyForLocale(body, locale)) body = chunk.ru
+  body = stripBoilerplate(body)
+  if (!wantsFullAnswer(intent)) {
+    const short = takeCharsAtSentence(body, 480)
+    if (short.length >= 60) body = short
+  }
+
+  const parts = [opener, '', body]
+
+  if (ctx.mode !== 'helper') {
+    const label = chunk.topic.replace(/\s*\([^)]*\)\s*$/, '').replace(/^Учёный:\s*/i, '')
+    if (locale === 'ru') {
+      parts.push('', `**Проверь себя:** объясните своими словами, что важно знать про «${label}».`)
+    } else if (locale === 'en') {
+      parts.push('', `**Check yourself:** explain in your own words the key facts about "${label}".`)
+    } else {
+      parts.push('', `**O‘zingizni tekshiring:** «${label}» haqida asosiy narsani o‘z so‘zingiz bilan ayting.`)
+    }
+  }
+
+  return normalizeTeacherReplyText(parts.join('\n'), locale)
+}
+
 /** Живой развёрнутый ответ — разный стиль для разных вопросов. */
 export function synthesizeKnowledgeAnswer(
   query: string,
@@ -308,11 +397,24 @@ export function synthesizeKnowledgeAnswer(
   const turnIndex = messages.filter((m) => m.role === 'user').length
   const seed = conversationSeed(query, ctx.sectionId, turnIndex)
 
+  // 1) Явный запрос конкретного параграфа по номеру — это урок по учебнику.
+  const explicit = resolveSectionFromQuery(query, ctx)
+  if (explicit && parseRequestedTopicNumber(query) !== null) {
+    return buildSectionLesson(explicit.section, ctx, intent, seed, explicit.scope)
+  }
+
+  // 2) Прямой вопрос о сущности (элемент/вещество/учёный/формула) — точный ответ.
+  const direct = pickDirectEntityChunk(query, chunks)
+  if (direct) {
+    return buildDirectEntityAnswer(direct, ctx, intent, seed)
+  }
+
+  // 3) Типовой вопрос из FAQ.
   if (faq) {
     return buildFaqAnswer(faq, locale, seed, intent, ctx)
   }
 
-  const explicit = resolveSectionFromQuery(query, ctx)
+  // 4) Совпадение по названию темы учебника.
   if (explicit) {
     return buildSectionLesson(explicit.section, ctx, intent, seed, explicit.scope)
   }

@@ -129,9 +129,31 @@ const SCIENTISTS: ScientistEntry[] = [
   },
 ]
 
+const DISPLAY_NAME: Record<string, string> = {
+  mendeleev: 'Д. И. Менделеев',
+  lavoisier: 'Антуан Лавуазье',
+  lomonosov: 'М. В. Ломоносов',
+  dalton: 'Джон Дальтон',
+  avogadro: 'Амедео Авогадро',
+  rutherford: 'Эрнест Резерфорд',
+  bohr: 'Нильс Бор',
+  curie: 'Мария Кюри',
+  boyle: 'Роберт Бойль',
+  arrhenius: 'Сванте Аррениус',
+  'ibn-sina': 'Ибн Сина (Авиценна)',
+  'al-biruni': 'Абу Райхан Беруни',
+  jabir: 'Джабир ибн Хайян',
+  'ar-razi': 'Ар-Рази',
+  'al-kindi': 'Аль-Кинди',
+  butlerov: 'А. М. Бутлеров',
+  faraday: 'Майкл Фарадей',
+  thomson: 'Дж. Дж. Томсон',
+  chadwick: 'Джеймс Чедвик',
+}
+
 export const SCIENTISTS_KNOWLEDGE: ChemistryKnowledgeChunk[] = SCIENTISTS.map((s) => ({
   id: `sci-${s.id}`,
-  topic: `Учёный: ${s.keywords[0]}`,
+  topic: DISPLAY_NAME[s.id] ?? `Учёный: ${s.keywords[0]}`,
   grades: [7, 8, 9, 10, 11],
   keywords: [...s.keywords, 'учёный', 'химик', 'кто такой', 'вклад', 'открыл', 'scientist'],
   ru: s.ru,
