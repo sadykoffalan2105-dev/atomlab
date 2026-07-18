@@ -7,13 +7,48 @@ export type OralMediaErrorCode = 'not_supported' | 'denied' | 'not_found' | 'unk
 function mapMediaError(err: unknown): OralMediaErrorCode {
   if (!err || typeof err !== 'object') return 'unknown'
   const name = (err as DOMException).name
-  if (name === 'NotAllowedError' || name === 'PermissionDeniedError') return 'denied'
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+    return 'denied'
+  }
   if (name === 'NotFoundError' || name === 'DevicesNotFoundError') return 'not_found'
   return 'unknown'
 }
 
+function isDeniedError(err: unknown): boolean {
+  return mapMediaError(err) === 'denied'
+}
+
 export function isOralMediaSupported(): boolean {
   return typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
+}
+
+/**
+ * Тиры ограничений камеры от «желаемых» к «любой камере». Жёсткие min-ограничения
+ * (width.min / height.min) вызывают OverconstrainedError на многих веб-камерах,
+ * даже когда доступ уже разрешён — поэтому пробуем по очереди и падаем до video:true.
+ */
+const VIDEO_CONSTRAINT_TIERS: MediaStreamConstraints[] = [
+  {
+    video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    audio: false,
+  },
+  { video: { facingMode: 'user' }, audio: false },
+  { video: true, audio: false },
+]
+
+async function acquireCameraStream(): Promise<MediaStream> {
+  let lastErr: unknown = null
+  for (const constraints of VIDEO_CONSTRAINT_TIERS) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints)
+    } catch (err) {
+      lastErr = err
+      // Отказ в доступе или отсутствие камеры — повторять с другими параметрами
+      // бессмысленно, сразу выходим с понятной ошибкой.
+      if (isDeniedError(err) || mapMediaError(err) === 'not_found') throw err
+    }
+  }
+  throw lastErr
 }
 
 export function useOralExamMedia(active: boolean) {
@@ -58,15 +93,7 @@ export function useOralExamMedia(active: boolean) {
     setErrorCode(null)
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'user' },
-          width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 },
-          frameRate: { ideal: 30, max: 30 },
-        },
-        audio: false,
-      })
+      const stream = await acquireCameraStream()
 
       streamRef.current = stream
       await attachStream(stream)

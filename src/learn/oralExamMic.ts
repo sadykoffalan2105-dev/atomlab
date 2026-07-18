@@ -12,8 +12,20 @@ export async function ensureMicrophonePermission(): Promise<boolean> {
     })
     stream.getTracks().forEach((track) => track.stop())
     return true
-  } catch {
-    return false
+  } catch (err) {
+    const name = (err as DOMException | null)?.name
+    // Явный отказ пользователя или блокировка — повтор бессмыслен.
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+      return false
+    }
+    // Иначе аудио-ограничения могли не подойти микрофону — пробуем без них.
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach((track) => track.stop())
+      return true
+    } catch {
+      return false
+    }
   }
 }
 
