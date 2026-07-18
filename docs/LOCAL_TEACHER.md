@@ -221,3 +221,57 @@ src/learn/brain/
 Для полного голосового опроса передайте `questions` в `useUnifiedBrainSession`.
 Транспорт реального времени: без `websocketUrl` работает локальный контур
 (браузерный STT/TTS + UnifiedBrain), с URL — двусторонний WebSocket-стриминг.
+
+---
+
+## Двухрежимный разум (State Machine): обучение ↔ строгий экзамен
+
+Поверх Super-Brain работает `src/learn/brain/dualMode/` — высокоуровневая система
+управления обучением с двумя принципиально разными состояниями «личности» ИИ.
+
+```
+src/learn/brain/dualMode/
+  dualModeTypes.ts             режимы, персоны, VoiceIntent, QuestionCard
+  personaProfiles.ts           TRAINING (наставник) ↔ EXAM (экзаменатор), реплики
+  intentParser.ts              разбор команд («дай вопрос», «след. тема», «объясни»)
+  conversationStateManager.ts  Conversation State Manager: тема, прогресс, mastery,
+                               «проблемные зоны», адаптивная сложность, история
+  questionGenerator.ts         вопросы из химической БД + сократовские наводящие
+  trainingModeEngine.ts        полные экспертные объяснения (composeExpertLocalReply)
+  examModeEngine.ts            оценка по рубрике; правило «НЕТ ОТВЕТАМ»
+  dualModeTeacher.ts           TeacherIntelligence — ядро State Machine
+  useDualModeTeacher.ts        React-хук интеграции с UI
+```
+
+**Режим 1 «Обучение» (training).** Профессор-наставник: полные объяснения,
+примеры, аналогии, исторические факты. Постоянный анализ видеопотока — при
+признаках замешательства (`emotion=confused/frustrated`) ИИ сам спрашивает
+«Тебе понятно это объяснение или зайти с другой стороны?».
+
+**Режим 2 «Строгий экзаменатор» (exam).** Правило «НЕТ ОТВЕТАМ»: ИИ никогда не
+раскрывает решение. При неверном/неполном ответе задаёт сократовский наводящий
+вопрос (сужение → переформулировка → декомпозиция по числу попыток). Бесконечный
+цикл «Вопрос → Ответ → Оценка → Наводящий вопрос/Следующая тема». Команды голосом:
+«Дай мне ещё вопрос», «Переходим к следующей теме», «Режим экзамена/обучения».
+
+**Переключение режимов** (`setMode`) меняет «личность»: тон, политику ответов
+(`full_answers` ↔ `no_answers`), проактивность. Ядро связывает камеру
+(`EngagementTracker` → `UnifiedBrain`), микрофон (`DuplexVoiceSession`),
+химическую БД (`QuestionGenerator`/`TrainingModeEngine`) и «преподавательское
+мышление» (`UnifiedBrain`: reasoning-трасса + долгосрочная память).
+
+Ключевые точки API (как у серверного контроллера обучения):
+`handleIncomingVoice(transcript, mode?)`, `evaluateResponse(answer, topic, diff)`,
+`generateNextQuestion(topic, mistakes)`, `analyzeCameraEngagement()`.
+
+### UI: «Онлайн-диалог» в проверке знаний
+
+Живой режим доступен в `LearnStudentTestHub` вкладкой **«Онлайн-диалог»**
+(`src/components/learn/LearnLiveTutorPanel.tsx`). Это полноэкранный интерфейс
+разговора с ИИ в реальном времени:
+- камера (`useOralExamMedia`) → анализ вовлечённости и эмоций;
+- микрофон (`useDualModeTeacher`, `voice: true`) → непрерывный дуплекс: ИИ
+  слышит, отвечает голосом, можно перебивать;
+- переключатель **Обучение ↔ Экзамен** прямо в диалоге;
+- лента реплик (ИИ/ученик), живой транскрипт, HUD вовлечённости и «Ход мыслей ИИ»;
+- текстовый ввод как запасной канал.
