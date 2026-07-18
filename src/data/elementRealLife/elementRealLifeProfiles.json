@@ -13,13 +13,13 @@
       "Гидрирование масел"
     ],
     "usesEn": [
-      "Hydrogen compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Ракетное топливо",
+      "Производство аммиака",
+      "Топливные элементы",
+      "Гидрирование масел"
     ],
     "extractionRu": "Из природного газа и воды (электролиз), а также как побочный продукт химических производств.",
-    "extractionEn": "From air or natural gas by separation and purification."
+    "extractionEn": "Из природного газа и воды (электролиз), а также как побочный продукт химических производств."
   },
   {
     "z": 2,
@@ -35,13 +35,13 @@
       "Шары и дирижабли"
     ],
     "usesEn": [
-      "Helium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Дыхательные смеси для водолазов",
+      "Охлаждение МРТ-сканеров",
+      "Сварка и контроль среды",
+      "Шары и дирижабли"
     ],
     "extractionRu": "Из природного газа, где гелий накапливается при распаде радиоактивных элементов.",
-    "extractionEn": "From air or natural gas by separation and purification."
+    "extractionEn": "Из природного газа, где гелий накапливается при распаде радиоактивных элементов."
   },
   {
     "z": 3,
@@ -123,13 +123,13 @@
       "Фильтры (активированный уголь)"
     ],
     "usesEn": [
-      "Carbon compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Сталь и металлургия",
+      "Пластмассы и резина",
+      "Аккумуляторы",
+      "Фильтры (активированный уголь)"
     ],
     "extractionRu": "Уголь — из недр; графит и алмазы — из месторождений; в промышленности — из нефти и природного газа.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionEn": "Уголь — из недр; графит и алмазы — из месторождений; в промышленности — из нефти и природного газа."
   },
   {
     "z": 7,
@@ -145,13 +145,13 @@
       "Криогенные технологии"
     ],
     "usesEn": [
-      "Nitrogen compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Удобрения (аммиак, селитра)",
+      "Инертная среда в химии",
+      "Пищевые упаковки",
+      "Криогенные технологии"
     ],
     "extractionRu": "Разделением воздуха: сначала сжижают, затем фракционно перегоняют.",
-    "extractionEn": "From air or natural gas by separation and purification."
+    "extractionEn": "Разделением воздуха: сначала сжижают, затем фракционно перегоняют."
   },
   {
     "z": 8,
@@ -167,13 +167,13 @@
       "Сварка и резка металла"
     ],
     "usesEn": [
-      "Oxygen compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Медицинские баллоны",
+      "Металлургия (домны)",
+      "Очистка сточных вод",
+      "Сварка и резка металла"
     ],
     "extractionRu": "Из воздуха фракционной перегонкой на кислородных станциях.",
-    "extractionEn": "From air or natural gas by separation and purification."
+    "extractionEn": "Из воздуха фракционной перегонкой на кислородных станциях."
   },
   {
     "z": 9,
@@ -277,13 +277,13 @@
       "Электропроводка"
     ],
     "usesEn": [
-      "Aluminium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Упаковка и фольга",
+      "Авиация и транспорт",
+      "Строительные профили",
+      "Электропроводка"
     ],
     "extractionRu": "Из бокситов: сплавляют, получают оксид Al₂O₃, затем электролизом восстанавливают металл.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionEn": "Из бокситов: сплавляют, получают оксид Al₂O₃, затем электролизом восстанавливают металл."
   },
   {
     "z": 14,
@@ -563,13 +563,13 @@
       "Магниты и трансформаторы"
     ],
     "usesEn": [
-      "Iron compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Сталь и строительство",
+      "Автомобили и мосты",
+      "Бытовая техника",
+      "Магниты и трансформаторы"
     ],
     "extractionRu": "Из железной руды в доменных печах: восстановление оксидов коксом, затем выплавка стали.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionEn": "Из железной руды в доменных печах: восстановление оксидов коксом, затем выплавка стали."
   },
   {
     "z": 27,
@@ -629,13 +629,13 @@
       "Монеты и сплавы (латунь, бронза)"
     ],
     "usesEn": [
-      "Copper compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Электропроводка",
+      "Трубы и отопление",
+      "Электроника",
+      "Монеты и сплавы (латунь, бронза)"
     ],
     "extractionRu": "Из медных руд: флотация, плавка, электролитическое рафинирование.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionEn": "Из медных руд: флотация, плавка, электролитическое рафинирование."
   },
   {
     "z": 30,
@@ -926,24 +926,22 @@
   {
     "z": 43,
     "symbol": "Tc",
-    "captionRu": "Технеций — элемент № 43 (Tc)",
-    "captionEn": "Technetium — element 43 (Tc)",
-    "appearanceRu": "Технеций (Tc): Твёрдое вещество при комнатной температуре. Атомный номер 43, масса 96.90636 а. е. м.",
-    "appearanceEn": "Technetium (Tc): typical Solid. Atomic number 43, mass 96.90636 u.",
+    "captionRu": "Технеций — первый искусственный элемент",
+    "captionEn": "Technetium — the first artificial element",
+    "appearanceRu": "Серебристо-серый радиоактивный металл. В природе встречается лишь в следовых количествах; основные запасы — продукты деления в реакторах.",
+    "appearanceEn": "Technetium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения технеций",
-      "Лабораторная химия",
-      "Промышленные материалы",
+      "Медицинская диагностика (⁹⁹ᵐTc)",
+      "Калибровка приборов",
       "Научные исследования"
     ],
     "usesEn": [
-      "Technetium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
+      "Medical imaging (⁹⁹ᵐTc)",
+      "Instrument calibration",
       "Scientific research"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Из продуктов деления урана в ядерных реакторах; также получают облучением молибдена.",
+    "extractionEn": "From uranium fission products in reactors; also by neutron irradiation of molybdenum."
   },
   {
     "z": 44,
@@ -1025,13 +1023,13 @@
       "Фотография (исторически)"
     ],
     "usesEn": [
-      "Silver compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Ювелирные изделия",
+      "Контакты и пайка",
+      "Зеркала и посуда",
+      "Фотография (исторически)"
     ],
     "extractionRu": "Как попутный металл при добыче свинца, цинка и меди; также из самородной руды.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionEn": "Как попутный металл при добыче свинца, цинка и меди; также из самородной руды."
   },
   {
     "z": 48,
@@ -1322,24 +1320,22 @@
   {
     "z": 61,
     "symbol": "Pm",
-    "captionRu": "Прометий — элемент № 61 (Pm)",
-    "captionEn": "Promethium — element 61 (Pm)",
-    "appearanceRu": "Прометий (Pm): Твёрдое вещество при комнатной температуре. Атомный номер 61, масса 144.91276 а. е. м.",
-    "appearanceEn": "Promethium (Pm): typical Solid. Atomic number 61, mass 144.91276 u.",
+    "captionRu": "Прометий — редкий лантанид без стабильных изотопов",
+    "captionEn": "Promethium — a lanthanide with no stable isotopes",
+    "appearanceRu": "Мягкий серебристо-белый металл, все изотопы радиоактивны. Светится в темноте из-за собственного излучения.",
+    "appearanceEn": "Promethium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения прометий",
-      "Лабораторная химия",
-      "Промышленные материалы",
+      "Люминесцентные краски",
+      "Источники бета-излучения",
       "Научные исследования"
     ],
     "usesEn": [
-      "Promethium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
+      "Luminous paints",
+      "Beta radiation sources",
       "Scientific research"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Из продуктов деления урана и отработавшего ядерного топлива; также синтезируют в реакторах.",
+    "extractionEn": "From uranium fission products and spent fuel; also synthesized in reactors."
   },
   {
     "z": 62,
@@ -1729,13 +1725,13 @@
       "Резервы центробанков"
     ],
     "usesEn": [
-      "Gold compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Ювелирные изделия",
+      "Электроника (контакты)",
+      "Стоматология",
+      "Резервы центробанков"
     ],
     "extractionRu": "Из россыпей и руд: цианидное или гравитационное обогащение, плавка.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionEn": "Из россыпей и руд: цианидное или гравитационное обогащение, плавка."
   },
   {
     "z": 80,
@@ -1896,22 +1892,20 @@
     "symbol": "Fr",
     "captionRu": "Франций — элемент № 87 (Fr)",
     "captionEn": "Francium — element 87 (Fr)",
-    "appearanceRu": "Франций (Fr): Твёрдое вещество при комнатной температуре. Атомный номер 87, масса 223.01973 а. е. м.",
-    "appearanceEn": "Francium (Fr): typical Solid. Atomic number 87, mass 223.01973 u.",
+    "appearanceRu": "Франций: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Francium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения франций",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Francium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 88,
@@ -2028,571 +2022,519 @@
     "symbol": "Np",
     "captionRu": "Нептуний — элемент № 93 (Np)",
     "captionEn": "Neptunium — element 93 (Np)",
-    "appearanceRu": "Нептуний (Np): Твёрдое вещество при комнатной температуре. Атомный номер 93, масса 237.048172 а. е. м.",
-    "appearanceEn": "Neptunium (Np): typical Solid. Atomic number 93, mass 237.048172 u.",
+    "appearanceRu": "Нептуний: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Neptunium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения нептуний",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Neptunium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 94,
     "symbol": "Pu",
-    "captionRu": "Плутоний — элемент № 94 (Pu)",
-    "captionEn": "Plutonium — element 94 (Pu)",
-    "appearanceRu": "Плутоний (Pu): Твёрдое вещество при комнатной температуре. Атомный номер 94, масса 244.0642 а. е. м.",
-    "appearanceEn": "Plutonium (Pu): typical Solid. Atomic number 94, mass 244.0642 u.",
+    "captionRu": "Плутоний — ядерное топливо и источники энергии",
+    "captionEn": "Plutonium — nuclear fuel and power sources",
+    "appearanceRu": "Серебристо-серый актиноид; многие изотопы сильно радиоактивны. Используется в реакторах и космических источниках.",
+    "appearanceEn": "Plutonium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения плутоний",
-      "Лабораторная химия",
-      "Промышленные материалы",
+      "Ядерное топливо",
+      "RTG для космоса",
       "Научные исследования"
     ],
     "usesEn": [
-      "Plutonium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
+      "Nuclear reactor fuel",
+      "Space RTGs",
       "Scientific research"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Получают облучением урана-238 в реакторах с последующим химическим выделением.",
+    "extractionEn": "Produced by neutron irradiation of uranium-238 in reactors, then chemically separated."
   },
   {
     "z": 95,
     "symbol": "Am",
-    "captionRu": "Америций — элемент № 95 (Am)",
-    "captionEn": "Americium — element 95 (Am)",
-    "appearanceRu": "Америций (Am): Твёрдое вещество при комнатной температуре. Атомный номер 95, масса 243.06138 а. е. м.",
-    "appearanceEn": "Americium (Am): typical Solid. Atomic number 95, mass 243.06138 u.",
+    "captionRu": "Америций — детекторы дыма и научные источники",
+    "captionEn": "Americium — smoke detectors and research sources",
+    "appearanceRu": "Серебристо-белый актиноид, радиоактивен. В быту — в ионизационных датчиках дыма.",
+    "appearanceEn": "Americium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения америций",
-      "Лабораторная химия",
-      "Промышленные материалы",
+      "Ионизационные детекторы дыма",
+      "Источники нейтронов и гамма-излучения",
       "Научные исследования"
     ],
     "usesEn": [
-      "Americium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
+      "Ionization smoke detectors",
+      "Neutron and gamma sources",
       "Scientific research"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Из отработавшего ядерного топлива и продуктов деления; также синтез в реакторах.",
+    "extractionEn": "From spent nuclear fuel and fission products; also synthesized in reactors."
   },
   {
     "z": 96,
     "symbol": "Cm",
     "captionRu": "Кюрий — элемент № 96 (Cm)",
     "captionEn": "Curium — element 96 (Cm)",
-    "appearanceRu": "Кюрий (Cm): Твёрдое вещество при комнатной температуре. Атомный номер 96, масса 247.07035 а. е. м.",
-    "appearanceEn": "Curium (Cm): typical Solid. Atomic number 96, mass 247.07035 u.",
+    "appearanceRu": "Кюрий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Curium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения кюрий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Curium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 97,
     "symbol": "Bk",
     "captionRu": "Берклий — элемент № 97 (Bk)",
     "captionEn": "Berkelium — element 97 (Bk)",
-    "appearanceRu": "Берклий (Bk): Твёрдое вещество при комнатной температуре. Атомный номер 97, масса 247.07031 а. е. м.",
-    "appearanceEn": "Berkelium (Bk): typical Solid. Atomic number 97, mass 247.07031 u.",
+    "appearanceRu": "Берклий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Berkelium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения берклий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Berkelium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 98,
     "symbol": "Cf",
     "captionRu": "Калифорний — элемент № 98 (Cf)",
     "captionEn": "Californium — element 98 (Cf)",
-    "appearanceRu": "Калифорний (Cf): Твёрдое вещество при комнатной температуре. Атомный номер 98, масса 251.07959 а. е. м.",
-    "appearanceEn": "Californium (Cf): typical Solid. Atomic number 98, mass 251.07959 u.",
+    "appearanceRu": "Калифорний: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Californium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения калифорний",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Californium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 99,
     "symbol": "Es",
     "captionRu": "Эйнштейний — элемент № 99 (Es)",
     "captionEn": "Einsteinium — element 99 (Es)",
-    "appearanceRu": "Эйнштейний (Es): Твёрдое вещество при комнатной температуре. Атомный номер 99, масса 252.083 а. е. м.",
-    "appearanceEn": "Einsteinium (Es): typical Solid. Atomic number 99, mass 252.083 u.",
+    "appearanceRu": "Эйнштейний: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Einsteinium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения эйнштейний",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Einsteinium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 100,
     "symbol": "Fm",
     "captionRu": "Фермий — элемент № 100 (Fm)",
     "captionEn": "Fermium — element 100 (Fm)",
-    "appearanceRu": "Фермий (Fm): Твёрдое вещество при комнатной температуре. Атомный номер 100, масса 257.09511 а. е. м.",
-    "appearanceEn": "Fermium (Fm): typical Solid. Atomic number 100, mass 257.09511 u.",
+    "appearanceRu": "Фермий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Fermium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения фермий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Fermium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 101,
     "symbol": "Md",
     "captionRu": "Менделевий — элемент № 101 (Md)",
     "captionEn": "Mendelevium — element 101 (Md)",
-    "appearanceRu": "Менделевий (Md): Твёрдое вещество при комнатной температуре. Атомный номер 101, масса 258.09843 а. е. м.",
-    "appearanceEn": "Mendelevium (Md): typical Solid. Atomic number 101, mass 258.09843 u.",
+    "appearanceRu": "Менделевий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Mendelevium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения менделевий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Mendelevium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 102,
     "symbol": "No",
     "captionRu": "Нобелий — элемент № 102 (No)",
     "captionEn": "Nobelium — element 102 (No)",
-    "appearanceRu": "Нобелий (No): Твёрдое вещество при комнатной температуре. Атомный номер 102, масса 259.101 а. е. м.",
-    "appearanceEn": "Nobelium (No): typical Solid. Atomic number 102, mass 259.101 u.",
+    "appearanceRu": "Нобелий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Nobelium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения нобелий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Nobelium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 103,
     "symbol": "Lr",
     "captionRu": "Лоуренсий — элемент № 103 (Lr)",
     "captionEn": "Lawrencium — element 103 (Lr)",
-    "appearanceRu": "Лоуренсий (Lr): Твёрдое вещество при комнатной температуре. Атомный номер 103, масса 266.12 а. е. м.",
-    "appearanceEn": "Lawrencium (Lr): typical Solid. Atomic number 103, mass 266.12 u.",
+    "appearanceRu": "Лоуренсий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Lawrencium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения лоуренсий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Lawrencium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 104,
     "symbol": "Rf",
     "captionRu": "Резерфордий — элемент № 104 (Rf)",
     "captionEn": "Rutherfordium — element 104 (Rf)",
-    "appearanceRu": "Резерфордий (Rf): Твёрдое вещество при комнатной температуре. Атомный номер 104, масса 267.122 а. е. м.",
-    "appearanceEn": "Rutherfordium (Rf): typical Solid. Atomic number 104, mass 267.122 u.",
+    "appearanceRu": "Резерфордий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Rutherfordium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения резерфордий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Rutherfordium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 105,
     "symbol": "Db",
     "captionRu": "Дубний — элемент № 105 (Db)",
     "captionEn": "Dubnium — element 105 (Db)",
-    "appearanceRu": "Дубний (Db): Твёрдое вещество при комнатной температуре. Атомный номер 105, масса 268.126 а. е. м.",
-    "appearanceEn": "Dubnium (Db): typical Solid. Atomic number 105, mass 268.126 u.",
+    "appearanceRu": "Дубний: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Dubnium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения дубний",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Dubnium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 106,
     "symbol": "Sg",
     "captionRu": "Сиборгий — элемент № 106 (Sg)",
     "captionEn": "Seaborgium — element 106 (Sg)",
-    "appearanceRu": "Сиборгий (Sg): Твёрдое вещество при комнатной температуре. Атомный номер 106, масса 269.128 а. е. м.",
-    "appearanceEn": "Seaborgium (Sg): typical Solid. Atomic number 106, mass 269.128 u.",
+    "appearanceRu": "Сиборгий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Seaborgium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения сиборгий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Seaborgium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 107,
     "symbol": "Bh",
     "captionRu": "Борий — элемент № 107 (Bh)",
     "captionEn": "Bohrium — element 107 (Bh)",
-    "appearanceRu": "Борий (Bh): Твёрдое вещество при комнатной температуре. Атомный номер 107, масса 270.133 а. е. м.",
-    "appearanceEn": "Bohrium (Bh): typical Solid. Atomic number 107, mass 270.133 u.",
+    "appearanceRu": "Борий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Bohrium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения борий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Bohrium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 108,
     "symbol": "Hs",
     "captionRu": "Хассий — элемент № 108 (Hs)",
     "captionEn": "Hassium — element 108 (Hs)",
-    "appearanceRu": "Хассий (Hs): Твёрдое вещество при комнатной температуре. Атомный номер 108, масса 269.1336 а. е. м.",
-    "appearanceEn": "Hassium (Hs): typical Solid. Atomic number 108, mass 269.1336 u.",
+    "appearanceRu": "Хассий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Hassium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения хассий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Hassium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 109,
     "symbol": "Mt",
     "captionRu": "Мейтнерий — элемент № 109 (Mt)",
     "captionEn": "Meitnerium — element 109 (Mt)",
-    "appearanceRu": "Мейтнерий (Mt): Твёрдое вещество при комнатной температуре. Атомный номер 109, масса 277.154 а. е. м.",
-    "appearanceEn": "Meitnerium (Mt): typical Solid. Atomic number 109, mass 277.154 u.",
+    "appearanceRu": "Мейтнерий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Meitnerium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения мейтнерий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Meitnerium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 110,
     "symbol": "Ds",
     "captionRu": "Дармштадтий — элемент № 110 (Ds)",
     "captionEn": "Darmstadtium — element 110 (Ds)",
-    "appearanceRu": "Дармштадтий (Ds): Твёрдое вещество при комнатной температуре. Атомный номер 110, масса 282.166 а. е. м.",
-    "appearanceEn": "Darmstadtium (Ds): typical Expected to be a Solid. Atomic number 110, mass 282.166 u.",
+    "appearanceRu": "Дармштадтий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Darmstadtium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения дармштадтий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Darmstadtium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 111,
     "symbol": "Rg",
     "captionRu": "Рентгений — элемент № 111 (Rg)",
     "captionEn": "Roentgenium — element 111 (Rg)",
-    "appearanceRu": "Рентгений (Rg): Твёрдое вещество при комнатной температуре. Атомный номер 111, масса 282.169 а. е. м.",
-    "appearanceEn": "Roentgenium (Rg): typical Expected to be a Solid. Atomic number 111, mass 282.169 u.",
+    "appearanceRu": "Рентгений: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Roentgenium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения рентгений",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Roentgenium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 112,
     "symbol": "Cn",
     "captionRu": "Коперниций — элемент № 112 (Cn)",
     "captionEn": "Copernicium — element 112 (Cn)",
-    "appearanceRu": "Коперниций (Cn): Твёрдое вещество при комнатной температуре. Атомный номер 112, масса 286.179 а. е. м.",
-    "appearanceEn": "Copernicium (Cn): typical Expected to be a Solid. Atomic number 112, mass 286.179 u.",
+    "appearanceRu": "Коперниций: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Copernicium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения коперниций",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Copernicium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 113,
     "symbol": "Nh",
     "captionRu": "Нихоний — элемент № 113 (Nh)",
     "captionEn": "Nihonium — element 113 (Nh)",
-    "appearanceRu": "Нихоний (Nh): Твёрдое вещество при комнатной температуре. Атомный номер 113, масса 286.182 а. е. м.",
-    "appearanceEn": "Nihonium (Nh): typical Expected to be a Solid. Atomic number 113, mass 286.182 u.",
+    "appearanceRu": "Нихоний: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Nihonium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения нихоний",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Nihonium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 114,
     "symbol": "Fl",
     "captionRu": "Флеровий — элемент № 114 (Fl)",
     "captionEn": "Flerovium — element 114 (Fl)",
-    "appearanceRu": "Флеровий (Fl): Твёрдое вещество при комнатной температуре. Атомный номер 114, масса 290.192 а. е. м.",
-    "appearanceEn": "Flerovium (Fl): typical Expected to be a Solid. Atomic number 114, mass 290.192 u.",
+    "appearanceRu": "Флеровий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Flerovium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения флеровий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Flerovium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 115,
     "symbol": "Mc",
     "captionRu": "Московий — элемент № 115 (Mc)",
     "captionEn": "Moscovium — element 115 (Mc)",
-    "appearanceRu": "Московий (Mc): Твёрдое вещество при комнатной температуре. Атомный номер 115, масса 290.196 а. е. м.",
-    "appearanceEn": "Moscovium (Mc): typical Expected to be a Solid. Atomic number 115, mass 290.196 u.",
+    "appearanceRu": "Московий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Moscovium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения московий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Moscovium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 116,
     "symbol": "Lv",
     "captionRu": "Ливерморий — элемент № 116 (Lv)",
     "captionEn": "Livermorium — element 116 (Lv)",
-    "appearanceRu": "Ливерморий (Lv): Твёрдое вещество при комнатной температуре. Атомный номер 116, масса 293.205 а. е. м.",
-    "appearanceEn": "Livermorium (Lv): typical Expected to be a Solid. Atomic number 116, mass 293.205 u.",
+    "appearanceRu": "Ливерморий: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Livermorium: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения ливерморий",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Livermorium compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 117,
     "symbol": "Ts",
     "captionRu": "Теннессин — элемент № 117 (Ts)",
     "captionEn": "Tennessine — element 117 (Ts)",
-    "appearanceRu": "Теннессин (Ts): Твёрдое вещество при комнатной температуре. Атомный номер 117, масса 294.211 а. е. м.",
-    "appearanceEn": "Tennessine (Ts): typical Expected to be a Solid. Atomic number 117, mass 294.211 u.",
+    "appearanceRu": "Теннессин: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Tennessine: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения теннессин",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Tennessine compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.",
-    "extractionEn": "From ores and minerals: enrichment, smelting or electrolysis."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   },
   {
     "z": 118,
     "symbol": "Og",
     "captionRu": "Оганесон — элемент № 118 (Og)",
     "captionEn": "Oganesson — element 118 (Og)",
-    "appearanceRu": "Оганесон (Og): Бесцветный газ при обычных условиях. Атомный номер 118, масса 295.216 а. е. м.",
-    "appearanceEn": "Oganesson (Og): typical Expected to be a Gas. Atomic number 118, mass 295.216 u.",
+    "appearanceRu": "Оганесон: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.",
+    "appearanceEn": "Oganesson: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.",
     "usesRu": [
-      "Соединения оганесон",
-      "Лабораторная химия",
-      "Промышленные материалы",
-      "Научные исследования"
+      "Научные исследования",
+      "Ядерная физика",
+      "Изучение свойств элементов"
     ],
     "usesEn": [
-      "Oganesson compounds",
-      "Laboratory chemistry",
-      "Industrial materials",
-      "Scientific research"
+      "Scientific research",
+      "Nuclear physics",
+      "Element property studies"
     ],
-    "extractionRu": "Из воздуха или природного газа разделением и очисткой.",
-    "extractionEn": "From air or natural gas by separation and purification."
+    "extractionRu": "Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.",
+    "extractionEn": "Not mined from ores: produced artificially in nuclear reactors or particle accelerators."
   }
 ]

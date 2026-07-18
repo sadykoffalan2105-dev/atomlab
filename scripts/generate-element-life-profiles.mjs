@@ -94,6 +94,60 @@ const RICH = {
     usesRu: ['Ювелирные изделия', 'Электроника (контакты)', 'Стоматология', 'Резервы центробанков'],
     extractionRu: 'Из россыпей и руд: цианидное или гравитационное обогащение, плавка.',
   },
+  43: {
+    captionRu: 'Технеций — первый искусственный элемент',
+    captionEn: 'Technetium — the first artificial element',
+    appearanceRu: 'Серебристо-серый радиоактивный металл. В природе встречается лишь в следовых количествах; основные запасы — продукты деления в реакторах.',
+    usesRu: ['Медицинская диагностика (⁹⁹ᵐTc)', 'Калибровка приборов', 'Научные исследования'],
+    usesEn: ['Medical imaging (⁹⁹ᵐTc)', 'Instrument calibration', 'Scientific research'],
+    extractionRu: 'Из продуктов деления урана в ядерных реакторах; также получают облучением молибдена.',
+    extractionEn: 'From uranium fission products in reactors; also by neutron irradiation of molybdenum.',
+  },
+  61: {
+    captionRu: 'Прометий — редкий лантанид без стабильных изотопов',
+    captionEn: 'Promethium — a lanthanide with no stable isotopes',
+    appearanceRu: 'Мягкий серебристо-белый металл, все изотопы радиоактивны. Светится в темноте из-за собственного излучения.',
+    usesRu: ['Люминесцентные краски', 'Источники бета-излучения', 'Научные исследования'],
+    usesEn: ['Luminous paints', 'Beta radiation sources', 'Scientific research'],
+    extractionRu: 'Из продуктов деления урана и отработавшего ядерного топлива; также синтезируют в реакторах.',
+    extractionEn: 'From uranium fission products and spent fuel; also synthesized in reactors.',
+  },
+  95: {
+    captionRu: 'Америций — детекторы дыма и научные источники',
+    captionEn: 'Americium — smoke detectors and research sources',
+    appearanceRu: 'Серебристо-белый актиноид, радиоактивен. В быту — в ионизационных датчиках дыма.',
+    usesRu: ['Ионизационные детекторы дыма', 'Источники нейтронов и гамма-излучения', 'Научные исследования'],
+    usesEn: ['Ionization smoke detectors', 'Neutron and gamma sources', 'Scientific research'],
+    extractionRu: 'Из отработавшего ядерного топлива и продуктов деления; также синтез в реакторах.',
+    extractionEn: 'From spent nuclear fuel and fission products; also synthesized in reactors.',
+  },
+  94: {
+    captionRu: 'Плутоний — ядерное топливо и источники энергии',
+    captionEn: 'Plutonium — nuclear fuel and power sources',
+    appearanceRu: 'Серебристо-серый актиноид; многие изотопы сильно радиоактивны. Используется в реакторах и космических источниках.',
+    usesRu: ['Ядерное топливо', 'RTG для космоса', 'Научные исследования'],
+    usesEn: ['Nuclear reactor fuel', 'Space RTGs', 'Scientific research'],
+    extractionRu: 'Получают облучением урана-238 в реакторах с последующим химическим выделением.',
+    extractionEn: 'Produced by neutron irradiation of uranium-238 in reactors, then chemically separated.',
+  },
+}
+
+/** Элементы без стабильных изотопов / синтезируемые — не «из руд». */
+function isSynthetic(z) {
+  return z === 43 || z === 61 || z === 87 || z >= 93
+}
+
+function syntheticDefaults(ru, en) {
+  return {
+    usesRu: ['Научные исследования', 'Ядерная физика', 'Изучение свойств элементов'],
+    usesEn: ['Scientific research', 'Nuclear physics', 'Element property studies'],
+    extractionRu:
+      'Не добывают из руд: получают искусственно в ядерных реакторах или ускорителях частиц.',
+    extractionEn:
+      'Not mined from ores: produced artificially in nuclear reactors or particle accelerators.',
+    appearanceRu: `${ru}: искусственно получаемый радиоактивный элемент; образцы существуют лишь в микроскопических количествах в лабораториях.`,
+    appearanceEn: `${en}: artificially produced radioactive element; samples exist only in microscopic amounts in laboratories.`,
+  }
 }
 
 const STATE_RU = {
@@ -132,6 +186,7 @@ const profiles = raw
     const ru = namesRu[z - 1] ?? sym
     const en = namesEn[z - 1] ?? sym
     const rich = RICH[z]
+    const synth = isSynthetic(z) ? syntheticDefaults(ru, en) : null
     const sk = stateKey(e.standardState)
     const block = e.groupBlock ?? 'unknown'
 
@@ -139,17 +194,20 @@ const profiles = raw
     const captionEn = rich?.captionEn ?? `${en} — element ${z} (${sym})`
     const appearanceRu =
       rich?.appearanceRu ??
+      synth?.appearanceRu ??
       `${ru} (${sym}): ${STATE_RU[sk]} Атомный номер ${z}, масса ${e.atomicMass} а. е. м.`
     const appearanceEn =
       rich?.appearanceEn ??
+      synth?.appearanceEn ??
       `${en} (${sym}): typical ${e.standardState || 'substance'}. Atomic number ${z}, mass ${e.atomicMass} u.`
-    const usesRu = rich?.usesRu ?? [
+    const usesRu = rich?.usesRu ?? synth?.usesRu ?? [
       `Соединения ${ru.toLowerCase()}`,
       'Лабораторная химия',
       'Промышленные материалы',
       'Научные исследования',
     ]
     const usesEn = rich?.usesEn ??
+      synth?.usesEn ??
       rich?.usesRu ?? [
         `${en} compounds`,
         'Laboratory chemistry',
@@ -158,11 +216,13 @@ const profiles = raw
       ]
     const extractionRu =
       rich?.extractionRu ??
+      synth?.extractionRu ??
       (sk === 'gas'
         ? 'Из воздуха или природного газа разделением и очисткой.'
         : 'Из руд и минералов: обогащение, плавка или электролиз — в зависимости от элемента.')
     const extractionEn =
       rich?.extractionEn ??
+      synth?.extractionEn ??
       rich?.extractionRu ??
       (sk === 'gas'
         ? 'From air or natural gas by separation and purification.'

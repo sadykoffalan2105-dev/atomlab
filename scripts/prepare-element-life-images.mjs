@@ -75,7 +75,7 @@ for (const p of profiles) {
 
   if (tryWiki && wikiUrl) {
     try {
-      await sleep(4000)
+      await sleep(6000)
       const buf = await fetchBuffer(wikiUrl)
       await sharp(buf)
         .rotate()
@@ -93,7 +93,7 @@ for (const p of profiles) {
         console.log(`  kept previous wiki ${file}`)
         continue
       }
-      continue
+      if (!force) continue
     }
   }
 
