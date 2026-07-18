@@ -139,27 +139,31 @@ export function prepareTextForHumanTts(
 
 /** Предложения целиком — меньше обрывов и путаницы фрагментов. */
 const CHUNK_MAX = 480
-/** Первый фрагмент короче — быстрее старт озвучки длинного ответа. */
-const FIRST_CHUNK_MAX = 200
+/**
+ * Первый фрагмент делаем очень коротким — он синтезируется быстрее всех,
+ * поэтому озвучка стартует почти сразу (≈1 с), пока догружаются остальные.
+ */
+const FIRST_CHUNK_MAX = 110
 
 function splitFirstChunkForFastStart(parts: string[]): string[] {
   if (parts.length === 0) return parts
   const first = parts[0]!
   if (first.length <= FIRST_CHUNK_MAX) return parts
 
-  const window = first.slice(60, FIRST_CHUNK_MAX + 1)
+  // Пытаемся отрезать по первой паузе (запятая/двоеточие) — короткая осмысленная фраза.
+  const window = first.slice(30, FIRST_CHUNK_MAX + 1)
   const rel = window.search(/[,;:]\s/)
   if (rel >= 0) {
-    const cut = 60 + rel + 1
+    const cut = 30 + rel + 1
     const head = first.slice(0, cut).trim()
     const tail = first.slice(cut).trim()
-    if (head.length >= 40 && tail.length >= 20) {
+    if (head.length >= 24 && tail.length >= 12) {
       return [head, tail, ...parts.slice(1)]
     }
   }
 
   const space = first.lastIndexOf(' ', FIRST_CHUNK_MAX)
-  if (space > 80) {
+  if (space > 40) {
     return [first.slice(0, space).trim(), first.slice(space + 1).trim(), ...parts.slice(1)]
   }
 

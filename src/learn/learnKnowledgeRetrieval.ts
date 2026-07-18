@@ -6,9 +6,17 @@ import {
   getTextbookByTopicNumber,
   textbookKnowledgeChunks,
 } from './learnTextbookKnowledge'
+import { GENERATED_ELEMENT_KNOWLEDGE } from './knowledge/learnGeneratedElementKnowledge'
+import { GENERATED_COMPOUND_KNOWLEDGE } from './knowledge/learnGeneratedCompoundKnowledge'
+import { SCIENTISTS_KNOWLEDGE } from './knowledge/learnScientistsKnowledge'
+import { CHEMISTRY_FORMULAS_KNOWLEDGE } from './knowledge/learnChemistryFormulasKnowledge'
 
 const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...CHEMISTRY_KNOWLEDGE_CHUNKS,
+  ...CHEMISTRY_FORMULAS_KNOWLEDGE,
+  ...SCIENTISTS_KNOWLEDGE,
+  ...GENERATED_ELEMENT_KNOWLEDGE,
+  ...GENERATED_COMPOUND_KNOWLEDGE,
   ...textbookKnowledgeChunks(),
 ]
 

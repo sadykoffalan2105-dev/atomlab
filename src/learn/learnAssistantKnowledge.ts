@@ -1,10 +1,21 @@
 import { compoundsSortedForMatch } from '../data/compounds'
 import { ELEMENTS, getElementBySymbol } from '../data/elements'
+import elementProfilesRaw from '../data/elementRealLife/elementRealLifeProfiles.json'
 import type { LearnLocalAssistantContext } from './learnLocalAssistant'
 import { topicSceneVisualId } from './learnTopicScenes'
 import type { LearnGradeId } from '../types/learn'
 
 const ELEMENT_SYMBOLS = new Set(ELEMENTS.map((e) => e.symbol.toLowerCase()))
+
+type ElementProfile = {
+  z: number
+  appearanceRu?: string
+  usesRu?: string[]
+  extractionRu?: string
+}
+const ELEMENT_PROFILE_BY_Z = new Map<number, ElementProfile>(
+  (elementProfilesRaw as ElementProfile[]).map((p) => [p.z, p]),
+)
 
 function normalizeQuery(q: string): string {
   return q
@@ -104,11 +115,17 @@ export function buildAssistantKnowledgeBlock(
 
   const elements = findElementsInQuery(userQuery)
   if (elements.length > 0) {
-    lines.push('Relevant elements:')
+    lines.push('Relevant elements (use these exact facts):')
     for (const el of elements) {
       lines.push(
-        `- ${el.symbol} Z=${el.z} ${el.nameRu}, mass≈${el.atomicMass}, state: ${el.standardState}, ox: ${el.oxidationStates}`,
+        `- ${el.symbol} Z=${el.z} ${el.nameRu}, масса≈${el.atomicMass}, состояние: ${el.standardState}, степ. окисл.: ${el.oxidationStates}, конфиг.: ${el.electronConfiguration}`,
       )
+      const prof = ELEMENT_PROFILE_BY_Z.get(el.z)
+      if (prof?.appearanceRu) lines.push(`  Внешний вид: ${prof.appearanceRu}`)
+      if (prof?.usesRu && prof.usesRu.length > 0) {
+        lines.push(`  Применение: ${prof.usesRu.slice(0, 4).join(', ')}`)
+      }
+      if (prof?.extractionRu) lines.push(`  Получение: ${prof.extractionRu}`)
     }
   }
 
@@ -117,7 +134,7 @@ export function buildAssistantKnowledgeBlock(
   }
 
   return {
-    block: lines.join('\n').slice(0, 3500),
+    block: lines.join('\n').slice(0, 4600),
     topicSceneId,
   }
 }
