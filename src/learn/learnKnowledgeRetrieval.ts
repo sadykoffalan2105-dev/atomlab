@@ -10,10 +10,12 @@ import { GENERATED_ELEMENT_KNOWLEDGE } from './knowledge/learnGeneratedElementKn
 import { GENERATED_COMPOUND_KNOWLEDGE } from './knowledge/learnGeneratedCompoundKnowledge'
 import { SCIENTISTS_KNOWLEDGE } from './knowledge/learnScientistsKnowledge'
 import { CHEMISTRY_FORMULAS_KNOWLEDGE } from './knowledge/learnChemistryFormulasKnowledge'
+import { REACTIONS_KNOWLEDGE } from './knowledge/learnReactionsKnowledge'
 
 const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...CHEMISTRY_KNOWLEDGE_CHUNKS,
   ...CHEMISTRY_FORMULAS_KNOWLEDGE,
+  ...REACTIONS_KNOWLEDGE,
   ...SCIENTISTS_KNOWLEDGE,
   ...GENERATED_ELEMENT_KNOWLEDGE,
   ...GENERATED_COMPOUND_KNOWLEDGE,
