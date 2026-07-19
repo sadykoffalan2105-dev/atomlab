@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getElementByZ, estimateNeutrons } from '../../data/elements'
 import { bohrShellCountsFromConfig } from '../../data/elementConfigDisplay'
+import { resolveAtomStructurePreviewFlags } from '../../lab/atomStructurePreviewFlags'
 import { AtomElementNebula } from './atom/AtomElementNebula'
 import { AtomOrbitRings } from './atom/AtomOrbitRings'
 import { electronOrbitLanes, electronVisualScale } from './atom/atomOrbitLayout'
@@ -134,29 +135,41 @@ export function AtomStructureModel({
   const dummy = useMemo(() => new THREE.Object3D(), [])
 
   const zClamped = Math.max(1, Math.min(MAX_Z, Math.floor(z)))
-  const fullPreview = previewEmphasis && cosmicStyle && !synthesisDetail
-  const lite = fullPreview
-    ? false
-    : synthesisDetail
-      ? zClamped > 54
-      : previewLite || zClamped > 18
-  const showRings = synthesisDetail ? true : !hideOrbitRings
+  const {
+    fullPreview,
+    lite,
+    showRings,
+    showNebula,
+    effectiveFrameSkip,
+  } = resolveAtomStructurePreviewFlags({
+    previewEmphasis,
+    cosmicStyle,
+    synthesisDetail,
+    previewLite,
+    hideOrbitRings,
+    electronFrameSkip,
+    z: zClamped,
+  })
   const shellMul = synthesisDetail ? 1.08 : fullPreview ? 1.05 : 1
-  const showNebula = cosmicStyle && !hideOrbitRings
 
   const el = getElementByZ(zClamped)
   const mass = el?.atomicMass ?? zClamped * 2
-  const nNeutrons = estimateNeutrons(mass, zClamped)
+  const nNeutronsRaw = estimateNeutrons(mass, zClamped)
+  // Lite: не инстансим все нейтроны Cr/K — визуал ядра читается и с усечением.
+  const nNeutrons =
+    previewLite || lite ? Math.min(nNeutronsRaw, Math.max(4, Math.floor(zClamped * 0.35))) : nNeutronsRaw
   const nebulaHex = accentHex ?? (el?.cpkHex ? `#${el.cpkHex}` : '#4488ff')
   const totalNucleons = zClamped + Math.max(0, nNeutrons)
 
+  // previewLite: меньше сегментов ядра — cold-mount 15 атомов без hitch.
   const nucleonR = useMemo(
     () => nucleonSphereRadius(cosmicStyle, totalNucleons),
     [cosmicStyle, totalNucleons],
   )
+  const nucleonSeg = previewLite || lite ? 8 : cosmicStyle ? 14 : 10
   const nucleonGeo = useMemo(
-    () => new THREE.SphereGeometry(nucleonR, cosmicStyle ? 14 : 10, cosmicStyle ? 12 : 10),
-    [nucleonR, cosmicStyle],
+    () => new THREE.SphereGeometry(nucleonR, nucleonSeg, Math.max(6, nucleonSeg - 2)),
+    [nucleonR, nucleonSeg],
   )
   const nucleonMats = useMemo(() => createNucleonMaterials(cosmicStyle), [cosmicStyle])
 
@@ -176,9 +189,6 @@ export function AtomStructureModel({
     () => electronVisualScale(nElec, previewEmphasis || synthesisDetail),
     [nElec, previewEmphasis, synthesisDetail],
   )
-  const effectiveFrameSkip = fullPreview
-    ? 1
-    : Math.max(1, Math.floor(electronFrameSkip))
 
   const outerOrbitR = useMemo(() => {
     let max = 0.36

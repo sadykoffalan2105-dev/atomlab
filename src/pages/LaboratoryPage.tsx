@@ -402,11 +402,14 @@ export function LaboratoryPage() {
 
   const onCoeffChange = useCallback((id: string, coeff: number) => {
     const c = Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(Number.isFinite(coeff) ? coeff : 1)))
-    setSynthesisSettledProduct(null)
-    synthesisSettledProductRef.current = null
-    settledSnapshotRef.current = null
-    setSynthPhaseUi('')
-    setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
+    // Не блокируем +/- тяжёлым синхронным деревом LabScene — иначе hitch на каждом клике.
+    startTransition(() => {
+      setSynthesisSettledProduct(null)
+      synthesisSettledProductRef.current = null
+      settledSnapshotRef.current = null
+      setSynthPhaseUi('')
+      setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
+    })
   }, [])
 
   const openReactorCatalog = useCallback((intent: ReactorCatalogIntent) => {
@@ -598,11 +601,21 @@ export function LaboratoryPage() {
   }, [coeffEditBurst])
 
   useEffect(() => {
-    if (!reactorOpen || !productCompound || coeffEditBurst) return
+    // Никогда не прогревать layout/worker на каждом +/- — это главный hitch на main thread.
+    if (!reactorOpen || !productCompound) return
+    if (coeffEditBurst || reactorCoeffEditing || !editIdle) return
     if (leftTerms.length < 1) return
     warmupReactorPreviewTerms(leftTerms)
     warmupLabSynthesisReactorOpen(catalogList, productCompound, leftTerms)
-  }, [reactorOpen, productCompound, coeffEditBurst, leftTerms, catalogList])
+  }, [
+    reactorOpen,
+    productCompound,
+    coeffEditBurst,
+    reactorCoeffEditing,
+    editIdle,
+    leftTerms,
+    catalogList,
+  ])
 
   const onRequestRun = useCallback(() => {
     const prepared = prepareGuaranteedSynthesisRun({

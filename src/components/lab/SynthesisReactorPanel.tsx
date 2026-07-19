@@ -1,4 +1,14 @@
-import { useMemo } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FocusEvent,
+  type KeyboardEvent,
+} from 'react'
 import { getElementByZ } from '../../data/elements'
 import { getCompoundLocaleStrings } from '../../i18n/compoundLocale'
 import { useT } from '../../i18n/useT'
@@ -22,6 +32,19 @@ function reagentGlowHex(z: number): string {
   return hex ? `#${hex}` : '#8899aa'
 }
 
+function clampCoeff(n: number, min: number, max: number): number {
+  if (!Number.isFinite(n)) return min
+  return Math.max(min, Math.min(max, Math.floor(n)))
+}
+
+function parseCoeffDraft(raw: string, min: number, max: number): number | null {
+  const cleaned = raw.replace(/[^\d]/g, '')
+  if (cleaned === '') return null
+  const n = Number.parseInt(cleaned, 10)
+  if (!Number.isFinite(n)) return null
+  return clampCoeff(n, min, max)
+}
+
 function IconCheck({ className }: { className?: string }) {
   return (
     <svg className={className} width={20} height={20} viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -36,15 +59,19 @@ function IconCheck({ className }: { className?: string }) {
   )
 }
 
-function CoeffStepper({
+/**
+ * Коэффициент с клавиатуры.
+ * Пока печатаешь — 3D не трогаем (локальный draft).
+ * Commit только на Enter / blur / стрелки ↑↓ — один апдейт, атомы не мигают.
+ */
+function CoeffKeyboardInput({
   value,
   min,
   max,
   onChange,
   ariaLabel,
   highlightError,
-  decLabel,
-  incLabel,
+  dimWhenOne = false,
 }: {
   value: number
   min: number
@@ -52,34 +79,101 @@ function CoeffStepper({
   onChange: (n: number) => void
   ariaLabel: string
   highlightError: boolean
-  decLabel: string
-  incLabel: string
+  dimWhenOne?: boolean
 }) {
+  const inputId = useId()
+  const focusedRef = useRef(false)
+  const [focused, setFocused] = useState(false)
+  const [draft, setDraft] = useState(() => String(value))
+
+  useEffect(() => {
+    if (focusedRef.current) return
+    setDraft(String(value))
+  }, [value])
+
+  const commit = useCallback(
+    (raw: string, opts?: { restoreIfEmpty?: boolean }) => {
+      const parsed = parseCoeffDraft(raw, min, max)
+      if (parsed == null) {
+        if (opts?.restoreIfEmpty !== false) {
+          setDraft(String(value))
+        }
+        return
+      }
+      setDraft(String(parsed))
+      if (parsed !== value) onChange(parsed)
+    },
+    [min, max, onChange, value],
+  )
+
+  const onFocus = () => {
+    focusedRef.current = true
+    setFocused(true)
+    setDraft(String(value))
+  }
+
+  const onBlur = (e: FocusEvent<HTMLInputElement>) => {
+    focusedRef.current = false
+    setFocused(false)
+    commit(e.currentTarget.value)
+  }
+
+  const onInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    // Только цифры в draft — без onChange в родителя (превью стабильно).
+    const next = e.target.value.replace(/[^\d]/g, '').slice(0, 4)
+    setDraft(next)
+  }
+
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      commit(e.currentTarget.value)
+      e.currentTarget.blur()
+      return
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      setDraft(String(value))
+      e.currentTarget.blur()
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const base = parseCoeffDraft(draft, min, max) ?? value
+      const next = clampCoeff(base + 1, min, max)
+      setDraft(String(next))
+      if (next !== value) onChange(next)
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const base = parseCoeffDraft(draft, min, max) ?? value
+      const next = clampCoeff(base - 1, min, max)
+      setDraft(String(next))
+      if (next !== value) onChange(next)
+    }
+  }
+
+  const showDim = dimWhenOne && !focused && value === 1 && draft === '1'
+
   return (
-    <div
-      className={`${panelStyles.coeffStepper} ${highlightError ? panelStyles.coeffStepperError : ''}`}
-      role="group"
+    <input
+      id={inputId}
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      autoComplete="off"
+      spellCheck={false}
+      className={`${panelStyles.coeffInput} ${highlightError ? panelStyles.coeffInputError : ''} ${showDim ? panelStyles.coeffInputOne : ''}`}
+      value={draft}
       aria-label={ariaLabel}
-    >
-      <button
-        type="button"
-        className={panelStyles.coeffStepBtn}
-        disabled={value <= min}
-        onClick={() => onChange(Math.max(min, value - 1))}
-        aria-label={decLabel}
-      >
-        −
-      </button>
-      <button
-        type="button"
-        className={panelStyles.coeffStepBtn}
-        disabled={value >= max}
-        onClick={() => onChange(Math.min(max, value + 1))}
-        aria-label={incLabel}
-      >
-        +
-      </button>
-    </div>
+      title={ariaLabel}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      onChange={onInputChange}
+      onKeyDown={onKeyDown}
+      onClick={(e) => e.currentTarget.select()}
+    />
   )
 }
 
@@ -179,22 +273,15 @@ export function SynthesisReactorPanel({
                       className={`${panelStyles.reagentBubble} ${coeffErr ? panelStyles.reagentBubbleError : ''}`}
                       style={{ ['--reagent-glow' as string]: reagentGlowHex(term.z) }}
                     >
-                      <CoeffStepper
+                      <CoeffKeyboardInput
                         value={term.coeff}
                         min={1}
                         max={COEFF_MAX}
                         highlightError={coeffErr}
+                        dimWhenOne
                         ariaLabel={t('reactor.coeffFor', { symbol: termSymbolDisplay(term) })}
-                        decLabel={t('reactor.coeffDecrease')}
-                        incLabel={t('reactor.coeffIncrease')}
                         onChange={(n) => onCoeffChange(term.id, n)}
                       />
-                      <span
-                        className={`${panelStyles.stoichCoeff} ${term.coeff === 1 ? panelStyles.stoichCoeffOne : ''}`}
-                        aria-hidden={term.coeff === 1}
-                      >
-                        {term.coeff === 1 ? '1' : term.coeff}
-                      </span>
                       <span className={panelStyles.termSymbol}>{termSymbolDisplay(term)}</span>
                       <button
                         type="button"
@@ -232,21 +319,15 @@ export function SynthesisReactorPanel({
                 className={`${panelStyles.productBubble} ${coeffErr ? panelStyles.productBubbleError : ''}`}
                 aria-label={t('reactor.productCoeffAria')}
               >
-                <CoeffStepper
+                <CoeffKeyboardInput
                   value={productCoeff}
                   min={1}
                   max={COEFF_MAX}
                   highlightError={coeffErr}
+                  dimWhenOne
                   ariaLabel={t('reactor.productCoeffAria')}
-                  decLabel={t('reactor.coeffDecrease')}
-                  incLabel={t('reactor.coeffIncrease')}
                   onChange={onProductCoeffChange}
                 />
-                <span
-                  className={`${panelStyles.stoichCoeff} ${panelStyles.stoichCoeffProduct} ${productCoeff === 1 ? panelStyles.stoichCoeffOne : ''}`}
-                >
-                  {productCoeff === 1 ? '1' : productCoeff}
-                </span>
                 {productCompound ? (
                   <span className={panelStyles.catalogProductChip}>
                     <span className={panelStyles.catalogFormula}>{productCompound.formulaUnicode}</span>

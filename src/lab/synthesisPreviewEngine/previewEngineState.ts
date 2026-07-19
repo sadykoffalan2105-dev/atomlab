@@ -217,8 +217,27 @@ export function resolvePreviewEngineFrame(
       ? true
       : shouldRender)
 
-  if (slotCount > 16) state.denseLightLatch = true
-  else if (!lockPoolSize && slotCount < 12) state.denseLightLatch = false
+  /**
+   * Визуальный tier (lite) залипает на всю сессию превью/edit.
+   * Раньше latch сбрасывался при slotCount < 12 → full↔lite remount → атомы «пропадали».
+   */
+  const sessionHold = previewOnlyMode || synthHoldPreview || coeffEditing || lockPoolSize
+  if (!hasActiveTerms || terms.length === 0) {
+    state.denseLightLatch = false
+    state.fullDetailLatch = true
+  } else if (
+    sessionHold ||
+    slotCount >= 8 ||
+    expectedAtomCount >= 8 ||
+    state.denseLightLatch
+  ) {
+    // Pre-synth/edit или плотность — lite до полного сброса терминов (нет full↔lite).
+    state.denseLightLatch = true
+    state.fullDetailLatch = false
+  } else if (!sessionHold && slotCount > 0 && slotCount < 8) {
+    // Idle мелкое превью может оставаться full — без осцилляций на пороге.
+    state.denseLightLatch = false
+  }
 
   return {
     renderAtoms,

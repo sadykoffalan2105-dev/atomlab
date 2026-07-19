@@ -164,14 +164,14 @@ export const messagesRu = {
   'reactor.reagents': 'Реагенты',
   'reactor.emptyHint':
     'Элементы — кнопка ⊞ справа (таблица Менделеева). «Сгенерировать уравнение» — каталог и эталон без коэффициентов.',
-  'reactor.coeffDecrease': 'Уменьшить коэффициент',
-  'reactor.coeffIncrease': 'Увеличить коэффициент',
-  'reactor.coeffFor': 'Коэффициент для {symbol}',
+  'reactor.coeffDecrease': 'Уменьшить коэффициент (↓)',
+  'reactor.coeffIncrease': 'Увеличить коэффициент (↑)',
+  'reactor.coeffFor': 'Коэффициент для {symbol} — введите число с клавиатуры',
   'reactor.remove': 'Убрать {symbol}',
   'reactor.productGoal': 'Продукт (цель)',
   'reactor.balanced': 'Уравнение сбалансировано',
   'reactor.ambiguous': 'Несколько веществ с этим составом — выберите в каталоге.',
-  'reactor.productCoeffAria': 'Коэффициент перед продуктом',
+  'reactor.productCoeffAria': 'Коэффициент продукта — введите число с клавиатуры',
   'reactor.openCatalog': 'Каталог веществ',
   'reactor.productEmpty': 'Выберите продукт',
   'reactor.recipeLabel': 'Эталон: {recipe}',
@@ -180,7 +180,7 @@ export const messagesRu = {
   'reactor.generateEquationTitle':
     'Открыть каталог: эталон вещества как реагенты с коэффициентом 1 — уравняйте вручную',
   'reactor.hintBalance':
-    'Уравняйте атомы слева и справа, выберите продукт из каталога и запустите синтез.',
+    'Коэффициенты — с клавиатуры (Enter или клик вне поля). Уравняйте атомы слева и справа, выберите продукт и запустите синтез.',
   'reactor.hintValency': 'Отметьте точки связей (валентность) у каждого элемента в уравнении — слева направо.',
   'reactor.valencyIncomplete': 'Расставьте валентность: отметьте все связи у каждого реагента.',
   'reactor.valencyBondsAria': 'Связи валентности {symbol}',

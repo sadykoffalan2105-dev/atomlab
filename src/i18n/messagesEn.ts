@@ -166,14 +166,14 @@ export const messagesEn: Record<MessageKey, string> = {
   'reactor.reagents': 'Reagents',
   'reactor.emptyHint':
     'Elements — ⊞ button on the right (periodic table). “Generate equation” — catalog and template without coefficients.',
-  'reactor.coeffDecrease': 'Decrease coefficient',
-  'reactor.coeffIncrease': 'Increase coefficient',
-  'reactor.coeffFor': 'Coefficient for {symbol}',
+  'reactor.coeffDecrease': 'Decrease coefficient (↓)',
+  'reactor.coeffIncrease': 'Increase coefficient (↑)',
+  'reactor.coeffFor': 'Coefficient for {symbol} — type a number',
   'reactor.remove': 'Remove {symbol}',
   'reactor.productGoal': 'Product (target)',
   'reactor.balanced': 'Equation balanced',
   'reactor.ambiguous': 'Several substances match this composition — pick one in the catalog.',
-  'reactor.productCoeffAria': 'Coefficient in front of the product',
+  'reactor.productCoeffAria': 'Product coefficient — type a number',
   'reactor.openCatalog': 'Substance catalog',
   'reactor.productEmpty': 'Pick a product',
   'reactor.recipeLabel': 'Template: {recipe}',
@@ -182,7 +182,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'reactor.generateEquationTitle':
     'Open catalog: substance template as reagents with coefficient 1 — balance manually',
   'reactor.hintBalance':
-    'Balance atoms on the left and right, pick a product from the catalog, then launch synthesis.',
+    'Coefficients — keyboard (Enter or click away). Balance atoms left and right, pick a product, then launch synthesis.',
   'reactor.hintValency': 'Mark bond dots (valency) for each element in the equation — left to right.',
   'reactor.valencyIncomplete': 'Assign valency: mark all bonds for every reagent.',
   'reactor.valencyBondsAria': 'Valency bonds for {symbol}',

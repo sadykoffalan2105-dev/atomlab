@@ -7,8 +7,8 @@ import type { SynthesisTimingProfile } from './synthesisTimingProfile'
 export const SYNTH_ANTI_STALL = {
   /** Пауза без отрисовки → invalidate (синтез). */
   canvasStallMs: 22,
-  /** Пауза при редактировании уравнения. */
-  reactorStallMs: 14,
+  /** Пауза при редактировании уравнения (не во время активного +/-). */
+  reactorStallMs: 36,
   /** Сколько раз подряд можно форсировать invalidate. */
   canvasBurstMax: 8,
   /** Δ между кадрами rAF — подозрение на блокировку main thread. */

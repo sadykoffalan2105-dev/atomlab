@@ -471,26 +471,15 @@
   padding: 0 0.22rem;
 }
 
-.equationMainEquationRow .coeffStepper {
-  gap: 0.14rem;
+.equationMainEquationRow .coeffInput {
+  width: 2.35rem;
+  min-width: 2.35rem;
+  height: 1.85rem;
+  font-size: 1.42rem;
 }
 
-.equationMainEquationRow .coeffStepBtn {
-  width: 1.72rem;
-  height: 1.16rem;
-  font-size: 0.92rem;
-}
-
-.equationMainEquationRow .stoichCoeff {
-  font-size: 1.52rem;
-}
-
-.equationMainEquationRow .stoichCoeffOne {
-  font-size: 1.08rem;
-}
-
-.equationMainEquationRow .stoichCoeffProduct {
-  font-size: 1.64rem;
+.equationMainEquationRow .coeffInputOne {
+  font-size: 1.05rem;
 }
 
 .equationMainEquationRow .termSymbol {
@@ -639,38 +628,55 @@
   user-select: none;
 }
 
-.coeffStepper {
-  display: flex;
-  flex-direction: column;
-  gap: 0.12rem;
-}
-
-.coeffStepperError .coeffStepBtn {
-  border-color: rgba(255, 120, 120, 0.55);
-}
-
-.coeffStepBtn {
-  width: 1.55rem;
-  height: 1.05rem;
-  padding: 0;
-  font-size: 0.85rem;
-  font-weight: 700;
+.coeffInput {
+  width: 2.1rem;
+  min-width: 2.1rem;
+  height: 1.65rem;
+  padding: 0 0.12rem;
+  box-sizing: border-box;
+  font-size: 1.28rem;
+  font-weight: 800;
   line-height: 1;
-  border-radius: 6px;
-  border: 1px solid rgba(61, 255, 236, 0.45);
-  background: rgba(8, 12, 28, 0.95);
-  color: #c8f0ff;
-  cursor: pointer;
+  text-align: center;
+  border-radius: 8px;
+  border: 1px solid rgba(61, 255, 236, 0.5);
+  background: rgba(6, 10, 22, 0.96);
+  color: #f4f8ff;
+  font-family: ui-monospace, 'Cascadia Code', 'Segoe UI', monospace;
+  caret-color: #3dffec;
+  appearance: textfield;
+  -moz-appearance: textfield;
 }
 
-.coeffStepBtn:hover:not(:disabled) {
+.coeffInput::-webkit-outer-spin-button,
+.coeffInput::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.coeffInput:hover {
   border-color: rgba(61, 255, 236, 0.75);
-  color: #3dffec;
 }
 
-.coeffStepBtn:disabled {
-  opacity: 0.28;
-  cursor: not-allowed;
+.coeffInput:focus {
+  outline: none;
+  border-color: rgba(61, 255, 236, 0.95);
+  box-shadow: 0 0 12px rgba(61, 255, 236, 0.28);
+  color: #ffffff;
+}
+
+.coeffInputError {
+  border-color: rgba(255, 120, 120, 0.65) !important;
+  box-shadow: 0 0 10px rgba(255, 80, 80, 0.2);
+}
+
+.coeffInputOne {
+  opacity: 0.35;
+  font-size: 1rem;
+}
+
+.coeffInputOne:focus {
+  opacity: 1;
 }
 
 .stoichCoeff {

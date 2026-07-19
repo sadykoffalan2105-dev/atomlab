@@ -69,14 +69,34 @@ export function AtomElementNebula({
     return buildSmokeSpriteLayout(count, spread, accentHex.length * 13)
   }, [accentHex, lite, spread])
 
+  // Dispose: не убиваем GPU-ресурсы синхронно при смене lite (mesh ещё может их держать).
+  // Откладываем dispose старых mats/geos на следующий кадр; текстуры — только при unmount.
+  const prevGpuRef = useRef<{ mats: typeof volumeMats; geos: typeof volumeGeos } | null>(null)
+  useEffect(() => {
+    const prev = prevGpuRef.current
+    prevGpuRef.current = { mats: volumeMats, geos: volumeGeos }
+    if (!prev || (prev.mats === volumeMats && prev.geos === volumeGeos)) return undefined
+    const mats = prev.mats
+    const geos = prev.geos
+    let raf = 0
+    raf = requestAnimationFrame(() => {
+      mats.forEach((m) => m.dispose())
+      geos.forEach((g) => g.dispose())
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [volumeMats, volumeGeos])
+
   useEffect(() => {
     return () => {
-      volumeMats.forEach((m) => m.dispose())
-      volumeGeos.forEach((g) => g.dispose())
+      const live = prevGpuRef.current
+      if (live) {
+        live.mats.forEach((m) => m.dispose())
+        live.geos.forEach((g) => g.dispose())
+      }
       puffTex.dispose()
       wispTex.dispose()
     }
-  }, [volumeMats, volumeGeos, puffTex, wispTex])
+  }, [puffTex, wispTex])
 
   useFrame((state) => {
     const t = state.clock.elapsedTime

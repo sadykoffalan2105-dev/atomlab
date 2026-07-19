@@ -35,8 +35,8 @@ export type PreviewFramePolicy = ReactorPreviewPolicy & {
 }
 
 /**
- * Единая политика кадра превью синтеза: слабый ПК — меньше FX, атомы всегда на экране.
- * pinEveryFrame только при реальном +/-; idle превью не платит pin+guard каждый кадр.
+ * Единая политика кадра превью синтеза.
+ * lockVisualTier на весь pre-synth — иначе n 9↔11 даёт remount Bohr → пустой экран.
  */
 export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): PreviewFramePolicy {
   const {
@@ -53,25 +53,22 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
   } = input
 
   const hotCoeffEdit = resolvePreviewHotCoeffEdit({ coeffEditing, coeffEditBurst })
-  /** Shell/пул держим шире; pin — весь pre-synth, не только hot (иначе атомы «пропадают» после оседания). */
   const shellHold = editingActive || hotCoeffEdit
   const effectiveForceLite =
     forceLite || frameBudgetLite || lowPowerProfile.forceLiteReactor
   /**
-   * При hot-edit / dense сразу lite и держим — без flip full↔lite (remount Bohr = «пропали»).
-   * Электроны при visible и atomCount>0 всегда анимируются в base; щит усиливает это.
+   * Плотный edit → lite сразу. Порог 8 (не 10/12/16), чтобы dichromate
+   * не прыгал full→lite на каждом +/-.
    */
-  const denseHot = hotCoeffEdit && atomCount > SYNTHESIS_PERF.fullDetailAtomThreshold
+  const denseHot = (hotCoeffEdit || editingActive) && atomCount >= 8
   const renderForceLite =
     denseHot ||
-    (hotCoeffEdit && atomCount >= 10) ||
-    (editingActive && atomCount >= 10) ||
-    (!hotCoeffEdit && effectiveForceLite) ||
+    (!hotCoeffEdit && !editingActive && effectiveForceLite) ||
     frameBudgetLite
 
   const base = getReactorPreviewPolicy({
     atomCount,
-    forceLite: renderForceLite || ((hotCoeffEdit || editingActive) && atomCount > 8),
+    forceLite: renderForceLite || ((hotCoeffEdit || editingActive) && atomCount >= 6),
     flightActive,
     visible: groupVisible || (editingActive && atomCount > 0),
     qualityLevel,
@@ -79,10 +76,6 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
     maxAnimatedAtoms: Math.max(lowPowerProfile.maxAnimatedAtoms, SYNTHESIS_PERF.maxAnimatedAtoms),
   })
 
-  /**
-   * КРИТИЧНО: pin каждый кадр, пока превью открыто (editingActive=previewOnlyMode).
-   * Раньше pin падал после settle → THREE.visible=false залипал → «атомы пропали».
-   */
   const pinEveryFrame =
     !flightActive && atomCount > 0 && (hotCoeffEdit || editingActive)
 
@@ -100,7 +93,8 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
     visibilityGuardEvery: 1,
     coverageGuardEvery: pinEveryFrame ? 2 : base.coverageGuardEvery,
     pinEveryFrame,
-    lockVisualTier: hotCoeffEdit || denseHot || (editingActive && atomCount >= 10),
+    // Весь pre-synth: tier заморожен — нет full↔lite remount.
+    lockVisualTier: editingActive || hotCoeffEdit || denseHot || atomCount >= 8,
     lockPoolSize: shellHold,
     effectiveForceLite: renderForceLite,
     maxInvalidateHz: 60,
@@ -109,17 +103,19 @@ export function resolvePreviewFramePolicy(input: PreviewFramePolicyInput): Previ
   }
 }
 
+/**
+ * Latch полной детализации. При lockVisualTier никогда не апгрейдим обратно
+ * в full — именно апгрейд 11→9 вызывал второй remount и «пропажу» атомов.
+ */
 export function resolveFullDetailLatch(
   current: boolean,
   atomCount: number,
   lockVisualTier: boolean,
   effectiveForceLite: boolean,
 ): boolean {
-  // Downgrade всегда разрешён — иначе full Bohr × 15+ → white/context lost.
   if (effectiveForceLite) return false
-  if (atomCount > SYNTHESIS_PERF.fullDetailAtomThreshold) return false
+  if (atomCount >= 8) return false
   if (lockVisualTier) return current
-  if (atomCount <= SYNTHESIS_PERF.fullDetailAtomThreshold) return true
-  if (atomCount > SYNTHESIS_PERF.fullDetailAtomThreshold + 4) return false
+  if (atomCount <= 6) return true
   return current
 }

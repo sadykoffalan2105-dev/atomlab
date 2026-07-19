@@ -166,14 +166,14 @@ export const messagesUz: Record<MessageKey, string> = {
   'reactor.reagents': 'Reagentlar',
   'reactor.emptyHint':
     'Elementlar — o\'ngdagi ⊞ tugma (Mendeleev jadvali). «Tenglama yaratish» — katalog va koeffitsientsiz namuna.',
-  'reactor.coeffDecrease': 'Koeffitsientni kamaytirish',
-  'reactor.coeffIncrease': 'Koeffitsientni oshirish',
-  'reactor.coeffFor': '{symbol} uchun koeffitsient',
+  'reactor.coeffDecrease': 'Koeffitsientni kamaytirish (↓)',
+  'reactor.coeffIncrease': 'Koeffitsientni oshirish (↑)',
+  'reactor.coeffFor': '{symbol} uchun koeffitsient — klaviaturadan kiriting',
   'reactor.remove': '{symbol} ni olib tashlash',
   'reactor.productGoal': 'Mahsulot (maqsad)',
   'reactor.balanced': 'Tenglama muvozanatlangan',
   'reactor.ambiguous': 'Bu tarkibdagi bir nechta modda — katalogdan birini tanlang.',
-  'reactor.productCoeffAria': 'Mahsulot oldidagi koeffitsient',
+  'reactor.productCoeffAria': 'Mahsulot koeffitsienti — klaviaturadan kiriting',
   'reactor.openCatalog': 'Moddalar katalogi',
   'reactor.productEmpty': 'Mahsulotni tanlang',
   'reactor.recipeLabel': 'Namuna: {recipe}',
@@ -182,7 +182,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'reactor.generateEquationTitle':
     'Katalogni ochish: modda namunasi 1 koeffitsientli reagentlar sifatida — qo\'lda muvozanatlang',
   'reactor.hintBalance':
-    'Chap va o\'ngdagi atomlarni muvozanatlang, katalogdan mahsulot tanlang va sintezni ishga tushiring.',
+    'Koeffitsientlar — klaviatura (Enter yoki tashqariga bosish). Chap va o\'ngdagi atomlarni muvozanatlang, mahsulot tanlang va sintezni ishga tushiring.',
   'reactor.hintValency': 'Tenglamadagi har bir element uchun bog\' nuqtalarini (valentlik) belgilang — chapdan o\'ngga.',
   'reactor.valencyIncomplete': 'Valentlikni belgilang: har bir reagent uchun barcha bog\'larni belgilang.',
   'reactor.valencyBondsAria': '{symbol} valentlik bog\'lari',

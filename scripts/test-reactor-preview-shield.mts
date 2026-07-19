@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict'
 import type { ReactorEquationTerm } from '../src/chemistry/reactorEquationBalance.ts'
 import { buildReactorPreviewAtoms } from '../src/components/lab/reactorPreviewLayout.ts'
+import { resolveAtomStructurePreviewFlags } from '../src/lab/atomStructurePreviewFlags.ts'
 import {
   createPreviewEngineState,
   resolvePreviewEngineFrame,
@@ -123,6 +124,87 @@ function dichromate(cCr = 4, cK = 4, cO = 7): ReactorEquationTerm[] {
   const base = dichromate()
   const result = simulateCoeffEditLayoutSteps(base, 0, [1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1, 4])
   assert.ok(result.every((atoms) => atoms.length > 0), 'layout never empty during rapid coeff')
+}
+
+// --- denseLightLatch sticky: O₂ 1↔7 не сбрасывает lite (нет full↔lite remount) ---
+{
+  const state = createPreviewEngineState()
+  const run = (cO: number) => {
+    const terms = dichromate(1, 1, cO)
+    const atoms = buildReactorPreviewAtoms(terms, { tier: 'lite' })
+    return resolvePreviewEngineFrame(state, {
+      terms,
+      previewAtoms: atoms,
+      editingActive: true,
+      previewOnlyMode: true,
+      synthHoldPreview: false,
+      coeffEditing: true,
+      layoutPending: false,
+      lockPoolSize: true,
+      hotCoeffEdit: true,
+    })
+  }
+  run(1) // 3 слота — в preview/edit сразу dense latch
+  assert.equal(state.denseLightLatch, true, 'dense latch from first preview edit')
+  assert.equal(state.fullDetailLatch, false)
+  run(6)
+  assert.equal(state.denseLightLatch, true, 'dense latch after 8 slots')
+  run(1) // обратно к 3 — latch НЕ должен сброситься в сессии
+  assert.equal(state.denseLightLatch, true, 'dense latch sticky after shrink')
+  assert.equal(state.fullDetailLatch, false)
+  const pol = resolvePreviewFramePolicy({
+    atomCount: 3,
+    editingActive: true,
+    coeffEditBurst: true,
+    coeffEditing: true,
+    flightActive: false,
+    groupVisible: true,
+    forceLite: false,
+    frameBudgetLite: false,
+    lowPowerProfile: lowPower,
+  })
+  assert.equal(pol.lockVisualTier, true)
+}
+
+// --- slotCount never 0 while terms active (empty starfield regression) ---
+{
+  const state = createPreviewEngineState()
+  for (const cO of [1, 2, 3, 4, 5, 6, 7, 1, 7, 1]) {
+    const terms = dichromate(1, 1, cO)
+    // Имитация «пустого» layout-кадра между +/-
+    const frame = resolvePreviewEngineFrame(state, {
+      terms,
+      previewAtoms: [],
+      editingActive: true,
+      previewOnlyMode: true,
+      synthHoldPreview: false,
+      coeffEditing: true,
+      layoutPending: true,
+      lockPoolSize: true,
+      hotCoeffEdit: true,
+    })
+    assert.ok(frame.hasActiveTerms)
+    assert.ok(frame.slotCount > 0, `slotCount=0 with O2=${cO} → empty screen`)
+    assert.equal(frame.groupVisible, true)
+  }
+}
+
+// --- previewLite defeats previewEmphasis (no full+nebula on +/-) ---
+{
+  const flags = resolveAtomStructurePreviewFlags({
+    previewEmphasis: true,
+    cosmicStyle: true,
+    synthesisDetail: false,
+    previewLite: true,
+    hideOrbitRings: true,
+    electronFrameSkip: 4,
+    z: 24,
+  })
+  assert.equal(flags.fullPreview, false, 'sessionLite must defeat emphasis')
+  assert.equal(flags.lite, true)
+  assert.equal(flags.showNebula, false)
+  assert.equal(flags.showRings, false)
+  assert.ok(flags.effectiveFrameSkip >= 3, `skip=${flags.effectiveFrameSkip}`)
 }
 
 console.log('test-reactor-preview-shield: all passed')

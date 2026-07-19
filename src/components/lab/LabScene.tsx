@@ -739,12 +739,10 @@ function SceneContent({
     if (root) {
       gsap.killTweensOf(root)
       root.visible = true
-      // Не traverse(visible=true): иначе pool-слоты и pin дергаются каждый кадр → мигание / «пропали».
     }
     const n = Math.max(0, previewAtomCountRef.current)
     const scaleFloor = reactorPreviewAtomScale(n)
-    // Только restore активных слотов. Хвост пула гасит pin/engine —
-    // hide i>=n со stale n оставлял слоты THREE.visible=false после роста коэффициентов.
+    // Rising-edge only: не гоняем GSAP kill + walk слотов на каждом +/- count.
     for (let i = 0; i < n; i++) {
       const sc = previewAtomScaleGroupRefs.current[i]
       if (sc) {
@@ -760,7 +758,7 @@ function SceneContent({
         g.visible = true
       }
     }
-  }, [coeffEditingActive, synthActive, synthesisRunActive, previewAtomCount])
+  }, [coeffEditingActive, synthActive, synthesisRunActive])
 
   const restorePreviewRootVisibility = useCallback(() => {
     const root = previewRootRef.current
@@ -1153,7 +1151,8 @@ function SceneContent({
 
     frameHoldRef.current.tick({
       invalidate,
-      reactorEdit: reactorViewOpen && !synthesisRunActive,
+      // Во время +/- не усиливаем hitch лишними invalidate-burst.
+      reactorEdit: reactorViewOpen && !synthesisRunActive && !coeffEditingActive,
       synthesisLive: synthesisRunActive || synthActive,
       onMainThreadStall: () => {
         if (reactorViewOpen && !synthesisRunActive && !synthActive) {
