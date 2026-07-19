@@ -155,18 +155,15 @@ export function AtomStructureModel({
   const el = getElementByZ(zClamped)
   const mass = el?.atomicMass ?? zClamped * 2
   const nNeutronsRaw = estimateNeutrons(mass, zClamped)
-  // Lite: не инстансим все нейтроны Cr/K — визуал ядра читается и с усечением.
-  const nNeutrons =
-    previewLite || lite ? Math.min(nNeutronsRaw, Math.max(4, Math.floor(zClamped * 0.35))) : nNeutronsRaw
+  const nNeutrons = nNeutronsRaw
   const nebulaHex = accentHex ?? (el?.cpkHex ? `#${el.cpkHex}` : '#4488ff')
   const totalNucleons = zClamped + Math.max(0, nNeutrons)
 
-  // previewLite: меньше сегментов ядра — cold-mount 15 атомов без hitch.
   const nucleonR = useMemo(
     () => nucleonSphereRadius(cosmicStyle, totalNucleons),
     [cosmicStyle, totalNucleons],
   )
-  const nucleonSeg = previewLite || lite ? 8 : cosmicStyle ? 14 : 10
+  const nucleonSeg = cosmicStyle ? 14 : 10
   const nucleonGeo = useMemo(
     () => new THREE.SphereGeometry(nucleonR, nucleonSeg, Math.max(6, nucleonSeg - 2)),
     [nucleonR, nucleonSeg],

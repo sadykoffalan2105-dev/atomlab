@@ -245,18 +245,20 @@ export function ReactorTermsPreview({
     engineRef.current.fullDetailLatch,
     frame.slotCount,
     tickPolicy.lockVisualTier,
-    tickPolicy.effectiveForceLite || engineRef.current.denseLightLatch,
+    tickPolicy.effectiveForceLite,
   )
-  // Сессионный sticky lite: в превью/edit — сразу и навсегда до сброса терминов.
-  // Даже один full→lite на пороге 8 давал hitch и «пустой» starfield.
-  if (
-    previewOnlyMode ||
-    coeffEditing ||
-    tickPolicy.effectiveForceLite ||
-    !engineRef.current.fullDetailLatch ||
-    frame.slotCount >= 8 ||
-    frame.expectedAtomCount >= 8
-  ) {
+  /**
+   * Визуал реактора: космический full (nebula + орбиты), без sessionLite.
+   * Tier залипает — нет full↔lite remount; perf — через electronFrameSkip.
+   */
+  if (!frame.hasActiveTerms) {
+    engineRef.current.denseLightLatch = false
+    engineRef.current.fullDetailLatch = true
+  } else if (previewOnlyMode || coeffEditing || tickPolicy.lockVisualTier) {
+    // Держим cosmic full на всю сессию уравнения.
+    engineRef.current.denseLightLatch = false
+    engineRef.current.fullDetailLatch = true
+  } else if (tickPolicy.effectiveForceLite || frame.slotCount >= 20) {
     engineRef.current.denseLightLatch = true
     engineRef.current.fullDetailLatch = false
   }
@@ -576,18 +578,17 @@ export function ReactorTermsPreview({
 
   const forceElectronMotion = true
   /**
-   * Mount сразу все нужные слоты. sessionLite + hideOrbitRings + без nebula
-   * (AtomStructureModel) — дешёвый путь на весь edit, без full↔lite thrash.
+   * Космический дизайн (nebula + орбиты + CPK): previewLite=false, rings on.
+   * Стабильность — sticky slots / keyboard commit; FPS — electronFrameSkip.
    */
-  const sessionLite = engineRef.current.denseLightLatch || !engineRef.current.fullDetailLatch
   const hotDense = (policy.hotCoeffEdit || coeffEditing) && n >= 8
   const mountBohrCount = Math.min(
     24,
     Math.max(stickySlotCount, Math.min(poolSize, stickySlotCount + (holdPreview ? 0 : 2))),
   )
-  const editSkip = holdPreview || hotDense ? 4 : sessionLite ? 3 : 1
-  const editHideRings = sessionLite || holdPreview
-  const editLocalLight = !sharedLighting && !holdPreview && !sessionLite && (atomsOnScreen || holdPreview)
+  // Не режем визуал lite'ом — только реже пишем матрицы электронов.
+  const editSkip = hotDense ? 3 : holdPreview ? 2 : 1
+  const editLocalLight = !sharedLighting && (atomsOnScreen || holdPreview)
 
   return (
     <group
@@ -609,10 +610,7 @@ export function ReactorTermsPreview({
         const incomingZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
         if (atom != null) engineRef.current.slotZ[i] = incomingZ
         const slotZ = engineRef.current.slotZ[i] ?? incomingZ
-        // Hold: не гасим слот при кратком n↓ — shell/expected держат видимость.
         const slotVisible = i < stickySlotCount && (atomsOnScreen || holdPreview)
-        const useFullDetail = !sessionLite
-        const previewLite = sessionLite
         return (
           <group key={`slot-${i}`} visible={slotVisible} ref={getPosRef(i)}>
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
@@ -620,11 +618,11 @@ export function ReactorTermsPreview({
                 z={slotZ}
                 animate={forceElectronMotion && (atomsOnScreen || holdPreview)}
                 previewStatic={false}
-                useFullDetail={useFullDetail}
+                useFullDetail={false}
                 synthesisGlass={false}
-                previewLite={previewLite}
+                previewLite={false}
                 electronFrameSkip={editSkip}
-                hideOrbitRings={editHideRings}
+                hideOrbitRings={false}
                 localLight={editLocalLight}
               />
             </group>

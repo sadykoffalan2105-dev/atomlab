@@ -218,25 +218,22 @@ export function resolvePreviewEngineFrame(
       : shouldRender)
 
   /**
-   * Визуальный tier (lite) залипает на всю сессию превью/edit.
-   * Раньше latch сбрасывался при slotCount < 12 → full↔lite remount → атомы «пропадали».
+   * Визуальный tier: в pre-synth/edit держим cosmic full (не lite),
+   * чтобы nebula/орбиты не пропадали. Lite только при очень плотном idle.
    */
   const sessionHold = previewOnlyMode || synthHoldPreview || coeffEditing || lockPoolSize
   if (!hasActiveTerms || terms.length === 0) {
     state.denseLightLatch = false
     state.fullDetailLatch = true
-  } else if (
-    sessionHold ||
-    slotCount >= 8 ||
-    expectedAtomCount >= 8 ||
-    state.denseLightLatch
-  ) {
-    // Pre-synth/edit или плотность — lite до полного сброса терминов (нет full↔lite).
+  } else if (sessionHold) {
+    state.denseLightLatch = false
+    state.fullDetailLatch = true
+  } else if (slotCount >= 20 || expectedAtomCount >= 20 || state.denseLightLatch) {
     state.denseLightLatch = true
     state.fullDetailLatch = false
-  } else if (!sessionHold && slotCount > 0 && slotCount < 8) {
-    // Idle мелкое превью может оставаться full — без осцилляций на пороге.
+  } else if (slotCount > 0 && slotCount < 20) {
     state.denseLightLatch = false
+    state.fullDetailLatch = true
   }
 
   return {

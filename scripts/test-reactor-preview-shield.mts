@@ -126,12 +126,12 @@ function dichromate(cCr = 4, cK = 4, cO = 7): ReactorEquationTerm[] {
   assert.ok(result.every((atoms) => atoms.length > 0), 'layout never empty during rapid coeff')
 }
 
-// --- denseLightLatch sticky: O₂ 1↔7 не сбрасывает lite (нет full↔lite remount) ---
+// --- pre-synth/edit: cosmic full sticky (не lite) — nebula/орбиты на месте ---
 {
   const state = createPreviewEngineState()
   const run = (cO: number) => {
     const terms = dichromate(1, 1, cO)
-    const atoms = buildReactorPreviewAtoms(terms, { tier: 'lite' })
+    const atoms = buildReactorPreviewAtoms(terms, { tier: 'full' })
     return resolvePreviewEngineFrame(state, {
       terms,
       previewAtoms: atoms,
@@ -144,26 +144,49 @@ function dichromate(cCr = 4, cK = 4, cO = 7): ReactorEquationTerm[] {
       hotCoeffEdit: true,
     })
   }
-  run(1) // 3 слота — в preview/edit сразу dense latch
-  assert.equal(state.denseLightLatch, true, 'dense latch from first preview edit')
-  assert.equal(state.fullDetailLatch, false)
+  run(1)
+  assert.equal(state.denseLightLatch, false, 'preview edit keeps cosmic full')
+  assert.equal(state.fullDetailLatch, true)
   run(6)
-  assert.equal(state.denseLightLatch, true, 'dense latch after 8 slots')
-  run(1) // обратно к 3 — latch НЕ должен сброситься в сессии
-  assert.equal(state.denseLightLatch, true, 'dense latch sticky after shrink')
-  assert.equal(state.fullDetailLatch, false)
-  const pol = resolvePreviewFramePolicy({
-    atomCount: 3,
-    editingActive: true,
-    coeffEditBurst: true,
-    coeffEditing: true,
-    flightActive: false,
-    groupVisible: true,
-    forceLite: false,
-    frameBudgetLite: false,
-    lowPowerProfile: lowPower,
+  assert.equal(state.denseLightLatch, false, 'still full after denser coeffs')
+  assert.equal(state.fullDetailLatch, true)
+  run(1)
+  assert.equal(state.denseLightLatch, false, 'full sticky after shrink')
+  assert.equal(state.fullDetailLatch, true)
+}
+
+// --- cosmic flags: emphasis без previewLite → nebula + rings ---
+{
+  const flags = resolveAtomStructurePreviewFlags({
+    previewEmphasis: true,
+    cosmicStyle: true,
+    synthesisDetail: false,
+    previewLite: false,
+    hideOrbitRings: false,
+    electronFrameSkip: 2,
+    z: 24,
   })
-  assert.equal(pol.lockVisualTier, true)
+  assert.equal(flags.fullPreview, true)
+  assert.equal(flags.lite, false)
+  assert.equal(flags.showNebula, true)
+  assert.equal(flags.showRings, true)
+}
+
+// --- previewLite still can strip (dense idle path) ---
+{
+  const flags = resolveAtomStructurePreviewFlags({
+    previewEmphasis: true,
+    cosmicStyle: true,
+    synthesisDetail: false,
+    previewLite: true,
+    hideOrbitRings: true,
+    electronFrameSkip: 4,
+    z: 24,
+  })
+  assert.equal(flags.fullPreview, false, 'explicit previewLite strips full')
+  assert.equal(flags.showNebula, false)
+  assert.equal(flags.showRings, false)
+  assert.ok(flags.effectiveFrameSkip >= 3, `skip=${flags.effectiveFrameSkip}`)
 }
 
 // --- slotCount never 0 while terms active (empty starfield regression) ---
@@ -171,7 +194,6 @@ function dichromate(cCr = 4, cK = 4, cO = 7): ReactorEquationTerm[] {
   const state = createPreviewEngineState()
   for (const cO of [1, 2, 3, 4, 5, 6, 7, 1, 7, 1]) {
     const terms = dichromate(1, 1, cO)
-    // Имитация «пустого» layout-кадра между +/-
     const frame = resolvePreviewEngineFrame(state, {
       terms,
       previewAtoms: [],
@@ -187,24 +209,6 @@ function dichromate(cCr = 4, cK = 4, cO = 7): ReactorEquationTerm[] {
     assert.ok(frame.slotCount > 0, `slotCount=0 with O2=${cO} → empty screen`)
     assert.equal(frame.groupVisible, true)
   }
-}
-
-// --- previewLite defeats previewEmphasis (no full+nebula on +/-) ---
-{
-  const flags = resolveAtomStructurePreviewFlags({
-    previewEmphasis: true,
-    cosmicStyle: true,
-    synthesisDetail: false,
-    previewLite: true,
-    hideOrbitRings: true,
-    electronFrameSkip: 4,
-    z: 24,
-  })
-  assert.equal(flags.fullPreview, false, 'sessionLite must defeat emphasis')
-  assert.equal(flags.lite, true)
-  assert.equal(flags.showNebula, false)
-  assert.equal(flags.showRings, false)
-  assert.ok(flags.effectiveFrameSkip >= 3, `skip=${flags.effectiveFrameSkip}`)
 }
 
 console.log('test-reactor-preview-shield: all passed')
