@@ -527,6 +527,8 @@ export function LearnSectionRunner({
                   slideIndex={slideIndex}
                   slideTitle={slideTitle}
                   slideBody=""
+                  grade={grade}
+                  chapter={chapter}
                 />
               </div>
             ) : null}

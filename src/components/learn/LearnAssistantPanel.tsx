@@ -9,10 +9,11 @@ import {
   preloadSpeechVoices,
   type SpeechOutputMode,
 } from '../../learn/learnSpeech'
-import type { LearnSection } from '../../types/learn'
+import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import { checkTeacherServiceHealth, requestTeacherChat } from '../../learn/teacherServiceClient'
 import { filterAssistantReply } from '../../learn/learnAssistantGuard'
 import { LearnAssistantMarkdown } from './LearnAssistantMarkdown'
+import { LiveDialogButton } from './LearnLiveTutorPanel'
 import styles from '../../pages/LearnPage.module.css'
 
 const CHAT_URL = import.meta.env.VITE_LEARN_CHAT_URL ?? '/api/learn/chat'
@@ -63,6 +64,9 @@ export function LearnAssistantPanel({
   slideIndex,
   slideTitle,
   slideBody,
+  grade,
+  chapter,
+  rosterSectionId,
 }: {
   gradeId: string
   chapterId: string
@@ -70,6 +74,9 @@ export function LearnAssistantPanel({
   slideIndex: number
   slideTitle: string
   slideBody: string
+  grade?: LearnGrade
+  chapter?: LearnChapter
+  rosterSectionId?: string
 }) {
   void slideIndex
   const { t, locale } = useT()
@@ -351,6 +358,15 @@ export function LearnAssistantPanel({
           </div>
         </div>
         <div className={styles.learnAssistantHeadActions}>
+          {grade && chapter ? (
+            <LiveDialogButton
+              grade={grade}
+              chapter={chapter}
+              section={section}
+              rosterSectionId={rosterSectionId}
+              className={styles.learnAssistantLive}
+            />
+          ) : null}
           <button type="button" className={styles.learnAssistantClear} onClick={clearChat}>
             {t('learn.assistant.clear')}
           </button>

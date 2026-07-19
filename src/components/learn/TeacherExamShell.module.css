@@ -864,17 +864,82 @@
 }
 
 /* ======================= Онлайн-диалог с ИИ (live) ======================= */
+/* Космический фон оверлея */
+.liveOverlay {
+  background:
+    radial-gradient(1200px 720px at 82% -12%, rgba(120, 84, 220, 0.26), transparent 60%),
+    radial-gradient(1000px 820px at -8% 112%, rgba(24, 130, 150, 0.22), transparent 55%),
+    linear-gradient(180deg, #05060f 0%, #030412 55%, #01020a 100%);
+}
+
+.liveStars,
+.liveNebula {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.liveStars {
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1.5px 1.5px at 68% 14%, rgba(200, 230, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 42% 62%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 84% 48%, rgba(180, 220, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 26% 82%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 92% 78%, rgba(220, 235, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 55% 34%, rgba(255, 255, 255, 0.6), transparent);
+  animation: liveTwinkle 6s ease-in-out infinite alternate;
+}
+
+.liveNebula {
+  background:
+    radial-gradient(600px 400px at 20% 30%, rgba(92, 255, 212, 0.08), transparent 70%),
+    radial-gradient(700px 500px at 78% 70%, rgba(120, 84, 220, 0.1), transparent 70%);
+  filter: blur(6px);
+}
+
+@keyframes liveTwinkle {
+  from { opacity: 0.55; }
+  to { opacity: 0.95; }
+}
+
+.liveToolbar {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(10, 14, 34, 0.92), rgba(4, 6, 20, 0.7));
+  backdrop-filter: blur(10px);
+}
+
+.liveBrandDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #9dffe9, #2fae91);
+  box-shadow: 0 0 14px rgba(92, 255, 212, 0.8);
+}
+
+.liveOverlay .main {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  align-items: stretch;
+  padding: 1rem;
+}
+
 .liveLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
   gap: 1rem;
-  align-items: start;
-  width: min(1180px, 100%);
+  align-items: stretch;
+  width: min(1240px, 100%);
+  height: 100%;
   margin: 0 auto;
 }
 
 .liveStage {
   min-width: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -1008,15 +1073,44 @@
   font-size: 0.85rem;
 }
 
+.liveHeroTopic {
+  display: block;
+  margin-top: 0.28rem;
+  font-size: 0.78rem;
+  color: var(--exam-muted);
+}
+
 .liveChat {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  padding: 0.9rem 1rem;
+  padding: 1rem 1.1rem;
   border-radius: 18px;
   border: 1px solid var(--exam-border);
-  background: linear-gradient(155deg, rgba(6, 12, 26, 0.96), rgba(2, 6, 16, 0.98));
-  min-height: 8rem;
+  background:
+    radial-gradient(140% 90% at 50% -10%, rgba(92, 255, 212, 0.06), transparent 60%),
+    linear-gradient(155deg, rgba(6, 12, 26, 0.9), rgba(2, 6, 16, 0.94));
+  scroll-behavior: smooth;
+}
+
+.liveWelcome {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  text-align: center;
+  color: var(--exam-muted);
+  max-width: 26rem;
+  padding: 1.5rem;
+}
+
+.liveWelcomeOrb {
+  width: 90px;
+  height: 90px;
 }
 
 .liveMsg {
@@ -1060,6 +1154,35 @@
   padding: 0.2rem 0.4rem;
 }
 
+.livePartialMsg {
+  opacity: 0.75;
+}
+
+.liveCursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  background: currentColor;
+  vertical-align: text-bottom;
+  animation: liveBlink 1s steps(2, start) infinite;
+}
+
+@keyframes liveBlink {
+  50% { opacity: 0; }
+}
+
+.liveComposer {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border-radius: 18px;
+  border: 1px solid var(--exam-border);
+  background: linear-gradient(160deg, rgba(10, 16, 32, 0.9), rgba(4, 8, 18, 0.94));
+}
+
 .liveControls {
   display: flex;
   flex-wrap: wrap;
@@ -1067,10 +1190,33 @@
   align-items: center;
 }
 
+.liveChip {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--exam-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--exam-text);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.liveChip:hover {
+  border-color: var(--exam-accent);
+  background: color-mix(in srgb, var(--exam-accent) 12%, transparent);
+}
+
+.liveMicHint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #ffd166;
+}
+
 .liveTextRow {
   display: flex;
   gap: 0.5rem;
-  margin-top: 0.2rem;
 }
 
 .liveTextInput {
@@ -1092,11 +1238,86 @@
 
 .liveSide {
   min-width: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  position: sticky;
-  top: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* Небольшая камера — как в голосовом опросе */
+.liveCameraCard {
+  position: relative;
+  flex: 0 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--exam-border);
+  background: #05070f;
+  aspect-ratio: 4 / 3;
+}
+
+.liveCamera {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  display: block;
+}
+
+.liveCameraBadge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(4, 8, 18, 0.7);
+  color: var(--exam-accent);
+  backdrop-filter: blur(4px);
+}
+
+.liveCameraLive {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff5a5a;
+  box-shadow: 0 0 10px rgba(255, 90, 90, 0.9);
+  animation: liveSpeakPulse 1.4s ease-in-out infinite;
+}
+
+.liveCameraOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  text-align: center;
+  padding: 1rem;
+  color: var(--exam-muted);
+  font-size: 0.8rem;
+  background: rgba(3, 6, 14, 0.82);
+}
+
+.liveCameraOverlay p {
+  margin: 0;
+}
+
+.livePaceRow {
+  margin-top: 0.5rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--exam-accent);
+  text-align: center;
+  padding: 0.35rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--exam-accent) 8%, transparent);
 }
 
 .liveCard {
@@ -1214,11 +1435,30 @@
 }
 
 @media (max-width: 900px) {
+  .liveOverlay .main {
+    overflow: auto;
+  }
+
   .liveLayout {
     grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .liveStage {
+    height: auto;
+  }
+
+  .liveChat {
+    min-height: 45vh;
   }
 
   .liveSide {
-    position: static;
+    height: auto;
+    overflow: visible;
+    order: -1;
+  }
+
+  .liveCameraCard {
+    max-width: 16rem;
   }
 }

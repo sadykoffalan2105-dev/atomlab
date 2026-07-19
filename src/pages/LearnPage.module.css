@@ -2307,6 +2307,30 @@
   gap: 0.35rem;
 }
 
+.learnAssistantLive {
+  font: inherit;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #041018;
+  background: linear-gradient(120deg, #5cffd4, #38bdf8);
+  border: none;
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(92, 255, 212, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.learnAssistantLive::before {
+  content: '🛰 ';
+}
+
+.learnAssistantLive:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 20px rgba(92, 255, 212, 0.55);
+}
+
 .learnAssistantClear {
   font-size: 0.65rem;
   color: rgba(160, 180, 220, 0.85);
