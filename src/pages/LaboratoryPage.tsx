@@ -590,13 +590,8 @@ export function LaboratoryPage() {
     coeffEditPulse ||
     coeffUiFocused
 
-  /** Canvas: freeze на всё окно editing (focus + burst + visualHold + pulse). */
-  const heldCanvasTerms = useReactorCanvasTermsHold(
-    reactorOpen,
-    leftTerms,
-    reactorCoeffEditing,
-    560,
-  )
+  /** Canvas: сразу после commit коэффициента (~32ms), без долгого freeze. */
+  const heldCanvasTerms = useReactorCanvasTermsHold(reactorOpen, leftTerms, false, 32)
   const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
     reactorOpen,
     heldCanvasTerms,

@@ -1,28 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 
-function termsIdSig(terms: readonly ReactorEquationTerm[]): string {
-  return terms.map((t) => `${t.id}:${t.z}:${t.diatomic ? 1 : 0}`).join('|')
-}
-
 function termsFullSig(terms: readonly ReactorEquationTerm[]): string {
   return terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|')
 }
 
 /**
- * Terms для Canvas: пока ученик вводит коэффициенты,
- * 3D заморожен — атомы не remount'ятся при O₂→K→Cr.
- * После blur + idle — одно обновление.
+ * Canvas terms: применяем уравнение сразу после commit коэффициента (<1 с).
+ * Не держим долгий freeze — пропадания лечит shell/sticky в превью, не задержка.
+ * Микро-debounce только схлопывает серии ↑↓ за один кадр.
  */
 export function useReactorCanvasTermsHold(
   reactorOpen: boolean,
   leftTerms: readonly ReactorEquationTerm[],
-  freezeCanvas: boolean,
-  idleMs = 560,
+  _freezeCanvas: boolean,
+  idleMs = 32,
 ): readonly ReactorEquationTerm[] {
   const [canvasTerms, setCanvasTerms] = useState<readonly ReactorEquationTerm[]>(() => leftTerms)
   const canvasRef = useRef(leftTerms)
   const timerRef = useRef<number | null>(null)
+  void _freezeCanvas
 
   useEffect(() => {
     if (!reactorOpen) {
@@ -36,39 +33,24 @@ export function useReactorCanvasTermsHold(
     }
 
     const nextFull = termsFullSig(leftTerms)
-    const curFull = termsFullSig(canvasRef.current)
-    if (nextFull === curFull) return
+    if (nextFull === termsFullSig(canvasRef.current)) return
 
-    const structural =
-      termsIdSig(leftTerms) !== termsIdSig(canvasRef.current) ||
-      leftTerms.length !== canvasRef.current.length
+    if (timerRef.current != null) clearTimeout(timerRef.current)
 
-    if (structural) {
-      if (timerRef.current != null) {
-        clearTimeout(timerRef.current)
-        timerRef.current = null
-      }
+    // 0–50ms: атомы на экране сразу после Enter/blur, без секундного ожидания.
+    const delay = Math.min(50, Math.max(0, idleMs))
+    if (delay <= 0) {
       canvasRef.current = leftTerms
       setCanvasTerms(leftTerms)
       return
     }
 
-    // Coeff-only + freeze (focus / edit burst) — держим старый снимок.
-    if (freezeCanvas) {
-      if (timerRef.current != null) {
-        clearTimeout(timerRef.current)
-        timerRef.current = null
-      }
-      return
-    }
-
-    if (timerRef.current != null) clearTimeout(timerRef.current)
     const snapshot = leftTerms
     timerRef.current = window.setTimeout(() => {
       timerRef.current = null
       canvasRef.current = snapshot
       setCanvasTerms(snapshot)
-    }, idleMs)
+    }, delay)
 
     return () => {
       if (timerRef.current != null) {
@@ -76,7 +58,7 @@ export function useReactorCanvasTermsHold(
         timerRef.current = null
       }
     }
-  }, [reactorOpen, leftTerms, freezeCanvas, idleMs])
+  }, [reactorOpen, leftTerms, idleMs])
 
   useEffect(
     () => () => {
@@ -86,5 +68,5 @@ export function useReactorCanvasTermsHold(
   )
 
   if (!reactorOpen) return leftTerms
-  return canvasRef.current.length > 0 || leftTerms.length === 0 ? canvasTerms : leftTerms
+  return canvasTerms.length > 0 || leftTerms.length === 0 ? canvasTerms : leftTerms
 }

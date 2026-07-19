@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import type * as THREE from 'three'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
@@ -83,6 +83,9 @@ export function ReactorTermsPreview({
   const engineRef = useRef(createPreviewEngineState())
   const settlePinUntilRef = useRef(0)
   const shieldRef = useRef(createShieldSnapshot())
+  /** Сколько Bohr уже смонтировано; растём +4/кадр → полный dichromate < 1с без wipe. */
+  const [mountCap, setMountCap] = useState(0)
+  const mountCapRef = useRef(0)
   const lowPowerProfile = useMemo(() => getLowPowerDeviceProfile(getSynthesisDeviceTier()), [])
   const editingActive = resolvePreviewEditingActive({
     coeffEditing,
@@ -578,20 +581,54 @@ export function ReactorTermsPreview({
 
   const forceElectronMotion = true
   /**
-   * Космический дизайн (nebula + орбиты + CPK): previewLite=false, rings on.
-   * Стабильность — sticky slots / keyboard commit; FPS — electronFrameSkip.
+   * Космический дизайн + быстрый рост слотов после commit коэффициента.
+   * Старые слоты не гасим; новые догоняют target за несколько rAF (<1 с).
    */
   const hotDense = (policy.hotCoeffEdit || coeffEditing) && n >= 8
-  /**
-   * Pre-synth: держим тёплый пул слотов (до 12), чтобы рост coeff
-   * не cold-mount'ил Bohr пачкой → hitch / пустой кадр.
-   */
-  const warmPool = holdPreview ? Math.min(16, Math.max(stickySlotCount, 12)) : stickySlotCount
-  const mountBohrCount = Math.min(
+  const targetMount = Math.min(
     24,
-    Math.max(warmPool, Math.min(poolSize, stickySlotCount + (holdPreview ? 0 : 2))),
+    Math.max(
+      stickySlotCount,
+      holdPreview ? Math.min(16, Math.max(stickySlotCount, 8)) : stickySlotCount,
+      Math.min(poolSize, stickySlotCount),
+    ),
   )
-  // Не режем визуал lite'ом — только реже пишем матрицы электронов.
+
+  useEffect(() => {
+    if (targetMount <= 0) {
+      mountCapRef.current = 0
+      setMountCap(0)
+      return
+    }
+    // Сразу показываем уже видимое; не сбрасываем mountCap вниз во время hold.
+    if (mountCapRef.current < Math.min(stickySlotCount, targetMount)) {
+      mountCapRef.current = Math.min(stickySlotCount, targetMount)
+      setMountCap(mountCapRef.current)
+    }
+    if (mountCapRef.current >= targetMount) {
+      if (!holdPreview && mountCapRef.current > targetMount + 4) {
+        mountCapRef.current = targetMount
+        setMountCap(targetMount)
+      }
+      return
+    }
+    let cancelled = false
+    let raf = 0
+    const step = () => {
+      if (cancelled) return
+      const next = Math.min(targetMount, mountCapRef.current + 4)
+      mountCapRef.current = next
+      setMountCap(next)
+      if (next < targetMount) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf)
+    }
+  }, [targetMount, stickySlotCount, holdPreview])
+
+  const mountBohrCount = Math.max(mountCap, Math.min(targetMount, stickySlotCount))
   const editSkip = hotDense ? 3 : holdPreview ? 2 : 1
   const editLocalLight = !sharedLighting && (atomsOnScreen || holdPreview)
 
@@ -615,7 +652,9 @@ export function ReactorTermsPreview({
         const incomingZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
         if (atom != null) engineRef.current.slotZ[i] = incomingZ
         const slotZ = engineRef.current.slotZ[i] ?? incomingZ
-        const slotVisible = i < stickySlotCount && (atomsOnScreen || holdPreview)
+        // Уже смонтированные слоты всегда visible в hold — нет «дыры» при росте.
+        const slotVisible =
+          i < stickySlotCount && (atomsOnScreen || holdPreview) && i < mountBohrCount
         return (
           <group key={`slot-${i}`} visible={slotVisible} ref={getPosRef(i)}>
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
