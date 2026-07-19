@@ -923,6 +923,7 @@
   position: relative;
   z-index: 1;
   overflow: hidden;
+  min-height: 0;
   align-items: stretch;
   padding: 1rem;
 }
@@ -930,15 +931,18 @@
 .liveLayout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+  grid-template-rows: minmax(0, 1fr);
   gap: 1rem;
   align-items: stretch;
   width: min(1240px, 100%);
   height: 100%;
+  min-height: 0;
   margin: 0 auto;
 }
 
 .liveStage {
   min-width: 0;
+  min-height: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1238,6 +1242,7 @@
 
 .liveSide {
   min-width: 0;
+  min-height: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1434,31 +1439,57 @@
   color: var(--exam-muted);
 }
 
-@media (max-width: 900px) {
-  .liveOverlay .main {
-    overflow: auto;
-  }
-
+/*
+ * Узкие экраны (телефоны, а также ноутбуки с масштабом 125–150 %, где CSS-ширина
+ * < 760px). ВАЖНО: страница целиком НЕ скроллится — оверлей остаётся на месте,
+ * камера и панели закреплены сверху, вертикально прокручивается только текст
+ * диалога. Поэтому .main остаётся overflow:hidden, а .liveChat — единственный
+ * скролл-контейнер.
+ */
+@media (max-width: 760px) {
   .liveLayout {
-    grid-template-columns: 1fr;
-    height: auto;
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+    height: 100%;
+    min-height: 0;
   }
 
   .liveStage {
+    order: 1;
+    flex: 1 1 auto;
     height: auto;
+    min-height: 0;
   }
 
-  .liveChat {
-    min-height: 45vh;
-  }
-
+  /* Боковая колонка → закреплённая горизонтальная лента сверху (не скроллит страницу) */
   .liveSide {
+    order: 0;
+    flex: 0 0 auto;
     height: auto;
-    overflow: visible;
-    order: -1;
+    min-height: 0;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .liveSide > * {
+    flex: 0 0 auto;
   }
 
   .liveCameraCard {
-    max-width: 16rem;
+    width: 8.5rem;
+    aspect-ratio: 16 / 10;
+  }
+
+  .liveCard {
+    min-width: 12rem;
+  }
+
+  /* Экономим высоту: длинную цепочку рассуждений на узком экране не показываем */
+  .liveReasoning {
+    max-height: 6rem;
   }
 }
