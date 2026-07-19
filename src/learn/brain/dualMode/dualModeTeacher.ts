@@ -278,7 +278,7 @@ export class TeacherIntelligence {
     _difficulty: number,
   ): Promise<TeacherResponse> {
     if (this.state.getMode() === 'training') {
-      const explanation = this.training.explain(answer, topic, this.state.history())
+      const explanation = await this.training.explainAsync(answer, topic, this.state.history())
       return this.buildResponse(explanation, this.currentCard, null, false)
     }
 
@@ -339,7 +339,7 @@ export class TeacherIntelligence {
   private async routeAnswer(text: string): Promise<TeacherResponse> {
     if (this.state.getMode() === 'training') {
       // В обучении «ответ» — это вопрос/реплика ученика: объясняем как профессор.
-      const explanation = this.training.explain(text, this.currentTopic(), this.state.history())
+      const explanation = await this.training.explainAsync(text, this.currentTopic(), this.state.history())
       return this.buildResponse(explanation, null, null, false)
     }
     return this.evaluateResponse(text, this.currentTopic(), this.state.getDifficulty())
@@ -358,7 +358,7 @@ export class TeacherIntelligence {
       const socratic = card ? ` ${this.generator.socraticFollowUp(card, this.attempt + 1)}` : ''
       return this.buildResponse(`${nudge}${socratic}`.trim(), card, null, false)
     }
-    const explanation = this.training.explain(text, this.currentTopic(), this.state.history())
+    const explanation = await this.training.explainAsync(text, this.currentTopic(), this.state.history())
     return this.buildResponse(explanation, null, null, false)
   }
 

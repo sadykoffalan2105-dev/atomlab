@@ -14,15 +14,18 @@ import { checkTeacherServiceHealth, requestTeacherChat } from '../../learn/teach
 import { filterAssistantReply } from '../../learn/learnAssistantGuard'
 import { LearnAssistantMarkdown } from './LearnAssistantMarkdown'
 import { LiveDialogButton } from './LearnLiveTutorPanel'
+import { warmupPuterFromUserGesture } from '../../learn/learnPuterTts'
 import styles from '../../pages/LearnPage.module.css'
 
 const CHAT_URL = import.meta.env.VITE_LEARN_CHAT_URL ?? '/api/learn/chat'
+
+type AssistantSource = 'openai' | 'local' | 'ollama' | 'puter'
 
 type ChatMessage = {
   role: 'user' | 'assistant'
   text: string
   at: number
-  source?: 'openai' | 'local' | 'ollama'
+  source?: AssistantSource
 }
 
 const QUICK_KEYS = [
@@ -106,7 +109,7 @@ export function LearnAssistantPanel({
       return false
     }
   })
-  const [lastSource, setLastSource] = useState<'openai' | 'local' | 'ollama' | null>(null)
+  const [lastSource, setLastSource] = useState<AssistantSource | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -151,8 +154,8 @@ export function LearnAssistantPanel({
     ],
   )
 
-  const mapRoutedSource = (s: TeacherReplySource): 'openai' | 'local' | 'ollama' =>
-    s === 'ollama' ? 'ollama' : 'local'
+  const mapRoutedSource = (s: TeacherReplySource): AssistantSource =>
+    s === 'ollama' ? 'ollama' : s === 'puter' ? 'puter' : 'local'
 
   const speechLocale = locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'
 
@@ -216,7 +219,7 @@ export function LearnAssistantPanel({
   }, [])
 
   const replyFromApi = useCallback(
-    async (nextMessages: ChatMessage[]): Promise<{ text: string; source: 'openai' | 'local' | 'ollama' }> => {
+    async (nextMessages: ChatMessage[]): Promise<{ text: string; source: AssistantSource }> => {
       const payload = {
         messages: nextMessages.map((m) => ({ role: m.role, content: m.text })),
         context: localCtx,
@@ -267,6 +270,7 @@ export function LearnAssistantPanel({
   const sendText = useCallback(
     async (text: string) => {
       if (!text.trim() || loading) return
+      warmupPuterFromUserGesture()
       setError(null)
       const userMsg: ChatMessage = { role: 'user', text: text.trim(), at: Date.now() }
       const nextMessages = [...messages, userMsg]
@@ -311,6 +315,8 @@ export function LearnAssistantPanel({
   const send = useCallback(() => {
     const text = input.trim()
     if (!text) return
+    // Прогреваем бесплатный облачный мозг в рамках жеста клика (без блокировки popup).
+    warmupPuterFromUserGesture()
     setInput('')
     void sendText(text)
   }, [input, sendText])
@@ -331,9 +337,11 @@ export function LearnAssistantPanel({
       ? t('learn.assistant.sourceOpenai')
       : lastSource === 'ollama'
         ? t('learn.assistant.sourceOllama')
-        : lastSource === 'local'
-          ? t('learn.assistant.sourceLocal')
-          : null
+        : lastSource === 'puter'
+          ? t('learn.assistant.sourcePuter')
+          : lastSource === 'local'
+            ? t('learn.assistant.sourceLocal')
+            : null
 
   return (
     <aside className={styles.learnAssistant} aria-label={t('learn.assistant.title')}>

@@ -3,13 +3,23 @@ import { matchFaqEntry } from './learnChemistryFaq'
 import { buildAssistantSystemPrompt } from './learnAssistantPrompt'
 import { filterAssistantReply } from './learnAssistantGuard'
 import { buildTeacherBrainPack } from './learnTeacherBrain'
+import { requestPuterChat } from './learnPuterChat'
 
-export type TeacherReplySource = 'faq' | 'local' | 'ollama' | 'api'
+export type TeacherReplySource = 'faq' | 'local' | 'ollama' | 'api' | 'puter'
 
 export type TeacherRouterOptions = {
   preferOllama?: boolean
   ollamaUrl?: string
   ollamaModel?: string
+  /** Отключить бесплатный облачный мозг (Puter). По умолчанию включён. */
+  disablePuter?: boolean
+}
+
+function puterEnabled(opts?: TeacherRouterOptions): boolean {
+  if (opts?.disablePuter) return false
+  const flag = import.meta.env.VITE_PUTER_ENABLED
+  if (flag === '0' || flag === 'false') return false
+  return true
 }
 
 const DEFAULT_OLLAMA = 'http://127.0.0.1:11434'
@@ -92,7 +102,11 @@ function isOpenEndedQuestion(query: string): boolean {
   )
 }
 
-/** Бесплатный маршрут: FAQ (RU) → Ollama → локальная база → fallback. */
+/**
+ * Бесплатный маршрут (без платежей и ключей):
+ * FAQ (короткие RU) → Ollama (если локально запущен) → Puter (облачный GPT,
+ * бесплатно, user-pays) → локальная база знаний → fallback.
+ */
 export async function routeTeacherReply(
   messages: { role: string; content: string }[],
   ctx: LearnLocalAssistantContext,
@@ -100,15 +114,23 @@ export async function routeTeacherReply(
 ): Promise<{ text: string; source: TeacherReplySource }> {
   const q = lastUserText(messages)
   const preferLlmLanguage = ctx.locale === 'en' || ctx.locale === 'uz'
+  const wantsSmart = preferLlmLanguage || isOpenEndedQuestion(q)
 
   // Короткие FAQ на RU; для EN/UZ сначала модель (перевод/язык UI).
   if (!preferLlmLanguage && matchFaqEntry(q)) {
     return { text: generateLocalLearnReply(messages, ctx), source: 'faq' }
   }
 
-  if (ollamaEnabled(opts) && (preferLlmLanguage || isOpenEndedQuestion(q))) {
+  // 1) Локальная Ollama — если пользователь её поднял (максимальная приватность).
+  if (ollamaEnabled(opts) && wantsSmart) {
     const ollama = await tryOllamaReply(messages, ctx, opts)
     if (ollama) return { text: ollama, source: 'ollama' }
+  }
+
+  // 2) Бесплатный облачный мозг Puter (GPT-4o-mini). Ключи и оплата не нужны.
+  if (puterEnabled(opts)) {
+    const puter = await requestPuterChat(messages, ctx).catch(() => null)
+    if (puter) return { text: puter, source: 'puter' }
   }
 
   const local = generateLocalLearnReply(messages, ctx)

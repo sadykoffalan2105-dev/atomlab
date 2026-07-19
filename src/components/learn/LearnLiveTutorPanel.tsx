@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import { getActiveStudent } from '../../learn/learnClassRosterStorage'
+import { warmupPuterFromUserGesture } from '../../learn/learnPuterTts'
 import { useOralExamMedia } from '../../learn/useOralExamMedia'
 import { useDualModeTeacher } from '../../learn/brain'
 import type { EmotionState, EngagementLevel, TutorMode } from '../../learn/brain'
@@ -343,6 +344,7 @@ export function LiveDialogButton({
   const [initialMode, setInitialMode] = useState<TutorMode>('training')
 
   const launch = (mode: TutorMode) => {
+    warmupPuterFromUserGesture()
     setInitialMode(mode)
     setActive(true)
   }

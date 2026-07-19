@@ -5,6 +5,7 @@
  */
 import { composeExpertLocalReply } from '../../learnExpertLocalReply'
 import type { LearnLocalAssistantContext } from '../../learnLocalAssistant'
+import { requestPuterChat } from '../../learnPuterChat'
 import { clarifyPrompt } from './personaProfiles'
 import type { AssistantLang } from './dualModeTypes'
 
@@ -37,11 +38,32 @@ export class TrainingModeEngine {
     }
   }
 
-  /** Полное экспертное объяснение вопроса ученика. */
+  /** Полное экспертное объяснение вопроса ученика (офлайн-база). */
   explain(query: string, topic: string, history: { role: string; content: string }[] = []): string {
     const reply = composeExpertLocalReply(query, this.buildContext(topic), history)
     if (reply && reply.trim()) return reply.trim()
     return this.fallback(query)
+  }
+
+  /**
+   * Умное объяснение: сначала бесплатный облачный мозг (Puter GPT) с базой
+   * знаний урока — «мыслит как человек»; если недоступен, мгновенно отдаёт
+   * развёрнутый ответ из офлайн-базы. Никаких ключей и оплаты.
+   */
+  async explainAsync(
+    query: string,
+    topic: string,
+    history: { role: string; content: string }[] = [],
+  ): Promise<string> {
+    const ctx = this.buildContext(topic)
+    const messages = [...history, { role: 'user', content: query }]
+    try {
+      const smart = await requestPuterChat(messages, ctx)
+      if (smart && smart.trim()) return smart.trim()
+    } catch {
+      /* фолбэк на офлайн-базу */
+    }
+    return this.explain(query, topic, history)
   }
 
   /** Переобъяснение «с другой стороны», когда ученик не понял. */
