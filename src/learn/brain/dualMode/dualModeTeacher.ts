@@ -37,6 +37,7 @@ import {
   reengagePrompt,
   switchAnnouncement,
 } from './personaProfiles'
+import { condenseForLiveSpeech } from './liveSpeechCondense'
 import type {
   AssistantLang,
   QuestionCard,
@@ -151,7 +152,7 @@ export class TeacherIntelligence {
         controller: this.cfg.controller,
         // Half-duplex: пока учитель говорит, микрофон не пишет его же речь.
         bargeInEnabled: false,
-        postSpeakDelayMs: 450,
+        postSpeakDelayMs: 550,
         onPartial: (t) => this.cfg.callbacks?.onPartialTranscript?.(t),
         onUserUtterance: (final) => {
           void this.handleIncomingVoice(final)
@@ -466,9 +467,13 @@ export class TeacherIntelligence {
     verdict: TeacherResponse['verdict'],
     finished: boolean,
   ): TeacherResponse {
+    const trimmed = say.trim()
+    const saySpeak =
+      trimmed.length > 420 ? condenseForLiveSpeech(trimmed, this.lang, 520) : undefined
     return {
       mode: this.state.getMode(),
-      say,
+      say: trimmed,
+      saySpeak,
       reasoning: [],
       question,
       verdict,
@@ -481,13 +486,14 @@ export class TeacherIntelligence {
   private async deliver(response: TeacherResponse): Promise<void> {
     if (response.say) this.state.pushTurn('tutor', response.say)
     this.cfg.callbacks?.onResponse?.(response)
-    if (!response.say) return
+    const speakText = (response.saySpeak ?? response.say).trim()
+    if (!speakText) return
     this.busy = true
     try {
       if (this.duplex) {
-        await this.duplex.speak(response.say)
+        await this.duplex.speak(speakText)
       } else {
-        await this.cfg.controller.speak(response.say, this.lang)
+        await this.cfg.controller.speak(speakText, this.lang)
       }
     } finally {
       this.busy = false

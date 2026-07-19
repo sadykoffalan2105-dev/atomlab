@@ -51,7 +51,10 @@ export interface QuestionCard {
 /** Единый ответ преподавателя для UI и озвучки. */
 export interface TeacherResponse {
   mode: TutorMode
+  /** Полный текст для чата. */
   say: string
+  /** Укороченный текст только для TTS (если нет — озвучивается say). */
+  saySpeak?: string
   reasoning: ReasoningStepSnapshot[]
   question: QuestionCard | null
   verdict: ExamGradeVerdict | null

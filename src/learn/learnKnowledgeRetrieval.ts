@@ -15,6 +15,8 @@ import { ORGANIC_DEEP_KNOWLEDGE } from './knowledge/learnOrganicDeepKnowledge'
 import { PROBLEM_BANK_KNOWLEDGE } from './knowledge/learnProblemBankKnowledge'
 import { SCHOOL_THEORY_DEEP_KNOWLEDGE } from './knowledge/learnSchoolTheoryDeepKnowledge'
 import { MISCONCEPTIONS_KNOWLEDGE } from './knowledge/learnMisconceptionsKnowledge'
+import { KINETICS_EQUILIBRIUM_KNOWLEDGE } from './knowledge/learnKineticsEquilibriumKnowledge'
+import { LAB_PRACTICE_KNOWLEDGE } from './knowledge/learnLabPracticeKnowledge'
 
 const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...CHEMISTRY_KNOWLEDGE_CHUNKS,
@@ -24,6 +26,8 @@ const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...PROBLEM_BANK_KNOWLEDGE,
   ...SCHOOL_THEORY_DEEP_KNOWLEDGE,
   ...MISCONCEPTIONS_KNOWLEDGE,
+  ...KINETICS_EQUILIBRIUM_KNOWLEDGE,
+  ...LAB_PRACTICE_KNOWLEDGE,
   ...SCIENTISTS_KNOWLEDGE,
   ...GENERATED_ELEMENT_KNOWLEDGE,
   ...GENERATED_COMPOUND_KNOWLEDGE,
@@ -65,6 +69,9 @@ const SYNONYMS: Record<string, string[]> = {
   сравн: ['отличи', 'разниц', 'compare', 'difference', 'чем'],
   оксид: ['oxide', 'кислотн', 'основн', 'амфотер'],
   соль: ['salt', 'нейтрализ', 'гидролиз'],
+  равновес: ['equilibrium', 'ле шателье', 'смещен', 'обратим'],
+  скорост: ['rate', 'катализ', 'активац', 'температур'],
+  лаборат: ['lab', 'опыт', 'титрован', 'фильтр', 'пробирк', 'нагрев'],
 }
 
 function tokenize(q: string): string[] {

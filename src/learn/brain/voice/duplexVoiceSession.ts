@@ -77,6 +77,7 @@ export class DuplexVoiceSession {
   private listening = false
   private pendingBargeText = ''
   private lastAiText = ''
+  private lastAiTexts: string[] = []
   private listenResumeAt = 0
   private readonly bargeInEnabled: boolean
   private readonly postSpeakDelayMs: number
@@ -84,7 +85,7 @@ export class DuplexVoiceSession {
   constructor(config: DuplexSessionConfig) {
     this.cfg = config
     this.bargeInEnabled = config.bargeInEnabled === true
-    this.postSpeakDelayMs = config.postSpeakDelayMs ?? 450
+    this.postSpeakDelayMs = config.postSpeakDelayMs ?? 550
     this.interruption = new InterruptionController({
       bargeInConfirmMs: 320,
       bargeInEnabled: this.bargeInEnabled,
@@ -173,8 +174,8 @@ export class DuplexVoiceSession {
   private emitUserUtterance(fresh: string): void {
     const text = fresh.trim()
     if (text.length < 2) return
-    if (looksLikeTeacherEcho(text, this.lastAiText)) {
-      // Эхо колонок / повтор озвучки учителя — не считаем репликой ученика.
+    const against = [this.lastAiText, ...this.lastAiTexts]
+    if (against.some((t) => looksLikeTeacherEcho(text, t))) {
       return
     }
     this.cfg.onUserUtterance(text)
@@ -205,6 +206,7 @@ export class DuplexVoiceSession {
   async speak(text: string): Promise<boolean> {
     if (!text.trim()) return false
     this.lastAiText = text
+    this.lastAiTexts = [text, ...this.lastAiTexts].slice(0, 3)
     this.stopStt()
     this.discardSttBuffer()
     this.interruption.aiSpeechStarted()

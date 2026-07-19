@@ -296,7 +296,21 @@ function buildChunkFallback(
 }
 
 /** Прямые справочные чанки (элемент / вещество / органика / учёный / формула / задача / теория / реакция). */
-const DIRECT_ENTITY_PREFIXES = ['el-', 'cmp-', 'org-', 'sci-', 'formula-', 'prob-', 'theory-', 'rx-', 'misc-', 'inorg-', 'logic-']
+const DIRECT_ENTITY_PREFIXES = [
+  'el-',
+  'cmp-',
+  'org-',
+  'sci-',
+  'formula-',
+  'prob-',
+  'theory-',
+  'rx-',
+  'misc-',
+  'inorg-',
+  'logic-',
+  'kin-',
+  'lab-',
+]
 
 function normalizeForMatch(q: string): string {
   return q

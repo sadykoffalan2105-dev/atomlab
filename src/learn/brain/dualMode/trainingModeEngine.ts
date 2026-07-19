@@ -32,7 +32,12 @@ export class TrainingModeEngine {
       sectionId: this.cfg.sectionId ?? 's01',
       sectionTitle: this.cfg.sectionTitle ?? topic,
       slideTitle: topic,
-      slideBody: '',
+      slideBody:
+        this.cfg.lang === 'en'
+          ? 'LIVE VOICE DIALOGUE: answer in 100–220 words. First sentence = direct answer. Then short why + one example. Speakable sentences, no formulas.'
+          : this.cfg.lang === 'uz'
+            ? 'JONLI OVOZLI DIALOG: 100–220 so‘z. Birinchi gap — to‘g‘ridan-to‘g‘ri javob. Keyin qisqa sabab + bitta misol. Formulalarsiz.'
+            : 'ОНЛАЙН ГОЛОСОВОЙ ДИАЛОГ: ответ 100–220 слов. Первое предложение — прямой ответ. Затем кратко почему и один пример. Короткие фразы для озвучки, без формул.',
       mode: 'teacher',
       kpNumber: 1,
     }
@@ -46,8 +51,10 @@ export class TrainingModeEngine {
   }
 
   /**
-   * Умное объяснение для live: быстрый Puter (9 с, одна модель) параллельно
-   * с мгновенной офлайн-базой. Если облако не успело — сразу качественный local.
+   * Умное объяснение для live:
+   * 1) мгновенно готовим офлайн-ответ из базы;
+   * 2) параллельно быстро спрашиваем Puter (короткий таймаут, если local уже сильный);
+   * 3) если облако не успело — сразу говорим по базе (без долгого молчания).
    */
   async explainAsync(
     query: string,
@@ -55,13 +62,24 @@ export class TrainingModeEngine {
     history: { role: string; content: string }[] = [],
   ): Promise<string> {
     const ctx = this.buildContext(topic)
-    const messages = [...history, { role: 'user', content: query }]
+    const messages = [
+      ...history.slice(-6),
+      { role: 'user', content: query },
+    ]
     const local = this.explain(query, topic, history)
+    const strongLocal =
+      local.length >= 140 &&
+      !/Давай разберём по шагам|Let us reason|bosqichma-bosqich fikrlaymiz/i.test(local)
+
+    const timeoutMs = strongLocal ? 4_500 : 7_500
     try {
-      const smart = await requestPuterChat(messages, ctx, { fast: true, timeoutMs: 9_000 })
-      if (smart && smart.trim()) return smart.trim()
+      const smart = await requestPuterChat(messages, ctx, {
+        fast: true,
+        timeoutMs,
+      })
+      if (smart && smart.trim().length > 40) return smart.trim()
     } catch {
-      /* фолбэк на офлайн-базу */
+      /* офлайн */
     }
     return local
   }
