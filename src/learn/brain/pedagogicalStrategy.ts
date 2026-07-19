@@ -20,8 +20,8 @@ export interface StrategyInput {
 }
 
 function verbosityFor(fused: FusedContext): StrategyDecision['verbosity'] {
-  if (fused.attention < 0.4) return 'short' // рассеян — не грузим длинным
-  if (fused.emotion === 'confused') return 'full' // непонятно — объясняем подробно
+  if (fused.attention < 0.4 || fused.emotion === 'bored' || fused.emotion === 'tired') return 'short'
+  if (fused.emotion === 'confused' || fused.emotion === 'curious') return 'full'
   return 'normal'
 }
 
@@ -52,7 +52,7 @@ export function decideStrategy(input: StrategyInput): StrategyDecision {
       rationale: 'Лицо не в кадре — зовём ученика вернуться к уроку.',
     }
   }
-  if (fused.engagement === 'distracted') {
+  if (fused.engagement === 'distracted' && fused.emotion !== 'bored' && fused.emotion !== 'tired') {
     return {
       tone: 'encouraging',
       action: 're_engage',
@@ -63,18 +63,18 @@ export function decideStrategy(input: StrategyInput): StrategyDecision {
     }
   }
 
-  // 3) Эмоция важнее строгости: растерянность/фрустрация → поддержка.
-  if (fused.emotion === 'frustrated' && fused.emotionConfidence > 0.4) {
+  // 3) Эмоции камеры — как живой учитель читает класс.
+  if (fused.emotion === 'frustrated' && fused.emotionConfidence > 0.35) {
     return {
       tone: 'warm',
       action: 'encourage',
       hintLevel: sensitive ? 2 : 1,
       verbosity: 'normal',
       difficultyDelta: -1,
-      rationale: 'Виден признак фрустрации — снижаем строгость, подбадриваем, упрощаем.',
+      rationale: 'Виден признак напряжения — снижаем строгость, подбадриваем, упрощаем.',
     }
   }
-  if (fused.emotion === 'confused' && fused.emotionConfidence > 0.4) {
+  if (fused.emotion === 'confused' && fused.emotionConfidence > 0.35) {
     return {
       tone: 'warm',
       action: 'explain',
@@ -82,6 +82,36 @@ export function decideStrategy(input: StrategyInput): StrategyDecision {
       verbosity: verbosityFor(fused),
       difficultyDelta: 0,
       rationale: 'Ученик в замешательстве — объясняем иначе и даём опорную подсказку.',
+    }
+  }
+  if (fused.emotion === 'tired' && fused.emotionConfidence > 0.35) {
+    return {
+      tone: 'warm',
+      action: 'encourage',
+      hintLevel: 1,
+      verbosity: 'short',
+      difficultyDelta: -1,
+      rationale: 'Похоже на усталость — короче, мягче, без перегрузки.',
+    }
+  }
+  if (fused.emotion === 'bored' && fused.emotionConfidence > 0.35) {
+    return {
+      tone: 'encouraging',
+      action: 'ask_question',
+      hintLevel: 0,
+      verbosity: 'short',
+      difficultyDelta: 1,
+      rationale: 'Скучает — живой короткий вызов / неожиданный вопрос, чтобы вернуть интерес.',
+    }
+  }
+  if (fused.emotion === 'curious' && fused.emotionConfidence > 0.4) {
+    return {
+      tone: 'encouraging',
+      action: 'explain',
+      hintLevel: 1,
+      verbosity: 'full',
+      difficultyDelta: 0,
+      rationale: 'Любопытство — разворачиваем тему чуть глубже, пока есть интерес.',
     }
   }
 
@@ -93,7 +123,7 @@ export function decideStrategy(input: StrategyInput): StrategyDecision {
         action: 'advance',
         hintLevel: 0,
         verbosity: 'short',
-        difficultyDelta: fused.emotion === 'confident' ? 1 : 0,
+        difficultyDelta: fused.emotion === 'confident' || fused.emotion === 'curious' ? 1 : 0,
         rationale: 'Ответ полный — хвалим и повышаем планку.',
       }
     }
@@ -107,7 +137,6 @@ export function decideStrategy(input: StrategyInput): StrategyDecision {
         rationale: 'Ответ частичный — наводящий вопрос/подсказка, чтобы дотянуть до полного.',
       }
     }
-    // incorrect
     return {
       tone: sensitive ? 'warm' : 'neutral',
       action: consecutiveMisses >= 2 ? 'explain' : 'give_hint',

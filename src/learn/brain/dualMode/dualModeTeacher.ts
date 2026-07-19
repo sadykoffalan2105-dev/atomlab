@@ -18,7 +18,7 @@
  *   analyzeCameraEngagement()               — постоянный CV-мониторинг вовлечённости.
  */
 import type { LearnSpeechController } from '../../learnSpeech'
-import type { FusedContext, ReasoningStepSnapshot, VisionSignal } from '../brainTypes'
+import type { FusedContext, ReasoningStepSnapshot, VisionSignal, EmotionState } from '../brainTypes'
 import { UnifiedBrain } from '../unifiedBrain'
 import { EngagementTracker } from '../vision/engagementTracker'
 import { DuplexVoiceSession } from '../voice/duplexVoiceSession'
@@ -32,12 +32,14 @@ import { QuestionGenerator } from './questionGenerator'
 import { TrainingModeEngine } from './trainingModeEngine'
 import { parseVoiceIntent } from './intentParser'
 import {
-  clarifyPrompt,
   personaForMode,
-  reengagePrompt,
   switchAnnouncement,
 } from './personaProfiles'
 import { condenseForLiveSpeech } from './liveSpeechCondense'
+import {
+  emotionReactiveLine,
+  reengageReactiveLine,
+} from './cameraEmotionCoach'
 import type {
   AssistantLang,
   QuestionCard,
@@ -74,8 +76,9 @@ export interface DualModeTeacherConfig {
   callbacks?: DualModeTeacherCallbacks
 }
 
-const PROACTIVE_COOLDOWN_MS = 15_000
-const REENGAGE_COOLDOWN_MS = 12_000
+const PROACTIVE_COOLDOWN_MS = 14_000
+const REENGAGE_COOLDOWN_MS = 11_000
+const EMOTION_COOLDOWN_MS = 16_000
 
 export class TeacherIntelligence {
   private readonly cfg: DualModeTeacherConfig
@@ -97,6 +100,8 @@ export class TeacherIntelligence {
   private busy = false
   private lastProactiveMs = 0
   private lastReengageMs = 0
+  private lastEmotionReactMs = 0
+  private lastFusedEmotion: EmotionState = 'neutral'
 
   constructor(config: DualModeTeacherConfig) {
     this.cfg = config
@@ -139,7 +144,7 @@ export class TeacherIntelligence {
 
     if (video) {
       this.tracker = new EngagementTracker(video, {
-        fps: 4,
+        fps: 6,
         onSignal: (sig: VisionSignal) => this.brain.ingestVision(sig),
       })
       this.tracker.start()
@@ -286,7 +291,12 @@ export class TeacherIntelligence {
     _difficulty: number,
   ): Promise<TeacherResponse> {
     if (this.state.getMode() === 'training') {
-      const explanation = await this.training.explainAsync(answer, topic, this.state.history())
+      const explanation = await this.training.explainAsync(
+        answer,
+        topic,
+        this.state.history(),
+        this.lastFusedEmotion,
+      )
       return this.buildResponse(explanation, this.currentCard, null, false)
     }
 
@@ -346,8 +356,12 @@ export class TeacherIntelligence {
 
   private async routeAnswer(text: string): Promise<TeacherResponse> {
     if (this.state.getMode() === 'training') {
-      // В обучении «ответ» — это вопрос/реплика ученика: объясняем как профессор.
-      const explanation = await this.training.explainAsync(text, this.currentTopic(), this.state.history())
+      const explanation = await this.training.explainAsync(
+        text,
+        this.currentTopic(),
+        this.state.history(),
+        this.lastFusedEmotion,
+      )
       return this.buildResponse(explanation, null, null, false)
     }
     return this.evaluateResponse(text, this.currentTopic(), this.state.getDifficulty())
@@ -355,7 +369,6 @@ export class TeacherIntelligence {
 
   private async handleExplain(text: string): Promise<TeacherResponse> {
     if (this.state.getMode() === 'exam') {
-      // Экзаменатор не объясняет — мягко возвращает к вопросу без ответа.
       const card = this.currentCard
       const nudge =
         this.lang === 'en'
@@ -366,7 +379,12 @@ export class TeacherIntelligence {
       const socratic = card ? ` ${this.generator.socraticFollowUp(card, this.attempt + 1)}` : ''
       return this.buildResponse(`${nudge}${socratic}`.trim(), card, null, false)
     }
-    const explanation = await this.training.explainAsync(text, this.currentTopic(), this.state.history())
+    const explanation = await this.training.explainAsync(
+      text,
+      this.currentTopic(),
+      this.state.history(),
+      this.lastFusedEmotion,
+    )
     return this.buildResponse(explanation, null, null, false)
   }
 
@@ -428,36 +446,51 @@ export class TeacherIntelligence {
     return this.buildResponse(line, null, null, false)
   }
 
-  /** Реакция на данные камеры: проактивный «понятно?» или напоминание о вопросе. */
+  /** Реакция на камеру: эмоции + внимание — как живой преподаватель. */
   private handleEngagement(fused: FusedContext): void {
     this.cfg.callbacks?.onEngagement?.(fused)
+    this.lastFusedEmotion = fused.emotion
     if (!this.running || this.busy) return
     if (this.duplex?.isAiSpeaking()) return
     if (this.duplex && this.duplex.getTurn() !== 'idle') return
 
     const now = Date.now()
 
-    // Обучение: заметили замешательство — сами предлагаем зайти иначе.
-    if (
-      this.state.getMode() === 'training' &&
-      this.persona.proactiveClarify &&
-      (fused.emotion === 'confused' || fused.emotion === 'frustrated') &&
-      now - this.lastProactiveMs > PROACTIVE_COOLDOWN_MS
-    ) {
-      this.lastProactiveMs = now
-      void this.deliver(this.buildResponse(clarifyPrompt(this.lang), this.currentCard, null, false))
-      return
-    }
-
-    // Любой режим: ученик отвлёкся/отошёл — напоминаем о вопросе.
+    // Любой режим: ученик отвлёкся/отошёл — напоминаем (варианты фраз).
     if (
       (fused.engagement === 'distracted' || fused.engagement === 'absent') &&
+      fused.emotion !== 'bored' &&
+      fused.emotion !== 'tired' &&
       now - this.lastReengageMs > REENGAGE_COOLDOWN_MS
     ) {
       this.lastReengageMs = now
-      const line = reengagePrompt(this.lang, this.state.getMode())
+      const line = reengageReactiveLine(this.lang, this.state.getMode(), now)
       const say = this.currentCard ? `${line} ${this.currentCard.speak}` : line
       void this.deliver(this.buildResponse(say, this.currentCard, null, false))
+      return
+    }
+
+    // Обучение: реакция на эмоцию с камеры (не спамим одну и ту же).
+    if (
+      this.state.getMode() === 'training' &&
+      this.persona.proactiveClarify &&
+      fused.emotionConfidence >= 0.38 &&
+      fused.emotion !== 'neutral' &&
+      now - this.lastEmotionReactMs > EMOTION_COOLDOWN_MS &&
+      now - this.lastProactiveMs > PROACTIVE_COOLDOWN_MS
+    ) {
+      const line = emotionReactiveLine(this.lang, fused.emotion, now)
+      if (line) {
+        this.lastEmotionReactMs = now
+        this.lastProactiveMs = now
+        // При замешательстве иногда сразу переобъясняем тему проще.
+        if (fused.emotion === 'confused' && this.cfg.sectionTitle) {
+          const alt = this.training.alternativeExplanation(this.cfg.sectionTitle, this.currentTopic())
+          void this.deliver(this.buildResponse(`${line} ${alt}`, this.currentCard, null, false))
+          return
+        }
+        void this.deliver(this.buildResponse(line, this.currentCard, null, false))
+      }
     }
   }
 

@@ -63,6 +63,10 @@ export class ContextGraph {
     this.link('gaze_away', 'integrity_risk', 0.25)
     this.link('frustrated', 'needs_support', 0.8)
     this.link('confused', 'needs_support', 0.7)
+    this.link('bored', 'attention_drop', 0.55)
+    this.link('tired', 'attention_drop', 0.5)
+    this.link('tired', 'needs_support', 0.45)
+    this.link('curious', 'can_advance', 0.55)
     this.link('lab_error', 'needs_support', 0.5)
     this.link('confident', 'can_advance', 0.7)
   }
@@ -107,6 +111,9 @@ export class ContextGraph {
     if (sig.emotion === 'frustrated') this.bump('frustrated', 0.7 * sig.confidence + 0.3, at)
     if (sig.emotion === 'confused') this.bump('confused', 0.6 * sig.confidence + 0.3, at)
     if (sig.emotion === 'confident') this.bump('confident', 0.5 * sig.confidence + 0.3, at)
+    if (sig.emotion === 'bored') this.bump('bored', 0.55 * sig.confidence + 0.25, at)
+    if (sig.emotion === 'tired') this.bump('tired', 0.5 * sig.confidence + 0.25, at)
+    if (sig.emotion === 'curious') this.bump('curious', 0.5 * sig.confidence + 0.25, at)
     this.propagate(at)
     this.recompute(at)
   }
@@ -154,14 +161,35 @@ export class ContextGraph {
   }
 
   private dominantEmotion(at: number): { emotion: EmotionState; confidence: number } {
+    // Если камера только что дала эмоцию с хорошей уверенностью — не теряем её в графе.
+    if (this.vision.emotion !== 'neutral' && this.vision.confidence >= 0.35) {
+      const fresh =
+        this.vision.emotion === 'bored'
+          ? this.activationOf('bored', at)
+          : this.vision.emotion === 'tired'
+            ? this.activationOf('tired', at)
+            : this.vision.emotion === 'curious'
+              ? this.activationOf('curious', at)
+              : this.activationOf(this.vision.emotion, at)
+      if (fresh >= 0.2 || this.vision.confidence >= 0.45) {
+        return {
+          emotion: this.vision.emotion,
+          confidence: clamp01(Math.max(this.vision.confidence, fresh)),
+        }
+      }
+    }
+
     const candidates: { emotion: EmotionState; energy: number }[] = [
       { emotion: 'frustrated', energy: this.activationOf('frustrated', at) },
       { emotion: 'confused', energy: this.activationOf('confused', at) },
       { emotion: 'confident', energy: this.activationOf('confident', at) },
+      { emotion: 'bored', energy: this.activationOf('bored', at) },
+      { emotion: 'tired', energy: this.activationOf('tired', at) },
+      { emotion: 'curious', energy: this.activationOf('curious', at) },
     ]
     candidates.sort((a, b) => b.energy - a.energy)
     const top = candidates[0]!
-    if (top.energy < 0.25) return { emotion: 'neutral', confidence: 0.4 }
+    if (top.energy < 0.22) return { emotion: 'neutral', confidence: 0.4 }
     return { emotion: top.emotion, confidence: clamp01(top.energy) }
   }
 

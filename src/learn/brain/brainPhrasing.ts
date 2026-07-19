@@ -32,24 +32,65 @@ function seedFrom(s: string): number {
 }
 
 const OPEN_RU: Record<TutorTone, readonly string[]> = {
-  strict: ['Слушаю внимательно.', 'Отвечайте по существу.', 'Итак, вопрос такой.'],
-  neutral: ['Хорошо.', 'Идём дальше.', 'Продолжим.'],
-  warm: ['Ничего страшного.', 'Давайте вместе.', 'Спокойно, разберёмся.'],
-  encouraging: ['Уже неплохо!', 'Вы на верном пути.', 'Отлично, что пробуете!'],
+  strict: [
+    'Слушаю внимательно.',
+    'Отвечайте по существу.',
+    'Итак, вопрос такой.',
+    'Соберитесь — сейчас важный момент.',
+  ],
+  neutral: ['Хорошо.', 'Идём дальше.', 'Продолжим.', 'Смотрите.', 'Так, дальше.'],
+  warm: [
+    'Ничего страшного.',
+    'Давайте вместе.',
+    'Спокойно, разберёмся.',
+    'Я с вами, не торопитесь.',
+    'Нормально, что сложно — сейчас помогу.',
+  ],
+  encouraging: [
+    'Уже неплохо!',
+    'Вы на верном пути.',
+    'Отлично, что пробуете!',
+    'Вот это уже мысль!',
+    'Хороший ход, продолжайте.',
+  ],
 }
 
 const OPEN_EN: Record<TutorTone, readonly string[]> = {
-  strict: ['Listen carefully.', 'Answer to the point.', 'Here is the question.'],
-  neutral: ['Good.', 'Let us continue.', 'Moving on.'],
-  warm: ['No worries.', 'Let us do it together.', 'Relax, we will figure it out.'],
-  encouraging: ['Nice try!', 'You are on the right track.', 'Great that you are trying!'],
+  strict: ['Listen carefully.', 'Answer to the point.', 'Here is the question.', 'Focus — this matters.'],
+  neutral: ['Good.', 'Let us continue.', 'Moving on.', 'Look.', 'Next.'],
+  warm: [
+    'No worries.',
+    'Let us do it together.',
+    'Relax, we will figure it out.',
+    'I am with you — no rush.',
+    'Hard is fine — I will help.',
+  ],
+  encouraging: [
+    'Nice try!',
+    'You are on the right track.',
+    'Great that you are trying!',
+    'That is a real thought!',
+    'Good move — keep going.',
+  ],
 }
 
 const OPEN_UZ: Record<TutorTone, readonly string[]> = {
-  strict: ['Diqqat bilan tinglang.', 'Mavzu bo‘yicha javob bering.', 'Mana savol.'],
-  neutral: ['Yaxshi.', 'Davom etamiz.', 'Keyingisiga o‘tamiz.'],
-  warm: ['Xavotir olmang.', 'Birga hal qilamiz.', 'Xotirjam, tushunib olamiz.'],
-  encouraging: ['Yaxshi urinish!', 'To‘g‘ri yo‘ldasiz.', 'Harakat qilayotganingiz zo‘r!'],
+  strict: ['Diqqat bilan tinglang.', 'Mavzu bo‘yicha javob bering.', 'Mana savol.', 'Diqqat — muhim joy.'],
+  neutral: ['Yaxshi.', 'Davom etamiz.', 'Keyingisiga o‘tamiz.', 'Qarang.', 'Keyingi.'],
+  warm: [
+    'Xavotir olmang.',
+    'Birga hal qilamiz.',
+    'Xotirjam, tushunib olamiz.',
+    'Men siz bilanman — shoshilmang.',
+    'Qiyin bo‘lishi oddiy — yordam beraman.',
+  ],
+  encouraging: [
+    'Yaxshi urinish!',
+    'To‘g‘ri yo‘ldasiz.',
+    'Harakat qilayotganingiz zo‘r!',
+    'Mana, bu fikr!',
+    'Yaxshi qadam — davom eting.',
+  ],
 }
 
 function opener(lang: AssistantLang, tone: TutorTone, seed: number): string {
@@ -95,9 +136,65 @@ function explainBody(ctx: PhraseContext): string {
 }
 
 function reengageBody(lang: AssistantLang): string {
-  if (lang === 'en') return 'Look back at the screen — I need you here to continue.'
-  if (lang === 'uz') return 'Ekranga qarang — davom etish uchun diqqatingiz kerak.'
-  return 'Вернитесь, пожалуйста, к экрану — продолжим, когда вы готовы.'
+  if (lang === 'en') {
+    return pick(
+      [
+        'Look back at the screen — I need you here to continue.',
+        'Come back to me for a moment — then we go on.',
+        'Eyes on the lesson, please — we were right in the middle.',
+      ],
+      Date.now(),
+    )
+  }
+  if (lang === 'uz') {
+    return pick(
+      [
+        'Ekranga qarang — davom etish uchun diqqatingiz kerak.',
+        'Bir zum menga qayting — keyin davom.',
+        'Darsga qarang — o‘rtada edik.',
+      ],
+      Date.now(),
+    )
+  }
+  return pick(
+    [
+      'Вернитесь, пожалуйста, к экрану — продолжим, когда вы готовы.',
+      'Я вас немного потерял взглядом — вернитесь, и пойдём дальше.',
+      'Глаза на урок — мы как раз на важном месте.',
+    ],
+    Date.now(),
+  )
+}
+
+function encourageBody(lang: AssistantLang): string {
+  if (lang === 'en') {
+    return pick(
+      [
+        'Take a breath. You know more than you think — let us try again gently.',
+        'Easy. One small step is enough right now.',
+        'I believe you can do this — we will go slowly.',
+      ],
+      Date.now(),
+    )
+  }
+  if (lang === 'uz') {
+    return pick(
+      [
+        'Chuqur nafas oling. O‘zingiz o‘ylaganingizdan ko‘proq bilasiz — yana urinamiz.',
+        'Oson. Hozir bitta kichik qadam yetarli.',
+        'Siz uddalaysiz — sekin-asta boramiz.',
+      ],
+      Date.now(),
+    )
+  }
+  return pick(
+    [
+      'Выдохните. Вы знаете больше, чем кажется — давайте попробуем ещё раз, спокойно.',
+      'Без паники. Сейчас хватит одного маленького шага.',
+      'Я верю, что у вас получится — пойдём медленно.',
+    ],
+    Date.now(),
+  )
 }
 
 function integrityBody(lang: AssistantLang): string {
@@ -108,12 +205,6 @@ function integrityBody(lang: AssistantLang): string {
     return 'Halol ishlaymiz — o‘zingiz tushunganingizni ayting, xato bo‘lsa ham qo‘rqmang.'
   }
   return 'Давайте честно — отвечайте своими словами, ошибиться здесь абсолютно нормально.'
-}
-
-function encourageBody(lang: AssistantLang): string {
-  if (lang === 'en') return 'Take a breath. You know more than you think — let us try again gently.'
-  if (lang === 'uz') return 'Chuqur nafas oling. O‘zingiz o‘ylaganingizdan ko‘proq bilasiz — yana urinamiz.'
-  return 'Выдохните. Вы знаете больше, чем кажется — давайте попробуем ещё раз, спокойно.'
 }
 
 function praiseAdvance(lang: AssistantLang, raise: boolean): string {

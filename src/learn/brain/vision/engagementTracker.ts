@@ -1,20 +1,17 @@
 /**
  * Computer Vision & Engagement Tracking.
  *
- * Обрабатывает видеопоток веб-камеры в реальном времени и выдаёт VisionSignal:
- *  • присутствие и число лиц (списывание вдвоём),
- *  • направление взгляда/поворот головы (смотрит ли в экран лаборатории),
- *  • накопленное время «взгляд в сторону»,
- *  • подозрение на второй экран/телефон,
- *  • грубую оценку эмоции (нейтрально/растерян/фрустрация/уверен/скучает).
+ * Обрабатывает видеопоток веб-камеры и выдаёт VisionSignal:
+ *  • присутствие и число лиц,
+ *  • взгляд / положение лица в кадре,
+ *  • вовлечённость и целостность (второй экран),
+ *  • расширенная эвристика эмоций: нейтрально / растерян / напряжён /
+ *    уверен / скучает / любопытен / устал.
  *
- * Работает без внешних ML-зависимостей: попиксельный анализ на уменьшенном
- * кадре + опциональный нативный FaceDetector. Анализатор лица подключаемый
- * (FaceAnalyzer) — при желании можно подставить модель с ландмарками/эмоциями.
+ * Без внешних ML: пиксели + опциональный FaceDetector. FaceAnalyzer подключаемый.
  */
 import type { EmotionState, EngagementLevel, VisionSignal } from '../brainTypes'
 
-// --- Нативный FaceDetector (экспериментальный API, нет в стандартных d.ts) ---
 interface NativeDetectedFace {
   boundingBox: { x: number; y: number; width: number; height: number }
 }
@@ -31,16 +28,11 @@ function getFaceDetectorCtor(): FaceDetectorCtor | null {
 export interface FaceObservation {
   present: boolean
   count: number
-  /** Центр лица по X 0..1 (0 — левый край кадра). */
   cx: number
-  /** Центр лица по Y 0..1. */
   cy: number
-  /** Относительный размер лица 0..1 (доля кадра). */
   size: number
   brightness: number
-  /** Межкадровое движение 0..1. */
   motion: number
-  /** Подозрение на второй экран/телефон в кадре. */
   secondaryScreen: boolean
 }
 
@@ -56,21 +48,28 @@ export interface FaceAnalyzer {
   analyze(input: FrameInput): FaceObservation
 }
 
+/** Более терпимый к оттенкам кожи детектор (YCbCr + RGB). */
 function isSkin(r: number, g: number, b: number): boolean {
   const max = Math.max(r, g, b)
   const min = Math.min(r, g, b)
-  return (
-    r > 95 &&
-    g > 40 &&
-    b > 20 &&
-    max - min > 15 &&
-    Math.abs(r - g) > 15 &&
+  const rgbOk =
+    r > 60 &&
+    g > 30 &&
+    b > 15 &&
+    max - min > 12 &&
+    Math.abs(r - g) > 10 &&
     r > g &&
-    r > b
-  )
+    r > b * 0.85
+
+  // YCbCr-подобная проверка для разных тонов кожи.
+  const y = 0.299 * r + 0.587 * g + 0.114 * b
+  const cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b
+  const cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b
+  const ycbcrOk = y > 40 && cb > 77 && cb < 140 && cr > 125 && cr < 185
+
+  return rgbOk || ycbcrOk
 }
 
-/** Эвристический анализатор по пикселям — работает везде, без моделей. */
 export class HeuristicFaceAnalyzer implements FaceAnalyzer {
   analyze(input: FrameInput): FaceObservation {
     const { data, width, height, prevLuma, lumaOut } = input
@@ -101,17 +100,16 @@ export class HeuristicFaceAnalyzer implements FaceAnalyzer {
         sumY += y
       }
 
-      // Второй экран/телефон: очень яркий холодный (синеватый) блик в нижней части.
       if (luma > 0.82 && b >= r && y > height * 0.55) glowCount++
     }
 
     const brightness = brightnessSum / total
     const motion = prevLuma ? Math.min(1, (motionSum / total) * 6) : 0
     const coverage = skinCount / total
-    const present = coverage > 0.02
+    const present = coverage > 0.015
     const cx = skinCount > 0 ? sumX / skinCount / width : 0.5
     const cy = skinCount > 0 ? sumY / skinCount / height : 0.5
-    const size = Math.min(1, coverage * 4)
+    const size = Math.min(1, coverage * 4.2)
     const secondaryScreen = glowCount / total > 0.03
 
     return { present, count: present ? 1 : 0, cx, cy, size, brightness, motion, secondaryScreen }
@@ -120,7 +118,6 @@ export class HeuristicFaceAnalyzer implements FaceAnalyzer {
 
 export interface EngagementTrackerOptions {
   fps?: number
-  /** Разрешение уменьшенного кадра для анализа. */
   sampleWidth?: number
   sampleHeight?: number
   analyzer?: FaceAnalyzer
@@ -149,8 +146,10 @@ export class EngagementTracker {
   private emotionSmoothed: EmotionState = 'neutral'
   private emotionHold = 0
   private motionHistory: number[] = []
+  private sizeHistory: number[] = []
+  private lowMotionStreak = 0
+  private leanInStreak = 0
 
-  // Нативный детектор лиц (если доступен) — запускается реже, кэширует результат.
   private faceDetector: NativeFaceDetector | null = null
   private lastFaces: NativeDetectedFace[] | null = null
   private lastDetectMs = 0
@@ -160,8 +159,8 @@ export class EngagementTracker {
     this.video = video
     this.analyzer = options.analyzer ?? new HeuristicFaceAnalyzer()
     this.onSignal = options.onSignal
-    this.sampleW = options.sampleWidth ?? 160
-    this.sampleH = options.sampleHeight ?? 120
+    this.sampleW = options.sampleWidth ?? 176
+    this.sampleH = options.sampleHeight ?? 132
     this.intervalMs = Math.round(1000 / Math.min(12, Math.max(3, options.fps ?? 6)))
     const len = this.sampleW * this.sampleH
     this.lumaA = new Float32Array(len)
@@ -201,7 +200,7 @@ export class EngagementTracker {
   private maybeDetectFaces(): void {
     if (!this.faceDetector || !this.canvas || this.detecting) return
     const now = Date.now()
-    if (now - this.lastDetectMs < 450) return
+    if (now - this.lastDetectMs < 400) return
     this.detecting = true
     this.lastDetectMs = now
     this.faceDetector
@@ -217,28 +216,71 @@ export class EngagementTracker {
       })
   }
 
-  private classifyEmotion(onScreen: boolean, yaw: number, motion: number): EmotionState {
+  /**
+   * Эмоция по позе, движению, размеру лица и устойчивости.
+   * Не ML-аутентичные «выражения», но стабильные педагогические сигналы.
+   */
+  private classifyEmotion(
+    onScreen: boolean,
+    yaw: number,
+    pitch: number,
+    motion: number,
+    size: number,
+    brightness: number,
+  ): EmotionState {
     this.motionHistory.push(motion)
-    if (this.motionHistory.length > 12) this.motionHistory.shift()
+    if (this.motionHistory.length > 16) this.motionHistory.shift()
+    this.sizeHistory.push(size)
+    if (this.sizeHistory.length > 10) this.sizeHistory.shift()
+
     const avgMotion =
       this.motionHistory.reduce((s, v) => s + v, 0) / Math.max(1, this.motionHistory.length)
+    const sizeDelta =
+      this.sizeHistory.length >= 2
+        ? Math.abs(this.sizeHistory[this.sizeHistory.length - 1]! - this.sizeHistory[0]!)
+        : 0
+
+    if (avgMotion < 0.07) this.lowMotionStreak++
+    else this.lowMotionStreak = Math.max(0, this.lowMotionStreak - 2)
+
+    if (onScreen && size > 0.22 && sizeDelta > 0.04) this.leanInStreak++
+    else this.leanInStreak = Math.max(0, this.leanInStreak - 1)
 
     let candidate: EmotionState = 'neutral'
-    if (motion > 0.4 && !onScreen) candidate = 'frustrated'
-    else if (!onScreen && avgMotion < 0.08) candidate = 'bored'
-    else if (onScreen && avgMotion < 0.06 && Math.abs(yaw) > 0.18) candidate = 'confused'
-    else if (onScreen && avgMotion > 0.12 && avgMotion < 0.35 && Math.abs(yaw) < 0.15) {
+
+    // Напряжение / фрустрация: резко двигается и смотрит мимо.
+    if (motion > 0.38 && (!onScreen || Math.abs(yaw) > 0.28)) candidate = 'frustrated'
+    // Усталость: лицо ниже центра, мало движения, долго.
+    else if (onScreen && pitch < -0.22 && this.lowMotionStreak >= 6) candidate = 'tired'
+    // Скука: в кадре или чуть в стороне, почти застыл.
+    else if (this.lowMotionStreak >= 8 && (onScreen || Math.abs(yaw) < 0.35)) candidate = 'bored'
+    // Замешательство: смотрит, но «замер» с поворотом головы.
+    else if (onScreen && avgMotion < 0.07 && Math.abs(yaw) > 0.16) candidate = 'confused'
+    // Любопытство: подался ближе / крупнее лицо + умеренное движение.
+    else if (onScreen && (this.leanInStreak >= 4 || (size > 0.28 && avgMotion > 0.1 && avgMotion < 0.32))) {
+      candidate = 'curious'
+    }
+    // Уверенность: центр кадра, стабильный умеренный motion.
+    else if (
+      onScreen &&
+      avgMotion > 0.1 &&
+      avgMotion < 0.32 &&
+      Math.abs(yaw) < 0.14 &&
+      Math.abs(pitch) < 0.2 &&
+      sizeDelta < 0.08
+    ) {
       candidate = 'confident'
     }
+    // Темно — снижаем уверенность в «уверен», ближе к neutral/tired.
+    else if (onScreen && brightness < 0.18 && this.lowMotionStreak >= 4) candidate = 'tired'
 
-    // Гистерезис, чтобы эмоция не мигала на шуме.
     if (candidate === this.emotionSmoothed) {
-      this.emotionHold = Math.min(6, this.emotionHold + 1)
+      this.emotionHold = Math.min(8, this.emotionHold + 1)
     } else {
       this.emotionHold -= 1
       if (this.emotionHold <= 0) {
         this.emotionSmoothed = candidate
-        this.emotionHold = 2
+        this.emotionHold = 3
       }
     }
     return this.emotionSmoothed
@@ -253,7 +295,7 @@ export class EngagementTracker {
     try {
       ctx.drawImage(this.video, 0, 0, this.sampleW, this.sampleH)
     } catch {
-      return // кадр ещё не готов / cross-origin
+      return
     }
 
     let image: ImageData
@@ -276,7 +318,6 @@ export class EngagementTracker {
 
     this.maybeDetectFaces()
 
-    // Уточнение по нативному детектору лиц, если результат свежий.
     let cx = obs.cx
     let cy = obs.cy
     let size = obs.size
@@ -290,7 +331,7 @@ export class EngagementTracker {
         const bb = primary.boundingBox
         cx = (bb.x + bb.width / 2) / this.sampleW
         cy = (bb.y + bb.height / 2) / this.sampleH
-        size = Math.min(1, (bb.width * bb.height) / (this.sampleW * this.sampleH) * 3)
+        size = Math.min(1, ((bb.width * bb.height) / (this.sampleW * this.sampleH)) * 3)
       }
     }
 
@@ -298,7 +339,7 @@ export class EngagementTracker {
     const yaw = (cx - 0.5) * 2
     const pitch = (0.45 - cy) * 2
     const onScreen =
-      present && Math.abs(cx - 0.5) < 0.24 && cy > 0.15 && cy < 0.75 && size > 0.08
+      present && Math.abs(cx - 0.5) < 0.26 && cy > 0.12 && cy < 0.78 && size > 0.07
 
     if (onScreen) {
       this.lookAwaySinceMs = null
@@ -307,15 +348,18 @@ export class EngagementTracker {
     }
     const lookingAwayMs = this.lookAwaySinceMs ? now - this.lookAwaySinceMs : 0
 
-    const emotion = this.classifyEmotion(onScreen, yaw, obs.motion)
+    const emotion = this.classifyEmotion(onScreen, yaw, pitch, obs.motion, size, obs.brightness)
 
     let engagement: EngagementLevel = 'focused'
     if (count > 1 || obs.secondaryScreen) engagement = 'suspicious'
     else if (!present || lookingAwayMs > AWAY_ABSENT_MS) engagement = 'absent'
     else if (!onScreen) engagement = 'distracted'
+    else if (emotion === 'bored' || emotion === 'tired') engagement = 'distracted'
 
-    // Достоверность выше, когда лицо крупное и стабильное.
-    const confidence = Math.min(1, size * 1.5 + (this.faceDetector ? 0.2 : 0))
+    const confidence = Math.min(
+      1,
+      size * 1.4 + (this.faceDetector ? 0.22 : 0) + (this.emotionHold >= 4 ? 0.15 : 0),
+    )
 
     const signal: VisionSignal = {
       tsMs: now,

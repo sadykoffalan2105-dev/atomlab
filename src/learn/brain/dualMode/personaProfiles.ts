@@ -52,19 +52,63 @@ export function switchAnnouncement(lang: AssistantLang, to: TutorMode): string {
 
 /** Проактивный вопрос при замешательстве (только режим обучения). */
 export function clarifyPrompt(lang: AssistantLang): string {
-  if (lang === 'en') return 'Is this explanation clear, or should I approach it from another angle?'
-  if (lang === 'uz') return 'Bu tushuntirish tushunarlimi yoki boshqa tomondan yondashaymi?'
-  return 'Тебе понятно это объяснение или зайти с другой стороны?'
+  const seed = Date.now()
+  const ru = [
+    'Тебе понятно это объяснение или зайти с другой стороны?',
+    'Если что-то поплыло — скажи, разберём проще.',
+    'Хочешь, я повторю короче и на примере?',
+  ]
+  const en = [
+    'Is this explanation clear, or should I approach it from another angle?',
+    'If anything feels fuzzy — say so, we will simplify.',
+    'Want a shorter version with an example?',
+  ]
+  const uz = [
+    'Bu tushuntirish tushunarlimi yoki boshqa tomondan yondashaymi?',
+    'Biror narsa noaniq bo‘lsa — ayting, soddalashtiramiz.',
+    'Qisqaroq va misol bilan takrorlaymi?',
+  ]
+  const list = lang === 'en' ? en : lang === 'uz' ? uz : ru
+  return list[seed % list.length]!
 }
 
 /** Напоминание о вопросе, если ученик отвлёкся. */
 export function reengagePrompt(lang: AssistantLang, mode: TutorMode): string {
+  const seed = Date.now()
   if (mode === 'exam') {
-    if (lang === 'en') return 'Focus, please — the question is still waiting for your answer.'
-    if (lang === 'uz') return 'Diqqat qiling — savol hali javobingizni kutyapti.'
-    return 'Соберитесь, пожалуйста — вопрос всё ещё ждёт вашего ответа.'
+    const ru = [
+      'Соберитесь, пожалуйста — вопрос всё ещё ждёт вашего ответа.',
+      'Экзамен идёт. Взгляд на экран — и отвечайте.',
+      'Фокус: вопрос на столе. Ваш устный ответ?',
+    ]
+    const en = [
+      'Focus, please — the question is still waiting for your answer.',
+      'Exam mode. Eyes on screen — answer now.',
+      'Focus: the question is waiting. Your oral answer?',
+    ]
+    const uz = [
+      'Diqqat qiling — savol hali javobingizni kutyapti.',
+      'Imtihon davom etmoqda. Ekranga qarang — javob bering.',
+      'Diqqat: savol stol ustida. Og‘zaki javobingiz?',
+    ]
+    const list = lang === 'en' ? en : lang === 'uz' ? uz : ru
+    return list[seed % list.length]!
   }
-  if (lang === 'en') return 'Are you still with me? We can continue whenever you are ready.'
-  if (lang === 'uz') return 'Men bilan birgamisiz? Tayyor bo‘lsangiz davom etamiz.'
-  return 'Вы ещё со мной? Продолжим, когда будете готовы.'
+  const ru = [
+    'Вы ещё со мной? Продолжим, когда будете готовы.',
+    'Я здесь. Вернитесь к экрану — и пойдём дальше.',
+    'Кажется, отвлеклись. Скажите «дальше», когда готовы.',
+  ]
+  const en = [
+    'Are you still with me? We can continue whenever you are ready.',
+    'I am here. Come back to the screen and we continue.',
+    'Looks like a distraction. Say “next” when ready.',
+  ]
+  const uz = [
+    'Men bilan birgamisiz? Tayyor bo‘lsangiz davom etamiz.',
+    'Men shu yerdaman. Ekranga qayting — davom.',
+    'Chalg‘iganga o‘xshaysiz. Tayyor bo‘lsangiz “davom” deng.',
+  ]
+  const list = lang === 'en' ? en : lang === 'uz' ? uz : ru
+  return list[seed % list.length]!
 }

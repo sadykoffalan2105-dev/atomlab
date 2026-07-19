@@ -16,7 +16,14 @@ export type Modality = 'vision' | 'audio' | 'lab'
 export type EngagementLevel = 'focused' | 'distracted' | 'absent' | 'suspicious'
 
 /** Грубая оценка эмоционального состояния ученика. */
-export type EmotionState = 'neutral' | 'confused' | 'frustrated' | 'confident' | 'bored'
+export type EmotionState =
+  | 'neutral'
+  | 'confused'
+  | 'frustrated'
+  | 'confident'
+  | 'bored'
+  | 'curious'
+  | 'tired'
 
 /** Тон преподавателя, выбираемый педагогической стратегией. */
 export type TutorTone = 'strict' | 'neutral' | 'warm' | 'encouraging'

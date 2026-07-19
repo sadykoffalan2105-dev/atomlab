@@ -20,6 +20,8 @@ const EMOTION_RU: Record<EmotionState, string> = {
   frustrated: 'напряжён',
   confident: 'уверен',
   bored: 'скучает',
+  curious: 'любопытен',
+  tired: 'устал',
 }
 
 const ENGAGEMENT_RU: Record<EngagementLevel, string> = {

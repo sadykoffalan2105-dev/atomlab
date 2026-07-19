@@ -26,6 +26,8 @@ const EMOTION_LABEL: Record<EmotionState, Record<LocaleKey, string>> = {
   frustrated: { ru: 'напряжён', en: 'tense', uz: 'zo‘riqqan' },
   confident: { ru: 'уверен', en: 'confident', uz: 'ishonchli' },
   bored: { ru: 'скучает', en: 'bored', uz: 'zerikkan' },
+  curious: { ru: 'любопытен', en: 'curious', uz: 'qiziqqan' },
+  tired: { ru: 'устал', en: 'tired', uz: 'charchagan' },
 }
 
 const ENGAGEMENT_LABEL: Record<EngagementLevel, Record<LocaleKey, string>> = {
@@ -49,6 +51,8 @@ const PACE_HINT: Record<EmotionState, Record<LocaleKey, string>> = {
   frustrated: { ru: 'сбавляю темп', en: 'slowing down', uz: 'sur’atni pasaytiraman' },
   confident: { ru: 'ускоряюсь', en: 'speeding up', uz: 'tezlashtiraman' },
   bored: { ru: 'делаю живее', en: 'making it livelier', uz: 'jonliroq qilaman' },
+  curious: { ru: 'углубляю тему', en: 'going deeper', uz: 'chuqurlashtiraman' },
+  tired: { ru: 'короче и мягче', en: 'shorter & gentler', uz: 'qisqa va yumshoq' },
 }
 
 function LiveTutorOverlay({
