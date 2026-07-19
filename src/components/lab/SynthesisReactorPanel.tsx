@@ -61,14 +61,15 @@ function IconCheck({ className }: { className?: string }) {
 
 /**
  * Коэффициент с клавиатуры.
- * Пока печатаешь — 3D не трогаем (локальный draft).
- * Commit только на Enter / blur / стрелки ↑↓ — один апдейт, атомы не мигают.
+ * Пока печатаешь / переключаешь поля — 3D не трогаем (холд в LaboratoryPage).
+ * Commit на Enter / blur / ↑↓; onFocusChange для freeze Canvas.
  */
 function CoeffKeyboardInput({
   value,
   min,
   max,
   onChange,
+  onFocusChange,
   ariaLabel,
   highlightError,
   dimWhenOne = false,
@@ -77,6 +78,7 @@ function CoeffKeyboardInput({
   min: number
   max: number
   onChange: (n: number) => void
+  onFocusChange?: (focused: boolean) => void
   ariaLabel: string
   highlightError: boolean
   dimWhenOne?: boolean
@@ -92,12 +94,10 @@ function CoeffKeyboardInput({
   }, [value])
 
   const commit = useCallback(
-    (raw: string, opts?: { restoreIfEmpty?: boolean }) => {
+    (raw: string) => {
       const parsed = parseCoeffDraft(raw, min, max)
       if (parsed == null) {
-        if (opts?.restoreIfEmpty !== false) {
-          setDraft(String(value))
-        }
+        setDraft(String(value))
         return
       }
       setDraft(String(parsed))
@@ -109,6 +109,7 @@ function CoeffKeyboardInput({
   const onFocus = () => {
     focusedRef.current = true
     setFocused(true)
+    onFocusChange?.(true)
     setDraft(String(value))
   }
 
@@ -116,10 +117,10 @@ function CoeffKeyboardInput({
     focusedRef.current = false
     setFocused(false)
     commit(e.currentTarget.value)
+    onFocusChange?.(false)
   }
 
   const onInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    // Только цифры в draft — без onChange в родителя (превью стабильно).
     const next = e.target.value.replace(/[^\d]/g, '').slice(0, 4)
     setDraft(next)
   }
@@ -190,6 +191,7 @@ export function SynthesisReactorPanel({
   onClearSlots,
   onRequestRun,
   onSynthesisPrewarmIntent,
+  onCoeffUiFocusChange,
   message,
   canRun,
   synthesisRunning = false,
@@ -210,6 +212,8 @@ export function SynthesisReactorPanel({
   onClearSlots: () => void
   onRequestRun: () => void
   onSynthesisPrewarmIntent?: () => void
+  /** true пока фокус в любом поле коэффициента (freeze 3D). */
+  onCoeffUiFocusChange?: (focused: boolean) => void
   message: string | null
   canRun: boolean
   synthesisRunning?: boolean
@@ -220,6 +224,43 @@ export function SynthesisReactorPanel({
 }) {
   const { locale, t } = useT()
   const coeffErr = highlightEquationError
+  const coeffFocusGenRef = useRef(0)
+  const coeffFocusReleaseTimerRef = useRef<number | null>(null)
+
+  const reportCoeffFocus = useCallback(
+    (focused: boolean) => {
+      if (focused) {
+        coeffFocusGenRef.current += 1
+        if (coeffFocusReleaseTimerRef.current != null) {
+          clearTimeout(coeffFocusReleaseTimerRef.current)
+          coeffFocusReleaseTimerRef.current = null
+        }
+        onCoeffUiFocusChange?.(true)
+        return
+      }
+      const gen = coeffFocusGenRef.current
+      if (coeffFocusReleaseTimerRef.current != null) {
+        clearTimeout(coeffFocusReleaseTimerRef.current)
+      }
+      coeffFocusReleaseTimerRef.current = window.setTimeout(() => {
+        coeffFocusReleaseTimerRef.current = null
+        // Новый focus (O₂→K) поднял gen — не снимаем freeze.
+        if (coeffFocusGenRef.current !== gen) return
+        onCoeffUiFocusChange?.(false)
+      }, 140)
+    },
+    [onCoeffUiFocusChange],
+  )
+
+  useEffect(() => {
+    if (open) return
+    coeffFocusGenRef.current += 1
+    if (coeffFocusReleaseTimerRef.current != null) {
+      clearTimeout(coeffFocusReleaseTimerRef.current)
+      coeffFocusReleaseTimerRef.current = null
+    }
+    onCoeffUiFocusChange?.(false)
+  }, [open, onCoeffUiFocusChange])
 
   const productStrings = useMemo(
     () => (productCompound ? getCompoundLocaleStrings(productCompound, locale, t) : null),
@@ -281,6 +322,7 @@ export function SynthesisReactorPanel({
                         dimWhenOne
                         ariaLabel={t('reactor.coeffFor', { symbol: termSymbolDisplay(term) })}
                         onChange={(n) => onCoeffChange(term.id, n)}
+                        onFocusChange={reportCoeffFocus}
                       />
                       <span className={panelStyles.termSymbol}>{termSymbolDisplay(term)}</span>
                       <button
@@ -327,6 +369,7 @@ export function SynthesisReactorPanel({
                   dimWhenOne
                   ariaLabel={t('reactor.productCoeffAria')}
                   onChange={onProductCoeffChange}
+                  onFocusChange={reportCoeffFocus}
                 />
                 {productCompound ? (
                   <span className={panelStyles.catalogProductChip}>

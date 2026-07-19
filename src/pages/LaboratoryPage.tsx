@@ -21,6 +21,7 @@ import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
 import { isReactorCoeffEditing } from '../lab/reactorCoeffEditMode'
 import { estimatePreviewAtomCountFromTerms } from '../lab/atomlabPerfGuard'
 import { useReactorPreviewTermsStable } from '../lab/useReactorPreviewTermsStable'
+import { useReactorCanvasTermsHold } from '../lab/useReactorCanvasTermsHold'
 import { isReactorBalancedFast } from '../wasm/reactorBalanceWasm'
 import { prefetchAtomlabWasm } from '../wasm/atomlabWasmShared'
 import {
@@ -402,14 +403,12 @@ export function LaboratoryPage() {
 
   const onCoeffChange = useCallback((id: string, coeff: number) => {
     const c = Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(Number.isFinite(coeff) ? coeff : 1)))
-    // Не блокируем +/- тяжёлым синхронным деревом LabScene — иначе hitch на каждом клике.
-    startTransition(() => {
-      setSynthesisSettledProduct(null)
-      synthesisSettledProductRef.current = null
-      settledSnapshotRef.current = null
-      setSynthPhaseUi('')
-      setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
-    })
+    // Синхронно в UI; Canvas обновляется через useReactorCanvasTermsHold (freeze + idle).
+    setSynthesisSettledProduct(null)
+    synthesisSettledProductRef.current = null
+    settledSnapshotRef.current = null
+    setSynthPhaseUi('')
+    setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
   }, [])
 
   const openReactorCatalog = useCallback((intent: ReactorCatalogIntent) => {
@@ -567,6 +566,8 @@ export function LaboratoryPage() {
   }, [])
   const onSynthesisPhaseChange = useThrottledPhaseCallback(onSynthesisPhaseChangeRaw, 80)
 
+  const [coeffUiFocused, setCoeffUiFocused] = useState(false)
+
   const reactorPreviewTerms = useMemo(() => {
     if (!reactorOpen) return null
     return leftTerms.length >= 1 ? leftTerms : null
@@ -586,13 +587,20 @@ export function LaboratoryPage() {
   const reactorCoeffEditing =
     isReactorCoeffEditing(coeffEditBurst, editIdle, visualHold) ||
     coeffEditSync ||
-    coeffEditPulse
+    coeffEditPulse ||
+    coeffUiFocused
 
-  /** Canvas: stable shell + immediate при burst — атомы не пропадают при +/-. */
-  const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
+  /** Canvas: freeze на время ввода коэффициентов + idle debounce — нет vanish O₂→K. */
+  const heldCanvasTerms = useReactorCanvasTermsHold(
     reactorOpen,
     leftTerms,
-    deferredLeftTerms,
+    coeffUiFocused || !editIdle,
+    560,
+  )
+  const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
+    reactorOpen,
+    heldCanvasTerms,
+    heldCanvasTerms,
     coeffEditBurst,
   )
 
@@ -889,6 +897,7 @@ export function LaboratoryPage() {
           productCoeff={productCoeff}
           onRemoveTerm={onRemoveTerm}
           onCoeffChange={onCoeffChange}
+          onCoeffUiFocusChange={setCoeffUiFocused}
           onOpenCatalog={() => openReactorCatalog('selectProduct')}
           onProductCoeffChange={(c) => {
             setProductCoeff(Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(c))))

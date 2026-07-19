@@ -582,9 +582,14 @@ export function ReactorTermsPreview({
    * Стабильность — sticky slots / keyboard commit; FPS — electronFrameSkip.
    */
   const hotDense = (policy.hotCoeffEdit || coeffEditing) && n >= 8
+  /**
+   * Pre-synth: держим тёплый пул слотов (до 12), чтобы рост coeff
+   * не cold-mount'ил Bohr пачкой → hitch / пустой кадр.
+   */
+  const warmPool = holdPreview ? Math.min(16, Math.max(stickySlotCount, 12)) : stickySlotCount
   const mountBohrCount = Math.min(
     24,
-    Math.max(stickySlotCount, Math.min(poolSize, stickySlotCount + (holdPreview ? 0 : 2))),
+    Math.max(warmPool, Math.min(poolSize, stickySlotCount + (holdPreview ? 0 : 2))),
   )
   // Не режем визуал lite'ом — только реже пишем матрицы электронов.
   const editSkip = hotDense ? 3 : holdPreview ? 2 : 1
