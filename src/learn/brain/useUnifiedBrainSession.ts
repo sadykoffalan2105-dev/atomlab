@@ -146,7 +146,7 @@ export function useUnifiedBrainSession(options: UseUnifiedBrainOptions) {
         controller,
         lang: options.lang,
         questions: options.questions!,
-        bargeInEnabled: options.bargeInEnabled ?? true,
+        bargeInEnabled: options.bargeInEnabled ?? false,
         callbacks: {
           onQuestionChange: (index) => patch({ questionIndex: index }),
           onReasoning: (reasoning) => patch({ reasoning }),

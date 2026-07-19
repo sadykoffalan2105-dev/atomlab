@@ -23,8 +23,18 @@ type PuterWithChat = { ai?: { chat?: PuterChatFn } }
 
 /** Порядок предпочтения моделей — все бесплатны в Puter. */
 const PREFERRED_MODELS = ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4o'] as const
+const FAST_MODELS = ['gpt-4o-mini'] as const
 
 const CHAT_TIMEOUT_MS = 30_000
+const FAST_CHAT_TIMEOUT_MS = 9_000
+
+export type PuterChatOptions = {
+  /** Жёсткий таймаут на одну модель (мс). Для голосового диалога — короче. */
+  timeoutMs?: number
+  /** Только быстрая модель (для live-диалога). */
+  fast?: boolean
+  signal?: AbortSignal
+}
 
 function puterChatFn(): PuterChatFn | null {
   if (typeof window === 'undefined') return null
@@ -112,9 +122,17 @@ function lastUserText(messages: ChatMessage[]): string {
 export async function requestPuterChat(
   messages: ChatMessage[],
   ctx: LearnLocalAssistantContext,
-  signal?: AbortSignal,
+  signalOrOpts?: AbortSignal | PuterChatOptions,
 ): Promise<string | null> {
   if (typeof window === 'undefined') return null
+
+  const opts: PuterChatOptions =
+    signalOrOpts instanceof AbortSignal || signalOrOpts === undefined
+      ? { signal: signalOrOpts }
+      : signalOrOpts
+  const signal = opts.signal
+  const timeoutMs = opts.timeoutMs ?? (opts.fast ? FAST_CHAT_TIMEOUT_MS : CHAT_TIMEOUT_MS)
+  const models = opts.fast ? FAST_MODELS : PREFERRED_MODELS
 
   // Грузим Puter и (при возможности) авторизуемся. Если не вышло — уходим в null.
   try {
@@ -145,12 +163,17 @@ export async function requestPuterChat(
     })),
   ]
 
-  for (const model of PREFERRED_MODELS) {
+  for (const model of models) {
     if (signal?.aborted) return null
     try {
       const resp = await withTimeout(
-        chat(payload, { model, stream: false, temperature: 0.6 }),
-        CHAT_TIMEOUT_MS,
+        chat(payload, {
+          model,
+          stream: false,
+          temperature: opts.fast ? 0.45 : 0.6,
+          max_tokens: opts.fast ? 700 : undefined,
+        }),
+        timeoutMs,
         signal,
       )
       const text = extractText(resp).trim()

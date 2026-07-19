@@ -46,9 +46,8 @@ export class TrainingModeEngine {
   }
 
   /**
-   * Умное объяснение: сначала бесплатный облачный мозг (Puter GPT) с базой
-   * знаний урока — «мыслит как человек»; если недоступен, мгновенно отдаёт
-   * развёрнутый ответ из офлайн-базы. Никаких ключей и оплаты.
+   * Умное объяснение для live: быстрый Puter (9 с, одна модель) параллельно
+   * с мгновенной офлайн-базой. Если облако не успело — сразу качественный local.
    */
   async explainAsync(
     query: string,
@@ -57,13 +56,14 @@ export class TrainingModeEngine {
   ): Promise<string> {
     const ctx = this.buildContext(topic)
     const messages = [...history, { role: 'user', content: query }]
+    const local = this.explain(query, topic, history)
     try {
-      const smart = await requestPuterChat(messages, ctx)
+      const smart = await requestPuterChat(messages, ctx, { fast: true, timeoutMs: 9_000 })
       if (smart && smart.trim()) return smart.trim()
     } catch {
       /* фолбэк на офлайн-базу */
     }
-    return this.explain(query, topic, history)
+    return local
   }
 
   /** Переобъяснение «с другой стороны», когда ученик не понял. */

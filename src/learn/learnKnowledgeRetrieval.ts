@@ -14,6 +14,7 @@ import { REACTIONS_KNOWLEDGE } from './knowledge/learnReactionsKnowledge'
 import { ORGANIC_DEEP_KNOWLEDGE } from './knowledge/learnOrganicDeepKnowledge'
 import { PROBLEM_BANK_KNOWLEDGE } from './knowledge/learnProblemBankKnowledge'
 import { SCHOOL_THEORY_DEEP_KNOWLEDGE } from './knowledge/learnSchoolTheoryDeepKnowledge'
+import { MISCONCEPTIONS_KNOWLEDGE } from './knowledge/learnMisconceptionsKnowledge'
 
 const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...CHEMISTRY_KNOWLEDGE_CHUNKS,
@@ -22,6 +23,7 @@ const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...ORGANIC_DEEP_KNOWLEDGE,
   ...PROBLEM_BANK_KNOWLEDGE,
   ...SCHOOL_THEORY_DEEP_KNOWLEDGE,
+  ...MISCONCEPTIONS_KNOWLEDGE,
   ...SCIENTISTS_KNOWLEDGE,
   ...GENERATED_ELEMENT_KNOWLEDGE,
   ...GENERATED_COMPOUND_KNOWLEDGE,

@@ -1,18 +1,17 @@
 /**
  * Interruption Handling (barge-in).
  *
- * Следит за состоянием диалога и, если ученик начинает говорить, пока ИИ ещё
- * не закончил реплику, мгновенно останавливает озвучку, фиксирует, что пошёл
- * входящий поток, и просит пересчитать/адаптировать ответ.
- *
- * Контроллер не знает деталей TTS/STT — он получает колбэки на остановку речи
- * ИИ и на событие «ученик перебил», а событиями его кормит duplex-сессия.
+ * Следит за состоянием диалога. Перебивание ИИ разрешено только если
+ * `bargeInEnabled === true`. В half-duplex (анти-эхо) VAD во время речи ИИ
+ * игнорируется на уровне duplex-сессии, а контроллер тоже не глушит TTS.
  */
 export type DialogTurn = 'idle' | 'ai_speaking' | 'user_speaking' | 'thinking'
 
 export interface InterruptionOptions {
   /** Сколько мс непрерывной речи ученика считается настоящим перебиванием. */
   bargeInConfirmMs?: number
+  /** Разрешить глушить ИИ при речи ученика. По умолчанию false. */
+  bargeInEnabled?: boolean
   /** Немедленно заглушить ИИ. */
   onStopAiSpeech: () => void
   /** Ученик перебил ИИ — нужно зафиксировать поток и пересчитать ответ. */
@@ -21,7 +20,9 @@ export interface InterruptionOptions {
 }
 
 export class InterruptionController {
-  private readonly opts: Required<Omit<InterruptionOptions, 'onStopAiSpeech' | 'onBargeIn' | 'onTurnChange'>> &
+  private readonly opts: Required<
+    Omit<InterruptionOptions, 'onStopAiSpeech' | 'onBargeIn' | 'onTurnChange'>
+  > &
     Pick<InterruptionOptions, 'onStopAiSpeech' | 'onBargeIn' | 'onTurnChange'>
 
   private turn: DialogTurn = 'idle'
@@ -30,7 +31,8 @@ export class InterruptionController {
 
   constructor(options: InterruptionOptions) {
     this.opts = {
-      bargeInConfirmMs: options.bargeInConfirmMs ?? 260,
+      bargeInConfirmMs: options.bargeInConfirmMs ?? 320,
+      bargeInEnabled: options.bargeInEnabled === true,
       onStopAiSpeech: options.onStopAiSpeech,
       onBargeIn: options.onBargeIn,
       onTurnChange: options.onTurnChange,
@@ -66,15 +68,17 @@ export class InterruptionController {
   /** VAD зафиксировал начало речи ученика. */
   userSpeechStarted(): void {
     this.userSpeechStartMs = Date.now()
-    if (this.turn === 'ai_speaking' && !this.bargeFired) {
-      // Мгновенно глушим ИИ, барджин подтвердим по длительности.
+    if (this.turn === 'ai_speaking') {
+      if (!this.opts.bargeInEnabled || this.bargeFired) return
       this.opts.onStopAiSpeech()
+      return
     }
-    if (this.turn !== 'ai_speaking') this.setTurn('user_speaking')
+    this.setTurn('user_speaking')
   }
 
   /** VAD присылает уровень — подтверждаем реальный барджин по длительности. */
   userSpeechTick(): void {
+    if (!this.opts.bargeInEnabled) return
     if (this.bargeFired) return
     if (this.turn !== 'ai_speaking' && this.turn !== 'user_speaking') return
     const speaking = Date.now() - this.userSpeechStartMs

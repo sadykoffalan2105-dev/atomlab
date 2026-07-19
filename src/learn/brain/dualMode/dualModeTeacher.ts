@@ -149,7 +149,9 @@ export class TeacherIntelligence {
       this.duplex = new DuplexVoiceSession({
         lang: this.lang,
         controller: this.cfg.controller,
-        bargeInEnabled: true,
+        // Half-duplex: пока учитель говорит, микрофон не пишет его же речь.
+        bargeInEnabled: false,
+        postSpeakDelayMs: 450,
         onPartial: (t) => this.cfg.callbacks?.onPartialTranscript?.(t),
         onUserUtterance: (final) => {
           void this.handleIncomingVoice(final)
@@ -229,6 +231,11 @@ export class TeacherIntelligence {
     }
     const text = transcript.trim()
     if (!text) return this.buildResponse('', this.currentCard, null, false)
+
+    // Не принимать реплику, пока учитель ещё говорит / только что говорил (эхо).
+    if (this.duplex?.isAiSpeaking() || this.busy) {
+      return this.buildResponse('', this.currentCard, null, false)
+    }
 
     this.state.pushTurn('student', text)
     this.cfg.callbacks?.onStudentUtterance?.(text)

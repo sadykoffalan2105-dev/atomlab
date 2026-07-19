@@ -75,7 +75,7 @@ export class VoiceExamOrchestrator {
     this.session = new DuplexVoiceSession({
       lang: config.lang,
       controller: config.controller,
-      bargeInEnabled: config.bargeInEnabled ?? true,
+      bargeInEnabled: config.bargeInEnabled ?? false,
       onPartial: (text) => this.callbacks.onPartial?.(text),
       onUserUtterance: (text) => void this.handleUserUtterance(text),
       onTurnChange: (turn) => this.callbacks.onTurnChange?.(turn),

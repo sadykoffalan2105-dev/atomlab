@@ -1,14 +1,12 @@
 /**
  * Duplex Voice Session — движок непрерывного голосового диалога.
  *
- * Одновременно:
- *  • слушает микрофон (VAD + потоковый STT),
- *  • озвучивает реплики ИИ (нейро-TTS учителя),
- *  • обрабатывает барджин: если ученик заговорил поверх ИИ — мгновенно глушит
- *    озвучку, фиксирует входящий поток и отдаёт финальную реплику наверх для
- *    пересчёта ответа.
+ * Half-duplex по умолчанию против эха колонок:
+ *  • пока ИИ говорит — STT остановлен, VAD не принимает «речь» как ученика;
+ *  • после TTS — пауза ~450 мс, сброс буфера распознавания, затем снова слушаем;
+ *  • реплики, похожие на только что сказанный текст учителя, отбрасываются.
  *
- * Класс отвечает только за реальный ввод-вывод; «что сказать» решает мозг/оркестратор.
+ * Барджин (перебивание) включается только если `bargeInEnabled: true` и STT активен.
  */
 import type { LearnSpeechController, LearnSpeechLocale } from '../../learnSpeech'
 import type { AssistantLang } from '../brainTypes'
@@ -18,7 +16,10 @@ import { InterruptionController, type DialogTurn } from './interruptionControlle
 export interface DuplexSessionConfig {
   lang: AssistantLang
   controller: LearnSpeechController
+  /** Разрешить перебивать ИИ голосом. По умолчанию false (анти-эхо). */
   bargeInEnabled?: boolean
+  /** Пауза после TTS перед возобновлением STT (мс). */
+  postSpeakDelayMs?: number
   onPartial?: (text: string) => void
   onUserUtterance: (finalText: string) => void
   onTurnChange?: (turn: DialogTurn) => void
@@ -30,6 +31,41 @@ function toSpeechLocale(lang: AssistantLang): LearnSpeechLocale {
   return lang
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Нормализация для сравнения «эхо учителя» vs реплика ученика. */
+function normalizeEcho(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function tokenSet(text: string): Set<string> {
+  return new Set(normalizeEcho(text).split(' ').filter((t) => t.length >= 3))
+}
+
+/** Высокое пересечение токенов / подстрока → это эхо озвучки учителя. */
+export function looksLikeTeacherEcho(userText: string, teacherText: string): boolean {
+  const u = normalizeEcho(userText)
+  const t = normalizeEcho(teacherText)
+  if (!u || u.length < 4) return false
+  if (!t) return false
+  if (t.includes(u) || u.includes(t.slice(0, Math.min(t.length, 80)))) return true
+  const ut = tokenSet(u)
+  const tt = tokenSet(t)
+  if (ut.size === 0) return false
+  let hit = 0
+  for (const tok of ut) if (tt.has(tok)) hit++
+  const overlap = hit / ut.size
+  // Короткие фразы ученика: достаточно 70%; длинные — 55%.
+  return ut.size <= 4 ? overlap >= 0.7 : overlap >= 0.55
+}
+
 export class DuplexVoiceSession {
   private readonly cfg: DuplexSessionConfig
   private readonly vad: AudioActivityDetector
@@ -38,24 +74,68 @@ export class DuplexVoiceSession {
   private consumedLen = 0
   private aiSpeaking = false
   private active = false
+  private listening = false
   private pendingBargeText = ''
+  private lastAiText = ''
+  private listenResumeAt = 0
+  private readonly bargeInEnabled: boolean
+  private readonly postSpeakDelayMs: number
 
   constructor(config: DuplexSessionConfig) {
     this.cfg = config
+    this.bargeInEnabled = config.bargeInEnabled === true
+    this.postSpeakDelayMs = config.postSpeakDelayMs ?? 450
     this.interruption = new InterruptionController({
-      bargeInConfirmMs: 260,
+      bargeInConfirmMs: 320,
+      bargeInEnabled: this.bargeInEnabled,
       onStopAiSpeech: () => this.hardStopSpeech(),
       onBargeIn: () => this.handleBargeIn(),
       onTurnChange: (turn) => this.cfg.onTurnChange?.(turn),
     })
     this.vad = new AudioActivityDetector({
-      onSpeechStart: () => this.interruption.userSpeechStarted(),
+      onSpeechStart: () => {
+        if (this.shouldIgnoreMicAsUser()) return
+        this.interruption.userSpeechStarted()
+      },
       onSpeechEnd: (d) => this.onVadSpeechEnd(d),
       onLevel: (rms, speaking) => {
         this.cfg.onLevel?.(rms)
-        if (speaking) this.interruption.userSpeechTick()
+        if (speaking && !this.shouldIgnoreMicAsUser()) this.interruption.userSpeechTick()
       },
     })
+  }
+
+  /** Пока говорит ИИ / идёт пауза после TTS — микрофон не считаем учеником. */
+  private shouldIgnoreMicAsUser(): boolean {
+    if (!this.active) return true
+    if (this.aiSpeaking) return true
+    if (Date.now() < this.listenResumeAt) return true
+    return false
+  }
+
+  private startStt(): void {
+    if (!this.active || this.listening) return
+    this.cfg.controller.startOralListening(
+      toSpeechLocale(this.cfg.lang),
+      this.sttSession,
+      (full, interim) => {
+        if (this.shouldIgnoreMicAsUser()) return
+        this.cfg.onPartial?.(interim || full.slice(this.consumedLen))
+      },
+    )
+    this.listening = true
+  }
+
+  private stopStt(): void {
+    if (!this.listening) return
+    this.cfg.controller.stopOralListening()
+    this.listening = false
+  }
+
+  /** Сбросить всё, что STT мог накопить (эхо / мусор), и считать с чистого листа. */
+  private discardSttBuffer(): void {
+    this.consumedLen = this.sttSession.committed.length
+    this.cfg.onPartial?.('')
   }
 
   /** Запустить сессию на потоке микрофона. */
@@ -63,15 +143,10 @@ export class DuplexVoiceSession {
     this.active = true
     this.consumedLen = 0
     this.sttSession.committed = ''
+    this.lastAiText = ''
+    this.listenResumeAt = 0
     const vadOk = await this.vad.attach(micStream)
-
-    this.cfg.controller.startOralListening(
-      toSpeechLocale(this.cfg.lang),
-      this.sttSession,
-      (full, interim) => {
-        this.cfg.onPartial?.(interim || full.slice(this.consumedLen))
-      },
-    )
+    this.startStt()
     return vadOk
   }
 
@@ -91,34 +166,62 @@ export class DuplexVoiceSession {
   }
 
   private handleBargeIn(): void {
-    // ИИ заглушён; помечаем, что ждём финальную реплику ученика для пересчёта.
     this.pendingBargeText = ''
     this.interruption.thinkingStarted()
   }
 
+  private emitUserUtterance(fresh: string): void {
+    const text = fresh.trim()
+    if (text.length < 2) return
+    if (looksLikeTeacherEcho(text, this.lastAiText)) {
+      // Эхо колонок / повтор озвучки учителя — не считаем репликой ученика.
+      return
+    }
+    this.cfg.onUserUtterance(text)
+  }
+
   private onVadSpeechEnd(_durationMs: number): void {
     if (!this.active) return
+    if (this.shouldIgnoreMicAsUser()) {
+      this.discardSttBuffer()
+      return
+    }
     this.interruption.userSpeechEnded()
-    // Берём прирост распознанного текста с момента прошлой реплики.
     const full = this.sttSession.committed.trim()
     const fresh = full.slice(this.consumedLen).trim()
     if (fresh.length >= 2) {
       this.consumedLen = full.length
-      this.cfg.onUserUtterance(fresh)
+      this.emitUserUtterance(fresh)
     } else if (this.pendingBargeText) {
-      this.cfg.onUserUtterance(this.pendingBargeText.trim())
+      this.emitUserUtterance(this.pendingBargeText)
       this.pendingBargeText = ''
     }
   }
 
-  /** Озвучить реплику ИИ. Возвращает true, если дочитал без перебивания. */
+  /**
+   * Озвучить реплику ИИ.
+   * На время речи полностью глушим STT, чтобы учитель не «записывал сам себя».
+   */
   async speak(text: string): Promise<boolean> {
     if (!text.trim()) return false
+    this.lastAiText = text
+    this.stopStt()
+    this.discardSttBuffer()
     this.interruption.aiSpeechStarted()
     this.setAiSpeaking(true)
-    const finished = await this.cfg.controller.speak(text, toSpeechLocale(this.cfg.lang))
-    this.setAiSpeaking(false)
-    this.interruption.aiSpeechEnded()
+
+    let finished = false
+    try {
+      finished = await this.cfg.controller.speak(text, toSpeechLocale(this.cfg.lang))
+    } finally {
+      this.setAiSpeaking(false)
+      this.interruption.aiSpeechEnded()
+      // Колонки ещё «хвостят» — ждём и чистим буфер перед новым прослушиванием.
+      this.listenResumeAt = Date.now() + this.postSpeakDelayMs
+      await sleep(this.postSpeakDelayMs)
+      this.discardSttBuffer()
+      if (this.active) this.startStt()
+    }
     return finished
   }
 
@@ -134,7 +237,7 @@ export class DuplexVoiceSession {
   end(): void {
     this.active = false
     this.hardStopSpeech()
-    this.cfg.controller.stopOralListening()
+    this.stopStt()
     this.vad.detach()
     this.interruption.reset()
   }
