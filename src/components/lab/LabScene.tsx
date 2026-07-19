@@ -357,9 +357,13 @@ function SceneContent({
   const editLiteLatchRef = useRef(false)
   const previewTermsShellRef = useRef<readonly ReactorEquationTerm[] | null>(null)
   const coeffEditingActive = reactorCoeffEditing || reactorCoeffEditBurst
+  /**
+   * Shell никогда не null'им при открытом реакторе из-за краткого пустого canvas hold —
+   * иначе unmount Bohr → пустой starfield при живом уравнении в панели.
+   */
   if (reactorViewOpen && reactorPreviewTerms && reactorPreviewTerms.length >= 1) {
     previewTermsShellRef.current = reactorPreviewTerms
-  } else if (!reactorPreviewTerms?.length) {
+  } else if (!reactorViewOpen) {
     previewTermsShellRef.current = null
   }
   const effectivePreviewTerms =
@@ -793,6 +797,23 @@ function SceneContent({
     restorePreviewRootVisibility()
   }, [previewTermsSig, preSynthesisPreview, reactorViewOpen, restorePreviewRootVisibility])
 
+  /** Settled сброшен (смена coeff) — сразу снять productPainted, не ждать edit-флагов. */
+  useLayoutEffect(() => {
+    if (showSettledHero) return
+    if (synthActive || synthesisRunActive) return
+    if (!reactorViewOpen) return
+    productPaintedRef.current = false
+    productPaintFramesRef.current = 0
+    setProductPainted(false)
+    restorePreviewRootVisibility()
+  }, [
+    showSettledHero,
+    synthActive,
+    synthesisRunActive,
+    reactorViewOpen,
+    restorePreviewRootVisibility,
+  ])
+
   useLayoutEffect(() => {
     const rid = synthesis?.runId ?? 0
     if (rid <= 0) {
@@ -1123,7 +1144,11 @@ function SceneContent({
         (reactorViewOpen && !synthesisRunActive && !synthActive && !showSettledHero),
       previewAtomCount,
       productPrewarm: productPrewarmActive,
-      productPainted: productPainted && !coeffEditingActive,
+      productPainted:
+        productPainted &&
+        !coeffEditingActive &&
+        !preSynthesisPreview &&
+        (synthesisRunActive || synthActive || showSettledHero),
       previewRootRef,
       invalidate,
     })

@@ -17,3 +17,10 @@ export function isStructuralTermsChange(
 ): boolean {
   return prevIds !== nextIds || prevLen !== nextLen
 }
+
+/** Shell clear только при закрытии реактора — не при кратком пустом canvas snapshot. */
+export function shouldClearPreviewTermsShell(opts: {
+  reactorViewOpen: boolean
+}): boolean {
+  return !opts.reactorViewOpen
+}

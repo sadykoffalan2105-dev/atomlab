@@ -60,7 +60,9 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
         return
       }
 
-      if (productPainted) {
+      // Продукт реально на экране (синтез / settled) — Bohr не restore.
+      // В pre-synth productPainted-sticky НЕ скрывает превью (vanish после coeff).
+      if (productPainted && synthLive) {
         violationFrames = 0
         if (root && root.visible) hidePreviewRoot(root)
         return

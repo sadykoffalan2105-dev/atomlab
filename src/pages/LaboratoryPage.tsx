@@ -590,11 +590,11 @@ export function LaboratoryPage() {
     coeffEditPulse ||
     coeffUiFocused
 
-  /** Canvas: freeze на время ввода коэффициентов + idle debounce — нет vanish O₂→K. */
+  /** Canvas: freeze на всё окно editing (focus + burst + visualHold + pulse). */
   const heldCanvasTerms = useReactorCanvasTermsHold(
     reactorOpen,
     leftTerms,
-    coeffUiFocused || !editIdle,
+    reactorCoeffEditing,
     560,
   )
   const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
