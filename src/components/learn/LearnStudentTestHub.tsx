@@ -9,13 +9,12 @@ import { useT, type MessageKey } from '../../i18n/useT'
 import { FormulaLearningPanel } from './FormulaLearningPanel'
 import { ChemProblemTutor } from './ChemProblemTutor'
 import { LearnOralExamPanel } from './LearnOralExamPanel'
-import { LearnLiveTutorPanel } from './LearnLiveTutorPanel'
 import { LearnStudentTest } from './LearnStudentTest'
 import { LearnWrittenExamPanel } from './LearnWrittenExamPanel'
 import { ValencyBalanceTutor } from './ValencyBalanceTutor'
 import styles from './TeacherExamShell.module.css'
 
-type ExamMode = 'mcq' | 'oral' | 'live' | 'written' | 'balance' | 'formulas' | 'problems'
+type ExamMode = 'mcq' | 'oral' | 'written' | 'balance' | 'formulas' | 'problems'
 
 type Props = {
   grade: LearnGrade
@@ -30,14 +29,13 @@ type Props = {
 const MODE_HINT: Record<ExamMode, MessageKey> = {
   mcq: 'learn.teacherExam.mcqHint',
   oral: 'learn.teacherExam.oralHint',
-  live: 'learn.teacherExam.liveHint',
   written: 'learn.teacherExam.writtenHint',
   balance: 'learn.teacherExam.balanceHint',
   formulas: 'learn.teacherExam.formulasHint',
   problems: 'learn.teacherExam.problemsHint',
 }
 
-const MODES: ExamMode[] = ['mcq', 'oral', 'live', 'written', 'balance', 'formulas', 'problems']
+const MODES: ExamMode[] = ['mcq', 'oral', 'written', 'balance', 'formulas', 'problems']
 
 export function LearnStudentTestHub({
   grade,
@@ -68,7 +66,6 @@ export function LearnStudentTestHub({
   const modeLabel = (m: ExamMode) => {
     if (m === 'mcq') return t('learn.teacherExam.modeMcq')
     if (m === 'oral') return t('learn.teacherExam.modeOral')
-    if (m === 'live') return t('learn.teacherExam.modeLive')
     if (m === 'written') return t('learn.teacherExam.modeWritten')
     if (m === 'balance') return t('learn.teacherExam.modeBalance')
     if (m === 'formulas') return t('learn.teacherExam.modeFormulas')
@@ -145,17 +142,6 @@ export function LearnStudentTestHub({
           section={section}
           rosterSectionId={rosterSectionId}
           disabled={testDisabled}
-          embedded
-        />
-      ) : null}
-
-      {mode === 'live' ? (
-        <LearnLiveTutorPanel
-          grade={grade}
-          chapter={chapter}
-          section={section}
-          rosterSectionId={rosterSectionId}
-          disabled={false}
           embedded
         />
       ) : null}

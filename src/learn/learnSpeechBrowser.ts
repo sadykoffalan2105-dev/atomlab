@@ -129,6 +129,16 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/**
+ * Системные (SAPI/Web Speech) русские голоса НЕ понимают COMBINING ACUTE
+ * (U+0301) — они произносят слово по буквам или искажают его. Для нейросетевого
+ * Edge-голоса ударения нужны, а для браузерного фолбэка их надо убрать, чтобы он
+ * читал слова целиком со своим (обычно верным) ударением.
+ */
+function stripStressForBrowser(text: string): string {
+  return text.replace(/\u0301/g, '')
+}
+
 function speakOneUtterance(
   sentence: string,
   locale: BrowserSpeechLocale,
@@ -139,7 +149,7 @@ function speakOneUtterance(
       resolve()
       return
     }
-    const utterance = new SpeechSynthesisUtterance(sentence)
+    const utterance = new SpeechSynthesisUtterance(stripStressForBrowser(sentence))
     utterance.lang = voice?.lang || SPEECH_LOCALE[locale]
     utterance.rate = TEACHER_BROWSER_RATE[locale]
     utterance.pitch = TEACHER_BROWSER_PITCH[locale]
