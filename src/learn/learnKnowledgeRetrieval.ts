@@ -11,11 +11,17 @@ import { GENERATED_COMPOUND_KNOWLEDGE } from './knowledge/learnGeneratedCompound
 import { SCIENTISTS_KNOWLEDGE } from './knowledge/learnScientistsKnowledge'
 import { CHEMISTRY_FORMULAS_KNOWLEDGE } from './knowledge/learnChemistryFormulasKnowledge'
 import { REACTIONS_KNOWLEDGE } from './knowledge/learnReactionsKnowledge'
+import { ORGANIC_DEEP_KNOWLEDGE } from './knowledge/learnOrganicDeepKnowledge'
+import { PROBLEM_BANK_KNOWLEDGE } from './knowledge/learnProblemBankKnowledge'
+import { SCHOOL_THEORY_DEEP_KNOWLEDGE } from './knowledge/learnSchoolTheoryDeepKnowledge'
 
 const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...CHEMISTRY_KNOWLEDGE_CHUNKS,
   ...CHEMISTRY_FORMULAS_KNOWLEDGE,
   ...REACTIONS_KNOWLEDGE,
+  ...ORGANIC_DEEP_KNOWLEDGE,
+  ...PROBLEM_BANK_KNOWLEDGE,
+  ...SCHOOL_THEORY_DEEP_KNOWLEDGE,
   ...SCIENTISTS_KNOWLEDGE,
   ...GENERATED_ELEMENT_KNOWLEDGE,
   ...GENERATED_COMPOUND_KNOWLEDGE,
@@ -48,11 +54,15 @@ const SYNONYMS: Record<string, string[]> = {
   окислен: ['oxidation', 'овр', 'redox', 'электрон'],
   раствор: ['solution', 'solvent', 'растворим'],
   газ: ['gas', 'пар', 'vapor'],
-  задач: ['problem', 'расчёт', 'вычисл', 'стехиометр'],
-  орган: ['organic', 'углеводород', 'алкан', 'алкен'],
+  задач: ['problem', 'расчёт', 'вычисл', 'стехиометр', 'решить', 'найти массу', 'сколько'],
+  орган: ['organic', 'углеводород', 'алкан', 'алкен', 'спирт', 'бензол', 'полимер'],
   таблиц: ['periodic', 'менделеев', 'element'],
   формул: ['formula', 'состав', 'индекс'],
   связ: ['bond', 'ionic', 'covalent', 'ионн', 'ковалент'],
+  почему: ['причина', 'механизм', 'зачем', 'why', 'because'],
+  сравн: ['отличи', 'разниц', 'compare', 'difference', 'чем'],
+  оксид: ['oxide', 'кислотн', 'основн', 'амфотер'],
+  соль: ['salt', 'нейтрализ', 'гидролиз'],
 }
 
 function tokenize(q: string): string[] {

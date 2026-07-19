@@ -295,8 +295,8 @@ function buildChunkFallback(
   )
 }
 
-/** Прямые справочные чанки (элемент / вещество / органика / учёный / формула). */
-const DIRECT_ENTITY_PREFIXES = ['el-', 'cmp-', 'org-', 'sci-', 'formula-']
+/** Прямые справочные чанки (элемент / вещество / органика / учёный / формула / задача / теория / реакция). */
+const DIRECT_ENTITY_PREFIXES = ['el-', 'cmp-', 'org-', 'sci-', 'formula-', 'prob-', 'theory-', 'rx-']
 
 function normalizeForMatch(q: string): string {
   return q
@@ -459,7 +459,7 @@ function buildDirectEntityAnswer(
   if (!isSafeBodyForLocale(body, locale)) body = chunk.ru
   body = stripBoilerplate(body)
   if (!wantsFullAnswer(intent)) {
-    const short = takeCharsAtSentence(body, 480)
+    const short = takeCharsAtSentence(body, 560)
     if (short.length >= 60) body = short
   }
 
@@ -477,6 +477,64 @@ function buildDirectEntityAnswer(
   }
 
   return normalizeTeacherReplyText(parts.join('\n'), locale)
+}
+
+/** Ответ «почему»: сначала тезис, потом механизм из чанков. */
+function buildWhyAnswer(
+  query: string,
+  chunks: ChemistryKnowledgeChunk[],
+  ctx: LearnLocalAssistantContext,
+  seed: number,
+): string | null {
+  if (!/почему|зачем|отчего|why\b|nima uchun|nega/i.test(query)) return null
+  if (chunks.length === 0) return null
+  const locale = ctx.locale
+  const opener = pickOpenerForLocale(locale, seed)
+  const main = chunks[0]!
+  const body = stripBoilerplate(locale === 'en' ? main.en || main.ru : main.ru)
+  const lead = takeCharsAtSentence(body, 700)
+  const extra =
+    chunks.length > 1
+      ? takeCharsAtSentence(stripBoilerplate(locale === 'en' ? chunks[1]!.en || chunks[1]!.ru : chunks[1]!.ru), 280)
+      : ''
+
+  if (locale === 'uz') {
+    return normalizeTeacherReplyText(
+      appendLessonFooterIfEducational(
+        [`${opener} Savolingiz — sabab haqida.`, '', `**Javob:** ${lead}`, extra ? `\n\n**Qo‘shimcha:** ${extra}` : ''].join(
+          '\n',
+        ),
+        { locale, seed, topic: main.topic, kp: ctx.kpNumber },
+        true,
+      ),
+      locale,
+    )
+  }
+  if (locale === 'en') {
+    return normalizeTeacherReplyText(
+      appendLessonFooterIfEducational(
+        [`${opener} This is a cause question.`, '', `**Answer:** ${lead}`, extra ? `\n\n**Also:** ${extra}` : ''].join('\n'),
+        { locale, seed, topic: main.topic, kp: ctx.kpNumber },
+        true,
+      ),
+      locale,
+    )
+  }
+  return normalizeTeacherReplyText(
+    appendLessonFooterIfEducational(
+      [
+        `${opener} Вопрос про причину — отвечаю по сути.`,
+        '',
+        `**Прямой ответ:** ${lead}`,
+        extra ? `\n\n**Механизм / уточнение:** ${extra}` : '',
+        '',
+        'Запомните цепочку: причина → что происходит с частицами → наблюдаемый результат.',
+      ].join('\n'),
+      { locale, seed, topic: main.topic, kp: ctx.kpNumber },
+      true,
+    ),
+    locale,
+  )
 }
 
 /** Живой развёрнутый ответ — разный стиль для разных вопросов. */
@@ -505,6 +563,10 @@ export function synthesizeKnowledgeAnswer(
       return buildComparisonAnswer(ents[0]!, ents[1]!, ctx, seed)
     }
   }
+
+  // 1.6) Вопрос «почему» — явная причинно-следственная структура.
+  const why = buildWhyAnswer(query, chunks, ctx, seed)
+  if (why) return why
 
   // 2) Прямой вопрос о сущности (элемент/вещество/учёный/формула) — точный ответ.
   const direct = pickDirectEntityChunk(query, chunks)
@@ -607,6 +669,8 @@ MANDATORY END OF EVERY EDUCATIONAL REPLY (three blocks):
   }
 
   return `\nДИАЛОГ: ученик спрашивал: «${userTurns.join('» → «')}». Ответь развёрнуто на последний вопрос, минимум 120 слов для объяснений, не повторяй дословно прошлый ответ.${antiRepeat}
+
+ПЕРЕД ОТВЕТОМ (молча): определи тип вопроса → возьми факты из базы → проверь, что отвечаешь именно на заданный вопрос.
 
 Пиши «параграф 1», «страница 7» — без символа § и сокращения «стр.».
 

@@ -36,7 +36,7 @@ export function buildTeacherBrainPack(
   const wantsFullTopic = FULL_TOPIC_RE.test(query)
 
   const retrieved = retrieveChemistryKnowledge(query, {
-    maxChunks: wantsFullTopic ? 10 : 6,
+    maxChunks: wantsFullTopic ? 12 : 8,
     minScore: 1,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
@@ -45,7 +45,7 @@ export function buildTeacherBrainPack(
   })
 
   let chemistryKnowledgeBlock = buildRetrievedKnowledgeBlock(query, sourceLocale, {
-    maxChars: wantsFullTopic ? 11_000 : 7_500,
+    maxChars: wantsFullTopic ? 14_000 : 10_000,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
     chapterId: ctx.chapterId,

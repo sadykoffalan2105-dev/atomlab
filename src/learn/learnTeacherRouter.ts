@@ -97,15 +97,24 @@ function isOfflineFallback(text: string): boolean {
 }
 
 function isOpenEndedQuestion(query: string): boolean {
-  return /расскаж|объясни|по книг|из книг|что нибудь|что-нибудь|подроб|полност|explain|tell me|what is|textbook|tushuntir|gapir|aytib|misol|eslab|tekshir|yech|bog'liqlik|bog‘liqlik|dars bilan/i.test(
+  return /расскаж|объясни|по книг|из книг|что нибудь|что-нибудь|подроб|полност|почему|зачем|как\s|чем отлич|сравн|реши|найти|сколько|пример|explain|tell me|what is|why|how |compare|solve|calculate|textbook|tushuntir|gapir|aytib|misol|eslab|tekshir|yech|nima uchun|qanday|bog'liqlik|bog‘liqlik|dars bilan/i.test(
     query,
   )
 }
 
+/** Короткие фактические FAQ можно отдать офлайн; «думать» — только через LLM. */
+function isShortFactualFaqQuery(query: string): boolean {
+  const q = query.trim()
+  if (q.length > 70) return false
+  if (isOpenEndedQuestion(q)) return false
+  if (/[?？]\s*$/.test(q) && q.split(/\s+/).length > 12) return false
+  return true
+}
+
 /**
  * Бесплатный маршрут (без платежей и ключей):
- * FAQ (короткие RU) → Ollama (если локально запущен) → Puter (облачный GPT,
- * бесплатно, user-pays) → локальная база знаний → fallback.
+ * Ollama → Puter (облачный GPT) → локальная база → короткий FAQ только для
+ * простых фактических вопросов. Открытые «почему/объясни/реши» всегда идут в LLM.
  */
 export async function routeTeacherReply(
   messages: { role: string; content: string }[],
@@ -114,10 +123,10 @@ export async function routeTeacherReply(
 ): Promise<{ text: string; source: TeacherReplySource }> {
   const q = lastUserText(messages)
   const preferLlmLanguage = ctx.locale === 'en' || ctx.locale === 'uz'
-  const wantsSmart = preferLlmLanguage || isOpenEndedQuestion(q)
+  const wantsSmart = preferLlmLanguage || isOpenEndedQuestion(q) || q.length > 40
 
-  // Короткие FAQ на RU; для EN/UZ сначала модель (перевод/язык UI).
-  if (!preferLlmLanguage && matchFaqEntry(q)) {
+  // Короткий FAQ на RU только если вопрос простой фактический (не «подумай»).
+  if (!preferLlmLanguage && !wantsSmart && isShortFactualFaqQuery(q) && matchFaqEntry(q)) {
     return { text: generateLocalLearnReply(messages, ctx), source: 'faq' }
   }
 
@@ -127,7 +136,7 @@ export async function routeTeacherReply(
     if (ollama) return { text: ollama, source: 'ollama' }
   }
 
-  // 2) Бесплатный облачный мозг Puter (GPT-4o-mini). Ключи и оплата не нужны.
+  // 2) Бесплатный облачный мозг Puter — основной «думающий» путь.
   if (puterEnabled(opts)) {
     const puter = await requestPuterChat(messages, ctx).catch(() => null)
     if (puter) return { text: puter, source: 'puter' }
