@@ -180,7 +180,8 @@ function LiveTutorOverlay({
               </div>
             </div>
 
-            <div className={styles.liveChat} aria-live="polite">
+            <div className={styles.liveChatWrap}>
+              <div className={styles.liveChat} aria-live="polite">
               {state.messages.length === 0 && !state.partial ? (
                 <div className={styles.liveWelcome}>
                   <div className={`${styles.liveOrb} ${styles.liveOrbIdle} ${styles.liveWelcomeOrb}`} aria-hidden />
@@ -208,6 +209,7 @@ function LiveTutorOverlay({
                 </div>
               ) : null}
               <div ref={chatEndRef} />
+              </div>
             </div>
 
             <div className={styles.liveComposer}>

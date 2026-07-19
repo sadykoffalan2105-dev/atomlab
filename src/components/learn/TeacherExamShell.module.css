@@ -866,6 +866,11 @@
 /* ======================= Онлайн-диалог с ИИ (live) ======================= */
 /* Космический фон оверлея */
 .liveOverlay {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow: hidden;
   background:
     radial-gradient(1200px 720px at 82% -12%, rgba(120, 84, 220, 0.26), transparent 60%),
     radial-gradient(1000px 820px at -8% 112%, rgba(24, 130, 150, 0.22), transparent 55%),
@@ -1084,10 +1089,22 @@
   color: var(--exam-muted);
 }
 
-.liveChat {
+/*
+ * Обёртка растёт и занимает свободную высоту, но САМА не скроллит. Реальный
+ * скролл-контейнер (.liveChat) позиционируется абсолютно внутри неё — так текст
+ * диалога никогда не «выталкивает» страницу, и прокручивается только он.
+ */
+.liveChatWrap {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
+}
+
+.liveChat {
+  position: absolute;
+  inset: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -1098,6 +1115,7 @@
     radial-gradient(140% 90% at 50% -10%, rgba(92, 255, 212, 0.06), transparent 60%),
     linear-gradient(155deg, rgba(6, 12, 26, 0.9), rgba(2, 6, 16, 0.94));
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 .liveWelcome {
