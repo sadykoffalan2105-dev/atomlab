@@ -184,6 +184,8 @@ export const messagesUz: Record<MessageKey, string> = {
   'reactor.hintBalance':
     'Koeffitsientlar — klaviatura (Enter). Pastda: atomlar jadvali va elektron balans. Tenglamani muvozanatlang, keyin sintezni ishga tushiring.',
   'reactor.balance.tabsAria': 'Tenglama muvozanatlash usullari',
+  'reactor.balance.showMethods': 'Muvozanatlash usullari',
+  'reactor.balance.hideMethods': 'Usullarni yashirish',
   'reactor.balance.tabSubstitution': 'Tanlash',
   'reactor.balance.tabElectron': 'Elektron balans',
   'reactor.balance.tabLesson': 'Dars',

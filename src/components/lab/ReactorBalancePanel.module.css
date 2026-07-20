@@ -8,6 +8,36 @@
   overscroll-behavior: contain;
 }
 
+.panel[data-expanded='0'] {
+  max-height: none;
+  overflow: visible;
+}
+
+.collapseBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.4rem 0.7rem;
+  border: none;
+  background: transparent;
+  color: #a8b8d8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  text-align: left;
+}
+
+.collapseBtn:hover {
+  color: #3dffec;
+}
+
+.panel[data-expanded='1'] {
+  max-height: min(22vh, 180px);
+}
+
 .tabs {
   display: flex;
   gap: 0.25rem;

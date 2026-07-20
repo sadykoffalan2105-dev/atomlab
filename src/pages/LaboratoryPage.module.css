@@ -88,7 +88,7 @@
   isolation: isolate;
   width: 100%;
   min-width: 0;
-  /* Изоляция layout/paint: соседние перерисовки панели реактора меньше дергают измерение Canvas */
+  /* Изоляция: только когда реактор закрыт. При открытом fixed-панели contain → 0×0 WebGL. */
   contain: layout paint;
   /* Совпадает с REACTOR_SCENE_HEX — CSS-звёзды под WebGL, чтобы hitch +/- не давал «синий пустой» кадр */
   background-color: #0a0c18;
@@ -105,6 +105,10 @@
     radial-gradient(1px 1px at 92% 88%, rgba(190, 215, 255, 0.38), transparent);
   background-size: 220px 220px, 260px 260px, 180px 180px, 240px 240px, 200px 200px,
     280px 280px, 190px 190px, 250px 250px, 210px 210px, 270px 270px;
+}
+
+.canvasWrap[data-reactor-open='true'] {
+  contain: none;
 }
 
 .canvasFallback {

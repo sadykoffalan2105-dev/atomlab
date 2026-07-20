@@ -184,6 +184,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'reactor.hintBalance':
     'Coefficients — keyboard (Enter). Below: atom table and electron-balance wizard. Balance the equation, then launch synthesis.',
   'reactor.balance.tabsAria': 'Equation balancing methods',
+  'reactor.balance.showMethods': 'Balancing methods',
+  'reactor.balance.hideMethods': 'Hide methods',
   'reactor.balance.tabSubstitution': 'Trial coeffs',
   'reactor.balance.tabElectron': 'Electron balance',
   'reactor.balance.tabLesson': 'Lesson',

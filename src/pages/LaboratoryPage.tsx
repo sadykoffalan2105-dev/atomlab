@@ -890,6 +890,7 @@ export function LaboratoryPage() {
         ref={canvasWrapRef}
         className={styles.canvasWrap}
         data-lab-synthesis-view={laboratorySynthesisView}
+        data-reactor-open={reactorOpen ? 'true' : undefined}
         data-synth-ignite={synthIgnite ? 'true' : undefined}
         data-synth-phase={synthRunActive || showSettledSynthesisView ? synthPhaseUi || undefined : undefined}
         style={
@@ -944,62 +945,64 @@ export function LaboratoryPage() {
             </div>
           </div>
         ) : null}
-
-        <SynthesisReactorPanel
-          open={reactorOpen}
-          onOpenGenerateEquationCatalog={() => openReactorCatalog('generateEquation')}
-          leftTerms={leftTerms}
-          productCompound={productCompound}
-          productCoeff={productCoeff}
-          onRemoveTerm={onRemoveTerm}
-          onCoeffChange={onCoeffChange}
-          onCoeffUiFocusChange={setCoeffUiFocused}
-          onApplyBalanceCoeffs={onApplyBalanceCoeffs}
-          onLoadBalanceLesson={onLoadBalanceLesson}
-          onOpenCatalog={() => openReactorCatalog('selectProduct')}
-          onProductCoeffChange={(c) => {
-            setProductCoeff(Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(c))))
-          }}
-          onClearSlots={clearReactorSlots}
-          onRequestRun={onRequestRun}
-          message={reactorMessage}
-          canRun={canRunSynthesis}
-          synthesisRunning={synthRunActive}
-          equationBalanced={equationBalanced}
-          highlightEquationError={highlightEquationError}
-          ambiguousProductMatches={ambiguousProductMatches}
-          dimInCatalogHeroView={laboratorySynthesisView === 'substance'}
-          onSynthesisPrewarmIntent={onSynthesisPrewarmIntent}
-        />
-
-        <ReactorCompoundCatalogPanel
-          open={reactorCatalogOpen}
-          intent={reactorCatalogIntent}
-          allowedProductIds={
-            reactorCatalogIntent === 'generateEquation' ? learnAllowedProductIds : undefined
-          }
-          onClose={() => {
-            setReactorCatalogOpen(false)
-            reactorCatalogPickModeRef.current = 'selectProduct'
-            setReactorCatalogIntent('selectProduct')
-          }}
-          onPick={handleReactorCatalogPick}
-        />
-
-        {!panelOpen && !periodicUiHidden ? (
-          <button
-            type="button"
-            className={
-              reactorOpen ? `${styles.panelFab} ${styles.panelFabReactorOpen}` : styles.panelFab
-            }
-            onClick={() => setPanelOpen(true)}
-            aria-expanded={panelOpen}
-            aria-label={t('lab.panelFabAria')}
-          >
-            ⊞
-          </button>
-        ) : null}
       </div>
+
+      {/* Вне canvasWrap: contain:layout + fixed-реактор → 0×0 WebGL / белый canvas. */}
+      <SynthesisReactorPanel
+        open={reactorOpen}
+        onOpenGenerateEquationCatalog={() => openReactorCatalog('generateEquation')}
+        leftTerms={leftTerms}
+        productCompound={productCompound}
+        productCoeff={productCoeff}
+        onRemoveTerm={onRemoveTerm}
+        onCoeffChange={onCoeffChange}
+        onCoeffUiFocusChange={setCoeffUiFocused}
+        onApplyBalanceCoeffs={onApplyBalanceCoeffs}
+        onLoadBalanceLesson={onLoadBalanceLesson}
+        onOpenCatalog={() => openReactorCatalog('selectProduct')}
+        onProductCoeffChange={(c) => {
+          setProductCoeff(Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(c))))
+        }}
+        onClearSlots={clearReactorSlots}
+        onRequestRun={onRequestRun}
+        message={reactorMessage}
+        canRun={canRunSynthesis}
+        synthesisRunning={synthRunActive}
+        equationBalanced={equationBalanced}
+        highlightEquationError={highlightEquationError}
+        ambiguousProductMatches={ambiguousProductMatches}
+        dimInCatalogHeroView={laboratorySynthesisView === 'substance'}
+        onSynthesisPrewarmIntent={onSynthesisPrewarmIntent}
+      />
+
+      <ReactorCompoundCatalogPanel
+        open={reactorCatalogOpen}
+        intent={reactorCatalogIntent}
+        allowedProductIds={
+          reactorCatalogIntent === 'generateEquation' ? learnAllowedProductIds : undefined
+        }
+        onClose={() => {
+          setReactorCatalogOpen(false)
+          reactorCatalogPickModeRef.current = 'selectProduct'
+          setReactorCatalogIntent('selectProduct')
+        }}
+        onPick={handleReactorCatalogPick}
+      />
+
+      {!panelOpen && !periodicUiHidden ? (
+        <button
+          type="button"
+          className={
+            reactorOpen ? `${styles.panelFab} ${styles.panelFabReactorOpen}` : styles.panelFab
+          }
+          onClick={() => setPanelOpen(true)}
+          aria-expanded={panelOpen}
+          aria-label={t('lab.panelFabAria')}
+        >
+          ⊞
+        </button>
+      ) : null}
+
       {/* Вне canvasWrap: иначе contain:layout ломает fixed и отступы слева/справа */}
       {!periodicUiHidden ? (
         <ElementSidePanel

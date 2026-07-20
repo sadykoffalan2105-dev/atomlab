@@ -182,6 +182,8 @@ export const messagesRu = {
   'reactor.hintBalance':
     'Коэффициенты — с клавиатуры (Enter). Ниже — таблица атомов и электронный баланс ОВР. Уравняйте уравнение и запустите синтез.',
   'reactor.balance.tabsAria': 'Методы балансировки уравнения',
+  'reactor.balance.showMethods': 'Методы балансировки',
+  'reactor.balance.hideMethods': 'Скрыть методы',
   'reactor.balance.tabSubstitution': 'Подбор',
   'reactor.balance.tabElectron': 'Электронный баланс',
   'reactor.balance.tabLesson': 'Урок',

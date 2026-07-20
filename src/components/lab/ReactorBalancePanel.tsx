@@ -32,6 +32,7 @@ export function ReactorBalancePanel({
 }) {
   const { t, locale } = useT()
   const [tab, setTab] = useState<TabId>('substitution')
+  const [expanded, setExpanded] = useState(false)
   const [oxPick, setOxPick] = useState<string | null>(null)
   const [redPick, setRedPick] = useState<string | null>(null)
 
@@ -46,17 +47,35 @@ export function ReactorBalancePanel({
   )
 
   const electron = useMemo(
-    () => computeElectronBalance(deferredTerms, deferredProduct),
-    [deferredTerms, deferredProduct],
+    () => (expanded ? computeElectronBalance(deferredTerms, deferredProduct) : null),
+    [expanded, deferredTerms, deferredProduct],
   )
 
-  const productOx = useMemo(() => oxidationForProduct(deferredProduct), [deferredProduct])
-  const leftOxLabels = useMemo(() => describeLeftOxLabels(deferredTerms), [deferredTerms])
+  const productOx = useMemo(
+    () => (expanded ? oxidationForProduct(deferredProduct) : null),
+    [expanded, deferredProduct],
+  )
+  const leftOxLabels = useMemo(
+    () => (expanded ? describeLeftOxLabels(deferredTerms) : []),
+    [expanded, deferredTerms],
+  )
 
   const canApplyElectron = Boolean(electron?.isRedox)
 
   return (
-    <div className={styles.panel} data-lab-balance="">
+    <div className={styles.panel} data-lab-balance="" data-expanded={expanded ? '1' : '0'}>
+      <button
+        type="button"
+        className={styles.collapseBtn}
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        {expanded ? t('reactor.balance.hideMethods') : t('reactor.balance.showMethods')}
+        <span aria-hidden>{expanded ? ' ▾' : ' ▸'}</span>
+      </button>
+
+      {expanded ? (
+      <>
       <div className={styles.tabs} role="tablist" aria-label={t('reactor.balance.tabsAria')}>
         {(
           [
@@ -238,6 +257,8 @@ export function ReactorBalancePanel({
             })}
           </ul>
         </div>
+      ) : null}
+      </>
       ) : null}
     </div>
   )

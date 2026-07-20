@@ -18,8 +18,10 @@ export function CatalogCanvasResizeSync({ touchDpr = true }: { touchDpr?: boolea
     if (!parent) return
 
     const sync = () => {
-      const w = Math.max(2, Math.floor(parent.clientWidth))
-      const h = Math.max(2, Math.floor(parent.clientHeight))
+      const w = Math.floor(parent.clientWidth)
+      const h = Math.floor(parent.clientHeight)
+      // Не звать setSize(0) — это как раз путь к белому canvas / битой иконке.
+      if (w < 8 || h < 8) return
       if (touchDpr) {
         setDpr(Math.min(window.devicePixelRatio || 1, 1.75))
       }
