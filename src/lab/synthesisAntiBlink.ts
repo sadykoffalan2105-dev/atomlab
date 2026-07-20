@@ -14,16 +14,18 @@ export type SynthesisPreviewStickyRef = {
 /**
  * productPainted валиден только для текущего runId во время синтеза —
  * иначе stale paint с прошлого запуска гасит Bohr на старте.
+ * В pre-synth (не settled) paint всегда false — иначе пустой экран без молекулы.
  */
 export function isEffectiveProductPainted(input: {
   productPainted: boolean
   synthLive: boolean
   runId: number
   paintedForRunId: number
+  showSettledHero?: boolean
 }): boolean {
-  const { productPainted, synthLive, runId, paintedForRunId } = input
+  const { productPainted, synthLive, runId, paintedForRunId, showSettledHero = false } = input
   if (!productPainted) return false
-  if (!synthLive) return true
+  if (!synthLive) return showSettledHero
   if (runId <= 0) return true
   return paintedForRunId === runId
 }

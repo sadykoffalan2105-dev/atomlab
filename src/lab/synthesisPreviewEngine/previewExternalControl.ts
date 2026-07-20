@@ -5,9 +5,11 @@ export function resolvePreviewExternalAtomControl(opts: {
   previewOnlyMode: boolean
   synthHoldPreview: boolean
 }): boolean {
-  const { flightActive, poseLocked } = opts
-  // Только реальный полёт GSAP. Иначе pin владеет атомами (settled/idle больше не «воруют» превью).
-  return flightActive || poseLocked
+  const { flightActive } = opts
+  // Только реальный полёт GSAP. poseLocked — только камера, не отбирает pin у атомов
+  // (иначе кадр runId>0 без synthesis → слоты invisible → белая вспышка).
+  void opts.poseLocked
+  return flightActive
 }
 
 /**

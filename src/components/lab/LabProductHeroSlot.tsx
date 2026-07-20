@@ -239,12 +239,20 @@ export function LabProductHeroSlot({
   }, [visible, prewarm, compound.id, invalidate])
 
   // Считаем реально отрисованные кадры prewarm / visible, затем «готово».
-  useFrame(() => {
-    // Продукт на полном масштабе: paint только после нескольких видимых кадров.
+  useFrame((state) => {
+    // Продукт на полном масштабе: paint только после нескольких видимых кадров + живой GL.
     if (visible && !prewarm && !visiblePaintSentRef.current) {
       const g = groupRef.current
       if (g) {
         if (g.scale.x < 0.86) g.scale.set(1, 1, 1)
+        const bufOk =
+          state.gl.drawingBufferWidth > 0 &&
+          state.gl.drawingBufferHeight > 0 &&
+          !state.gl.isContextLost()
+        if (!bufOk) {
+          visiblePaintFramesRef.current = 0
+          return
+        }
         visiblePaintFramesRef.current += 1
         if (visiblePaintFramesRef.current >= VISIBLE_PAINT_FRAMES) {
           visiblePaintSentRef.current = true
@@ -321,9 +329,7 @@ export function LabProductHeroSlot({
       if (spin) spin.rotation.set(0, 0, 0)
       const tl = gsap.timeline({
         onComplete: () => {
-          if (visiblePaintSentRef.current) return
-          visiblePaintSentRef.current = true
-          onProductVisiblePaint?.()
+          // Paint только из useFrame после живого drawing buffer — не гасить Bohr рано.
         },
       })
       tl.to(
@@ -353,11 +359,7 @@ export function LabProductHeroSlot({
       z: 1,
       duration: dur,
       ease: 'power2.out',
-      onComplete: () => {
-        if (visiblePaintSentRef.current) return
-        visiblePaintSentRef.current = true
-        onProductVisiblePaint?.()
-      },
+      // Paint только из useFrame после живого drawing buffer.
     })
     return () => {
       t.kill()

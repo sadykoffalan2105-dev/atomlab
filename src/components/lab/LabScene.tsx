@@ -78,6 +78,7 @@ import {
   bumpShieldOnCoeffEdit,
   createShieldSnapshot,
   createSoftWebGlRecovery,
+  isWebGlDrawingBufferAlive,
   REACTOR_SHIELD,
   tickShieldPhase,
 } from '../../lab/reactorPreviewShield'
@@ -576,6 +577,7 @@ function SceneContent({
     synthLive: synthLiveEarly,
     runId: currentSynthRunId,
     paintedForRunId: paintedForRunIdRef.current,
+    showSettledHero,
   })
 
   const continuity = useMemo(
@@ -1265,6 +1267,7 @@ function SceneContent({
       synthLive: synthesisRunActive || synthActive,
       runId: currentSynthRunId,
       paintedForRunId: paintedForRunIdRef.current,
+      showSettledHero,
     })
     const mustShowBohr =
       reactorViewOpen &&
@@ -1568,11 +1571,11 @@ function SceneContent({
         target={
           catalogViewMode
             ? CATALOG_HERO_VIEW.target
-            : ([REACTOR_PREVIEW_CAMERA.few.target[0], REACTOR_PREVIEW_CAMERA.few.target[1], REACTOR_PREVIEW_CAMERA.few.target[2]] as [
-                number,
-                number,
-                number,
-              ])
+            : ([
+                (reactorCameraLockPoseRef.current ?? REACTOR_PREVIEW_CAMERA.few).target[0],
+                (reactorCameraLockPoseRef.current ?? REACTOR_PREVIEW_CAMERA.few).target[1],
+                (reactorCameraLockPoseRef.current ?? REACTOR_PREVIEW_CAMERA.few).target[2],
+              ] as [number, number, number])
         }
         enableDamping={LAB_ORBIT.enableDamping}
         dampingFactor={LAB_ORBIT.dampingFactor}
@@ -1749,25 +1752,37 @@ export function LabCanvas({
             clearHardTimer()
             hardRemountTimerRef.current = window.setTimeout(() => {
               hardRemountTimerRef.current = null
-              if (!softWebglRef.current.shouldHardRemount()) return
+              // Remount если всё ещё lost ИЛИ opacity=0 (фейковый restored).
+              const stillDead =
+                softWebglRef.current.shouldHardRemount() ||
+                canvas.style.opacity === '0' ||
+                !isWebGlDrawingBufferAlive(state.gl)
+              if (!stillDead) return
               softWebglRef.current.acknowledgeHardRemount()
               setInternalSessionKey((k) => k + 1)
             }, REACTOR_SHIELD.hardRecoverAfterMs)
             state.invalidate()
           }
           const onRestored = () => {
-            clearHardTimer()
-            canvas.style.opacity = '1'
-            canvas.style.background = sceneBg
-            softWebglRef.current.onContextRestored(() => state.invalidate())
-            state.gl.setClearColor(bg, 1)
-            state.scene.background = bg
             const parent = canvas.parentElement
             if (parent) {
               const w = Math.max(2, Math.floor(parent.clientWidth))
               const h = Math.max(2, Math.floor(parent.clientHeight))
-              state.gl.setSize(w, h, false)
+              if (w >= 8 && h >= 8) state.gl.setSize(w, h, false)
             }
+            state.gl.setClearColor(bg, 1)
+            state.scene.background = bg
+            const alive = isWebGlDrawingBufferAlive(state.gl)
+            const ok = softWebglRef.current.onContextRestored(() => state.invalidate(), alive)
+            if (!ok) {
+              // Фейковый restored: не отменяем hard remount, canvas остаётся скрытым.
+              canvas.style.opacity = '0'
+              state.invalidate()
+              return
+            }
+            clearHardTimer()
+            canvas.style.opacity = '1'
+            canvas.style.background = sceneBg
             state.invalidate()
           }
           canvas.addEventListener('webglcontextlost', onLost)

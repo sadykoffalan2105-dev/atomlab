@@ -1011,9 +1011,32 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
       synthLive: false,
       runId: 0,
       paintedForRunId: 0,
+      showSettledHero: true,
     }),
     true,
-    'idle/settled paint ok',
+    'settled paint ok',
+  )
+  assert.equal(
+    isEffectiveProductPainted({
+      productPainted: true,
+      synthLive: false,
+      runId: 0,
+      paintedForRunId: 0,
+      showSettledHero: false,
+    }),
+    false,
+    'pre-synth stale paint must not hide Bohr',
+  )
+
+  assert.equal(
+    resolvePreviewExternalAtomControl({
+      flightActive: false,
+      poseLocked: true,
+      previewOnlyMode: false,
+      synthHoldPreview: true,
+    }),
+    false,
+    'poseLocked must not steal pin from Bohr',
   )
 
   const stickyMountRef = mockSticky(null)

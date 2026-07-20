@@ -96,8 +96,8 @@ export function applyReactorPreviewCamera(
 export function isCameraStuckNearCatalogHero(
   position: { x: number; y: number; z: number },
   catalogZ = 3.6,
-  eps = 0.85,
+  eps = 1.1,
 ): boolean {
-  // Шире eps: после settled damping часто оставляет z≈3.9–4.2 — атомы «пропали».
-  return Math.abs(position.z - catalogZ) < eps && Math.abs(position.x) < 0.55
+  // Только z: после settled damping часто оставляет z≈3.9–4.4 при x≈0.6–0.9.
+  return Math.abs(position.z - catalogZ) < eps
 }

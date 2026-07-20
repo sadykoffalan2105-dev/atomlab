@@ -19,4 +19,4 @@ export {
   type ShieldVisibilityReason,
   type ShieldVisibilityState,
 } from './shieldVisibility'
-export { createSoftWebGlRecovery, type SoftWebGlRecovery } from './shieldWebgl'
+export { createSoftWebGlRecovery, isWebGlDrawingBufferAlive, type SoftWebGlRecovery } from './shieldWebgl'

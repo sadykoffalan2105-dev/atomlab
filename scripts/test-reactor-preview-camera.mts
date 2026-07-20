@@ -67,6 +67,7 @@ import { PerspectiveCamera, Vector3 } from 'three'
     `camera lockMs should hold orbit after edit/synth (got ${REACTOR_PREVIEW_CAMERA.lockMs})`,
   )
   assert.equal(isCameraStuckNearCatalogHero({ x: 0, y: 0.12, z: 4.2 }), true)
+  assert.equal(isCameraStuckNearCatalogHero({ x: 0.92, y: 1.38, z: 4.0 }), true)
   assert.equal(isCameraStuckNearCatalogHero({ x: 0.92, y: 1.38, z: 6.35 }), false)
 }
 

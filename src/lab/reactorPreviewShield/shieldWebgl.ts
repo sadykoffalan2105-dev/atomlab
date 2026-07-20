@@ -1,12 +1,19 @@
 /**
  * Soft WebGL recovery + hard remount если контекст так и не вернулся.
  * Soft-only навсегда оставлял белый canvas / иконку сбоя после dichromate GPU hitch.
+ *
+ * Важно: браузер иногда шлёт «пустой» webglcontextrestored без живого буфера —
+ * тогда НЕ снимаем hard-remount (иначе вечный белый экран).
  */
 import { REACTOR_SHIELD } from './reactorPreviewShield'
 
 export type SoftWebGlRecovery = {
   onContextLost: () => void
-  onContextRestored: (invalidate: () => void) => void
+  /**
+   * @returns true если restore считается успешным (можно отменить hard remount).
+   * false — фейковый restored; hard remount остаётся в силе.
+   */
+  onContextRestored: (invalidate: () => void, glAlive?: boolean) => boolean
   /** true — пора remount'ить Canvas (context мёртв дольше hardRecoverAfterMs). */
   shouldHardRemount: (nowMs?: number) => boolean
   /** Вызвать после remount, чтобы не зациклить. */
@@ -17,7 +24,7 @@ export type SoftWebGlRecovery = {
 
 /**
  * Context loss: preventDefault уже снаружи.
- * 1) Ждём webglcontextrestored + invalidate
+ * 1) Ждём webglcontextrestored + живой drawing buffer
  * 2) Если не восстановилось — hard remount (новый Canvas key)
  */
 export function createSoftWebGlRecovery(): SoftWebGlRecovery {
@@ -31,7 +38,16 @@ export function createSoftWebGlRecovery(): SoftWebGlRecovery {
       lostAt = performance.now()
       hardRemountConsumed = false
     },
-    onContextRestored(invalidate) {
+    onContextRestored(invalidate, glAlive = true) {
+      if (!glAlive) {
+        // Фейковый restored: остаёмся в lost, hard remount по таймеру.
+        try {
+          invalidate()
+        } catch {
+          /* ignore */
+        }
+        return false
+      }
       lost = false
       lostAt = 0
       hardRemountConsumed = false
@@ -40,10 +56,11 @@ export function createSoftWebGlRecovery(): SoftWebGlRecovery {
       } catch {
         /* ignore */
       }
+      return true
     },
     shouldHardRemount(nowMs = performance.now()) {
-      if (!lost || hardRemountConsumed) return false
-      if (lostAt <= 0) return false
+      if (hardRemountConsumed) return false
+      if (!lost || lostAt <= 0) return false
       return nowMs - lostAt >= REACTOR_SHIELD.hardRecoverAfterMs
     },
     acknowledgeHardRemount() {
@@ -59,5 +76,22 @@ export function createSoftWebGlRecovery(): SoftWebGlRecovery {
     wasLost() {
       return lost
     },
+  }
+}
+
+/** Проба: GL жив и есть ненулевой drawing buffer. */
+export function isWebGlDrawingBufferAlive(gl: {
+  getContextAttributes?: () => unknown
+  drawingBufferWidth?: number
+  drawingBufferHeight?: number
+  isContextLost?: () => boolean
+}): boolean {
+  try {
+    if (typeof gl.isContextLost === 'function' && gl.isContextLost()) return false
+    const w = gl.drawingBufferWidth ?? 0
+    const h = gl.drawingBufferHeight ?? 0
+    return w > 0 && h > 0
+  } catch {
+    return false
   }
 }
