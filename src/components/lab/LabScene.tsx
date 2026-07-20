@@ -62,6 +62,13 @@ import {
 } from '../../lab/synthesisAntiBlink'
 import { synthesisContinuityCoveredV2 } from '../../lab/visualCoverageController'
 import { createReactorPreviewContinuityGuard } from '../../lab/reactorPreviewContinuityGuard'
+import {
+  applyReactorPreviewCamera,
+  isCameraStuckNearCatalogHero,
+  resolveReactorPreviewCameraPose,
+  REACTOR_PREVIEW_CAMERA,
+  type ReactorPreviewCameraPose,
+} from '../../lab/reactorPreviewCamera'
 import { getSynthesisTimingProfile, isInstantSynthesisProfile } from '../../lab/synthesisTimingProfile'
 import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
 import { resolveDeviceSynthesisCap } from '../../perf/graphicsSettings'
@@ -415,6 +422,9 @@ function SceneContent({
   const manyAtomsCameraRef = useRef(previewAtomCount > 8)
   const previewAtomCountRef = useRef(previewAtomCount)
   previewAtomCountRef.current = previewAtomCount
+  const catalogViewModePrevRef = useRef(false)
+  const reactorCameraLockUntilRef = useRef(0)
+  const reactorCameraLockPoseRef = useRef<ReactorPreviewCameraPose | null>(null)
   const lastSynthRunIdRef = useRef(0)
 
   const synthTimingProfile = useMemo(
@@ -972,25 +982,46 @@ function SceneContent({
     showSettledHero ||
     (productSlotVisible && !synthesisRunActive && !synthActive)
 
+  /**
+   * Ракурс превью реагентов: сразу после coeff / выхода из catalog hero.
+   * Раньше `coeffEditingActive` блокировал set — камера залипала на z≈3.6,
+   * атомы «появлялись» только после ручного вращения OrbitControls.
+   */
   // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {
+    const leftCatalog = catalogViewModePrevRef.current && !catalogViewMode
+    catalogViewModePrevRef.current = catalogViewMode
     if (catalogViewMode) return
-    if (coeffEditingActive) return
-    if (previewAtomCount <= 0) return
-    if (previewAtomCount > 9) manyAtomsCameraRef.current = true
-    else if (previewAtomCount < 7) manyAtomsCameraRef.current = false
-    const manyAtoms = manyAtomsCameraRef.current
-    const p = camera as THREE.PerspectiveCamera
-    // eslint-disable-next-line react-hooks/immutability
-    p.fov = manyAtoms ? 61 : 58
-    p.updateProjectionMatrix()
-    camera.position.set(0, manyAtoms ? 1.38 : 1.25, manyAtoms ? 7.15 : 6.2)
-    camera.lookAt(0, 0.18, 0)
-    const t = orbRef.current?.target
-    if (t) t.set(0, 0.15, 0)
-    orbRef.current?.update?.()
+    if (previewAtomCount <= 0 && !coeffEditingActive && !leftCatalog) return
+
+    const { pose, manyAtoms } = resolveReactorPreviewCameraPose(
+      previewAtomCount,
+      manyAtomsCameraRef.current,
+    )
+    manyAtomsCameraRef.current = manyAtoms
+
+    const cam = camera as THREE.PerspectiveCamera
+    applyReactorPreviewCamera(cam, orbRef.current, pose)
+    reactorCameraLockPoseRef.current = pose
+    reactorCameraLockUntilRef.current = performance.now() + REACTOR_PREVIEW_CAMERA.lockMs
     invalidate()
-  }, [camera, catalogViewMode, previewAtomCount, invalidate, coeffEditingActive])
+
+    // Второй кадр — против гонки React-пропсов OrbitControls (min/max distance).
+    const orb = orbRef.current
+    const t = window.setTimeout(() => {
+      applyReactorPreviewCamera(cam, orb, pose)
+      invalidate()
+    }, 32)
+    return () => window.clearTimeout(t)
+  }, [
+    camera,
+    catalogViewMode,
+    previewAtomCount,
+    previewTermsSig,
+    invalidate,
+    coeffEditingActive,
+    showSettledHero,
+  ])
 
   // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {
@@ -1087,6 +1118,31 @@ function SceneContent({
   useFrame((_, delta) => {
     frameHoldRef.current.markRendered()
     frameBudgetRef.current.sample(Math.min(120, Math.max(0.5, delta * 1000)))
+
+    // Удерживаем hero-ракурс ~280мс после coeff/выхода из catalog —
+    // иначе damping OrbitControls откатывает камеру назад к z≈3.6.
+    const lockPose = reactorCameraLockPoseRef.current
+    if (
+      lockPose &&
+      !catalogViewMode &&
+      !synthActive &&
+      !synthesisRunActive &&
+      performance.now() < reactorCameraLockUntilRef.current
+    ) {
+      applyReactorPreviewCamera(camera as THREE.PerspectiveCamera, orbRef.current, lockPose)
+    } else if (
+      lockPose &&
+      !catalogViewMode &&
+      !synthActive &&
+      !synthesisRunActive &&
+      previewAtomCount > 0 &&
+      isCameraStuckNearCatalogHero(camera.position)
+    ) {
+      // Страховка: если всё же залипли у catalog hero — сразу вернуть ракурс.
+      applyReactorPreviewCamera(camera as THREE.PerspectiveCamera, orbRef.current, lockPose)
+      reactorCameraLockUntilRef.current = performance.now() + 120
+    }
+
     if (frameBudgetRef.current.shouldForceLite() && reactorViewOpen && !coeffEditingActive) {
       editLiteLatchRef.current = true
       if (forceLiteFxRef) forceLiteFxRef.current = true
@@ -1442,7 +1498,15 @@ function SceneContent({
         maxDistance={catalogViewMode ? CATALOG_HERO_VIEW.maxDistance : LAB_ORBIT.maxDistance}
         minPolarAngle={catalogViewMode ? CATALOG_HERO_VIEW.minPolarAngle : LAB_ORBIT.minPolarAngle}
         maxPolarAngle={catalogViewMode ? CATALOG_HERO_VIEW.maxPolarAngle : LAB_ORBIT.maxPolarAngle}
-        target={catalogViewMode ? CATALOG_HERO_VIEW.target : LAB_ORBIT.target}
+        target={
+          catalogViewMode
+            ? CATALOG_HERO_VIEW.target
+            : ([REACTOR_PREVIEW_CAMERA.few.target[0], REACTOR_PREVIEW_CAMERA.few.target[1], REACTOR_PREVIEW_CAMERA.few.target[2]] as [
+                number,
+                number,
+                number,
+              ])
+        }
         enableDamping={LAB_ORBIT.enableDamping}
         dampingFactor={LAB_ORBIT.dampingFactor}
       />

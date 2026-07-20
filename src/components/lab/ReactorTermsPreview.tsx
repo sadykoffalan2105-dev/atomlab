@@ -600,10 +600,13 @@ export function ReactorTermsPreview({
       setMountCap(0)
       return
     }
-    // Сразу показываем уже видимое; не сбрасываем mountCap вниз во время hold.
-    if (mountCapRef.current < Math.min(stickySlotCount, targetMount)) {
-      mountCapRef.current = Math.min(stickySlotCount, targetMount)
-      setMountCap(mountCapRef.current)
+    // Сразу показываем все слоты уравнения — без ожидания вращения камеры.
+    if (holdPreview || mountCapRef.current < stickySlotCount) {
+      const jump = Math.min(targetMount, Math.max(stickySlotCount, mountCapRef.current))
+      if (jump !== mountCapRef.current) {
+        mountCapRef.current = jump
+        setMountCap(jump)
+      }
     }
     if (mountCapRef.current >= targetMount) {
       if (!holdPreview && mountCapRef.current > targetMount + 4) {
@@ -616,7 +619,7 @@ export function ReactorTermsPreview({
     let raf = 0
     const step = () => {
       if (cancelled) return
-      const next = Math.min(targetMount, mountCapRef.current + 4)
+      const next = Math.min(targetMount, mountCapRef.current + 8)
       mountCapRef.current = next
       setMountCap(next)
       if (next < targetMount) raf = requestAnimationFrame(step)
