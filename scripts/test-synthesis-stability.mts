@@ -359,6 +359,68 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
   assert.equal(view.productPrewarm, true, 'balanced pre-run: only micro-prewarm')
 }
 
+// --- edit-end cooldown: no product GPU until allowIdleProductPrewarm ---
+{
+  const stickyMountRef = mockSticky(null)
+  const previewStickyRef = mockSticky(null)
+  const view = resolveSynthesisContinuity({
+    runId: 0,
+    synthActive: false,
+    synthesisRunActive: false,
+    synthesisPhase: '',
+    showSettledHero: false,
+    mountReactorPreview: true,
+    reactorViewOpen: true,
+    gpuPrewarmAllowed: true,
+    prewarmReady: true,
+    productCompoundId: 'salt_k2cr2o7',
+    earlyProductReveal: false,
+    forceProductSlot: false,
+    productRevealReady: false,
+    productPainted: false,
+    coeffEditBurst: false,
+    coeffEditing: false,
+    allowIdleProductPrewarm: false,
+    stickyMountRef,
+    previewStickyRef,
+  })
+  assert.equal(view.reactorPreviewVisible, true, 'edit-end cooldown: Bohr stays')
+  assert.equal(view.productMeshMounted, false, 'edit-end cooldown: no product GPU yet')
+  assert.equal(view.productPrewarm, false)
+}
+
+// --- settled waiting paint: Bohr visible until product paints ---
+{
+  const stickyMountRef = mockSticky({
+    runId: 0,
+    compoundId: 'salt_k2cr2o7',
+    productMounted: true,
+  })
+  const previewStickyRef = mockSticky({ runId: -1, previewMounted: true })
+  const view = resolveSynthesisContinuity({
+    runId: 0,
+    synthActive: false,
+    synthesisRunActive: false,
+    synthesisPhase: '',
+    showSettledHero: true,
+    mountReactorPreview: true,
+    reactorViewOpen: true,
+    gpuPrewarmAllowed: false,
+    prewarmReady: true,
+    productCompoundId: 'salt_k2cr2o7',
+    earlyProductReveal: false,
+    forceProductSlot: false,
+    productRevealReady: true,
+    productPainted: false,
+    coeffEditBurst: false,
+    coeffEditing: false,
+    stickyMountRef,
+    previewStickyRef,
+  })
+  assert.equal(view.reactorPreviewVisible, true, 'settled unpainted: Bohr visible')
+  assert.equal(view.productSlotVisible, true)
+}
+
 // --- cleared equation: no stale preview shell ---
 {
   const stickyMountRef = mockSticky(null)

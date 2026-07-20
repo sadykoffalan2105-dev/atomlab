@@ -294,9 +294,10 @@ export function ReactorTermsPreview({
    * Не завязываемся только на n/shell — краткий 0 на +/- давал пустой starfield.
    */
   const atomsOnScreen =
-    holdPreview
+    holdPreview || previewOnlyMode
       ? frame.hasActiveTerms || n > 0 || shellAtoms.length > 0
-      : Boolean(visible) && (n > 0 || shellAtoms.length > 0 || frame.groupVisible)
+      : Boolean(visible) &&
+        (n > 0 || shellAtoms.length > 0 || frame.groupVisible || frame.hasActiveTerms)
 
   const effectiveGroupVisible = atomsOnScreen
 
@@ -441,13 +442,9 @@ export function ReactorTermsPreview({
      */
     const holdAtoms = previewOnlyMode || coeffEditing
     if (!atomsOnScreen && !holdAtoms) {
+      // Только корень: массовый visible=false по слотам залипал в THREE
+      // и переживал возврат React visible=true → пустой starfield после coeff.
       if (root) root.visible = false
-      for (let i = 0; i < atomGroupRefs.current.length; i++) {
-        const posG = atomGroupRefs.current[i]
-        const scG = atomScaleGroupRefs.current[i]
-        if (posG) posG.visible = false
-        if (scG) scG.visible = false
-      }
       return
     }
 

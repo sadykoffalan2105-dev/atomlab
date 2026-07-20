@@ -78,6 +78,7 @@ import {
   bumpShieldOnCoeffEdit,
   createShieldSnapshot,
   createSoftWebGlRecovery,
+  REACTOR_SHIELD,
   tickShieldPhase,
 } from '../../lab/reactorPreviewShield'
 import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
@@ -365,6 +366,26 @@ function SceneContent({
   const previewTermsShellRef = useRef<readonly ReactorEquationTerm[] | null>(null)
   const coeffEditingActive = reactorCoeffEditing || reactorCoeffEditBurst
   /**
+   * После окончания +/- не монтируем product GPU сразу — hitch/context loss
+   * гасил Bohr, пока кнопка «Проверить» ещё доступна.
+   */
+  const [allowIdleProductPrewarm, setAllowIdleProductPrewarm] = useState(true)
+  const wasCoeffEditingRef = useRef(false)
+  useEffect(() => {
+    if (coeffEditingActive) {
+      setAllowIdleProductPrewarm(false)
+      wasCoeffEditingRef.current = true
+      return
+    }
+    if (!wasCoeffEditingRef.current) return
+    wasCoeffEditingRef.current = false
+    setAllowIdleProductPrewarm(false)
+    const t = window.setTimeout(() => {
+      setAllowIdleProductPrewarm(true)
+    }, REACTOR_SHIELD.gpuCooldownMs)
+    return () => window.clearTimeout(t)
+  }, [coeffEditingActive])
+  /**
    * Shell никогда не null'им при открытом реакторе из-за краткого пустого canvas hold —
    * иначе unmount Bohr → пустой starfield при живом уравнении в панели.
    */
@@ -534,6 +555,7 @@ function SceneContent({
 
   const gpuQueueActive =
     reactorGpuIdleReady &&
+    allowIdleProductPrewarm &&
     canIdleGpuCompileQueue({
       reactorOpen: reactorViewOpen,
       coeffEditBurst: reactorCoeffEditBurst,
@@ -572,6 +594,7 @@ function SceneContent({
           (synthActive || synthesisRunActive) && !productPainted,
         coeffEditBurst: reactorCoeffEditBurst,
         coeffEditing: coeffEditingActive,
+        allowIdleProductPrewarm,
         stickyMountRef: productStickyMountRef,
         previewStickyRef: previewStickyMountRef,
       }),
@@ -593,6 +616,7 @@ function SceneContent({
       instantSynthesis,
       reactorCoeffEditBurst,
       reactorCoeffEditing,
+      allowIdleProductPrewarm,
     ],
   )
 
@@ -742,12 +766,21 @@ function SceneContent({
     synthesisRunActive,
   ])
 
+  const prevCoeffEditingRef = useRef(false)
   useLayoutEffect(() => {
-    if (!coeffEditingActive) return
     if (synthActive || synthesisRunActive) return
-    productPaintedRef.current = false
-    productPaintFramesRef.current = 0
-    setProductPainted(false)
+    const wasEditing = prevCoeffEditingRef.current
+    prevCoeffEditingRef.current = coeffEditingActive
+    const rising = coeffEditingActive && !wasEditing
+    const falling = !coeffEditingActive && wasEditing
+    if (!rising && !falling) return
+
+    // Rising: убрать productPainted. Falling: восстановить Bohr после GPU/hitch на edit-end.
+    if (rising) {
+      productPaintedRef.current = false
+      productPaintFramesRef.current = 0
+      setProductPainted(false)
+    }
     previewStickyMountRef.current = { runId: -1, previewMounted: true }
     const root = previewRootRef.current
     if (root) {
@@ -755,14 +788,14 @@ function SceneContent({
       root.visible = true
     }
     const n = Math.max(0, previewAtomCountRef.current)
+    if (n <= 0) return
     const scaleFloor = reactorPreviewAtomScale(n)
-    // Rising-edge only: не гоняем GSAP kill + walk слотов на каждом +/- count.
     for (let i = 0; i < n; i++) {
       const sc = previewAtomScaleGroupRefs.current[i]
       if (sc) {
         gsap.killTweensOf(sc.scale)
         sc.visible = true
-        if (sc.scale.x < scaleFloor * 0.45) {
+        if (falling || sc.scale.x < scaleFloor * 0.45) {
           sc.scale.set(scaleFloor, scaleFloor, scaleFloor)
         }
       }
@@ -772,7 +805,8 @@ function SceneContent({
         g.visible = true
       }
     }
-  }, [coeffEditingActive, synthActive, synthesisRunActive])
+    if (falling) invalidate()
+  }, [coeffEditingActive, synthActive, synthesisRunActive, invalidate])
 
   const restorePreviewRootVisibility = useCallback(() => {
     const root = previewRootRef.current
@@ -1408,7 +1442,12 @@ function SceneContent({
               previewOnlyMode={
                 !synthesisRunActive &&
                 !synthActive &&
-                (!showSettledHero || coeffEditingActive)
+                !(
+                  showSettledHero &&
+                  productPainted &&
+                  productSlotVisibleResolved &&
+                  !coeffEditingActive
+                )
               }
               synthHoldPreview={synthHoldPreview}
               lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}

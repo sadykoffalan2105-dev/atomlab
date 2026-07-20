@@ -164,7 +164,8 @@ export function expectedForScenario(scenario: SynthesisStabilityScenario): Scena
       }
     case 'settled_handoff':
       return {
-        previewVisible: false,
+        // productPainted=false → Bohr остаётся, иначе пустой starfield
+        previewVisible: true,
         previewMounted: true,
         productMesh: true,
         productSlot: true,

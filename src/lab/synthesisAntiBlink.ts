@@ -30,6 +30,11 @@ export type SynthesisContinuityInput = {
   coeffEditBurst?: boolean
   /** burst или !editIdle — любое редактирование уравнения */
   coeffEditing?: boolean
+  /**
+   * Idle GPU micro-prewarm продукта. false сразу после +/- (cooldown),
+   * иначе mount молекулы на edit-end → context hitch → «атомы пропали».
+   */
+  allowIdleProductPrewarm?: boolean
   stickyMountRef: MutableRefObject<SynthesisStickyMountRef | null>
   previewStickyRef: MutableRefObject<SynthesisPreviewStickyRef | null>
 }
@@ -67,6 +72,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     keepPreviewDuringProduct = false,
     coeffEditBurst = false,
     coeffEditing = coeffEditBurst,
+    allowIdleProductPrewarm = true,
     stickyMountRef,
     previewStickyRef,
   } = input
@@ -88,6 +94,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
       !coeffEditBurst &&
       !coeffEditing &&
       !userEditing &&
+      allowIdleProductPrewarm &&
       _gpuPrewarmAllowed
     if (canPrewarmProduct) {
       stickyMountRef.current = {
@@ -114,6 +121,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     !coeffEditing &&
     !coeffEditBurst &&
     !userEditing &&
+    allowIdleProductPrewarm &&
     _gpuPrewarmAllowed &&
     productCompoundId != null &&
     reactorViewOpen
@@ -172,7 +180,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     !productOwnsScreen &&
     mountReactorPreview &&
     reactorViewOpen &&
-    (!showSettledHero || userEditing)
+    (!showSettledHero || userEditing || !productPainted)
 
   /** Держим Bohr до paint даже если слот уже поднимается (overlap без дыры). */
   const synthPreviewLock =
@@ -215,7 +223,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     reactorViewOpen &&
     !synthLive &&
     !productOwnsScreen &&
-    (!showSettledHero || userEditing)
+    (!showSettledHero || userEditing || !productPainted)
 
   /** До paint Bohr виден; после paint — только продукт. */
   const reactorPreviewVisible =
@@ -224,6 +232,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
     (reactorEditVisible ||
       synthPreviewLock ||
       userEditing ||
+      settledWaitingPaint ||
       (synthLive && !productPainted && !showSettledHero))
 
   const synthEmptyGuard =
