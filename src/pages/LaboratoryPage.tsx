@@ -117,6 +117,7 @@ export function LaboratoryPage() {
   const lastRunVisualTierRef = useRef<ReactorVisualTier>('full')
   const synthesisRunGuardRef = useRef(createSynthesisRunGuard())
   const forceLiteFxRef = useRef(false)
+  const forceEditHoldRef = useRef<() => void>(() => {})
   const canvasWrapRef = useRef<HTMLDivElement | null>(null)
   const labWrapRef = useRef<HTMLDivElement | null>(null)
   const rightHudRef = useRef<HTMLDivElement | null>(null)
@@ -370,6 +371,11 @@ export function LaboratoryPage() {
     (z: number) => {
       if (reactorOpen) {
         if (!getElementByZ(z)) return
+        setSynthesisSettledProduct(null)
+        synthesisSettledProductRef.current = null
+        settledSnapshotRef.current = null
+        setSynthPhaseUi('')
+        forceEditHoldRef.current()
         setLeftTerms((prev) => {
           const di = isDiatomicNativeElement(z)
           const matchIndex = prev.findIndex((term) => term.z === z && Boolean(term.diatomic) === di)
@@ -402,6 +408,11 @@ export function LaboratoryPage() {
   )
 
   const onRemoveTerm = useCallback((id: string) => {
+    setSynthesisSettledProduct(null)
+    synthesisSettledProductRef.current = null
+    settledSnapshotRef.current = null
+    setSynthPhaseUi('')
+    forceEditHoldRef.current()
     setLeftTerms((prev) => prev.filter((term) => term.id !== id))
   }, [])
 
@@ -420,6 +431,7 @@ export function LaboratoryPage() {
     synthesisSettledProductRef.current = null
     settledSnapshotRef.current = null
     setSynthPhaseUi('')
+    forceEditHoldRef.current()
     setLeftTerms((prev) =>
       prev.map((term) => {
         const n = left[term.id]
@@ -438,6 +450,7 @@ export function LaboratoryPage() {
     synthesisSettledProductRef.current = null
     settledSnapshotRef.current = null
     setSynthPhaseUi('')
+    forceEditHoldRef.current()
     setReactorMessage(null)
     setReactorOpen(true)
     if (lesson.kind === 'practice_only') {
@@ -618,8 +631,9 @@ export function LaboratoryPage() {
     return leftTerms.length >= 1 ? leftTerms : null
   }, [reactorOpen, leftTerms])
 
-  const { coeffEditBurst, coeffEditPulse, editIdle, visualHold, resetEditBurst } =
+  const { coeffEditBurst, coeffEditPulse, editIdle, visualHold, resetEditBurst, forceEditHold } =
     useReactorCoeffEditBurst(reactorPreviewTerms)
+  forceEditHoldRef.current = forceEditHold
 
   const leftTermsSig = useMemo(() => termsSignature(leftTerms), [leftTerms])
   const prevLeftTermsSigRef = useRef<string | null>(null)

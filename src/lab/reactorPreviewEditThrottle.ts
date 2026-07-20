@@ -29,6 +29,7 @@ export function useReactorCoeffEditBurst(
   editIdle: boolean
   visualHold: boolean
   resetEditBurst: () => void
+  forceEditHold: () => void
 } {
   const sig = useMemo(() => termsSignature(terms), [terms])
   const [coeffEditBurst, setCoeffEditBurst] = useState(false)
@@ -120,6 +121,22 @@ export function useReactorCoeffEditBurst(
     }, EDIT_IDLE_MS)
   }, [])
 
+  /** Принудительный hold (apply баланса / сброс settled) — pin без ожидания sig. */
+  const forceEditHold = useCallback(() => {
+    const now = performance.now()
+    changeTimesRef.current.push(now)
+    changeTimesRef.current = changeTimesRef.current.filter((t) => now - t < BURST_WINDOW_MS)
+    burstHoldUntilRef.current = Math.max(burstHoldUntilRef.current, now + BURST_HOLD_MS)
+    visualHoldUntilRef.current = now + VISUAL_HOLD_MS
+    setVisualHold(true)
+    setCoeffEditBurst(true)
+    setEditIdle(false)
+    scheduleVisualHoldEnd()
+    scheduleIdle()
+    scheduleBurstEnd()
+    scheduleEditPulse()
+  }, [scheduleVisualHoldEnd, scheduleIdle, scheduleBurstEnd, scheduleEditPulse])
+
   useLayoutEffect(() => {
     if (terms == null || terms.length === 0) {
       resetEditBurst()
@@ -153,5 +170,5 @@ export function useReactorCoeffEditBurst(
 
   useEffect(() => () => clearTimers(), [clearTimers])
 
-  return { coeffEditBurst, coeffEditPulse, editIdle, visualHold, resetEditBurst }
+  return { coeffEditBurst, coeffEditPulse, editIdle, visualHold, resetEditBurst, forceEditHold }
 }

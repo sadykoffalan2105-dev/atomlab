@@ -29,7 +29,7 @@ export const REACTOR_PREVIEW_CAMERA = {
   manyEnter: 9,
   manyExit: 7,
   /** Сколько мс удерживать позу после программного set (против гонки OrbitControls). */
-  lockMs: 280,
+  lockMs: 720,
 } as const
 
 export type OrbitControlsLike = {

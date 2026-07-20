@@ -11,16 +11,19 @@ export type VisualCoverageInput = {
 /**
  * Unified coverage: center never empty.
  * micro-prewarm does NOT count during coeff edit (invisible mesh).
+ * merge/converge НЕ считаются «покрытыми» сами по себе — иначе пустой кадр без restore.
  */
 export function isVisualCoverageOk(input: VisualCoverageInput): boolean {
   const { continuity, mergeFx, convergeFx, editMode } = input
   const { reactorPreviewVisible, reactorPreviewMounted, productSlotVisible, productPrewarm } =
     continuity
 
-  if (mergeFx || convergeFx) return true
   if (reactorPreviewVisible && reactorPreviewMounted) return true
   if (productSlotVisible) return true
   if (productPrewarm && !editMode) return true
+  // merge/converge: только если уже есть Bohr или слот — иначе coverage violation → restore
+  if ((mergeFx || convergeFx) && reactorPreviewMounted && reactorPreviewVisible) return true
+  if ((mergeFx || convergeFx) && productSlotVisible) return true
   return false
 }
 

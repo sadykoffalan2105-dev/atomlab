@@ -8,6 +8,7 @@ import { expandLeftTermsToPreviewSlots } from '../src/chemistry/reactorEquationB
 import type { ReactorEquationTerm } from '../src/chemistry/reactorEquationBalance.ts'
 import { buildReactorPreviewAtoms, reactorPreviewAtomScale, PREVIEW_ATOM_SCALE, PREVIEW_ATOM_MIN_GAP, previewAtomsMinPairDistance } from '../src/components/lab/reactorPreviewLayout.ts'
 import { resolveSynthesisContinuity } from '../src/lab/synthesisAntiBlink.ts'
+import { isEffectiveProductPainted } from '../src/lab/synthesisAntiBlink.ts'
 import { isVisualCoverageOk } from '../src/lab/visualCoverageController.ts'
 import { isReactorCoeffEditing } from '../src/lab/reactorCoeffEditMode.ts'
 import { canIdleGpuPrewarm, canIdleGpuCompileQueue } from '../src/lab/synthesisPrewarmPolicy.ts'
@@ -979,6 +980,107 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     const md = previewAtomsMinPairDistance(previewAtoms)
     assert.ok(md >= 0.45, `layout spacing ok at total=${total}: ${md.toFixed(3)}`)
   }
+}
+
+// --- stale productPainted must not own screen on new runId ---
+{
+  assert.equal(
+    isEffectiveProductPainted({
+      productPainted: true,
+      synthLive: true,
+      runId: 7,
+      paintedForRunId: 6,
+    }),
+    false,
+    'stale paint from prior runId',
+  )
+  assert.equal(
+    isEffectiveProductPainted({
+      productPainted: true,
+      synthLive: true,
+      runId: 7,
+      paintedForRunId: 7,
+    }),
+    true,
+    'paint matches current runId',
+  )
+  assert.equal(
+    isEffectiveProductPainted({
+      productPainted: true,
+      synthLive: false,
+      runId: 0,
+      paintedForRunId: 0,
+    }),
+    true,
+    'idle/settled paint ok',
+  )
+
+  const stickyMountRef = mockSticky(null)
+  const previewStickyRef = mockSticky(null)
+  const view = resolveSynthesisContinuity({
+    runId: 7,
+    synthActive: true,
+    synthesisRunActive: true,
+    synthesisPhase: 'mergeFlash',
+    showSettledHero: false,
+    mountReactorPreview: true,
+    reactorViewOpen: true,
+    gpuPrewarmAllowed: true,
+    prewarmReady: true,
+    productCompoundId: 'h2o',
+    earlyProductReveal: true,
+    forceProductSlot: true,
+    productRevealReady: true,
+    productPainted: false, // gated: stale → effective false
+    keepPreviewDuringProduct: true,
+    stickyMountRef,
+    previewStickyRef,
+  })
+  assert.equal(view.reactorPreviewVisible, true, 'Bohr stays during mergeFlash before paint')
+  assert.equal(
+    isVisualCoverageOk({
+      continuity: view,
+      mergeFx: true,
+      convergeFx: false,
+      editMode: false,
+    }),
+    true,
+    'mergeFlash covered by Bohr preview',
+  )
+}
+
+// --- mergeFlash alone is not coverage ---
+{
+  const stickyMountRef = mockSticky(null)
+  const previewStickyRef = mockSticky(null)
+  const empty = resolveSynthesisContinuity({
+    runId: 3,
+    synthActive: true,
+    synthesisRunActive: true,
+    synthesisPhase: 'mergeFlash',
+    showSettledHero: false,
+    mountReactorPreview: false,
+    reactorViewOpen: true,
+    gpuPrewarmAllowed: false,
+    prewarmReady: false,
+    productCompoundId: null,
+    earlyProductReveal: false,
+    forceProductSlot: false,
+    productRevealReady: false,
+    productPainted: false,
+    stickyMountRef,
+    previewStickyRef,
+  })
+  assert.equal(
+    isVisualCoverageOk({
+      continuity: empty,
+      mergeFx: true,
+      convergeFx: false,
+      editMode: false,
+    }),
+    false,
+    'mergeFlash without Bohr/product is a hole',
+  )
 }
 
 console.log('test-synthesis-stability: all passed')

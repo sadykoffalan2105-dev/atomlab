@@ -56,6 +56,7 @@ import {
   createSynthesisCoverageTracker,
 } from '../../lab/synthesisVisualGuard'
 import {
+  isEffectiveProductPainted,
   resolveSynthesisContinuity,
   type SynthesisStickyMountRef,
   type SynthesisPreviewStickyRef,
@@ -349,6 +350,8 @@ function SceneContent({
   const [productRevealReady, setProductRevealReady] = useState(false)
   const [productPainted, setProductPainted] = useState(false)
   const productPaintedRef = useRef(false)
+  /** runId, для которого productPainted валиден — иначе stale paint гасит Bohr на старте нового синтеза. */
+  const paintedForRunIdRef = useRef(0)
   const productPaintFramesRef = useRef(0)
   const prewarmSuppressUntilRef = useRef(0)
   const [prewarmSuppressRev, setPrewarmSuppressRev] = useState(0)
@@ -366,25 +369,16 @@ function SceneContent({
   const previewTermsShellRef = useRef<readonly ReactorEquationTerm[] | null>(null)
   const coeffEditingActive = reactorCoeffEditing || reactorCoeffEditBurst
   /**
-   * После окончания +/- не монтируем product GPU сразу — hitch/context loss
-   * гасил Bohr, пока кнопка «Проверить» ещё доступна.
+   * После +/- / apply баланса не монтируем product GPU до кнопки «Запустить» —
+   * иначе hitch гасит Bohr на idle.
    */
-  const [allowIdleProductPrewarm, setAllowIdleProductPrewarm] = useState(true)
-  const wasCoeffEditingRef = useRef(false)
+  const [allowIdleProductPrewarm, setAllowIdleProductPrewarm] = useState(false)
   useEffect(() => {
-    if (coeffEditingActive) {
-      setAllowIdleProductPrewarm(false)
-      wasCoeffEditingRef.current = true
-      return
-    }
-    if (!wasCoeffEditingRef.current) return
-    wasCoeffEditingRef.current = false
-    setAllowIdleProductPrewarm(false)
-    const t = window.setTimeout(() => {
-      setAllowIdleProductPrewarm(true)
-    }, REACTOR_SHIELD.gpuCooldownMs)
-    return () => window.clearTimeout(t)
+    if (coeffEditingActive) setAllowIdleProductPrewarm(false)
   }, [coeffEditingActive])
+  useEffect(() => {
+    if (synthActive || synthesisRunActive) setAllowIdleProductPrewarm(true)
+  }, [synthActive, synthesisRunActive])
   /**
    * Shell никогда не null'им при открытом реакторе из-за краткого пустого canvas hold —
    * иначе unmount Bohr → пустой starfield при живом уравнении в панели.
@@ -481,6 +475,7 @@ function SceneContent({
     prewarmReadyRef.current = false
     prewarmCompoundIdRef.current = null
     productPaintedRef.current = false
+    paintedForRunIdRef.current = 0
     productPaintFramesRef.current = 0
     lastSynthRunIdRef.current = 0
     setPrewarmReady(false)
@@ -574,10 +569,20 @@ function SceneContent({
     effectivePreviewTerms != null &&
     effectivePreviewTerms.length >= 1
 
+  const synthLiveEarly = synthActive || synthesisRunActive
+  const currentSynthRunId = synthesis?.runId ?? 0
+  /** Stale paint с прошлого runId не гасит Bohr на старте нового синтеза. */
+  const effectiveProductPainted = isEffectiveProductPainted({
+    productPainted,
+    synthLive: synthLiveEarly,
+    runId: currentSynthRunId,
+    paintedForRunId: paintedForRunIdRef.current,
+  })
+
   const continuity = useMemo(
     () =>
       resolveSynthesisContinuity({
-        runId: synthesis?.runId ?? 0,
+        runId: currentSynthRunId,
         synthActive,
         synthesisRunActive,
         synthesisPhase,
@@ -590,9 +595,8 @@ function SceneContent({
         earlyProductReveal,
         forceProductSlot,
         productRevealReady,
-        productPainted,
-        keepPreviewDuringProduct:
-          (synthActive || synthesisRunActive) && !productPainted,
+        productPainted: effectiveProductPainted,
+        keepPreviewDuringProduct: synthLiveEarly && !effectiveProductPainted,
         coeffEditBurst: reactorCoeffEditBurst,
         coeffEditing: coeffEditingActive,
         allowIdleProductPrewarm,
@@ -600,7 +604,7 @@ function SceneContent({
         previewStickyRef: previewStickyMountRef,
       }),
     [
-      synthesis?.runId,
+      currentSynthRunId,
       synthActive,
       synthesisRunActive,
       synthesisPhase,
@@ -613,7 +617,8 @@ function SceneContent({
       earlyProductReveal,
       forceProductSlot,
       productRevealReady,
-      productPainted,
+      effectiveProductPainted,
+      synthLiveEarly,
       instantSynthesis,
       reactorCoeffEditBurst,
       reactorCoeffEditing,
@@ -643,11 +648,9 @@ function SceneContent({
   })
 
   const previewMotionLocked = false
+  /** mergeFlash не flight: pin слотов до paint, иначе атомы уезжают в пустоту. */
   const previewFlightActive =
-    synthLive &&
-    (synthesisPhase === 'converge' ||
-      synthesisPhase === 'flying' ||
-      synthesisPhase === 'mergeFlash')
+    synthLive && (synthesisPhase === 'converge' || synthesisPhase === 'flying')
   const previewPoseLocked = synthesisRunActive && !synthActive
   if (previewAtomCount > 8) editLiteLatchRef.current = true
   else if (
@@ -670,7 +673,8 @@ function SceneContent({
   const productPrewarmActive = continuity.productPrewarm
   const productSlotVisibleResolved = productSlotView.visible
   const productPrewarmResolved = productSlotView.prewarm
-  const synthHoldPreview = synthLive && !productPainted && effectivePreviewTerms != null
+  const synthHoldPreview =
+    synthLive && !effectiveProductPainted && effectivePreviewTerms != null
 
   const handleProductGpuCompiled = useCallback(
     (compoundId: string) => {
@@ -685,9 +689,10 @@ function SceneContent({
   )
 
   const handleProductVisiblePaint = useCallback(() => {
+    paintedForRunIdRef.current = lastSynthRunIdRef.current || currentSynthRunId
     productPaintedRef.current = true
     setProductPainted(true)
-  }, [])
+  }, [currentSynthRunId])
 
   const handleInstantSynthDone = useCallback(
     (kind: 'success' | 'fail') => {
@@ -782,6 +787,7 @@ function SceneContent({
     // Rising: убрать productPainted. Falling: восстановить Bohr после GPU/hitch на edit-end.
     if (rising) {
       productPaintedRef.current = false
+      paintedForRunIdRef.current = 0
       productPaintFramesRef.current = 0
       setProductPainted(false)
     }
@@ -821,7 +827,7 @@ function SceneContent({
   useLayoutEffect(() => {
     if (coeffEditingActive) return
     if (preSynthesisPreview) return
-    if (!productPainted || !productSlotVisibleResolved) return
+    if (!effectiveProductPainted || !productSlotVisibleResolved) return
     if (synthActive || synthesisRunActive) {
       // Во время синтеза после paint — тоже держим Bohr скрытым.
     }
@@ -829,7 +835,7 @@ function SceneContent({
     if (!root) return
     root.visible = false
   }, [
-    productPainted,
+    effectiveProductPainted,
     productSlotVisibleResolved,
     coeffEditingActive,
     synthActive,
@@ -840,6 +846,7 @@ function SceneContent({
   useLayoutEffect(() => {
     if (!reactorViewOpen || !preSynthesisPreview) return
     productPaintedRef.current = false
+    paintedForRunIdRef.current = 0
     productPaintFramesRef.current = 0
     setProductPainted(false)
     restorePreviewRootVisibility()
@@ -851,6 +858,7 @@ function SceneContent({
     if (synthActive || synthesisRunActive) return
     if (!reactorViewOpen) return
     productPaintedRef.current = false
+    paintedForRunIdRef.current = 0
     productPaintFramesRef.current = 0
     setProductPainted(false)
     restorePreviewRootVisibility()
@@ -873,6 +881,7 @@ function SceneContent({
     if (lastSynthRunIdRef.current !== rid) {
       lastSynthRunIdRef.current = rid
       productPaintedRef.current = false
+      paintedForRunIdRef.current = 0
       productPaintFramesRef.current = 0
       setProductPainted(false)
       setForceProductSlot(true)
@@ -1230,7 +1239,7 @@ function SceneContent({
       previewAtomCount,
       productPrewarm: productPrewarmActive,
       productPainted:
-        productPainted &&
+        effectiveProductPainted &&
         !coeffEditingActive &&
         !preSynthesisPreview &&
         (synthesisRunActive || synthActive || showSettledHero),
@@ -1249,11 +1258,17 @@ function SceneContent({
       previewRootRef.current.visible = true
     }
 
-    // На старте синтеза держим Bohr до productPainted — нет пустого/белого кадра.
+    // На старте синтеза держим Bohr до paint текущего runId — нет пустого/белого кадра.
+    const paintOkForRun = isEffectiveProductPainted({
+      productPainted: productPaintedRef.current,
+      synthLive: synthesisRunActive || synthActive,
+      runId: currentSynthRunId,
+      paintedForRunId: paintedForRunIdRef.current,
+    })
     if (
       reactorViewOpen &&
       (synthesisRunActive || synthActive) &&
-      !productPaintedRef.current &&
+      !paintOkForRun &&
       previewRootRef.current
     ) {
       previewRootRef.current.visible = true
@@ -1371,7 +1386,7 @@ function SceneContent({
       {reactorViewOpen && reactorGpuIdleReady ? (
         <ReactorAtomShaderWarmup
           active={
-            !productPainted &&
+            !effectiveProductPainted &&
             !showSettledHero &&
             !coeffEditingActive &&
             !synthActive &&
@@ -1439,7 +1454,7 @@ function SceneContent({
                 !synthActive &&
                 !(
                   showSettledHero &&
-                  productPainted &&
+                  effectiveProductPainted &&
                   productSlotVisibleResolved &&
                   !coeffEditingActive
                 )

@@ -61,4 +61,11 @@ import { PerspectiveCamera, Vector3 } from 'three'
   assert.ok(Math.abs(controls.target.y - pose.target[1]) < 0.01)
 }
 
+{
+  assert.ok(
+    REACTOR_PREVIEW_CAMERA.lockMs >= 720,
+    `camera lockMs should hold orbit after edit/synth (got ${REACTOR_PREVIEW_CAMERA.lockMs})`,
+  )
+}
+
 console.log('test-reactor-preview-camera: all passed')

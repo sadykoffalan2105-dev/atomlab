@@ -11,6 +11,23 @@ export type SynthesisPreviewStickyRef = {
   previewMounted: boolean
 }
 
+/**
+ * productPainted валиден только для текущего runId во время синтеза —
+ * иначе stale paint с прошлого запуска гасит Bohr на старте.
+ */
+export function isEffectiveProductPainted(input: {
+  productPainted: boolean
+  synthLive: boolean
+  runId: number
+  paintedForRunId: number
+}): boolean {
+  const { productPainted, synthLive, runId, paintedForRunId } = input
+  if (!productPainted) return false
+  if (!synthLive) return true
+  if (runId <= 0) return true
+  return paintedForRunId === runId
+}
+
 export type SynthesisContinuityInput = {
   runId: number
   synthActive: boolean
