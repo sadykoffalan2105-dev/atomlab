@@ -2,8 +2,10 @@
   flex-shrink: 0;
   border-top: 1px solid rgba(61, 255, 236, 0.14);
   background: rgba(6, 8, 20, 0.92);
-  max-height: min(28vh, 220px);
+  /* Компактнее: не съедать viewport у WebGL после добавления баланса. */
+  max-height: min(18vh, 148px);
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .tabs {

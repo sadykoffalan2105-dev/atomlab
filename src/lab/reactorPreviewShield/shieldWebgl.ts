@@ -1,62 +1,60 @@
 /**
- * Soft WebGL recovery — без remount Canvas (нет красного/чёрного экрана и cold Bohr).
+ * Soft WebGL recovery + hard remount если контекст так и не вернулся.
+ * Soft-only навсегда оставлял белый canvas / иконку сбоя после dichromate GPU hitch.
  */
-import { REACTOR_SHIELD, type ShieldSnapshot, shieldAllowsCanvasRemount } from './reactorPreviewShield'
+import { REACTOR_SHIELD } from './reactorPreviewShield'
 
 export type SoftWebGlRecovery = {
   onContextLost: () => void
   onContextRestored: (invalidate: () => void) => void
-  /** true только если remount реально разрешён щитом (обычно never). */
-  consumeRemountRequest: (snap: ShieldSnapshot, nowMs: number, editing: boolean) => boolean
+  /** true — пора remount'ить Canvas (context мёртв дольше hardRecoverAfterMs). */
+  shouldHardRemount: (nowMs?: number) => boolean
+  /** Вызвать после remount, чтобы не зациклить. */
+  acknowledgeHardRemount: () => void
   reset: () => void
   wasLost: () => boolean
 }
 
 /**
  * Context loss: preventDefault уже снаружи.
- * Remount по умолчанию ЗАПРЕЩЁН (softRecoverOnly) — ждём webglcontextrestored + invalidate.
+ * 1) Ждём webglcontextrestored + invalidate
+ * 2) Если не восстановилось — hard remount (новый Canvas key)
  */
 export function createSoftWebGlRecovery(): SoftWebGlRecovery {
   let lost = false
-  let remountWanted = false
   let lostAt = 0
+  let hardRemountConsumed = false
 
   return {
     onContextLost() {
       lost = true
-      remountWanted = false
       lostAt = performance.now()
-      // Не планируем remount — soft only.
-      if (!REACTOR_SHIELD.softRecoverOnly) {
-        remountWanted = true
-      }
+      hardRemountConsumed = false
     },
     onContextRestored(invalidate) {
       lost = false
-      remountWanted = false
       lostAt = 0
+      hardRemountConsumed = false
       try {
         invalidate()
       } catch {
         /* ignore */
       }
     },
-    consumeRemountRequest(snap, nowMs, editing) {
-      if (REACTOR_SHIELD.softRecoverOnly) {
-        remountWanted = false
-        return false
-      }
-      if (!remountWanted) return false
-      if (!shieldAllowsCanvasRemount(snap, nowMs, editing)) return false
-      // Даём браузеру шанс восстановить контекст сам (≥2с).
-      if (lost && performance.now() - lostAt < 2000) return false
-      remountWanted = false
-      return true
+    shouldHardRemount(nowMs = performance.now()) {
+      if (!lost || hardRemountConsumed) return false
+      if (lostAt <= 0) return false
+      return nowMs - lostAt >= REACTOR_SHIELD.hardRecoverAfterMs
+    },
+    acknowledgeHardRemount() {
+      hardRemountConsumed = true
+      lost = false
+      lostAt = 0
     },
     reset() {
       lost = false
-      remountWanted = false
       lostAt = 0
+      hardRemountConsumed = false
     },
     wasLost() {
       return lost

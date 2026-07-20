@@ -116,6 +116,7 @@ function mockSticky<T>(initial: T | null = null) {
   assert.equal(view.reactorPreviewVisible, true, 'preview visible during coeff burst')
   assert.equal(view.productMeshMounted, false, 'no product mesh during coeff burst')
   assert.equal(view.productSlotVisible, false, 'no product slot during coeff burst')
+  assert.equal(stickyMountRef.current, null, 'stale product sticky cleared during edit')
   const covered = isVisualCoverageOk({
     continuity: view,
     mergeFx: false,

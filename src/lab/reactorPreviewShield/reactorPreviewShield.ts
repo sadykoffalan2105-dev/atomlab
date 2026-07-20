@@ -14,10 +14,15 @@ export const REACTOR_SHIELD = {
   settleMs: 1200,
   /** Запрет GPU-compile после edit (мс). */
   gpuCooldownMs: 2200,
-  /** Полный запрет Canvas remount после edit (мс). */
+  /** Полный запрет Canvas remount после edit (мс) — кроме hard recovery мёртвого WebGL. */
   remountBanMs: 8000,
-  /** После context restored — только soft invalidate, remount только если бан снят. */
+  /**
+   * Soft recover предпочтителен; если context не вернулся за hardRecoverAfterMs —
+   * разрешаем один remount (иначе вечный белый canvas / «битая картинка»).
+   */
   softRecoverOnly: true,
+  /** Ждать soft restore; потом remount (мс). */
+  hardRecoverAfterMs: 1600,
   /** Плотное уравнение (дихромат и т.п.) — сразу lite, без flip-flop. */
   denseLiteFromAtoms: 10,
 } as const

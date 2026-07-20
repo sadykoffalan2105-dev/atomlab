@@ -119,6 +119,9 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
         compoundId: productCompoundId,
         productMounted: true,
       }
+    } else {
+      // Не держать stale product GPU после edit/баланса — hitch гасит Bohr.
+      stickyMountRef.current = null
     }
     return {
       reactorPreviewVisible: true,

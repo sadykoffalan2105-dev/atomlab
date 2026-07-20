@@ -74,7 +74,6 @@ import { getSynthesisTimingProfile, isInstantSynthesisProfile } from '../../lab/
 import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
 import { resolveDeviceSynthesisCap } from '../../perf/graphicsSettings'
 import { resolveLabCanvasPolicy } from '../../perf/deviceCanvasPolicy'
-import { createWebGlRecoveryController } from '../../lab/webglRecoveryGuard'
 import {
   bumpShieldOnCoeffEdit,
   createShieldSnapshot,
@@ -1258,14 +1257,22 @@ function SceneContent({
       previewRootRef.current.visible = true
     }
 
-    // На старте синтеза держим Bohr до paint текущего runId — нет пустого/белого кадра.
+    // На старте синтеза / при edit держим Bohr до paint текущего runId.
     const paintOkForRun = isEffectiveProductPainted({
       productPainted: productPaintedRef.current,
       synthLive: synthesisRunActive || synthActive,
       runId: currentSynthRunId,
       paintedForRunId: paintedForRunIdRef.current,
     })
-    if (
+    const mustShowBohr =
+      reactorViewOpen &&
+      effectivePreviewTerms != null &&
+      effectivePreviewTerms.length >= 1 &&
+      !paintOkForRun &&
+      (!showSettledHero || coeffEditingActive)
+    if (mustShowBohr && previewRootRef.current) {
+      previewRootRef.current.visible = true
+    } else if (
       reactorViewOpen &&
       (synthesisRunActive || synthActive) &&
       !paintOkForRun &&
@@ -1524,7 +1531,8 @@ function SceneContent({
         </>
       ) : null}
 
-      {reactorViewOpen ? <CatalogCanvasResizeSync touchDpr={false} /> : null}
+      {/* Resize sync всегда: balance-панель меняет высоту реактора → иначе 0×0 / белый canvas. */}
+      <CatalogCanvasResizeSync touchDpr={false} />
       {productForSlot ? (
         <LabProductHeroSlot
           compound={productForSlot}
@@ -1618,20 +1626,15 @@ export function LabCanvas({
 }) {
   const { t } = useT()
   const [perfLevel, setPerfLevel] = useState<PerfLevel>('high')
-  // internalSessionKey больше НЕ растёт от context loss — soft recover only (щит).
-  const [internalSessionKey] = useState(0)
+  /** Растёт только при hard recovery мёртвого WebGL (белый canvas / битая иконка). */
+  const [internalSessionKey, setInternalSessionKey] = useState(0)
+  const hardRemountTimerRef = useRef<number | null>(null)
   const coeffEditBurstRef = useRef(reactorCoeffEditBurst ?? false)
   const coeffEditingRef = useRef(reactorCoeffEditing ?? false)
   coeffEditBurstRef.current = reactorCoeffEditBurst ?? false
   coeffEditingRef.current = reactorCoeffEditing ?? false
   const shieldSnapRef = useRef(createShieldSnapshot())
   const softWebglRef = useRef(createSoftWebGlRecovery())
-  /** Legacy controller оставлен только для совместимости API shouldRemount=false path. */
-  const webglRecoveryRef = useRef(
-    createWebGlRecoveryController(() => {
-      /* remount запрещён щитом — no-op */
-    }),
-  )
   const canvasKey = `${sessionKey}-${internalSessionKey}`
 
   useEffect(() => {
@@ -1642,7 +1645,15 @@ export function LabCanvas({
     shieldSnapRef.current = tickShieldPhase(shieldSnapRef.current, now)
   }, [reactorCoeffEditBurst, reactorCoeffEditing])
 
-  // Remount Canvas отключён: soft webglcontextrestored + invalidate.
+  useEffect(
+    () => () => {
+      if (hardRemountTimerRef.current != null) {
+        window.clearTimeout(hardRemountTimerRef.current)
+        hardRemountTimerRef.current = null
+      }
+    },
+    [],
+  )
 
   /** always — demand давал чёрный центр при +/- коэффициентов. */
   const canvasFrameloop = 'always' as const
@@ -1681,10 +1692,11 @@ export function LabCanvas({
       </div>
     )
   }
+  const sceneBg = reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX
   return (
     <CanvasErrorBoundary
       resetKey={canvasKey}
-      maxAutoRetry={0}
+      maxAutoRetry={1}
       fallback={<CanvasSceneErrorFallback />}
     >
       <Canvas
@@ -1693,7 +1705,7 @@ export function LabCanvas({
           display: 'block',
           width: '100%',
           height: '100%',
-          background: reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX,
+          background: sceneBg,
         }}
         gl={{
           antialias: canvasAntialias,
@@ -1706,25 +1718,48 @@ export function LabCanvas({
         dpr={canvasDpr}
         frameloop={canvasFrameloop}
         onCreated={(state) => {
-          const bg = hexToColor(reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX)
+          softWebglRef.current.reset()
+          const bg = hexToColor(sceneBg)
           state.gl.setClearColor(bg, 1)
           state.scene.background = bg
           const canvas = state.gl.domElement
           // Непрозрачный CSS-фон совпадает с clearColor — иначе компоновщик мигает поверх WebGL.
-          canvas.style.background = reactorViewOpen ? REACTOR_SCENE_HEX : LAB_SCENE_CLEAR_HEX
+          canvas.style.background = sceneBg
           canvas.style.display = 'block'
+          canvas.style.opacity = '1'
+          const clearHardTimer = () => {
+            if (hardRemountTimerRef.current != null) {
+              window.clearTimeout(hardRemountTimerRef.current)
+              hardRemountTimerRef.current = null
+            }
+          }
           const onLost = (e: Event) => {
             e.preventDefault()
+            // Спрятать мёртвый белый canvas — виден CSS-starfield под ним.
+            canvas.style.opacity = '0'
             softWebglRef.current.onContextLost()
-            webglRecoveryRef.current.onContextLost()
+            clearHardTimer()
+            hardRemountTimerRef.current = window.setTimeout(() => {
+              hardRemountTimerRef.current = null
+              if (!softWebglRef.current.shouldHardRemount()) return
+              softWebglRef.current.acknowledgeHardRemount()
+              setInternalSessionKey((k) => k + 1)
+            }, REACTOR_SHIELD.hardRecoverAfterMs)
             state.invalidate()
           }
           const onRestored = () => {
+            clearHardTimer()
+            canvas.style.opacity = '1'
+            canvas.style.background = sceneBg
             softWebglRef.current.onContextRestored(() => state.invalidate())
-            webglRecoveryRef.current.onContextRestored()
             state.gl.setClearColor(bg, 1)
             state.scene.background = bg
-            state.gl.setSize(state.size.width, state.size.height)
+            const parent = canvas.parentElement
+            if (parent) {
+              const w = Math.max(2, Math.floor(parent.clientWidth))
+              const h = Math.max(2, Math.floor(parent.clientHeight))
+              state.gl.setSize(w, h, false)
+            }
             state.invalidate()
           }
           canvas.addEventListener('webglcontextlost', onLost)

@@ -173,6 +173,8 @@ export function LaboratoryPage() {
       if (clearance === lastClearance) return
       lastClearance = clearance
       wrap.style.setProperty('--lab-reactor-clearance', `${clearance}px`)
+      // Высота панели баланса меняет layout — перемерить WebGL (иначе 0×0 / белый).
+      window.dispatchEvent(new Event('resize'))
     }
 
     syncReactorClearance()

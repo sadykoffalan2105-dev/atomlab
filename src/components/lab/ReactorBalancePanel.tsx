@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { useT } from '../../i18n/useT'
 import type { CompoundDef } from '../../types/chemistry'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
@@ -35,18 +35,23 @@ export function ReactorBalancePanel({
   const [oxPick, setOxPick] = useState<string | null>(null)
   const [redPick, setRedPick] = useState<string | null>(null)
 
+  /** Не конкурировать с R3F на каждом keystroke коэффициента. */
+  const deferredTerms = useDeferredValue(leftTerms)
+  const deferredProduct = useDeferredValue(productCompound)
+  const deferredProductCoeff = useDeferredValue(productCoeff)
+
   const table = useMemo(
-    () => buildAtomBalanceRows(leftTerms, productCompound, productCoeff),
-    [leftTerms, productCompound, productCoeff],
+    () => buildAtomBalanceRows(deferredTerms, deferredProduct, deferredProductCoeff),
+    [deferredTerms, deferredProduct, deferredProductCoeff],
   )
 
   const electron = useMemo(
-    () => computeElectronBalance(leftTerms, productCompound),
-    [leftTerms, productCompound],
+    () => computeElectronBalance(deferredTerms, deferredProduct),
+    [deferredTerms, deferredProduct],
   )
 
-  const productOx = useMemo(() => oxidationForProduct(productCompound), [productCompound])
-  const leftOxLabels = useMemo(() => describeLeftOxLabels(leftTerms), [leftTerms])
+  const productOx = useMemo(() => oxidationForProduct(deferredProduct), [deferredProduct])
+  const leftOxLabels = useMemo(() => describeLeftOxLabels(deferredTerms), [deferredTerms])
 
   const canApplyElectron = Boolean(electron?.isRedox)
 
