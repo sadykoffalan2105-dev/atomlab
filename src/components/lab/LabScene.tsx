@@ -666,8 +666,12 @@ function SceneContent({
     (!coeffEditingActive && reactorCoeffEditBurst) ||
     frameBudgetLite ||
     lowPowerProfile.forceLiteReactor
-  const reactorPreviewMounted = continuity.reactorPreviewMounted
-  const reactorPreviewVisible = continuity.reactorPreviewVisible
+  const reactorPreviewMounted =
+    continuity.reactorPreviewMounted ||
+    (reactorViewOpen && effectivePreviewTerms != null && effectivePreviewTerms.length >= 1)
+  /** Pre-synth: всегда показываем Bohr, даже если continuity на кадр сказала false. */
+  const reactorPreviewVisible =
+    preSynthesisPreview || continuity.reactorPreviewVisible || coeffEditingActive
   const productSlotVisible = continuity.productSlotVisible
   const productPrewarmActive = continuity.productPrewarm
   const productSlotVisibleResolved = productSlotView.visible
@@ -1013,11 +1017,9 @@ function SceneContent({
   /** Фон реактора с первого кадра после «Синтез» — без чёрного провала и ghost-frame. */
   const reactorBackdrop = reactorViewOpen
 
-  /** Каталожный кадр: settled / превью продукта вне анимации синтеза. */
+  /** Каталожный кадр: только settled с видимым продуктом / transform-preview — НЕ raw productSlot. */
   const catalogViewMode =
-    previewActive ||
-    showSettledHero ||
-    (productSlotVisible && !synthesisRunActive && !synthActive)
+    previewActive || (showSettledHero && productSlotVisibleResolved && !coeffEditingActive)
 
   /**
    * Ракурс превью реагентов: сразу после coeff / выхода из catalog hero.
@@ -1156,16 +1158,16 @@ function SceneContent({
     frameHoldRef.current.markRendered()
     frameBudgetRef.current.sample(Math.min(120, Math.max(0.5, delta * 1000)))
 
-    // Удерживаем hero-ракурс ~280мс после coeff/выхода из catalog —
+    // Удерживаем hero-ракурс после coeff/выхода из catalog —
     // иначе damping OrbitControls откатывает камеру назад к z≈3.6.
     const lockPose = reactorCameraLockPoseRef.current
-    if (
-      lockPose &&
+    const lockActive =
+      lockPose != null &&
       !catalogViewMode &&
       !synthActive &&
       !synthesisRunActive &&
       performance.now() < reactorCameraLockUntilRef.current
-    ) {
+    if (lockActive && lockPose) {
       applyReactorPreviewCamera(camera as THREE.PerspectiveCamera, orbRef.current, lockPose)
     } else if (
       lockPose &&
@@ -1177,7 +1179,7 @@ function SceneContent({
     ) {
       // Страховка: если всё же залипли у catalog hero — сразу вернуть ракурс.
       applyReactorPreviewCamera(camera as THREE.PerspectiveCamera, orbRef.current, lockPose)
-      reactorCameraLockUntilRef.current = performance.now() + 120
+      reactorCameraLockUntilRef.current = performance.now() + REACTOR_PREVIEW_CAMERA.lockMs
     }
 
     if (frameBudgetRef.current.shouldForceLite() && reactorViewOpen && !coeffEditingActive) {
@@ -1446,7 +1448,6 @@ function SceneContent({
           {reactorPreviewMounted && effectivePreviewTerms ? (
             <ReactorTermsPreview
               terms={effectivePreviewTerms}
-              visible={reactorPreviewVisible}
               flightActive={previewFlightActive}
               poseLocked={previewPoseLocked}
               sharedLighting={synthActive || synthesisRunActive || preSynthesisPreview}
@@ -1465,6 +1466,13 @@ function SceneContent({
                   productSlotVisibleResolved &&
                   !coeffEditingActive
                 )
+              }
+              // Pre-synth: всегда visible — continuity flicker больше не гасит группу.
+              visible={
+                reactorPreviewVisible ||
+                preSynthesisPreview ||
+                coeffEditingActive ||
+                synthHoldPreview
               }
               synthHoldPreview={synthHoldPreview}
               lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}

@@ -63,9 +63,11 @@ import { PerspectiveCamera, Vector3 } from 'three'
 
 {
   assert.ok(
-    REACTOR_PREVIEW_CAMERA.lockMs >= 720,
+    REACTOR_PREVIEW_CAMERA.lockMs >= 1800,
     `camera lockMs should hold orbit after edit/synth (got ${REACTOR_PREVIEW_CAMERA.lockMs})`,
   )
+  assert.equal(isCameraStuckNearCatalogHero({ x: 0, y: 0.12, z: 4.2 }), true)
+  assert.equal(isCameraStuckNearCatalogHero({ x: 0.92, y: 1.38, z: 6.35 }), false)
 }
 
 console.log('test-reactor-preview-camera: all passed')

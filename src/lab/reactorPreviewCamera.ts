@@ -29,7 +29,7 @@ export const REACTOR_PREVIEW_CAMERA = {
   manyEnter: 9,
   manyExit: 7,
   /** Сколько мс удерживать позу после программного set (против гонки OrbitControls). */
-  lockMs: 720,
+  lockMs: 1800,
 } as const
 
 export type OrbitControlsLike = {
@@ -96,7 +96,8 @@ export function applyReactorPreviewCamera(
 export function isCameraStuckNearCatalogHero(
   position: { x: number; y: number; z: number },
   catalogZ = 3.6,
-  eps = 0.55,
+  eps = 0.85,
 ): boolean {
-  return Math.abs(position.z - catalogZ) < eps && Math.abs(position.x) < 0.35
+  // Шире eps: после settled damping часто оставляет z≈3.9–4.2 — атомы «пропали».
+  return Math.abs(position.z - catalogZ) < eps && Math.abs(position.x) < 0.55
 }

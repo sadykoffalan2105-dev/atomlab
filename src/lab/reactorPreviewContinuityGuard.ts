@@ -53,15 +53,28 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
 
       const root = previewRootRef?.current
 
-      // Продукт на экране / превью скрыто LabScene — Bohr never restore.
-      if (!previewVisible) {
+      /**
+       * Pre-synth / idle equation: НИКОГДА не hide корня.
+       * Старый путь `!previewVisible → hide` гасил Bohr при кратком flicker флага
+       * (после баланса / clear settled) → пустой starfield.
+       */
+      if (!synthLive) {
+        if (root) restorePreviewRoot(root)
         violationFrames = 0
-        if (root && root.visible) hidePreviewRoot(root)
+        if (previewMounted && previewVisible && root?.visible) return
+        if (root) restorePreviewRoot(root)
+        invalidate()
         return
       }
 
-      // Продукт реально на экране (синтез / settled) — Bohr не restore.
-      // В pre-synth productPainted-sticky НЕ скрывает превью (vanish после coeff).
+      // Синтез: продукт на экране — Bohr скрыт.
+      if (!previewVisible) {
+        violationFrames = 0
+        if (root && root.visible && productPainted) hidePreviewRoot(root)
+        return
+      }
+
+      // Продукт реально на экране (синтез) — Bohr не restore.
       if (productPainted && synthLive) {
         violationFrames = 0
         if (root && root.visible) hidePreviewRoot(root)
