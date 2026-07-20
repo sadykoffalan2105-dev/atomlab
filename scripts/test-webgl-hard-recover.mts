@@ -63,6 +63,17 @@ assert.ok(REACTOR_SHIELD.hardRecoverAfterMs >= 1000, 'hardRecoverAfterMs configu
     }),
     false,
   )
+  assert.equal(
+    isWebGlDrawingBufferAlive({
+      getContext: () => ({
+        drawingBufferWidth: 640,
+        drawingBufferHeight: 480,
+        isContextLost: () => false,
+      }),
+    }),
+    true,
+    'Three.js renderer via getContext()',
+  )
 }
 
 console.log('test-webgl-hard-recover: all passed')

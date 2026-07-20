@@ -245,10 +245,12 @@ export function LabProductHeroSlot({
       const g = groupRef.current
       if (g) {
         if (g.scale.x < 0.86) g.scale.set(1, 1, 1)
+        const ctx = state.gl.getContext() as WebGLRenderingContext | null
         const bufOk =
-          state.gl.drawingBufferWidth > 0 &&
-          state.gl.drawingBufferHeight > 0 &&
-          !state.gl.isContextLost()
+          !!ctx &&
+          ctx.drawingBufferWidth > 0 &&
+          ctx.drawingBufferHeight > 0 &&
+          !ctx.isContextLost()
         if (!bufOk) {
           visiblePaintFramesRef.current = 0
           return

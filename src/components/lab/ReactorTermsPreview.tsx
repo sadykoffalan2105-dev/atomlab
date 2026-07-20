@@ -578,17 +578,14 @@ export function ReactorTermsPreview({
 
   const forceElectronMotion = true
   /**
-   * Космический дизайн + быстрый рост слотов после commit коэффициента.
-   * Старые слоты не гасим; новые догоняют target за несколько rAF (<1 с).
+   * Космический дизайн: сразу все слоты уравнения (дихромат = 22).
+   * Старый Math.min(16, …) резал mount при hold — чёрный пустой кадр при уравненном K₂Cr₂O₇.
    */
   const hotDense = (policy.hotCoeffEdit || coeffEditing) && n >= 8
-  const targetMount = Math.min(
-    24,
-    Math.max(
-      stickySlotCount,
-      holdPreview ? Math.min(16, Math.max(stickySlotCount, 8)) : stickySlotCount,
-      Math.min(poolSize, stickySlotCount),
-    ),
+  const targetMount = Math.max(
+    stickySlotCount,
+    holdPreview ? Math.max(stickySlotCount, frame.hasActiveTerms ? 1 : 0) : 0,
+    Math.min(poolSize, stickySlotCount),
   )
 
   useEffect(() => {
@@ -597,21 +594,16 @@ export function ReactorTermsPreview({
       setMountCap(0)
       return
     }
-    // Сразу показываем все слоты уравнения — без ожидания вращения камеры.
+    // Сразу все слоты — без ramp и без потолка 16.
     if (holdPreview || mountCapRef.current < stickySlotCount) {
-      const jump = Math.min(targetMount, Math.max(stickySlotCount, mountCapRef.current))
+      const jump = Math.max(stickySlotCount, targetMount)
       if (jump !== mountCapRef.current) {
         mountCapRef.current = jump
         setMountCap(jump)
       }
-    }
-    if (mountCapRef.current >= targetMount) {
-      if (!holdPreview && mountCapRef.current > targetMount + 4) {
-        mountCapRef.current = targetMount
-        setMountCap(targetMount)
-      }
       return
     }
+    if (mountCapRef.current >= targetMount) return
     let cancelled = false
     let raf = 0
     const step = () => {
@@ -628,7 +620,7 @@ export function ReactorTermsPreview({
     }
   }, [targetMount, stickySlotCount, holdPreview])
 
-  const mountBohrCount = Math.max(mountCap, Math.min(targetMount, stickySlotCount))
+  const mountBohrCount = Math.max(mountCap, stickySlotCount, targetMount)
   const editSkip = hotDense ? 3 : holdPreview ? 2 : 1
   const editLocalLight = !sharedLighting && (atomsOnScreen || holdPreview)
 

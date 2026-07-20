@@ -784,10 +784,9 @@ export function LaboratoryPage() {
   }, [deferredLeftTerms, productCompoundId, productCoeff])
 
   useEffect(() => {
-    if (!reactorOpen || !productCompound || !canRunSynthesis) return
-    if (coeffEditBurst) return
-    setPrewarmCompound(productCompound)
-  }, [reactorOpen, productCompound, canRunSynthesis, coeffEditBurst])
+    // Не ставим prewarm при «уравнено» — только hover/focus кнопки Run.
+    if (!reactorOpen) setPrewarmCompound(null)
+  }, [reactorOpen])
 
   const highlightEquationError = useMemo(() => {
     if (!reactorMessage) return false
@@ -841,11 +840,11 @@ export function LaboratoryPage() {
   /** До запуска синтеза — только превью реагентов. */
   const transformPreviewCompound = null
 
-  /** GPU-prewarm продукта как только уравнение сбалансировано (до Check). */
+  /** Не prewarm'ить тяжёлый продукт (K₂Cr₂O₇) пока уравнение просто уравнено —
+   * GPU hitch гасит Bohr. Prewarm только по hover «Запустить» / старту синтеза. */
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
-    if (canRunSynthesis && reactorGpuIdleReady) return productCompound
     return prewarmCompound
   }, [
     reactorOpen,
@@ -853,15 +852,13 @@ export function LaboratoryPage() {
     synthRunActive,
     lastRunProduct,
     prewarmCompound,
-    canRunSynthesis,
-    reactorGpuIdleReady,
   ])
 
   const gpuQueuePriorityCompound = useMemo(() => {
     if (!reactorOpen || synthRunActive || !reactorGpuIdleReady) return null
-    if (canRunSynthesis && productCompound) return productCompound
-    return productCompound
-  }, [reactorOpen, synthRunActive, productCompound, canRunSynthesis, reactorGpuIdleReady])
+    // Очередь GPU только если пользователь уже навёл на Run (prewarmCompound).
+    return prewarmCompound
+  }, [reactorOpen, synthRunActive, reactorGpuIdleReady, prewarmCompound])
 
   const onSynthesisPrewarmIntent = useCallback(() => {
     if (!productCompound || !canRunSynthesis) return

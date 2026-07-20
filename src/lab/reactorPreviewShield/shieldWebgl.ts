@@ -79,17 +79,27 @@ export function createSoftWebGlRecovery(): SoftWebGlRecovery {
   }
 }
 
-/** Проба: GL жив и есть ненулевой drawing buffer. */
+/** Проба: GL жив и есть ненулевой drawing buffer (контекст или Three.WebGLRenderer). */
 export function isWebGlDrawingBufferAlive(gl: {
   getContextAttributes?: () => unknown
   drawingBufferWidth?: number
   drawingBufferHeight?: number
   isContextLost?: () => boolean
+  getContext?: () => { drawingBufferWidth: number; drawingBufferHeight: number; isContextLost: () => boolean } | null
 }): boolean {
   try {
-    if (typeof gl.isContextLost === 'function' && gl.isContextLost()) return false
-    const w = gl.drawingBufferWidth ?? 0
-    const h = gl.drawingBufferHeight ?? 0
+    const ctx =
+      typeof gl.getContext === 'function'
+        ? (gl.getContext() as {
+            drawingBufferWidth: number
+            drawingBufferHeight: number
+            isContextLost: () => boolean
+          } | null)
+        : null
+    const target = ctx ?? gl
+    if (typeof target.isContextLost === 'function' && target.isContextLost()) return false
+    const w = target.drawingBufferWidth ?? 0
+    const h = target.drawingBufferHeight ?? 0
     return w > 0 && h > 0
   } catch {
     return false
