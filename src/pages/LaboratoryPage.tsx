@@ -38,6 +38,10 @@ import {
   parseReactionLeftSide,
   stripLeftSideCoefficients,
 } from '../chemistry/reactionLeftSideParser'
+import {
+  lessonToLeftTerms,
+  type BalanceLesson,
+} from '../chemistry/balanceLessonBank'
 import { parseLeftSideMessageKey, reactorValidationMessageKey } from '../i18n/chemistryMessageKeys'
 import { getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import { useT } from '../i18n/useT'
@@ -410,6 +414,47 @@ export function LaboratoryPage() {
     setSynthPhaseUi('')
     setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
   }, [])
+
+  const onApplyBalanceCoeffs = useCallback((left: Record<string, number>, nextProductCoeff: number) => {
+    setSynthesisSettledProduct(null)
+    synthesisSettledProductRef.current = null
+    settledSnapshotRef.current = null
+    setSynthPhaseUi('')
+    setLeftTerms((prev) =>
+      prev.map((term) => {
+        const n = left[term.id]
+        if (n == null) return term
+        return {
+          ...term,
+          coeff: Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(n))),
+        }
+      }),
+    )
+    setProductCoeff(Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(nextProductCoeff))))
+  }, [])
+
+  const onLoadBalanceLesson = useCallback((lesson: BalanceLesson) => {
+    setSynthesisSettledProduct(null)
+    synthesisSettledProductRef.current = null
+    settledSnapshotRef.current = null
+    setSynthPhaseUi('')
+    setReactorMessage(null)
+    setReactorOpen(true)
+    if (lesson.kind === 'practice_only') {
+      setReactorMessage(
+        locale === 'en'
+          ? `Practice: ${lesson.displayEquationRu ?? lesson.titleEn} — Zn⁰ → Zn²⁺ + 2e⁻; Cu²⁺ + 2e⁻ → Cu⁰. Coefficients are already 1.`
+          : `Урок: ${lesson.displayEquationRu ?? lesson.titleRu}. Электронный баланс: Zn⁰ − 2e⁻; Cu²⁺ + 2e⁻. Коэффициенты уже 1.`,
+      )
+      setLeftTerms([{ id: 'practice-zn', z: 30, coeff: 1 }])
+      setProductCompoundId('salt_zn_so4')
+      setProductCoeff(1)
+      return
+    }
+    setLeftTerms(lessonToLeftTerms(lesson))
+    if (lesson.productId) setProductCompoundId(lesson.productId)
+    setProductCoeff(1)
+  }, [locale])
 
   const openReactorCatalog = useCallback((intent: ReactorCatalogIntent) => {
     reactorCatalogPickModeRef.current = intent
@@ -893,6 +938,8 @@ export function LaboratoryPage() {
           onRemoveTerm={onRemoveTerm}
           onCoeffChange={onCoeffChange}
           onCoeffUiFocusChange={setCoeffUiFocused}
+          onApplyBalanceCoeffs={onApplyBalanceCoeffs}
+          onLoadBalanceLesson={onLoadBalanceLesson}
           onOpenCatalog={() => openReactorCatalog('selectProduct')}
           onProductCoeffChange={(c) => {
             setProductCoeff(Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(c))))

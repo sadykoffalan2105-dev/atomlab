@@ -1,0 +1,259 @@
+.panel {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(61, 255, 236, 0.14);
+  background: rgba(6, 8, 20, 0.92);
+  max-height: min(28vh, 220px);
+  overflow: auto;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.35rem 0.65rem 0.2rem;
+  position: sticky;
+  top: 0;
+  background: rgba(6, 8, 20, 0.96);
+  z-index: 1;
+}
+
+.tab {
+  font-size: 0.68rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 7px;
+  border: 1px solid rgba(139, 147, 184, 0.35);
+  background: rgba(20, 24, 44, 0.75);
+  color: #a8b0d0;
+  cursor: pointer;
+}
+
+.tab:hover {
+  border-color: rgba(61, 255, 236, 0.35);
+  color: #dce4ff;
+}
+
+.tabActive {
+  border-color: rgba(61, 255, 236, 0.55);
+  color: #3dffec;
+  background: rgba(61, 255, 236, 0.08);
+}
+
+.body {
+  padding: 0.25rem 0.7rem 0.55rem;
+}
+
+.hint {
+  margin: 0 0 0.4rem;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: #8b93b8;
+}
+
+.empty {
+  margin: 0.3rem 0;
+  font-size: 0.72rem;
+  color: #c8a070;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.table th,
+.table td {
+  padding: 0.22rem 0.4rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(139, 147, 184, 0.15);
+}
+
+.table th {
+  color: #8b93b8;
+  font-weight: 500;
+}
+
+.sym {
+  font-weight: 600;
+  color: #e8ecff;
+}
+
+.table tr[data-ok='1'] td {
+  color: #7dffa0;
+}
+
+.table tr[data-ok='0'] td {
+  color: #ff9a8a;
+}
+
+.ok {
+  color: #34d399;
+}
+
+.bad {
+  color: #f87171;
+}
+
+.bannerOk {
+  margin: 0.4rem 0 0;
+  font-size: 0.74rem;
+  color: #34d399;
+  font-weight: 600;
+}
+
+.oxRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.45rem;
+}
+
+.oxLabel {
+  font-size: 0.65rem;
+  color: #8b93b8;
+}
+
+.oxChips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.oxChip {
+  font-size: 0.78rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  background: rgba(61, 255, 236, 0.08);
+  border: 1px solid rgba(61, 255, 236, 0.22);
+  color: #dce4ff;
+}
+
+.oxArrow {
+  color: #3dffec;
+  font-weight: 600;
+}
+
+.halfBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
+}
+
+.halfBtn {
+  text-align: left;
+  font-size: 0.72rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 147, 184, 0.35);
+  background: rgba(16, 20, 40, 0.9);
+  color: #c8d0f0;
+  cursor: pointer;
+}
+
+.halfBtnOn {
+  border-color: rgba(61, 255, 236, 0.55);
+  background: rgba(61, 255, 236, 0.1);
+}
+
+.halfKind {
+  display: block;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8b93b8;
+  margin-bottom: 0.1rem;
+}
+
+.transfer {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #e8ecff;
+  margin-bottom: 0.35rem;
+}
+
+.transferArrow {
+  color: #fbbf24;
+  font-family: ui-monospace, monospace;
+}
+
+.lcm {
+  margin-left: auto;
+  font-size: 0.68rem;
+  color: #3dffec;
+}
+
+.summary {
+  margin: 0 0 0.45rem;
+  padding-left: 1.1rem;
+  font-size: 0.68rem;
+  color: #a8b0d0;
+  line-height: 1.4;
+}
+
+.applyBtn {
+  font-size: 0.72rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(61, 255, 236, 0.45);
+  background: rgba(61, 255, 236, 0.12);
+  color: #3dffec;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.applyBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lessonList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.lessonItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 147, 184, 0.22);
+  background: rgba(14, 18, 36, 0.85);
+}
+
+.lessonMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.72rem;
+  color: #dce4ff;
+}
+
+.lessonGrade {
+  font-size: 0.62rem;
+  color: #8b93b8;
+}
+
+.lessonPractice {
+  font-size: 0.68rem;
+  color: #fbbf24;
+}
+
+.lessonLoad {
+  flex-shrink: 0;
+  font-size: 0.66rem;
+  padding: 0.28rem 0.5rem;
+  border-radius: 7px;
+  border: 1px solid rgba(61, 255, 236, 0.4);
+  background: transparent;
+  color: #3dffec;
+  cursor: pointer;
+}

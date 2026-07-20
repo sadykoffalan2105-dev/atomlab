@@ -16,6 +16,8 @@ import type { CompoundDef } from '../../types/chemistry'
 import type { LeftCatalogMatch, ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX } from '../../chemistry/reactorLimits'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
+import { ReactorBalancePanel } from './ReactorBalancePanel'
+import type { BalanceLesson } from '../../chemistry/balanceLessonBank'
 import panelStyles from './SynthesisReactorPanel.module.css'
 
 const COEFF_MAX = REACTOR_COEFF_MAX
@@ -192,6 +194,8 @@ export function SynthesisReactorPanel({
   onRequestRun,
   onSynthesisPrewarmIntent,
   onCoeffUiFocusChange,
+  onApplyBalanceCoeffs,
+  onLoadBalanceLesson,
   message,
   canRun,
   synthesisRunning = false,
@@ -214,6 +218,8 @@ export function SynthesisReactorPanel({
   onSynthesisPrewarmIntent?: () => void
   /** true пока фокус в любом поле коэффициента (freeze 3D). */
   onCoeffUiFocusChange?: (focused: boolean) => void
+  onApplyBalanceCoeffs?: (left: Record<string, number>, productCoeff: number) => void
+  onLoadBalanceLesson?: (lesson: BalanceLesson) => void
   message: string | null
   canRun: boolean
   synthesisRunning?: boolean
@@ -433,6 +439,16 @@ export function SynthesisReactorPanel({
       <div className={panelStyles.hintBox} role="note">
         {t('reactor.hintBalance')}
       </div>
+
+      {open ? (
+        <ReactorBalancePanel
+          leftTerms={leftTerms}
+          productCompound={productCompound}
+          productCoeff={productCoeff}
+          onApplyCoeffs={(left, k) => onApplyBalanceCoeffs?.(left, k)}
+          onLoadLesson={(lesson) => onLoadBalanceLesson?.(lesson)}
+        />
+      ) : null}
 
       <div className={panelStyles.reactorFooter}>
         <button

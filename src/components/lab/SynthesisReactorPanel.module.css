@@ -18,7 +18,7 @@
   z-index: 48;
   display: flex;
   flex-direction: column;
-  max-height: min(56vh, 540px);
+  max-height: min(62vh, 620px);
   background: linear-gradient(180deg, rgba(8, 10, 24, 0.96) 0%, rgba(4, 6, 16, 0.99) 100%);
   border-top: 1px solid rgba(61, 255, 236, 0.35);
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
