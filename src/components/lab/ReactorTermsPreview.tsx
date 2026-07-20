@@ -281,7 +281,7 @@ export function ReactorTermsPreview({
   const poolSize = Math.max(frame.poolSize, n)
   const renderAtoms = frame.layoutAtoms
   const shellAtoms = engineRef.current.shellAtoms
-  const holdPreview = previewOnlyMode || coeffEditing
+  const holdPreview = previewOnlyMode || coeffEditing || synthHoldPreview
   /**
    * Сколько слотов держим видимыми. Не схлопываем до live n при кратком lag layout.
    */
@@ -290,7 +290,7 @@ export function ReactorTermsPreview({
     : n
 
   /**
-   * Pre-synth / edit: группа ВСЕГДА visible, пока есть ненулевые коэффициенты.
+   * Pre-synth / edit / synth-hold: группа ВСЕГДА visible, пока есть ненулевые коэффициенты.
    * Не завязываемся только на n/shell — краткий 0 на +/- давал пустой starfield.
    */
   const atomsOnScreen =
@@ -440,7 +440,7 @@ export function ReactorTermsPreview({
      * Старый путь `!atomsOnScreen → visible=false` давал пустой starfield при
      * кратком мигании флага на +/-.
      */
-    const holdAtoms = previewOnlyMode || coeffEditing
+    const holdAtoms = previewOnlyMode || coeffEditing || synthHoldPreview
     if (!atomsOnScreen && !holdAtoms) {
       // Только корень: массовый visible=false по слотам залипал в THREE
       // и переживал возврат React visible=true → пустой starfield после coeff.
@@ -448,7 +448,7 @@ export function ReactorTermsPreview({
       return
     }
 
-    // Жёсткий pin в pre-synth: каждые 2 кадра (не каждый) — меньше main-thread hitch.
+    // Жёсткий pin в pre-synth / synth-hold: каждые 2 кадра.
     if (holdAtoms && !externalAtomControl) {
       const gf = guardFrameRef.current
       if (gf % 2 === 0) {

@@ -454,23 +454,24 @@ function SceneContent({
   )
   const instantSynthesis = isInstantSynthesisProfile(synthTimingProfile)
 
-  /** При запуске синтеза — сразу показываем продукт (instant / GPU cache). */
+  /** При запуске синтеза — снять GPU-ban и ждать реального GPU, не форсить reveal. */
   useLayoutEffect(() => {
     if (!synthActive || !synthesis?.runId) return
     const productId = synthesis.product?.id
     if (productId == null) return
+    setAllowIdleProductPrewarm(true)
     setForceProductSlot(true)
     setEarlyProductReveal(true)
-    if (instantSynthesis) {
-      setProductRevealReady(true)
-    }
     if (isProductGpuCompiled(productId)) {
       prewarmCompoundIdRef.current = productId
       prewarmReadyRef.current = true
       setPrewarmReady(true)
       setProductRevealReady(true)
+    } else {
+      // Cold path: micro-prewarm first — полный слот только после compile.
+      setProductRevealReady(false)
     }
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id, instantSynthesis])
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id])
 
   useLayoutEffect(() => {
     if (reactorViewOpen) return
@@ -696,23 +697,18 @@ function SceneContent({
         return
       }
       const productId = synthesis.product?.id
-      if (productId != null && isProductGpuCompiled(productId)) {
-        synthesis.onDone(kind)
-        return
-      }
-      if (productPaintedRef.current || productRevealReady) {
+      const readyNow = () =>
+        productPaintedRef.current ||
+        (productId != null && isProductGpuCompiled(productId))
+      if (readyNow()) {
         synthesis.onDone(kind)
         return
       }
       let frames = 0
-      const maxWait = 18
+      const maxWait = 90
       const tick = () => {
         frames += 1
-        if (
-          productPaintedRef.current ||
-          productRevealReady ||
-          (productId != null && isProductGpuCompiled(productId))
-        ) {
+        if (readyNow()) {
           synthesis.onDone(kind)
           return
         }
@@ -724,8 +720,16 @@ function SceneContent({
       }
       requestAnimationFrame(tick)
     },
-    [synthesis, productRevealReady],
+    [synthesis],
   )
+
+  const instantProductReady = useCallback(() => {
+    const productId = synthesis?.product?.id
+    return (
+      productPaintedRef.current ||
+      (productId != null && isProductGpuCompiled(productId))
+    )
+  }, [synthesis?.product?.id])
 
   useEffect(() => {
     if (!gpuPrewarmAllowed || !reactorViewOpen) {
@@ -880,7 +884,8 @@ function SceneContent({
         productId != null &&
         (isProductGpuCompiled(productId) ||
           ((prewarmReadyRef.current || prewarmReady) && prewarmCompoundIdRef.current === productId))
-      setProductRevealReady(Boolean(gpuReadyNow || instantSynthesis))
+      // Instant тоже ждёт GPU — иначе чёрный кадр на cold compile.
+      setProductRevealReady(Boolean(gpuReadyNow))
       return
     }
     const productId = synthesis?.product?.id
@@ -892,11 +897,7 @@ function SceneContent({
       setProductRevealReady(true)
       return
     }
-    if (instantSynthesis) {
-      setProductRevealReady(true)
-      return
-    }
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, instantSynthesis, synthesisRunActive, restorePreviewRootVisibility])
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, synthesisRunActive, restorePreviewRootVisibility])
 
   // Когда prewarm завершился уже во время синтеза — сразу показываем продукт.
   useEffect(() => {
@@ -911,30 +912,24 @@ function SceneContent({
     }
   }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, productRevealReady])
 
-  // Слабые GPU: fallback productReveal (instant — 1 кадр).
+  // Fallback productReveal: не форсим на 1-м кадре (чёрный/красный).
+  // Ждём GPU; safety cap ~1.5с чтобы не зависать на слабых GPU.
   useEffect(() => {
     if (!synthActive || !synthesis?.runId || productRevealReady) return
-    if (instantSynthesis) {
-      let frames = 0
-      let raf = 0
-      const tick = () => {
-        frames += 1
-        if (productRevealReady) return
-        if (frames >= 1) {
-          setProductRevealReady(true)
-          return
-        }
-        raf = requestAnimationFrame(tick)
-      }
-      raf = requestAnimationFrame(tick)
-      return () => cancelAnimationFrame(raf)
-    }
+    const productId = synthesis.product?.id
     let frames = 0
     let raf = 0
+    const cap = instantSynthesis ? 72 : 48
     const tick = () => {
       frames += 1
-      if (productRevealReady) return
-      if (frames >= 36) {
+      if (
+        (productId != null && isProductGpuCompiled(productId)) ||
+        (prewarmReadyRef.current && prewarmCompoundIdRef.current === productId)
+      ) {
+        setProductRevealReady(true)
+        return
+      }
+      if (frames >= cap) {
         setProductRevealReady(true)
         return
       }
@@ -942,7 +937,7 @@ function SceneContent({
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [synthActive, synthesis?.runId, productRevealReady, instantSynthesis])
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id, productRevealReady, instantSynthesis])
 
   useLayoutEffect(() => {
     if (!synthesis?.runId) return
@@ -1488,7 +1483,9 @@ function SceneContent({
               runId={synthesis.runId}
               onDone={handleInstantSynthDone}
               onPhaseChange={synthesis.onPhaseChange}
-              minFrames={6}
+              minFrames={12}
+              maxFrames={90}
+              isProductReady={instantProductReady}
             />
           ) : null}
           {showSettledHero && synthesisSettledProduct
@@ -1687,8 +1684,9 @@ export function LabCanvas({
           antialias: canvasAntialias,
           alpha: false,
           powerPreference: 'high-performance',
-          // preserveDrawingBuffer только во время синтеза — при +/- жрёт GPU и даёт white/blank.
-          preserveDrawingBuffer: Boolean(synthesisRunActive) && !reactorCoeffEditing && !reactorCoeffEditBurst,
+          // preserveDrawingBuffer выключен всегда: toggling mid-run провоцировал
+          // WebGL hitch / красно-чёрный кадр при старте синтеза.
+          preserveDrawingBuffer: false,
         }}
         dpr={canvasDpr}
         frameloop={canvasFrameloop}

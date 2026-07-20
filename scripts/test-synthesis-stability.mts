@@ -684,8 +684,8 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     prewarmReady: false,
     prewarmCompoundId: null,
   })
-  assert.equal(slot.visible, true, 'visible immediately during synth cold compile')
-  assert.equal(slot.prewarm, false, 'no hidden micro-prewarm during synth')
+  assert.equal(slot.visible, false, 'cold synth: full slot waits for GPU')
+  assert.equal(slot.prewarm, true, 'cold synth: micro-prewarm first')
   const ready = resolveSynthesisProductSlot({
     productForSlot: compound,
     productSlotVisible: true,

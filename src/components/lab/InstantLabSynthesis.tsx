@@ -1,19 +1,27 @@
 import { useEffect, useRef } from 'react'
 
 /**
- * Мгновенный синтез: без GSAP. onDone — только после кадров отрисовки продукта.
+ * Мгновенный синтез: без GSAP.
+ * onDone — только после minFrames И готовности продукта (paint/GPU),
+ * иначе чёрный/красный кадр при cold compile.
  */
 export function InstantLabSynthesis({
   runId,
   onDone,
   onPhaseChange,
-  minFrames = 10,
+  minFrames = 12,
+  maxFrames = 90,
+  isProductReady,
 }: {
   runId: number
   onDone: (kind: 'success' | 'fail') => void
   onPhaseChange?: (phase: string, launchProgress: number) => void
-  /** Минимум кадров до завершения — продукт успевает отрисоваться (нет чёрного экрана). */
+  /** Минимум кадров до завершения. */
   minFrames?: number
+  /** Жёсткий потолок ожидания paint (не зависаем навсегда). */
+  maxFrames?: number
+  /** true когда продукт реально отрисован / GPU готов. */
+  isProductReady?: () => boolean
 }) {
   const doneRef = useRef(false)
 
@@ -25,7 +33,13 @@ export function InstantLabSynthesis({
     const tick = () => {
       frames += 1
       if (doneRef.current) return
-      if (frames >= minFrames) {
+      const ready = isProductReady?.() ?? true
+      if (frames >= minFrames && ready) {
+        doneRef.current = true
+        onDone('success')
+        return
+      }
+      if (frames >= maxFrames) {
         doneRef.current = true
         onDone('success')
         return
@@ -37,7 +51,7 @@ export function InstantLabSynthesis({
       doneRef.current = true
       cancelAnimationFrame(raf)
     }
-  }, [runId, onDone, onPhaseChange, minFrames])
+  }, [runId, onDone, onPhaseChange, minFrames, maxFrames, isProductReady])
 
   return null
 }
