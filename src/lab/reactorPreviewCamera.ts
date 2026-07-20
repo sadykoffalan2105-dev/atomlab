@@ -28,8 +28,10 @@ export const REACTOR_PREVIEW_CAMERA = {
   /** Гистерезис: many при >9, few при <7. */
   manyEnter: 9,
   manyExit: 7,
-  /** Сколько мс удерживать позу после программного set (против гонки OrbitControls). */
-  lockMs: 1800,
+  /** Краткий hold после set — затем пользователь крутит орбиту свободно. */
+  lockMs: 320,
+  /** Одноразовый rescue у catalog hero (не продлевать lockMs). */
+  stuckRescueMs: 180,
 } as const
 
 export type OrbitControlsLike = {

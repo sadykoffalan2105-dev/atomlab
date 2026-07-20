@@ -212,10 +212,10 @@ export function LaboratoryPage() {
       return
     }
     let cancelled = false
-    // Даём Canvas/Bohr один кадр + паузу прогрева до GPU-очереди (дихромат).
+    // Canvas/Bohr готовы почти сразу — не ждать 900мс до Run.
     const timer = window.setTimeout(() => {
       if (!cancelled) setReactorGpuIdleReady(true)
-    }, 900)
+    }, 220)
     return () => {
       cancelled = true
       window.clearTimeout(timer)

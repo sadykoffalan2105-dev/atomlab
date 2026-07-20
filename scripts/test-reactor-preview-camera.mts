@@ -63,8 +63,12 @@ import { PerspectiveCamera, Vector3 } from 'three'
 
 {
   assert.ok(
-    REACTOR_PREVIEW_CAMERA.lockMs >= 1800,
-    `camera lockMs should hold orbit after edit/synth (got ${REACTOR_PREVIEW_CAMERA.lockMs})`,
+    REACTOR_PREVIEW_CAMERA.lockMs <= 500,
+    `camera lockMs should release for user orbit (got ${REACTOR_PREVIEW_CAMERA.lockMs})`,
+  )
+  assert.ok(
+    REACTOR_PREVIEW_CAMERA.stuckRescueMs <= 300,
+    `stuck rescue must be short (got ${REACTOR_PREVIEW_CAMERA.stuckRescueMs})`,
   )
   assert.equal(isCameraStuckNearCatalogHero({ x: 0, y: 0.12, z: 4.2 }), true)
   assert.equal(isCameraStuckNearCatalogHero({ x: 0.92, y: 1.38, z: 4.0 }), true)

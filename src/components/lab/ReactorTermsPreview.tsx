@@ -621,7 +621,8 @@ export function ReactorTermsPreview({
   }, [targetMount, stickySlotCount, holdPreview])
 
   const mountBohrCount = Math.max(mountCap, stickySlotCount, targetMount)
-  const editSkip = hotDense ? 3 : holdPreview ? 2 : 1
+  // Idle осмотр: электроны каждый кадр; при hot +/- — реже (GPU).
+  const editSkip = hotDense ? 2 : holdPreview && !policy.hotCoeffEdit ? 1 : holdPreview ? 2 : 1
   const editLocalLight = !sharedLighting && (atomsOnScreen || holdPreview)
 
   return (

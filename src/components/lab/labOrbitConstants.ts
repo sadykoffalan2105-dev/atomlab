@@ -30,11 +30,12 @@ export const CATALOG_HERO_VIEW = {
  * Синтез (synth) отключает только зум; вращение с демпфированием остаётся на всём FSM.
  */
 export const LAB_ORBIT = {
-  minDistance: 3.0,
-  maxDistance: 12.5,
-  minPolarAngle: Math.PI * 0.3,
-  maxPolarAngle: Math.PI * 0.58,
+  minDistance: 2.8,
+  maxDistance: 14,
+  /** Шире полюса — можно разглядеть атомы сверху/сбоку. */
+  minPolarAngle: Math.PI * 0.12,
+  maxPolarAngle: Math.PI * 0.88,
   target: [0, 0.15, 0] as [number, number, number],
   enableDamping: true,
-  dampingFactor: 0.06,
+  dampingFactor: 0.08,
 } as const

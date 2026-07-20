@@ -19,8 +19,8 @@ import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
 const MICRO_SCALE = 0.001
 /** Кадров отрисовки на micro-scale до «готово» — быстрый сигнал prewarm. */
 const PREWARM_PAINT_FRAMES = 2
-/** Кадров полного масштаба до сигнала paint — не раньше реального GPU-кадра. */
-const VISIBLE_PAINT_FRAMES = 4
+/** Кадров полного масштаба до сигнала paint — быстрее выход молекулы (<0.5с при 60fps). */
+const VISIBLE_PAINT_FRAMES = 2
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
