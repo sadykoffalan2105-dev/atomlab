@@ -11,6 +11,7 @@ import {
   isProductFullScaleVisible,
   resolveLab3dFrameRescue,
   shouldPersistGpuCompileCache,
+  createEmptyCenterFrameCounter,
 } from '../src/lab/lab3dVisibilityEngine.ts'
 import { isVisualCoverageOk } from '../src/lab/visualCoverageController.ts'
 import { resolveSynthesisProductSlot } from '../src/lab/synthesisProductSlot.ts'
@@ -156,6 +157,18 @@ import type { CompoundDef } from '../src/types/chemistry.ts'
   })
   assert.equal(settled.visible, true, 'settled always full-scale visible')
   assert.equal(settled.prewarm, false)
+}
+
+{
+  assert.equal(
+    shouldPersistGpuCompileCache({ fromFullScaleCompile: false, fromVisiblePaint: false }),
+    false,
+  )
+  const counter = createEmptyCenterFrameCounter()
+  assert.equal(counter.tick(false), false)
+  assert.equal(counter.tick(false), true, 'empty after 2 frames')
+  counter.reset()
+  assert.equal(counter.tick(true), false)
 }
 
 console.log('test-lab3d-visibility: all passed')

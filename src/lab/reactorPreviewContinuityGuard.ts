@@ -54,11 +54,15 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
       const root = previewRootRef?.current
 
       /**
-       * Pre-synth / idle equation: НИКОГДА не hide корня.
-       * Старый путь `!previewVisible → hide` гасил Bohr при кратком flicker флага
-       * (после баланса / clear settled) → пустой starfield.
+       * Pre-synth / idle: restore Bohr, КРОМЕ settled-handoff
+       * (productPainted + !previewVisible = молекула владеет экраном).
        */
       if (!synthLive) {
+        if (productPainted && !previewVisible) {
+          violationFrames = 0
+          if (root && root.visible) hidePreviewRoot(root)
+          return
+        }
         if (root) restorePreviewRoot(root)
         violationFrames = 0
         if (previewMounted && previewVisible && root?.visible) return

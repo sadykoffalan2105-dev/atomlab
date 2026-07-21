@@ -310,7 +310,7 @@ export function ReactorTermsPreview({
     expectedAtomCount: frame.expectedAtomCount,
     groupVisible: frame.groupVisible,
   })
-  const { holdPreview, atomsOnScreen, stickySlotCount } = invariants
+  const { holdPreview, atomsOnScreen, stickySlotCount, keepMountPool } = invariants
 
   const effectiveGroupVisible = atomsOnScreen
 
@@ -598,7 +598,7 @@ export function ReactorTermsPreview({
   useEffect(() => {
     if (targetMount <= 0) {
       // Не сбрасываем mountCap при кратком targetMount=0, пока уравнение живо.
-      if (!frame.hasActiveTerms) {
+      if (!keepMountPool && !frame.hasActiveTerms) {
         mountCapRef.current = 0
         setMountCap(0)
       }
@@ -628,7 +628,7 @@ export function ReactorTermsPreview({
       cancelled = true
       cancelAnimationFrame(raf)
     }
-  }, [targetMount, stickySlotCount, holdPreview, frame.hasActiveTerms])
+  }, [targetMount, stickySlotCount, holdPreview, frame.hasActiveTerms, keepMountPool])
 
   const mountBohrCount = Math.max(mountCap, stickySlotCount, targetMount)
   /** Стабильный frame-skip через движок (stickySlotCount, без 1↔2 thrash). */

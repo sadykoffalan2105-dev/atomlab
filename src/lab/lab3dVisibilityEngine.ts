@@ -15,11 +15,31 @@ import { SYNTH_STABILITY } from './synthesisStabilityEngine'
 
 export const LAB3D_VIS = {
   productFullScaleMin: SYNTH_STABILITY.productPaintScaleMin,
-  /** Абсолютный потолок ожидания paint instant (~1.5с @60fps) — не форсим success раньше. */
+  /** Soft timeout → onStuck nudge (~1.5с @60fps). */
   instantHardMaxFrames: 90,
+  /** Абсолютный потолок RAF без paint (~4с) — только мёртвый GL. */
+  instantAbsoluteMaxFrames: 240,
   /** Кадров подряд без покрытия → rescue. */
   emptyCenterRescueFrames: 2,
 } as const
+
+/** Счётчик пустых кадров для порога emptyCenterRescueFrames. */
+export function createEmptyCenterFrameCounter() {
+  let empty = 0
+  return {
+    reset() {
+      empty = 0
+    },
+    tick(covered: boolean): boolean {
+      if (covered) {
+        empty = 0
+        return false
+      }
+      empty += 1
+      return empty >= LAB3D_VIS.emptyCenterRescueFrames
+    },
+  }
+}
 
 /** Продукт реально виден пользователю (не micro-prewarm). */
 export function isProductFullScaleVisible(opts: {

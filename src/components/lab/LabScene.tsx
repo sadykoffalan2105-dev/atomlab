@@ -52,6 +52,8 @@ import {
   canHideBohrForProduct,
   isInstantProductScreenReady,
   resolveLab3dFrameRescue,
+  isCenterCovered,
+  createEmptyCenterFrameCounter,
 } from '../../lab/lab3dVisibilityEngine'
 import { resolveSynthesisProductSlot } from '../../lab/synthesisProductSlot'
 import {
@@ -67,7 +69,6 @@ import {
   type SynthesisStickyMountRef,
   type SynthesisPreviewStickyRef,
 } from '../../lab/synthesisAntiBlink'
-import { synthesisContinuityCoveredV2 } from '../../lab/visualCoverageController'
 import { createReactorPreviewContinuityGuard } from '../../lab/reactorPreviewContinuityGuard'
 import {
   applyReactorPreviewCamera,
@@ -345,12 +346,14 @@ function SceneContent({
   const synthForceLite = qualityLevelToForceLite(synthQualityLevel)
   const qualityUiThrottleRef = useRef(0)
   const coverageFrameRef = useRef(0)
+  const emptyCenterCounterRef = useRef(createEmptyCenterFrameCounter())
   const synthActive = synthesis != null
   const previewActive = false
   const previewForceLiteLatchRef = useRef<boolean | null>(null)
   const previewAtomGroupRefs = useRef<(THREE.Group | null)[]>([])
   const previewAtomScaleGroupRefs = useRef<(THREE.Group | null)[]>([])
   const previewRootRef = useRef<THREE.Group | null>(null)
+  const productRootGroupRef = useRef<THREE.Group | null>(null)
   const [earlyProductReveal, setEarlyProductReveal] = useState(false)
   const [forceProductSlot, setForceProductSlot] = useState(false)
   const [productRevealReady, setProductRevealReady] = useState(false)
@@ -756,24 +759,30 @@ function SceneContent({
         synthesis.onDone(kind)
         return
       }
-      // Только реальный paint — GPU-cache сам по себе = пустой центр + ложный toast.
+      // Только реальный paint — без него не закрываем run (иначе toast + пустой центр).
       const readyNow = () => isInstantProductScreenReady(productPaintedRef.current)
       if (readyNow()) {
         synthesis.onDone(kind)
         return
       }
+      setProductRevealReady(true)
+      setForceProductSlot(true)
       let frames = 0
-      const maxWait = 90
+      const maxWait = 180
       const tick = () => {
         frames += 1
         if (readyNow()) {
           synthesis.onDone(kind)
           return
         }
+        // Force full-scale nudge while waiting.
+        const g = productRootGroupRef.current
+        if (g && g.scale.x < 0.86) {
+          g.scale.set(1, 1, 1)
+          invalidate()
+        }
         if (frames >= maxWait) {
-          // Force reveal: подняли слот — paint догонит; всё равно завершаем run.
-          setProductRevealReady(true)
-          setForceProductSlot(true)
+          // Последний шанс: завершаем, Bohr остаётся пока paint не придёт / rescue.
           synthesis.onDone(kind)
           return
         }
@@ -781,8 +790,19 @@ function SceneContent({
       }
       requestAnimationFrame(tick)
     },
-    [synthesis],
+    [synthesis, invalidate],
   )
+
+  const handleInstantSynthStuck = useCallback(() => {
+    setProductRevealReady(true)
+    setForceProductSlot(true)
+    setEarlyProductReveal(true)
+    const g = productRootGroupRef.current
+    if (g) {
+      g.scale.set(1, 1, 1)
+      invalidate()
+    }
+  }, [invalidate])
 
   const instantProductReady = useCallback(() => {
     return isInstantProductScreenReady(productPaintedRef.current)
@@ -1292,36 +1312,32 @@ function SceneContent({
       shouldRunGuardTick(coverageFrameRef.current, coverageEvery)
     ) {
       coverageTrackerRef.current.tick(
-        synthesisRunActive || synthActive,
+        synthesisRunActive || synthActive || reactorViewOpen,
         {
           preview: reactorPreviewVisible && reactorPreviewMounted,
-          product: productSlotVisible || productPrewarmActive,
+          // micro-prewarm НЕ coverage — иначе пустой центр не ловится.
+          product: productSlotVisibleResolved && !productPrewarmResolved,
           mergeFx: synthesisPhase === 'mergeFlash',
           convergeFx:
             synthesisPhase === 'converge' ||
             synthesisPhase === 'ignite' ||
             synthesisPhase === 'flying',
-          cosmicFx: synthesisRunActive || synthActive || reactorViewOpen,
+          cosmicFx: false,
         },
         () => {
           const editMode = reactorViewOpen && !synthesisRunActive && !synthActive
-          if (
-            !synthesisContinuityCoveredV2(
-              continuity,
-              synthesisPhase === 'mergeFlash',
-              synthesisPhase === 'converge' ||
-                synthesisPhase === 'ignite' ||
-                synthesisPhase === 'flying',
-              editMode,
-            )
-          ) {
-            if (previewRootRef.current && (editMode || synthActive || synthesisRunActive)) {
-              previewRootRef.current.visible = true
-              invalidate()
-            }
-            if (synthesisPhase === 'mergeFlash' || synthesisPhase === 'product') {
-              setForceProductSlot(true)
-            }
+          if (previewRootRef.current && (editMode || !productSlotVisibleResolved || productPrewarmResolved)) {
+            previewRootRef.current.visible = true
+            invalidate()
+          }
+          const g = productRootGroupRef.current
+          if (g && (showSettledHero || synthActive || synthesisRunActive) && productSlotVisibleResolved) {
+            if (g.scale.x < 0.86) g.scale.set(1, 1, 1)
+            invalidate()
+          }
+          if (synthesisPhase === 'mergeFlash' || synthesisPhase === 'product') {
+            setForceProductSlot(true)
+            setProductRevealReady(true)
           }
         },
       )
@@ -1364,6 +1380,7 @@ function SceneContent({
     }
 
     // Lab3DVisibilityEngine: rescue пустого центра (оба бага со скринов).
+    const productScaleX = productRootGroupRef.current?.scale.x
     const rescue = resolveLab3dFrameRescue({
       reactorOpen: reactorViewOpen,
       hasPreviewTerms: effectivePreviewTerms != null && effectivePreviewTerms.length >= 1,
@@ -1374,6 +1391,7 @@ function SceneContent({
       productPainted: productPaintedRef.current,
       productSlotVisible: productSlotVisibleResolved,
       productPrewarm: productPrewarmResolved,
+      productScaleX,
     })
     if (rescue.invalidatePaint && productPaintedRef.current) {
       productPaintedRef.current = false
@@ -1382,6 +1400,36 @@ function SceneContent({
     }
     if (rescue.forceBohrRootVisible && previewRootRef.current) {
       previewRootRef.current.visible = true
+    }
+    if (rescue.forceProductFullScale) {
+      const g = productRootGroupRef.current
+      if (g && g.scale.x < 0.86) {
+        gsap.killTweensOf(g.scale)
+        g.scale.set(1, 1, 1)
+        invalidate()
+      }
+    }
+
+    // Порог emptyCenterRescueFrames: дополнительный nudge если центр пуст.
+    const centerOk = isCenterCovered({
+      bohrVisible:
+        (reactorPreviewVisible || rescue.forceBohrRootVisible) &&
+        (previewRootRef.current?.visible !== false),
+      bohrMounted: reactorPreviewMounted,
+      productSlotVisible: productSlotVisibleResolved,
+      productPrewarm: productPrewarmResolved,
+    })
+    if (emptyCenterCounterRef.current.tick(centerOk)) {
+      if (rescue.keepBohrUntilPaint && previewRootRef.current) {
+        previewRootRef.current.visible = true
+      }
+      if ((showSettledHero || synthActive || synthesisRunActive) && productRootGroupRef.current) {
+        const g = productRootGroupRef.current
+        if (g.scale.x < 0.86) g.scale.set(1, 1, 1)
+        setForceProductSlot(true)
+        setProductRevealReady(true)
+      }
+      invalidate()
     }
 
     // На старте синтеза / при edit держим Bohr до paint текущего runId.
@@ -1646,6 +1694,7 @@ function SceneContent({
               runId={synthesis.runId}
               onDone={handleInstantSynthDone}
               onPhaseChange={synthesis.onPhaseChange}
+              onStuck={handleInstantSynthStuck}
               minFrames={instantSynthBudget.minFrames}
               maxFrames={instantSynthBudget.maxFrames}
               isProductReady={instantProductReady}
@@ -1680,12 +1729,13 @@ function SceneContent({
           visible={productSlotVisibleResolved}
           prewarm={productPrewarmResolved}
           entrance={productSlotEntrance}
-          runId={synthesis?.runId ?? 0}
+          runId={synthesis?.runId ?? lastSynthRunIdRef.current}
           birthEntrance={false}
           entranceDuration={0}
           shaderCompileAsync={productPrewarmResolved}
           onGpuCompiled={handleProductGpuCompiled}
           onProductVisiblePaint={handleProductVisiblePaint}
+          rootGroupRef={productRootGroupRef}
         />
       ) : null}
       <OrbitControls

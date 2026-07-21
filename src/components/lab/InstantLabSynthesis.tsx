@@ -3,13 +3,14 @@ import { LAB3D_VIS } from '../../lab/lab3dVisibilityEngine'
 
 /**
  * Мгновенный синтез: без GSAP.
- * onDone — только после minFrames И реального paint продукта на экране.
- * maxFrames — мягкий потолок; hardMax — абсолютный (не форсим success по GPU-cache).
+ * onDone — ТОЛЬКО после реального paint. Без paint не форсим success (пустой центр + toast).
+ * onStuck — nudge: поднять слот / force reveal, продолжаем ждать paint.
  */
 export function InstantLabSynthesis({
   runId,
   onDone,
   onPhaseChange,
+  onStuck,
   minFrames = 12,
   maxFrames = 90,
   isProductReady,
@@ -17,21 +18,25 @@ export function InstantLabSynthesis({
   runId: number
   onDone: (kind: 'success' | 'fail') => void
   onPhaseChange?: (phase: string, launchProgress: number) => void
-  /** Минимум кадров до завершения. */
+  /** Вызывается один раз при soft-timeout — LabScene поднимает product slot. */
+  onStuck?: () => void
   minFrames?: number
-  /** Мягкий потолок ожидания paint. */
   maxFrames?: number
-  /** true когда продукт реально отрисован (full-scale paint), НЕ только GPU-cache. */
+  /** true когда продукт реально отрисован (full-scale paint). */
   isProductReady?: () => boolean
 }) {
   const doneRef = useRef(false)
+  const stuckFiredRef = useRef(false)
 
   useEffect(() => {
     doneRef.current = false
+    stuckFiredRef.current = false
     onPhaseChange?.('product', 1)
     let frames = 0
     let raf = 0
-    const hardMax = Math.max(maxFrames, LAB3D_VIS.instantHardMaxFrames)
+    const softMax = Math.max(minFrames, maxFrames)
+    const hardMax = Math.max(softMax, LAB3D_VIS.instantHardMaxFrames * 2)
+    const absoluteMax = Math.max(hardMax + 60, LAB3D_VIS.instantAbsoluteMaxFrames)
     const tick = () => {
       frames += 1
       if (doneRef.current) return
@@ -41,8 +46,17 @@ export function InstantLabSynthesis({
         onDone('success')
         return
       }
-      // До hardMax не форсим success без paint — иначе toast «3D показан» при пустом центре.
-      if (frames >= hardMax) {
+      if (frames >= softMax && !stuckFiredRef.current) {
+        stuckFiredRef.current = true
+        onStuck?.()
+      }
+      if (frames >= hardMax && ready) {
+        doneRef.current = true
+        onDone('success')
+        return
+      }
+      if (frames >= absoluteMax) {
+        // GL мёртв: завершаем run; LabScene держит Bohr до paint.
         doneRef.current = true
         onDone('success')
         return
@@ -54,7 +68,7 @@ export function InstantLabSynthesis({
       doneRef.current = true
       cancelAnimationFrame(raf)
     }
-  }, [runId, onDone, onPhaseChange, minFrames, maxFrames, isProductReady])
+  }, [runId, onDone, onPhaseChange, onStuck, minFrames, maxFrames, isProductReady])
 
   return null
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { gsap } from 'gsap'
 import type * as THREE from 'three'
@@ -37,6 +37,8 @@ export function LabProductHeroSlot({
   shaderCompileAsync = false,
   onGpuCompiled,
   onProductVisiblePaint,
+  /** Внешний ref на корень — LabScene forceProductFullScale. */
+  rootGroupRef,
 }: {
   compound: CompoundDef
   visible: boolean
@@ -46,10 +48,9 @@ export function LabProductHeroSlot({
   birthEntrance?: boolean
   entranceDuration?: number
   shaderCompileAsync?: boolean
-  /** Вызывается после compileAsync меша (или из кэша) — можно показывать продукт. */
   onGpuCompiled?: (compoundId: string) => void
-  /** Меш на полном масштабе отрисован ≥1 кадр — можно скрыть превью атомов. */
   onProductVisiblePaint?: () => void
+  rootGroupRef?: MutableRefObject<THREE.Group | null>
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const spinRef = useRef<THREE.Group>(null)
@@ -60,6 +61,8 @@ export function LabProductHeroSlot({
   const prewarmPaintFramesRef = useRef(0)
   const visiblePaintFramesRef = useRef(0)
   const visiblePaintSentRef = useRef(false)
+  const lastCompoundIdRef = useRef(compound.id)
+  const lastPositiveRunIdRef = useRef(0)
   const { gl, camera, scene, invalidate } = useThree()
   const lowPower = useMemo(
     () => getLowPowerDeviceProfile(getSynthesisDeviceTier()).forceLiteReactor,
@@ -81,12 +84,40 @@ export function LabProductHeroSlot({
   }, [compound.id, onGpuCompiled])
 
   useEffect(() => {
+    const compoundChanged = lastCompoundIdRef.current !== compound.id
+    lastCompoundIdRef.current = compound.id
+    const prevPositiveRun = lastPositiveRunIdRef.current
+    if (runId > 0) lastPositiveRunIdRef.current = runId
+
+    // Settle: runId → 0. НЕ сбрасываем paint/compile — иначе пустой центр после «3D показан».
+    if (!compoundChanged && runId <= 0 && visiblePaintSentRef.current) {
+      return
+    }
+    // Тот же positive run повторно — no-op.
+    if (
+      !compoundChanged &&
+      runId > 0 &&
+      runId === prevPositiveRun &&
+      visiblePaintSentRef.current
+    ) {
+      return
+    }
+
     gpuCompiledRef.current = isProductGpuCompiled(compound.id)
     prewarmPaintFramesRef.current = 0
     visiblePaintFramesRef.current = 0
     visiblePaintSentRef.current = false
     compileGenRef.current += 1
   }, [compound.id, runId])
+
+  // Sync external root ref every commit.
+  useLayoutEffect(() => {
+    if (!rootGroupRef) return
+    rootGroupRef.current = groupRef.current
+    return () => {
+      if (rootGroupRef.current === groupRef.current) rootGroupRef.current = null
+    }
+  })
 
   // Cold-start: compileAsync на micro-scale в idle — не блокируем кадр атомов.
   useEffect(() => {
@@ -131,7 +162,8 @@ export function LabProductHeroSlot({
             if (cancelled || gen !== compileGenRef.current) return
             prewarmPaintFramesRef.current = 0
             invalidate()
-            notifyGpuCompiledPersisted()
+            // Micro-prewarm compile: только local ready — НЕ session cache.
+            notifyGpuCompiledLocal()
             releaseBudget?.()
             releaseBudget = null
           },
@@ -178,7 +210,6 @@ export function LabProductHeroSlot({
     scene,
     invalidate,
     notifyGpuCompiledLocal,
-    notifyGpuCompiledPersisted,
     shaderCompileAsync,
   ])
 

@@ -30,12 +30,12 @@ export function createSynthesisCoverageTracker(): SynthesisCoverageTracker {
         emptyFrames = 0
         return
       }
+      // cosmicFx сам по себе НЕ coverage — иначе пустой центр никогда не rescue'ится.
       const covered =
         coverage.preview ||
         coverage.product ||
         coverage.mergeFx ||
-        coverage.convergeFx ||
-        coverage.cosmicFx
+        coverage.convergeFx
 
       if (covered) {
         emptyFrames = 0

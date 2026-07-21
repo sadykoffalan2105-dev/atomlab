@@ -932,6 +932,12 @@ export function LaboratoryPage() {
         onLoadBalanceLesson={onLoadBalanceLesson}
         onOpenCatalog={() => openReactorCatalog('selectProduct')}
         onProductCoeffChange={(c) => {
+          // Как +/- реагентов: сразу pin Bohr + сброс settled — иначе пустой центр на 1 кадр.
+          setSynthesisSettledProduct(null)
+          synthesisSettledProductRef.current = null
+          settledSnapshotRef.current = null
+          setSynthPhaseUi('')
+          forceEditHoldRef.current()
           setProductCoeff(Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(c))))
         }}
         onClearSlots={clearReactorSlots}

@@ -25,8 +25,9 @@ export function isEffectiveProductPainted(input: {
 }): boolean {
   const { productPainted, synthLive, runId, paintedForRunId, showSettledHero = false } = input
   if (!productPainted) return false
+  // synthLive с runId<=0 — аномалия; не считаем paint валидным.
+  if (synthLive && runId <= 0) return false
   if (!synthLive) return showSettledHero
-  if (runId <= 0) return true
   return paintedForRunId === runId
 }
 
