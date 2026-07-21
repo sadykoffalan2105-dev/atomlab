@@ -320,7 +320,7 @@ export function LaboratoryPage() {
   )
   const settledSnapshotRef = useRef<string | null>(null)
 
-  /** Sync clear settled при смене уравнения — без кадра «пусто» между product off и preview. */
+  /** Sync clear settled при смене уравнения — сразу pin Bohr, без кадра «пусто». */
   useLayoutEffect(() => {
     if (synthesisSettledProduct == null) return
     if (settledSnapshotRef.current == null) {
@@ -329,9 +329,12 @@ export function LaboratoryPage() {
     }
     if (settledSnapshotRef.current !== equationSignature) {
       settledSnapshotRef.current = null
+      // Pin ДО clear settled — иначе ≥1 кадр без product и без editing → пустой центр.
+      forceEditHoldRef.current()
       setSynthesisSettledProduct(null)
       synthesisSettledProductRef.current = null
       setLaboratorySynthesisView('reactor')
+      setSynthPhaseUi('')
     }
   }, [equationSignature, synthesisSettledProduct])
 

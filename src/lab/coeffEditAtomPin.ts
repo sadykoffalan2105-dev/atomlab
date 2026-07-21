@@ -15,6 +15,8 @@ export type CoeffEditAtomPinOpts = {
   atomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>
   /** Позиции из layout (опционально) — вернуть слоты на место. */
   positions?: ReadonlyArray<{ pos: readonly [number, number, number] } | null | undefined>
+  /** Опционально убить GSAP tween на scale (передаёт LabScene). */
+  killScaleTweens?: (scale: THREE.Vector3) => void
 }
 
 /** Нужен ли hard-pin (edit / pre-synth / hold). */
@@ -34,10 +36,18 @@ export function shouldHardPinCoeffEditAtoms(opts: {
 
 /**
  * Каждый кадр: root + все активные слоты visible=true, scale = floor.
- * Без порога 0.45 — иначе collapse 0.06 / GSAP mid-tween оставляют «пустой» центр.
+ * Без порога 0.45 — иначе collapse 0.06 / mid-tween оставляют «пустой» центр.
  */
 export function pinCoeffEditAtomsHard(opts: CoeffEditAtomPinOpts): void {
-  const { slotCount, layoutScale, root, atomGroupRefs, atomScaleGroupRefs, positions } = opts
+  const {
+    slotCount,
+    layoutScale,
+    root,
+    atomGroupRefs,
+    atomScaleGroupRefs,
+    positions,
+    killScaleTweens,
+  } = opts
   if (slotCount <= 0) return
 
   if (root) {
@@ -45,9 +55,7 @@ export function pinCoeffEditAtomsHard(opts: CoeffEditAtomPinOpts): void {
   }
 
   const floor = Math.max(PREVIEW_MIN_ATOM_SCALE, layoutScale, 0.58)
-  const n = Math.max(slotCount, atomGroupRefs.current.length)
-  for (let i = 0; i < n; i++) {
-    if (i >= slotCount) break
+  for (let i = 0; i < slotCount; i++) {
     const pos = atomGroupRefs.current[i]
     const sc = atomScaleGroupRefs.current[i]
     if (pos) {
@@ -59,8 +67,8 @@ export function pinCoeffEditAtomsHard(opts: CoeffEditAtomPinOpts): void {
     }
     if (sc) {
       sc.visible = true
-      // Всегда полный scale — не «если чуть меньше».
       if (Math.abs(sc.scale.x - floor) > 0.01 || sc.scale.x < floor * 0.98) {
+        killScaleTweens?.(sc.scale)
         sc.scale.set(floor, floor, floor)
       }
     }

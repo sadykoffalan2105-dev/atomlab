@@ -340,6 +340,7 @@ export function ReactorTermsPreview({
     groupVisible: effectiveGroupVisible,
     atomsOnScreen,
     holdPreview,
+    hasActiveTerms: frame.hasActiveTerms,
   })
   const posRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
   const scaleRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
@@ -352,15 +353,16 @@ export function ReactorTermsPreview({
           atomGroupRefs.current[i] = el
           if (!el) return
           const ls = layoutStateRef.current
-          const show = i < ls.stickySlotCount && (ls.atomsOnScreen || ls.holdPreview)
-          if (show) {
+          const keep =
+            ls.holdPreview ||
+            ls.hasActiveTerms ||
+            (i < ls.stickySlotCount && (ls.atomsOnScreen || ls.holdPreview))
+          if (keep) {
             el.visible = true
             const atom = ls.renderAtoms[i] ?? ls.shellAtoms[i]
-            if (atom && !ls.externalAtomControl) {
+            if (atom && !ls.externalAtomControl && i < ls.stickySlotCount) {
               el.position.set(atom.pos[0], atom.pos[1], atom.pos[2])
             }
-          } else if (!ls.holdPreview) {
-            el.visible = false
           }
         }
         posRefSettersRef.current[i] = cb
@@ -378,14 +380,15 @@ export function ReactorTermsPreview({
           atomScaleGroupRefs.current[i] = el
           if (!el) return
           const ls = layoutStateRef.current
-          const show = i < ls.stickySlotCount && (ls.atomsOnScreen || ls.holdPreview)
-          if (show) {
+          const keep =
+            ls.holdPreview ||
+            ls.hasActiveTerms ||
+            (i < ls.stickySlotCount && (ls.atomsOnScreen || ls.holdPreview))
+          if (keep) {
             el.visible = true
-            if (!ls.externalAtomControl) {
+            if (!ls.externalAtomControl && i < ls.stickySlotCount) {
               el.scale.set(ls.scale, ls.scale, ls.scale)
             }
-          } else if (!ls.holdPreview) {
-            el.visible = false
           }
         }
         scaleRefSettersRef.current[i] = cb
@@ -405,6 +408,7 @@ export function ReactorTermsPreview({
     groupVisible: effectiveGroupVisible,
     atomsOnScreen,
     holdPreview,
+    hasActiveTerms: frame.hasActiveTerms,
   }
 
   useEffect(() => {
@@ -466,7 +470,8 @@ export function ReactorTermsPreview({
     })
 
     if (!atomsOnScreen && !holdAtoms && !frame.hasActiveTerms) {
-      if (root) root.visible = false
+      // Только если уравнение реально пустое — иначе корень всегда виден.
+      if (root && !frame.hasActiveTerms && stickySlotCount <= 0) root.visible = false
       return
     }
     if (holdAtoms || frame.hasActiveTerms || hardPin) {
@@ -560,7 +565,8 @@ export function ReactorTermsPreview({
     }
     // После синтеза / productOwnsScreen: только корень. Массовый hide слотов
     // залипал в THREE и переживал React visible=true → пустой starfield.
-    if (!atomsOnScreen) {
+    // НИКОГДА не гасим корень, пока уравнение активно.
+    if (!atomsOnScreen && !frame.hasActiveTerms) {
       g.visible = false
       return
     }
@@ -572,6 +578,7 @@ export function ReactorTermsPreview({
         atomGroupRefs,
         atomScaleGroupRefs,
         layoutScale: scale,
+        forceFullScale: true,
       })
       restorePreviewActiveSlotVisibility({
         atomCount: n,
@@ -595,6 +602,7 @@ export function ReactorTermsPreview({
     shellAtoms,
     atomGroupRefs,
     atomScaleGroupRefs,
+    frame.hasActiveTerms,
   ])
 
   const forceElectronMotion = true
@@ -649,15 +657,17 @@ export function ReactorTermsPreview({
     deviceTier: getSynthesisDeviceTier(),
     lowPower,
   })
-  const editLocalLight = !sharedLighting && (atomsOnScreen || holdPreview)
+  const editLocalLight = !sharedLighting && (atomsOnScreen || holdPreview || frame.hasActiveTerms)
+  // Пока есть реагенты — React visible ВСЕГДА true (не даём JSX override pin).
+  const reactGroupVisible = atomsOnScreen || holdPreview || frame.hasActiveTerms || stickySlotCount > 0
 
   return (
     <group
       ref={groupRef}
-      visible={atomsOnScreen || holdPreview}
+      visible={reactGroupVisible}
       frustumCulled={false}
     >
-      {!sharedLighting && (atomsOnScreen || holdPreview) ? (
+      {!sharedLighting && reactGroupVisible ? (
         <>
           <ambientLight intensity={0.28} />
           <directionalLight position={[4, 6, 2]} intensity={0.65} color="#b8c8ff" />
@@ -673,13 +683,19 @@ export function ReactorTermsPreview({
         const slotZ = engineRef.current.slotZ[i] ?? incomingZ
         // Уже смонтированные слоты всегда visible в hold — нет «дыры» при росте.
         const slotVisible =
-          i < stickySlotCount && (atomsOnScreen || holdPreview) && i < mountBohrCount
+          i < stickySlotCount &&
+          (atomsOnScreen || holdPreview || frame.hasActiveTerms) &&
+          i < mountBohrCount
         return (
-          <group key={`slot-${i}`} visible={slotVisible} ref={getPosRef(i)}>
-            <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
+          <group key={`slot-${i}`} visible={slotVisible || (holdPreview && i < stickySlotCount)} ref={getPosRef(i)}>
+            <group
+              scale={scale}
+              visible={slotVisible || (holdPreview && i < stickySlotCount)}
+              ref={getScaleRef(i)}
+            >
               <ReactorPreviewAtomSlot
                 z={slotZ}
-                animate={forceElectronMotion && (atomsOnScreen || holdPreview)}
+                animate={forceElectronMotion && (atomsOnScreen || holdPreview || frame.hasActiveTerms)}
                 previewStatic={false}
                 useFullDetail={false}
                 synthesisGlass={false}

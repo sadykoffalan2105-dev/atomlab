@@ -547,37 +547,12 @@ function SceneContent({
     !previewActive &&
     synthesisSettledProduct != null
 
-  /** Схлопывание атомов — только когда продукт уже на сцене, без «пустого» кадра. */
+  /** Схлопывание атомов УДАЛЕНО — scale 0.06 давал «пропажу» при +/- после синтеза. */
   const fadePreviewAtoms = useCallback(() => {
     setForceProductSlot(true)
     setEarlyProductReveal(true)
-
-    if (!synthTimingProfile.collapseAtoms) return
-
-    const groups = previewAtomGroupRefs.current
-    const scales = previewAtomScaleGroupRefs.current
-    const dur = synthTimingProfile.atomCollapseDur
-    if (dur <= 0) return
-
-    window.setTimeout(() => {
-      // Без paint молекулы не схлопываем Bohr → иначе тёмный центр.
-      if (!productPaintedRef.current) return
-      groups.forEach((g, i) => {
-        if (!g) return
-        const sc = scales[i]
-        if (sc) {
-          gsap.killTweensOf(sc.scale)
-          gsap.to(sc.scale, {
-            x: 0.06,
-            y: 0.06,
-            z: 0.06,
-            duration: dur,
-            ease: 'power3.in',
-          })
-        }
-      })
-    }, 220)
-  }, [synthTimingProfile.atomCollapseDur, synthTimingProfile.collapseAtoms])
+    // Никогда не collapse scale — pinCoeffEditAtomsHard держит полный размер.
+  }, [])
 
   const productCompoundCandidate =
     synthesisSettledProduct ??
@@ -926,6 +901,7 @@ function SceneContent({
   useLayoutEffect(() => {
     if (coeffEditingActive) return
     if (preSynthesisPreview) return
+    const scaleX = productRootGroupRef.current?.scale.x
     // Жёсткий gate: Bohr гасим только когда молекула full-scale на экране.
     if (
       !canHideBohrForProduct({
@@ -934,6 +910,7 @@ function SceneContent({
         prewarm: productPrewarmResolved,
         coeffEditing: coeffEditingActive,
         preSynthesis: preSynthesisPreview,
+        scaleX,
       })
     ) {
       return
@@ -1120,9 +1097,14 @@ function SceneContent({
   /** Фон реактора с первого кадра после «Синтез» — без чёрного провала и ghost-frame. */
   const reactorBackdrop = reactorViewOpen
 
-  /** Каталожный кадр: только settled с видимым продуктом / transform-preview — НЕ raw productSlot. */
+  /** Каталожный кадр: только settled + full-scale paint — иначе Bohr «за кадром». */
   const catalogViewMode =
-    previewActive || (showSettledHero && productSlotVisibleResolved && !coeffEditingActive)
+    previewActive ||
+    (showSettledHero &&
+      productSlotVisibleResolved &&
+      effectiveProductPainted &&
+      !productPrewarmResolved &&
+      !coeffEditingActive)
 
   /**
    * Ракурс превью: lock только при первом появлении атомов / выходе из catalog.
@@ -1406,13 +1388,23 @@ function SceneContent({
       previewRootRef.current.visible = true
     }
 
-    // Каждый кадр при +/- / pre-synth: полный scale атомов (collapse синтеза не переживает).
+    // Каждый кадр пока продукт НЕ владеет экраном: полный scale атомов.
+    const productScreenOk = canHideBohrForProduct({
+      productPainted: productPaintedRef.current,
+      slotVisible: productSlotVisibleResolved,
+      prewarm: productPrewarmResolved,
+      coeffEditing: coeffEditingActive,
+      preSynthesis: preSynthesisPreview,
+      scaleX: productRootGroupRef.current?.scale.x,
+    })
     if (
       reactorViewOpen &&
-      !synthesisRunActive &&
-      !synthActive &&
-      (coeffEditingActive || preSynthesisPreview) &&
-      previewAtomCount > 0
+      !productScreenOk &&
+      previewAtomCount > 0 &&
+      (coeffEditingActive ||
+        preSynthesisPreview ||
+        synthHoldPreview ||
+        (showSettledHero && !productSlotVisibleResolved))
     ) {
       pinCoeffEditAtomsHard({
         slotCount: previewAtomCount,
@@ -1420,6 +1412,7 @@ function SceneContent({
         root: previewRootRef.current,
         atomGroupRefs: previewAtomGroupRefs,
         atomScaleGroupRefs: previewAtomScaleGroupRefs,
+        killScaleTweens: (s) => gsap.killTweensOf(s),
       })
     }
 
@@ -1484,25 +1477,26 @@ function SceneContent({
       paintedForRunId: paintedForRunIdRef.current,
       showSettledHero,
     })
-    const productScreenOk = canHideBohrForProduct({
+    const productScreenOkForHide = canHideBohrForProduct({
       productPainted: paintOkForRun,
       slotVisible: productSlotVisibleResolved,
       prewarm: productPrewarmResolved,
       coeffEditing: coeffEditingActive,
       preSynthesis: preSynthesisPreview,
+      scaleX: productRootGroupRef.current?.scale.x,
     })
     const mustShowBohr =
       reactorViewOpen &&
       effectivePreviewTerms != null &&
       effectivePreviewTerms.length >= 1 &&
-      !productScreenOk &&
+      !productScreenOkForHide &&
       (!showSettledHero || coeffEditingActive || rescue.keepBohrUntilPaint)
     if (mustShowBohr && previewRootRef.current) {
       previewRootRef.current.visible = true
     } else if (
       reactorViewOpen &&
       (synthesisRunActive || synthActive) &&
-      !productScreenOk &&
+      !productScreenOkForHide &&
       previewRootRef.current
     ) {
       previewRootRef.current.visible = true
@@ -1965,16 +1959,15 @@ export function LabCanvas({
           }
           const onLost = (e: Event) => {
             e.preventDefault()
-            // Спрятать мёртвый белый canvas — виден CSS-starfield под ним.
-            canvas.style.opacity = '0'
+            // НЕ opacity=0 (белый/пустой экран). Держим тёмный CSS + soft recover.
+            canvas.style.opacity = '1'
+            canvas.style.background = sceneBg
             softWebglRef.current.onContextLost()
             clearHardTimer()
             hardRemountTimerRef.current = window.setTimeout(() => {
               hardRemountTimerRef.current = null
-              // Remount если всё ещё lost ИЛИ opacity=0 (фейковый restored).
               const stillDead =
                 softWebglRef.current.shouldHardRemount() ||
-                canvas.style.opacity === '0' ||
                 !isWebGlDrawingBufferAlive(state.gl)
               if (!stillDead) return
               softWebglRef.current.acknowledgeHardRemount()
@@ -1991,17 +1984,12 @@ export function LabCanvas({
             }
             state.gl.setClearColor(bg, 1)
             state.scene.background = bg
+            canvas.style.background = sceneBg
+            // Всегда opacity=1 — даже фейковый restored не даёт белый экран.
+            canvas.style.opacity = '1'
             const alive = isWebGlDrawingBufferAlive(state.gl)
             const ok = softWebglRef.current.onContextRestored(() => state.invalidate(), alive)
-            if (!ok) {
-              // Фейковый restored: не отменяем hard remount, canvas остаётся скрытым.
-              canvas.style.opacity = '0'
-              state.invalidate()
-              return
-            }
-            clearHardTimer()
-            canvas.style.opacity = '1'
-            canvas.style.background = sceneBg
+            if (ok) clearHardTimer()
             state.invalidate()
           }
           canvas.addEventListener('webglcontextlost', onLost)

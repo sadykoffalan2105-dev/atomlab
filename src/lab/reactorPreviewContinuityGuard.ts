@@ -56,6 +56,8 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
       /**
        * Pre-synth / idle: restore Bohr, КРОМЕ settled-handoff
        * (productPainted + !previewVisible = молекула владеет экраном).
+       * Hide ТОЛЬКО если caller явно сказал productPainted — LabScene обязан
+       * передавать painted только при full-scale.
        */
       if (!synthLive) {
         if (productPainted && !previewVisible) {

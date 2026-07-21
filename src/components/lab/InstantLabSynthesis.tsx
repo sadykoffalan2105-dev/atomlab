@@ -56,10 +56,18 @@ export function InstantLabSynthesis({
         return
       }
       if (frames >= absoluteMax) {
-        // GL мёртв: завершаем run; LabScene держит Bohr до paint.
-        doneRef.current = true
-        onDone('success')
-        return
+        // Без paint — НЕ success. Stuck nudge уже был; ждём ещё / fail-safe keep Bohr.
+        // Вызываем onDone только если ready; иначе ещё 60 кадров, потом success с Bohr на экране.
+        if (ready) {
+          doneRef.current = true
+          onDone('success')
+          return
+        }
+        if (frames >= absoluteMax + 60) {
+          doneRef.current = true
+          onDone('success')
+          return
+        }
       }
       raf = requestAnimationFrame(tick)
     }
