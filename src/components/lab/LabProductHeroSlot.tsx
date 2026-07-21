@@ -455,6 +455,8 @@ export function LabProductHeroSlot({
             renderQuality="synthesis"
             fxLevel="low"
             chaoticWobble={false}
+            // Шар-атмосфера как в каталоге — только когда продукт на экране (не micro-prewarm).
+            showAtmosphere={visible && !prewarm}
           />
         </group>
       </group>

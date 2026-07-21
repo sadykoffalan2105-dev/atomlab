@@ -6,7 +6,6 @@ import {
   HeroMoleculeRig,
   SubstanceAuraBubble,
 } from './CatalogMoleculeHero'
-import { LabLiteAuraBubble } from './LabLiteAuraBubble'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
 import type { CompoundDef } from '../../types/chemistry'
 
@@ -29,6 +28,11 @@ type Props = {
    */
   labSynthesisScene?: boolean
   chaoticWobble?: boolean
+  /**
+   * Показать шар-атмосферу (как в каталоге).
+   * false только на micro-prewarm — иначе холодный compile + white-screen.
+   */
+  showAtmosphere?: boolean
 }
 
 /**
@@ -42,6 +46,7 @@ export function CatalogSubstanceDisplay({
   renderQuality = 'high',
   labSynthesisScene = false,
   chaoticWobble = false,
+  showAtmosphere = true,
 }: Props) {
   const rawFx: 'off' | 'low' | 'full' = fxLevelIn ?? (reducedEffects ? 'low' : 'full')
   const fxLevel: 'off' | 'low' | 'full' =
@@ -49,11 +54,12 @@ export function CatalogSubstanceDisplay({
   const sparkleHex = compound.accentColor ?? '#3dffec'
 
   if (labSynthesisScene) {
-    // Lab: молекула + дешёвая атмосфера (без transmission — иначе white-screen на слабых GPU).
-    // Каталог по-прежнему использует полный SubstanceAuraBubble.
+    // Как в каталоге: молекула + шар-атмосфера и кольца. Без HDR/Bloom/дубля звёзд.
     return (
       <group>
-        <LabLiteAuraBubble accentColor={compound.accentColor} compoundId={compound.id} />
+        {showAtmosphere ? (
+          <SubstanceAuraBubble accentColor={compound.accentColor} compoundId={compound.id} />
+        ) : null}
         <HeroMoleculeRig
           compound={compound}
           labScaleBoost={labScaleBoost}
