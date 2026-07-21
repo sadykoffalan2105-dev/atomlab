@@ -140,6 +140,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+  /* Зазор под LabDomainTabs (Неорганика|Органика) в rightHud */
+  margin-right: clamp(11.5rem, 20vw, 14.5rem);
 }
 
 .modeTab {
@@ -373,6 +375,14 @@
     border-right: none;
     border-bottom: 1px solid rgba(100, 140, 200, 0.22);
     max-height: 11rem;
+  }
+
+  .lessonHeader {
+    padding-top: 3.1rem;
+  }
+
+  .modeTabs {
+    margin-right: 0;
   }
 
   .hudTop {

@@ -17,6 +17,7 @@ import { SCHOOL_THEORY_DEEP_KNOWLEDGE } from './knowledge/learnSchoolTheoryDeepK
 import { MISCONCEPTIONS_KNOWLEDGE } from './knowledge/learnMisconceptionsKnowledge'
 import { KINETICS_EQUILIBRIUM_KNOWLEDGE } from './knowledge/learnKineticsEquilibriumKnowledge'
 import { LAB_PRACTICE_KNOWLEDGE } from './knowledge/learnLabPracticeKnowledge'
+import { TEACHER_KNOWLEDGE_PACKS } from './knowledge/learnTeacherKnowledgePacks'
 
 const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...CHEMISTRY_KNOWLEDGE_CHUNKS,
@@ -31,6 +32,7 @@ const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...SCIENTISTS_KNOWLEDGE,
   ...GENERATED_ELEMENT_KNOWLEDGE,
   ...GENERATED_COMPOUND_KNOWLEDGE,
+  ...TEACHER_KNOWLEDGE_PACKS,
   ...textbookKnowledgeChunks(),
 ]
 
@@ -72,6 +74,16 @@ const SYNONYMS: Record<string, string[]> = {
   равновес: ['equilibrium', 'ле шателье', 'смещен', 'обратим'],
   скорост: ['rate', 'катализ', 'активац', 'температур'],
   лаборат: ['lab', 'опыт', 'титрован', 'фильтр', 'пробирк', 'нагрев'],
+  определ: ['что такое', 'дайте определение', 'сформулир', 'definition'],
+  ошибк: ['путают', 'неправильн', 'misconception', 'типичная ошибка'],
+  алгоритм: ['пошагово', 'как решать', 'схема решения', 'ход решения'],
+  учебник: ['параграф', '§', 'kimyo', 'запомните'],
+  водород: ['h2', 'хлопок', 'протий'],
+  кислород: ['o2', 'горен', 'оксид'],
+  углерод: ['углекисл', 'co2', 'алмаз', 'графит', 'орган'],
+  аммиак: ['nh3', 'габер', 'азот'],
+  этанол: ['спирт', 'c2h5oh', 'брожен'],
+  бензол: ['арен', 'c6h6', 'ароматич'],
 }
 
 function tokenize(q: string): string[] {

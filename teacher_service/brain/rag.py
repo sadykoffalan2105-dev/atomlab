@@ -7,7 +7,11 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from teacher_service.config import G7_KNOWLEDGE_PATH
+from teacher_service.config import (
+    G7_KNOWLEDGE_PATH,
+    TEACHER_MEGA_PACK_PATH,
+    TEXTBOOK_KNOWLEDGE_PATHS,
+)
 
 _YO_MAP = str.maketrans({"ё": "е", "Ё": "Е"})
 _TOKEN_RE = re.compile(r"[a-zа-я0-9]+", re.I)
@@ -58,70 +62,117 @@ class RagIndex:
         self._native_ready = False
 
     def load(self) -> None:
-        if not G7_KNOWLEDGE_PATH.is_file():
-            raise FileNotFoundError(f"Missing textbook knowledge: {G7_KNOWLEDGE_PATH}")
-
-        data = json.loads(G7_KNOWLEDGE_PATH.read_text(encoding="utf-8"))
-        sections = data.get("sections") or []
         self.chunks.clear()
         self._by_id.clear()
         self._by_section.clear()
 
-        for section in sections:
-            keywords = list(section.get("keywords") or [])
-            keywords.extend(section.get("conceptsRu") or [])
-            keywords.extend(
-                [
-                    section.get("topicRu", ""),
-                    section.get("topicEn", ""),
-                    f"§{section.get('kp', 0)}",
-                    f"параграф {section.get('kp', 0)}",
-                    section.get("chapterId", ""),
-                    section.get("sectionId", ""),
-                    "учебник",
-                    "kimyo",
-                    "7 класс",
-                ]
-            )
-            kw_unique = [k for k in dict.fromkeys(k.strip() for k in keywords if k and k.strip())]
-            rag_parts = section.get("ragParts") or [section.get("contentRu", "")]
-            if not rag_parts:
-                rag_parts = [section.get("contentRu", "")]
+        loaded_any = False
+        for path in TEXTBOOK_KNOWLEDGE_PATHS:
+            if not path.is_file():
+                continue
+            loaded_any = True
+            data = json.loads(path.read_text(encoding="utf-8"))
+            sections = data.get("sections") or []
+            grade_fallback = "g7"
+            if "g8" in path.name:
+                grade_fallback = "g8"
+            elif "g9" in path.name:
+                grade_fallback = "g9"
 
-            for idx, part in enumerate(rag_parts):
-                if not (part and str(part).strip()):
-                    continue
-                part_id = section["id"] if len(rag_parts) == 1 else f"{section['id']}-p{idx + 1}"
-                topic_base = f"§{section.get('kp', 0)}. {section.get('topicRu', '')}"
-                topic = topic_base if len(rag_parts) == 1 else f"{topic_base} ({idx + 1}/{len(rag_parts)})"
-                section_copy = {**section, "contentRu": part, "contentEn": part if idx else section.get("contentEn", "")}
-                body_ru = _format_body(section_copy, "ru")
-                body_en = _format_body(section_copy, "en")
-                norm_parts = " ".join(
+            for section in sections:
+                keywords = list(section.get("keywords") or [])
+                keywords.extend(section.get("conceptsRu") or [])
+                grade_id = section.get("gradeId", grade_fallback)
+                keywords.extend(
                     [
                         section.get("topicRu", ""),
                         section.get("topicEn", ""),
-                        str(part)[:2500],
-                        " ".join(kw_unique),
+                        f"§{section.get('kp', 0)}",
+                        f"параграф {section.get('kp', 0)}",
+                        section.get("chapterId", ""),
+                        section.get("sectionId", ""),
+                        "учебник",
+                        "kimyo",
+                        f"{grade_id.replace('g', '')} класс",
                     ]
                 )
+                kw_unique = [k for k in dict.fromkeys(k.strip() for k in keywords if k and k.strip())]
+                rag_parts = section.get("ragParts") or [section.get("contentRu", "")]
+                if not rag_parts:
+                    rag_parts = [section.get("contentRu", "")]
+
+                for idx, part in enumerate(rag_parts):
+                    if not (part and str(part).strip()):
+                        continue
+                    part_id = section["id"] if len(rag_parts) == 1 else f"{section['id']}-p{idx + 1}"
+                    topic_base = f"§{section.get('kp', 0)}. {section.get('topicRu', '')}"
+                    topic = topic_base if len(rag_parts) == 1 else f"{topic_base} ({idx + 1}/{len(rag_parts)})"
+                    section_copy = {
+                        **section,
+                        "contentRu": part,
+                        "contentEn": part if idx else section.get("contentEn", ""),
+                    }
+                    body_ru = _format_body(section_copy, "ru")
+                    body_en = _format_body(section_copy, "en")
+                    norm_parts = " ".join(
+                        [
+                            section.get("topicRu", ""),
+                            section.get("topicEn", ""),
+                            str(part)[:2500],
+                            " ".join(kw_unique),
+                        ]
+                    )
+                    chunk = RagChunk(
+                        chunk_id=part_id,
+                        section_key=f"{section.get('chapterId')}-{section.get('sectionId')}",
+                        topic=topic,
+                        body_ru=body_ru,
+                        body_en=body_en,
+                        keywords=kw_unique,
+                        norm_text=normalize_text(norm_parts),
+                        kp=int(section.get("kp") or 0),
+                        grade_id=grade_id,
+                        chapter_id=section.get("chapterId", ""),
+                        section_id=section.get("sectionId", ""),
+                    )
+                    self.chunks.append(chunk)
+                    self._by_id[chunk.chunk_id] = chunk
+                    if part_id == section["id"] or idx == 0:
+                        self._by_section[chunk.section_key] = chunk
+
+        if TEACHER_MEGA_PACK_PATH.is_file():
+            loaded_any = True
+            mega = json.loads(TEACHER_MEGA_PACK_PATH.read_text(encoding="utf-8"))
+            for item in mega.get("chunks") or []:
+                cid = str(item.get("id") or "").strip()
+                if not cid or cid in self._by_id:
+                    continue
+                ru = str(item.get("ru") or "").strip()
+                if len(ru) < 20:
+                    continue
+                en = str(item.get("en") or ru).strip()
+                topic = str(item.get("topic") or cid)
+                kws = [str(k) for k in (item.get("keywords") or []) if k]
+                grades = item.get("grades") or []
+                grade_id = f"g{grades[0]}" if grades else "g7"
                 chunk = RagChunk(
-                    chunk_id=part_id,
-                    section_key=f"{section.get('chapterId')}-{section.get('sectionId')}",
+                    chunk_id=cid,
+                    section_key=f"mega-{cid}",
                     topic=topic,
-                    body_ru=body_ru,
-                    body_en=body_en,
-                    keywords=kw_unique,
-                    norm_text=normalize_text(norm_parts),
-                    kp=int(section.get("kp") or 0),
-                    grade_id=section.get("gradeId", "g7"),
-                    chapter_id=section.get("chapterId", ""),
-                    section_id=section.get("sectionId", ""),
+                    body_ru=ru,
+                    body_en=en,
+                    keywords=kws,
+                    norm_text=normalize_text(f"{topic} {ru} {' '.join(kws)}"),
+                    kp=0,
+                    grade_id=grade_id,
+                    chapter_id="mega",
+                    section_id=cid,
                 )
                 self.chunks.append(chunk)
                 self._by_id[chunk.chunk_id] = chunk
-                if part_id == section["id"] or idx == 0:
-                    self._by_section[chunk.section_key] = chunk
+
+        if not loaded_any:
+            raise FileNotFoundError(f"Missing textbook knowledge: {G7_KNOWLEDGE_PATH}")
 
         self._native_ready = self._load_native()
 

@@ -3,6 +3,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 G7_KNOWLEDGE_PATH = REPO_ROOT / "src" / "data" / "g7TextbookKnowledge.json"
+G8_KNOWLEDGE_PATH = REPO_ROOT / "src" / "data" / "g8TextbookKnowledge.json"
+G9_KNOWLEDGE_PATH = REPO_ROOT / "src" / "data" / "g9TextbookKnowledge.json"
+TEACHER_MEGA_PACK_PATH = REPO_ROOT / "src" / "data" / "teacherKnowledge" / "megaPack.json"
+
+TEXTBOOK_KNOWLEDGE_PATHS = [
+    G7_KNOWLEDGE_PATH,
+    G8_KNOWLEDGE_PATH,
+    G9_KNOWLEDGE_PATH,
+]
 
 TEACHER_SERVICE_PORT = int(os.environ.get("TEACHER_SERVICE_PORT", "8765"))
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")

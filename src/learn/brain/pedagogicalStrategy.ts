@@ -115,6 +115,30 @@ export function decideStrategy(input: StrategyInput): StrategyDecision {
     }
   }
 
+  // 3b) Низкое внимание при частичном ответе — короткая подсказка, не лекция.
+  if (fused.attention < 0.35 && grade?.verdict === 'partial') {
+    return {
+      tone: 'encouraging',
+      action: 'give_hint',
+      hintLevel: 1,
+      verbosity: 'short',
+      difficultyDelta: 0,
+      rationale: 'Внимание низкое при частичном ответе — одна короткая подсказка, без перегруза.',
+    }
+  }
+
+  // 3c) Много промахов — сменить угол объяснения (аналогия), не тот же текст.
+  if (consecutiveMisses >= 3) {
+    return {
+      tone: 'warm',
+      action: 'explain',
+      hintLevel: 3,
+      verbosity: 'normal',
+      difficultyDelta: -1,
+      rationale: 'Три+ промаха — объясняем иначе (аналогия + один шаг), снижаем сложность.',
+    }
+  }
+
   // 4) Реакция на оценку устного ответа.
   if (grade) {
     if (grade.verdict === 'correct') {
