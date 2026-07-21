@@ -2,6 +2,7 @@ export {
   REACTOR_SHIELD,
   createShieldSnapshot,
   bumpShieldOnCoeffEdit,
+  shouldBumpShieldOnPreviewFrame,
   tickShieldPhase,
   resolveShieldPhase,
   resolveShieldRenderPolicy,

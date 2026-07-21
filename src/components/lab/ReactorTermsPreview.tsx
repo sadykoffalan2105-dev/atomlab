@@ -32,7 +32,12 @@ import {
   resolveShieldRenderPolicy,
   tickShieldPhase,
   shieldForceShowActiveSlots,
+  shouldBumpShieldOnPreviewFrame,
 } from '../../lab/reactorPreviewShield'
+import {
+  resolvePreviewAtomInvariants,
+  resolveStableElectronFrameSkip,
+} from '../../lab/synthesisStabilityEngine'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
 
@@ -208,18 +213,27 @@ export function ReactorTermsPreview({
   // --- ReactorPreviewShield: единый закон видимости / электронов / lite ---
   {
     const now = performance.now()
-    if (policy.hotCoeffEdit || coeffEditBurst || coeffEditing || previewOnlyMode) {
+    /**
+     * bump ТОЛЬКО на реальный +/-. Раньше previewOnlyMode bump'ил каждый render
+     * (invalidate × pin) → phase навсегда hot, stickyLite с фейковым atomCount≥12,
+     * remountBan/gpuBan не сходили → hitch/мигание на dichromate.
+     */
+    if (shouldBumpShieldOnPreviewFrame({
+      hotCoeffEdit: policy.hotCoeffEdit,
+      coeffEditBurst,
+      coeffEditing,
+    })) {
       shieldRef.current = bumpShieldOnCoeffEdit(
         shieldRef.current,
         now,
-        Math.max(frame.slotCount, 12),
+        frame.slotCount,
       )
     }
     shieldRef.current = tickShieldPhase(shieldRef.current, now)
     const shield = resolveShieldRenderPolicy({
       snap: shieldRef.current,
       nowMs: now,
-      hotCoeffEdit: policy.hotCoeffEdit || previewOnlyMode,
+      hotCoeffEdit: policy.hotCoeffEdit,
       preSynthesis: previewOnlyMode,
       atomCount: frame.slotCount,
       groupVisible: true,
@@ -281,23 +295,22 @@ export function ReactorTermsPreview({
   const poolSize = Math.max(frame.poolSize, n)
   const renderAtoms = frame.layoutAtoms
   const shellAtoms = engineRef.current.shellAtoms
-  const holdPreview = previewOnlyMode || coeffEditing || synthHoldPreview
   /**
-   * Сколько слотов держим видимыми. Не схлопываем до live n при кратком lag layout.
+   * Единый движок инвариантов — SynthesisStabilityEngine.
+   * Все решения по holdPreview/atomsOnScreen/pin централизованы здесь.
    */
-  const stickySlotCount = holdPreview
-    ? Math.max(n, shellAtoms.length, frame.expectedAtomCount, frame.hasActiveTerms ? 1 : 0)
-    : n
-
-  /**
-   * Pre-synth / edit / synth-hold: группа ВСЕГДА visible, пока есть ненулевые коэффициенты.
-   * Не завязываемся только на n/shell — краткий 0 на +/- давал пустой starfield.
-   */
-  const atomsOnScreen =
-    holdPreview || previewOnlyMode
-      ? frame.hasActiveTerms || n > 0 || shellAtoms.length > 0
-      : Boolean(visible) &&
-        (n > 0 || shellAtoms.length > 0 || frame.groupVisible || frame.hasActiveTerms)
+  const invariants = resolvePreviewAtomInvariants({
+    previewOnlyMode,
+    coeffEditing,
+    synthHoldPreview,
+    visibleProp: Boolean(visible),
+    hasActiveTerms: frame.hasActiveTerms,
+    slotCount: n,
+    shellCount: shellAtoms.length,
+    expectedAtomCount: frame.expectedAtomCount,
+    groupVisible: frame.groupVisible,
+  })
+  const { holdPreview, atomsOnScreen, stickySlotCount } = invariants
 
   const effectiveGroupVisible = atomsOnScreen
 
@@ -441,27 +454,28 @@ export function ReactorTermsPreview({
      * кратком мигании флага на +/-.
      */
     const holdAtoms = previewOnlyMode || coeffEditing || synthHoldPreview
-    if (!atomsOnScreen && !holdAtoms) {
+    // Пока уравнение активно — корень не гасим (даже если флаг atomsOnScreen мигнул).
+    if (!atomsOnScreen && !holdAtoms && !frame.hasActiveTerms) {
       // Только корень: массовый visible=false по слотам залипал в THREE
       // и переживал возврат React visible=true → пустой starfield после coeff.
       if (root) root.visible = false
       return
     }
+    if (holdAtoms || frame.hasActiveTerms) {
+      if (root && !root.visible) root.visible = true
+    }
 
-    // Жёсткий pin в pre-synth / synth-hold: каждые 2 кадра.
-    if (holdAtoms && !externalAtomControl) {
-      const gf = guardFrameRef.current
-      if (gf % 2 === 0) {
-        if (root) root.visible = true
-        const count = Math.max(stickySlotCount, n, shellAtoms.length, 1)
-        for (let i = 0; i < count; i++) {
-          const posG = atomGroupRefs.current[i]
-          const scG = atomScaleGroupRefs.current[i]
-          if (posG) posG.visible = true
-          if (scG) {
-            scG.visible = true
-            if (scG.scale.x < scale * 0.4) scG.scale.set(scale, scale, scale)
-          }
+    // Pin каждый кадр через движок-инварианты — нет thrash 1/2.
+    if (holdAtoms && !externalAtomControl && invariants.pinEveryFrame) {
+      if (root) root.visible = true
+      const count = Math.max(stickySlotCount, n, shellAtoms.length, 1)
+      for (let i = 0; i < count; i++) {
+        const posG = atomGroupRefs.current[i]
+        const scG = atomScaleGroupRefs.current[i]
+        if (posG) posG.visible = true
+        if (scG) {
+          scG.visible = true
+          if (scG.scale.x < scale * 0.4) scG.scale.set(scale, scale, scale)
         }
       }
     }
@@ -469,8 +483,7 @@ export function ReactorTermsPreview({
     guardFrameRef.current = tickSynthesisPreviewFrame({
       policy: {
         ...tickPolicy,
-        // Edit: pin через stride — иначе 15 атомов × 60fps = лишний CPU.
-        pinEveryFrame: tickPolicy.pinEveryFrame && guardFrameRef.current % 2 === 0,
+        pinEveryFrame: tickPolicy.pinEveryFrame || holdAtoms,
         visibilityGuardEvery: Math.max(tickPolicy.visibilityGuardEvery, holdAtoms ? 6 : 2),
       },
       slotCount: stickySlotCount,
@@ -532,15 +545,10 @@ export function ReactorTermsPreview({
       }
       return
     }
-    // После синтеза / productOwnsScreen: корень и слоты скрыты — только молекула.
+    // После синтеза / productOwnsScreen: только корень. Массовый hide слотов
+    // залипал в THREE и переживал React visible=true → пустой starfield.
     if (!atomsOnScreen) {
       g.visible = false
-      for (let i = 0; i < atomGroupRefs.current.length; i++) {
-        const posG = atomGroupRefs.current[i]
-        const scaleG = atomScaleGroupRefs.current[i]
-        if (posG) posG.visible = false
-        if (scaleG) scaleG.visible = false
-      }
       return
     }
     g.visible = true
@@ -581,7 +589,6 @@ export function ReactorTermsPreview({
    * Космический дизайн: сразу все слоты уравнения (дихромат = 22).
    * Старый Math.min(16, …) резал mount при hold — чёрный пустой кадр при уравненном K₂Cr₂O₇.
    */
-  const hotDense = (policy.hotCoeffEdit || coeffEditing) && n >= 8
   const targetMount = Math.max(
     stickySlotCount,
     holdPreview ? Math.max(stickySlotCount, frame.hasActiveTerms ? 1 : 0) : 0,
@@ -590,8 +597,11 @@ export function ReactorTermsPreview({
 
   useEffect(() => {
     if (targetMount <= 0) {
-      mountCapRef.current = 0
-      setMountCap(0)
+      // Не сбрасываем mountCap при кратком targetMount=0, пока уравнение живо.
+      if (!frame.hasActiveTerms) {
+        mountCapRef.current = 0
+        setMountCap(0)
+      }
       return
     }
     // Сразу все слоты — без ramp и без потолка 16.
@@ -618,11 +628,11 @@ export function ReactorTermsPreview({
       cancelled = true
       cancelAnimationFrame(raf)
     }
-  }, [targetMount, stickySlotCount, holdPreview])
+  }, [targetMount, stickySlotCount, holdPreview, frame.hasActiveTerms])
 
   const mountBohrCount = Math.max(mountCap, stickySlotCount, targetMount)
-  // Idle осмотр: электроны каждый кадр; при hot +/- — реже (GPU).
-  const editSkip = hotDense ? 2 : holdPreview && !policy.hotCoeffEdit ? 1 : holdPreview ? 2 : 1
+  /** Стабильный frame-skip через движок (stickySlotCount, без 1↔2 thrash). */
+  const editSkip = resolveStableElectronFrameSkip(stickySlotCount)
   const editLocalLight = !sharedLighting && (atomsOnScreen || holdPreview)
 
   return (

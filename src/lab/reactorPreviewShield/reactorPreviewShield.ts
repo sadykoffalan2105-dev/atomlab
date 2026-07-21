@@ -85,6 +85,19 @@ export function bumpShieldOnCoeffEdit(
   }
 }
 
+/**
+ * bump разрешён только на реальный +/- / burst.
+ * previewOnlyMode сам по себе bump'ить нельзя — иначе каждый invalidate
+ * держит щит в hot навсегда (мигание / hitch на dense).
+ */
+export function shouldBumpShieldOnPreviewFrame(opts: {
+  hotCoeffEdit: boolean
+  coeffEditBurst: boolean
+  coeffEditing: boolean
+}): boolean {
+  return opts.hotCoeffEdit || opts.coeffEditBurst || opts.coeffEditing
+}
+
 export function tickShieldPhase(snap: ShieldSnapshot, nowMs: number): ShieldSnapshot {
   if (nowMs < snap.hotUntil) {
     return snap.phase === 'hot' ? snap : { ...snap, phase: 'hot' }

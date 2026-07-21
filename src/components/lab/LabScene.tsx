@@ -377,8 +377,31 @@ function SceneContent({
     if (coeffEditingActive) setAllowIdleProductPrewarm(false)
   }, [coeffEditingActive])
   useEffect(() => {
-    if (synthActive || synthesisRunActive) setAllowIdleProductPrewarm(true)
-  }, [synthActive, synthesisRunActive])
+    // Во время синтеза — всегда можно.
+    if (synthActive || synthesisRunActive) {
+      setAllowIdleProductPrewarm(true)
+      return
+    }
+    // До синтеза: если есть явный intent (hover/Run prewarm) и реактор "прогрет" по кадрам,
+    // разрешаем idle micro-prewarm. Это ускоряет появление молекулы после Run.
+    if (
+      reactorGpuIdleReady &&
+      reactorViewOpen &&
+      !coeffEditingActive &&
+      prewarmProductCompound != null
+    ) {
+      setAllowIdleProductPrewarm(true)
+      return
+    }
+    if (!coeffEditingActive) setAllowIdleProductPrewarm(false)
+  }, [
+    synthActive,
+    synthesisRunActive,
+    reactorGpuIdleReady,
+    reactorViewOpen,
+    coeffEditingActive,
+    prewarmProductCompound,
+  ])
   /**
    * Shell никогда не null'им при открытом реакторе из-за краткого пустого canvas hold —
    * иначе unmount Bohr → пустой starfield при живом уравнении в панели.
@@ -440,8 +463,14 @@ function SceneContent({
   const catalogViewModePrevRef = useRef(false)
   const reactorCameraLockUntilRef = useRef(0)
   const reactorCameraLockPoseRef = useRef<ReactorPreviewCameraPose | null>(null)
+  /** Стабильный target для OrbitControls — без нового tuple каждый render. */
+  const reactorOrbitTargetRef = useRef<readonly [number, number, number]>(
+    REACTOR_PREVIEW_CAMERA.few.target,
+  )
   /** Пользователь крутит орбиту — не форсить hero-позу. */
   const userOrbitingRef = useRef(false)
+  /** One-shot stuck rescue после catalog → reactor (не каждый кадр при zoom). */
+  const stuckRescueDoneRef = useRef(false)
   const hadPreviewAtomsRef = useRef(false)
   const lastSynthRunIdRef = useRef(0)
 
@@ -516,6 +545,8 @@ function SceneContent({
     if (dur <= 0) return
 
     window.setTimeout(() => {
+      // Без paint молекулы не схлопываем Bohr → иначе тёмный центр.
+      if (!productPaintedRef.current) return
       groups.forEach((g, i) => {
         if (!g) return
         const sc = scales[i]
@@ -666,11 +697,16 @@ function SceneContent({
   }
   const frameBudgetLite =
     !coeffEditingActive && frameBudgetRef.current.shouldForceLite()
-  const editForceLite =
-    (!coeffEditingActive && editLiteLatchRef.current) ||
-    (!coeffEditingActive && reactorCoeffEditBurst) ||
-    frameBudgetLite ||
-    lowPowerProfile.forceLiteReactor
+  /**
+   * Pre-synth: не дёргаем forceLite на edit rising/falling — rememo policy + hitch.
+   * Lite только от device/budget; dense thrash лечит electronFrameSkip.
+   */
+  const editForceLite = preSynthesisPreview
+    ? frameBudgetLite || lowPowerProfile.forceLiteReactor
+    : (!coeffEditingActive && editLiteLatchRef.current) ||
+      (!coeffEditingActive && reactorCoeffEditBurst) ||
+      frameBudgetLite ||
+      lowPowerProfile.forceLiteReactor
   const reactorPreviewMounted =
     continuity.reactorPreviewMounted ||
     (reactorViewOpen && effectivePreviewTerms != null && effectivePreviewTerms.length >= 1)
@@ -836,9 +872,14 @@ function SceneContent({
     if (coeffEditingActive) return
     if (preSynthesisPreview) return
     if (!effectiveProductPainted || !productSlotVisibleResolved) return
-    if (synthActive || synthesisRunActive) {
-      // Во время синтеза после paint — тоже держим Bohr скрытым.
-    }
+    const productId =
+      synthesisSettledProduct?.id ?? synthesis?.product?.id ?? effectivePrewarmProduct?.id ?? null
+    const gpuOk =
+      showSettledHero ||
+      prewarmReadyRef.current ||
+      (productId != null && isProductGpuCompiled(productId))
+    // Синтез: не гасим Bohr, пока молекула реально скомпилирована.
+    if (!gpuOk) return
     const root = previewRootRef.current
     if (!root) return
     root.visible = false
@@ -849,6 +890,10 @@ function SceneContent({
     synthActive,
     synthesisRunActive,
     preSynthesisPreview,
+    showSettledHero,
+    synthesisSettledProduct?.id,
+    synthesis?.product?.id,
+    effectivePrewarmProduct?.id,
   ])
 
   useLayoutEffect(() => {
@@ -1046,9 +1091,11 @@ function SceneContent({
     )
     manyAtomsCameraRef.current = manyAtoms
     reactorCameraLockPoseRef.current = pose
+    reactorOrbitTargetRef.current = pose.target
 
     const firstAtoms = !hadPreviewAtomsRef.current
     hadPreviewAtomsRef.current = true
+    if (leftCatalog) stuckRescueDoneRef.current = false
     if (!leftCatalog && !firstAtoms) return
     if (userOrbitingRef.current) return
 
@@ -1074,6 +1121,10 @@ function SceneContent({
     showSettledHero,
     reactorViewOpen,
   ])
+
+  useLayoutEffect(() => {
+    if (catalogViewMode) stuckRescueDoneRef.current = false
+  }, [catalogViewMode])
 
   /** Pointer → сразу отпустить camera lock, чтобы можно было крутить и разглядеть. */
   useEffect(() => {
@@ -1206,10 +1257,12 @@ function SceneContent({
       !synthActive &&
       !synthesisRunActive &&
       !userOrbitingRef.current &&
+      !stuckRescueDoneRef.current &&
       previewAtomCount > 0 &&
-      isCameraStuckNearCatalogHero(camera.position)
+      isCameraStuckNearCatalogHero(camera.position, CATALOG_HERO_VIEW.cameraPosition)
     ) {
       applyReactorPreviewCamera(camera as THREE.PerspectiveCamera, orbRef.current, lockPose)
+      stuckRescueDoneRef.current = true
       reactorCameraLockUntilRef.current =
         performance.now() + REACTOR_PREVIEW_CAMERA.stuckRescueMs
     }
@@ -1261,6 +1314,12 @@ function SceneContent({
       )
     }
 
+    const continuityProductId =
+      synthesisSettledProduct?.id ?? synthesis?.product?.id ?? null
+    const continuityGpuOk =
+      showSettledHero ||
+      prewarmReadyRef.current ||
+      (continuityProductId != null && isProductGpuCompiled(continuityProductId))
     previewContinuityRef.current.tick({
       reactorViewOpen,
       synthLive: synthesisRunActive || synthActive,
@@ -1275,7 +1334,8 @@ function SceneContent({
         effectiveProductPainted &&
         !coeffEditingActive &&
         !preSynthesisPreview &&
-        (synthesisRunActive || synthActive || showSettledHero),
+        (synthesisRunActive || synthActive || showSettledHero) &&
+        continuityGpuOk,
       previewRootRef,
       invalidate,
     })
@@ -1600,13 +1660,7 @@ function SceneContent({
         minPolarAngle={catalogViewMode ? CATALOG_HERO_VIEW.minPolarAngle : LAB_ORBIT.minPolarAngle}
         maxPolarAngle={catalogViewMode ? CATALOG_HERO_VIEW.maxPolarAngle : LAB_ORBIT.maxPolarAngle}
         target={
-          catalogViewMode
-            ? CATALOG_HERO_VIEW.target
-            : ([
-                (reactorCameraLockPoseRef.current ?? REACTOR_PREVIEW_CAMERA.few).target[0],
-                (reactorCameraLockPoseRef.current ?? REACTOR_PREVIEW_CAMERA.few).target[1],
-                (reactorCameraLockPoseRef.current ?? REACTOR_PREVIEW_CAMERA.few).target[2],
-              ] as [number, number, number])
+          catalogViewMode ? CATALOG_HERO_VIEW.target : reactorOrbitTargetRef.current
         }
         enableDamping={LAB_ORBIT.enableDamping}
         dampingFactor={LAB_ORBIT.dampingFactor}

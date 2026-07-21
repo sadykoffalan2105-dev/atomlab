@@ -20,7 +20,7 @@ const MICRO_SCALE = 0.001
 /** Кадров отрисовки на micro-scale до «готово» — быстрый сигнал prewarm. */
 const PREWARM_PAINT_FRAMES = 2
 /** Кадров полного масштаба до сигнала paint — быстрее выход молекулы (<0.5с при 60fps). */
-const VISIBLE_PAINT_FRAMES = 2
+const VISIBLE_PAINT_FRAMES = 6
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
@@ -257,6 +257,10 @@ export function LabProductHeroSlot({
         }
         visiblePaintFramesRef.current += 1
         if (visiblePaintFramesRef.current >= VISIBLE_PAINT_FRAMES) {
+          // Не гасим Bohr, пока GPU молекулы не готов — иначе тёмный пустой кадр.
+          if (!(gpuCompiledRef.current || isProductGpuCompiled(compound.id))) {
+            return
+          }
           visiblePaintSentRef.current = true
           gpuCompiledRef.current = true
           onProductVisiblePaint?.()

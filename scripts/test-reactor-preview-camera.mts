@@ -25,9 +25,15 @@ import { PerspectiveCamera, Vector3 } from 'three'
 }
 
 {
+  // Exact catalog hero → stuck.
   assert.equal(isCameraStuckNearCatalogHero({ x: 0, y: 0.12, z: 3.6 }), true)
+  // Reactor few pose → not stuck.
   assert.equal(isCameraStuckNearCatalogHero({ x: 0.92, y: 1.38, z: 6.35 }), false)
+  // Near catalog within 0.35 ball.
   assert.equal(isCameraStuckNearCatalogHero({ x: 0.1, y: 0.1, z: 3.9 }), true)
+  // User zoom / orbit near z≈4 but far in XY — must NOT fight orbit (old z-only bug).
+  assert.equal(isCameraStuckNearCatalogHero({ x: 0.92, y: 1.38, z: 4.0 }), false)
+  assert.equal(isCameraStuckNearCatalogHero({ x: 0, y: 0.12, z: 4.2 }), false)
 }
 
 {
@@ -70,9 +76,6 @@ import { PerspectiveCamera, Vector3 } from 'three'
     REACTOR_PREVIEW_CAMERA.stuckRescueMs <= 300,
     `stuck rescue must be short (got ${REACTOR_PREVIEW_CAMERA.stuckRescueMs})`,
   )
-  assert.equal(isCameraStuckNearCatalogHero({ x: 0, y: 0.12, z: 4.2 }), true)
-  assert.equal(isCameraStuckNearCatalogHero({ x: 0.92, y: 1.38, z: 4.0 }), true)
-  assert.equal(isCameraStuckNearCatalogHero({ x: 0.92, y: 1.38, z: 6.35 }), false)
 }
 
 console.log('test-reactor-preview-camera: all passed')

@@ -97,9 +97,12 @@ export function applyReactorPreviewCamera(
 /** Поза всё ещё близка к каталожному hero (признак «залипания»). */
 export function isCameraStuckNearCatalogHero(
   position: { x: number; y: number; z: number },
-  catalogZ = 3.6,
-  eps = 1.1,
+  catalog: readonly [number, number, number] = [0, 0.12, 3.6],
+  radius = 0.35,
 ): boolean {
-  // Только z: после settled damping часто оставляет z≈3.9–4.4 при x≈0.6–0.9.
-  return Math.abs(position.z - catalogZ) < eps
+  // 3D-шар: старый «только z ±1.1» ловил нормальный zoom (minDistance 2.8) и дрался с орбитой.
+  const dx = position.x - catalog[0]
+  const dy = position.y - catalog[1]
+  const dz = position.z - catalog[2]
+  return dx * dx + dy * dy + dz * dz < radius * radius
 }

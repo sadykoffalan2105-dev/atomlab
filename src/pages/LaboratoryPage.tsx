@@ -15,7 +15,6 @@ import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
-import { termsSignature } from '../lab/previewLayoutPolicy'
 import { warmupLabSynthesisInfra, warmupLabSynthesisReactorOpen, warmupReactorPreviewTerms } from '../lab/labSynthesisWarmup'
 import { useReactorCoeffEditBurst } from '../lab/reactorPreviewEditThrottle'
 import { isReactorCoeffEditing } from '../lab/reactorCoeffEditMode'
@@ -420,11 +419,12 @@ export function LaboratoryPage() {
 
   const onCoeffChange = useCallback((id: string, coeff: number) => {
     const c = Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(Number.isFinite(coeff) ? coeff : 1)))
-    // Синхронно в UI; Canvas обновляется через useReactorCanvasTermsHold (freeze + idle).
+    // Pin Bohr до commit: без forceEditHold первый кадр +/- мигал (visualHold только в layout).
     setSynthesisSettledProduct(null)
     synthesisSettledProductRef.current = null
     settledSnapshotRef.current = null
     setSynthPhaseUi('')
+    forceEditHoldRef.current()
     setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
   }, [])
 
@@ -637,22 +637,13 @@ export function LaboratoryPage() {
     useReactorCoeffEditBurst(reactorPreviewTerms)
   forceEditHoldRef.current = forceEditHold
 
-  const leftTermsSig = useMemo(() => termsSignature(leftTerms), [leftTerms])
-  const prevLeftTermsSigRef = useRef<string | null>(null)
-  const coeffEditSync =
-    prevLeftTermsSigRef.current !== null &&
-    prevLeftTermsSigRef.current !== leftTermsSig &&
-    leftTerms.length > 0
-  prevLeftTermsSigRef.current = leftTermsSig
-
   const reactorCoeffEditing =
     isReactorCoeffEditing(coeffEditBurst, editIdle, visualHold) ||
-    coeffEditSync ||
     coeffEditPulse ||
     coeffUiFocused
 
-  /** Canvas: сразу после commit коэффициента (~32ms), без долгого freeze. */
-  const heldCanvasTerms = useReactorCanvasTermsHold(reactorOpen, leftTerms, false, 32)
+  /** Canvas: тот же commit, что и UI — без 32ms lag (два layout → мигание). */
+  const heldCanvasTerms = useReactorCanvasTermsHold(reactorOpen, leftTerms, false, 0)
   const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
     reactorOpen,
     heldCanvasTerms,
@@ -663,23 +654,6 @@ export function LaboratoryPage() {
   useEffect(() => {
     if (coeffEditBurst) forceLiteFxRef.current = true
   }, [coeffEditBurst])
-
-  useEffect(() => {
-    // Никогда не прогревать layout/worker на каждом +/- — это главный hitch на main thread.
-    if (!reactorOpen || !productCompound) return
-    if (coeffEditBurst || reactorCoeffEditing || !editIdle) return
-    if (leftTerms.length < 1) return
-    warmupReactorPreviewTerms(leftTerms)
-    warmupLabSynthesisReactorOpen(catalogList, productCompound, leftTerms)
-  }, [
-    reactorOpen,
-    productCompound,
-    coeffEditBurst,
-    reactorCoeffEditing,
-    editIdle,
-    leftTerms,
-    catalogList,
-  ])
 
   const onRequestRun = useCallback(() => {
     const prepared = prepareGuaranteedSynthesisRun({

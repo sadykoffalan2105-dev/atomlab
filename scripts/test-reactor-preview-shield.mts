@@ -18,6 +18,7 @@ import {
   resolveShieldRenderPolicy,
   shieldAllowsCanvasRemount,
   shieldAllowsGpuCompile,
+  shouldBumpShieldOnPreviewFrame,
   tickShieldPhase,
 } from '../src/lab/reactorPreviewShield/index.ts'
 import { simulateCoeffEditLayoutSteps } from '../src/lab/previewLayoutPolicy.ts'
@@ -51,6 +52,36 @@ function dichromate(cCr = 4, cK = 4, cO = 7): ReactorEquationTerm[] {
   assert.equal(shieldAllowsCanvasRemount(snap, t0 + 100, false), false)
   assert.equal(shieldAllowsCanvasRemount(snap, t0 + REACTOR_SHIELD.remountBanMs + 10, false), false)
   assert.equal(REACTOR_SHIELD.softRecoverOnly, true)
+}
+
+// --- previewOnlyMode alone must NOT bump (permanent-hot regression) ---
+{
+  assert.equal(
+    shouldBumpShieldOnPreviewFrame({
+      hotCoeffEdit: false,
+      coeffEditBurst: false,
+      coeffEditing: false,
+    }),
+    false,
+    'idle pre-synth must not bump shield every render',
+  )
+  assert.equal(
+    shouldBumpShieldOnPreviewFrame({
+      hotCoeffEdit: false,
+      coeffEditBurst: false,
+      coeffEditing: true,
+    }),
+    true,
+  )
+  // stickyLite только от реального atomCount, не от Math.max(n,12)
+  let snap = createShieldSnapshot()
+  snap = bumpShieldOnCoeffEdit(snap, 1000, 3)
+  assert.equal(snap.stickyLite, false, '3 atoms must not force stickyLite')
+  snap = bumpShieldOnCoeffEdit(snap, 1100, 12)
+  assert.equal(snap.stickyLite, true)
+  // Idle inspect: без bump щит уходит из hot после hotUntil
+  snap = tickShieldPhase(snap, 1100 + 480 + 20)
+  assert.notEqual(snap.phase, 'hot')
 }
 
 // --- After rapid edit: pin + electrons + no GPU ---
