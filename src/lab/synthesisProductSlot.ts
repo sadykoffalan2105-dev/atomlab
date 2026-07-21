@@ -42,10 +42,11 @@ export function resolveSynthesisProductSlot(
     (prewarmReady && prewarmCompoundId === productForSlot.id)
 
   if (showSettledHero) {
+    // Settled: всегда full-scale если слот смонтирован — иначе toast «3D показан» при пустом центре.
     return {
-      visible: productSlotVisible,
+      visible: true,
       prewarm: false,
-      gpuReady,
+      gpuReady: true,
     }
   }
 

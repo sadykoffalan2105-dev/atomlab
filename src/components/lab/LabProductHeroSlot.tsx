@@ -20,8 +20,6 @@ import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import { resolveVisiblePaintFrames } from '../../lab/synthesisStabilityEngine'
 
 const MICRO_SCALE = 0.001
-/** Кадров отрисовки на micro-scale до «готово» — быстрый сигнал prewarm. */
-const PREWARM_PAINT_FRAMES = 2
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
@@ -68,8 +66,15 @@ export function LabProductHeroSlot({
     [],
   )
 
-  const notifyGpuCompiled = useCallback(() => {
+  /** Локальный ready (можно reveal) — без записи в session cache. */
+  const notifyGpuCompiledLocal = useCallback(() => {
     if (gpuCompiledRef.current) return
+    gpuCompiledRef.current = true
+    onGpuCompiled?.(compound.id)
+  }, [compound.id, onGpuCompiled])
+
+  /** Полный compile / visible paint — пишем session cache. */
+  const notifyGpuCompiledPersisted = useCallback(() => {
     gpuCompiledRef.current = true
     markProductGpuCompiled(compound.id)
     onGpuCompiled?.(compound.id)
@@ -88,15 +93,16 @@ export function LabProductHeroSlot({
     if (visible) return
     if (!prewarm) return
     if (isProductGpuCompiled(compound.id)) {
-      notifyGpuCompiled()
+      notifyGpuCompiledLocal()
       return
     }
 
     let cancelled = false
     const gen = compileGenRef.current
     const compilePriority: 0 | 1 = visible ? 1 : 0
+    // Watchdog: только local ready — НЕ session cache (иначе ложный handoff).
     const clearGpuWatch = scheduleGpuCompileWatchdog(() => {
-      if (!cancelled && gen === compileGenRef.current) notifyGpuCompiled()
+      if (!cancelled && gen === compileGenRef.current) notifyGpuCompiledLocal()
     })
 
     const runCompile = () => {
@@ -125,7 +131,7 @@ export function LabProductHeroSlot({
             if (cancelled || gen !== compileGenRef.current) return
             prewarmPaintFramesRef.current = 0
             invalidate()
-            notifyGpuCompiled()
+            notifyGpuCompiledPersisted()
             releaseBudget?.()
             releaseBudget = null
           },
@@ -162,20 +168,32 @@ export function LabProductHeroSlot({
       cancelBudget?.()
       cancelChunk?.()
     }
-  }, [prewarm, visible, compound.id, gl, camera, scene, invalidate, notifyGpuCompiled, shaderCompileAsync])
+  }, [
+    prewarm,
+    visible,
+    compound.id,
+    runId,
+    gl,
+    camera,
+    scene,
+    invalidate,
+    notifyGpuCompiledLocal,
+    notifyGpuCompiledPersisted,
+    shaderCompileAsync,
+  ])
 
   // Синтез: видимый продукт — приоритетный compile сразу (без idle-задержки).
   useEffect(() => {
     if (!visible || prewarm) return
     if (isProductGpuCompiled(compound.id)) {
-      notifyGpuCompiled()
+      notifyGpuCompiledLocal()
       return
     }
 
     let cancelled = false
     const gen = compileGenRef.current
     const clearGpuWatch = scheduleGpuCompileWatchdog(() => {
-      if (!cancelled && gen === compileGenRef.current) notifyGpuCompiled()
+      if (!cancelled && gen === compileGenRef.current) notifyGpuCompiledLocal()
     })
 
     let cancelChunk: (() => void) | undefined
@@ -199,7 +217,7 @@ export function LabProductHeroSlot({
         invalidate,
         () => {
           if (cancelled || gen !== compileGenRef.current) return
-          notifyGpuCompiled()
+          notifyGpuCompiledPersisted()
           releaseBudget?.()
           releaseBudget = null
         },
@@ -228,24 +246,35 @@ export function LabProductHeroSlot({
       cancelBudget?.()
       cancelChunk?.()
     }
-  }, [visible, prewarm, compound.id, runId, gl, camera, scene, invalidate, notifyGpuCompiled])
+  }, [
+    visible,
+    prewarm,
+    compound.id,
+    runId,
+    gl,
+    camera,
+    scene,
+    invalidate,
+    notifyGpuCompiledLocal,
+    notifyGpuCompiledPersisted,
+  ])
 
-  // Переход prewarm → visible: масштаб без мгновенного paint (ждём useFrame ≥ VISIBLE_PAINT_FRAMES).
+  // Переход prewarm → visible: всегда full-scale (не зависеть от GPU-cache).
   useLayoutEffect(() => {
     if (!visible || prewarm) return
     const g = groupRef.current
     if (!g) return
+    g.scale.set(1, 1, 1)
+    wasPrewarmRef.current = false
     if (gpuCompiledRef.current || isProductGpuCompiled(compound.id)) {
       gpuCompiledRef.current = true
-      g.scale.set(1, 1, 1)
-      invalidate()
-      // Не вызываем onProductVisiblePaint из layout — иначе Bohr гасится до первого кадра молекулы.
     }
+    invalidate()
+    // Не вызываем onProductVisiblePaint из layout — иначе Bohr гасится до первого кадра молекулы.
   }, [visible, prewarm, compound.id, invalidate])
 
-  // Считаем реально отрисованные кадры prewarm / visible, затем «готово».
+  // Считаем реально отрисованные кадры visible → paint. Micro-prewarm НЕ пишет GPU-cache.
   useFrame((state) => {
-    // Продукт на полном масштабе: paint только после нескольких видимых кадров + живой GL.
     if (visible && !prewarm && !visiblePaintSentRef.current) {
       const g = groupRef.current
       if (g) {
@@ -264,25 +293,16 @@ export function LabProductHeroSlot({
         const gpuOk = gpuCompiledRef.current || isProductGpuCompiled(compound.id)
         const paintNeed = resolveVisiblePaintFrames(gpuOk, lowPower)
         if (visiblePaintFramesRef.current >= paintNeed) {
-          // Не гасим Bohr, пока GPU молекулы не готов — иначе тёмный пустой кадр.
-          if (!(gpuCompiledRef.current || isProductGpuCompiled(compound.id))) {
-            return
-          }
           visiblePaintSentRef.current = true
           gpuCompiledRef.current = true
+          markProductGpuCompiled(compound.id)
+          onGpuCompiled?.(compound.id)
           onProductVisiblePaint?.()
         }
       }
-    } else if (!prewarm || visible || gpuCompiledRef.current) {
-      /* idle */
-    } else {
+    } else if (prewarm && !visible && !gpuCompiledRef.current) {
+      // Micro-prewarm: только держим кадр. НЕ markProductGpuCompiled по frame-count.
       invalidate()
-      if (!isProductGpuCompiled(compound.id)) {
-        prewarmPaintFramesRef.current += 1
-        if (prewarmPaintFramesRef.current >= PREWARM_PAINT_FRAMES) {
-          notifyGpuCompiled()
-        }
-      }
     }
   })
 

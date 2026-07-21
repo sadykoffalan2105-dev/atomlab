@@ -48,6 +48,11 @@ import { createReactorFrameBudget } from '../../lab/reactorFrameBudget'
 import { createSynthesisAntiStallGuard } from '../../lab/synthesisAntiStall'
 import { isProductGpuCompiled } from '../../lab/productGpuCompileCache'
 import { resolveInstantSynthFrameBudget } from '../../lab/synthesisStabilityEngine'
+import {
+  canHideBohrForProduct,
+  isInstantProductScreenReady,
+  resolveLab3dFrameRescue,
+} from '../../lab/lab3dVisibilityEngine'
 import { resolveSynthesisProductSlot } from '../../lab/synthesisProductSlot'
 import {
   createProductCrossfadeGuard,
@@ -751,10 +756,8 @@ function SceneContent({
         synthesis.onDone(kind)
         return
       }
-      const productId = synthesis.product?.id
-      const readyNow = () =>
-        productPaintedRef.current ||
-        (productId != null && isProductGpuCompiled(productId))
+      // Только реальный paint — GPU-cache сам по себе = пустой центр + ложный toast.
+      const readyNow = () => isInstantProductScreenReady(productPaintedRef.current)
       if (readyNow()) {
         synthesis.onDone(kind)
         return
@@ -768,6 +771,9 @@ function SceneContent({
           return
         }
         if (frames >= maxWait) {
+          // Force reveal: подняли слот — paint догонит; всё равно завершаем run.
+          setProductRevealReady(true)
+          setForceProductSlot(true)
           synthesis.onDone(kind)
           return
         }
@@ -779,12 +785,8 @@ function SceneContent({
   )
 
   const instantProductReady = useCallback(() => {
-    const productId = synthesis?.product?.id
-    return (
-      productPaintedRef.current ||
-      (productId != null && isProductGpuCompiled(productId))
-    )
-  }, [synthesis?.product?.id])
+    return isInstantProductScreenReady(productPaintedRef.current)
+  }, [])
 
   useEffect(() => {
     if (!gpuPrewarmAllowed || !reactorViewOpen) {
@@ -877,29 +879,27 @@ function SceneContent({
   useLayoutEffect(() => {
     if (coeffEditingActive) return
     if (preSynthesisPreview) return
-    if (!effectiveProductPainted || !productSlotVisibleResolved) return
-    const productId =
-      synthesisSettledProduct?.id ?? synthesis?.product?.id ?? effectivePrewarmProduct?.id ?? null
-    const gpuOk =
-      showSettledHero ||
-      prewarmReadyRef.current ||
-      (productId != null && isProductGpuCompiled(productId))
-    // Синтез: не гасим Bohr, пока молекула реально скомпилирована.
-    if (!gpuOk) return
+    // Жёсткий gate: Bohr гасим только когда молекула full-scale на экране.
+    if (
+      !canHideBohrForProduct({
+        productPainted: effectiveProductPainted,
+        slotVisible: productSlotVisibleResolved,
+        prewarm: productPrewarmResolved,
+        coeffEditing: coeffEditingActive,
+        preSynthesis: preSynthesisPreview,
+      })
+    ) {
+      return
+    }
     const root = previewRootRef.current
     if (!root) return
     root.visible = false
   }, [
     effectiveProductPainted,
     productSlotVisibleResolved,
+    productPrewarmResolved,
     coeffEditingActive,
-    synthActive,
-    synthesisRunActive,
     preSynthesisPreview,
-    showSettledHero,
-    synthesisSettledProduct?.id,
-    synthesis?.product?.id,
-    effectivePrewarmProduct?.id,
   ])
 
   useLayoutEffect(() => {
@@ -1102,8 +1102,9 @@ function SceneContent({
     const firstAtoms = !hadPreviewAtomsRef.current
     hadPreviewAtomsRef.current = true
     if (leftCatalog) stuckRescueDoneRef.current = false
+    // Только первый показ / выход из catalog hero — не дёргать камеру на каждом +/-.
     if (!leftCatalog && !firstAtoms) return
-    if (userOrbitingRef.current) return
+    if (userOrbitingRef.current && !leftCatalog) return
 
     const cam = camera as THREE.PerspectiveCamera
     applyReactorPreviewCamera(cam, orbRef.current, pose)
@@ -1112,7 +1113,7 @@ function SceneContent({
 
     const orb = orbRef.current
     const t = window.setTimeout(() => {
-      if (userOrbitingRef.current) return
+      if (userOrbitingRef.current && !leftCatalog) return
       applyReactorPreviewCamera(cam, orb, pose)
       invalidate()
     }, 32)
@@ -1131,6 +1132,12 @@ function SceneContent({
   useLayoutEffect(() => {
     if (catalogViewMode) stuckRescueDoneRef.current = false
   }, [catalogViewMode])
+
+  /** Смена уравнения / возврат в edit — снова разрешить camera stuck rescue. */
+  useLayoutEffect(() => {
+    if (!reactorViewOpen || catalogViewMode) return
+    stuckRescueDoneRef.current = false
+  }, [previewTermsSig, reactorViewOpen, catalogViewMode])
 
   /** Pointer → сразу отпустить camera lock, чтобы можно было крутить и разглядеть. */
   useEffect(() => {
@@ -1322,10 +1329,7 @@ function SceneContent({
 
     const continuityProductId =
       synthesisSettledProduct?.id ?? synthesis?.product?.id ?? null
-    const continuityGpuOk =
-      showSettledHero ||
-      prewarmReadyRef.current ||
-      (continuityProductId != null && isProductGpuCompiled(continuityProductId))
+    void continuityProductId
     previewContinuityRef.current.tick({
       reactorViewOpen,
       synthLive: synthesisRunActive || synthActive,
@@ -1336,12 +1340,14 @@ function SceneContent({
         (reactorViewOpen && !synthesisRunActive && !synthActive && !showSettledHero),
       previewAtomCount,
       productPrewarm: productPrewarmActive,
+      // Только реальный paint + full-scale slot — НЕ GPU-cache (ложный handoff).
       productPainted:
         effectiveProductPainted &&
+        productSlotVisibleResolved &&
+        !productPrewarmResolved &&
         !coeffEditingActive &&
         !preSynthesisPreview &&
-        (synthesisRunActive || synthActive || showSettledHero) &&
-        continuityGpuOk,
+        (synthesisRunActive || synthActive || showSettledHero),
       previewRootRef,
       invalidate,
     })
@@ -1357,6 +1363,27 @@ function SceneContent({
       previewRootRef.current.visible = true
     }
 
+    // Lab3DVisibilityEngine: rescue пустого центра (оба бага со скринов).
+    const rescue = resolveLab3dFrameRescue({
+      reactorOpen: reactorViewOpen,
+      hasPreviewTerms: effectivePreviewTerms != null && effectivePreviewTerms.length >= 1,
+      coeffEditing: coeffEditingActive,
+      preSynthesis: preSynthesisPreview,
+      synthLive: synthesisRunActive || synthActive,
+      showSettledHero,
+      productPainted: productPaintedRef.current,
+      productSlotVisible: productSlotVisibleResolved,
+      productPrewarm: productPrewarmResolved,
+    })
+    if (rescue.invalidatePaint && productPaintedRef.current) {
+      productPaintedRef.current = false
+      paintedForRunIdRef.current = 0
+      setProductPainted(false)
+    }
+    if (rescue.forceBohrRootVisible && previewRootRef.current) {
+      previewRootRef.current.visible = true
+    }
+
     // На старте синтеза / при edit держим Bohr до paint текущего runId.
     const paintOkForRun = isEffectiveProductPainted({
       productPainted: productPaintedRef.current,
@@ -1365,18 +1392,25 @@ function SceneContent({
       paintedForRunId: paintedForRunIdRef.current,
       showSettledHero,
     })
+    const productScreenOk = canHideBohrForProduct({
+      productPainted: paintOkForRun,
+      slotVisible: productSlotVisibleResolved,
+      prewarm: productPrewarmResolved,
+      coeffEditing: coeffEditingActive,
+      preSynthesis: preSynthesisPreview,
+    })
     const mustShowBohr =
       reactorViewOpen &&
       effectivePreviewTerms != null &&
       effectivePreviewTerms.length >= 1 &&
-      !paintOkForRun &&
-      (!showSettledHero || coeffEditingActive)
+      !productScreenOk &&
+      (!showSettledHero || coeffEditingActive || rescue.keepBohrUntilPaint)
     if (mustShowBohr && previewRootRef.current) {
       previewRootRef.current.visible = true
     } else if (
       reactorViewOpen &&
       (synthesisRunActive || synthActive) &&
-      !paintOkForRun &&
+      !productScreenOk &&
       previewRootRef.current
     ) {
       previewRootRef.current.visible = true

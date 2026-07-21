@@ -187,6 +187,7 @@ export function resolveSynthesisContinuity(input: SynthesisContinuityInput): Syn
   /**
    * Продукт владеет экраном только после реального paint.
    * До paint Bohr остаётся — нет кадра без атомов и без молекулы.
+   * (productSlotVisible=true ⇒ не micro-prewarm — см. productPrewarm ниже.)
    */
   const productOwnsScreen =
     !userEditing &&
