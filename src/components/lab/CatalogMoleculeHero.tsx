@@ -26,7 +26,10 @@ export function SubstanceAuraBubble({
   const emissive = useMemo(() => new THREE.Color(accentColor).multiplyScalar(0.45), [accentColor])
   const gShell = useRef<THREE.Group>(null)
   const gRings = useRef<THREE.Group>(null)
+  const rootRef = useRef<THREE.Group>(null)
   const phase = hash32(`${compoundId}_aura`) * 0.02
+  /** 0 = full transmission, 1 = far/lite (без transmission — анти лаг при отъезде камеры). */
+  const lodRef = useRef(0)
 
   useFrame((s) => {
     const t = s.clock.elapsedTime + phase
@@ -38,16 +41,30 @@ export function SubstanceAuraBubble({
       gRings.current.rotation.y = t * 0.11
       gRings.current.rotation.z = Math.sin(t * 0.09) * 0.06
     }
+    const root = rootRef.current
+    if (!root) return
+    const dist = s.camera.position.distanceTo(root.getWorldPosition(_auraWorldPos))
+    // Дальше ~9 — упростить; ближе ~6 — full. Иначе fill-rate transmission лагает.
+    const next = dist > 9.5 ? 1 : dist < 6.5 ? 0 : lodRef.current
+    if (next !== lodRef.current) {
+      lodRef.current = next
+      root.userData.auraLod = next
+      // Переключить visibility слоёв без remount материалов каждый кадр.
+      const full = root.getObjectByName('aura-full')
+      const lite = root.getObjectByName('aura-lite')
+      if (full) full.visible = next === 0
+      if (lite) lite.visible = next === 1
+    }
   })
 
   const shellHex = `#${col.getHexString()}`
   const emHex = `#${emissive.getHexString()}`
 
   return (
-    <group position={[0, 0.02, 0]} renderOrder={-3}>
-      <group ref={gShell}>
+    <group ref={rootRef} position={[0, 0.02, 0]} renderOrder={-3}>
+      <group name="aura-full" ref={gShell}>
         <mesh scale={1.24}>
-          <sphereGeometry args={[1, 40, 32]} />
+          <sphereGeometry args={[1, 32, 24]} />
           <meshPhysicalMaterial
             color={shellHex}
             emissive={emHex}
@@ -63,7 +80,7 @@ export function SubstanceAuraBubble({
           />
         </mesh>
         <mesh scale={1.06}>
-          <sphereGeometry args={[1, 32, 24]} />
+          <sphereGeometry args={[1, 24, 18]} />
           <meshPhysicalMaterial
             color={shellHex}
             emissive={emHex}
@@ -79,9 +96,24 @@ export function SubstanceAuraBubble({
           />
         </mesh>
       </group>
+      {/* Far LOD: без transmission — дешёвый additive shell. */}
+      <group name="aura-lite" visible={false}>
+        <mesh scale={1.2}>
+          <sphereGeometry args={[1, 16, 12]} />
+          <meshBasicMaterial
+            color={shellHex}
+            transparent
+            opacity={0.12}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+      </group>
       <group ref={gRings}>
         <mesh rotation={[Math.PI / 2.35, 0.4, 0.2]}>
-          <ringGeometry args={[0.88, 1.02, 64]} />
+          <ringGeometry args={[0.88, 1.02, 48]} />
           <meshBasicMaterial
             color={shellHex}
             transparent
@@ -92,7 +124,7 @@ export function SubstanceAuraBubble({
           />
         </mesh>
         <mesh rotation={[0.35, Math.PI / 2.1, 0.5]}>
-          <ringGeometry args={[0.9, 1.04, 64]} />
+          <ringGeometry args={[0.9, 1.04, 48]} />
           <meshBasicMaterial
             color={shellHex}
             transparent
@@ -106,6 +138,9 @@ export function SubstanceAuraBubble({
     </group>
   )
 }
+
+const _auraWorldPos = new THREE.Vector3()
+
 
 /** Звёздное поле в духе лаборатории: тёмный фон + мелкие точки, с лёгким оттенком акцента вещества. */
 export function CosmicStarfield({

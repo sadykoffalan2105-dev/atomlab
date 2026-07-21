@@ -9,6 +9,7 @@ import { AtomStructureModel } from './AtomStructureModel'
 import { MoleculeMesh } from './MoleculeMesh'
 import { SynthesisOnLabScene } from './SynthesisOnLabScene'
 import { InstantLabSynthesis } from './InstantLabSynthesis'
+import { SynthesisElementsCollapseFx } from './SynthesisElementsCollapseFx'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
 import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { assertNoProductHeroBeforeRun } from '../../lab/atomGuard/labPreviewGuard'
@@ -360,6 +361,9 @@ function SceneContent({
   const [forceProductSlot, setForceProductSlot] = useState(false)
   const [productRevealReady, setProductRevealReady] = useState(false)
   const [productPainted, setProductPainted] = useState(false)
+  /** Ревизия после завершения collapse FX (ref + tick → без кадра «Instant без анимации»). */
+  const collapseDoneRunIdRef = useRef(0)
+  const [collapseRev, setCollapseRev] = useState(0)
   const productPaintedRef = useRef(false)
   /** runId, для которого productPainted валиден — иначе stale paint гасит Bohr на старте нового синтеза. */
   const paintedForRunIdRef = useRef(0)
@@ -492,17 +496,59 @@ function SceneContent({
     [synthForceLite],
   )
   const instantSynthesis = isInstantSynthesisProfile(synthTimingProfile)
+  const currentSynthRunIdForCollapse = synthesis?.runId ?? 0
+  /**
+   * Instant: FX с первого кадра нового runId (без waiting state=false).
+   * collapseDoneRunIdRef === runId только после onComplete.
+   */
+  const elementsCollapsePlaying =
+    synthActive &&
+    instantSynthesis &&
+    currentSynthRunIdForCollapse > 0 &&
+    collapseDoneRunIdRef.current !== currentSynthRunIdForCollapse
+  void collapseRev
+
+  useLayoutEffect(() => {
+    if (!synthActive) {
+      collapseDoneRunIdRef.current = 0
+      return
+    }
+    if (!instantSynthesis || currentSynthRunIdForCollapse <= 0) return
+    if (collapseDoneRunIdRef.current === currentSynthRunIdForCollapse) return
+    synthesis?.onPhaseChange?.('converge', 0.05)
+  }, [synthActive, instantSynthesis, currentSynthRunIdForCollapse, synthesis])
+
+  const handleElementsCollapseComplete = useCallback(() => {
+    if (currentSynthRunIdForCollapse > 0) {
+      collapseDoneRunIdRef.current = currentSynthRunIdForCollapse
+    }
+    setCollapseRev((n) => n + 1)
+    setForceProductSlot(true)
+    setProductRevealReady(true)
+    setEarlyProductReveal(true)
+    setAllowIdleProductPrewarm(true)
+    synthesis?.onPhaseChange?.('mergeFlash', 0.85)
+    invalidate()
+  }, [currentSynthRunIdForCollapse, synthesis, invalidate])
   const instantSynthBudget = useMemo(() => {
     const productId = synthesis?.product?.id
     const gpuCompiled = productId != null && isProductGpuCompiled(productId)
     return resolveInstantSynthFrameBudget({ gpuCompiled, deviceTier })
   }, [synthesis?.product?.id, deviceTier])
 
-  /** При запуске синтеза — снять GPU-ban и ждать реального GPU, не форсить reveal. */
+  /** При запуске синтеза — GPU-prep. Instant: молекулу НЕ форсим до конца collapse FX. */
   useLayoutEffect(() => {
     if (!synthActive || !synthesis?.runId) return
     const productId = synthesis.product?.id
     if (productId == null) return
+    if (instantSynthesis && elementsCollapsePlaying) {
+      // Во время WOW-коллапса не монтируем продукт — иначе white hitch + FX не видно.
+      setAllowIdleProductPrewarm(false)
+      setForceProductSlot(false)
+      setEarlyProductReveal(false)
+      setProductRevealReady(false)
+      return
+    }
     setAllowIdleProductPrewarm(true)
     setForceProductSlot(true)
     setEarlyProductReveal(true)
@@ -512,10 +558,15 @@ function SceneContent({
       setPrewarmReady(true)
       setProductRevealReady(true)
     } else {
-      // Cold path: micro-prewarm first — полный слот только после compile.
       setProductRevealReady(false)
     }
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id])
+  }, [
+    synthActive,
+    synthesis?.runId,
+    synthesis?.product?.id,
+    instantSynthesis,
+    elementsCollapsePlaying,
+  ])
 
   useLayoutEffect(() => {
     if (reactorViewOpen) return
@@ -676,9 +727,11 @@ function SceneContent({
   })
 
   const previewMotionLocked = false
-  /** mergeFlash не flight: pin слотов до paint, иначе атомы уезжают в пустоту. */
+  /** mergeFlash не flight: pin слотов до paint, иначе атомы уезжают в пустоту.
+   *  Instant-коллапс тоже external control — иначе pinCoeff срывает lerp. */
   const previewFlightActive =
-    synthLive && (synthesisPhase === 'converge' || synthesisPhase === 'flying')
+    (synthLive && (synthesisPhase === 'converge' || synthesisPhase === 'flying')) ||
+    elementsCollapsePlaying
   const previewPoseLocked = synthesisRunActive && !synthActive
   if (previewAtomCount > 8) editLiteLatchRef.current = true
   else if (
@@ -711,8 +764,13 @@ function SceneContent({
     preSynthesisPreview || continuity.reactorPreviewVisible || coeffEditingActive
   const productSlotVisible = continuity.productSlotVisible
   const productPrewarmActive = continuity.productPrewarm
-  const productSlotVisibleResolved = productSlotView.visible
-  const productPrewarmResolved = productSlotView.prewarm
+  /** Пока играет коллапс — молекулу вообще не монтируем (анти white-screen). */
+  const productSlotVisibleResolved = elementsCollapsePlaying
+    ? false
+    : productSlotView.visible
+  const productPrewarmResolved = elementsCollapsePlaying
+    ? false
+    : productSlotView.prewarm
   const synthHoldPreview =
     synthLive && !effectiveProductPainted && effectivePreviewTerms != null
 
@@ -1348,6 +1406,7 @@ function SceneContent({
           product: productSlotVisibleResolved && !productPrewarmResolved,
           mergeFx: synthesisPhase === 'mergeFlash',
           convergeFx:
+            elementsCollapsePlaying ||
             synthesisPhase === 'converge' ||
             synthesisPhase === 'ignite' ||
             synthesisPhase === 'flying',
@@ -1420,10 +1479,12 @@ function SceneContent({
     }
 
     // Каждый кадр пока продукт НЕ владеет экраном: полный scale атомов.
+    // Во время elements-collapse pin запрещён — анимация сама двигает слоты.
     const productScreenOk = productScreenOkEarly
     if (
       reactorViewOpen &&
       !productScreenOk &&
+      !elementsCollapsePlaying &&
       previewAtomCount > 0 &&
       (coeffEditingActive ||
         preSynthesisPreview ||
@@ -1473,15 +1534,17 @@ function SceneContent({
 
     // Порог emptyCenterRescueFrames: дополнительный nudge если центр пуст.
     // Не restore Bohr, если молекула уже full-scale на экране.
-    const centerOk = isCenterCovered({
-      bohrVisible:
-        !productScreenOk &&
-        (reactorPreviewVisible || rescue.forceBohrRootVisible) &&
-        (previewRootRef.current?.visible !== false),
-      bohrMounted: reactorPreviewMounted,
-      productSlotVisible: productSlotVisibleResolved,
-      productPrewarm: productPrewarmResolved,
-    })
+    const centerOk =
+      elementsCollapsePlaying ||
+      isCenterCovered({
+        bohrVisible:
+          !productScreenOk &&
+          (reactorPreviewVisible || rescue.forceBohrRootVisible) &&
+          (previewRootRef.current?.visible !== false),
+        bohrMounted: reactorPreviewMounted,
+        productSlotVisible: productSlotVisibleResolved,
+        productPrewarm: productPrewarmResolved,
+      })
     if (emptyCenterCounterRef.current.tick(centerOk)) {
       // НЕ сбрасываем stuckRescueDone каждый empty-кадр — это был thrash камеры → hitch.
       if (!productScreenOk && rescue.keepBohrUntilPaint && previewRootRef.current) {
@@ -1508,14 +1571,16 @@ function SceneContent({
         )
         stuckRescueDoneRef.current = true
         if (previewRootRef.current) previewRootRef.current.visible = true
-        pinCoeffEditAtomsHard({
-          slotCount: previewAtomCount,
-          layoutScale: reactorPreviewAtomScale(previewAtomCount),
-          root: previewRootRef.current,
-          atomGroupRefs: previewAtomGroupRefs,
-          atomScaleGroupRefs: previewAtomScaleGroupRefs,
-          killScaleTweens: (s) => gsap.killTweensOf(s),
-        })
+        if (!elementsCollapsePlaying) {
+          pinCoeffEditAtomsHard({
+            slotCount: previewAtomCount,
+            layoutScale: reactorPreviewAtomScale(previewAtomCount),
+            root: previewRootRef.current,
+            atomGroupRefs: previewAtomGroupRefs,
+            atomScaleGroupRefs: previewAtomScaleGroupRefs,
+            killScaleTweens: (s) => gsap.killTweensOf(s),
+          })
+        }
       }
       invalidate()
     }
@@ -1790,7 +1855,20 @@ function SceneContent({
               timingProfile={synthTimingProfile}
             />
           ) : null}
-          {synthActive && synthesis && instantSynthesis ? (
+          {synthActive && synthesis && instantSynthesis && elementsCollapsePlaying ? (
+            <SynthesisElementsCollapseFx
+              atomGroupRefs={previewAtomGroupRefs}
+              atomCount={previewAtomCount}
+              lowPower={
+                lowPowerProfile.forceLiteReactor ||
+                lowPowerProfile.isMobileSoc ||
+                synthForceLite
+              }
+              accentHex={synthesis.product?.accentColor}
+              onComplete={handleElementsCollapseComplete}
+            />
+          ) : null}
+          {synthActive && synthesis && instantSynthesis && !elementsCollapsePlaying ? (
             <InstantLabSynthesis
               runId={synthesis.runId}
               onDone={handleInstantSynthDone}
@@ -1824,7 +1902,7 @@ function SceneContent({
 
       {/* Resize sync всегда: balance-панель меняет высоту реактора → иначе 0×0 / белый canvas. */}
       <CatalogCanvasResizeSync touchDpr={false} />
-      {productForSlot ? (
+      {productForSlot && !elementsCollapsePlaying ? (
         <LabProductHeroSlot
           compound={productForSlot}
           visible={productSlotVisibleResolved}

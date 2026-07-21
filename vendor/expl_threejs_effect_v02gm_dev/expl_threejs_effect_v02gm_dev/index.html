@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Particle Effect</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111; color: white; font-family: sans-serif; }
+        #ui { position: absolute; top: 10px; left: 10px; z-index: 10; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <button id="startBtn">Запустить эффект связи атомов</button>
+        <div id="status">Статус: Ожидание...</div>
+    </div>
+
+    <!-- Загружаем Three.js из CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script type="module">
+        import { start_elements_collapse_animation } from './particle_effect_animation.js';
+
+        // 1. Настройка базовой сцены
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 10;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. Создаем тестовые "атомы" (сетки сфер)
+        const myAtoms = [];
+        const geometry = new THREE.SphereGeometry(0.8, 16, 16);
+        
+        const colors = [0xff0000, 0x00ff00, 0x0000ff];
+        const positions = [
+            { x: -4, y: 3, z: 0 },
+            { x: 4, y: 3, z: 1 },
+            { x: 0, y: -4, z: -1 }
+        ];
+
+        for(let i = 0; i < 3; i++) {
+            const mat = new THREE.MeshBasicMaterial({ color: colors[i], wireframe: true });
+            const mesh = new THREE.Mesh(geometry, mat);
+            mesh.position.set(positions[i].x, positions[i].y, positions[i].z);
+            scene.add(mesh);
+            myAtoms.push(mesh);
+        }
+
+        function baseRender() {
+            renderer.render(scene, camera);
+            requestAnimationFrame(baseRender);
+        }
+        baseRender();
+
+        // 3. Вызов эффекта по кнопке
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            document.getElementById('status').innerText = 'Статус: Эффект выполняется...';
+            document.getElementById('startBtn').disabled = true;
+
+            // ===== ВСЕ НАСТРОЙКИ ЭФФЕКТА ЗДЕСЬ =====
+            await start_elements_collapse_animation(
+                myAtoms, 
+                scene, 
+                camera, 
+                renderer, 
+                {
+                    // --- Контроль анимации атомов (стягивание) ---
+                    atom_collapse_time: 1.2, // Секунды, за которые атомы долетают до центра
+                    atom_delay_max: 0.3,     // Максимальная задержка старта атомов (чтобы летели не совсем одновременно)
+                    
+                    // --- Контроль взрыва и частиц ---
+                    burst_time: 1.5,         // Секунды: время расширения центральной сферы и активного выброса искр
+                    hold_after_grow: 0.5,    // Секунды: время "горения" на максимальном размере перед угасанием
+                    fade_out: 1.0,           // Секунды: плавное исчезновение эффекта
+                    
+                    // --- Размеры и густота ---
+                    end_scale: 3,          // Финальный масштаб центрального свечения (ядра)
+                    particles_per_sec: 350,  // Количество вылетающих искр в секунду
+                    max_particles: 2000,     // Лимит искр (важно для оптимизации)
+                    
+                    // --- Визуал искр ---
+                    particle_base_size: 60.0,// Базовый размер частиц (их толщина)
+                    particle_speed: 12.0,     // Скорость вылета из центра
+                    particle_stretch: 3.0,   // Эффект смазывания (насколько сильно частицы вытягиваются в длину)
+                    
+                    // Палитра цветов искр (выбираются случайно)
+                    particle_colors: [
+                        0xffffff, // Белый
+                        0xaaddff, // Голубой
+                        0x4488ff, // Синий
+                        0xffaa00, // Золотистый/Оранжевый
+                        0xffffff  // Снова белый для повышения шанса
+                    ]
+                }
+            );
+
+            document.getElementById('status').innerText = 'Статус: Эффект завершен!';
+            myAtoms.forEach(atom => scene.remove(atom)); // Удаляем оригинальные атомы, связь создана
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

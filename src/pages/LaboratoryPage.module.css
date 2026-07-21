@@ -135,9 +135,11 @@
 .canvasWrap canvas {
   display: block;
   /* Тёмный фон = clearColor: при hitch/context-loss нет белого/красного вспышка. */
-  background-color: #0a0c18;
+  background-color: #0a0c18 !important;
+  background-image: none !important;
   width: 100% !important;
   height: 100% !important;
+  opacity: 1 !important;
 }
 
 /* Оверлеи синтеза отключены — давали сплошной чёрный экран поверх WebGL */
