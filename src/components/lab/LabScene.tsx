@@ -55,6 +55,7 @@ import {
   isCenterCovered,
   createEmptyCenterFrameCounter,
 } from '../../lab/lab3dVisibilityEngine'
+import { pinCoeffEditAtomsHard } from '../../lab/coeffEditAtomPin'
 import { resolveSynthesisProductSlot } from '../../lab/synthesisProductSlot'
 import {
   createProductCrossfadeGuard,
@@ -854,9 +855,9 @@ function SceneContent({
     prevCoeffEditingRef.current = coeffEditingActive
     const rising = coeffEditingActive && !wasEditing
     const falling = !coeffEditingActive && wasEditing
-    if (!rising && !falling) return
+    // Любой кадр edit ИЛИ rising/falling — восстановить Bohr (не только edge).
+    if (!coeffEditingActive && !rising && !falling) return
 
-    // Rising: убрать productPainted. Falling: восстановить Bohr после GPU/hitch на edit-end.
     if (rising) {
       productPaintedRef.current = false
       paintedForRunIdRef.current = 0
@@ -872,23 +873,49 @@ function SceneContent({
     const n = Math.max(0, previewAtomCountRef.current)
     if (n <= 0) return
     const scaleFloor = reactorPreviewAtomScale(n)
+    // Убить GSAP collapse со синтеза — иначе атомы «пропали» при +/-.
+    for (let i = 0; i < Math.max(n, previewAtomScaleGroupRefs.current.length); i++) {
+      const sc = previewAtomScaleGroupRefs.current[i]
+      if (sc) gsap.killTweensOf(sc.scale)
+      const g = previewAtomGroupRefs.current[i]
+      if (g) gsap.killTweensOf(g)
+    }
+    pinCoeffEditAtomsHard({
+      slotCount: n,
+      layoutScale: scaleFloor,
+      root,
+      atomGroupRefs: previewAtomGroupRefs,
+      atomScaleGroupRefs: previewAtomScaleGroupRefs,
+    })
+    if (falling || rising) invalidate()
+  }, [coeffEditingActive, synthActive, synthesisRunActive, invalidate, previewTermsSig])
+
+  /** Смена коэффициентов / terms — сразу pin, не ждать rising edge editing. */
+  useLayoutEffect(() => {
+    if (synthActive || synthesisRunActive) return
+    if (!reactorViewOpen || !preSynthesisPreview) return
+    const n = Math.max(0, previewAtomCountRef.current)
+    if (n <= 0) return
+    const root = previewRootRef.current
+    if (root) root.visible = true
     for (let i = 0; i < n; i++) {
       const sc = previewAtomScaleGroupRefs.current[i]
-      if (sc) {
-        gsap.killTweensOf(sc.scale)
-        sc.visible = true
-        if (falling || sc.scale.x < scaleFloor * 0.45) {
-          sc.scale.set(scaleFloor, scaleFloor, scaleFloor)
-        }
-      }
-      const g = previewAtomGroupRefs.current[i]
-      if (g) {
-        gsap.killTweensOf(g)
-        g.visible = true
-      }
+      if (sc) gsap.killTweensOf(sc.scale)
     }
-    if (falling) invalidate()
-  }, [coeffEditingActive, synthActive, synthesisRunActive, invalidate])
+    pinCoeffEditAtomsHard({
+      slotCount: n,
+      layoutScale: reactorPreviewAtomScale(n),
+      root,
+      atomGroupRefs: previewAtomGroupRefs,
+      atomScaleGroupRefs: previewAtomScaleGroupRefs,
+    })
+  }, [
+    previewTermsSig,
+    reactorViewOpen,
+    preSynthesisPreview,
+    synthActive,
+    synthesisRunActive,
+  ])
 
   const restorePreviewRootVisibility = useCallback(() => {
     const root = previewRootRef.current
@@ -1377,6 +1404,23 @@ function SceneContent({
       previewRootRef.current
     ) {
       previewRootRef.current.visible = true
+    }
+
+    // Каждый кадр при +/- / pre-synth: полный scale атомов (collapse синтеза не переживает).
+    if (
+      reactorViewOpen &&
+      !synthesisRunActive &&
+      !synthActive &&
+      (coeffEditingActive || preSynthesisPreview) &&
+      previewAtomCount > 0
+    ) {
+      pinCoeffEditAtomsHard({
+        slotCount: previewAtomCount,
+        layoutScale: reactorPreviewAtomScale(previewAtomCount),
+        root: previewRootRef.current,
+        atomGroupRefs: previewAtomGroupRefs,
+        atomScaleGroupRefs: previewAtomScaleGroupRefs,
+      })
     }
 
     // Lab3DVisibilityEngine: rescue пустого центра (оба бага со скринов).

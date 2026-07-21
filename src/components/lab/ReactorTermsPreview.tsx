@@ -38,6 +38,10 @@ import {
   resolvePreviewAtomInvariants,
   resolveStableElectronFrameSkip,
 } from '../../lab/synthesisStabilityEngine'
+import {
+  pinCoeffEditAtomsHard,
+  shouldHardPinCoeffEditAtoms,
+} from '../../lab/coeffEditAtomPin'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
 
@@ -450,44 +454,45 @@ export function ReactorTermsPreview({
     const root = groupRef.current
     /**
      * КРИТИЧНО: во время pre-synth / coeff-edit НИКОГДА не массово гасим слоты.
-     * Старый путь `!atomsOnScreen → visible=false` давал пустой starfield при
-     * кратком мигании флага на +/-.
+     * Hard-pin каждый кадр: visible + полный scale (collapse 0.06 больше не «съедает» атомы).
      */
     const holdAtoms = previewOnlyMode || coeffEditing || synthHoldPreview
-    // Пока уравнение активно — корень не гасим (даже если флаг atomsOnScreen мигнул).
+    const hardPin = shouldHardPinCoeffEditAtoms({
+      coeffEditing,
+      previewOnlyMode,
+      synthHoldPreview,
+      hasActiveTerms: frame.hasActiveTerms || stickySlotCount > 0,
+      synthLive: false,
+    })
+
     if (!atomsOnScreen && !holdAtoms && !frame.hasActiveTerms) {
-      // Только корень: массовый visible=false по слотам залипал в THREE
-      // и переживал возврат React visible=true → пустой starfield после coeff.
       if (root) root.visible = false
       return
     }
-    if (holdAtoms || frame.hasActiveTerms) {
+    if (holdAtoms || frame.hasActiveTerms || hardPin) {
       if (root && !root.visible) root.visible = true
     }
 
-    // Pin каждый кадр через движок-инварианты — нет thrash 1/2.
-    if (holdAtoms && !externalAtomControl && invariants.pinEveryFrame) {
-      if (root) root.visible = true
-      const count = Math.max(stickySlotCount, n, shellAtoms.length, 1)
-      for (let i = 0; i < count; i++) {
-        const posG = atomGroupRefs.current[i]
-        const scG = atomScaleGroupRefs.current[i]
-        if (posG) posG.visible = true
-        if (scG) {
-          scG.visible = true
-          if (scG.scale.x < scale * 0.4) scG.scale.set(scale, scale, scale)
-        }
-      }
+    // Жёсткий pin каждый кадр — без порога scale, убивает «пропали при +/-».
+    if ((holdAtoms || hardPin) && !externalAtomControl) {
+      pinCoeffEditAtomsHard({
+        slotCount: Math.max(stickySlotCount, n, shellAtoms.length, frame.hasActiveTerms ? 1 : 0),
+        layoutScale: scale,
+        root,
+        atomGroupRefs,
+        atomScaleGroupRefs,
+        positions: renderAtoms.length > 0 ? renderAtoms : shellAtoms,
+      })
     }
 
     guardFrameRef.current = tickSynthesisPreviewFrame({
       policy: {
         ...tickPolicy,
-        pinEveryFrame: tickPolicy.pinEveryFrame || holdAtoms,
+        pinEveryFrame: tickPolicy.pinEveryFrame || holdAtoms || hardPin,
         visibilityGuardEvery: Math.max(tickPolicy.visibilityGuardEvery, holdAtoms ? 6 : 2),
       },
       slotCount: stickySlotCount,
-      groupVisible: atomsOnScreen || holdAtoms,
+      groupVisible: atomsOnScreen || holdAtoms || hardPin,
       flightActive: externalAtomControl,
       layoutPending,
       layoutScale: scale,
@@ -534,13 +539,21 @@ export function ReactorTermsPreview({
     if (previewOnlyMode || coeffEditing) {
       g.visible = true
       if (!externalAtomControl && stickySlotCount > 0) {
-        // Только force-show: позиции уже пишет sync в эффекте выше (без double-walk).
         shieldForceShowActiveSlots({
           slotCount: stickySlotCount,
           root: g,
           atomGroupRefs,
           atomScaleGroupRefs,
           layoutScale: scale,
+          forceFullScale: true,
+        })
+        pinCoeffEditAtomsHard({
+          slotCount: stickySlotCount,
+          layoutScale: scale,
+          root: g,
+          atomGroupRefs,
+          atomScaleGroupRefs,
+          positions: renderAtoms.length > 0 ? renderAtoms : shellAtoms,
         })
       }
       return

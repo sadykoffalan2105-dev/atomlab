@@ -38,8 +38,11 @@ export function shieldForceShowActiveSlots(opts: {
   atomGroupRefs: MutableRefObject<(THREE.Group | null)[]>
   atomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>
   layoutScale: number
+  /** Во время +/- всегда полный scale (без порога 0.45). */
+  forceFullScale?: boolean
 }): void {
-  const { slotCount, root, atomGroupRefs, atomScaleGroupRefs, layoutScale } = opts
+  const { slotCount, root, atomGroupRefs, atomScaleGroupRefs, layoutScale, forceFullScale } =
+    opts
   if (slotCount <= 0) return
   if (root) root.visible = true
   const floor = Math.max(PREVIEW_MIN_ATOM_SCALE, layoutScale)
@@ -51,7 +54,7 @@ export function shieldForceShowActiveSlots(opts: {
     }
     if (sc) {
       sc.visible = true
-      if (sc.scale.x < floor * 0.45) {
+      if (forceFullScale || sc.scale.x < floor * 0.98) {
         sc.scale.set(floor, floor, floor)
       }
     }

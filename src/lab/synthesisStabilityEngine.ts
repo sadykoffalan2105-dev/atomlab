@@ -130,11 +130,16 @@ export function resolvePreviewAtomInvariants(opts: {
   const pinEveryFrame =
     holdPreview && (hasActiveTerms || slotCount > 0 || shellCount > 0 || expectedAtomCount > 0)
 
+  // При любом активном уравнении в hold — sticky не ниже ожидаемого (нет «пропали слоты»).
+  const sticky = holdPreview
+    ? Math.max(stickySlotCount, expectedAtomCount, hasActiveTerms ? 1 : 0)
+    : stickySlotCount
+
   return {
     holdPreview,
     atomsOnScreen,
-    pinEveryFrame,
-    stickySlotCount,
+    pinEveryFrame: pinEveryFrame || (holdPreview && hasActiveTerms),
+    stickySlotCount: sticky,
     keepMountPool: hasActiveTerms || expectedAtomCount > 0,
   }
 }
