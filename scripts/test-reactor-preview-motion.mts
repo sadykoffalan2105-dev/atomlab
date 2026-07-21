@@ -35,10 +35,19 @@ import {
     false,
     'home pose → no rescue',
   )
+  // Лёгкий zoom от home — не thrash.
   assert.equal(
-    isCameraFarFromPreviewPose({ x: 0, y: 0.12, z: 3.6 }, pose),
+    needsReactorPreviewCameraRescue({
+      position: { x: pose.position[0] + 0.3, y: pose.position[1], z: pose.position[2] - 0.4 },
+      pose,
+    }),
+    false,
+    'small orbit offset → no rescue',
+  )
+  assert.equal(
+    isCameraFarFromPreviewPose({ x: 0, y: 0.12, z: 3.6 }, pose, 3.0),
     true,
-    'catalog far from few with 2.75 threshold',
+    'catalog far from few at threshold 3.0',
   )
 }
 

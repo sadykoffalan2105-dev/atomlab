@@ -124,7 +124,7 @@ export function isCameraFarFromPreviewPose(
 
 /**
  * Нужен rescue ракурса превью (чёрный центр при живом уравнении).
- * Закрывает мёртвую зону: catalog hero не в шаре 0.35 и не дальше 3.5 от few.
+ * Узкий критерий — широкий шар/порог давали thrash камеры → hitch / белый кадр.
  */
 export function needsReactorPreviewCameraRescue(opts: {
   position: { x: number; y: number; z: number }
@@ -132,10 +132,8 @@ export function needsReactorPreviewCameraRescue(opts: {
   catalogPosition?: readonly [number, number, number]
 }): boolean {
   const catalog = opts.catalogPosition ?? ([0, 0.12, 3.6] as const)
-  // Шире catalog-шар: OrbitControls часто оставляет камеру чуть рядом с 3.6.
-  if (isCameraStuckNearCatalogHero(opts.position, catalog, 1.15)) return true
-  if (isCameraFarFromPreviewPose(opts.position, opts.pose)) return true
-  // Catalog clamp z=3.6 при home z≈6.3…7.3 — атомы «за кадром».
-  if (opts.position.z < opts.pose.position[2] - 1.6) return true
+  if (isCameraStuckNearCatalogHero(opts.position, catalog, 0.55)) return true
+  // Catalog→few ≈3.16: порог 3.05 ловит, лёгкий zoom у home — нет.
+  if (isCameraFarFromPreviewPose(opts.position, opts.pose, 3.05)) return true
   return false
 }

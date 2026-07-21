@@ -19,24 +19,42 @@ export const LAB3D_VIS = {
   instantHardMaxFrames: 90,
   /** Абсолютный потолок RAF без paint (~4с) — только мёртвый GL. */
   instantAbsoluteMaxFrames: 240,
-  /** Кадров подряд без покрытия → rescue. */
-  emptyCenterRescueFrames: 2,
+  /** Кадров подряд без покрытия → один rescue за эпизод. */
+  emptyCenterRescueFrames: 3,
+  /** После N empty-rescues в эпизоде — стоп (анти thrash / white hitch). */
+  emptyCenterMaxRescuesPerEpisode: 2,
 } as const
 
-/** Счётчик пустых кадров для порога emptyCenterRescueFrames. */
+/** Счётчик пустых кадров: rising-edge rescue, не каждый кадр пока пусто. */
 export function createEmptyCenterFrameCounter() {
   let empty = 0
+  let rescuesThisEpisode = 0
+  let firedThisStreak = false
   return {
     reset() {
       empty = 0
+      rescuesThisEpisode = 0
+      firedThisStreak = false
+    },
+    /** Сброс при смене уравнения / входе в pre-synth. */
+    resetEpisode() {
+      empty = 0
+      rescuesThisEpisode = 0
+      firedThisStreak = false
     },
     tick(covered: boolean): boolean {
       if (covered) {
         empty = 0
+        firedThisStreak = false
         return false
       }
       empty += 1
-      return empty >= LAB3D_VIS.emptyCenterRescueFrames
+      if (empty < LAB3D_VIS.emptyCenterRescueFrames) return false
+      if (firedThisStreak) return false
+      if (rescuesThisEpisode >= LAB3D_VIS.emptyCenterMaxRescuesPerEpisode) return false
+      firedThisStreak = true
+      rescuesThisEpisode += 1
+      return true
     },
   }
 }

@@ -14,7 +14,7 @@ export const LabSynthesisCosmicBackdrop = memo(function LabSynthesisCosmicBackdr
 }: {
   lite?: boolean
 }) {
-  const count = lite ? 280 : 900
+  const count = lite ? 140 : 480
   return (
     <>
       <color attach="background" args={[LAB_COSMIC_BG]} />

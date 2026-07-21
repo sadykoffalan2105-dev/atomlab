@@ -166,9 +166,15 @@ import type { CompoundDef } from '../src/types/chemistry.ts'
   )
   const counter = createEmptyCenterFrameCounter()
   assert.equal(counter.tick(false), false)
-  assert.equal(counter.tick(false), true, 'empty after 2 frames')
+  assert.equal(counter.tick(false), false)
+  assert.equal(counter.tick(false), true, 'empty after 3 frames — one rescue')
+  assert.equal(counter.tick(false), false, 'same streak — no thrash')
+  assert.equal(counter.tick(false), false)
   counter.reset()
   assert.equal(counter.tick(true), false)
+  assert.equal(counter.tick(false), false)
+  assert.equal(counter.tick(false), false)
+  assert.equal(counter.tick(false), true, 'new streak after covered')
 }
 
 console.log('test-lab3d-visibility: all passed')

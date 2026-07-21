@@ -1176,10 +1176,10 @@ function SceneContent({
     if (catalogViewMode) stuckRescueDoneRef.current = false
   }, [catalogViewMode])
 
-  /** Смена уравнения / возврат в edit — снова разрешить camera stuck rescue. */
   useLayoutEffect(() => {
     if (!reactorViewOpen || catalogViewMode) return
     stuckRescueDoneRef.current = false
+    emptyCenterCounterRef.current.resetEpisode()
   }, [previewTermsSig, reactorViewOpen, catalogViewMode])
 
   /** Pointer → сразу отпустить camera lock, чтобы можно было крутить и разглядеть. */
@@ -1483,8 +1483,7 @@ function SceneContent({
       productPrewarm: productPrewarmResolved,
     })
     if (emptyCenterCounterRef.current.tick(centerOk)) {
-      // Разрешить повторный camera rescue — one-shot мог сработать слишком рано.
-      stuckRescueDoneRef.current = false
+      // НЕ сбрасываем stuckRescueDone каждый empty-кадр — это был thrash камеры → hitch.
       if (!productScreenOk && rescue.keepBohrUntilPaint && previewRootRef.current) {
         previewRootRef.current.visible = true
       }
@@ -1494,11 +1493,12 @@ function SceneContent({
         setForceProductSlot(true)
         setProductRevealReady(true)
       }
-      // Чёрный центр при уравненном уравнении: вернуть камеру + pin Bohr.
+      // Один camera rescue за streak (счётчик rising-edge).
       if (
         preSynthesisPreview &&
         previewAtomCount > 0 &&
         !userOrbitingRef.current &&
+        !stuckRescueDoneRef.current &&
         reactorCameraLockPoseRef.current
       ) {
         applyReactorPreviewCamera(
@@ -1506,6 +1506,7 @@ function SceneContent({
           orbRef.current,
           reactorCameraLockPoseRef.current,
         )
+        stuckRescueDoneRef.current = true
         if (previewRootRef.current) previewRootRef.current.visible = true
         pinCoeffEditAtomsHard({
           slotCount: previewAtomCount,
@@ -1662,9 +1663,8 @@ function SceneContent({
       {reactorBackdrop ? (
         <LabSynthesisCosmicBackdrop
           lite={
-            showSettledHero ||
-            lowPowerProfile.forceLiteReactor ||
-            lowPowerProfile.isMobileSoc
+            // В реакторе всегда lite Stars — full 900 + Bohr/молекула = hitch / white-screen.
+            true
           }
         />
       ) : null}
@@ -1675,6 +1675,8 @@ function SceneContent({
       {reactorViewOpen && reactorGpuIdleReady ? (
         <ReactorAtomShaderWarmup
           active={
+            // Не греть 8 Bohr параллельно с живым уравнением — dichromate + warmup = white-screen.
+            previewAtomCount <= 0 &&
             !effectiveProductPainted &&
             !showSettledHero &&
             !coeffEditingActive &&
@@ -2025,28 +2027,25 @@ export function LabCanvas({
             canvas.style.background = sceneBg
             softWebglRef.current.onContextLost()
             clearHardTimer()
+            const editingNow =
+              coeffEditBurstRef.current || coeffEditingRef.current
             hardRemountTimerRef.current = window.setTimeout(() => {
               hardRemountTimerRef.current = null
               const now = performance.now()
-              // Во время/после +/- remount запрещён — иначе cold Bohr + белый кадр.
-              if (!shieldAllowsCanvasRemount(shieldSnapRef.current, now)) {
-                // Переносим попытку; soft recover мог ещё прийти.
-                hardRemountTimerRef.current = window.setTimeout(() => {
-                  hardRemountTimerRef.current = null
-                  const alive = isWebGlDrawingBufferAlive(state.gl)
-                  const stillDead =
-                    softWebglRef.current.shouldHardRemount() || !alive
-                  if (!stillDead) return
-                  if (!shieldAllowsCanvasRemount(shieldSnapRef.current, performance.now())) return
-                  softWebglRef.current.acknowledgeHardRemount()
-                  setInternalSessionKey((k) => k + 1)
-                }, REACTOR_SHIELD.remountBanMs)
+              const alive = isWebGlDrawingBufferAlive(state.gl)
+              const glDead = !alive
+              // Мёртвый GL: один remount после ban. Живой — только soft (без remount thrash).
+              if (!glDead && !softWebglRef.current.shouldHardRemount(now)) return
+              if (
+                !shieldAllowsCanvasRemount(
+                  shieldSnapRef.current,
+                  now,
+                  editingNow,
+                  glDead,
+                )
+              ) {
                 return
               }
-              const stillDead =
-                softWebglRef.current.shouldHardRemount() ||
-                !isWebGlDrawingBufferAlive(state.gl)
-              if (!stillDead) return
               softWebglRef.current.acknowledgeHardRemount()
               setInternalSessionKey((k) => k + 1)
             }, REACTOR_SHIELD.hardRecoverAfterMs)

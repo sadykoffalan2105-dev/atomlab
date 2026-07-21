@@ -6,6 +6,7 @@ import {
   HeroMoleculeRig,
   SubstanceAuraBubble,
 } from './CatalogMoleculeHero'
+import { LabLiteAuraBubble } from './LabLiteAuraBubble'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
 import type { CompoundDef } from '../../types/chemistry'
 
@@ -48,16 +49,16 @@ export function CatalogSubstanceDisplay({
   const sparkleHex = compound.accentColor ?? '#3dffec'
 
   if (labSynthesisScene) {
-    // Как в каталоге: молекула + атмосфера (сфера + кольца). Без HDR/Bloom/дубля звёзд.
-    // Bohr после синтеза скрыт отдельно — aura больше не путают с орбитами атомов.
+    // Lab: молекула + дешёвая атмосфера (без transmission — иначе white-screen на слабых GPU).
+    // Каталог по-прежнему использует полный SubstanceAuraBubble.
     return (
       <group>
-        <SubstanceAuraBubble accentColor={compound.accentColor} compoundId={compound.id} />
+        <LabLiteAuraBubble accentColor={compound.accentColor} compoundId={compound.id} />
         <HeroMoleculeRig
           compound={compound}
           labScaleBoost={labScaleBoost}
           renderQuality="synthesis"
-          fxLevel="low"
+          fxLevel="off"
           chaoticWobble={chaoticWobble}
         />
       </group>

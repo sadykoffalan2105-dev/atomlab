@@ -189,15 +189,22 @@ export function resolveShieldRenderPolicy(opts: {
   }
 }
 
-/** Можно ли сейчас remount'ить Canvas (почти всегда false — soft recover). */
+/**
+ * Можно ли remount'ить Canvas.
+ * softRecoverOnly: remount ЗАПРЕЩЁН при живом GL.
+ * Мёртвый drawing buffer: один remount разрешён (иначе вечный белый экран).
+ */
 export function shieldAllowsCanvasRemount(
   snap: ShieldSnapshot,
   nowMs: number,
   editing: boolean,
+  glDead = false,
 ): boolean {
-  if (REACTOR_SHIELD.softRecoverOnly) return false
+  // Белый экран от мёртвого GL важнее remount-ban / soft-only.
+  if (glDead) return true
   if (editing) return false
   if (nowMs < snap.remountBanUntil) return false
+  if (REACTOR_SHIELD.softRecoverOnly) return false
   return true
 }
 
