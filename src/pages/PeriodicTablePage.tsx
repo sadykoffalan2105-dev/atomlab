@@ -26,16 +26,17 @@ export function PeriodicTablePage() {
     const compute = () => {
       const aw = Math.max(1, fit.clientWidth)
       const ah = Math.max(1, fit.clientHeight)
-      const rows = 16.5
-      const gapPx = 3
-      const sideFr = 0.48
+      // Чуть меньше «виртуальных» рядов → выше ячейки; уже боковые оси → шире элементы.
+      const rows = 15.2
+      const gapPx = 4
+      const sideFr = 0.36
       const elemCols = 10
       const totalFr = sideFr + elemCols
       const usableW = Math.max(1, aw - gapPx * 14)
       const elemColW = (usableW * elemCols) / totalFr / elemCols
-      const hByHeight = (ah - gapPx * 16) / rows
-      const cell = Math.min(hByHeight, elemColW * 1.06)
-      const cellPx = Math.max(28, Math.min(cell, 80))
+      const hByHeight = (ah - gapPx * 15) / rows
+      const cell = Math.min(hByHeight, elemColW * 1.14)
+      const cellPx = Math.max(34, Math.min(cell, 104))
       inner.style.setProperty('--pt-cell-h', `${cellPx}px`)
     }
 

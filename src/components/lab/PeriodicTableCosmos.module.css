@@ -29,19 +29,19 @@
 }
 
 .orbitRing[data-size='lg'] {
-  width: min(92vw, 1100px);
-  height: min(62vh, 620px);
-  border-color: rgba(0, 229, 255, 0.06);
+  width: min(96vw, 1280px);
+  height: min(68vh, 720px);
+  border-color: rgba(0, 200, 210, 0.07);
   box-shadow:
-    0 0 40px rgba(0, 229, 255, 0.04),
-    inset 0 0 60px rgba(255, 45, 149, 0.03);
+    0 0 50px rgba(0, 160, 180, 0.05),
+    inset 0 0 70px rgba(40, 100, 160, 0.04);
   animation: orbitSpinLg 90s linear infinite;
 }
 
 .orbitRing[data-size='md'] {
-  width: min(70vw, 820px);
-  height: min(48vh, 480px);
-  border-color: rgba(255, 45, 149, 0.07);
+  width: min(76vw, 960px);
+  height: min(54vh, 560px);
+  border-color: rgba(90, 170, 255, 0.08);
   animation: orbitSpinMd 65s linear infinite reverse;
 }
 
