@@ -21,8 +21,8 @@ export const REACTOR_SHIELD = {
    * разрешаем один remount (иначе вечный белый canvas / «битая картинка»).
    */
   softRecoverOnly: true,
-  /** Ждать soft restore; потом remount (мс). */
-  hardRecoverAfterMs: 1600,
+  /** Ждать soft restore дольше на dichromate GPU hitch; потом remount. */
+  hardRecoverAfterMs: 2800,
   /** Плотное уравнение (дихромат и т.п.) — сразу lite, без flip-flop. */
   denseLiteFromAtoms: 10,
 } as const

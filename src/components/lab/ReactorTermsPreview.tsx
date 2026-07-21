@@ -43,6 +43,12 @@ import {
   shouldHardPinCoeffEditAtoms,
   resolveBohrReactVisible,
 } from '../../lab/coeffEditAtomPin'
+import {
+  PREVIEW_MOTION,
+  resolvePreviewMotionPolicy,
+  samplePreviewAtomMotion,
+  samplePreviewRootSpin,
+} from '../../lab/reactorPreviewMotionEngine'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
 
@@ -270,19 +276,23 @@ export function ReactorTermsPreview({
     tickPolicy.effectiveForceLite,
   )
   /**
-   * Визуал реактора: космический full (nebula + орбиты), без sessionLite.
-   * Tier залипает — нет full↔lite remount; perf — через electronFrameSkip.
+   * Визуал реактора: при ≥10 слотах — lite-материалы (анти white-screen на K₂Cr₂O₇).
+   * Электроны и drift остаются; full nebula только на малых уравнениях.
+   * Tier залипает — нет full↔lite remount thrash.
    */
   if (!frame.hasActiveTerms) {
     engineRef.current.denseLightLatch = false
     engineRef.current.fullDetailLatch = true
-  } else if (previewOnlyMode || coeffEditing || tickPolicy.lockVisualTier) {
-    // Держим cosmic full на всю сессию уравнения.
-    engineRef.current.denseLightLatch = false
-    engineRef.current.fullDetailLatch = true
-  } else if (tickPolicy.effectiveForceLite || frame.slotCount >= 20) {
+  } else if (
+    tickPolicy.effectiveForceLite ||
+    frame.slotCount >= PREVIEW_MOTION.denseFromSlots ||
+    frame.expectedAtomCount >= PREVIEW_MOTION.denseFromSlots
+  ) {
     engineRef.current.denseLightLatch = true
     engineRef.current.fullDetailLatch = false
+  } else if (previewOnlyMode || coeffEditing || tickPolicy.lockVisualTier) {
+    engineRef.current.denseLightLatch = false
+    engineRef.current.fullDetailLatch = true
   }
 
   const scale = reactorPreviewAtomScale(frame.slotCount)
@@ -530,7 +540,8 @@ export function ReactorTermsPreview({
 
     if (externalAtomControl || n === 0 || productOwnsScreen) return
     const t = s.clock.elapsedTime
-    if (root && slowSpin) root.rotation.y = t * (n > 18 ? 0.032 : 0.04)
+    const motion = resolvePreviewMotionPolicy(Math.max(n, stickySlotCount))
+    if (root && slowSpin) root.rotation.y = samplePreviewRootSpin(t, motion.spinRate)
 
     if (!driftAtoms) return
     for (let i = 0; i < n; i++) {
@@ -540,13 +551,13 @@ export function ReactorTermsPreview({
       if (!atom) continue
       const { pos } = atom
       const [bx, by, bz] = pos
-      const ph = i * 1.6 + atom.z * 0.37
-      const amp = n > 18 ? 0.022 : 0.032
-      g.position.set(
-        bx + Math.sin(t * 0.32 + ph) * amp,
-        by + Math.sin(t * 0.25 + ph * 0.9) * amp * 0.7,
-        bz + Math.cos(t * 0.28 + ph * 1.05) * amp,
-      )
+      const [dx, dy, dz] = samplePreviewAtomMotion({
+        elapsedSec: t,
+        slotIndex: i,
+        atomicZ: atom.z,
+        driftAmp: motion.driftAmp,
+      })
+      g.position.set(bx + dx, by + dy, bz + dz)
     }
   })
 
@@ -680,6 +691,7 @@ export function ReactorTermsPreview({
     lowPower,
   })
   const holdAtomsUi = previewOnlyMode || coeffEditing || synthHoldPreview
+  const motionPolicy = resolvePreviewMotionPolicy(Math.max(stickySlotCount, n))
   /** Product owns screen → скрыть Bohr. Edit/pre-synth → всегда показать. */
   const reactGroupVisible = resolveBohrReactVisible({
     visible: Boolean(visible),
@@ -694,6 +706,9 @@ export function ReactorTermsPreview({
   })
   const editLocalLight = !sharedLighting && reactGroupVisible
   const bohrAnimate = forceElectronMotion && reactGroupVisible && holdAtomsUi
+  /** Dense (дихромат): lite-материалы обязательны — full×22 = WebGL white-screen. */
+  const slotPreviewLite =
+    lowPower || !holdAtomsUi || motionPolicy.forceLiteMaterials || Boolean(forceLite)
 
   return (
     <group
@@ -728,7 +743,7 @@ export function ReactorTermsPreview({
                 previewStatic={!holdAtomsUi}
                 useFullDetail={false}
                 synthesisGlass={false}
-                previewLite={lowPower || !holdAtomsUi}
+                previewLite={slotPreviewLite}
                 electronFrameSkip={editSkip}
                 hideOrbitRings={!holdAtomsUi}
                 localLight={editLocalLight}

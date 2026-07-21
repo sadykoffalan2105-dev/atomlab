@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {
   isCameraStuckNearCatalogHero,
   isCameraFarFromPreviewPose,
+  needsReactorPreviewCameraRescue,
   resolveReactorPreviewCameraPose,
   REACTOR_PREVIEW_CAMERA,
   applyReactorPreviewCamera,
@@ -53,6 +54,14 @@ import { PerspectiveCamera, Vector3 } from 'three'
     isCameraFarFromPreviewPose({ x: 0, y: 0, z: 0 }, pose),
     true,
     'origin vs preview — far',
+  )
+  assert.equal(
+    needsReactorPreviewCameraRescue({
+      position: { x: 0, y: 0.12, z: 3.6 },
+      pose: REACTOR_PREVIEW_CAMERA.few,
+    }),
+    true,
+    'needsRescue closes dead zone catalog→few',
   )
 }
 

@@ -73,8 +73,7 @@ import {
 import { createReactorPreviewContinuityGuard } from '../../lab/reactorPreviewContinuityGuard'
 import {
   applyReactorPreviewCamera,
-  isCameraFarFromPreviewPose,
-  isCameraStuckNearCatalogHero,
+  needsReactorPreviewCameraRescue,
   resolveReactorPreviewCameraPose,
   REACTOR_PREVIEW_CAMERA,
   type ReactorPreviewCameraPose,
@@ -89,6 +88,7 @@ import {
   createSoftWebGlRecovery,
   isWebGlDrawingBufferAlive,
   REACTOR_SHIELD,
+  shieldAllowsCanvasRemount,
   tickShieldPhase,
 } from '../../lab/reactorPreviewShield'
 import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
@@ -691,15 +691,18 @@ function SceneContent({
   const frameBudgetLite =
     !coeffEditingActive && frameBudgetRef.current.shouldForceLite()
   /**
-   * Pre-synth: не дёргаем forceLite на edit rising/falling — rememo policy + hitch.
-   * Lite только от device/budget; dense thrash лечит electronFrameSkip.
+   * Pre-synth: lite на плотных уравнениях (анти white-screen).
+   * Не дёргаем forceLite на edit rising/falling — rememo policy + hitch.
    */
   const editForceLite = preSynthesisPreview
-    ? frameBudgetLite || lowPowerProfile.forceLiteReactor
+    ? frameBudgetLite ||
+      lowPowerProfile.forceLiteReactor ||
+      previewAtomCount >= 10
     : (!coeffEditingActive && editLiteLatchRef.current) ||
       (!coeffEditingActive && reactorCoeffEditBurst) ||
       frameBudgetLite ||
-      lowPowerProfile.forceLiteReactor
+      lowPowerProfile.forceLiteReactor ||
+      previewAtomCount >= 10
   const reactorPreviewMounted =
     continuity.reactorPreviewMounted ||
     (reactorViewOpen && effectivePreviewTerms != null && effectivePreviewTerms.length >= 1)
@@ -1312,8 +1315,11 @@ function SceneContent({
       !userOrbitingRef.current &&
       !stuckRescueDoneRef.current &&
       previewAtomCount > 0 &&
-      (isCameraStuckNearCatalogHero(camera.position, CATALOG_HERO_VIEW.cameraPosition) ||
-        (preSynthesisPreview && isCameraFarFromPreviewPose(camera.position, lockPose)))
+      needsReactorPreviewCameraRescue({
+        position: camera.position,
+        pose: lockPose,
+        catalogPosition: CATALOG_HERO_VIEW.cameraPosition,
+      })
     ) {
       // One-shot: catalog hero / far pose после settle → иначе Bohr «за кадром» (чёрный центр).
       applyReactorPreviewCamera(camera as THREE.PerspectiveCamera, orbRef.current, lockPose)
@@ -1369,6 +1375,17 @@ function SceneContent({
     const continuityProductId =
       synthesisSettledProduct?.id ?? synthesis?.product?.id ?? null
     void continuityProductId
+
+    // Единый gate hide Bohr — ДО continuity (иначе painted без full-scale гасит корень).
+    const productScreenOkEarly = canHideBohrForProduct({
+      productPainted: productPaintedRef.current,
+      slotVisible: productSlotVisibleResolved,
+      prewarm: productPrewarmResolved,
+      coeffEditing: coeffEditingActive,
+      preSynthesis: preSynthesisPreview,
+      scaleX: productRootGroupRef.current?.scale.x,
+    })
+
     previewContinuityRef.current.tick({
       reactorViewOpen,
       synthLive: synthesisRunActive || synthActive,
@@ -1379,7 +1396,6 @@ function SceneContent({
         (reactorViewOpen && !synthesisRunActive && !synthActive && !showSettledHero),
       previewAtomCount,
       productPrewarm: productPrewarmActive,
-      // Только реальный paint + full-scale slot — НЕ GPU-cache (ложный handoff).
       productPainted:
         effectiveProductPainted &&
         productSlotVisibleResolved &&
@@ -1387,6 +1403,7 @@ function SceneContent({
         !coeffEditingActive &&
         !preSynthesisPreview &&
         (synthesisRunActive || synthActive || showSettledHero),
+      productOwnsScreen: productScreenOkEarly,
       previewRootRef,
       invalidate,
     })
@@ -1403,14 +1420,7 @@ function SceneContent({
     }
 
     // Каждый кадр пока продукт НЕ владеет экраном: полный scale атомов.
-    const productScreenOk = canHideBohrForProduct({
-      productPainted: productPaintedRef.current,
-      slotVisible: productSlotVisibleResolved,
-      prewarm: productPrewarmResolved,
-      coeffEditing: coeffEditingActive,
-      preSynthesis: preSynthesisPreview,
-      scaleX: productRootGroupRef.current?.scale.x,
-    })
+    const productScreenOk = productScreenOkEarly
     if (
       reactorViewOpen &&
       !productScreenOk &&
@@ -1473,6 +1483,8 @@ function SceneContent({
       productPrewarm: productPrewarmResolved,
     })
     if (emptyCenterCounterRef.current.tick(centerOk)) {
+      // Разрешить повторный camera rescue — one-shot мог сработать слишком рано.
+      stuckRescueDoneRef.current = false
       if (!productScreenOk && rescue.keepBohrUntilPaint && previewRootRef.current) {
         previewRootRef.current.visible = true
       }
@@ -2015,6 +2027,22 @@ export function LabCanvas({
             clearHardTimer()
             hardRemountTimerRef.current = window.setTimeout(() => {
               hardRemountTimerRef.current = null
+              const now = performance.now()
+              // Во время/после +/- remount запрещён — иначе cold Bohr + белый кадр.
+              if (!shieldAllowsCanvasRemount(shieldSnapRef.current, now)) {
+                // Переносим попытку; soft recover мог ещё прийти.
+                hardRemountTimerRef.current = window.setTimeout(() => {
+                  hardRemountTimerRef.current = null
+                  const alive = isWebGlDrawingBufferAlive(state.gl)
+                  const stillDead =
+                    softWebglRef.current.shouldHardRemount() || !alive
+                  if (!stillDead) return
+                  if (!shieldAllowsCanvasRemount(shieldSnapRef.current, performance.now())) return
+                  softWebglRef.current.acknowledgeHardRemount()
+                  setInternalSessionKey((k) => k + 1)
+                }, REACTOR_SHIELD.remountBanMs)
+                return
+              }
               const stillDead =
                 softWebglRef.current.shouldHardRemount() ||
                 !isWebGlDrawingBufferAlive(state.gl)

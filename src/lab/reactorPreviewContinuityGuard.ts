@@ -12,7 +12,10 @@ export type ReactorPreviewContinuityGuard = {
     previewVisible: boolean
     previewAtomCount: number
     productPrewarm: boolean
+    /** @deprecated use productOwnsScreen — painted alone must not hide Bohr. */
     productPainted?: boolean
+    /** Молекула full-scale на экране — единственный сигнал hide Bohr. */
+    productOwnsScreen?: boolean
     previewRootRef?: MutableRefObject<THREE.Group | null>
     invalidate: () => void
   }) => void
@@ -43,6 +46,7 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
       previewAtomCount,
       productPrewarm,
       productPainted = false,
+      productOwnsScreen = false,
       previewRootRef,
       invalidate,
     }) {
@@ -52,15 +56,15 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
       }
 
       const root = previewRootRef?.current
+      // Painted без ownsScreen больше не скрывает Bohr (ложный handoff → пустой центр).
+      const ownsScreen = productOwnsScreen === true
 
       /**
-       * Pre-synth / idle: restore Bohr, КРОМЕ settled-handoff
-       * (productPainted + !previewVisible = молекула владеет экраном).
-       * Hide ТОЛЬКО если caller явно сказал productPainted — LabScene обязан
-       * передавать painted только при full-scale.
+       * Hide Bohr ТОЛЬКО при явном productOwnsScreen (full-scale paint).
+       * productPainted без ownsScreen больше не гасит корень — иначе пустой центр.
        */
       if (!synthLive) {
-        if (productPainted && !previewVisible) {
+        if (ownsScreen && !previewVisible) {
           violationFrames = 0
           if (root && root.visible) hidePreviewRoot(root)
           return
@@ -74,14 +78,14 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
       }
 
       // Синтез: продукт на экране — Bohr скрыт.
-      if (!previewVisible) {
+      if (!previewVisible && ownsScreen) {
         violationFrames = 0
-        if (root && root.visible && productPainted) hidePreviewRoot(root)
+        if (root && root.visible) hidePreviewRoot(root)
         return
       }
 
       // Продукт реально на экране (синтез) — Bohr не restore.
-      if (productPainted && synthLive) {
+      if (ownsScreen && synthLive) {
         violationFrames = 0
         if (root && root.visible) hidePreviewRoot(root)
         return
@@ -101,7 +105,7 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
         termsNonempty: previewAtomCount > 0,
         previewMounted,
         rootVisible,
-        productPainted,
+        productPainted: ownsScreen || productPainted,
         synthLive,
       })
 
@@ -115,7 +119,7 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
       }
 
       // Не восстанавливаем shell, если LabScene намеренно скрыл превью (product takeover).
-      if (!previewVisible && productPainted) {
+      if (!previewVisible && ownsScreen) {
         violationFrames = 0
         if (root && root.visible) hidePreviewRoot(root)
         return

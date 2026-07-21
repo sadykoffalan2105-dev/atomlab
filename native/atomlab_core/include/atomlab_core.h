@@ -70,6 +70,19 @@ int32_t reactor_preview_layout(
   int32_t out_atom_cap
 );
 
+/** Motion policy (mirrors reactorPreviewMotionEngine.ts). */
+int32_t reactor_preview_force_lite(int32_t slot_count);
+float reactor_preview_spin_rate(int32_t slot_count);
+float reactor_preview_drift_amp(int32_t slot_count);
+void reactor_preview_motion_sample(
+  float elapsed_sec,
+  int32_t slot_index,
+  int32_t atomic_z,
+  float drift_amp,
+  float* out_xyz
+);
+float reactor_preview_root_spin(float elapsed_sec, float spin_rate);
+
 }
 
 #endif

@@ -109,15 +109,33 @@ export function isCameraStuckNearCatalogHero(
 
 /**
  * Камера далеко от «домашней» позы превью → атомы за кадром (чёрный центр при живом уравнении).
- * Не путать с лёгким зумом пользователя: порог большой (~3.5).
+ * Порог 2.75: catalog hero (z≈3.6) ≈3.16 от few — ловится; лёгкий zoom пользователя — нет.
  */
 export function isCameraFarFromPreviewPose(
   position: { x: number; y: number; z: number },
   pose: ReactorPreviewCameraPose,
-  maxDist = 3.5,
+  maxDist = 2.75,
 ): boolean {
   const dx = position.x - pose.position[0]
   const dy = position.y - pose.position[1]
   const dz = position.z - pose.position[2]
   return dx * dx + dy * dy + dz * dz > maxDist * maxDist
+}
+
+/**
+ * Нужен rescue ракурса превью (чёрный центр при живом уравнении).
+ * Закрывает мёртвую зону: catalog hero не в шаре 0.35 и не дальше 3.5 от few.
+ */
+export function needsReactorPreviewCameraRescue(opts: {
+  position: { x: number; y: number; z: number }
+  pose: ReactorPreviewCameraPose
+  catalogPosition?: readonly [number, number, number]
+}): boolean {
+  const catalog = opts.catalogPosition ?? ([0, 0.12, 3.6] as const)
+  // Шире catalog-шар: OrbitControls часто оставляет камеру чуть рядом с 3.6.
+  if (isCameraStuckNearCatalogHero(opts.position, catalog, 1.15)) return true
+  if (isCameraFarFromPreviewPose(opts.position, opts.pose)) return true
+  // Catalog clamp z=3.6 при home z≈6.3…7.3 — атомы «за кадром».
+  if (opts.position.z < opts.pose.position[2] - 1.6) return true
+  return false
 }
