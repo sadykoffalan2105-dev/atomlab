@@ -47,6 +47,7 @@ import {
 import { createReactorFrameBudget } from '../../lab/reactorFrameBudget'
 import { createSynthesisAntiStallGuard } from '../../lab/synthesisAntiStall'
 import { isProductGpuCompiled } from '../../lab/productGpuCompileCache'
+import { resolveInstantSynthFrameBudget } from '../../lab/synthesisStabilityEngine'
 import { resolveSynthesisProductSlot } from '../../lab/synthesisProductSlot'
 import {
   createProductCrossfadeGuard,
@@ -479,6 +480,11 @@ function SceneContent({
     [synthForceLite],
   )
   const instantSynthesis = isInstantSynthesisProfile(synthTimingProfile)
+  const instantSynthBudget = useMemo(() => {
+    const productId = synthesis?.product?.id
+    const gpuCompiled = productId != null && isProductGpuCompiled(productId)
+    return resolveInstantSynthFrameBudget({ gpuCompiled, deviceTier })
+  }, [synthesis?.product?.id, deviceTier])
 
   /** При запуске синтеза — снять GPU-ban и ждать реального GPU, не форсить reveal. */
   useLayoutEffect(() => {
@@ -981,7 +987,7 @@ function SceneContent({
     const productId = synthesis.product?.id
     let frames = 0
     let raf = 0
-    const cap = instantSynthesis ? 72 : 48
+    const cap = instantSynthesis ? instantSynthBudget.revealMaxFrames * 4 : instantSynthBudget.revealMaxFrames * 2
     const tick = () => {
       frames += 1
       if (
@@ -999,7 +1005,7 @@ function SceneContent({
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id, productRevealReady, instantSynthesis])
+  }, [synthActive, synthesis?.runId, synthesis?.product?.id, productRevealReady, instantSynthesis, instantSynthBudget.revealMaxFrames])
 
   useLayoutEffect(() => {
     if (!synthesis?.runId) return
@@ -1606,8 +1612,8 @@ function SceneContent({
               runId={synthesis.runId}
               onDone={handleInstantSynthDone}
               onPhaseChange={synthesis.onPhaseChange}
-              minFrames={5}
-              maxFrames={48}
+              minFrames={instantSynthBudget.minFrames}
+              maxFrames={instantSynthBudget.maxFrames}
               isProductReady={instantProductReady}
             />
           ) : null}

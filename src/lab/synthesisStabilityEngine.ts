@@ -53,8 +53,12 @@ export type InstantSynthFrameBudget = {
   revealMaxFrames: number
 }
 
-/** Кадры paint продукта: warm GPU → 1 кадр, cold → 3. */
-export function resolveVisiblePaintFrames(gpuCompiled: boolean): number {
+/** Кадры paint продукта: warm GPU → 1 кадр, cold → 3 (слабые GPU — меньше). */
+export function resolveVisiblePaintFrames(
+  gpuCompiled: boolean,
+  lowPower = false,
+): number {
+  if (lowPower) return gpuCompiled ? 1 : 2
   return gpuCompiled
     ? SYNTH_STABILITY.visiblePaintFramesWarm
     : SYNTH_STABILITY.visiblePaintFramesCold
@@ -65,8 +69,15 @@ export function resolveInstantSynthFrameBudget(opts: {
   gpuCompiled: boolean
   deviceTier?: SynthesisDeviceTier
 }): InstantSynthFrameBudget {
-  void opts.deviceTier
   const warm = opts.gpuCompiled
+  const low = opts.deviceTier === 'low'
+  if (low) {
+    return {
+      minFrames: warm ? 1 : 2,
+      maxFrames: warm ? 10 : 18,
+      revealMaxFrames: warm ? 6 : 12,
+    }
+  }
   return {
     minFrames: warm ? 1 : SYNTH_STABILITY.instantMinFrames,
     maxFrames: warm ? 12 : SYNTH_STABILITY.instantMaxFrames,
@@ -188,6 +199,15 @@ export function shouldCollapsePreviewAtoms(productPainted: boolean): boolean {
 }
 
 /** electronFrameSkip: стабильный, без 1↔2 thrash на edit-edge. */
-export function resolveStableElectronFrameSkip(atomCount: number): number {
-  return atomCount >= 10 ? 2 : 1
+export function resolveStableElectronFrameSkip(
+  atomCount: number,
+  opts?: { deviceTier?: SynthesisDeviceTier; lowPower?: boolean },
+): number {
+  const low = opts?.lowPower || opts?.deviceTier === 'low'
+  if (low) {
+    if (atomCount >= 8) return 3
+    return 2
+  }
+  if (atomCount >= 10) return 2
+  return 1
 }

@@ -28,6 +28,7 @@ import {
   prepareGuaranteedSynthesisRun,
   resolveCatalogProduct,
 } from '../lab/synthesisGuarantee'
+import { resolveReactorGpuIdleDelayMs } from '../lab/synthesisStabilityEngine'
 import { useThrottledPhaseCallback } from '../lab/atomGuard/phaseThrottle'
 import { useCanvasSizeGuard } from '../lab/atomGuard/canvasGuard'
 import { createSynthesisRunGuard } from '../lab/atomGuard/synthesisRunGuard'
@@ -211,10 +212,9 @@ export function LaboratoryPage() {
       return
     }
     let cancelled = false
-    // Canvas/Bohr готовы почти сразу — не ждать 900мс до Run.
     const timer = window.setTimeout(() => {
       if (!cancelled) setReactorGpuIdleReady(true)
-    }, 220)
+    }, resolveReactorGpuIdleDelayMs())
     return () => {
       cancelled = true
       window.clearTimeout(timer)

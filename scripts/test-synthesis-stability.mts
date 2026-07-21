@@ -61,6 +61,14 @@ import {
   resolvePreviewExternalAtomControl,
 } from '../src/lab/synthesisPreviewEngine/previewExternalControl.ts'
 import { resolveSynthesisProductSlot } from '../src/lab/synthesisProductSlot.ts'
+import {
+  resolveInstantSynthFrameBudget,
+  resolvePreviewAtomInvariants,
+  resolveProductHandoffGate,
+  resolveReactorGpuIdleDelayMs,
+  resolveStableElectronFrameSkip,
+  resolveVisiblePaintFrames,
+} from '../src/lab/synthesisStabilityEngine.ts'
 
 function k2cr2o7Terms(): ReactorEquationTerm[] {
   return [
@@ -1105,6 +1113,53 @@ assert.ok(SYNC_BUILD_ATOM_CAP >= 10 && SYNC_BUILD_ATOM_CAP <= 16)
     false,
     'mergeFlash without Bohr/product is a hole',
   )
+}
+
+// --- synthesisStabilityEngine ---
+{
+  assert.equal(resolveReactorGpuIdleDelayMs(), 48)
+  assert.equal(resolveReactorGpuIdleDelayMs(true), 0)
+  assert.equal(resolveVisiblePaintFrames(true), 1)
+  assert.equal(resolveVisiblePaintFrames(false), 3)
+  assert.equal(resolveVisiblePaintFrames(false, true), 2)
+  assert.equal(resolveStableElectronFrameSkip(5), 1)
+  assert.equal(resolveStableElectronFrameSkip(12), 2)
+  assert.equal(resolveStableElectronFrameSkip(12, { deviceTier: 'low' }), 3)
+  assert.equal(resolveStableElectronFrameSkip(5, { lowPower: true }), 2)
+
+  const warm = resolveInstantSynthFrameBudget({ gpuCompiled: true, deviceTier: 'high' })
+  assert.equal(warm.minFrames, 1)
+  assert.ok(warm.maxFrames <= 12)
+
+  const coldLow = resolveInstantSynthFrameBudget({ gpuCompiled: false, deviceTier: 'low' })
+  assert.equal(coldLow.maxFrames, 18)
+
+  const inv = resolvePreviewAtomInvariants({
+    previewOnlyMode: true,
+    coeffEditing: true,
+    synthHoldPreview: false,
+    visibleProp: false,
+    hasActiveTerms: true,
+    slotCount: 15,
+    shellCount: 15,
+    expectedAtomCount: 15,
+    groupVisible: true,
+  })
+  assert.equal(inv.holdPreview, true)
+  assert.equal(inv.pinEveryFrame, true)
+  assert.equal(inv.stickySlotCount, 15)
+
+  const handoff = resolveProductHandoffGate({
+    effectiveProductPainted: true,
+    productSlotVisible: true,
+    preSynthesisPreview: false,
+    coeffEditingActive: false,
+    gpuReady: true,
+    showSettledHero: true,
+    synthLive: false,
+  })
+  assert.equal(handoff.hideBohrRoot, true)
+  assert.equal(handoff.continuityProductPainted, true)
 }
 
 console.log('test-synthesis-stability: all passed')

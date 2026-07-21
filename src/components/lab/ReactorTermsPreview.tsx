@@ -632,7 +632,10 @@ export function ReactorTermsPreview({
 
   const mountBohrCount = Math.max(mountCap, stickySlotCount, targetMount)
   /** Стабильный frame-skip через движок (stickySlotCount, без 1↔2 thrash). */
-  const editSkip = resolveStableElectronFrameSkip(stickySlotCount)
+  const editSkip = resolveStableElectronFrameSkip(stickySlotCount, {
+    deviceTier: getSynthesisDeviceTier(),
+    lowPower,
+  })
   const editLocalLight = !sharedLighting && (atomsOnScreen || holdPreview)
 
   return (

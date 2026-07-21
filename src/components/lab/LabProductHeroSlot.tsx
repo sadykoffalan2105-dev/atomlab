@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { gsap } from 'gsap'
 import type * as THREE from 'three'
@@ -15,12 +15,13 @@ import { enqueueGpuCompile } from '../../lab/gpuCompileBudget'
 import type { CompoundDef } from '../../types/chemistry'
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
+import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
+import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
+import { resolveVisiblePaintFrames } from '../../lab/synthesisStabilityEngine'
 
 const MICRO_SCALE = 0.001
 /** Кадров отрисовки на micro-scale до «готово» — быстрый сигнал prewarm. */
 const PREWARM_PAINT_FRAMES = 2
-/** Кадров полного масштаба до сигнала paint — быстрее выход молекулы (<0.5с при 60fps). */
-const VISIBLE_PAINT_FRAMES = 6
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
@@ -62,6 +63,10 @@ export function LabProductHeroSlot({
   const visiblePaintFramesRef = useRef(0)
   const visiblePaintSentRef = useRef(false)
   const { gl, camera, scene, invalidate } = useThree()
+  const lowPower = useMemo(
+    () => getLowPowerDeviceProfile(getSynthesisDeviceTier()).forceLiteReactor,
+    [],
+  )
 
   const notifyGpuCompiled = useCallback(() => {
     if (gpuCompiledRef.current) return
@@ -256,7 +261,9 @@ export function LabProductHeroSlot({
           return
         }
         visiblePaintFramesRef.current += 1
-        if (visiblePaintFramesRef.current >= VISIBLE_PAINT_FRAMES) {
+        const gpuOk = gpuCompiledRef.current || isProductGpuCompiled(compound.id)
+        const paintNeed = resolveVisiblePaintFrames(gpuOk, lowPower)
+        if (visiblePaintFramesRef.current >= paintNeed) {
           // Не гасим Bohr, пока GPU молекулы не готов — иначе тёмный пустой кадр.
           if (!(gpuCompiledRef.current || isProductGpuCompiled(compound.id))) {
             return
