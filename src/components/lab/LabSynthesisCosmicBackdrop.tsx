@@ -11,8 +11,11 @@ export const LAB_COSMIC_BG = '#0a0c18'
  */
 export const LabSynthesisCosmicBackdrop = memo(function LabSynthesisCosmicBackdrop({
   lite = false,
+  frozen = false,
 }: {
   lite?: boolean
+  /** Синтез / collapse — не крутить Stars (лишний GPU рядом с искрами). */
+  frozen?: boolean
 }) {
   const count = lite ? 140 : 480
   return (
@@ -25,7 +28,7 @@ export const LabSynthesisCosmicBackdrop = memo(function LabSynthesisCosmicBackdr
         factor={lite ? 2.4 : 3.2}
         saturation={0.12}
         fade={false}
-        speed={lite ? 0.2 : 0.35}
+        speed={frozen ? 0 : lite ? 0.2 : 0.35}
       />
     </>
   )

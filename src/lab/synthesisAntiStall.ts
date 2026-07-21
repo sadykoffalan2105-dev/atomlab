@@ -31,8 +31,8 @@ export const SYNTH_ANTI_STALL = {
   igniteMaxMs: 420,
   /** MergeFlash не дольше расчёта + (мс). */
   mergeFlashGraceMs: 220,
-  /** Product → onDone не дольше расчёта + (мс). */
-  productDoneGraceMs: 900,
+  /** Product → onDone не дольше расчёта + (мс). Instant: collapse + paint. */
+  productDoneGraceMs: 2_400,
 } as const
 
 export type SynthesisAntiStallGuard = {

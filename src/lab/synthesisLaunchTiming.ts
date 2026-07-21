@@ -1,6 +1,10 @@
 import type { ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import { synthesisTimingScale } from '../chemistry/reactorVisualTier'
 import {
+  estimateCollapseDurationSec,
+  resolveCollapseOptionsForDevice,
+} from './synthesisCollapseEffect/elementsCollapseAnimation'
+import {
   getSynthesisTimingProfile,
   SYNTHESIS_TIMING_BALANCED,
   type SynthesisTimingProfile,
@@ -37,6 +41,9 @@ export function synthesisConvergeDurationSec(
   return (profile.streamFlyDur + maxStagger) * synthesisTimingScale(tier)
 }
 
+/** Бюджет после collapse FX на GPU-paint + InstantLab settle. */
+const INSTANT_PRODUCT_PAINT_BUDGET_SEC = 2.4
+
 export function synthesisLaunchWatchdogMs(
   termCount: number,
   atomCount: number,
@@ -45,7 +52,13 @@ export function synthesisLaunchWatchdogMs(
 ): number {
   const profile = getSynthesisTimingProfile(forceLite)
   if (profile.streamFlyDur <= 0 && profile.mergeFlashDur <= 0) {
-    return Math.ceil((profile.productHold + 0.35) * 1000 + SYNTH_ANTI_STALL.runBudgetGraceMs)
+    // Instant path = elements collapse FX + product paint (раньше watchdog ~0.6с рвал FX ~4.5с).
+    const dense = atomCount >= 10
+    const collapseSec = estimateCollapseDurationSec(
+      resolveCollapseOptionsForDevice(forceLite, dense),
+    )
+    const sec = collapseSec + INSTANT_PRODUCT_PAINT_BUDGET_SEC
+    return Math.ceil(sec * 1000 + SYNTH_ANTI_STALL.runBudgetGraceMs)
   }
   const convergeDur = synthesisConvergeDurationSec(termCount, atomCount, tier, profile)
   const sec =

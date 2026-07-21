@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import type { MutableRefObject } from 'react'
 import * as THREE from 'three'
 import {
@@ -8,12 +8,11 @@ import {
   type ElementsCollapseController,
 } from '../../lab/synthesisCollapseEffect/elementsCollapseAnimation'
 
-const ATOM_WAIT_FRAMES = 24
+const ATOM_WAIT_FRAMES = 18
 const PROXY_COUNT_DEFAULT = 5
 
 /**
  * Коллапс Bohr-атомов + particle burst между «Запустить синтез» и молекулой.
- * Верный порт vendor/expl_threejs_effect_v02gm_dev.
  * Если Bohr-refs ещё пусты — ставит proxy-сферы, чтобы FX всегда был виден
  * для любого из 200+ продуктов.
  */
@@ -35,7 +34,6 @@ export function SynthesisElementsCollapseFx({
   accentHex?: string
   onComplete: () => void
 }) {
-  const { invalidate } = useThree()
   const fxRootRef = useRef<THREE.Group>(null)
   const ctrlRef = useRef<ElementsCollapseController | null>(null)
   const proxyRef = useRef<THREE.Object3D[]>([])
@@ -85,7 +83,7 @@ export function SynthesisElementsCollapseFx({
     const out: THREE.Object3D[] = []
     const n = Math.max(3, Math.min(8, count || PROXY_COUNT_DEFAULT))
     for (let i = 0; i < n; i++) {
-      const geo = new THREE.SphereGeometry(0.35, 16, 12)
+      const geo = new THREE.SphereGeometry(0.35, 10, 8)
       const mat = new THREE.MeshBasicMaterial({
         color: colors[i % colors.length]!,
         wireframe: true,
@@ -107,8 +105,7 @@ export function SynthesisElementsCollapseFx({
   }
 
   const buildOpts = () => {
-    // Полный демо-файл; densePreview больше НЕ режет искры (иначе «нет взрыва»).
-    const opts = resolveCollapseOptionsForDevice(lowPower)
+    const opts = resolveCollapseOptionsForDevice(lowPower, densePreview)
     if (accentHex) {
       const raw = accentHex.replace('#', '').trim()
       const c = Number.parseInt(raw.length === 3 ? raw.replace(/(.)/g, '$1$1') : raw, 16)
@@ -126,7 +123,6 @@ export function SynthesisElementsCollapseFx({
     ctrlRef.current = null
     clearProxies()
     onCompleteRef.current()
-    invalidate()
   }
 
   const startAnimation = (root: THREE.Group) => {
@@ -134,7 +130,7 @@ export function SynthesisElementsCollapseFx({
     if (atoms.length === 0) {
       atoms = spawnProxies(Math.max(PROXY_COUNT_DEFAULT, Math.min(8, atomCount || PROXY_COUNT_DEFAULT)))
     }
-    ctrlRef.current?.dispose()
+    ctrlRef.current?.dispose({ interrupted: true })
     ctrlRef.current = createElementsCollapseAnimation(atoms, root, buildOpts())
     startedRef.current = true
   }
@@ -144,8 +140,8 @@ export function SynthesisElementsCollapseFx({
     startedRef.current = false
     waitFramesRef.current = 0
     return () => {
-      // StrictMode: dispose controller, но НЕ finish/onComplete.
-      ctrlRef.current?.dispose()
+      // StrictMode / watchdog: dispose + restore atoms, но НЕ finish/onComplete.
+      ctrlRef.current?.dispose({ interrupted: !doneRef.current })
       ctrlRef.current = null
       startedRef.current = false
       clearProxies()
@@ -162,24 +158,18 @@ export function SynthesisElementsCollapseFx({
       waitFramesRef.current += 1
       const atoms = collectBohrAtoms()
       const ready = atoms.length > 0 || waitFramesRef.current >= ATOM_WAIT_FRAMES
-      if (!ready) {
-        invalidate()
-        return
-      }
+      if (!ready) return
       startAnimation(root)
-      invalidate()
       return
     }
 
     // StrictMode cleanup мог обнулить ctrl — пересоздаём, НЕ завершаем FX.
     if (!ctrlRef.current) {
       startAnimation(root)
-      invalidate()
       return
     }
 
     const finished = ctrlRef.current.tick(delta)
-    invalidate()
     if (finished) finish()
   })
 

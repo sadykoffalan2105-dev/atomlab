@@ -260,7 +260,9 @@ export function ReactorTermsPreview({
         shield.pinEveryFrame,
       lockVisualTier: true,
       lockPoolSize: true,
-      electronAnimate: true,
+      // Collapse/flight: не крутить электроны — главный GPU-нагрузка на N Bohr.
+      electronAnimate:
+        !flightActive && (tickPolicy.electronAnimate || shield.electronAnimate),
       // Не форсим lite thrash через live n — sticky denseLightLatch ниже.
       effectiveForceLite:
         shield.forceLite ||
@@ -705,7 +707,10 @@ export function ReactorTermsPreview({
     productOwnsScreen: holdAtomsUi ? false : !visible,
   })
   const editLocalLight = !sharedLighting && reactGroupVisible
-  const bohrAnimate = forceElectronMotion && reactGroupVisible && holdAtomsUi
+  // Collapse/flight: атомы летят в центр — электроны и spin только жрут GPU.
+  const electronsLive =
+    !flightActive && forceElectronMotion && reactGroupVisible && holdAtomsUi
+  const bohrAnimate = electronsLive
   /** Dense (дихромат): lite-материалы обязательны — full×22 = WebGL white-screen. */
   const slotPreviewLite =
     lowPower || !holdAtomsUi || motionPolicy.forceLiteMaterials || Boolean(forceLite)
@@ -740,12 +745,12 @@ export function ReactorTermsPreview({
               <ReactorPreviewAtomSlot
                 z={slotZ}
                 animate={bohrAnimate && slotVisible}
-                previewStatic={!holdAtomsUi}
+                previewStatic={!holdAtomsUi || flightActive}
                 useFullDetail={false}
                 synthesisGlass={false}
                 previewLite={slotPreviewLite}
-                electronFrameSkip={editSkip}
-                hideOrbitRings={!holdAtomsUi}
+                electronFrameSkip={flightActive ? 8 : editSkip}
+                hideOrbitRings={!holdAtomsUi || flightActive}
                 localLight={editLocalLight}
               />
             </group>

@@ -252,8 +252,8 @@ export function LabProductHeroSlot({
           releaseBudget?.()
           releaseBudget = null
         },
-        // Chunked compile: меньше main-thread hitch / white flash на старте синтеза.
-        { skipCompileAsync: true, meshesPerFrame: 12 },
+        // Chunked compile: 18/кадр — быстрее warm после collapse без длинного hitch.
+        { skipCompileAsync: true, meshesPerFrame: 18 },
       )
     }
 

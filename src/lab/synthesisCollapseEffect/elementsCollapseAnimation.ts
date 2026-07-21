@@ -1,9 +1,12 @@
 /**
- * Полный порт vendor/expl_threejs_effect_v02gm_dev:
+ * Порт vendor/expl_threejs_effect_v02gm_dev для лаборатории:
  * коллапс атомов → вспышка ядра → разлёт искр → hold → fade.
  *
  * Искры: InstancedMesh (не gl_PointSize Points) — на Windows/ANGLE
- * кастомный Points-шейдер часто не рисуется, из‑за этого был только «полёт в центр».
+ * кастомный Points-шейдер часто не рисуется.
+ *
+ * Lab-профиль короче и легче демо (~1.6 с, ≤380 искр) — без зависаний
+ * при 200+ молекулах; dense/lowPower режут ещё сильнее.
  */
 import * as THREE from 'three'
 
@@ -34,9 +37,14 @@ export type ElementsCollapseOptions = {
   center?: THREE.Vector3
 }
 
+export type ElementsCollapseDisposeOpts = {
+  /** true = обрыв (watchdog/unmount) — вернуть атомы на старт. */
+  interrupted?: boolean
+}
+
 export type ElementsCollapseController = {
   tick: (dt: number) => boolean
-  dispose: () => void
+  dispose: (opts?: ElementsCollapseDisposeOpts) => void
   readonly done: boolean
   readonly phase: string
 }
@@ -49,7 +57,7 @@ const DEFAULT_GRADIENT = [
   { stop: 1.0, color: 'rgba(0, 0, 0, 0.0)' },
 ]
 
-/** Демо из vendor index.html — полный WOW. */
+/** Демо из vendor index.html — полный WOW (референс, не для lab run). */
 export const COLLAPSE_DEMO_QUALITY = {
   atom_collapse_time: 1.2,
   atom_delay_max: 0.3,
@@ -66,8 +74,28 @@ export const COLLAPSE_DEMO_QUALITY = {
   core_gradient: DEFAULT_GRADIENT,
 }
 
+/**
+ * Профиль лаборатории: тот же FX, но быстрее и дешевле по GPU.
+ * ~1.56 с вместо ~4.5 с; ≤380 искр вместо 1600.
+ */
+export const COLLAPSE_LAB_QUALITY = {
+  atom_collapse_time: 0.52,
+  atom_delay_max: 0.1,
+  burst_time: 0.48,
+  hold_after_grow: 0.14,
+  fade_out: 0.32,
+  end_scale: 2.35,
+  particles_per_sec: 160,
+  max_particles: 380,
+  particle_base_size: 50,
+  particle_speed: 13,
+  particle_stretch: 2.6,
+  particle_colors: [0xffffff, 0xaaddff, 0x4488ff, 0xffaa00, 0xffffff] as number[],
+  core_gradient: DEFAULT_GRADIENT,
+}
+
 export function estimateCollapseDurationSec(opts: ElementsCollapseOptions = {}): number {
-  const d = { ...COLLAPSE_DEMO_QUALITY, ...opts }
+  const d = { ...COLLAPSE_LAB_QUALITY, ...opts }
   return (
     d.atom_collapse_time +
     d.atom_delay_max +
@@ -77,21 +105,32 @@ export function estimateCollapseDurationSec(opts: ElementsCollapseOptions = {}):
   )
 }
 
+let sharedGlowTex: THREE.CanvasTexture | null = null
+
 function makeGlowTexture(core_gradient: Array<{ stop: number; color: string }>) {
   const canvas = document.createElement('canvas')
-  canvas.width = 256
-  canvas.height = 256
+  canvas.width = 128
+  canvas.height = 128
   const ctx = canvas.getContext('2d')
   if (ctx) {
-    const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128)
+    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64)
     core_gradient.forEach((g) => gradient.addColorStop(g.stop, g.color))
     ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, 256, 256)
+    ctx.fillRect(0, 0, 128, 128)
   }
   const tex = new THREE.CanvasTexture(canvas)
   tex.colorSpace = THREE.SRGBColorSpace
   tex.needsUpdate = true
   return tex
+}
+
+function acquireGlowTexture(core_gradient: Array<{ stop: number; color: string }>) {
+  const isDefault = core_gradient === DEFAULT_GRADIENT
+  if (isDefault) {
+    if (!sharedGlowTex) sharedGlowTex = makeGlowTexture(DEFAULT_GRADIENT)
+    return { tex: sharedGlowTex, shared: true as const }
+  }
+  return { tex: makeGlowTexture(core_gradient), shared: false as const }
 }
 
 export function createElementsCollapseAnimation(
@@ -100,25 +139,26 @@ export function createElementsCollapseAnimation(
   options: ElementsCollapseOptions = {},
 ): ElementsCollapseController {
   const {
-    atom_collapse_time = COLLAPSE_DEMO_QUALITY.atom_collapse_time,
-    atom_delay_max = COLLAPSE_DEMO_QUALITY.atom_delay_max,
-    burst_time = COLLAPSE_DEMO_QUALITY.burst_time,
-    hold_after_grow = COLLAPSE_DEMO_QUALITY.hold_after_grow,
-    fade_out = COLLAPSE_DEMO_QUALITY.fade_out,
-    end_scale = COLLAPSE_DEMO_QUALITY.end_scale,
-    particles_per_sec = COLLAPSE_DEMO_QUALITY.particles_per_sec,
-    max_particles = COLLAPSE_DEMO_QUALITY.max_particles,
-    particle_base_size = COLLAPSE_DEMO_QUALITY.particle_base_size,
-    particle_speed = COLLAPSE_DEMO_QUALITY.particle_speed,
-    particle_stretch = COLLAPSE_DEMO_QUALITY.particle_stretch,
-    particle_colors = COLLAPSE_DEMO_QUALITY.particle_colors,
+    atom_collapse_time = COLLAPSE_LAB_QUALITY.atom_collapse_time,
+    atom_delay_max = COLLAPSE_LAB_QUALITY.atom_delay_max,
+    burst_time = COLLAPSE_LAB_QUALITY.burst_time,
+    hold_after_grow = COLLAPSE_LAB_QUALITY.hold_after_grow,
+    fade_out = COLLAPSE_LAB_QUALITY.fade_out,
+    end_scale = COLLAPSE_LAB_QUALITY.end_scale,
+    particles_per_sec = COLLAPSE_LAB_QUALITY.particles_per_sec,
+    max_particles = COLLAPSE_LAB_QUALITY.max_particles,
+    particle_base_size = COLLAPSE_LAB_QUALITY.particle_base_size,
+    particle_speed = COLLAPSE_LAB_QUALITY.particle_speed,
+    particle_stretch = COLLAPSE_LAB_QUALITY.particle_stretch,
+    particle_colors = COLLAPSE_LAB_QUALITY.particle_colors,
     core_gradient = DEFAULT_GRADIENT,
   } = options
 
   const centerLocal = options.center?.clone() ?? new THREE.Vector3(0, 0, 0)
   const sparkSize = Math.max(0.04, particle_base_size / 900)
+  const collapsedScale = new THREE.Vector3(0.001, 0.001, 0.001)
 
-  // --- Искры: InstancedMesh-стрики (всегда видны, в отличие от Points+Shader) ---
+  // --- Искры: InstancedMesh-стрики ---
   const sparkGeo = new THREE.BoxGeometry(sparkSize * 0.35, sparkSize * 0.35, sparkSize * particle_stretch)
   const sparkMat = new THREE.MeshBasicMaterial({
     color: 0xffffff,
@@ -162,7 +202,7 @@ export function createElementsCollapseAnimation(
     velocities[i * 3 + 2] = Math.cos(phi) * speed
     stretches[i] = 0.7 + Math.random() * particle_stretch
     birthTimes[i] = time
-    lifetimes[i] = 0.25 + Math.random() * 0.55
+    lifetimes[i] = 0.22 + Math.random() * 0.42
   }
 
   function writeSparkMatrix(i: number, opacityFade: number) {
@@ -182,8 +222,9 @@ export function createElementsCollapseAnimation(
     sparks.setMatrixAt(i, dummy.matrix)
   }
 
-  // --- Ядро / шоквейв (как в оригинале) ---
-  const glowTex = makeGlowTexture(core_gradient)
+  // --- Ядро / шоквейв ---
+  const glowAcq = acquireGlowTexture(core_gradient)
+  const glowTex = glowAcq.tex
   const glowMat = new THREE.SpriteMaterial({
     map: glowTex,
     color: 0xffffff,
@@ -216,7 +257,7 @@ export function createElementsCollapseAnimation(
   shockwaveFlash.renderOrder = 41
   parent.add(shockwaveFlash)
 
-  const coreGeo = new THREE.SphereGeometry(0.4, 28, 20)
+  const coreGeo = new THREE.SphereGeometry(0.4, 16, 12)
   const coreMat = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
@@ -231,7 +272,7 @@ export function createElementsCollapseAnimation(
   coreMesh.renderOrder = 39
   parent.add(coreMesh)
 
-  const ringGeo = new THREE.RingGeometry(0.55, 0.85, 48)
+  const ringGeo = new THREE.RingGeometry(0.55, 0.85, 32)
   const ringMat = new THREE.MeshBasicMaterial({
     color: 0xaaddff,
     transparent: true,
@@ -248,7 +289,7 @@ export function createElementsCollapseAnimation(
   ring.renderOrder = 38
   parent.add(ring)
 
-  const burstLight = new THREE.PointLight(0xaaddff, 0, 18, 2)
+  const burstLight = new THREE.PointLight(0xaaddff, 0, 16, 2)
   burstLight.position.copy(centerLocal)
   parent.add(burstLight)
 
@@ -290,13 +331,21 @@ export function createElementsCollapseAnimation(
   const holdEnd = burstEnd + hold_after_grow
   const fadeEnd = holdEnd + fade_out
   const collapseMaxScale = 0.22
-  /** Искры начинают сыпаться чуть раньше конца коллапса — взрыв не «пропадает». */
-  const earlySparkT = collapseEnd - Math.min(0.35, atom_collapse_time * 0.25)
+  const earlySparkT = collapseEnd - Math.min(0.28, atom_collapse_time * 0.25)
 
-  function dispose() {
+  function restoreAtoms() {
+    for (const data of atomData) {
+      data.obj.position.copy(data.startLocal)
+      data.obj.scale.copy(data.startScale)
+      data.obj.visible = true
+    }
+  }
+
+  function dispose(opts?: ElementsCollapseDisposeOpts) {
     if (disposed) return
     disposed = true
     finished = true
+    if (opts?.interrupted) restoreAtoms()
     parent.remove(sparks)
     parent.remove(glow)
     parent.remove(shockwaveFlash)
@@ -307,7 +356,7 @@ export function createElementsCollapseAnimation(
     sparkMat.dispose()
     glowMat.dispose()
     flashMat.dispose()
-    glowTex.dispose()
+    if (!glowAcq.shared) glowTex.dispose()
     coreGeo.dispose()
     coreMat.dispose()
     ringGeo.dispose()
@@ -316,7 +365,8 @@ export function createElementsCollapseAnimation(
 
   function tick(dtRaw: number): boolean {
     if (finished || disposed) return true
-    const dt = Math.min(0.05, Math.max(0.0005, dtRaw))
+    // Cap dt — после таба/stall не «перепрыгиваем» фазы одним кадром.
+    const dt = Math.min(0.033, Math.max(0.0005, dtRaw))
     elapsed += dt
 
     if (elapsed >= fadeEnd) {
@@ -343,7 +393,7 @@ export function createElementsCollapseAnimation(
           if (t < minAtomT) minAtomT = t
           const easeT = easeInOutCubic(t)
           data.obj.position.lerpVectors(data.startLocal, target, easeT)
-          data.obj.scale.lerpVectors(data.startScale, new THREE.Vector3(0.001, 0.001, 0.001), easeT)
+          data.obj.scale.lerpVectors(data.startScale, collapsedScale, easeT)
           data.obj.visible = true
         }
         if (minAtomT > 0.85) {
@@ -364,7 +414,7 @@ export function createElementsCollapseAnimation(
       spawnAccumulator += particles_per_sec * (0.15 + 0.95 * burstGrowT) * dt
       if (burstGrowT < 0.35) {
         const flashT = burstGrowT / 0.35
-        shockwaveFlash.scale.setScalar(22 * easeOutCubic(flashT))
+        shockwaveFlash.scale.setScalar(18 * easeOutCubic(flashT))
         flashMat.opacity = 1.0 - easeInOutCubic(flashT)
       } else {
         flashMat.opacity = 0
@@ -373,7 +423,7 @@ export function createElementsCollapseAnimation(
       phase = 'hold'
       spawning = true
       burstScale = end_scale
-      spawnAccumulator += particles_per_sec * 0.85 * dt
+      spawnAccumulator += particles_per_sec * 0.7 * dt
       flashMat.opacity = 0
     } else {
       phase = 'fadeout'
@@ -398,7 +448,6 @@ export function createElementsCollapseAnimation(
         if (spawning && phase !== 'fadeout') {
           resetParticle(i, elapsed)
         } else {
-          // «убить» — увести за кадр
           dummy.position.set(0, -999, 0)
           dummy.scale.setScalar(0.0001)
           dummy.updateMatrix()
@@ -431,7 +480,7 @@ export function createElementsCollapseAnimation(
     ringMat.opacity = Math.min(0.85, burstScale * 0.28) * fadeMul
     ring.rotation.z = elapsed * 1.2
 
-    burstLight.intensity = Math.min(8, burstScale * 2.4) * fadeMul
+    burstLight.intensity = Math.min(6.5, burstScale * 2.1) * fadeMul
     burstLight.color.set(0xaaddff)
 
     return false
@@ -449,19 +498,44 @@ export function createElementsCollapseAnimation(
   }
 }
 
-/** Всегда демо-качество; lowPower только слегка режет лимит искр. */
-export function resolveCollapseOptionsForDevice(lowPower: boolean): ElementsCollapseOptions {
-  if (lowPower) {
-    return {
-      ...COLLAPSE_DEMO_QUALITY,
-      particles_per_sec: 260,
-      max_particles: 900,
-      particle_base_size: 52,
-      particle_colors: [...COLLAPSE_DEMO_QUALITY.particle_colors],
+/** Lab FX: lowPower / dense режут искры и длительность (анти hitch / white-screen). */
+export function resolveCollapseOptionsForDevice(
+  lowPower: boolean,
+  densePreview = false,
+): ElementsCollapseOptions {
+  let opts: ElementsCollapseOptions = {
+    ...COLLAPSE_LAB_QUALITY,
+    particle_colors: [...COLLAPSE_LAB_QUALITY.particle_colors],
+  }
+
+  if (densePreview) {
+    opts = {
+      ...opts,
+      atom_collapse_time: 0.42,
+      atom_delay_max: 0.08,
+      burst_time: 0.38,
+      hold_after_grow: 0.1,
+      fade_out: 0.26,
+      end_scale: 2.0,
+      particles_per_sec: 95,
+      max_particles: 200,
+      particle_base_size: 42,
+      particle_speed: 12,
     }
   }
-  return {
-    ...COLLAPSE_DEMO_QUALITY,
-    particle_colors: [...COLLAPSE_DEMO_QUALITY.particle_colors],
+
+  if (lowPower) {
+    opts = {
+      ...opts,
+      particles_per_sec: Math.min(opts.particles_per_sec ?? 160, 80),
+      max_particles: Math.min(opts.max_particles ?? 380, 160),
+      particle_base_size: 40,
+      burst_time: Math.min(opts.burst_time ?? 0.48, 0.34),
+      hold_after_grow: Math.min(opts.hold_after_grow ?? 0.14, 0.1),
+      fade_out: Math.min(opts.fade_out ?? 0.32, 0.22),
+      end_scale: Math.min(opts.end_scale ?? 2.35, 1.85),
+    }
   }
+
+  return opts
 }

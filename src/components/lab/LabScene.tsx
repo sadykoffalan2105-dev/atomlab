@@ -522,11 +522,14 @@ function SceneContent({
     if (currentSynthRunIdForCollapse > 0) {
       collapseDoneRunIdRef.current = currentSynthRunIdForCollapse
     }
-    setCollapseRev((n) => n + 1)
+    // Критичные флаги слота — синхронно (иначе 1–2 пустых кадра между FX и молекулой).
     setForceProductSlot(true)
     setProductRevealReady(true)
     setEarlyProductReveal(true)
-    setAllowIdleProductPrewarm(true)
+    startTransition(() => {
+      setCollapseRev((n) => n + 1)
+      setAllowIdleProductPrewarm(true)
+    })
     synthesis?.onPhaseChange?.('mergeFlash', 0.85)
     invalidate()
   }, [currentSynthRunIdForCollapse, synthesis, invalidate])
@@ -639,7 +642,8 @@ function SceneContent({
     })
 
   const preSynthesisPreview = !synthesisRunActive && !synthActive && !showSettledHero
-  const warmupPaused = !reactorGpuIdleReady || reactorCoeffEditBurst
+  const warmupPaused =
+    !reactorGpuIdleReady || reactorCoeffEditBurst || synthActive || elementsCollapsePlaying
 
   /** Всегда держим shell смонтированным при terms — иначе +/- после синтеза = cold remount Bohr. */
   const mountReactorPreview =
@@ -1723,9 +1727,10 @@ function SceneContent({
       const now = performance.now()
       const levelChanged = synthQualityLevel !== nextLevel
       const downgrade = nextLevel < synthQualityLevel
-      // Во время +/- не трогаем React quality — remount/hitch Bohr.
+      // Во время +/- / collapse FX не трогаем React quality — remount/hitch Bohr.
       if (
         !coeffEditingActive &&
+        !elementsCollapsePlaying &&
         levelChanged &&
         (downgrade || now - qualityUiThrottleRef.current > 480)
       ) {
@@ -1778,6 +1783,7 @@ function SceneContent({
             // В реакторе всегда lite Stars — full 900 + Bohr/молекула = hitch / white-screen.
             true
           }
+          frozen={synthActive || synthesisRunActive || elementsCollapsePlaying}
         />
       ) : null}
       {reactorBackdrop ? <LabReactorLights /> : null}

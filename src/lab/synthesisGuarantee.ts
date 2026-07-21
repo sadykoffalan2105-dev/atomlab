@@ -14,7 +14,8 @@ import type { CompoundDef } from '../types/chemistry'
  * пользователь всегда должен увидеть 3D-продукт из каталога (CatalogSubstanceDisplay /
  * SynthesisSettledProductHero) — тот же CompoundDef, что в каталоге веществ.
  */
-export const SYNTHESIS_WATCHDOG_MS = 4500
+/** Нижняя граница; фактический бюджет — getSynthesisWatchdogMs (collapse + paint). */
+export const SYNTHESIS_WATCHDOG_MS = 5200
 
 /** Таймаут гарантии успеха под длительность космического «запуска». */
 export function getSynthesisWatchdogMs(
