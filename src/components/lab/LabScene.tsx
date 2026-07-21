@@ -1435,7 +1435,7 @@ function SceneContent({
       paintedForRunIdRef.current = 0
       setProductPainted(false)
     }
-    if (rescue.forceBohrRootVisible && previewRootRef.current) {
+    if (rescue.forceBohrRootVisible && !productScreenOk && previewRootRef.current) {
       previewRootRef.current.visible = true
     }
     if (rescue.forceProductFullScale) {
@@ -1448,8 +1448,10 @@ function SceneContent({
     }
 
     // Порог emptyCenterRescueFrames: дополнительный nudge если центр пуст.
+    // Не restore Bohr, если молекула уже full-scale на экране.
     const centerOk = isCenterCovered({
       bohrVisible:
+        !productScreenOk &&
         (reactorPreviewVisible || rescue.forceBohrRootVisible) &&
         (previewRootRef.current?.visible !== false),
       bohrMounted: reactorPreviewMounted,
@@ -1457,7 +1459,7 @@ function SceneContent({
       productPrewarm: productPrewarmResolved,
     })
     if (emptyCenterCounterRef.current.tick(centerOk)) {
-      if (rescue.keepBohrUntilPaint && previewRootRef.current) {
+      if (!productScreenOk && rescue.keepBohrUntilPaint && previewRootRef.current) {
         previewRootRef.current.visible = true
       }
       if ((showSettledHero || synthActive || synthesisRunActive) && productRootGroupRef.current) {
@@ -1493,6 +1495,9 @@ function SceneContent({
       (!showSettledHero || coeffEditingActive || rescue.keepBohrUntilPaint)
     if (mustShowBohr && previewRootRef.current) {
       previewRootRef.current.visible = true
+    } else if (productScreenOkForHide && previewRootRef.current && !coeffEditingActive) {
+      // Молекула владеет экраном — не restore Bohr (иначе хаос орбит поверх K₂Cr₂O₇).
+      previewRootRef.current.visible = false
     } else if (
       reactorViewOpen &&
       (synthesisRunActive || synthActive) &&
@@ -1606,7 +1611,15 @@ function SceneContent({
       <LabSceneClearSync reactorMode={reactorViewOpen} />
       {/* Не pin'им clear каждый кадр при +/-: это даёт синий кадр без звёзд при hitch. */}
       {reactorBackdrop ? <LabReactorClearColor /> : null}
-      {reactorBackdrop ? <LabSynthesisCosmicBackdrop /> : null}
+      {reactorBackdrop ? (
+        <LabSynthesisCosmicBackdrop
+          lite={
+            showSettledHero ||
+            lowPowerProfile.forceLiteReactor ||
+            lowPowerProfile.isMobileSoc
+          }
+        />
+      ) : null}
       {reactorBackdrop ? <LabReactorLights /> : null}
       {reactorViewOpen ? (
         <ReactorSceneWarmup reactorOpen={reactorViewOpen} paused={warmupPaused} />

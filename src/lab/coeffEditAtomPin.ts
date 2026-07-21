@@ -35,6 +35,27 @@ export function shouldHardPinCoeffEditAtoms(opts: {
 }
 
 /**
+ * React/THREE visible для корня Bohr.
+ * После синтеза (visible=false) — скрыть, даже если terms ещё в уравнении.
+ * Edit/pre-synth — всегда показать.
+ */
+export function resolveBohrReactVisible(opts: {
+  visible: boolean
+  previewOnlyMode: boolean
+  coeffEditing: boolean
+  synthHoldPreview: boolean
+  atomsOnScreen: boolean
+  hasActiveTerms: boolean
+  stickySlotCount: number
+}): boolean {
+  const hold =
+    opts.previewOnlyMode || opts.coeffEditing || opts.synthHoldPreview
+  if (hold) return true
+  if (!opts.visible) return false
+  return opts.atomsOnScreen || opts.hasActiveTerms || opts.stickySlotCount > 0
+}
+
+/**
  * Каждый кадр: root + все активные слоты visible=true, scale = floor.
  * Без порога 0.45 — иначе collapse 0.06 / mid-tween оставляют «пустой» центр.
  */

@@ -48,17 +48,15 @@ export function CatalogSubstanceDisplay({
   const sparkleHex = compound.accentColor ?? '#3dffec'
 
   if (labSynthesisScene) {
+    // Чистая молекула без aura-колец — иначе после синтеза «орбиты» как у Bohr.
     return (
-      <>
-        <SubstanceAuraBubble accentColor={compound.accentColor} compoundId={compound.id} />
-        <HeroMoleculeRig
-          compound={compound}
-          labScaleBoost={labScaleBoost}
-          renderQuality="synthesis"
-          fxLevel="off"
-          chaoticWobble={chaoticWobble}
-        />
-      </>
+      <HeroMoleculeRig
+        compound={compound}
+        labScaleBoost={labScaleBoost}
+        renderQuality="synthesis"
+        fxLevel="off"
+        chaoticWobble={chaoticWobble}
+      />
     )
   }
 

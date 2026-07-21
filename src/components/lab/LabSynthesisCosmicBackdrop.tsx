@@ -7,19 +7,25 @@ export const LAB_COSMIC_BG = '#0a0c18'
 /**
  * Фон реактора: звёздное небо.
  * memo + без fade — при hitch +/- кадры не «съедают» звёзды в сплошной синий clear.
+ * settled / lowPower — меньше Stars (слабые ПК + чистый кадр продукта).
  */
-export const LabSynthesisCosmicBackdrop = memo(function LabSynthesisCosmicBackdrop() {
+export const LabSynthesisCosmicBackdrop = memo(function LabSynthesisCosmicBackdrop({
+  lite = false,
+}: {
+  lite?: boolean
+}) {
+  const count = lite ? 280 : 900
   return (
     <>
       <color attach="background" args={[LAB_COSMIC_BG]} />
       <Stars
         radius={120}
         depth={70}
-        count={900}
-        factor={3.2}
+        count={count}
+        factor={lite ? 2.4 : 3.2}
         saturation={0.12}
         fade={false}
-        speed={0.35}
+        speed={lite ? 0.2 : 0.35}
       />
     </>
   )

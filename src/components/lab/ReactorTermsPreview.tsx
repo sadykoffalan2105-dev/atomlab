@@ -41,6 +41,7 @@ import {
 import {
   pinCoeffEditAtomsHard,
   shouldHardPinCoeffEditAtoms,
+  resolveBohrReactVisible,
 } from '../../lab/coeffEditAtomPin'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
@@ -341,6 +342,7 @@ export function ReactorTermsPreview({
     atomsOnScreen,
     holdPreview,
     hasActiveTerms: frame.hasActiveTerms,
+    parentVisible: Boolean(visible),
   })
   const posRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
   const scaleRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
@@ -353,16 +355,19 @@ export function ReactorTermsPreview({
           atomGroupRefs.current[i] = el
           if (!el) return
           const ls = layoutStateRef.current
-          const keep =
-            ls.holdPreview ||
-            ls.hasActiveTerms ||
-            (i < ls.stickySlotCount && (ls.atomsOnScreen || ls.holdPreview))
-          if (keep) {
+          const hold = ls.holdPreview
+          const show =
+            (hold || ls.parentVisible) &&
+            i < ls.stickySlotCount &&
+            (ls.atomsOnScreen || hold || ls.hasActiveTerms)
+          if (show) {
             el.visible = true
             const atom = ls.renderAtoms[i] ?? ls.shellAtoms[i]
-            if (atom && !ls.externalAtomControl && i < ls.stickySlotCount) {
+            if (atom && !ls.externalAtomControl) {
               el.position.set(atom.pos[0], atom.pos[1], atom.pos[2])
             }
+          } else if (!hold && !ls.parentVisible) {
+            el.visible = false
           }
         }
         posRefSettersRef.current[i] = cb
@@ -380,15 +385,18 @@ export function ReactorTermsPreview({
           atomScaleGroupRefs.current[i] = el
           if (!el) return
           const ls = layoutStateRef.current
-          const keep =
-            ls.holdPreview ||
-            ls.hasActiveTerms ||
-            (i < ls.stickySlotCount && (ls.atomsOnScreen || ls.holdPreview))
-          if (keep) {
+          const hold = ls.holdPreview
+          const show =
+            (hold || ls.parentVisible) &&
+            i < ls.stickySlotCount &&
+            (ls.atomsOnScreen || hold || ls.hasActiveTerms)
+          if (show) {
             el.visible = true
-            if (!ls.externalAtomControl && i < ls.stickySlotCount) {
+            if (!ls.externalAtomControl) {
               el.scale.set(ls.scale, ls.scale, ls.scale)
             }
+          } else if (!hold && !ls.parentVisible) {
+            el.visible = false
           }
         }
         scaleRefSettersRef.current[i] = cb
@@ -409,6 +417,7 @@ export function ReactorTermsPreview({
     atomsOnScreen,
     holdPreview,
     hasActiveTerms: frame.hasActiveTerms,
+    parentVisible: Boolean(visible),
   }
 
   useEffect(() => {
@@ -457,28 +466,36 @@ export function ReactorTermsPreview({
   useFrame((s) => {
     const root = groupRef.current
     /**
-     * КРИТИЧНО: во время pre-synth / coeff-edit НИКОГДА не массово гасим слоты.
-     * Hard-pin каждый кадр: visible + полный scale (collapse 0.06 больше не «съедает» атомы).
+     * holdAtoms = edit / pre-synth / synth-hold → pin.
+     * visible=false (product owns screen) → Bohr СКРЫТ, даже если terms ещё в уравнении.
+     * Иначе после синтеза 22 Bohr + молекула = хаос орбит (баг со скрина K₂Cr₂O₇).
      */
     const holdAtoms = previewOnlyMode || coeffEditing || synthHoldPreview
-    const hardPin = shouldHardPinCoeffEditAtoms({
-      coeffEditing,
-      previewOnlyMode,
-      synthHoldPreview,
-      hasActiveTerms: frame.hasActiveTerms || stickySlotCount > 0,
-      synthLive: false,
-    })
+    const productOwnsScreen = !visible && !holdAtoms
+    const hardPin =
+      !productOwnsScreen &&
+      shouldHardPinCoeffEditAtoms({
+        coeffEditing,
+        previewOnlyMode,
+        synthHoldPreview,
+        hasActiveTerms: frame.hasActiveTerms || stickySlotCount > 0,
+        synthLive: false,
+      })
 
-    if (!atomsOnScreen && !holdAtoms && !frame.hasActiveTerms) {
-      // Только если уравнение реально пустое — иначе корень всегда виден.
-      if (root && !frame.hasActiveTerms && stickySlotCount <= 0) root.visible = false
+    if (productOwnsScreen) {
+      if (root) root.visible = false
       return
     }
-    if (holdAtoms || frame.hasActiveTerms || hardPin) {
+
+    if (!atomsOnScreen && !holdAtoms && !frame.hasActiveTerms) {
+      if (root) root.visible = false
+      return
+    }
+    if (holdAtoms || hardPin || Boolean(visible)) {
       if (root && !root.visible) root.visible = true
     }
 
-    // Жёсткий pin каждый кадр — без порога scale, убивает «пропали при +/-».
+    // Жёсткий pin каждый кадр — только пока Bohr должен быть на экране.
     if ((holdAtoms || hardPin) && !externalAtomControl) {
       pinCoeffEditAtomsHard({
         slotCount: Math.max(stickySlotCount, n, shellAtoms.length, frame.hasActiveTerms ? 1 : 0),
@@ -497,7 +514,7 @@ export function ReactorTermsPreview({
         visibilityGuardEvery: Math.max(tickPolicy.visibilityGuardEvery, holdAtoms ? 6 : 2),
       },
       slotCount: stickySlotCount,
-      groupVisible: atomsOnScreen || holdAtoms || hardPin,
+      groupVisible: !productOwnsScreen && (atomsOnScreen || holdAtoms || hardPin),
       flightActive: externalAtomControl,
       layoutPending,
       layoutScale: scale,
@@ -511,7 +528,7 @@ export function ReactorTermsPreview({
       onRecoverLayout: syncLayout,
     })
 
-    if (externalAtomControl || n === 0) return
+    if (externalAtomControl || n === 0 || productOwnsScreen) return
     const t = s.clock.elapsedTime
     if (root && slowSpin) root.rotation.y = t * (n > 18 ? 0.032 : 0.04)
 
@@ -540,8 +557,14 @@ export function ReactorTermsPreview({
   useLayoutEffect(() => {
     const g = groupRef.current
     if (!g) return
-    // Pre-synth: НИКОГДА не гасим детей — continuity/product false давал залипший hide.
-    if (previewOnlyMode || coeffEditing) {
+    const holdAtoms = previewOnlyMode || coeffEditing || synthHoldPreview
+    // Product owns screen: hide Bohr root (shell stays mounted for next +/-).
+    if (!visible && !holdAtoms) {
+      g.visible = false
+      return
+    }
+    // Pre-synth / edit: НИКОГДА не гасим детей.
+    if (holdAtoms) {
       g.visible = true
       if (!externalAtomControl && stickySlotCount > 0) {
         shieldForceShowActiveSlots({
@@ -563,15 +586,12 @@ export function ReactorTermsPreview({
       }
       return
     }
-    // После синтеза / productOwnsScreen: только корень. Массовый hide слотов
-    // залипал в THREE и переживал React visible=true → пустой starfield.
-    // НИКОГДА не гасим корень, пока уравнение активно.
     if (!atomsOnScreen && !frame.hasActiveTerms) {
       g.visible = false
       return
     }
-    g.visible = true
-    if (!externalAtomControl && n > 0) {
+    g.visible = Boolean(visible)
+    if (visible && !externalAtomControl && n > 0) {
       shieldForceShowActiveSlots({
         slotCount: n,
         root: g,
@@ -592,6 +612,8 @@ export function ReactorTermsPreview({
   }, [
     previewOnlyMode,
     coeffEditing,
+    synthHoldPreview,
+    visible,
     atomsOnScreen,
     effectiveGroupVisible,
     externalAtomControl,
@@ -657,9 +679,19 @@ export function ReactorTermsPreview({
     deviceTier: getSynthesisDeviceTier(),
     lowPower,
   })
-  const editLocalLight = !sharedLighting && (atomsOnScreen || holdPreview || frame.hasActiveTerms)
-  // Пока есть реагенты — React visible ВСЕГДА true (не даём JSX override pin).
-  const reactGroupVisible = atomsOnScreen || holdPreview || frame.hasActiveTerms || stickySlotCount > 0
+  const holdAtomsUi = previewOnlyMode || coeffEditing || synthHoldPreview
+  /** Product owns screen → скрыть Bohr. Edit/pre-synth → всегда показать. */
+  const reactGroupVisible = resolveBohrReactVisible({
+    visible: Boolean(visible),
+    previewOnlyMode,
+    coeffEditing,
+    synthHoldPreview,
+    atomsOnScreen,
+    hasActiveTerms: frame.hasActiveTerms,
+    stickySlotCount,
+  })
+  const editLocalLight = !sharedLighting && reactGroupVisible
+  const bohrAnimate = forceElectronMotion && reactGroupVisible && holdAtomsUi
 
   return (
     <group
@@ -681,27 +713,22 @@ export function ReactorTermsPreview({
         const incomingZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
         if (atom != null) engineRef.current.slotZ[i] = incomingZ
         const slotZ = engineRef.current.slotZ[i] ?? incomingZ
-        // Уже смонтированные слоты всегда visible в hold — нет «дыры» при росте.
         const slotVisible =
+          reactGroupVisible &&
           i < stickySlotCount &&
-          (atomsOnScreen || holdPreview || frame.hasActiveTerms) &&
           i < mountBohrCount
         return (
-          <group key={`slot-${i}`} visible={slotVisible || (holdPreview && i < stickySlotCount)} ref={getPosRef(i)}>
-            <group
-              scale={scale}
-              visible={slotVisible || (holdPreview && i < stickySlotCount)}
-              ref={getScaleRef(i)}
-            >
+          <group key={`slot-${i}`} visible={slotVisible} ref={getPosRef(i)}>
+            <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
               <ReactorPreviewAtomSlot
                 z={slotZ}
-                animate={forceElectronMotion && (atomsOnScreen || holdPreview || frame.hasActiveTerms)}
-                previewStatic={false}
+                animate={bohrAnimate && slotVisible}
+                previewStatic={!holdAtomsUi}
                 useFullDetail={false}
                 synthesisGlass={false}
-                previewLite={false}
+                previewLite={lowPower || !holdAtomsUi}
                 electronFrameSkip={editSkip}
-                hideOrbitRings={false}
+                hideOrbitRings={!holdAtomsUi}
                 localLight={editLocalLight}
               />
             </group>

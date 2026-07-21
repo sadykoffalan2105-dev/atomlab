@@ -7,6 +7,7 @@ import assert from 'node:assert/strict'
 import {
   pinCoeffEditAtomsHard,
   shouldHardPinCoeffEditAtoms,
+  resolveBohrReactVisible,
 } from '../src/lab/coeffEditAtomPin.ts'
 
 {
@@ -50,6 +51,49 @@ import {
       synthLive: false,
     }),
     false,
+  )
+}
+
+{
+  // После синтеза: terms ещё есть, visible=false → Bohr скрыт (баг хаоса орбит).
+  assert.equal(
+    resolveBohrReactVisible({
+      visible: false,
+      previewOnlyMode: false,
+      coeffEditing: false,
+      synthHoldPreview: false,
+      atomsOnScreen: false,
+      hasActiveTerms: true,
+      stickySlotCount: 22,
+    }),
+    false,
+    'settled product owns screen: hide Bohr despite terms',
+  )
+  assert.equal(
+    resolveBohrReactVisible({
+      visible: true,
+      previewOnlyMode: true,
+      coeffEditing: false,
+      synthHoldPreview: false,
+      atomsOnScreen: true,
+      hasActiveTerms: true,
+      stickySlotCount: 15,
+    }),
+    true,
+    'pre-synth: show Bohr',
+  )
+  assert.equal(
+    resolveBohrReactVisible({
+      visible: false,
+      previewOnlyMode: false,
+      coeffEditing: true,
+      synthHoldPreview: false,
+      atomsOnScreen: false,
+      hasActiveTerms: true,
+      stickySlotCount: 15,
+    }),
+    true,
+    'coeff edit: show Bohr even if visible prop false',
   )
 }
 
