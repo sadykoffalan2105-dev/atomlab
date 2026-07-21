@@ -657,6 +657,17 @@ function SceneContent({
     paintedForRunId: paintedForRunIdRef.current,
     showSettledHero,
   })
+  /**
+   * Collapse FX + handoff до paint: не pin Bohr (иначе вспышка атомов / white hitch).
+   * Для всех продуктов — не зависит от compoundId.
+   */
+  const suppressBohrPinForCollapseHandoff =
+    elementsCollapsePlaying ||
+    (synthActive &&
+      instantSynthesis &&
+      currentSynthRunId > 0 &&
+      collapseDoneRunIdRef.current === currentSynthRunId &&
+      !effectiveProductPainted)
 
   const continuity = useMemo(
     () =>
@@ -727,11 +738,13 @@ function SceneContent({
   })
 
   const previewMotionLocked = false
-  /** mergeFlash не flight: pin слотов до paint, иначе атомы уезжают в пустоту.
-   *  Instant-коллапс тоже external control — иначе pinCoeff срывает lerp. */
+  /** mergeFlash не flight: pin слотов до paint.
+   *  Collapse + handoff: externalAtomControl — иначе pinCoeff срывает lerp / вспышку Bohr. */
   const previewFlightActive =
-    (synthLive && (synthesisPhase === 'converge' || synthesisPhase === 'flying')) ||
-    elementsCollapsePlaying
+    suppressBohrPinForCollapseHandoff ||
+    (synthLive &&
+      !suppressBohrPinForCollapseHandoff &&
+      (synthesisPhase === 'converge' || synthesisPhase === 'flying'))
   const previewPoseLocked = synthesisRunActive && !synthActive
   if (previewAtomCount > 8) editLiteLatchRef.current = true
   else if (
@@ -1031,17 +1044,23 @@ function SceneContent({
       paintedForRunIdRef.current = 0
       productPaintFramesRef.current = 0
       setProductPainted(false)
-      setForceProductSlot(true)
-      setEarlyProductReveal(true)
+      // Instant collapse: не форсим product до конца FX (анти white hitch).
+      if (!(instantSynthesis && elementsCollapsePlaying)) {
+        setForceProductSlot(true)
+        setEarlyProductReveal(true)
+      } else {
+        setForceProductSlot(false)
+        setEarlyProductReveal(false)
+      }
       restorePreviewRootVisibility()
-      // Не ставим reveal сразу: ждём GPU, иначе Bohr скрывается до молекулы.
       const productId = synthesis?.product?.id
       const gpuReadyNow =
         productId != null &&
         (isProductGpuCompiled(productId) ||
           ((prewarmReadyRef.current || prewarmReady) && prewarmCompoundIdRef.current === productId))
-      // Instant тоже ждёт GPU — иначе чёрный кадр на cold compile.
-      setProductRevealReady(Boolean(gpuReadyNow))
+      setProductRevealReady(
+        Boolean(gpuReadyNow) && !(instantSynthesis && elementsCollapsePlaying),
+      )
       return
     }
     const productId = synthesis?.product?.id
@@ -1050,14 +1069,26 @@ function SceneContent({
       ((prewarmReadyRef.current || prewarmReady) &&
         prewarmCompoundIdRef.current === productId)
     if (gpuReady || (productId != null && isProductGpuCompiled(productId))) {
-      setProductRevealReady(true)
+      if (!(instantSynthesis && elementsCollapsePlaying)) {
+        setProductRevealReady(true)
+      }
       return
     }
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, synthesisRunActive, restorePreviewRootVisibility])
+  }, [
+    synthActive,
+    synthesis?.runId,
+    synthesis?.product?.id,
+    prewarmReady,
+    synthesisRunActive,
+    restorePreviewRootVisibility,
+    instantSynthesis,
+    elementsCollapsePlaying,
+  ])
 
   // Когда prewarm завершился уже во время синтеза — сразу показываем продукт.
   useEffect(() => {
     if (!synthActive || !synthesis?.runId || productRevealReady) return
+    if (elementsCollapsePlaying) return
     const productId = synthesis.product?.id
     if (productId == null) return
     if (
@@ -1066,12 +1097,19 @@ function SceneContent({
     ) {
       setProductRevealReady(true)
     }
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id, prewarmReady, productRevealReady])
+  }, [
+    synthActive,
+    synthesis?.runId,
+    synthesis?.product?.id,
+    prewarmReady,
+    productRevealReady,
+    elementsCollapsePlaying,
+  ])
 
-  // Fallback productReveal: не форсим на 1-м кадре (чёрный/красный).
-  // Ждём GPU; safety cap ~1.5с чтобы не зависать на слабых GPU.
+  // Fallback productReveal: не форсим во время collapse FX.
   useEffect(() => {
     if (!synthActive || !synthesis?.runId || productRevealReady) return
+    if (elementsCollapsePlaying) return
     const productId = synthesis.product?.id
     let frames = 0
     let raf = 0
@@ -1093,7 +1131,15 @@ function SceneContent({
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [synthActive, synthesis?.runId, synthesis?.product?.id, productRevealReady, instantSynthesis, instantSynthBudget.revealMaxFrames])
+  }, [
+    synthActive,
+    synthesis?.runId,
+    synthesis?.product?.id,
+    productRevealReady,
+    instantSynthesis,
+    instantSynthBudget.revealMaxFrames,
+    elementsCollapsePlaying,
+  ])
 
   useLayoutEffect(() => {
     if (!synthesis?.runId) return
@@ -1110,9 +1156,10 @@ function SceneContent({
 
   useLayoutEffect(() => {
     if (!synthActive || !synthesis?.runId) return
+    if (elementsCollapsePlaying) return
     setForceProductSlot(true)
     setEarlyProductReveal(true)
-  }, [synthActive, synthesis?.runId])
+  }, [synthActive, synthesis?.runId, elementsCollapsePlaying])
 
   useLayoutEffect(() => {
     if (synthActive || synthesisRunActive || showSettledHero) return
@@ -1484,7 +1531,7 @@ function SceneContent({
     if (
       reactorViewOpen &&
       !productScreenOk &&
-      !elementsCollapsePlaying &&
+      !suppressBohrPinForCollapseHandoff &&
       previewAtomCount > 0 &&
       (coeffEditingActive ||
         preSynthesisPreview ||
@@ -1535,7 +1582,7 @@ function SceneContent({
     // Порог emptyCenterRescueFrames: дополнительный nudge если центр пуст.
     // Не restore Bohr, если молекула уже full-scale на экране.
     const centerOk =
-      elementsCollapsePlaying ||
+      suppressBohrPinForCollapseHandoff ||
       isCenterCovered({
         bohrVisible:
           !productScreenOk &&
@@ -1571,7 +1618,7 @@ function SceneContent({
         )
         stuckRescueDoneRef.current = true
         if (previewRootRef.current) previewRootRef.current.visible = true
-        if (!elementsCollapsePlaying) {
+        if (!suppressBohrPinForCollapseHandoff) {
           pinCoeffEditAtomsHard({
             slotCount: previewAtomCount,
             layoutScale: reactorPreviewAtomScale(previewAtomCount),
@@ -1857,8 +1904,11 @@ function SceneContent({
           ) : null}
           {synthActive && synthesis && instantSynthesis && elementsCollapsePlaying ? (
             <SynthesisElementsCollapseFx
+              key={`collapse-${synthesis.runId}`}
+              runId={synthesis.runId}
               atomGroupRefs={previewAtomGroupRefs}
               atomCount={previewAtomCount}
+              densePreview={previewAtomCount >= 10}
               lowPower={
                 lowPowerProfile.forceLiteReactor ||
                 lowPowerProfile.isMobileSoc ||
