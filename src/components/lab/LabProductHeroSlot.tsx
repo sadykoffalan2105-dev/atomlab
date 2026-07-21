@@ -39,6 +39,8 @@ export function LabProductHeroSlot({
   onProductVisiblePaint,
   /** Внешний ref на корень — LabScene forceProductFullScale. */
   rootGroupRef,
+  /** Рождение из круга: молекула поверх glow (иначе спрятана под вспышкой). */
+  emergeFromGlow = false,
 }: {
   compound: CompoundDef
   visible: boolean
@@ -51,6 +53,7 @@ export function LabProductHeroSlot({
   onGpuCompiled?: (compoundId: string) => void
   onProductVisiblePaint?: () => void
   rootGroupRef?: MutableRefObject<THREE.Group | null>
+  emergeFromGlow?: boolean
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const spinRef = useRef<THREE.Group>(null)
@@ -403,17 +406,21 @@ export function LabProductHeroSlot({
       const tl = gsap.timeline({
         onUpdate: () => invalidate(),
       })
-      // Рождение из центрального круга: micro → overshoot → settle + лёгкий spin.
+      // Из круга: сначала медленно «проклёвывается», потом раскрывается.
       tl.to(
         g.scale,
-        { x: 1.14, y: 1.14, z: 1.14, duration: dur * 0.7, ease: 'power3.out' },
+        { x: 0.28, y: 0.28, z: 0.28, duration: dur * 0.22, ease: 'power2.out' },
         0,
       )
-      tl.to(g.scale, { x: 1, y: 1, z: 1, duration: dur * 0.3, ease: 'power2.inOut' })
+      tl.to(
+        g.scale,
+        { x: 1.12, y: 1.12, z: 1.12, duration: dur * 0.5, ease: 'power3.out' },
+      )
+      tl.to(g.scale, { x: 1, y: 1, z: 1, duration: dur * 0.28, ease: 'power2.inOut' })
       if (spin && birthEntrance) {
         tl.to(
           spin.rotation,
-          { y: Math.PI * 0.42, duration: dur, ease: 'power2.out' },
+          { y: Math.PI * 0.55, duration: dur, ease: 'power2.out' },
           0,
         )
       }
@@ -453,7 +460,14 @@ export function LabProductHeroSlot({
           />
         </>
       ) : null}
-      <group ref={groupRef} position={[0, 0, 0]} visible frustumCulled={false} renderOrder={8}>
+      <group
+        ref={groupRef}
+        position={[0, 0, 0]}
+        visible
+        frustumCulled={false}
+        // Поверх glow/ring (35–42), чтобы молекула «выходила» из круга, а не пряталась под ним.
+        renderOrder={emergeFromGlow ? 55 : 8}
+      >
         <group ref={spinRef}>
           <CatalogSubstanceDisplay
             compound={compound}

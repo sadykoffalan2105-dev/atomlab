@@ -21,9 +21,9 @@ import { synthesisLaunchWatchdogMs } from '../src/lab/synthesisLaunchTiming.ts'
 
 {
   const lab = estimateCollapseDurationSec()
-  assert.ok(lab > 1.5 && lab < 2.3, `lab duration ~1.85s, got ${lab}`)
+  assert.ok(lab > 1.8 && lab < 2.6, `lab duration ~2.2s, got ${lab}`)
   assert.ok(COLLAPSE_LAB_QUALITY.max_particles <= 420)
-  assert.ok(PRODUCT_BIRTH_FROM_COLLAPSE_SEC > 0.4 && PRODUCT_BIRTH_FROM_COLLAPSE_SEC < 1)
+  assert.ok(PRODUCT_BIRTH_FROM_COLLAPSE_SEC > 0.7 && PRODUCT_BIRTH_FROM_COLLAPSE_SEC < 1.2)
 }
 
 {

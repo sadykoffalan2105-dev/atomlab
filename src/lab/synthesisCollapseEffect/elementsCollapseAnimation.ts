@@ -53,7 +53,9 @@ export type ElementsCollapseController = {
   dispose: (opts?: ElementsCollapseDisposeOpts) => void
   readonly done: boolean
   readonly phase: string
-  /** true с начала fadeout — пора «рождать» молекулу из круга. */
+  /** Burst стартовал — можно греть GPU молекулы (micro) внутри круга. */
+  readonly embryoReady: boolean
+  /** Hold/пик свечения — молекула растёт из круга (видимое рождение). */
   readonly birthReady: boolean
 }
 
@@ -150,27 +152,27 @@ export const COLLAPSE_DEMO_QUALITY = {
  * ~1.56 с вместо ~4.5 с; ≤380 искр вместо 1600.
  */
 /**
- * Lab-профиль: чуть дольше hold/fade — круг «рождает» молекулу, цвет из accent.
- * ~1.85 с; ≤400 искр.
+ * Lab-профиль: hold/fade длиннее — молекула рождается ИЗ круга, пока он ещё светит.
+ * ~2.1 с; ≤400 искр.
  */
 export const COLLAPSE_LAB_QUALITY = {
-  atom_collapse_time: 0.55,
-  atom_delay_max: 0.1,
-  burst_time: 0.52,
-  hold_after_grow: 0.22,
-  fade_out: 0.46,
-  end_scale: 2.55,
-  particles_per_sec: 170,
-  max_particles: 400,
-  particle_base_size: 52,
-  particle_speed: 13.5,
-  particle_stretch: 2.7,
+  atom_collapse_time: 0.5,
+  atom_delay_max: 0.09,
+  burst_time: 0.48,
+  hold_after_grow: 0.38,
+  fade_out: 0.78,
+  end_scale: 2.45,
+  particles_per_sec: 155,
+  max_particles: 360,
+  particle_base_size: 50,
+  particle_speed: 13,
+  particle_stretch: 2.6,
   particle_colors: [0xffffff, 0xaaddff, 0x4488ff, 0xffaa00, 0xffffff] as number[],
   core_gradient: DEFAULT_GRADIENT,
 }
 
-/** Длительность GSAP-рождения молекулы из центрального круга. */
-export const PRODUCT_BIRTH_FROM_COLLAPSE_SEC = 0.62
+/** GSAP-рождение молекулы — совпадает с hold+fade круга. */
+export const PRODUCT_BIRTH_FROM_COLLAPSE_SEC = 0.95
 
 export function estimateCollapseDurationSec(opts: ElementsCollapseOptions = {}): number {
   const d = { ...COLLAPSE_LAB_QUALITY, ...opts }
@@ -412,6 +414,7 @@ export function createElementsCollapseAnimation(
   let phase: 'collapse' | 'burst' | 'hold' | 'fadeout' = 'collapse'
   let finished = false
   let disposed = false
+  let embryoReady = false
   let birthReady = false
 
   const collapseEnd = atom_collapse_time + atom_delay_max
@@ -420,8 +423,10 @@ export function createElementsCollapseAnimation(
   const fadeEnd = holdEnd + fade_out
   const collapseMaxScale = 0.22
   const earlySparkT = collapseEnd - Math.min(0.28, atom_collapse_time * 0.25)
-  /** Молекула рождается чуть раньше конца hold — из яркого круга. */
-  const birthAt = holdEnd - Math.min(0.08, hold_after_grow * 0.35)
+  /** Micro-молекула внутри круга — как только burst начался (GPU warm). */
+  const embryoAt = collapseEnd
+  /** Видимое рождение — на пике круга (середина burst → hold). */
+  const birthAt = collapseEnd + burst_time * 0.55
 
   function restoreAtoms() {
     for (const data of atomData) {
@@ -459,6 +464,7 @@ export function createElementsCollapseAnimation(
     const dt = Math.min(0.033, Math.max(0.0005, dtRaw))
     elapsed += dt
 
+    if (elapsed >= embryoAt) embryoReady = true
     if (elapsed >= birthAt) birthReady = true
 
     if (elapsed >= fadeEnd) {
@@ -515,14 +521,20 @@ export function createElementsCollapseAnimation(
       phase = 'hold'
       spawning = true
       burstScale = end_scale
-      spawnAccumulator += particles_per_sec * 0.7 * dt
+      // После birthReady круг чуть сжимается — молекула «выходит» из ядра.
+      if (birthReady) {
+        const holdT = clamp01((elapsed - birthAt) / Math.max(0.01, holdEnd - birthAt))
+        burstScale = end_scale * (1 - 0.22 * easeOutCubic(holdT))
+      }
+      spawnAccumulator += particles_per_sec * 0.55 * dt
       flashMat.opacity = 0
     } else {
       phase = 'fadeout'
       birthReady = true
       const fadeT = clamp01((elapsed - holdEnd) / fade_out)
       fadeMul = 1 - easeInOutCubic(fadeT)
-      burstScale = end_scale * fadeMul
+      // Круг уходит быстрее в центре — молекула остаётся в кадре как единое целое.
+      burstScale = end_scale * 0.78 * fadeMul
       flashMat.opacity = 0
     }
 
@@ -562,18 +574,20 @@ export function createElementsCollapseAnimation(
 
     const glowScalar = Math.max(0.0001, 5.5 * Math.max(burstScale, 0.001))
     glow.scale.setScalar(glowScalar)
-    glowMat.opacity = Math.min(1, Math.max(burstScale, 0) * 0.9) * fadeMul
+    // После birth круг чуть прозрачнее — молекула видна «внутри» свечения.
+    const glowCap = birthReady ? 0.62 : 0.9
+    glowMat.opacity = Math.min(1, Math.max(burstScale, 0) * glowCap) * fadeMul
 
     coreMesh.scale.setScalar(Math.max(0.001, 0.35 + burstScale * 0.7))
-    coreMat.opacity = Math.min(1, 0.2 + burstScale * 0.35) * fadeMul
+    coreMat.opacity = Math.min(1, (birthReady ? 0.12 : 0.2) + burstScale * (birthReady ? 0.22 : 0.35)) * fadeMul
     coreMat.color.copy(burstScale > 1.15 ? coreHot : coreSoft)
 
     const ringS = Math.max(0.001, 0.4 + burstScale * 1.15)
     ring.scale.set(ringS, ringS, ringS)
-    ringMat.opacity = Math.min(0.85, burstScale * 0.28) * fadeMul
+    ringMat.opacity = Math.min(0.85, burstScale * (birthReady ? 0.18 : 0.28)) * fadeMul
     ring.rotation.z = elapsed * 1.2
 
-    burstLight.intensity = Math.min(6.5, burstScale * 2.1) * fadeMul
+    burstLight.intensity = Math.min(6.5, burstScale * (birthReady ? 1.4 : 2.1)) * fadeMul
     burstLight.color.copy(lightCol)
 
     return false
@@ -587,6 +601,9 @@ export function createElementsCollapseAnimation(
     },
     get phase() {
       return phase
+    },
+    get embryoReady() {
+      return embryoReady
     },
     get birthReady() {
       return birthReady
@@ -607,14 +624,14 @@ export function resolveCollapseOptionsForDevice(
   if (densePreview) {
     opts = {
       ...opts,
-      atom_collapse_time: 0.45,
+      atom_collapse_time: 0.42,
       atom_delay_max: 0.08,
       burst_time: 0.4,
-      hold_after_grow: 0.14,
-      fade_out: 0.36,
-      end_scale: 2.15,
-      particles_per_sec: 100,
-      max_particles: 220,
+      hold_after_grow: 0.28,
+      fade_out: 0.62,
+      end_scale: 2.1,
+      particles_per_sec: 95,
+      max_particles: 200,
       particle_base_size: 44,
       particle_speed: 12,
     }

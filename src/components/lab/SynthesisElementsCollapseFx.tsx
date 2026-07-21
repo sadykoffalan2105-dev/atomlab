@@ -13,8 +13,10 @@ const ATOM_WAIT_FRAMES = 18
 const PROXY_COUNT_DEFAULT = 5
 
 /**
- * Коллапс Bohr-атомов + particle burst в цвете молекулы.
- * onBirthReady — когда круг «рождает» продукт (fade); onComplete — FX полностью закончен.
+ * Коллапс + burst в цвете молекулы.
+ * onEmbryoReady — micro-молекула внутри круга (GPU warm).
+ * onBirthReady — видимое рождение ИЗ круга на пике свечения.
+ * onComplete — FX полностью закончен.
  */
 export function SynthesisElementsCollapseFx({
   atomGroupRefs,
@@ -23,6 +25,7 @@ export function SynthesisElementsCollapseFx({
   lowPower = false,
   densePreview = false,
   accentHex,
+  onEmbryoReady,
   onBirthReady,
   onComplete,
 }: {
@@ -30,10 +33,9 @@ export function SynthesisElementsCollapseFx({
   atomCount: number
   runId?: number
   lowPower?: boolean
-  /** Плотное уравнение (≥10 слотов) — меньше частиц, анти white-screen. */
   densePreview?: boolean
   accentHex?: string
-  /** Молекула начинает рождаться из круга (hold→fade). */
+  onEmbryoReady?: () => void
   onBirthReady?: () => void
   onComplete: () => void
 }) {
@@ -41,12 +43,15 @@ export function SynthesisElementsCollapseFx({
   const ctrlRef = useRef<ElementsCollapseController | null>(null)
   const proxyRef = useRef<THREE.Object3D[]>([])
   const doneRef = useRef(false)
+  const embryoFiredRef = useRef(false)
   const birthFiredRef = useRef(false)
   const waitFramesRef = useRef(0)
   const startedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
+  const onEmbryoReadyRef = useRef(onEmbryoReady)
   const onBirthReadyRef = useRef(onBirthReady)
   onCompleteRef.current = onComplete
+  onEmbryoReadyRef.current = onEmbryoReady
   onBirthReadyRef.current = onBirthReady
 
   const collectBohrAtoms = (): THREE.Object3D[] => {
@@ -128,9 +133,16 @@ export function SynthesisElementsCollapseFx({
     return opts
   }
 
+  const fireEmbryo = () => {
+    if (embryoFiredRef.current) return
+    embryoFiredRef.current = true
+    onEmbryoReadyRef.current?.()
+  }
+
   const fireBirth = () => {
     if (birthFiredRef.current) return
     birthFiredRef.current = true
+    fireEmbryo()
     onBirthReadyRef.current?.()
   }
 
@@ -156,11 +168,11 @@ export function SynthesisElementsCollapseFx({
 
   useEffect(() => {
     doneRef.current = false
+    embryoFiredRef.current = false
     birthFiredRef.current = false
     startedRef.current = false
     waitFramesRef.current = 0
     return () => {
-      // StrictMode / watchdog: dispose + restore atoms, но НЕ finish/onComplete.
       ctrlRef.current?.dispose({ interrupted: !doneRef.current })
       ctrlRef.current = null
       startedRef.current = false
@@ -183,13 +195,13 @@ export function SynthesisElementsCollapseFx({
       return
     }
 
-    // StrictMode cleanup мог обнулить ctrl — пересоздаём, НЕ завершаем FX.
     if (!ctrlRef.current) {
       startAnimation(root)
       return
     }
 
     const finished = ctrlRef.current.tick(delta)
+    if (ctrlRef.current.embryoReady) fireEmbryo()
     if (ctrlRef.current.birthReady) fireBirth()
     if (finished) finish()
   })

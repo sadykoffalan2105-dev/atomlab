@@ -367,6 +367,9 @@ function SceneContent({
   const [collapseRev, setCollapseRev] = useState(0)
   /** FX ещё fade'ится, пока молекула уже рождается из круга. */
   const [collapseFxLinger, setCollapseFxLinger] = useState(false)
+  /** Micro-молекула уже внутри круга (GPU warm) до видимого birth. */
+  const [collapseEmbryo, setCollapseEmbryo] = useState(false)
+  const collapseLingerTimerRef = useRef(0)
   const productPaintedRef = useRef(false)
   /** runId, для которого productPainted валиден — иначе stale paint гасит Bohr на старте нового синтеза. */
   const paintedForRunIdRef = useRef(0)
@@ -520,27 +523,47 @@ function SceneContent({
     if (!synthActive) {
       collapseDoneRunIdRef.current = 0
       setCollapseFxLinger(false)
+      setCollapseEmbryo(false)
+      if (collapseLingerTimerRef.current) {
+        window.clearTimeout(collapseLingerTimerRef.current)
+        collapseLingerTimerRef.current = 0
+      }
       return
     }
     if (!instantSynthesis || currentSynthRunIdForCollapse <= 0) return
-    // Новый run — сбрасываем linger, пока birth снова не сработает.
+    // Новый run — сбрасываем linger/embryo, пока birth снова не сработает.
     if (collapseDoneRunIdRef.current !== currentSynthRunIdForCollapse) {
       setCollapseFxLinger(false)
+      setCollapseEmbryo(false)
+      if (collapseLingerTimerRef.current) {
+        window.clearTimeout(collapseLingerTimerRef.current)
+        collapseLingerTimerRef.current = 0
+      }
     }
     if (collapseDoneRunIdRef.current === currentSynthRunIdForCollapse) return
     synthesis?.onPhaseChange?.('converge', 0.05)
   }, [synthActive, instantSynthesis, currentSynthRunIdForCollapse, synthesis])
 
-  /** Круг «рождает» молекулу — монтируем product + birth, FX linger до полного fade. */
+  /** Burst: micro-молекула внутри круга — compile без white hitch. */
+  const handleElementsCollapseEmbryoReady = useCallback(() => {
+    setCollapseEmbryo(true)
+    setForceProductSlot(true)
+    setAllowIdleProductPrewarm(true)
+    invalidate()
+  }, [invalidate])
+
+  /** Пик круга: молекула растёт поверх свечения — единое целое. */
   const handleElementsCollapseBirthReady = useCallback(() => {
     if (currentSynthRunIdForCollapse > 0) {
       collapseDoneRunIdRef.current = currentSynthRunIdForCollapse
     }
+    setCollapseEmbryo(true)
     setCollapseFxLinger(true)
     setCollapseRev((n) => n + 1)
     setForceProductSlot(true)
     setProductRevealReady(true)
     setEarlyProductReveal(true)
+    setAllowIdleProductPrewarm(true)
     synthesis?.onPhaseChange?.('mergeFlash', 0.88)
     invalidate()
   }, [currentSynthRunIdForCollapse, synthesis, invalidate])
@@ -549,7 +572,12 @@ function SceneContent({
     if (collapseDoneRunIdRef.current !== currentSynthRunIdForCollapse) {
       handleElementsCollapseBirthReady()
     }
-    setCollapseFxLinger(false)
+    // Не гасим linger сразу — молекула ещё «выходит» из круга.
+    if (collapseLingerTimerRef.current) window.clearTimeout(collapseLingerTimerRef.current)
+    collapseLingerTimerRef.current = window.setTimeout(() => {
+      setCollapseFxLinger(false)
+      collapseLingerTimerRef.current = 0
+    }, Math.ceil(PRODUCT_BIRTH_FROM_COLLAPSE_SEC * 450))
     startTransition(() => {
       setAllowIdleProductPrewarm(true)
     })
@@ -561,15 +589,22 @@ function SceneContent({
     return resolveInstantSynthFrameBudget({ gpuCompiled, deviceTier })
   }, [synthesis?.product?.id, deviceTier])
 
-  /** При запуске синтеза — GPU-prep. Instant: молекулу НЕ форсим до конца collapse FX. */
+  /** При запуске синтеза — GPU-prep. Embryo: micro внутри круга; до embryo — не форсим. */
   useLayoutEffect(() => {
     if (!synthActive || !synthesis?.runId) return
     const productId = synthesis.product?.id
     if (productId == null) return
-    if (instantSynthesis && elementsCollapsePlaying) {
-      // Во время WOW-коллапса не монтируем продукт — иначе white hitch + FX не видно.
+    if (instantSynthesis && elementsCollapsePlaying && !collapseEmbryo) {
       setAllowIdleProductPrewarm(false)
       setForceProductSlot(false)
+      setEarlyProductReveal(false)
+      setProductRevealReady(false)
+      return
+    }
+    if (instantSynthesis && elementsCollapsePlaying && collapseEmbryo) {
+      // Micro внутри круга — compile, без visible reveal.
+      setAllowIdleProductPrewarm(true)
+      setForceProductSlot(true)
       setEarlyProductReveal(false)
       setProductRevealReady(false)
       return
@@ -591,6 +626,7 @@ function SceneContent({
     synthesis?.product?.id,
     instantSynthesis,
     elementsCollapsePlaying,
+    collapseEmbryo,
   ])
 
   useLayoutEffect(() => {
@@ -803,13 +839,26 @@ function SceneContent({
     preSynthesisPreview || continuity.reactorPreviewVisible || coeffEditingActive
   const productSlotVisible = continuity.productSlotVisible
   const productPrewarmActive = continuity.productPrewarm
-  /** Пока играет коллапс — молекулу вообще не монтируем (анти white-screen). */
-  const productSlotVisibleResolved = elementsCollapsePlaying
+  /** Пока играет коллапс без embryo — молекулу не монтируем.
+   *  Embryo: micro внутри круга. Birth: visible поверх круга. */
+  const productEmbryoOnly =
+    instantSynthesis &&
+    elementsCollapsePlaying &&
+    collapseEmbryo &&
+    collapseDoneRunIdRef.current !== currentSynthRunIdForCollapse
+  const productSlotVisibleResolved = productEmbryoOnly
     ? false
-    : productSlotView.visible
-  const productPrewarmResolved = elementsCollapsePlaying
-    ? false
-    : productSlotView.prewarm
+    : elementsCollapsePlaying && !collapseEmbryo
+      ? false
+      : productSlotView.visible
+  const productPrewarmResolved = productEmbryoOnly
+    ? true
+    : elementsCollapsePlaying && !collapseEmbryo
+      ? false
+      : productSlotView.prewarm
+  const showProductDuringCollapse =
+    Boolean(productForSlot) &&
+    (!elementsCollapsePlaying || collapseEmbryo || collapseFxLinger)
   const synthHoldPreview =
     synthLive && !effectiveProductPainted && effectivePreviewTerms != null
 
@@ -1948,6 +1997,7 @@ function SceneContent({
                 synthForceLite
               }
               accentHex={synthesis.product?.accentColor}
+              onEmbryoReady={handleElementsCollapseEmbryoReady}
               onBirthReady={handleElementsCollapseBirthReady}
               onComplete={handleElementsCollapseComplete}
             />
@@ -1986,9 +2036,9 @@ function SceneContent({
 
       {/* Resize sync всегда: balance-панель меняет высоту реактора → иначе 0×0 / белый canvas. */}
       <CatalogCanvasResizeSync touchDpr={false} />
-      {productForSlot && !elementsCollapsePlaying ? (
+      {showProductDuringCollapse ? (
         <LabProductHeroSlot
-          compound={productForSlot}
+          compound={productForSlot!}
           visible={productSlotVisibleResolved}
           prewarm={productPrewarmResolved}
           entrance={productSlotEntrance}
@@ -1999,6 +2049,7 @@ function SceneContent({
           onGpuCompiled={handleProductGpuCompiled}
           onProductVisiblePaint={handleProductVisiblePaint}
           rootGroupRef={productRootGroupRef}
+          emergeFromGlow={productBirthActive || collapseFxLinger}
         />
       ) : null}
       <OrbitControls

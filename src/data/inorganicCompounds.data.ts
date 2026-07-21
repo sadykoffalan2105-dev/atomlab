@@ -175,6 +175,8 @@ function addSalt(
     formulaUnicode,
     composition,
     descriptionRu: saltDescriptionRu(id, cat, anKey),
+    ...(anKey === 'Cr2O7' || anKey === 'CrO4' ? { accentColor: '#e85a28' } : {}),
+    ...(anKey === 'MnO4' ? { accentColor: '#e040a0' } : {}),
   })
 }
 
