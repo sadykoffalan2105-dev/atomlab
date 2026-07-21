@@ -106,3 +106,18 @@ export function isCameraStuckNearCatalogHero(
   const dz = position.z - catalog[2]
   return dx * dx + dy * dy + dz * dz < radius * radius
 }
+
+/**
+ * Камера далеко от «домашней» позы превью → атомы за кадром (чёрный центр при живом уравнении).
+ * Не путать с лёгким зумом пользователя: порог большой (~3.5).
+ */
+export function isCameraFarFromPreviewPose(
+  position: { x: number; y: number; z: number },
+  pose: ReactorPreviewCameraPose,
+  maxDist = 3.5,
+): boolean {
+  const dx = position.x - pose.position[0]
+  const dy = position.y - pose.position[1]
+  const dz = position.z - pose.position[2]
+  return dx * dx + dy * dy + dz * dz > maxDist * maxDist
+}

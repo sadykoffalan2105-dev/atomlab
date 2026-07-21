@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {
   isCameraStuckNearCatalogHero,
+  isCameraFarFromPreviewPose,
   resolveReactorPreviewCameraPose,
   REACTOR_PREVIEW_CAMERA,
   applyReactorPreviewCamera,
@@ -34,6 +35,25 @@ import { PerspectiveCamera, Vector3 } from 'three'
   // User zoom / orbit near z≈4 but far in XY — must NOT fight orbit (old z-only bug).
   assert.equal(isCameraStuckNearCatalogHero({ x: 0.92, y: 1.38, z: 4.0 }), false)
   assert.equal(isCameraStuckNearCatalogHero({ x: 0, y: 0.12, z: 4.2 }), false)
+}
+
+{
+  const pose = REACTOR_PREVIEW_CAMERA.many
+  assert.equal(
+    isCameraFarFromPreviewPose({ x: pose.position[0], y: pose.position[1], z: pose.position[2] }, pose),
+    false,
+    'at home pose — not far',
+  )
+  assert.equal(
+    isCameraFarFromPreviewPose({ x: 0, y: 0.12, z: 3.6 }, pose),
+    true,
+    'catalog hero vs many pose — far (чёрный центр)',
+  )
+  assert.equal(
+    isCameraFarFromPreviewPose({ x: 0, y: 0, z: 0 }, pose),
+    true,
+    'origin vs preview — far',
+  )
 }
 
 {

@@ -689,6 +689,8 @@ export function ReactorTermsPreview({
     atomsOnScreen,
     hasActiveTerms: frame.hasActiveTerms,
     stickySlotCount,
+    // Пока hold/pre-synth — продукт не владеет экраном (страховка против пустого центра).
+    productOwnsScreen: holdAtomsUi ? false : !visible,
   })
   const editLocalLight = !sharedLighting && reactGroupVisible
   const bohrAnimate = forceElectronMotion && reactGroupVisible && holdAtomsUi

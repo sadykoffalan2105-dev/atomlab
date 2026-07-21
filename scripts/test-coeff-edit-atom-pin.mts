@@ -65,6 +65,7 @@ import {
       atomsOnScreen: false,
       hasActiveTerms: true,
       stickySlotCount: 22,
+      productOwnsScreen: true,
     }),
     false,
     'settled product owns screen: hide Bohr despite terms',
@@ -78,6 +79,7 @@ import {
       atomsOnScreen: true,
       hasActiveTerms: true,
       stickySlotCount: 15,
+      productOwnsScreen: false,
     }),
     true,
     'pre-synth: show Bohr',
@@ -91,9 +93,24 @@ import {
       atomsOnScreen: false,
       hasActiveTerms: true,
       stickySlotCount: 15,
+      productOwnsScreen: false,
     }),
     true,
     'coeff edit: show Bohr even if visible prop false',
+  )
+  assert.equal(
+    resolveBohrReactVisible({
+      visible: false,
+      previewOnlyMode: false,
+      coeffEditing: false,
+      synthHoldPreview: false,
+      atomsOnScreen: false,
+      hasActiveTerms: true,
+      stickySlotCount: 15,
+      productOwnsScreen: false,
+    }),
+    true,
+    'terms + no product on screen: Bohr обязателен (чёрный центр)',
   )
 }
 

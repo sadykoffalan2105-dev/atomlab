@@ -38,6 +38,7 @@ export function shouldHardPinCoeffEditAtoms(opts: {
  * React/THREE visible для корня Bohr.
  * После синтеза (visible=false) — скрыть, даже если terms ещё в уравнении.
  * Edit/pre-synth — всегда показать.
+ * Страховка: если terms есть и продукт НЕ на экране — Bohr обязателен.
  */
 export function resolveBohrReactVisible(opts: {
   visible: boolean
@@ -47,10 +48,19 @@ export function resolveBohrReactVisible(opts: {
   atomsOnScreen: boolean
   hasActiveTerms: boolean
   stickySlotCount: number
+  /** Молекула реально full-scale на экране (не prewarm). */
+  productOwnsScreen?: boolean
 }): boolean {
   const hold =
     opts.previewOnlyMode || opts.coeffEditing || opts.synthHoldPreview
   if (hold) return true
+  // Страховка против пустого центра: terms есть, продукта нет → Bohr.
+  if (
+    (opts.hasActiveTerms || opts.stickySlotCount > 0) &&
+    opts.productOwnsScreen === false
+  ) {
+    return true
+  }
   if (!opts.visible) return false
   return opts.atomsOnScreen || opts.hasActiveTerms || opts.stickySlotCount > 0
 }

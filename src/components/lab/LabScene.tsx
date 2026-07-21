@@ -73,6 +73,7 @@ import {
 import { createReactorPreviewContinuityGuard } from '../../lab/reactorPreviewContinuityGuard'
 import {
   applyReactorPreviewCamera,
+  isCameraFarFromPreviewPose,
   isCameraStuckNearCatalogHero,
   resolveReactorPreviewCameraPose,
   REACTOR_PREVIEW_CAMERA,
@@ -482,6 +483,8 @@ function SceneContent({
   /** One-shot stuck rescue после catalog → reactor (не каждый кадр при zoom). */
   const stuckRescueDoneRef = useRef(false)
   const hadPreviewAtomsRef = useRef(false)
+  /** Rising-edge: вход в pre-synth → один раз выставить камеру превью. */
+  const preSynthCameraArmedRef = useRef(false)
   const lastSynthRunIdRef = useRef(0)
 
   const synthTimingProfile = useMemo(
@@ -1098,17 +1101,19 @@ function SceneContent({
   const reactorBackdrop = reactorViewOpen
 
   /** Каталожный кадр: только settled + full-scale paint — иначе Bohr «за кадром». */
-  const catalogViewMode =
-    previewActive ||
-    (showSettledHero &&
-      productSlotVisibleResolved &&
-      effectiveProductPainted &&
-      !productPrewarmResolved &&
-      !coeffEditingActive)
+  const productTrulyOwnsScreen =
+    showSettledHero &&
+    effectiveProductPainted &&
+    productSlotVisibleResolved &&
+    !productPrewarmResolved &&
+    !coeffEditingActive
+
+  const catalogViewMode = previewActive || productTrulyOwnsScreen
 
   /**
-   * Ракурс превью: lock только при первом появлении атомов / выходе из catalog.
-   * На каждом +/- только обновляем «домашнюю» позу — орбиту не замораживаем.
+   * Ракурс превью: при первом появлении / выходе из catalog / входе в pre-synth.
+   * На каждом +/- только обновляем «домашнюю» позу — орбиту не замораживаем
+   * (дальше useFrame ловит «камеру далеко от позы» → чёрный центр).
    */
   // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {
@@ -1130,10 +1135,15 @@ function SceneContent({
 
     const firstAtoms = !hadPreviewAtomsRef.current
     hadPreviewAtomsRef.current = true
-    if (leftCatalog) stuckRescueDoneRef.current = false
-    // Только первый показ / выход из catalog hero — не дёргать камеру на каждом +/-.
-    if (!leftCatalog && !firstAtoms) return
-    if (userOrbitingRef.current && !leftCatalog) return
+    const enteredPreSynth =
+      preSynthesisPreview && !preSynthCameraArmedRef.current
+    if (preSynthesisPreview) preSynthCameraArmedRef.current = true
+    else preSynthCameraArmedRef.current = false
+
+    if (leftCatalog || enteredPreSynth) stuckRescueDoneRef.current = false
+    const needPose = leftCatalog || firstAtoms || enteredPreSynth
+    if (!needPose) return
+    if (userOrbitingRef.current && !leftCatalog && !firstAtoms && !enteredPreSynth) return
 
     const cam = camera as THREE.PerspectiveCamera
     applyReactorPreviewCamera(cam, orbRef.current, pose)
@@ -1142,7 +1152,7 @@ function SceneContent({
 
     const orb = orbRef.current
     const t = window.setTimeout(() => {
-      if (userOrbitingRef.current && !leftCatalog) return
+      if (userOrbitingRef.current && !leftCatalog && !enteredPreSynth) return
       applyReactorPreviewCamera(cam, orb, pose)
       invalidate()
     }, 32)
@@ -1156,6 +1166,7 @@ function SceneContent({
     coeffEditingActive,
     showSettledHero,
     reactorViewOpen,
+    preSynthesisPreview,
   ])
 
   useLayoutEffect(() => {
@@ -1301,12 +1312,15 @@ function SceneContent({
       !userOrbitingRef.current &&
       !stuckRescueDoneRef.current &&
       previewAtomCount > 0 &&
-      isCameraStuckNearCatalogHero(camera.position, CATALOG_HERO_VIEW.cameraPosition)
+      (isCameraStuckNearCatalogHero(camera.position, CATALOG_HERO_VIEW.cameraPosition) ||
+        (preSynthesisPreview && isCameraFarFromPreviewPose(camera.position, lockPose)))
     ) {
+      // One-shot: catalog hero / far pose после settle → иначе Bohr «за кадром» (чёрный центр).
       applyReactorPreviewCamera(camera as THREE.PerspectiveCamera, orbRef.current, lockPose)
       stuckRescueDoneRef.current = true
       reactorCameraLockUntilRef.current =
         performance.now() + REACTOR_PREVIEW_CAMERA.stuckRescueMs
+      invalidate()
     }
 
     if (frameBudgetRef.current.shouldForceLite() && reactorViewOpen && !coeffEditingActive) {
@@ -1467,6 +1481,28 @@ function SceneContent({
         if (g.scale.x < 0.86) g.scale.set(1, 1, 1)
         setForceProductSlot(true)
         setProductRevealReady(true)
+      }
+      // Чёрный центр при уравненном уравнении: вернуть камеру + pin Bohr.
+      if (
+        preSynthesisPreview &&
+        previewAtomCount > 0 &&
+        !userOrbitingRef.current &&
+        reactorCameraLockPoseRef.current
+      ) {
+        applyReactorPreviewCamera(
+          camera as THREE.PerspectiveCamera,
+          orbRef.current,
+          reactorCameraLockPoseRef.current,
+        )
+        if (previewRootRef.current) previewRootRef.current.visible = true
+        pinCoeffEditAtomsHard({
+          slotCount: previewAtomCount,
+          layoutScale: reactorPreviewAtomScale(previewAtomCount),
+          root: previewRootRef.current,
+          atomGroupRefs: previewAtomGroupRefs,
+          atomScaleGroupRefs: previewAtomScaleGroupRefs,
+          killScaleTweens: (s) => gsap.killTweensOf(s),
+        })
       }
       invalidate()
     }
