@@ -1,7 +1,9 @@
 /**
- * Эффект коллапса атомов → вспышка частиц.
- * Верный порт vendor/expl_threejs_effect_v02gm_dev (index.html demo quality).
- * Без собственного RAF / renderer.render — тикает из R3F useFrame.
+ * Полный порт vendor/expl_threejs_effect_v02gm_dev:
+ * коллапс атомов → вспышка ядра → разлёт искр → hold → fade.
+ *
+ * Искры: InstancedMesh (не gl_PointSize Points) — на Windows/ANGLE
+ * кастомный Points-шейдер часто не рисуется, из‑за этого был только «полёт в центр».
  */
 import * as THREE from 'three'
 
@@ -29,12 +31,10 @@ export type ElementsCollapseOptions = {
   particle_stretch?: number
   particle_colors?: number[]
   core_gradient?: Array<{ stop: number; color: string }>
-  /** Мир: куда стягивать атомы и где вспышка (по умолчанию origin родителя FX). */
   center?: THREE.Vector3
 }
 
 export type ElementsCollapseController = {
-  /** @returns true когда эффект полностью завершён */
   tick: (dt: number) => boolean
   dispose: () => void
   readonly done: boolean
@@ -49,13 +49,8 @@ const DEFAULT_GRADIENT = [
   { stop: 1.0, color: 'rgba(0, 0, 0, 0.0)' },
 ]
 
-/** Демо-профиль из vendor index.html — «WOW» качество. */
-export const COLLAPSE_DEMO_QUALITY: Required<
-  Omit<ElementsCollapseOptions, 'core_gradient' | 'center' | 'particle_colors'>
-> & {
-  particle_colors: number[]
-  core_gradient: Array<{ stop: number; color: string }>
-} = {
+/** Демо из vendor index.html — полный WOW. */
+export const COLLAPSE_DEMO_QUALITY = {
   atom_collapse_time: 1.2,
   atom_delay_max: 0.3,
   burst_time: 1.5,
@@ -63,15 +58,14 @@ export const COLLAPSE_DEMO_QUALITY: Required<
   fade_out: 1.0,
   end_scale: 3,
   particles_per_sec: 350,
-  max_particles: 2000,
+  max_particles: 1600,
   particle_base_size: 60,
   particle_speed: 12,
   particle_stretch: 3,
-  particle_colors: [0xffffff, 0xaaddff, 0x4488ff, 0xffaa00, 0xffffff],
+  particle_colors: [0xffffff, 0xaaddff, 0x4488ff, 0xffaa00, 0xffffff] as number[],
   core_gradient: DEFAULT_GRADIENT,
 }
 
-/** Оценённая длительность (сек). */
 export function estimateCollapseDurationSec(opts: ElementsCollapseOptions = {}): number {
   const d = { ...COLLAPSE_DEMO_QUALITY, ...opts }
   return (
@@ -100,10 +94,6 @@ function makeGlowTexture(core_gradient: Array<{ stop: number; color: string }>) 
   return tex
 }
 
-/**
- * @param parent — группа FX в R3F (частицы/glow как дети). Обычно origin реактора.
- * @param atoms_array — Object3D Bohr-слотов (позиции анимируются в world → local parent).
- */
 export function createElementsCollapseAnimation(
   atoms_array: THREE.Object3D[],
   parent: THREE.Object3D,
@@ -126,78 +116,73 @@ export function createElementsCollapseAnimation(
   } = options
 
   const centerLocal = options.center?.clone() ?? new THREE.Vector3(0, 0, 0)
+  const sparkSize = Math.max(0.04, particle_base_size / 900)
 
-  const geometry = new THREE.BufferGeometry()
-  const positions = new Float32Array(max_particles * 3)
-  const velocities = new Float32Array(max_particles * 3)
-  const colors = new Float32Array(max_particles * 3)
-  const randomScale = new Float32Array(max_particles * 2)
-  const birthTimes = new Float32Array(max_particles)
-  const lifetimes = new Float32Array(max_particles)
-
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3))
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-  geometry.setAttribute('randomScale', new THREE.BufferAttribute(randomScale, 2))
-  geometry.setDrawRange(0, 0)
-
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      uOpacityMul: { value: 1.0 },
-      uPointSize: { value: particle_base_size },
-    },
-    vertexShader: /* glsl */ `
-      attribute vec3 color;
-      attribute vec3 velocity;
-      attribute vec2 randomScale;
-      uniform float uPointSize;
-      varying vec3 vColor;
-      varying vec2 vScale;
-      varying vec2 vDirection;
-      void main() {
-        vColor = color;
-        vScale = randomScale;
-        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-        gl_Position = projectionMatrix * mvPosition;
-        vec4 nextProjected = projectionMatrix * modelViewMatrix * vec4(position + velocity * 0.1, 1.0);
-        vec2 dir = (nextProjected.xy / nextProjected.w) - (gl_Position.xy / gl_Position.w);
-        if (length(dir) < 0.0001) dir = vec2(0.0, 1.0);
-        else dir = normalize(dir);
-        vDirection = dir;
-        float dist = max(0.35, -mvPosition.z);
-        gl_PointSize = clamp((uPointSize * max(vScale.x, vScale.y)) / dist, 2.0, 180.0);
-      }
-    `,
-    fragmentShader: /* glsl */ `
-      uniform float uOpacityMul;
-      varying vec3 vColor;
-      varying vec2 vScale;
-      varying vec2 vDirection;
-      void main() {
-        vec2 uv = gl_PointCoord - 0.5;
-        float c = vDirection.x;
-        float s = vDirection.y;
-        mat2 rot = mat2(c, s, -s, c);
-        vec2 rotatedUv = rot * uv;
-        vec2 scaledUv = rotatedUv / vScale;
-        float dist = length(scaledUv);
-        if (dist > 0.5) discard;
-        float alpha = pow(1.0 - (dist * 2.0), 3.0) * uOpacityMul;
-        gl_FragColor = vec4(vColor, alpha);
-      }
-    `,
+  // --- Искры: InstancedMesh-стрики (всегда видны, в отличие от Points+Shader) ---
+  const sparkGeo = new THREE.BoxGeometry(sparkSize * 0.35, sparkSize * 0.35, sparkSize * particle_stretch)
+  const sparkMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
     transparent: true,
+    opacity: 1,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
     depthTest: false,
     toneMapped: false,
   })
+  const sparks = new THREE.InstancedMesh(sparkGeo, sparkMat, max_particles)
+  sparks.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+  sparks.count = 0
+  sparks.frustumCulled = false
+  sparks.renderOrder = 42
+  if (!sparks.instanceColor) {
+    sparks.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(max_particles * 3), 3)
+  }
+  parent.add(sparks)
 
-  const points = new THREE.Points(geometry, material)
-  points.frustumCulled = false
-  points.renderOrder = 40
-  parent.add(points)
+  const positions = new Float32Array(max_particles * 3)
+  const velocities = new Float32Array(max_particles * 3)
+  const birthTimes = new Float32Array(max_particles)
+  const lifetimes = new Float32Array(max_particles)
+  const stretches = new Float32Array(max_particles)
+  const dummy = new THREE.Object3D()
+  const colorObj = new THREE.Color()
+  const lookTarget = new THREE.Vector3()
 
+  function resetParticle(i: number, time: number) {
+    positions[i * 3] = centerLocal.x + (Math.random() - 0.5) * 0.08
+    positions[i * 3 + 1] = centerLocal.y + (Math.random() - 0.5) * 0.08
+    positions[i * 3 + 2] = centerLocal.z + (Math.random() - 0.5) * 0.08
+    colorObj.set(particle_colors[Math.floor(Math.random() * particle_colors.length)]!)
+    sparks.setColorAt(i, colorObj)
+    const speed = particle_speed * 0.55 + Math.random() * particle_speed
+    const theta = Math.random() * 2 * Math.PI
+    const phi = Math.acos(Math.random() * 2 - 1)
+    velocities[i * 3] = Math.sin(phi) * Math.cos(theta) * speed
+    velocities[i * 3 + 1] = Math.sin(phi) * Math.sin(theta) * speed
+    velocities[i * 3 + 2] = Math.cos(phi) * speed
+    stretches[i] = 0.7 + Math.random() * particle_stretch
+    birthTimes[i] = time
+    lifetimes[i] = 0.25 + Math.random() * 0.55
+  }
+
+  function writeSparkMatrix(i: number, opacityFade: number) {
+    const px = positions[i * 3]!
+    const py = positions[i * 3 + 1]!
+    const pz = positions[i * 3 + 2]!
+    const vx = velocities[i * 3]!
+    const vy = velocities[i * 3 + 1]!
+    const vz = velocities[i * 3 + 2]!
+    dummy.position.set(px, py, pz)
+    lookTarget.set(px + vx, py + vy, pz + vz)
+    dummy.lookAt(lookTarget)
+    const len = Math.max(0.35, stretches[i]!) * opacityFade
+    const thick = sparkSize * (0.55 + 0.45 * opacityFade)
+    dummy.scale.set(thick, thick, sparkSize * len * 2.2)
+    dummy.updateMatrix()
+    sparks.setMatrixAt(i, dummy.matrix)
+  }
+
+  // --- Ядро / шоквейв (как в оригинале) ---
   const glowTex = makeGlowTexture(core_gradient)
   const glowMat = new THREE.SpriteMaterial({
     map: glowTex,
@@ -212,7 +197,7 @@ export function createElementsCollapseAnimation(
   const glow = new THREE.Sprite(glowMat)
   glow.position.copy(centerLocal)
   glow.scale.setScalar(0.0001)
-  glow.renderOrder = 38
+  glow.renderOrder = 40
   parent.add(glow)
 
   const flashMat = new THREE.SpriteMaterial({
@@ -228,49 +213,46 @@ export function createElementsCollapseAnimation(
   const shockwaveFlash = new THREE.Sprite(flashMat)
   shockwaveFlash.position.copy(centerLocal)
   shockwaveFlash.scale.setScalar(0.0001)
-  shockwaveFlash.renderOrder = 39
+  shockwaveFlash.renderOrder = 41
   parent.add(shockwaveFlash)
 
-  // Ядро-меш: всегда читается глазом (спрайты иногда «съедает» тонмап/масштаб).
-  const coreGeo = new THREE.SphereGeometry(0.35, 24, 18)
+  const coreGeo = new THREE.SphereGeometry(0.4, 28, 20)
   const coreMat = new THREE.MeshBasicMaterial({
-    color: 0xaaddff,
+    color: 0xffffff,
     transparent: true,
     opacity: 0,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
+    depthTest: false,
     toneMapped: false,
   })
   const coreMesh = new THREE.Mesh(coreGeo, coreMat)
   coreMesh.position.copy(centerLocal)
-  coreMesh.renderOrder = 37
+  coreMesh.renderOrder = 39
   parent.add(coreMesh)
 
-  const colorObj = new THREE.Color()
-  function resetParticle(i: number, time: number) {
-    positions[i * 3] = centerLocal.x + (Math.random() - 0.5) * 0.05
-    positions[i * 3 + 1] = centerLocal.y + (Math.random() - 0.5) * 0.05
-    positions[i * 3 + 2] = centerLocal.z + (Math.random() - 0.5) * 0.05
-    colorObj.set(particle_colors[Math.floor(Math.random() * particle_colors.length)]!)
-    colors[i * 3] = colorObj.r
-    colors[i * 3 + 1] = colorObj.g
-    colors[i * 3 + 2] = colorObj.b
-    const speed = particle_speed * 0.5 + Math.random() * particle_speed
-    const theta = Math.random() * 2 * Math.PI
-    const phi = Math.acos(Math.random() * 2 - 1)
-    velocities[i * 3] = Math.sin(phi) * Math.cos(theta) * speed
-    velocities[i * 3 + 1] = Math.sin(phi) * Math.sin(theta) * speed
-    velocities[i * 3 + 2] = Math.cos(phi) * speed
-    randomScale[i * 2] = 0.5 + Math.random() * particle_stretch
-    randomScale[i * 2 + 1] = 0.1 + Math.random() * 0.2
-    birthTimes[i] = time
-    lifetimes[i] = 0.2 + Math.random() * 0.5
-  }
+  const ringGeo = new THREE.RingGeometry(0.55, 0.85, 48)
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: 0xaaddff,
+    transparent: true,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false,
+    toneMapped: false,
+  })
+  const ring = new THREE.Mesh(ringGeo, ringMat)
+  ring.position.copy(centerLocal)
+  ring.rotation.x = Math.PI / 2
+  ring.renderOrder = 38
+  parent.add(ring)
+
+  const burstLight = new THREE.PointLight(0xaaddff, 0, 18, 2)
+  burstLight.position.copy(centerLocal)
+  parent.add(burstLight)
 
   parent.updateWorldMatrix(true, false)
-  const parentInv = new THREE.Matrix4().copy(parent.matrixWorld).invert()
-  const tmpWorld = new THREE.Vector3()
-  const tmpLocal = new THREE.Vector3()
   const centerWorld = centerLocal.clone().applyMatrix4(parent.matrixWorld)
 
   type AtomTrack = {
@@ -281,28 +263,18 @@ export function createElementsCollapseAnimation(
     duration: number
   }
 
-  const atomData: AtomTrack[] = atoms_array.map((atom) => {
-    atom.getWorldPosition(tmpWorld)
-    tmpLocal.copy(tmpWorld).applyMatrix4(parentInv)
-    // Переводим атом в локаль FX-родителя только для трека; анимируем atom.position в его parent.
-    const startLocal = atom.position.clone()
-    return {
-      obj: atom,
-      startLocal,
-      startScale: atom.scale.clone(),
-      delay: Math.random() * atom_delay_max,
-      duration: atom_collapse_time,
-    }
-  })
+  const atomData: AtomTrack[] = atoms_array.map((atom) => ({
+    obj: atom,
+    startLocal: atom.position.clone(),
+    startScale: atom.scale.clone(),
+    delay: Math.random() * atom_delay_max,
+    duration: atom_collapse_time,
+  }))
 
-  // Цель коллапса: world center → local space каждого атома.
   const atomTargets = atoms_array.map((atom) => {
     const target = centerWorld.clone()
-    if (atom.parent) {
-      atom.parent.worldToLocal(target)
-    } else {
-      target.set(0, 0, 0)
-    }
+    if (atom.parent) atom.parent.worldToLocal(target)
+    else target.set(0, 0, 0)
     return target
   })
 
@@ -318,22 +290,28 @@ export function createElementsCollapseAnimation(
   const holdEnd = burstEnd + hold_after_grow
   const fadeEnd = holdEnd + fade_out
   const collapseMaxScale = 0.22
+  /** Искры начинают сыпаться чуть раньше конца коллапса — взрыв не «пропадает». */
+  const earlySparkT = collapseEnd - Math.min(0.35, atom_collapse_time * 0.25)
 
   function dispose() {
     if (disposed) return
     disposed = true
     finished = true
-    parent.remove(points)
+    parent.remove(sparks)
     parent.remove(glow)
     parent.remove(shockwaveFlash)
     parent.remove(coreMesh)
-    geometry.dispose()
-    material.dispose()
+    parent.remove(ring)
+    parent.remove(burstLight)
+    sparkGeo.dispose()
+    sparkMat.dispose()
     glowMat.dispose()
     flashMat.dispose()
     glowTex.dispose()
     coreGeo.dispose()
     coreMat.dispose()
+    ringGeo.dispose()
+    ringMat.dispose()
   }
 
   function tick(dtRaw: number): boolean {
@@ -348,13 +326,12 @@ export function createElementsCollapseAnimation(
 
     let burstScale = 0
     let fadeMul = 1
-    let needsAttribUpdate = false
+    let spawning = false
 
     if (elapsed < collapseEnd) {
       phase = 'collapse'
       let minAtomT = 1
       if (atomData.length === 0) {
-        // Нет Bohr — сразу готовим ядро (как «связь создаётся»).
         const t = clamp01(elapsed / Math.max(0.01, collapseEnd))
         minAtomT = t
         burstScale = t > 0.7 ? ((t - 0.7) / 0.3) * collapseMaxScale : 0
@@ -373,24 +350,30 @@ export function createElementsCollapseAnimation(
           burstScale = ((minAtomT - 0.85) / 0.15) * collapseMaxScale
         }
       }
+      if (elapsed >= earlySparkT) {
+        spawning = true
+        const earlyT = clamp01((elapsed - earlySparkT) / Math.max(0.01, collapseEnd - earlySparkT))
+        spawnAccumulator += particles_per_sec * 0.35 * earlyT * dt
+      }
     } else if (elapsed < burstEnd) {
       phase = 'burst'
+      spawning = true
       for (const data of atomData) data.obj.visible = false
       const burstGrowT = clamp01((elapsed - collapseEnd) / burst_time)
       burstScale = collapseMaxScale + easeOutCubic(burstGrowT) * (end_scale - collapseMaxScale)
-      spawnAccumulator += particles_per_sec * (0.05 + 0.95 * burstGrowT) * dt
+      spawnAccumulator += particles_per_sec * (0.15 + 0.95 * burstGrowT) * dt
       if (burstGrowT < 0.35) {
         const flashT = burstGrowT / 0.35
-        shockwaveFlash.scale.setScalar(20 * easeOutCubic(flashT))
-        // opacity спрайта — у material (баг оригинала: shockwaveFlash.opacity)
+        shockwaveFlash.scale.setScalar(22 * easeOutCubic(flashT))
         flashMat.opacity = 1.0 - easeInOutCubic(flashT)
       } else {
         flashMat.opacity = 0
       }
     } else if (elapsed < holdEnd) {
       phase = 'hold'
+      spawning = true
       burstScale = end_scale
-      spawnAccumulator += particles_per_sec * dt
+      spawnAccumulator += particles_per_sec * 0.85 * dt
       flashMat.opacity = 0
     } else {
       phase = 'fadeout'
@@ -400,40 +383,56 @@ export function createElementsCollapseAnimation(
       flashMat.opacity = 0
     }
 
-    while (spawnAccumulator >= 1 && activeCount < max_particles) {
-      resetParticle(activeCount, elapsed)
-      activeCount++
-      spawnAccumulator -= 1
-      needsAttribUpdate = true
+    if (spawning) {
+      while (spawnAccumulator >= 1 && activeCount < max_particles) {
+        resetParticle(activeCount, elapsed)
+        activeCount++
+        spawnAccumulator -= 1
+      }
     }
 
     for (let i = 0; i < activeCount; i++) {
       const age = elapsed - birthTimes[i]!
-      if (age > lifetimes[i]!) {
-        resetParticle(i, elapsed)
-        needsAttribUpdate = true
-        continue
+      const life = lifetimes[i]!
+      if (age > life) {
+        if (spawning && phase !== 'fadeout') {
+          resetParticle(i, elapsed)
+        } else {
+          // «убить» — увести за кадр
+          dummy.position.set(0, -999, 0)
+          dummy.scale.setScalar(0.0001)
+          dummy.updateMatrix()
+          sparks.setMatrixAt(i, dummy.matrix)
+          continue
+        }
       }
       positions[i * 3]! += velocities[i * 3]! * dt
       positions[i * 3 + 1]! += velocities[i * 3 + 1]! * dt
       positions[i * 3 + 2]! += velocities[i * 3 + 2]! * dt
+      const lifeFade = clamp01(1 - age / life) * fadeMul
+      writeSparkMatrix(i, lifeFade)
     }
 
-    geometry.attributes.position!.needsUpdate = true
-    if (needsAttribUpdate) {
-      geometry.attributes.color!.needsUpdate = true
-      geometry.attributes.velocity!.needsUpdate = true
-      geometry.attributes.randomScale!.needsUpdate = true
-    }
-    geometry.setDrawRange(0, activeCount)
-    material.uniforms.uOpacityMul!.value = phase === 'fadeout' ? fadeMul : 1
+    sparks.count = activeCount
+    sparks.instanceMatrix.needsUpdate = true
+    if (sparks.instanceColor) sparks.instanceColor.needsUpdate = true
+    sparkMat.opacity = fadeMul
 
-    const glowScalar = Math.max(0.0001, 5 * burstScale)
+    const glowScalar = Math.max(0.0001, 5.5 * Math.max(burstScale, 0.001))
     glow.scale.setScalar(glowScalar)
-    glowMat.opacity = Math.min(1, burstScale * 0.85) * fadeMul
+    glowMat.opacity = Math.min(1, Math.max(burstScale, 0) * 0.9) * fadeMul
 
-    coreMesh.scale.setScalar(Math.max(0.001, burstScale * 0.55))
-    coreMat.opacity = Math.min(0.95, burstScale * 0.55) * fadeMul
+    coreMesh.scale.setScalar(Math.max(0.001, 0.35 + burstScale * 0.7))
+    coreMat.opacity = Math.min(1, 0.2 + burstScale * 0.35) * fadeMul
+    coreMat.color.set(burstScale > 1 ? 0xffffff : 0xaaddff)
+
+    const ringS = Math.max(0.001, 0.4 + burstScale * 1.15)
+    ring.scale.set(ringS, ringS, ringS)
+    ringMat.opacity = Math.min(0.85, burstScale * 0.28) * fadeMul
+    ring.rotation.z = elapsed * 1.2
+
+    burstLight.intensity = Math.min(8, burstScale * 2.4) * fadeMul
+    burstLight.color.set(0xaaddff)
 
     return false
   }
@@ -450,36 +449,19 @@ export function createElementsCollapseAnimation(
   }
 }
 
-/** Профиль: демо-качество / облегчённый для weak GPU. */
+/** Всегда демо-качество; lowPower только слегка режет лимит искр. */
 export function resolveCollapseOptionsForDevice(lowPower: boolean): ElementsCollapseOptions {
   if (lowPower) {
     return {
-      atom_collapse_time: 0.9,
-      atom_delay_max: 0.2,
-      burst_time: 1.0,
-      hold_after_grow: 0.3,
-      fade_out: 0.6,
-      end_scale: 2.4,
-      particles_per_sec: 180,
-      max_particles: 700,
-      particle_base_size: 48,
-      particle_speed: 9,
-      particle_stretch: 2.6,
+      ...COLLAPSE_DEMO_QUALITY,
+      particles_per_sec: 260,
+      max_particles: 900,
+      particle_base_size: 52,
       particle_colors: [...COLLAPSE_DEMO_QUALITY.particle_colors],
     }
   }
   return {
-    atom_collapse_time: COLLAPSE_DEMO_QUALITY.atom_collapse_time,
-    atom_delay_max: COLLAPSE_DEMO_QUALITY.atom_delay_max,
-    burst_time: COLLAPSE_DEMO_QUALITY.burst_time,
-    hold_after_grow: COLLAPSE_DEMO_QUALITY.hold_after_grow,
-    fade_out: COLLAPSE_DEMO_QUALITY.fade_out,
-    end_scale: COLLAPSE_DEMO_QUALITY.end_scale,
-    particles_per_sec: COLLAPSE_DEMO_QUALITY.particles_per_sec,
-    max_particles: COLLAPSE_DEMO_QUALITY.max_particles,
-    particle_base_size: COLLAPSE_DEMO_QUALITY.particle_base_size,
-    particle_speed: COLLAPSE_DEMO_QUALITY.particle_speed,
-    particle_stretch: COLLAPSE_DEMO_QUALITY.particle_stretch,
+    ...COLLAPSE_DEMO_QUALITY,
     particle_colors: [...COLLAPSE_DEMO_QUALITY.particle_colors],
   }
 }

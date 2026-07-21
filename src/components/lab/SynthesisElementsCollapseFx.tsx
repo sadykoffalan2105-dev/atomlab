@@ -107,11 +107,8 @@ export function SynthesisElementsCollapseFx({
   }
 
   const buildOpts = () => {
-    const opts = resolveCollapseOptionsForDevice(lowPower || densePreview)
-    if (densePreview && !lowPower) {
-      opts.max_particles = Math.min(opts.max_particles ?? 900, 900)
-      opts.particles_per_sec = Math.min(opts.particles_per_sec ?? 220, 220)
-    }
+    // Полный демо-файл; densePreview больше НЕ режет искры (иначе «нет взрыва»).
+    const opts = resolveCollapseOptionsForDevice(lowPower)
     if (accentHex) {
       const raw = accentHex.replace('#', '').trim()
       const c = Number.parseInt(raw.length === 3 ? raw.replace(/(.)/g, '$1$1') : raw, 16)
