@@ -80,6 +80,7 @@ import {
   type ReactorPreviewCameraPose,
 } from '../../lab/reactorPreviewCamera'
 import { getSynthesisTimingProfile, isInstantSynthesisProfile } from '../../lab/synthesisTimingProfile'
+import { PRODUCT_BIRTH_FROM_COLLAPSE_SEC } from '../../lab/synthesisCollapseEffect/elementsCollapseAnimation'
 import { LAB_COSMIC_BG } from './LabSynthesisCosmicBackdrop'
 import { resolveDeviceSynthesisCap } from '../../perf/graphicsSettings'
 import { resolveLabCanvasPolicy } from '../../perf/deviceCanvasPolicy'
@@ -361,9 +362,11 @@ function SceneContent({
   const [forceProductSlot, setForceProductSlot] = useState(false)
   const [productRevealReady, setProductRevealReady] = useState(false)
   const [productPainted, setProductPainted] = useState(false)
-  /** Ревизия после завершения collapse FX (ref + tick → без кадра «Instant без анимации»). */
+  /** Ревизия после birth/complete collapse FX. */
   const collapseDoneRunIdRef = useRef(0)
   const [collapseRev, setCollapseRev] = useState(0)
+  /** FX ещё fade'ится, пока молекула уже рождается из круга. */
+  const [collapseFxLinger, setCollapseFxLinger] = useState(false)
   const productPaintedRef = useRef(false)
   /** runId, для которого productPainted валиден — иначе stale paint гасит Bohr на старте нового синтеза. */
   const paintedForRunIdRef = useRef(0)
@@ -499,40 +502,59 @@ function SceneContent({
   const currentSynthRunIdForCollapse = synthesis?.runId ?? 0
   /**
    * Instant: FX с первого кадра нового runId (без waiting state=false).
-   * collapseDoneRunIdRef === runId только после onComplete.
+   * collapseDoneRunIdRef === runId после onBirthReady (молекула рождается из круга).
    */
   const elementsCollapsePlaying =
     synthActive &&
     instantSynthesis &&
     currentSynthRunIdForCollapse > 0 &&
     collapseDoneRunIdRef.current !== currentSynthRunIdForCollapse
+  const showElementsCollapseFx =
+    synthActive &&
+    instantSynthesis &&
+    currentSynthRunIdForCollapse > 0 &&
+    (elementsCollapsePlaying || collapseFxLinger)
   void collapseRev
 
   useLayoutEffect(() => {
     if (!synthActive) {
       collapseDoneRunIdRef.current = 0
+      setCollapseFxLinger(false)
       return
     }
     if (!instantSynthesis || currentSynthRunIdForCollapse <= 0) return
+    // Новый run — сбрасываем linger, пока birth снова не сработает.
+    if (collapseDoneRunIdRef.current !== currentSynthRunIdForCollapse) {
+      setCollapseFxLinger(false)
+    }
     if (collapseDoneRunIdRef.current === currentSynthRunIdForCollapse) return
     synthesis?.onPhaseChange?.('converge', 0.05)
   }, [synthActive, instantSynthesis, currentSynthRunIdForCollapse, synthesis])
 
-  const handleElementsCollapseComplete = useCallback(() => {
+  /** Круг «рождает» молекулу — монтируем product + birth, FX linger до полного fade. */
+  const handleElementsCollapseBirthReady = useCallback(() => {
     if (currentSynthRunIdForCollapse > 0) {
       collapseDoneRunIdRef.current = currentSynthRunIdForCollapse
     }
-    // Критичные флаги слота — синхронно (иначе 1–2 пустых кадра между FX и молекулой).
+    setCollapseFxLinger(true)
+    setCollapseRev((n) => n + 1)
     setForceProductSlot(true)
     setProductRevealReady(true)
     setEarlyProductReveal(true)
-    startTransition(() => {
-      setCollapseRev((n) => n + 1)
-      setAllowIdleProductPrewarm(true)
-    })
-    synthesis?.onPhaseChange?.('mergeFlash', 0.85)
+    synthesis?.onPhaseChange?.('mergeFlash', 0.88)
     invalidate()
   }, [currentSynthRunIdForCollapse, synthesis, invalidate])
+
+  const handleElementsCollapseComplete = useCallback(() => {
+    if (collapseDoneRunIdRef.current !== currentSynthRunIdForCollapse) {
+      handleElementsCollapseBirthReady()
+    }
+    setCollapseFxLinger(false)
+    startTransition(() => {
+      setAllowIdleProductPrewarm(true)
+    })
+    invalidate()
+  }, [currentSynthRunIdForCollapse, handleElementsCollapseBirthReady, invalidate])
   const instantSynthBudget = useMemo(() => {
     const productId = synthesis?.product?.id
     const gpuCompiled = productId != null && isProductGpuCompiled(productId)
@@ -1202,12 +1224,16 @@ function SceneContent({
     productSlotVisible && !showSettledHero,
     transformPreviewCompound != null,
   )
+  const productBirthActive =
+    instantSynthesis && synthActive && !elementsCollapsePlaying && !showSettledHero
   const productSlotEntrance: 'smooth' | 'none' | 'instant' =
     showSettledHero && !synthActive
       ? 'none'
-      : instantSynthesis || synthActive
-        ? 'instant'
-        : 'smooth'
+      : productBirthActive
+        ? 'smooth'
+        : instantSynthesis || synthActive
+          ? 'instant'
+          : 'smooth'
 
   /** Фон реактора с первого кадра после «Синтез» — без чёрного провала и ghost-frame. */
   const reactorBackdrop = reactorViewOpen
@@ -1574,7 +1600,7 @@ function SceneContent({
     if (rescue.forceBohrRootVisible && !productScreenOk && previewRootRef.current) {
       previewRootRef.current.visible = true
     }
-    if (rescue.forceProductFullScale) {
+    if (rescue.forceProductFullScale && !productBirthActive) {
       const g = productRootGroupRef.current
       if (g && g.scale.x < 0.86) {
         gsap.killTweensOf(g.scale)
@@ -1587,6 +1613,7 @@ function SceneContent({
     // Не restore Bohr, если молекула уже full-scale на экране.
     const centerOk =
       suppressBohrPinForCollapseHandoff ||
+      collapseFxLinger ||
       isCenterCovered({
         bohrVisible:
           !productScreenOk &&
@@ -1783,7 +1810,7 @@ function SceneContent({
             // В реакторе всегда lite Stars — full 900 + Bohr/молекула = hitch / white-screen.
             true
           }
-          frozen={synthActive || synthesisRunActive || elementsCollapsePlaying}
+          frozen={synthActive || synthesisRunActive || showElementsCollapseFx}
         />
       ) : null}
       {reactorBackdrop ? <LabReactorLights /> : null}
@@ -1908,7 +1935,7 @@ function SceneContent({
               timingProfile={synthTimingProfile}
             />
           ) : null}
-          {synthActive && synthesis && instantSynthesis && elementsCollapsePlaying ? (
+          {synthActive && synthesis && instantSynthesis && showElementsCollapseFx ? (
             <SynthesisElementsCollapseFx
               key={`collapse-${synthesis.runId}`}
               runId={synthesis.runId}
@@ -1921,6 +1948,7 @@ function SceneContent({
                 synthForceLite
               }
               accentHex={synthesis.product?.accentColor}
+              onBirthReady={handleElementsCollapseBirthReady}
               onComplete={handleElementsCollapseComplete}
             />
           ) : null}
@@ -1965,8 +1993,8 @@ function SceneContent({
           prewarm={productPrewarmResolved}
           entrance={productSlotEntrance}
           runId={synthesis?.runId ?? lastSynthRunIdRef.current}
-          birthEntrance={false}
-          entranceDuration={0}
+          birthEntrance={productBirthActive}
+          entranceDuration={productBirthActive ? PRODUCT_BIRTH_FROM_COLLAPSE_SEC : 0}
           shaderCompileAsync={productPrewarmResolved}
           onGpuCompiled={handleProductGpuCompiled}
           onProductVisiblePaint={handleProductVisiblePaint}

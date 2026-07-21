@@ -34,6 +34,12 @@ export type ElementsCollapseOptions = {
   particle_stretch?: number
   particle_colors?: number[]
   core_gradient?: Array<{ stop: number; color: string }>
+  /** Цвет кольца / ядра / света — под accent молекулы. */
+  accent_hex?: number
+  ring_color?: number
+  core_mesh_color?: number
+  light_color?: number
+  flash_tint?: number
   center?: THREE.Vector3
 }
 
@@ -47,6 +53,71 @@ export type ElementsCollapseController = {
   dispose: (opts?: ElementsCollapseDisposeOpts) => void
   readonly done: boolean
   readonly phase: string
+  /** true с начала fadeout — пора «рождать» молекулу из круга. */
+  readonly birthReady: boolean
+}
+
+export type CollapseAccentTheme = {
+  particle_colors: number[]
+  core_gradient: Array<{ stop: number; color: string }>
+  accent_hex: number
+  ring_color: number
+  core_mesh_color: number
+  light_color: number
+  flash_tint: number
+}
+
+function parseAccentHex(hex: string | undefined | null): number | null {
+  if (!hex) return null
+  const raw = hex.replace('#', '').trim()
+  if (!raw) return null
+  const full = raw.length === 3 ? raw.replace(/(.)/g, '$1$1') : raw
+  const n = Number.parseInt(full, 16)
+  return Number.isFinite(n) ? n : null
+}
+
+function rgbaFromHex(hex: number, a: number): string {
+  const r = (hex >> 16) & 0xff
+  const g = (hex >> 8) & 0xff
+  const b = hex & 0xff
+  return `rgba(${r}, ${g}, ${b}, ${a})`
+}
+
+function mixHex(a: number, b: number, t: number): number {
+  const ar = (a >> 16) & 0xff
+  const ag = (a >> 8) & 0xff
+  const ab = a & 0xff
+  const br = (b >> 16) & 0xff
+  const bg = (b >> 8) & 0xff
+  const bb = b & 0xff
+  const r = Math.round(ar + (br - ar) * t)
+  const g = Math.round(ag + (bg - ag) * t)
+  const bl = Math.round(ab + (bb - ab) * t)
+  return (r << 16) | (g << 8) | bl
+}
+
+/** Полная палитра FX под accentColor вещества (не только синий). */
+export function buildCollapseAccentTheme(accentHex?: string | null): CollapseAccentTheme | null {
+  const accent = parseAccentHex(accentHex)
+  if (accent == null) return null
+  const soft = mixHex(accent, 0xffffff, 0.35)
+  const deep = mixHex(accent, 0x000000, 0.35)
+  const warm = mixHex(accent, 0xffaa44, 0.28)
+  return {
+    particle_colors: [0xffffff, soft, accent, warm, deep],
+    core_gradient: [
+      { stop: 0.0, color: 'rgba(255, 255, 255, 1.0)' },
+      { stop: 0.12, color: rgbaFromHex(soft, 0.95) },
+      { stop: 0.35, color: rgbaFromHex(accent, 0.78) },
+      { stop: 0.62, color: rgbaFromHex(deep, 0.28) },
+      { stop: 1.0, color: 'rgba(0, 0, 0, 0.0)' },
+    ],
+    accent_hex: accent,
+    ring_color: soft,
+    core_mesh_color: accent,
+    light_color: soft,
+    flash_tint: mixHex(accent, 0xffffff, 0.55),
+  }
 }
 
 const DEFAULT_GRADIENT = [
@@ -78,21 +149,28 @@ export const COLLAPSE_DEMO_QUALITY = {
  * Профиль лаборатории: тот же FX, но быстрее и дешевле по GPU.
  * ~1.56 с вместо ~4.5 с; ≤380 искр вместо 1600.
  */
+/**
+ * Lab-профиль: чуть дольше hold/fade — круг «рождает» молекулу, цвет из accent.
+ * ~1.85 с; ≤400 искр.
+ */
 export const COLLAPSE_LAB_QUALITY = {
-  atom_collapse_time: 0.52,
+  atom_collapse_time: 0.55,
   atom_delay_max: 0.1,
-  burst_time: 0.48,
-  hold_after_grow: 0.14,
-  fade_out: 0.32,
-  end_scale: 2.35,
-  particles_per_sec: 160,
-  max_particles: 380,
-  particle_base_size: 50,
-  particle_speed: 13,
-  particle_stretch: 2.6,
+  burst_time: 0.52,
+  hold_after_grow: 0.22,
+  fade_out: 0.46,
+  end_scale: 2.55,
+  particles_per_sec: 170,
+  max_particles: 400,
+  particle_base_size: 52,
+  particle_speed: 13.5,
+  particle_stretch: 2.7,
   particle_colors: [0xffffff, 0xaaddff, 0x4488ff, 0xffaa00, 0xffffff] as number[],
   core_gradient: DEFAULT_GRADIENT,
 }
+
+/** Длительность GSAP-рождения молекулы из центрального круга. */
+export const PRODUCT_BIRTH_FROM_COLLAPSE_SEC = 0.62
 
 export function estimateCollapseDurationSec(opts: ElementsCollapseOptions = {}): number {
   const d = { ...COLLAPSE_LAB_QUALITY, ...opts }
@@ -152,11 +230,20 @@ export function createElementsCollapseAnimation(
     particle_stretch = COLLAPSE_LAB_QUALITY.particle_stretch,
     particle_colors = COLLAPSE_LAB_QUALITY.particle_colors,
     core_gradient = DEFAULT_GRADIENT,
+    accent_hex = 0xaaddff,
+    ring_color = 0xaaddff,
+    core_mesh_color = 0xaaddff,
+    light_color = 0xaaddff,
+    flash_tint = 0xffffff,
   } = options
 
   const centerLocal = options.center?.clone() ?? new THREE.Vector3(0, 0, 0)
   const sparkSize = Math.max(0.04, particle_base_size / 900)
   const collapsedScale = new THREE.Vector3(0.001, 0.001, 0.001)
+  const coreSoft = new THREE.Color(core_mesh_color)
+  const coreHot = new THREE.Color(0xffffff)
+  const lightCol = new THREE.Color(light_color)
+  void accent_hex
 
   // --- Искры: InstancedMesh-стрики ---
   const sparkGeo = new THREE.BoxGeometry(sparkSize * 0.35, sparkSize * 0.35, sparkSize * particle_stretch)
@@ -227,7 +314,7 @@ export function createElementsCollapseAnimation(
   const glowTex = glowAcq.tex
   const glowMat = new THREE.SpriteMaterial({
     map: glowTex,
-    color: 0xffffff,
+    color: flash_tint,
     transparent: true,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
@@ -243,7 +330,7 @@ export function createElementsCollapseAnimation(
 
   const flashMat = new THREE.SpriteMaterial({
     map: glowTex,
-    color: 0xffffff,
+    color: flash_tint,
     transparent: true,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
@@ -259,7 +346,7 @@ export function createElementsCollapseAnimation(
 
   const coreGeo = new THREE.SphereGeometry(0.4, 16, 12)
   const coreMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+    color: core_mesh_color,
     transparent: true,
     opacity: 0,
     blending: THREE.AdditiveBlending,
@@ -274,7 +361,7 @@ export function createElementsCollapseAnimation(
 
   const ringGeo = new THREE.RingGeometry(0.55, 0.85, 32)
   const ringMat = new THREE.MeshBasicMaterial({
-    color: 0xaaddff,
+    color: ring_color,
     transparent: true,
     opacity: 0,
     side: THREE.DoubleSide,
@@ -289,7 +376,7 @@ export function createElementsCollapseAnimation(
   ring.renderOrder = 38
   parent.add(ring)
 
-  const burstLight = new THREE.PointLight(0xaaddff, 0, 16, 2)
+  const burstLight = new THREE.PointLight(light_color, 0, 16, 2)
   burstLight.position.copy(centerLocal)
   parent.add(burstLight)
 
@@ -325,6 +412,7 @@ export function createElementsCollapseAnimation(
   let phase: 'collapse' | 'burst' | 'hold' | 'fadeout' = 'collapse'
   let finished = false
   let disposed = false
+  let birthReady = false
 
   const collapseEnd = atom_collapse_time + atom_delay_max
   const burstEnd = collapseEnd + burst_time
@@ -332,6 +420,8 @@ export function createElementsCollapseAnimation(
   const fadeEnd = holdEnd + fade_out
   const collapseMaxScale = 0.22
   const earlySparkT = collapseEnd - Math.min(0.28, atom_collapse_time * 0.25)
+  /** Молекула рождается чуть раньше конца hold — из яркого круга. */
+  const birthAt = holdEnd - Math.min(0.08, hold_after_grow * 0.35)
 
   function restoreAtoms() {
     for (const data of atomData) {
@@ -368,6 +458,8 @@ export function createElementsCollapseAnimation(
     // Cap dt — после таба/stall не «перепрыгиваем» фазы одним кадром.
     const dt = Math.min(0.033, Math.max(0.0005, dtRaw))
     elapsed += dt
+
+    if (elapsed >= birthAt) birthReady = true
 
     if (elapsed >= fadeEnd) {
       dispose()
@@ -427,6 +519,7 @@ export function createElementsCollapseAnimation(
       flashMat.opacity = 0
     } else {
       phase = 'fadeout'
+      birthReady = true
       const fadeT = clamp01((elapsed - holdEnd) / fade_out)
       fadeMul = 1 - easeInOutCubic(fadeT)
       burstScale = end_scale * fadeMul
@@ -473,7 +566,7 @@ export function createElementsCollapseAnimation(
 
     coreMesh.scale.setScalar(Math.max(0.001, 0.35 + burstScale * 0.7))
     coreMat.opacity = Math.min(1, 0.2 + burstScale * 0.35) * fadeMul
-    coreMat.color.set(burstScale > 1 ? 0xffffff : 0xaaddff)
+    coreMat.color.copy(burstScale > 1.15 ? coreHot : coreSoft)
 
     const ringS = Math.max(0.001, 0.4 + burstScale * 1.15)
     ring.scale.set(ringS, ringS, ringS)
@@ -481,7 +574,7 @@ export function createElementsCollapseAnimation(
     ring.rotation.z = elapsed * 1.2
 
     burstLight.intensity = Math.min(6.5, burstScale * 2.1) * fadeMul
-    burstLight.color.set(0xaaddff)
+    burstLight.color.copy(lightCol)
 
     return false
   }
@@ -494,6 +587,9 @@ export function createElementsCollapseAnimation(
     },
     get phase() {
       return phase
+    },
+    get birthReady() {
+      return birthReady
     },
   }
 }
@@ -511,15 +607,15 @@ export function resolveCollapseOptionsForDevice(
   if (densePreview) {
     opts = {
       ...opts,
-      atom_collapse_time: 0.42,
+      atom_collapse_time: 0.45,
       atom_delay_max: 0.08,
-      burst_time: 0.38,
-      hold_after_grow: 0.1,
-      fade_out: 0.26,
-      end_scale: 2.0,
-      particles_per_sec: 95,
-      max_particles: 200,
-      particle_base_size: 42,
+      burst_time: 0.4,
+      hold_after_grow: 0.14,
+      fade_out: 0.36,
+      end_scale: 2.15,
+      particles_per_sec: 100,
+      max_particles: 220,
+      particle_base_size: 44,
       particle_speed: 12,
     }
   }

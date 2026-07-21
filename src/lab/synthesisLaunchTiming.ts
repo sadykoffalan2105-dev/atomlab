@@ -41,8 +41,8 @@ export function synthesisConvergeDurationSec(
   return (profile.streamFlyDur + maxStagger) * synthesisTimingScale(tier)
 }
 
-/** Бюджет после collapse FX на GPU-paint + InstantLab settle. */
-const INSTANT_PRODUCT_PAINT_BUDGET_SEC = 2.4
+/** Бюджет после collapse FX на birth + GPU-paint + InstantLab settle. */
+const INSTANT_PRODUCT_PAINT_BUDGET_SEC = 2.8
 
 export function synthesisLaunchWatchdogMs(
   termCount: number,

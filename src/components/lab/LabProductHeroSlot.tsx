@@ -290,9 +290,16 @@ export function LabProductHeroSlot({
     notifyGpuCompiledPersisted,
   ])
 
-  // Переход prewarm → visible: всегда full-scale (не зависеть от GPU-cache).
+  // Переход prewarm → visible: full-scale только без birth/smooth (иначе убиваем «рождение»).
   useLayoutEffect(() => {
     if (!visible || prewarm) return
+    if (birthEntrance || entrance === 'smooth') {
+      if (gpuCompiledRef.current || isProductGpuCompiled(compound.id)) {
+        gpuCompiledRef.current = true
+      }
+      invalidate()
+      return
+    }
     const g = groupRef.current
     if (!g) return
     g.scale.set(1, 1, 1)
@@ -302,14 +309,18 @@ export function LabProductHeroSlot({
     }
     invalidate()
     // Не вызываем onProductVisiblePaint из layout — иначе Bohr гасится до первого кадра молекулы.
-  }, [visible, prewarm, compound.id, invalidate])
+  }, [visible, prewarm, compound.id, invalidate, birthEntrance, entrance])
 
   // Считаем реально отрисованные кадры visible → paint. Micro-prewarm НЕ пишет GPU-cache.
   useFrame((state) => {
     if (visible && !prewarm && !visiblePaintSentRef.current) {
       const g = groupRef.current
       if (g) {
-        if (g.scale.x < 0.86) g.scale.set(1, 1, 1)
+        // Birth/smooth: ждём scale ≥ 0.86 от GSAP — не snap к 1 (убивает «рождение из круга»).
+        if (g.scale.x < 0.86) {
+          if (birthEntrance || entrance === 'smooth') return
+          g.scale.set(1, 1, 1)
+        }
         const ctx = state.gl.getContext() as WebGLRenderingContext | null
         const bufOk =
           !!ctx &&
@@ -387,25 +398,22 @@ export function LabProductHeroSlot({
     const dur = entranceDuration
 
     if (birthEntrance || fromPrewarm) {
-      if (g.scale.x < 0.01) {
-        g.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
-      }
+      g.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
       if (spin) spin.rotation.set(0, 0, 0)
       const tl = gsap.timeline({
-        onComplete: () => {
-          // Paint только из useFrame после живого drawing buffer — не гасить Bohr рано.
-        },
+        onUpdate: () => invalidate(),
       })
+      // Рождение из центрального круга: micro → overshoot → settle + лёгкий spin.
       tl.to(
         g.scale,
-        { x: 1.1, y: 1.1, z: 1.1, duration: dur * 0.68, ease: 'power2.out' },
+        { x: 1.14, y: 1.14, z: 1.14, duration: dur * 0.7, ease: 'power3.out' },
         0,
       )
-      tl.to(g.scale, { x: 1, y: 1, z: 1, duration: dur * 0.32, ease: 'power2.inOut' })
+      tl.to(g.scale, { x: 1, y: 1, z: 1, duration: dur * 0.3, ease: 'power2.inOut' })
       if (spin && birthEntrance) {
         tl.to(
           spin.rotation,
-          { y: Math.PI * 0.18, duration: dur * 0.9, ease: 'power3.out' },
+          { y: Math.PI * 0.42, duration: dur, ease: 'power2.out' },
           0,
         )
       }
@@ -428,7 +436,7 @@ export function LabProductHeroSlot({
     return () => {
       t.kill()
     }
-  }, [visible, prewarm, entrance, compound.id, runId, birthEntrance, entranceDuration, onProductVisiblePaint])
+  }, [visible, prewarm, entrance, compound.id, runId, birthEntrance, entranceDuration, onProductVisiblePaint, invalidate])
 
   /** Локальный свет отключён: LabReactorLights уже освещает сцену — иначе вспышка на старте синтеза. */
   const showLocalLights = false

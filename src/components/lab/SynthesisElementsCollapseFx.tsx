@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import type { MutableRefObject } from 'react'
 import * as THREE from 'three'
 import {
+  buildCollapseAccentTheme,
   createElementsCollapseAnimation,
   resolveCollapseOptionsForDevice,
   type ElementsCollapseController,
@@ -12,9 +13,8 @@ const ATOM_WAIT_FRAMES = 18
 const PROXY_COUNT_DEFAULT = 5
 
 /**
- * Коллапс Bohr-атомов + particle burst между «Запустить синтез» и молекулой.
- * Если Bohr-refs ещё пусты — ставит proxy-сферы, чтобы FX всегда был виден
- * для любого из 200+ продуктов.
+ * Коллапс Bohr-атомов + particle burst в цвете молекулы.
+ * onBirthReady — когда круг «рождает» продукт (fade); onComplete — FX полностью закончен.
  */
 export function SynthesisElementsCollapseFx({
   atomGroupRefs,
@@ -23,6 +23,7 @@ export function SynthesisElementsCollapseFx({
   lowPower = false,
   densePreview = false,
   accentHex,
+  onBirthReady,
   onComplete,
 }: {
   atomGroupRefs: MutableRefObject<(THREE.Group | null)[]>
@@ -32,16 +33,21 @@ export function SynthesisElementsCollapseFx({
   /** Плотное уравнение (≥10 слотов) — меньше частиц, анти white-screen. */
   densePreview?: boolean
   accentHex?: string
+  /** Молекула начинает рождаться из круга (hold→fade). */
+  onBirthReady?: () => void
   onComplete: () => void
 }) {
   const fxRootRef = useRef<THREE.Group>(null)
   const ctrlRef = useRef<ElementsCollapseController | null>(null)
   const proxyRef = useRef<THREE.Object3D[]>([])
   const doneRef = useRef(false)
+  const birthFiredRef = useRef(false)
   const waitFramesRef = useRef(0)
   const startedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
+  const onBirthReadyRef = useRef(onBirthReady)
   onCompleteRef.current = onComplete
+  onBirthReadyRef.current = onBirthReady
 
   const collectBohrAtoms = (): THREE.Object3D[] => {
     const atoms: THREE.Object3D[] = []
@@ -79,7 +85,10 @@ export function SynthesisElementsCollapseFx({
     clearProxies()
     const root = fxRootRef.current
     if (!root) return []
-    const colors = [0xff6688, 0x66ffaa, 0x66aaff, 0xffcc66, 0xcc88ff]
+    const theme = buildCollapseAccentTheme(accentHex)
+    const colors = theme
+      ? [theme.accent_hex, theme.ring_color, theme.light_color, theme.flash_tint, 0xffffff]
+      : [0xff6688, 0x66ffaa, 0x66aaff, 0xffcc66, 0xcc88ff]
     const out: THREE.Object3D[] = []
     const n = Math.max(3, Math.min(8, count || PROXY_COUNT_DEFAULT))
     for (let i = 0; i < n; i++) {
@@ -106,19 +115,29 @@ export function SynthesisElementsCollapseFx({
 
   const buildOpts = () => {
     const opts = resolveCollapseOptionsForDevice(lowPower, densePreview)
-    if (accentHex) {
-      const raw = accentHex.replace('#', '').trim()
-      const c = Number.parseInt(raw.length === 3 ? raw.replace(/(.)/g, '$1$1') : raw, 16)
-      if (Number.isFinite(c)) {
-        opts.particle_colors = [0xffffff, c, 0xaaddff, 0xffaa00, 0xffffff]
-      }
+    const theme = buildCollapseAccentTheme(accentHex)
+    if (theme) {
+      opts.particle_colors = theme.particle_colors
+      opts.core_gradient = theme.core_gradient
+      opts.accent_hex = theme.accent_hex
+      opts.ring_color = theme.ring_color
+      opts.core_mesh_color = theme.core_mesh_color
+      opts.light_color = theme.light_color
+      opts.flash_tint = theme.flash_tint
     }
     return opts
+  }
+
+  const fireBirth = () => {
+    if (birthFiredRef.current) return
+    birthFiredRef.current = true
+    onBirthReadyRef.current?.()
   }
 
   const finish = () => {
     if (doneRef.current) return
     doneRef.current = true
+    fireBirth()
     ctrlRef.current?.dispose()
     ctrlRef.current = null
     clearProxies()
@@ -137,6 +156,7 @@ export function SynthesisElementsCollapseFx({
 
   useEffect(() => {
     doneRef.current = false
+    birthFiredRef.current = false
     startedRef.current = false
     waitFramesRef.current = 0
     return () => {
@@ -170,6 +190,7 @@ export function SynthesisElementsCollapseFx({
     }
 
     const finished = ctrlRef.current.tick(delta)
+    if (ctrlRef.current.birthReady) fireBirth()
     if (finished) finish()
   })
 
