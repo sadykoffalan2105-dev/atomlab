@@ -14,9 +14,9 @@ import {
   lessonToLeftTerms,
   type BalanceLesson,
 } from '../../chemistry/balanceLessonBank'
-import { reactionsByClass } from '../../chemistry/schoolReactionBank'
+import { passportForReaction, reactionsByClass } from '../../chemistry/schoolReactionBank'
 import { reactantsSummaryRu } from '../../chemistry/reactionReactantLabels'
-import { describePassportRu, passportForReaction } from '../../chemistry/reactionPassport'
+import { describePassportRu } from '../../chemistry/reactionPassport'
 import { REACTION_CLASS_META, type ReactionClass } from '../../chemistry/reactionTypeTaxonomy'
 import styles from './ReactorBalancePanel.module.css'
 
