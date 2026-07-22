@@ -167,11 +167,17 @@ function octaDirs(): V3[] {
   ]
 }
 
+/** Три направления тетраэдра — для AX₃E (NH₃, пирамида), не плоский треугольник. */
+function trigonalPyramidalDirs(): V3[] {
+  return tetraDirs().slice(0, 3)
+}
+
 function dirsForCount(k: number, seed: number): V3[] {
   if (k <= 0) return []
   if (k === 1) return [[1, 0, 0]]
   if (k === 2) return [[1, 0, 0], [-1, 0, 0]]
-  if (k === 3) return trigonalPlanarDirs()
+  // По умолчанию пирамида (NH₃ и др.); плоский треугольник — только через planar=true у ионов.
+  if (k === 3) return trigonalPyramidalDirs()
   if (k === 4) return tetraDirs()
   if (k === 5) {
     // trigonal bipyramidal (approx)
@@ -422,34 +428,38 @@ const ANIONS: IonDef[] = [
   { id: 's2', charge: -2, comp: { S: 1 }, build: buildMonatomic('S') },
   { id: 'sio3', charge: -2, comp: { Si: 1, O: 3 }, build: buildPolyatomicCenterOuter('Si', 'O', 3, true) },
   { id: 'cro4', charge: -2, comp: { Cr: 1, O: 4 }, build: buildPolyatomicCenterOuter('Cr', 'O', 4) },
-  { id: 'cr2o7', charge: -2, comp: { Cr: 2, O: 7 }, build: (seed) => {
-    // Two tetra-like CrO4 groups sharing one O (schematic)
-    const a = buildPolyatomicCenterOuter('Cr', 'O', 4)(seed)
-    // remove one outer O from each and merge as a bridge
-    const sym: string[] = []
-    const pos: V3[] = []
-    const bonds: [number, number][] = []
-    // first: keep center + 3 O
-    sym.push(a.symbols[0]!, a.symbols[1]!, a.symbols[2]!, a.symbols[3]!)
-    pos.push([0, 0, 0], a.pos[1]!, a.pos[2]!, a.pos[3]!)
-    bonds.push([0, 1], [0, 2], [0, 3])
-    // bridge O at +x
-    const bridgeIdx = sym.length
-    sym.push('O')
-    pos.push([0.62, 0, 0])
-    bonds.push([0, bridgeIdx])
-    // second Cr shifted right
-    const c2 = sym.length
-    sym.push('Cr')
-    pos.push([1.24, 0, 0])
-    bonds.push([c2, bridgeIdx])
-    // add 3 O around second
-    const dirs = dirsForCount(3, seed ^ 0x2468ace0)
-    for (let i = 0; i < 3; i++) {
+  { id: 'cr2o7', charge: -2, comp: { Cr: 2, O: 7 }, build: () => {
+    // Cr–O–Cr мостик + по 3 терминальных O у каждого Cr (тетраэдр вокруг Cr, учебниковая схема).
+    const rCr = 0.78
+    const rTerm = 0.62
+    const crL: V3 = [-rCr, 0, 0]
+    const crR: V3 = [rCr, 0, 0]
+    const oB: V3 = [0, 0, 0]
+    const termDirsL: V3[] = [
+      [-0.35, 0.9, 0.25],
+      [-0.85, -0.25, -0.35],
+      [0.05, -0.75, 0.35],
+    ].map((v) => vNorm(v as V3))
+    const termDirsR: V3[] = [
+      [0.35, 0.9, 0.25],
+      [0.85, -0.25, -0.35],
+      [-0.05, -0.75, 0.35],
+    ].map((v) => vNorm(v as V3))
+    const sym: string[] = ['Cr', 'Cr', 'O']
+    const pos: V3[] = [crL, crR, oB]
+    const bonds: [number, number][] = [
+      [0, 2],
+      [1, 2],
+    ]
+    for (const d of termDirsL) {
       sym.push('O')
-      const p = vAdd(pos[c2]!, vMul(vNorm(dirs[i] ?? [0, 1, 0]), 0.62))
-      pos.push(p)
-      bonds.push([c2, sym.length - 1])
+      pos.push(vAdd(crL, vMul(d, rTerm)))
+      bonds.push([0, sym.length - 1])
+    }
+    for (const d of termDirsR) {
+      sym.push('O')
+      pos.push(vAdd(crR, vMul(d, rTerm)))
+      bonds.push([1, sym.length - 1])
     }
     return { symbols: sym, pos, bonds }
   } },

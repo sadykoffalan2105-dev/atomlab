@@ -34,7 +34,9 @@ function elementSymbol(z: number): string {
     26: 'Fe',
     29: 'Cu',
     30: 'Zn',
+    35: 'Br',
     47: 'Ag',
+    53: 'I',
     56: 'Ba',
   }
   return map[z] ?? `Z=${z}`

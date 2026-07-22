@@ -94,6 +94,335 @@ function h2sGeometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, nu
   return { atoms, bonds }
 }
 
+/** NH₃: тригональная пирамида (угол H–N–H ≈ 107°). */
+function nh3Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const r = 0.72
+  const t = 1 / Math.sqrt(3)
+  const dirs: Vec3[] = [
+    [t, t, t],
+    [t, -t, -t],
+    [-t, t, -t],
+  ]
+  const atoms: Atom3D[] = [
+    { symbol: 'N', pos: [0, 0, 0] },
+    { symbol: 'H', pos: [dirs[0]![0] * r, dirs[0]![1] * r, dirs[0]![2] * r] },
+    { symbol: 'H', pos: [dirs[1]![0] * r, dirs[1]![1] * r, dirs[1]![2] * r] },
+    { symbol: 'H', pos: [dirs[2]![0] * r, dirs[2]![1] * r, dirs[2]![2] * r] },
+  ]
+  const bonds: (readonly [number, number])[] = [
+    [0, 1],
+    [0, 2],
+    [0, 3],
+  ]
+  return { atoms, bonds }
+}
+
+/** SO₂: изогнутая (угол O–S–O ≈ 119°). */
+function so2Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const d = 0.55
+  const a = 59.5 * (Math.PI / 180)
+  const o0: Vec3 = [d * Math.sin(a), 0, d * Math.cos(a)]
+  const o1: Vec3 = [-d * Math.sin(a), 0, d * Math.cos(a)]
+  return {
+    atoms: [
+      { symbol: 'S', pos: [0, 0, 0] },
+      { symbol: 'O', pos: o0 },
+      { symbol: 'O', pos: o1 },
+    ],
+    bonds: [
+      [0, 1],
+      [0, 2],
+    ],
+  }
+}
+
+/** NO₂: изогнутая (угол O–N–O ≈ 134°). */
+function no2Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const d = 0.52
+  const a = 67 * (Math.PI / 180)
+  const o0: Vec3 = [d * Math.sin(a), 0, d * Math.cos(a)]
+  const o1: Vec3 = [-d * Math.sin(a), 0, d * Math.cos(a)]
+  return {
+    atoms: [
+      { symbol: 'N', pos: [0, 0, 0] },
+      { symbol: 'O', pos: o0 },
+      { symbol: 'O', pos: o1 },
+    ],
+    bonds: [
+      [0, 1],
+      [0, 2],
+    ],
+  }
+}
+
+/** H₂CO₃: плоский C, два OH и одно =O. */
+function h2co3Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const r = 0.55
+  const a = (2 * Math.PI) / 3
+  const o0: Vec3 = [r, 0, 0]
+  const o1: Vec3 = [r * Math.cos(a), r * Math.sin(a), 0]
+  const o2: Vec3 = [r * Math.cos(2 * a), r * Math.sin(2 * a), 0]
+  const oh = 0.4
+  const h1: Vec3 = [o1[0] + (o1[0] / LEN(o1)) * oh, o1[1] + (o1[1] / LEN(o1)) * oh, 0]
+  const h2: Vec3 = [o2[0] + (o2[0] / LEN(o2)) * oh, o2[1] + (o2[1] / LEN(o2)) * oh, 0]
+  return {
+    atoms: [
+      { symbol: 'C', pos: [0, 0, 0] },
+      { symbol: 'O', pos: o0 },
+      { symbol: 'O', pos: o1 },
+      { symbol: 'O', pos: o2 },
+      { symbol: 'H', pos: h1 },
+      { symbol: 'H', pos: h2 },
+    ],
+    bonds: [
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [2, 4],
+      [3, 5],
+    ],
+  }
+}
+
+/** H₂SO₃: пирамидальный S, два OH и одно =O. */
+function h2so3Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const r = 0.58
+  const t = 1 / Math.sqrt(3)
+  const o0: Vec3 = [t * r, t * r, t * r]
+  const o1: Vec3 = [t * r, -t * r, -t * r]
+  const o2: Vec3 = [-t * r, t * r, -t * r]
+  const oh = 0.38
+  const h1: Vec3 = [o1[0] + (o1[0] / LEN(o1)) * oh, o1[1] + (o1[1] / LEN(o1)) * oh, o1[2] + (o1[2] / LEN(o1)) * oh]
+  const h2: Vec3 = [o2[0] + (o2[0] / LEN(o2)) * oh, o2[1] + (o2[1] / LEN(o2)) * oh, o2[2] + (o2[2] / LEN(o2)) * oh]
+  return {
+    atoms: [
+      { symbol: 'S', pos: [0, 0, 0] },
+      { symbol: 'O', pos: o0 },
+      { symbol: 'O', pos: o1 },
+      { symbol: 'O', pos: o2 },
+      { symbol: 'H', pos: h1 },
+      { symbol: 'H', pos: h2 },
+    ],
+    bonds: [
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [2, 4],
+      [3, 5],
+    ],
+  }
+}
+
+/** HNO₂: O=N–OH, изогнутая. */
+function hno2Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const n: Vec3 = [0, 0, 0]
+  const oDbl: Vec3 = [0.52, 0.28, 0]
+  const oH: Vec3 = [-0.48, 0.22, 0]
+  const h: Vec3 = [-0.85, -0.15, 0]
+  return {
+    atoms: [
+      { symbol: 'N', pos: n },
+      { symbol: 'O', pos: oDbl },
+      { symbol: 'O', pos: oH },
+      { symbol: 'H', pos: h },
+    ],
+    bonds: [
+      [0, 1],
+      [0, 2],
+      [2, 3],
+    ],
+  }
+}
+
+/** HClO₄: тетраэдр ClO₄ + H на одном O. */
+function hclo4Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const o0 = tetO(1, 1, 1)
+  const o1 = tetO(1, -1, -1)
+  const o2 = tetO(-1, 1, -1)
+  const o3 = tetO(-1, -1, 1)
+  const oh = 0.34
+  const h: Vec3 = [o0[0] + (o0[0] / LEN(o0)) * oh, o0[1] + (o0[1] / LEN(o0)) * oh, o0[2] + (o0[2] / LEN(o0)) * oh]
+  return {
+    atoms: [
+      { symbol: 'Cl', pos: [0, 0, 0] },
+      { symbol: 'O', pos: o0 },
+      { symbol: 'O', pos: o1 },
+      { symbol: 'O', pos: o2 },
+      { symbol: 'O', pos: o3 },
+      { symbol: 'H', pos: h },
+    ],
+    bonds: [
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [0, 4],
+      [1, 5],
+    ],
+  }
+}
+
+/** HMnO₄: тетраэдр MnO₄ + H на одном O. */
+function hmno4Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const o0 = tetO(1, 1, 1)
+  const o1 = tetO(1, -1, -1)
+  const o2 = tetO(-1, 1, -1)
+  const o3 = tetO(-1, -1, 1)
+  const oh = 0.34
+  const h: Vec3 = [o0[0] + (o0[0] / LEN(o0)) * oh, o0[1] + (o0[1] / LEN(o0)) * oh, o0[2] + (o0[2] / LEN(o0)) * oh]
+  return {
+    atoms: [
+      { symbol: 'Mn', pos: [0, 0, 0] },
+      { symbol: 'O', pos: o0 },
+      { symbol: 'O', pos: o1 },
+      { symbol: 'O', pos: o2 },
+      { symbol: 'O', pos: o3 },
+      { symbol: 'H', pos: h },
+    ],
+    bonds: [
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [0, 4],
+      [1, 5],
+    ],
+  }
+}
+
+/** H₂CrO₄: тетраэдр CrO₄ + два OH. */
+function h2cro4Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const o0 = tetO(1, 1, 1)
+  const o1 = tetO(1, -1, -1)
+  const o2 = tetO(-1, 1, -1)
+  const o3 = tetO(-1, -1, 1)
+  const oh = 0.34
+  const h0: Vec3 = [o0[0] + (o0[0] / LEN(o0)) * oh, o0[1] + (o0[1] / LEN(o0)) * oh, o0[2] + (o0[2] / LEN(o0)) * oh]
+  const h1: Vec3 = [o1[0] + (o1[0] / LEN(o1)) * oh, o1[1] + (o1[1] / LEN(o1)) * oh, o1[2] + (o1[2] / LEN(o1)) * oh]
+  return {
+    atoms: [
+      { symbol: 'Cr', pos: [0, 0, 0] },
+      { symbol: 'O', pos: o0 },
+      { symbol: 'O', pos: o1 },
+      { symbol: 'O', pos: o2 },
+      { symbol: 'O', pos: o3 },
+      { symbol: 'H', pos: h0 },
+      { symbol: 'H', pos: h1 },
+    ],
+    bonds: [
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [0, 4],
+      [1, 5],
+      [2, 6],
+    ],
+  }
+}
+
+/**
+ * Школьные соли: катион слева, анион справа (тетраэдр SO₄ / плоскость CO₃), без межионных палочек.
+ */
+function ionicTetraSalt(
+  cation: string,
+  center: string,
+  nO: 3 | 4,
+  planar: boolean,
+): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const cat: Vec3 = [-1.55, 0, 0]
+  const cen: Vec3 = [0.35, 0, 0]
+  const r = planar ? 0.62 : 0.58
+  const atoms: Atom3D[] = [
+    { symbol: cation, pos: cat },
+    { symbol: center, pos: cen },
+  ]
+  const bonds: (readonly [number, number])[] = []
+  if (nO === 4 && !planar) {
+    const dirs: Vec3[] = [tetO(1, 1, 1), tetO(1, -1, -1), tetO(-1, 1, -1), tetO(-1, -1, 1)]
+    for (const d of dirs) {
+      const idx = atoms.length
+      atoms.push({
+        symbol: 'O',
+        pos: [cen[0] + d[0] * (r / 0.52), cen[1] + d[1] * (r / 0.52), cen[2] + d[2] * (r / 0.52)],
+      })
+      bonds.push([1, idx])
+    }
+  } else {
+    const a = (2 * Math.PI) / 3
+    const dirs: Vec3[] = [
+      [r, 0, 0],
+      [r * Math.cos(a), r * Math.sin(a), 0],
+      [r * Math.cos(2 * a), r * Math.sin(2 * a), 0],
+    ]
+    for (const d of dirs) {
+      const idx = atoms.length
+      atoms.push({ symbol: 'O', pos: [cen[0] + d[0], cen[1] + d[1], cen[2] + d[2]] })
+      bonds.push([1, idx])
+    }
+  }
+  return { atoms, bonds }
+}
+
+function saltCuSo4Geometry() {
+  return ionicTetraSalt('Cu', 'S', 4, false)
+}
+function saltNaSo4Geometry() {
+  // Na₂SO₄: два Na⁺ слева, SO₄ справа
+  const base = ionicTetraSalt('Na', 'S', 4, false)
+  const atoms = [...base.atoms]
+  atoms.splice(1, 0, { symbol: 'Na', pos: [-1.55, 0.85, 0] as Vec3 })
+  // shift first Na slightly
+  atoms[0] = { symbol: 'Na', pos: [-1.55, -0.55, 0] }
+  // bonds were to center index 1; after insert center is index 2
+  const bonds: (readonly [number, number])[] = base.bonds.map(([a, b]) => [
+    a === 0 ? 0 : a + 1,
+    b === 0 ? 0 : b + 1,
+  ] as const)
+  return { atoms, bonds }
+}
+function saltCaCo3Geometry() {
+  return ionicTetraSalt('Ca', 'C', 3, true)
+}
+function saltBaSo4Geometry() {
+  return ionicTetraSalt('Ba', 'S', 4, false)
+}
+
+/** CuCr₂O₇: один Cu²⁺ + дихромат (как K₂Cr₂O₇, но один катион). */
+function cuCr2o7Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const cu: Vec3 = [-2.0, 0, 0.2]
+  const crL: Vec3 = [-0.78, 0, 0]
+  const crR: Vec3 = [0.78, 0, 0]
+  const oB: Vec3 = [0, 0, 0]
+  const oL0: Vec3 = [crL[0] - 0.2, crL[1] + 0.62, crL[2] + 0.22]
+  const oL1: Vec3 = [crL[0] - 0.58, crL[1] - 0.18, crL[2] - 0.18]
+  const oL2: Vec3 = [crL[0] + 0.06, crL[1] - 0.58, crL[2] + 0.12]
+  const oR0: Vec3 = [crR[0] + 0.2, crR[1] + 0.62, crR[2] + 0.22]
+  const oR1: Vec3 = [crR[0] + 0.58, crR[1] - 0.18, crR[2] - 0.18]
+  const oR2: Vec3 = [crR[0] - 0.06, crR[1] - 0.58, crR[2] + 0.12]
+  return {
+    atoms: [
+      { symbol: 'Cu', pos: cu },
+      { symbol: 'Cr', pos: crL },
+      { symbol: 'Cr', pos: crR },
+      { symbol: 'O', pos: oB },
+      { symbol: 'O', pos: oL0 },
+      { symbol: 'O', pos: oL1 },
+      { symbol: 'O', pos: oL2 },
+      { symbol: 'O', pos: oR0 },
+      { symbol: 'O', pos: oR1 },
+      { symbol: 'O', pos: oR2 },
+    ],
+    bonds: [
+      [1, 3],
+      [1, 4],
+      [1, 5],
+      [1, 6],
+      [2, 3],
+      [2, 7],
+      [2, 8],
+      [2, 9],
+    ],
+  }
+}
+
 /**
  * HNO₃: прибл. плоская картинка (sp² у N): трёхсвязный N + O–H.
  * Индексы: 0 N, 1 O (к OH), 2–3 O (нитрогруппа), 4 H.
@@ -464,27 +793,33 @@ function hydroxideOh2Geometry(metal: string): { atoms: Atom3D[]; bonds: readonly
 }
 
 function hydroxideOh3Geometry(metal: string): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
-  // Planar trigonal arrangement: three separate H–O–M rays.
+  // Пирамидальная (тетраэдрическая) раскладка M(OH)₃ — не плоский треугольник.
   // Indices: 0 M, 1-3 O, 4-6 H
-  const rMO = 0.62
+  const rMO = 0.68
   const rOH = 0.46
-  const a = (2 * Math.PI) / 3
-  const o0: Vec3 = [rMO, 0, 0]
-  const o1: Vec3 = [rMO * Math.cos(a), rMO * Math.sin(a), 0]
-  const o2: Vec3 = [rMO * Math.cos(2 * a), rMO * Math.sin(2 * a), 0]
+  const t = 1 / Math.sqrt(3)
+  const oDirs: Vec3[] = [
+    [t, t, t],
+    [t, -t, -t],
+    [-t, t, -t],
+  ]
+  const o0: Vec3 = [oDirs[0]![0] * rMO, oDirs[0]![1] * rMO, oDirs[0]![2] * rMO]
+  const o1: Vec3 = [oDirs[1]![0] * rMO, oDirs[1]![1] * rMO, oDirs[1]![2] * rMO]
+  const o2: Vec3 = [oDirs[2]![0] * rMO, oDirs[2]![1] * rMO, oDirs[2]![2] * rMO]
 
-  const h0: Vec3 = [o0[0] + (o0[0] / LEN(o0)) * rOH, o0[1] + (o0[1] / LEN(o0)) * rOH, 0]
-  const h1: Vec3 = [o1[0] + (o1[0] / LEN(o1)) * rOH, o1[1] + (o1[1] / LEN(o1)) * rOH, 0]
-  const h2: Vec3 = [o2[0] + (o2[0] / LEN(o2)) * rOH, o2[1] + (o2[1] / LEN(o2)) * rOH, 0]
+  const extend = (o: Vec3): Vec3 => {
+    const l = LEN(o)
+    return [o[0] + (o[0] / l) * rOH, o[1] + (o[1] / l) * rOH, o[2] + (o[2] / l) * rOH]
+  }
 
   const atoms: Atom3D[] = [
-    { symbol: metal, pos: [0, 0, 0] }, // 0
-    { symbol: 'O', pos: o0 }, // 1
-    { symbol: 'O', pos: o1 }, // 2
-    { symbol: 'O', pos: o2 }, // 3
-    { symbol: 'H', pos: h0 }, // 4
-    { symbol: 'H', pos: h1 }, // 5
-    { symbol: 'H', pos: h2 }, // 6
+    { symbol: metal, pos: [0, 0, 0] },
+    { symbol: 'O', pos: o0 },
+    { symbol: 'O', pos: o1 },
+    { symbol: 'O', pos: o2 },
+    { symbol: 'H', pos: extend(o0) },
+    { symbol: 'H', pos: extend(o1) },
+    { symbol: 'H', pos: extend(o2) },
   ]
   const bonds: (readonly [number, number])[] = [
     [0, 1],
@@ -1066,10 +1401,28 @@ export function getMolecularGeometryOrNull(
       return h2so4Geometry()
     case 'so3':
       return so3Geometry()
+    case 'so2':
+      return so2Geometry()
+    case 'no2':
+      return no2Geometry()
+    case 'nh3':
+      return nh3Geometry()
     case 'h2s':
       return h2sGeometry()
     case 'hno3':
       return hno3Geometry()
+    case 'hno2':
+      return hno2Geometry()
+    case 'h2co3':
+      return h2co3Geometry()
+    case 'h2so3':
+      return h2so3Geometry()
+    case 'hclo4':
+      return hclo4Geometry()
+    case 'hmno4':
+      return hmno4Geometry()
+    case 'h2cro4':
+      return h2cro4Geometry()
     case 'h3po4':
       return h3po4Geometry()
     case 'h3po3':
@@ -1132,6 +1485,16 @@ export function getMolecularGeometryOrNull(
       return aloh3Geometry()
     case 'salt_k2cr2o7':
       return k2cr2o7Geometry()
+    case 'salt_cu_cr2o7':
+      return cuCr2o7Geometry()
+    case 'salt_cu_so4':
+      return saltCuSo4Geometry()
+    case 'salt_na_so4':
+      return saltNaSo4Geometry()
+    case 'salt_ca_co3':
+      return saltCaCo3Geometry()
+    case 'salt_ba_so4':
+      return saltBaSo4Geometry()
     case 'salt_k_no3':
       return kno3Geometry()
     case 'salt_nh4_3_po4':

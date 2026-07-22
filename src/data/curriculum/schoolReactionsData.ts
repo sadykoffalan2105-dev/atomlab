@@ -2,6 +2,7 @@ import type { SchoolReactionDef } from './schoolReactionTypes'
 import { SCHOOL_REACTIONS_PART2 } from './schoolReactionsPart2'
 import { SCHOOL_REACTIONS_PART3 } from './schoolReactionsPart3'
 import { SCHOOL_REACTIONS_PART4 } from './schoolReactionsPart4'
+import { SCHOOL_REACTIONS_PART5 } from './schoolReactionsPart5'
 
 /**
  * Полный банк школьных реакций Kimyo 7–9 кл.
@@ -320,4 +321,5 @@ export const SCHOOL_REACTIONS_DATA: readonly SchoolReactionDef[] = [
   ...SCHOOL_REACTIONS_PART2,
   ...SCHOOL_REACTIONS_PART3,
   ...SCHOOL_REACTIONS_PART4,
+  ...SCHOOL_REACTIONS_PART5,
 ] as const
