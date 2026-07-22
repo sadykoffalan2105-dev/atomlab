@@ -147,7 +147,7 @@ export function CompoundDetailModal({
             </dl>
           </div>
           <div className={styles.previewWrap} aria-label={t('compound.preview3d')}>
-            <CatalogMoleculeHero compoundId={compoundId} reducedFx />
+            <CatalogMoleculeHero compoundId={compoundId} />
           </div>
         </div>
       </div>
