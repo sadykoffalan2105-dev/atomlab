@@ -15,11 +15,23 @@ export interface SynthesisLabConditions {
   needsCatalyst?: boolean
 }
 
-/** Текстовое описание условий синтеза для карточки каталога (T, p, катализатор). */
+/** Текстовое описание условий синтеза для карточки каталога (T, p, катализатор, оборудование). */
 export interface SynthesisConditionsTextRu {
   temperature?: string
   pressure?: string
   catalyst?: string
+  /** Посуда / вытяжка / электролизёр и т.п. */
+  equipment?: string
+}
+
+/** Один этап школьного/промышленного получения вещества. */
+export interface ObtainingStepRu {
+  /** Номер шага (1, 2, …) */
+  step: number
+  /** Уравнение или ключевая операция */
+  equation: string
+  /** Краткая ремарка к шагу (условия, наблюдение) */
+  note?: string
 }
 
 export interface CompoundDef {
@@ -32,16 +44,17 @@ export interface CompoundDef {
   accentColor: string
   descriptionRu: string
   /**
-   * Учебный пример получения: из простых веществ (H₂, O₂, Na, S…) в один шаг,
-   * либо школьный маршрут («Маршрут: …»), если прямое соединение элементов недопустимо.
-   * H₂/O₂/N₂ — уже молекулы, не «голые атомы».
+   * Текст получения для карточки: одно уравнение или нумерованные этапы
+   * (① … ② …). H₂/O₂/N₂ — молекулы простых веществ.
    */
   laboratoryRecipeRu: string
+  /** Структурированные этапы получения (для UI «по шагам»). */
+  obtainingStepsRu: readonly ObtainingStepRu[]
   category: CompoundCategory
   /** Опционально: для панели «Реактор» — обязательные условия перед запуском. */
   synthesisLab?: SynthesisLabConditions
   /**
-   * Условия синтеза для каталога (температура, давление, катализатор).
+   * Условия синтеза для каталога (температура, давление, катализатор, оборудование).
    * Если не задано в сырье — в `finalizeCompound` подставляются шаблоны по `synthesisLab` и категории.
    */
   synthesisConditionsRu: SynthesisConditionsTextRu
@@ -50,13 +63,14 @@ export interface CompoundDef {
 /** Запись до подстановки цепочки атомов и цвета по категории (если нет). */
 export type RawCompoundDef = Omit<
   CompoundDef,
-  'atoms' | 'bonds' | 'accentColor' | 'laboratoryRecipeRu' | 'synthesisConditionsRu'
+  'atoms' | 'bonds' | 'accentColor' | 'laboratoryRecipeRu' | 'synthesisConditionsRu' | 'obtainingStepsRu'
 > & {
   atoms?: Atom3D[]
   bonds?: readonly (readonly [number, number])[]
   accentColor?: string
   /** Если нет — в `finalizeCompound` короткая схема `nA + mB = формула` */
   laboratoryRecipeRu?: string
+  obtainingStepsRu?: readonly ObtainingStepRu[]
   /** Если не задано — в `finalizeCompound` генерируется из `synthesisLab` и категории. */
   synthesisConditionsRu?: SynthesisConditionsTextRu
 }

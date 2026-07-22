@@ -111,9 +111,21 @@ export function CompoundDetailModal({
             <p className={styles.compLine}>{formatComposition(c.composition)}</p>
             <span className={styles.metaLabel}>{t('compound.about')}</span>
             <p className={styles.description}>{loc.description}</p>
-            <p className={styles.labExample} aria-label={t('compound.labExampleAria')}>
-              {loc.laboratoryRecipe}
-            </p>
+            <span className={styles.metaLabel}>{t('compound.obtainingSteps')}</span>
+            {loc.obtainingSteps.length > 1 ? (
+              <ol className={styles.obtainingSteps}>
+                {loc.obtainingSteps.map((s) => (
+                  <li key={s.step} className={styles.obtainingStep}>
+                    <span className={styles.obtainingEq}>{s.equation}</span>
+                    {s.note ? <span className={styles.obtainingNote}>{s.note}</span> : null}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className={styles.labExample} aria-label={t('compound.labExampleAria')}>
+                {loc.laboratoryRecipe}
+              </p>
+            )}
             <span className={styles.metaLabel}>{t('compound.synthConditions')}</span>
             <dl className={styles.synthConditions}>
               <div className={styles.synthRow}>
@@ -127,6 +139,10 @@ export function CompoundDetailModal({
               <div className={styles.synthRow}>
                 <dt className={styles.synthDt}>{t('compound.catalyst')}</dt>
                 <dd className={styles.synthDd}>{loc.synthesisConditions.catalyst ?? '—'}</dd>
+              </div>
+              <div className={styles.synthRow}>
+                <dt className={styles.synthDt}>{t('compound.equipment')}</dt>
+                <dd className={styles.synthDd}>{loc.synthesisConditions.equipment ?? '—'}</dd>
               </div>
             </dl>
           </div>

@@ -584,6 +584,12 @@
 .productHintEquation {
   width: 100%;
   max-width: none;
+  white-space: pre-wrap;
+  max-height: 3.8em;
+  overflow: auto;
+}
+  width: 100%;
+  max-width: none;
 }
 
 .equationEmpty {
@@ -929,6 +935,57 @@
   color: rgba(160, 175, 210, 0.75);
   padding: 0.25rem 0.75rem 0.18rem;
   flex-shrink: 0;
+}
+
+.labConditions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  padding: 0.15rem 0.75rem 0.25rem;
+  flex-shrink: 0;
+}
+
+.labCondItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  color: rgba(180, 220, 255, 0.92);
+  cursor: pointer;
+  user-select: none;
+}
+
+.labCondItem input {
+  accent-color: #3dffec;
+}
+
+.obtainingDetails {
+  margin: 0 0.75rem 0.2rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid rgba(61, 255, 236, 0.18);
+  background: rgba(6, 12, 28, 0.55);
+  font-size: 0.68rem;
+  color: rgba(180, 200, 240, 0.92);
+  flex-shrink: 0;
+  max-height: 7rem;
+  overflow: auto;
+}
+
+.obtainingDetails summary {
+  cursor: pointer;
+  color: rgba(61, 255, 236, 0.88);
+  font-weight: 600;
+}
+
+.obtainingList {
+  margin: 0.35rem 0 0.15rem;
+  padding-left: 1.1rem;
+}
+
+.obtainingList code {
+  font-size: 0.66rem;
+  color: rgba(170, 255, 235, 0.95);
 }
 
 .reactorFooter {

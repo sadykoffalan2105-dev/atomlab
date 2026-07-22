@@ -20,6 +20,7 @@ export function organicGraphToCompoundDef(
     accentColor: accent,
     descriptionRu: '',
     laboratoryRecipeRu: '',
+    obtainingStepsRu: [],
     category: 'other',
     synthesisConditionsRu: {},
   }

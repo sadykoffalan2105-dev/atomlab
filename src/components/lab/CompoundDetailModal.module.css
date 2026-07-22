@@ -187,6 +187,47 @@
   padding: 0.5rem 0.55rem;
   font-size: 0.92rem;
   line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: 8px;
+  border: 1px solid rgba(61, 255, 236, 0.22);
+  background: rgba(8, 14, 36, 0.55);
+  color: rgba(180, 255, 240, 0.95);
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+}
+
+.obtainingSteps {
+  margin: 0.35rem 0 0.75rem;
+  padding: 0.55rem 0.55rem 0.55rem 1.35rem;
+  border-radius: 8px;
+  border: 1px solid rgba(61, 255, 236, 0.22);
+  background: rgba(8, 14, 36, 0.55);
+  list-style: decimal;
+}
+
+.obtainingStep {
+  margin: 0 0 0.45rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(200, 210, 245, 0.98);
+}
+
+.obtainingStep:last-child {
+  margin-bottom: 0;
+}
+
+.obtainingEq {
+  display: block;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  color: rgba(180, 255, 240, 0.98);
+}
+
+.obtainingNote {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: rgba(160, 175, 220, 0.9);
+}
   color: #b8e4ff;
   font-family: ui-monospace, 'Cascadia Code', monospace;
   font-variant-ligatures: none;

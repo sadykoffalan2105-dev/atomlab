@@ -20,7 +20,11 @@ function packRu(lab: SynthesisLabConditions | undefined, category: CompoundCateg
     catalyst = 'Катализатор: как правило не используется; для кислотно‑основных процессов — по реакции.'
   }
 
-  return { temperature: heat, pressure, catalyst }
+  const equipment = lab?.needsHeat || lab?.needsPressure || lab?.needsCatalyst
+    ? 'Оборудование: учебный реактор, пробирки; горелка / герметичный сосуд / лоток катализатора — по условиям; вытяжка.'
+    : 'Оборудование: учебный реактор / пробирки, штатив; при работе с кислотами и газами — вытяжка.'
+
+  return { temperature: heat, pressure, catalyst, equipment }
 }
 
 function packUz(lab: SynthesisLabConditions | undefined, category: CompoundCategory): SynthPack {
@@ -40,7 +44,10 @@ function packUz(lab: SynthesisLabConditions | undefined, category: CompoundCateg
     catalyst = 'Katalizator: odatda ishlatilmaydi; kislota–asos jarayonlari uchun — reaksiyaga qarab.'
   }
 
-  return { temperature: heat, pressure, catalyst }
+  const equipment =
+    'Jihozlar: o\'quv reaktori / probirokalar; kerak bo\'lsa — isitgich, germetik idish, katalizator; tortish shkafi.'
+
+  return { temperature: heat, pressure, catalyst, equipment }
 }
 
 function packEn(lab: SynthesisLabConditions | undefined, category: CompoundCategory): SynthPack {
@@ -60,7 +67,10 @@ function packEn(lab: SynthesisLabConditions | undefined, category: CompoundCateg
     catalyst = 'Catalyst: typically not used; for acid–base processes — depends on the reaction.'
   }
 
-  return { temperature: heat, pressure, catalyst }
+  const equipment =
+    'Equipment: training reactor / test tubes; heater, sealed vessel, catalyst tray as needed; fume hood.'
+
+  return { temperature: heat, pressure, catalyst, equipment }
 }
 
 /** Шаблоны условий синтеза (RU), если в данных не задано `synthesisConditionsRu`. */

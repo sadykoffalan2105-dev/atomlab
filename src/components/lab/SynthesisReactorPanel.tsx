@@ -203,6 +203,12 @@ export function SynthesisReactorPanel({
   highlightEquationError = false,
   ambiguousProductMatches = [],
   dimInCatalogHeroView = false,
+  labHeatOn = false,
+  labPressureOn = false,
+  labCatalystOn = false,
+  onLabHeatChange,
+  onLabPressureChange,
+  onLabCatalystChange,
 }: {
   open: boolean
   onOpenGenerateEquationCatalog: () => void
@@ -227,6 +233,12 @@ export function SynthesisReactorPanel({
   highlightEquationError?: boolean
   ambiguousProductMatches?: readonly LeftCatalogMatch[]
   dimInCatalogHeroView?: boolean
+  labHeatOn?: boolean
+  labPressureOn?: boolean
+  labCatalystOn?: boolean
+  onLabHeatChange?: (on: boolean) => void
+  onLabPressureChange?: (on: boolean) => void
+  onLabCatalystChange?: (on: boolean) => void
 }) {
   const { locale, t } = useT()
   const coeffErr = highlightEquationError
@@ -439,6 +451,58 @@ export function SynthesisReactorPanel({
       <div className={panelStyles.hintBox} role="note">
         {t('reactor.hintBalance')}
       </div>
+
+      {productCompound &&
+      (productCompound.synthesisLab?.needsHeat ||
+        productCompound.synthesisLab?.needsPressure ||
+        productCompound.synthesisLab?.needsCatalyst) ? (
+        <div className={panelStyles.labConditions} role="group" aria-label={t('reactor.labConditionsAria')}>
+          {productCompound.synthesisLab?.needsHeat ? (
+            <label className={panelStyles.labCondItem}>
+              <input
+                type="checkbox"
+                checked={labHeatOn}
+                onChange={(e) => onLabHeatChange?.(e.target.checked)}
+              />
+              <span>{t('reactor.labHeat')}</span>
+            </label>
+          ) : null}
+          {productCompound.synthesisLab?.needsPressure ? (
+            <label className={panelStyles.labCondItem}>
+              <input
+                type="checkbox"
+                checked={labPressureOn}
+                onChange={(e) => onLabPressureChange?.(e.target.checked)}
+              />
+              <span>{t('reactor.labPressure')}</span>
+            </label>
+          ) : null}
+          {productCompound.synthesisLab?.needsCatalyst ? (
+            <label className={panelStyles.labCondItem}>
+              <input
+                type="checkbox"
+                checked={labCatalystOn}
+                onChange={(e) => onLabCatalystChange?.(e.target.checked)}
+              />
+              <span>{t('reactor.labCatalyst')}</span>
+            </label>
+          ) : null}
+        </div>
+      ) : null}
+
+      {productCompound?.obtainingStepsRu && productCompound.obtainingStepsRu.length > 1 ? (
+        <details className={panelStyles.obtainingDetails}>
+          <summary>{t('reactor.obtainingStepsSummary')}</summary>
+          <ol className={panelStyles.obtainingList}>
+            {productCompound.obtainingStepsRu.map((s) => (
+              <li key={s.step}>
+                <code>{s.equation}</code>
+                {s.note ? <span> — {s.note}</span> : null}
+              </li>
+            ))}
+          </ol>
+        </details>
+      ) : null}
 
       {open ? (
         <ReactorBalancePanel

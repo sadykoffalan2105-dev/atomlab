@@ -9,10 +9,12 @@ export type CompoundLocaleStrings = {
   name: string
   description: string
   laboratoryRecipe: string
+  obtainingSteps: readonly { step: number; equation: string; note?: string }[]
   synthesisConditions: {
     temperature?: string
     pressure?: string
     catalyst?: string
+    equipment?: string
   }
 }
 
@@ -37,7 +39,7 @@ function localizedSynthesisConditions(
   const locD = defaultSynthesisConditionsTextForLocale(c.synthesisLab, c.category, locale)
   const cur = c.synthesisConditionsRu
 
-  const pick = (k: 'temperature' | 'pressure' | 'catalyst'): string | undefined => {
+  const pick = (k: 'temperature' | 'pressure' | 'catalyst' | 'equipment'): string | undefined => {
     const v = cur[k]
     const ruV = ruD[k]
     const locV = locD[k]
@@ -51,6 +53,7 @@ function localizedSynthesisConditions(
     temperature: pick('temperature'),
     pressure: pick('pressure'),
     catalyst: pick('catalyst'),
+    equipment: pick('equipment'),
   }
 }
 
@@ -60,6 +63,7 @@ export function getCompoundLocaleStrings(c: CompoundDef, locale: AppLocale, t: T
       name: c.nameRu,
       description: c.descriptionRu,
       laboratoryRecipe: c.laboratoryRecipeRu,
+      obtainingSteps: c.obtainingStepsRu ?? [],
       synthesisConditions: localizedSynthesisConditions(c, locale),
     }
   }
@@ -80,6 +84,7 @@ export function getCompoundLocaleStrings(c: CompoundDef, locale: AppLocale, t: T
     name,
     description,
     laboratoryRecipe: c.laboratoryRecipeRu,
+    obtainingSteps: c.obtainingStepsRu ?? [],
     synthesisConditions: localizedSynthesisConditions(c, locale),
   }
 }

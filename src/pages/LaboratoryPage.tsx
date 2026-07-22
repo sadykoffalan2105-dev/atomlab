@@ -95,6 +95,9 @@ export function LaboratoryPage() {
   const [leftTerms, setLeftTerms] = useState<ReactorEquationTerm[]>([])
   const [productCompoundId, setProductCompoundId] = useState<string | null>(null)
   const [productCoeff, setProductCoeff] = useState(1)
+  const [labHeatOn, setLabHeatOn] = useState(false)
+  const [labPressureOn, setLabPressureOn] = useState(false)
+  const [labCatalystOn, setLabCatalystOn] = useState(false)
   const [reactorCatalogOpen, setReactorCatalogOpen] = useState(false)
   const [reactorCatalogIntent, setReactorCatalogIntent] = useState<ReactorCatalogIntent>('selectProduct')
   const reactorCatalogPickModeRef = useRef<ReactorCatalogIntent>('selectProduct')
@@ -767,8 +770,19 @@ export function LaboratoryPage() {
   const canRunSynthesis = useMemo(() => {
     const product = productCompoundId ? compoundById[productCompoundId] : undefined
     if (!product) return false
-    return isReactorBalancedFast(deferredLeftTerms, product, productCoeff)
-  }, [deferredLeftTerms, productCompoundId, productCoeff])
+    if (!isReactorBalancedFast(deferredLeftTerms, product, productCoeff)) return false
+    const lab = product.synthesisLab
+    if (lab?.needsHeat && !labHeatOn) return false
+    if (lab?.needsPressure && !labPressureOn) return false
+    if (lab?.needsCatalyst && !labCatalystOn) return false
+    return true
+  }, [deferredLeftTerms, productCompoundId, productCoeff, labHeatOn, labPressureOn, labCatalystOn])
+
+  useEffect(() => {
+    setLabHeatOn(false)
+    setLabPressureOn(false)
+    setLabCatalystOn(false)
+  }, [productCompoundId])
 
   useEffect(() => {
     // Не ставим prewarm при «уравнено» — только hover/focus кнопки Run.
@@ -993,6 +1007,12 @@ export function LaboratoryPage() {
         ambiguousProductMatches={ambiguousProductMatches}
         dimInCatalogHeroView={laboratorySynthesisView === 'substance'}
         onSynthesisPrewarmIntent={onSynthesisPrewarmIntent}
+        labHeatOn={labHeatOn}
+        labPressureOn={labPressureOn}
+        labCatalystOn={labCatalystOn}
+        onLabHeatChange={setLabHeatOn}
+        onLabPressureChange={setLabPressureOn}
+        onLabCatalystChange={setLabCatalystOn}
       />
 
       <ReactorCompoundCatalogPanel

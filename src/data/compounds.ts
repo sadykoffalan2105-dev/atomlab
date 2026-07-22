@@ -1,6 +1,7 @@
 import { defaultSynthesisConditionsText } from '../chemistry/synthesisConditionsDefaults'
 import { buildDefaultLaboratoryRecipeRu } from '../chemistry/laboratoryRecipeText'
 import { resolveLaboratoryRecipeRu } from '../chemistry/substanceSynthesisRoute'
+import { resolveObtainingBundle } from '../chemistry/substanceObtaining'
 import { getMolecularGeometryOrNull } from '../chemistry/catalogGeometryOverrides'
 import { buildSignatureMolecule } from '../chemistry/placeholderMolecule'
 import type { CompoundCategory, CompoundDef, RawCompoundDef } from '../types/chemistry'
@@ -31,9 +32,27 @@ function recipeIn(p: RawCompoundDef): string {
   )
 }
 
-function synthesisConditionsIn(p: RawCompoundDef) {
-  const base = defaultSynthesisConditionsText(p.synthesisLab, p.category)
-  return { ...base, ...p.synthesisConditionsRu }
+function obtainingIn(p: RawCompoundDef) {
+  const bundle = resolveObtainingBundle({
+    ...p,
+    laboratoryRecipeRu: p.laboratoryRecipeRu ?? recipeIn(p),
+  })
+  const baseCond = defaultSynthesisConditionsText(bundle.lab, p.category)
+  const useBundleRecipe =
+    !p.laboratoryRecipeRu ||
+    p.laboratoryRecipeRu.startsWith('Маршрут:') ||
+    (p.obtainingStepsRu?.length ?? 0) > 0 ||
+    bundle.steps.length > 1
+  return {
+    laboratoryRecipeRu: useBundleRecipe ? bundle.recipeRu : (p.laboratoryRecipeRu ?? bundle.recipeRu),
+    obtainingStepsRu: p.obtainingStepsRu?.length ? p.obtainingStepsRu : bundle.steps,
+    synthesisConditionsRu: {
+      ...baseCond,
+      ...bundle.conditions,
+      ...p.synthesisConditionsRu,
+    },
+    synthesisLab: { ...bundle.lab, ...p.synthesisLab },
+  }
 }
 
 export function finalizeCompound(p: RawCompoundDef): CompoundDef {
@@ -125,36 +144,36 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
   if (p.atoms && p.atoms.length > 0 && p.bonds !== undefined) {
     const validated = validateGeometryOrNull('raw', p.atoms, p.bonds)
     const fixed = ensureHasBonds(validated?.atoms ?? p.atoms, validated?.bonds ?? p.bonds)
+    const obt = obtainingIn(p)
     return {
       ...p,
       accentColor: accent,
       atoms: fixed.atoms,
       bonds: fixed.bonds,
-      laboratoryRecipeRu: recipeIn(p),
-      synthesisConditionsRu: synthesisConditionsIn(p),
+      ...obt,
     }
   }
   const handBuilt = getMolecularGeometryOrNull(p.id)
   if (handBuilt) {
     const validated = validateGeometryOrNull('handBuilt', handBuilt.atoms, handBuilt.bonds)
     const fixed = validated ? ensureHasBonds(validated.atoms, validated.bonds) : buildSignatureMolecule(p.composition, p.id, p.category)
+    const obt = obtainingIn(p)
     return {
       ...p,
       accentColor: accent,
       atoms: fixed.atoms,
       bonds: fixed.bonds,
-      laboratoryRecipeRu: recipeIn(p),
-      synthesisConditionsRu: synthesisConditionsIn(p),
+      ...obt,
     }
   }
   const geo = buildSignatureMolecule(p.composition, p.id, p.category)
+  const obt = obtainingIn(p)
   return {
     ...p,
     accentColor: accent,
     atoms: geo.atoms,
     bonds: geo.bonds,
-    laboratoryRecipeRu: recipeIn(p),
-    synthesisConditionsRu: synthesisConditionsIn(p),
+    ...obt,
   }
 }
 
