@@ -23,7 +23,10 @@ export function rgbToHex(r: number, g: number, b: number): string {
   return `#${t(r)}${t(g)}${t(b)}`
 }
 
-export function catalogMoleculeFitScale(atoms: readonly { pos: Vec3 }[]): number {
+export function catalogMoleculeFitScale(
+  atoms: readonly { pos: Vec3 }[],
+  compoundId?: string,
+): number {
   let m = 0
   for (const a of atoms) {
     m = Math.max(m, Math.hypot(a.pos[0], a.pos[1], a.pos[2]))
@@ -31,7 +34,12 @@ export function catalogMoleculeFitScale(atoms: readonly { pos: Vec3 }[]): number
   const atomPad = 0.52
   const ext = m + atomPad
   if (ext < 1e-4) return 1
-  return Math.min(1.28, Math.max(0.68, 0.94 / ext))
+  let fit = Math.min(1.28, Math.max(0.68, 0.94 / ext))
+  // Компактные молекулы (H₂O и т.п.) иначе выглядят мельче SO₃/солей из‑за fit по радиусу.
+  if (atoms.length <= 3) fit = Math.min(1.48, fit * 1.38)
+  // Вода — герой каталога: чуть крупнее остальных малых молекул.
+  if (compoundId === 'h2o') fit = Math.min(1.58, fit * 1.18)
+  return fit
 }
 
 /** Смещение, чтобы геометрический центр молекулы был в (0,0,0) — без «уползания» при вращении. */

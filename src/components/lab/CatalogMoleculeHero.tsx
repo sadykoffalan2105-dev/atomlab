@@ -257,7 +257,7 @@ export function HeroMoleculeRig({
   chaoticWobble?: boolean
 }) {
   const ref = useRef<THREE.Group>(null)
-  const fit = useMemo(() => catalogMoleculeFitScale(compound.atoms), [compound.atoms])
+  const fit = useMemo(() => catalogMoleculeFitScale(compound.atoms, compound.id), [compound.atoms, compound.id])
   const center = useMemo(() => moleculeCenterOffset(compound.atoms), [compound.atoms])
   const baseScale = 0.78 * labScaleBoost
 
