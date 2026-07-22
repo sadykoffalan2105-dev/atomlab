@@ -202,7 +202,7 @@ export function createSynthesisPhaseStallGuard(): SynthesisPhaseStallGuard {
 /** Таймер compileAsync — не ждём GPU бесконечно. */
 export function scheduleGpuCompileWatchdog(
   onTimeout: () => void,
-  ms = SYNTH_ANTI_STALL.gpuCompileMaxMs,
+  ms: number = SYNTH_ANTI_STALL.gpuCompileMaxMs,
 ): () => void {
   const id = window.setTimeout(onTimeout, ms)
   return () => window.clearTimeout(id)
