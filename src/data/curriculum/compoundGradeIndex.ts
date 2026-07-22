@@ -46,6 +46,8 @@ export const INORGANIC_CHAPTERS: readonly InorganicChapter[] = [
   'сера',
   'фосфор',
   'хром',
+  'хлор',
+  'марганец',
   'кремний',
   'катализ',
   'прочее',

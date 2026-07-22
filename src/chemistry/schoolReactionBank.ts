@@ -1,5 +1,4 @@
 import type { ReactionClass } from './reactionTypeTaxonomy'
-import type { BalanceLessonKind } from './balanceLessonBank'
 import { defaultPassportForClass, type ReactionPassport } from './reactionPassport'
 import { SCHOOL_REACTIONS_DATA } from '../data/curriculum/schoolReactionsData'
 import type { ReactionReactant, SchoolReactionDef } from '../data/curriculum/schoolReactionTypes'
