@@ -125,23 +125,27 @@ export function LaboratoryPage() {
   const [reactorSessionKey, setReactorSessionKey] = useState(0)
   useCanvasSizeGuard(canvasWrapRef)
 
-  /** Правый HUD: Неорганика | Органика рядом с Синтез; отступ таблицы = ширина этого блока. */
+  /** Правый HUD: Неорганика | Органика рядом с Синтез; слева таблица почти до края. */
   useLayoutEffect(() => {
     const wrap = labWrapRef.current
     const rightHud = rightHudRef.current
     if (!wrap) return
 
-    let lastInset = Number.NaN
+    let lastLeft = Number.NaN
+    let lastRight = Number.NaN
     const syncHudRails = () => {
       const vw = window.innerWidth
       const hudLeft = rightHud?.getBoundingClientRect().left ?? vw - 220
-      const gap = 12
-      const leftPad = 12
+      const gap = 10
+      const leftPad = 10
       const rightRail = Math.max(leftPad, Math.round(vw - hudLeft + gap))
-      const inset = Math.max(leftPad, rightRail)
-      if (inset === lastInset) return
-      lastInset = inset
-      wrap.style.setProperty('--lab-pt-inset', `${inset}px`)
+      if (leftPad === lastLeft && rightRail === lastRight) return
+      lastLeft = leftPad
+      lastRight = rightRail
+      wrap.style.setProperty('--lab-pt-inset-left', `${leftPad}px`)
+      wrap.style.setProperty('--lab-pt-inset-right', `${rightRail}px`)
+      // legacy fallback for older CSS
+      wrap.style.setProperty('--lab-pt-inset', `${rightRail}px`)
     }
 
     syncHudRails()
@@ -817,8 +821,7 @@ export function LaboratoryPage() {
   /** До запуска синтеза — только превью реагентов. */
   const transformPreviewCompound = null
 
-  /** Не prewarm'ить тяжёлый продукт (K₂Cr₂O₇) пока уравнение просто уравнено —
-   * GPU hitch гасит Bohr. Prewarm только по hover «Запустить» / старту синтеза. */
+  /** Prewarm продукта: hover Run + авто после баланса (idle), чтобы K₂Cr₂O₇ не hitch'ил на Run. */
   const gpuPrewarmCompound = useMemo(() => {
     if (!reactorOpen || !productCompound) return null
     if (synthRunActive) return lastRunProduct ?? prewarmCompound ?? productCompound
@@ -833,7 +836,6 @@ export function LaboratoryPage() {
 
   const gpuQueuePriorityCompound = useMemo(() => {
     if (!reactorOpen || synthRunActive || !reactorGpuIdleReady) return null
-    // Очередь GPU только если пользователь уже навёл на Run (prewarmCompound).
     return prewarmCompound
   }, [reactorOpen, synthRunActive, reactorGpuIdleReady, prewarmCompound])
 
@@ -841,6 +843,38 @@ export function LaboratoryPage() {
     if (!productCompound || !canRunSynthesis) return
     setPrewarmCompound(productCompound)
   }, [productCompound, canRunSynthesis])
+
+  /** После «уравнение верно» — тихий GPU-prewarm в idle (не на каждом +/-). */
+  useEffect(() => {
+    if (!reactorOpen || !canRunSynthesis || !productCompound || synthRunActive) return
+    if (prewarmCompound?.id === productCompound.id) return
+    let cancelled = false
+    let idleId = 0
+    const timer = window.setTimeout(() => {
+      const start = () => {
+        if (cancelled) return
+        setPrewarmCompound(productCompound)
+      }
+      if (typeof window.requestIdleCallback === 'function') {
+        idleId = window.requestIdleCallback(start, { timeout: 900 }) as unknown as number
+      } else {
+        start()
+      }
+    }, 420)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+      if (idleId && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId)
+      }
+    }
+  }, [
+    reactorOpen,
+    canRunSynthesis,
+    productCompound,
+    synthRunActive,
+    prewarmCompound?.id,
+  ])
 
   return (
     <div

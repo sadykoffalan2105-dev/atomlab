@@ -579,7 +579,7 @@ function SceneContent({
     collapseLingerTimerRef.current = window.setTimeout(() => {
       setCollapseFxLinger(false)
       collapseLingerTimerRef.current = 0
-    }, Math.ceil(PRODUCT_BIRTH_FROM_COLLAPSE_SEC * 1100))
+    }, Math.ceil(PRODUCT_BIRTH_FROM_COLLAPSE_SEC * 1400 + 600))
     startTransition(() => {
       setAllowIdleProductPrewarm(true)
     })
@@ -812,7 +812,11 @@ function SceneContent({
       instantSynthesis &&
       (collapseFxLinger ||
         (collapseEmbryo &&
-          collapseDoneRunIdRef.current === currentSynthRunIdForCollapse)),
+          collapseDoneRunIdRef.current === currentSynthRunIdForCollapse)) &&
+      // Не форсим full-visible без реального GPU — иначе K₂Cr₂O₇ даёт sync hitch 4–5с.
+      (prewarmReadyRef.current ||
+        prewarmReady ||
+        (synthesis?.product?.id != null && isProductGpuCompiled(synthesis.product.id))),
   })
 
   const previewMotionLocked = false
@@ -872,14 +876,14 @@ function SceneContent({
   const productSlotVisibleResolved = productEmbryoOnly
     ? productSlotView.gpuReady
     : productGlowHandoff
-      ? true
+      ? productSlotView.gpuReady
       : elementsCollapsePlaying && !collapseEmbryo
         ? false
         : productSlotView.visible
   const productPrewarmResolved = productEmbryoOnly
     ? !productSlotView.gpuReady
     : productGlowHandoff
-      ? false
+      ? !productSlotView.gpuReady
       : elementsCollapsePlaying && !collapseEmbryo
         ? false
         : productSlotView.prewarm

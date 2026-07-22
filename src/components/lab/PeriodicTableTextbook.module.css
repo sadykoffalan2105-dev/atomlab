@@ -18,6 +18,410 @@
   height: 100%;
 }
 
+/* Полноэкранная страница: вся таблица + фильтр влезают без обрезки низа */
+.textbookPageFit {
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.textbookPageFit .gridFrame {
+  padding: 0;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.textbookPageFit .gridTextbook {
+  --pt-f-gap: 0.22rem;
+  --pt-gap: 2.5px;
+  --pt-cell-h: 1fr;
+  gap: var(--pt-gap);
+  padding: 1px;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  color: rgba(236, 242, 255, 0.96);
+  /* Строки ячеек делят ВСЮ доступную высоту — низ больше не вылезает за clip */
+  grid-template-columns:
+    minmax(0.55rem, 0.11fr)
+    minmax(0.55rem, 0.11fr)
+    repeat(10, minmax(0, 1fr));
+  grid-template-rows:
+    minmax(1rem, 1.35rem)
+    minmax(0.75rem, 1.05rem)
+    repeat(11, minmax(0, 1fr))
+    minmax(0.2rem, 0.35rem)
+    repeat(2, minmax(0, 1fr))
+    minmax(2.1rem, auto)
+    minmax(1.15rem, auto);
+}
+
+.textbookPageFit .gridTextbook::before {
+  display: none;
+}
+
+.textbookPageFit .gridTextbook > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+.textbookPageFit .gridTextbook .axisHead,
+.textbookPageFit .gridTextbook .subHeadGroup,
+.textbookPageFit .gridTextbook .subHeadSubgroup,
+.textbookPageFit .gridTextbook .cornerPeriod,
+.textbookPageFit .gridTextbook .cornerRow,
+.textbookPageFit .gridTextbook .axisPeriod,
+.textbookPageFit .gridTextbook .axisRow,
+.textbookPageFit .gridTextbook .fBlockLabel {
+  border: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border-radius: 0.25rem;
+}
+
+.textbookPageFit .gridTextbook .axisHead {
+  font-size: clamp(0.58rem, 0.85vw, 0.78rem);
+  padding: 0.06rem 0 0.02rem;
+  min-height: 0;
+  color: rgba(210, 225, 250, 0.82);
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.textbookPageFit .gridTextbook .subHeadGroup,
+.textbookPageFit .gridTextbook .subHeadSubgroup {
+  font-size: clamp(0.48rem, 0.68vw, 0.62rem);
+  padding: 0.02rem 0 0.06rem;
+  min-height: 0;
+  color: rgba(150, 175, 210, 0.62);
+}
+
+.textbookPageFit .gridTextbook .cornerPeriod,
+.textbookPageFit .gridTextbook .cornerRow,
+.textbookPageFit .gridTextbook .axisPeriod,
+.textbookPageFit .gridTextbook .axisRow {
+  font-size: clamp(0.46rem, 0.62vw, 0.58rem);
+  color: rgba(140, 165, 205, 0.68);
+  padding: 0.04rem 0;
+}
+
+.textbookPageFit .voidCell,
+.textbookPageFit .triadVoidPanel {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  min-height: 0 !important;
+  height: 100%;
+}
+
+.textbookPageFit .fBlockGap {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(120, 180, 255, 0.1),
+    rgba(180, 130, 255, 0.12),
+    transparent
+  ) !important;
+  opacity: 0.85;
+  animation: none !important;
+}
+
+.textbookPageFit .fBlockGap::after {
+  opacity: 0.45;
+  animation: none !important;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(140, 190, 255, 0.45),
+    rgba(190, 150, 255, 0.5),
+    transparent
+  );
+  box-shadow: none;
+}
+
+.textbookPageFit .fBlockBackdrop {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.textbookPageFit .fBlockLabel {
+  font-size: clamp(0.4rem, 0.55vw, 0.52rem) !important;
+  letter-spacing: 0.04em;
+  color: rgba(200, 170, 255, 0.88) !important;
+  text-shadow: none !important;
+  min-height: 0 !important;
+  height: 100%;
+  padding: 0.06rem 0.04rem !important;
+}
+
+.textbookPageFit .fRowBand {
+  padding: 0;
+  gap: var(--pt-gap);
+  min-height: 0 !important;
+  height: 100%;
+  align-self: stretch;
+}
+
+/* Современные ячейки: стекло + цветной акцент слева; высота = ряд сетки */
+.textbookPageFit .gridTextbook .tbCellBtn,
+.textbookPageFit .gridTextbook .tbCellStatic,
+.textbookPageFit .fRowBand .tbCellBtn,
+.textbookPageFit .fRowBand .tbCellStatic {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.42rem;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 3px 10px rgba(0, 0, 0, 0.2);
+  will-change: auto;
+  position: relative;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: 100% !important;
+  align-self: stretch;
+}
+
+.textbookPageFit .gridTextbook .tbCellBtn::before,
+.textbookPageFit .gridTextbook .tbCellStatic::before,
+.textbookPageFit .fRowBand .tbCellBtn::before,
+.textbookPageFit .fRowBand .tbCellStatic::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12%;
+  bottom: 12%;
+  width: 2.5px;
+  border-radius: 0 2px 2px 0;
+  background: var(--pt-neon, rgba(140, 180, 230, 0.7));
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.textbookPageFit .gridTextbook .tbCellBtn.tbS,
+.textbookPageFit .gridTextbook .tbCellStatic.tbS,
+.textbookPageFit .fRowBand .tbCellBtn.tbS,
+.textbookPageFit .fRowBand .tbCellStatic.tbS {
+  --pt-neon: #3dffb0;
+  background: linear-gradient(155deg, rgba(12, 42, 34, 0.95), rgba(6, 18, 16, 0.92));
+  border-color: rgba(60, 220, 170, 0.28);
+  box-shadow:
+    0 1px 0 rgba(80, 255, 200, 0.06) inset,
+    0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.textbookPageFit .gridTextbook .tbCellBtn.tbP,
+.textbookPageFit .gridTextbook .tbCellStatic.tbP,
+.textbookPageFit .fRowBand .tbCellBtn.tbP,
+.textbookPageFit .fRowBand .tbCellStatic.tbP {
+  --pt-neon: #ff7eb8;
+  background: linear-gradient(155deg, rgba(42, 16, 30, 0.95), rgba(18, 8, 16, 0.92));
+  border-color: rgba(255, 110, 170, 0.28);
+}
+
+.textbookPageFit .gridTextbook .tbCellBtn.tbD,
+.textbookPageFit .gridTextbook .tbCellStatic.tbD,
+.textbookPageFit .fRowBand .tbCellBtn.tbD,
+.textbookPageFit .fRowBand .tbCellStatic.tbD {
+  --pt-neon: #6bb6ff;
+  background: linear-gradient(155deg, rgba(14, 28, 52, 0.95), rgba(6, 12, 26, 0.92));
+  border-color: rgba(100, 170, 255, 0.28);
+}
+
+.textbookPageFit .gridTextbook .tbCellBtn.tbF,
+.textbookPageFit .gridTextbook .tbCellStatic.tbF,
+.textbookPageFit .fRowBand .tbCellBtn.tbF,
+.textbookPageFit .fRowBand .tbCellStatic.tbF {
+  --pt-neon: #d4a0ff;
+  background: linear-gradient(155deg, rgba(32, 18, 52, 0.95), rgba(14, 8, 26, 0.92));
+  border-color: rgba(180, 130, 255, 0.3);
+}
+
+.textbookPageFit .gridTextbook .tbCellBtn.tbNoble,
+.textbookPageFit .gridTextbook .tbCellStatic.tbNoble,
+.textbookPageFit .fRowBand .tbCellBtn.tbNoble,
+.textbookPageFit .fRowBand .tbCellStatic.tbNoble {
+  --pt-neon: #b8f0ff;
+  background: linear-gradient(155deg, rgba(12, 32, 44, 0.95), rgba(6, 14, 22, 0.92));
+  border-color: rgba(160, 220, 245, 0.28);
+}
+
+.textbookPageFit .gridTextbook .tbCellBtn:hover {
+  transform: scale(1.045) translateY(-1px);
+  z-index: 5;
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 8px 22px rgba(0, 10, 30, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.textbookPageFit .gridTextbook .tbCellBtn.tbS .tbSym,
+.textbookPageFit .gridTextbook .tbCellStatic.tbS .tbSym,
+.textbookPageFit .fRowBand .tbCellBtn.tbS .tbSym,
+.textbookPageFit .fRowBand .tbCellStatic.tbS .tbSym,
+.textbookPageFit .gridTextbook .tbCellBtn.tbP .tbSym,
+.textbookPageFit .gridTextbook .tbCellStatic.tbP .tbSym,
+.textbookPageFit .fRowBand .tbCellBtn.tbP .tbSym,
+.textbookPageFit .fRowBand .tbCellStatic.tbP .tbSym,
+.textbookPageFit .gridTextbook .tbCellBtn.tbD .tbSym,
+.textbookPageFit .gridTextbook .tbCellStatic.tbD .tbSym,
+.textbookPageFit .fRowBand .tbCellBtn.tbD .tbSym,
+.textbookPageFit .fRowBand .tbCellStatic.tbD .tbSym,
+.textbookPageFit .gridTextbook .tbCellBtn.tbF .tbSym,
+.textbookPageFit .gridTextbook .tbCellStatic.tbF .tbSym,
+.textbookPageFit .fRowBand .tbCellBtn.tbF .tbSym,
+.textbookPageFit .fRowBand .tbCellStatic.tbF .tbSym,
+.textbookPageFit .gridTextbook .tbCellBtn.tbNoble .tbSym,
+.textbookPageFit .gridTextbook .tbCellStatic.tbNoble .tbSym,
+.textbookPageFit .fRowBand .tbCellBtn.tbNoble .tbSym,
+.textbookPageFit .fRowBand .tbCellStatic.tbNoble .tbSym {
+  color: var(--pt-neon);
+  text-shadow: 0 0 10px rgba(100, 200, 255, 0.22);
+}
+
+.textbookPageFit .fRowBand .fCell {
+  min-height: 0;
+  height: 100%;
+}
+
+.textbookPageFit .fRowBand .tbCellBtn,
+.textbookPageFit .fRowBand .tbCellStatic {
+  min-height: 0 !important;
+  max-height: none !important;
+  height: 100% !important;
+}
+
+.textbookPageFit .cellSlotInner {
+  padding: 0.1rem 0.14rem 0.08rem 0.22rem;
+}
+
+.textbookPageFit .tbZ {
+  font-size: clamp(0.42rem, 0.95cqh, 0.72rem);
+  color: rgba(175, 195, 230, 0.78);
+}
+
+.textbookPageFit .tbMass {
+  font-size: clamp(0.38rem, 0.85cqh, 0.64rem);
+  color: rgba(140, 165, 200, 0.62);
+}
+
+.textbookPageFit .tbSym {
+  font-size: clamp(0.72rem, 2.4cqh, 1.55rem);
+  letter-spacing: 0.01em;
+}
+
+.textbookPageFit .tbRu {
+  font-size: clamp(0.4rem, 0.95cqh, 0.7rem);
+  font-weight: 600;
+  color: rgba(200, 215, 240, 0.9);
+}
+
+.textbookPageFit .tbCellInner,
+.textbookPageFit .cellSlotInner {
+  container-type: size;
+}
+
+/* Компактный футер: фильтр + легенда */
+.textbookPageFit .categoryFilterRow {
+  gap: 0.12rem;
+  padding: 0.14rem 0.28rem;
+  border: 1px solid rgba(120, 160, 210, 0.16) !important;
+  border-radius: 0.5rem !important;
+  background: rgba(8, 12, 24, 0.78) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  min-height: 0;
+  align-self: stretch;
+}
+
+.textbookPageFit .categoryFilterTitle {
+  font-size: clamp(0.42rem, 0.6vw, 0.52rem);
+  letter-spacing: 0.08em;
+  color: rgba(170, 200, 230, 0.85);
+  text-shadow: none;
+}
+
+.textbookPageFit .categoryFilterHint {
+  font-size: clamp(0.38rem, 0.55vw, 0.48rem);
+}
+
+.textbookPageFit .categoryFilterList {
+  gap: 0.14rem 0.22rem;
+}
+
+.textbookPageFit .categoryFilterBtn {
+  padding: 0.12rem 0.36rem;
+  font-size: clamp(0.4rem, 0.58vw, 0.5rem);
+  border-radius: 0.35rem;
+  background: rgba(14, 20, 36, 0.88);
+  border-color: rgba(110, 150, 200, 0.28);
+}
+
+.textbookPageFit .legendRow {
+  gap: 0.25rem 0.7rem;
+  padding: 0.1rem 0.28rem;
+  border: 1px solid rgba(100, 140, 190, 0.14) !important;
+  border-radius: 0.45rem !important;
+  background: rgba(8, 12, 22, 0.6) !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  min-height: 0;
+}
+
+.textbookPageFit .legendTextbookItem {
+  font-size: clamp(0.44rem, 0.66vw, 0.54rem);
+  color: rgba(160, 185, 220, 0.82);
+}
+
+.textbookPageFit .legendTextbookSwatch {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 0.2rem;
+}
+
+.textbookPageFit .headS,
+.textbookPageFit .gridTextbook .axisHead.headS {
+  color: rgba(90, 245, 200, 0.9) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.textbookPageFit .headP,
+.textbookPageFit .gridTextbook .axisHead.headP {
+  color: rgba(255, 160, 200, 0.9) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 .textbookEmbed .panelGlow,
 .textbookEmbed .orbitHalo,
 .textbookEmbed .gridScan,
@@ -27,8 +431,8 @@
 
 /* Лаборатория: без внешней рамки и линий сетки, «плавающие» широкие ячейки */
 .textbookEmbed .gridTextbook {
-  --pt-f-gap: 0.22rem;
-  --pt-gap: 3px;
+  --pt-f-gap: 0.18rem;
+  --pt-gap: 2.5px;
   gap: var(--pt-gap);
   padding: 0;
   border: none;
@@ -41,25 +445,59 @@
   min-width: 0;
   width: 100%;
   max-width: 100%;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   color: rgba(230, 236, 255, 0.95);
   grid-template-columns:
-    minmax(0.7rem, 0.14fr)
-    minmax(0.7rem, 0.14fr)
+    minmax(1.1rem, 0.18fr)
+    minmax(0.55rem, 0.1fr)
     repeat(10, minmax(0, 1fr));
   grid-template-rows:
-    auto
-    auto
-    repeat(11, minmax(var(--pt-cell-h), auto))
-    minmax(var(--pt-f-gap), auto)
-    repeat(2, minmax(var(--pt-cell-h), auto));
+    minmax(0.85rem, 1.15rem)
+    minmax(0.65rem, 0.9rem)
+    repeat(11, minmax(0, 1fr))
+    minmax(0.16rem, 0.28rem)
+    repeat(2, minmax(0, 1fr));
 }
 
 .textbookEmbed .gridFrame {
   padding: 0;
   overflow: hidden;
   min-width: 0;
+  min-height: 0;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.textbookEmbed .gridTextbook > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+.textbookEmbed .gridTextbook .tbCellBtn,
+.textbookEmbed .gridTextbook .tbCellStatic,
+.textbookEmbed .fRowBand .tbCellBtn,
+.textbookEmbed .fRowBand .tbCellStatic {
+  min-height: 0 !important;
+  max-height: none !important;
+  height: 100% !important;
+}
+
+.textbookEmbed .fRowBand {
+  min-height: 0 !important;
+  height: 100%;
+  padding: 0;
+  gap: var(--pt-gap);
+}
+
+.textbookEmbed .fBlockLabel {
+  min-height: 0 !important;
+  height: 100%;
+  font-size: clamp(0.38rem, 0.72cqh, 0.58rem) !important;
+  line-height: 1.05;
+  padding: 0.04rem 0.02rem !important;
 }
 
 .textbookEmbed .gridTextbook .axisHead,

@@ -139,10 +139,10 @@ export function LabProductHeroSlot({
     let cancelled = false
     const gen = compileGenRef.current
     const compilePriority: 0 | 1 = visible ? 1 : 0
-    // Watchdog: только local ready — НЕ session cache (иначе ложный handoff).
+    // Watchdog idle: не пишем session cache — только local, чтобы не открыть слот раньше compile.
     const clearGpuWatch = scheduleGpuCompileWatchdog(() => {
       if (!cancelled && gen === compileGenRef.current) notifyGpuCompiledLocal()
-    })
+    }, 2_800)
 
     const runCompile = () => {
       if (cancelled || gen !== compileGenRef.current) return
@@ -170,8 +170,8 @@ export function LabProductHeroSlot({
             if (cancelled || gen !== compileGenRef.current) return
             prewarmPaintFramesRef.current = 0
             invalidate()
-            // Micro-prewarm compile: только local ready — НЕ session cache.
-            notifyGpuCompiledLocal()
+            // Реальный chunked compile закончен — можно кэшировать (иначе K₂Cr₂O₇ каждый Run cold).
+            notifyGpuCompiledPersisted()
             releaseBudget?.()
             releaseBudget = null
           },
@@ -218,10 +218,11 @@ export function LabProductHeroSlot({
     scene,
     invalidate,
     notifyGpuCompiledLocal,
+    notifyGpuCompiledPersisted,
     shaderCompileAsync,
   ])
 
-  // Синтез: видимый продукт — приоритетный compile сразу (без idle-задержки).
+  // Синтез: видимый продукт — приоритетный compile, БЕЗ snap scale=1 (убивает birth + hitch).
   useEffect(() => {
     if (!visible || prewarm) return
     if (isProductGpuCompiled(compound.id)) {
@@ -231,9 +232,12 @@ export function LabProductHeroSlot({
 
     let cancelled = false
     const gen = compileGenRef.current
+    // Не форсим «ready» watchdog'ом во время visible — иначе первый кадр = sync shader hitch 3–5с.
     const clearGpuWatch = scheduleGpuCompileWatchdog(() => {
-      if (!cancelled && gen === compileGenRef.current) notifyGpuCompiledLocal()
-    })
+      if (cancelled || gen !== compileGenRef.current) return
+      // Только local hint для UI; session cache — после реального chunked onDone.
+      if (!gpuCompiledRef.current) notifyGpuCompiledLocal()
+    }, 2_400)
 
     let cancelChunk: (() => void) | undefined
     let cancelBudget: (() => void) | undefined
@@ -246,8 +250,9 @@ export function LabProductHeroSlot({
         requestAnimationFrame(runCompile)
         return
       }
-      root.scale.set(1, 1, 1)
+      // Сохраняем текущий scale (embryo/birth) — не дёргаем в 1.
       invalidate()
+      const softChunk = birthEntrance || embryoInGlow || entrance === 'smooth'
       cancelChunk = compileObjectTreeChunked(
         gl,
         root,
@@ -260,8 +265,11 @@ export function LabProductHeroSlot({
           releaseBudget?.()
           releaseBudget = null
         },
-        // Chunked compile: 18/кадр — быстрее warm после collapse без длинного hitch.
-        { skipCompileAsync: true, meshesPerFrame: 18 },
+        {
+          skipCompileAsync: true,
+          // Меньше мешей/кадр = нет 4–5с freeze на K₂Cr₂O₇ и др. тяжёлых молекулах.
+          meshesPerFrame: softChunk ? 2 : 4,
+        },
       )
     }
 
@@ -296,6 +304,9 @@ export function LabProductHeroSlot({
     invalidate,
     notifyGpuCompiledLocal,
     notifyGpuCompiledPersisted,
+    birthEntrance,
+    embryoInGlow,
+    entrance,
   ])
 
   // Переход prewarm → visible: full-scale только без birth/smooth (иначе убиваем «рождение»).

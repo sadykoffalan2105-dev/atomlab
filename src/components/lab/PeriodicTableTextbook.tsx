@@ -182,6 +182,7 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
   onAltPickElement,
   wrapClassName,
   embedMode = false,
+  pageFit = false,
 }: {
   onPickElement?: (z: number) => void
   /** Alt+клик — доп. действие (в лаборатории: атом-шар на сцену). */
@@ -189,6 +190,8 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
   wrapClassName?: string
   /** В панели лаборатории: без дублирующего H2 (заголовок уже в ElementSidePanel). */
   embedMode?: boolean
+  /** Полноэкранная страница: без тяжёлого chrome, чтобы вся сетка влезала. */
+  pageFit?: boolean
 }) {
   const { t } = useT()
   const [categoryFilter, setCategoryFilter] = useState<ElementCategoryFilterId | null>(null)
@@ -206,16 +209,17 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
 
   const periodRowStarts = useMemo(() => new Set([1, 2, 3, 4, 6, 8, 10]), [])
   const voidCells = useMemo(() => ruMainVoidCells(), [])
+  const hideChrome = embedMode || pageFit
 
   const cell = (el: (typeof ELEMENTS)[number], extra = '') =>
     renderElementCell(el, onPickElement, onAltPickElement, categoryFilter, embedMode, extra)
 
   return (
     <div
-      className={`${tbStyles.textbookWrap} ${embedMode ? tbStyles.textbookEmbed : ''} ${wrapClassName ?? ''}`}
+      className={`${tbStyles.textbookWrap} ${embedMode ? tbStyles.textbookEmbed : ''} ${pageFit ? tbStyles.textbookPageFit : ''} ${wrapClassName ?? ''}`}
     >
-      <div className={tbStyles.panelGlow} aria-hidden />
-      {!embedMode ? (
+      {!hideChrome ? <div className={tbStyles.panelGlow} aria-hidden /> : null}
+      {!hideChrome ? (
         <>
           <h2 className={tbStyles.textbookTitle}>
             <span className={tbStyles.titleMark} aria-hidden>
@@ -236,8 +240,8 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
       ) : null}
 
       <div className={tbStyles.gridFrame}>
-        <div className={tbStyles.orbitHalo} aria-hidden />
-        {!embedMode ? (
+        {!hideChrome ? <div className={tbStyles.orbitHalo} aria-hidden /> : null}
+        {!hideChrome ? (
           <>
             <span className={tbStyles.frameTag} data-side="left" aria-hidden>
               PSХЭ·118
@@ -247,14 +251,16 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
             </span>
           </>
         ) : null}
-        <div className={tbStyles.gridScan} aria-hidden />
+        {!hideChrome ? <div className={tbStyles.gridScan} aria-hidden /> : null}
 
         <div className={tbStyles.gridTextbook}>
-          <div
-            className={tbStyles.columnBackdrop}
-            style={{ gridColumn: '3 / -1', gridRow: '3 / 17' }}
-            aria-hidden
-          />
+          {!pageFit ? (
+            <div
+              className={tbStyles.columnBackdrop}
+              style={{ gridColumn: '3 / -1', gridRow: '3 / 17' }}
+              aria-hidden
+            />
+          ) : null}
 
           <div className={tbStyles.cornerPeriod} style={{ gridColumn: 1, gridRow: 1 }}>
             {t('periodic.axisPeriodShort')}
@@ -325,7 +331,7 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
 
           {mainElements.map((el) => cell(el))}
 
-          {!embedMode ? (
+          {!embedMode && !pageFit ? (
             <div
               className={tbStyles.centerLawPanel}
               style={{

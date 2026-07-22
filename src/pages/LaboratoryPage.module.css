@@ -5,8 +5,10 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  /* Fallback до измерения HUD; живое значение — --lab-pt-inset (лево/право) */
+  /* Fallback до измерения HUD; живое значение — --lab-pt-inset-left/right */
   --lab-pt-inset: 8.5rem;
+  --lab-pt-inset-left: 0.75rem;
+  --lab-pt-inset-right: 8.5rem;
   /* Зазор снизу под открытый реактор (таблица Менделеева при синтезе) */
   --lab-reactor-clearance: calc(min(56vh, 540px) + 10px);
 }

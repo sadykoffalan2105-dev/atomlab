@@ -30,35 +30,27 @@ export function ElementSidePanel({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  /** Стабильный размер ячеек: обновляем CSS-var только при заметном изменении (анти-мигание). */
+  /** Сетка 1fr заполняет высоту; синхронизируем --pt-cell-h с реальной ячейкой. */
   useLayoutEffect(() => {
     if (!open) return
     const wrap = tableWrapRef.current
     if (!wrap) return
 
-    const compute = () => {
-      const aw = Math.max(1, wrap.clientWidth - 2)
-      const ah = Math.max(1, wrap.clientHeight - 2)
-      const bodyRows = 13
-      const chromePx = isLabCompact ? 44 : 52
-      const gapPx = 3
-      const sideFr = 0.18
-      const elemCols = 10
-      const totalFr = sideFr + elemCols
-      const usableW = Math.max(1, aw - gapPx * 12)
-      const elemColW = (usableW * elemCols) / totalFr / elemCols
-      const hByHeight = (ah - chromePx - gapPx * (bodyRows + 3)) / bodyRows
-      const byWidth = elemColW * 0.92
-      const maxCell = isLabCompact ? 48 : 54
-      const cellPx = Math.round(Math.max(20, Math.min(hByHeight, byWidth, maxCell)) * 2) / 2
-      if (Math.abs(cellPx - lastCellHRef.current) < 0.6) return
+    const sync = () => {
+      const sample =
+        wrap.querySelector<HTMLElement>('button[class*="tbCellBtn"]') ??
+        wrap.querySelector<HTMLElement>('[class*="tbCellStatic"]')
+      if (!sample) return
+      const h = sample.getBoundingClientRect().height
+      if (h < 8) return
+      const cellPx = Math.round(h * 2) / 2
+      if (Math.abs(cellPx - lastCellHRef.current) < 0.4) return
       lastCellHRef.current = cellPx
       wrap.style.setProperty('--pt-cell-h', `${cellPx}px`)
-      wrap.style.setProperty('--pt-cell-w', `${Math.max(cellPx * 1.1, elemColW).toFixed(1)}px`)
     }
 
-    compute()
-    const ro = new ResizeObserver(compute)
+    sync()
+    const ro = new ResizeObserver(() => requestAnimationFrame(sync))
     ro.observe(wrap)
     return () => {
       ro.disconnect()

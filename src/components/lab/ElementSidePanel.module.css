@@ -59,9 +59,12 @@
   pointer-events: auto;
 }
 
-/* Одинаковый пробел сверху / снизу / слева / справа */
+/* Одинаковый пробел сверху / снизу; слева/справа — отдельно (HUD справа не зеркалить налево). */
 .panelOpenCenter {
-  inset: var(--lab-pt-inset, 8.5rem);
+  top: max(0.5rem, env(safe-area-inset-top, 0px));
+  bottom: max(0.55rem, env(safe-area-inset-bottom, 0px));
+  left: var(--lab-pt-inset-left, 0.85rem);
+  right: var(--lab-pt-inset-right, var(--lab-pt-inset, 8.5rem));
   width: auto;
   max-width: none;
   height: auto;
@@ -73,9 +76,9 @@
    Нельзя класть --lab-pt-inset в bottom — это ширина правого HUD,
    из‑за неё таблица уезжала за верхний край экрана. */
 .panelOpenCompact {
-  left: var(--lab-pt-inset, 8.5rem);
-  right: var(--lab-pt-inset, 8.5rem);
-  top: max(0.55rem, env(safe-area-inset-top, 0px));
+  left: var(--lab-pt-inset-left, 0.85rem);
+  right: var(--lab-pt-inset-right, var(--lab-pt-inset, 8.5rem));
+  top: max(0.5rem, env(safe-area-inset-top, 0px));
   bottom: var(--lab-reactor-clearance, calc(min(56vh, 540px) + 10px));
   width: auto;
   max-width: none;
@@ -88,7 +91,7 @@
   flex: 1;
   min-height: 0;
   height: 100%;
-  padding: 0.45rem 0.35rem 0.5rem;
+  padding: 0.28rem 0.3rem 0.4rem;
   overflow: hidden !important;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -725,7 +728,9 @@
   }
 
   .panelOpenCompact {
-    top: max(0.4rem, env(safe-area-inset-top, 0px));
+    top: max(0.35rem, env(safe-area-inset-top, 0px));
     bottom: var(--lab-reactor-clearance, calc(min(50dvh, 420px) + 8px));
+    left: var(--lab-pt-inset-left, 0.5rem);
+    right: var(--lab-pt-inset-right, var(--lab-pt-inset, 1rem));
   }
 }
