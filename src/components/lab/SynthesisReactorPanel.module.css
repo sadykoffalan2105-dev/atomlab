@@ -588,9 +588,6 @@
   max-height: 3.8em;
   overflow: auto;
 }
-  width: 100%;
-  max-width: none;
-}
 
 .equationEmpty {
   font-size: 0.72rem;
