@@ -11,8 +11,12 @@ function sub(n: number): string {
 }
 
 function wrapCount(u: string, n: number): string {
-  if (n === 1) return u
-  if (u.length === 1 || !u.includes('(')) return u + sub(n)
+  if (n <= 1) return u
+  // Уже в скобках: (OH), (HCO₃), …
+  if (u.startsWith('(')) return `${u}${sub(n)}`
+  // Моноатомный анион/катион (Cl, Br, S, …) — без скобок: FeCl₃, Na₂S
+  if (/^[A-Z][a-z]?$/.test(u)) return `${u}${sub(n)}`
+  // Полиатомная группа: (NH₄)₂, (SO₄)₃, (NO₃)₂, (Cr₂O₇)…
   return `(${u})${sub(n)}`
 }
 
