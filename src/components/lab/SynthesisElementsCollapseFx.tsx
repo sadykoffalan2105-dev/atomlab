@@ -14,8 +14,8 @@ const PROXY_COUNT_DEFAULT = 5
 
 /**
  * Коллапс + burst в цвете молекулы.
- * onEmbryoReady — micro-молекула внутри круга (GPU warm).
- * onBirthReady — видимое рождение ИЗ круга на пике свечения.
+ * onEmbryoReady — молекула уже внутри круга (GPU warm → видимый зародыш).
+ * onBirthReady — GSAP-рост ИЗ круга на пике свечения (без паузы «круг → пусто»).
  * onComplete — FX полностью закончен.
  */
 export function SynthesisElementsCollapseFx({

@@ -544,15 +544,17 @@ function SceneContent({
     synthesis?.onPhaseChange?.('converge', 0.05)
   }, [synthActive, instantSynthesis, currentSynthRunIdForCollapse, synthesis])
 
-  /** Burst: micro-молекула внутри круга — compile без white hitch. */
+  /** Burst: молекула уже внутри круга (GPU warm → видимый зародыш). */
   const handleElementsCollapseEmbryoReady = useCallback(() => {
     setCollapseEmbryo(true)
     setForceProductSlot(true)
+    setEarlyProductReveal(true)
+    setProductRevealReady(true)
     setAllowIdleProductPrewarm(true)
     invalidate()
   }, [invalidate])
 
-  /** Пик круга: молекула растёт поверх свечения — единое целое. */
+  /** Пик круга: молекула растёт из свечения — единое целое, без паузы «круг → пусто». */
   const handleElementsCollapseBirthReady = useCallback(() => {
     if (currentSynthRunIdForCollapse > 0) {
       collapseDoneRunIdRef.current = currentSynthRunIdForCollapse
@@ -572,12 +574,12 @@ function SceneContent({
     if (collapseDoneRunIdRef.current !== currentSynthRunIdForCollapse) {
       handleElementsCollapseBirthReady()
     }
-    // Не гасим linger сразу — молекула ещё «выходит» из круга.
+    // Linger дольше birth GSAP — glow/fade не обрывает молекулу.
     if (collapseLingerTimerRef.current) window.clearTimeout(collapseLingerTimerRef.current)
     collapseLingerTimerRef.current = window.setTimeout(() => {
       setCollapseFxLinger(false)
       collapseLingerTimerRef.current = 0
-    }, Math.ceil(PRODUCT_BIRTH_FROM_COLLAPSE_SEC * 450))
+    }, Math.ceil(PRODUCT_BIRTH_FROM_COLLAPSE_SEC * 1100))
     startTransition(() => {
       setAllowIdleProductPrewarm(true)
     })
@@ -589,7 +591,11 @@ function SceneContent({
     return resolveInstantSynthFrameBudget({ gpuCompiled, deviceTier })
   }, [synthesis?.product?.id, deviceTier])
 
-  /** При запуске синтеза — GPU-prep. Embryo: micro внутри круга; до embryo — не форсим. */
+  /**
+   * GPU-prep при синтезе.
+   * Embryo/birth/linger: reveal всегда открыт — молекула живёт внутри круга.
+   * Не сбрасываем productRevealReady после birthReady (раньше это глушило слот до GPU).
+   */
   useLayoutEffect(() => {
     if (!synthActive || !synthesis?.runId) return
     const productId = synthesis.product?.id
@@ -601,12 +607,16 @@ function SceneContent({
       setProductRevealReady(false)
       return
     }
-    if (instantSynthesis && elementsCollapsePlaying && collapseEmbryo) {
-      // Micro внутри круга — compile, без visible reveal.
+    if (instantSynthesis && (collapseEmbryo || collapseFxLinger)) {
       setAllowIdleProductPrewarm(true)
       setForceProductSlot(true)
-      setEarlyProductReveal(false)
-      setProductRevealReady(false)
+      setEarlyProductReveal(true)
+      setProductRevealReady(true)
+      if (isProductGpuCompiled(productId)) {
+        prewarmCompoundIdRef.current = productId
+        prewarmReadyRef.current = true
+        setPrewarmReady(true)
+      }
       return
     }
     setAllowIdleProductPrewarm(true)
@@ -627,6 +637,7 @@ function SceneContent({
     instantSynthesis,
     elementsCollapsePlaying,
     collapseEmbryo,
+    collapseFxLinger,
   ])
 
   useLayoutEffect(() => {
@@ -797,6 +808,11 @@ function SceneContent({
     synthLive,
     prewarmReady: prewarmReadyRef.current || prewarmReady,
     prewarmCompoundId: prewarmCompoundIdRef.current,
+    forceVisibleInGlow:
+      instantSynthesis &&
+      (collapseFxLinger ||
+        (collapseEmbryo &&
+          collapseDoneRunIdRef.current === currentSynthRunIdForCollapse)),
   })
 
   const previewMotionLocked = false
@@ -839,23 +855,34 @@ function SceneContent({
     preSynthesisPreview || continuity.reactorPreviewVisible || coeffEditingActive
   const productSlotVisible = continuity.productSlotVisible
   const productPrewarmActive = continuity.productPrewarm
-  /** Пока играет коллапс без embryo — молекулу не монтируем.
-   *  Embryo: micro внутри круга. Birth: visible поверх круга. */
+  /**
+   * Embryo (до birthReady): зародыш внутри круга — visible после GPU, иначе micro-compile.
+   * Birth/linger: всегда visible (круг ещё светит / linger), без GPU-дыры «пусто → pop».
+   */
   const productEmbryoOnly =
     instantSynthesis &&
     elementsCollapsePlaying &&
     collapseEmbryo &&
     collapseDoneRunIdRef.current !== currentSynthRunIdForCollapse
+  const productGlowHandoff =
+    instantSynthesis &&
+    (collapseFxLinger ||
+      (collapseEmbryo &&
+        collapseDoneRunIdRef.current === currentSynthRunIdForCollapse))
   const productSlotVisibleResolved = productEmbryoOnly
-    ? false
-    : elementsCollapsePlaying && !collapseEmbryo
-      ? false
-      : productSlotView.visible
+    ? productSlotView.gpuReady
+    : productGlowHandoff
+      ? true
+      : elementsCollapsePlaying && !collapseEmbryo
+        ? false
+        : productSlotView.visible
   const productPrewarmResolved = productEmbryoOnly
-    ? true
-    : elementsCollapsePlaying && !collapseEmbryo
+    ? !productSlotView.gpuReady
+    : productGlowHandoff
       ? false
-      : productSlotView.prewarm
+      : elementsCollapsePlaying && !collapseEmbryo
+        ? false
+        : productSlotView.prewarm
   const showProductDuringCollapse =
     Boolean(productForSlot) &&
     (!elementsCollapsePlaying || collapseEmbryo || collapseFxLinger)
@@ -903,9 +930,12 @@ function SceneContent({
           synthesis.onDone(kind)
           return
         }
-        // Force full-scale nudge while waiting.
+        // Force full-scale nudge while waiting — но не во время birth из круга.
         const g = productRootGroupRef.current
-        if (g && g.scale.x < 0.86) {
+        const birthBusy =
+          collapseLingerTimerRef.current !== 0 ||
+          (g != null && g.scale.x > 0.02 && g.scale.x < 0.92)
+        if (g && g.scale.x < 0.86 && !birthBusy) {
           g.scale.set(1, 1, 1)
           invalidate()
         }
@@ -925,12 +955,17 @@ function SceneContent({
     setProductRevealReady(true)
     setForceProductSlot(true)
     setEarlyProductReveal(true)
+    // Не snap к 1 во время birth из круга — иначе «зависание → pop».
+    if (collapseFxLinger || collapseEmbryo) {
+      invalidate()
+      return
+    }
     const g = productRootGroupRef.current
     if (g) {
       g.scale.set(1, 1, 1)
       invalidate()
     }
-  }, [invalidate])
+  }, [invalidate, collapseFxLinger, collapseEmbryo])
 
   const instantProductReady = useCallback(() => {
     return isInstantProductScreenReady(productPaintedRef.current)
@@ -1273,12 +1308,16 @@ function SceneContent({
     productSlotVisible && !showSettledHero,
     transformPreviewCompound != null,
   )
+  /** Birth GSAP с birthReady (пока круг ещё на экране), не после dispose glow. */
   const productBirthActive =
-    instantSynthesis && synthActive && !elementsCollapsePlaying && !showSettledHero
+    instantSynthesis &&
+    synthActive &&
+    !showSettledHero &&
+    (productGlowHandoff || (!elementsCollapsePlaying && collapseEmbryo))
   const productSlotEntrance: 'smooth' | 'none' | 'instant' =
     showSettledHero && !synthActive
       ? 'none'
-      : productBirthActive
+      : productBirthActive || productEmbryoOnly
         ? 'smooth'
         : instantSynthesis || synthActive
           ? 'instant'
@@ -2044,12 +2083,17 @@ function SceneContent({
           entrance={productSlotEntrance}
           runId={synthesis?.runId ?? lastSynthRunIdRef.current}
           birthEntrance={productBirthActive}
-          entranceDuration={productBirthActive ? PRODUCT_BIRTH_FROM_COLLAPSE_SEC : 0}
+          entranceDuration={
+            productBirthActive || productEmbryoOnly ? PRODUCT_BIRTH_FROM_COLLAPSE_SEC : 0
+          }
           shaderCompileAsync={productPrewarmResolved}
           onGpuCompiled={handleProductGpuCompiled}
           onProductVisiblePaint={handleProductVisiblePaint}
           rootGroupRef={productRootGroupRef}
-          emergeFromGlow={productBirthActive || collapseFxLinger}
+          emergeFromGlow={
+            productBirthActive || collapseFxLinger || productEmbryoOnly || productGlowHandoff
+          }
+          embryoInGlow={productEmbryoOnly && productSlotVisibleResolved}
         />
       ) : null}
       <OrbitControls

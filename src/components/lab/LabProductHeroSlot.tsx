@@ -20,6 +20,8 @@ import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import { resolveVisiblePaintFrames } from '../../lab/synthesisStabilityEngine'
 
 const MICRO_SCALE = 0.001
+/** Видимый «зародыш» молекулы внутри glow до GSAP-рождения. */
+const EMBRYO_SCALE = 0.2
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
@@ -41,6 +43,8 @@ export function LabProductHeroSlot({
   rootGroupRef,
   /** Рождение из круга: молекула поверх glow (иначе спрятана под вспышкой). */
   emergeFromGlow = false,
+  /** Маленькая видимая молекула уже внутри круга (до birthEntrance). */
+  embryoInGlow = false,
 }: {
   compound: CompoundDef
   visible: boolean
@@ -54,6 +58,7 @@ export function LabProductHeroSlot({
   onProductVisiblePaint?: () => void
   rootGroupRef?: MutableRefObject<THREE.Group | null>
   emergeFromGlow?: boolean
+  embryoInGlow?: boolean
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const spinRef = useRef<THREE.Group>(null)
@@ -375,6 +380,19 @@ export function LabProductHeroSlot({
       return
     }
 
+    /** Уже внутри круга: видимый зародыш, без GSAP-pop. */
+    if (embryoInGlow && visible && !birthEntrance) {
+      wasPrewarmRef.current = true
+      gsap.killTweensOf(g.scale)
+      if (spin) gsap.killTweensOf(spin.rotation)
+      const cur = g.scale.x
+      if (cur < EMBRYO_SCALE * 0.85 || cur > EMBRYO_SCALE * 1.25) {
+        g.scale.set(EMBRYO_SCALE, EMBRYO_SCALE, EMBRYO_SCALE)
+      }
+      if (spin) spin.rotation.set(0, 0, 0)
+      return
+    }
+
     if (!visible) {
       if (wasPrewarmRef.current) return
       return
@@ -401,22 +419,29 @@ export function LabProductHeroSlot({
     const dur = entranceDuration
 
     if (birthEntrance || fromPrewarm) {
-      g.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
-      if (spin) spin.rotation.set(0, 0, 0)
+      // Продолжаем из зародыша внутри круга — не сбрасываем в 0.001 (иначе «круг → пусто → молекула»).
+      const startScale =
+        g.scale.x >= EMBRYO_SCALE * 0.45
+          ? g.scale.x
+          : fromPrewarm || birthEntrance
+            ? EMBRYO_SCALE * 0.85
+            : MICRO_SCALE
+      g.scale.set(startScale, startScale, startScale)
+      if (spin && spin.rotation.y === 0) spin.rotation.set(0, 0, 0)
       const tl = gsap.timeline({
         onUpdate: () => invalidate(),
       })
-      // Из круга: сначала медленно «проклёвывается», потом раскрывается.
+      const mid = Math.max(0.38, Math.min(0.55, startScale + 0.22))
       tl.to(
         g.scale,
-        { x: 0.28, y: 0.28, z: 0.28, duration: dur * 0.22, ease: 'power2.out' },
+        { x: mid, y: mid, z: mid, duration: dur * 0.2, ease: 'power2.out' },
         0,
       )
       tl.to(
         g.scale,
-        { x: 1.12, y: 1.12, z: 1.12, duration: dur * 0.5, ease: 'power3.out' },
+        { x: 1.1, y: 1.1, z: 1.1, duration: dur * 0.5, ease: 'power3.out' },
       )
-      tl.to(g.scale, { x: 1, y: 1, z: 1, duration: dur * 0.28, ease: 'power2.inOut' })
+      tl.to(g.scale, { x: 1, y: 1, z: 1, duration: dur * 0.3, ease: 'power2.inOut' })
       if (spin && birthEntrance) {
         tl.to(
           spin.rotation,
@@ -443,7 +468,18 @@ export function LabProductHeroSlot({
     return () => {
       t.kill()
     }
-  }, [visible, prewarm, entrance, compound.id, runId, birthEntrance, entranceDuration, onProductVisiblePaint, invalidate])
+  }, [
+    visible,
+    prewarm,
+    entrance,
+    compound.id,
+    runId,
+    birthEntrance,
+    entranceDuration,
+    embryoInGlow,
+    onProductVisiblePaint,
+    invalidate,
+  ])
 
   /** Локальный свет отключён: LabReactorLights уже освещает сцену — иначе вспышка на старте синтеза. */
   const showLocalLights = false
@@ -477,8 +513,8 @@ export function LabProductHeroSlot({
             renderQuality="synthesis"
             fxLevel="low"
             chaoticWobble={false}
-            // Шар-атмосфера как в каталоге — только когда продукт на экране (не micro-prewarm).
-            showAtmosphere={visible && !prewarm}
+            // Атмосфера: при birth; зародыш без шара — круг даёт свечение.
+            showAtmosphere={visible && !prewarm && !embryoInGlow}
           />
         </group>
       </group>

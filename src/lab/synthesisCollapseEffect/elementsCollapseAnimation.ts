@@ -108,25 +108,26 @@ export function buildCollapseAccentTheme(accentHex?: string | null): CollapseAcc
   return {
     particle_colors: [0xffffff, soft, accent, warm, deep],
     core_gradient: [
-      { stop: 0.0, color: 'rgba(255, 255, 255, 1.0)' },
-      { stop: 0.12, color: rgbaFromHex(soft, 0.95) },
-      { stop: 0.35, color: rgbaFromHex(accent, 0.78) },
-      { stop: 0.62, color: rgbaFromHex(deep, 0.28) },
+      // Центр мягче — молекула читается внутри диска, не за белой вспышкой.
+      { stop: 0.0, color: rgbaFromHex(soft, 0.55) },
+      { stop: 0.18, color: rgbaFromHex(accent, 0.72) },
+      { stop: 0.42, color: rgbaFromHex(accent, 0.55) },
+      { stop: 0.68, color: rgbaFromHex(deep, 0.22) },
       { stop: 1.0, color: 'rgba(0, 0, 0, 0.0)' },
     ],
     accent_hex: accent,
     ring_color: soft,
     core_mesh_color: accent,
     light_color: soft,
-    flash_tint: mixHex(accent, 0xffffff, 0.55),
+    flash_tint: mixHex(accent, 0xffffff, 0.45),
   }
 }
 
 const DEFAULT_GRADIENT = [
-  { stop: 0.0, color: 'rgba(255, 255, 255, 1.0)' },
-  { stop: 0.1, color: 'rgba(255, 255, 255, 0.9)' },
-  { stop: 0.3, color: 'rgba(100, 180, 255, 0.7)' },
-  { stop: 0.6, color: 'rgba(30, 80, 255, 0.2)' },
+  { stop: 0.0, color: 'rgba(170, 210, 255, 0.5)' },
+  { stop: 0.18, color: 'rgba(100, 180, 255, 0.7)' },
+  { stop: 0.42, color: 'rgba(70, 140, 255, 0.5)' },
+  { stop: 0.68, color: 'rgba(30, 80, 255, 0.18)' },
   { stop: 1.0, color: 'rgba(0, 0, 0, 0.0)' },
 ]
 
@@ -153,14 +154,14 @@ export const COLLAPSE_DEMO_QUALITY = {
  */
 /**
  * Lab-профиль: hold/fade длиннее — молекула рождается ИЗ круга, пока он ещё светит.
- * ~2.1 с; ≤400 искр.
+ * ~2.4 с; ≤400 искр.
  */
 export const COLLAPSE_LAB_QUALITY = {
   atom_collapse_time: 0.42,
   atom_delay_max: 0.07,
-  burst_time: 0.4,
-  hold_after_grow: 0.32,
-  fade_out: 0.62,
+  burst_time: 0.42,
+  hold_after_grow: 0.48,
+  fade_out: 0.85,
   end_scale: 2.35,
   particles_per_sec: 120,
   max_particles: 280,
@@ -171,8 +172,8 @@ export const COLLAPSE_LAB_QUALITY = {
   core_gradient: DEFAULT_GRADIENT,
 }
 
-/** GSAP-рождение молекулы — совпадает с hold+fade круга. */
-export const PRODUCT_BIRTH_FROM_COLLAPSE_SEC = 0.82
+/** GSAP-рождение молекулы — совпадает с hold + часть fade круга. */
+export const PRODUCT_BIRTH_FROM_COLLAPSE_SEC = 0.98
 
 export function estimateCollapseDurationSec(opts: ElementsCollapseOptions = {}): number {
   const d = { ...COLLAPSE_LAB_QUALITY, ...opts }
@@ -423,10 +424,10 @@ export function createElementsCollapseAnimation(
   const fadeEnd = holdEnd + fade_out
   const collapseMaxScale = 0.22
   const earlySparkT = collapseEnd - Math.min(0.28, atom_collapse_time * 0.25)
-  /** Micro-молекула внутри круга — как только burst начался (GPU warm). */
-  const embryoAt = collapseEnd
-  /** Видимое рождение — на пике круга (середина burst → hold). */
-  const birthAt = collapseEnd + burst_time * 0.55
+  /** Micro-молекула внутри круга — чуть после старта burst (круг уже есть). */
+  const embryoAt = collapseEnd + burst_time * 0.1
+  /** Видимое рождение — на пике круга (ранний hold). */
+  const birthAt = collapseEnd + burst_time * 0.42
 
   function restoreAtoms() {
     for (const data of atomData) {
@@ -574,20 +575,20 @@ export function createElementsCollapseAnimation(
 
     const glowScalar = Math.max(0.0001, 5.5 * Math.max(burstScale, 0.001))
     glow.scale.setScalar(glowScalar)
-    // После birth круг чуть прозрачнее — молекула видна «внутри» свечения.
-    const glowCap = birthReady ? 0.62 : 0.9
+    // После birth круг мягче и прозрачнее — молекула читается «внутри» свечения.
+    const glowCap = birthReady ? 0.42 : 0.88
     glowMat.opacity = Math.min(1, Math.max(burstScale, 0) * glowCap) * fadeMul
 
     coreMesh.scale.setScalar(Math.max(0.001, 0.35 + burstScale * 0.7))
-    coreMat.opacity = Math.min(1, (birthReady ? 0.12 : 0.2) + burstScale * (birthReady ? 0.22 : 0.35)) * fadeMul
+    coreMat.opacity = Math.min(1, (birthReady ? 0.06 : 0.18) + burstScale * (birthReady ? 0.14 : 0.32)) * fadeMul
     coreMat.color.copy(burstScale > 1.15 ? coreHot : coreSoft)
 
     const ringS = Math.max(0.001, 0.4 + burstScale * 1.15)
     ring.scale.set(ringS, ringS, ringS)
-    ringMat.opacity = Math.min(0.85, burstScale * (birthReady ? 0.18 : 0.28)) * fadeMul
+    ringMat.opacity = Math.min(0.85, burstScale * (birthReady ? 0.14 : 0.28)) * fadeMul
     ring.rotation.z = elapsed * 1.2
 
-    burstLight.intensity = Math.min(6.5, burstScale * (birthReady ? 1.4 : 2.1)) * fadeMul
+    burstLight.intensity = Math.min(6.5, burstScale * (birthReady ? 1.15 : 2.1)) * fadeMul
     burstLight.color.copy(lightCol)
 
     return false

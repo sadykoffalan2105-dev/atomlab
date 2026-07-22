@@ -9,6 +9,8 @@ export type SynthesisProductSlotInput = {
   synthLive: boolean
   prewarmReady: boolean
   prewarmCompoundId: string | null
+  /** Рождение из круга: форсим visible даже без GPU (glow маскирует). */
+  forceVisibleInGlow?: boolean
 }
 
 export type SynthesisProductSlotView = {
@@ -31,6 +33,7 @@ export function resolveSynthesisProductSlot(
     synthLive,
     prewarmReady,
     prewarmCompoundId,
+    forceVisibleInGlow = false,
   } = input
 
   if (!productForSlot) {
@@ -48,6 +51,11 @@ export function resolveSynthesisProductSlot(
       prewarm: false,
       gpuReady: true,
     }
+  }
+
+  /** Рождение из круга: слот видим даже до GPU — glow маскирует cold compile. */
+  if (forceVisibleInGlow) {
+    return { visible: true, prewarm: false, gpuReady }
   }
 
   if (!productSlotVisible && !synthLive) {
