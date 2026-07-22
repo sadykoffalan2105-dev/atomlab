@@ -487,14 +487,19 @@ export function SynthesisReactorPanel({
               <span>{t('reactor.labCatalyst')}</span>
             </label>
           ) : null}
+          {equationBalanced && !canRun && !synthesisRunning ? (
+            <p className={panelStyles.labCondHint} role="status">
+              {t('reactor.labConditionsNeeded')}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
-      {productCompound?.obtainingStepsRu && productCompound.obtainingStepsRu.length > 1 ? (
+      {productStrings?.obtainingSteps && productStrings.obtainingSteps.length > 1 ? (
         <details className={panelStyles.obtainingDetails}>
           <summary>{t('reactor.obtainingStepsSummary')}</summary>
           <ol className={panelStyles.obtainingList}>
-            {productCompound.obtainingStepsRu.map((s) => (
+            {productStrings.obtainingSteps.map((s) => (
               <li key={s.step}>
                 <code>{s.equation}</code>
                 {s.note ? <span> — {s.note}</span> : null}

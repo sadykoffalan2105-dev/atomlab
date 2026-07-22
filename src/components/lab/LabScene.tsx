@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, startTransition } from 'react'
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  startTransition,
+} from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Stars, DragControls } from '@react-three/drei'
 import { gsap } from 'gsap'
@@ -551,8 +560,9 @@ function SceneContent({
     setEarlyProductReveal(true)
     setProductRevealReady(true)
     setAllowIdleProductPrewarm(true)
+    synthesis?.onSynthesisStageChange?.('substance')
     invalidate()
-  }, [invalidate])
+  }, [invalidate, synthesis])
 
   /** Пик круга: молекула растёт из свечения — единое целое, без паузы «круг → пусто». */
   const handleElementsCollapseBirthReady = useCallback(() => {
@@ -567,6 +577,7 @@ function SceneContent({
     setEarlyProductReveal(true)
     setAllowIdleProductPrewarm(true)
     synthesis?.onPhaseChange?.('mergeFlash', 0.88)
+    synthesis?.onSynthesisStageChange?.('substance')
     invalidate()
   }, [currentSynthRunIdForCollapse, synthesis, invalidate])
 
@@ -1300,7 +1311,8 @@ function SceneContent({
   const onEarlyProductReveal = useCallback(() => {
     setEarlyProductReveal(true)
     setForceProductSlot(true)
-  }, [])
+    synthesis?.onSynthesisStageChange?.('substance')
+  }, [synthesis])
 
   const previewForceLite =
     (synthActive || synthesisRunActive) && previewForceLiteLatchRef.current !== null
@@ -2121,7 +2133,7 @@ function SceneContent({
   )
 }
 
-export function LabCanvas({
+function LabCanvasImpl({
   particles,
   onParticleMove,
   structureZ,
@@ -2357,3 +2369,5 @@ export function LabCanvas({
     </CanvasErrorBoundary>
   )
 }
+
+export const LabCanvas = memo(LabCanvasImpl)

@@ -286,32 +286,58 @@ export function HeroMoleculeRig({
           accentBoost={1.42}
           visualPreset="catalogHero"
           renderQuality={renderQuality}
-          showLabels
+          showLabels={renderQuality !== 'synthesis'}
         />
       </group>
     </group>
   )
 }
 
-function CatalogHeroScene({ compoundId, compound }: { compoundId: string; compound: CompoundDef }) {
+function CatalogHeroScene({
+  compoundId,
+  compound,
+  reducedFx = false,
+}: {
+  compoundId: string
+  compound: CompoundDef
+  reducedFx?: boolean
+}) {
   const [sr, sg, sb] = categoryAccentRgb(compound.category)
   const sparkleHex = compound.accentColor
   const secondaryHex = useMemo(() => rgbToHex(sr * 0.5 + 0.2, sg * 0.5 + 0.15, sb * 0.55 + 0.25), [sr, sg, sb])
 
   return (
     <>
-      <Suspense fallback={null}>
-        <Environment preset="city" environmentIntensity={0.4} />
-      </Suspense>
-      <ambientLight intensity={0.42} />
+      {!reducedFx ? (
+        <Suspense fallback={null}>
+          <Environment preset="city" environmentIntensity={0.4} />
+        </Suspense>
+      ) : null}
+      <ambientLight intensity={reducedFx ? 0.55 : 0.42} />
       <directionalLight position={[3.2, 5.5, 3.5]} intensity={0.85} color="#e8eeff" />
       <directionalLight position={[-3.5, 1.5, -2]} intensity={0.35} color={sparkleHex} />
       <pointLight position={[0.2, 0.9, 2.2]} intensity={0.75} color={secondaryHex} distance={8} />
-      <CosmicStarfield compoundId={compoundId} accentColor={compound.accentColor} category={compound.category} />
-      <SubstanceAuraBubble accentColor={compound.accentColor} compoundId={compoundId} />
-      <Sparkles count={96} scale={5.5} size={1.85} speed={0.36} opacity={0.55} color={sparkleHex} position={[0, 0.06, 0]} />
-      <Sparkles count={48} scale={4} size={1.25} speed={0.44} opacity={0.35} color="#cfefff" position={[0.1, -0.02, -0.15]} />
-      <HeroMoleculeRig compound={compound} />
+      {!reducedFx ? (
+        <CosmicStarfield compoundId={compoundId} accentColor={compound.accentColor} category={compound.category} />
+      ) : null}
+      {!reducedFx ? <SubstanceAuraBubble accentColor={compound.accentColor} compoundId={compoundId} /> : null}
+      <Sparkles
+        count={reducedFx ? 36 : 96}
+        scale={reducedFx ? 4.2 : 5.5}
+        size={reducedFx ? 1.4 : 1.85}
+        speed={0.36}
+        opacity={reducedFx ? 0.4 : 0.55}
+        color={sparkleHex}
+        position={[0, 0.06, 0]}
+      />
+      {!reducedFx ? (
+        <Sparkles count={48} scale={4} size={1.25} speed={0.44} opacity={0.35} color="#cfefff" position={[0.1, -0.02, -0.15]} />
+      ) : null}
+      <HeroMoleculeRig
+        compound={compound}
+        renderQuality={reducedFx ? 'synthesis' : 'high'}
+        fxLevel={reducedFx ? 'low' : 'full'}
+      />
       <OrbitControls
         enableZoom={false}
         enablePan={false}
@@ -323,7 +349,14 @@ function CatalogHeroScene({ compoundId, compound }: { compoundId: string; compou
 }
 
 
-export function CatalogMoleculeHero({ compoundId }: { compoundId: string }) {
+export function CatalogMoleculeHero({
+  compoundId,
+  reducedFx = false,
+}: {
+  compoundId: string
+  /** Лёгкий режим для модалки каталога (меньше GPU рядом с лабораторией). */
+  reducedFx?: boolean
+}) {
   const { t } = useT()
   const c = compoundById[compoundId]
   const webglOk = isWebGLAvailable()
@@ -357,8 +390,8 @@ export function CatalogMoleculeHero({ compoundId }: { compoundId: string }) {
     <CanvasErrorBoundary fallback={<CanvasSceneErrorFallback />}>
       <Canvas
         camera={{ position: CATALOG_HERO_VIEW.cameraPosition, fov: CATALOG_HERO_VIEW.fov }}
-        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
-        dpr={[1, 1.75]}
+        gl={{ antialias: !reducedFx, alpha: false, powerPreference: 'high-performance' }}
+        dpr={reducedFx ? ([1, 1.25] as [number, number]) : ([1, 1.75] as [number, number])}
         frameloop="always"
         onCreated={(state) => {
           const canvas = state.gl.domElement
@@ -371,7 +404,7 @@ export function CatalogMoleculeHero({ compoundId }: { compoundId: string }) {
         <color attach="background" args={['#0a0c18']} />
         <fog attach="fog" args={['#0a0c18', 6.5, 16]} />
         <Suspense fallback={null}>
-          <CatalogHeroScene compoundId={compoundId} compound={c} />
+          <CatalogHeroScene compoundId={compoundId} compound={c} reducedFx={reducedFx} />
         </Suspense>
       </Canvas>
     </CanvasErrorBoundary>

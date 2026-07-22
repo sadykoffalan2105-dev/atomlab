@@ -53,6 +53,7 @@ import {
   type ReactorCatalogIntent,
 } from '../components/lab/ReactorCompoundCatalogPanel'
 import { SynthesisReactorPanel } from '../components/lab/SynthesisReactorPanel'
+import { LaunchMissionHud } from '../components/lab/LaunchMissionHud'
 import { compoundById } from '../data/compounds'
 import {
   getSectionAllowedProductIds,
@@ -173,6 +174,7 @@ export function LaboratoryPage() {
     }
 
     let lastClearance = Number.NaN
+    let resizeTimer = 0
     const syncReactorClearance = () => {
       const reactor = wrap.querySelector<HTMLElement>('[data-lab-reactor]')
       const h = reactor?.getBoundingClientRect().height ?? 0
@@ -181,8 +183,11 @@ export function LaboratoryPage() {
       if (clearance === lastClearance) return
       lastClearance = clearance
       wrap.style.setProperty('--lab-reactor-clearance', `${clearance}px`)
-      // Высота панели баланса меняет layout — перемерить WebGL (иначе 0×0 / белый).
-      window.dispatchEvent(new Event('resize'))
+      // Debounce: balance-панель часто меняет высоту — без thrash WebGL.
+      window.clearTimeout(resizeTimer)
+      resizeTimer = window.setTimeout(() => {
+        window.dispatchEvent(new Event('resize'))
+      }, 80)
     }
 
     syncReactorClearance()
@@ -193,6 +198,7 @@ export function LaboratoryPage() {
     return () => {
       ro.disconnect()
       window.removeEventListener('resize', syncReactorClearance)
+      window.clearTimeout(resizeTimer)
       wrap.style.removeProperty('--lab-reactor-clearance')
     }
   }, [reactorOpen])
@@ -584,7 +590,7 @@ export function LaboratoryPage() {
         synthesisSettledProductRef.current = compound
         settledSnapshotRef.current = equationSignature
         setRunId(0)
-        setLaboratorySynthesisView('reactor')
+        setLaboratorySynthesisView('substance')
         lastRunZSlotsRef.current = []
         setSynthesisFlightSlots(null)
         setSynthesisFlyTerms(null)
@@ -824,6 +830,11 @@ export function LaboratoryPage() {
     }
   }, [runId, synthRunActive])
 
+  useEffect(() => {
+    if (synthRunActive) return
+    if (synthesisSettledProduct == null) setLaboratorySynthesisView('reactor')
+  }, [synthRunActive, synthesisSettledProduct])
+
   const showSettledSynthesisView = reactorOpen && !synthRunActive && synthesisSettledProduct != null
   /** 3D/HUD продукта только во время синтеза или после успеха — не при подборе коэффициентов */
   const showSynthProductHud =
@@ -953,6 +964,11 @@ export function LaboratoryPage() {
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />
         ) : null}
+        <LaunchMissionHud
+          active={synthRunActive}
+          accentColor={productForHud?.accentColor ?? '#3dffec'}
+          progressRef={launchProgressRef}
+        />
         {showSynthProductHud && productForHud ? (
           <div className={styles.synthProductDock} role="status" aria-live="polite">
             <div className={styles.synthProductCard}>

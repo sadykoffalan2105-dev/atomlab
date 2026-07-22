@@ -16,9 +16,20 @@ export function getReactorVisualTier(terms: readonly ReactorEquationTerm[]): Rea
   return 'full'
 }
 
-/** Сколько 3D-моделей показывать — всегда равно коэффициенту (tier только для таймингов/perf). */
-export function previewModelsForTerm(coeff: number, _tier: ReactorVisualTier, _termCount: number): number {
-  return Math.max(0, Math.floor(coeff))
+/**
+ * Сколько Bohr-моделей на слагаемое.
+ * full: все атомы (tier уже ≤24).
+ * lite/cluster: кап + badge ×N — иначе dichromate/большие coeff валят WebGL.
+ */
+export function previewModelsForTerm(coeff: number, tier: ReactorVisualTier, termCount: number): number {
+  const c = Math.max(0, Math.floor(coeff))
+  if (c <= 0) return 0
+  if (tier === 'cluster') return 1
+  if (tier === 'lite') {
+    const perTerm = Math.max(1, Math.min(4, Math.floor(12 / Math.max(1, termCount))))
+    return Math.min(c, perTerm)
+  }
+  return c
 }
 
 /** Coeff for ×N badge when shown models < actual coeff. */

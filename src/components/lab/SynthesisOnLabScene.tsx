@@ -372,6 +372,12 @@ export function SynthesisOnLabScene({
     onSynthesisStageChange?.('reactor')
   }, [onSynthesisStageChange])
 
+  useLayoutEffect(() => {
+    if (phase === 'product' || phase === 'mergeFlash') {
+      onSynthesisStageChange?.('substance')
+    }
+  }, [phase, onSynthesisStageChange])
+
   const startFailFlyTimeline = useCallback(() => {
     const n = zSlots.length
     if (flyStartedRef.current || n < 2) return

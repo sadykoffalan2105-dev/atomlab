@@ -92,10 +92,16 @@ export const SYNTHESIS_TIMING_CINEMATIC: SynthesisTimingProfile = {
   collapseAtoms: true,
 }
 
-/** Лаборатория: мгновенный синтез — без анимаций, без лагов GPU. */
+/**
+ * Тайминг по устройству:
+ * - forceLite / low → FAST (короткий полёт, без cinematic GPU-нагрузки)
+ * - normal → BALANCED (читаемая анимация ~1 с)
+ * INSTANT остаётся запасным профилем для экстренного lite, не дефолтом.
+ */
 export function getSynthesisTimingProfile(
-  _forceLite: boolean,
-  _deviceTier: SynthesisDeviceTier = 'normal',
+  forceLite: boolean,
+  deviceTier: SynthesisDeviceTier = 'normal',
 ): SynthesisTimingProfile {
-  return SYNTHESIS_TIMING_INSTANT
+  if (forceLite || deviceTier === 'low') return SYNTHESIS_TIMING_FAST
+  return SYNTHESIS_TIMING_BALANCED
 }

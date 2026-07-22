@@ -207,6 +207,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'reactor.labHeat': 'Isitish',
   'reactor.labPressure': 'Bosim',
   'reactor.labCatalyst': 'Katalizator',
+  'reactor.labConditionsNeeded': 'Kerakli shartlarni yoqing (isitish / bosim / katalizator), aks holda sintez ishga tushmaydi.',
   'reactor.obtainingStepsSummary': 'Olish bosqichlari (maktab / sanoat yo\'li)',
   'reactor.balance.tabsAria': 'Tenglama muvozanatlash usullari',
   'reactor.balance.showMethods': 'Muvozanatlash usullari',

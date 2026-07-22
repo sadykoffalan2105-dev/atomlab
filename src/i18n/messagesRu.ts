@@ -205,6 +205,7 @@ export const messagesRu = {
   'reactor.labHeat': 'Нагрев',
   'reactor.labPressure': 'Давление',
   'reactor.labCatalyst': 'Катализатор',
+  'reactor.labConditionsNeeded': 'Включите нужные условия (нагрев / давление / катализатор), иначе синтез не запустится.',
   'reactor.obtainingStepsSummary': 'Этапы получения (школьный/промышленный путь)',
   'reactor.balance.tabsAria': 'Методы балансировки уравнения',
   'reactor.balance.showMethods': 'Методы балансировки',

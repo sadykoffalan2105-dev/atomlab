@@ -207,6 +207,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'reactor.labHeat': 'Heat',
   'reactor.labPressure': 'Pressure',
   'reactor.labCatalyst': 'Catalyst',
+  'reactor.labConditionsNeeded': 'Turn on the required conditions (heat / pressure / catalyst), or synthesis will not start.',
   'reactor.obtainingStepsSummary': 'Obtaining steps (school / industrial route)',
   'reactor.balance.tabsAria': 'Equation balancing methods',
   'reactor.balance.showMethods': 'Balancing methods',
