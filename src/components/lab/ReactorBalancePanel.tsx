@@ -10,10 +10,13 @@ import {
 import { oxidationForProduct } from '../../chemistry/oxidationStateEngine'
 import {
   BALANCE_LESSON_BANK,
+  getBalanceLesson,
   lessonToLeftTerms,
-  lessonsByReactionClass,
   type BalanceLesson,
 } from '../../chemistry/balanceLessonBank'
+import { reactionsByClass } from '../../chemistry/schoolReactionBank'
+import { reactantsSummaryRu } from '../../chemistry/reactionReactantLabels'
+import { describePassportRu, passportForReaction } from '../../chemistry/reactionPassport'
 import { REACTION_CLASS_META, type ReactionClass } from '../../chemistry/reactionTypeTaxonomy'
 import styles from './ReactorBalancePanel.module.css'
 
@@ -63,7 +66,7 @@ export function ReactorBalancePanel({
     [expanded, deferredTerms],
   )
 
-  const guideLessons = useMemo(() => lessonsByReactionClass(guideClass), [guideClass])
+  const guideReactions = useMemo(() => reactionsByClass(guideClass), [guideClass])
   const guideMeta = useMemo(() => REACTION_CLASS_META.find((m) => m.id === guideClass), [guideClass])
 
   const canApplyElectron = Boolean(electron?.isRedox)
@@ -290,40 +293,42 @@ export function ReactorBalancePanel({
             </div>
           ) : null}
           <ul className={styles.lessonList}>
-            {guideLessons.length === 0 ? (
+            {guideReactions.length === 0 ? (
               <li className={styles.empty}>{t('reactor.balance.guideEmpty')}</li>
             ) : (
-              guideLessons.map((lesson) => {
-                const title = locale === 'en' ? lesson.titleEn : lesson.titleRu
-                const howTo = locale === 'en' ? lesson.howToEn : lesson.howToRu
-                const displayEq =
-                  locale === 'en'
-                    ? lesson.displayEquationEn ?? lesson.displayEquationRu
-                    : lesson.displayEquationRu
+              guideReactions.map((rx) => {
+                const title = locale === 'en' ? rx.titleEn : rx.titleRu
+                const howTo = locale === 'en' ? rx.howToEn : rx.howToRu
+                const lesson = getBalanceLesson(rx.id)
+                const passport = describePassportRu(passportForReaction(rx))
                 return (
-                  <li key={lesson.id} className={styles.lessonItem}>
+                  <li key={rx.id} className={styles.lessonItem}>
                     <div className={styles.lessonMeta}>
                       <strong>{title}</strong>
                       <span className={styles.lessonGrade}>
-                        {t('reactor.balance.grade', { n: lesson.gradeHint })}
+                        {rx.grades.map((g) => `${g} кл.`).join(', ')}
                       </span>
-                      {displayEq ? <span className={styles.lessonPractice}>{displayEq}</span> : null}
+                      <span className={styles.lessonPractice}>{rx.equationRu}</span>
+                      <span className={styles.guideHowTo}>{reactantsSummaryRu(rx.reactants)}</span>
                       <span className={styles.guideHowTo}>{howTo}</span>
+                      <span className={styles.guideHowTo}>{passport}</span>
                     </div>
-                    <button
-                      type="button"
-                      className={styles.lessonLoad}
-                      onClick={() => {
-                        onLoadLesson(lesson)
-                        if (lesson.methodHint === 'electron') setTab('electron')
-                        else if (lesson.methodHint === 'substitution') setTab('substitution')
-                        else setTab('lesson')
-                      }}
-                    >
-                      {lesson.kind === 'practice_only'
-                        ? t('reactor.balance.showPractice')
-                        : t('reactor.balance.loadLesson')}
-                    </button>
+                    {lesson ? (
+                      <button
+                        type="button"
+                        className={styles.lessonLoad}
+                        onClick={() => {
+                          onLoadLesson(lesson)
+                          if (lesson.methodHint === 'electron') setTab('electron')
+                          else if (lesson.methodHint === 'substitution') setTab('substitution')
+                          else setTab('lesson')
+                        }}
+                      >
+                        {lesson.kind === 'practice_only'
+                          ? t('reactor.balance.showPractice')
+                          : t('reactor.balance.loadLesson')}
+                      </button>
+                    ) : null}
                   </li>
                 )
               })

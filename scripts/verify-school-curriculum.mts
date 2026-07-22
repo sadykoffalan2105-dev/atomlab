@@ -3,10 +3,7 @@
  * Запуск: npx tsx scripts/verify-school-curriculum.mts
  */
 import { compoundById } from '../src/data/compounds.ts'
-import {
-  CURRICULUM_COMPOUNDS,
-  CURRICULUM_REACTIONS,
-} from '../src/data/curriculum/schoolInorganicManifest.ts'
+import { CURRICULUM_COMPOUNDS } from '../src/data/curriculum/schoolInorganicManifest.ts'
 import { SCHOOL_REACTION_BANK } from '../src/chemistry/schoolReactionBank.ts'
 import { COMPOUND_GRADE_MAP } from '../src/data/curriculum/compoundGradeMap.generated.ts'
 import { BALANCE_LESSON_BANK } from '../src/chemistry/balanceLessonBank.ts'
@@ -40,20 +37,31 @@ if (missingCompounds.length > 0) {
   for (const id of missingCompounds) fail(`missing compound: ${id}`)
 }
 
-// —— Reactions: compound refs ——
-for (const r of CURRICULUM_REACTIONS) {
-  for (const cid of r.compoundIds) {
-    if (!compoundById[cid]) fail(`reaction ${r.id}: missing compound ${cid}`)
-  }
-  if (r.productId && !compoundById[r.productId]) {
-    fail(`reaction ${r.id}: missing product ${r.productId}`)
-  }
-}
-
 // —— School reaction bank ——
+const byClass: Record<string, number> = {}
 for (const r of SCHOOL_REACTION_BANK) {
+  byClass[r.reactionClass] = (byClass[r.reactionClass] ?? 0) + 1
+
   if (r.productId && !compoundById[r.productId]) {
     fail(`schoolReaction ${r.id}: missing product ${r.productId}`)
+  }
+
+  for (const cid of r.compoundIds) {
+    if (!compoundById[cid]) fail(`schoolReaction ${r.id}: missing compound ${cid}`)
+  }
+
+  for (const react of r.reactants) {
+    if (react.kind === 'compound' && !compoundById[react.compoundId]) {
+      fail(`schoolReaction ${r.id}: missing reactant compound ${react.compoundId}`)
+    }
+  }
+
+  if (!r.titleRu?.trim() || !r.titleEn?.trim()) {
+    fail(`schoolReaction ${r.id}: missing title`)
+  }
+
+  if (r.reactants.length === 0) {
+    fail(`schoolReaction ${r.id}: no reactants for 3D metadata`)
   }
 }
 
@@ -71,13 +79,7 @@ for (const r of SCHOOL_REACTION_BANK) {
   }
 }
 
-// —— Summary by grade ——
-const byGrade = { 7: 0, 8: 0, 9: 0 } as Record<7 | 8 | 9, number>
-for (const c of CURRICULUM_COMPOUNDS) {
-  if (compoundById[c.id]) {
-    for (const g of c.grades) byGrade[g]++
-  }
-}
+// —— Grade map ——
 console.log(`Catalog compounds: ${Object.keys(compoundById).length}`)
 console.log(`Grade map entries: ${Object.keys(COMPOUND_GRADE_MAP).length}`)
 
@@ -96,6 +98,7 @@ for (const id of Object.keys(compoundById)) {
 }
 console.log('Grade distribution:', gradeStats)
 console.log(`School reactions: ${SCHOOL_REACTION_BANK.length}`)
+console.log('By reaction class:', byClass)
 console.log(`Balance lessons: ${BALANCE_LESSON_BANK.length}`)
 console.log(`Warnings: ${warnings.length}`)
 

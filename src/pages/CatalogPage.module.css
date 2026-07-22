@@ -106,6 +106,14 @@
   line-height: 1.35;
 }
 
+.reactantsLine {
+  margin: 0.25rem 0 0;
+  font-size: 0.68rem;
+  color: rgba(100, 220, 200, 0.85);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.02em;
+}
+
 .domainRow {
   display: flex;
   gap: 0.5rem;

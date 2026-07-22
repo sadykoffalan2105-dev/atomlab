@@ -123,31 +123,5 @@ export type CurriculumReactionRef = {
   compoundIds: readonly string[]
 }
 
-/** Ключевые уравнения программы (для аудита и банка уроков). */
-export const CURRICULUM_REACTIONS: readonly CurriculumReactionRef[] = [
-  { id: 'h2-o2-h2o', reactionClass: 'combination', grades: [7], equationRu: '2H₂ + O₂ → 2H₂O', productId: 'h2o', compoundIds: ['h2o'] },
-  { id: 'na-cl-nacl', reactionClass: 'combination', grades: [7], equationRu: '2Na + Cl₂ → 2NaCl', productId: 'nacl', compoundIds: ['nacl'] },
-  { id: 'mg-o2-mgo', reactionClass: 'combustion', grades: [7], equationRu: '2Mg + O₂ → 2MgO', productId: 'mgo', compoundIds: ['mgo'] },
-  { id: 'fe-o2-fe2o3', reactionClass: 'combustion', grades: [7, 8], equationRu: '4Fe + 3O₂ → 2Fe₂O₃', productId: 'fe2o3', compoundIds: ['fe2o3'] },
-  { id: 'c-o2-co2', reactionClass: 'combustion', grades: [7], equationRu: 'C + O₂ → CO₂', productId: 'co2', compoundIds: ['co2'] },
-  { id: 'al-o2-al2o3', reactionClass: 'combustion', grades: [8], equationRu: '4Al + 3O₂ → 2Al₂O₃', productId: 'al2o3', compoundIds: ['al2o3'] },
-  { id: 'cu-o2-cuo', reactionClass: 'combustion', grades: [8], equationRu: '2Cu + O₂ → 2CuO', productId: 'cuo', compoundIds: ['cuo'] },
-  { id: 's-o2-so2', reactionClass: 'combustion', grades: [8], equationRu: 'S + O₂ → SO₂', productId: 'so2', compoundIds: ['so2'] },
-  { id: 'so2-o2-so3', reactionClass: 'catalytic', grades: [9], equationRu: '2SO₂ + O₂ → 2SO₃', productId: 'so3', compoundIds: ['so2', 'so3'] },
-  { id: 'caco3-decomp', reactionClass: 'decomposition', grades: [8], equationRu: 'CaCO₃ → CaO + CO₂', productId: 'cao', compoundIds: ['salt_ca_co3', 'cao', 'co2'] },
-  { id: 'cuoh2-decomp', reactionClass: 'decomposition', grades: [8], equationRu: 'Cu(OH)₂ → CuO + H₂O', productId: 'cuo', compoundIds: ['cu_oh_2', 'cuo', 'h2o'] },
-  { id: 'h2o2-decomp', reactionClass: 'catalytic', grades: [8], equationRu: '2H₂O₂ → 2H₂O + O₂', productId: 'h2o', compoundIds: ['h2o2', 'h2o'] },
-  { id: 'zn-hcl', reactionClass: 'substitution', grades: [8], equationRu: 'Zn + 2HCl → ZnCl₂ + H₂', productId: 'salt_zn_cl', compoundIds: ['salt_zn_cl'] },
-  { id: 'fe-cuso4', reactionClass: 'substitution', grades: [9], equationRu: 'Fe + CuSO₄ → FeSO₄ + Cu', productId: null, compoundIds: ['salt_cu_so4', 'salt_fe2_so4'] },
-  { id: 'ki-cl2', reactionClass: 'substitution', grades: [9], equationRu: '2KI + Cl₂ → 2KCl + I₂', productId: null, compoundIds: ['salt_k_i', 'salt_k_cl'] },
-  { id: 'naoh-hcl', reactionClass: 'neutralization', grades: [7, 8], equationRu: 'NaOH + HCl → NaCl + H₂O', productId: 'nacl', compoundIds: ['naoh', 'hcl', 'nacl', 'h2o'] },
-  { id: 'h2so4-koh', reactionClass: 'neutralization', grades: [8], equationRu: 'H₂SO₄ + 2KOH → K₂SO₄ + 2H₂O', productId: 'salt_k_so4', compoundIds: ['h2so4', 'koh', 'salt_k_so4'] },
-  { id: 'bacl2-na2so4', reactionClass: 'exchange', grades: [8, 9], equationRu: 'BaCl₂ + Na₂SO₄ → BaSO₄↓ + 2NaCl', productId: null, compoundIds: ['salt_ba_cl', 'salt_na_so4', 'salt_ba_so4', 'nacl'] },
-  { id: 'agno3-nacl', reactionClass: 'exchange', grades: [8], equationRu: 'AgNO₃ + NaCl → AgCl↓ + NaNO₃', productId: null, compoundIds: ['salt_ag_no3', 'nacl', 'salt_ag_cl'] },
-  { id: 'na2co3-hcl', reactionClass: 'exchange', grades: [8], equationRu: 'Na₂CO₃ + 2HCl → 2NaCl + H₂O + CO₂↑', productId: 'nacl', compoundIds: ['salt_na_co3', 'hcl', 'nacl', 'co2'] },
-  { id: 'cao-h2o', reactionClass: 'combination', grades: [7, 8], equationRu: 'CaO + H₂O → Ca(OH)₂', productId: 'ca_oh_2', compoundIds: ['cao', 'ca_oh_2'] },
-  { id: 'cao-co2', reactionClass: 'combination', grades: [8], equationRu: 'CaO + CO₂ → CaCO₃', productId: 'salt_ca_co3', compoundIds: ['cao', 'co2', 'salt_ca_co3'] },
-  { id: 'nh3-hcl', reactionClass: 'combination', grades: [9], equationRu: 'NH₃ + HCl → NH₄Cl', productId: 'salt_nh4_cl', compoundIds: ['nh3', 'hcl', 'salt_nh4_cl'] },
-  { id: 'n2-h2-nh3', reactionClass: 'combination', grades: [9], equationRu: 'N₂ + 3H₂ ⇄ 2NH₃', productId: 'nh3', compoundIds: ['nh3'] },
-  { id: 'k2cr2o7-ki', reactionClass: 'redox', grades: [9], equationRu: 'K₂Cr₂O₇ + 6KI + 7H₂SO₄ → 3I₂ + Cr₂(SO₄)₃ + 4K₂SO₄ + 7H₂O', productId: null, compoundIds: ['salt_k2cr2o7', 'salt_k_i', 'h2so4'] },
-] as const
+/** Ключевые уравнения программы (для аудита). Полный банк — schoolReactionBank.ts (80+). */
+export const CURRICULUM_REACTIONS: readonly CurriculumReactionRef[] = [] as const

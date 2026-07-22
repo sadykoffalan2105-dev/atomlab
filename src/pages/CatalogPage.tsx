@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { describePassportRu } from '../chemistry/reactionPassport'
+import { reactantsSummaryRu } from '../chemistry/reactionReactantLabels'
 import { passportForReaction, SCHOOL_REACTION_BANK } from '../chemistry/schoolReactionBank'
 import { REACTION_CLASS_META, type ReactionClass } from '../chemistry/reactionTypeTaxonomy'
 import { CompoundDetailModal } from '../components/lab/CompoundDetailModal'
@@ -339,14 +340,19 @@ export function CatalogPage() {
               {reactionsFiltered.map((r) => {
                 const meta = REACTION_CLASS_META.find((m) => m.id === r.reactionClass)
                 const passport = passportForReaction(r)
+                const title = locale === 'en' ? r.titleEn : r.titleRu
+                const reactantsLine = reactantsSummaryRu(r.reactants)
                 return (
                   <li key={r.id}>
                     <article className={styles.reactionCard}>
+                      <span className={styles.name}>{title}</span>
                       <span className={styles.formula}>{r.equationRu}</span>
-                      <span className={styles.name}>{meta?.titleRu ?? r.reactionClass}</span>
                       <span className={styles.gradeTag}>
-                        {r.grades.map((g) => `${g} кл.`).join(', ')}
+                        {meta?.titleRu ?? r.reactionClass} · {r.grades.map((g) => `${g} кл.`).join(', ')}
                       </span>
+                      <p className={styles.reactantsLine} title="3D: реагенты">
+                        {reactantsLine}
+                      </p>
                       <p className={styles.desc}>{locale === 'en' ? r.howToEn : r.howToRu}</p>
                       <p className={styles.passportLine}>{describePassportRu(passport)}</p>
                     </article>
