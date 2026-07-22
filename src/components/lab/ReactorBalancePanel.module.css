@@ -289,3 +289,49 @@
   color: #3dffec;
   cursor: pointer;
 }
+
+.guideClassRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.45rem;
+}
+
+.guideChip {
+  font-size: 0.6rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid rgba(139, 147, 184, 0.35);
+  background: rgba(10, 12, 28, 0.9);
+  color: #a8b0d0;
+  cursor: pointer;
+}
+
+.guideChipOn {
+  border-color: rgba(61, 255, 236, 0.55);
+  color: #3dffec;
+  background: rgba(61, 255, 236, 0.1);
+}
+
+.guideSummary {
+  margin-bottom: 0.45rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 147, 184, 0.2);
+  font-size: 0.66rem;
+  color: #b8c0e0;
+  line-height: 1.35;
+}
+
+.guideScheme {
+  display: block;
+  font-family: ui-monospace, monospace;
+  color: #fbbf24;
+  margin-bottom: 0.2rem;
+}
+
+.guideHowTo {
+  font-size: 0.64rem;
+  color: #8b93b8;
+  line-height: 1.35;
+}

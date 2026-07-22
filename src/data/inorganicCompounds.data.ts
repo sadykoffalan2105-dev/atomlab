@@ -154,6 +154,7 @@ function addSalt(
 ) {
   const an = ANIONS[anKey]
   if (!an) return
+  if (cat.id === 'k' && anKey === 'Cr2O7') return
   const g = gcdCharge(cat.charge, an.charge)
   const nCat = Math.abs(an.charge) / g
   const nAn = Math.abs(cat.charge) / g
@@ -191,12 +192,16 @@ function generateSalts(): RawCompoundDef[] {
   for (const cat of CATIONS_MONO) {
     if (cat.charge === 1) {
       for (const ak of anionMinus1) addSalt(out, seen, cat, ak)
+      for (const ak of anionMinus2) addSalt(out, seen, cat, ak)
     }
     if (cat.charge === 2) {
       for (const ak of anionMinus2) addSalt(out, seen, cat, ak)
+      for (const ak of anionMinus1) addSalt(out, seen, cat, ak)
     }
     if (cat.charge === 3) {
       for (const ak of anionMinus3) addSalt(out, seen, cat, ak)
+      for (const ak of anionMinus1) addSalt(out, seen, cat, ak)
+      for (const ak of anionMinus2) addSalt(out, seen, cat, ak)
     }
   }
 
@@ -628,6 +633,15 @@ const ACIDS: RawCompoundDef[] = [
     composition: { H: 1, F: 1 },
     descriptionRu:
       'Слабая по степени диссоциации, но опасная из-за проникновения сквозь ткани и растворения кремнезёма в стекле и керамике. Применяют для травления стекла и пассивации металлов. Работают только в вытяжке с кальций-содержащей пастой при ожогах.',
+  },
+  {
+    id: 'fes2',
+    category: 'other',
+    nameRu: 'Пирит (дисульфид железа)',
+    formulaUnicode: 'FeS₂',
+    composition: { Fe: 1, S: 2 },
+    descriptionRu:
+      '«Золото глупцов» — жёлтый минерал, важное сырьё для получения серной кислоты. При обжиге на воздухе: 4FeS₂ + 11O₂ → 2Fe₂O₃ + 8SO₂. В лаборатории из пирита или FeS получают H₂S; на уроке 9 класса связывают с промышленным циклом серы.',
   },
   {
     id: 'h2s',

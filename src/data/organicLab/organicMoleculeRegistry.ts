@@ -4,6 +4,7 @@ import {
   type OrganicClassId,
   type OrganicBuildChallenge,
 } from '../researchLab/organicBuildCatalog'
+import { organicGradeForMolecule } from '../curriculum/compoundGradeIndex'
 import { hybridizationOf } from '../../chemistry/organic/organicLayout'
 import { buildShowcaseGraph } from './buildShowcaseGraph'
 import { accentForClass, inferFunctionalGroups } from './inferFunctionalGroups'
@@ -15,7 +16,8 @@ import {
 import { triacetinGraph } from './geometries/fatGeometries'
 import type { OrganicMoleculeDef } from './organicMoleculeTypes'
 
-function fromChallenge(c: OrganicBuildChallenge, grade: 'g10' | 'g11' = 'g10'): OrganicMoleculeDef {
+function fromChallenge(c: OrganicBuildChallenge): OrganicMoleculeDef {
+  const grade = organicGradeForMolecule(c.id, c.classId)
   const graph = buildShowcaseGraph(c)
   const heavy = graph.atoms.find((a) => a.element === 'C')
   const hyb = heavy ? hybridizationOf(graph, heavy.id) : undefined

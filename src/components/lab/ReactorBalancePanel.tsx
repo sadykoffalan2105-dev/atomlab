@@ -11,11 +11,13 @@ import { oxidationForProduct } from '../../chemistry/oxidationStateEngine'
 import {
   BALANCE_LESSON_BANK,
   lessonToLeftTerms,
+  lessonsByReactionClass,
   type BalanceLesson,
 } from '../../chemistry/balanceLessonBank'
+import { REACTION_CLASS_META, type ReactionClass } from '../../chemistry/reactionTypeTaxonomy'
 import styles from './ReactorBalancePanel.module.css'
 
-type TabId = 'substitution' | 'electron' | 'lesson'
+type TabId = 'substitution' | 'electron' | 'lesson' | 'guide'
 
 export function ReactorBalancePanel({
   leftTerms,
@@ -33,6 +35,7 @@ export function ReactorBalancePanel({
   const { t, locale } = useT()
   const [tab, setTab] = useState<TabId>('substitution')
   const [expanded, setExpanded] = useState(false)
+  const [guideClass, setGuideClass] = useState<ReactionClass>('combination')
   const [oxPick, setOxPick] = useState<string | null>(null)
   const [redPick, setRedPick] = useState<string | null>(null)
 
@@ -60,6 +63,9 @@ export function ReactorBalancePanel({
     [expanded, deferredTerms],
   )
 
+  const guideLessons = useMemo(() => lessonsByReactionClass(guideClass), [guideClass])
+  const guideMeta = useMemo(() => REACTION_CLASS_META.find((m) => m.id === guideClass), [guideClass])
+
   const canApplyElectron = Boolean(electron?.isRedox)
 
   return (
@@ -82,6 +88,7 @@ export function ReactorBalancePanel({
             ['substitution', 'reactor.balance.tabSubstitution'],
             ['electron', 'reactor.balance.tabElectron'],
             ['lesson', 'reactor.balance.tabLesson'],
+            ['guide', 'reactor.balance.tabGuide'],
           ] as const
         ).map(([id, key]) => (
           <button
@@ -255,6 +262,72 @@ export function ReactorBalancePanel({
                 </li>
               )
             })}
+          </ul>
+        </div>
+      ) : null}
+
+      {tab === 'guide' ? (
+        <div className={styles.body} role="tabpanel">
+          <p className={styles.hint}>{t('reactor.balance.guideHint')}</p>
+          <div className={styles.guideClassRow} role="group" aria-label={t('reactor.balance.guideClassAria')}>
+            {REACTION_CLASS_META.map((meta) => (
+              <button
+                key={meta.id}
+                type="button"
+                className={
+                  guideClass === meta.id ? `${styles.guideChip} ${styles.guideChipOn}` : styles.guideChip
+                }
+                onClick={() => setGuideClass(meta.id)}
+              >
+                {locale === 'en' ? meta.titleEn : meta.titleRu}
+              </button>
+            ))}
+          </div>
+          {guideMeta ? (
+            <div className={styles.guideSummary}>
+              <span className={styles.guideScheme}>{guideMeta.schemeRu}</span>
+              <p>{guideMeta.summaryRu}</p>
+            </div>
+          ) : null}
+          <ul className={styles.lessonList}>
+            {guideLessons.length === 0 ? (
+              <li className={styles.empty}>{t('reactor.balance.guideEmpty')}</li>
+            ) : (
+              guideLessons.map((lesson) => {
+                const title = locale === 'en' ? lesson.titleEn : lesson.titleRu
+                const howTo = locale === 'en' ? lesson.howToEn : lesson.howToRu
+                const displayEq =
+                  locale === 'en'
+                    ? lesson.displayEquationEn ?? lesson.displayEquationRu
+                    : lesson.displayEquationRu
+                return (
+                  <li key={lesson.id} className={styles.lessonItem}>
+                    <div className={styles.lessonMeta}>
+                      <strong>{title}</strong>
+                      <span className={styles.lessonGrade}>
+                        {t('reactor.balance.grade', { n: lesson.gradeHint })}
+                      </span>
+                      {displayEq ? <span className={styles.lessonPractice}>{displayEq}</span> : null}
+                      <span className={styles.guideHowTo}>{howTo}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.lessonLoad}
+                      onClick={() => {
+                        onLoadLesson(lesson)
+                        if (lesson.methodHint === 'electron') setTab('electron')
+                        else if (lesson.methodHint === 'substitution') setTab('substitution')
+                        else setTab('lesson')
+                      }}
+                    >
+                      {lesson.kind === 'practice_only'
+                        ? t('reactor.balance.showPractice')
+                        : t('reactor.balance.loadLesson')}
+                    </button>
+                  </li>
+                )
+              })
+            )}
           </ul>
         </div>
       ) : null}

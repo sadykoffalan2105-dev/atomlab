@@ -156,14 +156,14 @@ export const COLLAPSE_DEMO_QUALITY = {
  * ~2.1 с; ≤400 искр.
  */
 export const COLLAPSE_LAB_QUALITY = {
-  atom_collapse_time: 0.5,
-  atom_delay_max: 0.09,
-  burst_time: 0.48,
-  hold_after_grow: 0.38,
-  fade_out: 0.78,
-  end_scale: 2.45,
-  particles_per_sec: 155,
-  max_particles: 360,
+  atom_collapse_time: 0.42,
+  atom_delay_max: 0.07,
+  burst_time: 0.4,
+  hold_after_grow: 0.32,
+  fade_out: 0.62,
+  end_scale: 2.35,
+  particles_per_sec: 120,
+  max_particles: 280,
   particle_base_size: 50,
   particle_speed: 13,
   particle_stretch: 2.6,
@@ -172,7 +172,7 @@ export const COLLAPSE_LAB_QUALITY = {
 }
 
 /** GSAP-рождение молекулы — совпадает с hold+fade круга. */
-export const PRODUCT_BIRTH_FROM_COLLAPSE_SEC = 0.95
+export const PRODUCT_BIRTH_FROM_COLLAPSE_SEC = 0.82
 
 export function estimateCollapseDurationSec(opts: ElementsCollapseOptions = {}): number {
   const d = { ...COLLAPSE_LAB_QUALITY, ...opts }
