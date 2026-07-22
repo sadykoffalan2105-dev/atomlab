@@ -228,15 +228,6 @@
   font-size: 0.72rem;
   color: rgba(160, 175, 220, 0.9);
 }
-  color: #b8e4ff;
-  font-family: ui-monospace, 'Cascadia Code', monospace;
-  font-variant-ligatures: none;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  border-radius: 8px;
-  background: rgba(4, 8, 24, 0.55);
-  border: 1px solid rgba(61, 255, 236, 0.12);
-}
 
 .previewWrap {
   position: relative;
