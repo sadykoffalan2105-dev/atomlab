@@ -69,6 +69,9 @@ const FORBIDDEN_FROM_ELEMENTS = new Set<string>([
   'salt_nh4_no3',
   'salt_nh4_3_po4',
   'salt_nh4_so3',
+  // Хроматы / дихроматы — не из K+Cr+O₂
+  'salt_k2cr2o7',
+  'salt_k_cro4',
 ])
 
 /** Предпочтительная школьная реакция в каталоге «Реакции» (если есть в банке). */
@@ -98,6 +101,7 @@ const PREFERRED_SCHOOL_REACTION: Readonly<Record<string, string>> = {
   feo: 'fe2o3-co-feo',
   cu2o: 'cuo-decomp-cu2o',
   bao: 'bao2-decomp-bao',
+  salt_k2cr2o7: 'k2cro4-h2so4-k2cr2o7',
 }
 
 /** Школьный маршрут (текст на карточке вещества вместо ложного «из элементов»). */
@@ -129,6 +133,9 @@ const SCHOOL_ROUTE_RU: Readonly<Record<string, string>> = {
   salt_nh4_so4: 'Маршрут: 2NH₃ + H₂SO₄ → (NH₄)₂SO₄',
   naoh: 'Маршрут: 2Na + 2H₂O → 2NaOH + H₂',
   koh: 'Маршрут: 2K + 2H₂O → 2KOH + H₂',
+  salt_k2cr2o7:
+    'Маршрут: 2K₂CrO₄ + H₂SO₄ → K₂Cr₂O₇ + K₂SO₄ + H₂O (не 4Cr+4K+7O₂). Оранжево-красный Cr(VI).',
+  salt_k_cro4: 'Маршрут: через CrO₃ / хромовую кислоту + KOH (не K+Cr+O₂ напрямую)',
 }
 
 export function fromElementsPolicy(compoundId: string): SubstanceFromElementsPolicy {
@@ -136,6 +143,10 @@ export function fromElementsPolicy(compoundId: string): SubstanceFromElementsPol
   if (compoundId.startsWith('salt_nh4_')) return 'forbidden'
   if (compoundId.includes('_co3') || compoundId.includes('_hco3')) return 'forbidden'
   if (compoundId.endsWith('_oh_2') || compoundId.endsWith('_oh_3')) return 'forbidden'
+  // Хроматы / дихроматы (в т.ч. salt_k2cr2o7)
+  if (compoundId.includes('cr2o7') || compoundId.includes('_cro4') || compoundId.endsWith('cro4')) {
+    return 'forbidden'
+  }
   return 'allowed'
 }
 

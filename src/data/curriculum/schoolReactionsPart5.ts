@@ -1050,4 +1050,24 @@ export const SCHOOL_REACTIONS_PART5: readonly SchoolReactionDef[] = [
     howToEn: 'Ba often burns to BaO₂; pure BaO via peroxide/carbonate decomposition.',
     passport: { heatEffect: 'endo' },
   },
+  {
+    id: 'k2cro4-h2so4-k2cr2o7',
+    titleRu: 'Хромат → дихромат калия',
+    titleEn: 'Chromate to dichromate',
+    reactionClass: 'exchange',
+    grades: [9],
+    equationRu: '2K₂CrO₄ + H₂SO₄ → K₂Cr₂O₇ + K₂SO₄ + H₂O',
+    equationEn: '2K₂CrO₄ + H₂SO₄ → K₂Cr₂O₇ + K₂SO₄ + H₂O',
+    productId: 'salt_k2cr2o7',
+    kind: 'practice_only',
+    compoundIds: ['salt_k_cro4', 'h2so4', 'salt_k2cr2o7', 'salt_k_so4', 'h2o'],
+    reactants: [
+      { kind: 'compound', compoundId: 'salt_k_cro4', coeff: 2 },
+      { kind: 'compound', compoundId: 'h2so4', coeff: 1 },
+    ],
+    howToRu:
+      'В кислой среде жёлтый хромат → оранжевый дихромат. Не пишите 4Cr + 4K + 7O₂ = 2K₂Cr₂O₇.',
+    howToEn: 'Acid turns yellow chromate into orange dichromate — not from K+Cr+O₂ elements.',
+    passport: { reversibility: 'reversible' },
+  },
 ] as const
