@@ -132,7 +132,7 @@ export const SCHOOL_REACTIONS_PART3: readonly SchoolReactionDef[] = [
       { kind: 'element', z: 29, coeff: 1 },
       { kind: 'compound', compoundId: 'salt_ag_no3', coeff: 2 },
     ],
-    howToRu: 'Cu + AgNO₃ → серебряный налёт на меди. Качественная реакция на Cu²⁺.',
+    howToRu: 'Cu + AgNO₃ → серебряный налёт на меди (вытеснение Ag).',
     howToEn: 'Copper displaces silver from silver nitrate.',
     passport: { isRedox: true },
   },

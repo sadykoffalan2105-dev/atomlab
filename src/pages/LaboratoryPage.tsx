@@ -43,6 +43,7 @@ import {
   type BalanceLesson,
 } from '../chemistry/balanceLessonBank'
 import { parseLeftSideMessageKey, reactorValidationMessageKey } from '../i18n/chemistryMessageKeys'
+import { fromElementsPolicy } from '../chemistry/substanceSynthesisRoute'
 import { getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import { useT } from '../i18n/useT'
 import { ElementDetailContent } from '../components/lab/ElementDetailContent'
@@ -283,6 +284,11 @@ export function LaboratoryPage() {
   const applyGenerateEquationReagents = useCallback(
     (c: CompoundDef) => {
       setProductCoeff(1)
+      if (fromElementsPolicy(c.id) === 'forbidden') {
+        setLeftTerms([])
+        setReactorMessage(t('errors.reactor.SCHOOL_ROUTE_ONLY', { formula: c.formulaUnicode }))
+        return
+      }
       const g = generateFromLaboratoryRecipe(c)
       const trimmed = stripLeftSideCoefficients(g.manualLeft.trim())
       if (!trimmed) {

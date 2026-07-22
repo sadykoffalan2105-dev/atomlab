@@ -63,8 +63,8 @@ export const SCHOOL_REACTIONS_PART1: readonly SchoolReactionDef[] = [
       { kind: 'compound', compoundId: 'cao', coeff: 1 },
       { kind: 'compound', compoundId: 'h2o', coeff: 1 },
     ],
-    howToRu: 'Оксид кальция + вода → гашёная известь. В реакторе: Ca + O + H₂.',
-    howToEn: 'Quicklime reacts vigorously with water.',
+    howToRu: 'Оксид кальция + вода → гашёная известь (молекулы CaO + H₂O).',
+    howToEn: 'Quicklime reacts vigorously with water (CaO + H₂O molecules).',
     passport: { heatEffect: 'exo', phaseKind: 'heterogeneous' },
   },
   {
@@ -252,8 +252,9 @@ export const SCHOOL_REACTIONS_PART1: readonly SchoolReactionDef[] = [
       { kind: 'element', z: 7, coeff: 1, diatomic: true },
       { kind: 'element', z: 8, coeff: 1, diatomic: true },
     ],
-    howToRu: 'При высокой T: N₂ + O₂ → NO. Обратимая.',
-    howToEn: 'Endothermic combination at high temperature.',
+    howToRu:
+      'N₂ + O₂ ⇄ 2NO — сильно эндотермична: >2000 °C или электрический разряд (молния). При комнатной температуре не идёт.',
+    howToEn: 'Strongly endothermic: >2000 °C or electric discharge — not room temperature.',
     passport: { heatEffect: 'endo', reversibility: 'reversible', isRedox: true },
   },
   {
@@ -290,8 +291,10 @@ export const SCHOOL_REACTIONS_PART1: readonly SchoolReactionDef[] = [
       { kind: 'compound', compoundId: 'so2', coeff: 2 },
       { kind: 'element', z: 8, coeff: 1, diatomic: true },
     ],
-    howToRu: 'SO₂ + O₂ → SO₃, катализатор V₂O₅.',
-    howToEn: 'Industrial oxidation of SO₂.',
+    howToRu:
+      '2SO₂ + O₂ ⇄ 2SO₃. Катализатор V₂O₅ или Pt, ≈400–450 °C. Сера сначала даёт SO₂; прямое горение серы до SO₃ в школе не изучают.',
+    howToEn:
+      '2SO₂ + O₂ ⇄ 2SO₃ with V₂O₅/Pt at ≈400–450 °C. Sulfur burns to SO₂ first — not a direct S→SO₃ school path.',
     passport: { heatEffect: 'exo', reversibility: 'reversible', catalytic: true },
     catalystId: 'v2o5',
   },
@@ -310,8 +313,8 @@ export const SCHOOL_REACTIONS_PART1: readonly SchoolReactionDef[] = [
       { kind: 'compound', compoundId: 'co', coeff: 2 },
       { kind: 'element', z: 8, coeff: 1, diatomic: true },
     ],
-    howToRu: 'CO горит голубым пламенем → CO₂.',
-    howToEn: 'CO burns with a blue flame.',
+    howToRu: 'CO горит голубым пламенем → CO₂. Молекула CO + O₂ (не 2C → 2CO₂).',
+    howToEn: 'CO burns with a blue flame. Molecular CO + O₂ — not carbon alone.',
     passport: { heatEffect: 'exo', isRedox: true },
   },
 ] as const

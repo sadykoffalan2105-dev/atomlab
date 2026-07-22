@@ -59,7 +59,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'catalog.search': 'Search',
   'catalog.placeholder': 'Formula, name, or id…',
   'catalog.searchAria': 'Search catalog',
-  'catalog.synthPreviewLabel': 'Synthesis',
+  'catalog.synthPreviewLabel': 'Obtaining',
   'catalog.synthPreviewT': 'T',
   'catalog.synthPreviewP': 'p',
   'catalog.synthPreviewK': 'cat.',
@@ -169,6 +169,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'errors.reactor.LEFT_PARSE_FAIL': 'Could not parse the left-hand side of the equation.',
   'errors.reactor.BALANCE_MISMATCH':
     'Mass balance error: atom counts on the left and right do not match. Check coefficients.',
+  'errors.reactor.SCHOOL_ROUTE_ONLY':
+    '{formula} cannot be built by joining elements in the reactor. Open the Reactions catalog (molecule + molecule).',
 
   'errors.parse.LEFT_EMPTY': 'Enter the left-hand side of the equation.',
   'errors.parse.SEGMENT_PARSE_FAIL': 'Could not parse term: “{segment}”. Example: 4Cr + 4K + 7O₂.',

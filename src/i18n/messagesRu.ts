@@ -58,7 +58,7 @@ export const messagesRu = {
   'catalog.search': 'Поиск',
   'catalog.placeholder': 'Формула, название или id…',
   'catalog.searchAria': 'Поиск по каталогу',
-  'catalog.synthPreviewLabel': 'Синтез',
+  'catalog.synthPreviewLabel': 'Получение',
   'catalog.synthPreviewT': 't°',
   'catalog.synthPreviewP': 'p',
   'catalog.synthPreviewK': 'кат.',
@@ -167,6 +167,8 @@ export const messagesRu = {
   'errors.reactor.LEFT_PARSE_FAIL': 'Не удалось разобрать левую часть уравнения.',
   'errors.reactor.BALANCE_MISMATCH':
     'Ошибка в балансе масс: число атомов каждого элемента слева и справа не совпадает. Проверь коэффициенты.',
+  'errors.reactor.SCHOOL_ROUTE_ONLY':
+    '{formula} не собирают прямым соединением атомов/простых веществ в реакторе. Откройте каталог «Реакции» (молекула + молекула).',
 
   'errors.parse.LEFT_EMPTY': 'Введите левую часть уравнения.',
   'errors.parse.SEGMENT_PARSE_FAIL': 'Не удалось разобрать слагаемое: «{segment}». Пример: 4Cr + 4K + 7O₂.',

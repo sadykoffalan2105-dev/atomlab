@@ -37,8 +37,8 @@ export const SCHOOL_REACTIONS_PART2: readonly SchoolReactionDef[] = [
       { kind: 'element', z: 26, coeff: 4 },
       { kind: 'element', z: 8, coeff: 3, diatomic: true },
     ],
-    howToRu: 'Fe + O₂ → Fe₂O₃. Коэффициенты 4:3:2 — урок подбора.',
-    howToEn: 'Iron oxidation to hematite.',
+    howToRu: 'Длительный обжиг / окисление → Fe₂O₃. Искровое горение Fe даёт окалину Fe₃O₄ (см. 3Fe + 2O₂).',
+    howToEn: 'Prolonged roasting → Fe₂O₃. Spark combustion of Fe yields Fe₃O₄ scale.',
     passport: { heatEffect: 'exo', isRedox: true },
   },
   {

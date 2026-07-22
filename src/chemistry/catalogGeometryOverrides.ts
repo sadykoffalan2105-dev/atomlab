@@ -484,27 +484,29 @@ function h3po4Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, 
 }
 
 /**
- * H₃PO₃: как на присланной учебниковой картинке — P в центре и 3 группы P–O–H (без P–H).
- * Схема плоская для читаемости: три O вокруг P под ~120°, H дальше по лучам O–H.
+ * H₃PO₃ (фосфористая): тетраэдр HPO(OH)₂ —
+ * P=O, P–H и две группы P–OH (не линейная цепочка H–O–P–O–H и не три P–OH).
  */
 function h3po3Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
-  const rPO = 0.56
-  const rOH = 0.34
-  const a = (2 * Math.PI) / 3
-  const o0: Vec3 = [rPO, 0, 0]
-  const o1: Vec3 = [rPO * Math.cos(a), rPO * Math.sin(a), 0]
-  const o2: Vec3 = [rPO * Math.cos(2 * a), rPO * Math.sin(2 * a), 0]
+  // Тетраэдрические направления (чуть сжаты для читаемости)
+  const s = 0.58
+  const oDouble: Vec3 = [s, s, s]
+  const oOh1: Vec3 = [s, -s, -s]
+  const oOh2: Vec3 = [-s, s, -s]
+  const hOnP: Vec3 = [-s * 0.95, -s * 0.95, s * 0.95]
 
-  const h0: Vec3 = [o0[0] + (o0[0] / LEN(o0)) * rOH, o0[1] + (o0[1] / LEN(o0)) * rOH, 0]
-  const h1: Vec3 = [o1[0] + (o1[0] / LEN(o1)) * rOH, o1[1] + (o1[1] / LEN(o1)) * rOH, 0]
-  const h2: Vec3 = [o2[0] + (o2[0] / LEN(o2)) * rOH, o2[1] + (o2[1] / LEN(o2)) * rOH, 0]
+  const oh = 0.36
+  const n1 = LEN(oOh1)
+  const n2 = LEN(oOh2)
+  const h1: Vec3 = [oOh1[0] + (oOh1[0] / n1) * oh, oOh1[1] + (oOh1[1] / n1) * oh, oOh1[2] + (oOh1[2] / n1) * oh]
+  const h2: Vec3 = [oOh2[0] + (oOh2[0] / n2) * oh, oOh2[1] + (oOh2[1] / n2) * oh, oOh2[2] + (oOh2[2] / n2) * oh]
 
   const atoms: Atom3D[] = [
     { symbol: 'P', pos: [0, 0, 0] }, // 0
-    { symbol: 'O', pos: o0 }, // 1
-    { symbol: 'O', pos: o1 }, // 2
-    { symbol: 'O', pos: o2 }, // 3
-    { symbol: 'H', pos: h0 }, // 4
+    { symbol: 'O', pos: oDouble }, // 1  P=O
+    { symbol: 'O', pos: oOh1 }, // 2  P–OH
+    { symbol: 'O', pos: oOh2 }, // 3  P–OH
+    { symbol: 'H', pos: hOnP }, // 4  P–H
     { symbol: 'H', pos: h1 }, // 5
     { symbol: 'H', pos: h2 }, // 6
   ]
@@ -513,7 +515,7 @@ function h3po3Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, 
     [0, 1],
     [0, 2],
     [0, 3],
-    [1, 4],
+    [0, 4],
     [2, 5],
     [3, 6],
   ]

@@ -31,7 +31,11 @@ export interface CompoundDef {
   bonds: readonly (readonly [number, number])[]
   accentColor: string
   descriptionRu: string
-  /** Короткий учебный пример «атомы → вещество» (напр. 2H + O = H₂O). */
+  /**
+   * Учебный пример получения: из простых веществ (H₂, O₂, Na, S…) в один шаг,
+   * либо школьный маршрут («Маршрут: …»), если прямое соединение элементов недопустимо.
+   * H₂/O₂/N₂ — уже молекулы, не «голые атомы».
+   */
   laboratoryRecipeRu: string
   category: CompoundCategory
   /** Опционально: для панели «Реактор» — обязательные условия перед запуском. */

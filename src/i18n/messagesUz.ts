@@ -169,6 +169,8 @@ export const messagesUz: Record<MessageKey, string> = {
   'errors.reactor.LEFT_PARSE_FAIL': 'Tenglama chap qismini tahlil qilib bo\'lmadi.',
   'errors.reactor.BALANCE_MISMATCH':
     'Massa muvozanati xatosi: har bir element atomlari soni chap va o\'ngda mos kelmaydi. Koeffitsientlarni tekshiring.',
+  'errors.reactor.SCHOOL_ROUTE_ONLY':
+    '{formula} reaktorda atomlar/oddiy moddalar birlashuvi bilan yig\'ilmaydi. «Reaksiyalar» katalogini oching (molekula + molekula).',
 
   'errors.parse.LEFT_EMPTY': 'Tenglama chap qismini kiriting.',
   'errors.parse.SEGMENT_PARSE_FAIL': 'Qo\'shimchani tahlil qilib bo\'lmadi: «{segment}». Misol: 4Cr + 4K + 7O₂.',

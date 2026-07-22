@@ -4,6 +4,7 @@ import {
   REACTOR_COEFF_MAX,
   REACTOR_EQUATION_MAX_TERMS,
 } from './reactorLimits'
+import { fromElementsPolicy } from './substanceSynthesisRoute'
 
 export { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from './reactorLimits'
 /** @deprecated Используйте REACTOR_VISUAL_FULL_ATOMS из reactorLimits — не блокирует уравнение. */
@@ -23,6 +24,7 @@ export type ReactorValidationErrorCode =
   | 'MAX_FLY_ATOMS'
   | 'LEFT_PARSE_FAIL'
   | 'BALANCE_MISMATCH'
+  | 'SCHOOL_ROUTE_ONLY'
 
 export type ReactorValidationResult =
   | { ok: true; zSlots: number[]; compound: CompoundDef }
@@ -217,6 +219,11 @@ export function validateReactorEquation(
       ok: false,
       code: 'BALANCE_MISMATCH',
     }
+  }
+
+  // Массовый баланс может сойтись для «2S + 3O₂ = 2SO₃», но школьный путь другой.
+  if (fromElementsPolicy(product.id) === 'forbidden') {
+    return { ok: false, code: 'SCHOOL_ROUTE_ONLY', params: { formula: product.formulaUnicode } }
   }
 
   return { ok: true, zSlots, compound: product }

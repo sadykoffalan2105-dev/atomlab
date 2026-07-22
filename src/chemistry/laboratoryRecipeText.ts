@@ -30,10 +30,11 @@ function sub2(sym: string): string {
 }
 
 /**
- * Короткое учебное уравнение: слева простые вещества (элементы),
+ * Короткое учебное уравнение: слева простые вещества,
  * справа вещество из каталога. Уравнение УРАВНЕННО.
  *
- * Важное правило: двухатомные элементы пишем как H₂, O₂, N₂, F₂, Cl₂, Br₂, I₂.
+ * H₂, O₂, N₂, F₂, Cl₂, Br₂, I₂ — молекулы простых веществ (не атомы).
+ * Не использовать для кислот/гидроксидов/карбонатов/SO₃ — см. substanceSynthesisRoute.ts.
  */
 export function buildDefaultLaboratoryRecipeRu(
   p: Pick<RawCompoundDef, 'composition' | 'formulaUnicode'>,

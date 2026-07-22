@@ -13,6 +13,7 @@ const REACTOR_KEYS: Record<ReactorValidationErrorCode, MessageKey> = {
   MAX_FLY_ATOMS: 'errors.reactor.MAX_FLY_ATOMS',
   LEFT_PARSE_FAIL: 'errors.reactor.LEFT_PARSE_FAIL',
   BALANCE_MISMATCH: 'errors.reactor.BALANCE_MISMATCH',
+  SCHOOL_ROUTE_ONLY: 'errors.reactor.SCHOOL_ROUTE_ONLY',
 }
 
 const PARSE_KEYS: Record<ParseLeftSideErrorCode, MessageKey> = {

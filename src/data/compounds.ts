@@ -1,5 +1,6 @@
 import { defaultSynthesisConditionsText } from '../chemistry/synthesisConditionsDefaults'
 import { buildDefaultLaboratoryRecipeRu } from '../chemistry/laboratoryRecipeText'
+import { resolveLaboratoryRecipeRu } from '../chemistry/substanceSynthesisRoute'
 import { getMolecularGeometryOrNull } from '../chemistry/catalogGeometryOverrides'
 import { buildSignatureMolecule } from '../chemistry/placeholderMolecule'
 import type { CompoundCategory, CompoundDef, RawCompoundDef } from '../types/chemistry'
@@ -22,7 +23,12 @@ function compositionKey(counts: Record<string, number>): string {
 }
 
 function recipeIn(p: RawCompoundDef): string {
-  return p.laboratoryRecipeRu ?? buildDefaultLaboratoryRecipeRu(p)
+  return resolveLaboratoryRecipeRu(
+    p.id,
+    p.formulaUnicode,
+    p.laboratoryRecipeRu,
+    buildDefaultLaboratoryRecipeRu(p),
+  )
 }
 
 function synthesisConditionsIn(p: RawCompoundDef) {
