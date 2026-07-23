@@ -2054,9 +2054,8 @@ function SceneContent({
               atomCount={previewAtomCount}
               densePreview={previewAtomCount >= 10}
               lowPower={
-                lowPowerProfile.forceLiteReactor ||
-                lowPowerProfile.isMobileSoc ||
-                synthForceLite
+                // Только реально слабое устройство — synthForceLite резал FX до «лего».
+                lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc
               }
               accentHex={synthesis.product?.accentColor}
               onEmbryoReady={handleElementsCollapseEmbryoReady}

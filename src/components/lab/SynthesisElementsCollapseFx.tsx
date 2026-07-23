@@ -9,11 +9,11 @@ import {
   type ElementsCollapseController,
 } from '../../lab/synthesisCollapseEffect/elementsCollapseAnimation'
 
-const ATOM_WAIT_FRAMES = 18
+const ATOM_WAIT_FRAMES = 48
 const PROXY_COUNT_DEFAULT = 5
 
 /**
- * Коллапс + burst в цвете молекулы.
+ * Коллапс + burst в цвете молекулы (библиотека synthesisCollapseEffect).
  * onEmbryoReady — молекула уже внутри круга (GPU warm → видимый зародыш).
  * onBirthReady — GSAP-рост ИЗ круга на пике свечения (без паузы «круг → пусто»).
  * onComplete — FX полностью закончен.

@@ -149,31 +149,27 @@ export const COLLAPSE_DEMO_QUALITY = {
 }
 
 /**
- * Профиль лаборатории: тот же FX, но быстрее и дешевле по GPU.
- * ~1.56 с вместо ~4.5 с; ≤380 искр вместо 1600.
- */
-/**
- * Lab-профиль: hold/fade длиннее — молекула рождается ИЗ круга, пока он ещё светит.
- * ~2.4 с; ≤400 искр.
+ * Lab-профиль: тот же vendor FX (коллапс → вспышка → искры),
+ * чуть короче демо, но с заметным WOW (~2.6 с, до ~650 искр).
  */
 export const COLLAPSE_LAB_QUALITY = {
-  atom_collapse_time: 0.42,
-  atom_delay_max: 0.07,
-  burst_time: 0.42,
-  hold_after_grow: 0.48,
-  fade_out: 0.85,
-  end_scale: 2.35,
-  particles_per_sec: 120,
-  max_particles: 280,
-  particle_base_size: 50,
+  atom_collapse_time: 0.72,
+  atom_delay_max: 0.14,
+  burst_time: 0.72,
+  hold_after_grow: 0.55,
+  fade_out: 0.95,
+  end_scale: 2.7,
+  particles_per_sec: 220,
+  max_particles: 650,
+  particle_base_size: 56,
   particle_speed: 13,
-  particle_stretch: 2.6,
+  particle_stretch: 2.8,
   particle_colors: [0xffffff, 0xaaddff, 0x4488ff, 0xffaa00, 0xffffff] as number[],
   core_gradient: DEFAULT_GRADIENT,
 }
 
 /** GSAP-рождение молекулы — совпадает с hold + часть fade круга. */
-export const PRODUCT_BIRTH_FROM_COLLAPSE_SEC = 0.98
+export const PRODUCT_BIRTH_FROM_COLLAPSE_SEC = 1.15
 
 export function estimateCollapseDurationSec(opts: ElementsCollapseOptions = {}): number {
   const d = { ...COLLAPSE_LAB_QUALITY, ...opts }
@@ -612,7 +608,7 @@ export function createElementsCollapseAnimation(
   }
 }
 
-/** Lab FX: lowPower / dense режут искры и длительность (анти hitch / white-screen). */
+/** Lab FX: режем искры только на реально слабом устройстве / очень плотном превью. */
 export function resolveCollapseOptionsForDevice(
   lowPower: boolean,
   densePreview = false,
@@ -625,29 +621,29 @@ export function resolveCollapseOptionsForDevice(
   if (densePreview) {
     opts = {
       ...opts,
-      atom_collapse_time: 0.42,
-      atom_delay_max: 0.08,
-      burst_time: 0.4,
-      hold_after_grow: 0.28,
-      fade_out: 0.62,
-      end_scale: 2.1,
-      particles_per_sec: 95,
-      max_particles: 200,
-      particle_base_size: 44,
-      particle_speed: 12,
+      atom_collapse_time: 0.58,
+      atom_delay_max: 0.1,
+      burst_time: 0.55,
+      hold_after_grow: 0.42,
+      fade_out: 0.75,
+      end_scale: 2.35,
+      particles_per_sec: 160,
+      max_particles: 420,
+      particle_base_size: 50,
+      particle_speed: 12.5,
     }
   }
 
   if (lowPower) {
     opts = {
       ...opts,
-      particles_per_sec: Math.min(opts.particles_per_sec ?? 160, 80),
-      max_particles: Math.min(opts.max_particles ?? 380, 160),
-      particle_base_size: 40,
-      burst_time: Math.min(opts.burst_time ?? 0.48, 0.34),
-      hold_after_grow: Math.min(opts.hold_after_grow ?? 0.14, 0.1),
-      fade_out: Math.min(opts.fade_out ?? 0.32, 0.22),
-      end_scale: Math.min(opts.end_scale ?? 2.35, 1.85),
+      particles_per_sec: Math.min(opts.particles_per_sec ?? 220, 140),
+      max_particles: Math.min(opts.max_particles ?? 650, 320),
+      particle_base_size: 46,
+      burst_time: Math.min(opts.burst_time ?? 0.72, 0.48),
+      hold_after_grow: Math.min(opts.hold_after_grow ?? 0.55, 0.32),
+      fade_out: Math.min(opts.fade_out ?? 0.95, 0.55),
+      end_scale: Math.min(opts.end_scale ?? 2.7, 2.15),
     }
   }
 

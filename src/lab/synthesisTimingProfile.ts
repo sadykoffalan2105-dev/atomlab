@@ -20,7 +20,11 @@ export type SynthesisTimingProfile = {
   collapseAtoms: boolean
 }
 
-/** Мгновенный — без полёта атомов и вспышек: сразу молекула (лаборатория по умолчанию). */
+/**
+ * INSTANT (streamFlyDur=0) = лаборатория на пути ElementsCollapseFx:
+ * библиотека synthesisCollapseEffect (коллапс атомов → вспышка → искры → рождение молекулы).
+ * Это НЕ «без анимации» — это основной WOW-путь синтеза.
+ */
 export const SYNTHESIS_TIMING_INSTANT: SynthesisTimingProfile = {
   streamFlyDur: 0,
   termStagger: 0,
@@ -41,7 +45,7 @@ export function isInstantSynthesisProfile(profile: SynthesisTimingProfile): bool
   return profile.streamFlyDur <= 0 && profile.mergeFlashDur <= 0
 }
 
-/** Минимальный — слабые устройства / просадка FPS. */
+/** Минимальный converge — запасной путь (не основной lab FX). */
 export const SYNTHESIS_TIMING_FAST: SynthesisTimingProfile = {
   streamFlyDur: 0.36,
   termStagger: 0.02,
@@ -58,7 +62,7 @@ export const SYNTHESIS_TIMING_FAST: SynthesisTimingProfile = {
   collapseAtoms: false,
 }
 
-/** Баланс: читаемый полёт + вспышка + рождение молекулы. */
+/** Converge-пути (не основной lab FX). */
 export const SYNTHESIS_TIMING_BALANCED: SynthesisTimingProfile = {
   streamFlyDur: 0.62,
   termStagger: 0.048,
@@ -75,7 +79,6 @@ export const SYNTHESIS_TIMING_BALANCED: SynthesisTimingProfile = {
   collapseAtoms: false,
 }
 
-/** Длинный cinematic — только мощные ПК без lite. */
 export const SYNTHESIS_TIMING_CINEMATIC: SynthesisTimingProfile = {
   streamFlyDur: 0.78,
   termStagger: 0.062,
@@ -93,14 +96,12 @@ export const SYNTHESIS_TIMING_CINEMATIC: SynthesisTimingProfile = {
 }
 
 /**
- * Тайминг по устройству (forceLite ≠ «без анимации» — только короче FX):
- * - low → FAST
- * - normal → BALANCED (полёт + лучи + вспышка)
+ * Лаборатория: всегда ElementsCollapseFx (библиотека коллапса).
+ * Converge/BALANCED оставлены в коде, но не выбираются здесь.
  */
 export function getSynthesisTimingProfile(
   _forceLite: boolean,
-  deviceTier: SynthesisDeviceTier = 'normal',
+  _deviceTier: SynthesisDeviceTier = 'normal',
 ): SynthesisTimingProfile {
-  if (deviceTier === 'low') return SYNTHESIS_TIMING_FAST
-  return SYNTHESIS_TIMING_BALANCED
+  return SYNTHESIS_TIMING_INSTANT
 }
