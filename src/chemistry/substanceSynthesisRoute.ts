@@ -72,6 +72,10 @@ const FORBIDDEN_FROM_ELEMENTS = new Set<string>([
   // Хроматы / дихроматы — не из K+Cr+O₂
   'salt_k2cr2o7',
   'salt_k_cro4',
+  // NaBr — предпочтительный спокойный путь (куратор), не прямой Na+Br₂
+  'salt_na_br',
+  // Fe₂S₃ — сухой Fe+S даёт FeS
+  'salt_fe3_s',
 ])
 
 /** Предпочтительная школьная реакция в каталоге «Реакции» (если есть в банке). */
@@ -102,6 +106,8 @@ const PREFERRED_SCHOOL_REACTION: Readonly<Record<string, string>> = {
   cu2o: 'cuo-decomp-cu2o',
   bao: 'bao2-decomp-bao',
   salt_k2cr2o7: 'k2cro4-h2so4-k2cr2o7',
+  salt_na_no3: 'naoh-hno3',
+  salt_fe2_s: 'fe-s-fes',
 }
 
 /** Школьный маршрут (текст на карточке вещества вместо ложного «из элементов»). */
@@ -136,6 +142,22 @@ const SCHOOL_ROUTE_RU: Readonly<Record<string, string>> = {
   salt_k2cr2o7:
     'Маршрут: 2K₂CrO₄ + H₂SO₄ → K₂Cr₂O₇ + K₂SO₄ + H₂O (не 4Cr+4K+7O₂). Оранжево-красный Cr(VI).',
   salt_k_cro4: 'Маршрут: через CrO₃ / хромовую кислоту + KOH (не K+Cr+O₂ напрямую)',
+  salt_na_no2:
+    'Маршрут: NaNO₃ + Pb →(t°) NaNO₂ + PbO (или восстановление нитрата); не N₂+Na+O₂. Ион NO₂⁻, не NO₃⁻.',
+  salt_na_no3: 'Маршрут: NaOH / Na₂CO₃ + HNO₃ → NaNO₃ + … (не N₂+Na+O₂)',
+  salt_k_mno4:
+    'Маршрут: 2KMnO₄ ← окисление MnO₂ / манганата в щёлочи (промышленность); не K+Mn+O₂',
+  salt_cr_no3: 'Маршрут: Cr(OH)₃ + 3HNO₃ → Cr(NO₃)₃ + 3H₂O (не Cr+N₂+O₂)',
+  salt_cr_no2:
+    'Маршрут: обмен в неводной среде, напр. Cr₂(SO₄)₃ + 3Ba(NO₂)₂ → 2Cr(NO₂)₃ + 3BaSO₄↓ (не Cr+N₂+O₂)',
+  salt_cr_po4:
+    'Маршрут: CrCl₃ + Na₃PO₄ → CrPO₄↓ + 3NaCl или Cr(OH)₃ + H₃PO₄ → CrPO₄↓ + 3H₂O',
+  salt_cr_mno4:
+    'Маршрут: обмен, напр. Cr₂(SO₄)₃ + 3Ba(MnO₄)₂ → 2Cr(MnO₄)₃ + 3BaSO₄↓ (не Cr+Mn+O₂)',
+  salt_fe3_s:
+    'Маршрут: Fe₂S₃ нестабилен; при нагреве Fe+S → FeS. Fe₂S₃ — осаждение при низких T из раствора Fe³⁺ + S²⁻ (не сухой синтез).',
+  salt_na_sio3:
+    'Маршрут: SiO₂ + 2NaOH →(t°) Na₂SiO₃ + H₂O (или Na₂CO₃ + SiO₂); не Na+Si+O₂',
 }
 
 export function fromElementsPolicy(compoundId: string): SubstanceFromElementsPolicy {
@@ -147,6 +169,23 @@ export function fromElementsPolicy(compoundId: string): SubstanceFromElementsPol
   if (compoundId.includes('cr2o7') || compoundId.includes('_cro4') || compoundId.endsWith('cro4')) {
     return 'forbidden'
   }
+  // Оксосоли: нитраты, нитриты, сульфаты, сульфиты, фосфаты, силикаты,
+  // перманганаты, хлораты, перхлораты — НЕ из металла+неметалл+O₂ в один шаг.
+  if (
+    compoundId.includes('_no3') ||
+    compoundId.includes('_no2') ||
+    compoundId.includes('_so4') ||
+    compoundId.includes('_so3') ||
+    compoundId.includes('_po4') ||
+    compoundId.includes('_sio3') ||
+    compoundId.includes('_mno4') ||
+    compoundId.includes('_clo3') ||
+    compoundId.includes('_clo4')
+  ) {
+    return 'forbidden'
+  }
+  // Fe₂S₃: при нагреве Fe+S → FeS, не Fe₂S₃
+  if (compoundId === 'salt_fe3_s') return 'forbidden'
   return 'allowed'
 }
 
@@ -159,10 +198,33 @@ export function schoolRouteRecipeRu(
   formulaUnicode: string,
 ): string | null {
   if (fromElementsPolicy(compoundId) !== 'forbidden') return null
-  return (
-    SCHOOL_ROUTE_RU[compoundId] ??
-    `Не получают прямым соединением элементов в один шаг. Смотрите «Реакции» для ${formulaUnicode}.`
-  )
+  if (SCHOOL_ROUTE_RU[compoundId]) return SCHOOL_ROUTE_RU[compoundId]!
+  // Универсальные школьные подсказки по аниону (когда нет VIP-маршрута).
+  if (compoundId.includes('_no3')) {
+    return `Маршрут: металл / оксид / гидроксид + HNO₃ → ${formulaUnicode} (не из элементов с N₂+O₂)`
+  }
+  if (compoundId.includes('_no2')) {
+    return `Маршрут: восстановление нитрата или обмен с нитритом → ${formulaUnicode} (не N₂+металл+O₂)`
+  }
+  if (compoundId.includes('_so4')) {
+    return `Маршрут: оксид / гидроксид / металл + H₂SO₄ → ${formulaUnicode} (не металл+S+O₂)`
+  }
+  if (compoundId.includes('_so3')) {
+    return `Маршрут: щёлочь + SO₂ → сульфит → ${formulaUnicode} (не металл+S+O₂)`
+  }
+  if (compoundId.includes('_po4')) {
+    return `Маршрут: растворимая соль металла + фосфат / гидроксид + H₃PO₄ → ${formulaUnicode}`
+  }
+  if (compoundId.includes('_sio3')) {
+    return `Маршрут: SiO₂ + щёлочь / карбонат → ${formulaUnicode} (не металл+Si+O₂)`
+  }
+  if (compoundId.includes('_mno4')) {
+    return `Маршрут: через манганат / обмен с перманганатом → ${formulaUnicode} (не металл+Mn+O₂)`
+  }
+  if (compoundId.includes('_clo3') || compoundId.includes('_clo4')) {
+    return `Маршрут: электролиз / disproportionation хлоратов → ${formulaUnicode} (не Cl₂+металл+O₂)`
+  }
+  return `Не получают прямым соединением элементов в один шаг. Смотрите «Реакции» и этапы получения для ${formulaUnicode}.`
 }
 
 /**
