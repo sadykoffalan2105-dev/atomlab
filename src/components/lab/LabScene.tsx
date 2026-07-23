@@ -1357,6 +1357,15 @@ function SceneContent({
     !productPrewarmResolved &&
     !coeffEditingActive
 
+  /** Bohr гасим сразу, как только молекула full-scale (и при settle, и в конце run). */
+  const hideBohrForProduct =
+    !coeffEditingActive &&
+    !preSynthesisPreview &&
+    effectiveProductPainted &&
+    productSlotVisibleResolved &&
+    !productPrewarmResolved &&
+    (showSettledHero || synthActive || synthesisRunActive)
+
   const catalogViewMode = previewActive || productTrulyOwnsScreen
 
   /**
@@ -2005,14 +2014,15 @@ function SceneContent({
                   !coeffEditingActive
                 )
               }
-              // Pre-synth: всегда visible — continuity flicker больше не гасит группу.
+              // После paint/settle Bohr обязан быть скрыт — иначе орбиты поверх молекулы.
               visible={
-                reactorPreviewVisible ||
-                preSynthesisPreview ||
-                coeffEditingActive ||
-                synthHoldPreview
+                !hideBohrForProduct &&
+                (reactorPreviewVisible ||
+                  preSynthesisPreview ||
+                  coeffEditingActive ||
+                  synthHoldPreview)
               }
-              synthHoldPreview={synthHoldPreview}
+              synthHoldPreview={synthHoldPreview && !hideBohrForProduct}
               lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}
               productPrewarm={productPrewarmActive}
               atomGroupRefs={previewAtomGroupRefs}

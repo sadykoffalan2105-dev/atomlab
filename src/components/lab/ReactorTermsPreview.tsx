@@ -695,6 +695,7 @@ export function ReactorTermsPreview({
   const holdAtomsUi = previewOnlyMode || coeffEditing || synthHoldPreview
   const motionPolicy = resolvePreviewMotionPolicy(Math.max(stickySlotCount, n))
   /** Product owns screen → скрыть Bohr. Edit/pre-synth → всегда показать. */
+  const productOwnsScreen = !holdAtomsUi && !visible
   const reactGroupVisible = resolveBohrReactVisible({
     visible: Boolean(visible),
     previewOnlyMode,
@@ -704,8 +705,8 @@ export function ReactorTermsPreview({
     hasActiveTerms: frame.hasActiveTerms,
     stickySlotCount,
     // Пока hold/pre-synth — продукт не владеет экраном (страховка против пустого центра).
-    productOwnsScreen: holdAtomsUi ? false : !visible,
-  })
+    productOwnsScreen,
+  }) && !productOwnsScreen
   const editLocalLight = !sharedLighting && reactGroupVisible
   // Collapse/flight: атомы летят в центр — электроны и spin только жрут GPU.
   const electronsLive =

@@ -60,34 +60,22 @@ export function createReactorPreviewContinuityGuard(): ReactorPreviewContinuityG
       const ownsScreen = productOwnsScreen === true
 
       /**
-       * Hide Bohr ТОЛЬКО при явном productOwnsScreen (full-scale paint).
-       * productPainted без ownsScreen больше не гасит корень — иначе пустой центр.
+       * Hide Bohr при любом productOwnsScreen (full-scale paint) —
+       * и во время синтеза, и после settle. Иначе орбиты Bohr «залипают»
+       * поверх молекулы (ClO₂ / K₂Cr₂O₇ и т.п.).
        */
+      if (ownsScreen) {
+        violationFrames = 0
+        if (root && root.visible) hidePreviewRoot(root)
+        return
+      }
+
       if (!synthLive) {
-        if (ownsScreen && !previewVisible) {
-          violationFrames = 0
-          if (root && root.visible) hidePreviewRoot(root)
-          return
-        }
         if (root) restorePreviewRoot(root)
         violationFrames = 0
         if (previewMounted && previewVisible && root?.visible) return
         if (root) restorePreviewRoot(root)
         invalidate()
-        return
-      }
-
-      // Синтез: продукт на экране — Bohr скрыт.
-      if (!previewVisible && ownsScreen) {
-        violationFrames = 0
-        if (root && root.visible) hidePreviewRoot(root)
-        return
-      }
-
-      // Продукт реально на экране (синтез) — Bohr не restore.
-      if (ownsScreen && synthLive) {
-        violationFrames = 0
-        if (root && root.visible) hidePreviewRoot(root)
         return
       }
 

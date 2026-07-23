@@ -51,6 +51,8 @@ export function resolveBohrReactVisible(opts: {
   /** Молекула реально full-scale на экране (не prewarm). */
   productOwnsScreen?: boolean
 }): boolean {
+  // Молекула уже на экране — Bohr никогда не показываем (анти «орбиты поверх продукта»).
+  if (opts.productOwnsScreen === true) return false
   const hold =
     opts.previewOnlyMode || opts.coeffEditing || opts.synthHoldPreview
   if (hold) return true
