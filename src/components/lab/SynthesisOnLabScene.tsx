@@ -697,7 +697,7 @@ export function SynthesisOnLabScene({
           runId={runId}
           onImpact={beginMergeFlash}
           onStreamsReady={onStreamsReady}
-          beamsVisible={false}
+          beamsVisible
           previewAtomGroupRefs={previewAtomGroupRefs}
           previewAtomScaleGroupRefs={previewAtomScaleGroupRefs}
           onBeginAtomFade={onPreviewAtomFade}

@@ -20,7 +20,7 @@ import { SYNTHESIS_TIMING_BALANCED } from '../../lab/synthesisTimingProfile'
 import { SYNTH_ANTI_STALL } from '../../lab/synthesisAntiStall'
 
 const ARC_FRAC = 0.55
-const REF_RETRY_MAX = 3
+const REF_RETRY_MAX = 48
 
 const STREAM_FLY_DUR_EXPORT = LAUNCH_STREAM_FLY_DUR
 const TERM_STAGGER_EXPORT = LAUNCH_TERM_STAGGER
@@ -38,9 +38,17 @@ function refsReady(
   streamCount: number,
   atomCount: number,
 ): boolean {
-  if (streamCount > 0 && !streamRefs.slice(0, streamCount).every(Boolean)) return false
-  if (atomCount > 0 && !atomRefs.slice(0, atomCount).every(Boolean)) return false
-  return streamCount > 0 || atomCount > 0
+  if (streamCount > 0) {
+    const readyStreams = streamRefs.slice(0, streamCount).filter(Boolean).length
+    if (readyStreams < streamCount) return false
+  }
+  if (atomCount <= 0) return streamCount > 0
+  const readyAtoms = atomRefs.slice(0, atomCount).filter(Boolean).length
+  // Стартуем, когда все ожидаемые слоты на месте, либо большинство уже смонтировано
+  // (mountCap Bohr растёт по кадрам — не ждём forever и не скипаем анимацию).
+  if (readyAtoms >= atomCount) return true
+  if (readyAtoms >= Math.max(1, Math.ceil(atomCount * 0.75))) return true
+  return false
 }
 
 function flyAtomArc(
@@ -100,8 +108,8 @@ export function SynthesisConvergeStreams({
   const atomStagger = clusterMode ? 0 : timingProfile.atomStagger
 
   const approachAtoms = useMemo(
-    () => buildSynthesisApproachAtoms(terms, { tier: 'full' }),
-    [terms, runId],
+    () => buildSynthesisApproachAtoms(terms, { tier: visualTier }),
+    [terms, runId, visualTier],
   )
   const termStreams = useMemo(() => getTermApproachOrigins(terms), [terms, runId])
   const denseFly = approachAtoms.length > 4

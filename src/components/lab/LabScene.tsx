@@ -831,13 +831,20 @@ function SceneContent({
   })
 
   const previewMotionLocked = false
-  /** mergeFlash не flight: pin слотов до paint.
-   *  Collapse + handoff: externalAtomControl — иначе pinCoeff срывает lerp / вспышку Bohr. */
+  /**
+   * GSAP-полёт атомов: нужен flightActive=true, иначе pinCoeff каждый кадр
+   * возвращает Bohr на места превью → «анимация пропала».
+   * Родитель ставит phase='ignite' при Run, а сцена уже в converge — учитываем ignite.
+   */
   const previewFlightActive =
     suppressBohrPinForCollapseHandoff ||
     (synthLive &&
       !suppressBohrPinForCollapseHandoff &&
-      (synthesisPhase === 'converge' || synthesisPhase === 'flying'))
+      (synthesisPhase === 'converge' ||
+        synthesisPhase === 'flying' ||
+        synthesisPhase === 'ignite' ||
+        synthesisPhase === '' ||
+        !synthesisPhase))
   const previewPoseLocked = synthesisRunActive && !synthActive
   if (previewAtomCount > 8) editLiteLatchRef.current = true
   else if (

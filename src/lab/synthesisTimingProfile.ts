@@ -43,35 +43,35 @@ export function isInstantSynthesisProfile(profile: SynthesisTimingProfile): bool
 
 /** Минимальный — слабые устройства / просадка FPS. */
 export const SYNTHESIS_TIMING_FAST: SynthesisTimingProfile = {
-  streamFlyDur: 0.22,
-  termStagger: 0.012,
-  atomStagger: 0.003,
-  mergeFlashDur: 0.1,
-  productEntranceDur: 0.14,
-  productHold: 0.05,
-  productRevealOverlapSec: 0.06,
-  igniteSkipMs: 0,
+  streamFlyDur: 0.36,
+  termStagger: 0.02,
+  atomStagger: 0.006,
+  mergeFlashDur: 0.16,
+  productEntranceDur: 0.2,
+  productHold: 0.06,
+  productRevealOverlapSec: 0.08,
+  igniteSkipMs: 180,
   atomCollapseDur: 0,
-  previewOverlapMs: 260,
-  clusterFlyDur: 0.16,
+  previewOverlapMs: 300,
+  clusterFlyDur: 0.22,
   clusterTermStagger: 0.05,
   collapseAtoms: false,
 }
 
 /** Баланс: читаемый полёт + вспышка + рождение молекулы. */
 export const SYNTHESIS_TIMING_BALANCED: SynthesisTimingProfile = {
-  streamFlyDur: 0.52,
-  termStagger: 0.04,
-  atomStagger: 0.009,
-  mergeFlashDur: 0.28,
-  productEntranceDur: 0.32,
-  productHold: 0.08,
-  productRevealOverlapSec: 0.12,
-  igniteSkipMs: 0,
-  atomCollapseDur: 0.12,
-  previewOverlapMs: 380,
-  clusterFlyDur: 0.26,
-  clusterTermStagger: 0.055,
+  streamFlyDur: 0.62,
+  termStagger: 0.048,
+  atomStagger: 0.012,
+  mergeFlashDur: 0.32,
+  productEntranceDur: 0.38,
+  productHold: 0.1,
+  productRevealOverlapSec: 0.14,
+  igniteSkipMs: 320,
+  atomCollapseDur: 0.14,
+  previewOverlapMs: 420,
+  clusterFlyDur: 0.3,
+  clusterTermStagger: 0.06,
   collapseAtoms: false,
 }
 
@@ -93,15 +93,14 @@ export const SYNTHESIS_TIMING_CINEMATIC: SynthesisTimingProfile = {
 }
 
 /**
- * Тайминг по устройству:
- * - forceLite / low → FAST (короткий полёт, без cinematic GPU-нагрузки)
- * - normal → BALANCED (читаемая анимация ~1 с)
- * INSTANT остаётся запасным профилем для экстренного lite, не дефолтом.
+ * Тайминг по устройству (forceLite ≠ «без анимации» — только короче FX):
+ * - low → FAST
+ * - normal → BALANCED (полёт + лучи + вспышка)
  */
 export function getSynthesisTimingProfile(
-  forceLite: boolean,
+  _forceLite: boolean,
   deviceTier: SynthesisDeviceTier = 'normal',
 ): SynthesisTimingProfile {
-  if (forceLite || deviceTier === 'low') return SYNTHESIS_TIMING_FAST
+  if (deviceTier === 'low') return SYNTHESIS_TIMING_FAST
   return SYNTHESIS_TIMING_BALANCED
 }
