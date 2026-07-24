@@ -12,7 +12,7 @@ export const CLO2_SCENARIO = {
   /** ЭТАП 4. Разлёт продуктов */
   stage4End: 6.5,
   /** Финал: чистый ClO₂ в центре + подпись */
-  finaleEnd: 7.4,
+  finaleEnd: 8.2,
   /** Угол O–Cl–O (°) */
   clo2AngleDeg: 117.4,
   /** Длина связи Cl–O (условные единицы сцены) */
