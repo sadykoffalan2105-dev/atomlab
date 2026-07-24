@@ -6,7 +6,7 @@ import {
   CLO2_SCENARIO,
   clo2StageAt,
   clo2TimeScale,
-} from '../../lab/scientificSynthesis/clo2ScenarioTiming'
+} from '../../../lab/scientificSynthesis/clo2ScenarioTiming'
 
 /** CPK — чтобы учитель/ученик сразу узнавал элемент. */
 const CPK = {
