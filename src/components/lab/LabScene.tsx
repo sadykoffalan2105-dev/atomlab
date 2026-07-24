@@ -2075,6 +2075,9 @@ function SceneContent({
               <ScientificFx
                 key={`sci-${synthesis.product.id}-${synthesis.runId}`}
                 runId={synthesis.runId}
+                lowPower={
+                  lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc || synthForceLite
+                }
                 onEmbryoReady={handleElementsCollapseEmbryoReady}
                 onBirthReady={handleElementsCollapseBirthReady}
                 onComplete={handleElementsCollapseComplete}
