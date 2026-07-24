@@ -3,6 +3,7 @@
  * Покрывает все записи каталога через curated overrides + шаблоны по классу соединения.
  */
 import { buildDefaultLaboratoryRecipeRu } from './laboratoryRecipeText'
+import { normalizeSynthConditions } from './synthesisConditionsDefaults'
 import { fromElementsPolicy } from './substanceSynthesisRoute'
 import type {
   CompoundCategory,
@@ -43,7 +44,12 @@ function pack(
   conditions: SynthesisConditionsTextRu,
   lab: SynthesisLabConditions = {},
 ): ObtainingBundle {
-  return { steps, recipeRu: formatStepsRecipe(steps), conditions, lab }
+  return {
+    steps,
+    recipeRu: formatStepsRecipe(steps),
+    conditions: normalizeSynthConditions(conditions),
+    lab,
+  }
 }
 
 /** Кураторские маршруты для ключевых оксидов, кислот, оснований и особых солей. */
@@ -404,8 +410,8 @@ const CURATED: Readonly<Record<string, ObtainingBundle>> = {
     {
       temperature: 'Температура: комнатная; при упаривании — слабый нагрев.',
       pressure: 'Давление: атмосферное.',
-      catalyst: 'Катализатор: не нужен; нужна кислая среда (H₂SO₄). Не 4Cr+4K+7O₂.',
-      equipment: 'Оборудование: пробирки, H₂SO₄; Cr(VI) токсичен — вытяжка, перчатки.',
+      catalyst: 'не нужен; нужна кислая среда (H₂SO₄)',
+      equipment: 'пробирки, H₂SO₄; Cr(VI) токсичен — вытяжка, перчатки',
     },
   ),
   salt_na_no2: pack(
@@ -429,8 +435,8 @@ const CURATED: Readonly<Record<string, ObtainingBundle>> = {
     {
       temperature: 'Температура: комнатная.',
       pressure: 'Давление: атмосферное.',
-      catalyst: 'Катализатор: не нужен. Не N₂+Na+O₂.',
-      equipment: 'Оборудование: стакан, HNO₃; вытяжка.',
+      catalyst: 'не нужен',
+      equipment: 'стакан, HNO₃; вытяжка',
     },
   ),
   salt_k_mno4: pack(
@@ -441,8 +447,21 @@ const CURATED: Readonly<Record<string, ObtainingBundle>> = {
     {
       temperature: 'Температура: сильный нагрев на 1-й стадии.',
       pressure: 'Давление: атмосферное / ток воздуха.',
-      catalyst: 'Катализатор: не обязателен. Не K+Mn+O₂.',
-      equipment: 'Оборудование: промышленный контур / демонстрация схемы.',
+      catalyst: 'не обязателен',
+      equipment: 'промышленный контур / демонстрация схемы; вытяжка',
+    },
+    { needsHeat: true },
+  ),
+  salt_k_s: pack(
+    [
+      step(1, '2K + S → K₂S', 'только схема: прямой контакт K с S в школе не проводят (бурно)'),
+      step(2, '2KOH + H₂S → K₂S + 2H₂O', 'безопаснее через щёлочь и H₂S (вытяжка)'),
+    ],
+    {
+      temperature: 'на схеме — нагрев; в растворе — комнатная',
+      pressure: 'атмосферное',
+      catalyst: 'не нужен',
+      equipment: 'только схема / видео; вытяжка при H₂S; защитный экран',
     },
     { needsHeat: true },
   ),
@@ -466,8 +485,8 @@ const CURATED: Readonly<Record<string, ObtainingBundle>> = {
     {
       temperature: 'Температура: комнатная.',
       pressure: 'Давление: атмосферное.',
-      catalyst: 'Катализатор: не нужен. Не Cr+P+O₂.',
-      equipment: 'Оборудование: стаканы, фильтр.',
+      catalyst: 'не нужен',
+      equipment: 'стаканы, фильтр',
     },
   ),
   salt_cr_mno4: pack(
@@ -667,12 +686,30 @@ const CURATED: Readonly<Record<string, ObtainingBundle>> = {
 }
 
 function defaultEquipment(category: CompoundCategory, lab: SynthesisLabConditions): string {
-  const parts = ['Оборудование: учебный реактор / пробирки, штатив']
+  const parts = ['пробирки / колбы, штатив']
   if (lab.needsHeat) parts.push('горелка или нагреватель')
   if (lab.needsPressure) parts.push('герметичный сосуд / автоклав (схема)')
-  if (lab.needsCatalyst) parts.push('лотok для катализатора')
+  if (lab.needsCatalyst) parts.push('лоток для катализатора')
   if (category === 'acid') parts.push('вытяжка при работе с кислотами')
   return `${parts.join('; ')}.`
+}
+
+function isAlkaliMetal(metal: string): boolean {
+  return metal === 'Li' || metal === 'Na' || metal === 'K' || metal === 'Cs'
+}
+
+/** Оксид щелочного металла — M₂O, не MO. */
+function oxideOf(metal: string): string {
+  if (isAlkaliMetal(metal) || metal === 'Ag') return `${metal}₂O`
+  if (metal === 'Al' || metal === 'Cr' || metal === 'Fe') return `${metal}₂O₃`
+  return `${metal}O`
+}
+
+/** Гидроксид: LiOH / Ca(OH)₂ / Al(OH)₃ — без «(OH)ₙ». */
+function hydroxideOf(metal: string): string {
+  if (isAlkaliMetal(metal) || metal === 'Ag') return `${metal}OH`
+  if (metal === 'Al' || metal === 'Cr' || metal === 'Fe') return `${metal}(OH)₃`
+  return `${metal}(OH)₂`
 }
 
 function metalFromSaltId(id: string): string | null {
@@ -714,16 +751,16 @@ function synthesizeFromElementsBundle(p: RawCompoundDef): ObtainingBundle {
   }
   const temperature = p.synthesisConditionsRu?.temperature
     ?? (lab.needsHeat
-      ? 'Температура: нагрев / воспламенение реагентов (по методике опыта).'
-      : 'Температура: комнатная или слабый нагрев.')
+      ? 'нагрев / воспламенение реагентов (по методике опыта)'
+      : 'комнатная или слабый нагрев')
   const pressure = p.synthesisConditionsRu?.pressure
     ?? (lab.needsPressure
-      ? 'Давление: повышенное (по методике).'
-      : 'Давление: атмосферное (≈1 атм).')
+      ? 'повышенное (по методике)'
+      : 'атмосферное (≈1 атм)')
   const catalyst = p.synthesisConditionsRu?.catalyst
     ?? (lab.needsCatalyst
-      ? 'Катализатор: требуется — укажите в панели реактора.'
-      : 'Катализатор: не обязателен для данного примера.')
+      ? 'требуется — укажите в панели реактора'
+      : 'не обязателен для данного примера')
   const equipment = p.synthesisConditionsRu?.equipment
     ?? defaultEquipment(p.category, lab)
   return pack([step(1, eq, 'из простых веществ (учебный одностадийный путь)')], {
@@ -748,34 +785,69 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
           step(2, 'Обратно в щелочи: дихромат ⇄ хромат'),
         ],
         {
-          temperature: 'Температура: комнатная.',
-          pressure: 'Давление: атмосферное.',
-          catalyst: 'Катализатор: не нужен; кислая среда. Не металл+Cr+O₂.',
-          equipment: 'Оборудование: пробирки, H₂SO₄; Cr(VI) — вытяжка.',
+          temperature: 'комнатная',
+          pressure: 'атмосферное',
+          catalyst: 'не нужен; нужна кислая среда',
+          equipment: 'пробирки, H₂SO₄; Cr(VI) — вытяжка',
         },
       )
     }
+    const m = metal && metal !== 'NH₄' ? metal : 'K'
     return pack(
-      [step(1, `через CrO₃ / H₂CrO₄ + щёлочь металла → ${f}`, 'не прямой синтез из элементов')],
+      [
+        step(1, `CrO₃ + 2${m}OH → ${m}₂CrO₄ + H₂O`, 'хромовый ангидрид / H₂CrO₄ + щёлочь'),
+        step(2, `или H₂CrO₄ + 2${m}OH → ${m}₂CrO₄ + 2H₂O`, 'не прямой синтез из элементов'),
+      ],
       {
-        temperature: 'Температура: комнатная / слабый нагрев.',
-        pressure: 'Давление: атмосферное.',
-        catalyst: 'Катализатор: не нужен; щелочная среда для хромата.',
-        equipment: 'Оборудование: стакан; Cr(VI) токсичен — вытяжка.',
+        temperature: 'комнатная / слабый нагрев',
+        pressure: 'атмосферное',
+        catalyst: 'не нужен; щелочная среда для хромата',
+        equipment: 'стакан; Cr(VI) токсичен — вытяжка',
       },
     )
   }
 
   if (id.includes('_co3') || id.includes('_hco3')) {
+    if (metal === 'Ca') {
+      return pack(
+        [step(1, 'Ca(OH)₂ + CO₂ → CaCO₃↓ + H₂O', 'известковая вода + CO₂')],
+        {
+          temperature: 'комнатная',
+          pressure: 'атмосферное (или ток CO₂)',
+          catalyst: 'не нужен',
+          equipment: 'известковая вода, трубка CO₂',
+        },
+      )
+    }
+    if (metal && isAlkaliMetal(metal)) {
+      const salt = id.includes('_hco3')
+        ? `${metal}HCO₃`
+        : `${metal}₂CO₃`
+      return pack(
+        [
+          step(
+            1,
+            id.includes('_hco3')
+              ? `${metal}OH + CO₂ → ${salt}`
+              : `2${metal}OH + CO₂ → ${salt} + H₂O`,
+            'щёлочь + диоксид углерода',
+          ),
+        ],
+        {
+          temperature: 'комнатная',
+          pressure: 'атмосферное (или ток CO₂)',
+          catalyst: 'не нужен',
+          equipment: 'раствор щёлочи, трубка CO₂',
+        },
+      )
+    }
     return pack(
-      [
-        step(1, metal === 'Ca' ? 'Ca(OH)₂ + CO₂ → CaCO₃↓ + H₂O' : `MOH/M(OH)ₙ + CO₂ → ${f}`, 'карбонаты не из M+C+O₂ в один шаг'),
-      ],
+      [step(1, `гидроксид / оксид металла + CO₂ → ${f}`, 'карбонаты не из M+C+O₂ в один шаг')],
       {
-        temperature: 'Температура: комнатная.',
-        pressure: 'Давление: атмосферное (или ток CO₂).',
-        catalyst: 'Катализатор: не нужен.',
-        equipment: 'Оборудование: известковая вода / раствор щёлочи, трубка CO₂.',
+        temperature: 'комнатная',
+        pressure: 'атмосферное (или ток CO₂)',
+        catalyst: 'не нужен',
+        equipment: 'раствор щёлочи / суспензия гидроксида, трубка CO₂',
       },
     )
   }
@@ -784,59 +856,89 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
     return pack(
       [step(1, `NH₃ + кислота → ${f}`, 'соли аммония из аммиака и кислоты')],
       {
-        temperature: 'Температура: комнатная.',
-        pressure: 'Давление: атмосферное.',
-        catalyst: 'Катализатор: не нужен.',
-        equipment: 'Оборудование: стакан / палочки с NH₃ и кислотой.',
+        temperature: 'комнатная',
+        pressure: 'атмосферное',
+        catalyst: 'не нужен',
+        equipment: 'стакан / палочки с NH₃ и кислотой',
       },
     )
   }
 
   if (id.includes('_so4') && metal && metal !== 'NH₄') {
-    return pack(
-      [
-        step(1, `${metal}O / ${metal}(OH)ₙ + H₂SO₄ → ${f} + H₂O`, 'нейтрализация / оксид + кислота'),
-        step(2, `${metal} + H₂SO₄ (разб.) → соль + H₂`, 'для активных металлов — вытеснение водорода'),
-      ],
-      {
-        temperature: 'Температура: комнатная или слабый нагрев.',
-        pressure: 'Давление: атмосферное.',
-        catalyst: 'Катализатор: не нужен. Не металл+S+O₂.',
-        equipment: 'Оборудование: стакан, H₂SO₄; вытяжка при нагреве.',
-      },
-    )
+    const ox = oxideOf(metal)
+    const oh = hydroxideOf(metal)
+    const alkali = isAlkaliMetal(metal)
+    const steps = [
+      step(
+        1,
+        alkali
+          ? `2${oh} + H₂SO₄ → ${f} + 2H₂O`
+          : `${ox} / ${oh} + H₂SO₄ → ${f} + H₂O`,
+        'нейтрализация / оксид + серная кислота',
+      ),
+    ]
+    if (!alkali) {
+      steps.push(
+        step(2, `${metal} + H₂SO₄ (разб.) → ${f} + H₂↑`, 'вытеснение водорода активным металлом'),
+      )
+    } else {
+      steps.push(
+        step(
+          2,
+          `в школе не проводят: ${metal} + H₂SO₄ (разб.)`,
+          'щелочной металл реагирует с водой в кислоте крайне бурно',
+        ),
+      )
+    }
+    return pack(steps, {
+      temperature: 'комнатная или слабый нагрев',
+      pressure: 'атмосферное',
+      catalyst: 'не нужен',
+      equipment: 'стакан, H₂SO₄; вытяжка при нагреве',
+    })
   }
 
   if (id.includes('_so3') && metal && metal !== 'NH₄') {
+    const oh = hydroxideOf(metal)
+    const sulfite =
+      isAlkaliMetal(metal) ? `${metal}₂SO₃` : f
+    const hydro = isAlkaliMetal(metal) ? `${metal}HSO₃` : `гидросульфит ${metal}`
     return pack(
       [
-        step(1, `2${metal}OH + SO₂ → ${metal === 'Na' || metal === 'K' || metal === 'Li' ? `${metal}₂SO₃` : f} + H₂O`, 'щёлочь + диоксид серы'),
-        step(2, 'или гидросульфит → сульфит при нагреве / избытке щёлочи'),
+        step(1, `2${oh} + SO₂ → ${sulfite} + H₂O`, 'щёлочь + диоксид серы'),
+        step(2, `${hydro} + ${oh} → ${sulfite} + H₂O`, 'гидросульфит → сульфит при избытке щёлочи'),
       ],
       {
-        temperature: 'Температура: комнатная / слабый нагрев.',
-        pressure: 'Давление: атмосферное (ток SO₂).',
-        catalyst: 'Катализатор: не нужен. Не металл+S+O₂.',
-        equipment: 'Оборудование: раствор щёлочи, источник SO₂; вытяжка.',
+        temperature: 'комнатная / слабый нагрев',
+        pressure: 'атмосферное',
+        catalyst: 'не нужен',
+        equipment: 'раствор щёлочи, источник SO₂; вытяжка (ток газа — в методике, не «давление»)',
       },
     )
   }
 
   if (id.includes('_no3') && metal && metal !== 'NH₄') {
+    const ox = oxideOf(metal)
+    const oh = hydroxideOf(metal)
     const viaOh =
       metal === 'Cr'
         ? 'Cr(OH)₃ + 3HNO₃ → Cr(NO₃)₃ + 3H₂O'
-        : `${metal} / ${metal}O / ${metal}(OH)ₙ + HNO₃ → ${f}`
+        : `${metal} / ${ox} / ${oh} + HNO₃ → ${f}`
+    const step2 =
+      metal === 'Li'
+        ? step(
+            2,
+            '6Li + N₂ → 2Li₃N',
+            'литий реагирует с азотом, но даёт нитрид, не нитрат; нитрат — через HNO₃',
+          )
+        : step(2, 'не N₂ + металл + O₂', 'азот не даёт нитрат напрямую; обычно образуется оксид металла')
     return pack(
-      [
-        step(1, viaOh, 'азотная кислота + металл / оксид / гидроксид'),
-        step(2, 'не N₂ + металл + O₂ — азот инертен, образуется оксид металла'),
-      ],
+      [step(1, viaOh, 'азотная кислота + металл / оксид / гидроксид'), step2],
       {
-        temperature: 'Температура: комнатная; с активными металлами — осторожно (NOₓ!).',
-        pressure: 'Давление: атмосферное.',
-        catalyst: 'Катализатор: не нужен.',
-        equipment: 'Оборудование: вытяжка (оксиды азота).',
+        temperature: 'комнатная; с активными металлами — осторожно',
+        pressure: 'атмосферное',
+        catalyst: 'не нужен',
+        equipment: 'вытяжка (оксиды азота — побочные продукты, не «температура»)',
       },
     )
   }
@@ -849,23 +951,24 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
           step(2, 'чистый нитрит Cr(III) неустойчив; не Cr+N₂+O₂'),
         ],
         {
-          temperature: 'Температура: комнатная / охлаждение.',
-          pressure: 'Давление: атмосферное.',
-          catalyst: 'Катализатор: не нужен.',
-          equipment: 'Оборудование: растворы солей; фильтр осадка BaSO₄.',
+          temperature: 'комнатная / охлаждение',
+          pressure: 'атмосферное',
+          catalyst: 'не нужен',
+          equipment: 'растворы солей; фильтр осадка BaSO₄',
         },
       )
     }
+    const oh = hydroxideOf(metal)
     return pack(
       [
         step(1, `${metal}NO₃ + Pb →(t°) ${metal}NO₂ + PbO`, 'промышленное восстановление нитрата'),
-        step(2, 'или обмен / охлаждённая азотистая кислота + щёлочь'),
+        step(2, `HNO₂ + ${oh} → ${metal}NO₂ + H₂O`, 'охлаждённая азотистая кислота + щёлочь'),
       ],
       {
-        temperature: 'Температура: нагрев нитрата со свинцом (пром.) / холод для HNO₂.',
-        pressure: 'Давление: атмосферное.',
-        catalyst: 'Катализатор: не нужен. Ион — NO₂⁻, не NO₃⁻.',
-        equipment: 'Оборудование: тигель / стакан; вытяжка.',
+        temperature: 'нагрев нитрата со свинцом (пром.) / холод для HNO₂',
+        pressure: 'атмосферное',
+        catalyst: 'не нужен',
+        equipment: 'тигель / стакан; вытяжка',
       },
     )
   }
@@ -879,27 +982,27 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
           ]
         : [
             step(1, `растворимая соль ${metal} + фосфат → ${f}↓`, 'обмен в растворе'),
-            step(2, `${metal}(OH)ₙ + H₃PO₄ → ${f} + H₂O`, 'нейтрализация / растворение гидроксида'),
+            step(2, `${hydroxideOf(metal)} + H₃PO₄ → ${f} + H₂O`, 'нейтрализация / растворение гидроксида'),
           ]
     return pack(via, {
-      temperature: 'Температура: комнатная.',
-      pressure: 'Давление: атмосферное.',
-      catalyst: 'Катализатор: не нужен. Не металл+P+O₂.',
-      equipment: 'Оборудование: стаканы, фильтр осадка.',
+      temperature: 'комнатная',
+      pressure: 'атмосферное',
+      catalyst: 'не нужен',
+      equipment: 'стаканы, фильтр осадка',
     })
   }
 
   if (id.includes('_sio3') && metal && metal !== 'NH₄') {
     return pack(
       [
-        step(1, `SiO₂ + 2${metal}OH →(t°) ${f} + H₂O`, 'сплавление кремнезёма со щёлочью'),
+        step(1, `SiO₂ + 2${hydroxideOf(metal)} →(t°) ${f} + H₂O`, 'сплавление кремнезёма со щёлочью'),
         step(2, `или SiO₂ + ${metal}₂CO₃ →(t°) ${f} + CO₂`, 'сплавление с карбонатом'),
       ],
       {
-        temperature: 'Температура: сильный нагрев / сплавление.',
-        pressure: 'Давление: атмосферное.',
-        catalyst: 'Катализатор: не нужен. Не металл+Si+O₂.',
-        equipment: 'Оборудование: тигель, горелка; защитные очки.',
+        temperature: 'сильный нагрев / сплавление',
+        pressure: 'атмосферное',
+        catalyst: 'не нужен',
+        equipment: 'тигель, горелка; защитные очки',
       },
       { needsHeat: true },
     )
@@ -913,50 +1016,70 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
           step(2, 'MnO₄⁻ — сильный окислитель; чистый продукт трудно сохранить'),
         ],
         {
-          temperature: 'Температура: комнатная / охлаждение.',
-          pressure: 'Давление: атмосферное.',
-          catalyst: 'Катализатор: не нужен. Не Cr+Mn+O₂.',
-          equipment: 'Оборудование: растворы; фильтр BaSO₄.',
+          temperature: 'комнатная / охлаждение',
+          pressure: 'атмосферное',
+          catalyst: 'не нужен',
+          equipment: 'стаканы, фильтр BaSO₄; защитные очки',
         },
-      )
-    }
-    if (metal === 'K') {
-      return pack(
-        [
-          step(1, '2MnO₂ + 4KOH + O₂ → 2K₂MnO₄ + 2H₂O', 'манганат в щёлочи'),
-          step(2, '3K₂MnO₄ + 2CO₂ → 2KMnO₄ + MnO₂ + 2K₂CO₃', 'диспропорционирование → перманганат'),
-        ],
-        {
-          temperature: 'Температура: сильный нагрев на 1-й стадии.',
-          pressure: 'Давление: атмосферное / ток воздуха.',
-          catalyst: 'Катализатор: не обязателен.',
-          equipment: 'Оборудование: промышленный / демонстрационный контур; вытяжка.',
-        },
-        { needsHeat: true },
       )
     }
     return pack(
-      [step(1, `обмен растворимого перманганата / через манганат → ${f}`, 'не металл+Mn+O₂')],
+      [
+        step(1, `2MnO₂ + 4${metal}OH + O₂ → 2${metal}₂MnO₄ + 2H₂O`, 'манганат в щёлочи'),
+        step(
+          2,
+          `3${metal}₂MnO₄ + 2CO₂ → 2${metal}MnO₄ + MnO₂ + 2${metal}₂CO₃`,
+          'диспропорционирование → перманганат',
+        ),
+      ],
       {
-        temperature: 'Температура: по выбранному маршруту.',
-        pressure: 'Давление: атмосферное.',
-        catalyst: 'Катализатор: не нужен.',
-        equipment: 'Оборудование: растворы; защитные очки (окислитель).',
+        temperature: 'сильный нагрев на 1-й стадии',
+        pressure: 'атмосферное / ток воздуха',
+        catalyst: 'не обязателен',
+        equipment: 'тигель / демонстрационный контур; вытяжка; защитные очки',
       },
+      { needsHeat: true },
     )
   }
 
-  if ((id.includes('_clo3') || id.includes('_clo4')) && metal && metal !== 'NH₄') {
+  if (id.includes('_clo3') && metal && metal !== 'NH₄') {
     return pack(
       [
-        step(1, '3Cl₂ + 6KOH → 5KCl + KClO₃ + 3H₂O', 'пример: диспропорционирование хлора в щёлочи (для K)'),
-        step(2, `далее обмен / кристаллизация → ${f}`, 'хлораты и перхлораты не из Cl₂+металл+O₂'),
+        step(
+          1,
+          `3Cl₂ + 6${metal}OH → 5${metal}Cl + ${metal}ClO₃ + 3H₂O`,
+          'диспропорционирование хлора в горячей щёлочи',
+        ),
       ],
       {
-        temperature: 'Температура: нагрев щёлочи / электролиз (перхлораты).',
-        pressure: 'Давление: атмосферное.',
-        catalyst: 'Катализатор: не обязателен.',
-        equipment: 'Оборудование: вытяжка; хлораты — осторожно (окислители).',
+        temperature: 'нагрев раствора щёлочи',
+        pressure: 'атмосферное',
+        catalyst: 'не обязателен',
+        equipment: 'вытяжка; хлораты — сильные окислители',
+      },
+      { needsHeat: true },
+    )
+  }
+
+  if (id.includes('_clo4') && metal && metal !== 'NH₄') {
+    return pack(
+      [
+        step(
+          1,
+          `3Cl₂ + 6${metal}OH → 5${metal}Cl + ${metal}ClO₃ + 3H₂O`,
+          'сначала получают хлорат',
+        ),
+        step(
+          2,
+          `2${metal}ClO₃ →(t° / электролиз) ${metal}ClO₄ + ${metal}Cl`,
+          'окисление или термическое диспропорционирование хлората → перхлорат',
+        ),
+      ],
+      {
+        temperature: 'нагрев хлората / электролиз раствора хлората',
+        pressure: 'атмосферное',
+        catalyst: 'не обязателен',
+        equipment: 'вытяжка; перхлораты — сильные окислители',
       },
       { needsHeat: true },
     )
@@ -969,10 +1092,30 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
         step(2, '2Fe³⁺ + 3S²⁻ → Fe₂S₃↓ (холодный раствор)', 'Fe₂S₃ нестабилен; при нагреве → 2FeS + S'),
       ],
       {
-        temperature: 'Температура: для FeS — нагрев; для Fe₂S₃ — низкая T в растворе.',
-        pressure: 'Давление: атмосферное.',
-        catalyst: 'Катализатор: не нужен.',
-        equipment: 'Оборудование: пробирки / тигель; вытяжка при H₂S.',
+        temperature: 'для FeS — нагрев; для Fe₂S₃ — низкая T в растворе',
+        pressure: 'атмосферное',
+        catalyst: 'не нужен',
+        equipment: 'пробирки / тигель; вытяжка при H₂S',
+      },
+      { needsHeat: true },
+    )
+  }
+
+  if (id.endsWith('_s') && metal && isAlkaliMetal(metal)) {
+    return pack(
+      [
+        step(
+          1,
+          `2${metal} + S → ${metal}₂S`,
+          'схема; прямой контакт щелочного металла с серой в школе не проводят (бурно / опасно)',
+        ),
+        step(2, `${metal}OH + H₂S → … → ${metal}₂S`, 'безопаснее — через раствор щёлочи и H₂S (вытяжка)'),
+      ],
+      {
+        temperature: 'на схеме — нагрев; в растворе — комнатная',
+        pressure: 'атмосферное',
+        catalyst: 'не нужен',
+        equipment: 'только схема / видео; вытяжка при H₂S; защитный экран',
       },
       { needsHeat: true },
     )
@@ -987,18 +1130,19 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
           : halogen === 'Br₂'
             ? `альтернатива спокойнее: ${metal}OH + HBr → соль + H₂O`
             : `часто ${metal} + ${halogen}`
+      const eq = buildDefaultLaboratoryRecipeRu(p)
       return pack(
         [
-          step(1, buildDefaultLaboratoryRecipeRu(p), schoolSafe),
+          step(1, eq, schoolSafe),
           ...(halogen === 'Br₂' || halogen === 'Cl₂'
-            ? [step(2, `${metal}OH / ${metal}₂CO₃ + HHal → ${f}`, 'нейтрализация — безопаснее прямого контакта с галогеном')]
+            ? [step(2, `${hydroxideOf(metal)} / ${metal}₂CO₃ + HHal → ${f}`, 'нейтрализация — безопаснее прямого контакта с галогеном')]
             : []),
         ],
         {
-          temperature: 'Температура: нагрев / воспламенение (по металлу); нейтрализация — комнатная.',
-          pressure: 'Давление: атмосферное.',
-          catalyst: 'Катализатор: не обязателен.',
-          equipment: 'Оборудование: ложечка / стакан; вытяжка (галогены).',
+          temperature: 'нагрев / воспламенение (по металлу); нейтрализация — комнатная',
+          pressure: 'атмосферное',
+          catalyst: 'не обязателен',
+          equipment: 'ложечка / стакан; вытяжка (галогены)',
         },
         { needsHeat: halogen !== 'F₂' },
       )
@@ -1032,7 +1176,7 @@ export function resolveObtainingBundle(p: RawCompoundDef): ObtainingBundle {
   if (curated) {
     return {
       ...curated,
-      conditions: { ...curated.conditions, ...p.synthesisConditionsRu },
+      conditions: normalizeSynthConditions({ ...curated.conditions, ...p.synthesisConditionsRu }),
       lab: { ...curated.lab, ...p.synthesisLab },
       steps: p.obtainingStepsRu?.length ? [...p.obtainingStepsRu] : curated.steps,
       recipeRu: p.laboratoryRecipeRu?.includes('①') || p.laboratoryRecipeRu?.includes('\n')
@@ -1072,6 +1216,8 @@ export function resolveObtainingBundle(p: RawCompoundDef): ObtainingBundle {
 
   const salt = saltTemplateBundle(p)
   if (salt && fromElementsPolicy(p.id) === 'forbidden') return salt
+  // Щелочные сульфиды: из элементов формально «можно», но школьный маршрут — с предупреждением.
+  if (salt && /^salt_(li|na|k|cs)_s$/.test(p.id)) return salt
 
   return synthesizeFromElementsBundle(p)
 }

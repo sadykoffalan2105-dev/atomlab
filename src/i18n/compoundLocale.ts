@@ -1,4 +1,4 @@
-import { defaultSynthesisConditionsText, defaultSynthesisConditionsTextForLocale } from '../chemistry/synthesisConditionsDefaults'
+import { defaultSynthesisConditionsText, defaultSynthesisConditionsTextForLocale, normalizeSynthConditions } from '../chemistry/synthesisConditionsDefaults'
 import type { CompoundDef } from '../types/chemistry'
 import type { AppLocale } from './types'
 import { resolveCompoundDescription } from './compoundDescriptionResolver'
@@ -49,12 +49,12 @@ function localizedSynthesisConditions(
     return locV
   }
 
-  return {
+  return normalizeSynthConditions({
     temperature: pick('temperature'),
     pressure: pick('pressure'),
     catalyst: pick('catalyst'),
     equipment: pick('equipment'),
-  }
+  })
 }
 
 export function getCompoundLocaleStrings(c: CompoundDef, locale: AppLocale, t: TFn): CompoundLocaleStrings {

@@ -9,9 +9,38 @@ import { CatalogMoleculeHero } from './CatalogMoleculeHero'
 import styles from './CompoundDetailModal.module.css'
 
 function formatComposition(comp: Record<string, number>): string {
+  const metalLike = new Set([
+    'Li',
+    'Na',
+    'K',
+    'Rb',
+    'Cs',
+    'Ag',
+    'Mg',
+    'Ca',
+    'Ba',
+    'Sr',
+    'Zn',
+    'Cu',
+    'Fe',
+    'Al',
+    'Pb',
+    'Sn',
+    'Mn',
+    'Ni',
+    'Co',
+    'Cr',
+  ])
   return Object.entries(comp)
     .filter(([, n]) => n > 0)
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => {
+      const am = metalLike.has(a)
+      const bm = metalLike.has(b)
+      if (am !== bm) return am ? -1 : 1
+      if (a === 'O') return 1
+      if (b === 'O') return -1
+      return a.localeCompare(b)
+    })
     .map(([sym, n]) => `${sym}×${n}`)
     .join(', ')
 }

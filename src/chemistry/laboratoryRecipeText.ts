@@ -1,9 +1,36 @@
 import type { RawCompoundDef } from '../types/chemistry'
 
 function sortedComposition(comp: Record<string, number>): [string, number][] {
+  const metalLike = new Set([
+    'Li',
+    'Na',
+    'K',
+    'Rb',
+    'Cs',
+    'Ag',
+    'Mg',
+    'Ca',
+    'Ba',
+    'Sr',
+    'Zn',
+    'Cu',
+    'Fe',
+    'Al',
+    'Pb',
+    'Sn',
+    'Mn',
+    'Ni',
+    'Co',
+    'Cr',
+  ])
   return Object.entries(comp)
     .filter(([, v]) => v > 0)
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => {
+      const am = metalLike.has(a)
+      const bm = metalLike.has(b)
+      if (am !== bm) return am ? -1 : 1
+      return a.localeCompare(b)
+    })
 }
 
 const DIATOMIC = new Set(['H', 'N', 'O', 'F', 'Cl', 'Br', 'I'])
@@ -33,20 +60,18 @@ function sub2(sym: string): string {
  * Короткое учебное уравнение: слева простые вещества,
  * справа вещество из каталога. Уравнение УРАВНЕННО.
  *
+ * Металл пишется первым (2Li + Cl₂ → 2LiCl).
  * H₂, O₂, N₂, F₂, Cl₂, Br₂, I₂ — молекулы простых веществ (не атомы).
- * Не использовать для кислот/гидроксидов/карбонатов/SO₃ — см. substanceSynthesisRoute.ts.
  */
 export function buildDefaultLaboratoryRecipeRu(
   p: Pick<RawCompoundDef, 'composition' | 'formulaUnicode'>,
 ): string {
   const parts = sortedComposition(p.composition)
-  if (parts.length === 0) return `= ${p.formulaUnicode}`
+  if (parts.length === 0) return `→ ${p.formulaUnicode}`
 
-  // Choose minimal product coefficient to avoid fractions with diatomic reagents.
-  // If any diatomic element appears an odd number of times in the product, multiply product by 2.
   let productCoeff = 1
   for (const [sym, n] of parts) {
-    if (DIATOMIC.has(sym) && (n % 2 !== 0)) {
+    if (DIATOMIC.has(sym) && n % 2 !== 0) {
       productCoeff = 2
       break
     }
@@ -58,7 +83,6 @@ export function buildDefaultLaboratoryRecipeRu(
     return { sym, coeff: Math.round(coeff), diatomic: DIATOMIC.has(sym) }
   })
 
-  // Reduce coefficients by gcd for a clean equation.
   const g = gcdAll([productCoeff, ...reactants.map((r) => r.coeff)])
   productCoeff = Math.max(1, Math.floor(productCoeff / g))
   for (const r of reactants) r.coeff = Math.max(1, Math.floor(r.coeff / g))
@@ -71,5 +95,5 @@ export function buildDefaultLaboratoryRecipeRu(
     .join(' + ')
 
   const right = `${productCoeff === 1 ? '' : String(productCoeff)}${p.formulaUnicode}`
-  return `${left} = ${right}`
+  return `${left} → ${right}`
 }
