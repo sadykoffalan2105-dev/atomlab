@@ -7,17 +7,20 @@ export const LAB_COSMIC_BG = '#0a0c18'
 /**
  * Фон реактора: звёздное небо.
  * memo + без fade — при hitch +/- кадры не «съедают» звёзды в сплошной синий clear.
- * settled / lowPower — меньше Stars (слабые ПК + чистый кадр продукта).
+ * settled / lowPower / collapse — меньше Stars (GPU рядом с искрами).
  */
 export const LabSynthesisCosmicBackdrop = memo(function LabSynthesisCosmicBackdrop({
   lite = false,
   frozen = false,
+  collapseActive = false,
 }: {
   lite?: boolean
   /** Синтез / collapse — не крутить Stars (лишний GPU рядом с искрами). */
   frozen?: boolean
+  /** Пик collapse: ещё меньше точек (декор не читается за FX). */
+  collapseActive?: boolean
 }) {
-  const count = lite ? 140 : 480
+  const count = collapseActive ? 48 : lite ? 110 : 480
   return (
     <>
       <color attach="background" args={[LAB_COSMIC_BG]} />
@@ -25,10 +28,10 @@ export const LabSynthesisCosmicBackdrop = memo(function LabSynthesisCosmicBackdr
         radius={120}
         depth={70}
         count={count}
-        factor={lite ? 2.4 : 3.2}
+        factor={collapseActive ? 1.8 : lite ? 2.4 : 3.2}
         saturation={0.12}
         fade={false}
-        speed={frozen ? 0 : lite ? 0.2 : 0.35}
+        speed={frozen || collapseActive ? 0 : lite ? 0.2 : 0.35}
       />
     </>
   )

@@ -86,8 +86,14 @@ export function canHideBohrForProduct(opts: {
   coeffEditing: boolean
   preSynthesis: boolean
   scaleX?: number
+  /**
+   * Settled hero: слот всегда full-scale (synthesisProductSlot).
+   * Не ждать paint после invalidate — иначе орбиты залипают поверх продукта (ClO₂).
+   */
+  showSettledHero?: boolean
 }): boolean {
   if (opts.coeffEditing || opts.preSynthesis) return false
+  if (opts.showSettledHero && opts.slotVisible && !opts.prewarm) return true
   if (!opts.productPainted) return false
   return isProductFullScaleVisible({
     slotVisible: opts.slotVisible,
@@ -144,13 +150,19 @@ export function resolveLab3dFrameRescue(opts: {
     scaleX: opts.productScaleX,
   })
 
+  /** Settled слот владеет экраном — не invalidate paint и не restore Bohr. */
+  const settledOwns =
+    opts.showSettledHero && opts.productSlotVisible && !opts.productPrewarm
+
   const falsePaint =
     opts.productPainted &&
     !productOk &&
-    (opts.preSynthesis || opts.coeffEditing || opts.synthLive || opts.showSettledHero)
+    !settledOwns &&
+    (opts.preSynthesis || opts.coeffEditing || opts.synthLive)
 
   const needBohr =
     opts.hasPreviewTerms &&
+    !settledOwns &&
     (opts.coeffEditing ||
       opts.preSynthesis ||
       (opts.synthLive && !productOk) ||

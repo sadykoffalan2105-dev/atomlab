@@ -202,9 +202,11 @@ export const messagesRu = {
   'reactor.hintBalance':
     'Уравняйте число атомов слева и справа. Если для продукта нужны нагрев, давление или катализатор — включите их ниже перед запуском. Коэффициенты — с клавиатуры (Enter).',
   'reactor.labConditionsAria': 'Условия реактора',
+  'reactor.labConditionsTitle': 'Условия',
   'reactor.labHeat': 'Нагрев',
   'reactor.labPressure': 'Давление',
   'reactor.labCatalyst': 'Катализатор',
+  'reactor.labCatalystActive': 'Активен: {name}',
   'reactor.labConditionsNeeded': 'Включите нужные условия (нагрев / давление / катализатор), иначе синтез не запустится.',
   'reactor.obtainingStepsSummary': 'Этапы получения (школьный/промышленный путь)',
   'reactor.balance.tabsAria': 'Методы балансировки уравнения',

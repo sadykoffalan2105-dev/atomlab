@@ -135,6 +135,35 @@ import type { CompoundDef } from '../src/types/chemistry.ts'
 
 {
   assert.equal(
+    canHideBohrForProduct({
+      productPainted: false,
+      slotVisible: true,
+      prewarm: false,
+      coeffEditing: false,
+      preSynthesis: false,
+      showSettledHero: true,
+    }),
+    true,
+    'settled slot owns screen without paint',
+  )
+  const settledRescue = resolveLab3dFrameRescue({
+    reactorOpen: true,
+    hasPreviewTerms: true,
+    coeffEditing: false,
+    preSynthesis: false,
+    synthLive: false,
+    showSettledHero: true,
+    productPainted: true,
+    productSlotVisible: true,
+    productPrewarm: false,
+    productScaleX: 0.5,
+  })
+  assert.equal(settledRescue.invalidatePaint, false, 'settled: never invalidate paint')
+  assert.equal(settledRescue.forceBohrRootVisible, false, 'settled: do not restore Bohr')
+}
+
+{
+  assert.equal(
     shouldPersistGpuCompileCache({ fromFullScaleCompile: false, fromVisiblePaint: false }),
     false,
   )

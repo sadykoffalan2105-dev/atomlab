@@ -936,32 +936,266 @@
 
 .labConditions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.75rem;
-  padding: 0.15rem 0.75rem 0.25rem;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem 0.4rem;
   flex-shrink: 0;
 }
 
-.labCondItem {
-  display: inline-flex;
+.labCondHead {
+  display: flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.68rem;
-  color: rgba(180, 220, 255, 0.92);
-  cursor: pointer;
-  user-select: none;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
-.labCondItem input {
-  accent-color: #3dffec;
+.labCondTitle {
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(150, 175, 220, 0.78);
+}
+
+.labCondProgress {
+  min-width: 2.1rem;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 150, 200, 0.28);
+  background: rgba(10, 16, 36, 0.65);
+  color: rgba(180, 200, 235, 0.88);
+  font-size: 0.58rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  transition: border-color 0.25s ease, color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.labCondProgressReady {
+  border-color: rgba(61, 255, 236, 0.55);
+  color: rgba(180, 255, 240, 0.98);
+  background: rgba(20, 48, 52, 0.75);
+  box-shadow: 0 0 12px rgba(61, 255, 236, 0.18);
+}
+
+.labCondChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.labCondChip {
+  --chip-accent: #3dffec;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.35rem;
+  padding: 0.35rem 0.55rem 0.35rem 0.45rem;
+  border-radius: 12px;
+  border: 1px solid rgba(90, 120, 170, 0.32);
+  background:
+    linear-gradient(160deg, rgba(18, 26, 48, 0.92), rgba(8, 12, 28, 0.88));
+  color: rgba(190, 210, 245, 0.92);
+  cursor: pointer;
+  user-select: none;
+  overflow: hidden;
+  transition:
+    border-color 0.22s ease,
+    background 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.18s ease,
+    color 0.22s ease;
+}
+
+.labCondChip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--chip-accent) 22%, transparent), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.labCondChip:hover {
+  border-color: color-mix(in srgb, var(--chip-accent) 45%, rgba(90, 120, 170, 0.4));
+  transform: translateY(-1px);
+}
+
+.labCondChip:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--chip-accent) 70%, white);
+  outline-offset: 2px;
+}
+
+.labCondChipOn {
+  border-color: color-mix(in srgb, var(--chip-accent) 70%, transparent);
+  color: #fff;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--chip-accent) 25%, transparent),
+    0 6px 18px color-mix(in srgb, var(--chip-accent) 16%, transparent);
+}
+
+.labCondChipOn::before {
+  opacity: 1;
+}
+
+.labCondChipHeat {
+  --chip-accent: #ff8a3d;
+}
+
+.labCondChipPressure {
+  --chip-accent: #6ea8ff;
+}
+
+.labCondChipCatalyst {
+  --chip-accent: #b56bff;
+}
+
+.labCondIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  color: color-mix(in srgb, var(--chip-accent) 85%, white);
+  flex-shrink: 0;
+}
+
+.labCondChipOn .labCondIcon {
+  background: color-mix(in srgb, var(--chip-accent) 22%, transparent);
+  animation: labCondIconPulse 1.8s ease-in-out infinite;
+}
+
+.labCondChipText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.labCondChipLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.labCondChipSub {
+  max-width: 9.5rem;
+  font-size: 0.58rem;
+  line-height: 1.25;
+  color: rgba(200, 185, 255, 0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.labCondSwitch {
+  position: relative;
+  width: 1.7rem;
+  height: 0.95rem;
+  margin-left: 0.15rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.labCondSwitch::after {
+  content: '';
+  position: absolute;
+  top: 0.12rem;
+  left: 0.12rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: rgba(230, 240, 255, 0.92);
+  transition: transform 0.22s ease, background 0.22s ease;
+}
+
+.labCondSwitch[data-on='1'] {
+  background: color-mix(in srgb, var(--chip-accent) 70%, #1a2038);
+}
+
+.labCondSwitch[data-on='1']::after {
+  transform: translateX(0.72rem);
+  background: #fff;
 }
 
 .labCondHint {
-  flex: 1 1 100%;
-  margin: 0.1rem 0 0;
+  margin: 0.05rem 0 0;
   font-size: 0.62rem;
   line-height: 1.35;
   color: rgba(255, 190, 120, 0.95);
+}
+
+.labCondCatalystLive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(181, 107, 255, 0.4);
+  background: rgba(40, 18, 64, 0.45);
+  color: rgba(230, 210, 255, 0.96);
+  font-size: 0.62rem;
+  line-height: 1.3;
+  animation: labCondCatalystIn 0.35s ease;
+}
+
+.labCondCatalystPulse {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #c084fc;
+  box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.55);
+  animation: labCondPulse 1.4s ease-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes labCondIconPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes labCondPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 0.45rem rgba(192, 132, 252, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(192, 132, 252, 0);
+  }
+}
+
+@keyframes labCondCatalystIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .labCondChip,
+  .labCondChipOn .labCondIcon,
+  .labCondCatalystLive,
+  .labCondCatalystPulse {
+    animation: none;
+    transition: none;
+  }
 }
 
 .obtainingDetails {

@@ -150,7 +150,7 @@ export const COLLAPSE_DEMO_QUALITY = {
 
 /**
  * Lab-профиль: тот же vendor FX (коллапс → вспышка → искры),
- * чуть короче демо, но с заметным WOW (~2.6 с, до ~650 искр).
+ * чуть короче демо, сбалансированный GPU-бюджет (~2.6 с, до ~480 искр).
  */
 export const COLLAPSE_LAB_QUALITY = {
   atom_collapse_time: 0.72,
@@ -159,9 +159,9 @@ export const COLLAPSE_LAB_QUALITY = {
   hold_after_grow: 0.55,
   fade_out: 0.95,
   end_scale: 2.7,
-  particles_per_sec: 220,
-  max_particles: 650,
-  particle_base_size: 56,
+  particles_per_sec: 180,
+  max_particles: 480,
+  particle_base_size: 54,
   particle_speed: 13,
   particle_stretch: 2.8,
   particle_colors: [0xffffff, 0xaaddff, 0x4488ff, 0xffaa00, 0xffffff] as number[],
@@ -584,7 +584,7 @@ export function createElementsCollapseAnimation(
     ringMat.opacity = Math.min(0.85, burstScale * (birthReady ? 0.14 : 0.28)) * fadeMul
     ring.rotation.z = elapsed * 1.2
 
-    burstLight.intensity = Math.min(6.5, burstScale * (birthReady ? 1.15 : 2.1)) * fadeMul
+    burstLight.intensity = Math.min(3.2, burstScale * (birthReady ? 0.75 : 1.35)) * fadeMul
     burstLight.color.copy(lightCol)
 
     return false
@@ -637,8 +637,8 @@ export function resolveCollapseOptionsForDevice(
   if (lowPower) {
     opts = {
       ...opts,
-      particles_per_sec: Math.min(opts.particles_per_sec ?? 220, 140),
-      max_particles: Math.min(opts.max_particles ?? 650, 320),
+      particles_per_sec: Math.min(opts.particles_per_sec ?? 180, 140),
+      max_particles: Math.min(opts.max_particles ?? 480, 280),
       particle_base_size: 46,
       burst_time: Math.min(opts.burst_time ?? 0.72, 0.48),
       hold_after_grow: Math.min(opts.hold_after_grow ?? 0.55, 0.32),

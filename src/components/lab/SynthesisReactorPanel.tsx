@@ -457,39 +457,142 @@ export function SynthesisReactorPanel({
         productCompound.synthesisLab?.needsPressure ||
         productCompound.synthesisLab?.needsCatalyst) ? (
         <div className={panelStyles.labConditions} role="group" aria-label={t('reactor.labConditionsAria')}>
-          {productCompound.synthesisLab?.needsHeat ? (
-            <label className={panelStyles.labCondItem}>
-              <input
-                type="checkbox"
-                checked={labHeatOn}
-                onChange={(e) => onLabHeatChange?.(e.target.checked)}
-              />
-              <span>{t('reactor.labHeat')}</span>
-            </label>
-          ) : null}
-          {productCompound.synthesisLab?.needsPressure ? (
-            <label className={panelStyles.labCondItem}>
-              <input
-                type="checkbox"
-                checked={labPressureOn}
-                onChange={(e) => onLabPressureChange?.(e.target.checked)}
-              />
-              <span>{t('reactor.labPressure')}</span>
-            </label>
-          ) : null}
-          {productCompound.synthesisLab?.needsCatalyst ? (
-            <label className={panelStyles.labCondItem}>
-              <input
-                type="checkbox"
-                checked={labCatalystOn}
-                onChange={(e) => onLabCatalystChange?.(e.target.checked)}
-              />
-              <span>{t('reactor.labCatalyst')}</span>
-            </label>
-          ) : null}
+          <div className={panelStyles.labCondHead}>
+            <span className={panelStyles.labCondTitle}>{t('reactor.labConditionsTitle')}</span>
+            {(() => {
+              const need = [
+                productCompound.synthesisLab?.needsHeat,
+                productCompound.synthesisLab?.needsPressure,
+                productCompound.synthesisLab?.needsCatalyst,
+              ].filter(Boolean).length
+              const on =
+                (productCompound.synthesisLab?.needsHeat && labHeatOn ? 1 : 0) +
+                (productCompound.synthesisLab?.needsPressure && labPressureOn ? 1 : 0) +
+                (productCompound.synthesisLab?.needsCatalyst && labCatalystOn ? 1 : 0)
+              const ready = need > 0 && on >= need
+              return (
+                <span
+                  className={
+                    ready
+                      ? `${panelStyles.labCondProgress} ${panelStyles.labCondProgressReady}`
+                      : panelStyles.labCondProgress
+                  }
+                  aria-hidden
+                >
+                  {on}/{need}
+                </span>
+              )
+            })()}
+          </div>
+          <div className={panelStyles.labCondChips}>
+            {productCompound.synthesisLab?.needsHeat ? (
+              <button
+                type="button"
+                className={
+                  labHeatOn
+                    ? `${panelStyles.labCondChip} ${panelStyles.labCondChipHeat} ${panelStyles.labCondChipOn}`
+                    : `${panelStyles.labCondChip} ${panelStyles.labCondChipHeat}`
+                }
+                aria-pressed={labHeatOn}
+                onClick={() => onLabHeatChange?.(!labHeatOn)}
+              >
+                <span className={panelStyles.labCondIcon} aria-hidden>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                    <path
+                      d="M12 3c1.2 2.2.4 3.8-.4 5.1-.7 1.1-1.3 2-.9 3.4.4 1.5 1.8 2.5 3.5 2.5 2.4 0 4.3-1.9 4.3-4.4 0-2.6-1.7-4.3-4-6.1C13.2 2.4 12.6 2.6 12 3Z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M9.2 18.2c.7 1.4 2 2.3 3.5 2.3s2.8-.9 3.5-2.3"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+                <span className={panelStyles.labCondChipText}>
+                  <span className={panelStyles.labCondChipLabel}>{t('reactor.labHeat')}</span>
+                </span>
+                <span className={panelStyles.labCondSwitch} aria-hidden data-on={labHeatOn ? '1' : '0'} />
+              </button>
+            ) : null}
+            {productCompound.synthesisLab?.needsPressure ? (
+              <button
+                type="button"
+                className={
+                  labPressureOn
+                    ? `${panelStyles.labCondChip} ${panelStyles.labCondChipPressure} ${panelStyles.labCondChipOn}`
+                    : `${panelStyles.labCondChip} ${panelStyles.labCondChipPressure}`
+                }
+                aria-pressed={labPressureOn}
+                onClick={() => onLabPressureChange?.(!labPressureOn)}
+              >
+                <span className={panelStyles.labCondIcon} aria-hidden>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                    <path
+                      d="M6 14.5c0-3.6 2.5-6.2 6-8.5 3.5 2.3 6 4.9 6 8.5a6 6 0 1 1-12 0Z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
+                    <path d="M12 11v5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                </span>
+                <span className={panelStyles.labCondChipText}>
+                  <span className={panelStyles.labCondChipLabel}>{t('reactor.labPressure')}</span>
+                </span>
+                <span className={panelStyles.labCondSwitch} aria-hidden data-on={labPressureOn ? '1' : '0'} />
+              </button>
+            ) : null}
+            {productCompound.synthesisLab?.needsCatalyst ? (
+              <button
+                type="button"
+                className={
+                  labCatalystOn
+                    ? `${panelStyles.labCondChip} ${panelStyles.labCondChipCatalyst} ${panelStyles.labCondChipOn}`
+                    : `${panelStyles.labCondChip} ${panelStyles.labCondChipCatalyst}`
+                }
+                aria-pressed={labCatalystOn}
+                onClick={() => onLabCatalystChange?.(!labCatalystOn)}
+              >
+                <span className={panelStyles.labCondIcon} aria-hidden>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                    <circle cx="8.5" cy="12" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+                    <circle cx="15.5" cy="8.5" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+                    <circle cx="15.5" cy="15.5" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+                    <path
+                      d="M10.4 11.2 13.6 9.2M10.4 12.8l3.2 2"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+                <span className={panelStyles.labCondChipText}>
+                  <span className={panelStyles.labCondChipLabel}>{t('reactor.labCatalyst')}</span>
+                  {productStrings?.synthesisConditions.catalyst ? (
+                    <span className={panelStyles.labCondChipSub}>
+                      {productStrings.synthesisConditions.catalyst}
+                    </span>
+                  ) : null}
+                </span>
+                <span className={panelStyles.labCondSwitch} aria-hidden data-on={labCatalystOn ? '1' : '0'} />
+              </button>
+            ) : null}
+          </div>
           {equationBalanced && !canRun && !synthesisRunning ? (
             <p className={panelStyles.labCondHint} role="status">
               {t('reactor.labConditionsNeeded')}
+            </p>
+          ) : null}
+          {labCatalystOn && productStrings?.synthesisConditions.catalyst ? (
+            <p className={panelStyles.labCondCatalystLive} role="status">
+              <span className={panelStyles.labCondCatalystPulse} aria-hidden />
+              {t('reactor.labCatalystActive', {
+                name: productStrings.synthesisConditions.catalyst,
+              })}
             </p>
           ) : null}
         </div>

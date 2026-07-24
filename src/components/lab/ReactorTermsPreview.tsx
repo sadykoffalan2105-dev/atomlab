@@ -72,6 +72,7 @@ export function ReactorTermsPreview({
   productPrewarm: _productPrewarm = false,
   lowPower = false,
   frameBudgetLite = false,
+  productOwnsScreen: productOwnsScreenProp,
   atomGroupRefs: atomGroupRefsExternal,
   atomScaleGroupRefs: atomScaleGroupRefsExternal,
   previewRootRef,
@@ -91,6 +92,8 @@ export function ReactorTermsPreview({
   productPrewarm?: boolean
   lowPower?: boolean
   frameBudgetLite?: boolean
+  /** Явный сигнал LabScene: молекула владеет экраном — орбиты гасим. */
+  productOwnsScreen?: boolean
   atomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   atomScaleGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   previewRootRef?: MutableRefObject<THREE.Group | null>
@@ -483,7 +486,8 @@ export function ReactorTermsPreview({
      * Иначе после синтеза 22 Bohr + молекула = хаос орбит (баг со скрина K₂Cr₂O₇).
      */
     const holdAtoms = previewOnlyMode || coeffEditing || synthHoldPreview
-    const productOwnsScreen = !visible && !holdAtoms
+    const productOwnsScreen =
+      productOwnsScreenProp === true || (!visible && !holdAtoms)
     const hardPin =
       !productOwnsScreen &&
       shouldHardPinCoeffEditAtoms({
@@ -695,7 +699,8 @@ export function ReactorTermsPreview({
   const holdAtomsUi = previewOnlyMode || coeffEditing || synthHoldPreview
   const motionPolicy = resolvePreviewMotionPolicy(Math.max(stickySlotCount, n))
   /** Product owns screen → скрыть Bohr. Edit/pre-synth → всегда показать. */
-  const productOwnsScreen = !holdAtomsUi && !visible
+  const productOwnsScreen =
+    productOwnsScreenProp === true || (!holdAtomsUi && !visible)
   const reactGroupVisible = resolveBohrReactVisible({
     visible: Boolean(visible),
     previewOnlyMode,
@@ -712,9 +717,13 @@ export function ReactorTermsPreview({
   const electronsLive =
     !flightActive && forceElectronMotion && reactGroupVisible && holdAtomsUi
   const bohrAnimate = electronsLive
-  /** Dense (дихромат): lite-материалы обязательны — full×22 = WebGL white-screen. */
+  /** Dense / collapse flight: lite-материалы обязательны. */
   const slotPreviewLite =
-    lowPower || !holdAtomsUi || motionPolicy.forceLiteMaterials || Boolean(forceLite)
+    lowPower ||
+    flightActive ||
+    !holdAtomsUi ||
+    motionPolicy.forceLiteMaterials ||
+    Boolean(forceLite)
 
   return (
     <group
@@ -751,7 +760,7 @@ export function ReactorTermsPreview({
                 synthesisGlass={false}
                 previewLite={slotPreviewLite}
                 electronFrameSkip={flightActive ? 8 : editSkip}
-                hideOrbitRings={!holdAtomsUi || flightActive}
+                hideOrbitRings={productOwnsScreen || !holdAtomsUi || flightActive}
                 localLight={editLocalLight}
               />
             </group>

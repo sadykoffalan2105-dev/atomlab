@@ -204,9 +204,11 @@ export const messagesEn: Record<MessageKey, string> = {
   'reactor.hintBalance':
     'Balance atoms left and right. If the product needs heat, pressure or a catalyst — enable them below before launch. Coefficients — keyboard (Enter).',
   'reactor.labConditionsAria': 'Reactor conditions',
+  'reactor.labConditionsTitle': 'Conditions',
   'reactor.labHeat': 'Heat',
   'reactor.labPressure': 'Pressure',
   'reactor.labCatalyst': 'Catalyst',
+  'reactor.labCatalystActive': 'Active: {name}',
   'reactor.labConditionsNeeded': 'Turn on the required conditions (heat / pressure / catalyst), or synthesis will not start.',
   'reactor.obtainingStepsSummary': 'Obtaining steps (school / industrial route)',
   'reactor.balance.tabsAria': 'Equation balancing methods',

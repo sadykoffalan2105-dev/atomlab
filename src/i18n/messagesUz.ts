@@ -204,9 +204,11 @@ export const messagesUz: Record<MessageKey, string> = {
   'reactor.hintBalance':
     'Chap va o\'ngdagi atomlarni muvozanatlang. Mahsulot uchun issiqlik, bosim yoki katalizator kerak bo\'lsa — ishga tushirishdan oldin pastda yoqing. Koeffitsientlar — klaviatura (Enter).',
   'reactor.labConditionsAria': 'Reaktor shartlari',
+  'reactor.labConditionsTitle': 'Shartlar',
   'reactor.labHeat': 'Isitish',
   'reactor.labPressure': 'Bosim',
   'reactor.labCatalyst': 'Katalizator',
+  'reactor.labCatalystActive': 'Faol: {name}',
   'reactor.labConditionsNeeded': 'Kerakli shartlarni yoqing (isitish / bosim / katalizator), aks holda sintez ishga tushmaydi.',
   'reactor.obtainingStepsSummary': 'Olish bosqichlari (maktab / sanoat yo\'li)',
   'reactor.balance.tabsAria': 'Tenglama muvozanatlash usullari',

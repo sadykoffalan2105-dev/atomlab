@@ -1120,6 +1120,7 @@ function SceneContent({
         coeffEditing: coeffEditingActive,
         preSynthesis: preSynthesisPreview,
         scaleX,
+        showSettledHero,
       })
     ) {
       return
@@ -1133,6 +1134,7 @@ function SceneContent({
     productPrewarmResolved,
     coeffEditingActive,
     preSynthesisPreview,
+    showSettledHero,
   ])
 
   useLayoutEffect(() => {
@@ -1349,22 +1351,24 @@ function SceneContent({
   /** Фон реактора с первого кадра после «Синтез» — без чёрного провала и ghost-frame. */
   const reactorBackdrop = reactorViewOpen
 
-  /** Каталожный кадр: только settled + full-scale paint — иначе Bohr «за кадром». */
-  const productTrulyOwnsScreen =
-    showSettledHero &&
-    effectiveProductPainted &&
-    productSlotVisibleResolved &&
-    !productPrewarmResolved &&
-    !coeffEditingActive
-
-  /** Bohr гасим сразу, как только молекула full-scale (и при settle, и в конце run). */
+  /** Каталожный кадр / Bohr: settled слот ИЛИ painted продукт во время/после синтеза. */
   const hideBohrForProduct =
-    !coeffEditingActive &&
-    !preSynthesisPreview &&
-    effectiveProductPainted &&
-    productSlotVisibleResolved &&
-    !productPrewarmResolved &&
-    (showSettledHero || synthActive || synthesisRunActive)
+    canHideBohrForProduct({
+      productPainted: effectiveProductPainted,
+      slotVisible: productSlotVisibleResolved,
+      prewarm: productPrewarmResolved,
+      coeffEditing: coeffEditingActive,
+      preSynthesis: preSynthesisPreview,
+      showSettledHero,
+    }) ||
+    (!coeffEditingActive &&
+      !preSynthesisPreview &&
+      effectiveProductPainted &&
+      productSlotVisibleResolved &&
+      !productPrewarmResolved &&
+      (synthActive || synthesisRunActive))
+
+  const productTrulyOwnsScreen = hideBohrForProduct && showSettledHero
 
   const catalogViewMode = previewActive || productTrulyOwnsScreen
 
@@ -1640,6 +1644,7 @@ function SceneContent({
       coeffEditing: coeffEditingActive,
       preSynthesis: preSynthesisPreview,
       scaleX: productRootGroupRef.current?.scale.x,
+      showSettledHero,
     })
 
     previewContinuityRef.current.tick({
@@ -1798,13 +1803,15 @@ function SceneContent({
       coeffEditing: coeffEditingActive,
       preSynthesis: preSynthesisPreview,
       scaleX: productRootGroupRef.current?.scale.x,
+      showSettledHero,
     })
     const mustShowBohr =
       reactorViewOpen &&
       effectivePreviewTerms != null &&
       effectivePreviewTerms.length >= 1 &&
       !productScreenOkForHide &&
-      (!showSettledHero || coeffEditingActive || rescue.keepBohrUntilPaint)
+      (!showSettledHero || coeffEditingActive) &&
+      rescue.keepBohrUntilPaint
     if (mustShowBohr && previewRootRef.current) {
       previewRootRef.current.visible = true
     } else if (productScreenOkForHide && previewRootRef.current && !coeffEditingActive) {
@@ -1931,6 +1938,7 @@ function SceneContent({
             true
           }
           frozen={synthActive || synthesisRunActive || showElementsCollapseFx}
+          collapseActive={showElementsCollapseFx || collapseFxLinger}
         />
       ) : null}
       {reactorBackdrop ? <LabReactorLights /> : null}
@@ -2005,14 +2013,10 @@ function SceneContent({
               coeffEditing={coeffEditingActive}
               frameBudgetLite={frameBudgetLite}
               previewOnlyMode={
+                !hideBohrForProduct &&
                 !synthesisRunActive &&
                 !synthActive &&
-                !(
-                  showSettledHero &&
-                  effectiveProductPainted &&
-                  productSlotVisibleResolved &&
-                  !coeffEditingActive
-                )
+                !showSettledHero
               }
               // После paint/settle Bohr обязан быть скрыт — иначе орбиты поверх молекулы.
               visible={
@@ -2022,6 +2026,7 @@ function SceneContent({
                   coeffEditingActive ||
                   synthHoldPreview)
               }
+              productOwnsScreen={hideBohrForProduct}
               synthHoldPreview={synthHoldPreview && !hideBohrForProduct}
               lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}
               productPrewarm={productPrewarmActive}
