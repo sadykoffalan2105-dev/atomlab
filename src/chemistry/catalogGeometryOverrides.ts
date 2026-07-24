@@ -155,6 +155,28 @@ function no2Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, nu
   }
 }
 
+/**
+ * ClO₂: изогнутая V-форма, угол O–Cl–O ≈ 117.4°
+ * (неспаренный электрон на Cl → не линейная 180°).
+ */
+function clo2Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const d = 0.56
+  const half = (117.4 / 2) * (Math.PI / 180)
+  const o0: Vec3 = [d * Math.sin(half), 0, d * Math.cos(half)]
+  const o1: Vec3 = [-d * Math.sin(half), 0, d * Math.cos(half)]
+  return {
+    atoms: [
+      { symbol: 'Cl', pos: [0, 0, 0] },
+      { symbol: 'O', pos: o0 },
+      { symbol: 'O', pos: o1 },
+    ],
+    bonds: [
+      [0, 1],
+      [0, 2],
+    ],
+  }
+}
+
 /** H₂CO₃: плоский C, два OH и одно =O. */
 function h2co3Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
   const r = 0.55
@@ -1407,6 +1429,8 @@ export function getMolecularGeometryOrNull(
       return so2Geometry()
     case 'no2':
       return no2Geometry()
+    case 'clo2':
+      return clo2Geometry()
     case 'nh3':
       return nh3Geometry()
     case 'h2s':

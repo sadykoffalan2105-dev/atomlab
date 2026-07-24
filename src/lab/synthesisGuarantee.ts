@@ -5,6 +5,7 @@ import {
   type ReactorEquationTerm,
   type ReactorValidationErrorCode,
 } from '../chemistry/reactorEquationBalance'
+import { scientificSynthesisWatchdogMs } from './scientificSynthesis/clo2ScenarioTiming'
 import { synthesisLaunchWatchdogMs } from './synthesisLaunchTiming'
 import { getReactorVisualTier, type ReactorVisualTier } from '../chemistry/reactorVisualTier'
 import type { CompoundDef } from '../types/chemistry'
@@ -21,7 +22,10 @@ export const SYNTHESIS_WATCHDOG_MS = 5200
 export function getSynthesisWatchdogMs(
   flyTerms: readonly ReactorEquationTerm[],
   zSlots: readonly number[],
+  productId?: string | null,
 ): number {
+  const sci = productId ? scientificSynthesisWatchdogMs(productId) : null
+  if (sci != null) return sci
   if (flyTerms.length > 0) {
     const atomCount = expandLeftTermsToPreviewSlots(flyTerms).length
     const tier = getReactorVisualTier(flyTerms)

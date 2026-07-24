@@ -22,6 +22,7 @@ const FORBIDDEN_FROM_ELEMENTS = new Set<string>([
   'n2o5',
   'n2o',
   'no2',
+  'clo2',
   'feo',
   'cu2o',
   'bao',

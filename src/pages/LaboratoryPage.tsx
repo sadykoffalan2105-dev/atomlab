@@ -710,7 +710,11 @@ export function LaboratoryPage() {
     lastRunProductIdRef.current = payload.productId
     lastRunProductRef.current = payload.compound
     lastRunVisualTierRef.current = payload.visualTier
-    synthesisWatchdogMsRef.current = getSynthesisWatchdogMs(payload.flyTerms, payload.zSlots)
+    synthesisWatchdogMsRef.current = getSynthesisWatchdogMs(
+      payload.flyTerms,
+      payload.zSlots,
+      payload.productId,
+    )
     const nextRunId = runId + 1
     synthesisRunGuardRef.current.beginRun(nextRunId)
     const name = getCompoundLocaleStrings(payload.compound, locale, t).name

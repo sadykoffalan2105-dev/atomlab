@@ -64,6 +64,7 @@ const ANIONS: Record<
   NO2: { comp: { N: 1, O: 2 }, charge: -1, noun: 'Нитрит', u: 'NO₂' },
   NO3: { comp: { N: 1, O: 3 }, charge: -1, noun: 'Нитрат', u: 'NO₃' },
   MnO4: { comp: { Mn: 1, O: 4 }, charge: -1, noun: 'Перманганат', u: 'MnO₄' },
+  ClO2: { comp: { Cl: 1, O: 2 }, charge: -1, noun: 'Хлорит', u: 'ClO₂' },
   ClO3: { comp: { Cl: 1, O: 3 }, charge: -1, noun: 'Хлорат', u: 'ClO₃' },
   ClO4: { comp: { Cl: 1, O: 4 }, charge: -1, noun: 'Перхлорат', u: 'ClO₄' },
   SO4: { comp: { S: 1, O: 4 }, charge: -2, noun: 'Сульфат', u: 'SO₄' },
@@ -371,7 +372,7 @@ function generateSalts(): RawCompoundDef[] {
   const out: RawCompoundDef[] = []
   const seen = new Set<string>()
 
-  const anionMinus1 = ['Cl', 'Br', 'I', 'F', 'NO2', 'NO3', 'MnO4', 'ClO3', 'ClO4'] as const
+  const anionMinus1 = ['Cl', 'Br', 'I', 'F', 'NO2', 'NO3', 'MnO4', 'ClO2', 'ClO3', 'ClO4'] as const
   const anionMinus2 = ['SO4', 'SO3', 'CO3', 'S', 'SiO3', 'CrO4', 'Cr2O7'] as const
   const anionMinus3 = ['PO4'] as const
 
@@ -891,8 +892,9 @@ const OXIDES: RawCompoundDef[] = [
     nameRu: 'Диоксид хлора',
     formulaUnicode: 'ClO₂',
     composition: { Cl: 1, O: 2 },
+    accentColor: '#e8a040',
     descriptionRu:
-      'Жёлто-зелёный газ, сильный окислитель и дезинфектант для воды и поверхностей. В чистом виде взрывоопасен; на производстве разводят на месте. В школе изучают по уравнениям и правилам промышленной химии.',
+      'Жёлто-зелёный / янтарный газ, сильный окислитель и дезинфектант. Молекула изогнута (O–Cl–O ≈ 117°). Промышленно и в учебном микромире получают окислением хлорита: 2NaClO₂ + Cl₂ → 2NaCl + 2ClO₂ — не прямым синтезом из Cl₂ и O₂. В чистом виде взрывоопасен; на производстве разводят на месте.',
   },
 ]
 

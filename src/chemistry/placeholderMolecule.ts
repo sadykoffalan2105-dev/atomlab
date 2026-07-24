@@ -420,6 +420,26 @@ const ANIONS: IonDef[] = [
   { id: 'no2', charge: -1, comp: { N: 1, O: 2 }, build: buildPolyatomicCenterOuter('N', 'O', 2, true) },
   { id: 'no3', charge: -1, comp: { N: 1, O: 3 }, build: buildPolyatomicCenterOuter('N', 'O', 3, true) },
   { id: 'mno4', charge: -1, comp: { Mn: 1, O: 4 }, build: buildPolyatomicCenterOuter('Mn', 'O', 4) },
+  {
+    id: 'clo2',
+    charge: -1,
+    comp: { Cl: 1, O: 2 },
+    build: () => {
+      // ClO₂⁻: V-форма ≈ 117° (как у нейтрального ClO₂).
+      const d = 0.56
+      const half = (117 / 2) * (Math.PI / 180)
+      const o0: V3 = [d * Math.sin(half), 0, d * Math.cos(half)]
+      const o1: V3 = [-d * Math.sin(half), 0, d * Math.cos(half)]
+      return {
+        symbols: ['Cl', 'O', 'O'],
+        pos: [[0, 0, 0], o0, o1],
+        bonds: [
+          [0, 1],
+          [0, 2],
+        ],
+      }
+    },
+  },
   { id: 'clo3', charge: -1, comp: { Cl: 1, O: 3 }, build: buildPolyatomicCenterOuter('Cl', 'O', 3, true) },
   { id: 'clo4', charge: -1, comp: { Cl: 1, O: 4 }, build: buildPolyatomicCenterOuter('Cl', 'O', 4) },
   { id: 'so4', charge: -2, comp: { S: 1, O: 4 }, build: buildPolyatomicCenterOuter('S', 'O', 4) },

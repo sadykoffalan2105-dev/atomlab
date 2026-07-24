@@ -17,8 +17,9 @@ import { DecorativeAtom } from './DecorativeAtom'
 import { AtomStructureModel } from './AtomStructureModel'
 import { MoleculeMesh } from './MoleculeMesh'
 import { SynthesisOnLabScene } from './SynthesisOnLabScene'
-import { InstantLabSynthesis } from './InstantLabSynthesis'
 import { SynthesisElementsCollapseFx } from './SynthesisElementsCollapseFx'
+import { InstantLabSynthesis } from './InstantLabSynthesis'
+import { getScientificSynthesisFx, hasScientificSynthesisFx } from '../../lab/scientificSynthesis/registry'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
 import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { assertNoProductHeroBeforeRun } from '../../lab/atomGuard/labPreviewGuard'
@@ -526,6 +527,13 @@ function SceneContent({
     instantSynthesis &&
     currentSynthRunIdForCollapse > 0 &&
     (elementsCollapsePlaying || collapseFxLinger)
+  const scientificMicroworldActive =
+    synthActive &&
+    showElementsCollapseFx &&
+    hasScientificSynthesisFx(synthesis?.product?.id)
+  const ScientificFx = scientificMicroworldActive
+    ? getScientificSynthesisFx(synthesis?.product?.id)
+    : null
   void collapseRev
 
   useLayoutEffect(() => {
@@ -2020,6 +2028,7 @@ function SceneContent({
               }
               // После paint/settle Bohr обязан быть скрыт — иначе орбиты поверх молекулы.
               visible={
+                !scientificMicroworldActive &&
                 !hideBohrForProduct &&
                 (reactorPreviewVisible ||
                   preSynthesisPreview ||
@@ -2062,21 +2071,31 @@ function SceneContent({
             />
           ) : null}
           {synthActive && synthesis && instantSynthesis && showElementsCollapseFx ? (
-            <SynthesisElementsCollapseFx
-              key={`collapse-${synthesis.runId}`}
-              runId={synthesis.runId}
-              atomGroupRefs={previewAtomGroupRefs}
-              atomCount={previewAtomCount}
-              densePreview={previewAtomCount >= 10}
-              lowPower={
-                // Только реально слабое устройство — synthForceLite резал FX до «лего».
-                lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc
-              }
-              accentHex={synthesis.product?.accentColor}
-              onEmbryoReady={handleElementsCollapseEmbryoReady}
-              onBirthReady={handleElementsCollapseBirthReady}
-              onComplete={handleElementsCollapseComplete}
-            />
+            ScientificFx ? (
+              <ScientificFx
+                key={`sci-${synthesis.product.id}-${synthesis.runId}`}
+                runId={synthesis.runId}
+                onEmbryoReady={handleElementsCollapseEmbryoReady}
+                onBirthReady={handleElementsCollapseBirthReady}
+                onComplete={handleElementsCollapseComplete}
+              />
+            ) : (
+              <SynthesisElementsCollapseFx
+                key={`collapse-${synthesis.runId}`}
+                runId={synthesis.runId}
+                atomGroupRefs={previewAtomGroupRefs}
+                atomCount={previewAtomCount}
+                densePreview={previewAtomCount >= 10}
+                lowPower={
+                  // Только реально слабое устройство — synthForceLite резал FX до «лего».
+                  lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc
+                }
+                accentHex={synthesis.product?.accentColor}
+                onEmbryoReady={handleElementsCollapseEmbryoReady}
+                onBirthReady={handleElementsCollapseBirthReady}
+                onComplete={handleElementsCollapseComplete}
+              />
+            )
           ) : null}
           {synthActive && synthesis && instantSynthesis && !elementsCollapsePlaying ? (
             <InstantLabSynthesis
