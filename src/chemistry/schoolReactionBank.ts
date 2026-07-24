@@ -2,6 +2,7 @@ import type { ReactionClass } from './reactionTypeTaxonomy'
 import { defaultPassportForClass, type ReactionPassport } from './reactionPassport'
 import { SCHOOL_REACTIONS_DATA } from '../data/curriculum/schoolReactionsData'
 import type { ReactionReactant, SchoolReactionDef } from '../data/curriculum/schoolReactionTypes'
+import { preferredSchoolReactionId } from './substanceSynthesisRoute'
 
 export type { ReactionReactant, SchoolReactionDef }
 
@@ -43,4 +44,17 @@ export function synthesisReactions(): readonly SchoolReactionEntry[] {
 
 export function practiceReactions(): readonly SchoolReactionEntry[] {
   return SCHOOL_REACTION_BANK.filter((r) => r.kind === 'practice_only')
+}
+
+/** Предпочтительная школьная реакция для карточки вещества (VIP → productId банка). */
+export function primaryReactionForCompound(compoundId: string): SchoolReactionEntry | undefined {
+  const id = preferredSchoolReactionId(compoundId)
+  return id ? getSchoolReaction(id) : undefined
+}
+
+/** Все реакции банка, где вещество — продукт или участник. */
+export function reactionsForCompound(compoundId: string): readonly SchoolReactionEntry[] {
+  return SCHOOL_REACTION_BANK.filter(
+    (r) => r.productId === compoundId || r.compoundIds.includes(compoundId),
+  )
 }

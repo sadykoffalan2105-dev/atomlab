@@ -328,15 +328,13 @@ export function LaboratoryPage() {
     [t, catalogList],
   )
 
-  const equationSignature = useMemo(
-    () =>
-      JSON.stringify({
-        terms: leftTerms.map((t) => [t.id, t.z, t.coeff, t.diatomic ?? false]),
-        product: productCompoundId,
-        coeff: productCoeff,
-      }),
-    [leftTerms, productCompoundId, productCoeff],
-  )
+  /** Дешёвая сигнатура уравнения (без JSON.stringify на каждый keystroke). */
+  const equationSignature = useMemo(() => {
+    const terms = leftTerms
+      .map((term) => `${term.id}:${term.z}:${term.coeff}:${term.diatomic ? 1 : 0}`)
+      .join('|')
+    return `${terms}#${productCompoundId ?? ''}#${productCoeff}`
+  }, [leftTerms, productCompoundId, productCoeff])
   const settledSnapshotRef = useRef<string | null>(null)
 
   /** Sync clear settled при смене уравнения — сразу pin Bohr, без кадра «пусто». */

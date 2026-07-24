@@ -319,10 +319,66 @@ export const SCHOOL_REACTIONS_PART1: readonly SchoolReactionDef[] = [
   },
 ] as const
 
-export const SCHOOL_REACTIONS_DATA: readonly SchoolReactionDef[] = [
+/**
+ * Основной продукт каталога для practice-реакций, где productId был null
+ * (в уравнении несколько веществ справа — фиксируем школьный фокус).
+ */
+const PRACTICE_PRODUCT_ID: Readonly<Record<string, string>> = {
+  'fe-cuso4': 'salt_fe2_so4',
+  'ki-cl2': 'salt_k_cl',
+  'cu-agno3': 'salt_cu_no3',
+  'na-h2o': 'naoh',
+  'k-h2o': 'koh',
+  'bacl2-na2so4': 'salt_ba_so4',
+  'agno3-nacl': 'salt_ag_cl',
+  'cacl2-na2co3': 'salt_ca_co3',
+  'cuso4-naoh': 'cu_oh_2',
+  'fecl3-naoh': 'fe_oh_3',
+  'fecl2-naoh': 'fe_oh_2',
+  'znso4-naoh': 'zn_oh_2',
+  'agno3-kbr': 'salt_ag_br',
+  'agno3-ki': 'salt_ag_i',
+  'bacl2-h2so4': 'salt_ba_so4',
+  'pb-no3-nacl': 'salt_pb_cl',
+  'cl2-h2o': 'hclo',
+  'cu-h2so4-conc': 'salt_cu_so4',
+  'na2co3-hydrolysis': 'salt_nahco3',
+  'fecl3-hydrolysis': 'fe_oh_3',
+  'nahco3-decomp': 'salt_na_co3',
+  'salt_k_mno4-decomp': 'mno2',
+  'kno3-decomp': 'salt_k_no2',
+  'al-cuso4': 'salt_al_so4',
+  'zn-cuso4': 'salt_zn_so4',
+  'mg-cuso4': 'salt_mg_so4',
+  'fe-h2so4': 'salt_fe2_so4',
+  'zn-h2so4': 'salt_zn_so4',
+  'mg-h2so4': 'salt_mg_so4',
+  'al-h2so4': 'salt_al_so4',
+  'cl2-kbr': 'salt_k_cl',
+  'cuso4-baoh2': 'cu_oh_2',
+  'cuso4-bacl2': 'salt_ba_so4',
+  'agno3-hcl': 'salt_ag_cl',
+  'pb-no3-ki': 'salt_pb_i',
+  'pb-no3-k2so4': 'salt_pb_so4',
+  'fecl3-agno3': 'salt_ag_cl',
+  'nahco3-caoh2': 'salt_ca_co3',
+  'salt_cu_so4-hydrolysis': 'cu_oh_2',
+  'h2s-o2-so2': 'so2',
+  'fes2-roast': 'so2',
+}
+
+function withPracticeProducts(rows: readonly SchoolReactionDef[]): readonly SchoolReactionDef[] {
+  return rows.map((r) => {
+    if (r.productId) return r
+    const id = PRACTICE_PRODUCT_ID[r.id]
+    return id ? { ...r, productId: id } : r
+  })
+}
+
+export const SCHOOL_REACTIONS_DATA: readonly SchoolReactionDef[] = withPracticeProducts([
   ...SCHOOL_REACTIONS_PART1,
   ...SCHOOL_REACTIONS_PART2,
   ...SCHOOL_REACTIONS_PART3,
   ...SCHOOL_REACTIONS_PART4,
   ...SCHOOL_REACTIONS_PART5,
-] as const
+])

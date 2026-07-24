@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { describePassportRu } from '../chemistry/reactionPassport'
 import { reactantsSummaryRu } from '../chemistry/reactionReactantLabels'
 import { passportForReaction, SCHOOL_REACTION_BANK } from '../chemistry/schoolReactionBank'
@@ -64,7 +64,17 @@ export function CatalogPage() {
   const [inorganicChapter, setInorganicChapter] = useState<InorganicChapter | 'all'>('all')
   const [inorganicView, setInorganicView] = useState<'substances' | 'reactions'>('substances')
   const [reactionClass, setReactionClass] = useState<ReactionClass | 'all'>('all')
+  const [highlightReactionId, setHighlightReactionId] = useState<string | null>(null)
   const [organicGrade, setOrganicGrade] = useState<OrganicSchoolGrade | 'all'>('all')
+
+  const openSchoolReaction = useCallback((reactionId: string) => {
+    setSelectedId(null)
+    setDomain('inorganic')
+    setInorganicView('reactions')
+    setReactionClass('all')
+    setQ('')
+    setHighlightReactionId(reactionId)
+  }, [])
 
   const list = useMemo(() => Object.values(compoundById), [])
 
@@ -123,6 +133,14 @@ export function CatalogPage() {
     }
     return rows
   }, [inorganicGrade, reactionClass, q])
+
+  useEffect(() => {
+    if (!highlightReactionId || inorganicView !== 'reactions') return
+    const el = document.getElementById(`school-rx-${highlightReactionId}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const timer = window.setTimeout(() => setHighlightReactionId(null), 4500)
+    return () => window.clearTimeout(timer)
+  }, [highlightReactionId, inorganicView, reactionsFiltered.length])
 
   const inorganicCount = inorganicView === 'substances' ? filtered.length : reactionsFiltered.length
   const organicCount = organicFiltered.length
@@ -342,9 +360,16 @@ export function CatalogPage() {
                 const passport = passportForReaction(r)
                 const title = locale === 'en' ? r.titleEn : r.titleRu
                 const reactantsLine = reactantsSummaryRu(r.reactants)
+                const highlighted = highlightReactionId === r.id
                 return (
-                  <li key={r.id}>
-                    <article className={styles.reactionCard}>
+                  <li key={r.id} id={`school-rx-${r.id}`}>
+                    <article
+                      className={
+                        highlighted
+                          ? `${styles.reactionCard} ${styles.reactionCardHighlight}`
+                          : styles.reactionCard
+                      }
+                    >
                       <span className={styles.name}>{title}</span>
                       <span className={styles.formula}>{r.equationRu}</span>
                       <span className={styles.gradeTag}>
@@ -412,7 +437,11 @@ export function CatalogPage() {
         </>
       )}
 
-      <CompoundDetailModal compoundId={selectedId} onClose={() => setSelectedId(null)} />
+      <CompoundDetailModal
+        compoundId={selectedId}
+        onClose={() => setSelectedId(null)}
+        onOpenSchoolReaction={openSchoolReaction}
+      />
       <OrganicMoleculeDetailModal mol={selectedOrganic} onClose={() => setSelectedOrganic(null)} />
     </div>
   )

@@ -278,6 +278,9 @@ export const messagesRu = {
   'compound.catalyst': 'Катализатор',
   'compound.equipment': 'Оборудование',
   'compound.obtainingSteps': 'Этапы получения',
+  'compound.schoolReaction': 'Школьная реакция',
+  'compound.openInReactions': 'Открыть в «Реакции»',
+  'compound.schoolReactionAria': 'Открыть школьную реакцию в каталоге',
   'compound.preview3d': 'Трёхмерная модель вещества',
   'compound.labExampleAria': 'Получение вещества',
 

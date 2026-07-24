@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react'
+import { primaryReactionForCompound } from '../../chemistry/schoolReactionBank'
 import { compoundById } from '../../data/compounds'
 import { getCompoundLocaleStrings, type CompoundLocaleStrings } from '../../i18n/compoundLocale'
 import type { MessageKey } from '../../i18n/useT'
@@ -29,9 +30,12 @@ function kindKey(category: CompoundCategory): MessageKey {
 export function CompoundDetailModal({
   compoundId,
   onClose,
+  onOpenSchoolReaction,
 }: {
   compoundId: string | null
   onClose: () => void
+  /** Перейти к карточке реакции в каталоге «Реакции». */
+  onOpenSchoolReaction?: (reactionId: string) => void
 }) {
   const { locale, t } = useT()
 
@@ -41,6 +45,11 @@ export function CompoundDetailModal({
     if (!compound) return 'missing'
     return { compound, loc: getCompoundLocaleStrings(compound, locale, t) }
   }, [compoundId, locale, t])
+
+  const schoolRx = useMemo(
+    () => (compoundId ? primaryReactionForCompound(compoundId) : undefined),
+    [compoundId],
+  )
 
   useEffect(() => {
     if (compoundId == null) return
@@ -126,6 +135,24 @@ export function CompoundDetailModal({
                 {loc.laboratoryRecipe}
               </p>
             )}
+            {schoolRx ? (
+              <>
+                <span className={styles.metaLabel}>{t('compound.schoolReaction')}</span>
+                <p className={styles.schoolRxEq}>
+                  {locale === 'en' ? schoolRx.equationEn : schoolRx.equationRu}
+                </p>
+                {onOpenSchoolReaction ? (
+                  <button
+                    type="button"
+                    className={styles.schoolRxBtn}
+                    aria-label={t('compound.schoolReactionAria')}
+                    onClick={() => onOpenSchoolReaction(schoolRx.id)}
+                  >
+                    {t('compound.openInReactions')}
+                  </button>
+                ) : null}
+              </>
+            ) : null}
             <span className={styles.metaLabel}>{t('compound.synthConditions')}</span>
             <dl className={styles.synthConditions}>
               <div className={styles.synthRow}>

@@ -1962,7 +1962,7 @@ function SceneContent({
         <>
           <color attach="background" args={[LAB_SCENE_CLEAR_HEX]} />
           <fog attach="fog" args={[LAB_SCENE_CLEAR_HEX, 6, 28]} />
-          <Stars radius={100} depth={50} count={900} factor={2.6} saturation={0} fade speed={0.12} />
+          <Stars radius={100} depth={50} count={420} factor={2.4} saturation={0} fade speed={0.12} />
           <ambientLight intensity={0.22} />
           <directionalLight position={[4, 6, 2]} intensity={0.55} color="#b8c8ff" />
           <group position={[0, 0, 0]}>

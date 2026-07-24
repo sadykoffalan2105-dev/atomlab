@@ -11,6 +11,8 @@
  * Уравнение вида «2S + 3O₂ = 2SO₃» химически неверно для школы.
  */
 
+import { SCHOOL_REACTIONS_DATA } from '../data/curriculum/schoolReactionsData'
+
 export type SubstanceFromElementsPolicy = 'allowed' | 'forbidden'
 
 /** Вещества, для которых AUTO-уравнение «из элементов» запрещено. */
@@ -108,7 +110,21 @@ const PREFERRED_SCHOOL_REACTION: Readonly<Record<string, string>> = {
   salt_k2cr2o7: 'k2cro4-h2so4-k2cr2o7',
   salt_na_no3: 'naoh-hno3',
   salt_fe2_s: 'fe-s-fes',
+  salt_na_so4: 'naoh-h2so4',
+  salt_k_so4: 'h2so4-koh',
+  salt_ca_so4: 'caoh2-h2so4',
+  salt_ba_so4: 'ba-oh2-h2so4',
 }
+
+/** Первая реакция банка с данным productId (если нет VIP-предпочтения). */
+const AUTO_PREFERRED_FROM_BANK: Readonly<Record<string, string>> = (() => {
+  const m: Record<string, string> = {}
+  for (const r of SCHOOL_REACTIONS_DATA) {
+    if (!r.productId || m[r.productId] != null) continue
+    m[r.productId] = r.id
+  }
+  return m
+})()
 
 /** Школьный маршрут (текст на карточке вещества вместо ложного «из элементов»). */
 const SCHOOL_ROUTE_RU: Readonly<Record<string, string>> = {
@@ -190,7 +206,7 @@ export function fromElementsPolicy(compoundId: string): SubstanceFromElementsPol
 }
 
 export function preferredSchoolReactionId(compoundId: string): string | null {
-  return PREFERRED_SCHOOL_REACTION[compoundId] ?? null
+  return PREFERRED_SCHOOL_REACTION[compoundId] ?? AUTO_PREFERRED_FROM_BANK[compoundId] ?? null
 }
 
 export function schoolRouteRecipeRu(

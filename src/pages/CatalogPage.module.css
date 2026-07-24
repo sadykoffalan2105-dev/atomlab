@@ -97,6 +97,12 @@
   padding: 0.85rem 1rem;
   background: rgba(12, 14, 32, 0.75);
   box-sizing: border-box;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.reactionCardHighlight {
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.35), 0 0 24px rgba(251, 191, 36, 0.12);
 }
 
 .passportLine {
