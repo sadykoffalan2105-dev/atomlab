@@ -1,47 +1,47 @@
-/** Качество микромира: full на десктопе, lite на слабых/мобильных. */
+/** Качество микромира: full = красиво и ~60fps, lite = слабые устройства. */
 export type SciFxQuality = 'full' | 'lite'
 
 export type SciFxQualityOpts = {
   quality: SciFxQuality
-  /** Искры / sparkles */
   sparkles: number
   sparklesSecondary: number
-  /** Сегменты сферы атома */
   atomSegW: number
   atomSegH: number
-  /** Подписи атомов */
   atomLabels: boolean
-  /** transmission / clearcoat */
+  /** emissive standard (не transmission — слишком дорого на 16+ атомах) */
   richMaterials: boolean
-  /** Trail dots */
   trailCount: number
-  /** Частицы вспышки образования */
   burstCount: number
+  /** кастомный GLSL plasma на связях */
+  plasmaBonds: boolean
 }
 
 export function resolveSciFxQuality(lowPower: boolean): SciFxQualityOpts {
   if (lowPower) {
     return {
       quality: 'lite',
-      sparkles: 12,
+      sparkles: 0,
       sparklesSecondary: 0,
-      atomSegW: 16,
-      atomSegH: 12,
+      atomSegW: 12,
+      atomSegH: 10,
       atomLabels: false,
       richMaterials: false,
-      trailCount: 4,
-      burstCount: 48,
+      trailCount: 0,
+      burstCount: 28,
+      plasmaBonds: false,
     }
   }
   return {
     quality: 'full',
-    sparkles: 36,
-    sparklesSecondary: 18,
-    atomSegW: 28,
-    atomSegH: 20,
-    atomLabels: true,
+    sparkles: 10,
+    sparklesSecondary: 0,
+    atomSegW: 16,
+    atomSegH: 12,
+    atomLabels: false,
     richMaterials: true,
-    trailCount: 8,
-    burstCount: 96,
+    trailCount: 0,
+    burstCount: 40,
+    // Дешёвый fragment-шейдер, геометрия общая — не влияет на FPS при ≤10 связях.
+    plasmaBonds: true,
   }
 }

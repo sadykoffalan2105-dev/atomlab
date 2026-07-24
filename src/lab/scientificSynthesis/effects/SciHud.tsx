@@ -16,58 +16,65 @@ export function SciStoichBadge({
 }) {
   if (!visible) return null
   return (
-    <group position={position}>
-      <mesh position={[0, 0, -0.02]} geometry={sharedCircle(0.3, 24)} dispose={null}>
-        <meshBasicMaterial color="#041820" transparent opacity={0.55} depthWrite={false} />
+    <Billboard position={position} follow>
+      <mesh position={[0, 0, -0.02]} geometry={sharedCircle(0.26, 20)} dispose={null}>
+        <meshBasicMaterial color="#041820" transparent opacity={0.55} depthWrite={false} depthTest />
       </mesh>
-      <mesh position={[0, 0, -0.01]} geometry={sharedRing(0.26, 0.32, 24)} dispose={null}>
+      <mesh position={[0, 0, -0.01]} geometry={sharedRing(0.22, 0.28, 20)} dispose={null}>
         <meshBasicMaterial
           color="#5cf0ff"
           transparent
           opacity={0.7}
           depthWrite={false}
+          depthTest
           blending={THREE.AdditiveBlending}
         />
       </mesh>
       <Text
-        fontSize={0.34}
+        fontSize={0.28}
         color="#9ef7ff"
         anchorX="center"
         anchorY="middle"
-        outlineWidth={0.014}
+        outlineWidth={0.012}
         outlineColor="#021018"
+        depthOffset={-1}
+        material-side={THREE.FrontSide}
       >
         {String(value)}
       </Text>
       {label ? (
         <Text
-          position={[0, -0.36, 0]}
-          fontSize={0.12}
+          position={[0, -0.3, 0]}
+          fontSize={0.1}
           color="#d7f4ff"
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.006}
+          outlineWidth={0.005}
           outlineColor="#041018"
+          depthOffset={-1}
+          material-side={THREE.FrontSide}
         >
           {label}
         </Text>
       ) : null}
-    </group>
+    </Billboard>
   )
 }
 
 export function SciStageCaption({ text }: { text: string }) {
   return (
-    <Billboard position={[0, 2.3, 0]} follow>
+    <Billboard position={[0, 1.85, 0]} follow>
       <Text
-        fontSize={0.17}
+        fontSize={0.14}
         color="#d8f4ff"
         anchorX="center"
         anchorY="middle"
-        outlineWidth={0.007}
+        outlineWidth={0.006}
         outlineColor="#041018"
-        maxWidth={6.2}
+        maxWidth={5.2}
         textAlign="center"
+        material-side={THREE.FrontSide}
+        depthOffset={-1}
       >
         {text}
       </Text>

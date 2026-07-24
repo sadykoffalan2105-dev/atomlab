@@ -1443,6 +1443,26 @@ function SceneContent({
     if (catalogViewMode) stuckRescueDoneRef.current = false
   }, [catalogViewMode])
 
+  /** Научный микромир: сразу отдаляем камеру, чтобы схема читалась целиком. */
+  useLayoutEffect(() => {
+    if (!scientificMicroworldActive) return
+    const pose = REACTOR_PREVIEW_CAMERA.scientific
+    reactorCameraLockPoseRef.current = pose
+    reactorOrbitTargetRef.current = pose.target
+    stuckRescueDoneRef.current = false
+    const cam = camera as THREE.PerspectiveCamera
+    applyReactorPreviewCamera(cam, orbRef.current, pose)
+    reactorCameraLockUntilRef.current = performance.now() + 2400
+    invalidate()
+    const orb = orbRef.current
+    const t = window.setTimeout(() => {
+      if (userOrbitingRef.current) return
+      applyReactorPreviewCamera(cam, orb, pose)
+      invalidate()
+    }, 40)
+    return () => window.clearTimeout(t)
+  }, [scientificMicroworldActive, camera, invalidate])
+
   useLayoutEffect(() => {
     if (!reactorViewOpen || catalogViewMode) return
     stuckRescueDoneRef.current = false
@@ -1564,12 +1584,17 @@ function SceneContent({
     frameBudgetRef.current.sample(Math.min(120, Math.max(0.5, delta * 1000)))
 
     // Краткий hold hero-ракурса; pointerdown сразу отпускает — можно крутить.
+    // Научный микромир держит дальний кадр, пока пользователь не трогает орбиту.
     const lockPose = reactorCameraLockPoseRef.current
+    const sciCamHold =
+      scientificMicroworldActive &&
+      lockPose != null &&
+      !userOrbitingRef.current &&
+      performance.now() < reactorCameraLockUntilRef.current
     const lockActive =
       lockPose != null &&
       !catalogViewMode &&
-      !synthActive &&
-      !synthesisRunActive &&
+      ((!synthActive && !synthesisRunActive) || sciCamHold) &&
       !userOrbitingRef.current &&
       performance.now() < reactorCameraLockUntilRef.current
     if (lockActive && lockPose) {

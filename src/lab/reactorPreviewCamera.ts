@@ -25,6 +25,15 @@ export const REACTOR_PREVIEW_CAMERA = {
     target: [0, 0.2, 0.08] as const,
     fov: 60,
   } satisfies ReactorPreviewCameraPose,
+  /**
+   * Научный микромир (ClO₂ и далее): заметно дальше, чтобы вся сцена
+   * 2NaClO₂+Cl₂ и продукты читались целиком, без «в лицо».
+   */
+  scientific: {
+    position: [0.15, 1.05, 9.2] as const,
+    target: [0, 0.15, 0] as const,
+    fov: 48,
+  } satisfies ReactorPreviewCameraPose,
   /** Гистерезис: many при >9, few при <7. */
   manyEnter: 9,
   manyExit: 7,

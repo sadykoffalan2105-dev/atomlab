@@ -27,7 +27,7 @@ export function SciReactionZone({
 
   return (
     <group position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <mesh geometry={sharedCircle(2.2, lite ? 24 : 40)} dispose={null}>
+      <mesh geometry={sharedCircle(2.0, lite ? 16 : 24)} dispose={null}>
         <meshBasicMaterial
           ref={matDisc}
           color="#1a6cff"
@@ -37,7 +37,7 @@ export function SciReactionZone({
           blending={THREE.AdditiveBlending}
         />
       </mesh>
-      <mesh ref={ring} geometry={sharedRing(1.5, 1.68, lite ? 32 : 56)} dispose={null}>
+      <mesh ref={ring} geometry={sharedRing(1.45, 1.6, lite ? 24 : 32)} dispose={null}>
         <meshBasicMaterial
           ref={matRing}
           color="#6cf0ff"
