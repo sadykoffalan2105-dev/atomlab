@@ -14,8 +14,10 @@ import { getCompoundLocaleStrings } from '../../i18n/compoundLocale'
 import { useT } from '../../i18n/useT'
 import type { CompoundDef } from '../../types/chemistry'
 import type { LeftCatalogMatch, ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
+import type { ReactorCoProductTerm } from '../../chemistry/scientificReactorRecipes'
 import { REACTOR_COEFF_MAX } from '../../chemistry/reactorLimits'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
+import { compoundById } from '../../data/compounds'
 import { ReactorBalancePanel } from './ReactorBalancePanel'
 import type { BalanceLesson } from '../../chemistry/balanceLessonBank'
 import panelStyles from './SynthesisReactorPanel.module.css'
@@ -23,10 +25,18 @@ import panelStyles from './SynthesisReactorPanel.module.css'
 const COEFF_MAX = REACTOR_COEFF_MAX
 
 function termSymbolDisplay(t: ReactorEquationTerm): string {
+  if (t.compoundId) {
+    const c = compoundById[t.compoundId]
+    if (c) return c.formulaUnicode
+  }
   const e = getElementByZ(t.z)
   if (!e) return '—'
   if (t.diatomic) return `${e.symbol}\u2082`
   return e.symbol
+}
+
+function coProductSymbolDisplay(cp: ReactorCoProductTerm): string {
+  return compoundById[cp.compoundId]?.formulaUnicode ?? cp.compoundId
 }
 
 function reagentGlowHex(z: number): string {
@@ -184,10 +194,12 @@ export function SynthesisReactorPanel({
   open,
   onOpenGenerateEquationCatalog,
   leftTerms,
+  coProducts = [],
   productCompound,
   productCoeff,
   onRemoveTerm,
   onCoeffChange,
+  onCoProductCoeffChange,
   onOpenCatalog,
   onProductCoeffChange,
   onClearSlots,
@@ -209,14 +221,17 @@ export function SynthesisReactorPanel({
   onLabHeatChange,
   onLabPressureChange,
   onLabCatalystChange,
+  scientificMode = false,
 }: {
   open: boolean
   onOpenGenerateEquationCatalog: () => void
   leftTerms: readonly ReactorEquationTerm[]
+  coProducts?: readonly ReactorCoProductTerm[]
   productCompound: CompoundDef | null
   productCoeff: number
   onRemoveTerm: (id: string) => void
   onCoeffChange: (id: string, coeff: number) => void
+  onCoProductCoeffChange?: (id: string, coeff: number) => void
   onOpenCatalog: () => void
   onProductCoeffChange: (coeff: number) => void
   onClearSlots: () => void
@@ -239,6 +254,7 @@ export function SynthesisReactorPanel({
   onLabHeatChange?: (on: boolean) => void
   onLabPressureChange?: (on: boolean) => void
   onLabCatalystChange?: (on: boolean) => void
+  scientificMode?: boolean
 }) {
   const { locale, t } = useT()
   const coeffErr = highlightEquationError
@@ -343,14 +359,16 @@ export function SynthesisReactorPanel({
                         onFocusChange={reportCoeffFocus}
                       />
                       <span className={panelStyles.termSymbol}>{termSymbolDisplay(term)}</span>
-                      <button
-                        type="button"
-                        className={panelStyles.termRemove}
-                        onClick={() => onRemoveTerm(term.id)}
-                        aria-label={t('reactor.remove', { symbol: termSymbolDisplay(term) })}
-                      >
-                        ×
-                      </button>
+                      {term.locked ? null : (
+                        <button
+                          type="button"
+                          className={panelStyles.termRemove}
+                          onClick={() => onRemoveTerm(term.id)}
+                          aria-label={t('reactor.remove', { symbol: termSymbolDisplay(term) })}
+                        >
+                          ×
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -358,12 +376,14 @@ export function SynthesisReactorPanel({
             </div>
 
             <div className={panelStyles.equalsColumn} aria-hidden="true">
-              <span className={panelStyles.equalsSign}>=</span>
+              <span className={panelStyles.equalsSign}>{scientificMode ? '→' : '='}</span>
             </div>
 
             <div className={`${panelStyles.productBlock} ${panelStyles.productBlockEquation}`}>
               <div className={panelStyles.productEquationMeta}>
-                <span className={panelStyles.productLabelCompact}>{t('reactor.productGoal')}</span>
+                <span className={panelStyles.productLabelCompact}>
+                  {scientificMode ? 'Продукты' : t('reactor.productGoal')}
+                </span>
                 {equationBalanced ? (
                   <span className={panelStyles.balanceBadge} role="status" aria-label={t('reactor.balanced')}>
                     <IconCheck className={panelStyles.balanceCheck} />
@@ -375,39 +395,73 @@ export function SynthesisReactorPanel({
                   {t('reactor.ambiguous')}
                 </p>
               ) : null}
-              <div
-                className={`${panelStyles.productBubble} ${coeffErr ? panelStyles.productBubbleError : ''}`}
-                aria-label={t('reactor.productCoeffAria')}
-              >
-                <CoeffKeyboardInput
-                  value={productCoeff}
-                  min={1}
-                  max={COEFF_MAX}
-                  highlightError={coeffErr}
-                  dimWhenOne
-                  ariaLabel={t('reactor.productCoeffAria')}
-                  onChange={onProductCoeffChange}
-                  onFocusChange={reportCoeffFocus}
-                />
-                {productCompound ? (
-                  <span className={panelStyles.catalogProductChip}>
-                    <span className={panelStyles.catalogFormula}>{productCompound.formulaUnicode}</span>
-                    <span className={panelStyles.catalogName}>
-                      {productStrings?.name ?? productCompound.nameRu}
-                    </span>
+              <div className={panelStyles.equationTerms} style={{ flexWrap: 'wrap', gap: '0.35rem' }}>
+                {coProducts.map((cp, idx) => (
+                  <div key={cp.id} className={panelStyles.termCluster}>
+                    {idx > 0 ? (
+                      <span className={panelStyles.equationPlus} aria-hidden>
+                        +
+                      </span>
+                    ) : null}
+                    <div
+                      className={`${panelStyles.reagentBubble} ${coeffErr ? panelStyles.reagentBubbleError : ''}`}
+                      style={{ ['--reagent-glow' as string]: '#ab5cf2' }}
+                    >
+                      <CoeffKeyboardInput
+                        value={cp.coeff}
+                        min={1}
+                        max={COEFF_MAX}
+                        highlightError={coeffErr}
+                        dimWhenOne
+                        ariaLabel={t('reactor.coeffFor', { symbol: coProductSymbolDisplay(cp) })}
+                        onChange={(n) => onCoProductCoeffChange?.(cp.id, n)}
+                        onFocusChange={reportCoeffFocus}
+                      />
+                      <span className={panelStyles.termSymbol}>{coProductSymbolDisplay(cp)}</span>
+                    </div>
+                  </div>
+                ))}
+                {coProducts.length > 0 ? (
+                  <span className={panelStyles.equationPlus} aria-hidden>
+                    +
                   </span>
-                ) : (
-                  <span className={panelStyles.catalogOpenPlaceholder}>{t('reactor.productEmpty')}</span>
-                )}
-                <button
-                  type="button"
-                  className={`${panelStyles.catalogFabCompact} ${coeffErr ? panelStyles.catalogFabCompactError : ''}`}
-                  onClick={onOpenCatalog}
-                  title={t('reactor.openCatalog')}
-                  aria-label={t('reactor.openCatalog')}
+                ) : null}
+                <div
+                  className={`${panelStyles.productBubble} ${coeffErr ? panelStyles.productBubbleError : ''}`}
+                  aria-label={t('reactor.productCoeffAria')}
                 >
-                  ◫
-                </button>
+                  <CoeffKeyboardInput
+                    value={productCoeff}
+                    min={1}
+                    max={COEFF_MAX}
+                    highlightError={coeffErr}
+                    dimWhenOne
+                    ariaLabel={t('reactor.productCoeffAria')}
+                    onChange={onProductCoeffChange}
+                    onFocusChange={reportCoeffFocus}
+                  />
+                  {productCompound ? (
+                    <span className={panelStyles.catalogProductChip}>
+                      <span className={panelStyles.catalogFormula}>{productCompound.formulaUnicode}</span>
+                      <span className={panelStyles.catalogName}>
+                        {productStrings?.name ?? productCompound.nameRu}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className={panelStyles.catalogOpenPlaceholder}>{t('reactor.productEmpty')}</span>
+                  )}
+                  {scientificMode ? null : (
+                    <button
+                      type="button"
+                      className={`${panelStyles.catalogFabCompact} ${coeffErr ? panelStyles.catalogFabCompactError : ''}`}
+                      onClick={onOpenCatalog}
+                      title={t('reactor.openCatalog')}
+                      aria-label={t('reactor.openCatalog')}
+                    >
+                      ◫
+                    </button>
+                  )}
+                </div>
               </div>
               {productCompound ? (
                 <span

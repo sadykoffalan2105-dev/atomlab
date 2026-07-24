@@ -5,6 +5,12 @@ import {
   type ReactorEquationTerm,
   type ReactorValidationErrorCode,
 } from '../chemistry/reactorEquationBalance'
+import {
+  hasScientificReactorRecipe,
+  isScientificEquationBalanced,
+  scientificSyntheticZSlots,
+  type ReactorCoProductTerm,
+} from '../chemistry/scientificReactorRecipes'
 import { scientificSynthesisWatchdogMs } from './scientificSynthesis/clo2ScenarioTiming'
 import { synthesisLaunchWatchdogMs } from './synthesisLaunchTiming'
 import { getReactorVisualTier, type ReactorVisualTier } from '../chemistry/reactorVisualTier'
@@ -84,6 +90,8 @@ function snapshotFlyTerms(terms: readonly ReactorEquationTerm[]): ReactorEquatio
     z: t.z,
     coeff: t.coeff,
     ...(t.diatomic ? { diatomic: true as const } : {}),
+    ...(t.compoundId ? { compoundId: t.compoundId } : {}),
+    ...(t.locked ? { locked: true as const } : {}),
   }))
 }
 
@@ -95,8 +103,9 @@ export function prepareGuaranteedSynthesisRun(input: {
   productId: string | null
   productCoeff: number
   compoundById: Readonly<Record<string, CompoundDef>>
+  coProducts?: readonly ReactorCoProductTerm[]
 }): PrepareGuaranteedResult {
-  const { leftTerms, productId, productCoeff, compoundById } = input
+  const { leftTerms, productId, productCoeff, compoundById, coProducts = [] } = input
   if (!productId) {
     return { ok: false, code: 'NO_PRODUCT' }
   }
@@ -104,6 +113,36 @@ export function prepareGuaranteedSynthesisRun(input: {
   const catalogCompound = resolveCatalogProduct(compoundById, productId)
   if (!catalogCompound) {
     return { ok: false, code: 'NO_PRODUCT' }
+  }
+
+  if (hasScientificReactorRecipe(productId)) {
+    if (
+      !isScientificEquationBalanced(
+        leftTerms,
+        coProducts,
+        catalogCompound,
+        productCoeff,
+        compoundById,
+      )
+    ) {
+      return { ok: false, code: 'BALANCE_MISMATCH' }
+    }
+    if (!isCatalogRenderable(catalogCompound)) {
+      return { ok: false, code: 'NO_PRODUCT' }
+    }
+    const flyTerms = snapshotFlyTerms(leftTerms)
+    const zSlots = scientificSyntheticZSlots(catalogCompound, productCoeff)
+    return {
+      ok: true,
+      payload: {
+        productId,
+        compound: catalogCompound,
+        zSlots,
+        flyTerms,
+        visualFlyZs: zSlots.slice(0, Math.min(8, zSlots.length)),
+        visualTier: 'cluster',
+      },
+    }
   }
 
   const validated = validateReactorEquation(leftTerms, catalogCompound, productCoeff)

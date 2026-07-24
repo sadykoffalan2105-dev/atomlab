@@ -593,9 +593,10 @@ export function Clo2ScientificSynthesisFx({
   })
 
   return (
-    <group>
-      <pointLight position={[0, 1.2, 2]} intensity={0.55} color="#b8d4ff" distance={12} />
-      <pointLight ref={exoLight} position={[0, -0.4, 1.2]} intensity={0.25} color="#ff6a28" distance={9} />
+    <group scale={1.15}>
+      <pointLight position={[0, 1.2, 2]} intensity={0.65} color="#b8d4ff" distance={14} />
+      <pointLight ref={exoLight} position={[0, -0.4, 1.2]} intensity={0.25} color="#ff6a28" distance={10} />
+      <ambientLight intensity={0.18} />
 
       <group ref={n1cl}>
         <CpkSphere color={CPK.Cl} radius={0.3} />

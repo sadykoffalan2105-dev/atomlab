@@ -10,8 +10,17 @@ export { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from './reactorLimits'
 /** @deprecated Используйте REACTOR_VISUAL_FULL_ATOMS из reactorLimits — не блокирует уравнение. */
 export { REACTOR_EQUATION_MAX_FLY_ATOMS } from './reactorLimits'
 
-/** coeff: для diatomic — число молекул X₂; иначе число атомов X. */
-export type ReactorEquationTerm = { id: string; z: number; coeff: number; diatomic?: boolean }
+/** coeff: для diatomic — число молекул X₂; иначе число атомов X.
+ *  compoundId — молекулярный реагент научного маршрута (NaClO₂ и т.п.).
+ */
+export type ReactorEquationTerm = {
+  id: string
+  z: number
+  coeff: number
+  diatomic?: boolean
+  compoundId?: string
+  locked?: boolean
+}
 
 export type ReactorValidationErrorCode =
   | 'NO_PRODUCT'
@@ -52,6 +61,8 @@ export function compositionFromLeftTerms(terms: readonly ReactorEquationTerm[]):
   for (const t of terms) {
     const c = Math.max(0, Math.floor(t.coeff))
     if (c <= 0) continue
+    // Молекулярные реагенты считаются только в scientificReactorRecipes.
+    if (t.compoundId) return null
     const el = getElementByZ(t.z)
     if (!el) return null
     const atoms = c * (t.diatomic ? 2 : 1)
@@ -195,6 +206,10 @@ export function validateReactorEquation(
     const c = Math.floor(t.coeff)
     if (c < 1 || !Number.isFinite(t.coeff)) {
       return { ok: false, code: 'TERM_COEFF_INVALID' }
+    }
+    if (t.compoundId) {
+      // Научный маршрут с молекулами — через prepareGuaranteed / scientific validator.
+      return { ok: false, code: 'SCHOOL_ROUTE_ONLY', params: { formula: product.formulaUnicode } }
     }
     if (!getElementByZ(t.z)) {
       return { ok: false, code: 'UNKNOWN_ELEMENT' }

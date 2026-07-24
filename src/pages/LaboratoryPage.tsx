@@ -44,6 +44,13 @@ import {
 } from '../chemistry/balanceLessonBank'
 import { parseLeftSideMessageKey, reactorValidationMessageKey } from '../i18n/chemistryMessageKeys'
 import { fromElementsPolicy } from '../chemistry/substanceSynthesisRoute'
+import {
+  getScientificReactorRecipe,
+  hasScientificReactorRecipe,
+  isScientificEquationBalanced,
+  seedScientificReactorEquation,
+  type ReactorCoProductTerm,
+} from '../chemistry/scientificReactorRecipes'
 import { getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import { useT } from '../i18n/useT'
 import { ElementDetailContent } from '../components/lab/ElementDetailContent'
@@ -94,6 +101,7 @@ export function LaboratoryPage() {
 
   const [reactorOpen, setReactorOpen] = useState(false)
   const [leftTerms, setLeftTerms] = useState<ReactorEquationTerm[]>([])
+  const [coProducts, setCoProducts] = useState<ReactorCoProductTerm[]>([])
   const [productCompoundId, setProductCompoundId] = useState<string | null>(null)
   const [productCoeff, setProductCoeff] = useState(1)
   const [labHeatOn, setLabHeatOn] = useState(false)
@@ -264,6 +272,17 @@ export function LaboratoryPage() {
       }
       productLockedRef.current = true
       setProductCompoundId(productId)
+      const c = compoundById[productId]
+      if (c && hasScientificReactorRecipe(productId)) {
+        // отложенный сид после mount — через microtask, чтобы state product уже стоял
+        queueMicrotask(() => {
+          const sci = seedScientificReactorEquation(productId, newId, { withTargetCoeffs: true })
+          if (!sci) return
+          setLeftTerms(sci.leftTerms)
+          setCoProducts(sci.coProducts)
+          setProductCoeff(sci.productCoeff)
+        })
+      }
     }
   }, [])
 
@@ -292,6 +311,24 @@ export function LaboratoryPage() {
   /** Подставляет реагенты из эталона с коэффициентом 1 — балансировку делает ученик. */
   const applyGenerateEquationReagents = useCallback(
     (c: CompoundDef) => {
+      const sci = seedScientificReactorEquation(c.id, newId, { withTargetCoeffs: true })
+      if (sci) {
+        setLeftTerms(sci.leftTerms)
+        setCoProducts(sci.coProducts)
+        setProductCoeff(sci.productCoeff)
+        setSynthesisSettledProduct(null)
+        synthesisSettledProductRef.current = null
+        settledSnapshotRef.current = null
+        const recipe = getScientificReactorRecipe(c.id)
+        setReactorMessage(
+          recipe
+            ? `Научный маршрут: ${recipe.titleRu}. Уравнение 2NaClO₂ + Cl₂ → 2NaCl + 2ClO₂ — проверьте коэффициенты и запустите синтез`
+            : null,
+        )
+        warmupLabSynthesisReactorOpen(catalogList, c)
+        return
+      }
+      setCoProducts([])
       setProductCoeff(1)
       if (fromElementsPolicy(c.id) === 'forbidden') {
         setLeftTerms([])
@@ -328,13 +365,42 @@ export function LaboratoryPage() {
     [t, catalogList],
   )
 
+  const applyScientificProductEquation = useCallback(
+    (c: CompoundDef) => {
+      const sci = seedScientificReactorEquation(c.id, newId, { withTargetCoeffs: true })
+      if (!sci) {
+        setCoProducts([])
+        return false
+      }
+      setLeftTerms(sci.leftTerms)
+      setCoProducts(sci.coProducts)
+      setProductCoeff(sci.productCoeff)
+      setSynthesisSettledProduct(null)
+      synthesisSettledProductRef.current = null
+      settledSnapshotRef.current = null
+      const recipe = getScientificReactorRecipe(c.id)
+      setReactorMessage(
+        recipe
+          ? `Научный маршрут: ${recipe.titleRu}. 2NaClO₂ + Cl₂ → 2NaCl + 2ClO₂ — можно запускать синтез`
+          : null,
+      )
+      warmupLabSynthesisReactorOpen(catalogList, c)
+      return true
+    },
+    [catalogList],
+  )
+
   /** Дешёвая сигнатура уравнения (без JSON.stringify на каждый keystroke). */
   const equationSignature = useMemo(() => {
     const terms = leftTerms
-      .map((term) => `${term.id}:${term.z}:${term.coeff}:${term.diatomic ? 1 : 0}`)
+      .map(
+        (term) =>
+          `${term.id}:${term.z}:${term.coeff}:${term.diatomic ? 1 : 0}:${term.compoundId ?? ''}`,
+      )
       .join('|')
-    return `${terms}#${productCompoundId ?? ''}#${productCoeff}`
-  }, [leftTerms, productCompoundId, productCoeff])
+    const right = coProducts.map((c) => `${c.id}:${c.compoundId}:${c.coeff}`).join('|')
+    return `${terms}#${right}#${productCompoundId ?? ''}#${productCoeff}`
+  }, [leftTerms, coProducts, productCompoundId, productCoeff])
   const settledSnapshotRef = useRef<string | null>(null)
 
   /** Sync clear settled при смене уравнения — сразу pin Bohr, без кадра «пусто». */
@@ -355,13 +421,22 @@ export function LaboratoryPage() {
     }
   }, [equationSignature, synthesisSettledProduct])
 
-  const equationBalanced = useMemo(
-    () => isReactorBalancedFast(deferredLeftTerms, productCompound ?? undefined, productCoeff),
-    [deferredLeftTerms, productCompound, productCoeff],
-  )
+  const equationBalanced = useMemo(() => {
+    if (hasScientificReactorRecipe(productCompound?.id)) {
+      return isScientificEquationBalanced(
+        deferredLeftTerms,
+        coProducts,
+        productCompound ?? undefined,
+        productCoeff,
+        compoundById,
+      )
+    }
+    return isReactorBalancedFast(deferredLeftTerms, productCompound ?? undefined, productCoeff)
+  }, [deferredLeftTerms, coProducts, productCompound, productCoeff])
 
   const resetEquation = useCallback(() => {
     setLeftTerms([])
+    setCoProducts([])
     setProductCompoundId(null)
     setProductCoeff(1)
   }, [])
@@ -434,7 +509,7 @@ export function LaboratoryPage() {
     settledSnapshotRef.current = null
     setSynthPhaseUi('')
     forceEditHoldRef.current()
-    setLeftTerms((prev) => prev.filter((term) => term.id !== id))
+    setLeftTerms((prev) => prev.filter((term) => term.id !== id || term.locked))
   }, [])
 
   const onCoeffChange = useCallback((id: string, coeff: number) => {
@@ -446,6 +521,16 @@ export function LaboratoryPage() {
     setSynthPhaseUi('')
     forceEditHoldRef.current()
     setLeftTerms((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
+  }, [])
+
+  const onCoProductCoeffChange = useCallback((id: string, coeff: number) => {
+    const c = Math.max(1, Math.min(REACTOR_COEFF_MAX, Math.floor(Number.isFinite(coeff) ? coeff : 1)))
+    setSynthesisSettledProduct(null)
+    synthesisSettledProductRef.current = null
+    settledSnapshotRef.current = null
+    setSynthPhaseUi('')
+    forceEditHoldRef.current()
+    setCoProducts((prev) => prev.map((term) => (term.id === id ? { ...term, coeff: c } : term)))
   }, [])
 
   const onApplyBalanceCoeffs = useCallback((left: Record<string, number>, nextProductCoeff: number) => {
@@ -519,11 +604,17 @@ export function LaboratoryPage() {
 
       warmupLabSynthesisReactorOpen(catalogList, c)
 
+      if (applyScientificProductEquation(c)) {
+        return
+      }
+
       if (mode === 'generateEquation') {
         applyGenerateEquationReagents(c)
+      } else {
+        setCoProducts([])
       }
     },
-    [applyGenerateEquationReagents, catalogList],
+    [applyGenerateEquationReagents, applyScientificProductEquation, catalogList],
   )
 
   const clearReactorSlots = useCallback(() => {
@@ -663,7 +754,11 @@ export function LaboratoryPage() {
     coeffUiFocused
 
   /** Canvas: тот же commit, что и UI — без 32ms lag (два layout → мигание). */
-  const heldCanvasTerms = useReactorCanvasTermsHold(reactorOpen, leftTerms, false, 0)
+  const canvasLeftTerms = useMemo(
+    () => (hasScientificReactorRecipe(productCompoundId) ? [] : leftTerms),
+    [leftTerms, productCompoundId],
+  )
+  const heldCanvasTerms = useReactorCanvasTermsHold(reactorOpen, canvasLeftTerms, false, 0)
   const reactorPreviewTermsCanvas = useReactorPreviewTermsStable(
     reactorOpen,
     heldCanvasTerms,
@@ -681,6 +776,7 @@ export function LaboratoryPage() {
       productId: productCompoundId,
       productCoeff,
       compoundById,
+      coProducts,
     })
     if (!prepared.ok) {
       setReactorMessage(t(reactorValidationMessageKey(prepared.code), prepared.params))
@@ -726,7 +822,7 @@ export function LaboratoryPage() {
     setSynthesisFlightSlots(zCopy)
     setSynthesisFlyTerms(flyCopy)
     setRunId(nextRunId)
-  }, [leftTerms, productCompoundId, productCoeff, t, locale, runId, resetEditBurst])
+  }, [leftTerms, coProducts, productCompoundId, productCoeff, t, locale, runId, resetEditBurst, catalogList])
 
   const labSynthesis = useMemo(() => {
     if (!reactorOpen || runId <= 0) return null
@@ -778,13 +874,35 @@ export function LaboratoryPage() {
   const canRunSynthesis = useMemo(() => {
     const product = productCompoundId ? compoundById[productCompoundId] : undefined
     if (!product) return false
-    if (!isReactorBalancedFast(deferredLeftTerms, product, productCoeff)) return false
+    if (hasScientificReactorRecipe(product.id)) {
+      if (
+        !isScientificEquationBalanced(
+          deferredLeftTerms,
+          coProducts,
+          product,
+          productCoeff,
+          compoundById,
+        )
+      ) {
+        return false
+      }
+    } else if (!isReactorBalancedFast(deferredLeftTerms, product, productCoeff)) {
+      return false
+    }
     const lab = product.synthesisLab
     if (lab?.needsHeat && !labHeatOn) return false
     if (lab?.needsPressure && !labPressureOn) return false
     if (lab?.needsCatalyst && !labCatalystOn) return false
     return true
-  }, [deferredLeftTerms, productCompoundId, productCoeff, labHeatOn, labPressureOn, labCatalystOn])
+  }, [
+    deferredLeftTerms,
+    coProducts,
+    productCompoundId,
+    productCoeff,
+    labHeatOn,
+    labPressureOn,
+    labCatalystOn,
+  ])
 
   useEffect(() => {
     setLabHeatOn(false)
@@ -998,10 +1116,12 @@ export function LaboratoryPage() {
         open={reactorOpen}
         onOpenGenerateEquationCatalog={() => openReactorCatalog('generateEquation')}
         leftTerms={leftTerms}
+        coProducts={coProducts}
         productCompound={productCompound}
         productCoeff={productCoeff}
         onRemoveTerm={onRemoveTerm}
         onCoeffChange={onCoeffChange}
+        onCoProductCoeffChange={onCoProductCoeffChange}
         onCoeffUiFocusChange={setCoeffUiFocused}
         onApplyBalanceCoeffs={onApplyBalanceCoeffs}
         onLoadBalanceLesson={onLoadBalanceLesson}
@@ -1031,6 +1151,7 @@ export function LaboratoryPage() {
         onLabHeatChange={setLabHeatOn}
         onLabPressureChange={setLabPressureOn}
         onLabCatalystChange={setLabCatalystOn}
+        scientificMode={hasScientificReactorRecipe(productCompoundId)}
       />
 
       <ReactorCompoundCatalogPanel
