@@ -698,18 +698,30 @@ function isAlkaliMetal(metal: string): boolean {
   return metal === 'Li' || metal === 'Na' || metal === 'K' || metal === 'Cs'
 }
 
-/** Оксид щелочного металла — M₂O, не MO. */
+/** Оксид: Ag₂O (не AgO), щелочные — M₂O. */
 function oxideOf(metal: string): string {
-  if (isAlkaliMetal(metal) || metal === 'Ag') return `${metal}₂O`
-  if (metal === 'Al' || metal === 'Cr' || metal === 'Fe') return `${metal}₂O₃`
+  if (isAlkaliMetal(metal)) return `${metal}₂O`
+  if (metal === 'Ag') return 'Ag₂O'
+  if (metal === 'Al' || metal === 'Cr') return `${metal}₂O₃`
+  if (metal === 'Fe') return 'Fe₂O₃'
   return `${metal}O`
 }
 
-/** Гидроксид: LiOH / Ca(OH)₂ / Al(OH)₃ — без «(OH)ₙ». */
+/** Гидроксид: для Ag — Ag₂O (AgOH неустойчив). */
 function hydroxideOf(metal: string): string {
-  if (isAlkaliMetal(metal) || metal === 'Ag') return `${metal}OH`
+  if (isAlkaliMetal(metal)) return `${metal}OH`
+  if (metal === 'Ag') return 'Ag₂O'
   if (metal === 'Al' || metal === 'Cr' || metal === 'Fe') return `${metal}(OH)₃`
   return `${metal}(OH)₂`
+}
+
+function condStd(
+  temperature: string,
+  pressure = 'атмосферное',
+  catalyst = 'не нужен',
+  equipment = 'пробирки / стаканы; вытяжка при необходимости',
+) {
+  return { temperature, pressure, catalyst, equipment }
 }
 
 function metalFromSaltId(id: string): string | null {
@@ -776,6 +788,228 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
   const metal = metalFromSaltId(id)
   const f = p.formulaUnicode
 
+  // ——— Соли аммония (конкретная кислота, не «NH₃ + кислота») ———
+  if (id.startsWith('salt_nh4_')) {
+    if (id.includes('cr2o7')) {
+      return pack(
+        [
+          step(1, '2(NH₄)₂CrO₄ + H₂SO₄ → (NH₄)₂Cr₂O₇ + (NH₄)₂SO₄ + H₂O', 'хромат аммония → дихромат в кислой среде'),
+          step(2, 'не уравнение с K₂CrO₄ — ионов NH₄⁺ там нет'),
+        ],
+        condStd('комнатная', 'атмосферное', 'не нужен', 'пробирки, H₂SO₄; Cr(VI) — вытяжка'),
+      )
+    }
+    if (id.includes('_cro4') || id.endsWith('cro4')) {
+      return pack(
+        [
+          step(1, 'CrO₃ + 2NH₃·H₂O → (NH₄)₂CrO₄ + H₂O', 'хромовый ангидрид + гидрат аммиака'),
+          step(2, 'или H₂CrO₄ + 2NH₃·H₂O → (NH₄)₂CrO₄ + 2H₂O', 'не щёлочь металла — иначе хромат металла'),
+        ],
+        condStd('комнатная', 'атмосферное', 'не нужен', 'стакан; Cr(VI) — вытяжка'),
+      )
+    }
+    if (id.includes('_so4')) {
+      return pack(
+        [step(1, '2NH₃ + H₂SO₄ → (NH₄)₂SO₄', 'нейтрализация')],
+        condStd('комнатная'),
+      )
+    }
+    if (id.includes('_so3')) {
+      return pack(
+        [step(1, '2NH₃ + H₂SO₃ → (NH₄)₂SO₃', 'аммиак + сернистая кислота')],
+        condStd('комнатная / охлаждение', 'атмосферное', 'не нужен', 'раствор NH₃, источник SO₂; вытяжка'),
+      )
+    }
+    if (id.includes('_co3') || id.includes('_hco3')) {
+      return pack(
+        [
+          step(1, '2NH₃·H₂O + CO₂ → (NH₄)₂CO₃ + H₂O', 'водный аммиак + CO₂'),
+          step(2, 'не MOH + CO₂ — получится карбонат металла, не аммония'),
+        ],
+        condStd('комнатная', 'атмосферное (ток CO₂)', 'не нужен', 'раствор NH₃, трубка CO₂ (не известковая вода)'),
+      )
+    }
+    if (id.endsWith('_s')) {
+      return pack(
+        [step(1, '2NH₃ + H₂S → (NH₄)₂S', 'аммиак + сероводород')],
+        condStd('комнатная / охлаждение', 'атмосферное', 'не нужен', 'вытяжка (H₂S — яд); соединение неустойчиво'),
+      )
+    }
+    if (id.includes('_sio3')) {
+      return pack(
+        [
+          step(1, 'в школе прямой синтез (NH₄)₂SiO₃ из NH₃ + H₂SiO₃ нереалистичен', 'H₂SiO₃ практически нерастворима'),
+          step(2, 'промышленно/лабораторно — обменные схемы с силикатами; карточку дают как формулу соли', 'не сплавление NH₃ с SiO₂'),
+        ],
+        condStd('по методике обмена', 'атмосферное', 'не нужен', 'схема / справочник; не школьный «горячий» синтез'),
+      )
+    }
+    if (id.includes('_clo4')) {
+      return pack(
+        [step(1, 'NH₃ + HClO₄ → NH₄ClO₄', 'аммиак + хлорная кислота')],
+        condStd('комнатная / охлаждение', 'атмосферное', 'не нужен', 'вытяжка; перхлораты — сильные окислители'),
+      )
+    }
+    if (id.includes('_clo3')) {
+      return pack(
+        [step(1, 'NH₃ + HClO₃ → NH₄ClO₃', 'аммиак + хлорноватая кислота (осторожно)')],
+        condStd('охлаждение', 'атмосферное', 'не нужен', 'вытяжка; хлораты — окислители'),
+      )
+    }
+    if (id.includes('_no3')) {
+      return pack(
+        [step(1, 'NH₃ + HNO₃ → NH₄NO₃', 'нейтрализация')],
+        condStd('комнатная'),
+      )
+    }
+    if (id.includes('_cl') || id.endsWith('_cl')) {
+      return pack(
+        [step(1, 'NH₃ + HCl → NH₄Cl', 'белый дым хлорида аммония')],
+        condStd('комнатная'),
+      )
+    }
+    // fallback NH4
+    return pack(
+      [step(1, `NH₃ + соответствующая кислота → ${f}`, 'соль аммония из аммиака и кислоты')],
+      condStd('комнатная'),
+    )
+  }
+
+  // ——— Соли серебра (обмен AgNO₃; без AgOH и без «учебного» Cs/Ag+галоген) ———
+  if (metal === 'Ag') {
+    if (id.includes('cr2o7')) {
+      return pack(
+        [
+          step(1, '2Ag₂CrO₄ + H₂SO₄ → Ag₂Cr₂O₇ + Ag₂SO₄ + H₂O', 'хромат серебра → дихромат в кислой среде'),
+        ],
+        condStd('комнатная', 'атмосферное', 'не нужен', 'пробирки, H₂SO₄; Cr(VI) — вытяжка'),
+      )
+    }
+    if (id.includes('_cro4') || id.endsWith('cro4')) {
+      return pack(
+        [step(1, '2AgNO₃ + K₂CrO₄ → Ag₂CrO₄↓ + 2KNO₃', 'обменное осаждение')],
+        condStd('комнатная', 'атмосферное', 'не нужен', 'растворы AgNO₃ и хромата; Cr(VI) — вытяжка'),
+      )
+    }
+    if (id.includes('_co3') || id.includes('_hco3')) {
+      return pack(
+        [
+          step(1, '2AgNO₃ + Na₂CO₃ → Ag₂CO₃↓ + 2NaNO₃', 'осаждение из нитрата серебра'),
+          step(2, 'не «MOH + CO₂» и не известковая вода — это путь карбоната кальция'),
+        ],
+        condStd('комнатная', 'атмосферное', 'не нужен', 'растворы AgNO₃ и Na₂CO₃'),
+      )
+    }
+    if (id.includes('_so4')) {
+      return pack(
+        [
+          step(1, 'Ag₂O + H₂SO₄ → Ag₂SO₄ + H₂O', 'оксид серебра(I) + серная кислота'),
+          step(2, 'или 2AgNO₃ + H₂SO₄ → Ag₂SO₄ + 2HNO₃', 'Ag с разб. H₂SO₄ водород не вытесняет'),
+        ],
+        condStd('комнатная / слабый нагрев', 'атмосферное', 'не нужен', 'стакан, H₂SO₄; вытяжка'),
+      )
+    }
+    if (id.includes('_so3')) {
+      return pack(
+        [
+          step(1, '2AgNO₃ + Na₂SO₃ → Ag₂SO₃↓ + 2NaNO₃', 'обмен (AgOH в растворе не существует)'),
+        ],
+        condStd('комнатная / охлаждение', 'атмосферное', 'не нужен', 'растворы AgNO₃ и сульфита; вытяжка'),
+      )
+    }
+    if (id.includes('_sio3')) {
+      return pack(
+        [
+          step(1, '2AgNO₃ + Na₂SiO₃ → Ag₂SiO₃↓ + 2NaNO₃', 'обмен в растворе'),
+          step(2, 'не сплавление SiO₂ с AgOH/Ag₂CO₃', 'AgOH неустойчив; Ag₂CO₃ при 800–1000 °C → Ag + O₂'),
+        ],
+        condStd('комнатная', 'атмосферное', 'не нужен', 'растворы нитрата серебра и силиката'),
+      )
+    }
+    if (id.includes('_no3')) {
+      return pack(
+        [
+          step(1, 'Ag + 2HNO₃(разб.) → AgNO₃ + NO₂↑ + H₂O', 'растворение серебра в азотной кислоте'),
+          step(2, 'или Ag₂O + 2HNO₃ → 2AgNO₃ + H₂O', 'Ag(OH)₂ не существует; AgOH → Ag₂O'),
+        ],
+        condStd('комнатная / слабый нагрев', 'атмосферное', 'не нужен', 'вытяжка (NOₓ)'),
+      )
+    }
+    if (id.includes('_no2')) {
+      return pack(
+        [
+          step(1, 'AgNO₃ + KNO₂ → AgNO₂↓ + KNO₃', 'обмен в холодном растворе'),
+          step(2, 'не AgNO₃ + Pb →(t°) …', 'нагрев AgNO₃ даёт Ag + NO₂ + O₂, не нитрит; HNO₂+щёлочь даёт нитрит щелочного металла'),
+        ],
+        condStd('холод / комнатная', 'атмосферное', 'не нужен', 'растворы; охлаждение'),
+      )
+    }
+    if (id.includes('_mno4')) {
+      return pack(
+        [
+          step(1, 'AgNO₃ + KMnO₄ → AgMnO₄↓ + KNO₃', 'обмен / кристаллизация перманганата серебра'),
+        ],
+        condStd('комнатная / охлаждение', 'атмосферное', 'не нужен', 'растворы; защитные очки (окислитель)'),
+      )
+    }
+    if (id.includes('_clo3')) {
+      return pack(
+        [
+          step(1, '3Cl₂ + 6KOH → 5KCl + KClO₃ + 3H₂O', 'сначала хлорат калия'),
+          step(2, 'AgNO₃ + KClO₃ → AgClO₃↓ + KNO₃', 'обмен → хлорат серебра (не AgClO₂!)'),
+        ],
+        condStd('нагрев щёлочи, затем комнатная', 'атмосферное', 'не обязателен', 'вытяжка; хлораты — окислители'),
+        { needsHeat: true },
+      )
+    }
+    if (id.includes('_clo4')) {
+      return pack(
+        [
+          step(1, '2KClO₃ →(t° / электролиз) KClO₄ + KCl', 'сначала окисление хлората → перхлорат'),
+          step(2, 'AgNO₃ + KClO₄ → AgClO₄ + KNO₃', 'обмен только после получения перхлората'),
+        ],
+        condStd('нагрев/электр. хлората, затем комнатная', 'атмосферное', 'не обязателен', 'вытяжка; перхлораты — окислители'),
+        { needsHeat: true },
+      )
+    }
+    if (id.endsWith('_s')) {
+      return pack(
+        [
+          step(1, '2Ag + S →(t°) Ag₂S', 'нагрев; также образуется при потускнении серебра'),
+          step(2, 'или 2AgNO₃ + H₂S → Ag₂S↓ + 2HNO₃', 'чёрный осадок из раствора'),
+        ],
+        condStd('нагрев / комнатная в растворе', 'атмосферное', 'не нужен', 'тигель или пробирки; вытяжка при H₂S'),
+        { needsHeat: true },
+      )
+    }
+    if (/_(cl|br|i|f)$/.test(id)) {
+      const saltNa =
+        id.includes('_br') ? 'NaBr' : id.includes('_i') ? 'NaI' : id.includes('_f') ? 'NaF' : 'NaCl'
+      const note = id.includes('_f')
+        ? 'AgF относительно хорошо растворим — классический «белый осадок» с Ag⁺ для F⁻ нетипичен'
+        : 'практически нерастворим; школьный путь — осаждение из AgNO₃'
+      return pack(
+        [
+          step(1, `AgNO₃ + ${saltNa} → ${f}↓ + NaNO₃`, note),
+          step(2, 'прямой Ag + галоген в школе обычно не проводят', 'демонстрация обмена предпочтительнее'),
+        ],
+        condStd('комнатная', 'атмосферное', 'не нужен', 'растворы AgNO₃ и галогенида'),
+      )
+    }
+  }
+
+  // ——— Цезий: прямой Cs + X₂ в школе недопустим ———
+  if (metal === 'Cs' && /_(cl|br|i|f)$/.test(id)) {
+    const hx = id.includes('_br') ? 'HBr' : id.includes('_i') ? 'HI' : id.includes('_f') ? 'HF' : 'HCl'
+    return pack(
+      [
+        step(1, `CsOH + ${hx} → ${f} + H₂O`, 'нейтрализация — школьно допустимый путь'),
+        step(2, `2Cs + X₂ → 2CsX`, 'только схема: цезий с галогенами реагирует крайне бурно / взрывоподобно'),
+      ],
+      condStd('комнатная (нейтрализация)', 'атмосферное', 'не нужен', 'стакан, растворы; прямой синтез с Cs не проводят'),
+    )
+  }
+
   if (id.includes('cr2o7') || id.includes('_cro4') || id.endsWith('cro4')) {
     if (id.includes('cr2o7')) {
       const m = metal && metal !== 'NH₄' ? metal : 'K'
@@ -784,12 +1018,7 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
           step(1, `2${m}₂CrO₄ + H₂SO₄ → ${m}₂Cr₂O₇ + ${m}₂SO₄ + H₂O`, 'кислая среда: жёлтый → оранжевый'),
           step(2, 'Обратно в щелочи: дихромат ⇄ хромат'),
         ],
-        {
-          temperature: 'комнатная',
-          pressure: 'атмосферное',
-          catalyst: 'не нужен; нужна кислая среда',
-          equipment: 'пробирки, H₂SO₄; Cr(VI) — вытяжка',
-        },
+        condStd('комнатная', 'атмосферное', 'не нужен', 'пробирки, H₂SO₄; Cr(VI) — вытяжка'),
       )
     }
     const m = metal && metal !== 'NH₄' ? metal : 'K'
@@ -798,12 +1027,7 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
         step(1, `CrO₃ + 2${m}OH → ${m}₂CrO₄ + H₂O`, 'хромовый ангидрид / H₂CrO₄ + щёлочь'),
         step(2, `или H₂CrO₄ + 2${m}OH → ${m}₂CrO₄ + 2H₂O`, 'не прямой синтез из элементов'),
       ],
-      {
-        temperature: 'комнатная / слабый нагрев',
-        pressure: 'атмосферное',
-        catalyst: 'не нужен; щелочная среда для хромата',
-        equipment: 'стакан; Cr(VI) токсичен — вытяжка',
-      },
+      condStd('комнатная / слабый нагрев', 'атмосферное', 'не нужен', 'стакан; Cr(VI) токсичен — вытяжка'),
     )
   }
 
@@ -811,18 +1035,11 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
     if (metal === 'Ca') {
       return pack(
         [step(1, 'Ca(OH)₂ + CO₂ → CaCO₃↓ + H₂O', 'известковая вода + CO₂')],
-        {
-          temperature: 'комнатная',
-          pressure: 'атмосферное (или ток CO₂)',
-          catalyst: 'не нужен',
-          equipment: 'известковая вода, трубка CO₂',
-        },
+        condStd('комнатная', 'атмосферное (или ток CO₂)', 'не нужен', 'известковая вода, трубка CO₂'),
       )
     }
     if (metal && isAlkaliMetal(metal)) {
-      const salt = id.includes('_hco3')
-        ? `${metal}HCO₃`
-        : `${metal}₂CO₃`
+      const salt = id.includes('_hco3') ? `${metal}HCO₃` : `${metal}₂CO₃`
       return pack(
         [
           step(
@@ -833,34 +1050,20 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
             'щёлочь + диоксид углерода',
           ),
         ],
-        {
-          temperature: 'комнатная',
-          pressure: 'атмосферное (или ток CO₂)',
-          catalyst: 'не нужен',
-          equipment: 'раствор щёлочи, трубка CO₂',
-        },
+        condStd('комнатная', 'атмосферное (или ток CO₂)', 'не нужен', 'раствор щёлочи, трубка CO₂'),
       )
     }
     return pack(
-      [step(1, `гидроксид / оксид металла + CO₂ → ${f}`, 'карбонаты не из M+C+O₂ в один шаг')],
-      {
-        temperature: 'комнатная',
-        pressure: 'атмосферное (или ток CO₂)',
-        catalyst: 'не нужен',
-        equipment: 'раствор щёлочи / суспензия гидроксида, трубка CO₂',
-      },
+      [step(1, `растворимая соль металла + карбонат → ${f}↓`, 'обмен; не абстрактное MOH + CO₂')],
+      condStd('комнатная', 'атмосферное', 'не нужен', 'растворы солей'),
     )
   }
 
+  // NH4 handled above — keep a guard so old generic never runs
   if (id.startsWith('salt_nh4_')) {
     return pack(
-      [step(1, `NH₃ + кислота → ${f}`, 'соли аммония из аммиака и кислоты')],
-      {
-        temperature: 'комнатная',
-        pressure: 'атмосферное',
-        catalyst: 'не нужен',
-        equipment: 'стакан / палочки с NH₃ и кислотой',
-      },
+      [step(1, `NH₃ + кислота → ${f}`, 'соль аммония')],
+      condStd('комнатная'),
     )
   }
 
@@ -1216,8 +1419,10 @@ export function resolveObtainingBundle(p: RawCompoundDef): ObtainingBundle {
 
   const salt = saltTemplateBundle(p)
   if (salt && fromElementsPolicy(p.id) === 'forbidden') return salt
-  // Щелочные сульфиды: из элементов формально «можно», но школьный маршрут — с предупреждением.
-  if (salt && /^salt_(li|na|k|cs)_s$/.test(p.id)) return salt
+  // Щелочные сульфиды / Ag / Cs: даже если «из элементов allowed» — школьно-безопасный шаблон.
+  if (salt && (/^salt_(li|na|k|cs)_s$/.test(p.id) || p.id.startsWith('salt_ag_') || p.id.startsWith('salt_cs_'))) {
+    return salt
+  }
 
   return synthesizeFromElementsBundle(p)
 }
