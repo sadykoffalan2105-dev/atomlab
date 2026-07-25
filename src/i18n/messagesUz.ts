@@ -182,6 +182,8 @@ export const messagesUz: Record<MessageKey, string> = {
   'reactor.title': 'Reaktor',
   'reactor.ariaRegion': 'Sintez reaktori',
   'reactor.reset': 'Qayta o\'rnatish',
+  'reactor.hidePanel': 'Reaktorni yashirish',
+  'reactor.showPanel': 'Reaktorni ko\'rsatish',
   'reactor.equationAria': 'Reaksiya tenglamasi',
   'reactor.reagents': 'Reagentlar',
   'reactor.emptyHint':

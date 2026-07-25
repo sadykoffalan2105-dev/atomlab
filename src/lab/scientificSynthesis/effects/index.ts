@@ -13,5 +13,4 @@ export { SciStoichBadge, SciStageCaption, SciElectronImpulse, SciAmberHalo } fro
 export { SciCinematicPostFx, type SciPostDirector } from './SciCinematicPostFx'
 export { SciMicrocosmEnv } from './SciMicrocosmEnv'
 export { SCI_CPK, SCI_CPK_HEX } from './sciCpk'
-export { useClo2CinematicDirector, type Clo2DirectorState } from './useClo2CinematicDirector'
 export { useCh4CinematicDirector, type Ch4DirectorState } from './useCh4CinematicDirector'

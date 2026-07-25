@@ -367,7 +367,7 @@ export function Ch4CombustionSciFx({
             <SciProAtom symbol="H" color={SCI_CPK.H} radius={0.16} emissiveBoost={0.5} quality={quality} />
           </group>
         ))}
-        {hRefs.map((r, i) => (
+        {hRefs.map((_, i) => (
           <Bond
             key={`ch-${i}`}
             from={world.c}

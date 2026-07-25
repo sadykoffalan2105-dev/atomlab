@@ -55,6 +55,7 @@
     "test:coeff-edit-atom-pin": "tsx scripts/test-coeff-edit-atom-pin.mts",
     "test:reactor-preview-motion": "tsx scripts/test-reactor-preview-motion.mts",
     "test:catalog-coeff-stress": "tsx scripts/test-catalog-coeff-stress.mts",
+    "test:clo2-cinema": "tsx scripts/test-clo2-cinema.mts",
     "smoke:reactor-preview": "node scripts/smoke-reactor-preview.mjs",
     "teacher:native": "node scripts/build-teacher-native.mjs",
     "teacher:dev": "python -m teacher_service"
@@ -70,12 +71,14 @@
     "gsap": "^3.15.0",
     "msedge-tts": "^2.0.6",
     "periodic-table-data": "^1.1.1",
+    "quarks.r3f": "^0.17.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.14.2",
     "remark-gfm": "^4.0.1",
     "three": "^0.184.0",
+    "three.quarks": "^0.17.1",
     "ws": "^8.21.0"
   },
   "devDependencies": {

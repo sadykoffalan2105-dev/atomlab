@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bloom, EffectComposer } from '@react-three/postprocessing'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
@@ -22,6 +22,12 @@ export function SynthesisLabCinematicFx({
   const intensityRef = useRef(0)
   const bloomRef = useRef<{ intensity: number } | null>(null)
   const [composerReady, setComposerReady] = useState(false)
+
+  // Только колбэк: объектный ref попадает в JSON.stringify(props) внутри
+  // wrapEffect и роняет пост-обработку на циклической ссылке эффект → сцена.
+  const attachBloom = useCallback((effect: { intensity: number } | null) => {
+    bloomRef.current = effect
+  }, [])
 
   useEffect(() => {
     intensityRef.current = 0
@@ -53,7 +59,7 @@ export function SynthesisLabCinematicFx({
   return (
     <EffectComposer multisampling={0}>
       <Bloom
-        ref={bloomRef}
+        ref={attachBloom}
         luminanceThreshold={0.22}
         luminanceSmoothing={0.34}
         mipmapBlur

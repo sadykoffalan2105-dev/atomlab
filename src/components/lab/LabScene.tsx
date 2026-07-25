@@ -2098,7 +2098,7 @@ function SceneContent({
           {synthActive && synthesis && instantSynthesis && showElementsCollapseFx ? (
             ScientificFx ? (
               <ScientificFx
-                key={`sci-${synthesis.product.id}-${synthesis.runId}`}
+                key={`sci-${synthesis.product?.id ?? 'unknown'}-${synthesis.runId}`}
                 runId={synthesis.runId}
                 lowPower={
                   lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc || synthForceLite

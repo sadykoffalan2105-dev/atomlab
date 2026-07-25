@@ -260,6 +260,7 @@ export function SynthesisReactorPanel({
   const coeffErr = highlightEquationError
   const coeffFocusGenRef = useRef(0)
   const coeffFocusReleaseTimerRef = useRef<number | null>(null)
+  const [collapsed, setCollapsed] = useState(false)
 
   const reportCoeffFocus = useCallback(
     (focused: boolean) => {
@@ -287,14 +288,25 @@ export function SynthesisReactorPanel({
   )
 
   useEffect(() => {
-    if (open) return
+    if (!open) {
+      setCollapsed(false)
+      coeffFocusGenRef.current += 1
+      if (coeffFocusReleaseTimerRef.current != null) {
+        clearTimeout(coeffFocusReleaseTimerRef.current)
+        coeffFocusReleaseTimerRef.current = null
+      }
+      onCoeffUiFocusChange?.(false)
+      return
+    }
+    if (!collapsed) return
+    // Скрытая панель не должна держать 3D в режиме редактирования коэффициентов.
     coeffFocusGenRef.current += 1
     if (coeffFocusReleaseTimerRef.current != null) {
       clearTimeout(coeffFocusReleaseTimerRef.current)
       coeffFocusReleaseTimerRef.current = null
     }
     onCoeffUiFocusChange?.(false)
-  }, [open, onCoeffUiFocusChange])
+  }, [open, collapsed, onCoeffUiFocusChange])
 
   const productStrings = useMemo(
     () => (productCompound ? getCompoundLocaleStrings(productCompound, locale, t) : null),
@@ -305,17 +317,41 @@ export function SynthesisReactorPanel({
   const hasDiatomic = leftTerms.some((t) => t.diatomic)
 
   return (
+    <>
     <div
       className={dimInCatalogHeroView ? `${panelStyles.reactor} ${panelStyles.reactorDimHero}` : panelStyles.reactor}
       data-open={open}
+      data-collapsed={open && collapsed ? 'true' : undefined}
       data-lab-reactor=""
       data-dim-hero={dimInCatalogHeroView && open}
       role="region"
       aria-label={t('reactor.ariaRegion')}
+      aria-hidden={open && collapsed ? true : undefined}
+      inert={open && collapsed ? true : undefined}
     >
       <div className={panelStyles.reactorHead}>
         <span className={panelStyles.reactorTitle}>{t('reactor.title')}</span>
         <div className={panelStyles.reactorActions}>
+          <button
+            type="button"
+            className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnHide}`}
+            onClick={() => setCollapsed(true)}
+            aria-label={t('reactor.hidePanel')}
+            title={t('reactor.hidePanel')}
+          >
+            <span className={panelStyles.reactorBtnHideIcon} aria-hidden>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+                <path
+                  d="M6 9l6 6 6-6"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            {t('reactor.hidePanel')}
+          </button>
           <button type="button" className={panelStyles.reactorBtnSecondary} onClick={onClearSlots}>
             {t('reactor.reset')}
           </button>
@@ -360,14 +396,14 @@ export function SynthesisReactorPanel({
                       />
                       <span className={panelStyles.termSymbol}>{termSymbolDisplay(term)}</span>
                       {term.locked ? null : (
-                        <button
-                          type="button"
-                          className={panelStyles.termRemove}
-                          onClick={() => onRemoveTerm(term.id)}
-                          aria-label={t('reactor.remove', { symbol: termSymbolDisplay(term) })}
-                        >
-                          ×
-                        </button>
+                      <button
+                        type="button"
+                        className={panelStyles.termRemove}
+                        onClick={() => onRemoveTerm(term.id)}
+                        aria-label={t('reactor.remove', { symbol: termSymbolDisplay(term) })}
+                      >
+                        ×
+                      </button>
                       )}
                     </div>
                   </div>
@@ -425,19 +461,19 @@ export function SynthesisReactorPanel({
                   <span className={panelStyles.equationPlus} aria-hidden>
                     +
                   </span>
-                ) : null}
-                <div
-                  className={`${panelStyles.productBubble} ${coeffErr ? panelStyles.productBubbleError : ''}`}
-                  aria-label={t('reactor.productCoeffAria')}
-                >
+              ) : null}
+              <div
+                className={`${panelStyles.productBubble} ${coeffErr ? panelStyles.productBubbleError : ''}`}
+                aria-label={t('reactor.productCoeffAria')}
+              >
                   <CoeffKeyboardInput
-                    value={productCoeff}
-                    min={1}
+                  value={productCoeff}
+                  min={1}
                     max={COEFF_MAX}
-                    highlightError={coeffErr}
+                  highlightError={coeffErr}
                     dimWhenOne
-                    ariaLabel={t('reactor.productCoeffAria')}
-                    onChange={onProductCoeffChange}
+                  ariaLabel={t('reactor.productCoeffAria')}
+                  onChange={onProductCoeffChange}
                     onFocusChange={reportCoeffFocus}
                   />
                   {productCompound ? (
@@ -459,7 +495,7 @@ export function SynthesisReactorPanel({
                       aria-label={t('reactor.openCatalog')}
                     >
                       ◫
-                    </button>
+                </button>
                   )}
                 </div>
               </div>
@@ -699,5 +735,28 @@ export function SynthesisReactorPanel({
         ) : null}
       </div>
     </div>
+    {open && collapsed ? (
+      <button
+        type="button"
+        className={panelStyles.reactorReopenFab}
+        onClick={() => setCollapsed(false)}
+        aria-label={t('reactor.showPanel')}
+        title={t('reactor.showPanel')}
+      >
+        <span className={panelStyles.reactorReopenFabIcon} aria-hidden>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+            <path
+              d="M6 15l6-6 6 6"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+        {t('reactor.showPanel')}
+      </button>
+    ) : null}
+    </>
   )
 }

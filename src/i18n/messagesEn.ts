@@ -182,6 +182,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'reactor.title': 'Reactor',
   'reactor.ariaRegion': 'Synthesis reactor',
   'reactor.reset': 'Reset',
+  'reactor.hidePanel': 'Hide reactor',
+  'reactor.showPanel': 'Show reactor',
   'reactor.equationAria': 'Reaction equation',
   'reactor.reagents': 'Reagents',
   'reactor.emptyHint':

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
@@ -23,6 +23,12 @@ export function SciCinematicPostFx({
   const [ready, setReady] = useState(false)
   const bloomRef = useRef<{ intensity: number } | null>(null)
 
+  // Только колбэк: объектный ref попадает в JSON.stringify(props) внутри
+  // wrapEffect и роняет пост-обработку на циклической ссылке эффект → сцена.
+  const attachBloom = useCallback((effect: { intensity: number } | null) => {
+    bloomRef.current = effect
+  }, [])
+
   useEffect(() => {
     let a = 0
     const id = requestAnimationFrame(() => {
@@ -46,7 +52,7 @@ export function SciCinematicPostFx({
   return (
     <EffectComposer multisampling={0}>
       <Bloom
-        ref={bloomRef}
+        ref={attachBloom}
         luminanceThreshold={lite ? 0.32 : 0.26}
         luminanceSmoothing={0.45}
         mipmapBlur

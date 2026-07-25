@@ -180,6 +180,8 @@ export const messagesRu = {
   'reactor.title': 'Реактор',
   'reactor.ariaRegion': 'Реактор синтеза',
   'reactor.reset': 'Сбросить',
+  'reactor.hidePanel': 'Скрыть реактор',
+  'reactor.showPanel': 'Показать реактор',
   'reactor.equationAria': 'Уравнение реакции',
   'reactor.reagents': 'Реагенты',
   'reactor.emptyHint':
