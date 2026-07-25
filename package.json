@@ -56,6 +56,7 @@
     "test:reactor-preview-motion": "tsx scripts/test-reactor-preview-motion.mts",
     "test:catalog-coeff-stress": "tsx scripts/test-catalog-coeff-stress.mts",
     "test:clo2-cinema": "tsx scripts/test-clo2-cinema.mts",
+    "test:homework-review": "tsx scripts/test-homework-review.mts",
     "smoke:reactor-preview": "node scripts/smoke-reactor-preview.mjs",
     "teacher:native": "node scripts/build-teacher-native.mjs",
     "teacher:dev": "python -m teacher_service"

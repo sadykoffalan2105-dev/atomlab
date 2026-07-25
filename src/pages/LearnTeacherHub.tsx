@@ -20,6 +20,7 @@ import {
 } from '../learn/learnTeacherStorage'
 import { readLearnProgress } from '../learn/learnProgressStorage'
 import { useT } from '../i18n/useT'
+import { HomeworkReviewPanel } from './HomeworkReviewPanel'
 import styles from './LearnPage.module.css'
 
 export function LearnTeacherHub() {
@@ -118,6 +119,8 @@ export function LearnTeacherHub() {
           {t('learn.teacher.exportProgress')}
         </button>
       </div>
+
+      <HomeworkReviewPanel />
 
       <section className={styles.teacherBlock}>
         <h2 className={styles.h}>{t('learn.teacher.newClass')}</h2>
