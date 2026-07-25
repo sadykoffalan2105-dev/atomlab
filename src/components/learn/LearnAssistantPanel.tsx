@@ -15,6 +15,13 @@ import { filterAssistantReply } from '../../learn/learnAssistantGuard'
 import { LearnAssistantMarkdown } from './LearnAssistantMarkdown'
 import { LiveDialogButton } from './LearnLiveTutorPanel'
 import { warmupPuterFromUserGesture } from '../../learn/learnPuterTts'
+import {
+  formatHomeworkReportForChat,
+  homeworkUserLabel,
+  loadHomeworkImageFile,
+  reviewHomework,
+  saveHomeworkReviewToHistory,
+} from '../../learn/homework'
 import styles from '../../pages/LearnPage.module.css'
 
 const CHAT_URL = import.meta.env.VITE_LEARN_CHAT_URL ?? '/api/learn/chat'
@@ -111,6 +118,7 @@ export function LearnAssistantPanel({
   })
   const [lastSource, setLastSource] = useState<AssistantSource | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const homeworkFileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setMessages(loadStored(storeKey))
@@ -332,6 +340,85 @@ export function LearnAssistantPanel({
     }
   }, [storeKey])
 
+  const runHomeworkReview = useCallback(
+    async (rawText: string, fromScan: boolean) => {
+      const text = rawText.trim()
+      if (text.length < 12) {
+        setError(t('learn.assistant.homeworkNeedText'))
+        return
+      }
+      warmupPuterFromUserGesture()
+      setError(null)
+      setLoading(true)
+      const userMsg: ChatMessage = {
+        role: 'user',
+        text: homeworkUserLabel(locale, text, fromScan),
+        at: Date.now(),
+      }
+      setMessages((m) => [...m, userMsg])
+      try {
+        const report = await reviewHomework({
+          text,
+          source: fromScan ? 'upload' : 'paste',
+          topicHint: slideTitle || section.titleKey,
+          gradeId,
+          locale,
+        })
+        saveHomeworkReviewToHistory(report)
+        const reply = formatHomeworkReportForChat(report, locale)
+        const assistantMsg: ChatMessage = {
+          role: 'assistant',
+          text: reply,
+          at: Date.now(),
+          source: 'local',
+        }
+        setLastSource('local')
+        setMessages((m) => [...m, assistantMsg])
+        if (autoRead && isSpeechOutputSupported()) {
+          void speakMessage(
+            locale === 'en'
+              ? `Chemistry score ${report.chemistry.score}. Authorship ${report.authorship.authorship}.`
+              : locale === 'uz'
+                ? `Kimyo ${report.chemistry.score}. Mualliflik ${report.authorship.authorship}.`
+                : `Химия ${report.chemistry.score}. Авторство ${report.authorship.authorship}. ${report.studentFeedback}`,
+            assistantMsg.at,
+          )
+        }
+      } catch {
+        setError(t('learn.assistant.homeworkNeedText'))
+      } finally {
+        setLoading(false)
+        requestAnimationFrame(() => {
+          listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
+        })
+      }
+    },
+    [autoRead, gradeId, locale, section.titleKey, slideTitle, speakMessage, t],
+  )
+
+  const onHomeworkFile = useCallback(
+    async (file: File | null) => {
+      if (!file) return
+      setLoading(true)
+      setError(null)
+      try {
+        const scan = await loadHomeworkImageFile(file)
+        const text = (scan.ocrText || input).trim()
+        if (scan.ocrText) setInput(scan.ocrText)
+        if (text.length >= 12) {
+          await runHomeworkReview(text, true)
+        } else {
+          setError(t('learn.assistant.homeworkNeedText'))
+          setLoading(false)
+        }
+      } catch {
+        setError(t('learn.assistant.homeworkNeedText'))
+        setLoading(false)
+      }
+    },
+    [input, runHomeworkReview, t],
+  )
+
   const sourceLabel =
     lastSource === 'openai'
       ? t('learn.assistant.sourceOpenai')
@@ -498,7 +585,11 @@ export function LearnAssistantPanel({
             </div>
           ))
         )}
-        {loading ? <p className={styles.learnAssistantThinking}>{t('learn.assistant.thinking')}</p> : null}
+        {loading ? (
+          <p className={styles.learnAssistantThinking}>
+            {t('learn.assistant.thinking')}
+          </p>
+        ) : null}
         {error ? <p className={styles.learnAssistantError}>{error}</p> : null}
       </div>
 
@@ -537,6 +628,27 @@ export function LearnAssistantPanel({
           </button>
         ) : null}
         <input
+          ref={homeworkFileRef}
+          type="file"
+          accept="image/*"
+          className={styles.homeworkFileHidden}
+          onChange={(e) => {
+            const f = e.target.files?.[0] ?? null
+            void onHomeworkFile(f)
+            e.target.value = ''
+          }}
+        />
+        <button
+          type="button"
+          className={styles.learnAssistantMic}
+          disabled={loading}
+          onClick={() => homeworkFileRef.current?.click()}
+          title={t('learn.assistant.homeworkScan')}
+          aria-label={t('learn.assistant.homeworkScan')}
+        >
+          📷
+        </button>
+        <input
           type="text"
           className={styles.learnAssistantInput}
           value={input}
@@ -546,6 +658,15 @@ export function LearnAssistantPanel({
           disabled={loading}
           maxLength={2000}
         />
+        <button
+          type="button"
+          className={styles.learnAssistantHomeworkBtn}
+          disabled={loading || !input.trim()}
+          onClick={() => void runHomeworkReview(input, false)}
+          title={t('learn.assistant.homework')}
+        >
+          {loading ? '…' : t('learn.assistant.homework')}
+        </button>
         <button
           type="button"
           className={`${styles.btn} ${styles.btnPrimary} ${styles.learnAssistantSend}`}

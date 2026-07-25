@@ -3,7 +3,7 @@
  *
  * Half-duplex по умолчанию против эха колонок:
  *  • пока ИИ говорит — STT остановлен, VAD не принимает «речь» как ученика;
- *  • после TTS — пауза ~450 мс, сброс буфера распознавания, затем снова слушаем;
+ *  • после TTS — короткая пауза, сброс буфера, затем снова слушаем (STT стартует рано);
  *  • реплики, похожие на только что сказанный текст учителя, отбрасываются.
  *
  * Барджин (перебивание) включается только если `bargeInEnabled: true` и STT активен.
@@ -55,6 +55,8 @@ export function looksLikeTeacherEcho(userText: string, teacherText: string): boo
   const t = normalizeEcho(teacherText)
   if (!u || u.length < 4) return false
   if (!t) return false
+  // Короткая самостоятельная реплика («да», «понял», «оксид») — не эхо.
+  if (u.split(' ').length <= 3 && u.length <= 24 && !t.startsWith(u)) return false
   if (t.includes(u) || u.includes(t.slice(0, Math.min(t.length, 80)))) return true
   const ut = tokenSet(u)
   const tt = tokenSet(t)
@@ -62,8 +64,8 @@ export function looksLikeTeacherEcho(userText: string, teacherText: string): boo
   let hit = 0
   for (const tok of ut) if (tt.has(tok)) hit++
   const overlap = hit / ut.size
-  // Короткие фразы ученика: достаточно 70%; длинные — 55%.
-  return ut.size <= 4 ? overlap >= 0.7 : overlap >= 0.55
+  // Строже: меньше ложных «эхо» на нормальные ответы ученика.
+  return ut.size <= 4 ? overlap >= 0.85 : overlap >= 0.7
 }
 
 export class DuplexVoiceSession {
@@ -81,19 +83,26 @@ export class DuplexVoiceSession {
   private listenResumeAt = 0
   private readonly bargeInEnabled: boolean
   private readonly postSpeakDelayMs: number
+  private lastEmitMs = 0
+  private sttFinalTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor(config: DuplexSessionConfig) {
     this.cfg = config
     this.bargeInEnabled = config.bargeInEnabled === true
-    this.postSpeakDelayMs = config.postSpeakDelayMs ?? 550
+    // Быстрый возврат к слушанию после TTS (раньше было ~550 мс).
+    this.postSpeakDelayMs = config.postSpeakDelayMs ?? 200
     this.interruption = new InterruptionController({
-      bargeInConfirmMs: 320,
+      bargeInConfirmMs: 220,
       bargeInEnabled: this.bargeInEnabled,
       onStopAiSpeech: () => this.hardStopSpeech(),
       onBargeIn: () => this.handleBargeIn(),
       onTurnChange: (turn) => this.cfg.onTurnChange?.(turn),
     })
     this.vad = new AudioActivityDetector({
+      startThreshold: 0.03,
+      endThreshold: 0.016,
+      silenceHangoverMs: 380,
+      minSpeechMs: 110,
       onSpeechStart: () => {
         if (this.shouldIgnoreMicAsUser()) return
         this.interruption.userSpeechStarted()
@@ -122,12 +131,20 @@ export class DuplexVoiceSession {
       (full, interim) => {
         if (this.shouldIgnoreMicAsUser()) return
         this.cfg.onPartial?.(interim || full.slice(this.consumedLen))
+        // Не ждём только VAD: финальные куски STT принимаем быстрее.
+        if (!interim && full.trim().length > this.consumedLen) {
+          this.scheduleSttFinalCommit()
+        }
       },
     )
     this.listening = true
   }
 
   private stopStt(): void {
+    if (this.sttFinalTimer) {
+      clearTimeout(this.sttFinalTimer)
+      this.sttFinalTimer = null
+    }
     if (!this.listening) return
     this.cfg.controller.stopOralListening()
     this.listening = false
@@ -137,6 +154,28 @@ export class DuplexVoiceSession {
   private discardSttBuffer(): void {
     this.consumedLen = this.sttSession.committed.length
     this.cfg.onPartial?.('')
+  }
+
+  private scheduleSttFinalCommit(): void {
+    if (this.sttFinalTimer) clearTimeout(this.sttFinalTimer)
+    this.sttFinalTimer = setTimeout(() => {
+      this.sttFinalTimer = null
+      if (this.shouldIgnoreMicAsUser()) return
+      this.commitFreshUtterance()
+    }, 280)
+  }
+
+  private commitFreshUtterance(): void {
+    if (!this.active || this.shouldIgnoreMicAsUser()) return
+    const full = this.sttSession.committed.trim()
+    const fresh = full.slice(this.consumedLen).trim()
+    if (fresh.length < 2) return
+    // Анти-дребезг: не слать ту же реплику дважды подряд.
+    if (Date.now() - this.lastEmitMs < 350) return
+    this.consumedLen = full.length
+    this.lastEmitMs = Date.now()
+    this.interruption.userSpeechEnded()
+    this.emitUserUtterance(fresh)
   }
 
   /** Запустить сессию на потоке микрофона. */
@@ -188,10 +227,16 @@ export class DuplexVoiceSession {
       return
     }
     this.interruption.userSpeechEnded()
+    if (this.sttFinalTimer) {
+      clearTimeout(this.sttFinalTimer)
+      this.sttFinalTimer = null
+    }
     const full = this.sttSession.committed.trim()
     const fresh = full.slice(this.consumedLen).trim()
     if (fresh.length >= 2) {
+      if (Date.now() - this.lastEmitMs < 350) return
       this.consumedLen = full.length
+      this.lastEmitMs = Date.now()
       this.emitUserUtterance(fresh)
     } else if (this.pendingBargeText) {
       this.emitUserUtterance(this.pendingBargeText)
@@ -218,11 +263,13 @@ export class DuplexVoiceSession {
     } finally {
       this.setAiSpeaking(false)
       this.interruption.aiSpeechEnded()
-      // Колонки ещё «хвостят» — ждём и чистим буфер перед новым прослушиванием.
-      this.listenResumeAt = Date.now() + this.postSpeakDelayMs
-      await sleep(this.postSpeakDelayMs)
-      this.discardSttBuffer()
+      const delay = this.postSpeakDelayMs
+      this.listenResumeAt = Date.now() + delay
+      // Ранний старт STT: прогреваем распознавание, пока ещё игнорируем VAD.
       if (this.active) this.startStt()
+      await sleep(delay)
+      this.discardSttBuffer()
+      this.listenResumeAt = 0
     }
     return finished
   }

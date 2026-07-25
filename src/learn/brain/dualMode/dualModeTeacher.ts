@@ -36,6 +36,7 @@ import {
   switchAnnouncement,
 } from './personaProfiles'
 import { condenseForLiveSpeech } from './liveSpeechCondense'
+import { buildLiveOnlineBrainDirective } from './liveOnlineBrain'
 import {
   emotionReactiveLine,
   reengageReactiveLine,
@@ -102,6 +103,9 @@ export class TeacherIntelligence {
   private lastReengageMs = 0
   private lastEmotionReactMs = 0
   private lastFusedEmotion: EmotionState = 'neutral'
+  /** Реплика ученика, пришедшая пока учитель думал/говорил — не теряем. */
+  private pendingUtterance: string | null = null
+  private flushingPending = false
 
   constructor(config: DualModeTeacherConfig) {
     this.cfg = config
@@ -142,13 +146,7 @@ export class TeacherIntelligence {
   async start(video: HTMLVideoElement | null, micStream: MediaStream | null): Promise<void> {
     this.running = true
 
-    if (video) {
-      this.tracker = new EngagementTracker(video, {
-        fps: 6,
-        onSignal: (sig: VisionSignal) => this.brain.ingestVision(sig),
-      })
-      this.tracker.start()
-    }
+    if (video) this.attachVision(video)
     this.unsubscribeFused = this.brain.onFused((fused) => this.handleEngagement(fused))
 
     if (micStream) {
@@ -157,7 +155,7 @@ export class TeacherIntelligence {
         controller: this.cfg.controller,
         // Half-duplex: пока учитель говорит, микрофон не пишет его же речь.
         bargeInEnabled: false,
-        postSpeakDelayMs: 550,
+        postSpeakDelayMs: 200,
         onPartial: (t) => this.cfg.callbacks?.onPartialTranscript?.(t),
         onUserUtterance: (final) => {
           void this.handleIncomingVoice(final)
@@ -174,6 +172,17 @@ export class TeacherIntelligence {
     } else {
       await this.deliver(this.buildResponse(this.greeting(), null, null, false))
     }
+  }
+
+  /** Подключить камеру позже (диалог уже идёт — не ждём MediaStream видео). */
+  attachVision(video: HTMLVideoElement): void {
+    if (!this.running || !video) return
+    this.tracker?.stop()
+    this.tracker = new EngagementTracker(video, {
+      fps: 6,
+      onSignal: (sig: VisionSignal) => this.brain.ingestVision(sig),
+    })
+    this.tracker.start()
   }
 
   stop(): void {
@@ -238,45 +247,66 @@ export class TeacherIntelligence {
     const text = transcript.trim()
     if (!text) return this.buildResponse('', this.currentCard, null, false)
 
-    // Не принимать реплику, пока учитель ещё говорит / только что говорил (эхо).
-    if (this.duplex?.isAiSpeaking() || this.busy) {
+    // Пока думаем/говорим — не отбрасываем речь: ставим в очередь и обработаем следом.
+    if (this.busy || this.duplex?.isAiSpeaking()) {
+      this.pendingUtterance = text
       return this.buildResponse('', this.currentCard, null, false)
     }
 
+    this.busy = true
     this.state.pushTurn('student', text)
     this.cfg.callbacks?.onStudentUtterance?.(text)
     this.duplex?.markThinking()
 
-    const intent = parseVoiceIntent(text, this.lang)
-    let response: TeacherResponse
+    try {
+      const intent = parseVoiceIntent(text, this.lang)
+      let response: TeacherResponse
 
-    switch (intent.kind) {
-      case 'switch_mode':
-        return this.setMode(intent.target)
-      case 'stop':
-        response = this.buildResponse(this.byeLine(), null, null, true)
-        break
-      case 'next_topic':
-        response = await this.advanceTopic()
-        break
-      case 'next_question':
-        response = await this.buildNextQuestionResponse()
-        break
-      case 'repeat':
-        response = this.repeatLine()
-        break
-      case 'explain':
-        response = await this.handleExplain(intent.text)
-        break
-      case 'answer':
-      default:
-        response = await this.routeAnswer(intent.kind === 'answer' ? intent.text : text)
-        break
+      switch (intent.kind) {
+        case 'switch_mode':
+          response = await this.setMode(intent.target)
+          return response
+        case 'stop':
+          response = this.buildResponse(this.byeLine(), null, null, true)
+          break
+        case 'next_topic':
+          response = await this.advanceTopic()
+          break
+        case 'next_question':
+          response = await this.buildNextQuestionResponse()
+          break
+        case 'repeat':
+          response = this.repeatLine()
+          break
+        case 'explain':
+          response = await this.handleExplain(intent.text)
+          break
+        case 'answer':
+        default:
+          response = await this.routeAnswer(intent.kind === 'answer' ? intent.text : text)
+          break
+      }
+
+      await this.deliver(response)
+      if (intent.kind === 'stop') this.stop()
+      return response
+    } finally {
+      this.busy = false
+      void this.flushPendingUtterance()
     }
+  }
 
-    await this.deliver(response)
-    if (intent.kind === 'stop') this.stop()
-    return response
+  private async flushPendingUtterance(): Promise<void> {
+    if (this.flushingPending || this.busy) return
+    const next = this.pendingUtterance
+    if (!next) return
+    this.pendingUtterance = null
+    this.flushingPending = true
+    try {
+      await this.handleIncomingVoice(next)
+    } finally {
+      this.flushingPending = false
+    }
   }
 
   // --------------------------------------------------------------- evaluation
@@ -521,6 +551,7 @@ export class TeacherIntelligence {
     this.cfg.callbacks?.onResponse?.(response)
     const speakText = (response.saySpeak ?? response.say).trim()
     if (!speakText) return
+    const holdBusy = this.busy
     this.busy = true
     try {
       if (this.duplex) {
@@ -529,7 +560,8 @@ export class TeacherIntelligence {
         await this.cfg.controller.speak(speakText, this.lang)
       }
     } finally {
-      this.busy = false
+      // Если вызов из handleIncomingVoice — busy снимет finally там.
+      if (!holdBusy) this.busy = false
     }
   }
 

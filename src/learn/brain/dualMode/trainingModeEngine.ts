@@ -7,6 +7,7 @@ import type { LearnLocalAssistantContext } from '../../learnLocalAssistant'
 import { requestPuterChat } from '../../learnPuterChat'
 import type { EmotionState } from '../brainTypes'
 import { emotionPromptHint } from './cameraEmotionCoach'
+import { buildLiveOnlineBrainDirective } from './liveOnlineBrain'
 import { clarifyPrompt } from './personaProfiles'
 import type { AssistantLang } from './dualModeTypes'
 
@@ -27,12 +28,7 @@ export class TrainingModeEngine {
 
   private buildContext(topic: string, emotion: EmotionState = 'neutral'): LearnLocalAssistantContext {
     const cameraHint = emotionPromptHint(this.cfg.lang, emotion)
-    const liveBase =
-      this.cfg.lang === 'en'
-        ? 'LIVE VOICE DIALOGUE: answer like a warm human teacher, 90–200 words. First sentence = direct answer. Natural connectors. No formulas.'
-        : this.cfg.lang === 'uz'
-          ? 'JONLI OVOZLI DIALOG: iliq o‘qituvchi kabi, 90–200 so‘z. Birinchi gap — to‘g‘ridan-to‘g‘ri javob. Formulalarsiz.'
-          : 'ОНЛАЙН ГОЛОСОВОЙ ДИАЛОГ: говори как живой тёплый учитель, 90–200 слов. Первое предложение — прямой ответ. Живые связки («смотрите», «то есть»). Без формул.'
+    const liveBrain = buildLiveOnlineBrainDirective(this.cfg.lang)
     return {
       locale: this.cfg.lang,
       gradeId: this.cfg.gradeId,
@@ -40,7 +36,7 @@ export class TrainingModeEngine {
       sectionId: this.cfg.sectionId ?? 's01',
       sectionTitle: this.cfg.sectionTitle ?? topic,
       slideTitle: topic,
-      slideBody: `${liveBase}\nCAMERA: ${cameraHint}`,
+      slideBody: `${liveBrain}\nCAMERA: ${cameraHint}`,
       mode: 'teacher',
       kpNumber: 1,
     }

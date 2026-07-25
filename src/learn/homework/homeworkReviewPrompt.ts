@@ -76,6 +76,7 @@ ${input.text.slice(0, 6000)}
 ════════════════════════════════════
 REPLY FORMAT (STRICT — no markdown, no extra lines)
 ════════════════════════════════════
+Ignore handwriting quality, OCR glitches, and spelling — judge chemistry meaning and authorship style only.
 AUTHORSHIP: human|ai_likely|mixed|uncertain
 AI_PROB: 0.00-1.00
 SUMMARY: one sentence for the teacher about authorship

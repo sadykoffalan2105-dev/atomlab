@@ -195,7 +195,13 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
       partial: '',
     })
     await teacher.start(opts.videoEl ?? null, mic)
-  }, [patch])
+  }, [patch, pushMessage])
+
+  // Камера может подняться позже микрофона — Vision подключаем без рестарта диалога.
+  useEffect(() => {
+    if (!options.videoEl || !teacherRef.current) return
+    teacherRef.current.attachVision(options.videoEl)
+  }, [options.videoEl])
 
   const setMode = useCallback(async (mode: TutorMode) => {
     await teacherRef.current?.setMode(mode)
@@ -226,7 +232,38 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     )
   }, [])
 
+  const checkHomework = useCallback(async (text: string) => {
+    const clean = text.trim()
+    if (clean.length < 12) return
+    const opts = optionsRef.current
+    const { reviewHomework, formatHomeworkReportForChat, homeworkUserLabel, saveHomeworkReviewToHistory } =
+      await import('../../homework')
+    pushMessage('you', homeworkUserLabel(opts.lang, clean, true))
+    patch({ turn: 'thinking' })
+    try {
+      const report = await reviewHomework({
+        text: clean,
+        source: 'upload',
+        topicHint: opts.sectionTitle,
+        gradeId: opts.gradeId,
+        locale: opts.lang,
+      })
+      saveHomeworkReviewToHistory(report)
+      pushMessage('teacher', formatHomeworkReportForChat(report, opts.lang))
+      const speak =
+        opts.lang === 'en'
+          ? `Chemistry score ${report.chemistry.score}. Authorship ${report.authorship.authorship}.`
+          : opts.lang === 'uz'
+            ? `Kimyo ${report.chemistry.score}. Mualliflik ${report.authorship.authorship}.`
+            : `Химия ${report.chemistry.score} из 100. Авторство: ${report.authorship.authorship}.`
+      const controller = controllerRef.current
+      if (controller) await controller.speak(speak, opts.lang)
+    } finally {
+      patch({ turn: 'idle' })
+    }
+  }, [patch, pushMessage])
+
   useEffect(() => () => stop(), [stop])
 
-  return { state, start, stop, setMode, sendText, askAnother, nextTopic }
+  return { state, start, stop, setMode, sendText, askAnother, nextTopic, checkHomework }
 }

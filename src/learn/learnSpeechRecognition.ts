@@ -89,7 +89,7 @@ export class LearnSpeechRecognition {
     this.oralListenActive = true
     this.listening = true
 
-    const scheduleNextSession = (delayMs = 320) => {
+    const scheduleNextSession = (delayMs = 80) => {
       if (!this.oralListenActive) return
       if (this.oralRestartTimer) clearTimeout(this.oralRestartTimer)
       this.oralRestartTimer = setTimeout(() => {
@@ -136,11 +136,11 @@ export class LearnSpeechRecognition {
           return
         }
         if (code === 'no-speech' || code === 'network' || code === 'audio-capture') {
-          scheduleNextSession(360)
+          scheduleNextSession(120)
           return
         }
         onError?.(code, false)
-        scheduleNextSession(360)
+        scheduleNextSession(120)
       }
 
       recognition.onend = () => {
@@ -149,14 +149,14 @@ export class LearnSpeechRecognition {
           this.listening = false
           return
         }
-        scheduleNextSession(320)
+        scheduleNextSession(60)
       }
 
       this.recognition = recognition
       try {
         recognition.start()
       } catch {
-        scheduleNextSession(480)
+        scheduleNextSession(160)
       }
     }
 

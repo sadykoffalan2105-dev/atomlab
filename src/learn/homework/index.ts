@@ -13,3 +13,4 @@ export {
   readHomeworkReviewHistory,
   saveHomeworkReviewToHistory,
 } from './homeworkReviewStorage'
+export { formatHomeworkReportForChat, homeworkUserLabel } from './formatHomeworkChatReport'

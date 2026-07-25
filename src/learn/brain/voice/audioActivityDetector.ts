@@ -44,10 +44,10 @@ export class AudioActivityDetector {
 
   constructor(options: AudioActivityOptions) {
     this.opts = {
-      startThreshold: options.startThreshold ?? 0.045,
-      endThreshold: options.endThreshold ?? 0.02,
-      silenceHangoverMs: options.silenceHangoverMs ?? 900,
-      minSpeechMs: options.minSpeechMs ?? 220,
+      silenceHangoverMs: options.silenceHangoverMs ?? 380,
+      minSpeechMs: options.minSpeechMs ?? 110,
+      startThreshold: options.startThreshold ?? 0.03,
+      endThreshold: options.endThreshold ?? 0.016,
       onSpeechStart: options.onSpeechStart,
       onSpeechEnd: options.onSpeechEnd,
       onLevel: options.onLevel,

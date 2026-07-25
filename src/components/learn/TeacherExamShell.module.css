@@ -1397,6 +1397,10 @@
   gap: 0.5rem;
 }
 
+.liveFileHidden {
+  display: none;
+}
+
 .liveTextInput {
   flex: 1 1 auto;
   min-width: 0;

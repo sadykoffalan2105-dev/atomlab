@@ -26,7 +26,7 @@
   pointer-events: auto;
 }
 
-/* Неорганика | Органика + Синтез — ниже линии шапки, простой ряд. */
+/* Неорганика | Органика + Синтез — ниже линии шапки, ровный ряд. */
 .rightHud {
   position: fixed;
   top: calc(var(--app-header-h, 3.4rem) + 1.15rem);
@@ -35,7 +35,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 0.45rem;
+  gap: 1rem;
   pointer-events: auto;
   isolation: isolate;
 }
@@ -73,20 +73,26 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.7rem;
-  padding: 0.55rem 1.2rem;
-  border-radius: 10px;
-  border: 1px solid rgba(160, 120, 220, 0.5);
-  background: rgba(18, 14, 32, 0.92);
+  min-height: 2.55rem;
+  height: 2.55rem;
+  padding: 0 1.15rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(150, 120, 210, 0.45);
+  background: rgba(16, 14, 32, 0.92);
   color: #e8d6ff;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 650;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   cursor: pointer;
   box-shadow: none;
   user-select: none;
   flex-shrink: 0;
   touch-action: manipulation;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.15s ease;
 }
 
 .canvasWrap {
@@ -333,11 +339,12 @@
   color: #f5ecff;
   background: rgba(28, 20, 44, 0.95);
   box-shadow: none;
+  transform: translateY(-1px);
 }
 
 .synthButtonActive {
-  border-color: rgba(80, 200, 180, 0.55);
-  background: rgba(18, 36, 40, 0.92);
+  border-color: rgba(70, 210, 180, 0.55);
+  background: rgba(18, 40, 42, 0.92);
   color: #b8fff0;
   box-shadow: none;
 }

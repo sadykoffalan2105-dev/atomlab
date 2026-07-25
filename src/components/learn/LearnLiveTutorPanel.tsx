@@ -73,7 +73,7 @@ function LiveTutorOverlay({
   const studentId = rosterSectionId ? getActiveStudent(rosterSectionId)?.id ?? 'guest' : 'guest'
   const sectionTitle = t(section.titleKey)
 
-  const { state, start, stop, setMode, sendText, askAnother, nextTopic } = useDualModeTeacher({
+  const { state, start, stop, setMode, sendText, askAnother, nextTopic, checkHomework } = useDualModeTeacher({
     studentId,
     lang: locale,
     gradeId: grade.id,
@@ -86,23 +86,18 @@ function LiveTutorOverlay({
     videoEl,
   })
 
+  const homeworkFileRef = useRef<HTMLInputElement>(null)
+
+  // Старт сразу: микрофон + мозг не ждут камеру (камера подключается следом).
+  useEffect(() => {
+    if (startedRef.current) return
+    startedRef.current = true
+    void start()
+  }, [start])
+
   useEffect(() => {
     if (media.status === 'active') setVideoEl(media.videoRef.current)
   }, [media.status, media.videoRef])
-
-  // Диалог не ждёт камеру: как только камера определилась (или дала сбой) —
-  // запускаем «мозг» и берём микрофон ПОСЛЕ камеры, чтобы не было гонки за
-  // устройствами (главная причина, почему камера «плохо запускалась»).
-  useEffect(() => {
-    if (startedRef.current) return
-    if (media.status === 'active' && videoEl) {
-      startedRef.current = true
-      void start()
-    } else if (media.status === 'error') {
-      startedRef.current = true
-      void start()
-    }
-  }, [media.status, videoEl, start])
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -224,7 +219,41 @@ function LiveTutorOverlay({
                 <button type="button" className={styles.liveChip} onClick={() => void nextTopic()}>
                   {t('learn.teacherExam.liveNextTopic')}
                 </button>
+                <button
+                  type="button"
+                  className={styles.liveChip}
+                  onClick={() => homeworkFileRef.current?.click()}
+                >
+                  {t('learn.assistant.homeworkScan')}
+                </button>
+                <button
+                  type="button"
+                  className={styles.liveChip}
+                  onClick={() => {
+                    if (textInput.trim()) void checkHomework(textInput)
+                  }}
+                >
+                  {t('learn.assistant.homework')}
+                </button>
               </div>
+              <input
+                ref={homeworkFileRef}
+                type="file"
+                accept="image/*"
+                className={styles.liveFileHidden}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!file) return
+                  void (async () => {
+                    const { loadHomeworkImageFile } = await import('../../learn/homework')
+                    const scan = await loadHomeworkImageFile(file)
+                    const text = (scan.ocrText || textInput).trim()
+                    if (scan.ocrText) setTextInput(scan.ocrText)
+                    if (text.length >= 12) await checkHomework(text)
+                  })()
+                }}
+              />
               <div className={styles.liveTextRow}>
                 <input
                   className={styles.liveTextInput}

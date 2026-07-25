@@ -149,8 +149,8 @@ export function LaboratoryPage() {
     const syncHudRails = () => {
       const vw = window.innerWidth
       const hudLeft = rightHud?.getBoundingClientRect().left ?? vw - 220
-      const gap = 10
-      const leftPad = 10
+      const gap = 16
+      const leftPad = 12
       const rightRail = Math.max(leftPad, Math.round(vw - hudLeft + gap))
       if (leftPad === lastLeft && rightRail === lastRight) return
       lastLeft = leftPad

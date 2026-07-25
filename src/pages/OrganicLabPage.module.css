@@ -139,23 +139,38 @@
 .modeTabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  align-items: center;
+  gap: 0.65rem;
   /* Зазор под LabDomainTabs (Неорганика|Органика) в rightHud */
-  margin-right: clamp(11rem, 19vw, 14rem);
+  margin-right: clamp(13rem, 22vw, 16.5rem);
 }
 
 .modeTab {
   appearance: none;
-  border: 1px solid rgba(100, 140, 200, 0.35);
-  background: rgba(8, 14, 28, 0.92);
-  color: rgba(220, 230, 255, 0.9);
-  border-radius: 999px;
-  padding: 0.4rem 0.85rem;
+  border: 1px solid rgba(110, 150, 210, 0.32);
+  background: rgba(10, 14, 28, 0.9);
+  color: rgba(220, 230, 255, 0.92);
+  border-radius: 0.7rem;
+  min-height: 2.35rem;
+  padding: 0 0.95rem;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 650;
   cursor: pointer;
   touch-action: manipulation;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.15s ease;
+}
+
+.modeTab:hover:not(:disabled) {
+  border-color: rgba(130, 190, 230, 0.5);
+  background: rgba(18, 26, 48, 0.95);
+  transform: translateY(-1px);
 }
 
 .modeTab:disabled {
@@ -164,9 +179,10 @@
 }
 
 .modeTabActive {
-  border-color: rgba(45, 212, 191, 0.85);
-  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.35);
-  background: color-mix(in srgb, #2dd4bf 18%, rgba(8, 14, 28, 0.95));
+  border-color: rgba(70, 210, 180, 0.55);
+  box-shadow: none;
+  background: rgba(28, 90, 75, 0.4);
+  color: #e8fff8;
 }
 
 .viewStage {

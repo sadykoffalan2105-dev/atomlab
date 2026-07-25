@@ -377,6 +377,23 @@ export function analyzeAuthorshipLocal(rawText: string, locale: AppLocale = 'ru'
     })
   }
 
+  // OCR / рукопись: шум не считать «идеальной полировкой ИИ»
+  const ocrNoise =
+    (text.match(/\s{3,}|[lI1|]{3,}|[О0o]{4,}|[^\S\r\n]{2,}\n/g) ?? []).length +
+    (text.match(/[а-яa-z]{1}\s[а-яa-z]{1}\s[а-яa-z]{1}/gi) ?? []).length
+  if (ocrNoise >= 3) {
+    signals.push({
+      id: 'ocr_handwriting_noise',
+      weight: -0.14,
+      detail:
+        locale === 'en'
+          ? 'OCR/handwriting noise — ignore spelling, judge chemistry meaning.'
+          : locale === 'uz'
+            ? "OCR/qo'lyozma shovqini — imloga emas, kimyoga qaralang."
+            : 'Шум OCR/рукописи — орфографию не оцениваем, смотрим смысл химии.',
+    })
+  }
+
   // Идеальные маркированные списки без живой речи
   const bulletLines = (text.match(/^\s*([•\-\*]|\d+[.)])\s+\S+/gm) ?? []).length
   if (bulletLines >= 5 && humanHits === 0 && burst < 0.35) {
