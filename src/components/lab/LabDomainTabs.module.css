@@ -2,13 +2,14 @@
   display: inline-flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.18rem;
-  border-radius: 12px;
-  border: 1px solid rgba(100, 140, 200, 0.28);
-  background: rgba(6, 10, 22, 0.78);
+  gap: 0.2rem;
+  padding: 0.22rem;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 140, 180, 0.35);
+  background: rgba(8, 10, 22, 0.92);
   flex-shrink: 0;
-  /* Поверх WebGL / fixed-canvas — клик не должен уходить в OrbitControls. */
+  min-height: 2.7rem;
+  box-sizing: border-box;
   position: relative;
   z-index: 1;
   pointer-events: auto;
@@ -19,12 +20,13 @@
   appearance: none;
   text-decoration: none;
   border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  padding: 0.48rem 0.9rem;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   font-weight: 650;
-  color: rgba(200, 210, 235, 0.88);
+  line-height: 1.2;
+  color: rgba(200, 210, 235, 0.9);
   cursor: pointer;
   touch-action: manipulation;
   pointer-events: auto;
@@ -33,13 +35,13 @@
 }
 
 .tab:hover {
-  color: #e8eeff;
-  background: rgba(52, 211, 153, 0.08);
+  color: #f0f4ff;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .tabActive {
-  color: #ecfdf5;
-  border-color: rgba(52, 211, 153, 0.65);
-  background: color-mix(in srgb, #34d399 20%, rgba(8, 14, 28, 0.95));
-  box-shadow: 0 0 14px rgba(52, 211, 153, 0.18);
+  color: #f2fffa;
+  border-color: rgba(80, 200, 160, 0.55);
+  background: rgba(40, 120, 95, 0.35);
+  box-shadow: none;
 }
