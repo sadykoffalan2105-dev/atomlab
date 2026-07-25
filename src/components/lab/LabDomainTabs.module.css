@@ -8,6 +8,11 @@
   border: 1px solid rgba(100, 140, 200, 0.28);
   background: rgba(6, 10, 22, 0.78);
   flex-shrink: 0;
+  /* Поверх WebGL / fixed-canvas — клик не должен уходить в OrbitControls. */
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+  isolation: isolate;
 }
 
 .tab {
@@ -21,6 +26,10 @@
   font-weight: 650;
   color: rgba(200, 210, 235, 0.88);
   cursor: pointer;
+  touch-action: manipulation;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .tab:hover {

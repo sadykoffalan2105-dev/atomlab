@@ -4,6 +4,7 @@ import { IconVrLab } from './components/vrLab/IconVrLab'
 import { DesktopUpdateBadge } from './components/desktop/DesktopUpdateBadge'
 import { compoundById } from './data/compounds'
 import { warmupLabSynthesisInfra } from './lab/labSynthesisWarmup'
+import { prefetchAppRoutes, prefetchRouteForPath } from './lab/prefetchAppRoutes'
 import { useLocale } from './i18n/useLocale'
 import { useT } from './i18n/useT'
 import styles from './AppShell.module.css'
@@ -14,6 +15,20 @@ export function AppShell() {
 
   useEffect(() => {
     warmupLabSynthesisInfra(Object.values(compoundById))
+    // Повторно (на случай если boot уже прошёл) — вкладки открываются с первого клика.
+    let idleId: number | undefined
+    let timeoutId: number | undefined
+    if (typeof requestIdleCallback === 'function') {
+      idleId = requestIdleCallback(() => prefetchAppRoutes(), { timeout: 1800 })
+    } else {
+      timeoutId = window.setTimeout(() => prefetchAppRoutes(), 400)
+    }
+    return () => {
+      if (idleId != null && typeof cancelIdleCallback === 'function') {
+        cancelIdleCallback(idleId)
+      }
+      if (timeoutId != null) window.clearTimeout(timeoutId)
+    }
   }, [])
 
   return (
@@ -35,6 +50,8 @@ export function AppShell() {
             </NavLink>
             <NavLink
               to="/vr-lab"
+              onPointerEnter={() => prefetchRouteForPath('/vr-lab')}
+              onFocus={() => prefetchRouteForPath('/vr-lab')}
               className={({ isActive }) =>
                 `${styles.navLink} ${styles.navLinkIcon} ${isActive ? styles.navLinkActive : ''}`
               }
@@ -44,6 +61,8 @@ export function AppShell() {
             </NavLink>
             <NavLink
               to="/periodic"
+              onPointerEnter={() => prefetchRouteForPath('/periodic')}
+              onFocus={() => prefetchRouteForPath('/periodic')}
               className={({ isActive }) =>
                 `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
               }
@@ -52,6 +71,8 @@ export function AppShell() {
             </NavLink>
             <NavLink
               to="/catalog"
+              onPointerEnter={() => prefetchRouteForPath('/catalog')}
+              onFocus={() => prefetchRouteForPath('/catalog')}
               className={({ isActive }) =>
                 `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
               }
@@ -60,6 +81,8 @@ export function AppShell() {
             </NavLink>
             <NavLink
               to="/learn"
+              onPointerEnter={() => prefetchRouteForPath('/learn')}
+              onFocus={() => prefetchRouteForPath('/learn')}
               className={({ isActive }) =>
                 `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
               }

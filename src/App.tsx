@@ -32,13 +32,23 @@ const LearnRefCapturePage = lazy(() =>
 function PageFallback() {
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
       style={{
         flex: 1,
         minHeight: '50vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         background: '#03040a',
+        color: 'rgba(180, 200, 230, 0.75)',
+        fontSize: '0.9rem',
+        letterSpacing: '0.04em',
       }}
-      aria-hidden
-    />
+    >
+      Загрузка…
+    </div>
   )
 }
 

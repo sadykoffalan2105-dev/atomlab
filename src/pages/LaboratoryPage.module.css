@@ -19,24 +19,25 @@
 }
 
 .domainBar {
-  position: absolute;
-  top: 0.55rem;
+  position: fixed;
+  top: calc(var(--app-header-h, 3.4rem) + 0.55rem);
   left: 0.75rem;
-  z-index: 54;
+  z-index: 70;
   pointer-events: auto;
 }
 
-/* Неорганика | Органика + Синтез — один блок справа сверху */
+/* Неорганика | Органика + Синтез — всегда поверх WebGL (в т.ч. fixed substance-view). */
 .rightHud {
-  position: absolute;
-  top: 0.75rem;
+  position: fixed;
+  top: calc(var(--app-header-h, 3.4rem) + 0.55rem);
   right: 0.556rem;
-  z-index: 54;
+  z-index: 70;
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 0.55rem;
   pointer-events: auto;
+  isolation: isolate;
 }
 
 .elementInfoDock {

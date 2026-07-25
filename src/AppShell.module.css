@@ -9,6 +9,7 @@
 }
 
 .header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -17,7 +18,10 @@
   border-bottom: 1px solid rgba(61, 255, 236, 0.2);
   background: rgba(6, 8, 18, 0.85);
   backdrop-filter: blur(8px);
-  z-index: 10;
+  /* Выше fixed WebGL (substance-view z-index:1) и HUD лаборатории. */
+  z-index: 80;
+  pointer-events: auto;
+  isolation: isolate;
 }
 
 .logo {
@@ -88,6 +92,10 @@
   padding: 0.42rem 0.8rem;
   border-radius: 0.6rem;
   border: 1px solid transparent;
+  touch-action: manipulation;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .navLinkIcon {

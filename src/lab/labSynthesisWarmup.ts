@@ -93,6 +93,10 @@ export async function warmupLabBootReady(
   onProgress?.({ stage: 'lab', label: 'Загрузка лаборатории…' })
   await import('../components/lab/LabScene')
 
+  // Экраны вкладок до первого клика — иначе «не заходит с первого раза».
+  const { prefetchAppRoutes } = await import('./prefetchAppRoutes')
+  prefetchAppRoutes()
+
   onProgress?.({ stage: 'done', label: 'Готово' })
 }
 

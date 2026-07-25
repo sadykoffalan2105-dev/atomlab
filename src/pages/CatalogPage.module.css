@@ -137,6 +137,7 @@
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
+  touch-action: manipulation;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
