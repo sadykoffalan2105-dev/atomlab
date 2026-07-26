@@ -126,27 +126,8 @@ for (const grade of ['g7', 'g8', 'g9']) {
       )
     })
 
-    // Скользящие окна по contentRu для ещё более мелкого RAG
-    const content = String(sec.contentRu || '').replace(/\s+/g, ' ').trim()
-    if (content.length > 200) {
-      const win = 280
-      const step = 180
-      let wi = 0
-      for (let start = 0; start < content.length && wi < 40; start += step, wi++) {
-        const slice = content.slice(start, start + win).trim()
-        if (slice.length < 80) continue
-        chunks.push(
-          chunk(
-            `${sid}-w-${wi}`,
-            `${topicRu} · фрагмент ${wi + 1}`,
-            [gradeNum],
-            [...baseKw, 'учебник', 'параграф'],
-            `**Фрагмент учебника (${topicRu}).** ${slice}`,
-            `Textbook fragment (${topicEn}): ${slice.slice(0, 300)}`,
-          ),
-        )
-      }
-    }
+    // Скользящие окна отключены: дублируют textbookKnowledgeChunks и засоряют RAG.
+    // Параграфные срезы (-p-*) + remember/defs достаточно.
 
     const remember = sec.rememberRu || ''
     if (remember) {
@@ -425,12 +406,16 @@ const QA = [
 ]
 
 QA.forEach(([q, a], i) => {
+  const contentKw = q
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((t) => t.length >= 4 && !['что', 'такое', 'чем', 'зачем', 'как', 'почему', 'показать'].includes(t))
   chunks.push(
     chunk(
       `mega-qa-${i}`,
       `Вопрос: ${q}`,
       [7, 8, 9, 10, 11],
-      [...q.split(/\s+/), 'вопрос', 'что такое', 'зачем', 'чем'],
+      [...contentKw, q, 'вопрос ученика'],
       `**Вопрос ученика:** ${q}?\n\n**Ответ учителя:** ${a}`,
       `Q: ${q}? A: ${a}`,
     ),
@@ -541,32 +526,8 @@ for (let g = 8; g <= 11; g++) {
   })
 }
 
-// Педагогические «ходы учителя» × темы
-const MOVES = [
-  'Начните с определения одним предложением',
-  'Приведите бытовой пример',
-  'Покажите формулу на доске',
-  'Спросите ученика переформулировать',
-  'Дайте мини-задачу на 1 шаг',
-  'Разберите типичную ошибку',
-  'Свяжите с прошлой темой',
-  'Подведите итог тремя пунктами',
-]
-const MOVE_TOPICS = THEORY.map((t) => t[2])
-MOVE_TOPICS.forEach((topic, ti) => {
-  MOVES.forEach((move, mi) => {
-    chunks.push(
-      chunk(
-        `mega-move-${ti}-${mi}`,
-        `Ход учителя: ${topic}`,
-        [7, 8, 9, 10, 11],
-        [topic, 'учитель', 'объясн', 'урок', move],
-        `**Педагогический ход.** Тема: ${topic}.\nРекомендация: ${move}. Держите тон спокойный, проверяйте понимание коротким вопросом.`,
-        `Teaching move for ${topic}: ${move}.`,
-      ),
-    )
-  })
-})
+// Педагогические mega-move-* отключены: 288 почти пустых карточек засоряли RAG.
+// Реальные педагогические ходы живут в learnChemistryBrain*.ts.
 
 // дедуп по id
 const byId = new Map()

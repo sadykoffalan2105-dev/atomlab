@@ -101,8 +101,8 @@ export class DuplexVoiceSession {
     this.vad = new AudioActivityDetector({
       startThreshold: 0.03,
       endThreshold: 0.016,
-      silenceHangoverMs: 380,
-      minSpeechMs: 110,
+      silenceHangoverMs: 280,
+      minSpeechMs: 95,
       onSpeechStart: () => {
         if (this.shouldIgnoreMicAsUser()) return
         this.interruption.userSpeechStarted()
@@ -162,7 +162,7 @@ export class DuplexVoiceSession {
       this.sttFinalTimer = null
       if (this.shouldIgnoreMicAsUser()) return
       this.commitFreshUtterance()
-    }, 280)
+    }, 200)
   }
 
   private commitFreshUtterance(): void {
@@ -171,7 +171,7 @@ export class DuplexVoiceSession {
     const fresh = full.slice(this.consumedLen).trim()
     if (fresh.length < 2) return
     // Анти-дребезг: не слать ту же реплику дважды подряд.
-    if (Date.now() - this.lastEmitMs < 350) return
+    if (Date.now() - this.lastEmitMs < 260) return
     this.consumedLen = full.length
     this.lastEmitMs = Date.now()
     this.interruption.userSpeechEnded()
@@ -234,7 +234,7 @@ export class DuplexVoiceSession {
     const full = this.sttSession.committed.trim()
     const fresh = full.slice(this.consumedLen).trim()
     if (fresh.length >= 2) {
-      if (Date.now() - this.lastEmitMs < 350) return
+      if (Date.now() - this.lastEmitMs < 260) return
       this.consumedLen = full.length
       this.lastEmitMs = Date.now()
       this.emitUserUtterance(fresh)

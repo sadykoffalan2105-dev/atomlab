@@ -244,6 +244,43 @@ n = V/Vm (н.у. Vm ≈ 22,4 л/моль). Масса через M.`,
 **pH** = −lg[H⁺]; pH < 7 кислая среда, pH > 7 щелочная, pH = 7 нейтрально (чистая вода ~25 °C).`,
     en: `Hydrogen H₂ is a light reducing gas. pH measures acidity: <7 acid, >7 base, 7 neutral.`,
   },
+  {
+    keywords: ['ле шателье', 'лешателье', 'смещение равновесия', 'le chatelier'],
+    ru: `**Принцип Ле Шателье:** воздействие смещает равновесие так, чтобы ослабить это воздействие.
+
+↑ концентрации → расходование этого вещества; ↑T → эндотермическая сторона; ↑p (газы) → меньше молей газа. Катализатор равновесие не смещает.`,
+    en: `Le Chatelier: the system shifts to counteract the change. Catalysts do not shift equilibrium.`,
+  },
+  {
+    keywords: ['атом и молекула', 'чем атом', 'molecule vs atom', 'путают атом'],
+    ru: `**Атом** — частица элемента; **молекула** — частица вещества из атомов. O — атом кислорода-элемента; O₂ — молекула кислорода-газа.`,
+    en: `Atom = element particle; molecule = substance particle made of atoms. O ≠ O₂.`,
+  },
+  {
+    keywords: ['титрован', 'бюретка', 'титрование', 'titration'],
+    ru: `**Титрование** — точное приливание раствора известной концентрации до точки эквивалентности (часто по индикатору). Бюретка даёт точный объём.`,
+    en: `Titration adds a known solution to the equivalence point, often with an indicator.`,
+  },
+  {
+    keywords: ['закон гесса', 'hess', 'энтальпия образования', 'ΔHf'],
+    ru: `**Закон Гесса:** тепловой эффект зависит от начального и конечного состояния, не от пути. ΔH° = ΣΔHf°(продуктов) − ΣΔHf°(реагентов).`,
+    en: `Hess’s law: ΔH depends on states, not path. Use formation enthalpies to compute ΔH°.`,
+  },
+  {
+    keywords: ['лишний реагент', 'недостаток', 'лимитирующий', 'limiting'],
+    ru: `Сравни моли реагентов с коэффициентами уравнения. Кто закончится первым — **в недостатке**; продукт считают только по нему.`,
+    en: `The limiting reagent is used up first; calculate product from it only.`,
+  },
+  {
+    keywords: ['техника безопасности', 'кислоту в воду', 'вытяжка хлор', 'lab safety'],
+    ru: `Кислоту вливают в воду (не наоборот). Нагрев — отверстием от себя. Ядовитые газы — вытяжка. Не пробовать на вкус; очки и халат.`,
+    en: `Add acid to water; heat away from face; use a fume hood for toxic gases.`,
+  },
+  {
+    keywords: ['бензол', 'арены', 'ароматическ', 'benzene'],
+    ru: `**Бензол C₆H₆** — арены; устойчивое кольцо. Типичны замещение (бромирование с катализатором), а не «обычное» присоединение как у алкенов.`,
+    en: `Benzene is aromatic; substitution is typical, unlike simple alkene addition.`,
+  },
 ]
 
 export function matchFaqEntry(query: string): FaqEntry | null {

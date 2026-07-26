@@ -19,6 +19,12 @@ export interface TrainingEngineConfig {
   sectionTitle?: string
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+type RaceWin = { kind: 'puter' | 'local'; text: string }
+
 export class TrainingModeEngine {
   private readonly cfg: TrainingEngineConfig
 
@@ -50,6 +56,8 @@ export class TrainingModeEngine {
 
   /**
    * Умное объяснение для live с учётом эмоции камеры.
+   * Race: Puter побеждает, если успел быстро; иначе сильный локальный ответ —
+   * чтобы ученик не ждал 4–7 с тишины.
    */
   async explainAsync(
     query: string,
@@ -61,21 +69,38 @@ export class TrainingModeEngine {
     const messages = [...history.slice(-6), { role: 'user', content: query }]
     const local = this.explain(query, topic, history)
     const strongLocal =
-      local.length >= 140 &&
+      local.length >= 120 &&
       !/Давай разберём по шагам|Let us reason|bosqichma-bosqich fikrlaymiz/i.test(local)
 
-    // Усталость/скука — быстрее отдаём короткий локальный ответ.
-    const timeoutMs =
-      emotion === 'tired' || emotion === 'bored' ? 3_500 : strongLocal ? 4_500 : 7_500
-    try {
-      const smart = await requestPuterChat(messages, ctx, {
-        fast: true,
-        timeoutMs,
-      })
-      if (smart && smart.trim().length > 40) return smart.trim()
-    } catch {
-      /* офлайн */
+    const tired = emotion === 'tired' || emotion === 'bored'
+    const timeoutMs = tired ? 2_800 : strongLocal ? 3_600 : 4_200
+    const earlyLocalMs = tired ? 550 : strongLocal ? 900 : 2_400
+
+    const puterP = requestPuterChat(messages, ctx, {
+      fast: true,
+      live: true,
+      timeoutMs,
+    })
+
+    const puterWin = puterP
+      .then((t): RaceWin | null => (t && t.trim().length > 40 ? { kind: 'puter', text: t.trim() } : null))
+      .catch(() => null)
+
+    const earlyLocal = sleep(earlyLocalMs).then((): RaceWin | null =>
+      strongLocal || tired ? { kind: 'local', text: local } : null,
+    )
+
+    const first = await Promise.race([puterWin, earlyLocal])
+    if (first?.kind === 'puter') return first.text
+    if (first?.kind === 'local') {
+      // Ещё чуть ждём Puter — если почти готов, берём более умный ответ.
+      const late = await Promise.race([puterWin, sleep(700).then(() => null)])
+      if (late?.kind === 'puter') return late.text
+      return first.text
     }
+
+    const latePuter = await puterWin
+    if (latePuter?.kind === 'puter') return latePuter.text
     return local
   }
 

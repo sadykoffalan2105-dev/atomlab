@@ -133,46 +133,11 @@ export function LaboratoryPage() {
   const forceEditHoldRef = useRef<() => void>(() => {})
   const canvasWrapRef = useRef<HTMLDivElement | null>(null)
   const labWrapRef = useRef<HTMLDivElement | null>(null)
-  const rightHudRef = useRef<HTMLDivElement | null>(null)
   const [labCanvasKey] = useState(0)
   const [reactorSessionKey, setReactorSessionKey] = useState(0)
   useCanvasSizeGuard(canvasWrapRef)
 
-  /** Правый HUD: Неорганика | Органика рядом с Синтез; слева таблица почти до края. */
-  useLayoutEffect(() => {
-    const wrap = labWrapRef.current
-    const rightHud = rightHudRef.current
-    if (!wrap) return
-
-    let lastLeft = Number.NaN
-    let lastRight = Number.NaN
-    const syncHudRails = () => {
-      const vw = window.innerWidth
-      const hudLeft = rightHud?.getBoundingClientRect().left ?? vw - 220
-      const gap = 16
-      const leftPad = 12
-      const rightRail = Math.max(leftPad, Math.round(vw - hudLeft + gap))
-      if (leftPad === lastLeft && rightRail === lastRight) return
-      lastLeft = leftPad
-      lastRight = rightRail
-      wrap.style.setProperty('--lab-pt-inset-left', `${leftPad}px`)
-      wrap.style.setProperty('--lab-pt-inset-right', `${rightRail}px`)
-      // legacy fallback for older CSS
-      wrap.style.setProperty('--lab-pt-inset', `${rightRail}px`)
-    }
-
-    syncHudRails()
-    const ro = new ResizeObserver(syncHudRails)
-    ro.observe(wrap)
-    if (rightHud) ro.observe(rightHud)
-    window.addEventListener('resize', syncHudRails)
-    return () => {
-      ro.disconnect()
-      window.removeEventListener('resize', syncHudRails)
-    }
-  }, [])
-
-  /** Высота реактора → нижний зазор таблицы, чтобы сетка не уезжала за верх экрана. */
+  /** Высота реактора → clamp высоты компактной таблицы над синтезом. */
   useLayoutEffect(() => {
     const wrap = labWrapRef.current
     if (!wrap) return
@@ -200,13 +165,12 @@ export function LaboratoryPage() {
 
     syncReactorClearance()
     const ro = new ResizeObserver(syncReactorClearance)
-    const reactor = wrap.querySelector<HTMLElement>('[data-lab-reactor]')
-    if (reactor) ro.observe(reactor)
+    ro.observe(wrap)
     window.addEventListener('resize', syncReactorClearance)
     return () => {
       ro.disconnect()
-      window.removeEventListener('resize', syncReactorClearance)
       window.clearTimeout(resizeTimer)
+      window.removeEventListener('resize', syncReactorClearance)
       wrap.style.removeProperty('--lab-reactor-clearance')
     }
   }, [reactorOpen])
@@ -1033,7 +997,7 @@ export function LaboratoryPage() {
       className={styles.wrap}
       data-lab-synthesis-view={laboratorySynthesisView}
     >
-      <div ref={rightHudRef} className={styles.rightHud}>
+      <div className={styles.rightHud}>
         <LabDomainTabs active="inorganic" />
         <button
           type="button"

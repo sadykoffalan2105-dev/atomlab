@@ -83,6 +83,14 @@ export function ElementSidePanel({
           ref={tableWrapRef}
           className={`${styles.tableWrapOpen} ${styles.tableWrapTextbook}`}
         >
+          <button
+            type="button"
+            className={styles.closeFloat}
+            onClick={onClose}
+            aria-label={t('element.closeTable')}
+          >
+            ×
+          </button>
           <PeriodicTableTextbook
             embedMode
             onPickElement={onPickElement}

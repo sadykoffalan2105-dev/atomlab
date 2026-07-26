@@ -445,10 +445,10 @@
 
 /* Лаборатория: ровная сетка, больше воздуха, спокойные ячейки */
 .textbookEmbed .gridTextbook {
-  --pt-f-gap: 0.3rem;
-  --pt-gap: 5px;
+  --pt-f-gap: 0.28rem;
+  --pt-gap: 4px;
   gap: var(--pt-gap);
-  padding: 2px;
+  padding: 0.15rem 0.1rem 0.1rem;
   border: none;
   border-radius: 0;
   box-shadow: none;
@@ -462,16 +462,16 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  color: rgba(236, 242, 255, 0.96);
+  color: rgba(240, 246, 255, 0.97);
   grid-template-columns:
-    minmax(1.2rem, 0.14fr)
-    minmax(0.7rem, 0.1fr)
+    minmax(1.1rem, 0.13fr)
+    minmax(0.65rem, 0.09fr)
     repeat(10, minmax(0, 1fr));
   grid-template-rows:
-    minmax(1rem, 1.3rem)
-    minmax(0.75rem, 1rem)
+    minmax(0.95rem, 1.2rem)
+    minmax(0.7rem, 0.95rem)
     repeat(11, minmax(0, 1fr))
-    minmax(0.28rem, 0.4rem)
+    minmax(0.24rem, 0.36rem)
     repeat(2, minmax(0, 1fr));
 }
 
@@ -534,9 +534,9 @@
 }
 
 .textbookEmbed .gridTextbook .axisHead {
-  font-size: clamp(0.58rem, 0.85vw, 0.76rem);
+  font-size: clamp(0.56rem, 0.82vw, 0.74rem);
   font-weight: 700;
-  color: rgba(220, 232, 255, 0.88);
+  color: rgba(230, 238, 255, 0.9);
   letter-spacing: 0.04em;
 }
 
@@ -586,7 +586,7 @@
 }
 
 .textbookEmbed .cellSlotInner {
-  padding: 0.18rem 0.22rem 0.14rem 0.26rem;
+  padding: 0.14rem 0.16rem 0.1rem 0.18rem;
   height: 100%;
   box-sizing: border-box;
 }
@@ -594,13 +594,14 @@
 /*
  * Лаборатория: без backdrop-filter и тяжёлых blur-теней.
  * Blur поверх continuously-рендерящегося WebGL давал периодическое «подмигивание».
+ * Плакетки — светлее и свежее, символ крупнее.
  */
 .textbookEmbed .gridTextbook .tbCellBtn,
 .textbookEmbed .gridTextbook .tbCellStatic,
 .textbookEmbed .fRowBand .tbCellBtn,
 .textbookEmbed .fRowBand .tbCellStatic {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.48rem;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   filter: none;
@@ -608,7 +609,9 @@
     transform 0.14s ease,
     background-color 0.14s ease,
     border-color 0.14s ease;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 1px 2px rgba(0, 0, 0, 0.18);
   will-change: auto;
   overflow: hidden;
 }
@@ -617,77 +620,88 @@
 .textbookEmbed .gridTextbook .tbCellStatic.tbS,
 .textbookEmbed .fRowBand .tbCellBtn.tbS,
 .textbookEmbed .fRowBand .tbCellStatic.tbS {
-  background: linear-gradient(160deg, #0a3228, #061c18);
-  border-color: rgba(0, 220, 160, 0.32);
-  box-shadow: none;
+  background: linear-gradient(155deg, #145844 0%, #0c2e26 100%);
+  border-color: rgba(70, 230, 180, 0.38);
+  box-shadow:
+    0 1px 0 rgba(160, 255, 220, 0.12) inset,
+    0 1px 2px rgba(0, 0, 0, 0.16);
 }
 
 .textbookEmbed .gridTextbook .tbCellBtn.tbP,
 .textbookEmbed .gridTextbook .tbCellStatic.tbP,
 .textbookEmbed .fRowBand .tbCellBtn.tbP,
 .textbookEmbed .fRowBand .tbCellStatic.tbP {
-  background: linear-gradient(160deg, #321422, #1a0c14);
-  border-color: rgba(240, 100, 160, 0.32);
-  box-shadow: none;
+  background: linear-gradient(155deg, #4a1e34 0%, #26101c 100%);
+  border-color: rgba(250, 130, 180, 0.36);
+  box-shadow:
+    0 1px 0 rgba(255, 190, 220, 0.1) inset,
+    0 1px 2px rgba(0, 0, 0, 0.16);
 }
 
 .textbookEmbed .gridTextbook .tbCellBtn.tbD,
 .textbookEmbed .gridTextbook .tbCellStatic.tbD,
 .textbookEmbed .fRowBand .tbCellBtn.tbD,
 .textbookEmbed .fRowBand .tbCellStatic.tbD {
-  background: linear-gradient(160deg, #102040, #0a1424);
-  border-color: rgba(90, 170, 255, 0.32);
-  box-shadow: none;
+  background: linear-gradient(155deg, #1a3a68 0%, #0e1c38 100%);
+  border-color: rgba(120, 190, 255, 0.38);
+  box-shadow:
+    0 1px 0 rgba(180, 220, 255, 0.12) inset,
+    0 1px 2px rgba(0, 0, 0, 0.16);
 }
 
 .textbookEmbed .gridTextbook .tbCellBtn.tbF,
 .textbookEmbed .gridTextbook .tbCellStatic.tbF,
 .textbookEmbed .fRowBand .tbCellBtn.tbF,
 .textbookEmbed .fRowBand .tbCellStatic.tbF {
-  background: linear-gradient(160deg, #241830, #140c20);
-  border-color: rgba(180, 120, 255, 0.34);
-  box-shadow: none;
+  background: linear-gradient(155deg, #3a2850 0%, #1c1230 100%);
+  border-color: rgba(200, 150, 255, 0.38);
+  box-shadow:
+    0 1px 0 rgba(220, 190, 255, 0.1) inset,
+    0 1px 2px rgba(0, 0, 0, 0.16);
 }
 
 .textbookEmbed .gridTextbook .tbCellBtn.tbNoble,
 .textbookEmbed .gridTextbook .tbCellStatic.tbNoble,
 .textbookEmbed .fRowBand .tbCellBtn.tbNoble,
 .textbookEmbed .fRowBand .tbCellStatic.tbNoble {
-  background: linear-gradient(160deg, #102830, #0a181e);
-  border-color: rgba(160, 220, 245, 0.32);
-  box-shadow: none;
+  background: linear-gradient(155deg, #1a4250 0%, #0e2430 100%);
+  border-color: rgba(180, 230, 250, 0.36);
+  box-shadow:
+    0 1px 0 rgba(200, 240, 255, 0.12) inset,
+    0 1px 2px rgba(0, 0, 0, 0.16);
 }
 
 .textbookEmbed .gridTextbook .tbCellBtn:hover {
-  transform: scale(1.028) translateY(-1px);
+  transform: scale(1.03) translateY(-1px);
   filter: none;
   z-index: 5;
-  border-color: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.32);
 }
 
 /* Имена без «Водор…»: две строки + полный title при наведении */
 .textbookEmbed .tbZ {
-  font-size: clamp(0.48rem, 1.05cqh, 0.72rem);
-  color: rgba(190, 208, 238, 0.88);
+  font-size: clamp(0.5rem, 1.1cqh, 0.74rem);
+  color: rgba(210, 224, 248, 0.92);
   font-weight: 650;
 }
 
 .textbookEmbed .tbMass {
   font-size: clamp(0.42rem, 0.95cqh, 0.64rem);
-  color: rgba(155, 178, 212, 0.72);
+  color: rgba(175, 195, 225, 0.78);
 }
 
 .textbookEmbed .tbSym {
-  font-size: clamp(0.7rem, 2.2cqh, 1.35rem);
-  font-weight: 800;
-  letter-spacing: 0.01em;
+  font-size: clamp(0.85rem, 2.55cqh, 1.55rem);
+  font-weight: 750;
+  letter-spacing: 0.005em;
+  color: rgba(248, 252, 255, 0.98);
 }
 
 .textbookEmbed .tbRu {
-  font-size: clamp(0.4rem, 0.95cqh, 0.62rem);
+  font-size: clamp(0.38rem, 0.9cqh, 0.58rem);
   font-weight: 600;
-  color: rgba(215, 226, 248, 0.94);
-  line-height: 1.12;
+  color: rgba(225, 234, 252, 0.9);
+  line-height: 1.1;
   white-space: normal;
   overflow: hidden;
   text-overflow: unset;
@@ -697,7 +711,7 @@
   word-break: break-word;
   hyphens: auto;
   max-width: 100%;
-  padding: 0 0.08rem 0.06rem;
+  padding: 0 0.06rem 0.04rem;
   text-align: center;
 }
 
@@ -741,9 +755,9 @@
   grid-column: 1;
   grid-row: 1;
   justify-self: start;
-  font-size: calc(var(--pt-cell-h) * 0.165);
+  font-size: calc(var(--pt-cell-h) * 0.155);
   font-weight: 700;
-  color: rgba(180, 198, 230, 0.72);
+  color: rgba(210, 224, 248, 0.88);
   letter-spacing: 0.02em;
 }
 
@@ -751,19 +765,20 @@
   grid-column: 1;
   grid-row: 2;
   align-self: center;
-  font-size: calc(var(--pt-cell-h) * 0.36);
-  letter-spacing: 0.03em;
-  font-weight: 800;
+  font-size: calc(var(--pt-cell-h) * 0.42);
+  letter-spacing: 0.01em;
+  font-weight: 750;
+  color: rgba(248, 252, 255, 0.98);
 }
 
 .tbCellInnerCompact .tbRu {
   grid-column: 1;
   grid-row: 3;
   width: 100%;
-  font-size: calc(var(--pt-cell-h) * 0.2);
-  font-weight: 650;
+  font-size: calc(var(--pt-cell-h) * 0.175);
+  font-weight: 600;
   letter-spacing: 0.01em;
-  color: rgba(210, 220, 245, 0.92);
+  color: rgba(225, 234, 252, 0.9);
   line-height: 1.05;
   padding-inline: 0.06rem;
   padding-bottom: 0.02rem;

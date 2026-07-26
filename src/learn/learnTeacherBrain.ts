@@ -24,20 +24,30 @@ export type TeacherBrainPack = {
 const FULL_TOPIC_RE =
   /полност|подроб|по учебник|по книг|из книг|объясни тем|объясни §|расскаж|что такое|что нибудь|\d+\s*[-–]?\s*тем|тем[ае]\s*\d|explain fully|in detail|tell me about|textbook|tushuntir|gapirib ber|mavzu haqida|to'liq|to‘liq/i
 
+export type TeacherBrainPackProfile = 'full' | 'live' | 'fast'
+
+export type TeacherBrainPackOptions = {
+  /** full = чат/урок; live/fast = голос и быстрый TTFT (меньше RAG). */
+  profile?: TeacherBrainPackProfile
+}
+
 /** Собирает контекст «мозга» учителя: каталог + база + § + история диалога. */
 export function buildTeacherBrainPack(
   query: string,
   ctx: LearnLocalAssistantContext,
   messages: { role: string; content: string }[] = [],
+  options?: TeacherBrainPackOptions,
 ): TeacherBrainPack {
+  const profile = options?.profile ?? 'full'
+  const live = profile === 'live' || profile === 'fast'
   const sourceLocale = knowledgeSourceLocale(ctx.locale)
   const { block, topicSceneId } = buildAssistantKnowledgeBlock(query, ctx)
-  const sectionOutlineBlock = buildSectionOutlineBlock(ctx, 1200)
-  const wantsFullTopic = FULL_TOPIC_RE.test(query)
+  const sectionOutlineBlock = buildSectionOutlineBlock(ctx, live ? 600 : 1200)
+  const wantsFullTopic = !live && FULL_TOPIC_RE.test(query)
 
   const retrieved = retrieveChemistryKnowledge(query, {
-    maxChunks: wantsFullTopic ? 12 : 8,
-    minScore: 1,
+    maxChunks: live ? 4 : wantsFullTopic ? 12 : 8,
+    minScore: live ? 3 : 4,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
     chapterId: ctx.chapterId,
@@ -45,7 +55,7 @@ export function buildTeacherBrainPack(
   })
 
   let chemistryKnowledgeBlock = buildRetrievedKnowledgeBlock(query, sourceLocale, {
-    maxChars: wantsFullTopic ? 14_000 : 10_000,
+    maxChars: live ? 3_500 : wantsFullTopic ? 14_000 : 10_000,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
     chapterId: ctx.chapterId,
@@ -56,7 +66,7 @@ export function buildTeacherBrainPack(
   const requestedKp = parseRequestedTopicNumber(query)
   const directBook = findG7TextbookByQuery(query, { chapterId: ctx.chapterId })
 
-  if (directBook && (wantsFullTopic || requestedKp !== null)) {
+  if (!live && directBook && (wantsFullTopic || requestedKp !== null)) {
     const full = buildG7TextbookFullTopicBlock(directBook, sourceLocale, 14_000)
     if (full) {
       chemistryKnowledgeBlock = `[§${directBook.kp} «${directBook.topicRu}» — текст по запросу ученика]\n${full}\n\n--- Дополнительно ---\n${chemistryKnowledgeBlock}`
@@ -66,17 +76,21 @@ export function buildTeacherBrainPack(
       ctx.chapterId,
       ctx.sectionId,
       sourceLocale,
-      wantsFullTopic ? 12_000 : 6_000,
+      live ? 2_400 : wantsFullTopic ? 12_000 : 6_000,
     )
     if (bookBlock && !chemistryKnowledgeBlock.includes(bookBlock.slice(0, 80))) {
       chemistryKnowledgeBlock = `[Текущий § учебника Kimyo 7 — главный источник]\n${bookBlock}\n\n--- Дополнительно ---\n${chemistryKnowledgeBlock}`
     }
   }
 
+  if (live && chemistryKnowledgeBlock.length > 3_800) {
+    chemistryKnowledgeBlock = `${chemistryKnowledgeBlock.slice(0, 3_800)}…`
+  }
+
   const conversationHints = buildConversationHints(messages, ctx.locale)
 
   return {
-    catalogBlock: block,
+    catalogBlock: live && block.length > 1_200 ? `${block.slice(0, 1_200)}…` : block,
     chemistryKnowledgeBlock,
     sectionOutlineBlock,
     topicSceneId,
