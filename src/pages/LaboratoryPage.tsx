@@ -1026,10 +1026,16 @@ export function LaboratoryPage() {
           <div className={styles.cosmicNebulaA} />
           <div className={styles.cosmicNebulaB} />
           <div className={styles.cosmicNebulaC} />
+          <div className={styles.cosmicOrbitRing} />
+          <div className={styles.cosmicOrbitRingB} />
           <div className={styles.cosmicStarsFar} />
           <div className={styles.cosmicStarsNear} />
           <div className={styles.cosmicDust} />
-          <div className={styles.cosmicVignette} />
+          <div className={styles.cosmicShoots} aria-hidden>
+            <div className={styles.cosmicShoot} />
+            <div className={styles.cosmicShoot} />
+            <div className={styles.cosmicShoot} />
+          </div>          <div className={styles.cosmicVignette} />
         </div>
         <div className={styles.labCanvasHost}>
           <Suspense fallback={<LabCanvasFallback />}>
