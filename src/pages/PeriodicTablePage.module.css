@@ -1,6 +1,6 @@
 .page {
   position: relative;
-  padding: 0.1rem 0.4rem 0.2rem;
+  padding: 0.2rem 0.55rem 0.28rem;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -72,19 +72,19 @@
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
-  border: 1px solid rgba(120, 150, 200, 0.28);
-  background: rgba(10, 14, 26, 0.78);
+  border: 1px solid rgba(140, 170, 220, 0.3);
+  background: rgba(10, 14, 28, 0.72);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  color: rgba(185, 205, 235, 0.9);
-  border-radius: 0.75rem;
+  color: rgba(200, 215, 245, 0.92);
+  border-radius: 0.8rem;
   font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 650;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.045em;
   text-transform: uppercase;
-  padding: 0.48rem 1rem;
-  min-height: 2.35rem;
+  padding: 0.5rem 1.1rem;
+  min-height: 2.4rem;
   cursor: pointer;
   white-space: nowrap;
   position: relative;
@@ -104,19 +104,19 @@
 
 .tab:hover,
 .introToggle:hover {
-  border-color: rgba(130, 190, 230, 0.45);
-  color: #eef6ff;
+  border-color: rgba(150, 200, 240, 0.5);
+  color: #f2f8ff;
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(0, 20, 50, 0.28);
+  box-shadow: 0 8px 20px rgba(0, 16, 48, 0.32);
 }
 
 .tabActive {
-  border-color: rgba(90, 200, 210, 0.5);
-  background: linear-gradient(160deg, rgba(14, 32, 42, 0.95), rgba(8, 16, 28, 0.92));
-  color: #9af0e8;
+  border-color: rgba(110, 220, 230, 0.55);
+  background: linear-gradient(160deg, rgba(16, 38, 48, 0.96), rgba(8, 18, 30, 0.94));
+  color: #a8f6ee;
   box-shadow:
-    0 0 0 1px rgba(90, 200, 210, 0.12),
-    0 8px 22px rgba(0, 40, 50, 0.32);
+    0 0 0 1px rgba(110, 220, 230, 0.14),
+    0 10px 26px rgba(0, 40, 55, 0.36);
 }
 
 .tabActive::before {
@@ -125,6 +125,13 @@
 
 .tabActive .tabIcon {
   color: #9af0e8;
+}
+
+.tab:focus-visible,
+.tabActive:focus-visible,
+.introToggle:focus-visible {
+  outline: 2px solid rgba(120, 230, 220, 0.65);
+  outline-offset: 2px;
 }
 
 .introToggle {
@@ -175,7 +182,7 @@
   align-items: stretch;
   justify-content: stretch;
   overflow: hidden;
-  padding: 0.2rem 0.1rem 0.12rem;
+  padding: 0.35rem 0.2rem 0.2rem;
   box-sizing: border-box;
 }
 
