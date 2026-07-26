@@ -1022,29 +1022,40 @@ export function LaboratoryPage() {
             : undefined
         }
       >
-        <Suspense fallback={<LabCanvasFallback />}>
-          <LabCanvas
-            sessionKey={`${labCanvasKey}-${reactorSessionKey}`}
-            particles={particles}
-            onParticleMove={onParticleMove}
-            structureZ={reactorOpen ? null : structureZ}
-            onInspectAtom={reactorOpen ? undefined : setStructureZ}
-            synthesis={labSynthesis}
-            synthesisRunActive={synthRunActive}
-            reactorPreviewTerms={reactorPreviewTermsCanvas}
-            reactorCoeffEditBurst={coeffEditBurst}
-            reactorCoeffEditing={reactorCoeffEditing}
-            transformPreviewCompound={transformPreviewCompound}
-            reactorViewOpen={reactorOpen}
-            synthesisSettledProduct={synthesisSettledProduct}
-            laboratorySynthesisView={laboratorySynthesisView}
-            synthesisPhase={synthPhaseUi}
-            forceLiteFxRef={forceLiteFxRef}
-            prewarmProductCompound={gpuPrewarmCompound}
-            gpuQueuePriorityCompound={gpuQueuePriorityCompound}
-            reactorGpuIdleReady={reactorGpuIdleReady}
-          />
-        </Suspense>
+        <div className={styles.cosmicUnderlay} aria-hidden>
+          <div className={styles.cosmicNebulaA} />
+          <div className={styles.cosmicNebulaB} />
+          <div className={styles.cosmicNebulaC} />
+          <div className={styles.cosmicStarsFar} />
+          <div className={styles.cosmicStarsNear} />
+          <div className={styles.cosmicDust} />
+          <div className={styles.cosmicVignette} />
+        </div>
+        <div className={styles.labCanvasHost}>
+          <Suspense fallback={<LabCanvasFallback />}>
+            <LabCanvas
+              sessionKey={`${labCanvasKey}-${reactorSessionKey}`}
+              particles={particles}
+              onParticleMove={onParticleMove}
+              structureZ={reactorOpen ? null : structureZ}
+              onInspectAtom={reactorOpen ? undefined : setStructureZ}
+              synthesis={labSynthesis}
+              synthesisRunActive={synthRunActive}
+              reactorPreviewTerms={reactorPreviewTermsCanvas}
+              reactorCoeffEditBurst={coeffEditBurst}
+              reactorCoeffEditing={reactorCoeffEditing}
+              transformPreviewCompound={transformPreviewCompound}
+              reactorViewOpen={reactorOpen}
+              synthesisSettledProduct={synthesisSettledProduct}
+              laboratorySynthesisView={laboratorySynthesisView}
+              synthesisPhase={synthPhaseUi}
+              forceLiteFxRef={forceLiteFxRef}
+              prewarmProductCompound={gpuPrewarmCompound}
+              gpuQueuePriorityCompound={gpuQueuePriorityCompound}
+              reactorGpuIdleReady={reactorGpuIdleReady}
+            />
+          </Suspense>
+        </div>
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />
         ) : null}

@@ -100,21 +100,208 @@
   min-width: 0;
   /* Изоляция: только когда реактор закрыт. При открытом fixed-панели contain → 0×0 WebGL. */
   contain: layout paint;
-  /* Совпадает с REACTOR_SCENE_HEX — CSS-звёзды под WebGL, чтобы hitch +/- не давал «синий пустой» кадр */
-  background-color: #0a0c18;
+  /* Фиолетовый космос — совпадает с LabIdleCosmicBackdrop / реактором */
+  background-color: #060414;
+  overflow: hidden;
+}
+
+/* CSS-подложка: живая туманность + звёзды (видна до WebGL и при hitch) */
+.cosmicUnderlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background-color: #060414;
+}
+
+.cosmicNebulaA,
+.cosmicNebulaB,
+.cosmicNebulaC {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(48px);
+  will-change: transform, opacity;
+}
+
+.cosmicNebulaA {
+  width: 72vmax;
+  height: 58vmax;
+  left: -18%;
+  top: -22%;
+  background: radial-gradient(
+    ellipse at 40% 40%,
+    rgba(180, 120, 255, 0.42) 0%,
+    rgba(110, 60, 200, 0.18) 42%,
+    transparent 70%
+  );
+  animation: cosmicNebulaDriftA 28s ease-in-out infinite alternate;
+}
+
+.cosmicNebulaB {
+  width: 64vmax;
+  height: 52vmax;
+  right: -16%;
+  top: 8%;
+  background: radial-gradient(
+    ellipse at 55% 45%,
+    rgba(140, 90, 255, 0.28) 0%,
+    rgba(60, 40, 140, 0.14) 48%,
+    transparent 72%
+  );
+  animation: cosmicNebulaDriftB 36s ease-in-out infinite alternate;
+}
+
+.cosmicNebulaC {
+  width: 80vmax;
+  height: 50vmax;
+  left: 10%;
+  bottom: -28%;
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    rgba(70, 40, 130, 0.35) 0%,
+    rgba(20, 10, 50, 0.2) 50%,
+    transparent 75%
+  );
+  animation: cosmicNebulaDriftC 42s ease-in-out infinite alternate;
+}
+
+.cosmicStarsFar,
+.cosmicStarsNear {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+}
+
+.cosmicStarsFar {
+  opacity: 0.85;
   background-image:
-    radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.55), transparent),
-    radial-gradient(1px 1px at 28% 62%, rgba(210, 230, 255, 0.45), transparent),
-    radial-gradient(1.2px 1.2px at 44% 28%, rgba(255, 255, 255, 0.5), transparent),
-    radial-gradient(1px 1px at 58% 78%, rgba(180, 210, 255, 0.4), transparent),
-    radial-gradient(1px 1px at 72% 22%, rgba(255, 255, 255, 0.48), transparent),
-    radial-gradient(1.1px 1.1px at 86% 54%, rgba(200, 220, 255, 0.42), transparent),
-    radial-gradient(1px 1px at 8% 84%, rgba(255, 255, 255, 0.35), transparent),
-    radial-gradient(1px 1px at 36% 8%, rgba(220, 235, 255, 0.4), transparent),
-    radial-gradient(1.2px 1.2px at 64% 46%, rgba(255, 255, 255, 0.52), transparent),
-    radial-gradient(1px 1px at 92% 88%, rgba(190, 215, 255, 0.38), transparent);
-  background-size: 220px 220px, 260px 260px, 180px 180px, 240px 240px, 200px 200px,
-    280px 280px, 190px 190px, 250px 250px, 210px 210px, 270px 270px;
+    radial-gradient(1px 1px at 8% 12%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 18% 48%, rgba(210, 200, 255, 0.55), transparent),
+    radial-gradient(1.2px 1.2px at 27% 22%, rgba(255, 255, 255, 0.65), transparent),
+    radial-gradient(1px 1px at 36% 72%, rgba(190, 180, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 47% 16%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.1px 1.1px at 58% 58%, rgba(220, 210, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 69% 34%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 78% 82%, rgba(200, 190, 255, 0.48), transparent),
+    radial-gradient(1.2px 1.2px at 88% 28%, rgba(255, 255, 255, 0.62), transparent),
+    radial-gradient(1px 1px at 94% 64%, rgba(180, 170, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 12% 88%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 42% 40%, rgba(230, 220, 255, 0.5), transparent);
+  background-size: 280px 280px, 320px 320px, 240px 240px, 300px 300px, 260px 260px, 340px 340px,
+    220px 220px, 310px 310px, 250px 250px, 330px 330px, 270px 270px, 290px 290px;
+  animation: cosmicStarsDrift 120s linear infinite;
+}
+
+.cosmicStarsNear {
+  opacity: 0.95;
+  background-image:
+    radial-gradient(1.4px 1.4px at 14% 30%, rgba(255, 255, 255, 0.95), transparent),
+    radial-gradient(1.2px 1.2px at 33% 64%, rgba(200, 220, 255, 0.8), transparent),
+    radial-gradient(1.6px 1.6px at 55% 18%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1.2px 1.2px at 71% 52%, rgba(220, 180, 255, 0.75), transparent),
+    radial-gradient(1.5px 1.5px at 86% 76%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1.3px 1.3px at 22% 78%, rgba(180, 200, 255, 0.7), transparent),
+    radial-gradient(1.4px 1.4px at 48% 88%, rgba(255, 240, 255, 0.8), transparent),
+    radial-gradient(1.2px 1.2px at 92% 12%, rgba(210, 190, 255, 0.72), transparent);
+  background-size: 420px 420px, 380px 380px, 460px 460px, 400px 400px, 440px 440px, 360px 360px,
+    480px 480px, 390px 390px;
+  animation: cosmicStarsTwinkle 7s ease-in-out infinite alternate, cosmicStarsDriftNear 90s linear infinite;
+}
+
+.cosmicDust {
+  position: absolute;
+  inset: -10%;
+  background: radial-gradient(ellipse 70% 50% at 30% 20%, rgba(160, 100, 255, 0.08), transparent 60%);
+  animation: cosmicDustPulse 14s ease-in-out infinite alternate;
+}
+
+.cosmicVignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 35%, rgba(2, 1, 10, 0.55) 100%);
+}
+
+@keyframes cosmicNebulaDriftA {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.85;
+  }
+  to {
+    transform: translate3d(4%, 3%, 0) scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes cosmicNebulaDriftB {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.02);
+    opacity: 0.75;
+  }
+  to {
+    transform: translate3d(-5%, 4%, 0) scale(1.08);
+    opacity: 0.95;
+  }
+}
+
+@keyframes cosmicNebulaDriftC {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: translate3d(3%, -4%, 0) scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes cosmicStarsDrift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-40px, 24px, 0);
+  }
+}
+
+@keyframes cosmicStarsDriftNear {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(28px, -36px, 0);
+  }
+}
+
+@keyframes cosmicStarsTwinkle {
+  from {
+    opacity: 0.72;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cosmicDustPulse {
+  from {
+    opacity: 0.65;
+    transform: scale(1);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cosmicNebulaA,
+  .cosmicNebulaB,
+  .cosmicNebulaC,
+  .cosmicStarsFar,
+  .cosmicStarsNear,
+  .cosmicDust {
+    animation: none;
+  }
 }
 
 .canvasWrap[data-reactor-open='true'] {
@@ -124,19 +311,20 @@
 .canvasFallback {
   position: absolute;
   inset: 0;
-  background-color: #0a0c18;
-  background-image: inherit;
-  background-size: inherit;
+  z-index: 0;
+  background-color: #060414;
 }
 
-/*
- * R3F измеряет внутренний контейнер через react-use-measure; если корневой div Canvas не заполняет
- * .canvasWrap (только height:100% в flex без явного inset), в Electron/Chrome возможен размер 0×0 —
- * тогда configure() не вызывается и остаётся «белый» пустой canvas / иконка сбоя контекста.
- */
-.canvasWrap > :first-child {
+.labCanvasHost {
   position: absolute;
   inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.labCanvasHost > * {
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -145,7 +333,7 @@
 .canvasWrap canvas {
   display: block;
   /* Тёмный фон = clearColor: при hitch/context-loss нет белого/красного вспышка. */
-  background-color: #0a0c18 !important;
+  background-color: #060414 !important;
   background-image: none !important;
   width: 100% !important;
   height: 100% !important;

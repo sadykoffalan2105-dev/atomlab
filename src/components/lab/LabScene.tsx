@@ -9,7 +9,7 @@ import {
   startTransition,
 } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Stars, DragControls } from '@react-three/drei'
+import { OrbitControls, DragControls } from '@react-three/drei'
 import { gsap } from 'gsap'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
@@ -22,6 +22,7 @@ import { InstantLabSynthesis } from './InstantLabSynthesis'
 import { getScientificSynthesisFx, hasScientificSynthesisFx } from '../../lab/scientificSynthesis/registry'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
 import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
+import { LabIdleCosmicBackdrop, LAB_IDLE_COSMIC_BG } from './LabIdleCosmicBackdrop'
 import { assertNoProductHeroBeforeRun } from '../../lab/atomGuard/labPreviewGuard'
 import { createSynthesisQualityGovernor } from '../../lab/atomGuard/synthesisRunGuard'
 import {
@@ -112,10 +113,10 @@ import {
 import { ReactorAtomShaderWarmup } from './ReactorAtomShaderWarmup'
 import { LabSynthesisGpuQueue } from './LabSynthesisGpuQueue'
 
-/** Свободная лаборатория (атомы на столе). */
-const LAB_SCENE_CLEAR_HEX = '#03040a'
+/** Свободная лаборатория — фиолетовый космос (LabIdleCosmicBackdrop). */
+const LAB_SCENE_CLEAR_HEX = LAB_IDLE_COSMIC_BG
 /** Реактор / синтез / каталожный кадр — фон через LabSynthesisCosmicBackdrop. */
-const REACTOR_SCENE_HEX = '#0a0c18'
+const REACTOR_SCENE_HEX = '#0a0818'
 
 /** Единый clear color реактора — совпадает с LabSynthesisCosmicBackdrop (без скачка при старте синтеза). */
 function LabReactorClearColor() {
@@ -2001,9 +2002,7 @@ function SceneContent({
 
       {!reactorViewOpen ? (
         <>
-          <color attach="background" args={[LAB_SCENE_CLEAR_HEX]} />
-          <fog attach="fog" args={[LAB_SCENE_CLEAR_HEX, 6, 28]} />
-          <Stars radius={100} depth={50} count={420} factor={2.4} saturation={0} fade speed={0.12} />
+          <LabIdleCosmicBackdrop lite={deviceTier === 'low'} />
           <ambientLight intensity={0.22} />
           <directionalLight position={[4, 6, 2]} intensity={0.55} color="#b8c8ff" />
           <group position={[0, 0, 0]}>

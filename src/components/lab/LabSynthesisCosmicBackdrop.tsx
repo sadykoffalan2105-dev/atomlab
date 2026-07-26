@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { Stars } from '@react-three/drei'
 
 /** Единый фон реактора / синтеза — без скачка при смене фаз. */
-export const LAB_COSMIC_BG = '#0a0c18'
+export const LAB_COSMIC_BG = '#0a0818'
 
 /**
  * Фон реактора: звёздное небо.
@@ -29,9 +29,9 @@ export const LabSynthesisCosmicBackdrop = memo(function LabSynthesisCosmicBackdr
         depth={70}
         count={count}
         factor={collapseActive ? 1.8 : lite ? 2.4 : 3.2}
-        saturation={0.12}
+        saturation={0.22}
         fade={false}
-        speed={frozen || collapseActive ? 0 : lite ? 0.2 : 0.35}
+        speed={frozen || collapseActive ? 0 : lite ? 0.18 : 0.28}
       />
     </>
   )
