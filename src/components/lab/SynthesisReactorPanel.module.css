@@ -103,6 +103,44 @@
 .reactorActions {
   display: flex;
   gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.teacherControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  margin-right: 0.15rem;
+  padding: 0.12rem 0.28rem 0.12rem 0.4rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(110, 200, 210, 0.28);
+  background: rgba(8, 18, 32, 0.72);
+}
+
+.teacherBadge {
+  font-size: 0.58rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9af0e8;
+  white-space: nowrap;
+}
+
+.teacherBadge[data-speaking='1'] {
+  color: #b8ffe8;
+  text-shadow: 0 0 10px rgba(110, 240, 200, 0.35);
+}
+
+.teacherVoiceOn {
+  border-color: rgba(100, 210, 200, 0.45) !important;
+  color: #9af0e8 !important;
+}
+
+.teacherVoiceOff {
+  border-color: rgba(255, 150, 120, 0.4) !important;
+  color: #ffc4a8 !important;
 }
 
 .reactorBtnSecondary {

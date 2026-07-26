@@ -266,10 +266,14 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab.launch.phase3': 'Converging streams…',
   'lab.launch.phase4': 'Merge at center…',
   'lab.teacher.aria': 'Synthesis teacher',
-  'lab.teacher.badge': 'Teacher',
-  'lab.teacher.mute': 'Mute',
-  'lab.teacher.unmute': 'Sound on',
-  'lab.teacher.idle': 'Run synthesis — the teacher will walk you through each step.',
+  'lab.teacher.badge': 'AI teacher',
+  'lab.teacher.mute': 'Mute voice',
+  'lab.teacher.unmute': 'Enable voice',
+  'lab.teacher.voiceOn': 'Voice',
+  'lab.teacher.voiceOff': 'Muted',
+  'lab.teacher.replay': 'Replay teacher line',
+  'lab.teacher.replayShort': 'Replay',
+  'lab.teacher.idle': 'Run synthesis — the teacher will guide each step.',
 
   'catalogPanel.title': 'Substance catalog',
   'catalogPanel.subGenerate':

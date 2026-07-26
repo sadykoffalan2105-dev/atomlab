@@ -1,5 +1,7 @@
 /** SSML-разметка для Edge Neural — паузы на запятых и точках. */
 
+import { getTeacherTtsProsodyMode } from './learnTeacherVoiceProfile'
+
 export function escapeSsmlText(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -9,15 +11,27 @@ export function escapeSsmlText(text: string): string {
     .replace(/'/g, '&apos;')
 }
 
-export function textToSsmlProsodyContent(text: string): string {
+type PauseStyle = 'default' | 'lab'
+
+function pauseForToken(token: string, style: PauseStyle): string {
+  if (style === 'lab') {
+    if (token === ',') return '340ms'
+    if (token === ';' || token === ':') return '420ms'
+    return '620ms'
+  }
+  if (token === ',') return '240ms'
+  if (token === ';' || token === ':') return '300ms'
+  return '460ms'
+}
+
+export function textToSsmlProsodyContent(text: string, style?: PauseStyle): string {
+  const pauseStyle = style ?? (getTeacherTtsProsodyMode() === 'lab' ? 'lab' : 'default')
   const tokens = text.split(/([,.!?;:])\s*/).filter((t) => t.length > 0)
   let out = ''
 
   for (const token of tokens) {
     if (/^[,.!?;:]$/.test(token)) {
-      const pause =
-        token === ',' ? '240ms' : token === ';' || token === ':' ? '300ms' : '460ms'
-      out += `${token}<break time="${pause}"/> `
+      out += `${token}<break time="${pauseForToken(token, pauseStyle)}"/> `
       continue
     }
     out += `${escapeSsmlText(token)} `
@@ -26,18 +40,23 @@ export function textToSsmlProsodyContent(text: string): string {
   return out.trim()
 }
 
-/** Минимальный SSML — prosody в браузерном Edge часто даёт «буквование». */
+/**
+ * SSML с prosody + паузами.
+ * Раньше node-путь игнорировал rate/pitch — из‑за этого лабораторный голос звучал «плоско».
+ */
 export function buildTeacherSsml(
   text: string,
   voice: string,
-  _rate: string,
-  _pitch: string,
-  _volume: string,
+  rate: string,
+  pitch: string,
+  volume: string,
   lang: string,
 ): string {
-  const body = escapeSsmlText(text)
+  const body = textToSsmlProsodyContent(text)
   return (
     `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'>` +
-    `<voice name='${voice}'>${body}</voice></speak>`
+    `<voice name='${voice}'>` +
+    `<prosody rate='${rate}' pitch='${pitch}' volume='${volume}'>${body}</prosody>` +
+    `</voice></speak>`
   )
 }

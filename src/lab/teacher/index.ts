@@ -3,6 +3,7 @@ export {
   getLabTeacherScriptProductIds,
   hasLabTeacherScript,
   CLO2_TEACHER_SFX,
+  CLO2_SPEECH_SILENT,
   type Clo2TeacherLine,
   type Clo2TeacherLineId,
   type LabTeacherLocale,
@@ -15,3 +16,4 @@ export {
 } from './LabTeacherNarrator'
 export { LabTeacherDock } from './LabTeacherDock'
 export { playLabReactionSfx, primeLabReactionSfx } from './labReactionSfx'
+export { prepareLabTeacherSpeechRaw } from './labTeacherSpeechPrep'

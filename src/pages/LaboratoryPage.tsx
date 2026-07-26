@@ -51,7 +51,7 @@ import {
   seedScientificReactorEquation,
   type ReactorCoProductTerm,
 } from '../chemistry/scientificReactorRecipes'
-import { LabTeacherDock, getLabTeacherNarrator, hasLabTeacherScript } from '../lab/teacher'
+import { LabTeacherDock, getLabTeacherNarrator, hasLabTeacherScript, readLabTeacherVoiceEnabled } from '../lab/teacher'
 import type { Clo2CueId } from '../lab/cinema/scenes/clo2/storyboard'
 import { getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import { useT } from '../i18n/useT'
@@ -925,10 +925,37 @@ export function LaboratoryPage() {
   const synthRunActive = reactorOpen && runId > 0
   const labTeacherActive =
     reactorOpen && hasLabTeacherScript(lastRunProductIdRef.current ?? productCompoundId)
+  const [teacherVoiceOn, setTeacherVoiceOn] = useState(() => readLabTeacherVoiceEnabled())
+  const [teacherSpeaking, setTeacherSpeaking] = useState(false)
 
   useEffect(() => {
-    if (!reactorOpen) getLabTeacherNarrator().stop()
+    if (!reactorOpen) {
+      getLabTeacherNarrator().stop()
+      setTeacherSpeaking(false)
+    }
   }, [reactorOpen])
+
+  useEffect(() => {
+    if (!labTeacherActive) {
+      setTeacherSpeaking(false)
+      return
+    }
+    const narrator = getLabTeacherNarrator()
+    setTeacherVoiceOn(narrator.isVoiceEnabled())
+    return narrator.subscribeSpeaking(setTeacherSpeaking)
+  }, [labTeacherActive])
+
+  const onTeacherVoiceToggle = useCallback(() => {
+    const narrator = getLabTeacherNarrator()
+    narrator.prime()
+    setTeacherVoiceOn(narrator.toggleVoice())
+  }, [])
+
+  const onTeacherReplay = useCallback(() => {
+    const narrator = getLabTeacherNarrator()
+    narrator.prime()
+    narrator.replay()
+  }, [])
 
   useEffect(() => {
     if (!synthRunActive) {
@@ -1149,6 +1176,11 @@ export function LaboratoryPage() {
         onLabPressureChange={setLabPressureOn}
         onLabCatalystChange={setLabCatalystOn}
         scientificMode={hasScientificReactorRecipe(productCompoundId)}
+        teacherAvailable={hasLabTeacherScript(productCompoundId)}
+        teacherVoiceOn={teacherVoiceOn}
+        teacherSpeaking={teacherSpeaking}
+        onTeacherVoiceToggle={onTeacherVoiceToggle}
+        onTeacherReplay={onTeacherReplay}
       />
 
       <ReactorCompoundCatalogPanel

@@ -1,5 +1,6 @@
 /**
- * Озвучка преподавателя в лаборатории: cue → TTS, прерывание на новом run.
+ * Озвучка преподавателя в лаборатории: cue → TTS.
+ * Микро-cue без текста не рвут речь; профиль lab — цельные фразы.
  */
 
 import {
@@ -8,7 +9,9 @@ import {
   preloadSpeechVoices,
 } from '../../learn/learnSpeech'
 import { primeTeacherVoiceOnUserGesture } from '../../learn/learnTeacherTtsClient'
+import { setTeacherTtsProsodyMode } from '../../learn/learnTeacherVoiceProfile'
 import {
+  CLO2_SPEECH_SILENT,
   CLO2_TEACHER_SFX,
   getClo2TeacherLine,
   type Clo2TeacherLine,
@@ -40,6 +43,7 @@ export function writeLabTeacherVoiceEnabled(on: boolean): void {
 }
 
 export type LabTeacherNarratorListener = (line: Clo2TeacherLine | null) => void
+export type LabTeacherSpeakingListener = (speaking: boolean) => void
 
 export class LabTeacherNarrator {
   private speech = new LearnSpeechController()
@@ -47,7 +51,10 @@ export class LabTeacherNarrator {
   private voiceOn = readLabTeacherVoiceEnabled()
   private runToken = 0
   private listener: LabTeacherNarratorListener | null = null
+  private speakingListener: LabTeacherSpeakingListener | null = null
   private currentLine: Clo2TeacherLine | null = null
+  private speaking = false
+  private lastSpokenId: Clo2TeacherLineId | null = null
 
   setLocale(locale: LabTeacherLocale): void {
     this.locale = locale
@@ -56,15 +63,26 @@ export class LabTeacherNarrator {
   setVoiceEnabled(on: boolean): void {
     this.voiceOn = on
     writeLabTeacherVoiceEnabled(on)
-    if (!on) this.speech.stop()
+    if (!on) {
+      this.speech.stop()
+      this.setSpeaking(false)
+    }
   }
 
   isVoiceEnabled(): boolean {
     return this.voiceOn
   }
 
+  isSpeaking(): boolean {
+    return this.speaking
+  }
+
   getCurrentLine(): Clo2TeacherLine | null {
     return this.currentLine
+  }
+
+  getLastSpokenId(): Clo2TeacherLineId | null {
+    return this.lastSpokenId
   }
 
   subscribe(listener: LabTeacherNarratorListener): () => void {
@@ -75,9 +93,23 @@ export class LabTeacherNarrator {
     }
   }
 
+  subscribeSpeaking(listener: LabTeacherSpeakingListener): () => void {
+    this.speakingListener = listener
+    listener(this.speaking)
+    return () => {
+      if (this.speakingListener === listener) this.speakingListener = null
+    }
+  }
+
   private publish(line: Clo2TeacherLine | null): void {
     this.currentLine = line
     this.listener?.(line)
+  }
+
+  private setSpeaking(on: boolean): void {
+    if (this.speaking === on) return
+    this.speaking = on
+    this.speakingListener?.(on)
   }
 
   /** User gesture: разблокировать TTS + AudioContext. */
@@ -91,20 +123,38 @@ export class LabTeacherNarrator {
   beginRun(): void {
     this.runToken += 1
     this.speech.stop()
+    this.setSpeaking(false)
     this.publish(null)
+    this.lastSpokenId = null
   }
 
   stop(): void {
     this.runToken += 1
     this.speech.stop()
+    setTeacherTtsProsodyMode('default')
+    this.setSpeaking(false)
     this.publish(null)
   }
 
-  async speakLine(id: Clo2TeacherLineId): Promise<void> {
+  async speakLine(id: Clo2TeacherLineId, opts?: { force?: boolean }): Promise<void> {
     const line = getClo2TeacherLine(this.locale, id)
-    this.publish(line)
+    const isCue = id !== 'intro'
+    const silent = isCue && CLO2_SPEECH_SILENT.has(id as Clo2CueId)
 
-    if (id !== 'intro') {
+    if (silent && !opts?.force) {
+      if (isCue) {
+        const sfx = CLO2_TEACHER_SFX[id as Clo2CueId]
+        if (sfx && this.voiceOn) playLabReactionSfx(sfx)
+      }
+      return
+    }
+
+    if (!line.speak.trim()) return
+
+    this.publish(line)
+    this.lastSpokenId = id
+
+    if (isCue) {
       const sfx = CLO2_TEACHER_SFX[id as Clo2CueId]
       if (sfx && this.voiceOn) playLabReactionSfx(sfx)
     }
@@ -113,8 +163,14 @@ export class LabTeacherNarrator {
 
     const token = this.runToken
     const locale = this.locale as LearnSpeechLocale
-    await this.speech.speak(line.speak, locale)
-    if (token !== this.runToken) return
+    this.setSpeaking(true)
+    setTeacherTtsProsodyMode('lab')
+    try {
+      await this.speech.speak(line.speak, locale, { profile: 'lab' })
+    } finally {
+      setTeacherTtsProsodyMode('default')
+      if (token === this.runToken) this.setSpeaking(false)
+    }
   }
 
   speakCue(id: Clo2CueId): void {
@@ -123,6 +179,18 @@ export class LabTeacherNarrator {
 
   speakIntro(): void {
     void this.speakLine('intro')
+  }
+
+  /** Повторить последнюю реплику или intro. */
+  replay(): void {
+    const id = this.lastSpokenId ?? 'intro'
+    void this.speakLine(id, { force: true })
+  }
+
+  toggleVoice(): boolean {
+    const next = !this.voiceOn
+    this.setVoiceEnabled(next)
+    return next
   }
 }
 

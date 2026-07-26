@@ -568,6 +568,7 @@ export function LearnAssistantPanel({
                       <button
                         type="button"
                         className={styles.learnAssistantVoiceBtn}
+                        data-active={speakingId === m.at ? '1' : undefined}
                         onClick={() =>
                           speakingId === m.at ? stopSpeaking() : void speakMessage(m.text, m.at)
                         }

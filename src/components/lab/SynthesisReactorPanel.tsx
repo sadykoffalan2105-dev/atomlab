@@ -222,6 +222,11 @@ export function SynthesisReactorPanel({
   onLabPressureChange,
   onLabCatalystChange,
   scientificMode = false,
+  teacherAvailable = false,
+  teacherVoiceOn = true,
+  teacherSpeaking = false,
+  onTeacherVoiceToggle,
+  onTeacherReplay,
 }: {
   open: boolean
   onOpenGenerateEquationCatalog: () => void
@@ -255,6 +260,12 @@ export function SynthesisReactorPanel({
   onLabPressureChange?: (on: boolean) => void
   onLabCatalystChange?: (on: boolean) => void
   scientificMode?: boolean
+  /** ИИ-преподаватель доступен для текущего продукта (ClO₂). */
+  teacherAvailable?: boolean
+  teacherVoiceOn?: boolean
+  teacherSpeaking?: boolean
+  onTeacherVoiceToggle?: () => void
+  onTeacherReplay?: () => void
 }) {
   const { locale, t } = useT()
   const coeffErr = highlightEquationError
@@ -332,6 +343,34 @@ export function SynthesisReactorPanel({
       <div className={panelStyles.reactorHead}>
         <span className={panelStyles.reactorTitle}>{t('reactor.title')}</span>
         <div className={panelStyles.reactorActions}>
+          {teacherAvailable ? (
+            <div className={panelStyles.teacherControls} role="group" aria-label={t('lab.teacher.aria')}>
+              <span
+                className={panelStyles.teacherBadge}
+                data-speaking={teacherSpeaking ? '1' : undefined}
+              >
+                {t('lab.teacher.badge')}
+              </span>
+              <button
+                type="button"
+                className={panelStyles.reactorBtnSecondary}
+                onClick={() => onTeacherReplay?.()}
+                title={t('lab.teacher.replay')}
+                aria-label={t('lab.teacher.replay')}
+              >
+                {t('lab.teacher.replayShort')}
+              </button>
+              <button
+                type="button"
+                className={`${panelStyles.reactorBtnSecondary} ${teacherVoiceOn ? panelStyles.teacherVoiceOn : panelStyles.teacherVoiceOff}`}
+                onClick={() => onTeacherVoiceToggle?.()}
+                aria-pressed={teacherVoiceOn}
+                title={teacherVoiceOn ? t('lab.teacher.mute') : t('lab.teacher.unmute')}
+              >
+                {teacherVoiceOn ? t('lab.teacher.voiceOn') : t('lab.teacher.voiceOff')}
+              </button>
+            </div>
+          ) : null}
           <button
             type="button"
             className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnHide}`}

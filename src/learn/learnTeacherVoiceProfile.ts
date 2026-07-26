@@ -14,9 +14,47 @@ export const TEACHER_VOICE_EDGE_PROSODY: Record<
   SpeechPrepLocale,
   { rate: string; pitch: string; volume: string }
 > = {
-  ru: { rate: '-6%', pitch: '-4Hz', volume: '+4%' },
-  en: { rate: '-6%', pitch: '-4Hz', volume: '+4%' },
-  uz: { rate: '-4%', pitch: '-3Hz', volume: '+4%' },
+  ru: { rate: '-10%', pitch: '-3Hz', volume: '+6%' },
+  en: { rate: '-8%', pitch: '-3Hz', volume: '+5%' },
+  uz: { rate: '-6%', pitch: '-2Hz', volume: '+5%' },
+}
+
+/** Лаборатория: медленнее и чётче — химия на слух. */
+export const TEACHER_VOICE_EDGE_PROSODY_LAB: Record<
+  SpeechPrepLocale,
+  { rate: string; pitch: string; volume: string }
+> = {
+  ru: { rate: '-22%', pitch: '-2Hz', volume: '+8%' },
+  en: { rate: '-16%', pitch: '-2Hz', volume: '+6%' },
+  uz: { rate: '-14%', pitch: '-1Hz', volume: '+6%' },
+}
+
+export type TeacherTtsProsodyMode = 'default' | 'lab'
+
+let teacherTtsProsodyMode: TeacherTtsProsodyMode = 'default'
+
+export function setTeacherTtsProsodyMode(mode: TeacherTtsProsodyMode): void {
+  teacherTtsProsodyMode = mode
+}
+
+export function getTeacherTtsProsodyMode(): TeacherTtsProsodyMode {
+  return teacherTtsProsodyMode
+}
+
+export function resolveTeacherEdgeProsody(locale: SpeechPrepLocale): {
+  rate: string
+  pitch: string
+  volume: string
+} {
+  return teacherTtsProsodyMode === 'lab'
+    ? TEACHER_VOICE_EDGE_PROSODY_LAB[locale]
+    : TEACHER_VOICE_EDGE_PROSODY[locale]
+}
+
+export const TEACHER_BROWSER_RATE_LAB: Record<SpeechPrepLocale, number> = {
+  ru: 0.98,
+  en: 0.96,
+  uz: 0.98,
 }
 
 export const TEACHER_VOICE_OPENAI: Record<SpeechPrepLocale, string> = {

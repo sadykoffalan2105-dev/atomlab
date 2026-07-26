@@ -2,7 +2,7 @@
  * ATOMLAB Teacher Voice — neural-голос Microsoft (ru-RU-DmitryNeural) через
  * локальный Python edge-tts (/api/learn/tts), с фолбэком на браузерный Web Speech API.
  */
-import { splitTextForTts, TTS_CHUNK_GAP_MS } from './learnSpeechText'
+import { splitTextForTts, TTS_CHUNK_GAP_MS, TTS_LAB_CHUNK_GAP_MS, type SplitTtsProfile } from './learnSpeechText'
 
 export { stripMarkdownForSpeech, prepareTextForHumanTts } from './learnSpeechText'
 
@@ -30,6 +30,24 @@ import {
 
 export type LearnSpeechLocale = 'ru' | 'en' | 'uz'
 export type SpeechOutputMode = 'neural' | 'browser'
+
+export type SpeakOptions = {
+  profile?: SplitTtsProfile
+  onEnd?: () => void
+  onMode?: (mode: SpeechOutputMode) => void
+  onError?: (code: 'empty' | 'unavailable') => void
+}
+
+function resolveSpeakOptions(
+  onEnd?: (() => void) | SpeakOptions,
+  onMode?: (mode: SpeechOutputMode) => void,
+  onError?: (code: 'empty' | 'unavailable') => void,
+): Required<Pick<SpeakOptions, 'profile'>> & SpeakOptions {
+  if (onEnd && typeof onEnd === 'object') {
+    return { profile: onEnd.profile ?? 'default', ...onEnd }
+  }
+  return { profile: 'default', onEnd, onMode, onError }
+}
 
 export function isSpeechSynthesisSupported(): boolean {
   return isBrowserSpeechSupported()
@@ -59,13 +77,14 @@ export class LearnSpeechController {
   async speak(
     text: string,
     locale: LearnSpeechLocale,
-    onEnd?: () => void,
+    onEnd?: (() => void) | SpeakOptions,
     onMode?: (mode: SpeechOutputMode) => void,
     onError?: (code: 'empty' | 'unavailable') => void,
   ): Promise<boolean> {
+    const opts = resolveSpeakOptions(onEnd, onMode, onError)
     if (!text.trim()) {
-      onError?.('empty')
-      onEnd?.()
+      opts.onError?.('empty')
+      opts.onEnd?.()
       return false
     }
 
@@ -74,47 +93,48 @@ export class LearnSpeechController {
     primeTeacherVoiceOnUserGesture()
     await unlockAudioPlayback()
 
-    const chunks = splitTextForTts(text, locale).filter((c) => this.isSpeakableChunk(c))
+    const chunks = splitTextForTts(text, locale, opts.profile).filter((c) => this.isSpeakableChunk(c))
     if (chunks.length === 0) {
-      onError?.('empty')
-      onEnd?.()
+      opts.onError?.('empty')
+      opts.onEnd?.()
       return false
     }
 
     // 1) Neural-голос учителя (Microsoft Dmitry через локальный edge-tts).
-    const neural = await this.speakNeural(chunks, locale, onMode)
+    const gapMs = opts.profile === 'lab' ? TTS_LAB_CHUNK_GAP_MS : TTS_CHUNK_GAP_MS
+    const neural = await this.speakNeural(chunks, locale, opts.onMode, gapMs)
     if (neural === 'ok') {
-      onEnd?.()
+      opts.onEnd?.()
       return true
     }
     if (neural === 'aborted') {
-      onEnd?.()
+      opts.onEnd?.()
       return false
     }
 
     // 2) Фолбэк — системный голос браузера.
     if (this.speakAborted) {
-      onEnd?.()
+      opts.onEnd?.()
       return false
     }
     if (!isBrowserSpeechSupported()) {
-      onError?.('unavailable')
-      onEnd?.()
+      opts.onError?.('unavailable')
+      opts.onEnd?.()
       return false
     }
 
-    onMode?.('browser')
+    opts.onMode?.('browser')
     const browserOk = await speakWithBrowserVoice(chunks, locale, () => this.speakAborted)
     if (browserOk && !this.speakAborted) {
       this.lastMode = 'browser'
-      onEnd?.()
+      opts.onEnd?.()
       return true
     }
 
     if (!this.speakAborted) {
-      onError?.('unavailable')
+      opts.onError?.('unavailable')
     }
-    onEnd?.()
+    opts.onEnd?.()
     return false
   }
 
@@ -131,6 +151,7 @@ export class LearnSpeechController {
     chunks: string[],
     locale: LearnSpeechLocale,
     onMode?: (mode: SpeechOutputMode) => void,
+    gapMs = TTS_CHUNK_GAP_MS,
   ): Promise<'ok' | 'aborted' | 'fallback'> {
     if (!isTeacherTtsAvailable()) return 'fallback'
 
@@ -162,7 +183,7 @@ export class LearnSpeechController {
         if (this.speakAborted || controller.signal.aborted) return 'aborted'
         if (!entry) continue // редкий сбой одного фрагмента — пропускаем, не ломая голос
         try {
-          await this.delay(TTS_CHUNK_GAP_MS)
+          await this.delay(gapMs)
           await playNeuralAudioBase64(entry.audioBase64, entry.mimeType, controller.signal)
         } catch {
           if (this.speakAborted) return 'aborted'

@@ -4,7 +4,7 @@
  */
 import {
   TEACHER_VOICE_EDGE,
-  TEACHER_VOICE_EDGE_PROSODY,
+  resolveTeacherEdgeProsody,
   edgeLangForLocale,
 } from './learnTeacherVoiceProfile'
 import type { SpeechPrepLocale } from './learnSpeechText'
@@ -12,6 +12,7 @@ import {
   EDGE_TTS_SEC_MS_GEC_VERSION,
   generateEdgeTtsSecMsGec,
 } from './edgeTtsSecMsGec'
+import { textToSsmlProsodyContent } from './learnEdgeSsml'
 
 const TRUSTED_CLIENT_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4'
 const WSS_BASE =
@@ -34,17 +35,8 @@ function randomHex(bytes: number): string {
   return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-function escapeSsmlText(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;')
-}
-
 function buildSsml(text: string, voice: string, lang: string, rate: string, pitch: string, volume: string): string {
-  const body = escapeSsmlText(text)
+  const body = textToSsmlProsodyContent(text)
   return (
     `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${lang}">` +
     `<voice name="${voice}"><prosody pitch="${pitch}" rate="${rate}" volume="${volume}">${body}</prosody></voice></speak>`
@@ -59,7 +51,7 @@ export async function synthesizeEdgeNeuralSpeechBrowser(
   if (!text.trim() || typeof WebSocket === 'undefined') return null
 
   const voice = voiceOverride?.trim() || TEACHER_VOICE_EDGE[locale]
-  const prosody = TEACHER_VOICE_EDGE_PROSODY[locale]
+  const prosody = resolveTeacherEdgeProsody(locale)
   const lang = edgeLangForLocale(locale)
   const ssml = buildSsml(text, voice, lang, prosody.rate, prosody.pitch, prosody.volume)
 

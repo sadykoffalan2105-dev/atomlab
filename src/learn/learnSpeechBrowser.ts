@@ -2,9 +2,11 @@ import { BROWSER_SENTENCE_GAP_MS } from './learnSpeechText'
 import {
   TEACHER_BROWSER_PITCH,
   TEACHER_BROWSER_RATE,
+  TEACHER_BROWSER_RATE_LAB,
   TEACHER_BROWSER_VOICE_HINTS,
   TEACHER_VOICE_FEMALE_NAMES,
   TEACHER_VOICE_MALE_NAMES,
+  getTeacherTtsProsodyMode,
 } from './learnTeacherVoiceProfile'
 
 export type BrowserSpeechLocale = 'ru' | 'en' | 'uz'
@@ -151,7 +153,8 @@ function speakOneUtterance(
     }
     const utterance = new SpeechSynthesisUtterance(stripStressForBrowser(sentence))
     utterance.lang = voice?.lang || SPEECH_LOCALE[locale]
-    utterance.rate = TEACHER_BROWSER_RATE[locale]
+    utterance.rate =
+      getTeacherTtsProsodyMode() === 'lab' ? TEACHER_BROWSER_RATE_LAB[locale] : TEACHER_BROWSER_RATE[locale]
     utterance.pitch = TEACHER_BROWSER_PITCH[locale]
     utterance.volume = 1.0
     if (voice) utterance.voice = voice

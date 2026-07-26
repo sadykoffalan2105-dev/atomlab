@@ -266,10 +266,14 @@ export const messagesUz: Record<MessageKey, string> = {
   'lab.launch.phase3': 'Oqimlar yaqinlashmoqda…',
   'lab.launch.phase4': 'Markazda birlashish…',
   'lab.teacher.aria': 'Sintez o‘qituvchisi',
-  'lab.teacher.badge': 'O‘qituvchi',
-  'lab.teacher.mute': 'Ovozsiz',
-  'lab.teacher.unmute': 'Ovoz bilan',
-  'lab.teacher.idle': 'Sintezni ishga tushiring — o‘qituvchi bosqichma-bosqich tushuntiradi.',
+  'lab.teacher.badge': 'SI o‘qituvchi',
+  'lab.teacher.mute': 'Ovozni o‘chirish',
+  'lab.teacher.unmute': 'Ovozni yoqish',
+  'lab.teacher.voiceOn': 'Ovoz',
+  'lab.teacher.voiceOff': 'Ovozsiz',
+  'lab.teacher.replay': 'O‘qituvchi iborasini takrorlash',
+  'lab.teacher.replayShort': 'Takror',
+  'lab.teacher.idle': 'Sintezni ishga tushiring — o‘qituvchi bosqichma-bosqich olib boradi.',
 
   'catalogPanel.title': 'Moddalar katalogi',
   'catalogPanel.subGenerate':

@@ -23,6 +23,8 @@ const FORMULA_SPEECH_RU: ReadonlyArray<readonly [RegExp, string]> = [
   [/BaSO₄|BaSO4/gi, 'сульфат бария'],
   [/NH₄Cl|NH4Cl/gi, 'хлорид аммония'],
   [/NH₃|NH3/gi, 'аммиак'],
+  [/NaClO₂|NaClO2/gi, 'хлорит натрия'],
+  [/ClO₂|ClO2/gi, 'диоксид хлора'],
   [/CH₄|CH4/gi, 'метан'],
   [/C₂H₆|C2H6/gi, 'этан'],
   [/C₃H₈|C3H8/gi, 'пропан'],

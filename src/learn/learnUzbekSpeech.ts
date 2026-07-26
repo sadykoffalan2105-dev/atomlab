@@ -6,6 +6,8 @@ const UZ_CHEM_TERMS: Record<string, string> = {
   ATOMLAB: 'Atomlab',
   pH: 'pé aş',
   NaCl: 'natriy xlorid',
+  NaClO2: 'natriy xlorit',
+  ClO2: 'xlor dioksid',
   H2O: 'suv',
   CO2: 'karbonat angidrid',
   O2: 'kislorod',

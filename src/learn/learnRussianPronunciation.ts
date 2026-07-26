@@ -61,6 +61,8 @@ export const RUSSIAN_PRONUNCIATION_LEXICON: Record<string, string> = {
   pH: 'пэ аш',
   Ph: 'пэ аш',
   NaCl: 'хлорид натрия',
+  NaClO2: 'хлорит натрия',
+  ClO2: 'диоксид хлора',
   H2O: 'вода',
   CO2: 'углекислый газ',
   O2: 'кислород',

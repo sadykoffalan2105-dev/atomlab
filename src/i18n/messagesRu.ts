@@ -263,10 +263,14 @@ export const messagesRu = {
   'lab.launch.phase3': 'Сближение потоков…',
   'lab.launch.phase4': 'Слияние в центре…',
   'lab.teacher.aria': 'Преподаватель синтеза',
-  'lab.teacher.badge': 'Преподаватель',
-  'lab.teacher.mute': 'Без звука',
-  'lab.teacher.unmute': 'Со звуком',
-  'lab.teacher.idle': 'Запустите синтез — преподаватель проведёт раскадровку по шагам.',
+  'lab.teacher.badge': 'ИИ-учитель',
+  'lab.teacher.mute': 'Выключить озвучку',
+  'lab.teacher.unmute': 'Включить озвучку',
+  'lab.teacher.voiceOn': 'Озвучка',
+  'lab.teacher.voiceOff': 'Без звука',
+  'lab.teacher.replay': 'Повторить фразу учителя',
+  'lab.teacher.replayShort': 'Повтор',
+  'lab.teacher.idle': 'Запустите синтез — учитель проведёт реакцию по шагам.',
 
   'catalogPanel.title': 'Каталог веществ',
   'catalogPanel.subGenerate':

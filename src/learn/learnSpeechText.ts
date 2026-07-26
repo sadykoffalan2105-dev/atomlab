@@ -12,8 +12,16 @@ import {
   TEACHER_VOICE_OPENAI_INSTRUCTIONS,
   TEACHER_VOICE_OPENAI_SPEED,
 } from './learnTeacherVoiceProfile'
+import { prepareLabTeacherSpeechRaw } from '../lab/teacher/labTeacherSpeechPrep'
 
 export type SpeechPrepLocale = 'ru' | 'en' | 'uz'
+
+export type SplitTtsProfile = 'default' | 'lab'
+
+export type SpeechPrepOptions = NaturalizeSpeechOptions & {
+  /** Лабораторный учитель — отдельная каденция и химия на слух */
+  profile?: SplitTtsProfile
+}
 
 const SUBSCRIPT_DIGITS = '₀₁₂₃₄₅₆₇₈₉'
 const SUPERSCRIPT_DIGITS = '⁰¹²³⁴⁵⁶⁷⁸⁹'
@@ -62,9 +70,12 @@ export function normalizeChemicalNotation(text: string): string {
 export function prepareTextForHumanTts(
   text: string,
   locale: SpeechPrepLocale,
-  options: NaturalizeSpeechOptions = {},
+  options: SpeechPrepOptions = {},
 ): string {
   let t = stripMarkdownForSpeech(text)
+  if (options.profile === 'lab') {
+    t = prepareLabTeacherSpeechRaw(t, locale)
+  }
   t = normalizeChemicalNotation(t)
 
   if (locale === 'ru') {
@@ -139,6 +150,8 @@ export function prepareTextForHumanTts(
 
 /** Предложения целиком — меньше обрывов и путаницы фрагментов. */
 const CHUNK_MAX = 480
+const LAB_CHUNK_MAX = 560
+
 /**
  * Первый фрагмент делаем очень коротким — он синтезируется быстрее всех,
  * поэтому озвучка стартует почти сразу (≈1 с), пока догружаются остальные.
@@ -170,8 +183,15 @@ function splitFirstChunkForFastStart(parts: string[]): string[] {
   return parts
 }
 
-export function splitTextForTts(text: string, locale: SpeechPrepLocale = 'ru', max = CHUNK_MAX): string[] {
-  const clean = prepareTextForHumanTts(text, locale)
+export function splitTextForTts(
+  text: string,
+  locale: SpeechPrepLocale = 'ru',
+  maxOrProfile: number | SplitTtsProfile = CHUNK_MAX,
+): string[] {
+  const profile: SplitTtsProfile = typeof maxOrProfile === 'string' ? maxOrProfile : 'default'
+  const max =
+    typeof maxOrProfile === 'number' ? maxOrProfile : profile === 'lab' ? LAB_CHUNK_MAX : CHUNK_MAX
+  const clean = prepareTextForHumanTts(text, locale, { profile })
   if (!clean) return []
 
   const parts: string[] = []
@@ -185,6 +205,8 @@ export function splitTextForTts(text: string, locale: SpeechPrepLocale = 'ru', m
     }
   }
   const base = parts.length > 0 ? parts : [clean]
+  // Лаборатория: не режем первое предложение посередине — важнее цельная фраза учителя.
+  if (profile === 'lab') return base
   return splitFirstChunkForFastStart(base)
 }
 
@@ -199,6 +221,9 @@ export const HUMAN_TTS_VOICE = TEACHER_VOICE_OPENAI
 
 /** Пауза между фразами (мс) — короче для живого темпа. */
 export const TTS_CHUNK_GAP_MS = 260
+
+/** Пауза между фразами в лаборатории — почти без «робо-паузы». */
+export const TTS_LAB_CHUNK_GAP_MS = 90
 
 export const BROWSER_NEURAL_HINTS = TEACHER_BROWSER_VOICE_HINTS
 
