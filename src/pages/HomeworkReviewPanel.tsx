@@ -38,8 +38,8 @@ export function HomeworkReviewPanel() {
     setError(null)
     try {
       const result = file
-        ? await loadHomeworkImageFile(file)
-        : await captureHomeworkFromCamera()
+        ? await loadHomeworkImageFile(file, { locale })
+        : await captureHomeworkFromCamera({ locale })
       if (!result) {
         setError(t('learn.teacher.homeworkNeedText'))
         return

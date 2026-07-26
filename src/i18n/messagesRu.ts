@@ -262,6 +262,11 @@ export const messagesRu = {
   'lab.launch.phase2': 'Выравнивание реагентов…',
   'lab.launch.phase3': 'Сближение потоков…',
   'lab.launch.phase4': 'Слияние в центре…',
+  'lab.teacher.aria': 'Преподаватель синтеза',
+  'lab.teacher.badge': 'Преподаватель',
+  'lab.teacher.mute': 'Без звука',
+  'lab.teacher.unmute': 'Со звуком',
+  'lab.teacher.idle': 'Запустите синтез — преподаватель проведёт раскадровку по шагам.',
 
   'catalogPanel.title': 'Каталог веществ',
   'catalogPanel.subGenerate':

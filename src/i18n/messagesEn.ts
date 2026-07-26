@@ -265,6 +265,11 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab.launch.phase2': 'Aligning reagents…',
   'lab.launch.phase3': 'Converging streams…',
   'lab.launch.phase4': 'Merge at center…',
+  'lab.teacher.aria': 'Synthesis teacher',
+  'lab.teacher.badge': 'Teacher',
+  'lab.teacher.mute': 'Mute',
+  'lab.teacher.unmute': 'Sound on',
+  'lab.teacher.idle': 'Run synthesis — the teacher will walk you through each step.',
 
   'catalogPanel.title': 'Substance catalog',
   'catalogPanel.subGenerate':

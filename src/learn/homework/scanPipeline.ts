@@ -1,7 +1,9 @@
 /**
  * Скан ДЗ: камера / файл → превью + текст.
- * OCR: браузерный (если доступен) или ручная расшифровка учителем.
+ * OCR: TextDetector (если есть) → Tesseract.js (rus+eng).
  */
+
+import type { AppLocale } from '../../i18n/types'
 
 export type ScanImageResult = {
   dataUrl: string
@@ -11,6 +13,21 @@ export type ScanImageResult = {
   ocrText?: string
 }
 
+export type ScanLoadOptions = {
+  locale?: AppLocale
+  signal?: AbortSignal
+}
+
+type TesseractWorker = {
+  recognize: (image: string) => Promise<{ data: { text: string } }>
+  terminate: () => Promise<unknown>
+  reinitialize: (langs: string | string[]) => Promise<unknown>
+}
+
+let tessWorker: TesseractWorker | null = null
+let tessLangs = ''
+let tessBoot: Promise<TesseractWorker> | null = null
+
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -18,6 +35,11 @@ function readFileAsDataUrl(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error ?? new Error('read failed'))
     reader.readAsDataURL(file)
   })
+}
+
+function isLikelyImageFile(file: File): boolean {
+  if (file.type.startsWith('image/')) return true
+  return /\.(jpe?g|png|webp|gif|bmp)$/i.test(file.name)
 }
 
 /** Усиливаем контраст для рукописи перед OCR / просмотром. */
@@ -53,11 +75,29 @@ export async function preprocessHomeworkImage(dataUrl: string): Promise<string> 
   })
 }
 
+function cleanOcrText(raw: string): string | undefined {
+  const text = raw
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[^\S\n]{2,}/g, ' ')
+    .trim()
+  if (text.length < 8) return undefined
+  // Отсев мусора OCR: слишком мало букв/цифр
+  const useful = (text.match(/[\p{L}\p{N}]/gu) ?? []).length
+  if (useful < 8) return undefined
+  return text
+}
+
 async function tryBrowserOcr(dataUrl: string): Promise<string | undefined> {
   // Experimental: некоторые Chromium-сборки / Electron могут дать TextDetector.
-  const Detector = (window as unknown as { TextDetector?: new (o: { types: string[] }) => {
-    detect: (img: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>
-  } }).TextDetector
+  const Detector = (
+    window as unknown as {
+      TextDetector?: new (o: { types: string[] }) => {
+        detect: (img: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>
+      }
+    }
+  ).TextDetector
   if (!Detector) return undefined
   try {
     const img = new Image()
@@ -69,14 +109,82 @@ async function tryBrowserOcr(dataUrl: string): Promise<string | undefined> {
     await loaded
     const detector = new Detector({ types: ['text'] })
     const bits = await detector.detect(img)
-    const text = bits.map((b) => b.rawValue ?? '').filter(Boolean).join('\n').trim()
-    return text || undefined
+    return cleanOcrText(bits.map((b) => b.rawValue ?? '').filter(Boolean).join('\n'))
   } catch {
     return undefined
   }
 }
 
-export async function loadHomeworkImageFile(file: File): Promise<ScanImageResult> {
+function ocrLangsForLocale(locale?: AppLocale): string {
+  if (locale === 'en') return 'eng'
+  // uz + ru: кириллица/латиница; eng помогает формулам и латинице
+  return 'rus+eng'
+}
+
+async function getTesseractWorker(langs: string, signal?: AbortSignal): Promise<TesseractWorker> {
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+  if (tessWorker && tessLangs === langs) return tessWorker
+  if (tessBoot && tessLangs === langs) return tessBoot
+
+  if (tessWorker) {
+    try {
+      await tessWorker.terminate()
+    } catch {
+      /* ignore */
+    }
+    tessWorker = null
+  }
+
+  tessLangs = langs
+  tessBoot = (async () => {
+    const { createWorker } = await import('tesseract.js')
+    const worker = (await createWorker(langs, undefined, {
+      logger: () => undefined,
+    })) as unknown as TesseractWorker
+    tessWorker = worker
+    return worker
+  })()
+
+  try {
+    return await tessBoot
+  } finally {
+    tessBoot = null
+  }
+}
+
+async function tryTesseractOcr(
+  dataUrl: string,
+  locale?: AppLocale,
+  signal?: AbortSignal,
+): Promise<string | undefined> {
+  try {
+    const langs = ocrLangsForLocale(locale)
+    const worker = await getTesseractWorker(langs, signal)
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+    const result = await worker.recognize(dataUrl)
+    return cleanOcrText(result.data.text ?? '')
+  } catch {
+    return undefined
+  }
+}
+
+async function runOcr(
+  dataUrl: string,
+  locale?: AppLocale,
+  signal?: AbortSignal,
+): Promise<string | undefined> {
+  const quick = await tryBrowserOcr(dataUrl)
+  if (quick) return quick
+  return tryTesseractOcr(dataUrl, locale, signal)
+}
+
+export async function loadHomeworkImageFile(
+  file: File,
+  opts?: ScanLoadOptions,
+): Promise<ScanImageResult> {
+  if (!isLikelyImageFile(file)) {
+    throw new Error('unsupported_image')
+  }
   const raw = await readFileAsDataUrl(file)
   const dataUrl = await preprocessHomeworkImage(raw)
   const probe = new Image()
@@ -85,11 +193,16 @@ export async function loadHomeworkImageFile(file: File): Promise<ScanImageResult
     probe.onerror = () => resolve({ width: 0, height: 0 })
     probe.src = dataUrl
   })
-  const ocrText = await tryBrowserOcr(dataUrl)
+  if (dims.width < 8 || dims.height < 8) {
+    throw new Error('bad_image')
+  }
+  const ocrText = await runOcr(dataUrl, opts?.locale, opts?.signal)
   return { dataUrl, width: dims.width, height: dims.height, ocrText }
 }
 
-export async function captureHomeworkFromCamera(): Promise<ScanImageResult | null> {
+export async function captureHomeworkFromCamera(
+  opts?: ScanLoadOptions,
+): Promise<ScanImageResult | null> {
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return null
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: { ideal: 'environment' }, width: { ideal: 1600 } },
@@ -111,7 +224,7 @@ export async function captureHomeworkFromCamera(): Promise<ScanImageResult | nul
     ctx.drawImage(video, 0, 0, w, h)
     const raw = canvas.toDataURL('image/jpeg', 0.92)
     const dataUrl = await preprocessHomeworkImage(raw)
-    const ocrText = await tryBrowserOcr(dataUrl)
+    const ocrText = await runOcr(dataUrl, opts?.locale, opts?.signal)
     return { dataUrl, width: w, height: h, ocrText }
   } finally {
     for (const t of stream.getTracks()) t.stop()

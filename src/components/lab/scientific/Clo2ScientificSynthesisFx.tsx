@@ -1,4 +1,5 @@
 import { Clo2CinemaScene } from '../../../lab/cinema/scenes/clo2/Clo2CinemaScene'
+import type { Clo2CueId } from '../../../lab/cinema/scenes/clo2/storyboard'
 import type { ScientificSynthesisFxProps } from '../../../lab/scientificSynthesis/types'
 
 /**
@@ -10,6 +11,8 @@ import type { ScientificSynthesisFxProps } from '../../../lab/scientificSynthesi
 export function Clo2ScientificSynthesisFx({
   runId = 0,
   lowPower = false,
+  teacherMode = false,
+  onNarrationCue,
   onEmbryoReady,
   onBirthReady,
   onComplete,
@@ -18,6 +21,8 @@ export function Clo2ScientificSynthesisFx({
     <Clo2CinemaScene
       runId={runId}
       lowPower={lowPower}
+      teacherMode={teacherMode}
+      onNarrationCue={onNarrationCue as ((id: Clo2CueId) => void) | undefined}
       onEmbryoReady={onEmbryoReady}
       onBirthReady={onBirthReady}
       onComplete={onComplete}

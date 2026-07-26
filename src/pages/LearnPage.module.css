@@ -1557,6 +1557,44 @@
   color: rgba(160, 180, 220, 0.85);
 }
 
+.learnAssistantError {
+  color: #ff9aaa;
+}
+
+.learnAssistantScanPreview {
+  position: relative;
+  margin: 0.35rem 0 0;
+  width: min(100%, 11rem);
+  border-radius: 0.55rem;
+  overflow: hidden;
+  border: 1px solid rgba(120, 160, 220, 0.35);
+  align-self: flex-start;
+}
+
+.learnAssistantScanPreview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 5.5rem;
+  object-fit: cover;
+}
+
+.learnAssistantScanClear {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(160, 185, 230, 0.4);
+  background: rgba(8, 12, 24, 0.85);
+  color: #e8f0ff;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
 .learnAssistantInputRow {
   display: flex;
   align-items: stretch;

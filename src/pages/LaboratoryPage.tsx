@@ -51,6 +51,8 @@ import {
   seedScientificReactorEquation,
   type ReactorCoProductTerm,
 } from '../chemistry/scientificReactorRecipes'
+import { LabTeacherDock, getLabTeacherNarrator, hasLabTeacherScript } from '../lab/teacher'
+import type { Clo2CueId } from '../lab/cinema/scenes/clo2/storyboard'
 import { getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import { useT } from '../i18n/useT'
 import { ElementDetailContent } from '../components/lab/ElementDetailContent'
@@ -785,8 +787,24 @@ export function LaboratoryPage() {
     warmupLabSynthesisReactorOpen(catalogList, payload.compound, leftTerms)
     setSynthesisFlightSlots(zCopy)
     setSynthesisFlyTerms(flyCopy)
+
+    if (hasLabTeacherScript(payload.productId)) {
+      const narrator = getLabTeacherNarrator()
+      narrator.setLocale(locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru')
+      narrator.prime()
+      narrator.beginRun()
+      narrator.speakIntro()
+    } else {
+      getLabTeacherNarrator().stop()
+    }
+
     setRunId(nextRunId)
   }, [leftTerms, coProducts, productCompoundId, productCoeff, t, locale, runId, resetEditBurst, catalogList])
+
+  const onLabNarrationCue = useCallback((id: string) => {
+    if (!hasLabTeacherScript(lastRunProductIdRef.current ?? productCompoundId)) return
+    getLabTeacherNarrator().speakCue(id as Clo2CueId)
+  }, [productCompoundId])
 
   const labSynthesis = useMemo(() => {
     if (!reactorOpen || runId <= 0) return null
@@ -905,6 +923,12 @@ export function LaboratoryPage() {
   }, [leftTerms, productCompoundId, productCoeff])
 
   const synthRunActive = reactorOpen && runId > 0
+  const labTeacherActive =
+    reactorOpen && hasLabTeacherScript(lastRunProductIdRef.current ?? productCompoundId)
+
+  useEffect(() => {
+    if (!reactorOpen) getLabTeacherNarrator().stop()
+  }, [reactorOpen])
 
   useEffect(() => {
     if (!synthRunActive) {
@@ -1048,9 +1072,12 @@ export function LaboratoryPage() {
               prewarmProductCompound={gpuPrewarmCompound}
               gpuQueuePriorityCompound={gpuQueuePriorityCompound}
               reactorGpuIdleReady={reactorGpuIdleReady}
+              teacherMode={labTeacherActive && synthRunActive}
+              onNarrationCue={onLabNarrationCue}
             />
           </Suspense>
         </div>
+        {labTeacherActive ? <LabTeacherDock active={labTeacherActive} /> : null}
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />
         ) : null}

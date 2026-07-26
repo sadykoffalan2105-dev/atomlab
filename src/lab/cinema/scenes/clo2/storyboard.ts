@@ -75,6 +75,18 @@ export const CLO2_SEGMENTS: readonly StorySegment[] = [
   { to: CLO2_PHASE.finaleEnd, wall: 2.3, ease: 'sine.inOut' },
 ]
 
+/**
+ * Удлинённый wall-time под озвучку преподавателя (те же story-метки).
+ * Картинка и речь не разъезжаются на ключевых cue.
+ */
+export const CLO2_SEGMENTS_TEACHER: readonly StorySegment[] = [
+  { to: CLO2_PHASE.entryEnd, wall: 5.2, ease: 'power2.out' },
+  { to: CLO2_PHASE.approachEnd, wall: 4.4, ease: 'power1.inOut' },
+  { to: CLO2_PHASE.transferEnd, wall: 7.2, ease: 'power1.inOut' },
+  { to: CLO2_PHASE.releaseEnd, wall: 3.6, ease: 'power2.out' },
+  { to: CLO2_PHASE.finaleEnd, wall: 5.5, ease: 'sine.inOut' },
+]
+
 export type Clo2CueId =
   | 'tension'
   | 'transfer'

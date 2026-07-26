@@ -265,6 +265,11 @@ export const messagesUz: Record<MessageKey, string> = {
   'lab.launch.phase2': 'Reagentlar tekislanmoqda…',
   'lab.launch.phase3': 'Oqimlar yaqinlashmoqda…',
   'lab.launch.phase4': 'Markazda birlashish…',
+  'lab.teacher.aria': 'Sintez o‘qituvchisi',
+  'lab.teacher.badge': 'O‘qituvchi',
+  'lab.teacher.mute': 'Ovozsiz',
+  'lab.teacher.unmute': 'Ovoz bilan',
+  'lab.teacher.idle': 'Sintezni ishga tushiring — o‘qituvchi bosqichma-bosqich tushuntiradi.',
 
   'catalogPanel.title': 'Moddalar katalogi',
   'catalogPanel.subGenerate':

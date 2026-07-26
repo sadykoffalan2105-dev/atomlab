@@ -305,6 +305,8 @@ function SceneContent({
   reactorCoeffEditBurst = false,
   reactorCoeffEditing = false,
   reactorGpuIdleReady = false,
+  teacherMode = false,
+  onNarrationCue,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -331,6 +333,9 @@ function SceneContent({
   gpuQueuePriorityCompound?: CompoundDef | null
   /** Реактор стабилен после открытия — можно фоновый GPU-prewarm */
   reactorGpuIdleReady?: boolean
+  /** Озвучка преподавателя на научном микромире (ClO₂). */
+  teacherMode?: boolean
+  onNarrationCue?: (id: string) => void
   synthesis: {
     runId: number
     zSlots: readonly number[]
@@ -2102,6 +2107,8 @@ function SceneContent({
                 lowPower={
                   lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc || synthForceLite
                 }
+                teacherMode={teacherMode}
+                onNarrationCue={onNarrationCue}
                 onEmbryoReady={handleElementsCollapseEmbryoReady}
                 onBirthReady={handleElementsCollapseBirthReady}
                 onComplete={handleElementsCollapseComplete}
@@ -2220,6 +2227,8 @@ function LabCanvasImpl({
   reactorCoeffEditBurst = false,
   reactorCoeffEditing = false,
   reactorGpuIdleReady = false,
+  teacherMode = false,
+  onNarrationCue,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -2240,6 +2249,8 @@ function LabCanvasImpl({
   reactorCoeffEditBurst?: boolean
   reactorCoeffEditing?: boolean
   reactorGpuIdleReady?: boolean
+  teacherMode?: boolean
+  onNarrationCue?: (id: string) => void
   synthesis: {
     runId: number
     zSlots: readonly number[]
@@ -2431,6 +2442,8 @@ function LabCanvasImpl({
           reactorCoeffEditBurst={reactorCoeffEditBurst}
           reactorCoeffEditing={reactorCoeffEditing}
           reactorGpuIdleReady={reactorGpuIdleReady}
+          teacherMode={teacherMode}
+          onNarrationCue={onNarrationCue}
         />
       </Canvas>
     </CanvasErrorBoundary>

@@ -29,6 +29,10 @@ export const learnAssistantRu = {
   'learn.assistant.homeworkScan': 'Скан / фото ДЗ',
   'learn.assistant.homeworkChecking': 'Проверяю домашнее задание…',
   'learn.assistant.homeworkNeedText': 'Нужен текст ДЗ или фото со сканом.',
+  'learn.assistant.homeworkReading': 'Читаю текст с фото…',
+  'learn.assistant.homeworkOcrFailed':
+    'Фото принято, но текст не распознан. Введите текст с фото в поле и нажмите «Проверить ДЗ».',
+  'learn.assistant.homeworkBadImage': 'Не удалось открыть это изображение. Попробуйте JPG или PNG.',
   'learn.assistant.preparingVoice': 'Готовлю голос…',
   'learn.assistant.voiceNeural': 'Голос учителя',
   'learn.assistant.voiceBrowser': 'Системный голос',
@@ -94,6 +98,10 @@ export const learnAssistantEn = {
   'learn.assistant.homeworkScan': 'Scan / photo HW',
   'learn.assistant.homeworkChecking': 'Checking homework…',
   'learn.assistant.homeworkNeedText': 'Need homework text or a scan photo.',
+  'learn.assistant.homeworkReading': 'Reading text from the photo…',
+  'learn.assistant.homeworkOcrFailed':
+    'Photo accepted, but text was not recognized. Type the text from the photo and tap “Check homework”.',
+  'learn.assistant.homeworkBadImage': 'Could not open this image. Try JPG or PNG.',
   'learn.assistant.preparingVoice': 'Preparing voice…',
   'learn.assistant.voiceNeural': 'Teacher voice',
   'learn.assistant.voiceBrowser': 'System voice',
@@ -159,6 +167,10 @@ export const learnAssistantUz = {
   'learn.assistant.homeworkScan': 'Skan / foto',
   'learn.assistant.homeworkChecking': 'Uy vazifasini tekshiryapman…',
   'learn.assistant.homeworkNeedText': 'Uy ishi matni yoki skan fotosirut kerak.',
+  'learn.assistant.homeworkReading': 'Fotodan matn o‘qilmoqda…',
+  'learn.assistant.homeworkOcrFailed':
+    'Foto qabul qilindi, lekin matn topilmadi. Fotodagi matnni yozing va «Uy ishini tekshirish» ni bosing.',
+  'learn.assistant.homeworkBadImage': 'Rasm ochilmadi. JPG yoki PNG ni sinab ko‘ring.',
   'learn.assistant.preparingVoice': 'Ovoz tayyorlanmoqda…',
   'learn.assistant.voiceNeural': 'O\'qituvchi ovozi',
   'learn.assistant.voiceBrowser': 'Tizim ovozi',

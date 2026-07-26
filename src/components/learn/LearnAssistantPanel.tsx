@@ -117,6 +117,7 @@ export function LearnAssistantPanel({
     }
   })
   const [lastSource, setLastSource] = useState<AssistantSource | null>(null)
+  const [scanPreview, setScanPreview] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const homeworkFileRef = useRef<HTMLInputElement>(null)
 
@@ -341,7 +342,7 @@ export function LearnAssistantPanel({
   }, [storeKey])
 
   const runHomeworkReview = useCallback(
-    async (rawText: string, fromScan: boolean) => {
+    async (rawText: string, fromScan: boolean, imageDataUrl?: string | null) => {
       const text = rawText.trim()
       if (text.length < 12) {
         setError(t('learn.assistant.homeworkNeedText'))
@@ -359,6 +360,7 @@ export function LearnAssistantPanel({
       try {
         const report = await reviewHomework({
           text,
+          imageDataUrl: fromScan ? (imageDataUrl ?? scanPreview) : null,
           source: fromScan ? 'upload' : 'paste',
           topicHint: slideTitle || section.titleKey,
           gradeId,
@@ -393,30 +395,33 @@ export function LearnAssistantPanel({
         })
       }
     },
-    [autoRead, gradeId, locale, section.titleKey, slideTitle, speakMessage, t],
+    [autoRead, gradeId, locale, scanPreview, section.titleKey, slideTitle, speakMessage, t],
   )
 
   const onHomeworkFile = useCallback(
     async (file: File | null) => {
       if (!file) return
       setLoading(true)
-      setError(null)
+      setError(t('learn.assistant.homeworkReading'))
       try {
-        const scan = await loadHomeworkImageFile(file)
+        const scan = await loadHomeworkImageFile(file, { locale })
+        setScanPreview(scan.dataUrl)
         const text = (scan.ocrText || input).trim()
         if (scan.ocrText) setInput(scan.ocrText)
         if (text.length >= 12) {
-          await runHomeworkReview(text, true)
+          setError(null)
+          await runHomeworkReview(text, true, scan.dataUrl)
         } else {
-          setError(t('learn.assistant.homeworkNeedText'))
+          setError(t('learn.assistant.homeworkOcrFailed'))
           setLoading(false)
         }
       } catch {
-        setError(t('learn.assistant.homeworkNeedText'))
+        setScanPreview(null)
+        setError(t('learn.assistant.homeworkBadImage'))
         setLoading(false)
       }
     },
-    [input, runHomeworkReview, t],
+    [input, locale, runHomeworkReview, t],
   )
 
   const sourceLabel =
@@ -591,6 +596,19 @@ export function LearnAssistantPanel({
           </p>
         ) : null}
         {error ? <p className={styles.learnAssistantError}>{error}</p> : null}
+        {scanPreview ? (
+          <div className={styles.learnAssistantScanPreview}>
+            <img src={scanPreview} alt="" />
+            <button
+              type="button"
+              className={styles.learnAssistantScanClear}
+              onClick={() => setScanPreview(null)}
+              aria-label={t('learn.assistant.clear')}
+            >
+              ×
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <p className={styles.learnAssistantDisclaimer}>
@@ -630,7 +648,7 @@ export function LearnAssistantPanel({
         <input
           ref={homeworkFileRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp"
           className={styles.homeworkFileHidden}
           onChange={(e) => {
             const f = e.target.files?.[0] ?? null

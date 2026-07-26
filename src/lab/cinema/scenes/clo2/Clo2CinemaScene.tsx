@@ -30,6 +30,7 @@ import {
   CLO2_GEOM,
   CLO2_PHASE,
   CLO2_SEGMENTS,
+  CLO2_SEGMENTS_TEACHER,
   CLO2_TRACKS,
   CLO2_TRANSFER_WINDOW,
   clo2StageAt,
@@ -59,6 +60,9 @@ const BOND_IONIC_COLOR = 0xb98cff
 export type Clo2CinemaSceneProps = {
   runId?: number
   lowPower?: boolean
+  /** Удлинённый wall-time под озвучку преподавателя. */
+  teacherMode?: boolean
+  onNarrationCue?: (id: Clo2CueId) => void
   onEmbryoReady?: () => void
   onBirthReady?: () => void
   onComplete: () => void
@@ -67,19 +71,22 @@ export type Clo2CinemaSceneProps = {
 export function Clo2CinemaScene({
   runId = 0,
   lowPower = false,
+  teacherMode = false,
+  onNarrationCue,
   onEmbryoReady,
   onBirthReady,
   onComplete,
 }: Clo2CinemaSceneProps) {
   const quality = useMemo(() => resolveCinemaQuality(lowPower), [lowPower])
   const lite = quality.tier === 'lite'
+  const segments = teacherMode ? CLO2_SEGMENTS_TEACHER : CLO2_SEGMENTS
 
   useEffect(() => {
     // Раскадровка — данные, их корректность проверяем один раз при монтировании.
     if (import.meta.env.DEV) validateClo2Storyboard()
   }, [])
 
-  const { clock, cues } = useStoryClock<Clo2CueId>(runId, CLO2_SEGMENTS, CLO2_CUES)
+  const { clock, cues } = useStoryClock<Clo2CueId>(runId, segments, CLO2_CUES)
 
   const [stage, setStage] = useState<1 | 2 | 3 | 4 | 5>(1)
   const stageRef = useRef(1)
@@ -87,13 +94,15 @@ export function Clo2CinemaScene({
   const onCompleteRef = useRef(onComplete)
   const onEmbryoRef = useRef(onEmbryoReady)
   const onBirthRef = useRef(onBirthReady)
+  const onNarrationCueRef = useRef(onNarrationCue)
   useEffect(() => {
     // Колбэки лаборатории вызываются из useFrame, поэтому держим их в рефах —
     // иначе замыкание застрянет на первом рендере прогона.
     onCompleteRef.current = onComplete
     onEmbryoRef.current = onEmbryoReady
     onBirthRef.current = onBirthReady
-  }, [onComplete, onEmbryoReady, onBirthReady])
+    onNarrationCueRef.current = onNarrationCue
+  }, [onComplete, onEmbryoReady, onBirthReady, onNarrationCue])
 
   // ——— Персистентная модель мира: один набор объектов на весь прогон ———
   const world = useMemo(
@@ -217,6 +226,7 @@ export function Clo2CinemaScene({
     // ——— События раскадровки ———
     cues.current.update(t, (id) => {
       cueTimes.current[id] = t
+      onNarrationCueRef.current?.(id)
       switch (id) {
         case 'tension':
           vfxSpark.current?.fire()

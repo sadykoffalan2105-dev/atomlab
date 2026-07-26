@@ -246,11 +246,15 @@ function LiveTutorOverlay({
                   e.target.value = ''
                   if (!file) return
                   void (async () => {
-                    const { loadHomeworkImageFile } = await import('../../learn/homework')
-                    const scan = await loadHomeworkImageFile(file)
-                    const text = (scan.ocrText || textInput).trim()
-                    if (scan.ocrText) setTextInput(scan.ocrText)
-                    if (text.length >= 12) await checkHomework(text)
+                    try {
+                      const { loadHomeworkImageFile } = await import('../../learn/homework')
+                      const scan = await loadHomeworkImageFile(file, { locale })
+                      const text = (scan.ocrText || textInput).trim()
+                      if (scan.ocrText) setTextInput(scan.ocrText)
+                      if (text.length >= 12) await checkHomework(text)
+                    } catch {
+                      /* ignore — пользователь увидит пустое поле и сможет ввести вручную */
+                    }
                   })()
                 }}
               />

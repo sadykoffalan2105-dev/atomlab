@@ -20,7 +20,7 @@
   position: fixed;
   inset: 0;
   z-index: 44;
-  background: rgba(2, 4, 12, 0.48);
+  background: rgba(2, 2, 12, 0.52);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   opacity: 0;
@@ -64,10 +64,10 @@
 .panelOpenCenter {
   left: 50%;
   top: 50%;
-  width: min(1180px, calc(100vw - 2.5rem));
-  height: min(56vh, 560px);
-  max-width: calc(100vw - 2.5rem);
-  max-height: min(56vh, calc(100dvh - 3rem));
+  width: min(1240px, calc(100vw - 2.25rem));
+  height: min(58vh, 600px);
+  max-width: calc(100vw - 2.25rem);
+  max-height: min(58vh, calc(100dvh - 2.75rem));
   transform: translate(-50%, -50%);
 }
 
@@ -75,11 +75,11 @@
 .panelOpenCompact {
   left: 50%;
   top: 43%;
-  width: min(1120px, calc(100vw - 2.5rem));
-  height: min(42vh, 420px);
-  max-width: calc(100vw - 2.5rem);
+  width: min(1160px, calc(100vw - 2.25rem));
+  height: min(44vh, 440px);
+  max-width: calc(100vw - 2.25rem);
   max-height: min(
-    42vh,
+    44vh,
     calc(100dvh - var(--lab-reactor-clearance, calc(min(56vh, 540px) + 10px)) - 1.25rem)
   );
   transform: translate(-50%, -50%);
@@ -89,7 +89,7 @@
   flex: 1;
   min-height: 0;
   height: 100%;
-  padding: 0.7rem 0.85rem 0.75rem;
+  padding: 0.75rem 0.9rem 0.8rem;
   overflow: hidden !important;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -98,13 +98,14 @@
   isolation: isolate;
   /* Непрозрачная подложка без blur — WebGL не мигает */
   background:
-    linear-gradient(165deg, rgba(14, 20, 36, 0.97) 0%, rgba(6, 10, 20, 0.98) 100%);
-  border-radius: 16px;
-  border: 1px solid rgba(160, 190, 235, 0.22);
+    linear-gradient(165deg, rgba(12, 14, 36, 0.98) 0%, rgba(6, 8, 22, 0.99) 55%, rgba(4, 6, 16, 0.99) 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(150, 175, 230, 0.26);
   box-shadow:
-    0 18px 48px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+    0 22px 56px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.045) inset,
+    0 1px 0 rgba(180, 200, 255, 0.08) inset,
+    0 0 40px rgba(80, 60, 160, 0.12);
 }
 
 .tableWrapOpen::-webkit-scrollbar {
@@ -115,35 +116,42 @@
 
 .closeFloat {
   position: absolute;
-  top: 0.45rem;
-  right: 0.5rem;
+  top: 0.5rem;
+  right: 0.55rem;
   left: auto;
   z-index: 8;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 1.9rem;
+  height: 1.9rem;
   padding: 0;
   margin: 0;
   border-radius: 999px;
-  border: 1px solid rgba(160, 185, 230, 0.32);
-  background: rgba(10, 16, 28, 0.78);
+  border: 1px solid rgba(150, 180, 230, 0.34);
+  background: rgba(8, 12, 26, 0.88);
   color: rgba(220, 230, 250, 0.94);
   font-size: 1.15rem;
   line-height: 1;
   cursor: pointer;
   transition:
-    border-color 0.18s ease,
-    color 0.18s ease,
-    background 0.18s ease;
+    border-color 0.16s ease,
+    color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
 .closeFloat:hover {
-  border-color: rgba(120, 220, 255, 0.55);
-  color: #9ef6ff;
-  background: rgba(14, 24, 40, 0.92);
+  border-color: rgba(120, 220, 230, 0.55);
+  color: #a8f6ee;
+  background: rgba(12, 20, 36, 0.95);
+  box-shadow: 0 0 14px rgba(80, 180, 200, 0.2);
+}
+
+.closeFloat:focus-visible {
+  outline: 2px solid rgba(120, 230, 220, 0.65);
+  outline-offset: 2px;
 }
 
 .panel {
@@ -732,17 +740,17 @@
   }
 
   .panelOpenCenter {
-    width: calc(100vw - 1.25rem);
-    height: min(58vh, 520px);
-    max-height: min(58vh, calc(100dvh - 2.5rem));
+    width: calc(100vw - 1.1rem);
+    height: min(60vh, 540px);
+    max-height: min(60vh, calc(100dvh - 2.25rem));
   }
 
   .panelOpenCompact {
     top: 40%;
-    width: calc(100vw - 1.25rem);
-    height: min(38vh, 360px);
+    width: calc(100vw - 1.1rem);
+    height: min(40vh, 380px);
     max-height: min(
-      38vh,
+      40vh,
       calc(100dvh - var(--lab-reactor-clearance, calc(min(50dvh, 420px) + 8px)) - 1rem)
     );
   }
