@@ -15,9 +15,10 @@ type PauseStyle = 'default' | 'lab'
 
 function pauseForToken(token: string, style: PauseStyle): string {
   if (style === 'lab') {
-    if (token === ',') return '340ms'
-    if (token === ';' || token === ':') return '420ms'
-    return '620ms'
+    // Короче default-lab: плотные cue в реакторе.
+    if (token === ',') return '180ms'
+    if (token === ';' || token === ':') return '220ms'
+    return '320ms'
   }
   if (token === ',') return '240ms'
   if (token === ';' || token === ':') return '300ms'
@@ -51,8 +52,9 @@ export function buildTeacherSsml(
   pitch: string,
   volume: string,
   lang: string,
+  pauseStyle?: PauseStyle,
 ): string {
-  const body = textToSsmlProsodyContent(text)
+  const body = textToSsmlProsodyContent(text, pauseStyle)
   return (
     `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'>` +
     `<voice name='${voice}'>` +

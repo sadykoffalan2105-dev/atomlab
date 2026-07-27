@@ -935,6 +935,16 @@ export function LaboratoryPage() {
     }
   }, [reactorOpen])
 
+  /** Прогрев TTS до нажатия «Синтез» — когда выбран ClO₂. */
+  useEffect(() => {
+    if (!hasLabTeacherScript(productCompoundId)) return
+    if (!readLabTeacherVoiceEnabled()) return
+    const narrator = getLabTeacherNarrator()
+    narrator.setLocale(locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru')
+    narrator.prime()
+    narrator.warmPrefetch()
+  }, [productCompoundId, locale])
+
   useEffect(() => {
     if (!labTeacherActive) {
       setTeacherSpeaking(false)

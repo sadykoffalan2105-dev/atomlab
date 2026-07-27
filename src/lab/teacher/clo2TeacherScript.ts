@@ -1,6 +1,9 @@
 ﻿/**
  * Сценарий преподавателя для синтеза ClO₂.
- * Живая речь у стола: короткие фразы, явные паузы, химия на слух.
+ *
+ * Правило: каждая реплика ≤ wall-gap до следующего cue (~1–3 с речи).
+ * Плотные кадры (transfer→break ~0.7–1.5 s) — одна короткая фраза.
+ * Детали redox — в HUD captions, не в TTS.
  */
 
 import type { Clo2CueId } from '../cinema/scenes/clo2/storyboard'
@@ -20,71 +23,61 @@ export type Clo2TeacherLine = {
 type ScriptPack = Record<Clo2TeacherLineId, Clo2TeacherLine>
 
 /** Cue без отдельной озвучки (визуал остаётся; речь уже покрыта соседним cue). */
-export const CLO2_SPEECH_SILENT: ReadonlySet<Clo2CueId> = new Set(['pairB', 'radicalB'])
+export const CLO2_SPEECH_SILENT: ReadonlySet<Clo2CueId> = new Set([
+  'pairB',
+  'radicalB',
+  /** embryo близко к radicalA — не дублируем */
+  'embryo',
+])
 
 const RU: ScriptPack = {
   intro: {
     id: 'intro',
     title: 'Начинаем',
-    speak:
-      'Смотрите. Получаем диоксид хлора. Хлорит натрия по краям. В центре появится хлор. Следите за степенями окисления.',
+    speak: 'Смотрите. Получаем диоксид хлора. Следите за степенями окисления.',
   },
   tension: {
     id: 'tension',
     title: 'Сближение',
-    speak: 'Хлор входит в зону реакции. Связь натягивается. Энергия копится.',
+    speak: 'Хлор входит. Связь натягивается.',
   },
   transfer: {
     id: 'transfer',
-    title: 'Перенос электрона',
-    speak:
-      'Электрон уходит из хлорита в молекулу хлора. Хлор в хлорите: плюс три → плюс четыре. В молекуле хлора: ноль → минус один. Натрий — только наблюдатель.',
+    title: 'Перенос',
+    speak: 'Электрон уходит из хлорита. Плюс три — плюс четыре.',
   },
   break: {
     id: 'break',
-    title: 'Разрыв связи',
-    speak: 'Связь разорвалась. Появился хлорид. Электрон ушёл к хлору, не к натрию.',
+    title: 'Разрыв',
+    speak: 'Связь разорвалась. Хлор стал минус один.',
   },
   pairA: {
     id: 'pairA',
     title: 'Хлорид натрия',
-    speak: 'Хлорид и натрий — хлорид натрия. Соль. Осадок.',
+    speak: 'Хлорид и натрий — соль. Осадок.',
   },
-  pairB: {
-    id: 'pairB',
-    title: 'Вторая соль',
-    speak: '',
-  },
+  pairB: { id: 'pairB', title: 'Вторая соль', speak: '' },
   radicalA: {
     id: 'radicalA',
     title: 'Диоксид хлора',
-    speak: 'Хлорит стал диоксидом хлора. Угол — сто семнадцать градусов. Уголковая молекула.',
+    speak: 'Это диоксид хлора. Угол — сто семнадцать градусов.',
   },
-  radicalB: {
-    id: 'radicalB',
-    title: 'Второй газ',
-    speak: '',
-  },
-  embryo: {
-    id: 'embryo',
-    title: 'Газ готов',
-    speak: 'Диоксид хлора готов. Сильный окислитель. Контролируйте концентрацию.',
-  },
+  radicalB: { id: 'radicalB', title: 'Второй газ', speak: '' },
+  embryo: { id: 'embryo', title: 'Газ готов', speak: '' },
   precipitate: {
     id: 'precipitate',
     title: 'Осадок',
-    speak: 'Соль идёт вниз. Газ поднимается. Слои расходятся.',
+    speak: 'Соль вниз. Газ вверх.',
   },
   birth: {
     id: 'birth',
     title: 'Продукты',
-    speak: 'Реакция завершена. Два хлорита плюс хлор — два хлорида и два диоксида хлора.',
+    speak: 'Уравнение сошлось. Два хлорита плюс хлор.',
   },
   complete: {
     id: 'complete',
     title: 'Итог',
-    speak:
-      'Запомните. Окисляется хлор хлорита. Восстанавливается хлор молекулы. Натрий — противоион. Угол диоксида хлора — сто семнадцать градусов.',
+    speak: 'Окисляется хлорит. Восстанавливается хлор. Натрий — противоион.',
   },
 }
 
@@ -92,57 +85,50 @@ const EN: ScriptPack = {
   intro: {
     id: 'intro',
     title: 'Starting',
-    speak:
-      'Watch. We form chlorine dioxide. Sodium chlorite on the sides. Chlorine in the center. Focus on oxidation states.',
+    speak: 'Watch. We form chlorine dioxide. Focus on oxidation states.',
   },
   tension: {
     id: 'tension',
     title: 'Approach',
-    speak: 'Chlorine enters the reaction zone. The bond stretches. Energy builds.',
+    speak: 'Chlorine enters. The bond stretches.',
   },
   transfer: {
     id: 'transfer',
-    title: 'Electron transfer',
-    speak:
-      'The electron leaves chlorite toward chlorine. In chlorite: plus three to plus four. In chlorine molecule: zero to minus one. Sodium is only a spectator.',
+    title: 'Transfer',
+    speak: 'Electron leaves chlorite. Plus three to plus four.',
   },
   break: {
     id: 'break',
-    title: 'Bond break',
-    speak: 'The bond broke. Chloride appears. The electron went to chlorine, not sodium.',
+    title: 'Break',
+    speak: 'Bond broke. Chlorine is now minus one.',
   },
   pairA: {
     id: 'pairA',
     title: 'Sodium chloride',
-    speak: 'Chloride and sodium — sodium chloride. The salt. The precipitate.',
+    speak: 'Chloride and sodium — the salt.',
   },
   pairB: { id: 'pairB', title: 'Second salt', speak: '' },
   radicalA: {
     id: 'radicalA',
     title: 'Chlorine dioxide',
-    speak: 'Chlorite becomes chlorine dioxide. The angle is one hundred seventeen degrees. A bent molecule.',
+    speak: 'Chlorine dioxide. Bend angle — one hundred seventeen degrees.',
   },
   radicalB: { id: 'radicalB', title: 'Second gas', speak: '' },
-  embryo: {
-    id: 'embryo',
-    title: 'Gas ready',
-    speak: 'Chlorine dioxide is ready. A strong oxidizer. Control the concentration.',
-  },
+  embryo: { id: 'embryo', title: 'Gas ready', speak: '' },
   precipitate: {
     id: 'precipitate',
     title: 'Precipitate',
-    speak: 'Salt sinks. Gas rises. The layers separate.',
+    speak: 'Salt down. Gas up.',
   },
   birth: {
     id: 'birth',
     title: 'Products',
-    speak: 'Reaction complete. Two chlorite plus chlorine give two chloride and two chlorine dioxide.',
+    speak: 'Equation closes. Two chlorite plus chlorine.',
   },
   complete: {
     id: 'complete',
     title: 'Summary',
-    speak:
-      'Remember. Chlorite chlorine is oxidized. Molecular chlorine is reduced. Sodium is the counter-ion. Bend angle: one hundred seventeen degrees.',
+    speak: 'Chlorite is oxidized. Chlorine is reduced. Sodium is the counter-ion.',
   },
 }
 
@@ -150,58 +136,50 @@ const UZ: ScriptPack = {
   intro: {
     id: 'intro',
     title: 'Boshlaymiz',
-    speak:
-      'Qarang. Xlor dioksid olamiz. Yonlarda natriy xlorit. Markazda xlor. Oksidlanish darajasini kuzating.',
+    speak: 'Qarang. Xlor dioksid olamiz. Oksidlanish darajasini kuzating.',
   },
   tension: {
     id: 'tension',
     title: 'Yaqinlashish',
-    speak:
-      'Xlor reaksiya zonasiga kiradi. Energiya yigiladi. Uzilish yaqin.',
+    speak: 'Xlor kiradi. Bog choziladi.',
   },
   transfer: {
     id: 'transfer',
-    title: 'Elektron o‘tishi',
-    speak:
-      'Elektron xloritdan xlorga otadi. Xloritda: uch dan tortga. Molekulada: noldan minus birga. Natriy faqat kuzatuvchi.',
+    title: 'Otish',
+    speak: 'Elektron xloritdan ketadi. Uchdan tortga.',
   },
   break: {
     id: 'break',
     title: 'Uzilish',
-    speak: 'Bog uzildi. Xlorid paydo boldi. Elektron xlorga ketdi, natriyga emas.',
+    speak: 'Bog uzildi. Xlor endi minus bir.',
   },
   pairA: {
     id: 'pairA',
     title: 'Natriy xlorid',
-    speak: 'Xlorid va natriy - natriy xlorid. Tuz. Chokma.',
+    speak: 'Xlorid va natriy — tuz.',
   },
   pairB: { id: 'pairB', title: 'Ikkinchi tuz', speak: '' },
   radicalA: {
     id: 'radicalA',
     title: 'Xlor dioksid',
-    speak: 'Xlorit xlor dioksidga aylandi. Burchak - 117 daraja. Burchakli molekula.',
+    speak: 'Bu xlor dioksid. Burchak — 117 daraja.',
   },
   radicalB: { id: 'radicalB', title: 'Ikkinchi gaz', speak: '' },
-  embryo: {
-    id: 'embryo',
-    title: 'Gaz tayyor',
-    speak: 'Xlor dioksid tayyor. Kuchli oksidlovchi. Konsentratsiyani nazorat qiling.',
-  },
+  embryo: { id: 'embryo', title: 'Gaz tayyor', speak: '' },
   precipitate: {
     id: 'precipitate',
-    title: 'Cho‘kma',
-    speak: 'Tuz pastga ketadi. Gaz kotrariladi. Qatlamlar ajraladi.',
+    title: "Cho'kma",
+    speak: 'Tuz pastga. Gaz tepaga.',
   },
   birth: {
     id: 'birth',
     title: 'Mahsulotlar',
-    speak: 'Reaksiya tugadi. Ikki xlorit plus xlor - ikki xlorid va ikki dioksid.',
+    speak: 'Tenglama yopildi. Ikki xlorit plus xlor.',
   },
   complete: {
     id: 'complete',
-    title: 'Eslab qoling',
-    speak:
-      'Eslab qoling. Xloritdagi xlor oksidlanadi. Molekuladagi xlor tiklanadi. Natriy qarshi-ion. Burchak - 117 daraja.',
+    title: 'Xulosa',
+    speak: 'Xlorit oksidlanadi. Xlor tiklanadi. Natriy qarshi-ion.',
   },
 }
 

@@ -6,6 +6,7 @@ import type { SpeechPrepLocale } from './learnSpeechText'
 import {
   TEACHER_VOICE_EDGE,
   resolveTeacherEdgeProsody,
+  type TeacherTtsProsodyMode,
 } from './learnTeacherVoiceProfile'
 import { buildTeacherSsml } from './learnEdgeSsml'
 
@@ -59,13 +60,15 @@ export async function synthesizeEdgeNeuralSpeechWs(
   text: string,
   locale: SpeechPrepLocale,
   voiceOverride?: string,
+  prosodyMode?: TeacherTtsProsodyMode,
 ): Promise<{ audioBase64: string; mimeType: string } | null> {
   if (!text.trim()) return null
 
   const voice = voiceOverride?.trim() || TEACHER_VOICE_EDGE[locale]
-  const prosody = resolveTeacherEdgeProsody(locale)
+  const prosody = resolveTeacherEdgeProsody(locale, prosodyMode)
+  const pauseStyle = (prosodyMode ?? 'default') === 'lab' ? 'lab' : 'default'
   const lang = locale === 'en' ? 'en-US' : locale === 'uz' ? 'uz-UZ' : 'ru-RU'
-  const ssml = buildTeacherSsml(text, voice, prosody.rate, prosody.pitch, prosody.volume, lang)
+  const ssml = buildTeacherSsml(text, voice, prosody.rate, prosody.pitch, prosody.volume, lang, pauseStyle)
 
   let WebSocketImpl: new (url: string, opts?: { headers?: Record<string, string> }) => WsLike
   try {

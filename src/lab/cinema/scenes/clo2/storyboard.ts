@@ -80,11 +80,12 @@ export const CLO2_SEGMENTS: readonly StorySegment[] = [
  * Картинка и речь не разъезжаются на ключевых cue.
  */
 export const CLO2_SEGMENTS_TEACHER: readonly StorySegment[] = [
-  { to: CLO2_PHASE.entryEnd, wall: 6.0, ease: 'power2.out' },
-  { to: CLO2_PHASE.approachEnd, wall: 5.0, ease: 'power1.inOut' },
-  { to: CLO2_PHASE.transferEnd, wall: 8.5, ease: 'power1.inOut' },
-  { to: CLO2_PHASE.releaseEnd, wall: 4.2, ease: 'power2.out' },
-  { to: CLO2_PHASE.finaleEnd, wall: 6.5, ease: 'sine.inOut' },
+  { to: CLO2_PHASE.entryEnd, wall: 5.5, ease: 'power2.out' },
+  { to: CLO2_PHASE.approachEnd, wall: 6.0, ease: 'power1.inOut' },
+  /** Плотные cue (transfer→embryo) — максимум wall-time под речь. */
+  { to: CLO2_PHASE.transferEnd, wall: 12.0, ease: 'power1.inOut' },
+  { to: CLO2_PHASE.releaseEnd, wall: 5.0, ease: 'power2.out' },
+  { to: CLO2_PHASE.finaleEnd, wall: 7.0, ease: 'sine.inOut' },
 ]
 
 export type Clo2CueId =

@@ -3,6 +3,7 @@ import { isPlausibleSpeechAudio } from './learnSpeechValidate'
 import { synthesizeEdgeNeuralSpeechBrowser } from './learnEdgeTtsBrowser'
 import { synthesizePuterSpeech, warmupPuterFromUserGesture } from './learnPuterTts'
 import { isAtomlabDesktop } from '../electronBridge.types'
+import type { TeacherTtsProsodyMode } from './learnTeacherVoiceProfile'
 
 export type TeacherTtsLocale = LearnTtsLocale
 
@@ -101,11 +102,12 @@ async function fetchViaBrowserEdge(
   chunk: string,
   locale: TeacherTtsLocale,
   signal: AbortSignal,
+  prosodyMode?: TeacherTtsProsodyMode,
 ): Promise<NeuralTtsResult | null> {
   if (signal.aborted) return null
   try {
     const entry = await withTimeout(
-      synthesizeEdgeNeuralSpeechBrowser(chunk, locale),
+      synthesizeEdgeNeuralSpeechBrowser(chunk, locale, undefined, prosodyMode),
       14_000,
       signal,
     )
@@ -263,6 +265,7 @@ export async function fetchTeacherTtsChunk(
   chunk: string,
   locale: TeacherTtsLocale,
   signal: AbortSignal,
+  prosodyMode?: TeacherTtsProsodyMode,
 ): Promise<{ audioBase64: string; mimeType: string } | null> {
   if (!chunk.trim()) return null
 
@@ -272,7 +275,7 @@ export async function fetchTeacherTtsChunk(
       ? [cachedWorkingTtsUrl, ...urls.filter((u) => u !== cachedWorkingTtsUrl)]
       : urls
 
-  const browserEdge = await fetchViaBrowserEdge(chunk, locale, signal)
+  const browserEdge = await fetchViaBrowserEdge(chunk, locale, signal, prosodyMode)
   if (browserEdge) return browserEdge
 
   const desktop = await fetchViaDesktopElectron(chunk, locale, signal)
@@ -309,6 +312,7 @@ export async function fetchAllTeacherTtsChunks(
   chunks: string[],
   locale: TeacherTtsLocale,
   signal: AbortSignal,
+  prosodyMode?: TeacherTtsProsodyMode,
 ): Promise<Array<{ audioBase64: string; mimeType: string } | null>> {
-  return Promise.all(chunks.map((chunk) => fetchTeacherTtsChunk(chunk, locale, signal)))
+  return Promise.all(chunks.map((chunk) => fetchTeacherTtsChunk(chunk, locale, signal, prosodyMode)))
 }

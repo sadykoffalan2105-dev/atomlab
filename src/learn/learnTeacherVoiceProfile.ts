@@ -19,14 +19,14 @@ export const TEACHER_VOICE_EDGE_PROSODY: Record<
   uz: { rate: '-6%', pitch: '-2Hz', volume: '+5%' },
 }
 
-/** Лаборатория: медленнее и чётче — химия на слух. */
+/** Лаборатория: чётко, но не тянет — короткие cue должны укладываться в wall-gap. */
 export const TEACHER_VOICE_EDGE_PROSODY_LAB: Record<
   SpeechPrepLocale,
   { rate: string; pitch: string; volume: string }
 > = {
-  ru: { rate: '-22%', pitch: '-2Hz', volume: '+8%' },
-  en: { rate: '-16%', pitch: '-2Hz', volume: '+6%' },
-  uz: { rate: '-14%', pitch: '-1Hz', volume: '+6%' },
+  ru: { rate: '-12%', pitch: '-2Hz', volume: '+8%' },
+  en: { rate: '-8%', pitch: '-2Hz', volume: '+6%' },
+  uz: { rate: '-8%', pitch: '-1Hz', volume: '+6%' },
 }
 
 export type TeacherTtsProsodyMode = 'default' | 'lab'
@@ -41,12 +41,16 @@ export function getTeacherTtsProsodyMode(): TeacherTtsProsodyMode {
   return teacherTtsProsodyMode
 }
 
-export function resolveTeacherEdgeProsody(locale: SpeechPrepLocale): {
+export function resolveTeacherEdgeProsody(
+  locale: SpeechPrepLocale,
+  mode?: TeacherTtsProsodyMode,
+): {
   rate: string
   pitch: string
   volume: string
 } {
-  return teacherTtsProsodyMode === 'lab'
+  const resolved = mode ?? teacherTtsProsodyMode
+  return resolved === 'lab'
     ? TEACHER_VOICE_EDGE_PROSODY_LAB[locale]
     : TEACHER_VOICE_EDGE_PROSODY[locale]
 }

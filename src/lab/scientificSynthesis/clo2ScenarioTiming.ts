@@ -1,5 +1,6 @@
 import { storyWallDuration } from '../cinema/core/storyTime'
-import { CLO2_SEGMENTS } from '../cinema/scenes/clo2/storyboard'
+import { CLO2_SEGMENTS, CLO2_SEGMENTS_TEACHER } from '../cinema/scenes/clo2/storyboard'
+import { hasLabTeacherScript } from '../teacher/clo2TeacherScript'
 
 /**
  * Таймауты гарантии успеха для научных сцен.
@@ -11,10 +12,15 @@ import { CLO2_SEGMENTS } from '../cinema/scenes/clo2/storyboard'
 
 /** Запас на разгон WebGL, композер и появление hero-слота после сцены. */
 const WATCHDOG_MARGIN_MS = 4500
+/** Доп. запас под озвучку преподавателя (очередь / хвост complete). */
+const TEACHER_WATCHDOG_MARGIN_MS = 8000
 
 export function scientificSynthesisWatchdogMs(productId: string): number | null {
   if (productId === 'clo2') {
-    return Math.ceil(storyWallDuration(CLO2_SEGMENTS) * 1000 + WATCHDOG_MARGIN_MS)
+    const teacher = hasLabTeacherScript(productId)
+    const segments = teacher ? CLO2_SEGMENTS_TEACHER : CLO2_SEGMENTS
+    const margin = teacher ? TEACHER_WATCHDOG_MARGIN_MS : WATCHDOG_MARGIN_MS
+    return Math.ceil(storyWallDuration(segments) * 1000 + margin)
   }
   return null
 }
