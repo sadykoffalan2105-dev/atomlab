@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { CPK } from '../../core/atoms'
-import { pulseAt } from '../../core/cues'
+import { createCueRunner, type CueRunner } from '../../core/cues'
 import { jitter, sampleScalar, sampleVec3 } from '../../core/tracks'
 import { resolveCinemaQuality } from '../../core/quality'
 import {
@@ -28,6 +28,7 @@ import {
   CLO2_CAPTIONS,
   CLO2_CUES,
   CLO2_GEOM,
+  CLO2_NARRATION_CUES,
   CLO2_PHASE,
   CLO2_SEGMENTS,
   CLO2_SEGMENTS_TEACHER,
@@ -87,6 +88,11 @@ export function Clo2CinemaScene({
   }, [])
 
   const { clock, cues } = useStoryClock<Clo2CueId>(runId, segments, CLO2_CUES)
+  const narrationCuesRef = useRef<CueRunner<Clo2CueId>>(createCueRunner(CLO2_NARRATION_CUES))
+
+  useEffect(() => {
+    narrationCuesRef.current = createCueRunner(CLO2_NARRATION_CUES)
+  }, [runId])
 
   const [stage, setStage] = useState<1 | 2 | 3 | 4 | 5>(1)
   const stageRef = useRef(1)
@@ -224,9 +230,15 @@ export function Clo2CinemaScene({
     }
 
     // ——— События раскадровки ———
+    if (teacherMode && onNarrationCueRef.current) {
+      narrationCuesRef.current.update(t, (id) => {
+        onNarrationCueRef.current?.(id)
+      })
+    }
+
     cues.current.update(t, (id) => {
       cueTimes.current[id] = t
-      onNarrationCueRef.current?.(id)
+      if (!teacherMode) onNarrationCueRef.current?.(id)
       switch (id) {
         case 'tension':
           vfxSpark.current?.fire()

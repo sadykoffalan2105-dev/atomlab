@@ -46,8 +46,8 @@ export function buildTeacherBrainPack(
   const wantsFullTopic = !live && FULL_TOPIC_RE.test(query)
 
   const retrieved = retrieveChemistryKnowledge(query, {
-    maxChunks: live ? 4 : wantsFullTopic ? 12 : 8,
-    minScore: live ? 3 : 4,
+    maxChunks: live ? 5 : wantsFullTopic ? 14 : 10,
+    minScore: live ? 3 : 3,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
     chapterId: ctx.chapterId,
@@ -55,7 +55,7 @@ export function buildTeacherBrainPack(
   })
 
   let chemistryKnowledgeBlock = buildRetrievedKnowledgeBlock(query, sourceLocale, {
-    maxChars: live ? 3_500 : wantsFullTopic ? 14_000 : 10_000,
+    maxChars: live ? 4_200 : wantsFullTopic ? 16_000 : 12_000,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
     chapterId: ctx.chapterId,

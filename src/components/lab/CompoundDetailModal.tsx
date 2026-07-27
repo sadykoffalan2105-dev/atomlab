@@ -149,6 +149,21 @@ export function CompoundDetailModal({
             <p className={styles.compLine}>{formatComposition(c.composition)}</p>
             <span className={styles.metaLabel}>{t('compound.about')}</span>
             <p className={styles.description}>{loc.description}</p>
+            <span className={styles.metaLabel}>{t('compound.facts')}</span>
+            <dl className={styles.factsBlock}>
+              <div className={styles.factsRow}>
+                <dt className={styles.factsDt}>{t('compound.factsSource')}</dt>
+                <dd className={styles.factsDd}>{loc.facts.source}</dd>
+              </div>
+              <div className={styles.factsRow}>
+                <dt className={styles.factsDt}>{t('compound.factsUsage')}</dt>
+                <dd className={styles.factsDd}>{loc.facts.usage}</dd>
+              </div>
+              <div className={styles.factsRow}>
+                <dt className={styles.factsDt}>{t('compound.factsImportance')}</dt>
+                <dd className={styles.factsDd}>{loc.facts.importance}</dd>
+              </div>
+            </dl>
             <span className={styles.metaLabel}>{t('compound.obtainingSteps')}</span>
             {loc.obtainingSteps.length > 1 ? (
               <ol className={styles.obtainingSteps}>

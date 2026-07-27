@@ -2,6 +2,7 @@ import { defaultSynthesisConditionsText } from '../chemistry/synthesisConditions
 import { buildDefaultLaboratoryRecipeRu } from '../chemistry/laboratoryRecipeText'
 import { resolveLaboratoryRecipeRu } from '../chemistry/substanceSynthesisRoute'
 import { resolveObtainingBundle } from '../chemistry/substanceObtaining'
+import { resolveCompoundFacts } from '../chemistry/compoundFacts'
 import { getMolecularGeometryOrNull } from '../chemistry/catalogGeometryOverrides'
 import { buildSignatureMolecule } from '../chemistry/placeholderMolecule'
 import type { CompoundCategory, CompoundDef, RawCompoundDef } from '../types/chemistry'
@@ -53,6 +54,10 @@ function obtainingIn(p: RawCompoundDef) {
     },
     synthesisLab: { ...bundle.lab, ...p.synthesisLab },
   }
+}
+
+function factsIn(p: RawCompoundDef) {
+  return resolveCompoundFacts(p)
 }
 
 export function finalizeCompound(p: RawCompoundDef): CompoundDef {
@@ -151,6 +156,7 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
       atoms: fixed.atoms,
       bonds: fixed.bonds,
       ...obt,
+      factsRu: factsIn(p),
     }
   }
   const handBuilt = getMolecularGeometryOrNull(p.id)
@@ -164,6 +170,7 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
       atoms: fixed.atoms,
       bonds: fixed.bonds,
       ...obt,
+      factsRu: factsIn(p),
     }
   }
   const geo = buildSignatureMolecule(p.composition, p.id, p.category)
@@ -174,6 +181,7 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
     atoms: geo.atoms,
     bonds: geo.bonds,
     ...obt,
+    factsRu: factsIn(p),
   }
 }
 

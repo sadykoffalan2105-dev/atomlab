@@ -153,4 +153,82 @@ export const MISCONCEPTIONS_KNOWLEDGE: ChemistryKnowledgeChunk[] = [
 Не начинай издалека. Не читай учебник целиком.`,
     en: `Oral answer: thesis → why → example → remember.`,
   },
+  {
+    id: 'misc-chloride-chlorite-chlorate',
+    topic: 'Ошибка: хлорид = хлорит = хлорат',
+    grades: [8, 9, 10],
+    keywords: ['хлорид хлорит', 'хлорат', 'путают соли хлора', 'clo clo2 clo3'],
+    ru: `**Не путать остатки хлора:**
+• Cl⁻ — хлори́д (NaCl)
+• ClO₂⁻ — хлори́т (NaClO₂)
+• ClO₃⁻ — хлора́т (KClO₃)
+• ClO₄⁻ — перхлора́т
+Степень окисления хлора разная — свойства и реакции разные.`,
+    en: `Chloride Cl⁻ ≠ chlorite ClO₂⁻ ≠ chlorate ClO₃⁻ ≠ perchlorate ClO₄⁻.`,
+  },
+  {
+    id: 'misc-sulfide-sulfite-sulfate',
+    topic: 'Ошибка: сульфид = сульфит = сульфат',
+    grades: [8, 9],
+    keywords: ['сульфид сульфит сульфат', 'путают серу соли', 'so3 so4 s2'],
+    ru: `• S²⁻ — сульфи́д
+• SO₃²⁻ — сульфи́т
+• SO₄²⁻ — сульфа́т
+Разные степени окисления серы — разные кислоты и соли.`,
+    en: `Sulfide S²⁻ ≠ sulfite SO₃²⁻ ≠ sulfate SO₄²⁻.`,
+  },
+  {
+    id: 'misc-ion-vs-atom',
+    topic: 'Ошибка: ион и атом — одно и то же',
+    grades: [7, 8, 9],
+    keywords: ['ион и атом', 'натрий ион', 'заряд атома'],
+    ru: `Атом нейтрален (число p⁺ = e⁻). Ион — атом/группа с зарядом (Na⁺, Cl⁻).
+В соли NaCl нет «атомов натрия и хлора как в металле», есть ионы.`,
+    en: `Atom is neutral; ion has charge. Salts contain ions, not neutral metal atoms.`,
+  },
+  {
+    id: 'misc-coefficient-index',
+    topic: 'Ошибка: коэффициент и индекс — одно и то же',
+    grades: [7, 8],
+    keywords: ['коэффициент и индекс', '2h2o', 'что менять в формуле'],
+    ru: `Индекс — внутри формулы (H₂O: два H). Коэффициент — перед формулой (2H₂O: две молекулы).
+Индексы нельзя «подгонять» при уравнивании — меняй коэффициенты.`,
+    en: `Index is inside the formula; coefficient is in front. Never change indices to balance.`,
+  },
+  {
+    id: 'misc-metal-oxide-acid',
+    topic: 'Ошибка: любой оксид металла — основный',
+    grades: [8, 9],
+    keywords: ['амфотерный оксид', 'al2o3 кислота', 'оксид металла всегда основный'],
+    ru: `Оксиды Na₂O, CaO — осно́вные. Al₂O₃, ZnO — амфотерные (и с кислотами, и со щёлочами).
+Высшие оксиды некоторых металлов могут быть кислотными (CrO₃, Mn₂O₇).`,
+    en: `Not every metal oxide is basic — some are amphoteric or acidic at high OS.`,
+  },
+  {
+    id: 'misc-organic-only-carbon',
+    topic: 'Ошибка: всё с углеродом — органика',
+    grades: [10, 11],
+    keywords: ['co2 органика', 'карбонат органика', 'что относится к органике'],
+    ru: `CO₂, CO, карбонаты, карбиды — обычно неорганические.
+Органика — углеводороды и их производные (связи C–C / C–H в типичном школьном смысле).`,
+    en: `CO₂, carbonates, carbides are inorganic; organics are hydrocarbons and derivatives.`,
+  },
+  {
+    id: 'misc-catalyst-equilibrium',
+    topic: 'Ошибка: катализатор смещает равновесие',
+    grades: [10, 11],
+    keywords: ['катализатор равновесие', 'катализатор выход', 'ускоряет только прямую'],
+    ru: `Катализатор ускоряет прямую и обратную одинаково — равновесие не смещает, выход «по K» не меняет.
+Он быстрее приводит к равновесию.`,
+    en: `Catalyst speeds both directions; does not change equilibrium yield.`,
+  },
+  {
+    id: 'misc-color-always-same',
+    topic: 'Ошибка: цвет раствора всегда = цвет соли «в сухом»',
+    grades: [8, 9],
+    keywords: ['цвет иона', 'почему раствор синий', 'гидратация цвет'],
+    ru: `Цвет часто даёт гидратированный ион (Cu²⁺ — голубой), а не «название соли».
+Безводный CuSO₄ почти белый; гидрат — синий.`,
+    en: `Solution color often comes from hydrated ions; anhydrous forms can differ.`,
+  },
 ]

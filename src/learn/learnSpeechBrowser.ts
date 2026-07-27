@@ -6,7 +6,6 @@ import {
   TEACHER_BROWSER_VOICE_HINTS,
   TEACHER_VOICE_FEMALE_NAMES,
   TEACHER_VOICE_MALE_NAMES,
-  getTeacherTtsProsodyMode,
 } from './learnTeacherVoiceProfile'
 
 export type BrowserSpeechLocale = 'ru' | 'en' | 'uz'
@@ -145,6 +144,7 @@ function speakOneUtterance(
   sentence: string,
   locale: BrowserSpeechLocale,
   voice: SpeechSynthesisVoice | null,
+  prosodyMode: 'default' | 'lab',
 ): Promise<void> {
   return new Promise((resolve) => {
     if (!speechSupported()) {
@@ -154,7 +154,7 @@ function speakOneUtterance(
     const utterance = new SpeechSynthesisUtterance(stripStressForBrowser(sentence))
     utterance.lang = voice?.lang || SPEECH_LOCALE[locale]
     utterance.rate =
-      getTeacherTtsProsodyMode() === 'lab' ? TEACHER_BROWSER_RATE_LAB[locale] : TEACHER_BROWSER_RATE[locale]
+      prosodyMode === 'lab' ? TEACHER_BROWSER_RATE_LAB[locale] : TEACHER_BROWSER_RATE[locale]
     utterance.pitch = TEACHER_BROWSER_PITCH[locale]
     utterance.volume = 1.0
     if (voice) utterance.voice = voice
@@ -192,6 +192,7 @@ export async function speakWithBrowserVoice(
   chunks: string[],
   locale: BrowserSpeechLocale,
   isAborted: () => boolean,
+  prosodyMode: 'default' | 'lab' = 'default',
 ): Promise<boolean> {
   if (!speechSupported() || chunks.length === 0) return false
 
@@ -209,7 +210,7 @@ export async function speakWithBrowserVoice(
   try {
     for (let i = 0; i < chunks.length; i++) {
       if (isAborted()) return false
-      await speakOneUtterance(chunks[i]!, locale, voice)
+      await speakOneUtterance(chunks[i]!, locale, voice, prosodyMode)
       if (i + 1 < chunks.length && !isAborted()) {
         await sleep(BROWSER_SENTENCE_GAP_MS)
       }

@@ -20,6 +20,7 @@ import { LAB_PRACTICE_KNOWLEDGE } from './knowledge/learnLabPracticeKnowledge'
 import { THERMO_ELECTRO_KNOWLEDGE } from './knowledge/learnThermoElectroKnowledge'
 import { INORGANIC_CORE_KNOWLEDGE } from './knowledge/learnInorganicCoreKnowledge'
 import { TEACHER_KNOWLEDGE_PACKS } from './knowledge/learnTeacherKnowledgePacks'
+import { TEACHER_REASONING_KNOWLEDGE } from './knowledge/learnTeacherReasoningKnowledge'
 
 const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...CHEMISTRY_KNOWLEDGE_CHUNKS,
@@ -29,6 +30,7 @@ const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...PROBLEM_BANK_KNOWLEDGE,
   ...SCHOOL_THEORY_DEEP_KNOWLEDGE,
   ...MISCONCEPTIONS_KNOWLEDGE,
+  ...TEACHER_REASONING_KNOWLEDGE,
   ...KINETICS_EQUILIBRIUM_KNOWLEDGE,
   ...LAB_PRACTICE_KNOWLEDGE,
   ...THERMO_ELECTRO_KNOWLEDGE,
@@ -111,6 +113,10 @@ const SYNONYMS: Record<string, string[]> = {
   электр: ['электролиз', 'гальвани', 'анод', 'катод', 'ток'],
   моль: ['количество вещества', 'n=', 'молярн'],
   стехиометр: ['коэффициент', 'уравнен', 'избыток', 'недостаток'],
+  добыч: ['происхожд', 'месторожд', 'руд', 'где берут', 'откуда'],
+  применен: ['использу', 'нужен', 'для чего', 'где применяют', 'usage'],
+  грамотн: ['ударен', 'как говорить', 'произнос', 'озвуч'],
+  номенклатур: ['как назвать', 'название соли', 'название кислоты', 'назови'],
 }
 
 function tokenize(q: string): string[] {
@@ -188,7 +194,14 @@ function sourceWeight(chunk: ChemistryKnowledgeChunk, intent: QueryIntent): numb
   if (id.startsWith('rxn-') || id.startsWith('react-')) w += intent === 'redox' ? 18 : 7
   if (id.startsWith('inorg-')) w += 8
   if (id.startsWith('brain') || id.startsWith('teach-') || id.startsWith('logic-')) w += 10
+  if (id.startsWith('reason-')) w += intent === 'problem' || intent === 'definition' ? 22 : 14
   if (id.startsWith('theory-') || id.startsWith('school-')) w += 8
+  if (id.startsWith('cmp-') || id.startsWith('org-')) {
+    w += intent === 'definition' ? 16 : 11
+    if (id.includes('-facts')) w += 4
+    if (id.includes('-obtain') || id.includes('-rxn')) w += 3
+  }
+  if (id.startsWith('el-') || id.startsWith('elem-')) w += 8
   if (chunk.textbook) w += 6
   if (/^g[789]-/.test(id) && !id.includes('-w-')) w += 4
 
@@ -197,6 +210,7 @@ function sourceWeight(chunk: ChemistryKnowledgeChunk, intent: QueryIntent): numb
   if (id.startsWith('mega-move-')) w -= 30
   if (id.startsWith('mega-qa-') && intent !== 'definition') w -= 8
   if (id.startsWith('mega-theory-') && intent === 'problem') w -= 4
+  if (id.startsWith('mega-el-') && intent === 'definition') w -= 2
   return w
 }
 

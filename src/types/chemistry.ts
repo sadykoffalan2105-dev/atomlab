@@ -58,12 +58,27 @@ export interface CompoundDef {
    * Если не задано в сырье — в `finalizeCompound` подставляются шаблоны по `synthesisLab` и категории.
    */
   synthesisConditionsRu: SynthesisConditionsTextRu
+  /**
+   * Дополнительная информация: добыча/происхождение, применение, важность.
+   * Генерируется в `finalizeCompound` из `compoundFacts.ts`.
+   */
+  factsRu: CompoundFactsRu
+}
+
+/** Дополнительные сведения о веществе для карточки каталога. */
+export interface CompoundFactsRu {
+  /** Откуда добывают / как получают в природе и промышленности */
+  source: string
+  /** Где и как применяется */
+  usage: string
+  /** Почему важно / интересный факт */
+  importance: string
 }
 
 /** Запись до подстановки цепочки атомов и цвета по категории (если нет). */
 export type RawCompoundDef = Omit<
   CompoundDef,
-  'atoms' | 'bonds' | 'accentColor' | 'laboratoryRecipeRu' | 'synthesisConditionsRu' | 'obtainingStepsRu'
+  'atoms' | 'bonds' | 'accentColor' | 'laboratoryRecipeRu' | 'synthesisConditionsRu' | 'obtainingStepsRu' | 'factsRu'
 > & {
   atoms?: Atom3D[]
   bonds?: readonly (readonly [number, number])[]
@@ -73,6 +88,8 @@ export type RawCompoundDef = Omit<
   obtainingStepsRu?: readonly ObtainingStepRu[]
   /** Если не задано — в `finalizeCompound` генерируется из `synthesisLab` и категории. */
   synthesisConditionsRu?: SynthesisConditionsTextRu
+  /** Кураторские факты; если нет — шаблон по категории/типу вещества. */
+  factsRu?: CompoundFactsRu
 }
 
 export type LabParticle =

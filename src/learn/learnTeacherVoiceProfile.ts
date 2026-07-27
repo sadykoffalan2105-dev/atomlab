@@ -24,9 +24,9 @@ export const TEACHER_VOICE_EDGE_PROSODY_LAB: Record<
   SpeechPrepLocale,
   { rate: string; pitch: string; volume: string }
 > = {
-  ru: { rate: '-12%', pitch: '-2Hz', volume: '+8%' },
-  en: { rate: '-8%', pitch: '-2Hz', volume: '+6%' },
-  uz: { rate: '-8%', pitch: '-1Hz', volume: '+6%' },
+  ru: { rate: '-8%', pitch: '-2Hz', volume: '+9%' },
+  en: { rate: '-6%', pitch: '-2Hz', volume: '+7%' },
+  uz: { rate: '-6%', pitch: '-1Hz', volume: '+7%' },
 }
 
 export type TeacherTtsProsodyMode = 'default' | 'lab'
@@ -56,9 +56,9 @@ export function resolveTeacherEdgeProsody(
 }
 
 export const TEACHER_BROWSER_RATE_LAB: Record<SpeechPrepLocale, number> = {
-  ru: 0.98,
-  en: 0.96,
-  uz: 0.98,
+  ru: 1.02,
+  en: 1.0,
+  uz: 1.02,
 }
 
 export const TEACHER_VOICE_OPENAI: Record<SpeechPrepLocale, string> = {

@@ -1,6 +1,7 @@
 /** Ударения для TTS: COMBINING ACUTE ACCENT (U+0301) на ударной гласной. */
 
 import { COMMON_STRESS_RU } from './learnRussianStressCommon'
+import { SCHOOL_CHEMISTRY_STRESS_MEGA } from './learnRussianStressSchoolMega'
 
 const A = '\u0301'
 
@@ -186,6 +187,7 @@ export const CHEMISTRY_STRESS_RU: Record<string, string> = {
   восстановление: `восстановле${A}ние`,
   восстановления: `восстановле${A}ния`,
   восстанавливается: `восстанавли${A}вается`,
+  восстановился: `восстанови${A}лся`,
   степень: `сте${A}пень`,
   степени: `сте${A}пени`,
   степеней: `степе${A}ней`,
@@ -559,8 +561,12 @@ export const CHEMISTRY_STRESS_RU: Record<string, string> = {
   авиценна: `авице${A}нна`,
 }
 
-/** Общие слова + химические (химия имеет приоритет при совпадении ключа). */
-const MERGED_STRESS_RU: Record<string, string> = { ...COMMON_STRESS_RU, ...CHEMISTRY_STRESS_RU }
+/** Общие → мега-школа → точечная химия (последнее побеждает при конфликте). */
+const MERGED_STRESS_RU: Record<string, string> = {
+  ...COMMON_STRESS_RU,
+  ...SCHOOL_CHEMISTRY_STRESS_MEGA,
+  ...CHEMISTRY_STRESS_RU,
+}
 
 const SORTED_KEYS = Object.keys(MERGED_STRESS_RU).sort((a, b) => b.length - a.length)
 

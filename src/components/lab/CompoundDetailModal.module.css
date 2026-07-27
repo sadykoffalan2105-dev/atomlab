@@ -174,12 +174,43 @@
 }
 
 .description {
-  margin: 0;
+  margin: 0 0 0.85rem;
   font-size: 0.88rem;
   line-height: 1.55;
   color: rgba(220, 228, 255, 0.96);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.factsBlock {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(100, 180, 160, 0.22);
+  background: rgba(6, 14, 28, 0.55);
+}
+
+.factsRow {
+  margin-bottom: 0.55rem;
+}
+
+.factsRow:last-child {
+  margin-bottom: 0;
+}
+
+.factsDt {
+  margin: 0 0 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(120, 220, 200, 0.85);
+  letter-spacing: 0.04em;
+}
+
+.factsDd {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: rgba(200, 210, 245, 0.95);
 }
 
 .labExample {

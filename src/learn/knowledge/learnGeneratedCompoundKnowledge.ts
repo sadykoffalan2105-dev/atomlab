@@ -5,13 +5,13 @@ import type { OrganicMoleculeDef } from '../../data/organicLab/organicMoleculeTy
 import type { ChemistryKnowledgeChunk } from '../learnChemistryKnowledgeBase'
 
 /**
- * Авто-генерация знаний по КАЖДОМУ веществу каталога ATOMLAB
- * (неорганические соединения + органические молекулы), чтобы ИИ-учитель мог
- * ответить на «что такое вода», «что такое оксид меди», «формула серной кислоты».
+ * Авто-генерация знаний по КАЖДОМУ веществу каталога ATOMLAB.
+ * На одно вещество — несколько карточек (описание / получение / факты / условия),
+ * чтобы RAG ловил «где применяют», «как получают», «откуда добывают».
  */
 
 const SUB = '₀₁₂₃₄₅₆₇₈₉'
-/** H₂O → H2O для сопоставления с обычным вводом пользователя. */
+
 function formulaAscii(u: string): string {
   return u
     .split('')
@@ -39,42 +39,104 @@ function categoryRu(cat: CompoundCategory): string {
 }
 
 function compositionRu(comp: Record<string, number>): string {
-  const parts = Object.entries(comp)
+  return Object.entries(comp)
     .filter(([, n]) => n > 0)
     .map(([el, n]) => (n > 1 ? `${el}×${n}` : el))
-  return parts.join(', ')
+    .join(', ')
 }
 
-function buildCompoundChunk(c: CompoundDef): ChemistryKnowledgeChunk {
+function baseKeywords(c: CompoundDef, cat: string): string[] {
   const ascii = formulaAscii(c.formulaUnicode)
-  const cat = categoryRu(c.category)
-
-  const ru: string[] = []
-  ru.push(`**${c.nameRu}** — ${cat}. Химическая формула: ${c.formulaUnicode}.`)
-  if (c.descriptionRu?.trim()) ru.push(c.descriptionRu.trim())
-  ru.push(`Состав: ${compositionRu(c.composition)}.`)
-  if (c.laboratoryRecipeRu?.trim()) {
-    ru.push(`Пример получения: ${c.laboratoryRecipeRu.trim()}.`)
-  }
-
   const keywords = new Set<string>()
   keywords.add(c.nameRu.toLowerCase())
   keywords.add(c.nameRu.toLowerCase().replace(/ё/g, 'е'))
   keywords.add(c.formulaUnicode.toLowerCase())
   keywords.add(ascii.toLowerCase())
   keywords.add(cat)
-  // Отдельные значимые слова названия (например «оксид», «меди», «серная»).
-  for (const w of c.nameRu.toLowerCase().split(/[\s(),]+/)) {
-    if (w.length >= 4) keywords.add(w)
+  keywords.add(c.id)
+  for (const w of c.nameRu.toLowerCase().split(/[\s(),-]+/)) {
+    if (w.length >= 3) keywords.add(w)
   }
+  return [...keywords]
+}
 
-  return {
+function buildCompoundChunks(c: CompoundDef): ChemistryKnowledgeChunk[] {
+  const ascii = formulaAscii(c.formulaUnicode)
+  const cat = categoryRu(c.category)
+  const kw = baseKeywords(c, cat)
+  const out: ChemistryKnowledgeChunk[] = []
+
+  const aboutRu: string[] = []
+  aboutRu.push(`**${c.nameRu}** — ${cat}. Химическая формула: ${c.formulaUnicode}.`)
+  if (c.descriptionRu?.trim()) aboutRu.push(c.descriptionRu.trim())
+  aboutRu.push(`Состав: ${compositionRu(c.composition)}.`)
+  out.push({
     id: `cmp-${c.id}`,
     topic: `${c.nameRu} (${c.formulaUnicode})`,
-    keywords: [...keywords],
-    ru: ru.join(' '),
+    keywords: [...kw, 'что такое', 'формула', 'состав'],
+    ru: aboutRu.join(' '),
     en: `**${c.nameRu}** (${c.formulaUnicode}) — ${c.category}. Composition: ${compositionRu(c.composition)}.`,
+  })
+
+  if (c.laboratoryRecipeRu?.trim() || (c.obtainingStepsRu?.length ?? 0) > 0) {
+    const obt: string[] = [`**Получение ${c.nameRu} (${c.formulaUnicode})**`]
+    if (c.laboratoryRecipeRu?.trim()) obt.push(`Схема: ${c.laboratoryRecipeRu.trim()}.`)
+    if (c.obtainingStepsRu?.length) {
+      for (const step of c.obtainingStepsRu) {
+        obt.push(`${step.step}) ${step.equation}${step.note ? ` — ${step.note}` : ''}`)
+      }
+    }
+    out.push({
+      id: `cmp-${c.id}-obtain`,
+      topic: `Получение: ${c.nameRu}`,
+      keywords: [...kw, 'получение', 'как получить', 'синтез', 'реакция получения', 'лабораторно'],
+      ru: obt.join(' '),
+      en: `Obtaining ${c.nameRu} (${c.formulaUnicode}): ${c.laboratoryRecipeRu ?? ''}`,
+    })
   }
+
+  const facts = c.factsRu
+  if (facts?.source || facts?.usage || facts?.importance) {
+    const parts: string[] = [`**${c.nameRu} (${c.formulaUnicode}) — дополнительно**`]
+    if (facts.source) parts.push(`Добыча и происхождение: ${facts.source}`)
+    if (facts.usage) parts.push(`Применение: ${facts.usage}`)
+    if (facts.importance) parts.push(`Важность: ${facts.importance}`)
+    out.push({
+      id: `cmp-${c.id}-facts`,
+      topic: `Факты: ${c.nameRu}`,
+      keywords: [
+        ...kw,
+        'применение',
+        'где используют',
+        'добыча',
+        'происхождение',
+        'зачем нужен',
+        'важность',
+        'для чего',
+      ],
+      ru: parts.join(' '),
+      en: `Facts about ${c.nameRu}: ${facts.usage ?? facts.importance ?? ''}`,
+    })
+  }
+
+  const cond = c.synthesisConditionsRu
+  if (cond && (cond.temperature || cond.pressure || cond.catalyst || cond.equipment)) {
+    const rows = [
+      cond.temperature ? `Температура: ${cond.temperature}` : null,
+      cond.pressure ? `Давление: ${cond.pressure}` : null,
+      cond.catalyst ? `Катализатор: ${cond.catalyst}` : null,
+      cond.equipment ? `Оборудование: ${cond.equipment}` : null,
+    ].filter(Boolean)
+    out.push({
+      id: `cmp-${c.id}-synth`,
+      topic: `Условия синтеза: ${c.nameRu}`,
+      keywords: [...kw, 'условия', 'температура', 'катализатор', 'давление', 'оборудование'],
+      ru: `**Условия получения ${c.nameRu} (${c.formulaUnicode}).** ${rows.join('. ')}.`,
+      en: `Synthesis conditions for ${c.nameRu}.`,
+    })
+  }
+
+  return out
 }
 
 const ORGANIC_CLASS_RU: Record<string, string> = {
@@ -97,19 +159,9 @@ const ORGANIC_CLASS_RU: Record<string, string> = {
   nitrogen: 'азотсодержащее органическое вещество',
 }
 
-function buildOrganicChunk(m: OrganicMoleculeDef): ChemistryKnowledgeChunk {
+function buildOrganicChunks(m: OrganicMoleculeDef): ChemistryKnowledgeChunk[] {
   const ascii = formulaAscii(m.formula)
   const cls = ORGANIC_CLASS_RU[m.classId] ?? 'органическое вещество'
-
-  const ru: string[] = []
-  ru.push(`**${m.nameRu}** — ${cls}. Формула: ${m.formula}.`)
-  if (m.descriptionRu?.trim()) ru.push(m.descriptionRu.trim())
-  if (m.functionalGroups && m.functionalGroups.length > 0) {
-    const groups = m.functionalGroups.map((g) => g.labelRu || g.label).filter(Boolean)
-    if (groups.length > 0) ru.push(`Функциональные группы: ${groups.join(', ')}.`)
-  }
-  if (m.equationRu?.trim()) ru.push(`Реакция/получение: ${m.equationRu.trim()}.`)
-
   const keywords = new Set<string>()
   keywords.add(m.nameRu.toLowerCase())
   keywords.add(m.nameRu.toLowerCase().replace(/ё/g, 'е'))
@@ -121,17 +173,38 @@ function buildOrganicChunk(m: OrganicMoleculeDef): ChemistryKnowledgeChunk {
     if (w.length >= 4) keywords.add(w)
   }
 
-  return {
+  const out: ChemistryKnowledgeChunk[] = []
+  const ru: string[] = []
+  ru.push(`**${m.nameRu}** — ${cls}. Формула: ${m.formula}.`)
+  if (m.descriptionRu?.trim()) ru.push(m.descriptionRu.trim())
+  if (m.functionalGroups?.length) {
+    const groups = m.functionalGroups.map((g) => g.labelRu || g.label).filter(Boolean)
+    if (groups.length) ru.push(`Функциональные группы: ${groups.join(', ')}.`)
+  }
+  out.push({
     id: `org-${m.id}`,
     topic: `${m.nameRu} (${m.formula})`,
     grades: [10, 11],
     keywords: [...keywords],
     ru: ru.join(' '),
     en: `**${m.nameEn ?? m.nameRu}** (${m.formula}) — ${m.classId}. ${m.descriptionEn ?? ''}`.trim(),
+  })
+
+  if (m.equationRu?.trim()) {
+    out.push({
+      id: `org-${m.id}-rxn`,
+      topic: `Реакции: ${m.nameRu}`,
+      grades: [10, 11],
+      keywords: [...keywords, 'реакция', 'получение', 'синтез'],
+      ru: `**${m.nameRu} (${m.formula}).** Реакция/получение: ${m.equationRu.trim()}.`,
+      en: `Reactions of ${m.nameEn ?? m.nameRu}: ${m.equationRu}`,
+    })
   }
+
+  return out
 }
 
 export const GENERATED_COMPOUND_KNOWLEDGE: ChemistryKnowledgeChunk[] = [
-  ...compoundsListAlphabeticalRu().map(buildCompoundChunk),
-  ...ORGANIC_MOLECULES.map(buildOrganicChunk),
+  ...compoundsListAlphabeticalRu().flatMap(buildCompoundChunks),
+  ...ORGANIC_MOLECULES.flatMap(buildOrganicChunks),
 ]

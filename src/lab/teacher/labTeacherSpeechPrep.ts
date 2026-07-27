@@ -11,13 +11,11 @@ const LAB_SPOKEN_REWRITES_RU: ReadonlyArray<readonly [RegExp, string]> = [
   [/NaClO₂|NaClO2/gi, 'хлорит натрия'],
   [/(?<![\p{L}])NaCl(?![\p{L}])/gu, 'хлорид натрия'],
   [/Cl₂|Cl2/gi, 'молекулярный хлор'],
-  [/с плюс трёх/gi, 'с плюс три'],
-  [/до плюс четырёх/gi, 'до плюс четыре'],
-  [/с нуля до минус одного/gi, 'с нуля до минус один'],
+  [/плюс три\s+стало\s+плюс четыре/gi, 'плюс три. стало плюс четыре'],
+  [/плюс три\s*[—–→-]+\s*плюс четыре/gi, 'плюс три. плюс четыре'],
   [/плюс трёх/gi, 'плюс три'],
   [/плюс четырёх/gi, 'плюс четыре'],
   [/минус одного/gi, 'минус один'],
-  [/плюс три\s*[—–→-]+\s*плюс четыре/gi, 'плюс три. плюс четыре'],
   [/ноль\s*[—–→-]+\s*минус один/gi, 'ноль. минус один'],
   [/117\s*°/g, 'сто семнадцать градусов'],
   [/(?<![\p{L}\d])117(?![\p{L}\d])/g, 'сто семнадцать'],
@@ -28,10 +26,23 @@ const LAB_SPOKEN_REWRITES_EN: ReadonlyArray<readonly [RegExp, string]> = [
   [/\bNaClO₂\b|\bNaClO2\b/gi, 'sodium chlorite'],
   [/\bNaCl\b/g, 'sodium chloride'],
   [/\bCl₂\b|\bCl2\b/gi, 'molecular chlorine'],
+  [/plus three\s+becomes\s+plus four/gi, 'plus three. becomes plus four'],
   [/plus three\s*[—–→-]+\s*plus four/gi, 'plus three. plus four'],
   [/zero\s*[—–→-]+\s*minus one/gi, 'zero. minus one'],
   [/\b117\s*°/g, 'one hundred seventeen degrees'],
-  [/\bone hundred seventeen degrees/gi, 'one hundred seventeen degrees'],
+  [/(?<![\p{L}\d])117(?![\p{L}\d])/g, 'one hundred seventeen'],
+  [/counter-ion/gi, 'counter ion'],
+]
+
+const LAB_SPOKEN_REWRITES_UZ: ReadonlyArray<readonly [RegExp, string]> = [
+  [/ClO₂|ClO2/gi, 'xlor dioksid'],
+  [/NaClO₂|NaClO2/gi, 'natriy xlorit'],
+  [/(?<![\p{L}])NaCl(?![\p{L}])/gu, 'natriy xlorid'],
+  [/Cl₂|Cl2/gi, 'xlor'],
+  [/uchdan\s+tortga/gi, 'uchdan. tortga'],
+  [/qarshi-ion/gi, 'qarshi ion'],
+  [/\b117\s*daraja\b/gi, "bir yuz o'n yetti daraja"],
+  [/(?<![\p{L}\d])117(?![\p{L}\d])/g, "bir yuz o'n yetti"],
 ]
 
 /** Делает паузы заметнее для Edge SSML (запятые / точки). */
@@ -64,13 +75,11 @@ export function prepareLabTeacherSpeechRaw(text: string, locale: LabSpeechLocale
 
   if (locale === 'ru') {
     t = applyRewrites(t, LAB_SPOKEN_REWRITES_RU)
-    t = cadenceForLabTeacher(t)
   } else if (locale === 'en') {
     t = applyRewrites(t, LAB_SPOKEN_REWRITES_EN)
-    t = cadenceForLabTeacher(t)
   } else {
-    t = cadenceForLabTeacher(t)
+    t = applyRewrites(t, LAB_SPOKEN_REWRITES_UZ)
   }
 
-  return t
+  return cadenceForLabTeacher(t)
 }

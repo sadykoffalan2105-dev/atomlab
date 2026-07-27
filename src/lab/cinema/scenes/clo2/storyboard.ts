@@ -122,6 +122,14 @@ export const CLO2_CUES: readonly Cue<Clo2CueId>[] = [
   { at: CLO2_PHASE.finaleEnd, id: 'complete' },
 ]
 
+/** Story-время для озвучки: на ~0.25 с раньше визуала — голос опережает кадр. */
+export const CLO2_NARRATION_LEAD = 0.25
+
+export const CLO2_NARRATION_CUES: readonly Cue<Clo2CueId>[] = CLO2_CUES.map((c) => ({
+  at: Math.max(0, c.at - CLO2_NARRATION_LEAD),
+  id: c.id,
+}))
+
 // ——— Геометрия: реальные длины связей и радиусы, переведённые в единицы сцены ———
 export const CLO2_GEOM = {
   clOChlorite: ang(BOND_LENGTH_A.ClO_chlorite),

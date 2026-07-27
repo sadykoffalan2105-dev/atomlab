@@ -16,6 +16,11 @@ export type CompoundLocaleStrings = {
     catalyst?: string
     equipment?: string
   }
+  facts: {
+    source: string
+    usage: string
+    importance: string
+  }
 }
 
 type TFn = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string
@@ -65,6 +70,7 @@ export function getCompoundLocaleStrings(c: CompoundDef, locale: AppLocale, t: T
       laboratoryRecipe: c.laboratoryRecipeRu,
       obtainingSteps: c.obtainingStepsRu ?? [],
       synthesisConditions: localizedSynthesisConditions(c, locale),
+      facts: c.factsRu,
     }
   }
 
@@ -86,11 +92,12 @@ export function getCompoundLocaleStrings(c: CompoundDef, locale: AppLocale, t: T
     laboratoryRecipe: c.laboratoryRecipeRu,
     obtainingSteps: c.obtainingStepsRu ?? [],
     synthesisConditions: localizedSynthesisConditions(c, locale),
+    facts: c.factsRu,
   }
 }
 
 /** Строка для поиска по каталогу (нижний регистр не нужен — вызывающий сам toLowerCase). */
 export function compoundSearchBlob(c: CompoundDef, locale: AppLocale, t: TFn): string {
   const loc = getCompoundLocaleStrings(c, locale, t)
-  return `${loc.name} ${loc.description} ${c.formulaUnicode} ${c.id} ${c.nameRu}`
+  return `${loc.name} ${loc.description} ${loc.facts.source} ${loc.facts.usage} ${c.formulaUnicode} ${c.id} ${c.nameRu}`
 }

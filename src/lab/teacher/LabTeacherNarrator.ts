@@ -2,10 +2,10 @@
  * Озвучка преподавателя в лаборатории.
  *
  * Ключевые правила синхронизации:
- * 1. Prefetch всех реплик с lab-prosody (явный параметр, без гонки глобального режима).
- * 2. Новый cue ВСЕГДА прерывает текущую речь — картинка важнее хвоста фразы.
- * 3. Session-кэш аудио по hash(locale+text) — повторные прогоны мгновенны.
- * 4. Приоритет: intro → tension → transfer… (не все WebSocket сразу).
+ * 1. Prefetch с приоритетом intro→tension→transfer… (lab-prosody явно).
+ * 2. Новый cue прерывает текущую речь — картинка важнее хвоста фразы.
+ * 3. Session-кэш аудио — повторные прогоны мгновенны.
+ * 4. speakIntro ждёт готовности intro (до 4 с) перед стартом.
  */
 
 import {
@@ -44,6 +44,8 @@ import type { Clo2CueId } from '../cinema/scenes/clo2/storyboard'
 
 const VOICE_STORAGE_KEY = 'atomlab-lab-teacher-voice'
 const PREFETCH_CONCURRENCY = 2
+const INTRO_READY_TIMEOUT_MS = 4000
+const CUE_READY_TIMEOUT_MS = 2200
 
 export function readLabTeacherVoiceEnabled(): boolean {
   try {
@@ -84,22 +86,36 @@ const CLO2_VOICED_CUES: readonly Clo2TeacherLineId[] = [
   'break',
   'pairA',
   'radicalA',
-  'embryo',
   'precipitate',
   'birth',
   'complete',
+]
+
+/** Критический путь — грузим первыми, до нажатия «Синтез». */
+const PRIORITY_PREFETCH: readonly Clo2TeacherLineId[] = [
+  'intro',
+  'tension',
+  'transfer',
+  'break',
+  'pairA',
+  'radicalA',
 ]
 
 /** Session-level: переживает beginRun — повторный синтез мгновенный. */
 const sessionAudioCache = new Map<string, LineAudio>()
 
 function cacheKey(locale: LabTeacherLocale, speak: string): string {
-  // Текст уже после lab-prep+stress в момент synth; ключ по сырому speak+locale+lab.
-  return `lab|v2|${locale}|${speak}`
+  return `lab|v3|${locale}|${speak}`
 }
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function nextCueAfter(id: Clo2TeacherLineId): Clo2TeacherLineId | null {
+  const i = CLO2_VOICED_CUES.indexOf(id)
+  if (i < 0 || i >= CLO2_VOICED_CUES.length - 1) return null
+  return CLO2_VOICED_CUES[i + 1] ?? null
 }
 
 export class LabTeacherNarrator {
@@ -113,17 +129,15 @@ export class LabTeacherNarrator {
   private speaking = false
   private lastSpokenId: Clo2TeacherLineId | null = null
 
-  /** In-flight prefetch для текущего locale. */
   private cache = new Map<Clo2TeacherLineId, CacheEntry>()
   private prefetchAbort: AbortController | null = null
+  private prefetchPromise: Promise<void> | null = null
 
   private playToken = 0
-  private isPlaying = false
 
   setLocale(locale: LabTeacherLocale): void {
     if (this.locale === locale) return
     this.locale = locale
-    // Locale сменился — сбрасываем in-flight prefetch (session cache остаётся).
     this.abortPrefetch()
   }
 
@@ -182,10 +196,6 @@ export class LabTeacherNarrator {
     preloadSpeechVoices()
   }
 
-  /**
-   * Прогрев до нажатия «Синтез» — когда выбран ClO₂.
-   * Не обрывает текущую речь.
-   */
   warmPrefetch(): void {
     if (!this.voiceOn) return
     void this.ensurePrefetch()
@@ -208,7 +218,6 @@ export class LabTeacherNarrator {
 
   private haltPlayback(): void {
     this.playToken += 1
-    this.isPlaying = false
     stopNeuralPlayback()
     stopBrowserSpeech()
     this.setSpeaking(false)
@@ -217,90 +226,135 @@ export class LabTeacherNarrator {
   private abortPrefetch(): void {
     this.prefetchAbort?.abort()
     this.prefetchAbort = null
+    this.prefetchPromise = null
     for (const entry of this.cache.values()) entry.abort.abort()
     this.cache.clear()
   }
 
-  /** Prefetch с лимитом параллелизма; использует session-кэш. */
-  private async ensurePrefetch(): Promise<void> {
-    // Если уже качаем для этого locale — не дублируем.
-    if (this.prefetchAbort && this.cache.size > 0) return
+  private synthLine(
+    id: Clo2TeacherLineId,
+    locale: LabTeacherLocale,
+    signal: AbortSignal,
+  ): Promise<LineAudio | null> {
+    const line = getClo2TeacherLine(locale, id)
+    if (!line.speak.trim()) return Promise.resolve(null)
 
-    this.abortPrefetch()
+    const key = cacheKey(locale, line.speak)
+    const cached = sessionAudioCache.get(key)
+    if (cached) return Promise.resolve(cached)
+
+    const ttsLocale = teacherTtsLocale(locale)
+    return (async (): Promise<LineAudio | null> => {
+      try {
+        const preparedChunks = splitTextForTts(line.speak, locale, 'lab')
+        const audio: LineAudio = []
+        for (const chunk of preparedChunks) {
+          if (signal.aborted) return null
+          const r = await fetchTeacherTtsChunk(chunk, ttsLocale, signal, 'lab')
+          if (r) audio.push({ audioBase64: r.audioBase64, mimeType: r.mimeType })
+        }
+        if (audio.length === 0) return null
+        sessionAudioCache.set(key, audio)
+        return audio
+      } catch {
+        return null
+      }
+    })()
+  }
+
+  private attachCacheEntry(id: Clo2TeacherLineId, locale: LabTeacherLocale, parentAbort: AbortController): void {
+    const line = getClo2TeacherLine(locale, id)
+    if (!line.speak.trim()) return
+
+    const key = cacheKey(locale, line.speak)
+    const sessionHit = sessionAudioCache.get(key)
+    if (sessionHit) {
+      this.cache.set(id, {
+        key,
+        result: sessionHit,
+        abort: new AbortController(),
+        ready: Promise.resolve(sessionHit),
+      })
+      return
+    }
+
+    if (this.cache.has(id)) return
+
+    const entryAbort = new AbortController()
+    parentAbort.signal.addEventListener('abort', () => entryAbort.abort(), { once: true })
+
+    const entry: CacheEntry = {
+      key,
+      result: null,
+      abort: entryAbort,
+      ready: Promise.resolve(null),
+    }
+
+    entry.ready = this.synthLine(id, locale, entryAbort.signal).then((audio) => {
+      if (audio) entry.result = audio
+      return audio
+    })
+
+    this.cache.set(id, entry)
+  }
+
+  private async ensurePrefetch(): Promise<void> {
+    if (this.prefetchPromise) return this.prefetchPromise
+
+    this.prefetchAbort?.abort()
     const abort = new AbortController()
     this.prefetchAbort = abort
     const locale = this.locale
-    const ttsLocale = teacherTtsLocale(locale)
 
-    const jobs: Array<() => Promise<void>> = []
-
-    for (const id of CLO2_VOICED_CUES) {
-      const line = getClo2TeacherLine(locale, id)
-      if (!line.speak.trim()) continue
-
-      const key = cacheKey(locale, line.speak)
-      const cached = sessionAudioCache.get(key)
-      if (cached) {
-        const entry: CacheEntry = {
-          key,
-          result: cached,
-          abort: new AbortController(),
-          ready: Promise.resolve(cached),
-        }
-        this.cache.set(id, entry)
-        continue
-      }
-
-      const entryAbort = new AbortController()
-      abort.signal.addEventListener('abort', () => entryAbort.abort(), { once: true })
-
-      const entry: CacheEntry = {
-        key,
-        result: null,
-        abort: entryAbort,
-        ready: Promise.resolve(null),
-      }
-
-      entry.ready = (async (): Promise<LineAudio | null> => {
-        try {
-          const preparedChunks = splitTextForTts(line.speak, locale, 'lab')
-
-          const audio: LineAudio = []
-          for (const chunk of preparedChunks) {
-            if (entryAbort.signal.aborted) return null
-            const r = await fetchTeacherTtsChunk(chunk, ttsLocale, entryAbort.signal, 'lab')
-            if (r) audio.push({ audioBase64: r.audioBase64, mimeType: r.mimeType })
-          }
-          if (audio.length === 0) return null
-          entry.result = audio
-          sessionAudioCache.set(key, audio)
-          return audio
-        } catch {
-          return null
-        }
-      })()
-
-      this.cache.set(id, entry)
-      jobs.push(async () => {
-        await entry.ready
-      })
-    }
-
-    // intro первым, остальное с concurrency.
-    const runPool = async () => {
-      let i = 0
-      const workers = Array.from({ length: PREFETCH_CONCURRENCY }, async () => {
-        while (i < jobs.length) {
+    this.prefetchPromise = (async () => {
+      try {
+        for (const id of PRIORITY_PREFETCH) {
           if (abort.signal.aborted) return
-          const job = jobs[i++]!
-          await job()
+          this.attachCacheEntry(id, locale, abort)
+          const entry = this.cache.get(id)
+          if (entry) await entry.ready
         }
-      })
-      await Promise.all(workers)
-    }
 
-    // Intro (index 0 в cache) уже стартовал через jobs[0] в pool — ок.
-    void runPool()
+        const rest = CLO2_VOICED_CUES.filter((id) => !PRIORITY_PREFETCH.includes(id))
+        for (const id of rest) this.attachCacheEntry(id, locale, abort)
+
+        let i = 0
+        const jobs = rest.map((id) => async () => {
+          const entry = this.cache.get(id)
+          if (entry) await entry.ready
+        })
+
+        const workers = Array.from({ length: PREFETCH_CONCURRENCY }, async () => {
+          while (i < jobs.length) {
+            if (abort.signal.aborted) return
+            const job = jobs[i++]!
+            await job()
+          }
+        })
+        await Promise.all(workers)
+      } finally {
+        if (this.prefetchAbort === abort) this.prefetchPromise = null
+      }
+    })()
+
+    return this.prefetchPromise
+  }
+
+  private async ensureLineReady(id: Clo2TeacherLineId, timeoutMs: number): Promise<void> {
+    const deadline = Date.now() + timeoutMs
+    void this.ensurePrefetch()
+    this.attachCacheEntry(id, this.locale, this.prefetchAbort ?? new AbortController())
+
+    while (Date.now() < deadline) {
+      const entry = this.cache.get(id)
+      if (entry?.result?.length) return
+      if (entry) {
+        const audio = await Promise.race([entry.ready, delay(120).then(() => null)])
+        if (audio && audio.length > 0) return
+      } else {
+        await delay(60)
+      }
+    }
   }
 
   private async playFromCache(id: Clo2TeacherLineId, token: number): Promise<void> {
@@ -311,26 +365,21 @@ export class LabTeacherNarrator {
     this.lastSpokenId = id
     this.setSpeaking(true)
 
+    const next = nextCueAfter(id)
+    if (next) void this.ensureLineReady(next, CUE_READY_TIMEOUT_MS)
+
     try {
-      // Убедимся, что prefetch идёт.
-      void this.ensurePrefetch()
+      await this.ensureLineReady(id, CUE_READY_TIMEOUT_MS)
+      if (token !== this.playToken) return
 
       let audio: LineAudio | null = null
       const entry = this.cache.get(id)
       if (entry) {
         audio = entry.result ?? (await entry.ready)
       } else {
-        // Холодный путь: синтез одной реплики с lab-prosody.
-        const ttsLocale = teacherTtsLocale(this.locale)
-        const chunks = splitTextForTts(line.speak, this.locale, 'lab')
         const ctrl = new AbortController()
-        const results = await Promise.all(
-          chunks.map((c) => fetchTeacherTtsChunk(c, ttsLocale, ctrl.signal, 'lab')),
-        )
-        audio = results
-          .filter((r): r is NonNullable<typeof r> => r != null)
-          .map((r) => ({ audioBase64: r.audioBase64, mimeType: r.mimeType }))
-        if (audio.length > 0) {
+        audio = await this.synthLine(id, this.locale, ctrl.signal)
+        if (audio?.length) {
           sessionAudioCache.set(cacheKey(this.locale, line.speak), audio)
         }
       }
@@ -363,13 +412,9 @@ export class LabTeacherNarrator {
     if (!isBrowserSpeechSupported()) return
     const locale = this.locale as LearnSpeechLocale
     const chunks = splitTextForTts(text, locale, 'lab')
-    await speakWithBrowserVoice(chunks, locale, () => token !== this.playToken)
+    await speakWithBrowserVoice(chunks, locale, () => token !== this.playToken, 'lab')
   }
 
-  /**
-   * Cue → мгновенная речь.
-   * force / новый cue: прерываем текущую реплику (картинка = источник истины).
-   */
   async speakLine(id: Clo2TeacherLineId, opts?: { force?: boolean }): Promise<void> {
     const line = getClo2TeacherLine(this.locale, id)
     const isCue = id !== 'intro'
@@ -383,7 +428,6 @@ export class LabTeacherNarrator {
 
     if (!line.speak.trim()) return
 
-    // HUD + SFX сразу — синхронно с кадром.
     this.publish(line)
     if (isCue) {
       const sfx = CLO2_TEACHER_SFX[id as Clo2CueId]
@@ -392,26 +436,11 @@ export class LabTeacherNarrator {
 
     if (!this.voiceOn) return
 
-    // Прерываем предыдущую речь — не копим очередь отставания.
     this.haltPlayback()
-    this.isPlaying = true
     const token = this.playToken
 
-    ;(async () => {
-      try {
-        if (token !== this.playToken) return
-        await this.playFromCache(id, token)
-      } finally {
-        if (token === this.playToken) {
-          this.isPlaying = false
-          this.setSpeaking(false)
-        }
-      }
-    })().catch(() => {
-      if (token === this.playToken) {
-        this.isPlaying = false
-        this.setSpeaking(false)
-      }
+    void this.playFromCache(id, token).catch(() => {
+      if (token === this.playToken) this.setSpeaking(false)
     })
   }
 
@@ -420,7 +449,10 @@ export class LabTeacherNarrator {
   }
 
   speakIntro(): void {
-    void this.speakLine('intro')
+    void (async () => {
+      if (this.voiceOn) await this.ensureLineReady('intro', INTRO_READY_TIMEOUT_MS)
+      void this.speakLine('intro')
+    })()
   }
 
   replay(): void {
@@ -431,6 +463,7 @@ export class LabTeacherNarrator {
   toggleVoice(): boolean {
     const next = !this.voiceOn
     this.setVoiceEnabled(next)
+    if (next) void this.ensurePrefetch()
     return next
   }
 }
