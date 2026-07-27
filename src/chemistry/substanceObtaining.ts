@@ -5,6 +5,12 @@
 import { buildDefaultLaboratoryRecipeRu } from './laboratoryRecipeText'
 import { normalizeSynthConditions } from './synthesisConditionsDefaults'
 import { fromElementsPolicy } from './substanceSynthesisRoute'
+import {
+  acidTemplateBundle,
+  baseTemplateBundle,
+  enrichedFromElementsBundle,
+  oxideTemplateBundle,
+} from './substanceObtainingTemplates'
 import type {
   CompoundCategory,
   ObtainingStepRu,
@@ -566,6 +572,18 @@ const CURATED: Readonly<Record<string, ObtainingBundle>> = {
       equipment: 'Оборудование: стакан; вытяжка при работе с Br₂/HBr.',
     },
   ),
+  salt_na_clo2: pack(
+    [
+      step(1, 'NaClO₃ + Na₂S₂O₄ → 2NaClO₂ + Na₂SO₄', 'восстановление хлората (промышленный путь)'),
+      step(2, '2NaOH + Cl₂ →(холод) NaClO + NaCl + H₂O; далее окисление до NaClO₂', 'многостадийный лабораторный путь'),
+    ],
+    {
+      temperature: 'Температура: комнатная / слабый нагрев по методике.',
+      pressure: 'Давление: атмосферное.',
+      catalyst: 'Катализатор: не обязателен.',
+      equipment: 'Оборудование: генератор; вытяжка; хлориты — окислители.',
+    },
+  ),
   nacl: pack(
     [step(1, '2Na + Cl₂ = 2NaCl', 'горение натрия в хлоре')],
     {
@@ -802,6 +820,29 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
   const id = p.id
   const metal = metalFromSaltId(id)
   const f = p.formulaUnicode
+
+  // Гидрокарбонаты
+  if (id === 'salt_nahco3' || id === 'salt_khco3') {
+    const m = id === 'salt_nahco3' ? 'Na' : 'K'
+    const salt = id === 'salt_nahco3' ? 'NaHCO₃' : 'KHCO₃'
+    const carbonate = id === 'salt_nahco3' ? 'Na₂CO₃' : 'K₂CO₃'
+    return pack(
+      [
+        step(1, `${m}OH + CO₂ → ${salt}`, 'пропускание CO₂ через раствор щёлочи'),
+        step(2, `${carbonate} + CO₂ + H₂O → 2${salt}`, 'избыток CO₂ при наличии карбоната'),
+      ],
+      condStd('комнатная', 'атмосферное (ток CO₂)', 'не нужен', 'раствор щёлочи, трубка CO₂'),
+    )
+  }
+  if (id === 'salt_ca_hco3_2') {
+    return pack(
+      [
+        step(1, 'CaCO₃ + CO₂ + H₂O ⇄ Ca(HCO₃)₂', 'временная жёсткость воды'),
+        step(2, 'Ca(OH)₂ + 2CO₂ → Ca(HCO₃)₂', 'известковая вода + избыток CO₂'),
+      ],
+      condStd('комнатная', 'атмосферное (ток CO₂)', 'не нужен', 'раствор Ca(OH)₂, трубка CO₂'),
+    )
+  }
 
   // ——— Соли аммония (конкретная кислота, не «NH₃ + кислота») ———
   if (id.startsWith('salt_nh4_')) {
@@ -1260,6 +1301,29 @@ function saltTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
     )
   }
 
+  if (id.includes('_clo2') && metal && metal !== 'NH₄') {
+    return pack(
+      [
+        step(
+          1,
+          `NaClO₃ + восстановитель (Na₂S₂O₄ / SO₂) → ${f}`,
+          'промышленное восстановление хлората до хлорита',
+        ),
+        step(
+          2,
+          `2NaOH + Cl₂ →(холод) NaClO + NaCl + H₂O; далее окисление до ${f}`,
+          'многостадийный лабораторный путь',
+        ),
+      ],
+      {
+        temperature: 'комнатная / слабый нагрев по методике',
+        pressure: 'атмосферное',
+        catalyst: 'не обязателен',
+        equipment: 'генератор; вытяжка; хлориты — окислители',
+      },
+    )
+  }
+
   if (id.includes('_clo3') && metal && metal !== 'NH₄') {
     return pack(
       [
@@ -1387,7 +1451,7 @@ function hydroxideBundle(p: RawCompoundDef): ObtainingBundle {
 }
 
 /**
- * Полный бандл получения для любого вещества каталога (413).
+ * Полный бандл получения для любого вещества каталога (434).
  */
 export function resolveObtainingBundle(p: RawCompoundDef): ObtainingBundle {
   const curated = CURATED[p.id]
@@ -1412,9 +1476,17 @@ export function resolveObtainingBundle(p: RawCompoundDef): ObtainingBundle {
   }
 
   if (fromElementsPolicy(p.id) === 'forbidden') {
-    if (p.category === 'base' || p.id.includes('_oh_')) return hydroxideBundle(p)
+    if (p.category === 'base' || p.id.includes('_oh_')) {
+      const baseTpl = baseTemplateBundle(p)
+      if (baseTpl) return baseTpl
+      return hydroxideBundle(p)
+    }
     const salt = saltTemplateBundle(p)
     if (salt) return salt
+    const oxideTpl = oxideTemplateBundle(p)
+    if (oxideTpl) return oxideTpl
+    const acidTpl = acidTemplateBundle(p)
+    if (acidTpl) return acidTpl
     // Fallback: текст из substanceSynthesisRoute уже в laboratoryRecipeRu через resolve — здесь этапы из явного recipe
     if (p.laboratoryRecipeRu) {
       const parts = p.laboratoryRecipeRu
@@ -1439,7 +1511,14 @@ export function resolveObtainingBundle(p: RawCompoundDef): ObtainingBundle {
     return salt
   }
 
-  return synthesizeFromElementsBundle(p)
+  const oxideTpl = oxideTemplateBundle(p)
+  if (oxideTpl) return oxideTpl
+  const acidTpl = acidTemplateBundle(p)
+  if (acidTpl) return acidTpl
+  const baseTpl = baseTemplateBundle(p)
+  if (baseTpl) return baseTpl
+
+  return enrichedFromElementsBundle(p)
 }
 
 export function listCuratedObtainingIds(): readonly string[] {

@@ -109,7 +109,8 @@ const PREFERRED_SCHOOL_REACTION: Readonly<Record<string, string>> = {
   cu2o: 'cuo-decomp-cu2o',
   bao: 'bao2-decomp-bao',
   salt_k2cr2o7: 'k2cro4-h2so4-k2cr2o7',
-  salt_na_no3: 'naoh-hno3',
+  clo2: 'clo2-naclo2-cl2',
+  salt_na_clo2: 'clo2-naclo2-cl2',
   salt_fe2_s: 'fe-s-fes',
   salt_na_so4: 'naoh-h2so4',
   salt_k_so4: 'h2so4-koh',
@@ -161,6 +162,9 @@ const SCHOOL_ROUTE_RU: Readonly<Record<string, string>> = {
   salt_k_cro4: 'Маршрут: через CrO₃ / хромовую кислоту + KOH (не K+Cr+O₂ напрямую)',
   salt_na_no2:
     'Маршрут: NaNO₃ + Pb →(t°) NaNO₂ + PbO (или восстановление нитрата); не N₂+Na+O₂. Ион NO₂⁻, не NO₃⁻.',
+  clo2: 'Маршрут: 2NaClO₂ + Cl₂ → 2NaCl + 2ClO₂ (не Cl₂ + O₂ → ClO₂)',
+  salt_na_clo2:
+    'Маршрут: NaClO₃ + восстановитель → NaClO₂; затем 2NaClO₂ + Cl₂ → 2NaCl + 2ClO₂',
   salt_na_no3: 'Маршрут: NaOH / Na₂CO₃ + HNO₃ → NaNO₃ + … (не N₂+Na+O₂)',
   salt_k_mno4:
     'Маршрут: 2KMnO₄ ← окисление MnO₂ / манганата в щёлочи (промышленность); не K+Mn+O₂',

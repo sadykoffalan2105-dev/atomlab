@@ -1070,4 +1070,24 @@ export const SCHOOL_REACTIONS_PART5: readonly SchoolReactionDef[] = [
     howToEn: 'Acid turns yellow chromate into orange dichromate — not from K+Cr+O₂ elements.',
     passport: { reversibility: 'reversible' },
   },
+  {
+    id: 'clo2-naclo2-cl2',
+    titleRu: 'Получение диоксида хлора',
+    titleEn: 'Chlorine dioxide formation',
+    reactionClass: 'redox',
+    grades: [9],
+    equationRu: '2NaClO₂ + Cl₂ → 2NaCl + 2ClO₂',
+    equationEn: '2NaClO₂ + Cl₂ → 2NaCl + 2ClO₂',
+    productId: 'clo2',
+    kind: 'practice_only',
+    compoundIds: ['salt_na_clo2', 'clo2', 'nacl'],
+    reactants: [
+      { kind: 'compound', compoundId: 'salt_na_clo2', coeff: 2 },
+      { kind: 'element', z: 17, coeff: 1, diatomic: true },
+    ],
+    howToRu:
+      'Окисление хлорита хлором — учебный и промышленный путь. Не Cl₂ + O₂ → ClO₂ напрямую.',
+    howToEn: 'Chlorite oxidized by chlorine — not direct Cl₂ + O₂ synthesis.',
+    passport: { heatEffect: 'exo', isRedox: true, phaseKind: 'heterogeneous' },
+  },
 ] as const
