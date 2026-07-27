@@ -12,6 +12,7 @@ import {
   type ClassStudent,
   type StudentTestKind,
 } from '../../learn/learnClassRosterStorage'
+import { computeStudentRating } from '../../learn/learnStudentStats'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { LearnStudentTestHub } from './LearnStudentTestHub'
 import { LearnStudentStatsModal } from './LearnStudentStatsModal'
@@ -158,6 +159,7 @@ export function LearnLessonSidebar({
               <ul className={styles.studentGrid}>
                 {roster.students.map((student) => {
                   const active = roster.activeStudentId === student.id
+                  const rating = computeStudentRating(student)
                   return (
                     <li key={student.id} className={styles.studentRow}>
                       <button
@@ -166,7 +168,12 @@ export function LearnLessonSidebar({
                         onClick={() => setActiveStudent(rosterSectionId, student.id)}
                       >
                         <span className={styles.studentName}>{student.name}</span>
-                        <span className={styles.studentScore}>{attemptLabel(t, student)}</span>
+                        <span className={styles.studentScore}>
+                          {attemptLabel(t, student)}
+                          {student.attempts.length > 0 || rating.conspectBonus > 0
+                            ? ` · ${rating.score}`
+                            : ''}
+                        </span>
                       </button>
                       <button
                         type="button"
@@ -199,6 +206,11 @@ export function LearnLessonSidebar({
         <LearnStudentStatsModal
           student={statsStudent}
           sectionTitle={t(section.titleKey)}
+          rosterSectionId={rosterSectionId}
+          gradeId={grade.id}
+          chapterId={chapter.id}
+          sectionId={section.id}
+          className={roster.className}
           onClose={() => setStatsStudentId(null)}
           onSelect={() => {
             setActiveStudent(rosterSectionId, statsStudent.id)

@@ -1,9 +1,21 @@
 import { createPortal } from 'react-dom'
-import { useEffect } from 'react'
-import type { ClassStudent, StudentTestKind } from '../../learn/learnClassRosterStorage'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  CLASS_ROSTER_CHANGED,
+  getStudentById,
+  recordGapConspectIssued,
+  type ClassStudent,
+  type StudentTestKind,
+} from '../../learn/learnClassRosterStorage'
+import {
+  downloadGapConspect,
+  generateGapConspectMarkdown,
+  resolveStudentGaps,
+} from '../../learn/learnStudentGapConspect'
 import {
   collectWeakTopics,
   computeStudentMastery,
+  computeStudentRating,
   type StudentMasteryStats,
 } from '../../learn/learnStudentStats'
 import { useT, type MessageKey } from '../../i18n/useT'
@@ -13,6 +25,11 @@ import styles from './LearnStudentStatsModal.module.css'
 type Props = {
   student: ClassStudent
   sectionTitle: string
+  rosterSectionId: string
+  gradeId?: string
+  chapterId?: string
+  sectionId?: string
+  className?: string
   onClose: () => void
   onSelect: () => void
 }
@@ -41,10 +58,46 @@ function masteryLabel(t: (k: MessageKey) => string, level: StudentMasteryStats['
   return t(map[level])
 }
 
-export function LearnStudentStatsModal({ student, sectionTitle, onClose, onSelect }: Props) {
-  const { t } = useT()
-  const stats = computeStudentMastery(student)
-  const weakTopics = collectWeakTopics(student.attempts)
+export function LearnStudentStatsModal({
+  student: studentProp,
+  sectionTitle,
+  rosterSectionId,
+  gradeId,
+  chapterId,
+  sectionId,
+  className,
+  onClose,
+  onSelect,
+}: Props) {
+  const { t, locale } = useT()
+  const [student, setStudent] = useState(studentProp)
+  const [conspectNotice, setConspectNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    setStudent(studentProp)
+  }, [studentProp])
+
+  useEffect(() => {
+    const sync = () => {
+      const fresh = getStudentById(rosterSectionId, studentProp.id)
+      if (fresh) setStudent(fresh)
+    }
+    window.addEventListener(CLASS_ROSTER_CHANGED, sync)
+    return () => window.removeEventListener(CLASS_ROSTER_CHANGED, sync)
+  }, [rosterSectionId, studentProp.id])
+
+  const stats = useMemo(() => computeStudentMastery(student), [student])
+  const rating = useMemo(() => computeStudentRating(student), [student])
+  const gaps = useMemo(
+    () =>
+      resolveStudentGaps(student, {
+        locale,
+        gradeId,
+        chapterId,
+        sectionId,
+      }),
+    [student, locale, gradeId, chapterId, sectionId],
+  )
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -68,6 +121,25 @@ export function LearnStudentStatsModal({ student, sectionTitle, onClose, onSelec
           ? styles.masteryNeedsWork
           : styles.masteryNone
 
+  const canGenerate = gaps.length > 0 || collectWeakTopics(student.attempts).length > 0 || student.attempts.length > 0
+
+  const onGenerateConspect = () => {
+    const markdown = generateGapConspectMarkdown({
+      student,
+      sectionTitle,
+      locale,
+      gradeId,
+      chapterId,
+      sectionId,
+      className,
+    })
+    downloadGapConspect(markdown, student.name, locale)
+    const weakIds = gaps.map((g) => g.id)
+    const updated = recordGapConspectIssued(rosterSectionId, student.id, weakIds)
+    if (updated) setStudent(updated)
+    setConspectNotice(t('learn.studentStats.conspect.saved'))
+  }
+
   return createPortal(
     <div className={styles.overlay} role="dialog" aria-modal="true">
       <div className={styles.card}>
@@ -87,6 +159,16 @@ export function LearnStudentStatsModal({ student, sectionTitle, onClose, onSelec
           {stats.overallAvgPct !== null ? (
             <span className={styles.masteryPct}>
               {t('learn.studentStats.overallAvg', { pct: String(stats.overallAvgPct) })}
+            </span>
+          ) : null}
+        </div>
+
+        <div className={styles.ratingRow}>
+          <span className={styles.ratingLabel}>{t('learn.studentStats.rating')}</span>
+          <strong className={styles.ratingValue}>{rating.score}/100</strong>
+          {rating.conspectBonus > 0 ? (
+            <span className={styles.ratingBonus}>
+              {t('learn.studentStats.ratingBonus', { n: String(rating.conspectBonus) })}
             </span>
           ) : null}
         </div>
@@ -120,12 +202,42 @@ export function LearnStudentStatsModal({ student, sectionTitle, onClose, onSelec
           })}
         </div>
 
-        {weakTopics.length > 0 ? (
+        <section className={styles.conspectBlock}>
+          <h3 className={styles.weakTitle}>{t('learn.studentStats.conspect.title')}</h3>
+          <p className={styles.conspectLead}>{t('learn.studentStats.conspect.lead')}</p>
+          <button
+            type="button"
+            className={styles.conspectBtn}
+            disabled={!canGenerate}
+            onClick={onGenerateConspect}
+          >
+            {t('learn.studentStats.conspect.generate')}
+          </button>
+          {student.gapConspect ? (
+            <p className={styles.conspectMeta}>
+              {t('learn.studentStats.conspect.issued', {
+                n: String(student.gapConspect.count),
+                date: new Date(student.gapConspect.issuedAt).toLocaleDateString(undefined, {
+                  day: '2-digit',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+              })}
+            </p>
+          ) : null}
+          {conspectNotice ? <p className={styles.conspectOk}>{conspectNotice}</p> : null}
+        </section>
+
+        {gaps.length > 0 ? (
           <section className={styles.weakBlock}>
             <h3 className={styles.weakTitle}>{t('learn.studentStats.weakTopics')}</h3>
             <ul className={styles.weakList}>
-              {weakTopics.map((id) => (
-                <li key={id}>{id.replace(/^q_/, '§ ')}</li>
+              {gaps.map((g) => (
+                <li key={g.id}>
+                  <span className={styles.gapTitle}>{g.title}</span>
+                  {g.explanation ? <span className={styles.gapHint}>{g.explanation}</span> : null}
+                </li>
               ))}
             </ul>
           </section>

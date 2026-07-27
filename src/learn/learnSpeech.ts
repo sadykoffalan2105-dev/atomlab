@@ -11,14 +11,12 @@ import {
   isBrowserSpeechSupported,
   preloadBrowserSpeechVoices,
   speakWithBrowserVoice,
-  stopBrowserSpeech,
 } from './learnSpeechBrowser'
 import { preloadPuterTts } from './learnPuterTts'
 import { LearnSpeechRecognition, isSpeechRecognitionSupported } from './learnSpeechRecognition'
 import {
   isNeuralPlaybackActive,
   playNeuralAudioBase64,
-  stopNeuralPlayback,
   unlockAudioPlayback,
 } from './learnSpeechPlayback'
 import {
@@ -27,6 +25,11 @@ import {
   primeTeacherVoiceOnUserGesture,
   teacherTtsLocale,
 } from './learnTeacherTtsClient'
+import {
+  claimSpeechChannel,
+  isSpeechChannelCurrent,
+  stopAllAppSpeech,
+} from './learnSpeechExclusive'
 
 export type LearnSpeechLocale = 'ru' | 'en' | 'uz'
 export type SpeechOutputMode = 'neural' | 'browser'
@@ -69,6 +72,7 @@ export class LearnSpeechController {
   private speakAborted = false
   private lastMode: SpeechOutputMode = 'neural'
   private neuralController: AbortController | null = null
+  private channelEpoch = 0
 
   getLastOutputMode(): SpeechOutputMode {
     return this.lastMode
@@ -90,8 +94,14 @@ export class LearnSpeechController {
 
     this.stop()
     this.speakAborted = false
+    this.channelEpoch = claimSpeechChannel('learn')
+    const channelEpoch = this.channelEpoch
     primeTeacherVoiceOnUserGesture()
     await unlockAudioPlayback()
+    if (!isSpeechChannelCurrent(channelEpoch, 'learn') || this.speakAborted) {
+      opts.onEnd?.()
+      return false
+    }
 
     const chunks = splitTextForTts(text, locale, opts.profile).filter((c) => this.isSpeakableChunk(c))
     if (chunks.length === 0) {
@@ -112,8 +122,8 @@ export class LearnSpeechController {
       return false
     }
 
-    // 2) Фолбэк — системный голос браузера.
-    if (this.speakAborted) {
+    // 2) Фолбэк — системный голос браузера (только Learn, не lab).
+    if (this.speakAborted || !isSpeechChannelCurrent(channelEpoch, 'learn')) {
       opts.onEnd?.()
       return false
     }
@@ -124,8 +134,8 @@ export class LearnSpeechController {
     }
 
     opts.onMode?.('browser')
-    const browserOk = await speakWithBrowserVoice(chunks, locale, () => this.speakAborted)
-    if (browserOk && !this.speakAborted) {
+    const browserOk = await speakWithBrowserVoice(chunks, locale, () => this.speakAborted || !isSpeechChannelCurrent(channelEpoch, 'learn'))
+    if (browserOk && !this.speakAborted && isSpeechChannelCurrent(channelEpoch, 'learn')) {
       this.lastMode = 'browser'
       opts.onEnd?.()
       return true
@@ -213,8 +223,7 @@ export class LearnSpeechController {
     this.speakAborted = true
     this.neuralController?.abort()
     this.neuralController = null
-    stopNeuralPlayback()
-    stopBrowserSpeech()
+    stopAllAppSpeech()
   }
 
   isSpeaking(): boolean {

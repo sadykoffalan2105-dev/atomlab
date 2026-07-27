@@ -90,4 +90,12 @@ export const learnMoleculeStructureRu = {
   'learn.studentStats.history': 'История тестов',
   'learn.studentStats.selectForTest': 'Выбрать для теста',
   'learn.studentStats.saved': 'Результат сохранён в статистике ученика',
+  'learn.studentStats.rating': 'Рейтинг',
+  'learn.studentStats.ratingBonus': '+{n} за конспекты',
+  'learn.studentStats.conspect.title': 'Конспект по пробелам',
+  'learn.studentStats.conspect.lead':
+    'Сгенерируйте подробный персональный конспект: разбор ошибок, теория §, мини-тест, устная/письменная тренировка и план на 3 дня. Файл можно скачать.',
+  'learn.studentStats.conspect.generate': 'Сгенерировать и скачать конспект',
+  'learn.studentStats.conspect.saved': 'Конспект сохранён ученику, рейтинг обновлён',
+  'learn.studentStats.conspect.issued': 'Выдано: {n} · последний раз {date}',
 } as const

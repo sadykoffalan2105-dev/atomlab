@@ -39,14 +39,14 @@
 }
 
 .reactorReopenFab {
-  position: fixed;
-  bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
-  left: 50%;
+  position: relative;
+  bottom: auto;
+  left: auto;
   z-index: 49;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  transform: translateX(-50%);
+  transform: none;
   padding: 0.55rem 1.05rem;
   border-radius: 999px;
   border: 1px solid rgba(61, 255, 236, 0.55);
@@ -58,6 +58,48 @@
   cursor: pointer;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 18px rgba(61, 255, 236, 0.18);
   pointer-events: auto;
+}
+
+.reactorFabCluster {
+  position: fixed;
+  bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  z-index: 49;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.reactorExplainFab {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.48rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(160, 190, 230, 0.4);
+  background: linear-gradient(180deg, rgba(16, 20, 40, 0.96) 0%, rgba(8, 10, 24, 0.98) 100%);
+  color: rgba(210, 220, 240, 0.92);
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  font-family: inherit;
+}
+
+.reactorExplainFab:hover {
+  border-color: rgba(140, 220, 230, 0.65);
+  color: #e8fffb;
+}
+
+.reactorExplainFabOn {
+  border-color: rgba(61, 255, 236, 0.65);
+  color: #9af0e8;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(61, 255, 236, 0.2);
 }
 
 .reactorReopenFab:hover {
@@ -119,18 +161,49 @@
   background: rgba(8, 18, 32, 0.72);
 }
 
-.teacherBadge {
-  font-size: 0.58rem;
-  font-weight: 750;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: #9af0e8;
-  white-space: nowrap;
+.teacherLive {
+  color: #6ef0c8;
+  font-size: 0.55rem;
+  line-height: 1;
+  animation: teacherLivePulse 1.1s ease-in-out infinite;
 }
 
-.teacherBadge[data-speaking='1'] {
-  color: #b8ffe8;
-  text-shadow: 0 0 10px rgba(110, 240, 200, 0.35);
+@keyframes teacherLivePulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.teacherCaption {
+  margin: 0.55rem 0.75rem 0.35rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(110, 200, 210, 0.28);
+  background: rgba(6, 14, 28, 0.88);
+}
+
+.teacherCaption[data-speaking='1'] {
+  border-color: rgba(110, 220, 210, 0.45);
+}
+
+.teacherCaptionTitle {
+  margin: 0 0 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(230, 240, 255, 0.95);
+}
+
+.teacherCaptionText {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: rgba(185, 205, 235, 0.9);
+  max-height: 3.6rem;
+  overflow: auto;
 }
 
 .teacherVoiceOn {
@@ -139,8 +212,8 @@
 }
 
 .teacherVoiceOff {
-  border-color: rgba(255, 150, 120, 0.4) !important;
-  color: #ffc4a8 !important;
+  border-color: rgba(160, 180, 210, 0.35) !important;
+  color: rgba(200, 215, 240, 0.88) !important;
 }
 
 .reactorBtnSecondary {

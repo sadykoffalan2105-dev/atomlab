@@ -1,15 +1,14 @@
 /**
  * Озвучка преподавателя в лаборатории.
  *
- * Ключевые правила синхронизации:
- * 1. Prefetch с приоритетом intro→tension→transfer… (lab-prosody явно).
- * 2. Новый cue прерывает текущую речь — картинка важнее хвоста фразы.
- * 3. Session-кэш аудио — повторные прогоны мгновенны.
- * 4. speakIntro ждёт готовности intro (до 4 с) перед стартом.
+ * 1. Prefetch lab-prosody (intro → tension → …).
+ * 2. Новый cue прерывает текущую речь.
+ * 3. Session-кэш аудио.
+ * 4. Эксклюзивный канал: системный speechSynthesis глушится, только neural.
+ * 5. Поздний intro не перебивает уже начавшиеся cue.
  */
 
 import {
-  type LearnSpeechLocale,
   preloadSpeechVoices,
 } from '../../learn/learnSpeech'
 import {
@@ -23,14 +22,14 @@ import {
 } from '../../learn/learnSpeechText'
 import {
   playNeuralAudioBase64,
-  stopNeuralPlayback,
   unlockAudioPlayback,
 } from '../../learn/learnSpeechPlayback'
 import {
-  isBrowserSpeechSupported,
-  speakWithBrowserVoice,
-  stopBrowserSpeech,
-} from '../../learn/learnSpeechBrowser'
+  claimSpeechChannel,
+  isSpeechChannelCurrent,
+  silenceForeignSpeech,
+  stopAllAppSpeech,
+} from '../../learn/learnSpeechExclusive'
 import {
   CLO2_SPEECH_SILENT,
   CLO2_TEACHER_SFX,
@@ -44,8 +43,9 @@ import type { Clo2CueId } from '../cinema/scenes/clo2/storyboard'
 
 const VOICE_STORAGE_KEY = 'atomlab-lab-teacher-voice'
 const PREFETCH_CONCURRENCY = 2
-const INTRO_READY_TIMEOUT_MS = 4000
-const CUE_READY_TIMEOUT_MS = 2200
+/** Короткий wait — сцена уже идёт; долгий intro опаздывал и молчал. */
+const INTRO_READY_TIMEOUT_MS = 900
+const CUE_READY_TIMEOUT_MS = 1100
 
 export function readLabTeacherVoiceEnabled(): boolean {
   try {
@@ -55,7 +55,8 @@ export function readLabTeacherVoiceEnabled(): boolean {
   } catch {
     /* ignore */
   }
-  return true
+  /** По умолчанию молчим — учитель говорит только после «Объяснение». */
+  return false
 }
 
 export function writeLabTeacherVoiceEnabled(on: boolean): void {
@@ -78,7 +79,6 @@ type CacheEntry = {
   key: string
 }
 
-/** Порядок prefetch = порядок появления на таймлайне. */
 const CLO2_VOICED_CUES: readonly Clo2TeacherLineId[] = [
   'intro',
   'tension',
@@ -91,7 +91,6 @@ const CLO2_VOICED_CUES: readonly Clo2TeacherLineId[] = [
   'complete',
 ]
 
-/** Критический путь — грузим первыми, до нажатия «Синтез». */
 const PRIORITY_PREFETCH: readonly Clo2TeacherLineId[] = [
   'intro',
   'tension',
@@ -101,11 +100,10 @@ const PRIORITY_PREFETCH: readonly Clo2TeacherLineId[] = [
   'radicalA',
 ]
 
-/** Session-level: переживает beginRun — повторный синтез мгновенный. */
 const sessionAudioCache = new Map<string, LineAudio>()
 
 function cacheKey(locale: LabTeacherLocale, speak: string): string {
-  return `lab|v3|${locale}|${speak}`
+  return `lab|v4|${locale}|${speak}`
 }
 
 function delay(ms: number): Promise<void> {
@@ -134,6 +132,9 @@ export class LabTeacherNarrator {
   private prefetchPromise: Promise<void> | null = null
 
   private playToken = 0
+  private channelEpoch = 0
+  /** После первого cue поздний intro больше не стартует. */
+  private suppressIntro = false
 
   setLocale(locale: LabTeacherLocale): void {
     if (this.locale === locale) return
@@ -144,7 +145,10 @@ export class LabTeacherNarrator {
   setVoiceEnabled(on: boolean): void {
     this.voiceOn = on
     writeLabTeacherVoiceEnabled(on)
-    if (!on) this.haltPlayback()
+    if (!on) {
+      this.haltPlayback()
+      this.publish(null)
+    }
   }
 
   isVoiceEnabled(): boolean {
@@ -194,6 +198,7 @@ export class LabTeacherNarrator {
     primeTeacherVoiceOnUserGesture()
     primeLabReactionSfx()
     preloadSpeechVoices()
+    void unlockAudioPlayback()
   }
 
   warmPrefetch(): void {
@@ -203,6 +208,8 @@ export class LabTeacherNarrator {
 
   beginRun(): void {
     this.runToken += 1
+    this.suppressIntro = false
+    this.channelEpoch = claimSpeechChannel('lab')
     this.haltPlayback()
     this.publish(null)
     this.lastSpokenId = null
@@ -211,15 +218,16 @@ export class LabTeacherNarrator {
 
   stop(): void {
     this.runToken += 1
+    this.suppressIntro = true
     this.haltPlayback()
     this.publish(null)
     this.abortPrefetch()
+    stopAllAppSpeech()
   }
 
   private haltPlayback(): void {
     this.playToken += 1
-    stopNeuralPlayback()
-    stopBrowserSpeech()
+    silenceForeignSpeech('lab')
     this.setSpeaking(false)
   }
 
@@ -349,16 +357,18 @@ export class LabTeacherNarrator {
       const entry = this.cache.get(id)
       if (entry?.result?.length) return
       if (entry) {
-        const audio = await Promise.race([entry.ready, delay(120).then(() => null)])
+        const audio = await Promise.race([entry.ready, delay(80).then(() => null)])
         if (audio && audio.length > 0) return
       } else {
-        await delay(60)
+        await delay(40)
       }
     }
   }
 
-  private async playFromCache(id: Clo2TeacherLineId, token: number): Promise<void> {
+  private async playFromCache(id: Clo2TeacherLineId, token: number, channelEpoch: number): Promise<void> {
     if (!this.voiceOn) return
+    if (!isSpeechChannelCurrent(channelEpoch, 'lab')) return
+
     const line = getClo2TeacherLine(this.locale, id)
     if (!line.speak.trim()) return
 
@@ -371,6 +381,7 @@ export class LabTeacherNarrator {
     try {
       await this.ensureLineReady(id, CUE_READY_TIMEOUT_MS)
       if (token !== this.playToken) return
+      if (!isSpeechChannelCurrent(channelEpoch, 'lab')) return
 
       let audio: LineAudio | null = null
       const entry = this.cache.get(id)
@@ -385,34 +396,34 @@ export class LabTeacherNarrator {
       }
 
       if (token !== this.playToken) return
+      if (!isSpeechChannelCurrent(channelEpoch, 'lab')) return
 
-      if (audio && audio.length > 0) {
-        await unlockAudioPlayback()
+      if (!audio || audio.length === 0) {
+        // Без системного фолбэка: HUD уже показывает текст, робот не мешает neural.
+        return
+      }
+
+      silenceForeignSpeech('lab')
+      await unlockAudioPlayback()
+      if (token !== this.playToken) return
+      if (!isSpeechChannelCurrent(channelEpoch, 'lab')) return
+
+      for (let i = 0; i < audio.length; i++) {
         if (token !== this.playToken) return
-        for (let i = 0; i < audio.length; i++) {
-          if (token !== this.playToken) return
-          if (i > 0) await delay(TTS_LAB_CHUNK_GAP_MS)
-          if (token !== this.playToken) return
-          try {
-            await playNeuralAudioBase64(audio[i]!.audioBase64, audio[i]!.mimeType)
-          } catch {
-            if (i === 0) await this.playFallback(line.speak, token)
-            return
-          }
+        if (!isSpeechChannelCurrent(channelEpoch, 'lab')) return
+        if (i > 0) await delay(TTS_LAB_CHUNK_GAP_MS)
+        if (token !== this.playToken) return
+        silenceForeignSpeech('lab')
+        try {
+          await playNeuralAudioBase64(audio[i]!.audioBase64, audio[i]!.mimeType)
+        } catch {
+          // Не включаем speechSynthesis — он и есть «системный голос».
+          return
         }
-      } else {
-        await this.playFallback(line.speak, token)
       }
     } finally {
       if (token === this.playToken) this.setSpeaking(false)
     }
-  }
-
-  private async playFallback(text: string, token: number): Promise<void> {
-    if (!isBrowserSpeechSupported()) return
-    const locale = this.locale as LearnSpeechLocale
-    const chunks = splitTextForTts(text, locale, 'lab')
-    await speakWithBrowserVoice(chunks, locale, () => token !== this.playToken, 'lab')
   }
 
   async speakLine(id: Clo2TeacherLineId, opts?: { force?: boolean }): Promise<void> {
@@ -420,50 +431,70 @@ export class LabTeacherNarrator {
     const isCue = id !== 'intro'
     const silent = isCue && CLO2_SPEECH_SILENT.has(id as Clo2CueId)
 
+    /** Без включённого «Объяснения» — ни текст, ни голос, ни SFX. */
+    if (!this.voiceOn && !opts?.force) return
+
     if (silent && !opts?.force) {
       const sfx = CLO2_TEACHER_SFX[id as Clo2CueId]
-      if (sfx && this.voiceOn) playLabReactionSfx(sfx)
+      if (sfx) playLabReactionSfx(sfx)
       return
     }
 
     if (!line.speak.trim()) return
 
+    if (isCue) this.suppressIntro = true
+
     this.publish(line)
     if (isCue) {
       const sfx = CLO2_TEACHER_SFX[id as Clo2CueId]
-      if (sfx && this.voiceOn) playLabReactionSfx(sfx)
+      if (sfx) playLabReactionSfx(sfx)
     }
 
-    if (!this.voiceOn) return
+    if (!isSpeechChannelCurrent(this.channelEpoch, 'lab')) {
+      this.channelEpoch = claimSpeechChannel('lab')
+    } else {
+      silenceForeignSpeech('lab')
+    }
 
     this.haltPlayback()
     const token = this.playToken
+    const channelEpoch = this.channelEpoch
 
-    void this.playFromCache(id, token).catch(() => {
+    void this.playFromCache(id, token, channelEpoch).catch(() => {
       if (token === this.playToken) this.setSpeaking(false)
     })
   }
 
   speakCue(id: Clo2CueId): void {
+    this.suppressIntro = true
     void this.speakLine(id)
   }
 
   speakIntro(): void {
+    const run = this.runToken
     void (async () => {
       if (this.voiceOn) await this.ensureLineReady('intro', INTRO_READY_TIMEOUT_MS)
+      if (run !== this.runToken) return
+      if (this.suppressIntro) return
       void this.speakLine('intro')
     })()
   }
 
   replay(): void {
     const id = this.lastSpokenId ?? 'intro'
+    this.channelEpoch = claimSpeechChannel('lab')
     void this.speakLine(id, { force: true })
   }
 
   toggleVoice(): boolean {
     const next = !this.voiceOn
     this.setVoiceEnabled(next)
-    if (next) void this.ensurePrefetch()
+    if (next) {
+      this.channelEpoch = claimSpeechChannel('lab')
+      void this.ensurePrefetch()
+    } else {
+      stopAllAppSpeech()
+    }
     return next
   }
 }

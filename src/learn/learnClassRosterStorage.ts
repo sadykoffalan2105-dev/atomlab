@@ -19,10 +19,20 @@ export type ClassTestAttempt = {
   hintsUsed?: number
 }
 
+/** Персональный конспект по пробелам, выданный учителем. */
+export type StudentGapConspectRecord = {
+  issuedAt: string
+  weakIds: string[]
+  count: number
+}
+
 export type ClassStudent = {
   id: string
   name: string
   attempts: ClassTestAttempt[]
+  /** Бонус к рейтингу за работу с конспектами по пробелам (0–15). */
+  ratingBonus?: number
+  gapConspect?: StudentGapConspectRecord
 }
 
 export type ClassRoster = {
@@ -57,11 +67,28 @@ function normalizeAttempt(raw: Partial<ClassTestAttempt>): ClassTestAttempt {
   }
 }
 
+function normalizeGapConspect(raw: unknown): StudentGapConspectRecord | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const g = raw as Partial<StudentGapConspectRecord>
+  if (typeof g.issuedAt !== 'string') return undefined
+  return {
+    issuedAt: g.issuedAt,
+    weakIds: Array.isArray(g.weakIds) ? g.weakIds.filter((id): id is string => typeof id === 'string') : [],
+    count: typeof g.count === 'number' && g.count > 0 ? Math.floor(g.count) : 1,
+  }
+}
+
 function normalizeStudent(raw: Partial<ClassStudent>): ClassStudent {
+  const ratingBonus =
+    typeof raw.ratingBonus === 'number' && raw.ratingBonus > 0
+      ? Math.min(15, Math.floor(raw.ratingBonus))
+      : undefined
   return {
     id: raw.id ?? `stu_${Date.now()}`,
     name: raw.name ?? '',
     attempts: Array.isArray(raw.attempts) ? raw.attempts.map((a) => normalizeAttempt(a)) : [],
+    ratingBonus,
+    gapConspect: normalizeGapConspect(raw.gapConspect),
   }
 }
 
@@ -161,6 +188,34 @@ export function recordStudentTaskResult(
 export function getStudentById(sectionId: string, studentId: string): ClassStudent | null {
   const roster = readClassRoster(sectionId)
   return roster.students.find((s) => s.id === studentId) ?? null
+}
+
+/** Учитель выдал персональный конспект по пробелам — фиксируем и даём бонус к рейтингу. */
+export function recordGapConspectIssued(
+  sectionId: string,
+  studentId: string,
+  weakIds: string[],
+): ClassStudent | null {
+  const roster = readClassRoster(sectionId)
+  let updated: ClassStudent | null = null
+  const students = roster.students.map((s) => {
+    if (s.id !== studentId) return s
+    const prevCount = s.gapConspect?.count ?? 0
+    const nextBonus = Math.min(15, (s.ratingBonus ?? 0) + 5)
+    updated = {
+      ...s,
+      ratingBonus: nextBonus,
+      gapConspect: {
+        issuedAt: new Date().toISOString(),
+        weakIds: weakIds.slice(0, 16),
+        count: prevCount + 1,
+      },
+    }
+    return updated
+  })
+  if (!updated) return null
+  writeClassRoster(sectionId, { ...roster, students })
+  return updated
 }
 
 export function lastAttemptForKind(

@@ -51,7 +51,10 @@ import {
   seedScientificReactorEquation,
   type ReactorCoProductTerm,
 } from '../chemistry/scientificReactorRecipes'
-import { LabTeacherDock, getLabTeacherNarrator, hasLabTeacherScript, readLabTeacherVoiceEnabled } from '../lab/teacher'
+import { getLabTeacherNarrator, hasLabTeacherScript, readLabTeacherVoiceEnabled } from '../lab/teacher'
+import type { Clo2TeacherLine } from '../lab/teacher/clo2TeacherScript'
+import { unlockAudioPlayback } from '../learn/learnSpeechPlayback'
+import { stopAllAppSpeech } from '../learn/learnSpeechExclusive'
 import type { Clo2CueId } from '../lab/cinema/scenes/clo2/storyboard'
 import { getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import { useT } from '../i18n/useT'
@@ -788,10 +791,12 @@ export function LaboratoryPage() {
     setSynthesisFlightSlots(zCopy)
     setSynthesisFlyTerms(flyCopy)
 
-    if (hasLabTeacherScript(payload.productId)) {
+    if (hasLabTeacherScript(payload.productId) && readLabTeacherVoiceEnabled()) {
       const narrator = getLabTeacherNarrator()
       narrator.setLocale(locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru')
+      stopAllAppSpeech()
       narrator.prime()
+      void unlockAudioPlayback()
       narrator.beginRun()
       narrator.speakIntro()
     } else {
@@ -802,8 +807,10 @@ export function LaboratoryPage() {
   }, [leftTerms, coProducts, productCompoundId, productCoeff, t, locale, runId, resetEditBurst, catalogList])
 
   const onLabNarrationCue = useCallback((id: string) => {
+    if (!readLabTeacherVoiceEnabled()) return
     if (!hasLabTeacherScript(lastRunProductIdRef.current ?? productCompoundId)) return
-    getLabTeacherNarrator().speakCue(id as Clo2CueId)
+    const narrator = getLabTeacherNarrator()
+    narrator.speakCue(id as Clo2CueId)
   }, [productCompoundId])
 
   const labSynthesis = useMemo(() => {
@@ -927,15 +934,17 @@ export function LaboratoryPage() {
     reactorOpen && hasLabTeacherScript(lastRunProductIdRef.current ?? productCompoundId)
   const [teacherVoiceOn, setTeacherVoiceOn] = useState(() => readLabTeacherVoiceEnabled())
   const [teacherSpeaking, setTeacherSpeaking] = useState(false)
+  const [teacherLine, setTeacherLine] = useState<Clo2TeacherLine | null>(null)
 
   useEffect(() => {
     if (!reactorOpen) {
       getLabTeacherNarrator().stop()
       setTeacherSpeaking(false)
+      setTeacherLine(null)
     }
   }, [reactorOpen])
 
-  /** Прогрев TTS до нажатия «Синтез» — когда выбран ClO₂. */
+  /** Прогрев TTS только если объяснение уже включено. */
   useEffect(() => {
     if (!hasLabTeacherScript(productCompoundId)) return
     if (!readLabTeacherVoiceEnabled()) return
@@ -943,25 +952,44 @@ export function LaboratoryPage() {
     narrator.setLocale(locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru')
     narrator.prime()
     narrator.warmPrefetch()
-  }, [productCompoundId, locale])
+  }, [productCompoundId, locale, teacherVoiceOn])
 
   useEffect(() => {
     if (!labTeacherActive) {
       setTeacherSpeaking(false)
+      setTeacherLine(null)
       return
     }
     const narrator = getLabTeacherNarrator()
     setTeacherVoiceOn(narrator.isVoiceEnabled())
-    return narrator.subscribeSpeaking(setTeacherSpeaking)
+    const offSpeak = narrator.subscribeSpeaking(setTeacherSpeaking)
+    const offLine = narrator.subscribe(setTeacherLine)
+    return () => {
+      offSpeak()
+      offLine()
+    }
   }, [labTeacherActive])
 
   const onTeacherVoiceToggle = useCallback(() => {
     const narrator = getLabTeacherNarrator()
     narrator.prime()
-    setTeacherVoiceOn(narrator.toggleVoice())
-  }, [])
+    const next = narrator.toggleVoice()
+    setTeacherVoiceOn(next)
+    if (next) {
+      narrator.setLocale(locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru')
+      void unlockAudioPlayback()
+      narrator.warmPrefetch()
+      if (runId > 0) {
+        narrator.beginRun()
+        narrator.speakIntro()
+      }
+    } else {
+      setTeacherLine(null)
+    }
+  }, [locale, runId])
 
   const onTeacherReplay = useCallback(() => {
+    if (!readLabTeacherVoiceEnabled()) return
     const narrator = getLabTeacherNarrator()
     narrator.prime()
     narrator.replay()
@@ -1109,12 +1137,11 @@ export function LaboratoryPage() {
               prewarmProductCompound={gpuPrewarmCompound}
               gpuQueuePriorityCompound={gpuQueuePriorityCompound}
               reactorGpuIdleReady={reactorGpuIdleReady}
-              teacherMode={labTeacherActive && synthRunActive}
-              onNarrationCue={onLabNarrationCue}
+              teacherMode={Boolean(labTeacherActive && teacherVoiceOn && (synthRunActive || runId > 0))}
+              onNarrationCue={labTeacherActive && teacherVoiceOn ? onLabNarrationCue : undefined}
             />
           </Suspense>
         </div>
-        {labTeacherActive ? <LabTeacherDock active={labTeacherActive} /> : null}
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />
         ) : null}
@@ -1189,6 +1216,8 @@ export function LaboratoryPage() {
         teacherAvailable={hasLabTeacherScript(productCompoundId)}
         teacherVoiceOn={teacherVoiceOn}
         teacherSpeaking={teacherSpeaking}
+        teacherLineTitle={teacherVoiceOn ? teacherLine?.title : undefined}
+        teacherLineText={teacherVoiceOn ? teacherLine?.speak : undefined}
         onTeacherVoiceToggle={onTeacherVoiceToggle}
         onTeacherReplay={onTeacherReplay}
       />

@@ -90,4 +90,12 @@ export const learnMoleculeStructureEn = {
   'learn.studentStats.history': 'Test history',
   'learn.studentStats.selectForTest': 'Select for testing',
   'learn.studentStats.saved': 'Result saved to student profile',
+  'learn.studentStats.rating': 'Rating',
+  'learn.studentStats.ratingBonus': '+{n} for conspects',
+  'learn.studentStats.conspect.title': 'Gap reinforcement sheet',
+  'learn.studentStats.conspect.lead':
+    'Generate a detailed personal sheet: error analysis, section theory, mini-test, oral/written drills, and a 3-day plan. Downloadable file.',
+  'learn.studentStats.conspect.generate': 'Generate & download conspect',
+  'learn.studentStats.conspect.saved': 'Conspect saved for the student; rating updated',
+  'learn.studentStats.conspect.issued': 'Issued: {n} · last {date}',
 } as const

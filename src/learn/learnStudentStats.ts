@@ -107,10 +107,28 @@ export function computeStudentMastery(student: ClassStudent): StudentMasteryStat
   }
 }
 
-export function collectWeakTopics(attempts: ClassTestAttempt[]): string[] {
+export function collectWeakTopics(attempts: ClassTestAttempt[], max = 8): string[] {
   const ids = new Set<string>()
   for (const a of attempts) {
     for (const id of a.wrongQuestionIds ?? []) ids.add(id)
   }
-  return [...ids].slice(0, 8)
+  return [...ids].slice(0, max)
+}
+
+/** Рейтинг ученика: средний % + бонус за выданные конспекты по пробелам (до +15). */
+export type StudentRating = {
+  score: number
+  basePct: number
+  conspectBonus: number
+  conspectCount: number
+}
+
+export function computeStudentRating(student: ClassStudent): StudentRating {
+  const mastery = computeStudentMastery(student)
+  const basePct = mastery.overallAvgPct ?? 0
+  const conspectCount = student.gapConspect?.count ?? 0
+  const storedBonus = student.ratingBonus ?? 0
+  const conspectBonus = Math.min(15, Math.max(storedBonus, conspectCount * 5))
+  const score = Math.min(100, Math.max(0, Math.round(basePct + conspectBonus)))
+  return { score, basePct, conspectBonus, conspectCount }
 }

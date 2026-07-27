@@ -90,4 +90,12 @@ export const learnMoleculeStructureUz = {
   'learn.studentStats.history': `Testlar tarixi`,
   'learn.studentStats.selectForTest': `Test uchun tanlash`,
   'learn.studentStats.saved': `Natija o'quvchi statistikasiga saqlandi`,
+  'learn.studentStats.rating': `Reyting`,
+  'learn.studentStats.ratingBonus': `+{n} konspekt uchun`,
+  'learn.studentStats.conspect.title': `Bo'shliqlar bo'yicha konspekt`,
+  'learn.studentStats.conspect.lead':
+    `Batafsil shaxsiy konspekt yarating: xatolar tahlili, § nazariyasi, mini-test, og'zaki/yozma mashq va 3 kunlik reja. Faylni yuklab olish mumkin.`,
+  'learn.studentStats.conspect.generate': `Konspekt yaratish va yuklash`,
+  'learn.studentStats.conspect.saved': `Konspekt o'quvchiga saqlandi, reyting yangilandi`,
+  'learn.studentStats.conspect.issued': `Berilgan: {n} · oxirgi {date}`,
 } as const

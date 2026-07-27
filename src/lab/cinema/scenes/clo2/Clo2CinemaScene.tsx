@@ -80,7 +80,9 @@ export function Clo2CinemaScene({
 }: Clo2CinemaSceneProps) {
   const quality = useMemo(() => resolveCinemaQuality(lowPower), [lowPower])
   const lite = quality.tier === 'lite'
-  const segments = teacherMode ? CLO2_SEGMENTS_TEACHER : CLO2_SEGMENTS
+  /** Длинный wall-time + lead-cues, если есть озвучка (не только teacherMode prop). */
+  const narrated = Boolean(teacherMode || onNarrationCue)
+  const segments = narrated ? CLO2_SEGMENTS_TEACHER : CLO2_SEGMENTS
 
   useEffect(() => {
     // Раскадровка — данные, их корректность проверяем один раз при монтировании.
@@ -230,7 +232,8 @@ export function Clo2CinemaScene({
     }
 
     // ——— События раскадровки ———
-    if (teacherMode && onNarrationCueRef.current) {
+    // Озвучка всегда с lead-cues, если колбэк передан (не ждём teacherMode).
+    if (onNarrationCueRef.current) {
       narrationCuesRef.current.update(t, (id) => {
         onNarrationCueRef.current?.(id)
       })
@@ -238,7 +241,6 @@ export function Clo2CinemaScene({
 
     cues.current.update(t, (id) => {
       cueTimes.current[id] = t
-      if (!teacherMode) onNarrationCueRef.current?.(id)
       switch (id) {
         case 'tension':
           vfxSpark.current?.fire()

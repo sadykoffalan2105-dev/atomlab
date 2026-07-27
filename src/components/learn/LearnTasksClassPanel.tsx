@@ -12,6 +12,7 @@ import {
   type ClassStudent,
   type StudentTestKind,
 } from '../../learn/learnClassRosterStorage'
+import { computeStudentRating } from '../../learn/learnStudentStats'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { LearnStudentStatsModal } from './LearnStudentStatsModal'
 import styles from './LearnClassRosterPanel.module.css'
@@ -137,6 +138,7 @@ export function LearnTasksClassPanel() {
         <ul className={styles.studentList}>
           {roster.students.map((student) => {
             const active = roster.activeStudentId === student.id
+            const rating = computeStudentRating(student)
             return (
               <li key={student.id} className={styles.studentRow}>
                 <button
@@ -150,7 +152,12 @@ export function LearnTasksClassPanel() {
                       <span className={styles.activeTag}> · {t('learn.tasksClass.active')}</span>
                     ) : null}
                   </span>
-                  <span className={styles.studentScore}>{attemptLabel(t, student)}</span>
+                  <span className={styles.studentScore}>
+                    {attemptLabel(t, student)}
+                    {student.attempts.length > 0 || rating.conspectBonus > 0
+                      ? ` · ${rating.score}`
+                      : ''}
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -171,6 +178,8 @@ export function LearnTasksClassPanel() {
         <LearnStudentStatsModal
           student={statsStudent}
           sectionTitle={t('learn.tasksClass.title')}
+          rosterSectionId={SECTION_ID}
+          className={roster.className}
           onClose={() => setStatsStudentId(null)}
           onSelect={() => {
             setActiveStudent(SECTION_ID, statsStudent.id)

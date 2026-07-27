@@ -12,6 +12,7 @@ import {
   type ClassStudent,
   type StudentTestKind,
 } from '../../learn/learnClassRosterStorage'
+import { computeStudentRating } from '../../learn/learnStudentStats'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { LearnStudentTestHub } from './LearnStudentTestHub'
 import { LearnStudentStatsModal } from './LearnStudentStatsModal'
@@ -148,6 +149,7 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
         <ul className={styles.studentList}>
           {roster.students.map((student) => {
             const active = roster.activeStudentId === student.id
+            const rating = computeStudentRating(student)
             return (
               <li key={student.id} className={styles.studentRow}>
                 <button
@@ -156,7 +158,12 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
                   onClick={() => setActiveStudent(sectionId, student.id)}
                 >
                   <span className={styles.studentName}>{student.name}</span>
-                  <span className={styles.studentScore}>{attemptLabel(t, student)}</span>
+                  <span className={styles.studentScore}>
+                    {attemptLabel(t, student)}
+                    {student.attempts.length > 0 || rating.conspectBonus > 0
+                      ? ` · ${rating.score}`
+                      : ''}
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -177,6 +184,11 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
         <LearnStudentStatsModal
           student={statsStudent}
           sectionTitle={t(section.titleKey)}
+          rosterSectionId={sectionId}
+          gradeId={grade.id}
+          chapterId={chapter.id}
+          sectionId={section.id}
+          className={roster.className}
           onClose={() => setStatsStudentId(null)}
           onSelect={() => {
             setActiveStudent(sectionId, statsStudent.id)

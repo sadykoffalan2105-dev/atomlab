@@ -223,8 +223,10 @@ export function SynthesisReactorPanel({
   onLabCatalystChange,
   scientificMode = false,
   teacherAvailable = false,
-  teacherVoiceOn = true,
+  teacherVoiceOn = false,
   teacherSpeaking = false,
+  teacherLineTitle,
+  teacherLineText,
   onTeacherVoiceToggle,
   onTeacherReplay,
 }: {
@@ -260,10 +262,12 @@ export function SynthesisReactorPanel({
   onLabPressureChange?: (on: boolean) => void
   onLabCatalystChange?: (on: boolean) => void
   scientificMode?: boolean
-  /** ИИ-преподаватель доступен для текущего продукта (ClO₂). */
+  /** Объяснение синтеза (озвучка) — только по кнопке у реактора. */
   teacherAvailable?: boolean
   teacherVoiceOn?: boolean
   teacherSpeaking?: boolean
+  teacherLineTitle?: string
+  teacherLineText?: string
   onTeacherVoiceToggle?: () => void
   onTeacherReplay?: () => void
 }) {
@@ -345,30 +349,31 @@ export function SynthesisReactorPanel({
         <div className={panelStyles.reactorActions}>
           {teacherAvailable ? (
             <div className={panelStyles.teacherControls} role="group" aria-label={t('lab.teacher.aria')}>
-              <span
-                className={panelStyles.teacherBadge}
-                data-speaking={teacherSpeaking ? '1' : undefined}
-              >
-                {t('lab.teacher.badge')}
-              </span>
-              <button
-                type="button"
-                className={panelStyles.reactorBtnSecondary}
-                onClick={() => onTeacherReplay?.()}
-                title={t('lab.teacher.replay')}
-                aria-label={t('lab.teacher.replay')}
-              >
-                {t('lab.teacher.replayShort')}
-              </button>
               <button
                 type="button"
                 className={`${panelStyles.reactorBtnSecondary} ${teacherVoiceOn ? panelStyles.teacherVoiceOn : panelStyles.teacherVoiceOff}`}
                 onClick={() => onTeacherVoiceToggle?.()}
                 aria-pressed={teacherVoiceOn}
-                title={teacherVoiceOn ? t('lab.teacher.mute') : t('lab.teacher.unmute')}
+                title={teacherVoiceOn ? t('lab.teacher.explainMute') : t('lab.teacher.explainEnable')}
               >
-                {teacherVoiceOn ? t('lab.teacher.voiceOn') : t('lab.teacher.voiceOff')}
+                {teacherVoiceOn ? t('lab.teacher.explainOn') : t('lab.teacher.explain')}
               </button>
+              {teacherVoiceOn ? (
+                <button
+                  type="button"
+                  className={panelStyles.reactorBtnSecondary}
+                  onClick={() => onTeacherReplay?.()}
+                  title={t('lab.teacher.replay')}
+                  aria-label={t('lab.teacher.replay')}
+                >
+                  {t('lab.teacher.replayShort')}
+                </button>
+              ) : null}
+              {teacherSpeaking ? (
+                <span className={panelStyles.teacherLive} aria-hidden>
+                  ●
+                </span>
+              ) : null}
             </div>
           ) : null}
           <button
@@ -772,29 +777,54 @@ export function SynthesisReactorPanel({
             {message}
           </p>
         ) : null}
+        {teacherAvailable && teacherVoiceOn && (teacherLineTitle || teacherLineText) ? (
+          <div
+            className={panelStyles.teacherCaption}
+            role="status"
+            aria-live="polite"
+            data-speaking={teacherSpeaking ? '1' : undefined}
+          >
+            {teacherLineTitle ? <p className={panelStyles.teacherCaptionTitle}>{teacherLineTitle}</p> : null}
+            {teacherLineText ? <p className={panelStyles.teacherCaptionText}>{teacherLineText}</p> : null}
+          </div>
+        ) : null}
       </div>
     </div>
     {open && collapsed ? (
-      <button
-        type="button"
-        className={panelStyles.reactorReopenFab}
-        onClick={() => setCollapsed(false)}
-        aria-label={t('reactor.showPanel')}
-        title={t('reactor.showPanel')}
-      >
-        <span className={panelStyles.reactorReopenFabIcon} aria-hidden>
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-            <path
-              d="M6 15l6-6 6 6"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-        {t('reactor.showPanel')}
-      </button>
+      <div className={panelStyles.reactorFabCluster}>
+        {teacherAvailable ? (
+          <button
+            type="button"
+            className={`${panelStyles.reactorExplainFab} ${teacherVoiceOn ? panelStyles.reactorExplainFabOn : ''}`}
+            onClick={() => onTeacherVoiceToggle?.()}
+            aria-pressed={teacherVoiceOn}
+            aria-label={teacherVoiceOn ? t('lab.teacher.explainMute') : t('lab.teacher.explainEnable')}
+            title={teacherVoiceOn ? t('lab.teacher.explainMute') : t('lab.teacher.explainEnable')}
+          >
+            {teacherVoiceOn ? t('lab.teacher.explainOn') : t('lab.teacher.explain')}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={panelStyles.reactorReopenFab}
+          onClick={() => setCollapsed(false)}
+          aria-label={t('reactor.showPanel')}
+          title={t('reactor.showPanel')}
+        >
+          <span className={panelStyles.reactorReopenFabIcon} aria-hidden>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+              <path
+                d="M6 15l6-6 6 6"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+          {t('reactor.showPanel')}
+        </button>
+      </div>
     ) : null}
     </>
   )
