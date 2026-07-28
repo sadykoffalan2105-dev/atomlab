@@ -54,7 +54,7 @@ export function ClassStudentConspectBtn({
       title={t('learn.studentStats.conspect.generate')}
       aria-label={t('learn.studentStats.conspect.generate')}
     >
-      {compact ? '📄' : t('learn.studentStats.conspect.short')}
+      {compact ? t('learn.studentStats.conspect.short') : t('learn.studentStats.conspect.short')}
     </button>
   )
 }

@@ -198,18 +198,28 @@
 
 .weakList li {
   font-size: 0.78rem;
-  color: #ffc878;
-  padding: 0.35rem 0.55rem;
-  border-radius: 8px;
-  background: rgba(255, 180, 80, 0.08);
+  color: #c8d6ef;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(120, 140, 180, 0.22);
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
+}
+
+.gapKind {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8fa3c4;
 }
 
 .gapTitle {
   font-weight: 700;
-  color: #ffc878;
+  color: #e8eef8;
+  line-height: 1.35;
 }
 
 .gapHint {
@@ -292,7 +302,26 @@
 .footer {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.45rem;
   padding-top: 0.35rem;
+}
+
+.conspectBtnSecondary {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  border-radius: 999px;
+  border: 1px solid rgba(92, 255, 212, 0.35);
+  background: rgba(92, 255, 212, 0.08);
+  color: #c8d6ef;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.conspectBtnSecondary:hover {
+  background: rgba(92, 255, 212, 0.14);
+  color: #eef8ff;
 }
 
 .selectBtn {

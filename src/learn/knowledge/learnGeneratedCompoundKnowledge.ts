@@ -61,7 +61,6 @@ function baseKeywords(c: CompoundDef, cat: string): string[] {
 }
 
 function buildCompoundChunks(c: CompoundDef): ChemistryKnowledgeChunk[] {
-  const ascii = formulaAscii(c.formulaUnicode)
   const cat = categoryRu(c.category)
   const kw = baseKeywords(c, cat)
   const out: ChemistryKnowledgeChunk[] = []

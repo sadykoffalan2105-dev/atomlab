@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { CPK } from '../../core/atoms'
-import { createCueRunner, type CueRunner } from '../../core/cues'
+import { createCueRunner, pulseAt, type CueRunner } from '../../core/cues'
 import { jitter, sampleScalar, sampleVec3 } from '../../core/tracks'
 import { resolveCinemaQuality } from '../../core/quality'
 import {

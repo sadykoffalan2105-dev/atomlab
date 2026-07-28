@@ -18,7 +18,7 @@ const LAB_SPOKEN_REWRITES_RU: ReadonlyArray<readonly [RegExp, string]> = [
   [/минус одного/gi, 'минус один'],
   [/ноль\s*[—–→-]+\s*минус один/gi, 'ноль. минус один'],
   [/117\s*°/g, 'сто семнадцать градусов'],
-  [/(?<![\p{L}\d])117(?![\p{L}\d])/g, 'сто семнадцать'],
+  [/(?<![\p{L}\d])117(?![\p{L}\d])/gu, 'сто семнадцать'],
 ]
 
 const LAB_SPOKEN_REWRITES_EN: ReadonlyArray<readonly [RegExp, string]> = [
@@ -30,7 +30,7 @@ const LAB_SPOKEN_REWRITES_EN: ReadonlyArray<readonly [RegExp, string]> = [
   [/plus three\s*[—–→-]+\s*plus four/gi, 'plus three. plus four'],
   [/zero\s*[—–→-]+\s*minus one/gi, 'zero. minus one'],
   [/\b117\s*°/g, 'one hundred seventeen degrees'],
-  [/(?<![\p{L}\d])117(?![\p{L}\d])/g, 'one hundred seventeen'],
+  [/(?<![\p{L}\d])117(?![\p{L}\d])/gu, 'one hundred seventeen'],
   [/counter-ion/gi, 'counter ion'],
 ]
 
@@ -42,7 +42,7 @@ const LAB_SPOKEN_REWRITES_UZ: ReadonlyArray<readonly [RegExp, string]> = [
   [/uchdan\s+tortga/gi, 'uchdan. tortga'],
   [/qarshi-ion/gi, 'qarshi ion'],
   [/\b117\s*daraja\b/gi, "bir yuz o'n yetti daraja"],
-  [/(?<![\p{L}\d])117(?![\p{L}\d])/g, "bir yuz o'n yetti"],
+  [/(?<![\p{L}\d])117(?![\p{L}\d])/gu, "bir yuz o'n yetti"],
 ]
 
 /** Делает паузы заметнее для Edge SSML (запятые / точки). */

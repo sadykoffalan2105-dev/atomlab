@@ -10,6 +10,13 @@ import {
   getOralExamPool,
   getWrittenExamPool,
 } from './g7ExamPools'
+import {
+  getAllLogicalMcq,
+  getLogicalMcqForChapter,
+  getOralQuestionsForChapter,
+  getWrittenQuestionsForChapter,
+} from './g7LogicalQuestions'
+import { getAllSectionQuizItems } from './sectionQuizBank'
 import type { ClassStudent } from './learnClassRosterStorage'
 import { recordGapConspectIssued } from './learnClassRosterStorage'
 import { downloadTextFile } from './learnLessonExport'
@@ -439,11 +446,41 @@ function kindLabel(c: Copy, kind: ResolvedGapItem['kind']): string {
   return c.kindUnknown
 }
 
+/** Нормализует ID вопроса (q5 → q05, m4 → m04) для поиска в банках. */
+export function normalizeQuestionId(id: string): string {
+  const sectionQ = id.match(/^(g[789]-c\d+-s\d+-q)(\d+)$/i)
+  if (sectionQ) {
+    return `${sectionQ[1]}${sectionQ[2]!.padStart(2, '0')}`
+  }
+  const logicQ = id.match(/^(g7-logic-c\d+-m)(\d+)$/i)
+  if (logicQ) {
+    return `${logicQ[1]}${logicQ[2]!.padStart(2, '0')}`
+  }
+  const writtenQ = id.match(/^(g7-written-c\d+-w)(\d+)$/i)
+  if (writtenQ) {
+    return `${writtenQ[1]}${writtenQ[2]!.padStart(2, '0')}`
+  }
+  const oralQ = id.match(/^(g7-oral-c\d+-o)(\d+)$/i)
+  if (oralQ) {
+    return `${oralQ[1]}${oralQ[2]!.padStart(2, '0')}`
+  }
+  return id
+}
+
+function setIndexEntry(map: Map<string, ResolvedGapItem>, item: ResolvedGapItem) {
+  map.set(item.id, item)
+  const normalized = normalizeQuestionId(item.id)
+  if (normalized !== item.id && !map.has(normalized)) {
+    map.set(normalized, item)
+  }
+}
+
 function indexMcq(pool: TopicQuizItem[], locale: AppLocale, map: Map<string, ResolvedGapItem>) {
   for (const raw of pool) {
     const q = localizeTopicQuiz(raw, locale)
-    if (map.has(q.id)) continue
-    map.set(q.id, {
+    const norm = normalizeQuestionId(q.id)
+    if (map.has(q.id) || map.has(norm)) continue
+    setIndexEntry(map, {
       id: q.id,
       kind: 'mcq',
       title: q.question,
@@ -460,8 +497,9 @@ function indexMcq(pool: TopicQuizItem[], locale: AppLocale, map: Map<string, Res
 function indexWritten(pool: WrittenExamItem[], locale: AppLocale, map: Map<string, ResolvedGapItem>) {
   for (const raw of pool) {
     const q = localizeWrittenExam(raw, locale)
-    if (map.has(q.id)) continue
-    map.set(q.id, {
+    const norm = normalizeQuestionId(q.id)
+    if (map.has(q.id) || map.has(norm)) continue
+    setIndexEntry(map, {
       id: q.id,
       kind: 'written',
       title: q.question,
@@ -475,8 +513,9 @@ function indexWritten(pool: WrittenExamItem[], locale: AppLocale, map: Map<strin
 function indexOral(pool: OralExamItem[], locale: AppLocale, map: Map<string, ResolvedGapItem>) {
   for (const raw of pool) {
     const q = localizeOralExam(raw, locale)
-    if (map.has(q.id)) continue
-    map.set(q.id, {
+    const norm = normalizeQuestionId(q.id)
+    if (map.has(q.id) || map.has(norm)) continue
+    setIndexEntry(map, {
       id: q.id,
       kind: 'oral',
       title: q.questionDisplay?.trim() || q.questionSpeak,
@@ -485,6 +524,99 @@ function indexOral(pool: OralExamItem[], locale: AppLocale, map: Map<string, Res
       rubric: q.rubric,
     })
   }
+}
+
+const globalGapIndexCache = new Map<AppLocale, Map<string, ResolvedGapItem>>()
+
+function getGlobalGapQuestionIndex(locale: AppLocale, gradeId?: string): Map<string, ResolvedGapItem> {
+  const cacheKey = locale
+  const cached = globalGapIndexCache.get(cacheKey)
+  if (cached) return cached
+
+  const map = new Map<string, ResolvedGapItem>()
+  const grades = gradeId ? [gradeId] : ['g7', 'g8', 'g9']
+
+  if (grades.includes('g7')) {
+    indexMcq(getAllLogicalMcq(), locale, map)
+    for (let ch = 1; ch <= 12; ch++) {
+      indexWritten(getWrittenQuestionsForChapter(ch), locale, map)
+      indexOral(getOralQuestionsForChapter(ch), locale, map)
+    }
+  }
+
+  for (const g of grades) {
+    indexMcq(getAllSectionQuizItems(g), locale, map)
+  }
+
+  globalGapIndexCache.set(cacheKey, map)
+  return map
+}
+
+function lookupGapFromPools(id: string, locale: AppLocale): ResolvedGapItem | null {
+  const norm = normalizeQuestionId(id)
+
+  const logicMatch = norm.match(/^g7-logic-c(\d+)-m\d+$/)
+  if (logicMatch) {
+    const raw = getLogicalMcqForChapter(Number(logicMatch[1])).find((q) => q.id === norm)
+    if (raw) {
+      const q = localizeTopicQuiz(raw, locale)
+      return {
+        id: q.id,
+        kind: 'mcq',
+        title: q.question,
+        choices: q.choices,
+        correctIndex: q.correctIndex,
+        correctAnswer: q.choices[q.correctIndex],
+        explanation: q.explanation,
+        description: q.description,
+        mcq: q,
+      }
+    }
+  }
+
+  const sectionMatch = norm.match(/^(g[789])-c(\d+)-s(\d+)-q\d+$/)
+  if (sectionMatch) {
+    const [, grade] = sectionMatch
+    const pool = getAllSectionQuizItems(grade!)
+    const raw = pool.find((q) => q.id === norm)
+    if (raw) {
+      const q = localizeTopicQuiz(raw, locale)
+      return {
+        id: q.id,
+        kind: 'mcq',
+        title: q.question,
+        choices: q.choices,
+        correctIndex: q.correctIndex,
+        correctAnswer: q.choices[q.correctIndex],
+        explanation: q.explanation,
+        description: q.description,
+        mcq: q,
+      }
+    }
+  }
+
+  return null
+}
+
+function gapFallbackTitle(id: string, locale: AppLocale): string {
+  const norm = normalizeQuestionId(id)
+  const logicMatch = norm.match(/^g7-logic-c(\d+)-m(\d+)$/)
+  if (logicMatch) {
+    if (locale === 'en') return `Logical question · chapter ${logicMatch[1]}, item ${logicMatch[2]}`
+    if (locale === 'uz') return `Mantiqiy savol · ${logicMatch[1]}-bob, ${logicMatch[2]}`
+    return `Логический вопрос · глава ${logicMatch[1]}, № ${logicMatch[2]}`
+  }
+  const sectionMatch = norm.match(/^g([789])-c(\d+)-s(\d+)-q(\d+)$/)
+  if (sectionMatch) {
+    if (locale === 'en') {
+      return `§ test · grade ${sectionMatch[1]}, ch.${sectionMatch[2]}, §${sectionMatch[3]}, Q${sectionMatch[4]}`
+    }
+    if (locale === 'uz') {
+      return `§ test · ${sectionMatch[1]}, bob ${sectionMatch[2]}, §${sectionMatch[3]}, savol ${sectionMatch[4]}`
+    }
+    return `Тест § · класс ${sectionMatch[1]}, гл.${sectionMatch[2]}, §${sectionMatch[3]}, вопрос ${sectionMatch[4]}`
+  }
+  return id.replace(/^q_/, '§ ')
 }
 
 function moleculeDescription(locale: AppLocale, formula: string): string {
@@ -516,7 +648,7 @@ export function buildGapQuestionIndex(input: {
 
   for (const cpd of Object.values(compoundById)) {
     if (map.has(cpd.id)) continue
-    map.set(cpd.id, {
+    setIndexEntry(map, {
       id: cpd.id,
       kind: 'molecule',
       title: `${cpd.nameRu} (${cpd.formulaUnicode})`,
@@ -526,7 +658,36 @@ export function buildGapQuestionIndex(input: {
     })
   }
 
+  const global = getGlobalGapQuestionIndex(locale, gradeId)
+  for (const [key, item] of global) {
+    if (!map.has(key)) map.set(key, item)
+  }
+
   return map
+}
+
+function resolveGapItem(
+  id: string,
+  index: Map<string, ResolvedGapItem>,
+  locale: AppLocale,
+  gradeId?: string,
+): ResolvedGapItem {
+  const norm = normalizeQuestionId(id)
+  const hit = index.get(id) ?? index.get(norm)
+  if (hit) return hit
+
+  const global = getGlobalGapQuestionIndex(locale, gradeId)
+  const globalHit = global.get(id) ?? global.get(norm)
+  if (globalHit) return globalHit
+
+  const lookedUp = lookupGapFromPools(id, locale)
+  if (lookedUp) return lookedUp
+
+  return {
+    id,
+    kind: 'unknown',
+    title: gapFallbackTitle(id, locale),
+  }
 }
 
 export function resolveStudentGaps(
@@ -535,15 +696,7 @@ export function resolveStudentGaps(
 ): ResolvedGapItem[] {
   const weakIds = collectWeakTopics(student.attempts, 16)
   const index = buildGapQuestionIndex(opts)
-  return weakIds.map((id) => {
-    const hit = index.get(id)
-    if (hit) return hit
-    return {
-      id,
-      kind: 'unknown' as const,
-      title: id.replace(/^q_/, '§ '),
-    }
-  })
+  return weakIds.map((id) => resolveGapItem(id, index, opts.locale, opts.gradeId))
 }
 
 function masteryWord(locale: AppLocale, level: StudentMasteryStats['masteryLevel']): string {

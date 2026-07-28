@@ -9,6 +9,7 @@ import {
 import {
   issueStudentGapConspect,
   resolveStudentGaps,
+  type ResolvedGapItem,
 } from '../../learn/learnStudentGapConspect'
 import {
   computeStudentMastery,
@@ -41,6 +42,17 @@ function kindLabel(t: (k: MessageKey) => string, kind: StudentTestKind) {
     oral: 'learn.studentStats.kind.oral',
     written: 'learn.studentStats.kind.written',
     task: 'learn.studentStats.kind.task',
+  }
+  return t(map[kind])
+}
+
+function gapKindLabel(t: (k: MessageKey) => string, kind: ResolvedGapItem['kind']) {
+  const map: Record<ResolvedGapItem['kind'], MessageKey> = {
+    mcq: 'learn.studentStats.kind.topic',
+    written: 'learn.studentStats.kind.written',
+    oral: 'learn.studentStats.kind.oral',
+    molecule: 'learn.studentStats.kind.molecule',
+    unknown: 'learn.studentStats.weakTopics',
   }
   return t(map[kind])
 }
@@ -166,6 +178,32 @@ export function LearnStudentStatsModal({
           ) : null}
         </div>
 
+        <section className={styles.conspectBlock}>
+          <h3 className={styles.weakTitle}>{t('learn.studentStats.conspect.title')}</h3>
+          <p className={styles.conspectLead}>{t('learn.studentStats.conspect.lead')}</p>
+          <button
+            type="button"
+            className={styles.conspectBtn}
+            onClick={onGenerateConspect}
+          >
+            {t('learn.studentStats.conspect.generate')}
+          </button>
+          {student.gapConspect ? (
+            <p className={styles.conspectMeta}>
+              {t('learn.studentStats.conspect.issued', {
+                n: String(student.gapConspect.count),
+                date: new Date(student.gapConspect.issuedAt).toLocaleDateString(undefined, {
+                  day: '2-digit',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+              })}
+            </p>
+          ) : null}
+          {conspectNotice ? <p className={styles.conspectOk}>{conspectNotice}</p> : null}
+        </section>
+
         <StudentProgressChart series={stats.progressSeries} trend={stats.progressTrend} />
 
         <div className={styles.kindGrid}>
@@ -195,38 +233,13 @@ export function LearnStudentStatsModal({
           })}
         </div>
 
-        <section className={styles.conspectBlock}>
-          <h3 className={styles.weakTitle}>{t('learn.studentStats.conspect.title')}</h3>
-          <p className={styles.conspectLead}>{t('learn.studentStats.conspect.lead')}</p>
-          <button
-            type="button"
-            className={styles.conspectBtn}
-            onClick={onGenerateConspect}
-          >
-            {t('learn.studentStats.conspect.generate')}
-          </button>
-          {student.gapConspect ? (
-            <p className={styles.conspectMeta}>
-              {t('learn.studentStats.conspect.issued', {
-                n: String(student.gapConspect.count),
-                date: new Date(student.gapConspect.issuedAt).toLocaleDateString(undefined, {
-                  day: '2-digit',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                }),
-              })}
-            </p>
-          ) : null}
-          {conspectNotice ? <p className={styles.conspectOk}>{conspectNotice}</p> : null}
-        </section>
-
         {gaps.length > 0 ? (
           <section className={styles.weakBlock}>
             <h3 className={styles.weakTitle}>{t('learn.studentStats.weakTopics')}</h3>
             <ul className={styles.weakList}>
               {gaps.map((g) => (
                 <li key={g.id}>
+                  <span className={styles.gapKind}>{gapKindLabel(t, g.kind)}</span>
                   <span className={styles.gapTitle}>{g.title}</span>
                   {g.explanation ? <span className={styles.gapHint}>{g.explanation}</span> : null}
                 </li>
@@ -260,6 +273,9 @@ export function LearnStudentStatsModal({
         ) : null}
 
         <footer className={styles.footer}>
+          <button type="button" className={styles.conspectBtnSecondary} onClick={onGenerateConspect}>
+            {t('learn.studentStats.conspect.short')}
+          </button>
           <button type="button" className={styles.selectBtn} onClick={onSelect}>
             {t('learn.studentStats.selectForTest')}
           </button>

@@ -31,6 +31,10 @@ jobs:
           VITE_BASE: /
         run: npm run build
 
+      - name: Verify gap conspect in bundle
+        run: |
+          grep -rq "Конспект по пробелам" dist/assets/ || grep -rq "learn.studentStats.conspect.title" dist/assets/
+
       - name: Deploy site + TTS function (Netlify CLI)
         if: ${{ secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_SITE_ID != '' }}
         run: npx netlify-cli@23 deploy --prod --dir=dist --functions=netlify/functions --message="Deploy ${{ github.sha }}"

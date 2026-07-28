@@ -242,20 +242,22 @@
 
 .conspectBtn {
   flex-shrink: 0;
-  width: 1.75rem;
+  min-width: 4.6rem;
   font: inherit;
-  font-size: 0.75rem;
+  font-size: 0.62rem;
+  font-weight: 800;
   border-radius: 8px;
-  border: 1px solid rgba(255, 200, 120, 0.45);
-  background: rgba(255, 180, 80, 0.12);
+  border: 1px solid rgba(92, 255, 212, 0.45);
+  background: rgba(92, 255, 212, 0.12);
+  color: #eef8ff;
   cursor: pointer;
-  line-height: 1;
-  padding: 0.2rem;
+  line-height: 1.1;
+  padding: 0.28rem 0.35rem;
 }
 
 .conspectBtn:hover {
-  border-color: rgba(255, 210, 140, 0.65);
-  background: rgba(255, 180, 80, 0.22);
+  border-color: rgba(92, 255, 212, 0.65);
+  background: rgba(92, 255, 212, 0.22);
 }
 
 .empty {

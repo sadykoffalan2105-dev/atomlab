@@ -41,6 +41,7 @@ jobs:
         run: |
           grep -rq "learn.molecules.structure.title" dist/assets/
           grep -rq "learn.classRoster.title" dist/assets/
+          grep -rq "Конспект по пробелам" dist/assets/ || grep -rq "learn.studentStats.conspect.title" dist/assets/
 
       - name: Publish dist to gh-pages
         uses: peaceiris/actions-gh-pages@v4

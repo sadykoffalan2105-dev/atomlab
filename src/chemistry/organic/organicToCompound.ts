@@ -23,5 +23,6 @@ export function organicGraphToCompoundDef(
     obtainingStepsRu: [],
     category: 'other',
     synthesisConditionsRu: {},
+    factsRu: { source: '', usage: '', importance: '' },
   }
 }

@@ -51,4 +51,14 @@ export function g7SectionQuizKey(chapterId: string, sectionId: string): string {
   return sectionQuizKey('g7', chapterId, sectionId)
 }
 
+/** Все MCQ из банка параграфов (для поиска вопроса по ID). */
+export function getAllSectionQuizItems(gradeId: string): TopicQuizItem[] {
+  const bank = BANKS[gradeId]
+  if (!bank) return []
+  return Object.values(bank.sections).flatMap((raw) => {
+    const enriched = gradeId === 'g7' ? raw.map(enrichG7SectionQuizItem) : raw
+    return enriched.map(withI18n)
+  })
+}
+
 export const G7_SECTION_QUIZ_BANK = BANKS.g7!

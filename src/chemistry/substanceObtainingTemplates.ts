@@ -53,7 +53,6 @@ function pack(
 /** Оксиды без записи в CURATED — школьные маршруты. */
 export function oxideTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
   if (p.category !== 'oxide') return null
-  const f = p.formulaUnicode
   const id = p.id
 
   const byId: Record<string, ObtainingBundle> = {
@@ -192,7 +191,6 @@ export function oxideTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
 /** Кислоты без CURATED. */
 export function acidTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
   if (p.category !== 'acid') return null
-  const f = p.formulaUnicode
 
   const byId: Record<string, ObtainingBundle> = {
     hbr: pack(
@@ -240,7 +238,6 @@ export function acidTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
 /** Гидроксиды и основания без CURATED. */
 export function baseTemplateBundle(p: RawCompoundDef): ObtainingBundle | null {
   if (p.category !== 'base') return null
-  const f = p.formulaUnicode
   const id = p.id
 
   const byId: Record<string, ObtainingBundle> = {
