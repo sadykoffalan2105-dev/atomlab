@@ -38,7 +38,7 @@ export const learnMoleculeStructureRu = {
   'learn.classRoster.lead':
     'Вставьте имена из Excel (по одному в строке или через запятую). Выберите ученика и проведите тест на 3D-панели.',
   'learn.classRoster.leadExtended':
-    'Выберите ученика, протестируйте по химии или ИИ-опросу сверху, по молекулам — на 3D-панели справа. Нажмите 📊 для статистики усвоения темы.',
+    'Выберите ученика и проведите тест. Кнопка «Конспект» скачает персональный разбор пробелов; 📊 — полная статистика.',
   'learn.classRoster.className': 'Класс',
   'learn.classRoster.classNamePh': 'Например: 7 «А»',
   'learn.classRoster.pasteLabel': 'Имена учеников',
@@ -93,6 +93,7 @@ export const learnMoleculeStructureRu = {
   'learn.studentStats.rating': 'Рейтинг',
   'learn.studentStats.ratingBonus': '+{n} за конспекты',
   'learn.studentStats.conspect.title': 'Конспект по пробелам',
+  'learn.studentStats.conspect.short': 'Конспект',
   'learn.studentStats.conspect.lead':
     'Сгенерируйте подробный персональный конспект: разбор ошибок, теория §, мини-тест, устная/письменная тренировка и план на 3 дня. Файл можно скачать.',
   'learn.studentStats.conspect.generate': 'Сгенерировать и скачать конспект',

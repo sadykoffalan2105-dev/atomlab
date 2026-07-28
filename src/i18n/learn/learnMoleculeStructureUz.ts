@@ -38,7 +38,7 @@ export const learnMoleculeStructureUz = {
   'learn.classRoster.lead':
     `Exceldan ismlarni joylashtiring (har qatorga bitta yoki vergul bilan). O'quvchini tanlang va 3D panelda test o'tkazing.`,
   'learn.classRoster.leadExtended':
-    `O'quvchini tanlang, kimyo yoki yuqoridagi SI-so'rovnoma bo'yicha test qiling, molekulalar bo'yicha — o'ng 3D panelda. Mavzu o'zlashtirish statistikasi uchun 📊 bosing.`,
+    `O'quvchini tanlang va test o'tkazing. «Konspekt» shaxsiy bo'shliqlar tahlilini yuklab oladi; 📊 — to'liq statistika.`,
   'learn.classRoster.className': `Sinf`,
   'learn.classRoster.classNamePh': `Masalan: 7 «A»`,
   'learn.classRoster.pasteLabel': `O'quvchilar ismlari`,
@@ -93,6 +93,7 @@ export const learnMoleculeStructureUz = {
   'learn.studentStats.rating': `Reyting`,
   'learn.studentStats.ratingBonus': `+{n} konspekt uchun`,
   'learn.studentStats.conspect.title': `Bo'shliqlar bo'yicha konspekt`,
+  'learn.studentStats.conspect.short': `Konspekt`,
   'learn.studentStats.conspect.lead':
     `Batafsil shaxsiy konspekt yarating: xatolar tahlili, § nazariyasi, mini-test, og'zaki/yozma mashq va 3 kunlik reja. Faylni yuklab olish mumkin.`,
   'learn.studentStats.conspect.generate': `Konspekt yaratish va yuklash`,

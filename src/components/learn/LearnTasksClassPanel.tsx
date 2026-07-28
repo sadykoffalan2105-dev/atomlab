@@ -15,6 +15,7 @@ import {
 import { computeStudentRating } from '../../learn/learnStudentStats'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { LearnStudentStatsModal } from './LearnStudentStatsModal'
+import { ClassStudentConspectBtn } from './ClassStudentConspectBtn'
 import styles from './LearnClassRosterPanel.module.css'
 
 const SECTION_ID = TASKS_ROSTER_SECTION_ID
@@ -159,6 +160,12 @@ export function LearnTasksClassPanel() {
                       : ''}
                   </span>
                 </button>
+                <ClassStudentConspectBtn
+                  student={student}
+                  rosterSectionId={SECTION_ID}
+                  sectionTitle={t('learn.tasksClass.title')}
+                  className={roster.className}
+                />
                 <button
                   type="button"
                   className={styles.statsBtn}

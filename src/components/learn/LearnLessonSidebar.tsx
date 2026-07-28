@@ -16,6 +16,7 @@ import { computeStudentRating } from '../../learn/learnStudentStats'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { LearnStudentTestHub } from './LearnStudentTestHub'
 import { LearnStudentStatsModal } from './LearnStudentStatsModal'
+import { ClassStudentConspectBtn } from './ClassStudentConspectBtn'
 import { LearnSectionToolsCompact } from './LearnSectionToolsCompact'
 import styles from './LearnLessonSidebar.module.css'
 
@@ -175,6 +176,16 @@ export function LearnLessonSidebar({
                             : ''}
                         </span>
                       </button>
+                      <ClassStudentConspectBtn
+                        student={student}
+                        rosterSectionId={rosterSectionId}
+                        sectionTitle={t(section.titleKey)}
+                        gradeId={grade.id}
+                        chapterId={chapter.id}
+                        sectionId={section.id}
+                        className={roster.className}
+                        compact
+                      />
                       <button
                         type="button"
                         className={styles.statsBtn}

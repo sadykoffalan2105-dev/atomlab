@@ -11,6 +11,7 @@ import {
   getWrittenExamPool,
 } from './g7ExamPools'
 import type { ClassStudent } from './learnClassRosterStorage'
+import { recordGapConspectIssued } from './learnClassRosterStorage'
 import { downloadTextFile } from './learnLessonExport'
 import {
   collectWeakTopics,
@@ -976,4 +977,23 @@ export function gapConspectFilename(studentName: string, locale: AppLocale = 'ru
 
 export function downloadGapConspect(markdown: string, studentName: string, locale: AppLocale) {
   downloadTextFile(gapConspectFilename(studentName, locale), markdown)
+}
+
+/** Сгенерировать, скачать и зафиксировать конспект по пробелам ученика. */
+export function issueStudentGapConspect(
+  input: GapConspectInput & { rosterSectionId: string },
+): ClassStudent | null {
+  const gaps = resolveStudentGaps(input.student, {
+    locale: input.locale,
+    gradeId: input.gradeId,
+    chapterId: input.chapterId,
+    sectionId: input.sectionId,
+  })
+  const markdown = generateGapConspectMarkdown(input)
+  downloadGapConspect(markdown, input.student.name, input.locale)
+  return recordGapConspectIssued(
+    input.rosterSectionId,
+    input.student.id,
+    gaps.map((g) => g.id),
+  )
 }

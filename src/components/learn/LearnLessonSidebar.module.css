@@ -240,6 +240,24 @@
   cursor: pointer;
 }
 
+.conspectBtn {
+  flex-shrink: 0;
+  width: 1.75rem;
+  font: inherit;
+  font-size: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 200, 120, 0.45);
+  background: rgba(255, 180, 80, 0.12);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.2rem;
+}
+
+.conspectBtn:hover {
+  border-color: rgba(255, 210, 140, 0.65);
+  background: rgba(255, 180, 80, 0.22);
+}
+
 .empty {
   margin: 0;
   font-size: 0.68rem;

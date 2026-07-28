@@ -3,17 +3,14 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   CLASS_ROSTER_CHANGED,
   getStudentById,
-  recordGapConspectIssued,
   type ClassStudent,
   type StudentTestKind,
 } from '../../learn/learnClassRosterStorage'
 import {
-  downloadGapConspect,
-  generateGapConspectMarkdown,
+  issueStudentGapConspect,
   resolveStudentGaps,
 } from '../../learn/learnStudentGapConspect'
 import {
-  collectWeakTopics,
   computeStudentMastery,
   computeStudentRating,
   type StudentMasteryStats,
@@ -121,10 +118,8 @@ export function LearnStudentStatsModal({
           ? styles.masteryNeedsWork
           : styles.masteryNone
 
-  const canGenerate = gaps.length > 0 || collectWeakTopics(student.attempts).length > 0 || student.attempts.length > 0
-
   const onGenerateConspect = () => {
-    const markdown = generateGapConspectMarkdown({
+    const updated = issueStudentGapConspect({
       student,
       sectionTitle,
       locale,
@@ -132,10 +127,8 @@ export function LearnStudentStatsModal({
       chapterId,
       sectionId,
       className,
+      rosterSectionId,
     })
-    downloadGapConspect(markdown, student.name, locale)
-    const weakIds = gaps.map((g) => g.id)
-    const updated = recordGapConspectIssued(rosterSectionId, student.id, weakIds)
     if (updated) setStudent(updated)
     setConspectNotice(t('learn.studentStats.conspect.saved'))
   }
@@ -208,7 +201,6 @@ export function LearnStudentStatsModal({
           <button
             type="button"
             className={styles.conspectBtn}
-            disabled={!canGenerate}
             onClick={onGenerateConspect}
           >
             {t('learn.studentStats.conspect.generate')}

@@ -38,7 +38,7 @@ export const learnMoleculeStructureEn = {
   'learn.classRoster.lead':
     'Paste names from Excel (one per line or comma-separated). Pick a student and run the test on the 3D panel.',
   'learn.classRoster.leadExtended':
-    'Select a student, run a chemistry or AI oral test above, or molecule test on the 3D panel. Tap 📊 for mastery stats.',
+    'Select a student and run a test. Conspect downloads a personal gap review; 📊 opens full stats.',
   'learn.classRoster.className': 'Class',
   'learn.classRoster.classNamePh': 'e.g. Grade 7A',
   'learn.classRoster.pasteLabel': 'Student names',
@@ -93,6 +93,7 @@ export const learnMoleculeStructureEn = {
   'learn.studentStats.rating': 'Rating',
   'learn.studentStats.ratingBonus': '+{n} for conspects',
   'learn.studentStats.conspect.title': 'Gap reinforcement sheet',
+  'learn.studentStats.conspect.short': 'Conspect',
   'learn.studentStats.conspect.lead':
     'Generate a detailed personal sheet: error analysis, section theory, mini-test, oral/written drills, and a 3-day plan. Downloadable file.',
   'learn.studentStats.conspect.generate': 'Generate & download conspect',
