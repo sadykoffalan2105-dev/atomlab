@@ -65,7 +65,6 @@ import {
   type ReactorCatalogIntent,
 } from '../components/lab/ReactorCompoundCatalogPanel'
 import { SynthesisReactorPanel } from '../components/lab/SynthesisReactorPanel'
-import { LaunchMissionHud } from '../components/lab/LaunchMissionHud'
 import { compoundById } from '../data/compounds'
 import {
   getSectionAllowedProductIds,
@@ -126,7 +125,6 @@ export function LaboratoryPage() {
   const lastRunProductIdRef = useRef<string | null>(null)
   const synthesisWatchdogMsRef = useRef(4500)
   const synthesisSettledProductRef = useRef<CompoundDef | null>(null)
-  const launchProgressRef = useRef(0)
   const [synthIgnite, setSynthIgnite] = useState(false)
   const [synthPhaseUi, setSynthPhaseUi] = useState('')
   const synthesisPhaseRef = useRef('')
@@ -690,8 +688,7 @@ export function LaboratoryPage() {
     setLaboratorySynthesisView(stage)
   }, [])
 
-  const onSynthesisPhaseChangeRaw = useCallback((_phase: string, progress: number) => {
-    launchProgressRef.current = progress
+  const onSynthesisPhaseChangeRaw = useCallback((_phase: string, _progress: number) => {
     synthesisPhaseRef.current = _phase
     if (_phase === 'ignite') setSynthIgnite(true)
     if (_phase === 'converge' || _phase === 'mergeFlash') setSynthIgnite(false)
@@ -767,7 +764,6 @@ export function LaboratoryPage() {
     synthesisPhaseRef.current = 'ignite'
     setSynthPhaseUi('ignite')
     setSynthIgnite(false)
-    launchProgressRef.current = 0
     const zCopy = payload.zSlots.slice()
     const flyCopy = [...payload.flyTerms]
     lastRunZSlotsRef.current = zCopy
@@ -997,7 +993,6 @@ export function LaboratoryPage() {
 
   useEffect(() => {
     if (!synthRunActive) {
-      launchProgressRef.current = 0
       if (!synthesisSettledProductRef.current) setSynthPhaseUi('')
       setSynthIgnite(false)
     }
@@ -1145,11 +1140,6 @@ export function LaboratoryPage() {
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />
         ) : null}
-        <LaunchMissionHud
-          active={synthRunActive}
-          accentColor={productForHud?.accentColor ?? '#3dffec'}
-          progressRef={launchProgressRef}
-        />
         {showSynthProductHud && productForHud ? (
           <div className={styles.synthProductDock} role="status" aria-live="polite">
             <div className={styles.synthProductCard}>
