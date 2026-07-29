@@ -1,0 +1,8 @@
+# Локальные секреты и прогресс генерации
+.env
+dataset/*.jsonl
+dataset/progress.json
+__pycache__/
+.venv/
+venv/
+*.pyc

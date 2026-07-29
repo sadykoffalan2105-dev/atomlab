@@ -46,8 +46,8 @@ export function buildTeacherBrainPack(
   const wantsFullTopic = !live && FULL_TOPIC_RE.test(query)
 
   const retrieved = retrieveChemistryKnowledge(query, {
-    maxChunks: live ? 5 : wantsFullTopic ? 14 : 10,
-    minScore: live ? 3 : 3,
+    maxChunks: live ? 6 : wantsFullTopic ? 24 : 18,
+    minScore: live ? 3 : 2,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
     chapterId: ctx.chapterId,
@@ -55,7 +55,7 @@ export function buildTeacherBrainPack(
   })
 
   let chemistryKnowledgeBlock = buildRetrievedKnowledgeBlock(query, sourceLocale, {
-    maxChars: live ? 4_200 : wantsFullTopic ? 16_000 : 12_000,
+    maxChars: live ? 5_200 : wantsFullTopic ? 28_000 : 22_000,
     gradeId: ctx.gradeId,
     sectionTitle: ctx.sectionTitle,
     chapterId: ctx.chapterId,
@@ -83,8 +83,8 @@ export function buildTeacherBrainPack(
     }
   }
 
-  if (live && chemistryKnowledgeBlock.length > 3_800) {
-    chemistryKnowledgeBlock = `${chemistryKnowledgeBlock.slice(0, 3_800)}…`
+  if (live && chemistryKnowledgeBlock.length > 4_600) {
+    chemistryKnowledgeBlock = `${chemistryKnowledgeBlock.slice(0, 4_600)}…`
   }
 
   const conversationHints = buildConversationHints(messages, ctx.locale)

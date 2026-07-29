@@ -15,10 +15,10 @@ type PauseStyle = 'default' | 'lab'
 
 function pauseForToken(token: string, style: PauseStyle): string {
   if (style === 'lab') {
-    // Короче default-lab: плотные cue в реакторе.
-    if (token === ',') return '140ms'
-    if (token === ';' || token === ':') return '180ms'
-    return '260ms'
+    // Ещё короче: плотные cue в реакторе, без «тянущих» пауз после реакции.
+    if (token === ',') return '90ms'
+    if (token === ';' || token === ':') return '120ms'
+    return '180ms'
   }
   if (token === ',') return '240ms'
   if (token === ';' || token === ':') return '300ms'

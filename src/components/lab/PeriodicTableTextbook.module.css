@@ -334,30 +334,33 @@
 }
 
 .textbookPageFit .cellSlotInner {
-  padding: 0.14rem 0.16rem 0.1rem 0.26rem;
+  padding: 0.12rem 0.14rem 0.1rem 0.22rem;
 }
 
 .textbookPageFit .tbZ {
-  font-size: clamp(0.5rem, 1.1cqh, 0.8rem);
-  color: rgba(210, 224, 248, 0.92);
-  font-weight: 650;
+  font-size: clamp(0.58rem, 1.45cqh, 0.95rem);
+  color: #f2f7ff;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
 .textbookPageFit .tbMass {
-  font-size: clamp(0.44rem, 0.95cqh, 0.7rem);
-  color: rgba(175, 195, 225, 0.8);
+  font-size: clamp(0.52rem, 1.25cqh, 0.85rem);
+  color: #e8f0ff;
+  font-weight: 750;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .textbookPageFit .tbSym {
-  font-size: clamp(0.88rem, 2.85cqh, 1.72rem);
+  font-size: clamp(0.82rem, 2.55cqh, 1.55rem);
   letter-spacing: 0.005em;
   font-weight: 750;
 }
 
 .textbookPageFit .tbRu {
-  font-size: clamp(0.42rem, 0.95cqh, 0.7rem);
-  font-weight: 600;
-  color: rgba(225, 234, 252, 0.94);
+  font-size: clamp(0.44rem, 1.05cqh, 0.72rem);
+  font-weight: 650;
+  color: rgba(235, 242, 255, 0.96);
   line-height: 1.12;
 }
 
@@ -745,26 +748,29 @@
 
 /* Имена без «Водор…»: две строки + полный title при наведении */
 .textbookEmbed .tbZ {
-  font-size: clamp(0.48rem, 1.05cqh, 0.72rem);
-  color: rgba(210, 224, 248, 0.92);
-  font-weight: 650;
+  font-size: clamp(0.55rem, 1.35cqh, 0.88rem);
+  color: #f2f7ff;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
 .textbookEmbed .tbMass {
-  font-size: clamp(0.4rem, 0.9cqh, 0.62rem);
-  color: rgba(175, 195, 225, 0.8);
+  font-size: clamp(0.48rem, 1.15cqh, 0.78rem);
+  color: #e8f0ff;
+  font-weight: 750;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .textbookEmbed .tbSym {
-  font-size: clamp(0.9rem, 2.75cqh, 1.62rem);
+  font-size: clamp(0.84rem, 2.45cqh, 1.45rem);
   font-weight: 750;
   letter-spacing: 0.005em;
 }
 
 .textbookEmbed .tbRu {
-  font-size: clamp(0.4rem, 0.95cqh, 0.62rem);
-  font-weight: 600;
-  color: rgba(225, 234, 252, 0.94);
+  font-size: clamp(0.42rem, 1cqh, 0.68rem);
+  font-weight: 650;
+  color: rgba(235, 242, 255, 0.96);
   line-height: 1.1;
   white-space: normal;
   overflow: hidden;
@@ -1604,11 +1610,17 @@
   grid-row: 1;
   justify-self: start;
   align-self: start;
-  font-size: calc(var(--pt-cell-h) * 0.175);
-  font-weight: 700;
+  font-size: calc(var(--pt-cell-h) * 0.22);
+  font-weight: 800;
   line-height: 1;
-  color: rgba(160, 185, 220, 0.78);
-  letter-spacing: 0.02em;
+  color: #f2f7ff;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  padding: 0.08em 0.22em;
+  border-radius: 0.28em;
+  background: rgba(0, 0, 0, 0.38);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
 .tbMass {
@@ -1616,18 +1628,24 @@
   grid-row: 1;
   justify-self: end;
   align-self: start;
-  font-size: calc(var(--pt-cell-h) * 0.155);
-  font-weight: 600;
+  font-size: calc(var(--pt-cell-h) * 0.195);
+  font-weight: 750;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  color: rgba(130, 155, 190, 0.65);
+  color: #e8f0ff;
+  font-family: ui-monospace, 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  letter-spacing: -0.01em;
+  padding: 0.08em 0.2em;
+  border-radius: 0.28em;
+  background: rgba(0, 0, 0, 0.34);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .tbSym {
   grid-column: 1 / -1;
   grid-row: 2;
   font-family: 'Syne', 'Outfit', system-ui, sans-serif;
-  font-size: calc(var(--pt-cell-h) * 0.48);
+  font-size: calc(var(--pt-cell-h) * 0.42);
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0.02em;
@@ -1637,15 +1655,15 @@
   grid-column: 1 / -1;
   grid-row: 3;
   align-self: end;
-  font-size: calc(var(--pt-cell-h) * 0.155);
-  font-weight: 600;
+  font-size: calc(var(--pt-cell-h) * 0.165);
+  font-weight: 650;
   line-height: 1.05;
   text-align: center;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: rgba(180, 200, 230, 0.78);
+  color: rgba(230, 238, 255, 0.92);
   padding-bottom: 0.04rem;
 }
 
@@ -1823,7 +1841,8 @@
 .gridTextbook .tbCategoryHighlight .tbMass,
 .fRowBand .tbCategoryHighlight .tbZ,
 .fRowBand .tbCategoryHighlight .tbMass {
-  color: rgba(200, 215, 240, 0.85) !important;
+  color: #ffffff !important;
+  background: rgba(0, 0, 0, 0.45) !important;
 }
 
 .legendTextbookItem {

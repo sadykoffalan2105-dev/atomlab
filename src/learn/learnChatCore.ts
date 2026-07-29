@@ -24,7 +24,7 @@ export type LearnChatResult = {
 
 const MAX_USER_CHARS = 2000
 const MAX_HISTORY = 12
-const MAX_TOKENS = 900
+const MAX_TOKENS = 1400
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = 30

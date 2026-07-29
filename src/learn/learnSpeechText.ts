@@ -223,7 +223,7 @@ export const HUMAN_TTS_VOICE = TEACHER_VOICE_OPENAI
 export const TTS_CHUNK_GAP_MS = 260
 
 /** Пауза между фразами в лаборатории — почти без «робо-паузы». */
-export const TTS_LAB_CHUNK_GAP_MS = 90
+export const TTS_LAB_CHUNK_GAP_MS = 50
 
 export const BROWSER_NEURAL_HINTS = TEACHER_BROWSER_VOICE_HINTS
 

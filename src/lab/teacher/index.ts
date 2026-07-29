@@ -17,3 +17,4 @@ export {
 export { LabTeacherDock } from './LabTeacherDock'
 export { playLabReactionSfx, primeLabReactionSfx } from './labReactionSfx'
 export { prepareLabTeacherSpeechRaw } from './labTeacherSpeechPrep'
+export { buildClo2TeacherSegments, estimateLabSpeechMs } from './labTeacherTiming'

@@ -21,9 +21,11 @@ import { THERMO_ELECTRO_KNOWLEDGE } from './knowledge/learnThermoElectroKnowledg
 import { INORGANIC_CORE_KNOWLEDGE } from './knowledge/learnInorganicCoreKnowledge'
 import { TEACHER_KNOWLEDGE_PACKS } from './knowledge/learnTeacherKnowledgePacks'
 import { TEACHER_REASONING_KNOWLEDGE } from './knowledge/learnTeacherReasoningKnowledge'
+import { FOUNDATIONS_LAWS_KNOWLEDGE } from './knowledge/learnFoundationsLawsKnowledge'
 
 const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...CHEMISTRY_KNOWLEDGE_CHUNKS,
+  ...FOUNDATIONS_LAWS_KNOWLEDGE,
   ...CHEMISTRY_FORMULAS_KNOWLEDGE,
   ...REACTIONS_KNOWLEDGE,
   ...ORGANIC_DEEP_KNOWLEDGE,
@@ -80,8 +82,13 @@ const SYNONYMS: Record<string, string[]> = {
   кислот: ['acid', 'ph', 'proton', 'h+', 'кислотн'],
   щелоч: ['base', 'alkali', 'гидроксид', 'oh'],
   реакц: ['reaction', 'уравнен', 'equation'],
-  молекул: ['molecule', 'структур', '3d'],
-  атом: ['atom', 'электрон', 'ядро', 'proton'],
+  атом: ['atom', 'электрон', 'ядро', 'proton', 'атомно-молекуляр'],
+  молекул: ['molecule', 'структур', '3d', 'авогадро'],
+  научн: ['scientific', 'метод', 'гипотез', 'теори', 'эксперимент', 'модель'],
+  масс: ['mass', 'сохранен', 'ломоносов', 'лавуазье', 'весы'],
+  энерг: ['energy', 'эйнштейн', 'e=mc', 'ядерн'],
+  закон: ['law', 'пруст', 'дальтон', 'авогадро', 'бойль', 'гей-люссак'],
+  хими: ['chemistry', 'предмет химии', 'веществ', 'превращен'],
   металл: ['metal', 'металлич'],
   неметалл: ['nonmetal'],
   окислен: ['oxidation', 'овр', 'redox', 'электрон', 'восстанов'],
@@ -171,6 +178,13 @@ export function detectQueryIntent(query: string): QueryIntent {
   if (/орган|алкан|алкен|алкин|спирт|карбонов|бензол|эфир|аминокислот|белок|углевод|полимер/.test(q)) {
     return 'organic'
   }
+  if (
+    /научный метод|естественн|атомно-молекуляр|закон сохранения массы|закон авогадро|закон пруста|закон дальтона|флогистон|предмет химии|что изучает химия/.test(
+      q,
+    )
+  ) {
+    return 'definition'
+  }
   if (/что такое|дайте определ|сформулир|definition|что значит|что называют/.test(q)) {
     return 'definition'
   }
@@ -195,6 +209,7 @@ function sourceWeight(chunk: ChemistryKnowledgeChunk, intent: QueryIntent): numb
   if (id.startsWith('inorg-')) w += 8
   if (id.startsWith('brain') || id.startsWith('teach-') || id.startsWith('logic-')) w += 10
   if (id.startsWith('reason-')) w += intent === 'problem' || intent === 'definition' ? 22 : 14
+  if (id.startsWith('found-')) w += intent === 'definition' || intent === 'general' ? 30 : 20
   if (id.startsWith('theory-') || id.startsWith('school-')) w += 8
   if (id.startsWith('cmp-') || id.startsWith('org-')) {
     w += intent === 'definition' ? 16 : 11
@@ -205,12 +220,22 @@ function sourceWeight(chunk: ChemistryKnowledgeChunk, intent: QueryIntent): numb
   if (chunk.textbook) w += 6
   if (/^g[789]-/.test(id) && !id.includes('-w-')) w += 4
 
+  // Качественные слои megaPack (каталоги тем, сравнения, алгоритмы, факты)
+  if (id.startsWith('mega-cat-')) w += intent === 'definition' || intent === 'general' ? 12 : 8
+  if (id.startsWith('mega-cmp-')) w += /сравн|отличи|разниц|чем /.test(chunk.topic.toLowerCase()) ? 10 : 6
+  if (id.startsWith('mega-drill-') || id.startsWith('mega-calc-')) w += intent === 'problem' ? 14 : 4
+  if (id.startsWith('mega-exam-')) w += intent === 'definition' ? 10 : 5
+  if (id.startsWith('mega-rxn-')) w += intent === 'redox' || intent === 'general' ? 8 : 4
+  if (id.includes('-misc-') || id.includes('-mistake')) w += intent === 'misconception' ? 16 : 6
+  if (id.includes('-teach') || id.includes('-overview')) w += 5
+
   // Шум megaPack
   if (id.includes('-w-')) w -= 18
   if (id.startsWith('mega-move-')) w -= 30
-  if (id.startsWith('mega-qa-') && intent !== 'definition') w -= 8
-  if (id.startsWith('mega-theory-') && intent === 'problem') w -= 4
+  if (id.startsWith('mega-qa-') && intent !== 'definition') w -= 6
+  if (id.startsWith('mega-theory-') && intent === 'problem') w -= 3
   if (id.startsWith('mega-el-') && intent === 'definition') w -= 2
+  if (id.includes('-p-') && id.includes('-why') && intent === 'problem') w -= 4
   return w
 }
 
@@ -355,7 +380,7 @@ export function retrieveChemistryKnowledge(
   query: string,
   opts?: RetrieveOptions,
 ): RetrievedKnowledge {
-  const maxChunks = opts?.maxChunks ?? 6
+  const maxChunks = opts?.maxChunks ?? 10
   const preferredMin = opts?.minScore ?? 4
   const tokens = expandTokens(tokenize(query))
   const intent = detectQueryIntent(query)
@@ -416,24 +441,23 @@ export type BuildBlockOptions = {
 export function buildRetrievedKnowledgeBlock(
   query: string,
   locale: 'ru' | 'en',
-  maxCharsOrOpts: number | BuildBlockOptions = 5500,
+  maxCharsOrOpts: number | BuildBlockOptions = 9000,
 ): string {
   const opts: BuildBlockOptions =
     typeof maxCharsOrOpts === 'number' ? { maxChars: maxCharsOrOpts } : maxCharsOrOpts
-  const maxChars = opts.maxChars ?? 5500
-
-  const faq = matchFaqEntry(query)
+  const maxChars = opts.maxChars ?? 9000
   const { chunks } =
     opts.preloaded ??
     retrieveChemistryKnowledge(query, {
-      maxChunks: 10,
-      minScore: 4,
+      maxChunks: 14,
+      minScore: 3,
       gradeId: opts.gradeId,
       chapterId: opts.chapterId,
       sectionId: opts.sectionId,
       sectionTitle: opts.sectionTitle,
     })
 
+  const faq = matchFaqEntry(query)
   const parts: string[] = []
   let len = 0
 

@@ -42,10 +42,11 @@ import { playLabReactionSfx, primeLabReactionSfx } from './labReactionSfx'
 import type { Clo2CueId } from '../cinema/scenes/clo2/storyboard'
 
 const VOICE_STORAGE_KEY = 'atomlab-lab-teacher-voice'
-const PREFETCH_CONCURRENCY = 2
+const PREFETCH_CONCURRENCY = 3
 /** Короткий wait — сцена уже идёт; долгий intro опаздывал и молчал. */
-const INTRO_READY_TIMEOUT_MS = 900
-const CUE_READY_TIMEOUT_MS = 1100
+const INTRO_READY_TIMEOUT_MS = 700
+/** Не блокируем сцену холодным TTS: не успел — HUD без голоса. */
+const CUE_READY_TIMEOUT_MS = 650
 
 export function readLabTeacherVoiceEnabled(): boolean {
   try {
@@ -86,8 +87,6 @@ const CLO2_VOICED_CUES: readonly Clo2TeacherLineId[] = [
   'break',
   'pairA',
   'radicalA',
-  'precipitate',
-  'birth',
   'complete',
 ]
 
@@ -98,12 +97,14 @@ const PRIORITY_PREFETCH: readonly Clo2TeacherLineId[] = [
   'break',
   'pairA',
   'radicalA',
+  /** Финал короткий — греем заранее, чтобы после реакции не ждать TTS. */
+  'complete',
 ]
 
 const sessionAudioCache = new Map<string, LineAudio>()
 
 function cacheKey(locale: LabTeacherLocale, speak: string): string {
-  return `lab|v4|${locale}|${speak}`
+  return `lab|v5|${locale}|${speak}`
 }
 
 function delay(ms: number): Promise<void> {
@@ -385,14 +386,21 @@ export class LabTeacherNarrator {
 
       let audio: LineAudio | null = null
       const entry = this.cache.get(id)
-      if (entry) {
-        audio = entry.result ?? (await entry.ready)
-      } else {
-        const ctrl = new AbortController()
-        audio = await this.synthLine(id, this.locale, ctrl.signal)
-        if (audio?.length) {
-          sessionAudioCache.set(cacheKey(this.locale, line.speak), audio)
+      if (entry?.result?.length) {
+        audio = entry.result
+      } else if (entry) {
+        // Мягкий таймаут уже прошёл в ensureLineReady — не ждём холодный TTS вечно.
+        audio = entry.result
+        if (!audio?.length) {
+          const raced = await Promise.race([
+            entry.ready,
+            delay(120).then(() => null as LineAudio | null),
+          ])
+          audio = raced
         }
+      } else {
+        // Слишком поздно стартовать synth на cue — пропускаем голос, HUD уже есть.
+        return
       }
 
       if (token !== this.playToken) return

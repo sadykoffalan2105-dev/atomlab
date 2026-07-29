@@ -26,6 +26,9 @@ export const CLO2_SPEECH_SILENT: ReadonlySet<Clo2CueId> = new Set([
   'pairB',
   'radicalB',
   'embryo',
+  /** После реакции: только SFX/картинка — длинный хвост давал задержку settle. */
+  'precipitate',
+  'birth',
 ])
 
 const RU: ScriptPack = {
@@ -42,40 +45,32 @@ const RU: ScriptPack = {
   transfer: {
     id: 'transfer',
     title: 'Перенос',
-    speak: 'Вот он, перенос электрона. Из хлорита. Плюс три стало плюс четыре.',
+    speak: 'Перенос электрона из хлорита. Плюс три стало плюс четыре.',
   },
   break: {
     id: 'break',
     title: 'Разрыв',
-    speak: 'Связь порвалась. Хлор принял электрон, теперь минус один.',
+    speak: 'Связь порвалась. Хлор принял электрон — минус один.',
   },
   pairA: {
     id: 'pairA',
     title: 'Хлорид натрия',
-    speak: 'Ион хлора встречается с натрием. Образуется соль.',
+    speak: 'Ион хлора с натрием. Образуется соль.',
   },
   pairB: { id: 'pairB', title: 'Вторая соль', speak: '' },
   radicalA: {
     id: 'radicalA',
     title: 'Диоксид хлора',
-    speak: 'Это и есть диоксид хлора. Угол между связями, сто семнадцать градусов.',
+    speak: 'Это диоксид хлора. Угол связей — сто семнадцать градусов.',
   },
   radicalB: { id: 'radicalB', title: 'Второй газ', speak: '' },
   embryo: { id: 'embryo', title: 'Газ готов', speak: '' },
-  precipitate: {
-    id: 'precipitate',
-    title: 'Осадок',
-    speak: 'Соль оседает вниз. Газ поднимается вверх.',
-  },
-  birth: {
-    id: 'birth',
-    title: 'Продукты',
-    speak: 'Уравнение сходится. Два хлорита и хлор дали продукты.',
-  },
+  precipitate: { id: 'precipitate', title: 'Осадок', speak: '' },
+  birth: { id: 'birth', title: 'Продукты', speak: '' },
   complete: {
     id: 'complete',
     title: 'Итог',
-    speak: 'Итак. Хлорит окислился, хлор восстановился. Натрий, просто противоион.',
+    speak: 'Итог: хлорит окислился, хлор восстановился.',
   },
 }
 
@@ -93,12 +88,12 @@ const EN: ScriptPack = {
   transfer: {
     id: 'transfer',
     title: 'Transfer',
-    speak: 'Here comes electron transfer. From chlorite. Plus three becomes plus four.',
+    speak: 'Electron transfer from chlorite. Plus three becomes plus four.',
   },
   break: {
     id: 'break',
     title: 'Break',
-    speak: 'The bond snaps. Chlorine took the electron, now minus one.',
+    speak: 'The bond snaps. Chlorine took the electron — minus one.',
   },
   pairA: {
     id: 'pairA',
@@ -109,24 +104,16 @@ const EN: ScriptPack = {
   radicalA: {
     id: 'radicalA',
     title: 'Chlorine dioxide',
-    speak: 'This is chlorine dioxide. Bond angle, one hundred seventeen degrees.',
+    speak: 'This is chlorine dioxide. Bond angle — one hundred seventeen degrees.',
   },
   radicalB: { id: 'radicalB', title: 'Second gas', speak: '' },
   embryo: { id: 'embryo', title: 'Gas ready', speak: '' },
-  precipitate: {
-    id: 'precipitate',
-    title: 'Precipitate',
-    speak: 'Salt settles down. Gas rises up.',
-  },
-  birth: {
-    id: 'birth',
-    title: 'Products',
-    speak: 'The equation balances. Two chlorite and chlorine gave the products.',
-  },
+  precipitate: { id: 'precipitate', title: 'Precipitate', speak: '' },
+  birth: { id: 'birth', title: 'Products', speak: '' },
   complete: {
     id: 'complete',
     title: 'Summary',
-    speak: 'So. Chlorite is oxidized, chlorine is reduced. Sodium is just the counter-ion.',
+    speak: 'Summary: chlorite oxidized, chlorine reduced.',
   },
 }
 
@@ -144,12 +131,12 @@ const UZ: ScriptPack = {
   transfer: {
     id: 'transfer',
     title: 'Otish',
-    speak: 'Mana, elektron o\'tishi. Xloritdan. Uchdan tortga aylandi.',
+    speak: 'Elektron xloritdan o\'tadi. Uchdan tortga aylandi.',
   },
   break: {
     id: 'break',
     title: 'Uzilish',
-    speak: 'Bog uzildi. Xlor elektronni oldi, endi minus bir.',
+    speak: 'Bog uzildi. Xlor elektronni oldi — minus bir.',
   },
   pairA: {
     id: 'pairA',
@@ -160,24 +147,16 @@ const UZ: ScriptPack = {
   radicalA: {
     id: 'radicalA',
     title: 'Xlor dioksid',
-    speak: 'Bu xlor dioksid. Bog\'lar burchagi, 117 daraja.',
+    speak: 'Bu xlor dioksid. Bog\'lar burchagi — 117 daraja.',
   },
   radicalB: { id: 'radicalB', title: 'Ikkinchi gaz', speak: '' },
   embryo: { id: 'embryo', title: 'Gaz tayyor', speak: '' },
-  precipitate: {
-    id: 'precipitate',
-    title: "Cho'kma",
-    speak: 'Tuz pastga cho\'kadi. Gaz tepaga ko\'tariladi.',
-  },
-  birth: {
-    id: 'birth',
-    title: 'Mahsulotlar',
-    speak: 'Tenglama yopildi. Ikki xlorit va xlor mahsulotlarni berdi.',
-  },
+  precipitate: { id: 'precipitate', title: "Cho'kma", speak: '' },
+  birth: { id: 'birth', title: 'Mahsulotlar', speak: '' },
   complete: {
     id: 'complete',
     title: 'Xulosa',
-    speak: 'Demak. Xlorit oksidlandi, xlor tiklandi. Natriy shunchaki qarshi-ion.',
+    speak: 'Xulosa: xlorit oksidlandi, xlor tiklandi.',
   },
 }
 

@@ -183,7 +183,7 @@ export async function requestPuterChat(
           stream: false,
           // live: чуть ниже температура — точнее факты; меньше токенов — быстрее ответ
           temperature: live ? 0.32 : opts.fast ? 0.4 : 0.55,
-          max_tokens: live ? 320 : opts.fast ? 520 : undefined,
+          max_tokens: live ? 480 : opts.fast ? 800 : undefined,
         }),
         timeoutMs,
         signal,

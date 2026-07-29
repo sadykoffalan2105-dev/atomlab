@@ -3,6 +3,7 @@ import type { StorySegment } from '../../core/storyTime'
 import type { Cue } from '../../core/cues'
 import type { ScalarTrack, Vec3Track } from '../../core/tracks'
 import { validateTrack } from '../../core/tracks'
+import { buildClo2TeacherSegments } from '../../../teacher/labTeacherTiming'
 
 /**
  * Раскадровка синтеза диоксида хлора: 2 NaClO₂ + Cl₂ → 2 NaCl + 2 ClO₂.
@@ -77,16 +78,9 @@ export const CLO2_SEGMENTS: readonly StorySegment[] = [
 
 /**
  * Удлинённый wall-time под озвучку преподавателя (те же story-метки).
- * Картинка и речь не разъезжаются на ключевых cue.
+ * Бюджет считается в labTeacherTiming: умножаем фазу разрыва, делим хвост после реакции.
  */
-export const CLO2_SEGMENTS_TEACHER: readonly StorySegment[] = [
-  { to: CLO2_PHASE.entryEnd, wall: 5.5, ease: 'power2.out' },
-  { to: CLO2_PHASE.approachEnd, wall: 6.0, ease: 'power1.inOut' },
-  /** Плотные cue (transfer→embryo) — максимум wall-time под речь. */
-  { to: CLO2_PHASE.transferEnd, wall: 12.0, ease: 'power1.inOut' },
-  { to: CLO2_PHASE.releaseEnd, wall: 5.0, ease: 'power2.out' },
-  { to: CLO2_PHASE.finaleEnd, wall: 7.0, ease: 'sine.inOut' },
-]
+export const CLO2_SEGMENTS_TEACHER: readonly StorySegment[] = buildClo2TeacherSegments('ru')
 
 export type Clo2CueId =
   | 'tension'

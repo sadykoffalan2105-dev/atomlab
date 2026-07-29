@@ -19,7 +19,7 @@ def build_knowledge_block(
     query: str,
     ctx: dict[str, Any],
     *,
-    max_chars: int = 9000,
+    max_chars: int = 16000,
 ) -> tuple[str, float]:
     locale = ctx.get("locale") or "ru"
     speech = "en" if locale == "en" else "ru"

@@ -19,14 +19,14 @@ export const TEACHER_VOICE_EDGE_PROSODY: Record<
   uz: { rate: '-6%', pitch: '-2Hz', volume: '+5%' },
 }
 
-/** Лаборатория: чётко, но не тянет — короткие cue должны укладываться в wall-gap. */
+/** Лаборатория: чуть быстрее — короткие cue должны укладываться в wall-gap. */
 export const TEACHER_VOICE_EDGE_PROSODY_LAB: Record<
   SpeechPrepLocale,
   { rate: string; pitch: string; volume: string }
 > = {
-  ru: { rate: '-8%', pitch: '-2Hz', volume: '+9%' },
-  en: { rate: '-6%', pitch: '-2Hz', volume: '+7%' },
-  uz: { rate: '-6%', pitch: '-1Hz', volume: '+7%' },
+  ru: { rate: '+2%', pitch: '-2Hz', volume: '+9%' },
+  en: { rate: '+2%', pitch: '-2Hz', volume: '+7%' },
+  uz: { rate: '+2%', pitch: '-1Hz', volume: '+7%' },
 }
 
 export type TeacherTtsProsodyMode = 'default' | 'lab'
@@ -56,9 +56,9 @@ export function resolveTeacherEdgeProsody(
 }
 
 export const TEACHER_BROWSER_RATE_LAB: Record<SpeechPrepLocale, number> = {
-  ru: 1.02,
-  en: 1.0,
-  uz: 1.02,
+  ru: 1.08,
+  en: 1.06,
+  uz: 1.08,
 }
 
 export const TEACHER_VOICE_OPENAI: Record<SpeechPrepLocale, string> = {

@@ -12,8 +12,8 @@ import { hasLabTeacherScript } from '../teacher/clo2TeacherScript'
 
 /** Запас на разгон WebGL, композер и появление hero-слота после сцены. */
 const WATCHDOG_MARGIN_MS = 4500
-/** Доп. запас под озвучку преподавателя (очередь / хвост complete). */
-const TEACHER_WATCHDOG_MARGIN_MS = 8000
+/** Доп. запас под озвучку преподавателя (короткий хвост complete). */
+const TEACHER_WATCHDOG_MARGIN_MS = 3500
 
 export function scientificSynthesisWatchdogMs(productId: string): number | null {
   if (productId === 'clo2') {

@@ -22,7 +22,7 @@ async def chat_completion(
         "model": model or OLLAMA_MODEL,
         "messages": [{"role": "system", "content": system}, *messages],
         "stream": False,
-        "options": {"temperature": temperature, "num_predict": 900},
+        "options": {"temperature": temperature, "num_predict": 1400},
     }
     url = f"{OLLAMA_URL}/api/chat"
     try:
