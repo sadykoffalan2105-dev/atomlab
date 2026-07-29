@@ -19,4 +19,11 @@ npm run learn:generate-quiz-visuals    # опционально DALL·E 3 (ну�
 npm run learn:generate-quiz-visuals -- --prefix=g7-c2-
 ```
 
-Эталонные PNG §1 (`g7-c1-s01-q01`…`q08`) при render не перезаписываются (размер ≥ 250 KB).
+Эталонные PNG §1 (`g7-c1-s01-q01`…`q08`) и §2 (`g7-c1-s02-q01`…`q08`) при render не перезаписываются (размер ≥ 250 KB).
+
+Установка уникальных фото из Cursor assets:
+
+```bash
+node scripts/install-g7-c1-s01-quiz-visuals.mjs
+node scripts/install-g7-c1-s02-quiz-visuals.mjs
+```
