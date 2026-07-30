@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ATOMLAB — ИИ-учитель в лаборатории</title>
+  <style>
+    :root {
+      --bg: #070b14;
+      --panel: #0f172a;
+      --line: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --ok: #34d399;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(900px 500px at 10% -10%, #12203a 0%, transparent 55%),
+        radial-gradient(700px 400px at 90% 0%, #0b2a2a 0%, transparent 50%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
+    header {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #111827, var(--panel));
+      border-radius: 18px;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.8rem; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #0ea5e922;
+      color: var(--accent);
+      border: 1px solid #38bdf855;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+    .muted { color: var(--muted); }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+    }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .card h2 { margin: 0 0 12px; font-size: 1.1rem; }
+    .cue {
+      border-left: 3px solid var(--accent);
+      padding: 10px 12px;
+      margin: 0 0 10px;
+      background: #0b1220;
+      border-radius: 0 10px 10px 0;
+    }
+    .cue strong { color: var(--accent); }
+    .cue.silent { border-left-color: #64748b; opacity: 0.85; }
+    .cue.final { border-left-color: var(--ok); }
+    .meta { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    ul { margin: 0; padding-left: 18px; color: var(--muted); }
+    li { margin: 6px 0; }
+    .equation {
+      font-family: ui-monospace, Consolas, monospace;
+      background: #020617;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      margin: 12px 0;
+      color: #f8fafc;
+    }
+    .btn {
+      display: inline-block;
+      margin: 6px 6px 0 0;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid #38bdf866;
+      background: #0284c7;
+      color: white;
+      cursor: pointer;
+      font: inherit;
+    }
+    .btn.alt { background: #334155; border-color: #475569; }
+    .log {
+      margin-top: 12px;
+      min-height: 72px;
+      background: #020617;
+      border: 1px dashed #334155;
+      border-radius: 10px;
+      padding: 12px;
+      color: #cbd5e1;
+    }
+    footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="badge">ATOMLAB · sample code (HTML)</div>
+      <h1>ИИ-учитель в лаборатории</h1>
+      <p class="muted">
+        Фрагмент учебного интерфейса: озвучка синтеза диоксида хлора.
+        Учитель объясняет перенос электрона во время реакции и коротко
+        подводит итог после неё.
+      </p>
+      <div class="equation">2 NaClO₂ + Cl₂ → 2 NaCl + 2 ClO₂</div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Реплики учителя (сценарий ClO₂)</h2>
+        <div class="cue">
+          <strong>intro</strong> — Начинаем
+          <div>Сейчас получим диоксид хлора. Смотрите на степени окисления хлора.</div>
+        </div>
+        <div class="cue">
+          <strong>tension</strong> — Сближение
+          <div>Хлор подходит. Связь в молекуле натягивается.</div>
+        </div>
+        <div class="cue">
+          <strong>transfer</strong> — Перенос
+          <div>Перенос электрона из хлорита. Плюс три стало плюс четыре.</div>
+          <div class="meta">Cl в хлорите: +3 → +4</div>
+        </div>
+        <div class="cue">
+          <strong>break</strong> — Разрыв
+          <div>Связь порвалась. Хлор принял электрон — минус один.</div>
+          <div class="meta">Cl₂: 0 → −1</div>
+        </div>
+        <div class="cue">
+          <strong>pairA</strong> — Хлорид натрия
+          <div>Ион хлора с натрием. Образуется соль.</div>
+        </div>
+        <div class="cue">
+          <strong>radicalA</strong> — Диоксид хлора
+          <div>Это диоксид хлора. Угол связей — сто семнадцать градусов.</div>
+        </div>
+        <div class="cue silent">
+          <strong>precipitate / birth</strong> — без речи
+          <div>После реакции только картинка и звук.</div>
+        </div>
+        <div class="cue final">
+          <strong>complete</strong> — Итог
+          <div>Итог: хлорит окислился, хлор восстановился.</div>
+        </div>
+      </section>
+
+      <aside class="card">
+        <h2>Мини-проверка</h2>
+        <p class="muted">Кто отдал электрон в этой реакции?</p>
+        <button class="btn" type="button" onclick="answer('Хлорит-ион (ClO₂⁻): Cl +3 → +4')">Хлорит</button>
+        <button class="btn alt" type="button" onclick="answer('Нет: Cl₂ принимает электрон (0 → −1)')">Молекулярный хлор</button>
+        <button class="btn alt" type="button" onclick="answer('Na⁺ — противоион, в ОВР не меняется')">Натрий</button>
+        <div class="log" id="log">Нажмите вариант ответа…</div>
+        <h2 style="margin-top:18px">Памятка</h2>
+        <ul>
+          <li>Окислитель принимает e⁻</li>
+          <li>Восстановитель отдаёт e⁻</li>
+          <li>Соль и газ — продукты реакции</li>
+        </ul>
+      </aside>
+    </div>
+
+    <footer>ATOMLAB · публичный фрагмент кода · HTML demo</footer>
+  </div>
+  <script>
+    function answer(text) {
+      document.getElementById("log").textContent = "Учитель: " + text;
+    }
+  </script>
+</body>
+</html>
