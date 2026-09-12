@@ -1,0 +1,1 @@
+function e(e){return`topic_${e.gradeId}_${e.chapterId}_${e.id}`}export{e as t};
