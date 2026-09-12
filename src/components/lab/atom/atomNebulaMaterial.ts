@@ -69,9 +69,11 @@ export function createAtomVolumetricCloudMaterial(
     },
     vertexShader: /* glsl */ `
       varying vec3 vLocalPos;
+      varying vec3 vWorldPos;
       varying vec3 vNormal;
       void main() {
         vLocalPos = position;
+        vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
         vNormal = normalize(normalMatrix * normal);
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
@@ -84,6 +86,7 @@ export function createAtomVolumetricCloudMaterial(
       uniform float uSeed;
       uniform float uOpacityMul;
       varying vec3 vLocalPos;
+      varying vec3 vWorldPos;
       varying vec3 vNormal;
 
       ${NOISE_GLSL}
@@ -102,7 +105,7 @@ export function createAtomVolumetricCloudMaterial(
         float envelope = smoothstep(1.05 + warp, 0.08, r);
         envelope *= smoothstep(0.04, 0.22, smoke + n3 * 0.5);
 
-        vec3 viewDir = normalize(cameraPosition - (modelMatrix * vec4(vLocalPos, 1.0)).xyz);
+        vec3 viewDir = normalize(cameraPosition - vWorldPos);
         float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 1.15);
 
         vec3 col = mix(uDeep, mix(uColor, uViolet, smoke + 0.1), 0.5 + smoke * 0.5);

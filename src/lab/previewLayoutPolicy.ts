@@ -1,6 +1,7 @@
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
+import { getReactorVisualTier, previewAtomCountForTier } from '../chemistry/reactorVisualTier'
 import { mergeLayoutDuringEdit } from './previewEditHold'
 import { shouldForceSyncPreviewLayout, ATOMLAB_SYNC_BUILD_ATOM_CAP } from './atomlabPerfGuard'
 
@@ -26,15 +27,18 @@ export function buildPreviewLayoutForEdit(
   shell: readonly ReactorPreviewAtom[],
   editing = true,
 ): readonly ReactorPreviewAtom[] {
-  let atomEstimate = 0
-  for (const t of terms) {
-    const c = Math.floor(t.coeff)
-    if (c > 0) atomEstimate += c
-  }
-  const built = buildReactorPreviewAtoms(terms, {
-    tier: atomEstimate > SYNC_BUILD_ATOM_CAP ? 'lite' : 'full',
-  })
-  return pickLayoutAtoms(built, shell, editing, atomEstimate)
+  // Тот же tier, что и у финальной сцены синтеза (getReactorVisualTier,
+  // REACTOR_VISUAL_FULL_ATOMS = 24) — иначе превью во время правки
+  // коэффициентов схлопывается в lite раньше, чем запущенная реакция, и
+  // атомы визуально «перестраиваются» другим набором при запуске.
+  const tier = getReactorVisualTier(terms)
+  const built = buildReactorPreviewAtoms(terms, { tier: tier === 'cluster' ? 'lite' : tier })
+  // Держим hold-count по тому, что tier реально построит, а не по наивной
+  // сумме коэффициентов — иначе lite/cluster-cap делает expectedCount
+  // недостижимым и pickLayoutAtoms подставляет фантомные клоны последнего
+  // атома шлейфа.
+  const expectedCount = previewAtomCountForTier(terms, tier)
+  return pickLayoutAtoms(built, shell, editing, expectedCount)
 }
 
 /** Симуляция rapid +/-: каждый шаг даёт ненулевой layout при валидных terms. */

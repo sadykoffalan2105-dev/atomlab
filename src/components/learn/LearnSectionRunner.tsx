@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { LearnAssistantPanel } from './LearnAssistantPanel'
 import { LearnSlideDeckVisual } from './LearnSlideDeckVisual'
 import { LearnColumnPanelTools } from './LearnColumnPanelTools'
 import { LearnLessonSidebar } from './LearnLessonSidebar'
@@ -24,6 +23,15 @@ import {
 } from '../../learn/learnPanelLayoutStorage'
 import { hasCyberDashboard } from '../../learn/learnCyberDashboard'
 import styles from '../../pages/LearnPage.module.css'
+
+// Ленивая загрузка: LearnAssistantPanel тянет за собой learnKnowledgeRetrieval →
+// весь mega-pack базы знаний учителя (~150 МБ JSON). Раньше это был обычный
+// static import, и AppShell.prefetchAppRoutes() догружал его в idle сразу
+// после ЛЮБОЙ страницы (включая лабораторию), из-за чего страница на несколько
+// секунд «зависала» без видимой ошибки — главный поток был занят JSON.parse.
+const LearnAssistantPanel = lazy(() =>
+  import('./LearnAssistantPanel').then((m) => ({ default: m.LearnAssistantPanel })),
+)
 
 type OptionalPanel = LearnPanelId
 
@@ -520,16 +528,18 @@ export function LearnSectionRunner({
                   onExpand={() => toggleExpanded('assistant')}
                   onHide={() => hidePanel('assistant')}
                 />
-                <LearnAssistantPanel
-                  gradeId={grade.id}
-                  chapterId={chapter.id}
-                  section={section}
-                  slideIndex={slideIndex}
-                  slideTitle={slideTitle}
-                  slideBody=""
-                  grade={grade}
-                  chapter={chapter}
-                />
+                <Suspense fallback={null}>
+                  <LearnAssistantPanel
+                    gradeId={grade.id}
+                    chapterId={chapter.id}
+                    section={section}
+                    slideIndex={slideIndex}
+                    slideTitle={slideTitle}
+                    slideBody=""
+                    grade={grade}
+                    chapter={chapter}
+                  />
+                </Suspense>
               </div>
             ) : null}
           </>

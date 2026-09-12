@@ -16,6 +16,7 @@ import {
   PREVIEW_ATOM_MIN_GAP,
   previewAtomsMinPairDistance,
 } from '../src/components/lab/reactorPreviewLayout.ts'
+import { getReactorVisualTier, previewAtomCountForTier } from '../src/chemistry/reactorVisualTier.ts'
 import {
   createPreviewEngineState,
   estimateExpectedAtomCount,
@@ -67,10 +68,17 @@ function rapidCoeffBurst(terms: ReactorEquationTerm[], termIndex: number, steps:
       }
       expected = estimateExpectedAtomCount(next)
     }
+    // Tier — тот же источник, что и у реальной сцены (getReactorVisualTier,
+    // REACTOR_VISUAL_FULL_ATOMS = 24), а не отдельный хардкод «>12»: lite/
+    // cluster tier намеренно кэпает атомы на term, поэтому built.length может
+    // быть меньше наивной суммы коэффициентов (expected) — сравнивать нужно
+    // с previewAtomCountForTier, которая учитывает этот per-term cap.
+    const tier = getReactorVisualTier(next)
     const previewAtoms = buildReactorPreviewAtoms(next, {
-      tier: expected > 12 ? 'lite' : 'full',
+      tier: tier === 'cluster' ? 'lite' : tier,
     })
-    assert.equal(previewAtoms.length, expected, `layout count for coeff=${c}`)
+    const expectedLayoutCount = previewAtomCountForTier(next, tier)
+    assert.equal(previewAtoms.length, expectedLayoutCount, `layout count for coeff=${c}`)
     if (expected > 1) {
       const md = previewAtomsMinPairDistance(previewAtoms)
       assert.ok(

@@ -3,10 +3,11 @@ import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorPreviewAtom } from '../components/lab/reactorPreviewLayout'
 import { buildReactorPreviewAtoms } from '../components/lab/reactorPreviewLayout'
 import {
-  estimatePreviewAtomCount,
-  SYNC_BUILD_ATOM_CAP,
-  termsSignature,
-} from './previewLayoutPolicy'
+  getReactorVisualTier,
+  previewAtomCountForTier,
+  type ReactorVisualTier,
+} from '../chemistry/reactorVisualTier'
+import { termsSignature } from './previewLayoutPolicy'
 import { mergeLayoutDuringEdit } from './previewEditHold'
 
 export { SYNC_BUILD_ATOM_CAP } from './previewLayoutPolicy'
@@ -19,14 +20,20 @@ export type PreviewLayoutHookResult = {
 /**
  * Всегда JS+cache: мгновенно, без WASM hitch на render.
  * WASM refinement только после idle (не блокирует +/-).
+ *
+ * Tier берём из getReactorVisualTier — того же источника, что и финальная
+ * сцена синтеза (LabScene/SynthesisOnLabScene). Раньше здесь был отдельный
+ * порог (ATOMLAB_SYNC_BUILD_ATOM_CAP = 12, предназначенный для решения
+ * sync/worker-построения, а не для визуального tier'а), из-за чего превью
+ * во время правки коэффициентов переключалось на lite на 12 атомах, а
+ * запущенный синтез той же реакции показывал полный full-tier до 24 атомов —
+ * при запуске атомы визуально «перестраивались» другим набором.
  */
 function buildLayoutAtomsInstant(
   terms: readonly ReactorEquationTerm[],
-  heavyEquation: boolean,
+  tier: ReactorVisualTier,
 ): ReactorPreviewAtom[] {
-  return buildReactorPreviewAtoms(terms, {
-    tier: heavyEquation ? 'lite' : 'full',
-  })
+  return buildReactorPreviewAtoms(terms, { tier: tier === 'cluster' ? 'lite' : tier })
 }
 
 function applyBuiltLayout(
@@ -56,7 +63,13 @@ export function useReactorPreviewLayout(
   coeffEditing = coeffEditBurst,
 ): PreviewLayoutHookResult {
   const termsSig = useMemo(() => termsSignature(terms), [terms])
-  const atomEstimate = useMemo(() => estimatePreviewAtomCount(terms), [termsSig, terms])
+  const tier = useMemo(() => getReactorVisualTier(terms), [terms])
+  // Реальное число атомов, которое построит buildLayoutAtomsInstant для этого
+  // tier: наивная сумма коэффициентов может быть больше того, что lite/cluster
+  // tier когда-либо покажет (per-term cap), и тогда hold ждал бы недостижимый
+  // expectedCount вечно, достраивая кадр фантомными клонами последнего атома
+  // шлейфа (см. previewEditHold.mergeLayoutDuringEdit).
+  const atomEstimate = useMemo(() => previewAtomCountForTier(terms, tier), [terms, tier])
 
   const shellRef = useRef<readonly ReactorPreviewAtom[]>([])
   const holdCountRef = useRef(0)
@@ -64,14 +77,13 @@ export function useReactorPreviewLayout(
   const [, setTick] = useState(0)
 
   const editing = coeffEditing || coeffEditBurst
-  const heavyEquation = atomEstimate > SYNC_BUILD_ATOM_CAP
 
   const needsBuild =
     termsSig !== lastBuiltSigRef.current && terms.length >= 1 && atomEstimate > 0
 
   // Instant build синхронно — JS cache, без пустого кадра.
   if (needsBuild) {
-    const built = buildLayoutAtomsInstant(terms, heavyEquation)
+    const built = buildLayoutAtomsInstant(terms, tier)
     shellRef.current = applyBuiltLayout(
       built,
       shellRef.current,
@@ -103,7 +115,7 @@ export function useReactorPreviewLayout(
     shellRef.current.length > 0
       ? shellRef.current
       : terms.length >= 1 && atomEstimate > 0
-        ? buildLayoutAtomsInstant(terms, heavyEquation)
+        ? buildLayoutAtomsInstant(terms, tier)
         : shellRef.current
 
   if (resolved.length > 0 && shellRef.current.length === 0) {
