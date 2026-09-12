@@ -31,7 +31,7 @@ const LAB_SPOKEN_REWRITES_EN: ReadonlyArray<readonly [RegExp, string]> = [
   [/zero\s*[—–→-]+\s*minus one/gi, 'zero. minus one'],
   [/\b117\s*°/g, 'one hundred seventeen degrees'],
   [/(?<![\p{L}\d])117(?![\p{L}\d])/gu, 'one hundred seventeen'],
-  [/counter-ion/gi, 'counter ion'],
+    [/counter-ion/gi, 'counter ion'],
 ]
 
 const LAB_SPOKEN_REWRITES_UZ: ReadonlyArray<readonly [RegExp, string]> = [

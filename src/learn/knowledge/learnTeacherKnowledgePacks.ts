@@ -1,11 +1,16 @@
 import megaPack from '../../data/teacherKnowledge/megaPack.json'
 import megaPackExtra from '../../data/teacherKnowledge/megaPackExtra.json'
+import megaPackExtra2 from '../../data/teacherKnowledge/megaPackExtra2.json'
+import megaPackExtra3 from '../../data/teacherKnowledge/megaPackExtra3.json'
+import megaPackExtra4 from '../../data/teacherKnowledge/megaPackExtra4.json'
+import megaPackExtra5 from '../../data/teacherKnowledge/megaPackExtra5.json'
+import megaPackExtra6 from '../../data/teacherKnowledge/megaPackExtra6.json'
 import type { ChemistryKnowledgeChunk } from '../learnChemistryKnowledgeBase'
 
 /**
- * Мега-пакет знаний ИИ-учителя (~100× к ручным packs).
+ * Мега-пакет знаний ИИ-учителя (~5× к прошлой сборке).
  * Собирается: `npm run build:teacher-knowledge`
- * Основной + доп. файл (чтобы не держать один гигантский JSON в одном импорте).
+ * Файлы режутся автоматически (megaPack + megaPackExtra…).
  */
 type MegaPackFile = {
   version: number
@@ -13,12 +18,18 @@ type MegaPackFile = {
   chunks: ChemistryKnowledgeChunk[]
 }
 
-const primary = megaPack as MegaPackFile
-const extra = megaPackExtra as MegaPackFile
+function chunksOf(file: MegaPackFile | null | undefined): ChemistryKnowledgeChunk[] {
+  return Array.isArray(file?.chunks) ? file.chunks : []
+}
 
-const primaryChunks = Array.isArray(primary.chunks) ? primary.chunks : []
-const extraChunks = Array.isArray(extra.chunks) ? extra.chunks : []
-
-export const TEACHER_KNOWLEDGE_PACKS: ChemistryKnowledgeChunk[] = [...primaryChunks, ...extraChunks]
+export const TEACHER_KNOWLEDGE_PACKS: ChemistryKnowledgeChunk[] = [
+  ...chunksOf(megaPack as MegaPackFile),
+  ...chunksOf(megaPackExtra as MegaPackFile),
+  ...chunksOf(megaPackExtra2 as MegaPackFile),
+  ...chunksOf(megaPackExtra3 as MegaPackFile),
+  ...chunksOf(megaPackExtra4 as MegaPackFile),
+  ...chunksOf(megaPackExtra5 as MegaPackFile),
+  ...chunksOf(megaPackExtra6 as MegaPackFile),
+]
 
 export const TEACHER_KNOWLEDGE_PACK_COUNT = TEACHER_KNOWLEDGE_PACKS.length

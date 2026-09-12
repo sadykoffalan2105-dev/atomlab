@@ -9,6 +9,7 @@ from typing import Any
 
 from teacher_service.config import (
     G7_KNOWLEDGE_PATH,
+    TEACHER_MEGA_PACK_DIR,
     TEACHER_MEGA_PACK_PATH,
     TEXTBOOK_KNOWLEDGE_PATHS,
 )
@@ -140,9 +141,15 @@ class RagIndex:
                     if part_id == section["id"] or idx == 0:
                         self._by_section[chunk.section_key] = chunk
 
-        if TEACHER_MEGA_PACK_PATH.is_file():
+        mega_files = []
+        if TEACHER_MEGA_PACK_DIR.is_dir():
+            mega_files = sorted(TEACHER_MEGA_PACK_DIR.glob("megaPack*.json"))
+        elif TEACHER_MEGA_PACK_PATH.is_file():
+            mega_files = [TEACHER_MEGA_PACK_PATH]
+
+        for mega_path in mega_files:
             loaded_any = True
-            mega = json.loads(TEACHER_MEGA_PACK_PATH.read_text(encoding="utf-8"))
+            mega = json.loads(mega_path.read_text(encoding="utf-8"))
             for item in mega.get("chunks") or []:
                 cid = str(item.get("id") or "").strip()
                 if not cid or cid in self._by_id:

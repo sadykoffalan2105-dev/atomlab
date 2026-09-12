@@ -6,6 +6,7 @@ G7_KNOWLEDGE_PATH = REPO_ROOT / "src" / "data" / "g7TextbookKnowledge.json"
 G8_KNOWLEDGE_PATH = REPO_ROOT / "src" / "data" / "g8TextbookKnowledge.json"
 G9_KNOWLEDGE_PATH = REPO_ROOT / "src" / "data" / "g9TextbookKnowledge.json"
 TEACHER_MEGA_PACK_PATH = REPO_ROOT / "src" / "data" / "teacherKnowledge" / "megaPack.json"
+TEACHER_MEGA_PACK_DIR = REPO_ROOT / "src" / "data" / "teacherKnowledge"
 
 TEXTBOOK_KNOWLEDGE_PATHS = [
     G7_KNOWLEDGE_PATH,
