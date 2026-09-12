@@ -1,0 +1,18 @@
+{
+  "questionEn": "What supports oxygen?",
+  "questionUz": "Kislorodni nima qo'llab-quvvatlaydi?",
+  "choicesEn": [
+    "Breathing and burning",
+    "Only photosynthesis without respiration",
+    "Only melting ice",
+    "Filtration only"
+  ],
+  "choicesUz": [
+    "Nafas olish va yonish",
+    "Nafas olishsiz faqat fotosintez sodir bo'ladi",
+    "Faqat muz eriydi",
+    "Faqat filtrlash"
+  ],
+  "explanationEn": "O₂ is essential for breathing and combustion.",
+  "explanationUz": "O₂ nafas olish va yonish uchun zarurdir."
+}

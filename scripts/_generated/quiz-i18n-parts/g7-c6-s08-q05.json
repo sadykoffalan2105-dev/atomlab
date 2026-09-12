@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately separates “Problem Solving” from similar ideas?",
+  "questionUz": "Qaysi formula \"Muammolarni hal qilish\" ni o'xshash g'oyalardan aniqroq ajratib turadi?",
+  "choicesEn": [
+    "Air at a temperature of +30° contains 30 g of water vapor; this is saturated air.",
+    "Composition and structure of water",
+    "Water cycle in nature",
+    "H₂O (two hydrogen atoms and one oxygen atom)"
+  ],
+  "choicesUz": [
+    "+30 ° haroratda havo 30 g suv bug'ini o'z ichiga oladi; bu to'yingan havo.",
+    "Suvning tarkibi va tuzilishi",
+    "Tabiatdagi suv aylanishi",
+    "H₂O (ikki vodorod atomi va bitta kislorod atomi)"
+  ],
+  "explanationEn": "Air at a temperature of +30° contains 30 g of water vapor; this is saturated air.",
+  "explanationUz": "+30 ° haroratda havo 30 g suv bug'ini o'z ichiga oladi; bu to'yingan havo."
+}

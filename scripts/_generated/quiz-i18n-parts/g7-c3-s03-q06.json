@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is said here that is chemically correct?",
+  "questionUz": "Bu erda kimyoviy jihatdan to'g'ri aytilgan nima?",
+  "choicesEn": [
+    "The condensed version of the periodic table is the most common.",
+    "Increasing atomic number and periodic repetition of properties",
+    "Horizontal row of elements",
+    "Vertical column of elements with similar properties"
+  ],
+  "choicesUz": [
+    "Davriy jadvalning siqilgan versiyasi eng keng tarqalgan.",
+    "Atom sonini oshirish va xususiyatlarning davriy takrorlanishi",
+    "Elementlarning gorizontal qatori",
+    "Xuddi shunday xususiyatlarga ega bo'lgan elementlarning vertikal ustuni"
+  ],
+  "explanationEn": "The condensed version of the periodic table is the most common.",
+  "explanationUz": "Davriy jadvalning siqilgan versiyasi eng keng tarqalgan."
+}

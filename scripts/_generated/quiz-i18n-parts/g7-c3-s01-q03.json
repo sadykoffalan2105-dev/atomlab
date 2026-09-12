@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "Increasing atomic number and periodic repetition of properties",
+    "Alphabet of names",
+    "The color of simple substances",
+    "Random order"
+  ],
+  "choicesUz": [
+    "Atom sonini oshirish va xususiyatlarning davriy takrorlanishi",
+    "Ismlar alifbosi",
+    "Oddiy moddalarning rangi",
+    "Tasodifiy buyurtma"
+  ],
+  "explanationEn": "The basis of PS is the atomic number and periodicity of properties.",
+  "explanationUz": "PS ning asosi - atom raqami va xususiyatlarning davriyligi."
+}

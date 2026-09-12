@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately distinguishes \"organic substances in living organisms\" from similar ideas?",
+  "questionUz": "Qaysi formulada \"tirik organizmlardagi organik moddalar\" o'xshash g'oyalardan aniqroq farqlanadi?",
+  "choicesEn": [
+    "carbohydrates, lipids, proteins and nucleic acids",
+    "chemical elements that perform biological functions in living organisms",
+    "in living organisms are water and mineral salts",
+    "Elements necessary for the life of organisms"
+  ],
+  "choicesUz": [
+    "uglevodlar, lipidlar, oqsillar va nuklein kislotalar",
+    "tirik organizmlarda biologik funktsiyalarni bajaradigan kimyoviy elementlar",
+    "tirik organizmlarda suv va mineral tuzlar mavjud",
+    "Organizmlar hayoti uchun zarur bo'lgan elementlar"
+  ],
+  "explanationEn": "Organic substances in living organisms - carbohydrates, lipids, proteins and nucleic acids.",
+  "explanationUz": "Tirik organizmlardagi organik moddalar - uglevodlar, lipidlar, oqsillar va nuklein kislotalar."
+}

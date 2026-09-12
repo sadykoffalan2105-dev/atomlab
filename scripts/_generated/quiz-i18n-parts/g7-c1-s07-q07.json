@@ -1,0 +1,18 @@
+{
+  "questionEn": "Mark the exact description for “A change in state of aggregation is”?",
+  "questionUz": "“Agregatsiya holatining o‘zgarishi”ning aniq tavsifini belgilang?",
+  "choicesEn": [
+    "A physical change that does not change the chemical composition",
+    "Chemical reaction with new substances",
+    "Irreversible process",
+    "Only when burning"
+  ],
+  "choicesUz": [
+    "Kimyoviy tarkibni o'zgartirmaydigan jismoniy o'zgarish",
+    "Yangi moddalar bilan kimyoviy reaksiya",
+    "Qaytarib bo'lmaydigan jarayon",
+    "Faqat yonayotganda"
+  ],
+  "explanationEn": "A change of state is a physical, reversible change.",
+  "explanationUz": "Holatning o'zgarishi - bu jismoniy, qaytariladigan o'zgarish."
+}

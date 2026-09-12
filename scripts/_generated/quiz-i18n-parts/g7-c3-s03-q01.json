@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option reflects a real property or phenomenon from the paragraph?",
+  "questionUz": "Qaysi variant paragrafdagi ko'chmas mulk yoki hodisani aks ettiradi?",
+  "choicesEn": [
+    "Increasing atomic number and periodic repetition of properties",
+    "Alphabet of names",
+    "The color of simple substances",
+    "Random order"
+  ],
+  "choicesUz": [
+    "Atom sonini oshirish va xususiyatlarning davriy takrorlanishi",
+    "Ismlar alifbosi",
+    "Oddiy moddalarning rangi",
+    "Tasodifiy buyurtma"
+  ],
+  "explanationEn": "The basis of PS is the atomic number and periodicity of properties.",
+  "explanationUz": "PS ning asosi - atom raqami va xususiyatlarning davriyligi."
+}

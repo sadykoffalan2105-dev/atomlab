@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook: 1 + x is...",
+  "questionUz": "Darslikka ko'ra: 1 + x bu...",
+  "choicesEn": [
+    "6 = 0, round x = 6 – 1 = 5",
+    "There is no such information in this section",
+    "incorrect wording according to the textbook",
+    "This is how another phenomenon or substance is described"
+  ],
+  "choicesUz": [
+    "6 = 0, dumaloq x = 6 – 1 = 5",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Yana bir hodisa yoki modda shunday tasvirlangan"
+  ],
+  "explanationEn": "1 + x – 6 = 0, round x = 6 – 1 = 5",
+  "explanationUz": "1 + x – 6 = 0, dumaloq x = 6 – 1 = 5"
+}

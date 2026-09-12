@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion based on the topic “Drawing up equations of chemical reactions”?",
+  "questionUz": "“Kimyoviy reaksiyalar tenglamalarini tuzish” mavzusiga asoslangan to‘g‘ri xulosa qaysi fakt?",
+  "choicesEn": [
+    "Type of atoms with the same nuclear charge (number of protons)",
+    "Any mixture of substances",
+    "Only a water molecule",
+    "Any item"
+  ],
+  "choicesUz": [
+    "Yadro zaryadi bir xil bo'lgan atomlar turi (protonlar soni)",
+    "Har qanday moddalar aralashmasi",
+    "Faqat suv molekulasi",
+    "Har qanday element"
+  ],
+  "explanationEn": "Element = atoms with the same number of protons Z.",
+  "explanationUz": "Element = Z protonlari soni bir xil bo'lgan atomlar."
+}

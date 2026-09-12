@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Density and Mole”: An excess reagent is one that...",
+  "questionUz": "§ \"Zichlik va mol\" ga ko'ra: Ortiqcha reagent - bu ...",
+  "choicesEn": [
+    "Exactly stoichiometric",
+    "incorrect wording according to the textbook",
+    "More than what is needed according to the equation",
+    "There is no such information in this section"
+  ],
+  "choicesUz": [
+    "Aynan stoxiometrik",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Tenglamaga ko'ra kerak bo'lganidan ko'proq",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q"
+  ],
+  "explanationEn": "More than what is needed according to the equation",
+  "explanationUz": "Tenglamaga ko'ra kerak bo'lganidan ko'proq"
+}

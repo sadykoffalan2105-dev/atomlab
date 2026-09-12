@@ -1,0 +1,18 @@
+{
+  "questionEn": "What characteristic refers to the concept of “physical phenomena”?",
+  "questionUz": "\"Jismoniy hodisalar\" tushunchasiga qanday xususiyat kiradi?",
+  "choicesEn": [
+    "Phenomena when the aggregate state of substances changes without the formation of new substances",
+    "Phenomena with the formation of new substances",
+    "Only burning",
+    "Only rusting"
+  ],
+  "choicesUz": [
+    "Yangi moddalar hosil bo'lmasdan moddalarning agregat holati o'zgarishi hodisalari",
+    "Yangi moddalarning hosil bo'lishi bilan bog'liq hodisalar",
+    "Faqat yonish",
+    "Faqat zanglash"
+  ],
+  "explanationEn": "Physical phenomena - when the state of aggregation changes.",
+  "explanationUz": "Fizik hodisalar - agregatsiya holati o'zgarganda."
+}

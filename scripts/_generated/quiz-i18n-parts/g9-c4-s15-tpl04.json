@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Final analysis”: Mass fraction of the substance in the solution ω =...",
+  "questionUz": "§ “Yakuniy tahlil” bo‘yicha: Eritmadagi moddaning massa ulushi ō =...",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "m(substance) / m(solution) 100%",
+    "There is no such information in this section",
+    "m(water) / m(solution)"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "m (modda) / m (eritma) 100%",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "m (suv) / m (eritma)"
+  ],
+  "explanationEn": "m(substance) / m(solution) 100%",
+  "explanationUz": "m (modda) / m (eritma) 100%"
+}

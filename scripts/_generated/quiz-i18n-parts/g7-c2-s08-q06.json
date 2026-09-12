@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which of the following corresponds to the material in the paragraph “Simple and complex substances”?",
+  "questionUz": "Quyidagilardan qaysi biri “Oddiy va murakkab moddalar” bandidagi materialga mos keladi?",
+  "choicesEn": [
+    "substances consisting of atoms of various elements",
+    "substances consisting of atoms of the same element",
+    "the phenomenon of the formation of several simple substances from one chemical element",
+    "changes in the shape of an element that differs from each other in physical and chemical properties"
+  ],
+  "choicesUz": [
+    "turli elementlarning atomlaridan tashkil topgan moddalar",
+    "bir xil element atomlaridan tashkil topgan moddalar",
+    "bir kimyoviy elementdan bir nechta oddiy moddalar hosil bo'lish hodisasi",
+    "fizik va kimyoviy xossalari bilan bir-biridan farq qiluvchi element shaklining o'zgarishi"
+  ],
+  "explanationEn": "Complex substances are substances consisting of atoms of different elements.",
+  "explanationUz": "Murakkab moddalar - turli elementlarning atomlaridan tashkil topgan moddalar."
+}

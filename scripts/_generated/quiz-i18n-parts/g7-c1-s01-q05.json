@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is Al-Kindi known for in the history of chemistry?",
+  "questionUz": "Al-Kindi kimyo tarixida nimasi bilan mashhur?",
+  "choicesEn": [
+    "The first scientist to criticize alchemy",
+    "Author of the periodic table of elements",
+    "Oxygen discoverer",
+    "Creator of the law of conservation of mass"
+  ],
+  "choicesUz": [
+    "Alkimyoni tanqid qilgan birinchi olim",
+    "Elementlarning davriy sistemasi muallifi",
+    "Kislorod kashfiyotchisi",
+    "Massaning saqlanish qonunini yaratuvchisi"
+  ],
+  "explanationEn": "Al-Kindi is the first scientist to criticize alchemy.",
+  "explanationUz": "Al-Kindi alkimyoni tanqid qilgan birinchi olimdir."
+}

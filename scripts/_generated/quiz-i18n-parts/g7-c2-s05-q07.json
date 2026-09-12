@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is called the word “neutron” in a 7th grade chemistry course?",
+  "questionUz": "7-sinf kimyo kursida \"neytron\" so'zi nima deyiladi?",
+  "choicesEn": [
+    "Electrically neutral particle of the nucleus of an atom",
+    "Particle with charge +1",
+    "Shell electron",
+    "Chlorine ion"
+  ],
+  "choicesUz": [
+    "Atom yadrosining elektr neytral zarrasi",
+    "Zaryadli zarracha +1",
+    "Qobiq elektron",
+    "Xlor ioni"
+  ],
+  "explanationEn": "Neutron n⁰ has no electrical charge.",
+  "explanationUz": "Neytron n⁰ elektr zaryadiga ega emas."
+}

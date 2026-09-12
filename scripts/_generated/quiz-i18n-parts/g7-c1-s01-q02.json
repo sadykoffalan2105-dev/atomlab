@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option reflects a real property or phenomenon from the paragraph?",
+  "questionUz": "Qaysi variant paragrafdagi ko'chmas mulk yoki hodisani aks ettiradi?",
+  "choicesEn": [
+    "Obtaining substances with beneficial properties and using the energy of chemical transformations",
+    "Only memorizing formulas without experiments",
+    "Replacing all metals with gold",
+    "Study of organic substances only"
+  ],
+  "choicesUz": [
+    "Foydali xususiyatlarga ega bo'lgan moddalarni olish va kimyoviy transformatsiyalar energiyasidan foydalanish",
+    "Tajribalarsiz faqat formulalarni yodlash",
+    "Barcha metallarni oltin bilan almashtirish",
+    "Faqat organik moddalarni o'rganish"
+  ],
+  "explanationEn": "The task of chemistry is to obtain useful substances and use the energy of transformations.",
+  "explanationUz": "Kimyoning vazifasi foydali moddalarni olish va transformatsiyalar energiyasidan foydalanishdir."
+}

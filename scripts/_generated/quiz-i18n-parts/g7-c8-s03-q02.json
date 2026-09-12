@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which conclusion on the topic “Environmental aspects of mining” can be considered correct?",
+  "questionUz": "“Konchilikning ekologik jihatlari” mavzusidagi qaysi xulosani to‘g‘ri deb hisoblash mumkin?",
+  "choicesEn": [
+    "Solid shell of the Earth",
+    "Only the atmosphere",
+    "Hydrosphere only",
+    "Only the biosphere without rocks"
+  ],
+  "choicesUz": [
+    "Yerning qattiq qobig'i",
+    "Faqat atmosfera",
+    "Faqat gidrosfera",
+    "Faqat toshsiz biosfera"
+  ],
+  "explanationEn": "Lithosphere is the solid shell of the earth.",
+  "explanationUz": "Litosfera - bu yerning qattiq qobig'i."
+}

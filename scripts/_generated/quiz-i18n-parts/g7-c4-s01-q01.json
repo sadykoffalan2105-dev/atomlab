@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option correctly reveals the meaning of “air”?",
+  "questionUz": "Qaysi variant \"havo\" ma'nosini to'g'ri ochib beradi?",
+  "choicesEn": [
+    "A mixture of gases, mainly nitrogen and oxygen",
+    "Pure simple substance",
+    "Carbon dioxide only",
+    "Water vapor only"
+  ],
+  "choicesUz": [
+    "Gazlar aralashmasi, asosan azot va kislorod",
+    "Sof oddiy modda",
+    "Faqat karbonat angidrid",
+    "Faqat suv bug'i"
+  ],
+  "explanationEn": "Air is a mixture; dry: ≈78% N₂ and ≈21% O₂.",
+  "explanationUz": "Havo aralashmadir; quruq: ≈78% N₂ va ≈21% O₂."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Classification of chemical reactions”: A compound reaction is...",
+  "questionUz": "§ “Kimyoviy reaksiyalarning tasnifi” bo‘yicha: Murakkab reaksiya...",
+  "choicesEn": [
+    "AB → A + B",
+    "A + B → AB",
+    "A + BC → AC + B",
+    "Ion exchange"
+  ],
+  "choicesUz": [
+    "AB → A + B",
+    "A + B → AB",
+    "A + BC → AC + B",
+    "Ion almashinuvi"
+  ],
+  "explanationEn": "A + B → AB",
+  "explanationUz": "A + B → AB"
+}

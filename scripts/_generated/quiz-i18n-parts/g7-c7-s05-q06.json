@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which of the following corresponds to the material in the paragraph “Determination of the composition of an apple”?",
+  "questionUz": "Quyidagilardan qaysi biri “Olma tarkibini aniqlash” bandidagi materialga mos keladi?",
+  "choicesEn": [
+    "Type of atoms with the same nuclear charge (number of protons)",
+    "Any mixture of substances",
+    "Only a water molecule",
+    "Any item"
+  ],
+  "choicesUz": [
+    "Yadro zaryadi bir xil bo'lgan atomlar turi (protonlar soni)",
+    "Har qanday moddalar aralashmasi",
+    "Faqat suv molekulasi",
+    "Har qanday element"
+  ],
+  "explanationEn": "Element = atoms with the same number of protons Z.",
+  "explanationUz": "Element = Z protonlari soni bir xil bo'lgan atomlar."
+}

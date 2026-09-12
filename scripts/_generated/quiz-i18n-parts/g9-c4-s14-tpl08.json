@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Safety precautions”: An excess reagent is one that...",
+  "questionUz": "§ \"Xavfsizlik choralari\" ga ko'ra: Ortiqcha reaktiv - bu ...",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "Exactly stoichiometric",
+    "There is no such information in this section",
+    "More than what is needed according to the equation"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Aynan stoxiometrik",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Tenglamaga ko'ra kerak bo'lganidan ko'proq"
+  ],
+  "explanationEn": "More than what is needed according to the equation",
+  "explanationUz": "Tenglamaga ko'ra kerak bo'lganidan ko'proq"
+}

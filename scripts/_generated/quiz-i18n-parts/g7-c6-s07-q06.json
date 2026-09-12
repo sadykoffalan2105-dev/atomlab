@@ -1,0 +1,18 @@
+{
+  "questionEn": "Select the statement that is consistent with your 7th grade chemistry course?",
+  "questionUz": "7-sinf kimyo kursingizga mos keladigan gapni tanlang?",
+  "choicesEn": [
+    "coagulum - clot, coagulatio - coagulation, condensation) - particles combine into larger aggregates.",
+    "cleaning from harmful microbes by chlorination",
+    "H₂O (two hydrogen atoms and one oxygen atom)",
+    "The interaction of an acid with a base to form salt and water"
+  ],
+  "choicesUz": [
+    "coagulum - laxta, koagulatio - koagulyatsiya, kondensatsiya) - zarralar kattaroq agregatlarga birlashadi.",
+    "xlorlash orqali zararli mikroblardan tozalash",
+    "H₂O (ikki vodorod atomi va bitta kislorod atomi)",
+    "Tuz va suv hosil qilish uchun kislotaning asos bilan o'zaro ta'siri"
+  ],
+  "explanationEn": "coagulum - clot, coagulatio - coagulation, condensation) - particles combine into larger aggregates, turbidity forms, the aggregates settle or form a top layer, the water becomes clearer.",
+  "explanationUz": "coagulum - laxta, koagulatio - koagulyatsiya, kondensatsiya) - zarralar kattaroq agregatlarga birlashadi, loyqalik hosil qiladi, agregatlar cho'kadi yoki yuqori qatlam hosil qiladi, suv tiniqroq bo'ladi."
+}

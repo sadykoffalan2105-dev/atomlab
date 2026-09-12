@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Natural families of elements”: Atomic number is ...",
+  "questionUz": "§ \"Elementlarning tabiiy oilalari\" ga ko'ra: Atom raqami ...",
+  "choicesEn": [
+    "Valence",
+    "Mass number",
+    "Number of neutrons",
+    "Number of protons in the nucleus"
+  ],
+  "choicesUz": [
+    "Valentlik",
+    "Massa raqami",
+    "Neytronlar soni",
+    "Yadrodagi protonlar soni"
+  ],
+  "explanationEn": "Number of protons in the nucleus",
+  "explanationUz": "Yadrodagi protonlar soni"
+}

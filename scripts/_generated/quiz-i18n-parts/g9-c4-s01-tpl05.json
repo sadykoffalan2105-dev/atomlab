@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Density and mole”: Product yield η =…",
+  "questionUz": "§ \"Zichlik va mol\" bo'yicha: Mahsulot rentabelligi ē =…",
+  "choicesEn": [
+    "m(practical) / m(theoretical) 100%",
+    "incorrect wording according to the textbook",
+    "m(theoretical) / m(practical)",
+    "There is no such information in this section"
+  ],
+  "choicesUz": [
+    "m (amaliy) / m (nazariy) 100%",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "m (nazariy) / m (amaliy)",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q"
+  ],
+  "explanationEn": "m(practical) / m(theoretical) 100%",
+  "explanationUz": "m (amaliy) / m (nazariy) 100%"
+}

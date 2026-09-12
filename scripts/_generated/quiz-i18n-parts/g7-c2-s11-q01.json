@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which definition best describes “valence”?",
+  "questionUz": "Qaysi ta'rif \"valentlik\" ni eng yaxshi ta'riflaydi?",
+  "choicesEn": [
+    "The ability of an atom to form a certain number of chemical bonds",
+    "Atomic mass in grams",
+    "Substance color",
+    "Boiling point"
+  ],
+  "choicesUz": [
+    "Atomning ma'lum miqdordagi kimyoviy bog'lanishlar hosil qilish qobiliyati",
+    "Atom massasi grammda",
+    "Moddaning rangi",
+    "Qaynash nuqtasi"
+  ],
+  "explanationEn": "Valency shows how many bonds an atom can form.",
+  "explanationUz": "Valentlik atomning qancha bog'lanishi mumkinligini ko'rsatadi."
+}

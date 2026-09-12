@@ -1,0 +1,18 @@
+{
+  "questionEn": "Mark the exact description for \"simple substance\"?",
+  "questionUz": "“Oddiy modda”ning aniq tavsifini belgilang?",
+  "choicesEn": [
+    "A substance consisting of atoms of one chemical element",
+    "Substance made from atoms of different elements",
+    "Any mixture of gases",
+    "Salt solution only"
+  ],
+  "choicesUz": [
+    "Bitta kimyoviy element atomlaridan tashkil topgan modda",
+    "Turli elementlarning atomlaridan hosil bo'lgan modda",
+    "Har qanday gaz aralashmasi",
+    "Faqat tuz eritmasi"
+  ],
+  "explanationEn": "O₂, Fe, S are simple substances.",
+  "explanationUz": "O₂, Fe, S oddiy moddalardir."
+}

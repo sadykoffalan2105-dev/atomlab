@@ -1,0 +1,18 @@
+{
+  "questionEn": "How do “periods” differ in meaning - choose the correct description?",
+  "questionUz": "\"Davrlar\" qanday ma'noda farqlanadi - to'g'ri tavsifni tanlang?",
+  "choicesEn": [
+    "Periods are horizontal lines starting with an alkali metal and ending with an inert gas.",
+    "Increasing atomic number and periodic repetition of properties",
+    "Horizontal row of elements",
+    "Vertical column of elements with similar properties"
+  ],
+  "choicesUz": [
+    "Davrlar ishqoriy metalldan boshlanib, inert gaz bilan tugaydigan gorizontal chiziqlardir.",
+    "Atom sonini oshirish va xususiyatlarning davriy takrorlanishi",
+    "Elementlarning gorizontal qatori",
+    "Xuddi shunday xususiyatlarga ega bo'lgan elementlarning vertikal ustuni"
+  ],
+  "explanationEn": "Periods are horizontal lines starting with an alkali metal and ending with an inert gas.",
+  "explanationUz": "Davrlar ishqoriy metalldan boshlanib, inert gaz bilan tugaydigan gorizontal chiziqlardir."
+}

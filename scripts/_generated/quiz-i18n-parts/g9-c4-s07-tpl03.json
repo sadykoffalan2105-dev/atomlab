@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Acids and Bases”: Product yield η =…",
+  "questionUz": "§ \"Kislotalar va asoslar\" bo'limiga ko'ra: Mahsulot unumi ē =…",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "m(theoretical) / m(practical)",
+    "There is no such information in this section",
+    "m(practical) / m(theoretical) 100%"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "m (nazariy) / m (amaliy)",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "m (amaliy) / m (nazariy) 100%"
+  ],
+  "explanationEn": "m(practical) / m(theoretical) 100%",
+  "explanationUz": "m (amaliy) / m (nazariy) 100%"
+}

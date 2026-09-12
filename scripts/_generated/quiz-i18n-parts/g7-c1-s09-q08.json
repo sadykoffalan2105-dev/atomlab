@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "Purification of substances using water",
+    "Heating to a boil",
+    "Adding acid",
+    "Magnetic separation"
+  ],
+  "choicesUz": [
+    "Suv yordamida moddalarni tozalash",
+    "Qaynaguncha isitish",
+    "Kislota qo'shish",
+    "Magnit ajratish"
+  ],
+  "explanationEn": "Washing - cleaning with water.",
+  "explanationUz": "Yuvish - suv bilan tozalash."
+}

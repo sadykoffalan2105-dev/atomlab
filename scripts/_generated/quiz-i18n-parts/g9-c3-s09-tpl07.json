@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Laboratory work”: The galvanic cell is the source...",
+  "questionUz": "§ “Laboratoriya ishi” bo‘yicha: Galvanik element manba...",
+  "choicesEn": [
+    "Electric current due to OVR",
+    "incorrect wording according to the textbook",
+    "There is no such information in this section",
+    "Magnetic field without electrons"
+  ],
+  "choicesUz": [
+    "OVR tufayli elektr toki",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Elektronsiz magnit maydon"
+  ],
+  "explanationEn": "Electric current due to OVR",
+  "explanationUz": "OVR tufayli elektr toki"
+}

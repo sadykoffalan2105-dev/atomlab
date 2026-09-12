@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Periodic Table of Elements”: The atomic radius in a period from left to right is usually ...",
+  "questionUz": "§ \"Elementlarning davriy jadvali\" ga ko'ra: Chapdan o'ngga bir davrda atom radiusi odatda ...",
+  "choicesEn": [
+    "Becomes null",
+    "Increases",
+    "Doesn't change",
+    "Decreases"
+  ],
+  "choicesUz": [
+    "Null bo'ladi",
+    "Oshadi",
+    "O'zgarmaydi",
+    "Kamayadi"
+  ],
+  "explanationEn": "Decreases",
+  "explanationUz": "Kamayadi"
+}

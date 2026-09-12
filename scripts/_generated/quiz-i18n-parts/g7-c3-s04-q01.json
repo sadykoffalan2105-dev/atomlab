@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is said here that is chemically correct?",
+  "questionUz": "Bu erda kimyoviy jihatdan to'g'ri aytilgan nima?",
+  "choicesEn": [
+    "Increasing atomic number and periodic repetition of properties",
+    "Alphabet of names",
+    "The color of simple substances",
+    "Random order"
+  ],
+  "choicesUz": [
+    "Atom sonini oshirish va xususiyatlarning davriy takrorlanishi",
+    "Ismlar alifbosi",
+    "Oddiy moddalarning rangi",
+    "Tasodifiy buyurtma"
+  ],
+  "explanationEn": "The basis of PS is the atomic number and periodicity of properties.",
+  "explanationUz": "PS ning asosi - atom raqami va xususiyatlarning davriyligi."
+}

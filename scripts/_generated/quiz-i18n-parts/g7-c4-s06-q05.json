@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately separates “Burning” from similar ideas?",
+  "questionUz": "Qaysi formula \"Yonish\" ni o'xshash g'oyalardan aniqroq ajratib turadi?",
+  "choicesEn": [
+    "Slow oxidation is the process of slow interaction of substances with oxygen without the formation of fire or large fire.",
+    "A chemical reaction of a substance with oxygen, accompanied by the release of heat and light",
+    "Breathing and burning",
+    "Nitrogen (about 78%)"
+  ],
+  "choicesUz": [
+    "Sekin oksidlanish - bu yong'in yoki katta olov hosil bo'lmagan holda moddalarning kislorod bilan sekin o'zaro ta'sir qilish jarayoni.",
+    "Moddaning kislorod bilan kimyoviy reaktsiyasi, issiqlik va yorug'lik chiqishi bilan birga",
+    "Nafas olish va yonish",
+    "Azot (taxminan 78%)"
+  ],
+  "explanationEn": "Slow oxidation is the process of slowly reacting substances with oxygen without the formation of fire and a large amount of heat.",
+  "explanationUz": "Sekin oksidlanish - bu moddalarning olov va katta miqdorda issiqlik hosil bo'lmasdan kislorod bilan sekin reaksiyaga kirishishi."
+}

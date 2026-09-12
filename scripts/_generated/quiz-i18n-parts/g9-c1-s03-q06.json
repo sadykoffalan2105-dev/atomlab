@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “The activity series of metals”: The heaviest metal is...",
+  "questionUz": "§ “Metallarning faollik qatori” bo‘yicha: Eng og‘ir metal...",
+  "choicesEn": [
+    "lithium, its density is 0.5 g/cm 3",
+    "osmium, its density is 22.6 g/cm3",
+    "There is no such information in this section",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "litiy, uning zichligi 0,5 g/sm 3",
+    "osmiy, uning zichligi 22,6 g/sm3",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "The heaviest metal is osmium, its density is 22.6 g/cm3",
+  "explanationUz": "Eng ogʻir metall osmiy, uning zichligi 22,6 g/sm3"
+}

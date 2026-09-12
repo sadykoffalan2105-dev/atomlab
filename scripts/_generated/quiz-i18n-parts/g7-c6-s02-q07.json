@@ -1,0 +1,18 @@
+{
+  "questionEn": "What characteristic refers to the concept of “dissolution”?",
+  "questionUz": "“Eritish” tushunchasiga qanday xususiyat kiradi?",
+  "choicesEn": [
+    "process of transition from solid (ice) to liquid state",
+    "process of transition of vapor into liquid state",
+    "the process of water changing from liquid to solid (ice)",
+    "the process of changing from a liquid or solid state to a vapor state (water from ice to steam)"
+  ],
+  "choicesUz": [
+    "qattiq (muz) holatidan suyuq holatga o'tish jarayoni",
+    "bug'ning suyuq holatga o'tish jarayoni",
+    "suvning suyuqlikdan qattiq holatga (muz) o'tish jarayoni",
+    "suyuq yoki qattiq holatdan bug 'holatiga o'tish jarayoni (suv muzdan bug'ga)"
+  ],
+  "explanationEn": "Dissolution is the process of transition from a solid (ice) to a liquid state.",
+  "explanationUz": "Eritma - qattiq (muz) dan suyuq holatga o'tish jarayoni."
+}

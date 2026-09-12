@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Electrolytes”: The galvanic cell is the source...",
+  "questionUz": "§ \"Elektrolitlar\" ga ko'ra: Galvanik element manba ...",
+  "choicesEn": [
+    "Magnetic field without electrons",
+    "There is no such information in this section",
+    "Electric current due to OVR",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "Elektronsiz magnit maydon",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "OVR tufayli elektr toki",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "Electric current due to OVR",
+  "explanationUz": "OVR tufayli elektr toki"
+}

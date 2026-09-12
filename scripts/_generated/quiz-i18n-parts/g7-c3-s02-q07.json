@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option reflects a real property or phenomenon from the paragraph?",
+  "questionUz": "Qaysi variant paragrafdagi ko'chmas mulk yoki hodisani aks ettiradi?",
+  "choicesEn": [
+    "The smallest particle of a substance that retains its chemical properties",
+    "Only one proton",
+    "A piece of metal of any size",
+    "Mixture of sand and salt"
+  ],
+  "choicesUz": [
+    "Kimyoviy xossalarini saqlaydigan moddaning eng kichik zarrasi",
+    "Faqat bitta proton",
+    "Har qanday o'lchamdagi metall bo'lagi",
+    "Qum va tuz aralashmasi"
+  ],
+  "explanationEn": "A molecule is a particle of a substance with its chemical properties.",
+  "explanationUz": "Molekula - kimyoviy xossalariga ega bo'lgan moddaning zarrasi."
+}

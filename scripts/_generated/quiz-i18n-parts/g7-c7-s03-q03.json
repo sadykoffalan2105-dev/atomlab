@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "Organic substances consisting of carbon, hydrogen and oxygen (sugar, etc.)",
+    "Metals only",
+    "Only nitric acid salts",
+    "Iron oxides only"
+  ],
+  "choicesUz": [
+    "Uglerod, vodorod va kisloroddan (shakar va boshqalar) tashkil topgan organik moddalar.",
+    "Faqat metallar",
+    "Faqat nitrat kislota tuzlari",
+    "Faqat temir oksidi"
+  ],
+  "explanationEn": "Glucose, starch - carbohydrates.",
+  "explanationUz": "Glyukoza, kraxmal - uglevodlar."
+}

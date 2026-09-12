@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately distinguishes \"relative atomic mass of an element\" from similar ideas?",
+  "questionUz": "Qaysi formulada \"elementning nisbiy atom massasi\" shunga o'xshash g'oyalardan aniqroq farqlanadi?",
+  "choicesEn": [
+    "this is a physical quantity that shows how many times the mass of an atom of a chemical element is greater than 1/12.",
+    "this is a physical quantity that shows how many times the mass of an atom of a chemical element is greater.",
+    "Atoms of one chemical element",
+    "Electrically neutral particle consisting of a nucleus and electrons"
+  ],
+  "choicesUz": [
+    "bu kimyoviy element atomining massasi 1/12 dan necha marta katta ekanligini ko'rsatadigan jismoniy miqdor.",
+    "bu kimyoviy element atomining massasi necha marta katta ekanligini ko'rsatadigan fizik miqdor.",
+    "Bitta kimyoviy elementning atomlari",
+    "Yadro va elektronlardan tashkil topgan elektr neytral zarracha"
+  ],
+  "explanationEn": "The relative atomic mass of an element is a physical quantity that shows how many times the mass of an atom of a chemical element is greater than 1/12 the mass of a carbon atom.",
+  "explanationUz": "Elementning nisbiy atom massasi - bu kimyoviy element atomining massasi uglerod atomi massasining 1/12 qismidan necha marta katta ekanligini ko'rsatadigan fizik miqdor."
+}

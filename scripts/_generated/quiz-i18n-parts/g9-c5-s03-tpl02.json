@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Ecology”: The chemical industry uses...",
+  "questionUz": "§ \"Ekologiya\" ga ko'ra: Kimyo sanoati ...",
+  "choicesEn": [
+    "Only natural mixtures without control",
+    "incorrect wording according to the textbook",
+    "There is no such information in this section",
+    "Catalysis, recycling, wastewater treatment"
+  ],
+  "choicesUz": [
+    "Faqat nazoratsiz tabiiy aralashmalar",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Kataliz, qayta ishlash, oqava suvlarni tozalash"
+  ],
+  "explanationEn": "Catalysis, recycling, wastewater treatment",
+  "explanationUz": "Kataliz, qayta ishlash, oqava suvlarni tozalash"
+}

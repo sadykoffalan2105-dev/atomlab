@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately distinguishes “sublimation” from similar ideas?",
+  "questionUz": "Qaysi formula \"sublimatsiya\" ni o'xshash g'oyalardan aniqroq ajratib turadi?",
+  "choicesEn": [
+    "Direct transition from solid to gaseous state",
+    "Melting ice into water",
+    "Steam condensation",
+    "Freezing water"
+  ],
+  "choicesUz": [
+    "Qattiq holatdan gazsimon holatga bevosita o'tish",
+    "Muzni suvga eritish",
+    "Bug 'kondensatsiyasi",
+    "Muzlatuvchi suv"
+  ],
+  "explanationEn": "Sublimation: solid → gas without liquid phase.",
+  "explanationUz": "Sublimatsiya: qattiq → suyuq fazasiz gaz."
+}

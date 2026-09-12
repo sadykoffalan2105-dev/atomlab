@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Final analysis”: Product yield η =…",
+  "questionUz": "§ \"Yakuniy tahlil\" bo'yicha: Mahsulot rentabelligi ē =…",
+  "choicesEn": [
+    "There is no such information in this section",
+    "m(theoretical) / m(practical)",
+    "m(practical) / m(theoretical) 100%",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "m (nazariy) / m (amaliy)",
+    "m (amaliy) / m (nazariy) 100%",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "m(practical) / m(theoretical) 100%",
+  "explanationUz": "m (amaliy) / m (nazariy) 100%"
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook: molar volume The volume of a given quantity of gas is...",
+  "questionUz": "Darslik bo'yicha: molyar hajm Berilgan miqdordagi gazning hajmi...",
+  "choicesEn": [
+    "This can only be said about another class of compounds (according to the textbook) - incorrect - incorrect",
+    "The quantity is unknown, the change is based on the change in temperature (T) and pressure (P)",
+    "This is how another phenomenon or substance is described (according to the textbook) - incorrect - incorrect - incorrect",
+    "the statement refers to another paragraph of the textbook (according to the textbook) - incorrect - incorrect"
+  ],
+  "choicesUz": [
+    "Buni faqat birikmalarning boshqa sinfi haqida aytish mumkin (darslikka ko'ra) - noto'g'ri - noto'g'ri",
+    "Miqdori noma'lum, o'zgarish harorat (T) va bosim (P) o'zgarishiga asoslanadi.",
+    "Yana bir hodisa yoki modda shunday tasvirlangan (darslik bo'yicha) - noto'g'ri - noto'g'ri - noto'g'ri",
+    "bayonot darslikning boshqa bandiga ishora qiladi (darslikka ko'ra) - noto'g'ri - noto'g'ri"
+  ],
+  "explanationEn": "molar volume The volume of natural gas content is a new quantity, a change from change to change By changing temperature (T) and pressure (P)",
+  "explanationUz": "molar hajm Tabiiy gaz tarkibidagi hajm yangi miqdor bo'lib, harorat (T) va bosim (P) o'zgarishi bilan o'zgarishdan o'zgarishga o'zgaradi."
+}

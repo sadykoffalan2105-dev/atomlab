@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which conclusion on the topic “Performing composing exercises” can be considered correct?",
+  "questionUz": "“Tuzatish mashqlarini bajarish” mavzusidagi qaysi xulosani to'g'ri deb hisoblash mumkin?",
+  "choicesEn": [
+    "Amount of substance containing 6.02·10²³ particles",
+    "Unit of length",
+    "Only mass in kilograms",
+    "Gas pressure"
+  ],
+  "choicesUz": [
+    "6,02·10²³ zarrachalarni o'z ichiga olgan moddaning miqdori",
+    "Uzunlik birligi",
+    "Faqat kilogrammdagi massa",
+    "Gaz bosimi"
+  ],
+  "explanationEn": "1 mole contains the Avogadro number of particles ≈ 6.02·10²³.",
+  "explanationUz": "1 mol Avogadro zarrachalar sonini ≈ 6,02·10²³ o'z ichiga oladi."
+}

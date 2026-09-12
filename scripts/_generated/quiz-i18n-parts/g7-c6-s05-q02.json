@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact on the topic “Practical Lesson” is formulated without error?",
+  "questionUz": "“Amaliy dars” mavzusida qanday fakt xatosiz tuzilgan?",
+  "choicesEn": [
+    "H₂O (two hydrogen atoms and one oxygen atom)",
+    "H₂O₂ (hydrogen peroxide)",
+    "CO₂ (carbon dioxide)",
+    "NaCl (table salt)"
+  ],
+  "choicesUz": [
+    "H₂O (ikki vodorod atomi va bitta kislorod atomi)",
+    "H₂O₂ (vodorod periks)",
+    "CO₂ (karbonat angidrid)",
+    "NaCl (stol tuzi)"
+  ],
+  "explanationEn": "Water - H₂O.",
+  "explanationUz": "Suv - H₂O."
+}

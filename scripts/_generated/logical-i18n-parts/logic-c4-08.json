@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is oxygen produced by decomposing hydrogen peroxide with a catalyst?",
+  "questionUz": "Nima uchun kislorod vodorod periksni katalizator bilan parchalash natijasida hosil bo'ladi?",
+  "choicesEn": [
+    "O₂ gas is released from solution - a convenient laboratory method",
+    "Because the water is burning",
+    "The catalyst is oxygen",
+    "Without a catalyst, hydrogen is formed"
+  ],
+  "choicesUz": [
+    "Eritmadan O₂ gaz chiqariladi - qulay laboratoriya usuli",
+    "Chunki suv yonmoqda",
+    "Katalizator kisloroddir",
+    "Katalizatorsiz vodorod hosil bo'ladi"
+  ],
+  "explanationEn": "",
+  "explanationUz": ""
+}

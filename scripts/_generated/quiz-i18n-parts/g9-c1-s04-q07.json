@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Corrosion of metals”: Oxidative is...",
+  "questionUz": "§ \"Metallarning korroziyasi\" ga ko'ra: Oksidlanish - bu...",
+  "choicesEn": [
+    "special substances, when small quantities are added to a corrosive environment (10 6–... (according to the textbook)",
+    "a reduction process that occurs when an electric current is passed through a solution or... (according to the textbook)",
+    "a reduction process that occurs when an electric current is passed through a solution or melt...",
+    "destruction of metal resulting from the interaction of the metal with an oxidizing agent from the external environment"
+  ],
+  "choicesUz": [
+    "maxsus moddalar, korroziy muhitga oz miqdorda qo'shilganda (10 6-... (darslik bo'yicha)",
+    "elektr toki eritma orqali o'tganda yoki ... (darslik bo'yicha) sodir bo'ladigan kamaytirish jarayoni.",
+    "eritma yoki eritma orqali elektr toki o'tganda yuzaga keladigan qaytarilish jarayoni...",
+    "metallning tashqi muhitdan oksidlovchi vosita bilan o'zaro ta'siri natijasida metallni yo'q qilish"
+  ],
+  "explanationEn": "The redox process that occurs when an electric current is passed through a solution or melt of an electrolyte is called electrolysis",
+  "explanationUz": "Elektrolit eritmasidan yoki eritmasidan elektr toki o'tganda sodir bo'ladigan oksidlanish-qaytarilish jarayoni elektroliz deb ataladi."
+}

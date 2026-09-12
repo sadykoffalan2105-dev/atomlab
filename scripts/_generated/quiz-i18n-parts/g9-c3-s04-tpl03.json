@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Electrolysis of melts”: Electrolysis is used for...",
+  "questionUz": "§ \"Eritmalarning elektrolizi\" ga ko'ra: Elektroliz ... uchun ishlatiladi.",
+  "choicesEn": [
+    "Filtering only",
+    "There is no such information in this section",
+    "Production of metals and coatings",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "Faqat filtrlash",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Metall va qoplamalar ishlab chiqarish",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "Production of metals and coatings",
+  "explanationUz": "Metall va qoplamalar ishlab chiqarish"
+}

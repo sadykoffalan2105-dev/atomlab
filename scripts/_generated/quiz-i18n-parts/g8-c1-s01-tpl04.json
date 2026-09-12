@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Basic chemical concepts”: Acid in an aqueous solution...",
+  "questionUz": "§ “Asosiy kimyoviy tushunchalar” bo‘yicha: Suvli eritmadagi kislota...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "incorrect wording according to the textbook",
+    "Dissociates to release H⁺",
+    "Gives only OH⁻"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "H⁺ chiqarish uchun ajraladi",
+    "Faqat OH⁻ beradi"
+  ],
+  "explanationEn": "Dissociates to release H⁺",
+  "explanationUz": "H⁺ chiqarish uchun ajraladi"
+}

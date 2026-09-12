@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is characteristic specifically of “water vapor condensation”, and not of a related concept?",
+  "questionUz": "Tegishli tushunchaga emas, balki \"suv bug'ining kondensatsiyasi\" ning o'ziga xos xususiyati nimada?",
+  "choicesEn": [
+    "Physical phenomenon",
+    "chemical phenomenon",
+    "Formation of a new substance",
+    "Combustion"
+  ],
+  "choicesUz": [
+    "Jismoniy hodisa",
+    "kimyoviy hodisa",
+    "Yangi moddaning shakllanishi",
+    "Yonish"
+  ],
+  "explanationEn": "The transition of vapor into liquid is condensation, a physical phenomenon.",
+  "explanationUz": "Bug'ning suyuqlikka o'tishi kondensatsiya, fizik hodisadir."
+}

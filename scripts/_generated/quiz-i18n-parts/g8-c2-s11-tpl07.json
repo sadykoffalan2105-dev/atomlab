@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Repetition”: Atomic number is...",
+  "questionUz": "§ “Takrorlash” bandiga ko‘ra: Atom raqami...",
+  "choicesEn": [
+    "Mass number",
+    "Number of protons in the nucleus",
+    "Number of neutrons",
+    "Valence"
+  ],
+  "choicesUz": [
+    "Massa raqami",
+    "Yadrodagi protonlar soni",
+    "Neytronlar soni",
+    "Valentlik"
+  ],
+  "explanationEn": "Number of protons in the nucleus",
+  "explanationUz": "Yadrodagi protonlar soni"
+}

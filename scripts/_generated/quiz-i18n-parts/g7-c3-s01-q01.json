@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which definition most accurately describes a “period in the periodic table”?",
+  "questionUz": "Qaysi ta'rif \"davriy jadvaldagi davr\" ni eng aniq ta'riflaydi?",
+  "choicesEn": [
+    "Horizontal row of elements",
+    "Vertical Column",
+    "Metals only",
+    "Gases only"
+  ],
+  "choicesUz": [
+    "Elementlarning gorizontal qatori",
+    "Vertikal ustun",
+    "Faqat metallar",
+    "Faqat gazlar"
+  ],
+  "explanationEn": "Periods are horizontal series of PS.",
+  "explanationUz": "Davrlar PS ning gorizontal qatoridir."
+}

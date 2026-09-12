@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact on the topic “Reinforcement Lesson” is formulated without error?",
+  "questionUz": "“Mustahkamlash darsi” mavzusida qanday fakt xatosiz tuzilgan?",
+  "choicesEn": [
+    "Physical phenomenon",
+    "chemical phenomenon",
+    "Formation of a new substance",
+    "Combustion"
+  ],
+  "choicesUz": [
+    "Jismoniy hodisa",
+    "kimyoviy hodisa",
+    "Yangi moddaning shakllanishi",
+    "Yonish"
+  ],
+  "explanationEn": "Ice melting is a physical phenomenon.",
+  "explanationUz": "Muzning erishi fizik hodisadir."
+}

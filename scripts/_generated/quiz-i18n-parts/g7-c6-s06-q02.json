@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which example of a neutralization reaction is correct?",
+  "questionUz": "Neytrallanish reaksiyasiga qaysi misol to'g'ri?",
+  "choicesEn": [
+    "HCl + NaOH → NaCl + H₂O",
+    "2H₂ + O₂ → 2H₂O (hydrogen combustion only)",
+    "O₂ → O₃ without reagents",
+    "NaCl → Na + Cl₂ at room temperature without current"
+  ],
+  "choicesUz": [
+    "HCl + NaOH → NaCl + H₂O",
+    "2H₂ + O₂ → 2H₂O (faqat vodorod yonishi)",
+    "O₂ → O₃ reaktivlarsiz",
+    "NaCl → Na + Cl₂ xona haroratida oqimsiz"
+  ],
+  "explanationEn": "Classic example: HCl + NaOH.",
+  "explanationUz": "Klassik misol: HCl + NaOH."
+}

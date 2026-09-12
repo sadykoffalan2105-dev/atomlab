@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Excess reagent”: Qualitative analysis determines ...",
+  "questionUz": "§ \"Oddiy reagent\" ga ko'ra: Sifatli tahlil shuni aniqlaydi ...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "Gas volume only",
+    "Presence of substance ions",
+    "Metal color only"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Faqat gaz hajmi",
+    "Modda ionlarining mavjudligi",
+    "Faqat metall rang"
+  ],
+  "explanationEn": "Presence of substance ions",
+  "explanationUz": "Modda ionlarining mavjudligi"
+}

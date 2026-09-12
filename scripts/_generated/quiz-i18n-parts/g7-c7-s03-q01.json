@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is called “vitamins” in the 7th grade chemistry course?",
+  "questionUz": "7-sinf kimyo kursida “vitaminlar” nima deyiladi?",
+  "choicesEn": [
+    "Organic substances needed by the body in small quantities",
+    "Only inorganic salts in kilograms",
+    "Only inert gases",
+    "Iron group metals only"
+  ],
+  "choicesUz": [
+    "Organik moddalar organizmga oz miqdorda kerak",
+    "Faqat kilogrammdagi noorganik tuzlar",
+    "Faqat inert gazlar",
+    "Faqat temir guruhidagi metallar"
+  ],
+  "explanationEn": "Vitamins regulate metabolism.",
+  "explanationUz": "Vitaminlar metabolizmni tartibga soladi."
+}

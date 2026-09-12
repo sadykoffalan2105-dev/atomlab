@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Salts: properties and preparation”: Acidic salts are...",
+  "questionUz": "§ “Tuzlar: xossalari va tayyorlanishi” bo‘limiga ko‘ra: Kislotali tuzlar...",
+  "choicesEn": [
+    "salts formed by two or three basic (multibasic) acids: NahcO3, ca(hcO3)2, K hSO4,…",
+    "salts consisting of two metals and one acid residue (according to the textbook) - incorrect - incorrect - incorrect",
+    "salts formed by two or three basic (multi-basic) acids: NahcO3, ca(hcO3)2, K...",
+    "salts formed from one metal and two acid residues: caclOcl (or caOcl2) (according to the textbook) - incorrect"
+  ],
+  "choicesUz": [
+    "Ikki yoki uchta asosiy (ko'p asosli) kislotalar tomonidan hosil bo'lgan tuzlar: NahcO3, ca(hcO3)2, K hSO4, ...",
+    "ikkita metall va bitta kislota qoldig'idan iborat tuzlar (darslik bo'yicha) - noto'g'ri - noto'g'ri - noto'g'ri",
+    "ikki yoki uchta asosiy (ko'p asosli) kislotalardan hosil bo'lgan tuzlar: NahcO3, ca(hcO3)2, K...",
+    "bitta metall va ikkita kislota qoldig'idan hosil bo'lgan tuzlar: caclOcl (yoki caOcl2) (darslik bo'yicha) - noto'g'ri"
+  ],
+  "explanationEn": "Acid salts are salts formed by two or three basic (multibasic) acids: NahcO3, ca(hcO3)2, K hSO4, ca(h2PO4)2",
+  "explanationUz": "Kislota tuzlari ikki yoki uchta asosiy (ko'p asosli) kislotalardan hosil bo'lgan tuzlardir: NahcO3, ca(hcO3)2, K hSO4, ca(h2PO4)2"
+}

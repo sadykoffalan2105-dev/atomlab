@@ -1,0 +1,18 @@
+{
+  "questionEn": "Check the correct answer related to \"halogens are elements\"?",
+  "questionUz": "\"Galogenlar elementlardir\" bilan bog'liq to'g'ri javobni tekshiring?",
+  "choicesEn": [
+    "Group VIIA (F, Cl, Br, I, etc.)",
+    "Only noble gases",
+    "Alkali metals only",
+    "Actinides only"
+  ],
+  "choicesUz": [
+    "VIIA guruhi (F, Cl, Br, I va boshqalar)",
+    "Faqat asil gazlar",
+    "Faqat gidroksidi metallar",
+    "Faqat aktinidlar"
+  ],
+  "explanationEn": "Halogens are family VIIA group.",
+  "explanationUz": "Galogenlar VIIA guruhiga kiradi."
+}

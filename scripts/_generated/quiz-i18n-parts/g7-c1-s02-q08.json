@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion based on the topic “Substance and its properties”?",
+  "questionUz": "“Modda va uning xossalari” mavzusiga asoslangan to‘g‘ri xulosa qaysi fakt?",
+  "choicesEn": [
+    "Substances",
+    "Only atoms without bonds",
+    "Only mixtures",
+    "Only gases"
+  ],
+  "choicesUz": [
+    "Moddalar",
+    "Faqat bog'lanmagan atomlar",
+    "Faqat aralashmalar",
+    "Faqat gazlar"
+  ],
+  "explanationEn": "Knife, nails - bodies; their composition is iron substance.",
+  "explanationUz": "Pichoq, mixlar - tanalar; ularning tarkibi temir moddasidir."
+}

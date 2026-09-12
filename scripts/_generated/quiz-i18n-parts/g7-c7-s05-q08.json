@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "A substance consisting of atoms of different chemical elements",
+    "A substance made up of atoms of only one element",
+    "Pure inert gas",
+    "Only a mixture of metals"
+  ],
+  "choicesUz": [
+    "Turli kimyoviy elementlarning atomlaridan tashkil topgan modda",
+    "Faqat bitta elementning atomlaridan tashkil topgan modda",
+    "Toza inert gaz",
+    "Faqat metallar aralashmasi"
+  ],
+  "explanationEn": "H₂O, CO₂, NaCl are complex substances.",
+  "explanationUz": "H₂O, CO₂, NaCl murakkab moddalardir."
+}

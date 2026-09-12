@@ -1,0 +1,18 @@
+{
+  "questionEn": "What are the two main functions of chemistry?",
+  "questionUz": "Kimyoning ikkita asosiy vazifasi nimadan iborat?",
+  "choicesEn": [
+    "Obtaining useful substances and using the energy of chemical transformations",
+    "Only a description of the color of substances",
+    "Temperature measurement only",
+    "Device classification only"
+  ],
+  "choicesUz": [
+    "Foydali moddalarni olish va kimyoviy transformatsiyalar energiyasidan foydalanish",
+    "Faqat moddalarning rangi tavsifi",
+    "Faqat haroratni o'lchash",
+    "Faqat qurilma tasnifi"
+  ],
+  "explanationEn": "Two functions of chemistry are useful substances and energy of transformations.",
+  "explanationUz": "Kimyoning ikkita funktsiyasi foydali moddalar va transformatsiyalar energiyasidir."
+}

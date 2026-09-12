@@ -1,0 +1,18 @@
+{
+  "questionEn": "What acids are given as examples in school courses?",
+  "questionUz": "Maktab kurslarida qanday kislotalar misol sifatida keltirilgan?",
+  "choicesEn": [
+    "HCl, H₂SO₄, HNO₃, CH₃COOH",
+    "Only NaCl and KCl",
+    "Only O₂ and N₂",
+    "Fe and Cu only"
+  ],
+  "choicesUz": [
+    "HCl, H₂SO₄, HNO₃, CH₃COOH",
+    "Faqat NaCl va KCl",
+    "Faqat O₂ va N₂",
+    "Faqat Fe va Cu"
+  ],
+  "explanationEn": "Hydrochloric, sulfuric, nitric, acetic acids.",
+  "explanationUz": "Xlorid, sulfat, azot, sirka kislotalari."
+}

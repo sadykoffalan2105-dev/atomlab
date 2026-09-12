@@ -1,0 +1,18 @@
+{
+  "questionEn": "What conclusion can be drawn from the fact that a chemical element is a type of atom with the same Z?",
+  "questionUz": "Kimyoviy element bir xil Z ga ega bo'lgan atom turi ekanligidan qanday xulosa chiqarish mumkin?",
+  "choicesEn": [
+    "Different isotopes - one element",
+    "Different numbers of neutrons change an element",
+    "Ions - new elements",
+    "Molecules - elements"
+  ],
+  "choicesUz": [
+    "Turli xil izotoplar - bitta element",
+    "Har xil miqdordagi neytronlar elementni o'zgartiradi",
+    "Ionlar - yangi elementlar",
+    "Molekulalar - elementlar"
+  ],
+  "explanationEn": "",
+  "explanationUz": ""
+}

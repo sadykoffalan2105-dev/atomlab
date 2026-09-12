@@ -1,0 +1,18 @@
+{
+  "questionEn": "What does the Laboratory Stand consist of?",
+  "questionUz": "Laboratoriya stendi nimadan iborat?",
+  "choicesEn": [
+    "Base and rod to which rings, holders and fixtures are attached",
+    "Funnels and test tubes only",
+    "Alcohol and wick",
+    "Only electric ring"
+  ],
+  "choicesUz": [
+    "Uzuklar, ushlagichlar va moslamalar biriktirilgan taglik va novda",
+    "Faqat voronkalar va probirkalar",
+    "Spirtli ichimliklar va fitil",
+    "Faqat elektr uzuk"
+  ],
+  "explanationEn": "Tripod: base, rod, clamps.",
+  "explanationUz": "Tripod: taglik, novda, qisqichlar."
+}

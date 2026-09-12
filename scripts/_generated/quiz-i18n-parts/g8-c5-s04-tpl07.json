@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Molar volume of gases”: Law of conservation of mass...",
+  "questionUz": "§ “Gazlarning molyar hajmi” bo‘yicha: Massaning saqlanish qonuni...",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "There is no such information in this section",
+    "The mass of the reactants is equal to the mass of the products",
+    "This is how another phenomenon or substance is described"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Reaksiyaga kirishuvchi moddalarning massasi mahsulotlarning massasiga teng",
+    "Yana bir hodisa yoki modda shunday tasvirlangan"
+  ],
+  "explanationEn": "The mass of the reactants is equal to the mass of the products",
+  "explanationUz": "Reaksiyaga kirishuvchi moddalarning massasi mahsulotlarning massasiga teng"
+}

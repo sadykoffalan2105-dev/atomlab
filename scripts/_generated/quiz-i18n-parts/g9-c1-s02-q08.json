@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook: the next metal is...",
+  "questionUz": "Darslikka ko'ra: keyingi metall ...",
+  "choicesEn": [
+    "the amount of energy required to separate an electron from an atom",
+    "aluminum – in some compounds exhibits non-metallic properties",
+    "This can only be said about another class of compounds",
+    "equilibrium state of the distance between atomic nuclei (measured in nm)"
+  ],
+  "choicesUz": [
+    "elektronni atomdan ajratish uchun zarur bo'lgan energiya miqdori",
+    "alyuminiy - ba'zi birikmalarda metall bo'lmagan xususiyatlarni ko'rsatadi",
+    "Buni faqat birikmalarning boshqa sinfi haqida aytish mumkin",
+    "atom yadrolari orasidagi masofaning muvozanat holati (nm bilan o'lchanadi)"
+  ],
+  "explanationEn": "the next metal, aluminum, exhibits nonmetallic properties in some compounds",
+  "explanationUz": "keyingi metall alyuminiy, ba'zi birikmalarda metall bo'lmagan xususiyatlarni ko'rsatadi"
+}

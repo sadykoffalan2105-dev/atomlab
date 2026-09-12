@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Large periods”: A period in PS is...",
+  "questionUz": "§ \"Katta davrlar\" ga ko'ra: PSdagi davr ...",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "There is no such information in this section",
+    "Horizontal row of elements",
+    "Vertical Column"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Elementlarning gorizontal qatori",
+    "Vertikal ustun"
+  ],
+  "explanationEn": "Horizontal row of elements",
+  "explanationUz": "Elementlarning gorizontal qatori"
+}

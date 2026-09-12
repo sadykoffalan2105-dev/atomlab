@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Electrolysis of aqueous solutions”: The anode in a galvanic cell is ...",
+  "questionUz": "§ \"Suvli eritmalarning elektrolizi\" ga binoan: Galvanik elementdagi anod ...",
+  "choicesEn": [
+    "Indicator",
+    "incorrect wording according to the textbook",
+    "Oxidation electrode (−)",
+    "There is no such information in this section"
+  ],
+  "choicesUz": [
+    "Ko'rsatkich",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Oksidlanish elektrodi (-)",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q"
+  ],
+  "explanationEn": "Oxidation electrode (−)",
+  "explanationUz": "Oksidlanish elektrodi (-)"
+}

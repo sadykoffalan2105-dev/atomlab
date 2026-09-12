@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "Turn off gas and water, turn off electricity and appliances",
+    "Pour leftovers into the sink",
+    "Leave the burner on",
+    "Change lids on dishes"
+  ],
+  "choicesUz": [
+    "Gaz va suvni o'chiring, elektr va jihozlarni o'chiring",
+    "Qoldiqlarni lavaboga to'kib tashlang",
+    "Olovni yoqilgan holda qoldiring",
+    "Idishlarning qopqog'ini o'zgartiring"
+  ],
+  "explanationEn": "Rule 17: turn off the gas, water, and electricity.",
+  "explanationUz": "17-qoida: gaz, suv va elektrni o'chiring."
+}

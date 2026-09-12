@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Theory of Electrolysis”: The galvanic cell is the source...",
+  "questionUz": "§ \"Elektroliz nazariyasi\" ga ko'ra: Galvanik element manba...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "Electric current due to OVR",
+    "Magnetic field without electrons",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "OVR tufayli elektr toki",
+    "Elektronsiz magnit maydon",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "Electric current due to OVR",
+  "explanationUz": "OVR tufayli elektr toki"
+}

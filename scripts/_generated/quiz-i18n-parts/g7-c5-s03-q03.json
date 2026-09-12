@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which rationale on the topic “Properties and Applications of Hydrogen” is chemically correct?",
+  "questionUz": "“Vodorodning xossalari va qo‘llanilishi” mavzusidagi qaysi asos kimyoviy jihatdan to‘g‘ri?",
+  "choicesEn": [
+    "A complex substance that forms H⁺ (H₃O⁺) ions in an aqueous solution",
+    "Any metal oxide",
+    "Pure simple substance",
+    "Only solid salt"
+  ],
+  "choicesUz": [
+    "Suvli eritmada H⁺ (H₃O⁺) ionlarini hosil qiluvchi murakkab modda.",
+    "Har qanday metall oksidi",
+    "Sof oddiy modda",
+    "Faqat qattiq tuz"
+  ],
+  "explanationEn": "Acids produce hydrogen ions in water.",
+  "explanationUz": "Kislotalar suvda vodorod ionlarini hosil qiladi."
+}

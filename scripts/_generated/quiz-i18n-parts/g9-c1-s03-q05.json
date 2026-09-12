@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Activity series of metals”: The lightest metal is...",
+  "questionUz": "§ \"Metallarning faollik qatori\" ga ko'ra: Eng engil metall ...",
+  "choicesEn": [
+    "osmium, its density is 22.6 g/cm3",
+    "lithium, its density is 0.5 g/cm 3",
+    "There is no such information in this section",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "osmiy, uning zichligi 22,6 g/sm3",
+    "litiy, uning zichligi 0,5 g/sm 3",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "The lightest metal is lithium, its density is 0.5 g/cm3",
+  "explanationUz": "Eng yengil metall litiy, uning zichligi 0,5 g/sm3"
+}

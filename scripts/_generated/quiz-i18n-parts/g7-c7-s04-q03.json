@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which rationale on the topic “The importance of minerals in human life” is chemically correct?",
+  "questionUz": "“Minerallarning inson hayotidagi ahamiyati” mavzusidagi qaysi mantiqiy asos kimyoviy jihatdan to‘g‘ri?",
+  "choicesEn": [
+    "Organic substances needed by the body in small quantities",
+    "Only inorganic salts in kilograms",
+    "Only inert gases",
+    "Iron group metals only"
+  ],
+  "choicesUz": [
+    "Organik moddalar organizmga oz miqdorda kerak",
+    "Faqat kilogrammdagi noorganik tuzlar",
+    "Faqat inert gazlar",
+    "Faqat temir guruhidagi metallar"
+  ],
+  "explanationEn": "Vitamins regulate metabolism.",
+  "explanationUz": "Vitaminlar metabolizmni tartibga soladi."
+}

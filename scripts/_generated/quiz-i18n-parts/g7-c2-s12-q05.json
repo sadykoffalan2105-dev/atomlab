@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is characteristic specifically of “chemical reaction”, and not of a related concept?",
+  "questionUz": "Tegishli tushunchaga emas, balki \"kimyoviy reaksiya\" ga nima xosdir?",
+  "choicesEn": [
+    "is a process in which a substance is changed into one or more new substances",
+    "determines the chemical properties of a substance",
+    "The ability of an atom to form a certain number of chemical bonds",
+    "Electrically neutral particle consisting of a nucleus and electrons"
+  ],
+  "choicesUz": [
+    "moddaning bir yoki bir nechta yangi moddalarga aylanishi jarayonidir",
+    "moddaning kimyoviy xossalarini aniqlaydi",
+    "Atomning ma'lum miqdordagi kimyoviy bog'lanishlar hosil qilish qobiliyati",
+    "Yadro va elektronlardan tashkil topgan elektr neytral zarracha"
+  ],
+  "explanationEn": "A chemical reaction is a process in which a substance is changed into one or more new substances.",
+  "explanationUz": "Kimyoviy reaksiya - bu moddaning bir yoki bir nechta yangi moddalarga aylanishi jarayoni."
+}

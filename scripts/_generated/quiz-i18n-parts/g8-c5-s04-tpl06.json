@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Molar volume of gases”: The reaction of a compound is ...",
+  "questionUz": "§ \"Gazlarning molyar hajmi\" ga ko'ra: Murakkabning reaktsiyasi ...",
+  "choicesEn": [
+    "AB → A + B",
+    "A + B → AB",
+    "Ion exchange",
+    "A + BC → AC + B"
+  ],
+  "choicesUz": [
+    "AB → A + B",
+    "A + B → AB",
+    "Ion almashinuvi",
+    "A + BC → AC + B"
+  ],
+  "explanationEn": "A + B → AB",
+  "explanationUz": "A + B → AB"
+}

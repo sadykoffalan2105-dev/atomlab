@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Group of cations”: Product yield η =…",
+  "questionUz": "§ \"Kationlar guruhi\" bo'yicha: Mahsulot unumi ē =…",
+  "choicesEn": [
+    "m(practical) / m(theoretical) 100%",
+    "m(theoretical) / m(practical)",
+    "There is no such information in this section",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "m (amaliy) / m (nazariy) 100%",
+    "m (nazariy) / m (amaliy)",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "m(practical) / m(theoretical) 100%",
+  "explanationUz": "m (amaliy) / m (nazariy) 100%"
+}

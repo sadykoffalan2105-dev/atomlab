@@ -1,0 +1,18 @@
+{
+  "questionEn": "The student states: “Ice and water are different substances because they have different colors.” What is the error in reasoning?",
+  "questionUz": "Talaba shunday deydi: \"Muz va suv har xil moddalardir, chunki ular turli xil ranglarga ega\". Fikrlashda xato nima?",
+  "choicesEn": [
+    "Color is the main characteristic of a substance",
+    "Ice and water are one substance in different states of aggregation",
+    "Water cannot be solid",
+    "Ice is always white, which means it's a mixture"
+  ],
+  "choicesUz": [
+    "Rang - moddaning asosiy xususiyati",
+    "Muz va suv turli agregat holatlaridagi bitta moddadir",
+    "Suv qattiq bo'lishi mumkin emas",
+    "Muz har doim oq rangda bo'ladi, ya'ni bu aralashma"
+  ],
+  "explanationEn": "The state of aggregation changes without the formation of a new substance - this is a physical phenomenon.",
+  "explanationUz": "Agregatsiya holati yangi modda hosil bo'lmasdan o'zgaradi - bu fizik hodisa."
+}

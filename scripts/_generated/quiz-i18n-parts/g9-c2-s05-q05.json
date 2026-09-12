@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook: therefore, KI is...",
+  "questionUz": "Darslikka ko'ra: shuning uchun KI ...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "incorrect wording according to the textbook",
+    "reducing agent",
+    "This is how another phenomenon or substance is described"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "kamaytiruvchi vosita",
+    "Yana bir hodisa yoki modda shunday tasvirlangan"
+  ],
+  "explanationEn": "therefore, KI is a reducing agent",
+  "explanationUz": "shuning uchun KI qaytaruvchi vositadir"
+}

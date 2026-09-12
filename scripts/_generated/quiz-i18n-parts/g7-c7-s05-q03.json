@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion based on the topic “Determination of the composition of an apple”?",
+  "questionUz": "\"Olma tarkibini aniqlash\" mavzusiga asoslangan to'g'ri xulosa qanday fakt?",
+  "choicesEn": [
+    "Organic substances needed by the body in small quantities",
+    "Only inorganic salts in kilograms",
+    "Only inert gases",
+    "Iron group metals only"
+  ],
+  "choicesUz": [
+    "Organik moddalar organizmga oz miqdorda kerak",
+    "Faqat kilogrammdagi noorganik tuzlar",
+    "Faqat inert gazlar",
+    "Faqat temir guruhidagi metallar"
+  ],
+  "explanationEn": "Vitamins regulate metabolism.",
+  "explanationUz": "Vitaminlar metabolizmni tartibga soladi."
+}

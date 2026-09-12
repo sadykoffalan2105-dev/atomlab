@@ -1,0 +1,18 @@
+{
+  "questionEn": "Find an answer that accurately reflects the content of the lesson?",
+  "questionUz": "Dars mazmunini to`g`ri aks ettiruvchi javobni toping?",
+  "choicesEn": [
+    "It is not glued, clean and fibrous",
+    "It is sealed with wax",
+    "She's metal",
+    "It does not allow liquid to pass through"
+  ],
+  "choicesUz": [
+    "U yopishtirilmagan, toza va tolali emas",
+    "U mum bilan yopishtirilgan",
+    "U metall",
+    "Bu suyuqlikning o'tishiga yo'l qo'ymaydi"
+  ],
+  "explanationEn": "Filter paper - unglued, fibrous.",
+  "explanationUz": "Filtr qog'ozi - yopishtirilmagan, tolali."
+}

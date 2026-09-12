@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is said here that is chemically correct?",
+  "questionUz": "Bu erda kimyoviy jihatdan to'g'ri aytilgan nima?",
+  "choicesEn": [
+    "A complex substance that forms H⁺ (H₃O⁺) ions in an aqueous solution",
+    "Any metal oxide",
+    "Pure simple substance",
+    "Only solid salt"
+  ],
+  "choicesUz": [
+    "Suvli eritmada H⁺ (H₃O⁺) ionlarini hosil qiluvchi murakkab modda.",
+    "Har qanday metall oksidi",
+    "Sof oddiy modda",
+    "Faqat qattiq tuz"
+  ],
+  "explanationEn": "Acids produce hydrogen ions in water.",
+  "explanationUz": "Kislotalar suvda vodorod ionlarini hosil qiladi."
+}

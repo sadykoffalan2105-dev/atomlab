@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Density and mole”: Qualitative analysis determines ...",
+  "questionUz": "§ \"Zichlik va mol\" ga ko'ra: Sifatli tahlil aniqlaydi ...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "Metal color only",
+    "Gas volume only",
+    "Presence of substance ions"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Faqat metall rang",
+    "Faqat gaz hajmi",
+    "Modda ionlarining mavjudligi"
+  ],
+  "explanationEn": "Presence of substance ions",
+  "explanationUz": "Modda ionlarining mavjudligi"
+}

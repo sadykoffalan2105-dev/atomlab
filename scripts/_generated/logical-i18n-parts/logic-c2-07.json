@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why does relative atomic mass have no units in the table?",
+  "questionUz": "Nima uchun nisbiy atom massasi jadvalda birliklarga ega emas?",
+  "choicesEn": [
+    "This is a comparison with the mass of a carbon-12 atom taken to be 12",
+    "Because atoms have no mass",
+    "Forgot to specify units",
+    "Only for gases"
+  ],
+  "choicesUz": [
+    "Bu 12 deb qabul qilingan uglerod-12 atomining massasi bilan taqqoslash",
+    "Chunki atomlarning massasi yo'q",
+    "Birliklarni belgilashni unutdingiz",
+    "Faqat gazlar uchun"
+  ],
+  "explanationEn": "",
+  "explanationUz": ""
+}

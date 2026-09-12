@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook, why is electrolysis widely used?",
+  "questionUz": "Darslikka ko'ra elektroliz nima uchun keng qo'llaniladi?",
+  "choicesEn": [
+    "when cleaning metals, applying metal coatings (nickel plating, chrome plating, gold plating)",
+    "a reduction process that occurs when an electric current is passed through a solution or...",
+    "special substances, when small quantities are added to a corrosive environment (10 6–...",
+    "destruction of metal resulting from the interaction of the metal with an oxidizing agent from the external environment"
+  ],
+  "choicesUz": [
+    "metallarni tozalashda, metall qoplamalarni qo'llashda (nikel qoplama, xrom qoplama, oltin qoplama)",
+    "eritma yoki... orqali elektr toki o'tganda sodir bo'ladigan kamaytirish jarayoni.",
+    "maxsus moddalar, korroziy muhitga oz miqdorda qo'shilganda (10 6-...",
+    "metallning tashqi muhitdan oksidlovchi vosita bilan o'zaro ta'siri natijasida metallni yo'q qilish"
+  ],
+  "explanationEn": "Electrolysis is widespread: for cleaning metals, applying metal coatings (nickel plating, chrome plating, gold plating)",
+  "explanationUz": "Elektroliz keng tarqalgan: metallarni tozalash, metall qoplamalarni qo'llash (nikel qoplama, xrom qoplama, oltin qoplama)"
+}

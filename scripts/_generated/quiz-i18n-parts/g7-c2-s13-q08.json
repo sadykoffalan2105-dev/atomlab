@@ -1,0 +1,18 @@
+{
+  "questionEn": "What does simple matter consist of?",
+  "questionUz": "Oddiy materiya nimadan iborat?",
+  "choicesEn": [
+    "Atoms of one chemical element",
+    "Atoms of different elements",
+    "Only ions of different signs",
+    "Random mixture of gases"
+  ],
+  "choicesUz": [
+    "Bitta kimyoviy elementning atomlari",
+    "Turli elementlarning atomlari",
+    "Faqat turli belgilardagi ionlar",
+    "Gazlarning tasodifiy aralashmasi"
+  ],
+  "explanationEn": "O₂, Fe, S - simple; H₂O, CO₂ are complex.",
+  "explanationUz": "O₂, Fe, S - oddiy; H₂O, CO₂ murakkabdir."
+}

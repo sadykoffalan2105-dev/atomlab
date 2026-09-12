@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately distinguishes “a family of chemical elements” from similar ideas?",
+  "questionUz": "Qaysi formulada \"kimyoviy elementlar oilasi\" o'xshash g'oyalardan aniqroq farqlanadi?",
+  "choicesEn": [
+    "A family of chemical elements is a group of chemical elements with similar properties.",
+    "Horizontal row of elements",
+    "Vertical column of elements with similar properties",
+    "Increasing atomic number and periodic repetition of properties"
+  ],
+  "choicesUz": [
+    "Kimyoviy elementlar oilasi - o'xshash xususiyatlarga ega kimyoviy elementlar guruhi.",
+    "Elementlarning gorizontal qatori",
+    "Xuddi shunday xususiyatlarga ega bo'lgan elementlarning vertikal ustuni",
+    "Atom sonini oshirish va xususiyatlarning davriy takrorlanishi"
+  ],
+  "explanationEn": "A family of chemical elements is a group of chemical elements with similar properties.",
+  "explanationUz": "Kimyoviy elementlar oilasi - o'xshash xususiyatlarga ega kimyoviy elementlar guruhi."
+}

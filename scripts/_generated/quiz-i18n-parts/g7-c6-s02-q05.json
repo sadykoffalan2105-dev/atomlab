@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately distinguishes “condensation” from similar ideas?",
+  "questionUz": "Qaysi formula \"kondensatsiya\" ni o'xshash g'oyalardan aniqroq ajratib turadi?",
+  "choicesEn": [
+    "process of transition of vapor into liquid state",
+    "the process of water changing from liquid to solid (ice)",
+    "process of transition from solid (ice) to liquid state",
+    "the process of changing from a liquid or solid state to a vapor state (water from ice to steam)"
+  ],
+  "choicesUz": [
+    "bug'ning suyuq holatga o'tish jarayoni",
+    "suvning suyuqlikdan qattiq holatga (muz) o'tish jarayoni",
+    "qattiq (muz) holatidan suyuq holatga o'tish jarayoni",
+    "suyuq yoki qattiq holatdan bug 'holatiga o'tish jarayoni (suv muzdan bug'ga)"
+  ],
+  "explanationEn": "Condensation is the process of transition of steam into a liquid state.",
+  "explanationUz": "Kondensatsiya - bug'ning suyuq holatga o'tish jarayoni."
+}

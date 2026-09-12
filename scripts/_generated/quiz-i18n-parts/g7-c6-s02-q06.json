@@ -1,0 +1,18 @@
+{
+  "questionEn": "Select the statement that is consistent with your 7th grade chemistry course?",
+  "questionUz": "7-sinf kimyo kursingizga mos keladigan gapni tanlang?",
+  "choicesEn": [
+    "the process of water changing from liquid to solid (ice)",
+    "process of transition of vapor into liquid state",
+    "process of transition from solid (ice) to liquid state",
+    "the process of changing from a liquid or solid state to a vapor state (water from ice to steam)"
+  ],
+  "choicesUz": [
+    "suvning suyuqlikdan qattiq holatga (muz) o'tish jarayoni",
+    "bug'ning suyuq holatga o'tish jarayoni",
+    "qattiq (muz) holatidan suyuq holatga o'tish jarayoni",
+    "suyuq yoki qattiq holatdan bug 'holatiga o'tish jarayoni (suv muzdan bug'ga)"
+  ],
+  "explanationEn": "Crystallization is the process of water transitioning from a liquid state to a solid (ice) state.",
+  "explanationUz": "Kristallanish - suvning suyuq holatdan qattiq (muz) holatiga o'tish jarayoni."
+}

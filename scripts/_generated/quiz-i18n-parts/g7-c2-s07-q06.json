@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which of the following corresponds to the material in the paragraph “Molecule. Relative molecular weight\"?",
+  "questionUz": "Quyidagilardan qaysi biri \"Molekula. Nisbiy molekulyar og'irlik\" bandidagi materialga mos keladi?",
+  "choicesEn": [
+    "this is a value indicating how many times the mass of a molecule of a substance is greater than 1/12 the mass of a carbon-12 atom",
+    "particle consisting of a group of interconnected atoms",
+    "this is a value showing how many times the mass of a molecule of a substance is greater than 1/12 of the mass of an atom.",
+    "this is a special type of atomic movement"
+  ],
+  "choicesUz": [
+    "bu moddaning molekulasining massasi uglerod-12 atomining massasining 1/12 qismidan necha marta katta ekanligini ko'rsatadigan qiymat",
+    "o'zaro bog'langan atomlar guruhidan tashkil topgan zarracha",
+    "bu moddaning molekulasining massasi atom massasining 1/12 qismidan necha marta katta ekanligini ko'rsatadigan qiymat.",
+    "bu atom harakatining maxsus turi"
+  ],
+  "explanationEn": "The relative molecular mass of a substance is a value that shows how many times the mass of a molecule of a substance is greater than 1/12 the mass of a carbon-12 atom.",
+  "explanationUz": "Moddaning nisbiy molekulyar massasi - bu modda molekulasining massasi uglerod-12 atomining massasining 1/12 qismidan necha marta katta ekanligini ko'rsatadigan qiymat."
+}

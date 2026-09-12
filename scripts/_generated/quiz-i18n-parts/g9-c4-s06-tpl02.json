@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Product Yield”: Mass fraction of the substance in the solution ω =...",
+  "questionUz": "§ “Mahsulot unumi” bo‘yicha: Eritmadagi moddaning massa ulushi ō =...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "incorrect wording according to the textbook",
+    "m(substance) / m(solution) 100%",
+    "m(water) / m(solution)"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "m (modda) / m (eritma) 100%",
+    "m (suv) / m (eritma)"
+  ],
+  "explanationEn": "m(substance) / m(solution) 100%",
+  "explanationUz": "m (modda) / m (eritma) 100%"
+}

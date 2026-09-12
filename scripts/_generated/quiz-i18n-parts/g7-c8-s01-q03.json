@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion on the topic “Geological chemical compounds” based on?",
+  "questionUz": "“Geologik kimyoviy birikmalar” mavzusidagi to‘g‘ri xulosa qaysi faktga asoslangan?",
+  "choicesEn": [
+    "Impact on nature during mining",
+    "Only the name of the mineral",
+    "Only the color of the ore",
+    "Melting point only without medium"
+  ],
+  "choicesUz": [
+    "Kon qazish jarayonida tabiatga ta'siri",
+    "Faqat mineralning nomi",
+    "Faqat rudaning rangi",
+    "Erish nuqtasi faqat vositasiz"
+  ],
+  "explanationEn": "Mining affects soil, water and air.",
+  "explanationUz": "Konchilik tuproq, suv va havoga ta'sir qiladi."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "Check the correct statement regarding the material studied?",
+  "questionUz": "O'rganilgan material bo'yicha to'g'ri bayonotni tekshiring?",
+  "choicesEn": [
+    "Acidity or alkalinity of solution",
+    "Boiling point only",
+    "Metal density only",
+    "Mole mass"
+  ],
+  "choicesUz": [
+    "Eritmaning kislotaliligi yoki ishqoriyligi",
+    "Faqat qaynash nuqtasi",
+    "Faqat metall zichligi",
+    "Mol massasi"
+  ],
+  "explanationEn": "pH < 7 is acidic, pH = 7 is neutral, pH > 7 is alkaline.",
+  "explanationUz": "pH < 7 kislotali, pH = 7 neytral, pH > 7 ishqoriydir."
+}

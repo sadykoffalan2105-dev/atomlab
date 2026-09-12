@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Electrolysis of aqueous solutions”: The galvanic cell is the source...",
+  "questionUz": "§ “Suvli eritmalarning elektrolizi” ga muvofiq: Galvanik element manba...",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "There is no such information in this section",
+    "Magnetic field without electrons",
+    "Electric current due to OVR"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Elektronsiz magnit maydon",
+    "OVR tufayli elektr toki"
+  ],
+  "explanationEn": "Electric current due to OVR",
+  "explanationUz": "OVR tufayli elektr toki"
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Faraday’s Laws”: During the electrolysis of an aqueous NaCl solution at the cathode...",
+  "questionUz": "§ \"Faraday qonunlari\" ga ko'ra: NaCl suvli eritmasining katodda elektrolizlanishi jarayonida...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "Hydrogen is released",
+    "Always sodium",
+    "Always oxygen"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Vodorod ajralib chiqadi",
+    "Har doim natriy",
+    "Har doim kislorod"
+  ],
+  "explanationEn": "Hydrogen is released",
+  "explanationUz": "Vodorod ajralib chiqadi"
+}

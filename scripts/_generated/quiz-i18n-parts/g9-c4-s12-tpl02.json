@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Collection of problems”: An excess reagent is one that...",
+  "questionUz": "§ \"Muammolar to'plami\" bo'limiga ko'ra: Ortiqcha reaktiv - bu ...",
+  "choicesEn": [
+    "More than what is needed according to the equation",
+    "incorrect wording according to the textbook",
+    "There is no such information in this section",
+    "Exactly stoichiometric"
+  ],
+  "choicesUz": [
+    "Tenglamaga ko'ra kerak bo'lganidan ko'proq",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Aynan stoxiometrik"
+  ],
+  "explanationEn": "More than what is needed according to the equation",
+  "explanationUz": "Tenglamaga ko'ra kerak bo'lganidan ko'proq"
+}

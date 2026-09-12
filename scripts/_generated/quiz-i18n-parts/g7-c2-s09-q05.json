@@ -1,0 +1,18 @@
+{
+  "questionEn": "How does “relative molecular mass of a substance” differ in meaning - choose the correct description?",
+  "questionUz": "\"Modaning nisbiy molekulyar massasi\" qanday ma'noda farq qiladi - to'g'ri tavsifni tanlang?",
+  "choicesEn": [
+    "this is a value showing how many times the mass of a molecule of a substance is greater than 1/12 the mass of a carbon atom 12",
+    "this is a value showing how many times the mass of a molecule of a substance is greater than 1/12 of the mass of an atom.",
+    "is the amount of substance in moles",
+    "Amount of substance containing 6.02·10²³ particles"
+  ],
+  "choicesUz": [
+    "bu modda molekulasining massasi uglerod atomi massasining 1/12 qismidan necha marta katta ekanligini ko'rsatadigan qiymat 12",
+    "bu moddaning molekulasining massasi atom massasining 1/12 qismidan necha marta katta ekanligini ko'rsatadigan qiymat.",
+    "moldagi moddaning miqdori",
+    "6,02·10²³ zarrachalarni o'z ichiga olgan moddaning miqdori"
+  ],
+  "explanationEn": "The relative molecular mass of a substance is a value indicating how many times the mass of a molecule of a substance is greater than 1/12 of the mass of carbon atom 12.",
+  "explanationUz": "Moddaning nisbiy molekulyar massasi - bu modda molekulasining massasi uglerod atomi 12 massasining 1/12 qismidan necha marta katta ekanligini ko'rsatadigan qiymat."
+}

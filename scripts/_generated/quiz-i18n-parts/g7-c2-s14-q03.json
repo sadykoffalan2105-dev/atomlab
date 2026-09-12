@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "Electrically neutral particle of the nucleus of an atom",
+    "Particle with charge +1",
+    "Shell electron",
+    "Chlorine ion"
+  ],
+  "choicesUz": [
+    "Atom yadrosining elektr neytral zarrasi",
+    "Zaryadli zarracha +1",
+    "Qobiq elektron",
+    "Xlor ioni"
+  ],
+  "explanationEn": "Neutron n⁰ has no electrical charge.",
+  "explanationUz": "Neytron n⁰ elektr zaryadiga ega emas."
+}

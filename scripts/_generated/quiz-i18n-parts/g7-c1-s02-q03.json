@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which rationale on the topic “Substance and its properties” is chemically correct?",
+  "questionUz": "“Modda va uning xossalari” mavzusidagi qaysi asos kimyoviy jihatdan to‘g‘ri?",
+  "choicesEn": [
+    "A collection of particles (molecules, atoms or ions) with certain physical and chemical properties",
+    "Object with mass and shape",
+    "Rigid body only",
+    "Any object around us"
+  ],
+  "choicesUz": [
+    "Muayyan fizik va kimyoviy xususiyatlarga ega bo'lgan zarralar (molekulalar, atomlar yoki ionlar) to'plami",
+    "Massasi va shakli bo'lgan ob'ekt",
+    "Faqat qattiq tana",
+    "Atrofimizdagi har qanday ob'ekt"
+  ],
+  "explanationEn": "Matter is a collection of particles with certain properties.",
+  "explanationUz": "Materiya ma'lum xususiyatlarga ega bo'lgan zarralar to'plamidir."
+}

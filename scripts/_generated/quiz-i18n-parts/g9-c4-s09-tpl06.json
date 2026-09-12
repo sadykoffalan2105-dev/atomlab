@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Group of anions”: Mass fraction of a substance in solution ω =...",
+  "questionUz": "§ “Anionlar guruhi” bo‘yicha: Eritmadagi moddaning massa ulushi ō =...",
+  "choicesEn": [
+    "m(substance) / m(solution) 100%",
+    "There is no such information in this section",
+    "m(water) / m(solution)",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "m (modda) / m (eritma) 100%",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "m (suv) / m (eritma)",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "m(substance) / m(solution) 100%",
+  "explanationUz": "m (modda) / m (eritma) 100%"
+}

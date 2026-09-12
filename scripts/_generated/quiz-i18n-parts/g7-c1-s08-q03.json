@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion based on the topic “Physical and Chemical Phenomena”?",
+  "questionUz": "\"Fizik va kimyoviy hodisalar\" mavzusiga asoslangan to'g'ri xulosa qanday fakt?",
+  "choicesEn": [
+    "Gas release, sediment, color change, odor",
+    "Temperature change only",
+    "Only change of state of aggregation",
+    "Only body shape change"
+  ],
+  "choicesUz": [
+    "Gazning chiqishi, cho'kindi, rangi o'zgarishi, hid",
+    "Faqat harorat o'zgarishi",
+    "Faqat yig'ilish holatining o'zgarishi",
+    "Faqat tana shakli o'zgaradi"
+  ],
+  "explanationEn": "Signs: gas, sediment, color, smell.",
+  "explanationUz": "Belgilari: gaz, cho'kma, rang, hid."
+}

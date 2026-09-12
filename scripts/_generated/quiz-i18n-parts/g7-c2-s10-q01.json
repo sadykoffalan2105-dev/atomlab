@@ -1,0 +1,18 @@
+{
+  "questionEn": "Find an answer that accurately reflects the content of the lesson?",
+  "questionUz": "Dars mazmunini to`g`ri aks ettiruvchi javobni toping?",
+  "choicesEn": [
+    "Type of atoms with the same nuclear charge (number of protons)",
+    "Any mixture of substances",
+    "Only the H₂O molecule",
+    "Any item"
+  ],
+  "choicesUz": [
+    "Yadro zaryadi bir xil bo'lgan atomlar turi (protonlar soni)",
+    "Har qanday moddalar aralashmasi",
+    "Faqat H₂O molekulasi",
+    "Har qanday element"
+  ],
+  "explanationEn": "Element = atoms with the same Z (number of protons).",
+  "explanationUz": "Element = bir xil Z bo'lgan atomlar (protonlar soni)."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Iron”: Aluminum is a metal...",
+  "questionUz": "§ \"Temir\" ga ko'ra: Alyuminiy - bu metall...",
+  "choicesEn": [
+    "Heavy noble gas",
+    "There is no such information in this section",
+    "Lightweight, active, amphoteric",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "Og'ir gaz",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Yengil, faol, amfoter",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "Lightweight, active, amphoteric",
+  "explanationUz": "Yengil, faol, amfoter"
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which statement about “inorganic substances” is correct?",
+  "questionUz": "\"Noorganik moddalar\" haqidagi qaysi fikr to'g'ri?",
+  "choicesEn": [
+    "in living organisms are water and mineral salts",
+    "chemical elements that perform biological functions in living organisms",
+    "carbohydrates, lipids, proteins and nucleic acids",
+    "Elements necessary for the life of organisms"
+  ],
+  "choicesUz": [
+    "tirik organizmlarda suv va mineral tuzlar mavjud",
+    "tirik organizmlarda biologik funktsiyalarni bajaradigan kimyoviy elementlar",
+    "uglevodlar, lipidlar, oqsillar va nuklein kislotalar",
+    "Organizmlar hayoti uchun zarur bo'lgan elementlar"
+  ],
+  "explanationEn": "Inorganic substances - in living organisms are water and mineral salts.",
+  "explanationUz": "Noorganik moddalar - tirik organizmlarda suv va mineral tuzlar."
+}

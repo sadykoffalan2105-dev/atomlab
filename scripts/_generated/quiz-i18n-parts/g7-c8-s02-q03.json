@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "Impact on nature during mining",
+    "Only the name of the mineral",
+    "Only the color of the ore",
+    "Melting point only without medium"
+  ],
+  "choicesUz": [
+    "Kon qazish jarayonida tabiatga ta'siri",
+    "Faqat mineralning nomi",
+    "Faqat rudaning rangi",
+    "Erish nuqtasi faqat vositasiz"
+  ],
+  "explanationEn": "Mining affects soil, water and air.",
+  "explanationUz": "Konchilik tuproq, suv va havoga ta'sir qiladi."
+}

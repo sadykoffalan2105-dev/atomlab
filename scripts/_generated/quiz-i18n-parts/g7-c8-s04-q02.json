@@ -1,0 +1,18 @@
+{
+  "questionEn": "Find an answer that accurately reflects the content of the lesson?",
+  "questionUz": "Dars mazmunini to`g`ri aks ettiruvchi javobni toping?",
+  "choicesEn": [
+    "Natural mineral formations used by humans",
+    "Only artificial alloys",
+    "Acid solutions only",
+    "Laboratory mixtures only"
+  ],
+  "choicesUz": [
+    "Odamlar tomonidan ishlatiladigan tabiiy mineral tuzilmalar",
+    "Faqat sun'iy qotishmalar",
+    "Faqat kislota eritmalari",
+    "Faqat laboratoriya aralashmalari"
+  ],
+  "explanationEn": "Ore, oil, coal are minerals.",
+  "explanationUz": "Ruda, neft, ko'mir foydali qazilmalardir."
+}

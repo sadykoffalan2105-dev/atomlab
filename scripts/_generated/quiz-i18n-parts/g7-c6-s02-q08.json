@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "the process of changing from a liquid or solid state to a vapor state (water from ice to steam)",
+    "process of transition of vapor into liquid state",
+    "the process of water changing from liquid to solid (ice)",
+    "process of transition from solid (ice) to liquid state"
+  ],
+  "choicesUz": [
+    "suyuq yoki qattiq holatdan bug 'holatiga o'tish jarayoni (suv muzdan bug'ga)",
+    "bug'ning suyuq holatga o'tish jarayoni",
+    "suvning suyuqlikdan qattiq holatga (muz) o'tish jarayoni",
+    "qattiq (muz) holatidan suyuq holatga o'tish jarayoni"
+  ],
+  "explanationEn": "Sublimation is the process of transition from a liquid or solid state to a vapor state (water from ice to steam).",
+  "explanationUz": "Sublimatsiya - suyuq yoki qattiq holatdan bug 'holatiga (suv muzdan bug'ga) o'tish jarayoni."
+}

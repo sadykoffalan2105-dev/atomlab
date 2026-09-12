@@ -1,0 +1,18 @@
+{
+  "questionEn": "Check the correct statement regarding the material studied?",
+  "questionUz": "O'rganilgan material bo'yicha to'g'ri bayonotni tekshiring?",
+  "choicesEn": [
+    "The hydrogen atom has the simplest structure, it consists of one electron in the nuclear space and one.",
+    "a chemical element in the periodic table represented by the symbol H and an atomic number of 1",
+    "H (Hydrogenium)",
+    "Hydrogen gas H₂"
+  ],
+  "choicesUz": [
+    "Vodorod atomi eng oddiy tuzilishga ega bo'lib, u yadro fazosida bitta elektrondan va bitta elektrondan iborat.",
+    "davriy jadvaldagi H belgisi va atom raqami 1 bilan ifodalangan kimyoviy element",
+    "H (vodorod)",
+    "Vodorod gazi H₂"
+  ],
+  "explanationEn": "The hydrogen atom has the simplest structure, it consists of one electron in the nuclear space and one proton in the nucleus.",
+  "explanationUz": "Vodorod atomi eng oddiy tuzilishga ega bo'lib, u yadro bo'shlig'idagi bitta elektron va yadrodagi bitta protondan iborat."
+}

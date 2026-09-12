@@ -1,0 +1,18 @@
+{
+  "questionEn": "Please mark the exact description for “heating is carried out on a gas burner”?",
+  "questionUz": "\"Isitish gaz gorelkasida amalga oshiriladi\" uchun aniq tavsifni belgilang?",
+  "choicesEn": [
+    "At the top of the flame where the temperature is higher",
+    "In the middle of the flame",
+    "At the very bottom of the tap",
+    "Outside the flame zone"
+  ],
+  "choicesUz": [
+    "Harorat yuqori bo'lgan olovning yuqori qismida",
+    "Olovning o'rtasida",
+    "Kranning eng pastki qismida",
+    "Olov zonasidan tashqarida"
+  ],
+  "explanationEn": "The top of the flame is the hottest.",
+  "explanationUz": "Olovning yuqori qismi eng issiq."
+}

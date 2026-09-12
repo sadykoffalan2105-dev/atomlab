@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Electronic balance of ORR”: Ion exchange reaction -...",
+  "questionUz": "§ “ORR ning elektron balansi” ga muvofiq: Ion almashinish reaksiyasi -...",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "There is no such information in this section",
+    "Electrolysis only",
+    "Exchange of ions between solutions"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Faqat elektroliz",
+    "Eritmalar orasidagi ionlar almashinuvi"
+  ],
+  "explanationEn": "Exchange of ions between solutions",
+  "explanationUz": "Eritmalar orasidagi ionlar almashinuvi"
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is said here that is chemically correct?",
+  "questionUz": "Bu erda kimyoviy jihatdan to'g'ri aytilgan nima?",
+  "choicesEn": [
+    "Phenomena in which new substances are formed from given substances",
+    "Melting ice and boiling water",
+    "Evaporation and condensation",
+    "Change only the form"
+  ],
+  "choicesUz": [
+    "Berilgan moddalardan yangi moddalar hosil bo'ladigan hodisalar",
+    "Eriydigan muz va qaynoq suv",
+    "Bug'lanish va kondensatsiya",
+    "Faqat shaklni o'zgartiring"
+  ],
+  "explanationEn": "Chemical phenomena - the formation of new substances.",
+  "explanationUz": "Kimyoviy hodisalar - yangi moddalarning hosil bo'lishi."
+}

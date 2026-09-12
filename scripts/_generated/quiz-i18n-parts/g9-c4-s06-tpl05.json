@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Product Output”: Product Output η =…",
+  "questionUz": "§ \"Mahsulot ishlab chiqarish\" bo'limiga ko'ra: Mahsulot chiqishi ē =…",
+  "choicesEn": [
+    "m(practical) / m(theoretical) 100%",
+    "m(theoretical) / m(practical)",
+    "incorrect wording according to the textbook",
+    "There is no such information in this section"
+  ],
+  "choicesUz": [
+    "m (amaliy) / m (nazariy) 100%",
+    "m (nazariy) / m (amaliy)",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q"
+  ],
+  "explanationEn": "m(practical) / m(theoretical) 100%",
+  "explanationUz": "m (amaliy) / m (nazariy) 100%"
+}

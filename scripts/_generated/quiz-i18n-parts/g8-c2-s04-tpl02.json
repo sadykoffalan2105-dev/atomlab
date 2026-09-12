@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Periodic Table of Elements”: Valence electrons are...",
+  "questionUz": "§ “Elementlarning davriy jadvali”ga ko‘ra: Valentlik elektronlari...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "At the external energy level",
+    "Only inside a proton",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Tashqi energiya darajasida",
+    "Faqat proton ichida",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "At the external energy level",
+  "explanationUz": "Tashqi energiya darajasida"
+}

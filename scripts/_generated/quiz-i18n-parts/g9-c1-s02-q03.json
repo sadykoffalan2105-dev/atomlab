@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Chemical properties of metals”: Electron affinity is...",
+  "questionUz": "§ “Metallarning kimyoviy xossalari” bo‘yicha: Elektron yaqinligi...",
+  "choicesEn": [
+    "the amount of energy that is released or absorbed as a result of the addition of one electron to...",
+    "the amount of energy that is released or absorbed as a result of the addition of one electron...",
+    "equilibrium state of the distance between the nuclei of atoms (measured in nm) (according to the textbook) - incorrect - incorrect",
+    "the interaction of two or more atoms, which results in the formation of a chemical http:eduportal (according to the textbook)"
+  ],
+  "choicesUz": [
+    "bir elektron qoʻshilishi natijasida ajralib chiqadigan yoki soʻrilgan energiya miqdori...",
+    "bitta elektron qo'shilishi natijasida ajralib chiqadigan yoki so'rilgan energiya miqdori...",
+    "atomlar yadrolari orasidagi masofaning muvozanat holati (nm bilan o'lchanadi) (darslik bo'yicha) - noto'g'ri - noto'g'ri",
+    "ikki yoki undan ortiq atomlarning o'zaro ta'siri, buning natijasida kimyoviy http:eduportal (darslik bo'yicha) hosil bo'ladi."
+  ],
+  "explanationEn": "Electron affinity is the amount of energy that is released or absorbed as a result of the addition of one electron to a neutral atom",
+  "explanationUz": "Elektronga yaqinlik - neytral atomga bitta elektron qo'shilishi natijasida ajralib chiqadigan yoki so'rilgan energiya miqdori."
+}

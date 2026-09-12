@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is the largest volume in dry air?",
+  "questionUz": "Quruq havodagi eng katta hajm qancha?",
+  "choicesEn": [
+    "Nitrogen (about 78%)",
+    "Oxygen (about 78%)",
+    "Carbon dioxide (about 78%)",
+    "Hydrogen (about 78%)"
+  ],
+  "choicesUz": [
+    "Azot (taxminan 78%)",
+    "Kislorod (taxminan 78%)",
+    "Karbonat angidrid (taxminan 78%)",
+    "Vodorod (taxminan 78%)"
+  ],
+  "explanationEn": "Dry air: N₂ ≈ 78%, O₂ ≈ 21% (by volume).",
+  "explanationUz": "Quruq havo: N₂ ≈ 78%, O₂ ≈ 21% (hajm bo'yicha)."
+}

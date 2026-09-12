@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which of the following corresponds to the material in the paragraph “Changes in the state of aggregation of substances”?",
+  "questionUz": "Quyidagilardan qaysi biri “Moddalarning yig‘ilish holatining o‘zgarishi” bandidagi materialga mos keladi?",
+  "choicesEn": [
+    "Does not have a specific volume or shape; occupies the entire volume of the vessel",
+    "Has a permanent shape",
+    "Always heavier than air",
+    "Doesn't shrink"
+  ],
+  "choicesUz": [
+    "Muayyan hajm yoki shaklga ega emas; idishning butun hajmini egallaydi",
+    "Doimiy shaklga ega",
+    "Har doim havodan og'irroq",
+    "Kichraymaydi"
+  ],
+  "explanationEn": "Gas does not have a constant volume and shape.",
+  "explanationUz": "Gaz doimiy hajm va shaklga ega emas."
+}

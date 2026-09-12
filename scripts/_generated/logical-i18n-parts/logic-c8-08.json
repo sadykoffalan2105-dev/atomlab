@@ -1,0 +1,18 @@
+{
+  "questionEn": "If little metal is obtained from one ton of ore, the ore...",
+  "questionUz": "Bir tonna rudadan oz miqdorda metall olinsa, ruda...",
+  "choicesEn": [
+    "Poor in content of useful components",
+    "Rich",
+    "Does not contain metal",
+    "Is a gas"
+  ],
+  "choicesUz": [
+    "Foydali komponentlar tarkibida yomon",
+    "Boy",
+    "Metallni o'z ichiga olmaydi",
+    "Gaz hisoblanadi"
+  ],
+  "explanationEn": "",
+  "explanationUz": ""
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact on the topic “Vitamins” is formulated without error?",
+  "questionUz": "\"Vitaminlar\" mavzusida qanday fakt xatosiz tuzilgan?",
+  "choicesEn": [
+    "Elements necessary for the life of organisms",
+    "Only noble gases",
+    "Only artificial elements",
+    "Only radioactive waste"
+  ],
+  "choicesUz": [
+    "Organizmlar hayoti uchun zarur bo'lgan elementlar",
+    "Faqat asil gazlar",
+    "Faqat sun'iy elementlar",
+    "Faqat radioaktiv chiqindilar"
+  ],
+  "explanationEn": "C, H, O, N, P, S, etc. - biogenic.",
+  "explanationUz": "C, H, O, N, P, S va boshqalar - biogen."
+}

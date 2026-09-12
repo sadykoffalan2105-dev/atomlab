@@ -1,0 +1,18 @@
+{
+  "questionEn": "How to correctly understand the term “filtration”?",
+  "questionUz": "\"Filtrlash\" atamasini qanday to'g'ri tushunish mumkin?",
+  "choicesEn": [
+    "The process of separating heterogeneous mixtures (salt and sand, oil and water)",
+    "Chemical reaction of acid with metal",
+    "Melting of matter",
+    "Only solution evaporation"
+  ],
+  "choicesUz": [
+    "Geterogen aralashmalarni (tuz va qum, moy va suv) ajratish jarayoni",
+    "Kislotalarning metall bilan kimyoviy reaksiyasi",
+    "Moddaning erishi",
+    "Faqat eritmaning bug'lanishi"
+  ],
+  "explanationEn": "Filtration separates heterogeneous mixtures.",
+  "explanationUz": "Filtrlash geterogen aralashmalarni ajratadi."
+}

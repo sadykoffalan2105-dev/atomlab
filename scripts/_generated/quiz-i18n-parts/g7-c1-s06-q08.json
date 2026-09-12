@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "In China",
+    "In Greece",
+    "In Egypt",
+    "In Uzbekistan in the 20th century"
+  ],
+  "choicesUz": [
+    "Xitoyda",
+    "Gretsiyada",
+    "Misrda",
+    "Oʻzbekistonda 20-asrda"
+  ],
+  "explanationEn": "According to the textbook: for the first time in China.",
+  "explanationUz": "Darslikka ko'ra: Xitoyda birinchi marta."
+}

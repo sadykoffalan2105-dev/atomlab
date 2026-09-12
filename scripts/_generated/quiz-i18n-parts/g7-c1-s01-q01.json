@@ -1,0 +1,18 @@
+{
+  "questionEn": "What does the science of chemistry study?",
+  "questionUz": "Kimyo fani nimani o'rganadi?",
+  "choicesEn": [
+    "Composition, structure, properties and changes of substances, as well as phenomena during these changes",
+    "Only the color, smell and shape of objects",
+    "Only the history of discoveries without experiments",
+    "Only names of laboratory instruments"
+  ],
+  "choicesUz": [
+    "Moddalarning tarkibi, tuzilishi, xossalari va o'zgarishlari, shuningdek, bu o'zgarishlar paytidagi hodisalar",
+    "Faqat ob'ektlarning rangi, hidi va shakli",
+    "Faqat tajribalarsiz kashfiyotlar tarixi",
+    "Faqat laboratoriya asboblarining nomlari"
+  ],
+  "explanationEn": "According to the textbook: chemistry studies the composition, structure, properties and changes of substances.",
+  "explanationUz": "Darslik bo`yicha: kimyo fani moddalarning tarkibi, tuzilishi, xossalari va o`zgarishlarini o`rganadi."
+}

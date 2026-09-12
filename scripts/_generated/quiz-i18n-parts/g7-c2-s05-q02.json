@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is said here that is chemically correct?",
+  "questionUz": "Bu erda kimyoviy jihatdan to'g'ri aytilgan nima?",
+  "choicesEn": [
+    "Atoms of different elements with the same mass number A",
+    "Atoms of the same element with different numbers of protons",
+    "Water molecules of different states of aggregation",
+    "Only electrons in the outer level"
+  ],
+  "choicesUz": [
+    "Har xil elementlarning massa soni bir xil bo'lgan atomlari A",
+    "Protonlarning soni har xil bo'lgan bir xil element atomlari",
+    "Turli agregat holatlaridagi suv molekulalari",
+    "Faqat tashqi darajadagi elektronlar"
+  ],
+  "explanationEn": "Isobars: same A, different Z.",
+  "explanationUz": "Izobarlar: bir xil A, boshqa Z."
+}

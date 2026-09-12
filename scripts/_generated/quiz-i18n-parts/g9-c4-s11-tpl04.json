@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Repetition”: Product output η =…",
+  "questionUz": "§ \"Takrorlash\" ga ko'ra: Mahsulot chiqishi ē =…",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "There is no such information in this section",
+    "m(practical) / m(theoretical) 100%",
+    "m(theoretical) / m(practical)"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "m (amaliy) / m (nazariy) 100%",
+    "m (nazariy) / m (amaliy)"
+  ],
+  "explanationEn": "m(practical) / m(theoretical) 100%",
+  "explanationUz": "m (amaliy) / m (nazariy) 100%"
+}

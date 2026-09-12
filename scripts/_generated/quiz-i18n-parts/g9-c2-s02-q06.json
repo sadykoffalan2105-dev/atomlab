@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook: an electrolyte is...",
+  "questionUz": "Darslikka ko'ra: elektrolit bu...",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "kaolin: Al 2O3∙ SiO 2∙ H 2O",
+    "There is no such information in this section",
+    "dissolved aluminum oxide"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "kaolin: Al 2O3∙ SiO 2∙ H 2O",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "erigan alyuminiy oksidi"
+  ],
+  "explanationEn": "electrolyte – dissolved aluminum oxide",
+  "explanationUz": "elektrolit - erigan alyuminiy oksidi"
+}

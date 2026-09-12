@@ -1,0 +1,18 @@
+{
+  "questionEn": "What symbol does hydrogen have in the periodic table?",
+  "questionUz": "Vodorod davriy jadvalda qanday belgiga ega?",
+  "choicesEn": [
+    "H (Hydrogenium)",
+    "He (helium)",
+    "Hg (mercury)",
+    "Ho (holmium)"
+  ],
+  "choicesUz": [
+    "H (vodorod)",
+    "U (geliy)",
+    "Hg (simob)",
+    "Xo (holmiy)"
+  ],
+  "explanationEn": "The symbol for hydrogen is H.",
+  "explanationUz": "Vodorodning belgisi H."
+}

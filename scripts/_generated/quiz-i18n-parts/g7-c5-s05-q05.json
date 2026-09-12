@@ -1,0 +1,18 @@
+{
+  "questionEn": "Find an answer that accurately reflects the content of the lesson?",
+  "questionUz": "Dars mazmunini to`g`ri aks ettiruvchi javobni toping?",
+  "choicesEn": [
+    "Simply put, pH measures how acidic or alkaline a solution of a substance is.",
+    "A complex substance that forms H⁺ (H₃O⁺) ions in an aqueous solution",
+    "Acidity or alkalinity of solution",
+    "Hydrogen gas H₂"
+  ],
+  "choicesUz": [
+    "Oddiy qilib aytganda, pH moddaning eritmasi qanchalik kislotali yoki gidroksidi ekanligini o'lchaydi.",
+    "Suvli eritmada H⁺ (H₃O⁺) ionlarini hosil qiluvchi murakkab modda.",
+    "Eritmaning kislotaliligi yoki ishqoriyligi",
+    "Vodorod gazi H₂"
+  ],
+  "explanationEn": "Simply put, pH measures how acidic or alkaline a solution of a substance is.",
+  "explanationUz": "Oddiy qilib aytganda, pH moddaning eritmasi qanchalik kislotali yoki gidroksidi ekanligini o'lchaydi."
+}

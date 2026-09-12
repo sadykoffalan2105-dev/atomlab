@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which rationale on the topic “Chemistry and Its Problems” is chemically correct?",
+  "questionUz": "“Kimyo va uning masalalari” mavzusidagi qaysi asos kimyoviy jihatdan to‘g‘ri?",
+  "choicesEn": [
+    "Combining particles with a specific chemical composition",
+    "Any object of shape and size",
+    "A mixture whose composition can be changed",
+    "Liquid or gas only"
+  ],
+  "choicesUz": [
+    "Zarrachalarni ma'lum bir kimyoviy tarkib bilan birlashtirish",
+    "Shakl va o'lchamdagi har qanday ob'ekt",
+    "Tarkibi o'zgarishi mumkin bo'lgan aralash",
+    "Faqat suyuqlik yoki gaz"
+  ],
+  "explanationEn": "Substance is a combination of particles with a certain chemical composition.",
+  "explanationUz": "Modda - ma'lum bir kimyoviy tarkibga ega bo'lgan zarrachalarning birikmasidir."
+}

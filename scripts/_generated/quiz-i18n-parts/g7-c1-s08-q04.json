@@ -1,0 +1,18 @@
+{
+  "questionEn": "Check the correct answer related to “the water cycle in nature”?",
+  "questionUz": "“Tabiatdagi suv aylanishi” bilan bog‘liq to‘g‘ri javobni tekshiring?",
+  "choicesEn": [
+    "Physical phenomenon",
+    "chemical phenomenon",
+    "Only biological process",
+    "Irreversible reaction"
+  ],
+  "choicesUz": [
+    "Jismoniy hodisa",
+    "kimyoviy hodisa",
+    "Faqat biologik jarayon",
+    "Qaytarib bo'lmaydigan reaktsiya"
+  ],
+  "explanationEn": "Freezing, evaporation, precipitation are physical phenomena.",
+  "explanationUz": "Muzlash, bug'lanish, yog'ingarchilik fizik hodisalardir."
+}

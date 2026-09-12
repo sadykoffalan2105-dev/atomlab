@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion on the topic “Reinforcement Lesson” based on?",
+  "questionUz": "“Mustahkamlash darsi” mavzusidagi to‘g‘ri xulosa qaysi faktga asoslangan?",
+  "choicesEn": [
+    "At the top (outer) part of the flame",
+    "In the middle part",
+    "At the base of the tap",
+    "Outside the combustion zone"
+  ],
+  "choicesUz": [
+    "Olovning yuqori (tashqi) qismida",
+    "O'rta qismda",
+    "Kranning tagida",
+    "Yonish zonasidan tashqarida"
+  ],
+  "explanationEn": "Heating on the burner is at the top of the flame.",
+  "explanationUz": "Olovli pechda isitish olovning yuqori qismida joylashgan."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which definition best describes “biogenic elements”?",
+  "questionUz": "Qaysi ta'rif \"biogen elementlar\" ni yaxshiroq ta'riflaydi?",
+  "choicesEn": [
+    "Elements necessary for the life of organisms",
+    "Only noble gases",
+    "Only artificial elements",
+    "Only radioactive waste"
+  ],
+  "choicesUz": [
+    "Organizmlar hayoti uchun zarur bo'lgan elementlar",
+    "Faqat asil gazlar",
+    "Faqat sun'iy elementlar",
+    "Faqat radioaktiv chiqindilar"
+  ],
+  "explanationEn": "C, H, O, N, P, S, etc. - biogenic.",
+  "explanationUz": "C, H, O, N, P, S va boshqalar - biogen."
+}

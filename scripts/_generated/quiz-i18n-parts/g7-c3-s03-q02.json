@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact on the topic “Periodic Table of Chemical Elements” is formulated without error?",
+  "questionUz": "“Kimyoviy elementlarning davriy jadvali” mavzusida qanday fakt xatosiz tuzilgan?",
+  "choicesEn": [
+    "Horizontal row of elements",
+    "Vertical Column",
+    "Metals only",
+    "Gases only"
+  ],
+  "choicesUz": [
+    "Elementlarning gorizontal qatori",
+    "Vertikal ustun",
+    "Faqat metallar",
+    "Faqat gazlar"
+  ],
+  "explanationEn": "Periods are horizontal series of PS.",
+  "explanationUz": "Davrlar PS ning gorizontal qatoridir."
+}

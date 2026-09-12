@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which conclusion on the topic “Geological chemical compounds” can be considered correct?",
+  "questionUz": "“Geologik kimyoviy birikmalar” mavzusidagi qaysi xulosani to‘g‘ri deb hisoblash mumkin?",
+  "choicesEn": [
+    "Electrically neutral particle consisting of a nucleus and electrons",
+    "Only the nucleus without electrons",
+    "Charged molecule",
+    "Mixture of two gases"
+  ],
+  "choicesUz": [
+    "Yadro va elektronlardan tashkil topgan elektr neytral zarracha",
+    "Faqat elektronsiz yadro",
+    "Zaryadlangan molekula",
+    "Ikki gaz aralashmasi"
+  ],
+  "explanationEn": "An atom is electrically neutral: nucleus (+) and electrons (−).",
+  "explanationUz": "Atom elektr jihatdan neytraldir: yadro (+) va elektronlar (-)."
+}

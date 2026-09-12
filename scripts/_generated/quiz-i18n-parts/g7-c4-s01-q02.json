@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is the largest volume in dry air?",
+  "questionUz": "Quruq havodagi eng katta hajm qancha?",
+  "choicesEn": [
+    "Nitrogen (about 78%)",
+    "Oxygen (about 78%)",
+    "Argon (about 78%)",
+    "CO₂ (about 78%)"
+  ],
+  "choicesUz": [
+    "Azot (taxminan 78%)",
+    "Kislorod (taxminan 78%)",
+    "Argon (taxminan 78%)",
+    "CO₂ (taxminan 78%)"
+  ],
+  "explanationEn": "Nitrogen is the main component of dry air by volume.",
+  "explanationUz": "Hajmi bo'yicha azot quruq havoning asosiy tarkibiy qismidir."
+}

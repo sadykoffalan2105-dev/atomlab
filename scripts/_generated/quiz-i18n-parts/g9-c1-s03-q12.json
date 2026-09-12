@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook: the main task of whose metallurgy is...",
+  "questionUz": "Darslikda aytilishicha: metallurgiya kimning asosiy vazifasi...",
+  "choicesEn": [
+    "alloys consisting of metals with different values of atom radii, at nodes...",
+    "Muruntau, Adzhibugut, Bulutkan, Balkantau, Aristantau, Torboe and other places",
+    "alloys formed from metals with similar atomic radii at the nodes of the crystalline...",
+    "recovery of metals from their compounds and extraction of metals from other substances"
+  ],
+  "choicesUz": [
+    "Atom radiuslarining turli qiymatlariga ega bo'lgan metallardan tashkil topgan qotishmalar, tugunlarda ...",
+    "Muruntau, Adjibugut, Bulutkan, Balkantau, Aristantau, Torboe va boshqa joylar",
+    "kristall tugunlarida atom radiusi o'xshash bo'lgan metallardan hosil bo'lgan qotishmalar ...",
+    "ularning birikmalaridan metallarni olish va boshqa moddalardan metallarni ajratib olish"
+  ],
+  "explanationEn": "The main task of metallurgy is the recovery of metals from their compounds and the extraction of metals from other substances",
+  "explanationUz": "Metallurgiyaning asosiy vazifasi metallarni ularning birikmalaridan olish va boshqa moddalardan metallarni ajratib olishdir."
+}

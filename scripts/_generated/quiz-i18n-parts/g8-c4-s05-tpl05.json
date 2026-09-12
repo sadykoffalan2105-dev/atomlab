@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Avogadro’s Law”: Chlorine is obtained in the laboratory...",
+  "questionUz": "§ \"Avogadro qonuni\" ga ko'ra: Xlor laboratoriyada olinadi ...",
+  "choicesEn": [
+    "By burning coal",
+    "Dissolving NaCl in water",
+    "The effect of HCl on MnO₂",
+    "Electrolysis of water without salt"
+  ],
+  "choicesUz": [
+    "Ko'mir yoqish orqali",
+    "NaCl ni suvda eritish",
+    "HCl ning MnO₂ ga ta'siri",
+    "Suvni tuzsiz elektroliz qilish"
+  ],
+  "explanationEn": "The effect of HCl on MnO₂",
+  "explanationUz": "HCl ning MnO₂ ga ta'siri"
+}

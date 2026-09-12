@@ -1,0 +1,18 @@
+{
+  "questionEn": "Select the statement that is consistent with your 7th grade chemistry course?",
+  "questionUz": "7-sinf kimyo kursingizga mos keladigan gapni tanlang?",
+  "choicesEn": [
+    "First, oxygen is a gas that makes up 21% of air.",
+    "strong oxidizing agent, burns more strongly in oxygen than in air",
+    "About 21% by volume",
+    "A complex substance of two elements, one of which is oxygen"
+  ],
+  "choicesUz": [
+    "Birinchidan, kislorod havoning 21% ni tashkil etadigan gazdir.",
+    "kuchli oksidlovchi vosita, havoga qaraganda kislorodda kuchliroq yonadi",
+    "Hajmi bo'yicha taxminan 21%",
+    "Ikki elementdan iborat murakkab modda, ulardan biri kislorod"
+  ],
+  "explanationEn": "First, oxygen is a gas that makes up 21% of air.",
+  "explanationUz": "Birinchidan, kislorod havoning 21% ni tashkil etadigan gazdir."
+}

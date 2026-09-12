@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option reflects a real property or phenomenon from the paragraph?",
+  "questionUz": "Qaysi variant paragrafdagi ko'chmas mulk yoki hodisani aks ettiradi?",
+  "choicesEn": [
+    "The ability of an atom to form a certain number of chemical bonds",
+    "Atomic mass in grams",
+    "Substance color",
+    "Boiling point"
+  ],
+  "choicesUz": [
+    "Atomning ma'lum miqdordagi kimyoviy bog'lanishlar hosil qilish qobiliyati",
+    "Atom massasi grammda",
+    "Moddaning rangi",
+    "Qaynash nuqtasi"
+  ],
+  "explanationEn": "Valency shows how many bonds an atom can form.",
+  "explanationUz": "Valentlik atomning qancha bog'lanishi mumkinligini ko'rsatadi."
+}

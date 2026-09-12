@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Corrosion of metals”: Inhibitors are...",
+  "questionUz": "§ \"Metallarning korroziyasi\" ga ko'ra: Inhibitorlar ...",
+  "choicesEn": [
+    "a reduction process that occurs when an electric current is passed through a solution or... (according to the textbook)",
+    "destruction of metal resulting from the interaction of the metal with an oxidizing agent from the external environment",
+    "special substances, when small quantities are added to a corrosive environment (10 6–... (according to the textbook)",
+    "special substances, when small quantities are added to a corrosive environment (10 6– –103– mol/l..."
+  ],
+  "choicesUz": [
+    "elektr toki eritma orqali o'tganda yoki ... (darslik bo'yicha) sodir bo'ladigan kamaytirish jarayoni.",
+    "metallning tashqi muhitdan oksidlovchi vosita bilan o'zaro ta'siri natijasida metallni yo'q qilish",
+    "maxsus moddalar, korroziy muhitga oz miqdorda qo'shilganda (10 6-... (darslik bo'yicha)",
+    "maxsus moddalar, korroziy muhitga oz miqdorda qo'shilganda (10 6– –103– mol/l..."
+  ],
+  "explanationEn": "Inhibitors are special substances, when small quantities are added to a corrosive environment (10 6– –103– mol/l), the corrosion process slows down or stops completely",
+  "explanationUz": "Inhibitorlar maxsus moddalar bo'lib, korroziy muhitga oz miqdorda qo'shilsa (10 6– –103– mol/l), korroziya jarayoni sekinlashadi yoki butunlay to'xtaydi."
+}

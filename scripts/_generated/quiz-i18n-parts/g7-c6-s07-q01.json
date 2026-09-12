@@ -1,0 +1,18 @@
+{
+  "questionEn": "Check the exact description for \"chemical formula of water\"?",
+  "questionUz": "\"Suvning kimyoviy formulasi\" ning aniq tavsifini tekshiring?",
+  "choicesEn": [
+    "H₂O (two hydrogen atoms and one oxygen atom)",
+    "H₂O₂ (hydrogen peroxide)",
+    "CO₂ (carbon dioxide)",
+    "NaCl (table salt)"
+  ],
+  "choicesUz": [
+    "H₂O (ikki vodorod atomi va bitta kislorod atomi)",
+    "H₂O₂ (vodorod periks)",
+    "CO₂ (karbonat angidrid)",
+    "NaCl (stol tuzi)"
+  ],
+  "explanationEn": "Water - H₂O.",
+  "explanationUz": "Suv - H₂O."
+}

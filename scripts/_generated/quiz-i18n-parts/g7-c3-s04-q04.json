@@ -1,0 +1,18 @@
+{
+  "questionEn": "Choose the only correct option about “group (family) in the periodic table”?",
+  "questionUz": "\"Davriy jadvaldagi guruh (oila)\" haqidagi yagona to'g'ri variantni tanlang?",
+  "choicesEn": [
+    "Vertical column of elements with similar properties",
+    "Only one table row",
+    "List of mixtures",
+    "List of reactions"
+  ],
+  "choicesUz": [
+    "Xuddi shunday xususiyatlarga ega bo'lgan elementlarning vertikal ustuni",
+    "Faqat bitta jadval qatori",
+    "Aralashmalarning ro'yxati",
+    "Reaktsiyalar ro'yxati"
+  ],
+  "explanationEn": "Groups are vertical columns.",
+  "explanationUz": "Guruhlar vertikal ustunlardir."
+}

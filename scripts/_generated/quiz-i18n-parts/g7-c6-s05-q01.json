@@ -1,0 +1,18 @@
+{
+  "questionEn": "What happens during this process: “neutralization reaction”?",
+  "questionUz": "Bu jarayonda nima sodir bo'ladi: \"neytralizatsiya reaktsiyasi\"?",
+  "choicesEn": [
+    "The interaction of an acid with a base to form salt and water",
+    "Only coal burning",
+    "Filtration of the mixture",
+    "Sublimation of iodine"
+  ],
+  "choicesUz": [
+    "Tuz va suv hosil qilish uchun kislotaning asos bilan o'zaro ta'siri",
+    "Faqat ko'mir yoqiladi",
+    "Aralashmani filtrlash",
+    "Yodning sublimatsiyasi"
+  ],
+  "explanationEn": "Acid + base → salt + water.",
+  "explanationUz": "Kislota + asos → tuz + suv."
+}

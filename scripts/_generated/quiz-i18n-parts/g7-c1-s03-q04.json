@@ -1,0 +1,18 @@
+{
+  "questionEn": "What happens during this process: “Practical lesson”?",
+  "questionUz": "Bu jarayonda nima sodir bo'ladi: \"Amaliy dars\"?",
+  "choicesEn": [
+    "Add acid to water in a thin stream along the wall of the vessel, and not vice versa",
+    "Pouring water into concentrated acid",
+    "Mix quickly in a sealed container",
+    "Dilute acid with alcohol"
+  ],
+  "choicesUz": [
+    "Idishning devori bo'ylab ingichka oqim bilan suvga kislota qo'shing, aksincha emas",
+    "Konsentrlangan kislotaga suv quyish",
+    "Yopiq idishda tez aralashtiriladi",
+    "Kislota spirt bilan suyultiriladi"
+  ],
+  "explanationEn": "Rule 12: add acid to water, not vice versa.",
+  "explanationUz": "12-qoida: suvga kislota qo'shing, aksincha emas."
+}

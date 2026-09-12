@@ -1,0 +1,18 @@
+{
+  "questionEn": "Select the statement that is consistent with your 7th grade chemistry course?",
+  "questionUz": "7-sinf kimyo kursingizga mos keladigan gapni tanlang?",
+  "choicesEn": [
+    "Rusting iron bucket",
+    "Ice melting",
+    "Boiling water",
+    "Dissolving sugar in water"
+  ],
+  "choicesUz": [
+    "Zanglagan temir chelak",
+    "Muz erishi",
+    "Qaynayotgan suv",
+    "Shakarni suvda eritish"
+  ],
+  "explanationEn": "Rusting is a chemical phenomenon.",
+  "explanationUz": "Zanglash kimyoviy hodisadir."
+}

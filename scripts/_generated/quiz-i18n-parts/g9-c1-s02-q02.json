@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Chemical properties of metals”: Ionization energy is...",
+  "questionUz": "§ “Metallarning kimyoviy xossalari” bo‘yicha: Ionlanish energiyasi...",
+  "choicesEn": [
+    "the amount of energy required to separate an electron from an atom",
+    "the statement refers to another paragraph in the textbook",
+    "equilibrium state of the distance between atomic nuclei (measured in nm)",
+    "This can only be said about another class of compounds"
+  ],
+  "choicesUz": [
+    "elektronni atomdan ajratish uchun zarur bo'lgan energiya miqdori",
+    "bayonot darslikdagi boshqa bandga ishora qiladi",
+    "atom yadrolari orasidagi masofaning muvozanat holati (nm bilan o'lchanadi)",
+    "Buni faqat birikmalarning boshqa sinfi haqida aytish mumkin"
+  ],
+  "explanationEn": "Ionization energy is the amount of energy required to separate an electron from an atom.",
+  "explanationUz": "Ionlanish energiyasi - elektronni atomdan ajratish uchun zarur bo'lgan energiya miqdori."
+}

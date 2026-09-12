@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "Grind or heat",
+    "Only cool",
+    "Just dilute with water",
+    "Don't touch"
+  ],
+  "choicesUz": [
+    "Maydalang yoki qizdiring",
+    "Faqat salqin",
+    "Faqat suv bilan suyultiriladi",
+    "Tegmang"
+  ],
+  "explanationEn": "Conditions: grinding, heating, melting.",
+  "explanationUz": "Shartlar: silliqlash, isitish, eritish."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "Among the answers, find the correct meaning of “acid”?",
+  "questionUz": "Javoblar orasida \"kislota\" ning to'g'ri ma'nosini toping?",
+  "choicesEn": [
+    "A complex substance that produces hydrogen ions H⁺ (H₃O⁺) in an aqueous solution",
+    "Any metal oxide",
+    "Pure simple substance H₂",
+    "Only alkali NaOH"
+  ],
+  "choicesUz": [
+    "Suvli eritmada vodorod ionlarini H⁺ (H₃O⁺) hosil qiluvchi murakkab modda.",
+    "Har qanday metall oksidi",
+    "Sof oddiy modda H₂",
+    "Faqat gidroksidi NaOH"
+  ],
+  "explanationEn": "Acids in water form hydrogen ions.",
+  "explanationUz": "Suvdagi kislotalar vodorod ionlarini hosil qiladi."
+}

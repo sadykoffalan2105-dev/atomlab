@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is called the word “chemical formula of water” in a 7th grade chemistry course?",
+  "questionUz": "7-sinf kimyo kursida “suvning kimyoviy formulasi” so’zi nima deyiladi?",
+  "choicesEn": [
+    "H₂O (two hydrogen atoms and one oxygen atom)",
+    "H₂O₂ (hydrogen peroxide)",
+    "CO₂ (carbon dioxide)",
+    "NaCl (table salt)"
+  ],
+  "choicesUz": [
+    "H₂O (ikki vodorod atomi va bitta kislorod atomi)",
+    "H₂O₂ (vodorod periks)",
+    "CO₂ (karbonat angidrid)",
+    "NaCl (stol tuzi)"
+  ],
+  "explanationEn": "Water - H₂O.",
+  "explanationUz": "Suv - H₂O."
+}

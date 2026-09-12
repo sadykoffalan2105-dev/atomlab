@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which of the following corresponds to the material in the paragraph “Practical lesson”?",
+  "questionUz": "Quyidagilardan qaysi biri “Amaliy dars” bandidagi materialga mos keladi?",
+  "choicesEn": [
+    "Side to the neck with a match with the gas valve open",
+    "Directly into the gas flow from above",
+    "Without opening the tap",
+    "Only by electrical sparking"
+  ],
+  "choicesUz": [
+    "Ochiq gaz klapan bilan gugurt bilan bo'yniga yon tomonda",
+    "Yuqoridan to'g'ridan-to'g'ri gaz oqimiga",
+    "Kranni ochmasdan",
+    "Faqat elektr uchqunlari bilan"
+  ],
+  "explanationEn": "Bring the match to the side - otherwise the flow will extinguish the flame.",
+  "explanationUz": "Gugurtni yon tomonga olib keling - aks holda oqim olovni o'chiradi."
+}

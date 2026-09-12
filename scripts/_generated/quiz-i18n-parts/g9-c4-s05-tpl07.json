@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Excess reagent”: Product yield η =…",
+  "questionUz": "§ “Oddiy reagent” ga muvofiq: Mahsulot unumi ē =…",
+  "choicesEn": [
+    "m(theoretical) / m(practical)",
+    "There is no such information in this section",
+    "m(practical) / m(theoretical) 100%",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "m (nazariy) / m (amaliy)",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "m (amaliy) / m (nazariy) 100%",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "m(practical) / m(theoretical) 100%",
+  "explanationUz": "m (amaliy) / m (nazariy) 100%"
+}

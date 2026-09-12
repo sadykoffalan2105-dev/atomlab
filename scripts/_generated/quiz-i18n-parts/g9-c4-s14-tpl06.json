@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Safety precautions”: Mass fraction of the substance in the solution ω =...",
+  "questionUz": "§ \"Xavfsizlik choralari\" bo'yicha: Eritmadagi moddaning massa ulushi ō =...",
+  "choicesEn": [
+    "m(water) / m(solution)",
+    "incorrect wording according to the textbook",
+    "There is no such information in this section",
+    "m(substance) / m(solution) 100%"
+  ],
+  "choicesUz": [
+    "m (suv) / m (eritma)",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "m (modda) / m (eritma) 100%"
+  ],
+  "explanationEn": "m(substance) / m(solution) 100%",
+  "explanationUz": "m (modda) / m (eritma) 100%"
+}

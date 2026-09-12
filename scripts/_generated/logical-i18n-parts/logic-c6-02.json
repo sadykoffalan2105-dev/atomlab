@@ -1,0 +1,18 @@
+{
+  "questionEn": "The electrolysis of water produces H₂ and O₂. What conclusion about the composition of water?",
+  "questionUz": "Suvni elektroliz qilish natijasida H₂ va O₂ hosil bo'ladi. Suvning tarkibi haqida qanday xulosaga keldingiz?",
+  "choicesEn": [
+    "Water is a compound of hydrogen and oxygen",
+    "Water - element",
+    "Water is a mixture of gases",
+    "Electrolysis does not change the composition"
+  ],
+  "choicesUz": [
+    "Suv vodorod va kislorod birikmasidir",
+    "Suv - element",
+    "Suv gazlar aralashmasidir",
+    "Elektroliz tarkibini o'zgartirmaydi"
+  ],
+  "explanationEn": "",
+  "explanationUz": ""
+}

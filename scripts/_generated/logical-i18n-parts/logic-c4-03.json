@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why does a smoldering match in a vessel with oxygen flash brighter?",
+  "questionUz": "Nima uchun kislorodli idishda yonayotgan gugurt yorqinroq yonadi?",
+  "choicesEn": [
+    "The oxidizing agent concentration is higher than in air",
+    "Oxygen cools",
+    "There is no nitrogen in oxygen, which means there is no reaction",
+    "The match changes composition"
+  ],
+  "choicesUz": [
+    "Oksidlovchi moddaning konsentratsiyasi havodagidan yuqori",
+    "Kislorod soviydi",
+    "Kislorodda azot yo'q, ya'ni reaktsiya yo'q",
+    "Uchrashuv tarkibni o'zgartiradi"
+  ],
+  "explanationEn": "",
+  "explanationUz": ""
+}

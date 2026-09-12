@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately separates “oxygen” from similar ideas?",
+  "questionUz": "Qaysi formula \"kislorod\" ni o'xshash fikrlardan aniqroq ajratib turadi?",
+  "choicesEn": [
+    "strong oxidizing agent, burns more strongly in oxygen than in air",
+    "About 21% by volume",
+    "A complex substance of two elements, one of which is oxygen",
+    "Breathing and burning"
+  ],
+  "choicesUz": [
+    "kuchli oksidlovchi vosita, havoga qaraganda kislorodda kuchliroq yonadi",
+    "Hajmi bo'yicha taxminan 21%",
+    "Ikki elementdan iborat murakkab modda, ulardan biri kislorod",
+    "Nafas olish va yonish"
+  ],
+  "explanationEn": "Oxygen is a strong oxidizing agent; combustion in oxygen is stronger than in air.",
+  "explanationUz": "Kislorod kuchli oksidlovchi vositadir; kislorodda yonish havoga qaraganda kuchliroqdir."
+}

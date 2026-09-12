@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which statement about the “recommended daily allowance of salt for adults” is correct?",
+  "questionUz": "\"Kattalar uchun tavsiya etilgan kunlik tuz miqdori\" haqidagi qaysi fikr to'g'ri?",
+  "choicesEn": [
+    "6 grams",
+    "20 grams",
+    "50 grams",
+    "1 gram"
+  ],
+  "choicesUz": [
+    "6 gramm",
+    "20 gramm",
+    "50 gramm",
+    "1 gramm"
+  ],
+  "explanationEn": "According to the textbook: 6 g of salt per day for adults.",
+  "explanationUz": "Darslik bo'yicha: kattalar uchun kuniga 6 g tuz."
+}

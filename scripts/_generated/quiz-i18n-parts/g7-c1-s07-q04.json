@@ -1,0 +1,18 @@
+{
+  "questionEn": "Check the correct answer related to \"solid matter\"?",
+  "questionUz": "\"Qattiq modda\" bilan bog'liq to'g'ri javobni tekshiring?",
+  "choicesEn": [
+    "Has mechanical hardness, has a certain volume and shape",
+    "Takes the shape of any vessel",
+    "Has no volume",
+    "Always melts at 0 °C"
+  ],
+  "choicesUz": [
+    "Mexanik qattiqlikka ega, ma'lum hajm va shaklga ega",
+    "Har qanday tomir shaklini oladi",
+    "Ovozi yo'q",
+    "Har doim 0 ° C da eriydi"
+  ],
+  "explanationEn": "A solid has shape and volume.",
+  "explanationUz": "Qattiq jism shakli va hajmiga ega."
+}

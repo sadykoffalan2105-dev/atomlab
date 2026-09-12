@@ -1,0 +1,18 @@
+{
+  "questionEn": "Check the correct statement regarding the material studied?",
+  "questionUz": "O'rganilgan material bo'yicha to'g'ri bayonotni tekshiring?",
+  "choicesEn": [
+    "These are ZnO, TiO2, Cr2O3 of which, for example, they make waterproof paints; iron oxides are also insoluble in water and not.",
+    "a group of complex substances whose molecules contain one or more metal atoms.",
+    "H₂O (two hydrogen atoms and one oxygen atom)",
+    "The interaction of an acid with a base to form salt and water"
+  ],
+  "choicesUz": [
+    "Bular ZnO, TiO2, Cr2O3 bo'lib, ulardan, masalan, suv o'tkazmaydigan bo'yoqlar ishlab chiqaradi; temir oksidi ham suvda erimaydi va erimaydi.",
+    "molekulalarida bir yoki bir nechta metall atomlari bo'lgan murakkab moddalar guruhi.",
+    "H₂O (ikki vodorod atomi va bitta kislorod atomi)",
+    "Tuz va suv hosil qilish uchun kislotaning asos bilan o'zaro ta'siri"
+  ],
+  "explanationEn": "These are ZnO, TiO2, Cr2O3, of which, for example, they make waterproof paints; iron oxides are also insoluble in water and do not react with it.",
+  "explanationUz": "Bular ZnO, TiO2, Cr2O3 bo'lib, ulardan, masalan, suv o'tkazmaydigan bo'yoqlar ishlab chiqaradi; temir oksidlari ham suvda erimaydi va u bilan reaksiyaga kirishmaydi."
+}

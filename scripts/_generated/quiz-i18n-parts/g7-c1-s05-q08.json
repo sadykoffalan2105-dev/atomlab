@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which rationale on the topic “Pure substances and mixtures” is chemically correct?",
+  "questionUz": "“Sof moddalar va aralashmalar” mavzusining qaysi mantiqiy asoslari kimyoviy jihatdan to‘g‘ri?",
+  "choicesEn": [
+    "Adsorption",
+    "Filtration",
+    "Decantation",
+    "Distillation"
+  ],
+  "choicesUz": [
+    "Adsorbsiya",
+    "Filtrlash",
+    "Dekanatsiya",
+    "Distillash"
+  ],
+  "explanationEn": "Odor absorption by corn is adsorption.",
+  "explanationUz": "Makkajo'xori tomonidan hidni yutish - adsorbsiya."
+}

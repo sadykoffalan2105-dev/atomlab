@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook: For this example, â ê à is...",
+  "questionUz": "Darslikka ko'ra: Bu misol uchun â ê à...",
+  "choicesEn": [
+    "the statement refers to another paragraph in the textbook",
+    "This can only be said about another class of compounds",
+    "This is how another phenomenon or substance is described (according to the textbook) - incorrect",
+    "The most common lysate is al2O3, K2O and iron smear"
+  ],
+  "choicesUz": [
+    "bayonot darslikdagi boshqa bandga ishora qiladi",
+    "Buni faqat birikmalarning boshqa sinfi haqida aytish mumkin",
+    "Boshqa hodisa yoki modda shunday tasvirlangan (darslikka ko'ra) - noto'g'ri",
+    "Eng keng tarqalgan lizat al2O3, K2O va temir smeardir"
+  ],
+  "explanationEn": "For this example, we can use al2O3, K2O and the iron mixture",
+  "explanationUz": "Bu misol uchun al2O3, K2O va temir aralashmasidan foydalanishimiz mumkin"
+}

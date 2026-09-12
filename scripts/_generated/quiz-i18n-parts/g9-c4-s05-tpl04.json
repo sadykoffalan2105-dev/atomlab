@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Excess reagent”: Mass fraction of the substance in the solution ω =...",
+  "questionUz": "§ “Oddiy reagent” ga muvofiq: Eritmadagi moddaning massa ulushi ō =...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "incorrect wording according to the textbook",
+    "m(water) / m(solution)",
+    "m(substance) / m(solution) 100%"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "m (suv) / m (eritma)",
+    "m (modda) / m (eritma) 100%"
+  ],
+  "explanationEn": "m(substance) / m(solution) 100%",
+  "explanationUz": "m (modda) / m (eritma) 100%"
+}

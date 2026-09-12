@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is called in the 7th grade chemistry course the word “When purifying salt, salt is added to water before”?",
+  "questionUz": "7-sinf kimyo kursida “Tuzni tozalashda avval suvga tuz qo'shiladi” so'zi nima deyiladi?",
+  "choicesEn": [
+    "Until she stops dissolving",
+    "Filling the glass completely with salt",
+    "Boiling without salt",
+    "Formation of sediment at the bottom without stirring"
+  ],
+  "choicesUz": [
+    "U eritishni to'xtatmaguncha",
+    "Stakanni to'liq tuz bilan to'ldirish",
+    "Tuzsiz qaynatish",
+    "Aralashtirmasdan pastki qismida cho'kindi hosil bo'lishi"
+  ],
+  "explanationEn": "Add salt until it stops dissolving.",
+  "explanationUz": "Eritmaguncha tuz qo'shing."
+}

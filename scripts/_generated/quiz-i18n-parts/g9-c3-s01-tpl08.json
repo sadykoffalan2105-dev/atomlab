@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Electrolytes”: The anode in a galvanic cell is ...",
+  "questionUz": "§ \"Elektrolitlar\" ga ko'ra: Galvanik elementdagi anod ...",
+  "choicesEn": [
+    "Oxidation electrode (−)",
+    "Indicator",
+    "incorrect wording according to the textbook",
+    "There is no such information in this section"
+  ],
+  "choicesUz": [
+    "Oksidlanish elektrodi (-)",
+    "Ko'rsatkich",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q"
+  ],
+  "explanationEn": "Oxidation electrode (−)",
+  "explanationUz": "Oksidlanish elektrodi (-)"
+}

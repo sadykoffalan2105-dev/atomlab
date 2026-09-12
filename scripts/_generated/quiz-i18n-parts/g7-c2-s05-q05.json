@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately distinguishes \"relative atomic mass\" from similar ideas?",
+  "questionUz": "Qaysi formula \"nisbiy atom massasi\" ni o'xshash g'oyalardan aniqroq ajratib turadi?",
+  "choicesEn": [
+    "Relative atomic mass is the sum of protons and neutrons in an atom.",
+    "atoms with the same number of neutrons, different protons and masses. Isotopes of elements are distributed.",
+    "Atoms of the same element with the same number of protons but different numbers of neutrons",
+    "Atoms of different elements with the same mass number A"
+  ],
+  "choicesUz": [
+    "Nisbiy atom massasi - bu atomdagi proton va neytronlarning yig'indisidir.",
+    "bir xil miqdordagi neytron, turli proton va massaga ega atomlar. Elementlarning izotoplari tarqalgan.",
+    "Protonlar soni bir xil, ammo neytronlari har xil bo'lgan bir xil element atomlari",
+    "Har xil elementlarning massa soni bir xil bo'lgan atomlari A"
+  ],
+  "explanationEn": "Relative atomic mass is the sum of protons and neutrons in an atom.",
+  "explanationUz": "Nisbiy atom massasi - bu atomdagi proton va neytronlarning yig'indisidir."
+}

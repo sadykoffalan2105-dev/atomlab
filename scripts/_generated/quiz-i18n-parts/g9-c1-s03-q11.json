@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “The activity series of metals”: Metals under normal conditions are...",
+  "questionUz": "§ \"Metallarning faollik qatori\" ga ko'ra: Oddiy sharoitda metallar ...",
+  "choicesEn": [
+    "solids (except francium and mercury)",
+    "silver, gold, platinum, palladium, etc.",
+    "This is how another phenomenon or substance is described",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "qattiq moddalar (frantsiy va simobdan tashqari)",
+    "kumush, oltin, platina, palladiy va boshqalar.",
+    "Yana bir hodisa yoki modda shunday tasvirlangan",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "Metals under normal conditions are solids (except francium and mercury)",
+  "explanationUz": "Oddiy sharoitlarda metallar qattiq moddalardir (frantsiy va simobdan tashqari)"
+}

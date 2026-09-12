@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Qualitative analysis”: Qualitative analysis determines ...",
+  "questionUz": "§ \"Sifatli tahlil\" ga ko'ra: Sifatli tahlil ...",
+  "choicesEn": [
+    "Gas volume only",
+    "There is no such information in this section",
+    "Presence of substance ions",
+    "Metal color only"
+  ],
+  "choicesUz": [
+    "Faqat gaz hajmi",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Modda ionlarining mavjudligi",
+    "Faqat metall rang"
+  ],
+  "explanationEn": "Presence of substance ions",
+  "explanationUz": "Modda ionlarining mavjudligi"
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "Check the exact description for \"minerals\"?",
+  "questionUz": "\"Minerallar\" ning aniq tavsifini tekshiring?",
+  "choicesEn": [
+    "Natural mineral formations used by humans",
+    "Only artificial alloys",
+    "Acid solutions only",
+    "Laboratory mixtures only"
+  ],
+  "choicesUz": [
+    "Odamlar tomonidan ishlatiladigan tabiiy mineral tuzilmalar",
+    "Faqat sun'iy qotishmalar",
+    "Faqat kislota eritmalari",
+    "Faqat laboratoriya aralashmalari"
+  ],
+  "explanationEn": "Ore, oil, coal are minerals.",
+  "explanationUz": "Ruda, neft, ko'mir foydali qazilmalardir."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option correctly reveals the meaning of “chemistry”?",
+  "questionUz": "Qaysi variant \"kimyo\" ma'nosini to'g'ri ochib beradi?",
+  "choicesEn": [
+    "Chemistry is the science of substances; substances are made up of atoms or molecules.",
+    "this is a value showing how many times the mass of a molecule of a substance is greater than 1/12 of the mass of an atom.",
+    "is the amount of substance in moles",
+    "Amount of substance containing 6.02·10²³ particles"
+  ],
+  "choicesUz": [
+    "Kimyo - moddalar haqidagi fan; moddalar atom yoki molekulalardan tashkil topgan.",
+    "bu moddaning molekulasining massasi atom massasining 1/12 qismidan necha marta katta ekanligini ko'rsatadigan qiymat.",
+    "moldagi moddaning miqdori",
+    "6,02·10²³ zarrachalarni o'z ichiga olgan moddaning miqdori"
+  ],
+  "explanationEn": "Chemistry is the science of substances; substances are made up of atoms or molecules.",
+  "explanationUz": "Kimyo - moddalar haqidagi fan; moddalar atom yoki molekulalardan tashkil topgan."
+}

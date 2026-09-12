@@ -1,0 +1,18 @@
+{
+  "questionEn": "If there are two hydrogen atoms in the formula H₂O, what is logically true?",
+  "questionUz": "Agar H₂O formulasida ikkita vodorod atomi bo'lsa, mantiqan nima to'g'ri?",
+  "choicesEn": [
+    "The molecule consists of three atoms",
+    "Water - element",
+    "Hydrogen and oxygen - mixture",
+    "The mass of water is equal to the mass of one atom"
+  ],
+  "choicesUz": [
+    "Molekula uchta atomdan iborat",
+    "Suv - element",
+    "Vodorod va kislorod aralashmasi",
+    "Suvning massasi bitta atomning massasiga teng"
+  ],
+  "explanationEn": "",
+  "explanationUz": ""
+}

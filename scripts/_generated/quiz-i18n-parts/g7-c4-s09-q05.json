@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately distinguishes “The Biological Significance of Oxygen and Ozone” from similar ideas?",
+  "questionUz": "Qaysi formula \"Kislorod va ozonning biologik ahamiyati\" ni o'xshash g'oyalardan aniqroq ajratib turadi?",
+  "choicesEn": [
+    "Anaerobic bacteria and deep sea creatures do not need oxygen, all other organisms do.",
+    "About 21% by volume",
+    "A complex substance of two elements, one of which is oxygen",
+    "Breathing and burning"
+  ],
+  "choicesUz": [
+    "Anaerob bakteriyalar va chuqur dengiz jonzotlari kislorodga muhtoj emas, boshqa barcha organizmlar.",
+    "Hajmi bo'yicha taxminan 21%",
+    "Ikki elementdan iborat murakkab modda, ulardan biri kislorod",
+    "Nafas olish va yonish"
+  ],
+  "explanationEn": "Anaerobic bacteria and deep sea creatures do not require oxygen, all other organisms require oxygen.",
+  "explanationUz": "Anaerob bakteriyalar va chuqur dengiz jonzotlari kislorodga muhtoj emas, qolgan barcha organizmlar kislorodga muhtoj."
+}

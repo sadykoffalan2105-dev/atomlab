@@ -1,0 +1,18 @@
+{
+  "questionEn": "How does “bases (hydroxides)” differ in meaning - choose the correct description?",
+  "questionUz": "\"Asoslar (gidroksidlar)\" qanday ma'noda farq qiladi - to'g'ri tavsifni tanlang?",
+  "choicesEn": [
+    "a group of complex substances whose molecule contains metal atoms and one or more hydroxyl groups (OH)",
+    "a group of complex substances whose molecules contain one or more metal atoms.",
+    "H₂O (two hydrogen atoms and one oxygen atom)",
+    "The interaction of an acid with a base to form salt and water"
+  ],
+  "choicesUz": [
+    "Molekulasida metall atomlari va bir yoki bir nechta gidroksil guruhlari (OH) bo'lgan murakkab moddalar guruhi",
+    "molekulalarida bir yoki bir nechta metall atomlari bo'lgan murakkab moddalar guruhi.",
+    "H₂O (ikki vodorod atomi va bitta kislorod atomi)",
+    "Tuz va suv hosil qilish uchun kislotaning asos bilan o'zaro ta'siri"
+  ],
+  "explanationEn": "Bases (hydroxides) are a group of complex substances whose molecules contain metal atoms and one or more hydroxyl groups (OH).",
+  "explanationUz": "Asoslar (gidroksidlar) - molekulalarida metall atomlari va bir yoki bir nechta gidroksil guruhlari (OH) bo'lgan murakkab moddalar guruhi."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is approximately the volume fraction of oxygen in air?",
+  "questionUz": "Havodagi kislorodning taxminan hajm ulushi qancha?",
+  "choicesEn": [
+    "About 21% by volume",
+    "About 78% by volume",
+    "About 50% by volume",
+    "About 1% by volume"
+  ],
+  "choicesUz": [
+    "Hajmi bo'yicha taxminan 21%",
+    "Hajmi bo'yicha taxminan 78%",
+    "Hajmi bo'yicha taxminan 50%",
+    "Hajmi bo'yicha taxminan 1%"
+  ],
+  "explanationEn": "Oxygen in the air is ≈ 21% by volume.",
+  "explanationUz": "Havodagi kislorod hajmining ≈ 21% ni tashkil qiladi."
+}

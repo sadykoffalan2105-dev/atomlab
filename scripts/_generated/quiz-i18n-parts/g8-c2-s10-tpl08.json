@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Long periods”: Atomic number is...",
+  "questionUz": "§ “Uzoq davrlar” bandiga ko‘ra: Atom raqami...",
+  "choicesEn": [
+    "Number of neutrons",
+    "Number of protons in the nucleus",
+    "Valence",
+    "Mass number"
+  ],
+  "choicesUz": [
+    "Neytronlar soni",
+    "Yadrodagi protonlar soni",
+    "Valentlik",
+    "Massa raqami"
+  ],
+  "explanationEn": "Number of protons in the nucleus",
+  "explanationUz": "Yadrodagi protonlar soni"
+}

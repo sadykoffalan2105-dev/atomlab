@@ -1,0 +1,18 @@
+{
+  "questionEn": "Select the statement that is consistent with your 7th grade chemistry course?",
+  "questionUz": "7-sinf kimyo kursingizga mos keladigan gapni tanlang?",
+  "choicesEn": [
+    "Amount of substance containing 6.02·10²³ particles",
+    "Unit of length",
+    "Only mass in kilograms",
+    "Gas pressure"
+  ],
+  "choicesUz": [
+    "6,02·10²³ zarrachalarni o'z ichiga olgan moddaning miqdori",
+    "Uzunlik birligi",
+    "Faqat kilogrammdagi massa",
+    "Gaz bosimi"
+  ],
+  "explanationEn": "1 mole contains the Avogadro number of particles ≈ 6.02·10²³.",
+  "explanationUz": "1 mol Avogadro zarrachalar sonini ≈ 6,02·10²³ o'z ichiga oladi."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "Type of atoms with the same nuclear charge (number of protons)",
+    "Any mixture of substances",
+    "Only a water molecule",
+    "Any item"
+  ],
+  "choicesUz": [
+    "Yadro zaryadi bir xil bo'lgan atomlar turi (protonlar soni)",
+    "Har qanday moddalar aralashmasi",
+    "Faqat suv molekulasi",
+    "Har qanday element"
+  ],
+  "explanationEn": "Element = atoms with the same number of protons Z.",
+  "explanationUz": "Element = Z protonlari soni bir xil bo'lgan atomlar."
+}

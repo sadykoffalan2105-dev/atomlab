@@ -1,0 +1,18 @@
+{
+  "questionEn": "Burning coal produces CO₂ and other products. Ecological conclusion?",
+  "questionUz": "Ko'mirni yoqish CO₂ va boshqa mahsulotlarni ishlab chiqaradi. Ekologik xulosa?",
+  "choicesEn": [
+    "Rising emissions affect the atmosphere and climate",
+    "Coal does not affect the air",
+    "CO₂ disappears completely",
+    "Coal combustion is a physical phenomenon"
+  ],
+  "choicesUz": [
+    "Ko'tarilgan chiqindilar atmosfera va iqlimga ta'sir qiladi",
+    "Ko'mir havoga ta'sir qilmaydi",
+    "CO₂ butunlay yo'qoladi",
+    "Ko'mirning yonishi fizik hodisadir"
+  ],
+  "explanationEn": "",
+  "explanationUz": ""
+}

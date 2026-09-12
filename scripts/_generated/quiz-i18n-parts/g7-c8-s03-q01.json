@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which definition best describes \"the environmental aspects of mining are associated with\"?",
+  "questionUz": "Qaysi ta'rif \"Konchilikning ekologik jihatlari bilan bog'liq\" ni eng yaxshi ta'riflaydi?",
+  "choicesEn": [
+    "Impact on nature during mining",
+    "Only the name of the mineral",
+    "Only the color of the ore",
+    "Melting point only without medium"
+  ],
+  "choicesUz": [
+    "Kon qazish jarayonida tabiatga ta'siri",
+    "Faqat mineralning nomi",
+    "Faqat rudaning rangi",
+    "Erish nuqtasi faqat vositasiz"
+  ],
+  "explanationEn": "Mining affects soil, water and air.",
+  "explanationUz": "Konchilik tuproq, suv va havoga ta'sir qiladi."
+}

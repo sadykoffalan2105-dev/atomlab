@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately distinguishes “hypothesis” from similar ideas?",
+  "questionUz": "Qaysi formula \"gipoteza\" ni o'xshash g'oyalardan aniqroq ajratib turadi?",
+  "choicesEn": [
+    "A hypothesis is an approximate explanation of an observed scientific law.",
+    "a small positively charged particle located in the atomic nucleus",
+    "a small negatively charged particle found outside the nucleus of an atom",
+    "Electrically neutral particle consisting of a nucleus and electrons"
+  ],
+  "choicesUz": [
+    "Gipoteza - kuzatilgan ilmiy qonunning taxminiy izohidir.",
+    "atom yadrosida joylashgan kichik musbat zaryadlangan zarracha",
+    "atom yadrosidan tashqarida joylashgan kichik manfiy zaryadlangan zarracha",
+    "Yadro va elektronlardan tashkil topgan elektr neytral zarracha"
+  ],
+  "explanationEn": "A hypothesis is an approximate explanation of an observed scientific law.",
+  "explanationUz": "Gipoteza - kuzatilgan ilmiy qonunning taxminiy izohidir."
+}

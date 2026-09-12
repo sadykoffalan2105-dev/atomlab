@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Activity series of metals”: Heterogeneous alloys are...",
+  "questionUz": "§ “Metallarning faollik qatori” ga muvofiq: Geterogen qotishmalar...",
+  "choicesEn": [
+    "alloys consisting of metals with different values of atom radii, in nodes... (according to the textbook)",
+    "alloys consisting of metals with different values of atomic radii, in the nodes of the crystalline...",
+    "Muruntau, Adzhibugut, Bulutkan, Balkantau, Aristantau, Torboi and other places (according to the textbook) - incorrect",
+    "alloys formed from metals with similar atomic radii at the nodes of the crystalline..."
+  ],
+  "choicesUz": [
+    "atom radiuslarining turli qiymatlariga ega bo'lgan metallardan tashkil topgan qotishmalar, tugunlarda ... (darslik bo'yicha)",
+    "atom radiuslarining turli qiymatlariga ega bo'lgan metallardan tashkil topgan qotishmalar, kristall ... tugunlarida.",
+    "Muruntov, Adjibugut, Bulutkan, Balkantau, Aristantau, Torboy va boshqa joylar (darslik bo'yicha) - noto'g'ri",
+    "kristall tugunlarida atom radiusi o'xshash bo'lgan metallardan hosil bo'lgan qotishmalar ..."
+  ],
+  "explanationEn": "Heterogeneous alloys are alloys consisting of metals with different values ​​of atomic radii, in the crystal lattice sites of which atoms cannot exchange places (Sn-Al, Zn-Al)",
+  "explanationUz": "Geterogen qotishmalar - atom radiuslarining turli qiymatlariga ega bo'lgan metallardan tashkil topgan, kristall panjara joylarida atomlar o'rnini almashtira olmaydigan qotishmalar (Sn-Al, Zn-Al)"
+}

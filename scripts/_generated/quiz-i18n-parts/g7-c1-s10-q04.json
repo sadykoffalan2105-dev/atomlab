@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which statement about “of the following are pure substances” is correct?",
+  "questionUz": "“Quyidagilardan toza moddalar” haqidagi qaysi fikr to‘g‘ri?",
+  "choicesEn": [
+    "Nitrogen, oxygen, sugar, iron",
+    "Sea water, air, milk",
+    "Granite, jam",
+    "Blends only"
+  ],
+  "choicesUz": [
+    "Azot, kislorod, shakar, temir",
+    "Dengiz suvi, havo, sut",
+    "Granit, murabbo",
+    "Faqat aralashmalar"
+  ],
+  "explanationEn": "Pure: nitrogen, oxygen, sugar, iron; the rest are mixtures.",
+  "explanationUz": "Sof: azot, kislorod, shakar, temir; qolganlari aralashmalardir."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "Select the statement that is consistent with your 7th grade chemistry course?",
+  "questionUz": "7-sinf kimyo kursingizga mos keladigan gapni tanlang?",
+  "choicesEn": [
+    "Combustion of substances, rusting of iron, darkening of peeled potatoes",
+    "Color and smell of water",
+    "Ice melting",
+    "Dissolving sugar in water"
+  ],
+  "choicesUz": [
+    "Moddalarning yonishi, temirning zanglashi, tozalangan kartoshkaning qorayishi",
+    "Suvning rangi va hidi",
+    "Muz erishi",
+    "Shakarni suvda eritish"
+  ],
+  "explanationEn": "Examples: burning, rusting, darkening of potatoes.",
+  "explanationUz": "Misollar: kartoshkaning yonishi, zanglashi, qorayishi."
+}

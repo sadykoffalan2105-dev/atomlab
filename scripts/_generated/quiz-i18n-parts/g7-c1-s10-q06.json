@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option reflects a real property or phenomenon from the paragraph?",
+  "questionUz": "Qaysi variant paragrafdagi ko'chmas mulk yoki hodisani aks ettiradi?",
+  "choicesEn": [
+    "May cause burns or injury from splashes and fumes",
+    "The reaction will stop",
+    "The color of the tripod will change",
+    "Product yield will increase"
+  ],
+  "choicesUz": [
+    "Chayqalishlar va tutunlardan kuyish yoki shikastlanishga olib kelishi mumkin",
+    "Reaktsiya to'xtaydi",
+    "Tripodning rangi o'zgaradi",
+    "Mahsulot hosildorligi oshadi"
+  ],
+  "explanationEn": "Safety rule: danger of splashes and vapors.",
+  "explanationUz": "Xavfsizlik qoidasi: chayqalish va bug'lanish xavfi."
+}

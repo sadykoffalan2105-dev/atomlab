@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option reflects a real property or phenomenon from the paragraph?",
+  "questionUz": "Qaysi variant paragrafdagi ko'chmas mulk yoki hodisani aks ettiradi?",
+  "choicesEn": [
+    "the number of atoms of an element in a substance, expressed in the formula",
+    "is an important quantitative characteristic of an element",
+    "this is a representation of the composition of a substance using chemical symbols and, if necessary, indices",
+    "The ability of an atom to form a certain number of chemical bonds"
+  ],
+  "choicesUz": [
+    "formulada ifodalangan moddadagi element atomlari soni",
+    "elementning muhim miqdoriy xarakteristikasi hisoblanadi",
+    "bu kimyoviy belgilar va agar kerak bo'lsa, indekslar yordamida moddaning tarkibini ifodalash",
+    "Atomning ma'lum miqdordagi kimyoviy bog'lanishlar hosil qilish qobiliyati"
+  ],
+  "explanationEn": "An index is the number of atoms of an element in a substance, expressed in a formula.",
+  "explanationUz": "Indeks - formulada ifodalangan moddadagi element atomlarining soni."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Corrosion of metals”: Electrochemical corrosion is...",
+  "questionUz": "§ \"Metallarning korroziyasi\" ga ko'ra: Elektrokimyoviy korroziya - bu...",
+  "choicesEn": [
+    "destruction of metal in direct contact with other metals, electrolyte and water",
+    "special substances, when small quantities are added to a corrosive environment (10 6–...",
+    "a reduction process that occurs when an electric current is passed through a solution or...",
+    "destruction of metal resulting from the interaction of the metal with an oxidizing agent from the external environment"
+  ],
+  "choicesUz": [
+    "boshqa metallar, elektrolitlar va suv bilan bevosita aloqada bo'lgan metallni yo'q qilish",
+    "maxsus moddalar, korroziy muhitga oz miqdorda qo'shilganda (10 6-...",
+    "eritma yoki... orqali elektr toki o'tganda sodir bo'ladigan kamaytirish jarayoni.",
+    "metallning tashqi muhitdan oksidlovchi vosita bilan o'zaro ta'siri natijasida metallni yo'q qilish"
+  ],
+  "explanationEn": "Electrochemical corrosion – destruction of metal in direct contact with other metals, electrolyte and water",
+  "explanationUz": "Elektrokimyoviy korroziya - boshqa metallar, elektrolitlar va suv bilan bevosita aloqada bo'lgan metallni yo'q qilish"
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "What characteristic refers to the concept of “valence”?",
+  "questionUz": "\"Valentlik\" tushunchasiga qanday xususiyat kiradi?",
+  "choicesEn": [
+    "The ability of an atom to form a certain number of chemical bonds",
+    "Atomic mass in grams",
+    "Substance color",
+    "Boiling point"
+  ],
+  "choicesUz": [
+    "Atomning ma'lum miqdordagi kimyoviy bog'lanishlar hosil qilish qobiliyati",
+    "Atom massasi grammda",
+    "Moddaning rangi",
+    "Qaynash nuqtasi"
+  ],
+  "explanationEn": "Valency shows how many bonds an atom can form.",
+  "explanationUz": "Valentlik atomning qancha bog'lanishi mumkinligini ko'rsatadi."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is the rationale for the topic “Isotopes. Isobars. Isotones\" chemically correct?",
+  "questionUz": "Kimyoviy jihatdan to‘g‘ri “Izotoplar. Izobarlar. Izotonlar” mavzusining mantiqiy asosi nima?",
+  "choicesEn": [
+    "Atoms of different elements with the same number of neutrons",
+    "Atoms of the same element with the same Z and N",
+    "Only noble gases",
+    "Mixtures of oxygen and nitrogen"
+  ],
+  "choicesUz": [
+    "Neytronlar soni bir xil bo'lgan turli elementlarning atomlari",
+    "Xuddi shu element atomlari bir xil Z va N",
+    "Faqat asil gazlar",
+    "Kislorod va azot aralashmalari"
+  ],
+  "explanationEn": "Isotones: same N, different Z.",
+  "explanationUz": "Izotonlar: bir xil N, turli Z."
+}

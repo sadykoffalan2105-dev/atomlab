@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option reflects a real property or phenomenon from the paragraph?",
+  "questionUz": "Qaysi variant paragrafdagi ko'chmas mulk yoki hodisani aks ettiradi?",
+  "choicesEn": [
+    "The term atom, the ancient Greek “atomos”, means “indivisible.”",
+    "that is, it means “indivisible”",
+    "History of the development of knowledge about structure",
+    "Electrically neutral particle consisting of a nucleus and electrons"
+  ],
+  "choicesUz": [
+    "Qadimgi yunoncha \"atomos\" atamasi \"bo'linmas\" degan ma'noni anglatadi.",
+    "ya'ni \"bo'linmas\" degan ma'noni anglatadi.",
+    "Tuzilish haqidagi bilimlarning rivojlanish tarixi",
+    "Yadro va elektronlardan tashkil topgan elektr neytral zarracha"
+  ],
+  "explanationEn": "The term atom, the ancient Greek “atomos”, means “indivisible.”",
+  "explanationUz": "Qadimgi yunoncha \"atomos\" atamasi \"bo'linmas\" degan ma'noni anglatadi."
+}

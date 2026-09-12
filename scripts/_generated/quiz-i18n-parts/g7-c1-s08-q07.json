@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option correctly reveals the meaning of “of the listed physical phenomena”?",
+  "questionUz": "Qaysi variantda “Ro‘yxatga olingan jismoniy hodisalar” ma’nosi to‘g‘ri ochib berilgan?",
+  "choicesEn": [
+    "Dissolving sugar in water",
+    "Burning candle",
+    "Leaf rotting",
+    "Tarnishing of silver"
+  ],
+  "choicesUz": [
+    "Shakarni suvda eritish",
+    "Yonayotgan sham",
+    "Barglarning chirishi",
+    "Kumushning xiralashishi"
+  ],
+  "explanationEn": "Sugar dissolution is a physical phenomenon.",
+  "explanationUz": "Shakarning erishi fizik hodisadir."
+}

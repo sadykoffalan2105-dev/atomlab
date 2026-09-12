@@ -1,0 +1,18 @@
+{
+  "questionEn": "Choose the only correct option about “Vitamins”?",
+  "questionUz": "\"Vitaminlar\" haqida yagona to'g'ri variantni tanlang?",
+  "choicesEn": [
+    "Vitamins affect the physical and emotional state of a person.",
+    "Organic substances needed by the body in small quantities",
+    "Elements necessary for the life of organisms",
+    "Organic substances consisting of carbon, hydrogen and oxygen (sugar, etc.)"
+  ],
+  "choicesUz": [
+    "Vitaminlar insonning jismoniy va hissiy holatiga ta'sir qiladi.",
+    "Organik moddalar organizmga oz miqdorda kerak",
+    "Organizmlar hayoti uchun zarur bo'lgan elementlar",
+    "Uglerod, vodorod va kisloroddan (shakar va boshqalar) tashkil topgan organik moddalar."
+  ],
+  "explanationEn": "Vitamins affect the physical and emotional state of a person.",
+  "explanationUz": "Vitaminlar insonning jismoniy va hissiy holatiga ta'sir qiladi."
+}

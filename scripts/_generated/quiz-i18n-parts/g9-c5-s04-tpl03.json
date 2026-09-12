@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Repetition”: Environmental monitoring -...",
+  "questionUz": "§ “Takrorlash” bandiga muvofiq: Atrof-muhit monitoringi -...",
+  "choicesEn": [
+    "Ignoring Outliers",
+    "Burning fuel only",
+    "There is no such information in this section",
+    "Pollution control"
+  ],
+  "choicesUz": [
+    "Cheklanganlarga e'tibor bermaslik",
+    "Faqat yoqilg'ining yonishi",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Ifloslanishni nazorat qilish"
+  ],
+  "explanationEn": "Pollution control",
+  "explanationUz": "Ifloslanishni nazorat qilish"
+}

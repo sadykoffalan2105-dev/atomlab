@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which conclusion on the topic “Practical Lesson” can be considered correct?",
+  "questionUz": "“Amaliy dars” mavzusidagi qaysi xulosani to‘g‘ri deb hisoblash mumkin?",
+  "choicesEn": [
+    "Removing solvent and vapors when boiling solutions of non-volatile substances",
+    "Passing through the filter",
+    "Adding water to salt",
+    "Heating without changing the state of aggregation"
+  ],
+  "choicesUz": [
+    "Uchuvchi bo'lmagan moddalarning eritmalarini qaynatishda erituvchi va bug'larni olib tashlash",
+    "Filtrdan o'tish",
+    "Tuzga suv qo'shish",
+    "Agregat holatini o'zgartirmasdan isitish"
+  ],
+  "explanationEn": "Evaporation is the removal of solvent by boiling.",
+  "explanationUz": "Bug'lanish - erituvchini qaynatish orqali olib tashlash."
+}

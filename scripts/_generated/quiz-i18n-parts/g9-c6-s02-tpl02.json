@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Reaction rate, catalysis and...”: Chemical equilibrium is a state when...",
+  "questionUz": "§ “Reaksiya tezligi, kataliz va...” bandiga ko‘ra: Kimyoviy muvozanat - bu...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "This is how another phenomenon or substance is described",
+    "The rates of forward and reverse reactions are equal",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Yana bir hodisa yoki modda shunday tasvirlangan",
+    "To'g'ri va teskari reaktsiyalarning tezligi tengdir",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "The rates of forward and reverse reactions are equal",
+  "explanationUz": "To'g'ri va teskari reaktsiyalarning tezligi tengdir"
+}

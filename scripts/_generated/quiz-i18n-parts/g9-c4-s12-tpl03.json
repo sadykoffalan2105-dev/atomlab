@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Collection of problems”: Product output η =…",
+  "questionUz": "§ \"Muammolar to'plami\" bo'yicha: Mahsulot ishlab chiqarish ē =…",
+  "choicesEn": [
+    "There is no such information in this section",
+    "incorrect wording according to the textbook",
+    "m(practical) / m(theoretical) 100%",
+    "m(theoretical) / m(practical)"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "m (amaliy) / m (nazariy) 100%",
+    "m (nazariy) / m (amaliy)"
+  ],
+  "explanationEn": "m(practical) / m(theoretical) 100%",
+  "explanationUz": "m (amaliy) / m (nazariy) 100%"
+}

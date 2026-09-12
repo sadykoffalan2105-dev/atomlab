@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Product Yield”: Excess reagent is the one that...",
+  "questionUz": "§ \"Mahsulot rentabelligi\" ga ko'ra: Ortiqcha reaktiv - bu ...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "incorrect wording according to the textbook",
+    "Exactly stoichiometric",
+    "More than what is needed according to the equation"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Aynan stoxiometrik",
+    "Tenglamaga ko'ra kerak bo'lganidan ko'proq"
+  ],
+  "explanationEn": "More than what is needed according to the equation",
+  "explanationUz": "Tenglamaga ko'ra kerak bo'lganidan ko'proq"
+}

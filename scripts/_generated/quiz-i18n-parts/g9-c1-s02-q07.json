@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Chemical properties of metals”: Ionic compounds under normal conditions are...",
+  "questionUz": "§ “Metallarning kimyoviy xossalari” bo‘yicha: Oddiy sharoitda ionli birikmalar...",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "solids",
+    "There is no such information in this section",
+    "but by influence"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "qattiq moddalar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "lekin ta'sir bilan"
+  ],
+  "explanationEn": "Ionic compounds are solids under normal conditions",
+  "explanationUz": "Ion birikmalari normal sharoitda qattiq moddalardir"
+}

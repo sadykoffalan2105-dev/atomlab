@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which of the following corresponds to the material in the paragraph “Practical lesson”?",
+  "questionUz": "Quyidagilardan qaysi biri “Amaliy dars” bandidagi materialga mos keladi?",
+  "choicesEn": [
+    "Only with a burette, not with a chemical pipette",
+    "Any pipette",
+    "By eye",
+    "Measuring cylinder without measurements"
+  ],
+  "choicesUz": [
+    "Kimyoviy pipetka bilan emas, faqat byuretka bilan",
+    "Har qanday pipetka",
+    "Ko'z bilan",
+    "O'lchovsiz o'lchash tsilindri"
+  ],
+  "explanationEn": "Rule 13: concentrated acids and alkalis - only with a burette.",
+  "explanationUz": "13-qoida: konsentrlangan kislotalar va ishqorlar - faqat byuretka bilan."
+}

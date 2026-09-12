@@ -1,0 +1,18 @@
+{
+  "questionEn": "Find an answer that accurately reflects the content of the lesson?",
+  "questionUz": "Dars mazmunini to`g`ri aks ettiruvchi javobni toping?",
+  "choicesEn": [
+    "The process of separating substances from a liquid or gas using a filter pad",
+    "Separation by boiling point",
+    "Separation of metal with a magnet",
+    "Dissolution in water"
+  ],
+  "choicesUz": [
+    "Filtr paneli yordamida moddalarni suyuqlik yoki gazdan ajratish jarayoni",
+    "Qaynoq nuqtasi bo'yicha ajratish",
+    "Metallni magnit bilan ajratish",
+    "Suvda erishi"
+  ],
+  "explanationEn": "Filtration - through a gasket that traps solid particles.",
+  "explanationUz": "Filtrlash - qattiq zarralarni ushlab turuvchi qistirma orqali."
+}

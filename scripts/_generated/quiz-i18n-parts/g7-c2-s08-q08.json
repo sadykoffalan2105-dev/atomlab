@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which rationale on the topic “Simple and complex substances” is chemically correct?",
+  "questionUz": "“Oddiy va murakkab moddalar” mavzusidagi qaysi asos kimyoviy jihatdan to‘g‘ri?",
+  "choicesEn": [
+    "changes in the shape of an element that differs from each other in physical and chemical properties",
+    "substances consisting of atoms of the same element",
+    "substances consisting of atoms of various elements",
+    "the phenomenon of the formation of several simple substances from one chemical element"
+  ],
+  "choicesUz": [
+    "fizik va kimyoviy xossalari bilan bir-biridan farq qiluvchi element shaklining o'zgarishi",
+    "bir xil element atomlaridan tashkil topgan moddalar",
+    "turli elementlarning atomlaridan tashkil topgan moddalar",
+    "bir kimyoviy elementdan bir nechta oddiy moddalar hosil bo'lish hodisasi"
+  ],
+  "explanationEn": "Allotropic modifications are changes in the shape of an element that differs from each other in physical and chemical properties.",
+  "explanationUz": "Allotropik modifikatsiyalar - fizik va kimyoviy xossalari bilan bir-biridan farq qiladigan element shaklidagi o'zgarishlar."
+}

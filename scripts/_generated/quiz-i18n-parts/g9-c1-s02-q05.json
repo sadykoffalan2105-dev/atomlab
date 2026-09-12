@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Chemical properties of metals”: Bond length is...",
+  "questionUz": "§ “Metallarning kimyoviy xossalari” bo‘yicha: Bog‘lanish uzunligi...",
+  "choicesEn": [
+    "This can only be said about another class of connections (according to the textbook)",
+    "the statement refers to another paragraph in the textbook (from the textbook)",
+    "equilibrium state of the distance between atomic nuclei (measured in nm)",
+    "the amount of energy required to separate an electron from an atom"
+  ],
+  "choicesUz": [
+    "Buni faqat boshqa ulanish sinfi haqida aytish mumkin (darslikka muvofiq)",
+    "bayonot darslikdagi boshqa paragrafga ishora qiladi (darslikdan)",
+    "atom yadrolari orasidagi masofaning muvozanat holati (nm bilan o'lchanadi)",
+    "elektronni atomdan ajratish uchun zarur bo'lgan energiya miqdori"
+  ],
+  "explanationEn": "Bond length is the equilibrium state of the distance between atomic nuclei (measured in nm)",
+  "explanationUz": "Bog' uzunligi - atom yadrolari orasidagi masofaning muvozanat holati (nm bilan o'lchanadi)"
+}

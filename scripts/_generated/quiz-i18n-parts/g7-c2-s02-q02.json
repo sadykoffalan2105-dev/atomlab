@@ -1,0 +1,18 @@
+{
+  "questionEn": "What conclusion on the topic “The Atom and its Structure” can be considered correct?",
+  "questionUz": "\"Atom va uning tuzilishi\" mavzusi bo'yicha qanday xulosani to'g'ri deb hisoblash mumkin?",
+  "choicesEn": [
+    "Positively charged particle of the nucleus of an atom",
+    "Negative shell particle",
+    "Neutral nucleus particle",
+    "oxygen molecule"
+  ],
+  "choicesUz": [
+    "Atom yadrosining musbat zaryadlangan zarrasi",
+    "Salbiy qobiq zarrasi",
+    "Neytral yadro zarrasi",
+    "kislorod molekulasi"
+  ],
+  "explanationEn": "Proton p⁺ is part of the nucleus, charge +1.",
+  "explanationUz": "Proton p⁺ yadroning bir qismi, zaryad +1."
+}

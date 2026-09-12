@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which rationale on the topic “Practical Lesson” is chemically correct?",
+  "questionUz": "“Amaliy dars” mavzusining qaysi mantiqiy asosi kimyoviy jihatdan to‘g‘ri?",
+  "choicesEn": [
+    "Filtrate",
+    "sediment",
+    "A mixture",
+    "Distillate"
+  ],
+  "choicesUz": [
+    "Filtrlash",
+    "cho'kindi",
+    "Aralash",
+    "Distillat"
+  ],
+  "explanationEn": "The solution after the filter is the filtrate.",
+  "explanationUz": "Filtrdan keyingi eritma filtrat hisoblanadi."
+}

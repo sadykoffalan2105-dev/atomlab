@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact on the topic “Practical Lesson” is formulated without error?",
+  "questionUz": "“Amaliy dars” mavzusida qanday fakt xatosiz tuzilgan?",
+  "choicesEn": [
+    "Study of the event; testing under different conditions is a scientific reconstruction",
+    "Only record results without action",
+    "Rules for working in the office",
+    "Observation without experiment"
+  ],
+  "choicesUz": [
+    "Hodisani o'rganish; turli sharoitlarda sinovdan o'tkazish ilmiy qayta qurishdir",
+    "Natijalarni faqat harakatsiz yozib oling",
+    "Ofisda ishlash qoidalari",
+    "Tajribasiz kuzatish"
+  ],
+  "explanationEn": "Experience is the study of an event under different conditions.",
+  "explanationUz": "Tajriba - bu hodisani turli sharoitlarda o'rganish."
+}

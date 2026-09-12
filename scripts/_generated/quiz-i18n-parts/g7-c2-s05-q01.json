@@ -1,0 +1,18 @@
+{
+  "questionEn": "How to correctly understand the term “isotopes”?",
+  "questionUz": "\"Izotoplar\" atamasini qanday to'g'ri tushunish mumkin?",
+  "choicesEn": [
+    "Atoms of the same element with the same number of protons but different numbers of neutrons",
+    "Atoms of different elements with the same number of neutrons",
+    "Molecules with the same mass excluding nuclei",
+    "Only ions with charge +1"
+  ],
+  "choicesUz": [
+    "Protonlar soni bir xil, ammo neytronlari har xil bo'lgan bir xil element atomlari",
+    "Neytronlar soni bir xil bo'lgan turli elementlarning atomlari",
+    "Yadrolarni hisobga olmaganda bir xil massaga ega molekulalar",
+    "Faqat +1 zaryadli ionlar"
+  ],
+  "explanationEn": "Isotopes: same Z, different N (for example, ¹H and ²H).",
+  "explanationUz": "Izotoplar: bir xil Z, turli N (masalan, ¹H va ²H)."
+}

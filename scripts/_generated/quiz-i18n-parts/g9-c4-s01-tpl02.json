@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Density and mole”: Mass fraction of a substance in solution ω =...",
+  "questionUz": "§ “Zichlik va mol” bo‘yicha: Eritmadagi moddaning massa ulushi ō =...",
+  "choicesEn": [
+    "m(water) / m(solution)",
+    "m(substance) / m(solution) 100%",
+    "There is no such information in this section",
+    "incorrect wording according to the textbook"
+  ],
+  "choicesUz": [
+    "m (suv) / m (eritma)",
+    "m (modda) / m (eritma) 100%",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar"
+  ],
+  "explanationEn": "m(substance) / m(solution) 100%",
+  "explanationUz": "m (modda) / m (eritma) 100%"
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "What usually accompanies the “neutralization reaction”?",
+  "questionUz": "Odatda \"neytralizatsiya reaktsiyasi\" nima bilan birga keladi?",
+  "choicesEn": [
+    "The interaction of an acid with a base to form salt and water",
+    "Carbon burning only",
+    "Sand filtration",
+    "Sublimation of iodine without reaction"
+  ],
+  "choicesUz": [
+    "Tuz va suv hosil qilish uchun kislotaning asos bilan o'zaro ta'siri",
+    "Faqat uglerod yonishi",
+    "Qum filtrlash",
+    "Yodning reaktsiyasiz sublimatsiyasi"
+  ],
+  "explanationEn": "Acid + base → salt + water (H⁺ + OH⁻ → H₂O).",
+  "explanationUz": "Kislota + asos → tuz + suv (H⁺ + OH⁻ → H₂O)."
+}

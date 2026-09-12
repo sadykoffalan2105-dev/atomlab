@@ -1,0 +1,18 @@
+{
+  "questionEn": "What characteristic refers to the concept of “allotropy”?",
+  "questionUz": "\"Allotropiya\" tushunchasiga qanday xususiyat kiradi?",
+  "choicesEn": [
+    "the phenomenon of the formation of several simple substances from one chemical element",
+    "substances consisting of atoms of the same element",
+    "substances consisting of atoms of various elements",
+    "changes in the shape of an element that differs from each other in physical and chemical properties"
+  ],
+  "choicesUz": [
+    "bir kimyoviy elementdan bir nechta oddiy moddalar hosil bo'lish hodisasi",
+    "bir xil element atomlaridan tashkil topgan moddalar",
+    "turli elementlarning atomlaridan tashkil topgan moddalar",
+    "fizik va kimyoviy xossalari bilan bir-biridan farq qiluvchi element shaklining o'zgarishi"
+  ],
+  "explanationEn": "Allotropy is the phenomenon of the formation of several simple substances from one chemical element.",
+  "explanationUz": "Allotropiya - bir kimyoviy elementdan bir nechta oddiy moddalar hosil bo'lish hodisasi."
+}

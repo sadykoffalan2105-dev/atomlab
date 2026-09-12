@@ -1,0 +1,18 @@
+{
+  "questionEn": "What should you expect during a “burning”?",
+  "questionUz": "\"Yonish\" paytida nimani kutish kerak?",
+  "choicesEn": [
+    "A chemical reaction of a substance with oxygen, accompanied by the release of heat and light",
+    "Only a change in the state of aggregation",
+    "Mechanical grinding",
+    "Dissolving salt in water without reaction"
+  ],
+  "choicesUz": [
+    "Moddaning kislorod bilan kimyoviy reaktsiyasi, issiqlik va yorug'lik chiqishi bilan birga",
+    "Faqat yig'ilish holatidagi o'zgarish",
+    "Mexanik silliqlash",
+    "Reaksiyasiz tuzni suvda eritish"
+  ],
+  "explanationEn": "Combustion is oxidation with heat and light.",
+  "explanationUz": "Yonish issiqlik va yorug'lik bilan oksidlanishdir."
+}

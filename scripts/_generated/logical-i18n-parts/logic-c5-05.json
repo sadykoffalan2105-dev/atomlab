@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why can't hydrochloric acid be produced by the action of H₂SO₄ on NaCl in an open test tube?",
+  "questionUz": "Nima uchun ochiq probirkada NaCl ga H₂SO₄ ta'sirida xlorid kislota hosil bo'lmaydi?",
+  "choicesEn": [
+    "HCl is a volatile acid that leaves the mixture, shifting the equilibrium",
+    "NaCl does not react",
+    "Only water is formed",
+    "Need oxygen"
+  ],
+  "choicesUz": [
+    "HCl uchuvchi kislota bo'lib, aralashmani tark etadi va muvozanatni o'zgartiradi",
+    "NaCl reaksiyaga kirishmaydi",
+    "Faqat suv hosil bo'ladi",
+    "Kislorod kerak"
+  ],
+  "explanationEn": "",
+  "explanationUz": ""
+}

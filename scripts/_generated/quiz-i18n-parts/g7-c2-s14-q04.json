@@ -1,0 +1,18 @@
+{
+  "questionEn": "Choose the only correct option about “electron”?",
+  "questionUz": "\"Elektron\" haqida yagona to'g'ri variantni tanlang?",
+  "choicesEn": [
+    "Negatively charged electron shell particle",
+    "Nuclear particle with charge +1",
+    "Neutral nucleus particle",
+    "Water molecule"
+  ],
+  "choicesUz": [
+    "Manfiy zaryadlangan elektron qobiqli zarracha",
+    "Zaryadli yadro zarrasi +1",
+    "Neytral yadro zarrasi",
+    "Suv molekulasi"
+  ],
+  "explanationEn": "Electron e⁻ moves around the nucleus, charge −1.",
+  "explanationUz": "Elektron e⁻ yadro atrofida harakat qiladi, zaryad -1."
+}

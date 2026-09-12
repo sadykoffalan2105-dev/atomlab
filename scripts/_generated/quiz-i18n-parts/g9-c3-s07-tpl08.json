@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Production of metals”: During the electrolysis of an aqueous NaCl solution at the cathode...",
+  "questionUz": "§ \"Metallar ishlab chiqarish\" ga ko'ra: Katodda NaCl suvli eritmasini elektroliz qilish jarayonida...",
+  "choicesEn": [
+    "Always oxygen",
+    "Hydrogen is released",
+    "Always sodium",
+    "There is no such information in this section"
+  ],
+  "choicesUz": [
+    "Har doim kislorod",
+    "Vodorod ajralib chiqadi",
+    "Har doim natriy",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q"
+  ],
+  "explanationEn": "Hydrogen is released",
+  "explanationUz": "Vodorod ajralib chiqadi"
+}

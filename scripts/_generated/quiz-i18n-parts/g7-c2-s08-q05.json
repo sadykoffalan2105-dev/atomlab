@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is characteristic specifically of “simple substances”, and not of a related concept?",
+  "questionUz": "O'zaro bog'liq tushunchaga emas, balki \"oddiy moddalar\" ga nima xosdir?",
+  "choicesEn": [
+    "substances consisting of atoms of the same element",
+    "substances consisting of atoms of various elements",
+    "the phenomenon of the formation of several simple substances from one chemical element",
+    "changes in the shape of an element that differs from each other in physical and chemical properties"
+  ],
+  "choicesUz": [
+    "bir xil element atomlaridan tashkil topgan moddalar",
+    "turli elementlarning atomlaridan tashkil topgan moddalar",
+    "bir kimyoviy elementdan bir nechta oddiy moddalar hosil bo'lish hodisasi",
+    "fizik va kimyoviy xossalari bilan bir-biridan farq qiluvchi element shaklining o'zgarishi"
+  ],
+  "explanationEn": "Simple substances are substances consisting of atoms of the same element.",
+  "explanationUz": "Oddiy moddalar - bir xil element atomlaridan tashkil topgan moddalar."
+}

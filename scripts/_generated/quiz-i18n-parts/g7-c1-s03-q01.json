@@ -1,0 +1,18 @@
+{
+  "questionEn": "Among the answers, find the correct meaning of “observation”?",
+  "questionUz": "Javoblar orasida \"kuzatish\" so'zining to'g'ri ma'nosini toping?",
+  "choicesEn": [
+    "The process of focusing attention on specific objects",
+    "Studying an event under different conditions",
+    "Security Recommendations",
+    "Separation of mixtures"
+  ],
+  "choicesUz": [
+    "Diqqatni aniq ob'ektlarga qaratish jarayoni",
+    "Turli sharoitlarda hodisani o'rganish",
+    "Xavfsizlik bo'yicha tavsiyalar",
+    "Aralashmalarni ajratish"
+  ],
+  "explanationEn": "Observation - focusing attention on objects.",
+  "explanationUz": "Kuzatish - diqqatni ob'ektlarga qaratish."
+}

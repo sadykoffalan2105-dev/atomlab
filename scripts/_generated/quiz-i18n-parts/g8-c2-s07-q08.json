@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook: An atom is...",
+  "questionUz": "Darslik bo'yicha: Atom - bu...",
+  "choicesEn": [
+    "the smallest chemically indivisible particle of matter",
+    "This can only be said about another class of compounds",
+    "This is how another phenomenon or substance is described",
+    "the statement refers to another paragraph in the textbook"
+  ],
+  "choicesUz": [
+    "moddaning kimyoviy jihatdan boʻlinmaydigan eng kichik zarrasi",
+    "Buni faqat birikmalarning boshqa sinfi haqida aytish mumkin",
+    "Yana bir hodisa yoki modda shunday tasvirlangan",
+    "bayonot darslikdagi boshqa bandga ishora qiladi"
+  ],
+  "explanationEn": "An atom is the smallest chemically indivisible particle of matter.",
+  "explanationUz": "Atom moddaning kimyoviy jihatdan boʻlinmaydigan eng kichik zarrasidir."
+}

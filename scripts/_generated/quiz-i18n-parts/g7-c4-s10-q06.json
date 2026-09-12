@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is said here that is chemically correct?",
+  "questionUz": "Bu erda kimyoviy jihatdan to'g'ri aytilgan nima?",
+  "choicesEn": [
+    "Oxides are complex substances consisting of two elements, one of which is oxygen.",
+    "A complex substance of two elements, one of which is oxygen",
+    "Nitrogen (about 78%)",
+    "About 21% by volume"
+  ],
+  "choicesUz": [
+    "Oksidlar ikki elementdan tashkil topgan murakkab moddalar bo'lib, ulardan biri kisloroddir.",
+    "Ikki elementdan iborat murakkab modda, ulardan biri kislorod",
+    "Azot (taxminan 78%)",
+    "Hajmi bo'yicha taxminan 21%"
+  ],
+  "explanationEn": "Oxides are complex substances consisting of two elements, one of which is oxygen.",
+  "explanationUz": "Oksidlar ikki elementdan tashkil topgan murakkab moddalar bo'lib, ulardan biri kisloroddir."
+}

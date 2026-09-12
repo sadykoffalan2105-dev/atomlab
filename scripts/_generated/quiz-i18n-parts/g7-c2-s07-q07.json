@@ -1,0 +1,18 @@
+{
+  "questionEn": "Choose the correct formulation of the concept “chemical reaction (change)”?",
+  "questionUz": "\"Kimyoviy reaktsiya (o'zgarish)\" tushunchasining to'g'ri formulasini tanlang?",
+  "choicesEn": [
+    "this is a special type of atomic movement",
+    "particle consisting of a group of interconnected atoms",
+    "this is a value showing how many times the mass of a molecule of a substance is greater than 1/12 of the mass of an atom.",
+    "Electrically neutral particle consisting of a nucleus and electrons"
+  ],
+  "choicesUz": [
+    "bu atom harakatining maxsus turi",
+    "o'zaro bog'langan atomlar guruhidan tashkil topgan zarracha",
+    "bu moddaning molekulasining massasi atom massasining 1/12 qismidan necha marta katta ekanligini ko'rsatadigan qiymat.",
+    "Yadro va elektronlardan tashkil topgan elektr neytral zarracha"
+  ],
+  "explanationEn": "A chemical reaction (change) is a special type of atomic movement.",
+  "explanationUz": "Kimyoviy reaktsiya (o'zgarish) atom harakatining maxsus turidir."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "What did Ibn Sina consider impossible?",
+  "questionUz": "Ibn Sino nimani imkonsiz deb hisoblagan?",
+  "choicesEn": [
+    "Transformation of one metal into another",
+    "Making medicines from minerals",
+    "Studying the properties of water",
+    "Using scales in experiments"
+  ],
+  "choicesUz": [
+    "Bir metallning boshqasiga aylanishi",
+    "Minerallardan dori-darmonlar tayyorlash",
+    "Suvning xususiyatlarini o'rganish",
+    "Tajribalarda tarozidan foydalanish"
+  ],
+  "explanationEn": "Ibn Sina: You cannot turn one metal into another.",
+  "explanationUz": "Ibn Sino: Bir metallni boshqasiga aylantira olmaysiz."
+}

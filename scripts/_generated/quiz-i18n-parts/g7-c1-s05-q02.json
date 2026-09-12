@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which of the following corresponds to the material in the paragraph “Pure substances and mixtures”?",
+  "questionUz": "Quyidagilardan qaysi biri “Sof moddalar va aralashmalar” bandidagi materialga mos keladi?",
+  "choicesEn": [
+    "A substance that is separated by physical methods into pure substances",
+    "Substance with constant chemical composition",
+    "Liquid only",
+    "Element with one atom"
+  ],
+  "choicesUz": [
+    "Fizik usullar bilan toza moddalarga ajratiladigan modda",
+    "Doimiy kimyoviy tarkibga ega bo'lgan modda",
+    "Faqat suyuqlik",
+    "Bir atomli element"
+  ],
+  "explanationEn": "The mixture is separated by physical methods.",
+  "explanationUz": "Aralash fizik usullar bilan ajratiladi."
+}

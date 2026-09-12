@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is often released when an acid reacts with a metal?",
+  "questionUz": "Kislota metall bilan reaksiyaga kirishganda ko'pincha nima ajralib chiqadi?",
+  "choicesEn": [
+    "Hydrogen gas H₂",
+    "Air nitrogen only",
+    "Argon only",
+    "Helium only"
+  ],
+  "choicesUz": [
+    "Vodorod gazi H₂",
+    "Faqat havo azoti",
+    "Faqat argon",
+    "Faqat geliy"
+  ],
+  "explanationEn": "Many metals displace H₂ from acids.",
+  "explanationUz": "Ko'pgina metallar H₂-ni kislotalardan siqib chiqaradi."
+}

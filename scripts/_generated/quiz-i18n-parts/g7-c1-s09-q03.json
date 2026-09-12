@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion on the topic “Practical Lesson” based on?",
+  "questionUz": "“Amaliy dars” mavzusidagi to‘g‘ri xulosa qaysi faktga asoslangan?",
+  "choicesEn": [
+    "Destruction of iron in a humid environment",
+    "Physical evaporation",
+    "Melting metal",
+    "Dissolution in kerosene"
+  ],
+  "choicesUz": [
+    "Nam muhitda temirni yo'q qilish",
+    "Jismoniy bug'lanish",
+    "Metallni eritish",
+    "Kerosinda erishi"
+  ],
+  "explanationEn": "Rust is the destruction of iron in a humid environment.",
+  "explanationUz": "Zang - nam muhitda temirning yo'q qilinishi."
+}

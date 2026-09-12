@@ -1,0 +1,18 @@
+{
+  "questionEn": "What does an alcohol lamp consist of?",
+  "questionUz": "Spirtli chiroq nimadan iborat?",
+  "choicesEn": [
+    "Alcohol container, metal disc, wick and lid",
+    "Gas tube and mixer",
+    "Only ceramic ring",
+    "Funnels and filters"
+  ],
+  "choicesUz": [
+    "Spirtli ichimliklar uchun idish, metall disk, tayoq va qopqoq",
+    "Gaz trubkasi va mikser",
+    "Faqat seramika uzuk",
+    "Hunilar va filtrlar"
+  ],
+  "explanationEn": "Alcohol lamp: vessel, disk, wick, lid.",
+  "explanationUz": "Spirtli chiroq: idish, disk, tayoq, qopqoq."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which of the following corresponds to the material in the paragraph “Ozone and its application”?",
+  "questionUz": "Quyidagilardan qaysi biri “Ozon va uning qo‘llanilishi” bandidagi materialga mos keladi?",
+  "choicesEn": [
+    "Electrically neutral particle consisting of a nucleus and electrons",
+    "Only the nucleus without electrons",
+    "Charged molecule",
+    "Mixture of two gases"
+  ],
+  "choicesUz": [
+    "Yadro va elektronlardan tashkil topgan elektr neytral zarracha",
+    "Faqat elektronsiz yadro",
+    "Zaryadlangan molekula",
+    "Ikki gaz aralashmasi"
+  ],
+  "explanationEn": "An atom is electrically neutral: nucleus (+) and electrons (−).",
+  "explanationUz": "Atom elektr jihatdan neytraldir: yadro (+) va elektronlar (-)."
+}

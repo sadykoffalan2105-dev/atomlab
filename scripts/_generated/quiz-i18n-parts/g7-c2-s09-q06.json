@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is said here that is chemically correct?",
+  "questionUz": "Bu erda kimyoviy jihatdan to'g'ri aytilgan nima?",
+  "choicesEn": [
+    "is the amount of substance in moles",
+    "this is a value showing how many times the mass of a molecule of a substance is greater than 1/12 of the mass of an atom.",
+    "Amount of substance containing 6.02·10²³ particles",
+    "Electrically neutral particle consisting of a nucleus and electrons"
+  ],
+  "choicesUz": [
+    "moldagi moddaning miqdori",
+    "bu moddaning molekulasining massasi atom massasining 1/12 qismidan necha marta katta ekanligini ko'rsatadigan qiymat.",
+    "6,02·10²³ zarrachalarni o'z ichiga olgan moddaning miqdori",
+    "Yadro va elektronlardan tashkil topgan elektr neytral zarracha"
+  ],
+  "explanationEn": "The quantity of a substance is the amount of substance in moles.",
+  "explanationUz": "Moddaning miqdori - moldagi moddaning miqdori."
+}

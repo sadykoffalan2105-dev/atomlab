@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option reflects a real property or phenomenon from the paragraph?",
+  "questionUz": "Qaysi variant paragrafdagi ko'chmas mulk yoki hodisani aks ettiradi?",
+  "choicesEn": [
+    "Dry ice (carbon dioxide), iodine, naphthalene",
+    "Water and ice",
+    "Only iron",
+    "Only salt"
+  ],
+  "choicesUz": [
+    "Quruq muz (karbonat angidrid), yod, naftalin",
+    "Suv va muz",
+    "Faqat temir",
+    "Faqat tuz"
+  ],
+  "explanationEn": "Dry ice, iodine, naphthalene - sublimate.",
+  "explanationUz": "Quruq muz, yod, naftalin - sublimat."
+}

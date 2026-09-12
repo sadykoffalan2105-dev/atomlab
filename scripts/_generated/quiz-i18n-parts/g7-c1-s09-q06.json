@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option reflects a real property or phenomenon from the paragraph?",
+  "questionUz": "Qaysi variant paragrafdagi ko'chmas mulk yoki hodisani aks ettiradi?",
+  "choicesEn": [
+    "Dissolving the pigment base of the ink",
+    "Melting fabric",
+    "Magnetic separation",
+    "Gas filtration"
+  ],
+  "choicesUz": [
+    "Murakkabning pigment asosini eritish",
+    "Eriydigan mato",
+    "Magnit ajratish",
+    "Gaz filtrlash"
+  ],
+  "explanationEn": "The ink is removed by dissolving the pigment.",
+  "explanationUz": "Murakkab pigmentni eritish orqali chiqariladi."
+}

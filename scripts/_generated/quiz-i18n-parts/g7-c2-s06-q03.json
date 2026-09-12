@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which rationale on the topic “Chemical Formula” is chemically correct?",
+  "questionUz": "“Kimyoviy formula” mavzusidagi qaysi mantiq kimyoviy jihatdan to‘g‘ri?",
+  "choicesEn": [
+    "Positively charged particle of the nucleus of an atom",
+    "Negative shell particle",
+    "Neutral nucleus particle",
+    "oxygen molecule"
+  ],
+  "choicesUz": [
+    "Atom yadrosining musbat zaryadlangan zarrasi",
+    "Salbiy qobiq zarrasi",
+    "Neytral yadro zarrasi",
+    "kislorod molekulasi"
+  ],
+  "explanationEn": "Proton p⁺ is part of the nucleus, charge +1.",
+  "explanationUz": "Proton p⁺ yadroning bir qismi, zaryad +1."
+}

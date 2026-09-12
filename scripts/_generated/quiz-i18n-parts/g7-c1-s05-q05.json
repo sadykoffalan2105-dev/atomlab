@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately distinguishes “table salt (sodium chloride)” from similar ideas?",
+  "questionUz": "Qaysi formula \"stol tuzi (natriy xlorid)\" ni shunga o'xshash g'oyalardan aniqroq ajratib turadi?",
+  "choicesEn": [
+    "Pure substance with constant composition",
+    "Mixture of different salts",
+    "Heterogeneous mixture",
+    "Solution only"
+  ],
+  "choicesUz": [
+    "Doimiy tarkibga ega sof modda",
+    "Turli xil tuzlarning aralashmasi",
+    "Heterojen aralashma",
+    "Faqat yechim"
+  ],
+  "explanationEn": "NaCl is a pure substance with a precise composition.",
+  "explanationUz": "NaCl aniq tarkibga ega sof moddadir."
+}

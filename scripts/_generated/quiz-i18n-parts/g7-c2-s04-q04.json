@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which statement about \"proton\" is correct?",
+  "questionUz": "\"Proton\" haqidagi qaysi fikr to'g'ri?",
+  "choicesEn": [
+    "Positively charged particle of the nucleus of an atom",
+    "Negative shell particle",
+    "Neutral nucleus particle",
+    "oxygen molecule"
+  ],
+  "choicesUz": [
+    "Atom yadrosining musbat zaryadlangan zarrasi",
+    "Salbiy qobiq zarrasi",
+    "Neytral yadro zarrasi",
+    "kislorod molekulasi"
+  ],
+  "explanationEn": "Proton p⁺ is part of the nucleus, charge +1.",
+  "explanationUz": "Proton p⁺ yadroning bir qismi, zaryad +1."
+}

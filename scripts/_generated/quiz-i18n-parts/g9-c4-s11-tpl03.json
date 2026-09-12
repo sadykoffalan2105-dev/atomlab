@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Repetition”: An excess reagent is one that...",
+  "questionUz": "§ \"Takrorlash\" bandiga ko'ra: Ortiqcha reaktiv - bu ...",
+  "choicesEn": [
+    "Exactly stoichiometric",
+    "There is no such information in this section",
+    "incorrect wording according to the textbook",
+    "More than what is needed according to the equation"
+  ],
+  "choicesUz": [
+    "Aynan stoxiometrik",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Tenglamaga ko'ra kerak bo'lganidan ko'proq"
+  ],
+  "explanationEn": "More than what is needed according to the equation",
+  "explanationUz": "Tenglamaga ko'ra kerak bo'lganidan ko'proq"
+}

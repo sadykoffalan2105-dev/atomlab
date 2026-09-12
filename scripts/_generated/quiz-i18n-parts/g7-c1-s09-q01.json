@@ -1,0 +1,18 @@
+{
+  "questionEn": "Among the answers, find the correct meaning of “chemical processes”?",
+  "questionUz": "Javoblar orasida \"kimyoviy jarayonlar\" ning to'g'ri ma'nosini toping?",
+  "choicesEn": [
+    "Formation of new substances from existing ones",
+    "Physical mixing only",
+    "Change only the form",
+    "Only dissolution without change"
+  ],
+  "choicesUz": [
+    "Mavjud moddalardan yangi moddalar hosil bo'lishi",
+    "Faqat jismoniy aralashtirish",
+    "Faqat shaklni o'zgartiring",
+    "O'zgarishsiz faqat tarqatish"
+  ],
+  "explanationEn": "Chemical processes - the formation of new substances.",
+  "explanationUz": "Kimyoviy jarayonlar - yangi moddalarning hosil bo'lishi."
+}

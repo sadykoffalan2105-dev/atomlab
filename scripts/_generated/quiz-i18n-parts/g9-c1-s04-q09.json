@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook: which metal is the hardest, and which one is...",
+  "questionUz": "Darslikka ko'ra: qaysi metall eng qattiq, qaysi biri...",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "There is no such information in this section",
+    "soluble and insoluble",
+    "the most flexible?"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "eriydi va erimaydi",
+    "eng moslashuvchan?"
+  ],
+  "explanationEn": "Which metal is the hardest, and which is the most ductile?",
+  "explanationUz": "Qaysi metall eng qattiq va qaysi biri eng egiluvchan?"
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook: In the middle there are 38 lines, and there are 50 (88 is...",
+  "questionUz": "Darslik bo'yicha: O'rtada 38 qator, 50 (88 ta...) bor.",
+  "choicesEn": [
+    "incorrect wording according to the textbook",
+    "38 = 50) new",
+    "This is how another phenomenon or substance is described",
+    "There is no such information in this section"
+  ],
+  "choicesUz": [
+    "darslik bo'yicha noto'g'ri so'zlar",
+    "38 = 50) yangi",
+    "Yana bir hodisa yoki modda shunday tasvirlangan",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q"
+  ],
+  "explanationEn": "In the middle of the street, the name is 38 lines, and the line is 50 (88 – 38 = 50) lines",
+  "explanationUz": "Ko'chaning o'rtasida 38 qator nomi, 50 (88 – 38 = 50) qatordan iborat."
+}

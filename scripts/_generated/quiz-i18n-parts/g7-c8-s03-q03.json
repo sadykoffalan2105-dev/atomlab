@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion based on the topic “Environmental aspects of mineral extraction”?",
+  "questionUz": "“Foydali qazilmalarni qazib olishning ekologik jihatlari” mavzusiga asoslangan to‘g‘ri xulosa qaysi fakt?",
+  "choicesEn": [
+    "Natural mineral formations used by humans",
+    "Only artificial alloys",
+    "Acid solutions only",
+    "Laboratory mixtures only"
+  ],
+  "choicesUz": [
+    "Odamlar tomonidan ishlatiladigan tabiiy mineral tuzilmalar",
+    "Faqat sun'iy qotishmalar",
+    "Faqat kislota eritmalari",
+    "Faqat laboratoriya aralashmalari"
+  ],
+  "explanationEn": "Ore, oil, coal are minerals.",
+  "explanationUz": "Ruda, neft, ko'mir foydali qazilmalardir."
+}

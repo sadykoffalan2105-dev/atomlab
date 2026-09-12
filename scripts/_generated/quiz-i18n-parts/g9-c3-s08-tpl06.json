@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Galvanic cells”: During the electrolysis of an aqueous NaCl solution at the cathode...",
+  "questionUz": "§ \"Galvanik hujayralar\" ga ko'ra: Katodda NaCl suvli eritmasini elektroliz qilish jarayonida...",
+  "choicesEn": [
+    "Always sodium",
+    "Always oxygen",
+    "There is no such information in this section",
+    "Hydrogen is released"
+  ],
+  "choicesUz": [
+    "Har doim natriy",
+    "Har doim kislorod",
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Vodorod ajralib chiqadi"
+  ],
+  "explanationEn": "Hydrogen is released",
+  "explanationUz": "Vodorod ajralib chiqadi"
+}

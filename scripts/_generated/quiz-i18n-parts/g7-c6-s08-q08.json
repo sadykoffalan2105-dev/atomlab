@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion on the topic “Problem Solving” based on?",
+  "questionUz": "“Muammo yechish” mavzusidagi to‘g‘ri xulosa qaysi faktga asoslanadi?",
+  "choicesEn": [
+    "Type of atoms with the same nuclear charge (number of protons)",
+    "Any mixture of substances",
+    "Only a water molecule",
+    "Any item"
+  ],
+  "choicesUz": [
+    "Yadro zaryadi bir xil bo'lgan atomlar turi (protonlar soni)",
+    "Har qanday moddalar aralashmasi",
+    "Faqat suv molekulasi",
+    "Har qanday element"
+  ],
+  "explanationEn": "Element = atoms with the same number of protons Z.",
+  "explanationUz": "Element = Z protonlari soni bir xil bo'lgan atomlar."
+}

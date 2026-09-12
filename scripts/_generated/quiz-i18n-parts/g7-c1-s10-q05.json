@@ -1,0 +1,18 @@
+{
+  "questionEn": "Select the statement that is consistent with your 7th grade chemistry course?",
+  "questionUz": "7-sinf kimyo kursingizga mos keladigan gapni tanlang?",
+  "choicesEn": [
+    "Laboratory tripod",
+    "Funnel only",
+    "Pipette only",
+    "Only mortar"
+  ],
+  "choicesUz": [
+    "Laboratoriya shtativ",
+    "Faqat huni",
+    "Faqat pipetka",
+    "Faqat ohak"
+  ],
+  "explanationEn": "A tripod is a support in experiments.",
+  "explanationUz": "Tripod - bu tajribalarda tayanch."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is said here that is chemically correct?",
+  "questionUz": "Bu erda kimyoviy jihatdan to'g'ri aytilgan nima?",
+  "choicesEn": [
+    "Substances that change the rate of a reaction are called catalysts.",
+    "strong oxidizing agent, burns more strongly in oxygen than in air",
+    "About 21% by volume",
+    "A complex substance of two elements, one of which is oxygen"
+  ],
+  "choicesUz": [
+    "Reaksiya tezligini o'zgartiruvchi moddalar katalizatorlar deyiladi.",
+    "kuchli oksidlovchi vosita, havoga qaraganda kislorodda kuchliroq yonadi",
+    "Hajmi bo'yicha taxminan 21%",
+    "Ikki elementdan iborat murakkab modda, ulardan biri kislorod"
+  ],
+  "explanationEn": "Substances that change the rate of a reaction are called catalysts.",
+  "explanationUz": "Reaksiya tezligini o'zgartiruvchi moddalar katalizatorlar deyiladi."
+}

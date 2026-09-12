@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which statement about \"oxide\" is correct?",
+  "questionUz": "\"Oksid\" haqidagi qaysi fikr to'g'ri?",
+  "choicesEn": [
+    "A complex substance of two elements, one of which is oxygen",
+    "Pure simple metal substance",
+    "A mixture of nitrogen and argon",
+    "Any acid"
+  ],
+  "choicesUz": [
+    "Ikki elementdan iborat murakkab modda, ulardan biri kislorod",
+    "Sof oddiy metall modda",
+    "Azot va argon aralashmasi",
+    "Har qanday kislota"
+  ],
+  "explanationEn": "Examples of oxides: CO₂, H₂O, Fe₂O₃.",
+  "explanationUz": "Oksidlarga misollar: CO₂, H₂O, Fe₂O₃."
+}

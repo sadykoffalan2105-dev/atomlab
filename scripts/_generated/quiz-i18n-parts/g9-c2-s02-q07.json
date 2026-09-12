@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to the textbook: in this case, aluminum is released at the cathode, and at the anode it is...",
+  "questionUz": "Darslikda yozilishicha: bu holda katodda alyuminiy ajralib chiqadi, anodda esa...",
+  "choicesEn": [
+    "one of the most common metals in nature, its content on the globe is 8.8%,...",
+    "salts containing aluminum and silicon as anions, and alkaline and... as cations (according to the textbook)",
+    "oxygen, which interacts with an anode made of carbon: Al 3+ + 3 ē → Al0, 2O 2– – 4 ē → O2 0,…",
+    "method of producing a metal by reducing its oxides using aluminum (according to the textbook) - incorrect - incorrect"
+  ],
+  "choicesUz": [
+    "Tabiatdagi eng keng tarqalgan metallardan biri bo'lib, uning yer sharidagi miqdori 8,8%,...",
+    "tarkibida alyuminiy va kremniyni anion, ishqoriy va... kation sifatida o‘z ichiga olgan tuzlar (darslik bo‘yicha)",
+    "ugleroddan yasalgan anod bilan o'zaro ta'sir qiluvchi kislorod: Al 3+ + 3 ē → Al0, 2O 2– – 4 ē → O2 0,…",
+    "alyuminiy yordamida oksidlarini kamaytirish orqali metall olish usuli (darslik bo'yicha) - noto'g'ri - noto'g'ri"
+  ],
+  "explanationEn": "in this case, aluminum is released at the cathode, and oxygen is released at the anode, which interacts with the anode made of carbon: Al 3+ + 3 ē → Al0, 2O 2– – 4 ē → O2 0, O 2 + 2C → CO",
+  "explanationUz": "bu holda katodda alyuminiy, ugleroddan yasalgan anod bilan o'zaro ta'sir qiluvchi anodda kislorod ajralib chiqadi: Al 3+ + 3 ē → Al0, 2O 2– – 4 ē → O2 0, O 2 + 2C → CO"
+}

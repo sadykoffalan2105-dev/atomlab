@@ -1,0 +1,18 @@
+{
+  "questionEn": "Find an answer that accurately reflects the content of the lesson?",
+  "questionUz": "Dars mazmunini to`g`ri aks ettiruvchi javobni toping?",
+  "choicesEn": [
+    "The diameter of this atom is about 0.00000000098 m.",
+    "this is a physical quantity that shows how many times the mass of an atom of a chemical element is greater.",
+    "Atoms of one chemical element",
+    "Electrically neutral particle consisting of a nucleus and electrons"
+  ],
+  "choicesUz": [
+    "Bu atomning diametri taxminan 0,00000000098 m.",
+    "bu kimyoviy element atomining massasi necha marta katta ekanligini ko'rsatadigan fizik miqdor.",
+    "Bitta kimyoviy elementning atomlari",
+    "Yadro va elektronlardan tashkil topgan elektr neytral zarracha"
+  ],
+  "explanationEn": "The diameter of this atom is about 0.00000000098 m.",
+  "explanationUz": "Bu atomning diametri taxminan 0,00000000098 m."
+}

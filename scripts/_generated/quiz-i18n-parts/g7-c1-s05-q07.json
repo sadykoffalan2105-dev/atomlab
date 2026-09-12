@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which option correctly reveals the meaning of “proposed chromatography”?",
+  "questionUz": "Qaysi variant “taklif etilayotgan xromatografiya” ma’nosini to‘g‘ri ochib beradi?",
+  "choicesEn": [
+    "M. S. Light in 1903 (later called the chromatographic method)",
+    "A. Lavoisier in the 18th century",
+    "Dalton in 1803",
+    "Al-Razi in the 9th century"
+  ],
+  "choicesUz": [
+    "1903 yilda M. S. Light (keyinchalik xromatografik usul deb ataladi)",
+    "XVIII asrda A. Lavuazye",
+    "Dalton 1803 yilda",
+    "9-asrda Ar-Roziy"
+  ],
+  "explanationEn": "M. S. Light - adsorption analysis (1903), chromatography (1906).",
+  "explanationUz": "M. S. Nur - adsorbsion tahlil (1903), xromatografiya (1906)."
+}

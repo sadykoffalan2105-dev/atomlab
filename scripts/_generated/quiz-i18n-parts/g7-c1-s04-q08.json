@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion on the topic “Practical Lesson” based on?",
+  "questionUz": "“Amaliy dars” mavzusidagi to‘g‘ri xulosa qaysi faktga asoslangan?",
+  "choicesEn": [
+    "In experiments with solutions, gases and solids",
+    "Filtering only",
+    "For weighing only",
+    "For kerosene storage only"
+  ],
+  "choicesUz": [
+    "Eritmalar, gazlar va qattiq moddalar bilan tajribalarda",
+    "Faqat filtrlash",
+    "Faqat tortish uchun",
+    "Faqat kerosin saqlash uchun"
+  ],
+  "explanationEn": "Test tubes - for solutions, gases and solids.",
+  "explanationUz": "Probirkalar - eritmalar, gazlar va qattiq moddalar uchun."
+}

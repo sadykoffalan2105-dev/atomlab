@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately distinguishes “disinfection” from similar ideas?",
+  "questionUz": "Qaysi formulada \"dezinfektsiya\" shunga o'xshash g'oyalardan aniqroq farqlanadi?",
+  "choicesEn": [
+    "cleaning from harmful microbes by chlorination",
+    "H₂O (two hydrogen atoms and one oxygen atom)",
+    "The interaction of an acid with a base to form salt and water",
+    "A complex substance that forms OH⁻ ions in solution"
+  ],
+  "choicesUz": [
+    "xlorlash orqali zararli mikroblardan tozalash",
+    "H₂O (ikki vodorod atomi va bitta kislorod atomi)",
+    "Tuz va suv hosil qilish uchun kislotaning asos bilan o'zaro ta'siri",
+    "Eritmada OH⁻ ionlarini hosil qiluvchi murakkab modda"
+  ],
+  "explanationEn": "Disinfection – cleaning from harmful microbes by chlorination.",
+  "explanationUz": "Dezinfektsiya - xlorlash orqali zararli mikroblardan tozalash."
+}

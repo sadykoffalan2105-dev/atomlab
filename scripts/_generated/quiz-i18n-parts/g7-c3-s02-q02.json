@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which conclusion on the topic “Natural families of chemical elements” can be considered correct?",
+  "questionUz": "“Kimyoviy elementlarning tabiiy oilalari” mavzusidagi qaysi xulosani to‘g‘ri deb hisoblash mumkin?",
+  "choicesEn": [
+    "Vertical column of elements with similar properties",
+    "Only one table row",
+    "List of mixtures",
+    "List of reactions"
+  ],
+  "choicesUz": [
+    "Xuddi shunday xususiyatlarga ega bo'lgan elementlarning vertikal ustuni",
+    "Faqat bitta jadval qatori",
+    "Aralashmalarning ro'yxati",
+    "Reaktsiyalar ro'yxati"
+  ],
+  "explanationEn": "Groups are vertical columns.",
+  "explanationUz": "Guruhlar vertikal ustunlardir."
+}

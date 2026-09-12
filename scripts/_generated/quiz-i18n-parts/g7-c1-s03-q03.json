@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion on the topic “Practical Lesson” based on?",
+  "questionUz": "“Amaliy dars” mavzusidagi to‘g‘ri xulosa qaysi faktga asoslangan?",
+  "choicesEn": [
+    "Directly smell, touch and taste substances",
+    "Conduct experiments in a fume hood",
+    "Use safety glasses",
+    "Shut off gas and water after the experiment"
+  ],
+  "choicesUz": [
+    "To'g'ridan-to'g'ri hidlash, teginish va moddalarni tatib ko'ring",
+    "Tutun qopqog'ida tajriba o'tkazing",
+    "Xavfsizlik ko'zoynaklaridan foydalaning",
+    "Tajribadan keyin gaz va suvni o'chiring"
+  ],
+  "explanationEn": "Rule 2: You cannot smell, touch or taste substances.",
+  "explanationUz": "2-qoida: Siz moddalarni hidlay olmaysiz, tegmaysiz yoki ta'mlay olmaysiz."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "What is said here that is chemically correct?",
+  "questionUz": "Bu erda kimyoviy jihatdan to'g'ri aytilgan nima?",
+  "choicesEn": [
+    "A complex substance that forms OH⁻ ions in solution",
+    "Any non-metal oxide",
+    "Pure nitrogen",
+    "Only acid"
+  ],
+  "choicesUz": [
+    "Eritmada OH⁻ ionlarini hosil qiluvchi murakkab modda",
+    "Har qanday metall bo'lmagan oksid",
+    "Toza azot",
+    "Faqat kislota"
+  ],
+  "explanationEn": "Bases give hydroxide ions OH⁻.",
+  "explanationUz": "Asoslar gidroksid ionlarini OH⁻ beradi."
+}

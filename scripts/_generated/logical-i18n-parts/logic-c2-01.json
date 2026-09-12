@@ -1,0 +1,18 @@
+{
+  "questionEn": "The atom is electrically neutral. What follows from this?",
+  "questionUz": "Atom elektr jihatdan neytraldir. Bundan nima kelib chiqadi?",
+  "choicesEn": [
+    "The number of protons is equal to the number of electrons",
+    "There are no neutrons in an atom",
+    "All atoms are the same",
+    "Electrons do not participate in the structure"
+  ],
+  "choicesUz": [
+    "Protonlar soni elektronlar soniga teng",
+    "Atomda neytronlar mavjud emas",
+    "Barcha atomlar bir xil",
+    "Elektronlar strukturada qatnashmaydi"
+  ],
+  "explanationEn": "",
+  "explanationUz": ""
+}

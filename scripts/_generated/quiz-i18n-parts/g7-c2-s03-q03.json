@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "Positively charged particle of the nucleus of an atom",
+    "Negative shell particle",
+    "Neutral nucleus particle",
+    "oxygen molecule"
+  ],
+  "choicesUz": [
+    "Atom yadrosining musbat zaryadlangan zarrasi",
+    "Salbiy qobiq zarrasi",
+    "Neytral yadro zarrasi",
+    "kislorod molekulasi"
+  ],
+  "explanationEn": "Proton p⁺ is part of the nucleus, charge +1.",
+  "explanationUz": "Proton p⁺ yadroning bir qismi, zaryad +1."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which rationale on the topic “Water pollution and methods of purification” is chemically correct?",
+  "questionUz": "“Suvning ifloslanishi va tozalash usullari” mavzusidagi qaysi asos kimyoviy jihatdan to‘g‘ri?",
+  "choicesEn": [
+    "A complex substance that forms OH⁻ ions in solution",
+    "Any non-metal oxide",
+    "Pure nitrogen",
+    "Only acid"
+  ],
+  "choicesUz": [
+    "Eritmada OH⁻ ionlarini hosil qiluvchi murakkab modda",
+    "Har qanday metall bo'lmagan oksid",
+    "Toza azot",
+    "Faqat kislota"
+  ],
+  "explanationEn": "Bases give hydroxide ions OH⁻.",
+  "explanationUz": "Asoslar gidroksid ionlarini OH⁻ beradi."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Corrosion of metals”: Chemical corrosion is...",
+  "questionUz": "§ “Metallarning korroziyasi” ga muvofiq: Kimyoviy korroziya bu...",
+  "choicesEn": [
+    "a reduction process that occurs when an electric current is passed through a solution or...",
+    "destruction of metal resulting from the interaction of the metal with an oxidizing agent from the external environment",
+    "special substances, when small quantities are added to a corrosive environment (10 6–...",
+    "destruction of metal in direct contact with other metals, electrolyte and water"
+  ],
+  "choicesUz": [
+    "eritma yoki... orqali elektr toki o'tganda sodir bo'ladigan kamaytirish jarayoni.",
+    "metallning tashqi muhitdan oksidlovchi vosita bilan o'zaro ta'siri natijasida metallni yo'q qilish",
+    "maxsus moddalar, korroziy muhitga oz miqdorda qo'shilganda (10 6-...",
+    "boshqa metallar, elektrolitlar va suv bilan bevosita aloqada bo'lgan metallni yo'q qilish"
+  ],
+  "explanationEn": "Chemical corrosion is the destruction of metal resulting from the interaction of the metal with an oxidizing agent from the external environment.",
+  "explanationUz": "Kimyoviy korroziya - bu metallning tashqi muhitdan oksidlovchi vosita bilan o'zaro ta'siri natijasida metallning yo'q qilinishi."
+}

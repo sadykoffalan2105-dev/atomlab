@@ -1,0 +1,18 @@
+{
+  "questionEn": "Check the correct answer related to \"corrosion\"?",
+  "questionUz": "\"Korroziya\" bilan bog'liq to'g'ri javobni tekshiring?",
+  "choicesEn": [
+    "A continuous process slowly destroying things",
+    "Rapid metal burning",
+    "Stain removal only",
+    "Physical melting"
+  ],
+  "choicesUz": [
+    "Doimiy jarayon asta-sekin narsalarni yo'q qiladi",
+    "Metallning tez yonishi",
+    "Faqat dog'larni olib tashlash",
+    "Jismoniy erish"
+  ],
+  "explanationEn": "Corrosion is a slow deterioration that makes things unusable.",
+  "explanationUz": "Korroziya - bu narsalarni yaroqsiz holga keltiradigan sekin buzilish."
+}

@@ -1,0 +1,18 @@
+{
+  "questionEn": "What fact is the correct conclusion based on the topic “Changes in the state of aggregation of substances”?",
+  "questionUz": "“Moddalarning yig‘ilish holatining o‘zgarishi” mavzusiga asoslangan to‘g‘ri xulosa qaysi fakt?",
+  "choicesEn": [
+    "Gas (steam)",
+    "Solid",
+    "Liquid",
+    "Mixture"
+  ],
+  "choicesUz": [
+    "Gaz (bug ')",
+    "Qattiq",
+    "Suyuqlik",
+    "Aralash"
+  ],
+  "explanationEn": "Above 100 °C at normal pressure water - steam.",
+  "explanationUz": "Oddiy bosimda 100 ° C dan yuqori suv - bug '."
+}

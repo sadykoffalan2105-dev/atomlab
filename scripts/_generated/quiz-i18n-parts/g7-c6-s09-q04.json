@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which statement about “solution” is correct?",
+  "questionUz": "“Yechim” haqidagi qaysi fikr to‘g‘ri?",
+  "choicesEn": [
+    "Homogeneous mixture of solute and solvent",
+    "Only a mechanical mixture of sand and salt",
+    "Pure simple substance",
+    "Gas only, no solvent"
+  ],
+  "choicesUz": [
+    "Erituvchi va erituvchining bir hil aralashmasi",
+    "Faqat qum va tuzning mexanik aralashmasi",
+    "Sof oddiy modda",
+    "Faqat gaz, erituvchi yo'q"
+  ],
+  "explanationEn": "The solution is homogeneous (homogeneous).",
+  "explanationUz": "Eritma bir hil (bir hil)."
+}

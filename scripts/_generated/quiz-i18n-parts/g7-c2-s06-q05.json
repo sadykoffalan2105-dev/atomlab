@@ -1,0 +1,18 @@
+{
+  "questionEn": "Which formulation more accurately distinguishes \"chemical formula\" from similar ideas?",
+  "questionUz": "Qaysi formula \"kimyoviy formula\" ni o'xshash g'oyalardan aniqroq ajratib turadi?",
+  "choicesEn": [
+    "this is a representation of the composition of a substance using chemical symbols and, if necessary, indices",
+    "is an important quantitative characteristic of an element",
+    "the number of atoms of an element in a substance, expressed in the formula",
+    "The ability of an atom to form a certain number of chemical bonds"
+  ],
+  "choicesUz": [
+    "bu kimyoviy belgilar va agar kerak bo'lsa, indekslar yordamida moddaning tarkibini ifodalash",
+    "elementning muhim miqdoriy xarakteristikasi hisoblanadi",
+    "formulada ifodalangan moddadagi element atomlari soni",
+    "Atomning ma'lum miqdordagi kimyoviy bog'lanishlar hosil qilish qobiliyati"
+  ],
+  "explanationEn": "A chemical formula is a representation of the composition of a substance using chemical symbols and, if necessary, indices.",
+  "explanationUz": "Kimyoviy formula - kimyoviy belgilar va kerak bo'lganda indekslar yordamida moddaning tarkibini ifodalash."
+}

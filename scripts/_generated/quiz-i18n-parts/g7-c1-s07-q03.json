@@ -1,0 +1,18 @@
+{
+  "questionEn": "Why is this answer considered correct - choose the wording of the fact?",
+  "questionUz": "Nima uchun bu javob to'g'ri deb hisoblanadi - faktning matnini tanlang?",
+  "choicesEn": [
+    "Does not have its own shape, takes the form of a vessel; has a certain volume",
+    "Has a permanent shape like a solid",
+    "Has no volume",
+    "Always transparent"
+  ],
+  "choicesUz": [
+    "O'z shakliga ega emas, idish shaklini oladi; ma'lum hajmga ega",
+    "Qattiq kabi doimiy shaklga ega",
+    "Ovozi yo'q",
+    "Har doim shaffof"
+  ],
+  "explanationEn": "The liquid takes the shape of a vessel, but has volume.",
+  "explanationUz": "Suyuqlik idish shaklini oladi, lekin hajmi bor."
+}

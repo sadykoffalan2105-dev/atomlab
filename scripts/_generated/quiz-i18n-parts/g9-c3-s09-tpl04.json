@@ -1,0 +1,18 @@
+{
+  "questionEn": "According to § “Laboratory work”: During the electrolysis of an aqueous NaCl solution at the cathode...",
+  "questionUz": "§ “Laboratoriya ishi” bo‘yicha: NaCl suvli eritmasini katodda elektroliz qilish jarayonida...",
+  "choicesEn": [
+    "There is no such information in this section",
+    "Hydrogen is released",
+    "Always oxygen",
+    "Always sodium"
+  ],
+  "choicesUz": [
+    "Ushbu bo'limda bunday ma'lumotlar yo'q",
+    "Vodorod ajralib chiqadi",
+    "Har doim kislorod",
+    "Har doim natriy"
+  ],
+  "explanationEn": "Hydrogen is released",
+  "explanationUz": "Vodorod ajralib chiqadi"
+}

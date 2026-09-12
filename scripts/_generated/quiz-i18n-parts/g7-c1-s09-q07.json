@@ -1,0 +1,18 @@
+{
+  "questionEn": "How to correctly understand the term “coal combustion is a process”?",
+  "questionUz": "\"Ko'mirni yoqish - bu jarayon\" atamasini qanday to'g'ri tushunish mumkin?",
+  "choicesEn": [
+    "With heat release",
+    "No energy release",
+    "Only physical evaporation",
+    "Only dissolution"
+  ],
+  "choicesUz": [
+    "Issiqlik chiqishi bilan",
+    "Energiya chiqarilmaydi",
+    "Faqat jismoniy bug'lanish",
+    "Faqat eritish"
+  ],
+  "explanationEn": "The combustion of coal is accompanied by the release of heat.",
+  "explanationUz": "Ko'mirning yonishi issiqlikning chiqishi bilan birga keladi."
+}
