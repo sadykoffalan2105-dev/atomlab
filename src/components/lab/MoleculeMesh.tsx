@@ -21,7 +21,7 @@ function atomDegrees(atomsLen: number, bonds: readonly (readonly [number, number
   return d
 }
 
-function BondCylinder({
+export function BondCylinder({
   from,
   to,
   color,

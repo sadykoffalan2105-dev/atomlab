@@ -211,6 +211,9 @@ export function Clo2CinemaScene({
   const vfxFlashA = useRef<VfxHandle>(null)
   const vfxFlashB = useRef<VfxHandle>(null)
   const vfxDust = useRef<VfxHandle>(null)
+  /** Тёплый выброс ровно на рождении готового ClO₂ — экзотермический акцент. */
+  const vfxFireA = useRef<VfxHandle>(null)
+  const vfxFireB = useRef<VfxHandle>(null)
 
   const cueTimes = useRef<Record<string, number>>({})
 
@@ -271,6 +274,8 @@ export function Clo2CinemaScene({
           onEmbryoRef.current?.()
           break
         case 'birth':
+          vfxFireA.current?.fire()
+          vfxFireB.current?.fire()
           onBirthRef.current?.()
           break
         case 'complete':
@@ -476,6 +481,10 @@ export function Clo2CinemaScene({
     if (flashNodeA) flashNodeA.position.copy(t < CLO2_PHASE.transferEnd - 0.4 ? w.clA : w.originA)
     const flashNodeB = vfxFlashB.current?.node()
     if (flashNodeB) flashNodeB.position.copy(t < CLO2_PHASE.transferEnd - 0.4 ? w.clB : w.originB)
+    const fireNodeA = vfxFireA.current?.node()
+    if (fireNodeA) fireNodeA.position.copy(w.originA)
+    const fireNodeB = vfxFireB.current?.node()
+    if (fireNodeB) fireNodeB.position.copy(w.originB)
 
     // ——— HUD ———
     // Каждая подпись живёт в своей полосе кадра: коэффициенты реагентов сверху,
@@ -631,6 +640,8 @@ export function Clo2CinemaScene({
             <CinemaBurst ref={vfxFlashA} preset="flash" scale={vfxScale} sizeScale={0.9} />
             <CinemaBurst ref={vfxFlashB} preset="flash" scale={vfxScale} sizeScale={0.9} />
             <CinemaBurst ref={vfxDust} preset="dust" scale={vfxScale} sizeScale={1.1} position={[0, -1.9, -1.2]} />
+            <CinemaBurst ref={vfxFireA} preset="fire" scale={vfxScale} sizeScale={0.85} />
+            <CinemaBurst ref={vfxFireB} preset="fire" scale={vfxScale} sizeScale={0.85} />
           </CinemaVfxStage>
         ) : null}
       </CinemaCameraRig>

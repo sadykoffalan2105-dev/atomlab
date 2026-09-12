@@ -177,6 +177,34 @@ function clo2Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, n
   }
 }
 
+/**
+ * NaClO₂ (хлорит натрия) — ионная пара: анион ClO₂⁻ (изогнутый, угол
+ * O–Cl–O ≈ 110.5°, связь Cl–O чуть длиннее, чем в нейтральном радикале
+ * ClO₂ — меньший порядок связи) и Na⁺ со стороны, противоположной
+ * кислородам — не заслоняет анион, тянется к заряду на Cl/O.
+ * Без hand-геометрии здесь падал generic placeholder (растянутая пара
+ * Na···Cl ~2 Å без формы аниона) — так же неверно для катaлога и для
+ * компактного превью реактора.
+ */
+function naClo2Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const d = 0.6
+  const half = (110.5 / 2) * (Math.PI / 180)
+  const o0: Vec3 = [d * Math.sin(half), 0, d * Math.cos(half)]
+  const o1: Vec3 = [-d * Math.sin(half), 0, d * Math.cos(half)]
+  return {
+    atoms: [
+      { symbol: 'Cl', pos: [0, 0, 0] },
+      { symbol: 'O', pos: o0 },
+      { symbol: 'O', pos: o1 },
+      { symbol: 'Na', pos: [0, 0, -0.92] },
+    ],
+    bonds: [
+      [0, 1],
+      [0, 2],
+    ],
+  }
+}
+
 /** H₂CO₃: плоский C, два OH и одно =O. */
 function h2co3Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
   const r = 0.55
@@ -1431,6 +1459,8 @@ export function getMolecularGeometryOrNull(
       return no2Geometry()
     case 'clo2':
       return clo2Geometry()
+    case 'salt_na_clo2':
+      return naClo2Geometry()
     case 'nh3':
       return nh3Geometry()
     case 'h2s':

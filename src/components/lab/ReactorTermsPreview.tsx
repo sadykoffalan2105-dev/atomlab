@@ -51,6 +51,8 @@ import {
 } from '../../lab/reactorPreviewMotionEngine'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
+import { ReactorTermMoleculeOverlay } from './ReactorTermMoleculeOverlay'
+import { reactorTermsWithMolecule } from '../../lab/reactorPreviewMolecule'
 
 /**
  * Превью реагентов: полная Bohr-модель (протоны, нейтроны, электроны, орбиты).
@@ -175,6 +177,13 @@ export function ReactorTermsPreview({
     () => terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|'),
     [terms],
   )
+
+  /**
+   * Термины с настоящей геометрией молекулы (атомы формулы + связи) —
+   * рендерятся ReactorTermMoleculeOverlay вместо обычных Bohr-слотов этого
+   * термина, чтобы не показывать оба варианта разом.
+   */
+  const moleculeOverrideTermIndices = useMemo(() => reactorTermsWithMolecule(terms), [terms])
 
   const frame = resolvePreviewEngineFrame(engineRef.current, {
     terms,
@@ -748,7 +757,8 @@ export function ReactorTermsPreview({
         const slotVisible =
           reactGroupVisible &&
           i < stickySlotCount &&
-          i < mountBohrCount
+          i < mountBohrCount &&
+          !(atom && moleculeOverrideTermIndices.has(atom.termIndex))
         return (
           <group key={`slot-${i}`} visible={slotVisible} ref={getPosRef(i)}>
             <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
@@ -767,6 +777,11 @@ export function ReactorTermsPreview({
           </group>
         )
       })}
+      <ReactorTermMoleculeOverlay
+        terms={terms}
+        scale={scale}
+        visible={reactGroupVisible && !flightActive}
+      />
     </group>
   )
 }
