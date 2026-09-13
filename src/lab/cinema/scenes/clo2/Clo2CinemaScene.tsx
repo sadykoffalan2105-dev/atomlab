@@ -1,67 +1,121 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { CPK } from '../../core/atoms'
 import { createCueRunner, pulseAt, type CueRunner } from '../../core/cues'
-import { jitter, sampleScalar, sampleVec3 } from '../../core/tracks'
 import { resolveCinemaQuality } from '../../core/quality'
+import { fresnelShellMaterial } from '../../core/materials'
+import { cinemaSphere } from '../../core/geometries'
+import { createSteppedStoryClock } from '../../core/steppedStoryClock'
+import type { StoryClock } from '../../core/storyClock'
 import {
-  createBondState,
   createCameraRigState,
   createGlowState,
-  createHudState,
   createPostDirector,
   createPuffVolumeState,
   createWaveState,
+  type GlowState,
 } from '../../core/states'
-import { createBentFrame, writeBent } from '../../core/vsepr'
 import { CinemaAtom } from '../../react/CinemaAtom'
 import { CinemaBond } from '../../react/CinemaBond'
-import { CinemaFlash, CinemaHalo, CinemaReactionZone, CinemaShockwave } from '../../react/CinemaFx'
-import { CinemaCaption, CinemaCounter, CinemaOxidationTag } from '../../react/CinemaHud'
+import { CinemaDomLabels, type DomLabelSource } from '../../react/CinemaDomLabels'
+import { CinemaFlash, CinemaHalo, CinemaShockwave } from '../../react/CinemaFx'
+import { CinemaGlowPoints, type GlowPointsHandle } from '../../react/CinemaGlowPoints'
 import { CinemaPostFx } from '../../react/CinemaPostFx'
 import { CinemaPuffVolume } from '../../react/CinemaPuffVolume'
 import { CinemaCameraRig, CinemaEnvironment } from '../../react/CinemaStage'
 import { CinemaBurst, CinemaVfxStage, type VfxHandle } from '../../react/CinemaVfx'
-import { useStoryClock } from '../../react/useStoryClock'
+import { clo2StepStore, type Clo2StepStatus } from './clo2StepStore'
 import {
-  CLO2_CAPTIONS,
+  CLO2_ARROWS,
+  CLO2_ATOMS,
   CLO2_CUES,
+  CLO2_END,
   CLO2_GEOM,
-  CLO2_NARRATION_CUES,
-  CLO2_PHASE,
+  CLO2_RIG_SCALE,
   CLO2_SEGMENTS,
-  CLO2_SEGMENTS_TEACHER,
-  CLO2_TRACKS,
-  CLO2_TRANSFER_WINDOW,
-  clo2StageAt,
+  CLO2_STEPS,
+  createClo2Frame,
+  sampleClo2Frame,
   validateClo2Storyboard,
+  type Clo2AtomId,
+  type Clo2BondId,
   type Clo2CueId,
+  type Clo2ElectronId,
 } from './storyboard'
 
 /**
- * 2 NaClO₂ + Cl₂ → 2 NaCl + 2 ClO₂ — кинематографическая сцена на ATOMLAB Cinema.
+ * Механизм 2 NaClO₂ + Cl₂ → 2 ClO₂ + 2 NaCl в растворе — «под микроскопом», по шагам.
  *
- * Компонент почти не содержит логики: он сэмплирует дорожки раскадровки и
- * раскладывает результат по объектам. Вся «драматургия» лежит в storyboard.ts,
- * поэтому сцену можно править как сценарий, не трогая рендер.
+ * Вся химия и хронометраж — в storyboard.ts (чистая функция времени). Этот
+ * компонент только: 1) крутит story time отрезками шагов и отдаёт управление
+ * панели урока через clo2StepStore; 2) каждый кадр сэмплирует мир и
+ * раскладывает его по мешам, точкам и подписям.
  *
- * Непрерывность: атомы существуют от первого до последнего кадра, каждый едет
- * по своей дорожке. Ни один атом не подменяется «клоном» на смене фазы —
- * именно из-за этого прошлая версия дёргалась.
+ * События лаборатории (embryo / birth / complete) лежат после последнего шага,
+ * поэтому продукт «рождается» только когда ученик дошёл до конца или нажал
+ * «Завершить».
  */
 
-const GAS_CL2_COLOR = 0x9bd93a
-const GAS_CLO2_COLOR = 0xff7a3c
-const FOG_COLOR = 0x2b3f78
-const AMBER = 0xff8a3c
-const BOND_CLO_COLOR = 0xff4a6a
-const BOND_IONIC_COLOR = 0xb98cff
+const COLOR = {
+  bondClO: 0xff4a6a,
+  bondNewA: 0x7fe8ff,
+  bondNewB: 0xc49bff,
+  radical: 0xffb347,
+  hydration: 0x5fb0ff,
+  bubble: 0xb6ff5c,
+  cl2Gas: 0x9bd93a,
+  water: 0x123d78,
+  clo2Tint: 0xe8c64a,
+  clo2Gas: 0xffc24a,
+} as const
+
+/** Цвет электрона = цвет «своей» пары: так видно, откуда пара пришла и куда ушла. */
+const ELECTRON_RGB: Record<Clo2ElectronId, readonly [number, number, number]> = {
+  e1: [0.55, 0.95, 1],
+  e2: [0.55, 0.95, 1],
+  e3: [0.8, 1, 0.45],
+  e4: [0.8, 1, 0.45],
+  e5: [0.84, 0.66, 1],
+  e6: [0.84, 0.66, 1],
+  tokA: [1, 0.85, 0.45],
+  tokB: [1, 0.85, 0.45],
+}
+
+const ARROW_RGB: Record<string, readonly [number, number, number]> = {
+  lp_to_OCl: ELECTRON_RGB.e1,
+  ClCl_to_Cl: ELECTRON_RGB.e3,
+  lpB_to_OCl: ELECTRON_RGB.e5,
+  OCl_to_Cl: ELECTRON_RGB.e1,
+  // Одиночные электроны гомолиза — янтарные, как облако неспаренного электрона ClO₂ и легенда панели.
+  bridge_to_ClA: [1, 0.7, 0.28],
+  bridge_to_OB: [1, 0.7, 0.28],
+}
+
+const BOND_STYLE: Record<Clo2BondId, { color: number; radius: number }> = {
+  clA_oA1: { color: COLOR.bondClO, radius: 0.04 },
+  clA_oA2: { color: COLOR.bondClO, radius: 0.04 },
+  clB_oB1: { color: COLOR.bondClO, radius: 0.04 },
+  clB_oB2: { color: COLOR.bondClO, radius: 0.04 },
+  clX_clY: { color: CPK.Cl, radius: 0.046 },
+  oA1_clX: { color: COLOR.bondNewA, radius: 0.042 },
+  oB1_clA: { color: COLOR.bondNewB, radius: 0.036 },
+}
+
+const ELECTRON_SIZE = 0.2
+const TOKEN_SIZE = 0.26
+const ARROW_DOT_SPACING = 0.02
+const ARROW_DOT_SIZE = 0.1
+const ARROW_BARB_LENGTH = 0.13
+const ARROW_BARB_DOTS = 6
+/** Как часто перемеряем свободную от панелей область кадра (кадров). */
+const SAFE_RECT_EVERY = 24
+const BARB_ANGLE = (32 * Math.PI) / 180
 
 export type Clo2CinemaSceneProps = {
   runId?: number
   lowPower?: boolean
-  /** Удлинённый wall-time под озвучку преподавателя. */
+  /** Прежний флаг «удлинённого» режима; урок по шагам сам ждёт ученика. */
   teacherMode?: boolean
   onNarrationCue?: (id: Clo2CueId) => void
   onEmbryoReady?: () => void
@@ -69,10 +123,15 @@ export type Clo2CinemaSceneProps = {
   onComplete: () => void
 }
 
+const _p = new THREE.Vector3()
+const _tan = new THREE.Vector3()
+const _perp = new THREE.Vector3()
+const _barb = new THREE.Vector3()
+const _z = new THREE.Vector3(0, 0, 1)
+
 export function Clo2CinemaScene({
   runId = 0,
   lowPower = false,
-  teacherMode = false,
   onNarrationCue,
   onEmbryoReady,
   onBirthReady,
@@ -80,571 +139,542 @@ export function Clo2CinemaScene({
 }: Clo2CinemaSceneProps) {
   const quality = useMemo(() => resolveCinemaQuality(lowPower), [lowPower])
   const lite = quality.tier === 'lite'
-  /** Длинный wall-time + lead-cues, если есть озвучка (не только teacherMode prop). */
-  const narrated = Boolean(teacherMode || onNarrationCue)
-  const segments = narrated ? CLO2_SEGMENTS_TEACHER : CLO2_SEGMENTS
 
   useEffect(() => {
-    // Раскадровка — данные, их корректность проверяем один раз при монтировании.
     if (import.meta.env.DEV) validateClo2Storyboard()
   }, [])
 
-  const { clock, cues } = useStoryClock<Clo2CueId>(runId, segments, CLO2_CUES)
-  const narrationCuesRef = useRef<CueRunner<Clo2CueId>>(createCueRunner(CLO2_NARRATION_CUES))
-
+  const cbRef = useRef({ onNarrationCue, onEmbryoReady, onBirthReady, onComplete })
   useEffect(() => {
-    narrationCuesRef.current = createCueRunner(CLO2_NARRATION_CUES)
+    // Колбэки лаборатории зовутся из useFrame — держим свежие в рефе.
+    cbRef.current = { onNarrationCue, onEmbryoReady, onBirthReady, onComplete }
+  }, [onNarrationCue, onEmbryoReady, onBirthReady, onComplete])
+
+  const clockRef = useRef<StoryClock>({ t: 0, progress: 0, rate: 1, finished: false })
+  const cuesRef = useRef<CueRunner<Clo2CueId>>(createCueRunner(CLO2_CUES))
+  const cueTimes = useRef<Partial<Record<Clo2CueId, number>>>({})
+
+  // ——— Часы по шагам + мост к панели урока ———
+  useEffect(() => {
+    const clock = createSteppedStoryClock(CLO2_SEGMENTS)
+    const cues = createCueRunner(CLO2_CUES)
+    clockRef.current = clock.state
+    cuesRef.current = cues
+    cueTimes.current = {}
+    const lastIndex = CLO2_STEPS.length - 1
+    let current = 0
+
+    const report = (index: number, status: Clo2StepStatus) => {
+      current = index
+      clo2StepStore.report(runId, index, status)
+    }
+
+    /** Перемотка назад/вперёд: события после точки перемотки должны выстрелить снова. */
+    const seek = (t: number) => {
+      clock.seekTo(t)
+      cues.seek(t)
+      for (const c of CLO2_CUES) if (c.at >= t) delete cueTimes.current[c.id]
+    }
+
+    const playStep = (index: number) => {
+      const i = Math.max(0, Math.min(lastIndex, index))
+      const step = CLO2_STEPS[i]!
+      const t = clock.state.t
+      if (t < step.from - 1e-3 || t >= step.to - 1e-3) seek(step.from)
+      report(i, 'playing')
+      clock.playTo(step.to, () => report(i, 'paused'))
+    }
+
+    const replayStep = () => {
+      const i = current
+      seek(CLO2_STEPS[i]!.from)
+      report(i, 'playing')
+      clock.playTo(CLO2_STEPS[i]!.to, () => report(i, 'paused'))
+    }
+
+    const finish = () => {
+      const lastTo = CLO2_STEPS[lastIndex]!.to
+      if (clock.state.t < lastTo - 1e-3) seek(lastTo)
+      report(lastIndex, 'finishing')
+      clock.playTo(CLO2_END, () => report(lastIndex, 'done'))
+    }
+
+    clo2StepStore.attach(runId, { playStep, replayStep, finish })
+    playStep(0)
+
+    if (import.meta.env.DEV) {
+      // Отладка кадра: window.__clo2Freeze(10.2) — встать на момент сюжета без анимации.
+      ;(window as unknown as { __clo2Freeze?: (t: number) => void }).__clo2Freeze = (t) => {
+        clock.pause()
+        clockRef.current = { t, progress: t / CLO2_END, rate: 0, finished: false }
+      }
+    }
+
+    return () => {
+      clock.kill()
+      clo2StepStore.detach(runId)
+    }
   }, [runId])
 
-  const [stage, setStage] = useState<1 | 2 | 3 | 4 | 5>(1)
-  const stageRef = useRef(1)
+  // ——— Мир: один набор объектов на прогон; кадр пишет в него updateClo2World ———
+  const world = useMemo(() => createClo2World(), [])
+  const bubbleGeo = useMemo(() => cinemaSphere(0.62, lite ? 20 : 32, lite ? 14 : 24), [lite])
+  useEffect(() => () => world.bubbleMat.dispose(), [world])
 
-  const onCompleteRef = useRef(onComplete)
-  const onEmbryoRef = useRef(onEmbryoReady)
-  const onBirthRef = useRef(onBirthReady)
-  const onNarrationCueRef = useRef(onNarrationCue)
-  useEffect(() => {
-    // Колбэки лаборатории вызываются из useFrame, поэтому держим их в рефах —
-    // иначе замыкание застрянет на первом рендере прогона.
-    onCompleteRef.current = onComplete
-    onEmbryoRef.current = onEmbryoReady
-    onBirthRef.current = onBirthReady
-    onNarrationCueRef.current = onNarrationCue
-  }, [onComplete, onEmbryoReady, onBirthReady, onNarrationCue])
-
-  // ——— Персистентная модель мира: один набор объектов на весь прогон ———
-  const world = useMemo(
-    () => ({
-      unitA: createBentFrame(),
-      unitB: createBentFrame(),
-      originA: new THREE.Vector3(),
-      originB: new THREE.Vector3(),
-      naA: new THREE.Vector3(),
-      naB: new THREE.Vector3(),
-      clA: new THREE.Vector3(),
-      clB: new THREE.Vector3(),
-      cl2Mid: new THREE.Vector3(),
-      pairMid: new THREE.Vector3(),
-      impulseA: new THREE.Vector3(),
-      impulseB: new THREE.Vector3(),
-    }),
-    [],
-  )
-
-  const bonds = useMemo(
-    () => ({
-      a0: createBondState(),
-      a1: createBondState(),
-      b0: createBondState(),
-      b1: createBondState(),
-      cl2: createBondState(),
-      naClA: createBondState(),
-      naClB: createBondState(),
-    }),
-    [],
-  )
-
-  const gas = useMemo(
-    () => ({
-      cl2: createPuffVolumeState(GAS_CL2_COLOR, 0.62),
-      clo2A: createPuffVolumeState(GAS_CLO2_COLOR, 0.45),
-      clo2B: createPuffVolumeState(GAS_CLO2_COLOR, 0.45),
-      fog: createPuffVolumeState(FOG_COLOR, 3.1),
-    }),
-    [],
-  )
-
-  const waves = useMemo(
-    () => ({
-      breakWave: createWaveState(0xffffff, 2.1),
-      pairA: createWaveState(0xc9a6ff, 1.2),
-      pairB: createWaveState(0xc9a6ff, 1.2),
-      radicalA: createWaveState(0xffb066, 1.5),
-      radicalB: createWaveState(0xffb066, 1.5),
-    }),
-    [],
-  )
-
-  const haloA = useRef(createGlowState())
-  const haloB = useRef(createGlowState())
-  const flashState = useRef(createGlowState())
-
-  const hud = useMemo(
-    () => ({
-      reactantChlorite: createHudState(),
-      reactantCl2: createHudState(),
-      productClo2: createHudState(),
-      productNaCl: createHudState(),
-      oxChlorite: createHudState(),
-      oxChlorine: createHudState(),
-      oxSodium: createHudState(),
-    }),
-    [],
-  )
-
-  const rig = useMemo(() => createCameraRigState(), [])
-  const post = useRef(createPostDirector())
-  const zone = useRef(0.32)
-
-  // Атомы: группы, которые сцена двигает напрямую.
-  const aCl = useRef<THREE.Group>(null)
-  const aO0 = useRef<THREE.Group>(null)
-  const aO1 = useRef<THREE.Group>(null)
-  const aNa = useRef<THREE.Group>(null)
-  const bCl = useRef<THREE.Group>(null)
-  const bO0 = useRef<THREE.Group>(null)
-  const bO1 = useRef<THREE.Group>(null)
-  const bNa = useRef<THREE.Group>(null)
-  const freeClA = useRef<THREE.Group>(null)
-  const freeClB = useRef<THREE.Group>(null)
-  const impulseAMesh = useRef<THREE.Mesh>(null)
-  const impulseBMesh = useRef<THREE.Mesh>(null)
-
+  const atomRefs = useRef<Partial<Record<Clo2AtomId, THREE.Group | null>>>({})
+  const electrons = useRef<GlowPointsHandle>(null)
+  const arrows = useRef<GlowPointsHandle>(null)
+  const bubble = useRef<THREE.Mesh>(null)
   const keyLight = useRef<THREE.PointLight>(null)
   const exoLight = useRef<THREE.PointLight>(null)
-  const rimCool = useRef<THREE.PointLight>(null)
-  const rimWarm = useRef<THREE.PointLight>(null)
+  const vfxSparkA = useRef<VfxHandle>(null)
+  const vfxSparkB = useRef<VfxHandle>(null)
+  const vfxRadA = useRef<VfxHandle>(null)
+  const vfxRadB = useRef<VfxHandle>(null)
 
-  const vfxSpark = useRef<VfxHandle>(null)
-  const vfxIonA = useRef<VfxHandle>(null)
-  const vfxIonB = useRef<VfxHandle>(null)
-  const vfxFlashA = useRef<VfxHandle>(null)
-  const vfxFlashB = useRef<VfxHandle>(null)
-  const vfxDust = useRef<VfxHandle>(null)
-  /** Тёплый выброс ровно на рождении готового ClO₂ — экзотермический акцент. */
-  const vfxFireA = useRef<VfxHandle>(null)
-  const vfxFireB = useRef<VfxHandle>(null)
-
-  const cueTimes = useRef<Record<string, number>>({})
-
-  useEffect(() => {
-    // Новый прогон: забываем времена событий прошлой реакции.
-    // Подпись фазы поправит первый же кадр useFrame, setState здесь не нужен.
-    cueTimes.current = {}
-    stageRef.current = 1
-  }, [runId])
-
-  useFrame(() => {
-    const t = clock.current.t
-    const w = world
-
-    const nextStage = clo2StageAt(t)
-    if (nextStage !== stageRef.current) {
-      stageRef.current = nextStage
-      setStage(nextStage)
-    }
-
-    // ——— События раскадровки ———
-    // Озвучка всегда с lead-cues, если колбэк передан (не ждём teacherMode).
-    if (onNarrationCueRef.current) {
-      narrationCuesRef.current.update(t, (id) => {
-        onNarrationCueRef.current?.(id)
-      })
-    }
-
-    cues.current.update(t, (id) => {
-      cueTimes.current[id] = t
-      switch (id) {
-        case 'tension':
-          vfxSpark.current?.fire()
-          break
-        case 'transfer':
-          vfxIonA.current?.fire()
-          vfxIonB.current?.fire()
-          break
-        case 'break':
-          vfxSpark.current?.fire()
-          break
-        case 'pairA':
-          vfxFlashA.current?.fire()
-          break
-        case 'pairB':
-          vfxFlashB.current?.fire()
-          break
-        case 'radicalA':
-          vfxFlashA.current?.fire()
-          break
-        case 'radicalB':
-          vfxFlashB.current?.fire()
-          break
-        case 'precipitate':
-          vfxDust.current?.fire()
-          break
-        case 'embryo':
-          onEmbryoRef.current?.()
-          break
-        case 'birth':
-          vfxFireA.current?.fire()
-          vfxFireB.current?.fire()
-          onBirthRef.current?.()
-          break
-        case 'complete':
-          onCompleteRef.current()
-          break
-      }
-    })
-
-    // ——— Сэмплирование раскадровки ———
-    const tr = CLO2_TRACKS
-    const jit = sampleScalar(tr.jitter, t)
-    const angle = sampleScalar(tr.bondAngle, t)
-    const clOLen = sampleScalar(tr.clOBond, t)
-    const anion = sampleScalar(tr.clAnionGrowth, t)
-
-    sampleVec3(tr.unitAOrigin, t, w.originA)
-    sampleVec3(tr.unitBOrigin, t, w.originB)
-    sampleVec3(tr.naA, t, w.naA)
-    sampleVec3(tr.naB, t, w.naB)
-    sampleVec3(tr.clA, t, w.clA)
-    sampleVec3(tr.clB, t, w.clB)
-
-    // Броуновское микро-колебание: одинаковая непрерывная функция времени,
-    // поэтому она не создаёт разрывов на границах фаз.
-    if (jit > 0.001) {
-      const k = jit * 0.022
-      w.originA.x += k * jitter(t, 1)
-      w.originA.y += k * jitter(t, 2)
-      w.originB.x += k * jitter(t, 3)
-      w.originB.y += k * jitter(t, 4)
-      w.naA.y += k * 0.8 * jitter(t, 5)
-      w.naB.y += k * 0.8 * jitter(t, 6)
-      w.clA.y += k * 0.7 * jitter(t, 7)
-      w.clB.y += k * 0.7 * jitter(t, 8)
-    }
-
-    writeBent(
-      w.unitA,
-      w.originA,
-      angle,
-      clOLen,
-      sampleScalar(tr.unitAYaw, t),
-      sampleScalar(tr.unitAPitch, t),
+  useFrame((state) => {
+    updateClo2World(
+      world,
+      {
+        clockRef,
+        cuesRef,
+        cueTimes,
+        cbRef,
+        atomRefs,
+        electrons,
+        arrows,
+        bubble,
+        keyLight,
+        exoLight,
+        vfxSparkA,
+        vfxSparkB,
+        vfxRadA,
+        vfxRadB,
+      },
+      state.clock.elapsedTime,
+      lite,
+      { canvas: state.gl.domElement, camera: state.camera, width: state.size.width, height: state.size.height },
     )
-    writeBent(
-      w.unitB,
-      w.originB,
-      angle,
-      clOLen,
-      sampleScalar(tr.unitBYaw, t),
-      sampleScalar(tr.unitBPitch, t),
-    )
+    // Отрицательный приоритет: мир обновляется раньше useFrame дочерних связей, ореолов и подписей,
+    // иначе они отстают от атомов на кадр (рендер остаётся автоматическим).
+  }, -1)
 
-    // ——— Атомы ———
-    aCl.current?.position.copy(w.unitA.center)
-    aO0.current?.position.copy(w.unitA.l0)
-    aO1.current?.position.copy(w.unitA.l1)
-    aNa.current?.position.copy(w.naA)
-    bCl.current?.position.copy(w.unitB.center)
-    bO0.current?.position.copy(w.unitB.l0)
-    bO1.current?.position.copy(w.unitB.l1)
-    bNa.current?.position.copy(w.naB)
+  const { frame, rig, post, gas, waves, glowRefs, labelSources, bubbleMat } = world
 
-    // Свободный хлор растёт, принимая электрон: атом Cl → ион Cl⁻.
-    const anionScale = 1 + anion * (CLO2_GEOM.radius.clAnion / CLO2_GEOM.radius.cl - 1)
-    if (freeClA.current) {
-      freeClA.current.position.copy(w.clA)
-      freeClA.current.scale.setScalar(anionScale)
-    }
-    if (freeClB.current) {
-      freeClB.current.position.copy(w.clB)
-      freeClB.current.scale.setScalar(anionScale)
-    }
-
-    // ——— Связи ———
-    const clOStress = sampleScalar(tr.clOStress, t)
-    const setBond = (
-      b: typeof bonds.a0,
-      from: THREE.Vector3,
-      to: THREE.Vector3,
-      opacity: number,
-      stress: number,
-      form = 1,
-      thinning = 0,
-    ) => {
-      b.from.copy(from)
-      b.to.copy(to)
-      b.opacity = opacity
-      b.stress = stress
-      b.form = form
-      b.thinning = thinning
-    }
-
-    // Связи Cl–O не рвутся ни на одном кадре: в этой реакции рвётся только Cl–Cl.
-    setBond(bonds.a0, w.unitA.center, w.unitA.l0, 1, clOStress)
-    setBond(bonds.a1, w.unitA.center, w.unitA.l1, 1, clOStress)
-    const unitBVisible = t < CLO2_PHASE.releaseEnd + 1.2 ? 1 : Math.max(0, 1 - (t - (CLO2_PHASE.releaseEnd + 1.2)))
-    setBond(bonds.b0, w.unitB.center, w.unitB.l0, unitBVisible, clOStress)
-    setBond(bonds.b1, w.unitB.center, w.unitB.l1, unitBVisible, clOStress)
-
-    setBond(
-      bonds.cl2,
-      w.clA,
-      w.clB,
-      sampleScalar(tr.cl2Opacity, t),
-      sampleScalar(tr.cl2Stress, t),
-      1,
-      sampleScalar(tr.cl2Thinning, t),
-    )
-
-    const naClOpacity = sampleScalar(tr.naClOpacity, t)
-    const naClForm = sampleScalar(tr.naClForm, t)
-    setBond(bonds.naClA, w.naA, w.clA, naClOpacity, 0, naClForm)
-    setBond(bonds.naClB, w.naB, w.clB, naClOpacity * unitBVisible, 0, naClForm)
-
-    // ——— Газ и туман ———
-    w.cl2Mid.copy(w.clA).add(w.clB).multiplyScalar(0.5)
-    gas.cl2.center.copy(w.cl2Mid)
-    gas.cl2.opacity = sampleScalar(tr.gasCl2Opacity, t)
-    gas.cl2.spread = sampleScalar(tr.gasCl2Spread, t)
-    gas.cl2.rise = 0.1 + t * 0.02
-    gas.cl2.turbulence = 0.1
-
-    const clo2Opacity = sampleScalar(tr.gasClo2Opacity, t)
-    const clo2Spread = sampleScalar(tr.gasClo2Spread, t)
-    const clo2Rise = sampleScalar(tr.gasClo2Rise, t)
-    gas.clo2A.center.copy(w.originA)
-    gas.clo2A.opacity = clo2Opacity
-    gas.clo2A.spread = clo2Spread
-    gas.clo2A.rise = clo2Rise
-    gas.clo2A.turbulence = 0.16
-    gas.clo2B.center.copy(w.originB)
-    gas.clo2B.opacity = clo2Opacity * unitBVisible
-    gas.clo2B.spread = clo2Spread
-    gas.clo2B.rise = clo2Rise
-    gas.clo2B.turbulence = 0.16
-
-    gas.fog.center.set(0, -1.55, -1.3)
-    gas.fog.opacity = sampleScalar(tr.fogOpacity, t)
-    gas.fog.rise = -0.05
-    gas.fog.turbulence = 0.22
-
-    // ——— Свет, ореолы, волны ———
-    const amber = sampleScalar(tr.amber, t)
-    haloA.current.center.copy(w.originA)
-    haloA.current.amount = amber
-    haloB.current.center.copy(w.originB)
-    haloB.current.amount = amber * unitBVisible
-
-    const breakAt = cueTimes.current.break
-    const breakPulse = breakAt != null ? pulseAt(t, breakAt, 0.55) : 0
-    flashState.current.center.copy(w.cl2Mid)
-    flashState.current.amount = breakPulse
-
-    waves.breakWave.center.copy(w.cl2Mid)
-    waves.breakWave.amount = breakAt != null ? Math.min(1, (t - breakAt) / 0.85) : 0
-
-    const setWave = (wave: typeof waves.pairA, at: number | undefined, center: THREE.Vector3, span: number) => {
-      wave.center.copy(center)
-      wave.amount = at != null ? Math.min(1, (t - at) / span) : 0
-    }
-    setWave(waves.pairA, cueTimes.current.pairA, w.clA, 0.7)
-    setWave(waves.pairB, cueTimes.current.pairB, w.clB, 0.7)
-    setWave(waves.radicalA, cueTimes.current.radicalA, w.originA, 0.9)
-    setWave(waves.radicalB, cueTimes.current.radicalB, w.originB, 0.9)
-
-    zone.current = sampleScalar(tr.zone, t)
-    const exo = sampleScalar(tr.exoLight, t)
-    if (keyLight.current) keyLight.current.intensity = 0.5 + zone.current * 0.5
-    if (exoLight.current) exoLight.current.intensity = 0.1 + exo * (lite ? 1.1 : 2.0)
-    if (rimCool.current) rimCool.current.intensity = 0.25 + zone.current * 0.3
-    if (rimWarm.current) rimWarm.current.intensity = 0.16 + amber * 0.5
-
-    // ——— Импульс электрона: хлорит-ион отдаёт e⁻ молекуле Cl₂ ———
-    const [tr0, tr1] = CLO2_TRANSFER_WINDOW
-    const transferU = t <= tr0 ? -1 : t >= tr1 ? 2 : (t - tr0) / (tr1 - tr0)
-    const impulseVisible = transferU >= 0 && transferU <= 1
-    if (impulseVisible) {
-      w.impulseA.lerpVectors(w.unitA.center, w.clA, transferU)
-      w.impulseB.lerpVectors(w.unitB.center, w.clB, transferU)
-      // Импульс летит по дуге — заряд не движется по линейке.
-      const bulge = Math.sin(Math.PI * transferU) * 0.22
-      w.impulseA.y += bulge
-      w.impulseB.y += bulge
-    }
-    if (impulseAMesh.current) {
-      impulseAMesh.current.visible = impulseVisible
-      if (impulseVisible) impulseAMesh.current.position.copy(w.impulseA)
-    }
-    if (impulseBMesh.current) {
-      impulseBMesh.current.visible = impulseVisible
-      if (impulseVisible) impulseBMesh.current.position.copy(w.impulseB)
-    }
-    const ionNodeA = vfxIonA.current?.node()
-    if (ionNodeA && impulseVisible) ionNodeA.position.copy(w.impulseA)
-    const ionNodeB = vfxIonB.current?.node()
-    if (ionNodeB && impulseVisible) ionNodeB.position.copy(w.impulseB)
-
-    // Одноразовые вспышки VFX ставим точно в место события.
-    const sparkNode = vfxSpark.current?.node()
-    if (sparkNode) sparkNode.position.copy(w.cl2Mid)
-    const flashNodeA = vfxFlashA.current?.node()
-    if (flashNodeA) flashNodeA.position.copy(t < CLO2_PHASE.transferEnd - 0.4 ? w.clA : w.originA)
-    const flashNodeB = vfxFlashB.current?.node()
-    if (flashNodeB) flashNodeB.position.copy(t < CLO2_PHASE.transferEnd - 0.4 ? w.clB : w.originB)
-    const fireNodeA = vfxFireA.current?.node()
-    if (fireNodeA) fireNodeA.position.copy(w.originA)
-    const fireNodeB = vfxFireB.current?.node()
-    if (fireNodeB) fireNodeB.position.copy(w.originB)
-
-    // ——— HUD ———
-    // Каждая подпись живёт в своей полосе кадра: коэффициенты реагентов сверху,
-    // продукты — по центру и внизу, метки ОВР — вплотную к своим атомам.
-    // Иначе текст ложится на молекулы, и разобрать реакцию невозможно.
-    const reactantOpacity = sampleScalar(tr.reactantCounters, t)
-    hud.reactantChlorite.opacity = reactantOpacity
-    hud.reactantChlorite.center.set(0, 1.5, 0)
-    hud.reactantCl2.opacity = reactantOpacity
-    hud.reactantCl2.center.copy(w.cl2Mid)
-    hud.reactantCl2.center.x += 0.9
-    hud.reactantCl2.center.y += 0.18
-
-    const productOpacity = sampleScalar(tr.productCounters, t)
-    w.pairMid.copy(w.naA).add(w.naB).multiplyScalar(0.5)
-    hud.productClo2.opacity = productOpacity
-    // Между двумя разлетающимися молекулами ClO₂ всегда есть свободное место.
-    hud.productClo2.center.copy(w.originA).add(w.originB).multiplyScalar(0.5)
-    hud.productNaCl.opacity = productOpacity
-    hud.productNaCl.center.copy(w.pairMid)
-    hud.productNaCl.center.y -= 0.62
-
-    const oxOpacity = sampleScalar(tr.oxidationTags, t)
-    hud.oxChlorite.opacity = oxOpacity
-    hud.oxChlorite.center.copy(w.unitA.center)
-    hud.oxChlorine.opacity = oxOpacity
-    hud.oxChlorine.center.copy(w.clA)
-    hud.oxSodium.opacity = oxOpacity * 0.7
-    hud.oxSodium.center.copy(w.naA)
-
-    // ——— Виртуальная камера и пост ———
-    rig.zoom = sampleScalar(tr.camZoom, t)
-    sampleVec3(tr.camOffset, t, rig.offset)
-    rig.roll = sampleScalar(tr.camRoll, t)
-    rig.yaw = sampleScalar(tr.camYaw, t)
-    rig.shake = sampleScalar(tr.camShake, t)
-    post.current.bloom = sampleScalar(tr.postBloom, t)
-    post.current.vignette = sampleScalar(tr.postVignette, t)
-  })
-
-  const caption = CLO2_CAPTIONS[stage]
   const R = CLO2_GEOM.radius
-  const vfxScale = quality.vfxScale
-  const bondRadius = 0.042
+
+  const atom = (id: Clo2AtomId, color: number, radius: number, emissive: number, chargeSign?: 1 | -1) => (
+    <group
+      key={id}
+      ref={(g) => {
+        atomRefs.current[id] = g
+      }}
+    >
+      <CinemaAtom color={color} radius={radius} quality={quality} emissive={emissive} chargeSign={chargeSign} />
+    </group>
+  )
 
   return (
     <>
-      <CinemaEnvironment dust={quality.dust} />
+      <CinemaEnvironment dust={quality.dust} background="#020a18" fogNear={8} fogFar={24} />
       {quality.post ? <CinemaPostFx director={post} lite={lite} /> : null}
 
-      <CinemaCameraRig state={rig} baseScale={0.78}>
-        <ambientLight intensity={lite ? 0.3 : 0.2} />
-        <pointLight ref={keyLight} position={[0.4, 1.8, 2.4]} intensity={0.6} color="#cfe4ff" distance={14} />
-        <pointLight ref={exoLight} position={[0, 0.1, 0.9]} intensity={0.1} color="#ff7a2a" distance={8} />
-        {!lite ? (
-          <pointLight ref={rimCool} position={[-2.6, 0.9, -1.4]} intensity={0.25} color="#25e0ff" distance={9} />
-        ) : null}
-        {!lite ? (
-          <pointLight ref={rimWarm} position={[2.4, -0.4, 1.4]} intensity={0.16} color="#ff5ac8" distance={8} />
-        ) : null}
+      <CinemaCameraRig state={rig} baseScale={CLO2_RIG_SCALE}>
+        <ambientLight intensity={lite ? 0.34 : 0.24} />
+        <pointLight ref={keyLight} position={[0.4, 1.8, 2.6]} intensity={0.75} color="#d6e8ff" distance={14} />
+        <pointLight ref={exoLight} position={[-0.3, 0.2, 1.1]} intensity={0.1} color="#ff9a4a" distance={8} />
+        {!lite ? <pointLight position={[-2.8, 1, -1.4]} intensity={0.3} color="#3fd8ff" distance={9} /> : null}
 
-        <CinemaReactionZone intensityRef={zone} lite={lite} />
+        {/* Вода: мягкая глубина кадра. Сами молекулы воды не рисуем — это оговорено в легенде. */}
+        <CinemaPuffVolume state={gas.water} count={quality.fogPuffs} size={3.8} seed={11} renderOrder={-6} />
+        <CinemaPuffVolume state={gas.tint} count={quality.fogPuffs} size={3.2} seed={12} renderOrder={-5} />
 
-        {/* Туман сцены: в него оседает NaCl, он же даёт глубину кадра */}
-        <CinemaPuffVolume state={gas.fog} count={quality.fogPuffs} size={3.6} seed={7} renderOrder={-6} />
+        {atom('clA', CPK.Cl, R.cl, 0.3)}
+        {atom('oA1', CPK.O, R.o, 0.45)}
+        {atom('oA2', CPK.O, R.o, 0.45)}
+        {atom('clB', CPK.Cl, R.cl, 0.3)}
+        {atom('oB1', CPK.O, R.o, 0.45)}
+        {atom('oB2', CPK.O, R.o, 0.45)}
+        {atom('clX', CPK.Cl, R.cl, 0.36)}
+        {atom('clY', CPK.Cl, R.cl, 0.36)}
+        {atom('na1', CPK.Na, R.na, 0.8, 1)}
+        {atom('na2', CPK.Na, R.na, 0.8, 1)}
 
-        {/* Хлорит A: Cl и два O — те же самые объекты до конца сцены */}
-        <group ref={aCl}>
-          <CinemaAtom color={CPK.Cl} radius={R.cl} quality={quality} emissive={0.5} />
-        </group>
-        <group ref={aO0}>
-          <CinemaAtom color={CPK.O} radius={R.o} quality={quality} emissive={0.6} />
-        </group>
-        <group ref={aO1}>
-          <CinemaAtom color={CPK.O} radius={R.o} quality={quality} emissive={0.6} />
-        </group>
-        <group ref={aNa}>
-          <CinemaAtom color={CPK.Na} radius={R.na} quality={quality} emissive={0.8} chargeSign={1} />
-        </group>
+        {(Object.keys(BOND_STYLE) as Clo2BondId[]).map((id) => (
+          <CinemaBond
+            key={id}
+            state={frame.bonds[id]}
+            color={BOND_STYLE[id].color}
+            radius={BOND_STYLE[id].radius}
+            plasma={quality.plasmaBonds}
+          />
+        ))}
 
-        {/* Хлорит B — симметричная вторая молекула (коэффициент 2) */}
-        <group ref={bCl}>
-          <CinemaAtom color={CPK.Cl} radius={R.cl} quality={quality} emissive={0.5} />
-        </group>
-        <group ref={bO0}>
-          <CinemaAtom color={CPK.O} radius={R.o} quality={quality} emissive={0.6} />
-        </group>
-        <group ref={bO1}>
-          <CinemaAtom color={CPK.O} radius={R.o} quality={quality} emissive={0.6} />
-        </group>
-        <group ref={bNa}>
-          <CinemaAtom color={CPK.Na} radius={R.na} quality={quality} emissive={0.8} chargeSign={1} />
-        </group>
+        {/* Пузырёк газа Cl₂ растворяется в воде в начале урока */}
+        <mesh ref={bubble} geometry={bubbleGeo} material={bubbleMat} visible={false} renderOrder={4} dispose={null} />
+        <CinemaPuffVolume state={gas.cl2} count={Math.round(quality.gasPuffs * 0.5)} size={0.7} seed={13} />
+        <CinemaPuffVolume state={gas.product} count={quality.gasPuffs} size={1.1} seed={14} />
 
-        {/* Молекула Cl₂ → после переноса электрона это два иона Cl⁻ */}
-        <group ref={freeClA}>
-          <CinemaAtom color={CPK.Cl} radius={R.cl} quality={quality} emissive={0.62} chargeSign={-1} />
-        </group>
-        <group ref={freeClB}>
-          <CinemaAtom color={CPK.Cl} radius={R.cl} quality={quality} emissive={0.62} chargeSign={-1} />
-        </group>
+        {/* Неспаренный электрон ClO₂ размазан по всей цепочке O–Cl–O (π*) — показываем облаком */}
+        <CinemaHalo stateRef={glowRefs.cloudA} color={COLOR.radical} radius={0.55} />
+        <CinemaHalo stateRef={glowRefs.cloudB} color={COLOR.radical} radius={0.55} />
+        {/* Гидратная оболочка ионов — схематично */}
+        <CinemaHalo stateRef={glowRefs.hydNa1} color={COLOR.hydration} radius={0.26} />
+        <CinemaHalo stateRef={glowRefs.hydNa2} color={COLOR.hydration} radius={0.26} />
+        <CinemaHalo stateRef={glowRefs.hydClX} color={COLOR.hydration} radius={0.34} />
+        <CinemaHalo stateRef={glowRefs.hydClY} color={COLOR.hydration} radius={0.34} />
+        <CinemaFlash stateRef={glowRefs.flash} />
+        <CinemaShockwave state={waves.clTransfer} />
+        <CinemaShockwave state={waves.split} />
 
-        <CinemaBond state={bonds.a0} color={BOND_CLO_COLOR} radius={bondRadius} plasma={quality.plasmaBonds} />
-        <CinemaBond state={bonds.a1} color={BOND_CLO_COLOR} radius={bondRadius} plasma={quality.plasmaBonds} />
-        <CinemaBond state={bonds.b0} color={BOND_CLO_COLOR} radius={bondRadius} plasma={quality.plasmaBonds} />
-        <CinemaBond state={bonds.b1} color={BOND_CLO_COLOR} radius={bondRadius} plasma={quality.plasmaBonds} />
-        <CinemaBond state={bonds.cl2} color={CPK.Cl} radius={0.05} plasma={quality.plasmaBonds} />
-        <CinemaBond state={bonds.naClA} color={BOND_IONIC_COLOR} radius={0.036} plasma={quality.plasmaBonds} />
-        <CinemaBond state={bonds.naClB} color={BOND_IONIC_COLOR} radius={0.036} plasma={quality.plasmaBonds} />
+        <CinemaGlowPoints ref={arrows} capacity={480} depthTest={false} renderOrder={9} />
+        <CinemaGlowPoints ref={electrons} capacity={16} renderOrder={10} />
 
-        {/* Газовые облака: зелёный Cl₂ уходит в реакцию, янтарный ClO₂ рождается */}
-        <CinemaPuffVolume state={gas.cl2} count={quality.gasPuffs} size={1.35} seed={1} />
-        <CinemaPuffVolume state={gas.clo2A} count={quality.gasPuffs} size={1.2} seed={2} />
-        <CinemaPuffVolume state={gas.clo2B} count={quality.gasPuffs} size={1.2} seed={3} />
-
-        <CinemaShockwave state={waves.breakWave} />
-        <CinemaShockwave state={waves.pairA} />
-        <CinemaShockwave state={waves.pairB} />
-        <CinemaShockwave state={waves.radicalA} />
-        <CinemaShockwave state={waves.radicalB} />
-        <CinemaHalo stateRef={haloA} color={AMBER} radius={0.78} />
-        <CinemaHalo stateRef={haloB} color={AMBER} radius={0.78} />
-        <CinemaFlash stateRef={flashState} />
-
-        {/* Электронный импульс — видимый носитель заряда ClO₂⁻ → Cl₂ */}
-        <mesh ref={impulseAMesh} visible={false} renderOrder={6}>
-          <sphereGeometry args={[0.06, 12, 10]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.95} blending={THREE.AdditiveBlending} />
-        </mesh>
-        <mesh ref={impulseBMesh} visible={false} renderOrder={6}>
-          <sphereGeometry args={[0.06, 12, 10]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.95} blending={THREE.AdditiveBlending} />
-        </mesh>
-
-        <CinemaCounter state={hud.reactantChlorite} value={2} label="NaClO₂" />
-        <CinemaCounter state={hud.reactantCl2} value={1} label="Cl₂" color="#b6ff5c" />
-        <CinemaCounter state={hud.productClo2} value={2} label="ClO₂" color="#ffb26b" />
-        <CinemaCounter state={hud.productNaCl} value={2} label="NaCl · осадок" color="#d3b6ff" />
-
-        {/* Короткий текст: подробное объяснение ОВР идёт в подписи фазы */}
-        <CinemaOxidationTag state={hud.oxChlorite} text="Cl  +3 → +4" offset={[-0.42, 0.5, 0]} />
-        <CinemaOxidationTag state={hud.oxChlorine} text="Cl  0 → −1" color="#9ef7ff" offset={[0, -0.52, 0]} />
-        <CinemaOxidationTag state={hud.oxSodium} text="Na⁺ наблюдатель" color="#d9c2ff" offset={[-0.5, 0.36, 0]} />
-
-        {/* Подпись живёт выше всей сцены: под ней проходит подъём газа ClO₂ */}
-        <CinemaCaption text={caption.text} sub={caption.sub} position={[0, 2.5, 0]} />
+        <CinemaDomLabels labels={labelSources} />
 
         {quality.vfx ? (
           <CinemaVfxStage>
-            <CinemaBurst ref={vfxSpark} preset="spark" scale={vfxScale} sizeScale={0.9} />
-            <CinemaBurst ref={vfxIonA} preset="ion" scale={vfxScale} sizeScale={0.8} />
-            <CinemaBurst ref={vfxIonB} preset="ion" scale={vfxScale} sizeScale={0.8} />
-            <CinemaBurst ref={vfxFlashA} preset="flash" scale={vfxScale} sizeScale={0.9} />
-            <CinemaBurst ref={vfxFlashB} preset="flash" scale={vfxScale} sizeScale={0.9} />
-            <CinemaBurst ref={vfxDust} preset="dust" scale={vfxScale} sizeScale={1.1} position={[0, -1.9, -1.2]} />
-            <CinemaBurst ref={vfxFireA} preset="fire" scale={vfxScale} sizeScale={0.85} />
-            <CinemaBurst ref={vfxFireB} preset="fire" scale={vfxScale} sizeScale={0.85} />
+            <CinemaBurst ref={vfxSparkA} preset="spark" scale={quality.vfxScale} sizeScale={0.7} />
+            <CinemaBurst ref={vfxSparkB} preset="spark" scale={quality.vfxScale} sizeScale={0.7} />
+            <CinemaBurst ref={vfxRadA} preset="flash" scale={quality.vfxScale} sizeScale={0.75} />
+            <CinemaBurst ref={vfxRadB} preset="flash" scale={quality.vfxScale} sizeScale={0.75} />
           </CinemaVfxStage>
         ) : null}
       </CinemaCameraRig>
     </>
   )
+}
+
+type Clo2World = ReturnType<typeof createClo2World>
+
+function createClo2World() {
+  const frame = createClo2Frame()
+  const glows = {
+    cloudA: createGlowState(),
+    cloudB: createGlowState(),
+    hydNa1: createGlowState(),
+    hydNa2: createGlowState(),
+    hydClX: createGlowState(),
+    hydClY: createGlowState(),
+    flash: createGlowState(),
+  }
+  const wrap = (g: GlowState) => ({ current: g })
+  /** Подписи «e⁻» над жетонами баланса — отдельно от подписей раскадровки. */
+  const tokenLabels: DomLabelSource[] = [
+    { id: 'tokA', kind: 'token', pos: new THREE.Vector3(), opacity: 0, text: 'e⁻' },
+    { id: 'tokB', kind: 'token', pos: new THREE.Vector3(), opacity: 0, text: 'e⁻' },
+  ]
+  return {
+    frame,
+    rig: createCameraRigState(),
+    post: { current: createPostDirector() },
+    glows,
+    glowRefs: {
+      cloudA: wrap(glows.cloudA),
+      cloudB: wrap(glows.cloudB),
+      hydNa1: wrap(glows.hydNa1),
+      hydNa2: wrap(glows.hydNa2),
+      hydClX: wrap(glows.hydClX),
+      hydClY: wrap(glows.hydClY),
+      flash: wrap(glows.flash),
+    },
+    waves: {
+      clTransfer: createWaveState(0xbff6ff, 0.75),
+      split: createWaveState(0xffd08a, 0.95),
+    },
+    gas: {
+      water: createPuffVolumeState(COLOR.water, 3.4),
+      cl2: createPuffVolumeState(COLOR.cl2Gas, 0.38),
+      tint: createPuffVolumeState(COLOR.clo2Tint, 2.6),
+      product: createPuffVolumeState(COLOR.clo2Gas, 0.9),
+    },
+    bubbleMat: fresnelShellMaterial(COLOR.bubble, 2.2, 0.9).clone(),
+    tokenLabels,
+    labelSources: [...frame.labels, ...tokenLabels] as DomLabelSource[],
+    /** Центр и масштаб свободной области кадра (без панели урока и реактора). */
+    safe: { cx: 0, cy: 0, fit: 1, counter: 0, ready: false, ox: 0, oy: 0 },
+  }
+}
+
+const _o = new THREE.Vector3()
+const _ox = new THREE.Vector3()
+
+/**
+ * Панель урока слева и реактор снизу закрывают часть холста. Центр действия
+ * переносим в середину свободной области, а при тесной области чуть отъезжаем.
+ */
+function measureSafeArea(world: Clo2World, canvas: HTMLCanvasElement): void {
+  const r = canvas.getBoundingClientRect()
+  if (r.width < 10 || r.height < 10) return
+  let left = r.left
+  let right = r.right
+  let top = r.top + Math.min(90, r.height * 0.1)
+  let bottom = r.bottom
+  const reactor = document.querySelector<HTMLElement>('[data-lab-reactor]')
+  if (reactor) {
+    const rr = reactor.getBoundingClientRect()
+    if (rr.height > 0 && rr.top > r.top + r.height * 0.35 && rr.top < bottom) bottom = rr.top
+  }
+  const panel = document.querySelector<HTMLElement>('[data-lab-lesson-panel]')
+  if (panel) {
+    const pr = panel.getBoundingClientRect()
+    if (pr.width > 0 && pr.height > 0) {
+      const docksBottom = pr.width > r.width * 0.8 || pr.top > r.top + r.height * 0.5
+      if (docksBottom) bottom = Math.min(bottom, pr.top)
+      else if (pr.left < r.left + r.width * 0.5) left = Math.max(left, pr.right)
+      else right = Math.min(right, pr.left)
+    }
+  }
+  if (bottom - top < r.height * 0.3) top = r.top
+  const safe = world.safe
+  safe.cx = (left + right) / 2 - r.left
+  safe.cy = (top + bottom) / 2 - r.top
+  const ratio = Math.min((right - left) / r.width, (bottom - top) / r.height)
+  safe.fit = Math.max(0.88, Math.min(1, 0.55 + 0.45 * ratio))
+  safe.ready = true
+}
+
+type Clo2Handles = {
+  clockRef: RefObject<StoryClock>
+  cuesRef: RefObject<CueRunner<Clo2CueId>>
+  cueTimes: RefObject<Partial<Record<Clo2CueId, number>>>
+  cbRef: RefObject<Pick<Clo2CinemaSceneProps, 'onNarrationCue' | 'onEmbryoReady' | 'onBirthReady' | 'onComplete'>>
+  atomRefs: RefObject<Partial<Record<Clo2AtomId, THREE.Group | null>>>
+  electrons: RefObject<GlowPointsHandle | null>
+  arrows: RefObject<GlowPointsHandle | null>
+  bubble: RefObject<THREE.Mesh | null>
+  keyLight: RefObject<THREE.PointLight | null>
+  exoLight: RefObject<THREE.PointLight | null>
+  vfxSparkA: RefObject<VfxHandle | null>
+  vfxSparkB: RefObject<VfxHandle | null>
+  vfxRadA: RefObject<VfxHandle | null>
+  vfxRadB: RefObject<VfxHandle | null>
+}
+
+/** Один кадр: сэмплируем раскадровку и раскладываем мир по объектам сцены. */
+function updateClo2World(
+  world: Clo2World,
+  h: Clo2Handles,
+  elapsed: number,
+  lite: boolean,
+  view: { canvas: HTMLCanvasElement; camera: THREE.Camera; width: number; height: number },
+): void {
+  const { frame, glows, waves, gas, rig, post, bubbleMat, tokenLabels } = world
+  const { clockRef, cuesRef, cueTimes, cbRef, atomRefs, electrons, arrows, bubble, keyLight, exoLight } = h
+  const { vfxSparkA, vfxSparkB, vfxRadA, vfxRadB } = h
+  const t = clockRef.current.t
+  sampleClo2Frame(t, frame)
+
+  // ——— События ———
+  cuesRef.current.update(t, (id) => {
+    cueTimes.current[id] = t
+    const cb = cbRef.current
+    cb.onNarrationCue?.(id)
+    switch (id) {
+      case 'clTransfer':
+        vfxSparkA.current?.node()?.position.copy(frame.atoms.clX)
+        vfxSparkA.current?.fire()
+        break
+      case 'split':
+        vfxSparkB.current?.node()?.position.copy(frame.atoms.oA1)
+        vfxSparkB.current?.fire()
+        break
+      case 'radicals':
+        vfxRadA.current?.node()?.position.copy(frame.clouds.A.center)
+        vfxRadB.current?.node()?.position.copy(frame.clouds.B.center)
+        vfxRadA.current?.fire()
+        vfxRadB.current?.fire()
+        break
+      case 'embryo':
+        cb.onEmbryoReady?.()
+        break
+      case 'birth':
+        cb.onBirthReady?.()
+        break
+      case 'complete':
+        cb.onComplete()
+        break
+    }
+  })
+
+  // ——— Атомы ———
+  const anionScaleX = 1 + frame.anion.clX * (CLO2_GEOM.radius.clAnion / CLO2_GEOM.radius.cl - 1)
+  const anionScaleY = 1 + frame.anion.clY * (CLO2_GEOM.radius.clAnion / CLO2_GEOM.radius.cl - 1)
+  for (const a of CLO2_ATOMS) {
+    const g = atomRefs.current[a.id]
+    if (!g) continue
+    g.position.copy(frame.atoms[a.id])
+    if (a.id === 'clX') g.scale.setScalar(anionScaleX)
+    else if (a.id === 'clY') g.scale.setScalar(anionScaleY)
+  }
+
+  // ——— Электроны ———
+  const e = electrons.current
+  if (e) {
+    e.begin()
+    const pulse = 0.5 + 0.5 * Math.sin(elapsed * 5.2)
+    for (const el of frame.electrons) {
+      if (el.opacity <= 0.01) continue
+      const [r, g, b] = ELECTRON_RGB[el.id]
+      const size = (el.token ? TOKEN_SIZE : ELECTRON_SIZE) * (1 + el.glow * (0.4 + 0.15 * pulse))
+      e.push(el.pos.x, el.pos.y, el.pos.z, size, r, g, b, el.opacity, el.token ? 0.3 : 0.85)
+    }
+    e.end()
+  }
+  for (let i = 0; i < tokenLabels.length; i++) {
+    const tok = frame.electrons[6 + i]!
+    const lbl = tokenLabels[i]!
+    lbl.opacity = tok.opacity
+    lbl.pos.copy(tok.pos)
+    lbl.pos.y += 0.14
+  }
+
+  // ——— Изогнутые стрелки механизма ———
+  const ar = arrows.current
+  if (ar) {
+    ar.begin()
+    const flowT = elapsed * 3.2
+    for (let i = 0; i < CLO2_ARROWS.length; i++) {
+      const def = CLO2_ARROWS[i]!
+      const s = frame.arrows[i]!
+      if (s.opacity <= 0.01 || s.draw <= 0.001) continue
+      const [r, g, b] = ARROW_RGB[def.id] ?? [1, 1, 1]
+      const approxLen = s.p0.distanceTo(s.ctrl) + s.ctrl.distanceTo(s.p1)
+      const n = Math.max(4, Math.ceil(approxLen / ARROW_DOT_SPACING))
+      const drawn = Math.floor(n * s.draw)
+      for (let k = 0; k <= drawn; k++) {
+        const u = k / n
+        bezier(s.p0, s.ctrl, s.p1, u, _p)
+        // Бегущая яркость: направление движения пары читается без подписи.
+        const flow = 0.72 + 0.28 * Math.sin(u * 14 - flowT)
+        ar.push(_p.x, _p.y, _p.z, ARROW_DOT_SIZE, r, g, b, s.opacity * flow * 0.8, 0.35)
+      }
+      if (s.draw > 0.92) {
+        // Наконечник: полная стрелка — пара электронов, «рыболовный крючок» — один электрон.
+        const u = drawn / n
+        bezier(s.p0, s.ctrl, s.p1, u, _p)
+        bezierTangent(s.p0, s.ctrl, s.p1, u, _tan)
+        _perp.copy(_tan).cross(_z)
+        if (_perp.lengthSq() < 1e-8) _perp.set(0, 1, 0)
+        _perp.normalize()
+        const headAlpha = s.opacity * Math.min(1, (s.draw - 0.92) / 0.08)
+        const sides = def.kind === 'pair' ? [1, -1] : [Math.sign(def.bend) || 1]
+        for (const side of sides) {
+          _barb
+            .copy(_tan)
+            .multiplyScalar(-Math.cos(BARB_ANGLE))
+            .addScaledVector(_perp, side * Math.sin(BARB_ANGLE))
+          for (let k = 1; k <= ARROW_BARB_DOTS; k++) {
+            const d = (k / ARROW_BARB_DOTS) * ARROW_BARB_LENGTH
+            ar.push(_p.x + _barb.x * d, _p.y + _barb.y * d, _p.z + _barb.z * d, ARROW_DOT_SIZE, r, g, b, headAlpha * 0.9, 0.35)
+          }
+        }
+      }
+    }
+    ar.end()
+  }
+
+  // ——— Радикалы, гидратация, вспышки ———
+  glows.cloudA.center.copy(frame.clouds.A.center)
+  glows.cloudA.amount = frame.clouds.A.amount * 1.6
+  glows.cloudB.center.copy(frame.clouds.B.center)
+  glows.cloudB.amount = frame.clouds.B.amount * 1.6
+  glows.hydNa1.center.copy(frame.atoms.na1)
+  glows.hydNa1.amount = frame.hydration.na1
+  glows.hydNa2.center.copy(frame.atoms.na2)
+  glows.hydNa2.amount = frame.hydration.na2
+  glows.hydClX.center.copy(frame.atoms.clX)
+  glows.hydClX.amount = frame.hydration.clX
+  glows.hydClY.center.copy(frame.atoms.clY)
+  glows.hydClY.amount = frame.hydration.clY
+
+  const tTransfer = cueTimes.current.clTransfer
+  const tSplit = cueTimes.current.split
+  const pTransfer = tTransfer != null ? pulseAt(t, tTransfer, 0.5) : 0
+  const pSplit = tSplit != null ? pulseAt(t, tSplit, 0.6) : 0
+  if (pSplit > pTransfer) glows.flash.center.copy(frame.atoms.oA1).lerp(frame.atoms.clX, 0.5)
+  else glows.flash.center.copy(frame.atoms.clX).lerp(frame.atoms.clY, 0.5)
+  glows.flash.amount = Math.max(pTransfer, pSplit) * 0.8
+  waves.clTransfer.center.copy(frame.atoms.clX)
+  waves.clTransfer.amount = tTransfer != null && t >= tTransfer ? Math.min(1, (t - tTransfer) / 0.8) : 0
+  waves.split.center.copy(frame.atoms.clA)
+  waves.split.amount = tSplit != null && t >= tSplit ? Math.min(1, (t - tSplit) / 0.9) : 0
+
+  // ——— Среда: вода, пузырёк Cl₂, жёлтый ClO₂ ———
+  const env = frame.env
+  gas.water.center.set(0, -0.2, -1.8)
+  gas.water.opacity = env.medium
+  gas.water.rise = 0.02
+  gas.water.turbulence = 0.18
+  gas.cl2.center.copy(env.bubble.center)
+  gas.cl2.opacity = env.cl2Gas
+  gas.cl2.spread = 0.38 * env.bubble.scale
+  gas.cl2.rise = 0.02
+  gas.cl2.turbulence = 0.12
+  gas.tint.center.set(-0.2, 0, -0.9)
+  gas.tint.opacity = env.clo2Tint
+  gas.tint.rise = 0.04
+  gas.tint.turbulence = 0.16
+  gas.product.center.copy(frame.clouds.A.center).lerp(frame.clouds.B.center, 0.5)
+  gas.product.center.y += 0.9
+  gas.product.opacity = env.productGas
+  gas.product.rise = 0.3
+  gas.product.turbulence = 0.2
+
+  if (bubble.current) {
+    const visible = env.bubble.opacity > 0.01
+    bubble.current.visible = visible
+    if (visible) {
+      bubble.current.position.copy(env.bubble.center)
+      bubble.current.scale.setScalar(env.bubble.scale)
+      bubbleMat.uniforms.uIntensity!.value = env.bubble.opacity * 0.9
+    }
+  }
+
+  // ——— Свет, камера, пост ———
+  if (keyLight.current) keyLight.current.intensity = 0.75 * (1 - env.fade * 0.8)
+  if (exoLight.current) exoLight.current.intensity = 0.1 + env.exo * (lite ? 1.1 : 1.9)
+
+  const cam = frame.camera
+  const safe = world.safe
+  if (safe.counter++ % SAFE_RECT_EVERY === 0) measureSafeArea(world, view.canvas)
+  const fit = safe.ready ? safe.fit : 1
+  rig.zoom = cam.zoom * fit
+  rig.offset.copy(cam.offset).multiplyScalar(fit)
+  if (safe.ready) {
+    // Сдвиг в плоскости z = 0: сколько пикселей в мировой единице и где сейчас центр.
+    _o.set(0, 0, 0).project(view.camera)
+    _ox.set(1, 0, 0).project(view.camera)
+    const pxPerUnit = Math.abs(_ox.x - _o.x) * 0.5 * view.width
+    if (pxPerUnit > 1e-3) {
+      const ox = (safe.cx - (_o.x * 0.5 + 0.5) * view.width) / pxPerUnit
+      const oy = -(safe.cy - (-_o.y * 0.5 + 0.5) * view.height) / pxPerUnit
+      safe.ox += (ox - safe.ox) * 0.08
+      safe.oy += (oy - safe.oy) * 0.08
+      rig.offset.x += safe.ox
+      rig.offset.y += safe.oy
+    }
+  }
+  rig.yaw = cam.yaw
+  rig.roll = cam.roll
+  rig.shake = cam.shake
+  post.current.bloom = cam.bloom
+  post.current.vignette = Math.max(cam.vignette, env.fade)
+}
+
+function bezier(p0: THREE.Vector3, c: THREE.Vector3, p1: THREE.Vector3, u: number, out: THREE.Vector3): THREE.Vector3 {
+  const a = (1 - u) * (1 - u)
+  const b = 2 * (1 - u) * u
+  const d = u * u
+  return out.set(a * p0.x + b * c.x + d * p1.x, a * p0.y + b * c.y + d * p1.y, a * p0.z + b * c.z + d * p1.z)
+}
+
+function bezierTangent(p0: THREE.Vector3, c: THREE.Vector3, p1: THREE.Vector3, u: number, out: THREE.Vector3): THREE.Vector3 {
+  out.set(
+    2 * (1 - u) * (c.x - p0.x) + 2 * u * (p1.x - c.x),
+    2 * (1 - u) * (c.y - p0.y) + 2 * u * (p1.y - c.y),
+    2 * (1 - u) * (c.z - p0.z) + 2 * u * (p1.z - c.z),
+  )
+  if (out.lengthSq() < 1e-10) out.set(1, 0, 0)
+  return out.normalize()
 }

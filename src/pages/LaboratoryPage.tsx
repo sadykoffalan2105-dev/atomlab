@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   startTransition,
   lazy,
   Suspense,
@@ -56,6 +57,11 @@ import type { Clo2TeacherLine } from '../lab/teacher/clo2TeacherScript'
 import { unlockAudioPlayback } from '../learn/learnSpeechPlayback'
 import { stopAllAppSpeech } from '../learn/learnSpeechExclusive'
 import type { Clo2CueId } from '../lab/cinema/scenes/clo2/storyboard'
+import { clo2StepStore } from '../lab/cinema/scenes/clo2/clo2StepStore'
+import { CLO2_STEP_IDS } from '../lab/cinema/scenes/clo2/clo2Steps'
+import { Clo2MechanismPanel } from '../components/lab/scientific/Clo2MechanismPanel'
+import type { ScientificStageInput } from '../components/lab/LabScene'
+import { SCIENTIFIC_LESSON_RECHECK_MS } from '../lab/scientificSynthesis/clo2ScenarioTiming'
 import { getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import { useT } from '../i18n/useT'
 import { ElementDetailContent } from '../components/lab/ElementDetailContent'
@@ -585,6 +591,8 @@ export function LaboratoryPage() {
   )
 
   const clearReactorSlots = useCallback(() => {
+    // Сброс посреди урока: сцена и панель исчезнут, а голос учителя иначе договорит без кнопки «тише».
+    getLabTeacherNarrator().stop()
     resetEquation()
     setReactorMessage(null)
     setSynthesisSettledProduct(null)
@@ -793,8 +801,9 @@ export function LaboratoryPage() {
       stopAllAppSpeech()
       narrator.prime()
       void unlockAudioPlayback()
+      // Урок ClO₂ по шагам: реплики запускает панель шагов (speakStep), интро не нужно —
+      // первый шаг стартует сразу и перебил бы его.
       narrator.beginRun()
-      narrator.speakIntro()
     } else {
       getLabTeacherNarrator().stop()
     }
@@ -844,17 +853,40 @@ export function LaboratoryPage() {
     if (!reactorOpen || runId <= 0) return
     const productId = lastRunProductIdRef.current
     const activeRun = runId
-    const timer = window.setTimeout(() => {
+    let timer = 0
+    const guard = () => {
       if (synthesisSettledProductRef.current != null) return
       if (synthesisCompletingRef.current) return
+      // Урок ClO₂ по шагам ждёт ученика: пока сцена на связи, гарантия не вмешивается.
+      const lesson = clo2StepStore.getSnapshot()
+      if (lesson.runId === activeRun && lesson.status !== 'done') {
+        timer = window.setTimeout(guard, SCIENTIFIC_LESSON_RECHECK_MS)
+        return
+      }
       const compound =
         lastRunProductRef.current ?? resolveCatalogProduct(compoundById, productId)
       if (compound) {
         completeSynthesisSuccess(compound, activeRun)
       }
-    }, synthesisWatchdogMsRef.current)
+    }
+    timer = window.setTimeout(guard, synthesisWatchdogMsRef.current)
     return () => window.clearTimeout(timer)
   }, [reactorOpen, runId, completeSynthesisSuccess])
+
+  /** Научный маршрут: до запуска поле реактора показывает реагенты и продукты молекулами. */
+  const scientificStage = useMemo<ScientificStageInput | null>(() => {
+    if (!reactorOpen || !productCompoundId || !hasScientificReactorRecipe(productCompoundId)) return null
+    const product = compoundById[productCompoundId]
+    if (!product) return null
+    return {
+      leftTerms: deferredLeftTerms,
+      coProducts,
+      productId: product.id,
+      productCoeff,
+      balanced: isScientificEquationBalanced(deferredLeftTerms, coProducts, product, productCoeff, compoundById),
+      labels: { balanced: t('lab.stage.balanced'), unbalanced: t('lab.stage.unbalanced') },
+    }
+  }, [reactorOpen, productCompoundId, deferredLeftTerms, coProducts, productCoeff, t])
 
   const canRunSynthesis = useMemo(() => {
     const product = productCompoundId ? compoundById[productCompoundId] : undefined
@@ -975,9 +1007,9 @@ export function LaboratoryPage() {
       narrator.setLocale(locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru')
       void unlockAudioPlayback()
       narrator.warmPrefetch()
-      if (runId > 0) {
-        narrator.beginRun()
-        narrator.speakIntro()
+      const lesson = clo2StepStore.getSnapshot()
+      if (runId > 0 && lesson.runId === runId) {
+        narrator.speakStep(CLO2_STEP_IDS[lesson.step] ?? 'reagents')
       }
     } else {
       setTeacherLine(null)
@@ -1005,8 +1037,11 @@ export function LaboratoryPage() {
 
   const showSettledSynthesisView = reactorOpen && !synthRunActive && synthesisSettledProduct != null
   /** 3D/HUD продукта только во время синтеза или после успеха — не при подборе коэффициентов */
+  // Пока идёт урок по шагам, о продукте рассказывает панель урока — карточка сверху мешает кадру.
+  const clo2Lesson = useSyncExternalStore(clo2StepStore.subscribe, clo2StepStore.getSnapshot)
+  const clo2LessonActive = clo2Lesson.runId > 0 && clo2Lesson.status !== 'done'
   const showSynthProductHud =
-    (synthRunActive && lastRunProduct != null) || showSettledSynthesisView
+    ((synthRunActive && lastRunProduct != null) || showSettledSynthesisView) && !clo2LessonActive
   const productForHud =
     synthRunActive && lastRunProduct != null
       ? lastRunProduct
@@ -1134,9 +1169,11 @@ export function LaboratoryPage() {
               reactorGpuIdleReady={reactorGpuIdleReady}
               teacherMode={Boolean(labTeacherActive && teacherVoiceOn && (synthRunActive || runId > 0))}
               onNarrationCue={labTeacherActive && teacherVoiceOn ? onLabNarrationCue : undefined}
+              scientificStage={scientificStage}
             />
           </Suspense>
         </div>
+        <Clo2MechanismPanel active={reactorOpen} />
         {showSettledSynthesisView ? (
           <div className={styles.synthVignette} aria-hidden />
         ) : null}

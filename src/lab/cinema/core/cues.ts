@@ -14,6 +14,11 @@ export type Cue<Id extends string = string> = {
 export type CueRunner<Id extends string = string> = {
   update: (t: number, fire: (id: Id) => void) => void
   reset: () => void
+  /**
+   * Перемотка без выстрелов: всё, что строго раньше t, считается уже случившимся,
+   * остальное выстрелит заново. Нужна для «Повторить шаг».
+   */
+  seek: (t: number) => void
 }
 
 export function createCueRunner<Id extends string>(cues: readonly Cue<Id>[]): CueRunner<Id> {
@@ -29,6 +34,10 @@ export function createCueRunner<Id extends string>(cues: readonly Cue<Id>[]): Cu
     },
     reset() {
       next = 0
+    },
+    seek(t) {
+      next = 0
+      while (next < sorted.length && sorted[next]!.at < t) next += 1
     },
   }
 }

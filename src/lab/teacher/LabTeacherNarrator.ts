@@ -1,11 +1,12 @@
 /**
  * Озвучка преподавателя в лаборатории.
  *
- * 1. Prefetch lab-prosody (intro → tension → …).
- * 2. Новый cue прерывает текущую речь.
+ * 1. Prefetch lab-prosody (intro → reagents → … → balance).
+ * 2. Речь идёт по шагам урока: новый шаг прерывает текущую реплику.
+ *    Cue сцены дают только SFX.
  * 3. Session-кэш аудио.
  * 4. Эксклюзивный канал: системный speechSynthesis глушится, только neural.
- * 5. Поздний intro не перебивает уже начавшиеся cue.
+ * 5. Поздний intro не перебивает уже начавшийся шаг.
  */
 
 import {
@@ -22,6 +23,7 @@ import {
 } from '../../learn/learnSpeechText'
 import {
   playNeuralAudioBase64,
+  stopNeuralPlayback,
   unlockAudioPlayback,
 } from '../../learn/learnSpeechPlayback'
 import {
@@ -31,7 +33,7 @@ import {
   stopAllAppSpeech,
 } from '../../learn/learnSpeechExclusive'
 import {
-  CLO2_SPEECH_SILENT,
+  CLO2_TEACHER_LINE_IDS,
   CLO2_TEACHER_SFX,
   getClo2TeacherLine,
   type Clo2TeacherLine,
@@ -39,14 +41,17 @@ import {
   type LabTeacherLocale,
 } from './clo2TeacherScript'
 import { playLabReactionSfx, primeLabReactionSfx } from './labReactionSfx'
-import type { Clo2CueId } from '../cinema/scenes/clo2/storyboard'
+import type { Clo2CueId, Clo2StepId } from '../cinema/scenes/clo2/clo2Steps'
 
 const VOICE_STORAGE_KEY = 'atomlab-lab-teacher-voice'
 const PREFETCH_CONCURRENCY = 3
 /** Короткий wait — сцена уже идёт; долгий intro опаздывал и молчал. */
 const INTRO_READY_TIMEOUT_MS = 700
-/** Не блокируем сцену холодным TTS: не успел — HUD без голоса. */
-const CUE_READY_TIMEOUT_MS = 650
+/**
+ * Пошаговый режим ждёт конца речи, поэтому холодный TTS можно подождать дольше,
+ * чем в старом непрерывном ролике; не успел — HUD без голоса.
+ */
+const LINE_READY_TIMEOUT_MS = 2400
 
 export function readLabTeacherVoiceEnabled(): boolean {
   try {
@@ -80,41 +85,25 @@ type CacheEntry = {
   key: string
 }
 
-const CLO2_VOICED_CUES: readonly Clo2TeacherLineId[] = [
-  'intro',
-  'tension',
-  'transfer',
-  'break',
-  'pairA',
-  'radicalA',
-  'complete',
-]
+const CLO2_VOICED_LINES: readonly Clo2TeacherLineId[] = CLO2_TEACHER_LINE_IDS
 
-const PRIORITY_PREFETCH: readonly Clo2TeacherLineId[] = [
-  'intro',
-  'tension',
-  'transfer',
-  'break',
-  'pairA',
-  'radicalA',
-  /** Финал короткий — греем заранее, чтобы после реакции не ждать TTS. */
-  'complete',
-]
+/** Греем по порядку урока: к следующему шагу реплика обычно уже в кэше. */
+const PRIORITY_PREFETCH: readonly Clo2TeacherLineId[] = CLO2_TEACHER_LINE_IDS
 
 const sessionAudioCache = new Map<string, LineAudio>()
 
 function cacheKey(locale: LabTeacherLocale, speak: string): string {
-  return `lab|v5|${locale}|${speak}`
+  return `lab|v6|${locale}|${speak}`
 }
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-function nextCueAfter(id: Clo2TeacherLineId): Clo2TeacherLineId | null {
-  const i = CLO2_VOICED_CUES.indexOf(id)
-  if (i < 0 || i >= CLO2_VOICED_CUES.length - 1) return null
-  return CLO2_VOICED_CUES[i + 1] ?? null
+function nextLineAfter(id: Clo2TeacherLineId): Clo2TeacherLineId | null {
+  const i = CLO2_VOICED_LINES.indexOf(id)
+  if (i < 0 || i >= CLO2_VOICED_LINES.length - 1) return null
+  return CLO2_VOICED_LINES[i + 1] ?? null
 }
 
 export class LabTeacherNarrator {
@@ -134,7 +123,7 @@ export class LabTeacherNarrator {
 
   private playToken = 0
   private channelEpoch = 0
-  /** После первого cue поздний intro больше не стартует. */
+  /** После первого шага поздний intro больше не стартует. */
   private suppressIntro = false
 
   setLocale(locale: LabTeacherLocale): void {
@@ -232,6 +221,16 @@ export class LabTeacherNarrator {
     this.setSpeaking(false)
   }
 
+  /**
+   * Смена реплики: глушим старое аудио сразу (иначе оно звучит, пока грузится новое),
+   * но флаг speaking не роняем — ожидающий конца речи шаг не должен увидеть ложный «false».
+   */
+  private interruptPlayback(): void {
+    this.playToken += 1
+    silenceForeignSpeech('lab')
+    if (this.speaking) stopNeuralPlayback()
+  }
+
   private abortPrefetch(): void {
     this.prefetchAbort?.abort()
     this.prefetchAbort = null
@@ -301,6 +300,8 @@ export class LabTeacherNarrator {
 
     entry.ready = this.synthLine(id, locale, entryAbort.signal).then((audio) => {
       if (audio) entry.result = audio
+      // Неудача не кэшируется навсегда: следующий шаг попробует синтез заново.
+      else if (this.cache.get(id) === entry) this.cache.delete(id)
       return audio
     })
 
@@ -324,7 +325,7 @@ export class LabTeacherNarrator {
           if (entry) await entry.ready
         }
 
-        const rest = CLO2_VOICED_CUES.filter((id) => !PRIORITY_PREFETCH.includes(id))
+        const rest = CLO2_VOICED_LINES.filter((id) => !PRIORITY_PREFETCH.includes(id))
         for (const id of rest) this.attachCacheEntry(id, locale, abort)
 
         let i = 0
@@ -358,29 +359,31 @@ export class LabTeacherNarrator {
       const entry = this.cache.get(id)
       if (entry?.result?.length) return
       if (entry) {
-        const audio = await Promise.race([entry.ready, delay(80).then(() => null)])
-        if (audio && audio.length > 0) return
-      } else {
-        await delay(40)
+        // Ждём один раз, пока запись не решится (звук или null) или не выйдет время.
+        // Крутить цикл на уже решённом промисе нельзя: это микрозадачи без выхода
+        // в event loop — страница и 3D-сцена замирают до дедлайна.
+        await Promise.race([entry.ready, delay(Math.max(0, deadline - Date.now()))])
+        return
       }
+      await delay(40)
     }
   }
 
   private async playFromCache(id: Clo2TeacherLineId, token: number, channelEpoch: number): Promise<void> {
-    if (!this.voiceOn) return
-    if (!isSpeechChannelCurrent(channelEpoch, 'lab')) return
-
     const line = getClo2TeacherLine(this.locale, id)
-    if (!line.speak.trim()) return
+    if (!this.voiceOn || !isSpeechChannelCurrent(channelEpoch, 'lab') || !line.speak.trim()) {
+      if (token === this.playToken) this.setSpeaking(false)
+      return
+    }
 
     this.lastSpokenId = id
     this.setSpeaking(true)
 
-    const next = nextCueAfter(id)
-    if (next) void this.ensureLineReady(next, CUE_READY_TIMEOUT_MS)
+    const next = nextLineAfter(id)
+    if (next) void this.ensureLineReady(next, LINE_READY_TIMEOUT_MS)
 
     try {
-      await this.ensureLineReady(id, CUE_READY_TIMEOUT_MS)
+      await this.ensureLineReady(id, LINE_READY_TIMEOUT_MS)
       if (token !== this.playToken) return
       if (!isSpeechChannelCurrent(channelEpoch, 'lab')) return
 
@@ -399,7 +402,7 @@ export class LabTeacherNarrator {
           audio = raced
         }
       } else {
-        // Слишком поздно стартовать synth на cue — пропускаем голос, HUD уже есть.
+        // Слишком поздно стартовать synth — пропускаем голос, HUD уже есть.
         return
       }
 
@@ -436,27 +439,16 @@ export class LabTeacherNarrator {
 
   async speakLine(id: Clo2TeacherLineId, opts?: { force?: boolean }): Promise<void> {
     const line = getClo2TeacherLine(this.locale, id)
-    const isCue = id !== 'intro'
-    const silent = isCue && CLO2_SPEECH_SILENT.has(id as Clo2CueId)
 
-    /** Без включённого «Объяснения» — ни текст, ни голос, ни SFX. */
+    /** Без включённого «Объяснения» — ни текст, ни голос. */
     if (!this.voiceOn && !opts?.force) return
-
-    if (silent && !opts?.force) {
-      const sfx = CLO2_TEACHER_SFX[id as Clo2CueId]
-      if (sfx) playLabReactionSfx(sfx)
-      return
-    }
 
     if (!line.speak.trim()) return
 
-    if (isCue) this.suppressIntro = true
+    if (id !== 'intro') this.suppressIntro = true
 
     this.publish(line)
-    if (isCue) {
-      const sfx = CLO2_TEACHER_SFX[id as Clo2CueId]
-      if (sfx) playLabReactionSfx(sfx)
-    }
+    this.lastSpokenId = id
 
     if (!isSpeechChannelCurrent(this.channelEpoch, 'lab')) {
       this.channelEpoch = claimSpeechChannel('lab')
@@ -464,7 +456,7 @@ export class LabTeacherNarrator {
       silenceForeignSpeech('lab')
     }
 
-    this.haltPlayback()
+    this.interruptPlayback()
     const token = this.playToken
     const channelEpoch = this.channelEpoch
 
@@ -473,9 +465,21 @@ export class LabTeacherNarrator {
     })
   }
 
-  speakCue(id: Clo2CueId): void {
+  /**
+   * Реплика шага: прерывает текущую речь и публикует титр.
+   * isSpeaking() становится true синхронно (при включённом голосе) и гаснет,
+   * когда реплика договорена или голос пропущен.
+   */
+  speakStep(id: Clo2StepId): void {
     this.suppressIntro = true
     void this.speakLine(id)
+  }
+
+  /** Событие сцены: только SFX, речь не трогаем. */
+  speakCue(id: Clo2CueId): void {
+    if (!this.voiceOn) return
+    const sfx = CLO2_TEACHER_SFX[id]
+    if (sfx) playLabReactionSfx(sfx)
   }
 
   speakIntro(): void {

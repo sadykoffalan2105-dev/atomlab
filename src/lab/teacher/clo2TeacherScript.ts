@@ -1,180 +1,73 @@
-﻿/**
- * Сценарий преподавателя для синтеза ClO₂.
+/**
+ * Сценарий преподавателя для синтеза ClO₂ — одна реплика на шаг механизма.
  *
- * Правило: каждая реплика ≤ wall-gap до следующего cue (~1–3 с речи).
- * Живой разговорный тон — как у преподавателя у стола, не диктор.
+ * Тексты не дублируем: title/speak берутся из пакета урока (clo2MechanismText),
+ * чтобы панель шагов и голос никогда не расходились.
  */
 
-import type { Clo2CueId } from '../cinema/scenes/clo2/storyboard'
+import { CLO2_STEP_IDS, type Clo2CueId, type Clo2StepId } from '../cinema/scenes/clo2/clo2Steps'
+import {
+  getClo2MechanismText,
+  type Clo2Locale,
+  type Clo2MechanismText,
+} from '../cinema/scenes/clo2/clo2MechanismText'
+import type { playLabReactionSfx } from './labReactionSfx'
 
-export type LabTeacherLocale = 'ru' | 'en' | 'uz'
+export type LabTeacherLocale = Clo2Locale
 
-export type Clo2TeacherLineId = 'intro' | Clo2CueId
+export type Clo2TeacherLineId = 'intro' | Clo2StepId
 
 export type Clo2TeacherLine = {
   id: Clo2TeacherLineId
   /** Короткий титр в HUD */
   title: string
-  /** Полный текст для TTS — одна-две фразы */
+  /** Текст для TTS — одна-три короткие фразы */
   speak: string
 }
 
-type ScriptPack = Record<Clo2TeacherLineId, Clo2TeacherLine>
+/** Порядок реплик урока: вступление, затем шаги. */
+export const CLO2_TEACHER_LINE_IDS: readonly Clo2TeacherLineId[] = ['intro', ...CLO2_STEP_IDS]
 
-/** Cue без отдельной озвучки (визуал остаётся; речь уже покрыта соседним cue). */
-export const CLO2_SPEECH_SILENT: ReadonlySet<Clo2CueId> = new Set([
-  'pairB',
-  'radicalB',
-  'embryo',
-  /** После реакции: только SFX/картинка — длинный хвост давал задержку settle. */
-  'precipitate',
-  'birth',
-])
+type LabReactionSfxKind = Parameters<typeof playLabReactionSfx>[0]
 
-const RU: ScriptPack = {
-  intro: {
-    id: 'intro',
-    title: 'Начинаем',
-    speak: 'Сейчас получим диоксид хлора. Смотрите на степени окисления хлора.',
-  },
-  tension: {
-    id: 'tension',
-    title: 'Сближение',
-    speak: 'Хлор подходит. Связь в молекуле натягивается.',
-  },
-  transfer: {
-    id: 'transfer',
-    title: 'Перенос',
-    speak: 'Перенос электрона из хлорита. Плюс три стало плюс четыре.',
-  },
-  break: {
-    id: 'break',
-    title: 'Разрыв',
-    speak: 'Связь порвалась. Хлор принял электрон — минус один.',
-  },
-  pairA: {
-    id: 'pairA',
-    title: 'Хлорид натрия',
-    speak: 'Ион хлора с натрием. Образуется соль.',
-  },
-  pairB: { id: 'pairB', title: 'Вторая соль', speak: '' },
-  radicalA: {
-    id: 'radicalA',
-    title: 'Диоксид хлора',
-    speak: 'Это диоксид хлора. Угол связей — сто семнадцать градусов.',
-  },
-  radicalB: { id: 'radicalB', title: 'Второй газ', speak: '' },
-  embryo: { id: 'embryo', title: 'Газ готов', speak: '' },
-  precipitate: { id: 'precipitate', title: 'Осадок', speak: '' },
-  birth: { id: 'birth', title: 'Продукты', speak: '' },
-  complete: {
-    id: 'complete',
-    title: 'Итог',
-    speak: 'Итог: хлорит окислился, хлор восстановился.',
-  },
+/** SFX на событиях сцены (речь к cue больше не привязана). */
+export const CLO2_TEACHER_SFX: Partial<Record<Clo2CueId, LabReactionSfxKind>> = {
+  /** пузырёк Cl₂ растворился — мягкий шорох */
+  bubble: 'dust',
+  /** новая связь O–Cl и разрыв Cl–Cl */
+  clTransfer: 'spark',
+  /** второй хлорит «защёлкнулся» на центральном Cl */
+  adduct: 'snap',
+  /** комплекс распался на два радикала */
+  split: 'spark',
 }
 
-const EN: ScriptPack = {
-  intro: {
-    id: 'intro',
-    title: 'Starting',
-    speak: 'Now we make chlorine dioxide. Watch the oxidation states of chlorine.',
-  },
-  tension: {
-    id: 'tension',
-    title: 'Approach',
-    speak: 'Chlorine moves in. The bond stretches.',
-  },
-  transfer: {
-    id: 'transfer',
-    title: 'Transfer',
-    speak: 'Electron transfer from chlorite. Plus three becomes plus four.',
-  },
-  break: {
-    id: 'break',
-    title: 'Break',
-    speak: 'The bond snaps. Chlorine took the electron — minus one.',
-  },
-  pairA: {
-    id: 'pairA',
-    title: 'Sodium chloride',
-    speak: 'Chloride meets sodium. Salt forms.',
-  },
-  pairB: { id: 'pairB', title: 'Second salt', speak: '' },
-  radicalA: {
-    id: 'radicalA',
-    title: 'Chlorine dioxide',
-    speak: 'This is chlorine dioxide. Bond angle — one hundred seventeen degrees.',
-  },
-  radicalB: { id: 'radicalB', title: 'Second gas', speak: '' },
-  embryo: { id: 'embryo', title: 'Gas ready', speak: '' },
-  precipitate: { id: 'precipitate', title: 'Precipitate', speak: '' },
-  birth: { id: 'birth', title: 'Products', speak: '' },
-  complete: {
-    id: 'complete',
-    title: 'Summary',
-    speak: 'Summary: chlorite oxidized, chlorine reduced.',
-  },
-}
+type LinePack = Record<Clo2TeacherLineId, Clo2TeacherLine>
 
-const UZ: ScriptPack = {
-  intro: {
-    id: 'intro',
-    title: 'Boshlaymiz',
-    speak: 'Hozir xlor dioksid olamiz. Xlorning oksidlanish darajasiga qarang.',
-  },
-  tension: {
-    id: 'tension',
-    title: 'Yaqinlashish',
-    speak: 'Xlor yaqinlashadi. Molekuladagi bog choziladi.',
-  },
-  transfer: {
-    id: 'transfer',
-    title: 'Otish',
-    speak: 'Elektron xloritdan o\'tadi. Uchdan tortga aylandi.',
-  },
-  break: {
-    id: 'break',
-    title: 'Uzilish',
-    speak: 'Bog uzildi. Xlor elektronni oldi — minus bir.',
-  },
-  pairA: {
-    id: 'pairA',
-    title: 'Natriy xlorid',
-    speak: 'Xlorid natriy bilan uchrashdi. Tuz hosil bo\'ldi.',
-  },
-  pairB: { id: 'pairB', title: 'Ikkinchi tuz', speak: '' },
-  radicalA: {
-    id: 'radicalA',
-    title: 'Xlor dioksid',
-    speak: 'Bu xlor dioksid. Bog\'lar burchagi — 117 daraja.',
-  },
-  radicalB: { id: 'radicalB', title: 'Ikkinchi gaz', speak: '' },
-  embryo: { id: 'embryo', title: 'Gaz tayyor', speak: '' },
-  precipitate: { id: 'precipitate', title: "Cho'kma", speak: '' },
-  birth: { id: 'birth', title: 'Mahsulotlar', speak: '' },
-  complete: {
-    id: 'complete',
-    title: 'Xulosa',
-    speak: 'Xulosa: xlorit oksidlandi, xlor tiklandi.',
-  },
-}
+const packCache = new WeakMap<Clo2MechanismText, LinePack>()
 
-const PACKS: Record<LabTeacherLocale, ScriptPack> = { ru: RU, en: EN, uz: UZ }
-
-/** Cue, на которых играет SFX (не все реплики). */
-export const CLO2_TEACHER_SFX: Partial<Record<Clo2CueId, 'spark' | 'snap' | 'dust'>> = {
-  tension: 'spark',
-  break: 'spark',
-  pairA: 'snap',
-  precipitate: 'dust',
+function buildPack(text: Clo2MechanismText): LinePack {
+  const pack = {
+    intro: { id: 'intro', title: text.intro.title, speak: text.intro.speak },
+  } as LinePack
+  for (const id of CLO2_STEP_IDS) {
+    const step = text.steps[id]
+    pack[id] = { id, title: step.title, speak: step.speak }
+  }
+  return pack
 }
 
 export function getClo2TeacherLine(
   locale: LabTeacherLocale,
   id: Clo2TeacherLineId,
 ): Clo2TeacherLine {
-  return PACKS[locale][id] ?? PACKS.ru[id]
+  const text = getClo2MechanismText(locale)
+  let pack = packCache.get(text)
+  if (!pack) {
+    pack = buildPack(text)
+    packCache.set(text, pack)
+  }
+  return pack[id]
 }
 
 export function getLabTeacherScriptProductIds(): readonly string[] {

@@ -1,26 +1,24 @@
 import { storyWallDuration } from '../cinema/core/storyTime'
-import { CLO2_SEGMENTS, CLO2_SEGMENTS_TEACHER } from '../cinema/scenes/clo2/storyboard'
-import { hasLabTeacherScript } from '../teacher/clo2TeacherScript'
+import { CLO2_FINISH } from '../cinema/scenes/clo2/storyboard'
 
 /**
  * Таймауты гарантии успеха для научных сцен.
  *
- * Сама раскадровка живёт в ATOMLAB Cinema (src/lab/cinema/scenes), здесь только
- * пересчёт её экранной длительности в watchdog лаборатории: сцена со slow-motion
- * идёт дольше «времени сюжета», и гарантия обязана это учитывать.
+ * ClO₂ — урок по шагам: сколько он идёт, решает ученик, поэтому watchdog здесь —
+ * это только бюджет на старт сцены (WebGL, шейдеры, первый кадр). Как только
+ * сцена подключилась к clo2StepStore, лаборатория ждёт её собственного complete
+ * (см. isScientificLessonHolding).
  */
 
 /** Запас на разгон WebGL, композер и появление hero-слота после сцены. */
-const WATCHDOG_MARGIN_MS = 4500
-/** Доп. запас под озвучку преподавателя (короткий хвост complete). */
-const TEACHER_WATCHDOG_MARGIN_MS = 3500
+const WATCHDOG_MARGIN_MS = 6500
 
 export function scientificSynthesisWatchdogMs(productId: string): number | null {
   if (productId === 'clo2') {
-    const teacher = hasLabTeacherScript(productId)
-    const segments = teacher ? CLO2_SEGMENTS_TEACHER : CLO2_SEGMENTS
-    const margin = teacher ? TEACHER_WATCHDOG_MARGIN_MS : WATCHDOG_MARGIN_MS
-    return Math.ceil(storyWallDuration(segments) * 1000 + margin)
+    return Math.ceil(storyWallDuration([CLO2_FINISH]) * 1000 + WATCHDOG_MARGIN_MS)
   }
   return null
 }
+
+/** Пока урок по шагам на связи, повторная проверка гарантии — с таким шагом. */
+export const SCIENTIFIC_LESSON_RECHECK_MS = 4000

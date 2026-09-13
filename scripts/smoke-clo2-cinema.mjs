@@ -19,9 +19,9 @@ const PORT = process.env.SMOKE_PORT ?? '5188'
 const BASE = process.env.SMOKE_BASE_URL ?? `http://localhost:${PORT}`
 const OUT = join(process.cwd(), '.smoke', 'clo2')
 const RUN_BUTTON = 'Проверить и запустить синтез'
-/** Экранная длительность раскадровки + запас на разгон WebGL. */
-const SCENE_MS = 16_000
-const FRAME_STEP_MS = 500
+/** Урок по шагам: робот жмёт «Далее», как ученик. Потолок — на медленный программный WebGL. */
+const SCENE_MS = 150_000
+const FRAME_STEP_MS = 1000
 /** Область кадра, где идёт реакция — крупный план для разбора глазами. */
 const ACTION_CLIP = { x: 360, y: 250, width: 720, height: 410 }
 
@@ -104,7 +104,11 @@ async function main() {
   const baseline = createHash('sha1').update(before).digest('hex')
 
   await run.click()
-  console.log('синтез запущен, снимаю кадры…')
+  console.log('синтез запущен, прохожу урок по шагам…')
+  const lessonPanel = page.locator('[data-lab-lesson-panel]')
+  await lessonPanel.waitFor({ timeout: 60_000 })
+  const stepsSeen = new Set()
+  let lessonFinished = false
 
   const frames = []
   const phases = new Set()
@@ -121,8 +125,21 @@ async function main() {
     frames.push({ name, t, hash: createHash('sha1').update(shot).digest('hex') })
     const phase = await page.getAttribute('[data-synth-phase]', 'data-synth-phase').catch(() => null)
     if (phase) phases.add(phase)
+    const status = await lessonPanel.getAttribute('data-status', { timeout: 500 }).catch(() => null)
+    if (status == null && stepsSeen.size > 0) {
+      lessonFinished = true
+      break
+    }
+    const counter = await lessonPanel.locator('header').innerText({ timeout: 500 }).catch(() => '')
+    if (counter) stepsSeen.add(counter.replace(/\s+/g, ' '))
+    if (status === 'paused') {
+      const next = lessonPanel.locator('footer button').last()
+      if (await next.isEnabled().catch(() => false)) await next.click().catch(() => {})
+    }
     await page.waitForTimeout(FRAME_STEP_MS)
   }
+  // Лаборатория после урока показывает готовый продукт — даём ей отрисоваться.
+  await page.waitForTimeout(4000)
 
   writeFileSync(join(OUT, 'page-after-run.png'), await page.screenshot({ type: 'png' }))
   const contextLost = await page.evaluate(() => window.__contextLost ?? 0)
@@ -131,6 +148,7 @@ async function main() {
   console.log(`\nкадров: ${frames.length}, уникальных: ${unique}`)
   console.log(`фазы синтеза: ${[...phases].join(', ') || '—'}`)
   console.log(`потерь контекста WebGL: ${contextLost}`)
+  console.log(`шагов урока пройдено: ${stepsSeen.size}, урок завершён: ${lessonFinished}`)
 
   const problems = []
   if (pageErrors.length) problems.push(`ошибки страницы:\n  ${pageErrors.join('\n  ')}`)
@@ -141,6 +159,8 @@ async function main() {
     problems.push('кадр совпал с реактором до запуска — сцена не отрисовалась')
   }
   if (!phases.size) problems.push('лаборатория не сообщила ни одной фазы синтеза')
+  if (stepsSeen.size < 8) problems.push(`урок показал не все шаги: ${stepsSeen.size}/8`)
+  if (!lessonFinished) problems.push('урок не дошёл до конца — продукт не передан лаборатории')
 
   if (problems.length) throw new Error(`FAIL\n${problems.join('\n')}`)
   console.log(`\nsmoke-clo2-cinema: pass · кадры в ${OUT}`)

@@ -1,0 +1,578 @@
+/* Панель пошагового механизма ClO₂ — в стиле LabTeacherDock / реактора. */
+
+.panel {
+  /* цвета легенды — совпадают с обозначениями в 3D-сцене */
+  --mech-accent: #3dffec;
+  --mech-electron: #9ff8ff;
+  --mech-pair: #8ff3ff;
+  --mech-single: #ffb347;
+  --mech-text: rgba(185, 205, 235, 0.92);
+  --mech-muted: rgba(150, 170, 210, 0.82);
+
+  position: absolute;
+  top: 70px;
+  left: 0.75rem;
+  z-index: 29;
+  display: flex;
+  flex-direction: column;
+  width: min(380px, 92vw);
+  max-width: calc(100% - 1.5rem);
+  /* снизу место под реактор; --clo2-panel-bottom-gap можно задать снаружи.
+     Не ниже 14rem — иначе при высоком реакторе текст не помещается. */
+  max-height: min(
+    calc(100% - 70px - 0.75rem),
+    max(14rem, calc(100% - 70px - var(--clo2-panel-bottom-gap, var(--lab-reactor-clearance, 0px)) - 0.75rem))
+  );
+  box-sizing: border-box;
+  padding: 0.65rem 0.75rem 0.55rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(61, 255, 236, 0.3);
+  background: linear-gradient(165deg, rgba(12, 16, 38, 0.94), rgba(6, 8, 20, 0.96));
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 0 18px rgba(61, 255, 236, 0.08);
+  color: #e8ecff;
+  pointer-events: auto;
+  font-family: inherit;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.panel[data-status='playing'] {
+  border-color: rgba(110, 220, 210, 0.42);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(120, 230, 220, 0.08) inset,
+    0 0 28px rgba(60, 160, 170, 0.14);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Шапка ─────────────────────────────────────────────── */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  flex-shrink: 0;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9af0e8;
+}
+
+.playing {
+  display: inline-flex;
+}
+
+.playingDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #6ef0c8;
+  box-shadow: 0 0 8px rgba(110, 240, 200, 0.7);
+  animation: mechPulse 1.1s ease-in-out infinite;
+}
+
+@keyframes mechPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.counter {
+  margin-left: auto;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--mech-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.collapseBtn {
+  display: none;
+  appearance: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(130, 170, 220, 0.35);
+  background: rgba(14, 20, 36, 0.9);
+  color: rgba(200, 215, 240, 0.9);
+  cursor: pointer;
+}
+
+.collapseBtn svg {
+  transition: transform 0.2s ease;
+}
+
+.panel[data-collapsed='1'] .collapseBtn svg {
+  transform: rotate(180deg);
+}
+
+/* ── Прогресс ──────────────────────────────────────────── */
+
+.progress {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.22rem;
+  margin-bottom: 0.6rem;
+  flex-shrink: 0;
+}
+
+.seg {
+  position: relative;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: rgba(90, 120, 170, 0.26);
+  overflow: hidden;
+  transition:
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.seg[data-state='done'] {
+  background: rgba(61, 255, 236, 0.55);
+}
+
+.seg[data-state='current'] {
+  background: rgba(61, 255, 236, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(61, 255, 236, 0.75),
+    0 0 10px rgba(61, 255, 236, 0.45);
+}
+
+.seg[data-state='current']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--mech-accent);
+  opacity: 0.85;
+}
+
+/* пока шаг играет — «бегущая» заливка текущего сегмента (чистый CSS, без ре-рендеров) */
+.panel[data-status='playing'] .seg[data-state='current']::after {
+  opacity: 0.9;
+  background: linear-gradient(90deg, transparent 0%, var(--mech-accent) 50%, transparent 100%);
+  animation: mechSweep 1.4s linear infinite;
+}
+
+@keyframes mechSweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ── Текст ─────────────────────────────────────────────── */
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0 -0.35rem;
+  padding: 0 0.35rem 0.2rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(61, 255, 236, 0.3) transparent;
+}
+
+.title {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: rgba(236, 244, 255, 0.97);
+}
+
+.body {
+  margin: 0 0 0.55rem;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--mech-text);
+}
+
+.equation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  margin: 0 0 0.55rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 9px;
+  border: 1px solid rgba(61, 255, 236, 0.38);
+  background:
+    linear-gradient(90deg, rgba(61, 255, 236, 0.08), rgba(61, 255, 236, 0) 70%),
+    rgba(6, 10, 22, 0.95);
+  box-shadow: 0 0 12px rgba(61, 255, 236, 0.1);
+  color: #e8f4ff;
+  font-family: ui-monospace, 'Cascadia Code', 'Segoe UI', monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  overflow-x: auto;
+}
+
+.equationLine {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.note,
+.safety {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.66rem;
+  line-height: 1.45;
+  color: var(--mech-muted);
+}
+
+.noteMark,
+.safetyMark {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 0.95rem;
+  height: 0.95rem;
+  margin-top: 0.05rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  font-style: italic;
+  font-family: Georgia, 'Times New Roman', serif;
+  border: 1px solid rgba(140, 180, 230, 0.45);
+  color: #a9c8ff;
+}
+
+.safety {
+  padding: 0.38rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 160, 90, 0.35);
+  background: rgba(255, 138, 61, 0.08);
+  color: #ffd2b0;
+}
+
+.safetyMark {
+  font-style: normal;
+  font-family: inherit;
+  border-color: rgba(255, 160, 90, 0.6);
+  color: #ffb070;
+}
+
+/* ── Легенда ───────────────────────────────────────────── */
+
+.legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.28rem 0.6rem;
+  margin: 0.15rem 0 0.1rem;
+  padding: 0.45rem 0 0;
+  list-style: none;
+  border-top: 1px solid rgba(61, 255, 236, 0.12);
+  font-size: 0.62rem;
+  line-height: 1.3;
+  color: var(--mech-muted);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.legendWater {
+  grid-column: 1 / -1;
+  font-style: italic;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 0.875rem;
+  overflow: visible;
+}
+
+.electronHalo {
+  fill: var(--mech-electron);
+  opacity: 0.28;
+}
+
+.electronCore {
+  fill: #fff;
+  filter: drop-shadow(0 0 2px var(--mech-electron));
+}
+
+.pairArrow {
+  color: var(--mech-pair);
+  filter: drop-shadow(0 0 2px rgba(61, 255, 236, 0.45));
+}
+
+.singleArrow {
+  color: var(--mech-single);
+  filter: drop-shadow(0 0 2px rgba(255, 195, 107, 0.4));
+}
+
+.waterIcon {
+  color: rgba(140, 170, 215, 0.6);
+}
+
+/* ── Управление ────────────────────────────────────────── */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(61, 255, 236, 0.12);
+  flex-shrink: 0;
+}
+
+.secondaryBtn,
+.autoplayBtn,
+.primaryBtn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  padding: 0 0.6rem;
+  border-radius: 0.55rem;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.secondaryBtn,
+.autoplayBtn {
+  border: 1px solid rgba(130, 170, 220, 0.35);
+  background: rgba(14, 20, 36, 0.9);
+  color: rgba(200, 215, 240, 0.9);
+}
+
+.secondaryBtn:hover:not(:disabled),
+.autoplayBtn:hover {
+  border-color: rgba(140, 220, 230, 0.55);
+  color: #dffcff;
+}
+
+.switch {
+  position: relative;
+  width: 1.45rem;
+  height: 0.8rem;
+  border-radius: 999px;
+  background: rgba(90, 120, 170, 0.35);
+  transition: background 0.2s ease;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 0.1rem;
+  left: 0.1rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: rgba(200, 215, 240, 0.85);
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.autoplayBtn[aria-pressed='true'] {
+  border-color: rgba(61, 255, 236, 0.55);
+  color: #9af0e8;
+}
+
+.autoplayBtn[aria-pressed='true'] .switch {
+  background: rgba(61, 255, 236, 0.35);
+}
+
+.autoplayBtn[aria-pressed='true'] .switch::after {
+  transform: translateX(0.65rem);
+  background: var(--mech-accent);
+  box-shadow: 0 0 6px rgba(61, 255, 236, 0.7);
+}
+
+.primaryBtn {
+  margin-left: auto;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(61, 255, 236, 0.6);
+  background: linear-gradient(180deg, rgba(20, 60, 70, 0.95) 0%, rgba(8, 28, 40, 0.98) 100%);
+  color: #3dffec;
+  box-shadow: 0 0 14px rgba(61, 255, 236, 0.2);
+}
+
+.primaryBtn:hover:not(:disabled) {
+  border-color: rgba(61, 255, 236, 0.9);
+  color: #e8fffb;
+  box-shadow: 0 0 20px rgba(61, 255, 236, 0.32);
+}
+
+.secondaryBtn:disabled,
+.primaryBtn:disabled {
+  cursor: default;
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.secondaryBtn:focus-visible,
+.autoplayBtn:focus-visible,
+.primaryBtn:focus-visible,
+.collapseBtn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mech-accent) 70%, white);
+  outline-offset: 2px;
+}
+
+.keysHint {
+  margin: 0.35rem 0 0;
+  font-size: 0.58rem;
+  color: rgba(130, 150, 190, 0.7);
+  text-align: right;
+}
+
+@media (hover: none) {
+  .keysHint {
+    display: none;
+  }
+}
+
+/* ── Мобильный: нижний лист со сворачиваемым текстом ──── */
+
+@media (max-width: 720px) {
+  .panel {
+    top: auto;
+    left: 0.45rem;
+    right: 0.45rem;
+    /* Реактор внизу фиксирован поверх канваса — лист встаёт над ним, иначе кнопки не нажать. */
+    bottom: calc(var(--clo2-panel-bottom-gap, var(--lab-reactor-clearance, 0px)) + max(0.55rem, env(safe-area-inset-bottom, 0px)));
+    width: auto;
+    max-width: none;
+    min-height: 0;
+    max-height: min(52vh, max(8rem, calc(100% - var(--clo2-panel-bottom-gap, var(--lab-reactor-clearance, 0px)) - 1.1rem)));
+    padding: 0.55rem 0.6rem 0.5rem;
+    border-radius: 0.85rem 0.85rem 0.7rem 0.7rem;
+  }
+
+  .collapseBtn {
+    display: inline-flex;
+  }
+
+  .progress {
+    margin-bottom: 0.45rem;
+  }
+
+  .title {
+    font-size: 0.84rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .body {
+    font-size: 0.72rem;
+  }
+
+  .equation {
+    font-size: 0.74rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .panel[data-collapsed='1'] .details {
+    display: none;
+  }
+
+  .panel[data-collapsed='1'] .equation {
+    margin-bottom: 0;
+  }
+
+  .controls {
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
+  }
+
+  .secondaryBtn,
+  .autoplayBtn,
+  .primaryBtn {
+    min-height: 2.25rem;
+  }
+
+  .keysHint {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .legend {
+    grid-template-columns: 1fr;
+  }
+
+  .secondaryBtn,
+  .autoplayBtn {
+    padding: 0 0.45rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .seg,
+  .switch,
+  .switch::after,
+  .collapseBtn svg,
+  .secondaryBtn,
+  .autoplayBtn,
+  .primaryBtn {
+    transition: none;
+  }
+
+  .playingDot {
+    animation: none;
+    opacity: 1;
+  }
+
+  .panel[data-status='playing'] .seg[data-state='current']::after {
+    animation: none;
+    background: var(--mech-accent);
+    opacity: 0.6;
+  }
+}

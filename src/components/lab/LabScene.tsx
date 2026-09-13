@@ -41,6 +41,20 @@ import {
 import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
 import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
 import { ReactorTermsPreview } from './ReactorTermsPreview'
+import {
+  ScientificReactorStage,
+  type ScientificReactorStageLabels,
+} from './scientific/ScientificReactorStage'
+import type { StageCoProduct } from './scientific/scientificReactorStageLayout'
+
+export type ScientificStageInput = {
+  leftTerms: readonly ReactorEquationTerm[]
+  coProducts: readonly StageCoProduct[]
+  productId: string
+  productCoeff: number
+  balanced: boolean
+  labels?: ScientificReactorStageLabels
+}
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
 import { getSynthesisDeviceTier, refineSynthesisDeviceTierFromFps } from '../../lab/synthesisDeviceTier'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
@@ -307,12 +321,15 @@ function SceneContent({
   reactorGpuIdleReady = false,
   teacherMode = false,
   onNarrationCue,
+  scientificStage = null,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
   structureZ: number | null
   onInspectAtom?: (z: number) => void
   synthesisRunActive?: boolean
+  /** Научный маршрут (ClO₂): до запуска — реагенты и продукты формульными единицами. */
+  scientificStage?: ScientificStageInput | null
   onPerfLevelChange?: (level: PerfLevel) => void
   /** Слагаемые левой части для превью атомных структур */
   reactorPreviewTerms?: readonly ReactorEquationTerm[] | null
@@ -443,9 +460,10 @@ function SceneContent({
    * Shell никогда не null'им при открытом реакторе из-за краткого пустого canvas hold —
    * иначе unmount Bohr → пустой starfield при живом уравнении в панели.
    */
-  if (reactorViewOpen && reactorPreviewTerms && reactorPreviewTerms.length >= 1) {
+  // Научный маршрут рисует свою сцену молекулами — превью атомов Бора не держим.
+  if (reactorViewOpen && scientificStage == null && reactorPreviewTerms && reactorPreviewTerms.length >= 1) {
     previewTermsShellRef.current = reactorPreviewTerms
-  } else if (!reactorViewOpen) {
+  } else if (!reactorViewOpen || scientificStage != null) {
     previewTermsShellRef.current = null
   }
   const effectivePreviewTerms =
@@ -736,6 +754,8 @@ function SceneContent({
     })
 
   const preSynthesisPreview = !synthesisRunActive && !synthActive && !showSettledHero
+  /** Научная сцена до запуска заменяет превью атомов Бора: там молекулы, а не орбиты. */
+  const scientificStageShown = scientificStage != null && reactorViewOpen && preSynthesisPreview
   const warmupPaused =
     !reactorGpuIdleReady || reactorCoeffEditBurst || synthActive || elementsCollapsePlaying
 
@@ -2037,7 +2057,7 @@ function SceneContent({
       {reactorViewOpen ? (
         <>
           {/* Sticky shell: не unmount при product slot — иначе +/- после синтеза cold remount. */}
-          {reactorPreviewMounted && effectivePreviewTerms ? (
+          {reactorPreviewMounted && effectivePreviewTerms && scientificStage == null ? (
             <ReactorTermsPreview
               terms={effectivePreviewTerms}
               flightActive={previewFlightActive}
@@ -2058,6 +2078,7 @@ function SceneContent({
               // После paint/settle Bohr обязан быть скрыт — иначе орбиты поверх молекулы.
               visible={
                 !scientificMicroworldActive &&
+                !scientificStageShown &&
                 !hideBohrForProduct &&
                 (reactorPreviewVisible ||
                   preSynthesisPreview ||
@@ -2071,6 +2092,18 @@ function SceneContent({
               atomGroupRefs={previewAtomGroupRefs}
               atomScaleGroupRefs={previewAtomScaleGroupRefs}
               previewRootRef={previewRootRef}
+            />
+          ) : null}
+          {scientificStage ? (
+            <ScientificReactorStage
+              leftTerms={scientificStage.leftTerms}
+              coProducts={scientificStage.coProducts}
+              productId={scientificStage.productId}
+              productCoeff={scientificStage.productCoeff}
+              balanced={scientificStage.balanced}
+              labels={scientificStage.labels}
+              lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}
+              visible={scientificStageShown}
             />
           ) : null}
           {previewActive && transformPreviewCompound ? (
@@ -2229,12 +2262,14 @@ function LabCanvasImpl({
   reactorGpuIdleReady = false,
   teacherMode = false,
   onNarrationCue,
+  scientificStage = null,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
   structureZ: number | null
   onInspectAtom?: (z: number) => void
   synthesisRunActive?: boolean
+  scientificStage?: ScientificStageInput | null
   reactorPreviewTerms?: readonly ReactorEquationTerm[] | null
   transformPreviewCompound?: CompoundDef | null
   reactorViewOpen?: boolean
@@ -2444,6 +2479,7 @@ function LabCanvasImpl({
           reactorGpuIdleReady={reactorGpuIdleReady}
           teacherMode={teacherMode}
           onNarrationCue={onNarrationCue}
+          scientificStage={scientificStage}
         />
       </Canvas>
     </CanvasErrorBoundary>
