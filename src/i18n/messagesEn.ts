@@ -412,4 +412,16 @@ export const messagesEn: Record<MessageKey, string> = {
 
   ...learnPackEn,
   ...learnGradePackEn,
+
+  /* Learn hubs: landing, grade, chapter */
+  'learn.hubUi.overall': 'Overall progress',
+  'learn.hubUi.quickTitle': 'Quick start',
+  'learn.hubUi.gradesTitle': 'Choose your grade',
+  'learn.hubUi.open': 'Open',
+  'learn.hubUi.resumeEyebrow': 'Pick up where you left off',
+  'learn.hubUi.breadcrumb': 'Section navigation',
+  'learn.hubUi.notFound': 'Section not found',
+  'learn.hubUi.notFoundHint': 'The link is outdated or the section has moved — go back to the list.',
+  'learn.hubUi.emptyChapter': 'This chapter has no sections yet.',
+  'learn.hubUi.emptyGrade': 'Chapters for this grade are coming soon.',
 }

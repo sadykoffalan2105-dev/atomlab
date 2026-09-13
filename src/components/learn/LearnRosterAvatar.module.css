@@ -1,0 +1,113 @@
+/* Аватар ученика: инициалы в круге с градиентом одного из классов + статус-точка. */
+
+.avatar {
+  --av-a: var(--lt-g7-a);
+  --av-b: var(--lt-g7-b);
+  position: relative;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--av-a), var(--av-b));
+  box-shadow:
+    0 0 0 2px rgba(6, 9, 19, 0.85),
+    0 4px 12px -4px color-mix(in srgb, var(--av-b) 70%, transparent);
+  color: #fff;
+  font-family: var(--lt-font);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
+}
+
+.initials {
+  text-shadow: 0 1px 2px rgba(3, 5, 12, 0.45);
+}
+
+.sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.md {
+  width: 34px;
+  height: 34px;
+  font-size: 12.5px;
+}
+
+.lg {
+  width: 44px;
+  height: 44px;
+  font-size: 15px;
+}
+
+.p0 {
+  --av-a: var(--lt-g7-a);
+  --av-b: var(--lt-g7-b);
+}
+
+.p1 {
+  --av-a: var(--lt-g8-a);
+  --av-b: var(--lt-g8-b);
+}
+
+.p2 {
+  --av-a: var(--lt-g9-a);
+  --av-b: var(--lt-g9-b);
+}
+
+.p3 {
+  --av-a: var(--lt-g10-a);
+  --av-b: var(--lt-g10-b);
+}
+
+.p4 {
+  --av-a: var(--lt-g11-a);
+  --av-b: var(--lt-g11-b);
+}
+
+.dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--lt-surface-solid);
+  background: var(--lt-text-mute);
+}
+
+.lg .dot {
+  width: 13px;
+  height: 13px;
+}
+
+.dotStrong {
+  background: var(--lt-success);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--lt-success) 70%, transparent);
+}
+
+.dotGood {
+  background: var(--lt-info);
+}
+
+.dotNeedsWork {
+  background: var(--lt-warning);
+}
+
+.dotNone {
+  background: var(--lt-text-mute);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

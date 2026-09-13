@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useId, useState, type ReactNode } from 'react'
 import { getLearnVisual } from '../../learn/learnVisualRegistry'
 import { compoundById } from '../../data/compounds'
 import { getCompoundLocaleStrings } from '../../i18n/compoundLocale'
@@ -18,11 +18,95 @@ import { LearnTopicLifeScene } from './topicScenes/LearnTopicLifeScene'
 import { LearnCyberDashboard } from './topicScenes/LearnCyberDashboard'
 import { hasLifeScenePhotos } from '../../learn/learnTopicLifePhotos'
 import { hasCyberDashboard } from '../../learn/learnCyberDashboard'
-import styles from '../../pages/LearnPage.module.css'
+import styles from './LearnVisual3DPanel.module.css'
 
 const LearnPremiumCanvas = lazy(() =>
   import('./LearnPremiumScene').then((m) => ({ default: m.LearnPremiumCanvas })),
 )
+
+/* ——— Иконки HUD (inline SVG, декоративные) ——— */
+
+function HudIcon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      className={styles.icon}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable="false"
+    >
+      {children}
+    </svg>
+  )
+}
+
+function IconDownload() {
+  return (
+    <HudIcon>
+      <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+    </HudIcon>
+  )
+}
+
+function IconCopy() {
+  return (
+    <HudIcon>
+      <rect x="9" y="9" width="11" height="11" rx="2.5" />
+      <path d="M15 9V6.5A2.5 2.5 0 0 0 12.5 4h-6A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 6.5 15H9" />
+    </HudIcon>
+  )
+}
+
+function IconCheck() {
+  return (
+    <HudIcon>
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+    </HudIcon>
+  )
+}
+
+function IconRotate() {
+  return (
+    <HudIcon>
+      <path d="M20 12a8 8 0 1 1-2.35-5.65M20 4v4.5h-4.5" />
+    </HudIcon>
+  )
+}
+
+function IconHand() {
+  return (
+    <HudIcon>
+      <path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11M11 10V5a1.5 1.5 0 0 1 3 0v6M14 10.5V7a1.5 1.5 0 0 1 3 0v6.5a6.5 6.5 0 0 1-6.5 6.5h-.3a6 6 0 0 1-4.6-2.2L3.5 14.8a1.5 1.5 0 0 1 2.3-1.9L8 15" />
+    </HudIcon>
+  )
+}
+
+/** Иллюстрация пустого состояния (нет WebGL / 3D не смонтировано). */
+function FallbackArt() {
+  const gid = `v3dArt${useId().replace(/:/g, '')}`
+  const paint = `url(#${gid})`
+  return (
+    <svg className={styles.fallbackArt} viewBox="0 0 80 80" aria-hidden focusable="false">
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#5b8cff" />
+          <stop offset="55%" stopColor="#8b5cf6" />
+          <stop offset="100%" stopColor="#d946ef" />
+        </linearGradient>
+      </defs>
+      <circle cx="40" cy="40" r="38" fill={paint} opacity="0.16" />
+      <circle cx="40" cy="40" r="37.5" fill="none" stroke={paint} strokeOpacity="0.55" />
+      <g fill="none" stroke={paint} strokeWidth="3" strokeLinejoin="round">
+        <path d="M40 20 57 29.5v19L40 58l-17-9.5v-19z" />
+        <path d="M23 29.5 40 39l17-9.5M40 39v19" />
+      </g>
+    </svg>
+  )
+}
 
 function visualLabel(
   spec: LearnVisualSpec | null,
@@ -66,21 +150,19 @@ export function LearnVisual3DPanel({
   if (visualId && hasCyberDashboard(visualId)) {
     return (
       <div
-        className={`${styles.learnVisual3d} ${styles.learnVisual3dPremium} ${styles.learnVisualCyber} ${
-          presentationMode ? styles.learnVisual3dPresent : ''
-        }`}
+        className={`${styles.frame} ${styles.cyber} ${presentationMode ? styles.present : ''}`}
         style={{ ['--learn-accent' as string]: fallbackAccent }}
       >
-        <div className={styles.learnVisualHud}>
-          <div className={styles.learnVisualHudLeft}>
-            <span className={styles.learnVisualHudBadge}>{t('learn.visual.badge3d')}</span>
-            <span className={styles.learnVisualHudHint}>{t('learn.visual.cyberHint')}</span>
+        <div className={styles.hud}>
+          <div className={styles.hudLeft}>
+            <span className={styles.badge}>{t('learn.visual.badge3d')}</span>
+            <span className={styles.hudHint}>{t('learn.visual.cyberHint')}</span>
           </div>
         </div>
-        <div className={styles.learnVisualStage}>
+        <div className={styles.stage}>
           <LearnCyberDashboard sceneId={visualId} presentationMode={presentationMode} />
         </div>
-        <div className={styles.learnVisualGlow} aria-hidden />
+        <div className={styles.glow} aria-hidden />
       </div>
     )
   }
@@ -120,38 +202,44 @@ export function LearnVisual3DPanel({
     spec?.kind === 'bond' ||
     spec?.kind === 'electrolysis'
 
-  const frameClass = [
-    styles.learnVisual3d,
-    presentationMode ? styles.learnVisual3dPresent : '',
-    styles.learnVisual3dPremium,
-  ]
-    .filter(Boolean)
-    .join(' ')
+  const frameClass = [styles.frame, presentationMode ? styles.present : ''].filter(Boolean).join(' ')
 
-  const hud = (
-    <div className={styles.learnVisualHud}>
-      <div className={styles.learnVisualHudLeft}>
-        <span className={styles.learnVisualHudBadge}>{t('learn.visual.badge3d')}</span>
-        <span className={styles.learnVisualHudLabel}>{label}</span>
-      </div>
-      <div className={styles.learnVisualHudRight}>
-        <span className={styles.learnVisualHudHint}>
-          {useCyberDashboard
-            ? t('learn.visual.cyberHint')
-            : useLifePhotos
-              ? t('learn.visual.lifeHint')
-              : t('learn.visual.rotateHint')}
+  const hintText = useCyberDashboard
+    ? t('learn.visual.cyberHint')
+    : useLifePhotos
+      ? t('learn.visual.lifeHint')
+      : t('learn.visual.rotateHint')
+
+  /**
+   * Шапка. Над живой 3D-сценой подсказка вынесена в плавающую пилюлю (hintInHud=false),
+   * в остальных режимах — текстом в шапке.
+   */
+  const hud = (hintInHud: boolean) => (
+    <div className={styles.hud}>
+      <div className={styles.hudLeft}>
+        <span className={styles.badge}>{t('learn.visual.badge3d')}</span>
+        <span className={styles.label} title={label}>
+          {label}
         </span>
+      </div>
+      <div className={styles.hudRight}>
+        {hintInHud ? <span className={styles.hudHint}>{hintText}</span> : null}
         {topicSceneId ? (
           <>
             <a
-              className={styles.learnVisualHudBtn}
+              className={styles.hudBtn}
               href={`/learn/posters/${topicSceneId}.png`}
               download={`${topicSceneId}.png`}
             >
+              <IconDownload />
               {t('learn.visual.downloadPoster')}
             </a>
-            <button type="button" className={styles.learnVisualHudBtn} onClick={copyNanoBanana}>
+            <button
+              type="button"
+              className={`${styles.hudBtn} ${copiedPrompt ? styles.hudBtnDone : ''}`}
+              onClick={copyNanoBanana}
+            >
+              {copiedPrompt ? <IconCheck /> : <IconCopy />}
               {copiedPrompt ? '✓' : t('learn.visual.copyNanoBanana')}
             </button>
           </>
@@ -159,10 +247,11 @@ export function LearnVisual3DPanel({
         {spec && canAutoRotate && webglOk && mount3d ? (
           <button
             type="button"
-            className={styles.learnVisualHudBtn}
+            className={`${styles.hudBtn} ${autoRotate ? styles.hudBtnOn : ''}`}
             onClick={() => setAutoRotate((v) => !v)}
             aria-pressed={autoRotate}
           >
+            <IconRotate />
             {autoRotate ? t('learn.visual.autoOn') : t('learn.visual.autoOff')}
           </button>
         ) : null}
@@ -174,8 +263,8 @@ export function LearnVisual3DPanel({
     const artId = (spec?.kind === 'svgFallback' ? spec.artId : 'periodicity') as LearnTopicArtId
     return (
       <div className={frameClass} style={{ ['--learn-accent' as string]: accent }}>
-        {hud}
-        <div className={styles.learnVisualStage}>
+        {hud(true)}
+        <div className={styles.stage}>
           <LearnIllustrationBoard
             artId={artId}
             accent={accent}
@@ -183,7 +272,7 @@ export function LearnVisual3DPanel({
             subtitle={t('learn.visual.illusSub')}
           />
         </div>
-        <div className={styles.learnVisualScanline} aria-hidden />
+        <div className={styles.scanline} aria-hidden />
       </div>
     )
   }
@@ -191,15 +280,15 @@ export function LearnVisual3DPanel({
   if (useCyberDashboard && cyberSceneId) {
     return (
       <div
-        className={`${frameClass} ${styles.learnVisualCyber}`}
+        className={`${frameClass} ${styles.cyber}`}
         style={{ ['--learn-accent' as string]: accent }}
       >
-        {hud}
-        <div className={styles.learnVisualStage}>
+        {hud(true)}
+        <div className={styles.stage}>
           <LearnCyberDashboard sceneId={cyberSceneId} presentationMode={presentationMode} />
         </div>
-        <div className={styles.learnVisualGlow} aria-hidden />
-        <div className={styles.learnVisualScanline} aria-hidden />
+        <div className={styles.glow} aria-hidden />
+        <div className={styles.scanline} aria-hidden />
       </div>
     )
   }
@@ -211,12 +300,12 @@ export function LearnVisual3DPanel({
   if (useLifePhotos && lifeStage) {
     return (
       <div
-        className={`${frameClass} ${styles.learnVisualLife}`}
+        className={`${frameClass} ${styles.life}`}
         style={{ ['--learn-accent' as string]: accent }}
       >
-        {hud}
-        <div className={styles.learnVisualStage}>{lifeStage}</div>
-        <div className={styles.learnVisualGlow} aria-hidden />
+        {hud(true)}
+        <div className={styles.stage}>{lifeStage}</div>
+        <div className={styles.glow} aria-hidden />
       </div>
     )
   }
@@ -224,12 +313,15 @@ export function LearnVisual3DPanel({
   if (!mount3d) {
     return (
       <div className={frameClass} style={{ ['--learn-accent' as string]: accent }}>
-        {hud}
-        <div className={styles.learnVisualStage}>
+        {hud(true)}
+        <div className={styles.stage}>
           {topicSceneId ? (
             <LearnPosterFallback sceneId={topicSceneId} label={label} />
           ) : (
-            <div className={styles.learnVisualWebglFallback}>{t('learn.visual.fallback')}</div>
+            <div className={styles.fallback}>
+              <FallbackArt />
+              {t('learn.visual.fallback')}
+            </div>
           )}
         </div>
       </div>
@@ -239,12 +331,15 @@ export function LearnVisual3DPanel({
   if (!webglOk) {
     return (
       <div className={frameClass} style={{ ['--learn-accent' as string]: accent }}>
-        {hud}
-        <div className={styles.learnVisualStage}>
+        {hud(true)}
+        <div className={styles.stage}>
           {topicSceneId ? (
             <LearnPosterFallback sceneId={topicSceneId} label={label} />
           ) : (
-            <div className={styles.learnVisualWebglFallback}>{t('catalog.webglUnavailable')}</div>
+            <div className={styles.fallback}>
+              <FallbackArt />
+              {t('catalog.webglUnavailable')}
+            </div>
           )}
         </div>
       </div>
@@ -256,8 +351,8 @@ export function LearnVisual3DPanel({
       className={frameClass}
       style={{ ['--learn-accent' as string]: accent, ['--learn-auto' as string]: autoRotate ? '1' : '0' }}
     >
-      {hud}
-      <div className={styles.learnVisualStage}>
+      {hud(false)}
+      <div className={styles.stage}>
         <CanvasErrorBoundary
           fallback={
             topicSceneId ? (
@@ -271,9 +366,13 @@ export function LearnVisual3DPanel({
             <LearnPremiumCanvas spec={spec} autoRotate={autoRotate} />
           </Suspense>
         </CanvasErrorBoundary>
+        <p className={styles.floatHint}>
+          <IconHand />
+          <span className={styles.floatHintText}>{hintText}</span>
+        </p>
       </div>
-      <div className={styles.learnVisualGlow} aria-hidden />
-      <div className={styles.learnVisualScanline} aria-hidden />
+      <div className={styles.glow} aria-hidden />
+      <div className={styles.scanline} aria-hidden />
     </div>
   )
 }

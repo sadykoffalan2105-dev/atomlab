@@ -1,0 +1,109 @@
+/**
+ * ATOMLAB · «Обучение» — дизайн-система (глобальные токены).
+ *
+ * Направление «Aurora Lab»: глубокий ночной фон, стеклянные поверхности,
+ * сочные градиенты-акценты у каждого класса, крупная уверенная типографика.
+ * Все модули раздела берут значения отсюда (var(--lt-*)); свои цвета «на глаз»
+ * в модулях не заводим.
+ *
+ * Размеры — в px через clamp(): корневой шрифт приложения намеренно мелкий
+ * (--ui-scale 0.5), а в обучении текст должен читаться. rem здесь не используем.
+ */
+
+:root {
+  /* ——— Фон и поверхности ——— */
+  --lt-bg: #060913;
+  --lt-bg-deep: #03050c;
+  --lt-bg-glow-1: rgba(56, 189, 248, 0.14);
+  --lt-bg-glow-2: rgba(168, 85, 247, 0.14);
+  --lt-bg-glow-3: rgba(45, 212, 191, 0.1);
+  --lt-surface: rgba(18, 24, 44, 0.72);
+  --lt-surface-2: rgba(24, 32, 58, 0.78);
+  --lt-surface-3: rgba(34, 44, 76, 0.85);
+  --lt-surface-solid: #111830;
+  --lt-surface-hover: rgba(40, 52, 90, 0.85);
+  --lt-border: rgba(148, 170, 230, 0.14);
+  --lt-border-strong: rgba(148, 170, 230, 0.28);
+  --lt-blur: saturate(140%) blur(14px);
+
+  /* ——— Текст ——— */
+  --lt-text: #e8edff;
+  --lt-text-2: #b6c0e0;
+  --lt-text-3: #8793b8;
+  --lt-text-mute: #5f6a8f;
+
+  /* ——— Бренд и смысловые цвета ——— */
+  --lt-primary: #5b8cff;
+  --lt-primary-2: #8b5cf6;
+  --lt-grad-primary: linear-gradient(135deg, #5b8cff 0%, #8b5cf6 55%, #d946ef 100%);
+  --lt-accent-teal: #2dd4bf;
+  --lt-accent-cyan: #22d3ee;
+  --lt-accent-amber: #fbbf24;
+  --lt-accent-pink: #f472b6;
+  --lt-success: #34d399;
+  --lt-warning: #fbbf24;
+  --lt-danger: #fb7185;
+  --lt-info: #38bdf8;
+
+  /* ——— Цвет каждого класса (карточки, шапки, прогресс) ——— */
+  --lt-g7-a: #22d3ee;
+  --lt-g7-b: #3b82f6;
+  --lt-g8-a: #a78bfa;
+  --lt-g8-b: #ec4899;
+  --lt-g9-a: #fbbf24;
+  --lt-g9-b: #f97316;
+  --lt-g10-a: #34d399;
+  --lt-g10-b: #14b8a6;
+  --lt-g11-a: #60a5fa;
+  --lt-g11-b: #6366f1;
+
+  /* ——— Типографика ——— */
+  --lt-font: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  --lt-font-display: 'Segoe UI Variable Display', 'Segoe UI', 'Inter', system-ui, sans-serif;
+  --lt-font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+  --lt-fs-display: clamp(30px, 2.6vw, 46px);
+  --lt-fs-h1: clamp(24px, 1.9vw, 34px);
+  --lt-fs-h2: clamp(19px, 1.35vw, 24px);
+  --lt-fs-h3: clamp(16px, 1.05vw, 19px);
+  --lt-fs-body: clamp(14px, 0.86vw, 16px);
+  --lt-fs-small: clamp(12.5px, 0.74vw, 14px);
+  --lt-fs-xs: clamp(11px, 0.64vw, 12.5px);
+  --lt-lh-tight: 1.15;
+  --lt-lh: 1.5;
+
+  /* ——— Геометрия ——— */
+  --lt-radius-xs: 8px;
+  --lt-radius-sm: 12px;
+  --lt-radius: 16px;
+  --lt-radius-lg: 22px;
+  --lt-radius-xl: 28px;
+  --lt-radius-pill: 999px;
+  --lt-gap-xs: 6px;
+  --lt-gap-sm: 10px;
+  --lt-gap: 16px;
+  --lt-gap-lg: 24px;
+  --lt-gap-xl: 36px;
+  --lt-page-pad: clamp(16px, 2.2vw, 40px);
+  --lt-content-max: 1560px;
+
+  /* ——— Тени и свечение ——— */
+  --lt-shadow-sm: 0 2px 10px rgba(2, 6, 23, 0.35);
+  --lt-shadow: 0 10px 30px -8px rgba(2, 6, 23, 0.6), 0 2px 8px rgba(2, 6, 23, 0.35);
+  --lt-shadow-lg: 0 24px 60px -18px rgba(2, 6, 23, 0.75);
+  --lt-glow-primary: 0 8px 28px -6px rgba(91, 140, 255, 0.55);
+  --lt-ring: 0 0 0 3px rgba(91, 140, 255, 0.45);
+
+  /* ——— Движение ——— */
+  --lt-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --lt-dur-fast: 140ms;
+  --lt-dur: 240ms;
+  --lt-dur-slow: 420ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --lt-dur-fast: 0ms;
+    --lt-dur: 0ms;
+    --lt-dur-slow: 0ms;
+  }
+}

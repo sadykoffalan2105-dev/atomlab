@@ -14,6 +14,7 @@ import {
 } from '../../learn/studentTestScoring'
 import type { TopicQuizItem } from '../../learn/topicQuizTypes'
 import { useT, type MessageKey } from '../../i18n/useT'
+import { LearnSidebarIcon } from './LearnSidebarIcon'
 import styles from './LearnStudentTest.module.css'
 
 type Props = {
@@ -39,8 +40,9 @@ function ScoreRing({ score, max }: { score: number; max: number }) {
       <svg viewBox="0 0 100 100" aria-hidden>
         <defs>
           <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#5cffd4" />
-            <stop offset="100%" stopColor="#3dd4b0" />
+            <stop offset="0%" stopColor="#5b8cff" />
+            <stop offset="55%" stopColor="#8b5cf6" />
+            <stop offset="100%" stopColor="#d946ef" />
           </linearGradient>
         </defs>
         <circle className={styles.scoreRingBg} cx="50" cy="50" r="45" />
@@ -200,7 +202,10 @@ function StudentTestOverlay({
           <div key={question.id} className={styles.quizBody}>
             {variant === 'ai' ? (
               <div className={styles.aiBubble}>
-                <span className={styles.aiBadge}>{t('learn.topicQuiz.teacherHintTitle')}</span>
+                <span className={styles.aiBadge}>
+                  <LearnSidebarIcon name="sparkle" size={12} />
+                  {t('learn.topicQuiz.teacherHintTitle')}
+                </span>
                 <p className={styles.aiQuestion}>{question.question}</p>
               </div>
             ) : (
@@ -309,6 +314,20 @@ export function LearnStudentTest({
 
   const panelClass = embedded ? styles.panelEmbedded : styles.panel
 
+  /* Во встроенном режиме причину «нет ученика» уже показывает выноска хаба над панелью. */
+  const showStudentReason = disabled && !embedded
+  const hintWarn = showStudentReason || maxPool < 3
+  const hintText = showStudentReason
+    ? t('learn.molecules.structure.testNoStudent')
+    : maxPool >= 3
+      ? t('learn.studentTest.poolHint', { n: maxPool })
+      : t('learn.studentTest.notEnough')
+  const disabledReason = disabled
+    ? t('learn.molecules.structure.testNoStudent')
+    : !canStart
+      ? t('learn.studentTest.notEnough')
+      : undefined
+
   return (
     <section className={panelClass} aria-labelledby="learn-student-test-title">
       {!embedded ? (
@@ -320,33 +339,44 @@ export function LearnStudentTest({
         </div>
       ) : null}
       <div className={styles.setupRow}>
-        <div className={styles.countPicker} role="group" aria-label={t('learn.studentTest.pickCount')}>
-          <button
-            type="button"
-            className={length === 5 ? styles.countBtnActive : styles.countBtn}
-            onClick={() => setLength(5)}
-          >
-            {t('learn.studentTest.questions5')}
-          </button>
-          <button
-            type="button"
-            className={length === 10 ? styles.countBtnActive : styles.countBtn}
-            onClick={() => setLength(10)}
-            disabled={maxPool < 10}
-          >
-            {t('learn.studentTest.questions10')}
-          </button>
+        <div className={styles.countField}>
+          <span className={styles.countLabel} aria-hidden="true">
+            {t('learn.studentTest.pickCount')}
+          </span>
+          <div className={styles.countPicker} role="group" aria-label={t('learn.studentTest.pickCount')}>
+            <button
+              type="button"
+              className={length === 5 ? styles.countBtnActive : styles.countBtn}
+              aria-pressed={length === 5}
+              onClick={() => setLength(5)}
+            >
+              {t('learn.studentTest.questions5')}
+            </button>
+            <button
+              type="button"
+              className={length === 10 ? styles.countBtnActive : styles.countBtn}
+              aria-pressed={length === 10}
+              onClick={() => setLength(10)}
+              disabled={maxPool < 10}
+            >
+              {t('learn.studentTest.questions10')}
+            </button>
+          </div>
         </div>
-        <button type="button" className={styles.startBtn} onClick={start} disabled={!canStart}>
-          {t('learn.studentTest.start')}
+        <button
+          type="button"
+          className={styles.startBtn}
+          onClick={start}
+          disabled={!canStart}
+          title={disabledReason}
+        >
+          <LearnSidebarIcon name={canStart ? 'play' : 'lock'} size={16} />
+          <span>{t('learn.studentTest.start')}</span>
         </button>
       </div>
-      <p className={styles.hint}>
-        {disabled
-          ? t('learn.molecules.structure.testNoStudent')
-          : canStart
-            ? t('learn.studentTest.poolHint', { n: maxPool })
-            : t('learn.studentTest.notEnough')}
+      <p className={`${styles.hint} ${hintWarn ? styles.hintWarn : ''}`}>
+        <LearnSidebarIcon name={hintWarn ? 'lock' : 'info'} size={14} className={styles.hintIcon} />
+        <span>{hintText}</span>
       </p>
       {active ? (
         <StudentTestOverlay

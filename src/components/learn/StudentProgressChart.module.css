@@ -1,55 +1,66 @@
+/* График успеваемости ученика — «Aurora Lab». */
+
 .wrap {
-  margin-bottom: 0.85rem;
-  padding: 0.75rem 0.85rem;
-  border-radius: 14px;
-  border: 1px solid rgba(92, 255, 212, 0.25);
-  background: rgba(0, 0, 0, 0.2);
+  margin-bottom: 14px;
+  padding: 14px 14px 12px;
+  border-radius: var(--lt-radius);
+  border: 1px solid var(--lt-border);
+  background:
+    radial-gradient(100% 80% at 100% 0%, rgba(91, 140, 255, 0.12), transparent 60%),
+    var(--lt-surface-2);
+  font-family: var(--lt-font);
 }
 
 .head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .title {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--lt-fs-small);
   font-weight: 800;
-  color: #e8eef8;
+  letter-spacing: -0.005em;
+  color: var(--lt-text);
 }
 
 .trendBadge {
-  font-size: 0.68rem;
-  font-weight: 800;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: var(--lt-radius-pill);
   border: 1px solid transparent;
+  font-size: var(--lt-fs-xs);
+  font-weight: 800;
 }
 
 .trendRising {
-  color: #5cffd4;
-  background: rgba(92, 255, 212, 0.12);
-  border-color: rgba(92, 255, 212, 0.4);
+  color: var(--lt-success);
+  background: color-mix(in srgb, var(--lt-success) 13%, transparent);
+  border-color: color-mix(in srgb, var(--lt-success) 40%, transparent);
 }
 
 .trendFalling {
-  color: #ff9a7a;
-  background: rgba(255, 120, 80, 0.12);
-  border-color: rgba(255, 120, 80, 0.4);
+  color: var(--lt-danger);
+  background: color-mix(in srgb, var(--lt-danger) 13%, transparent);
+  border-color: color-mix(in srgb, var(--lt-danger) 40%, transparent);
 }
 
 .trendStable {
-  color: #9eb8ff;
-  background: rgba(120, 160, 255, 0.12);
-  border-color: rgba(120, 160, 255, 0.4);
+  color: var(--lt-info);
+  background: color-mix(in srgb, var(--lt-info) 13%, transparent);
+  border-color: color-mix(in srgb, var(--lt-info) 40%, transparent);
 }
 
 .trendNone {
-  color: #8fa3c4;
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--lt-text-3);
+  background: rgba(148, 170, 230, 0.08);
+  border-color: var(--lt-border);
 }
 
 .chart {
@@ -59,45 +70,52 @@
 }
 
 .gridLine {
-  stroke: rgba(140, 160, 200, 0.15);
+  stroke: rgba(148, 170, 230, 0.14);
   stroke-width: 1;
+  stroke-dasharray: 3 4;
 }
 
 .axisLabel {
-  font-size: 9px;
-  fill: #8fa3c4;
+  font-family: var(--lt-font);
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--lt-text-3);
 }
 
 .area {
-  fill: rgba(92, 255, 212, 0.12);
+  fill: rgba(139, 92, 246, 0.16);
 }
 
 .line {
-  stroke: #5cffd4;
-  stroke-width: 2.5;
+  stroke: var(--lt-primary);
+  stroke-width: 2.75;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 2px 6px rgba(91, 140, 255, 0.55));
 }
 
 .dot {
-  fill: #5cffd4;
-  stroke: #0a1020;
-  stroke-width: 1.5;
+  fill: #fff;
+  stroke: var(--lt-primary-2);
+  stroke-width: 2.5;
 }
 
 .caption {
-  margin: 0.35rem 0 0;
-  font-size: 0.68rem;
-  color: #8fa3c4;
-  line-height: 1.35;
+  margin: 6px 0 0;
+  font-size: var(--lt-fs-xs);
+  line-height: 1.4;
+  color: var(--lt-text-3);
 }
 
 .empty {
-  padding: 1rem;
+  margin-bottom: 14px;
+  padding: 18px 16px;
+  border-radius: var(--lt-radius);
+  border: 1px dashed var(--lt-border-strong);
+  background: radial-gradient(80% 90% at 50% 0%, rgba(91, 140, 255, 0.1), transparent 70%);
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-small);
+  line-height: 1.45;
   text-align: center;
-  font-size: 0.78rem;
-  color: #8fa3c4;
-  border-radius: 12px;
-  border: 1px dashed rgba(140, 160, 200, 0.3);
-  margin-bottom: 0.85rem;
+  color: var(--lt-text-2);
 }

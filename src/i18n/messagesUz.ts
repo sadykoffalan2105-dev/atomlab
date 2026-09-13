@@ -412,4 +412,16 @@ export const messagesUz: Record<MessageKey, string> = {
 
   ...learnPackUz,
   ...learnGradePackUz,
+
+  /* O'qish hablari: bosh sahifa, sinf, bob */
+  'learn.hubUi.overall': 'Umumiy natija',
+  'learn.hubUi.quickTitle': 'Tezkor boshlash',
+  'learn.hubUi.gradesTitle': 'Sinfni tanlang',
+  'learn.hubUi.open': 'Ochish',
+  'learn.hubUi.resumeEyebrow': "Shu yerda to'xtagan edingiz",
+  'learn.hubUi.breadcrumb': "Bo'lim navigatsiyasi",
+  'learn.hubUi.notFound': "Bo'lim topilmadi",
+  'learn.hubUi.notFoundHint': "Havola eskirgan yoki bo'lim ko'chirilgan — ro'yxatga qayting.",
+  'learn.hubUi.emptyChapter': "Bu bobda hozircha paragraflar yo'q.",
+  'learn.hubUi.emptyGrade': "Bu sinf boblari tez orada qo'shiladi.",
 }

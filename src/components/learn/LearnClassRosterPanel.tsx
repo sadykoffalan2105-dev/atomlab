@@ -17,6 +17,8 @@ import { useT, type MessageKey } from '../../i18n/useT'
 import { LearnStudentTestHub } from './LearnStudentTestHub'
 import { LearnStudentStatsModal } from './LearnStudentStatsModal'
 import { ClassStudentConspectBtn } from './ClassStudentConspectBtn'
+import { LearnRosterAvatar } from './LearnRosterAvatar'
+import { LearnSidebarIcon } from './LearnSidebarIcon'
 import styles from './LearnClassRosterPanel.module.css'
 
 type Props = {
@@ -129,7 +131,8 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
           placeholder={t('learn.classRoster.pastePh')}
         />
         <button type="button" className={styles.importBtn} onClick={onImport}>
-          {t('learn.classRoster.import')}
+          <LearnSidebarIcon name="upload" size={16} />
+          <span>{t('learn.classRoster.import')}</span>
         </button>
       </div>
 
@@ -145,7 +148,10 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
       </div>
 
       {roster.students.length === 0 ? (
-        <p className={styles.empty}>{t('learn.classRoster.empty')}</p>
+        <p className={styles.empty}>
+          <LearnSidebarIcon name="users" size={18} />
+          <span>{t('learn.classRoster.empty')}</span>
+        </p>
       ) : (
         <ul className={styles.studentList}>
           {roster.students.map((student) => {
@@ -158,6 +164,7 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
                   className={`${styles.studentBtn} ${active ? styles.studentBtnActive : ''}`}
                   onClick={() => setActiveStudent(sectionId, student.id)}
                 >
+                  <LearnRosterAvatar name={student.name} />
                   <span className={styles.studentName}>{student.name}</span>
                   <span className={styles.studentScore}>
                     {attemptLabel(t, student)}
@@ -182,7 +189,7 @@ export function LearnClassRosterPanel({ sectionId, grade, chapter, section }: Pr
                   aria-label={t('learn.studentStats.open')}
                   onClick={() => setStatsStudentId(student.id)}
                 >
-                  📊
+                  <LearnSidebarIcon name="chart" size={18} />
                 </button>
               </li>
             )

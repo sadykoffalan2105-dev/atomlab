@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useT } from '../../i18n/useT'
 import { readWorkspaceInk, writeWorkspaceInk } from '../../learn/learnProgressStorage'
+import { IconEraser, IconHand, IconInfo, IconKeyboard, IconMinus, IconPlus } from './LearnAiIcons'
 import styles from './LearnBoardPad.module.css'
 
 export type BoardInputMode = 'touch' | 'keyboard'
@@ -38,6 +39,13 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
   const { t } = useT()
   const [mode, setMode] = useState<BoardInputMode>(defaultInputMode)
   const [zoom, setZoom] = useState(() => (presentationMode ? 1.15 : 1))
+  // Есть ли рукописные записи — чтобы показать подсказку на пустом листе.
+  const [hasInk, setHasInk] = useState(() => Boolean(readWorkspaceInk(sectionPathId)))
+  const [inkPathId, setInkPathId] = useState(sectionPathId)
+  if (inkPathId !== sectionPathId) {
+    setInkPathId(sectionPathId)
+    setHasInk(Boolean(readWorkspaceInk(sectionPathId)))
+  }
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const dprRef = useRef(1)
@@ -209,6 +217,7 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
       drawingRef.current = true
       lastPtRef.current = pt
       plotPoint(pt, true)
+      setHasInk(true)
     },
     [plotPoint],
   )
@@ -343,10 +352,14 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
     ctx.clearRect(0, 0, w, h)
     prepareContext(ctx)
     writeWorkspaceInk(sectionPathId, '')
+    setHasInk(false)
   }, [canvasLogicalSize, prepareContext, sectionPathId])
 
   const zoomLabel = `${Math.round(zoom * 100)}%`
   const scrollContentHeight = Math.ceil(INK_CANVAS_H * zoom)
+  const isTouch = mode === 'touch'
+  const canZoomOut = zoom > ZOOM_MIN
+  const canZoomIn = zoom < ZOOM_MAX
 
   return (
     <div
@@ -357,86 +370,114 @@ export function LearnBoardPad({ sectionPathId, text, onTextChange, presentationM
         <div className={styles.modeGroup} role="group" aria-label={t('learn.board.inputMode')}>
           <button
             type="button"
-            className={mode === 'touch' ? styles.toolOn : styles.tool}
+            className={isTouch ? styles.toolOn : styles.tool}
             onClick={() => setMode('touch')}
-            aria-pressed={mode === 'touch'}
+            aria-pressed={isTouch}
           >
-            {t('learn.board.modeTouch')}
+            <IconHand className={styles.toolIcon} />
+            <span>{t('learn.board.modeTouch')}</span>
           </button>
           <button
             type="button"
-            className={mode === 'keyboard' ? styles.toolOn : styles.tool}
+            className={!isTouch ? styles.toolOn : styles.tool}
             onClick={() => setMode('keyboard')}
-            aria-pressed={mode === 'keyboard'}
+            aria-pressed={!isTouch}
           >
-            {t('learn.board.modeKeyboard')}
+            <IconKeyboard className={styles.toolIcon} />
+            <span>{t('learn.board.modeKeyboard')}</span>
           </button>
         </div>
         <div className={styles.zoomGroup} role="group" aria-label={t('learn.board.zoom')}>
           <button
             type="button"
-            className={styles.tool}
+            className={styles.stepBtn}
             onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
+            disabled={!canZoomOut}
             aria-label={t('learn.board.zoomOut')}
             title={t('learn.board.zoomOut')}
           >
-            −
+            <IconMinus />
           </button>
-          <span className={styles.zoomLabel} aria-live="polite">
-            {zoomLabel}
-          </span>
           <button
             type="button"
-            className={styles.tool}
+            className={styles.zoomValue}
+            onClick={() => setZoom(1)}
+            aria-label={`${t('learn.board.zoomReset')} (${zoomLabel})`}
+            title={t('learn.board.zoomReset')}
+          >
+            <span className={styles.zoomLabel} aria-live="polite">
+              {zoomLabel}
+            </span>
+          </button>
+          <button
+            type="button"
+            className={styles.stepBtn}
             onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
+            disabled={!canZoomIn}
             aria-label={t('learn.board.zoomIn')}
             title={t('learn.board.zoomIn')}
           >
-            +
-          </button>
-          <button
-            type="button"
-            className={styles.tool}
-            onClick={() => setZoom(1)}
-            aria-label={t('learn.board.zoomReset')}
-            title={t('learn.board.zoomReset')}
-          >
-            100%
+            <IconPlus />
           </button>
         </div>
-        {mode === 'touch' ? (
-          <button type="button" className={styles.tool} onClick={clearInk}>
-            {t('learn.board.clearInk')}
+        {isTouch ? (
+          <button
+            type="button"
+            className={styles.ghostBtn}
+            onClick={clearInk}
+            disabled={!hasInk}
+          >
+            <IconEraser className={styles.toolIcon} />
+            <span>{t('learn.board.clearInk')}</span>
           </button>
         ) : null}
       </div>
 
-      <div ref={viewportRef} className={styles.scrollViewport} aria-label={t('learn.board.scrollArea')}>
-        <div className={styles.scrollContent} style={{ height: scrollContentHeight }}>
-          <div
-            className={styles.zoomShell}
-            style={{
-              transform: `scale(${zoom})`,
-              height: INK_CANVAS_H,
-            }}
-          >
-            {mode === 'keyboard' ? (
-              <textarea
-                className={styles.textarea}
-                value={text}
-                onChange={(e) => onTextChange(e.target.value)}
-                placeholder={t('learn.workspace.scratchpad')}
-                spellCheck
-                rows={presentationMode ? 14 : 10}
-                style={{ fontSize: `${0.88 * zoom}rem` }}
-              />
-            ) : (
+      <div
+        ref={viewportRef}
+        className={styles.scrollViewport}
+        role="region"
+        aria-label={t('learn.board.scrollArea')}
+        style={{ ['--bp-zoom' as string]: zoom }}
+      >
+        {isTouch ? (
+          <div className={styles.scrollContent} style={{ height: scrollContentHeight }}>
+            <div
+              className={styles.zoomShell}
+              style={{
+                transform: `scale(${zoom})`,
+                height: INK_CANVAS_H,
+              }}
+            >
               <canvas ref={canvasRef} className={styles.inkCanvas} aria-label={t('learn.board.inkAria')} />
-            )}
+            </div>
+            {!hasInk ? (
+              <div className={styles.emptyHint} aria-hidden>
+                <span className={styles.emptyHintIcon}>
+                  <IconHand />
+                </span>
+                <span>{t('learn.board.inkAria')}</span>
+              </div>
+            ) : null}
           </div>
-        </div>
+        ) : (
+          <textarea
+            className={styles.textarea}
+            value={text}
+            onChange={(e) => onTextChange(e.target.value)}
+            placeholder={t('learn.workspace.scratchpad')}
+            aria-label={t('learn.workspace.scratchpad')}
+            spellCheck
+            rows={presentationMode ? 14 : 10}
+          />
+        )}
       </div>
-      <p className={styles.hint}>{mode === 'touch' ? t('learn.board.touchHint') : t('learn.board.keyboardHint')}</p>
+      <div className={styles.footer}>
+        <p className={styles.hint}>
+          <IconInfo className={styles.hintIcon} />
+          <span>{isTouch ? t('learn.board.touchHint') : t('learn.board.keyboardHint')}</span>
+        </p>
+      </div>
     </div>
   )
 }

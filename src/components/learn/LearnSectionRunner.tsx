@@ -1,9 +1,10 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { LearnSlideDeckVisual } from './LearnSlideDeckVisual'
 import { LearnColumnPanelTools } from './LearnColumnPanelTools'
 import { LearnLessonSidebar } from './LearnLessonSidebar'
 import { LearnWorkspace } from './LearnWorkspace'
+import { LearnShellIcon, type LearnShellIconName } from './LearnShellIcon'
 import type { LearnChapter, LearnGrade, LearnSection, LearnSlide } from '../../types/learn'
 import {
   clearLastPosition,
@@ -34,6 +35,26 @@ const LearnAssistantPanel = lazy(() =>
 )
 
 type OptionalPanel = LearnPanelId
+type MobileTab = 'main' | '3d' | 'work' | 'assistant'
+
+const PANEL_ICON: Record<MobileTab, LearnShellIconName> = {
+  main: 'book',
+  '3d': 'cube',
+  work: 'pencil',
+  assistant: 'sparkles',
+}
+
+/** Подписи из словаря начинаются со стрелки «← …» — в шапке стрелку рисует иконка. */
+function stripLeadingArrow(label: string): string {
+  return label.replace(/^\s*←\s*/, '')
+}
+
+/** «§1. Химия и её задачи» → бейдж «§1» + текст заголовка. */
+function splitParagraphTitle(title: string): { badge: string | null; text: string } {
+  const m = /^\s*§\s*(\d+(?:\.\d+)*)\.?\s+(.+)$/u.exec(title)
+  if (!m) return { badge: null, text: title }
+  return { badge: `§${m[1]}`, text: m[2]! }
+}
 
 function slideVisualId(slide: LearnSlide, fallback?: string): string | undefined {
   if (slide.type === 'interactive3d') return slide.visualId
@@ -85,7 +106,7 @@ export function LearnSectionRunner({
   const fromBook = searchParams.get('from') === 'book'
   const [slideIndex, setSlideIndex] = useState(0)
   const [doneBanner, setDoneBanner] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'main' | '3d' | 'work' | 'assistant'>('main')
+  const [mobileTab, setMobileTab] = useState<MobileTab>('main')
   const [presentationMode, setPresentationMode] = useState(false)
   const [expandedPanel, setExpandedPanel] = useState<'3d' | 'work' | 'assistant' | null>(null)
   const [hiddenPanels, setHiddenPanels] = useState<Set<OptionalPanel>>(
@@ -188,30 +209,98 @@ export function LearnSectionRunner({
     [hiddenPanels, hidePanel, showPanel],
   )
 
+  // Хуки ниже раньше вызывались после раннего return экрана «Параграф завершён»,
+  // из-за чего «Завершить урок» ронял React («Rendered fewer hooks than expected»).
+  const toggleExpanded = useCallback((panel: '3d' | 'work' | 'assistant') => {
+    if (hiddenPanels.has(panel)) {
+      showPanel(panel)
+      return
+    }
+    setExpandedPanel((prev) => (prev === panel ? null : panel))
+    setMobileTab(panel === '3d' ? '3d' : panel === 'work' ? 'work' : 'assistant')
+  }, [hiddenPanels, showPanel])
+
+  const visiblePanelCount = useMemo(() => {
+    let n = 1
+    if (!hiddenPanels.has('3d')) n += 1
+    if (!hiddenPanels.has('work')) n += 1
+    if (!presentationMode && !hiddenPanels.has('assistant')) n += 1
+    return n
+  }, [hiddenPanels, presentationMode])
+
+  const gridTemplateColumns = useMemo(() => {
+    if (presentationMode || expandedPanel) return undefined
+    const cols = ['minmax(0, 1.05fr)']
+    if (!hiddenPanels.has('3d')) cols.push('minmax(0, 1.3fr)')
+    if (!hiddenPanels.has('work')) cols.push('minmax(0, 0.95fr)')
+    if (!hiddenPanels.has('assistant')) cols.push('minmax(0, 1fr)')
+    return cols.length === 1 ? '1fr' : cols.join(' ')
+  }, [hiddenPanels, presentationMode, expandedPanel])
+
+  useEffect(() => {
+    if (!expandedPanel) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpandedPanel(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [expandedPanel])
+
+  /** Цвет класса (g7…g11) из дизайн-системы — для бейджа § и акцентов шапки. */
+  const gradeToneStyle = useMemo(
+    () =>
+      ({
+        '--lesson-a': `var(--lt-${grade.id}-a, var(--lt-primary))`,
+        '--lesson-b': `var(--lt-${grade.id}-b, var(--lt-primary-2))`,
+      }) as CSSProperties,
+    [grade.id],
+  )
+
+  const lessonTitle = t(section.titleKey)
+  const titleParts = splitParagraphTitle(lessonTitle)
+
   if (doneBanner) {
     return (
-      <div className={styles.page}>
-        <Link className={styles.backLink} to={`/learn/g/${grade.id}/c/${chapter.id}`}>
-          {t('learn.backChapters')}
-        </Link>
-        <h1 className={styles.h}>{t('learn.sectionDone')}</h1>
-        <p className={styles.lead}>{t('learn.sectionDoneLead')}</p>
-        <div className={styles.footerNav}>
-          <button
-            type="button"
-            className={`${styles.btn} ${styles.btnPrimary}`}
-            onClick={() => navigate(`/learn/g/${grade.id}/c/${chapter.id}`)}
-          >
-            {t('learn.sectionsTitle')}
-          </button>
-          {nextSec ? (
-            <Link
-              className={`${styles.btn} ${styles.btnPrimary}`}
-              to={`/learn/g/${nextSec.gradeId}/c/${nextSec.chapterId}/s/${nextSec.sectionId}`}
+      <div className={`${styles.page} ${styles.learnDonePage}`} style={gradeToneStyle}>
+        <div className={styles.learnDoneCard}>
+          <Link className={styles.learnDoneBack} to={`/learn/g/${grade.id}/c/${chapter.id}`}>
+            <LearnShellIcon name="arrowLeft" size={16} />
+            <span>{stripLeadingArrow(t('learn.backChapters'))}</span>
+          </Link>
+          <div className={styles.learnDoneBadge} aria-hidden="true">
+            <span className={styles.learnDoneBadgeRing} />
+            <LearnShellIcon name="check" size={44} strokeWidth={2.6} />
+          </div>
+          <p className={styles.learnDoneSection}>
+            {titleParts.badge ? <span className={styles.lessonParaBadge}>{titleParts.badge}</span> : null}
+            <span>{titleParts.text}</span>
+          </p>
+          <h1 className={styles.learnDoneTitle}>{t('learn.sectionDone')}</h1>
+          <p className={styles.learnDoneLead}>{t('learn.sectionDoneLead')}</p>
+          <div className={styles.learnDoneActions}>
+            <button
+              type="button"
+              className={styles.shellBtn}
+              onClick={() => navigate(`/learn/g/${grade.id}/c/${chapter.id}`)}
             >
-              {t('learn.path.nextSection')}
-            </Link>
-          ) : null}
+              <LearnShellIcon name="list" size={17} />
+              <span>{t('learn.sectionsTitle')}</span>
+            </button>
+            {nextSec ? (
+              <Link
+                className={`${styles.shellBtn} ${styles.shellBtnPrimary}`}
+                to={`/learn/g/${nextSec.gradeId}/c/${nextSec.chapterId}/s/${nextSec.sectionId}`}
+              >
+                <span>{t('learn.path.nextSection')}</span>
+                <LearnShellIcon name="arrowRight" size={17} />
+              </Link>
+            ) : null}
+          </div>
         </div>
       </div>
     )
@@ -233,38 +322,6 @@ export function LearnSectionRunner({
     />
   )
 
-  const toggleExpanded = useCallback((panel: '3d' | 'work' | 'assistant') => {
-    if (hiddenPanels.has(panel)) {
-      showPanel(panel)
-      return
-    }
-    setExpandedPanel((prev) => (prev === panel ? null : panel))
-    setMobileTab(panel === '3d' ? '3d' : panel === 'work' ? 'work' : 'assistant')
-  }, [hiddenPanels, showPanel])
-
-  const gridTemplateColumns = useMemo(() => {
-    if (presentationMode || expandedPanel) return undefined
-    const cols = ['minmax(0, 1.1fr)']
-    if (!hiddenPanels.has('3d')) cols.push('minmax(0, 1.25fr)')
-    if (!hiddenPanels.has('work')) cols.push('minmax(0, 0.95fr)')
-    if (!hiddenPanels.has('assistant')) cols.push('minmax(0, 1fr)')
-    return cols.length === 1 ? '1fr' : cols.join(' ')
-  }, [hiddenPanels, presentationMode, expandedPanel])
-
-  useEffect(() => {
-    if (!expandedPanel) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setExpandedPanel(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prev
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [expandedPanel])
-
   const layoutClass = [
     styles.learnLessonLayout,
     presentationMode ? styles.learnLessonLayoutPresent : '',
@@ -276,9 +333,26 @@ export function LearnSectionRunner({
   const colFs = (id: '3d' | 'work' | 'assistant') =>
     expandedPanel === id ? styles.learnColFullscreen : ''
 
+  const bookHref = `/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${textbookSectionPage(grade.id, chapter.id, section.id)}`
+  const fgosLabel = t('learn.fgos.badge', { block: fgosMeta.programBlock })
+
+  const panelMenuClass = (id: OptionalPanel) =>
+    isPanelHidden(id)
+      ? styles.learnPanelMenuOff
+      : expandedPanel === id
+        ? styles.learnPanelMenuOn
+        : styles.learnPanelMenuBtn
+
+  // Сетка колонок: на десктопе берётся из CSS-переменной (в мобильной раскладке
+  // одна колонка — inline grid-template-columns больше не ломает телефон).
+  const layoutStyle = gridTemplateColumns
+    ? ({ '--learn-cols': gridTemplateColumns } as CSSProperties)
+    : undefined
+
   return (
     <div
       className={`${styles.page} ${styles.learnLessonOneScreen} ${presentationMode ? styles.learnPagePresent : ''}`}
+      style={gradeToneStyle}
     >
       <header className={`${styles.lessonHeader} ${styles.lessonHeaderCompact}`}>
         <div className={styles.lessonHeaderRow}>
@@ -287,89 +361,96 @@ export function LearnSectionRunner({
               className={styles.backLinkInline}
               to={
                 fromBook && gradeHasTextbook(grade.id)
-                  ? `/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${textbookSectionPage(grade.id, chapter.id, section.id)}`
+                  ? bookHref
                   : `/learn/g/${grade.id}/c/${chapter.id}`
               }
             >
-              {fromBook ? t('learn.bookTopic.backToBook') : t('learn.backChapters')}
+              <LearnShellIcon name="arrowLeft" size={15} />
+              <span>
+                {stripLeadingArrow(fromBook ? t('learn.bookTopic.backToBook') : t('learn.backChapters'))}
+              </span>
             </Link>
-            <h1 className={styles.lessonTitle}>{t(section.titleKey)}</h1>
-            <p className={styles.lessonMetaInline}>
-              {t('learn.estimatedMin', { n: section.estimatedMin })} ·{' '}
-              {t('learn.fgos.badge', { block: fgosMeta.programBlock })}
-            </p>
+            <div className={styles.lessonTitleBlock}>
+              <h1 className={styles.lessonTitle} title={lessonTitle}>
+                {titleParts.badge ? (
+                  <span className={styles.lessonParaBadge}>{titleParts.badge}</span>
+                ) : null}
+                <span className={styles.lessonTitleText}>{titleParts.text}</span>
+              </h1>
+              <p className={styles.lessonMetaInline}>
+                <span className={styles.lessonMetaChip}>
+                  <LearnShellIcon name="clock" size={13} />
+                  {t('learn.estimatedMin', { n: section.estimatedMin })}
+                </span>
+                <span className={`${styles.lessonMetaChip} ${styles.lessonMetaChipWide}`} title={fgosLabel}>
+                  <LearnShellIcon name="award" size={13} />
+                  <span className={styles.lessonMetaChipText}>{fgosLabel}</span>
+                </span>
+              </p>
+            </div>
           </div>
           <div className={styles.learnHeaderActions}>
-            <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={finishSection}>
-              {t('learn.finish')}
+            <button
+              type="button"
+              className={`${styles.shellBtn} ${styles.shellBtnPrimary}`}
+              onClick={finishSection}
+            >
+              <LearnShellIcon name="check" size={16} strokeWidth={2.4} />
+              <span>{t('learn.finish')}</span>
             </button>
-            <Link className={styles.btn} to="/learn/tasks">
-              {t('learn.grades.tasks')}
+            <Link className={styles.shellBtn} to="/learn/tasks" title={t('learn.grades.tasks')}>
+              <LearnShellIcon name="tasks" size={16} />
+              <span className={styles.shellBtnLabel}>{t('learn.grades.tasks')}</span>
             </Link>
             {gradeHasTextbook(grade.id) ? (
-              <Link
-                className={styles.btn}
-                to={`/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${textbookSectionPage(grade.id, chapter.id, section.id)}`}
-              >
-                {t('learn.textbook.openSection')}
+              <Link className={styles.shellBtn} to={bookHref} title={t('learn.textbook.openSection')}>
+                <LearnShellIcon name="book" size={16} />
+                <span className={styles.shellBtnLabel}>{t('learn.textbook.openSection')}</span>
               </Link>
             ) : null}
             {grade.id === 'g10' ? (
               <Link
-                className={styles.btn}
+                className={styles.shellBtn}
                 to={`/organic?chapter=${chapter.id.replace(/\D/g, '') || '1'}&section=${section.id.replace(/\D/g, '') || '1'}`}
+                title={t('organicLab.openInLab')}
               >
-                {t('organicLab.openInLab')}
+                <LearnShellIcon name="flask" size={16} />
+                <span className={styles.shellBtnLabel}>{t('organicLab.openInLab')}</span>
               </Link>
             ) : null}
             <div className={styles.learnPanelMenu} role="group" aria-label={t('learn.panel.menu')}>
               <button
                 type="button"
-                className={
-                  isPanelHidden('3d')
-                    ? styles.learnPanelMenuOff
-                    : expandedPanel === '3d'
-                      ? styles.learnPanelMenuOn
-                      : styles.learnPanelMenuBtn
-                }
+                className={panelMenuClass('3d')}
                 onClick={() => togglePanelVisibility('3d')}
                 aria-pressed={!isPanelHidden('3d')}
                 title={isPanelHidden('3d') ? t('learn.panel.show') : t('learn.panel.hide')}
               >
-                {t('learn.panel.open3d')}
+                <LearnShellIcon name="cube" size={15} />
+                <span>{t('learn.panel.open3d')}</span>
               </button>
               <button
                 type="button"
-                className={
-                  isPanelHidden('work')
-                    ? styles.learnPanelMenuOff
-                    : expandedPanel === 'work'
-                      ? styles.learnPanelMenuOn
-                      : styles.learnPanelMenuBtn
-                }
+                className={panelMenuClass('work')}
                 onClick={() => togglePanelVisibility('work')}
                 aria-pressed={!isPanelHidden('work')}
                 title={isPanelHidden('work') ? t('learn.panel.show') : t('learn.panel.hide')}
               >
-                {t('learn.panel.openWork')}
+                <LearnShellIcon name="pencil" size={15} />
+                <span>{t('learn.panel.openWork')}</span>
               </button>
               {!presentationMode ? (
                 <button
                   type="button"
-                  className={
-                    isPanelHidden('assistant')
-                      ? styles.learnPanelMenuOff
-                      : expandedPanel === 'assistant'
-                        ? styles.learnPanelMenuOn
-                        : styles.learnPanelMenuBtn
-                  }
+                  className={panelMenuClass('assistant')}
                   onClick={() => togglePanelVisibility('assistant')}
                   aria-pressed={!isPanelHidden('assistant')}
                   title={
                     isPanelHidden('assistant') ? t('learn.panel.show') : t('learn.panel.hide')
                   }
                 >
-                  {t('learn.panel.openAssistant')}
+                  <LearnShellIcon name="sparkles" size={15} />
+                  <span>{t('learn.panel.openAssistant')}</span>
                 </button>
               ) : null}
             </div>
@@ -388,7 +469,10 @@ export function LearnSectionRunner({
               }}
               title={t('learn.present.hint')}
             >
-              {presentationMode ? t('learn.present.off') : t('learn.present.on')}
+              <LearnShellIcon name={presentationMode ? 'layers' : 'board'} size={16} />
+              <span className={styles.shellBtnLabel}>
+                {presentationMode ? t('learn.present.off') : t('learn.present.on')}
+              </span>
             </button>
           </div>
         </div>
@@ -396,14 +480,19 @@ export function LearnSectionRunner({
 
       {hiddenPanels.size > 0 ? (
         <div className={styles.learnHiddenPanelsBar} role="region" aria-label={t('learn.panel.hiddenBar')}>
-          <span className={styles.learnHiddenPanelsLabel}>{t('learn.panel.hiddenBar')}:</span>
+          <span className={styles.learnHiddenPanelsLabel}>
+            <LearnShellIcon name="eyeOff" size={14} />
+            {t('learn.panel.hiddenBar')}:
+          </span>
           {isPanelHidden('3d') ? (
             <button type="button" className={styles.learnHiddenPanelsBtn} onClick={() => showPanel('3d')}>
+              <LearnShellIcon name="plus" size={13} strokeWidth={2.4} />
               {t('learn.panel.open3d')}
             </button>
           ) : null}
           {isPanelHidden('work') ? (
             <button type="button" className={styles.learnHiddenPanelsBtn} onClick={() => showPanel('work')}>
+              <LearnShellIcon name="plus" size={13} strokeWidth={2.4} />
               {t('learn.panel.openWork')}
             </button>
           ) : null}
@@ -413,6 +502,7 @@ export function LearnSectionRunner({
               className={styles.learnHiddenPanelsBtn}
               onClick={() => showPanel('assistant')}
             >
+              <LearnShellIcon name="plus" size={13} strokeWidth={2.4} />
               {t('learn.panel.openAssistant')}
             </button>
           ) : null}
@@ -440,23 +530,23 @@ export function LearnSectionRunner({
             className={mobileTab === tab ? styles.learnMobileTabOn : styles.learnMobileTab}
             onClick={() => setMobileTab(tab)}
           >
-            {t(
-              tab === 'main'
-                ? 'learn.studentTest.title'
-                : tab === '3d'
-                  ? 'learn.lesson.tab3d'
-                  : tab === 'work'
-                    ? 'learn.lesson.tabWork'
-                    : 'learn.lesson.tabAssistant',
-            )}
+            <LearnShellIcon name={PANEL_ICON[tab]} size={18} />
+            <span className={styles.learnMobileTabLabel}>
+              {t(
+                tab === 'main'
+                  ? 'learn.studentTest.title'
+                  : tab === '3d'
+                    ? 'learn.lesson.tab3d'
+                    : tab === 'work'
+                      ? 'learn.lesson.tabWork'
+                      : 'learn.lesson.tabAssistant',
+              )}
+            </span>
           </button>
         ))}
       </div>
 
-      <div
-        className={layoutClass}
-        style={gridTemplateColumns ? { gridTemplateColumns } : undefined}
-      >
+      <div className={layoutClass} style={layoutStyle} data-panels={visiblePanelCount}>
         <div
           className={`${styles.learnColTheory} ${mobileTab !== 'main' ? styles.learnColHideMobile : ''}`}
         >
@@ -474,7 +564,8 @@ export function LearnSectionRunner({
           >
             <LearnColumnPanelTools
               expanded={expandedPanel === '3d'}
-              label={t('learn.lesson.tab3d')}
+              label={t('learn.panel.open3d')}
+              icon="cube"
               onExpand={() => toggleExpanded('3d')}
               onHide={() => hidePanel('3d')}
             />
@@ -499,7 +590,8 @@ export function LearnSectionRunner({
           >
             <LearnColumnPanelTools
               expanded={expandedPanel === 'work'}
-              label={t('learn.lesson.tabWork')}
+              label={t('learn.panel.openWork')}
+              icon="pencil"
               onExpand={() => toggleExpanded('work')}
               onHide={() => hidePanel('work')}
             />
@@ -524,11 +616,20 @@ export function LearnSectionRunner({
               >
                 <LearnColumnPanelTools
                   expanded={expandedPanel === 'assistant'}
-                  label={t('learn.lesson.tabAssistant')}
+                  label={t('learn.panel.openAssistant')}
+                  icon="sparkles"
                   onExpand={() => toggleExpanded('assistant')}
                   onHide={() => hidePanel('assistant')}
                 />
-                <Suspense fallback={null}>
+                <Suspense
+                  fallback={
+                    <div className={styles.learnColLoading} aria-hidden="true">
+                      <span className={styles.learnColLoadingLine} />
+                      <span className={styles.learnColLoadingLine} />
+                      <span className={styles.learnColLoadingLine} />
+                    </div>
+                  }
+                >
                   <LearnAssistantPanel
                     gradeId={grade.id}
                     chapterId={chapter.id}

@@ -14,6 +14,7 @@ import {
 } from '../../learn/learnExamGrader'
 import type { WrittenExamItem } from '../../learn/topicQuizTypes'
 import { useT, type MessageKey } from '../../i18n/useT'
+import { LearnSidebarIcon } from './LearnSidebarIcon'
 import styles from './TeacherExamShell.module.css'
 
 type Props = {
@@ -35,8 +36,9 @@ function ExamScoreRing({ score, max }: { score: number; max: number }) {
       <svg viewBox="0 0 100 100" aria-hidden>
         <defs>
           <linearGradient id="examScoreGradWritten" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#5cffd4" />
-            <stop offset="100%" stopColor="#3dd4b0" />
+            <stop offset="0%" stopColor="#5b8cff" />
+            <stop offset="55%" stopColor="#8b5cf6" />
+            <stop offset="100%" stopColor="#d946ef" />
           </linearGradient>
         </defs>
         <circle className={styles.scoreRingBg} cx="50" cy="50" r="45" />
@@ -185,7 +187,10 @@ function WrittenExamOverlay({
         {phase === 'running' && question ? (
           <div className={styles.body}>
             <div className={styles.teacherBubble}>
-              <span className={styles.teacherBadge}>{t('learn.teacherExam.writePrompt')}</span>
+              <span className={styles.teacherBadge}>
+                <LearnSidebarIcon name="written" size={12} />
+                {t('learn.teacherExam.writePrompt')}
+              </span>
               <p className={styles.question}>{question.question}</p>
             </div>
 
@@ -284,6 +289,7 @@ export function LearnWrittenExamPanel({
   section,
   rosterSectionId,
   disabled = false,
+  embedded = false,
 }: Props) {
   const { t } = useT()
   const poolSize = writtenExamPoolSize(grade.id, chapter.id)
@@ -293,36 +299,61 @@ export function LearnWrittenExamPanel({
   const canStart = poolSize >= 2 && !disabled
   const effectiveCount = useMemo(() => (count === 5 && poolSize < 5 ? 3 : count), [count, poolSize])
 
+  /* Во встроенном режиме причину «нет ученика» уже показывает выноска хаба над панелью. */
+  const showStudentReason = disabled && !embedded
+  const hintWarn = showStudentReason || poolSize < 2
+  const hintText = showStudentReason
+    ? t('learn.molecules.structure.testNoStudent')
+    : poolSize >= 2
+      ? t('learn.teacherExam.writtenPoolHint', { n: poolSize })
+      : t('learn.studentTest.notEnough')
+  const disabledReason = disabled
+    ? t('learn.molecules.structure.testNoStudent')
+    : !canStart
+      ? t('learn.studentTest.notEnough')
+      : undefined
+
   return (
     <section className={styles.panel}>
       <div className={styles.setupRow}>
-        <div className={styles.countPicker} role="group" aria-label={t('learn.studentTest.pickCount')}>
-          <button
-            type="button"
-            className={count === 3 ? styles.countBtnActive : styles.countBtn}
-            onClick={() => setCount(3)}
-          >
-            3
-          </button>
-          <button
-            type="button"
-            className={count === 5 ? styles.countBtnActive : styles.countBtn}
-            onClick={() => setCount(5)}
-            disabled={poolSize < 5}
-          >
-            5
-          </button>
+        <div className={styles.countField}>
+          <span className={styles.countLabel} aria-hidden="true">
+            {t('learn.studentTest.pickCount')}
+          </span>
+          <div className={styles.countPicker} role="group" aria-label={t('learn.studentTest.pickCount')}>
+            <button
+              type="button"
+              className={count === 3 ? styles.countBtnActive : styles.countBtn}
+              aria-pressed={count === 3}
+              onClick={() => setCount(3)}
+            >
+              3
+            </button>
+            <button
+              type="button"
+              className={count === 5 ? styles.countBtnActive : styles.countBtn}
+              aria-pressed={count === 5}
+              onClick={() => setCount(5)}
+              disabled={poolSize < 5}
+            >
+              5
+            </button>
+          </div>
         </div>
-        <button type="button" className={styles.primaryBtn} disabled={!canStart} onClick={() => setActive(true)}>
-          {t('learn.teacherExam.startWritten')}
+        <button
+          type="button"
+          className={styles.primaryBtn}
+          disabled={!canStart}
+          title={disabledReason}
+          onClick={() => setActive(true)}
+        >
+          <LearnSidebarIcon name={canStart ? 'written' : 'lock'} size={16} />
+          <span>{t('learn.teacherExam.startWritten')}</span>
         </button>
       </div>
-      <p className={styles.hint}>
-        {disabled
-          ? t('learn.molecules.structure.testNoStudent')
-          : canStart
-            ? t('learn.teacherExam.writtenPoolHint', { n: poolSize })
-            : t('learn.studentTest.notEnough')}
+      <p className={`${styles.hint} ${hintWarn ? styles.hintWarn : ''}`}>
+        <LearnSidebarIcon name={hintWarn ? 'lock' : 'info'} size={14} className={styles.hintIcon} />
+        <span>{hintText}</span>
       </p>
       {active ? (
         <WrittenExamOverlay

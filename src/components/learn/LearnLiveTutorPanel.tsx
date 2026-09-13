@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import { getActiveStudent } from '../../learn/learnClassRosterStorage'
@@ -152,7 +152,12 @@ function LiveTutorOverlay({
   const reasoningView = useMemo(() => state.reasoning.slice(-6), [state.reasoning])
 
   return createPortal(
-    <div className={`${styles.overlay} ${styles.liveOverlay}`} role="dialog" aria-modal="true">
+    <div
+      className={`${styles.overlay} ${styles.liveOverlay}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('learn.teacherExam.liveTitle')}
+    >
       <div className={styles.liveStars} aria-hidden />
       <div className={styles.liveNebula} aria-hidden />
 
@@ -180,7 +185,7 @@ function LiveTutorOverlay({
             </div>
 
             <div className={styles.liveChatWrap}>
-              <div className={styles.liveChat} aria-live="polite">
+              <div className={styles.liveChat} role="log" aria-live="polite" aria-relevant="additions">
               {state.messages.length === 0 && !state.partial ? (
                 <div className={styles.liveWelcome}>
                   <div className={`${styles.liveOrb} ${styles.liveOrbIdle} ${styles.liveWelcomeOrb}`} aria-hidden />
@@ -264,9 +269,10 @@ function LiveTutorOverlay({
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') submitText()
+                    if (e.key === 'Enter' && !e.nativeEvent.isComposing) submitText()
                   }}
                   placeholder={t('learn.teacherExam.liveTypePlaceholder')}
+                  aria-label={t('learn.teacherExam.liveTypePlaceholder')}
                 />
                 <button type="button" className={styles.primaryBtn} onClick={submitText}>
                   {t('learn.teacherExam.liveSend')}
@@ -370,6 +376,7 @@ function LiveTutorOverlay({
 /**
  * Компактная кнопка запуска онлайн-диалога — встраивается в ИИ-преподавателя
  * (боковую панель урока). Открывает тот же космический оверлей.
+ * `icon` — необязательная inline-SVG иконка перед подписью.
  */
 export function LiveDialogButton({
   grade,
@@ -377,7 +384,9 @@ export function LiveDialogButton({
   section,
   rosterSectionId,
   className,
-}: Props & { className?: string }) {
+  icon,
+  disabled = false,
+}: Props & { className?: string; icon?: ReactNode }) {
   const { t } = useT()
   const [active, setActive] = useState(false)
   const [initialMode, setInitialMode] = useState<TutorMode>('training')
@@ -395,8 +404,11 @@ export function LiveDialogButton({
         className={className}
         onClick={() => launch('training')}
         title={t('learn.teacherExam.liveTitle')}
+        disabled={disabled}
+        aria-haspopup="dialog"
       >
-        {t('learn.teacherExam.liveStart')}
+        {icon}
+        <span>{t('learn.teacherExam.liveStart')}</span>
       </button>
       {active ? (
         <LiveTutorOverlay

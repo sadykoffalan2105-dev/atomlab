@@ -167,7 +167,22 @@ export function MoleculeStructureCanvas({ compound, quizMode = false, compact = 
           </Canvas>
         </CanvasErrorBoundary>
       </div>
-      <p className={styles.hint}>{t('learn.molecules.structure.rotateHint')}</p>
+      <p className={styles.hint}>
+        <svg
+          className={styles.hintIcon}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+          focusable="false"
+        >
+          <path d="M20 12a8 8 0 1 1-2.35-5.65M20 4v4.5h-4.5" />
+        </svg>
+        <span className={styles.hintText}>{t('learn.molecules.structure.rotateHint')}</span>
+      </p>
     </div>
   )
 }

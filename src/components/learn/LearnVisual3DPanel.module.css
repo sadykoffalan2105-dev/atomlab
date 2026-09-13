@@ -1,0 +1,362 @@
+/*
+ * 3D-колонка урока (LearnVisual3DPanel) — «Aurora Lab».
+ * Токены: src/learn/learnTheme.css (--lt-*).
+ *
+ * Локальные custom properties:
+ *   --learn-accent   акцент темы (задаёт компонент inline, как раньше)
+ *   --v3d-ring       градиентная рамка вьюпорта
+ *
+ * Рамка самодостаточна: растягивается во flex-родителе и не зависит
+ * от контекстных правил LearnPage.module.css.
+ */
+
+.frame {
+  --learn-accent: var(--lt-accent-cyan);
+  --v3d-ring: linear-gradient(
+    140deg,
+    rgba(91, 140, 255, 0.7) 0%,
+    rgba(139, 92, 246, 0.4) 42%,
+    color-mix(in srgb, var(--learn-accent) 60%, transparent) 100%
+  );
+
+  position: relative;
+  isolation: isolate;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: clamp(280px, 52vh, 520px);
+  overflow: hidden;
+  container: v3d / inline-size;
+  border-radius: var(--lt-radius-lg);
+  border: 1px solid transparent;
+  background:
+    radial-gradient(80% 60% at 50% 42%, rgba(40, 60, 120, 0.35), transparent 72%) padding-box,
+    linear-gradient(var(--lt-bg-deep), var(--lt-bg-deep)) padding-box,
+    var(--v3d-ring) border-box;
+  box-shadow:
+    var(--lt-shadow),
+    0 0 44px -14px color-mix(in srgb, var(--learn-accent) 45%, transparent);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-body);
+  line-height: var(--lt-lh);
+}
+
+.frame *,
+.frame *::before,
+.frame *::after {
+  box-sizing: border-box;
+}
+
+.present {
+  min-height: clamp(360px, 68vh, 680px);
+}
+
+.cyber {
+  min-height: clamp(320px, 56vh, 560px);
+}
+
+.cyber.present {
+  min-height: clamp(380px, 72vh, 720px);
+}
+
+/* ——— HUD-шапка ——— */
+.hud {
+  position: relative;
+  z-index: 3;
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--lt-border);
+  background: linear-gradient(180deg, rgba(18, 24, 44, 0.9), rgba(10, 14, 28, 0.6));
+  backdrop-filter: var(--lt-blur);
+  -webkit-backdrop-filter: var(--lt-blur);
+}
+
+.hudLeft,
+.hudRight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hudLeft {
+  flex: 1 1 180px;
+}
+
+.hudRight {
+  justify-content: flex-end;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid color-mix(in srgb, var(--learn-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--learn-accent) 12%, transparent);
+  color: color-mix(in srgb, var(--learn-accent) 80%, #fff);
+  font-size: var(--lt-fs-xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.badge::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--learn-accent);
+  box-shadow: 0 0 10px var(--learn-accent);
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--lt-font-display);
+  font-size: var(--lt-fs-h3);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: var(--lt-lh-tight);
+  color: var(--lt-text);
+}
+
+.hudHint {
+  font-size: var(--lt-fs-xs);
+  line-height: 1.35;
+  color: var(--lt-text-3);
+}
+
+/* Подсказка «как вращать» — плавающая пилюля над сценой */
+.floatHint {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  z-index: 3;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--lt-border-strong);
+  background: rgba(6, 9, 19, 0.7);
+  backdrop-filter: var(--lt-blur);
+  -webkit-backdrop-filter: var(--lt-blur);
+  box-shadow: var(--lt-shadow-sm);
+  font-size: var(--lt-fs-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--lt-text-2);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.floatHintText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.floatHint .icon {
+  color: var(--learn-accent);
+}
+
+/* ——— Кнопки HUD: стеклянные пилюли ——— */
+.hudBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--lt-border-strong);
+  background: var(--lt-surface-2);
+  backdrop-filter: var(--lt-blur);
+  -webkit-backdrop-filter: var(--lt-blur);
+  color: var(--lt-text);
+  font: inherit;
+  font-size: var(--lt-fs-xs);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform var(--lt-dur) var(--lt-ease),
+    border-color var(--lt-dur) var(--lt-ease),
+    background var(--lt-dur) var(--lt-ease),
+    box-shadow var(--lt-dur) var(--lt-ease);
+}
+
+.hudBtn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(148, 170, 230, 0.45);
+  background: var(--lt-surface-hover);
+  box-shadow: var(--lt-shadow-sm);
+}
+
+.hudBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.hudBtnOn {
+  border-color: transparent;
+  background: var(--lt-grad-primary);
+  color: #fff;
+}
+
+.hudBtnOn:hover {
+  border-color: transparent;
+  background: var(--lt-grad-primary);
+  box-shadow: var(--lt-glow-primary);
+}
+
+.hudBtnDone,
+.hudBtnDone:hover {
+  border-color: color-mix(in srgb, var(--lt-success) 50%, transparent);
+  background: color-mix(in srgb, var(--lt-success) 16%, transparent);
+  color: var(--lt-success);
+}
+
+/* ——— Сцена ——— */
+.stage {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 240px;
+}
+
+.life .stage {
+  min-height: clamp(260px, 52vh, 520px);
+}
+
+.life.present .stage {
+  min-height: clamp(320px, 68vh, 680px);
+}
+
+.cyber .stage {
+  min-height: clamp(260px, 48vh, 520px);
+}
+
+.glow {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(50% 40% at 50% 55%, color-mix(in srgb, var(--learn-accent) 14%, transparent), transparent 72%),
+    radial-gradient(40% 30% at 12% 100%, var(--lt-bg-glow-2), transparent 70%);
+}
+
+.scanline {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0.03;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.15) 2px,
+    rgba(255, 255, 255, 0.15) 3px
+  );
+}
+
+/* ——— Нет WebGL / 3D отложено: пустое состояние ——— */
+.fallback {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  font-size: var(--lt-fs-small);
+  line-height: 1.5;
+  color: var(--lt-text-2);
+}
+
+.fallbackArt {
+  width: 72px;
+  height: 72px;
+}
+
+/* ——— Узкая колонка ——— */
+@container v3d (max-width: 520px) {
+  .hud {
+    padding: 8px 10px;
+  }
+
+  .hudRight {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .hudRight::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hudBtn {
+    flex: 0 0 auto;
+  }
+}
+
+@media (pointer: coarse), (max-width: 720px) {
+  .frame {
+    border-radius: var(--lt-radius);
+  }
+
+  .hudBtn {
+    min-height: 44px;
+    padding: 0 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hudBtn {
+    transition: none;
+  }
+
+  .hudBtn:hover {
+    transform: none;
+  }
+}

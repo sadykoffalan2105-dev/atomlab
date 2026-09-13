@@ -25,6 +25,7 @@ import { useT, type MessageKey } from '../../i18n/useT'
 import { speechLocaleFromApp } from '../../i18n/localeHelpers'
 import { OralExamCameraPanel } from './OralExamCameraPanel'
 import { BrainInsightPanel } from './BrainInsightPanel'
+import { LearnSidebarIcon } from './LearnSidebarIcon'
 import styles from './TeacherExamShell.module.css'
 
 type Props = {
@@ -51,8 +52,9 @@ function ExamScoreRing({ score, max }: { score: number; max: number }) {
       <svg viewBox="0 0 100 100" aria-hidden>
         <defs>
           <linearGradient id="examScoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#5cffd4" />
-            <stop offset="100%" stopColor="#3dd4b0" />
+            <stop offset="0%" stopColor="#5b8cff" />
+            <stop offset="55%" stopColor="#8b5cf6" />
+            <stop offset="100%" stopColor="#d946ef" />
           </linearGradient>
         </defs>
         <circle className={styles.scoreRingBg} cx="50" cy="50" r="45" />
@@ -392,7 +394,10 @@ function OralExamOverlay({
           <div className={`${styles.body} ${styles.oralLayout}`}>
             <div className={styles.oralMain}>
               <div className={styles.teacherBubble}>
-                <span className={styles.teacherBadge}>{t('learn.teacherExam.teacherAsks')}</span>
+                <span className={styles.teacherBadge}>
+                  <LearnSidebarIcon name="oral" size={12} />
+                  {t('learn.teacherExam.teacherAsks')}
+                </span>
                 <p className={styles.question}>{question.questionDisplay ?? question.questionSpeak}</p>
                 {speaking && step === 'ask' ? (
                   <p className={styles.speakingHint}>{t('learn.teacherExam.speaking')}</p>
@@ -504,6 +509,7 @@ function OralExamOverlay({
                         onClick={toggleMic}
                         disabled={step === 'grading' || (listening && !canFinishRecording)}
                       >
+                        <LearnSidebarIcon name="oral" size={16} />
                         {listening
                           ? t('learn.teacherExam.finishRecording')
                           : t('learn.teacherExam.recordAgain')}
@@ -633,6 +639,7 @@ export function LearnOralExamPanel({
   section,
   rosterSectionId,
   disabled = false,
+  embedded = false,
 }: Props) {
   const { t } = useT()
   const poolSize = oralExamPoolSize(grade.id, chapter.id)
@@ -645,44 +652,64 @@ export function LearnOralExamPanel({
     [count, poolSize],
   )
 
+  /* Во встроенном режиме причину «нет ученика» уже показывает выноска хаба над панелью. */
+  const showStudentReason = disabled && !embedded
+  const hintWarn = showStudentReason || poolSize < 5
+  const hintText = showStudentReason
+    ? t('learn.molecules.structure.testNoStudent')
+    : poolSize >= 5
+      ? t('learn.teacherExam.oralPoolHint', { n: poolSize })
+      : t('learn.studentTest.notEnough')
+  const disabledReason = disabled
+    ? t('learn.molecules.structure.testNoStudent')
+    : !canStart
+      ? t('learn.studentTest.notEnough')
+      : undefined
+
   return (
     <section className={styles.panel}>
       <div className={styles.setupRow}>
-        <div className={styles.countPicker} role="group" aria-label={t('learn.studentTest.pickCount')}>
-          <button
-            type="button"
-            className={count === 5 ? styles.countBtnActive : styles.countBtn}
-            onClick={() => setCount(5)}
-          >
-            {t('learn.studentTest.questions5')}
-          </button>
-          <button
-            type="button"
-            className={count === 10 ? styles.countBtnActive : styles.countBtn}
-            onClick={() => setCount(10)}
-            disabled={poolSize < 10}
-          >
-            {t('learn.studentTest.questions10')}
-          </button>
+        <div className={styles.countField}>
+          <span className={styles.countLabel} aria-hidden="true">
+            {t('learn.studentTest.pickCount')}
+          </span>
+          <div className={styles.countPicker} role="group" aria-label={t('learn.studentTest.pickCount')}>
+            <button
+              type="button"
+              className={count === 5 ? styles.countBtnActive : styles.countBtn}
+              aria-pressed={count === 5}
+              onClick={() => setCount(5)}
+            >
+              {t('learn.studentTest.questions5')}
+            </button>
+            <button
+              type="button"
+              className={count === 10 ? styles.countBtnActive : styles.countBtn}
+              aria-pressed={count === 10}
+              onClick={() => setCount(10)}
+              disabled={poolSize < 10}
+            >
+              {t('learn.studentTest.questions10')}
+            </button>
+          </div>
         </div>
         <button
           type="button"
           className={styles.primaryBtn}
           disabled={!canStart}
+          title={disabledReason}
           onClick={() => {
             void ensureMicrophonePermission()
             setActive(true)
           }}
         >
-          {t('learn.teacherExam.startOral')}
+          <LearnSidebarIcon name={canStart ? 'oral' : 'lock'} size={16} />
+          <span>{t('learn.teacherExam.startOral')}</span>
         </button>
       </div>
-      <p className={styles.hint}>
-        {disabled
-          ? t('learn.molecules.structure.testNoStudent')
-          : canStart
-            ? t('learn.teacherExam.oralPoolHint', { n: poolSize })
-            : t('learn.studentTest.notEnough')}
+      <p className={`${styles.hint} ${hintWarn ? styles.hintWarn : ''}`}>
+        <LearnSidebarIcon name={hintWarn ? 'lock' : 'info'} size={14} className={styles.hintIcon} />
+        <span>{hintText}</span>
       </p>
       {active ? (
         <OralExamOverlay

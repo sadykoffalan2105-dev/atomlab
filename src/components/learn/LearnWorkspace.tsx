@@ -3,6 +3,7 @@ import { useT, type MessageKey } from '../../i18n/useT'
 import { generateTaskProblem, answersClose, type LearnTaskGenerated } from '../../learn/learnTaskProblems'
 import { readWorkspaceDraft, writeWorkspaceDraft } from '../../learn/learnProgressStorage'
 import { LearnBoardPad } from './LearnBoardPad'
+import { LearnShellIcon } from './LearnShellIcon'
 import styles from '../../pages/LearnPage.module.css'
 
 function parseLocaleNumber(raw: string): number | null {
@@ -82,12 +83,18 @@ export function LearnWorkspace({
         />
       </div>
       <p className={styles.learnWorkspaceSaved} role="status">
+        <LearnShellIcon name="save" size={13} />
         {t('learn.workspace.saved')}
       </p>
 
       {problem && taskCategoryId ? (
         <section className={styles.learnWorkspaceTask}>
-          <h4 className={styles.learnWorkspaceTaskH}>{t('learn.practiceOpen')}</h4>
+          <h4 className={styles.learnWorkspaceTaskH}>
+            <span className={styles.learnWorkspaceTaskIcon} aria-hidden="true">
+              <LearnShellIcon name="tasks" size={14} />
+            </span>
+            {t('learn.practiceOpen')}
+          </h4>
           <p className={styles.learnWorkspaceTaskQ}>
             { problem.kind === 'numeric'
               ? t(problem.questionKey as MessageKey, problem.params)
@@ -98,7 +105,13 @@ export function LearnWorkspace({
           {problem.kind === 'numeric' ? (
             <>
               <input
-                className={styles.taskInput}
+                className={`${styles.learnWorkspaceInput} ${
+                  feedback === 'correct'
+                    ? styles.learnWorkspaceInputOk
+                    : feedback === 'wrong'
+                      ? styles.learnWorkspaceInputBad
+                      : ''
+                }`}
                 type="text"
                 inputMode="decimal"
                 value={userText}
@@ -109,29 +122,48 @@ export function LearnWorkspace({
                 aria-label={t('learn.task.check')}
               />
               <div className={styles.learnWorkspaceTaskActions}>
-                <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={checkNumeric}>
-                  {t('learn.workspace.check')}
+                <button
+                  type="button"
+                  className={`${styles.shellBtn} ${styles.shellBtnPrimary} ${styles.shellBtnSm}`}
+                  onClick={checkNumeric}
+                >
+                  <LearnShellIcon name="check" size={15} strokeWidth={2.4} />
+                  <span>{t('learn.workspace.check')}</span>
                 </button>
-                <button type="button" className={styles.btn} onClick={newProblem}>
-                  {t('learn.task.newTask')}
+                <button
+                  type="button"
+                  className={`${styles.shellBtn} ${styles.shellBtnGhost} ${styles.shellBtnSm}`}
+                  onClick={newProblem}
+                >
+                  <LearnShellIcon name="plus" size={15} />
+                  <span>{t('learn.task.newTask')}</span>
                 </button>
               </div>
             </>
           ) : problem.kind === 'mcq' ? (
-            <ul className={styles.taskMcqList}>
+            <ul className={styles.learnWorkspaceChoices}>
               {problem.choiceKeys.map((key, idx) => (
                 <li key={key}>
-                  <button type="button" className={styles.taskMcqBtn} onClick={() => pickMcq(idx)}>
-                    {t(key as MessageKey)}
+                  <button type="button" className={styles.learnWorkspaceChoice} onClick={() => pickMcq(idx)}>
+                    <span className={styles.learnWorkspaceChoiceMark} aria-hidden="true">
+                      {String.fromCharCode(65 + idx)}
+                    </span>
+                    <span>{t(key as MessageKey)}</span>
                   </button>
                 </li>
               ))}
             </ul>
           ) : null}
           {feedback === 'correct' ? (
-            <p className={styles.taskOk}>{t('learn.checkpointCorrect')}</p>
+            <p className={styles.learnWorkspaceOk}>
+              <LearnShellIcon name="check" size={15} strokeWidth={2.6} />
+              {t('learn.checkpointCorrect')}
+            </p>
           ) : feedback === 'wrong' ? (
-            <p className={styles.taskBad}>{t('learn.checkpointWrong')}</p>
+            <p className={styles.learnWorkspaceBad}>
+              <LearnShellIcon name="close" size={15} strokeWidth={2.6} />
+              {t('learn.checkpointWrong')}
+            </p>
           ) : null}
         </section>
       ) : null}

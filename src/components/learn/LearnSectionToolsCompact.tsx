@@ -6,7 +6,8 @@ import {
 } from '../../data/learnSectionEquations'
 import { useT } from '../../i18n/useT'
 import { LearnTopicQuizCard } from './LearnTopicQuizCard'
-import styles from './LearnLessonSidebar.module.css'
+import { LearnSidebarIcon } from './LearnSidebarIcon'
+import styles from './LearnSectionToolsCompact.module.css'
 
 type Props = {
   grade: LearnGrade
@@ -23,8 +24,13 @@ export function LearnSectionToolsCompact({ grade, chapter, section, fromBook }: 
   return (
     <div className={styles.toolsPane}>
       {equations.length > 0 ? (
-        <div className={styles.equationBlock}>
-          <p className={styles.toolsLabel}>{t('learn.bookTopic.equationTitle')}</p>
+        <section className={`${styles.toolCard} ${styles.toneTeal}`}>
+          <header className={styles.toolHead}>
+            <span className={styles.toolIcon}>
+              <LearnSidebarIcon name="flask" size={16} />
+            </span>
+            <p className={styles.toolsLabel}>{t('learn.bookTopic.equationTitle')}</p>
+          </header>
           <ul className={styles.equationList}>
             {equations.slice(0, 2).map((entry) => (
               <li key={`${entry.productCompoundId}-${entry.equation}`}>
@@ -32,19 +38,35 @@ export function LearnSectionToolsCompact({ grade, chapter, section, fromBook }: 
               </li>
             ))}
           </ul>
-          <Link className={styles.toolsLink} to={labUrl}>
-            {t('learn.bookTopic.generateEquation')}
+          <Link className={styles.toolAction} to={labUrl}>
+            <LearnSidebarIcon name="sparkle" size={14} />
+            <span>{t('learn.bookTopic.generateEquation')}</span>
           </Link>
-        </div>
+        </section>
       ) : null}
-      <div className={styles.quizCompact}>
+
+      <div className={styles.quizWrap}>
         <LearnTopicQuizCard grade={grade} chapter={chapter} section={section} autoReveal={fromBook} />
       </div>
-      <Link className={styles.toolsLink} to="/learn/tasks">
-        {t('learn.lesson.openTasks')}
-      </Link>
-      <p className={styles.toolsLabel}>{t('learn.balance.title')}</p>
-      <p className={styles.toolsHint}>{t('learn.teacherExam.balanceHint')}</p>
+
+      <div className={styles.toolGrid}>
+        <Link className={`${styles.linkCard} ${styles.tonePink}`} to="/learn/tasks">
+          <span className={styles.toolIcon}>
+            <LearnSidebarIcon name="problems" size={16} />
+          </span>
+          <span className={styles.linkText}>{t('learn.lesson.openTasks')}</span>
+        </Link>
+
+        <section className={`${styles.infoCard} ${styles.toneAmber}`}>
+          <span className={styles.toolIcon}>
+            <LearnSidebarIcon name="balance" size={16} />
+          </span>
+          <div className={styles.infoBody}>
+            <p className={styles.toolsLabel}>{t('learn.balance.title')}</p>
+            <p className={styles.toolsHint}>{t('learn.teacherExam.balanceHint')}</p>
+          </div>
+        </section>
+      </div>
     </div>
   )
 }

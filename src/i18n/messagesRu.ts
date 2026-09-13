@@ -409,6 +409,18 @@ export const messagesRu = {
 
   ...learnPackRu,
   ...learnGradePackRu,
+
+  /* Хабы «Обучения»: главная, класс, глава */
+  'learn.hubUi.overall': 'Общий прогресс',
+  'learn.hubUi.quickTitle': 'Быстрый старт',
+  'learn.hubUi.gradesTitle': 'Выберите класс',
+  'learn.hubUi.open': 'Открыть',
+  'learn.hubUi.resumeEyebrow': 'Вы остановились здесь',
+  'learn.hubUi.breadcrumb': 'Навигация по разделу',
+  'learn.hubUi.notFound': 'Раздел не найден',
+  'learn.hubUi.notFoundHint': 'Ссылка устарела или раздел переместился — вернитесь к списку.',
+  'learn.hubUi.emptyChapter': 'В этой главе пока нет параграфов.',
+  'learn.hubUi.emptyGrade': 'Главы этого класса скоро появятся.',
 } as const
 
 export type MessageKey = keyof typeof messagesRu

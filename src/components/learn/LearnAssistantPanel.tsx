@@ -1,4 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ComponentType,
+  type SVGProps,
+} from 'react'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { generateLocalLearnReply, type LearnLocalAssistantContext } from '../../learn/learnLocalAssistant'
 import { routeTeacherReply, type TeacherReplySource } from '../../learn/learnTeacherRouter'
@@ -22,7 +32,27 @@ import {
   reviewHomework,
   saveHomeworkReviewToHistory,
 } from '../../learn/homework'
-import styles from '../../pages/LearnPage.module.css'
+import {
+  IconAlert,
+  IconAtom,
+  IconBookmark,
+  IconBroadcast,
+  IconBulb,
+  IconCamera,
+  IconCheckCircle,
+  IconClose,
+  IconGlobe,
+  IconInfo,
+  IconLink,
+  IconMic,
+  IconSend,
+  IconSliders,
+  IconSpeaker,
+  IconSteps,
+  IconStop,
+  IconTrash,
+} from './LearnAiIcons'
+import styles from './LearnAssistantPanel.module.css'
 
 const CHAT_URL = import.meta.env.VITE_LEARN_CHAT_URL ?? '/api/learn/chat'
 
@@ -43,6 +73,16 @@ const QUICK_KEYS = [
   'learn.assistant.quick5',
   'learn.assistant.quick6',
 ] as const satisfies readonly MessageKey[]
+
+/** Иконка и акцент для каждой быстрой подсказки (порядок как в QUICK_KEYS). */
+const QUICK_META: readonly { Icon: ComponentType<SVGProps<SVGSVGElement>>; tone: string }[] = [
+  { Icon: IconBulb, tone: 'amber' },
+  { Icon: IconGlobe, tone: 'teal' },
+  { Icon: IconBookmark, tone: 'pink' },
+  { Icon: IconCheckCircle, tone: 'green' },
+  { Icon: IconSteps, tone: 'violet' },
+  { Icon: IconLink, tone: 'cyan' },
+]
 
 function storageKey(gradeId: string, chapterId: string, sectionId: string): string {
   return `atomlab-learn-chat-${gradeId}-${chapterId}-${sectionId}`
@@ -65,6 +105,26 @@ function saveStored(key: string, messages: ChatMessage[]): void {
   } catch {
     /* quota */
   }
+}
+
+function subscribeOnline(cb: () => void): () => void {
+  window.addEventListener('online', cb)
+  window.addEventListener('offline', cb)
+  return () => {
+    window.removeEventListener('online', cb)
+    window.removeEventListener('offline', cb)
+  }
+}
+
+const readOnline = () => (typeof navigator === 'undefined' ? true : navigator.onLine)
+const readOnlineServer = () => true
+
+function prefersCoarsePointer(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+}
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 export function LearnAssistantPanel({
@@ -106,6 +166,13 @@ export function LearnAssistantPanel({
   const speechRef = useRef(new LearnSpeechController())
   const storeKey = storageKey(gradeId, chapterId, section.id)
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadStored(storeKey))
+  // Смена параграфа: подгружаем его чат в том же рендере, иначе эффект сохранения
+  // успевал записать сообщения прошлого параграфа под новым ключом.
+  const [loadedKey, setLoadedKey] = useState(storeKey)
+  if (loadedKey !== storeKey) {
+    setLoadedKey(storeKey)
+    setMessages(loadStored(storeKey))
+  }
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -118,12 +185,12 @@ export function LearnAssistantPanel({
   })
   const [lastSource, setLastSource] = useState<AssistantSource | null>(null)
   const [scanPreview, setScanPreview] = useState<string | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const online = useSyncExternalStore(subscribeOnline, readOnline, readOnlineServer)
   const listRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const homeworkFileRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    setMessages(loadStored(storeKey))
-  }, [storeKey])
+  const settingsId = useId()
 
   useEffect(() => {
     preloadSpeechVoices()
@@ -136,6 +203,16 @@ export function LearnAssistantPanel({
   useEffect(() => {
     if (messages.length > 0) saveStored(storeKey, messages)
   }, [messages, storeKey])
+
+  // Держим ленту у последнего сообщения: новая реплика, индикатор «думаю», ошибка.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const el = listRef.current
+      if (!el) return
+      el.scrollTo({ top: el.scrollHeight, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [messages.length, loading, error, storeKey])
 
   const localCtx: LearnLocalAssistantContext = useMemo(
     () => ({
@@ -313,9 +390,6 @@ export function LearnAssistantPanel({
         }
       } finally {
         setLoading(false)
-        requestAnimationFrame(() => {
-          listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
-        })
       }
     },
     [loading, messages, replyFromApi, localCtx, t, autoRead, speakMessage],
@@ -323,12 +397,18 @@ export function LearnAssistantPanel({
 
   const send = useCallback(() => {
     const text = input.trim()
-    if (!text) return
+    // Поле ввода больше не блокируется во время ответа — не теряем текст, пока ИИ думает.
+    if (!text || loading) return
     // Прогреваем бесплатный облачный мозг в рамках жеста клика (без блокировки popup).
     warmupPuterFromUserGesture()
     setInput('')
     void sendText(text)
-  }, [input, sendText])
+    // Возвращаем фокус в поле (кнопка «Отправить» становится disabled и фокус терялся).
+    // На сенсорных экранах не поднимаем клавиатуру, если ученик нажимал кнопку.
+    if (!prefersCoarsePointer() || document.activeElement === inputRef.current) {
+      inputRef.current?.focus()
+    }
+  }, [input, loading, sendText])
 
   const clearChat = useCallback(() => {
     setMessages([])
@@ -390,9 +470,6 @@ export function LearnAssistantPanel({
         setError(t('learn.assistant.homeworkNeedText'))
       } finally {
         setLoading(false)
-        requestAnimationFrame(() => {
-          listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
-        })
       }
     },
     [autoRead, gradeId, locale, scanPreview, section.titleKey, slideTitle, speakMessage, t],
@@ -435,72 +512,168 @@ export function LearnAssistantPanel({
             ? t('learn.assistant.sourceLocal')
             : null
 
+  const statusText = loading
+    ? t('learn.assistant.thinking')
+    : listening
+      ? t('learn.teacherExam.liveStatusListening')
+      : speakingId !== null
+        ? t('learn.teacherExam.liveStatusSpeaking')
+        : t('learn.teacherExam.liveStatusIdle')
+
+  const statusState = loading
+    ? 'busy'
+    : listening
+      ? 'listening'
+      : speakingId !== null
+        ? 'speaking'
+        : online
+          ? 'online'
+          : 'offline'
+
+  const settingLabels = [
+    t('learn.assistant.curriculumOnly'),
+    t('learn.assistant.autoRead'),
+    t('learn.assistant.ollamaToggle'),
+  ]
+  const settingsOnCount = [curriculumOnly, autoRead, preferOllama].filter(Boolean).length
+  const isInfoNotice = error === t('learn.assistant.homeworkReading')
+  const canSpeak = isSpeechOutputSupported()
+  const canListen = isSpeechRecognitionSupported()
+  const hasMessages = messages.length > 0
+
+  const quickChips = (variant: 'grid' | 'strip') => (
+    <div
+      className={variant === 'grid' ? styles.suggestGrid : styles.quickStrip}
+      role="group"
+      aria-label={t('learn.assistant.placeholder')}
+    >
+      {QUICK_KEYS.map((key, i) => {
+        const meta = QUICK_META[i]
+        const Icon = meta.Icon
+        return (
+          <button
+            key={key}
+            type="button"
+            className={variant === 'grid' ? styles.suggest : styles.quickChip}
+            data-tone={meta.tone}
+            disabled={loading}
+            onClick={() => void sendText(t(key))}
+          >
+            <span className={styles.suggestIcon} aria-hidden>
+              <Icon />
+            </span>
+            <span className={styles.suggestText}>{t(key)}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+
   return (
-    <aside className={styles.learnAssistant} aria-label={t('learn.assistant.title')}>
-      <div className={styles.learnAssistantHead}>
-        <div className={styles.learnAssistantBrand}>
-          <span className={styles.learnAssistantAvatar} aria-hidden>
-            ✦
+    <aside className={styles.panel} aria-label={t('learn.assistant.title')}>
+      <header className={styles.head}>
+        <div className={styles.brand}>
+          <span className={styles.avatar} aria-hidden>
+            <IconAtom className={styles.avatarIcon} />
+            <span className={styles.statusDot} data-state={statusState} />
           </span>
-          <div>
-            <h3 className={styles.learnAssistantH}>{t('learn.assistant.title')}</h3>
-            {sourceLabel ? (
-              <span
-                className={
-                  lastSource === 'openai'
-                    ? styles.learnAssistantSourceOpenai
-                    : styles.learnAssistantSourceLocal
-                }
-              >
-                {sourceLabel}
-              </span>
-            ) : null}
+          <div className={styles.brandText}>
+            <h3 className={styles.title}>{t('learn.assistant.title')}</h3>
+            <p className={styles.statusLine}>
+              <span className={styles.statusText}>{statusText}</span>
+              {sourceLabel ? (
+                <span
+                  className={styles.sourceChip}
+                  data-source={lastSource === 'openai' ? 'cloud' : 'local'}
+                >
+                  {sourceLabel}
+                </span>
+              ) : null}
+            </p>
           </div>
         </div>
-        <div className={styles.learnAssistantHeadActions}>
-          {grade && chapter ? (
-            <LiveDialogButton
-              grade={grade}
-              chapter={chapter}
-              section={section}
-              rosterSectionId={rosterSectionId}
-              className={styles.learnAssistantLive}
-            />
-          ) : null}
-          <button type="button" className={styles.learnAssistantClear} onClick={clearChat}>
-            {t('learn.assistant.clear')}
+        <div className={styles.headTools}>
+          <button
+            type="button"
+            className={styles.iconBtn}
+            data-active={settingsOpen ? '1' : undefined}
+            aria-expanded={settingsOpen}
+            aria-controls={settingsId}
+            aria-label={settingLabels.join(', ')}
+            title={settingLabels.join(' · ')}
+            onClick={() => setSettingsOpen((v) => !v)}
+          >
+            <IconSliders />
+            {settingsOnCount > 0 ? (
+              <span className={styles.iconBadge} aria-hidden>
+                {settingsOnCount}
+              </span>
+            ) : null}
           </button>
-          <div className={styles.learnAssistantModes} role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'teacher'}
-              className={mode === 'teacher' ? styles.learnAssistantModeOn : styles.learnAssistantMode}
-              onClick={() => setMode('teacher')}
-            >
-              {t('learn.assistant.modeTeacher')}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'helper'}
-              className={mode === 'helper' ? styles.learnAssistantModeOn : styles.learnAssistantMode}
-              onClick={() => setMode('helper')}
-            >
-              {t('learn.assistant.modeHelper')}
-            </button>
-          </div>
-          <label className={styles.learnAssistantCurriculumToggle}>
+          <button
+            type="button"
+            className={styles.iconBtn}
+            onClick={clearChat}
+            aria-label={t('learn.assistant.clear')}
+            title={t('learn.assistant.clear')}
+          >
+            <IconTrash />
+          </button>
+        </div>
+      </header>
+
+      <div className={styles.controls}>
+        <div className={styles.segmented} role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'teacher'}
+            className={mode === 'teacher' ? styles.segBtnOn : styles.segBtn}
+            onClick={() => setMode('teacher')}
+          >
+            {t('learn.assistant.modeTeacher')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'helper'}
+            className={mode === 'helper' ? styles.segBtnOn : styles.segBtn}
+            onClick={() => setMode('helper')}
+          >
+            {t('learn.assistant.modeHelper')}
+          </button>
+        </div>
+        {grade && chapter ? (
+          <LiveDialogButton
+            grade={grade}
+            chapter={chapter}
+            section={section}
+            rosterSectionId={rosterSectionId}
+            className={styles.liveBtn}
+            icon={<IconBroadcast className={styles.liveIcon} />}
+          />
+        ) : null}
+      </div>
+
+      {settingsOpen ? (
+        <div id={settingsId} className={styles.settings}>
+          <label className={styles.switchRow}>
+            <span className={styles.switchText}>{t('learn.assistant.curriculumOnly')}</span>
             <input
               type="checkbox"
+              role="switch"
+              className={styles.switchInput}
               checked={curriculumOnly}
               onChange={(e) => setCurriculumOnly(e.target.checked)}
             />
-            {t('learn.assistant.curriculumOnly')}
+            <span className={styles.switchTrack} aria-hidden />
           </label>
-          <label className={styles.learnAssistantCurriculumToggle}>
+          <label className={styles.switchRow}>
+            <span className={styles.switchText}>{t('learn.assistant.autoRead')}</span>
             <input
               type="checkbox"
+              role="switch"
+              className={styles.switchInput}
               checked={autoRead}
               onChange={(e) => {
                 const on = e.target.checked
@@ -513,11 +686,14 @@ export function LearnAssistantPanel({
                 }
               }}
             />
-            {t('learn.assistant.autoRead')}
+            <span className={styles.switchTrack} aria-hidden />
           </label>
-          <label className={styles.learnAssistantCurriculumToggle}>
+          <label className={styles.switchRow}>
+            <span className={styles.switchText}>{t('learn.assistant.ollamaToggle')}</span>
             <input
               type="checkbox"
+              role="switch"
+              className={styles.switchInput}
               checked={preferOllama}
               onChange={(e) => {
                 const on = e.target.checked
@@ -529,45 +705,47 @@ export function LearnAssistantPanel({
                 }
               }}
             />
-            {t('learn.assistant.ollamaToggle')}
+            <span className={styles.switchTrack} aria-hidden />
           </label>
         </div>
-      </div>
+      ) : null}
 
-      <div className={styles.learnAssistantQuick} role="group" aria-label={t('learn.assistant.placeholder')}>
-        {QUICK_KEYS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            className={styles.learnAssistantChip}
-            disabled={loading}
-            onClick={() => void sendText(t(key))}
-          >
-            {t(key)}
-          </button>
-        ))}
-      </div>
-
-      <div className={styles.learnAssistantMessages} ref={listRef}>
-        {messages.length === 0 ? (
-          <p className={styles.learnAssistantWelcome}>{t('learn.assistant.welcome')}</p>
-        ) : (
-          messages.map((m) => (
-            <div
-              key={m.at}
-              className={m.role === 'user' ? styles.learnAssistantBubbleUser : styles.learnAssistantBubbleBot}
-            >
-              <span className={styles.learnAssistantBubbleRole}>
-                {m.role === 'user' ? t('learn.assistant.you') : t('learn.assistant.ai')}
+      <div className={styles.body} ref={listRef} data-empty={hasMessages ? undefined : '1'}>
+        {!hasMessages ? (
+          <div className={styles.welcome}>
+            <div className={styles.welcomeArt} aria-hidden>
+              <span className={styles.welcomeOrbit} />
+              <span className={styles.welcomeCore}>
+                <IconAtom />
               </span>
-              {m.role === 'assistant' ? (
-                <>
-                  <LearnAssistantMarkdown text={m.text} />
-                  {isSpeechOutputSupported() ? (
-                    <div className={styles.learnAssistantBubbleActions}>
+            </div>
+            <p className={styles.welcomeText}>{t('learn.assistant.welcome')}</p>
+            {quickChips('grid')}
+          </div>
+        ) : null}
+
+        <div className={styles.log} role="log" aria-live="polite" aria-relevant="additions">
+          {messages.map((m, i) =>
+            m.role === 'user' ? (
+              <div key={`${m.at}-${i}`} className={styles.rowUser}>
+                <div className={styles.bubbleUser}>
+                  <span className={styles.srOnly}>{t('learn.assistant.you')}: </span>
+                  <p className={styles.userText}>{m.text}</p>
+                </div>
+              </div>
+            ) : (
+              <div key={`${m.at}-${i}`} className={styles.rowBot}>
+                <span className={styles.botAvatar} aria-hidden>
+                  <IconAtom />
+                </span>
+                <div className={styles.bubbleBot}>
+                  <span className={styles.srOnly}>{t('learn.assistant.ai')}: </span>
+                  <LearnAssistantMarkdown text={m.text} className={styles.botMd} />
+                  {canSpeak ? (
+                    <div className={styles.bubbleActions}>
                       <button
                         type="button"
-                        className={styles.learnAssistantVoiceBtn}
+                        className={styles.voiceBtn}
                         data-active={speakingId === m.at ? '1' : undefined}
                         onClick={() =>
                           speakingId === m.at ? stopSpeaking() : void speakMessage(m.text, m.at)
@@ -578,122 +756,157 @@ export function LearnAssistantPanel({
                             : t('learn.assistant.speak')
                         }
                       >
-                        {speakingId === m.at
-                          ? t('learn.assistant.stopSpeak')
-                          : t('learn.assistant.speak')}
+                        {speakingId === m.at ? <IconStop /> : <IconSpeaker />}
+                        <span>
+                          {speakingId === m.at
+                            ? t('learn.assistant.stopSpeak')
+                            : t('learn.assistant.speak')}
+                        </span>
                       </button>
                     </div>
                   ) : null}
-                </>
-              ) : (
-                <p>{m.text}</p>
-              )}
+                </div>
+              </div>
+            ),
+          )}
+          {loading ? (
+            <div className={styles.rowBot}>
+              <span className={styles.botAvatar} aria-hidden>
+                <IconAtom />
+              </span>
+              <div className={styles.typing}>
+                <span className={styles.typingDots} aria-hidden>
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span className={styles.typingText}>{t('learn.assistant.thinking')}</span>
+              </div>
             </div>
-          ))
-        )}
-        {loading ? (
-          <p className={styles.learnAssistantThinking}>
-            {t('learn.assistant.thinking')}
-          </p>
-        ) : null}
-        {error ? <p className={styles.learnAssistantError}>{error}</p> : null}
-        {scanPreview ? (
-          <div className={styles.learnAssistantScanPreview}>
-            <img src={scanPreview} alt="" />
-            <button
-              type="button"
-              className={styles.learnAssistantScanClear}
-              onClick={() => setScanPreview(null)}
-              aria-label={t('learn.assistant.clear')}
-            >
-              ×
-            </button>
+          ) : null}
+        </div>
+
+        {error ? (
+          <div
+            className={isInfoNotice ? styles.notice : styles.alert}
+            role={isInfoNotice ? 'status' : 'alert'}
+          >
+            {isInfoNotice ? <IconInfo className={styles.noticeIcon} /> : <IconAlert className={styles.noticeIcon} />}
+            <span>{error}</span>
           </div>
         ) : null}
       </div>
 
-      <p className={styles.learnAssistantDisclaimer}>
-        {t('learn.assistant.disclaimer')}
-        {voiceError ? (
-          <span className={styles.learnAssistantError}> · {t('learn.assistant.voiceUnavailable')}</span>
-        ) : speakingId !== null ? (
-          <span className={styles.learnAssistantVoiceHint}>
-            {' '}
-            ·{' '}
-            {voiceMode === 'neural'
-              ? t('learn.assistant.voiceNeural')
-              : t('learn.assistant.voiceBrowser')}
-          </span>
-        ) : null}
-      </p>
+      <div className={styles.footer}>
+        {hasMessages ? quickChips('strip') : null}
 
-      <div className={styles.learnAssistantInputRow}>
-        {isSpeechRecognitionSupported() ? (
-          <button
-            type="button"
-            className={
-              listening ? styles.learnAssistantMicOn : styles.learnAssistantMic
-            }
-            onClick={toggleMic}
-            disabled={loading}
-            aria-label={
-              listening ? t('learn.assistant.micStop') : t('learn.assistant.micStart')
-            }
-            title={
-              listening ? t('learn.assistant.micStop') : t('learn.assistant.micStart')
-            }
-          >
-            {listening ? '■' : '🎤'}
-          </button>
-        ) : null}
-        <input
-          ref={homeworkFileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp"
-          className={styles.homeworkFileHidden}
-          onChange={(e) => {
-            const f = e.target.files?.[0] ?? null
-            void onHomeworkFile(f)
-            e.target.value = ''
-          }}
-        />
-        <button
-          type="button"
-          className={styles.learnAssistantMic}
-          disabled={loading}
-          onClick={() => homeworkFileRef.current?.click()}
-          title={t('learn.assistant.homeworkScan')}
-          aria-label={t('learn.assistant.homeworkScan')}
-        >
-          📷
-        </button>
-        <input
-          type="text"
-          className={styles.learnAssistantInput}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && void send()}
-          placeholder={t('learn.assistant.placeholder')}
-          disabled={loading}
-          maxLength={2000}
-        />
-        <button
-          type="button"
-          className={styles.learnAssistantHomeworkBtn}
-          disabled={loading || !input.trim()}
-          onClick={() => void runHomeworkReview(input, false)}
-          title={t('learn.assistant.homework')}
-        >
-          {loading ? '…' : t('learn.assistant.homework')}
-        </button>
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.btnPrimary} ${styles.learnAssistantSend}`}
-          onClick={() => void send()}
-          disabled={loading || !input.trim()}
-        >
-          {t('learn.assistant.send')}
-        </button>
+        <div className={styles.composer}>
+          {scanPreview ? (
+            <div className={styles.scanPreview}>
+              <img src={scanPreview} alt="" />
+              <button
+                type="button"
+                className={styles.scanClear}
+                onClick={() => setScanPreview(null)}
+                aria-label={t('learn.assistant.clear')}
+              >
+                <IconClose />
+              </button>
+            </div>
+          ) : null}
+          <input
+            ref={homeworkFileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp"
+            className={styles.fileHidden}
+            tabIndex={-1}
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null
+              void onHomeworkFile(f)
+              e.target.value = ''
+            }}
+          />
+          <div className={styles.field}>
+            {canListen ? (
+              <button
+                type="button"
+                className={listening ? styles.fieldBtnRec : styles.fieldBtn}
+                onClick={toggleMic}
+                disabled={loading}
+                aria-pressed={listening}
+                aria-label={listening ? t('learn.assistant.micStop') : t('learn.assistant.micStart')}
+                title={listening ? t('learn.assistant.micStop') : t('learn.assistant.micStart')}
+              >
+                {listening ? <IconStop /> : <IconMic />}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className={styles.fieldBtn}
+              disabled={loading}
+              onClick={() => homeworkFileRef.current?.click()}
+              title={t('learn.assistant.homeworkScan')}
+              aria-label={t('learn.assistant.homeworkScan')}
+            >
+              <IconCamera />
+            </button>
+            <input
+              ref={inputRef}
+              type="text"
+              className={styles.input}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                  e.preventDefault()
+                  send()
+                }
+              }}
+              placeholder={t('learn.assistant.placeholder')}
+              aria-label={t('learn.assistant.placeholder')}
+              maxLength={2000}
+            />
+          </div>
+          <div className={styles.composerActions}>
+            <button
+              type="button"
+              className={styles.secondaryBtn}
+              disabled={loading || !input.trim()}
+              onClick={() => void runHomeworkReview(input, false)}
+              title={t('learn.assistant.homework')}
+            >
+              <IconCheckCircle className={styles.btnIcon} />
+              <span>{t('learn.assistant.homework')}</span>
+            </button>
+            <button
+              type="button"
+              className={styles.primaryBtn}
+              onClick={() => send()}
+              disabled={loading || !input.trim()}
+            >
+              <span>{t('learn.assistant.send')}</span>
+              <IconSend className={styles.btnIcon} />
+            </button>
+          </div>
+        </div>
+
+        <p className={styles.disclaimer}>
+          <IconInfo className={styles.disclaimerIcon} />
+          <span>
+            {t('learn.assistant.disclaimer')}
+            {voiceError ? (
+              <span className={styles.disclaimerError}> · {t('learn.assistant.voiceUnavailable')}</span>
+            ) : speakingId !== null ? (
+              <span className={styles.voiceHint}>
+                {' '}
+                ·{' '}
+                {voiceMode === 'neural'
+                  ? t('learn.assistant.voiceNeural')
+                  : t('learn.assistant.voiceBrowser')}
+              </span>
+            ) : null}
+          </span>
+        </p>
       </div>
     </aside>
   )

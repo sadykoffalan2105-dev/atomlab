@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { LearnTaskGenerated } from '../../learn/learnTaskProblems'
 import { buildTaskCoachContext } from '../../learn/learnTaskCoachTypes'
 import {
@@ -12,6 +12,8 @@ import {
   type LearnSpeechLocale,
 } from '../../learn/learnSpeech'
 import { useT, type MessageKey } from '../../i18n/useT'
+import { IconAlert, IconCheckCircle, IconSparkle, IconSteps, IconStop } from './LearnAiIcons'
+import { LearnAssistantMarkdown } from './LearnAssistantMarkdown'
 import styles from './TaskAiCoach.module.css'
 
 type Feedback = 'idle' | 'correct' | 'wrong'
@@ -53,6 +55,7 @@ export function TaskAiCoach({
   const [loading, setLoading] = useState(false)
   const [speaking, setSpeaking] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const scratchId = useId()
 
   useEffect(() => {
     setScratchpad('')
@@ -161,53 +164,79 @@ export function TaskAiCoach({
     <section className={styles.panel} aria-label={t('learn.task.aiCoach.title' as MessageKey)}>
       <header className={styles.head}>
         <span className={styles.icon} aria-hidden>
-          ✦
+          <IconSparkle />
         </span>
-        <div>
+        <div className={styles.headText}>
           <h3 className={styles.title}>{t('learn.task.aiCoach.title' as MessageKey)}</h3>
           <p className={styles.lead}>{t('learn.task.aiCoach.lead' as MessageKey)}</p>
         </div>
       </header>
 
-      <label className={styles.scratchLabel} htmlFor="task-coach-scratch">
-        {t('learn.task.aiCoach.scratchLabel' as MessageKey)}
-      </label>
-      <textarea
-        id="task-coach-scratch"
-        className={styles.scratch}
-        value={scratchpad}
-        onChange={(e) => setScratchpad(e.target.value)}
-        placeholder={t('learn.task.aiCoach.scratchPh' as MessageKey)}
-        rows={3}
-        disabled={loading}
-      />
+      <div className={styles.scratchWrap}>
+        <label className={styles.scratchLabel} htmlFor={scratchId}>
+          {t('learn.task.aiCoach.scratchLabel' as MessageKey)}
+        </label>
+        <textarea
+          id={scratchId}
+          className={styles.scratch}
+          value={scratchpad}
+          onChange={(e) => setScratchpad(e.target.value)}
+          placeholder={t('learn.task.aiCoach.scratchPh' as MessageKey)}
+          rows={3}
+        />
+      </div>
 
       <div className={styles.actions}>
         <button type="button" className={styles.primaryBtn} onClick={onNextStep} disabled={loading}>
-          {coachText
-            ? t('learn.task.aiCoach.nextAgain' as MessageKey)
-            : t('learn.task.aiCoach.next' as MessageKey)}
+          <IconSteps className={styles.btnIcon} />
+          <span>
+            {coachText
+              ? t('learn.task.aiCoach.nextAgain' as MessageKey)
+              : t('learn.task.aiCoach.next' as MessageKey)}
+          </span>
         </button>
         <button type="button" className={styles.btn} onClick={onCheckReasoning} disabled={loading}>
-          {t('learn.task.aiCoach.check' as MessageKey)}
+          <IconCheckCircle className={styles.btnIcon} />
+          <span>{t('learn.task.aiCoach.check' as MessageKey)}</span>
         </button>
         {speaking ? (
           <button type="button" className={styles.stopBtn} onClick={stopVoice}>
-            {t('learn.assistant.stopSpeak')}
+            <IconStop className={styles.btnIcon} />
+            <span>{t('learn.assistant.stopSpeak')}</span>
           </button>
         ) : null}
       </div>
 
-      {loading ? <p className={styles.status}>{t('learn.assistant.thinking')}</p> : null}
-      {error ? <p className={styles.error}>{error}</p> : null}
+      {/* Постоянная live-область: новые подсказки и статус объявляются скринридером. */}
+      <div className={styles.feed} aria-live="polite">
+        {loading ? (
+          <p className={styles.status} role="status">
+            <span className={styles.dots} aria-hidden>
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>{t('learn.assistant.thinking')}</span>
+          </p>
+        ) : null}
+        {error ? (
+          <p className={styles.error} role="alert">
+            <IconAlert className={styles.errorIcon} />
+            <span>{error}</span>
+          </p>
+        ) : null}
 
-      {coachText ? (
-        <div className={styles.bubble} role="note" aria-live="polite">
-          <span className={styles.bubbleLabel}>{t('learn.task.aiCoach.bubbleLabel' as MessageKey)}</span>
-          <p className={styles.bubbleText}>{coachText}</p>
-          <p className={styles.bubbleFoot}>{t('learn.task.aiCoach.foot' as MessageKey)}</p>
-        </div>
-      ) : null}
+        {coachText ? (
+          <div className={styles.bubble} role="note">
+            <span className={styles.bubbleLabel}>
+              <IconSparkle className={styles.bubbleLabelIcon} />
+              {t('learn.task.aiCoach.bubbleLabel' as MessageKey)}
+            </span>
+            <LearnAssistantMarkdown text={coachText} className={styles.bubbleText} />
+            <p className={styles.bubbleFoot}>{t('learn.task.aiCoach.foot' as MessageKey)}</p>
+          </div>
+        ) : null}
+      </div>
     </section>
   )
 }
