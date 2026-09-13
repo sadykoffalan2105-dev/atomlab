@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { cinemaQuad } from '../core/geometries'
 import { cinemaTexture } from '../core/textures'
 import type { PuffVolumeState } from '../core/states'
+import { useCinemaTime } from './CinemaTime'
 
 /**
  * Объёмный газ / туман микромира.
@@ -12,6 +13,8 @@ import type { PuffVolumeState } from '../core/states'
  * считает вершинный шейдер, поэтому CPU не участвует вообще, а всё облако
  * рисуется одним draw call. Так можно держать зелёное облако Cl₂, янтарный
  * газ ClO₂ и туман под сценой одновременно без просадки кадра.
+ *
+ * Дрейф идёт по визуальному времени (useCinemaTime): в заморозке газ стоит.
  */
 
 function buildGeometry(count: number, seed: number): THREE.InstancedBufferGeometry {
@@ -58,7 +61,13 @@ function buildMaterial(blend: 'normal' | 'additive'): THREE.ShaderMaterial {
     transparent: true,
     depthWrite: false,
     blending: blend === 'additive' ? THREE.AdditiveBlending : THREE.NormalBlending,
-    side: THREE.DoubleSide,
+    // Клуб — билборд: квад строится в пространстве вида (viewPos.xy += p * size)
+    // с поворотом в плоскости экрана и положительным масштабом, поэтому его
+    // лицевая сторона ВСЕГДА смотрит в камеру. Задних граней не бывает, и
+    // DoubleSide рисовал бы облако дважды (второй проход — впустую, плюс
+    // needsUpdate материала каждый кадр). FrontSide даёт тот же пиксель за
+    // один draw call при любом смешении — и для обычного, и для аддитивного.
+    side: THREE.FrontSide,
     uniforms: {
       uTime: { value: 0 },
       uOpacity: { value: 0 },
@@ -116,6 +125,8 @@ function buildMaterial(blend: 'normal' | 'additive'): THREE.ShaderMaterial {
         gl_Position = projectionMatrix * viewPos;
       }
     `,
+    // Без discard: при смешении пиксель с альфой ≈0 и так невидим, а discard
+    // ломает ранний отсев фрагментов на тайловых GPU телефонов.
     fragmentShader: /* glsl */ `
       uniform sampler2D uMap;
       uniform vec3 uColor;
@@ -124,12 +135,32 @@ function buildMaterial(blend: 'normal' | 'additive'): THREE.ShaderMaterial {
       varying float vAlpha;
       void main() {
         float m = texture2D(uMap, vUv).a;
-        float a = m * uOpacity * vAlpha;
-        if (a < 0.002) discard;
-        gl_FragColor = vec4(uColor, a);
+        gl_FragColor = vec4(uColor, m * uOpacity * vAlpha);
       }
     `,
   })
+}
+
+/** Покадровая заливка облака — вне компонента (правила react-hooks). */
+function updatePuffVolume(mesh: THREE.Mesh | null, mat: THREE.ShaderMaterial, state: PuffVolumeState, visual: number): void {
+  if (!mesh) return
+  if (state.opacity <= 0.004) {
+    mesh.visible = false
+    return
+  }
+  mesh.visible = true
+  mesh.position.copy(state.center)
+  const u = mat.uniforms
+  u.uTime!.value = visual
+  u.uOpacity!.value = state.opacity
+  u.uSpread!.value = state.spread
+  u.uRise!.value = state.rise
+  u.uTurb!.value = state.turbulence
+  ;(u.uColor!.value as THREE.Color).copy(state.color)
+}
+
+function setPuffSize(mat: THREE.ShaderMaterial, size: number): void {
+  mat.uniforms.uSize!.value = size
 }
 
 export function CinemaPuffVolume({
@@ -149,11 +180,12 @@ export function CinemaPuffVolume({
   renderOrder?: number
 }) {
   const meshRef = useRef<THREE.Mesh>(null)
+  const time = useCinemaTime()
   const geo = useMemo(() => buildGeometry(Math.max(1, count), seed), [count, seed])
   const mat = useMemo(() => buildMaterial(blend), [blend])
 
   useEffect(() => {
-    mat.uniforms.uSize!.value = size
+    setPuffSize(mat, size)
   }, [mat, size])
 
   useEffect(() => {
@@ -163,23 +195,7 @@ export function CinemaPuffVolume({
     }
   }, [geo, mat])
 
-  useFrame((s) => {
-    const m = meshRef.current
-    if (!m) return
-    if (state.opacity <= 0.004) {
-      m.visible = false
-      return
-    }
-    m.visible = true
-    m.position.copy(state.center)
-    const u = mat.uniforms
-    u.uTime!.value = s.clock.elapsedTime
-    u.uOpacity!.value = state.opacity
-    u.uSpread!.value = state.spread
-    u.uRise!.value = state.rise
-    u.uTurb!.value = state.turbulence
-    ;(u.uColor!.value as THREE.Color).copy(state.color)
-  })
+  useFrame(() => updatePuffVolume(meshRef.current, mat, state, time.current.visual))
 
   return (
     <mesh

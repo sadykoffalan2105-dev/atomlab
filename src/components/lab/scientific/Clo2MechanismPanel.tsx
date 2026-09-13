@@ -5,6 +5,8 @@ import { clo2StepStore, type Clo2StepStatus } from '../../../lab/cinema/scenes/c
 import { getClo2MechanismText, type Clo2Locale } from '../../../lab/cinema/scenes/clo2/clo2MechanismText'
 import { getLabTeacherNarrator } from '../../../lab/teacher'
 import styles from './Clo2MechanismPanel.module.css'
+import { Clo2ElectronLedger } from './Clo2ElectronLedger'
+import { Clo2EnergyProfile } from './Clo2EnergyProfile'
 
 /**
  * DOM-панель пошагового урока «механизм ClO₂»: текст шага, уравнение стадии,
@@ -214,6 +216,9 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
           ))}
         </p>
 
+        <Clo2ElectronLedger locale={clo2Locale} />
+        <Clo2EnergyProfile locale={clo2Locale} compact={collapsed} />
+
         {stepText.note ? (
           <p className={`${styles.note} ${styles.details}`}>
             <span className={styles.noteMark} aria-hidden>
@@ -246,6 +251,14 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
           <li>
             <SingleArrowIcon />
             <span>{text.legend.singleArrow}</span>
+          </li>
+          <li>
+            <OrbitalPhaseIcon />
+            <span>{text.legend.orbitalPhase}</span>
+          </li>
+          <li>
+            <VibrationIcon />
+            <span>{text.legend.vibration}</span>
           </li>
           <li className={styles.legendWater}>
             <WaterIcon />
@@ -329,6 +342,25 @@ function SingleArrowIcon() {
     <svg className={`${styles.icon} ${styles.singleArrow}`} viewBox="0 0 28 14" aria-hidden>
       <path d="M2 11.5C7.4 4 15.4 3.4 24.5 7.6" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
       <path d="M24.5 7.6 17.6 2.6" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** Два лепестка p-орбитали разной фазы (цвета как в сцене: янтарь +, голубой −). */
+function OrbitalPhaseIcon() {
+  return (
+    <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
+      <ellipse cx="9" cy="7" rx="6.2" ry="4.2" fill="#ffa640" fillOpacity="0.55" stroke="#ffc27a" strokeWidth="0.9" />
+      <ellipse cx="19" cy="7" rx="6.2" ry="4.2" fill="#4fa8ff" fillOpacity="0.55" stroke="#8cc8ff" strokeWidth="0.9" />
+      <circle cx="14" cy="7" r="1.3" fill="#e9f3ff" />
+    </svg>
+  )
+}
+
+function VibrationIcon() {
+  return (
+    <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
+      <path d="M2 7c2-4 4-4 6 0s4 4 6 0 4-4 6 0 4 4 6 0" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   )
 }

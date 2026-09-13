@@ -25,7 +25,14 @@ export type CinemaQuality = {
   vfxScale: number
   /** пылинки микромира */
   dust: number
+  /** пост-обработка (на lite — минимальная: короткий bloom + тонмаппинг в одном проходе) */
   post: boolean
+  /** атомы-импосторы (квад + ray–sphere в шейдере); lite — низкополигональные инстансы */
+  impostorAtoms: boolean
+  /** объёмный рэймарчинг орбиталей; lite — лепестки-эллипсоиды */
+  orbitalRaymarch: boolean
+  /** потолок devicePixelRatio канваса на время урока */
+  maxDpr: number
 }
 
 export function resolveCinemaQuality(lowPower: boolean): CinemaQuality {
@@ -36,12 +43,17 @@ export function resolveCinemaQuality(lowPower: boolean): CinemaQuality {
       atomSegH: 10,
       shell: false,
       plasmaBonds: false,
-      gasPuffs: 12,
-      fogPuffs: 9,
+      // На слабом GPU платим за пиксели: каждый клуб — полупрозрачная заливка
+      // крупного квада, поэтому клубов мало (облако остаётся читаемым пятном).
+      gasPuffs: 6,
+      fogPuffs: 4,
       vfx: false,
       vfxScale: 0.35,
-      dust: 20,
+      dust: 12,
       post: true,
+      impostorAtoms: false,
+      orbitalRaymarch: false,
+      maxDpr: 1,
     }
   }
   return {
@@ -58,5 +70,8 @@ export function resolveCinemaQuality(lowPower: boolean): CinemaQuality {
     vfxScale: 1,
     dust: 60,
     post: true,
+    impostorAtoms: true,
+    orbitalRaymarch: true,
+    maxDpr: 1.5,
   }
 }

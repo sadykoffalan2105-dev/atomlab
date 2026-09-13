@@ -410,4 +410,41 @@ const bond = (id: Clo2BondId) => frame.bonds[id]
   assert.equal(clo2StepStore.getSnapshot().runId, 0)
 }
 
+// ——— Порядок связей, орбитали, колебания ———
+{
+  const order = (id: Clo2BondId, t: number) => (at(t), frame.bondChem[id].order)
+  const tT = cueAt('clTransfer')
+  const tA = cueAt('adduct')
+  const tS = cueAt('split')
+  // Хлорит — резонанс (1,5); ClOClO — Cl–O и Cl=O; радикал — 1,75.
+  assert.equal(order('clA_oA1', 2), 1.5)
+  assert.equal(order('clA_oA2', 2), 1.5)
+  assert.equal(order('clA_oA1', tT + 0.2), 1, 'bridging O–Cl in ClOClO is single')
+  assert.equal(order('clA_oA2', tT + 0.2), 2, 'terminal Cl=O in ClOClO is double')
+  assert.equal(order('clB_oB1', tA + 0.2), 1, 'attacking O of chlorite B becomes single')
+  assert.equal(order('clB_oB2', tA + 0.2), 2)
+  for (const id of ['clA_oA1', 'clA_oA2', 'clB_oB1', 'clB_oB2'] as const) {
+    assert.equal(order(id, CLO2_END), 1.75, `${id}: ClO₂ radical bond order 1.5 + 0.25`)
+    assert.ok(order(id, tS - 0.2) !== 1.75, `${id}: order changes only after the split`)
+  }
+  // Разрыв: Cl–Cl и концевая O–Cl — гетеролиз к хлору; мостик — гомолиз.
+  at(0)
+  assert.equal(frame.bondChem.clX_clY.split, 1)
+  assert.equal(frame.bondChem.oA1_clX.split, 1)
+  assert.equal(frame.bondChem.oB1_clA.split, 0)
+
+  const orb = (t: number) => (at(t), frame.orbitals)
+  assert.ok(orb(8).lonePairA > 0.99 && orb(8).sigmaStarCl2 > 0.99, 'donor lone pair and acceptor σ* are shown on approach')
+  assert.equal(orb(tT + 0.1).sigmaStarCl2, 0, 'σ* disappears once Cl–Cl is broken')
+  assert.equal(orb(tT + 0.1).lonePairA, 0, 'the lone pair has become the O–Cl bond')
+  assert.ok(orb(17).lonePairB > 0.99 && orb(tA + 0.1).lonePairB === 0, 'second donor pair on attack')
+  assert.equal(orb(tS).somoA, 0, 'no radical orbital before the split')
+  assert.ok(orb(CLO2_END).somoA > 0.99 && orb(CLO2_END).somoB > 0.99, 'both ClO₂ carry the singly occupied 2b1')
+  // Облако-сфера больше не нужно тем, у кого есть орбиталь: электроны e5/e6 уходят в SOMO.
+  at(CLO2_END - 1)
+  assert.ok(frame.vibration.radicalA > 0.3, 'radicals keep vibrating')
+  at(9.6)
+  assert.equal(frame.vibration.cl2, 0, 'Cl₂ stretch is silent at the moment of transfer (no fake energy)')
+}
+
 console.log('test-clo2-cinema: all passed')

@@ -33,6 +33,13 @@ export type Clo2StepControls = {
 
 const AUTOPLAY_KEY = 'atomlab-clo2-autoplay'
 
+/**
+ * Позиция сюжета для виджетов вне Canvas (энергетический профиль и т. п.).
+ * Сцена пишет каждый кадр, виджеты читают в своём requestAnimationFrame —
+ * это не часть снимка, чтобы не будить React 60 раз в секунду.
+ */
+export const clo2Playhead = { t: 0, runId: 0 }
+
 function readAutoplay(): boolean {
   try {
     return localStorage.getItem(AUTOPLAY_KEY) === '1'

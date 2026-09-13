@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { cinemaCircle, cinemaQuad, cinemaRing, cinemaSphere } from '../core/geometries'
 import { cinemaTexture } from '../core/textures'
 import type { GlowState, WaveState } from '../core/states'
+import { useCinemaTime } from './CinemaTime'
 
 /**
  * Световые эффекты сцены: сферическая волна образования связи, зона реакции,
@@ -15,6 +16,9 @@ import type { GlowState, WaveState } from '../core/states'
  *   • ореол и вспышка — мягкий спрайт с радиальным затуханием.
  * Заливать светом весь объём нельзя ни в том, ни в другом случае: заполненная
  * сфера мгновенно превращает кадр в мутный шар и прячет саму химию.
+ *
+ * «Жизнь» (пульс ореола, вращение кольца) идёт по визуальному времени
+ * (useCinemaTime) — в заморозке и на паузе шага она стоит вместе с сюжетом.
  */
 
 function createWaveMaterial(): THREE.ShaderMaterial {
@@ -23,6 +27,8 @@ function createWaveMaterial(): THREE.ShaderMaterial {
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     side: THREE.DoubleSide,
+    // Аддитивный слой: обе стороны оболочки за один draw call (порядок граней не важен).
+    forceSinglePass: true,
     uniforms: {
       uAmt: { value: 0 },
       uColor: { value: new THREE.Color(0xffffff) },
@@ -54,6 +60,21 @@ function createWaveMaterial(): THREE.ShaderMaterial {
   })
 }
 
+/** Покадровое состояние волны — вне компонента (правила react-hooks). */
+function updateShockwave(mesh: THREE.Mesh | null, mat: THREE.ShaderMaterial, state: WaveState): void {
+  if (!mesh) return
+  const a = state.amount
+  if (a <= 0.001 || a >= 1) {
+    mesh.visible = false
+    return
+  }
+  mesh.visible = true
+  mesh.position.copy(state.center)
+  mesh.scale.setScalar(0.12 + a * state.radius)
+  mat.uniforms.uAmt!.value = a
+  ;(mat.uniforms.uColor!.value as THREE.Color).copy(state.color)
+}
+
 /**
  * Мягкий световой спрайт, всегда развёрнутый к камере.
  * Им сделаны ореол продукта и вспышка: радиальное затухание текстуры даёт
@@ -82,6 +103,7 @@ function GlowSprite({
 }) {
   const mesh = useRef<THREE.Mesh>(null)
   const mat = useRef<THREE.MeshBasicMaterial>(null)
+  const time = useCinemaTime()
   const geo = useMemo(() => cinemaQuad(), [])
   const tex = useMemo(() => cinemaTexture('glow'), [])
 
@@ -96,10 +118,9 @@ function GlowSprite({
     m.visible = true
     m.position.copy(stateRef.current.center)
     m.quaternion.copy(s.camera.quaternion)
-    const breath = pulse > 0 ? 1 + pulse * Math.sin(s.clock.elapsedTime * 1.4) : 1
+    const breath = pulse > 0 ? 1 + pulse * Math.sin(time.current.visual * 1.4) : 1
     m.scale.setScalar(size * breath * (grow > 0 ? 1 - grow + grow * a : 1))
     mat.current.opacity = a * gain
-    mat.current.color.setHex(color)
   })
 
   return (
@@ -130,20 +151,7 @@ export function CinemaShockwave({ state }: { state: WaveState }) {
     }
   }, [mat])
 
-  useFrame(() => {
-    const m = mesh.current
-    if (!m) return
-    const a = state.amount
-    if (a <= 0.001 || a >= 1) {
-      m.visible = false
-      return
-    }
-    m.visible = true
-    m.position.copy(state.center)
-    m.scale.setScalar(0.12 + a * state.radius)
-    mat.uniforms.uAmt!.value = a
-    ;(mat.uniforms.uColor!.value as THREE.Color).copy(state.color)
-  })
+  useFrame(() => updateShockwave(mesh.current, mat, state))
 
   return <mesh ref={mesh} geometry={geo} material={mat} visible={false} dispose={null} renderOrder={4} />
 }
@@ -161,12 +169,14 @@ export function CinemaReactionZone({
   const ring = useRef<THREE.Mesh>(null)
   const ringMat = useRef<THREE.MeshBasicMaterial>(null)
   const discMat = useRef<THREE.MeshBasicMaterial>(null)
+  const time = useCinemaTime()
 
-  useFrame((s) => {
+  useFrame(() => {
     const u = intensityRef.current
-    const pulse = 0.72 + 0.28 * Math.sin(s.clock.elapsedTime * 1.5)
+    const t = time.current.visual
+    const pulse = 0.72 + 0.28 * Math.sin(t * 1.5)
     if (ring.current) {
-      ring.current.rotation.z = s.clock.elapsedTime * 0.22
+      ring.current.rotation.z = t * 0.22
       ring.current.scale.setScalar(1 + u * 0.22)
     }
     if (ringMat.current) ringMat.current.opacity = 0.08 + u * 0.45 * pulse
@@ -194,6 +204,7 @@ export function CinemaReactionZone({
           depthWrite={false}
           blending={THREE.AdditiveBlending}
           side={THREE.DoubleSide}
+          forceSinglePass
         />
       </mesh>
     </group>

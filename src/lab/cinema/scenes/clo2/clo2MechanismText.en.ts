@@ -85,6 +85,42 @@ export const CLO2_TEXT_EN: Clo2MechanismText = {
     pairArrow: 'movement of an electron pair',
     singleArrow: 'movement of a single electron',
     water: 'water molecules not shown',
+    orbitalPhase: 'orbital lobes: colour is the sign (phase) of the wavefunction, not charge; outline = empty orbital',
+    vibration: 'atomic vibrations: real frequency ratios, slowed ≈10¹³ times, amplitude exaggerated',
   },
   safety: 'ClO₂ is toxic, and the concentrated gas can explode — that is why it is made on site and not stored for long.',
+  energy: {
+    title: 'Energy profile',
+    axisG: 'G, kJ/mol',
+    axisCoord: 'reaction coordinate',
+    unit: 'kJ/mol',
+    measured: 'from measurements',
+    derived: 'calculated from k',
+    schematic: 'schematic',
+    mainLabel: 'ClO₂ path {pct}%',
+    branchLabel: 'ClO₃⁻ path {pct}%',
+    caveat:
+      'The ΔG‡ barrier heights are apparent values: they are calculated from rate constants with the Eyring equation (25 °C, 1 M), and each is measured from its own reactants, so peaks of different steps cannot be compared on one scale. ' +
+      'Which step is slow comes from the kinetics, not from peak height. The depths of the ClOClO and complex wells have not been measured — those parts are drawn schematically. ' +
+      'ΔG° = −2F·ΔE° ≈ {dG} kJ/mol ({dGAlt} with E° = 0.936 V); Cl₂ is taken as a gas in its standard state.',
+    chlorateModels:
+      'Both studies agree that excess chlorite shifts the yield toward ClO₂. Nicoson and Margerum (2002): ClOClO either reacts with ClO₂⁻ (giving ClO₂) or hydrolyses (giving ClO₃⁻). ' +
+      'Angyal, Fábián and Szabó (2023) replace the hydrolysis with reactions of Cl₂O₂ with ClO₂⁻ and HOCl, and find that most chlorate comes from Cl₂O + HClO₂. ' +
+      'For the two Cl₂O₂ + ClO₂⁻ steps the barriers are {ts2} and {tsCl} kJ/mol: the share of Cl₂O₂ taking each path ≈ {main} : {side} (by moles of product ClO₂ : ClO₃⁻ ≈ 84 : 16, since the ClO₂ path gives two molecules). ' +
+      'Chlorate is thermodynamically lower (≈ −96 kJ/mol vs {dG}), but ClO₂ forms faster — kinetic control.',
+    halfLife: 'In a real solution (10 mM chlorite), half of the Cl₂ is used up in about {ms} ms — the reaction on screen is slowed down.',
+    sources:
+      'Nicoson, Margerum, Inorg. Chem. 2002 · Jia, Margerum, Francisco, Inorg. Chem. 2000 · Angyal, Fábián, Szabó, Inorg. Chem. 2023 · ΔfG° NBS · E°: Cl₂/Cl⁻ 1.358 V, ClO₂/ClO₂⁻ 0.954 V',
+    more: 'Models and sources',
+    summary:
+      'Energy profile of 2ClO₂⁻ + Cl₂ → 2ClO₂ + 2Cl⁻: overall ΔG° ≈ {dG} kJ/mol; apparent barrier of the slow step ≈ {ts1} kJ/mol; barrier of the second step ≈ {ts2} kJ/mol from the intermediate; ' +
+      'after the complex the path branches: Cl₂O₂ → ClO₂ {main}%, → chlorate {side}%; the chlorate branch is lower in energy but slower. Intermediate levels are schematic.',
+  },
+  ledger: {
+    valence: 'valence e⁻',
+    valenceHint: 'Atoms and charge are conserved, so the number of valence electrons is the same at every stage.',
+    orbital: '2b₁',
+    orbitalHint: 'Electrons in the 2b₁ (π*) orbital of the O–Cl–O unit: 2 in the chlorite ion, 1 in the ClO₂ radical.',
+    aria: 'Valence electrons: {n} ({breakdown}). In the 2b₁ orbital: {occ}.',
+  },
 }

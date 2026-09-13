@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Billboard, Text } from '@react-three/drei'
 import * as THREE from 'three'
@@ -6,6 +6,13 @@ import { CATALOG_BALL_STICK_RADIUS_SCALE, heroAtomStyle, heroBondStyle, organicH
 import { getElementBySymbol } from '../../data/elements'
 import type { CompoundDef } from '../../types/chemistry'
 import type { Vec3 } from '../../types/chemistry'
+import { buildBondStickSegments } from './preview/bondOffset'
+import {
+  getAtomCpkMaterial,
+  getBondStickMaterial,
+  getSharedSphereGeometry,
+  getUnitBondCylinderGeometry,
+} from './preview/previewSharedResources'
 
 function cpkColor(symbol: string): string {
   const e = getElementBySymbol(symbol)
@@ -21,6 +28,38 @@ function atomDegrees(atomsLen: number, bonds: readonly (readonly [number, number
   return d
 }
 
+type BondTransform = {
+  position: [number, number, number]
+  quaternion: THREE.Quaternion
+  /** Длина связи (без нижнего порога). */
+  length: number
+}
+
+const BOND_UP = new THREE.Vector3(0, 1, 0)
+const bondDirScratch = new THREE.Vector3()
+
+/** Поза единичного цилиндра (ось Y) между двумя точками — без временных Vector3. */
+function computeBondTransform(from: Vec3, to: Vec3): BondTransform {
+  const dx = to[0] - from[0]
+  const dy = to[1] - from[1]
+  const dz = to[2] - from[2]
+  const length = Math.hypot(dx, dy, dz)
+  const quaternion = new THREE.Quaternion()
+  if (length > 1e-9) {
+    quaternion.setFromUnitVectors(BOND_UP, bondDirScratch.set(dx / length, dy / length, dz / length))
+  }
+  return {
+    position: [(from[0] + to[0]) * 0.5, (from[1] + to[1]) * 0.5, (from[2] + to[2]) * 0.5],
+    quaternion,
+    length,
+  }
+}
+
+/**
+ * Стержень связи. Геометрия — общий единичный цилиндр (длина через scale.y),
+ * материал — из кэша по цвету: N связей не создают N геометрий и N материалов.
+ * Материал общий — не мутировать его снаружи.
+ */
 export function BondCylinder({
   from,
   to,
@@ -32,39 +71,68 @@ export function BondCylinder({
   color: string
   visualPreset?: 'default' | 'catalogHero'
 }) {
-  const { mid, len, quat } = useMemo(() => {
-    const a = new THREE.Vector3(...from)
-    const b = new THREE.Vector3(...to)
-    const mid = a.clone().add(b).multiplyScalar(0.5)
-    const len = a.distanceTo(b)
-    const dir = b.clone().sub(a).normalize()
-    const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
-    return { mid, len, quat }
-  }, [from, to])
-
   const hero = visualPreset === 'catalogHero'
-  const r = hero ? 0.048 : 0.06
-  const seg = hero ? 10 : 8
+  const pose = useMemo(() => {
+    const t = computeBondTransform(from, to)
+    return { ...t, scale: [1, Math.max(0.08, t.length), 1] as [number, number, number] }
+  }, [from, to])
+  const geometry = getUnitBondCylinderGeometry(hero ? 0.048 : 0.06, hero ? 10 : 8)
+  const material = getBondStickMaterial(color, hero)
 
   return (
-    <mesh position={mid} quaternion={quat}>
-      <cylinderGeometry args={[r, r, Math.max(0.08, len), seg, 1]} />
-      <meshStandardMaterial
-        color={color}
-        emissive={color}
-        emissiveIntensity={hero ? 0.72 : 0.25}
-        metalness={hero ? 0.55 : 0.3}
-        roughness={hero ? 0.22 : 0.35}
-      />
-    </mesh>
+    <mesh
+      position={pose.position}
+      quaternion={pose.quaternion}
+      scale={pose.scale}
+      geometry={geometry}
+      material={material}
+    />
   )
 }
 
-type PlasmaBondGeom = { mid: THREE.Vector3; len: number; quat: THREE.Quaternion }
+type PlasmaBondGeom = {
+  position: [number, number, number]
+  quaternion: THREE.Quaternion
+  coreScale: [number, number, number]
+  haloScale: [number, number, number]
+}
+
+type PlasmaMaterials = { core: THREE.MeshStandardMaterial; halo: THREE.MeshStandardMaterial }
+
+function createPlasmaMaterials(core: string, halo: string): PlasmaMaterials {
+  return {
+    core: new THREE.MeshStandardMaterial({
+      color: core,
+      emissive: core,
+      emissiveIntensity: 1.05,
+      metalness: 0.48,
+      roughness: 0.28,
+    }),
+    halo: new THREE.MeshStandardMaterial({
+      color: halo,
+      emissive: halo,
+      emissiveIntensity: 0.62,
+      metalness: 0.35,
+      roughness: 0.4,
+      transparent: true,
+      opacity: 0.38,
+      depthWrite: false,
+    }),
+  }
+}
+
+/** Пульс плазмы: все связи молекулы пульсировали синхронно — достаточно двух общих материалов. */
+function pulsePlasmaMaterials(mats: PlasmaMaterials, t: number): void {
+  const ei1 = 0.78 + Math.sin(t * 3.1) * 0.22
+  const ei2 = 0.65 + Math.sin(t * 2.2 + 0.7) * 0.2
+  mats.core.emissiveIntensity = 1.05 * ei1
+  mats.halo.emissiveIntensity = 0.62 * ei2
+}
 
 /**
  * Все плазменные связи молекулы рендерятся в одном компоненте с одним useFrame.
- * Это значительно снижает overhead по сравнению с отдельным useFrame на каждую связь.
+ * Два материала на группу (ядро + ореол) и общие единичные цилиндры вместо
+ * пары геометрий и пары материалов на каждую связь.
  */
 function BondPlasmaGroup({
   bonds,
@@ -83,57 +151,39 @@ function BondPlasmaGroup({
       const ai = atoms[i]
       const aj = atoms[j]
       if (!ai || !aj) continue
-      const a = new THREE.Vector3(...ai.pos)
-      const b = new THREE.Vector3(...aj.pos)
-      const mid = a.clone().add(b).multiplyScalar(0.5)
-      const len = Math.max(0.08, a.distanceTo(b))
-      const dir = b.clone().sub(a).normalize()
-      const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
-      out.push({ mid, len, quat })
+      const t = computeBondTransform(ai.pos, aj.pos)
+      const len = Math.max(0.08, t.length)
+      out.push({
+        position: t.position,
+        quaternion: t.quaternion,
+        coreScale: [1, len, 1],
+        haloScale: [1, len * 1.04, 1],
+      })
     }
     return out
   }, [bonds, atoms])
 
-  const coreMatsRef = useRef<(THREE.MeshStandardMaterial | null)[]>([])
-  const haloMatsRef = useRef<(THREE.MeshStandardMaterial | null)[]>([])
+  const mats = useMemo(() => createPlasmaMaterials(core, halo), [core, halo])
+  useEffect(
+    () => () => {
+      mats.core.dispose()
+      mats.halo.dispose()
+    },
+    [mats],
+  )
+  const coreGeo = getUnitBondCylinderGeometry(0.024, 8)
+  const haloGeo = getUnitBondCylinderGeometry(0.044, 6)
 
   useFrame((s) => {
-    const t = s.clock.elapsedTime
-    const ei1 = 0.78 + Math.sin(t * 3.1) * 0.22
-    const ei2 = 0.65 + Math.sin(t * 2.2 + 0.7) * 0.2
-    for (const m of coreMatsRef.current) if (m) m.emissiveIntensity = 1.05 * ei1
-    for (const m of haloMatsRef.current) if (m) m.emissiveIntensity = 0.62 * ei2
+    pulsePlasmaMaterials(mats, s.clock.elapsedTime)
   })
 
   return (
     <>
       {geoms.map((bd, k) => (
-        <group key={k} position={bd.mid} quaternion={bd.quat}>
-          <mesh>
-            <cylinderGeometry args={[0.024, 0.024, bd.len, 8, 1]} />
-            <meshStandardMaterial
-              ref={(el) => { coreMatsRef.current[k] = el }}
-              color={core}
-              emissive={core}
-              emissiveIntensity={1.05}
-              metalness={0.48}
-              roughness={0.28}
-            />
-          </mesh>
-          <mesh>
-            <cylinderGeometry args={[0.044, 0.044, bd.len * 1.04, 6, 1]} />
-            <meshStandardMaterial
-              ref={(el) => { haloMatsRef.current[k] = el }}
-              color={halo}
-              emissive={halo}
-              emissiveIntensity={0.62}
-              metalness={0.35}
-              roughness={0.4}
-              transparent
-              opacity={0.38}
-              depthWrite={false}
-            />
-          </mesh>
+        <group key={k} position={bd.position} quaternion={bd.quaternion}>
+          <mesh scale={bd.coreScale} geometry={coreGeo} material={mats.core} />
+          <mesh scale={bd.haloScale} geometry={haloGeo} material={mats.halo} />
         </group>
       ))}
     </>
@@ -224,22 +274,14 @@ export function MoleculeMesh({
   /** Органика: параллельные стержни CPK вместо плазмы — видны кратные связи. */
   const useOrganicSticks = organicHero && !spaceFill
 
-  const bondDrawList = useMemo(() => {
-    const groups = new Map<string, { i: number; j: number; count: number }>()
-    for (const [i, j] of compound.bonds) {
-      const a = Math.min(i, j)
-      const b = Math.max(i, j)
-      const key = `${a}-${b}`
-      const g = groups.get(key)
-      if (g) g.count += 1
-      else groups.set(key, { i: a, j: b, count: 1 })
-    }
-    const out: { i: number; j: number; slot: number; total: number }[] = []
-    for (const g of groups.values()) {
-      for (let s = 0; s < g.count; s++) out.push({ i: g.i, j: g.j, slot: s, total: g.count })
-    }
-    return out
-  }, [compound.bonds])
+  /**
+   * Стержни с уже смещёнными концами (кратные связи — ⟂ связи, в плоскости соседа).
+   * Концы — стабильные массивы из useMemo: BondCylinder не пересчитывает позу на каждый ре-рендер.
+   */
+  const bondDrawList = useMemo(
+    () => buildBondStickSegments(compound.atoms, compound.bonds),
+    [compound.atoms, compound.bonds],
+  )
 
   return (
     <group scale={scale}>
@@ -255,13 +297,9 @@ export function MoleculeMesh({
         const sphereSegH = hero ? (quality === 'synthesis' ? 14 : 32) : 18
         return (
           <group key={i} position={[a.pos[0], a.pos[1], a.pos[2]]}>
-            <mesh>
-              {hero ? (
+            {hero && st ? (
+              <mesh key="hero">
                 <sphereGeometry args={[r, sphereSegW, sphereSegH]} />
-              ) : (
-                <sphereGeometry args={[r, 18, 18]} />
-              )}
-              {hero && st ? (
                 <meshPhysicalMaterial
                   color={st.baseColor}
                   emissive={st.emissive}
@@ -277,18 +315,15 @@ export function MoleculeMesh({
                   opacity={quality === 'synthesis' ? 1 : spaceFill ? Math.min(0.92, st.opacity) : st.opacity}
                   envMapIntensity={st.envMapIntensity}
                 />
-              ) : (
-                <meshStandardMaterial
-                  color={cpkColor(a.symbol)}
-                  emissive={cpkColor(a.symbol)}
-                  emissiveIntensity={0.22 * accentBoost}
-                  metalness={0.2}
-                  roughness={0.38}
-                  transparent={spaceFill}
-                  opacity={spaceFill ? 0.92 : 1}
-                />
-              )}
-            </mesh>
+              </mesh>
+            ) : (
+              // CPK-сфера: общая геометрия + материал из кэша по цвету (не по атому).
+              <mesh
+                key="cpk"
+                geometry={getSharedSphereGeometry(r, 18, 18)}
+                material={getAtomCpkMaterial(cpkColor(a.symbol), 0.22 * accentBoost, spaceFill)}
+              />
+            )}
             {labels && !spaceFill ? <AtomInSphereLabel symbol={a.symbol} r={r} /> : null}
           </group>
         )
@@ -302,44 +337,16 @@ export function MoleculeMesh({
         />
       ) : null}
       {!spaceFill && (useOrganicSticks || (!usePlasma && !organicHero))
-        ? bondDrawList.map((b, k) => {
-            const ai = compound.atoms[b.i]
-            const aj = compound.atoms[b.j]
-            if (!ai || !aj) return null
-            const from = offsetBondEnd(ai.pos, aj.pos, b.slot, b.total)
-            const to = offsetBondEnd(aj.pos, ai.pos, b.slot, b.total)
-            return (
-              <BondCylinder
-                key={k}
-                from={from}
-                to={to}
-                color={organicHero ? bondPlasma.core : compound.accentColor}
-                visualPreset={organicHero ? 'catalogHero' : visualPreset === 'catalogHero' ? 'catalogHero' : 'default'}
-              />
-            )
-          })
+        ? bondDrawList.map((b, k) => (
+            <BondCylinder
+              key={k}
+              from={b.from}
+              to={b.to}
+              color={organicHero ? bondPlasma.core : compound.accentColor}
+              visualPreset={organicHero ? 'catalogHero' : visualPreset === 'catalogHero' ? 'catalogHero' : 'default'}
+            />
+          ))
         : null}
     </group>
   )
-}
-
-function offsetBondEnd(from: Vec3, to: Vec3, slot: number, total: number): Vec3 {
-  if (total <= 1) return from
-  const dx = to[0] - from[0]
-  const dz = to[2] - from[2]
-  let px = -dz
-  let py = 0
-  let pz = dx
-  const pl = Math.hypot(px, py, pz)
-  if (pl < 1e-6) {
-    px = 0
-    py = 1
-    pz = 0
-  } else {
-    px /= pl
-    pz /= pl
-  }
-  const mid = (total - 1) / 2
-  const off = (slot - mid) * 0.08
-  return [from[0] + px * off, from[1] + py * off, from[2] + pz * off]
 }

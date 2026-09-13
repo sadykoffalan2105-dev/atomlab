@@ -42,7 +42,13 @@ export function crystalCoreMaterial(color: number, emissive = 0.55, opacity = 0.
   return m
 }
 
-/** Ядро атома — крошечная яркая сфера внутри кристалла. */
+/**
+ * Ядро атома — крошечная яркая сфера внутри кристалла.
+ *
+ * @deprecated Внутри полупрозрачного ядра, пишущего глубину, такая сфера не
+ * проходит depth test и никогда не видна. Искра ядра теперь — параметр `spark`
+ * френелевской оболочки (fresnelShellMaterial): ноль лишних draw call.
+ */
 export function nucleusMaterial(color: number): THREE.MeshBasicMaterial {
   const key = String(color)
   let m = nucleusCache.get(key)
@@ -63,9 +69,13 @@ export function nucleusMaterial(color: number): THREE.MeshBasicMaterial {
  * Френелевская оболочка: свечение по кромке сферы.
  * Именно она даёт «стеклянно-кристаллический» вид почти бесплатно —
  * один дешёвый fragment-шейдер без прозрачных сортировок и рефракции.
+ *
+ * `spark` — искра ядра: мягкое пятно в центре диска, там, где нормаль смотрит
+ * в камеру. Оболочка аддитивна и лежит снаружи ядра, поэтому искра читается
+ * «сквозь стекло», хотя отдельного меша ядра больше нет.
  */
-export function fresnelShellMaterial(color: number, power = 2.6, intensity = 0.9): THREE.ShaderMaterial {
-  const key = `${color}_${power}_${intensity}`
+export function fresnelShellMaterial(color: number, power = 2.6, intensity = 0.9, spark = 0): THREE.ShaderMaterial {
+  const key = `${color}_${power}_${intensity}_${spark.toFixed(2)}`
   let m = shellCache.get(key)
   if (!m) {
     m = new THREE.ShaderMaterial({
@@ -75,8 +85,11 @@ export function fresnelShellMaterial(color: number, power = 2.6, intensity = 0.9
       side: THREE.FrontSide,
       uniforms: {
         uColor: { value: new THREE.Color(hexOf(color)) },
+        // Искра светлее цвета элемента: раскалённое ядро, а не цветной шарик.
+        uSparkColor: { value: new THREE.Color(hexOf(color)).lerp(new THREE.Color(1, 1, 1), 0.55) },
         uPower: { value: power },
         uIntensity: { value: intensity },
+        uSpark: { value: spark },
       },
       vertexShader: /* glsl */ `
         varying vec3 vNormalV;
@@ -90,13 +103,20 @@ export function fresnelShellMaterial(color: number, power = 2.6, intensity = 0.9
       `,
       fragmentShader: /* glsl */ `
         uniform vec3 uColor;
+        uniform vec3 uSparkColor;
         uniform float uPower;
         uniform float uIntensity;
+        uniform float uSpark;
         varying vec3 vNormalV;
         varying vec3 vViewDir;
         void main() {
-          float f = pow(1.0 - clamp(dot(normalize(vNormalV), normalize(vViewDir)), 0.0, 1.0), uPower);
-          gl_FragColor = vec4(uColor, f * uIntensity);
+          float d = clamp(dot(normalize(vNormalV), normalize(vViewDir)), 0.0, 1.0);
+          float f = pow(1.0 - d, uPower);
+          // d^12: половина яркости при d≈0.94 — пятно ≈0.35 радиуса, как у прежнего ядра.
+          float d4 = d * d * d * d;
+          float spark = d4 * d4 * d4 * uSpark;
+          // Аддитивное смешение (SRC_ALPHA, ONE): цвет уже взвешен, альфа = 1.
+          gl_FragColor = vec4(uColor * (f * uIntensity) + uSparkColor * spark, 1.0);
         }
       `,
     })
@@ -119,6 +139,10 @@ export function particleSpriteMaterial(
       blending,
       depthWrite: false,
       side: THREE.DoubleSide,
+      // Аддитивному спрайту порядок граней безразличен — один проход вместо двух.
+      // Обычное смешение оставляем двухпроходным: там порядок граней виден.
+      // three.quarks флаг в свои батч-материалы не копирует — его дописывает CinemaVfxStage.
+      forceSinglePass: blending === THREE.AdditiveBlending,
       color: 0xffffff,
     })
     spriteCache.set(key, m)

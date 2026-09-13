@@ -4,11 +4,21 @@ import * as THREE from 'three'
 import { cinemaUnitCylinder } from '../core/geometries'
 import { createBondMaterial } from '../core/bondShader'
 import type { BondState } from '../core/states'
+import { useCinemaTime } from './CinemaTime'
 
 const _mid = new THREE.Vector3()
 const _dir = new THREE.Vector3()
 const _quat = new THREE.Quaternion()
 const _up = new THREE.Vector3(0, 1, 0)
+
+/** Покадровая заливка uniforms плазмы — вне компонента (правила react-hooks). */
+function writePlasmaUniforms(material: THREE.ShaderMaterial, state: BondState, visual: number): void {
+  const u = material.uniforms
+  u.uTime!.value = visual
+  u.uStress!.value = state.stress
+  u.uOpacity!.value = state.opacity
+  u.uForm!.value = state.form
+}
 
 export function CinemaBond({
   state,
@@ -26,6 +36,7 @@ export function CinemaBond({
   const halo = useRef<THREE.Mesh>(null)
   const haloMat = useRef<THREE.MeshBasicMaterial>(null)
   const fallbackMat = useRef<THREE.MeshBasicMaterial>(null)
+  const time = useCinemaTime()
   const geo = cinemaUnitCylinder()
   const material = useMemo(() => (plasma ? createBondMaterial(color) : null), [plasma, color])
 
@@ -35,7 +46,7 @@ export function CinemaBond({
     }
   }, [material])
 
-  useFrame((s) => {
+  useFrame(() => {
     const g = group.current
     if (!g) return
     if (state.opacity <= 0.01) {
@@ -58,13 +69,7 @@ export function CinemaBond({
     if (core.current) core.current.scale.set(r, 1, r)
     if (halo.current) halo.current.scale.set(r * 2.8, 1, r * 2.8)
 
-    if (material) {
-      const u = material.uniforms
-      u.uTime!.value = s.clock.elapsedTime
-      u.uStress!.value = state.stress
-      u.uOpacity!.value = state.opacity
-      u.uForm!.value = state.form
-    }
+    if (material) writePlasmaUniforms(material, state, time.current.visual)
     if (fallbackMat.current) {
       fallbackMat.current.opacity = state.opacity * (0.5 + state.stress * 0.5)
       fallbackMat.current.color.setHex(state.stress > 0.55 ? 0xffffff : color)

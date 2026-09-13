@@ -2,6 +2,25 @@ import { useEffect, useMemo, useRef, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { CPK } from '../../core/atoms'
+import { bondPolarity, type ChiElement } from '../../core/chem/bondOrder'
+import {
+  CLO2_PI_ELEMENTS,
+  clo2PiOrbital,
+  electronsToOccupancy,
+  LOBE_SIZE_PER_SLATER_RADIUS,
+  lobeLayoutForOrbital,
+  slaterExtentScene,
+} from '../../core/chem/orbitals'
+import {
+  applyBentTriatomicModes,
+  applyDiatomicStretch,
+  CL2_FUNDAMENTAL_CM1,
+  CL2_VIB_AMP,
+  CLO2_VIB_AMP,
+  CLO2_VIB_CM1,
+} from '../../core/chem/vibration'
+import { createAtomPool, createBondPool, createLobePool, LobeKind, writeHexLinear, writeVec3, type LobePool } from '../../core/pools'
+import { writeBondBandDirection } from '../../core/bondBandShader'
 import { createCueRunner, pulseAt, type CueRunner } from '../../core/cues'
 import { resolveCinemaQuality } from '../../core/quality'
 import { fresnelShellMaterial } from '../../core/materials'
@@ -16,16 +35,20 @@ import {
   createWaveState,
   type GlowState,
 } from '../../core/states'
-import { CinemaAtom } from '../../react/CinemaAtom'
-import { CinemaBond } from '../../react/CinemaBond'
 import { CinemaDomLabels, type DomLabelSource } from '../../react/CinemaDomLabels'
 import { CinemaFlash, CinemaHalo, CinemaShockwave } from '../../react/CinemaFx'
 import { CinemaGlowPoints, type GlowPointsHandle } from '../../react/CinemaGlowPoints'
 import { CinemaPostFx } from '../../react/CinemaPostFx'
 import { CinemaPuffVolume } from '../../react/CinemaPuffVolume'
 import { CinemaCameraRig, CinemaEnvironment } from '../../react/CinemaStage'
+import { setCinemaTimeFrozen, useCinemaTime, type CinemaTimeState } from '../../react/CinemaTime'
+import { InstancedAtoms } from '../../react/InstancedAtoms'
+import { InstancedBonds } from '../../react/InstancedBonds'
+import { OrbitalLobes } from '../../react/OrbitalLobes'
 import { CinemaBurst, CinemaVfxStage, type VfxHandle } from '../../react/CinemaVfx'
-import { clo2StepStore, type Clo2StepStatus } from './clo2StepStore'
+import { clo2Playhead, clo2StepStore, type Clo2StepStatus } from './clo2StepStore'
+import { clo2SolutionColor } from './clo2Spectrum'
+import { isPerfProbeEnabled } from '../../../perf/labPerfProbe'
 import {
   CLO2_ARROWS,
   CLO2_ATOMS,
@@ -38,10 +61,12 @@ import {
   createClo2Frame,
   sampleClo2Frame,
   validateClo2Storyboard,
+  CLO2_BONDS,
+  writeUnitNormal,
   type Clo2AtomId,
-  type Clo2BondId,
   type Clo2CueId,
   type Clo2ElectronId,
+  type Clo2Frame,
 } from './storyboard'
 
 /**
@@ -57,18 +82,44 @@ import {
  * «Завершить».
  */
 
+/** Цвет раствора ClO₂ не выдуман: закон Бугера–Ламберта–Бера для полосы 359 нм (clo2Spectrum.ts). */
+const CLO2_SOLUTION = clo2SolutionColor(0.02, 1)
+
 const COLOR = {
-  bondClO: 0xff4a6a,
-  bondNewA: 0x7fe8ff,
-  bondNewB: 0xc49bff,
-  radical: 0xffb347,
   hydration: 0x5fb0ff,
   bubble: 0xb6ff5c,
   cl2Gas: 0x9bd93a,
   water: 0x123d78,
-  clo2Tint: 0xe8c64a,
-  clo2Gas: 0xffc24a,
+  clo2Tint: CLO2_SOLUTION.hex,
+  clo2Gas: CLO2_SOLUTION.hex,
 } as const
+
+const ATOM_ELEMENT: Record<Clo2AtomId, 'Cl' | 'O' | 'Na'> = {
+  clA: 'Cl',
+  oA1: 'O',
+  oA2: 'O',
+  clB: 'Cl',
+  oB1: 'O',
+  oB2: 'O',
+  clX: 'Cl',
+  clY: 'Cl',
+  na1: 'Na',
+  na2: 'Na',
+}
+
+/**
+ * Экранные амплитуды колебаний — доля «честной» амплитуды (нулевые колебания ×6, vibration.ts):
+ * изгиб на ×6 качает угол на ±27°, это мешает читать геометрию, поэтому берём треть.
+ */
+const VIB_SCALE = { radical: 0.34, cl2: 0.35 } as const
+
+/** Слоты основного пула лепестков: SOMO радикала A (3 центра) + 2 неподелённые пары + σ*(Cl–Cl) на 2 центра. */
+const LOBE_CAPACITY = 12
+/** Длина лепестка неподелённой пары и σ* — по слейтеровскому размеру центра. */
+const LONE_PAIR_SIZE = LOBE_SIZE_PER_SLATER_RADIUS * slaterExtentScene('O') * 1.15
+const SIGMA_STAR_SIZE = LOBE_SIZE_PER_SLATER_RADIUS * slaterExtentScene('Cl')
+const SOMO_COEFS = clo2PiOrbital('2b1').coefs
+const SOMO_OCCUPANCY = electronsToOccupancy(1)
 
 /** Цвет электрона = цвет «своей» пары: так видно, откуда пара пришла и куда ушла. */
 const ELECTRON_RGB: Record<Clo2ElectronId, readonly [number, number, number]> = {
@@ -92,15 +143,7 @@ const ARROW_RGB: Record<string, readonly [number, number, number]> = {
   bridge_to_OB: [1, 0.7, 0.28],
 }
 
-const BOND_STYLE: Record<Clo2BondId, { color: number; radius: number }> = {
-  clA_oA1: { color: COLOR.bondClO, radius: 0.04 },
-  clA_oA2: { color: COLOR.bondClO, radius: 0.04 },
-  clB_oB1: { color: COLOR.bondClO, radius: 0.04 },
-  clB_oB2: { color: COLOR.bondClO, radius: 0.04 },
-  clX_clY: { color: CPK.Cl, radius: 0.046 },
-  oA1_clX: { color: COLOR.bondNewA, radius: 0.042 },
-  oB1_clA: { color: COLOR.bondNewB, radius: 0.036 },
-}
+const BOND_RADIUS = 0.034
 
 const ELECTRON_SIZE = 0.2
 const TOKEN_SIZE = 0.26
@@ -202,17 +245,20 @@ export function Clo2CinemaScene({
     clo2StepStore.attach(runId, { playStep, replayStep, finish })
     playStep(0)
 
-    if (import.meta.env.DEV) {
+    if (isPerfProbeEnabled()) {
       // Отладка кадра: window.__clo2Freeze(10.2) — встать на момент сюжета без анимации.
       ;(window as unknown as { __clo2Freeze?: (t: number) => void }).__clo2Freeze = (t) => {
         clock.pause()
         clockRef.current = { t, progress: t / CLO2_END, rate: 0, finished: false }
+        // «Жизнь» (колебания, дыхание, искры) тоже встаёт — кадр повторяем в тестах.
+        setCinemaTimeFrozen(true, t)
       }
     }
 
     return () => {
       clock.kill()
       clo2StepStore.detach(runId)
+      setCinemaTimeFrozen(false)
     }
   }, [runId])
 
@@ -221,12 +267,10 @@ export function Clo2CinemaScene({
   const bubbleGeo = useMemo(() => cinemaSphere(0.62, lite ? 20 : 32, lite ? 14 : 24), [lite])
   useEffect(() => () => world.bubbleMat.dispose(), [world])
 
-  const atomRefs = useRef<Partial<Record<Clo2AtomId, THREE.Group | null>>>({})
+  const time = useCinemaTime()
   const electrons = useRef<GlowPointsHandle>(null)
   const arrows = useRef<GlowPointsHandle>(null)
   const bubble = useRef<THREE.Mesh>(null)
-  const keyLight = useRef<THREE.PointLight>(null)
-  const exoLight = useRef<THREE.PointLight>(null)
   const vfxSparkA = useRef<VfxHandle>(null)
   const vfxSparkB = useRef<VfxHandle>(null)
   const vfxRadA = useRef<VfxHandle>(null)
@@ -240,84 +284,49 @@ export function Clo2CinemaScene({
         cuesRef,
         cueTimes,
         cbRef,
-        atomRefs,
+        time,
+        runId,
         electrons,
         arrows,
         bubble,
-        keyLight,
-        exoLight,
         vfxSparkA,
         vfxSparkB,
         vfxRadA,
         vfxRadB,
       },
-      state.clock.elapsedTime,
-      lite,
       { canvas: state.gl.domElement, camera: state.camera, width: state.size.width, height: state.size.height },
     )
     // Отрицательный приоритет: мир обновляется раньше useFrame дочерних связей, ореолов и подписей,
     // иначе они отстают от атомов на кадр (рендер остаётся автоматическим).
   }, -1)
 
-  const { frame, rig, post, gas, waves, glowRefs, labelSources, bubbleMat } = world
-
-  const R = CLO2_GEOM.radius
-
-  const atom = (id: Clo2AtomId, color: number, radius: number, emissive: number, chargeSign?: 1 | -1) => (
-    <group
-      key={id}
-      ref={(g) => {
-        atomRefs.current[id] = g
-      }}
-    >
-      <CinemaAtom color={color} radius={radius} quality={quality} emissive={emissive} chargeSign={chargeSign} />
-    </group>
-  )
+  const { rig, post, gas, waves, glowRefs, labelSources, bubbleMat, atomPool, bondPool, lobePool, somoBPool, visualTime } = world
 
   return (
     <>
       <CinemaEnvironment dust={quality.dust} background="#020a18" fogNear={8} fogFar={24} />
-      {quality.post ? <CinemaPostFx director={post} lite={lite} /> : null}
+      {quality.post ? <CinemaPostFx director={post} lite={lite} toneMapping="neutral" /> : null}
 
       <CinemaCameraRig state={rig} baseScale={CLO2_RIG_SCALE}>
-        <ambientLight intensity={lite ? 0.34 : 0.24} />
-        <pointLight ref={keyLight} position={[0.4, 1.8, 2.6]} intensity={0.75} color="#d6e8ff" distance={14} />
-        <pointLight ref={exoLight} position={[-0.3, 0.2, 1.1]} intensity={0.1} color="#ff9a4a" distance={8} />
-        {!lite ? <pointLight position={[-2.8, 1, -1.4]} intensity={0.3} color="#3fd8ff" distance={9} /> : null}
+        {/* Точечных источников нет: атомы освещает «софтбокс» сферическими гармониками (envLighting.ts) — шейдеры не пересобираются. */}
 
         {/* Вода: мягкая глубина кадра. Сами молекулы воды не рисуем — это оговорено в легенде. */}
         <CinemaPuffVolume state={gas.water} count={quality.fogPuffs} size={3.8} seed={11} renderOrder={-6} />
         <CinemaPuffVolume state={gas.tint} count={quality.fogPuffs} size={3.2} seed={12} renderOrder={-5} />
 
-        {atom('clA', CPK.Cl, R.cl, 0.3)}
-        {atom('oA1', CPK.O, R.o, 0.45)}
-        {atom('oA2', CPK.O, R.o, 0.45)}
-        {atom('clB', CPK.Cl, R.cl, 0.3)}
-        {atom('oB1', CPK.O, R.o, 0.45)}
-        {atom('oB2', CPK.O, R.o, 0.45)}
-        {atom('clX', CPK.Cl, R.cl, 0.36)}
-        {atom('clY', CPK.Cl, R.cl, 0.36)}
-        {atom('na1', CPK.Na, R.na, 0.8, 1)}
-        {atom('na2', CPK.Na, R.na, 0.8, 1)}
-
-        {(Object.keys(BOND_STYLE) as Clo2BondId[]).map((id) => (
-          <CinemaBond
-            key={id}
-            state={frame.bonds[id]}
-            color={BOND_STYLE[id].color}
-            radius={BOND_STYLE[id].radius}
-            plasma={quality.plasmaBonds}
-          />
-        ))}
+        {/* Все связи — один draw call: порядок связи полосами, полярность, гомолиз/гетеролиз при разрыве. */}
+        <InstancedBonds pool={bondPool} time={visualTime} lite={lite} renderOrder={1} />
+        {/* Все атомы — один draw call: лучевые сферы-импостеры (на слабых — инстансные сферы). */}
+        <InstancedAtoms pool={atomPool} mode={quality.impostorAtoms ? 'impostor' : 'mesh'} renderOrder={2} />
 
         {/* Пузырёк газа Cl₂ растворяется в воде в начале урока */}
         <mesh ref={bubble} geometry={bubbleGeo} material={bubbleMat} visible={false} renderOrder={4} dispose={null} />
         <CinemaPuffVolume state={gas.cl2} count={Math.round(quality.gasPuffs * 0.5)} size={0.7} seed={13} />
         <CinemaPuffVolume state={gas.product} count={quality.gasPuffs} size={1.1} seed={14} />
 
-        {/* Неспаренный электрон ClO₂ размазан по всей цепочке O–Cl–O (π*) — показываем облаком */}
-        <CinemaHalo stateRef={glowRefs.cloudA} color={COLOR.radical} radius={0.55} />
-        <CinemaHalo stateRef={glowRefs.cloudB} color={COLOR.radical} radius={0.55} />
+        {/* Орбитали: пары-доноры, пустая σ*(Cl–Cl)-акцептор, π* 2b1 радикалов. Цвет — фаза волновой функции, не заряд. */}
+        <OrbitalLobes pool={lobePool} time={visualTime} renderOrder={6} />
+        <OrbitalLobes pool={somoBPool} time={visualTime} renderOrder={6} />
         {/* Гидратная оболочка ионов — схематично */}
         <CinemaHalo stateRef={glowRefs.hydNa1} color={COLOR.hydration} radius={0.26} />
         <CinemaHalo stateRef={glowRefs.hydNa2} color={COLOR.hydration} radius={0.26} />
@@ -350,8 +359,6 @@ type Clo2World = ReturnType<typeof createClo2World>
 function createClo2World() {
   const frame = createClo2Frame()
   const glows = {
-    cloudA: createGlowState(),
-    cloudB: createGlowState(),
     hydNa1: createGlowState(),
     hydNa2: createGlowState(),
     hydClX: createGlowState(),
@@ -370,8 +377,6 @@ function createClo2World() {
     post: { current: createPostDirector() },
     glows,
     glowRefs: {
-      cloudA: wrap(glows.cloudA),
-      cloudB: wrap(glows.cloudB),
       hydNa1: wrap(glows.hydNa1),
       hydNa2: wrap(glows.hydNa2),
       hydClX: wrap(glows.hydClX),
@@ -391,6 +396,15 @@ function createClo2World() {
     bubbleMat: fresnelShellMaterial(COLOR.bubble, 2.2, 0.9).clone(),
     tokenLabels,
     labelSources: [...frame.labels, ...tokenLabels] as DomLabelSource[],
+    atomPool: createAtomPool(CLO2_ATOMS.length),
+    bondPool: createBondPool(CLO2_BONDS.length),
+    lobePool: createLobePool(LOBE_CAPACITY),
+    somoBPool: createLobePool(3),
+    /** визуальное время (CinemaTime) для шейдеров связей и орбиталей */
+    visualTime: { current: 0 },
+    /** нормали плоскостей молекул — оси π-полос и лепестков */
+    normalA: new THREE.Vector3(),
+    normalB: new THREE.Vector3(),
     /** Центр и масштаб свободной области кадра (без панели урока и реактора). */
     safe: { cx: 0, cy: 0, fit: 1, counter: 0, ready: false, ox: 0, oy: 0 },
   }
@@ -439,12 +453,11 @@ type Clo2Handles = {
   cuesRef: RefObject<CueRunner<Clo2CueId>>
   cueTimes: RefObject<Partial<Record<Clo2CueId, number>>>
   cbRef: RefObject<Pick<Clo2CinemaSceneProps, 'onNarrationCue' | 'onEmbryoReady' | 'onBirthReady' | 'onComplete'>>
-  atomRefs: RefObject<Partial<Record<Clo2AtomId, THREE.Group | null>>>
+  time: { current: CinemaTimeState }
+  runId: number
   electrons: RefObject<GlowPointsHandle | null>
   arrows: RefObject<GlowPointsHandle | null>
   bubble: RefObject<THREE.Mesh | null>
-  keyLight: RefObject<THREE.PointLight | null>
-  exoLight: RefObject<THREE.PointLight | null>
   vfxSparkA: RefObject<VfxHandle | null>
   vfxSparkB: RefObject<VfxHandle | null>
   vfxRadA: RefObject<VfxHandle | null>
@@ -455,15 +468,18 @@ type Clo2Handles = {
 function updateClo2World(
   world: Clo2World,
   h: Clo2Handles,
-  elapsed: number,
-  lite: boolean,
   view: { canvas: HTMLCanvasElement; camera: THREE.Camera; width: number; height: number },
 ): void {
   const { frame, glows, waves, gas, rig, post, bubbleMat, tokenLabels } = world
-  const { clockRef, cuesRef, cueTimes, cbRef, atomRefs, electrons, arrows, bubble, keyLight, exoLight } = h
+  const { clockRef, cuesRef, cueTimes, cbRef, electrons, arrows, bubble } = h
   const { vfxSparkA, vfxSparkB, vfxRadA, vfxRadB } = h
   const t = clockRef.current.t
+  const elapsed = h.time.current.visual
+  world.visualTime.current = elapsed
+  clo2Playhead.t = t
+  clo2Playhead.runId = h.runId
   sampleClo2Frame(t, frame)
+  applyVibrations(frame, elapsed)
 
   // ——— События ———
   cuesRef.current.update(t, (id) => {
@@ -497,16 +513,12 @@ function updateClo2World(
     }
   })
 
-  // ——— Атомы ———
-  const anionScaleX = 1 + frame.anion.clX * (CLO2_GEOM.radius.clAnion / CLO2_GEOM.radius.cl - 1)
-  const anionScaleY = 1 + frame.anion.clY * (CLO2_GEOM.radius.clAnion / CLO2_GEOM.radius.cl - 1)
-  for (const a of CLO2_ATOMS) {
-    const g = atomRefs.current[a.id]
-    if (!g) continue
-    g.position.copy(frame.atoms[a.id])
-    if (a.id === 'clX') g.scale.setScalar(anionScaleX)
-    else if (a.id === 'clY') g.scale.setScalar(anionScaleY)
-  }
+  // ——— Атомы, связи, орбитали → пулы инстансов ———
+  writeUnitNormal(frame.unitA, world.normalA)
+  writeUnitNormal(frame.unitB, world.normalB)
+  writeAtomPool(world, t)
+  writeBondPool(world)
+  writeLobePool(world)
 
   // ——— Электроны ———
   const e = electrons.current
@@ -574,11 +586,7 @@ function updateClo2World(
     ar.end()
   }
 
-  // ——— Радикалы, гидратация, вспышки ———
-  glows.cloudA.center.copy(frame.clouds.A.center)
-  glows.cloudA.amount = frame.clouds.A.amount * 1.6
-  glows.cloudB.center.copy(frame.clouds.B.center)
-  glows.cloudB.amount = frame.clouds.B.amount * 1.6
+  // ——— Гидратация, вспышки ———
   glows.hydNa1.center.copy(frame.atoms.na1)
   glows.hydNa1.amount = frame.hydration.na1
   glows.hydNa2.center.copy(frame.atoms.na2)
@@ -631,9 +639,7 @@ function updateClo2World(
     }
   }
 
-  // ——— Свет, камера, пост ———
-  if (keyLight.current) keyLight.current.intensity = 0.75 * (1 - env.fade * 0.8)
-  if (exoLight.current) exoLight.current.intensity = 0.1 + env.exo * (lite ? 1.1 : 1.9)
+  // ——— Камера, пост ———
 
   const cam = frame.camera
   const safe = world.safe
@@ -660,6 +666,205 @@ function updateClo2World(
   rig.shake = cam.shake
   post.current.bloom = cam.bloom
   post.current.vignette = Math.max(cam.vignette, env.fade)
+}
+
+/**
+ * Колебания с настоящими соотношениями частот (ν₁ 945,6 / ν₂ 447,7 / ν₃ 1110,1 см⁻¹ у ClO₂,
+ * 554,4 см⁻¹ у Cl₂), замедленные ~10¹³ раз. Накладываются на равновесные позиции раскадровки
+ * каждый кадр; стрелки и подписи привязаны к равновесию — смещение мало (сотые доли единицы).
+ */
+function applyVibrations(frame: Clo2Frame, visualT: number): void {
+  const a = frame.atoms
+  const v = frame.vibration
+  if (v.radicalA > 0.001) {
+    applyBentTriatomicModes(a.clA, a.oA1, a.oA2, visualT, scaleModes(_ampA, v.radicalA * VIB_SCALE.radical), CLO2_VIB_CM1, 0)
+  }
+  if (v.radicalB > 0.001) {
+    applyBentTriatomicModes(a.clB, a.oB1, a.oB2, visualT, scaleModes(_ampB, v.radicalB * VIB_SCALE.radical), CLO2_VIB_CM1, 1.7)
+  }
+  if (v.cl2 > 0.001) applyDiatomicStretch(a.clX, a.clY, visualT, CL2_VIB_AMP * VIB_SCALE.cl2 * v.cl2, CL2_FUNDAMENTAL_CM1)
+}
+
+const _ampA = { sym: 0, bend: 0, asym: 0 }
+const _ampB = { sym: 0, bend: 0, asym: 0 }
+
+function scaleModes(out: { sym: number; bend: number; asym: number }, k: number) {
+  out.sym = CLO2_VIB_AMP.sym * k
+  out.bend = CLO2_VIB_AMP.bend * k
+  out.asym = CLO2_VIB_AMP.asym * k * 0.6
+  return out
+}
+
+/** Заряды для окраски кромки: ионы — формальные, O хлорита — оценка (заряд аниона сидит на кислородах). */
+function writeAtomPool(world: Clo2World, t: number): void {
+  const { frame, atomPool: pool } = world
+  const R = CLO2_GEOM.radius
+  // Хлорит A нейтрален с момента присоединения Cl⁺ (ClOClO), хлорит B — после распада.
+  const chargeA = t < 10.2 ? -0.35 : 0
+  const chargeB = t < 20.35 ? -0.35 : 0
+  const exo = frame.env.exo
+  for (let i = 0; i < CLO2_ATOMS.length; i++) {
+    const def = CLO2_ATOMS[i]!
+    const p = frame.atoms[def.id]
+    writeVec3(pool.position, i, p.x, p.y, p.z)
+    const el = ATOM_ELEMENT[def.id]
+    let radius = el === 'Cl' ? R.cl : el === 'Na' ? R.na : R.o
+    let charge = 0
+    let emissive = 0.08
+    switch (def.id) {
+      case 'na1':
+      case 'na2':
+        charge = 1
+        emissive = 0.12
+        break
+      case 'clX':
+        radius = R.cl + (R.clAnion - R.cl) * frame.anion.clX
+        charge = -frame.anion.clX
+        emissive = 0.1 + exo * 0.35
+        break
+      case 'clY':
+        radius = R.cl + (R.clAnion - R.cl) * frame.anion.clY
+        charge = -frame.anion.clY
+        emissive = 0.1 + exo * 0.35
+        break
+      case 'oA1':
+      case 'oA2':
+        charge = chargeA
+        break
+      case 'oB1':
+      case 'oB2':
+        charge = chargeB
+        break
+    }
+    pool.radius[i] = radius
+    pool.charge[i] = charge
+    pool.emissive[i] = emissive
+    pool.opacity[i] = 1
+    writeHexLinear(pool.color, i, CPK[el])
+  }
+  pool.count = CLO2_ATOMS.length
+  pool.version++
+}
+
+const POLARITY: Record<string, number> = {}
+for (const b of CLO2_BONDS) {
+  POLARITY[b.id] = bondPolarity(ATOM_ELEMENT[b.a] as ChiElement, ATOM_ELEMENT[b.b] as ChiElement)
+}
+
+function writeBondPool(world: Clo2World): void {
+  const { frame, bondPool: pool } = world
+  for (let i = 0; i < CLO2_BONDS.length; i++) {
+    const def = CLO2_BONDS[i]!
+    const s = frame.bonds[def.id]
+    const pa = frame.atoms[def.a]
+    const pb = frame.atoms[def.b]
+    writeVec3(pool.a, i, pa.x, pa.y, pa.z)
+    writeVec3(pool.b, i, pb.x, pb.y, pb.z)
+    pool.radius[i] = BOND_RADIUS
+    writeHexLinear(pool.colorA, i, CPK[ATOM_ELEMENT[def.a]])
+    writeHexLinear(pool.colorB, i, CPK[ATOM_ELEMENT[def.b]])
+    pool.order[i] = frame.bondChem[def.id].order
+    pool.split[i] = frame.bondChem[def.id].split
+    pool.polarity[i] = POLARITY[def.id] ?? 0
+    pool.opacity[i] = s.opacity
+    pool.form[i] = s.form
+    pool.stress[i] = s.stress
+    pool.thinning[i] = s.thinning
+    // π-полосы лежат в плоскости своей молекулы; у межмолекулярных связей — поперёк экрана.
+    const unitNormal = bondUnitNormal(world, def.id)
+    if (!unitNormal) writeVec3(pool.piNormal, i, 0, 0, 0)
+    else if (writeBondBandDirection(pool, i, unitNormal.x, unitNormal.y, unitNormal.z)) {
+      // Пунктирная (дробная) полоса — внутрь угла O–Cl–O у обеих связей: молекула C2v рисуется симметрично.
+      const other = frame.atoms[BOND_PARTNER_O[def.id]!]
+      const i3 = i * 3
+      const toOther =
+        pool.piNormal[i3]! * (other.x - 0.5 * (pa.x + pb.x)) +
+        pool.piNormal[i3 + 1]! * (other.y - 0.5 * (pa.y + pb.y)) +
+        pool.piNormal[i3 + 2]! * (other.z - 0.5 * (pa.z + pb.z))
+      if (toOther < 0) writeVec3(pool.piNormal, i, -pool.piNormal[i3]!, -pool.piNormal[i3 + 1]!, -pool.piNormal[i3 + 2]!)
+    }
+  }
+  pool.count = CLO2_BONDS.length
+  pool.version++
+}
+
+/** Второй кислород той же молекулы — ориентир «внутрь угла» для полос связи. */
+const BOND_PARTNER_O: Record<string, Clo2AtomId> = {
+  clA_oA1: 'oA2',
+  clA_oA2: 'oA1',
+  clB_oB1: 'oB2',
+  clB_oB2: 'oB1',
+}
+
+function bondUnitNormal(world: Clo2World, id: string): THREE.Vector3 | null {
+  if (id === 'clA_oA1' || id === 'clA_oA2') return world.normalA
+  if (id === 'clB_oB1' || id === 'clB_oB2') return world.normalB
+  return null
+}
+
+const _axis = new THREE.Vector3()
+const _unitAtoms: [THREE.Vector3, THREE.Vector3, THREE.Vector3] = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]
+
+function writeSomo(
+  pool: LobePool,
+  slot: number,
+  cl: THREE.Vector3,
+  o1: THREE.Vector3,
+  o2: THREE.Vector3,
+  normal: THREE.Vector3,
+  opacity: number,
+): number {
+  if (opacity <= 0.002) return slot
+  // Порядок центров — как в CLO2_PI_CENTRES: O1, Cl, O2.
+  _unitAtoms[0].copy(o1)
+  _unitAtoms[1].copy(cl)
+  _unitAtoms[2].copy(o2)
+  return lobeLayoutForOrbital(pool, slot, _unitAtoms, normal, SOMO_COEFS, SOMO_OCCUPANCY, CLO2_PI_ELEMENTS, undefined, opacity)
+}
+
+function writeLobePool(world: Clo2World): void {
+  const { frame, lobePool: pool } = world
+  const orb = frame.orbitals
+  const a = frame.atoms
+  let slot = 0
+  slot = writeSomo(pool, slot, a.clA, a.oA1, a.oA2, world.normalA, orb.somoA)
+  // Второй радикал — в своём пуле: «искра» одиночного электрона бегает внутри одной молекулы,
+  // иначе два неспаренных электрона выглядели бы как один общий на обе молекулы.
+  const somoB = world.somoBPool
+  somoB.count = writeSomo(somoB, 0, a.clB, a.oB1, a.oB2, world.normalB, orb.somoB)
+  somoB.version++
+  if (orb.lonePairA > 0.002) slot = writeLobe(pool, slot, a.oA1, frame.unitA.lp, LONE_PAIR_SIZE, 1, 1, LobeKind.lonePair, orb.lonePairA)
+  if (orb.lonePairB > 0.002) slot = writeLobe(pool, slot, a.oB1, frame.unitB.lp, LONE_PAIR_SIZE, 1, 1, LobeKind.lonePair, orb.lonePairB)
+  if (orb.sigmaStarCl2 > 0.002) {
+    // σ*(Cl–Cl) = pσ(X) + pσ(Y) вдоль одной оси X→Y: узел между атомами, внешний лепесток X смотрит на атакующий O.
+    _axis.copy(a.clY).sub(a.clX).normalize()
+    slot = writeLobe(pool, slot, a.clX, _axis, SIGMA_STAR_SIZE, 0.7, 0, LobeKind.p, orb.sigmaStarCl2)
+    slot = writeLobe(pool, slot, a.clY, _axis, SIGMA_STAR_SIZE, 0.7, 0, LobeKind.p, orb.sigmaStarCl2)
+  }
+  pool.count = slot
+  pool.version++
+}
+
+function writeLobe(
+  pool: LobePool,
+  slot: number,
+  center: THREE.Vector3,
+  axis: THREE.Vector3,
+  size: number,
+  coef: number,
+  occupancy: number,
+  kind: number,
+  opacity: number,
+): number {
+  if (slot >= pool.capacity) return slot
+  writeVec3(pool.center, slot, center.x, center.y, center.z)
+  writeVec3(pool.axis, slot, axis.x, axis.y, axis.z)
+  pool.size[slot] = size
+  pool.coef[slot] = coef
+  pool.occupancy[slot] = occupancy
+  pool.kind[slot] = kind
+  pool.opacity[slot] = opacity
+  return slot + 1
 }
 
 function bezier(p0: THREE.Vector3, c: THREE.Vector3, p1: THREE.Vector3, u: number, out: THREE.Vector3): THREE.Vector3 {

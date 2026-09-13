@@ -56,7 +56,11 @@ export type ScientificStageInput = {
   labels?: ScientificReactorStageLabels
 }
 import { reactorPreviewAtomScale } from './reactorPreviewLayout'
-import { getSynthesisDeviceTier, refineSynthesisDeviceTierFromFps } from '../../lab/synthesisDeviceTier'
+import {
+  getSynthesisDeviceClassification,
+  getSynthesisDeviceTier,
+  refineSynthesisDeviceTierFromFps,
+} from '../../lab/synthesisDeviceTier'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
 import type { CompoundDef } from '../../types/chemistry'
@@ -125,6 +129,8 @@ import {
   resolvePopularSynthesisCompounds,
 } from '../../lab/synthesisPrewarmPolicy'
 import { ReactorAtomShaderWarmup } from './ReactorAtomShaderWarmup'
+import { LabPerfProbe } from './LabPerfProbe'
+import { isPerfProbeEnabled } from '../../lab/perf/labPerfProbe'
 import { LabSynthesisGpuQueue } from './LabSynthesisGpuQueue'
 
 /** Свободная лаборатория — фиолетовый космос (LabIdleCosmicBackdrop). */
@@ -322,6 +328,7 @@ function SceneContent({
   teacherMode = false,
   onNarrationCue,
   scientificStage = null,
+  onResolutionScaleChange,
 }: {
   particles: readonly LabParticle[]
   onParticleMove: (id: string, pos: Vec3) => void
@@ -331,6 +338,8 @@ function SceneContent({
   /** Научный маршрут (ClO₂): до запуска — реагенты и продукты формульными единицами. */
   scientificStage?: ScientificStageInput | null
   onPerfLevelChange?: (level: PerfLevel) => void
+  /** Масштаб DPR от губернатора (0.75…1) — Canvas применяет через resolveLabCanvasPolicy. */
+  onResolutionScaleChange?: (scale: number) => void
   /** Слагаемые левой части для превью атомных структур */
   reactorPreviewTerms?: readonly ReactorEquationTerm[] | null
   /** Выбранное вещество до запуска — каталожная 3D-модель в центре */
@@ -372,16 +381,40 @@ function SceneContent({
   const deviceSynthCap = useMemo(() => resolveDeviceSynthesisCap(deviceTier), [deviceTier])
   const fpsGovRef = useRef(
     createSynthesisQualityGovernor({
-      floor: deviceTier === 'low' ? SYNTHESIS_QUALITY_LITE : SYNTHESIS_QUALITY_BALANCED,
+      // Пол LITE и на normal tier: устойчивая просадка должна доходить до lite (раньше — BALANCED).
+      floor: SYNTHESIS_QUALITY_LITE,
       cap: deviceSynthCap,
       initial: deviceSynthCap,
     }),
   )
+  /** runId, для которого губернатор уже сброшен (сброс только на старте запуска). */
+  const govRunIdRef = useRef(0)
   const synthForceLiteRef = useRef(false)
   const synthQualityLevelRef = useRef<SynthesisQualityLevel>(deviceSynthCap)
   const [synthQualityLevel, setSynthQualityLevel] = useState<SynthesisQualityLevel>(deviceSynthCap)
   const synthForceLite = qualityLevelToForceLite(synthQualityLevel)
-  const qualityUiThrottleRef = useRef(0)
+  /** Последний запрошенный в React уровень — setState только при реальной смене, не каждый кадр. */
+  const qualityUiRequestRef = useRef({ level: -1, at: 0 })
+  const viewportDpr = useThree((s) => s.viewport.dpr)
+  const getThreeState = useThree((s) => s.get)
+  const lastViewportDprRef = useRef(viewportDpr)
+  useEffect(() => {
+    if (lastViewportDprRef.current === viewportDpr) return
+    lastViewportDprRef.current = viewportDpr
+    // EffectComposer (@react-three/postprocessing) ресайзит буферы только при смене size —
+    // после адаптивного DPR переустанавливаем тот же size новым объектом.
+    const { size, setSize } = getThreeState()
+    setSize(size.width, size.height, size.top, size.left)
+  }, [viewportDpr, getThreeState])
+  useEffect(() => {
+    if (!reactorViewOpen) return
+    const gov = fpsGovRef.current
+    // Вне реактора — базовый DPR; следующий сеанс начинает с полного разрешения.
+    return () => {
+      gov.resetResolution()
+      onResolutionScaleChange?.(1)
+    }
+  }, [reactorViewOpen, onResolutionScaleChange])
   const coverageFrameRef = useRef(0)
   const emptyCenterCounterRef = useRef(createEmptyCenterFrameCounter())
   const synthActive = synthesis != null
@@ -704,6 +737,24 @@ function SceneContent({
     () => getLowPowerDeviceProfile(getSynthesisDeviceTier()),
     [reactorCoeffEditBurst, synthesisRunActive],
   )
+  /**
+   * lowPower научной кинематики фиксируется на старте запуска (смена runId) и не меняется
+   * до конца урока: FPS-губернатор адаптирует DPR, а не материалы/геометрию посреди сцены.
+   * Уточнённый по FPS tier попадёт сюда только на следующем запуске.
+   */
+  const cinemaRunId = synthesis?.runId ?? 0
+  const [cinemaLowPowerLock, setCinemaLowPowerLock] = useState(() => ({
+    runId: cinemaRunId,
+    lowPower: lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc,
+  }))
+  if (cinemaLowPowerLock.runId !== cinemaRunId) {
+    const runProfile = getLowPowerDeviceProfile(getSynthesisDeviceTier())
+    setCinemaLowPowerLock({
+      runId: cinemaRunId,
+      lowPower: runProfile.forceLiteReactor || runProfile.isMobileSoc,
+    })
+  }
+  const cinemaLowPower = cinemaLowPowerLock.lowPower
 
   const synthQualityFeatures = useMemo(
     () => featuresForQuality(synthQualityLevel, synthesisPhase),
@@ -1553,19 +1604,29 @@ function SceneContent({
         )
       synthForceLiteRef.current = editLite
       if (forceLiteFxRef) forceLiteFxRef.current = editLite
+      // runId после каждого прогона возвращается в 0, а следующий снова 1 — без обнуления
+      // губернатор не сбросился бы и второй запуск стартовал бы с деградированного уровня.
+      govRunIdRef.current = 0
       return
     }
-    fpsGovRef.current.reset()
     const cap = Math.min(
       computeReactorEditQualityCap(previewAtomCount, reactorCoeffEditBurst),
       staticCap,
     ) as SynthesisQualityLevel
-    fpsGovRef.current.setCap(cap)
-    fpsGovRef.current.reset(cap)
-    const initialLite = qualityLevelToForceLite(cap)
+    const gov = fpsGovRef.current
+    gov.setCap(cap)
+    // Сброс только на старте нового runId; смена плотности/burst посреди запуска лишь опускает cap.
+    // Масштаб DPR сохраняется между запусками (свидетельство устройства, без скачка DPR на старте).
+    if (govRunIdRef.current !== synthesis.runId) {
+      govRunIdRef.current = synthesis.runId
+      gov.reset(cap)
+    }
+    const startLevel = gov.qualityLevel
+    const initialLite = qualityLevelToForceLite(startLevel)
+    synthQualityLevelRef.current = startLevel
     synthForceLiteRef.current = initialLite
     startTransition(() => {
-      setSynthQualityLevel(cap)
+      setSynthQualityLevel(startLevel)
     })
     if (forceLiteFxRef) forceLiteFxRef.current = initialLite
   }, [
@@ -1900,10 +1961,17 @@ function SceneContent({
         suppressGpuPrewarm(1800)
         if (forceLiteFxRef) forceLiteFxRef.current = true
         synthForceLiteRef.current = true
-        const floor = 2 as SynthesisQualityLevel
-        if (synthQualityLevelRef.current > floor) {
-          synthQualityLevelRef.current = floor
-          startTransition(() => setSynthQualityLevel(floor))
+        // Через губернатор — иначе он на следующем кадре вернул бы прежний уровень.
+        const stallGov = fpsGovRef.current
+        if (
+          stallGov.forceDown(SYNTHESIS_QUALITY_BALANCED) ||
+          synthQualityLevelRef.current > stallGov.qualityLevel
+        ) {
+          const stallLevel = stallGov.qualityLevel
+          synthQualityLevelRef.current = stallLevel
+          qualityUiRequestRef.current.level = stallLevel
+          qualityUiRequestRef.current.at = performance.now()
+          startTransition(() => setSynthQualityLevel(stallLevel))
         }
       },
     })
@@ -1929,32 +1997,43 @@ function SceneContent({
       synthActive ||
       synthesisRunActive ||
       (deviceTier === 'low' && reactorViewOpen && !synthesisRunActive)
+    const gov = fpsGovRef.current
     if (perfGuardActive) {
-      const gov = fpsGovRef.current
-      gov.tick(a.fps)
+      // DPR адаптируется только в запуске и не во время +/- (смена DPR при правке рвала WebGL).
+      gov.setAdaptResolution((synthActive || synthesisRunActive) && !coeffEditingActive)
+      // Реальное время кадра: оценка раз в 250 мс по p90; true — только при смене уровня/DPR.
+      if (gov.sample(delta)) {
+        onResolutionScaleChange?.(gov.resolutionScale)
+      }
       const nextLevel = gov.qualityLevel
       const nextLite = gov.forceLite
       synthQualityLevelRef.current = nextLevel
       if (forceLiteFxRef) forceLiteFxRef.current = nextLite
       synthForceLiteRef.current = nextLite
-      const now = performance.now()
-      const levelChanged = synthQualityLevel !== nextLevel
-      const downgrade = nextLevel < synthQualityLevel
+      const uiReq = qualityUiRequestRef.current
       // Во время +/- / collapse FX не трогаем React quality — remount/hitch Bohr.
+      // Один запрос на смену; повтор — только если state так и не догнал за 600 мс.
       if (
+        nextLevel !== synthQualityLevel &&
         !coeffEditingActive &&
-        !elementsCollapsePlaying &&
-        levelChanged &&
-        (downgrade || now - qualityUiThrottleRef.current > 480)
+        !elementsCollapsePlaying
       ) {
-        qualityUiThrottleRef.current = now
-        setSynthQualityLevel(nextLevel)
+        const now = performance.now()
+        if (uiReq.level !== nextLevel || now - uiReq.at > 600) {
+          uiReq.level = nextLevel
+          uiReq.at = now
+          startTransition(() => setSynthQualityLevel(nextLevel))
+        }
       }
     }
     a.t += d
     if (a.t < 0.25) return
+    const refineDt = a.t
     a.t = 0
-    refineSynthesisDeviceTierFromFps(a.fps)
+    refineSynthesisDeviceTierFromFps(
+      perfGuardActive && gov.p90FrameMs > 0 ? 1000 / gov.p90FrameMs : a.fps,
+      refineDt,
+    )
 
     if (synthesisRunActive) return
     // Не гоняем perfLevel↔React state в free-lab: лишние ререндеры Canvas без смены DPR.
@@ -2137,9 +2216,8 @@ function SceneContent({
               <ScientificFx
                 key={`sci-${synthesis.product?.id ?? 'unknown'}-${synthesis.runId}`}
                 runId={synthesis.runId}
-                lowPower={
-                  lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc || synthForceLite
-                }
+                // Зафиксировано на старте запуска — без смены материалов посреди урока.
+                lowPower={cinemaLowPower}
                 teacherMode={teacherMode}
                 onNarrationCue={onNarrationCue}
                 onEmbryoReady={handleElementsCollapseEmbryoReady}
@@ -2331,6 +2409,9 @@ function LabCanvasImpl({
   /** always — demand давал чёрный центр при +/- коэффициентов. */
   const canvasFrameloop = 'always' as const
   const deviceTier = useMemo(() => getSynthesisDeviceTier(), [])
+  const deviceGpuClass = useMemo(() => getSynthesisDeviceClassification().gpu, [])
+  /** Адаптивный DPR (0.75…1) — меняет только губернатор SceneContent, редкими шагами. */
+  const [resolutionScale, setResolutionScale] = useState(1)
   const canvasPolicy = resolveLabCanvasPolicy({
     deviceTier,
     perfLevel,
@@ -2338,10 +2419,16 @@ function LabCanvasImpl({
     reactorViewOpen: reactorViewOpen ?? false,
     coeffEditBurst: reactorCoeffEditBurst,
     substanceView: laboratorySynthesisView === 'substance',
+    gpuClass: deviceGpuClass,
+    resolutionScale,
   })
   const canvasDpr = canvasPolicy.dpr
+  const perfProbe = useMemo(() => isPerfProbeEnabled(), [])
   const canvasAntialias = canvasPolicy.antialias
-  if (!isWebGLAvailable()) {
+  // Probe-контекст один раз на mount: вызов на каждый render плодил WebGL-контексты
+  // («Too many active WebGL contexts» → браузер терял контекст основного Canvas).
+  const webglAvailable = useMemo(() => isWebGLAvailable(), [])
+  if (!webglAvailable) {
     return (
       <div
         role="status"
@@ -2458,6 +2545,7 @@ function LabCanvasImpl({
           canvas.addEventListener('webglcontextrestored', onRestored)
         }}
       >
+        {perfProbe ? <LabPerfProbe /> : null}
         <SceneContent
           particles={particles}
           onParticleMove={onParticleMove}
@@ -2466,6 +2554,7 @@ function LabCanvasImpl({
           synthesis={synthesis}
           synthesisRunActive={synthesisRunActive}
           onPerfLevelChange={setPerfLevel}
+          onResolutionScaleChange={setResolutionScale}
           reactorPreviewTerms={reactorPreviewTerms}
           transformPreviewCompound={transformPreviewCompound}
           reactorViewOpen={reactorViewOpen}

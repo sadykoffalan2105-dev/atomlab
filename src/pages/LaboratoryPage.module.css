@@ -193,6 +193,27 @@
   }
 }
 
+/*
+ * Звёзды — подложка «до WebGL / при hitch». Когда канвас смонтирован, он
+ * непрозрачен и полностью их закрывает, а анимации всё равно гоняли композитор
+ * каждый кадр рядом с тяжёлым WebGL. Ставим на паузу (кадр остаётся на месте):
+ *   • реактор открыт или открыт вид вещества — явные атрибуты обёртки;
+ *   • канвас уже в DOM — :has() (там, где браузер его поддерживает).
+ */
+.canvasWrap[data-reactor-open='true'] .cosmicStarsFar,
+.canvasWrap[data-reactor-open='true'] .cosmicStarsNear,
+.canvasWrap[data-lab-synthesis-view='substance'] .cosmicStarsFar,
+.canvasWrap[data-lab-synthesis-view='substance'] .cosmicStarsNear {
+  animation-play-state: paused;
+}
+
+@supports selector(:has(*)) {
+  .canvasWrap:has(.labCanvasHost canvas) .cosmicStarsFar,
+  .canvasWrap:has(.labCanvasHost canvas) .cosmicStarsNear {
+    animation-play-state: paused;
+  }
+}
+
 .canvasWrap[data-reactor-open='true'] {
   contain: none;
 }

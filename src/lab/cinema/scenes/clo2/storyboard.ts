@@ -47,13 +47,17 @@ export const CLO2_GEOM = {
     chlorite: BOND_ANGLE_DEG.chlorite,
     radical: BOND_ANGLE_DEG.clo2,
   },
+  /**
+   * Радиусы «шарик-палочка»: доля ковалентного радиуса, чтобы между атомами были видны
+   * связи с полосами порядка и лепестки орбиталей (пропорции элементов сохранены).
+   */
   radius: {
-    cl: ang(1.02) * 0.8,
-    o: ang(0.66) * 0.8,
+    cl: ang(1.02) * 0.58,
+    o: ang(0.66) * 0.62,
     /** Na⁺ — ионный радиус 1.02 Å, заметно меньше нейтрального атома */
-    na: ang(1.02) * 0.62,
+    na: ang(1.02) * 0.5,
     /** Cl⁻ — ионный радиус 1.81 Å: принятая пара «раздувает» оболочку */
-    clAnion: ang(1.81) * 0.52,
+    clAnion: ang(1.81) * 0.4,
   },
 } as const
 
@@ -113,6 +117,8 @@ export type Clo2Anchor =
    */
   | { k: 'rim'; atom: Clo2AtomId; ref: Clo2AtomId; side: number; along?: number }
   | { k: 'cloud'; unit: 'A' | 'B' }
+  /** точка в лепестке π* 2b1 над атомом Cl радикала (у орбитали узел в плоскости молекулы) */
+  | { k: 'somo'; unit: 'A' | 'B' }
   | { k: 'center'; atom: Clo2AtomId }
 
 type AnchorKey = { t: number; a: Clo2Anchor; ease?: EaseName; arc?: number }
@@ -141,12 +147,13 @@ const UNIT_A = {
     { t: 23, v: 60, ease: 'inOutSine' },
     { t: CLO2_END, v: 38, ease: 'inOutSine' },
   ] satisfies ScalarTrack,
+  // После распада молекула наклоняется: p-лепестки π* (перпендикулярны плоскости) видны сбоку, а не торцом.
   tilt: [
     { t: 0, v: 0.25 },
     { t: 5, v: 0 },
     { t: 21, v: 0 },
-    { t: 23, v: 0.3, ease: 'inOutSine' },
-    { t: CLO2_END, v: 0.5, ease: 'inOutSine' },
+    { t: 23, v: 0.95, ease: 'inOutSine' },
+    { t: CLO2_END, v: 1.05, ease: 'inOutSine' },
   ] satisfies ScalarTrack,
 } as const
 
@@ -243,7 +250,7 @@ const NA = {
 } as const
 
 // ——— Рабочие объекты сэмплера (без аллокаций в горячем цикле) ———
-type UnitFrame = {
+export type UnitFrame = {
   cl: THREE.Vector3
   o1: THREE.Vector3
   o2: THREE.Vector3
@@ -351,6 +358,24 @@ export type Clo2Frame = {
   camera: { zoom: number; offset: THREE.Vector3; yaw: number; roll: number; shake: number; bloom: number; vignette: number }
   unitA: UnitFrame
   unitB: UnitFrame
+  /** химия связей: порядок (школьная модель) и характер разрыва — для InstancedBonds */
+  bondChem: Record<Clo2BondId, { order: number; split: number }>
+  /** видимость орбиталей 0..1 (рендерер раскладывает лепестки по фреймам молекул) */
+  orbitals: Clo2OrbitalState
+  /** множители амплитуды колебаний (реальные частоты — core/chem/vibration) */
+  vibration: { cl2: number; radicalA: number; radicalB: number; chlorite: number }
+}
+
+export type Clo2OrbitalState = {
+  /** неподелённая пара атакующего O хлорита A (донор на шаге 3) */
+  lonePairA: number
+  /** неподелённая пара атакующего O хлорита B (донор на шаге 5) */
+  lonePairB: number
+  /** пустая σ*(Cl–Cl) — акцептор пары на шаге 3 (контур) */
+  sigmaStarCl2: number
+  /** π* 2b1 радикалов ClO₂ — заселена одним электроном */
+  somoA: number
+  somoB: number
 }
 
 const ELECTRON_IDS: readonly Clo2ElectronId[] = ['e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'tokA', 'tokB']
@@ -362,7 +387,12 @@ export function createClo2Frame(): Clo2Frame {
   for (const b of CLO2_BONDS) {
     bonds[b.id] = { from: new THREE.Vector3(), to: new THREE.Vector3(), stress: 0, opacity: 0, form: 1, thinning: 0 }
   }
+  const bondChem = {} as Record<Clo2BondId, { order: number; split: number }>
+  for (const b of CLO2_BONDS) bondChem[b.id] = { order: 1, split: 0 }
   return {
+    bondChem,
+    orbitals: { lonePairA: 0, lonePairB: 0, sigmaStarCl2: 0, somoA: 0, somoB: 0 },
+    vibration: { cl2: 0, radicalA: 0, radicalB: 0, chlorite: 0 },
     t: 0,
     atoms,
     anion: { clX: 0, clY: 0 },
@@ -502,7 +532,7 @@ const ELECTRONS: Record<Clo2ElectronId, { keys: readonly AnchorKey[]; opacity: S
       { t: 19.9, a: onBond('oB1', 'clA', 1) },
       { t: 20.45, a: atomDir('clA', { vec: 'attackA' }, 0), ease: 'inOutSine', arc: 0.08 },
       { t: 21.2, a: atomDir('clA', { vec: 'attackA' }, 0) },
-      { t: 22.4, a: { k: 'cloud', unit: 'A' }, ease: 'inOutSine' },
+      { t: 22.4, a: { k: 'somo', unit: 'A' }, ease: 'inOutSine' },
     ],
     opacity: [
       { t: 15.3, v: 0 },
@@ -529,7 +559,7 @@ const ELECTRONS: Record<Clo2ElectronId, { keys: readonly AnchorKey[]; opacity: S
       { t: 19.9, a: onBond('oB1', 'clA', -1) },
       { t: 20.45, a: atomDir('oB1', { away: 'clA' }, 0), ease: 'inOutSine', arc: -0.08 },
       { t: 21.2, a: atomDir('oB1', { away: 'clA' }, 0) },
-      { t: 22.4, a: { k: 'cloud', unit: 'B' }, ease: 'inOutSine' },
+      { t: 22.4, a: { k: 'somo', unit: 'B' }, ease: 'inOutSine' },
     ],
     opacity: [
       { t: 15.3, v: 0 },
@@ -743,6 +773,116 @@ const BOND_TRACKS: Record<Clo2BondId, { opacity: ScalarTrack; stress: ScalarTrac
   },
 }
 
+// ——— Порядок связей и характер разрыва ———
+/**
+ * Школьная модель порядков связи (см. core/chem/bondOrder.ts):
+ *   хлорит ClO₂⁻ — резонанс O=Cl–O⁻ ↔ ⁻O–Cl=O, в среднем 1,5;
+ *   ClOClO — Cl–O–Cl=O: мостик одинарный, концевая Cl=O двойная;
+ *   комплекс — мостик O→Cl донорный (1), у второй половины O–Cl и Cl=O;
+ *   радикал ClO₂ — 1,5 + 0,25: ушёл электрон с разрыхляющей π* (2b1).
+ * Порядок меняется ровно тогда, когда перестраивается связь рядом.
+ */
+export const CLO2_BOND_ORDER: Record<Clo2BondId, ScalarTrack> = {
+  clA_oA1: [
+    { t: 9.5, v: 1.5 },
+    { t: 10.2, v: 1, ease: 'inOutSine' },
+    { t: 20.8, v: 1 },
+    { t: 22.4, v: 1.75, ease: 'inOutSine' },
+  ],
+  clA_oA2: [
+    { t: 9.5, v: 1.5 },
+    { t: 10.2, v: 2, ease: 'inOutSine' },
+    { t: 20.8, v: 2 },
+    { t: 22.4, v: 1.75, ease: 'inOutSine' },
+  ],
+  clB_oB1: [
+    { t: 17.4, v: 1.5 },
+    { t: 18.1, v: 1, ease: 'inOutSine' },
+    { t: 20.8, v: 1 },
+    { t: 22.4, v: 1.75, ease: 'inOutSine' },
+  ],
+  clB_oB2: [
+    { t: 17.4, v: 1.5 },
+    { t: 18.1, v: 2, ease: 'inOutSine' },
+    { t: 20.8, v: 2 },
+    { t: 22.4, v: 1.75, ease: 'inOutSine' },
+  ],
+  clX_clY: [{ t: 0, v: 1 }],
+  oA1_clX: [{ t: 0, v: 1 }],
+  oB1_clA: [{ t: 0, v: 1 }],
+}
+
+/**
+ * Характер разрыва (−1 пара к атому a связи, 0 поровну, +1 к атому b) — постоянный на связь:
+ *   Cl–Cl: пара уходит к clY (b) — гетеролиз;
+ *   O–Cl концевая (oA1_clX): пара к clX (b) — гетеролиз, второй Cl⁻;
+ *   мостик oB1_clA: по одному электрону — гомолиз.
+ */
+export const CLO2_BOND_SPLIT: Record<Clo2BondId, number> = {
+  clA_oA1: 0,
+  clA_oA2: 0,
+  clB_oB1: 0,
+  clB_oB2: 0,
+  clX_clY: 1,
+  oA1_clX: 1,
+  oB1_clA: 0,
+}
+
+// ——— Орбитали и колебания ———
+export const CLO2_ORBITAL_TRACKS: Record<keyof Clo2OrbitalState, ScalarTrack> = {
+  // Пара кислорода видна, пока она неподелённая; гаснет, когда становится связью O–Cl.
+  lonePairA: [
+    { t: 5.6, v: 0 },
+    { t: 6.6, v: 1, ease: 'inOutSine' },
+    { t: 9.3, v: 1 },
+    { t: 10.1, v: 0, ease: 'inOutSine' },
+  ],
+  // Акцептор — пустая σ*(Cl–Cl): контур до момента, когда в неё «входит» пара и связь рвётся.
+  sigmaStarCl2: [
+    { t: 6.2, v: 0 },
+    { t: 7.2, v: 1, ease: 'inOutSine' },
+    { t: 9.6, v: 1 },
+    { t: 10.2, v: 0, ease: 'inQuad' },
+  ],
+  lonePairB: [
+    { t: 15.4, v: 0 },
+    { t: 16.2, v: 1, ease: 'inOutSine' },
+    { t: 17.3, v: 1 },
+    { t: 18.1, v: 0, ease: 'inOutSine' },
+  ],
+  // Неспаренный электрон ClO₂ — в π* 2b1 (узловая плоскость = плоскость молекулы).
+  somoA: [
+    { t: 21.2, v: 0 },
+    { t: 22.4, v: 1, ease: 'inOutSine' },
+  ],
+  somoB: [
+    { t: 21.2, v: 0 },
+    { t: 22.4, v: 1, ease: 'inOutSine' },
+  ],
+}
+
+export const CLO2_VIBRATION_TRACKS = {
+  // Cl₂ «звенит» на подходе; колебание гаснет к моменту переноса.
+  cl2: [
+    { t: 3.2, v: 0 },
+    { t: 4.6, v: 1, ease: 'inOutSine' },
+    { t: 8.6, v: 1 },
+    { t: 9.4, v: 0, ease: 'inOutSine' },
+  ] satisfies ScalarTrack,
+  chlorite: [
+    { t: 0.5, v: 0 },
+    { t: 2, v: 0.6, ease: 'inOutSine' },
+    { t: 8, v: 0.6 },
+    { t: 9.3, v: 0.25, ease: 'inOutSine' },
+  ] satisfies ScalarTrack,
+  // После распада радикалы колеблются сильнее (избыток энергии) и затухают до теплового фона.
+  radical: [
+    { t: 20.5, v: 0 },
+    { t: 21.3, v: 1, ease: 'outCubic' },
+    { t: 25.5, v: 0.35, ease: 'outCubic' },
+  ] satisfies ScalarTrack,
+} as const
+
 // ——— Прочие дорожки сцены ———
 export const CLO2_TRACKS = {
   anionClY: [
@@ -795,13 +935,13 @@ export const CLO2_TRACKS = {
   ] satisfies ScalarTrack,
   clo2Tint: [
     { t: 21.6, v: 0 },
-    { t: 23.6, v: 0.1, ease: 'outCubic' },
-    { t: 30.8, v: 0.13 },
+    { t: 23.6, v: 0.06, ease: 'outCubic' },
+    { t: 30.8, v: 0.08 },
   ] satisfies ScalarTrack,
   productGas: [
     { t: 23, v: 0 },
-    { t: 25, v: 0.1, ease: 'outCubic' },
-    { t: 30.8, v: 0.12 },
+    { t: 25, v: 0.05, ease: 'outCubic' },
+    { t: 30.8, v: 0.06 },
   ] satisfies ScalarTrack,
   exo: [
     { t: 0, v: 0.12 },
@@ -948,6 +1088,15 @@ function resolveDir(frame: Clo2Frame, atom: Clo2AtomId, dir: DirSpec, out: THREE
   return out.normalize()
 }
 
+const _somoN = new THREE.Vector3()
+/** Высота электрона над плоскостью ClO₂ — внутри верхнего лепестка 2b1 у хлора. */
+const SOMO_ANCHOR_LIFT = 0.24
+
+/** Нормаль плоскости O–Cl–O (d × q'): ось p-орбиталей π-системы. */
+export function writeUnitNormal(u: UnitFrame, out: THREE.Vector3): THREE.Vector3 {
+  return out.copy(u.d).cross(u.q).normalize()
+}
+
 function perpInView(dir: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 {
   out.copy(dir).cross(_z)
   if (out.lengthSq() < 1e-8) out.set(0, 1, 0)
@@ -988,6 +1137,11 @@ export function resolveClo2Anchor(frame: Clo2Frame, a: Clo2Anchor, out: THREE.Ve
     case 'cloud': {
       const u = a.unit === 'A' ? frame.unitA : frame.unitB
       return out.copy(u.cl).add(u.o1).add(u.o2).multiplyScalar(1 / 3)
+    }
+    case 'somo': {
+      const u = a.unit === 'A' ? frame.unitA : frame.unitB
+      writeUnitNormal(u, _somoN)
+      return out.copy(u.cl).addScaledVector(_somoN, SOMO_ANCHOR_LIFT)
     }
   }
 }
@@ -1144,8 +1298,8 @@ function ensurePostTracks(): NonNullable<typeof POST_TRACKS> {
       { t: 0, v: 0.3 },
       { t: 15, v: tB15, ease: 'inOutSine' },
       { t: 21.6, v: tB216 },
-      { t: 23, v: 0.25, ease: 'inOutSine' },
-      { t: CLO2_END, v: 0.35, ease: 'inOutSine' },
+      { t: 23, v: 1.0, ease: 'inOutSine' },
+      { t: CLO2_END, v: 1.1, ease: 'inOutSine' },
     ],
   }
   return POST_TRACKS
@@ -1287,6 +1441,24 @@ export function sampleClo2Frame(t: number, frame: Clo2Frame): Clo2Frame {
     s.pos.z += def.offset[2]
   }
 
+  // Химия связей, орбитали, колебания
+  for (const b of CLO2_BONDS) {
+    const c = frame.bondChem[b.id]
+    c.order = sampleScalar(CLO2_BOND_ORDER[b.id], t)
+    c.split = CLO2_BOND_SPLIT[b.id]
+  }
+  const orb = frame.orbitals
+  orb.lonePairA = sampleScalar(CLO2_ORBITAL_TRACKS.lonePairA, t)
+  orb.lonePairB = sampleScalar(CLO2_ORBITAL_TRACKS.lonePairB, t)
+  orb.sigmaStarCl2 = sampleScalar(CLO2_ORBITAL_TRACKS.sigmaStarCl2, t)
+  orb.somoA = sampleScalar(CLO2_ORBITAL_TRACKS.somoA, t)
+  orb.somoB = sampleScalar(CLO2_ORBITAL_TRACKS.somoB, t)
+  const vib = frame.vibration
+  vib.cl2 = sampleScalar(CLO2_VIBRATION_TRACKS.cl2, t)
+  vib.chlorite = sampleScalar(CLO2_VIBRATION_TRACKS.chlorite, t)
+  vib.radicalA = sampleScalar(CLO2_VIBRATION_TRACKS.radical, t)
+  vib.radicalB = vib.radicalA
+
   // Радикалы, гидратация, среда
   resolveClo2Anchor(frame, { k: 'cloud', unit: 'A' }, frame.clouds.A.center)
   resolveClo2Anchor(frame, { k: 'cloud', unit: 'B' }, frame.clouds.B.center)
@@ -1342,6 +1514,9 @@ export function validateClo2Storyboard(): void {
     check(`electron.${id}.glow`, def.glow)
   }
   for (const [name, track] of Object.entries(ensurePostTracks())) check(`post.${name}`, track as ReadonlyArray<{ t: number }>)
+  for (const [id, track] of Object.entries(CLO2_BOND_ORDER)) check(`bondOrder.${id}`, track)
+  for (const [id, track] of Object.entries(CLO2_ORBITAL_TRACKS)) check(`orbital.${id}`, track)
+  for (const [id, track] of Object.entries(CLO2_VIBRATION_TRACKS)) check(`vibration.${id}`, track)
   for (const l of CLO2_LABELS) {
     if (!(l.window[0] < l.window[1])) throw new Error(`[cinema] label "${l.id}": empty window`)
   }

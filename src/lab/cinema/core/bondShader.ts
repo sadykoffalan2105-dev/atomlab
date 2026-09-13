@@ -13,6 +13,10 @@ export function createBondMaterial(color: THREE.ColorRepresentation): THREE.Shad
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     side: THREE.DoubleSide,
+    // Аддитивный слой без записи глубины не зависит от порядка граней: обе стороны
+    // рисуем за один draw call. Без флага three r184 делает два прохода и дважды
+    // пересобирает ключ программы (needsUpdate) на каждый кадр.
+    forceSinglePass: true,
     uniforms: {
       uTime: { value: 0 },
       /** 0..1 — натяжение перед разрывом */

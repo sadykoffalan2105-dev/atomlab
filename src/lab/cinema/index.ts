@@ -5,10 +5,14 @@
  * из-за чего атомы прыгали на границах, эффекты жили сами по себе, а любая
  * новая реакция копировала предыдущую целиком. Здесь всё разложено по слоям:
  *
- *   core/     — чистая логика без React: время сюжета, keyframe-дорожки,
- *               геометрия молекул (VSEPR), процедурные текстуры, кэши
- *   react/    — визуальные модули: атомы, связи, газ и туман, GPU-частицы,
- *               световые волны, HUD, пост-обработка, виртуальная камера
+ *   core/     — чистая логика без React: время сюжета, keyframe-дорожки
+ *               (eased и hermite), пружины, пулы экземпляров, геометрия молекул
+ *               (VSEPR), процедурные текстуры, кэши
+ *   core/chem — химия для анимации: настоящие частоты колебаний и формы мод,
+ *               модель π-орбиталей (ЛКАО/Хюккель), порядок и полярность связей
+ *   react/    — визуальные модули: инстансные атомы-импостеры и связи с порядком
+ *               связи (1 draw call на тип), орбитальные лепестки, газ и туман,
+ *               GPU-частицы, световые волны, HUD, пост-обработка, камера, время
  *   scenes/   — сами реакции: только данные раскадровки + тонкий рендер
  *
  * Реакция описывается ДАННЫМИ (дорожки + события), а не императивным кодом,
@@ -24,6 +28,7 @@ export { Ease, ease, mix, norm, smoothstep, type EaseFn, type EaseName } from '.
 export {
   inWindow,
   jitter,
+  type TrackInterp,
   sampleScalar,
   sampleVec3,
   validateTrack,
@@ -59,6 +64,24 @@ export {
   type BentFrame,
 } from './core/vsepr'
 export { resolveCinemaQuality, type CinemaQuality, type CinemaTier } from './core/quality'
+export { damp, dampAlpha, lambdaFromLerp, springEase, springStep, springStepVec3, type SpringState } from './core/spring'
+export {
+  createAtomPool,
+  createBondPool,
+  createLobePool,
+  LobeKind,
+  writeHexLinear,
+  writeVec3,
+  type AtomPool,
+  type BondPool,
+  type LobeKindId,
+  type LobePool,
+} from './core/pools'
+export * from './core/chem'
+export { computeAtomContacts, setAtomEnvIntensity, type AtomRenderMode } from './core/atomImpostorShader'
+export { disposeLabEnvironment, getLabEnvironment } from './core/envLighting'
+export { writeBondBandDirection } from './core/bondBandShader'
+export { ORBITAL_PHASE_PALETTE, type OrbitalPhasePalette } from './core/orbitalLobeShader'
 export {
   cinemaCircle,
   cinemaQuad,
@@ -102,8 +125,16 @@ export { CinemaPuffVolume } from './react/CinemaPuffVolume'
 export { CinemaBurst, CinemaVfxStage, type VfxHandle, type VfxPreset } from './react/CinemaVfx'
 export { CinemaFlash, CinemaHalo, CinemaReactionZone, CinemaShockwave } from './react/CinemaFx'
 export { CinemaCaption, CinemaCounter, CinemaOxidationTag } from './react/CinemaHud'
-export { CinemaPostFx } from './react/CinemaPostFx'
+export { CinemaPostFx, type CinemaToneMapping } from './react/CinemaPostFx'
 export { CinemaCameraRig, CinemaEnvironment } from './react/CinemaStage'
+export { CinemaTimeProvider, setCinemaTimeFrozen, useCinemaTime, type CinemaTimeState } from './react/CinemaTime'
+export { InstancedAtoms, type InstancedAtomsProps } from './react/InstancedAtoms'
+export { InstancedBonds, type InstancedBondsProps } from './react/InstancedBonds'
+export { OrbitalLobes } from './react/OrbitalLobes'
+export { OrbitalRaymarch, type OrbitalRaymarchProps } from './react/OrbitalRaymarch'
+export { CinemaLightRig } from './react/CinemaLightRig'
+export { CinemaGlowPoints, type GlowPointsHandle } from './react/CinemaGlowPoints'
+export { CinemaDomLabels, type DomLabelSource } from './react/CinemaDomLabels'
 
 /** Полная выгрузка кэшей библиотеки — при закрытии 3D-лаборатории. */
 export function disposeCinemaCaches(): void {
@@ -112,5 +143,6 @@ export function disposeCinemaCaches(): void {
     import('./core/geometries').then((m) => m.disposeCinemaGeometries()),
     import('./core/materials').then((m) => m.disposeCinemaMaterials()),
     import('./core/textures').then((m) => m.disposeCinemaTextures()),
+    import('./core/envLighting').then((m) => m.disposeLabEnvironment()),
   ])
 }

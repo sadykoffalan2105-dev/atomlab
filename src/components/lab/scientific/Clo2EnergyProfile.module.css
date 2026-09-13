@@ -1,0 +1,398 @@
+/* Энергетический профиль и счётчик электронов урока ClO₂ — в палитре Clo2MechanismPanel. */
+
+.root {
+  --ep-curve: #3dffec;
+  --ep-curve-dim: rgba(61, 255, 236, 0.5);
+  --ep-branch: #ffb48a;
+  --ep-text: rgba(200, 216, 240, 0.92);
+  --ep-muted: rgba(150, 170, 210, 0.78);
+  --ep-grid: rgba(120, 150, 200, 0.28);
+  --ep-head: #eaffff;
+
+  margin: 0 0 0.55rem;
+  padding: 0.45rem 0.5rem 0.4rem;
+  border-radius: 9px;
+  border: 1px solid rgba(61, 255, 236, 0.18);
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgba(61, 255, 236, 0.06), rgba(61, 255, 236, 0) 60%),
+    rgba(6, 10, 22, 0.9);
+  color: var(--ep-text);
+}
+
+.root[data-compact='1'] {
+  padding: 0.3rem 0.4rem 0.2rem;
+}
+
+.caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.2rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9af0e8;
+}
+
+.captionUnit {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ep-muted);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: inherit;
+}
+
+/* ── Кривая ───────────────────────────────────────────── */
+
+.zero {
+  stroke: var(--ep-grid);
+  stroke-width: 0.8;
+  stroke-dasharray: 1.5 2.5;
+}
+
+.axis {
+  stroke: rgba(150, 175, 215, 0.45);
+  stroke-width: 0.9;
+  fill: none;
+}
+
+.axisHead {
+  fill: rgba(150, 175, 215, 0.55);
+}
+
+.axisLabel {
+  fill: var(--ep-muted);
+  font-size: 7.4px;
+}
+
+.glow {
+  fill: none;
+  stroke: var(--ep-curve);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.1;
+}
+
+.solid,
+.dashed {
+  fill: none;
+  stroke: var(--ep-curve);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dashed {
+  stroke: var(--ep-curve-dim);
+  stroke-dasharray: 3.2 2.6;
+}
+
+.branch {
+  fill: none;
+  stroke: var(--ep-branch);
+  stroke-width: 1.1;
+  stroke-dasharray: 2.6 2.4;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.bracket {
+  stroke: rgba(200, 220, 250, 0.4);
+  stroke-width: 0.75;
+  stroke-dasharray: 1.2 1.8;
+  fill: none;
+}
+
+/* ── Точки ────────────────────────────────────────────── */
+
+.point {
+  transition: opacity 0.3s ease;
+}
+
+.measured {
+  fill: var(--ep-head);
+  stroke: var(--ep-curve);
+  stroke-width: 1.1;
+}
+
+.derived {
+  fill: #07101f;
+  stroke: var(--ep-curve);
+  stroke-width: 1.4;
+}
+
+.derivedCore {
+  fill: var(--ep-curve);
+}
+
+.schematic {
+  fill: #07101f;
+  stroke: var(--ep-curve-dim);
+  stroke-width: 1.1;
+  stroke-dasharray: 1.6 1.4;
+}
+
+.branchEnd {
+  fill: #07101f;
+  stroke: var(--ep-branch);
+  stroke-width: 1;
+  stroke-dasharray: 1.6 1.4;
+}
+
+.point[data-active='1'] .measured,
+.point[data-active='1'] .derived,
+.point[data-active='1'] .schematic {
+  stroke: #fff;
+}
+
+/* ── Подписи ──────────────────────────────────────────── */
+
+.value {
+  fill: rgba(236, 246, 255, 0.95);
+  font-size: 8px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.valueSub {
+  fill: var(--ep-muted);
+  font-weight: 600;
+}
+
+.formula {
+  fill: var(--ep-text);
+  font-size: 7.2px;
+}
+
+.note {
+  fill: var(--ep-muted);
+  font-size: 6.4px;
+  font-style: italic;
+}
+
+.branchText {
+  fill: var(--ep-branch);
+  font-size: 7.4px;
+  font-weight: 650;
+}
+
+.mainText {
+  fill: var(--ep-curve);
+  font-size: 7.4px;
+  font-weight: 650;
+}
+
+/* ── Бегунок ──────────────────────────────────────────── */
+
+.headGuide {
+  stroke: var(--ep-curve);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 2px rgba(61, 255, 236, 0.8));
+}
+
+.headHalo {
+  fill: var(--ep-curve);
+  opacity: 0.22;
+  animation: epHalo 1.6s ease-in-out infinite;
+}
+
+.headCore {
+  fill: var(--ep-head);
+  stroke: var(--ep-curve);
+  stroke-width: 1.6;
+  filter: drop-shadow(0 0 2.5px rgba(61, 255, 236, 0.95));
+}
+
+@keyframes epHalo {
+  0%,
+  100% {
+    opacity: 0.14;
+  }
+  50% {
+    opacity: 0.34;
+  }
+}
+
+/* ── Легенда и оговорки ───────────────────────────────── */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.7rem;
+  margin: 0.3rem 0 0.25rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.6rem;
+  line-height: 1.3;
+  color: var(--ep-muted);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.legendIcon {
+  width: 0.7rem;
+  height: 0.7rem;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.caveat {
+  margin: 0 0 0.3rem;
+  font-size: 0.62rem;
+  line-height: 1.45;
+  color: var(--ep-muted);
+}
+
+.more {
+  margin: 0;
+  font-size: 0.62rem;
+  line-height: 1.45;
+  color: var(--ep-muted);
+}
+
+.more summary {
+  cursor: pointer;
+  color: rgba(170, 215, 235, 0.9);
+  font-weight: 650;
+}
+
+.more summary:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ep-curve) 70%, white);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.more p {
+  margin: 0.3rem 0 0;
+}
+
+.sources {
+  font-size: 0.58rem;
+  color: rgba(130, 150, 190, 0.8);
+}
+
+/* ── Счётчик электронов ───────────────────────────────── */
+
+.ledger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.45rem;
+  font-size: 0.66rem;
+  line-height: 1.2;
+  color: rgba(200, 216, 240, 0.92);
+  font-variant-numeric: tabular-nums;
+}
+
+.ledgerChip,
+.orbitalBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 1.35rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(61, 255, 236, 0.28);
+  background: rgba(8, 14, 28, 0.9);
+  white-space: nowrap;
+}
+
+.ledgerLabel {
+  color: rgba(150, 170, 210, 0.85);
+}
+
+.ledgerTotal {
+  font-weight: 800;
+  color: #3dffec;
+}
+
+.ledgerBreakdown {
+  /* ширина под «26 + 8 + 20», чтобы бейдж рядом не прыгал */
+  min-width: 3.9rem;
+  color: rgba(150, 170, 210, 0.7);
+  font-size: 0.6rem;
+}
+
+.orbitalBadge {
+  border-color: rgba(255, 179, 71, 0.35);
+}
+
+.orbitalName {
+  font-weight: 700;
+  color: #ffd29a;
+}
+
+.orbitalBox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  width: 1.3rem;
+  height: 0.95rem;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 200, 130, 0.55);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.spinUp {
+  color: #ffb347;
+}
+
+.spinDown {
+  color: #9ff8ff;
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.orbitalBadge[data-phase='1'] .spinDown {
+  opacity: 0.35;
+  transform: translateY(-0.25rem);
+}
+
+.orbitalBadge[data-phase='2'] .spinDown {
+  opacity: 0;
+  transform: translateY(-0.4rem);
+}
+
+.orbitalBadge[data-phase='2'] {
+  border-color: rgba(255, 179, 71, 0.7);
+  box-shadow: 0 0 10px rgba(255, 179, 71, 0.22);
+}
+
+.orbitalCount {
+  min-width: 1.6rem;
+  font-weight: 800;
+  color: #ffe2bd;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .point,
+  .spinDown {
+    transition: none;
+  }
+
+  .headHalo {
+    animation: none;
+    opacity: 0.24;
+  }
+}

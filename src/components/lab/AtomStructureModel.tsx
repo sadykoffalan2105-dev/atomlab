@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getElementByZ, estimateNeutrons } from '../../data/elements'
@@ -9,33 +9,23 @@ import { AtomOrbitRings } from './atom/AtomOrbitRings'
 import { electronOrbitLanes, electronVisualScale } from './atom/atomOrbitLayout'
 import {
   ATOM_ELECTRON_COLOR,
-  ATOM_NEUTRON_COLOR,
-  ATOM_PROTON_COLOR,
   setElectronOnEllipse,
   shellMajorRadius,
 } from './atom/atomCosmicShared'
+import {
+  NUCLEUS_GLOW_WARM_HEX,
+  getNucleonGeometry,
+  getNucleonMaterials,
+  getNucleusGlowMaterial,
+} from './preview/previewSharedResources'
 
 const MAX_Z = 118
 const MAX_NEUTRONS = 220
 
-function createNucleonMaterials(cosmic: boolean) {
-  return {
-    prot: new THREE.MeshStandardMaterial({
-      color: ATOM_PROTON_COLOR,
-      emissive: ATOM_PROTON_COLOR,
-      emissiveIntensity: cosmic ? 0.62 : 0.4,
-      metalness: 0.1,
-      roughness: cosmic ? 0.48 : 0.6,
-    }),
-    neut: new THREE.MeshStandardMaterial({
-      color: ATOM_NEUTRON_COLOR,
-      emissive: ATOM_NEUTRON_COLOR,
-      emissiveIntensity: cosmic ? 0.45 : 0.25,
-      metalness: 0.1,
-      roughness: cosmic ? 0.52 : 0.64,
-    }),
-  }
-}
+/** Размер спрайта-ореола ядра относительно радиуса кластера нуклонов. */
+const NUCLEUS_GLOW_SCALE = 4
+/** Ореол, заменяющий пару localLight (центр + заполняющий) — крупнее и с оттенком элемента. */
+const LOCAL_GLOW_SCALE_MUL = 1.35
 
 function nucleonSphereRadius(cosmic: boolean, total: number): number {
   if (!cosmic) return 0.022
@@ -112,6 +102,8 @@ export function AtomStructureModel({
   electronFrameSkip = 1,
   accentHex,
   cosmicStyle = true,
+  pointLights = !previewLite,
+  glassTransmission = false,
 }: {
   z: number
   animate?: boolean
@@ -126,6 +118,20 @@ export function AtomStructureModel({
   electronFrameSkip?: number
   accentHex?: string
   cosmicStyle?: boolean
+  /**
+   * Настоящие pointLight внутри модели (ядро + localLight). Только для витрины
+   * одного атома. В многоатомных сценах (превью реактора, previewLite) — false:
+   * число источников света в сцене должно быть постоянным, иначе +/- коэффициента
+   * меняет ключ программы каждого освещённого материала и всё перекомпилируется.
+   * Свечение тогда даёт emissive нуклонов + общий аддитивный спрайт.
+   */
+  pointLights?: boolean
+  /**
+   * Стекло synthesisGlass через transmission (MeshPhysical, лишний проход рендера
+   * сцены в текстуру). Только сильный GPU / кинематографичный путь; иначе дешёвое
+   * полупрозрачное MeshStandard-стекло.
+   */
+  glassTransmission?: boolean
 }) {
   const group = useRef<THREE.Group>(null)
   const protRef = useRef<THREE.InstancedMesh>(null)
@@ -164,13 +170,9 @@ export function AtomStructureModel({
     [cosmicStyle, totalNucleons],
   )
   const nucleonSeg = cosmicStyle ? 14 : 10
-  const nucleonGeo = useMemo(
-    () => new THREE.SphereGeometry(nucleonR, nucleonSeg, Math.max(6, nucleonSeg - 2)),
-    [nucleonR, nucleonSeg],
-  )
-  const nucleonMats = useMemo(() => createNucleonMaterials(cosmicStyle), [cosmicStyle])
-
-  useEffect(() => () => nucleonGeo.dispose(), [nucleonGeo])
+  // Общие геометрия/материалы (preview/previewSharedResources): не пересоздаются на mount слота.
+  const nucleonGeo = getNucleonGeometry(nucleonR, nucleonSeg)
+  const nucleonMats = getNucleonMaterials(cosmicStyle, !pointLights)
 
   const elecGeo = previewEmphasis || synthesisDetail ? SHARED_ELEC_GEO_EMPH : SHARED_ELEC_GEO_STD
   const elecMat = previewEmphasis || synthesisDetail ? SHARED_ELEC_MAT_EMPH : SHARED_ELEC_MAT
@@ -201,6 +203,33 @@ export function AtomStructureModel({
     const base = cosmicStyle ? 0.034 : 0.022
     return Math.min(cap, base + Math.cbrt(Math.max(1, total)) * (cosmicStyle ? 0.018 : 0.01))
   }, [totalNucleons, synthesisDetail, cosmicStyle])
+
+  const localLightWanted =
+    localLight && (fullPreview || !lite || synthesisDetail || synthesisGlass)
+
+  /**
+   * Без pointLights: основной вклад света ядра переносим в emissive нуклонов
+   * (getNucleonMaterials glow), а мягкий ореол — аддитивный спрайт с общим материалом.
+   * Спрайт = +1 draw call на атом, поэтому в lite (плотное превью, previewLite) его нет.
+   * Тёплый (#ff7a55) вместо света ядра; при запрошенном localLight — смесь с цветом
+   * элемента и крупнее (заменяет пару точечных источников вокруг атома).
+   */
+  const glowSprite = useMemo(() => {
+    if (pointLights) return null
+    if (!localLightWanted && !(cosmicStyle && !lite)) return null
+    const clusterR = nucleusRadius + nucleonR
+    if (localLightWanted) {
+      const tint = new THREE.Color(NUCLEUS_GLOW_WARM_HEX).lerp(new THREE.Color(nebulaHex), 0.5)
+      return {
+        material: getNucleusGlowMaterial(`#${tint.getHexString()}`, 0.42),
+        size: clusterR * NUCLEUS_GLOW_SCALE * LOCAL_GLOW_SCALE_MUL,
+      }
+    }
+    return {
+      material: getNucleusGlowMaterial(NUCLEUS_GLOW_WARM_HEX, 0.32),
+      size: clusterR * NUCLEUS_GLOW_SCALE,
+    }
+  }, [pointLights, cosmicStyle, lite, localLightWanted, nucleusRadius, nucleonR, nebulaHex])
 
   const angles = useRef<number[]>([])
 
@@ -257,7 +286,7 @@ export function AtomStructureModel({
       mesh.setMatrixAt(i, dummy.matrix)
     }
     mesh.instanceMatrix.needsUpdate = true
-  }, [zClamped, nucleusRadius, dummy, totalNucleons])
+  }, [zClamped, nucleusRadius, dummy, totalNucleons, nucleonGeo, nucleonMats])
 
   useLayoutEffect(() => {
     const mesh = neutRef.current
@@ -273,12 +302,13 @@ export function AtomStructureModel({
       mesh.setMatrixAt(i, dummy.matrix)
     }
     mesh.instanceMatrix.needsUpdate = true
-  }, [nNeutrons, nucleusRadius, zClamped, dummy, totalNucleons])
+  }, [nNeutrons, nucleusRadius, zClamped, dummy, totalNucleons, nucleonGeo, nucleonMats])
 
   useLayoutEffect(() => {
     // Всегда сидируем электроны сразу после mount/z-change — иначе 1–3 пустых кадра.
+    // elecGeo/elecMat: смена args пересоздаёт instancedMesh — матрицы надо записать заново.
     writeElectronMatrices(0)
-  }, [writeElectronMatrices, nElec, zClamped, previewStatic])
+  }, [writeElectronMatrices, nElec, zClamped, previewStatic, elecGeo, elecMat])
 
   useFrame((_, delta) => {
     if (previewStatic) return
@@ -324,8 +354,16 @@ export function AtomStructureModel({
           frustumCulled={false}
           renderOrder={6}
         />
-        {cosmicStyle ? (
-          <pointLight position={[0, 0, 0]} intensity={1.1} distance={nucleusRadius * 8} color="#ff7a55" />
+        {cosmicStyle && pointLights ? (
+          <pointLight position={[0, 0, 0]} intensity={1.1} distance={nucleusRadius * 8} color={NUCLEUS_GLOW_WARM_HEX} />
+        ) : null}
+        {glowSprite ? (
+          <sprite
+            material={glowSprite.material}
+            scale={glowSprite.size}
+            renderOrder={3}
+            frustumCulled={false}
+          />
         ) : null}
       </group>
 
@@ -349,25 +387,39 @@ export function AtomStructureModel({
       {synthesisGlass ? (
         <mesh renderOrder={3} frustumCulled={false}>
           <sphereGeometry args={[outerOrbitR * 1.02, 18, 16]} />
-          <meshPhysicalMaterial
-            color={nebulaHex}
-            emissive={nebulaHex}
-            emissiveIntensity={0.22}
-            metalness={0.28}
-            roughness={0.14}
-            transmission={0.52}
-            thickness={0.38}
-            clearcoat={0.92}
-            clearcoatRoughness={0.1}
-            transparent
-            opacity={0.78}
-            depthWrite={false}
-            ior={1.35}
-          />
+          {glassTransmission ? (
+            <meshPhysicalMaterial
+              color={nebulaHex}
+              emissive={nebulaHex}
+              emissiveIntensity={0.22}
+              metalness={0.28}
+              roughness={0.14}
+              transmission={0.52}
+              thickness={0.38}
+              clearcoat={0.92}
+              clearcoatRoughness={0.1}
+              transparent
+              opacity={0.78}
+              depthWrite={false}
+              ior={1.35}
+            />
+          ) : (
+            // Дешёвое стекло: без transmission-прохода, блик от roughness/metalness + лёгкий emissive.
+            <meshStandardMaterial
+              color={nebulaHex}
+              emissive={nebulaHex}
+              emissiveIntensity={0.18}
+              metalness={0.35}
+              roughness={0.12}
+              transparent
+              opacity={0.26}
+              depthWrite={false}
+            />
+          )}
         </mesh>
       ) : null}
 
-      {localLight && (fullPreview || !lite || synthesisDetail || synthesisGlass) ? (
+      {pointLights && localLightWanted ? (
         <>
           <pointLight
             position={[0, 0, 0]}

@@ -89,6 +89,42 @@ export const CLO2_TEXT_UZ: Clo2MechanismText = {
     pairArrow: 'elektron juftining siljishi',
     singleArrow: 'bitta elektronning siljishi',
     water: 'suv molekulalari koʻrsatilmagan',
+    orbitalPhase: 'orbital boʻlaklari: rang — toʻlqin funksiyasining ishorasi (fazasi), zaryad emas; kontur — boʻsh orbital',
+    vibration: 'atomlar tebranishi: chastotalar nisbati haqiqiy, vaqt ≈10¹³ marta sekinlashtirilgan, amplituda kattalashtirilgan',
   },
   safety: 'ClO₂ zaharli, konsentrlangan gazi esa portlashi mumkin — shuning uchun u ishlatiladigan joyning oʻzida olinadi va saqlanmaydi.',
+  energy: {
+    title: 'Energetik profil',
+    axisG: 'G, kJ/mol',
+    axisCoord: 'reaksiya borishi',
+    unit: 'kJ/mol',
+    measured: 'oʻlchovlardan',
+    derived: 'k dan hisoblangan',
+    schematic: 'sxematik',
+    mainLabel: 'ClO₂ yoʻli {pct} %',
+    branchLabel: 'ClO₃⁻ yoʻli {pct} %',
+    caveat:
+      'ΔG‡ toʻsiqlarining balandligi — koʻrinma qiymatlar: ular tezlik konstantalaridan Eyring tenglamasi boʻyicha hisoblangan (25 °C, 1 M) va har biri oʻz reagentlaridan oʻlchangan, shuning uchun turli bosqichlar choʻqqilarini bitta shkalada solishtirib boʻlmaydi. ' +
+      'Qaysi bosqich sekinligini choʻqqi balandligi emas, kinetika koʻrsatadi. ClOClO va kompleks chuqurliklari oʻlchanmagan — bu qismlar sxematik chizilgan. ' +
+      'ΔG° = −2F·ΔE° ≈ {dG} kJ/mol (E° = 0,936 V bilan — {dGAlt}); Cl₂ standart holatdagi gaz sifatida olingan.',
+    chlorateModels:
+      'Ikkala tadqiqot bir fikrda: xlorit ortiqcha boʻlsa, unum ClO₂ tomon siljiydi. Nicoson va Margerum (2002): ClOClO yo ClO₂⁻ bilan reaksiyaga kirishadi (ClO₂ beradi), yo gidrolizlanadi (ClO₃⁻ beradi). ' +
+      'Angyal, Fábián va Szabó (2023) gidroliz oʻrniga Cl₂O₂ ning ClO₂⁻ va HOCl bilan reaksiyalarini oladi, xloratning koʻp qismi esa Cl₂O + HClO₂ dan hosil boʻladi. ' +
+      'Ikki Cl₂O₂ + ClO₂⁻ bosqichi uchun toʻsiqlar {ts2} va {tsCl} kJ/mol: Cl₂O₂ ning yoʻllar boʻyicha ulushi ≈ {main} : {side} (mahsulot mollari boʻyicha ClO₂ : ClO₃⁻ ≈ 84 : 16, chunki ClO₂ yoʻli ikki molekula beradi). ' +
+      'Xlorat termodinamik jihatdan pastroq (≈ −96 kJ/mol, {dG} ga qarshi), lekin ClO₂ tezroq hosil boʻladi — bu kinetik nazorat.',
+    halfLife: 'Haqiqiy eritmada (10 mM xlorit) Cl₂ ning yarmi taxminan {ms} ms da sarflanadi — ekranda reaksiya sekinlashtirilgan.',
+    sources:
+      'Nicoson, Margerum, Inorg. Chem. 2002 · Jia, Margerum, Francisco, Inorg. Chem. 2000 · Angyal, Fábián, Szabó, Inorg. Chem. 2023 · ΔfG° NBS · E°: Cl₂/Cl⁻ 1,358 V, ClO₂/ClO₂⁻ 0,954 V',
+    more: 'Modellar va manbalar',
+    summary:
+      '2ClO₂⁻ + Cl₂ → 2ClO₂ + 2Cl⁻ reaksiyasining energetik profili: yakuniy ΔG° ≈ {dG} kJ/mol; sekin bosqichning koʻrinma toʻsigʻi ≈ {ts1} kJ/mol; ikkinchi bosqich toʻsigʻi oraliq zarrachadan ≈ {ts2} kJ/mol; ' +
+      'kompleksdan keyin yoʻl tarmoqlanadi: Cl₂O₂ → ClO₂ {main} %, → xlorat {side} %; xlorat tarmogʻi energiya boʻyicha pastroq, lekin sekinroq. Oraliq zarrachalar darajalari sxematik.',
+  },
+  ledger: {
+    valence: 'valent e⁻',
+    valenceHint: 'Atomlar va zaryad saqlanadi, shuning uchun valent elektronlar soni barcha bosqichlarda bir xil.',
+    orbital: '2b₁',
+    orbitalHint: 'O–Cl–O boʻgʻinining 2b₁ (π*) orbitalidagi elektronlar: xlorit ionida 2 ta, ClO₂ radikalida 1 ta.',
+    aria: 'Valent elektronlar: {n} ({breakdown}). 2b₁ orbitalida: {occ}.',
+  },
 }

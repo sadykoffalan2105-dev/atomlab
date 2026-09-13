@@ -6,8 +6,9 @@ import {
   useRef,
   type ReactNode,
 } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { ParticleSystem, QuarksProvider, type ParticleSystemRef } from 'quarks.r3f'
+import { ParticleSystem, QuarksProvider, useQuarks, type BatchedRenderer, type ParticleSystemRef } from 'quarks.r3f'
 import {
   ApplyForce,
   Bezier,
@@ -147,11 +148,42 @@ class VfxBoundary extends Component<{ children: ReactNode }, { failed: boolean }
   }
 }
 
+/**
+ * three.quarks строит собственные батч-материалы и копирует из нашего только
+ * side/blending/…, но не forceSinglePass. Аддитивный двусторонний батч без флага
+ * рисуется двумя проходами с needsUpdate на каждом — дописываем флаг сами.
+ * Батчей единицы, проверка флага в кадре ничего не стоит.
+ */
+function forceSinglePassBatches(renderer: BatchedRenderer): void {
+  const batches = renderer.batches
+  for (let i = 0; i < batches.length; i++) {
+    const m = batches[i]!.material
+    if (
+      !Array.isArray(m) &&
+      !m.forceSinglePass &&
+      m.transparent &&
+      m.side === THREE.DoubleSide &&
+      m.blending === THREE.AdditiveBlending
+    ) {
+      m.forceSinglePass = true
+    }
+  }
+}
+
+function QuarksSinglePass() {
+  const { batchedRenderer } = useQuarks()
+  useFrame(() => forceSinglePassBatches(batchedRenderer))
+  return null
+}
+
 /** Обёртка сцены: batched renderer + защита от падения движка частиц. */
 export function CinemaVfxStage({ children }: { children: ReactNode }) {
   return (
     <VfxBoundary>
-      <QuarksProvider>{children}</QuarksProvider>
+      <QuarksProvider>
+        {children}
+        <QuarksSinglePass />
+      </QuarksProvider>
     </VfxBoundary>
   )
 }

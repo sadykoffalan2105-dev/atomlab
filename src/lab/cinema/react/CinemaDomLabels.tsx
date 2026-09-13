@@ -10,6 +10,11 @@ import * as THREE from 'three'
  * подпись; здесь один слой, элементы создаются один раз, а кадр меняет только
  * transform/opacity (и textContent, когда текст реально сменился).
  *
+ * Запись в style — только при реальном изменении: позиция округляется до 0.5 px,
+ * прозрачность до 0.01, масштаб сравнивается как есть. Неподвижная подпись не
+ * трогает DOM вовсе. Чтений раскладки (getBoundingClientRect и т. п.) в кадре
+ * нет: размер канваса берётся из стора R3F.
+ *
  * Координаты берутся в системе группы, внутри которой смонтирован компонент
  * (обычно риг камеры) — поэтому подписи едут вместе с наездом.
  */
@@ -47,12 +52,64 @@ function deltaColor(text: string): string {
 
 const _v = new THREE.Vector3()
 
+type LabelNode = {
+  el: HTMLDivElement
+  text: string
+  shown: boolean
+  ox: string
+  /** последние записанные в style значения (NaN — ещё не писали) */
+  x: number
+  y: number
+  opacity: number
+  scale: number
+}
+
+function hideLabel(n: LabelNode): void {
+  if (!n.shown) return
+  n.el.style.display = 'none'
+  n.shown = false
+}
+
+/** Пишет в DOM только изменившееся. Округление гасит дребезг субпиксельного движения. */
+function writeLabel(n: LabelNode, src: DomLabelSource, px: number, py: number, scale: number): void {
+  if (!n.shown) {
+    n.el.style.display = 'block'
+    n.shown = true
+  }
+  if (n.text !== src.text) {
+    n.el.textContent = src.text
+    n.text = src.text
+  }
+  if (src.kind === 'ox' && n.ox !== src.text) {
+    const c = oxColor(src.text)
+    n.el.style.borderColor = c.border
+    n.el.style.color = c.color
+    n.ox = src.text
+  } else if (src.kind === 'delta' && n.ox !== src.text) {
+    n.el.style.color = deltaColor(src.text)
+    n.ox = src.text
+  }
+  const x = Math.round(px * 2) / 2
+  const y = Math.round(py * 2) / 2
+  if (x !== n.x || y !== n.y || scale !== n.scale) {
+    n.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) scale(${scale})`
+    n.x = x
+    n.y = y
+    n.scale = scale
+  }
+  const opacity = Math.round(src.opacity * 100) / 100
+  if (opacity !== n.opacity) {
+    n.el.style.opacity = String(opacity)
+    n.opacity = opacity
+  }
+}
+
 export function CinemaDomLabels({ labels, scale = 1 }: { labels: readonly DomLabelSource[]; scale?: number }) {
   const group = useRef<THREE.Group>(null)
   const gl = useThree((s) => s.gl)
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
-  const nodes = useRef<Array<{ el: HTMLDivElement; text: string; shown: boolean; ox: string }>>([])
+  const nodes = useRef<LabelNode[]>([])
 
   useEffect(() => {
     const host = gl.domElement.parentElement
@@ -67,7 +124,7 @@ export function CinemaDomLabels({ labels, scale = 1 }: { labels: readonly DomLab
         (KIND_STYLE[l.kind] ?? KIND_STYLE.species)
       el.textContent = l.text
       layer.appendChild(el)
-      return { el, text: l.text, shown: false, ox: '' }
+      return { el, text: l.text, shown: false, ox: '', x: NaN, y: NaN, opacity: NaN, scale: NaN }
     })
     host.appendChild(layer)
     nodes.current = list
@@ -88,43 +145,16 @@ export function CinemaDomLabels({ labels, scale = 1 }: { labels: readonly DomLab
       const n = list[i]!
       const src = labels[i]
       if (!src) continue
-      const visible = src.opacity > 0.01
-      if (!visible) {
-        if (n.shown) {
-          n.el.style.display = 'none'
-          n.shown = false
-        }
+      if (!(src.opacity > 0.01)) {
+        hideLabel(n)
         continue
       }
       _v.copy(src.pos).applyMatrix4(g.matrixWorld).project(camera)
       if (_v.z > 1 || _v.z < -1) {
-        if (n.shown) {
-          n.el.style.display = 'none'
-          n.shown = false
-        }
+        hideLabel(n)
         continue
       }
-      if (!n.shown) {
-        n.el.style.display = 'block'
-        n.shown = true
-      }
-      if (n.text !== src.text) {
-        n.el.textContent = src.text
-        n.text = src.text
-      }
-      if (src.kind === 'ox' && n.ox !== src.text) {
-        const c = oxColor(src.text)
-        n.el.style.borderColor = c.border
-        n.el.style.color = c.color
-        n.ox = src.text
-      } else if (src.kind === 'delta' && n.ox !== src.text) {
-        n.el.style.color = deltaColor(src.text)
-        n.ox = src.text
-      }
-      const x = (_v.x * 0.5 + 0.5) * w
-      const y = (-_v.y * 0.5 + 0.5) * h
-      n.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${scale})`
-      n.el.style.opacity = src.opacity.toFixed(3)
+      writeLabel(n, src, (_v.x * 0.5 + 0.5) * w, (-_v.y * 0.5 + 0.5) * h, scale)
     }
   })
 
