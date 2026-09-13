@@ -1,0 +1,188 @@
+{
+  "label": "final",
+  "mobile": false,
+  "date": "2026-09-13T06:43:15.540Z",
+  "rows": [
+    {
+      "name": "prelaunch-stage",
+      "frames": 58,
+      "fps": 18.145981273542176,
+      "frameMs": {
+        "p50": 40.099998474121094,
+        "p95": 146.5,
+        "p99": 295.70001220703125,
+        "max": 295.70001220703125
+      },
+      "calls": 59,
+      "triangles": 39148,
+      "points": 110,
+      "programs": 6,
+      "geometries": 32,
+      "textures": 2,
+      "dpr": 1,
+      "width": 1440,
+      "height": 861.78125
+    },
+    {
+      "name": "lesson-live-step1",
+      "frames": 36,
+      "fps": 10.35315765404071,
+      "frameMs": {
+        "p50": 92.30000305175781,
+        "p95": 161.3000030517578,
+        "p99": 173.10000610351562,
+        "max": 173.10000610351562
+      },
+      "calls": 16,
+      "triangles": 213,
+      "points": 108,
+      "programs": 17,
+      "geometries": 12,
+      "textures": 14,
+      "dpr": 0.75,
+      "width": 1440,
+      "height": 861.78125
+    },
+    {
+      "name": "t=2",
+      "frames": 39,
+      "fps": 11.144767621003252,
+      "frameMs": {
+        "p50": 89.4000015258789,
+        "p95": 95.30000305175781,
+        "p99": 109,
+        "max": 109
+      },
+      "calls": 18,
+      "triangles": 1715,
+      "points": 108,
+      "programs": 17,
+      "geometries": 12,
+      "textures": 14,
+      "dpr": 0.75,
+      "width": 1440,
+      "height": 861.78125
+    },
+    {
+      "name": "t=9",
+      "frames": 34,
+      "fps": 9.776014278635975,
+      "frameMs": {
+        "p50": 102.0999984741211,
+        "p95": 108.69999694824219,
+        "p99": 121.19999694824219,
+        "max": 121.19999694824219
+      },
+      "calls": 19,
+      "triangles": 225,
+      "points": 171,
+      "programs": 19,
+      "geometries": 15,
+      "textures": 14,
+      "dpr": 0.75,
+      "width": 1440,
+      "height": 861.78125
+    },
+    {
+      "name": "t=10.4",
+      "frames": 28,
+      "fps": 8.122769850141438,
+      "frameMs": {
+        "p50": 121.80000305175781,
+        "p95": 130.8000030517578,
+        "p99": 160.1999969482422,
+        "max": 160.1999969482422
+      },
+      "calls": 18,
+      "triangles": 214,
+      "points": 112,
+      "programs": 19,
+      "geometries": 15,
+      "textures": 15,
+      "dpr": 0.75,
+      "width": 1440,
+      "height": 861.78125
+    },
+    {
+      "name": "t=19.5",
+      "frames": 31,
+      "fps": 8.989415687980282,
+      "frameMs": {
+        "p50": 105,
+        "p95": 170.10000610351562,
+        "p99": 256.79998779296875,
+        "max": 256.79998779296875
+      },
+      "calls": 19,
+      "triangles": 215,
+      "points": 189,
+      "programs": 19,
+      "geometries": 15,
+      "textures": 15,
+      "dpr": 0.75,
+      "width": 1440,
+      "height": 861.78125
+    },
+    {
+      "name": "t=20.6",
+      "frames": 26,
+      "fps": 7.540384579633503,
+      "frameMs": {
+        "p50": 126.69999694824219,
+        "p95": 167.39999389648438,
+        "p99": 196.5,
+        "max": 196.5
+      },
+      "calls": 19,
+      "triangles": 216,
+      "points": 114,
+      "programs": 19,
+      "geometries": 15,
+      "textures": 15,
+      "dpr": 0.75,
+      "width": 1440,
+      "height": 861.78125
+    },
+    {
+      "name": "t=23",
+      "frames": 31,
+      "fps": 9.07972583868441,
+      "frameMs": {
+        "p50": 109.5,
+        "p95": 115.19999694824219,
+        "p99": 129.6999969482422,
+        "max": 129.6999969482422
+      },
+      "calls": 21,
+      "triangles": 281,
+      "points": 112,
+      "programs": 19,
+      "geometries": 16,
+      "textures": 15,
+      "dpr": 0.75,
+      "width": 1440,
+      "height": 861.78125
+    },
+    {
+      "name": "t=28.5",
+      "frames": 33,
+      "fps": 9.552204251932444,
+      "frameMs": {
+        "p50": 103.80000305175781,
+        "p95": 112,
+        "p99": 125.0999984741211,
+        "max": 125.0999984741211
+      },
+      "calls": 22,
+      "triangles": 341,
+      "points": 114,
+      "programs": 19,
+      "geometries": 17,
+      "textures": 15,
+      "dpr": 0.75,
+      "width": 1440,
+      "height": 861.78125
+    }
+  ],
+  "errors": []
+}
