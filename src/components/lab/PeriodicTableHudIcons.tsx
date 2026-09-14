@@ -38,3 +38,12 @@ export function IconInfoHud({ className }: IconProps) {
     </svg>
   )
 }
+
+export function IconSearch({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <circle cx="8.8" cy="8.8" r="5.3" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12.8 12.8 17 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  )
+}

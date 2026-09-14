@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useMemo } from 'react'
 import { isAncientDiscoveryYear } from '../../data/elementDiscoveryYears'
 import { estimateNeutrons, getElementByZ } from '../../data/elements'
 import { elementDisplayName } from '../../data/elementDisplayName'
+import { elementCategoryId, type ElementCategoryId } from '../../data/elementCategory'
 import {
   formatBoilingPoint,
   formatDensity,
@@ -38,6 +39,21 @@ function blockLabelKey(block: 's' | 'p' | 'd' | 'f'): 'elementDetail.blockS' | '
 function isValidCpkHex(hex: string): boolean {
   return /^[0-9A-Fa-f]{6}$/.test(hex)
 }
+
+/** Пара цветов плитки элемента по категории (градиент «Aurora Lab», тёмные глифы поверх). */
+const CATEGORY_TONE: Record<ElementCategoryId, readonly [string, string]> = {
+  'alkali-metal': ['#fecdd3', '#fb7185'],
+  'alkaline-earth-metal': ['#fed7aa', '#fb923c'],
+  'transition-metal': ['#bfdbfe', '#60a5fa'],
+  'post-transition-metal': ['#99f6e4', '#2dd4bf'],
+  metalloid: ['#d9f99d', '#84cc16'],
+  nonmetal: ['#fde68a', '#f59e0b'],
+  halogen: ['#a5f3fc', '#22d3ee'],
+  'noble-gas': ['#ddd6fe', '#a78bfa'],
+  lanthanide: ['#fbcfe8', '#f472b6'],
+  actinide: ['#f5d0fe', '#d946ef'],
+}
+const UNKNOWN_TONE: readonly [string, string] = ['#e2e8f0', '#94a3b8']
 
 const variantClass = {
   default: styles.root,
@@ -134,198 +150,206 @@ function RichElementDetail({
       : null
   const speechLocale = locale === 'en' ? 'en' : 'ru'
   const cpkLabel = showCpk ? cpkColorName(cpk, speechLocale) : null
+  const category = elementCategoryId(el)
+  const [toneA, toneB] = category ? CATEGORY_TONE[category] : UNKNOWN_TONE
+  const toneStyle = { '--el-a': toneA, '--el-b': toneB } as CSSProperties
+  const hasStory = Boolean(life) || uses.length > 0 || Boolean(extraction)
+
+  const facts: { key: string; label: string; value: ReactNode }[] = [
+    {
+      key: 'melt',
+      label: t('elementDetail.meltingPoint'),
+      value: formatMeltingPoint(el.meltingPoint, speechLocale, el.boilingPoint),
+    },
+    {
+      key: 'boil',
+      label: t('elementDetail.boilingPoint'),
+      value: formatBoilingPoint(el.boilingPoint, speechLocale, el.meltingPoint),
+    },
+    {
+      key: 'density',
+      label: t('elementDetail.density'),
+      value: formatDensity(el.density, { standardState: el.standardState, locale: speechLocale }),
+    },
+    {
+      key: 'en',
+      label: t('elementDetail.electronegativity'),
+      value: formatElectronegativity(el.electronegativity),
+    },
+    { key: 'state', label: t('elementDetail.standardState'), value: stateLabel },
+  ]
+  if (el.yearDiscovered) {
+    facts.push({
+      key: 'year',
+      label: t('elementDetail.yearDiscovered'),
+      value: isAncientDiscoveryYear(el.yearDiscovered) ? t('elementDetail.yearAncient') : el.yearDiscovered,
+    })
+  }
 
   return (
-    <>
-      <header className={styles.head}>
-        <div className={styles.headMain}>
-          <div className={styles.headTitleRow}>
-            {showCpk ? (
-              <span
-                className={styles.headCpkOrb}
-                style={{ backgroundColor: `#${cpk}` }}
-                aria-hidden
-              />
-            ) : null}
-            <div>
-              <h2 id={titleId} className={styles.symbol}>
-                {el.symbol}
-              </h2>
-              <p className={styles.name}>{displayName}</p>
-              <p className={styles.zLine}>Z = {el.z}</p>
-            </div>
-          </div>
+    <div className={styles.rich} style={toneStyle}>
+      <header className={styles.richHead}>
+        <div className={styles.tile}>
+          <span className={styles.tileZ}>{el.z}</span>
+          {showCpk ? (
+            <span className={styles.tileCpk} style={{ backgroundColor: `#${cpk}` }} aria-hidden />
+          ) : null}
+          <span className={styles.tileSymbol}>{el.symbol}</span>
+          <span className={styles.tileMass}>{massDisplay(el.atomicMass)}</span>
         </div>
-        {headerEnd}
+
+        <div className={styles.richTitle}>
+          <h2 id={titleId} className={styles.richName}>
+            {displayName}
+          </h2>
+        </div>
+
+        <div className={styles.richChips}>
+          <span className={`${styles.chip} ${styles.chipTone}`}>
+            <span className={styles.chipDot} aria-hidden />
+            {categoryLabel}
+          </span>
+          <span className={styles.chip}>{t(blockLabelKey(block))}</span>
+        </div>
+
+        {headerEnd ? <div className={styles.richActions}>{headerEnd}</div> : null}
       </header>
 
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>{t('elementDetail.atomicMass')}</span>
-          <span className={styles.statValue}>
-            {massDisplay(el.atomicMass)}
-            <span className={styles.statUnit}> u</span>
-          </span>
+      <div className={styles.richBody}>
+        <div className={styles.statsGrid}>
+          <div className={`${styles.statCard} ${styles.statCardAccent}`}>
+            <span className={styles.statValue}>
+              {massDisplay(el.atomicMass)}
+              <span className={styles.statUnit}> u</span>
+            </span>
+            <span className={styles.statLabel}>{t('elementDetail.atomicMass')}</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statValue}>{el.z}</span>
+            <span className={styles.statLabel}>{t('elementDetail.protons')}</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statValue}>{el.z}</span>
+            <span className={styles.statLabel}>{t('elementDetail.electrons')}</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statValue}>{neutronEstimate}</span>
+            <span className={styles.statLabel}>{t('elementDetail.neutrons')}</span>
+          </div>
         </div>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>{t('elementDetail.protons')}</span>
-          <span className={styles.statValue}>{el.z}</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>{t('elementDetail.electrons')}</span>
-          <span className={styles.statValue}>{el.z}</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>{t('elementDetail.neutrons')}</span>
-          <span className={styles.statValue}>{neutronEstimate}</span>
-        </div>
-      </div>
 
-      {life ? (
-        <ElementNatureHero
-          symbol={el.symbol}
-          displayName={displayName}
-          life={life}
-          caption={photoCaption ?? ''}
-          appearance={appearance}
-        />
-      ) : null}
+        <div className={hasStory ? styles.richGrid : `${styles.richGrid} ${styles.richGridSingle}`}>
+          <div className={styles.richCol}>
+            <section className={styles.panel} aria-label={t('elementDetail.structureSection')}>
+              <h3 className={styles.sectionTitle}>{t('elementDetail.structureSection')}</h3>
 
-      <div className={styles.richGrid}>
-        <section className={styles.richCol} aria-label={t('elementDetail.structureSection')}>
-          <h3 className={styles.sectionTitle}>{t('elementDetail.structureSection')}</h3>
+              <div className={styles.structureRow}>
+                <div className={styles.structureConfig}>
+                  <p className={styles.detailLabel}>{t('elementDetail.electronConfig')}</p>
+                  <div className={styles.detailValue}>
+                    <ElectronConfigRich fullConfig={fullConfig} />
+                  </div>
 
-          <div className={styles.structureRow}>
-            <div className={styles.structureConfig}>
-              <div className={styles.detailBlock}>
-                <p className={styles.detailLabel}>{t('elementDetail.electronConfig')}</p>
-                <div className={styles.detailValue}>
-                  <ElectronConfigRich fullConfig={fullConfig} />
+                  {oxStates.length > 0 ? (
+                    <>
+                      <p className={`${styles.detailLabel} ${styles.detailLabelSpaced}`}>
+                        {t('elementDetail.oxidation')}
+                      </p>
+                      <div className={styles.oxidWrap}>
+                        {oxStates.map((ox) => (
+                          <span key={ox} className={styles.oxChip}>
+                            {ox}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+                <div className={styles.structurePreview}>
+                  <ElementAtomPreview3d
+                    fullConfig={fullConfig}
+                    cpkHex={cpk}
+                    symbol={el.symbol}
+                    z={el.z}
+                  />
                 </div>
               </div>
-            </div>
-            <div className={styles.structurePreview}>
-              <ElementAtomPreview3d
-                fullConfig={fullConfig}
-                cpkHex={cpk}
-                symbol={el.symbol}
-                z={el.z}
-              />
-            </div>
+            </section>
+
+            <section className={styles.panel} aria-label={t('elementDetail.physicalSection')}>
+              <h3 className={styles.sectionTitle}>{t('elementDetail.physicalSection')}</h3>
+
+              <dl className={styles.factGrid}>
+                {facts.map((f) => (
+                  <div key={f.key} className={styles.fact}>
+                    <dt className={styles.factLabel}>{f.label}</dt>
+                    <dd className={styles.factValue}>{f.value}</dd>
+                  </div>
+                ))}
+                <div className={styles.fact}>
+                  <dt className={styles.factLabel}>{t('elementDetail.blockZone')}</dt>
+                  <dd className={`${styles.factValue} ${styles.factInline}`}>
+                    <BlockBadge block={block} />
+                    {t(blockLabelKey(block))}
+                  </dd>
+                </div>
+                <div className={styles.fact}>
+                  <dt className={styles.factLabel}>{t('elementDetail.cpkColor')}</dt>
+                  {showCpk ? (
+                    <dd className={`${styles.factValue} ${styles.factInline}`}>
+                      <span
+                        className={styles.cpkSwatchLarge}
+                        style={{ backgroundColor: `#${cpk}` }}
+                        aria-label={cpkLabel ?? t('elementDetail.cpkSwatchAria')}
+                      />
+                      {cpkLabel}
+                    </dd>
+                  ) : (
+                    <dd className={styles.factValueMuted}>{t('elementDetail.cpkNotSet')}</dd>
+                  )}
+                </div>
+              </dl>
+            </section>
           </div>
 
-          {oxStates.length > 0 ? (
-            <div className={styles.detailBlock}>
-              <p className={styles.detailLabel}>{t('elementDetail.oxidation')}</p>
-              <div className={styles.oxidWrap}>
-                {oxStates.map((ox) => (
-                  <span key={ox} className={styles.oxChip}>
-                    {ox}
-                  </span>
-                ))}
-              </div>
+          {hasStory ? (
+            <div className={styles.richCol}>
+              {life ? (
+                <div className={`${styles.panel} ${styles.naturePanel}`}>
+                  <ElementNatureHero
+                    symbol={el.symbol}
+                    displayName={displayName}
+                    life={life}
+                    caption={photoCaption ?? ''}
+                    appearance={appearance}
+                  />
+                </div>
+              ) : null}
+
+              {uses.length > 0 ? (
+                <section className={styles.panel}>
+                  <h3 className={styles.sectionTitle}>{t('elementDetail.usesSection')}</h3>
+                  <ul className={styles.useList}>
+                    {uses.map((use) => (
+                      <li key={use} className={styles.useChip}>
+                        {use}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+
+              {extraction ? (
+                <section className={styles.panel}>
+                  <h3 className={styles.sectionTitle}>{t('elementDetail.extractionSection')}</h3>
+                  <p className={styles.lifeText}>{extraction}</p>
+                </section>
+              ) : null}
             </div>
           ) : null}
-        </section>
-
-        <section className={styles.richCol} aria-label={t('elementDetail.physicalSection')}>
-          <h3 className={styles.sectionTitle}>{t('elementDetail.physicalSection')}</h3>
-
-          <div className={styles.propCards}>
-            <div className={styles.propCard}>
-              <span className={styles.propIcon} aria-hidden>
-                ◆
-              </span>
-              <div>
-                <p className={styles.propLabel}>{t('elementDetail.standardState')}</p>
-                <p className={styles.propValue}>{stateLabel}</p>
-              </div>
-            </div>
-            <div className={styles.propCard}>
-              <span className={styles.propIcon} aria-hidden>
-                ▦
-              </span>
-              <div>
-                <p className={styles.propLabel}>{t('elementDetail.category')}</p>
-                <p className={styles.propValue}>{categoryLabel}</p>
-              </div>
-            </div>
-            <div className={styles.propCard}>
-              <BlockBadge block={block} />
-              <div>
-                <p className={styles.propLabel}>{t('elementDetail.blockZone')}</p>
-                <p className={styles.propValue}>{t(blockLabelKey(block))}</p>
-              </div>
-            </div>
-          </div>
-
-          <dl className={styles.physDl}>
-            <div className={styles.physRow}>
-              <dt>{t('elementDetail.meltingPoint')}</dt>
-              <dd>{formatMeltingPoint(el.meltingPoint, speechLocale, el.boilingPoint)}</dd>
-            </div>
-            <div className={styles.physRow}>
-              <dt>{t('elementDetail.boilingPoint')}</dt>
-              <dd>{formatBoilingPoint(el.boilingPoint, speechLocale, el.meltingPoint)}</dd>
-            </div>
-            <div className={styles.physRow}>
-              <dt>{t('elementDetail.density')}</dt>
-              <dd>{formatDensity(el.density, { standardState: el.standardState, locale: speechLocale })}</dd>
-            </div>
-            <div className={styles.physRow}>
-              <dt>{t('elementDetail.electronegativity')}</dt>
-              <dd>{formatElectronegativity(el.electronegativity)}</dd>
-            </div>
-            {el.yearDiscovered ? (
-              <div className={styles.physRow}>
-                <dt>{t('elementDetail.yearDiscovered')}</dt>
-                <dd>
-                  {isAncientDiscoveryYear(el.yearDiscovered)
-                    ? t('elementDetail.yearAncient')
-                    : el.yearDiscovered}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-
-          <div className={styles.detailBlock}>
-            <p className={styles.detailLabel}>{t('elementDetail.cpkColor')}</p>
-            {showCpk ? (
-              <span className={styles.cpkRow}>
-                <span
-                  className={styles.cpkSwatchLarge}
-                  style={{ backgroundColor: `#${cpk}` }}
-                  aria-label={cpkLabel ?? t('elementDetail.cpkSwatchAria')}
-                />
-                <span className={styles.cpkName}>{cpkLabel}</span>
-              </span>
-            ) : (
-              <span className={styles.detailValueMuted}>{t('elementDetail.cpkNotSet')}</span>
-            )}
-          </div>
-        </section>
+        </div>
       </div>
-
-      {uses.length > 0 ? (
-        <section className={styles.lifeSection}>
-          <h3 className={styles.sectionTitle}>{t('elementDetail.usesSection')}</h3>
-          <ul className={styles.useList}>
-            {uses.map((use) => (
-              <li key={use} className={styles.useChip}>
-                {use}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {extraction ? (
-        <section className={styles.lifeSection}>
-          <h3 className={styles.sectionTitle}>{t('elementDetail.extractionSection')}</h3>
-          <p className={styles.lifeText}>{extraction}</p>
-        </section>
-      ) : null}
-    </>
+    </div>
   )
 }
 

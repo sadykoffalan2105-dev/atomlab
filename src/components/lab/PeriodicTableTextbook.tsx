@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState, type MouseEvent } from 'react'
+import { memo, useCallback, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
 import { toFullElectronConfiguration } from '../../data/electronConfigExpand'
 import { elementDisplayName } from '../../data/elementDisplayName'
 import { massDisplay } from '../../data/elementDisplay'
@@ -33,23 +33,9 @@ import {
   triadGridColumn,
 } from '../../data/ruElementGrid'
 import { textbookBlockClass } from '../../data/mendeleevTextbookBlock'
-import type { MessageKey } from '../../i18n/messagesRu'
 import { useT } from '../../i18n/useT'
+import { CATEGORY_I18N } from './periodic/periodicMeta'
 import tbStyles from './PeriodicTableTextbook.module.css'
-
-const CATEGORY_I18N: Record<ElementCategoryFilterId, MessageKey> = {
-  'alkali-metal': 'periodic.categoryAlkaliMetal',
-  'alkaline-earth-metal': 'periodic.categoryAlkalineEarthMetal',
-  'transition-metal': 'periodic.categoryTransitionMetal',
-  'post-transition-metal': 'periodic.categoryPostTransitionMetal',
-  metalloid: 'periodic.categoryMetalloid',
-  nonmetal: 'periodic.categoryNonmetal',
-  halogen: 'periodic.categoryHalogen',
-  'noble-gas': 'periodic.categoryNobleGas',
-  lanthanide: 'periodic.categoryLanthanide',
-  actinide: 'periodic.categoryActinide',
-  'all-metals': 'periodic.categoryAllMetals',
-}
 
 const MAIN_ROWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const
 const LANTHANIDES = ELEMENTS.filter((e) => e.z >= 58 && e.z <= 71)
@@ -104,24 +90,30 @@ function TextbookCellInner({
   )
 }
 
-function renderElementCell(
-  el: (typeof ELEMENTS)[number],
-  onPick: ((z: number) => void) | undefined,
-  onAltPick: ((z: number) => void) | undefined,
-  categoryFilter: ElementCategoryFilterId | null,
-  compact = false,
-  extraClass = '',
-) {
+type CellOptions = {
+  onPick: ((z: number) => void) | undefined
+  onAltPick: ((z: number) => void) | undefined
+  onHover: ((z: number) => void) | undefined
+  categoryFilter: ElementCategoryFilterId | null
+  searchMatches: ReadonlySet<number> | null
+  compact: boolean
+}
+
+function renderElementCell(el: (typeof ELEMENTS)[number], opts: CellOptions, extraClass = '') {
+  const { onPick, onAltPick, onHover, categoryFilter, searchMatches, compact } = opts
   const pos = getRuGridPos(el.z)
   const block = tbBlockClass(el)
   const filterActive = categoryFilter != null
   const highlighted = filterActive && elementMatchesCategoryFilter(el, categoryFilter)
   const dimmed = filterActive && !highlighted
-  const filterCls = highlighted
-    ? tbStyles.tbCategoryHighlight
-    : dimmed
-      ? tbStyles.tbCategoryDimmed
-      : ''
+  const searchCls =
+    searchMatches == null ? '' : searchMatches.has(el.z) ? tbStyles.tbSearchHit : tbStyles.tbSearchMiss
+  const filterCls = `${
+    highlighted ? tbStyles.tbCategoryHighlight : dimmed ? tbStyles.tbCategoryDimmed : ''
+  } ${searchCls}`
+  const hoverProps = onHover
+    ? { onMouseEnter: () => onHover(el.z), onFocus: () => onHover(el.z) }
+    : null
   const inner = (
     <div className={tbStyles.cellSlotInner}>
       <TextbookCellInner el={el} compact={compact} />
@@ -142,7 +134,7 @@ function renderElementCell(
     return (
       <div key={el.z} className={tbStyles.fCell}>
         {onPick ? (
-          <button type="button" className={btnCls} onClick={handleClick}>
+          <button type="button" className={btnCls} onClick={handleClick} {...hoverProps}>
             {inner}
           </button>
         ) : (
@@ -162,7 +154,7 @@ function renderElementCell(
 
   if (onPick) {
     return (
-      <button key={el.z} type="button" className={cls} style={style} onClick={handleClick}>
+      <button key={el.z} type="button" className={cls} style={style} onClick={handleClick} {...hoverProps}>
         {inner}
         {ghost ? <span className={tbStyles.tbGhostMark}>{el.z === 57 ? '*' : '**'}</span> : null}
       </button>
@@ -183,6 +175,13 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
   wrapClassName,
   embedMode = false,
   pageFit = false,
+  onHoverElement,
+  searchMatches = null,
+  categoryFilter: categoryFilterProp,
+  onCategoryFilterChange,
+  hideLegend = false,
+  centerSlot,
+  triadSlot,
 }: {
   onPickElement?: (z: number) => void
   /** Alt+клик — доп. действие (в лаборатории: атом-шар на сцену). */
@@ -192,15 +191,37 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
   embedMode?: boolean
   /** Полноэкранная страница: без тяжёлого chrome, чтобы вся сетка влезала. */
   pageFit?: boolean
+  /** Наведение / фокус на ячейке (страница таблицы: карточка-предпросмотр). */
+  onHoverElement?: (z: number) => void
+  /** Совпадения поиска: подсвечены, остальные приглушены. null — поиск не активен. */
+  searchMatches?: ReadonlySet<number> | null
+  /** Управляемый фильтр по классу (если задан, внутреннее состояние не используется). */
+  categoryFilter?: ElementCategoryFilterId | null
+  onCategoryFilterChange?: (id: ElementCategoryFilterId | null) => void
+  /** Не рисовать фильтр классов и легенду внутри сетки (страница выносит их в свою панель). */
+  hideLegend?: boolean
+  /** pageFit: содержимое пустой полосы периода 1 между H и He (группы II–VII). */
+  centerSlot?: ReactNode
+  /** pageFit: содержимое пустого угла триады (периоды 1–3, колонки Co/Ni). */
+  triadSlot?: ReactNode
 }) {
   const { t } = useT()
-  const [categoryFilter, setCategoryFilter] = useState<ElementCategoryFilterId | null>(null)
+  const [innerCategoryFilter, setInnerCategoryFilter] = useState<ElementCategoryFilterId | null>(null)
+  const controlled = categoryFilterProp !== undefined
+  const categoryFilter = controlled ? categoryFilterProp : innerCategoryFilter
 
-  const toggleCategory = useCallback((id: ElementCategoryFilterId) => {
-    setCategoryFilter((prev) => (prev === id ? null : id))
-  }, [])
+  const toggleCategory = useCallback(
+    (id: ElementCategoryFilterId) => {
+      if (controlled) onCategoryFilterChange?.(categoryFilter === id ? null : id)
+      else setInnerCategoryFilter((prev) => (prev === id ? null : id))
+    },
+    [controlled, categoryFilter, onCategoryFilterChange],
+  )
 
-  const clearCategory = useCallback(() => setCategoryFilter(null), [])
+  const clearCategory = useCallback(() => {
+    if (controlled) onCategoryFilterChange?.(null)
+    else setInnerCategoryFilter(null)
+  }, [controlled, onCategoryFilterChange])
 
   const mainElements = useMemo(
     () => ELEMENTS.filter((e) => (e.z < 58 || e.z > 71) && (e.z < 90 || e.z > 103)),
@@ -211,12 +232,22 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
   const voidCells = useMemo(() => ruMainVoidCells(), [])
   const hideChrome = embedMode || pageFit
 
-  const cell = (el: (typeof ELEMENTS)[number], extra = '') =>
-    renderElementCell(el, onPickElement, onAltPickElement, categoryFilter, embedMode, extra)
+  const cellOpts: CellOptions = {
+    onPick: onPickElement,
+    onAltPick: onAltPickElement,
+    onHover: onHoverElement,
+    categoryFilter,
+    searchMatches,
+    compact: embedMode,
+  }
+  const cell = (el: (typeof ELEMENTS)[number], extra = '') => renderElementCell(el, cellOpts, extra)
+  const lanthLabel = t('periodic.lanthanidesLabel')
+  const actLabel = t('periodic.actinidesLabel')
+  const starMark = (label: string, fallback: string) => label.match(/\*+$/)?.[0] ?? fallback
 
   return (
     <div
-      className={`${tbStyles.textbookWrap} ${embedMode ? tbStyles.textbookEmbed : ''} ${pageFit ? tbStyles.textbookPageFit : ''} ${wrapClassName ?? ''}`}
+      className={`${tbStyles.textbookWrap} ${embedMode ? tbStyles.textbookEmbed : ''} ${pageFit ? tbStyles.textbookPageFit : ''} ${hideLegend ? tbStyles.textbookNoLegend : ''} ${wrapClassName ?? ''}`}
     >
       {!hideChrome ? <div className={tbStyles.panelGlow} aria-hidden /> : null}
       {!hideChrome ? (
@@ -362,6 +393,26 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
             />
           ))}
 
+          {pageFit && centerSlot ? (
+            <div
+              className={tbStyles.pageSlot}
+              style={{ gridColumn: `${groupGridColumn(2)} / ${groupGridColumn(8)}`, gridRow: ruMainGridRow(1) }}
+            >
+              {centerSlot}
+            </div>
+          ) : null}
+          {pageFit && triadSlot ? (
+            <div
+              className={tbStyles.pageSlot}
+              style={{
+                gridColumn: `${TRIAD_VOID_COL_START} / ${TRIAD_VOID_COL_END}`,
+                gridRow: `${TRIAD_VOID_ROW_START} / ${TRIAD_VOID_ROW_END}`,
+              }}
+            >
+              {triadSlot}
+            </div>
+          ) : null}
+
           <div className={tbStyles.fBlockGap} style={{ gridColumn: '1 / -1', gridRow: F_BLOCK_GAP_ROW }} aria-hidden />
 
           <div
@@ -376,27 +427,31 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
           <div
             className={`${tbStyles.fBlockLabel} ${tbStyles.fBlockLabelWide}`}
             style={{ gridColumn: '1 / 3', gridRow: ruFBlockGridRow(12) }}
+            aria-hidden={pageFit || undefined}
           >
-            {t('periodic.lanthanidesLabel')}
+            {pageFit ? starMark(lanthLabel, '*') : lanthLabel}
           </div>
           <div
             className={tbStyles.fRowBand}
             style={{ gridColumn: F_ROW_GRID_COLUMN, gridRow: ruFBlockGridRow(12) }}
           >
+            {pageFit ? <div className={tbStyles.fBandCaption}>{lanthLabel}</div> : null}
             {LANTHANIDES.map((el) => cell(el))}
           </div>
 
           <div
             className={`${tbStyles.fBlockLabel} ${tbStyles.fBlockLabelWide}`}
             style={{ gridColumn: '1 / 3', gridRow: ruFBlockGridRow(13) }}
+            aria-hidden={pageFit || undefined}
           >
-            {t('periodic.actinidesLabel')}
+            {pageFit ? starMark(actLabel, '**') : actLabel}
           </div>
           <div className={tbStyles.fRowBand} style={{ gridColumn: F_ROW_GRID_COLUMN, gridRow: ruFBlockGridRow(13) }}>
+            {pageFit ? <div className={tbStyles.fBandCaption}>{actLabel}</div> : null}
             {ACTINIDES.map((el) => cell(el))}
           </div>
 
-          {!embedMode ? (
+          {!embedMode && !hideLegend ? (
             <>
               <div
                 className={tbStyles.categoryFilterRow}

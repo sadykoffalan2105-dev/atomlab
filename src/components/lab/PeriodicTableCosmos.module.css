@@ -4,18 +4,29 @@
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background: radial-gradient(ellipse 85% 75% at 50% 42%, #0c0a28 0%, #07061a 55%, #040312 100%);
+  background: radial-gradient(ellipse 85% 75% at 50% 42%, #0a0f24 0%, var(--lt-bg, #060913) 60%, var(--lt-bg-deep, #03050c) 100%);
+}
+
+/* Мягкие сияния в цветах дизайн-системы (как в разделе «Обучение») */
+.aurora {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(42vw 30vw at 8% -6%, var(--lt-bg-glow-1, rgba(56, 189, 248, 0.14)), transparent 70%),
+    radial-gradient(38vw 30vw at 96% 4%, var(--lt-bg-glow-2, rgba(168, 85, 247, 0.14)), transparent 70%),
+    radial-gradient(60vw 34vw at 50% 108%, var(--lt-bg-glow-3, rgba(45, 212, 191, 0.1)), transparent 72%);
 }
 
 .starsFar,
 .starsNear {
   position: absolute;
-  inset: 0;
+  /* запас по краям: дрейф не должен открывать пустую полосу */
+  inset: -120px;
   background-repeat: repeat;
 }
 
 .starsFar {
-  opacity: 0.88;
+  opacity: 0.42;
   background-image:
     radial-gradient(1.2px 1.2px at 8% 12%, rgba(255, 255, 255, 0.85), transparent),
     radial-gradient(1px 1px at 18% 48%, rgba(200, 210, 255, 0.7), transparent),
@@ -40,7 +51,7 @@
 }
 
 .starsNear {
-  opacity: 0.95;
+  opacity: 0.5;
   background-image:
     radial-gradient(1.8px 1.8px at 14% 30%, rgba(255, 255, 255, 1), transparent),
     radial-gradient(1.4px 1.4px at 33% 64%, rgba(200, 220, 255, 0.9), transparent),
@@ -83,10 +94,10 @@
 
 @keyframes starTwinkle {
   from {
-    opacity: 0.65;
+    opacity: 0.32;
   }
   to {
-    opacity: 1;
+    opacity: 0.55;
   }
 }
 

@@ -421,6 +421,26 @@ export const messagesRu = {
   'learn.hubUi.notFoundHint': 'Ссылка устарела или раздел переместился — вернитесь к списку.',
   'learn.hubUi.emptyChapter': 'В этой главе пока нет параграфов.',
   'learn.hubUi.emptyGrade': 'Главы этого класса скоро появятся.',
+  /* Periodic table page (Aurora Lab) */
+  'periodic.pageEyebrow': 'Справочник',
+  'periodic.pageSubtitle': '118 элементов · короткопериодная форма',
+  'periodic.introButton': 'Описание',
+  'periodic.searchLabel': 'Поиск элемента',
+  'periodic.searchPlaceholder': 'Символ, название или №',
+  'periodic.searchFound': 'Найдено: {count} · Enter — открыть',
+  'periodic.searchNone': 'Ничего не найдено',
+  'periodic.searchClear': 'Очистить поиск',
+  'periodic.previewAria': 'Карточка элемента',
+  'periodic.previewHint': 'Наведите курсор на элемент или найдите его поиском — здесь появится краткая карточка.',
+  'periodic.previewFeatured': 'Пример',
+  'periodic.previewMore': 'Подробнее',
+  'periodic.previewMass': 'Атомная масса',
+  'periodic.previewConfig': 'Электронная конфигурация',
+  'periodic.previewOxidation': 'Степени окисления',
+  'periodic.previewElectronegativity': 'Электроотрицательность',
+  'periodic.previewPeriod': 'Период {n}',
+  'periodic.previewGroup': 'Группа {g}',
+  'periodic.scrollHint': 'Листайте таблицу →',
 } as const
 
 export type MessageKey = keyof typeof messagesRu
