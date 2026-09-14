@@ -29,26 +29,27 @@ export const CATEGORY_I18N: Record<ElementCategoryFilterId, MessageKey> = {
 
 /** Цвет точки у чипа класса (и у подписи класса в карточке). */
 export const CATEGORY_COLOR: Record<ElementCategoryFilterId, string> = {
-  'alkali-metal': '#fb7185',
-  'alkaline-earth-metal': '#fbbf24',
-  'transition-metal': '#60a5fa',
-  'post-transition-metal': '#94a3b8',
-  metalloid: '#2dd4bf',
-  nonmetal: '#34d399',
-  halogen: '#e879f9',
-  'noble-gas': '#22d3ee',
-  lanthanide: '#a78bfa',
-  actinide: '#f97316',
+  'alkali-metal': 'var(--ptt-cat-alkali, #fb7185)',
+  'alkaline-earth-metal': 'var(--ptt-cat-alkaline, #fbbf24)',
+  'transition-metal': 'var(--ptt-cat-transition, #60a5fa)',
+  'post-transition-metal': 'var(--ptt-cat-post, #94a3b8)',
+  metalloid: 'var(--ptt-cat-metalloid, #2dd4bf)',
+  nonmetal: 'var(--ptt-cat-nonmetal, #34d399)',
+  halogen: 'var(--ptt-cat-halogen, #e879f9)',
+  'noble-gas': 'var(--ptt-cat-noble, #22d3ee)',
+  lanthanide: 'var(--ptt-cat-lanthanide, #a78bfa)',
+  actinide: 'var(--ptt-cat-actinide, #f97316)',
   'all-metals': '#cbd5e1',
 }
 
 /** Акцент блока (s/p/d/f/благородные газы) — те же цвета, что у ячеек таблицы. */
+/** CSS-значения: темы страницы таблицы переопределяют --ptt-*, в остальных местах — fallback. */
 export const BLOCK_ACCENT: Record<TextbookBlockClass, { a: string; b: string }> = {
-  tbS: { a: '#34d399', b: '#0d9488' },
-  tbP: { a: '#f472b6', b: '#be185d' },
-  tbD: { a: '#60a5fa', b: '#4f46e5' },
-  tbF: { a: '#a78bfa', b: '#7c3aed' },
-  tbNoble: { a: '#22d3ee', b: '#0369a1' },
+  tbS: { a: 'var(--ptt-s, #34d399)', b: 'var(--ptt-s-b, #0d9488)' },
+  tbP: { a: 'var(--ptt-p, #f472b6)', b: 'var(--ptt-p-b, #be185d)' },
+  tbD: { a: 'var(--ptt-d, #60a5fa)', b: 'var(--ptt-d-b, #4f46e5)' },
+  tbF: { a: 'var(--ptt-f, #a78bfa)', b: 'var(--ptt-f-b, #7c3aed)' },
+  tbNoble: { a: 'var(--ptt-noble, #22d3ee)', b: 'var(--ptt-noble-b, #0369a1)' },
 }
 
 export const BLOCK_ORDER: readonly TextbookBlockClass[] = ['tbS', 'tbP', 'tbD', 'tbF', 'tbNoble']

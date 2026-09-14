@@ -248,12 +248,11 @@ export function OrganicLabPage() {
 
   return (
     <div className={`${labStyles.wrap} ${styles.programWrap}`}>
-      <div className={labStyles.rightHud}>
-        <LabDomainTabs active="organic" />
-      </div>
-
       <div className={styles.programLayout}>
         <aside className={styles.pathPanel} aria-label={t('organicLab.programAria')}>
+          <div className={styles.domainTabsSlot}>
+            <LabDomainTabs active="organic" />
+          </div>
           <p className={styles.pathLead}>{t('organicLab.programLead')}</p>
           {chapters.map((ch) => (
             <div key={ch} className={styles.chapterBlock}>

@@ -53,7 +53,7 @@
   border-radius: var(--lt-radius-lg);
   border: 1px solid var(--lt-border);
   background:
-    radial-gradient(60% 140% at 0% 0%, rgba(91, 140, 255, 0.14), transparent 70%),
+    radial-gradient(60% 140% at 0% 0%, var(--ptt-header-glow, rgba(91, 140, 255, 0.14)), transparent 70%),
     var(--lt-surface);
   -webkit-backdrop-filter: var(--lt-blur);
   backdrop-filter: var(--lt-blur);
@@ -95,7 +95,7 @@
   font-weight: 800;
   line-height: var(--lt-lh-tight);
   letter-spacing: -0.01em;
-  background: linear-gradient(100deg, #f1f4ff 0%, #a9c1ff 45%, #c4b0ff 75%, #f5b4f8 100%);
+  background: var(--ptt-title-grad, linear-gradient(100deg, #f1f4ff 0%, #a9c1ff 45%, #c4b0ff 75%, #f5b4f8 100%));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -116,13 +116,13 @@
   align-items: center;
   padding: 2px 9px;
   border-radius: var(--lt-radius-pill);
-  border: 1px solid rgba(91, 140, 255, 0.35);
-  background: rgba(91, 140, 255, 0.12);
+  border: 1px solid var(--ptt-eyebrow-border, rgba(91, 140, 255, 0.35));
+  background: var(--ptt-eyebrow-fill, rgba(91, 140, 255, 0.12));
   font-size: var(--lt-fs-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #b9c8ff;
+  color: var(--ptt-eyebrow-color, #b9c8ff);
 }
 
 .headerTools {
@@ -141,7 +141,7 @@
   padding: 4px;
   border-radius: var(--lt-radius-pill);
   border: 1px solid var(--lt-border);
-  background: rgba(6, 9, 19, 0.55);
+  background: var(--ptt-field-bg, rgba(6, 9, 19, 0.55));
 }
 
 .tabIcon {
@@ -222,7 +222,7 @@
   padding: 0 38px 0 40px;
   border-radius: var(--lt-radius-pill);
   border: 1px solid var(--lt-border-strong);
-  background: rgba(6, 9, 19, 0.55);
+  background: var(--ptt-field-bg, rgba(6, 9, 19, 0.55));
   color: var(--lt-text);
   font-family: var(--lt-font);
   font-size: var(--lt-fs-body);
@@ -242,17 +242,17 @@
 }
 
 .searchInput:hover {
-  border-color: rgba(148, 170, 230, 0.4);
+  border-color: var(--ptt-field-hover-border, rgba(148, 170, 230, 0.4));
 }
 
 .searchInput:focus {
   border-color: var(--lt-primary);
-  background: rgba(10, 14, 30, 0.8);
+  background: var(--ptt-field-bg-focus, rgba(10, 14, 30, 0.8));
   box-shadow: var(--lt-ring);
 }
 
 .search:focus-within .searchIcon {
-  color: #a9c1ff;
+  color: var(--lt-primary);
 }
 
 .searchClear {
@@ -286,7 +286,7 @@
   border-radius: var(--lt-radius-pill);
   border: 1px solid rgba(251, 191, 36, 0.35);
   background: var(--lt-surface-solid);
-  color: #fde68a;
+  color: var(--ptt-status-color, #fde68a);
   font-size: var(--lt-fs-xs);
   font-weight: 600;
   white-space: nowrap;
@@ -296,7 +296,7 @@
 
 .searchStatusNone {
   border-color: rgba(251, 113, 133, 0.4);
-  color: #fecdd3;
+  color: var(--ptt-status-none-color, #fecdd3);
 }
 
 /* Описание — поповер, не сдвигает раскладку */
@@ -307,13 +307,13 @@
 .introToggle {
   min-height: 46px;
   border-color: var(--lt-border-strong);
-  background: rgba(6, 9, 19, 0.55);
+  background: var(--ptt-field-bg, rgba(6, 9, 19, 0.55));
 }
 
 .introToggle:hover,
 .introToggle[aria-expanded='true'] {
   color: var(--lt-text);
-  border-color: rgba(148, 170, 230, 0.45);
+  border-color: var(--ptt-field-hover-border, rgba(148, 170, 230, 0.45));
   background: var(--lt-surface-hover);
 }
 
@@ -326,7 +326,7 @@
   padding: 18px 20px 16px;
   border-radius: var(--lt-radius-lg);
   border: 1px solid var(--lt-border-strong);
-  background: rgba(17, 24, 48, 0.97);
+  background: var(--ptt-pop-bg, rgba(17, 24, 48, 0.97));
   box-shadow: var(--lt-shadow-lg);
   animation: popIn var(--lt-dur) var(--lt-ease);
 }
@@ -466,9 +466,9 @@
   min-height: 480px;
   padding: 12px;
   border-radius: var(--lt-radius-xl);
-  border: 1px solid var(--lt-border);
-  background: linear-gradient(180deg, rgba(18, 24, 44, 0.6), rgba(10, 14, 28, 0.5));
-  box-shadow: var(--lt-shadow-lg);
+  border: var(--ptt-frame-border, 1px solid var(--lt-border));
+  background: var(--ptt-frame-bg, linear-gradient(180deg, rgba(18, 24, 44, 0.6), rgba(10, 14, 28, 0.5)));
+  box-shadow: var(--ptt-frame-shadow, var(--lt-shadow-lg));
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -497,6 +497,33 @@
   }
 }
 
+/* ——— Узкий экран: без backdrop-filter у шапки, иначе поповеры-«шторки» (position: fixed)
+ * позиционируются от шапки, а не от окна, и уезжают за экран ——— */
+@media (max-width: 860px) {
+  .header {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background:
+      radial-gradient(60% 140% at 0% 0%, var(--ptt-header-glow, rgba(91, 140, 255, 0.14)), transparent 70%),
+      var(--ptt-pop-bg, rgba(17, 24, 48, 0.97));
+  }
+}
+
+/* ——— Ноутбук: иконки вместо подписей, чтобы шапка была в одну строку ——— */
+@media (max-width: 1500px) {
+  .introToggle > span {
+    display: none;
+  }
+
+  .introToggle {
+    padding: 0 13px;
+  }
+
+  .searchInput {
+    width: clamp(200px, 16vw, 260px);
+  }
+}
+
 /* ——— Мобильный ——— */
 @media (max-width: 720px) {
   .pageContent {
@@ -518,8 +545,12 @@
 
   .headerTools {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+  }
+
+  .introToggle > span {
+    display: none;
   }
 
   .tabBar {

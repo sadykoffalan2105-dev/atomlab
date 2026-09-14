@@ -6,7 +6,8 @@
 
 .badge {
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 11px;
+  white-space: nowrap;
   letter-spacing: 0.04em;
   padding: 4px 10px;
   border-radius: 999px;
@@ -29,7 +30,8 @@
 
 .install {
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 11px;
+  white-space: nowrap;
   padding: 4px 10px;
   border-radius: 999px;
   border: none;

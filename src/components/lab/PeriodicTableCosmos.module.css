@@ -4,17 +4,22 @@
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background: radial-gradient(ellipse 85% 75% at 50% 42%, #0a0f24 0%, var(--lt-bg, #060913) 60%, var(--lt-bg-deep, #03050c) 100%);
+  background: var(
+    --ptt-page-bg,
+    radial-gradient(ellipse 85% 75% at 50% 42%, #0a0f24 0%, var(--lt-bg, #060913) 60%, var(--lt-bg-deep, #03050c) 100%)
+  );
 }
 
 /* Мягкие сияния в цветах дизайн-системы (как в разделе «Обучение») */
 .aurora {
   position: absolute;
   inset: 0;
-  background:
+  background: var(
+    --ptt-aurora,
     radial-gradient(42vw 30vw at 8% -6%, var(--lt-bg-glow-1, rgba(56, 189, 248, 0.14)), transparent 70%),
     radial-gradient(38vw 30vw at 96% 4%, var(--lt-bg-glow-2, rgba(168, 85, 247, 0.14)), transparent 70%),
-    radial-gradient(60vw 34vw at 50% 108%, var(--lt-bg-glow-3, rgba(45, 212, 191, 0.1)), transparent 72%);
+    radial-gradient(60vw 34vw at 50% 108%, var(--lt-bg-glow-3, rgba(45, 212, 191, 0.1)), transparent 72%)
+  );
 }
 
 .starsFar,
@@ -71,7 +76,13 @@
 .vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 80% 75% at 50% 42%, transparent 40%, rgba(2, 1, 12, 0.35) 100%);
+  background: var(--ptt-vignette, radial-gradient(ellipse 80% 75% at 50% 42%, transparent 40%, rgba(2, 1, 12, 0.35) 100%));
+}
+
+/* Звёзды — только у «Авроры»; остальные темы рисуют свою фактуру через --ptt-aurora */
+.cosmos[data-stars='off'] .starsFar,
+.cosmos[data-stars='off'] .starsNear {
+  display: none;
 }
 
 @keyframes starDriftFar {

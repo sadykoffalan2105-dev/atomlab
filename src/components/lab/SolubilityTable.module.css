@@ -365,3 +365,71 @@ tbody tr:last-child .cationHead {
     font-size: 14px;
   }
 }
+
+/* ═══ Темы страницы таблицы (data-pt-theme на корне страницы, см. periodicThemes.css) ═══ */
+:global([data-pt-theme='paper']) .panel {
+  --sol-r-fg: #047857;
+  --sol-r-bg: rgba(16, 185, 129, 0.14);
+  --sol-r-bd: rgba(4, 120, 87, 0.35);
+  --sol-m-fg: #a16207;
+  --sol-m-bg: rgba(234, 179, 8, 0.2);
+  --sol-m-bd: rgba(161, 98, 7, 0.38);
+  --sol-n-fg: #be123c;
+  --sol-n-bg: rgba(244, 63, 94, 0.12);
+  --sol-n-bd: rgba(190, 18, 60, 0.32);
+  --sol-x-fg: #6d28d9;
+  --sol-x-bg: rgba(139, 92, 246, 0.12);
+  --sol-x-bd: rgba(109, 40, 217, 0.32);
+  --sol-cross: rgba(47, 98, 216, 0.07);
+  --sol-head-bg: #fbf7ec;
+}
+
+:global([data-pt-theme='paper']) .headHot {
+  color: #172033;
+}
+
+:global([data-pt-theme='paper']) .legendItem {
+  background: #ffffff;
+}
+
+:global([data-pt-theme='paper']) .cell {
+  border-bottom-color: rgba(30, 41, 59, 0.07);
+}
+
+:global([data-pt-theme='neon']) .panel {
+  --sol-r-fg: #39ff88;
+  --sol-r-bd: rgba(57, 255, 136, 0.55);
+  --sol-m-fg: #f9f871;
+  --sol-m-bd: rgba(249, 248, 113, 0.5);
+  --sol-n-fg: #ff5ca8;
+  --sol-n-bd: rgba(255, 43, 214, 0.55);
+  --sol-x-fg: #c79bff;
+  --sol-cross: rgba(255, 43, 214, 0.08);
+  --sol-head-bg: rgba(12, 5, 26, 0.98);
+}
+
+:global([data-pt-theme='chalk']) .panel {
+  --sol-r-fg: #c5f5c0;
+  --sol-m-fg: #fff09a;
+  --sol-n-fg: #ffb3c8;
+  --sol-x-fg: #d4c2ff;
+  --sol-cross: rgba(245, 243, 232, 0.05);
+  --sol-head-bg: rgba(31, 64, 52, 0.98);
+}
+
+:global([data-pt-theme='contrast']) .panel {
+  --sol-r-fg: #000000;
+  --sol-r-bg: #80ed99;
+  --sol-r-bd: #80ed99;
+  --sol-m-fg: #000000;
+  --sol-m-bg: #ffd60a;
+  --sol-m-bd: #ffd60a;
+  --sol-n-fg: #000000;
+  --sol-n-bg: #ff6b95;
+  --sol-n-bd: #ff6b95;
+  --sol-x-fg: #000000;
+  --sol-x-bg: #b9a2ff;
+  --sol-x-bd: #b9a2ff;
+  --sol-cross: rgba(255, 255, 255, 0.1);
+  --sol-head-bg: #000000;
+}

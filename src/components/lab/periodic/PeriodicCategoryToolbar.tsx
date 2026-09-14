@@ -9,10 +9,12 @@ type Props = {
   onChange: (id: ElementCategoryFilterId | null) => void
   /** compact — плотная сетка чипов для пустого угла таблицы (без легенды блоков). */
   variant?: 'panel' | 'compact'
+  /** Легенда блоков s/p/d/f (прячется, когда ячейки раскрашены по классам). */
+  showBlocks?: boolean
 }
 
 /** Панель «Классы элементов» (фильтр-чипы) + легенда блоков s/p/d/f. */
-export function PeriodicCategoryToolbar({ value, onChange, variant = 'panel' }: Props) {
+export function PeriodicCategoryToolbar({ value, onChange, variant = 'panel', showBlocks = true }: Props) {
   const { t } = useT()
 
   if (variant === 'compact') {
@@ -82,19 +84,21 @@ export function PeriodicCategoryToolbar({ value, onChange, variant = 'panel' }: 
         })}
       </div>
 
-      <div className={styles.blocks} role="list" aria-label={t('periodic.legendAria')}>
-        {BLOCK_ORDER.map((key) => (
-          <span
-            key={key}
-            role="listitem"
-            className={styles.blockChip}
-            style={{ '--chip-c': BLOCK_ACCENT[key].a } as CSSProperties}
-          >
-            <span className={styles.blockSwatch} aria-hidden />
-            {t(blockLegendKey(key))}
-          </span>
-        ))}
-      </div>
+      {showBlocks ? (
+        <div className={styles.blocks} role="list" aria-label={t('periodic.legendAria')}>
+          {BLOCK_ORDER.map((key) => (
+            <span
+              key={key}
+              role="listitem"
+              className={styles.blockChip}
+              style={{ '--chip-c': BLOCK_ACCENT[key].a } as CSSProperties}
+            >
+              <span className={styles.blockSwatch} aria-hidden />
+              {t(blockLegendKey(key))}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }

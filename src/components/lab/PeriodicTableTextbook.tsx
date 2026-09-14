@@ -5,6 +5,7 @@ import { massDisplay } from '../../data/elementDisplay'
 import { ELEMENTS } from '../../data/elements'
 import {
   ELEMENT_CATEGORY_ORDER,
+  elementCategoryId,
   elementMatchesCategoryFilter,
   type ElementCategoryFilterId,
 } from '../../data/elementCategory'
@@ -103,6 +104,7 @@ function renderElementCell(el: (typeof ELEMENTS)[number], opts: CellOptions, ext
   const { onPick, onAltPick, onHover, categoryFilter, searchMatches, compact } = opts
   const pos = getRuGridPos(el.z)
   const block = tbBlockClass(el)
+  const cat = elementCategoryId(el) ?? 'unknown'
   const filterActive = categoryFilter != null
   const highlighted = filterActive && elementMatchesCategoryFilter(el, categoryFilter)
   const dimmed = filterActive && !highlighted
@@ -134,11 +136,13 @@ function renderElementCell(el: (typeof ELEMENTS)[number], opts: CellOptions, ext
     return (
       <div key={el.z} className={tbStyles.fCell}>
         {onPick ? (
-          <button type="button" className={btnCls} onClick={handleClick} {...hoverProps}>
+          <button type="button" className={btnCls} data-cat={cat} onClick={handleClick} {...hoverProps}>
             {inner}
           </button>
         ) : (
-          <div className={btnCls}>{inner}</div>
+          <div className={btnCls} data-cat={cat}>
+            {inner}
+          </div>
         )}
       </div>
     )
@@ -154,7 +158,15 @@ function renderElementCell(el: (typeof ELEMENTS)[number], opts: CellOptions, ext
 
   if (onPick) {
     return (
-      <button key={el.z} type="button" className={cls} style={style} onClick={handleClick} {...hoverProps}>
+      <button
+        key={el.z}
+        type="button"
+        className={cls}
+        style={style}
+        data-cat={cat}
+        onClick={handleClick}
+        {...hoverProps}
+      >
         {inner}
         {ghost ? <span className={tbStyles.tbGhostMark}>{el.z === 57 ? '*' : '**'}</span> : null}
       </button>
@@ -162,7 +174,7 @@ function renderElementCell(el: (typeof ELEMENTS)[number], opts: CellOptions, ext
   }
 
   return (
-    <div key={el.z} className={cls} style={style} role="group">
+    <div key={el.z} className={cls} style={style} data-cat={cat} role="group">
       {inner}
       {ghost ? <span className={tbStyles.tbGhostMark}>{el.z === 57 ? '*' : '**'}</span> : null}
     </div>
@@ -182,6 +194,7 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
   hideLegend = false,
   centerSlot,
   triadSlot,
+  colorMode = 'block',
 }: {
   onPickElement?: (z: number) => void
   /** Alt+клик — доп. действие (в лаборатории: атом-шар на сцену). */
@@ -204,6 +217,8 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
   centerSlot?: ReactNode
   /** pageFit: содержимое пустого угла триады (периоды 1–3, колонки Co/Ni). */
   triadSlot?: ReactNode
+  /** pageFit: раскраска ячеек — блоки s/p/d/f или классы элементов. */
+  colorMode?: 'block' | 'category'
 }) {
   const { t } = useT()
   const [innerCategoryFilter, setInnerCategoryFilter] = useState<ElementCategoryFilterId | null>(null)
@@ -247,7 +262,7 @@ export const PeriodicTableTextbook = memo(function PeriodicTableTextbook({
 
   return (
     <div
-      className={`${tbStyles.textbookWrap} ${embedMode ? tbStyles.textbookEmbed : ''} ${pageFit ? tbStyles.textbookPageFit : ''} ${hideLegend ? tbStyles.textbookNoLegend : ''} ${wrapClassName ?? ''}`}
+      className={`${tbStyles.textbookWrap} ${embedMode ? tbStyles.textbookEmbed : ''} ${pageFit ? tbStyles.textbookPageFit : ''} ${pageFit && colorMode === 'category' ? tbStyles.textbookColorCategory : ''} ${hideLegend ? tbStyles.textbookNoLegend : ''} ${wrapClassName ?? ''}`}
     >
       {!hideChrome ? <div className={tbStyles.panelGlow} aria-hidden /> : null}
       {!hideChrome ? (

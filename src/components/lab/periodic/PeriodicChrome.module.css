@@ -189,7 +189,7 @@
   font-size: 0.7em;
   line-height: 0;
   margin-left: 1px;
-  color: color-mix(in srgb, var(--pv-a) 60%, #fff);
+  color: color-mix(in srgb, var(--pv-a) var(--ptt-sup-mix, 60%), var(--ptt-sup-base, #fff));
 }
 
 .previewHint {
@@ -277,10 +277,10 @@
 .filtersClear {
   appearance: none;
   padding: 3px 10px;
-  border: 1px solid rgba(251, 113, 133, 0.4);
+  border: 1px solid var(--ptt-clear-border, rgba(251, 113, 133, 0.4));
   border-radius: var(--lt-radius-pill);
   background: rgba(251, 113, 133, 0.1);
-  color: #fecdd3;
+  color: var(--ptt-clear-color, #fecdd3);
   font-family: var(--lt-font);
   font-size: var(--lt-fs-xs);
   font-weight: 650;
@@ -311,7 +311,7 @@
   padding: 0 12px 0 10px;
   border: 1px solid var(--lt-border-strong);
   border-radius: var(--lt-radius-pill);
-  background: rgba(6, 9, 19, 0.45);
+  background: var(--ptt-chip-bg, rgba(6, 9, 19, 0.45));
   color: var(--lt-text-2);
   font-family: var(--lt-font);
   font-size: var(--lt-fs-small);
@@ -331,7 +331,7 @@
   transform: translateY(-1px);
   color: var(--lt-text);
   border-color: color-mix(in srgb, var(--chip-c) 55%, transparent);
-  background: color-mix(in srgb, var(--chip-c) 10%, rgba(6, 9, 19, 0.5));
+  background: color-mix(in srgb, var(--chip-c) 10%, var(--ptt-chip-bg, rgba(6, 9, 19, 0.5)));
 }
 
 .chip:focus-visible {
@@ -340,9 +340,9 @@
 }
 
 .chipActive {
-  color: #fff;
-  border-color: color-mix(in srgb, var(--chip-c) 80%, white);
-  background: color-mix(in srgb, var(--chip-c) 26%, rgba(6, 9, 19, 0.6));
+  color: var(--ptt-chip-active-color, #fff);
+  border-color: color-mix(in srgb, var(--chip-c) 80%, var(--ptt-hover-base, white));
+  background: color-mix(in srgb, var(--chip-c) 26%, var(--ptt-chip-bg, rgba(6, 9, 19, 0.6)));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--chip-c) 40%, transparent),
     0 8px 20px -8px color-mix(in srgb, var(--chip-c) 70%, transparent);
 }
@@ -373,7 +373,11 @@
   height: 12px;
   border-radius: 4px;
   border-left: 3px solid var(--chip-c);
-  background: linear-gradient(160deg, color-mix(in srgb, var(--chip-c) 40%, #111a33), #0b1124);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--chip-c) 40%, var(--ptt-cell-base, #111a33)),
+    var(--ptt-cell-base-2, #0b1124)
+  );
 }
 
 /* ——— Средние экраны: карточка превращается в полосу ——— */
@@ -488,8 +492,8 @@
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--pv-a) 34%, var(--lt-border));
   background:
-    radial-gradient(60% 140% at 0% 50%, color-mix(in srgb, var(--pv-a) 26%, transparent), transparent 70%),
-    linear-gradient(90deg, rgba(16, 22, 42, 0.92), rgba(10, 14, 28, 0.78));
+    radial-gradient(60% 140% at 0% 50%, color-mix(in srgb, var(--pv-a) var(--ptt-panel-glow-mix, 26%), transparent), transparent 70%),
+    var(--ptt-panel-bg, linear-gradient(90deg, rgba(16, 22, 42, 0.92), rgba(10, 14, 28, 0.78)));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 10px 30px -14px color-mix(in srgb, var(--pv-a) 60%, transparent);
@@ -557,7 +561,7 @@
 .stripEyebrow {
   padding: 2px 7px;
   border-radius: var(--lt-radius-pill);
-  background: rgba(148, 170, 230, 0.14);
+  background: var(--ptt-eyebrow-bg, rgba(148, 170, 230, 0.14));
   font-family: var(--lt-font);
   font-size: 11px;
   font-weight: 700;
@@ -684,7 +688,7 @@
   box-sizing: border-box;
   border-radius: 14px;
   border: 1px solid var(--lt-border);
-  background: linear-gradient(180deg, rgba(16, 22, 42, 0.88), rgba(10, 14, 28, 0.72));
+  background: var(--ptt-panel-bg-v, linear-gradient(180deg, rgba(16, 22, 42, 0.88), rgba(10, 14, 28, 0.72)));
   overflow: hidden;
 }
 
@@ -723,7 +727,7 @@
   padding: 0 8px;
   border: 1px solid var(--lt-border);
   border-radius: 8px;
-  background: rgba(6, 9, 19, 0.45);
+  background: var(--ptt-chip-bg, rgba(6, 9, 19, 0.45));
   color: var(--lt-text-2);
   font-family: var(--lt-font);
   font-size: 12px;
@@ -740,7 +744,7 @@
 .chipCompact:hover {
   color: var(--lt-text);
   border-color: color-mix(in srgb, var(--chip-c) 55%, transparent);
-  background: color-mix(in srgb, var(--chip-c) 12%, rgba(6, 9, 19, 0.5));
+  background: color-mix(in srgb, var(--chip-c) 12%, var(--ptt-chip-bg, rgba(6, 9, 19, 0.5)));
 }
 
 .chipCompact:focus-visible {

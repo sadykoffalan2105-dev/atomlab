@@ -5,6 +5,9 @@ import { IconAtomGrid, IconInfoHud, IconSearch, IconSolubility } from '../compon
 import { PeriodicElementPreview } from '../components/lab/periodic/PeriodicElementPreview'
 import { PeriodicCategoryToolbar } from '../components/lab/periodic/PeriodicCategoryToolbar'
 import { searchElements } from '../components/lab/periodic/periodicMeta'
+import { PeriodicThemePicker } from '../components/lab/periodic/PeriodicThemePicker'
+import { usePeriodicTheme } from '../components/lab/periodic/periodicThemes'
+import '../components/lab/periodic/periodicThemes.css'
 import { SolubilityTable } from '../components/lab/SolubilityTable'
 import { ElementDetailModal } from '../components/lab/ElementDetailModal'
 import type { ElementCategoryFilterId } from '../data/elementCategory'
@@ -44,6 +47,7 @@ export function PeriodicTablePage() {
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<ElementCategoryFilterId | null>(null)
   const wide = useMediaQuery(WIDE_QUERY)
+  const { theme, setTheme, colorMode, setColorMode } = usePeriodicTheme()
 
   const pageRef = useRef<HTMLDivElement | null>(null)
   const stageRef = useRef<HTMLDivElement | null>(null)
@@ -114,8 +118,8 @@ export function PeriodicTablePage() {
   const matchCount = search?.matches.size ?? 0
 
   return (
-    <div className={pageStyles.page} ref={pageRef}>
-      <PeriodicTableCosmos />
+    <div className={pageStyles.page} ref={pageRef} data-pt-theme={theme}>
+      <PeriodicTableCosmos stars={theme === 'aurora'} />
       <div className={pageStyles.pageContent}>
         <header className={pageStyles.header}>
           <div className={pageStyles.titleBlock}>
@@ -194,6 +198,13 @@ export function PeriodicTablePage() {
               </div>
             ) : null}
 
+            <PeriodicThemePicker
+              theme={theme}
+              onThemeChange={setTheme}
+              colorMode={colorMode}
+              onColorModeChange={setColorMode}
+            />
+
             <div className={pageStyles.introWrap} ref={introRef}>
               <button
                 type="button"
@@ -201,6 +212,7 @@ export function PeriodicTablePage() {
                 onClick={() => setShowIntro((v) => !v)}
                 aria-expanded={showIntro}
                 aria-controls={introId}
+                aria-label={t('periodic.introButton')}
                 title={showIntro ? t('periodic.introHide') : t('periodic.introShow')}
               >
                 <IconInfoHud className={pageStyles.tabIcon} />
@@ -238,6 +250,7 @@ export function PeriodicTablePage() {
                 hideLegend
                 wrapClassName={pageStyles.tableWrapFit}
                 pageFit
+                colorMode={colorMode}
                 centerSlot={
                   wide ? (
                     <PeriodicElementPreview z={previewZ} featured={featured} onOpen={setDetailZ} variant="strip" />
@@ -250,7 +263,13 @@ export function PeriodicTablePage() {
                 }
               />
             </div>
-            {!wide ? <PeriodicCategoryToolbar value={categoryFilter} onChange={setCategoryFilter} /> : null}
+            {!wide ? (
+              <PeriodicCategoryToolbar
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                showBlocks={colorMode === 'block'}
+              />
+            ) : null}
           </div>
         ) : (
           <div className={pageStyles.solStage} ref={stageRef}>
