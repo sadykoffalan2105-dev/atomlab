@@ -1,0 +1,107 @@
+/* HUD «наблюдение по камере» в голосовом опросе (Aurora Lab). */
+
+.panel {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--lt-radius);
+  border: 1px solid var(--lt-border);
+  background:
+    radial-gradient(100% 80% at 0% 0%, rgba(34, 211, 238, 0.08), transparent 65%),
+    var(--lt-surface-2);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-small);
+  line-height: 1.5;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: var(--lt-fs-small);
+  font-weight: 800;
+  color: var(--lt-accent-cyan);
+}
+
+.state {
+  font-size: var(--lt-fs-xs);
+  color: var(--lt-text-3);
+}
+
+.state[data-running='1'] {
+  color: var(--lt-success);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.row > span:first-child {
+  color: var(--lt-text-2);
+}
+
+.value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar {
+  --tone: var(--lt-success);
+  height: 6px;
+  margin: 4px 0 10px;
+  overflow: hidden;
+  border-radius: var(--lt-radius-pill);
+  background: rgba(148, 170, 230, 0.12);
+}
+
+.bar > span {
+  display: block;
+  width: var(--pct, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tone);
+  transition: width var(--lt-dur) var(--lt-ease);
+}
+
+.bar[data-tone='warn'],
+.tone[data-tone='warn'] {
+  --tone: var(--lt-warning);
+}
+
+.bar[data-tone='bad'],
+.tone[data-tone='bad'] {
+  --tone: var(--lt-danger);
+}
+
+.bar[data-tone='mute'],
+.tone[data-tone='mute'] {
+  --tone: var(--lt-text-3);
+}
+
+.tone {
+  --tone: var(--lt-success);
+  font-weight: 700;
+  color: var(--tone);
+}
+
+.risk {
+  margin-top: 6px;
+  color: var(--lt-danger);
+}
+
+.row.risk > span:first-child {
+  color: var(--lt-danger);
+}
+
+.hint {
+  margin: 0;
+  color: var(--lt-text-3);
+}

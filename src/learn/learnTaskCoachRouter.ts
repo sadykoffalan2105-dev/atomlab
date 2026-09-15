@@ -3,7 +3,6 @@ import type { LearnTaskGenerated } from './learnTaskProblems'
 import { buildTaskCoachSystemPrompt } from './learnTaskCoachPrompt'
 import { generateTaskCoachLocalReply } from './learnTaskCoachLocal'
 import { filterTaskCoachReply } from './learnAssistantGuard'
-import { retrieveChemistryKnowledge, buildRetrievedKnowledgeBlock } from './learnKnowledgeRetrieval'
 
 export type TaskCoachReplySource = 'local' | 'ollama'
 
@@ -11,6 +10,8 @@ type RouterOptions = {
   preferOllama?: boolean
   ollamaUrl?: string
   ollamaModel?: string
+  /** Знания, уже найденные через teacherKnowledge.retrieveForTeacher (иначе — старый поиск, лениво). */
+  knowledgeBlock?: string
 }
 
 const DEFAULT_OLLAMA = 'http://127.0.0.1:11434'
@@ -56,18 +57,22 @@ async function tryOllamaTaskCoach(
   const model = opts?.ollamaModel ?? import.meta.env.VITE_OLLAMA_MODEL ?? DEFAULT_MODEL
   const speechLocale = ctx.locale === 'ru' ? 'ru' : 'en'
   const q = messages.filter((m) => m.role === 'user').pop()?.content ?? tc.questionText
-  const retrieved = retrieveChemistryKnowledge(q, {
-    maxChunks: 2,
-    minScore: 1,
-    gradeId: ctx.gradeId,
-    sectionTitle: tc.categoryTitle,
-  })
-  const knowledgeBlock = buildRetrievedKnowledgeBlock(q, speechLocale, {
-    maxChars: 1500,
-    gradeId: ctx.gradeId,
-    sectionTitle: tc.categoryTitle,
-    preloaded: retrieved,
-  })
+  let knowledgeBlock = opts?.knowledgeBlock?.slice(0, 1500) ?? ''
+  if (opts?.knowledgeBlock === undefined) {
+    const { retrieveChemistryKnowledge, buildRetrievedKnowledgeBlock } = await import('./learnKnowledgeRetrieval')
+    const retrieved = retrieveChemistryKnowledge(q, {
+      maxChunks: 2,
+      minScore: 1,
+      gradeId: ctx.gradeId,
+      sectionTitle: tc.categoryTitle,
+    })
+    knowledgeBlock = buildRetrievedKnowledgeBlock(q, speechLocale, {
+      maxChars: 1500,
+      gradeId: ctx.gradeId,
+      sectionTitle: tc.categoryTitle,
+      preloaded: retrieved,
+    })
+  }
 
   const system = buildTaskCoachSystemPrompt({ ...ctx, taskCoach: tc, knowledgeBlock })
 

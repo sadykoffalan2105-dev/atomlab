@@ -1,16 +1,17 @@
 /**
  * Генератор вопросов из химической базы + сократовские наводящие вопросы.
  *
- * Источник вопросов — реальный устный пул экзамена (getOralExamPool), поэтому у
+ * Источник вопросов — устный пул экзамена для любого класса 7–11
+ * (gradeOralPools: g7 — getOralExamPool, g8–g11 — сгенерированные пулы), поэтому у
  * каждого вопроса есть рубрика для оценки. generateNextQuestion учитывает
  * «проблемные зоны» ученика (заваленные вопросы) и адаптивную сложность.
  * socraticFollowUp НИКОГДА не раскрывает ответ — только сужает/перефразирует.
  */
 import type { AppLocale } from '../../../i18n/types'
-import { getOralExamPool } from '../../g7ExamPools'
 import { localizeOralExam } from '../../topicQuizLocale'
 import type { OralExamItem } from '../../topicQuizTypes'
 import type { AssistantLang, QuestionCard } from './dualModeTypes'
+import { getOralPoolSync, loadOralPool, preferTranslated } from './gradeOralPools'
 
 function itemToCard(item: OralExamItem, topic: string, difficulty: number): QuestionCard {
   return {
@@ -27,21 +28,44 @@ function itemToCard(item: OralExamItem, topic: string, difficulty: number): Ques
 export interface QuestionGeneratorConfig {
   gradeId: string
   chapterId: string
+  sectionId?: string
   lang: AssistantLang
 }
 
 export class QuestionGenerator {
-  private readonly pool: OralExamItem[]
+  private pool: OralExamItem[] = []
   private readonly lang: AssistantLang
+  private readonly loading: Promise<void>
 
   constructor(config: QuestionGeneratorConfig) {
     this.lang = config.lang
-    const raw = getOralExamPool(config.gradeId, config.chapterId)
-    this.pool = raw.map((item) => localizeOralExam(item, this.lang as AppLocale))
+    const sync = getOralPoolSync(config.gradeId, config.chapterId, config.sectionId)
+    if (sync) {
+      this.setPool(sync)
+      this.loading = Promise.resolve()
+    } else {
+      this.loading = loadOralPool(config.gradeId, config.chapterId, config.sectionId)
+        .then((items) => this.setPool(items))
+        .catch(() => undefined)
+    }
+  }
+
+  private setPool(items: readonly OralExamItem[]): void {
+    const locale = this.lang as AppLocale
+    this.pool = preferTranslated(items, locale).map((item) => localizeOralExam(item, locale))
+  }
+
+  /** Дождаться загрузки пула (для 8–11 класса он грузится асинхронно). */
+  ready(): Promise<void> {
+    return this.loading
   }
 
   hasQuestions(): boolean {
     return this.pool.length > 0
+  }
+
+  poolSize(): number {
+    return this.pool.length
   }
 
   byId(id: string): OralExamItem | undefined {
@@ -70,7 +94,10 @@ export class QuestionGenerator {
 
     const fresh = this.pool.filter((q) => !askedIds.includes(q.id))
     const source = fresh.length > 0 ? fresh : this.pool
-    const pick = source[Math.floor(Math.random() * source.length)]!
+    // Пул упорядочен «текущий параграф — первым»: чаще берём из первой трети.
+    const head = source.slice(0, Math.max(3, Math.ceil(source.length / 3)))
+    const from = Math.random() < 0.6 ? head : source
+    const pick = from[Math.floor(Math.random() * from.length)]!
     return itemToCard(pick, topic, difficulty)
   }
 

@@ -15,6 +15,9 @@ build/icon-*.png
 !build/icon.png
 video/
 *.local
+.env
+.env.*
+!.env.example
 
 # Python
 __pycache__/

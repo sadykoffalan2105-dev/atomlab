@@ -22,22 +22,48 @@ import styles from './ReactorBalancePanel.module.css'
 
 type TabId = 'substitution' | 'electron' | 'lesson' | 'guide'
 
+function StatusIcon({ ok }: { ok: boolean }) {
+  return (
+    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
+      {ok ? (
+        <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+      ) : (
+        <path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" />
+      )}
+    </svg>
+  )
+}
+
 export function ReactorBalancePanel({
   leftTerms,
   productCompound,
   productCoeff,
   onApplyCoeffs,
   onLoadLesson,
+  expanded: expandedProp,
+  onExpandedChange,
 }: {
   leftTerms: readonly ReactorEquationTerm[]
   productCompound: CompoundDef | null
   productCoeff: number
   onApplyCoeffs: (left: Record<string, number>, productCoeff: number) => void
   onLoadLesson: (lesson: BalanceLesson) => void
+  /**
+   * Управляемое раскрытие (кнопка-переключатель снаружи, в шапке реактора).
+   * Если не передано — панель показывает собственную кнопку «Методы балансировки».
+   */
+  expanded?: boolean
+  onExpandedChange?: (expanded: boolean) => void
 }) {
   const { t, locale } = useT()
   const [tab, setTab] = useState<TabId>('substitution')
-  const [expanded, setExpanded] = useState(false)
+  const [expandedLocal, setExpandedLocal] = useState(false)
+  const controlled = expandedProp !== undefined
+  const expanded = controlled ? expandedProp : expandedLocal
+  const setExpanded = (next: boolean) => {
+    if (!controlled) setExpandedLocal(next)
+    onExpandedChange?.(next)
+  }
   const [guideClass, setGuideClass] = useState<ReactionClass>('combination')
   const [oxPick, setOxPick] = useState<string | null>(null)
   const [redPick, setRedPick] = useState<string | null>(null)
@@ -72,39 +98,72 @@ export function ReactorBalancePanel({
   const canApplyElectron = Boolean(electron?.isRedox)
 
   return (
-    <div className={styles.panel} data-lab-balance="" data-expanded={expanded ? '1' : '0'}>
-      <button
-        type="button"
-        className={styles.collapseBtn}
-        aria-expanded={expanded}
-        onClick={() => setExpanded((v) => !v)}
-      >
-        {expanded ? t('reactor.balance.hideMethods') : t('reactor.balance.showMethods')}
-        <span aria-hidden>{expanded ? ' ▾' : ' ▸'}</span>
-      </button>
+    <div
+      className={styles.panel}
+      data-lab-balance=""
+      data-expanded={expanded ? '1' : '0'}
+      data-controlled={controlled ? '1' : undefined}
+    >
+      {controlled ? null : (
+        <button
+          type="button"
+          className={styles.collapseBtn}
+          aria-expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? t('reactor.balance.hideMethods') : t('reactor.balance.showMethods')}
+          <svg
+            className={styles.collapseChevron}
+            data-open={expanded ? '1' : '0'}
+            width={14}
+            height={14}
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden
+            focusable="false"
+          >
+            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
 
       {expanded ? (
       <>
-      <div className={styles.tabs} role="tablist" aria-label={t('reactor.balance.tabsAria')}>
-        {(
-          [
-            ['substitution', 'reactor.balance.tabSubstitution'],
-            ['electron', 'reactor.balance.tabElectron'],
-            ['lesson', 'reactor.balance.tabLesson'],
-            ['guide', 'reactor.balance.tabGuide'],
-          ] as const
-        ).map(([id, key]) => (
+      <div className={styles.tabsBar}>
+        <div className={styles.tabs} role="tablist" aria-label={t('reactor.balance.tabsAria')}>
+          {(
+            [
+              ['substitution', 'reactor.balance.tabSubstitution'],
+              ['electron', 'reactor.balance.tabElectron'],
+              ['lesson', 'reactor.balance.tabLesson'],
+              ['guide', 'reactor.balance.tabGuide'],
+            ] as const
+          ).map(([id, key]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              className={tab === id ? `${styles.tab} ${styles.tabActive}` : styles.tab}
+              onClick={() => setTab(id)}
+            >
+              {t(key)}
+            </button>
+          ))}
+        </div>
+        {controlled ? (
           <button
-            key={id}
             type="button"
-            role="tab"
-            aria-selected={tab === id}
-            className={tab === id ? `${styles.tab} ${styles.tabActive}` : styles.tab}
-            onClick={() => setTab(id)}
+            className={styles.closeBtn}
+            onClick={() => setExpanded(false)}
+            aria-label={t('reactor.balance.hideMethods')}
+            title={t('reactor.balance.hideMethods')}
           >
-            {t(key)}
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
+              <path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" />
+            </svg>
           </button>
-        ))}
+        ) : null}
       </div>
 
       {tab === 'substitution' ? (
@@ -129,8 +188,11 @@ export function ReactorBalancePanel({
                     <td>{row.left}</td>
                     <td>{row.right}</td>
                     <td>
-                      <span className={row.balanced ? styles.ok : styles.bad}>
-                        {row.balanced ? '●' : '●'}
+                      <span
+                        className={row.balanced ? styles.ok : styles.bad}
+                        title={row.balanced ? t('reactor.balanced') : undefined}
+                      >
+                        <StatusIcon ok={row.balanced} />
                       </span>
                     </td>
                   </tr>

@@ -1,0 +1,362 @@
+/* Аватар ИИ-учителя. Размер — --avatar-size; громкость микрофона — --level (0..1). */
+
+.avatar {
+  --level: 0;
+  --tint: 91, 140, 255;
+  --accent: 34, 211, 238;
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--avatar-size, 240px);
+  height: var(--avatar-size, 240px);
+  max-width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.glow {
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, rgba(var(--tint), 0.42), rgba(139, 92, 246, 0.16) 55%, transparent 72%);
+  filter: blur(6px);
+  opacity: calc(0.75 + var(--level) * 0.25);
+  transition: background var(--lt-dur-slow) var(--lt-ease);
+  z-index: -1;
+}
+
+.ripple,
+.levelRing {
+  position: absolute;
+  inset: 11%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.ripple {
+  border: 2px solid rgba(var(--accent), 0.55);
+  opacity: 0;
+}
+
+.levelRing {
+  inset: 13%;
+  border: 3px solid rgba(var(--accent), calc(0.18 + var(--level) * 0.7));
+  box-shadow:
+    0 0 calc(10px + var(--level) * 34px) rgba(var(--accent), calc(0.12 + var(--level) * 0.5)),
+    inset 0 0 calc(8px + var(--level) * 20px) rgba(var(--accent), calc(0.08 + var(--level) * 0.3));
+  transform: scale(calc(1 + var(--level) * 0.16));
+  opacity: 0;
+  transition: opacity var(--lt-dur) var(--lt-ease);
+}
+
+.svg {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.orbit {
+  fill: none;
+  stroke-width: 1.6;
+  opacity: 0.55;
+  transition: opacity var(--lt-dur) var(--lt-ease);
+}
+
+.electronSpin {
+  transform-origin: 0 0;
+  animation: taSpin 5.2s linear infinite;
+}
+
+.electron {
+  fill: #e0f7ff;
+  filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.95));
+}
+
+.bars {
+  opacity: 0;
+  transition: opacity var(--lt-dur) var(--lt-ease);
+}
+
+.bar {
+  fill: rgba(var(--accent), 0.85);
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  transform: scaleY(0.25);
+}
+
+.head {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.core {
+  filter: drop-shadow(0 6px 18px rgba(124, 77, 255, 0.55));
+}
+
+.shine {
+  fill: rgba(255, 255, 255, 0.34);
+}
+
+.eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform var(--lt-dur-slow) var(--lt-ease);
+  animation: taBlink 5.4s ease-in-out infinite;
+}
+
+.eye {
+  fill: #0b1030;
+}
+
+.mouth {
+  fill: none;
+  stroke: #0b1030;
+  stroke-width: 3.6;
+  stroke-linecap: round;
+  transform-box: fill-box;
+  transform-origin: center top;
+  transition: d var(--lt-dur) var(--lt-ease);
+}
+
+/* ——— Состояния ——— */
+
+.avatar[data-state='connecting'] .electronSpin {
+  animation-duration: 9s;
+}
+
+.avatar[data-state='connecting'] .head {
+  animation: taFloat 3.6s ease-in-out infinite;
+}
+
+.avatar[data-state='connecting'] .orbit {
+  opacity: 0.3;
+}
+
+.avatar[data-state='listening'] .levelRing,
+.avatar[data-state='hearing'] .levelRing {
+  opacity: 1;
+}
+
+.avatar[data-state='listening'] .ripple {
+  animation: taRipple 2.8s var(--lt-ease) infinite;
+}
+
+.avatar[data-state='listening'] .rippleLate {
+  animation-delay: 1.4s;
+}
+
+.avatar[data-state='listening'] .head {
+  animation: taBreathe 3.2s ease-in-out infinite;
+}
+
+.avatar[data-state='hearing'] {
+  --accent: 52, 211, 153;
+}
+
+.avatar[data-state='hearing'] .ripple {
+  animation: taRipple 1.6s var(--lt-ease) infinite;
+}
+
+.avatar[data-state='hearing'] .rippleLate {
+  animation-delay: 0.8s;
+}
+
+.avatar[data-state='hearing'] .eyes {
+  transform: scale(1.12);
+  animation: none;
+}
+
+.avatar[data-state='thinking'] {
+  --tint: 167, 139, 250;
+}
+
+.avatar[data-state='thinking'] .electronSpin {
+  animation-duration: 1.25s;
+}
+
+.avatar[data-state='thinking'] .orbit {
+  opacity: 0.85;
+}
+
+.avatar[data-state='thinking'] .eyes {
+  transform: translate(3px, -4px);
+  animation: none;
+}
+
+.avatar[data-state='thinking'] .mouth {
+  d: path('M92 117 Q100 117 108 117');
+}
+
+.avatar[data-state='speaking'] {
+  --tint: 34, 211, 238;
+}
+
+.avatar[data-state='speaking'] .bars {
+  opacity: 1;
+}
+
+.avatar[data-state='speaking'] .bar {
+  animation: taBar 0.9s ease-in-out infinite;
+}
+
+.avatar[data-state='speaking'] .head {
+  animation: taPulse 1.15s ease-in-out infinite;
+}
+
+.avatar[data-state='speaking'] .mouth {
+  animation: taTalk 0.42s ease-in-out infinite alternate;
+}
+
+.avatar[data-state='speaking'] .electronSpin {
+  animation-duration: 3.2s;
+}
+
+.avatar[data-state='interrupted'] {
+  --tint: 251, 191, 36;
+  --accent: 251, 191, 36;
+}
+
+.avatar[data-state='interrupted'] .head {
+  animation: taJolt 0.45s var(--lt-ease) 1;
+}
+
+.avatar[data-state='interrupted'] .eyes {
+  transform: scale(1.25);
+  animation: none;
+}
+
+.avatar[data-state='interrupted'] .mouth {
+  d: path('M95 116 Q100 122 105 116');
+}
+
+.avatar[data-state='interrupted'] .electronSpin {
+  animation-play-state: paused;
+}
+
+.avatar[data-state='paused'] .svg {
+  filter: saturate(0.45) brightness(0.85);
+}
+
+.avatar[data-state='paused'] .electronSpin {
+  animation-duration: 12s;
+}
+
+.avatar[data-state='paused'] .eyes {
+  transform: scaleY(0.55);
+  animation: none;
+}
+
+@keyframes taSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes taRipple {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.32);
+  }
+}
+
+@keyframes taBreathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+@keyframes taFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes taPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.055);
+  }
+  60% {
+    transform: scale(0.99);
+  }
+}
+
+@keyframes taBar {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1.35);
+  }
+}
+
+@keyframes taTalk {
+  from {
+    d: path('M88 115 Q100 119 112 115');
+  }
+  to {
+    d: path('M90 114 Q100 128 110 114');
+  }
+}
+
+@keyframes taJolt {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(0.92);
+  }
+  65% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes taBlink {
+  0%,
+  46%,
+  50%,
+  100% {
+    transform: scaleY(1);
+  }
+  48% {
+    transform: scaleY(0.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar *,
+  .avatar *::before {
+    animation: none !important;
+  }
+
+  .levelRing {
+    transform: none;
+  }
+
+  .avatar[data-state='speaking'] .bar {
+    transform: scaleY(0.8);
+  }
+}

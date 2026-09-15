@@ -1,11 +1,15 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { useUnifiedBrainSession } from '../../learn/brain'
-import type { AssistantLang, EmotionState, EngagementLevel } from '../../learn/brain'
+import type { AssistantLang } from '../../learn/brain'
+import { useT } from '../../i18n/useT'
+import { EMOTION_LABEL, ENGAGEMENT_LABEL, ENGAGEMENT_TONE, labelLocale } from './teacher/liveTutorLabels'
+import styles from './teacher/BrainInsightPanel.module.css'
 
 /**
- * Живой HUD супер-мозга поверх голосового опроса. Работает в режиме «только
+ * Живой HUD «мозга» поверх голосового опроса. Работает в режиме «только
  * зрение»: анализирует камеру (внимание, эмоция, вовлечённость, риск списывания)
  * и не занимает микрофон — не конфликтует со штатным распознаванием речи опроса.
+ * Видео обрабатывается локально.
  */
 type Props = {
   videoRef: RefObject<HTMLVideoElement | null>
@@ -14,38 +18,25 @@ type Props = {
   lang: AssistantLang
 }
 
-const EMOTION_RU: Record<EmotionState, string> = {
-  neutral: 'спокоен',
-  confused: 'в замешательстве',
-  frustrated: 'напряжён',
-  confident: 'уверен',
-  bored: 'скучает',
-  curious: 'любопытен',
-  tired: 'устал',
-}
-
-const ENGAGEMENT_RU: Record<EngagementLevel, string> = {
-  focused: 'вовлечён',
-  distracted: 'отвлекается',
-  absent: 'нет в кадре',
-  suspicious: 'подозрительно',
-}
-
-const ENGAGEMENT_COLOR: Record<EngagementLevel, string> = {
-  focused: '#5cffd4',
-  distracted: '#ffd166',
-  absent: '#9aa5b1',
-  suspicious: '#ff6b6b',
-}
-
 export function BrainInsightPanel({ videoRef, active, studentId, lang }: Props) {
+  const { t } = useT()
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null)
   const api = useUnifiedBrainSession({ studentId, lang, videoEl })
   const apiRef = useRef(api)
-  apiRef.current = api
-
   useEffect(() => {
-    setVideoEl(active ? videoRef.current : null)
+    apiRef.current = api
+  })
+
+  // ref.current не реактивен: ждём, пока <video> появится в DOM (раньше videoEl мог остаться null).
+  useEffect(() => {
+    let raf = 0
+    const check = () => {
+      const el = active ? videoRef.current : null
+      setVideoEl((prev) => (prev === el ? prev : el))
+      if (active && !el) raf = requestAnimationFrame(check)
+    }
+    raf = requestAnimationFrame(check)
+    return () => cancelAnimationFrame(raf)
   }, [active, videoRef])
 
   useEffect(() => {
@@ -56,79 +47,50 @@ export function BrainInsightPanel({ videoRef, active, studentId, lang }: Props) 
     return
   }, [active, videoEl])
 
+  const loc = labelLocale(lang)
   const fused = api.state.fused
   const attentionPct = fused ? Math.round(fused.attention * 100) : null
   const engagement = fused?.engagement ?? 'focused'
   const emotion = fused?.emotion ?? 'neutral'
   const integrityPct = fused ? Math.round(fused.integrityRisk * 100) : 0
 
-  const box: React.CSSProperties = {
-    marginTop: 12,
-    padding: '12px 14px',
-    borderRadius: 14,
-    background: 'linear-gradient(160deg, rgba(14,22,34,0.92), rgba(10,16,26,0.92))',
-    border: '1px solid rgba(92,255,212,0.18)',
-    color: '#dbe7f0',
-    fontSize: 13,
-    lineHeight: 1.5,
-  }
-  const rowStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 8,
-  }
-
   return (
-    <section style={box} aria-label="ИИ-анализ по камере">
-      <div style={{ ...rowStyle, marginBottom: 8 }}>
-        <strong style={{ color: '#5cffd4', letterSpacing: 0.3 }}>Мозг-наблюдатель</strong>
-        <span style={{ fontSize: 11, opacity: 0.7 }}>{api.state.running ? 'анализ…' : 'ожидание'}</span>
+    <section className={styles.panel} aria-label={t('learn.teacherUi.insightTitle')}>
+      <div className={styles.head}>
+        <strong className={styles.title}>{t('learn.teacherUi.insightTitle')}</strong>
+        <span className={styles.state} data-running={api.state.running ? '1' : undefined}>
+          {api.state.running ? t('learn.teacherUi.insightRunning') : t('learn.teacherUi.insightIdle')}
+        </span>
       </div>
 
-      {fused ? (
+      {fused && attentionPct !== null ? (
         <>
-          <div style={rowStyle}>
-            <span>Внимание</span>
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{attentionPct}%</span>
+          <div className={styles.row}>
+            <span>{t('learn.teacherUi.attention')}</span>
+            <span className={styles.value}>{attentionPct}%</span>
           </div>
-          <div
-            style={{
-              height: 6,
-              borderRadius: 6,
-              margin: '4px 0 10px',
-              background: 'rgba(255,255,255,0.08)',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                width: `${attentionPct ?? 0}%`,
-                height: '100%',
-                background: ENGAGEMENT_COLOR[engagement],
-                transition: 'width 0.3s ease',
-              }}
-            />
+          <div className={styles.bar} data-tone={ENGAGEMENT_TONE[engagement]}>
+            <span style={{ '--pct': `${attentionPct}%` } as CSSProperties} />
           </div>
-          <div style={rowStyle}>
-            <span>Состояние</span>
-            <span style={{ color: ENGAGEMENT_COLOR[engagement] }}>{ENGAGEMENT_RU[engagement]}</span>
+          <div className={styles.row}>
+            <span>{t('learn.teacherUi.insightState')}</span>
+            <span className={styles.tone} data-tone={ENGAGEMENT_TONE[engagement]}>
+              {ENGAGEMENT_LABEL[engagement][loc]}
+            </span>
           </div>
-          <div style={rowStyle}>
-            <span>Эмоция</span>
-            <span>{EMOTION_RU[emotion]}</span>
+          <div className={styles.row}>
+            <span>{t('learn.teacherUi.insightEmotion')}</span>
+            <span>{EMOTION_LABEL[emotion][loc]}</span>
           </div>
           {integrityPct > 40 ? (
-            <div style={{ ...rowStyle, marginTop: 6, color: '#ff6b6b' }}>
-              <span>Риск списывания</span>
-              <span>{integrityPct}%</span>
+            <div className={`${styles.row} ${styles.risk}`}>
+              <span>{t('learn.teacherUi.insightIntegrity')}</span>
+              <span className={styles.value}>{integrityPct}%</span>
             </div>
           ) : null}
         </>
       ) : (
-        <p style={{ opacity: 0.65, margin: 0 }}>
-          Наведите лицо в кадр — мозг оценит вовлечённость и эмоции.
-        </p>
+        <p className={styles.hint}>{t('learn.teacherUi.insightHint')}</p>
       )}
     </section>
   )

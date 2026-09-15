@@ -7,9 +7,8 @@
   padding: 3px;
   border-radius: 999px;
   border: 1px solid rgba(148, 170, 230, 0.18);
-  background: rgba(6, 9, 19, 0.78);
-  -webkit-backdrop-filter: saturate(140%) blur(10px);
-  backdrop-filter: saturate(140%) blur(10px);
+  /* Без backdrop-filter: в лаборатории сегмент лежит над живым WebGL (размытие пересчитывается каждый кадр). */
+  background: rgba(6, 9, 19, 0.9);
   box-shadow: 0 8px 24px -12px rgba(2, 6, 23, 0.8);
   flex-shrink: 0;
   box-sizing: border-box;

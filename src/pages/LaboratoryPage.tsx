@@ -175,6 +175,9 @@ export function LaboratoryPage() {
     syncReactorClearance()
     const ro = new ResizeObserver(syncReactorClearance)
     ro.observe(wrap)
+    // Высота самого дока меняется без ресайза обёртки (разделы, условия, статус).
+    const reactorEl = wrap.querySelector<HTMLElement>('[data-lab-reactor]')
+    if (reactorEl) ro.observe(reactorEl)
     window.addEventListener('resize', syncReactorClearance)
     return () => {
       ro.disconnect()
@@ -947,7 +950,23 @@ export function LaboratoryPage() {
     )
   }, [reactorMessage])
 
+  /**
+   * Правка уравнения стирает старое сообщение. Но если сообщение пришло в том же
+   * коммите, что и правка (выбор вещества в каталоге → SCHOOL_ROUTE_ONLY / нет левой
+   * части, загрузка урока), это объяснение к новому уравнению — его не трогаем.
+   */
+  const equationEditSnapshotRef = useRef({ leftTerms, productCompoundId, productCoeff, reactorMessage })
   useEffect(() => {
+    const prevSnap = equationEditSnapshotRef.current
+    equationEditSnapshotRef.current = { leftTerms, productCompoundId, productCoeff, reactorMessage }
+    const leftTermsChanged =
+      prevSnap.leftTerms !== leftTerms && (prevSnap.leftTerms.length > 0 || leftTerms.length > 0)
+    const equationChanged =
+      leftTermsChanged ||
+      prevSnap.productCompoundId !== productCompoundId ||
+      prevSnap.productCoeff !== productCoeff
+    if (!equationChanged) return
+    if (reactorMessage && reactorMessage !== prevSnap.reactorMessage) return
     queueMicrotask(() => {
       setReactorMessage((prev) => {
         if (!prev) return prev
@@ -955,7 +974,7 @@ export function LaboratoryPage() {
         return null
       })
     })
-  }, [leftTerms, productCompoundId, productCoeff])
+  }, [leftTerms, productCompoundId, productCoeff, reactorMessage])
 
   const synthRunActive = reactorOpen && runId > 0
   const labTeacherActive =

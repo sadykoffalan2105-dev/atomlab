@@ -4,9 +4,8 @@
 
 name: Deploy Netlify
 
+# Запуск только вручную: основной сайт публикует «Publish site» на GitHub Pages.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -36,8 +35,12 @@ jobs:
           grep -rq "Конспект по пробелам" dist/assets/ || grep -rq "learn.studentStats.conspect.title" dist/assets/
 
       - name: Deploy site + TTS function (Netlify CLI)
-        if: ${{ secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_SITE_ID != '' }}
-        run: npx netlify-cli@23 deploy --prod --dir=dist --functions=netlify/functions --message="Deploy ${{ github.sha }}"
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ] || [ -z "$NETLIFY_SITE_ID" ]; then
+            echo "Skip Netlify — secrets not configured"
+            exit 0
+          fi
+          npx netlify-cli@23 deploy --prod --dir=dist --functions=netlify/functions --message="Deploy ${{ github.sha }}"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

@@ -1,326 +1,440 @@
-.backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 44;
-  background: rgba(2, 4, 12, 0.58);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
-}
+/*
+ * Таблица Менделеева в лаборатории · «Aurora Lab».
+ * Токены --lt-* (src/learn/learnTheme.css), размеры только в px: корневой rem приложения 8–9px.
+ *
+ * Слои: backdrop 44 < реактор 48 < панель 50 < .rightHud 70 < шапка 80.
+ * Панель начинается ниже .rightHud (шапка + 14px + 46px + зазор), компактный вариант
+ * стоит над реактором: низ = --lab-reactor-clearance (замер [data-lab-reactor]).
+ * Без backdrop-filter и transform-анимаций: под панелью непрерывно рендерится WebGL.
+ *
+ * Размер сетки передаётся в PeriodicTableTextbook (.textbookEmbed) через --ptl-*:
+ *   --ptl-row-min  минимальная высота ряда (если места меньше — прокрутка внутри панели)
+ *   --ptl-head-h / --ptl-sub-h  строки «группы» и «A/B»
+ *   --ptl-lab-w / --ptl-lab-w2  колонки «период» / «ряд»
+ *   --ptl-gap / --ptl-fgap  зазор ячеек и зазор перед f-рядами
+ *   --ptl-col-min  минимальная ширина колонки элемента
+ *   --ptl-cell-pad  внутренний отступ ячейки
+ *   --ptl-pad-end  запас после последнего ряда (под мягкий край прокрутки)
+ */
 
-.backdrop[data-open='true'] {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* Затемнение кликом закрывает таблицу; без blur — иначе мигание поверх WebGL */
 .backdropSoft {
   position: fixed;
-  inset: 0;
+  inset: var(--app-header-h, 58px) 0 0 0;
   z-index: 44;
-  background: rgba(2, 2, 12, 0.52);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background:
+    radial-gradient(70% 60% at 50% 40%, rgba(12, 18, 40, 0.35), transparent 70%),
+    rgba(3, 5, 12, 0.6);
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    visibility 0s linear 0.18s;
 }
 
 .backdropSoft[data-open='true'] {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  transition: opacity 0.18s ease;
 }
 
-/* Лаборатория: центрированная горизонтальная «плакета», не на весь кадр */
+/* Над реактором затемняем только сцену и слабее: реактор (z48) остаётся ярким и кликабельным */
+.backdropSoft[data-layout='labCompact'] {
+  background: rgba(3, 5, 12, 0.38);
+}
+
 .panelOpen {
-  display: flex;
-  flex-direction: column;
+  /* .rightHud: шапка + 14px, высота 46px → панель на 8px ниже него */
+  --panel-top: calc(var(--app-header-h, 58px) + 68px);
+
   position: fixed;
   z-index: 50;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
-  border: none;
-  border-radius: 16px;
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  box-shadow: none;
+  border-radius: var(--lt-radius-lg);
+  border: 1px solid var(--lt-border-strong);
+  background:
+    radial-gradient(60% 50% at 0% 0%, rgba(91, 140, 255, 0.1), transparent 70%),
+    radial-gradient(50% 45% at 100% 0%, rgba(139, 92, 246, 0.09), transparent 70%),
+    linear-gradient(180deg, rgba(15, 20, 40, 0.97), rgba(8, 11, 24, 0.98));
+  box-shadow:
+    var(--lt-shadow-lg),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  letter-spacing: normal;
   overflow: hidden;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  /* Только opacity — анимация transform давала мигание поверх WebGL */
-  transition: opacity 0.18s ease;
+  /* Только opacity — transform-анимация давала мигание поверх WebGL; закрытая панель не рисуется */
+  transition:
+    opacity 0.18s ease,
+    visibility 0s linear 0.18s;
   contain: layout paint;
   isolation: isolate;
 }
 
 .panelOpen[data-open='true'] {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  transition: opacity 0.18s ease;
 }
 
-/* Симметричный центр: равные поля сверху/снизу и слева/справа */
+.panelOpen *,
+.panelOpen *::before,
+.panelOpen *::after {
+  box-sizing: border-box;
+}
+
+/* ——— Модальная таблица (реактор закрыт) ——— */
 .panelOpenCenter {
   left: 50%;
-  top: 50%;
-  width: min(1240px, calc(100vw - 2.25rem));
-  height: min(58vh, 600px);
-  max-width: calc(100vw - 2.25rem);
-  max-height: min(58vh, calc(100dvh - 2.75rem));
-  transform: translate(-50%, -50%);
+  top: var(--panel-top);
+  width: min(1360px, calc(100vw - 40px));
+  height: min(920px, calc(100dvh - var(--panel-top) - 20px));
+  transform: translateX(-50%);
 }
 
-/* Над реактором: та же карточка, выше и ниже по высоте */
+/* ——— Компактная таблица над реактором ——— */
 .panelOpenCompact {
   left: 50%;
-  top: 43%;
-  width: min(1160px, calc(100vw - 2.25rem));
-  height: min(44vh, 440px);
-  max-width: calc(100vw - 2.25rem);
-  max-height: min(
-    44vh,
-    calc(100dvh - var(--lab-reactor-clearance, calc(min(56vh, 540px) + 10px)) - 1.25rem)
+  top: auto;
+  bottom: calc(var(--lab-reactor-clearance, calc(min(56vh, 540px) + 10px)) + 4px);
+  width: min(1180px, calc(100vw - 40px));
+  height: min(
+    540px,
+    max(
+      150px,
+      calc(100dvh - var(--lab-reactor-clearance, calc(min(56vh, 540px) + 10px)) - 4px - var(--panel-top))
+    )
   );
-  transform: translate(-50%, -50%);
+  border-radius: var(--lt-radius);
+  transform: translateX(-50%);
 }
 
-.tableWrapOpen {
-  flex: 1;
-  min-height: 0;
-  height: 100%;
-  padding: 0.75rem 0.9rem 0.8rem;
-  overflow: hidden !important;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  position: relative;
-  z-index: 1;
-  isolation: isolate;
-  /* Непрозрачная подложка без blur — WebGL не мигает */
-  background:
-    linear-gradient(165deg, rgba(12, 14, 36, 0.98) 0%, rgba(6, 8, 22, 0.99) 55%, rgba(4, 6, 16, 0.99) 100%);
-  border-radius: 18px;
-  border: 1px solid rgba(150, 175, 230, 0.26);
-  box-shadow:
-    0 22px 56px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.045) inset,
-    0 1px 0 rgba(180, 200, 255, 0.08) inset,
-    0 0 40px rgba(80, 60, 160, 0.12);
+/* Реактор свёрнут («Скрыть реактор»: data-collapsed, высота не меняется) — таблица опускается
+ * к низу экрана над кнопками возврата. Реактор и панель — соседи внутри .wrap LaboratoryPage. */
+[data-lab-reactor][data-collapsed='true'] ~ .panelOpenCompact {
+  bottom: 88px;
+  height: min(540px, max(150px, calc(100dvh - 88px - var(--panel-top))));
 }
 
-.tableWrapOpen::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-}
-
-.closeFloat {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.55rem;
-  left: auto;
-  z-index: 8;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.9rem;
-  height: 1.9rem;
-  padding: 0;
-  margin: 0;
-  border-radius: 999px;
-  border: 1px solid rgba(150, 180, 230, 0.34);
-  background: rgba(8, 12, 26, 0.88);
-  color: rgba(220, 230, 250, 0.94);
-  font-size: 1.15rem;
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    border-color 0.16s ease,
-    color 0.16s ease,
-    background 0.16s ease,
-    box-shadow 0.16s ease;
-}
-
-.closeFloat:hover {
-  border-color: rgba(120, 220, 230, 0.55);
-  color: #a8f6ee;
-  background: rgba(12, 20, 36, 0.95);
-  box-shadow: 0 0 14px rgba(80, 180, 200, 0.2);
-}
-
-.closeFloat:focus-visible {
-  outline: 2px solid rgba(120, 230, 220, 0.65);
-  outline-offset: 2px;
-}
-
-.panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  z-index: 45;
-  background: linear-gradient(165deg, rgba(18, 22, 48, 0.92), rgba(8, 10, 26, 0.96));
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.55),
-    0 0 28px rgba(61, 255, 236, 0.14),
-    inset 0 0 0 1px rgba(181, 107, 255, 0.1);
-}
-
-/* Лаборатория: почти на весь экран, по центру (крупная сетка — базовые .grid без ужатия) */
-.panelModal {
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  z-index: 45;
-  left: 50%;
-  top: 50%;
-  width: min(1200px, calc(100vw - 2 * clamp(12px, 3vw, 24px)));
-  max-width: calc(100vw - 1.5rem);
-  max-height: min(90vh, calc(100dvh - 2.5rem));
-  min-height: 0;
-  height: auto;
-  border: 1px solid rgba(61, 255, 236, 0.4);
-  border-radius: 16px;
-  transform: translate(-50%, -50%) scale(0.97);
-  opacity: 0;
-  pointer-events: none;
-  transition:
-    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.24s ease;
-}
-
-.panelModal[data-open='true'] {
-  transform: translate(-50%, -50%) scale(1);
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.headModal {
+/* ——— Шапка модальной таблицы ——— */
+.head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.55rem 0.85rem;
-  border-bottom: 1px solid rgba(61, 255, 236, 0.16);
-  position: relative;
-  z-index: 1;
+  gap: 14px;
   flex-shrink: 0;
+  min-width: 0;
+  padding: 12px 14px 10px 16px;
+  border-bottom: 1px solid var(--lt-border);
+}
+
+.headBadge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--lt-radius-sm);
+  background: var(--lt-grad-primary);
+  color: #fff;
+  box-shadow: var(--lt-glow-primary);
+}
+
+.headBadge svg {
+  width: 20px;
+  height: 20px;
+}
+
+.headText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .headTitle {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: #e8edff;
-  text-shadow: 0 0 20px rgba(61, 255, 236, 0.2);
+  font-family: var(--lt-font-display);
+  font-size: var(--lt-fs-h3);
+  font-weight: 750;
+  line-height: var(--lt-lh-tight);
+  letter-spacing: -0.005em;
+  color: var(--lt-text);
+  white-space: nowrap;
 }
 
-.hintSub {
-  margin: 0.3rem 0 0;
-  font-size: 0.7rem;
-  line-height: 1.35;
-  color: rgba(170, 185, 220, 0.88);
-  max-width: 40ch;
-}
-
-.panelModal .tableWrap {
-  flex: 1;
-  min-height: 0;
-  max-height: min(78vh, calc(100dvh - 7rem));
-  overflow: auto;
-  padding: 0.75rem 1rem 1rem;
-}
-
-.orbitDecor {
-  position: absolute;
-  inset: -20% -10%;
-  background: radial-gradient(ellipse at 30% 20%, rgba(61, 255, 236, 0.1), transparent 55%),
-    radial-gradient(ellipse at 80% 60%, rgba(181, 107, 255, 0.08), transparent 45%);
-  pointer-events: none;
-}
-
-.stars {
-  position: absolute;
-  inset: 0;
-  opacity: 0.4;
-  background-image: radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.45), transparent),
-    radial-gradient(1px 1px at 80% 70%, rgba(255, 255, 255, 0.35), transparent);
-  background-size: 120px 120px;
-  pointer-events: none;
-}
-
-.head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.1rem 0.85rem;
-  border-bottom: 1px solid rgba(61, 255, 236, 0.18);
-  position: relative;
-  z-index: 1;
-}
-
-.headText .title {
+.headHint {
   margin: 0;
-  font-size: 1.35rem;
-  letter-spacing: 0.12em;
-  color: #f0f4ff;
-  text-shadow: 0 0 24px rgba(61, 255, 236, 0.25);
+  font-size: var(--lt-fs-xs);
+  line-height: 1.35;
+  color: var(--lt-text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.headIntro {
-  margin: 0.5rem 0 0;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: rgba(195, 205, 235, 0.92);
-  max-width: 62ch;
+.headLegend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
 }
 
-.headText .sub {
-  margin: 0.45rem 0 0;
-  font-size: 0.72rem;
-  line-height: 1.4;
-  color: rgba(160, 175, 210, 0.88);
-  max-width: 62ch;
-}
+.headLegendItem {
+  --dot: var(--lt-text-3);
 
-.close {
-  flex-shrink: 0;
-  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 2.222rem;
-  height: 2.222rem;
-  padding: 0;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 11px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid color-mix(in srgb, var(--dot) 30%, transparent);
+  background: color-mix(in srgb, var(--dot) 9%, transparent);
+  font-size: var(--lt-fs-xs);
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--lt-text-2);
+  white-space: nowrap;
+}
+
+.headLegendItem[data-block='s'] {
+  --dot: var(--lt-success);
+}
+
+.headLegendItem[data-block='p'] {
+  --dot: var(--lt-accent-pink);
+}
+
+.headLegendItem[data-block='d'] {
+  --dot: var(--lt-g11-a);
+}
+
+.headLegendItem[data-block='f'] {
+  --dot: var(--lt-g8-a);
+}
+
+.headLegendItem[data-block='noble'] {
+  --dot: var(--lt-accent-cyan);
+}
+
+.headLegendDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dot);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--dot) 70%, transparent);
+}
+
+/* ——— Кнопки закрытия ——— */
+.closeBtn,
+.closeFloat {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
   margin: 0;
-  border-radius: 0.556rem;
-  border: 1px solid rgba(139, 147, 184, 0.4);
-  background: rgba(24, 28, 52, 0.75);
-  color: #c8d0f0;
-  font-size: 1.35rem;
-  line-height: 1;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--lt-border-strong);
+  background: rgba(148, 170, 230, 0.08);
+  color: var(--lt-text-2);
   cursor: pointer;
+  transition:
+    background var(--lt-dur) var(--lt-ease),
+    color var(--lt-dur) var(--lt-ease),
+    border-color var(--lt-dur) var(--lt-ease);
 }
 
-.close:hover {
-  border-color: rgba(61, 255, 236, 0.55);
-  color: #3dffec;
-  box-shadow: 0 0 16px rgba(61, 255, 236, 0.2);
+.closeBtn svg,
+.closeFloat svg {
+  width: 18px;
+  height: 18px;
 }
 
-.tableWrap {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 0.65rem 1rem 1rem;
+.closeBtn:hover,
+.closeFloat:hover {
+  color: var(--lt-text);
+  border-color: rgba(148, 170, 230, 0.45);
+  background: var(--lt-surface-hover);
+}
+
+.closeBtn:focus-visible,
+.closeFloat:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+/* В компактном варианте шапки нет: кнопка лежит над пустым углом триады (периоды 1–3, Co/Ni) */
+.closeFloat {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 8;
+  width: 32px;
+  height: 32px;
+  background: rgba(15, 20, 40, 0.96);
+}
+
+.closeFloat svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ——— Область таблицы ——— */
+.tableWrapOpen {
   position: relative;
   z-index: 1;
+  flex: 1;
+  min-height: 0;
+  padding: 10px 14px 14px;
+  overflow: hidden;
+  isolation: isolate;
 }
 
+.tableWrapTextbook {
+  display: flex;
+  flex-direction: column;
+  --pt-cell-h: 44px;
+  --ptl-row-min: 30px;
+  --ptl-head-h: 24px;
+  --ptl-sub-h: 16px;
+  --ptl-lab-w: 22px;
+  --ptl-lab-w2: 20px;
+  --ptl-gap: 4px;
+  --ptl-fgap: 12px;
+  --ptl-col-min: 0px;
+  --ptl-cell-pad: 3px 7px 3px 9px;
+}
+
+.tableWrapTextbook[data-layout='labCompact'] {
+  padding: 6px 10px 8px;
+  --ptl-row-min: 20px;
+  --ptl-head-h: 18px;
+  --ptl-sub-h: 0px;
+  --ptl-gap: 3px;
+  --ptl-fgap: 6px;
+  --ptl-cell-pad: 1px 6px 1px 8px;
+}
+
+/* Прокрутка, если рядам не хватает высоты (ноутбук с высоким реактором) */
+.textbookInLab {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 170, 230, 0.28) transparent;
+}
+
+@media (max-width: 1100px) {
+  .headLegend {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .panelOpen {
+    --panel-top: calc(var(--app-header-h, 104px) + 68px);
+  }
+
+  .panelOpenCenter,
+  .panelOpenCompact {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    transform: none;
+    border-radius: var(--lt-radius);
+  }
+
+  .panelOpenCenter {
+    height: calc(100dvh - var(--panel-top) - 10px);
+  }
+
+  .head {
+    gap: 10px;
+    padding: 8px 8px 8px 12px;
+  }
+
+  .headBadge {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  .headBadge svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .headHint {
+    display: none;
+  }
+
+  .closeBtn {
+    margin-left: auto;
+    width: 36px;
+    height: 36px;
+  }
+
+  .tableWrapOpen {
+    padding: 6px 6px 8px;
+  }
+
+  .tableWrapTextbook {
+    --ptl-row-min: 30px;
+    --ptl-head-h: 18px;
+    --ptl-sub-h: 14px;
+    --ptl-lab-w: 14px;
+    --ptl-lab-w2: 13px;
+    --ptl-gap: 2px;
+    --ptl-fgap: 8px;
+    --ptl-col-min: 28px;
+    --ptl-cell-pad: 2px 2px 2px 5px;
+  }
+
+  .tableWrapTextbook[data-layout='labCompact'] {
+    padding: 6px 6px 0;
+    --ptl-row-min: 24px;
+    --ptl-head-h: 18px;
+    --ptl-sub-h: 0px;
+    --ptl-fgap: 5px;
+    --ptl-cell-pad: 1px 2px 1px 5px;
+    --ptl-pad-end: 20px;
+  }
+
+  /* На телефоне ряды над реактором почти всегда прокручиваются: мягкий край снизу
+   * подсказывает прокрутку, запас в конце не даёт последнему ряду остаться в тени. */
+  .tableWrapTextbook[data-layout='labCompact'] .textbookInLab {
+    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent);
+    mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent);
+  }
+
+  .closeFloat {
+    top: 4px;
+    right: 4px;
+    width: 30px;
+    height: 30px;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+ * Наследие: классы ниже использует только PeriodicTableGrid.tsx (сейчас нигде не
+ * подключён). Оставлены, чтобы компонент продолжал собираться.
+ * ═════════════════════════════════════════════════════════════════════════ */
 .gridWrap {
   display: flex;
   flex-direction: column;
@@ -399,49 +513,24 @@
   transform: translateY(-1px);
 }
 
-/* Неон по блокам: s — лайм, p — циан, d — золото, f — пурпур */
 .blockS {
   background: rgba(180, 255, 80, 0.08);
   border-color: rgba(190, 255, 100, 0.55);
-  box-shadow: 0 0 12px rgba(170, 255, 90, 0.12);
 }
 
 .blockP {
   background: rgba(80, 220, 255, 0.08);
   border-color: rgba(100, 230, 255, 0.55);
-  box-shadow: 0 0 12px rgba(80, 220, 255, 0.14);
 }
 
 .blockD {
   background: rgba(255, 200, 80, 0.09);
   border-color: rgba(255, 210, 120, 0.55);
-  box-shadow: 0 0 12px rgba(255, 200, 100, 0.12);
 }
 
 .blockF {
   background: rgba(220, 120, 255, 0.09);
   border-color: rgba(230, 140, 255, 0.55);
-  box-shadow: 0 0 12px rgba(210, 120, 255, 0.14);
-}
-
-.cellBtn.blockS:hover {
-  border-color: rgba(200, 255, 120, 0.95);
-  box-shadow: 0 0 22px rgba(180, 255, 100, 0.35);
-}
-
-.cellBtn.blockP:hover {
-  border-color: rgba(120, 240, 255, 0.95);
-  box-shadow: 0 0 22px rgba(100, 230, 255, 0.35);
-}
-
-.cellBtn.blockD:hover {
-  border-color: rgba(255, 220, 140, 0.95);
-  box-shadow: 0 0 22px rgba(255, 210, 120, 0.32);
-}
-
-.cellBtn.blockF:hover {
-  border-color: rgba(240, 160, 255, 0.95);
-  box-shadow: 0 0 22px rgba(220, 140, 255, 0.35);
 }
 
 .mendeleevLaw {
@@ -489,7 +578,6 @@
 
 .cellMassLine .m {
   opacity: 1;
-  font-variant-numeric: tabular-nums;
 }
 
 .cellSymbolRow {
@@ -504,7 +592,6 @@
   font-weight: 800;
   font-size: 0.68rem;
   color: #f2f7ff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   font-family: ui-monospace, 'JetBrains Mono', 'SF Mono', Consolas, monospace;
 }
 
@@ -552,101 +639,26 @@
 
 .legendS {
   background: rgba(190, 255, 100, 0.55);
-  box-shadow: 0 0 10px rgba(180, 255, 90, 0.45);
 }
 
 .legendP {
   background: rgba(100, 220, 255, 0.55);
-  box-shadow: 0 0 10px rgba(80, 220, 255, 0.45);
 }
 
 .legendD {
   background: rgba(255, 200, 100, 0.55);
-  box-shadow: 0 0 10px rgba(255, 200, 100, 0.4);
 }
 
 .legendF {
   background: rgba(220, 130, 255, 0.55);
-  box-shadow: 0 0 10px rgba(210, 120, 255, 0.45);
 }
 
-/* Лаборатория: таблица без шторки/заголовка, чуть крупнее, без скролла */
-.panelModalLabCompact {
-  top: auto;
-  left: 50%;
-  right: auto;
-  bottom: calc(10px + min(34vh, 320px) + 8px);
-  width: min(1440px, calc(100vw - 0.75rem));
-  max-width: calc(100vw - 0.75rem);
-  max-height: min(74vh, 820px);
-  min-height: 0;
-  transform: translateX(-50%) scale(0.98);
-  z-index: 50;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  box-shadow: none;
-  overflow: hidden;
-}
-
-.panelModalLabCompact[data-open='true'] {
-  transform: translateX(-50%) scale(1);
-}
-
-.tableWrapLabCompact {
-  flex: 1;
-  min-height: 0;
-  max-height: min(74vh, 820px) !important;
-  padding: 0.2rem 0.35rem 0.25rem;
-  overflow: hidden !important;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.tableWrapLabCompact::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-}
-
-.tableWrapTextbook {
-  display: flex;
-  flex-direction: column;
-  --pt-cell-h: 44px;
-}
-
-.textbookInLab {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  height: 100%;
-}
-
-.closeLabCompact {
-  position: absolute;
-  top: 0.15rem;
-  right: 0.15rem;
-  z-index: 6;
-  width: 1.7rem;
-  height: 1.7rem;
-  font-size: 1.15rem;
-  background: rgba(6, 10, 22, 0.55);
-}
-
-.panelModal {
-  width: min(1280px, calc(100vw - 2 * clamp(12px, 3vw, 24px)));
-}
-
-/* Компактная сетка ПСХЭ: Z+символ в ячейке, без многострочного переполнения */
 .gridWrapCompact {
   gap: 0.4rem;
-  min-width: min(100%, 100%);
+  min-width: 100%;
 }
 
 .gridCompact {
-  /* Близко к полноразмерной: достаточная min-ширина колонок для чтения */
   grid-template-columns: 26px repeat(18, minmax(2.1rem, 1fr));
   grid-template-rows: auto auto repeat(9, minmax(2.7rem, auto));
   gap: 3px;
@@ -664,7 +676,6 @@
   overflow: hidden;
 }
 
-/* Уплотнённые оси — не съедают тело таблицы */
 .gridCompact .axisHead,
 .gridCompact .axisSide {
   font-size: 0.56rem;
@@ -676,10 +687,8 @@
   font-size: 0.45rem;
   line-height: 1;
   white-space: nowrap;
-  letter-spacing: -0.01em;
 }
 
-/* Z, символ, короткое имя; mass в title у кнопки */
 .cellCompactInner {
   display: flex;
   flex-direction: column;
@@ -696,7 +705,6 @@
   font-weight: 800;
   color: #f2f7ff;
   font-family: ui-monospace, 'JetBrains Mono', 'SF Mono', Consolas, monospace;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .cellCompactSym {
@@ -721,41 +729,4 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   word-break: break-word;
-  hyphens: auto;
-}
-
-@media (max-width: 700px) {
-  .headModal {
-    flex-wrap: wrap;
-  }
-
-  .panelModal {
-    max-height: min(88vh, calc(100dvh - 1.5rem));
-  }
-
-  .panelModal .tableWrap {
-    max-height: min(72vh, calc(100dvh - 8.5rem));
-  }
-
-  .panelModalLabCompact {
-    max-height: min(62dvh, 580px);
-    width: calc(100vw - 1rem);
-    bottom: calc(8px + min(42dvh, 300px) + 6px);
-  }
-
-  .panelOpenCenter {
-    width: calc(100vw - 1.1rem);
-    height: min(60vh, 540px);
-    max-height: min(60vh, calc(100dvh - 2.25rem));
-  }
-
-  .panelOpenCompact {
-    top: 40%;
-    width: calc(100vw - 1.1rem);
-    height: min(40vh, 380px);
-    max-height: min(
-      40vh,
-      calc(100dvh - var(--lab-reactor-clearance, calc(min(50dvh, 420px) + 8px)) - 1rem)
-    );
-  }
 }

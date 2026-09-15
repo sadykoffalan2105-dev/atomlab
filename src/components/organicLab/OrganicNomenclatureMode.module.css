@@ -1,107 +1,221 @@
+/* Квиз «Название» органической лаборатории · «Aurora Lab» (px / --lt-*). */
+
 .wrap {
-  padding: 1rem 1.1rem 1.4rem;
-  max-width: 40rem;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: clamp(18px, 2vw, 28px);
+  border-radius: var(--lt-radius-lg);
+  border: 1px solid var(--lt-border-strong);
+  background:
+    radial-gradient(90% 60% at 0% 0%, rgba(45, 212, 191, 0.08), transparent 60%),
+    linear-gradient(180deg, rgba(16, 22, 44, 0.9), rgba(10, 14, 30, 0.92));
+  box-shadow: var(--lt-shadow);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-body);
+  line-height: var(--lt-lh);
+}
+
+.wrap *,
+.wrap *::before,
+.wrap *::after {
+  box-sizing: border-box;
 }
 
 .title {
-  margin: 0 0 0.35rem;
-  font-size: 1.15rem;
-  font-weight: 650;
+  margin: 0 0 8px;
+  font-family: var(--lt-font-display);
+  font-size: var(--lt-fs-h2);
+  font-weight: 750;
+  line-height: 1.2;
+  color: var(--lt-text);
 }
 
 .progress {
-  margin: 0 0 0.85rem;
-  font-size: 0.82rem;
-  opacity: 0.7;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  margin: 0 0 16px;
+  padding: 0 11px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--lt-border);
+  background: rgba(148, 170, 230, 0.08);
+  font-size: var(--lt-fs-xs);
+  font-weight: 700;
+  color: var(--lt-text-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .prompt {
-  margin: 0 0 0.55rem;
-  font-size: 1.02rem;
+  margin: 0 0 12px;
+  font-size: var(--lt-fs-h3);
+  font-weight: 600;
   line-height: 1.45;
+  color: var(--lt-text);
 }
 
+/* <code>: глобальный стиль code даёт светлый фон и мелкий rem-кегль — перекрываем. */
 .formula {
-  display: inline-block;
-  margin-bottom: 0.85rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 0.35rem;
-  background: color-mix(in srgb, canvas 88%, #38bdf8);
-  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  margin: 0 0 16px;
+  padding: 4px 14px;
+  border-radius: var(--lt-radius-sm);
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  background:
+    linear-gradient(135deg, rgba(45, 212, 191, 0.12), rgba(91, 140, 255, 0.06) 70%),
+    rgba(6, 10, 22, 0.8);
+  color: #e3fbf6;
+  font-family: var(--lt-font);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
 }
 
 .options {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 8px;
 }
 
 .opt {
   appearance: none;
+  display: flex;
+  align-items: center;
+  min-height: 50px;
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: var(--lt-radius-sm);
+  border: 1px solid var(--lt-border-strong);
+  background: var(--lt-surface-2);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-body);
+  font-weight: 600;
+  line-height: 1.35;
   text-align: left;
-  padding: 0.7rem 0.85rem;
-  border-radius: 0.55rem;
-  border: 1px solid color-mix(in srgb, canvastext 18%, transparent);
-  background: color-mix(in srgb, canvas 92%, canvastext);
-  color: inherit;
-  font: inherit;
   cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background-color var(--lt-dur-fast) ease,
+    border-color var(--lt-dur-fast) ease,
+    color var(--lt-dur-fast) ease;
+}
+
+.opt:hover:not(:disabled) {
+  border-color: rgba(148, 170, 230, 0.45);
+  background: var(--lt-surface-hover);
+}
+
+.opt:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
 }
 
 .opt:disabled {
   cursor: default;
+  color: var(--lt-text-2);
 }
 
 .optSelected {
-  border-color: color-mix(in srgb, #38bdf8 70%, canvastext);
+  border-color: rgba(91, 140, 255, 0.7);
 }
 
-.optOk {
-  border-color: #22c55e;
-  background: color-mix(in srgb, #22c55e 18%, canvas);
+.optOk,
+.optOk:disabled {
+  border-color: rgba(52, 211, 153, 0.7);
+  background:
+    linear-gradient(90deg, rgba(52, 211, 153, 0.2), transparent 80%),
+    rgba(10, 30, 26, 0.9);
+  color: #d1fae5;
 }
 
-.optBad {
-  border-color: #ef4444;
-  background: color-mix(in srgb, #ef4444 14%, canvas);
+.optBad,
+.optBad:disabled {
+  border-color: rgba(251, 113, 133, 0.7);
+  background:
+    linear-gradient(90deg, rgba(251, 113, 133, 0.18), transparent 80%),
+    rgba(36, 12, 20, 0.9);
+  color: #ffe4e6;
 }
 
-.optReveal {
-  border-color: color-mix(in srgb, #22c55e 55%, canvastext);
+.optReveal,
+.optReveal:disabled {
+  border-color: rgba(52, 211, 153, 0.55);
+  color: #a7f3d0;
 }
 
 .footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  margin-top: 1rem;
-  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
 }
 
 .primary {
   appearance: none;
-  border: none;
-  border-radius: 0.5rem;
-  padding: 0.55rem 1rem;
-  background: #0ea5e9;
-  color: #0b1220;
-  font: inherit;
-  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 22px;
+  border: 1px solid transparent;
+  border-radius: var(--lt-radius-pill);
+  background: var(--lt-grad-primary);
+  color: #ffffff;
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-small);
+  font-weight: 700;
+  line-height: 1;
   cursor: pointer;
+  box-shadow:
+    var(--lt-glow-primary),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.primary:hover {
+  filter: brightness(1.08);
+}
+
+.primary:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.ok,
+.bad {
+  margin: 0;
+  font-size: var(--lt-fs-body);
+  font-weight: 700;
 }
 
 .ok {
-  color: #16a34a;
-  font-weight: 600;
+  color: var(--lt-success);
 }
 
 .bad {
-  color: #dc2626;
-  font-weight: 600;
+  color: var(--lt-danger);
+}
+
+/* итог квиза: отступ перед «Ещё раз» */
+p.ok,
+p.bad {
+  margin-bottom: 16px;
 }
 
 .empty {
-  padding: 1rem;
-  opacity: 0.75;
+  margin: 48px auto;
+  padding: 0 16px;
+  max-width: 520px;
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-body);
+  text-align: center;
+  color: var(--lt-text-3);
 }

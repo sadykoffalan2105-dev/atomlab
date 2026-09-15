@@ -1,4 +1,13 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 import { useT } from '../../../i18n/useT'
 import { CLO2_STEP_IDS, type Clo2StepId } from '../../../lab/cinema/scenes/clo2/clo2Steps'
 import { clo2StepStore, type Clo2StepStatus } from '../../../lab/cinema/scenes/clo2/clo2StepStore'
@@ -12,6 +21,12 @@ import { Clo2EnergyProfile } from './Clo2EnergyProfile'
  * DOM-панель пошагового урока «механизм ClO₂»: текст шага, уравнение стадии,
  * легенда стрелок и управление (Далее / Повторить / Автоплей).
  * Перерисовывается только на смене снимка clo2StepStore — не на кадр.
+ *
+ * Вёрстка «Aurora Lab»: шапка (урок · шаг · прогресс), заголовок и текст шага,
+ * уравнение, затем сворачиваемые разделы (энергетический профиль, обозначения).
+ * Широкий экран — колонка слева над холстом; ≤720px — нижний лист над реактором,
+ * не выше полосы .rightHud. Кнопка «свернуть» оставляет заголовок, уравнение и
+ * управление — холст остаётся свободным.
  */
 
 /** Минимальная пауза перед автопереходом, даже если учитель молчит. */
@@ -20,13 +35,116 @@ const AUTOPLAY_MIN_PAUSE_MS = 1400
 const SPEAKING_POLL_MS = 200
 
 const COLLAPSED_KEY = 'atomlab-clo2-panel-collapsed'
+const SECTION_KEY_PREFIX = 'atomlab-clo2-section-'
 
-function readCollapsed(): boolean {
+const MOBILE_QUERY = '(max-width: 720px)'
+/** Высокий широкий экран: профиль энергии помещается без прокрутки — открыт по умолчанию. */
+const ROOMY_QUERY = '(min-width: 721px) and (min-height: 900px)'
+
+function mediaMatches(query: string): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(query).matches
+}
+
+function readFlag(key: string): boolean | null {
   try {
-    return localStorage.getItem(COLLAPSED_KEY) === '1'
+    const v = localStorage.getItem(key)
+    return v === '1' ? true : v === '0' ? false : null
   } catch {
-    return false
+    return null
   }
+}
+
+function writeFlag(key: string, on: boolean): void {
+  try {
+    localStorage.setItem(key, on ? '1' : '0')
+  } catch {
+    /* private mode */
+  }
+}
+
+/** Без сохранённого выбора телефон открывает урок свёрнутым: 3D и реактор важнее текста. */
+function readCollapsed(): boolean {
+  return readFlag(COLLAPSED_KEY) ?? mediaMatches(MOBILE_QUERY)
+}
+
+function useMediaQuery(query: string): boolean {
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {}
+      const mq = window.matchMedia(query)
+      mq.addEventListener('change', onChange)
+      return () => mq.removeEventListener('change', onChange)
+    },
+    [query],
+  )
+  return useSyncExternalStore(
+    subscribe,
+    () => mediaMatches(query),
+    () => false,
+  )
+}
+
+/** Зазор между панелью и верхом реактора, px. */
+const REACTOR_GAP_PX = 10
+/** Реактор скрыт кнопкой «Скрыть»: на телефоне внизу остаются круглые FAB (≈ 48 px + отступ). */
+const COLLAPSED_REACTOR_GAP_MOBILE_PX = 76
+const BOTTOM_GAP_VAR = '--clo2-panel-bottom-gap'
+
+/** Верх реактора без учёта transform (анимация открытия не дёргает панель). */
+function reactorLayoutTop(reactor: HTMLElement): number {
+  const cs = getComputedStyle(reactor)
+  const bottom = parseFloat(cs.bottom)
+  if (cs.position === 'fixed' && Number.isFinite(bottom)) return window.innerHeight - bottom - reactor.offsetHeight
+  return reactor.getBoundingClientRect().top
+}
+
+/**
+ * Реальная высота реактора меняется без resize окна (балансировка, запуск синтеза),
+ * а --lab-reactor-clearance пересчитывается только по resize .wrap. Панель меряет
+ * [data-lab-reactor] сама и пишет --clo2-panel-bottom-gap (CSS берёт его первым).
+ */
+function useReactorBottomGap(panelRef: RefObject<HTMLElement | null>, enabled: boolean, isMobile: boolean): void {
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    const host = panel?.parentElement
+    const reactor = document.querySelector<HTMLElement>('[data-lab-reactor]')
+    if (!enabled || !panel || !host || !reactor) return
+    let last = Number.NaN
+    let settleTimer = 0
+    const apply = () => {
+      let gap = REACTOR_GAP_PX
+      if (reactor.getAttribute('data-collapsed') === 'true') {
+        if (isMobile) gap = COLLAPSED_REACTOR_GAP_MOBILE_PX
+      } else if (reactor.offsetHeight > 0) {
+        gap += Math.max(0, host.getBoundingClientRect().bottom - reactorLayoutTop(reactor))
+      }
+      gap = Math.round(gap)
+      if (gap === last) return
+      last = gap
+      panel.style.setProperty(BOTTOM_GAP_VAR, `${gap}px`)
+    }
+    const applyAndSettle = () => {
+      apply()
+      window.clearTimeout(settleTimer)
+      settleTimer = window.setTimeout(apply, 480)
+    }
+    apply()
+    const ro = new ResizeObserver(apply)
+    ro.observe(reactor)
+    ro.observe(host)
+    const mo = new MutationObserver(applyAndSettle)
+    mo.observe(reactor, { attributes: true, attributeFilter: ['data-collapsed', 'data-open', 'class'] })
+    reactor.addEventListener('transitionend', apply)
+    window.addEventListener('resize', apply)
+    return () => {
+      ro.disconnect()
+      mo.disconnect()
+      window.clearTimeout(settleTimer)
+      reactor.removeEventListener('transitionend', apply)
+      window.removeEventListener('resize', apply)
+      panel.style.removeProperty(BOTTOM_GAP_VAR)
+    }
+  }, [panelRef, enabled, isMobile])
 }
 
 function toClo2Locale(locale: string): Clo2Locale {
@@ -52,10 +170,15 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
   const { t, locale } = useT()
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const narrationMark = useRef<NarrationMark | null>(null)
+  const isMobile = useMediaQuery(MOBILE_QUERY)
+
+  const panelRef = useRef<HTMLElement>(null)
 
   const { runId, step, stepCount, status, autoplay } = snapshot
   const visible = active && runId > 0
   const clo2Locale = toClo2Locale(locale)
+
+  useReactorBottomGap(panelRef, visible, isMobile)
 
   // Док тоже ставит язык, но панель может жить без него; эффект стоит до озвучки.
   // Смена языка прерывает текущую реплику — повторяем шаг уже на новом языке.
@@ -112,7 +235,7 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
       const isSpace = e.code === 'Space' || e.key === ' '
       if (e.key === 'ArrowRight' || isSpace) {
         // Пробел на сфокусированной кнопке сам вызовет click — не дублируем.
-        if (isSpace && e.target instanceof HTMLElement && e.target.closest('button, a, [role="button"]')) return
+        if (isSpace && e.target instanceof HTMLElement && e.target.closest('button, a, [role="button"], summary')) return
         e.preventDefault()
         if (!e.repeat) clo2StepStore.next()
         return
@@ -137,21 +260,20 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
   const canReplay = status === 'playing' || status === 'paused'
   const counter = t('lab.mechanism.stepOf', { n: step + 1, total: stepCount })
   const equationParts = stepText.equation.split(/\s*;\s*/).filter(Boolean)
+  const collapseLabel = collapsed ? t('lab.mechanism.showDetails') : t('lab.mechanism.hideDetails')
+  const replayLabel = t('lab.mechanism.replay')
 
   const toggleCollapsed = () => {
     setCollapsed((c) => {
       const next = !c
-      try {
-        localStorage.setItem(COLLAPSED_KEY, next ? '1' : '0')
-      } catch {
-        /* private mode */
-      }
+      writeFlag(COLLAPSED_KEY, next)
       return next
     })
   }
 
   return (
     <section
+      ref={panelRef}
       className={styles.panel}
       data-lab-lesson-panel=""
       role="region"
@@ -160,69 +282,75 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
       data-collapsed={collapsed ? '1' : undefined}
     >
       <header className={styles.head}>
-        <span className={styles.badge}>
-          {text.intro.title}
-          {busy ? (
-            <span className={styles.playing}>
-              <span className={styles.playingDot} aria-hidden />
-              <span className={styles.srOnly}>{t('lab.mechanism.playing')}</span>
+        <div className={styles.headRow}>
+          <span className={styles.kicker}>
+            <span className={styles.kickerIcon} aria-hidden>
+              <MechanismIcon />
             </span>
-          ) : null}
-        </span>
-        <span className={styles.counter}>{counter}</span>
-        <button
-          type="button"
-          className={styles.collapseBtn}
-          onClick={toggleCollapsed}
-          aria-expanded={!collapsed}
-          title={collapsed ? t('lab.mechanism.showDetails') : t('lab.mechanism.hideDetails')}
-          aria-label={collapsed ? t('lab.mechanism.showDetails') : t('lab.mechanism.hideDetails')}
-        >
-          <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden>
-            <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
-        </button>
-      </header>
-
-      <div
-        className={styles.progress}
-        role="progressbar"
-        aria-label={t('lab.mechanism.progressAria')}
-        aria-valuemin={1}
-        aria-valuemax={stepCount}
-        aria-valuenow={step + 1}
-        aria-valuetext={counter}
-      >
-        {Array.from({ length: stepCount }, (_, i) => (
-          <span
-            key={i}
-            className={styles.seg}
-            data-state={i < step || status === 'done' ? 'done' : i === step ? 'current' : 'todo'}
-          />
-        ))}
-      </div>
-
-      <div className={styles.scroll}>
-        <div aria-live="polite" aria-atomic="true">
-          <h3 className={styles.title}>{stepText.title}</h3>
-          <p className={`${styles.body} ${styles.details}`}>{stepText.body}</p>
+            <span className={styles.kickerText} title={text.intro.title}>
+              {text.intro.title}
+            </span>
+          </span>
+          <span className={styles.counter} data-busy={busy ? '1' : undefined}>
+            {busy ? (
+              <span className={styles.playing}>
+                <span className={styles.playingDot} aria-hidden />
+                <span className={styles.srOnly}>{t('lab.mechanism.playing')}</span>
+              </span>
+            ) : null}
+            {counter}
+          </span>
+          <button
+            type="button"
+            className={styles.collapseBtn}
+            onClick={toggleCollapsed}
+            aria-expanded={!collapsed}
+            title={collapseLabel}
+            aria-label={collapseLabel}
+          >
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
+              <path d="M4 6.5 8 10.5l4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </div>
 
-        <p className={styles.equation} translate="no">
-          {equationParts.map((part, i) => (
-            <span key={i} className={styles.equationLine}>
-              {part}
-            </span>
+        <div
+          className={styles.progress}
+          role="progressbar"
+          aria-label={t('lab.mechanism.progressAria')}
+          aria-valuemin={1}
+          aria-valuemax={stepCount}
+          aria-valuenow={step + 1}
+          aria-valuetext={counter}
+        >
+          {Array.from({ length: stepCount }, (_, i) => (
+            <span
+              key={i}
+              className={styles.seg}
+              data-state={i < step || status === 'done' ? 'done' : i === step ? 'current' : 'todo'}
+            />
           ))}
-        </p>
+        </div>
+      </header>
 
-        <Clo2ElectronLedger locale={clo2Locale} />
-        <Clo2EnergyProfile locale={clo2Locale} compact={collapsed} />
+      <div className={styles.scroll}>
+        {/* Шапка шага: заголовок и уравнение стадии — видны и в свёрнутой панели; объяснение ниже. */}
+        <div className={styles.stepText} aria-live="polite" aria-atomic="true">
+          <h3 className={styles.title}>{stepText.title}</h3>
+          <p className={styles.equation} translate="no">
+            {equationParts.map((part, i) => (
+              <span key={i} className={styles.equationLine}>
+                {part}
+              </span>
+            ))}
+          </p>
+          <p className={`${styles.body} ${styles.details}`}>{stepText.body}</p>
+        </div>
 
         {stepText.note ? (
           <p className={`${styles.note} ${styles.details}`}>
             <span className={styles.noteMark} aria-hidden>
-              i
+              <InfoIcon />
             </span>
             <span className={styles.srOnly}>{t('lab.mechanism.note')}: </span>
             <span>{stepText.note}</span>
@@ -232,54 +360,77 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
         {stepId === 'products' ? (
           <p className={`${styles.safety} ${styles.details}`}>
             <span className={styles.safetyMark} aria-hidden>
-              !
+              <WarningIcon />
             </span>
             <span className={styles.srOnly}>{t('lab.mechanism.safety')}: </span>
             <span>{text.safety}</span>
           </p>
         ) : null}
 
-        <ul className={`${styles.legend} ${styles.details}`} aria-label={t('lab.mechanism.legend')}>
-          <li>
-            <ElectronIcon />
-            <span>{text.legend.electron}</span>
-          </li>
-          <li>
-            <PairArrowIcon />
-            <span>{text.legend.pairArrow}</span>
-          </li>
-          <li>
-            <SingleArrowIcon />
-            <span>{text.legend.singleArrow}</span>
-          </li>
-          <li>
-            <OrbitalPhaseIcon />
-            <span>{text.legend.orbitalPhase}</span>
-          </li>
-          <li>
-            <VibrationIcon />
-            <span>{text.legend.vibration}</span>
-          </li>
-          <li className={styles.legendWater}>
-            <WaterIcon />
-            <span>{text.legend.water}</span>
-          </li>
-        </ul>
+        <div className={`${styles.ledgerRow} ${styles.details}`}>
+          <Clo2ElectronLedger locale={clo2Locale} />
+        </div>
+
+        <LessonSection
+          id="energy"
+          className={styles.details}
+          title={text.energy.title}
+          meta={text.energy.axisG}
+          icon={<EnergyIcon />}
+          defaultOpen={mediaMatches(ROOMY_QUERY)}
+        >
+          <Clo2EnergyProfile locale={clo2Locale} compact={isMobile} caption={false} />
+        </LessonSection>
+
+        <LessonSection
+          id="legend"
+          className={styles.details}
+          title={t('lab.mechanism.legend')}
+          icon={<LegendIcon />}
+          defaultOpen={false}
+        >
+          <ul className={styles.legend} aria-label={t('lab.mechanism.legend')}>
+            <li>
+              <ElectronIcon />
+              <span>{text.legend.electron}</span>
+            </li>
+            <li>
+              <PairArrowIcon />
+              <span>{text.legend.pairArrow}</span>
+            </li>
+            <li>
+              <SingleArrowIcon />
+              <span>{text.legend.singleArrow}</span>
+            </li>
+            <li>
+              <OrbitalPhaseIcon />
+              <span>{text.legend.orbitalPhase}</span>
+            </li>
+            <li>
+              <VibrationIcon />
+              <span>{text.legend.vibration}</span>
+            </li>
+            <li className={styles.legendWater}>
+              <WaterIcon />
+              <span>{text.legend.water}</span>
+            </li>
+          </ul>
+        </LessonSection>
       </div>
 
       <footer className={styles.controls}>
-        <button type="button" className={styles.secondaryBtn} onClick={replayStep} disabled={!canReplay}>
-          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-            <path
-              d="M3.2 8a4.8 4.8 0 1 0 1.5-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            />
-            <path d="M4.4 1.8v3h3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        <button
+          type="button"
+          className={styles.secondaryBtn}
+          onClick={replayStep}
+          disabled={!canReplay}
+          aria-label={replayLabel}
+          title={replayLabel}
+        >
+          <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden>
+            <path d="M3.2 8a4.8 4.8 0 1 0 1.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            <path d="M4.4 1.8v3h3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {t('lab.mechanism.replay')}
         </button>
         <button
           type="button"
@@ -293,8 +444,12 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
         </button>
         <button type="button" className={styles.primaryBtn} onClick={() => clo2StepStore.next()} disabled={!canNext}>
           {isLast ? t('lab.mechanism.finish') : t('lab.mechanism.next')}
-          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-            <path d="M3 8h9M8.5 4 12.5 8l-4 4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
+            {isLast ? (
+              <path d="M3.5 8.5 6.6 11.5 12.5 4.8" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+            ) : (
+              <path d="M3 8h9M8.5 4 12.5 8l-4 4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+            )}
           </svg>
         </button>
       </footer>
@@ -302,6 +457,52 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
         {t('lab.mechanism.keysHint')}
       </p>
     </section>
+  )
+}
+
+/** Сворачиваемый раздел урока; открытость запоминается в localStorage. */
+function LessonSection({
+  id,
+  title,
+  meta,
+  icon,
+  defaultOpen,
+  className,
+  children,
+}: {
+  id: string
+  title: string
+  meta?: string
+  icon: ReactNode
+  defaultOpen: boolean
+  className?: string
+  children: ReactNode
+}) {
+  const key = SECTION_KEY_PREFIX + id
+  const [open, setOpen] = useState(() => readFlag(key) ?? defaultOpen)
+  return (
+    <details
+      className={`${styles.section} ${className ?? ''}`}
+      open={open}
+      onToggle={(e) => {
+        const next = e.currentTarget.open
+        if (next === open) return
+        setOpen(next)
+        writeFlag(key, next)
+      }}
+    >
+      <summary className={styles.sectionHead}>
+        <span className={styles.sectionIcon} aria-hidden>
+          {icon}
+        </span>
+        <span className={styles.sectionTitle}>{title}</span>
+        {meta ? <span className={styles.sectionMeta}>{meta}</span> : null}
+        <svg className={styles.sectionChevron} viewBox="0 0 16 16" width="16" height="16" aria-hidden>
+          <path d="M4 6.5 8 10.5l4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </summary>
+      <div className={styles.sectionBody}>{children}</div>
+    </details>
   )
 }
 
@@ -315,6 +516,58 @@ function replayStep(): void {
   clo2StepStore.replay()
   if (s.status === 'playing') getLabTeacherNarrator().speakStep(stepIdAt(s.step))
 }
+
+/* ── Иконки интерфейса ─────────────────────────────────── */
+
+function MechanismIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+      <circle cx="4" cy="11.5" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="4.5" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M5.2 9.4C6 6.4 8 5 10 4.8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="m8.6 3.4 1.7 1.3-1.3 1.8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function EnergyIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+      <path d="M1.8 10.5h2.4c1.6 0 1.8-6 3.6-6s2 8.6 3.9 8.6h2.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function LegendIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+      <circle cx="3.2" cy="4" r="1.4" fill="currentColor" />
+      <circle cx="3.2" cy="8" r="1.4" fill="currentColor" />
+      <circle cx="3.2" cy="12" r="1.4" fill="currentColor" />
+      <path d="M6.6 4h7M6.6 8h7M6.6 12h5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function InfoIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden>
+      <circle cx="8" cy="4.2" r="1.3" fill="currentColor" />
+      <path d="M8 7.2v5.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function WarningIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden>
+      <path d="M8 3.2v6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="8" cy="12.6" r="1.3" fill="currentColor" />
+    </svg>
+  )
+}
+
+/* ── Иконки легенды (цвета совпадают с обозначениями в 3D-сцене) ── */
 
 function ElectronIcon() {
   return (

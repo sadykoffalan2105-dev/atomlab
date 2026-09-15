@@ -3,13 +3,8 @@
 
 name: Deploy TTS Worker
 
+# Запуск только вручную: сайт работает без сервера; секреты проверяются внутри job.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'worker/**'
-      - 'wrangler.toml'
-      - '.github/workflows/deploy-tts-worker.yml'
   workflow_dispatch:
 
 concurrency:
@@ -18,16 +13,31 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check secrets
+        id: secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skip — CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID not configured"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - uses: actions/setup-node@v4
+      - if: steps.secrets.outputs.ok == 'true'
+        uses: actions/checkout@v4
+
+      - if: steps.secrets.outputs.ok == 'true'
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Deploy Cloudflare Worker
+        if: steps.secrets.outputs.ok == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

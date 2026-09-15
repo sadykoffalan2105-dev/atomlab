@@ -122,7 +122,44 @@ async function isPuterSignedIn(): Promise<boolean> {
   }
 }
 
-/** Sign-in popup — вызывать из user gesture (клик «Озвучить»). */
+/** Скрипт Puter уже загружен (без сетевых запросов). */
+export function isPuterLoaded(): boolean {
+  return typeof window !== 'undefined' && Boolean(window.puter?.ai)
+}
+
+/** Синхронная проверка входа: Puter загружен и пользователь вошёл. Никаких окон. */
+export function isPuterSignedInSync(): boolean {
+  if (typeof window === 'undefined') return false
+  const auth = window.puter?.auth
+  if (!auth?.isSignedIn) return false
+  try {
+    const v = auth.isSignedIn()
+    return v === true
+  } catch {
+    return false
+  }
+}
+
+/** Загрузить Puter.js (без входа). */
+export function loadPuterScript(): Promise<boolean> {
+  return loadPuter()
+}
+
+/**
+ * Проверить вход БЕЗ окна авторизации: загружает скрипт (если нужно) и
+ * отвечает, вошёл ли пользователь. Для фоновых путей (озвучка, живой диалог).
+ */
+export async function checkPuterSignedIn(signal?: AbortSignal): Promise<boolean> {
+  if (signal?.aborted) return false
+  const ready = await withTimeout(loadPuter(), LOAD_TIMEOUT_MS, signal).catch(() => false)
+  if (!ready || signal?.aborted) return false
+  return isPuterSignedIn()
+}
+
+/**
+ * Sign-in popup — вызывать ТОЛЬКО из user gesture (кнопка «Подключить умный ИИ»).
+ * Фоновые пути должны использовать checkPuterSignedIn — они не открывают окно.
+ */
 export async function ensurePuterSignedIn(signal?: AbortSignal): Promise<boolean> {
   if (signal?.aborted) return false
   const ready = await loadPuter()
@@ -144,14 +181,25 @@ export async function ensurePuterSignedIn(signal?: AbortSignal): Promise<boolean
   return puterAuthAttempt
 }
 
-/** Синхронный старт из обработчика клика — грузит Puter и открывает auth при необходимости. */
+/** Пользователь согласился на «умный ИИ» (ключ общий с UI: teacher/smartAiStore). */
+export const SMART_AI_STORAGE_KEY = 'atomlab-smart-ai'
+
+export function isSmartAiOptedIn(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(SMART_AI_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Прогрев из обработчика клика: если ученик уже включил «умный ИИ» — грузим
+ * Puter заранее. Окно входа здесь НЕ открываем (раньше оно всплывало посреди
+ * урока при нажатии «Озвучить»); вход — только кнопкой «Подключить умный ИИ».
+ */
 export function warmupPuterFromUserGesture(): void {
-  void (async () => {
-    const ready = await loadPuter()
-    if (!ready) return
-    if (await isPuterSignedIn()) return
-    void ensurePuterSignedIn()
-  })()
+  if (!isSmartAiOptedIn()) return
+  void loadPuter()
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -184,10 +232,10 @@ export async function synthesizePuterSpeech(
 ): Promise<{ audioBase64: string; mimeType: string } | null> {
   if (!text.trim() || signal?.aborted) return null
 
-  const ready = await withTimeout(loadPuter(), LOAD_TIMEOUT_MS, signal).catch(() => false)
-  if (!ready || signal?.aborted) return null
-
-  await ensurePuterSignedIn(signal).catch(() => false)
+  // Озвучка через Puter — только если ученик сам подключил «умный ИИ» и уже вошёл.
+  if (!isSmartAiOptedIn()) return null
+  const signedIn = await checkPuterSignedIn(signal)
+  if (!signedIn || signal?.aborted) return null
 
   const tts = window.puter?.ai?.txt2speech
   if (!tts) return null
@@ -213,7 +261,8 @@ export async function synthesizePuterSpeech(
   return null
 }
 
-/** Предзагрузка Puter на странице обучения. */
+/** Предзагрузка Puter на странице обучения — только если «умный ИИ» включён (без стороннего скрипта по умолчанию). */
 export function preloadPuterTts(): void {
+  if (!isSmartAiOptedIn()) return
   void loadPuter()
 }

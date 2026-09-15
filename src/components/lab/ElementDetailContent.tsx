@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { useMemo } from 'react'
+import { useMemo, useState, useSyncExternalStore } from 'react'
 import { isAncientDiscoveryYear } from '../../data/elementDiscoveryYears'
 import { estimateNeutrons, getElementByZ } from '../../data/elements'
 import { elementDisplayName } from '../../data/elementDisplayName'
@@ -353,6 +353,232 @@ function RichElementDetail({
   )
 }
 
+/** Убирает пояснение в скобках: «Количество электронов (нейтральный атом)» → «Количество электронов». */
+function shortLabel(label: string): string {
+  return label.replace(/\s*\([^)]*\)\s*$/, '').trim()
+}
+
+/** На больших экранах подробности раскрыты сразу, на ноутбуке и телефоне — свёрнуты (не закрывают 3D). */
+function initialLabDetailsOpen(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return window.matchMedia('(min-width: 1280px) and (min-height: 860px)').matches
+}
+
+/** Телефон: карточка над атомом должна быть низкой — строение атома тоже сворачиваем. */
+const LAB_PHONE_QUERY = '(max-width: 720px)'
+
+function subscribeLabPhone(onChange: () => void): () => void {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {}
+  const mq = window.matchMedia(LAB_PHONE_QUERY)
+  mq.addEventListener('change', onChange)
+  return () => mq.removeEventListener('change', onChange)
+}
+
+function readLabPhone(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia(LAB_PHONE_QUERY).matches
+    : false
+}
+
+function LabMoreChevron() {
+  return (
+    <svg className={styles.labMoreChevron} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path d="m6 8 4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/** Карточка элемента в лаборатории: компактная «Aurora Lab», главное сверху, свойства — в раскрывающемся блоке. */
+function LabElementDetail({
+  el,
+  displayName,
+  titleId,
+  headerEnd,
+  locale,
+  t,
+}: {
+  el: NonNullable<ReturnType<typeof getElementByZ>>
+  displayName: string
+  titleId: string
+  headerEnd?: ReactNode
+  locale: string
+  t: (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string
+}) {
+  const [detailsOpen, setDetailsOpen] = useState(initialLabDetailsOpen)
+  const [structureOpen, setStructureOpen] = useState(false)
+  const phone = useSyncExternalStore(subscribeLabPhone, readLabPhone, () => false)
+  const block = mendeleevBlock(el)
+  const cpk = el.cpkHex.replace(/^#/, '')
+  const showCpk = isValidCpkHex(cpk)
+  const fullConfig = toFullElectronConfiguration(el.electronConfiguration)
+  const speechLocale = locale === 'en' ? 'en' : 'ru'
+  const categoryLabel =
+    locale === 'en' ? groupBlockLabelEn(el.groupBlock) : groupBlockLabelRu(el.groupBlock)
+  const stateLabel =
+    locale === 'en' ? standardStateLabelEn(el.standardState) : standardStateLabelRu(el.standardState)
+  const oxStates = parseOxidationStates(el.oxidationStates)
+  const cpkLabel = showCpk ? cpkColorName(cpk, speechLocale) : null
+  const category = elementCategoryId(el)
+  const [toneA, toneB] = category ? CATEGORY_TONE[category] : UNKNOWN_TONE
+  const toneStyle = { '--el-a': toneA, '--el-b': toneB } as CSSProperties
+
+  const stats: { key: string; value: ReactNode; sign: ReactNode; label: string }[] = [
+    {
+      key: 'mass',
+      value: massDisplay(el.atomicMass),
+      sign: (
+        <>
+          A<sub>r</sub>
+        </>
+      ),
+      label: t('elementDetail.atomicMass'),
+    },
+    { key: 'p', value: el.z, sign: <>p<sup>+</sup></>, label: t('elementDetail.protons') },
+    { key: 'e', value: el.z, sign: <>e<sup>−</sup></>, label: t('elementDetail.electrons') },
+    {
+      key: 'n',
+      value: estimateNeutrons(el.atomicMass, el.z),
+      sign: <>n<sup>0</sup></>,
+      label: t('elementDetail.neutrons'),
+    },
+  ]
+
+  const facts: { key: string; label: string; value: ReactNode }[] = [
+    { key: 'state', label: t('elementDetail.standardState'), value: stateLabel },
+    {
+      key: 'melt',
+      label: t('elementDetail.meltingPoint'),
+      value: formatMeltingPoint(el.meltingPoint, speechLocale, el.boilingPoint),
+    },
+    {
+      key: 'boil',
+      label: t('elementDetail.boilingPoint'),
+      value: formatBoilingPoint(el.boilingPoint, speechLocale, el.meltingPoint),
+    },
+    {
+      key: 'density',
+      label: t('elementDetail.density'),
+      value: formatDensity(el.density, { standardState: el.standardState, locale: speechLocale }),
+    },
+    {
+      key: 'en',
+      label: t('elementDetail.electronegativity'),
+      value: formatElectronegativity(el.electronegativity),
+    },
+  ]
+
+  const structure = (
+    <>
+      <div className={styles.labSection}>
+        <p className={styles.labLabel}>{shortLabel(t('elementDetail.electronConfig'))}</p>
+        <ElectronConfigRich fullConfig={fullConfig} />
+      </div>
+
+      {oxStates.length > 0 ? (
+        <div className={styles.labSection}>
+          <p className={styles.labLabel}>{shortLabel(t('elementDetail.oxidation'))}</p>
+          <div className={styles.labOxWrap}>
+            {oxStates.map((ox) => (
+              <span key={ox} className={styles.labOxChip}>
+                {ox}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+
+  return (
+    <div className={styles.lab} style={toneStyle}>
+      <header className={styles.labHead}>
+        <div className={styles.labTile} aria-hidden>
+          <span className={styles.labTileZ}>{el.z}</span>
+          <span className={styles.labTileSymbol}>{el.symbol}</span>
+        </div>
+        <div className={styles.labTitle}>
+          <h2 id={titleId} className={styles.labName}>
+            <span className={styles.srOnly}>{el.symbol} — </span>
+            {displayName}
+          </h2>
+          <div className={styles.labChips}>
+            <span className={`${styles.labChip} ${styles.labChipTone}`}>
+              <span className={styles.chipDot} aria-hidden />
+              {categoryLabel}
+            </span>
+            <span className={styles.labChip}>{t(blockLabelKey(block))}</span>
+          </div>
+        </div>
+        {headerEnd ? <div className={styles.labActions}>{headerEnd}</div> : null}
+      </header>
+
+      <dl className={styles.labStats}>
+        {stats.map((s) => (
+          <div key={s.key} className={styles.labStat} title={s.label}>
+            <dt className={styles.labStatSign}>
+              <span className={styles.srOnly}>{s.label}</span>
+              <span aria-hidden>{s.sign}</span>
+            </dt>
+            <dd className={styles.labStatValue}>{s.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {phone ? (
+        <details
+          className={styles.labMore}
+          open={structureOpen}
+          onToggle={(e) => setStructureOpen(e.currentTarget.open)}
+        >
+          <summary className={styles.labMoreSummary}>
+            <span>{t('elementDetail.structureSection')}</span>
+            <LabMoreChevron />
+          </summary>
+          <div className={styles.labMoreBody}>{structure}</div>
+        </details>
+      ) : (
+        structure
+      )}
+
+      <details
+        className={styles.labMore}
+        open={detailsOpen}
+        onToggle={(e) => setDetailsOpen(e.currentTarget.open)}
+      >
+        <summary className={styles.labMoreSummary}>
+          <span>{t('elementDetail.physicalSection')}</span>
+          <LabMoreChevron />
+        </summary>
+        <dl className={styles.labFacts}>
+          {facts.map((f) => (
+            <div key={f.key} className={styles.labFact}>
+              <dt className={styles.labFactLabel} title={f.label}>
+                {shortLabel(f.label)}
+              </dt>
+              <dd className={styles.labFactValue}>{f.value}</dd>
+            </div>
+          ))}
+          <div className={styles.labFact}>
+            <dt className={styles.labFactLabel}>{shortLabel(t('elementDetail.cpkColor'))}</dt>
+            {showCpk ? (
+              <dd className={`${styles.labFactValue} ${styles.labFactInline}`}>
+                <span
+                  className={styles.labCpk}
+                  style={{ backgroundColor: `#${cpk}` }}
+                  aria-label={cpkLabel ?? t('elementDetail.cpkSwatchAria')}
+                />
+                {cpkLabel}
+              </dd>
+            ) : (
+              <dd className={`${styles.labFactValue} ${styles.labFactMuted}`}>{t('elementDetail.cpkNotSet')}</dd>
+            )}
+          </div>
+        </dl>
+      </details>
+    </div>
+  )
+}
+
 export function ElementDetailContent({
   z,
   titleId,
@@ -376,6 +602,21 @@ export function ElementDetailContent({
     return (
       <div className={rootClass}>
         <RichElementDetail
+          el={el}
+          displayName={displayName}
+          titleId={titleId}
+          headerEnd={headerEnd}
+          locale={locale}
+          t={t}
+        />
+      </div>
+    )
+  }
+
+  if (variant === 'lab') {
+    return (
+      <div className={rootClass}>
+        <LabElementDetail
           el={el}
           displayName={displayName}
           titleId={titleId}

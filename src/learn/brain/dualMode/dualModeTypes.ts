@@ -36,6 +36,8 @@ export type VoiceIntent =
   | { kind: 'repeat' }
   | { kind: 'switch_mode'; target: TutorMode }
   | { kind: 'stop' }
+  /** «Стоп/подожди» — замолчать и слушать, урок продолжается. */
+  | { kind: 'hush' }
 
 /** Карточка вопроса, которую «ведёт» экзаменатор. */
 export interface QuestionCard {
@@ -61,6 +63,42 @@ export interface TeacherResponse {
   topic: string
   /** Экзамен/тема завершены. */
   finished: boolean
+  /** Номер реплики учителя (совпадает с черновиком при стриминге). */
+  turnId?: number
+  /** Откуда ответ: «умный ИИ», локальная база, служебная фраза. */
+  source?: TeacherReplyOrigin
+  /** Источники знаний (подписи вида «[Kimyo 8, §2, стр. 10]»). */
+  citations?: string[]
+}
+
+export type TeacherReplyOrigin = 'smart' | 'local' | 'system'
+
+/** Задержки одного хода живого диалога (мс). */
+export interface LiveTurnMetrics {
+  turnId: number
+  inputKind: 'voice' | 'text' | 'command'
+  commitReason?: string
+  /** Конец речи ученика (VAD) → коммит реплики. */
+  speechEndToCommitMs: number | null
+  /** Коммит/отправка → первая готовая фраза ответа. */
+  commitToFirstSentenceMs: number | null
+  /** Коммит/отправка → первый звук учителя. */
+  commitToFirstAudioMs: number | null
+  /** Конец речи ученика → первый звук (главная метрика «живости»). */
+  speechEndToFirstAudioMs: number | null
+  knowledgeMs: number | null
+  firstTokenMs: number | null
+  totalMs: number | null
+  source: TeacherReplyOrigin
+  fellBack: boolean
+}
+
+/** Реплика ученика в очереди (для UI «в очереди»). */
+export interface QueuedStudentTurn {
+  id: number
+  kind: 'voice' | 'text' | 'command'
+  text: string
+  label: string
 }
 
 export type { AssistantLang }

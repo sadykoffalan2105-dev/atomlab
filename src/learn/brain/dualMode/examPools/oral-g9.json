@@ -1,0 +1,462 @@
+{
+ "grade": 9,
+ "generatedBy": "scripts/build-teacher-exam-pools.mts",
+ "items": [
+  {
+   "id": "g9-oral-q-c1-s01-tpl08",
+   "kind": "oral",
+   "questionSpeak": "Закончи фразу: «Металлы хорошо проводят…»",
+   "rubric": [
+    "тепл",
+    "электрич"
+   ],
+   "sampleAnswer": "Металлы хорошо проводят Тепло и электричество",
+   "chapterNum": 1,
+   "sectionId": "s01",
+   "source": "quiz",
+   "questionSpeakEn": "Complete the sentence: “Metals are good conductors...”",
+   "rubricEn": [
+    "heat",
+    "electr"
+   ],
+   "sampleAnswerEn": "Metals are good conductors Heat and electricity",
+   "questionSpeakUz": "Gapni davom ettiring: «Metallar yaxshi o'tkazgichdir ...»",
+   "rubricUz": [
+    "issiql",
+    "elektr",
+    "energi"
+   ],
+   "sampleAnswerUz": "Metallar yaxshi o'tkazgichdir Issiqlik va elektr energiyasi"
+  },
+  {
+   "id": "g9-oral-q-c1-s02-q08",
+   "kind": "oral",
+   "questionSpeak": "Что такое сле дующий металл?",
+   "rubric": [
+    "алюмин",
+    "неметалл"
+   ],
+   "sampleAnswer": "сле дующий металл — это алюминий – в некоторых соединениях проявляет неметаллические свойства",
+   "chapterNum": 1,
+   "sectionId": "s02",
+   "source": "quiz",
+   "questionSpeakEn": "Complete the sentence: “the next metal is...”",
+   "rubricEn": [
+    "alumin",
+    "some",
+    "exhibi"
+   ],
+   "sampleAnswerEn": "the next metal is aluminum – in some compounds exhibits non-metallic properties",
+   "questionSpeakUz": "Gapni davom ettiring: «keyingi metall ...»",
+   "rubricUz": [
+    "birikm",
+    "xususi",
+    "ko'rsa"
+   ],
+   "sampleAnswerUz": "keyingi metall alyuminiy - ba'zi birikmalarda metall bo'lmagan xususiyatlarni ko'rsatadi"
+  },
+  {
+   "id": "g9-oral-q-c1-s02-q11",
+   "kind": "oral",
+   "questionSpeak": "Что такое про тон?",
+   "rubric": [
+    "положите",
+    "заряженн",
+    "обознача"
+   ],
+   "sampleAnswer": "про тон — это положительно заряженная частица, обозначаемая буквой p",
+   "chapterNum": 1,
+   "sectionId": "s02",
+   "source": "quiz",
+   "questionSpeakEn": "What is about tone?",
+   "rubricEn": [
+    "positi",
+    "partic",
+    "symbol"
+   ],
+   "sampleAnswerEn": "about tone - this is positively charged particle, symbolized by the letter p",
+   "questionSpeakUz": "ohang haqida nima?",
+   "rubricUz": [
+    "ifodal",
+    "zaryad",
+    "zarrac"
+   ],
+   "sampleAnswerUz": "ohang haqida - bu p harfi bilan ifodalangan musbat zaryadlangan zarracha"
+  },
+  {
+   "id": "g9-oral-q-c1-s04-q05",
+   "kind": "oral",
+   "questionSpeak": "Что такое фосфатирование?",
+   "rubric": [
+    "получен",
+    "поверхно",
+    "металл"
+   ],
+   "sampleAnswer": "Фосфатирование — это получение на поверхности черных и цветных металлов фосфатного слоя",
+   "chapterNum": 1,
+   "sectionId": "s04",
+   "source": "quiz",
+   "questionSpeakEn": "Complete the sentence: “Phosphating is...”",
+   "rubricEn": [
+    "obtai",
+    "surfac",
+    "ferrou"
+   ],
+   "sampleAnswerEn": "Phosphating is obtaining a phosphate layer on the surface of ferrous and non-ferrous metals",
+   "questionSpeakUz": "Fosfatlanish nima?",
+   "rubricUz": [
+    "metal",
+    "yuzasi",
+    "qatlam"
+   ],
+   "sampleAnswerUz": "Fosfatlanish - bu qora va rangli metallar yuzasida fosfat qatlamini olish"
+  },
+  {
+   "id": "g9-oral-q-c1-s06-q02",
+   "kind": "oral",
+   "questionSpeak": "Закончи фразу: «Магний Mg и кальций Ca — это…»",
+   "rubric": [
+    "подгрупп",
+    "периодич",
+    "таблиц"
+   ],
+   "sampleAnswer": "Магний Mg и кальций Ca — это элементы основной подгруппы второй группы периодической таблицы",
+   "chapterNum": 1,
+   "sectionId": "s06",
+   "source": "quiz",
+   "questionSpeakEn": "Complete the sentence: “Magnesium Mg and calcium Ca are ...”",
+   "rubricEn": [
+    "subgro",
+    "second",
+    "period"
+   ],
+   "sampleAnswerEn": "Magnesium Mg and calcium Ca are elements of the main subgroup of the second group of the periodic table",
+   "questionSpeakUz": "Gapni davom ettiring: «Magniy Mg va kaltsiy Ca ...»",
+   "rubricUz": [
+    "jadval",
+    "ikkinc",
+    "guruhi"
+   ],
+   "sampleAnswerUz": "Magniy Mg va kaltsiy Ca davriy jadvalning ikkinchi guruhining asosiy kichik guruhining elementlari"
+  },
+  {
+   "id": "g9-oral-def-c1-005",
+   "kind": "oral",
+   "questionSpeak": "Что называют металлической связью?",
+   "rubric": [
+    "положите",
+    "ион",
+    "электрон"
+   ],
+   "sampleAnswer": "Металлической связью — Химическая связь, возникающая между положительными ионами и общими электронами в металле.",
+   "chapterNum": 1,
+   "sectionId": "s03",
+   "source": "textbook"
+  },
+  {
+   "id": "g9-oral-fact-c1-01",
+   "kind": "oral",
+   "questionSpeak": "Что такое металлы?",
+   "rubric": [
+    "восстано"
+   ],
+   "sampleAnswer": "Металлы — восстановители.",
+   "chapterNum": 1,
+   "source": "topics"
+  },
+  {
+   "id": "g9-oral-fact-c2-02",
+   "kind": "oral",
+   "questionSpeak": "Что такое оксид?",
+   "rubric": [
+    "соединен",
+    "элемент",
+    "кислород"
+   ],
+   "sampleAnswer": "Оксид — соединение элемента с кислородом.",
+   "chapterNum": 2,
+   "source": "topics"
+  },
+  {
+   "id": "g9-oral-def-c3-006",
+   "kind": "oral",
+   "questionSpeak": "Что называют электролизом?",
+   "rubric": [
+    "окислите",
+    "восстано",
+    "раствор"
+   ],
+   "sampleAnswer": "Электролизом — Окислительно-восстановительный процесс, протекающий при пропускании электрического тока через раствор или расплав электролита.",
+   "chapterNum": 3,
+   "sectionId": "s03",
+   "source": "textbook",
+   "questionSpeakEn": "What is meant by “electrolysis”?",
+   "rubricEn": [
+    "oxidiz",
+    "reduc",
+    "dissol"
+   ],
+   "questionSpeakUz": "«elektroliz» deb nimaga aytiladi?",
+   "rubricUz": [
+    "oksidl",
+    "qaytar",
+    "erish"
+   ]
+  },
+  {
+   "id": "g9-oral-q-c3-s01-tpl03",
+   "kind": "oral",
+   "questionSpeak": "Закончи фразу: «Катионы при электролизе движутся к…»",
+   "rubric": [
+    "катод"
+   ],
+   "sampleAnswer": "Катионы при электролизе движутся к Катоду (−)",
+   "chapterNum": 3,
+   "sectionId": "s01",
+   "source": "quiz",
+   "questionSpeakEn": "Complete the sentence: “During electrolysis, cations move to ...”",
+   "rubricEn": [
+    "cathod"
+   ],
+   "sampleAnswerEn": "During electrolysis, cations move to Cathode (−)",
+   "questionSpeakUz": "Gapni davom ettiring: «Elektroliz paytida kationlar ...»",
+   "rubricUz": [
+    "katod"
+   ],
+   "sampleAnswerUz": "Elektroliz paytida kationlar Katod (−)"
+  },
+  {
+   "id": "g9-oral-def-c3-004",
+   "kind": "oral",
+   "questionSpeak": "Что называют слабыми электролитами?",
+   "rubric": [
+    "разбавле",
+    "раствор",
+    "име"
+   ],
+   "sampleAnswer": "Слабыми электролитами — Электролиты, разбавленные растворы которых также имеют малые значения.",
+   "chapterNum": 3,
+   "sectionId": "s01",
+   "source": "textbook"
+  },
+  {
+   "id": "g9-oral-fact-c3-03",
+   "kind": "oral",
+   "questionSpeak": "Что такое электролиз?",
+   "rubric": [
+    "разложен",
+    "ток"
+   ],
+   "sampleAnswer": "Электролиз — разложение электролитом под током.",
+   "chapterNum": 3,
+   "source": "topics"
+  },
+  {
+   "id": "g9-oral-fact-c3-04",
+   "kind": "oral",
+   "questionSpeak": "Что такое массовая доля?",
+   "rubric": [
+    "безразме",
+    "растворе"
+   ],
+   "sampleAnswer": "Массовая доля — безразмерная доля массы растворённого вещества.",
+   "chapterNum": 3,
+   "source": "topics"
+  },
+  {
+   "id": "g9-oral-q-c4-s02-tpl07",
+   "kind": "oral",
+   "questionSpeak": "Закончи фразу: «Fe³⁺ в растворе даёт…»",
+   "rubric": [
+    "бур",
+    "окраск"
+   ],
+   "sampleAnswer": "Fe³⁺ в растворе даёт Бурую окраску с SCN⁻",
+   "chapterNum": 4,
+   "sectionId": "s02",
+   "source": "quiz",
+   "questionSpeakEn": "Complete the sentence: “Fe³⁺ in solution gives...”",
+   "rubricEn": [
+    "brown",
+    "color"
+   ],
+   "sampleAnswerEn": "Fe³⁺ in solution gives Brown color with SCN⁻",
+   "questionSpeakUz": "Gapni davom ettiring: «eritmadagi Fe³⁺ ... beradi.»",
+   "rubricUz": [
+    "bilan",
+    "jigarr",
+    "rang"
+   ],
+   "sampleAnswerUz": "eritmadagi Fe³⁺ ... beradi. SCN⁻ bilan jigarrang rang"
+  },
+  {
+   "id": "g9-oral-fact-c4-05",
+   "kind": "oral",
+   "questionSpeak": "Что такое молярность?",
+   "rubric": [
+    "моль",
+    "раствор"
+   ],
+   "sampleAnswer": "Молярность — моль/л раствора.",
+   "chapterNum": 4,
+   "source": "topics"
+  },
+  {
+   "id": "g9-oral-fact-c4-06",
+   "kind": "oral",
+   "questionSpeak": "Что такое щёлочь?",
+   "rubric": [
+    "раствори",
+    "основан"
+   ],
+   "sampleAnswer": "Щёлочь — растворимое основание.",
+   "chapterNum": 4,
+   "source": "topics"
+  },
+  {
+   "id": "g9-oral-q-c5-s01-tpl04",
+   "kind": "oral",
+   "questionSpeak": "Закончи фразу: «Промышленные выбросы SO₂ приводят к…»",
+   "rubric": [
+    "кислотны",
+    "дожд"
+   ],
+   "sampleAnswer": "Промышленные выбросы SO₂ приводят к Кислотным дождям",
+   "chapterNum": 5,
+   "sectionId": "s01",
+   "source": "quiz",
+   "questionSpeakEn": "Complete the sentence: “Industrial emissions of SO₂ lead to...”",
+   "rubricEn": [
+    "acid",
+    "rain"
+   ],
+   "sampleAnswerEn": "Industrial emissions of SO₂ lead to Acid rain",
+   "questionSpeakUz": "Gapni davom ettiring: «SO₂ sanoat chiqindilari ...»",
+   "rubricUz": [
+    "kislot",
+    "yomg'i"
+   ],
+   "sampleAnswerUz": "SO₂ sanoat chiqindilari Kislotali yomg'ir"
+  },
+  {
+   "id": "g9-oral-q-c6-s01-tpl06",
+   "kind": "oral",
+   "questionSpeak": "Закончи фразу: «Гидролиз соли — реакция…»",
+   "rubric": [
+    "ион",
+    "вод"
+   ],
+   "sampleAnswer": "Гидролиз соли — реакция Ионов соли с водой",
+   "chapterNum": 6,
+   "sectionId": "s01",
+   "source": "quiz",
+   "questionSpeakEn": "Complete the sentence: “Salt hydrolysis is a reaction...”",
+   "rubricEn": [
+    "ions",
+    "water"
+   ],
+   "sampleAnswerEn": "Salt hydrolysis is a reaction Salt ions with water",
+   "questionSpeakUz": "Gapni davom ettiring: «§ “Kristal panjaralari va bog‘lanish turlari” bo‘limiga ko‘ra: Tuz gidrolizi reaksiya...»",
+   "rubricUz": [
+    "ionlar",
+    "bilan"
+   ],
+   "sampleAnswerUz": "§ “Kristal panjaralari va bog‘lanish turlari” bo‘limiga ko‘ra: Tuz gidrolizi reaksiya Tuz ionlari suv bilan"
+  },
+  {
+   "id": "g9-oral-def-c6-001",
+   "kind": "oral",
+   "questionSpeak": "Что называют ковалентной связью?",
+   "rubric": [
+    "связыван",
+    "атом",
+    "электрон"
+   ],
+   "sampleAnswer": "Ковалентной связью — Связывание атомов при помощи общих электронных пар.",
+   "chapterNum": 6,
+   "sectionId": "s01",
+   "source": "textbook"
+  },
+  {
+   "id": "g9-oral-def-c6-002",
+   "kind": "oral",
+   "questionSpeak": "Что называют электроотрицательностью?",
+   "rubric": [
+    "способно",
+    "атом",
+    "притягив"
+   ],
+   "sampleAnswer": "Электроотрицательностью — Способность атома химического элемента притягивать общую электронную пару, участвующую в связи.",
+   "chapterNum": 6,
+   "sectionId": "s01",
+   "source": "textbook"
+  },
+  {
+   "id": "g9-oral-def-c6-003",
+   "kind": "oral",
+   "questionSpeak": "Что называют ионами?",
+   "rubric": [
+    "частиц",
+    "присоеди",
+    "электрон"
+   ],
+   "sampleAnswer": "Ионами — Частицы, образованные в результате присоединения или потери электронов атомами.",
+   "chapterNum": 6,
+   "sectionId": "s01",
+   "source": "textbook",
+   "questionSpeakUz": "«ion» deb nimaga aytiladi?",
+   "rubricUz": [
+    "biriki",
+    "elektr"
+   ]
+  },
+  {
+   "id": "g9-oral-fact-c6-07",
+   "kind": "oral",
+   "questionSpeak": "Что такое смещение равновесия?",
+   "rubric": [
+    "систем",
+    "внешн",
+    "воздейст"
+   ],
+   "sampleAnswer": "Смещение равновесия — ответ системы на внешнее воздействие.",
+   "chapterNum": 6,
+   "source": "topics"
+  },
+  {
+   "id": "g9-oral-q-c7-s01-tpl06",
+   "kind": "oral",
+   "questionSpeak": "Закончи фразу: «Фосфор в природе встречается как…»",
+   "rubric": [
+    "апат"
+   ],
+   "sampleAnswer": "Фосфор в природе встречается как Апатит, фосфориты",
+   "chapterNum": 7,
+   "sectionId": "s01",
+   "source": "quiz",
+   "questionSpeakEn": "Complete the sentence: “Phosphorus is found in nature as...”",
+   "rubricEn": [
+    "apatit"
+   ],
+   "sampleAnswerEn": "Phosphorus is found in nature as Apatite, phosphorites",
+   "questionSpeakUz": "Gapni davom ettiring: «Fosfor tabiatda... sifatida uchraydi.»",
+   "rubricUz": [
+    "apatit"
+   ],
+   "sampleAnswerUz": "Fosfor tabiatda... sifatida uchraydi. Apatit, fosforitlar"
+  },
+  {
+   "id": "g9-oral-fact-c7-08",
+   "kind": "oral",
+   "questionSpeak": "Что такое галогены?",
+   "rubric": [
+    "неметалл",
+    "viiа",
+    "групп"
+   ],
+   "sampleAnswer": "Галогены — неметаллы VIIА группы.",
+   "chapterNum": 7,
+   "source": "topics"
+  }
+ ]
+}

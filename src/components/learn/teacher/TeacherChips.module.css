@@ -1,0 +1,196 @@
+/* Чипы ИИ-учителя (Aurora Lab): источники, «мозг», CTA умного ИИ. */
+
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 2px 9px 2px 7px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background: rgba(34, 211, 238, 0.08);
+  color: #9debf7;
+  font-size: var(--lt-fs-xs);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.source > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sourceIcon {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  color: var(--lt-accent-cyan);
+}
+
+.brain {
+  --brain: var(--lt-accent-amber);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 26px;
+  padding: 0 10px 0 8px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid color-mix(in srgb, var(--brain) 34%, transparent);
+  background: color-mix(in srgb, var(--brain) 11%, transparent);
+  color: color-mix(in srgb, var(--brain) 70%, #fff);
+  font-size: var(--lt-fs-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.brain[data-brain='smart'] {
+  --brain: #a78bfa;
+}
+
+.brain[data-brain='server'],
+.brain[data-brain='ollama'] {
+  --brain: var(--lt-accent-teal);
+}
+
+.brain[data-compact='1'] {
+  height: 22px;
+  padding: 0 8px 0 6px;
+}
+
+.brainIcon {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+.brainLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brainLabelShort {
+  display: none;
+}
+
+/* Телефон: короткая подпись «База знаний» вместо обрезанной «Локальная баз…». */
+@media (max-width: 480px) {
+  .brainLabel[data-has-short='1'] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .brainLabelShort {
+    display: inline;
+    white-space: nowrap;
+  }
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.ctaBtn,
+.ctaInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  border-radius: var(--lt-radius-pill);
+  font: inherit;
+  font-size: var(--lt-fs-small);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--lt-dur-fast) var(--lt-ease),
+    border-color var(--lt-dur-fast) var(--lt-ease),
+    color var(--lt-dur-fast) var(--lt-ease),
+    box-shadow var(--lt-dur) var(--lt-ease);
+}
+
+.ctaBtn {
+  height: 36px;
+  padding: 0 14px 0 11px;
+  border: 1px solid rgba(167, 139, 250, 0.5);
+  background: linear-gradient(135deg, rgba(91, 140, 255, 0.22), rgba(139, 92, 246, 0.3));
+  color: #fff;
+}
+
+.ctaBtn:hover:not(:disabled) {
+  border-color: rgba(196, 181, 253, 0.8);
+  box-shadow: var(--lt-glow-primary);
+}
+
+.ctaInline {
+  height: 28px;
+  padding: 0 10px 0 8px;
+  border: 1px dashed rgba(167, 139, 250, 0.55);
+  background: transparent;
+  color: #c4b5fd;
+  font-size: var(--lt-fs-xs);
+}
+
+.ctaInline:hover:not(:disabled) {
+  color: #fff;
+  border-style: solid;
+  background: rgba(139, 92, 246, 0.16);
+}
+
+.ctaBtn:disabled,
+.ctaInline:disabled {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+.ctaBtn:focus-visible,
+.ctaInline:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.ctaIcon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: #c4b5fd;
+}
+
+.ctaBtn > span,
+.ctaInline > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ctaText {
+  flex: 1 1 200px;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--lt-fs-xs);
+  line-height: 1.4;
+  color: var(--lt-text-3);
+}
+
+.cta[data-status='error'] .ctaText {
+  color: var(--lt-danger);
+}

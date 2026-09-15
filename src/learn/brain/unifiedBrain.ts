@@ -9,7 +9,7 @@
  * как изменить сложность). Персистит выводы в долгосрочную память ученика.
  */
 import { gradeExamAnswerLocal, gradeExamAnswer, type ExamGradeResult } from '../learnExamGrader'
-import { retrieveChemistryKnowledge } from '../learnKnowledgeRetrieval'
+import { retrieveForTeacher } from '../teacherKnowledge'
 import type { AppLocale } from '../../i18n/types'
 import {
   type AssistantLang,
@@ -159,11 +159,16 @@ export class UnifiedBrain {
 
   private async knowledgeSnippet(topic: string): Promise<string | null> {
     try {
-      const { chunks } = retrieveChemistryKnowledge(topic, { maxChunks: 2, minScore: 1 })
-      const first = chunks[0]
+      // Новая база знаний (src/learn/kb) через адаптер; живой голос — короткий бюджет.
+      const k = await retrieveForTeacher(topic, {
+        locale: this.config.lang,
+        limit: 2,
+        maxChars: 1_200,
+        timeoutMs: 1_500,
+      })
+      const first = k.hits[0]
       if (!first) return null
-      const raw = this.config.lang === 'en' ? first.en || first.ru : first.ru
-      const clean = stripForSpeech(raw)
+      const clean = stripForSpeech(first.text)
       const sentence = clean.split(/(?<=[.!?])\s+/)[0] ?? clean
       return sentence.slice(0, 240)
     } catch {

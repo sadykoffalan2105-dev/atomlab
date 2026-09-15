@@ -11,6 +11,13 @@
 let player: HTMLAudioElement | null = null
 let playing = false
 let unlocked = false
+/**
+ * Отмена текущего playNeuralAudioBase64. stopNeuralPlayback обязан завершить
+ * ожидающий промис: после pause()/removeAttribute('src') браузер не шлёт ни
+ * onended, ни onerror — без этого вызывающие (DuplexVoiceSession.speak, панель
+ * чата, лабораторный рассказчик) зависали навсегда и «aiSpeaking» не снимался.
+ */
+let settleCurrent: ((reason: 'stopped') => void) | null = null
 
 function getPlayer(): HTMLAudioElement | null {
   if (typeof Audio === 'undefined') return null
@@ -49,6 +56,9 @@ function silentWavUrl(): string {
 
 export function stopNeuralPlayback(): void {
   playing = false
+  const settle = settleCurrent
+  settleCurrent = null
+  settle?.('stopped')
   if (player) {
     player.pause()
     try {
@@ -108,25 +118,44 @@ export async function playNeuralAudioBase64(
 
   const url = URL.createObjectURL(base64ToBlob(audioBase64, mimeType))
 
+  // Новый клип вытесняет предыдущий: его ожидание завершаем как «прервано».
+  if (settleCurrent) {
+    const prev = settleCurrent
+    settleCurrent = null
+    prev('stopped')
+  }
+
   await new Promise<void>((resolve, reject) => {
+    let settled = false
     const cleanup = () => {
+      settled = true
       audio.onended = null
       audio.onerror = null
       signal?.removeEventListener('abort', onAbort)
       URL.revokeObjectURL(url)
+      if (settleCurrent === settleThis) settleCurrent = null
       playing = false
     }
     const onAbort = () => {
+      if (settled) return
       audio.pause()
       cleanup()
       reject(new DOMException('Aborted', 'AbortError'))
     }
+    const settleThis = () => {
+      if (settled) return
+      cleanup()
+      reject(new DOMException('Aborted', 'AbortError'))
+    }
+    settleCurrent = settleThis
 
     audio.onended = () => {
+      if (settled) return
       cleanup()
       resolve()
     }
     audio.onerror = () => {
+      if (settled) return
       cleanup()
       reject(new Error('audio_playback'))
     }
@@ -139,6 +168,7 @@ export async function playNeuralAudioBase64(
     playing = true
 
     void audio.play().catch((err) => {
+      if (settled) return
       cleanup()
       reject(err)
     })

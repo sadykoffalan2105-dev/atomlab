@@ -40,18 +40,9 @@ export default defineConfig(({ mode }) => {
                 name: 'compounds-data',
                 test: /data[\\/]compounds/,
               },
-              // Каждый мега-пак учителя — свой чанк: если склеить все 7 в один
-              // (как получалось по умолчанию, раз их статически импортирует
-              // один и тот же модуль), итоговый файл переваливает за 150 МБ и
-              // gh-pages отклоняет пуш (лимит GitHub — 100 МБ/файл). По
-              // отдельности каждый шард — 16–28 МБ, с запасом укладывается.
-              { name: 'teacher-knowledge-0', test: /teacherKnowledge[\\/]megaPack\.json$/ },
-              { name: 'teacher-knowledge-1', test: /teacherKnowledge[\\/]megaPackExtra\.json$/ },
-              { name: 'teacher-knowledge-2', test: /teacherKnowledge[\\/]megaPackExtra2\.json$/ },
-              { name: 'teacher-knowledge-3', test: /teacherKnowledge[\\/]megaPackExtra3\.json$/ },
-              { name: 'teacher-knowledge-4', test: /teacherKnowledge[\\/]megaPackExtra4\.json$/ },
-              { name: 'teacher-knowledge-5', test: /teacherKnowledge[\\/]megaPackExtra5\.json$/ },
-              { name: 'teacher-knowledge-6', test: /teacherKnowledge[\\/]megaPackExtra6\.json$/ },
+              // Знания ИИ-учителя: шарды новой базы src/data/kb/index грузятся
+              // динамическим import() и по умолчанию сами становятся отдельными
+              // чанками (0,2–1,5 МБ). Старый мега-пак (~155 МБ) в сборку не входит.
             ],
           },
         },

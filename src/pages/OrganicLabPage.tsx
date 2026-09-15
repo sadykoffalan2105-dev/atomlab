@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { LabDomainTabs } from '../components/lab/LabDomainTabs'
 import { OrganicMoleculeViewer } from '../components/organicLab/OrganicMoleculeViewer'
@@ -131,6 +131,8 @@ export function OrganicLabPage() {
   const [mode, setMode] = useState<OrganicLessonMode>(resolvedMode)
   const [displayMode, setDisplayMode] = useState<OrganicDisplayMode>('ballStick')
   const [showMoreModes, setShowMoreModes] = useState(false)
+  /** Телефон: список уроков свёрнут (на широком экране колонка открыта всегда). */
+  const [lessonsOpen, setLessonsOpen] = useState(false)
   const [progressMap, setProgressMap] = useState<OrganicCurriculumProgressMap>(() =>
     loadOrganicCurriculumProgress(),
   )
@@ -246,111 +248,120 @@ export function OrganicLabPage() {
 
   const chapters = [1, 2, 3, 4] as const
 
+  const modeTab = (id: OrganicLessonMode, label: string, icon: ReactNode, disabled = false) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={mode === id}
+      disabled={disabled}
+      className={`${styles.modeTab} ${mode === id ? styles.modeTabActive : ''}`}
+      onClick={() => selectMode(id)}
+    >
+      <span className={styles.modeTabIcon} aria-hidden>
+        {icon}
+      </span>
+      <span className={styles.modeTabLabel}>{label}</span>
+    </button>
+  )
+
   return (
     <div className={`${labStyles.wrap} ${styles.programWrap}`}>
       <div className={styles.programLayout}>
-        <aside className={styles.pathPanel} aria-label={t('organicLab.programAria')}>
+        <aside
+          className={styles.pathPanel}
+          aria-label={t('organicLab.programAria')}
+          data-open={lessonsOpen ? 'true' : undefined}
+        >
           <div className={styles.domainTabsSlot}>
             <LabDomainTabs active="organic" />
           </div>
-          <p className={styles.pathLead}>{t('organicLab.programLead')}</p>
-          {chapters.map((ch) => (
-            <div key={ch} className={styles.chapterBlock}>
-              <h2 className={styles.chapterTitle}>{pickChapterLabel(ch, locale)}</h2>
-              <ul className={styles.lessonList}>
-                {ORGANIC_CURRICULUM.filter((l) => l.chapter === ch).map((l) => {
-                  const prog = getLessonProgress(progressMap, l.id)
-                  const done = isLessonComplete(prog, {
-                    requireBuild: lessonHasBuild(l) && buildableIds(l).length > 0,
-                    requireEquation: lessonHasEquation(l),
-                    requireIsomer: lessonHasIsomer(l),
-                    requireName: lessonHasName(l),
-                  })
-                  const active = l.id === lesson.id
-                  return (
-                    <li key={l.id}>
-                      <button
-                        type="button"
-                        className={`${styles.lessonBtn} ${active ? styles.lessonBtnActive : ''} ${done ? styles.lessonBtnDone : ''}`}
-                        onClick={() => selectLesson(l)}
-                      >
-                        <span className={styles.lessonCheck} aria-hidden>
-                          {done ? '✓' : prog.viewed ? '·' : ''}
-                        </span>
-                        <span>{pickLessonTitle(l, locale)}</span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          ))}
+          {/* Телефон: программа свёрнута в строку «глава · текущий урок», список раскрывается по нажатию. */}
+          <button
+            type="button"
+            className={styles.pathToggle}
+            aria-expanded={lessonsOpen}
+            aria-controls="organic-lesson-path"
+            onClick={() => setLessonsOpen((v) => !v)}
+          >
+            <span className={styles.pathToggleIcon} aria-hidden>
+              <PathIcon />
+            </span>
+            <span className={styles.pathToggleText}>
+              <span className={styles.pathToggleKicker}>{pickChapterLabel(lesson.chapter, locale)}</span>
+              <span className={styles.pathToggleTitle}>{pickLessonTitle(lesson, locale)}</span>
+            </span>
+            <span className={styles.pathToggleChevron} aria-hidden>
+              <ChevronIcon />
+            </span>
+          </button>
+          <div id="organic-lesson-path" className={styles.pathBody}>
+            <p className={styles.pathLead}>{t('organicLab.programLead')}</p>
+            {chapters.map((ch) => (
+              <div key={ch} className={styles.chapterBlock}>
+                <h2 className={styles.chapterTitle}>{pickChapterLabel(ch, locale)}</h2>
+                <ul className={styles.lessonList}>
+                  {ORGANIC_CURRICULUM.filter((l) => l.chapter === ch).map((l) => {
+                    const prog = getLessonProgress(progressMap, l.id)
+                    const done = isLessonComplete(prog, {
+                      requireBuild: lessonHasBuild(l) && buildableIds(l).length > 0,
+                      requireEquation: lessonHasEquation(l),
+                      requireIsomer: lessonHasIsomer(l),
+                      requireName: lessonHasName(l),
+                    })
+                    const active = l.id === lesson.id
+                    return (
+                      <li key={l.id}>
+                        <button
+                          type="button"
+                          className={`${styles.lessonBtn} ${active ? styles.lessonBtnActive : ''} ${done ? styles.lessonBtnDone : ''}`}
+                          aria-current={active ? 'true' : undefined}
+                          onClick={() => {
+                            selectLesson(l)
+                            setLessonsOpen(false)
+                          }}
+                        >
+                          <span
+                            className={styles.lessonCheck}
+                            data-state={done ? 'done' : prog.viewed ? 'viewed' : undefined}
+                            aria-hidden
+                          >
+                            {done ? <CheckIcon /> : null}
+                          </span>
+                          <span className={styles.lessonTitle}>{pickLessonTitle(l, locale)}</span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         </aside>
 
         <div className={styles.mainCol}>
           <header className={styles.lessonHeader}>
-            <div>
-              <h1 className={styles.lessonHeading}>{pickLessonTitle(lesson, locale)}</h1>
+            <div className={styles.lessonIntro}>
+              <p className={styles.lessonKicker}>{pickChapterLabel(lesson.chapter, locale)}</p>
+              <div className={styles.headingRow}>
+                <h1 className={styles.lessonHeading}>{pickLessonTitle(lesson, locale)}</h1>
+                {lessonDone ? (
+                  <p className={styles.lessonComplete}>
+                    <CheckIcon />
+                    {t('organicLab.progressDone')}
+                  </p>
+                ) : null}
+              </div>
               <p className={styles.lessonGoal}>
                 <span className={styles.goalLabel}>{t('organicLab.lessonGoal')}</span>{' '}
                 {pickLessonGoal(lesson, locale)}
               </p>
-              {lessonDone ? (
-                <p className={styles.lessonComplete}>{t('organicLab.progressDone')}</p>
-              ) : null}
             </div>
             <div className={styles.modeTabs} role="tablist" aria-label={t('organicLab.activityAria')}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === 'view'}
-                className={`${styles.modeTab} ${mode === 'view' ? styles.modeTabActive : ''}`}
-                onClick={() => selectMode('view')}
-              >
-                {t('organicLab.modeView')}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === 'build'}
-                disabled={!canBuild}
-                className={`${styles.modeTab} ${mode === 'build' ? styles.modeTabActive : ''}`}
-                onClick={() => selectMode('build')}
-              >
-                {t('organicLab.modeBuild')}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === 'equation'}
-                disabled={!canEquation}
-                className={`${styles.modeTab} ${mode === 'equation' ? styles.modeTabActive : ''}`}
-                onClick={() => selectMode('equation')}
-              >
-                {t('organicLab.modeEquation')}
-              </button>
-              {canIsomer ? (
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === 'isomer'}
-                  className={`${styles.modeTab} ${mode === 'isomer' ? styles.modeTabActive : ''}`}
-                  onClick={() => selectMode('isomer')}
-                >
-                  {t('organicLab.modeIsomer')}
-                </button>
-              ) : null}
-              {canName ? (
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === 'name'}
-                  className={`${styles.modeTab} ${mode === 'name' ? styles.modeTabActive : ''}`}
-                  onClick={() => selectMode('name')}
-                >
-                  {t('organicLab.modeName')}
-                </button>
-              ) : null}
+              {modeTab('view', t('organicLab.modeView'), <ViewIcon />)}
+              {modeTab('build', t('organicLab.modeBuild'), <BuildIcon />, !canBuild)}
+              {modeTab('equation', t('organicLab.modeEquation'), <EquationIcon />, !canEquation)}
+              {canIsomer ? modeTab('isomer', t('organicLab.modeIsomer'), <IsomerIcon />) : null}
+              {canName ? modeTab('name', t('organicLab.modeName'), <NameIcon />) : null}
             </div>
           </header>
 
@@ -377,18 +388,25 @@ export function OrganicLabPage() {
               <OrganicMoleculeViewer mol={displayMol} mode={displayMode} fillParent key={displayMol.id}>
                 <div className={styles.hudTop}>
                   <div className={styles.titleCard}>
-                    <strong>
-                      {pickName(displayMol, locale)} | {displayMol.formula}
-                    </strong>
-                    <p>
-                      {pickOrganicClassLabel(displayMol.classId, locale)} · {pickDesc(displayMol, locale)}
+                    <div className={styles.titleRow}>
+                      <strong className={styles.molName}>{pickName(displayMol, locale)}</strong>
+                      <span className={styles.molFormula}>{displayMol.formula}</span>
+                    </div>
+                    <p className={styles.molDesc}>
+                      <span className={styles.molClass}>{pickOrganicClassLabel(displayMol.classId, locale)}</span>
+                      <span>{pickDesc(displayMol, locale)}</span>
                     </p>
                   </div>
+                </div>
+
+                {/* Док HUD: на широком экране дети позиционируются по сцене (display: contents), на телефоне — колонка внизу. */}
+                <div className={styles.hudDock}>
                   <div className={styles.modeCol} role="group" aria-label={t('organicLab.modeAria')}>
                     {primaryModes.map((m) => (
                       <button
                         key={m.id}
                         type="button"
+                        aria-pressed={displayMode === m.id}
                         className={`${styles.modeBtn} ${displayMode === m.id ? styles.modeBtnActive : ''}`}
                         onClick={() => setDisplayMode(m.id)}
                       >
@@ -397,16 +415,19 @@ export function OrganicLabPage() {
                     ))}
                     <button
                       type="button"
-                      className={styles.modeBtn}
+                      aria-expanded={showMoreModes}
+                      className={`${styles.modeBtn} ${styles.modeBtnMore}`}
                       onClick={() => setShowMoreModes((v) => !v)}
                     >
                       {t('organicLab.moreModes')}
+                      <ChevronIcon />
                     </button>
                     {showMoreModes
                       ? extraModes.map((m) => (
                           <button
                             key={m.id}
                             type="button"
+                            aria-pressed={displayMode === m.id}
                             className={`${styles.modeBtn} ${displayMode === m.id ? styles.modeBtnActive : ''}`}
                             onClick={() => setDisplayMode(m.id)}
                           >
@@ -415,25 +436,26 @@ export function OrganicLabPage() {
                         ))
                       : null}
                   </div>
-                </div>
 
-                {displayMode === 'hybridization' && displayMol.viewHints?.hybridFocus ? (
-                  <div className={styles.hybridPanel}>
-                    <span className={styles.hybridBadge}>{displayMol.viewHints.hybridFocus}</span>
-                    <span>{t('organicLab.hybridHint', { h: displayMol.viewHints.hybridFocus })}</span>
-                  </div>
-                ) : null}
-
-                <div className={styles.hudBottom}>
-                  <div className={styles.eqBar}>
-                    <span className={styles.eqLabel}>{t('organicLab.equation')}</span>
-                    <code className={styles.eqCode}>{pickEq(displayMol, locale)}</code>
-                  </div>
-                  {canBuild ? (
-                    <button type="button" className={styles.primaryLink} onClick={() => selectMode('build')}>
-                      {t('organicLab.modeBuild')}
-                    </button>
+                  {displayMode === 'hybridization' && displayMol.viewHints?.hybridFocus ? (
+                    <div className={styles.hybridPanel}>
+                      <span className={styles.hybridBadge}>{displayMol.viewHints.hybridFocus}</span>
+                      <span>{t('organicLab.hybridHint', { h: displayMol.viewHints.hybridFocus })}</span>
+                    </div>
                   ) : null}
+
+                  <div className={styles.hudBottom}>
+                    <div className={styles.eqBar}>
+                      <span className={styles.eqLabel}>{t('organicLab.equation')}</span>
+                      <code className={styles.eqCode}>{pickEq(displayMol, locale)}</code>
+                    </div>
+                    {canBuild ? (
+                      <button type="button" className={styles.primaryLink} onClick={() => selectMode('build')}>
+                        <BuildIcon />
+                        {t('organicLab.modeBuild')}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </OrganicMoleculeViewer>
             </div>
@@ -492,3 +514,94 @@ export function OrganicLabPage() {
   )
 }
 
+/* ── Иконки (SVG, currentColor) ─────────────────────────── */
+
+function Svg({ children, size = 16 }: { children: ReactNode; size?: number }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {children}
+    </svg>
+  )
+}
+
+function ViewIcon() {
+  return (
+    <Svg>
+      <path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z" />
+      <circle cx="8" cy="8" r="2" />
+    </Svg>
+  )
+}
+
+function BuildIcon() {
+  return (
+    <Svg>
+      <circle cx="4" cy="4.5" r="2" />
+      <circle cx="12" cy="4.5" r="2" />
+      <circle cx="8" cy="12" r="2" />
+      <path d="M6 4.5h4M5 6.3l2 3.9M11 6.3l-2 3.9" />
+    </Svg>
+  )
+}
+
+function EquationIcon() {
+  return (
+    <Svg>
+      <path d="M2 8h9M8.5 5 11.5 8l-3 3" />
+      <path d="M13.5 4.5v7" />
+    </Svg>
+  )
+}
+
+function IsomerIcon() {
+  return (
+    <Svg>
+      <path d="M2.5 5h10M10 2.5 12.5 5 10 7.5" />
+      <path d="M13.5 11h-10M6 8.5 3.5 11 6 13.5" />
+    </Svg>
+  )
+}
+
+function NameIcon() {
+  return (
+    <Svg>
+      <path d="M2 3.5v4.1c0 .4.2.8.4 1l5 5c.6.6 1.5.6 2.1 0l3.9-3.9c.6-.6.6-1.5 0-2.1l-5-5c-.3-.3-.6-.4-1-.4H3.5C2.7 2.2 2 2.8 2 3.5Z" />
+      <circle cx="5.2" cy="5.4" r="1" />
+    </Svg>
+  )
+}
+
+function PathIcon() {
+  return (
+    <Svg size={18}>
+      <path d="M3 2.5h7.5a2 2 0 0 1 2 2v9H5a2 2 0 0 1-2-2v-9Z" />
+      <path d="M3 11.5a2 2 0 0 1 2-2h7.5M6 5.5h4" />
+    </Svg>
+  )
+}
+
+function ChevronIcon() {
+  return (
+    <Svg size={14}>
+      <path d="M4 6.5 8 10.5l4-4" />
+    </Svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <Svg size={12}>
+      <path d="M3.5 8.4 6.6 11.4 12.5 4.8" strokeWidth="2" />
+    </Svg>
+  )
+}

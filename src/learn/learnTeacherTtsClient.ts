@@ -15,7 +15,10 @@ export type NeuralTtsResult = {
   source: NeuralTtsSource
 }
 
-const SERVER_PROBE_MS = 9_000
+const SERVER_PROBE_MS = 7_000
+/** Таймауты путей (раньше 14–18 с — первая фраза могла ждать минуту). */
+const DESKTOP_TIMEOUT_MS = 8_000
+const EDGE_BROWSER_TIMEOUT_MS = 8_000
 
 function withTimeout<T>(promise: Promise<T>, ms: number, signal?: AbortSignal): Promise<T | null> {
   if (signal?.aborted) return Promise.resolve(null)
@@ -77,10 +80,21 @@ async function postTtsOnce(
   return null
 }
 
-async function fetchViaDesktopElectron(
+/** Есть ли neural TTS через Electron IPC (десктоп-приложение). */
+export function isDesktopTeacherTtsAvailable(): boolean {
+  return typeof window !== 'undefined' && isAtomlabDesktop() && Boolean(window.atomlabDesktop?.synthesizeTeacherTts)
+}
+
+/** Microsoft Edge (Chromium): neural-голос через Read-Aloud WebSocket отвечает быстро. */
+export function isMicrosoftEdgeBrowser(): boolean {
+  return typeof navigator !== 'undefined' && /\bEdg\//.test(navigator.userAgent) && typeof WebSocket !== 'undefined'
+}
+
+export async function fetchViaDesktopElectron(
   chunk: string,
   locale: TeacherTtsLocale,
   signal: AbortSignal,
+  timeoutMs = DESKTOP_TIMEOUT_MS,
 ): Promise<NeuralTtsResult | null> {
   if (signal.aborted || !isAtomlabDesktop()) return null
   const api = window.atomlabDesktop
@@ -88,7 +102,7 @@ async function fetchViaDesktopElectron(
   try {
     const entry = await withTimeout(
       api.synthesizeTeacherTts(chunk, locale),
-      18_000,
+      timeoutMs,
       signal,
     )
     if (!entry || signal.aborted || !isPlausibleSpeechAudio(entry.audioBase64, chunk)) return null
@@ -98,17 +112,18 @@ async function fetchViaDesktopElectron(
   }
 }
 
-async function fetchViaBrowserEdge(
+export async function fetchViaBrowserEdge(
   chunk: string,
   locale: TeacherTtsLocale,
   signal: AbortSignal,
   prosodyMode?: TeacherTtsProsodyMode,
+  timeoutMs = EDGE_BROWSER_TIMEOUT_MS,
 ): Promise<NeuralTtsResult | null> {
   if (signal.aborted) return null
   try {
     const entry = await withTimeout(
       synthesizeEdgeNeuralSpeechBrowser(chunk, locale, undefined, prosodyMode),
-      14_000,
+      timeoutMs,
       signal,
     )
     if (!entry || signal.aborted || !isPlausibleSpeechAudio(entry.audioBase64, chunk)) return null
@@ -118,7 +133,7 @@ async function fetchViaBrowserEdge(
   }
 }
 
-async function fetchViaPuter(
+export async function fetchViaPuter(
   chunk: string,
   locale: TeacherTtsLocale,
   signal: AbortSignal,
@@ -254,11 +269,15 @@ export function isTeacherTtsAvailable(): boolean {
   return typeof window !== 'undefined'
 }
 
+let desktopPrimed = false
+
 export function primeTeacherVoiceOnUserGesture(): void {
-  if (isAtomlabDesktop() && window.atomlabDesktop?.synthesizeTeacherTts) {
+  if (!desktopPrimed && isAtomlabDesktop() && window.atomlabDesktop?.synthesizeTeacherTts) {
+    desktopPrimed = true
     void window.atomlabDesktop.synthesizeTeacherTts('Готов.', 'ru')
   }
-  void warmupPuterFromUserGesture()
+  // Только прогрев скрипта, если «умный ИИ» уже включён; окно входа не открываем.
+  warmupPuterFromUserGesture()
 }
 
 export async function fetchTeacherTtsChunk(
@@ -275,11 +294,14 @@ export async function fetchTeacherTtsChunk(
       ? [cachedWorkingTtsUrl, ...urls.filter((u) => u !== cachedWorkingTtsUrl)]
       : urls
 
+  // Десктоп: локальный IPC быстрее и надёжнее сетевого WebSocket.
+  if (isDesktopTeacherTtsAvailable()) {
+    const desktop = await fetchViaDesktopElectron(chunk, locale, signal)
+    if (desktop) return desktop
+  }
+
   const browserEdge = await fetchViaBrowserEdge(chunk, locale, signal, prosodyMode)
   if (browserEdge) return browserEdge
-
-  const desktop = await fetchViaDesktopElectron(chunk, locale, signal)
-  if (desktop) return desktop
 
   const puter = await fetchViaPuter(chunk, locale, signal)
   if (puter) return puter

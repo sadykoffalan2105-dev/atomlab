@@ -2,67 +2,11 @@
   color: #e8ecff;
 }
 
+/* ——— variant="compact" (сейчас нигде не используется): прежний плотный список ——— */
 .rootCompact {
   color: #e8ecff;
   font-size: 0.78rem;
   line-height: 1.35;
-}
-
-/* Плотный, но читаемый вид для панели лаборатории */
-.rootLab {
-  color: #e8ecff;
-  font-size: 0.86rem;
-  line-height: 1.4;
-}
-
-.rootLab .head {
-  margin-bottom: 0.45rem;
-  padding-bottom: 0.4rem;
-}
-
-.rootLab .symbol {
-  font-size: 1.55rem;
-  text-shadow: 0 0 8px rgba(61, 255, 236, 0.22);
-  letter-spacing: 0.04em;
-}
-
-.rootLab .name {
-  margin: 0.12rem 0 0;
-  font-size: 0.98rem;
-  font-weight: 600;
-}
-
-.rootLab .zLine {
-  margin: 0.12rem 0 0;
-  font-size: 0.82rem;
-}
-
-.rootLab .dl {
-  display: grid;
-  grid-template-columns: minmax(5.2rem, 34%) 1fr;
-  gap: 0.28rem 0.55rem;
-  font-size: 0.84rem;
-  line-height: 1.38;
-}
-
-.rootLab .dt {
-  color: rgba(150, 168, 205, 0.92);
-}
-
-.rootLab .dd {
-  font-size: 0.86rem;
-}
-
-.rootLab .configBlock {
-  font-size: 0.8rem;
-  line-height: 1.35;
-  word-break: break-word;
-}
-
-.rootLab .cpkSwatch {
-  width: 0.85rem;
-  height: 0.85rem;
-  border-radius: 3px;
 }
 
 .head {
@@ -70,109 +14,67 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  padding-bottom: 0.45rem;
-  border-bottom: 1px solid rgba(0, 229, 255, 0.2);
-}
-
-.rootCompact .head {
   margin-bottom: 0.55rem;
   padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--lt-border);
 }
 
 .symbol {
   margin: 0;
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  font-family: ui-monospace, 'Cascadia Code', monospace;
-  color: #00e5ff;
-  text-shadow:
-    0 0 18px rgba(0, 229, 255, 0.45),
-    0 0 36px rgba(255, 45, 149, 0.15);
-}
-
-.rootCompact .symbol {
   font-size: 1.4rem;
-  text-shadow: 0 0 12px rgba(61, 255, 236, 0.3);
+  font-weight: 800;
+  font-family: var(--lt-font-display);
+  color: var(--lt-text);
 }
 
 .name {
-  margin: 0.2rem 0 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: #f0f4ff;
-}
-
-.rootCompact .name {
   margin: 0.1rem 0 0;
   font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--lt-text);
 }
 
 .zLine {
-  margin: 0.35rem 0 0;
-  font-size: 0.85rem;
-  color: rgba(180, 195, 230, 0.9);
-  font-family: ui-monospace, monospace;
-}
-
-.rootCompact .zLine {
   margin: 0.2rem 0 0;
   font-size: 0.7rem;
+  color: var(--lt-text-3);
+  font-family: var(--lt-font-mono);
 }
 
 .dl {
   margin: 0;
   display: grid;
-  grid-template-columns: minmax(9rem, 38%) 1fr;
-  gap: 0.45rem 0.75rem;
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
-
-.rootCompact .dl {
   grid-template-columns: 1fr;
   gap: 0.2rem 0.35rem;
   font-size: 0.7rem;
   line-height: 1.4;
 }
 
-.rootCompact .dt {
+.dt {
+  margin: 0;
   padding-top: 0.35rem;
-  border-top: 1px solid rgba(61, 255, 236, 0.12);
+  border-top: 1px solid var(--lt-border);
+  color: var(--lt-text-3);
+  font-weight: 500;
 }
 
-.rootCompact .dt:first-of-type {
+.dt:first-of-type {
   padding-top: 0;
   border-top: none;
 }
 
-.dt {
-  margin: 0;
-  color: rgba(160, 175, 210, 0.95);
-  font-weight: 500;
-}
-
-.rootCompact .dt {
-  color: rgba(150, 168, 205, 0.92);
-}
-
 .dd {
   margin: 0;
-  color: rgba(220, 228, 255, 0.96);
+  color: var(--lt-text-2);
   word-break: break-word;
   overflow-wrap: anywhere;
 }
 
 .configBlock {
   white-space: pre-wrap;
-  font-family: ui-monospace, 'Cascadia Mono', monospace;
-  font-size: 0.86em;
-  line-height: 1.5;
-}
-
-.rootCompact .configBlock {
+  font-family: var(--lt-font-mono);
   font-size: 0.85em;
+  line-height: 1.5;
 }
 
 .cpkRow {
@@ -182,17 +84,417 @@
   flex-wrap: wrap;
 }
 
-.rootCompact .cpkSwatch {
+.cpkSwatch {
   width: 0.9rem;
   height: 0.9rem;
-}
-
-.cpkSwatch {
-  width: 1.25rem;
-  height: 1.25rem;
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.25);
   flex-shrink: 0;
+}
+
+/* ——— variant="lab": содержимое карточки элемента в лаборатории · «Aurora Lab» ———
+ * Поверхность, отступы, max-height и прокрутку даёт контейнер .elementInfoCard
+ * (LaboratoryPage.module.css); здесь только раскладка содержимого.
+ * Главное — плитка, имя, класс, Aᵣ/p⁺/e⁻/n⁰, конфигурация, степени окисления;
+ * физические свойства — в раскрывающемся <details>. Шрифты не меньше 11px. */
+.rootLab {
+  color: var(--lt-text);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.lab {
+  --el-ink: #050a18;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-body);
+  line-height: 1.4;
+  letter-spacing: normal;
+  color: var(--lt-text);
+}
+
+.lab *,
+.lab *::before,
+.lab *::after {
+  box-sizing: border-box;
+}
+
+.labHead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'tile title actions';
+  align-items: center;
+  gap: 14px;
+}
+
+.labTile {
+  grid-area: tile;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, var(--el-a) 0%, var(--el-b) 100%);
+  color: var(--el-ink);
+  box-shadow:
+    0 12px 26px -12px color-mix(in srgb, var(--el-b) 75%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.labTileZ {
+  position: absolute;
+  top: 5px;
+  left: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.labTileSymbol {
+  margin-top: 6px;
+  font-family: var(--lt-font-display);
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.labTitle {
+  grid-area: title;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.labName {
+  margin: 0;
+  font-family: var(--lt-font-display);
+  font-size: var(--lt-fs-h2);
+  font-weight: 750;
+  line-height: var(--lt-lh-tight);
+  letter-spacing: -0.01em;
+  color: var(--lt-text);
+  overflow-wrap: anywhere;
+}
+
+.labChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.labChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 2px 10px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--lt-border);
+  background: rgba(148, 170, 230, 0.08);
+  font-size: var(--lt-fs-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--lt-text-2);
+}
+
+.labChipTone {
+  border-color: color-mix(in srgb, var(--el-b) 45%, transparent);
+  background: color-mix(in srgb, var(--el-b) 14%, transparent);
+  color: color-mix(in srgb, var(--el-a) 80%, #ffffff);
+}
+
+.labActions {
+  grid-area: actions;
+  align-self: start;
+  display: flex;
+  gap: 6px;
+}
+
+.labStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.labStat {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--lt-radius-sm);
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-2);
+}
+
+.labStat:first-child {
+  border-color: color-mix(in srgb, var(--el-b) 36%, transparent);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--el-b) 15%, transparent), transparent 75%),
+    var(--lt-surface-2);
+}
+
+.labStatValue {
+  margin: 0;
+  font-family: var(--lt-font-display);
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  color: var(--lt-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.labStatSign {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+  font-style: italic;
+  color: var(--lt-text-3);
+}
+
+.labStatSign sub,
+.labStatSign sup {
+  font-size: 11px;
+  font-style: normal;
+  line-height: 0;
+}
+
+.labSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.labLabel {
+  margin: 0;
+  font-size: var(--lt-fs-xs);
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--lt-text-3);
+}
+
+.lab .configRich {
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.labOxWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.labOxChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 26px;
+  padding: 2px 10px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid rgba(167, 139, 250, 0.38);
+  background: rgba(139, 92, 246, 0.14);
+  font-size: var(--lt-fs-small);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #ddd6fe;
+}
+
+.labMore {
+  margin: 2px 0 0;
+  border-top: 1px solid var(--lt-border);
+}
+
+.labMoreSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 40px;
+  margin-bottom: -4px;
+  padding: 0 2px;
+  border-radius: 8px;
+  list-style: none;
+  font-size: var(--lt-fs-small);
+  font-weight: 700;
+  color: var(--lt-text-2);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    color var(--lt-dur) var(--lt-ease),
+    background var(--lt-dur) var(--lt-ease);
+}
+
+.labMoreSummary::-webkit-details-marker {
+  display: none;
+}
+
+.labMoreSummary:hover {
+  color: var(--lt-text);
+  background: rgba(148, 170, 230, 0.05);
+}
+
+.labMoreSummary:focus-visible {
+  outline: none;
+  box-shadow: inset var(--lt-ring);
+}
+
+.labMoreChevron {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--lt-text-3);
+  transition: transform var(--lt-dur) var(--lt-ease);
+}
+
+.labMore[open] .labMoreChevron {
+  transform: rotate(180deg);
+}
+
+.labFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 8px 0 0;
+}
+
+.labFact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-2);
+}
+
+.labFactLabel {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--lt-text-3);
+}
+
+.labFactValue {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  color: var(--lt-text);
+  overflow-wrap: anywhere;
+}
+
+.labFactMuted {
+  font-weight: 500;
+  color: var(--lt-text-3);
+}
+
+.labFactInline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.labCpk {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 720px) {
+  .lab {
+    gap: 10px;
+  }
+
+  .labHead {
+    gap: 12px;
+  }
+
+  .labTile {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+  }
+
+  .labTileSymbol {
+    font-size: 22px;
+  }
+
+  .labName {
+    font-size: 19px;
+  }
+
+  /* Телефон: значения и знаки в одну строку — плитки вдвое ниже */
+  .labStats {
+    grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(0, 1fr));
+  }
+
+  .labStat {
+    flex-direction: row-reverse;
+    justify-content: center;
+    align-items: baseline;
+    gap: 4px;
+    padding: 6px 6px;
+  }
+
+  .labStatValue {
+    font-size: 15px;
+  }
+
+  .labStatSign {
+    flex: none;
+  }
+
+  .lab .configRich {
+    font-size: 13px;
+  }
+
+  /* «Строение атома» и «Физические свойства» — две строки-раскрывашки подряд */
+  .labMore + .labMore {
+    margin-top: -6px;
+  }
+}
+
+/* Содержимое раскрывающегося «Строение атома» (только телефон) */
+.labMoreBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0 4px;
 }
 
 /* ——— Богатая карточка (variant="default", модалка таблицы) · «Aurora Lab» ———

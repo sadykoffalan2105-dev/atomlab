@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-09-15T11:33:21.139Z",
+  "analyzer": 4,
+  "format": 1,
+  "N": 3225,
+  "avg": [
+    3.853,
+    2.86,
+    66.111
+  ],
+  "shards": {
+    "common": {
+      "docs": 1197,
+      "terms": 4798,
+      "postingsBytes": 191035,
+      "fileBytes": 1458324
+    },
+    "g7": {
+      "docs": 445,
+      "terms": 4643,
+      "postingsBytes": 107408,
+      "fileBytes": 962138
+    },
+    "g8": {
+      "docs": 382,
+      "terms": 2815,
+      "postingsBytes": 78674,
+      "fileBytes": 740158
+    },
+    "g9": {
+      "docs": 408,
+      "terms": 3554,
+      "postingsBytes": 93941,
+      "fileBytes": 843184
+    },
+    "g10": {
+      "docs": 461,
+      "terms": 4292,
+      "postingsBytes": 105742,
+      "fileBytes": 979997
+    },
+    "g11": {
+      "docs": 332,
+      "terms": 2774,
+      "postingsBytes": 64890,
+      "fileBytes": 698619
+    }
+  },
+  "lexicon": {
+    "keys": 4585,
+    "glossaryKeys": 2946,
+    "alignedKeys": 1639,
+    "fileBytes": 229610
+  }
+}

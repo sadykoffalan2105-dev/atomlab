@@ -129,21 +129,31 @@ export function stripCombiningAcute(text: string): string {
   return text.replace(COMBINING_ACUTE, '')
 }
 
+/** Один RegExp на все замены (строится лениво) — без полусотни компиляций на каждой фразе. */
+let yoRe: RegExp | null = null
+
 export function applyYoLetterFixes(text: string): string {
-  let out = text
-  const keys = Object.keys(YO_FIXES_RU).sort((a, b) => b.length - a.length)
-  for (const key of keys) {
-    const yo = YO_FIXES_RU[key]!
-    const re = new RegExp(`(?<![\\p{L}])${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}])`, 'gu')
-    out = out.replace(re, yo)
+  if (!yoRe) {
+    const keys = Object.keys(YO_FIXES_RU).sort((a, b) => b.length - a.length)
+    const alternation = keys.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+    yoRe = new RegExp(`(?<![\\p{L}])(?:${alternation})(?![\\p{L}])`, 'gu')
   }
-  return out
+  return text.replace(yoRe, (m) => YO_FIXES_RU[m] ?? m)
 }
+
+/**
+ * Формула — только целым токеном: «F2» внутри «OF2» или «N2» внутри «N2O» не трогаем
+ * (иначе «Oфтор», «азотO»). Компилируется один раз.
+ */
+const FORMULA_SPEECH_RU_BOUNDED: ReadonlyArray<readonly [RegExp, string]> = FORMULA_SPEECH_RU.map(([re, spoken]) => {
+  const flags = re.flags.includes('g') ? re.flags : `${re.flags}g`
+  return [new RegExp(`(?<![A-Za-z0-9₀-₉])(?:${re.source})(?![A-Za-z0-9₀-₉])`, flags), spoken] as const
+})
 
 function expandFormulasForSpeech(text: string, locale: SpeechPrepLocale): string {
   if (locale !== 'ru') return text
   let out = text
-  for (const [re, spoken] of FORMULA_SPEECH_RU) {
+  for (const [re, spoken] of FORMULA_SPEECH_RU_BOUNDED) {
     out = out.replace(re, spoken)
   }
   // Каталог (все 434) — после ручных правил, чтобы не перебить спец-произношения.
@@ -202,7 +212,7 @@ function softenPunctuationForSpeech(text: string): string {
 function stripTtsNoise(text: string): string {
   return text
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, ' ')
-    .replace(/[•·▪✦📖|🎤🔊⚗️⚗🧪🔬]/g, ' ')
+    .replace(/[️•·▪✦📖|🎤🔊⚗🧪🔬]/gu, ' ')
     .replace(/[=]{2,}/g, ' ')
     .replace(/[_]{2,}/g, ' ')
     .replace(/[#]{1,6}/g, ' ')
@@ -219,10 +229,15 @@ export function naturalizeSpeechText(
   locale: SpeechPrepLocale,
   _options: NaturalizeSpeechOptions = {},
 ): string {
+  void _options
   let t = stripTtsNoise(text)
-  t = expandFormulasForSpeech(t, locale)
-  if (locale === 'ru') {
-    t = expandElementSymbolsForRussianSpeech(t)
+  // Формулы/символы элементов бывают только с латиницей или индексами — иначе не гоняем
+  // сотни правил каталога (фраза без формул готовится за доли миллисекунды).
+  if (/[A-Za-z₀-₉]/.test(t.replace(/(?<!\d\s*)\b[IVXLCDM]+\b/g, ''))) {
+    t = expandFormulasForSpeech(t, locale)
+    if (locale === 'ru') {
+      t = expandElementSymbolsForRussianSpeech(t)
+    }
   }
   t = normalizeUnitsForSpeech(t, locale)
   t = softenPunctuationForSpeech(t)
@@ -233,6 +248,8 @@ export function naturalizeSpeechText(
 
   return t
     .replace(/\s+([,.!?])/g, '$1')
+    // «(… века).» → «…века, .» — лишняя запятая перед концом фразы
+    .replace(/,+\s*([.!?])/g, '$1')
     .replace(/([,!?])\s*/g, '$1 ')
     .replace(/\.{2,}/g, '.')
     .replace(/\s{2,}/g, ' ')

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import {
   CLO2_ENERGETICS,
   CLO2_PROFILE_MAIN,
@@ -83,15 +83,20 @@ function bezierD(s: Bezier): string {
   return `C${f1(s.x1)} ${f1(s.y1)} ${f1(s.x2)} ${f1(s.y2)} ${f1(s.x3)} ${f1(s.y3)}`
 }
 
+/**
+ * Ширина 320 единиц: в панели урока (≈ 310–400 px) единица ≈ 1 px и крупнее,
+ * поэтому подписи в 12 единиц не мельче 11 px. Отступы подписей ниже
+ * посчитаны под этот кегль (CSS .value / .formula / .note).
+ */
 function buildLayout(compact: boolean): Layout {
-  const w = 340
-  const h = compact ? 128 : 190
-  const left = compact ? 8 : 26
-  const right = w - 6
-  const top = compact ? 15 : 22
-  const bottom = h - (compact ? 10 : 24)
+  const w = 320
+  const h = compact ? 156 : 224
+  const left = compact ? 10 : 30
+  const right = w - 8
+  const top = compact ? 24 : 30
+  const bottom = h - (compact ? 16 : 34)
   // Хлоратная ветка (≈ −96 кДж/моль) ниже продуктов ClO₂ — шкала вмещает её.
-  const gMin = compact ? -110 : -124
+  const gMin = compact ? -112 : -124
   const yOf = (g: number) => top + ((G_MAX - g) / (G_MAX - gMin)) * (bottom - top)
   const xOf = (f: number) => left + f * (right - left)
   const place = (p: Clo2ProfilePoint): PlacedPoint => ({ p, x: xOf(p.x), y: yOf(p.drawKJ) })
@@ -195,8 +200,18 @@ function reducedMotionQuery(): MediaQueryList | null {
     : null
 }
 
-export function Clo2EnergyProfile({ locale, compact = false }: { locale: Clo2Locale; compact?: boolean }) {
+export function Clo2EnergyProfile({
+  locale,
+  compact = false,
+  caption = true,
+}: {
+  locale: Clo2Locale
+  compact?: boolean
+  /** false — заголовок и единицы показывает родитель (шапка раздела в панели урока) */
+  caption?: boolean
+}) {
   const layout = compact ? LAYOUT_COMPACT : LAYOUT_FULL
+  const gradientId = `clo2ep-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const svgRef = useRef<SVGSVGElement>(null)
   const coreRef = useRef<SVGCircleElement>(null)
   const haloRef = useRef<SVGCircleElement>(null)
@@ -263,14 +278,15 @@ export function Clo2EnergyProfile({ locale, compact = false }: { locale: Clo2Loc
   const ts2 = byId('ts2')
   const adduct = byId('adduct')
   const products = byId('products')
-  const start = L.main[0]!
 
   return (
     <figure className={styles.root} data-compact={compact ? '1' : undefined}>
-      <figcaption className={styles.caption}>
-        <span>{text.title}</span>
-        <span className={styles.captionUnit}>{compact ? text.unit : text.axisG}</span>
-      </figcaption>
+      {caption ? (
+        <figcaption className={styles.caption}>
+          <span>{text.title}</span>
+          <span className={styles.captionUnit}>{compact ? text.unit : text.axisG}</span>
+        </figcaption>
+      ) : null}
 
       <svg
         ref={svgRef}
@@ -280,15 +296,24 @@ export function Clo2EnergyProfile({ locale, compact = false }: { locale: Clo2Loc
         aria-label={summary}
         preserveAspectRatio="xMidYMid meet"
       >
+        <defs>
+          {/* кривая — градиент «Aurora»: бирюза (реагенты) → голубой → индиго (продукты) */}
+          <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1={L.left} y1="0" x2={L.right} y2="0">
+            <stop offset="0" stopColor="#2dd4bf" />
+            <stop offset="0.55" stopColor="#38bdf8" />
+            <stop offset="1" stopColor="#818cf8" />
+          </linearGradient>
+        </defs>
+
         {/* нулевой уровень — исходные реагенты */}
         <line className={styles.zero} x1={L.left} x2={L.right} y1={L.zeroY} y2={L.zeroY} />
 
         {compact ? null : (
           <g aria-hidden>
-            <path className={styles.axis} d={`M${L.left - 12} ${L.bottom + 8}V${L.top - 6}`} />
-            <path className={styles.axisHead} d={`M${L.left - 12} ${L.top - 10}l-2.4 5h4.8z`} />
-            <path className={styles.axis} d={`M${L.left - 12} ${L.bottom + 8}H${L.right}`} />
-            <path className={styles.axisHead} d={`M${L.right + 4} ${L.bottom + 8}l-5 -2.4v4.8z`} />
+            <path className={styles.axis} d={`M${L.left - 14} ${L.bottom + 10}V${L.top - 8}`} />
+            <path className={styles.axisHead} d={`M${L.left - 14} ${L.top - 13}l-3 6h6z`} />
+            <path className={styles.axis} d={`M${L.left - 14} ${L.bottom + 10}H${L.right}`} />
+            <path className={styles.axisHead} d={`M${L.right + 5} ${L.bottom + 10}l-6 -3v6z`} />
             <text className={styles.axisLabel} x={L.right} y={L.h - 3} textAnchor="end">
               {text.axisCoord}
             </text>
@@ -302,10 +327,10 @@ export function Clo2EnergyProfile({ locale, compact = false }: { locale: Clo2Loc
           <path className={styles.bracket} d={`M${f1(L.right - 3)} ${f1(L.zeroY)}V${f1(products.y - 3)}`} />
         </g>
 
-        <path className={styles.glow} d={L.glowD} aria-hidden />
+        <path className={styles.glow} d={L.glowD} stroke={`url(#${gradientId})`} aria-hidden />
         <path className={styles.branch} d={L.branchD} aria-hidden />
-        <path className={styles.solid} d={L.solidD} aria-hidden />
-        <path className={styles.dashed} d={L.dashedD} aria-hidden />
+        <path className={styles.solid} d={L.solidD} stroke={`url(#${gradientId})`} aria-hidden />
+        <path className={styles.dashed} d={L.dashedD} stroke={`url(#${gradientId})`} aria-hidden />
 
         <g aria-hidden>
           {L.main.map((m, i) => (
@@ -313,50 +338,51 @@ export function Clo2EnergyProfile({ locale, compact = false }: { locale: Clo2Loc
               <Marker kind={m.p.kind} x={m.x} y={m.y} />
             </g>
           ))}
-          <circle className={styles.branchEnd} cx={L.branch.x} cy={L.branch.y} r={2.6} />
+          <circle className={styles.branchEnd} cx={L.branch.x} cy={L.branch.y} r={2.8} />
         </g>
 
+        {/* Подписи — с «ореолом» цвета фона (paint-order), чтобы читались поверх кривой. */}
         <g aria-hidden>
-          <text className={styles.value} x={ts1.x} y={ts1.y - 6} textAnchor="middle">
+          <text className={styles.value} x={ts1.x} y={ts1.y - 9} textAnchor="middle">
             {compact ? null : <tspan className={styles.valueSub}>ΔG‡ </tspan>}
             {fmt(e.ts1KJ, locale, 1)}
           </text>
-          <text className={styles.value} x={ts2.x} y={ts2.y - 6} textAnchor="middle">
+          <text className={styles.value} x={ts2.x} y={ts2.y - 9} textAnchor="middle">
             {compact ? null : <tspan className={styles.valueSub}>ΔG‡ </tspan>}
             {fmt(e.ts2KJ, locale, 1)}
           </text>
-          <text className={styles.value} x={L.right - 6} y={L.zeroY + (compact ? 10 : 11)} textAnchor="end">
+          <text className={styles.value} x={L.right - 8} y={L.zeroY - 6} textAnchor="end">
             {compact ? null : <tspan className={styles.valueSub}>ΔG° </tspan>}
             {fmt(e.dG0KJ, locale, 0)}
           </text>
 
           {/* Хлоратная ветка лежит НИЖЕ продуктов ClO₂: подписи продуктов — над линией, ветки — под ней. */}
-          <text className={styles.mainText} x={L.right - 6} y={products.y - (compact ? 4 : 14)} textAnchor="end">
+          <text className={styles.mainText} x={L.right - 8} y={products.y - (compact ? 8 : 20)} textAnchor="end">
             {fill(text.mainLabel, { pct: pctMain })}
           </text>
-          <text className={styles.branchText} x={L.branchEndX} y={L.branch.y + 11} textAnchor="end">
+          <text className={styles.branchText} x={L.branchEndX} y={L.branch.y + 15} textAnchor="end">
             {fill(text.branchLabel, { pct: pctSide })}
           </text>
 
-          <text className={styles.note} x={well.x} y={well.y + (compact ? 10 : 20)} textAnchor="middle">
+          <text className={styles.note} x={well.x} y={well.y + (compact ? 16 : 29)} textAnchor="middle">
             {text.schematic}
           </text>
 
           {compact ? null : (
             <>
-              <text className={styles.formula} x={start.x - 4} y={reactants.y + 11} textAnchor="start">
+              <text className={styles.formula} x={L.left - 2} y={reactants.y + 16} textAnchor="start">
                 {reactants.p.formula}
               </text>
-              <text className={styles.formula} x={well.x} y={well.y + 11} textAnchor="middle">
+              <text className={styles.formula} x={well.x} y={well.y + 15} textAnchor="middle">
                 {well.p.formula}
               </text>
-              <text className={styles.formula} x={adduct.x - 5} y={adduct.y + 12} textAnchor="end">
+              <text className={styles.formula} x={adduct.x + 7} y={adduct.y - 8} textAnchor="start">
                 {adduct.p.formula}
               </text>
-              <text className={styles.formula} x={L.right - 6} y={products.y - 4} textAnchor="end">
+              <text className={styles.formula} x={L.right - 8} y={products.y - 6} textAnchor="end">
                 {products.p.formula}
               </text>
-              <text className={styles.formula} x={L.branchEndX} y={L.branch.y + 21} textAnchor="end">
+              <text className={styles.formula} x={L.branchEndX} y={L.branch.y + 29} textAnchor="end">
                 {L.branch.p.formula}
               </text>
             </>
@@ -369,39 +395,41 @@ export function Clo2EnergyProfile({ locale, compact = false }: { locale: Clo2Loc
           className={styles.headGuide}
           x1={reactants.x}
           x2={reactants.x}
-          y1={compact ? L.bottom + 1 : L.bottom + 3}
-          y2={compact ? L.bottom + 8 : L.bottom + 13}
+          y1={compact ? L.bottom + 3 : L.bottom + 4}
+          y2={compact ? L.bottom + 11 : L.bottom + 16}
           aria-hidden
         />
-        <circle ref={haloRef} className={styles.headHalo} cx={reactants.x} cy={reactants.y} r={compact ? 6 : 7.5} aria-hidden />
-        <circle ref={coreRef} className={styles.headCore} cx={reactants.x} cy={reactants.y} r={compact ? 3 : 3.6} aria-hidden />
+        <circle ref={haloRef} className={styles.headHalo} cx={reactants.x} cy={reactants.y} r={compact ? 7 : 8} aria-hidden />
+        <circle ref={coreRef} className={styles.headCore} cx={reactants.x} cy={reactants.y} r={compact ? 3.4 : 3.8} aria-hidden />
       </svg>
 
-      {compact ? null : (
-        <>
-          <ul className={styles.legend}>
-            <li>
-              <LegendIcon kind="measured" />
-              <span>{text.measured}</span>
-            </li>
-            <li>
-              <LegendIcon kind="derived" />
-              <span>{text.derived}</span>
-            </li>
-            <li>
-              <LegendIcon kind="schematic" />
-              <span>{text.schematic}</span>
-            </li>
-          </ul>
-          <p className={styles.caveat}>{fill(text.caveat, vars)}</p>
-          <details className={styles.more}>
-            <summary>{text.more}</summary>
-            <p>{fill(text.chlorateModels, vars)}</p>
-            <p>{fill(text.halfLife, vars)}</p>
-            <p className={styles.sources}>{text.sources}</p>
-          </details>
-        </>
-      )}
+      <ul className={styles.legend}>
+        <li>
+          <LegendIcon kind="measured" />
+          <span>{text.measured}</span>
+        </li>
+        <li>
+          <LegendIcon kind="derived" />
+          <span>{text.derived}</span>
+        </li>
+        <li>
+          <LegendIcon kind="schematic" />
+          <span>{text.schematic}</span>
+        </li>
+      </ul>
+      {/* Оговорки, модели и источники — по запросу: график и легенда уже показывают, что измерено, а что схема. */}
+      <details className={styles.more}>
+        <summary>
+          <span>{text.more}</span>
+          <svg className={styles.moreChevron} viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+            <path d="M4 6.5 8 10.5l4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </summary>
+        <p className={styles.caveat}>{fill(text.caveat, vars)}</p>
+        <p>{fill(text.chlorateModels, vars)}</p>
+        <p>{fill(text.halfLife, vars)}</p>
+        <p className={styles.sources}>{text.sources}</p>
+      </details>
     </figure>
   )
 }

@@ -3,7 +3,7 @@
  */
 
 import type { AppLocale } from '../../i18n/types'
-import { retrieveChemistryKnowledge } from '../learnKnowledgeRetrieval'
+import { retrieveForTeacher } from '../teacherKnowledge'
 import { analyzeAuthorshipLocal } from './authenticityDetector'
 import { analyzeChemistryLocal } from './chemistryHomeworkAnalysis'
 import { buildHomeworkReviewPrompt } from './homeworkReviewPrompt'
@@ -157,15 +157,19 @@ export async function reviewHomework(input: HomeworkScanInput): Promise<Homework
 
   try {
     const { requestTeacherChat } = await import('../teacherServiceClient')
-    const retrieved = retrieveChemistryKnowledge(
-      input.topicHint ? `${input.topicHint}\n${input.text}` : input.text,
-      { maxChunks: 5, minScore: 1, gradeId: input.gradeId },
+    // Новая база знаний (учебники Kimyo + карточки) с цитатами «[Kimyo N, §X, стр. Y]».
+    const knowledge = await retrieveForTeacher(
+      (input.topicHint ? `${input.topicHint}\n${input.text}` : input.text).slice(0, 600),
+      {
+        locale,
+        gradeId: input.gradeId,
+        sectionTitle: input.topicHint,
+        limit: 5,
+        maxChars: 5_000,
+        timeoutMs: 2_500,
+      },
     )
-    const knowledgeSnippet = retrieved.chunks
-      .map((ch) => (locale === 'en' ? ch.en : ch.ru))
-      .filter(Boolean)
-      .join('\n---\n')
-      .slice(0, 3500)
+    const knowledgeSnippet = knowledge.text.slice(0, 5_000)
 
     const prompt = buildHomeworkReviewPrompt({
       locale,

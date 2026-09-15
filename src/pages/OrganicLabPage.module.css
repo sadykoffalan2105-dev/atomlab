@@ -1,413 +1,1520 @@
+/* Органическая лаборатория (#/organic) · «Aurora Lab» (токены src/learn/learnTheme.css).
+ *
+ * Размеры — px / --lt-fs-*: корневой шрифт приложения мелкий, rem не используем.
+ * Над холстом молекулы (OrganicMoleculeViewer) — никаких backdrop-filter:
+ * почти непрозрачные градиентные поверхности; обёртки HUD — pointer-events: none,
+ * чтобы вращение молекулы работало между карточками.
+ * .wrap из LaboratoryPage.module.css даёт flex-колонку страницы. */
+
 .programWrap {
+  --org-surface: linear-gradient(180deg, rgba(16, 22, 44, 0.95) 0%, rgba(10, 14, 30, 0.96) 100%);
+  --org-surface-flat: rgba(12, 17, 36, 0.94);
+  --org-a: var(--lt-accent-teal);
+  --org-b: var(--lt-primary);
+  --org-grad: linear-gradient(135deg, #14b8a6 0%, #3b82f6 100%);
+
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  height: calc(100dvh - var(--app-header-h, 58px));
+  min-height: 0;
+  overflow: hidden;
+  background: var(--lt-bg);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  line-height: var(--lt-lh);
 }
 
 .programLayout {
-  flex: 1;
+  flex: 1 1 auto;
   display: grid;
-  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  grid-template-columns: clamp(250px, 19vw, 300px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
-  gap: 0;
 }
 
+/* ── Программа: главы и уроки ─────────────────────────── */
+
 .pathPanel {
-  overflow: auto;
-  padding: 1rem 0.75rem 1.25rem;
-  border-right: 1px solid rgba(100, 140, 200, 0.22);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+  border-right: 1px solid var(--lt-border);
   background:
-    linear-gradient(180deg, rgba(8, 14, 28, 0.96), rgba(6, 10, 20, 0.98)),
-    #070b14;
+    radial-gradient(120% 40% at 0% 0%, rgba(45, 212, 191, 0.07), transparent 60%),
+    linear-gradient(180deg, #0b1024 0%, #080c1c 100%);
 }
 
 .domainTabsSlot {
+  flex: none;
   display: flex;
-  margin: 0 0 12px;
+  padding: 14px 14px 12px;
+}
+
+.pathToggle {
+  display: none;
+}
+
+.pathBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 10px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 170, 230, 0.28) transparent;
 }
 
 .pathLead {
-  margin: 0 0 0.85rem;
-  font-size: 0.78rem;
-  line-height: 1.4;
-  color: rgba(170, 190, 230, 0.88);
+  margin: 0 6px 14px;
+  font-size: var(--lt-fs-small);
+  line-height: 1.5;
+  color: var(--lt-text-3);
 }
 
 .chapterBlock {
-  margin-bottom: 0.85rem;
+  margin-bottom: 14px;
 }
 
 .chapterTitle {
-  margin: 0 0 0.35rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  margin: 0 6px 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--lt-border);
+  font-size: var(--lt-fs-xs);
+  font-weight: 750;
+  line-height: 1.3;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: #8fe8da;
 }
 
 .lessonList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .lessonBtn {
-  width: 100%;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.4rem;
+  position: relative;
   appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  margin: 0;
+  padding: 7px 10px 7px 8px;
   border: 1px solid transparent;
+  border-radius: var(--lt-radius-xs);
   background: transparent;
-  color: rgba(220, 230, 255, 0.9);
-  border-radius: 10px;
-  padding: 0.4rem 0.45rem;
-  font: inherit;
-  font-size: 0.8rem;
+  color: var(--lt-text-2);
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-small);
   font-weight: 600;
+  line-height: 1.3;
   text-align: left;
   cursor: pointer;
-  line-height: 1.3;
+  transition:
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    border-color var(--lt-dur-fast) var(--lt-ease),
+    color var(--lt-dur-fast) var(--lt-ease);
 }
 
 .lessonBtn:hover {
-  background: rgba(45, 212, 191, 0.08);
-  border-color: rgba(100, 140, 200, 0.25);
+  background: rgba(148, 170, 230, 0.08);
+  color: var(--lt-text);
 }
 
-.lessonBtnActive {
-  border-color: rgba(45, 212, 191, 0.55);
-  background: color-mix(in srgb, #2dd4bf 14%, rgba(8, 14, 28, 0.95));
+.lessonBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.lessonBtnActive,
+.lessonBtnActive:hover {
+  border-color: rgba(45, 212, 191, 0.38);
+  background:
+    linear-gradient(90deg, rgba(45, 212, 191, 0.16), rgba(91, 140, 255, 0.08) 70%, transparent),
+    rgba(14, 22, 44, 0.9);
+  color: #ffffff;
+}
+
+.lessonBtnActive::before {
+  content: '';
+  position: absolute;
+  inset: 8px auto 8px -1px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--org-grad);
 }
 
 .lessonBtnDone {
-  color: rgba(190, 255, 230, 0.95);
+  color: var(--lt-text);
 }
 
 .lessonCheck {
-  flex: 0 0 0.9rem;
-  width: 0.9rem;
-  color: #34d399;
-  font-size: 0.75rem;
-  line-height: 1.35;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(148, 170, 230, 0.3);
+  color: #04120f;
 }
+
+.lessonCheck[data-state='viewed'] {
+  border-color: rgba(45, 212, 191, 0.55);
+  background: radial-gradient(circle, var(--org-a) 0 3px, transparent 3.5px);
+}
+
+.lessonCheck[data-state='done'] {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--lt-success), var(--org-a));
+}
+
+.lessonTitle {
+  min-width: 0;
+}
+
+/* ── Основная колонка: шапка урока ─────────────────────── */
 
 .mainCol {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: #0a0c18;
+  background: #070b14;
 }
 
 .lessonHeader {
+  flex: none;
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem 0.55rem;
-  border-bottom: 1px solid rgba(100, 140, 200, 0.18);
+  gap: 12px 24px;
+  padding: 16px clamp(16px, 1.6vw, 28px) 14px;
+  border-bottom: 1px solid var(--lt-border);
+  background:
+    radial-gradient(60% 140% at 0% 0%, rgba(45, 212, 191, 0.08), transparent 70%),
+    linear-gradient(180deg, #0c1126 0%, #090d1e 100%);
+}
+
+.lessonIntro {
+  flex: 1 1 380px;
+  min-width: 0;
+}
+
+.lessonKicker {
+  margin: 0 0 4px;
+  font-size: var(--lt-fs-xs);
+  font-weight: 750;
+  line-height: 1.3;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #8fe8da;
+}
+
+.headingRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-bottom: 6px;
 }
 
 .lessonHeading {
-  margin: 0 0 0.25rem;
-  font-size: 1.15rem;
+  margin: 0;
+  font-family: var(--lt-font-display);
+  font-size: var(--lt-fs-h2);
   font-weight: 750;
-  color: #e8f0ff;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--lt-text);
 }
 
 .lessonGoal {
   margin: 0;
-  max-width: 40rem;
-  font-size: 0.84rem;
-  line-height: 1.4;
-  color: rgba(180, 195, 230, 0.92);
+  max-width: 760px;
+  font-size: var(--lt-fs-small);
+  line-height: 1.5;
+  color: var(--lt-text-2);
 }
 
 .goalLabel {
-  color: #94a3b8;
-  font-weight: 650;
+  font-weight: 700;
+  color: var(--lt-text);
 }
 
 .lessonComplete {
-  margin: 0.35rem 0 0;
-  font-size: 0.78rem;
-  font-weight: 650;
-  color: #6ee7b7;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  margin: 0;
+  padding: 0 10px 0 8px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  background: rgba(52, 211, 153, 0.12);
+  font-size: var(--lt-fs-xs);
+  font-weight: 700;
+  line-height: 1;
+  color: #a7f3d0;
 }
 
+/* Режимы урока — сегмент как «Неорганика | Органика» */
 .modeTabs {
-  display: flex;
+  flex: none;
+  display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.65rem;
+  gap: 3px;
+  max-width: 100%;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 170, 230, 0.18);
+  background: rgba(6, 9, 19, 0.78);
+  box-shadow: 0 8px 24px -12px rgba(2, 6, 23, 0.8);
 }
 
 .modeTab {
   appearance: none;
-  border: 1px solid rgba(110, 150, 210, 0.32);
-  background: rgba(10, 14, 28, 0.9);
-  color: rgba(220, 230, 255, 0.92);
-  border-radius: 0.7rem;
-  min-height: 2.35rem;
-  padding: 0 0.95rem;
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 650;
-  cursor: pointer;
-  touch-action: manipulation;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 7px;
+  height: 38px;
+  margin: 0;
+  padding: 0 15px 0 13px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(196, 208, 236, 0.9);
+  font-family: var(--lt-font);
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
   transition:
-    border-color 0.18s ease,
-    background 0.18s ease,
-    transform 0.15s ease;
+    background var(--lt-dur-fast) ease,
+    color var(--lt-dur-fast) ease,
+    box-shadow var(--lt-dur-fast) ease;
+}
+
+.modeTabIcon {
+  display: inline-grid;
+  place-items: center;
+  opacity: 0.85;
 }
 
 .modeTab:hover:not(:disabled) {
-  border-color: rgba(130, 190, 230, 0.5);
-  background: rgba(18, 26, 48, 0.95);
-  transform: translateY(-1px);
+  color: #ffffff;
+  background: rgba(148, 170, 230, 0.12);
+}
+
+.modeTab:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
 }
 
 .modeTab:disabled {
-  opacity: 0.4;
+  color: var(--lt-text-mute);
   cursor: not-allowed;
 }
 
-.modeTabActive {
-  border-color: rgba(70, 210, 180, 0.55);
-  box-shadow: none;
-  background: rgba(28, 90, 75, 0.4);
-  color: #e8fff8;
+.modeTabActive,
+.modeTabActive:hover:not(:disabled) {
+  color: #ffffff;
+  background: var(--org-grad);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 16px -6px rgba(20, 184, 166, 0.7);
 }
+
+.modeTabActive .modeTabIcon {
+  opacity: 1;
+}
+
+/* ── Режим «Смотреть»: сцена молекулы и HUD ────────────── */
 
 .viewStage {
   position: relative;
-  flex: 1;
-  min-height: min(62vh, 36rem);
+  flex: 1 1 auto;
+  min-height: 360px;
+  isolation: isolate;
 }
 
 .molChips {
   position: absolute;
-  top: 0.55rem;
+  top: 14px;
   left: 50%;
-  transform: translateX(-50%);
   z-index: 5;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.3rem;
-  max-width: min(92%, 32rem);
+  gap: 4px;
+  max-width: min(calc(100% - 32px), 640px);
+  padding: 4px;
+  border-radius: var(--lt-radius);
+  border: 1px solid rgba(148, 170, 230, 0.18);
+  background: rgba(6, 9, 19, 0.88);
+  box-shadow: 0 10px 28px -14px rgba(2, 6, 23, 0.9);
+  transform: translateX(-50%);
   pointer-events: auto;
 }
 
 .molChip {
   appearance: none;
-  border: 1px solid rgba(100, 140, 200, 0.4);
-  background: rgba(6, 10, 22, 0.9);
-  color: #cbd5e1;
-  border-radius: 999px;
-  padding: 0.28rem 0.55rem;
-  font: inherit;
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 34px;
+  margin: 0;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--lt-text-2);
+  font-family: var(--lt-font);
+  font-size: 14px;
   font-weight: 650;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background var(--lt-dur-fast) ease,
+    color var(--lt-dur-fast) ease,
+    border-color var(--lt-dur-fast) ease;
 }
 
-.molChipActive {
-  border-color: rgba(45, 212, 191, 0.8);
-  color: #ecfeff;
-  background: color-mix(in srgb, #2dd4bf 16%, rgba(8, 14, 28, 0.95));
+.molChip:hover {
+  color: #ffffff;
+  background: rgba(148, 170, 230, 0.12);
 }
 
-.buildStage,
-.equationStage {
-  flex: 1;
-  overflow: auto;
-  padding: 0.65rem 0.85rem 1.25rem;
-  min-height: 0;
+.molChip:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
 }
 
-.emptyNote {
-  margin: 2rem auto;
-  text-align: center;
-  color: rgba(180, 195, 230, 0.85);
+.molChipActive,
+.molChipActive:hover {
+  border-color: rgba(45, 212, 191, 0.5);
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.3), rgba(59, 130, 246, 0.26)),
+    rgba(10, 16, 34, 0.9);
+  color: #ffffff;
 }
 
 .hudTop {
   position: absolute;
-  top: 2.6rem;
-  left: 0.65rem;
-  right: 0.65rem;
+  top: 72px;
+  left: 16px;
   z-index: 4;
   display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
+  max-width: min(400px, calc(100% - 260px));
   pointer-events: none;
 }
 
 .titleCard {
+  position: relative;
+  min-width: 0;
+  padding: 14px 16px 14px;
+  overflow: hidden;
+  border-radius: var(--lt-radius);
+  border: 1px solid var(--lt-border-strong);
+  background: var(--org-surface);
+  box-shadow: var(--lt-shadow);
   pointer-events: auto;
-  max-width: min(22rem, 55%);
-  padding: 0.55rem 0.7rem;
-  border-radius: 12px;
-  border: 1px solid rgba(100, 140, 200, 0.3);
-  background: rgba(6, 10, 22, 0.88);
-  backdrop-filter: blur(8px);
 }
 
-.titleCard strong {
-  display: block;
-  font-size: 0.95rem;
-  margin-bottom: 0.25rem;
+.titleCard::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--synth-glow, var(--org-a)), var(--org-b));
+  opacity: 0.8;
 }
 
-.titleCard p {
-  margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: rgba(180, 195, 230, 0.92);
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-bottom: 8px;
 }
 
-.modeCol {
-  pointer-events: auto;
+.molName {
+  font-family: var(--lt-font-display);
+  font-size: var(--lt-fs-h3);
+  font-weight: 750;
+  line-height: 1.25;
+  color: var(--lt-text);
+}
+
+.molFormula {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  background: rgba(45, 212, 191, 0.1);
+  font-size: var(--lt-fs-small);
+  font-weight: 700;
+  line-height: 1;
+  color: #bff7ee;
+  font-variant-numeric: tabular-nums;
+}
+
+.molDesc {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 4px;
+  margin: 0;
+  font-size: var(--lt-fs-small);
+  line-height: 1.5;
+  color: var(--lt-text-2);
+}
+
+.molClass {
+  font-size: var(--lt-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lt-text-3);
+}
+
+/* Широкий экран: док не создаёт коробку — дети позиционируются по сцене. */
+.hudDock {
+  display: contents;
+}
+
+/* Вид молекулы: вертикальный сегмент справа */
+.modeCol {
+  position: absolute;
+  top: 72px;
+  right: 16px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
   align-items: stretch;
+  gap: 3px;
+  width: 220px;
+  padding: 4px;
+  border-radius: var(--lt-radius);
+  border: 1px solid rgba(148, 170, 230, 0.18);
+  background: rgba(6, 9, 19, 0.9);
+  box-shadow: 0 10px 28px -14px rgba(2, 6, 23, 0.9);
+  pointer-events: auto;
 }
 
 .modeBtn {
   appearance: none;
-  border: 1px solid rgba(100, 140, 200, 0.35);
-  background: rgba(8, 14, 28, 0.92);
-  color: rgba(220, 230, 255, 0.9);
-  border-radius: 10px;
-  padding: 0.35rem 0.65rem;
-  font: inherit;
-  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--lt-text-2);
+  font-family: var(--lt-font);
+  font-size: 13.5px;
   font-weight: 650;
-  cursor: pointer;
+  line-height: 1.2;
   text-align: left;
-  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background var(--lt-dur-fast) ease,
+    color var(--lt-dur-fast) ease;
 }
 
-.modeBtnActive {
-  border-color: rgba(45, 212, 191, 0.85);
-  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.35);
-  background: color-mix(in srgb, #2dd4bf 18%, rgba(8, 14, 28, 0.95));
+.modeBtn:hover {
+  color: #ffffff;
+  background: rgba(148, 170, 230, 0.12);
+}
+
+.modeBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.modeBtnActive,
+.modeBtnActive:hover {
+  color: #ffffff;
+  background: var(--org-grad);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.modeBtnMore {
+  justify-content: space-between;
+  color: var(--lt-text-3);
+}
+
+.modeBtnMore svg {
+  flex: none;
+  transition: transform var(--lt-dur) var(--lt-ease);
+}
+
+.modeBtnMore[aria-expanded='true'] svg {
+  transform: rotate(180deg);
 }
 
 .hybridPanel {
   position: absolute;
-  right: 0.65rem;
-  bottom: 5.5rem;
+  right: 16px;
+  bottom: 96px;
   z-index: 4;
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.45rem 0.6rem;
-  border-radius: 10px;
+  gap: 10px;
+  max-width: min(320px, calc(100% - 32px));
+  padding: 10px 14px 10px 10px;
+  border-radius: var(--lt-radius-sm);
   border: 1px solid rgba(52, 211, 153, 0.4);
-  background: rgba(6, 20, 16, 0.9);
-  font-size: 0.75rem;
-  color: #bbf7d0;
-  max-width: 14rem;
+  background:
+    linear-gradient(135deg, rgba(52, 211, 153, 0.14), transparent 70%),
+    rgba(8, 18, 22, 0.94);
+  font-size: var(--lt-fs-small);
+  line-height: 1.45;
+  color: #c9f7df;
+  pointer-events: none;
 }
 
 .hybridBadge {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-weight: 700;
-  color: #6ee7b7;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--lt-radius-xs);
+  background: linear-gradient(135deg, var(--lt-success), var(--org-a));
+  font-size: 14px;
+  font-weight: 800;
+  color: #04120f;
 }
 
 .hudBottom {
   position: absolute;
-  left: 0.65rem;
-  right: 0.65rem;
-  bottom: 0.65rem;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
   z-index: 4;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.55rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 12px;
-  border: 1px solid rgba(100, 140, 200, 0.28);
-  background: rgba(6, 10, 22, 0.9);
-  backdrop-filter: blur(8px);
+  gap: 10px 16px;
+  padding: 10px 10px 10px 16px;
+  border-radius: var(--lt-radius);
+  border: 1px solid var(--lt-border-strong);
+  background: var(--org-surface);
+  box-shadow: var(--lt-shadow);
 }
 
 .eqBar {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.45rem;
+  align-items: center;
+  gap: 6px 12px;
   min-width: 0;
 }
 
 .eqLabel {
-  font-size: 0.72rem;
-  color: #94a3b8;
-  font-weight: 600;
+  font-size: var(--lt-fs-xs);
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--lt-text-3);
 }
 
+/* <code>: глобальный стиль code (index.css) даёт светлый фон и мелкий rem-кегль — перекрываем. */
 .eqCode {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.82rem;
-  color: #a5f3fc;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: var(--lt-radius-sm);
+  border: 1px solid rgba(45, 212, 191, 0.28);
+  background:
+    linear-gradient(135deg, rgba(45, 212, 191, 0.12), rgba(91, 140, 255, 0.06) 70%),
+    rgba(6, 10, 22, 0.8);
+  color: #e3fbf6;
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-body);
+  font-weight: 650;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .primaryLink {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  margin: 0;
+  padding: 0 20px 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--lt-radius-pill);
+  background: var(--lt-grad-primary);
+  color: #ffffff;
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-small);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
   text-decoration: none;
-  border-radius: 10px;
-  padding: 0.4rem 0.75rem;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 650;
-  color: #042f2e;
-  background: linear-gradient(135deg, #34d399, #2dd4bf);
-  border: 1px solid rgba(52, 211, 153, 0.6);
   cursor: pointer;
+  box-shadow:
+    var(--lt-glow-primary),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition:
+    filter var(--lt-dur-fast) ease,
+    transform var(--lt-dur-fast) ease;
 }
 
 .primaryLink:hover {
-  filter: brightness(1.06);
+  filter: brightness(1.08);
 }
 
+.primaryLink:active {
+  transform: translateY(1px);
+}
+
+.primaryLink:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+/* ── Режимы «Собрать / Уравнение / Изомеры / Название» ─── */
+
+.buildStage,
+.equationStage {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px clamp(16px, 1.6vw, 28px) 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 170, 230, 0.28) transparent;
+}
+
+.emptyNote {
+  margin: 48px auto;
+  padding: 0 16px;
+  max-width: 520px;
+  font-size: var(--lt-fs-body);
+  text-align: center;
+  color: var(--lt-text-3);
+}
+
+/* ── Слой читаемости для общих модулей режимов ────────────
+ * «Собрать», «Уравнение» и «Изомеры» рендерят компоненты components/learn/research/*
+ * со стилями OrganicBuilderCanvas.module.css и LearnResearchLab.module.css (общие с
+ * #/learn/research). Там кегли в rem, а корень приложения 9px → текст 5–7px.
+ * Здесь, только внутри органической лаборатории, — px-кегли и поверхности Aurora.
+ * Классы CSS-модулей имеют вид _имя_хеш (dev и сборка) → селекторы [class*='_имя_'];
+ * специфичность (0,2,0) и выше перекрывает исходные (0,1,0) независимо от порядка CSS. */
+
+.buildStage,
+.equationStage {
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-body);
+  line-height: var(--lt-lh);
+}
+
+/* карточка-поверхность вокруг конструктора уравнения и набора изомеров */
+.equationStage > :global([class*='_eqBuilder_']),
+.equationStage > div:not([class]) {
+  box-sizing: border-box;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(16px, 2vw, 26px);
+  border-radius: var(--lt-radius-lg);
+  border: 1px solid var(--lt-border-strong);
+  background:
+    radial-gradient(90% 60% at 0% 0%, rgba(45, 212, 191, 0.07), transparent 60%),
+    linear-gradient(180deg, rgba(16, 22, 44, 0.9), rgba(10, 14, 30, 0.92));
+  box-shadow: var(--lt-shadow);
+}
+
+.buildStage :global([class*='_studio_']),
+.buildStage :global([class*='_eqBuilder_']),
+.equationStage :global([class*='_eqBuilder_']) {
+  gap: 12px;
+}
+
+.buildStage :global([class*='_hintLine_']),
+.equationStage :global([class*='_hintLine_']),
+.equationStage :global([class*='_hint_']) {
+  font-size: var(--lt-fs-small);
+  line-height: 1.55;
+  color: var(--lt-text-2);
+}
+
+.buildStage :global([class*='_titleLine_']) {
+  gap: 4px 12px;
+  font-size: var(--lt-fs-small);
+  color: var(--lt-text-2);
+}
+
+.buildStage :global([class*='_titleLine_']) strong {
+  font-family: var(--lt-font-display);
+  font-size: var(--lt-fs-h3);
+  font-weight: 750;
+  color: var(--lt-text);
+}
+
+.buildStage :global([class*='_statusOk_']),
+.buildStage :global([class*='_statusBad_']),
+.equationStage :global([class*='_statusOk_']),
+.equationStage :global([class*='_statusBad_']) {
+  font-size: var(--lt-fs-small);
+  font-weight: 700;
+}
+
+/* чипы задач / молекул / формул */
+.buildStage :global([class*='_missionRow_']),
+.buildStage :global([class*='_dock_']),
+.buildStage :global([class*='_stageRow_']) {
+  gap: 6px;
+}
+
+.buildStage :global([class*='_missionChip_']),
+.buildStage :global([class*='_dockBtn_']),
+.buildStage :global([class*='_stageChip_']) {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--lt-radius-pill);
+  border-color: var(--lt-border-strong);
+  background: var(--lt-surface-solid);
+  color: var(--lt-text-2);
+  font-family: var(--lt-font);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.buildStage :global([class*='_missionChip_'][class*='_missionChipActive_']),
+.buildStage :global([class*='_dockBtn_'][class*='_dockBtnActive_']),
+.buildStage :global([class*='_stageChip_'][class*='_stageChipActive_']) {
+  border-color: rgba(45, 212, 191, 0.55);
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.3), rgba(59, 130, 246, 0.26)),
+    rgba(10, 16, 34, 0.95);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.buildStage :global([class*='_stageNum_']) {
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+}
+
+/* подсказки-плашки */
+.buildStage :global([class*='_feedback_']),
+.buildStage :global([class*='_tipsBar_']) {
+  padding: 10px 14px;
+  border-radius: var(--lt-radius-sm);
+  font-size: var(--lt-fs-small);
+  line-height: 1.5;
+}
+
+.buildStage :global([class*='_coach_']) {
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--lt-radius);
+  border-color: rgba(45, 212, 191, 0.3);
+  background:
+    linear-gradient(135deg, rgba(45, 212, 191, 0.08), transparent 60%),
+    rgba(12, 18, 36, 0.92);
+}
+
+.buildStage :global([class*='_coachHead_']) strong {
+  font-size: 15px;
+}
+
+/* номера шагов уже в тексте перевода («1. …») — маркеры <ol> не дублируем */
+.buildStage :global([class*='_coachList_']) {
+  gap: 4px;
+  padding-left: 0;
+  list-style: none;
+  font-size: var(--lt-fs-small);
+  line-height: 1.5;
+  color: var(--lt-text-2);
+}
+
+/* 3D-сцена сборки: выше и без blur над холстом */
+.buildStage :global([class*='_stage_']) {
+  min-height: 380px;
+  height: clamp(380px, 62vh, 700px);
+  border-radius: var(--lt-radius);
+  border-color: var(--lt-border-strong);
+}
+
+.buildStage :global([class*='_fallback_']) {
+  min-height: 320px;
+  font-size: var(--lt-fs-body);
+}
+
+.buildStage :global([class*='_hudTop_']),
+.buildStage :global([class*='_hudBottom_']) {
+  gap: 8px;
+}
+
+.buildStage :global([class*='_formulaPanel_']),
+.buildStage :global([class*='_toolbar_']),
+.buildStage :global([class*='_inspect_']) {
+  border-color: var(--lt-border-strong);
+  background: rgba(10, 14, 30, 0.94);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.buildStage :global([class*='_formulaPanel_']) {
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: var(--lt-radius-sm);
+}
+
+.buildStage :global([class*='_formulaTarget_']) {
+  font-family: var(--lt-font);
+  font-size: 18px;
+  font-weight: 750;
+  color: #99f6e4;
+}
+
+.buildStage :global([class*='_formulaLive_']) {
+  font-size: 12.5px;
+  color: var(--lt-text-2);
+}
+
+.buildStage :global([class*='_kitCounts_']),
+.buildStage :global([class*='_checks_']) {
+  gap: 5px;
+}
+
+.buildStage :global([class*='_kitPill_']),
+.buildStage :global([class*='_check_']) {
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.buildStage :global([class*='_toolbar_']) {
+  gap: 6px;
+  padding: 6px;
+  border-radius: var(--lt-radius);
+}
+
+.buildStage :global([class*='_inspect_']) {
+  gap: 6px 12px;
+  padding: 8px 12px;
+  border-radius: var(--lt-radius-sm);
+  font-size: 13.5px;
+}
+
+.buildStage :global([class*='_inspect_']) select {
+  min-height: 32px;
+  padding: 0 8px;
+  font-size: 13.5px;
+}
+
+.buildStage :global([class*='_angleBadge_']) {
+  padding: 2px 7px;
+  border-radius: 7px;
+  font-family: var(--lt-font);
+  font-size: 12px;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.buildStage :global([class*='_angleBadge_']) small {
+  font-size: 11px;
+}
+
+.buildStage :global([class*='_atomTag_']),
+.buildStage :global([class*='_atomTagLg_']),
+.buildStage :global([class*='_atomTagNu_']) {
+  font-family: var(--lt-font);
+  font-size: 14px;
+}
+
+/* кнопки инструментов (сборка и уравнение) */
+.buildStage :global([class*='_tool_']),
+.equationStage :global([class*='_tool_']),
+.equationStage :global([class*='_btn_']) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: var(--lt-radius-pill);
+  border-color: var(--lt-border-strong);
+  background: var(--lt-surface-solid);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+.buildStage :global([class*='_tool_']:hover:not(:disabled)),
+.equationStage :global([class*='_tool_']:hover:not(:disabled)),
+.equationStage :global([class*='_btn_']:hover:not(:disabled)) {
+  border-color: rgba(45, 212, 191, 0.5);
+  background: #1a2444;
+}
+
+.buildStage :global([class*='_tool_'][class*='_toolPrimary_']),
+.equationStage :global([class*='_tool_'][class*='_toolPrimary_']),
+.equationStage :global([class*='_btn_'][class*='_btnPrimary_']),
+.buildStage :global([class*='_tool_'][class*='_toolPrimary_']:hover:not(:disabled)),
+.equationStage :global([class*='_tool_'][class*='_toolPrimary_']:hover:not(:disabled)),
+.equationStage :global([class*='_btn_'][class*='_btnPrimary_']:hover:not(:disabled)) {
+  border-color: transparent;
+  background: var(--org-grad);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.buildStage :global([class*='_tool_'][class*='_toolActive_']),
+.equationStage :global([class*='_tool_'][class*='_toolActive_']),
+.buildStage :global([class*='_tool_'][class*='_toolActive_']:hover:not(:disabled)),
+.equationStage :global([class*='_tool_'][class*='_toolActive_']:hover:not(:disabled)) {
+  border-color: rgba(251, 191, 36, 0.6);
+  background: rgba(60, 44, 10, 0.9);
+  color: #fde68a;
+}
+
+/* конструктор уравнения */
+.buildStage :global([class*='_splitEq_']),
+.buildStage :global([class*='_eqBelow_']) {
+  padding: 14px 16px;
+  border-radius: var(--lt-radius);
+  border-color: var(--lt-border-strong);
+}
+
+.buildStage :global([class*='_splitEqTitle_']),
+.buildStage :global([class*='_eqBelowTitle_']) {
+  font-size: var(--lt-fs-h3);
+}
+
+.buildStage :global([class*='_eqSelectLabel_']),
+.equationStage :global([class*='_eqSelectLabel_']) {
+  gap: 6px;
+  font-size: var(--lt-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--lt-text-3);
+}
+
+.buildStage :global([class*='_eqSelect_']),
+.equationStage :global([class*='_eqSelect_']) {
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: var(--lt-radius-sm);
+  border-color: var(--lt-border-strong);
+  background: var(--lt-surface-solid);
+  color: var(--lt-text);
+  font-size: var(--lt-fs-small);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.buildStage :global([class*='_eqBoard_']),
+.equationStage :global([class*='_eqBoard_']) {
+  gap: 12px;
+}
+
+.buildStage :global([class*='_eqSide_']),
+.equationStage :global([class*='_eqSide_']),
+.buildStage :global([class*='_eqBank_']),
+.equationStage :global([class*='_eqBank_']) {
+  gap: 8px;
+}
+
+.buildStage :global([class*='_eqSideLabel_']),
+.equationStage :global([class*='_eqSideLabel_']) {
+  font-size: var(--lt-fs-xs);
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  color: var(--lt-text-3);
+}
+
+.buildStage :global([class*='_eqSlots_']),
+.equationStage :global([class*='_eqSlots_']) {
+  align-items: center;
+  gap: 6px;
+  min-height: 56px;
+  padding: 8px;
+  border-radius: var(--lt-radius-sm);
+  border-color: rgba(148, 170, 230, 0.3);
+  background: rgba(6, 10, 22, 0.6);
+}
+
+.buildStage :global([class*='_eqEmpty_']),
+.equationStage :global([class*='_eqEmpty_']) {
+  padding: 0 4px;
+  font-size: var(--lt-fs-small);
+  color: var(--lt-text-3);
+}
+
+.buildStage :global([class*='_eqTokenRow_']),
+.equationStage :global([class*='_eqTokenRow_']) {
+  gap: 3px;
+}
+
+.buildStage :global([class*='_eqToken_']),
+.equationStage :global([class*='_eqToken_']) {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border-color: rgba(45, 212, 191, 0.4);
+  background: rgba(10, 22, 36, 0.95);
+  color: #d1fae5;
+  font-family: var(--lt-font);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.buildStage :global([class*='_eqMini_']),
+.equationStage :global([class*='_eqMini_']) {
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0 6px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.buildStage :global([class*='_eqArrow_']),
+.equationStage :global([class*='_eqArrow_']) {
+  padding-top: 30px;
+  font-size: 24px;
+  color: var(--lt-accent-teal);
+}
+
+.buildStage :global([class*='_eqPreview_']),
+.equationStage :global([class*='_eqPreview_']) {
+  padding: 10px 14px;
+  border-radius: var(--lt-radius-sm);
+  border: 1px solid var(--lt-border);
+  font-family: var(--lt-font);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.equationStage :global([class*='_toolbar_']) {
+  gap: 8px;
+  padding: 8px;
+  border-radius: var(--lt-radius);
+  border-color: var(--lt-border-strong);
+  background: rgba(10, 14, 30, 0.9);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* изомеры */
+.equationStage :global([class*='_challengeBar_']) {
+  gap: 10px 14px;
+  margin-bottom: 10px;
+}
+
+.equationStage :global([class*='_challengeBar_']) strong {
+  font-family: var(--lt-font-display);
+  font-size: var(--lt-fs-h3) !important; /* в разметке inline font-size в rem */
+  font-weight: 750;
+}
+
+.equationStage :global([class*='_formulaBadge_']) {
+  padding: 4px 12px;
+  border-radius: 10px;
+  font-family: var(--lt-font);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.equationStage :global([class*='_cardGrid_']) {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+  margin-top: 14px !important; /* inline margin в rem */
+}
+
+.equationStage :global([class*='_isoCard_']) {
+  padding: 12px;
+  border-radius: var(--lt-radius);
+}
+
+.equationStage :global([class*='_molPreview_']) {
+  height: 84px;
+  margin-bottom: 10px;
+  border-radius: var(--lt-radius-sm);
+}
+
+.equationStage :global([class*='_isoName_']) {
+  margin-bottom: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.equationStage :global([class*='_isoMeta_']) {
+  font-size: 13px;
+  color: var(--lt-text-3);
+}
+
+@media (max-width: 700px) {
+  .buildStage :global([class*='_stage_']) {
+    min-height: 320px;
+    height: clamp(320px, 56vh, 480px);
+  }
+
+  .buildStage :global([class*='_eqArrow_']),
+  .equationStage :global([class*='_eqArrow_']) {
+    padding-top: 0;
+  }
+}
+
+/* ── Средние экраны: HUD компактнее ────────────────────── */
+
+@media (max-width: 1180px) {
+  .modeCol {
+    width: 190px;
+  }
+
+  .hudTop {
+    max-width: min(360px, calc(100% - 230px));
+  }
+}
+
+/* ── ≤900px: одна колонка, программа — раскрывающаяся строка ── */
+
 @media (max-width: 900px) {
+  .programWrap {
+    height: auto;
+    min-height: calc(100dvh - var(--app-header-h, 58px));
+    overflow: visible;
+  }
+
   .programLayout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .pathPanel {
     border-right: none;
-    border-bottom: 1px solid rgba(100, 140, 200, 0.22);
-    max-height: 11rem;
+    border-bottom: 1px solid var(--lt-border);
+  }
+
+  .domainTabsSlot {
+    padding: 12px 12px 10px;
+  }
+
+  .pathToggle {
+    appearance: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: calc(100% - 24px);
+    min-height: 50px;
+    margin: 0 12px 12px;
+    padding: 6px 10px 6px 7px;
+    border-radius: var(--lt-radius-sm);
+    border: 1px solid var(--lt-border-strong);
+    background:
+      linear-gradient(90deg, rgba(45, 212, 191, 0.1), transparent 70%),
+      var(--org-surface-flat);
+    color: var(--lt-text);
+    font-family: var(--lt-font);
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .pathToggle:focus-visible {
+    outline: none;
+    box-shadow: var(--lt-ring);
+  }
+
+  .pathToggleIcon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    background: var(--org-grad);
+    color: #ffffff;
+  }
+
+  .pathToggleText {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .pathToggleKicker {
+    overflow: hidden;
+    font-size: 11px;
+    font-weight: 750;
+    line-height: 1.25;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #8fe8da;
+  }
+
+  .pathToggleTitle {
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pathToggleChevron {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--lt-border-strong);
+    color: var(--lt-text-2);
+    transition: transform var(--lt-dur) var(--lt-ease);
+  }
+
+  .pathPanel[data-open='true'] .pathToggleChevron {
+    transform: rotate(180deg);
+  }
+
+  .pathBody {
+    display: none;
+    max-height: min(58dvh, 460px);
+    padding: 0 12px 14px;
+  }
+
+  .pathPanel[data-open='true'] .pathBody {
+    display: block;
+  }
+
+  /* глава и название урока уже в строке программы — в шапке остаются цель и режимы */
+  .lessonKicker {
+    display: none;
+  }
+
+  .lessonHeading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .headingRow {
+    margin-bottom: 0;
+  }
+
+  .headingRow:has(.lessonComplete) {
+    margin-bottom: 8px;
+  }
+
+  .lessonHeader {
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 16px 12px;
+  }
+
+  .lessonIntro {
+    flex-basis: 100%;
+  }
+
+  .modeTabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .modeTabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .viewStage {
+    min-height: 420px;
+  }
+
+  .molChips {
+    top: 10px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    max-width: calc(100% - 20px);
+  }
+
+  .molChips::-webkit-scrollbar {
+    display: none;
   }
 
   .hudTop {
-    flex-direction: column;
-    top: 2.4rem;
+    top: 62px;
+    left: 10px;
+    right: 10px;
+    max-width: none;
   }
 
   .titleCard {
-    max-width: 100%;
+    width: 100%;
+    padding: 11px 13px;
+  }
+
+  .titleRow {
+    margin-bottom: 5px;
+  }
+
+  .molDesc {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0 8px;
+  }
+
+  .molDesc > span:last-child {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  /* Телефон: нижний док — вид молекулы, подсказка гибридизации, уравнение (без угадывания высот). */
+  .hudDock {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .modeCol,
+  .hybridPanel,
+  .hudBottom {
+    position: static;
   }
 
   .modeCol {
+    align-self: flex-start;
     flex-direction: row;
-    flex-wrap: wrap;
+    width: auto;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-radius: 999px;
+  }
+
+  .modeCol::-webkit-scrollbar {
+    display: none;
+  }
+
+  .modeBtn {
+    flex: none;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .hybridPanel {
+    max-width: none;
+    padding: 8px 12px 8px 8px;
+  }
+
+  .hudBottom {
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 8px;
+    pointer-events: auto;
+  }
+
+  .eqBar {
+    flex: 1 1 auto;
+  }
+
+  .eqLabel {
+    display: none;
+  }
+
+  .eqCode {
+    font-size: 14.5px;
+  }
+
+  .primaryLink {
+    flex: none;
+    padding: 0 16px 0 13px;
+  }
+}
+
+/* Узкий телефон: режимы — равные колонки «иконка над подписью», все видны без прокрутки. */
+@media (max-width: 560px) {
+  .modeTabs {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    box-sizing: border-box;
+    width: 100%;
+    overflow: visible;
+    border-radius: 18px;
+  }
+
+  .modeTab {
+    flex-direction: column;
+    gap: 4px;
+    height: 54px;
+    min-width: 0;
+    padding: 0 4px;
+    border-radius: 14px;
+    font-size: 12px;
+  }
+
+  .modeTabLabel {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lessonBtn,
+  .modeTab,
+  .molChip,
+  .modeBtn,
+  .modeBtnMore svg,
+  .primaryLink,
+  .pathToggleChevron {
+    transition: none;
   }
 }

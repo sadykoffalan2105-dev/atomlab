@@ -15,6 +15,10 @@ export interface AudioActivityOptions {
   /** Минимальная длительность речи, чтобы не реагировать на щелчки. */
   minSpeechMs?: number
   onSpeechStart?: () => void
+  /**
+   * Конец речи. Приходит на КАЖДЫЙ onSpeechStart (и для щелчка короче minSpeechMs —
+   * тогда `durationMs < minSpeechMs`), иначе потребитель «застревал» в состоянии «говорит».
+   */
   onSpeechEnd?: (durationMs: number) => void
   onLevel?: (rms: number, speaking: boolean) => void
 }
@@ -68,6 +72,7 @@ export class AudioActivityDetector {
       this.source.connect(this.analyser)
       this.running = true
       this.loop()
+      this.startLoop()
       return true
     } catch {
       this.detach()
@@ -102,17 +107,17 @@ export class AudioActivityDetector {
       if (now - this.lastLoudMs > this.opts.silenceHangoverMs) {
         const duration = now - this.speechStartMs
         this.speaking = false
-        if (duration >= this.opts.minSpeechMs) this.opts.onSpeechEnd?.(duration)
+        this.opts.onSpeechEnd?.(duration)
       }
     }
 
     this.opts.onLevel?.(rms, this.speaking)
+  }
 
-    if (typeof requestAnimationFrame === 'function') {
-      this.raf = requestAnimationFrame(this.loop)
-    } else if (!this.timer) {
-      this.timer = setInterval(this.loop, 50)
-    }
+  /** ~30 Гц на таймере, а не на requestAnimationFrame: rAF замирает в фоновой вкладке, а разговор — нет. */
+  private startLoop(): void {
+    if (this.timer) return
+    this.timer = setInterval(this.loop, 33)
   }
 
   isSpeaking(): boolean {

@@ -1,0 +1,239 @@
+{
+ "version": 2,
+ "generatedAt": "2026-09-15T06:49:13.708Z",
+ "chunkPolicy": {
+  "target": 900,
+  "max": 1100,
+  "min": 700,
+  "unitMax": 550,
+  "overlap": 0.12,
+  "tailMin": 350
+ },
+ "grades": {
+  "g7": {
+   "source": "Kimyo 7",
+   "extraction": "pdf text layer (pdfjs-dist)",
+   "pdfPagesWithText": 175,
+   "pagesCoveredByChunks": 170,
+   "paragraphs": 3578,
+   "sections": 65,
+   "emptySections": [],
+   "chunks": 445,
+   "byType": {
+    "textbook": 361,
+    "definition": 50,
+    "summary": 34
+   },
+   "chunksWithoutAppSection": 0,
+   "textbookChars": 330537,
+   "allChars": 354167,
+   "textbookChunkLength": {
+    "min": 495,
+    "p10": 761,
+    "p50": 926,
+    "p90": 1046,
+    "max": 1209
+   },
+   "meanOverlapPct": 13.2,
+   "garbledLatin1Chars": 0,
+   "mixedScriptWords": 11
+  },
+  "g8": {
+   "source": "Kimyo 8",
+   "extraction": "pdf text layer (pdfjs-dist)",
+   "pdfPagesWithText": 207,
+   "pagesCoveredByChunks": 199,
+   "paragraphs": 3770,
+   "sections": 45,
+   "emptySections": [],
+   "chunks": 382,
+   "byType": {
+    "textbook": 306,
+    "definition": 39,
+    "summary": 37
+   },
+   "chunksWithoutAppSection": 10,
+   "textbookChars": 274743,
+   "allChars": 289909,
+   "textbookChunkLength": {
+    "min": 488,
+    "p10": 707,
+    "p50": 915,
+    "p90": 1041,
+    "max": 1098
+   },
+   "meanOverlapPct": 13.1,
+   "garbledLatin1Chars": 0,
+   "mixedScriptWords": 20
+  },
+  "g9": {
+   "source": "Kimyo 9",
+   "extraction": "pdf text layer (pdfjs-dist)",
+   "pdfPagesWithText": 209,
+   "pagesCoveredByChunks": 199,
+   "paragraphs": 3682,
+   "sections": 42,
+   "emptySections": [],
+   "chunks": 408,
+   "byType": {
+    "textbook": 343,
+    "definition": 38,
+    "summary": 27
+   },
+   "chunksWithoutAppSection": 48,
+   "textbookChars": 311759,
+   "allChars": 324714,
+   "textbookChunkLength": {
+    "min": 489,
+    "p10": 732,
+    "p50": 925,
+    "p90": 1052,
+    "max": 1188
+   },
+   "meanOverlapPct": 13.6,
+   "garbledLatin1Chars": 0,
+   "mixedScriptWords": 1
+  },
+  "g10": {
+   "source": "Kimyo 10",
+   "extraction": "pdf text layer (pdfjs-dist)",
+   "pdfPagesWithText": 192,
+   "pagesCoveredByChunks": 186,
+   "paragraphs": 3672,
+   "sections": 62,
+   "emptySections": [],
+   "chunks": 461,
+   "byType": {
+    "textbook": 357,
+    "definition": 51,
+    "summary": 53
+   },
+   "chunksWithoutAppSection": 0,
+   "textbookChars": 324122,
+   "allChars": 362334,
+   "textbookChunkLength": {
+    "min": 549,
+    "p10": 754,
+    "p50": 918,
+    "p90": 1051,
+    "max": 1166
+   },
+   "meanOverlapPct": 13.6,
+   "garbledLatin1Chars": 0,
+   "mixedScriptWords": 12
+  },
+  "g11": {
+   "source": "Kimyo 11",
+   "extraction": "ocr (tesseract.js rus+eng)",
+   "pdfPagesWithText": 160,
+   "pagesCoveredByChunks": 151,
+   "note": "the grade 11 book has no summary/remember boxes (only \"Вопросы и задания\"), so no summary chunks",
+   "ocrMeanConfidence": 87,
+   "ocrPagesBelow80": [
+    29,
+    78,
+    82,
+    91,
+    120,
+    121,
+    137,
+    143,
+    151,
+    153,
+    155,
+    156
+   ],
+   "paragraphs": 2796,
+   "sections": 33,
+   "emptySections": [],
+   "chunks": 332,
+   "byType": {
+    "textbook": 298,
+    "definition": 34
+   },
+   "chunksWithoutAppSection": 0,
+   "textbookChars": 274903,
+   "allChars": 284610,
+   "textbookChunkLength": {
+    "min": 602,
+    "p10": 789,
+    "p50": 931,
+    "p90": 1034,
+    "max": 1114
+   },
+   "meanOverlapPct": 13.6,
+   "garbledLatin1Chars": 0,
+   "mixedScriptWords": 9
+  }
+ },
+ "cards": {
+  "count": 1197,
+  "byType": {
+   "card": 892,
+   "faq": 41,
+   "misconception": 24,
+   "summary": 240
+  },
+  "bySource": {
+   "ATOMLAB: элементы": 118,
+   "ATOMLAB: вещества": 434,
+   "ATOMLAB: реакции": 153,
+   "ATOMLAB: уравнения 10–11": 64,
+   "ATOMLAB: органическая лаборатория": 75,
+   "ATOMLAB: таблица растворимости": 26,
+   "ATOMLAB: частые вопросы": 41,
+   "ATOMLAB: типичные ошибки": 24,
+   "ATOMLAB: база знаний": 105,
+   "ATOMLAB: законы и основы": 8,
+   "ATOMLAB: формулы": 16,
+   "ATOMLAB: органика": 10,
+   "ATOMLAB: задачи": 16,
+   "ATOMLAB: теория": 12,
+   "ATOMLAB: кинетика и равновесие": 10,
+   "ATOMLAB: лабораторная практика": 13,
+   "ATOMLAB: термохимия и электрохимия": 8,
+   "ATOMLAB: неорганика": 10,
+   "ATOMLAB: учёные": 36,
+   "ATOMLAB: алгоритмы решения": 18
+  },
+  "chars": 534576
+ },
+ "quiz": {
+  "count": 3228,
+  "byLang": {
+   "ru": 1076,
+   "en": 1076,
+   "uz": 1076
+  },
+  "bySource": {
+   "ATOMLAB: тесты 7 класс": 1560,
+   "ATOMLAB: тесты 8 класс": 549,
+   "ATOMLAB: тесты 9 класс": 1095,
+   "ATOMLAB: номенклатура (10 класс)": 24
+  }
+ },
+ "glossary": {
+  "count": 905,
+  "bySource": {
+   "core": 285,
+   "element": 118,
+   "compound": 434,
+   "organic": 51,
+   "class": 17
+  },
+  "withUz": 869,
+  "withEn": 882
+ },
+ "files": {
+  "kb-corpus-g7.json": 754734,
+  "kb-corpus-g8.json": 608206,
+  "kb-corpus-g9.json": 674408,
+  "kb-corpus-g10.json": 779590,
+  "kb-corpus-g11.json": 584815,
+  "kb-corpus-common.json": 1254205,
+  "kb-quiz.json": 1411702,
+  "kb-glossary.json": 108913
+ },
+ "totalBytes": 6176573,
+ "problems": []
+}

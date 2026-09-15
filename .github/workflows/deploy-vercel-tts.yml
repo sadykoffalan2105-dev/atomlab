@@ -3,15 +3,8 @@
 
 name: Deploy Vercel TTS API
 
+# Запуск только вручную: сайт работает без сервера; секреты проверяются внутри job.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'api/learn/tts.ts'
-      - 'server/edgeTtsServerless.ts'
-      - 'src/learn/learnTtsCore.ts'
-      - 'vercel.json'
-      - '.github/workflows/deploy-vercel-tts.yml'
   workflow_dispatch:
 
 concurrency:
@@ -20,19 +13,34 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ secrets.VERCEL_TOKEN != '' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check secrets
+        id: secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -n "$VERCEL_TOKEN" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skip — VERCEL_TOKEN not configured"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - uses: actions/setup-node@v4
+      - if: steps.secrets.outputs.ok == 'true'
+        uses: actions/checkout@v4
+
+      - if: steps.secrets.outputs.ok == 'true'
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
 
-      - run: npm ci
+      - if: steps.secrets.outputs.ok == 'true'
+        run: npm ci
 
       - name: Deploy API to Vercel
+        if: steps.secrets.outputs.ok == 'true'
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}

@@ -6,6 +6,15 @@ export type LearnAssistantPromptInput = LearnLocalAssistantContext & {
   sectionOutlineBlock?: string
   topicSceneId?: string
   conversationHints?: string
+  /**
+   * LIVE: директива «онлайн-мозга» учителя. Передаётся отдельным полем и попадает
+   * в промпт ЦЕЛИКОМ (раньше её клали в slideBody, где она обрезалась до 500–700 символов).
+   */
+  liveDirective?: string
+  /** LIVE: подсказка по эмоции ученика с камеры — целиком. */
+  cameraHint?: string
+  /** LIVE: как отвечать на этот ход (коротко/подробнее/проще/пример). */
+  answerStyle?: string
 }
 
 function languageLabel(locale: LearnLocalAssistantContext['locale']): string {
@@ -210,35 +219,41 @@ export function buildLiveAssistantSystemPrompt(input: LearnAssistantPromptInput)
         ? `NUTQ: qisqa gaplar; moddalar so‘z bilan; formulalar va +, →, = yo‘q.`
         : `SPEECH: short sentences; substance names in words; no formulas or +, →, =.`
 
-  const knowledge = (input.chemistryKnowledgeBlock ?? input.knowledgeBlock)?.slice(0, 3_800) || ''
-  const reference = (input.sectionOutlineBlock ?? input.slideBody)?.slice(0, 700) || ''
+  const knowledge = (input.chemistryKnowledgeBlock ?? input.knowledgeBlock)?.slice(0, 4_200) || ''
+  const reference = (input.sectionOutlineBlock || input.slideBody)?.slice(0, 700) || ''
+  const catalog =
+    input.chemistryKnowledgeBlock && input.knowledgeBlock ? input.knowledgeBlock.slice(0, 900) : ''
+  const style =
+    input.answerStyle ??
+    'Default: about 40–60 words (3–4 short sentences). If the student asks for more detail — up to 140 words.'
 
-  return `You are ATOMLAB live chemistry teacher (grades 7–11). Think deeply, answer briefly aloud.
+  return `You are ATOMLAB live chemistry teacher (grades 7–11) in a real-time spoken conversation. Think deeply, answer briefly aloud.
 
 LANGUAGE: ${lang} only. Never mix languages. Translate any foreign excerpts into ${lang}.
 
 SILENT REASONING (do not print):
-1) Classify: fact/why/how/compare/calc/homework/clarify.
-2) One core claim. Ignore OCR/spelling noise.
-3) Ground in school chemistry (particles, bonds, ions, energy, atom conservation).
-4) Catch misconceptions (mass≠mole, atom≠molecule).
-5) Calcs: method → steps → units → sanity check.
+1) Classify: fact/why/how/compare/calc/homework/clarify/follow-up.
+2) Follow-ups («а почему?», «приведи пример», «проще», «повтори») refer to the previous exchange — use the conversation history.
+3) One core claim. Ignore speech-recognition/OCR noise.
+4) Ground in KNOWLEDGE and school chemistry (particles, bonds, ions, energy, atom conservation).
+5) Catch misconceptions (mass≠mole, atom≠molecule). Calcs: method → steps → units → sanity check.
 6) Self-check exactness + speakability.
 
-SPEAK NOW:
-- 55–130 words. First sentence = direct answer. Then why/mechanism. One tiny example.
-- Warm human teacher to ONE student. Vary openers.
-- No wiki lists. No mandatory “remember/tip/check” footer.
+SPEAK NOW (it is read aloud sentence by sentence as you write):
+- The FIRST sentence is the direct answer and must be short (under 15 words) — it starts playing immediately.
+- Then a short why/explanation, one tiny example if useful, then one micro check-question.
+- ${style}
+- Warm human teacher talking to ONE student. Vary openers. No lists, no markdown, no headings.
 - ${speakRules}
+- If KNOWLEDGE does not cover the question — say honestly that you are not sure and suggest checking the textbook; never invent facts.
 - If homework: chemistry verdict + human vs AI-rewrite cues; fair and specific.
-- End teaching turns with one micro check-question.
 
-MODE: TEACHER (live voice). ${input.conversationHints ?? ''}
+${input.liveDirective ? `TEACHER BRAIN:\n${input.liveDirective}\n` : ''}${input.cameraHint ? `CAMERA (student state): ${input.cameraHint}\n` : ''}MODE: TEACHER (live voice). ${input.conversationHints ?? ''}
 
 LESSON: ${input.gradeId} | ${input.sectionTitle} | ${input.slideTitle}
 REFERENCE:
 ${reference}
-
-KNOWLEDGE (ground here; if thin — say check textbook, do not invent):
-${knowledge || '(school chemistry expertise)'}`
+${catalog ? `\nCATALOG:\n${catalog}\n` : ''}
+KNOWLEDGE (ground here; cite nothing aloud):
+${knowledge || '(no matching excerpts — rely on standard school chemistry and be careful)'}`
 }

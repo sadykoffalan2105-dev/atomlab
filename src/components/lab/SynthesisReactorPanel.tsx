@@ -8,6 +8,7 @@ import {
   type ChangeEvent,
   type FocusEvent,
   type KeyboardEvent,
+  type ReactNode,
 } from 'react'
 import { getElementByZ } from '../../data/elements'
 import { getCompoundLocaleStrings } from '../../i18n/compoundLocale'
@@ -31,7 +32,7 @@ function termSymbolDisplay(t: ReactorEquationTerm): string {
   }
   const e = getElementByZ(t.z)
   if (!e) return '—'
-  if (t.diatomic) return `${e.symbol}\u2082`
+  if (t.diatomic) return `${e.symbol}₂`
   return e.symbol
 }
 
@@ -57,19 +58,219 @@ function parseCoeffDraft(raw: string, min: number, max: number): number | null {
   return clampCoeff(n, min, max)
 }
 
-function IconCheck({ className }: { className?: string }) {
+/* ——— Иконки (SVG вместо юникод-глифов; stroke = currentColor) ——— */
+
+function Svg({ size = 18, className, children }: { size?: number; className?: string; children: ReactNode }) {
   return (
-    <svg className={className} width={20} height={20} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M5 12l5 5L20 7"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable="false"
+    >
+      {children}
     </svg>
   )
 }
+
+function IconCheck({ className, size = 16 }: { className?: string; size?: number }) {
+  return (
+    <Svg className={className} size={size}>
+      <path d="M5 12.5l4.5 4.5L19 7.5" strokeWidth={2.4} />
+    </Svg>
+  )
+}
+
+function IconFlask({ size = 18 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M9.5 3h5M10 3v5.2L4.9 17.4A2.4 2.4 0 0 0 7 21h10a2.4 2.4 0 0 0 2.1-3.6L14 8.2V3" />
+      <path d="M7.3 14.5h9.4" />
+    </Svg>
+  )
+}
+
+function IconSparkles({ size = 18 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M11 3.5l1.6 4.4L17 9.5l-4.4 1.6L11 15.5l-1.6-4.4L5 9.5l4.4-1.6L11 3.5Z" />
+      <path d="M18.5 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />
+    </Svg>
+  )
+}
+
+function IconReset({ size = 17 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M4 12a8 8 0 1 0 2.4-5.7" />
+      <path d="M4 4.5V9h4.5" />
+    </Svg>
+  )
+}
+
+function IconChevron({ dir = 'down', size = 16 }: { dir?: 'down' | 'up'; size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d={dir === 'down' ? 'M6 9l6 6 6-6' : 'M6 15l6-6 6 6'} strokeWidth={2.2} />
+    </Svg>
+  )
+}
+
+function IconX({ size = 14 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M7 7l10 10M17 7L7 17" strokeWidth={2.2} />
+    </Svg>
+  )
+}
+
+function IconCatalog({ size = 17 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+      <path d="M12 3.5v17M15 8h2.5M15 12h2.5M15 16h2.5" />
+    </Svg>
+  )
+}
+
+function IconBulb({ size = 16 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3Z" />
+    </Svg>
+  )
+}
+
+function IconSteps({ size = 16 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M10 6h10M10 12h10M10 18h10" />
+      <path d="M4 5l1.5-1v5M3.8 15.2a1.4 1.4 0 1 1 2.2 1.6L4 19h2.4" strokeWidth={1.6} />
+    </Svg>
+  )
+}
+
+function IconScale({ size = 16 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M12 4v16M8 20h8M5 7h14" />
+      <path d="M5 7l-2.5 6a2.5 2.5 0 0 0 5 0L5 7ZM19 7l-2.5 6a2.5 2.5 0 0 0 5 0L19 7Z" />
+    </Svg>
+  )
+}
+
+function IconPlay({ size = 18 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M8 5.5v13l10.5-6.5L8 5.5Z" fill="currentColor" strokeWidth={1.4} />
+    </Svg>
+  )
+}
+
+function IconSpinner({ className, size = 18 }: { className?: string; size?: number }) {
+  return (
+    <Svg className={className} size={size}>
+      <path d="M12 3a9 9 0 1 1-9 9" strokeWidth={2.4} />
+    </Svg>
+  )
+}
+
+function IconVoice({ size = 16 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" />
+      <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+    </Svg>
+  )
+}
+
+function IconReplay({ size = 16 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M20 12a8 8 0 1 1-2.4-5.7" />
+      <path d="M20 4.5V9h-4.5" />
+    </Svg>
+  )
+}
+
+type MessageTone = 'info' | 'success' | 'warning' | 'error'
+
+function IconTone({ tone }: { tone: MessageTone }) {
+  if (tone === 'success') {
+    return (
+      <Svg size={18}>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M8 12.3l2.7 2.7L16.2 9.5" strokeWidth={2.2} />
+      </Svg>
+    )
+  }
+  if (tone === 'warning') {
+    return (
+      <Svg size={18}>
+        <path d="M10.3 4.2 2.8 17.4A2 2 0 0 0 4.5 20.4h15a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z" />
+        <path d="M12 9.5v4.2M12 16.8h.01" strokeWidth={2.2} />
+      </Svg>
+    )
+  }
+  if (tone === 'error') {
+    return (
+      <Svg size={18}>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9 9l6 6M15 9l-6 6" strokeWidth={2.2} />
+      </Svg>
+    )
+  }
+  return (
+    <Svg size={18}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5M12 7.6h.01" strokeWidth={2.2} />
+    </Svg>
+  )
+}
+
+/**
+ * Тон статус-сообщения реактора — только для оформления (цвет/иконка).
+ * Сообщения приходят строкой из LaboratoryPage, поэтому тон выводим по смыслу текста.
+ */
+function reactorMessageTone(message: string, highlightError: boolean): MessageTone {
+  if (highlightError) return 'error'
+  const m = message.toLowerCase()
+  if (/^(получено|obtained|olingan)|^(верно!|correct!|to'g'ri!)/.test(m)) return 'success'
+  // «Так в реакторе не получают — откройте каталог»: подсказка маршрута, а не ошибка ввода.
+  if (/не собирают|cannot be built|yig'ilmaydi/.test(m)) return 'warning'
+  if (
+    /не удал|failed|could not|amalga oshmadi|bo'lmadi|неизвестн|unknown|noma'lum|слишком|too many|juda ko'p|ошибк|error|xato|нельзя|cannot|не совпал|did not match|mos kelmad/.test(
+      m,
+    )
+  ) {
+    return 'error'
+  }
+  if (
+    /выберите|добавьте|введите|включите|проверь|должн|select |add |enter |turn on|check |must|tanlang|qo'shing|kiriting|yoqing|tekshiring|kerak/.test(
+      m,
+    )
+  ) {
+    return 'warning'
+  }
+  return 'info'
+}
+
+/** Подписи раскрывающихся разделов (TODO: перенести в i18n-словари). */
+const SECTION_LABELS: Record<string, { hints: string; steps: string; hide: string }> = {
+  ru: { hints: 'Подсказки', steps: 'Этапы получения', hide: 'Скрыть' },
+  en: { hints: 'Tips', steps: 'Production steps', hide: 'Hide' },
+  uz: { hints: 'Maslahatlar', steps: 'Olish bosqichlari', hide: 'Yashirish' },
+}
+
+type ReactorSection = 'hints' | 'steps' | 'balance'
 
 /**
  * Коэффициент с клавиатуры.
@@ -276,6 +477,14 @@ export function SynthesisReactorPanel({
   const coeffFocusGenRef = useRef(0)
   const coeffFocusReleaseTimerRef = useRef<number | null>(null)
   const [collapsed, setCollapsed] = useState(false)
+  /** Раскрытый раздел под уравнением (аккордеон: одновременно один). */
+  const [openSection, setOpenSection] = useState<ReactorSection | null>(null)
+  const sectionsId = useId()
+  const labels = SECTION_LABELS[locale] ?? SECTION_LABELS.ru!
+
+  const toggleSection = useCallback((id: ReactorSection) => {
+    setOpenSection((cur) => (cur === id ? null : id))
+  }, [])
 
   const reportCoeffFocus = useCallback(
     (focused: boolean) => {
@@ -331,6 +540,45 @@ export function SynthesisReactorPanel({
   const visualTier = useMemo(() => (leftTerms.length > 0 ? getReactorVisualTier(leftTerms) : 'full'), [leftTerms])
   const hasDiatomic = leftTerms.some((t) => t.diatomic)
 
+  const hasObtainingSteps = Boolean(productStrings?.obtainingSteps && productStrings.obtainingSteps.length > 1)
+  const activeSection: ReactorSection | null =
+    openSection === 'steps' && !hasObtainingSteps ? null : openSection
+
+  const labNeeds = productCompound?.synthesisLab
+  const hasLabConditions = Boolean(
+    productCompound && (labNeeds?.needsHeat || labNeeds?.needsPressure || labNeeds?.needsCatalyst),
+  )
+  const labNeedCount = [labNeeds?.needsHeat, labNeeds?.needsPressure, labNeeds?.needsCatalyst].filter(Boolean).length
+  const labOnCount =
+    (labNeeds?.needsHeat && labHeatOn ? 1 : 0) +
+    (labNeeds?.needsPressure && labPressureOn ? 1 : 0) +
+    (labNeeds?.needsCatalyst && labCatalystOn ? 1 : 0)
+  const labReady = labNeedCount > 0 && labOnCount >= labNeedCount
+  const showLabConditionsHint = hasLabConditions && equationBalanced && !canRun && !synthesisRunning
+
+  const messageTone = message ? reactorMessageTone(message, highlightEquationError) : 'info'
+  const recipeText = productCompound
+    ? (productStrings?.laboratoryRecipe ?? productCompound.laboratoryRecipeRu)
+    : null
+
+  const sectionToggle = (id: ReactorSection, icon: ReactNode, label: string, title?: string) => (
+    <button
+      type="button"
+      className={panelStyles.sectionToggle}
+      data-active={activeSection === id ? 'true' : undefined}
+      aria-expanded={activeSection === id}
+      aria-controls={sectionsId}
+      title={title ?? label}
+      onClick={() => toggleSection(id)}
+    >
+      <span className={panelStyles.sectionToggleIcon}>{icon}</span>
+      <span className={panelStyles.sectionToggleLabel}>{label}</span>
+      <span className={panelStyles.sectionToggleChevron}>
+        <IconChevron dir={activeSection === id ? 'up' : 'down'} size={14} />
+      </span>
+    </button>
+  )
+
   return (
     <>
     <div
@@ -339,13 +587,30 @@ export function SynthesisReactorPanel({
       data-collapsed={open && collapsed ? 'true' : undefined}
       data-lab-reactor=""
       data-dim-hero={dimInCatalogHeroView && open}
+      data-compact={open && (dimInCatalogHeroView || synthesisRunning) ? 'true' : undefined}
+      data-section-open={open && activeSection != null ? 'true' : undefined}
       role="region"
       aria-label={t('reactor.ariaRegion')}
-      aria-hidden={open && collapsed ? true : undefined}
-      inert={open && collapsed ? true : undefined}
+      /* Закрытый (уехал за экран) и свёрнутый док не должен ловить Tab и читаться экранным диктором. */
+      aria-hidden={!open || collapsed ? true : undefined}
+      inert={!open || collapsed ? true : undefined}
     >
       <div className={panelStyles.reactorHead}>
-        <span className={panelStyles.reactorTitle}>{t('reactor.title')}</span>
+        <span className={panelStyles.reactorTitle}>
+          <span className={panelStyles.reactorTitleIcon} aria-hidden>
+            <IconFlask size={16} />
+          </span>
+          <span className={panelStyles.reactorTitleText}>{t('reactor.title')}</span>
+        </span>
+
+        <div className={panelStyles.sectionToggles} role="group">
+          {sectionToggle('hints', <IconBulb />, labels.hints)}
+          {hasObtainingSteps
+            ? sectionToggle('steps', <IconSteps />, labels.steps, t('reactor.obtainingStepsSummary'))
+            : null}
+          {sectionToggle('balance', <IconScale />, t('reactor.balance.showMethods'))}
+        </div>
+
         <div className={panelStyles.reactorActions}>
           {teacherAvailable ? (
             <div className={panelStyles.teacherControls} role="group" aria-label={t('lab.teacher.aria')}>
@@ -356,427 +621,291 @@ export function SynthesisReactorPanel({
                 aria-pressed={teacherVoiceOn}
                 title={teacherVoiceOn ? t('lab.teacher.explainMute') : t('lab.teacher.explainEnable')}
               >
-                {teacherVoiceOn ? t('lab.teacher.explainOn') : t('lab.teacher.explain')}
+                <IconVoice />
+                <span className={panelStyles.btnLabel}>
+                  {teacherVoiceOn ? t('lab.teacher.explainOn') : t('lab.teacher.explain')}
+                </span>
+                {teacherSpeaking ? <span className={panelStyles.teacherLive} aria-hidden /> : null}
               </button>
               {teacherVoiceOn ? (
                 <button
                   type="button"
-                  className={panelStyles.reactorBtnSecondary}
+                  className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnIcon}`}
                   onClick={() => onTeacherReplay?.()}
                   title={t('lab.teacher.replay')}
                   aria-label={t('lab.teacher.replay')}
                 >
-                  {t('lab.teacher.replayShort')}
+                  <IconReplay />
                 </button>
-              ) : null}
-              {teacherSpeaking ? (
-                <span className={panelStyles.teacherLive} aria-hidden>
-                  ●
-                </span>
               ) : null}
             </div>
           ) : null}
           <button
             type="button"
-            className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnHide}`}
+            className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnAccent}`}
+            onClick={onOpenGenerateEquationCatalog}
+            title={t('reactor.generateEquationTitle')}
+            aria-label={t('reactor.generateEquation')}
+          >
+            <IconSparkles size={17} />
+            <span>{t('reactor.generateEquationShort')}</span>
+          </button>
+          <button
+            type="button"
+            className={panelStyles.reactorBtnSecondary}
+            onClick={onClearSlots}
+            title={t('reactor.reset')}
+            aria-label={t('reactor.reset')}
+          >
+            <IconReset />
+            <span className={panelStyles.btnLabel}>{t('reactor.reset')}</span>
+          </button>
+          <button
+            type="button"
+            className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnIcon}`}
             onClick={() => setCollapsed(true)}
             aria-label={t('reactor.hidePanel')}
             title={t('reactor.hidePanel')}
           >
-            <span className={panelStyles.reactorBtnHideIcon} aria-hidden>
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
-                <path
-                  d="M6 9l6 6 6-6"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-            {t('reactor.hidePanel')}
-          </button>
-          <button type="button" className={panelStyles.reactorBtnSecondary} onClick={onClearSlots}>
-            {t('reactor.reset')}
+            <IconChevron dir="down" size={18} />
           </button>
         </div>
       </div>
 
-      <div className={`${panelStyles.equationWrap} ${panelStyles.equationWrapWithFab}`}>
-        <div
-          className={`${panelStyles.equationRow} ${panelStyles.equationMissionBoard}`}
-          aria-label={t('reactor.equationAria')}
-          data-balanced={equationBalanced ? 'true' : undefined}
-        >
-          <div className={`${panelStyles.equationMain} ${panelStyles.equationMainEquationRow}`}>
-            <div className={panelStyles.equationTermsCol}>
-              <span className={panelStyles.equationSideLabel}>{t('reactor.reagents')}</span>
-              <div className={`${panelStyles.equationTerms} ${panelStyles.equationTermsEquation}`}>
-                {leftTerms.length === 0 ? (
-                  <div className={panelStyles.equationEmpty} role="note">
-                    {t('reactor.emptyHint')}
-                  </div>
-                ) : null}
-                {leftTerms.map((term, idx) => (
-                  <div key={term.id} className={panelStyles.termCluster}>
-                    {idx > 0 ? (
-                      <span className={panelStyles.equationPlus} aria-hidden>
-                        +
-                      </span>
-                    ) : null}
-                    <div
-                      className={`${panelStyles.reagentBubble} ${coeffErr ? panelStyles.reagentBubbleError : ''}`}
-                      style={{ ['--reagent-glow' as string]: reagentGlowHex(term.z) }}
-                    >
-                      <CoeffKeyboardInput
-                        value={term.coeff}
-                        min={1}
-                        max={COEFF_MAX}
-                        highlightError={coeffErr}
-                        dimWhenOne
-                        ariaLabel={t('reactor.coeffFor', { symbol: termSymbolDisplay(term) })}
-                        onChange={(n) => onCoeffChange(term.id, n)}
-                        onFocusChange={reportCoeffFocus}
-                      />
-                      <span className={panelStyles.termSymbol}>{termSymbolDisplay(term)}</span>
-                      {term.locked ? null : (
-                      <button
-                        type="button"
-                        className={panelStyles.termRemove}
-                        onClick={() => onRemoveTerm(term.id)}
-                        aria-label={t('reactor.remove', { symbol: termSymbolDisplay(term) })}
+      <div className={panelStyles.reactorBody}>
+        <div className={panelStyles.equationWrap}>
+          <div
+            className={`${panelStyles.equationRow} ${panelStyles.equationMissionBoard}`}
+            aria-label={t('reactor.equationAria')}
+            data-balanced={equationBalanced ? 'true' : undefined}
+          >
+            <div className={`${panelStyles.equationMain} ${panelStyles.equationMainEquationRow}`}>
+              <div className={panelStyles.equationTermsCol}>
+                <span className={panelStyles.equationSideLabel}>{t('reactor.reagents')}</span>
+                <div className={`${panelStyles.equationTerms} ${panelStyles.equationTermsEquation}`}>
+                  {leftTerms.length === 0 ? (
+                    <div className={panelStyles.equationEmpty} role="note">
+                      {t('reactor.emptyHint')}
+                    </div>
+                  ) : null}
+                  {leftTerms.map((term, idx) => (
+                    <div key={term.id} className={panelStyles.termCluster}>
+                      {idx > 0 ? (
+                        <span className={panelStyles.equationPlus} aria-hidden>
+                          +
+                        </span>
+                      ) : null}
+                      <div
+                        className={`${panelStyles.reagentBubble} ${coeffErr ? panelStyles.reagentBubbleError : ''}`}
+                        style={{ ['--reagent-glow' as string]: reagentGlowHex(term.z) }}
                       >
-                        ×
-                      </button>
-                      )}
+                        <CoeffKeyboardInput
+                          value={term.coeff}
+                          min={1}
+                          max={COEFF_MAX}
+                          highlightError={coeffErr}
+                          dimWhenOne
+                          ariaLabel={t('reactor.coeffFor', { symbol: termSymbolDisplay(term) })}
+                          onChange={(n) => onCoeffChange(term.id, n)}
+                          onFocusChange={reportCoeffFocus}
+                        />
+                        <span className={panelStyles.termSymbol}>{termSymbolDisplay(term)}</span>
+                        {term.locked ? null : (
+                          <button
+                            type="button"
+                            className={panelStyles.termRemove}
+                            onClick={() => onRemoveTerm(term.id)}
+                            aria-label={t('reactor.remove', { symbol: termSymbolDisplay(term) })}
+                            title={t('reactor.remove', { symbol: termSymbolDisplay(term) })}
+                          >
+                            <IconX size={13} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className={panelStyles.equalsColumn} aria-hidden="true">
-              <span className={panelStyles.equalsSign}>{scientificMode ? '→' : '='}</span>
-            </div>
-
-            <div className={`${panelStyles.productBlock} ${panelStyles.productBlockEquation}`}>
-              <div className={panelStyles.productEquationMeta}>
-                <span className={panelStyles.productLabelCompact}>
-                  {scientificMode ? 'Продукты' : t('reactor.productGoal')}
-                </span>
-                {equationBalanced ? (
-                  <span className={panelStyles.balanceBadge} role="status" aria-label={t('reactor.balanced')}>
-                    <IconCheck className={panelStyles.balanceCheck} />
-                  </span>
-                ) : null}
-              </div>
-              {ambiguousProductMatches.length > 1 ? (
-                <p className={panelStyles.ambiguousHint} role="status">
-                  {t('reactor.ambiguous')}
-                </p>
-              ) : null}
-              <div className={panelStyles.equationTerms} style={{ flexWrap: 'wrap', gap: '0.35rem' }}>
-                {coProducts.map((cp, idx) => (
-                  <div key={cp.id} className={panelStyles.termCluster}>
-                    {idx > 0 ? (
-                      <span className={panelStyles.equationPlus} aria-hidden>
-                        +
-                      </span>
-                    ) : null}
-                    <div
-                      className={`${panelStyles.reagentBubble} ${coeffErr ? panelStyles.reagentBubbleError : ''}`}
-                      style={{ ['--reagent-glow' as string]: '#ab5cf2' }}
-                    >
-                      <CoeffKeyboardInput
-                        value={cp.coeff}
-                        min={1}
-                        max={COEFF_MAX}
-                        highlightError={coeffErr}
-                        dimWhenOne
-                        ariaLabel={t('reactor.coeffFor', { symbol: coProductSymbolDisplay(cp) })}
-                        onChange={(n) => onCoProductCoeffChange?.(cp.id, n)}
-                        onFocusChange={reportCoeffFocus}
-                      />
-                      <span className={panelStyles.termSymbol}>{coProductSymbolDisplay(cp)}</span>
-                    </div>
-                  </div>
-                ))}
-                {coProducts.length > 0 ? (
-                  <span className={panelStyles.equationPlus} aria-hidden>
-                    +
-                  </span>
-              ) : null}
-              <div
-                className={`${panelStyles.productBubble} ${coeffErr ? panelStyles.productBubbleError : ''}`}
-                aria-label={t('reactor.productCoeffAria')}
-              >
-                  <CoeffKeyboardInput
-                  value={productCoeff}
-                  min={1}
-                    max={COEFF_MAX}
-                  highlightError={coeffErr}
-                    dimWhenOne
-                  ariaLabel={t('reactor.productCoeffAria')}
-                  onChange={onProductCoeffChange}
-                    onFocusChange={reportCoeffFocus}
-                  />
-                  {productCompound ? (
-                    <span className={panelStyles.catalogProductChip}>
-                      <span className={panelStyles.catalogFormula}>{productCompound.formulaUnicode}</span>
-                      <span className={panelStyles.catalogName}>
-                        {productStrings?.name ?? productCompound.nameRu}
-                      </span>
-                    </span>
-                  ) : (
-                    <span className={panelStyles.catalogOpenPlaceholder}>{t('reactor.productEmpty')}</span>
-                  )}
-                  {scientificMode ? null : (
-                    <button
-                      type="button"
-                      className={`${panelStyles.catalogFabCompact} ${coeffErr ? panelStyles.catalogFabCompactError : ''}`}
-                      onClick={onOpenCatalog}
-                      title={t('reactor.openCatalog')}
-                      aria-label={t('reactor.openCatalog')}
-                    >
-                      ◫
-                </button>
-                  )}
+                  ))}
                 </div>
               </div>
-              {productCompound ? (
-                <span
-                  className={`${panelStyles.productHint} ${panelStyles.productHintEquation}`}
-                  title={productStrings?.laboratoryRecipe ?? productCompound.laboratoryRecipeRu}
-                >
-                  {t('reactor.recipeLabel', {
-                    recipe: productStrings?.laboratoryRecipe ?? productCompound.laboratoryRecipeRu,
-                  })}
-                </span>
-              ) : null}
-            </div>
-          </div>
-        </div>
 
-        <button
-          type="button"
-          className={panelStyles.reactorGenerateFab}
-          onClick={onOpenGenerateEquationCatalog}
-          title={t('reactor.generateEquationTitle')}
-          aria-label={t('reactor.generateEquation')}
-        >
-          <span className={panelStyles.reactorGenerateFabIcon} aria-hidden>
-            ⚗
-          </span>
-          <span className={panelStyles.reactorGenerateFabLabel}>{t('reactor.generateEquationShort')}</span>
-        </button>
-      </div>
+              <div className={panelStyles.equalsColumn} aria-hidden="true">
+                <span className={panelStyles.equalsSign}>{scientificMode ? '→' : '='}</span>
+              </div>
 
-      {visualTier !== 'full' && leftTerms.length > 0 ? (
-        <p className={panelStyles.visualTierBadge} role="status">
-          {t(`reactor.visualTier.${visualTier}`)}
-        </p>
-      ) : null}
-      {hasDiatomic ? (
-        <p className={panelStyles.diatomicHint} role="note">
-          {t('reactor.diatomicPreviewHint')}
-        </p>
-      ) : null}
-
-      <div className={panelStyles.hintBox} role="note">
-        {t('reactor.hintBalance')}
-      </div>
-
-      {productCompound &&
-      (productCompound.synthesisLab?.needsHeat ||
-        productCompound.synthesisLab?.needsPressure ||
-        productCompound.synthesisLab?.needsCatalyst) ? (
-        <div className={panelStyles.labConditions} role="group" aria-label={t('reactor.labConditionsAria')}>
-          <div className={panelStyles.labCondHead}>
-            <span className={panelStyles.labCondTitle}>{t('reactor.labConditionsTitle')}</span>
-            {(() => {
-              const need = [
-                productCompound.synthesisLab?.needsHeat,
-                productCompound.synthesisLab?.needsPressure,
-                productCompound.synthesisLab?.needsCatalyst,
-              ].filter(Boolean).length
-              const on =
-                (productCompound.synthesisLab?.needsHeat && labHeatOn ? 1 : 0) +
-                (productCompound.synthesisLab?.needsPressure && labPressureOn ? 1 : 0) +
-                (productCompound.synthesisLab?.needsCatalyst && labCatalystOn ? 1 : 0)
-              const ready = need > 0 && on >= need
-              return (
-                <span
-                  className={
-                    ready
-                      ? `${panelStyles.labCondProgress} ${panelStyles.labCondProgressReady}`
-                      : panelStyles.labCondProgress
-                  }
-                  aria-hidden
-                >
-                  {on}/{need}
-                </span>
-              )
-            })()}
-          </div>
-          <div className={panelStyles.labCondChips}>
-            {productCompound.synthesisLab?.needsHeat ? (
-              <button
-                type="button"
-                className={
-                  labHeatOn
-                    ? `${panelStyles.labCondChip} ${panelStyles.labCondChipHeat} ${panelStyles.labCondChipOn}`
-                    : `${panelStyles.labCondChip} ${panelStyles.labCondChipHeat}`
-                }
-                aria-pressed={labHeatOn}
-                onClick={() => onLabHeatChange?.(!labHeatOn)}
-              >
-                <span className={panelStyles.labCondIcon} aria-hidden>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-                    <path
-                      d="M12 3c1.2 2.2.4 3.8-.4 5.1-.7 1.1-1.3 2-.9 3.4.4 1.5 1.8 2.5 3.5 2.5 2.4 0 4.3-1.9 4.3-4.4 0-2.6-1.7-4.3-4-6.1C13.2 2.4 12.6 2.6 12 3Z"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M9.2 18.2c.7 1.4 2 2.3 3.5 2.3s2.8-.9 3.5-2.3"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </span>
-                <span className={panelStyles.labCondChipText}>
-                  <span className={panelStyles.labCondChipLabel}>{t('reactor.labHeat')}</span>
-                </span>
-                <span className={panelStyles.labCondSwitch} aria-hidden data-on={labHeatOn ? '1' : '0'} />
-              </button>
-            ) : null}
-            {productCompound.synthesisLab?.needsPressure ? (
-              <button
-                type="button"
-                className={
-                  labPressureOn
-                    ? `${panelStyles.labCondChip} ${panelStyles.labCondChipPressure} ${panelStyles.labCondChipOn}`
-                    : `${panelStyles.labCondChip} ${panelStyles.labCondChipPressure}`
-                }
-                aria-pressed={labPressureOn}
-                onClick={() => onLabPressureChange?.(!labPressureOn)}
-              >
-                <span className={panelStyles.labCondIcon} aria-hidden>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-                    <path
-                      d="M6 14.5c0-3.6 2.5-6.2 6-8.5 3.5 2.3 6 4.9 6 8.5a6 6 0 1 1-12 0Z"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinejoin="round"
-                    />
-                    <path d="M12 11v5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                  </svg>
-                </span>
-                <span className={panelStyles.labCondChipText}>
-                  <span className={panelStyles.labCondChipLabel}>{t('reactor.labPressure')}</span>
-                </span>
-                <span className={panelStyles.labCondSwitch} aria-hidden data-on={labPressureOn ? '1' : '0'} />
-              </button>
-            ) : null}
-            {productCompound.synthesisLab?.needsCatalyst ? (
-              <button
-                type="button"
-                className={
-                  labCatalystOn
-                    ? `${panelStyles.labCondChip} ${panelStyles.labCondChipCatalyst} ${panelStyles.labCondChipOn}`
-                    : `${panelStyles.labCondChip} ${panelStyles.labCondChipCatalyst}`
-                }
-                aria-pressed={labCatalystOn}
-                onClick={() => onLabCatalystChange?.(!labCatalystOn)}
-              >
-                <span className={panelStyles.labCondIcon} aria-hidden>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-                    <circle cx="8.5" cy="12" r="2.2" stroke="currentColor" strokeWidth="1.6" />
-                    <circle cx="15.5" cy="8.5" r="2.2" stroke="currentColor" strokeWidth="1.6" />
-                    <circle cx="15.5" cy="15.5" r="2.2" stroke="currentColor" strokeWidth="1.6" />
-                    <path
-                      d="M10.4 11.2 13.6 9.2M10.4 12.8l3.2 2"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </span>
-                <span className={panelStyles.labCondChipText}>
-                  <span className={panelStyles.labCondChipLabel}>{t('reactor.labCatalyst')}</span>
-                  {productStrings?.synthesisConditions.catalyst ? (
-                    <span className={panelStyles.labCondChipSub}>
-                      {productStrings.synthesisConditions.catalyst}
+              <div className={`${panelStyles.productBlock} ${panelStyles.productBlockEquation}`}>
+                <div className={panelStyles.productEquationMeta}>
+                  <span className={panelStyles.productLabelCompact}>
+                    {scientificMode ? 'Продукты' : t('reactor.productGoal')}
+                  </span>
+                  {equationBalanced ? (
+                    <span className={panelStyles.balanceBadge} role="status" aria-label={t('reactor.balanced')}>
+                      <IconCheck className={panelStyles.balanceCheck} size={12} />
+                      <span className={panelStyles.balanceBadgeText}>{t('reactor.balanced')}</span>
                     </span>
                   ) : null}
-                </span>
-                <span className={panelStyles.labCondSwitch} aria-hidden data-on={labCatalystOn ? '1' : '0'} />
-              </button>
+                </div>
+                <div className={`${panelStyles.equationTerms} ${panelStyles.productTerms}`}>
+                  {coProducts.map((cp, idx) => (
+                    <div key={cp.id} className={panelStyles.termCluster}>
+                      {idx > 0 ? (
+                        <span className={panelStyles.equationPlus} aria-hidden>
+                          +
+                        </span>
+                      ) : null}
+                      <div
+                        className={`${panelStyles.reagentBubble} ${coeffErr ? panelStyles.reagentBubbleError : ''}`}
+                        style={{ ['--reagent-glow' as string]: '#ab5cf2' }}
+                      >
+                        <CoeffKeyboardInput
+                          value={cp.coeff}
+                          min={1}
+                          max={COEFF_MAX}
+                          highlightError={coeffErr}
+                          dimWhenOne
+                          ariaLabel={t('reactor.coeffFor', { symbol: coProductSymbolDisplay(cp) })}
+                          onChange={(n) => onCoProductCoeffChange?.(cp.id, n)}
+                          onFocusChange={reportCoeffFocus}
+                        />
+                        <span className={panelStyles.termSymbol}>{coProductSymbolDisplay(cp)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {coProducts.length > 0 ? (
+                    <span className={panelStyles.equationPlus} aria-hidden>
+                      +
+                    </span>
+                  ) : null}
+                  <div
+                    className={`${panelStyles.productBubble} ${coeffErr ? panelStyles.productBubbleError : ''}`}
+                    aria-label={t('reactor.productCoeffAria')}
+                  >
+                    <CoeffKeyboardInput
+                      value={productCoeff}
+                      min={1}
+                      max={COEFF_MAX}
+                      highlightError={coeffErr}
+                      dimWhenOne
+                      ariaLabel={t('reactor.productCoeffAria')}
+                      onChange={onProductCoeffChange}
+                      onFocusChange={reportCoeffFocus}
+                    />
+                    {productCompound ? (
+                      <span className={panelStyles.catalogProductChip}>
+                        <span className={panelStyles.catalogFormula}>{productCompound.formulaUnicode}</span>
+                        <span className={panelStyles.catalogName}>
+                          {productStrings?.name ?? productCompound.nameRu}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className={panelStyles.catalogOpenPlaceholder}>{t('reactor.productEmpty')}</span>
+                    )}
+                    {scientificMode ? null : (
+                      <button
+                        type="button"
+                        className={`${panelStyles.catalogFabCompact} ${coeffErr ? panelStyles.catalogFabCompactError : ''}`}
+                        onClick={onOpenCatalog}
+                        title={t('reactor.openCatalog')}
+                        aria-label={t('reactor.openCatalog')}
+                      >
+                        <IconCatalog />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {ambiguousProductMatches.length > 1 ? (
+              <p className={panelStyles.ambiguousHint} role="status">
+                {t('reactor.ambiguous')}
+              </p>
+            ) : null}
+            {recipeText ? (
+              <p className={`${panelStyles.productHint} ${panelStyles.productHintEquation}`} title={recipeText}>
+                {t('reactor.recipeLabel', { recipe: recipeText })}
+              </p>
             ) : null}
           </div>
-          {equationBalanced && !canRun && !synthesisRunning ? (
-            <p className={panelStyles.labCondHint} role="status">
-              {t('reactor.labConditionsNeeded')}
-            </p>
-          ) : null}
-          {labCatalystOn && productStrings?.synthesisConditions.catalyst ? (
-            <p className={panelStyles.labCondCatalystLive} role="status">
-              <span className={panelStyles.labCondCatalystPulse} aria-hidden />
-              {t('reactor.labCatalystActive', {
-                name: productStrings.synthesisConditions.catalyst,
-              })}
-            </p>
-          ) : null}
         </div>
-      ) : null}
 
-      {productStrings?.obtainingSteps && productStrings.obtainingSteps.length > 1 ? (
-        <details className={panelStyles.obtainingDetails}>
-          <summary>{t('reactor.obtainingStepsSummary')}</summary>
-          <ol className={panelStyles.obtainingList}>
-            {productStrings.obtainingSteps.map((s) => (
-              <li key={s.step}>
-                <code>{s.equation}</code>
-                {s.note ? <span> — {s.note}</span> : null}
-              </li>
-            ))}
-          </ol>
-        </details>
-      ) : null}
-
-      {open ? (
-        <ReactorBalancePanel
-          leftTerms={leftTerms}
-          productCompound={productCompound}
-          productCoeff={productCoeff}
-          onApplyCoeffs={(left, k) => onApplyBalanceCoeffs?.(left, k)}
-          onLoadLesson={(lesson) => onLoadBalanceLesson?.(lesson)}
-        />
-      ) : null}
-
-      <div className={panelStyles.reactorFooter}>
-        <button
-          type="button"
-          className={`${panelStyles.reactorBtnPrimary} ${!canRun && !synthesisRunning ? panelStyles.reactorBtnPrimaryMuted : ''} ${synthesisRunning ? panelStyles.reactorBtnPrimaryRunning : ''}`}
-          onClick={onRequestRun}
-          onMouseEnter={() => {
-            if (canRun && !synthesisRunning) onSynthesisPrewarmIntent?.()
-          }}
-          onFocus={() => {
-            if (canRun && !synthesisRunning) onSynthesisPrewarmIntent?.()
-          }}
-          disabled={!canRun || synthesisRunning}
-          aria-busy={synthesisRunning}
-        >
-          {synthesisRunning ? t('reactor.runRunning') : t('reactor.run')}
-        </button>
-        {message ? (
-          <p className={panelStyles.reactorMsg} role="status">
-            {message}
+        {visualTier !== 'full' && leftTerms.length > 0 ? (
+          <p className={panelStyles.visualTierBadge} role="status">
+            {t(`reactor.visualTier.${visualTier}`)}
           </p>
         ) : null}
+
+        <div
+          id={sectionsId}
+          className={panelStyles.reactorSections}
+          data-section={activeSection ?? undefined}
+          hidden={activeSection == null}
+        >
+          {activeSection === 'hints' ? (
+            <div className={panelStyles.sectionPanel}>
+              <div className={panelStyles.sectionPanelHead}>
+                <span className={panelStyles.sectionPanelTitle}>{labels.hints}</span>
+                <button
+                  type="button"
+                  className={panelStyles.sectionClose}
+                  onClick={() => setOpenSection(null)}
+                  aria-label={labels.hide}
+                  title={labels.hide}
+                >
+                  <IconX size={14} />
+                </button>
+              </div>
+              <ul className={panelStyles.hintList}>
+                <li className={panelStyles.hintBox} role="note">
+                  {t('reactor.hintBalance')}
+                </li>
+                {hasDiatomic ? (
+                  <li className={panelStyles.diatomicHint} role="note">
+                    {t('reactor.diatomicPreviewHint')}
+                  </li>
+                ) : null}
+              </ul>
+            </div>
+          ) : null}
+
+          {activeSection === 'steps' && productStrings?.obtainingSteps ? (
+            <div className={`${panelStyles.sectionPanel} ${panelStyles.obtainingDetails}`}>
+              <div className={panelStyles.sectionPanelHead}>
+                <span className={panelStyles.sectionPanelTitle}>{t('reactor.obtainingStepsSummary')}</span>
+                <button
+                  type="button"
+                  className={panelStyles.sectionClose}
+                  onClick={() => setOpenSection(null)}
+                  aria-label={labels.hide}
+                  title={labels.hide}
+                >
+                  <IconX size={14} />
+                </button>
+              </div>
+              <ol className={panelStyles.obtainingList}>
+                {productStrings.obtainingSteps.map((s) => (
+                  <li key={s.step}>
+                    <code>{s.equation}</code>
+                    {s.note ? <span> — {s.note}</span> : null}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ) : null}
+
+          {open ? (
+            <ReactorBalancePanel
+              leftTerms={leftTerms}
+              productCompound={productCompound}
+              productCoeff={productCoeff}
+              expanded={activeSection === 'balance'}
+              onExpandedChange={(v) => setOpenSection(v ? 'balance' : null)}
+              onApplyCoeffs={(left, k) => onApplyBalanceCoeffs?.(left, k)}
+              onLoadLesson={(lesson) => onLoadBalanceLesson?.(lesson)}
+            />
+          ) : null}
+        </div>
+      </div>
+
+      <div className={panelStyles.reactorFooter}>
         {teacherAvailable && teacherVoiceOn && (teacherLineTitle || teacherLineText) ? (
           <div
             className={panelStyles.teacherCaption}
@@ -788,6 +917,166 @@ export function SynthesisReactorPanel({
             {teacherLineText ? <p className={panelStyles.teacherCaptionText}>{teacherLineText}</p> : null}
           </div>
         ) : null}
+
+        <div className={panelStyles.footerRow}>
+          {hasLabConditions && productCompound ? (
+            <div className={panelStyles.labConditions} role="group" aria-label={t('reactor.labConditionsAria')}>
+              <div className={panelStyles.labCondHead}>
+                <span className={panelStyles.labCondTitle}>{t('reactor.labConditionsTitle')}</span>
+                <span
+                  className={
+                    labReady
+                      ? `${panelStyles.labCondProgress} ${panelStyles.labCondProgressReady}`
+                      : panelStyles.labCondProgress
+                  }
+                  aria-hidden
+                >
+                  {labOnCount}/{labNeedCount}
+                </span>
+              </div>
+              <div className={panelStyles.labCondChips}>
+                {labNeeds?.needsHeat ? (
+                  <button
+                    type="button"
+                    className={
+                      labHeatOn
+                        ? `${panelStyles.labCondChip} ${panelStyles.labCondChipHeat} ${panelStyles.labCondChipOn}`
+                        : `${panelStyles.labCondChip} ${panelStyles.labCondChipHeat}`
+                    }
+                    aria-pressed={labHeatOn}
+                    onClick={() => onLabHeatChange?.(!labHeatOn)}
+                  >
+                    <span className={panelStyles.labCondIcon} aria-hidden>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                        <path
+                          d="M12 3c1.2 2.2.4 3.8-.4 5.1-.7 1.1-1.3 2-.9 3.4.4 1.5 1.8 2.5 3.5 2.5 2.4 0 4.3-1.9 4.3-4.4 0-2.6-1.7-4.3-4-6.1C13.2 2.4 12.6 2.6 12 3Z"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M9.2 18.2c.7 1.4 2 2.3 3.5 2.3s2.8-.9 3.5-2.3"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </span>
+                    <span className={panelStyles.labCondChipText}>
+                      <span className={panelStyles.labCondChipLabel}>{t('reactor.labHeat')}</span>
+                    </span>
+                    <span className={panelStyles.labCondSwitch} aria-hidden data-on={labHeatOn ? '1' : '0'} />
+                  </button>
+                ) : null}
+                {labNeeds?.needsPressure ? (
+                  <button
+                    type="button"
+                    className={
+                      labPressureOn
+                        ? `${panelStyles.labCondChip} ${panelStyles.labCondChipPressure} ${panelStyles.labCondChipOn}`
+                        : `${panelStyles.labCondChip} ${panelStyles.labCondChipPressure}`
+                    }
+                    aria-pressed={labPressureOn}
+                    onClick={() => onLabPressureChange?.(!labPressureOn)}
+                  >
+                    <span className={panelStyles.labCondIcon} aria-hidden>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                        <circle cx="12" cy="13" r="7.5" stroke="currentColor" strokeWidth="1.8" />
+                        <path d="M12 13l3.2-3.2M12 3.5v2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                      </svg>
+                    </span>
+                    <span className={panelStyles.labCondChipText}>
+                      <span className={panelStyles.labCondChipLabel}>{t('reactor.labPressure')}</span>
+                    </span>
+                    <span className={panelStyles.labCondSwitch} aria-hidden data-on={labPressureOn ? '1' : '0'} />
+                  </button>
+                ) : null}
+                {labNeeds?.needsCatalyst ? (
+                  <button
+                    type="button"
+                    className={
+                      labCatalystOn
+                        ? `${panelStyles.labCondChip} ${panelStyles.labCondChipCatalyst} ${panelStyles.labCondChipOn}`
+                        : `${panelStyles.labCondChip} ${panelStyles.labCondChipCatalyst}`
+                    }
+                    aria-pressed={labCatalystOn}
+                    onClick={() => onLabCatalystChange?.(!labCatalystOn)}
+                    title={productStrings?.synthesisConditions.catalyst || undefined}
+                  >
+                    <span className={panelStyles.labCondIcon} aria-hidden>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                        <circle cx="8.5" cy="12" r="2.2" stroke="currentColor" strokeWidth="1.8" />
+                        <circle cx="15.5" cy="8.5" r="2.2" stroke="currentColor" strokeWidth="1.8" />
+                        <circle cx="15.5" cy="15.5" r="2.2" stroke="currentColor" strokeWidth="1.8" />
+                        <path
+                          d="M10.4 11.2 13.6 9.2M10.4 12.8l3.2 2"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </span>
+                    <span className={panelStyles.labCondChipText}>
+                      <span className={panelStyles.labCondChipLabel}>{t('reactor.labCatalyst')}</span>
+                      {productStrings?.synthesisConditions.catalyst ? (
+                        <span className={panelStyles.labCondChipSub}>
+                          {productStrings.synthesisConditions.catalyst}
+                        </span>
+                      ) : null}
+                    </span>
+                    {labCatalystOn ? <span className={panelStyles.labCondCatalystPulse} aria-hidden /> : null}
+                    <span className={panelStyles.labCondSwitch} aria-hidden data-on={labCatalystOn ? '1' : '0'} />
+                  </button>
+                ) : null}
+              </div>
+              {labCatalystOn && productStrings?.synthesisConditions.catalyst ? (
+                <p className={panelStyles.srOnly} role="status">
+                  {t('reactor.labCatalystActive', {
+                    name: productStrings.synthesisConditions.catalyst,
+                  })}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className={panelStyles.reactorAlerts}>
+            {message ? (
+              <p className={panelStyles.reactorMsg} data-tone={messageTone} role="status">
+                <span className={panelStyles.reactorMsgIcon} aria-hidden>
+                  <IconTone tone={messageTone} />
+                </span>
+                <span className={panelStyles.reactorMsgText}>{message}</span>
+              </p>
+            ) : null}
+            {showLabConditionsHint ? (
+              <p className={`${panelStyles.reactorMsg} ${panelStyles.labCondHint}`} data-tone="warning" role="status">
+                <span className={panelStyles.reactorMsgIcon} aria-hidden>
+                  <IconTone tone="warning" />
+                </span>
+                <span className={panelStyles.reactorMsgText}>{t('reactor.labConditionsNeeded')}</span>
+              </p>
+            ) : null}
+          </div>
+
+          <button
+            type="button"
+            className={`${panelStyles.reactorBtnPrimary} ${!canRun && !synthesisRunning ? panelStyles.reactorBtnPrimaryMuted : ''} ${synthesisRunning ? panelStyles.reactorBtnPrimaryRunning : ''}`}
+            onClick={onRequestRun}
+            onMouseEnter={() => {
+              if (canRun && !synthesisRunning) onSynthesisPrewarmIntent?.()
+            }}
+            onFocus={() => {
+              if (canRun && !synthesisRunning) onSynthesisPrewarmIntent?.()
+            }}
+            disabled={!canRun || synthesisRunning}
+            aria-busy={synthesisRunning}
+          >
+            <span className={panelStyles.reactorBtnPrimaryIcon} aria-hidden>
+              {synthesisRunning ? <IconSpinner className={panelStyles.spin} /> : <IconPlay />}
+            </span>
+            <span>{synthesisRunning ? t('reactor.runRunning') : t('reactor.run')}</span>
+          </button>
+        </div>
       </div>
     </div>
     {open && collapsed ? (
@@ -801,6 +1090,7 @@ export function SynthesisReactorPanel({
             aria-label={teacherVoiceOn ? t('lab.teacher.explainMute') : t('lab.teacher.explainEnable')}
             title={teacherVoiceOn ? t('lab.teacher.explainMute') : t('lab.teacher.explainEnable')}
           >
+            <IconVoice />
             {teacherVoiceOn ? t('lab.teacher.explainOn') : t('lab.teacher.explain')}
           </button>
         ) : null}
@@ -812,15 +1102,7 @@ export function SynthesisReactorPanel({
           title={t('reactor.showPanel')}
         >
           <span className={panelStyles.reactorReopenFabIcon} aria-hidden>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-              <path
-                d="M6 15l6-6 6 6"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <IconChevron dir="up" size={18} />
           </span>
           {t('reactor.showPanel')}
         </button>

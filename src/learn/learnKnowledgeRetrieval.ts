@@ -19,7 +19,6 @@ import { KINETICS_EQUILIBRIUM_KNOWLEDGE } from './knowledge/learnKineticsEquilib
 import { LAB_PRACTICE_KNOWLEDGE } from './knowledge/learnLabPracticeKnowledge'
 import { THERMO_ELECTRO_KNOWLEDGE } from './knowledge/learnThermoElectroKnowledge'
 import { INORGANIC_CORE_KNOWLEDGE } from './knowledge/learnInorganicCoreKnowledge'
-import { TEACHER_KNOWLEDGE_PACKS } from './knowledge/learnTeacherKnowledgePacks'
 import { TEACHER_REASONING_KNOWLEDGE } from './knowledge/learnTeacherReasoningKnowledge'
 import { FOUNDATIONS_LAWS_KNOWLEDGE } from './knowledge/learnFoundationsLawsKnowledge'
 
@@ -40,7 +39,9 @@ const ALL_KNOWLEDGE_CHUNKS: ChemistryKnowledgeChunk[] = [
   ...SCIENTISTS_KNOWLEDGE,
   ...GENERATED_ELEMENT_KNOWLEDGE,
   ...GENERATED_COMPOUND_KNOWLEDGE,
-  ...TEACHER_KNOWLEDGE_PACKS,
+  // Мега-пакет (src/data/teacherKnowledge, ~155 МБ) больше не подключается: основной источник
+  // знаний учителя — src/learn/kb через teacherKnowledge.retrieveForTeacher. Здесь — только
+  // лёгкий синхронный запасной путь на рукописных пакетах и учебнике.
   ...textbookKnowledgeChunks(),
 ]
 

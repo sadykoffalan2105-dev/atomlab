@@ -36,6 +36,7 @@ export class LearnSpeechRecognition {
   private listening = false
   private oralListenActive = false
   private oralRestartTimer: ReturnType<typeof setTimeout> | null = null
+  private oralGeneration = 0
 
   startListening(
     locale: RecognitionLocale,
@@ -88,18 +89,25 @@ export class LearnSpeechRecognition {
     this.stopListening()
     this.oralListenActive = true
     this.listening = true
+    // Поколение сессии: onend/onerror старого распознавания (после stop → start)
+    // не должны запускать второе распознавание параллельно новому.
+    const generation = ++this.oralGeneration
+    const isCurrent = () => this.oralListenActive && this.oralGeneration === generation
+    /** Подряд идущие ошибки без результата — растущая пауза (офлайн не спамит перезапусками). */
+    let failures = 0
 
     const scheduleNextSession = (delayMs = 80) => {
-      if (!this.oralListenActive) return
+      if (!isCurrent()) return
       if (this.oralRestartTimer) clearTimeout(this.oralRestartTimer)
       this.oralRestartTimer = setTimeout(() => {
         this.oralRestartTimer = null
-        if (this.oralListenActive) startSession()
+        if (isCurrent()) startSession()
       }, delayMs)
     }
+    const backoff = (base: number) => Math.min(3_000, base * 2 ** Math.min(failures, 5))
 
     const startSession = () => {
-      if (!this.oralListenActive) return
+      if (!isCurrent()) return
 
       const SessionCtor = recognitionCtor()
       if (!SessionCtor) {
@@ -115,6 +123,9 @@ export class LearnSpeechRecognition {
       recognition.continuous = true
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
+        // Финальные куски остановленной сессии (stop() дожидается их) — это та же речь ученика.
+        if (!isCurrent() && this.oralGeneration !== generation) return
+        failures = 0
         let interim = ''
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i]
@@ -128,28 +139,38 @@ export class LearnSpeechRecognition {
       }
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        if (!isCurrent()) return
         const code = event.error
         if (code === 'aborted') return
-        if (code === 'not-allowed') {
+        if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'language-not-supported') {
+          // Без разрешения / без сервиса распознавания (Electron, часть сборок) перезапуск бесполезен.
           onError?.(code, true)
           this.stopListening()
           return
         }
-        if (code === 'no-speech' || code === 'network' || code === 'audio-capture') {
+        failures++
+        if (code === 'no-speech') {
+          failures = 0
           scheduleNextSession(120)
           return
         }
+        if (code === 'network' || code === 'audio-capture') {
+          if (failures === 3) onError?.(code, false)
+          scheduleNextSession(backoff(160))
+          return
+        }
         onError?.(code, false)
-        scheduleNextSession(120)
+        scheduleNextSession(backoff(160))
       }
 
       recognition.onend = () => {
         if (this.recognition === recognition) this.recognition = null
-        if (!this.oralListenActive) {
-          this.listening = false
+        if (!isCurrent()) {
+          if (this.oralGeneration === generation) this.listening = false
           return
         }
-        scheduleNextSession(60)
+        // Если перезапуск уже запланирован (onerror) — не дублируем.
+        if (!this.oralRestartTimer) scheduleNextSession(60)
       }
 
       this.recognition = recognition

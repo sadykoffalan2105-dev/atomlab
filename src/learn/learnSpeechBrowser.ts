@@ -34,61 +34,75 @@ function isFemaleVoice(name: string): boolean {
   return TEACHER_VOICE_FEMALE_NAMES.some((f) => n.includes(f))
 }
 
+/** Минимальный срез SpeechSynthesisVoice — чтобы ранжирование тестировалось без DOM. */
+export type VoiceLike = Pick<SpeechSynthesisVoice, 'name' | 'lang' | 'localService'>
+
 /**
- * Балл голоса: учитель — мужчина, поэтому пол важнее «человечности».
- * Сначала жёстко предпочитаем мужские голоса, затем — естественные (Google/Neural).
+ * Балл «человечности» голоса. Сначала естественность (задержка и качество речи
+ * важнее пола): «Online (Natural)» / «… Natural» → Google → остальные; внутри
+ * уровня — мужской голос учителя и подсказки из профиля.
  */
-function voiceScore(v: SpeechSynthesisVoice): number {
+export function browserVoiceScore(v: VoiceLike, locale: BrowserSpeechLocale): number {
   const n = lower(v.name)
   let score = 0
-  if (isMaleVoice(n)) score += 100
-  if (isFemaleVoice(n)) score -= 100
-  if (n.includes('natural')) score += 6
-  if (n.includes('neural')) score += 6
-  if (n.includes('online')) score += 4
-  if (n.includes('premium') || n.includes('enhanced')) score += 4
-  if (n.includes('google')) score += 3
-  if (!v.localService) score += 3
+  if (n.includes('natural')) score += 60
+  if (n.includes('online')) score += 25
+  if (n.includes('neural')) score += 40
+  if (n.includes('google')) score += 35
+  if (n.includes('premium') || n.includes('enhanced')) score += 30
+  if (n.includes('microsoft') && n.includes('natural')) score += 10
+  if (isMaleVoice(n)) score += 12
+  if (isFemaleVoice(n)) score -= 4
+  if (v.localService === false) score += 2
+  const hints = TEACHER_BROWSER_VOICE_HINTS[locale]
+  const hintIdx = hints.findIndex((h) => n.includes(h))
+  if (hintIdx >= 0) score += Math.max(1, 8 - hintIdx)
   return score
 }
 
+function voiceMatchesLocale(v: VoiceLike, locale: BrowserSpeechLocale): boolean {
+  const lang = lower(v.lang).replace('_', '-')
+  const prefix = locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'
+  return lang === prefix || lang.startsWith(`${prefix}-`)
+}
+
+/** Отсортировать голоса локали от лучшего к худшему (для uz без голосов — русские). */
+export function rankBrowserVoices<T extends VoiceLike>(voices: readonly T[], locale: BrowserSpeechLocale): T[] {
+  const same = voices.filter((v) => voiceMatchesLocale(v, locale))
+  if (same.length === 0 && locale === 'uz') return rankBrowserVoices(voices, 'ru')
+  return [...same].sort((a, b) => browserVoiceScore(b, locale) - browserVoiceScore(a, locale))
+}
+
+const voiceChoiceCache = new Map<BrowserSpeechLocale, SpeechSynthesisVoice | null>()
+let voiceCacheWired = false
+
+function wireVoiceCacheInvalidation(): void {
+  if (voiceCacheWired || !speechSupported()) return
+  voiceCacheWired = true
+  try {
+    window.speechSynthesis.addEventListener('voiceschanged', () => voiceChoiceCache.clear())
+  } catch {
+    /* старые движки без addEventListener */
+  }
+}
+
 /**
- * Лучший доступный голос для локали: сначала мужские по подсказкам, затем —
- * максимум по баллу (мужской + естественный). Web Speech — последний фолбэк,
- * мужской neural-голос обеспечивает серверный/Puter путь.
+ * Лучший доступный голос для локали (кешируется до события voiceschanged).
+ * Женский голос лучше, чем тишина: если мужского нет — берём лучший из доступных.
  */
-function pickBrowserVoice(locale: BrowserSpeechLocale): SpeechSynthesisVoice | null {
+export function getBestBrowserVoice(locale: BrowserSpeechLocale): SpeechSynthesisVoice | null {
   if (!speechSupported()) return null
+  wireVoiceCacheInvalidation()
+  if (voiceChoiceCache.has(locale)) return voiceChoiceCache.get(locale) ?? null
   const voices = window.speechSynthesis.getVoices()
   if (voices.length === 0) return null
+  const best = rankBrowserVoices(voices, locale)[0] ?? null
+  voiceChoiceCache.set(locale, best)
+  return best
+}
 
-  const langPrefix = locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'
-  const hints = TEACHER_BROWSER_VOICE_HINTS[locale]
-
-  const matchesLang = (v: SpeechSynthesisVoice) => {
-    const lang = lower(v.lang)
-    return lang.startsWith(langPrefix) || lang.includes(langPrefix)
-  }
-
-  const sameLang = voices.filter(matchesLang)
-
-  // 1) Точные подсказки в порядке приоритета (мужские — первыми).
-  for (const hint of hints) {
-    const hit = sameLang.find((v) => lower(v.name).includes(hint))
-    if (hit) return hit
-  }
-
-  // 2) Лучший мужской голос языка — женские (Google русский и т.п.) не берём.
-  if (sameLang.length > 0) {
-    const ranked = [...sameLang].sort((a, b) => voiceScore(b) - voiceScore(a))
-    const best = ranked.find((v) => isMaleVoice(v.name) && !isFemaleVoice(v.name))
-    if (best) return best
-    return null
-  }
-
-  // 3) Узбекского голоса нет — читаем русским.
-  if (locale === 'uz') return pickBrowserVoice('ru')
-  return null
+function pickBrowserVoice(locale: BrowserSpeechLocale): SpeechSynthesisVoice | null {
+  return getBestBrowserVoice(locale)
 }
 
 export function isBrowserSpeechSupported(): boolean {
@@ -96,7 +110,7 @@ export function isBrowserSpeechSupported(): boolean {
 }
 
 /** Голоса в Chrome приходят асинхронно — ждём событие voiceschanged. */
-function ensureVoicesLoaded(timeoutMs = 1500): Promise<void> {
+export function ensureVoicesLoaded(timeoutMs = 1500): Promise<void> {
   if (!speechSupported()) return Promise.resolve()
   if (window.speechSynthesis.getVoices().length > 0) return Promise.resolve()
 
@@ -120,10 +134,8 @@ function ensureVoicesLoaded(timeoutMs = 1500): Promise<void> {
 
 export function preloadBrowserSpeechVoices(): void {
   if (!speechSupported()) return
+  wireVoiceCacheInvalidation()
   window.speechSynthesis.getVoices()
-  window.speechSynthesis.onvoiceschanged = () => {
-    window.speechSynthesis.getVoices()
-  }
 }
 
 function sleep(ms: number): Promise<void> {
@@ -145,10 +157,11 @@ function speakOneUtterance(
   locale: BrowserSpeechLocale,
   voice: SpeechSynthesisVoice | null,
   prosodyMode: 'default' | 'lab',
-): Promise<void> {
+  onStart?: () => void,
+): Promise<'end' | 'error'> {
   return new Promise((resolve) => {
     if (!speechSupported()) {
-      resolve()
+      resolve('error')
       return
     }
     const utterance = new SpeechSynthesisUtterance(stripStressForBrowser(sentence))
@@ -157,19 +170,57 @@ function speakOneUtterance(
       prosodyMode === 'lab' ? TEACHER_BROWSER_RATE_LAB[locale] : TEACHER_BROWSER_RATE[locale]
     utterance.pitch = TEACHER_BROWSER_PITCH[locale]
     utterance.volume = 1.0
-    if (voice) utterance.voice = voice
+    if (voice) {
+      try {
+        utterance.voice = voice
+      } catch {
+        /* голос из устаревшего списка / не SpeechSynthesisVoice — говорим голосом по lang */
+      }
+    }
 
     let settled = false
-    const done = () => {
+    const done = (how: 'end' | 'error') => {
       if (settled) return
       settled = true
-      resolve()
+      resolve(how)
     }
-    utterance.onend = done
-    utterance.onerror = done
+    utterance.onstart = () => onStart?.()
+    utterance.onend = () => done('end')
+    utterance.onerror = () => done('error')
+    // Chrome иногда «теряет» onend после cancel() — страхуемся оценкой длительности.
+    const words = sentence.split(/\s+/).length
+    const guardMs = 4_000 + words * 900
+    setTimeout(() => done('end'), guardMs)
 
     window.speechSynthesis.speak(utterance)
   })
+}
+
+/**
+ * Одна фраза системным голосом с мгновенной отменой — для живого диалога.
+ * `cancel()` глушит синтез синхронно (speechSynthesis.cancel), промис завершается сразу.
+ */
+export function speakBrowserSentence(
+  sentence: string,
+  locale: BrowserSpeechLocale,
+  opts: { onStart?: () => void; voice?: SpeechSynthesisVoice | null } = {},
+): { done: Promise<'end' | 'error' | 'cancelled'>; cancel: () => void } {
+  let cancelled = false
+  let resolveCancel: ((v: 'cancelled') => void) | null = null
+  const cancelP = new Promise<'cancelled'>((resolve) => {
+    resolveCancel = resolve
+  })
+  const voice = opts.voice === undefined ? pickBrowserVoice(locale) : opts.voice
+  const speakP = speakOneUtterance(sentence, locale, voice, 'default', opts.onStart)
+  return {
+    done: Promise.race([speakP, cancelP]),
+    cancel: () => {
+      if (cancelled) return
+      cancelled = true
+      stopBrowserSpeech()
+      resolveCancel?.('cancelled')
+    },
+  }
 }
 
 /**

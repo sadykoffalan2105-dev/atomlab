@@ -1,0 +1,80 @@
+/**
+ * Grades 8/9: app section ("c2-s03", from src/data/g{8,9}BookToc.json) → printed textbook § numbers.
+ *
+ * The app TOC for these grades is a curriculum estimate, not the book's table of contents, so the
+ * mapping is curated by hand from the detected "§ N" headings (see src/data/kb/corpus/kb-sections.json).
+ * When several app sections share one §, each chunk goes to the section whose title terms it mentions
+ * most (ties → the first listed). A § that no app section lists keeps chapterId/sectionId empty.
+ * App sections with no counterpart in the printed book are omitted.
+ */
+export const SECTION_MAP: Record<8 | 9, Record<string, number[]>> = {
+  8: {
+    'c1-s01': [1],
+    'c1-s02': [2],
+    'c1-s03': [2],
+    'c1-s04': [2],
+    'c1-s05': [2],
+    'c1-s06': [2],
+    'c1-s07': [2],
+    'c2-s01': [3],
+    'c2-s02': [4],
+    'c2-s03': [5],
+    'c2-s04': [6, 7, 8],
+    'c2-s05': [13],
+    'c2-s06': [9, 10],
+    'c2-s08': [13, 14],
+    'c2-s09': [11],
+    'c2-s10': [12],
+    'c3-s01': [15, 14],
+    'c3-s02': [15],
+    'c3-s03': [16],
+    'c3-s04': [17],
+    'c3-s05': [17, 15],
+    'c3-s06': [19, 18],
+    'c3-s07': [20],
+    'c3-s08': [17],
+    'c4-s01': [21],
+    'c4-s02': [22],
+    'c4-s03': [23],
+    'c4-s04': [24],
+    'c4-s05': [25],
+    'c4-s06': [26],
+    'c4-s07': [27],
+    'c4-s08': [28],
+    'c4-s09': [36, 37, 38, 39, 40, 41],
+    'c4-s10': [29, 30, 31, 32, 35],
+    'c4-s11': [42, 43, 44],
+    'c5-s01': [33, 34],
+    'c5-s02': [1],
+    'c5-s04': [25],
+  },
+  9: {
+    // §20–24 (alkali and alkaline-earth metals, soda, water hardness) and §28–29 (Cu, Ag, Au) have no app
+    // section of their own: they go to the general metal sections of chapter 1 (§22 → chemical industry)
+    'c1-s01': [15, 17, 20, 21, 23, 28],
+    'c1-s02': [17, 20, 21, 23, 24, 28],
+    'c1-s03': [17],
+    'c1-s04': [18],
+    'c1-s05': [15, 16, 29],
+    'c2-s01': [25, 26],
+    'c2-s02': [27],
+    'c2-s03': [30],
+    'c2-s04': [27, 32],
+    'c2-s05': [27],
+    'c2-s06': [31, 32, 33],
+    'c2-s07': [34, 35],
+    'c3-s01': [3, 4, 5],
+    'c3-s02': [19],
+    'c3-s03': [19],
+    'c3-s04': [19],
+    'c3-s06': [19],
+    'c3-s07': [15, 36, 37],
+    'c4-s07': [4],
+    'c5-s01': [38, 41, 22],
+    'c5-s03': [39],
+    'c6-s01': [2],
+    'c6-s03': [6],
+    'c6-s04': [7],
+    'c7-s04': [8, 9, 10, 11, 12, 13, 14],
+  },
+}

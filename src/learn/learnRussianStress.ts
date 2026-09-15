@@ -551,20 +551,30 @@ function stripExistingStressMarks(text: string): string {
   return text.replace(/\u0301/g, '')
 }
 
-/** Подставляет ударения в текст перед озвучкой. */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function matchCase(match: string, stressed: string): string {
+  if (match === match.toUpperCase()) return stressed.toUpperCase()
+  if (match[0] === match[0]?.toUpperCase()) return stressed.charAt(0).toUpperCase() + stressed.slice(1)
+  return stressed
+}
+
+/** Один общий RegExp (ключи от длинных к коротким) вместо сотен проходов — строится лениво. */
+let combinedRe: RegExp | null = null
+let byLowerKey: Map<string, string> | null = null
+
+/** Подставляет ударения в текст перед озвучкой (один проход по тексту). */
 export function applyRussianStressMarks(text: string): string {
-  let out = stripExistingStressMarks(text)
-  for (const key of SORTED_KEYS) {
-    const stressed = MERGED_STRESS_RU[key]!
-    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const re = new RegExp(`(?<![\\p{L}])${escaped}(?![\\p{L}])`, 'giu')
-    out = out.replace(re, (match) => {
-      if (match === match.toUpperCase()) return stressed.toUpperCase()
-      if (match[0] === match[0]?.toUpperCase()) {
-        return stressed.charAt(0).toUpperCase() + stressed.slice(1)
-      }
-      return stressed
-    })
+  const out = stripExistingStressMarks(text)
+  if (!combinedRe || !byLowerKey) {
+    byLowerKey = new Map(SORTED_KEYS.map((k) => [k.toLowerCase(), MERGED_STRESS_RU[k]!]))
+    combinedRe = new RegExp(`(?<![\\p{L}])(?:${SORTED_KEYS.map(escapeRegExp).join('|')})(?![\\p{L}])`, 'giu')
   }
-  return out
+  const map = byLowerKey
+  return out.replace(combinedRe, (match) => {
+    const stressed = map.get(match.toLowerCase())
+    return stressed ? matchCase(match, stressed) : match
+  })
 }

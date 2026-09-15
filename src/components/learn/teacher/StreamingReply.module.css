@@ -1,0 +1,33 @@
+/* Каретка «печатает…» в конце последнего блока ответа. */
+
+.typing > :last-child::after,
+.typing > ul:last-child > li:last-child::after,
+.typing > ol:last-child > li:last-child::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 3px;
+  vertical-align: -0.16em;
+  border-radius: 2px;
+  background: var(--lt-accent-cyan);
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.7);
+  animation: srCaret 0.9s steps(1) infinite;
+}
+
+.typing > ul:last-child::after,
+.typing > ol:last-child::after {
+  display: none;
+}
+
+@keyframes srCaret {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing > :last-child::after {
+    animation: none;
+  }
+}
