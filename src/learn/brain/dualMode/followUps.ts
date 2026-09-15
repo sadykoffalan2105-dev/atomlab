@@ -5,7 +5,7 @@
  *
  * Чистый модуль (без DOM) — покрыт тестами (scripts/test-teacher-live-engine.mts).
  */
-import type { ComposeStyle } from './localAnswerComposer'
+import { extractKeyTerm, type ComposeStyle } from './localAnswerComposer'
 import { contentStems, foldText, type StemLang } from './textStems'
 
 export type FollowUpKind = 'why' | 'example' | 'simpler' | 'more' | 'repeat' | 'topic'
@@ -120,6 +120,16 @@ export function resolveTurn(
             .join(' ')
             .trim() || clean
         : clean
+    // «А как это доказать на опыте?»: местоимение без своего предмета — подставляем термин прошлого вопроса.
+    const deictic = /(?<!\p{L})(это|этого|этим|их|они|она|оно|он|его|её|ее|такой|такие|it|this|they|them|bu|ular|uni)(?!\p{L})/iu
+    if (prev && deictic.test(query)) {
+      const parentTerm = extractKeyTerm(prev, _lang)
+      const parentStems = contentStems(prev)
+      const own = contentStems(query).filter((st) => !parentStems.some((p) => p.startsWith(st.slice(0, 4)) || st.startsWith(p.slice(0, 4))))
+      if (parentTerm && own.length <= 2 && !contentStems(parentTerm).some((st) => contentStems(query).includes(st))) {
+        return { query: query.replace(deictic, parentTerm), style, followUp, repeatLast: false }
+      }
+    }
     return { query, style, followUp, repeatLast: false }
   }
   const onlyRepeat = followUp.kinds.length === 1 && followUp.kinds[0] === 'repeat'

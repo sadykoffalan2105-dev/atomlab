@@ -1,55 +1,55 @@
 {
-  "generatedAt": "2026-09-15T18:39:12.172Z",
+  "generatedAt": "2026-09-15T21:10:11.852Z",
   "analyzer": 4,
   "format": 1,
   "N": 3225,
   "avg": [
     3.853,
-    2.86,
+    2.864,
     66.117
   ],
   "shards": {
     "common": {
       "docs": 1197,
-      "terms": 4799,
-      "postingsBytes": 191084,
-      "fileBytes": 1458698
+      "terms": 4811,
+      "postingsBytes": 191076,
+      "fileBytes": 1458866
     },
     "g7": {
       "docs": 445,
       "terms": 4643,
       "postingsBytes": 107408,
-      "fileBytes": 962138
+      "fileBytes": 962139
     },
     "g8": {
       "docs": 382,
       "terms": 2815,
       "postingsBytes": 78674,
-      "fileBytes": 740158
+      "fileBytes": 740159
     },
     "g9": {
       "docs": 408,
       "terms": 3554,
       "postingsBytes": 93941,
-      "fileBytes": 843184
+      "fileBytes": 843185
     },
     "g10": {
       "docs": 461,
       "terms": 4292,
       "postingsBytes": 105742,
-      "fileBytes": 979997
+      "fileBytes": 979998
     },
     "g11": {
       "docs": 332,
       "terms": 2774,
       "postingsBytes": 64890,
-      "fileBytes": 698619
+      "fileBytes": 698620
     }
   },
   "lexicon": {
-    "keys": 4585,
-    "glossaryKeys": 2946,
+    "keys": 4598,
+    "glossaryKeys": 2959,
     "alignedKeys": 1639,
-    "fileBytes": 229610
+    "fileBytes": 230212
   }
 }

@@ -48,7 +48,7 @@ const norm = (s: string) => foldText(s).toLowerCase().replace(/[^\p{L}\p{N}' -]/
 function latStem(word: string): string {
   const w = word.toLowerCase().replace(/'/g, '')
   if (w.length <= 4) return w
-  return w.replace(/(ies)$/, 'y').replace(/(larning|larni|lari|lar|ning|ni|ga|da|dan|es|s)$/, '')
+  return w.replace(/(ies)$/, 'y').replace(/(larning|larni|larga|larda|lardan|lari|lar|ning|dagi|dan|ni|ga|da|es|s)$/, '')
 }
 
 const words = (s: string) => norm(s).split(' ').filter(Boolean)
@@ -62,7 +62,15 @@ const hasWord = (textWords: readonly string[], stem: string) =>
 /** Local phrase occurs in a text (every word, as a word form). */
 function phraseIn(phrase: string, textWords: readonly string[]): boolean {
   const ps = words(phrase).map(latStem).filter((w) => w.length >= 2)
-  return ps.length > 0 && ps.every((p) => hasWord(textWords, p))
+  if (ps.length === 0) return false
+  if (ps.every((p) => hasWord(textWords, p))) return true
+  // Multi-word phrase: the other words match exactly, the last one may be a prefix («metall bog'» ⊂ «metall bog'lanish»).
+  if (ps.length < 2 || ps[ps.length - 1]!.length < 3) return false
+  const tw = textWords.map(latStem)
+  for (let i = 0; i + ps.length <= tw.length; i++) {
+    if (ps.slice(0, -1).every((p, j) => tw[i + j] === p) && tw[i + ps.length - 1]!.startsWith(ps[ps.length - 1]!)) return true
+  }
+  return false
 }
 
 /** Russian glossary term occurs in a Russian text (prefix of each word). */

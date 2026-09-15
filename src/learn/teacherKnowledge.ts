@@ -173,6 +173,42 @@ async function enrichKbHits(kb: KbModule, query: string, ctx: TeacherKnowledgeCo
       out.push({ ...n, score: 0 })
     }
   }
+  if (ctx.locale === 'ru' && (ctx.chapterId || ctx.sectionId) && !WHAT_IS_QUERY_RE.test(query)) {
+    // Ворота доказательств (локальный ответ): поиск по всему классу (и карточкам) без фильтра урока — термин вопроса +
+    // признак типа ответа («потому что», «например», «способом»). Добавляем ≤ 3 фрагмента с термином вопроса (score 0).
+    try {
+      const { extractKeyTerm } = await import('./brain/dualMode/localAnswerComposer')
+      const term = extractKeyTerm(query, 'ru')
+      const stems = (term ?? '').toLowerCase().replace(/ё/g, 'е').split(/\s+/).filter((w) => w.length >= 4).map((w) => w.slice(0, Math.max(4, w.length - 2)))
+      if (stems.length) {
+        const marker = /почему|зачем|отчего/iu.test(query)
+          ? ' потому что так как'
+          : /пример/iu.test(query)
+            ? ' например примеры'
+            : /(^|\s)как\s|способ|получ/iu.test(query)
+              ? ' способом'
+              : ''
+        // Смысловые слова вопроса (без «как/почему/влияет/приведи») + признак типа ответа.
+        const content = query
+          .replace(/[?!.,]+/gu, ' ')
+          .split(/\s+/)
+          .filter((w) => w.length >= 4 && !/^(почему|зачем|отчего|такое|такая|такой|такие|влия\S*|привед\S*|пример\S*|какой|какая|какие|каким|можно|нужно|объясни\S*|расскажи\S*)$/iu.test(w))
+          .join(' ')
+        const probe = await kb.searchKnowledge(`${content}${marker}`, { grade, limit: 8, locale: 'ru' })
+        let added = 0
+        for (const h of probe) {
+          if (added >= 3) break
+          const text = h.text.toLowerCase().replace(/ё/g, 'е')
+          if (have.has(h.id) || !stems.every((s) => text.includes(s))) continue
+          have.add(h.id)
+          out.push(repair({ ...h, score: 0 }))
+          added++
+        }
+      }
+    } catch {
+      /* без пробы */
+    }
+  }
   if (WHAT_IS_QUERY_RE.test(query) && (ctx.chapterId || ctx.sectionId)) {
     // ru: только фрагменты, где термин и определяется («Кислоты – сложные вещества …», «… называются кислотами»).
     const term = ctx.locale === 'ru' ? query.toLowerCase().replace(/ё/g, 'е').match(/что так(?:ое|ая|ой|ие)\s+([а-я-]{4,})/u)?.[1] : undefined

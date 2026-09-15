@@ -39,6 +39,14 @@ const ERRATA: Array<{ span: RegExp; fix: string | { skip: true }; note: string }
   { span: /мельчайшая частица любого сложного вещества/u, fix: { skip: true }, note: 'Kimyo 7 §2.7: molecule ≠ only compounds' },
   // Glucose is grape sugar; fruit sugar is fructose.
   { span: /глюкоз(ы|а)\s*\(фруктового сахара\)/gu, fix: 'глюкоз$1 (виноградного сахара)', note: 'Kimyo 7 §2.7: glucose = grape sugar' },
+  // The sum of protons and neutrons is the mass number A; Ar compares the atom mass with 1/12 of the ¹²C atom mass.
+  { span: /Относительная атомная масса\s*[–—-]\s*это сумма протонов и нейтронов/gu, fix: 'Массовое число – это сумма протонов и нейтронов', note: 'Kimyo 7 §2.5 p49: Ar ≠ p + n (mass number)' },
+  // Alcoholic fermentation is caused by yeast enzymes (translation slip «digestive»).
+  { span: /пищеварительных ферментов/gu, fix: 'ферментов дрожжей', note: 'Kimyo 10 §3.2 p113: fermentation by yeast enzymes' },
+  // Alkenes have one C=C double bond (the sentence says «single bonds»).
+  { span: /органические вещества с одинарными связями между атомами углерода/gu, fix: 'органические вещества с одной двойной связью между атомами углерода', note: 'Kimyo 10 §2.7 p56: alkenes C=C' },
+  // −196 °C is lower than −183 °C: nitrogen boils first because its boiling point is LOWER.
+  { span: /(температура кипения\s*\(\s*[–—−-]\s*196\s*°\s*C\s*\)\s*)выше(,\s*чем)/gu, fix: '$1ниже$2', note: 'Kimyo 8 §36 p157: N₂ boils lower than O₂' },
 ]
 
 function applyErrata(text: string): string {
