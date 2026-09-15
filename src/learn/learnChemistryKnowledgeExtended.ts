@@ -27,7 +27,7 @@ export const CHEMISTRY_KNOWLEDGE_EXTENDED: ChemistryKnowledgeChunk[] = [
     topic: 'Валентность и формулы',
     grades: [8],
     keywords: ['валентност', 'формул', 'состав', 'индекс', 'valency', 'formula'],
-    ru: `**Валентность** — число связей атома. Составляют формулы по валентности: Al(III) + O(II) → Al₂O₃. Простые вещества: H₂, O₂, N₂, Cl₂.
+    ru: `**Валентность** — число связей атома. По валентности составляют формулы: у алюминия (III) и кислорода (II) формула оксида Al₂O₃. Простые вещества: H₂, O₂, N₂, Cl₂.
 
 **Степень окисления** — условный заряд в соединении; сумма степеней окисления = 0 в молекуле, = заряду в ионе.`,
     en: `Valency determines formulas. Oxidation states sum to zero in neutral molecules.`,

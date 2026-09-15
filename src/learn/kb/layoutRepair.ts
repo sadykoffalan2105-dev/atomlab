@@ -19,7 +19,99 @@ const OCR_FIXES: Array<[RegExp, string]> = [
   [/составля\s+ется/gu, 'составляется'],
   [/Жирыпредставляют/gu, 'Жиры представляют'],
   [/\s*\(с тягой\)/gu, ''],
+  [/про\s+текторы/gu, 'протекторы'],
+  [/окислительно\s+восстановительн/gu, 'окислительно-восстановительн'],
+  // Garbled sentences of the printed text (lost/duplicated words that invert or hide the meaning).
+  [/является азот, накопленный в атмосфере нашей планеты оксид/gu, 'являются накопленные в атмосфере нашей планеты оксид'],
+  [/разбавленные растворы которых также имеют малые значения,/gu, 'разбавленные растворы которых имеют малые значения степени диссоциации,'],
+  [/Соотношение количества вещества на объем\s*[—–-]\s*раствора/gu, 'Отношение количества вещества к объему раствора'],
+  // «при соединение их к ионам» — «при» never takes the nominative: an OCR split of «присоединение/приготовление».
+  [/(?<![\p{L}-])([Пп]ри)\s+(\p{Ll}{4,}(?:ение|ание))(?![\p{L}])/gu, '$1$2'],
 ]
+
+/**
+ * Reviewed errata of the printed textbooks (factual slips, not layout). `skip` drops the whole sentence that contains
+ * the span (the composer then falls back to another definition, e.g. a reference card); a string replaces the span.
+ * Add an entry only after checking the fact against a second source.
+ */
+const ERRATA: Array<{ span: RegExp; fix: string | { skip: true }; note: string }> = [
+  // Simple substances (H₂, O₂, N₂) are molecular too; the sentence restricts molecules to compounds.
+  { span: /мельчайшая частица любого сложного вещества/u, fix: { skip: true }, note: 'Kimyo 7 §2.7: molecule ≠ only compounds' },
+  // Glucose is grape sugar; fruit sugar is fructose.
+  { span: /глюкоз(ы|а)\s*\(фруктового сахара\)/gu, fix: 'глюкоз$1 (виноградного сахара)', note: 'Kimyo 7 §2.7: glucose = grape sugar' },
+]
+
+function applyErrata(text: string): string {
+  let out = text
+  for (const { span, fix } of ERRATA) {
+    if (typeof fix === 'string') out = out.replace(span, fix)
+    else
+      out = out
+        .split('\n')
+        .map((line) => (span.test(line) ? line.split(/(?<=[.!?])\s+/u).filter((s) => !span.test(s)).join(' ') : line))
+        .join('\n')
+  }
+  return out
+}
+
+/** Generic OCR classes: a missing space after a period, spaced ion charges, garbled element-symbol lists. */
+function repairOcrClasses(text: string): string {
+  return (
+    text
+      // «атомов.Например, …» → «атомов. Например, …»
+      .replace(/([\p{Ll}\d)»])\.(?=[А-ЯЁ]\p{Ll}{2,})/gu, '$1. ')
+      // «H+ +OH – = H2O» → «H⁺ + OH⁻ = H2O»: a charge sign separated from its ion by spaces.
+      .replace(/(?<![\p{L}\d])([A-Z][a-z]?\d*)\+(?=\s+\+\s*[A-Z])/gu, '$1⁺')
+      .replace(/(?<![\p{L}\d])([A-Z][A-Za-z\d]*)\s+[–-](?=\s*(?:[=+→]|$))/gmu, '$1⁻')
+      .replace(/([⁺⁻])\s+\+([A-Z])/gu, '$1 + $2')
+      // Ionic equations «Ba2+ + SO42– = BaSO4↓»: the last digit before the sign is the charge.
+      .split('\n')
+      .map((line) =>
+        /[=→]/u.test(line) && /[↓↑]|ионн/u.test(line)
+          ? line
+              .replace(/(?<![\p{L}\d])([A-Z][a-z]?)([1-4])[+⁺](?=[\s,.;]|$)/gu, (_m, el: string, d: string) => `${el}${SUPERSCRIPT[d]}⁺`)
+              .replace(/(?<![\p{L}\d])((?:[A-Z][a-z]?\d*)*[A-Z][a-z]?\d)([1-4])[–⁻-](?=[\s,.;]|$)/gu, (_m, f: string, d: string) => `${f}${SUPERSCRIPT[d]}⁻`)
+          : line,
+      )
+      .join('\n')
+      // «(О, Е, №)» — an element-symbol list read with Cyrillic lookalikes / «№»: unreadable, drop it.
+      .replace(/\s*\((?:\s*[^\s,()]{1,2}\s*,){1,6}\s*[^\s,()]{1,2}\s*\)/gu, (m) => (/[А-ЯЁа-яё№›]/u.test(m) ? '' : m))
+  )
+}
+
+/** Task text: «Пример. … ? Решение: … Ответ: …», «Тестовые задания», numbered task items «6. В реакции … определите …». */
+const TASK_HEADING_RE = /^\s*(Тестовые задания|Задачи и упражнения|Вопросы и задания|Упражнения|Test topshiriqlari)(?!\p{L})/u
+const TASK_START_RE = /^\s*(Пример|Задача)\s*\d*\s*[.:]/u
+const TASK_WORD_RE = /\?|Решение|Дано|Ответ\s*:|(Определите|Найдите|Вычислите|Рассчитайте|определите|найдите|вычислите|рассчитайте)(?!\p{L})/u
+const NUMBERED_RE = /^\s*\d{1,2}[.)]\s/u
+
+function dropTaskText(lines: readonly string[]): string[] {
+  const out: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!
+    if (TASK_HEADING_RE.test(line)) break
+    if (TASK_START_RE.test(line) && lines.slice(i, i + 8).some((l) => TASK_WORD_RE.test(l))) {
+      const answerAt = lines.findIndex((l, j) => j >= i && /Ответ\s*:/u.test(l))
+      if (answerAt < 0) break
+      i = answerAt
+      continue
+    }
+    // «6. В реакции между … установилось равновесие. Если концентрации … определите …» — a numbered task item.
+    if (NUMBERED_RE.test(line)) {
+      let end = i
+      while (end + 1 < lines.length && !NUMBERED_RE.test(lines[end + 1]!) && end - i < 2) end++
+      if (lines.slice(i, end + 1).some((l) => TASK_WORD_RE.test(l))) {
+        i = end
+        continue
+      }
+    }
+    out.push(line)
+  }
+  return out
+}
+
+/** «KMnO 4» → «KMnO4»: a formula of ≥ 2 element symbols split before its last index. */
+const SPACED_FORMULA_RE = /(?<![\p{L}\d])((?:[A-Z][a-z]?\d*){2,})\s(\d)(?=[\s,.;)↓↑]|$)/gmu
 
 const SUPERSCRIPT: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' }
 
@@ -27,10 +119,10 @@ const CAPTION_LINE_RE = /^\s*(Рис|Rasm|Fig)\.\s*\d+\s*[.:]/u
 
 /** Join broken lines, drop figure captions, fix exponents / «H2SO» / known OCR slips. */
 export function repairLayout(raw: string): string {
-  let text = raw
+  let text = applyErrata(raw)
   for (const [re, to] of OCR_FIXES) text = text.replace(re, to)
   const out: string[] = []
-  for (const line of text.split('\n')) {
+  for (const line of dropTaskText(text.split('\n'))) {
     let cur = line.replace(/^\s*!\s+(?=\p{Ll})/u, '')
     const prev = out[out.length - 1]
     if (CAPTION_LINE_RE.test(cur)) {
@@ -50,9 +142,15 @@ export function repairLayout(raw: string): string {
   }
   text = out.join('\n')
   text = text.replace(/(\p{L})\s+!\s+(\p{Ll})/gu, '$1 $2')
+  text = text.replace(SPACED_FORMULA_RE, '$1$2')
+  // An equilibrium is reversible: «равновесие диссоциации воды H2O → H+ + OH–» → «⇌».
+  text = text
+    .split('\n')
+    .map((l) => (/равновеси/u.test(l) ? l.split(/(?<=[.!?])\s+/u).map((s) => (/равновеси/u.test(s) ? s.replace(/\s→\s/gu, ' ⇌ ') : s)).join(' ') : l))
+    .join('\n')
   text = text.replace(/(\d[,.]\d+)\s*[∙•·×]\s*10\s?([12]\d)(?!\d)/gu, (_m, a: string, e: string) => `${a}·10${[...e].map((d) => SUPERSCRIPT[d]).join('')}`)
   if (/H2SO4/u.test(text) && !/H2SO3/u.test(text)) text = text.replace(/H2SO(?![0-9₀-₉])/gu, 'H2SO4')
-  return text
+  return repairOcrClasses(text)
 }
 
 const splitSentences = (text: string) =>

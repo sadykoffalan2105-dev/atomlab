@@ -3,7 +3,10 @@
  *   npx tsx scripts/teacher-quality/debugQuestion.mts g8-10 g11-01 [--hits] [--cands N]
  */
 import fs from 'node:fs'
-import { goldById } from './goldQuestions.mts'
+import { goldById as goldOnly } from './goldQuestions.mts'
+import { HOLDOUT_R3 } from './holdout-r3.mts'
+import { HOLDOUT_R4 } from './holdout-r4.mts'
+const goldById = (id: string) => goldOnly(id) ?? HOLDOUT_R3.find((q) => q.id === id) ?? HOLDOUT_R4.find((q) => q.id === id)
 import { preloadKnowledge } from '../../src/learn/kb/index.ts'
 import { retrieveForTeacher } from '../../src/learn/teacherKnowledge.ts'
 import { resolveTurn } from '../../src/learn/brain/dualMode/followUps.ts'

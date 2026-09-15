@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-09-15T11:33:21.139Z",
+  "generatedAt": "2026-09-15T18:39:12.172Z",
   "analyzer": 4,
   "format": 1,
   "N": 3225,
   "avg": [
     3.853,
     2.86,
-    66.111
+    66.117
   ],
   "shards": {
     "common": {
       "docs": 1197,
-      "terms": 4798,
-      "postingsBytes": 191035,
-      "fileBytes": 1458324
+      "terms": 4799,
+      "postingsBytes": 191084,
+      "fileBytes": 1458698
     },
     "g7": {
       "docs": 445,

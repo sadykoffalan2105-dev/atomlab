@@ -1,6 +1,6 @@
 {
  "version": 2,
- "generatedAt": "2026-09-15T06:49:13.708Z",
+ "generatedAt": "2026-09-15T18:39:04.342Z",
  "chunkPolicy": {
   "target": 900,
   "max": 1100,
@@ -196,7 +196,7 @@
    "ATOMLAB: учёные": 36,
    "ATOMLAB: алгоритмы решения": 18
   },
-  "chars": 534576
+  "chars": 534745
  },
  "quiz": {
   "count": 3228,
@@ -230,10 +230,10 @@
   "kb-corpus-g9.json": 674408,
   "kb-corpus-g10.json": 779590,
   "kb-corpus-g11.json": 584815,
-  "kb-corpus-common.json": 1254205,
+  "kb-corpus-common.json": 1254505,
   "kb-quiz.json": 1411702,
   "kb-glossary.json": 108913
  },
- "totalBytes": 6176573,
+ "totalBytes": 6176873,
  "problems": []
 }

@@ -42,6 +42,20 @@ const tag = arg('tag', 'baseline')!
 const modeFilter = arg('mode')
 const worstN = Number(arg('worst', '10'))
 const quiet = args.includes('--quiet')
+/**
+ * --questions holdout → holdout-r3.mts; --questions <module>#<export> (e.g. holdout-r4.mts#HOLDOUT_R4) → any question set.
+ */
+const questionSet = arg('questions', 'gold')!
+async function loadQuestionSet(spec: string): Promise<GoldQuestion[]> {
+  if (spec === 'gold') return GOLD_QUESTIONS
+  const [mod, exp] = spec === 'holdout' ? ['holdout-r3.mts', 'HOLDOUT_R3'] : spec.split('#')
+  const loaded = (await import(`./${mod}`)) as Record<string, GoldQuestion[]>
+  const set = exp ? loaded[exp] : Object.values(loaded).find((v) => Array.isArray(v))
+  if (!set) throw new Error(`[score] no question export in ${spec}`)
+  return set
+}
+const QUESTIONS: GoldQuestion[] = await loadQuestionSet(questionSet)
+const questionById = (id: string): GoldQuestion | undefined => (questionSet === 'gold' ? goldById(id) : QUESTIONS.find((q) => q.id === id))
 
 /* ----------------------------------------------------------------- limits */
 
@@ -56,7 +70,10 @@ const OFF_TOPIC_FAIL = 0.2
 
 /** Service phrases of the composer (check questions, honest "no answer", suggestions) — not content. */
 const TEMPLATE_RE: RegExp[] = [
-  /^Сможешь (своими словами|теперь сам|пересказать это|назвать главное отличие|привести ещё один пример|привести еще один пример)/iu,
+  /^Сможешь (своими словами|теперь сам|пересказать это|назвать главное отличие|привести ещё один пример|привести еще один пример|перечислить эти|назвать, из каких частей)/iu,
+  /^Can you (list these|name what it consists of)/i,
+  /^(Bu guruhlarni|Bu omillarni|U nimalardan)/iu,
+  /^(I have this answer only in my Russian textbook|Bu javob menda faqat rus tilidagi darslikda)/iu,
   /^Can you (retell it|name the main difference|think of one more example)/i,
   /^(Buni o‘z so‘zingiz|Asosiy farqni bitta gap|Yana bitta misolni|Endi nega)/iu,
   /^(My textbooks are in Russian|Darsliklarim rus tilida)\.$/iu,
@@ -137,7 +154,24 @@ const NOISE_RES: Array<[string, RegExp]> = [
   ['example-label-on-definition', /(Например|For example|Masalan):[^.]{0,120}\sназыва(ется|ются|ют)\s/u],
   ['deictic', /(выше рассмотренных|вышерассмотренн|в этой реакции|данной реакции|этой модели|Эту активность)/iu],
   ['double-example', /Например:[^.]{0,80}\bнапример\b/iu],
+  // judge r2 §5
+  ['bare-number', /то есть\s+\d+[,.]?\d*\s*\./u],
+  ['spaced-formula', /(?<![\p{L}\d])(?:[A-Z][a-z]?\d*){2,}\s\d(?=[\s,.;)])/u],
+  ['ocr-garbage', /из расходов|Еезо|про текторы/u],
+  ['cut-clause', /в сторону реакции\s*\./u],
+  ['two-arrows-in-parens', /\(\s*[A-Z][^()]*→[^()]*[A-Z][^()]*→/u],
+  ['example-not-instance', /Например:\s*(общая формула|[^.]{0,60}(зависит|усиливается|используют))/iu],
+  ['grammar-adjunct-first', /—\s*это\s+в\s/u],
+  ['en-why-inversion', /explain why (do|does|did)\b/iu],
+  ['undefined-variable', /(^|[\s(])[nxk]\s*[<>≤≥]\s*\d/u],
+  ['task-text', /(^|\.\s)(Пример|Задача)\s*\d*\.\s|Тестовые задания/u],
 ]
+/** judge r2 §5: filler supporting sentences (uses, industry, ecology, «вы узнали») — off-topic even with topical stems. */
+const FILLER_SENTENCE_RE = /(использу|применя|промышленност|народн\S* хозяйств|завод|комбинат|загрязня|вы узнали|мы знаем|в свою очередь делятся|парфюмер)/iu
+/** «Катализатор — это вещества изменяющие» — plural predicate after a singular term. */
+const AGREEMENT_RE = /^[А-ЯЁ][а-яё]*[^ыи\s]\s—\s*это\s+вещества\s+\S+ющие/u
+/** Formula tokens of a text (for dialog-level example repeats). */
+const formulaSet = (s: string) => new Set((s.match(/\b[A-Z][a-z]?[0-9₀-₉]*(?:[A-Z][a-z]?[0-9₀-₉]*)+\b/gu) ?? []).map((f) => f.replace(/[₀-₉]/g, (d) => String('₀₁₂₃₄₅₆₇₈₉'.indexOf(d)))))
 /** Heading-like line without a finite verb («Влияние температуры на скорость химических реакций.»). */
 function isVerbless(sentence: string): boolean {
   const bare = sentence.replace(/\([^)]*\)/g, ' ').replace(/[.!]\s*$/, '').trim()
@@ -190,7 +224,8 @@ function tokenMatches(token: string, answerTokens: readonly string[], answerStem
 type AnswerIndex = { tokens: string[]; stems: string[]; compact: string; folded: string; raw: string }
 
 function indexAnswer(text: string): AnswerIndex {
-  const raw = stripCitations(text)
+  // «KMnO₄» = «KMnO4» for required mentions.
+  const raw = stripCitations(text).replace(/[₀-₉]/gu, (d) => String('₀₁₂₃₄₅₆₇₈₉'.indexOf(d)))
   const folded = foldText(raw)
   const tokens = tokenizeWords(raw)
   return { raw, folded, tokens, stems: tokens.map((t) => stemWord(t)), compact: folded.replace(/[^\p{L}\p{N}]/gu, '') }
@@ -210,6 +245,50 @@ function alternativeMatches(alt: string, idx: AnswerIndex): boolean {
 
 const entryMatches = (entry: string, idx: AnswerIndex) =>
   entry.startsWith('re:') ? alternativeMatches(entry, idx) : entry.split('|').some((alt) => alternativeMatches(alt, idx))
+
+/** judge r4 §6.4: a multi-word forbidden phrase must occur as a phrase (adjacent tokens), not as a bag of words. */
+function forbiddenMatches(entry: string, idx: AnswerIndex): boolean {
+  if (entry.startsWith('re:')) return alternativeMatches(entry, idx)
+  return entry.split('|').some((alt) => {
+    const toks = tokenizeWords(alt.trim())
+    if (toks.length <= 1) return alternativeMatches(alt, idx)
+    for (let i = 0; i + toks.length <= idx.tokens.length; i++) {
+      if (toks.every((t, k) => tokenMatches(t, [idx.tokens[i + k]!], [idx.stems[i + k]!], idx.tokens[i + k]!))) return true
+    }
+    return false
+  })
+}
+
+/** judge r4 §6.3/6.5: school carbon count of a name next to its formula («виниловый спирт: CH2=CH–CH2–OH» is wrong). */
+const CARBON_NAME: Array<[RegExp, number]> = [
+  [/^(метил|метан)/u, 1], [/^(этил|этан|этен|этин|ацетилен|винил)/u, 2], [/^(пропил|пропан|пропен|пропин|аллил)/u, 3],
+  [/^(бутил|бутан|бутен|бутин)/u, 4], [/^(пентил|пентан|пентен)/u, 5], [/^(гексан|гексен|бензол|фенол)/u, 6],
+]
+function nameFormulaMismatch(text: string): boolean {
+  for (const m of text.matchAll(/(?<!\p{L})(\p{L}{4,})\S*\s*(?:спирт\S*|кислот\S*)?\s*[:(—–-]?\s*(C[A-Za-z0-9]*(?:\s*[=≡–—-]\s*[A-Z][A-Za-z0-9]*)*)/gu)) {
+    const n = CARBON_NAME.find(([re]) => re.test(foldText(m[1]!)))?.[1]
+    if (!n) continue
+    const c = [...m[2]!.matchAll(/C(?![a-z])(\d*)/g)].reduce((acc, x) => acc + Number(x[1] || 1), 0)
+    if (c > 0 && c !== n) return true
+  }
+  return false
+}
+
+/** judge r4 §6.5: example class by formula pattern (oxide = 2 elements incl. O; acidic oxide = non-metal oxide; acid = H…). */
+function exampleClassWrong(question: string, text: string): boolean {
+  const q = foldText(question)
+  const formulas = [...new Set(text.replace(/[₀-₉]/gu, (d) => String('₀₁₂₃₄₅₆₇₈₉'.indexOf(d))).match(/\b(?:[A-Z][a-z]?\d*){2,}\b/g) ?? [])]
+  if (formulas.length === 0) return false
+  const els = (f: string) => [...f.matchAll(/([A-Z][a-z]?)/g)].map((x) => x[1]!)
+  const oxide = (f: string) => new Set(els(f)).size === 2 && els(f).includes('O')
+  const NONMETAL = new Set(['C', 'N', 'P', 'S', 'Si', 'Cl', 'Br', 'I', 'Se', 'B', 'Mn', 'Cr'])
+  if (/оксид|oxide|oksid/u.test(q)) {
+    if (!formulas.some(oxide)) return true
+    if (/кислотн|acidic|kislotali/u.test(q)) return formulas.filter(oxide).some((f) => !els(f).some((e) => NONMETAL.has(e)))
+    return false
+  }
+  return false
+}
 
 function jaccard(a: readonly string[], b: readonly string[]): number {
   if (a.length === 0 || b.length === 0) return 0
@@ -330,9 +409,9 @@ function scoreAnswer(rec: AnswerRecord, q: GoldQuestion, parentRec?: AnswerRecor
   const missing = q.mustMention.filter((m) => !entryMatches(m, idx))
   const mentionFound = q.mustMention.length - missing.length
   // forbidden
-  const forbidden = (q.mustNotMention ?? []).filter((m) => entryMatches(m, idx))
+  const forbidden = (q.mustNotMention ?? []).filter((m) => forbiddenMatches(m, idx))
 
-  const parent = q.followUpOf ? goldById(q.followUpOf) : undefined
+  const parent = q.followUpOf ? questionById(q.followUpOf) : undefined
   const qStems = [...new Set([...contentStems(q.question), ...(parent ? contentStems(parent.question) : []), ...contentStems(rec.query)])]
   const qSpecific = qStems.filter((s) => !isGeneric(s))
 
@@ -414,9 +493,37 @@ function scoreAnswer(rec: AnswerRecord, q: GoldQuestion, parentRec?: AnswerRecor
   const spoken = stripCitations(rec.text || rec.answer)
   const noise = NOISE_RES.filter(([, re]) => re.test(spoken)).map(([name]) => name)
   if (q.locale === 'ru' && contentSentences.some((s) => isVerbless(s))) noise.push('verbless')
+  if (q.locale === 'ru' && AGREEMENT_RE.test(spoken)) noise.push('agreement')
+  // judge r3 §6: dangling deictic in a supporting sentence, one-item list lead-in, OCR classes, paraphrase by formula set,
+  // check question that does not fit the kind, term dumps, example qualifier, calc without a computed number.
+  if (q.locale === 'ru' && contentSentences.slice(1).some((s) => /(?<!\p{L})(с ним|с ней|к нему|такой же|таким же|то же самое)(?!\p{L})/iu.test(s))) noise.push('dangling-deictic')
+  if (/(следующими|несколькими|различными)\s+(способами|методами|путями)\s*:\s*[^,;:]+[.]/u.test(spoken) && !/:\s*[^.]*(,|\sи\s|\sили\s)/u.test(spoken)) noise.push('one-item-lead-in')
+  if (/[№›]|(?<![\p{L}\d])[A-Z][a-z]?\d*\+\s+\+|[а-яё]{2}\.[А-ЯЁ][а-яё]|\s[A-Z][A-Za-z\d]*\s+[–-]\s*=/u.test(spoken)) noise.push('ocr-class')
+  {
+    const fset = (s: string) => [...new Set(s.match(/\b(?:[A-Z][a-z]?\d*){2,}\b/g) ?? [])].sort().join(',')
+    const sets = contentSentences.map(fset).filter(Boolean)
+    if (new Set(sets).size < sets.length) noise.push('paraphrase-formula-set')
+  }
+  if (q.locale === 'ru' && /какие\s+(бывают|есть)|виды|типы/iu.test(q.question) && /главное отличие/iu.test(spoken)) noise.push('check-kind')
+  if (!q.unanswerable && /(My textbooks are in Russian|Darsliklarim rus tilida)/iu.test(spoken)) noise.push('term-dump')
+  if (/осад/iu.test(q.question) && /(пример|example|misol)/iu.test(q.question) && !/↓|осад/iu.test(spoken)) noise.push('example-qualifier')
+  // Filler supporting sentence (not the first one) that the question did not ask about.
+  if (q.locale === 'ru' && !FILLER_SENTENCE_RE.test(q.question) && contentSentences.slice(1).some((s) => FILLER_SENTENCE_RE.test(s))) noise.push('filler')
+  // judge r4 §6.3/6.5: lab-procedure steps, name↔formula mismatch, example class by formula pattern, flattened OCR table.
+  if (q.locale === 'ru' && /(?<!\p{L})(добавить|прилить|налить|поместить|нагреть)(?!\p{L})|в\s+пробирк\S*\s+(добав|прилив|налива)|\d+\s*капл|Ход\s+работы/iu.test(spoken)) noise.push('lab-procedure')
+  if (nameFormulaMismatch(spoken)) noise.push('name-formula')
+  if (q.type === 'example' && exampleClassWrong(q.question, withoutSourceQuotes(spoken))) noise.push('example-class')
+  if (/\p{Ll}{3,}-\s+(?!и\s|или\s)\p{Ll}{3,}/u.test(spoken) || /(\p{L}{3,}\s+\p{L}{2,}\s+\p{L}{3,})\s(?:[^.]*\s)?\1/u.test(spoken)) noise.push('ocr-table')
   // A follow-up must not repeat the previous answer of the dialog.
   const parentSentences = parentRec ? splitSentences(parentRec.text).filter((s) => !isTemplate(s)).map((s) => contentStems(s.replace(LEAD_RE, ''))) : []
-  const dialogRepeat = stemsPer.some((st) => st.length >= 3 && parentSentences.some((p) => p.length >= 3 && jaccard(st, p) >= 0.8))
+  const parentFormulas = parentRec ? formulaSet(stripCitations(parentRec.text)) : new Set<string>()
+  const ownFormulas = formulaSet(spoken)
+  const dialogRepeat =
+    stemsPer.some((st) => st.length >= 3 && parentSentences.some((p) => p.length >= 3 && jaccard(st, p) >= 0.8)) ||
+    // The same example (formula set) again, even in other words.
+    (ownFormulas.size > 0 && [...ownFormulas].every((f) => parentFormulas.has(f))) ||
+    // en/uz: the same Russian source quote again.
+    (q.locale !== 'ru' && !!parentRec && (spoken.match(/«[^«»]{20,}»/u)?.[0] ?? '#') === (stripCitations(parentRec.text).match(/«[^«»]{20,}»/u)?.[0] ?? '$'))
   // "No reason in my base" + a causal sentence in the same answer.
   const contradiction =
     NO_WHY_RE.test(rec.text) && contentSentences.some((s) => !NO_WHY_RE.test(s) && !/^(Сможешь|Can you|Endi)/u.test(s) && CAUSAL_RE.test(s))
@@ -472,6 +579,13 @@ function scoreAnswer(rec: AnswerRecord, q: GoldQuestion, parentRec?: AnswerRecor
     if (contradiction) score -= 5
     if (russianHeavy) score -= 4
     if (noAnswer) score = Math.min(score, 25)
+    // judge r4 §6.2: a refusal / hedge while a required fact is in the top-3 retrieved hits = hard fail with 0 points.
+    const hitIdx = (rec.hits ?? []).slice(0, 3).map((h) => indexAnswer(h.text))
+    const retrievable = q.mustMention.some((m) => hitIdx.some((hi) => entryMatches(m, hi)))
+    if ((noAnswer || (hedge && cov < 1) || (whyOk && NO_WHY_RE.test(rec.text) && cov < 1)) && retrievable) {
+      fails.push('false-no-answer (fact in top-3 hits)')
+      score = 0
+    }
   }
 
   const flat = stripCitations(rec.text || rec.answer)
@@ -561,12 +675,12 @@ function main(): void {
   if (!fs.existsSync(file)) throw new Error(`No ${path.relative(ROOT, file)} — run runAnswers.mts --tag ${tag} first`)
   const data = JSON.parse(fs.readFileSync(file, 'utf8')) as AnswersFile
   // Validate regex expectations up front (a typo should not silently pass).
-  for (const q of GOLD_QUESTIONS) for (const m of [...q.mustMention, ...(q.mustNotMention ?? [])]) if (m.startsWith('re:')) new RegExp(m.slice(3), 'iu')
+  for (const q of QUESTIONS) for (const m of [...q.mustMention, ...(q.mustNotMention ?? [])]) if (m.startsWith('re:')) new RegExp(m.slice(3), 'iu')
 
   const rows: AnswerScore[] = []
   for (const rec of data.items) {
     if (modeFilter && rec.mode !== modeFilter) continue
-    const q = goldById(rec.id)
+    const q = questionById(rec.id)
     if (!q) continue
     const parentRec = q.followUpOf ? data.items.find((x) => x.id === q.followUpOf && x.mode === rec.mode) : undefined
     rows.push(scoreAnswer(rec, q, parentRec))
@@ -637,6 +751,14 @@ function main(): void {
 
   const out = { tag, scoredAt: new Date().toISOString(), ctxMode: data.ctxMode, totals: all, byMode, byGroup, byType, worst, rows }
   const outFile = path.join(OUT_DIR, `score-${tag}${modeFilter ? `-${modeFilter}` : ''}.json`)
+  if (questionSet !== 'gold') {
+    const goldFile = path.join(OUT_DIR, 'score-r4.json')
+    if (fs.existsSync(goldFile)) {
+      const g = (JSON.parse(fs.readFileSync(goldFile, 'utf8')) as { totals: { score: number } }).totals
+      const gap = g.score - all.score
+      console.log(`\n[score] holdout ${all.score} vs gold r4 ${g.score} (gap ${gap.toFixed(1)})${gap > 25 ? ' — WARNING: generalization gap > 25 points' : ''}`)
+    }
+  }
   fs.writeFileSync(outFile, JSON.stringify(out, null, 2) + '\n')
   console.log(`\n[score] saved ${path.relative(ROOT, outFile)}`)
 }

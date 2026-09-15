@@ -152,7 +152,9 @@ function statementIndex(quiz: QuizChunk[], locale: 'en' | 'uz'): Statement[] {
   const list: Statement[] = []
   for (const chunk of quiz) {
     if (chunk.lang !== locale) continue
-    for (const text of statementsOf(chunk, locale)) {
+    for (const raw of statementsOf(chunk, locale)) {
+      // Calques of «сложные/простые вещества»: English school chemistry says «compounds» / «elementary substances».
+      const text = locale === 'en' ? raw.replace(/\bcomplex substance(s?)\b/gi, 'compound$1').replace(/\bsimple substance(s?)\b/gi, 'elementary substance$1') : raw
       const tw = words(text)
       if (tw.length < 4 || tw.length > 45) continue
       // Lab safety rules («Rule 12: add acid to water») are not answers about the substance.
@@ -192,7 +194,7 @@ const CORE_STATEMENTS: CoreStatement[] = [
   },
   {
     terms: { en: ['oxide'], uz: ['oksid'] }, title: 'Оксиды', source: 'Kimyo 8 §2',
-    en: ['Oxides are complex substances made of two elements, one of which is oxygen.', 'For example, Na₂O, CO₂ and Al₂O₃ are oxides.'],
+    en: ['Oxides are compounds made of two elements, one of which is oxygen.', 'For example, Na₂O, CO₂ and Al₂O₃ are oxides.'],
     uz: ['Oksidlar — ikki elementdan tashkil topgan murakkab moddalar, ulardan biri kislorod.', 'Masalan, Na₂O, CO₂ va Al₂O₃ — oksidlar.'],
   },
   {
@@ -208,7 +210,7 @@ const CORE_STATEMENTS: CoreStatement[] = [
   {
     terms: { en: ['acid'], uz: ['kislota'] }, title: 'Кислоты', source: 'Kimyo 7 §6.4',
     quote: 'Кислоты – сложные вещества, состоящие из атомов водорода и кислотного остатка.',
-    en: ['Acids are complex substances made of hydrogen atoms and an acid residue.', 'For example, in hydrochloric acid HCl the acid residue is Cl, and in sulfuric acid H₂SO₄ it is SO₄.'],
+    en: ['Acids are compounds made of hydrogen atoms and an acid residue.', 'For example, in hydrochloric acid HCl the acid residue is Cl, and in sulfuric acid H₂SO₄ it is SO₄.'],
     uz: ['Kislotalar — vodorod atomlari va kislota qoldig‘idan tashkil topgan murakkab moddalar.', 'Masalan, xlorid kislota HCl da kislota qoldig‘i Cl, sulfat kislota H₂SO₄ da esa SO₄.'],
   },
   {

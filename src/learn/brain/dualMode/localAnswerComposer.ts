@@ -112,6 +112,10 @@ type Candidate = {
   example: boolean
   formulas: number
   imprecise: boolean
+  /** «Окисление — рост степени окисления» на вопрос о степени окисления: определение другого (родственного) термина. */
+  subjectOther: boolean
+  /** «[Kimyo 8, §20, стр. 85]» фрагмента — чтобы пояснения к определению брать из того же параграфа. */
+  citation: string
   stems: string[]
   score: number
 }
@@ -183,7 +187,30 @@ const SYNONYMS: Array<[string, string[][]]> = [
   ['щелоч', [['гидроксид'], ['щелоч']]],
   ['алкан', [['предельн', 'углеводород'], ['парафин']]],
   ['алкен', [['этиленов', 'углеводород']]],
+  ['малоактив', [['инертн'], ['неактив']]],
+  ['инертн', [['малоактив'], ['неактив']]],
+  ['неактив', [['малоактив'], ['инертн']]],
 ]
+
+/**
+ * Родовое существительное, при котором вещество — лишь определение: «хлорид водорода», «оксид азота», «раствор аммиака»
+ * (ru — перед термином в родительном падеже; en/uz — после термина: «hydrogen chloride», «vodorod xlorid»).
+ */
+const HEAD_NOUN_RU_RE = /^(хлорид|бромид|[ий]одид|фторид|оксид|гидроксид|пероксид|сульфид|сульфат|сульфит|нитрат|нитрит|нитрид|карбид|карбонат|фосфат|силикат|гидрид|ацетат|соединени|сол[иеья]$|солей|раствор)/u
+const HEAD_NOUN_LAT_RE = /^(chlorides?|bromides?|iodides?|fluorides?|oxides?|dioxides?|hydroxides?|peroxides?|sulfides?|sulfates?|nitrates?|nitrides?|carbides?|carbonates?|phosphates?|compounds?|salts?|xlorid|oksid|gidroksid|sulfat|nitrat|karbonat|birikma)/u
+
+/** Термин вопроса встречается только как определение к другому веществу («хлорид водорода» на «как получают водород»). */
+function keyOnlyAsModifier(raw: string, stem: string, lang: StemLang): boolean {
+  const words = tokenizeWords(raw)
+  let seen = 0
+  for (let i = 0; i < words.length; i++) {
+    if (!wordHasStem(words[i]!, stem)) continue
+    seen++
+    const modifier = lang === 'ru' ? HEAD_NOUN_RU_RE.test(words[i - 1] ?? '') : HEAD_NOUN_LAT_RE.test(words[i + 1] ?? '')
+    if (!modifier) return false
+  }
+  return seen > 0
+}
 
 /** Взаимоисключающие условия: вопрос про раствор — фраза про расплав не подходит. */
 const CONTRAST_PAIRS: Array<[string, string]> = [
@@ -201,6 +228,14 @@ function isHeadingLike(sentence: string): boolean {
   const words = bare.split(/\s+/).filter(Boolean)
   if (words.length === 0 || words.length > 9 || /[—–=→:]|\sэто\s|\d/u.test(bare)) return false
   return !words.some((w) => /(ет|ит|ут|ют|ят|ат|ется|ются|ится|ятся|ался|ился|ал|ил|ел|ла|ли|ло|ть|ся|ен|ены|ан|аны|ым|им|но|ны)$/iu.test(w.replace(/[,;]$/, '')) && !/ост[ьи]$|ст[ьи]$/iu.test(w.replace(/[,;.]$/, '')) && w.length > 3)
+}
+
+/** Есть ли личная форма глагола или краткое причастие («имеет», «образуется», «называют», «связаны»). */
+function hasFiniteVerbRu(fragment: string): boolean {
+  return fragment
+    .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}-]/gu, '').toLowerCase())
+    .some((w) => w.length > 3 && /(ет|ит|ут|ют|ят|ат|ется|ются|ится|ятся|ался|ился|ал|ил|ел|ла|ли|ло|ны|на|ен|ан)$/u.test(w) && !/(ост|ств|ени|ани|ция|ции|кат|лат|мат|рат|нат|тат|ит[ао]в)$/u.test(w.slice(-3)))
 }
 
 /** OCR-шум учебника: «осНовНые», «ме та л ло в», слипшиеся колонки. */
@@ -267,6 +302,88 @@ function hasUnbalancedEquation(sentence: string): boolean {
   return [...els].some((el) => (left.get(el) ?? 0) !== (right.get(el) ?? 0))
 }
 
+/** Уравнение «A + B → C» (≥ 1 вещества с каждой стороны) разобрано и сбалансировано по атомам. */
+function isBalancedEquation(eq: string): boolean {
+  const sides = eq.replace(/[↑↓]/gu, '').split(/\s*(?:→|=|⇌)\s*/u)
+  if (sides.length !== 2) return false
+  const side = (str: string): Map<string, number> | null => {
+    const total = new Map<string, number>()
+    for (const part of str.split('+').map((x) => x.trim().replace(/\s*[+-]?\s*Q$/u, ''))) {
+      const m = part.match(/^(\d*)\s*(\S+)$/u)
+      const atoms = m ? atomCounts(m[2]!) : null
+      if (!atoms) return null
+      for (const [el, n] of atoms) total.set(el, (total.get(el) ?? 0) + n * Number(m![1] || 1))
+    }
+    return total
+  }
+  const left = side(sides[0]!)
+  const right = side(sides[1]!)
+  if (!left || !right) return false
+  return [...new Set([...left.keys(), ...right.keys()])].every((el) => (left.get(el) ?? 0) === (right.get(el) ?? 0))
+}
+
+/** «В лабораторных условиях азот получают … аммиака» на «как получают аммиак»: получают другое вещество. */
+const OBTAIN_SKIP_RE =
+  /^(в|во|на|из|при|с|со|и|а|но|же|путем|путём|лаборатори\S*|лабораторн\S*|промышленн\S*|услови\S*|обычно|также|можно|часто|основном|больш\S*|количеств\S*|небольш\S*|сейчас|современн\S*|чист\S*|техник\S*)$/u
+function otherObtainedObject(raw: string, keyStems: readonly string[]): boolean {
+  const words = tokenizeWords(raw)
+  for (let i = 0; i < words.length; i++) {
+    if (!/^получа(ют|ет|ется|ются)$/u.test(words[i]!)) continue
+    let j = i - 1
+    while (j >= 0 && OBTAIN_SKIP_RE.test(words[j]!)) j--
+    let k = i + 1
+    while (k < words.length && OBTAIN_SKIP_RE.test(words[k]!)) k++
+    const near = [words[j], words[k]].filter((w): w is string => Boolean(w))
+    if (near.some((w) => keyStems.some((st) => wordHasStem(w, st)) || /^(его|её|ее|их)$/u.test(w))) return false
+    return near.some((w) => w.length >= 4 && !VERB_RU_RE.test(w))
+  }
+  return false
+}
+
+/** Инструкция лабораторной работы: инфинитив-указание, «Ход работы:» или дозировка каплями. */
+const LAB_STEP_RE =
+  /^Ход\s+работы|(?<!\p{L})(добавить|прилить|налить|поместить|нагреть|опустить|закрыть\s+пробк|перемешать|встряхнуть|пропустить\s+газ)(?!\p{L})|\d+\s*капл|в\s+пробирк\S*\s+(добав|прилив|налива|помещ)/iu
+
+/** Число атомов углерода по названию («виниловый спирт» — 2, «пропан» — 3). */
+const CARBON_PREFIXES: Array<[RegExp, number]> = [
+  [/^(метил|метан|метанол|муравьин|формальдегид)/u, 1], [/^(этил|этан|этен|этилен|этин|ацетилен|винил|уксусн|ацетальдегид)/u, 2],
+  [/^(пропил|пропан|пропен|пропилен|пропин|аллил|ацетон|глицерин)/u, 3], [/^(бутил|бутан|бутен|бутадиен|бутин)/u, 4],
+  [/^(пентил|пентан|пентен)/u, 5], [/^(гексил|гексан|гексен|бензол|фенол|циклогексан)/u, 6],
+]
+/** «Виниловый спирт: CH2=CH–CH2–OH» — формула рядом с названием содержит другое число атомов углерода (опечатка учебника). */
+function nameFormulaMismatch(sentence: string): boolean {
+  const re = /(?<!\p{L})(\p{L}{4,})(?:ов\S*|\S*)\s*(?:спирт\S*|кислот\S*|альдегид\S*)?\s*[:(—–-]?\s*((?:C[A-Za-z0-9₀-₉]*)(?:\s*[=≡–—-]\s*[A-Z][A-Za-z0-9₀-₉]*)*)/gu
+  for (const m of sentence.matchAll(re)) {
+    const word = foldText(m[1]!)
+    const n = CARBON_PREFIXES.find(([p]) => p.test(word))?.[1]
+    if (!n) continue
+    const formula = m[2]!.replace(/[₀-₉]/g, (d) => SUBSCRIPT_DIGITS[d]!)
+    const carbons = [...formula.matchAll(/C(?![a-z])(\d*)/g)].reduce((acc, x) => acc + Number(x[1] || 1), 0)
+    if (carbons > 0 && carbons !== n) return true
+  }
+  return false
+}
+
+/** Школьный класс вещества по формуле: оксид — два элемента, один из них O; кислота — начинается с H; основание — (OH). */
+const NONMETALS = new Set(['C', 'N', 'P', 'S', 'Si', 'Cl', 'Br', 'I', 'Se', 'B', 'As'])
+function formulaClassOk(query: string, text: string): boolean {
+  const q = foldText(query)
+  const formulas = (text.match(FORMULA_TOKEN_RE) ?? []).map((f) => ({ f, atoms: atomCounts(f) })).filter((x) => x.atoms)
+  if (formulas.length === 0) return true
+  const isOxide = (a: Map<string, number>) => a.size === 2 && a.has('O')
+  if (/оксид|oxide|oksid/u.test(q)) {
+    const oxides = formulas.filter((x) => isOxide(x.atoms!))
+    if (oxides.length === 0 || oxides.length < formulas.length) return false
+    const other = (a: Map<string, number>) => [...a.keys()].find((el) => el !== 'O')!
+    if (/кислотн|acidic|kislotali/u.test(q)) return oxides.every((x) => NONMETALS.has(other(x.atoms!)) || ['Mn', 'Cr'].includes(other(x.atoms!)))
+    if (/основн|basic|asosli/u.test(q)) return oxides.every((x) => !NONMETALS.has(other(x.atoms!)) && other(x.atoms!) !== 'H')
+    return true
+  }
+  if (/кислот|acids?(?!\p{L})|kislota/u.test(q) && !/кислород|kislorod/u.test(q)) return formulas.some((x) => x.f.startsWith('H') && x.f !== 'H2O' && x.f !== 'H2O2' && !x.f.startsWith('He') && x.atoms!.size >= 2)
+  if (/гидроксид|основани|hydroxide|bases?(?!\p{L})|asos/u.test(q)) return formulas.some((x) => /\(OH\)|OH$/u.test(x.f))
+  return true
+}
+
 /**
  * Задачник и вёрстка, а не объяснение: указания ученику («Покажите…», «изобразите…»), данные задачи («x 112 л»,
  * «кислоте B», «[HCl]=0,7»), таблицы «|», ссылки на невидимый ученику текст («выше рассмотренных», «в этой
@@ -290,6 +407,12 @@ function looksBroken(sentence: string): boolean {
   if (/[A-ZА-ЯЁ][a-zа-яё]?,\s*[+—=]/u.test(sentence)) return true
   if (/(^|\s)(т|др|см|рис|стр|напр)\.$/iu.test(sentence.trim())) return true
   if (/^(следовательно|поэтому|то есть|т\.\s?е\.|значит|итак|однако|также|здесь|тогда|отсюда|где)[\s,]/iu.test(sentence)) return true
+  // «Но учитывая то, что давление не влияет …» — придаточное без главного предложения.
+  if (/^(Но|А|И)\s+(учитывая|несмотря на)\s/u.test(sentence)) return true
+  // «11 приводятся вещества, …» — номер таблицы/рисунка, оторванный от «В таблице».
+  if (/^\d+\s+\p{Ll}/u.test(sentence)) return true
+  // «При n<2 кислота считается слабой» — обозначение без объяснения, что это за величина.
+  if (/(^|[\s(])[nxyk]\s*[<>≤≥]\s*\d/u.test(sentence)) return true
   if (/(^|\s)\d+\)\s|\d+\.\s+[а-яё]/u.test(sentence)) return true
   if (/[—–-]\s*\.?$/u.test(sentence.trim())) return true
   // Разрозненные буквы («С Н О, + О») — шум; обычные союзы/предлоги «и», «а», «в», «a» — нет.
@@ -376,19 +499,34 @@ function splitCandidates(text: string): string[] {
   for (const line of cleanKnowledgeText(text).split(/\n+|\s•\s/)) {
     const trimmed = line.trim()
     if (!trimmed) continue
-    const parts = trimmed.split(/(?<=[.!?])\s+(?=[\p{Lu}\d«"(])/u)
+    // «Например, бутен-2 имеет цис- и транс-изомеры. плоскость π-связи цис-бутен-2 …» — подписи рисунка с маленькой
+    // буквы без сказуемого после точки — не часть фразы.
+    const parts = trimmed
+      .split(/(?<=[.!?])\s+(?=[\p{Lu}\d«"(])/u)
+      .map((p) => p.split(/(?<=[.!?])\s+(?=\p{Ll})/u).filter((frag, i) => i === 0 || hasFiniteVerbRu(frag)).join(' '))
     for (const p of parts) {
       const t = p.trim()
       // Заголовок списка/задания («Какие оксиды образуются при сжигании следующих веществ:») и обрывки «…» — не ответ.
       if (/[:：]$/.test(t) || /^…/.test(t)) continue
       // Хвост «, то есть E2Оп, где E – элемент …» после определения — обозначения, а не смысл.
       // «…увеличивается в 2—4 раза: t1 где t2 — скорость …» — хвост формулы без самой формулы.
-      let s = t.replace(/:\s*(?:\S+\s+){0,3}где\s.*$/u, '.').replace(/,\s*(?:то есть|т\.\s?е\.)\s+[^,]*,\s*где\s.*$/u, '.').replace(/,\s*где\s+\S+\s*[–—-]\s.*$/u, '.').replace(/[;,]\s*$/, '.')
+      let s = t
+        // «…с самой низкой — цезий, то есть 0,79.» — число без единицы и шкалы ученику ничего не говорит.
+        .replace(/,\s*(?:то есть|т\.\s?е\.)\s+\d+(?:[,.]\d+)?\s*(?=[.;]?$)/u, '')
+        // «путем кипячения (Ca(HCO3)2 → CaCO3 Mg(HCO3)2 → MgCO3)» — неполные уравнения в скобках: способ оставляем.
+        .replace(/\s*\((?:[^()]|\([^()]*\))*→(?:[^()]|\([^()]*\))*\)/gu, (paren) => (hasUnbalancedEquation(paren.trim().slice(1, -1)) || (paren.match(/→/g) ?? []).length >= 2 ? '' : paren))
+        .replace(/:\s*(?:\S+\s+){0,3}где\s.*$/u, '.').replace(/,\s*(?:то есть|т\.\s?е\.)\s+[^,]*,\s*где\s.*$/u, '.').replace(/,\s*где\s+\S+\s*[–—-]\s.*$/u, '.').replace(/[;,]\s*$/, '.')
       // «Таким образом, 1 моль газа …» — связка с невидимым учеником текстом; сам факт остаётся.
       const connective = /^(Таким образом|Итак|Следовательно|Значит|Как видно),\s+(?=\S)/u
       if (connective.test(s)) {
         s = s.replace(connective, '')
         s = s.replace(/^(\p{Ll})/u, (c) => (/^[a-zα-ω]{1,2}\s*[(=]|^pH/u.test(s) ? c : c.toUpperCase()))
+      }
+      // «… можно устранить следующими способами: путем кипячения.» — перечень из одного пункта.
+      const leadIn = s.match(/^(.*?\S)\s*(?:следующими|несколькими|различными|разными|такими|двумя|тремя)\s+(?:способами|методами|путями)\s*:\s*([^:]+?)\.?$/u)
+      if (leadIn && !/[,;]|\s(и|или)\s/u.test(leadIn[2]!)) {
+        if (!/^(путем|путём|с помощью|при|методом|действием|из)\s/u.test(leadIn[2]!)) continue
+        s = `${leadIn[1]} ${leadIn[2]}.`
       }
       if (s) out.push(s)
     }
@@ -417,6 +555,32 @@ function acceptableForLang(sentence: string, lang: StemLang): boolean {
   if (st.mojibake / st.letters > 0.04) return false
   if (lang === 'ru') return st.cyr / st.letters >= 0.55
   return st.lat / st.letters >= 0.6
+}
+
+/** Фраза продолжает чужую мысль: местоимение/указание в начале («Она …», «Такой же процесс …»). */
+const DEICTIC_START_RE = /^(На них|Они|Она|Оно|Он|Их|Его|Её|Ее|Эти|Этот|Эта|Это|Такие|Такой|Такая|Такое|Таким|Там|Данн\S+|При этом|В этом|Этим|Здесь|Тогда)\s/u
+/** Висящая отсылка внутри фразы: «… определяется в сравнении с ним», «такой же процесс». */
+const DANGLING_RE = /(?<!\p{L})(с ним|с ней|с ними|к нему|к ней|у него|у неё|от него|от неё|по сравнению с ним|такой же|таким же|такая же|такое же|то же самое|эт(?:ой|ого|их|ими)\s+\p{Ll}{3,})(?!\p{L})/iu
+/** Условие, при котором верен пример соседней фразы, и ограничение следом («В обычных условиях … только»). */
+const CONDITION_RE = /(при нагревании|при высокой температуре|при определ\S+ услови|в присутствии катализатор|при облучении)/iu
+const RESTRICT_NEXT_RE = /^(Однако|Но|В обычных условиях|При обычных условиях|При комнатной температуре)[\s,]/u
+
+/** Пример отвечает уточнению вопроса: «… образуется осадок» → ↓/осадок, «… выделяется газ» → ↑/газ, «… вода» → H2O. */
+function qualifierOk(query: string, text: string): boolean {
+  const q = foldText(query)
+  if (/осад/u.test(q) && !/↓|осад|нераствор/iu.test(text)) return false
+  if (/(?<!\p{L})газ(?!ообразн)/u.test(q) && !/↑|газ/iu.test(text)) return false
+  if (/образу\S*\s+вод|(?<!\p{L})вод[аы]\s+образу/u.test(q) && !/H2O|H₂O|вод/u.test(text)) return false
+  return true
+}
+
+/** Пример верен только при условии соседней фразы («При нагревании …» / «Однако в обычных условиях только …»). */
+function conditionedExample(c: Candidate, cands: readonly Candidate[]): boolean {
+  const prev = cands.find((x) => x.hitIndex === c.hitIndex && x.pos === c.pos - 1)
+  const next = cands.find((x) => x.hitIndex === c.hitIndex && x.pos === c.pos + 1)
+  if (next && (RESTRICT_NEXT_RE.test(next.text) || /(?<!\p{L})только(?!\p{L})/u.test(next.text) && /^(В|При)\s/u.test(next.text))) return !CONDITION_RE.test(c.text)
+  if (prev && CONDITION_RE.test(prev.text) && !CONDITION_RE.test(c.text) && /^(Например|К примеру)/u.test(c.text)) return true
+  return false
 }
 
 const FOLLOW_UP_WORDS =
@@ -477,7 +641,7 @@ function detectKind(query: string, style: ComposeStyle): QuestionKind {
   if (style.wantExample) return 'example'
   if (style.wantWhy) return 'why'
   if (COMPARE_RE.test(query)) return 'compare'
-  if (CALC_RE.test(query)) return 'calc'
+  if (CALC_RE.test(query) || (/чему\s+равн|как\S*\s+(объ[её]м|масс\S*|количеств\S*)\s/iu.test(query) && /\d|[A-Z][a-z]?\d/u.test(query))) return 'calc'
   if (WHAT_IS_RE.test(query)) return 'definition'
   if (HOW_RE.test(query.trim())) return 'how'
   return 'general'
@@ -563,7 +727,9 @@ function shortenForVoice(sentence: string, maxWords: number): string {
     acc = acc ? `${acc} ${words[i]}` : words[i]!
     if (/[,;:]$/.test(words[i]!) && i >= Math.floor(maxWords * 0.45)) lastCommaCut = acc
   }
-  const cut = (lastCommaCut || acc).replace(/[,;:—–-]+$/, '')
+  let cut = (lastCommaCut || acc).replace(/[,;:—–-]+$/, '')
+  // «…, то есть в сторону реакции.» — не обрываем пояснение на половине: без хвоста «то есть …» фраза цела.
+  cut = cut.replace(/,\s*(?:то есть|т\.\s?е\.|а также|а|но|и|или|где|который|которая|которое|которые)(?:\s+\S+){0,4}$/u, '')
   return `${cut}.`
 }
 
@@ -619,14 +785,29 @@ function reframeDefinition(sentence: string, keyTerm: string | null, lang: StemL
   // исказит фразу («Изотопы — это поскольку …»): цитируем как есть.
   if (/^(поскольку|так как|если|когда|хотя|потому что|и|а|но|или|либо)\s/iu.test(body)) return null
   body = body[0]!.toLowerCase() + body.slice(1)
-  return `${capitalizeFirst(keyTerm)} — это ${body}.`
+  // «в окислительно-восстановительных реакциях атом …, присоединивший электрон» → «атом …, присоединивший электрон,
+  // в окислительно-восстановительных реакциях»: обстоятельство не встаёт перед родовым словом.
+  const adjunct = body.match(/^((?:в|во|при)\s+(?:\S+\s+){0,2}?(?:реакци\S*|процесс\S*|услови\S*|раствор\S*|соединени\S*))\s+(\S.*)$/u)
+  if (adjunct && !/^(?:(?:и|или|а|но)\s|,)/u.test(adjunct[2]!)) body = `${adjunct[2]!.replace(/,\s*$/u, '')} ${adjunct[1]}`
+  // «вещества изменяющие скорость» → «вещества, изменяющие скорость».
+  body = body.replace(/^(\p{L}+(?:\s\p{L}+)?)\s+(\p{L}+(?:ющие|ящие|ащие|вшие|емые|имые|нные|ющий|ящий|ащий|вший|емый|имый))\s/u, (m, head: string, part: string) => (/,$/.test(head) ? m : `${head}, ${part} `))
+  // Термин в единственном числе, а родовое слово во множественном («Катализатор — это вещества …»): подлежащее —
+  // форма из самой фразы учебника («… называются катализаторами» → «Катализаторы»).
+  let subject = capitalizeFirst(keyTerm)
+  const pluralBody = /^(вещества|соединения|частицы|атомы|ионы|молекулы|элементы|реакции|явления|процессы|электролиты|металлы|разновидности)[\s,]/u.test(body)
+  if (pluralBody && !/[ыи]$/u.test(keyTerm.trim())) {
+    const named = tokenizeWords(m[2]!)
+    const plural = named.map((w) => w.replace(/ыми$/u, 'ые').replace(/ими$/u, 'ие').replace(/ами$/u, 'ы').replace(/ями$/u, 'и'))
+    if (named.length > 0 && named.every((w, i) => w !== plural[i]) && plural.length === keyTerm.trim().split(/\s+/).length) subject = capitalizeFirst(plural.join(' '))
+  }
+  return `${subject} — это ${body}.`
 }
 
 /** «what oxides are» / «what a catalyst is». */
 const enBe = (term: string) => (/[^s]s$/i.test(term.trim()) && !/(sis|ics)$/i.test(term.trim()) ? 'are' : 'is')
 /** «what a catalyst is», «what electrolysis is» (неисчисляемые и множественное — без артикля). */
 const enTerm = (term: string) =>
-  enBe(term) === 'are' || /^(an?|the)\s/i.test(term) || /(sis|try|sion|ity|ence|ency|rium|ism|ics)$/i.test(term.trim()) ? term : `${/^[aeiou]/i.test(term) ? 'an' : 'a'} ${term}`
+  enBe(term) === 'are' || /^(an?|the)\s/i.test(term) || /(sis|try|sion|ity|ence|ency|rium|ism|ics|ergy|mass|ation)$/i.test(term.trim()) ? term : `${/^[aeiou]/i.test(term) ? 'an' : 'a'} ${term}`
 
 const L = {
   ru: {
@@ -641,6 +822,9 @@ const L = {
     checkWhy: (r: string) => `Сможешь теперь сам объяснить, почему ${r}?`,
     checkHow: 'Сможешь пересказать это своими словами по шагам?',
     checkCompare: 'Сможешь назвать главное отличие одной фразой?',
+    checkClassify: 'Сможешь перечислить эти группы?',
+    checkComposition: 'Сможешь назвать, из каких частей это состоит?',
+    checkFactors: 'Сможешь перечислить эти факторы?',
     checkExample: 'Сможешь привести ещё один пример сам?',
     checkGeneric: 'Понятно? Если хочешь — приведу пример или объясню проще.',
     helperLead: 'Подсказка, а решишь ты сам.',
@@ -655,8 +839,10 @@ const L = {
     noExample: 'Готового примера в моей базе по этому вопросу нет.',
     pronoun: 'Он',
     glossLead: (terms: string) => terms,
+    onlyRussian: '',
     quote: (book: string | null, text: string) => `${book ?? 'Справочник ATOMLAB'}: «${text}»`,
     exampleTerms: (terms: string) => `Пример из учебника: ${terms}.`,
+    equation: (eq: string) => `Уравнение реакции: ${eq}.`,
   },
   en: {
     why: 'Why is that?',
@@ -667,9 +853,14 @@ const L = {
       (t: string) => `Your turn: what ${enBe(t)} ${enTerm(t)}, in one sentence?`,
       (t: string) => `How would you explain ${t} to a friend?`,
     ],
-    checkWhy: (r: string) => `Can you now explain why ${r}?`,
+    // «why do metals conduct electricity» → «why metals conduct electricity» (косвенный вопрос без инверсии).
+    checkWhy: (r: string) =>
+      /^(does|did|is|are|was|were|can|will)\s/i.test(r) ? 'Can you now explain the reason in your own words?' : `Can you now explain why ${r.replace(/^do\s+/i, '')}?`,
     checkHow: 'Can you retell it step by step in your own words?',
     checkCompare: 'Can you name the main difference in one sentence?',
+    checkClassify: 'Can you list these groups?',
+    checkComposition: 'Can you name what it consists of?',
+    checkFactors: 'Can you list these factors?',
     checkExample: 'Can you think of one more example yourself?',
     checkGeneric: 'Is that clear? I can give an example or explain it more simply.',
     helperLead: 'Here is a hint — the solving is yours.',
@@ -683,8 +874,10 @@ const L = {
     noExample: 'I have no ready example for this in my knowledge base.',
     pronoun: 'It',
     glossLead: (terms: string) => `My textbooks are in Russian. The key terms of the answer are: ${terms}.`,
+    onlyRussian: 'I have this answer only in my Russian textbook, so here is its exact sentence.',
     quote: (book: string | null, text: string) => `${book ? `From the ${book} textbook` : 'From the ATOMLAB reference cards'} (in Russian): «${text}»`,
     exampleTerms: (terms: string) => `An example from the textbook: ${terms}.`,
+    equation: (eq: string) => `The reaction equation: ${eq}.`,
   },
   uz: {
     why: 'Nega shunday?',
@@ -697,6 +890,9 @@ const L = {
     checkWhy: (r: string) => `Endi nega ${r} — o‘zingiz tushuntira olasizmi?`,
     checkHow: 'Buni o‘z so‘zingiz bilan bosqichma-bosqich aytib bera olasizmi?',
     checkCompare: 'Asosiy farqni bitta gap bilan ayta olasizmi?',
+    checkClassify: 'Bu guruhlarni sanab bera olasizmi?',
+    checkComposition: 'U nimalardan iboratligini ayta olasizmi?',
+    checkFactors: 'Bu omillarni sanab bera olasizmi?',
     checkExample: 'Yana bitta misolni o‘zingiz keltira olasizmi?',
     checkGeneric: 'Tushunarlimi? Xohlasangiz, misol keltiraman yoki soddaroq tushuntiraman.',
     helperLead: 'Mana maslahat — yechimni o‘zingiz topasiz.',
@@ -710,8 +906,10 @@ const L = {
     noExample: 'Bu savol bo‘yicha bazamda tayyor misol yo‘q.',
     pronoun: 'U',
     glossLead: (terms: string) => `Darsliklarim rus tilida. Javobning asosiy atamalari: ${terms}.`,
+    onlyRussian: 'Bu javob menda faqat rus tilidagi darslikda bor, uning aynan gapini keltiraman.',
     quote: (book: string | null, text: string) => `${book ? `${book} darsligidan` : 'ATOMLAB ma’lumotnomasidan'} (rus tilida): «${text}»`,
     exampleTerms: (terms: string) => `Darslikdagi misol: ${terms}.`,
+    equation: (eq: string) => `Reaksiya tenglamasi: ${eq}.`,
   },
 } as const
 
@@ -750,21 +948,34 @@ type QuestionInfo = {
   compounds: string[]
   contrast: Array<[string, string]>
   needed: number
+  /** «Из чего состоит атом?» */
+  composition: boolean
+  /** «От чего зависит скорость реакции?», «Какие факторы влияют …?» */
+  factors: boolean
 }
 
 function analyzeQuestion(query: string, lang: StemLang, style: ComposeStyle, topicHint?: string): QuestionInfo {
   const kind = detectKind(query, style)
   const keyTerm = extractKeyTerm(query, lang)
   let concepts = buildConcepts(query)
-  if (concepts.length === 0 && topicHint) concepts = buildConcepts(topicHint)
-  const keyStems = keyTerm ? questionWords(keyTerm).flatMap((w) => w.split('-')).filter((w) => w.length >= 3).map(strictStem) : []
+  const fromHint = concepts.length === 0
+  if (fromHint && topicHint) concepts = buildConcepts(topicHint)
+  let keyStems = keyTerm ? questionWords(keyTerm).flatMap((w) => w.split('-')).filter((w) => w.length >= 3).map(strictStem) : []
+  // «Что такое моль?»: термин — служебное для задач слово (моль, грамм, литр); он и есть тема вопроса.
+  if (keyTerm && keyStems.length === 0 && kind === 'definition') {
+    keyStems = keyTerm.split(/\s+/).filter((w) => w.length >= 3).map((w) => (strictStem(w).length >= 4 ? strictStem(w) : foldText(w)))
+    const own = keyStems.map((stem) => ({ alts: [[stem]], generic: false, stem }))
+    concepts = fromHint ? own : [...own, ...concepts.filter((c) => !keyStems.includes(c.stem))]
+  }
   const specific = concepts.filter((c) => !c.generic)
   const folded = foldText(query)
   const compounds = (folded.match(/[\p{L}]{3,}-[\p{L}]{3,}/gu) ?? []).filter((w) => !/^(что|кто|как|какой|какая|какие|как)-/u.test(w))
   const contrast = CONTRAST_PAIRS.filter(([a, b]) => folded.includes(a) && !folded.includes(b))
   const n = concepts.length
   const needed = n <= 1 ? 1 : n <= 3 ? 0.5 : 0.4
-  return { query, lang, kind, keyTerm, keyStems, concepts, specific, terms: kind === 'compare' ? compareTerms(query) : [], compounds, contrast, needed }
+  const composition = /из\s+чего\s+состо|made\s+of|consist/iu.test(folded)
+  const factors = /от\s+чего\s+завис|фактор|depend/iu.test(folded)
+  return { query, lang, kind, keyTerm, keyStems, concepts, specific, terms: kind === 'compare' ? compareTerms(query) : [], compounds, contrast, needed, composition, factors }
 }
 
 function buildCandidates(hits: readonly KnowledgeHitLike[], info: QuestionInfo, style: ComposeStyle): Candidate[] {
@@ -781,13 +992,26 @@ function buildCandidates(hits: readonly KnowledgeHitLike[], info: QuestionInfo, 
     splitCandidates(hit.text).forEach((raw, pos) => {
       if (JUNK_RE.test(raw)) return
       if (raw.endsWith('?') || raw.startsWith('(')) return
-      if (looksLikeOcrNoise(raw) || looksBroken(raw)) return
+      // «Поэтому азот считается инертным» — вывод без причины; для «почему» берём его вместе с предыдущей фразой (pickDirect).
+      const conclusionLead = kind === 'why' && /^(Поэтому|Следовательно)\s/u.test(raw)
+      if (looksLikeOcrNoise(raw) || (looksBroken(raw) && !(conclusionLead && !looksBroken(raw.replace(/^(Поэтому|Следовательно)\s+/u, 'Итог '))))) return
       if (!acceptableForLang(raw, lang)) return
+      // Шаг лабораторной работы («в пробирку добавить 1 каплю …») и название, не совпадающее с формулой — не факт для ответа.
+      if (LAB_STEP_RE.test(raw) || nameFormulaMismatch(raw)) return
       if (raw.length < 24 || raw.length > 420) return
       if (foldText(raw).replace(/[^\p{L}\p{N}]/gu, '') === foldText(hit.title).replace(/[^\p{L}\p{N}]/gu, '')) return
       if (lang === 'ru' && /^((В|На|Из|С|До|При|Для)\s)?(Какие|Какой|Какая|Каким|Какими|Какую|какой|какие|какая|какую|каким|какими|какого|Сколько|сколько|Почему|Что|Как|Чем)\s/u.test(raw) && !/[—–]|\sэто\s/u.test(raw)) return
       // Заголовок без сказуемого («Получение хлорида водорода в лаборатории физические свойства.»).
       if (lang === 'ru' && isHeadingLike(raw)) return
+      // Склеенные колонки глоссария: подлежащее повторяется после запятой («Молекула – частица, Молекула состоящая …»).
+      if (/^(\p{Lu}\p{Ll}{3,})\s*[–—-][^.]*,\s*\1\s/u.test(raw)) return
+      // Происхождение слова («„Молекула“ – в дословном переводе означает …») — не факт для ответа.
+      if (/(в дословном переводе|в переводе с \p{L}+ (языка )?означает|означает\s+«|происходит от (греческ|латинск))/iu.test(raw)) return
+      // Тавтология «Если связь ближе к ионной, то её называют ионной связью».
+      {
+        const named = raw.match(/^Если\s(.+?),\s*то\s.*?называ\S*\s+(\p{L}+)/u)
+        if (named && strictStem(named[2]!).length >= 4 && foldText(named[1]!).includes(strictStem(named[2]!))) return
+      }
       const key = foldText(raw).replace(/\s+/g, ' ')
       if (seenText.has(key)) return
       seenText.add(key)
@@ -805,10 +1029,12 @@ function buildCandidates(hits: readonly KnowledgeHitLike[], info: QuestionInfo, 
         const c = concepts.find((x) => x.stem === k)
         return c ? conceptIn(c, where) : hasStem(k, where)
       }
-      const keyAll = keyStems.length > 0 && keyStems.every((k) => keyConceptIn(k, idx))
-      const keyInHead = keyStems.length > 0 && keyStems.every((k) => keyConceptIn(k, headIdx))
+      // Термин — лишь определение к другому веществу («хлорид водорода получают …» ≠ «водород получают …»).
+      const keyAsModifier = keyStems.length === 1 && keyOnlyAsModifier(raw, keyStems[0]!, lang)
+      const keyAll = keyStems.length > 0 && keyStems.every((k) => keyConceptIn(k, idx)) && !keyAsModifier
+      const keyInHead = keyStems.length > 0 && keyStems.every((k) => keyConceptIn(k, headIdx)) && !keyAsModifier
       const namedPart =
-        raw.match(/(?:называ(?:ется|ются|ют)|\b(?:is|are) called)\s+([^,.;:(]{3,48})/iu)?.[1] ??
+        raw.match(/(?:называ(?:ется|ются|ют)|\b(?:is|are) called)\s+(?:(?:его|её|ее|их)\s+)?([^,.;:(]{3,48})/iu)?.[1] ??
         raw.match(/\s([^\s,.;:()]{3,30})\s+(?:deb ataladi|deyiladi)\.?$/iu)?.[1] ??
         ''
       const namedIdx = indexSentence(namedPart)
@@ -864,6 +1090,13 @@ function buildCandidates(hits: readonly KnowledgeHitLike[], info: QuestionInfo, 
       const classify = CLASSIFY_RE.test(raw)
       const imprecise = IMPRECISE_RE.test(raw)
       const offCondition = info.contrast.some(([, b]) => hasStem(b, idx)) && !info.contrast.some(([a]) => hasStem(a, idx))
+      const subjectOther =
+        !definesKey && definesTerm < 0 && /\s[—–]\s/u.test(noParen.slice(0, 64)) && copulaAt > 0 && copulaAt <= 60 && subjectIdx.words.length <= 5 && !subjectIs(keyStems)
+      // «Атом имеет две области: ядро и электронную оболочку» — ответ на «из чего состоит атом»; «Ядро атома … состоит из
+      // протонов» (подлежащее — часть X) и «Атом гелия состоит …» (частный случай) — нет.
+      const composition = info.composition && /(состо\S*\s+из|имеет\s+\S+\s+област|содерж\S*\s|входят)/iu.test(raw)
+      const firstIsKey = keyStems.length > 0 && hasStem(keyStems[0]!, firstIdx)
+      const secondWord = raw.split(/\s+/)[1] ?? ''
 
       const digits = (raw.match(/\d/g) ?? []).length
       const commas = (raw.match(/,/g) ?? []).length
@@ -882,17 +1115,33 @@ function buildCandidates(hits: readonly KnowledgeHitLike[], info: QuestionInfo, 
       }
       // Определение из учебника — точнее пересказа карточки/итога.
       if (isWhatIs && definesKey && (hit.type === 'card' || hit.type === 'summary')) score -= 0.4
+      // «„Молекула“ – в дословном переводе означает …» — происхождение слова, а не определение.
       if (definitional && kind !== 'why') score += 0.3
       if (definesKey) score += isWhatIs ? (exactSubject ? 2.2 : 1.2) : kind === 'example' ? 0.3 : 1.0
       if (definesTerm >= 0) score += 1.2
       if (definesOther) score -= isWhatIs ? 1.6 : kind === 'compare' ? 0.3 : 0.7
       if (causal) score += kind === 'why' ? (keyAll || overlap >= 0.5 ? 1.6 : 0.5) : 0.1
       if (method && (kind === 'how' || kind === 'calc') && overlap >= info.needed - 1e-9) score += 0.9
+      // «Как получают X?»: способ получения, а не разложение/применение X и не «способы … отличаются от …».
+      if (kind === 'how' && lang === 'ru' && /получ|производ|синтез/iu.test(info.query)) {
+        if (/(получ|производ|синтез|добыва)/iu.test(raw)) score += 0.6
+        else if (/(разложени|разлага|применени|использу)/iu.test(raw)) score -= 1.2
+        if (/отлича\S*\s+от/iu.test(raw) && !/отлича/iu.test(info.query)) score -= 1.2
+        if (keyStems.length > 0 && otherObtainedObject(raw, keyStems)) score -= 1.8
+      }
       if (classify && kind === 'compare' && keyAll) score += /:\s*\S.*,.*,/u.test(raw) ? 2.2 : 1.0
       if (CONTRAST_WORDS_RE.test(raw) && kind === 'compare') score += 0.4
       if (example && style.wantExample) score += specific > 0 || keyAll ? 1.4 : 0.4
       if (keyInHead && kind !== 'example') score += 0.4
       if (imprecise) score -= 2.5
+      if (keyAsModifier) score -= 1.5
+      // Подлежащее — сам X («Атом имеет …»), а не «Атом гелия» / «Ядро атома».
+      if (composition) score += firstIsKey && /^(имеет|имеют|состоит|состоят|содержит|включает)$/u.test(secondWord) ? 3 : -0.8
+      // «Скорость реакции зависит от: природы …, концентрации …, температуры …» — перечень факторов целиком.
+      if (info.factors && /завис\S*\s+от\s*:?\s*\S.*,.*,/u.test(raw)) score += 2.4
+      // Строка карточки без подлежащего («Необратимые идут …», «Образуется в растворе …», «Получение: …»).
+      if (isTelegraphicCard(raw, hit.type ?? '')) score -= 2
+      if (FILLER_RE.test(raw) && !FILLER_RE.test(info.query)) score -= 1
       if (offCondition) score -= 1.8
       if (/^[a-zа-яё]/.test(raw)) score -= 0.9
       const numericKind = kind === 'how' || kind === 'calc' || kind === 'example'
@@ -928,6 +1177,8 @@ function buildCandidates(hits: readonly KnowledgeHitLike[], info: QuestionInfo, 
         example,
         formulas,
         imprecise,
+        subjectOther,
+        citation: hit.citation ?? '',
         stems: contentStems(raw),
         score,
       })
@@ -956,10 +1207,18 @@ function pickDirect(cands: readonly Candidate[], info: QuestionInfo): Picked | n
   const fallback = () =>
     usable.find((c) => strong(c) && !c.definesOther) ??
     usable.find((c) => c.hitIndex <= 2 && c.keyAll && c.overlap >= Math.min(0.5, needed) - 1e-9 && !c.definesOther)
+  // «Из чего состоит X», «от чего зависит X»: лучший по оценке состав/перечень, а не определение X.
+  if ((info.composition || info.factors) && kind !== 'compare' && kind !== 'calc') {
+    const direct = usable.find((c) => strong(c) && !c.definesOther && !c.subjectOther)
+    if (direct) return { direct, missingWhy: false }
+  }
   switch (kind) {
     case 'definition': {
+      // Определение из найденного по уроку важнее подтянутого из другого § (score 0): «добавки» — только если своего нет.
       const direct =
+        usable.find((c) => c.definesKey && c.exactKey && !c.extra) ??
         usable.find((c) => c.definesKey && c.exactKey) ??
+        usable.find((c) => c.definesKey && !c.extra) ??
         usable.find((c) => c.definesKey) ??
         usable.find((c) => c.keyInHead && c.definitional && !c.definesOther) ??
         usable.find((c) => c.keyInHead && strong(c) && !c.definesOther)
@@ -969,7 +1228,13 @@ function pickDirect(cands: readonly Candidate[], info: QuestionInfo): Picked | n
       // Причина должна касаться того, о чём спросили (не только термина): «металлы … отражают свет, поэтому блеск»
       // — не ответ на «почему металлы проводят ток».
       const enough = (c: Candidate) => c.overlap >= Math.max(needed, 0.5) - 1e-9 || (info.concepts.length <= 2 && c.keyAll)
-      const direct = usable.find((c) => c.causal && enough(c) && c.specific > 0 && !c.definesOther)
+      // «… за счёт трёх пар электронов. Поэтому азот считается инертным»: причина — предыдущая фраза того же фрагмента.
+      const conclusion = usable.find((c) => /^(Поэтому|Следовательно|Вот почему|Именно поэтому|Therefore|Shuning uchun)[\s,]/u.test(c.text) && enough(c) && c.keyAll && !c.definesOther)
+      const premise =
+        conclusion &&
+        cands.find((c) => c.hitIndex === conclusion.hitIndex && c.pos === conclusion.pos - 1 && c.score > 0 && !isTelegraphicCard(c.text, c.hitType) && !DEICTIC_START_RE.test(c.text))
+      if (conclusion && premise) return { direct: premise, second: conclusion, missingWhy: false }
+      const direct = usable.find((c) => c.causal && enough(c) && c.specific > 0 && !c.definesOther && !/^(Поэтому|Следовательно)[\s,]/u.test(c.text))
       if (direct) return { direct, missingWhy: false }
       const fact = fallback()
       if (!fact) return null
@@ -981,7 +1246,11 @@ function pickDirect(cands: readonly Candidate[], info: QuestionInfo): Picked | n
     }
     case 'how': {
       // «Реакция образования сложного эфира из спирта с кислотой называется …» — тоже ответ на «как получают».
-      const direct = usable.find((c) => c.method && strong(c) && (!c.definesOther || c.keyInHead)) ?? fallback()
+      // «В промышленности?» — лабораторный способ не ответ (и наоборот), если есть способ с нужным условием.
+      const direct =
+        usable.find((c) => c.method && strong(c) && (!c.definesOther || c.keyInHead) && !c.offCondition) ??
+        usable.find((c) => c.method && strong(c) && (!c.definesOther || c.keyInHead)) ??
+        fallback()
       return direct ? { direct, missingWhy: false } : null
     }
     case 'calc': {
@@ -993,8 +1262,12 @@ function pickDirect(cands: readonly Candidate[], info: QuestionInfo): Picked | n
     }
     case 'compare': {
       if (info.terms.length === 2) {
-        const a = usable.find((c) => c.definesTerm === 0)
-        const b = usable.find((c) => c.definesTerm === 1 && c !== a)
+        // Определение стороны с явным противопоставлением («вещество остаётся тем же», «новые вещества не образуются»)
+        // точнее, чем признак только одной стороны («только при изменении агрегатного состояния»).
+        const NEGATED_RE = /(не\s+образу|не\s+возника|оста[её]тся\s+(тем\s+же|прежним)|не\s+меня|не\s+изменя)/iu
+        const side = (i: number) => usable.find((c) => c.definesTerm === i && NEGATED_RE.test(c.text) && !isTelegraphicCard(c.text, c.hitType)) ?? usable.find((c) => c.definesTerm === i)
+        const a = side(0)
+        const b = usable.find((c) => c.definesTerm === 1 && c !== a && NEGATED_RE.test(c.text)) ?? usable.find((c) => c.definesTerm === 1 && c !== a)
         if (a && b) return { direct: a, second: b, missingWhy: false }
       }
       const direct =
@@ -1005,13 +1278,23 @@ function pickDirect(cands: readonly Candidate[], info: QuestionInfo): Picked | n
       return direct ? { direct, missingWhy: false } : null
     }
     case 'example': {
+      // Пример: отвечает уточнению вопроса (осадок/газ), не условен соседней фразой, без другого подлежащего.
+      const fits = (c: Candidate) =>
+        qualifierOk(info.query, c.text) && formulaClassOk(info.query, c.text) && !conditionedExample(c, cands) && !c.subjectOther && !DEICTIC_START_RE.test(c.text) && !DANGLING_RE.test(c.text) && !RESTRICT_NEXT_RE.test(c.text) && !/\s[—–]\s*это\s/u.test(c.text)
+      const exUsable = usable.filter(fits)
       const direct =
-        usable.find((c) => c.example && c.keyAll && c.formulas >= 1 && c.formulas <= 6) ??
-        usable.find((c) => c.example && (c.keyAll || c.specific > 0))
+        exUsable.find((c) => c.example && c.keyAll && c.formulas >= 1 && c.formulas <= 6 && isRealExample(c.text)) ??
+        exUsable.find((c) => c.example && (c.keyAll || c.specific > 0) && isRealExample(c.text)) ??
+        exUsable.find((c) => c.example && c.keyAll && c.formulas >= 1 && c.formulas <= 6 && !c.definitional)
       if (direct) return { direct, missingWhy: false }
       const def = usable.find((c) => c.definesKey) ?? fallback()
       // Пример из того же фрагмента, что и определение термина («Например, при горении углерода … CO2»).
-      const near = def && cands.find((c) => c.example && c.hitIndex === def.hitIndex && c.score > 0 && !c.definesOther && c.formulas <= 6)
+      const near =
+        def &&
+        cands.find(
+          (c) =>
+            c.example && c.hitIndex === def.hitIndex && Math.abs(c.pos - def.pos) <= 2 && c.score > 0 && !c.definesOther && !c.definitional && c.formulas <= 6 && isRealExample(c.text) && fits(c),
+        )
       if (near) return { direct: near, missingWhy: false }
       return def ? { direct: def, missingWhy: false } : null
     }
@@ -1021,6 +1304,43 @@ function pickDirect(cands: readonly Candidate[], info: QuestionInfo): Picked | n
     }
   }
 }
+
+/**
+ * Пример — конкретный представитель понятия (формула, вещество, реакция с веществами), а не правило («зависит»,
+ * «усиливается»), общая формула («ExOy», «CnH2n+2»), подпись карточки или формулы только в скобках пояснения.
+ */
+function isRealExample(text: string): boolean {
+  if (/общ(ая|ей|ую)\s+формул|C[nₙ]\s*H|[EЭ]\s*[xₓ]\s*O\s*[yᵧ]|\(Э\)/u.test(text)) return false
+  if (/(завис|усилива|ослабева|использу|применя|смеща|объясня)/iu.test(text)) return false
+  const exampleWord = /(например|к примеру|такие как)/iu.test(text)
+  if (CAUSAL_RE.test(text) && !exampleWord) return false
+  if ((text.match(/например/giu) ?? []).length >= 2) return false
+  // «2H2O + 4ē = O2 + 4H+. при электролизе раствора …» — полуреакция с обрывком текста.
+  if (/[.!?]\s+\p{Ll}|ē/u.test(text)) return false
+  if (/^(Составляют|Получают|Образуют|Пишут|Записывают|Определяют|Применяют|Используют)\s/u.test(text)) return false
+  const outside = text.replace(/\((?:[^()]|\([^()]*\))*\)/gu, ' ')
+  const formulasOutside = (outside.match(FORMULA_TOKEN_RE) ?? []).filter((tok) => !/^[IVXLCDM]+$/.test(tok)).length
+  // «щелочной гидролиз жиров → мыла + глицерин» — стрелка между словами: запись карточки, а не уравнение.
+  if (/[→⇌]/u.test(text) && formulasOutside < 2) return false
+  // «(управление реакцией светом, пример HOD → HO+D)» — вещества только в скобках пояснения.
+  return formulasOutside > 0 || exampleWord
+}
+
+/** Строка карточки без подлежащего: «Необратимые идут …», «Образуется в растворе …», «Временная (…) снимается … → …», «Получение: …». */
+function isTelegraphicCard(text: string, hitType: string): boolean {
+  if (hitType !== 'card' && hitType !== 'faq' && hitType !== 'summary') return false
+  return (
+    /^\p{Lu}\p{Ll}+(ые|ие|ая|ое)\s+(\([^)]*\)\s+)?(\p{Ll}+о\s+)?\p{Ll}+(ут|ют|ят|ат|ется|ится)\s/u.test(text) ||
+    /^(Образуется|Получают|Применяют|Используют|Встречается|Содержится)\s|^(Получение|Применение|Нахождение в природе)\s*:/u.test(text) ||
+    /\p{Ll}\s*→\s*[A-Z][^+]*$/u.test(text)
+  )
+}
+
+/** Наполнитель вместо пояснения: применение, производство, экология, «вы узнали», «в свою очередь делятся». */
+const FILLER_RE =
+  /(использу|применя|промышленност|народн\S* хозяйств|завод|комбинат|загрязня|вы узнали|вы уже|мы знаем|известно, что|в свою очередь|Узбекистан|аромат|в быту|парфюмер)/iu
+/** Физические свойства и «также» без предыдущей фразы — не пояснение к «что такое» и не пример. */
+const PROPERTY_RE = /(летуч|запах|цвет[аоу]?\s|вкус|физическ\S* свойств)/iu
 
 /** Фраза относится к теме: ≥ 2 специфичных совпадения (вопрос + прямой ответ) или термин в начале. */
 function onTopic(c: Candidate, info: QuestionInfo, anchor: Candidate): boolean {
@@ -1033,17 +1353,39 @@ function onTopic(c: Candidate, info: QuestionInfo, anchor: Candidate): boolean {
   return qHits + xHits >= 2 || (qHits >= 1 && keyInHead)
 }
 
+/** «Kimyo 8, §20» из подписи «[Kimyo 8, §20, стр. 85–86]». */
+const sectionOf = (citation: string) => citation.match(/Kimyo\s*\d+,\s*§\s*[\d.]+/u)?.[0] ?? citation
+
+const adjacentTo = (c: Candidate, d: Candidate) => c.hitIndex === d.hitIndex && Math.abs(c.pos - d.pos) <= 1
+
 function sameDefinedTerm(a: Candidate, b: Candidate): boolean {
   if (a.definesKey && b.definesKey) return true
   return a.definesTerm >= 0 && a.definesTerm === b.definesTerm
+}
+
+/** «KMnO₄, H2O2» → «H2O2,KMnO4» (нормализованный набор формул фразы; '' — формул нет). */
+function formulaSet(text: string): string {
+  const toks = (text.replace(/[₀-₉]/gu, (d) => String('₀₁₂₃₄₅₆₇₈₉'.indexOf(d))).match(FORMULA_TOKEN_RE) ?? []).filter((tok) => !/^[IVXLCDM]+$/.test(tok))
+  return [...new Set(toks)].sort().join(',')
 }
 
 function isDuplicate(c: Candidate, used: readonly Candidate[], kind?: QuestionKind): boolean {
   // Сравнение: определение второго термина («… называется полярной ковалентной связью») — не повтор первого,
   // даже если фразы почти одинаковы («одинаковой» ↔ «различной»).
   const otherSide = kind === 'compare' && c.definesTerm >= 0 && !used.some((u) => u.definesTerm === c.definesTerm)
+  // Тот же факт другими словами: тот же набор формул или ≥ 3 общих смысловых понятия (≥ 60 % короткой фразы).
+  const cSet = formulaSet(c.text)
+  const cSpec = c.stems.filter((x) => x.length >= 3 && !isGenericStem(x))
+  const sameFact = (u: Candidate) => {
+    if (otherSide) return false
+    if (cSet && cSet === formulaSet(u.text)) return true
+    const uSpec = u.stems.filter((x) => x.length >= 3 && !isGenericStem(x))
+    const shared = cSpec.filter((x) => uSpec.some((y) => stemsMatch(x, y))).length
+    return shared >= 3 && shared / Math.max(1, Math.min(cSpec.length, uSpec.length)) >= 0.6
+  }
   return used.some(
     (u) =>
+      sameFact(u) ||
       u.text === c.text ||
       sameUtterance(u.text, c.text) ||
       (!otherSide && c.stems.length >= 3 && u.stems.length >= 3 && jaccard(c.stems, u.stems) >= 0.55) ||
@@ -1100,7 +1442,7 @@ function composeBody(
   const used: Candidate[] = []
   const sentences: string[] = []
   let words = 0
-  const perSentenceMax = detail === 'more' ? 40 : style.simpler ? 20 : 26
+  const perSentenceMax = detail === 'more' || style.channel === 'chat' ? 40 : style.simpler ? 20 : 26
   const add = (s: string, force = false): boolean => {
     const clean = ensureEnd(shortenForVoice(s, perSentenceMax))
     const w = countWords(clean)
@@ -1113,6 +1455,27 @@ function composeBody(
   if (style.helper) add(t.helperLead, true)
 
   used.push(direct)
+  // «Наличие этих свободных электронов обусловливает …» — «этих» отсылает к предыдущей фразе того же фрагмента: она идёт первой.
+  if (lang === 'ru' && /^(\S+\s+){0,2}(этих|этого|этой|этим|этими)\s/iu.test(direct.text)) {
+    const prev = cands.find((c) => c.hitIndex === direct.hitIndex && c.pos === direct.pos - 1 && !c.definesOther)
+    if (prev && hasFiniteVerbRu(prev.text) && !/^(\S+\s+){0,2}(этих|этого|этой|этим|этими)\s/iu.test(prev.text)) {
+      used.push(prev)
+      add(prev.text, true)
+    }
+  }
+  // Короткое определение («Связь, которая возникает между ионами, называется ионной») — без сути; предыдущая фраза того же
+  // фрагмента про тот же термин (притяжение разноимённых ионов) идёт первой.
+  if (lang === 'ru' && kind === 'definition' && direct.definesKey && direct.hitType === 'textbook' && contentStems(direct.text).length <= 7 && !style.simpler) {
+    const prev = cands.find(
+      (c) =>
+        c.hitIndex === direct.hitIndex && c.pos === direct.pos - 1 && !used.includes(c) && !c.definesOther && !c.example && hasFiniteVerbRu(c.text) &&
+        !DEICTIC_START_RE.test(c.text) && !DANGLING_RE.test(c.text) && info.keyStems.some((k) => c.stems.some((x) => x.length >= 4 && k.length >= 4 && x.startsWith(k.slice(0, 4)))),
+    )
+    if (prev) {
+      used.push(prev)
+      add(prev.text, true)
+    }
+  }
   const directText = reframeDefinition(direct.text, kind === 'compare' ? null : keyTerm, lang) ?? direct.text
   if (kind === 'example' && direct.example && !EXAMPLE_RE.test(direct.text.slice(0, 24))) add(`${t.exampleLead} ${lowerFirst(directText, lang)}`, true)
   else add(style.simpler ? `${t.simplerLead} ${lowerFirst(directText, lang)}` : directText, true)
@@ -1126,6 +1489,7 @@ function composeBody(
   // Прямой ответ + не больше 1 поясняющей фразы голосом и 2 в чате (для «что такое» — 1 и пример);
   // «подробнее» — до 3.
   const chat = style.channel === 'chat'
+  // Почему: голосом — только причина, в чате — причина и одно пояснение по тому же сказуемому.
   const explanationCount = style.simpler
     ? 0
     : detail === 'more'
@@ -1134,15 +1498,20 @@ function composeBody(
         ? 0
         : kind === 'compare' && second
           ? chat ? 1 : 0
-          : kind === 'why' || kind === 'how' || kind === 'calc'
-            ? chat ? 2 : 1
-            : 1
+          : kind === 'why'
+            ? chat ? 1 : second || /(потому что|так как|благодаря|обусловл|из-за|вследствие|позволя|because|chunki)/iu.test(direct.text) ? 0 : 1
+            : kind === 'how' || kind === 'calc'
+              ? chat ? 2 : 1
+              : 1
   /** Уже сказано в прошлом ответе этого диалога (follow-up «пример», «почему», «подробнее»). */
   const said = (c: Candidate) => avoid.some((a) => saidAs(a, c))
   const ranked = cands
     .filter((c) => !used.includes(c) && c.score >= 0.8 && !c.imprecise && !c.definesOther && !c.offCondition)
+    .filter((c) => !/^(Поэтому|Следовательно)\s/u.test(c.text) || (c.hitIndex === direct.hitIndex && c.pos === direct.pos + 1))
     // «На них не действуют …», «Они …» — продолжение чужой мысли; только сразу после прямого ответа.
-    .filter((c) => !/^(На них|Они|Их|Его|Её|Ее|Эти|Этот|Эта|Это|Такие|Там)\s/u.test(c.text) || (c.hitIndex === direct.hitIndex && c.pos === direct.pos + 1))
+    .filter((c) => !DEICTIC_START_RE.test(c.text) || (c.hitIndex === direct.hitIndex && c.pos === direct.pos + 1))
+    // «… определяется в сравнении с ним» — отсылка к фразе, которой в ответе нет.
+    .filter((c) => !DANGLING_RE.test(c.text) || used.some((u) => u.hitIndex === c.hitIndex && u.pos === c.pos - 1))
     .filter((c) => !(c.example && !c.definitional && kind !== 'how' && kind !== 'calc'))
     // Условие задачи («содержится оксид с 49,6 % марганца») — не объяснение.
     .filter((c) => kind === 'calc' || !/\d\s*%/u.test(c.text))
@@ -1168,7 +1537,13 @@ function composeBody(
         !used.includes(c) &&
         c.score > 1 &&
         !/^[a-zа-яё]/.test(c.text) &&
-        !/^(На них|Они|Их|Его|Её|Ее|Эти|Этот|Эта|Это|Такие|Там)\s/u.test(c.text) &&
+        !DEICTIC_START_RE.test(c.text) &&
+        !DANGLING_RE.test(c.text) &&
+        !RESTRICT_NEXT_RE.test(c.text) &&
+        qualifierOk(info.query, c.text) &&
+        !conditionedExample(c, cands) &&
+        // Пример про сам термин, а не «сложное вещество … вода (H2O) – это соединение» с другим подлежащим.
+        !(lang === 'ru' && (c.subjectOther || /\s[—–]\s*это\s/u.test(c.text))) &&
         c.formulas <= 6 &&
         (lang === 'ru' ? c.formulas >= 1 || REACTION_RE.test(c.text) || /(например|к примеру|такие как)/iu.test(c.text) : EXAMPLE_RE.test(c.text)) &&
         (c.keyAll || c.specific > 0 || c.hitIndex === direct.hitIndex) &&
@@ -1176,6 +1551,12 @@ function composeBody(
         (!/называ(ется|ются|ют)/u.test(c.text) || EXAMPLE_RE.test(c.text)) &&
         !(lang === 'ru' && /^[^:]{2,32}:\s*\p{Ll}/u.test(c.text) && c.hitType !== 'textbook') &&
         !looksLikeTaskNoise(c.text) &&
+        (lang !== 'ru' || (isRealExample(c.text) && !isTelegraphicCard(c.text, c.hitType))) &&
+        !(PROPERTY_RE.test(c.text) && !PROPERTY_RE.test(info.query)) &&
+        !/(^|\s)(также|тоже)\s/u.test(c.text.replace(/а также/gu, '')) &&
+        !(FILLER_RE.test(c.text) && !FILLER_RE.test(info.query)) &&
+        // Пример из другого параграфа — только если он про сам термин (термин в начале фразы).
+        (c.hitIndex === direct.hitIndex || c.keyInHead || !c.citation || !direct.citation || sectionOf(c.citation) === sectionOf(direct.citation)) &&
         !said(c) &&
         !isDuplicate(c, used, kind) &&
         !c.definesOther,
@@ -1192,8 +1573,51 @@ function composeBody(
     if (explained >= 1 && c.overlap < info.needed - 1e-9 && !(c.hitIndex === direct.hitIndex && c.pos === direct.pos + 1)) continue
     if (!onTopic(c, info, direct)) continue
     // «Как …?»: объяснение — способ, причина или продолжение той же мысли, а не свойства вещества.
-    if ((kind === 'how' || kind === 'calc') && !c.method && !c.causal && !(c.hitIndex === direct.hitIndex && Math.abs(c.pos - direct.pos) <= 1)) continue
+    if ((kind === 'how' || kind === 'calc') && !c.method && !c.causal && !(c.hitIndex === direct.hitIndex && Math.abs(c.pos - direct.pos) <= 1 && c.hitType === 'textbook')) continue
+    // «Как получают X?»: пояснение сохраняет сказуемое (получение), не свойства X («тримеризуется») и не «способы отличаются».
+    if (kind === 'how' && lang === 'ru' && /получ|производ|синтез/iu.test(info.query)) {
+      if (!/(получ|производ|синтез|добыва|→|=)/iu.test(c.text) || (/отлича\S*\s+от/iu.test(c.text) && !/отлича/iu.test(info.query))) continue
+      if (info.keyStems.length && otherObtainedObject(c.text, info.keyStems)) continue
+      if (info.keyStems.length === 1 && keyOnlyAsModifier(c.text, info.keyStems[0]!, lang)) continue
+    }
     if (isDuplicate(c, used, kind) || said(c)) continue
+    // Применение, производство, экология, «вы узнали» — не пояснение (если о них не спрашивали).
+    if (FILLER_RE.test(c.text) && !FILLER_RE.test(info.query)) continue
+    // «Кислоты, такие как …, также являются летучими» — «также» без предыдущей фразы в ответе.
+    if (/(^|\s)(также|тоже)\s/u.test(c.text.replace(/а также/gu, '')) && !used.some((u) => u.hitIndex === c.hitIndex && u.pos === c.pos - 1)) continue
+    if (lang === 'ru' && c.subjectOther && kind !== 'compare') continue
+    // Сравнение: третья фраза — только с обоими терминами и словом противопоставления.
+    if (kind === 'compare') {
+      const cIdx = indexSentence(c.text)
+      if (!CONTRAST_WORDS_RE.test(c.text) || !info.terms.every((term) => term.some((s) => hasStem(s, cIdx)))) continue
+    }
+    // Определение: пояснение из того же параграфа, что и определение (или про сам термин из справочной карточки).
+    if (kind === 'definition' && c.citation && direct.citation && sectionOf(c.citation) !== sectionOf(direct.citation)) continue
+    if (kind === 'definition' && PROPERTY_RE.test(c.text) && !PROPERTY_RE.test(info.query)) continue
+    // Определение: пояснение — соседняя фраза или фраза, где подлежащее — сам термин («Эпоха классической химии …» — нет).
+    if (kind === 'definition' && !adjacentTo(c, direct) && !(info.keyStems[0] && hasStem(info.keyStems[0], indexSentence(c.text.split(/\s+/)[0] ?? '')))) continue
+    // Подпись рисунка/заголовок без сказуемого и телеграфная строка карточки — не фраза для ученика.
+    if (lang === 'ru' && !hasFiniteVerbRu(c.text) && !/\s[—–]\s|[=→]/u.test(c.text)) continue
+    if (isTelegraphicCard(c.text, c.hitType)) continue
+    // Как/почему: пояснение не рядом с прямым ответом — только с понятием вопроса помимо термина (скорость, хранение).
+    if ((kind === 'how' || kind === 'why') && !adjacentTo(c, direct) && info.specific.some((k) => !info.keyStems.includes(k.stem))) {
+      const cIdx = indexSentence(c.text)
+      if (!info.specific.some((k) => !info.keyStems.includes(k.stem) && conceptIn(k, cIdx))) continue
+    }
+    // Почему: пояснение сохраняет спрошенное сказуемое и не уходит в получение/выделение вещества.
+    if (kind === 'why' && /(получа|получени|выделени)/iu.test(c.text) && !/(получа|получени|выделени)/iu.test(info.query)) continue
+    // Причина уже названа парой «факт. Поэтому …» — пояснение без причины («азот малоактивен») лишь пересказывает вопрос.
+    if (kind === 'why' && second?.causal && /^(Поэтому|Следовательно)\s/u.test(second.text) && !c.causal) continue
+    // «Почему алкены вступают в реакции присоединения?»: пояснение про другой тип реакции («… окисления») — не по вопросу.
+    if (kind === 'why' || kind === 'how') {
+      const types = (text: string) => [...text.matchAll(/(окислени|присоединени|замещени|разложени|полимеризаци|гидролиз|восстановлени|этерификаци|гидрировани)/giu)].map((m) => m[1]!.toLowerCase())
+      const asked = types(info.query)
+      if (asked.length && types(c.text).some((ty) => !asked.includes(ty))) continue
+    }
+    if (kind === 'why' && adjacentTo(c, direct)) {
+      const cIdx = indexSentence(c.text)
+      if (!info.specific.some((k) => !info.keyStems.includes(k.stem) && conceptIn(k, cIdx)) && !/^(Поэтому|Это|Благодаря этому)\s/u.test(c.text)) continue
+    }
     // «Примерами ярких достижений органической химии …» — не пояснение определения.
     if (/^Пример(ами|ом)\s/u.test(c.text)) continue
     // Строка-подпись карточки «В химии уже: вещество — …», «Обратимость: физические чаще …» — не фраза для ученика.
@@ -1238,7 +1662,7 @@ function composeBody(
   return { sentences, used, direct, missingWhy }
 }
 
-function checkQuestion(info: QuestionInfo, style: ComposeStyle, seed: number, missingWhy: boolean, originalQuery: string): string {
+function checkQuestion(info: QuestionInfo, style: ComposeStyle, seed: number, missingWhy: boolean, originalQuery: string, answer = ""): string {
   const t = L[info.lang]
   const term = info.keyTerm && info.keyTerm.length <= 40 ? info.keyTerm : null
   if (style.helper && term) return t.helperAsk(term)
@@ -1249,9 +1673,15 @@ function checkQuestion(info: QuestionInfo, style: ComposeStyle, seed: number, mi
       : null)
   if (whyRest && !missingWhy) return t.checkWhy(whyRest)
   if (info.kind === 'definition' && term) return pick(t.checks, seed)(term)
+  if (info.composition) return t.checkComposition
+  // «Перечисли факторы» — только если в ответе есть перечень (≥ 3 пункта через запятую), иначе — пересказ.
+  if (info.factors) return answer && !/[^.]*,[^.]*,[^.]*/u.test(answer) ? t.checkHow : t.checkFactors
   if (info.kind === 'how' || info.kind === 'calc') return t.checkHow
+  // «Какие бывают оксиды?», «виды связи» — перечень групп, а не отличие двух понятий.
+  if (info.kind === 'compare' && (info.terms.length < 2 || /какие\s+(бывают|есть)|виды|типы|классифик|types|turlari/iu.test(originalQuery))) return t.checkClassify
   if (info.kind === 'compare') return t.checkCompare
-  if (info.kind === 'example') return t.checkExample
+  // «Ещё один пример» — только после названного примера.
+  if (info.kind === 'example') return answer.includes(t.noExample) ? t.checkGeneric : t.checkExample
   return t.checkGeneric
 }
 
@@ -1277,7 +1707,9 @@ function noAnswer(input: ComposeInput, info: QuestionInfo, glossary: readonly Gl
     if (input.lang === 'ru') parts.push(t.related(title))
     else {
       const local = glossary.find((g) => title.toLowerCase().includes(g.ru.toLowerCase()))
-      parts.push(local ? t.related(local.local) : t.relatedGeneric)
+      // «Нет ответа на „Mol nima“ … но могу рассказать про „mol“» — противоречие: термин самого вопроса не предлагаем.
+      const asked = local ? phraseIn(local.local, indexSentence(input.query)) : false
+      parts.push(local && !asked ? t.related(local.local) : t.relatedGeneric)
     }
   } else if (input.topicHint) {
     if (input.lang === 'ru') parts.push(t.topic(cleanTitle(input.topicHint)))
@@ -1319,10 +1751,14 @@ function translateQuery(info: QuestionInfo, glossary: readonly GlossPair[]): str
   const found = glossary
     .filter((g) => g.alts.some((a) => phraseIn(a, idx)))
     .sort((a, b) => b.ru.length - a.ru.length)
-  const ru: string[] = []
-  for (const g of found) if (!ru.some((r) => r.toLowerCase().includes(g.ru.toLowerCase()))) ru.push(g.ru.toLowerCase())
+  const ru: Array<{ term: string; at: number }> = []
+  const folded = foldText(info.query)
+  // Порядок терминов — как в вопросе («How is ammonia produced in industry» → «аммиак промышленность»): первый — тема.
+  const position = (g: GlossPair) => Math.min(...g.alts.map((a) => folded.indexOf(phraseStems(a)[0] ?? a)).filter((i) => i >= 0), 999)
+  for (const g of found) if (!ru.some((r) => r.term.includes(g.ru.toLowerCase()))) ru.push({ term: g.ru.toLowerCase(), at: position(g) })
   if (ru.length === 0) return null
-  const body = ru.slice(0, 4).join(' ')
+  ru.sort((a, b) => a.at - b.at)
+  const body = ru.slice(0, 4).map((r) => r.term).join(' ')
   switch (info.kind) {
     case 'definition':
       return `что такое ${body}`
@@ -1331,7 +1767,8 @@ function translateQuery(info: QuestionInfo, glossary: readonly GlossPair[]): str
     case 'example':
       return `пример ${body}`
     case 'how':
-      return `как ${body}`
+      // «How is ammonia produced» → «как получают аммиак»: сказуемое вопроса сохраняем.
+      return /produc|obtain|prepar|made|synthes|olin|ishlab\s+chiqar|hosil\s+qilin/iu.test(info.query) ? `как получают ${body}` : `как ${body}`
     default:
       return body
   }
@@ -1380,9 +1817,25 @@ function composeForeign(input: ComposeInput, info: QuestionInfo, style: ComposeS
   // Выверенные переводы определений учебника (i18n с подписью источника) — без машинных фраз из тестов рядом.
   const coreHits = allNative.filter((h) => h.type === 'i18n' && h.citation)
   const nativeHits = coreHits.length ? coreHits : allNative
+  // Самый длинный термин глоссария в вопросе — тема («kislotali oksid», а не «kislota»).
+  {
+    const qIdx = indexSentence(info.query)
+    const longest = glossary
+      .flatMap((g) => g.alts.filter((a) => phraseIn(a, qIdx)))
+      .sort((a, b) => phraseStems(b).length - phraseStems(a).length)[0]
+    const stems = longest ? phraseStems(longest).filter((st) => st.length >= 3) : []
+    if (longest && stems.length > info.keyStems.length && info.keyStems.every((k) => stems.some((st) => stemsMatch(st, k)))) {
+      info.keyTerm = longest.toLowerCase()
+      info.keyStems = stems
+    }
+  }
   const native = buildCandidates(nativeHits, info, style)
   input.debug?.(native)
-  const nativePick = pickDirect(native, info)
+  const nativeRaw = pickDirect(native, info)
+  // «Urush tuzlari … tuzlardir» на «Tuz nima?» — определение подвида, а не термина: не ответ.
+  // «Kislotali oksidga misol»: вместо примера — определение другого термина; лучше пример из русского учебника.
+  const nativePick =
+    nativeRaw && ((info.kind === 'definition' && !nativeRaw.direct.definesKey) || (info.kind === 'example' && !nativeRaw.direct.example)) ? null : nativeRaw
 
   // Русский учебник: тот же вопрос, переведённый терминами глоссария.
   const ruHits = input.hits.filter((h) => h.type !== 'glossary' && h.type !== 'source-quote' && !allNative.includes(h))
@@ -1403,7 +1856,13 @@ function composeForeign(input: ComposeInput, info: QuestionInfo, style: ComposeS
           (c.hitType === 'textbook' || c.hitType === 'definition') &&
           (!c.example || c === ruBody.direct) &&
           // Цитата подтверждает ответ: определение термина, причина по вопросу, иначе хотя бы термин вопроса.
-          (info.kind === 'definition' ? c.definesKey : info.kind === 'why' ? c.causal && c.overlap >= 0.5 : c.keyAll),
+          (info.kind === 'definition'
+            ? c.definesKey && c.exactKey
+            : info.kind === 'why'
+              ? c.causal && c.overlap >= 0.5 && c.keyAll
+              : info.kind === 'compare'
+                ? c.definesTerm >= 0
+                : c.keyAll),
       )
     : undefined
   const quoteText = quoteCand ? ensureEnd(quoteCand.text) : ''
@@ -1422,8 +1881,7 @@ function composeForeign(input: ComposeInput, info: QuestionInfo, style: ComposeS
     if (body.missingWhy && ruBody && !ruBody.missingWhy) {
       // Причина есть в русском учебнике: факт на языке ученика + ключевые термины + цитата с причиной.
       sentences.push(body.sentences[0]!)
-      const terms = glossTerms(ruBody.direct.text, glossary.filter((g) => g.source === 'core' || g.source === 'class'), [], 5)
-      if (terms.length) sentences.push(t.glossLead(terms.join(', ')))
+      // Причина — в цитате учебника ниже (без перечня терминов).
     } else sentences.push(...body.sentences)
     // Нет готового примера на языке ученика: называем вещества из русского примера учебника (перевод глоссария).
     const noEx = sentences.indexOf(t.noExample)
@@ -1443,16 +1901,35 @@ function composeForeign(input: ComposeInput, info: QuestionInfo, style: ComposeS
     else if (quoteCand) usedTitles.push(quoteCand.title)
     usedTitles.push(...body.used.filter((c) => c.hitType !== 'i18n' || nativeHits[c.hitIndex]?.citation).map((c) => c.title))
   } else if (ruBody && ruBody.direct) {
-    const terms = glossTerms(ruBody.used.map((c) => c.text).join(' '), glossary.filter((g) => g.source !== 'element' || lang === 'en'), [], 6)
-    if (terms.length === 0 || !quote) return noAnswer(input, info, glossary)
-    sentences.push(t.glossLead(terms.join(', ')))
+    // Перевода нет: честно говорим, что ответ есть только в русском учебнике, и цитируем его (без перечня терминов).
+    // Русский путь нашёл ответ, но строгая цитата не подошла — цитируем сам прямой ответ (фразу учебника), а не отказываем.
+    const direct = ruBody.direct
+    // Выверенная цитата (source-quote) относится к переводу, которого в ответе нет («Кислоты – …» на «кислотный оксид»).
+    const ruQuote = sourceQuote ? (quoteText && quoteCand ? t.quote(bookLabel(ruHits[quoteCand.hitIndex]), shortenForVoice(quoteText, quoteWords)) : '') : quote
+    const directQuote =
+      !ruQuote && !ruBody.missingWhy && !direct.offCondition && (direct.hitType === 'textbook' || direct.hitType === 'definition') && !isTelegraphicCard(direct.text, direct.hitType)
+        ? t.quote(bookLabel(ruHits[direct.hitIndex]), shortenForVoice(ensureEnd(direct.text), quoteWords))
+        : ''
+    const finalQuote = ruQuote || directQuote
+    if (!finalQuote) return noAnswer(input, info, glossary)
+    sentences.push(t.onlyRussian)
+    // Уравнение реакции из ответа учебника понятно на любом языке.
+    const equation = [direct, ...ruBody.used]
+      .map((c) => c.text.match(/(?:\d*[A-Z][A-Za-z0-9₀-₉()]*\s*\+\s*)+\d*[A-Z][A-Za-z0-9₀-₉()]*\s*(?:→|=|⇌)\s*[^.;:,а-яё]+/u)?.[0]?.trim())
+      .find((eq) => eq && isBalancedEquation(eq))
+    if (equation && !finalQuote.includes(equation)) sentences.push(t.equation(equation.replace(/\s*[.;]$/, '')))
+    // «Пример кислотного оксида»: формулы из примера учебника (того же класса) — без перевода.
+    if (info.kind === 'example' && !equation) {
+      const formulas = [...new Set(direct.text.match(FORMULA_TOKEN_RE) ?? [])].filter((f) => atomCounts(f) && formulaClassOk(info.query, f)).slice(0, 4)
+      if (formulas.length) sentences.push(t.exampleTerms(formulas.join(', ')))
+    }
     if (ruBody.missingWhy) sentences.push(t.noWhy)
-    sentences.push(quote)
-    usedTitles.push(...ruBody.used.map((c) => c.title))
+    sentences.push(finalQuote)
+    usedTitles.push(...(directQuote ? [direct.title] : []), ...ruBody.used.map((c) => c.title))
   } else {
     return noAnswer(input, info, glossary)
   }
-  if (!style.noCheckQuestion) sentences.push(capitalizeFirst(checkQuestion(info, style, seed, Boolean(ruBody?.missingWhy && !nativePick), input.query)))
+  if (!style.noCheckQuestion) sentences.push(capitalizeFirst(checkQuestion(info, style, seed, Boolean(ruBody?.missingWhy && !nativePick), input.query, sentences.join(" "))))
   return { text: sentences.join(' '), sentences, confident: true, usedTitles: [...new Set(usedTitles)], keyTerm: info.keyTerm }
 }
 
@@ -1462,35 +1939,121 @@ function composeForeign(input: ComposeInput, info: QuestionInfo, style: ComposeS
 const AR: Record<string, number> = {
   H: 1, C: 12, N: 14, O: 16, Na: 23, Mg: 24, Al: 27, Si: 28, P: 31, S: 32, Cl: 35.5, K: 39, Ca: 40, Fe: 56, Cu: 64, Zn: 65,
 }
-/** Название вещества в вопросе → формула (только частые школьные вещества). */
+/** Название вещества в вопросе (ru/en/uz) → формула (только частые школьные вещества). */
 const SUBSTANCE_FORMULAS: Array<[RegExp, string]> = [
-  [/(?<!\p{L})вод[аыуе](?!\p{L})/u, 'H2O'], [/углекисл\S*\s+газ|оксид\S*\s+углерода\s*\(IV\)/u, 'CO2'], [/серн\S*\s+кислот/u, 'H2SO4'],
-  [/солян\S*\s+кислот|хлороводород/u, 'HCl'], [/аммиак/u, 'NH3'], [/метан/u, 'CH4'], [/азотн\S*\s+кислот/u, 'HNO3'],
-  [/фосфорн\S*\s+кислот/u, 'H3PO4'], [/поварен\S*\s+сол|хлорид\S*\s+натрия/u, 'NaCl'], [/гидроксид\S*\s+натрия/u, 'NaOH'],
-  [/карбонат\S*\s+кальция|(?<!\p{L})мел[аеу]?(?!\p{L})/u, 'CaCO3'], [/оксид\S*\s+кальция/u, 'CaO'], [/глюкоз/u, 'C6H12O6'],
-  [/(?<!\p{L})кислород[аеу]?(?!\p{L})/u, 'O2'], [/(?<!\p{L})водород[аеу]?(?!\p{L})/u, 'H2'], [/(?<!\p{L})азот[аеу]?(?!\p{L})/u, 'N2'],
+  [/(?<!\p{L})вод[аыуе](?!\p{L})|(?<!\p{L})water(?!\p{L})|(?<!\p{L})suv/u, 'H2O'],
+  [/углекисл\S*\s+газ|оксид\S*\s+углерода\s*\(IV\)|carbon\s+dioxide|karbonat\s+angidrid|uglerod\s*\(IV\)\s*oksid/u, 'CO2'],
+  [/серн\S*\s+кислот|sulfuric\s+acid|sulfat\s+kislota/u, 'H2SO4'],
+  [/солян\S*\s+кислот|хлороводород|hydrochloric\s+acid|hydrogen\s+chloride|xlorid\s+kislota/u, 'HCl'],
+  [/аммиак|ammonia|ammiak/u, 'NH3'], [/метан(?!ол)|methane|metan(?!ol)/u, 'CH4'], [/азотн\S*\s+кислот|nitric\s+acid|nitrat\s+kislota/u, 'HNO3'],
+  [/фосфорн\S*\s+кислот|phosphoric\s+acid|fosfat\s+kislota/u, 'H3PO4'], [/поварен\S*\s+сол|хлорид\S*\s+натрия|sodium\s+chloride|osh\s+tuzi|natriy\s+xlorid/u, 'NaCl'],
+  [/гидроксид\S*\s+натрия|sodium\s+hydroxide|natriy\s+gidroksid/u, 'NaOH'],
+  [/карбонат\S*\s+кальция|(?<!\p{L})мел[аеу]?(?!\p{L})|calcium\s+carbonate|kalsiy\s+karbonat/u, 'CaCO3'], [/оксид\S*\s+кальция|calcium\s+oxide|kalsiy\s+oksid/u, 'CaO'],
+  [/глюкоз|glucose|glyukoza/u, 'C6H12O6'], [/этанол|этилов\S*\s+спирт|ethanol|etanol|etil\s+spirt/u, 'C2H5OH'],
+  [/(?<!\p{L})кислород[аеу]?(?!\p{L})|(?<!\p{L})oxygen(?!\p{L})|(?<!\p{L})kislorod/u, 'O2'], [/(?<!\p{L})водород[аеу]?(?!\p{L})|(?<!\p{L})hydrogen(?!\p{L})|(?<!\p{L})vodorod/u, 'H2'],
+  [/(?<!\p{L})азот[аеу]?(?!\p{L})|(?<!\p{L})nitrogen(?!\p{L})|(?<!\p{L})azot(?!\p{L})/u, 'N2'],
+]
+/** Элемент в вопросе о массовой доле: «массовая доля кислорода», «mass fraction of oxygen», «kislorodning massa ulushi». */
+const ELEMENT_NAMES: Array<[RegExp, string]> = [
+  [/водород|hydrogen|vodorod/u, 'H'], [/углерод|carbon|uglerod/u, 'C'], [/азот(?!н)|nitrogen|azot/u, 'N'], [/кислород|oxygen|kislorod/u, 'O'],
+  [/натри|sodium|natriy/u, 'Na'], [/магни|magnesium|magniy/u, 'Mg'], [/алюмини|alumin|alyuminiy/u, 'Al'], [/кремни|silicon|kremniy/u, 'Si'],
+  [/фосфор|phosphorus|fosfor/u, 'P'], [/(?<!\p{L})сер[ыа](?!\p{L})|sulfur|oltingugurt/u, 'S'], [/(?<!\p{L})хлор[аеу]?(?!\p{L})|chlorine|(?<!\p{L})xlor(?!\p{L})/u, 'Cl'],
+  [/(?<!\p{L})кали[яй]|potassium|(?<!\p{L})kaliy/u, 'K'], [/кальци|calcium|kalsiy/u, 'Ca'], [/железа|iron|temir/u, 'Fe'], [/(?<!\p{L})мед[иь]|copper|(?<!\p{L})mis(?!\p{L})/u, 'Cu'],
+  [/цинк|zinc|(?<!\p{L})rux/u, 'Zn'],
 ]
 const fmtNum = (n: number) => String(Math.round(n * 100) / 100).replace('.', ',')
 
+/** Формула вещества из вопроса: явная запись («CO2», «H2SO4») или школьное название. */
+function questionFormula(query: string, folded: string): string | null {
+  const explicit = (query.match(/(?<![\p{L}\d])(?:[A-Z][a-z]?\d*|\((?:[A-Z][a-z]?\d*)+\)\d*){1,6}(?![\p{L}\d])/gu) ?? []).find((f) => /\d|[A-Z].*[A-Z]/.test(f) && atomCounts(f))
+  return explicit ?? SUBSTANCE_FORMULAS.find(([re]) => re.test(folded))?.[1] ?? null
+}
+
+function molarOf(formula: string): { M: number; atoms: Map<string, number>; parts: string; nums: string } | null {
+  const atoms = atomCounts(formula)
+  if (!atoms || [...atoms.keys()].some((el) => AR[el] === undefined)) return null
+  return {
+    atoms,
+    M: [...atoms].reduce((acc, [el, n]) => acc + n * AR[el]!, 0),
+    parts: [...atoms].map(([el, n]) => (n > 1 ? `${n}·Ar(${el})` : `Ar(${el})`)).join(' + '),
+    nums: [...atoms].map(([el, n]) => (n > 1 ? `${n}·${fmtNum(AR[el]!)}` : fmtNum(AR[el]!))).join(' + '),
+  }
+}
+
+const CALC_UNITS = {
+  ru: { gmol: 'г/моль', g: 'г', mol: 'моль' },
+  en: { gmol: 'g/mol', g: 'g', mol: 'mol' },
+  uz: { gmol: 'g/mol', g: 'g', mol: 'mol' },
+} as const
+
+/** Расчётный вопрос по формулировке (молярная масса, массовая доля, число с единицей) — на любом языке. */
+const CALC_INTENT_RE =
+  /(молярн\S*\s+масс|молекулярн\S*\s+масс|массов\S*\s+дол|molar\s+mass|molecular\s+mass|mass\s+fraction|molyar\s+massa|molekulyar\s+massa|massa\s+ulush|\d\s*(г|грамм\S*|моль|л|g|grams?|mol|moles?)(?![\p{L}]))/u
+
 /**
- * Расчётные вопросы: подставляем числа вопроса в правило/формулу из найденного текста и показываем ход решения.
- * Только арифметика по найденному правилу (без правила в фрагментах — не решаем).
+ * Расчётные вопросы: подставляем числа вопроса в школьную формулу и показываем ход решения.
+ * Правило из найденного текста (если есть) — первой фразой; числа — только из вопроса и таблицы Ar.
  */
 function solveCalc(info: QuestionInfo, cands: readonly Candidate[]): { sentences: string[]; used: Candidate[] } | null {
   const q = foldText(info.query)
-  // 1) Относительная молекулярная масса вещества: Mr = сумма Ar.
-  if (/молекулярн\S*\s+масс|молярн\S*\s+масс/u.test(q)) {
-    const rule = cands.find((c) => /сумм/iu.test(c.text) && /атомн/iu.test(c.text) && /масс/iu.test(c.text))
-    const formula = info.query.match(/\b([A-Z][a-z]?\d*){1,6}\b/u)?.[0] ?? SUBSTANCE_FORMULAS.find(([re]) => re.test(q))?.[1]
-    const atoms = formula ? atomCounts(formula) : null
-    if (!rule || !formula || !atoms || [...atoms.keys()].some((el) => AR[el] === undefined)) return null
-    const parts = [...atoms].map(([el, n]) => (n > 1 ? `${n}·Ar(${el})` : `Ar(${el})`))
-    const nums = [...atoms].map(([el, n]) => (n > 1 ? `${n}·${fmtNum(AR[el]!)}` : fmtNum(AR[el]!)))
-    const total = [...atoms].reduce((acc, [el, n]) => acc + n * AR[el]!, 0)
-    const molar = /молярн/u.test(q)
-    const line = `${molar ? 'M' : 'Mr'}(${formula}) = ${parts.join(' + ')} = ${nums.join(' + ')} = ${fmtNum(total)}${molar ? ' г/моль' : ''}.`
-    return { sentences: [ensureEnd(rule.text), line], used: [rule] }
+  const lang = info.lang
+  const u = CALC_UNITS[lang]
+  const ruleOf = (c: Candidate | undefined) => (c && lang === 'ru' ? [ensureEnd(c.text)] : [])
+  // Без правила — подпись к фрагменту учебника с тем же понятием (молярная масса, массовая доля), а не пустой ответ без источника.
+  const cite = (rule: Candidate | undefined, re: RegExp) => (rule ? [rule] : cands.filter((c) => (c.hitType === 'textbook' || c.hitType === 'definition') && re.test(c.text)).slice(0, 1))
+  // 0) Массовая доля элемента в веществе: ω(E) = n·Ar(E) / Mr · 100 %.
+  if (/массов\S*\s+дол|mass\s+fraction|massa\s+ulush/u.test(q)) {
+    const el = ELEMENT_NAMES.find(([re]) => re.test(q))
+    const rest = el ? q.replace(new RegExp(el[0].source, 'gu'), ' ') : q
+    const formula = el ? questionFormula(info.query, rest) : null
+    const mol = formula ? molarOf(formula) : null
+    const n = el && mol ? mol.atoms.get(el[1]) : undefined
+    if (el && formula && mol && n && mol.atoms.size > 1) {
+      // Правило — фраза со сказуемым («равна», «отношение»), а не сплющенная легенда формулы («ω (E) – … n – … Ar (E) – …»).
+      const rule = cands.find(
+        (c) => /(ω|w)\s*\(|массов\S*\s+дол/u.test(c.text) && /(равн|отношени)/u.test(c.text) && (c.text.match(/\s[–—-]\s/gu) ?? []).length < 2 && !/\d\s*%/u.test(c.text),
+      )
+      const share = ((n * AR[el[1]]!) / mol.M) * 100
+      const k = n > 1 ? `${n}·` : ''
+      return {
+        sentences: [
+          ...ruleOf(rule),
+          `Mr(${formula}) = ${mol.nums} = ${fmtNum(mol.M)}.`,
+          `ω(${el[1]}) = ${k}Ar(${el[1]}) / Mr(${formula}) · 100% = ${k}${fmtNum(AR[el[1]]!)} / ${fmtNum(mol.M)} · 100% ≈ ${fmtNum(Math.round(share * 10) / 10)}%.`,
+        ],
+        used: cite(rule, /массов\S*\s+дол/u),
+      }
+    }
   }
+  // 0б) Количество вещества по массе: n = m / M.
+  const gramsM = q.match(/(\d+(?:[,.]\d+)?)\s*(?:г|грамм\S*|g|grams?|gramm)(?![\p{L}])/u)
+  const grams = gramsM ? Number(gramsM[1]!.replace(',', '.')) : null
+  if (grams !== null && /(сколько\s+моль|количеств\S*\s+веществ|число\s+моль|how\s+many\s+moles?|amount\s+of\s+substance|necha\s+mol|modda\s+miqdor)/u.test(q) && !/%|раствор|solution|eritma/u.test(q)) {
+    const formula = questionFormula(info.query, q)
+    const mol = formula ? molarOf(formula) : null
+    if (formula && mol) {
+      const rule = cands.find((c) => /n\s*=\s*m\s*\/?\s*M|m\s*=\s*n\s*[·•*×]?\s*M/u.test(c.text) && !/\d\s*%/u.test(c.text))
+      return {
+        sentences: [
+          ...ruleOf(rule),
+          `M(${formula}) = ${mol.nums} = ${fmtNum(mol.M)} ${u.gmol}.`,
+          `n = m / M = ${fmtNum(grams)} ${u.g} : ${fmtNum(mol.M)} ${u.gmol} = ${fmtNum(grams / mol.M)} ${u.mol}.`,
+        ],
+        used: cite(rule, /количеств\S*\s+веществ|молярн\S*\s+масс/u),
+      }
+    }
+  }
+  // 1) Относительная молекулярная / молярная масса вещества: Mr = сумма Ar.
+  if (/молекулярн\S*\s+масс|молярн\S*\s+масс|molar\s+mass|molecular\s+(mass|weight)|molyar\s+massa|molekulyar\s+massa/u.test(q) && !/\d\s*(г|g|моль|mol)(?![\p{L}])/u.test(q)) {
+    const rule = cands.find((c) => /(сумм|складыва)/iu.test(c.text) && /атомн/iu.test(c.text) && /масс/iu.test(c.text))
+    const formula = questionFormula(info.query, q)
+    const mol = formula ? molarOf(formula) : null
+    if (!formula || !mol) return null
+    const molar = /молярн|molar|molyar/u.test(q)
+    const line = `${molar ? 'M' : 'Mr'}(${formula}) = ${mol.parts} = ${mol.nums} = ${fmtNum(mol.M)}${molar ? ` ${u.gmol}` : ''}.`
+    return { sentences: [...ruleOf(rule), line], used: cite(rule, /молярн\S*\s+масс|молекулярн\S*\s+масс/u) }
+  }
+  if (lang !== 'ru') return null
   // 2) Масса растворённого вещества: m(в-ва) = w · m(р-ра).
   const mass = q.match(/(\d+(?:[,.]\d+)?)\s*(?:г|грамм\S*)(?![\p{L}])/u)
   const percent = q.match(/(\d+(?:[,.]\d+)?)\s*%/u)
@@ -1510,6 +2073,42 @@ function solveCalc(info: QuestionInfo, cands: readonly Candidate[]): { sentences
       used: [rule],
     }
   }
+  // 3) Газ при н. у.: V = n · Vm (объём по количеству) и n = V / Vm (количество по объёму) — по правилу «22,4 л».
+  const num = (re: RegExp) => {
+    const m = q.match(re)
+    return m ? Number(m[1]!.replace(',', '.')) : null
+  }
+  const moles = num(/(\d+(?:[,.]\d+)?)\s*моль(?!\p{L})/u)
+  const litres = num(/(\d+(?:[,.]\d+)?)\s*(?:л|литр\S*|дм3|дм³)(?![\p{L}\d])/u)
+  const vmRule = () => cands.find((c) => /22[,.]4/u.test(c.text) && /(объ[её]м|л\/моль|молярн)/iu.test(c.text) && !/\d\s*%/u.test(c.text))
+  if (moles !== null && /объ[её]м/u.test(q) && !/раствор/u.test(q)) {
+    const rule = vmRule()
+    if (!rule) return null
+    return {
+      sentences: [ensureEnd(rule.text), `V = n · Vm = ${fmtNum(moles)} моль · 22,4 л/моль = ${fmtNum(moles * 22.4)} л.`],
+      used: [rule],
+    }
+  }
+  if (litres !== null && /(количеств\S*\s+веществ|сколько\s+моль|число\s+моль)/u.test(q)) {
+    const rule = vmRule()
+    if (!rule) return null
+    return {
+      sentences: [ensureEnd(rule.text), `n = V / Vm = ${fmtNum(litres)} л : 22,4 л/моль ≈ ${fmtNum(litres / 22.4)} моль.`],
+      used: [rule],
+    }
+  }
+  // 4) Масса по количеству вещества: m = n · M, M = сумма Ar (формула или название вещества из вопроса).
+  if (moles !== null && /масс/u.test(q)) {
+    const formula = info.query.match(/\b(?:[A-Z][a-z]?\d*){1,6}\b/u)?.[0] ?? SUBSTANCE_FORMULAS.find(([re]) => re.test(q))?.[1]
+    const atoms = formula ? atomCounts(formula) : null
+    const rule = cands.find((c) => /(m\s*=\s*n\s*[·•*×]?\s*M|молярн\S*\s+масс)/iu.test(c.text) && !/\d\s*%/u.test(c.text))
+    if (!rule || !formula || !atoms || [...atoms.keys()].some((el) => AR[el] === undefined)) return null
+    const M = [...atoms].reduce((acc, [el, n]) => acc + n * AR[el]!, 0)
+    return {
+      sentences: [ensureEnd(rule.text), `M(${formula}) = ${fmtNum(M)} г/моль; m = n · M = ${fmtNum(moles)} моль · ${fmtNum(M)} г/моль = ${fmtNum(moles * M)} г.`],
+      used: [rule],
+    }
+  }
   return null
 }
 
@@ -1520,6 +2119,17 @@ export function composeLocalAnswer(input: ComposeInput): ComposedAnswer {
   const detail = style.detail ?? 'brief'
   const maxWords = style.maxWords ?? (detail === 'more' ? 140 : style.simpler ? 50 : 60)
   const info = analyzeQuestion(input.query, lang, style, input.topicHint)
+
+  // Расчёт по формулировке вопроса — на любом языке (числа из вопроса, Ar из таблицы, правило учебника — если найдено).
+  if ((info.kind === 'calc' || CALC_INTENT_RE.test(foldText(input.query))) && !style.helper && !style.continuation) {
+    const calcCands = buildCandidates(input.hits.filter((h) => h.type !== 'i18n'), { ...info, kind: 'how' }, style)
+    const solved = solveCalc(info, calcCands)
+    if (solved) {
+      const sentences = [...solved.sentences]
+      if (!style.noCheckQuestion) sentences.push(L[lang].checkHow)
+      return { text: sentences.join(' '), sentences, confident: true, usedTitles: [...new Set(solved.used.map((u) => u.title))], keyTerm: info.keyTerm }
+    }
+  }
 
   if (lang !== 'ru') return composeForeign(input, info, style, maxWords)
 
@@ -1535,7 +2145,7 @@ export function composeLocalAnswer(input: ComposeInput): ComposedAnswer {
   }
   // Follow-up без своей темы: обычный ответ на этот вопрос уже прозвучал — его фразы не повторяем.
   const avoid =
-    style.continuation && (style.wantExample || style.wantWhy || detail === 'more')
+    style.continuation && (style.wantExample || style.wantWhy || style.simpler || detail === 'more')
       ? composeLocalAnswer({ ...input, style: { channel: style.channel, helper: style.helper, noCheckQuestion: true, maxWords: style.channel === 'chat' ? 80 : undefined }, debug: undefined }).sentences
       : []
   const saidBefore = (c: Candidate) => avoid.some((a) => saidAs(a, c))
@@ -1555,7 +2165,7 @@ export function composeLocalAnswer(input: ComposeInput): ComposedAnswer {
 
   const body = composeBody(cands, picked, info, style, maxWords, avoid)
   const sentences = body.sentences
-  if (!style.noCheckQuestion) sentences.push(checkQuestion(info, style, seed, body.missingWhy, input.query))
+  if (!style.noCheckQuestion) sentences.push(checkQuestion(info, style, seed, body.missingWhy, input.query, sentences.join(" ")))
   return {
     text: sentences.join(' '),
     sentences,

@@ -28,7 +28,7 @@ export const ORGANIC_DEEP_KNOWLEDGE: ChemistryKnowledgeChunk[] = [
 • Крекинг (промышленность): разрыв длинных цепей → более короткие алканы и алкены.
 • Изомеризация, дегидрирование.
 
-Алканы малоактивны при обычных условиях — отсюда название «парафины» (малородственные).`,
+Алканы малоактивны при обычных условиях — отсюда название «парафины» (от лат. parum affinis — «малое сродство»).`,
     en: `Alkanes CₙH₂ₙ₊₂: only single bonds, radical halogenation, combustion. Homologous series CH₄, C₂H₆…`,
   },
   {

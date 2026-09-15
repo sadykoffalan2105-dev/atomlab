@@ -56,7 +56,7 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
     id: 'g7-03', grade: 7, locale: 'ru', type: 'compare', lesson: 'c1-s08', source: 'Kimyo 7 §1.8 p28',
     question: 'Чем физические явления отличаются от химических?',
     mustMention: ['новые вещества|новое вещество', 'физическ', 'химическ'],
-    mustNotMention: ['IUPAC|номенклатура'],
+    mustNotMention: ['IUPAC|номенклатура', 're:только при изменении агрегатного состояния'],
   },
   {
     id: 'g7-04', grade: 7, locale: 'ru', type: 'definition', lesson: 'c2-s06', source: 'Kimyo 7 §2.6 p51',
@@ -92,7 +92,7 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
     id: 'g7-09', grade: 7, locale: 'ru', type: 'why', lesson: 'c5-s07', source: 'Kimyo 7 §5.7 p126',
     question: 'Почему выпадают кислотные дожди?',
     mustMention: ['оксид азота|NO2|оксиды азота', 'оксид серы|SO2|оксиды серы', 'кислоты|кислот'],
-    mustNotMention: ['Роберт Ангус Смит', 'Соренсен'],
+    mustNotMention: ['Роберт Ангус Смит', 'Соренсен', 're:причиной[^.]{0,30}является азот'],
   },
   {
     id: 'g7-10', grade: 7, locale: 'ru', type: 'calc', lesson: 'c2-s07', source: 'Kimyo 7 §2.7 p54',
@@ -118,7 +118,7 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
     id: 'g8-01', grade: 8, locale: 'ru', type: 'definition', lesson: 'c1-s03', source: 'Kimyo 8 §2 p10',
     question: 'Что такое оксиды?',
     mustMention: ['сложные вещества', 'двух элементов', 'кислород'],
-    mustNotMention: ['ядовит|токсичн', 'хром', 'Mn2O7'],
+    mustNotMention: ['ядовит|токсичн', 'хром', 'Mn2O7', 're:Например:\\s*общая формула'],
   },
   {
     id: 'g8-02', grade: 8, locale: 'ru', type: 'compare', lesson: 'c1-s03', source: 'Kimyo 8 §2 p10',
@@ -246,7 +246,7 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
     id: 'g9-10', grade: 9, locale: 'ru', type: 'compare', lesson: 'c3-s01', source: 'Kimyo 9 §5 p26',
     question: 'Чем сильные электролиты отличаются от слабых?',
     mustMention: ['степенью диссоциации|степень диссоциации', 'высокой|полностью|большой', 'низкой|частично|малой'],
-    mustNotMention: ['неэлектролит'],
+    mustNotMention: ['неэлектролит', 're:имеют малые значения,|n\\s*[<≥]\\s*2'],
   },
   {
     id: 'g9-11', grade: 9, locale: 'ru', type: 'compare', lesson: 'c3-s07', source: 'Kimyo 9 §36 p164',
@@ -272,12 +272,12 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
     id: 'g10-02', grade: 10, locale: 'ru', type: 'definition', lesson: 'c2-s01', source: 'Kimyo 10 §2.1 p39',
     question: 'Что такое алканы?',
     mustMention: ['CnH2n+2|предельн|насыщенн', 'углеводород', 'одинарн|простые связи|σ-связ'],
-    mustNotMention: ['re:CnH2n(?![+₊]\\s*2)'],
+    mustNotMention: ['re:CnH2n(?![+₊]\\s*2)', 'малородствен'],
   },
   {
     id: 'g10-03', grade: 10, locale: 'ru', type: 'why', lesson: 'c2-s08', source: 'Kimyo 10 §2.7 p56',
     question: 'Почему алкены вступают в реакции присоединения?',
-    mustMention: ['двойной связи|двойная связь|двойную связь', 'π-связь|пи-связь|π-связи'],
+    mustMention: ['двойной связи|двойная связь|двойную связь', 're:(π|пи)\\s*-?\\s*связ'],
     mustNotMention: ['re:алкен\\S*[^.]{0,40}реакци\\S*\\s+замещени'],
   },
   {
@@ -290,7 +290,7 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
     id: 'g10-05', grade: 10, locale: 'ru', type: 'how', lesson: 'c3-s14', source: 'Kimyo 10 §3.12 p141, §3.14 p146',
     question: 'Как получают сложные эфиры?',
     mustMention: ['спирт|спиртами|спирта', 'кислот', 'этерификаци|нагревание'],
-    mustNotMention: ['простые эфиры'],
+    mustNotMention: ['простые эфиры', 'парфюмерн'],
   },
   {
     id: 'g10-06', grade: 10, locale: 'ru', type: 'definition', lesson: 'c3-s16', source: 'Kimyo 10 §3.16 p152',
@@ -328,7 +328,7 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
     id: 'g11-05', grade: 11, locale: 'ru', type: 'definition', lesson: 'c4-s07', source: 'Kimyo 11 §22 p98, §18 p86',
     question: 'Что такое молярная концентрация?',
     mustMention: ['количества вещества|число молей|моль', 'объем|литр|1 л', 'раствора'],
-    mustNotMention: ['эквивалентов'],
+    mustNotMention: ['эквивалентов', 're:на объем\\s*—\\s*раствора'],
   },
   {
     id: 'g11-06', grade: 11, locale: 'ru', type: 'calc', lesson: 'c4-s04', source: 'Kimyo 11 §15 p74',
@@ -347,7 +347,7 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
     id: 'en-02', grade: 8, locale: 'en', type: 'definition', lesson: 'c1-s03', source: 'Kimyo 8 §2 p10',
     question: 'What are oxides?',
     mustMention: ['compound|substance', 'two elements', 'oxygen'],
-    mustNotMention: ['toxic|poisonous', 'chromium'],
+    mustNotMention: ['toxic|poisonous', 'chromium', 're:complex substance'],
   },
   {
     id: 'en-03', grade: 7, locale: 'en', type: 'definition', lesson: 'c2-s05', source: 'Kimyo 7 §2.5 p50',
@@ -371,7 +371,7 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
     id: 'en-06', grade: 7, locale: 'en', type: 'definition', lesson: 'c5-s04', source: 'Kimyo 7 §6.4 p138',
     question: 'What is an acid?',
     mustMention: ['hydrogen', 'acid residue|acidic residue|anion'],
-    mustNotMention: ['Arrhenius'],
+    mustNotMention: ['Arrhenius', 're:complex substance'],
   },
 
   /* ------------------------------------------------------------------- Uzbek */
@@ -383,7 +383,7 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
   {
     id: 'uz-02', grade: 8, locale: 'uz', type: 'definition', lesson: 'c1-s03', source: 'Kimyo 8 §2 p10',
     question: 'Oksidlar nima?',
-    mustMention: ['murakkab modda', 'ikki element', 'kislorod'],
+    mustMention: ['re:murakkab\\s+modda', 'ikki element', 'kislorod'],
   },
   {
     id: 'uz-03', grade: 11, locale: 'uz', type: 'definition', lesson: 'c5-s02', source: 'Kimyo 11 §23 p106',
@@ -393,7 +393,7 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
   {
     id: 'uz-04', grade: 9, locale: 'uz', type: 'definition', lesson: 'c3-s03', source: 'Kimyo 9 §19 p85',
     question: 'Elektroliz nima?',
-    mustMention: ['elektr tok', 'eritma|suyuqlanma', 'oksidlanish|qaytarilish'],
+    mustMention: ['re:elektr\\s+tok', 'eritma|suyuqlanma', 'oksidlanish|qaytarilish'],
   },
   {
     id: 'uz-05', grade: 7, locale: 'uz', type: 'definition', lesson: 'c2-s05', source: 'Kimyo 7 §2.5 p50',
@@ -435,7 +435,7 @@ export const GOLD_QUESTIONS: GoldQuestion[] = [
     id: 'fu-05', grade: 7, locale: 'ru', type: 'definition', lesson: 'c5-s04', followUpOf: 'g7-11', detail: 'more', source: 'Kimyo 7 §5.4 p119, §6.4 p138',
     question: 'Расскажи подробнее',
     mustMention: ['водорода', 'кислотного остатка|кислотных остатков', 'кислот'],
-    mustNotMention: ['Аррениус'],
+    mustNotMention: ['Аррениус', 'Ортофосфорная|H2Cr2O7'],
   },
   {
     id: 'fu-06', grade: 11, locale: 'en', type: 'example', lesson: 'c5-s02', followUpOf: 'en-01', source: 'Kimyo 11 §23; Kimyo 7 §4.4',
