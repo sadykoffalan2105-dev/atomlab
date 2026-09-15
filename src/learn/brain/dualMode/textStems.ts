@@ -86,6 +86,41 @@ export function contentStems(text: string): string[] {
   return out
 }
 
+/** Только падежные/числовые окончания существительных и прилагательных (без глагольных «-ит», «-ет»). */
+const RU_CASE_ENDINGS = [
+  'иями', 'ями', 'ами', 'ого', 'его', 'ому', 'ему', 'ыми', 'ими', 'ией', 'иях', 'ах', 'ях', 'ов', 'ев', 'ей', 'ой',
+  'ий', 'ый', 'ая', 'яя', 'ое', 'ее', 'ые', 'ие', 'ую', 'юю', 'ом', 'ем', 'ам', 'ям', 'ых', 'их', 'ия', 'ию', 'ии',
+  'а', 'я', 'ы', 'и', 'у', 'ю', 'е', 'о', 'ь',
+]
+
+/**
+ * Строгая основа слова: снимаем только падежное окончание («оксидов» → «оксид», «графит» → «графит»).
+ * В отличие от stemWord не склеивает разные слова с общим началом («графен» ≠ «графит»).
+ */
+export function strictStem(word: string): string {
+  const w = foldText(word)
+  if (/[а-я]/.test(w)) {
+    for (const end of RU_CASE_ENDINGS) {
+      if (w.endsWith(end) && w.length - end.length >= 3) return w.slice(0, w.length - end.length)
+    }
+    return w
+  }
+  if (w.length <= 4) return w
+  return w.replace(/(ies)$/, 'y').replace(/(es|s|lari|larni|lar|ning|ni|ga|da|dan|i)$/, '')
+}
+
+const LAT_SUFFIX_RE = /^(|s|es|ies|'s|ed|ing|ly|lar|lari|larni|larning|larga|larda|lardan|ning|ni|ga|da|dan|dagi|i|ini|ga|dir|lardir)$/
+
+/** Слово текста — форма того же слова, что и строгая основа вопроса («кислотного» ~ «кислот»). */
+export function wordHasStem(textWord: string, stem: string): boolean {
+  if (!stem || stem.length < 3) return false
+  const w = foldText(textWord)
+  // Латиница (en/uz): после основы — только окончание («metallarni» ~ «metall», но «elektroliz» ≠ «elektr»).
+  if (w.startsWith(stem) && (/[а-я]/.test(stem) || LAT_SUFFIX_RE.test(w.slice(stem.length)))) return true
+  const ws = strictStem(w)
+  return ws.length >= 4 && ws.length >= stem.length - 1 && stem.startsWith(ws)
+}
+
 /** Совпадают ли два стема (префиксное сравнение для разных форм слова). */
 export function stemsMatch(a: string, b: string): boolean {
   if (a === b) return true

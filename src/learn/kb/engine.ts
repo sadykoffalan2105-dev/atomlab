@@ -373,6 +373,37 @@ export class KbEngine {
     return [...out.entries()]
   }
 
+  // ------------------------------------------------------------------ direct lookup
+
+  /** Chunks by id (unknown ids are skipped), in the order of `ids`. */
+  chunksById(ids: readonly string[]): KbHit[] {
+    const want = new Set(ids)
+    const found = new Map<string, ShardDoc>()
+    if (want.size === 0) return []
+    for (const sh of this.shards.values()) {
+      for (const row of sh.docs) if (want.has(row[0])) found.set(row[0], row)
+      if (found.size === want.size) break
+    }
+    return ids.flatMap((id) => {
+      const row = found.get(id)
+      return row ? [toHit(row, 0)] : []
+    })
+  }
+
+  /** All chunks of one printed paragraph (grade + kp), optionally of some types, in book order. */
+  paragraphChunks(grade: number, kp: string, types?: readonly KbChunkType[]): KbHit[] {
+    const typeFilter = types?.length ? new Set(types) : null
+    const rows: ShardDoc[] = []
+    for (const sh of this.shards.values()) {
+      for (const row of sh.docs) {
+        if (row[1] !== grade || row[4] !== kp || (typeFilter && !typeFilter.has(row[8]))) continue
+        rows.push(row)
+      }
+    }
+    rows.sort((a, b) => (a[6] ?? 0) - (b[6] ?? 0) || (a[0] < b[0] ? -1 : 1))
+    return rows.map((row) => toHit(row, 0))
+  }
+
   // ------------------------------------------------------------------ search
 
   search(query: string, opts: KbSearchOptions = {}): KbHit[] {

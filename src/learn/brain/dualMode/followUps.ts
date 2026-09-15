@@ -125,7 +125,8 @@ export function resolveTurn(
   const onlyRepeat = followUp.kinds.length === 1 && followUp.kinds[0] === 'repeat'
   const base = prev ?? fallbackTopic?.trim() ?? clean
   if (onlyRepeat) return { query: base || clean, style, followUp, repeatLast: true }
-  return { query: base || clean, style, followUp, repeatLast: false }
+  // Продолжение прошлого вопроса: локальный ответ не повторяет уже сказанное (пример, причина, подробности).
+  return { query: base || clean, style: prev ? { ...style, continuation: true } : style, followUp, repeatLast: false }
 }
 
 /** Является ли реплика содержательным вопросом (для памяти «предыдущих вопросов»). */

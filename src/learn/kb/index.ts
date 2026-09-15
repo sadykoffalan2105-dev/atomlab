@@ -12,7 +12,7 @@
  */
 import { KbEngine } from './engine'
 import type { KbLexiconFile, KbShardFile, ShardName } from './shardFormat'
-import type { KbHit, KbSearchOptions } from './types'
+import type { KbChunkType, KbHit, KbSearchOptions } from './types'
 
 export type { KbChunk, KbChunkType, KbHit, KbLang, KbSearchOptions } from './types'
 export { citationFor, formatKnowledgeForPrompt } from './format'
@@ -110,6 +110,16 @@ export async function searchKnowledge(query: string, opts: KbSearchOptions = {})
   if (!query.trim()) return []
   await preloadKnowledge({ grade: opts.grade })
   return engine.search(query, opts)
+}
+
+/** Chunks by id from the already loaded shards (neighbour chunks of a hit: "g9-p17-t01" → "g9-p17-t02"). */
+export function getChunksById(ids: readonly string[]): KbHit[] {
+  return engine.chunksById(ids)
+}
+
+/** All loaded chunks of one printed paragraph (grade + kp), optionally filtered by type, in book order. */
+export function getParagraphChunks(grade: number, kp: string, types?: readonly KbChunkType[]): KbHit[] {
+  return engine.paragraphChunks(grade, kp, types)
 }
 
 /** Diagnostics: loaded shards, document count and per-shard load time (ms). */

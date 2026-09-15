@@ -139,7 +139,14 @@ export async function composeLocalTeacherReply(
     query: resolved.query,
     hits: knowledge.hits,
     lang: ctx.locale,
-    style: { ...resolved.style, detail: opts.detail ?? 'more', helper: ctx.mode === 'helper' },
+    // Чат: коротко и по делу (прямой ответ + до 2 поясняющих фраз, ≈80 слов); длинно — только по «подробнее».
+    style: {
+      ...resolved.style,
+      detail: opts.detail ?? resolved.style.detail ?? 'brief',
+      maxWords: (opts.detail ?? resolved.style.detail) === 'more' ? 140 : resolved.style.simpler ? 50 : 80,
+      channel: 'chat',
+      helper: ctx.mode === 'helper',
+    },
     topicHint: ctx.sectionTitle,
     seed: messages.length,
     suggestSmartAi: !isSmartAiConnected(),

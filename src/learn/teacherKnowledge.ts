@@ -121,6 +121,80 @@ let customProvider: TeacherKnowledgeProvider | null = null
 let kbBroken = false
 let kbFailures = 0
 
+type KbModule = typeof import('./kb')
+type KbHitRow = Awaited<ReturnType<KbModule['searchKnowledge']>>[number]
+
+/** «Почему …», «как …», «что происходит …» — ответ часто в следующем фрагменте того же § (причина после факта). */
+const EXPLAIN_QUERY_RE = /(почему|зачем|отчего|(^|\s)как\s|каким образом|что происходит|от чего завис|способ|получа|устран|защит|\bwhy\b|\bhow\b|\bnega\b|qanday|nima uchun)/iu
+const CALC_QUERY_RE = /(сколько|рассчита|вычисл|найдите масс|calculate|how (much|many)|hisobla|qancha)/iu
+const WHAT_IS_QUERY_RE = /(что так(ое|ая|ой|ие)|что значит|что называ|what (is|are)\b|\bnima\b)/iu
+
+/**
+ * Локальному ответу мало топ-фрагментов поиска (промпт LLM не меняется — `hits[0..limit)` те же):
+ *   1) строки фрагментов-определений, разорванные вёрсткой («Прибор для определения … называются электролитами»),
+ *      заменяются целой фразой из текста того же § (layoutRepair.repairDefinitionText);
+ *   2) «почему/как»: соседние фрагменты лучших страниц учебника («…-t01» → «…-t02») — причина/способ часто там;
+ *   3) «что такое X» на уроке: до 2 определений из всего класса (определение может быть в другом §).
+ */
+async function enrichKbHits(kb: KbModule, query: string, ctx: TeacherKnowledgeContext, hits: KbHitRow[], grade: number | undefined): Promise<KbHitRow[]> {
+  let repairDefinitionText: ((text: string, paragraph: readonly string[]) => string) | null = null
+  try {
+    repairDefinitionText = (await import('./kb/layoutRepair')).repairDefinitionText
+  } catch {
+    /* без починки */
+  }
+  const paragraphs = new Map<string, string[]>()
+  const repair = (h: KbHitRow): KbHitRow => {
+    if (h.type !== 'definition' || h.grade == null || !h.kp || !repairDefinitionText) return h
+    const key = `${h.grade}|${h.kp}`
+    let texts = paragraphs.get(key)
+    if (!texts) {
+      texts = kb.getParagraphChunks(h.grade, h.kp, ['textbook']).map((c) => c.text)
+      paragraphs.set(key, texts)
+    }
+    const text = repairDefinitionText(h.text, texts)
+    return text === h.text ? h : { ...h, text }
+  }
+  const out = hits.map(repair)
+  const have = new Set(out.map((h) => h.id))
+  {
+    // Следующий фрагмент лучших страниц учебника; для «почему/как» — и предыдущий.
+    const explain = EXPLAIN_QUERY_RE.test(query)
+    const ids: string[] = []
+    for (const h of out.slice(0, 4).filter((x) => x.type === 'textbook').slice(0, 2)) {
+      const m = h.id.match(/^(.*-t)(\d+)$/)
+      if (!m) continue
+      const n = Number(m[2])
+      for (const x of explain ? [n + 1, n - 1] : [n + 1]) if (x > 0) ids.push(`${m[1]}${String(x).padStart(m[2]!.length, '0')}`)
+    }
+    for (const n of kb.getChunksById(ids.filter((id) => !have.has(id))).slice(0, 3)) {
+      if (have.has(n.id)) continue
+      have.add(n.id)
+      out.push({ ...n, score: 0 })
+    }
+  }
+  if (WHAT_IS_QUERY_RE.test(query) && (ctx.chapterId || ctx.sectionId)) {
+    // ru: только фрагменты, где термин и определяется («Кислоты – сложные вещества …», «… называются кислотами»).
+    const term = ctx.locale === 'ru' ? query.toLowerCase().replace(/ё/g, 'е').match(/что так(?:ое|ая|ой|ие)\s+([а-я-]{4,})/u)?.[1] : undefined
+    const wide = await kb.searchKnowledge(query, { grade, limit: 8, locale: ctx.locale, types: ['definition', 'summary'] })
+    // Определение класса веществ часто в другом § («Кислоты – сложные вещества …» в «Химических свойствах воды»):
+    // второй запрос со словами определения находит его, фильтр ниже оставляет только настоящие определения.
+    if (term) wide.push(...(await kb.searchKnowledge(`${term} сложные вещества состоящие`, { grade, limit: 8, locale: 'ru', types: ['definition', 'summary', 'textbook'] })))
+    const stem = term ? term.slice(0, Math.max(4, Math.min(6, term.length - 2))) : ''
+    const defines = (text: string) =>
+      !stem || new RegExp(`(^|[\\n.!?]\\s*)${stem}[а-я]*\\s*[–—-]\\s|называ[а-я]*\\s+(?:[а-я]+\\s+)?${stem}`, 'iu').test(text.replace(/ё/g, 'е'))
+    let added = 0
+    for (const h of wide) {
+      if (added >= 2) break
+      if (have.has(h.id) || !defines(h.text)) continue
+      have.add(h.id)
+      out.push(repair({ ...h, score: 0 }))
+      added++
+    }
+  }
+  return out
+}
+
 async function searchViaKb(query: string, ctx: TeacherKnowledgeContext): Promise<ProviderOutput> {
   const kb = await import('./kb')
   const { limit, maxChars, promptChunks } = budgetOf(ctx)
@@ -129,7 +203,8 @@ async function searchViaKb(query: string, ctx: TeacherKnowledgeContext): Promise
     grade,
     chapterId: ctx.chapterId,
     sectionId: ctx.sectionId,
-    limit,
+    // Расчётная задача: карточка с формулой часто ниже 6-го места — голосу нужны те же 8 фрагментов, что и чату.
+    limit: CALC_QUERY_RE.test(query) ? Math.max(limit, MAX_LIMIT) : limit,
     locale: ctx.locale,
   })
   // kb/index.ts глотает ошибки загрузки шардов (и повторяет попытку при следующем вызове):
@@ -142,11 +217,23 @@ async function searchViaKb(query: string, ctx: TeacherKnowledgeContext): Promise
     }
   }
   const citations: string[] = []
-  const out: TeacherKnowledgeHit[] = hits.map((h) => {
+  const enriched = await enrichKbHits(kb, query, ctx, hits, grade)
+  const out: TeacherKnowledgeHit[] = enriched.map((h, i) => {
     const citation = kb.citationFor(h)
-    if (!citations.includes(citation)) citations.push(citation)
+    // Добавленные фрагменты (соседние/определения из других §) — после основных подписей.
+    if (i < hits.length && !citations.includes(citation)) citations.push(citation)
     return { title: h.title, text: h.text, source: h.source, citation, score: h.score, type: h.type }
   })
+  // en/uz: учебники русские — добавляем фразы на языке ученика (переводы тестов) и пары глоссария
+  // (после основных фрагментов, чтобы hits[0] и блок промпта не менялись).
+  if (ctx.locale !== 'ru') {
+    try {
+      const { localeHitsFor } = await import('./kb/localeSupport')
+      out.push(...(await localeHitsFor(query, ctx.locale, out, grade)))
+    } catch {
+      /* без переводов — только русские фрагменты */
+    }
+  }
   return {
     text: kb.formatKnowledgeForPrompt(hits.slice(0, promptChunks), maxChars),
     citations,
