@@ -18,6 +18,7 @@ import { AtomStructureModel } from './AtomStructureModel'
 import { MoleculeMesh } from './MoleculeMesh'
 import { SynthesisOnLabScene } from './SynthesisOnLabScene'
 import { SynthesisElementsCollapseFx } from './SynthesisElementsCollapseFx'
+import { setCinemaActive } from '../../lab/cinemaActive'
 import { InstantLabSynthesis } from './InstantLabSynthesis'
 import { getScientificSynthesisFx, hasScientificSynthesisFx } from '../../lab/scientificSynthesis/registry'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
@@ -592,6 +593,11 @@ function SceneContent({
     ? getScientificSynthesisFx(synthesis?.product?.id)
     : null
   void collapseRev
+  // Флаг для Bohr-моделей: пока идёт урок-кино, ни один чужой атом не рисуется.
+  useEffect(() => {
+    setCinemaActive(scientificMicroworldActive)
+    return () => setCinemaActive(false)
+  }, [scientificMicroworldActive])
 
   useLayoutEffect(() => {
     if (!synthActive) {
@@ -2104,7 +2110,8 @@ function SceneContent({
         />
       ) : null}
 
-      {!reactorViewOpen ? (
+      {/* Свободная сцена (декоративный атом, частицы) не показывается поверх урока-кино, даже если панель реактора свёрнута. */}
+      {!reactorViewOpen && !scientificMicroworldActive ? (
         <>
           <LabIdleCosmicBackdrop lite={deviceTier === 'low'} />
           <ambientLight intensity={0.22} />

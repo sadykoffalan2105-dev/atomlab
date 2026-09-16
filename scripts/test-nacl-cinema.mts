@@ -168,7 +168,7 @@ const DT = 1 / 60
     assert.notEqual(el(a), el(b), `edge ${a}–${b} alternates charge`)
     assert.ok(frame.charge[a] * frame.charge[b] < 0, `edge ${a}–${b}: opposite charges`)
   }
-  assert.equal(NACL_EDGES.length, 12, 'a cube has 12 edges')
+  assert.equal(NACL_EDGES.length, 144, 'a 4×4×4 lattice fragment has 144 edges')
   assert.ok(frame.edges > 0.4, 'lattice edges drawn')
   assert.equal(frame.env.exo, 0, 'no energy glow before the energy step')
 

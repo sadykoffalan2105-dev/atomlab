@@ -26,8 +26,44 @@ export {
  * оговорено в тексте урока.
  */
 
-export type NaclAtomId = 'na1' | 'na2' | 'clA' | 'clB' | 'na3' | 'na4' | 'clC' | 'clD'
+/** Восемь ионов сюжета + внешние узлы решётки L0…L55 (фрагмент 4×4×4). */
+export type NaclAtomId = 'na1' | 'na2' | 'clA' | 'clB' | 'na3' | 'na4' | 'clC' | 'clD' | `L${number}`
 export type NaclElement = 'Na' | 'Cl'
+
+type Site = readonly [number, number, number]
+
+/**
+ * Узлы решётки NaCl в единицах HALF (половина расстояния Na–Cl): нечётные координаты −3…3 — куб 4×4×4.
+ * Центральные восемь узлов (|x|,|y|,|z| = 1) — ионы сюжета; знак иона чередуется по сумме координат.
+ */
+const STORY_SITES: Record<'na1' | 'na2' | 'clA' | 'clB' | 'na3' | 'na4' | 'clC' | 'clD', Site> = {
+  na1: [-1, 1, 1],
+  na2: [1, -1, 1],
+  clA: [1, 1, 1],
+  clB: [-1, -1, 1],
+  na3: [-1, -1, -1],
+  na4: [1, 1, -1],
+  clC: [1, -1, -1],
+  clD: [-1, 1, -1],
+}
+const elementAtSite = (s: Site): NaclElement => ((((s[0] + s[1] + s[2]) % 4) + 4) % 4 === 1 ? 'Na' : 'Cl')
+
+const LATTICE_IONS: { id: NaclAtomId; el: NaclElement; site: Site }[] = []
+{
+  const coords = [-3, -1, 1, 3]
+  let n = 0
+  for (const x of coords)
+    for (const y of coords)
+      for (const z of coords) {
+        if (Math.max(Math.abs(x), Math.abs(y), Math.abs(z)) === 1) continue
+        LATTICE_IONS.push({ id: `L${n++}`, el: elementAtSite([x, y, z]), site: [x, y, z] })
+      }
+}
+
+export const SITE_BY_ID: Readonly<Record<string, Site>> = {
+  ...STORY_SITES,
+  ...Object.fromEntries(LATTICE_IONS.map((l) => [l.id, l.site])),
+}
 
 export const NACL_ATOMS: readonly { id: NaclAtomId; el: NaclElement; main: boolean }[] = [
   { id: 'na1', el: 'Na', main: true },
@@ -38,7 +74,16 @@ export const NACL_ATOMS: readonly { id: NaclAtomId; el: NaclElement; main: boole
   { id: 'na4', el: 'Na', main: false },
   { id: 'clC', el: 'Cl', main: false },
   { id: 'clD', el: 'Cl', main: false },
+  ...LATTICE_IONS.map((l) => ({ id: l.id, el: l.el, main: false })),
 ]
+
+/** Ионы, соседние с na1 в решётке — подсветка координационного числа 6. */
+export const NACL_COORDINATION_IDS: readonly NaclAtomId[] = NACL_ATOMS.filter((a) => {
+  const s = SITE_BY_ID[a.id]!
+  const c = STORY_SITES.na1
+  const d = [Math.abs(s[0] - c[0]), Math.abs(s[1] - c[1]), Math.abs(s[2] - c[2])]
+  return d.filter((v) => v === 2).length === 1 && d.filter((v) => v === 0).length === 2
+}).map((a) => a.id)
 
 /** Масштаб рига камеры — как у ClO₂, чуть крупнее: ионов мало, детали важны. */
 export const NACL_RIG_SCALE = 1.15
@@ -72,6 +117,32 @@ const T_LATTICE = naclCueAt('lattice') // 19.2
 const T_EXO = naclCueAt('exo') // 20.8
 
 const CH = NACL_GEOM.clHalf
+
+// ——— Рост кристалла: внешние 56 ионов подлетают к готовому кубу, ближние раньше ———
+const T_GROW = { from: 18.0, to: T_LATTICE - 0.1 }
+type LatticeMeta = { id: NaclAtomId; start: number; arrive: number; track: Vec3Track }
+const jitter = (n: number, k: number): number => {
+  const s = Math.sin(n * 12.9898 + k * 78.233) * 43758.5453
+  return (s - Math.floor(s)) * 2 - 1
+}
+export const LATTICE_META: readonly LatticeMeta[] = LATTICE_IONS.map((l, i) => {
+  const [x, y, z] = l.site
+  return { l, i, dist: Math.hypot(x, y, z) }
+})
+  .sort((a, b) => a.dist - b.dist || a.i - b.i)
+  .map(({ l, i }, rank, all) => {
+    const arrive = T_GROW.from + (rank / Math.max(1, all.length - 1)) * (T_GROW.to - T_GROW.from)
+    const start = arrive - 1.6
+    const [x, y, z] = l.site
+    const far = 1.9 + 0.3 * jitter(i, 1)
+    const track: Vec3Track = [
+      { t: start, v: [x * HALF * far + 0.35 * jitter(i, 2), y * HALF * far + 0.35 * jitter(i, 3), z * HALF * far + 0.35 * jitter(i, 4)] },
+      { t: arrive, v: [x * HALF, y * HALF, z * HALF], ease: 'outCubic' },
+    ]
+    return { id: l.id, start, arrive, track }
+  })
+const LATTICE_TRACK: Record<string, Vec3Track> = Object.fromEntries(LATTICE_META.map((m) => [m.id, m.track]))
+const LATTICE_START: Record<string, number> = Object.fromEntries(LATTICE_META.map((m) => [m.id, m.start]))
 
 /** Дорожки положений. Порядок ключей проверяет validateNaclStoryboard(). */
 const POS: Record<NaclAtomId, Vec3Track> = {
@@ -184,9 +255,9 @@ const BOND_OPACITY: ScalarTrack = [
 ]
 /** Рёбра куба: появляются, когда задний слой на месте. */
 const EDGES: ScalarTrack = [
-  { t: 18.3, v: 0 },
-  { t: T_LATTICE, v: 0.55, ease: 'smooth' },
-  { t: 23.6, v: 0.55 },
+  { t: 17.4, v: 0 },
+  { t: T_LATTICE, v: 0.5, ease: 'smooth' },
+  { t: 23.6, v: 0.5 },
   { t: NACL_FINISH.to, v: 0, ease: 'smooth' },
 ]
 const CAM_ZOOM: ScalarTrack = [
@@ -194,10 +265,11 @@ const CAM_ZOOM: ScalarTrack = [
   { t: 4, v: 1.02, ease: 'smooth' },
   { t: 7, v: 1.12, ease: 'smooth' },
   { t: 12, v: 1.12 },
-  // Решётка крупнее ионной пары — отъезжаем, чтобы фрагмент с подписью NaCl помещался и на 390px.
+  // Куб из восьми ионов, затем кристалл 4×4×4 втрое шире — отъезжаем, чтобы решётка с подписью помещалась и на 390px.
   { t: 15, v: 1.1, ease: 'smooth' },
-  { t: 20, v: 0.96, ease: 'smooth' },
-  { t: 24, v: 0.92, ease: 'smooth' },
+  { t: 16.8, v: 0.98, ease: 'smooth' },
+  { t: T_LATTICE - 0.6, v: 0.5, ease: 'smooth' },
+  { t: 24, v: 0.47, ease: 'smooth' },
 ]
 const CAM_YAW: ScalarTrack = [
   { t: 15, v: 0 },
@@ -244,8 +316,10 @@ export const NACL_LABELS: readonly NaclLabelDef[] = [
   { id: 'oxNa2', kind: 'ox', anchor: 'na2', dy: -0.2, keys: [{ t: 0, text: '0' }, { t: 10.5, text: '+1' }], windows: [[1.2, 18.4]] },
   { id: 'oxClA', kind: 'ox', anchor: 'clA', dy: -0.2, keys: [{ t: 0, text: '0' }, { t: 10.3, text: '−1' }], windows: [[T_BREAK + 0.3, 18.4]] },
   { id: 'oxClB', kind: 'ox', anchor: 'clB', dy: -0.2, keys: [{ t: 0, text: '0' }, { t: 10.65, text: '−1' }], windows: [[T_BREAK + 0.3, 18.4]] },
-  { id: 'nacl', kind: 'species', anchor: 'cube', dy: 1.0, keys: [{ t: 0, text: 'NaCl' }], windows: [[T_LATTICE - 0.1, 23.8]] },
-  { id: 'dH', kind: 'delta', anchor: 'cube', dy: -0.92, keys: [{ t: 0, text: 'ΔH = −411 kJ/mol' }], windows: [[T_EXO, 23.8]] },
+  { id: 'nacl', kind: 'species', anchor: 'cube', dy: 3 * HALF + 1.05, keys: [{ t: 0, text: 'NaCl' }], windows: [[T_LATTICE - 0.1, 23.8]] },
+  { id: 'dH', kind: 'delta', anchor: 'cube', dy: -(3 * HALF + 0.95), keys: [{ t: 0, text: 'ΔH = −411 kJ/mol' }], windows: [[T_EXO, 23.8]] },
+  // Координационное число: один Na⁺ и шесть его соседей Cl⁻ подсвечиваются в конце урока.
+  { id: 'coord', kind: 'delta', anchor: 'cube', dy: 3 * HALF + 0.6, keys: [{ t: 0, text: 'Na⁺ · 6 Cl⁻' }], windows: [[21.6, 23.6]] },
 ]
 
 export type NaclLabelState = { id: string; kind: NaclLabelKind; pos: THREE.Vector3; opacity: number; text: string }
@@ -412,7 +486,7 @@ function labelOpacity(def: NaclLabelDef, t: number): number {
 export function sampleNaclFrame(t: number, frame: NaclFrame): NaclFrame {
   const { atoms, radius, charge, opacity, emissive } = frame
 
-  for (const a of NACL_ATOMS) sampleVec3(POS[a.id], t, atoms[a.id])
+  for (const a of NACL_ATOMS) sampleVec3(POS[a.id as keyof typeof POS] ?? LATTICE_TRACK[a.id]!, t, atoms[a.id])
 
   radius.na1 = sampleScalar(RADIUS_NA, t)
   radius.na2 = sampleScalar(RADIUS_NA2, t)
@@ -431,6 +505,16 @@ export function sampleNaclFrame(t: number, frame: NaclFrame): NaclFrame {
   const back = sampleScalar(BACK_OPACITY, t)
   opacity.na1 = opacity.na2 = opacity.clA = opacity.clB = 1
   opacity.na3 = opacity.na4 = opacity.clC = opacity.clD = back
+
+  // Внешние ионы решётки: уже готовые Na⁺/Cl⁻, проявляются на подлёте.
+  for (const l of LATTICE_IONS) {
+    radius[l.id] = l.el === 'Na' ? R.naCation : R.clAnion
+    charge[l.id] = l.el === 'Na' ? 1 : -1
+    const s = LATTICE_START[l.id]!
+    opacity[l.id] = smoothstep(s, s + 0.55, t)
+  }
+  // Координационное число: пульс подсветки Na⁺ и шести соседей Cl⁻ в конце урока.
+  const coord = windowFade([21.4, 23.6], t, 0.4) * (0.7 + 0.3 * Math.sin(t * 5.5))
 
   // ——— Орбиталь 3s: разгорается перед прыжком, гаснет, когда электрон ушёл ———
   frame.orbital.na1 = windowFade([T_E1.leave - 1.4, T_E1.leave + 0.25], t, 0.45)
@@ -460,8 +544,9 @@ export function sampleNaclFrame(t: number, frame: NaclFrame): NaclFrame {
   for (const a of NACL_ATOMS) {
     const base = a.el === 'Na' ? 0.1 : 0.08
     let e = base + exo * 0.42
-    if (a.id === 'na1') e += frame.orbital.na1 * 0.3
+    if (a.id === 'na1') e += frame.orbital.na1 * 0.3 + coord * 0.5
     if (a.id === 'na2') e += frame.orbital.na2 * 0.3
+    if (coord > 0 && NACL_COORDINATION_IDS.includes(a.id)) e += coord * 0.4
     emissive[a.id] = e
   }
 
@@ -506,28 +591,27 @@ export function sampleNaclFrame(t: number, frame: NaclFrame): NaclFrame {
   return frame
 }
 
-/** Рёбра кубического фрагмента: пары индексов NACL_ATOMS (Na–Cl по каждому ребру). */
-export const NACL_EDGES: readonly (readonly [NaclAtomId, NaclAtomId])[] = [
-  // передняя грань (z = +HALF): na1 (−,+) clA (+,+) na2 (+,−) clB (−,−)
-  ['na1', 'clA'],
-  ['clA', 'na2'],
-  ['na2', 'clB'],
-  ['clB', 'na1'],
-  // задняя грань (z = −HALF): clD (−,+) na4 (+,+) clC (+,−) na3 (−,−)
-  ['clD', 'na4'],
-  ['na4', 'clC'],
-  ['clC', 'na3'],
-  ['na3', 'clD'],
-  // рёбра вглубь
-  ['na1', 'clD'],
-  ['clA', 'na4'],
-  ['na2', 'clC'],
-  ['clB', 'na3'],
-]
+/** Рёбра решётки: все пары соседних узлов (Na–Cl, расстояние 2·HALF) во фрагменте 4×4×4 — 144 ребра. */
+export const NACL_EDGES: readonly (readonly [NaclAtomId, NaclAtomId])[] = (() => {
+  const out: [NaclAtomId, NaclAtomId][] = []
+  for (let i = 0; i < NACL_ATOMS.length; i++) {
+    for (let j = i + 1; j < NACL_ATOMS.length; j++) {
+      const a = SITE_BY_ID[NACL_ATOMS[i]!.id]!
+      const b = SITE_BY_ID[NACL_ATOMS[j]!.id]!
+      const d = [Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2])]
+      if (d.filter((v) => v === 2).length === 1 && d.filter((v) => v === 0).length === 2) out.push([NACL_ATOMS[i]!.id, NACL_ATOMS[j]!.id])
+    }
+  }
+  return out
+})()
 
 /** Проверка порядка ключей — в dev и в тестах. */
 export function validateNaclStoryboard(): void {
-  for (const id of Object.keys(POS) as NaclAtomId[]) validateTrack(`pos.${id}`, POS[id])
+  for (const id of Object.keys(POS) as (keyof typeof POS)[]) validateTrack(`pos.${id}`, POS[id])
+  for (const m of LATTICE_META) validateTrack(`pos.${m.id}`, m.track)
+  if (NACL_ATOMS.length !== 64) throw new Error(`nacl lattice: expected 64 ions, got ${NACL_ATOMS.length}`)
+  if (NACL_EDGES.length !== 144) throw new Error(`nacl lattice: expected 144 edges, got ${NACL_EDGES.length}`)
+  if (NACL_COORDINATION_IDS.length !== 6) throw new Error(`nacl lattice: Na⁺ must have 6 Cl⁻ neighbours, got ${NACL_COORDINATION_IDS.length}`)
   const scalars: Record<string, ScalarTrack> = {
     RADIUS_NA,
     RADIUS_NA2,

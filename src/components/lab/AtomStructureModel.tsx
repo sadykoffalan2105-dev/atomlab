@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
+import { useCinemaActive } from '../../lab/cinemaActive'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getElementByZ, estimateNeutrons } from '../../data/elements'
@@ -89,7 +90,7 @@ function nucleonOnSphere(i: number, total: number, radius: number, phase: number
   target.set(Math.cos(t) * rr * radius, y * radius, Math.sin(t) * rr * radius)
 }
 
-export function AtomStructureModel({
+function AtomStructureModelInner({
   z,
   animate = true,
   localLight = true,
@@ -432,4 +433,11 @@ export function AtomStructureModel({
       ) : null}
     </group>
   )
+}
+
+/** Во время урока-кино (ClO₂, NaCl…) Bohr-модели не рисуются — у сцены свои атомы. */
+export function AtomStructureModel(props: Parameters<typeof AtomStructureModelInner>[0]) {
+  const cinema = useCinemaActive()
+  if (cinema) return null
+  return <AtomStructureModelInner {...props} />
 }

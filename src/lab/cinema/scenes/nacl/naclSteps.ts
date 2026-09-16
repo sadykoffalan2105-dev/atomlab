@@ -33,16 +33,17 @@ export type NaclStep = {
 }
 
 export const NACL_STEPS: readonly NaclStep[] = [
-  { id: 'approach', from: 0, to: 4, wall: 4.6, ease: 'power1.inOut' },
-  { id: 'homolysis', from: 4, to: 7, wall: 4.4, ease: 'sine.inOut' },
-  { id: 'transfer', from: 7, to: 12, wall: 8.2, ease: 'sine.inOut' },
-  { id: 'attraction', from: 12, to: 15, wall: 4.2, ease: 'power1.inOut' },
-  { id: 'lattice', from: 15, to: 20, wall: 6.2, ease: 'power1.inOut' },
-  { id: 'energy', from: 20, to: 24, wall: 5, ease: 'power1.inOut' },
+  // Экранное время ужато примерно на 15 %: урок идёт бодрее, длинный шаг — рост кристалла.
+  { id: 'approach', from: 0, to: 4, wall: 3.6, ease: 'power1.inOut' },
+  { id: 'homolysis', from: 4, to: 7, wall: 3.6, ease: 'sine.inOut' },
+  { id: 'transfer', from: 7, to: 12, wall: 6.6, ease: 'sine.inOut' },
+  { id: 'attraction', from: 12, to: 15, wall: 3.4, ease: 'power1.inOut' },
+  { id: 'lattice', from: 15, to: 20, wall: 6.4, ease: 'power1.inOut' },
+  { id: 'energy', from: 20, to: 24, wall: 4.4, ease: 'power1.inOut' },
 ]
 
 /** Хвост после последнего шага: затемнение и передача кадра продукту лаборатории. */
-export const NACL_FINISH = { from: 24, to: 24.8, wall: 1.3, ease: 'power2.in' } as const
+export const NACL_FINISH = { from: 24, to: 24.8, wall: 1.2, ease: 'power2.in' } as const
 
 export const NACL_END = NACL_FINISH.to
 
@@ -72,7 +73,7 @@ export const NACL_CUES: readonly Cue<NaclCueId>[] = [
   { at: 6.0, id: 'bondBreak' },
   { at: 10.0, id: 'transfer' },
   { at: 14.4, id: 'contact' },
-  { at: 19.2, id: 'lattice' },
+  { at: 19.6, id: 'lattice' },
   { at: 20.8, id: 'exo' },
   { at: 24.2, id: 'embryo' },
   { at: 24.5, id: 'birth' },

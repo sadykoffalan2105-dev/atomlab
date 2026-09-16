@@ -45,7 +45,7 @@ export const NACL_TEXT_UZ: NaclMechanismText = {
       title: 'Kristall panjara',
       body:
         'Tuzda alohida NaCl molekulalari yoʻq: ionlar kub panjara hosil qiladi, unda har bir Na⁺ oltita Cl⁻ bilan, har bir Cl⁻ oltita Na⁺ bilan oʻralgan. ' +
-        'Kristalda Na–Cl masofasi 2,82 Å. Kichik boʻlak koʻrsatilgan: kub uchlarida sakkizta ion, zaryadlar navbatlashadi.',
+        'Kristalda Na–Cl masofasi 2,82 Å. Avval sakkizta iondan kub yigʻiladi, soʻng unga qoʻshnilar qoʻshilib 4×4×4 panjara boʻlagi (64 ion) oʻsadi. Oxirida bitta Na⁺ va uning oltita Cl⁻ qoʻshnisi yoritiladi: koordinatsion son 6.',
       equation: '2 Na + Cl₂ → 2 NaCl',
       note: 'NaCl formulasi ionlarning 1 : 1 nisbatini bildiradi, molekulani emas.',
       speak: 'Ionlar kub panjaraga joylashadi: plyus, minus, plyus, minus. Alohida tuz molekulalari yoʻq.',

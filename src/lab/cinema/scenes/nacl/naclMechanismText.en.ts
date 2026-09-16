@@ -45,7 +45,7 @@ export const NACL_TEXT_EN: NaclMechanismText = {
       title: 'Crystal lattice',
       body:
         'Salt contains no separate NaCl molecules: the ions build a cubic lattice in which every Na⁺ is surrounded by six Cl⁻ and every Cl⁻ by six Na⁺. ' +
-        'The Na–Cl distance in the crystal is 2.82 Å. A small fragment is shown: eight ions at the corners of a cube, charges alternating.',
+        'The Na–Cl distance in the crystal is 2.82 Å. First a cube of eight ions forms, then neighbours attach to it and a 4×4×4 lattice fragment (64 ions) grows. At the end one Na⁺ and its six Cl⁻ neighbours are highlighted: coordination number 6.',
       equation: '2 Na + Cl₂ → 2 NaCl',
       note: 'The formula NaCl gives the 1 : 1 ratio of ions, not a molecule.',
       speak: 'The ions settle into a cubic lattice: plus, minus, plus, minus. There are no separate salt molecules.',
