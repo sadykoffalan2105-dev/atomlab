@@ -393,7 +393,7 @@ export function sanitizeBackHref(src: string | null | undefined): string | null 
   if (!src) return null
   const s = src.trim()
   const short = s.match(/^(g\d{1,2}):([A-Za-z0-9_-]+)$/)
-  if (short) return `/learn/g/${short[1]}/read/${short[2]}`
+  if (short) return `/learn/g/${short[1]}/book?unit=${short[2]}`
   if (!s.startsWith('/') || s.startsWith('//') || /[\\\s]/.test(s) || /^\/[a-z]+:/i.test(s)) return null
   return s
 }

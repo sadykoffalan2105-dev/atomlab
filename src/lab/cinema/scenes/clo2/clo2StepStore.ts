@@ -7,14 +7,23 @@ import { CLO2_STEPS } from './clo2Steps'
  * снимок через useSyncExternalStore и зовёт next/replay/finish. Никаких
  * React-контекстов через границу Canvas и никакого setState на кадр:
  * снимок меняется только на событиях шага.
+ *
+ * Хранилище общее для всех уроков по шагам (ClO₂, NaCl, …): какой урок идёт,
+ * говорит поле `lesson` снимка — панель по нему выбирает тексты и энергетику.
+ * Имя файла историческое: первым уроком был ClO₂.
  */
 
 export type Clo2StepStatus = 'idle' | 'playing' | 'paused' | 'finishing' | 'done'
 
+/** Уроки по шагам, которые умеет показывать панель механизма. */
+export type CinemaLessonId = 'clo2' | 'nacl'
+
 export type Clo2StepSnapshot = {
   /** runId прогона, к которому относится снимок; 0 — сцены нет */
   runId: number
-  /** индекс текущего шага в CLO2_STEPS */
+  /** какой урок идёт (тексты, энергетика, озвучка) */
+  lesson: CinemaLessonId
+  /** индекс текущего шага в списке шагов урока */
   step: number
   stepCount: number
   status: Clo2StepStatus
@@ -39,6 +48,8 @@ const AUTOPLAY_KEY = 'atomlab-clo2-autoplay'
  * это не часть снимка, чтобы не будить React 60 раз в секунду.
  */
 export const clo2Playhead = { t: 0, runId: 0 }
+/** То же место сюжета под нейтральным именем — для уроков, кроме ClO₂. */
+export const cinemaPlayhead = clo2Playhead
 
 function readAutoplay(): boolean {
   try {
@@ -50,6 +61,7 @@ function readAutoplay(): boolean {
 
 const EMPTY: Clo2StepSnapshot = {
   runId: 0,
+  lesson: 'clo2',
   step: 0,
   stepCount: CLO2_STEPS.length,
   status: 'idle',
@@ -75,10 +87,18 @@ export const clo2StepStore = {
     return snapshot
   },
 
-  /** Сцена смонтировалась с новым прогоном. */
-  attach(runId: number, next: Clo2StepControls): void {
+  /**
+   * Сцена смонтировалась с новым прогоном. Без `lesson` — урок ClO₂ с его числом
+   * шагов (поведение первого урока не меняется).
+   */
+  attach(
+    runId: number,
+    next: Clo2StepControls,
+    lesson: CinemaLessonId = 'clo2',
+    stepCount: number = CLO2_STEPS.length,
+  ): void {
     controls = next
-    emit({ runId, step: 0, stepCount: CLO2_STEPS.length, status: 'playing', autoplay: snapshot.autoplay })
+    emit({ runId, lesson, step: 0, stepCount, status: 'playing', autoplay: snapshot.autoplay })
   },
 
   /** Сцена размонтирована. Чужой runId не трогаем — новый прогон мог уже подключиться. */

@@ -350,3 +350,153 @@
     max-height: 12rem;
   }
 }
+
+/* ── правая колонка: вкладки «Уравнения» | «ИИ-учитель» ── */
+.tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 6px;
+  border-bottom: 1px solid var(--lt-border);
+  background: var(--lt-surface-solid);
+}
+
+.tab,
+.tabOn {
+  flex: 1 1 0;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--lt-text-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--lt-dur-fast, 120ms) var(--lt-ease, ease),
+    color var(--lt-dur-fast, 120ms) var(--lt-ease, ease);
+}
+
+.tab:hover:not(:disabled) {
+  background: var(--lt-surface-hover);
+  color: var(--lt-text);
+}
+
+.tab:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tabOn {
+  background: color-mix(in srgb, var(--lt-primary) 16%, var(--lt-surface));
+  border-color: color-mix(in srgb, var(--lt-primary) 45%, transparent);
+  color: var(--lt-text);
+}
+
+.tab:focus-visible,
+.tabOn:focus-visible {
+  outline: 2px solid var(--lt-ring, var(--lt-primary));
+  outline-offset: -2px;
+}
+
+.teacherCol {
+  background: var(--lt-surface-solid);
+  border-color: var(--lt-border);
+  color: var(--lt-text);
+}
+
+/* ── телефон: PDF не показываем (iframe пустой), панель уравнений — основной контент ── */
+.phoneLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.phoneLayout .teacherCol {
+  flex: 1 1 auto;
+  min-height: 60dvh;
+  max-height: none;
+}
+
+.phoneBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+@media (min-width: 560px) and (max-width: 899px) {
+  .phoneBar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+}
+
+.tocSelectLabel {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tocSelectText {
+  font-size: 11px;
+  color: var(--lt-text-3);
+}
+
+.tocSelect {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--lt-border);
+  border-radius: 10px;
+  background: var(--lt-surface-solid);
+  color: var(--lt-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.pdfLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--lt-primary);
+  color: var(--lt-on-primary, #fff);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pdfLink:hover {
+  filter: brightness(1.08);
+}
+
+/* три колонки: оглавление | PDF | панель уравнений (уравнения не должны ломаться на 3–4 строки) */
+@media (min-width: 900px) {
+  .layoutWithTeacher {
+    grid-template-columns: minmax(150px, 200px) minmax(0, 1fr) minmax(320px, 400px);
+  }
+}
+
+@media (max-width: 899px) {
+  .shell {
+    padding-left: 16px;
+    padding-right: 16px;
+    overflow-x: clip;
+  }
+
+  .topBar {
+    gap: 6px 10px;
+  }
+}

@@ -11,7 +11,9 @@ import {
 import { useT } from '../../../i18n/useT'
 import { CLO2_STEP_IDS, type Clo2StepId } from '../../../lab/cinema/scenes/clo2/clo2Steps'
 import { clo2StepStore, type Clo2StepStatus } from '../../../lab/cinema/scenes/clo2/clo2StepStore'
-import { getClo2MechanismText, type Clo2Locale } from '../../../lab/cinema/scenes/clo2/clo2MechanismText'
+import type { Clo2Locale } from '../../../lab/cinema/scenes/clo2/clo2MechanismText'
+import { getCinemaLesson, lessonStepIdAt } from '../../../lab/cinema/scenes/lessons'
+import { NaclEnergyPanel } from '../../../lab/cinema/scenes/nacl/NaclEnergyPanel'
 import { getLabTeacherNarrator } from '../../../lab/teacher'
 import styles from './Clo2MechanismPanel.module.css'
 import { Clo2ElectronLedger } from './Clo2ElectronLedger'
@@ -156,6 +158,12 @@ function stepIdAt(index: number): Clo2StepId {
   return CLO2_STEP_IDS[i]!
 }
 
+/** Озвучка преподавателя: сценарий реплик есть только у урока ClO₂. */
+function narrateStep(index: number): void {
+  if (!getCinemaLesson(clo2StepStore.getSnapshot().lesson).narrated) return
+  getLabTeacherNarrator().speakStep(stepIdAt(index))
+}
+
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
   if (target.isContentEditable) return true
@@ -194,7 +202,7 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
     lastLocale.current = clo2Locale
     if (prev === null || prev === clo2Locale) return
     const s = clo2StepStore.getSnapshot()
-    if (s.runId > 0 && (s.status === 'playing' || narrator.isSpeaking())) narrator.speakStep(stepIdAt(s.step))
+    if (s.runId > 0 && (s.status === 'playing' || narrator.isSpeaking())) narrateStep(s.step)
   }, [visible, clo2Locale])
 
   // Озвучка: новый шаг / новый прогон / повтор (paused → playing на том же шаге).
@@ -207,7 +215,7 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
     narrationMark.current = { runId, step, status }
     if (status !== 'playing') return
     const fresh = !prev || prev.runId !== runId || prev.step !== step || prev.status !== 'playing'
-    if (fresh) getLabTeacherNarrator().speakStep(stepIdAt(step))
+    if (fresh) narrateStep(step)
   }, [visible, runId, step, status])
 
   // Автоплей: пауза ≥ 1,4 с и учитель договорил.
@@ -251,9 +259,10 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
 
   if (!visible) return null
 
-  const text = getClo2MechanismText(clo2Locale)
-  const stepId = stepIdAt(step)
-  const stepText = text.steps[stepId]
+  const lesson = getCinemaLesson(snapshot.lesson)
+  const text = lesson.getText(clo2Locale)
+  const stepId = lessonStepIdAt(lesson, step)
+  const stepText = text.steps[stepId]!
   const isLast = step >= stepCount - 1
   const busy = status === 'playing' || status === 'finishing'
   const canNext = status === 'paused'
@@ -357,7 +366,7 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
           </p>
         ) : null}
 
-        {stepId === 'products' ? (
+        {stepId === lesson.safetyStepId ? (
           <p className={`${styles.safety} ${styles.details}`}>
             <span className={styles.safetyMark} aria-hidden>
               <WarningIcon />
@@ -367,9 +376,11 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
           </p>
         ) : null}
 
-        <div className={`${styles.ledgerRow} ${styles.details}`}>
-          <Clo2ElectronLedger locale={clo2Locale} />
-        </div>
+        {lesson.id === 'clo2' ? (
+          <div className={`${styles.ledgerRow} ${styles.details}`}>
+            <Clo2ElectronLedger locale={clo2Locale} />
+          </div>
+        ) : null}
 
         <LessonSection
           id="energy"
@@ -379,7 +390,11 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
           icon={<EnergyIcon />}
           defaultOpen={mediaMatches(ROOMY_QUERY)}
         >
-          <Clo2EnergyProfile locale={clo2Locale} compact={isMobile} caption={false} />
+          {lesson.id === 'nacl' ? (
+            <NaclEnergyPanel locale={clo2Locale} compact={isMobile} />
+          ) : (
+            <Clo2EnergyProfile locale={clo2Locale} compact={isMobile} caption={false} />
+          )}
         </LessonSection>
 
         <LessonSection
@@ -394,26 +409,36 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
               <ElectronIcon />
               <span>{text.legend.electron}</span>
             </li>
-            <li>
-              <PairArrowIcon />
-              <span>{text.legend.pairArrow}</span>
-            </li>
-            <li>
-              <SingleArrowIcon />
-              <span>{text.legend.singleArrow}</span>
-            </li>
-            <li>
-              <OrbitalPhaseIcon />
-              <span>{text.legend.orbitalPhase}</span>
-            </li>
-            <li>
-              <VibrationIcon />
-              <span>{text.legend.vibration}</span>
-            </li>
-            <li className={styles.legendWater}>
-              <WaterIcon />
-              <span>{text.legend.water}</span>
-            </li>
+            {text.legend.pairArrow ? (
+              <li>
+                <PairArrowIcon />
+                <span>{text.legend.pairArrow}</span>
+              </li>
+            ) : null}
+            {text.legend.singleArrow ? (
+              <li>
+                <SingleArrowIcon />
+                <span>{text.legend.singleArrow}</span>
+              </li>
+            ) : null}
+            {text.legend.orbitalPhase ? (
+              <li>
+                <OrbitalPhaseIcon />
+                <span>{text.legend.orbitalPhase}</span>
+              </li>
+            ) : null}
+            {text.legend.vibration ? (
+              <li>
+                <VibrationIcon />
+                <span>{text.legend.vibration}</span>
+              </li>
+            ) : null}
+            {text.legend.water ? (
+              <li className={styles.legendWater}>
+                <WaterIcon />
+                <span>{text.legend.water}</span>
+              </li>
+            ) : null}
           </ul>
         </LessonSection>
       </div>
@@ -514,7 +539,7 @@ function replayStep(): void {
   const s = clo2StepStore.getSnapshot()
   if (s.runId === 0) return
   clo2StepStore.replay()
-  if (s.status === 'playing') getLabTeacherNarrator().speakStep(stepIdAt(s.step))
+  if (s.status === 'playing') narrateStep(s.step)
 }
 
 /* ── Иконки интерфейса ─────────────────────────────────── */

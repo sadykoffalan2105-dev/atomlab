@@ -1138,7 +1138,8 @@ export function LaboratoryPage() {
       void unlockAudioPlayback()
       narrator.warmPrefetch()
       const lesson = clo2StepStore.getSnapshot()
-      if (runId > 0 && lesson.runId === runId) {
+      // Сценарий озвучки есть только у урока ClO₂; NaCl идёт без преподавателя.
+      if (runId > 0 && lesson.runId === runId && lesson.lesson === 'clo2') {
         narrator.speakStep(CLO2_STEP_IDS[lesson.step] ?? 'reagents')
       }
     } else {

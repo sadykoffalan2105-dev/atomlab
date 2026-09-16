@@ -17,6 +17,18 @@ export const CATALOG_HIDDEN_IDS: ReadonlySet<string> = new Set([
   'salt_fe3_s',
   'adamantane',
   'triacetin',
+  // Гипотетические формулы из упражнений учебника (не выделены как индивидуальные вещества):
+  // данные сохранены, в каталоге не показываем.
+  'tb_i2o7',
+  'tb_cl2o3',
+  'tb_cl2o5',
+  'tb_br2o7',
+  'tb_h4v2o7',
+  'tb_fen',
+  'tb_hgoh2',
+  'tb_hg2o',
+  'salt_fe3_co3',
+  'salt_al_co3',
 ])
 
 const TEXTBOOK_IDS: ReadonlySet<string> = new Set([...whitelist.inorganic, ...whitelist.organic])

@@ -7,15 +7,29 @@ import {
   textbookSectionPage,
 } from '../../data/learnTextbook'
 import { learnChapterById, learnGradeById, learnSectionById } from '../../data/learnCurriculumUz'
+import {
+  isReaderGradeId,
+  loadReaderGrade,
+  readerUnitById,
+  type ReaderGrade,
+  type ReaderUnit,
+} from '../../data/textbook/bookReader'
 import { buildSectionOutlineBlock } from '../../learn/learnSectionKnowledge'
 import { useT } from '../../i18n/useT'
 import type { MessageKey } from '../../i18n/messagesRu'
 import { LearnAssistantPanel } from './LearnAssistantPanel'
+import { BookEquationsPanel } from './book/BookEquationsPanel'
+import { appSectionFromKey, useMediaQuery } from './book/bookUi'
 import styles from './LearnTextbookReader.module.css'
 
 type Props = {
   gradeId: string
 }
+
+type PanelTab = 'equations' | 'teacher'
+
+/** На телефонах и узких планшетах iframe с PDF пустой — показываем панель уравнений и ссылку на сам PDF. */
+const PHONE_QUERY = '(max-width: 899px)'
 
 function TextbookPdfFrame({ page, title, src }: { page: number; title: string; src: string }) {
   return <iframe key={page} className={styles.frame} title={title} src={src} />
@@ -27,9 +41,39 @@ export function LearnTextbookReader({ gradeId }: Props) {
   const [search, setSearch] = useSearchParams()
   const grade = learnGradeById(gradeId)
   const textbook = getTextbookConfig(gradeId)
+  const phone = useMediaQuery(PHONE_QUERY)
 
-  const chapterId = search.get('chapter') ?? grade?.chapters[0]?.id ?? 'c1'
-  const sectionId = search.get('section') ?? ''
+  /* Уравнения учебника (панель справа) — отдельный чанк, нужен и для ?unit= → глава/раздел. */
+  const readerGradeId = isReaderGradeId(gradeId) ? gradeId : null
+  const [readerGrade, setReaderGrade] = useState<ReaderGrade | null>(null)
+  useEffect(() => {
+    if (!readerGradeId) return
+    let alive = true
+    loadReaderGrade(readerGradeId).then(
+      (g) => {
+        if (alive) setReaderGrade(g)
+      },
+      () => undefined,
+    )
+    return () => {
+      alive = false
+    }
+  }, [readerGradeId])
+
+  const unitParam = search.get('unit')
+  const rxParam = search.get('rx')
+  const selectedUnit = readerGrade && unitParam ? readerUnitById(readerGrade, unitParam) : null
+  const unitSection = useMemo(() => {
+    if (!selectedUnit) return null
+    for (const key of selectedUnit.appSections) {
+      const hit = appSectionFromKey(gradeId, key)
+      if (hit) return hit
+    }
+    return null
+  }, [gradeId, selectedUnit])
+
+  const chapterId = search.get('chapter') ?? unitSection?.chapterId ?? grade?.chapters[0]?.id ?? 'c1'
+  const sectionId = search.get('section') ?? unitSection?.sectionId ?? ''
   const chapter = learnChapterById(gradeId, chapterId)
 
   const defaultPage = useMemo(() => {
@@ -52,7 +96,7 @@ export function LearnTextbookReader({ gradeId }: Props) {
 
   const [pageInput, setPageInput] = useState(String(page))
   const [bookFullscreen, setBookFullscreen] = useState(false)
-  const [showTeacher, setShowTeacher] = useState(true)
+  const [tab, setTab] = useState<PanelTab>('equations')
 
   useEffect(() => {
     setPageInput(String(page))
@@ -90,6 +134,28 @@ export function LearnTextbookReader({ gradeId }: Props) {
       navigate(`/learn/g/${gradeId}/book?chapter=${chId}&section=${secId}&page=${p}`)
     },
     [gradeId, navigate],
+  )
+
+  /* Параграф из панели уравнений: страница PDF, оглавление и ?unit= (без ?rx=). */
+  const openUnit = useCallback(
+    (unit: ReaderUnit) => {
+      const hits = unit.appSections
+        .map((key) => appSectionFromKey(gradeId, key))
+        .filter((h): h is NonNullable<typeof h> => h != null)
+      const pick = hits.find((h) => h.chapterId === chapterId) ?? hits[0] ?? null
+      const q = new URLSearchParams()
+      if (pick) {
+        q.set('chapter', pick.chapterId)
+        q.set('section', pick.sectionId)
+      } else {
+        q.set('chapter', chapterId)
+      }
+      const p = unit.pageStart ?? (pick ? textbookSectionPage(gradeId, pick.chapterId, pick.sectionId) : page)
+      q.set('page', String(Math.min(totalPages, Math.max(1, p))))
+      q.set('unit', unit.unitId)
+      navigate(`/learn/g/${gradeId}/book?${q.toString()}`)
+    },
+    [chapterId, gradeId, navigate, page, totalPages],
   )
 
   const activeSectionId = sectionId || chapter?.sections[0]?.id || ''
@@ -174,6 +240,59 @@ export function LearnTextbookReader({ gradeId }: Props) {
     )
   }
 
+  const teacherAvailable = !!section
+  const activeTab: PanelTab = tab === 'teacher' && teacherAvailable ? 'teacher' : readerGradeId ? 'equations' : 'teacher'
+
+  const sidePanel = (
+    <div className={styles.teacherCol} data-book-side-panel>
+      <div className={styles.tabs} role="tablist" aria-label={t('learn.bookPanel.tabsAria')}>
+        {readerGradeId ? (
+          <button
+            type="button"
+            role="tab"
+            className={activeTab === 'equations' ? styles.tabOn : styles.tab}
+            aria-selected={activeTab === 'equations'}
+            onClick={() => setTab('equations')}
+            data-book-tab="equations"
+          >
+            {t('learn.bookPanel.tabEquations')}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          role="tab"
+          className={activeTab === 'teacher' ? styles.tabOn : styles.tab}
+          aria-selected={activeTab === 'teacher'}
+          onClick={() => setTab('teacher')}
+          disabled={!teacherAvailable}
+          data-book-tab="teacher"
+        >
+          {t('learn.bookPanel.tabTeacher')}
+        </button>
+      </div>
+      {activeTab === 'equations' && readerGradeId ? (
+        <BookEquationsPanel
+          gradeId={readerGradeId}
+          chapterId={chapterId}
+          activeSectionId={activeSectionId}
+          selectedUnitId={selectedUnit?.unitId ?? null}
+          highlightRxId={rxParam}
+          narrow={phone}
+          onOpenUnit={openUnit}
+        />
+      ) : section ? (
+        <LearnAssistantPanel
+          gradeId={gradeId}
+          chapterId={chapterId}
+          section={section}
+          slideIndex={0}
+          slideTitle={sectionTitle}
+          slideBody={slideBody}
+        />
+      ) : null}
+    </div>
+  )
+
   return (
     <div className={styles.shell}>
       <div className={styles.topBar}>
@@ -185,13 +304,6 @@ export function LearnTextbookReader({ gradeId }: Props) {
           <p className={styles.subtitle}>{t(grade.textbookRefKey)}</p>
         </div>
         <div className={styles.topBarActions}>
-          <button
-            type="button"
-            className={showTeacher ? styles.toggleOn : styles.toggleBtn}
-            onClick={() => setShowTeacher((v) => !v)}
-          >
-            {t('learn.textbook.teacherToggle')}
-          </button>
           <Link
             className={styles.lessonLink}
             to={`/learn/g/${gradeId}/c/${chapterId}/s/${activeSectionId}?from=book`}
@@ -201,69 +313,90 @@ export function LearnTextbookReader({ gradeId }: Props) {
         </div>
       </div>
 
-      <div className={`${styles.layout}${showTeacher && section ? ` ${styles.layoutWithTeacher}` : ''}`}>
-        <aside className={styles.sidebar} aria-label={t('learn.textbook.toc')}>
-          {grade.chapters.map((ch) => {
-            const open = ch.id === chapterId
-            return (
-              <div key={ch.id} className={styles.chapterBlock}>
-                <button
-                  type="button"
-                  className={`${styles.chapterBtn} ${open ? styles.chapterBtnOpen : ''}`}
-                  onClick={() => {
-                    const first = ch.sections[0]
-                    if (first) openSection(ch.id, first.id)
-                  }}
-                  aria-expanded={open}
-                >
-                  {t(ch.titleKey)}
-                </button>
-                {open ? (
-                  <ul className={styles.sectionList}>
-                    {ch.sections.map((sec) => {
-                      const active = sec.id === activeSectionId
-                      return (
-                        <li key={sec.id}>
-                          <button
-                            type="button"
-                            className={`${styles.sectionBtn} ${active ? styles.sectionBtnActive : ''}`}
-                            onClick={() => openSection(ch.id, sec.id)}
-                          >
-                            <span className={styles.sectionKp}>{t('learn.section.kp', { n: sec.kpNumber })}</span>
-                            <span className={styles.sectionTitle}>{t(sec.titleKey)}</span>
-                          </button>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                ) : null}
-              </div>
-            )
-          })}
-        </aside>
-
-        <div className={styles.readerCol}>
-          <div className={styles.toolbar} role="toolbar" aria-label={t('learn.textbook.toolbar')}>
-            {pageToolbar}
+      {phone ? (
+        <div className={styles.phoneLayout}>
+          <div className={styles.phoneBar}>
+            <label className={styles.tocSelectLabel}>
+              <span className={styles.tocSelectText}>{t('learn.bookPanel.tocSelect')}</span>
+              <select
+                className={styles.tocSelect}
+                value={`${chapterId}/${activeSectionId}`}
+                onChange={(e) => {
+                  const [chId, secId] = e.target.value.split('/')
+                  if (chId && secId) openSection(chId, secId)
+                }}
+              >
+                {grade.chapters.map((ch) => (
+                  <optgroup key={ch.id} label={t(ch.titleKey)}>
+                    {ch.sections.map((sec) => (
+                      <option key={sec.id} value={`${ch.id}/${sec.id}`}>
+                        {t('learn.section.kp', { n: sec.kpNumber })} · {t(sec.titleKey)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <a className={styles.pdfLink} href={pdfSrc} target="_blank" rel="noreferrer" data-book-open-pdf>
+              {t('learn.bookPanel.openPdf')} · {t('learn.textbook.page')} {page}
+            </a>
           </div>
-          <div className={styles.frameWrap}>
-            <TextbookPdfFrame page={page} title={frameTitle} src={pdfSrc} />
-          </div>
+          {sidePanel}
         </div>
+      ) : (
+        <div className={`${styles.layout} ${styles.layoutWithTeacher}`}>
+          <aside className={styles.sidebar} aria-label={t('learn.textbook.toc')}>
+            {grade.chapters.map((ch) => {
+              const open = ch.id === chapterId
+              return (
+                <div key={ch.id} className={styles.chapterBlock}>
+                  <button
+                    type="button"
+                    className={`${styles.chapterBtn} ${open ? styles.chapterBtnOpen : ''}`}
+                    onClick={() => {
+                      const first = ch.sections[0]
+                      if (first) openSection(ch.id, first.id)
+                    }}
+                    aria-expanded={open}
+                  >
+                    {t(ch.titleKey)}
+                  </button>
+                  {open ? (
+                    <ul className={styles.sectionList}>
+                      {ch.sections.map((sec) => {
+                        const active = sec.id === activeSectionId
+                        return (
+                          <li key={sec.id}>
+                            <button
+                              type="button"
+                              className={`${styles.sectionBtn} ${active ? styles.sectionBtnActive : ''}`}
+                              onClick={() => openSection(ch.id, sec.id)}
+                            >
+                              <span className={styles.sectionKp}>{t('learn.section.kp', { n: sec.kpNumber })}</span>
+                              <span className={styles.sectionTitle}>{t(sec.titleKey)}</span>
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  ) : null}
+                </div>
+              )
+            })}
+          </aside>
 
-        {showTeacher && section ? (
-          <div className={styles.teacherCol}>
-            <LearnAssistantPanel
-              gradeId={gradeId}
-              chapterId={chapterId}
-              section={section}
-              slideIndex={0}
-              slideTitle={sectionTitle}
-              slideBody={slideBody}
-            />
+          <div className={styles.readerCol}>
+            <div className={styles.toolbar} role="toolbar" aria-label={t('learn.textbook.toolbar')}>
+              {pageToolbar}
+            </div>
+            <div className={styles.frameWrap}>
+              <TextbookPdfFrame page={page} title={frameTitle} src={pdfSrc} />
+            </div>
           </div>
-        ) : null}
-      </div>
+
+          {sidePanel}
+        </div>
+      )}
 
       {bookFullscreen
         ? createPortal(

@@ -1,6 +1,7 @@
 /**
- * Строит полную карту классов (7–9) для всех веществ каталога.
- * Источники: Kimyo g7–g9 (текст §), манифест программы, правила ФГОС.
+ * Строит полную карту классов (7–11) для всех веществ каталога и органических молекул.
+ * Источник истины — сверка учебников Kimyo 7–11 (textbookWhitelist.json evidence[id].grades / firstPage
+ * и TEXTBOOK_EXTRA_GRADES для tb_* веществ); для веществ без свидетельств — текст § 7–9, манифест, правила ФГОС.
  *
  * Запуск: npx tsx scripts/build-compound-grade-map.mts
  */
@@ -14,11 +15,15 @@ import g8 from '../src/data/g8TextbookKnowledge.json' with { type: 'json' }
 import g9 from '../src/data/g9TextbookKnowledge.json' with { type: 'json' }
 import type { CompoundDef } from '../src/types/chemistry.ts'
 import textbookWhitelist from '../src/data/textbook/textbookWhitelist.json' with { type: 'json' }
+import { TEXTBOOK_EXTRA_GRADES } from '../src/data/textbookCompounds.data.ts'
 
 /** Классы, где вещество найдено при сверке учебников (scripts/textbook-inventory/build-whitelist.mts). */
-const TEXTBOOK_EVIDENCE = textbookWhitelist.evidence as Record<string, { grades: number[] }>
+const TEXTBOOK_EVIDENCE = textbookWhitelist.evidence as Record<string, { grades: number[]; firstPage?: number }>
 
-type Grade = 7 | 8 | 9
+type Grade = 7 | 8 | 9 | 10 | 11
+/** Классы, по которым есть текст § для эвристики упоминаний. */
+type BookGrade = 7 | 8 | 9
+const ALL_GRADES: readonly Grade[] = [7, 8, 9, 10, 11]
 type Chapter =
   | 'вода'
   | 'оксиды'
@@ -40,7 +45,7 @@ type Chapter =
   | 'катализ'
   | 'прочее'
 
-type Entry = { grades: Grade[]; chapter: Chapter }
+type Entry = { grades: Grade[]; chapter: Chapter; firstPage?: number }
 
 const SUB = '₀₁₂₃₄₅₆₇₈₉'
 
@@ -64,7 +69,7 @@ function toAsciiFormula(f: string): string {
     .replace(/\s/g, '')
 }
 
-function textbookBlob(grade: Grade): string {
+function textbookBlob(grade: BookGrade): string {
   const raw = grade === 7 ? g7 : grade === 8 ? g8 : g9
   const sections = (raw as { sections: { contentRu: string }[] }).sections
   return sections
@@ -80,7 +85,7 @@ const TB = {
   9: textbookBlob(9),
 } as const
 
-function mentionedInTextbook(c: CompoundDef, grade: Grade): boolean {
+function mentionedInTextbook(c: CompoundDef, grade: BookGrade): boolean {
   const blob = TB[grade]
   const f = c.formulaUnicode
   const ascii = toAsciiFormula(f).toLowerCase()
@@ -225,7 +230,16 @@ function inferGradesRule(c: CompoundDef): Grade[] {
 
 function mergeGrades(a: Grade[], b: Grade[]): Grade[] {
   const s = new Set<Grade>([...a, ...b])
-  return ([7, 8, 9] as const).filter((g) => s.has(g))
+  return ALL_GRADES.filter((g) => s.has(g))
+}
+
+const isGrade = (g: number): g is Grade => (ALL_GRADES as readonly number[]).includes(g)
+
+/** Классы по свидетельствам учебников: evidence ∪ TEXTBOOK_EXTRA_GRADES (пусто — свидетельств нет). */
+function textbookGrades(id: string): Grade[] {
+  const ev = (TEXTBOOK_EVIDENCE[id]?.grades ?? []).filter(isGrade)
+  const extra = (TEXTBOOK_EXTRA_GRADES[id] ?? []).filter(isGrade)
+  return mergeGrades(ev, extra)
 }
 
 const map: Record<string, Entry> = {}
@@ -234,18 +248,31 @@ for (const c of Object.values(compoundById)) {
   const manifest = MANIFEST.get(c.id)
   const fromBook = gradesFromTextbook(c)
   const fromRules = manifest ? ([...manifest.grades] as Grade[]) : inferGradesRule(c)
-  const evidence = (TEXTBOOK_EVIDENCE[c.id]?.grades ?? []).filter((g): g is Grade => g === 7 || g === 8 || g === 9)
-  const grades = evidence.length > 0 ? mergeGrades(evidence, []) : mergeGrades(fromBook, fromRules)
+  const evidence = textbookGrades(c.id)
+  const grades = evidence.length > 0 ? evidence : mergeGrades(fromBook, fromRules)
   const chapter = (manifest?.chapter as Chapter | undefined) ?? inferChapter(c)
-  map[c.id] = { grades: grades.length > 0 ? grades : [8], chapter }
+  const firstPage = TEXTBOOK_EVIDENCE[c.id]?.firstPage
+  map[c.id] = {
+    grades: grades.length > 0 ? grades : [8],
+    chapter,
+    ...(typeof firstPage === 'number' ? { firstPage } : {}),
+  }
 }
 
-const stats = { 7: 0, 8: 0, 9: 0, total: 0 }
+/** Органические молекулы (ORGANIC_MOLECULES ids) — только по свидетельствам учебников. */
+const organicMap: Record<string, { grades: Grade[]; firstPage?: number }> = {}
+for (const id of Object.keys(TEXTBOOK_EVIDENCE)) {
+  if (compoundById[id]) continue
+  const grades = textbookGrades(id)
+  if (grades.length === 0) continue
+  const firstPage = TEXTBOOK_EVIDENCE[id]?.firstPage
+  organicMap[id] = { grades, ...(typeof firstPage === 'number' ? { firstPage } : {}) }
+}
+
+const stats = { 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, total: 0, organic: Object.keys(organicMap).length }
 for (const e of Object.values(map)) {
   stats.total++
-  if (e.grades.includes(7)) stats[7]++
-  if (e.grades.includes(8)) stats[8]++
-  if (e.grades.includes(9)) stats[9]++
+  for (const g of ALL_GRADES) if (e.grades.includes(g)) stats[g]++
 }
 
 const outPath = join(
@@ -260,8 +287,8 @@ const outPath = join(
 const body = `/**
  * АВТОГЕНЕРАЦИЯ — не редактировать вручную.
  * Пересборка: npx tsx scripts/build-compound-grade-map.mts
- * Источники: Kimyo 7–9, schoolInorganicManifest, правила ФГОС.
- * Статистика: 7 кл.=${stats[7]}, 8 кл.=${stats[8]}, 9 кл.=${stats[9]}, всего=${stats.total}
+ * Источники: сверка учебников Kimyo 7–11 (evidence + TEXTBOOK_EXTRA_GRADES), schoolInorganicManifest, правила ФГОС.
+ * Статистика: 7 кл.=${stats[7]}, 8 кл.=${stats[8]}, 9 кл.=${stats[9]}, 10 кл.=${stats[10]}, 11 кл.=${stats[11]}, всего=${stats.total}; органика=${stats.organic}
  */
 import type { InorganicSchoolGrade } from './compoundGradeIndex'
 
@@ -289,9 +316,19 @@ export type InorganicChapter =
 export type CompoundGradeEntry = {
   grades: readonly InorganicSchoolGrade[]
   chapter: InorganicChapter
+  /** Первая страница учебника, где вещество встречается (порядок «как в книге»). */
+  firstPage?: number
+}
+
+export type OrganicGradeEntry = {
+  grades: readonly InorganicSchoolGrade[]
+  firstPage?: number
 }
 
 export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = ${JSON.stringify(map, null, 2)} as const
+
+/** Органические молекулы (id из ORGANIC_MOLECULES): классы учебников, где молекула упоминается. */
+export const ORGANIC_GRADE_MAP: Readonly<Record<string, OrganicGradeEntry>> = ${JSON.stringify(organicMap, null, 2)} as const
 `
 
 writeFileSync(outPath, body, 'utf8')

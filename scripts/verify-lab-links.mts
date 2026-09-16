@@ -150,7 +150,7 @@ for (const t of TEXTBOOK) {
     const p = parseReactorLinkParams(params)
     assert.equal(p?.spec.equation, t.eq)
     assert.equal(p?.balanceSelf, true)
-    assert.equal(p?.backHref, '/learn/g/g8/read/p24')
+    assert.equal(p?.backHref, '/learn/g/g8/book?unit=p24')
   }
   console.log(`  textbook ${got.padEnd(18)} ${t.eq}${r.ok ? `  → ${r.equationUnicode} [${r.recipe ? 'recipe' : 'default'}, main ${r.productCompoundId}]` : ''}`)
 }

@@ -5,6 +5,7 @@ import { resolveObtainingBundle } from '../chemistry/substanceObtaining'
 import { resolveCompoundFacts } from '../chemistry/compoundFacts'
 import { getMolecularGeometryOrNull } from '../chemistry/catalogGeometryOverrides'
 import { buildSignatureMolecule } from '../chemistry/placeholderMolecule'
+import { buildInorganicGeometry } from '../chemistry/inorganicGeometry'
 import type { CompoundCategory, CompoundDef, RawCompoundDef } from '../types/chemistry'
 import { INORGANIC_RAW } from './inorganicCompounds.data'
 import { TEXTBOOK_EXTRA_RAW } from './textbookCompounds.data'
@@ -171,6 +172,19 @@ export function finalizeCompound(p: RawCompoundDef): CompoundDef {
       accentColor: accent,
       atoms: fixed.atoms,
       bonds: fixed.bonds,
+      ...obt,
+      factsRu: factsIn(p),
+    }
+  }
+  // Химически корректная сборка (VSEPR / ионный кластер) — до случайного плейсхолдера.
+  const inorganic = buildInorganicGeometry(p.formulaUnicode, p.composition, p.category, p.id)
+  if (inorganic && inorganic.atoms.length > 0) {
+    const obt = obtainingIn(p)
+    return {
+      ...p,
+      accentColor: accent,
+      atoms: inorganic.atoms,
+      bonds: inorganic.bonds,
       ...obt,
       factsRu: factsIn(p),
     }

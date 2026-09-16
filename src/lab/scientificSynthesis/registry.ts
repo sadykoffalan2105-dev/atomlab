@@ -1,12 +1,15 @@
 import type { ComponentType } from 'react'
 import { Clo2ScientificSynthesisFx } from '../../components/lab/scientific/Clo2ScientificSynthesisFx'
 import { Ch4CombustionSciFx } from '../../components/lab/scientific/Ch4CombustionSciFx'
+import { NaclCinemaScene } from '../cinema/scenes/nacl/NaclCinemaScene'
 import type { ScientificSynthesisFxProps } from './types'
 
 export type { ScientificSynthesisFxProps } from './types'
 
 const REGISTRY: Record<string, ComponentType<ScientificSynthesisFxProps>> = {
   clo2: Clo2ScientificSynthesisFx,
+  // Учебник 7–8: ионная связь, 2 Na + Cl₂ → 2 NaCl (bank 'na-cl-nacl'). Сцена принимает контракт лаборатории напрямую.
+  nacl: NaclCinemaScene,
   // Ключ 'ch4_combustion' не совпадает ни с одним productId каталога —
   // готово к запуску, ждёт UI-переключателя маршрута для CO₂/H₂O (не ломает C+O₂ / 2H₂+O₂ по умолчанию).
   ch4_combustion: Ch4CombustionSciFx,

@@ -1,5 +1,6 @@
 import { storyWallDuration } from '../cinema/core/storyTime'
 import { CLO2_FINISH } from '../cinema/scenes/clo2/storyboard'
+import { naclScientificWatchdogMs } from './naclScenarioTiming'
 
 /**
  * Таймауты гарантии успеха для научных сцен.
@@ -17,6 +18,7 @@ export function scientificSynthesisWatchdogMs(productId: string): number | null 
   if (productId === 'clo2') {
     return Math.ceil(storyWallDuration([CLO2_FINISH]) * 1000 + WATCHDOG_MARGIN_MS)
   }
+  if (productId === 'nacl') return naclScientificWatchdogMs()
   return null
 }
 

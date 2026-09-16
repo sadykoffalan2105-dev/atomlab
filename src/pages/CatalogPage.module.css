@@ -1258,3 +1258,338 @@
     animation: none;
   }
 }
+
+/* ——— Классы 7–11: сегмент со счётчиками ——— */
+.gradeSeg {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.gradeSeg::-webkit-scrollbar {
+  display: none;
+}
+
+.gradeSeg .segBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+.segCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--lt-radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--lt-text-3);
+  font-size: 11px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.segBtnOn .segCount {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+/* ——— Реакции учебника: класс → § → строки ——— */
+.rxUnits {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.rxUnit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-margin-top: 220px;
+}
+
+.rxUnitHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.rxUnitTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.3;
+  color: var(--lt-text);
+}
+
+.rxUnitKp {
+  color: color-mix(in srgb, var(--tone-a) 70%, #fff);
+  font-variant-numeric: tabular-nums;
+}
+
+.rxUnitMeta {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--lt-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.rxList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rxRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--tone-a) 22%, var(--lt-border));
+  background:
+    radial-gradient(90% 60% at 0% 0%, color-mix(in srgb, var(--tone-a) 10%, transparent), transparent 62%),
+    linear-gradient(180deg, rgba(20, 27, 50, 0.9), rgba(10, 14, 29, 0.94));
+  box-shadow: var(--lt-shadow-sm);
+  scroll-margin-top: 220px;
+  outline: none;
+  transition:
+    border-color var(--lt-dur) var(--lt-ease),
+    box-shadow var(--lt-dur) var(--lt-ease);
+}
+
+.rxRow:hover {
+  border-color: color-mix(in srgb, var(--tone-a) 48%, transparent);
+}
+
+.rxRowTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.rxBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--lt-border);
+  background: rgba(6, 9, 19, 0.5);
+  color: var(--lt-text-2);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rxPage {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--lt-text-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rxAsInBook {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--tone-a) 40%, var(--lt-border));
+  color: var(--lt-text);
+  font-family: var(--lt-font-mono);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.rxMeta {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--lt-text-2);
+}
+
+.rxMetaLabel {
+  font-family: var(--lt-font);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--lt-text-3);
+}
+
+.rxAnswerTag {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 1px 8px;
+  border-radius: var(--lt-radius-pill);
+  background: color-mix(in srgb, var(--tone-a) 22%, transparent);
+  color: color-mix(in srgb, var(--tone-a) 70%, #fff);
+  font-family: var(--lt-font);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.rxBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.rxLabLinkGhost {
+  background: transparent;
+  border-color: var(--lt-border);
+  color: var(--lt-text-2);
+}
+
+.rxToggle {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid color-mix(in srgb, var(--tone-a) 45%, var(--lt-border));
+  background: color-mix(in srgb, var(--tone-a) 14%, rgba(6, 9, 19, 0.6));
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.rxToggle:hover {
+  background: color-mix(in srgb, var(--tone-a) 26%, rgba(6, 9, 19, 0.6));
+}
+
+.rxToggle:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.rxReason {
+  margin: auto 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--lt-border);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--lt-text-2);
+}
+
+.rxAltLink {
+  color: var(--lt-text);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rxState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 36px 16px;
+  color: var(--lt-text-2);
+  font-size: 14px;
+  text-align: center;
+}
+
+.rxState p {
+  margin: 0;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--lt-border);
+  border-top-color: var(--tone-a);
+  animation: rxSpin 0.9s linear infinite;
+}
+
+@keyframes rxSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.showMore {
+  appearance: none;
+  align-self: center;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 24px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--lt-border-strong);
+  background: var(--lt-surface-hover);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.showMore:hover {
+  border-color: var(--tone-a);
+}
+
+.showMore:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+@media (max-width: 720px) {
+  .gradeSeg .segBtn {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  .rxRow {
+    padding: 12px 13px;
+  }
+
+  .rxUnit,
+  .rxRow {
+    scroll-margin-top: 120px;
+  }
+
+  .rxLabLink,
+  .rxToggle {
+    min-height: 44px;
+  }
+
+  .rxBtns .rxLabLink,
+  .rxBtns .rxToggle {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

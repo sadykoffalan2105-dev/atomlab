@@ -74,3 +74,7 @@ applyBentTriatomicModes(cl, o1, o2, visualT, amp, CLO2_VIB_CM1)
 - Демо рендереров (dev-сервер, консоль):
   `(await import('/src/lab/cinema/react/__demo__/mountOrbitalsDemo.ts')).mountOrbitalsDemo()`,
   `/src/lab/cinema/react/__demo__/instancedBondsDemo.html`.
+
+## Урок NaCl (7–8 класс): ионная связь
+
+`scenes/nacl/` — 2 Na + Cl₂ → 2 NaCl по шагам: сближение, гомолиз Cl–Cl, переход электрона 3s¹ (след, подсветка орбитали, Na → Na⁺ уменьшается, Cl → Cl⁻ растёт, заряды), электростатическое притяжение, фрагмент кубической решётки (8 ионов, рёбра Na⁺–Cl⁻ 2,82 Å), выделение энергии (ΔH°f = −411 кДж/моль, лестница Борна — Габера в панели). Движок общий с ClO₂: `steppedStoryClock`, `clo2StepStore` (поле `lesson`), `core/safeArea`, пулы и эффекты. Панель урока выбирает тексты через `scenes/lessons.ts`. Проверка: `npm run test:nacl-cinema`; смоук: `node .smoke/cinema/nacl-shots.mjs`.

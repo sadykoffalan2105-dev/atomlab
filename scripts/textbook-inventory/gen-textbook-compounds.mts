@@ -166,7 +166,16 @@ function describe(name: string, formulaU: string, f: string, cat: string, topics
   return `${name} (${formulaU}). ${kindText}${where ? ` В учебниках «Химия»: ${where}.` : ''}`
 }
 
-type Out = { id: string; category: string; nameRu: string; formulaUnicode: string; composition: Record<string, number>; descriptionRu: string; grades: number[] }
+type Out = {
+  id: string
+  category: string
+  nameRu: string
+  formulaUnicode: string
+  composition: Record<string, number>
+  descriptionRu: string
+  grades: number[]
+  obtainingStepsRu?: { step: number; equation: string; note?: string }[]
+}
 const out: Out[] = []
 const noName: string[] = []
 for (const r of rows) {
@@ -210,6 +219,77 @@ const SIMPLE: [string, string, string, Record<string, number>, string][] = [
 for (const [id, nameRu, formulaUnicode, composition, descriptionRu] of SIMPLE) {
   out.unshift({ id, category: 'other', nameRu, formulaUnicode, composition, descriptionRu, grades: [7, 8, 9] })
 }
+
+// Способ получения — только из уравнений учебников, где вещество стоит в продуктах
+// (иначе каталог рисует бессмысленный «синтез из простых веществ»).
+type Rx = {
+  equation?: string
+  equationUnicode?: string
+  products?: ({ formula: string } | string)[]
+  balanced?: boolean | null
+  isGeneralScheme?: boolean
+  isIonic?: boolean
+  page?: number | null
+  sections?: string[]
+}
+type Route = { eq: string; grade: number; page: number | null; title: string; main: boolean }
+const routesByKey = new Map<string, Route[]>()
+for (const g of GRADES) {
+  const inv = JSON.parse(fs.readFileSync(path.join(DIR, `inventory-g${g}.json`), 'utf8')) as { sections: { sectionId: string; title: string }[] }
+  const titleById = new Map(inv.sections.map((s) => [s.sectionId, s.title.replace(/^§\s*\d+\.?\s*/, '')]))
+  const d = JSON.parse(fs.readFileSync(path.join(DIR, `reactions-g${g}.json`), 'utf8')) as { reactions: Rx[] }
+  for (const r of d.reactions) {
+    if (r.balanced === false || r.isGeneralScheme || r.isIonic) continue
+    let eq = (r.equationUnicode ?? r.equation ?? '').replace(/\s+/g, ' ').trim()
+    // В части сводок уравнение записано ASCII-цифрами — переводим индексы в подстрочные, условия над стрелкой — в скобки.
+    if (!/[₀-₉]/.test(eq)) eq = unicode(eq)
+    eq = eq.replace(/→\s*\[([^\]]+)\]\s*/g, '→ ($1) ').replace(/\s+/g, ' ').trim()
+    if (!eq || !/[→=]/.test(eq) || /\.\.\.|…|\?|[+-]$|\^|⁺|⁻/.test(eq) || eq.length > 90) continue
+    const prods = (r.products ?? []).map((p) => (typeof p === 'string' ? p : p.formula))
+    prods.forEach((pf, i) => {
+      const c = parseComposition(String(pf ?? '').replace(/[↑↓\s]/g, ''))
+      if (!c) return
+      const k = compKey(c)
+      const arr = routesByKey.get(k) ?? []
+      const title = r.sections?.map((s) => titleById.get(s)).find(Boolean) ?? ''
+      arr.push({ eq, grade: g, page: r.page ?? null, title, main: i === 0 })
+      routesByKey.set(k, arr)
+    })
+  }
+}
+
+type Step = { step: number; equation: string; note?: string }
+function obtainingSteps(o: Out): Step[] {
+  const routes = [...(routesByKey.get(compKey(o.composition)) ?? [])].sort(
+    (a, b) => Number(b.main) - Number(a.main) || a.grade - b.grade || (a.page ?? 999) - (b.page ?? 999),
+  )
+  const seen = new Set<string>()
+  const distinct = routes.filter((r) => {
+    const k = r.eq.replace(/\s/g, '')
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+  if (distinct.length > 0) {
+    return distinct.slice(0, 2).map((r, i) => ({
+      step: i + 1,
+      equation: r.eq,
+      note: `${i === 0 ? 'Уравнение из учебника' : 'Другой способ (учебник)'}: ${r.grade} класс${r.title ? `, «${r.title}»` : ''}${r.page ? `, с. ${r.page}` : ''}`,
+    }))
+  }
+  const hyd = o.formulaUnicode.match(/^(.+?)·(\d*)H₂O$/)
+  if (hyd) {
+    const n = hyd[2] ? hyd[2] : ''
+    return [{ step: 1, equation: `${hyd[1]} + ${n}H₂O → ${o.formulaUnicode}`, note: 'Кристаллизация из водного раствора (образование кристаллогидрата)' }]
+  }
+  return [{ step: 1, equation: o.formulaUnicode, note: 'В учебниках «Химия» 7–11 способ получения не приводится: вещество рассматривается как готовый реагент или природный минерал' }]
+}
+let withRoute = 0
+for (const o of out) {
+  o.obtainingStepsRu = obtainingSteps(o)
+  if (/учебник/i.test(o.obtainingStepsRu[0]?.note ?? '')) withRoute++
+}
+console.log('obtaining routes from textbooks:', withRoute, 'of', out.length)
 
 const ids = new Set<string>()
 for (const o of out) {
