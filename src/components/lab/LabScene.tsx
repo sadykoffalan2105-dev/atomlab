@@ -2164,7 +2164,9 @@ function SceneContent({
                   coeffEditingActive ||
                   synthHoldPreview)
               }
-              productOwnsScreen={hideBohrForProduct}
+              // Научный микромир (ClO₂, NaCl…) рисует свои атомы — Bohr-превью прячем даже при synth-hold,
+              // иначе 2Na + Cl₂ висят сжатым комком посреди урока.
+              productOwnsScreen={hideBohrForProduct || scientificMicroworldActive}
               synthHoldPreview={synthHoldPreview && !hideBohrForProduct}
               lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}
               productPrewarm={productPrewarmActive}

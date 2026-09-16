@@ -1889,7 +1889,30 @@ for (const grade of GRADES) {
   }
   stats.units = units.length
   // lightweight output: pages and substances are dropped (the PDF viewer shows the book itself)
-  const slim: ReaderUnit[] = units.map(({ pages: _pages, substances: _subs, ...u }) => u)
+  // Only real equations reach the panel: no word schemes («крахмал + I₂ → синее окрашивание»),
+  // no general schemes, no exercises without the book's text, no duplicates within a grade.
+  const seenEq = new Set<string>()
+  const formulaSide = /[A-Z][a-z]?[₀-₉0-9]*/
+  const keepReaction = (r: ReaderReaction): boolean => {
+    if (r.isGeneralScheme) return false
+    if (r.exercise && !r.asInBook) return false
+    const body = r.equation.replace(/\([^)]*\)/g, ' ').replace(/\[[^\]]*\]/g, ' ')
+    if (/[А-Яа-яЁё]{3,}/.test(body)) return false
+    const m = body.split(/→|⇄|⇌|=|->/)
+    if (m.length < 2 || !formulaSide.test(m[0]!) || !formulaSide.test(m[m.length - 1]!)) return false
+    if (/не идёт|не идет|\?/.test(r.equation)) return false
+    const k = r.equationAscii.replace(/\s+/g, '').toLowerCase()
+    if (seenEq.has(k)) return false
+    seenEq.add(k)
+    return true
+  }
+  let dropped = 0
+  const slim: ReaderUnit[] = units.map(({ pages: _pages, substances: _subs, ...u }) => {
+    const kept = u.reactions.filter(keepReaction)
+    dropped += u.reactions.length - kept.length
+    return { ...u, reactions: kept }
+  })
+  console.log(`g${grade}: reactions kept ${slim.reduce((n, u) => n + u.reactions.length, 0)}, dropped ${dropped}`)
   const body: ReaderGrade = { grade, gradeId: `g${grade}`, generatedAt: new Date().toISOString(), units: slim }
   const file = path.join(OUT_DIR, `equations-g${grade}.json`)
   const json = JSON.stringify(body)
