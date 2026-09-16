@@ -122,6 +122,10 @@ const TEMPLATE_RE: RegExp[] = [
   /^Yoki aqlli SI ni ulang/iu,
   /^Bu savol bo‘yicha bazamda tayyor misol|^Bu savol bo'yicha bazamda tayyor misol/iu,
   /^Вот что там сказано/iu,
+  // r10: book index answers (src/learn/brain/dualMode/bookIndexAnswer.ts)
+  /^Сможешь сам записать (эту формулу|это уравнение)/iu,
+  /^Какую из этих реакций разберём подробнее/iu,
+  /^Откроешь этот параграф/iu,
   /^Here is what it says/i,
 ]
 const LEAD_RE = /^(Почему так\?|Например:|Если проще:|Why is that\?|For example:|Put simply:|Nega shunday\?|Masalan:|Soddaroq aytganda:)\s*/iu
@@ -146,7 +150,8 @@ const NO_WHY_RE = /(точной причины в моей базе|exact reaso
  */
 const NOISE_RES: Array<[string, RegExp]> = [
   ['imperative', /(^|[.!?»]\s+)(\S+\s+){0,2}(Покажите|Нарисуйте|Определите|Вычислите|Найдите|Напишите|Изобразите|изобразите|Составьте|Рассчитайте)\b/u],
-  ['§-heading', /(^|\s)§\s*\d/u],
+  // r10: «§ 32 «Серная кислота» (стр. 137)», «§ 19 (стр. 96)» — ссылка на учебник в ответе, а не заголовок параграфа
+  ['§-heading', /(^|\s)§\s*\d+(?:\.\d+)?(?![\d.]|\s*(«|\(стр\.|учебник|[;,:)]|и\s|—))/u],
   ['task-variable', /(^|[\s:])x\s+\d|\s[xX]\s[+=→]|кислот[аеуы]\s+[A-DБВ]\b|\[[A-ZА-Я0-9,]{1,6}\]\s*[=-]/u],
   ['table-pipe', /\|/u],
   ['lost-exponent', /\d[,.]\d+\s*[∙·×*]\s*10(2[0-9]|1[0-9])\b/u],
@@ -166,7 +171,7 @@ const NOISE_RES: Array<[string, RegExp]> = [
   ['undefined-variable', /(^|[\s(])[nxk]\s*[<>≤≥]\s*\d/u],
   ['task-text', /(^|\.\s)(Пример|Задача)\s*\d*\.\s|Тестовые задания/u],
   // judge r6 §7: broken rewrites and structural spans of the corpus.
-  ['dangling-relative', /котор(ая|ый|ое|ые|ую|ого|ых)\s*\.(\s|$)|(?<!\p{L})(при|по|на|в|во|с|со|к|от|до|из|за|для|без|под|над)\s*\.(\s|$)/u],
+  ['dangling-relative', /котор(ая|ый|ое|ые|ую|ого|ых)\s*\.(\s|$)|(?<![\p{L}IVXLC]\s?|\p{L})(при|по|на|в|во|с|со|к|от|до|из|за|для|без|под|над)\s*\.(\s|$)/u],
   ['copula-discourse', /[—–]\s*это\s+(так|итак|например|таким образом)\s*,/iu],
   ['lab-title', /(лабораторн\S*|практическ\S*)\s+(работ\S*|заняти\S*)\s*(№\s*)?\d/iu],
   ['numbered-caption', /(^|[.!?]\s)\d+\s+[А-ЯЁ]\p{Ll}+\s+\p{Ll}/u],
@@ -189,7 +194,8 @@ const formulaSet = (s: string) => new Set((s.match(/\b[A-Z][a-z]?[0-9₀-₉]*(?
 function isVerbless(sentence: string): boolean {
   const bare = sentence.replace(/\([^)]*\)/g, ' ').replace(/[.!]\s*$/, '').trim()
   const words = bare.split(/\s+/).filter(Boolean)
-  if (words.length < 3 || words.length > 9 || /[—–=→:«]|\sэто\s|\d|[a-z]/iu.test(bare) || !/[а-яё]/iu.test(bare)) return false
+  // r10: «Это реакция замещения.» — связка «это» без глагола, нормальная фраза
+  if (words.length < 3 || words.length > 9 || /[—–=→:«]|\sэто\s|^Это\s|\d|[a-z]/iu.test(bare) || !/[а-яё]/iu.test(bare)) return false
   return !words.some((w) => w.length > 3 && /(ет|ит|ут|ют|ят|ат|ется|ются|ится|ятся|ался|ился|ал|ил|ел|ла|ли|ло|ть|ся|ен|ены|ан|аны|но|ны|ит)$/iu.test(w.replace(/[,;]$/, '')))
 }
 
@@ -212,7 +218,8 @@ function splitSentences(text: string): string[] {
   const GLUE = '⁣'
   const protectedText = stripCitations(text).replace(/[«“„][^»”“]{0,240}[»”“]/gu, (m) => m.replace(/([.!?…])\s+/gu, `$1${GLUE}`))
   return protectedText
-    .split(/(?<=[.!?…])\s+(?=[\p{Lu}\d«"(])/u)
+    // r10: «(стр. 115)», «с. 53» — сокращение, не конец фразы
+    .split(/(?<=[.!?…])(?<!(?:^|[\s(])(?:стр|с|рис|см)\.)\s+(?=[\p{Lu}\d«"(])/u)
     .map((s) => s.replaceAll(GLUE, ' ').trim())
     .filter((s) => s.length > 1)
 }
@@ -277,7 +284,9 @@ const CARBON_NAME: Array<[RegExp, number]> = [
   [/^(метил|метан)/u, 1], [/^(этил|этан|этен|этин|ацетилен|винил)/u, 2], [/^(пропил|пропан|пропен|пропин|аллил)/u, 3],
   [/^(бутил|бутан|бутен|бутин)/u, 4], [/^(пентил|пентан|пентен)/u, 5], [/^(гексан|гексен|бензол|фенол)/u, 6],
 ]
-function nameFormulaMismatch(text: string): boolean {
+function nameFormulaMismatch(raw: string): boolean {
+  // r10: «этан (CH₃-CH₃)» — подстрочные цифры тоже считаются (иначе CH₃ читался как один атом углерода без индекса)
+  const text = raw.replace(/[₀-₉]/gu, (d) => String('₀₁₂₃₄₅₆₇₈₉'.indexOf(d)))
   for (const m of text.matchAll(/(?<!\p{L})(\p{L}{4,})\S*\s*(?:спирт\S*|кислот\S*)?\s*[:(—–-]?\s*(C[A-Za-z0-9]*(?:\s*[=≡–—-]\s*[A-Z][A-Za-z0-9]*)*)/gu)) {
     const n = CARBON_NAME.find(([re]) => re.test(foldText(m[1]!)))?.[1]
     if (!n) continue
@@ -334,7 +343,9 @@ function detectLang(text: string): { ru: number; lat: number; en: number; uz: nu
 }
 
 /** Answer in the question's locale; mixed-in foreign text (a Russian title inside an English answer) fails too. */
-function languageOk(text: string, locale: GoldQuestion['locale']): boolean {
+function languageOk(raw: string, locale: GoldQuestion['locale']): boolean {
+  // r10: формулы и уравнения («NaNO₃ + H₂SO₄ → …») — не английский текст в русском ответе
+  const text = locale === 'ru' ? raw.replace(/(?<![A-Za-z])(?:\d*(?:[A-Z][a-z]?|[()[\]])[₀-₉\d⁺⁻]*)+(?![a-z])/g, ' ') : raw
   const { ru, lat, en, uz } = detectLang(text)
   const total = ru + lat
   if (total === 0) return false
@@ -520,7 +531,8 @@ function scoreAnswer(rec: AnswerRecord, q: GoldQuestion, parentRec?: AnswerRecor
   {
     const fset = (s: string) => [...new Set(s.match(/\b(?:[A-Z][a-z]?\d*){2,}\b/g) ?? [])].sort().join(',')
     const sets = contentSentences.map(fset).filter(Boolean)
-    if (new Set(sets).size < sets.length) noise.push('paraphrase-formula-set')
+    // r10: ответ «формула + где в учебнике» повторяет формулу вещества по замыслу
+    if (new Set(sets).size < sets.length && q.type !== 'formula' && q.type !== 'location') noise.push('paraphrase-formula-set')
   }
   if (q.locale === 'ru' && /какие\s+(бывают|есть)|виды|типы/iu.test(q.question) && /главное отличие/iu.test(spoken)) noise.push('check-kind')
   if (!q.unanswerable && /(My textbooks are in Russian|Darsliklarim rus tilida)/iu.test(spoken)) noise.push('term-dump')
@@ -782,7 +794,7 @@ function main(): void {
     if (sub.length) printTotals(g, (byGroup[g] = totals(sub)))
   }
   const byType: Record<string, ReturnType<typeof totals>> = {}
-  for (const t of ['definition', 'why', 'how', 'example', 'calc', 'compare']) {
+  for (const t of ['definition', 'why', 'how', 'example', 'calc', 'compare', 'formula', 'reaction', 'location', 'property']) {
     const sub = rows.filter((r) => r.type === t && !r.unanswerable)
     if (sub.length) printTotals(t, (byType[t] = totals(sub)))
   }

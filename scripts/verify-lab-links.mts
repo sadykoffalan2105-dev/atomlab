@@ -123,7 +123,11 @@ const TEXTBOOK: { eq: string; expect: 'ok' | string; main?: string; route?: 'def
   { eq: 'Me + H2O = MeOH + H2', expect: 'scheme' },
   { eq: 'CH4 + 2O2 = CO2 + 2H2O', expect: 'ok' },
   { eq: 'C2H5OH + 3O2 = 2CO2 + 3H2O', expect: 'organic' },
+  // гидрокарбонат, которого нет в каталоге, — неорганика, а не «organic»
+  { eq: 'Fe(HCO3)2 = FeCO3 + CO2 + H2O', expect: 'unknownSubstance' },
   { eq: '2H2O = 2H2 + O2', expect: 'noCompoundProduct' },
+  // дробный гидрат (алебастр) разбирается, а не считается схемой
+  { eq: '2CaSO4*2H2O = 2CaSO4*0.5H2O + 3H2O', expect: 'unknownSubstance' },
   { eq: 'H2 + O2 = H2O', expect: 'unbalanced' },
   { eq: 'A + B = C', expect: 'scheme' },
 ]

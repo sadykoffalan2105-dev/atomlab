@@ -58,6 +58,7 @@
     "kb:eval": "tsx scripts/kb/eval.mts",
     "kb:eval:old": "tsx scripts/kb/eval-old.mts",
     "kb:tune": "tsx scripts/kb/tune.mts",
+    "book:reader": "tsx scripts/textbook-inventory/build-book-reader.mts",
     "test:elements-collapse": "tsx scripts/test-elements-collapse.mts",
     "test:synthesis-stability": "tsx scripts/test-synthesis-stability.mts",
     "test:lab3d-visibility": "tsx scripts/test-lab3d-visibility.mts",

@@ -13,10 +13,12 @@ import { HOLDOUT_R7 } from './holdout-r7.mts'
 import { SELF_R7 } from './selfcheck-r7.mts'
 import { HOLDOUT_R8 } from './holdout-r8.mts'
 import { SELF_R9 } from './selfcheck-r9.mts'
+import { HOLDOUT_R9 } from './holdout-r9.mts'
+import { HOLDOUT_R10 } from './holdout-r10.mts'
 const goldById = (id: string) =>
   goldOnly(id) ?? HOLDOUT_R3.find((q) => q.id === id) ?? HOLDOUT_R4.find((q) => q.id === id) ?? HOLDOUT_R5.find((q) => q.id === id) ??
   SELF_R6.find((q) => q.id === id) ?? HOLDOUT_R6.find((q) => q.id === id) ?? HOLDOUT_R7.find((q) => q.id === id) ?? SELF_R7.find((q) => q.id === id) ??
-  HOLDOUT_R8.find((q) => q.id === id) ?? SELF_R9.find((q) => q.id === id)
+  HOLDOUT_R8.find((q) => q.id === id) ?? SELF_R9.find((q) => q.id === id) ?? HOLDOUT_R9.find((q) => q.id === id) ?? HOLDOUT_R10.find((q) => q.id === id)
 import { preloadKnowledge } from '../../src/learn/kb/index.ts'
 import { retrieveForTeacher } from '../../src/learn/teacherKnowledge.ts'
 import { resolveTurn } from '../../src/learn/brain/dualMode/followUps.ts'

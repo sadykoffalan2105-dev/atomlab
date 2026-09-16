@@ -56,5 +56,6 @@ export type KbLexiconFile = {
   phrases: Record<string, [string, number][]>
 }
 
-export const SHARD_NAMES = ['common', 'g7', 'g8', 'g9', 'g10', 'g11'] as const
+/** 'book' (r10): generated textbook index chunks (type 'index') with their own statistics — scripts/kb/lib/bookIndex.mts. */
+export const SHARD_NAMES = ['common', 'g7', 'g8', 'g9', 'g10', 'g11', 'book'] as const
 export type ShardName = (typeof SHARD_NAMES)[number]

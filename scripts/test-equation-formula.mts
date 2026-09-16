@@ -45,6 +45,13 @@ test('hydrates', () => {
   assert.deepEqual(parseFormula('CuSO4*5H2O')?.counts, { Cu: 1, S: 1, O: 9, H: 10 })
   assert.deepEqual(parseFormula('CuSO₄·5H₂O')?.counts, { Cu: 1, S: 1, O: 9, H: 10 })
   assert.deepEqual(parseFormula('Na2CO3•10H2O')?.counts, { Na: 2, C: 1, O: 13, H: 20 })
+  // дробный множитель гидрата (алебастр) — не «схема»
+  assert.deepEqual(parseFormula('CaSO₄·0.5H₂O')?.counts, { Ca: 1, S: 1, O: 4.5, H: 1 })
+  assert.deepEqual(parseFormula('CaSO4*0,5H2O')?.counts, { Ca: 1, S: 1, O: 4.5, H: 1 })
+  const gyps = parseEquationText('2CaSO₄·2H₂O → 2CaSO₄·0.5H₂O + 3H₂O')!
+  assert.equal(gyps.isScheme, false)
+  assert.equal(gyps.products[0]!.coeff, 2)
+  assert.equal(formatEquationUnicode(gyps), '2CaSO₄·2H₂O → 2CaSO₄·0.5H₂O + 3H₂O')
 })
 test('unicode subscripts', () => {
   assert.deepEqual(parseFormula('Fe₂(SO₄)₃')?.counts, { Fe: 2, S: 3, O: 12 })

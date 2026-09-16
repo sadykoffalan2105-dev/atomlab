@@ -41,6 +41,20 @@ export function knownFormulaCount() {
   return KNOWN.size
 }
 
+/**
+ * r10: formulas printed on each page of each book (textbook inventory). While a page is repaired, an OCR/case variant
+ * that is printed on that page wins over another known formula with fewer changed characters ("СН," on a page about
+ * methane → "CH4", not "CH2"; "CuCl," next to "CuCl2" → "CuCl2").
+ */
+const PAGE_FORMULAS = new Map<string, Set<string>>()
+let pagePrior: Set<string> | null = null
+export function registerPageFormulas(grade: number, byPage: Map<number, string[]>) {
+  for (const [page, list] of byPage) PAGE_FORMULAS.set(`${grade}:${page}`, new Set(list.map((f) => f.replace(/^\d+/, ''))))
+}
+export function enterPage(grade: number | null, page?: number) {
+  pagePrior = grade == null || page == null ? null : (PAGE_FORMULAS.get(`${grade}:${page}`) ?? null)
+}
+
 const SUBS: Record<string, string> = {
   '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
   '⁰': '', '¹': '', '²': '', '³': '', '⁴': '', '⁵': '', '⁶': '', '⁷': '', '⁸': '', '⁹': '', '⁺': '', '⁻': '',
@@ -100,6 +114,7 @@ function formulaScore(f: string, changes: number): number {
   const p = parseFormula(f)
   if (!p) return -Infinity
   let s = KNOWN.has(f.replace(/^\d+/, '')) ? 100 : 0
+  if (pagePrior?.has(f.replace(/^\d+/, ''))) s += 3
   for (const sym of p.symbols) s += SCHOOL.has(sym) ? 1 : -3
   return s - changes * 0.5
 }

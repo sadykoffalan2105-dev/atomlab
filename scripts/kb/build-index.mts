@@ -47,6 +47,8 @@ for (const c of chunks) {
 }
 
 function shardOf(c: CorpusChunk): ShardName {
+  // r10: book index chunks (type 'index') live in their own shard with their own statistics
+  if (c.type === 'index') return 'book'
   if (c.grade == null) return 'common'
   const name = `g${c.grade}` as ShardName
   return SHARD_NAMES.includes(name) ? name : 'common'
@@ -71,14 +73,23 @@ const analyzed: Analyzed[] = chunks.map((chunk) => {
   return { chunk, shard: shardOf(chunk), tf, lens }
 })
 
-const N = analyzed.length
-const df = new Map<string, number>()
-const sumLens = [0, 0, 0]
-for (const a of analyzed) {
-  for (const t of a.tf.keys()) df.set(t, (df.get(t) ?? 0) + 1)
-  a.lens.forEach((l, i) => (sumLens[i] += l))
+/**
+ * Global BM25 statistics. The book index shard (r10) gets its own N / df / avg: adding ~3.7k short generated index
+ * chunks must not change the scores of textbook chunks and cards, and index chunks are only searched on request.
+ */
+function statsOf(list: Analyzed[]) {
+  const n = list.length
+  const dfs = new Map<string, number>()
+  const sumLens = [0, 0, 0]
+  for (const a of list) {
+    for (const t of a.tf.keys()) dfs.set(t, (dfs.get(t) ?? 0) + 1)
+    a.lens.forEach((l, i) => (sumLens[i] += l))
+  }
+  const avgs = sumLens.map((s) => Number((s / Math.max(1, n)).toFixed(3))) as [number, number, number]
+  return { N: n, df: dfs, avg: avgs }
 }
-const avg = sumLens.map((s) => Number((s / N).toFixed(3))) as [number, number, number]
+const { N, df, avg } = statsOf(analyzed.filter((a) => a.shard !== 'book'))
+const bookStats = statsOf(analyzed.filter((a) => a.shard === 'book'))
 
 // ------------------------------------------------------------------ write shards
 function varint(out: number[], n: number) {
@@ -101,6 +112,7 @@ const manifest: Record<string, unknown> = {
 
 for (const name of SHARD_NAMES) {
   const docsA = analyzed.filter((a) => a.shard === name)
+  const st = name === 'book' ? bookStats : { N, df, avg }
   const docs: ShardDoc[] = docsA.map(({ chunk: c }) => [
     c.id,
     c.grade ?? null,
@@ -142,12 +154,12 @@ for (const name of SHARD_NAMES) {
     v: SHARD_FORMAT_VERSION,
     analyzer: ANALYZER_VERSION,
     shard: name,
-    N,
-    avg,
+    N: st.N,
+    avg: st.avg,
     docs,
     lens: docsA.flatMap((a) => a.lens),
     terms: terms.join('\n'),
-    df: terms.map((t) => df.get(t) ?? 1),
+    df: terms.map((t) => st.df.get(t) ?? 1),
     offs,
     post: Buffer.from(Uint8Array.from(bytes)).toString('base64'),
   }
@@ -236,4 +248,4 @@ manifest.lexicon = { keys: phrases.size, glossaryKeys, alignedKeys: alignedAdded
 console.log(`[index] lexicon: ${phrases.size} keys (${glossaryKeys} glossary, ${alignedAdded} aligned), ${(Buffer.byteLength(lexJson) / 1024).toFixed(0)} KB`)
 
 fs.writeFileSync(path.join(OUT, 'kb-manifest.json'), JSON.stringify(manifest, null, 2))
-console.log(`[index] ${N} docs total, done in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
+console.log(`[index] ${analyzed.length} docs total (${bookStats.N} in the book index), done in ${((Date.now() - t0) / 1000).toFixed(1)}s`)

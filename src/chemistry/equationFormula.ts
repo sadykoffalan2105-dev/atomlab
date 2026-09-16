@@ -126,12 +126,13 @@ function parseCoreCounts(core: string): FormulaCounts | null {
   if (!core) return null
   const total: FormulaCounts = {}
   const parts = core.split('*')
-  for (const part0 of parts) {
+  for (const [partIdx, part0] of parts.entries()) {
     let part = part0
     let mult = 1
-    const mm = part.match(/^(\d+)(.*)$/)
+    // У гидратной части множитель может быть дробным: «CaSO₄·0.5H₂O», «CaSO₄·½H₂O».
+    const mm = partIdx > 0 ? part.match(/^(\d+(?:[.,]\d+)?|½)(.*)$/) : part.match(/^(\d+)(.*)$/)
     if (mm) {
-      mult = Number(mm[1])
+      mult = mm[1] === '½' ? 0.5 : Number(mm[1]!.replace(',', '.'))
       part = mm[2]!
     }
     if (!part || mult <= 0) return null

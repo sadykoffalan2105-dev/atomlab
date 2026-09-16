@@ -1,6 +1,6 @@
 {
  "version": 2,
- "generatedAt": "2026-09-15T21:10:05.721Z",
+ "generatedAt": "2026-09-16T17:16:28.467Z",
  "chunkPolicy": {
   "target": 900,
   "max": 1100,
@@ -53,18 +53,18 @@
     "summary": 37
    },
    "chunksWithoutAppSection": 10,
-   "textbookChars": 274743,
-   "allChars": 289909,
+   "textbookChars": 274842,
+   "allChars": 290008,
    "textbookChunkLength": {
     "min": 488,
     "p10": 707,
-    "p50": 915,
+    "p50": 917,
     "p90": 1041,
     "max": 1098
    },
-   "meanOverlapPct": 13.1,
+   "meanOverlapPct": 13.2,
    "garbledLatin1Chars": 0,
-   "mixedScriptWords": 20
+   "mixedScriptWords": 19
   },
   "g9": {
    "source": "Kimyo 9",
@@ -152,11 +152,11 @@
     "definition": 34
    },
    "chunksWithoutAppSection": 0,
-   "textbookChars": 274903,
-   "allChars": 284610,
+   "textbookChars": 274910,
+   "allChars": 284617,
    "textbookChunkLength": {
     "min": 602,
-    "p10": 789,
+    "p10": 796,
     "p50": 931,
     "p90": 1034,
     "max": 1114
@@ -167,19 +167,19 @@
   }
  },
  "cards": {
-  "count": 1197,
+  "count": 1449,
   "byType": {
-   "card": 892,
+   "card": 1144,
    "faq": 41,
    "misconception": 24,
    "summary": 240
   },
   "bySource": {
    "ATOMLAB: элементы": 118,
-   "ATOMLAB: вещества": 434,
+   "ATOMLAB: вещества": 478,
    "ATOMLAB: реакции": 153,
    "ATOMLAB: уравнения 10–11": 64,
-   "ATOMLAB: органическая лаборатория": 75,
+   "ATOMLAB: органическая лаборатория": 283,
    "ATOMLAB: таблица растворимости": 26,
    "ATOMLAB: частые вопросы": 41,
    "ATOMLAB: типичные ошибки": 24,
@@ -196,7 +196,7 @@
    "ATOMLAB: учёные": 36,
    "ATOMLAB: алгоритмы решения": 18
   },
-  "chars": 534720
+  "chars": 442323
  },
  "quiz": {
   "count": 3228,
@@ -213,12 +213,12 @@
   }
  },
  "glossary": {
-  "count": 905,
+  "count": 1166,
   "bySource": {
-   "core": 285,
+   "core": 294,
    "element": 118,
-   "compound": 434,
-   "organic": 51,
+   "compound": 478,
+   "organic": 259,
    "class": 17
   },
   "withUz": 882,
@@ -226,14 +226,15 @@
  },
  "files": {
   "kb-corpus-g7.json": 754734,
-  "kb-corpus-g8.json": 608206,
+  "kb-corpus-g8.json": 608363,
   "kb-corpus-g9.json": 674408,
   "kb-corpus-g10.json": 779590,
-  "kb-corpus-g11.json": 584815,
-  "kb-corpus-common.json": 1254611,
+  "kb-corpus-g11.json": 584855,
+  "kb-corpus-common.json": 1163359,
+  "kb-corpus-book.json": 3232162,
   "kb-quiz.json": 1411702,
-  "kb-glossary.json": 109031
+  "kb-glossary.json": 136393
  },
- "totalBytes": 6177097,
+ "totalBytes": 9345566,
  "problems": []
 }

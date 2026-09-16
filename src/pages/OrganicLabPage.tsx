@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { LabDomainTabs } from '../components/lab/LabDomainTabs'
 import { OrganicMoleculeViewer } from '../components/organicLab/OrganicMoleculeViewer'
 import { OrganicNomenclatureMode } from '../components/organicLab/OrganicNomenclatureMode'
@@ -41,6 +41,7 @@ import {
 import type { OrganicDisplayMode, OrganicMoleculeDef } from '../data/organicLab/organicMoleculeTypes'
 import { useLocale } from '../i18n/useLocale'
 import { useT } from '../i18n/useT'
+import { sanitizeBackHref } from '../lab/reactorDeepLink'
 import labStyles from './LaboratoryPage.module.css'
 import styles from './OrganicLabPage.module.css'
 
@@ -80,6 +81,10 @@ export function OrganicLabPage() {
   const { t } = useT()
   const { locale } = useLocale()
   const [params, setParams] = useSearchParams()
+  /** Пришли из интерактивного учебника (src=): ссылка «назад к учебнику» переживает смену урока/режима в URL. */
+  const srcBack = sanitizeBackHref(params.get('src'))
+  const [backHref, setBackHref] = useState(srcBack)
+  if (srcBack && srcBack !== backHref) setBackHref(srcBack)
 
   const initialLesson = useMemo(() => {
     const lessonParam = params.get('lesson')
@@ -272,6 +277,16 @@ export function OrganicLabPage() {
           aria-label={t('organicLab.programAria')}
           data-open={lessonsOpen ? 'true' : undefined}
         >
+          {backHref ? (
+            <Link
+              className={labStyles.backToBook}
+              style={{ position: 'static', alignSelf: 'flex-start', marginBottom: 8 }}
+              to={backHref}
+              data-lab-back-to-book=""
+            >
+              {t('lab.deepLink.backToBook')}
+            </Link>
+          ) : null}
           <div className={styles.domainTabsSlot}>
             <LabDomainTabs active="organic" />
           </div>

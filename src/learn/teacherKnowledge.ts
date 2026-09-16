@@ -209,6 +209,59 @@ async function enrichKbHits(kb: KbModule, query: string, ctx: TeacherKnowledgeCo
       /* без пробы */
     }
   }
+  if (ctx.locale === 'ru') {
+    // r10: «Чем молярная концентрация отличается от процентной?» — определение второго понятия часто в другом §
+    // (§ 15, а не § 18 урока): ищем определение каждой стороны отдельно («процентная концентрация … называется …»).
+    const cmp = /^чем\s+(.+?)\s+отлича\S*\s+от\s+(.+?)[?!.]*$/iu.exec(query.trim().toLowerCase().replace(/ё/g, 'е'))
+    if (cmp) {
+      const a = cmp[1]!.split(/\s+/)
+      let b = cmp[2]!.split(/\s+/)
+      // «… от процентной» — существительное стороны A («концентрация») подразумевается
+      if (b.length === 1 && a.length >= 2 && /(ой|ого|ых|их|ей|ую)$/u.test(b[0]!)) b = [b[0]!, a[a.length - 1]!]
+      for (const side of [a, b]) {
+        const stems = side.filter((w) => w.length >= 4).map((w) => w.slice(0, Math.max(4, w.length - 2)))
+        if (!stems.length) continue
+        try {
+          const probe = await kb.searchKnowledge(`${side.join(' ')} называется это`, { grade, limit: 8, locale: 'ru', types: ['definition', 'summary', 'textbook'] })
+          let added = 0
+          for (const h of probe) {
+            if (added >= 1) break
+            const text = h.text.toLowerCase().replace(/ё/g, 'е')
+            const defines = new RegExp(`${stems.join('\\S*\\s+')}\\S*\\s*[—–-]\\s|называ\\S*\\s+(?:\\S+\\s+){0,2}${stems[0]}`, 'u')
+            if (have.has(h.id) || !stems.every((s) => text.includes(s)) || !defines.test(text)) continue
+            have.add(h.id)
+            out.push(repair({ ...h, score: 0 }))
+            added++
+          }
+        } catch {
+          /* без пробы сравнения */
+        }
+      }
+    }
+    // r10: «Какими свойствами обладает кислород?» — слова «физические свойства» тянут параграф с таким заголовком, а сам
+    // факт («кислород — бесцветный газ без запаха») стоит в другом §: второй запрос — вещество + слова свойств.
+    try {
+      const { detectPropertyQuestion } = await import('./brain/dualMode/bookIndexAnswer')
+      const prop = detectPropertyQuestion(query, 'ru')
+      if (prop) {
+        const words =
+          prop.type === 'chemical' ? 'реагирует взаимодействует горит окисляется' : 'цвет запах газ жидкость твердый плотность растворимость температура плавления'
+        const probe = await kb.searchKnowledge(`${prop.subject} ${words}`, { grade, limit: 8, locale: 'ru', types: ['textbook', 'definition', 'summary', 'card'] })
+        const stems = prop.words.map((w) => w.slice(0, Math.max(4, w.length - 2)))
+        let added = 0
+        for (const h of probe) {
+          if (added >= 3) break
+          const text = h.text.toLowerCase().replace(/ё/g, 'е')
+          if (have.has(h.id) || !stems.every((s) => text.includes(s))) continue
+          have.add(h.id)
+          out.push(repair({ ...h, score: 0 }))
+          added++
+        }
+      }
+    } catch {
+      /* без пробы свойств */
+    }
+  }
   if (WHAT_IS_QUERY_RE.test(query) && (ctx.chapterId || ctx.sectionId)) {
     // ru: только фрагменты, где термин и определяется («Кислоты – сложные вещества …», «… называются кислотами»).
     const term = ctx.locale === 'ru' ? query.toLowerCase().replace(/ё/g, 'е').match(/что так(?:ое|ая|ой|ие)\s+([а-я-]{4,})/u)?.[1] : undefined
@@ -273,6 +326,30 @@ async function searchViaKb(rawQuery: string, ctx: TeacherKnowledgeContext): Prom
     if (i < hits.length && !citations.includes(citation)) citations.push(citation)
     return { title: h.title, text: h.text, source: h.source, citation, score: h.score, type: h.type }
   })
+  // r10: формула/название вещества, продукты реакции, реакции §, «где в учебнике» — фрагменты указателя учебника
+  // (shard 'book', type 'index'; обычный поиск их не возвращает). Добавляются после основных фрагментов, промпт LLM
+  // не меняется; локальный составитель отвечает по ним только при строгом совпадении вещества/реакции/§.
+  try {
+    const { wantsBookIndex } = await import('./brain/dualMode/bookIndexAnswer')
+    const intent = wantsBookIndex(query, ctx.locale)
+    if (intent) {
+      const bookGrade = intent.grade ?? grade
+      // + начальные формы слов («малахита» → «малахит»): стеммер индекса по-разному режет разные падежи
+      const { strictStem } = await import('./brain/dualMode/textStems')
+      const forms = (query.match(/[А-Яа-яЁё]{4,}/g) ?? []).map((w) => strictStem(w)).filter((w) => w.length >= 4)
+      const found = await kb.searchKnowledge(`${query} ${forms.join(' ')}`, { grade: bookGrade, limit: 12, locale: ctx.locale, types: ['index'] })
+      const direct =
+        intent.kind === 'section' && intent.kp && bookGrade ? kb.getChunksById([`book-g${bookGrade}-sec-${intent.kp.replace(/[^0-9a-z]+/gi, '_')}`]) : []
+      const seen = new Set<string>()
+      for (const h of [...direct, ...found]) {
+        if (seen.has(h.id)) continue
+        seen.add(h.id)
+        out.push({ title: h.title, text: h.text, source: h.source, citation: kb.citationFor(h), score: h.score, type: h.type })
+      }
+    }
+  } catch {
+    /* без указателя — обычный ответ */
+  }
   // en/uz: учебники русские — добавляем фразы на языке ученика (переводы тестов) и пары глоссария
   // (после основных фрагментов, чтобы hits[0] и блок промпта не менялись).
   if (ctx.locale !== 'ru') {

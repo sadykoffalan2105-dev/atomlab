@@ -1,6 +1,10 @@
 /** Public contract of the ATOMLAB knowledge base (src/learn/kb). Keep stable: other modules depend on it. */
 
-export type KbChunkType = 'textbook' | 'definition' | 'summary' | 'card' | 'quiz' | 'faq' | 'misconception'
+/**
+ * 'index' (r10): generated textbook index facts (formula and name of a substance, a reaction with its products, the
+ * reactions and substances of a §, where a substance is in the book) — shard 'book'; searched only with types: ['index'].
+ */
+export type KbChunkType = 'textbook' | 'definition' | 'summary' | 'card' | 'quiz' | 'faq' | 'misconception' | 'index'
 export type KbLang = 'ru' | 'en' | 'uz'
 
 export type KbChunk = {

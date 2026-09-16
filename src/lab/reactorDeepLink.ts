@@ -145,8 +145,17 @@ function resolveSpecies(s: EquationSpecies): ResolvedSpecies {
   }
   const compound = compoundByCompositionKey(formulaCompositionKey(counts))
   if (compound) return { kind: 'compound', compound, glowZ: glowZForCounts(counts) }
-  const organic = (counts.C ?? 0) > 0 && (counts.H ?? 0) > 0
-  return { kind: 'missing', organic, formula }
+  return { kind: 'missing', organic: isOrganicFormula(s.formula, counts), formula }
+}
+
+/**
+ * Органическое вещество: есть C и H, и углерод не только в неорганических группах
+ * (гидрокарбонаты «Fe(HCO₃)₂», карбонаты, цианиды «HCN», роданиды «KSCN» — неорганика).
+ */
+export function isOrganicFormula(formula: string, counts: Readonly<Record<string, number>> | null | undefined): boolean {
+  if (!counts || !((counts.C ?? 0) > 0 && (counts.H ?? 0) > 0)) return false
+  const ascii = formula.replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080))
+  return /C(?![a-z])/.test(ascii.replace(/H?CO3|SCN|CN(?![a-z])/g, ''))
 }
 
 /** Наименьший множитель, делающий все коэффициенты целыми (дроби вида 1/2, 3/2, 1/3…). */

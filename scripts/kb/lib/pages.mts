@@ -13,6 +13,7 @@ import path from 'node:path'
 import { countGarbled, fixMixedScript, normalizeText, repairCp1251 } from '../textClean.mjs'
 import {
   dropOcrJunk,
+  enterPage,
   joinLetterSpaced,
   repairCaseNoise,
   repairFormulas,
@@ -225,6 +226,7 @@ export function loadLayoutParagraphs(grade: number): Para[] {
   const running = runningKeys(pages)
   const paras: Para[] = []
   for (const page of pages) {
+    enterPage(grade, page.page)
     const sizes = page.lines.map((l) => l.s).sort((a, b) => a - b)
     const body = sizes[Math.floor(sizes.length / 2)] || 11
     for (const block of orderLines(page)) {
@@ -259,6 +261,7 @@ export function loadLayoutParagraphs(grade: number): Para[] {
       flush()
     }
   }
+  enterPage(null)
   return paras
 }
 
@@ -279,6 +282,7 @@ export function loadOcrParagraphs(): Para[] {
   OCR_PAGE_STATS.length = 0
   for (const f of files) {
     const p = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) as OcrPage
+    enterPage(11, p.page)
     OCR_PAGE_STATS.push({ page: p.page, conf: p.conf, chars: p.text.replace(/\s/g, '').length })
     const allLines = p.paragraphs.flatMap((q) => q.lines)
     const heights = allLines.map((l) => l.b[3] - l.b[1]).sort((a, b) => a - b)
@@ -324,6 +328,7 @@ export function loadOcrParagraphs(): Para[] {
       flush()
     }
   }
+  enterPage(null)
   return paras
 }
 

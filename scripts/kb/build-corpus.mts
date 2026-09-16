@@ -31,7 +31,9 @@ import { SECTION_MAP } from './data/sectionMapG8G9.mts'
 import { appFormulas, buildCards, buildQuizChunks, type CorpusChunk } from './lib/cards.mts'
 import { buildGlossary } from './lib/glossary.mts'
 import { OCR_PAGE_STATS, letterRatio, loadLayoutParagraphs, loadOcrParagraphs, repairJoinedOcr, type Para } from './lib/pages.mts'
-import { addKnownFormulas, capitalizeSentences, knownFormulaCount, parseFormula, segmentGlued } from './lib/textRepair.mts'
+import { addKnownFormulas, capitalizeSentences, knownFormulaCount, parseFormula, registerPageFormulas, segmentGlued } from './lib/textRepair.mts'
+import { INVENTORY_GRADES, inventoryFormulas, inventoryPageFormulas } from './lib/textbookInventory.mts'
+import { buildBookIndex } from './lib/bookIndex.mts'
 import { countGarbled } from './textClean.mjs'
 
 export type { CorpusChunk }
@@ -821,6 +823,10 @@ function writeShard(name: string, chunks: CorpusChunk[], fileName = `kb-corpus-$
 const t0 = Date.now()
 addKnownFormulas(await appFormulas())
 console.log(`[corpus] known formulas from app data: ${knownFormulaCount()}`)
+// r10: formulas printed in the books (verified inventory) — known formulas + same-page prior for the formula repair
+addKnownFormulas(inventoryFormulas())
+for (const g of INVENTORY_GRADES) registerPageFormulas(g, inventoryPageFormulas(g))
+console.log(`[corpus] + textbook inventory formulas: ${knownFormulaCount()}`)
 for (const g of GRADES) {
   const t = Date.now()
   paragraphs(g)
@@ -860,6 +866,14 @@ for (const c of cards) {
   if (allIds.has(c.id)) throw new Error(`card id collides with textbook chunk: ${c.id}`)
 }
 writeShard('common', cards)
+
+// r10: book index (formulas, reactions, § contents, page locations) from the verified textbook inventory —
+// its own shard with its own BM25 statistics (build-index.mts), searched only on request (types: ['index']).
+const bookIndex = await buildBookIndex()
+for (const c of bookIndex) {
+  if (allIds.has(c.id) || cards.some((x) => x.id === c.id)) throw new Error(`book index id collides: ${c.id}`)
+}
+writeShard('book', bookIndex)
 
 const sectionTitles = new Map<string, string>()
 for (const g of [7, 8, 9]) {

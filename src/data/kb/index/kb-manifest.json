@@ -1,55 +1,61 @@
 {
-  "generatedAt": "2026-09-15T21:10:11.852Z",
+  "generatedAt": "2026-09-16T17:16:32.867Z",
   "analyzer": 4,
   "format": 1,
-  "N": 3225,
+  "N": 3477,
   "avg": [
-    3.853,
-    2.864,
-    66.117
+    3.829,
+    2.841,
+    58.257
   ],
   "shards": {
     "common": {
-      "docs": 1197,
-      "terms": 4811,
-      "postingsBytes": 191076,
-      "fileBytes": 1458866
+      "docs": 1449,
+      "terms": 5334,
+      "postingsBytes": 160545,
+      "fileBytes": 1314933
     },
     "g7": {
       "docs": 445,
       "terms": 4643,
       "postingsBytes": 107408,
-      "fileBytes": 962139
+      "fileBytes": 962099
     },
     "g8": {
       "docs": 382,
-      "terms": 2815,
-      "postingsBytes": 78674,
-      "fileBytes": 740159
+      "terms": 2819,
+      "postingsBytes": 78704,
+      "fileBytes": 740376
     },
     "g9": {
       "docs": 408,
       "terms": 3554,
       "postingsBytes": 93941,
-      "fileBytes": 843185
+      "fileBytes": 843149
     },
     "g10": {
       "docs": 461,
       "terms": 4292,
       "postingsBytes": 105742,
-      "fileBytes": 979998
+      "fileBytes": 979990
     },
     "g11": {
       "docs": 332,
-      "terms": 2774,
-      "postingsBytes": 64890,
-      "fileBytes": 698620
+      "terms": 2772,
+      "postingsBytes": 64844,
+      "fileBytes": 698537
+    },
+    "book": {
+      "docs": 3590,
+      "terms": 2338,
+      "postingsBytes": 294423,
+      "fileBytes": 2931704
     }
   },
   "lexicon": {
-    "keys": 4598,
-    "glossaryKeys": 2959,
-    "alignedKeys": 1639,
-    "fileBytes": 230212
+    "keys": 4980,
+    "glossaryKeys": 3345,
+    "alignedKeys": 1635,
+    "fileBytes": 252424
   }
 }

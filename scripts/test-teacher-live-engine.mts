@@ -1004,6 +1004,61 @@ await test('r9: формула с потерянным атомом (OCR) в о�
   const r = composeLocalAnswer({ query: 'Как получают каучук?', hits, lang: 'ru', style: { channel: 'chat', noCheckQuestion: true } })
   assert.ok(!r.text.includes('CH2=C–CH=CH2'), r.text)
 })
+
+/* ------------------------------------------- r10: указатель учебника (формулы, реакции, §, свойства) */
+
+const bookSubstance = (grade: number, name: string, formula: string, kp: string, title: string, page: number): KnowledgeHitLike => ({
+  title: `${name} (${formula}) — где в учебнике Kimyo ${grade}`,
+  type: 'index',
+  citation: `[Kimyo ${grade}, §${kp}, стр. ${page}]`,
+  score: 5,
+  text: `${name} — формула ${formula}.\n${formula} — это ${name.toLowerCase()}.\nВ учебнике «Химия ${grade}» (Kimyo ${grade}) вещество «${name.toLowerCase()}» (${formula}) встречается в § ${kp} «${title}» (стр. ${page}).`,
+})
+const bookReaction = (grade: number, eq: string, reagents: string, products: string, type: string, where: string, page: number): KnowledgeHitLike => ({
+  title: `Реакция ${eq} — Kimyo ${grade}`,
+  type: 'index',
+  citation: `[Kimyo ${grade}, §1, стр. ${page}]`,
+  score: 5,
+  text: `Реакция из учебника «Химия ${grade}»: ${eq}.\nРеагенты: ${reagents}.\nПродукты: ${products}.\nТип: ${type}.\nГде в учебнике «Химия ${grade}» (Kimyo ${grade}): ${where}.`,
+})
+
+await test('r10: формула вещества — из указателя учебника, с § и страницей; соседнее вещество не подставляется', () => {
+  const hits = [
+    bookSubstance(9, 'Гидроксид кальция', 'Ca(OH)₂', '23', 'Кальций и магний', 112),
+    bookSubstance(9, 'Кальций', 'Ca', '23', 'Кальций и магний', 110),
+  ]
+  const r = composeLocalAnswer({ query: 'Какая формула гидроксида кальция?', hits, lang: 'ru', style: { channel: 'chat', noCheckQuestion: true } })
+  assert.match(r.sentences[0] ?? '', /^Гидроксид кальция — формула Ca\(OH\)₂\./u)
+  assert.ok(r.usedCitations?.includes('[Kimyo 9, §23, стр. 112]'), JSON.stringify(r.usedCitations))
+  const only = composeLocalAnswer({ query: 'Какая формула оксида кальция?', hits: [hits[1]!], lang: 'ru', style: { channel: 'chat', noCheckQuestion: true } })
+  assert.ok(!/формула Ca\./u.test(only.text), only.text)
+})
+
+await test('r10: «горение железа в хлоре» — реакция с хлором, а не горение в кислороде', () => {
+  const hits = [
+    bookReaction(9, '3Fe + 2O₂ → Fe₃O₄', 'железо (Fe); кислород (O₂)', 'железная окалина (Fe₃O₄)', 'реакция соединения', '§ 34 «Железо» (стр. 158)', 158),
+    bookReaction(9, '2Fe + 3Cl₂ → 2FeCl₃', 'железо (Fe); хлор (Cl₂)', 'хлорид железа(III) (FeCl₃)', 'реакция соединения', '§ 34 «Железо» (стр. 159)', 159),
+    bookReaction(9, 'Cl + Cl → Cl₂', 'хлор (Cl)', 'хлор (Cl₂)', 'реакция соединения', '§ 21 «Натрий» (стр. 102)', 102),
+  ]
+  const r = composeLocalAnswer({ query: 'Что образуется при горении железа в хлоре?', hits, lang: 'ru', style: { channel: 'chat', noCheckQuestion: true } })
+  assert.match(r.text, /2Fe \+ 3Cl₂ → 2FeCl₃/u)
+  assert.ok(!/Fe₃O₄/u.test(r.text), r.text)
+  const m = composeLocalAnswer({ query: 'Что получится при горении метана?', hits: [
+    bookReaction(10, 'CH₄ + 2O₂ → CO₂ + 2H₂O', 'метан (CH₄); кислород (O₂)', 'углекислый газ (CO₂); вода (H₂O)', 'реакция горения', '§ 2.4 «Алканы» (стр. 48)', 48),
+    bookReaction(10, '2CH₄ → C₂H₂ + 3H₂', 'метан (CH₄)', 'ацетилен (C₂H₂); водород (H₂)', 'реакция разложения', '§ 2.14 «Алкины» (стр. 74)', 74),
+  ], lang: 'ru', style: { channel: 'chat', noCheckQuestion: true } })
+  assert.match(m.text, /CH₄ \+ 2O₂ → CO₂ \+ 2H₂O/u)
+  assert.ok(!/C₂H₂/u.test(m.text), m.text)
+})
+
+await test('r10: «Так как A, B» — не причина, если следствие B не про вопрос', () => {
+  const hits: KnowledgeHitLike[] = [
+    { title: 'Галогены', type: 'textbook', citation: '[Kimyo 8, §28, стр. 121]', score: 1,
+      text: 'Так как фтор, бром, йод, как и хлор, в природе встречаются в основном в виде соединений и их ионы заряжены отрицательно, получение этих галогенов в свободном состоянии осуществляется через окисление их ионов.' },
+  ]
+  const r = composeLocalAnswer({ query: 'Почему фтор — самый активный из галогенов?', hits, lang: 'ru', style: { channel: 'chat', noCheckQuestion: true, wantWhy: true } })
+  assert.ok(!/^Так как фтор, бром, йод, как и хлор, в природе встречаются в основном в виде соединений и их ионы заряжены отрицательно\.$/u.test(r.sentences[0] ?? ''), r.text)
+})
 /* ------------------------------------------------------------------ summary */
 
 console.log('\n# Measured')

@@ -15,7 +15,8 @@
  * Run: npx tsx scripts/teacher-quality/runAnswers.mts --tag baseline && npx tsx scripts/teacher-quality/autoScore.mts --tag baseline
  */
 
-export type GoldType = 'definition' | 'why' | 'how' | 'example' | 'calc' | 'compare'
+/** r10: formula (formula / name of a substance), reaction (products, reactions of a §), location (where in the textbook), property. */
+export type GoldType = 'definition' | 'why' | 'how' | 'example' | 'calc' | 'compare' | 'formula' | 'reaction' | 'location' | 'property'
 export type GoldLocale = 'ru' | 'en' | 'uz'
 
 export interface GoldQuestion {

@@ -117,6 +117,56 @@ async function elementCards(): Promise<CorpusChunk[]> {
   })
 }
 
+/** Sentences of a card text ("(с. 53); 9 класс" and "Д. И. Менделеев" do not split). */
+function cardSentences(text: string): string[] {
+  // never inside «…» (section titles: «Химическая формула. Валентность»)
+  const out: string[] = []
+  let depth = 0
+  let start = 0
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i]
+    if (ch === '«') depth += 1
+    else if (ch === '»') depth = Math.max(0, depth - 1)
+    else if (depth === 0 && /[.!?]/.test(ch) && /\s/.test(text[i + 1] ?? '') && /[А-ЯЁA-Z«]/u.test(text.slice(i + 1).trimStart()[0] ?? '')) {
+      out.push(text.slice(start, i + 1))
+      start = i + 1
+    }
+  }
+  out.push(text.slice(start))
+  return out.map((s) => s.trim()).filter(Boolean)
+}
+
+/**
+ * r10: the catalog now fills textbook substances from category templates ("Применение: Промышленность, лаборатория,
+ * учебные демонстрации.", "Соль — сложное вещество, состоящее из …" in every salt card). A text shared by more than
+ * TEMPLATE_MAX compounds (after replacing the compound's own name and formula) carries no information about the
+ * substance: it is left out of the card, like the synthesis-condition templates.
+ */
+const TEMPLATE_MAX = 5
+function templateKey(text: string, name: string, formula: string): string {
+  let t = text.toLowerCase().replace(/ё/g, 'е')
+  if (formula) t = t.split(formula.toLowerCase()).join('<f>')
+  if (name) t = t.split(name.toLowerCase().replace(/ё/g, 'е')).join('<n>')
+  return t.replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * r10: a generated obtaining step that "synthesises" a compound of three or more elements directly from simple
+ * substances ("Cd + 2O₂ + S → CdSO₄", "4Cu + 2C + 2H₂ + 5O₂ → 2(CuOH)₂CO₃") is chemically false, and an unbalanced
+ * step is wrong as written — neither goes into the knowledge base.
+ */
+async function falseObtainingStep(): Promise<(equation: string) => boolean> {
+  const { parseEquationText, isParsedEquationBalanced } = await import('../../../src/chemistry/equationFormula.ts')
+  return (equation: string) => {
+    const eq = parseEquationText(equation)
+    if (!eq) return false
+    if (!isParsedEquationBalanced(eq)) return true
+    const simple = eq.reactants.every((r) => Object.keys(r.counts ?? {}).length === 1)
+    const complexProduct = eq.products.some((p) => Object.keys(p.counts ?? {}).length >= 3)
+    return simple && complexProduct
+  }
+}
+
 async function compoundCards(): Promise<CorpusChunk[]> {
   const { compoundById } = await import('../../../src/data/compounds.ts')
   const { resolveCompoundName } = await import('../../../src/i18n/compoundNameResolver.ts')
@@ -125,11 +175,42 @@ async function compoundCards(): Promise<CorpusChunk[]> {
   const condKey = (c: (typeof compoundById)[string]) => JSON.stringify(c.synthesisConditionsRu ?? {})
   const condFreq = new Map<string, number>()
   for (const c of Object.values(compoundById)) condFreq.set(condKey(c), (condFreq.get(condKey(c)) ?? 0) + 1)
+  // description sentences / facts / obtaining notes shared by many compounds are templates
+  const textFreq = new Map<string, number>()
+  const bump = (key: string) => textFreq.set(key, (textFreq.get(key) ?? 0) + 1)
+  const factTexts = (c: (typeof compoundById)[string]) => {
+    const facts = c.factsRu as { source?: string; usage?: string; importance?: string } | undefined
+    return [facts?.source, facts?.usage, facts?.importance].filter((x): x is string => !!x)
+  }
+  for (const c of Object.values(compoundById)) {
+    const keys = new Set([
+      ...cardSentences(c.descriptionRu ?? '').map((s) => templateKey(s, c.nameRu, c.formulaUnicode)),
+      ...factTexts(c).map((s) => templateKey(s, c.nameRu, c.formulaUnicode)),
+      ...(c.obtainingStepsRu ?? []).map((s: { note?: string }) => `note:${templateKey(s.note ?? '', c.nameRu, c.formulaUnicode)}`),
+    ])
+    keys.forEach(bump)
+  }
+  const isTemplate = (text: string | undefined, c: (typeof compoundById)[string]) =>
+    !!text && (textFreq.get(templateKey(text, c.nameRu, c.formulaUnicode)) ?? 0) > TEMPLATE_MAX
+  const falseStep = await falseObtainingStep()
   for (const c of Object.values(compoundById)) {
     const en = resolveCompoundName(c.id, 'en') ?? ''
     const uz = resolveCompoundName(c.id, 'uz') ?? ''
-    const facts = c.factsRu as { source?: string; usage?: string; importance?: string } | undefined
-    const steps: readonly { equation?: string; note?: string }[] = c.obtainingStepsRu ?? []
+    const rawFacts = c.factsRu as { source?: string; usage?: string; importance?: string } | undefined
+    const facts = {
+      source: isTemplate(rawFacts?.source, c) ? undefined : rawFacts?.source,
+      usage: isTemplate(rawFacts?.usage, c) ? undefined : rawFacts?.usage,
+      importance: isTemplate(rawFacts?.importance, c) ? undefined : rawFacts?.importance,
+    }
+    const steps: readonly { equation?: string; note?: string }[] = (c.obtainingStepsRu ?? [])
+      .filter((s: { equation?: string }) => !s.equation || !falseStep(s.equation))
+      .map((s: { equation?: string; note?: string }) =>
+        s.note && (textFreq.get(`note:${templateKey(s.note, c.nameRu, c.formulaUnicode)}`) ?? 0) > TEMPLATE_MAX ? { ...s, note: undefined } : s,
+      )
+    // the leading "Name (formula)." of the generated descriptions repeats the card header
+    const description = cardSentences(c.descriptionRu ?? '')
+      .filter((s) => !isTemplate(s, c) && templateKey(s, c.nameRu, c.formulaUnicode).replace(/[\s.()<>nf]/g, '') !== '')
+      .join(' ')
     const cond = c.synthesisConditionsRu
     const condText =
       cond && (condFreq.get(condKey(c)) ?? 0) <= 5
@@ -141,8 +222,9 @@ async function compoundCards(): Promise<CorpusChunk[]> {
           ]).join('; ')
         : ''
     const lines = clean([
-      `${c.nameRu} (${c.formulaUnicode}) — ${CATEGORY_RU[c.category] ?? c.category}.${en ? ` English: ${en}.` : ''}${uz ? ` O'zbekcha: ${uz}.` : ''}`,
-      c.descriptionRu,
+      // unknown categories ("other") are not printed as an English word
+      `${c.nameRu} (${c.formulaUnicode})${CATEGORY_RU[c.category] ? ` — ${CATEGORY_RU[c.category]}` : ''}.${en ? ` English: ${en}.` : ''}${uz ? ` O'zbekcha: ${uz}.` : ''}`,
+      description,
       facts?.source ? `Где встречается / источник: ${facts.source}` : '',
       facts?.usage ? `Применение: ${facts.usage}` : '',
       facts?.importance ? `Значение: ${facts.importance}` : '',

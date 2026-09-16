@@ -27,6 +27,8 @@ const IMPORTERS: Record<ShardName | 'lexicon', () => Promise<JsonModule>> = {
   g9: () => import('../../data/kb/index/kb-index-g9.json'),
   g10: () => import('../../data/kb/index/kb-index-g10.json'),
   g11: () => import('../../data/kb/index/kb-index-g11.json'),
+  // r10: textbook index (formulas, reactions, § contents, pages) — loaded on the first request for types: ['index']
+  book: () => import('../../data/kb/index/kb-index-book.json'),
 }
 
 const GRADE_SHARDS: ShardName[] = ['g7', 'g8', 'g9', 'g10', 'g11']
@@ -74,11 +76,12 @@ function idle(fn: () => void) {
 function scheduleBackground(grade: number | undefined) {
   if (backgroundScheduled) return
   backgroundScheduled = true
-  const order = [...GRADE_SHARDS].sort((a, b) => {
+  const order: ShardName[] = [...GRADE_SHARDS].sort((a, b) => {
     const ga = Number(a.slice(1))
     const gb = Number(b.slice(1))
     return grade == null ? ga - gb : Math.abs(ga - grade) - Math.abs(gb - grade)
   })
+  order.push('book') // r10: textbook index last
   const next = () => {
     const name = order.shift()
     if (!name) return
@@ -98,7 +101,7 @@ export async function preloadKnowledge(opts: { grade?: number } = {}): Promise<v
     await Promise.all([load('lexicon'), load('common'), load(own)])
     scheduleBackground(opts.grade)
   } else {
-    await Promise.all([load('lexicon'), load('common'), ...GRADE_SHARDS.map((g) => load(g))])
+    await Promise.all([load('lexicon'), load('common'), load('book'), ...GRADE_SHARDS.map((g) => load(g))])
   }
 }
 
@@ -109,7 +112,13 @@ export async function preloadKnowledge(opts: { grade?: number } = {}): Promise<v
 export async function searchKnowledge(query: string, opts: KbSearchOptions = {}): Promise<KbHit[]> {
   if (!query.trim()) return []
   await preloadKnowledge({ grade: opts.grade })
+  if (opts.types?.includes('index')) await load('book')
   return engine.search(query, opts)
+}
+
+/** Load the textbook index shard (types: ['index']) — searchKnowledge does it on request; getChunksById needs it loaded. */
+export function preloadBookIndex(): Promise<void> {
+  return load('book')
 }
 
 /** Chunks by id from the already loaded shards (neighbour chunks of a hit: "g9-p17-t01" → "g9-p17-t02"). */
