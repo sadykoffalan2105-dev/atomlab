@@ -7,6 +7,8 @@ import { getMolecularGeometryOrNull } from '../chemistry/catalogGeometryOverride
 import { buildSignatureMolecule } from '../chemistry/placeholderMolecule'
 import type { CompoundCategory, CompoundDef, RawCompoundDef } from '../types/chemistry'
 import { INORGANIC_RAW } from './inorganicCompounds.data'
+import { TEXTBOOK_EXTRA_RAW } from './textbookCompounds.data'
+import { isTextbookCompoundId } from './textbook/catalogWhitelist'
 
 function accentForCategory(cat: CompoundCategory): string {
   if (cat === 'oxide') return '#5ad8ff'
@@ -241,10 +243,13 @@ const handRaw: RawCompoundDef[] = [
   },
 ]
 
-const mergedRaw: RawCompoundDef[] = [...handRaw, ...INORGANIC_RAW]
+const mergedRaw: RawCompoundDef[] = [...handRaw, ...INORGANIC_RAW, ...TEXTBOOK_EXTRA_RAW]
+/** Скрипт build-whitelist.mts выставляет флаг, чтобы сверять учебники с полным (неотфильтрованным) набором. */
+const keepAll = (globalThis as { __ATOMLAB_CATALOG_ALL__?: boolean }).__ATOMLAB_CATALOG_ALL__ === true
 const seenComp = new Set<string>()
 const dedupedRaw: RawCompoundDef[] = []
 for (const r of mergedRaw) {
+  if (!keepAll && !isTextbookCompoundId(r.id)) continue
   const ck = compositionKey(r.composition)
   if (seenComp.has(ck)) continue
   seenComp.add(ck)

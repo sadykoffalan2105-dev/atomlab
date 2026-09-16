@@ -566,6 +566,25 @@ export const messagesRu = {
   'periodic.colorModeTitle': 'Раскраска ячеек',
   'periodic.colorModeBlock': 'По блокам',
   'periodic.colorModeCategory': 'По классам',
+  'lab.deepLink.loaded': '{title}: {equation}. Уравнение уже в реакторе — запустите синтез.',
+  'lab.deepLink.loadedBalance': '{title}: вещества уже в реакторе. Уравняйте реакцию и запустите синтез.',
+  'lab.deepLink.conditions': 'Условия: {conditions}.',
+  'lab.deepLink.scientificRoute': 'Научный маршрут: {title}. {equation} — можно запускать синтез.',
+  'lab.deepLink.backToBook': '← назад к учебнику',
+  'lab.deepLink.unsupported.ionic':
+    'Ионное уравнение нельзя загрузить в реактор: запишите реакцию в молекулярном виде.',
+  'lab.deepLink.unsupported.scheme':
+    'Эту запись нельзя загрузить в реактор: это схема, цепочка превращений или нераспознанный текст.',
+  'lab.deepLink.unsupported.unknownSubstance': 'Реакцию нельзя загрузить: в каталоге лаборатории нет вещества {formulas}.',
+  'lab.deepLink.unsupported.organic':
+    'Реакцию нельзя загрузить: {formulas} — органическое вещество, откройте органическую лабораторию.',
+  'lab.deepLink.unsupported.noCompoundProduct':
+    'Реакцию нельзя загрузить: среди продуктов нет сложного вещества из каталога.',
+  'lab.deepLink.unsupported.tooManyTerms':
+    'Реакцию нельзя загрузить: слишком много веществ (до 8 реагентов и 4 продуктов, числа до 9999).',
+  'lab.deepLink.unsupported.unbalanced': 'Реакцию нельзя загрузить: уравнение в ссылке не уравнено ({details}).',
+  'reactor.products': 'Продукты',
+  'catalog.rx.openLab': 'Открыть в лаборатории',
 } as const
 
 export type MessageKey = keyof typeof messagesRu

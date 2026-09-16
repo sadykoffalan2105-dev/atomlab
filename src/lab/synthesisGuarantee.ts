@@ -6,10 +6,11 @@ import {
   type ReactorValidationErrorCode,
 } from '../chemistry/reactorEquationBalance'
 import {
-  hasScientificReactorRecipe,
+  getScientificReactorRecipe,
   isScientificEquationBalanced,
   scientificSyntheticZSlots,
   type ReactorCoProductTerm,
+  type ScientificReactorRecipe,
 } from '../chemistry/scientificReactorRecipes'
 import { scientificSynthesisWatchdogMs } from './scientificSynthesis/clo2ScenarioTiming'
 import { synthesisLaunchWatchdogMs } from './synthesisLaunchTiming'
@@ -104,6 +105,8 @@ export function prepareGuaranteedSynthesisRun(input: {
   productCoeff: number
   compoundById: Readonly<Record<string, CompoundDef>>
   coProducts?: readonly ReactorCoProductTerm[]
+  /** Рецепт, собранный из ссылки (учебник / каталог реакций); иначе статическая таблица. */
+  recipe?: ScientificReactorRecipe | null
 }): PrepareGuaranteedResult {
   const { leftTerms, productId, productCoeff, compoundById, coProducts = [] } = input
   if (!productId) {
@@ -115,7 +118,11 @@ export function prepareGuaranteedSynthesisRun(input: {
     return { ok: false, code: 'NO_PRODUCT' }
   }
 
-  if (hasScientificReactorRecipe(productId)) {
+  const recipe =
+    input.recipe && input.recipe.productId === productId
+      ? input.recipe
+      : getScientificReactorRecipe(productId)
+  if (recipe) {
     if (
       !isScientificEquationBalanced(
         leftTerms,
@@ -123,6 +130,7 @@ export function prepareGuaranteedSynthesisRun(input: {
         catalogCompound,
         productCoeff,
         compoundById,
+        recipe,
       )
     ) {
       return { ok: false, code: 'BALANCE_MISMATCH' }

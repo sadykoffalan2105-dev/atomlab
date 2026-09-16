@@ -36,6 +36,51 @@
   isolation: isolate;
 }
 
+/* «← назад к учебнику» после перехода по ссылке с src=. Слева, на одной линии с .rightHud. */
+.backToBook {
+  position: fixed;
+  top: calc(var(--app-header-h, 3.4rem) + 14px);
+  left: 16px;
+  z-index: 70;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--lt-radius-pill, 999px);
+  border: 1px solid var(--lt-border-strong, rgba(148, 170, 230, 0.35));
+  background: rgba(10, 14, 29, 0.92);
+  color: var(--lt-text, #eef2ff);
+  font-family: var(--lt-font);
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.backToBook:hover {
+  border-color: rgba(167, 139, 250, 0.6);
+  background: rgba(24, 18, 52, 0.95);
+}
+
+.backToBook:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+/* Телефон: верх занят .rightHud — ссылка строкой ниже. */
+@media (max-width: 720px) {
+  .backToBook {
+    top: calc(var(--app-header-h, 3.4rem) + 68px);
+    left: 12px;
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+}
+
 /* Карточка элемента (клик по клетке таблицы): слева сверху, ниже линии шапки.
  * .rightHud справа — не пересекаемся; высота ограничена холстом, скролл внутри. */
 .elementInfoDock {

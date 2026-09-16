@@ -713,6 +713,11 @@
   transform: translateY(1px);
 }
 
+/* Та же кнопка ссылкой «Открыть в лаборатории». */
+a.schoolRxBtn {
+  text-decoration: none;
+}
+
 .schoolRxBtn:focus-visible {
   outline: none;
   box-shadow: var(--lt-ring);

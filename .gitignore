@@ -39,3 +39,6 @@ scripts/.g7-quiz-visual-catalog.json
 
 # Local Netlify folder
 .netlify
+
+# Черновые половины инвентаризации учебников (сводятся merge-parts.mjs)
+src/data/textbook/*-part*.json

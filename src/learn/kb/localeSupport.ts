@@ -301,6 +301,17 @@ function coreHitsFor(qWords: readonly string[], locale: 'en' | 'uz'): LocaleHit[
   return out
 }
 
+/**
+ * Russian terms of the question for the KB search: «What is the difference between a homogeneous and a heterogeneous
+ * mixture?» → ['неоднородная смесь', 'смесь']. The textbooks are Russian, so the query has to carry Russian words.
+ */
+export async function ruQueryTerms(query: string, locale: 'en' | 'uz'): Promise<string[]> {
+  const glossary = await loadGlossary()
+  const qWords = words(query)
+  const found = glossary.filter((g) => (g[locale] ?? []).some((alt) => phraseIn(alt, qWords))).map((g) => g.ru)
+  return [...new Set(found)].sort((a, b) => b.length - a.length).slice(0, 4)
+}
+
 export async function localeHitsFor(
   query: string,
   locale: 'en' | 'uz',

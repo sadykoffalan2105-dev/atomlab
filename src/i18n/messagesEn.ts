@@ -568,4 +568,23 @@ export const messagesEn: Record<MessageKey, string> = {
   'periodic.colorModeTitle': 'Cell colors',
   'periodic.colorModeBlock': 'By block',
   'periodic.colorModeCategory': 'By category',
+  'lab.deepLink.loaded': '{title}: {equation}. The equation is in the reactor — run the synthesis.',
+  'lab.deepLink.loadedBalance': '{title}: the substances are in the reactor. Balance the equation and run the synthesis.',
+  'lab.deepLink.conditions': 'Conditions: {conditions}.',
+  'lab.deepLink.scientificRoute': 'Scientific route: {title}. {equation} — ready to run the synthesis.',
+  'lab.deepLink.backToBook': '← back to the textbook',
+  'lab.deepLink.unsupported.ionic':
+    'An ionic equation cannot be loaded into the reactor: write the reaction in molecular form.',
+  'lab.deepLink.unsupported.scheme':
+    'This cannot be loaded into the reactor: it is a general scheme, a chain of reactions, or unreadable text.',
+  'lab.deepLink.unsupported.unknownSubstance': 'This reaction cannot be loaded: the lab catalog has no {formulas}.',
+  'lab.deepLink.unsupported.organic':
+    'This reaction cannot be loaded: {formulas} is organic — open it in the organic lab.',
+  'lab.deepLink.unsupported.noCompoundProduct':
+    'This reaction cannot be loaded: none of the products is a compound from the catalog.',
+  'lab.deepLink.unsupported.tooManyTerms':
+    'This reaction cannot be loaded: too many substances (up to 8 reagents and 4 products, numbers up to 9999).',
+  'lab.deepLink.unsupported.unbalanced': 'This reaction cannot be loaded: the equation is not balanced ({details}).',
+  'reactor.products': 'Products',
+  'catalog.rx.openLab': 'Open in the lab',
 }

@@ -1,0 +1,6307 @@
+{
+ "grade": 11,
+ "source": "public/textbooks/kimyo-11-ru.pdf (Kimyo 11, рус. изд.; нет текстового слоя — OCR + визуальная проверка страниц)",
+ "generatedAt": "2026-09-16T08:42:16.616Z",
+ "notes": [
+  "Уникальные вещества учебника 11 класса (ключ — формула; вещества без формулы — по названию). Ионы вынесены в ions.",
+  "sections — id разделов (kb-sections.json) в порядке книги; roles — роли по всем разделам; firstPage — первая страница упоминания.",
+  "catalogId — id в compoundById (compounds.ts / inorganicCompounds.data.ts) или в organicMoleculeRegistry; простые вещества в каталоге отсутствуют (catalogId: null, elementSymbol)."
+ ],
+ "stats": {
+  "substances": 236,
+  "withFormula": 227,
+  "nameOnly": 9,
+  "simple": 44,
+  "mappedToCatalog": 135,
+  "compoundsNotInCatalog": 48,
+  "ions": 25
+ },
+ "substances": [
+  {
+   "formula": "Sc(OH)3",
+   "formulaUnicode": "Sc(OH)₃",
+   "nameRu": "гидроксид скандия",
+   "kind": "base",
+   "catalogId": null,
+   "sections": [
+    "c1-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 10,
+   "pages": [
+    10
+   ]
+  },
+  {
+   "formula": "Sc2O3",
+   "formulaUnicode": "Sc₂O₃",
+   "nameRu": "оксид скандия",
+   "kind": "oxide",
+   "catalogId": null,
+   "sections": [
+    "c1-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 10,
+   "pages": [
+    10
+   ]
+  },
+  {
+   "formula": "Cs2O",
+   "formulaUnicode": "Cs₂O",
+   "nameRu": "оксид цезия",
+   "kind": "oxide",
+   "catalogId": null,
+   "sections": [
+    "c1-s02",
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 12,
+   "pages": [
+    12,
+    30
+   ]
+  },
+  {
+   "formula": "K2O",
+   "formulaUnicode": "K₂O",
+   "nameRu": "оксид калия",
+   "kind": "oxide",
+   "catalogId": "k2o",
+   "sections": [
+    "c1-s02",
+    "c4-s05"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 12,
+   "pages": [
+    12,
+    77,
+    83
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Li2O",
+   "formulaUnicode": "Li₂O",
+   "nameRu": "оксид лития",
+   "kind": "oxide",
+   "catalogId": "li2o",
+   "sections": [
+    "c1-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 12,
+   "pages": [
+    12
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Na2O",
+   "formulaUnicode": "Na₂O",
+   "nameRu": "оксид натрия",
+   "kind": "oxide",
+   "catalogId": "na2o",
+   "sections": [
+    "c1-s02",
+    "c4-s05"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 12,
+   "pages": [
+    12,
+    77
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Rb2O",
+   "formulaUnicode": "Rb₂O",
+   "nameRu": "оксид рубидия",
+   "kind": "oxide",
+   "catalogId": null,
+   "sections": [
+    "c1-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 12,
+   "pages": [
+    12
+   ]
+  },
+  {
+   "formula": "XeF4",
+   "formulaUnicode": "XeF₄",
+   "nameRu": "тетрафторид ксенона",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c1-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 15,
+   "pages": [
+    15
+   ]
+  },
+  {
+   "formula": "H2O",
+   "formulaUnicode": "H₂O",
+   "nameRu": "вода (изотопные молекулы HH17O, DD17O, TT18O и др.)",
+   "kind": "oxide",
+   "catalogId": "h2o",
+   "sections": [
+    "c1-s03",
+    "c1-s04",
+    "c2-s01",
+    "c2-s02",
+    "c3-s01",
+    "c3-s02",
+    "c3-s03",
+    "c4-s01",
+    "c4-s02",
+    "c4-s03",
+    "c4-s04",
+    "c4-s05",
+    "c4-s07",
+    "c4-s08",
+    "c5-s01",
+    "c5-s02",
+    "c5-s03",
+    "c6-s01",
+    "c6-s02",
+    "c6-s03",
+    "c7-s01",
+    "c7-s02",
+    "c7-s03",
+    "c8-s01",
+    "c8-s02",
+    "c8-s03"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 21,
+   "pages": [
+    21,
+    24,
+    27,
+    29,
+    30,
+    31,
+    36,
+    52,
+    53,
+    55,
+    58,
+    62,
+    66,
+    70,
+    74,
+    77,
+    86,
+    87,
+    88,
+    90,
+    92,
+    98,
+    99,
+    100,
+    106,
+    107,
+    108,
+    109,
+    112,
+    113,
+    117,
+    119,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133,
+    135,
+    136,
+    137,
+    138,
+    141,
+    142,
+    143,
+    145,
+    146,
+    147,
+    148,
+    149,
+    150,
+    151,
+    152,
+    153
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "вода",
+    "вода (водяные пары)",
+    "дистиллированная вода",
+    "вода (HOH)",
+    "вода (дистиллированная)"
+   ]
+  },
+  {
+   "formula": "Na3PO4",
+   "formulaUnicode": "Na₃PO₄",
+   "nameRu": "фосфат натрия",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c1-s03",
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 21,
+   "pages": [
+    21,
+    144
+   ]
+  },
+  {
+   "formula": "NaI",
+   "formulaUnicode": "NaI",
+   "nameRu": "иодид натрия (натриевая соль йода-131)",
+   "kind": "salt",
+   "catalogId": "salt_na_i",
+   "sections": [
+    "c1-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 21,
+   "pages": [
+    21
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "CH4",
+   "formulaUnicode": "CH₄",
+   "nameRu": "метан",
+   "kind": "organic",
+   "catalogId": "methane",
+   "sections": [
+    "c1-s04",
+    "c2-s02",
+    "c2-s04",
+    "c3-s01",
+    "c4-s02",
+    "c5-s01",
+    "c5-s02",
+    "c5-s03",
+    "c6-s03"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 24,
+   "pages": [
+    24,
+    30,
+    37,
+    38,
+    49,
+    50,
+    53,
+    65,
+    69,
+    103,
+    104,
+    109,
+    111,
+    112,
+    123,
+    124,
+    125
+   ],
+   "catalogSource": "organic"
+  },
+  {
+   "formula": "F2",
+   "formulaUnicode": "F₂",
+   "nameRu": "фтор",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c2-s02",
+    "c2-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 24,
+   "pages": [
+    24,
+    35,
+    40
+   ],
+   "elementSymbol": "F"
+  },
+  {
+   "formula": "H2",
+   "formulaUnicode": "H₂",
+   "nameRu": "водород",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c2-s01",
+    "c2-s02",
+    "c2-s03",
+    "c2-s04",
+    "c4-s02",
+    "c4-s05",
+    "c5-s01",
+    "c5-s02",
+    "c5-s03",
+    "c6-s01",
+    "c6-s02",
+    "c6-s03",
+    "c8-s01",
+    "c8-s02",
+    "c8-s03"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 24,
+   "pages": [
+    24,
+    31,
+    34,
+    38,
+    42,
+    50,
+    65,
+    69,
+    79,
+    99,
+    101,
+    102,
+    104,
+    109,
+    110,
+    112,
+    117,
+    118,
+    120,
+    121,
+    123,
+    124,
+    125,
+    126,
+    141,
+    142,
+    143,
+    146,
+    147,
+    149,
+    152
+   ],
+   "elementSymbol": "H"
+  },
+  {
+   "formula": "N2",
+   "formulaUnicode": "N₂",
+   "nameRu": "азот",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c2-s01",
+    "c2-s02",
+    "c2-s03",
+    "c2-s04",
+    "c4-s02",
+    "c5-s01",
+    "c5-s02",
+    "c6-s01",
+    "c6-s02",
+    "c6-s03"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 24,
+   "pages": [
+    24,
+    30,
+    33,
+    35,
+    38,
+    40,
+    49,
+    65,
+    69,
+    101,
+    102,
+    104,
+    108,
+    109,
+    112,
+    118,
+    120,
+    125,
+    126
+   ],
+   "elementSymbol": "N"
+  },
+  {
+   "formula": "O2",
+   "formulaUnicode": "O₂",
+   "nameRu": "кислород",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c2-s02",
+    "c2-s03",
+    "c2-s04",
+    "c4-s02",
+    "c5-s01",
+    "c5-s02",
+    "c5-s03",
+    "c6-s01",
+    "c6-s02",
+    "c6-s03",
+    "c7-s01",
+    "c8-s01",
+    "c8-s02",
+    "c8-s03"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 24,
+   "pages": [
+    24,
+    30,
+    35,
+    38,
+    39,
+    46,
+    66,
+    98,
+    99,
+    101,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    112,
+    113,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    125,
+    126,
+    131,
+    142,
+    143,
+    144,
+    145,
+    146,
+    148,
+    149,
+    151,
+    152,
+    153
+   ],
+   "elementSymbol": "O"
+  },
+  {
+   "formula": "Cl2",
+   "formulaUnicode": "Cl₂",
+   "nameRu": "хлор",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c2-s01",
+    "c2-s02",
+    "c2-s03",
+    "c5-s01",
+    "c5-s02",
+    "c6-s02",
+    "c6-s03",
+    "c8-s01",
+    "c8-s02"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 25,
+   "pages": [
+    25,
+    33,
+    34,
+    40,
+    104,
+    107,
+    109,
+    118,
+    120,
+    121,
+    122,
+    123,
+    125,
+    139,
+    140,
+    141,
+    142,
+    143,
+    144,
+    146,
+    147
+   ],
+   "elementSymbol": "Cl"
+  },
+  {
+   "formula": "H2S",
+   "formulaUnicode": "H₂S",
+   "nameRu": "сероводород",
+   "kind": "acid",
+   "catalogId": "h2s",
+   "sections": [
+    "c1-s04",
+    "c2-s03",
+    "c3-s01",
+    "c3-s02",
+    "c6-s02",
+    "c7-s03",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 25,
+   "pages": [
+    25,
+    30,
+    45,
+    53,
+    55,
+    120,
+    121,
+    138,
+    142
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "сероводородная кислота",
+    "сульфид водорода"
+   ]
+  },
+  {
+   "formula": "H2Se",
+   "formulaUnicode": "H₂Se",
+   "nameRu": "селеноводород",
+   "kind": "acid",
+   "catalogId": null,
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 25,
+   "pages": [
+    25
+   ]
+  },
+  {
+   "formula": "H2SO4",
+   "formulaUnicode": "H₂SO₄",
+   "nameRu": "серная кислота",
+   "kind": "acid",
+   "catalogId": "h2so4",
+   "sections": [
+    "c1-s04",
+    "c2-s03",
+    "c3-s01",
+    "c3-s02",
+    "c4-s02",
+    "c4-s06",
+    "c4-s07",
+    "c4-s08",
+    "c4-s09",
+    "c4-s10",
+    "c5-s01",
+    "c6-s01",
+    "c6-s02",
+    "c7-s01",
+    "c7-s02",
+    "c7-s03",
+    "c8-s01",
+    "c8-s02",
+    "c8-s03"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 25,
+   "pages": [
+    25,
+    41,
+    52,
+    53,
+    54,
+    55,
+    69,
+    85,
+    88,
+    89,
+    91,
+    92,
+    94,
+    97,
+    98,
+    100,
+    113,
+    119,
+    127,
+    129,
+    131,
+    132,
+    134,
+    135,
+    136,
+    137,
+    138,
+    142,
+    143,
+    145,
+    148,
+    149,
+    150
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "HBr",
+   "formulaUnicode": "HBr",
+   "nameRu": "бромоводород",
+   "kind": "acid",
+   "catalogId": "hbr",
+   "sections": [
+    "c1-s04",
+    "c3-s01",
+    "c6-s02",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 25,
+   "pages": [
+    25,
+    53,
+    121,
+    142
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "бромоводородная кислота",
+    "бромид водорода"
+   ]
+  },
+  {
+   "formula": "HCl",
+   "formulaUnicode": "HCl",
+   "nameRu": "хлороводород",
+   "kind": "acid",
+   "catalogId": "hcl",
+   "sections": [
+    "c1-s04",
+    "c2-s02",
+    "c3-s01",
+    "c3-s02",
+    "c3-s03",
+    "c4-s02",
+    "c4-s07",
+    "c4-s08",
+    "c5-s01",
+    "c5-s02",
+    "c5-s03",
+    "c6-s01",
+    "c6-s02",
+    "c6-s03",
+    "c7-s02",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 25,
+   "pages": [
+    25,
+    30,
+    36,
+    52,
+    53,
+    55,
+    58,
+    65,
+    69,
+    86,
+    87,
+    89,
+    98,
+    103,
+    104,
+    107,
+    109,
+    111,
+    113,
+    118,
+    120,
+    121,
+    122,
+    123,
+    134,
+    142,
+    144
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "соляная кислота",
+    "хлороводородная кислота",
+    "хлороводород (соляная кислота)",
+    "хлороводород (в книге: «соляная кислота»)",
+    "хлористоводородная кислота"
+   ]
+  },
+  {
+   "formula": "HF",
+   "formulaUnicode": "HF",
+   "nameRu": "фтороводород",
+   "kind": "acid",
+   "catalogId": "hf",
+   "sections": [
+    "c1-s04",
+    "c3-s01",
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 25,
+   "pages": [
+    25,
+    30,
+    53,
+    54,
+    142
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "фтороводородная кислота"
+   ]
+  },
+  {
+   "formula": "HI",
+   "formulaUnicode": "HI",
+   "nameRu": "иодоводород (в книге HJ)",
+   "kind": "acid",
+   "catalogId": "hi",
+   "sections": [
+    "c1-s04",
+    "c3-s01",
+    "c5-s01",
+    "c7-s01",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 25,
+   "pages": [
+    25,
+    53,
+    104,
+    131,
+    142,
+    144
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "иодоводородная кислота (в книге HJ)",
+    "йодоводород",
+    "йодоводород (в книге: HJ)",
+    "йодоводородная кислота"
+   ]
+  },
+  {
+   "formula": "NH3",
+   "formulaUnicode": "NH₃",
+   "nameRu": "аммиак",
+   "kind": "other",
+   "catalogId": "nh3",
+   "sections": [
+    "c1-s04",
+    "c2-s02",
+    "c2-s04",
+    "c3-s02",
+    "c4-s02",
+    "c5-s01",
+    "c5-s02",
+    "c5-s03",
+    "c6-s01",
+    "c6-s02",
+    "c6-s03"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 25,
+   "pages": [
+    25,
+    29,
+    30,
+    36,
+    49,
+    50,
+    56,
+    65,
+    69,
+    101,
+    104,
+    108,
+    109,
+    111,
+    112,
+    118,
+    120,
+    125,
+    126
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Hg",
+   "formulaUnicode": "Hg",
+   "nameRu": "ртуть",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 26,
+   "pages": [
+    26,
+    141,
+    143
+   ],
+   "elementSymbol": "Hg"
+  },
+  {
+   "formula": "Na2SO4",
+   "formulaUnicode": "Na₂SO₄",
+   "nameRu": "сульфат натрия",
+   "kind": "salt",
+   "catalogId": "salt_na_so4",
+   "sections": [
+    "c1-s04",
+    "c2-s01",
+    "c2-s02",
+    "c3-s01",
+    "c3-s02",
+    "c3-s03",
+    "c4-s02",
+    "c4-s03",
+    "c4-s04",
+    "c4-s05",
+    "c4-s06",
+    "c4-s07",
+    "c4-s10",
+    "c5-s01",
+    "c8-s03"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 26,
+   "pages": [
+    26,
+    33,
+    38,
+    54,
+    57,
+    61,
+    69,
+    73,
+    77,
+    81,
+    83,
+    84,
+    88,
+    96,
+    97,
+    100,
+    150,
+    154
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "NaOH",
+   "formulaUnicode": "NaOH",
+   "nameRu": "гидроксид натрия",
+   "kind": "base",
+   "catalogId": "naoh",
+   "sections": [
+    "c1-s04",
+    "c2-s03",
+    "c3-s01",
+    "c3-s03",
+    "c4-s05",
+    "c4-s06",
+    "c4-s07",
+    "c4-s10",
+    "c5-s01",
+    "c6-s01",
+    "c7-s01"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 26,
+   "pages": [
+    26,
+    43,
+    52,
+    53,
+    54,
+    59,
+    77,
+    85,
+    88,
+    97,
+    103,
+    113,
+    131
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "SiO2",
+   "formulaUnicode": "SiO₂",
+   "nameRu": "кварц",
+   "kind": "oxide",
+   "catalogId": "sio2",
+   "sections": [
+    "c1-s04",
+    "c2-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 27,
+   "pages": [
+    27,
+    45
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "оксид кремния (IV)"
+   ]
+  },
+  {
+   "formula": "NaCl",
+   "formulaUnicode": "NaCl",
+   "nameRu": "хлорид натрия",
+   "kind": "salt",
+   "catalogId": "nacl",
+   "sections": [
+    "c1-s04",
+    "c3-s01",
+    "c3-s02",
+    "c3-s03",
+    "c4-s01",
+    "c4-s02",
+    "c4-s03",
+    "c4-s04",
+    "c4-s05",
+    "c4-s07",
+    "c4-s08",
+    "c5-s01",
+    "c5-s03",
+    "c6-s01",
+    "c8-s01",
+    "c8-s02"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 28,
+   "pages": [
+    28,
+    51,
+    53,
+    54,
+    61,
+    62,
+    65,
+    69,
+    73,
+    77,
+    80,
+    83,
+    88,
+    91,
+    103,
+    112,
+    113,
+    140,
+    141,
+    149
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "поваренная соль",
+    "хлорид натрия (расплав)"
+   ]
+  },
+  {
+   "formula": "Al2(Cr2O7)3",
+   "formulaUnicode": "Al₂(Cr₂O₇)₃",
+   "nameRu": "дихромат алюминия",
+   "kind": "salt",
+   "catalogId": "salt_al_cr2o7",
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 29,
+   "pages": [
+    29
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Al4(P2O7)3",
+   "formulaUnicode": "Al₄(P₂O₇)₃",
+   "nameRu": "пирофосфат алюминия",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 29,
+   "pages": [
+    29
+   ]
+  },
+  {
+   "formula": "CaO",
+   "formulaUnicode": "CaO",
+   "nameRu": "оксид кальция",
+   "kind": "oxide",
+   "catalogId": "cao",
+   "sections": [
+    "c1-s04",
+    "c2-s03",
+    "c6-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 29,
+   "pages": [
+    29,
+    30,
+    40,
+    121
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "CsF",
+   "formulaUnicode": "CsF",
+   "nameRu": "фторид цезия",
+   "kind": "salt",
+   "catalogId": "salt_cs_f",
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 29,
+   "pages": [
+    29
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "KCl",
+   "formulaUnicode": "KCl",
+   "nameRu": "хлорид калия",
+   "kind": "salt",
+   "catalogId": "salt_k_cl",
+   "sections": [
+    "c1-s04",
+    "c3-s01",
+    "c3-s03",
+    "c4-s02",
+    "c4-s03",
+    "c4-s04",
+    "c6-s01",
+    "c7-s01",
+    "c8-s01",
+    "c8-s02"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 29,
+   "pages": [
+    29,
+    52,
+    61,
+    65,
+    71,
+    73,
+    74,
+    77,
+    113,
+    129,
+    131,
+    132,
+    142,
+    144,
+    146,
+    147
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "MgI2",
+   "formulaUnicode": "MgI₂",
+   "nameRu": "иодид магния",
+   "kind": "salt",
+   "catalogId": "salt_mg_i",
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 29,
+   "pages": [
+    29
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "NaBr",
+   "formulaUnicode": "NaBr",
+   "nameRu": "бромид натрия",
+   "kind": "salt",
+   "catalogId": "salt_na_br",
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 29,
+   "pages": [
+    29
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "PH3",
+   "formulaUnicode": "PH₃",
+   "nameRu": "фосфин",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 29,
+   "pages": [
+    29,
+    30
+   ]
+  },
+  {
+   "formula": "S8",
+   "formulaUnicode": "S₈",
+   "nameRu": "сера (молекула S8)",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c2-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 29,
+   "pages": [
+    29,
+    35
+   ],
+   "aliases": [
+    "сера (пары, молекула S8)"
+   ],
+   "elementSymbol": "S"
+  },
+  {
+   "formula": "SO2",
+   "formulaUnicode": "SO₂",
+   "nameRu": "оксид серы (IV)",
+   "kind": "oxide",
+   "catalogId": "so2",
+   "sections": [
+    "c1-s04",
+    "c2-s03",
+    "c2-s04",
+    "c4-s05",
+    "c5-s01",
+    "c6-s01",
+    "c6-s02",
+    "c6-s03",
+    "c7-s01"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 29,
+   "pages": [
+    29,
+    30,
+    39,
+    50,
+    77,
+    83,
+    100,
+    113,
+    118,
+    119,
+    120,
+    122,
+    123,
+    126,
+    131,
+    132
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "оксид серы(IV)"
+   ]
+  },
+  {
+   "formula": "SO3",
+   "formulaUnicode": "SO₃",
+   "nameRu": "оксид серы (VI)",
+   "kind": "oxide",
+   "catalogId": "so3",
+   "sections": [
+    "c1-s04",
+    "c2-s03",
+    "c4-s05",
+    "c6-s02",
+    "c6-s03"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 29,
+   "pages": [
+    29,
+    30,
+    39,
+    77,
+    118,
+    119,
+    120,
+    122,
+    126
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "C2H2",
+   "formulaUnicode": "C₂H₂",
+   "nameRu": "ацетилен",
+   "kind": "organic",
+   "catalogId": "acetylene",
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 30,
+   "pages": [
+    30
+   ],
+   "catalogSource": "organic",
+   "formulaInBook": false
+  },
+  {
+   "formula": "Ca3(PO4)2",
+   "formulaUnicode": "Ca₃(PO₄)₂",
+   "nameRu": "фосфат кальция",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c2-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 30,
+   "pages": [
+    30,
+    45
+   ]
+  },
+  {
+   "formula": "Cl2O5",
+   "formulaUnicode": "Cl₂O₅",
+   "nameRu": "оксид хлора (V)",
+   "kind": "oxide",
+   "catalogId": null,
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 30,
+   "pages": [
+    30
+   ],
+   "formulaInBook": false
+  },
+  {
+   "formula": "CO2",
+   "formulaUnicode": "CO₂",
+   "nameRu": "углекислый газ",
+   "kind": "oxide",
+   "catalogId": "co2",
+   "sections": [
+    "c1-s04",
+    "c2-s01",
+    "c2-s03",
+    "c2-s04",
+    "c3-s01",
+    "c3-s02",
+    "c4-s02",
+    "c4-s05",
+    "c5-s01",
+    "c5-s02",
+    "c5-s03",
+    "c6-s01",
+    "c6-s02",
+    "c6-s03",
+    "c7-s03"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 30,
+   "pages": [
+    30,
+    32,
+    44,
+    47,
+    53,
+    56,
+    66,
+    83,
+    101,
+    103,
+    104,
+    107,
+    109,
+    111,
+    112,
+    113,
+    117,
+    118,
+    121,
+    123,
+    126,
+    138
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "оксид углерода (IV) (углекислый газ)",
+    "оксид углерода (IV)",
+    "оксид углерода(IV)"
+   ]
+  },
+  {
+   "formula": "Cr2O3",
+   "formulaUnicode": "Cr₂O₃",
+   "nameRu": "оксид хрома (III)",
+   "kind": "oxide",
+   "catalogId": "cr2o3",
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 30,
+   "pages": [
+    30
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "HClO4",
+   "formulaUnicode": "HClO₄",
+   "nameRu": "хлорная кислота",
+   "kind": "acid",
+   "catalogId": "hclo4",
+   "sections": [
+    "c1-s04",
+    "c3-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 30,
+   "pages": [
+    30,
+    53
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "KMnO4",
+   "formulaUnicode": "KMnO₄",
+   "nameRu": "перманганат калия",
+   "kind": "salt",
+   "catalogId": "salt_k_mno4",
+   "sections": [
+    "c1-s04",
+    "c4-s01",
+    "c7-s01",
+    "c7-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 30,
+   "pages": [
+    30,
+    62,
+    132,
+    133,
+    134,
+    135,
+    136,
+    137,
+    138
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "NO",
+   "formulaUnicode": "NO",
+   "nameRu": "оксид азота (II)",
+   "kind": "oxide",
+   "catalogId": "no",
+   "sections": [
+    "c1-s04",
+    "c2-s03",
+    "c2-s04",
+    "c5-s03",
+    "c6-s02",
+    "c6-s03",
+    "c7-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 30,
+   "pages": [
+    30,
+    45,
+    50,
+    110,
+    120,
+    121,
+    122,
+    126,
+    127,
+    128,
+    129,
+    131
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "P2O5",
+   "formulaUnicode": "P₂O₅",
+   "nameRu": "оксид фосфора (V)",
+   "kind": "oxide",
+   "catalogId": "p2o5",
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 30,
+   "pages": [
+    30
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "SiH4",
+   "formulaUnicode": "SiH₄",
+   "nameRu": "силан",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 30,
+   "pages": [
+    30
+   ]
+  },
+  {
+   "formula": "Sr3(PO4)2",
+   "formulaUnicode": "Sr₃(PO₄)₂",
+   "nameRu": "фосфат стронция",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c1-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 30,
+   "pages": [
+    30
+   ],
+   "formulaInBook": false
+  },
+  {
+   "formula": "KOH",
+   "formulaUnicode": "KOH",
+   "nameRu": "гидроксид калия",
+   "kind": "base",
+   "catalogId": "koh",
+   "sections": [
+    "c2-s01",
+    "c3-s01",
+    "c3-s02",
+    "c4-s05",
+    "c4-s06",
+    "c4-s09",
+    "c4-s10",
+    "c5-s01",
+    "c7-s01",
+    "c7-s02",
+    "c7-s03",
+    "c8-s01",
+    "c8-s02"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 31,
+   "pages": [
+    31,
+    52,
+    53,
+    56,
+    79,
+    84,
+    93,
+    94,
+    97,
+    99,
+    129,
+    131,
+    132,
+    133,
+    134,
+    138,
+    142,
+    144,
+    147
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "гидроксид калия (щёлочь)"
+   ]
+  },
+  {
+   "formula": "Fe",
+   "formulaUnicode": "Fe",
+   "nameRu": "железо",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s01",
+    "c4-s09",
+    "c5-s01",
+    "c5-s03",
+    "c6-s01",
+    "c6-s02",
+    "c8-s01",
+    "c8-s02"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 32,
+   "pages": [
+    32,
+    93,
+    98,
+    111,
+    112,
+    118,
+    121,
+    141,
+    143,
+    144
+   ],
+   "aliases": [
+    "железо (металлическое)"
+   ],
+   "elementSymbol": "Fe"
+  },
+  {
+   "formula": "FeS",
+   "formulaUnicode": "FeS",
+   "nameRu": "сульфид железа (II)",
+   "kind": "salt",
+   "catalogId": "salt_fe2_s",
+   "sections": [
+    "c2-s01",
+    "c6-s01"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 32,
+   "pages": [
+    32,
+    112
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "S",
+   "formulaUnicode": "S",
+   "nameRu": "сера",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s01",
+    "c5-s01",
+    "c6-s01",
+    "c6-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "reagent",
+    "obtained"
+   ],
+   "firstPage": 32,
+   "pages": [
+    32,
+    100,
+    112,
+    120,
+    121,
+    138
+   ],
+   "elementSymbol": "S"
+  },
+  {
+   "formula": "Ag",
+   "formulaUnicode": "Ag",
+   "nameRu": "серебро",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s01",
+    "c4-s02",
+    "c8-s01",
+    "c8-s02",
+    "c8-s03"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 33,
+   "pages": [
+    33,
+    66,
+    69,
+    141,
+    143,
+    144,
+    149,
+    150,
+    151,
+    153
+   ],
+   "elementSymbol": "Ag"
+  },
+  {
+   "formula": "AgNO3",
+   "formulaUnicode": "AgNO₃",
+   "nameRu": "нитрат серебра (I)",
+   "kind": "salt",
+   "catalogId": "salt_ag_no3",
+   "sections": [
+    "c2-s01",
+    "c4-s05",
+    "c4-s06",
+    "c8-s02",
+    "c8-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 34,
+   "pages": [
+    34,
+    83,
+    85,
+    144,
+    149,
+    150,
+    151,
+    152,
+    153,
+    154
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "нитрат серебра"
+   ]
+  },
+  {
+   "formula": "Ba3(PO4)2",
+   "formulaUnicode": "Ba₃(PO₄)₂",
+   "nameRu": "фосфат бария",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c2-s01",
+    "c4-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 34,
+   "pages": [
+    34,
+    69
+   ],
+   "formulaInBook": false
+  },
+  {
+   "formula": "C",
+   "formulaUnicode": "C",
+   "nameRu": "графит (углерод)",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s01",
+    "c5-s01",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 34,
+   "pages": [
+    34,
+    101,
+    140
+   ],
+   "aliases": [
+    "уголь",
+    "уголь (инертный электрод)"
+   ],
+   "elementSymbol": "C"
+  },
+  {
+   "formula": "Cu",
+   "formulaUnicode": "Cu",
+   "nameRu": "медь",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s01",
+    "c4-s02",
+    "c6-s01",
+    "c8-s01",
+    "c8-s02",
+    "c8-s03"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 34,
+   "pages": [
+    34,
+    66,
+    69,
+    112,
+    139,
+    141,
+    143,
+    144,
+    145,
+    148,
+    149,
+    150,
+    151,
+    152,
+    153
+   ],
+   "elementSymbol": "Cu"
+  },
+  {
+   "formula": "Na",
+   "formulaUnicode": "Na",
+   "nameRu": "натрий",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s01",
+    "c3-s03",
+    "c4-s05",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 34,
+   "pages": [
+    34,
+    61,
+    77,
+    83,
+    140,
+    141
+   ],
+   "elementSymbol": "Na"
+  },
+  {
+   "formula": "Ar",
+   "formulaUnicode": "Ar",
+   "nameRu": "аргон",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s02",
+    "c2-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 35,
+   "pages": [
+    35,
+    38,
+    50
+   ],
+   "elementSymbol": "Ar"
+  },
+  {
+   "formula": "He",
+   "formulaUnicode": "He",
+   "nameRu": "гелий",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 35,
+   "pages": [
+    35,
+    38
+   ],
+   "elementSymbol": "He"
+  },
+  {
+   "formula": "Kr",
+   "formulaUnicode": "Kr",
+   "nameRu": "криптон",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 35,
+   "pages": [
+    35
+   ],
+   "elementSymbol": "Kr"
+  },
+  {
+   "formula": "Ne",
+   "formulaUnicode": "Ne",
+   "nameRu": "неон",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s02",
+    "c2-s04"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 35,
+   "pages": [
+    35,
+    38,
+    50
+   ],
+   "elementSymbol": "Ne"
+  },
+  {
+   "formula": "O3",
+   "formulaUnicode": "O₃",
+   "nameRu": "озон",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 35,
+   "pages": [
+    35
+   ],
+   "elementSymbol": "O"
+  },
+  {
+   "formula": "P4",
+   "formulaUnicode": "P₄",
+   "nameRu": "фосфор (молекула P4)",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 35,
+   "pages": [
+    35
+   ],
+   "elementSymbol": "P"
+  },
+  {
+   "formula": "Rn",
+   "formulaUnicode": "Rn",
+   "nameRu": "радон",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 35,
+   "pages": [
+    35
+   ],
+   "elementSymbol": "Rn"
+  },
+  {
+   "formula": "Xe",
+   "formulaUnicode": "Xe",
+   "nameRu": "ксенон",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 35,
+   "pages": [
+    35
+   ],
+   "elementSymbol": "Xe"
+  },
+  {
+   "formula": "CO",
+   "formulaUnicode": "CO",
+   "nameRu": "угарный газ",
+   "kind": "oxide",
+   "catalogId": "co",
+   "sections": [
+    "c2-s02",
+    "c2-s04",
+    "c5-s01",
+    "c5-s02",
+    "c5-s03",
+    "c6-s02",
+    "c6-s03"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 36,
+   "pages": [
+    36,
+    38,
+    47,
+    103,
+    104,
+    105,
+    109,
+    111,
+    117,
+    118,
+    120,
+    121,
+    123,
+    124,
+    125,
+    126
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "оксид углерода (II)"
+   ]
+  },
+  {
+   "formula": "AlCl3",
+   "formulaUnicode": "AlCl₃",
+   "nameRu": "хлорид алюминия",
+   "kind": "salt",
+   "catalogId": "salt_al_cl",
+   "sections": [
+    "c2-s02",
+    "c3-s01",
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 38,
+   "pages": [
+    38,
+    54,
+    61
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "C2H4",
+   "formulaUnicode": "C₂H₄",
+   "nameRu": "этилен",
+   "kind": "organic",
+   "catalogId": "ethylene",
+   "sections": [
+    "c2-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 38,
+   "pages": [
+    38
+   ],
+   "catalogSource": "organic"
+  },
+  {
+   "formula": "Al2O3",
+   "formulaUnicode": "Al₂O₃",
+   "nameRu": "оксид алюминия",
+   "kind": "oxide",
+   "catalogId": "al2o3",
+   "sections": [
+    "c2-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 40,
+   "pages": [
+    40
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Br2",
+   "formulaUnicode": "Br₂",
+   "nameRu": "бром",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s03",
+    "c6-s02",
+    "c8-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 40,
+   "pages": [
+    40,
+    121,
+    142
+   ],
+   "elementSymbol": "Br"
+  },
+  {
+   "formula": "I2",
+   "formulaUnicode": "I₂",
+   "nameRu": "иод (в книге J2)",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s03",
+    "c4-s02",
+    "c5-s01",
+    "c5-s02",
+    "c5-s03",
+    "c7-s01",
+    "c7-s03",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 40,
+   "pages": [
+    40,
+    65,
+    104,
+    106,
+    111,
+    131,
+    135,
+    142
+   ],
+   "aliases": [
+    "йод",
+    "йод (в книге: J2)"
+   ],
+   "elementSymbol": "I"
+  },
+  {
+   "formula": "Na2CO3",
+   "formulaUnicode": "Na₂CO₃",
+   "nameRu": "карбонат натрия",
+   "kind": "salt",
+   "catalogId": "salt_na_co3",
+   "sections": [
+    "c2-s03",
+    "c3-s02",
+    "c3-s03",
+    "c4-s02",
+    "c4-s03",
+    "c4-s04",
+    "c8-s02"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 40,
+   "pages": [
+    40,
+    56,
+    60,
+    61,
+    69,
+    71,
+    76,
+    149
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Ca(OH)2",
+   "formulaUnicode": "Ca(OH)₂",
+   "nameRu": "гидроксид кальция",
+   "kind": "base",
+   "catalogId": "ca_oh_2",
+   "sections": [
+    "c2-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 41,
+   "pages": [
+    41
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Al2(SO4)3",
+   "formulaUnicode": "Al₂(SO₄)₃",
+   "nameRu": "сульфат алюминия",
+   "kind": "salt",
+   "catalogId": "salt_al_so4",
+   "sections": [
+    "c2-s03",
+    "c3-s03",
+    "c4-s02",
+    "c4-s10",
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 42,
+   "pages": [
+    42,
+    61,
+    69,
+    97,
+    144
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Al",
+   "formulaUnicode": "Al",
+   "nameRu": "алюминий",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c2-s03",
+    "c5-s02",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 45,
+   "pages": [
+    45,
+    106,
+    141,
+    143
+   ],
+   "elementSymbol": "Al"
+  },
+  {
+   "formula": "Al(OH)3",
+   "formulaUnicode": "Al(OH)₃",
+   "nameRu": "гидроксид алюминия",
+   "kind": "base",
+   "catalogId": "al_oh_3",
+   "sections": [
+    "c2-s03",
+    "c3-s01",
+    "c4-s08"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 45,
+   "pages": [
+    45,
+    54,
+    91
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Cl2O7",
+   "formulaUnicode": "Cl₂O₇",
+   "nameRu": "оксид хлора (VII)",
+   "kind": "oxide",
+   "catalogId": null,
+   "sections": [
+    "c2-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 45,
+   "pages": [
+    45
+   ]
+  },
+  {
+   "formula": "H2SO3",
+   "formulaUnicode": "H₂SO₃",
+   "nameRu": "сернистая кислота",
+   "kind": "acid",
+   "catalogId": "h2so3",
+   "sections": [
+    "c2-s03",
+    "c3-s01",
+    "c3-s02",
+    "c4-s05",
+    "c4-s07",
+    "c4-s08",
+    "c4-s10",
+    "c6-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 45,
+   "pages": [
+    45,
+    53,
+    54,
+    55,
+    78,
+    88,
+    92,
+    95,
+    96,
+    97,
+    113
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "HNO2",
+   "formulaUnicode": "HNO₂",
+   "nameRu": "азотистая кислота",
+   "kind": "acid",
+   "catalogId": "hno2",
+   "sections": [
+    "c2-s03",
+    "c3-s01",
+    "c3-s02",
+    "c7-s03",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 45,
+   "pages": [
+    45,
+    53,
+    54,
+    57,
+    138,
+    142
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "KClO3",
+   "formulaUnicode": "KClO₃",
+   "nameRu": "хлорат калия",
+   "kind": "salt",
+   "catalogId": "salt_k_clo3",
+   "sections": [
+    "c2-s03",
+    "c3-s01",
+    "c7-s01"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "firstPage": 45,
+   "pages": [
+    45,
+    53,
+    129,
+    131
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "MgSO4",
+   "formulaUnicode": "MgSO₄",
+   "nameRu": "сульфат магния",
+   "kind": "salt",
+   "catalogId": "salt_mg_so4",
+   "sections": [
+    "c2-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 45,
+   "pages": [
+    45
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "N2O3",
+   "formulaUnicode": "N₂O₃",
+   "nameRu": "оксид азота (III)",
+   "kind": "oxide",
+   "catalogId": null,
+   "sections": [
+    "c2-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 45,
+   "pages": [
+    45
+   ]
+  },
+  {
+   "formula": "NO2",
+   "formulaUnicode": "NO₂",
+   "nameRu": "оксид азота (IV)",
+   "kind": "oxide",
+   "catalogId": "no2",
+   "sections": [
+    "c2-s03",
+    "c2-s04",
+    "c4-s05",
+    "c6-s01",
+    "c6-s02",
+    "c6-s03",
+    "c7-s01",
+    "c7-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 45,
+   "pages": [
+    45,
+    50,
+    77,
+    112,
+    119,
+    120,
+    121,
+    122,
+    123,
+    126,
+    131,
+    132,
+    134,
+    138
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "PbO2",
+   "formulaUnicode": "PbO₂",
+   "nameRu": "оксид свинца (IV)",
+   "kind": "oxide",
+   "catalogId": "pbo2",
+   "sections": [
+    "c2-s03",
+    "c7-s01"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 45,
+   "pages": [
+    45,
+    131
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "C2H6",
+   "formulaUnicode": "C₂H₆",
+   "nameRu": "этан",
+   "kind": "organic",
+   "catalogId": "ethane",
+   "sections": [
+    "c2-s04",
+    "c5-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 50,
+   "pages": [
+    50,
+    112
+   ],
+   "catalogSource": "organic"
+  },
+  {
+   "formula": "C12H22O11",
+   "formulaUnicode": "C₁₂H₂₂O₁₁",
+   "nameRu": "сахар",
+   "kind": "organic",
+   "catalogId": "sucrose",
+   "sections": [
+    "c3-s01",
+    "c3-s02",
+    "c4-s01",
+    "c4-s02",
+    "c4-s04"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "firstPage": 52,
+   "pages": [
+    52,
+    55,
+    62,
+    65,
+    69,
+    74
+   ],
+   "catalogSource": "organic",
+   "aliases": [
+    "сахар (раствор сахара)"
+   ],
+   "formulaInBook": false
+  },
+  {
+   "formula": "CH3COOH",
+   "formulaUnicode": "CH₃COOH",
+   "nameRu": "уксусная кислота",
+   "kind": "organic",
+   "catalogId": "acetic-acid",
+   "sections": [
+    "c3-s01",
+    "c3-s02",
+    "c3-s03",
+    "c6-s02"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "obtained"
+   ],
+   "firstPage": 52,
+   "pages": [
+    52,
+    53,
+    54,
+    59,
+    119
+   ],
+   "catalogSource": "organic"
+  },
+  {
+   "formula": "HNO3",
+   "formulaUnicode": "HNO₃",
+   "nameRu": "азотная кислота",
+   "kind": "acid",
+   "catalogId": "hno3",
+   "sections": [
+    "c3-s01",
+    "c3-s02",
+    "c4-s02",
+    "c4-s08",
+    "c4-s09",
+    "c6-s01",
+    "c7-s01",
+    "c7-s02",
+    "c7-s03",
+    "c8-s03"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 52,
+   "pages": [
+    52,
+    53,
+    54,
+    55,
+    69,
+    92,
+    93,
+    94,
+    112,
+    127,
+    129,
+    131,
+    132,
+    134,
+    138,
+    150,
+    152,
+    153
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "азотная кислота (концентрированная)"
+   ]
+  },
+  {
+   "formula": "NH4OH",
+   "formulaUnicode": "NH₄OH",
+   "nameRu": "гидроксид аммония",
+   "kind": "base",
+   "catalogId": "nh3_h2o",
+   "sections": [
+    "c3-s01",
+    "c3-s03",
+    "c4-s02"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 52,
+   "pages": [
+    52,
+    53,
+    54,
+    58,
+    69
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "(NH4)2Cr2O7",
+   "formulaUnicode": "(NH₄)₂Cr₂O₇",
+   "nameRu": "дихромат аммония",
+   "kind": "salt",
+   "catalogId": "salt_nh4_cr2o7",
+   "sections": [
+    "c3-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "BaCl2",
+   "formulaUnicode": "BaCl₂",
+   "nameRu": "хлорид бария",
+   "kind": "salt",
+   "catalogId": "salt_ba_cl",
+   "sections": [
+    "c3-s01",
+    "c4-s05",
+    "c4-s07",
+    "c4-s10",
+    "c5-s01"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53,
+    81,
+    83,
+    86,
+    87,
+    97,
+    98
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Bi(NO3)3",
+   "formulaUnicode": "Bi(NO₃)₃",
+   "nameRu": "нитрат висмута (III)",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c3-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53
+   ],
+   "formulaInBook": false
+  },
+  {
+   "formula": "CH3COONH4",
+   "formulaUnicode": "CH₃COONH₄",
+   "nameRu": "ацетат аммония",
+   "kind": "organic",
+   "catalogId": null,
+   "sections": [
+    "c3-s01",
+    "c3-s03"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53,
+    59,
+    61
+   ]
+  },
+  {
+   "formula": "CuSO4",
+   "formulaUnicode": "CuSO₄",
+   "nameRu": "сульфат меди (II)",
+   "kind": "salt",
+   "catalogId": "salt_cu_so4",
+   "sections": [
+    "c3-s01",
+    "c4-s10",
+    "c8-s01",
+    "c8-s02",
+    "c8-s03"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53,
+    54,
+    97,
+    143,
+    144,
+    145,
+    148,
+    149,
+    154
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "сульфат меди(II)",
+    "сульфат меди"
+   ]
+  },
+  {
+   "formula": "Fe(OH)2",
+   "formulaUnicode": "Fe(OH)₂",
+   "nameRu": "гидроксид железа (II)",
+   "kind": "base",
+   "catalogId": "fe_oh_2",
+   "sections": [
+    "c3-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Fe(OH)3",
+   "formulaUnicode": "Fe(OH)₃",
+   "nameRu": "гидроксид железа (III)",
+   "kind": "base",
+   "catalogId": "fe_oh_3",
+   "sections": [
+    "c3-s01",
+    "c5-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53,
+    98
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "гидроксид железа(III)"
+   ]
+  },
+  {
+   "formula": "H2CO3",
+   "formulaUnicode": "H₂CO₃",
+   "nameRu": "угольная кислота",
+   "kind": "acid",
+   "catalogId": "h2co3",
+   "sections": [
+    "c3-s01",
+    "c3-s02"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53,
+    54,
+    56
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "HClO3",
+   "formulaUnicode": "HClO₃",
+   "nameRu": "хлорноватая кислота",
+   "kind": "acid",
+   "catalogId": "hclo3",
+   "sections": [
+    "c3-s01",
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53,
+    144
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "HCN",
+   "formulaUnicode": "HCN",
+   "nameRu": "циановодородная кислота",
+   "kind": "acid",
+   "catalogId": null,
+   "sections": [
+    "c3-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53
+   ]
+  },
+  {
+   "formula": "HMnO4",
+   "formulaUnicode": "HMnO₄",
+   "nameRu": "марганцовая кислота",
+   "kind": "acid",
+   "catalogId": "hmno4",
+   "sections": [
+    "c3-s01",
+    "c7-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53,
+    131
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "марганцевая кислота"
+   ]
+  },
+  {
+   "formula": "K2SO4",
+   "formulaUnicode": "K₂SO₄",
+   "nameRu": "сульфат калия",
+   "kind": "salt",
+   "catalogId": "salt_k_so4",
+   "sections": [
+    "c3-s01",
+    "c3-s02",
+    "c3-s03",
+    "c4-s03",
+    "c4-s04",
+    "c7-s02",
+    "c7-s03",
+    "c8-s02",
+    "c8-s03"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53,
+    56,
+    61,
+    73,
+    77,
+    132,
+    135,
+    136,
+    137,
+    138,
+    149,
+    154
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Mg(OH)2",
+   "formulaUnicode": "Mg(OH)₂",
+   "nameRu": "гидроксид магния",
+   "kind": "base",
+   "catalogId": "mg_oh_2",
+   "sections": [
+    "c3-s01",
+    "c3-s03"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53,
+    58
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Na2S",
+   "formulaUnicode": "Na₂S",
+   "nameRu": "сульфид натрия",
+   "kind": "salt",
+   "catalogId": "salt_na_s",
+   "sections": [
+    "c3-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "NH4NO3",
+   "formulaUnicode": "NH₄NO₃",
+   "nameRu": "нитрат аммония",
+   "kind": "salt",
+   "catalogId": "salt_nh4_no3",
+   "sections": [
+    "c3-s01",
+    "c4-s04",
+    "c4-s05",
+    "c4-s10"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 53,
+   "pages": [
+    53,
+    77,
+    83,
+    97
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "(NH4)2SO4",
+   "formulaUnicode": "(NH₄)₂SO₄",
+   "nameRu": "сульфат аммония",
+   "kind": "salt",
+   "catalogId": "salt_nh4_so4",
+   "sections": [
+    "c3-s01",
+    "c3-s02",
+    "c3-s03",
+    "c4-s06"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54,
+    56,
+    61,
+    85
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Al(NO3)3",
+   "formulaUnicode": "Al(NO₃)₃",
+   "nameRu": "нитрат алюминия",
+   "kind": "salt",
+   "catalogId": "salt_al_no3",
+   "sections": [
+    "c3-s01",
+    "c3-s03",
+    "c4-s10"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54,
+    61,
+    97
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Ca(NO3)2",
+   "formulaUnicode": "Ca(NO₃)₂",
+   "nameRu": "нитрат кальция",
+   "kind": "salt",
+   "catalogId": "salt_ca_no3",
+   "sections": [
+    "c3-s01",
+    "c3-s03",
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54,
+    61,
+    144
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "CaCl2",
+   "formulaUnicode": "CaCl₂",
+   "nameRu": "хлорид кальция",
+   "kind": "salt",
+   "catalogId": "salt_ca_cl",
+   "sections": [
+    "c3-s01",
+    "c3-s02",
+    "c3-s03",
+    "c4-s03",
+    "c4-s07",
+    "c4-s09",
+    "c4-s10",
+    "c6-s01"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54,
+    56,
+    61,
+    70,
+    88,
+    94,
+    97,
+    113
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "CaCO3",
+   "formulaUnicode": "CaCO₃",
+   "nameRu": "карбонат кальция",
+   "kind": "salt",
+   "catalogId": "salt_ca_co3",
+   "sections": [
+    "c3-s01",
+    "c3-s03",
+    "c4-s02",
+    "c6-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54,
+    59,
+    61,
+    65,
+    69,
+    121
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "CH3COOK",
+   "formulaUnicode": "CH₃COOK",
+   "nameRu": "ацетат калия",
+   "kind": "organic",
+   "catalogId": null,
+   "sections": [
+    "c3-s01",
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54,
+    61
+   ]
+  },
+  {
+   "formula": "K2CO3",
+   "formulaUnicode": "K₂CO₃",
+   "nameRu": "карбонат калия",
+   "kind": "salt",
+   "catalogId": "salt_k_co3",
+   "sections": [
+    "c3-s01",
+    "c3-s03",
+    "c6-s01",
+    "c8-s01",
+    "c8-s02"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54,
+    61,
+    113,
+    142,
+    146
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "KNO3",
+   "formulaUnicode": "KNO₃",
+   "nameRu": "нитрат калия",
+   "kind": "salt",
+   "catalogId": "salt_k_no3",
+   "sections": [
+    "c3-s01",
+    "c3-s02",
+    "c3-s03",
+    "c4-s02",
+    "c4-s04",
+    "c4-s09"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54,
+    55,
+    61,
+    69,
+    75,
+    77,
+    93
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "LiOH",
+   "formulaUnicode": "LiOH",
+   "nameRu": "гидроксид лития",
+   "kind": "base",
+   "catalogId": "lioh",
+   "sections": [
+    "c3-s01",
+    "c5-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54,
+    99
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "NaHCO3",
+   "formulaUnicode": "NaHCO₃",
+   "nameRu": "гидрокарбонат натрия",
+   "kind": "salt",
+   "catalogId": "salt_nahco3",
+   "sections": [
+    "c3-s01",
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54,
+    61
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "Ni(OH)2",
+   "formulaUnicode": "Ni(OH)₂",
+   "nameRu": "гидроксид никеля (II)",
+   "kind": "base",
+   "catalogId": null,
+   "sections": [
+    "c3-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54
+   ]
+  },
+  {
+   "formula": "Zn(OH)2",
+   "formulaUnicode": "Zn(OH)₂",
+   "nameRu": "гидроксид цинка",
+   "kind": "base",
+   "catalogId": "zn_oh_2",
+   "sections": [
+    "c3-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 54,
+   "pages": [
+    54
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "KI",
+   "formulaUnicode": "KI",
+   "nameRu": "иодид калия (в книге KJ)",
+   "kind": "salt",
+   "catalogId": "salt_k_i",
+   "sections": [
+    "c3-s02",
+    "c7-s03",
+    "c8-s02"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 55,
+   "pages": [
+    55,
+    135,
+    138,
+    149
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "йодид калия (в книге: KJ)"
+   ]
+  },
+  {
+   "formula": "Pb(NO3)2",
+   "formulaUnicode": "Pb(NO₃)₂",
+   "nameRu": "нитрат свинца (II)",
+   "kind": "salt",
+   "catalogId": "salt_pb_no3",
+   "sections": [
+    "c3-s02",
+    "c7-s01"
+   ],
+   "roles": [
+    "reagent",
+    "obtained"
+   ],
+   "firstPage": 55,
+   "pages": [
+    55,
+    131
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "PbI2",
+   "formulaUnicode": "PbI₂",
+   "nameRu": "иодид свинца (II) (в книге PbJ2)",
+   "kind": "salt",
+   "catalogId": "salt_pb_i",
+   "sections": [
+    "c3-s02"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 55,
+   "pages": [
+    55
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Ba(OH)2",
+   "formulaUnicode": "Ba(OH)₂",
+   "nameRu": "гидроксид бария",
+   "kind": "base",
+   "catalogId": "ba_oh_2",
+   "sections": [
+    "c3-s02",
+    "c4-s08"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 56,
+   "pages": [
+    56,
+    90,
+    92
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "BaSO4",
+   "formulaUnicode": "BaSO₄",
+   "nameRu": "сульфат бария",
+   "kind": "salt",
+   "catalogId": "salt_ba_so4",
+   "sections": [
+    "c3-s02",
+    "c4-s02",
+    "c4-s05",
+    "c5-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 56,
+   "pages": [
+    56,
+    65,
+    69,
+    81,
+    98
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Cr2(SO4)3",
+   "formulaUnicode": "Cr₂(SO₄)₃",
+   "nameRu": "сульфат хрома (III)",
+   "kind": "salt",
+   "catalogId": "salt_cr_so4",
+   "sections": [
+    "c3-s02",
+    "c7-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "reagent",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 57,
+   "pages": [
+    57,
+    134,
+    135,
+    138
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "HCOOH",
+   "formulaUnicode": "HCOOH",
+   "nameRu": "муравьиная кислота",
+   "kind": "organic",
+   "catalogId": "formic-acid",
+   "sections": [
+    "c3-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 58,
+   "pages": [
+    58,
+    138
+   ],
+   "catalogSource": "organic",
+   "formulaInBook": false
+  },
+  {
+   "formula": "MgCl2",
+   "formulaUnicode": "MgCl₂",
+   "nameRu": "хлорид магния",
+   "kind": "salt",
+   "catalogId": "salt_mg_cl",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "firstPage": 58,
+   "pages": [
+    58,
+    61
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "NH4Cl",
+   "formulaUnicode": "NH₄Cl",
+   "nameRu": "хлорид аммония",
+   "kind": "salt",
+   "catalogId": "salt_nh4_cl",
+   "sections": [
+    "c3-s03",
+    "c4-s02",
+    "c4-s03",
+    "c4-s07",
+    "c4-s08"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "firstPage": 58,
+   "pages": [
+    58,
+    61,
+    67,
+    69,
+    73,
+    88,
+    91
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "CH3COONa",
+   "formulaUnicode": "CH₃COONa",
+   "nameRu": "ацетат натрия",
+   "kind": "organic",
+   "catalogId": null,
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "firstPage": 59,
+   "pages": [
+    59,
+    61
+   ]
+  },
+  {
+   "formula": "CuCl2",
+   "formulaUnicode": "CuCl₂",
+   "nameRu": "хлорид меди (II)",
+   "kind": "salt",
+   "catalogId": "salt_cu_cl",
+   "sections": [
+    "c3-s03",
+    "c8-s01"
+   ],
+   "roles": [
+    "studied",
+    "reagent"
+   ],
+   "firstPage": 60,
+   "pages": [
+    60,
+    139,
+    140,
+    141,
+    143
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "(NH4)2CO3",
+   "formulaUnicode": "(NH₄)₂CO₃",
+   "nameRu": "карбонат аммония",
+   "kind": "salt",
+   "catalogId": "salt_nh4_co3",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "лакмус",
+   "kind": "organic",
+   "catalogId": null,
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ]
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "метилоранж (в книге «Метил»)",
+   "kind": "organic",
+   "catalogId": null,
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ]
+  },
+  {
+   "formula": "Al2(CO3)3",
+   "formulaUnicode": "Al₂(CO₃)₃",
+   "nameRu": "карбонат алюминия",
+   "kind": "salt",
+   "catalogId": "salt_al_co3",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "Al2S3",
+   "formulaUnicode": "Al₂S₃",
+   "nameRu": "сульфид алюминия",
+   "kind": "salt",
+   "catalogId": "salt_al_s",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Ba(NO3)2",
+   "formulaUnicode": "Ba(NO₃)₂",
+   "nameRu": "нитрат бария",
+   "kind": "salt",
+   "catalogId": "salt_ba_no3",
+   "sections": [
+    "c3-s03",
+    "c4-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61,
+    72
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "C20H14O4",
+   "formulaUnicode": "C₂₀H₁₄O₄",
+   "nameRu": "фенолфталеин",
+   "kind": "organic",
+   "catalogId": null,
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "formulaInBook": false
+  },
+  {
+   "formula": "Ca(CH3COO)2",
+   "formulaUnicode": "Ca(CH₃COO)₂",
+   "nameRu": "ацетат кальция",
+   "kind": "organic",
+   "catalogId": null,
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ]
+  },
+  {
+   "formula": "K2O2",
+   "formulaUnicode": "K₂O₂",
+   "nameRu": "пероксид калия",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "formulaInBook": false
+  },
+  {
+   "formula": "K2SO3",
+   "formulaUnicode": "K₂SO₃",
+   "nameRu": "сульфит калия",
+   "kind": "salt",
+   "catalogId": "salt_k_so3",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "KCN",
+   "formulaUnicode": "KCN",
+   "nameRu": "цианид калия",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ]
+  },
+  {
+   "formula": "KH",
+   "formulaUnicode": "KH",
+   "nameRu": "гидрид калия",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c3-s03",
+    "c4-s05"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61,
+    77
+   ]
+  },
+  {
+   "formula": "Li2SO4",
+   "formulaUnicode": "Li₂SO₄",
+   "nameRu": "сульфат лития",
+   "kind": "salt",
+   "catalogId": "salt_li_so4",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "LiCl",
+   "formulaUnicode": "LiCl",
+   "nameRu": "хлорид лития",
+   "kind": "salt",
+   "catalogId": "salt_li_cl",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "LiNO3",
+   "formulaUnicode": "LiNO₃",
+   "nameRu": "нитрат лития",
+   "kind": "salt",
+   "catalogId": "salt_li_no3",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "Na2O2",
+   "formulaUnicode": "Na₂O₂",
+   "nameRu": "пероксид натрия",
+   "kind": "other",
+   "catalogId": "na2o2",
+   "sections": [
+    "c3-s03",
+    "c7-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61,
+    134,
+    138
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "NaCN",
+   "formulaUnicode": "NaCN",
+   "nameRu": "цианид натрия",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ]
+  },
+  {
+   "formula": "NaH",
+   "formulaUnicode": "NaH",
+   "nameRu": "гидрид натрия",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "formulaInBook": false
+  },
+  {
+   "formula": "NaNO3",
+   "formulaUnicode": "NaNO₃",
+   "nameRu": "нитрат натрия",
+   "kind": "salt",
+   "catalogId": "salt_na_no3",
+   "sections": [
+    "c3-s03",
+    "c4-s02",
+    "c4-s03",
+    "c4-s04",
+    "c4-s05",
+    "c4-s07",
+    "c4-s09",
+    "c7-s01",
+    "c7-s02"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61,
+    65,
+    70,
+    73,
+    75,
+    77,
+    83,
+    86,
+    94,
+    131,
+    132,
+    133
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "NH4NO2",
+   "formulaUnicode": "NH₄NO₂",
+   "nameRu": "нитрит аммония",
+   "kind": "salt",
+   "catalogId": "salt_nh4_no2",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "Zn(NO3)2",
+   "formulaUnicode": "Zn(NO₃)₂",
+   "nameRu": "нитрат цинка",
+   "kind": "salt",
+   "catalogId": "salt_zn_no3",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "ZnCl2",
+   "formulaUnicode": "ZnCl₂",
+   "nameRu": "хлорид цинка",
+   "kind": "salt",
+   "catalogId": "salt_zn_cl",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "ZnSO4",
+   "formulaUnicode": "ZnSO₄",
+   "nameRu": "сульфат цинка",
+   "kind": "salt",
+   "catalogId": "salt_zn_so4",
+   "sections": [
+    "c3-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 61,
+   "pages": [
+    61
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "бензин",
+   "kind": "organic",
+   "catalogId": null,
+   "sections": [
+    "c4-s02",
+    "c5-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 65,
+   "pages": [
+    65,
+    69,
+    98
+   ]
+  },
+  {
+   "formula": "C2H5OH",
+   "formulaUnicode": "C₂H₅OH",
+   "nameRu": "спирт",
+   "kind": "organic",
+   "catalogId": "ethanol",
+   "sections": [
+    "c4-s02",
+    "c5-s02"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 65,
+   "pages": [
+    65,
+    69,
+    107
+   ],
+   "catalogSource": "organic",
+   "aliases": [
+    "этиловый спирт"
+   ],
+   "formulaInBook": false
+  },
+  {
+   "formula": "CaSO4",
+   "formulaUnicode": "CaSO₄",
+   "nameRu": "сульфат кальция",
+   "kind": "salt",
+   "catalogId": "salt_ca_so4",
+   "sections": [
+    "c4-s02",
+    "c6-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 65,
+   "pages": [
+    65,
+    113
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "MgCO3",
+   "formulaUnicode": "MgCO₃",
+   "nameRu": "карбонат магния",
+   "kind": "salt",
+   "catalogId": "salt_mg_co3",
+   "sections": [
+    "c4-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 65,
+   "pages": [
+    65,
+    69
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "PbSO4",
+   "formulaUnicode": "PbSO₄",
+   "nameRu": "сульфат свинца (II)",
+   "kind": "salt",
+   "catalogId": "salt_pb_so4",
+   "sections": [
+    "c4-s02",
+    "c7-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 65,
+   "pages": [
+    65,
+    131
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Au",
+   "formulaUnicode": "Au",
+   "nameRu": "золото",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c4-s02",
+    "c7-s02",
+    "c8-s01",
+    "c8-s02"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 66,
+   "pages": [
+    66,
+    69,
+    134,
+    141,
+    143,
+    144,
+    149
+   ],
+   "elementSymbol": "Au"
+  },
+  {
+   "formula": "AgCl",
+   "formulaUnicode": "AgCl",
+   "nameRu": "хлорид серебра",
+   "kind": "salt",
+   "catalogId": "salt_ag_cl",
+   "sections": [
+    "c4-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 69,
+   "pages": [
+    69
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "KBr",
+   "formulaUnicode": "KBr",
+   "nameRu": "бромид калия",
+   "kind": "salt",
+   "catalogId": "salt_k_br",
+   "sections": [
+    "c4-s03",
+    "c4-s04",
+    "c4-s09"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 73,
+   "pages": [
+    73,
+    75,
+    77,
+    94
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "K",
+   "formulaUnicode": "K",
+   "nameRu": "калий",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c4-s05",
+    "c5-s01",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 79,
+   "pages": [
+    79,
+    99,
+    141,
+    143
+   ],
+   "elementSymbol": "K"
+  },
+  {
+   "formula": "Ca",
+   "formulaUnicode": "Ca",
+   "nameRu": "кальций",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c4-s05",
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 83,
+   "pages": [
+    83,
+    141,
+    143
+   ],
+   "elementSymbol": "Ca"
+  },
+  {
+   "formula": "N2O5",
+   "formulaUnicode": "N₂O₅",
+   "nameRu": "оксид азота (V)",
+   "kind": "oxide",
+   "catalogId": "n2o5",
+   "sections": [
+    "c4-s05"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 83,
+   "pages": [
+    83
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Fe2(SO4)3",
+   "formulaUnicode": "Fe₂(SO₄)₃",
+   "nameRu": "сульфат железа(III)",
+   "kind": "salt",
+   "catalogId": "salt_fe3_so4",
+   "sections": [
+    "c4-s08",
+    "c4-s10",
+    "c7-s03"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 91,
+   "pages": [
+    91,
+    97,
+    135,
+    137
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "сульфат железа (III)"
+   ]
+  },
+  {
+   "formula": "H3PO4",
+   "formulaUnicode": "H₃PO₄",
+   "nameRu": "фосфорная кислота",
+   "kind": "acid",
+   "catalogId": "h3po4",
+   "sections": [
+    "c4-s10",
+    "c7-s02",
+    "c8-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 95,
+   "pages": [
+    95,
+    134,
+    142
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Fe(NO3)3",
+   "formulaUnicode": "Fe(NO₃)₃",
+   "nameRu": "нитрат железа(III)",
+   "kind": "salt",
+   "catalogId": "salt_fe3_no3",
+   "sections": [
+    "c4-s10",
+    "c7-s03"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 97,
+   "pages": [
+    97,
+    138
+   ],
+   "catalogSource": "compounds",
+   "aliases": [
+    "нитрат железа (III)"
+   ]
+  },
+  {
+   "formula": "H3PO3",
+   "formulaUnicode": "H₃PO₃",
+   "nameRu": "фосфористая кислота",
+   "kind": "acid",
+   "catalogId": "h3po3",
+   "sections": [
+    "c4-s10"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 97,
+   "pages": [
+    97
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "K2CrO4",
+   "formulaUnicode": "K₂CrO₄",
+   "nameRu": "хромат калия",
+   "kind": "salt",
+   "catalogId": "salt_k_cro4",
+   "sections": [
+    "c4-s10",
+    "c7-s01",
+    "c7-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 97,
+   "pages": [
+    97,
+    132,
+    134,
+    138
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "воздух",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c5-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 98,
+   "pages": [
+    98
+   ]
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "порох",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c5-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 98,
+   "pages": [
+    98
+   ]
+  },
+  {
+   "formula": "Li",
+   "formulaUnicode": "Li",
+   "nameRu": "литий",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c5-s01",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 99,
+   "pages": [
+    99,
+    141,
+    143
+   ],
+   "elementSymbol": "Li"
+  },
+  {
+   "formula": "Na2S2O3",
+   "formulaUnicode": "Na₂S₂O₃",
+   "nameRu": "тиосульфат натрия (в книге: «раствор тиосерной кислоты»)",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c5-s01"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 100,
+   "pages": [
+    100
+   ]
+  },
+  {
+   "formula": "AlI3",
+   "formulaUnicode": "AlI₃",
+   "nameRu": "йодид алюминия",
+   "kind": "salt",
+   "catalogId": "salt_al_i",
+   "sections": [
+    "c5-s02"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 106,
+   "pages": [
+    106
+   ],
+   "catalogSource": "compounds",
+   "formulaInBook": false
+  },
+  {
+   "formula": "H2O2",
+   "formulaUnicode": "H₂O₂",
+   "nameRu": "пероксид водорода",
+   "kind": "other",
+   "catalogId": "h2o2",
+   "sections": [
+    "c5-s02",
+    "c7-s01",
+    "c7-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 106,
+   "pages": [
+    106,
+    107,
+    132,
+    134,
+    138
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "MnO2",
+   "formulaUnicode": "MnO₂",
+   "nameRu": "оксид марганца (IV)",
+   "kind": "oxide",
+   "catalogId": "mno2",
+   "sections": [
+    "c5-s02",
+    "c7-s02"
+   ],
+   "roles": [
+    "reagent",
+    "obtained"
+   ],
+   "firstPage": 106,
+   "pages": [
+    106,
+    133,
+    134
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Pt",
+   "formulaUnicode": "Pt",
+   "nameRu": "платина",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c5-s02",
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 106,
+   "pages": [
+    106,
+    141,
+    143
+   ],
+   "elementSymbol": "Pt"
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "каталаза (фермент)",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c5-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 107,
+   "pages": [
+    107
+   ]
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "сахар",
+   "kind": "organic",
+   "catalogId": null,
+   "sections": [
+    "c5-s02"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 107,
+   "pages": [
+    107
+   ]
+  },
+  {
+   "formula": "C3H8",
+   "formulaUnicode": "C₃H₈",
+   "nameRu": "пропан",
+   "kind": "organic",
+   "catalogId": "propane",
+   "sections": [
+    "c5-s02"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 109,
+   "pages": [
+    109
+   ],
+   "catalogSource": "organic"
+  },
+  {
+   "formula": "Fe2O3",
+   "formulaUnicode": "Fe₂O₃",
+   "nameRu": "оксид железа (III)",
+   "kind": "oxide",
+   "catalogId": "fe2o3",
+   "sections": [
+    "c5-s03"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 111,
+   "pages": [
+    111
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Cu(NO3)2",
+   "formulaUnicode": "Cu(NO₃)₂",
+   "nameRu": "нитрат меди (II)",
+   "kind": "salt",
+   "catalogId": "salt_cu_no3",
+   "sections": [
+    "c6-s01",
+    "c8-s03"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 112,
+   "pages": [
+    112,
+    150,
+    151,
+    152,
+    153
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Mg",
+   "formulaUnicode": "Mg",
+   "nameRu": "магний",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c6-s01",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "obtained"
+   ],
+   "firstPage": 113,
+   "pages": [
+    113,
+    141,
+    143
+   ],
+   "elementSymbol": "Mg"
+  },
+  {
+   "formula": "MgO",
+   "formulaUnicode": "MgO",
+   "nameRu": "оксид магния",
+   "kind": "oxide",
+   "catalogId": "mgo",
+   "sections": [
+    "c6-s01"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 113,
+   "pages": [
+    113
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Fe3O4",
+   "formulaUnicode": "Fe₃O₄",
+   "nameRu": "смешанный оксид железа",
+   "kind": "oxide",
+   "catalogId": "fe3o4",
+   "sections": [
+    "c6-s02"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 118,
+   "pages": [
+    118,
+    121
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "CH3COOCH3",
+   "formulaUnicode": "CH₃COOCH₃",
+   "nameRu": "метилацетат",
+   "kind": "organic",
+   "catalogId": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 119,
+   "pages": [
+    119
+   ]
+  },
+  {
+   "formula": "CH3OH",
+   "formulaUnicode": "CH₃OH",
+   "nameRu": "метанол",
+   "kind": "organic",
+   "catalogId": "methanol",
+   "sections": [
+    "c6-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 119,
+   "pages": [
+    119,
+    138
+   ],
+   "catalogSource": "organic"
+  },
+  {
+   "formula": "N2O4",
+   "formulaUnicode": "N₂O₄",
+   "nameRu": "димер оксида азота (IV)",
+   "kind": "oxide",
+   "catalogId": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "firstPage": 119,
+   "pages": [
+    119,
+    120
+   ]
+  },
+  {
+   "formula": "COCl2",
+   "formulaUnicode": "COCl₂",
+   "nameRu": "фосген",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 120,
+   "pages": [
+    120
+   ]
+  },
+  {
+   "formula": "NOCl",
+   "formulaUnicode": "NOCl",
+   "nameRu": "нитрозилхлорид (в книге: NOCl2)",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 120,
+   "pages": [
+    120
+   ]
+  },
+  {
+   "formula": "PCl3",
+   "formulaUnicode": "PCl₃",
+   "nameRu": "хлорид фосфора (III)",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 120,
+   "pages": [
+    120
+   ]
+  },
+  {
+   "formula": "PCl5",
+   "formulaUnicode": "PCl₅",
+   "nameRu": "хлорид фосфора (V)",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 120,
+   "pages": [
+    120
+   ]
+  },
+  {
+   "formula": "As2S3",
+   "formulaUnicode": "As₂S₃",
+   "nameRu": "сульфид мышьяка",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "firstPage": 127,
+   "pages": [
+    127,
+    128,
+    129,
+    132
+   ]
+  },
+  {
+   "formula": "H3AsO4",
+   "formulaUnicode": "H₃AsO₄",
+   "nameRu": "мышьяковая кислота",
+   "kind": "acid",
+   "catalogId": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 127,
+   "pages": [
+    127,
+    129,
+    132
+   ]
+  },
+  {
+   "formula": "K2MnO4",
+   "formulaUnicode": "K₂MnO₄",
+   "nameRu": "манганат калия",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c7-s01",
+    "c7-s02"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 129,
+   "pages": [
+    129,
+    131,
+    133
+   ]
+  },
+  {
+   "formula": "Mn3O4",
+   "formulaUnicode": "Mn₃O₄",
+   "nameRu": "оксид марганца (Mn3O4)",
+   "kind": "oxide",
+   "catalogId": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "firstPage": 129,
+   "pages": [
+    129,
+    130,
+    131
+   ]
+  },
+  {
+   "formula": "MnSO4",
+   "formulaUnicode": "MnSO₄",
+   "nameRu": "сульфат марганца (II)",
+   "kind": "salt",
+   "catalogId": "salt_mn_so4",
+   "sections": [
+    "c7-s01",
+    "c7-s02",
+    "c7-s03",
+    "c8-s01"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "obtained"
+   ],
+   "firstPage": 131,
+   "pages": [
+    131,
+    132,
+    135,
+    136,
+    137,
+    142
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "NaNO2",
+   "formulaUnicode": "NaNO₂",
+   "nameRu": "нитрит натрия",
+   "kind": "salt",
+   "catalogId": "salt_na_no2",
+   "sections": [
+    "c7-s01",
+    "c7-s02"
+   ],
+   "roles": [
+    "reagent",
+    "obtained"
+   ],
+   "firstPage": 131,
+   "pages": [
+    131,
+    132,
+    133
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "CrCl3",
+   "formulaUnicode": "CrCl₃",
+   "nameRu": "хлорид хрома (III)",
+   "kind": "salt",
+   "catalogId": "salt_cr_cl",
+   "sections": [
+    "c7-s01"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 132,
+   "pages": [
+    132
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "AuCl3",
+   "formulaUnicode": "AuCl₃",
+   "nameRu": "хлорид золота",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c7-s02",
+    "c8-s02"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 134,
+   "pages": [
+    134,
+    149
+   ]
+  },
+  {
+   "formula": "FeSO4",
+   "formulaUnicode": "FeSO₄",
+   "nameRu": "сульфат железа (II)",
+   "kind": "salt",
+   "catalogId": "salt_fe2_so4",
+   "sections": [
+    "c7-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "studied",
+    "reagent"
+   ],
+   "firstPage": 134,
+   "pages": [
+    134,
+    135,
+    136,
+    137
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "K2Cr2O7",
+   "formulaUnicode": "K₂Cr₂O₇",
+   "nameRu": "дихромат калия",
+   "kind": "salt",
+   "catalogId": "salt_k2cr2o7",
+   "sections": [
+    "c7-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "studied",
+    "reagent"
+   ],
+   "firstPage": 134,
+   "pages": [
+    134,
+    135,
+    138
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "P4S7",
+   "formulaUnicode": "P₄S₇",
+   "nameRu": "сульфид фосфора P4S7",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 134,
+   "pages": [
+    134
+   ]
+  },
+  {
+   "formula": "FeS2",
+   "formulaUnicode": "FeS₂",
+   "nameRu": "дисульфид железа (пирит)",
+   "kind": "other",
+   "catalogId": "fes2",
+   "sections": [
+    "c7-s03"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 138,
+   "pages": [
+    138
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Na2C2O4",
+   "formulaUnicode": "Na₂C₂O₄",
+   "nameRu": "оксалат натрия",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 138,
+   "pages": [
+    138
+   ],
+   "formulaInBook": false
+  },
+  {
+   "formula": "Ba",
+   "formulaUnicode": "Ba",
+   "nameRu": "барий",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 141,
+   "pages": [
+    141,
+    143
+   ],
+   "elementSymbol": "Ba"
+  },
+  {
+   "formula": "Cd",
+   "formulaUnicode": "Cd",
+   "nameRu": "кадмий",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01",
+    "c8-s02",
+    "c8-s03"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 141,
+   "pages": [
+    141,
+    143,
+    149,
+    150,
+    154
+   ],
+   "elementSymbol": "Cd"
+  },
+  {
+   "formula": "Co",
+   "formulaUnicode": "Co",
+   "nameRu": "кобальт",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 141,
+   "pages": [
+    141,
+    143
+   ],
+   "elementSymbol": "Co"
+  },
+  {
+   "formula": "Cr",
+   "formulaUnicode": "Cr",
+   "nameRu": "хром",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 141,
+   "pages": [
+    141,
+    143,
+    144
+   ],
+   "elementSymbol": "Cr"
+  },
+  {
+   "formula": "Ni",
+   "formulaUnicode": "Ni",
+   "nameRu": "никель",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 141,
+   "pages": [
+    141,
+    143,
+    144
+   ],
+   "elementSymbol": "Ni"
+  },
+  {
+   "formula": "Pb",
+   "formulaUnicode": "Pb",
+   "nameRu": "свинец",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 141,
+   "pages": [
+    141,
+    143
+   ],
+   "elementSymbol": "Pb"
+  },
+  {
+   "formula": "Sn",
+   "formulaUnicode": "Sn",
+   "nameRu": "олово",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 141,
+   "pages": [
+    141,
+    143
+   ],
+   "elementSymbol": "Sn"
+  },
+  {
+   "formula": "Sr",
+   "formulaUnicode": "Sr",
+   "nameRu": "стронций",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 141,
+   "pages": [
+    141,
+    143
+   ],
+   "elementSymbol": "Sr"
+  },
+  {
+   "formula": "Zn",
+   "formulaUnicode": "Zn",
+   "nameRu": "цинк",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 141,
+   "pages": [
+    141,
+    143
+   ],
+   "elementSymbol": "Zn"
+  },
+  {
+   "formula": "HClO",
+   "formulaUnicode": "HClO",
+   "nameRu": "хлорноватистая кислота",
+   "kind": "acid",
+   "catalogId": "hclo",
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 142,
+   "pages": [
+    142
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Mn",
+   "formulaUnicode": "Mn",
+   "nameRu": "марганец",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01",
+    "c8-s02"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 142,
+   "pages": [
+    142,
+    143,
+    149
+   ],
+   "elementSymbol": "Mn"
+  },
+  {
+   "formula": "Be",
+   "formulaUnicode": "Be",
+   "nameRu": "бериллий",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 143,
+   "pages": [
+    143
+   ],
+   "elementSymbol": "Be"
+  },
+  {
+   "formula": "Cs",
+   "formulaUnicode": "Cs",
+   "nameRu": "цезий",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 143,
+   "pages": [
+    143
+   ],
+   "elementSymbol": "Cs"
+  },
+  {
+   "formula": "Mn(OH)2",
+   "formulaUnicode": "Mn(OH)₂",
+   "nameRu": "гидроксид марганца (II)",
+   "kind": "base",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 143,
+   "pages": [
+    143
+   ]
+  },
+  {
+   "formula": "MnCl2",
+   "formulaUnicode": "MnCl₂",
+   "nameRu": "хлорид марганца (II)",
+   "kind": "salt",
+   "catalogId": "salt_mn_cl",
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "firstPage": 143,
+   "pages": [
+    143
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Pd",
+   "formulaUnicode": "Pd",
+   "nameRu": "палладий",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 143,
+   "pages": [
+    143
+   ],
+   "elementSymbol": "Pd"
+  },
+  {
+   "formula": "Rb",
+   "formulaUnicode": "Rb",
+   "nameRu": "рубидий",
+   "kind": "simple",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 143,
+   "pages": [
+    143
+   ],
+   "elementSymbol": "Rb"
+  },
+  {
+   "formula": "AlBr3",
+   "formulaUnicode": "AlBr₃",
+   "nameRu": "бромид алюминия",
+   "kind": "salt",
+   "catalogId": "salt_al_br",
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 144,
+   "pages": [
+    144
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "BaI2",
+   "formulaUnicode": "BaI₂",
+   "nameRu": "йодид бария",
+   "kind": "salt",
+   "catalogId": "salt_ba_i",
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 144,
+   "pages": [
+    144
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "BaO",
+   "formulaUnicode": "BaO",
+   "nameRu": "оксид бария",
+   "kind": "oxide",
+   "catalogId": "bao",
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 144,
+   "pages": [
+    144
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "FeCl3",
+   "formulaUnicode": "FeCl₃",
+   "nameRu": "хлорид железа (III)",
+   "kind": "salt",
+   "catalogId": "salt_fe3_cl",
+   "sections": [
+    "c8-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 144,
+   "pages": [
+    144
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "Hg(NO3)2",
+   "formulaUnicode": "Hg(NO₃)₂",
+   "nameRu": "нитрат ртути (II)",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 144,
+   "pages": [
+    144
+   ]
+  },
+  {
+   "formula": "Li2CO3",
+   "formulaUnicode": "Li₂CO₃",
+   "nameRu": "карбонат лития",
+   "kind": "salt",
+   "catalogId": "salt_li_co3",
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 144,
+   "pages": [
+    144
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "NiF2",
+   "formulaUnicode": "NiF₂",
+   "nameRu": "фторид никеля (II)",
+   "kind": "salt",
+   "catalogId": "salt_ni_f",
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 144,
+   "pages": [
+    144
+   ],
+   "catalogSource": "compounds"
+  },
+  {
+   "formula": "CuSO4·5H2O",
+   "formulaUnicode": "CuSO₄·5H₂O",
+   "nameRu": "кристаллогидрат сульфата меди (в книге: CuSO4·nH2O, найдено n = 5)",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c8-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 148,
+   "pages": [
+    148,
+    149
+   ],
+   "formulaInBook": false
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "кристаллогидрат сульфата кадмия CdSO4·nH2O",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c8-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 149,
+   "pages": [
+    149
+   ]
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "кристаллогидрат сульфата марганца MnSO4·nH2O",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c8-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 149,
+   "pages": [
+    149
+   ]
+  },
+  {
+   "formula": "CdSO4",
+   "formulaUnicode": "CdSO₄",
+   "nameRu": "сульфат кадмия",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c8-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 150,
+   "pages": [
+    150,
+    154
+   ]
+  },
+  {
+   "formula": "Cd(NO3)2",
+   "formulaUnicode": "Cd(NO₃)₂",
+   "nameRu": "нитрат кадмия",
+   "kind": "salt",
+   "catalogId": null,
+   "sections": [
+    "c8-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 154,
+   "pages": [
+    154
+   ]
+  }
+ ],
+ "ions": [
+  {
+   "formula": "H^+",
+   "formulaUnicode": "H⁺",
+   "nameRu": "ион водорода",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c3-s03",
+    "c7-s01",
+    "c7-s02",
+    "c7-s03",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 25,
+   "pages": [
+    25,
+    58,
+    127,
+    128,
+    129,
+    132,
+    134,
+    135,
+    141
+   ],
+   "aliases": [
+    "катион водорода"
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "NH4^+",
+   "formulaUnicode": "NH₄⁺",
+   "nameRu": "ион аммония",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c3-s03"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "firstPage": 25,
+   "pages": [
+    25,
+    59
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "Cl^-",
+   "formulaUnicode": "Cl⁻",
+   "nameRu": "хлорид-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c3-s01",
+    "c3-s02",
+    "c4-s01",
+    "c7-s01",
+    "c8-s01"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 28,
+   "pages": [
+    28,
+    51,
+    56,
+    62,
+    129,
+    130,
+    131,
+    139,
+    140,
+    141,
+    142
+   ],
+   "aliases": [
+    "хлорид-анион",
+    "ион хлора (хлорид-ион)"
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "Na^+",
+   "formulaUnicode": "Na⁺",
+   "nameRu": "ион натрия",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c1-s04",
+    "c2-s03",
+    "c3-s01",
+    "c3-s02",
+    "c4-s01",
+    "c8-s01"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "firstPage": 28,
+   "pages": [
+    28,
+    40,
+    51,
+    57,
+    62,
+    140
+   ],
+   "aliases": [
+    "катион натрия"
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "CO3^2-",
+   "formulaUnicode": "CO₃²⁻",
+   "nameRu": "карбонат-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c2-s03"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 40,
+   "pages": [
+    40
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "OH^-",
+   "formulaUnicode": "OH⁻",
+   "nameRu": "гидроксид-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c2-s03",
+    "c3-s03",
+    "c7-s01",
+    "c7-s02",
+    "c8-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 41,
+   "pages": [
+    41,
+    59,
+    129,
+    130,
+    131,
+    133,
+    134,
+    141
+   ],
+   "aliases": [
+    "гидроксид-анион"
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "SO4^2-",
+   "formulaUnicode": "SO₄²⁻",
+   "nameRu": "сульфат-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c2-s03",
+    "c3-s02",
+    "c7-s01"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 41,
+   "pages": [
+    41,
+    57,
+    128,
+    129
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "CH3COO^-",
+   "formulaUnicode": "CH₃COO⁻",
+   "nameRu": "ацетат-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c3-s02",
+    "c3-s03"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "firstPage": 57,
+   "pages": [
+    57,
+    59
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "NO2^-",
+   "formulaUnicode": "NO₂⁻",
+   "nameRu": "нитрит-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c3-s02",
+    "c7-s02"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 57,
+   "pages": [
+    57,
+    132,
+    133
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "HCOO^-",
+   "formulaUnicode": "HCOO⁻",
+   "nameRu": "формиат-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c3-s02"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 58,
+   "pages": [
+    58
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "NO3^-",
+   "formulaUnicode": "NO₃⁻",
+   "nameRu": "нитрат-ион (ион окислителя)",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s01",
+    "c7-s02"
+   ],
+   "roles": [
+    "studied",
+    "obtained"
+   ],
+   "firstPage": 127,
+   "pages": [
+    127,
+    128,
+    129,
+    132,
+    133
+   ],
+   "aliases": [
+    "нитрат-ион"
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "AsO4^3-",
+   "formulaUnicode": "AsO₄³⁻",
+   "nameRu": "арсенат-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 128,
+   "pages": [
+    128,
+    129
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "ClO3^-",
+   "formulaUnicode": "ClO₃⁻",
+   "nameRu": "ион хлората",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "firstPage": 129,
+   "pages": [
+    129,
+    130,
+    131
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "MnO4^2-",
+   "formulaUnicode": "MnO₄²⁻",
+   "nameRu": "манганат-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s01",
+    "c7-s02"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 130,
+   "pages": [
+    130,
+    131,
+    133,
+    134
+   ],
+   "aliases": [
+    "ион манганата"
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "Mn^2+",
+   "formulaUnicode": "Mn²⁺",
+   "nameRu": "ион марганца (II)",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s02",
+    "c7-s03"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 132,
+   "pages": [
+    132,
+    133,
+    134,
+    136
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "MnO4^-",
+   "formulaUnicode": "MnO₄⁻",
+   "nameRu": "ион перманганата",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "firstPage": 132,
+   "pages": [
+    132,
+    133,
+    134
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "Cr^3+",
+   "formulaUnicode": "Cr³⁺",
+   "nameRu": "ион хрома (III)",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 135,
+   "pages": [
+    135
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "Cr2O7^2-",
+   "formulaUnicode": "Cr₂O₇²⁻",
+   "nameRu": "дихромат-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 135,
+   "pages": [
+    135
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "I^-",
+   "formulaUnicode": "I⁻",
+   "nameRu": "йодид-ион (в книге: J-)",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s03",
+    "c8-s01"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "firstPage": 135,
+   "pages": [
+    135,
+    142
+   ],
+   "aliases": [
+    "йодид-ион"
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "Fe^2+",
+   "formulaUnicode": "Fe²⁺",
+   "nameRu": "ион железа (II)",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "firstPage": 136,
+   "pages": [
+    136
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "Fe^3+",
+   "formulaUnicode": "Fe³⁺",
+   "nameRu": "ион железа (III)",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "firstPage": 136,
+   "pages": [
+    136
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "Cu^2+",
+   "formulaUnicode": "Cu²⁺",
+   "nameRu": "ион меди (II)",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "firstPage": 139,
+   "pages": [
+    139,
+    141
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "Br^-",
+   "formulaUnicode": "Br⁻",
+   "nameRu": "бромид-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 142,
+   "pages": [
+    142
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "F^-",
+   "formulaUnicode": "F⁻",
+   "nameRu": "анион фтора",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 142,
+   "pages": [
+    142
+   ],
+   "isIon": true
+  },
+  {
+   "formula": "S^2-",
+   "formulaUnicode": "S²⁻",
+   "nameRu": "сульфид-ион",
+   "kind": "other",
+   "catalogId": null,
+   "sections": [
+    "c8-s01"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "firstPage": 142,
+   "pages": [
+    142
+   ],
+   "isIon": true
+  }
+ ]
+}

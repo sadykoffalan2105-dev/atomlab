@@ -37,7 +37,14 @@ function termSymbolDisplay(t: ReactorEquationTerm): string {
 }
 
 function coProductSymbolDisplay(cp: ReactorCoProductTerm): string {
-  return compoundById[cp.compoundId]?.formulaUnicode ?? cp.compoundId
+  if (cp.compoundId != null) return compoundById[cp.compoundId]?.formulaUnicode ?? cp.compoundId
+  const e = getElementByZ(cp.z)
+  if (!e) return '—'
+  return cp.diatomic ? `${e.symbol}₂` : e.symbol
+}
+
+function coProductGlowHex(cp: ReactorCoProductTerm): string {
+  return cp.compoundId != null ? '#ab5cf2' : reagentGlowHex(cp.z)
 }
 
 function reagentGlowHex(z: number): string {
@@ -734,7 +741,7 @@ export function SynthesisReactorPanel({
               <div className={`${panelStyles.productBlock} ${panelStyles.productBlockEquation}`}>
                 <div className={panelStyles.productEquationMeta}>
                   <span className={panelStyles.productLabelCompact}>
-                    {scientificMode ? 'Продукты' : t('reactor.productGoal')}
+                    {scientificMode ? t('reactor.products') : t('reactor.productGoal')}
                   </span>
                   {equationBalanced ? (
                     <span className={panelStyles.balanceBadge} role="status" aria-label={t('reactor.balanced')}>
@@ -753,7 +760,7 @@ export function SynthesisReactorPanel({
                       ) : null}
                       <div
                         className={`${panelStyles.reagentBubble} ${coeffErr ? panelStyles.reagentBubbleError : ''}`}
-                        style={{ ['--reagent-glow' as string]: '#ab5cf2' }}
+                        style={{ ['--reagent-glow' as string]: coProductGlowHex(cp) }}
                       >
                         <CoeffKeyboardInput
                           value={cp.coeff}

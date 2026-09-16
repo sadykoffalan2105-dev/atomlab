@@ -1,6 +1,8 @@
 import { useEffect, useMemo, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
 import { primaryReactionForCompound } from '../../chemistry/schoolReactionBank'
+import { isBankReactionReactorReady, reactorHrefForBank } from '../../lab/reactorDeepLink'
 import { compoundById } from '../../data/compounds'
 import { getElementBySymbol } from '../../data/elements'
 import { getCompoundLocaleStrings, type CompoundLocaleStrings } from '../../i18n/compoundLocale'
@@ -297,6 +299,18 @@ export function CompoundDetailModal({
                           →
                         </span>
                       </button>
+                    ) : null}
+                    {isBankReactionReactorReady(schoolRx.id) ? (
+                      <Link
+                        className={styles.schoolRxBtn}
+                        to={reactorHrefForBank(schoolRx.id, { main: c.id })}
+                        data-rx-lab-link={schoolRx.id}
+                      >
+                        {t('catalog.rx.openLab')}
+                        <span className={styles.btnArrow} aria-hidden>
+                          →
+                        </span>
+                      </Link>
                     ) : null}
                   </div>
                 </section>

@@ -108,7 +108,7 @@ function BalanceLessonCard({
   const labUrl =
     gradeId && chapterId && sectionId
       ? buildGenerateEquationLabUrl(gradeId, chapterId, sectionId)
-      : '/#/?reactor=1&genEq=1'
+      : '/?reactor=1&genEq=1'
 
   const maxStep = lesson.stepKeys.length - 1
   const visual = getBalanceLessonVisual(lesson.id)

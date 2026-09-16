@@ -569,4 +569,22 @@ export const messagesUz: Record<MessageKey, string> = {
   'periodic.colorModeTitle': 'Katak ranglari',
   'periodic.colorModeBlock': 'Bloklar bo‘yicha',
   'periodic.colorModeCategory': 'Sinflar bo‘yicha',
+  'lab.deepLink.loaded': '{title}: {equation}. Tenglama reaktorda — sintezni boshlang.',
+  'lab.deepLink.loadedBalance': '{title}: moddalar reaktorda. Koeffitsiyentlarni qo‘ying va sintezni boshlang.',
+  'lab.deepLink.conditions': 'Sharoit: {conditions}.',
+  'lab.deepLink.scientificRoute': 'Ilmiy yo‘l: {title}. {equation} — sintezni boshlash mumkin.',
+  'lab.deepLink.backToBook': '← darslikka qaytish',
+  'lab.deepLink.unsupported.ionic':
+    'Ionli tenglamani reaktorda tekshirib bo‘lmaydi: reaksiyani molekulyar ko‘rinishda yozing.',
+  'lab.deepLink.unsupported.scheme':
+    'Bu aniq moddalar bilan yozilgan bitta tenglama emas (umumiy sxema, o‘zgarishlar zanjiri yoki yozuv tanilmadi).',
+  'lab.deepLink.unsupported.unknownSubstance': 'Laboratoriya katalogida bunday modda yo‘q: {formulas}.',
+  'lab.deepLink.unsupported.organic': 'Organik modda ({formulas}) — bu reaksiyani organik laboratoriyada oching.',
+  'lab.deepLink.unsupported.noCompoundProduct':
+    'Mahsulotlar orasida katalogdagi murakkab modda yo‘q — reaktor hech narsa olmaydi.',
+  'lab.deepLink.unsupported.tooManyTerms':
+    'Reaktor uchun moddalar juda ko‘p: 8 tagacha reagent, 4 tagacha mahsulot, koeffitsiyent 9999 gacha.',
+  'lab.deepLink.unsupported.unbalanced': 'Havoladagi tenglama muvozanatlanmagan ({details}).',
+  'reactor.products': 'Mahsulotlar',
+  'catalog.rx.openLab': 'Laboratoriyada ochish',
 }

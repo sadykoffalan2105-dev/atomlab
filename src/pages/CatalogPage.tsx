@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { Link } from 'react-router-dom'
 import { describePassportRu } from '../chemistry/reactionPassport'
 import { reactantsSummaryRu } from '../chemistry/reactionReactantLabels'
 import { passportForReaction, SCHOOL_REACTION_BANK } from '../chemistry/schoolReactionBank'
@@ -28,7 +29,9 @@ import {
   type OrganicSchoolGrade,
 } from '../data/curriculum/compoundGradeIndex'
 import { compoundById } from '../data/compounds'
-import { ORGANIC_MOLECULES, organicMoleculeById } from '../data/organicLab/organicMoleculeRegistry'
+import { ORGANIC_MOLECULES as ALL_ORGANIC_MOLECULES, organicMoleculeById } from '../data/organicLab/organicMoleculeRegistry'
+import { isCatalogVisibleId } from '../data/textbook/catalogWhitelist'
+import { isBankReactionReactorReady, reactorHrefForBank } from '../lab/reactorDeepLink'
 import type { OrganicMoleculeDef } from '../data/organicLab/organicMoleculeTypes'
 import { compoundSearchBlob, getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import type { MessageKey } from '../i18n/useT'
@@ -46,6 +49,9 @@ function sectionTitleKey(cat: CompoundCategory): MessageKey {
   }
   return m[cat]
 }
+
+/** Каталог показывает только вещества из учебников «Химия» 7–11. */
+const ORGANIC_MOLECULES = ALL_ORGANIC_MOLECULES.filter((m) => isCatalogVisibleId(m.id))
 
 function categoryLabelKey(cat: CompoundCategory): MessageKey {
   const m: Record<CompoundCategory, MessageKey> = {
@@ -296,7 +302,7 @@ export function CatalogPage() {
     setHighlightReactionId(reactionId)
   }, [])
 
-  const list = useMemo(() => Object.values(compoundById), [])
+  const list = useMemo(() => Object.values(compoundById).filter((c) => isCatalogVisibleId(c.id)), [])
 
   const searchBlob = useCallback((c: (typeof list)[number]) => compoundSearchBlob(c, locale, t), [locale, t])
 
@@ -764,6 +770,12 @@ export function CatalogPage() {
                         <p className={styles.rxReactants}>{reactantsSummaryRu(r.reactants)}</p>
                         <p className={styles.rxHow}>{locale === 'en' ? r.howToEn : r.howToRu}</p>
                         <p className={styles.rxPassport}>{describePassportRu(passport)}</p>
+                        {isBankReactionReactorReady(r.id) ? (
+                          <Link className={styles.rxLabLink} to={reactorHrefForBank(r.id)} data-rx-lab-link={r.id}>
+                            {t('catalog.rx.openLab')}
+                            <span aria-hidden>→</span>
+                          </Link>
+                        ) : null}
                       </article>
                     </li>
                   )

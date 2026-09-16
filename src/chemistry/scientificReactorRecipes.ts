@@ -3,23 +3,33 @@ import { getElementBySymbol, getElementByZ } from '../data/elements'
 import type { ReactorEquationTerm } from './reactorEquationBalance'
 import { compositionKey } from './reactorEquationBalance'
 
-/** Доп. продукты справа (кроме цели каталога), напр. NaCl рядом с ClO₂. */
+/**
+ * Доп. продукты справа (кроме цели каталога): вещество каталога (NaCl рядом с ClO₂)
+ * или простое вещество (H₂ в Zn + 2HCl → ZnCl₂ + H₂, Cu в Fe + CuSO₄ → FeSO₄ + Cu).
+ * coeff у элемента — как у реагентов: для diatomic число молекул X₂, иначе атомов.
+ */
 export type ReactorCoProductTerm = {
   id: string
-  compoundId: string
   coeff: number
   /** Нельзя удалить — часть научного маршрута. */
   locked?: boolean
-}
+} & (
+  | { compoundId: string; z?: undefined; diatomic?: undefined }
+  | { compoundId?: undefined; z: number; diatomic?: boolean }
+)
 
-type SciLeftSpec =
+export type SciLeftSpec =
   | { kind: 'compound'; compoundId: string; targetCoeff: number; glowZ: number }
   | { kind: 'element'; z: number; diatomic?: boolean; targetCoeff: number }
+
+export type SciCoProductSpec =
+  | { compoundId: string; targetCoeff: number; z?: undefined; diatomic?: undefined }
+  | { compoundId?: undefined; z: number; diatomic?: boolean; targetCoeff: number }
 
 export type ScientificReactorRecipe = {
   productId: string
   left: readonly SciLeftSpec[]
-  coProducts: readonly { compoundId: string; targetCoeff: number }[]
+  coProducts: readonly SciCoProductSpec[]
   productTargetCoeff: number
   titleRu: string
 }
@@ -96,11 +106,22 @@ export function compositionFromScientificRight(
   const out: Record<string, number> = {}
   mergeComp(out, product.composition, productCoeff)
   for (const cp of coProducts) {
-    const compound = compoundById[cp.compoundId]
-    if (!compound) continue
-    mergeComp(out, compound.composition, cp.coeff)
+    if (cp.compoundId != null) {
+      const compound = compoundById[cp.compoundId]
+      if (!compound) continue
+      mergeComp(out, compound.composition, cp.coeff)
+      continue
+    }
+    const el = getElementByZ(cp.z)
+    if (!el) continue
+    mergeComp(out, { [el.symbol]: cp.diatomic ? 2 : 1 }, cp.coeff)
   }
   return out
+}
+
+function sameCoProduct(term: ReactorCoProductTerm, spec: SciCoProductSpec): boolean {
+  if (spec.compoundId != null) return term.compoundId === spec.compoundId
+  return term.compoundId == null && term.z === spec.z && Boolean(term.diatomic) === Boolean(spec.diatomic)
 }
 
 /**
@@ -110,14 +131,14 @@ export function compositionFromScientificRight(
 export function seedScientificReactorEquation(
   productId: string,
   newId: () => string,
-  opts?: { withTargetCoeffs?: boolean },
+  opts?: { withTargetCoeffs?: boolean; recipe?: ScientificReactorRecipe | null },
 ): {
   leftTerms: ReactorEquationTerm[]
   coProducts: ReactorCoProductTerm[]
   productCoeff: number
 } | null {
-  const recipe = getScientificReactorRecipe(productId)
-  if (!recipe) return null
+  const recipe = opts?.recipe ?? getScientificReactorRecipe(productId)
+  if (!recipe || recipe.productId !== productId) return null
   const useTarget = opts?.withTargetCoeffs === true
   const leftTerms: ReactorEquationTerm[] = recipe.left.map((spec) => {
     if (spec.kind === 'compound') {
@@ -137,12 +158,22 @@ export function seedScientificReactorEquation(
       locked: true,
     }
   })
-  const coProducts: ReactorCoProductTerm[] = recipe.coProducts.map((cp) => ({
-    id: newId(),
-    compoundId: cp.compoundId,
-    coeff: useTarget ? cp.targetCoeff : 1,
-    locked: true,
-  }))
+  const coProducts: ReactorCoProductTerm[] = recipe.coProducts.map((cp) =>
+    cp.compoundId != null
+      ? {
+          id: newId(),
+          compoundId: cp.compoundId,
+          coeff: useTarget ? cp.targetCoeff : 1,
+          locked: true,
+        }
+      : {
+          id: newId(),
+          z: cp.z,
+          ...(cp.diatomic ? { diatomic: true as const } : {}),
+          coeff: useTarget ? cp.targetCoeff : 1,
+          locked: true,
+        },
+  )
   return {
     leftTerms,
     coProducts,
@@ -156,10 +187,11 @@ export function isScientificEquationBalanced(
   product: CompoundDef | undefined,
   productCoeff: number,
   compoundById: Readonly<Record<string, CompoundDef>>,
+  recipeOverride?: ScientificReactorRecipe | null,
 ): boolean {
   if (!product) return false
-  const recipe = getScientificReactorRecipe(product.id)
-  if (!recipe) return false
+  const recipe = recipeOverride ?? getScientificReactorRecipe(product.id)
+  if (!recipe || recipe.productId !== product.id) return false
 
   if (leftTerms.length !== recipe.left.length) return false
   for (let i = 0; i < recipe.left.length; i++) {
@@ -177,13 +209,38 @@ export function isScientificEquationBalanced(
   }
   if (coProducts.length !== recipe.coProducts.length) return false
   for (let i = 0; i < recipe.coProducts.length; i++) {
-    if (coProducts[i]!.compoundId !== recipe.coProducts[i]!.compoundId) return false
+    if (!sameCoProduct(coProducts[i]!, recipe.coProducts[i]!)) return false
   }
 
   const left = compositionFromScientificLeft(leftTerms, compoundById)
   if (!left) return false
   const right = compositionFromScientificRight(product, productCoeff, coProducts, compoundById)
   return compositionKey(left) === compositionKey(right)
+}
+
+/** Текст уравнения рецепта с целевыми коэффициентами: «2NaClO₂ + Cl₂ → 2NaCl + 2ClO₂». */
+export function formatScientificRecipeEquation(
+  recipe: ScientificReactorRecipe,
+  compoundById: Readonly<Record<string, CompoundDef>>,
+): string {
+  const k = (n: number) => (n === 1 ? '' : String(n))
+  const elementText = (z: number, diatomic?: boolean) => {
+    const sym = getElementByZ(z)?.symbol ?? '?'
+    return diatomic ? `${sym}₂` : sym
+  }
+  const compoundText = (id: string) => compoundById[id]?.formulaUnicode ?? id
+  const left = recipe.left.map((s) =>
+    s.kind === 'compound' ? `${k(s.targetCoeff)}${compoundText(s.compoundId)}` : `${k(s.targetCoeff)}${elementText(s.z, s.diatomic)}`,
+  )
+  const right = [
+    ...recipe.coProducts.map((s) =>
+      s.compoundId != null
+        ? `${k(s.targetCoeff)}${compoundText(s.compoundId)}`
+        : `${k(s.targetCoeff)}${elementText(s.z, s.diatomic)}`,
+    ),
+    `${k(recipe.productTargetCoeff)}${compoundText(recipe.productId)}`,
+  ]
+  return `${left.join(' + ')} → ${right.join(' + ')}`
 }
 
 /** zSlots-заглушка для научного запуска (микромир не использует Bohr). */

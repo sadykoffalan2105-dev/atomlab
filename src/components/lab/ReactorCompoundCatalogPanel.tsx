@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { COMPOUND_CATEGORY_ORDER } from '../../data/compoundCategoryLabels'
 import { filterCompoundsForCatalog } from '../../data/compoundCatalogFilter'
 import { compoundById } from '../../data/compounds'
+import { isCatalogVisibleId } from '../../data/textbook/catalogWhitelist'
 import { compoundSearchBlob, getCompoundLocaleStrings } from '../../i18n/compoundLocale'
 import type { MessageKey } from '../../i18n/useT'
 import { useT } from '../../i18n/useT'
@@ -145,7 +146,7 @@ export function ReactorCompoundCatalogPanel({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  const all = useMemo(() => Object.values(compoundById) as CompoundDef[], [])
+  const all = useMemo(() => (Object.values(compoundById) as CompoundDef[]).filter((c) => isCatalogVisibleId(c.id)), [])
 
   const scoped = useMemo(() => {
     if (!allowedProductIds?.length) return all

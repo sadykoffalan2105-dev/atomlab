@@ -231,11 +231,24 @@ async function enrichKbHits(kb: KbModule, query: string, ctx: TeacherKnowledgeCo
   return out
 }
 
-async function searchViaKb(query: string, ctx: TeacherKnowledgeContext): Promise<ProviderOutput> {
+async function searchViaKb(rawQuery: string, ctx: TeacherKnowledgeContext): Promise<ProviderOutput> {
   const kb = await import('./kb')
+  // uz: падежные окончания («Galogenlarga», «oksidning») мешают поиску — ищем по основе с формой множественного числа.
+  const query = ctx.locale === 'uz' ? rawQuery.replace(/(?<=[a-z'‘’]{4,})(ning|dagi|dan|ga|ni|da)(?=[\s?!.,]|$)/giu, '') : rawQuery
   const { limit, maxChars, promptChunks } = budgetOf(ctx)
   const grade = gradeNumber(ctx.gradeId)
-  const hits = await kb.searchKnowledge(query, {
+  // Учебники русские: к вопросу на en/uz добавляем русские термины глоссария, иначе поиск идёт по чужим словам.
+  let searchQuery = query
+  if (ctx.locale !== 'ru') {
+    try {
+      const { ruQueryTerms } = await import('./kb/localeSupport')
+      const terms = await ruQueryTerms(query, ctx.locale)
+      if (terms.length) searchQuery = `${query} ${terms.join(' ')}`
+    } catch {
+      /* без глоссария — поиск по исходному вопросу */
+    }
+  }
+  const hits = await kb.searchKnowledge(searchQuery, {
     grade,
     chapterId: ctx.chapterId,
     sectionId: ctx.sectionId,

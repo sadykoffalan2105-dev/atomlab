@@ -47,6 +47,13 @@ const ERRATA: Array<{ span: RegExp; fix: string | { skip: true }; note: string }
   { span: /органические вещества с одинарными связями между атомами углерода/gu, fix: 'органические вещества с одной двойной связью между атомами углерода', note: 'Kimyo 10 §2.7 p56: alkenes C=C' },
   // −196 °C is lower than −183 °C: nitrogen boils first because its boiling point is LOWER.
   { span: /(температура кипения\s*\(\s*[–—−-]\s*196\s*°\s*C\s*\)\s*)выше(,\s*чем)/gu, fix: '$1ниже$2', note: 'Kimyo 8 §36 p157: N₂ boils lower than O₂' },
+  // Filtration separates solid particles from a liquid; oil and water (two liquids) are separated by settling / a separating funnel.
+  // The slip is copied into the quiz explanations and their en/uz translations — the errata runs over every hit text.
+  { span: /\(соль и песок,\s*масло и вода\)/gu, fix: '(соль и песок)', note: 'Kimyo 7 §1.6 p24: filtration ≠ oil/water' },
+  { span: /\(tuz va qum,\s*moy va suv\)/gu, fix: '(tuz va qum)', note: 'Kimyo 7 §1.6 (uz quiz i18n): filtration ≠ oil/water' },
+  { span: /\(salt and sand,\s*oil and water\)/gu, fix: '(salt and sand)', note: 'Kimyo 7 §1.6 (en quiz i18n): filtration ≠ oil/water' },
+  // Truncated uz quiz explanation (no verb/object).
+  { span: /Filtrlash\s*-\s*qattiq zarralarni ushlab turuvchi qistirma orqali\.?/u, fix: { skip: true }, note: 'uz quiz i18n: truncated explanation' },
 ]
 
 function applyErrata(text: string): string {
@@ -60,6 +67,51 @@ function applyErrata(text: string): string {
         .join('\n')
   }
   return out
+}
+
+/** Short Russian words that really are words (a run of fragments never starts or ends inside them). */
+const RU_SHORT_WORDS = new Set([
+  'и', 'в', 'во', 'на', 'с', 'со', 'к', 'ко', 'о', 'об', 'у', 'по', 'за', 'из', 'от', 'до', 'не', 'ни', 'же', 'ли', 'а',
+  'но', 'то', 'их', 'ее', 'её', 'он', 'мы', 'вы', 'ей', 'им', 'ею', 'ты', 'я', 'для', 'или', 'что', 'как', 'при', 'над',
+  'под', 'без', 'так', 'уже', 'все', 'вся', 'всё', 'это', 'его', 'ему', 'там', 'где', 'чем', 'тем', 'том', 'той', 'тот',
+  'те', 'та', 'ту', 'два', 'три', 'дву', 'см', 'мм', 'км', 'кг', 'мл', 'мг', 'эв', 'ат', 'рн', 'ph', 'тип', 'ток', 'газ',
+  'вид', 'ион', 'век', 'вес', 'ряд', 'раз', 'год', 'дом', 'шаг', 'яд', 'ядр', 'нет', 'ещё', 'еще', 'был', 'три', 'чис',
+])
+
+/**
+ * Letter-spaced OCR words («В кристаллах а лма за все атомы …» → «В кристаллах алмаза все атомы …»).
+ * A run of short lowercase Cyrillic fragments that are not words is glued back into one word; applied only to lines
+ * that show the defect at least twice, and never next to digits (units «5 кг вещества» stay as they are).
+ */
+function joinSpacedWords(text: string): string {
+  const isFragment = (w: string) => /^[а-яё]{1,3}$/u.test(w) && !RU_SHORT_WORDS.has(w)
+  return text
+    .split('\n')
+    .map((line) => {
+      const tokens = line.split(/(\s+)/)
+      const words = tokens.filter((_t, i) => i % 2 === 0)
+      if (words.filter(isFragment).length < 2) return line
+      const out: string[] = []
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i]!
+        if (!isFragment(w) || /\d/.test(words[i - 1] ?? '') || /\d/.test(words[i + 1] ?? '')) {
+          out.push(w)
+          continue
+        }
+        // Влево — одиночные буквы («а лма за»), вправо — обрывки и короткие слова внутри слова.
+        let glued = w
+        while (out.length > 0 && /^[а-яё]$/u.test(out[out.length - 1]!)) glued = `${out.pop()}${glued}`
+        while (i + 1 < words.length && /^[а-яё]{1,3}$/u.test(words[i + 1]!) && glued.length + words[i + 1]!.length <= 18) {
+          glued += words[i + 1]!
+          i++
+          if (!isFragment(words[i]!)) break
+        }
+        out.push(glued)
+      }
+      // Пробелы между словами не восстанавливаем поштучно — строка собирается заново одним пробелом.
+      return out.join(' ')
+    })
+    .join('\n')
 }
 
 /** Generic OCR classes: a missing space after a period, spaced ion charges, garbled element-symbol lists. */
@@ -129,6 +181,7 @@ const CAPTION_LINE_RE = /^\s*(Рис|Rasm|Fig)\.\s*\d+\s*[.:]/u
 export function repairLayout(raw: string): string {
   let text = applyErrata(raw)
   for (const [re, to] of OCR_FIXES) text = text.replace(re, to)
+  text = joinSpacedWords(text)
   const out: string[] = []
   for (const line of dropTaskText(text.split('\n'))) {
     let cur = line.replace(/^\s*!\s+(?=\p{Ll})/u, '')

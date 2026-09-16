@@ -1,0 +1,709 @@
+# Grade 8 (Kimyo 8, ru) — inventory part 1: book paragraphs kp 1..23 (first 23 of 45 entries in kb-sections.json g8.book)
+# Format: see scripts/textbook-inventory/build-inventory.mts header.
+@note Разбиение: kb-sections.json g8.book содержит 45 записей (§1–§44 + «Практические и лабораторные работы»); часть 1 = первые 23 записи = §1–§23 (с. 5–99).
+@note Текст страниц: scripts/kb/.cache/lines-g8.json с исправлением регистра формул; уравнения, набранные изображениями (с. 70, 80, 86, 93, 97, 98), и таблицы (с. 22, 27) сверены по отрисовке страниц PDF.
+@note Лабораторные и практические работы в книге собраны в конце (с. 199–204, запись «lab») — они относятся к части 2; внутри §1–§23 отдельных лабораторных работ нет.
+@note Не включены: электронные схемы полуреакций (Na0 – 1e → Na+1 и т. п.), общие формулы (E2On, R2O7, RH4, EO3, H2E), изотопы/нуклиды, элементы, упомянутые только как химические элементы (не как вещества), цепочки превращений из заданий (их вещества включены как mentioned).
+@note formulaInBook=false — формула в этом месте книги не напечатана (дана только словами); nameInBook=false — название не напечатано (подставлено стандартное). writtenInBook=false — реакция описана словами/в задании, уравнение составлено.
+# "!" before formula = formula not printed there (name only); "~" before name = name not printed (standard name supplied).
+
+@kp 1
+S H2SO4|серная кислота|-|mentioned|7
+S P2O5|оксид фосфора (V)|-|mentioned|8
+S RbH|~гидрид рубидия|-|mentioned|9|q=rbh|note=в тексте «rbh» (регистр испорчен); задание на валентность
+S CaH2|~гидрид кальция|-|mentioned|9
+S NH3|~аммиак|-|mentioned|9
+S SiH4|~силан|-|mentioned|9
+S BH3|~боран|-|mentioned|9|q=Bh3|note=в тексте «Bh3»; так в книге (реальный гидрид бора — B2H6)
+S H2S|~сероводород|-|mentioned|9
+S KH|~гидрид калия|-|mentioned|9|q=Kh
+S CuO|оксид меди(II)|-|mentioned|9
+S CaCO3|известняк/мрамор/мел|-|mentioned|10
+S (CuOH)2CO3|малахит|-|mentioned|10|q=Co3
+S SiO2|белый песок|-|mentioned|10
+S FeSO4*7H2O|железный купорос|-|mentioned|10|q=FeSO4
+S !HNO3|азотная кислота|-|mentioned|10|q=азотной кислоты
+
+@kp 2
+S Na2O|~оксид натрия|-|studied|10
+S BaO|~оксид бария|-|studied|10
+S CuO|~оксид меди(II)|-|studied|10
+S CO2|~оксид углерода(IV)|-|studied|10
+S SO3|~оксид серы(VI)|-|studied|10
+S P2O5|~оксид фосфора(V)|-|studied|10
+S ZnO|~оксид цинка|-|studied|10
+S Al2O3|~оксид алюминия|-|studied|10
+S Sb2O3|~оксид сурьмы(III)|-|studied|10
+S CO|~оксид углерода(II)|-|studied|10|q=CO, NO
+S NO|~оксид азота(II)|-|studied|10
+S N2O|~оксид азота(I)|-|studied|10
+S Na2O2|~пероксид натрия|-|studied|10
+S H2O2|~пероксид водорода|-|studied|10
+S BaO2|~пероксид бария|-|studied|10
+S Mn2O7|оксид марганца(VII)|-|mentioned|11
+S !CaCO3|известняк|-|mentioned|11|q=накаливания известняка
+S !CaO|~оксид кальция|-|mentioned|11|q=накаливания известняка|note=«оксид, получаемый путем накаливания известняка» (формула не приведена)
+S CH4|~метан|organic|mentioned|11|q=CH4
+S H2S|~сероводород|-|mentioned|11
+S PH3|~фосфин|-|mentioned|11
+S C2H2|~ацетилен|organic|mentioned|11
+S NH3|~аммиак|-|mentioned|11
+S C|~углерод|-|mentioned|11|q=NH3, C
+S H2|~водород|-|mentioned|11|q=C, H2
+S S|~сера|-|mentioned|11|q=H2, S
+S P|~фосфор|-|mentioned|11|q=S, P
+S N2|~азот|-|mentioned|11
+S Cu|~медь|-|mentioned|11|q=N2, cu
+S Al|~алюминий|-|mentioned|11|q=cu, al
+S NaOH|~гидроксид натрия|-|studied|12
+S Ca(OH)2|~гидроксид кальция|-|studied|12
+S KOH|~гидроксид калия|-|studied|12
+S Ba(OH)2|~гидроксид бария|-|studied|12
+S Cu(OH)2|~гидроксид меди(II)|-|studied|12
+S Fe(OH)2|~гидроксид железа(II)|-|studied|12
+S Cr(OH)2|~гидроксид хрома(II)|-|studied|12
+S Zn(OH)2|~гидроксид цинка|-|studied|12
+S Al(OH)3|~гидроксид алюминия|-|studied|12
+S Cr(OH)3|~гидроксид хрома(III)|-|studied|12
+S AlCl3|~хлорид алюминия|-|reagent|12|note=в тексте: «водорастворимых солей алюминия»
+S NaCl|~хлорид натрия|-|obtained|12|q=3NaCl
+R 12|AlCl3 + 3NaOH → Al(OH)3↓ + 3NaCl;|-|-|exchange|
+S Ca|~кальций|-|reagent|13|q=на ca
+S CaO|~оксид кальция|-|reagent|13|q=CaO
+S H2O|~вода|-|reagent|13|q=воды на
+R 13|Ca + 2H2O = Ca(OH)2 + H2,|-|-|substitution|
+R 13|CaO + H2O = Ca(OH)2.|-|-|combination|
+S Li2O|~оксид лития|-|mentioned|13
+S SrO|~оксид стронция|-|mentioned|13
+S SnO|~оксид олова(II)|-|mentioned|13
+S Mn2O3|~оксид марганца(III)|-|mentioned|13
+S FeO|~оксид железа(II)|-|mentioned|13
+S Fe2O3|~оксид железа(III)|-|mentioned|13
+S HNO3|~азотная кислота|-|studied|13
+S H2CO3|~угольная кислота|-|studied|13
+S H2SiO3|~кремниевая кислота|-|studied|13
+S H2S|~сероводородная кислота|-|studied|13
+S HBr|~бромоводородная кислота|-|studied|13
+S HI|~йодоводородная кислота|-|studied|13
+S HCl|~хлороводородная кислота|-|studied|13
+S H2SO4|~серная кислота|-|studied|13
+S H2SO3|~сернистая кислота|-|studied|13
+S H3PO4|~фосфорная кислота|-|studied|13
+S HCl|соляная кислота|-|reagent|14|q=соляной кислоте
+S Zn|цинк|-|reagent|14|q=цинка
+S ZnCl2|хлорид цинка|-|obtained|14
+S H2|водород|-|obtained|14|q=водород:
+R 14|Zn + 2HCl = ZnCl2 + H2;|-|-|substitution|
+S As2O5|~оксид мышьяка(V)|-|mentioned|14|q=as2O5
+S CrO3|~оксид хрома(VI)|-|mentioned|14
+S SiO2|~оксид кремния(IV)|-|mentioned|14
+S !CaCO3|~карбонат кальция|-|mentioned|15|q=CaCO3|note=таблица задания: кислоты HCl, H2SO4 (конц./разб.) с Zn, Cu, CuO, Fe(OH)2, CaCO3
+S NH4^+|ион аммония|-|mentioned|15|q=Nh +
+S NaCl|~хлорид натрия|-|studied|15
+S KCl|~хлорид калия|-|studied|15
+S CaCl2|~хлорид кальция|-|studied|15
+S Ba(NO3)2|~нитрат бария|-|studied|15
+S Al2(SO4)3|~сульфат алюминия|-|studied|15
+S FeSO4|~сульфат железа(II)|-|studied|15
+S NaHCO3|~гидрокарбонат натрия|-|studied|15
+S Ca(HCO3)2|~гидрокарбонат кальция|-|studied|15
+S KHSO4|~гидросульфат калия|-|studied|15
+S Ca(H2PO4)2|~дигидрофосфат кальция|-|studied|15|q=H 2PO4
+S (CuOH)2CO3|~гидроксокарбонат меди(II)|-|studied|15
+S Ca(OH)Cl|~гидроксохлорид кальция|-|studied|15
+S Mg(OH)NO3|~гидроксонитрат магния|-|studied|15
+S Al(OH)2Cl|~дигидроксохлорид алюминия|-|studied|15
+S KAl(SO4)2|квасцы/алюмокалиевые квасцы|-|studied|15
+S NH4Al(SO4)2|~алюмоаммонийные квасцы|-|studied|15
+S NaHSO4|гидросульфат натрия|-|obtained|16
+R 16|NaOH + H2SO4 = NaHSO4 + H2O.|-|-|neutralization|
+S !CuCl2|хлорид меди(II)|-|mentioned|16
+S CuSO4|~сульфат меди(II)|-|mentioned|16
+S Fe|~железо|-|mentioned|16|q=Fe →
+S FeCl2|~хлорид железа(II)|-|mentioned|16|q=FeCl 2
+S Fe(NO3)2|~нитрат железа(II)|-|mentioned|16
+S FeCl3|~хлорид железа(III)|-|mentioned|16
+S Fe(OH)3|~гидроксид железа(III)|-|mentioned|16
+S Ca3(PO4)2|~фосфат кальция|-|mentioned|16
+S SO2|~оксид серы(IV)|-|mentioned|16
+S Na2SO4|~сульфат натрия|-|mentioned|16
+S Na|~натрий|-|mentioned|16|q=Na →
+S NaH|~гидрид натрия|-|mentioned|16|q=Nah|note=в тексте «Nah»
+S NaNO3|~нитрат натрия|-|mentioned|16
+S !NH4Cl|хлорид аммония|-|mentioned|16
+S !Fe(OH)2|гидроксид железа(II)|-|mentioned|16|q=гидроксид железа
+
+@kp 3
+S Hg|ртуть|-|mentioned|19|q=кроме ртути
+S !S|сера|-|mentioned|19|q=сера
+S !C|углерод|-|mentioned|19|q=углерод
+S !Si|кремний|-|mentioned|19|q=кремний
+S !I2|йод|-|mentioned|19|q=йод)
+S !Br2|бром|-|mentioned|19|q=(бром)
+S !O2|кислород|-|mentioned|19|q=кислород
+S !H2|водород|-|mentioned|19|q=водород
+S !Cl2|хлор|-|mentioned|19|q=хлор)
+S !Zn|цинк|-|studied|19|q=цинк и алюминий
+S !Al|алюминий|-|studied|19|q=цинк и алюминий
+S Na|~натрий|-|studied|19|q=Na Основный
+S Na2O|~оксид натрия|-|studied|19
+S NaOH|~гидроксид натрия|-|studied|19
+S ZnO|~оксид цинка|-|studied|19
+S Zn(OH)2|гидроксид цинка|-|studied|19
+S H2ZnO2|~цинковая кислота (кислотная форма гидроксида цинка)|acid|studied|19|note=каталог сопоставлен по составу с Zn(OH)2
+S SO2|~оксид серы(IV)|-|studied|19
+S H2SO3|~сернистая кислота|-|studied|19
+S HCl|~соляная кислота|-|reagent|19
+S ZnCl2|~хлорид цинка|-|obtained|19
+S Na2ZnO2|~цинкат натрия|-|obtained|19
+S H2O|~вода|-|obtained|19|q=2H2O
+R 19|Zn(OH)2 + 2HCl = ZnCl2 + 2H2O.|-|-|neutralization|
+R 19|Zn(OH)2 + 2NaOH = Na2ZnO2 + 2H2O.|-|-|neutralization|
+S CrO|оксид хрома(II)|-|studied|20
+S Cr2O3|оксид хрома(III)|-|studied|20|q=cr 2O 3
+S CrO3|оксид хрома(VI)|-|studied|20
+S BeO|~оксид бериллия|-|mentioned|20
+S Al2O3|~оксид алюминия|-|mentioned|20
+S PbO|~оксид свинца(II)|-|mentioned|20
+S Be(OH)2|гидроксид бериллия|-|mentioned|20
+S !Na2BeO2|бериллат натрия|-|mentioned|20|q=бериллата натрия
+S !NaOH|гидроксид натрия|-|mentioned|20|q=нагретого гидроксида
+
+@kp 4
+S !Na|натрий|-|studied|21|q=натрий и калий
+S !K|калий|-|studied|21|q=натрий и калий
+S O2|~кислород|-|reagent|21|q=Na + O2
+S H2O|~вода|-|reagent|21|q=2H2O
+S Na2O2|~пероксид натрия|-|obtained|21
+S NaOH|~гидроксид натрия|-|obtained|21|q=2NaOH
+S H2|~водород|-|obtained|21|q=+ H2
+S K2O2|~пероксид калия|-|obtained|21
+S KOH|~гидроксид калия|-|obtained|21|q=2KOH
+R 21|2Na + O2 = Na2O2,|-|-|combination|
+R 21|2Na + 2H2O = 2NaOH + H2,|-|-|substitution|
+R 21|2K + O2 = K2O2,|-|-|combination|
+R 21|2K + 2H2O = 2KOH + H2.|-|-|substitution|
+S Li|литий|-|studied|21|q=Литий
+S Rb|рубидий|-|studied|21|q=Рубидий
+S Cs|цезий|-|studied|21|q=Цезий
+S Fr|~франций|-|mentioned|21|q=и Fr
+S Li2O|~оксид лития|-|studied|21
+S LiOH|~гидроксид лития|-|studied|21
+S LiCl|~хлорид лития|-|studied|21
+S Li2SO4|~сульфат лития|-|studied|21
+S Na2O|~оксид натрия|-|studied|21
+S NaCl|~хлорид натрия|-|studied|21|q=NaCl, Na2SO4
+S Na2SO4|~сульфат натрия|-|studied|21
+S K2O|~оксид калия|-|studied|21
+S KCl|~хлорид калия|-|studied|21
+S K2SO4|~сульфат калия|-|studied|21
+S Rb2O|~оксид рубидия|-|studied|21|q=rb2O
+S RbOH|~гидроксид рубидия|-|studied|21|q=rbOh
+S RbCl|~хлорид рубидия|-|studied|21|q=rbcl
+S Rb2SO4|~сульфат рубидия|-|studied|21|q=rb2SO4
+S Cs2O|~оксид цезия|-|studied|21|q=cs2O
+S CsOH|~гидроксид цезия|-|studied|21
+S CsCl|~хлорид цезия|-|studied|21
+S Cs2SO4|~сульфат цезия|-|studied|21
+S Cl2|хлор|-|studied|22|q=Xлор Cl
+S !F2|фтор|-|studied|22|q=фтор F
+S !Br2|бром|-|studied|22|q=бром Br
+S !I2|йод|-|studied|22|q=йод I
+S HCl|соляная (хлороводородная) кислота|-|obtained|22|q=HCl – соляная
+S NaCl|~хлорид натрия|-|obtained|22|q=2NaCl
+R 22|H2 + Cl2 = 2HCl,|-|-|combination|
+R 22|2Na + Cl2 = 2NaCl.|-|-|combination|
+S HF|фтороводородная кислота|-|studied|22
+S HBr|бромоводородная кислота|-|studied|22
+S HI|йодоводородная кислота|-|studied|22
+S NaF|~фторид натрия|-|studied|22
+S NaBr|~бромид натрия|-|studied|22
+S NaI|~йодид натрия|-|studied|22
+S Cl2O7|~оксид хлора(VII)|-|studied|22|q=Cl2O
+S Br2O7|~оксид брома(VII)|-|studied|22|q=Br O|note=так в таблице 4 книги (высший оксид брома Br2O7 практически не получен)
+S I2O7|~оксид йода(VII)|-|studied|22|note=так в таблице 4 книги (устойчивый оксид йода — I2O5)
+S F2|фтор|-|studied|23|q=F2
+S Br2|бром|-|studied|23|q=Br2
+S I2|йод|-|studied|23|q=I2
+S He|гелий|-|studied|23|q=гелий he
+S Ne|неон|-|studied|23
+S Ar|аргон|-|studied|23|q=aргон ar
+S Kr|криптон|-|studied|23
+S Xe|ксенон|-|studied|23
+S !ZnCl2|хлорид цинка|-|mentioned|24|q=соли хлорид цинка
+
+@kp 5
+S Na2O|~оксид натрия|-|studied|26|q=NaO|note=в текстовом слое таблицы 6 «NaO 2»
+S MgO|~оксид магния|-|studied|26
+S Al2O3|~оксид алюминия|-|studied|26
+S SiO2|~оксид кремния(IV)|-|studied|26
+S P2O5|~оксид фосфора(V)|-|studied|26
+S SO3|~оксид серы(VI)|-|studied|26
+S Cl2O7|~оксид хлора(VII)|-|studied|26
+S SiH4|~силан|-|studied|27
+S PH3|~фосфин|-|studied|27
+S H2S|~сероводород|-|studied|27
+S HCl|~хлороводород|-|studied|27
+S NaOH|~гидроксид натрия|-|studied|27
+S Mg(OH)2|~гидроксид магния|-|studied|27|q=Mg(OH)
+S Al(OH)3|~гидроксид алюминия|-|studied|27|q=Al(OH)
+S HAlO2|~метаалюминиевая кислота|-|studied|27|q=halO|note=таблица 6, строка «Кислоты» (сверено по изображению)
+S H2SiO3|~кремниевая кислота|-|studied|27|q=H SiO
+S H3PO4|~фосфорная кислота|-|studied|27|q=H PO
+S H2SO4|~серная кислота|-|studied|27|q=H SO
+S H2O|~вода|-|studied|28
+S Li2O|~оксид лития|-|studied|28
+S BeO|~оксид бериллия|-|studied|28
+S B2O3|~оксид бора|-|studied|28
+S CO2|~оксид углерода(IV)|-|studied|28
+S CH4|~метан|organic|studied|28
+S N2O5|~оксид азота(V)|-|studied|28|note=в таблице 7 рядом с N2O5 указана валентность IV
+S NH3|~аммиак|-|studied|28
+S HF|~фтороводород|-|studied|28
+
+@kp 6
+S !H2O|вода|-|mentioned|32|q=в оксиде (воде)
+
+@kp 7
+@kp 8
+@kp 9
+@kp 10
+@kp 11
+@kp 12
+
+@kp 13
+S SrO|оксид стронция|-|mentioned|54|q=SrO
+S !As|мышьяк|-|mentioned|55|q=Мышьяк обладает|note=описаны физические свойства простого вещества
+S AsH3|~арсин|-|mentioned|55|q=ash3|note=в тексте «ash3»
+S As2O5|~оксид мышьяка(V)|-|mentioned|55|q=as2O5
+S !Ge|германий|-|mentioned|56|q=Германий
+S GeO2|~оксид германия(IV)|-|mentioned|56|q=eO2|note=таблица 12: «Плотность EO2» (экасилиций = германий)
+S GeCl4|~хлорид германия(IV)|-|mentioned|56|q=ecl4|note=таблица 12: «ECl4» (экасилиций = германий)
+S SO3|высший оксид серы|-|mentioned|58|q=SO3
+S H2S|летучее водородное соединение серы|-|mentioned|58|q=H2S
+S !H2O|вода|-|mentioned|60|q=молекул воды
+S !N2O3|оксид азота(III)|-|mentioned|60|q=оксида азота(III)
+S !NO2|оксид азота(IV)|-|mentioned|60|q=оксида азота(IV)
+
+@kp 14 note=включено введение к главе III (с. 62)
+S He|~гелий|-|mentioned|62|q=he, Ne
+S Ne|~неон|-|mentioned|62|q=he, Ne
+S Ar|~аргон|-|mentioned|62|q=ar, Kr
+S Kr|~криптон|-|mentioned|62|q=Kr, Xe
+S Xe|~ксенон|-|mentioned|62|q=Xe, rn
+S Rn|~радон|-|mentioned|62|q=rn)
+S H2|~водород|-|mentioned|62|q=H2, O2
+S O2|~кислород|-|mentioned|62|q=O2, N2
+S N2|~азот|-|mentioned|62|q=N2, Cl2
+S Cl2|~хлор|-|mentioned|62|q=Cl2 и
+S HCl|~хлороводород|-|mentioned|62
+S H2O|~вода|-|mentioned|62
+S MgO|~оксид магния|-|mentioned|62
+S NaCl|~хлорид натрия|-|mentioned|62
+S H2SO4|~серная кислота|-|mentioned|62
+S !Na^+|ион натрия|-|mentioned|63|q=Ион натрия
+S !F^-|ион фтора|-|mentioned|63|q=Ион фтора
+
+@kp 15
+S H2|~водород|-|studied|66|q=H2, F2
+S F2|~фтор|-|studied|66
+S Cl2|~хлор|-|studied|66
+S Br2|~бром|-|studied|66
+S I2|~йод|-|studied|66
+S O2|~кислород|-|studied|66
+S N2|~азот|-|studied|66
+S Li|~литий|-|mentioned|66|q=li, Na
+S Na|~натрий|-|mentioned|66|q=li, Na
+S K|~калий|-|mentioned|66|q=Na, K
+S Al|~алюминий|-|mentioned|66|q=K, al
+S Fe|~железо|-|mentioned|66|q=al, Fe
+S Cu|~медь|-|mentioned|66|q=Fe, cu
+S Zn|~цинк|-|mentioned|66|q=cu, Zn
+S HCl|~хлороводород|-|studied|66
+S HBr|~бромоводород|-|studied|66
+S HI|~йодоводород|-|studied|66
+S H2O|~вода|-|studied|66
+S H2S|~сероводород|-|studied|66
+S NH3|~аммиак|-|studied|66
+S CH4|~метан|organic|studied|66
+S PCl3|~хлорид фосфора(III)|-|studied|66
+S PCl5|~хлорид фосфора(V)|-|studied|66
+S NaCl|~хлорид натрия|-|studied|66
+S K2S|~сульфид калия|-|studied|66
+S BaCl2|~хлорид бария|-|studied|66
+S CaF2|~фторид кальция|-|studied|66
+S Li2O|~оксид лития|-|studied|66
+S MgO|~оксид магния|-|studied|66
+S H2|водород|-|studied|68|q=Водород
+S O2|кислород|-|studied|68|q=Kислород
+S N2|азот|-|studied|68|q=aзот
+S HCl|хлорид водорода|-|studied|68|q=хлорида водо
+S HF|~фтороводород|-|mentioned|69|q=HF
+S PH3|~фосфин|-|mentioned|69|q=PH3
+S H2O|вода|-|studied|69|q=воды H2O
+S NH3|аммиак|-|studied|69|q=аммиака NH3
+S H^+|ион водорода|-|reagent|70|q=ион водорода
+S NH4^+|ион аммония|-|obtained|70|q=Ион аммония
+S !H3O^+|ион гидроксония|-|obtained|70|q=ион гидроксония
+R 70|NH3 + H+ → NH4+ .|NH3 + H^+ → NH4^+|-|combination|i|q=NH3 + h+|note=донорно-акцепторная связь
+R 70|H:O: + H+ → [H:O:H]+|H2O + H^+ → H3O^+|-|combination|i|q=ион гидроксония|note=в книге записано электронными формулами (образование иона гидроксония); сверено по изображению страницы
+
+@kp 16
+S NaCl|~хлорид натрия|-|studied|71
+S K2S|~сульфид калия|-|studied|71
+S LiF|~фторид лития|-|studied|71
+S CaO|~оксид кальция|-|studied|71
+S Cl^-|ион хлора/хлорид-ион|-|studied|72|q=Cl–|note=таблица 15; в тексте «отрицательно заряженный ион»
+S K^+|ион калия|-|studied|72|q=K+
+S KBr|~бромид калия|-|studied|73
+S CaI2|~йодид кальция|-|studied|73
+S Li2O|~оксид лития|-|studied|73
+S Na2S|~сульфид натрия|-|studied|73
+S Mg^2+|ион магния|-|mentioned|73|q=Mg2+
+S F^-|ион фтора|-|mentioned|73|q=F–
+
+@kp 17
+S NaCl|~хлорид натрия|-|studied|74|q=NaCl, KNO3
+S KNO3|~нитрат калия|-|studied|74
+S CuSO4|~сульфат меди(II)|-|studied|74
+S NaOH|~гидроксид натрия|-|studied|74
+S KOH|~гидроксид калия|-|studied|74
+S Ca(OH)2|~гидроксид кальция|-|studied|74
+S !C|алмаз/графит|-|studied|74|q=алмаз
+S !Si|кремний|-|studied|74|q=графит, кремний
+S !Ge|германий|-|studied|74|q=германий
+S !B|бор|-|studied|74|q=бор и др
+S H2|~водород|-|studied|74|q=H2, N2
+S N2|~азот|-|studied|74|q=N2, O2
+S O2|~кислород|-|studied|74|q=O2, Cl2
+S Cl2|~хлор|-|studied|74|q=Cl2, P4
+S P4|~белый фосфор|-|studied|74
+S S8|~ромбическая сера|-|studied|74
+S H2O|~вода|-|studied|74|q=H2O, HCl
+S HCl|~хлороводород|-|studied|74|q=HCl, CO2
+S CO2|~оксид углерода(IV)|-|studied|74
+S H2S|~сероводород|-|studied|74|q=H2S в
+S Na|~натрий|-|studied|75|q=Na, Ba
+S Ba|~барий|-|studied|75|q=Na, Ba
+S Zn|~цинк|-|studied|75|q=Ba, Zn
+S Al|~алюминий|-|studied|75|q=Zn, al
+S Cu|~медь|-|studied|75|q=al, cu
+S Au|~золото|-|studied|75|q=cu, au
+S !NaCl|поваренная соль|-|studied|75|q=поваренной соли
+S Na^+|ион натрия|-|studied|75|q=(Na+)
+S Cl^-|ион хлора|-|studied|75|q=(Cl–)
+S -|сахар|organic|mentioned|76|q=сахар
+S !I2|йод|-|mentioned|76|q=йод легко
+S !H2O|вода/лёд|-|mentioned|76|q=Вода может
+S !CO2|диоксид углерода/«сухой» лёд|-|mentioned|76|q=диоксид
+
+@kp 18
+S !CuO|оксид меди(II)|-|mentioned|76|q=оксида меди(II) водородом
+S !H2|водород|-|mentioned|76|q=водородом
+S !Cu|медь|-|mentioned|76|q=меди путем
+S SO4^2-|~сульфат-ион|-|mentioned|77|q=SO42–
+S S^2-|~сульфид-ион|-|mentioned|77|q=S2–
+S Al^3+|~ион алюминия|-|mentioned|77|q=Al3+
+S H2|~водород|-|mentioned|77|q=H2, Cl2
+S Cl2|~хлор|-|mentioned|77|q=Cl2,
+S N2|~азот|-|mentioned|77|q=N2, Sn
+S S|~сера|-|mentioned|77|q=Sn, Fen|note=в книге «Sn» = S_n (сера), не олово
+S Fe|~железо|-|mentioned|77|q=Fen|note=в книге «Fe_n»
+S Al2S3|сульфид алюминия|-|studied|77|q=Al2S3
+S NH3|~аммиак|-|mentioned|77|q=(NH3
+S CH4|~метан|organic|mentioned|77|q=CH4 –
+S H3PO4|фосфорная кислота|-|studied|77|q=H3PO4
+S O2|~кислород|-|mentioned|78|q=N2, O2
+S O3|~озон|-|mentioned|78|q=O3
+S P|~фосфор|-|mentioned|78|q=O3, P
+S C|~углерод|-|mentioned|78|q=S, C
+S Na|~натрий|-|mentioned|78|q=C, Na
+S Mg|~магний|-|mentioned|78|q=Na, Mg
+S Al|~алюминий|-|mentioned|78|q=Mg, al
+S H2O2|пероксид водорода|-|studied|78|q=H2O2
+S BeCl2|~хлорид бериллия|-|mentioned|79
+S SiO2|~оксид кремния(IV)|-|mentioned|79
+S XeO4|~оксид ксенона(VIII)|-|mentioned|79
+S ClF3|~трифторид хлора|-|mentioned|79
+S HMnO4|~марганцовая кислота|-|mentioned|79
+S K2Cr2O7|~дихромат калия|-|mentioned|79|q=K 2Cr2O7
+S !FeS2|пирит|-|mentioned|79|q=пирита
+
+@kp 19
+S CuO|оксид меди(II)|-|reagent|79|q=CuO + H2SO4
+S H2SO4|серная кислота|-|reagent|79|q=серной кис
+S CuSO4|~сульфат меди(II)|-|obtained|79|q=CuSO4
+S H2O|~вода|-|obtained|79|q=CuSO4 + H2O
+R 79|CuO + H2SO4 = CuSO4 + H2O.|-|-|exchange|
+S !NaCl|поваренная соль|-|mentioned|79|q=поваренной соли
+S !Na|натрий|-|reagent|80|q=натрия с хлором
+S !Cl2|хлор|-|reagent|80|q=натрия с хлором
+S NaCl|~хлорид натрия|-|obtained|80|q=натрия с хлором
+R 80|2Na + Cl2 = 2NaCl.|2Na + Cl2 → 2NaCl|-|redox||q=натрия с хлором|note=на с. 80 уравнения набраны как изображения со степенями окисления; текст сверен по изображению страницы
+S Mg|~магний|-|reagent|80|q=кислород является окислителем
+S O2|кислород|-|reagent|80|q=кислород является окислителем
+S MgO|~оксид магния|-|obtained|80|q=кислород является окислителем
+S S|~сера|-|reagent|80|q=кислород является окислителем
+S SO2|~оксид серы(IV)|-|obtained|80|q=кислород является окислителем
+S H2S|~сероводород|-|reagent|80|q=кислород является окислителем
+S P|~фосфор|-|reagent|80|q=кислород является окислителем
+S P2O5|~оксид фосфора(V)|-|obtained|80|q=кислород является окислителем
+S H2|водород|-|reagent|80|q=свойств водорода
+S Cu|~медь|-|obtained|80|q=Cu + H2
+S Fe2O3|~оксид железа(III)|-|reagent|80|q=Fe O
+S Fe|~железо|-|obtained|80|q==2Fe
+R 80|2Mg + O2 = 2MgO,|-|-|redox||q=кислород является окислителем|note=изображение (сверено)
+R 80|S + O2 = SO2,|-|-|redox||q=кислород является окислителем|note=изображение (сверено)
+R 80|2H2S + 3O2 = 2SO2 + 2H2O,|-|-|redox||q=кислород является окислителем|note=изображение (сверено)
+R 80|4P + 5O2 = 2P2O5.|-|-|redox||q=кислород является окислителем|note=изображение (сверено)
+R 80|CuO + H2 = Cu + H2O;|-|-|redox||q=Cu + H2|note=изображение (сверено); текстовый слой «Cu + H2 O»
+R 80|Fe2O3 + 3H2 = 2Fe + 3H2O.|-|-|redox||q=Fe O +3H
+R 81|S0 + O2 = SO2|S + O2 → SO2|-|redox||q=S0 + O2
+R 81|S0 + H2 = H2S|S + H2 → H2S|-|redox||q=S0 + H02
+S KCl|~хлорид калия|-|reagent|82
+S AgNO3|~нитрат серебра|-|reagent|82
+S KNO3|~нитрат калия|-|obtained|82
+S AgCl|~хлорид серебра|-|obtained|82
+S FeO|~оксид железа(II)|-|reagent|82
+S CO|~оксид углерода(II)|-|reagent|82|q=FeO + CO
+S CO2|~оксид углерода(IV)|-|obtained|82
+S Li|~литий|-|reagent|82|q=2Li
+S LiH|~гидрид лития|-|obtained|82
+S HgO|~оксид ртути(II)|-|reagent|82
+S Hg|~ртуть|-|obtained|82|q=Hg + H2O
+R 82|1) KCl + AgNO3 = KNO3 + AgCl;|-|-|exchange|x
+R 82|2) FeO + CO = Fe + CO2.|-|-|redox|x
+R 82|1) 2Li + H2 = 2LiH;|-|-|redox|x
+R 82|2) HgO + H2 = Hg + H2O.|-|-|redox|x
+
+@kp 20
+S !Al|алюминий|-|reagent|82|q=металла алюминия
+S !HCl|соляная кислота|-|reagent|83|q=кислоте образуется|note=на с. 82–83: «в соляной кислоте»
+S !AlCl3|хлорид алюминия|-|obtained|83|q=хлорид алюминия
+S !H2|водород|-|obtained|83|q=выделяется во
+R 83|2Al + 6HCl → 2AlCl3 + 3H2.|-|-|redox||q=2Al + 6HCl|note=промежуточная запись в книге: «2Al + HCl → AlCl3 + 3H2»
+S !HNO3|разбавленная азотная кислота|-|reagent|83|q=разбавленной
+S !Al(NO3)3|нитрат алюминия|-|obtained|83|q=нитрат алюминия
+S !N2O|оксид азота(I)|-|obtained|83|q=оксид азота(I)
+S !H2O|вода|-|obtained|83|q=и вода
+R 84|8Al + 30HNO3 → 8Al(NO3)3 + 3N2O + 15H2O.|-|разб. HNO3|redox||q=8Al + 30HNO3|note=промежуточная запись в книге: «8Al + HNO3 → Al(NO3)3 + 3N2O + H2O»
+S KClO3|~хлорат калия|-|reagent|84
+S KCl|~хлорид калия|-|obtained|84|q=KCl + O2
+S O2|~кислород|-|obtained|84|q=KCl + O2
+R 84|1) KClO3 → KCl + O2;|2KClO3 → 2KCl + 3O2|-|decomposition|x|q=KClO3|note=в книге без коэффициентов (задание уравнять); коэффициенты расставлены
+S H2SO3|~сернистая кислота|-|reagent|84
+S K2Cr2O7|~дихромат калия|-|reagent|84|q=K 2Cr2O7
+S H2SO4|~серная кислота|-|reagent|84|q=+H2SO4
+S K2SO4|~сульфат калия|-|obtained|84|q=K 2SO4
+S Cr2(SO4)3|~сульфат хрома(III)|-|obtained|84|q=Cr2 (SO4)3
+R 84|2) H2SO3 + K2Cr2O7 + H2SO4 → K2SO4 + Cr2(SO4)3 + H2O.|3H2SO3 + K2Cr2O7 + H2SO4 → K2SO4 + Cr2(SO4)3 + 4H2O|-|redox|x|q=H2SO3 + K|note=в книге без коэффициентов (задание уравнять); коэффициенты расставлены
+S !KMnO4|перманганат калия|-|reagent|84|q=перманганата ка
+S !K2MnO4|манганат калия|-|obtained|84|q=манганат калия
+S !MnO2|оксид марганца(IV)|-|obtained|84|q=оксид марганца(IV)
+S !O2|кислород|-|obtained|84|q=кислород. Запишите
+R 84|2KMnO4 = K2MnO4 + MnO2 + O2.|2KMnO4 → K2MnO4 + MnO2 + O2|t° (прокаливание)|decomposition||q=2KMnO4 = K
+S !H2O2|пероксид водорода|-|reagent|84|q=пероксида водорода
+S MnO2|~оксид марганца(IV)|-|reagent|84|q=(MnO2)|note=катализатор разложения пероксида водорода
+R 85|2H2O2 → 2H2O + O2.|-|kat MnO2|decomposition||q=2H2O2 →
+S P|~фосфор|-|reagent|85|q=P + O2
+S P2O5|~оксид фосфора(V)|-|obtained|85
+S Fe|~железо|-|reagent|85|q=Fe + Cl2
+S Cl2|~хлор|-|reagent|85|q=Fe + Cl2
+S FeCl3|~хлорид железа(III)|-|obtained|85
+S Cu|~медь|-|reagent|85|q=Cu + HNO3
+S HNO3|~азотная кислота|-|reagent|85|q=Cu + HNO3
+S Cu(NO3)2|~нитрат меди(II)|-|obtained|85
+S NO|~оксид азота(II)|-|obtained|85|q=+ NO +
+S Al2O3|~оксид алюминия|-|obtained|85
+S Na|~натрий|-|reagent|85|q=Na + S
+S S|~сера|-|reagent|85|q=Na + S
+S Na2S|~сульфид натрия|-|obtained|85
+S NO2|~оксид азота(IV)|-|reagent|85|q=NO2 + H2O
+S HCl|~соляная кислота|-|reagent|85|q=HCl + MnO2
+S MnCl2|~хлорид марганца(II)|-|obtained|85
+S FeS2|~пирит|-|reagent|85
+S SO2|~оксид серы(IV)|-|obtained|85|q=+ SO2
+S Fe2O3|~оксид железа(III)|-|obtained|85|q=Fe2O3 + SO2
+S !CuO|оксид меди(II)|-|reagent|85|q=восстановлении оксида
+S !Cu|медь|-|obtained|85|q=0,25 моля меди
+S FeSO4|сульфат железа(II)|-|reagent|85|q=Соль сульфат железа
+S KMnO4|перманганат калия|-|reagent|85|q=перманганатом калия
+S Fe2(SO4)3|~сульфат железа(III)|-|obtained|85
+S MnSO4|~сульфат марганца(II)|-|obtained|85
+R 85|a) P + O2 = P2O5;|4P + 5O2 → 2P2O5|-|redox|x|q=P + O2 = P2O5|note=в книге без коэффициентов (задание)
+R 85|Fe + Cl2 = FeCl3;|2Fe + 3Cl2 → 2FeCl3|-|redox|x|q=Fe + Cl2 = FeCl3|note=в книге без коэффициентов (задание)
+R 85|б) Cu + HNO3 = Cu(NO3)2 + NO + H2O;|3Cu + 8HNO3 → 3Cu(NO3)2 + 2NO + 4H2O|-|redox|x|q=Cu + HNO3|note=в книге без коэффициентов (задание)
+R 85|в) Al + O2 = Al2O3;|4Al + 3O2 → 2Al2O3|-|redox|x|q=Al + O2|note=в книге без коэффициентов (задание)
+R 85|Na + S = Na2S;|2Na + S → Na2S|-|redox|x|q=Na + S|note=в книге без коэффициентов (задание)
+R 85|г) NO2 + H2O = HNO3 + NO;|3NO2 + H2O → 2HNO3 + NO|-|redox|x|q=NO2 + H2O|note=в книге без коэффициентов (задание)
+R 85|д) HCl + MnO2 = MnCl2 + Cl2 + H2O;|4HCl + MnO2 → MnCl2 + Cl2 + 2H2O|-|redox|x|q=HCl + MnO2|note=в книге без коэффициентов (задание)
+R 85|е) FeS2 + O2 = Fe2O3 + SO2.|4FeS2 + 11O2 → 2Fe2O3 + 8SO2|-|redox|x|q=FeS2 + O2|note=в книге без коэффициентов (задание)
+R 85|При восстановлении оксида меди(II) водородом образуется 0,25 моля меди. Запишите уравнение этой реакции|CuO + H2 → Cu + H2O|-|redox|xe|q=восстановлении оксида|note=уравнение в задании не записано
+R 85|FeSO4 + KMnO4 + H2SO4 = Fe2(SO4)3 + K 2SO4 + MnSO4 + H2O.|10FeSO4 + 2KMnO4 + 8H2SO4 → 5Fe2(SO4)3 + K2SO4 + 2MnSO4 + 8H2O|-|redox|x|q=FeSO4 + KMnO4|note=в книге без коэффициентов (задание уравнять)
+S KMnO4|~перманганат калия|-|studied|85|q=KMnO4 и
+S K2Cr2O7|~дихромат калия|-|studied|85|q=K 2Cr2O7, зная
+S Hg|~ртуть|-|reagent|86|q=2hg
+S HgO|~оксид ртути(II)|-|obtained|86|q=2HgO
+S N2|~азот|-|reagent|86|q=N2 + 3H2
+S NH3|~аммиак|-|obtained|86|q=2NH3
+S Ca|~кальций|-|reagent|86|q=Ca + Cl2
+S CaCl2|~хлорид кальция|-|obtained|86
+R 86|1) 2Hg + O2 = 2HgO;|-|-|redox||q=2hg + O2
+R 86|2) N2 + 3H2 = 2NH3;|-|-|redox||q=N2 + 3H2
+R 86|3) Ca + Cl2 = CaCl2;|-|-|redox||q=Ca + Cl2
+R 86|4) Cl2 + H2 = 2HCl.|-|-|redox||q=Cl2 + H2
+S HNO3|концентрированная азотная кислота|-|reagent|86|q=Koнцентрированная
+S Zn|цинк|-|reagent|87|q=Zn + HNO3
+S Zn(NO3)2|~нитрат цинка|-|obtained|87
+R 87|Zn + 4HNO3 = Zn(NO3)2 + 2NO2 + 2H2O.|-|конц. HNO3|redox||q=Zn + 4HNO3|note=промежуточная запись в книге: «Zn + HNO3 = Zn(NO3)2 + 2NO2 + H2O»
+S LiF|~фторид лития|-|mentioned|87
+S MgI2|~йодид магния|-|mentioned|87
+S P4|~белый фосфор|-|mentioned|87
+S CrO|~оксид хрома(II)|-|mentioned|87|q=Cro
+S Cr2O3|~оксид хрома(III)|-|mentioned|87
+S CrO3|~оксид хрома(VI)|-|mentioned|87
+S H2S|~сероводород|-|mentioned|87
+S PH3|~фосфин|-|mentioned|87
+S H2O2|~пероксид водорода|-|mentioned|87
+S NaH|~гидрид натрия|-|mentioned|87|q=naH
+S CaH2|~гидрид кальция|-|mentioned|87
+
+@kp 21
+S !H2|водород|-|mentioned|89|q=газообразном (водород
+S !N2|азот|-|mentioned|89|q=азот, кислород
+S !O2|кислород|-|mentioned|89|q=кислород, фтор
+S !F2|фтор|-|mentioned|89|q=фтор, хлор
+S !Cl2|хлор|-|mentioned|89|q=фтор, хлор
+S !Br2|бром|-|mentioned|89|q=(бром)
+S !S|сера|-|mentioned|89|q=(сера
+S !C|углерод|-|mentioned|89|q=углерод, йод
+S !I2|йод|-|mentioned|89|q=йод, фосфор
+S !P|фосфор|-|mentioned|89|q=йод, фосфор
+S NaCl|~хлорид натрия|-|mentioned|89|q=(NaCl
+S MgO|~оксид магния|-|mentioned|89|q=MgO, Na2S
+S Na2S|~сульфид натрия|-|mentioned|89
+S H2O|вода|-|studied|89|q=воды H2O
+S NH3|аммиак|-|studied|89|q=аммиака NH3
+S CH4|метан|organic|studied|89|q=метана CO2|note=в книге ошибочно «в молекуле метана CO2 существует неполярная ковалентная связь»
+S !He|гелий|-|studied|90|q=гелий,
+S !Ne|неон|-|studied|90|q=неон, аргон
+S !Ar|аргон|-|studied|90|q=аргон, криптон
+S !Kr|криптон|-|studied|90|q=криптон, ксенон
+S !Xe|ксенон|-|studied|90|q=ксенон и радон
+S !Rn|радон|-|studied|90|q=радон образуют
+S XeF4|тетрафторид ксенона|-|mentioned|90|q=XeF4
+S H2|~водород|-|studied|90|q=H2.
+S HCl|~хлороводород|-|studied|90|q=HCl, H2S
+S H2S|~сероводород|-|studied|90|q=H2S, NH3
+S NH3|~аммиак|-|studied|90|q=NH3, CH4
+S CH4|~метан|organic|studied|90|q=CH4.
+S SO2|~оксид серы(IV)|-|studied|91
+S SO3|~оксид серы(VI)|-|studied|91
+S P2O5|~оксид фосфора(V)|-|studied|91
+S NO2|~оксид азота(IV)|-|studied|91
+S N2O5|~оксид азота(V)|-|studied|91
+
+@kp 22
+S NaF|~фторид натрия|-|mentioned|92|q=NaF–1
+S HCl|~хлороводород|-|mentioned|92|q=HCl–1
+S KBr|~бромид калия|-|mentioned|92|q=KBr–1
+S CaI2|~йодид кальция|-|mentioned|92|q=CaI–1
+S CaF2|плавиковый шпат|-|mentioned|92|q=Плавиковый шпат
+S -|апатит|other|mentioned|92|q=aпатит
+S -|фосфориты|other|mentioned|92|q=фосфориты
+S KCl|~хлорид калия|-|mentioned|92|q=KCl, NaCl|note=таблица 17: «Хлориды: KCl, NaCl»
+S NaCl|~хлорид натрия|-|mentioned|92|q=KCl, NaCl|note=таблица 17: «Хлориды: KCl, NaCl»
+S NaBr|~бромид натрия|-|mentioned|92|q=NaBr, KBr|note=таблица 17: «Бромиды: NaBr, KBr, MgBr2»
+S MgBr2|~бромид магния|-|mentioned|92|q=MgBr2|note=таблица 17: «Бромиды: NaBr, KBr, MgBr2»
+S NaI|~йодид натрия|-|mentioned|92|q=NaI, KI|note=таблица 17: «Йодиды: NaI, KI»
+S KI|~йодид калия|-|mentioned|92|q=NaI, KI|note=таблица 17: «Йодиды: NaI, KI»
+S !F^-|фторид-ион|-|reagent|93|q=фторид-ионов
+S !Cl^-|хлорид-ион|-|reagent|93|q=хлорид-ионы
+S !Br^-|бромид-ион|-|reagent|93|q=бромид-ионы
+S KMnO4|~перманганат калия|-|reagent|93|q=2 K Mn O
+S NaCl|~хлорид натрия|-|reagent|93|q=10 NaCl
+S H2SO4|~серная кислота|-|reagent|93|q=8H SO
+S K2SO4|~сульфат калия|-|obtained|93|q=K SO2 4
+S Na2SO4|~сульфат натрия|-|obtained|93|q=5 Na SO
+S MnSO4|~сульфат марганца(II)|-|obtained|93|q=2Mn SO4
+S Cl2|хлор|-|obtained|93|q=Хлор получают
+S H2O|~вода|-|obtained|93|q=8H O2
+R 93|2KMnO4 + 10NaCl + 8H2SO4 = K2SO4 + 5Na2SO4 + 2MnSO4 + 5Cl2 + 8H2O.|-|-|redox||q=2 K Mn O 4 + 10|note=сверено по изображению страницы
+S KBr|~бромид калия|-|reagent|93|q=2 K Br
+S Br2|бром|-|obtained|93|q=Бром получают
+S KCl|~хлорид калия|-|obtained|93|q=2KCl
+R 93|2KBr + Cl2 → 2KCl + Br2.|-|-|substitution||q=2 K Br + Cl|note=сверено по изображению страницы
+S KI|~йодид калия|-|reagent|93|q=2KI + Cl2
+S I2|йод|-|obtained|93|q=Йод выделяют
+R 93|2KI + Cl2 = 2KCl + I2;|-|-|substitution||q=2KI + Cl2
+R 93|2KI + Br2 = 2KBr + I2.|-|-|substitution||q=2KI + Br2
+S !F2|фтор|-|studied|93|q=Фтор — газ
+S !Cl2|хлор|-|studied|93|q=хлор — тяжелый
+S !Br2|бром|-|studied|93|q=бром — жидкость
+S !I2|йод|-|studied|93|q=йод — кристаллическое
+S F2|фтор|-|studied|94|q=Фтор F
+S Cl2|хлор|-|studied|94|q=Xлор Cl
+S Br2|бром|-|studied|94|q=Бром Br2
+S I2|йод|-|studied|94|q=Йод I2
+S -|керосин|organic|mentioned|94|q=керосин
+S -|бензин|organic|mentioned|94|q=бензин
+S !C3H6O|ацетон|organic|mentioned|94|q=ацетон
+S -|спирты|organic|mentioned|94|q=различные спирты
+S !C6H6|бензол|organic|mentioned|94|q=бензол
+S F^-|~фторид-ион|-|mentioned|95|q=F –
+S Cl^-|~хлорид-ион|-|mentioned|95|q=Cl –
+S Br^-|~бромид-ион|-|mentioned|95|q=Br –
+S I^-|~йодид-ион|-|mentioned|95|q=I –
+S H2O|вода|-|reagent|95|q=с водой он
+S F2|фтор|-|reagent|95|q=Фтор — самый
+S HF|~фтороводород|-|obtained|95|q=4 HF
+S O2|кислород|-|obtained|95|q=окисляется даже кислород
+R 95|2H2O + 2F2 = 4HF + O2.|-|-|redox||q=2 H2O–2
+
+@kp 23
+S !Na|натрий|-|mentioned|95|q=натрий — щелочной
+S !NaCl|поваренная соль|-|mentioned|95|q=поваренная соль
+S Cl2|хлор|-|studied|96|q=Cl2; Cl – Cl
+S NaCl|галит/каменная соль|-|studied|96|q=галит
+S KCl*NaCl|сильвинит|-|studied|96|q=сильвинит
+S KCl|сильвин|-|studied|96|q=сильвин -
+S MgCl2*6H2O|бишофит|-|studied|96|q=бишофит
+S KCl*MgCl2*6H2O|карналлит|-|studied|96|q=карналлит
+S KCl*MgSO4*3H2O|каинит|-|studied|96|q=каинит
+S MnO2|~оксид марганца(IV)|-|reagent|96|q=MnO2 с HCl
+S HCl|~хлороводород|-|reagent|96|q=MnO2 с HCl
+S KMnO4|~перманганат калия|-|reagent|96|q=KMnO4. Запишите
+S !MnCl2|~хлорид марганца(II)|-|obtained|96|q=MnO2 с HCl|note=продукт в книге не назван (уравнение не записано)
+R 96|В лабораторных условиях хлор получают при взаимодействии MnO2 с HCl|MnO2 + 4HCl → MnCl2 + Cl2↑ + 2H2O|-|redox|e|q=MnO2 с HCl|note=в книге уравнение не записано («Запишите уравнение этой реакции и уравняйте его»)
+R 96|Вместо MnO2 можно использовать KMnO4.|2KMnO4 + 16HCl → 2KCl + 2MnCl2 + 5Cl2↑ + 8H2O|-|redox|e|q=Вместо MnO2|note=в книге уравнение не записано (задание)
+S !H2|водород|-|reagent|97|q=с водородом
+S Na|натрий|-|reagent|97|q=хлора с нат
+S NaCl|~хлорид натрия|-|obtained|97|q=2Na + Cl
+R 97|2Na + Cl2 = 2NaCl,|2Na + Cl2 → 2NaCl|-|redox||q=2Na + Cl|note=сверено по изображению страницы
+S Fe|железо|-|reagent|97|q=с железом
+S FeCl3|~хлорид железа(III)|-|obtained|97|q=2Fe + 3Cl
+R 97|2Fe + 3Cl2 → 2FeCl3.|-|-|redox||q=2Fe + 3Cl|note=сверено по изображению страницы
+S !Sb|сурьма|-|reagent|97|q=с сурьмой
+S !Cu|медь|-|reagent|97|q=сурьмой, медью
+S !CuCl2|~хлорид меди(II)|-|obtained|97|q=сурьмой, медью|note=продукт в книге не назван
+S !SbCl3|~хлорид сурьмы(III)|-|obtained|97|q=сурьмой, медью|note=продукт в книге не назван
+R 97|Хлор взаимодействует также с сурьмой, медью|Cu + Cl2 → CuCl2|-|redox|e|q=сурьмой, медью|note=в книге уравнение и продукт не приведены (рис. 16, г)
+R 97|Хлор взаимодействует также с сурьмой, медью|2Sb + 3Cl2 → 2SbCl3|-|redox|e|q=сурьмой, медью|note=в книге уравнение и продукт не приведены (рис. 16, б); при избытке хлора образуется SbCl5
+S NaOH|~гидроксид натрия|-|mentioned|97|q=NaOH|note=на рис. 16, а (поглотитель хлора)
+S H2O|~вода|-|reagent|97|q=с водой и
+S HCl|~хлороводород|-|obtained|97|q=+ HCl
+S HClO|~хлорноватистая кислота|-|obtained|97|q=+ HCl
+R 97|Cl2 + H2O → HCl + HClO.|-|-|redox||q=Cl02 + H O2|note=сверено по изображению страницы
+S !KOH|едкий калий|-|reagent|97|q=едким калием
+S !KCl|хлорид калия|-|obtained|97|q=хлорид калия
+S !KClO3|бертолетова соль|-|obtained|97|q=бертолетова соль
+R 98|3Cl2 + 6KOH → KClO3 + 5KCl + 3H2O,|-|t° > 50°C|redox||q=6KOH|note=текстовый слой искажён; сверено по изображению страницы
+S KClO|~гипохлорит калия|-|obtained|98|q=KClO и KCl
+R 98|Cl2 + 2KOH → KClO + KCl + H2O.|-|t° = 0°C|redox||q=2KOH2|note=текстовый слой искажён; сверено по изображению страницы (книга просит уравнять методом электронного баланса, коэффициенты уже стоят)
+S !HCl|соляная кислота|-|mentioned|98|q=Получение соляной
+S !I2|йод|-|mentioned|98|q=Получение йода
+S !Br2|бром|-|mentioned|98|q=Получение йода
+S !Fe|железо|-|mentioned|99|q=количеством железа
+S !KBr|бромид калия|-|reagent|99|q=бромида калия
+S !Br2|бром|-|obtained|99|q=вытеснения брома
+R 99|Какой объем хлора (л,н.у) потребуется для полного вытеснения брома из 5,95 г бромида калия?|2KBr + Cl2 → 2KCl + Br2|-|substitution|xe|q=вытеснения брома|note=уравнение в задании не записано

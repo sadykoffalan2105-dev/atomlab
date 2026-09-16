@@ -86,7 +86,14 @@ export type ScientificStageLayout = {
   fitScale: number
 }
 
-export type StageCoProduct = { id: string; compoundId: string; coeff: number }
+/** Побочный продукт: вещество каталога (compoundId) или простое вещество (z, diatomic). */
+export type StageCoProduct = {
+  id: string
+  coeff: number
+  compoundId?: string
+  z?: number
+  diatomic?: boolean
+}
 
 /** Мир сцены = мир кино-сцены ×1.1: кино играет в группе ×0.78, превью чуть крупнее. */
 const STAGE_WORLD_PER_ANGSTROM = SCENE_PER_ANGSTROM * 1.1
@@ -586,7 +593,22 @@ export function scientificStageLayout(
       composition: c?.composition ?? {},
     })
   }
-  for (const cp of coProducts) pushCompound(cp.id, cp.compoundId, cp.coeff)
+  const pushElement = (key: string, z: number, diatomic: boolean, coeff: number) => {
+    const el = getElementByZ(z)
+    const sym = el?.symbol ?? '?'
+    rowTerms.push({
+      key,
+      side: 'right',
+      coeff: clampCoeff(coeff),
+      formula: `${sym}${diatomic ? '₂' : ''}`,
+      template: elementTemplate(z, diatomic),
+      composition: el ? { [sym]: diatomic ? 2 : 1 } : {},
+    })
+  }
+  for (const cp of coProducts) {
+    if (cp.compoundId != null) pushCompound(cp.id, cp.compoundId, cp.coeff)
+    else if (cp.z != null) pushElement(cp.id, cp.z, Boolean(cp.diatomic), cp.coeff)
+  }
   if (productId) pushCompound(`product:${productId}`, productId, productCoeff)
 
   // ── ширины элементов ряда ──

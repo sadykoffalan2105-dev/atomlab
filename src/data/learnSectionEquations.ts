@@ -252,7 +252,8 @@ export function buildGenerateEquationLabUrl(
   params.set('learnS', sectionId)
   const preferred = productCompoundId ?? getSectionEquationOffer(gradeId, chapterId, sectionId).productCompoundId
   params.set('product', preferred)
-  return `/#/?${params.toString()}`
+  // Путь роутера для <Link to> (HashRouter сам добавит «#»; «/#/?» давал «#/#/?»).
+  return `/?${params.toString()}`
 }
 
 export function parseLearnEquationScope(params: URLSearchParams): LearnEquationScope | null {

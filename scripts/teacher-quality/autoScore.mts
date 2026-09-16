@@ -165,7 +165,20 @@ const NOISE_RES: Array<[string, RegExp]> = [
   ['en-why-inversion', /explain why (do|does|did)\b/iu],
   ['undefined-variable', /(^|[\s(])[nxk]\s*[<>≤≥]\s*\d/u],
   ['task-text', /(^|\.\s)(Пример|Задача)\s*\d*\.\s|Тестовые задания/u],
+  // judge r6 §7: broken rewrites and structural spans of the corpus.
+  ['dangling-relative', /котор(ая|ый|ое|ые|ую|ого|ых)\s*\.(\s|$)|(?<!\p{L})(при|по|на|в|во|с|со|к|от|до|из|за|для|без|под|над)\s*\.(\s|$)/u],
+  ['copula-discourse', /[—–]\s*это\s+(так|итак|например|таким образом)\s*,/iu],
+  ['lab-title', /(лабораторн\S*|практическ\S*)\s+(работ\S*|заняти\S*)\s*(№\s*)?\d/iu],
+  ['numbered-caption', /(^|[.!?]\s)\d+\s+[А-ЯЁ]\p{Ll}+\s+\p{Ll}/u],
+  ['card-passport', /\p{L}{3,}:\s*[^;:.]{2,40};\s*\p{L}{3,}:\s/u],
 ]
+/** judge r6 §7: the answer does not have the shape of its question type. */
+const ENUMERATION_ONLY_RE = /(бывают|делятся на|различают)\s*:\s*[^.]+,[^.]+\./u
+const MECHANISM_MARK_RE = /(соединя\S*ся\s+с|связыва\S*(ся)?\s+с|,\s*что\s+(ухудша|наруша|препятству)|потому что|так как|поскольку|благодаря|за сч[её]т|вследствие|обусловл|объясня\S*ся)/iu
+const OUTCOME_MARK_RE = /(приводит|приводят)\s+к\s+(летальн|гибел|смерт|отравлен)|вызыва\S*\s+(отравлен|гибел|смерт)/iu
+const COUNT_WORD: Record<string, number> = { два: 2, две: 2, три: 3, четыре: 4, пять: 5, шесть: 6 }
+/** «X (CO) — оксид.» — a class noun with no differentia. */
+const THIN_DEFINITION_RE = /^[^—–.]{2,60}\s[—–]\s*\p{L}+\s*\.$/u
 /** judge r2 §5: filler supporting sentences (uses, industry, ecology, «вы узнали») — off-topic even with topical stems. */
 const FILLER_SENTENCE_RE = /(использу|применя|промышленност|народн\S* хозяйств|завод|комбинат|загрязня|вы узнали|мы знаем|в свою очередь делятся|парфюмер)/iu
 /** «Катализатор — это вещества изменяющие» — plural predicate after a singular term. */
@@ -487,7 +500,12 @@ function scoreAnswer(rec: AnswerRecord, q: GoldQuestion, parentRec?: AnswerRecor
   const noAnswer = !rec.confident || NO_ANSWER_RE.test(stripCitations(rec.answer))
   const hedge = !noAnswer && HEDGE_RE.test(rec.answer)
   const suggestion = SUGGESTION_RE.test(rec.answer)
-  const whyOk = q.type === 'why' ? CAUSAL_RE.test(stripCitations(rec.text)) || NO_WHY_RE.test(rec.text) : null
+  // judge r6 §7.6: an outcome («приводит к летальному исходу») is not the mechanism a why-question asks for.
+  const whyOk =
+    q.type === 'why'
+      ? (CAUSAL_RE.test(stripCitations(rec.text)) || NO_WHY_RE.test(rec.text)) &&
+        !(OUTCOME_MARK_RE.test(stripCitations(rec.text)) && !MECHANISM_MARK_RE.test(stripCitations(rec.text)))
+      : null
 
   // Noise (judge r1 §4): regex patterns over the whole spoken text + verbless heading-like content sentences.
   const spoken = stripCitations(rec.text || rec.answer)
@@ -514,6 +532,40 @@ function scoreAnswer(rec: AnswerRecord, q: GoldQuestion, parentRec?: AnswerRecor
   if (nameFormulaMismatch(spoken)) noise.push('name-formula')
   if (q.type === 'example' && exampleClassWrong(q.question, withoutSourceQuotes(spoken))) noise.push('example-class')
   if (/\p{Ll}{3,}-\s+(?!и\s|или\s)\p{Ll}{3,}/u.test(spoken) || /(\p{L}{3,}\s+\p{L}{2,}\s+\p{L}{3,})\s(?:[^.]*\s)?\1/u.test(spoken)) noise.push('ocr-table')
+  // judge r6 §7.2: the answer must have the shape of its question type.
+  if (q.type === 'compare' && contentSentences.length > 0 && contentSentences.every((x) => ENUMERATION_ONLY_RE.test(x))) noise.push('compare-enumeration')
+  if (q.type === 'example' && /(?<![\p{L}\d])[A-Z]{1,2}(\s*\+\s*[A-Z]{1,2})*\s*(→|=)/u.test(spoken) && !/[A-Z][a-z]?[\d₀-₉]/u.test(spoken)) noise.push('example-letter-scheme')
+  {
+    const heads = spoken.match(/дел(?:ятся|ится)\s+на\s+(два|две|три|четыре|пять|шесть|\d)\s+(тип|вид|групп|класс)\S*/u)
+    const want = heads ? (COUNT_WORD[heads[1]!] ?? Number(heads[1])) : 0
+    if (want && (spoken.slice(spoken.indexOf(heads![0]) + heads![0].length).match(/,/gu) ?? []).length < want - 1) noise.push('classify-no-heads')
+  }
+  if (q.type === 'definition' && contentSentences.length > 0 && THIN_DEFINITION_RE.test(contentSentences[0]!.trim())) noise.push('thin-definition')
+  // judge r7 §7: the answer must be about the asked term, fit a detection/why question and open with a real sentence.
+  {
+    // 1) A definition of a sub-class: «Двойные соли — соли, …» for «Что такое соли?» (head term + an extra modifier).
+    const head = q.locale === 'ru' ? q.question.match(/что так(?:ое|ая|ой|ие)\s+([а-яё-]{4,}(?:\s+[а-яё-]{4,})?)/iu)?.[1] : undefined
+    const headWord = head ? head.split(/\s+/).pop()!.replace(/ё/g, 'е').slice(0, 5) : ''
+    const first = contentSentences[0]?.trim() ?? ''
+    if (q.type === 'definition' && headWord.length >= 4) {
+      const sub = first.match(/^([А-ЯЁ][а-яё]{2,})(?:[а-яё]*)\s+([а-яё-]{4,})\s*(?:[—–-]|это|—\s*это)/u)
+      if (sub && sub[2]!.replace(/ё/g, 'е').startsWith(headWord) && !q.question.replace(/ё/g, 'е').toLowerCase().includes(sub[1]!.toLowerCase().slice(0, 5))) noise.push('head-term-modifier')
+    }
+    // 2) A detection question is answered by a reagent + an observable sign.
+    if (/как\s+(распозна|обнаружи|определ)/iu.test(q.question) && !/(кислот|щелоч|реактив|индикатор|AgNO3|BaCl2|раствор\S*\s+\p{L})/iu.test(spoken)) noise.push('detect-no-reagent')
+    if (/как\s+(распозна|обнаружи|определ)/iu.test(q.question) && !/(осад|↓|↑|цвет|окраш|вскипан|запах|выделя\S*\s+газ|помутнен)/iu.test(spoken)) noise.push('detect-no-sign')
+    // 3) A «why» answer that only restates the premise of the question («Почему алмаз твёрдый?» → «самое твёрдое»).
+    if (q.type === 'why' && q.locale === 'ru' && /(?<!\p{L})сам\p{Ll}{1,3}\s+\p{L}{4,}/u.test(first) && !CAUSAL_RE.test(first)) {
+      const qStems = contentStems(q.question)
+      const own = contentStems(first)
+      if (own.length > 0 && own.filter((s) => qStems.some((x) => x.startsWith(s.slice(0, 4)) || s.startsWith(x.slice(0, 4)))).length / own.length >= 0.6) noise.push('why-premise')
+    }
+    // 4) Opening sentence: a subjectless rule fragment or a rhetorical lead-in.
+    if (q.locale === 'ru' && /^(Счита|Определя|Выража|Вычисля|Рассчитыва|Измеря|Обознача|Записыва)\p{Ll}*(ется|ются)\s/u.test(first)) noise.push('verb-initial-opening')
+    if (q.locale === 'ru' && /^(Все мы знаем|Всем известно|Как известно|Каждый (знает|из нас)|Мы (часто|все)|В (повседневной|обыденной) жизни)/u.test(first)) noise.push('rhetorical-opening')
+    // 5) OCR inside a formula: a lower-case element symbol, a digit split off its element.
+    if (/(?<![\p{L}\d])(ca|cu|na|fe|mg|al|zn|ba)\(/u.test(spoken) || /[A-Z][a-z]?\s\d[A-Z]/u.test(spoken)) noise.push('ocr-formula')
+  }
   // A follow-up must not repeat the previous answer of the dialog.
   const parentSentences = parentRec ? splitSentences(parentRec.text).filter((s) => !isTemplate(s)).map((s) => contentStems(s.replace(LEAD_RE, ''))) : []
   const parentFormulas = parentRec ? formulaSet(stripCitations(parentRec.text)) : new Set<string>()
@@ -533,7 +585,12 @@ function scoreAnswer(rec: AnswerRecord, q: GoldQuestion, parentRec?: AnswerRecor
     const quotes = [...spoken.matchAll(SOURCE_QUOTE_RE)].map((m) => m[0].replace(/^\((?:in Russian|rus tilida)\):\s*«|»$/gu, ''))
     const quoteWords = quotes.reduce((acc, s) => acc + countWords(s), 0)
     const quoteSentences = quotes.reduce((acc, s) => acc + s.split(/(?<=[.!?])\s+(?=[\p{Lu}])/u).filter((x) => x.trim().length > 3).length, 0)
-    russianHeavy = quoteSentences > 1 || (countWords(spoken) > 0 && quoteWords / countWords(spoken) > 0.4)
+    // judge r6 §7.4: an answer that is only the labelled Russian quote (en as well as uz) — the boilerplate
+    // «I have this answer only in my Russian textbook» is not native content.
+    const nativeWords = countWords(
+      contentSentences.filter((x) => !SOURCE_QUOTE_RE.test(x) && !/(only in my Russian textbook|faqat rus tilidagi darslikda)/iu.test(x)).join(' '),
+    )
+    russianHeavy = quoteSentences > 1 || nativeWords < 6
   }
 
   const fails: string[] = []
@@ -752,11 +809,11 @@ function main(): void {
   const out = { tag, scoredAt: new Date().toISOString(), ctxMode: data.ctxMode, totals: all, byMode, byGroup, byType, worst, rows }
   const outFile = path.join(OUT_DIR, `score-${tag}${modeFilter ? `-${modeFilter}` : ''}.json`)
   if (questionSet !== 'gold') {
-    const goldFile = path.join(OUT_DIR, 'score-r4.json')
+    const goldFile = path.join(OUT_DIR, `score-${arg('gold-tag', 'r7')}.json`)
     if (fs.existsSync(goldFile)) {
       const g = (JSON.parse(fs.readFileSync(goldFile, 'utf8')) as { totals: { score: number } }).totals
       const gap = g.score - all.score
-      console.log(`\n[score] holdout ${all.score} vs gold r4 ${g.score} (gap ${gap.toFixed(1)})${gap > 25 ? ' — WARNING: generalization gap > 25 points' : ''}`)
+      console.log(`\n[score] holdout ${all.score} (all-checks ${all.fullyCorrect}/${all.n}, refusals ${all.falseNoAnswer + all.falseHedge}) vs gold ${g.score} (gap ${gap.toFixed(1)})${gap > 25 ? ' — WARNING: generalization gap > 25 points' : ''}`)
     }
   }
   fs.writeFileSync(outFile, JSON.stringify(out, null, 2) + '\n')

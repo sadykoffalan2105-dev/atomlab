@@ -13,6 +13,10 @@ import g7 from '../src/data/g7TextbookKnowledge.json' with { type: 'json' }
 import g8 from '../src/data/g8TextbookKnowledge.json' with { type: 'json' }
 import g9 from '../src/data/g9TextbookKnowledge.json' with { type: 'json' }
 import type { CompoundDef } from '../src/types/chemistry.ts'
+import textbookWhitelist from '../src/data/textbook/textbookWhitelist.json' with { type: 'json' }
+
+/** Классы, где вещество найдено при сверке учебников (scripts/textbook-inventory/build-whitelist.mts). */
+const TEXTBOOK_EVIDENCE = textbookWhitelist.evidence as Record<string, { grades: number[] }>
 
 type Grade = 7 | 8 | 9
 type Chapter =
@@ -230,7 +234,8 @@ for (const c of Object.values(compoundById)) {
   const manifest = MANIFEST.get(c.id)
   const fromBook = gradesFromTextbook(c)
   const fromRules = manifest ? ([...manifest.grades] as Grade[]) : inferGradesRule(c)
-  const grades = mergeGrades(fromBook, fromRules)
+  const evidence = (TEXTBOOK_EVIDENCE[c.id]?.grades ?? []).filter((g): g is Grade => g === 7 || g === 8 || g === 9)
+  const grades = evidence.length > 0 ? mergeGrades(evidence, []) : mergeGrades(fromBook, fromRules)
   const chapter = (manifest?.chapter as Chapter | undefined) ?? inferChapter(c)
   map[c.id] = { grades: grades.length > 0 ? grades : [8], chapter }
 }

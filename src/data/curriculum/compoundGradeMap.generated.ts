@@ -2,7 +2,7 @@
  * АВТОГЕНЕРАЦИЯ — не редактировать вручную.
  * Пересборка: npx tsx scripts/build-compound-grade-map.mts
  * Источники: Kimyo 7–9, schoolInorganicManifest, правила ФГОС.
- * Статистика: 7 кл.=109, 8 кл.=296, 9 кл.=405, всего=413
+ * Статистика: 7 кл.=175, 8 кл.=318, 9 кл.=350, всего=478
  */
 import type { InorganicSchoolGrade } from './compoundGradeIndex'
 
@@ -108,8 +108,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   "n2o5": {
     "grades": [
       7,
-      8,
-      9
+      8
     ],
     "chapter": "оксиды"
   },
@@ -156,7 +155,8 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   "mgo": {
     "grades": [
       7,
-      8
+      8,
+      9
     ],
     "chapter": "оксиды"
   },
@@ -177,8 +177,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "sro": {
     "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "оксиды"
   },
@@ -209,7 +208,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   "fe3o4": {
     "grades": [
       7,
-      8,
       9
     ],
     "chapter": "оксиды"
@@ -225,7 +223,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   "cu2o": {
     "grades": [
       7,
-      8,
       9
     ],
     "chapter": "оксиды"
@@ -240,9 +237,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "ago": {
     "grades": [
-      7,
-      8,
-      9
+      7
     ],
     "chapter": "оксиды"
   },
@@ -286,7 +281,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "sno2": {
     "grades": [
-      8,
       9
     ],
     "chapter": "оксиды"
@@ -298,13 +292,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
       9
     ],
     "chapter": "кислород"
-  },
-  "li2o2": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "оксиды"
   },
   "na2o2": {
     "grades": [
@@ -417,7 +404,8 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   "h2co3": {
     "grades": [
       7,
-      8
+      8,
+      9
     ],
     "chapter": "кислоты"
   },
@@ -447,7 +435,8 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   "hclo": {
     "grades": [
       7,
-      8
+      8,
+      9
     ],
     "chapter": "кислоты"
   },
@@ -512,17 +501,11 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "основания"
   },
-  "sr_oh_2": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "основания"
-  },
   "mg_oh_2": {
     "grades": [
       7,
-      8
+      8,
+      9
     ],
     "chapter": "основания"
   },
@@ -574,15 +557,15 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "nh3_h2o": {
     "grades": [
+      7,
+      8,
       9
     ],
     "chapter": "азот"
   },
   "salt_na_br": {
     "grades": [
-      7,
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
@@ -595,7 +578,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_na_f": {
     "grades": [
-      7,
       8,
       9
     ],
@@ -616,23 +598,17 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_na_mno4": {
+  "salt_na_clo2": {
     "grades": [
-      9
+      8
     ],
-    "chapter": "хром"
+    "chapter": "хлор"
   },
   "salt_na_clo3": {
     "grades": [
-      9
+      8
     ],
-    "chapter": "соли"
-  },
-  "salt_na_clo4": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
+    "chapter": "хлор"
   },
   "salt_na_so4": {
     "grades": [
@@ -679,12 +655,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "хром"
   },
-  "salt_na_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
   "salt_k_cl": {
     "grades": [
       7,
@@ -709,9 +679,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_k_f": {
     "grades": [
-      7,
-      8,
-      9
+      7
     ],
     "chapter": "соли"
   },
@@ -745,13 +713,13 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
       8,
       9
     ],
-    "chapter": "соли"
+    "chapter": "хлор"
   },
   "salt_k_clo4": {
     "grades": [
       9
     ],
-    "chapter": "соли"
+    "chapter": "хлор"
   },
   "salt_k_so4": {
     "grades": [
@@ -763,7 +731,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_k_so3": {
     "grades": [
-      8,
       9
     ],
     "chapter": "соли"
@@ -778,7 +745,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_k_s": {
     "grades": [
-      7,
       8,
       9
     ],
@@ -786,7 +752,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_k_sio3": {
     "grades": [
-      8,
       9
     ],
     "chapter": "соли"
@@ -805,134 +770,39 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_li_br": {
-    "grades": [
-      7,
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_li_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_li_f": {
     "grades": [
-      7,
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_li_no2": {
-    "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
   "salt_li_no3": {
     "grades": [
-      7,
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_li_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_li_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_li_clo4": {
-    "grades": [
-      9
+      7
     ],
     "chapter": "соли"
   },
   "salt_li_so4": {
     "grades": [
-      7,
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_li_so3": {
-    "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
   "salt_li_co3": {
     "grades": [
-      7,
-      8,
-      9
+      7
     ],
     "chapter": "соли"
   },
   "salt_li_s": {
     "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
-  },
-  "salt_li_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_li_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_li_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
   },
   "salt_nh4_cl": {
     "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_nh4_br": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_nh4_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_nh4_f": {
-    "grades": [
+      7,
       8,
       9
     ],
@@ -953,64 +823,17 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_nh4_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_nh4_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_nh4_clo4": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_nh4_so4": {
     "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_nh4_so3": {
-    "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
   "salt_nh4_co3": {
     "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
-  },
-  "salt_nh4_s": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_nh4_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_nh4_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
   },
   "salt_nh4_cr2o7": {
     "grades": [
@@ -1039,20 +862,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "качественные"
   },
-  "salt_ag_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ag_no2": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_ag_no3": {
     "grades": [
       7,
@@ -1061,88 +870,16 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "качественные"
   },
-  "salt_ag_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_ag_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "качественные"
-  },
-  "salt_ag_clo4": {
-    "grades": [
-      9
-    ],
-    "chapter": "качественные"
-  },
-  "salt_ag_so4": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ag_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ag_co3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_ag_s": {
     "grades": [
       7,
-      8,
       9
     ],
     "chapter": "соли"
-  },
-  "salt_ag_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "качественные"
-  },
-  "salt_ag_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_ag_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
   },
   "salt_cs_cl": {
     "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cs_br": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cs_i": {
-    "grades": [
-      9
+      8
     ],
     "chapter": "соли"
   },
@@ -1152,81 +889,11 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_cs_no2": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cs_no3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cs_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cs_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cs_clo4": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_cs_so4": {
     "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
-  },
-  "salt_cs_so3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cs_co3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cs_s": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cs_sio3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cs_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cs_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
   },
   "salt_mg_so4": {
     "grades": [
@@ -1236,47 +903,24 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_mg_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_mg_co3": {
     "grades": [
       7,
-      8,
       9
     ],
     "chapter": "соли"
   },
   "salt_mg_s": {
     "grades": [
-      7,
-      8,
       9
     ],
     "chapter": "соли"
   },
   "salt_mg_sio3": {
     "grades": [
-      8,
       9
     ],
     "chapter": "соли"
-  },
-  "salt_mg_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_mg_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
   },
   "salt_mg_cl": {
     "grades": [
@@ -1295,45 +939,11 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_mg_i": {
     "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_mg_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_mg_no2": {
-    "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
   "salt_mg_no3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_mg_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_mg_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_mg_clo4": {
     "grades": [
       9
     ],
@@ -1349,8 +959,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_ca_so3": {
     "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
@@ -1364,7 +973,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_ca_s": {
     "grades": [
-      7,
       8,
       9
     ],
@@ -1377,18 +985,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_ca_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_ca_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
   "salt_ca_cl": {
     "grades": [
       7,
@@ -1397,55 +993,22 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_ca_br": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_ca_i": {
     "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
   "salt_ca_f": {
     "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ca_no2": {
-    "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
   "salt_ca_no3": {
     "grades": [
+      7,
       8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ca_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_ca_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ca_clo4": {
-    "grades": [
       9
     ],
     "chapter": "соли"
@@ -1458,42 +1021,13 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "качественные"
   },
-  "salt_ba_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_ba_co3": {
     "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ba_s": {
-    "grades": [
-      7,
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ba_sio3": {
-    "grades": [
-      8,
       9
     ],
     "chapter": "соли"
   },
   "salt_ba_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_ba_cr2o7": {
     "grades": [
       9
     ],
@@ -1509,27 +1043,11 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_ba_br": {
     "grades": [
-      7,
-      8,
-      9
+      7
     ],
     "chapter": "соли"
   },
   "salt_ba_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ba_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ba_no2": {
     "grades": [
       8,
       9
@@ -1547,126 +1065,13 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     "grades": [
       9
     ],
-    "chapter": "хром"
+    "chapter": "марганец"
   },
   "salt_ba_clo3": {
     "grades": [
       9
     ],
-    "chapter": "соли"
-  },
-  "salt_ba_clo4": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_so4": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_co3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_s": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_sr_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_sr_cl": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_br": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_no2": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_no3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_sr_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sr_clo4": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
+    "chapter": "хлор"
   },
   "salt_zn_so4": {
     "grades": [
@@ -1675,16 +1080,8 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_zn_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_zn_co3": {
     "grades": [
-      8,
       9
     ],
     "chapter": "соли"
@@ -1696,25 +1093,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
       9
     ],
     "chapter": "соли"
-  },
-  "salt_zn_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_zn_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_zn_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
   },
   "salt_zn_cl": {
     "grades": [
@@ -1731,48 +1109,10 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_zn_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_zn_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_zn_no2": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_zn_no3": {
     "grades": [
+      7,
       8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_zn_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_zn_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_zn_clo4": {
-    "grades": [
       9
     ],
     "chapter": "соли"
@@ -1785,20 +1125,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_cu_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cu_co3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_cu_s": {
     "grades": [
       7,
@@ -1806,19 +1132,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
       9
     ],
     "chapter": "соли"
-  },
-  "salt_cu_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cu_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
   },
   "salt_cu_cr2o7": {
     "grades": [
@@ -1834,55 +1147,9 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_cu_br": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cu_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cu_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cu_no2": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_cu_no3": {
     "grades": [
       8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cu_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cu_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cu_clo4": {
-    "grades": [
       9
     ],
     "chapter": "соли"
@@ -1895,16 +1162,8 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_fe2_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_fe2_co3": {
     "grades": [
-      8,
       9
     ],
     "chapter": "соли"
@@ -1917,56 +1176,9 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_fe2_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe2_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_fe2_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
   "salt_fe2_cl": {
     "grades": [
       7,
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe2_br": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe2_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe2_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe2_no2": {
-    "grades": [
       8,
       9
     ],
@@ -1979,41 +1191,15 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_fe2_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_fe2_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe2_clo4": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_pb_so4": {
     "grades": [
       9
     ],
     "chapter": "соли"
   },
-  "salt_pb_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_pb_co3": {
     "grades": [
-      8,
-      9
+      7
     ],
     "chapter": "соли"
   },
@@ -2024,187 +1210,27 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_pb_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_pb_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_pb_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
   "salt_pb_cl": {
     "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
   "salt_pb_br": {
     "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
   "salt_pb_i": {
     "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_pb_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_pb_no2": {
-    "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
   "salt_pb_no3": {
     "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_pb_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_pb_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_pb_clo4": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_so4": {
-    "grades": [
       8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_co3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_s": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_sn_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_sn_cl": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_br": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_no2": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_no3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_sn_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_sn_clo4": {
-    "grades": [
       9
     ],
     "chapter": "соли"
@@ -2216,45 +1242,11 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_mn_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_mn_co3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_mn_s": {
     "grades": [
-      8,
       9
     ],
     "chapter": "соли"
-  },
-  "salt_mn_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_mn_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_mn_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
   },
   "salt_mn_cl": {
     "grades": [
@@ -2263,123 +1255,8 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_mn_br": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_mn_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_mn_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_mn_no2": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_mn_no3": {
     "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_mn_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_mn_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_mn_clo4": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ni_so4": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ni_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ni_co3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ni_s": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ni_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ni_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_ni_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_ni_cl": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ni_br": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ni_i": {
-    "grades": [
-      8,
       9
     ],
     "chapter": "соли"
@@ -2391,140 +1268,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_ni_no2": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_ni_no3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ni_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_ni_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_ni_clo4": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_so4": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_co3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_s": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cobalt_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cobalt_cl": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_br": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_no2": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_no3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cobalt_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_cobalt_clo4": {
     "grades": [
       9
     ],
@@ -2532,8 +1276,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_al_po4": {
     "grades": [
-      8,
-      9
+      8
     ],
     "chapter": "соли"
   },
@@ -2547,68 +1290,34 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_al_br": {
     "grades": [
-      7,
-      8,
-      9
+      7
     ],
     "chapter": "соли"
   },
   "salt_al_i": {
     "grades": [
-      7,
-      8,
-      9
+      7
     ],
     "chapter": "соли"
   },
   "salt_al_f": {
     "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_al_no2": {
-    "grades": [
-      8,
+      7,
       9
     ],
     "chapter": "соли"
   },
   "salt_al_no3": {
     "grades": [
+      7,
       8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_al_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_al_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_al_clo4": {
-    "grades": [
       9
     ],
     "chapter": "соли"
   },
   "salt_al_so4": {
     "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_al_so3": {
-    "grades": [
+      7,
       8,
       9
     ],
@@ -2629,19 +1338,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_al_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_al_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
   "salt_al_cr2o7": {
     "grades": [
       9
@@ -2650,42 +1346,13 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_fe3_po4": {
     "grades": [
-      7,
-      9
+      7
     ],
     "chapter": "соли"
   },
   "salt_fe3_cl": {
     "grades": [
       7,
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe3_br": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe3_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe3_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe3_no2": {
-    "grades": [
       8,
       9
     ],
@@ -2698,31 +1365,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_fe3_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_fe3_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe3_clo4": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
   "salt_fe3_so4": {
-    "grades": [
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe3_so3": {
     "grades": [
       8,
       9
@@ -2731,7 +1374,6 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_fe3_co3": {
     "grades": [
-      8,
       9
     ],
     "chapter": "соли"
@@ -2743,86 +1385,13 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли"
   },
-  "salt_fe3_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "соли"
-  },
-  "salt_fe3_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_fe3_cr2o7": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_po4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
   "salt_cr_cl": {
     "grades": [
-      8,
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_br": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_i": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_f": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_no2": {
-    "grades": [
-      8,
       9
     ],
     "chapter": "хром"
   },
   "salt_cr_no3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_mno4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_clo3": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_clo4": {
     "grades": [
       9
     ],
@@ -2835,41 +1404,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "хром"
   },
-  "salt_cr_so3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_co3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "хром"
-  },
   "salt_cr_s": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_sio3": {
-    "grades": [
-      8,
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_cro4": {
-    "grades": [
-      9
-    ],
-    "chapter": "хром"
-  },
-  "salt_cr_cr2o7": {
     "grades": [
       9
     ],
@@ -2877,7 +1412,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_nh4_3_po4": {
     "grades": [
-      9
+      8
     ],
     "chapter": "соли"
   },
@@ -2891,17 +1426,1840 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_khco3": {
     "grades": [
-      8
+      9
     ],
     "chapter": "соли"
   },
   "salt_ca_hco3_2": {
     "grades": [
-      8
+      8,
+      9
     ],
     "chapter": "соли"
   },
   "salt_k2cr2o7": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_s8": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_p4": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_i2": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_br2": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_cl2": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_f2": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_n2": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_o3": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_o2": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_h2": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_ca3po42": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_ph3": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_sih4": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_cah2": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_cac2": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_cuso4_5h2o": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cl2o7": {
+    "grades": [
+      7,
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_nah": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_nahso4": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_na3po4": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cs2": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_cuoh2co3": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_mn2o7": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_n2o3": {
+    "grades": [
+      7,
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_hgo": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_k2mno4": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "марганец"
+  },
+  "tb_k2o2": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_kh": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_aucl3": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_ccl4": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_kcl_nacl": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_kcl_mgcl2_6h2o": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_hpo3": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_cro": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_cah2po42": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_kclo": {
+    "grades": [
+      8
+    ],
+    "chapter": "хлор"
+  },
+  "tb_ca5po43f": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_nh42hpo4": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_nh4h2po4": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_caco3_mgco3": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_al4c3": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_na2co3_10h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_al2o3_2sio2_2h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_k2o_al2o3_6sio2": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_mn3o4": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_kcl_mgso4_3h2o": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_caso4_2h2o": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_feso4_7h2o": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_na2so4_10h2o": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_becl2": {
+    "grades": [
+      7,
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_h2se": {
+    "grades": [
+      7,
+      8
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_mno": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_mn2o3": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_bao2": {
+    "grades": [
+      7,
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_ko2": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_v2o5": {
+    "grades": [
+      7,
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_naalo2": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_naaloh4": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_ag3po4": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_beo": {
+    "grades": [
+      7,
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_croh3": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_croh2": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_cs2o": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_pcl3": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_cu2s": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_ca3p2": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_mg2si": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_sic": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_hcn": {
+    "grades": [
+      9
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_na3alf6": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_as2s3": {
+    "grades": [
+      7
+    ],
+    "chapter": "прочее"
+  },
+  "tb_na2b4o7_10h2o": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cl2o5": {
+    "grades": [
+      7
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_sb2o3": {
+    "grades": [
+      7,
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_wo3": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_mgh2": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_na2znoh4": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_h2cr2o7": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_h4sio4": {
+    "grades": [
+      7
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_h4p2o7": {
+    "grades": [
+      7,
+      8
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_tio2": {
+    "grades": [
+      7
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_as2o5": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_na2zno2": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_rb2o": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_rboh": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "основания"
+  },
+  "tb_pcl5": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_xef4": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_sbcl3": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_mg3po42": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cucl": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_hclo2": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "хлор"
+  },
+  "tb_sif4": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_mg3n2": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_n2o4": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_cahpo4": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_k3po4": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cah2po42_2h2o": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_cah2po42_2h2o_caso4_2h2o": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_cn2": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_cf4": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_cocl2": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_sibr4": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_sis2": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_sicl4": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_kcn": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cdso4": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_hgno32": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_crcl2": {
+    "grades": [
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_mnoh2": {
+    "grades": [
+      9
+    ],
+    "chapter": "основания"
+  },
+  "tb_k3fecn6": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_k4fecn6": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cunh34oh2": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "основания"
+  },
+  "tb_ba3po42": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_haucl4": {
+    "grades": [
+      7,
+      9
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_caclo2": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "хлор"
+  },
+  "tb_mgso4_7h2o": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_kncs": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_fencs3": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_si3n4": {
+    "grades": [
+      7
+    ],
+    "chapter": "прочее"
+  },
+  "tb_tic": {
+    "grades": [
+      7
+    ],
+    "chapter": "прочее"
+  },
+  "tb_au2o3": {
+    "grades": [
+      7
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_cl2o3": {
+    "grades": [
+      7
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_ticl4": {
+    "grades": [
+      7
+    ],
+    "chapter": "соли"
+  },
+  "tb_pb3o4": {
+    "grades": [
+      7
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_agoh": {
+    "grades": [
+      7
+    ],
+    "chapter": "основания"
+  },
+  "tb_h2b4o7": {
+    "grades": [
+      7
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_h4v2o7": {
+    "grades": [
+      7
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_nio": {
+    "grades": [
+      7
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_h2so4_h2o": {
+    "grades": [
+      7
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_naoh_h2o": {
+    "grades": [
+      7
+    ],
+    "chapter": "основания"
+  },
+  "tb_bh3": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_rbh": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_sno": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_aloh2cl": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_caohcl": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_kalso42": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_khso4": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_mgohno3": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_nh4also42": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_beoh2": {
+    "grades": [
+      8
+    ],
+    "chapter": "основания"
+  },
+  "tb_na2beo2": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_rb2so4": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_rbcl": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_i2o7": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_halo2": {
+    "grades": [
+      8
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_b2o3": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_ash3": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_gecl4": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_geo2": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_clf3": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_xeo4": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_lih": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_mgcl2_6h2o": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_pboh2": {
+    "grades": [
+      8
+    ],
+    "chapter": "основания"
+  },
+  "tb_hgcl2": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_naclo": {
+    "grades": [
+      8
+    ],
+    "chapter": "хлор"
+  },
+  "tb_kio3": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_naio3": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_xef2": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_h2te": {
+    "grades": [
+      8
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_na2se": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_na2te": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_seo2": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_seo3": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_teo2": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_teo3": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_cahso32": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_scl2": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_sf6": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_li3n": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_nh4hso4": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_ptcl4": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_cacn2": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_p2s3": {
+    "grades": [
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_p4o10": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_na2hpo4": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_nah2po4": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_ca5po43oh": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_nanh4hpo4": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_napo3": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_cahpo4_2h2o": {
+    "grades": [
+      8
+    ],
+    "chapter": "соли"
+  },
+  "tb_feohcl2": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_feoh2cl": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_sboh2cl": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_sbocl": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_k2sif6": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_sii4": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_na2o_cao_6sio2": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_coo": {
+    "grades": [
+      9
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_feh2po42": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_fehpo4": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_fe3po42": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_ptno32": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_na2o_al2o3_6sio2": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_nanh2": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_nh4hco3": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cao_3mgo_4sio2": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_caso4_h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_ca3n2": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_mgo_cao": {
+    "grades": [
+      9
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_caso42_h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_mghco32": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_na2o_al2o3_2sio2": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_k2o_2h2o_3al2o3_6sio2": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_alh3": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_aln": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_alp": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_al2so43_18h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_kalo2": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_kalso42_12h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cufes2": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cucl2_2h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cuno32_3h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_kaucn2": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_k2zncn4": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cds": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_hgs": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_k2znoh4": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cdoh2": {
+    "grades": [
+      9
+    ],
+    "chapter": "основания"
+  },
+  "tb_hgoh2": {
+    "grades": [
+      9
+    ],
+    "chapter": "основания"
+  },
+  "tb_znso4_7h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_hg2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_feo_cr2o3": {
+    "grades": [
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_crn": {
+    "grades": [
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_nacro2": {
+    "grades": [
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_na3croh6": {
+    "grades": [
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_k2so4_cr2so43_12h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_nh42so4_cr2so43_6h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_crso4": {
+    "grades": [
+      9
+    ],
+    "chapter": "хром"
+  },
+  "tb_mn3n2": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_mnso4_4h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_h2mno4": {
+    "grades": [
+      9
+    ],
+    "chapter": "марганец"
+  },
+  "tb_fen": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_fe2so43_9h2o": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_al2o3_3beo_6sio2": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cu2c2": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_hgso4": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cuoh": {
+    "grades": [
+      7,
+      8,
+      9
+    ],
+    "chapter": "основания"
+  },
+  "tb_n2h4": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_nh2oh": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_agnh32oh": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "основания"
+  },
+  "tb_al4p2o73": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_sr3po42": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_bino33": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_nioh2": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "основания"
+  },
+  "tb_nacn": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_na2s2o3": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_nocl": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_h3aso4": {
+    "grades": [
+      9
+    ],
+    "chapter": "кислоты"
+  },
+  "tb_na2c2o4": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cdno32": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_caocl2": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_of2": {
+    "grades": [
+      7,
+      8
+    ],
+    "chapter": "прочее"
+  },
+  "tb_ko3": {
+    "grades": [
+      7
+    ],
+    "chapter": "прочее"
+  },
+  "tb_br2o7": {
+    "grades": [
+      8
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_feco5": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_fe3c": {
+    "grades": [
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_kfefecn6": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_fe3fecn62": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_fe4fecn63": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_scoh3": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "основания"
+  },
+  "tb_sc2o3": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "оксиды"
+  },
+  "tb_p4s7": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "прочее"
+  },
+  "tb_ch3coona": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_c2h5ona": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_c6h5ona": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_c17h35coona": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_ch3coo2ca": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_c2h5coona": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_ch3ch2ch2coona": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_ch3coo2mg": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_ch3cook": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_nh4ncs": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_cu3co32oh2": {
+    "grades": [
+      7
+    ],
+    "chapter": "соли"
+  },
+  "tb_hcoona": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_naoch2ch2ona": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_c3h5ona3": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_feoc6h53": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_c6h5so3na": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_c6h5ok": {
+    "grades": [
+      8,
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_c15h31coona": {
     "grades": [
       8,
       9

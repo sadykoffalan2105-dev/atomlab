@@ -152,8 +152,13 @@ export async function composeLocalTeacherReply(
     suggestSmartAi: !isSmartAiConnected(),
   })
   const used = new Set(composed.usedTitles)
+  // Значки — из фрагментов, давших фразы ответа (не все фрагменты с тем же заголовком).
   const citations = [
-    ...new Set(knowledge.hits.filter((h) => used.has(h.title) && h.citation).map((h) => citationForDisplay(h.citation!, ctx.locale))),
+    ...new Set(
+      (composed.usedCitations?.length ? composed.usedCitations : knowledge.hits.filter((h) => used.has(h.title) && h.citation).map((h) => h.citation!)).map((c) =>
+        citationForDisplay(c, ctx.locale),
+      ),
+    ),
   ].slice(0, 3)
   const body = composed.confident && citations.length ? `${composed.text}\n\n${citations.join(' ')}` : composed.text
   return { text: body, source: 'local', citations, confident: composed.confident }

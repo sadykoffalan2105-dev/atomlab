@@ -1,0 +1,7495 @@
+{
+ "grade": 11,
+ "source": "public/textbooks/kimyo-11-ru.pdf (Kimyo 11, рус. изд.; нет текстового слоя — OCR + визуальная проверка страниц)",
+ "generatedAt": "2026-09-16T08:42:16.616Z",
+ "notes": [
+  "Уникальные реакции (ключ — состав и коэффициенты реагентов/продуктов; общие схемы — по тексту). id — стабильный slug из формул.",
+  "isGeneralScheme — буквенные/общие схемы (A + B ⇌ C, MeSO4 …); isIonic — ионные уравнения, диссоциация, полуреакции; balanceMode nuclear — ядерные уравнения.",
+  "bankId — SCHOOL_REACTION_BANK; bankMatch: exact | same-species-other-coefficients | equivalent."
+ ],
+ "stats": {
+  "reactions": 175,
+  "real": 156,
+  "generalSchemes": 19,
+  "ionic": 45,
+  "nuclear": 8,
+  "bankExact": 26,
+  "bankLoose": 1,
+  "unbalanced": 1
+ },
+ "reactions": [
+  {
+   "id": "g11-p1-beta0--n1",
+   "equation": "¹₁p + ⁰₋₁β → ¹₀n",
+   "equationAscii": "1/1/p + 0/-1/β -> 1/0/n",
+   "equationAsInBook": "1p + 0-1β → 1 0n",
+   "reactants": [
+    {
+     "formula": "1/1/p",
+     "coeff": 1
+    },
+    {
+     "formula": "0/-1/β",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "1/0/n",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "nuclear-particle",
+   "sections": [
+    "c1-s03"
+   ],
+   "page": 18,
+   "pages": [
+    18
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "balanceMode": "nuclear",
+   "note": "в книге названо «падение электрона» (захват электрона ядром); баланс по массовому числу и заряду"
+  },
+  {
+   "id": "g11-n1-beta0--p1",
+   "equation": "¹₀n + ⁰₊₁β → ¹₁p",
+   "equationAscii": "1/0/n + 0/+1/β -> 1/1/p",
+   "equationAsInBook": "1 0n + 0+1β → 1 1p",
+   "reactants": [
+    {
+     "formula": "1/0/n",
+     "coeff": 1
+    },
+    {
+     "formula": "0/+1/β",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "1/1/p",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "nuclear-particle",
+   "sections": [
+    "c1-s03"
+   ],
+   "page": 19,
+   "pages": [
+    19
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "balanceMode": "nuclear",
+   "note": "в книге названо «позитронный захват»"
+  },
+  {
+   "id": "g11-p1--n1-beta0",
+   "equation": "¹₁p → ¹₀n + ⁰₊₁β",
+   "equationAscii": "1/1/p -> 1/0/n + 0/+1/β",
+   "equationAsInBook": "1 1p → 1 0n + 0+1β",
+   "reactants": [
+    {
+     "formula": "1/1/p",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "1/0/n",
+     "coeff": 1
+    },
+    {
+     "formula": "0/+1/β",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "nuclear-particle",
+   "sections": [
+    "c1-s03"
+   ],
+   "page": 19,
+   "pages": [
+    19
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "balanceMode": "nuclear",
+   "note": "позитронный распад"
+  },
+  {
+   "id": "g11-n1--p1-beta0",
+   "equation": "¹₀n → ¹₁p + ⁰₋₁β",
+   "equationAscii": "1/0/n -> 1/1/p + 0/-1/β",
+   "equationAsInBook": "1 0n → 1 1p + 0-1β",
+   "reactants": [
+    {
+     "formula": "1/0/n",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "1/1/p",
+     "coeff": 1
+    },
+    {
+     "formula": "0/-1/β",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "nuclear-particle",
+   "sections": [
+    "c1-s03"
+   ],
+   "page": 19,
+   "pages": [
+    19
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "balanceMode": "nuclear",
+   "note": "электронный распад"
+  },
+  {
+   "id": "g11-al27-he4--si30-h1",
+   "equation": "²⁷₁₃Al + ⁴₂He → ³⁰₁₄Si + ¹₁H",
+   "equationAscii": "27/13/Al + 4/2/He -> 30/14/Si + 1/1/H",
+   "equationAsInBook": "27 13Al + 4 2He = 30 14Si + 1 1H",
+   "reactants": [
+    {
+     "formula": "27/13/Al",
+     "coeff": 1
+    },
+    {
+     "formula": "4/2/He",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "30/14/Si",
+     "coeff": 1
+    },
+    {
+     "formula": "1/1/H",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "nuclear",
+   "sections": [
+    "c1-s03"
+   ],
+   "page": 20,
+   "pages": [
+    20
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "balanceMode": "nuclear"
+  },
+  {
+   "id": "g11-ra226--rn222-he4",
+   "equation": "²²⁶₈₈Ra → ²²²₈₆Rn + ⁴₂He",
+   "equationAscii": "226/88/Ra -> 222/86/Rn + 4/2/He",
+   "equationAsInBook": "226 88Ra = 222 86Rn + 4 2He",
+   "reactants": [
+    {
+     "formula": "226/88/Ra",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "222/86/Rn",
+     "coeff": 1
+    },
+    {
+     "formula": "4/2/He",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "decomposition",
+   "subtype": "nuclear",
+   "sections": [
+    "c1-s03"
+   ],
+   "page": 20,
+   "pages": [
+    20
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "balanceMode": "nuclear"
+  },
+  {
+   "id": "g11-n14-he4--o17-h1",
+   "equation": "¹⁴₇N + ⁴₂He → ¹⁷₈O + ¹₁H",
+   "equationAscii": "14/7/N + 4/2/He -> 17/8/O + 1/1/H",
+   "equationAsInBook": "14 7N + 4 2He = 17 8O + 1 1H",
+   "reactants": [
+    {
+     "formula": "14/7/N",
+     "coeff": 1
+    },
+    {
+     "formula": "4/2/He",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "17/8/O",
+     "coeff": 1
+    },
+    {
+     "formula": "1/1/H",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "nuclear",
+   "sections": [
+    "c1-s03"
+   ],
+   "page": 20,
+   "pages": [
+    20
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "balanceMode": "nuclear"
+  },
+  {
+   "id": "g11-u235-n1--kr93-ba140-n1",
+   "equation": "²³⁵₉₂U + ¹₀n → ⁹³₃₆Kr + ¹⁴⁰₅₆Ba + 3¹₀n",
+   "equationAscii": "235/92/U + 1/0/n -> 93/36/Kr + 140/56/Ba + 3 1/0/n",
+   "equationAsInBook": "235 92U + 1 0n = 93 36Kr + 140 56Ba + 3 1 0n",
+   "reactants": [
+    {
+     "formula": "235/92/U",
+     "coeff": 1
+    },
+    {
+     "formula": "1/0/n",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "93/36/Kr",
+     "coeff": 1
+    },
+    {
+     "formula": "140/56/Ba",
+     "coeff": 1
+    },
+    {
+     "formula": "1/0/n",
+     "coeff": 3
+    }
+   ],
+   "conditions": null,
+   "type": "decomposition",
+   "subtype": "nuclear",
+   "sections": [
+    "c1-s03"
+   ],
+   "page": 21,
+   "pages": [
+    21
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "balanceMode": "nuclear"
+  },
+  {
+   "id": "g11-h-h--h2",
+   "equation": "H + H → H₂",
+   "equationAscii": "H + H -> H2",
+   "equationAsInBook": "H. + .H → H:H",
+   "reactants": [
+    {
+     "formula": "H",
+     "coeff": 1
+    },
+    {
+     "formula": "H",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "combination",
+   "subtype": "bond-formation-scheme",
+   "sections": [
+    "c1-s04"
+   ],
+   "page": 24,
+   "pages": [
+    24
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "электронная схема образования молекулы водорода (также в виде квантовых ячеек на с. 25)"
+  },
+  {
+   "id": "g11-nh3-hp--nh4p",
+   "equation": "NH₃ + H⁺ → NH₄⁺",
+   "equationAscii": "NH3 + H^+ -> NH4^+",
+   "equationAsInBook": "NH3 + H+ → NH4+  N донор H+ акцептор",
+   "reactants": [
+    {
+     "formula": "NH3",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NH4^+",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "combination",
+   "subtype": "donor-acceptor",
+   "sections": [
+    "c1-s04"
+   ],
+   "page": 25,
+   "pages": [
+    25
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-naoh--nap-ohm",
+   "equation": "NaOH → Na⁺ + OH⁻",
+   "equationAscii": "NaOH -> Na^+ + OH^-",
+   "equationAsInBook": "NaOH → Na+ + OH−",
+   "reactants": [
+    {
+     "formula": "NaOH",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Na^+",
+     "coeff": 1
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "dissociation",
+   "sections": [
+    "c1-s04"
+   ],
+   "page": 26,
+   "pages": [
+    26
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-na2so4--nap-so42m",
+   "equation": "Na₂SO₄ → 2Na⁺ + SO₄²⁻",
+   "equationAscii": "Na2SO4 -> 2Na^+ + SO4^2-",
+   "equationAsInBook": "Na2SO4 → 2Na+ + SO4 2-",
+   "reactants": [
+    {
+     "formula": "Na2SO4",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Na^+",
+     "coeff": 2
+    },
+    {
+     "formula": "SO4^2-",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "dissociation",
+   "sections": [
+    "c1-s04"
+   ],
+   "page": 26,
+   "pages": [
+    26
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-fe-s--fes",
+   "equation": "Fe + S →(t°) FeS",
+   "equationAscii": "Fe + S -> FeS",
+   "equationAsInBook": "Fe + S = FeS",
+   "reactants": [
+    {
+     "formula": "Fe",
+     "coeff": 1
+    },
+    {
+     "formula": "S",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "FeS",
+     "coeff": 1
+    }
+   ],
+   "conditions": "t°",
+   "type": "combination",
+   "subtype": "redox",
+   "sections": [
+    "c2-s01",
+    "c6-s01"
+   ],
+   "page": 32,
+   "pages": [
+    32,
+    112
+   ],
+   "bankId": "fe-s-fes",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact",
+   "note": "условие (нагревание) в книге не указано"
+  },
+  {
+   "id": "g11-h2-cl2--hcl",
+   "equation": "H₂ + Cl₂ → 2HCl",
+   "equationAscii": "H2 + Cl2 -> 2HCl",
+   "equationAsInBook": "H2 + Cl2 = 2HCl",
+   "reactants": [
+    {
+     "formula": "H2",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "HCl",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "combination",
+   "subtype": "redox",
+   "sections": [
+    "c2-s02",
+    "c5-s01",
+    "c6-s02"
+   ],
+   "page": 36,
+   "pages": [
+    36,
+    104,
+    118,
+    120
+   ],
+   "bankId": "h2-cl2-hcl",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact",
+   "note": "условия (свет/нагревание) в книге не указаны; пример объёмных отношений газов 1:1:2"
+  },
+  {
+   "id": "g11-h2-o2--h2o",
+   "equation": "2H₂ + O₂ → 2H₂O",
+   "equationAscii": "2H2 + O2 -> 2H2O",
+   "equationAsInBook": "2H2 + O2 = 2H2O",
+   "reactants": [
+    {
+     "formula": "H2",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "combination",
+   "subtype": "redox",
+   "sections": [
+    "c2-s02",
+    "c5-s01"
+   ],
+   "page": 36,
+   "pages": [
+    36,
+    99
+   ],
+   "bankId": "h2-o2-h2o",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact",
+   "note": "пример объёмных отношений газов 2:1:2 (водяные пары)"
+  },
+  {
+   "id": "g11-na2co3--nap-co32m",
+   "equation": "Na₂CO₃ ⇌ 2Na⁺ + CO₃²⁻",
+   "equationAscii": "Na2CO3 <=> 2Na^+ + CO3^2-",
+   "equationAsInBook": "Na2CO3 ⟷ 2Na+ + CO3 2-",
+   "reactants": [
+    {
+     "formula": "Na2CO3",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Na^+",
+     "coeff": 2
+    },
+    {
+     "formula": "CO3^2-",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "dissociation",
+   "sections": [
+    "c2-s03"
+   ],
+   "page": 40,
+   "pages": [
+    40
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-scheme-meco3-to-meo-co2-g",
+   "equation": "MeCO₃ →(t°) MeO + CO₂↑",
+   "equationAscii": "MeCO3 -> MeO + CO2(g)",
+   "equationAsInBook": "MeCO3 → MeO + CO2↑",
+   "reactants": [
+    {
+     "formula": "MeCO3",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "MeO",
+     "coeff": 1
+    },
+    {
+     "formula": "CO2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "t°",
+   "type": "decomposition",
+   "subtype": null,
+   "sections": [
+    "c2-s03"
+   ],
+   "page": 44,
+   "pages": [
+    44
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null,
+   "note": "Me – двухвалентный металл (в задаче найдено: Ca); нагревание в книге не указано"
+  },
+  {
+   "id": "g11-nacl--nap-clm",
+   "equation": "NaCl → Na⁺ + Cl⁻",
+   "equationAscii": "NaCl -> Na^+ + Cl^-",
+   "equationAsInBook": "NaCl → Na+ + Cl−",
+   "reactants": [
+    {
+     "formula": "NaCl",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Na^+",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl^-",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "dissociation",
+   "sections": [
+    "c3-s01",
+    "c4-s01"
+   ],
+   "page": 51,
+   "pages": [
+    51,
+    62
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-nap-clm--nacl",
+   "equation": "Na⁺ + Cl⁻ ⇌ NaCl",
+   "equationAscii": "Na^+ + Cl^- <=> NaCl",
+   "equationAsInBook": "Na+ + Cl− ⟷ NaCl",
+   "reactants": [
+    {
+     "formula": "Na^+",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl^-",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NaCl",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "combination",
+   "subtype": "association",
+   "sections": [
+    "c3-s01"
+   ],
+   "page": 51,
+   "pages": [
+    51
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-pbno32-ki--pbi2-kno3",
+   "equation": "Pb(NO₃)₂ + 2KI → PbI₂↓ + 2KNO₃",
+   "equationAscii": "Pb(NO3)2 + 2KI -> PbI2(s) + 2KNO3",
+   "equationAsInBook": "Pb(NO3)2 + 2KJ → PbJ2↓ + 2KNO3 (молекулярное уравнение)",
+   "reactants": [
+    {
+     "formula": "Pb(NO3)2",
+     "coeff": 1
+    },
+    {
+     "formula": "KI",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "PbI2",
+     "coeff": 1
+    },
+    {
+     "formula": "KNO3",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": "precipitation",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 55,
+   "pages": [
+    55
+   ],
+   "bankId": "pb-no3-ki",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact",
+   "note": "в книге иод обозначен J (KJ, PbJ2)"
+  },
+  {
+   "id": "g11-pb2p-no3m-kp-im--pbi2-kp-no3m",
+   "equation": "Pb²⁺ + 2NO₃⁻ + 2K⁺ + 2I⁻ → PbI₂↓ + 2K⁺ + 2NO₃⁻",
+   "equationAscii": "Pb^2+ + 2NO3^- + 2K^+ + 2I^- -> PbI2(s) + 2K^+ + 2NO3^-",
+   "equationAsInBook": "Pb2+ + 2NO3- + 2K+ + 2J- → PbJ2↓ + 2K+ + 2NO3- (полное ионное уравнение)",
+   "reactants": [
+    {
+     "formula": "Pb^2+",
+     "coeff": 1
+    },
+    {
+     "formula": "NO3^-",
+     "coeff": 2
+    },
+    {
+     "formula": "K^+",
+     "coeff": 2
+    },
+    {
+     "formula": "I^-",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "PbI2",
+     "coeff": 1
+    },
+    {
+     "formula": "K^+",
+     "coeff": 2
+    },
+    {
+     "formula": "NO3^-",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": "full-ionic",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 55,
+   "pages": [
+    55
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-pb2p-im--pbi2",
+   "equation": "Pb²⁺ + 2I⁻ → PbI₂↓",
+   "equationAscii": "Pb^2+ + 2I^- -> PbI2(s)",
+   "equationAsInBook": "Pb2+ + 2J- → PbJ2↓ (сокращенное ионное уравнение)",
+   "reactants": [
+    {
+     "formula": "Pb^2+",
+     "coeff": 1
+    },
+    {
+     "formula": "I^-",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "PbI2",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": "net-ionic",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 55,
+   "pages": [
+    55
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-na2co3-hcl--nacl-h2o-co2",
+   "equation": "Na₂CO₃ + 2HCl → 2NaCl + H₂O + CO₂↑",
+   "equationAscii": "Na2CO3 + 2HCl -> 2NaCl + H2O + CO2(g)",
+   "equationAsInBook": "Na2CO3 + 2HCl → 2NaCl + H2CO3 → H2O + CO2↑",
+   "reactants": [
+    {
+     "formula": "Na2CO3",
+     "coeff": 1
+    },
+    {
+     "formula": "HCl",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "NaCl",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    },
+    {
+     "formula": "CO2",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": "gas-evolution",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 56,
+   "pages": [
+    56
+   ],
+   "bankId": "na2co3-hcl",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact",
+   "note": "в книге показано промежуточное образование H2CO3, разлагающейся на H2O и CO2"
+  },
+  {
+   "id": "g11-nap-co32m-hp-clm--nap-clm-co2-h2o",
+   "equation": "2Na⁺ + CO₃²⁻ + 2H⁺ + 2Cl⁻ → 2Na⁺ + 2Cl⁻ + CO₂↑ + H₂O",
+   "equationAscii": "2Na^+ + CO3^2- + 2H^+ + 2Cl^- -> 2Na^+ + 2Cl^- + CO2(g) + H2O",
+   "equationAsInBook": "2Na+ + CO3 2- + 2H+ + 2Cl- → 2Na+ + 2Cl- + CO2↑ + H2O",
+   "reactants": [
+    {
+     "formula": "Na^+",
+     "coeff": 2
+    },
+    {
+     "formula": "CO3^2-",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 2
+    },
+    {
+     "formula": "Cl^-",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Na^+",
+     "coeff": 2
+    },
+    {
+     "formula": "Cl^-",
+     "coeff": 2
+    },
+    {
+     "formula": "CO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": "full-ionic",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 56,
+   "pages": [
+    56
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-co32m-hp--co2-h2o",
+   "equation": "CO₃²⁻ + 2H⁺ ⇌ CO₂↑ + H₂O",
+   "equationAscii": "CO3^2- + 2H^+ <=> CO2(g) + H2O",
+   "equationAsInBook": "CO3 2- + 2H+ ⟷ CO2↑ + H2O",
+   "reactants": [
+    {
+     "formula": "CO3^2-",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "CO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": "net-ionic",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 56,
+   "pages": [
+    56
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true,
+   "note": "в книге двусторонняя стрелка"
+  },
+  {
+   "id": "g11-h2so4-koh--k2so4-h2o",
+   "equation": "H₂SO₄ + 2KOH → K₂SO₄ + 2H₂O",
+   "equationAscii": "H2SO4 + 2KOH -> K2SO4 + 2H2O",
+   "equationAsInBook": "H2SO4 + 2KOH → K2SO4 + 2H2O",
+   "reactants": [
+    {
+     "formula": "H2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "KOH",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "K2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "neutralization",
+   "subtype": null,
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 56,
+   "pages": [
+    56
+   ],
+   "bankId": "h2so4-koh",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-hp-so42m-kp-ohm--kp-so42m-h2o",
+   "equation": "2H⁺ + SO₄²⁻ + 2K⁺ + 2OH⁻ → 2K⁺ + SO₄²⁻ + 2H₂O",
+   "equationAscii": "2H^+ + SO4^2- + 2K^+ + 2OH^- -> 2K^+ + SO4^2- + 2H2O",
+   "equationAsInBook": "2H+ + SO4 2- + 2K+ + 2OH- → 2K+ + SO4 2- + 2H2O",
+   "reactants": [
+    {
+     "formula": "H^+",
+     "coeff": 2
+    },
+    {
+     "formula": "SO4^2-",
+     "coeff": 1
+    },
+    {
+     "formula": "K^+",
+     "coeff": 2
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "K^+",
+     "coeff": 2
+    },
+    {
+     "formula": "SO4^2-",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "neutralization",
+   "subtype": "full-ionic",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 56,
+   "pages": [
+    56
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-hp-ohm--h2o",
+   "equation": "2H⁺ + 2OH⁻ → 2H₂O",
+   "equationAscii": "2H^+ + 2OH^- -> 2H2O",
+   "equationAsInBook": "2H+ + 2OH- → 2H2O",
+   "reactants": [
+    {
+     "formula": "H^+",
+     "coeff": 2
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "neutralization",
+   "subtype": "net-ionic",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 56,
+   "pages": [
+    56
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true,
+   "note": "коэффициенты не сокращены (в книге 2H+ + 2OH- → 2H2O)"
+  },
+  {
+   "id": "g11-baoh2-nh42so4--baso4-nh3-h2o",
+   "equation": "Ba(OH)₂ + (NH₄)₂SO₄ → BaSO₄↓ + 2NH₃↑ + 2H₂O",
+   "equationAscii": "Ba(OH)2 + (NH4)2SO4 -> BaSO4(s) + 2NH3(g) + 2H2O",
+   "equationAsInBook": "Ba(OH)2 + (NH4)2SO4 → BaSO4↓ + 2NH3↑ + 2H2O",
+   "reactants": [
+    {
+     "formula": "Ba(OH)2",
+     "coeff": 1
+    },
+    {
+     "formula": "(NH4)2SO4",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "BaSO4",
+     "coeff": 1
+    },
+    {
+     "formula": "NH3",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": "precipitation+gas",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 56,
+   "pages": [
+    56
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-ba2p-ohm-nh4p-so42m--baso4-nh3-h2o",
+   "equation": "Ba²⁺ + 2OH⁻ + 2NH₄⁺ + SO₄²⁻ → BaSO₄↓ + 2NH₃↑ + 2H₂O",
+   "equationAscii": "Ba^2+ + 2OH^- + 2NH4^+ + SO4^2- -> BaSO4(s) + 2NH3(g) + 2H2O",
+   "equationAsInBook": "Ba2+ + 2OH- + 2NH4+ + SO4 2- → BaSO4↓ + 2NH3↑ + 2H2O",
+   "reactants": [
+    {
+     "formula": "Ba^2+",
+     "coeff": 1
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 2
+    },
+    {
+     "formula": "NH4^+",
+     "coeff": 2
+    },
+    {
+     "formula": "SO4^2-",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "BaSO4",
+     "coeff": 1
+    },
+    {
+     "formula": "NH3",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": "full-ionic",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 56,
+   "pages": [
+    56
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-cacl2--ca2p-clm",
+   "equation": "CaCl₂ ⇌ Ca²⁺ + 2Cl⁻",
+   "equationAscii": "CaCl2 <=> Ca^2+ + 2Cl^-",
+   "equationAsInBook": "CaCl2 ⟷ Ca2+ + 2Cl-",
+   "reactants": [
+    {
+     "formula": "CaCl2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Ca^2+",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl^-",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "dissociation",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 56,
+   "pages": [
+    56
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-hno2--hp-no2m",
+   "equation": "HNO₂ ⇌ H⁺ + NO₂⁻",
+   "equationAscii": "HNO2 <=> H^+ + NO2^-",
+   "equationAsInBook": "HNO2 ⟷ H+ + NO2-",
+   "reactants": [
+    {
+     "formula": "HNO2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "H^+",
+     "coeff": 1
+    },
+    {
+     "formula": "NO2^-",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "dissociation",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 57,
+   "pages": [
+    57
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-nh4cl-h2o--nh4oh-hcl",
+   "equation": "NH₄Cl + H₂O ⇌ NH₄OH + HCl",
+   "equationAscii": "NH4Cl + H2O <=> NH4OH + HCl",
+   "equationAsInBook": "NH4Cl + HOH ⟷ NH4OH + HCl",
+   "reactants": [
+    {
+     "formula": "NH4Cl",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NH4OH",
+     "coeff": 1
+    },
+    {
+     "formula": "HCl",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "hydrolysis",
+   "subtype": "by-cation",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 58,
+   "pages": [
+    58
+   ],
+   "bankId": "nh4cl-hydrolysis",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "equivalent",
+   "note": "в книге вода записана как HOH; в банке реакций продукт записан как NH3 + HCl вместо NH4OH"
+  },
+  {
+   "id": "g11-nh4p-clm-h2o--nh4oh-hp-clm",
+   "equation": "NH₄⁺ + Cl⁻ + H₂O ⇌ NH₄OH + H⁺ + Cl⁻",
+   "equationAscii": "NH4^+ + Cl^- + H2O <=> NH4OH + H^+ + Cl^-",
+   "equationAsInBook": "NH4+ + Cl- + HOH ⟷ NH4OH + H+ + Cl-",
+   "reactants": [
+    {
+     "formula": "NH4^+",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl^-",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NH4OH",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl^-",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "hydrolysis",
+   "subtype": "full-ionic",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 58,
+   "pages": [
+    58
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-nh4p-h2o--nh4oh-hp",
+   "equation": "NH₄⁺ + H₂O ⇌ NH₄OH + H⁺",
+   "equationAscii": "NH4^+ + H2O <=> NH4OH + H^+",
+   "equationAsInBook": "NH4+ + HOH ⟷ NH4OH + H+",
+   "reactants": [
+    {
+     "formula": "NH4^+",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NH4OH",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "hydrolysis",
+   "subtype": "net-ionic",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 58,
+   "pages": [
+    58
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-mgcl2-h2o--mgoh2-hcl",
+   "equation": "MgCl₂ + 2H₂O ⇌ Mg(OH)₂ + 2HCl",
+   "equationAscii": "MgCl2 + 2H2O <=> Mg(OH)2 + 2HCl",
+   "equationAsInBook": "MgCl2 + 2HOH ⟷ Mg(OH)2 + 2HCl",
+   "reactants": [
+    {
+     "formula": "MgCl2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Mg(OH)2",
+     "coeff": 1
+    },
+    {
+     "formula": "HCl",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "hydrolysis",
+   "subtype": "by-cation",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 58,
+   "pages": [
+    58
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге гидролиз записан упрощённо в одну ступень (без MgOHCl)"
+  },
+  {
+   "id": "g11-mg2p-clm-h2o--mgoh2-hp-clm",
+   "equation": "Mg²⁺ + 2Cl⁻ + 2H₂O ⇌ Mg(OH)₂ + 2H⁺ + 2Cl⁻",
+   "equationAscii": "Mg^2+ + 2Cl^- + 2H2O <=> Mg(OH)2 + 2H^+ + 2Cl^-",
+   "equationAsInBook": "Mg2+ + 2Cl- + 2HOH ⟷ Mg(OH)2 + 2H+ + 2Cl-",
+   "reactants": [
+    {
+     "formula": "Mg^2+",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl^-",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Mg(OH)2",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 2
+    },
+    {
+     "formula": "Cl^-",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "hydrolysis",
+   "subtype": "full-ionic",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 58,
+   "pages": [
+    58
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-mg2p-h2o--mgoh2-hp",
+   "equation": "Mg²⁺ + 2H₂O ⇌ Mg(OH)₂ + 2H⁺",
+   "equationAscii": "Mg^2+ + 2H2O <=> Mg(OH)2 + 2H^+",
+   "equationAsInBook": "Mg2+ + 2HOH ⟷ Mg(OH)2 + 2H+",
+   "reactants": [
+    {
+     "formula": "Mg^2+",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Mg(OH)2",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "hydrolysis",
+   "subtype": "net-ionic",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 58,
+   "pages": [
+    58
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-ch3coona-h2o--ch3cooh-naoh",
+   "equation": "CH₃COONa + H₂O ⇌ CH₃COOH + NaOH",
+   "equationAscii": "CH3COONa + H2O <=> CH3COOH + NaOH",
+   "equationAsInBook": "CH3COONa + HOH ⟷ CH3COOH + NaOH",
+   "reactants": [
+    {
+     "formula": "CH3COONa",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CH3COOH",
+     "coeff": 1
+    },
+    {
+     "formula": "NaOH",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "hydrolysis",
+   "subtype": "by-anion",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 59,
+   "pages": [
+    59
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-ch3coom-nap-h2o--ch3cooh-nap-ohm",
+   "equation": "CH₃COO⁻ + Na⁺ + H₂O ⇌ CH₃COOH + Na⁺ + OH⁻",
+   "equationAscii": "CH3COO^- + Na^+ + H2O <=> CH3COOH + Na^+ + OH^-",
+   "equationAsInBook": "CH3COO- + Na+ + HOH ⟷ CH3COOH + Na+ + OH-",
+   "reactants": [
+    {
+     "formula": "CH3COO^-",
+     "coeff": 1
+    },
+    {
+     "formula": "Na^+",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CH3COOH",
+     "coeff": 1
+    },
+    {
+     "formula": "Na^+",
+     "coeff": 1
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "hydrolysis",
+   "subtype": "full-ionic",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 59,
+   "pages": [
+    59
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-ch3coom-h2o--ch3cooh-ohm",
+   "equation": "CH₃COO⁻ + H₂O ⇌ CH₃COOH + OH⁻",
+   "equationAscii": "CH3COO^- + H2O <=> CH3COOH + OH^-",
+   "equationAsInBook": "CH3COO- + HOH ⟷ CH3COOH + OH-",
+   "reactants": [
+    {
+     "formula": "CH3COO^-",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CH3COOH",
+     "coeff": 1
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "hydrolysis",
+   "subtype": "net-ionic",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 59,
+   "pages": [
+    59
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-ch3coonh4-h2o--ch3cooh-nh4oh",
+   "equation": "CH₃COONH₄ + H₂O ⇌ CH₃COOH + NH₄OH",
+   "equationAscii": "CH3COONH4 + H2O <=> CH3COOH + NH4OH",
+   "equationAsInBook": "CH3COONH4 + HOH ⟷ CH3COOH + NH4OH",
+   "reactants": [
+    {
+     "formula": "CH3COONH4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CH3COOH",
+     "coeff": 1
+    },
+    {
+     "formula": "NH4OH",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "hydrolysis",
+   "subtype": "by-cation-and-anion",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 59,
+   "pages": [
+    59
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-ch3coom-nh4p-h2o--ch3cooh-nh4oh",
+   "equation": "CH₃COO⁻ + NH₄⁺ + H₂O ⇌ CH₃COOH + NH₄OH",
+   "equationAscii": "CH3COO^- + NH4^+ + H2O <=> CH3COOH + NH4OH",
+   "equationAsInBook": "CH3COO- + NH4+ + HOH ⟷ CH3COOH + NH4OH",
+   "reactants": [
+    {
+     "formula": "CH3COO^-",
+     "coeff": 1
+    },
+    {
+     "formula": "NH4^+",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CH3COOH",
+     "coeff": 1
+    },
+    {
+     "formula": "NH4OH",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "hydrolysis",
+   "subtype": "net-ionic",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 59,
+   "pages": [
+    59
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-h2o--hp-ohm",
+   "equation": "H₂O ⇌ H⁺ + OH⁻",
+   "equationAscii": "H2O <=> H^+ + OH^-",
+   "equationAsInBook": "H2O ⟷ H+ + OH-",
+   "reactants": [
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "H^+",
+     "coeff": 1
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": "dissociation",
+   "sections": [
+    "c3-s03"
+   ],
+   "page": 60,
+   "pages": [
+    60
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-na2o-h2o--naoh",
+   "equation": "Na₂O + H₂O → 2NaOH",
+   "equationAscii": "Na2O + H2O -> 2NaOH",
+   "equationAsInBook": "Na2O + H2O → 2NaOH",
+   "reactants": [
+    {
+     "formula": "Na2O",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NaOH",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c4-s05"
+   ],
+   "page": 77,
+   "pages": [
+    77
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-so2-h2o--h2so3",
+   "equation": "SO₂ + H₂O → H₂SO₃",
+   "equationAscii": "SO2 + H2O -> H2SO3",
+   "equationAsInBook": "SO2 + H2O → H2SO3",
+   "reactants": [
+    {
+     "formula": "SO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2SO3",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c4-s05",
+    "c6-s01"
+   ],
+   "page": 78,
+   "pages": [
+    78,
+    113
+   ],
+   "bankId": "so2-h2o",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact",
+   "note": "в банке реакций записано с ⇄"
+  },
+  {
+   "id": "g11-k-h2o--koh-h2",
+   "equation": "2K + 2H₂O → 2KOH + H₂↑",
+   "equationAscii": "2K + 2H2O -> 2KOH + H2(g)",
+   "equationAsInBook": "2K + 2H2O → 2KOH + H2↑",
+   "reactants": [
+    {
+     "formula": "K",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "KOH",
+     "coeff": 2
+    },
+    {
+     "formula": "H2",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "substitution",
+   "subtype": "redox",
+   "sections": [
+    "c4-s05",
+    "c5-s01"
+   ],
+   "page": 79,
+   "pages": [
+    79,
+    99
+   ],
+   "bankId": "k-h2o",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-bacl2-na2so4--baso4-nacl",
+   "equation": "BaCl₂ + Na₂SO₄ → BaSO₄↓ + 2NaCl",
+   "equationAscii": "BaCl2 + Na2SO4 -> BaSO4(s) + 2NaCl",
+   "equationAsInBook": "BaCl2 + Na2SO4 → BaSO4↓ + 2NaCl",
+   "reactants": [
+    {
+     "formula": "BaCl2",
+     "coeff": 1
+    },
+    {
+     "formula": "Na2SO4",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "BaSO4",
+     "coeff": 1
+    },
+    {
+     "formula": "NaCl",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": "precipitation",
+   "sections": [
+    "c4-s05"
+   ],
+   "page": 81,
+   "pages": [
+    81
+   ],
+   "bankId": "bacl2-na2so4",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact",
+   "note": "уравнение повторено на с. 82 с мольными соотношениями"
+  },
+  {
+   "id": "g11-bacl2-h2so4--baso4-hcl",
+   "equation": "BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl",
+   "equationAscii": "BaCl2 + H2SO4 -> BaSO4 + 2HCl",
+   "equationAsInBook": "BaCl2 + H2SO4 → BaSO4↓ + 2HCl",
+   "reactants": [
+    {
+     "formula": "BaCl2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "BaSO4",
+     "coeff": 1
+    },
+    {
+     "formula": "HCl",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": null,
+   "sections": [
+    "c5-s01"
+   ],
+   "page": 98,
+   "pages": [
+    98
+   ],
+   "bankId": "bacl2-h2so4",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-fe-h2o-o2--feoh3",
+   "equation": "4Fe + 6H₂O + 3O₂ → 4Fe(OH)₃",
+   "equationAscii": "4Fe + 6H2O + 3O2 -> 4Fe(OH)3",
+   "equationAsInBook": "4Fe + 6H2O + 3O2 → 4Fe(OH)3",
+   "reactants": [
+    {
+     "formula": "Fe",
+     "coeff": 4
+    },
+    {
+     "formula": "H2O",
+     "coeff": 6
+    },
+    {
+     "formula": "O2",
+     "coeff": 3
+    }
+   ],
+   "products": [
+    {
+     "formula": "Fe(OH)3",
+     "coeff": 4
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c5-s01"
+   ],
+   "page": 98,
+   "pages": [
+    98
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "коррозия железа (пример медленной реакции)"
+  },
+  {
+   "id": "g11-li-h2o--lioh-h2",
+   "equation": "2Li + 2H₂O → 2LiOH + H₂↑",
+   "equationAscii": "2Li + 2H2O -> 2LiOH + H2",
+   "equationAsInBook": "2Li + 2H2O = 2LiOH + H2↑",
+   "reactants": [
+    {
+     "formula": "Li",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "LiOH",
+     "coeff": 2
+    },
+    {
+     "formula": "H2",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "substitution",
+   "subtype": null,
+   "sections": [
+    "c5-s01"
+   ],
+   "page": 99,
+   "pages": [
+    99
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-na2s2o3-h2so4--na2so4-s-so2-h2o",
+   "equation": "Na₂S₂O₃ + H₂SO₄ → Na₂SO₄ + S↓ + SO₂↑ + H₂O",
+   "equationAscii": "Na2S2O3 + H2SO4 -> Na2SO4 + S + SO2 + H2O",
+   "equationAsInBook": "Na2S2O3 + H2SO4 → Na2SO4 + S↓ + SO2↑ + H2O",
+   "reactants": [
+    {
+     "formula": "Na2S2O3",
+     "coeff": 1
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Na2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "S",
+     "coeff": 1
+    },
+    {
+     "formula": "SO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c5-s01"
+   ],
+   "page": 100,
+   "pages": [
+    100
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-scheme-aa-bb-to-cc-dd",
+   "equation": "aA + bB = cC + dD",
+   "equationAscii": "aA + bB = cC + dD",
+   "equationAsInBook": "aA + bB = cC + dD",
+   "reactants": [
+    {
+     "formula": "aA",
+     "coeff": 1
+    },
+    {
+     "formula": "bB",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "cC",
+     "coeff": 1
+    },
+    {
+     "formula": "dD",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": null,
+   "sections": [
+    "c5-s01"
+   ],
+   "page": 100,
+   "pages": [
+    100
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-c-o2--co2",
+   "equation": "C + O₂ → CO₂",
+   "equationAscii": "C + O2 -> CO2",
+   "equationAsInBook": "С(тв.)+О2(г)=СО2(г)",
+   "reactants": [
+    {
+     "formula": "C",
+     "coeff": 1
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CO2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "C(тв.), O2(г), CO2(г)",
+   "type": "combustion",
+   "subtype": null,
+   "sections": [
+    "c5-s01"
+   ],
+   "page": 101,
+   "pages": [
+    101
+   ],
+   "bankId": "c-o2-co2",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-nh3--n2-h2",
+   "equation": "2NH₃ → N₂ + 3H₂",
+   "equationAscii": "2NH3 -> N2 + 3H2",
+   "equationAsInBook": "2NH3(г)→N2(г)+3H2(г)",
+   "reactants": [
+    {
+     "formula": "NH3",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "N2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 3
+    }
+   ],
+   "conditions": "газы",
+   "type": "decomposition",
+   "subtype": null,
+   "sections": [
+    "c5-s01",
+    "c5-s02",
+    "c6-s01",
+    "c6-s02"
+   ],
+   "page": 101,
+   "pages": [
+    101,
+    104,
+    109,
+    112,
+    120
+   ],
+   "bankId": "nh3-decomp",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-n2-h2--nh3",
+   "equation": "N₂ + 3H₂ ⇌ 2NH₃",
+   "equationAscii": "N2 + 3H2 <=> 2NH3",
+   "equationAsInBook": "N2(г)+3H2(г) ⇌ 2NH3(г)",
+   "reactants": [
+    {
+     "formula": "N2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 3
+    }
+   ],
+   "products": [
+    {
+     "formula": "NH3",
+     "coeff": 2
+    }
+   ],
+   "conditions": "газы",
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c5-s01",
+    "c6-s01",
+    "c6-s02",
+    "c6-s03"
+   ],
+   "page": 102,
+   "pages": [
+    102,
+    112,
+    118,
+    120,
+    126
+   ],
+   "bankId": "n2-h2-nh3",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-co-o2--co2",
+   "equation": "2CO + O₂ ⇌ 2CO₂",
+   "equationAscii": "2CO + O2 <=> 2CO2",
+   "equationAsInBook": "2СО(г) + О2(г) ⇌ 2СО2(г)",
+   "reactants": [
+    {
+     "formula": "CO",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CO2",
+     "coeff": 2
+    }
+   ],
+   "conditions": "газы",
+   "type": "combustion",
+   "subtype": null,
+   "sections": [
+    "c5-s01",
+    "c5-s02",
+    "c6-s02"
+   ],
+   "page": 103,
+   "pages": [
+    103,
+    104,
+    109,
+    120,
+    121
+   ],
+   "bankId": "co-o2-co2",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-ch4-o2--co2-h2o",
+   "equation": "CH₄ + 2O₂ ⇌ CO₂ + 2H₂O",
+   "equationAscii": "CH4 + 2O2 <=> CO2 + 2H2O",
+   "equationAsInBook": "СН4 (г) + 2О2 (г) ⇌ СО2 (г) + 2H2O (г)",
+   "reactants": [
+    {
+     "formula": "CH4",
+     "coeff": 1
+    },
+    {
+     "formula": "O2",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "CO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": "газы",
+   "type": "combustion",
+   "subtype": null,
+   "sections": [
+    "c5-s01",
+    "c5-s02",
+    "c5-s03"
+   ],
+   "page": 103,
+   "pages": [
+    103,
+    104,
+    109,
+    112
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-hcl-naoh--nacl-h2o",
+   "equation": "HCl + NaOH ⇌ NaCl + H₂O",
+   "equationAscii": "HCl + NaOH <=> NaCl + H2O",
+   "equationAsInBook": "HCl + NaOH ⇌ NaCl + H2O",
+   "reactants": [
+    {
+     "formula": "HCl",
+     "coeff": 1
+    },
+    {
+     "formula": "NaOH",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NaCl",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "neutralization",
+   "subtype": null,
+   "sections": [
+    "c5-s01",
+    "c6-s01"
+   ],
+   "page": 103,
+   "pages": [
+    103,
+    113
+   ],
+   "bankId": "naoh-hcl",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-h2-i2--hi",
+   "equation": "H₂ + I₂ ⇌ 2HI",
+   "equationAscii": "H2 + I2 <=> 2HI",
+   "equationAsInBook": "H2(г)+ I2(тв) ⇌ 2HI(г)",
+   "reactants": [
+    {
+     "formula": "H2",
+     "coeff": 1
+    },
+    {
+     "formula": "I2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "HI",
+     "coeff": 2
+    }
+   ],
+   "conditions": "I2(тв), HI(г)",
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c5-s01"
+   ],
+   "page": 104,
+   "pages": [
+    104
+   ],
+   "bankId": "h2-i2-hi",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-h2o2--h2o-o2",
+   "equation": "2H₂O₂ → 2H₂O + O₂↑",
+   "equationAscii": "2H2O2 -> 2H2O + O2",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "H2O2",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2O",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "t°; kat MnO2 (или фермент каталаза)",
+   "type": "decomposition",
+   "subtype": null,
+   "sections": [
+    "c5-s02"
+   ],
+   "page": 106,
+   "pages": [
+    106,
+    107
+   ],
+   "bankId": "h2o2-decomp",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact",
+   "describedInWords": true,
+   "note": "реакция описана словами, уравнение в книге не записано; на с. 107 — разложение H2O2 ферментом каталазой (сырое мясо, морковь, картофель)"
+  },
+  {
+   "id": "g11-al-i2--ali3",
+   "equation": "2Al + 3I₂ → 2AlI₃",
+   "equationAscii": "2Al + 3I2 -> 2AlI3",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "Al",
+     "coeff": 2
+    },
+    {
+     "formula": "I2",
+     "coeff": 3
+    }
+   ],
+   "products": [
+    {
+     "formula": "AlI3",
+     "coeff": 2
+    }
+   ],
+   "conditions": "kat H2O (капля воды)",
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c5-s02"
+   ],
+   "page": 106,
+   "pages": [
+    106
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "describedInWords": true,
+   "note": "реакция описана словами, уравнение в книге не записано"
+  },
+  {
+   "id": "g11-c6h12o6--c2h5oh-co2",
+   "equation": "C₆H₁₂O₆ → 2C₂H₅OH + 2CO₂↑",
+   "equationAscii": "C6H12O6 -> 2C2H5OH + 2CO2",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "C6H12O6",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "C2H5OH",
+     "coeff": 2
+    },
+    {
+     "formula": "CO2",
+     "coeff": 2
+    }
+   ],
+   "conditions": "фермент дрожжей",
+   "type": "other",
+   "subtype": "fermentation",
+   "sections": [
+    "c5-s02"
+   ],
+   "page": 107,
+   "pages": [
+    107
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "describedInWords": true,
+   "note": "брожение описано словами; формула «сахара» в книге не дана — записана глюкоза C6H12O6 условно"
+  },
+  {
+   "id": "g11-hcl-o2--h2o-cl2",
+   "equation": "4HCl + O₂ → 2H₂O + 2Cl₂",
+   "equationAscii": "4HCl + O2 -> 2H2O + 2Cl2",
+   "equationAsInBook": "HCl(г) + O2(г) → H2O(г) + Cl2(г)",
+   "reactants": [
+    {
+     "formula": "HCl",
+     "coeff": 4
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2O",
+     "coeff": 2
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 2
+    }
+   ],
+   "conditions": "газы; 50→70 °C",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c5-s02",
+    "c6-s03"
+   ],
+   "page": 107,
+   "pages": [
+    107,
+    109,
+    121,
+    122,
+    123
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге схема без коэффициентов; коэффициенты расставлены"
+  },
+  {
+   "id": "g11-nh3-o2--n2-h2o",
+   "equation": "4NH₃ + 3O₂ → 2N₂ + 6H₂O",
+   "equationAscii": "4NH3 + 3O2 -> 2N2 + 6H2O",
+   "equationAsInBook": "4NH3 + 3O2 → 2N2 + 6H2O",
+   "reactants": [
+    {
+     "formula": "NH3",
+     "coeff": 4
+    },
+    {
+     "formula": "O2",
+     "coeff": 3
+    }
+   ],
+   "products": [
+    {
+     "formula": "N2",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 6
+    }
+   ],
+   "conditions": null,
+   "type": "combustion",
+   "subtype": null,
+   "sections": [
+    "c5-s02",
+    "c6-s03"
+   ],
+   "page": 108,
+   "pages": [
+    108,
+    125
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-c3h8-o2--co2-h2o",
+   "equation": "C₃H₈ + 5O₂ → 3CO₂ + 4H₂O",
+   "equationAscii": "C3H8 + 5O2 -> 3CO2 + 4H2O",
+   "equationAsInBook": "C3H8 + 5O2 → 3CO2 + 4H2O",
+   "reactants": [
+    {
+     "formula": "C3H8",
+     "coeff": 1
+    },
+    {
+     "formula": "O2",
+     "coeff": 5
+    }
+   ],
+   "products": [
+    {
+     "formula": "CO2",
+     "coeff": 3
+    },
+    {
+     "formula": "H2O",
+     "coeff": 4
+    }
+   ],
+   "conditions": null,
+   "type": "combustion",
+   "subtype": null,
+   "sections": [
+    "c5-s02"
+   ],
+   "page": 109,
+   "pages": [
+    109
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-fe2o3-co--fe-co2",
+   "equation": "Fe₂O₃ + 3CO → 2Fe + 3CO₂",
+   "equationAscii": "Fe2O3 + 3CO -> 2Fe + 3CO2",
+   "equationAsInBook": "Fe2O3(тв.) + 3CO(г) → 2Fe(тв.) + 3CO2(г)",
+   "reactants": [
+    {
+     "formula": "Fe2O3",
+     "coeff": 1
+    },
+    {
+     "formula": "CO",
+     "coeff": 3
+    }
+   ],
+   "products": [
+    {
+     "formula": "Fe",
+     "coeff": 2
+    },
+    {
+     "formula": "CO2",
+     "coeff": 3
+    }
+   ],
+   "conditions": "Fe2O3(тв), Fe(тв), CO/CO2(г)",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c5-s03"
+   ],
+   "page": 111,
+   "pages": [
+    111
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-cu-hno3--cuno32-no2-h2o",
+   "equation": "Cu + 4HNO₃ → Cu(NO₃)₂ + 2NO₂↑ + 2H₂O",
+   "equationAscii": "Cu + 4HNO3 -> Cu(NO3)2 + 2NO2 + 2H2O",
+   "equationAsInBook": "Cu + 4HNO3 → Cu(NO3)2 + 2NO2↑ + 2H2O",
+   "reactants": [
+    {
+     "formula": "Cu",
+     "coeff": 1
+    },
+    {
+     "formula": "HNO3",
+     "coeff": 4
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cu(NO3)2",
+     "coeff": 1
+    },
+    {
+     "formula": "NO2",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": "HNO3 (конц.)",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c6-s01"
+   ],
+   "page": 112,
+   "pages": [
+    112
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "пример необратимой реакции; в книге также «Cu(NO3)2 + 2NO2 + 2H2O ↛» (обратная не идёт)"
+  },
+  {
+   "id": "g11-cacl2-h2so4--caso4-hcl",
+   "equation": "CaCl₂ + H₂SO₄ → CaSO₄↓ + 2HCl",
+   "equationAscii": "CaCl2 + H2SO4 -> CaSO4 + 2HCl",
+   "equationAsInBook": "CaCl2 + H2SO4 → CaSO4↓ + 2HCl",
+   "reactants": [
+    {
+     "formula": "CaCl2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CaSO4",
+     "coeff": 1
+    },
+    {
+     "formula": "HCl",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": null,
+   "sections": [
+    "c6-s01"
+   ],
+   "page": 113,
+   "pages": [
+    113
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-k2co3-hcl--kcl-co2-h2o",
+   "equation": "K₂CO₃ + 2HCl → 2KCl + CO₂↑ + H₂O",
+   "equationAscii": "K2CO3 + 2HCl -> 2KCl + CO2 + H2O",
+   "equationAsInBook": "K2CO3 + 2HCl → 2KCl + CO2↑ + H2O",
+   "reactants": [
+    {
+     "formula": "K2CO3",
+     "coeff": 1
+    },
+    {
+     "formula": "HCl",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "KCl",
+     "coeff": 2
+    },
+    {
+     "formula": "CO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "exchange",
+   "subtype": null,
+   "sections": [
+    "c6-s01"
+   ],
+   "page": 113,
+   "pages": [
+    113
+   ],
+   "bankId": "k2co3-hcl",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-mg-o2--mgo",
+   "equation": "2Mg + O₂ → 2MgO",
+   "equationAscii": "2Mg + O2 -> 2MgO",
+   "equationAsInBook": "2Mg + O2 → 2MgO ΔH = -602,5 кДж/моль",
+   "reactants": [
+    {
+     "formula": "Mg",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "MgO",
+     "coeff": 2
+    }
+   ],
+   "conditions": "ΔH = −602,5 кДж/моль",
+   "type": "combustion",
+   "subtype": null,
+   "sections": [
+    "c6-s01"
+   ],
+   "page": 113,
+   "pages": [
+    113
+   ],
+   "bankId": "mg-o2-mgo",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-h2so3--so2-h2o",
+   "equation": "H₂SO₃ ⇌ SO₂ + H₂O",
+   "equationAscii": "H2SO3 <=> SO2 + H2O",
+   "equationAsInBook": "H2SO3 ⇌ SO2 + H2O",
+   "reactants": [
+    {
+     "formula": "H2SO3",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "SO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "decomposition",
+   "subtype": null,
+   "sections": [
+    "c6-s01"
+   ],
+   "page": 113,
+   "pages": [
+    113
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-scheme-aa-bb-to-cc-dd-v2",
+   "equation": "aA + bB ⇌ cC + dD",
+   "equationAscii": "aA + bB <=> cC + dD",
+   "equationAsInBook": "aA + bB = cC + dD",
+   "reactants": [
+    {
+     "formula": "aA",
+     "coeff": 1
+    },
+    {
+     "formula": "bB",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "cC",
+     "coeff": 1
+    },
+    {
+     "formula": "dD",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": null,
+   "sections": [
+    "c6-s01",
+    "c6-s02"
+   ],
+   "page": 113,
+   "pages": [
+    113,
+    114,
+    116
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-a-2b-to-c-d",
+   "equation": "A + 2B ⇌ C + D",
+   "equationAscii": "A + 2B <=> C + D",
+   "equationAsInBook": "A + 2B = C + D",
+   "reactants": [
+    {
+     "formula": "A",
+     "coeff": 1
+    },
+    {
+     "formula": "B",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "C",
+     "coeff": 1
+    },
+    {
+     "formula": "D",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": null,
+   "sections": [
+    "c6-s01"
+   ],
+   "page": 114,
+   "pages": [
+    114,
+    115
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-2a-b-to-c",
+   "equation": "2A + B ⇌ C",
+   "equationAscii": "2A + B <=> C",
+   "equationAsInBook": "2A + B ⇌ C",
+   "reactants": [
+    {
+     "formula": "A",
+     "coeff": 2
+    },
+    {
+     "formula": "B",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "C",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": null,
+   "sections": [
+    "c6-s01"
+   ],
+   "page": 115,
+   "pages": [
+    115,
+    116
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-a-b-to-c-d",
+   "equation": "A + B ⇌ C + D",
+   "equationAscii": "A + B <=> C + D",
+   "equationAsInBook": "A + B = C + D",
+   "reactants": [
+    {
+     "formula": "A",
+     "coeff": 1
+    },
+    {
+     "formula": "B",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "C",
+     "coeff": 1
+    },
+    {
+     "formula": "D",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": null,
+   "sections": [
+    "c6-s01",
+    "c6-s03"
+   ],
+   "page": 115,
+   "pages": [
+    115,
+    126
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-a-b-to-2c-d",
+   "equation": "A + B ⇌ 2C + D",
+   "equationAscii": "A + B <=> 2C + D",
+   "equationAsInBook": "A + B = 2C + D",
+   "reactants": [
+    {
+     "formula": "A",
+     "coeff": 1
+    },
+    {
+     "formula": "B",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "C",
+     "coeff": 2
+    },
+    {
+     "formula": "D",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": null,
+   "sections": [
+    "c6-s01"
+   ],
+   "page": 115,
+   "pages": [
+    115
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-3a-b-to-c-2d",
+   "equation": "3A + B ⇌ C + 2D",
+   "equationAscii": "3A + B <=> C + 2D",
+   "equationAsInBook": "3A + B = C + 2D",
+   "reactants": [
+    {
+     "formula": "A",
+     "coeff": 3
+    },
+    {
+     "formula": "B",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "C",
+     "coeff": 1
+    },
+    {
+     "formula": "D",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": null,
+   "sections": [
+    "c6-s01"
+   ],
+   "page": 116,
+   "pages": [
+    116
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-a-b-to-c",
+   "equation": "A + B ⇌ C",
+   "equationAscii": "A + B <=> C",
+   "equationAsInBook": "A + B ⇌ C",
+   "reactants": [
+    {
+     "formula": "A",
+     "coeff": 1
+    },
+    {
+     "formula": "B",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "C",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": null,
+   "sections": [
+    "c6-s01"
+   ],
+   "page": 116,
+   "pages": [
+    116
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-a-2b-to-c",
+   "equation": "A + 2B ⇌ C",
+   "equationAscii": "A + 2B <=> C",
+   "equationAsInBook": "A + 2B ⇌ C",
+   "reactants": [
+    {
+     "formula": "A",
+     "coeff": 1
+    },
+    {
+     "formula": "B",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "C",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "other",
+   "subtype": null,
+   "sections": [
+    "c6-s01"
+   ],
+   "page": 116,
+   "pages": [
+    116
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-co2-h2--co-h2o",
+   "equation": "CO₂ + H₂ ⇌ CO + H₂O",
+   "equationAscii": "CO2 + H2 <=> CO + H2O",
+   "equationAsInBook": "CO2 + H2 ⇌ CO + H2O",
+   "reactants": [
+    {
+     "formula": "CO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CO",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c6-s02",
+    "c6-s03"
+   ],
+   "page": 117,
+   "pages": [
+    117,
+    121,
+    126
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-co-h2o--co2-h2",
+   "equation": "CO + H₂O ⇌ CO₂ + H₂",
+   "equationAscii": "CO + H2O <=> CO2 + H2",
+   "equationAsInBook": "СО + H2O → CO2 + H2",
+   "reactants": [
+    {
+     "formula": "CO",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c6-s02",
+    "c6-s03"
+   ],
+   "page": 117,
+   "pages": [
+    117,
+    126
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-so2-o2--so3",
+   "equation": "2SO₂ + O₂ ⇌ 2SO₃",
+   "equationAscii": "2SO2 + O2 <=> 2SO3",
+   "equationAsInBook": "2SO2 + O2 ⇌ 2SO3 + Q",
+   "reactants": [
+    {
+     "formula": "SO2",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "SO3",
+     "coeff": 2
+    }
+   ],
+   "conditions": "газы; +Q (экзотермическая)",
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c6-s02",
+    "c6-s03"
+   ],
+   "page": 118,
+   "pages": [
+    118,
+    119,
+    120,
+    126
+   ],
+   "bankId": "so2-o2-so3",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-fe3o4-co--fe-co2",
+   "equation": "Fe₃O₄ + 4CO ⇌ 3Fe + 4CO₂",
+   "equationAscii": "Fe3O4 + 4CO <=> 3Fe + 4CO2",
+   "equationAsInBook": "Fe3O4(т) + 4CO(г) ⇌ 3Fe(т) + 4CO2(г)",
+   "reactants": [
+    {
+     "formula": "Fe3O4",
+     "coeff": 1
+    },
+    {
+     "formula": "CO",
+     "coeff": 4
+    }
+   ],
+   "products": [
+    {
+     "formula": "Fe",
+     "coeff": 3
+    },
+    {
+     "formula": "CO2",
+     "coeff": 4
+    }
+   ],
+   "conditions": "Fe3O4(т), Fe(т); ΔH = −43,7 кДж (с. 121)",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 118,
+   "pages": [
+    118,
+    121
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-ch3cooh-ch3oh--ch3cooch3-h2o",
+   "equation": "CH₃COOH + CH₃OH ⇌ CH₃COOCH₃ + H₂O",
+   "equationAscii": "CH3COOH + CH3OH <=> CH3COOCH3 + H2O",
+   "equationAsInBook": "CH3COOH+CH3OH = CH3COOCH3 +H2O",
+   "reactants": [
+    {
+     "formula": "CH3COOH",
+     "coeff": 1
+    },
+    {
+     "formula": "CH3OH",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CH3COOCH3",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": "H2SO4 (водоотнимающее)",
+   "type": "other",
+   "subtype": "esterification",
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 119,
+   "pages": [
+    119
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-no2--n2o4",
+   "equation": "2NO₂ ⇌ N₂O₄",
+   "equationAscii": "2NO2 <=> N2O4",
+   "equationAsInBook": "2NO2 ⇌ N2O4",
+   "reactants": [
+    {
+     "formula": "NO2",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "N2O4",
+     "coeff": 1
+    }
+   ],
+   "conditions": "газы; +13 ккал; при −9,3 °C только N2O4, при +144 °C только NO2",
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 119,
+   "pages": [
+    119,
+    120
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-so3--so2-o2",
+   "equation": "2SO₃ ⇌ 2SO₂ + O₂",
+   "equationAscii": "2SO3 <=> 2SO2 + O2",
+   "equationAsInBook": "2SO3 ⇌ 2SO2 + O2 - Q",
+   "reactants": [
+    {
+     "formula": "SO3",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "SO2",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "−Q (эндотермическая)",
+   "type": "decomposition",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 120,
+   "pages": [
+    120
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-no-o2--no2",
+   "equation": "2NO + O₂ ⇌ 2NO₂",
+   "equationAscii": "2NO + O2 <=> 2NO2",
+   "equationAsInBook": "2NO(г) + O2(г) ⇌ 2NO2(г)",
+   "reactants": [
+    {
+     "formula": "NO",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NO2",
+     "coeff": 2
+    }
+   ],
+   "conditions": "газы",
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 120,
+   "pages": [
+    120,
+    121
+   ],
+   "bankId": "no-o2-no2",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-cocl2--co-cl2",
+   "equation": "COCl₂ ⇌ CO + Cl₂",
+   "equationAscii": "COCl2 <=> CO + Cl2",
+   "equationAsInBook": "COCl2 ⇌ CO + Cl2",
+   "reactants": [
+    {
+     "formula": "COCl2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CO",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "decomposition",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 120,
+   "pages": [
+    120
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-co-no2--co2-no",
+   "equation": "CO + NO₂ ⇌ CO₂ + NO",
+   "equationAscii": "CO + NO2 <=> CO2 + NO",
+   "equationAsInBook": "CO(г) + NO2(г) ⇌ CO2(г) + NO(г)",
+   "reactants": [
+    {
+     "formula": "CO",
+     "coeff": 1
+    },
+    {
+     "formula": "NO2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CO2",
+     "coeff": 1
+    },
+    {
+     "formula": "NO",
+     "coeff": 1
+    }
+   ],
+   "conditions": "газы",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 120,
+   "pages": [
+    120
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-h2-s--h2s",
+   "equation": "H₂ + S ⇌ H₂S",
+   "equationAscii": "H2 + S <=> H2S",
+   "equationAsInBook": "H2(г) + S(т) ⇌ H2S(г) + Q",
+   "reactants": [
+    {
+     "formula": "H2",
+     "coeff": 1
+    },
+    {
+     "formula": "S",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2S",
+     "coeff": 1
+    }
+   ],
+   "conditions": "S(т); +Q",
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 120,
+   "pages": [
+    120,
+    121
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-no-cl2--nocl",
+   "equation": "2NO + Cl₂ ⇌ 2NOCl",
+   "equationAscii": "2NO + Cl2 <=> 2NOCl",
+   "equationAsInBook": "NO(г) + Cl2(г) ⇌ NOCl2(г) + Q",
+   "reactants": [
+    {
+     "formula": "NO",
+     "coeff": 2
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NOCl",
+     "coeff": 2
+    }
+   ],
+   "conditions": "газы; +Q",
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 120,
+   "pages": [
+    120
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге продукт «NOCl2» без коэффициентов — вероятно опечатка; записано 2NO + Cl2 ⇌ 2NOCl"
+  },
+  {
+   "id": "g11-n2-o2--no",
+   "equation": "N₂ + O₂ ⇌ 2NO",
+   "equationAscii": "N2 + O2 <=> 2NO",
+   "equationAsInBook": "N2(г) + O2(г) ⇌ NO(г) - Q",
+   "reactants": [
+    {
+     "formula": "N2",
+     "coeff": 1
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NO",
+     "coeff": 2
+    }
+   ],
+   "conditions": "газы; −Q",
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c6-s02",
+    "c6-s03"
+   ],
+   "page": 120,
+   "pages": [
+    120,
+    126
+   ],
+   "bankId": "n2-o2-no",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact",
+   "note": "в книге схема без коэффициентов; коэффициенты расставлены"
+  },
+  {
+   "id": "g11-no2--no-o2",
+   "equation": "2NO₂ ⇌ 2NO + O₂",
+   "equationAscii": "2NO2 <=> 2NO + O2",
+   "equationAsInBook": "NO2(г) ⇌ NO(г) + O2(г)",
+   "reactants": [
+    {
+     "formula": "NO2",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "NO",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "газы",
+   "type": "decomposition",
+   "subtype": null,
+   "sections": [
+    "c6-s02",
+    "c7-s01"
+   ],
+   "page": 120,
+   "pages": [
+    120,
+    131
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге схема без коэффициентов; коэффициенты расставлены"
+  },
+  {
+   "id": "g11-n2o4--no2",
+   "equation": "N₂O₄ ⇌ 2NO₂",
+   "equationAscii": "N2O4 <=> 2NO2",
+   "equationAsInBook": "N2O4(г) ⇌ NO2(г)",
+   "reactants": [
+    {
+     "formula": "N2O4",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NO2",
+     "coeff": 2
+    }
+   ],
+   "conditions": "газы",
+   "type": "decomposition",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 120,
+   "pages": [
+    120
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге схема без коэффициентов; коэффициенты расставлены"
+  },
+  {
+   "id": "g11-n2-o2--no2",
+   "equation": "N₂ + 2O₂ ⇌ 2NO₂",
+   "equationAscii": "N2 + 2O2 <=> 2NO2",
+   "equationAsInBook": "N2(г) + O2(г) ⇌ NO2(г)",
+   "reactants": [
+    {
+     "formula": "N2",
+     "coeff": 1
+    },
+    {
+     "formula": "O2",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "NO2",
+     "coeff": 2
+    }
+   ],
+   "conditions": "газы",
+   "type": "combination",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 120,
+   "pages": [
+    120
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге схема без коэффициентов; коэффициенты расставлены"
+  },
+  {
+   "id": "g11-pcl5--pcl3-cl2",
+   "equation": "PCl₅ ⇌ PCl₃ + Cl₂",
+   "equationAscii": "PCl5 <=> PCl3 + Cl2",
+   "equationAsInBook": "PCl5(т) ⇌ PCl3(г) + Cl2(г)",
+   "reactants": [
+    {
+     "formula": "PCl5",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "PCl3",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "PCl5(т)",
+   "type": "decomposition",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 120,
+   "pages": [
+    120
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-caco3--cao-co2",
+   "equation": "CaCO₃ ⇌ CaO + CO₂",
+   "equationAscii": "CaCO3 <=> CaO + CO2",
+   "equationAsInBook": "CaCO3(т) ⇌ CaO(т) + CO2(г) ΔH = 179 кДж",
+   "reactants": [
+    {
+     "formula": "CaCO3",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CaO",
+     "coeff": 1
+    },
+    {
+     "formula": "CO2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "ΔH = 179 кДж",
+   "type": "decomposition",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 121,
+   "pages": [
+    121
+   ],
+   "bankId": "caco3-decomp",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-hbr-o2--h2o-br2",
+   "equation": "4HBr + O₂ ⇌ 2H₂O + 2Br₂",
+   "equationAscii": "4HBr + O2 <=> 2H2O + 2Br2",
+   "equationAsInBook": "HBr(г)+O2(г) ⇌ H2O(г) + Br2(г) +Q",
+   "reactants": [
+    {
+     "formula": "HBr",
+     "coeff": 4
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2O",
+     "coeff": 2
+    },
+    {
+     "formula": "Br2",
+     "coeff": 2
+    }
+   ],
+   "conditions": "газы; +Q",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c6-s02"
+   ],
+   "page": 121,
+   "pages": [
+    121
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге схема без коэффициентов; коэффициенты расставлены"
+  },
+  {
+   "id": "g11-so2-no2--so3-no",
+   "equation": "SO₂ + NO₂ ⇌ SO₃ + NO",
+   "equationAscii": "SO2 + NO2 <=> SO3 + NO",
+   "equationAsInBook": "SO2 + NO2 ⇌ SO3 + NO",
+   "reactants": [
+    {
+     "formula": "SO2",
+     "coeff": 1
+    },
+    {
+     "formula": "NO2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "SO3",
+     "coeff": 1
+    },
+    {
+     "formula": "NO",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c6-s03"
+   ],
+   "page": 122,
+   "pages": [
+    122,
+    126
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-co-h2--ch4-h2o",
+   "equation": "CO + 3H₂ ⇌ CH₄ + H₂O",
+   "equationAscii": "CO + 3H2 <=> CH4 + H2O",
+   "equationAsInBook": "CO + 3H2 → CH4 + H2O",
+   "reactants": [
+    {
+     "formula": "CO",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 3
+    }
+   ],
+   "products": [
+    {
+     "formula": "CH4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c6-s03"
+   ],
+   "page": 123,
+   "pages": [
+    123,
+    124,
+    125
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в условии задачи 4 (с. 123) опечатка: «CO2 + H2 + CH4 + H2O»; в решении — CO + 3H2 → CH4 + H2O"
+  },
+  {
+   "id": "g11-nh3-cl2--n2-hcl",
+   "equation": "2NH₃ + 3Cl₂ → N₂ + 6HCl",
+   "equationAscii": "2NH3 + 3Cl2 -> N2 + 6HCl",
+   "equationAsInBook": "NH3(г)+Cl2(г)=N2(г)+HCl(г)",
+   "reactants": [
+    {
+     "formula": "NH3",
+     "coeff": 2
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 3
+    }
+   ],
+   "products": [
+    {
+     "formula": "N2",
+     "coeff": 1
+    },
+    {
+     "formula": "HCl",
+     "coeff": 6
+    }
+   ],
+   "conditions": "газы",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c6-s03"
+   ],
+   "page": 125,
+   "pages": [
+    125
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге схема без коэффициентов; коэффициенты расставлены"
+  },
+  {
+   "id": "g11-ch4-h2o--co-h2",
+   "equation": "CH₄ + H₂O ⇌ CO + 3H₂",
+   "equationAscii": "CH4 + H2O <=> CO + 3H2",
+   "equationAsInBook": "CH4(г)+H2O(г)=CO(г)+H2(г)",
+   "reactants": [
+    {
+     "formula": "CH4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CO",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 3
+    }
+   ],
+   "conditions": "газы",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c6-s03"
+   ],
+   "page": 125,
+   "pages": [
+    125
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге схема без коэффициентов; коэффициенты расставлены"
+  },
+  {
+   "id": "g11-co2-o2--co",
+   "equation": "CO₂ + O₂ ⇌ CO",
+   "equationAscii": "CO2 + O2 <=> CO",
+   "equationAsInBook": "CO2(г) + O2(г) ⇌ CO(г)",
+   "reactants": [
+    {
+     "formula": "CO2",
+     "coeff": 1
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "CO",
+     "coeff": 1
+    }
+   ],
+   "conditions": "газы",
+   "type": "other",
+   "subtype": null,
+   "sections": [
+    "c6-s03"
+   ],
+   "page": 126,
+   "pages": [
+    126
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": false,
+   "balanceDetail": "O: 4≠1",
+   "note": "так в книге (с. 126, тест 5, вариант 4); схема химически некорректна и не уравнивается — вероятно имелось в виду 2CO + O2 ⇌ 2CO2"
+  },
+  {
+   "id": "g11-as2s3-hno3-h2o--h3aso4-h2so4-no",
+   "equation": "3As₂S₃ + 28HNO₃ + 4H₂O → 6H₃AsO₄ + 9H₂SO₄ + 28NO",
+   "equationAscii": "3As2S3 + 28HNO3 + 4H2O -> 6H3AsO4 + 9H2SO4 + 28NO",
+   "equationAsInBook": "3As2S3 + 28HNO3 + 4H2O → 6H3AsO4 + 9H2SO4 + 28NO",
+   "reactants": [
+    {
+     "formula": "As2S3",
+     "coeff": 3
+    },
+    {
+     "formula": "HNO3",
+     "coeff": 28
+    },
+    {
+     "formula": "H2O",
+     "coeff": 4
+    }
+   ],
+   "products": [
+    {
+     "formula": "H3AsO4",
+     "coeff": 6
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 9
+    },
+    {
+     "formula": "NO",
+     "coeff": 28
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 127,
+   "pages": [
+    127,
+    129
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-no3m-hp-e--no-h2o",
+   "equation": "NO₃⁻ + 4H⁺ + 3e⁻ → NO + 2H₂O",
+   "equationAscii": "NO3^- + 4H^+ + 3e^- -> NO + 2H2O",
+   "equationAsInBook": "NO3- + 4H+ + 3е → NO + 2H2O",
+   "reactants": [
+    {
+     "formula": "NO3^-",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 4
+    },
+    {
+     "formula": "e^-",
+     "coeff": 3
+    }
+   ],
+   "products": [
+    {
+     "formula": "NO",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 128,
+   "pages": [
+    128
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-as2s3-h2o--aso43m-so42m-hp-e",
+   "equation": "As₂S₃ + 20H₂O → 2AsO₄³⁻ + 3SO₄²⁻ + 40H⁺ + 28e⁻",
+   "equationAscii": "As2S3 + 20H2O -> 2AsO4^3- + 3SO4^2- + 40H^+ + 28e^-",
+   "equationAsInBook": "As2S3 + 20H2O - 28е → 2AsO4 3- + 3SO4 2- + 40H+",
+   "reactants": [
+    {
+     "formula": "As2S3",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 20
+    }
+   ],
+   "products": [
+    {
+     "formula": "AsO4^3-",
+     "coeff": 2
+    },
+    {
+     "formula": "SO4^2-",
+     "coeff": 3
+    },
+    {
+     "formula": "H^+",
+     "coeff": 40
+    },
+    {
+     "formula": "e^-",
+     "coeff": 28
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 128,
+   "pages": [
+    128
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-as2s3-no3m-h2o--aso43m-so42m-hp-no",
+   "equation": "3As₂S₃ + 28NO₃⁻ + 4H₂O → 6AsO₄³⁻ + 9SO₄²⁻ + 8H⁺ + 28NO",
+   "equationAscii": "3As2S3 + 28NO3^- + 4H2O -> 6AsO4^3- + 9SO4^2- + 8H^+ + 28NO",
+   "equationAsInBook": "3As2S3 + 28NO3- + 4H2O → 6AsO4 3- + 9SO4 2- + 8H+ + 28NO",
+   "reactants": [
+    {
+     "formula": "As2S3",
+     "coeff": 3
+    },
+    {
+     "formula": "NO3^-",
+     "coeff": 28
+    },
+    {
+     "formula": "H2O",
+     "coeff": 4
+    }
+   ],
+   "products": [
+    {
+     "formula": "AsO4^3-",
+     "coeff": 6
+    },
+    {
+     "formula": "SO4^2-",
+     "coeff": 9
+    },
+    {
+     "formula": "H^+",
+     "coeff": 8
+    },
+    {
+     "formula": "NO",
+     "coeff": 28
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 129,
+   "pages": [
+    129
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-mn3o4-kclo3-koh--k2mno4-kcl-h2o",
+   "equation": "3Mn₃O₄ + 5KClO₃ + 18KOH → 9K₂MnO₄ + 5KCl + 9H₂O",
+   "equationAscii": "3Mn3O4 + 5KClO3 + 18KOH -> 9K2MnO4 + 5KCl + 9H2O",
+   "equationAsInBook": "3Mn3O4 + 5KClO3 + 18KOH → 9K2MnO4 + 5KCl + 9H2O",
+   "reactants": [
+    {
+     "formula": "Mn3O4",
+     "coeff": 3
+    },
+    {
+     "formula": "KClO3",
+     "coeff": 5
+    },
+    {
+     "formula": "KOH",
+     "coeff": 18
+    }
+   ],
+   "products": [
+    {
+     "formula": "K2MnO4",
+     "coeff": 9
+    },
+    {
+     "formula": "KCl",
+     "coeff": 5
+    },
+    {
+     "formula": "H2O",
+     "coeff": 9
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 129,
+   "pages": [
+    129,
+    131
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-clo3m-h2o-e--clm-ohm",
+   "equation": "ClO₃⁻ + 3H₂O + 6e⁻ → Cl⁻ + 6OH⁻",
+   "equationAscii": "ClO3^- + 3H2O + 6e^- -> Cl^- + 6OH^-",
+   "equationAsInBook": "ClO3- + 3H2O + 6е → Cl- + 6OH-",
+   "reactants": [
+    {
+     "formula": "ClO3^-",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 3
+    },
+    {
+     "formula": "e^-",
+     "coeff": 6
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cl^-",
+     "coeff": 1
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 6
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 130,
+   "pages": [
+    130
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-mn3o4-ohm--mno42m-h2o-e",
+   "equation": "Mn₃O₄ + 16OH⁻ → 3MnO₄²⁻ + 8H₂O + 10e⁻",
+   "equationAscii": "Mn3O4 + 16OH^- -> 3MnO4^2- + 8H2O + 10e^-",
+   "equationAsInBook": "Mn3O4 + 16OH- - 10е → 3MnO4 2- + 8H2O",
+   "reactants": [
+    {
+     "formula": "Mn3O4",
+     "coeff": 1
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 16
+    }
+   ],
+   "products": [
+    {
+     "formula": "MnO4^2-",
+     "coeff": 3
+    },
+    {
+     "formula": "H2O",
+     "coeff": 8
+    },
+    {
+     "formula": "e^-",
+     "coeff": 10
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 130,
+   "pages": [
+    130
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-mn3o4-ohm-clo3m--mno42m-h2o-clm",
+   "equation": "3Mn₃O₄ + 18OH⁻ + 5ClO₃⁻ → 9MnO₄²⁻ + 9H₂O + 5Cl⁻",
+   "equationAscii": "3Mn3O4 + 18OH^- + 5ClO3^- -> 9MnO4^2- + 9H2O + 5Cl^-",
+   "equationAsInBook": "3Mn3O4 + 18OH- + 5ClO3- → 9MnO4 2- + 9H2O + 5Cl-",
+   "reactants": [
+    {
+     "formula": "Mn3O4",
+     "coeff": 3
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 18
+    },
+    {
+     "formula": "ClO3^-",
+     "coeff": 5
+    }
+   ],
+   "products": [
+    {
+     "formula": "MnO4^2-",
+     "coeff": 9
+    },
+    {
+     "formula": "H2O",
+     "coeff": 9
+    },
+    {
+     "formula": "Cl^-",
+     "coeff": 5
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 131,
+   "pages": [
+    131
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-no2-o2-naoh--nano3-h2o",
+   "equation": "4NO₂ + O₂ + 4NaOH → 4NaNO₃ + 2H₂O",
+   "equationAscii": "4NO2 + O2 + 4NaOH -> 4NaNO3 + 2H2O",
+   "equationAsInBook": "NO2 + O2 + NaOH = NaNO3 + H2O",
+   "reactants": [
+    {
+     "formula": "NO2",
+     "coeff": 4
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    },
+    {
+     "formula": "NaOH",
+     "coeff": 4
+    }
+   ],
+   "products": [
+    {
+     "formula": "NaNO3",
+     "coeff": 4
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 131,
+   "pages": [
+    131
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге схема без коэффициентов (упражнение); коэффициенты расставлены"
+  },
+  {
+   "id": "g11-no2-h2o--hno3-no",
+   "equation": "3NO₂ + H₂O → 2HNO₃ + NO",
+   "equationAscii": "3NO2 + H2O -> 2HNO3 + NO",
+   "equationAsInBook": "NO2 + H2O = HNO3 + NO",
+   "reactants": [
+    {
+     "formula": "NO2",
+     "coeff": 3
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "HNO3",
+     "coeff": 2
+    },
+    {
+     "formula": "NO",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 131,
+   "pages": [
+    131
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге схема без коэффициентов (упражнения 1 и 2); коэффициенты расставлены"
+  },
+  {
+   "id": "g11-no2-naoh--nano3-nano2-h2o",
+   "equation": "2NO₂ + 2NaOH → NaNO₃ + NaNO₂ + H₂O",
+   "equationAscii": "2NO2 + 2NaOH -> NaNO3 + NaNO2 + H2O",
+   "equationAsInBook": "NO2 + NaOH = NaNO3 + NaNO2 + H2O",
+   "reactants": [
+    {
+     "formula": "NO2",
+     "coeff": 2
+    },
+    {
+     "formula": "NaOH",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "NaNO3",
+     "coeff": 1
+    },
+    {
+     "formula": "NaNO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 131,
+   "pages": [
+    131
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге схема без коэффициентов (упражнения 1 и 2); коэффициенты расставлены"
+  },
+  {
+   "id": "g11-no2-hi--no-i2-h2o",
+   "equation": "NO₂ + 2HI → NO + I₂ + H₂O",
+   "equationAscii": "NO2 + 2HI -> NO + I2 + H2O",
+   "equationAsInBook": "NO2 + HJ = NO + J2 + H2O",
+   "reactants": [
+    {
+     "formula": "NO2",
+     "coeff": 1
+    },
+    {
+     "formula": "HI",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "NO",
+     "coeff": 1
+    },
+    {
+     "formula": "I2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 131,
+   "pages": [
+    131
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге йод обозначен J; схема без коэффициентов (упражнения 1 и 2)"
+  },
+  {
+   "id": "g11-no2-o2-h2o--hno3",
+   "equation": "4NO₂ + O₂ + 2H₂O → 4HNO₃",
+   "equationAscii": "4NO2 + O2 + 2H2O -> 4HNO3",
+   "equationAsInBook": "NO2 + O2 + H2O = HNO3",
+   "reactants": [
+    {
+     "formula": "NO2",
+     "coeff": 4
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "HNO3",
+     "coeff": 4
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 131,
+   "pages": [
+    131
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге схема без коэффициентов (упражнения 1 и 2); коэффициенты расставлены"
+  },
+  {
+   "id": "g11-no2-h2o-so2--h2so4-no",
+   "equation": "NO₂ + H₂O + SO₂ → H₂SO₄ + NO",
+   "equationAscii": "NO2 + H2O + SO2 -> H2SO4 + NO",
+   "equationAsInBook": "NO2 + H2O + SO2 = H2SO4 + NO",
+   "reactants": [
+    {
+     "formula": "NO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    },
+    {
+     "formula": "SO2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "NO",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 131,
+   "pages": [
+    131
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-pbo2-mnso4-hno3--hmno4-pbso4-pbno32-h2o",
+   "equation": "5PbO₂ + 2MnSO₄ + 6HNO₃ → 2HMnO₄ + 2PbSO₄ + 3Pb(NO₃)₂ + 2H₂O",
+   "equationAscii": "5PbO2 + 2MnSO4 + 6HNO3 -> 2HMnO4 + 2PbSO4 + 3Pb(NO3)2 + 2H2O",
+   "equationAsInBook": "PbO2 + MnSO4 + HNO3 → HMnO4 + PbSO4 + Pb(NO3)2 + H2O",
+   "reactants": [
+    {
+     "formula": "PbO2",
+     "coeff": 5
+    },
+    {
+     "formula": "MnSO4",
+     "coeff": 2
+    },
+    {
+     "formula": "HNO3",
+     "coeff": 6
+    }
+   ],
+   "products": [
+    {
+     "formula": "HMnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "PbSO4",
+     "coeff": 2
+    },
+    {
+     "formula": "Pb(NO3)2",
+     "coeff": 3
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 131,
+   "pages": [
+    131
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге без коэффициентов (упражнение); коэффициенты расставлены (сумма справа 9)"
+  },
+  {
+   "id": "g11-as2s3-hno3--h3aso4-so2-no2-h2o",
+   "equation": "As₂S₃ + 22HNO₃ → 2H₃AsO₄ + 3SO₂ + 22NO₂ + 8H₂O",
+   "equationAscii": "As2S3 + 22HNO3 -> 2H3AsO4 + 3SO2 + 22NO2 + 8H2O",
+   "equationAsInBook": "As2S3 + HNO3 → H3AsO4 + SO2 + NO2 + H2O",
+   "reactants": [
+    {
+     "formula": "As2S3",
+     "coeff": 1
+    },
+    {
+     "formula": "HNO3",
+     "coeff": 22
+    }
+   ],
+   "products": [
+    {
+     "formula": "H3AsO4",
+     "coeff": 2
+    },
+    {
+     "formula": "SO2",
+     "coeff": 3
+    },
+    {
+     "formula": "NO2",
+     "coeff": 22
+    },
+    {
+     "formula": "H2O",
+     "coeff": 8
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 132,
+   "pages": [
+    132
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге без коэффициентов (упражнение); коэффициенты расставлены (сумма слева 23)"
+  },
+  {
+   "id": "g11-h2o2-crcl3-koh--k2cro4-kcl-h2o",
+   "equation": "3H₂O₂ + 2CrCl₃ + 10KOH → 2K₂CrO₄ + 6KCl + 8H₂O",
+   "equationAscii": "3H2O2 + 2CrCl3 + 10KOH -> 2K2CrO4 + 6KCl + 8H2O",
+   "equationAsInBook": "H2O2 + CrCl3 + KOH → K2CrO4 + KCl + H2O",
+   "reactants": [
+    {
+     "formula": "H2O2",
+     "coeff": 3
+    },
+    {
+     "formula": "CrCl3",
+     "coeff": 2
+    },
+    {
+     "formula": "KOH",
+     "coeff": 10
+    }
+   ],
+   "products": [
+    {
+     "formula": "K2CrO4",
+     "coeff": 2
+    },
+    {
+     "formula": "KCl",
+     "coeff": 6
+    },
+    {
+     "formula": "H2O",
+     "coeff": 8
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 132,
+   "pages": [
+    132
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге без коэффициентов (упражнение); коэффициенты расставлены (сумма 31)"
+  },
+  {
+   "id": "g11-kmno4-h2o2-koh--k2mno4-o2-h2o",
+   "equation": "2KMnO₄ + H₂O₂ + 2KOH → 2K₂MnO₄ + O₂↑ + 2H₂O",
+   "equationAscii": "2KMnO4 + H2O2 + 2KOH -> 2K2MnO4 + O2 + 2H2O",
+   "equationAsInBook": "KMnO4 + H2O2 + KOH →",
+   "reactants": [
+    {
+     "formula": "KMnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O2",
+     "coeff": 1
+    },
+    {
+     "formula": "KOH",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "K2MnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s01"
+   ],
+   "page": 132,
+   "pages": [
+    132
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге продукты не указаны (упражнение); продукты и коэффициенты дописаны"
+  },
+  {
+   "id": "g11-kmno4-nano2-h2so4--mnso4-nano3-k2so4-h2o",
+   "equation": "2KMnO₄ + 5NaNO₂ + 3H₂SO₄ → 2MnSO₄ + 5NaNO₃ + K₂SO₄ + 3H₂O",
+   "equationAscii": "2KMnO4 + 5NaNO2 + 3H2SO4 -> 2MnSO4 + 5NaNO3 + K2SO4 + 3H2O",
+   "equationAsInBook": "2KMnO4 + 5NaNO2 + 3H2SO4 → 2MnSO4 + 5NaNO3 + K2SO4 + 3H2O",
+   "reactants": [
+    {
+     "formula": "KMnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "NaNO2",
+     "coeff": 5
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 3
+    }
+   ],
+   "products": [
+    {
+     "formula": "MnSO4",
+     "coeff": 2
+    },
+    {
+     "formula": "NaNO3",
+     "coeff": 5
+    },
+    {
+     "formula": "K2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 3
+    }
+   ],
+   "conditions": "кислая среда",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 132,
+   "pages": [
+    132
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-mno4m-hp-e--mn2p-h2o",
+   "equation": "MnO₄⁻ + 8H⁺ + 5e⁻ → Mn²⁺ + 4H₂O",
+   "equationAscii": "MnO4^- + 8H^+ + 5e^- -> Mn^2+ + 4H2O",
+   "equationAsInBook": "MnO4- + 8H+ + 5e → Mn2+ + 4H2O",
+   "reactants": [
+    {
+     "formula": "MnO4^-",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 8
+    },
+    {
+     "formula": "e^-",
+     "coeff": 5
+    }
+   ],
+   "products": [
+    {
+     "formula": "Mn^2+",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 4
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 132,
+   "pages": [
+    132
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-no2m-h2o--no3m-hp-e",
+   "equation": "NO₂⁻ + H₂O → NO₃⁻ + 2H⁺ + 2e⁻",
+   "equationAscii": "NO2^- + H2O -> NO3^- + 2H^+ + 2e^-",
+   "equationAsInBook": "NO2- + H2O - 2e → NO3- + 2H+",
+   "reactants": [
+    {
+     "formula": "NO2^-",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "NO3^-",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 2
+    },
+    {
+     "formula": "e^-",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 132,
+   "pages": [
+    132
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-mno4m-hp-no2m--mn2p-h2o-no3m",
+   "equation": "2MnO₄⁻ + 6H⁺ + 5NO₂⁻ → 2Mn²⁺ + 3H₂O + 5NO₃⁻",
+   "equationAscii": "2MnO4^- + 6H^+ + 5NO2^- -> 2Mn^2+ + 3H2O + 5NO3^-",
+   "equationAsInBook": "2MnO4- + 6H+ + 5NO2- → 2Mn2+ + 8H2O + 5NO3-",
+   "reactants": [
+    {
+     "formula": "MnO4^-",
+     "coeff": 2
+    },
+    {
+     "formula": "H^+",
+     "coeff": 6
+    },
+    {
+     "formula": "NO2^-",
+     "coeff": 5
+    }
+   ],
+   "products": [
+    {
+     "formula": "Mn^2+",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 3
+    },
+    {
+     "formula": "NO3^-",
+     "coeff": 5
+    }
+   ],
+   "conditions": "кислая среда",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 132,
+   "pages": [
+    132
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true,
+   "note": "в книге после сокращения оставлено 8H2O (опечатка) — должно быть 3H2O; исправлено"
+  },
+  {
+   "id": "g11-kmno4-nano2-h2o--mno2-nano3-koh",
+   "equation": "2KMnO₄ + 3NaNO₂ + H₂O → 2MnO₂ + 3NaNO₃ + 2KOH",
+   "equationAscii": "2KMnO4 + 3NaNO2 + H2O -> 2MnO2 + 3NaNO3 + 2KOH",
+   "equationAsInBook": "2KMnO4 + 3NaNO2 + H2O → 2MnO2 + 3NaNO3 + 2KOH",
+   "reactants": [
+    {
+     "formula": "KMnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "NaNO2",
+     "coeff": 3
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "MnO2",
+     "coeff": 2
+    },
+    {
+     "formula": "NaNO3",
+     "coeff": 3
+    },
+    {
+     "formula": "KOH",
+     "coeff": 2
+    }
+   ],
+   "conditions": "нейтральная среда",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 133,
+   "pages": [
+    133
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-mno4m-h2o-e--mno2-ohm",
+   "equation": "MnO₄⁻ + 2H₂O + 3e⁻ → MnO₂ + 4OH⁻",
+   "equationAscii": "MnO4^- + 2H2O + 3e^- -> MnO2 + 4OH^-",
+   "equationAsInBook": "MnO4- + 2H2O + 3e → MnO2 + 4OH-",
+   "reactants": [
+    {
+     "formula": "MnO4^-",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    },
+    {
+     "formula": "e^-",
+     "coeff": 3
+    }
+   ],
+   "products": [
+    {
+     "formula": "MnO2",
+     "coeff": 1
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 4
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 133,
+   "pages": [
+    133
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-no2m-ohm--no3m-h2o-e",
+   "equation": "NO₂⁻ + 2OH⁻ → NO₃⁻ + H₂O + 2e⁻",
+   "equationAscii": "NO2^- + 2OH^- -> NO3^- + H2O + 2e^-",
+   "equationAsInBook": "NO2- + 2OH- - 2e → NO3- + H2O",
+   "reactants": [
+    {
+     "formula": "NO2^-",
+     "coeff": 1
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "NO3^-",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    },
+    {
+     "formula": "e^-",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 133,
+   "pages": [
+    133
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-mno4m-h2o-no2m--mno2-ohm-no3m",
+   "equation": "2MnO₄⁻ + H₂O + 3NO₂⁻ → 2MnO₂ + 2OH⁻ + 3NO₃⁻",
+   "equationAscii": "2MnO4^- + H2O + 3NO2^- -> 2MnO2 + 2OH^- + 3NO3^-",
+   "equationAsInBook": "2MnO4- + H2O + 3NO2- → 2MnO2 + 2OH- + 3NO3-",
+   "reactants": [
+    {
+     "formula": "MnO4^-",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    },
+    {
+     "formula": "NO2^-",
+     "coeff": 3
+    }
+   ],
+   "products": [
+    {
+     "formula": "MnO2",
+     "coeff": 2
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 2
+    },
+    {
+     "formula": "NO3^-",
+     "coeff": 3
+    }
+   ],
+   "conditions": "нейтральная среда",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 133,
+   "pages": [
+    133
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-kmno4-nano2-koh--k2mno4-nano3-h2o",
+   "equation": "2KMnO₄ + NaNO₂ + 2KOH → 2K₂MnO₄ + NaNO₃ + H₂O",
+   "equationAscii": "2KMnO4 + NaNO2 + 2KOH -> 2K2MnO4 + NaNO3 + H2O",
+   "equationAsInBook": "2KMnO4 + NaNO2 + 2KOH → 2K2MnO4 + NaNO3 + H2O",
+   "reactants": [
+    {
+     "formula": "KMnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "NaNO2",
+     "coeff": 1
+    },
+    {
+     "formula": "KOH",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "K2MnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "NaNO3",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": "щелочная среда",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 133,
+   "pages": [
+    133
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-mno4m-e--mno42m",
+   "equation": "MnO₄⁻ + e⁻ → MnO₄²⁻",
+   "equationAscii": "MnO4^- + e^- -> MnO4^2-",
+   "equationAsInBook": "MnO4- + 1е → MnO4 2-",
+   "reactants": [
+    {
+     "formula": "MnO4^-",
+     "coeff": 1
+    },
+    {
+     "formula": "e^-",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "MnO4^2-",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 133,
+   "pages": [
+    133
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-mno4m-no2m-ohm--mno42m-no3m-h2o",
+   "equation": "2MnO₄⁻ + NO₂⁻ + 2OH⁻ → 2MnO₄²⁻ + NO₃⁻ + H₂O",
+   "equationAscii": "2MnO4^- + NO2^- + 2OH^- -> 2MnO4^2- + NO3^- + H2O",
+   "equationAsInBook": "2MnO4- + NO2- + 2OH- → 2MnO4 2- + NO3- + H2O",
+   "reactants": [
+    {
+     "formula": "MnO4^-",
+     "coeff": 2
+    },
+    {
+     "formula": "NO2^-",
+     "coeff": 1
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "MnO4^2-",
+     "coeff": 2
+    },
+    {
+     "formula": "NO3^-",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": "щелочная среда",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 133,
+   "pages": [
+    133
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-scheme-mno4-to-mn-2-mno2-mno4-2",
+   "equation": "MnO₄⁻ → Mn²⁺ / MnO₂ / MnO₄²⁻",
+   "equationAscii": "MnO4^- -> Mn^2+ / MnO2 / MnO4^2-",
+   "equationAsInBook": "MnO4- → (H+) Mn2+ ; (H2O) MnO2 ; (OH-) MnO4 2-",
+   "reactants": [
+    {
+     "formula": "MnO4^-",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Mn^2+ / MnO2 / MnO4^2-",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 134,
+   "pages": [
+    134
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null,
+   "note": "обобщающая схема восстановления перманганат-иона в кислой, нейтральной и щелочной средах"
+  },
+  {
+   "id": "g11-kmno4-na2o2-h2so4--mnso4-o2-k2so4-na2so4-h2o",
+   "equation": "2KMnO₄ + 5Na₂O₂ + 8H₂SO₄ → 2MnSO₄ + 5O₂↑ + K₂SO₄ + 5Na₂SO₄ + 8H₂O",
+   "equationAscii": "2KMnO4 + 5Na2O2 + 8H2SO4 -> 2MnSO4 + 5O2 + K2SO4 + 5Na2SO4 + 8H2O",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "KMnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "Na2O2",
+     "coeff": 5
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 8
+    }
+   ],
+   "products": [
+    {
+     "formula": "MnSO4",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 5
+    },
+    {
+     "formula": "K2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "Na2SO4",
+     "coeff": 5
+    },
+    {
+     "formula": "H2O",
+     "coeff": 8
+    }
+   ],
+   "conditions": "кислая среда",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 134,
+   "pages": [
+    134
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "describedInWords": true,
+   "note": "реакция описана словами в задаче; уравнение составлено"
+  },
+  {
+   "id": "g11-cr2so43-h2o2-koh--k2cro4-k2so4-h2o",
+   "equation": "Cr₂(SO₄)₃ + 3H₂O₂ + 10KOH → 2K₂CrO₄ + 3K₂SO₄ + 8H₂O",
+   "equationAscii": "Cr2(SO4)3 + 3H2O2 + 10KOH -> 2K2CrO4 + 3K2SO4 + 8H2O",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "Cr2(SO4)3",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O2",
+     "coeff": 3
+    },
+    {
+     "formula": "KOH",
+     "coeff": 10
+    }
+   ],
+   "products": [
+    {
+     "formula": "K2CrO4",
+     "coeff": 2
+    },
+    {
+     "formula": "K2SO4",
+     "coeff": 3
+    },
+    {
+     "formula": "H2O",
+     "coeff": 8
+    }
+   ],
+   "conditions": "щелочная среда",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02",
+    "c7-s03"
+   ],
+   "page": 134,
+   "pages": [
+    134,
+    138
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "describedInWords": true,
+   "note": "описана словами в задаче; то же уравнение записано в § 30 (с. 138)"
+  },
+  {
+   "id": "g11-k2cr2o7-feso4-h2so4--cr2so43-fe2so43-k2so4-h2o",
+   "equation": "K₂Cr₂O₇ + 6FeSO₄ + 7H₂SO₄ → Cr₂(SO₄)₃ + 3Fe₂(SO₄)₃ + K₂SO₄ + 7H₂O",
+   "equationAscii": "K2Cr2O7 + 6FeSO4 + 7H2SO4 -> Cr2(SO4)3 + 3Fe2(SO4)3 + K2SO4 + 7H2O",
+   "equationAsInBook": "K2Cr2O7 + FeSO4 + H2SO4 →",
+   "reactants": [
+    {
+     "formula": "K2Cr2O7",
+     "coeff": 1
+    },
+    {
+     "formula": "FeSO4",
+     "coeff": 6
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 7
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cr2(SO4)3",
+     "coeff": 1
+    },
+    {
+     "formula": "Fe2(SO4)3",
+     "coeff": 3
+    },
+    {
+     "formula": "K2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 7
+    }
+   ],
+   "conditions": "кислая среда",
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 134,
+   "pages": [
+    134
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге продукты не указаны (упражнение); дописаны"
+  },
+  {
+   "id": "g11-kmno4-hcl--kcl-mncl2-cl2-h2o",
+   "equation": "2KMnO₄ + 16HCl → 2KCl + 2MnCl₂ + 5Cl₂↑ + 8H₂O",
+   "equationAscii": "2KMnO4 + 16HCl -> 2KCl + 2MnCl2 + 5Cl2 + 8H2O",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "KMnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "HCl",
+     "coeff": 16
+    }
+   ],
+   "products": [
+    {
+     "formula": "KCl",
+     "coeff": 2
+    },
+    {
+     "formula": "MnCl2",
+     "coeff": 2
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 5
+    },
+    {
+     "formula": "H2O",
+     "coeff": 8
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 134,
+   "pages": [
+    134
+   ],
+   "bankId": "kmno4-hcl",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact",
+   "describedInWords": true,
+   "note": "реакция описана словами в задаче; уравнение составлено"
+  },
+  {
+   "id": "g11-p4s7-hno3--h3po4-h2so4-no2-h2o",
+   "equation": "P₄S₇ + 62HNO₃ → 4H₃PO₄ + 7H₂SO₄ + 62NO₂ + 18H₂O",
+   "equationAscii": "P4S7 + 62HNO3 -> 4H3PO4 + 7H2SO4 + 62NO2 + 18H2O",
+   "equationAsInBook": "P4S7 + HNO3 → H3PO4 + H2SO4 + NO2 + H2O",
+   "reactants": [
+    {
+     "formula": "P4S7",
+     "coeff": 1
+    },
+    {
+     "formula": "HNO3",
+     "coeff": 62
+    }
+   ],
+   "products": [
+    {
+     "formula": "H3PO4",
+     "coeff": 4
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 7
+    },
+    {
+     "formula": "NO2",
+     "coeff": 62
+    },
+    {
+     "formula": "H2O",
+     "coeff": 18
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s02"
+   ],
+   "page": 134,
+   "pages": [
+    134
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге без коэффициентов (упражнение); коэффициенты расставлены (сумма 154)"
+  },
+  {
+   "id": "g11-k2cr2o7-ki-h2so4--cr2so43-i2-k2so4-h2o",
+   "equation": "K₂Cr₂O₇ + 6KI + 7H₂SO₄ → Cr₂(SO₄)₃ + 3I₂ + 4K₂SO₄ + 7H₂O",
+   "equationAscii": "K2Cr2O7 + 6KI + 7H2SO4 -> Cr2(SO4)3 + 3I2 + 4K2SO4 + 7H2O",
+   "equationAsInBook": "K2Cr2O7 + 6KJ + 7H2SO4 → Cr2(SO4)3 + 3J2 + 4K2SO4 + 7H2O",
+   "reactants": [
+    {
+     "formula": "K2Cr2O7",
+     "coeff": 1
+    },
+    {
+     "formula": "KI",
+     "coeff": 6
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 7
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cr2(SO4)3",
+     "coeff": 1
+    },
+    {
+     "formula": "I2",
+     "coeff": 3
+    },
+    {
+     "formula": "K2SO4",
+     "coeff": 4
+    },
+    {
+     "formula": "H2O",
+     "coeff": 7
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 135,
+   "pages": [
+    135
+   ],
+   "bankId": "k2cr2o7-ki",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact",
+   "note": "в книге йод обозначен J"
+  },
+  {
+   "id": "g11-cr2o72m-hp-e--cr3p-h2o",
+   "equation": "Cr₂O₇²⁻ + 14H⁺ + 6e⁻ → 2Cr³⁺ + 7H₂O",
+   "equationAscii": "Cr2O7^2- + 14H^+ + 6e^- -> 2Cr^3+ + 7H2O",
+   "equationAsInBook": "Cr2O7 2- + 14H+ + 6e → 2Cr3+ + 7H2O",
+   "reactants": [
+    {
+     "formula": "Cr2O7^2-",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 14
+    },
+    {
+     "formula": "e^-",
+     "coeff": 6
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cr^3+",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 7
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 135,
+   "pages": [
+    135
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-im--i2-e",
+   "equation": "2I⁻ → I₂ + 2e⁻",
+   "equationAscii": "2I^- -> I2 + 2e^-",
+   "equationAsInBook": "2J- - 2e → J2",
+   "reactants": [
+    {
+     "formula": "I^-",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "I2",
+     "coeff": 1
+    },
+    {
+     "formula": "e^-",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 135,
+   "pages": [
+    135
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true,
+   "note": "в книге йод обозначен J"
+  },
+  {
+   "id": "g11-cr2o72m-hp-im--cr3p-h2o-i2",
+   "equation": "Cr₂O₇²⁻ + 14H⁺ + 6I⁻ → 2Cr³⁺ + 7H₂O + 3I₂",
+   "equationAscii": "Cr2O7^2- + 14H^+ + 6I^- -> 2Cr^3+ + 7H2O + 3I2",
+   "equationAsInBook": "Cr2O7 2- + 14H+ + 6J- → 2Cr3+ + 7H2O + 3J2",
+   "reactants": [
+    {
+     "formula": "Cr2O7^2-",
+     "coeff": 1
+    },
+    {
+     "formula": "H^+",
+     "coeff": 14
+    },
+    {
+     "formula": "I^-",
+     "coeff": 6
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cr^3+",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 7
+    },
+    {
+     "formula": "I2",
+     "coeff": 3
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 135,
+   "pages": [
+    135
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true,
+   "note": "в книге йод обозначен J"
+  },
+  {
+   "id": "g11-feso4-kmno4-h2so4--fe2so43-mnso4-k2so4-h2o",
+   "equation": "10FeSO₄ + 2KMnO₄ + 8H₂SO₄ → 5Fe₂(SO₄)₃ + 2MnSO₄ + K₂SO₄ + 8H₂O",
+   "equationAscii": "10FeSO4 + 2KMnO4 + 8H2SO4 -> 5Fe2(SO4)3 + 2MnSO4 + K2SO4 + 8H2O",
+   "equationAsInBook": "10FeSO4 + 2KMnO4 + 8H2SO4 → 5Fe2(SO4)3 + 2MnSO4 + K2SO4 + 8H2O",
+   "reactants": [
+    {
+     "formula": "FeSO4",
+     "coeff": 10
+    },
+    {
+     "formula": "KMnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 8
+    }
+   ],
+   "products": [
+    {
+     "formula": "Fe2(SO4)3",
+     "coeff": 5
+    },
+    {
+     "formula": "MnSO4",
+     "coeff": 2
+    },
+    {
+     "formula": "K2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 8
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 135,
+   "pages": [
+    135,
+    136,
+    137
+   ],
+   "bankId": "kmno4-feso4",
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "bankMatch": "exact"
+  },
+  {
+   "id": "g11-fe2p--fe3p-e",
+   "equation": "2Fe²⁺ → 2Fe³⁺ + 2e⁻",
+   "equationAscii": "2Fe^2+ -> 2Fe^3+ + 2e^-",
+   "equationAsInBook": "2Fe2+ - 2e → 2Fe3+",
+   "reactants": [
+    {
+     "formula": "Fe^2+",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Fe^3+",
+     "coeff": 2
+    },
+    {
+     "formula": "e^-",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 136,
+   "pages": [
+    136,
+    137
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true,
+   "note": "электронный баланс; в паре с «Mn+7 + 5e → Mn2+» (условная частица Mn+7 не записана отдельно)"
+  },
+  {
+   "id": "g11-kmno4-h2so4-hno2--mnso4-k2so4-hno3-h2o",
+   "equation": "2KMnO₄ + 3H₂SO₄ + 5HNO₂ → 2MnSO₄ + K₂SO₄ + 5HNO₃ + 3H₂O",
+   "equationAscii": "2KMnO4 + 3H2SO4 + 5HNO2 -> 2MnSO4 + K2SO4 + 5HNO3 + 3H2O",
+   "equationAsInBook": "KMnO4 + H2SO4 + HNO2 → …",
+   "reactants": [
+    {
+     "formula": "KMnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 3
+    },
+    {
+     "formula": "HNO2",
+     "coeff": 5
+    }
+   ],
+   "products": [
+    {
+     "formula": "MnSO4",
+     "coeff": 2
+    },
+    {
+     "formula": "K2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "HNO3",
+     "coeff": 5
+    },
+    {
+     "formula": "H2O",
+     "coeff": 3
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 138,
+   "pages": [
+    138
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге продукты не указаны (упражнение); дописаны"
+  },
+  {
+   "id": "g11-k2cr2o7-h2s-h2so4--cr2so43-s-k2so4-h2o",
+   "equation": "K₂Cr₂O₇ + 3H₂S + 4H₂SO₄ → Cr₂(SO₄)₃ + 3S↓ + K₂SO₄ + 7H₂O",
+   "equationAscii": "K2Cr2O7 + 3H2S + 4H2SO4 -> Cr2(SO4)3 + 3S + K2SO4 + 7H2O",
+   "equationAsInBook": "K2Cr2O7 + H2S + H2SO4 → Cr2(SO4)3 + S + …",
+   "reactants": [
+    {
+     "formula": "K2Cr2O7",
+     "coeff": 1
+    },
+    {
+     "formula": "H2S",
+     "coeff": 3
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 4
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cr2(SO4)3",
+     "coeff": 1
+    },
+    {
+     "formula": "S",
+     "coeff": 3
+    },
+    {
+     "formula": "K2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 7
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 138,
+   "pages": [
+    138
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге продукты указаны не полностью (упражнение); дописаны"
+  },
+  {
+   "id": "g11-fes2-hno3--feno33-h2so4-no2-h2o",
+   "equation": "FeS₂ + 18HNO₃ → Fe(NO₃)₃ + 2H₂SO₄ + 15NO₂ + 7H₂O",
+   "equationAscii": "FeS2 + 18HNO3 -> Fe(NO3)3 + 2H2SO4 + 15NO2 + 7H2O",
+   "equationAsInBook": "FeS2 + HNO3 → Fe(NO3)3 + H2SO4 + NO2 + H2O",
+   "reactants": [
+    {
+     "formula": "FeS2",
+     "coeff": 1
+    },
+    {
+     "formula": "HNO3",
+     "coeff": 18
+    }
+   ],
+   "products": [
+    {
+     "formula": "Fe(NO3)3",
+     "coeff": 1
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 2
+    },
+    {
+     "formula": "NO2",
+     "coeff": 15
+    },
+    {
+     "formula": "H2O",
+     "coeff": 7
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 138,
+   "pages": [
+    138
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге без коэффициентов (упражнение); коэффициенты расставлены"
+  },
+  {
+   "id": "g11-k2cr2o7-ch3oh-h2so4--cr2so43-hcooh-k2so4-h2o",
+   "equation": "2K₂Cr₂O₇ + 3CH₃OH + 8H₂SO₄ → 2Cr₂(SO₄)₃ + 3HCOOH + 2K₂SO₄ + 11H₂O",
+   "equationAscii": "2K2Cr2O7 + 3CH3OH + 8H2SO4 -> 2Cr2(SO4)3 + 3HCOOH + 2K2SO4 + 11H2O",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "K2Cr2O7",
+     "coeff": 2
+    },
+    {
+     "formula": "CH3OH",
+     "coeff": 3
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 8
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cr2(SO4)3",
+     "coeff": 2
+    },
+    {
+     "formula": "HCOOH",
+     "coeff": 3
+    },
+    {
+     "formula": "K2SO4",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 11
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 138,
+   "pages": [
+    138
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "describedInWords": true,
+   "note": "реакция описана словами в задаче; уравнение составлено"
+  },
+  {
+   "id": "g11-ki-na2o2-h2so4--i2-k2so4-na2so4-h2o",
+   "equation": "2KI + Na₂O₂ + 2H₂SO₄ → I₂ + K₂SO₄ + Na₂SO₄ + 2H₂O",
+   "equationAscii": "2KI + Na2O2 + 2H2SO4 -> I2 + K2SO4 + Na2SO4 + 2H2O",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "KI",
+     "coeff": 2
+    },
+    {
+     "formula": "Na2O2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "I2",
+     "coeff": 1
+    },
+    {
+     "formula": "K2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "Na2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 138,
+   "pages": [
+    138
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "describedInWords": true,
+   "note": "реакция описана словами в задаче; уравнение составлено"
+  },
+  {
+   "id": "g11-kmno4-na2c2o4-h2so4--mnso4-k2so4-na2so4-co2-h2o",
+   "equation": "2KMnO₄ + 5Na₂C₂O₄ + 8H₂SO₄ → 2MnSO₄ + K₂SO₄ + 5Na₂SO₄ + 10CO₂↑ + 8H₂O",
+   "equationAscii": "2KMnO4 + 5Na2C2O4 + 8H2SO4 -> 2MnSO4 + K2SO4 + 5Na2SO4 + 10CO2 + 8H2O",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "KMnO4",
+     "coeff": 2
+    },
+    {
+     "formula": "Na2C2O4",
+     "coeff": 5
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 8
+    }
+   ],
+   "products": [
+    {
+     "formula": "MnSO4",
+     "coeff": 2
+    },
+    {
+     "formula": "K2SO4",
+     "coeff": 1
+    },
+    {
+     "formula": "Na2SO4",
+     "coeff": 5
+    },
+    {
+     "formula": "CO2",
+     "coeff": 10
+    },
+    {
+     "formula": "H2O",
+     "coeff": 8
+    }
+   ],
+   "conditions": null,
+   "type": "redox",
+   "subtype": null,
+   "sections": [
+    "c7-s03"
+   ],
+   "page": 138,
+   "pages": [
+    138
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "describedInWords": true,
+   "note": "реакция описана словами в задаче; уравнение составлено"
+  },
+  {
+   "id": "g11-cu2p-e--cu",
+   "equation": "Cu²⁺ + 2e⁻ → Cu",
+   "equationAscii": "Cu^2+ + 2e^- -> Cu",
+   "equationAsInBook": "катод: Cu2+ + 2e = Cu0",
+   "reactants": [
+    {
+     "formula": "Cu^2+",
+     "coeff": 1
+    },
+    {
+     "formula": "e^-",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cu",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз, катод",
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 139,
+   "pages": [
+    139,
+    141
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-clm--cl2-e",
+   "equation": "2Cl⁻ → Cl₂ + 2e⁻",
+   "equationAscii": "2Cl^- -> Cl2 + 2e^-",
+   "equationAsInBook": "анод: 2Cl- - 2e = Cl2",
+   "reactants": [
+    {
+     "formula": "Cl^-",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    },
+    {
+     "formula": "e^-",
+     "coeff": 2
+    }
+   ],
+   "conditions": "электролиз, анод",
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 139,
+   "pages": [
+    139,
+    140,
+    141
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-cucl2--cu-cl2",
+   "equation": "CuCl₂ → Cu + Cl₂↑",
+   "equationAscii": "CuCl2 -> Cu + Cl2",
+   "equationAsInBook": "CuCl2 + H2O → Cu + Cl2↑ + H2O",
+   "reactants": [
+    {
+     "formula": "CuCl2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cu",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз (раствор)",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 139,
+   "pages": [
+    139,
+    141,
+    143
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге с. 143: CuCl2 + H2O → Cu + Cl2↑ + H2O (вода не изменяется); на с. 139–141 процесс описан словами и полуреакциями"
+  },
+  {
+   "id": "g11-nap-e--na",
+   "equation": "Na⁺ + e⁻ → Na",
+   "equationAscii": "Na^+ + e^- -> Na",
+   "equationAsInBook": "Na+ + e = Na",
+   "reactants": [
+    {
+     "formula": "Na^+",
+     "coeff": 1
+    },
+    {
+     "formula": "e^-",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Na",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз расплава, катод",
+   "type": "redox",
+   "subtype": "half-reaction",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 140,
+   "pages": [
+    140
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-nap-clm--na-cl2",
+   "equation": "2Na⁺ + 2Cl⁻ → 2Na + Cl₂",
+   "equationAscii": "2Na^+ + 2Cl^- -> 2Na + Cl2",
+   "equationAsInBook": "2Na+ + 2Cl- → 2Na + Cl2",
+   "reactants": [
+    {
+     "formula": "Na^+",
+     "coeff": 2
+    },
+    {
+     "formula": "Cl^-",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Na",
+     "coeff": 2
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз расплава",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 140,
+   "pages": [
+    140
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-nacl--na-cl2",
+   "equation": "2NaCl → 2Na + Cl₂↑",
+   "equationAscii": "2NaCl -> 2Na + Cl2",
+   "equationAsInBook": "2NaCl → 2Na + Cl2",
+   "reactants": [
+    {
+     "formula": "NaCl",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Na",
+     "coeff": 2
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз расплава (801 °С, угольные электроды)",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 140,
+   "pages": [
+    140
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-k2co3-h2o--k2co3-h2-o2",
+   "equation": "K₂CO₃ + 2H₂O → K₂CO₃ + 2H₂↑ + O₂↑",
+   "equationAscii": "K2CO3 + 2H2O -> K2CO3 + 2H2 + O2",
+   "equationAsInBook": "K2CO3 + 2H2O → K2CO3 + 2H2↑ + O2↑",
+   "reactants": [
+    {
+     "formula": "K2CO3",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "K2CO3",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз раствора",
+   "type": "decomposition",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01",
+    "c8-s02"
+   ],
+   "page": 142,
+   "pages": [
+    142,
+    146
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "по сути электролиз воды: 2H2O → 2H2 + O2"
+  },
+  {
+   "id": "g11-kcl-h2o--h2-cl2-koh",
+   "equation": "2KCl + 2H₂O → H₂↑ + Cl₂↑ + 2KOH",
+   "equationAscii": "2KCl + 2H2O -> H2 + Cl2 + 2KOH",
+   "equationAsInBook": "2KCl + 2H2O → H2↑ + Cl2↑ + 2KOH",
+   "reactants": [
+    {
+     "formula": "KCl",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    },
+    {
+     "formula": "KOH",
+     "coeff": 2
+    }
+   ],
+   "conditions": "электролиз раствора",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01",
+    "c8-s02"
+   ],
+   "page": 142,
+   "pages": [
+    142,
+    146,
+    147
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-mnso4-h2o--mn-h2-o2-h2so4",
+   "equation": "MnSO₄ + 2H₂O → Mn + H₂↑ + O₂↑ + H₂SO₄",
+   "equationAscii": "MnSO4 + 2H2O -> Mn + H2 + O2 + H2SO4",
+   "equationAsInBook": "MnSO4 + 2H2O → Mn + H2↑ + O2↑ + H2SO4",
+   "reactants": [
+    {
+     "formula": "MnSO4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Mn",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 1
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз раствора",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 142,
+   "pages": [
+    142
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-mncl2-h2o--mn-h2-cl2-mnoh2",
+   "equation": "2MnCl₂ + 2H₂O → Mn + H₂↑ + 2Cl₂↑ + Mn(OH)₂",
+   "equationAscii": "2MnCl2 + 2H2O -> Mn + H2 + 2Cl2 + Mn(OH)2",
+   "equationAsInBook": "2MnCl2 + 2H2O → Mn + H2↑ + 2Cl2↑ + Mn(OH)2",
+   "reactants": [
+    {
+     "formula": "MnCl2",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Mn",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 2
+    },
+    {
+     "formula": "Mn(OH)2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз раствора",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 143,
+   "pages": [
+    143
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-cuso4-h2o--cu-o2-h2so4",
+   "equation": "2CuSO₄ + 2H₂O → 2Cu + O₂↑ + 2H₂SO₄",
+   "equationAscii": "2CuSO4 + 2H2O -> 2Cu + O2 + 2H2SO4",
+   "equationAsInBook": "2CuSO4 + 2H2O → 2Cu + O2↑ + 2H2SO4",
+   "reactants": [
+    {
+     "formula": "CuSO4",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cu",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 2
+    }
+   ],
+   "conditions": "электролиз раствора",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01",
+    "c8-s02",
+    "c8-s03"
+   ],
+   "page": 143,
+   "pages": [
+    143,
+    145,
+    148,
+    149
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-scheme-meso4-2h2o-to-meso4-2h2-o2",
+   "equation": "MeSO4 + 2H₂O → MeSO4 + 2H₂ + O₂",
+   "equationAscii": "MeSO4 + 2H2O -> MeSO4 + 2H2 + O2",
+   "equationAsInBook": "MeSO4 + 2H2O → MeSO4 + 2H2 + O2",
+   "reactants": [
+    {
+     "formula": "MeSO4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "MeSO4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз раствора; активные металлы (Li … Be)",
+   "type": "decomposition",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 143,
+   "pages": [
+    143
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-meso4-2h2o-to-me-h2-o2-h2so4",
+   "equation": "MeSO4 + 2H₂O → Me + H₂ + O₂ + H₂SO₄",
+   "equationAscii": "MeSO4 + 2H2O -> Me + H2 + O2 + H2SO4",
+   "equationAsInBook": "MeSO4 + 2H2O → Me + H2 + O2 + H2SO4",
+   "reactants": [
+    {
+     "formula": "MeSO4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Me",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 1
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз раствора; металлы средней активности (Al … Pb)",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 143,
+   "pages": [
+    143
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-meso4-2h2o-to-me-o2-h2so4",
+   "equation": "MeSO4 + 2H₂O → Me + O₂ + H₂SO₄",
+   "equationAscii": "MeSO4 + 2H2O -> Me + O2 + H2SO4",
+   "equationAsInBook": "MeSO4 + 2H2O → Me + O2 + H2SO4",
+   "reactants": [
+    {
+     "formula": "MeSO4",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Me",
+     "coeff": 1
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз раствора; пассивные металлы (Cu … Au)",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 143,
+   "pages": [
+    143
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-mecl-2h2o-to-meoh-h2-cl2",
+   "equation": "MeCl + 2H₂O → MeOH + H₂ + Cl₂",
+   "equationAscii": "MeCl + 2H2O -> MeOH + H2 + Cl2",
+   "equationAsInBook": "MeCl + 2H2O → MeOH + H2 + Cl2",
+   "reactants": [
+    {
+     "formula": "MeCl",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "MeOH",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз раствора; активные металлы",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 143,
+   "pages": [
+    143
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-mecl-2h2o-to-meoh-me-h2-cl2",
+   "equation": "MeCl + 2H₂O → MeOH + Me + H₂ + Cl₂",
+   "equationAscii": "MeCl + 2H2O -> MeOH + Me + H2 + Cl2",
+   "equationAsInBook": "MeCl + 2H2O → MeOH + Me + H2 + Cl2",
+   "reactants": [
+    {
+     "formula": "MeCl",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "MeOH",
+     "coeff": 1
+    },
+    {
+     "formula": "Me",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз раствора; металлы средней активности",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 143,
+   "pages": [
+    143
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-mecl-2h2o-to-me-cl2-h2o",
+   "equation": "MeCl + 2H₂O → Me + Cl₂ + H₂O",
+   "equationAscii": "MeCl + 2H2O -> Me + Cl2 + H2O",
+   "equationAsInBook": "MeCl + 2H2O → Me + Cl2 + H2O",
+   "reactants": [
+    {
+     "formula": "MeCl",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Me",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз раствора; пассивные металлы",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 143,
+   "pages": [
+    143
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-meso4-to-me-o2-so3",
+   "equation": "MeSO4 → Me + O₂ + SO₃",
+   "equationAscii": "MeSO4 -> Me + O2 + SO3",
+   "equationAsInBook": "MeSO4 → Me + O2 + SO3",
+   "reactants": [
+    {
+     "formula": "MeSO4",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Me",
+     "coeff": 1
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    },
+    {
+     "formula": "SO3",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз расплава; все группы металлов",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 143,
+   "pages": [
+    143
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-scheme-mecl-to-me-cl2",
+   "equation": "MeCl → Me + Cl₂",
+   "equationAscii": "MeCl -> Me + Cl2",
+   "equationAsInBook": "MeCl → Me + Cl2",
+   "reactants": [
+    {
+     "formula": "MeCl",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Me",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз расплава; все группы металлов",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 143,
+   "pages": [
+    143
+   ],
+   "bankId": null,
+   "isGeneralScheme": true,
+   "isIonic": false,
+   "balanced": null
+  },
+  {
+   "id": "g11-agno3-h2o--ag-o2-hno3",
+   "equation": "4AgNO₃ + 2H₂O → 4Ag + O₂↑ + 4HNO₃",
+   "equationAscii": "4AgNO3 + 2H2O -> 4Ag + O2 + 4HNO3",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "AgNO3",
+     "coeff": 4
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Ag",
+     "coeff": 4
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    },
+    {
+     "formula": "HNO3",
+     "coeff": 4
+    }
+   ],
+   "conditions": "электролиз раствора, 1 F",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s02",
+    "c8-s03"
+   ],
+   "page": 144,
+   "pages": [
+    144,
+    150,
+    153
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "describedInWords": true,
+   "note": "описано словами (продукты на электродах при пропускании 1 F); уравнение записано в § 33 (с. 150)"
+  },
+  {
+   "id": "g11-fecl3--fe-cl2",
+   "equation": "2FeCl₃ → 2Fe + 3Cl₂↑",
+   "equationAscii": "2FeCl3 -> 2Fe + 3Cl2",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "FeCl3",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Fe",
+     "coeff": 2
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 3
+    }
+   ],
+   "conditions": "электролиз, 1 F",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s02"
+   ],
+   "page": 144,
+   "pages": [
+    144
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "describedInWords": true,
+   "note": "описано словами (выделение железа и хлора из FeCl3 при пропускании 1 F); уравнение в книге не записано"
+  },
+  {
+   "id": "g11-h2o--h2-o2",
+   "equation": "2H₂O → 2H₂↑ + O₂↑",
+   "equationAscii": "2H2O -> 2H2 + O2",
+   "equationAsInBook": "2H2O → 2H2↑ + O2↑",
+   "reactants": [
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз",
+   "type": "decomposition",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s03"
+   ],
+   "page": 149,
+   "pages": [
+    149,
+    152
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "на с. 149 электролиз воды после выделения меди описан словами"
+  },
+  {
+   "id": "g11-cdso4-h2o--cd-o2-h2so4",
+   "equation": "2CdSO₄ + 2H₂O → 2Cd↓ + O₂↑ + 2H₂SO₄",
+   "equationAscii": "2CdSO4 + 2H2O -> 2Cd + O2 + 2H2SO4",
+   "equationAsInBook": "2CdSO4 + 2H2O → 2Cd↓ + O2↑ + 2H2SO4",
+   "reactants": [
+    {
+     "formula": "CdSO4",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cd",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2SO4",
+     "coeff": 2
+    }
+   ],
+   "conditions": "электролиз раствора",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s03"
+   ],
+   "page": 150,
+   "pages": [
+    150
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  },
+  {
+   "id": "g11-cuno32-h2o--cu-o2-hno3",
+   "equation": "2Cu(NO₃)₂ + 2H₂O → 2Cu↓ + O₂↑ + 4HNO₃",
+   "equationAscii": "2Cu(NO3)2 + 2H2O -> 2Cu + O2 + 4HNO3",
+   "equationAsInBook": "2Cu(NO3)2 + 2H2O → 2Cu↓ + O2↑ + 4HNO3",
+   "reactants": [
+    {
+     "formula": "Cu(NO3)2",
+     "coeff": 2
+    },
+    {
+     "formula": "H2O",
+     "coeff": 2
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cu",
+     "coeff": 2
+    },
+    {
+     "formula": "O2",
+     "coeff": 1
+    },
+    {
+     "formula": "HNO3",
+     "coeff": 4
+    }
+   ],
+   "conditions": "электролиз раствора",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s03"
+   ],
+   "page": 150,
+   "pages": [
+    150,
+    151,
+    152,
+    153
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true
+  }
+ ]
+}

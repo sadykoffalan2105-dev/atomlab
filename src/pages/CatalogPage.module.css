@@ -1012,6 +1012,36 @@
   color: var(--lt-text-3);
 }
 
+.rxLabLink {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid color-mix(in srgb, var(--tone-a) 45%, var(--lt-border));
+  background: color-mix(in srgb, var(--tone-a) 14%, rgba(6, 9, 19, 0.6));
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  transition:
+    background var(--lt-dur) var(--lt-ease),
+    border-color var(--lt-dur) var(--lt-ease);
+}
+
+.rxLabLink:hover {
+  background: color-mix(in srgb, var(--tone-a) 26%, rgba(6, 9, 19, 0.6));
+  border-color: color-mix(in srgb, var(--tone-a) 70%, transparent);
+}
+
+.rxLabLink:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
 /* ——— Пусто ——— */
 .empty {
   display: flex;

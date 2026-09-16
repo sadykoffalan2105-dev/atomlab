@@ -1,0 +1,6089 @@
+{
+ "generatedAt": "2026-09-16T08:56:16.939Z",
+ "note": "Вещества каталога, найденные в учебниках Kimyo 7–11 (по составу формулы). Сгенерировано build-whitelist.mts.",
+ "inorganic": [
+  "ago",
+  "al2o3",
+  "al_oh_3",
+  "ba_oh_2",
+  "bao",
+  "ca_oh_2",
+  "cao",
+  "co",
+  "co2",
+  "cr2o3",
+  "cro3",
+  "csoh",
+  "cu2o",
+  "cu_oh_2",
+  "cuo",
+  "fe2o3",
+  "fe3o4",
+  "fe_oh_2",
+  "fe_oh_3",
+  "feo",
+  "fes2",
+  "h2co3",
+  "h2cro4",
+  "h2o",
+  "h2o2",
+  "h2s",
+  "h2sio3",
+  "h2so3",
+  "h2so4",
+  "h3po3",
+  "h3po4",
+  "hbr",
+  "hcl",
+  "hclo",
+  "hclo3",
+  "hclo4",
+  "hf",
+  "hi",
+  "hmno4",
+  "hno2",
+  "hno3",
+  "k2o",
+  "koh",
+  "li2o",
+  "lioh",
+  "mg_oh_2",
+  "mgo",
+  "mno2",
+  "n2o",
+  "n2o5",
+  "na2o",
+  "na2o2",
+  "nacl",
+  "naoh",
+  "nh3",
+  "nh3_h2o",
+  "no",
+  "no2",
+  "p2o5",
+  "pbo",
+  "pbo2",
+  "salt_ag_br",
+  "salt_ag_cl",
+  "salt_ag_i",
+  "salt_ag_no3",
+  "salt_ag_s",
+  "salt_al_br",
+  "salt_al_cl",
+  "salt_al_co3",
+  "salt_al_cr2o7",
+  "salt_al_f",
+  "salt_al_i",
+  "salt_al_no3",
+  "salt_al_po4",
+  "salt_al_s",
+  "salt_al_so4",
+  "salt_ba_br",
+  "salt_ba_cl",
+  "salt_ba_co3",
+  "salt_ba_cro4",
+  "salt_ba_i",
+  "salt_ba_no3",
+  "salt_ba_so4",
+  "salt_ca_cl",
+  "salt_ca_co3",
+  "salt_ca_f",
+  "salt_ca_hco3_2",
+  "salt_ca_i",
+  "salt_ca_no3",
+  "salt_ca_s",
+  "salt_ca_sio3",
+  "salt_ca_so3",
+  "salt_ca_so4",
+  "salt_cr_cl",
+  "salt_cr_no3",
+  "salt_cr_s",
+  "salt_cr_so4",
+  "salt_cs_cl",
+  "salt_cs_f",
+  "salt_cs_so4",
+  "salt_cu_cl",
+  "salt_cu_no3",
+  "salt_cu_s",
+  "salt_cu_so4",
+  "salt_fe2_cl",
+  "salt_fe2_co3",
+  "salt_fe2_no3",
+  "salt_fe2_s",
+  "salt_fe2_so4",
+  "salt_fe3_cl",
+  "salt_fe3_co3",
+  "salt_fe3_no3",
+  "salt_fe3_po4",
+  "salt_fe3_so4",
+  "salt_k2cr2o7",
+  "salt_k_br",
+  "salt_k_cl",
+  "salt_k_clo3",
+  "salt_k_co3",
+  "salt_k_cro4",
+  "salt_k_f",
+  "salt_k_i",
+  "salt_k_mno4",
+  "salt_k_no2",
+  "salt_k_no3",
+  "salt_k_s",
+  "salt_k_sio3",
+  "salt_k_so3",
+  "salt_k_so4",
+  "salt_khco3",
+  "salt_li_cl",
+  "salt_li_co3",
+  "salt_li_f",
+  "salt_li_no3",
+  "salt_li_s",
+  "salt_li_so4",
+  "salt_mg_br",
+  "salt_mg_cl",
+  "salt_mg_co3",
+  "salt_mg_i",
+  "salt_mg_no3",
+  "salt_mg_s",
+  "salt_mg_sio3",
+  "salt_mg_so4",
+  "salt_mn_cl",
+  "salt_mn_no3",
+  "salt_mn_s",
+  "salt_mn_so4",
+  "salt_na_br",
+  "salt_na_clo2",
+  "salt_na_clo3",
+  "salt_na_co3",
+  "salt_na_cro4",
+  "salt_na_f",
+  "salt_na_i",
+  "salt_na_no2",
+  "salt_na_no3",
+  "salt_na_s",
+  "salt_na_sio3",
+  "salt_na_so3",
+  "salt_na_so4",
+  "salt_nahco3",
+  "salt_nh4_3_po4",
+  "salt_nh4_cl",
+  "salt_nh4_co3",
+  "salt_nh4_cr2o7",
+  "salt_nh4_no2",
+  "salt_nh4_no3",
+  "salt_nh4_so4",
+  "salt_ni_f",
+  "salt_ni_no3",
+  "salt_pb_br",
+  "salt_pb_cl",
+  "salt_pb_co3",
+  "salt_pb_i",
+  "salt_pb_no3",
+  "salt_pb_s",
+  "salt_pb_so4",
+  "salt_zn_br",
+  "salt_zn_cl",
+  "salt_zn_co3",
+  "salt_zn_no3",
+  "salt_zn_s",
+  "salt_zn_so4",
+  "sio2",
+  "sno2",
+  "so2",
+  "so3",
+  "sro",
+  "tb_ag3po4",
+  "tb_agnh32oh",
+  "tb_agoh",
+  "tb_al2o3_2sio2_2h2o",
+  "tb_al2o3_3beo_6sio2",
+  "tb_al2so43_18h2o",
+  "tb_al4c3",
+  "tb_al4p2o73",
+  "tb_alh3",
+  "tb_aln",
+  "tb_aloh2cl",
+  "tb_alp",
+  "tb_as2o5",
+  "tb_as2s3",
+  "tb_ash3",
+  "tb_au2o3",
+  "tb_aucl3",
+  "tb_b2o3",
+  "tb_ba3po42",
+  "tb_bao2",
+  "tb_becl2",
+  "tb_beo",
+  "tb_beoh2",
+  "tb_bh3",
+  "tb_bino33",
+  "tb_br2",
+  "tb_br2o7",
+  "tb_c15h31coona",
+  "tb_c17h35coona",
+  "tb_c2h5coona",
+  "tb_c2h5ona",
+  "tb_c3h5ona3",
+  "tb_c6h5ok",
+  "tb_c6h5ona",
+  "tb_c6h5so3na",
+  "tb_ca3n2",
+  "tb_ca3p2",
+  "tb_ca3po42",
+  "tb_ca5po43f",
+  "tb_ca5po43oh",
+  "tb_cac2",
+  "tb_caclo2",
+  "tb_cacn2",
+  "tb_caco3_mgco3",
+  "tb_cah2",
+  "tb_cah2po42",
+  "tb_cah2po42_2h2o",
+  "tb_cah2po42_2h2o_caso4_2h2o",
+  "tb_cahpo4",
+  "tb_cahpo4_2h2o",
+  "tb_cahso32",
+  "tb_cao_3mgo_4sio2",
+  "tb_caocl2",
+  "tb_caohcl",
+  "tb_caso42_h2o",
+  "tb_caso4_2h2o",
+  "tb_caso4_h2o",
+  "tb_ccl4",
+  "tb_cdno32",
+  "tb_cdoh2",
+  "tb_cds",
+  "tb_cdso4",
+  "tb_cf4",
+  "tb_ch3ch2ch2coona",
+  "tb_ch3coo2ca",
+  "tb_ch3coo2mg",
+  "tb_ch3cook",
+  "tb_ch3coona",
+  "tb_cl2",
+  "tb_cl2o3",
+  "tb_cl2o5",
+  "tb_cl2o7",
+  "tb_clf3",
+  "tb_cn2",
+  "tb_cocl2",
+  "tb_coo",
+  "tb_crcl2",
+  "tb_crn",
+  "tb_cro",
+  "tb_croh2",
+  "tb_croh3",
+  "tb_crso4",
+  "tb_cs2",
+  "tb_cs2o",
+  "tb_cu2c2",
+  "tb_cu2s",
+  "tb_cu3co32oh2",
+  "tb_cucl",
+  "tb_cucl2_2h2o",
+  "tb_cufes2",
+  "tb_cunh34oh2",
+  "tb_cuno32_3h2o",
+  "tb_cuoh",
+  "tb_cuoh2co3",
+  "tb_cuso4_5h2o",
+  "tb_f2",
+  "tb_fe2so43_9h2o",
+  "tb_fe3c",
+  "tb_fe3fecn62",
+  "tb_fe3po42",
+  "tb_fe4fecn63",
+  "tb_feco5",
+  "tb_feh2po42",
+  "tb_fehpo4",
+  "tb_fen",
+  "tb_fencs3",
+  "tb_feo_cr2o3",
+  "tb_feoc6h53",
+  "tb_feoh2cl",
+  "tb_feohcl2",
+  "tb_feso4_7h2o",
+  "tb_gecl4",
+  "tb_geo2",
+  "tb_h2",
+  "tb_h2b4o7",
+  "tb_h2cr2o7",
+  "tb_h2mno4",
+  "tb_h2se",
+  "tb_h2so4_h2o",
+  "tb_h2te",
+  "tb_h3aso4",
+  "tb_h4p2o7",
+  "tb_h4sio4",
+  "tb_h4v2o7",
+  "tb_halo2",
+  "tb_haucl4",
+  "tb_hclo2",
+  "tb_hcn",
+  "tb_hcoona",
+  "tb_hg2o",
+  "tb_hgcl2",
+  "tb_hgno32",
+  "tb_hgo",
+  "tb_hgoh2",
+  "tb_hgs",
+  "tb_hgso4",
+  "tb_hpo3",
+  "tb_i2",
+  "tb_i2o7",
+  "tb_k2mno4",
+  "tb_k2o2",
+  "tb_k2o_2h2o_3al2o3_6sio2",
+  "tb_k2o_al2o3_6sio2",
+  "tb_k2sif6",
+  "tb_k2so4_cr2so43_12h2o",
+  "tb_k2zncn4",
+  "tb_k2znoh4",
+  "tb_k3fecn6",
+  "tb_k3po4",
+  "tb_k4fecn6",
+  "tb_kalo2",
+  "tb_kalso42",
+  "tb_kalso42_12h2o",
+  "tb_kaucn2",
+  "tb_kcl_mgcl2_6h2o",
+  "tb_kcl_mgso4_3h2o",
+  "tb_kcl_nacl",
+  "tb_kclo",
+  "tb_kcn",
+  "tb_kfefecn6",
+  "tb_kh",
+  "tb_khso4",
+  "tb_kio3",
+  "tb_kncs",
+  "tb_ko2",
+  "tb_ko3",
+  "tb_li3n",
+  "tb_lih",
+  "tb_mg2si",
+  "tb_mg3n2",
+  "tb_mg3po42",
+  "tb_mgcl2_6h2o",
+  "tb_mgh2",
+  "tb_mghco32",
+  "tb_mgo_cao",
+  "tb_mgohno3",
+  "tb_mgso4_7h2o",
+  "tb_mn2o3",
+  "tb_mn2o7",
+  "tb_mn3n2",
+  "tb_mn3o4",
+  "tb_mno",
+  "tb_mnoh2",
+  "tb_mnso4_4h2o",
+  "tb_n2",
+  "tb_n2h4",
+  "tb_n2o3",
+  "tb_n2o4",
+  "tb_na2b4o7_10h2o",
+  "tb_na2beo2",
+  "tb_na2c2o4",
+  "tb_na2co3_10h2o",
+  "tb_na2hpo4",
+  "tb_na2o_al2o3_2sio2",
+  "tb_na2o_al2o3_6sio2",
+  "tb_na2o_cao_6sio2",
+  "tb_na2s2o3",
+  "tb_na2se",
+  "tb_na2so4_10h2o",
+  "tb_na2te",
+  "tb_na2zno2",
+  "tb_na2znoh4",
+  "tb_na3alf6",
+  "tb_na3croh6",
+  "tb_na3po4",
+  "tb_naalo2",
+  "tb_naaloh4",
+  "tb_naclo",
+  "tb_nacn",
+  "tb_nacro2",
+  "tb_nah",
+  "tb_nah2po4",
+  "tb_nahso4",
+  "tb_naio3",
+  "tb_nanh2",
+  "tb_nanh4hpo4",
+  "tb_naoch2ch2ona",
+  "tb_naoh_h2o",
+  "tb_napo3",
+  "tb_nh2oh",
+  "tb_nh42hpo4",
+  "tb_nh42so4_cr2so43_6h2o",
+  "tb_nh4also42",
+  "tb_nh4h2po4",
+  "tb_nh4hco3",
+  "tb_nh4hso4",
+  "tb_nh4ncs",
+  "tb_nio",
+  "tb_nioh2",
+  "tb_nocl",
+  "tb_o2",
+  "tb_o3",
+  "tb_of2",
+  "tb_p2s3",
+  "tb_p4",
+  "tb_p4o10",
+  "tb_p4s7",
+  "tb_pb3o4",
+  "tb_pboh2",
+  "tb_pcl3",
+  "tb_pcl5",
+  "tb_ph3",
+  "tb_ptcl4",
+  "tb_ptno32",
+  "tb_rb2o",
+  "tb_rb2so4",
+  "tb_rbcl",
+  "tb_rbh",
+  "tb_rboh",
+  "tb_s8",
+  "tb_sb2o3",
+  "tb_sbcl3",
+  "tb_sbocl",
+  "tb_sboh2cl",
+  "tb_sc2o3",
+  "tb_scl2",
+  "tb_scoh3",
+  "tb_seo2",
+  "tb_seo3",
+  "tb_sf6",
+  "tb_si3n4",
+  "tb_sibr4",
+  "tb_sic",
+  "tb_sicl4",
+  "tb_sif4",
+  "tb_sih4",
+  "tb_sii4",
+  "tb_sis2",
+  "tb_sno",
+  "tb_sr3po42",
+  "tb_teo2",
+  "tb_teo3",
+  "tb_tic",
+  "tb_ticl4",
+  "tb_tio2",
+  "tb_v2o5",
+  "tb_wo3",
+  "tb_xef2",
+  "tb_xef4",
+  "tb_xeo4",
+  "tb_znso4_7h2o",
+  "zn_oh_2",
+  "zno"
+ ],
+ "organic": [
+  "2-2-dimethylbutane",
+  "2-3-dimethylbutane",
+  "2-methylpentane",
+  "3-methylpentane",
+  "acetaldehyde",
+  "acetic-acid",
+  "acetone",
+  "acetylene",
+  "aniline",
+  "benzene",
+  "butadiene",
+  "chloroethane",
+  "chloromethane",
+  "cyclobutane",
+  "cyclohexane",
+  "cyclopentane",
+  "cyclopropane",
+  "diethyl-ether",
+  "dimethyl-ether",
+  "ethane",
+  "ethanol",
+  "ethyl-acetate",
+  "ethylene",
+  "ethylene-glycol",
+  "formaldehyde",
+  "formic-acid",
+  "fructose",
+  "glucose-open",
+  "glucose-pyranose",
+  "glycerol",
+  "isobutane",
+  "isopentane",
+  "isoprene",
+  "methane",
+  "methanol",
+  "methylamine",
+  "n-butane",
+  "n-butanol",
+  "n-hexane",
+  "n-pentane",
+  "neopentane",
+  "phenol",
+  "propane",
+  "propanol",
+  "propene",
+  "propyne",
+  "styrene",
+  "sucrose",
+  "toluene"
+ ],
+ "evidence": {
+  "tb_as2s3": {
+   "grades": [
+    7,
+    11
+   ],
+   "names": [
+    "зарних (аурипигмент)",
+    "сульфид мышьяка"
+   ],
+   "firstPage": 9
+  },
+  "tb_na2b4o7_10h2o": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "бурак (бура)",
+    "бура"
+   ],
+   "firstPage": 9
+  },
+  "salt_na_co3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "сода",
+    "карбонат натрия"
+   ],
+   "firstPage": 9
+  },
+  "salt_nh4_cl": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "нашатырка (нашатырь)",
+    "хлорид аммония",
+    "хлористый аммоний"
+   ],
+   "firstPage": 9
+  },
+  "h2o": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "вода",
+    "водяные пары",
+    "вода (лёд, пар)",
+    "водяной пар"
+   ],
+   "firstPage": 10
+  },
+  "co2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "углекислый газ",
+    "оксид углерода (IV) (углекислый газ)",
+    "оксид углерода(IV)"
+   ],
+   "firstPage": 10
+  },
+  "nacl": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "поваренная соль",
+    "поваренная соль (хлорид натрия)",
+    "каменная соль",
+    "галит"
+   ],
+   "firstPage": 12
+  },
+  "sucrose": {
+   "grades": [
+    7,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "сахар",
+    "сахароза"
+   ],
+   "firstPage": 12
+  },
+  "ethanol": {
+   "grades": [
+    7,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "спирт",
+    "CH3CH2OH (этанол)",
+    "этанол",
+    "этиловый спирт"
+   ],
+   "firstPage": 12
+  },
+  "dimethyl-ether": {
+   "grades": [
+    7,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "спирт",
+    "CH3CH2OH (этанол)",
+    "этанол",
+    "диметиловый эфир"
+   ],
+   "firstPage": 12
+  },
+  "tb_i2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "йод (раствор йода)",
+    "йод",
+    "спиртовый раствор йода",
+    "иод (в книге J2)"
+   ],
+   "firstPage": 13
+  },
+  "sio2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "песок",
+    "кварцевый песок",
+    "кварц",
+    "аметист"
+   ],
+   "firstPage": 14
+  },
+  "tb_o2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "кислород"
+   ],
+   "firstPage": 18
+  },
+  "h2so4": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "серная кислота",
+    "серная кислота (разбавленная)",
+    "серная кислота (концентрированная)"
+   ],
+   "firstPage": 19
+  },
+  "salt_nahco3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "пищевая сода",
+    "гидрокарбонат натрия",
+    "кислая соль (гидрокарбонат натрия)"
+   ],
+   "firstPage": 21
+  },
+  "nh3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "аммиак"
+   ],
+   "firstPage": 21
+  },
+  "salt_ca_co3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "мел",
+    "известняк",
+    "карбонат кальция",
+    "мрамор"
+   ],
+   "firstPage": 30
+  },
+  "h2o2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "перекись водорода",
+    "пероксид водорода"
+   ],
+   "firstPage": 32
+  },
+  "acetic-acid": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "уксус",
+    "уксусная кислота",
+    "уксусная кислота (разбавленная)",
+    "метилметаноат (метилформиат)"
+   ],
+   "firstPage": 34
+  },
+  "ca_oh_2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "известковая вода",
+    "гидроксид кальция",
+    "гашеная известь",
+    "гидроксид кальция (известковая вода)"
+   ],
+   "firstPage": 34
+  },
+  "tb_n2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "азот"
+   ],
+   "firstPage": 35
+  },
+  "tb_cl2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "хлор"
+   ],
+   "firstPage": 39
+  },
+  "tb_br2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "бром",
+    "Br2",
+    "бром (бромная вода)"
+   ],
+   "firstPage": 39
+  },
+  "tb_cl2o7": {
+   "grades": [
+    7,
+    8,
+    11
+   ],
+   "names": [
+    "Cl2O7 (оксид хлора(VII))",
+    "оксид хлора(VII)",
+    "оксид хлора (VII)"
+   ],
+   "firstPage": 52
+  },
+  "tb_si3n4": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "Si3N4 (нитрид кремния)"
+   ],
+   "firstPage": 52
+  },
+  "tb_mn2o7": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "соединение VII-валентного марганца с кислородом",
+    "оксид марганца(VII)"
+   ],
+   "firstPage": 52
+  },
+  "so3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "SO3 (оксид серы(VI))",
+    "оксид серы(VI)",
+    "сульфит-ион",
+    "оксид серы (VI)"
+   ],
+   "firstPage": 52
+  },
+  "hcl": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "HCl (хлористый водород)",
+    "хлороводород",
+    "хлористый водород",
+    "соляная кислота"
+   ],
+   "firstPage": 52
+  },
+  "salt_cu_cl": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "CuCl2",
+    "хлорид меди(II)",
+    "хлорид меди (II)"
+   ],
+   "firstPage": 53
+  },
+  "tb_o3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "O3",
+    "озон"
+   ],
+   "firstPage": 53
+  },
+  "tb_h2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "водород"
+   ],
+   "firstPage": 53
+  },
+  "tb_f2": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "фтор"
+   ],
+   "firstPage": 53
+  },
+  "ethane": {
+   "grades": [
+    7,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "этан"
+   ],
+   "firstPage": 53
+  },
+  "salt_k_f": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "фтор с калием"
+   ],
+   "firstPage": 53
+  },
+  "mgo": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "магний с кислородом",
+    "окись магния",
+    "оксид магния",
+    "оксид магния (оксид металла)"
+   ],
+   "firstPage": 53
+  },
+  "tb_cah2": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "кальций с водородом",
+    "гидрид кальция"
+   ],
+   "firstPage": 53
+  },
+  "salt_al_f": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "алюминий с фтором",
+    "фторид алюминия"
+   ],
+   "firstPage": 53
+  },
+  "al2o3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "алюминий с кислородом",
+    "оксид алюминия",
+    "оксид алюминия (катализатор)"
+   ],
+   "firstPage": 53
+  },
+  "tb_becl2": {
+   "grades": [
+    7,
+    8
+   ],
+   "names": [
+    "BeCl2",
+    "хлорид бериллия"
+   ],
+   "firstPage": 53
+  },
+  "salt_al_br": {
+   "grades": [
+    7,
+    11
+   ],
+   "names": [
+    "AlBr3",
+    "бромид алюминия"
+   ],
+   "firstPage": 53
+  },
+  "tb_ph3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "PH3",
+    "фосфин"
+   ],
+   "firstPage": 53
+  },
+  "tb_tic": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "TiC"
+   ],
+   "firstPage": 53
+  },
+  "tb_sih4": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "SiH4 (структурная формула в задании)",
+    "силан"
+   ],
+   "firstPage": 53
+  },
+  "h2so3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "H2SO3 (структурная формула в задании)",
+    "сернистая кислота"
+   ],
+   "firstPage": 53
+  },
+  "salt_mg_co3": {
+   "grades": [
+    7,
+    9,
+    11
+   ],
+   "names": [
+    "MgCO3 (структурная формула в задании)",
+    "магнезит",
+    "карбонат магния"
+   ],
+   "firstPage": 53
+  },
+  "glucose-open": {
+   "grades": [
+    7,
+    9,
+    10
+   ],
+   "names": [
+    "глюкоза (фруктовый сахар)",
+    "глюкоза",
+    "глюкоза (открытая форма)"
+   ],
+   "firstPage": 54
+  },
+  "glucose-pyranose": {
+   "grades": [
+    7,
+    9,
+    10
+   ],
+   "names": [
+    "глюкоза (фруктовый сахар)",
+    "глюкоза",
+    "глюкоза (открытая форма)"
+   ],
+   "firstPage": 54
+  },
+  "fructose": {
+   "grades": [
+    7,
+    9,
+    10
+   ],
+   "names": [
+    "глюкоза (фруктовый сахар)",
+    "фруктоза",
+    "глюкоза",
+    "глюкоза (открытая форма)"
+   ],
+   "firstPage": 54
+  },
+  "hno3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "азотная кислота"
+   ],
+   "firstPage": 55
+  },
+  "h3po4": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "H3PO4",
+    "ортофосфорная кислота",
+    "фосфорная кислота"
+   ],
+   "firstPage": 55
+  },
+  "no2": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "NO2",
+    "двуокись азота",
+    "оксид азота(IV)",
+    "оксид азота (IV)"
+   ],
+   "firstPage": 55
+  },
+  "salt_fe2_s": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "соединение железа с серой",
+    "сульфид железа",
+    "сульфид железа(II)",
+    "сульфид железа (II)"
+   ],
+   "firstPage": 59
+  },
+  "n2o": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "закись азота",
+    "оксид азота(I)"
+   ],
+   "firstPage": 60
+  },
+  "cao": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "оксид кальция",
+    "известь (оксид кальция)",
+    "негашеная известь"
+   ],
+   "firstPage": 61
+  },
+  "salt_fe2_cl": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "FeCl2",
+    "хлорид железа(II)"
+   ],
+   "firstPage": 62
+  },
+  "methane": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "CH4",
+    "метан"
+   ],
+   "firstPage": 63
+  },
+  "h2s": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "H2S",
+    "сероводород",
+    "сульфид водорода",
+    "сероводородная кислота"
+   ],
+   "firstPage": 63
+  },
+  "tb_nah": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "NaH",
+    "гидрид натрия"
+   ],
+   "firstPage": 63
+  },
+  "tb_h2se": {
+   "grades": [
+    7,
+    8,
+    11
+   ],
+   "names": [
+    "H2Se",
+    "селеноводород"
+   ],
+   "firstPage": 63
+  },
+  "hbr": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "HBr",
+    "бромоводородная кислота",
+    "бромоводород"
+   ],
+   "firstPage": 63
+  },
+  "tb_au2o3": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "Au2O3"
+   ],
+   "firstPage": 63
+  },
+  "cuo": {
+   "grades": [
+    7,
+    8,
+    9,
+    10
+   ],
+   "names": [
+    "CuO",
+    "оксид меди (II)",
+    "оксид меди(II)"
+   ],
+   "firstPage": 63
+  },
+  "tb_mno": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "MnO",
+    "оксид марганца(II)"
+   ],
+   "firstPage": 63
+  },
+  "fe2o3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Fe2O3",
+    "оксид железа (III)",
+    "оксид железа(III)"
+   ],
+   "firstPage": 63
+  },
+  "cro3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10
+   ],
+   "names": [
+    "CrO3",
+    "оксид хрома (VI)",
+    "оксид хрома(VI)",
+    "хромовый ангидрид"
+   ],
+   "firstPage": 63
+  },
+  "cu2o": {
+   "grades": [
+    7,
+    9,
+    10
+   ],
+   "names": [
+    "Cu2O",
+    "оксид меди(I)",
+    "оксид меди (I) (красный; в книге «красная медь»)"
+   ],
+   "firstPage": 63
+  },
+  "k2o": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "K2O",
+    "оксид калия",
+    "оксид калия (питательный элемент)"
+   ],
+   "firstPage": 63
+  },
+  "no": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "NO",
+    "оксид азота (окись азота)",
+    "оксид азота(II)",
+    "оксид азота (II)"
+   ],
+   "firstPage": 63
+  },
+  "tb_n2o3": {
+   "grades": [
+    7,
+    8,
+    11
+   ],
+   "names": [
+    "N2O3",
+    "оксид азота(III)",
+    "оксид азота (III)"
+   ],
+   "firstPage": 63
+  },
+  "co": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "CO",
+    "угарный газ",
+    "оксид углерода(II)"
+   ],
+   "firstPage": 63
+  },
+  "p2o5": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "P2O5",
+    "оксид фосфора (V)",
+    "оксид фосфора(V)"
+   ],
+   "firstPage": 63
+  },
+  "tb_cl2o5": {
+   "grades": [
+    7,
+    11
+   ],
+   "names": [
+    "Cl2O5",
+    "оксид хлора (V)"
+   ],
+   "firstPage": 63
+  },
+  "so2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "SO2",
+    "оксид серы(IV)",
+    "жидкий SO2",
+    "оксид серы (IV)"
+   ],
+   "firstPage": 63
+  },
+  "na2o": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Na2O",
+    "оксид натрия"
+   ],
+   "firstPage": 63
+  },
+  "tb_cl2o3": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "Cl2O3"
+   ],
+   "firstPage": 63
+  },
+  "zno": {
+   "grades": [
+    7,
+    8,
+    9,
+    10
+   ],
+   "names": [
+    "ZnO",
+    "оксид цинка",
+    "оксид цинка (катализатор)"
+   ],
+   "firstPage": 63
+  },
+  "salt_fe3_cl": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "трихлорид железа",
+    "хлорид железа(III)",
+    "хлорид железа (III) (катализатор)",
+    "хлорид железа (III)"
+   ],
+   "firstPage": 64
+  },
+  "feo": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "кислородное соединение железа (II)",
+    "оксид железа(II)"
+   ],
+   "firstPage": 64
+  },
+  "salt_al_cl": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "соединение хлора с алюминием",
+    "хлорид алюминия"
+   ],
+   "firstPage": 64
+  },
+  "salt_ca_cl": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "соединение хлора с кальцием",
+    "хлорид кальция"
+   ],
+   "firstPage": 64
+  },
+  "bao": {
+   "grades": [
+    7,
+    8,
+    11
+   ],
+   "names": [
+    "BaO",
+    "оксид бария"
+   ],
+   "firstPage": 64
+  },
+  "tb_cac2": {
+   "grades": [
+    7,
+    9,
+    10
+   ],
+   "names": [
+    "CaC2 (кальций : углерод 1:2)",
+    "карбид кальция"
+   ],
+   "firstPage": 64
+  },
+  "salt_k_cl": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "калий : хлор 1:1",
+    "хлорид калия"
+   ],
+   "firstPage": 64
+  },
+  "salt_na_s": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "натрий : сера (I и II)",
+    "сульфид натрия"
+   ],
+   "firstPage": 64
+  },
+  "al_oh_3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "гидроксид алюминия"
+   ],
+   "firstPage": 66
+  },
+  "salt_cu_so4": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "CuSO4",
+    "сульфат меди(II)",
+    "безводный сульфат меди (II)",
+    "сульфат меди (II)"
+   ],
+   "firstPage": 66
+  },
+  "naoh": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "гидроксид натрия",
+    "едкий натр"
+   ],
+   "firstPage": 67
+  },
+  "salt_mg_cl": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "MgCl2",
+    "хлорид магния"
+   ],
+   "firstPage": 67
+  },
+  "salt_ba_cl": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "BaCl2",
+    "хлорид бария"
+   ],
+   "firstPage": 67
+  },
+  "salt_ba_so4": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "BaSO4",
+    "барит",
+    "сульфат бария",
+    "сульфат бария (носитель катализатора)"
+   ],
+   "firstPage": 67
+  },
+  "salt_zn_cl": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "хлорид цинка"
+   ],
+   "firstPage": 67
+  },
+  "salt_al_i": {
+   "grades": [
+    7,
+    11
+   ],
+   "names": [
+    "йодид алюминия"
+   ],
+   "firstPage": 70
+  },
+  "koh": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "гидроксид калия",
+    "гидроксид калия (водный раствор)"
+   ],
+   "firstPage": 70
+  },
+  "salt_k_co3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "K2CO3",
+    "поташ",
+    "карбонат калия"
+   ],
+   "firstPage": 70
+  },
+  "salt_cu_s": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "черный порошок (сульфид меди)",
+    "сульфид меди",
+    "сульфид меди(II)"
+   ],
+   "firstPage": 71
+  },
+  "tb_ticl4": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "TiCl4"
+   ],
+   "firstPage": 72
+  },
+  "cr2o3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "соединение хрома (III) с кислородом",
+    "оксид хрома(III)",
+    "оксид хрома (III) (катализатор)",
+    "оксид хрома (III)"
+   ],
+   "firstPage": 72
+  },
+  "salt_ca_so4": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "CaSO4",
+    "сульфат кальция"
+   ],
+   "firstPage": 72
+  },
+  "salt_al_s": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Al2S3",
+    "сульфид алюминия"
+   ],
+   "firstPage": 72
+  },
+  "salt_ba_br": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "бромид бария"
+   ],
+   "firstPage": 73
+  },
+  "fe3o4": {
+   "grades": [
+    7,
+    9,
+    11
+   ],
+   "names": [
+    "Fe3O4",
+    "Fe3O4 (FeO · Fe2O3)",
+    "оксид железа(II,III)",
+    "железная окалина (FeO·Fe2O3)"
+   ],
+   "firstPage": 73
+  },
+  "salt_ag_s": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "Ag2S",
+    "серебряный блеск (аргентит)"
+   ],
+   "firstPage": 73
+  },
+  "salt_al_so4": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Al2(SO4)3",
+    "сульфат алюминия"
+   ],
+   "firstPage": 73
+  },
+  "salt_ca_no3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Ca(NO3)2",
+    "нитрат кальция"
+   ],
+   "firstPage": 73
+  },
+  "tb_na3po4": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Na3PO4",
+    "фосфат натрия"
+   ],
+   "firstPage": 73
+  },
+  "tb_ca3po42": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Са3(РО4)2",
+    "фосфат кальция"
+   ],
+   "firstPage": 73
+  },
+  "salt_na_no3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "NaNO3",
+    "нитрат натрия"
+   ],
+   "firstPage": 73
+  },
+  "salt_k_so4": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "K2SO4",
+    "сульфат калия"
+   ],
+   "firstPage": 80
+  },
+  "salt_li_cl": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "хлорид лития"
+   ],
+   "firstPage": 83
+  },
+  "methanol": {
+   "grades": [
+    7,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "метиловый спирт",
+    "метанол"
+   ],
+   "firstPage": 88
+  },
+  "salt_k_no3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "селитра (KNO3)",
+    "калийная селитра",
+    "нитрат калия"
+   ],
+   "firstPage": 90
+  },
+  "mno2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "оксид марганца (IV)",
+    "оксид марганца(IV)",
+    "пиролюзит (оксид марганца(IV))"
+   ],
+   "firstPage": 90
+  },
+  "tb_pb3o4": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "оксид свинца (Pb3O4)"
+   ],
+   "firstPage": 90
+  },
+  "tb_hgo": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "оксид ртути",
+    "оксид ртути(II)"
+   ],
+   "firstPage": 90
+  },
+  "h2co3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "угольная кислота",
+    "угольная кислота (промежуточная)"
+   ],
+   "firstPage": 90
+  },
+  "salt_k_mno4": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "перманганат калия"
+   ],
+   "firstPage": 93
+  },
+  "tb_k2mno4": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "манганат калия"
+   ],
+   "firstPage": 93
+  },
+  "salt_k_clo3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "хлорат калия (бертолетова соль)",
+    "бертолетова соль",
+    "хлорат калия"
+   ],
+   "firstPage": 93
+  },
+  "tb_mn2o3": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "Mn2O3",
+    "оксид марганца(III)",
+    "браунит (оксид марганца(III))"
+   ],
+   "firstPage": 93
+  },
+  "tb_mn3o4": {
+   "grades": [
+    7,
+    9,
+    11
+   ],
+   "names": [
+    "Mn3O4",
+    "гаусманит (оксид марганца)",
+    "смешанный оксид (MnO·Mn2O3)",
+    "оксид марганца (Mn3O4)"
+   ],
+   "firstPage": 93
+  },
+  "tb_bao2": {
+   "grades": [
+    7,
+    8
+   ],
+   "names": [
+    "пероксид бария"
+   ],
+   "firstPage": 93
+  },
+  "salt_k_no2": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "KNO2",
+    "нитрит калия"
+   ],
+   "firstPage": 93
+  },
+  "tb_k2o2": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "K2O2 (пероксид калия)",
+    "пероксид калия"
+   ],
+   "firstPage": 94
+  },
+  "tb_ko2": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "K2O4 (надпероксид калия)",
+    "KO2"
+   ],
+   "firstPage": 94
+  },
+  "li2o": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Li2O",
+    "оксид лития"
+   ],
+   "firstPage": 95
+  },
+  "na2o2": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Na2O2",
+    "пероксид натрия"
+   ],
+   "firstPage": 95
+  },
+  "fes2": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "FeS2",
+    "пирит",
+    "пирит (дисульфид железа)",
+    "дисульфид железа (пирит)"
+   ],
+   "firstPage": 96
+  },
+  "tb_v2o5": {
+   "grades": [
+    7,
+    8
+   ],
+   "names": [
+    "V2O5",
+    "оксид ванадия(V)"
+   ],
+   "firstPage": 96
+  },
+  "salt_k_i": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "йодид калия",
+    "иодид калия (в книге KJ)"
+   ],
+   "firstPage": 102
+  },
+  "ago": {
+   "grades": [
+    7,
+    10
+   ],
+   "names": [
+    "аммиачный раствор оксида серебра"
+   ],
+   "firstPage": 102
+  },
+  "salt_nh4_no3": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "нитрат аммония",
+    "аммиачная селитра"
+   ],
+   "firstPage": 102
+  },
+  "tb_ko3": {
+   "grades": [
+    7
+   ],
+   "names": [],
+   "firstPage": 103
+  },
+  "n2o5": {
+   "grades": [
+    7,
+    8,
+    11
+   ],
+   "names": [
+    "оксид азота (V)",
+    "оксид азота(V)"
+   ],
+   "firstPage": 106
+  },
+  "tb_of2": {
+   "grades": [
+    7,
+    8
+   ],
+   "names": [
+    "фторид кислорода"
+   ],
+   "firstPage": 106
+  },
+  "salt_na_so4": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "сульфат натрия"
+   ],
+   "firstPage": 106
+  },
+  "tb_naalo2": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "алюминат натрия"
+   ],
+   "firstPage": 107
+  },
+  "salt_al_no3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "нитрат алюминия"
+   ],
+   "firstPage": 107
+  },
+  "tb_naaloh4": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "тетрагидроксоалюминат натрия"
+   ],
+   "firstPage": 107
+  },
+  "hclo4": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "хлорная кислота"
+   ],
+   "firstPage": 107
+  },
+  "tb_agoh": {
+   "grades": [
+    7
+   ],
+   "names": [],
+   "firstPage": 107
+  },
+  "cu_oh_2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10
+   ],
+   "names": [
+    "гидроксид меди (II)",
+    "гидроксид меди(II)"
+   ],
+   "firstPage": 107
+  },
+  "nh3_h2o": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "аммиачная вода",
+    "гидроксид аммония (нашатырный спирт)",
+    "гидроксид аммония"
+   ],
+   "firstPage": 107
+  },
+  "tb_cuoh2co3": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "гидроксокарбонат меди (II)",
+    "гидроксокарбонат меди(II)",
+    "малахит"
+   ],
+   "firstPage": 107
+  },
+  "salt_zn_no3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "нитрат цинка"
+   ],
+   "firstPage": 107
+  },
+  "salt_zn_s": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "цинковая обманка",
+    "сульфид цинка"
+   ],
+   "firstPage": 107
+  },
+  "tb_sb2o3": {
+   "grades": [
+    7,
+    8
+   ],
+   "names": [
+    "оксид сурьмы(III)"
+   ],
+   "firstPage": 107
+  },
+  "tb_cu3co32oh2": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "азурит"
+   ],
+   "firstPage": 108
+  },
+  "propane": {
+   "grades": [
+    7,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "пропан"
+   ],
+   "firstPage": 108
+  },
+  "tb_cs2": {
+   "grades": [
+    7,
+    8,
+    9,
+    10
+   ],
+   "names": [
+    "сульфид углерода(IV)",
+    "сероуглерод"
+   ],
+   "firstPage": 108
+  },
+  "salt_fe2_so4": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "сульфат железа(II)",
+    "сульфат железа (II)"
+   ],
+   "firstPage": 116
+  },
+  "hf": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "фторид водорода",
+    "фтороводородная кислота",
+    "фтороводород"
+   ],
+   "firstPage": 117
+  },
+  "hi": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "йодистоводородная кислота",
+    "йодоводородная кислота",
+    "иодоводородная кислота",
+    "йодная кислота (йодоводородная)"
+   ],
+   "firstPage": 117
+  },
+  "tb_wo3": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "оксид вольфрама(VI)"
+   ],
+   "firstPage": 118
+  },
+  "tb_mgh2": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "гидрид магния"
+   ],
+   "firstPage": 118
+  },
+  "formaldehyde": {
+   "grades": [
+    7,
+    10
+   ],
+   "names": [
+    "формалин",
+    "формальдегид"
+   ],
+   "firstPage": 118
+  },
+  "tb_na2znoh4": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "тетрагидроксоцинкат натрия (комплексная соль)"
+   ],
+   "firstPage": 118
+  },
+  "formic-acid": {
+   "grades": [
+    7,
+    10,
+    11
+   ],
+   "names": [
+    "муравьиная кислота"
+   ],
+   "firstPage": 119
+  },
+  "h2sio3": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "кремниевая кислота"
+   ],
+   "firstPage": 119
+  },
+  "tb_h2cr2o7": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "дихромовая кислота"
+   ],
+   "firstPage": 120
+  },
+  "hmno4": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "марганцовая кислота",
+    "марганцевая кислота"
+   ],
+   "firstPage": 120
+  },
+  "salt_pb_co3": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "карбонат свинца"
+   ],
+   "firstPage": 120
+  },
+  "salt_ag_no3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "нитрат серебра",
+    "нитрат серебра (I)"
+   ],
+   "firstPage": 121
+  },
+  "tb_ag3po4": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "фосфат серебра"
+   ],
+   "firstPage": 121
+  },
+  "salt_li_co3": {
+   "grades": [
+    7,
+    11
+   ],
+   "names": [
+    "карбонат лития"
+   ],
+   "firstPage": 121
+  },
+  "mg_oh_2": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "гидроксид магния"
+   ],
+   "firstPage": 121
+  },
+  "tb_h4sio4": {
+   "grades": [
+    7,
+    10
+   ],
+   "names": [
+    "ортосиликат (ортокремниевая кислота)"
+   ],
+   "firstPage": 121
+  },
+  "tb_hpo3": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "метафосфорная кислота"
+   ],
+   "firstPage": 121
+  },
+  "tb_h2b4o7": {
+   "grades": [
+    7
+   ],
+   "names": [],
+   "firstPage": 121
+  },
+  "tb_h4p2o7": {
+   "grades": [
+    7,
+    8
+   ],
+   "names": [
+    "пирофосфатная кислота"
+   ],
+   "firstPage": 121
+  },
+  "hclo": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "хлорноватистая кислота"
+   ],
+   "firstPage": 121
+  },
+  "tb_h4v2o7": {
+   "grades": [
+    7
+   ],
+   "names": [],
+   "firstPage": 121
+  },
+  "tb_haucl4": {
+   "grades": [
+    7,
+    9
+   ],
+   "names": [
+    "тетрахлорозолотая кислота (комплексное соединение)"
+   ],
+   "firstPage": 121
+  },
+  "tb_nio": {
+   "grades": [
+    7
+   ],
+   "names": [],
+   "firstPage": 138
+  },
+  "tb_beo": {
+   "grades": [
+    7,
+    8
+   ],
+   "names": [
+    "оксид бериллия"
+   ],
+   "firstPage": 138
+  },
+  "tb_tio2": {
+   "grades": [
+    7,
+    10
+   ],
+   "names": [
+    "оксититан (оксид титана)"
+   ],
+   "firstPage": 138
+  },
+  "tb_cuso4_5h2o": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "кристаллогидрат сульфата меди",
+    "медный купорос",
+    "кристаллогидрат сульфата меди (в книге: CuSO4·nH2O, найдено n = 5)"
+   ],
+   "firstPage": 139
+  },
+  "tb_h2so4_h2o": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "гидрат серной кислоты"
+   ],
+   "firstPage": 139
+  },
+  "tb_naoh_h2o": {
+   "grades": [
+    7
+   ],
+   "names": [
+    "гидрат едкого натра"
+   ],
+   "firstPage": 139
+  },
+  "ba_oh_2": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "гидроксид бария"
+   ],
+   "firstPage": 141
+  },
+  "tb_cro": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "оксид хрома(II)"
+   ],
+   "firstPage": 141
+  },
+  "salt_na_so3": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "сульфит натрия (соль сернистой кислоты)",
+    "сульфит натрия"
+   ],
+   "firstPage": 143
+  },
+  "fe_oh_3": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "гидроксид железа(III)",
+    "гидроксид железа (III)"
+   ],
+   "firstPage": 143
+  },
+  "salt_fe3_po4": {
+   "grades": [
+    7
+   ],
+   "names": [],
+   "firstPage": 143
+  },
+  "salt_mg_so4": {
+   "grades": [
+    7,
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Сульфат магния",
+    "сульфат магния"
+   ],
+   "firstPage": 143
+  },
+  "tb_croh3": {
+   "grades": [
+    7,
+    8,
+    9
+   ],
+   "names": [
+    "гидроксид хрома(III)"
+   ],
+   "firstPage": 143
+  },
+  "phenol": {
+   "grades": [
+    7,
+    10
+   ],
+   "names": [
+    "фенол"
+   ],
+   "firstPage": 145
+  },
+  "lioh": {
+   "grades": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "гидроксид лития"
+   ],
+   "firstPage": 149
+  },
+  "salt_li_no3": {
+   "grades": [
+    7,
+    11
+   ],
+   "names": [
+    "нитрат лития"
+   ],
+   "firstPage": 149
+  },
+  "glycerol": {
+   "grades": [
+    7,
+    10
+   ],
+   "names": [
+    "глицерин",
+    "трёхатомный спирт"
+   ],
+   "firstPage": 154
+  },
+  "tb_bh3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "боран"
+   ],
+   "firstPage": 9
+  },
+  "tb_kh": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "гидрид калия"
+   ],
+   "firstPage": 9
+  },
+  "tb_rbh": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидрид рубидия"
+   ],
+   "firstPage": 9
+  },
+  "tb_feso4_7h2o": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "железный купорос"
+   ],
+   "firstPage": 10
+  },
+  "acetylene": {
+   "grades": [
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "ацетилен"
+   ],
+   "firstPage": 11
+  },
+  "tb_croh2": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "гидроксид хрома(II)"
+   ],
+   "firstPage": 12
+  },
+  "fe_oh_2": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "гидроксид железа(II)",
+    "гидроксид железа (II)"
+   ],
+   "firstPage": 12
+  },
+  "zn_oh_2": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "гидроксид цинка"
+   ],
+   "firstPage": 12
+  },
+  "tb_sno": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид олова(II)"
+   ],
+   "firstPage": 13
+  },
+  "sro": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид стронция"
+   ],
+   "firstPage": 13
+  },
+  "tb_as2o5": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид мышьяка(V)"
+   ],
+   "firstPage": 14
+  },
+  "tb_aloh2cl": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "дигидроксохлорид алюминия"
+   ],
+   "firstPage": 15
+  },
+  "salt_ba_no3": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "нитрат бария"
+   ],
+   "firstPage": 15
+  },
+  "tb_cah2po42": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "дигидрофосфат кальция"
+   ],
+   "firstPage": 15
+  },
+  "salt_ca_hco3_2": {
+   "grades": [
+    8,
+    9,
+    10
+   ],
+   "names": [
+    "гидрокарбонат кальция"
+   ],
+   "firstPage": 15
+  },
+  "tb_caohcl": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидроксохлорид кальция"
+   ],
+   "firstPage": 15
+  },
+  "tb_kalso42": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "квасцы"
+   ],
+   "firstPage": 15
+  },
+  "tb_khso4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидросульфат калия"
+   ],
+   "firstPage": 15
+  },
+  "tb_mgohno3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидроксонитрат магния"
+   ],
+   "firstPage": 15
+  },
+  "tb_nh4also42": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "алюмоаммонийные квасцы"
+   ],
+   "firstPage": 15
+  },
+  "salt_fe2_no3": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "нитрат железа(II)"
+   ],
+   "firstPage": 16
+  },
+  "tb_nahso4": {
+   "grades": [
+    8,
+    9,
+    10
+   ],
+   "names": [
+    "гидросульфат натрия"
+   ],
+   "firstPage": 16
+  },
+  "tb_na2zno2": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "цинкат натрия"
+   ],
+   "firstPage": 19
+  },
+  "tb_beoh2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидроксид бериллия"
+   ],
+   "firstPage": 20
+  },
+  "tb_na2beo2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "бериллат натрия"
+   ],
+   "firstPage": 20
+  },
+  "pbo": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "оксид свинца(II)",
+    "оксид свинца (II)"
+   ],
+   "firstPage": 20
+  },
+  "tb_cs2o": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "оксид цезия"
+   ],
+   "firstPage": 21
+  },
+  "salt_cs_so4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "сульфат цезия"
+   ],
+   "firstPage": 21
+  },
+  "salt_cs_cl": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "хлорид цезия"
+   ],
+   "firstPage": 21
+  },
+  "csoh": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "гидроксид цезия"
+   ],
+   "firstPage": 21
+  },
+  "salt_li_so4": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "сульфат лития"
+   ],
+   "firstPage": 21
+  },
+  "tb_rb2o": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "оксид рубидия"
+   ],
+   "firstPage": 21
+  },
+  "tb_rb2so4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "сульфат рубидия"
+   ],
+   "firstPage": 21
+  },
+  "tb_rbcl": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "хлорид рубидия"
+   ],
+   "firstPage": 21
+  },
+  "tb_rboh": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "гидроксид рубидия"
+   ],
+   "firstPage": 21
+  },
+  "tb_br2o7": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид брома(VII)"
+   ],
+   "firstPage": 22
+  },
+  "tb_i2o7": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид йода(VII)"
+   ],
+   "firstPage": 22
+  },
+  "salt_na_br": {
+   "grades": [
+    8,
+    10,
+    11
+   ],
+   "names": [
+    "бромид натрия"
+   ],
+   "firstPage": 22
+  },
+  "salt_na_f": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "фторид натрия",
+    "NaF"
+   ],
+   "firstPage": 22
+  },
+  "salt_na_i": {
+   "grades": [
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "йодид натрия",
+    "иодид натрия",
+    "иодид натрия (натриевая соль йода-131)"
+   ],
+   "firstPage": 22
+  },
+  "tb_halo2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "метаалюминиевая кислота"
+   ],
+   "firstPage": 27
+  },
+  "tb_b2o3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид бора"
+   ],
+   "firstPage": 28
+  },
+  "tb_ash3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "арсин"
+   ],
+   "firstPage": 55
+  },
+  "tb_gecl4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "хлорид германия(IV)"
+   ],
+   "firstPage": 56
+  },
+  "tb_geo2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид германия(IV)"
+   ],
+   "firstPage": 56
+  },
+  "salt_ca_f": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "плавиковый шпат"
+   ],
+   "firstPage": 66
+  },
+  "salt_k_s": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "сульфид калия"
+   ],
+   "firstPage": 66
+  },
+  "tb_pcl3": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "хлорид фосфора(III)",
+    "хлорид фосфора (III)"
+   ],
+   "firstPage": 66
+  },
+  "tb_pcl5": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "хлорид фосфора(V)",
+    "хлорид фосфора (V)"
+   ],
+   "firstPage": 66
+  },
+  "salt_li_f": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "фторид лития"
+   ],
+   "firstPage": 71
+  },
+  "salt_ca_i": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "йодид кальция"
+   ],
+   "firstPage": 73
+  },
+  "salt_k_br": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "бромид калия"
+   ],
+   "firstPage": 73
+  },
+  "tb_p4": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "белый фосфор",
+    "фосфор (молекула P4)"
+   ],
+   "firstPage": 74
+  },
+  "tb_s8": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "ромбическая сера",
+    "сера (молекула S8)"
+   ],
+   "firstPage": 74
+  },
+  "tb_clf3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "трифторид хлора"
+   ],
+   "firstPage": 79
+  },
+  "salt_k2cr2o7": {
+   "grades": [
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "дихромат калия"
+   ],
+   "firstPage": 79
+  },
+  "tb_xeo4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид ксенона(VIII)"
+   ],
+   "firstPage": 79
+  },
+  "salt_ag_cl": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "хлорид серебра"
+   ],
+   "firstPage": 82
+  },
+  "tb_lih": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидрид лития"
+   ],
+   "firstPage": 82
+  },
+  "salt_cr_so4": {
+   "grades": [
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "сульфат хрома(III)",
+    "сульфат хрома (III)"
+   ],
+   "firstPage": 84
+  },
+  "salt_cu_no3": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "нитрат меди(II)",
+    "нитрат меди (II)"
+   ],
+   "firstPage": 85
+  },
+  "salt_fe3_so4": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "сульфат железа(III)"
+   ],
+   "firstPage": 85
+  },
+  "salt_mn_cl": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "хлорид марганца(II)",
+    "хлорид марганца (II)"
+   ],
+   "firstPage": 85
+  },
+  "salt_mn_so4": {
+   "grades": [
+    8,
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "сульфат марганца(II)",
+    "MnSO4",
+    "сульфат марганца (II)"
+   ],
+   "firstPage": 85
+  },
+  "salt_mg_i": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "йодид магния",
+    "иодид магния"
+   ],
+   "firstPage": 87
+  },
+  "tb_xef4": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "тетрафторид ксенона"
+   ],
+   "firstPage": 90
+  },
+  "salt_mg_br": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "бромид магния"
+   ],
+   "firstPage": 92
+  },
+  "acetone": {
+   "grades": [
+    8,
+    9,
+    10
+   ],
+   "names": [
+    "ацетон",
+    "ацетон (пропанон)",
+    "виниловый спирт",
+    "пропионовый альдегид (пропаналь)"
+   ],
+   "firstPage": 94
+  },
+  "benzene": {
+   "grades": [
+    8,
+    9,
+    10
+   ],
+   "names": [
+    "бензол"
+   ],
+   "firstPage": 94
+  },
+  "tb_kcl_mgcl2_6h2o": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "карналлит"
+   ],
+   "firstPage": 96
+  },
+  "tb_kcl_mgso4_3h2o": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "каинит"
+   ],
+   "firstPage": 96
+  },
+  "tb_kcl_nacl": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "сильвинит"
+   ],
+   "firstPage": 96
+  },
+  "tb_mgcl2_6h2o": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "бишофит"
+   ],
+   "firstPage": 96
+  },
+  "tb_sbcl3": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "хлорид сурьмы(III)"
+   ],
+   "firstPage": 97
+  },
+  "tb_kclo": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гипохлорит калия"
+   ],
+   "firstPage": 98
+  },
+  "salt_al_po4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "фосфат алюминия"
+   ],
+   "firstPage": 113
+  },
+  "tb_mg3po42": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "фосфат магния"
+   ],
+   "firstPage": 113
+  },
+  "tb_pboh2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидроксид свинца(II)"
+   ],
+   "firstPage": 113
+  },
+  "tb_cucl": {
+   "grades": [
+    8,
+    10
+   ],
+   "names": [
+    "хлорид меди(I)",
+    "хлорид меди (I) (аммиачный раствор)"
+   ],
+   "firstPage": 117
+  },
+  "tb_hgcl2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "хлорид ртути(II)"
+   ],
+   "firstPage": 117
+  },
+  "tb_naclo": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гипохлорит натрия"
+   ],
+   "firstPage": 117
+  },
+  "salt_na_clo2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "хлорит натрия"
+   ],
+   "firstPage": 117
+  },
+  "salt_na_clo3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "хлорат натрия"
+   ],
+   "firstPage": 117
+  },
+  "salt_pb_cl": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "хлорид свинца(II)"
+   ],
+   "firstPage": 117
+  },
+  "tb_caclo2": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "гипохлорит кальция"
+   ],
+   "firstPage": 118
+  },
+  "tb_caocl2": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "хлорная известь"
+   ],
+   "firstPage": 118
+  },
+  "tb_hclo2": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "хлористая кислота"
+   ],
+   "firstPage": 118
+  },
+  "hclo3": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "хлорноватая кислота"
+   ],
+   "firstPage": 118
+  },
+  "tb_ca5po43f": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "фторапатит"
+   ],
+   "firstPage": 119
+  },
+  "tb_na3alf6": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "криолит"
+   ],
+   "firstPage": 119
+  },
+  "salt_ag_br": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "бромид серебра"
+   ],
+   "firstPage": 120
+  },
+  "salt_ag_i": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "йодид серебра",
+    "иодид серебра"
+   ],
+   "firstPage": 120
+  },
+  "tb_kio3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "йодат калия"
+   ],
+   "firstPage": 120
+  },
+  "tb_naio3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "йодат натрия"
+   ],
+   "firstPage": 120
+  },
+  "salt_pb_br": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "бромид свинца(II)"
+   ],
+   "firstPage": 120
+  },
+  "salt_pb_i": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "йодид свинца(II)",
+    "иодид свинца (II) (в книге PbJ2)"
+   ],
+   "firstPage": 120
+  },
+  "tb_sif4": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "фторид кремния"
+   ],
+   "firstPage": 121
+  },
+  "tb_xef2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "фторид ксенона(II)"
+   ],
+   "firstPage": 121
+  },
+  "tb_h2te": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "теллуроводород"
+   ],
+   "firstPage": 130
+  },
+  "tb_na2se": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "селенид натрия"
+   ],
+   "firstPage": 130
+  },
+  "tb_na2te": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "теллурид натрия"
+   ],
+   "firstPage": 130
+  },
+  "tb_seo2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид селена(IV)"
+   ],
+   "firstPage": 130
+  },
+  "tb_seo3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид селена(VI)"
+   ],
+   "firstPage": 130
+  },
+  "tb_teo2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид теллура(IV)"
+   ],
+   "firstPage": 130
+  },
+  "tb_teo3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид теллура(VI)"
+   ],
+   "firstPage": 130
+  },
+  "tb_caso4_2h2o": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "гипс"
+   ],
+   "firstPage": 131
+  },
+  "tb_cu2s": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "медный блеск",
+    "медный блеск (халькозин)"
+   ],
+   "firstPage": 131
+  },
+  "tb_mgso4_7h2o": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "горькая соль"
+   ],
+   "firstPage": 131
+  },
+  "tb_na2so4_10h2o": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "глауберова соль"
+   ],
+   "firstPage": 131
+  },
+  "salt_pb_s": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "сульфид свинца",
+    "PbS"
+   ],
+   "firstPage": 131
+  },
+  "tb_cahso32": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидросульфит кальция"
+   ],
+   "firstPage": 132
+  },
+  "tb_scl2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "хлорид серы(II)"
+   ],
+   "firstPage": 132
+  },
+  "salt_li_s": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "сульфид лития"
+   ],
+   "firstPage": 133
+  },
+  "tb_sf6": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "фторид серы(VI)"
+   ],
+   "firstPage": 133
+  },
+  "salt_ca_s": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "Сульфид кальция",
+    "сульфид кальция"
+   ],
+   "firstPage": 134
+  },
+  "salt_pb_no3": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "нитрат свинца(II)",
+    "нитрат свинца (II)"
+   ],
+   "firstPage": 134
+  },
+  "salt_ca_so3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "сульфит кальция"
+   ],
+   "firstPage": 136
+  },
+  "salt_zn_so4": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Сульфат цинка",
+    "сульфат цинка"
+   ],
+   "firstPage": 138
+  },
+  "tb_li3n": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "нитрид лития"
+   ],
+   "firstPage": 158
+  },
+  "tb_mg3n2": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "нитрид магния"
+   ],
+   "firstPage": 158
+  },
+  "tb_nh42hpo4": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "гидрофосфат аммония",
+    "аммофос"
+   ],
+   "firstPage": 161
+  },
+  "salt_nh4_so4": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "сульфат аммония"
+   ],
+   "firstPage": 161
+  },
+  "salt_nh4_3_po4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "фосфат аммония"
+   ],
+   "firstPage": 161
+  },
+  "tb_nh4h2po4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "дигидрофосфат аммония"
+   ],
+   "firstPage": 161
+  },
+  "tb_nh4hso4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидросульфат аммония"
+   ],
+   "firstPage": 161
+  },
+  "salt_nh4_co3": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "карбонат аммония"
+   ],
+   "firstPage": 162
+  },
+  "tb_n2o4": {
+   "grades": [
+    8,
+    11
+   ],
+   "names": [
+    "диоксид азота (N2O4)",
+    "димер оксида азота (IV)"
+   ],
+   "firstPage": 163
+  },
+  "hno2": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "азотистая кислота"
+   ],
+   "firstPage": 164
+  },
+  "tb_aucl3": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "хлорид золота(III)",
+    "AuCl3",
+    "хлорид золота"
+   ],
+   "firstPage": 166
+  },
+  "salt_fe3_no3": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "Нитрат железа(III)",
+    "нитрат железа(III)"
+   ],
+   "firstPage": 166
+  },
+  "tb_ptcl4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "хлорид платины(IV)"
+   ],
+   "firstPage": 166
+  },
+  "tb_cacn2": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "цианамид кальция"
+   ],
+   "firstPage": 173
+  },
+  "salt_na_no2": {
+   "grades": [
+    8,
+    9,
+    11
+   ],
+   "names": [
+    "нитрит натрия"
+   ],
+   "firstPage": 173
+  },
+  "salt_ca_sio3": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "Силикат кальция",
+    "силикат кальция"
+   ],
+   "firstPage": 174
+  },
+  "tb_ca3p2": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "фосфид кальция"
+   ],
+   "firstPage": 176
+  },
+  "tb_p2s3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "сульфид фосфора(III)"
+   ],
+   "firstPage": 176
+  },
+  "tb_p4o10": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "оксид фосфора(V)"
+   ],
+   "firstPage": 177
+  },
+  "tb_cahpo4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидрофосфат кальция"
+   ],
+   "firstPage": 178
+  },
+  "tb_na2hpo4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидрофосфат натрия"
+   ],
+   "firstPage": 178
+  },
+  "tb_nah2po4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "дигидрофосфат натрия"
+   ],
+   "firstPage": 178
+  },
+  "tb_ca5po43oh": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидроксиапатит (костная ткань)"
+   ],
+   "firstPage": 180
+  },
+  "salt_na_sio3": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "Силикат натрия",
+    "силикат натрия"
+   ],
+   "firstPage": 181
+  },
+  "tb_nanh4hpo4": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "гидрофосфат натрия-аммония"
+   ],
+   "firstPage": 181
+  },
+  "tb_napo3": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "метафосфат натрия"
+   ],
+   "firstPage": 181
+  },
+  "tb_k3po4": {
+   "grades": [
+    8,
+    9
+   ],
+   "names": [
+    "фосфат калия",
+    "K3PO4"
+   ],
+   "firstPage": 184
+  },
+  "tb_cah2po42_2h2o": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "двойной суперфосфат"
+   ],
+   "firstPage": 187
+  },
+  "tb_cah2po42_2h2o_caso4_2h2o": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "простой суперфосфат"
+   ],
+   "firstPage": 187
+  },
+  "tb_cahpo4_2h2o": {
+   "grades": [
+    8
+   ],
+   "names": [
+    "преципитат"
+   ],
+   "firstPage": 191
+  },
+  "tb_feohcl2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "дихлорид гидроксожелеза(III)"
+   ],
+   "firstPage": 35
+  },
+  "tb_feoh2cl": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "хлорид дигидроксожелеза(III)"
+   ],
+   "firstPage": 35
+  },
+  "tb_sboh2cl": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "хлорид дигидроксосурьмы(III)"
+   ],
+   "firstPage": 35
+  },
+  "tb_sbocl": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "антимонил-хлорид"
+   ],
+   "firstPage": 35
+  },
+  "salt_k_so3": {
+   "grades": [
+    9,
+    11
+   ],
+   "names": [
+    "сульфит калия"
+   ],
+   "firstPage": 36
+  },
+  "salt_fe3_co3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "карбонат железа(III)"
+   ],
+   "firstPage": 37
+  },
+  "tb_mg2si": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "силицид магния"
+   ],
+   "firstPage": 41
+  },
+  "tb_caco3_mgco3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "доломит"
+   ],
+   "firstPage": 43
+  },
+  "salt_ba_co3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "карбонат бария"
+   ],
+   "firstPage": 43
+  },
+  "salt_fe2_co3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "карбонат железа(II)"
+   ],
+   "firstPage": 43
+  },
+  "tb_cn2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "дициан"
+   ],
+   "firstPage": 43
+  },
+  "tb_cf4": {
+   "grades": [
+    9,
+    10
+   ],
+   "names": [
+    "фторид углерода(IV)",
+    "тетрафторметан"
+   ],
+   "firstPage": 48
+  },
+  "tb_al4c3": {
+   "grades": [
+    9,
+    10
+   ],
+   "names": [
+    "карбид алюминия"
+   ],
+   "firstPage": 48
+  },
+  "tb_sic": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "карборунд"
+   ],
+   "firstPage": 49
+  },
+  "sno2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "оксид олова(IV)"
+   ],
+   "firstPage": 49
+  },
+  "tb_cocl2": {
+   "grades": [
+    9,
+    11
+   ],
+   "names": [
+    "фосген"
+   ],
+   "firstPage": 50
+  },
+  "salt_khco3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гидрокарбонат калия"
+   ],
+   "firstPage": 53
+  },
+  "tb_na2co3_10h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "кристаллическая сода"
+   ],
+   "firstPage": 55
+  },
+  "tb_al2o3_2sio2_2h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "каолин"
+   ],
+   "firstPage": 60
+  },
+  "tb_k2o_al2o3_6sio2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "полевой шпат"
+   ],
+   "firstPage": 60
+  },
+  "tb_sibr4": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "бромид кремния(IV)"
+   ],
+   "firstPage": 60
+  },
+  "tb_sis2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "сульфид кремния(IV)"
+   ],
+   "firstPage": 60
+  },
+  "tb_k2sif6": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гексафторосиликат калия"
+   ],
+   "firstPage": 60
+  },
+  "tb_sicl4": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "хлорид кремния(IV)"
+   ],
+   "firstPage": 60
+  },
+  "tb_sii4": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "иодид кремния(IV)"
+   ],
+   "firstPage": 60
+  },
+  "salt_k_sio3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "силикат калия"
+   ],
+   "firstPage": 64
+  },
+  "tb_na2o_cao_6sio2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "стекло (обычное, бутылочное)"
+   ],
+   "firstPage": 66
+  },
+  "tb_coo": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "оксид кобальта(II)"
+   ],
+   "firstPage": 66
+  },
+  "toluene": {
+   "grades": [
+    9,
+    10
+   ],
+   "names": [
+    "толуол",
+    "метилбензол (толуол)"
+   ],
+   "firstPage": 81
+  },
+  "tb_feh2po42": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "дигидрофосфат железа(II)"
+   ],
+   "firstPage": 83
+  },
+  "tb_fehpo4": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гидрофосфат железа(II)"
+   ],
+   "firstPage": 83
+  },
+  "tb_fe3po42": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "фосфат железа(II)"
+   ],
+   "firstPage": 83
+  },
+  "salt_ni_no3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "нитрат никеля(II)"
+   ],
+   "firstPage": 95
+  },
+  "tb_ptno32": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "Pt(NO3)2"
+   ],
+   "firstPage": 95
+  },
+  "tb_na2o_al2o3_6sio2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "полевой шпат"
+   ],
+   "firstPage": 100
+  },
+  "tb_nanh2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "амид натрия"
+   ],
+   "firstPage": 100
+  },
+  "tb_nh4hco3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гидрокарбонат аммония"
+   ],
+   "firstPage": 106
+  },
+  "tb_cao_3mgo_4sio2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "асбест"
+   ],
+   "firstPage": 109
+  },
+  "tb_caso4_h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гипс, алебастр (схема)"
+   ],
+   "firstPage": 110
+  },
+  "tb_ca3n2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "нитрид кальция"
+   ],
+   "firstPage": 110
+  },
+  "salt_mg_sio3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "олевин (оливин)"
+   ],
+   "firstPage": 111
+  },
+  "tb_mgo_cao": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "MgO·CaO (обожжённый доломит)"
+   ],
+   "firstPage": 111
+  },
+  "salt_mg_no3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "нитрат магния"
+   ],
+   "firstPage": 111
+  },
+  "salt_mg_s": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "сульфид магния"
+   ],
+   "firstPage": 111
+  },
+  "tb_caso42_h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "обожженный гипс (алебастр)"
+   ],
+   "firstPage": 115
+  },
+  "tb_mghco32": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гидрокарбонат магния"
+   ],
+   "firstPage": 117
+  },
+  "tb_na2o_al2o3_2sio2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "нефелин"
+   ],
+   "firstPage": 122
+  },
+  "tb_k2o_2h2o_3al2o3_6sio2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "слюда"
+   ],
+   "firstPage": 122
+  },
+  "tb_alh3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гидрид алюминия"
+   ],
+   "firstPage": 122
+  },
+  "tb_aln": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "нитрид алюминия"
+   ],
+   "firstPage": 122
+  },
+  "tb_alp": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "фосфид алюминия"
+   ],
+   "firstPage": 125
+  },
+  "tb_al2so43_18h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "кристаллогидрат сульфата алюминия"
+   ],
+   "firstPage": 128
+  },
+  "tb_kalo2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "алюминат калия"
+   ],
+   "firstPage": 130
+  },
+  "tb_kalso42_12h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "алюминиевые квасцы"
+   ],
+   "firstPage": 130
+  },
+  "tb_cufes2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "медный колчедан"
+   ],
+   "firstPage": 133
+  },
+  "tb_cucl2_2h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "хлорид меди(II) (кристаллогидрат)"
+   ],
+   "firstPage": 135
+  },
+  "tb_cuno32_3h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "нитрат меди(II) (кристаллогидрат)"
+   ],
+   "firstPage": 135
+  },
+  "tb_kcn": {
+   "grades": [
+    9,
+    11
+   ],
+   "names": [
+    "цианид калия"
+   ],
+   "firstPage": 138
+  },
+  "tb_kaucn2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "комплексная соль цианида золота (дицианоаурат калия)"
+   ],
+   "firstPage": 138
+  },
+  "tb_k2zncn4": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "тетрацианоцинкат калия"
+   ],
+   "firstPage": 138
+  },
+  "salt_zn_co3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "цинковый шпат"
+   ],
+   "firstPage": 141
+  },
+  "tb_cds": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гринокит (сульфид кадмия)"
+   ],
+   "firstPage": 141
+  },
+  "tb_hgs": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "киноварь"
+   ],
+   "firstPage": 141
+  },
+  "tb_k2znoh4": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "тетрагидроксоцинкат калия"
+   ],
+   "firstPage": 142
+  },
+  "tb_cdso4": {
+   "grades": [
+    9,
+    11
+   ],
+   "names": [
+    "сульфат кадмия"
+   ],
+   "firstPage": 142
+  },
+  "tb_cdoh2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гидроксид кадмия"
+   ],
+   "firstPage": 142
+  },
+  "tb_hgoh2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гидроксид ртути(II)"
+   ],
+   "firstPage": 142
+  },
+  "tb_znso4_7h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "цинковый купорос"
+   ],
+   "firstPage": 142
+  },
+  "tb_hg2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "оксид ртути(I)"
+   ],
+   "firstPage": 143
+  },
+  "tb_hgno32": {
+   "grades": [
+    9,
+    11
+   ],
+   "names": [
+    "нитрат ртути(II)",
+    "нитрат ртути (II)"
+   ],
+   "firstPage": 143
+  },
+  "tb_feo_cr2o3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "хромистый железняк"
+   ],
+   "firstPage": 144
+  },
+  "tb_crcl2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "хлорид хрома(II)"
+   ],
+   "firstPage": 145
+  },
+  "salt_cr_cl": {
+   "grades": [
+    9,
+    11
+   ],
+   "names": [
+    "хлорид хрома(III)",
+    "хлорид хрома (III)"
+   ],
+   "firstPage": 145
+  },
+  "tb_crn": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "нитрид хрома"
+   ],
+   "firstPage": 146
+  },
+  "salt_cr_s": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "сульфид хрома(III)"
+   ],
+   "firstPage": 146
+  },
+  "salt_cr_no3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "нитрат хрома(III)"
+   ],
+   "firstPage": 147
+  },
+  "tb_nacro2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "хромит натрия"
+   ],
+   "firstPage": 147
+  },
+  "salt_nh4_cr2o7": {
+   "grades": [
+    9,
+    11
+   ],
+   "names": [
+    "дихромат аммония"
+   ],
+   "firstPage": 147
+  },
+  "tb_na3croh6": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гексагидроксохромат(III) натрия"
+   ],
+   "firstPage": 148
+  },
+  "tb_k2so4_cr2so43_12h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "калиево-хромистые квасцы"
+   ],
+   "firstPage": 148
+  },
+  "tb_nh42so4_cr2so43_6h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "аммониево-хромистые квасцы"
+   ],
+   "firstPage": 148
+  },
+  "salt_na_cro4": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "хромат натрия"
+   ],
+   "firstPage": 148
+  },
+  "h2cro4": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "хромовая кислота"
+   ],
+   "firstPage": 148
+  },
+  "tb_crso4": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "сульфат хрома(II)"
+   ],
+   "firstPage": 149
+  },
+  "salt_k_cro4": {
+   "grades": [
+    9,
+    11
+   ],
+   "names": [
+    "хромат калия"
+   ],
+   "firstPage": 149
+  },
+  "salt_ba_cro4": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "хромат бария"
+   ],
+   "firstPage": 151
+  },
+  "tb_mnoh2": {
+   "grades": [
+    9,
+    11
+   ],
+   "names": [
+    "гидроксид марганца(II)",
+    "гидроксид марганца (II)"
+   ],
+   "firstPage": 153
+  },
+  "salt_mn_s": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "сульфид марганца(II)"
+   ],
+   "firstPage": 153
+  },
+  "tb_mn3n2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "нитрид марганца"
+   ],
+   "firstPage": 153
+  },
+  "salt_mn_no3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "нитрат марганца(II)"
+   ],
+   "firstPage": 153
+  },
+  "tb_mnso4_4h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "MnSO4·4H2O (микроудобрение)"
+   ],
+   "firstPage": 155
+  },
+  "tb_h2mno4": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "марганцовистая кислота (так в задании)"
+   ],
+   "firstPage": 157
+  },
+  "tb_feco5": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "пентакарбонил железа"
+   ],
+   "firstPage": 158
+  },
+  "tb_fen": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "нитрид железа(III)"
+   ],
+   "firstPage": 159
+  },
+  "tb_fe3c": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "карбид железа"
+   ],
+   "firstPage": 159
+  },
+  "tb_k3fecn6": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "гексацианоферрат калия(III) (красная кровяная соль)"
+   ],
+   "firstPage": 161
+  },
+  "tb_kfefecn6": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "турнбулева синь / берлинская лазурь"
+   ],
+   "firstPage": 161
+  },
+  "tb_k4fecn6": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "желтая кровяная соль (гексацианоферрат калия(II))"
+   ],
+   "firstPage": 162
+  },
+  "tb_kncs": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "роданид калия"
+   ],
+   "firstPage": 162
+  },
+  "tb_nh4ncs": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "роданид аммония"
+   ],
+   "firstPage": 162
+  },
+  "tb_fencs3": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "роданид железа(III)"
+   ],
+   "firstPage": 162
+  },
+  "tb_fe2so43_9h2o": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "кристаллогидрат сульфата железа(III)"
+   ],
+   "firstPage": 163
+  },
+  "tb_al2o3_3beo_6sio2": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "берилл"
+   ],
+   "firstPage": 173
+  },
+  "n-butane": {
+   "grades": [
+    9,
+    10
+   ],
+   "names": [
+    "бутан",
+    "н-бутан"
+   ],
+   "firstPage": 179
+  },
+  "isobutane": {
+   "grades": [
+    9,
+    10
+   ],
+   "names": [
+    "бутан",
+    "изобутан"
+   ],
+   "firstPage": 179
+  },
+  "tb_hcn": {
+   "grades": [
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "циановодород",
+    "HCN (циановодородная кислота)",
+    "циановодородная кислота"
+   ],
+   "firstPage": 181
+  },
+  "ethyl-acetate": {
+   "grades": [
+    9,
+    10
+   ],
+   "names": [
+    "уксусный этиловый эфир",
+    "этилацетат",
+    "диоксан",
+    "масляная кислота (бутановая кислота)"
+   ],
+   "firstPage": 187
+  },
+  "styrene": {
+   "grades": [
+    9,
+    10
+   ],
+   "names": [
+    "стирол"
+   ],
+   "firstPage": 187
+  },
+  "acetaldehyde": {
+   "grades": [
+    9,
+    10
+   ],
+   "names": [
+    "уксусный альдегид",
+    "ацетальдегид",
+    "окись этилена",
+    "виниловый спирт (промежуточный)"
+   ],
+   "firstPage": 187
+  },
+  "ethylene": {
+   "grades": [
+    9,
+    10,
+    11
+   ],
+   "names": [
+    "этилен",
+    "этен"
+   ],
+   "firstPage": 190
+  },
+  "tb_fe3fecn62": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "турнбулева синь"
+   ],
+   "firstPage": 202
+  },
+  "tb_fe4fecn63": {
+   "grades": [
+    9
+   ],
+   "names": [
+    "берлинская лазурь"
+   ],
+   "firstPage": 202
+  },
+  "aniline": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "анилин"
+   ],
+   "firstPage": 8
+  },
+  "tb_c2h5ona": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "этилат натрия"
+   ],
+   "firstPage": 14
+  },
+  "chloroethane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "хлорэтан"
+   ],
+   "firstPage": 14
+  },
+  "methylamine": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "метиламин"
+   ],
+   "firstPage": 14
+  },
+  "n-butanol": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "C4H10O (7 изомеров: бутанолы и простые эфиры)",
+    "бутанол-1",
+    "третичный спирт",
+    "бутанол"
+   ],
+   "firstPage": 14
+  },
+  "diethyl-ether": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "C4H10O (7 изомеров: бутанолы и простые эфиры)",
+    "третичный спирт",
+    "бутанол",
+    "бутанол-1"
+   ],
+   "firstPage": 14
+  },
+  "chloromethane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "хлорметан"
+   ],
+   "firstPage": 17
+  },
+  "tb_ccl4": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "тетрахлорметан"
+   ],
+   "firstPage": 17
+  },
+  "ethylene-glycol": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "этиленгликоль",
+    "двухатомный спирт"
+   ],
+   "firstPage": 17
+  },
+  "n-pentane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "пентан"
+   ],
+   "firstPage": 18
+  },
+  "isopentane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "2-метилбутан",
+    "пентан"
+   ],
+   "firstPage": 18
+  },
+  "butadiene": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "бутадиен-1,3",
+    "C4H6 (изомеры)"
+   ],
+   "firstPage": 18
+  },
+  "propene": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "пропилен",
+    "циклопропан",
+    "пропен"
+   ],
+   "firstPage": 19
+  },
+  "cyclopropane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "циклопропан"
+   ],
+   "firstPage": 19
+  },
+  "propanol": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "пропанол-1",
+    "пропанол-2",
+    "пропанол",
+    "метил-этиловый эфир (метоксиэтан)"
+   ],
+   "firstPage": 20
+  },
+  "n-hexane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "гексан и его изомеры (C6H14)",
+    "гексан"
+   ],
+   "firstPage": 21
+  },
+  "2-methylpentane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "гексан и его изомеры (C6H14)",
+    "2-метилпентан"
+   ],
+   "firstPage": 21
+  },
+  "3-methylpentane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "гексан и его изомеры (C6H14)",
+    "3-метилпентан"
+   ],
+   "firstPage": 21
+  },
+  "2-3-dimethylbutane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "гексан и его изомеры (C6H14)",
+    "2,3-диметилбутан"
+   ],
+   "firstPage": 21
+  },
+  "2-2-dimethylbutane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "гексан и его изомеры (C6H14)",
+    "2,2-диметилбутан"
+   ],
+   "firstPage": 21
+  },
+  "cyclobutane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "циклобутан"
+   ],
+   "firstPage": 23
+  },
+  "neopentane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "пентан",
+    "2,2-диметилпропан (неопентан)"
+   ],
+   "firstPage": 27
+  },
+  "cyclopentane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "пентен"
+   ],
+   "firstPage": 27
+  },
+  "tb_ch3coona": {
+   "grades": [
+    10,
+    11
+   ],
+   "names": [
+    "ацетат натрия"
+   ],
+   "firstPage": 46
+  },
+  "tb_c2h5coona": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "пропионат натрия"
+   ],
+   "firstPage": 46
+  },
+  "cyclohexane": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "гексен"
+   ],
+   "firstPage": 47
+  },
+  "salt_zn_br": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "бромид цинка"
+   ],
+   "firstPage": 54
+  },
+  "isoprene": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "2-метилбутадиен-1,3",
+    "пентин"
+   ],
+   "firstPage": 64
+  },
+  "propyne": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "пропадиен",
+    "метилацетилен (пропин)"
+   ],
+   "firstPage": 67
+  },
+  "tb_cu2c2": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "ацетиленид меди (I)"
+   ],
+   "firstPage": 76
+  },
+  "tb_hcoona": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "формиат натрия"
+   ],
+   "firstPage": 112
+  },
+  "tb_naoch2ch2ona": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "гликолят натрия"
+   ],
+   "firstPage": 119
+  },
+  "tb_c3h5ona3": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "глицерат натрия (триглицерат)"
+   ],
+   "firstPage": 120
+  },
+  "tb_c6h5ona": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "фенолят натрия"
+   ],
+   "firstPage": 125
+  },
+  "tb_feoc6h53": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "фенолят железа (III)"
+   ],
+   "firstPage": 126
+  },
+  "tb_c6h5so3na": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "натриевая соль бензолсульфокислоты"
+   ],
+   "firstPage": 127
+  },
+  "tb_c6h5ok": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "фенолят калия"
+   ],
+   "firstPage": 129
+  },
+  "tb_hgso4": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "сульфат ртути (II) (катализатор)"
+   ],
+   "firstPage": 133
+  },
+  "tb_cuoh": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "гидроксид меди (I) (жёлтый осадок)"
+   ],
+   "firstPage": 134
+  },
+  "tb_n2h4": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "гидразин"
+   ],
+   "firstPage": 138
+  },
+  "tb_nh2oh": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "гидроксиламин"
+   ],
+   "firstPage": 138
+  },
+  "tb_ch3coo2ca": {
+   "grades": [
+    10,
+    11
+   ],
+   "names": [
+    "кальциевая соль уксусной кислоты",
+    "ацетат кальция"
+   ],
+   "firstPage": 138
+  },
+  "tb_ch3ch2ch2coona": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "бутират натрия (соль карбоновой кислоты)"
+   ],
+   "firstPage": 141
+  },
+  "tb_ch3coo2mg": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "ацетат магния"
+   ],
+   "firstPage": 142
+  },
+  "tb_c17h35coona": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "мыло (стеарат натрия)"
+   ],
+   "firstPage": 153
+  },
+  "tb_c15h31coona": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "пальмитат натрия (мыло)"
+   ],
+   "firstPage": 155
+  },
+  "tb_agnh32oh": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "гидроксид диамминсеребра (аммиачный раствор оксида серебра)"
+   ],
+   "firstPage": 158
+  },
+  "tb_cunh34oh2": {
+   "grades": [
+    10
+   ],
+   "names": [
+    "реактив Швейцера"
+   ],
+   "firstPage": 164
+  },
+  "tb_scoh3": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "гидроксид скандия"
+   ],
+   "firstPage": 10
+  },
+  "tb_sc2o3": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "оксид скандия"
+   ],
+   "firstPage": 10
+  },
+  "salt_al_cr2o7": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "дихромат алюминия"
+   ],
+   "firstPage": 29
+  },
+  "tb_al4p2o73": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "пирофосфат алюминия"
+   ],
+   "firstPage": 29
+  },
+  "salt_cs_f": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "фторид цезия"
+   ],
+   "firstPage": 29
+  },
+  "tb_sr3po42": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "фосфат стронция"
+   ],
+   "firstPage": 30
+  },
+  "tb_ba3po42": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "фосфат бария"
+   ],
+   "firstPage": 34
+  },
+  "pbo2": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "оксид свинца (IV)"
+   ],
+   "firstPage": 45
+  },
+  "tb_bino33": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "нитрат висмута (III)"
+   ],
+   "firstPage": 53
+  },
+  "tb_ch3cook": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "ацетат калия"
+   ],
+   "firstPage": 54
+  },
+  "tb_nioh2": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "гидроксид никеля (II)"
+   ],
+   "firstPage": 54
+  },
+  "salt_al_co3": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "карбонат алюминия"
+   ],
+   "firstPage": 61
+  },
+  "tb_nacn": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "цианид натрия"
+   ],
+   "firstPage": 61
+  },
+  "salt_nh4_no2": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "нитрит аммония"
+   ],
+   "firstPage": 61
+  },
+  "salt_pb_so4": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "сульфат свинца (II)"
+   ],
+   "firstPage": 65
+  },
+  "h3po3": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "фосфористая кислота"
+   ],
+   "firstPage": 97
+  },
+  "tb_na2s2o3": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "тиосульфат натрия (в книге: «раствор тиосерной кислоты»)"
+   ],
+   "firstPage": 100
+  },
+  "tb_nocl": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "нитрозилхлорид (в книге: NOCl2)"
+   ],
+   "firstPage": 120
+  },
+  "tb_h3aso4": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "мышьяковая кислота"
+   ],
+   "firstPage": 127
+  },
+  "tb_p4s7": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "сульфид фосфора P4S7"
+   ],
+   "firstPage": 134
+  },
+  "tb_na2c2o4": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "оксалат натрия"
+   ],
+   "firstPage": 138
+  },
+  "salt_ba_i": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "йодид бария"
+   ],
+   "firstPage": 144
+  },
+  "salt_ni_f": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "фторид никеля (II)"
+   ],
+   "firstPage": 144
+  },
+  "tb_cdno32": {
+   "grades": [
+    11
+   ],
+   "names": [
+    "нитрат кадмия"
+   ],
+   "firstPage": 154
+  }
+ }
+}

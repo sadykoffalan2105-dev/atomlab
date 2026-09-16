@@ -235,11 +235,12 @@ export class TrainingModeEngine {
     for (const s of composed.sentences) emit(s)
     req.onText?.(composed.text)
     const used = new Set(composed.usedTitles)
+    // Значки — из фрагментов, давших фразы ответа (не все фрагменты с тем же заголовком).
     const citations = [
       ...new Set(
-        knowledge.hits
-          .filter((h) => used.has(h.title) && h.citation)
-          .map((h) => citationForDisplay(h.citation!, this.cfg.lang)),
+        (composed.usedCitations?.length ? composed.usedCitations : knowledge.hits.filter((h) => used.has(h.title) && h.citation).map((h) => h.citation!)).map((c) =>
+          citationForDisplay(c, this.cfg.lang),
+        ),
       ),
     ].slice(0, 2)
     timings.totalMs = Math.round(now() - t0)

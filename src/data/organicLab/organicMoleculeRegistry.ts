@@ -15,6 +15,9 @@ import {
 } from './geometries/carbGeometries'
 import { triacetinGraph } from './geometries/fatGeometries'
 import type { OrganicMoleculeDef } from './organicMoleculeTypes'
+import { TEXTBOOK_ORGANIC_SPECS, type TextbookOrganicSpec } from './textbookOrganic.data'
+import { applySkeletonBonds, autoBondKitHydrogens, createFormulaKit } from '../../chemistry/organic/organicGraph'
+import { layoutOrganicGraph } from '../../chemistry/organic/organicLayout'
 
 function fromChallenge(c: OrganicBuildChallenge): OrganicMoleculeDef {
   const grade = organicGradeForMolecule(c.id, c.classId)
@@ -70,6 +73,36 @@ function extraCarb(
     equationEn: equationRu,
     equationUz: equationRu,
     accentColor: accentForClass('carb'),
+  }
+}
+
+/** Вещество из учебника: 3D-граф строится лениво, при первом показе. */
+function fromTextbookSpec(s: TextbookOrganicSpec): OrganicMoleculeDef {
+  let graph: OrganicMoleculeDef['graph'] | undefined
+  let groups: OrganicMoleculeDef['functionalGroups'] | undefined
+  const build = () =>
+    (graph ??= layoutOrganicGraph(autoBondKitHydrogens(applySkeletonBonds(createFormulaKit(s.kit), s.skeleton))))
+  return {
+    id: s.id,
+    classId: s.classId,
+    formula: s.formula,
+    nameRu: s.nameRu,
+    nameEn: s.nameEn,
+    nameUz: s.nameEn,
+    descriptionRu: s.descriptionRu,
+    descriptionEn: s.descriptionEn,
+    descriptionUz: s.descriptionEn,
+    grade: s.grade,
+    get graph() {
+      return build()
+    },
+    get functionalGroups() {
+      return (groups ??= inferFunctionalGroups(build(), s.classId))
+    },
+    equationRu: '',
+    equationEn: '',
+    equationUz: '',
+    accentColor: accentForClass(s.classId),
   }
 }
 
@@ -139,7 +172,10 @@ const extras: OrganicMoleculeDef[] = [
   },
 ]
 
-export const ORGANIC_MOLECULES: readonly OrganicMoleculeDef[] = [...fromCatalog, ...extras]
+const knownIds = new Set([...fromCatalog, ...extras].map((m) => m.id))
+const fromTextbook = TEXTBOOK_ORGANIC_SPECS.filter((s) => !knownIds.has(s.id)).map(fromTextbookSpec)
+
+export const ORGANIC_MOLECULES: readonly OrganicMoleculeDef[] = [...fromCatalog, ...extras, ...fromTextbook]
 
 export const organicMoleculeById: Record<string, OrganicMoleculeDef> = Object.fromEntries(
   ORGANIC_MOLECULES.map((m) => [m.id, m]),

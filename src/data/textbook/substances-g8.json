@@ -1,0 +1,9010 @@
+{
+ "grade": 8,
+ "generatedAt": "2026-09-16T08:40:58.244Z",
+ "from": "src/data/textbook/inventory-g8.json",
+ "count": 388,
+ "substances": [
+  {
+   "formula": "H2SO4",
+   "formulaUnicode": "H₂SO₄",
+   "nameRu": "серная кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "h2so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "1",
+    "2",
+    "5",
+    "14",
+    "19",
+    "20",
+    "22",
+    "24",
+    "28",
+    "31",
+    "32",
+    "34",
+    "35",
+    "37",
+    "39",
+    "41",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "example",
+    "lab",
+    "table",
+    "text"
+   ],
+   "firstPage": 7
+  },
+  {
+   "formula": "P2O5",
+   "formulaUnicode": "P₂O₅",
+   "nameRu": "оксид фосфора(V)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "p2o5",
+   "catalogSource": "inorganic",
+   "sections": [
+    "1",
+    "2",
+    "5",
+    "19",
+    "20",
+    "21",
+    "26",
+    "27",
+    "40",
+    "41",
+    "42",
+    "43"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 8
+  },
+  {
+   "formula": "BH3",
+   "formulaUnicode": "BH₃",
+   "nameRu": "боран",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "1"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 9
+  },
+  {
+   "formula": "CaH2",
+   "formulaUnicode": "CaH₂",
+   "nameRu": "гидрид кальция",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "1",
+    "20"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 9
+  },
+  {
+   "formula": "CuO",
+   "formulaUnicode": "CuO",
+   "nameRu": "оксид меди(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "cuo",
+   "catalogSource": "inorganic",
+   "sections": [
+    "1",
+    "2",
+    "18",
+    "19",
+    "20",
+    "27",
+    "28",
+    "32",
+    "35",
+    "36",
+    "39",
+    "41",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 9
+  },
+  {
+   "formula": "H2S",
+   "formulaUnicode": "H₂S",
+   "nameRu": "сульфид водорода",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "h2s",
+   "catalogSource": "inorganic",
+   "sections": [
+    "1",
+    "2",
+    "5",
+    "13",
+    "15",
+    "17",
+    "19",
+    "20",
+    "21",
+    "25",
+    "26",
+    "28",
+    "29",
+    "30",
+    "31",
+    "32",
+    "35"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 9
+  },
+  {
+   "formula": "KH",
+   "formulaUnicode": "KH",
+   "nameRu": "гидрид калия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "1"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 9
+  },
+  {
+   "formula": "NH3",
+   "formulaUnicode": "NH₃",
+   "nameRu": "аммиак",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": "nh3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "1",
+    "2",
+    "5",
+    "15",
+    "18",
+    "20",
+    "21",
+    "26",
+    "35",
+    "36",
+    "37",
+    "38",
+    "39",
+    "40",
+    "41",
+    "42",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "lab",
+    "table",
+    "text"
+   ],
+   "firstPage": 9
+  },
+  {
+   "formula": "RbH",
+   "formulaUnicode": "RbH",
+   "nameRu": "гидрид рубидия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "1"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 9
+  },
+  {
+   "formula": "SiH4",
+   "formulaUnicode": "SiH₄",
+   "nameRu": "силан",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "1",
+    "5"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 9
+  },
+  {
+   "formula": "(CuOH)2CO3",
+   "formulaUnicode": "(CuOH)₂CO₃",
+   "nameRu": "гидроксокарбонат меди(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "1",
+    "2",
+    "41"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "Al2O3",
+   "formulaUnicode": "Al₂O₃",
+   "nameRu": "оксид алюминия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "al2o3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "3",
+    "5",
+    "20",
+    "37"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "BaO",
+   "formulaUnicode": "BaO",
+   "nameRu": "оксид бария",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "bao",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 10
+  },
+  {
+   "formula": "BaO2",
+   "formulaUnicode": "BaO₂",
+   "nameRu": "пероксид бария",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 10
+  },
+  {
+   "formula": "CaCO3",
+   "formulaUnicode": "CaCO₃",
+   "nameRu": "карбонат кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ca_co3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "1",
+    "2",
+    "27",
+    "28",
+    "32",
+    "34",
+    "43"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "CO",
+   "formulaUnicode": "CO",
+   "nameRu": "оксид углерода(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "co",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "19",
+    "25",
+    "26",
+    "34",
+    "35",
+    "40",
+    "41"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "history",
+    "table",
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "CO2",
+   "formulaUnicode": "CO₂",
+   "nameRu": "оксид углерода(IV)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "co2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "5",
+    "17",
+    "19",
+    "25",
+    "26",
+    "27",
+    "28",
+    "32",
+    "34",
+    "35",
+    "37",
+    "39",
+    "41",
+    "43",
+    "44"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "FeSO4·7H2O",
+   "formulaUnicode": "FeSO₄·7H₂O",
+   "nameRu": "железный купорос",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "1",
+    "32"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "H2O2",
+   "formulaUnicode": "H₂O₂",
+   "nameRu": "пероксид водорода",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "h2o2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "18",
+    "20",
+    "29",
+    "33"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "HNO3",
+   "formulaUnicode": "HNO₃",
+   "nameRu": "азотная кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "hno3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "1",
+    "2",
+    "20",
+    "27",
+    "30",
+    "32",
+    "34",
+    "35",
+    "37",
+    "38",
+    "39",
+    "41",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "figure",
+    "lab",
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "N2O",
+   "formulaUnicode": "N₂O",
+   "nameRu": "оксид азота(I)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "n2o",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "20",
+    "38",
+    "39"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "Na2O",
+   "formulaUnicode": "Na₂O",
+   "nameRu": "оксид натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "na2o",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "3",
+    "4",
+    "5",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "Na2O2",
+   "formulaUnicode": "Na₂O₂",
+   "nameRu": "пероксид натрия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "na2o2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "4"
+   ],
+   "roles": [
+    "studied",
+    "obtained"
+   ],
+   "contexts": [],
+   "firstPage": 10
+  },
+  {
+   "formula": "NO",
+   "formulaUnicode": "NO",
+   "nameRu": "оксид азота(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "no",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "20",
+    "34",
+    "35",
+    "36",
+    "37",
+    "38",
+    "39"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "Sb2O3",
+   "formulaUnicode": "Sb₂O₃",
+   "nameRu": "оксид сурьмы(III)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 10
+  },
+  {
+   "formula": "SiO2",
+   "formulaUnicode": "SiO₂",
+   "nameRu": "оксид кремния(IV)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "sio2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "1",
+    "2",
+    "5",
+    "18",
+    "28",
+    "40",
+    "41"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "history",
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "SO3",
+   "formulaUnicode": "SO₃",
+   "nameRu": "оксид серы(VI)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "so3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "5",
+    "13",
+    "21",
+    "29",
+    "31",
+    "33",
+    "34",
+    "35",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "ZnO",
+   "formulaUnicode": "ZnO",
+   "nameRu": "оксид цинка",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "zno",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "3",
+    "27",
+    "31",
+    "32"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 10
+  },
+  {
+   "formula": "Al",
+   "formulaUnicode": "Al",
+   "nameRu": "алюминий",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Al",
+   "sections": [
+    "2",
+    "3",
+    "15",
+    "17",
+    "18",
+    "20",
+    "29",
+    "32",
+    "35"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 11
+  },
+  {
+   "formula": "C",
+   "formulaUnicode": "C",
+   "nameRu": "углерод",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "C",
+   "sections": [
+    "2",
+    "3",
+    "17",
+    "18",
+    "21",
+    "32",
+    "34",
+    "40",
+    "41"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "history",
+    "text"
+   ],
+   "firstPage": 11
+  },
+  {
+   "formula": "C2H2",
+   "formulaUnicode": "C₂H₂",
+   "nameRu": "ацетилен",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "organic",
+   "catalogId": "acetylene",
+   "catalogSource": "organic",
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 11
+  },
+  {
+   "formula": "CH4",
+   "formulaUnicode": "CH₄",
+   "nameRu": "метан",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "organic",
+   "catalogId": "methane",
+   "catalogSource": "organic",
+   "sections": [
+    "2",
+    "5",
+    "15",
+    "18",
+    "21",
+    "25",
+    "26"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "exercise"
+   ],
+   "firstPage": 11
+  },
+  {
+   "formula": "Cu",
+   "formulaUnicode": "Cu",
+   "nameRu": "медь",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Cu",
+   "sections": [
+    "2",
+    "15",
+    "17",
+    "18",
+    "19",
+    "20",
+    "23",
+    "26",
+    "27",
+    "28",
+    "31",
+    "32",
+    "33",
+    "35",
+    "36",
+    "38",
+    "39",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "lab",
+    "table",
+    "text"
+   ],
+   "firstPage": 11
+  },
+  {
+   "formula": "Mn2O7",
+   "formulaUnicode": "Mn₂O₇",
+   "nameRu": "оксид марганца(VII)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 11
+  },
+  {
+   "formula": "N2",
+   "formulaUnicode": "N₂",
+   "nameRu": "азот",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "N",
+   "sections": [
+    "2",
+    "14",
+    "15",
+    "17",
+    "18",
+    "20",
+    "21",
+    "25",
+    "35",
+    "36",
+    "37",
+    "38",
+    "39"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "text"
+   ],
+   "firstPage": 11
+  },
+  {
+   "formula": "P",
+   "formulaUnicode": "P",
+   "nameRu": "фосфор",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "P",
+   "sections": [
+    "2",
+    "18",
+    "19",
+    "20",
+    "21",
+    "26",
+    "36",
+    "40",
+    "41"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "table",
+    "text"
+   ],
+   "firstPage": 11
+  },
+  {
+   "formula": "PH3",
+   "formulaUnicode": "PH₃",
+   "nameRu": "фосфин",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2",
+    "5",
+    "15",
+    "20",
+    "40",
+    "41"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 11
+  },
+  {
+   "formula": "S",
+   "formulaUnicode": "S",
+   "nameRu": "сера",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "S",
+   "sections": [
+    "2",
+    "3",
+    "18",
+    "19",
+    "20",
+    "21",
+    "29",
+    "30",
+    "31",
+    "32",
+    "33",
+    "35",
+    "40",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 11
+  },
+  {
+   "formula": "Al(OH)3",
+   "formulaUnicode": "Al(OH)₃",
+   "nameRu": "гидроксид алюминия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "al_oh_3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "5",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 12
+  },
+  {
+   "formula": "AlCl3",
+   "formulaUnicode": "AlCl₃",
+   "nameRu": "хлорид алюминия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_al_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "20",
+    "35"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "lab"
+   ],
+   "contexts": [
+    "lab"
+   ],
+   "firstPage": 12
+  },
+  {
+   "formula": "Ba(OH)2",
+   "formulaUnicode": "Ba(OH)₂",
+   "nameRu": "гидроксид бария",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "ba_oh_2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 12
+  },
+  {
+   "formula": "Ca(OH)2",
+   "formulaUnicode": "Ca(OH)₂",
+   "nameRu": "гашеная известь",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "ca_oh_2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "17",
+    "27",
+    "28",
+    "37",
+    "39",
+    "41",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "lab"
+   ],
+   "contexts": [
+    "example",
+    "lab",
+    "text"
+   ],
+   "firstPage": 12
+  },
+  {
+   "formula": "Cr(OH)2",
+   "formulaUnicode": "Cr(OH)₂",
+   "nameRu": "гидроксид хрома(II)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 12
+  },
+  {
+   "formula": "Cr(OH)3",
+   "formulaUnicode": "Cr(OH)₃",
+   "nameRu": "гидроксид хрома(III)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 12
+  },
+  {
+   "formula": "Cu(OH)2",
+   "formulaUnicode": "Cu(OH)₂",
+   "nameRu": "гидроксид меди(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "cu_oh_2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "27",
+    "28",
+    "32",
+    "41",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 12
+  },
+  {
+   "formula": "Fe(OH)2",
+   "formulaUnicode": "Fe(OH)₂",
+   "nameRu": "гидроксид железа(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "fe_oh_2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 12
+  },
+  {
+   "formula": "KOH",
+   "formulaUnicode": "KOH",
+   "nameRu": "гидроксид калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "koh",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "4",
+    "17",
+    "23",
+    "27",
+    "28",
+    "30",
+    "32",
+    "33",
+    "41",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "text"
+   ],
+   "firstPage": 12
+  },
+  {
+   "formula": "NaOH",
+   "formulaUnicode": "NaOH",
+   "nameRu": "гидроксид натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "naoh",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "3",
+    "4",
+    "5",
+    "17",
+    "23",
+    "24",
+    "26",
+    "27",
+    "31",
+    "32",
+    "33",
+    "34",
+    "35",
+    "37",
+    "41",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 12
+  },
+  {
+   "formula": "Zn(OH)2",
+   "formulaUnicode": "Zn(OH)₂",
+   "formulaVariants": [
+    "Zn(OH)2",
+    "H2ZnO2"
+   ],
+   "nameRu": "гидроксид цинка",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "zn_oh_2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "3",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "lab"
+   ],
+   "contexts": [
+    "lab"
+   ],
+   "firstPage": 12
+  },
+  {
+   "formula": "Ca",
+   "formulaUnicode": "Ca",
+   "nameRu": "кальций",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Ca",
+   "sections": [
+    "2",
+    "20",
+    "28",
+    "40"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "contexts": [
+    "example",
+    "text"
+   ],
+   "firstPage": 13
+  },
+  {
+   "formula": "CaO",
+   "formulaUnicode": "CaO",
+   "nameRu": "оксид кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "cao",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "16",
+    "26",
+    "27",
+    "28",
+    "30",
+    "31",
+    "34",
+    "41"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "text"
+   ],
+   "firstPage": 13
+  },
+  {
+   "formula": "Fe2O3",
+   "formulaUnicode": "Fe₂O₃",
+   "nameRu": "оксид железа(III)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "fe2o3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "19",
+    "20",
+    "31",
+    "35",
+    "lab"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 13
+  },
+  {
+   "formula": "FeO",
+   "formulaUnicode": "FeO",
+   "nameRu": "оксид железа(II)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "feo",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "19"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 13
+  },
+  {
+   "formula": "H2CO3",
+   "formulaUnicode": "H₂CO₃",
+   "nameRu": "угольная кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "h2co3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "27"
+   ],
+   "roles": [
+    "studied",
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 13
+  },
+  {
+   "formula": "H2O",
+   "formulaUnicode": "H₂O",
+   "nameRu": "вода",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "h2o",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "13",
+    "14",
+    "15",
+    "17",
+    "19",
+    "20",
+    "21",
+    "22",
+    "23",
+    "24",
+    "25",
+    "26",
+    "27",
+    "28",
+    "30",
+    "31",
+    "32",
+    "33",
+    "34",
+    "35",
+    "36",
+    "37",
+    "38",
+    "39",
+    "41",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 13
+  },
+  {
+   "formula": "H2SiO3",
+   "formulaUnicode": "H₂SiO₃",
+   "nameRu": "кремниевая кислота",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "h2sio3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "5"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 13
+  },
+  {
+   "formula": "H2SO3",
+   "formulaUnicode": "H₂SO₃",
+   "nameRu": "сернистая кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "h2so3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "3",
+    "20",
+    "30",
+    "31",
+    "34"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 13
+  },
+  {
+   "formula": "H3PO4",
+   "formulaUnicode": "H₃PO₄",
+   "nameRu": "фосфорная кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "h3po4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "5",
+    "18",
+    "32",
+    "41",
+    "43"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "text"
+   ],
+   "firstPage": 13
+  },
+  {
+   "formula": "HBr",
+   "formulaUnicode": "HBr",
+   "nameRu": "бромоводородная кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "hbr",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "4",
+    "15",
+    "28"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 13
+  },
+  {
+   "formula": "HCl",
+   "formulaUnicode": "HCl",
+   "nameRu": "соляная кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "hcl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "3",
+    "4",
+    "5",
+    "14",
+    "15",
+    "17",
+    "20",
+    "21",
+    "22",
+    "23",
+    "24",
+    "26",
+    "27",
+    "28",
+    "30",
+    "31",
+    "32",
+    "34",
+    "35",
+    "37",
+    "39",
+    "41",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 13
+  },
+  {
+   "formula": "HI",
+   "formulaUnicode": "HI",
+   "nameRu": "йодоводородная кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "hi",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "4",
+    "15",
+    "28"
+   ],
+   "roles": [
+    "studied",
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 13
+  },
+  {
+   "formula": "Li2O",
+   "formulaUnicode": "Li₂O",
+   "nameRu": "оксид лития",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "li2o",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "4",
+    "5",
+    "15",
+    "16"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 13
+  },
+  {
+   "formula": "Mn2O3",
+   "formulaUnicode": "Mn₂O₃",
+   "nameRu": "оксид марганца(III)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 13
+  },
+  {
+   "formula": "SnO",
+   "formulaUnicode": "SnO",
+   "nameRu": "оксид олова(II)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 13
+  },
+  {
+   "formula": "SrO",
+   "formulaUnicode": "SrO",
+   "nameRu": "оксид стронция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "sro",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "13"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 13
+  },
+  {
+   "formula": "As2O5",
+   "formulaUnicode": "As₂O₅",
+   "nameRu": "оксид мышьяка(V)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2",
+    "13"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 14
+  },
+  {
+   "formula": "CrO3",
+   "formulaUnicode": "CrO₃",
+   "nameRu": "оксид хрома(VI)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "cro3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "3",
+    "20",
+    "26"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 14
+  },
+  {
+   "formula": "H2",
+   "formulaUnicode": "H₂",
+   "nameRu": "водород",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "H",
+   "sections": [
+    "2",
+    "3",
+    "4",
+    "14",
+    "15",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "23",
+    "24",
+    "25",
+    "26",
+    "27",
+    "28",
+    "29",
+    "30",
+    "32",
+    "33",
+    "34",
+    "35",
+    "36",
+    "37",
+    "40",
+    "41",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "text"
+   ],
+   "firstPage": 14
+  },
+  {
+   "formula": "Zn",
+   "formulaUnicode": "Zn",
+   "nameRu": "цинк",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Zn",
+   "sections": [
+    "2",
+    "3",
+    "15",
+    "17",
+    "20",
+    "27",
+    "29",
+    "32",
+    "34",
+    "35",
+    "39",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 14
+  },
+  {
+   "formula": "ZnCl2",
+   "formulaUnicode": "ZnCl₂",
+   "nameRu": "хлорид цинка",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_zn_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "3",
+    "4",
+    "27",
+    "28",
+    "lab"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "text"
+   ],
+   "firstPage": 14
+  },
+  {
+   "formula": "Al(OH)2Cl",
+   "formulaUnicode": "Al(OH)₂Cl",
+   "nameRu": "дигидроксохлорид алюминия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 15
+  },
+  {
+   "formula": "Al2(SO4)3",
+   "formulaUnicode": "Al₂(SO₄)₃",
+   "nameRu": "сульфат алюминия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_al_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "32",
+    "35",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "text"
+   ],
+   "firstPage": 15
+  },
+  {
+   "formula": "Ba(NO3)2",
+   "formulaUnicode": "Ba(NO₃)₂",
+   "nameRu": "нитрат бария",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ba_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "32",
+    "35"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "exercise"
+   ],
+   "firstPage": 15
+  },
+  {
+   "formula": "Ca(H2PO4)2",
+   "formulaUnicode": "Ca(H₂PO₄)₂",
+   "nameRu": "дигидрофосфат кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2",
+    "41",
+    "42",
+    "43"
+   ],
+   "roles": [
+    "studied",
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 15
+  },
+  {
+   "formula": "Ca(HCO3)2",
+   "formulaUnicode": "Ca(HCO₃)₂",
+   "nameRu": "гидрокарбонат кальция",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ca_hco3_2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 15
+  },
+  {
+   "formula": "Ca(OH)Cl",
+   "formulaUnicode": "Ca(OH)Cl",
+   "nameRu": "гидроксохлорид кальция",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 15
+  },
+  {
+   "formula": "CaCl2",
+   "formulaUnicode": "CaCl₂",
+   "nameRu": "хлорид кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ca_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "20",
+    "27",
+    "28",
+    "34",
+    "35",
+    "37",
+    "44"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "example",
+    "lab",
+    "text"
+   ],
+   "firstPage": 15
+  },
+  {
+   "formula": "FeSO4",
+   "formulaUnicode": "FeSO₄",
+   "nameRu": "сульфат железа(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_fe2_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "20",
+    "28"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 15
+  },
+  {
+   "formula": "KAl(SO4)2",
+   "formulaUnicode": "KAl(SO₄)₂",
+   "nameRu": "квасцы",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 15
+  },
+  {
+   "formula": "KCl",
+   "formulaUnicode": "KCl",
+   "nameRu": "хлорид калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_k_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "4",
+    "19",
+    "20",
+    "22",
+    "23",
+    "27",
+    "28",
+    "34",
+    "40",
+    "41",
+    "42",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "lab",
+    "table",
+    "text"
+   ],
+   "firstPage": 15
+  },
+  {
+   "formula": "KHSO4",
+   "formulaUnicode": "KHSO₄",
+   "nameRu": "гидросульфат калия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 15
+  },
+  {
+   "formula": "Mg(OH)NO3",
+   "formulaUnicode": "Mg(OH)NO₃",
+   "nameRu": "гидроксонитрат магния",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 15
+  },
+  {
+   "formula": "NaCl",
+   "formulaUnicode": "NaCl",
+   "nameRu": "поваренная соль",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "nacl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "4",
+    "14",
+    "15",
+    "16",
+    "17",
+    "19",
+    "21",
+    "22",
+    "23",
+    "24",
+    "26",
+    "27",
+    "28",
+    "32",
+    "34",
+    "37",
+    "41",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "lab",
+    "table",
+    "text"
+   ],
+   "firstPage": 15
+  },
+  {
+   "formula": "NaHCO3",
+   "formulaUnicode": "NaHCO₃",
+   "nameRu": "гидрокарбонат натрия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_nahco3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 15
+  },
+  {
+   "formula": "NH4^+",
+   "formulaUnicode": "NH₄⁺",
+   "nameRu": "ион аммония",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2",
+    "15",
+    "37",
+    "42"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 15
+  },
+  {
+   "formula": "NH4Al(SO4)2",
+   "formulaUnicode": "NH₄Al(SO₄)₂",
+   "nameRu": "алюмоаммонийные квасцы",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 15
+  },
+  {
+   "formula": "Ca3(PO4)2",
+   "formulaUnicode": "Ca₃(PO₄)₂",
+   "nameRu": "фосфат кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2",
+    "32",
+    "40",
+    "41",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "CuCl2",
+   "formulaUnicode": "CuCl₂",
+   "nameRu": "хлорид меди(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_cu_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "23",
+    "26",
+    "27",
+    "28",
+    "30",
+    "lab"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "CuSO4",
+   "formulaUnicode": "CuSO₄",
+   "nameRu": "сульфат меди(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_cu_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "17",
+    "19",
+    "30",
+    "31",
+    "32",
+    "35",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "Fe",
+   "formulaUnicode": "Fe",
+   "nameRu": "железо",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Fe",
+   "sections": [
+    "2",
+    "15",
+    "18",
+    "19",
+    "20",
+    "23",
+    "26",
+    "27",
+    "28",
+    "29",
+    "32",
+    "33",
+    "35",
+    "39",
+    "lab"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "Fe(NO3)2",
+   "formulaUnicode": "Fe(NO₃)₂",
+   "nameRu": "нитрат железа(II)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_fe2_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "39"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "Fe(OH)3",
+   "formulaUnicode": "Fe(OH)₃",
+   "nameRu": "гидроксид железа(III)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "fe_oh_3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "35",
+    "39",
+    "lab"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "FeCl2",
+   "formulaUnicode": "FeCl₂",
+   "nameRu": "хлорид железа(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_fe2_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "27",
+    "30",
+    "35"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "FeCl3",
+   "formulaUnicode": "FeCl₃",
+   "nameRu": "хлорид железа(III)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_fe3_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "20",
+    "23",
+    "28",
+    "30",
+    "35",
+    "lab"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "Na",
+   "formulaUnicode": "Na",
+   "nameRu": "натрий",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Na",
+   "sections": [
+    "2",
+    "3",
+    "4",
+    "15",
+    "17",
+    "18",
+    "19",
+    "20",
+    "23",
+    "26",
+    "29",
+    "33",
+    "41",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "Na2SO4",
+   "formulaUnicode": "Na₂SO₄",
+   "nameRu": "сульфат натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "4",
+    "22",
+    "24",
+    "28",
+    "31",
+    "32",
+    "37",
+    "39",
+    "41",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "example",
+    "lab",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "NaH",
+   "formulaUnicode": "NaH",
+   "nameRu": "гидрид натрия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2",
+    "20"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 16
+  },
+  {
+   "formula": "NaHSO4",
+   "formulaUnicode": "NaHSO₄",
+   "nameRu": "гидросульфат натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "2",
+    "24",
+    "28",
+    "39"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "example",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "NaNO3",
+   "formulaUnicode": "NaNO₃",
+   "nameRu": "нитрат натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "27",
+    "28",
+    "30",
+    "34",
+    "35",
+    "36",
+    "39",
+    "42",
+    "43"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "table",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "NH4Cl",
+   "formulaUnicode": "NH₄Cl",
+   "nameRu": "хлорид аммония",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_nh4_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "37",
+    "39",
+    "41",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "table",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "SO2",
+   "formulaUnicode": "SO₂",
+   "nameRu": "оксид серы(IV)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "so2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "2",
+    "3",
+    "19",
+    "20",
+    "21",
+    "25",
+    "29",
+    "30",
+    "31",
+    "32",
+    "33",
+    "34",
+    "35",
+    "41"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "text"
+   ],
+   "firstPage": 16
+  },
+  {
+   "formula": "Br2",
+   "formulaUnicode": "Br₂",
+   "nameRu": "бром",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Br",
+   "sections": [
+    "3",
+    "4",
+    "15",
+    "21",
+    "22",
+    "23",
+    "28",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "text"
+   ],
+   "firstPage": 19
+  },
+  {
+   "formula": "Cl2",
+   "formulaUnicode": "Cl₂",
+   "nameRu": "хлор",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Cl",
+   "sections": [
+    "3",
+    "4",
+    "14",
+    "15",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22",
+    "23",
+    "24",
+    "25",
+    "27",
+    "28",
+    "29",
+    "30",
+    "40",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "text"
+   ],
+   "firstPage": 19
+  },
+  {
+   "formula": "Hg",
+   "formulaUnicode": "Hg",
+   "nameRu": "ртуть",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Hg",
+   "sections": [
+    "3",
+    "19",
+    "20",
+    "35"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 19
+  },
+  {
+   "formula": "I2",
+   "formulaUnicode": "I₂",
+   "nameRu": "йод",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "I",
+   "sections": [
+    "3",
+    "4",
+    "15",
+    "17",
+    "21",
+    "22",
+    "23",
+    "28",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "text"
+   ],
+   "firstPage": 19
+  },
+  {
+   "formula": "Na2ZnO2",
+   "formulaUnicode": "Na₂ZnO₂",
+   "nameRu": "цинкат натрия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "3"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [],
+   "firstPage": 19
+  },
+  {
+   "formula": "O2",
+   "formulaUnicode": "O₂",
+   "nameRu": "кислород",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "O",
+   "sections": [
+    "3",
+    "4",
+    "14",
+    "15",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22",
+    "25",
+    "26",
+    "28",
+    "29",
+    "30",
+    "31",
+    "33",
+    "34",
+    "35",
+    "36",
+    "37",
+    "38",
+    "39",
+    "40",
+    "41",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 19
+  },
+  {
+   "formula": "Si",
+   "formulaUnicode": "Si",
+   "nameRu": "кремний",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Si",
+   "sections": [
+    "3",
+    "17"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 19
+  },
+  {
+   "formula": "Be(OH)2",
+   "formulaUnicode": "Be(OH)₂",
+   "nameRu": "гидроксид бериллия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "3"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 20
+  },
+  {
+   "formula": "BeO",
+   "formulaUnicode": "BeO",
+   "nameRu": "оксид бериллия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "3",
+    "5"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 20
+  },
+  {
+   "formula": "Cr2O3",
+   "formulaUnicode": "Cr₂O₃",
+   "nameRu": "оксид хрома(III)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "cr2o3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "3",
+    "20",
+    "26",
+    "39"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 20
+  },
+  {
+   "formula": "CrO",
+   "formulaUnicode": "CrO",
+   "nameRu": "оксид хрома(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "3",
+    "20"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 20
+  },
+  {
+   "formula": "Na2BeO2",
+   "formulaUnicode": "Na₂BeO₂",
+   "nameRu": "бериллат натрия",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "3"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 20
+  },
+  {
+   "formula": "PbO",
+   "formulaUnicode": "PbO",
+   "nameRu": "оксид свинца(II)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "pbo",
+   "catalogSource": "inorganic",
+   "sections": [
+    "3"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 20
+  },
+  {
+   "formula": "Cs",
+   "formulaUnicode": "Cs",
+   "nameRu": "цезий",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Cs",
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "Cs2O",
+   "formulaUnicode": "Cs₂O",
+   "nameRu": "оксид цезия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "Cs2SO4",
+   "formulaUnicode": "Cs₂SO₄",
+   "nameRu": "сульфат цезия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_cs_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "CsCl",
+   "formulaUnicode": "CsCl",
+   "nameRu": "хлорид цезия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_cs_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "CsOH",
+   "formulaUnicode": "CsOH",
+   "nameRu": "гидроксид цезия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "csoh",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "Fr",
+   "formulaUnicode": "Fr",
+   "nameRu": "франций",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Fr",
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "K",
+   "formulaUnicode": "K",
+   "nameRu": "калий",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "K",
+   "sections": [
+    "4",
+    "15",
+    "33"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 21
+  },
+  {
+   "formula": "K2O",
+   "formulaUnicode": "K₂O",
+   "nameRu": "оксид калия (питательный элемент)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "k2o",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4",
+    "37",
+    "42",
+    "43"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 21
+  },
+  {
+   "formula": "K2O2",
+   "formulaUnicode": "K₂O₂",
+   "nameRu": "пероксид калия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "K2SO4",
+   "formulaUnicode": "K₂SO₄",
+   "nameRu": "сульфат калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_k_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4",
+    "20",
+    "22",
+    "28",
+    "35"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "example",
+    "lab"
+   ],
+   "firstPage": 21
+  },
+  {
+   "formula": "Li",
+   "formulaUnicode": "Li",
+   "nameRu": "литий",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Li",
+   "sections": [
+    "4",
+    "15",
+    "19",
+    "36"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 21
+  },
+  {
+   "formula": "Li2SO4",
+   "formulaUnicode": "Li₂SO₄",
+   "nameRu": "сульфат лития",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_li_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "LiCl",
+   "formulaUnicode": "LiCl",
+   "nameRu": "хлорид лития",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_li_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "LiOH",
+   "formulaUnicode": "LiOH",
+   "nameRu": "гидроксид лития",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "lioh",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "Rb",
+   "formulaUnicode": "Rb",
+   "nameRu": "рубидий",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Rb",
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "Rb2O",
+   "formulaUnicode": "Rb₂O",
+   "nameRu": "оксид рубидия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "Rb2SO4",
+   "formulaUnicode": "Rb₂SO₄",
+   "nameRu": "сульфат рубидия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "RbCl",
+   "formulaUnicode": "RbCl",
+   "nameRu": "хлорид рубидия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "RbOH",
+   "formulaUnicode": "RbOH",
+   "nameRu": "гидроксид рубидия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 21
+  },
+  {
+   "formula": "Br2O7",
+   "formulaUnicode": "Br₂O₇",
+   "nameRu": "оксид брома(VII)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 22
+  },
+  {
+   "formula": "Cl2O7",
+   "formulaUnicode": "Cl₂O₇",
+   "nameRu": "оксид хлора(VII)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "4",
+    "5"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 22
+  },
+  {
+   "formula": "F2",
+   "formulaUnicode": "F₂",
+   "nameRu": "фтор",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "F",
+   "sections": [
+    "4",
+    "15",
+    "21",
+    "22",
+    "25",
+    "28",
+    "29"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 22
+  },
+  {
+   "formula": "HF",
+   "formulaUnicode": "HF",
+   "nameRu": "фтороводородная кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "hf",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4",
+    "5",
+    "15",
+    "22",
+    "28"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 22
+  },
+  {
+   "formula": "I2O7",
+   "formulaUnicode": "I₂O₇",
+   "nameRu": "оксид йода(VII)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "4"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 22
+  },
+  {
+   "formula": "NaBr",
+   "formulaUnicode": "NaBr",
+   "nameRu": "бромид натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_br",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4",
+    "22",
+    "28",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "table"
+   ],
+   "firstPage": 22
+  },
+  {
+   "formula": "NaF",
+   "formulaUnicode": "NaF",
+   "nameRu": "фторид натрия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_f",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4",
+    "22"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 22
+  },
+  {
+   "formula": "NaI",
+   "formulaUnicode": "NaI",
+   "nameRu": "йодид натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_i",
+   "catalogSource": "inorganic",
+   "sections": [
+    "4",
+    "22",
+    "28",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "table"
+   ],
+   "firstPage": 22
+  },
+  {
+   "formula": "Ar",
+   "formulaUnicode": "Ar",
+   "nameRu": "аргон",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Ar",
+   "sections": [
+    "4",
+    "14",
+    "21"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 23
+  },
+  {
+   "formula": "He",
+   "formulaUnicode": "He",
+   "nameRu": "гелий",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "He",
+   "sections": [
+    "4",
+    "14",
+    "21",
+    "25",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "exercise"
+   ],
+   "firstPage": 23
+  },
+  {
+   "formula": "Kr",
+   "formulaUnicode": "Kr",
+   "nameRu": "криптон",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Kr",
+   "sections": [
+    "4",
+    "14",
+    "21",
+    "28"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 23
+  },
+  {
+   "formula": "Ne",
+   "formulaUnicode": "Ne",
+   "nameRu": "неон",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Ne",
+   "sections": [
+    "4",
+    "14",
+    "21"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 23
+  },
+  {
+   "formula": "Xe",
+   "formulaUnicode": "Xe",
+   "nameRu": "ксенон",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Xe",
+   "sections": [
+    "4",
+    "14",
+    "21",
+    "28"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 23
+  },
+  {
+   "formula": "MgO",
+   "formulaUnicode": "MgO",
+   "nameRu": "оксид магния",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "mgo",
+   "catalogSource": "inorganic",
+   "sections": [
+    "5",
+    "14",
+    "15",
+    "19",
+    "21",
+    "32"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 26
+  },
+  {
+   "formula": "HAlO2",
+   "formulaUnicode": "HAlO₂",
+   "nameRu": "метаалюминиевая кислота",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "5"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 27
+  },
+  {
+   "formula": "Mg(OH)2",
+   "formulaUnicode": "Mg(OH)₂",
+   "nameRu": "гидроксид магния",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "mg_oh_2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "5",
+    "32"
+   ],
+   "roles": [
+    "studied",
+    "reagent"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 27
+  },
+  {
+   "formula": "B2O3",
+   "formulaUnicode": "B₂O₃",
+   "nameRu": "оксид бора",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "5"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 28
+  },
+  {
+   "formula": "N2O5",
+   "formulaUnicode": "N₂O₅",
+   "nameRu": "оксид азота(V)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "n2o5",
+   "catalogSource": "inorganic",
+   "sections": [
+    "5",
+    "21",
+    "38"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 28
+  },
+  {
+   "formula": "As",
+   "formulaUnicode": "As",
+   "nameRu": "мышьяк",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "As",
+   "sections": [
+    "13",
+    "36"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 55
+  },
+  {
+   "formula": "AsH3",
+   "formulaUnicode": "AsH₃",
+   "nameRu": "арсин",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "13"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 55
+  },
+  {
+   "formula": "Ge",
+   "formulaUnicode": "Ge",
+   "nameRu": "германий",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Ge",
+   "sections": [
+    "13",
+    "17"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 56
+  },
+  {
+   "formula": "GeCl4",
+   "formulaUnicode": "GeCl₄",
+   "nameRu": "хлорид германия(IV)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "13"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 56
+  },
+  {
+   "formula": "GeO2",
+   "formulaUnicode": "GeO₂",
+   "nameRu": "оксид германия(IV)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "13"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 56
+  },
+  {
+   "formula": "N2O3",
+   "formulaUnicode": "N₂O₃",
+   "nameRu": "оксид азота(III)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "13",
+    "38"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 60
+  },
+  {
+   "formula": "NO2",
+   "formulaUnicode": "NO₂",
+   "nameRu": "оксид азота(IV)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "no2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "13",
+    "20",
+    "21",
+    "25",
+    "34",
+    "35",
+    "38",
+    "39",
+    "41",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "table",
+    "text"
+   ],
+   "firstPage": 60
+  },
+  {
+   "formula": "Rn",
+   "formulaUnicode": "Rn",
+   "nameRu": "радон",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Rn",
+   "sections": [
+    "14",
+    "21"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 62
+  },
+  {
+   "formula": "F^-",
+   "formulaUnicode": "F⁻",
+   "nameRu": "ион фтора",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "14",
+    "16",
+    "22",
+    "28"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 63
+  },
+  {
+   "formula": "Na^+",
+   "formulaUnicode": "Na⁺",
+   "nameRu": "ион натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "14",
+    "17"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 63
+  },
+  {
+   "formula": "BaCl2",
+   "formulaUnicode": "BaCl₂",
+   "nameRu": "хлорид бария",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ba_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "15",
+    "32",
+    "35",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "lab",
+    "table",
+    "text"
+   ],
+   "firstPage": 66
+  },
+  {
+   "formula": "CaF2",
+   "formulaUnicode": "CaF₂",
+   "nameRu": "плавиковый шпат",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ca_f",
+   "catalogSource": "inorganic",
+   "sections": [
+    "15",
+    "22",
+    "28"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 66
+  },
+  {
+   "formula": "K2S",
+   "formulaUnicode": "K₂S",
+   "nameRu": "сульфид калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_k_s",
+   "catalogSource": "inorganic",
+   "sections": [
+    "15",
+    "16",
+    "30",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 66
+  },
+  {
+   "formula": "PCl3",
+   "formulaUnicode": "PCl₃",
+   "nameRu": "хлорид фосфора(III)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "15",
+    "40"
+   ],
+   "roles": [
+    "studied",
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 66
+  },
+  {
+   "formula": "PCl5",
+   "formulaUnicode": "PCl₅",
+   "nameRu": "хлорид фосфора(V)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "15"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 66
+  },
+  {
+   "formula": "H^+",
+   "formulaUnicode": "H⁺",
+   "nameRu": "ион водорода",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "15",
+    "37",
+    "39",
+    "41"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 70
+  },
+  {
+   "formula": "H3O^+",
+   "formulaUnicode": "H₃O⁺",
+   "nameRu": "ион гидроксония",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "15"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [],
+   "firstPage": 70
+  },
+  {
+   "formula": "LiF",
+   "formulaUnicode": "LiF",
+   "nameRu": "фторид лития",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_li_f",
+   "catalogSource": "inorganic",
+   "sections": [
+    "16",
+    "20"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 71
+  },
+  {
+   "formula": "Cl^-",
+   "formulaUnicode": "Cl⁻",
+   "nameRu": "хлорид-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "16",
+    "17",
+    "22",
+    "27",
+    "28",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "table",
+    "text"
+   ],
+   "firstPage": 72
+  },
+  {
+   "formula": "K^+",
+   "formulaUnicode": "K⁺",
+   "nameRu": "ион калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "16",
+    "42"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 72
+  },
+  {
+   "formula": "CaI2",
+   "formulaUnicode": "CaI₂",
+   "nameRu": "йодид кальция",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ca_i",
+   "catalogSource": "inorganic",
+   "sections": [
+    "16",
+    "22"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 73
+  },
+  {
+   "formula": "KBr",
+   "formulaUnicode": "KBr",
+   "nameRu": "бромид калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_k_br",
+   "catalogSource": "inorganic",
+   "sections": [
+    "16",
+    "22",
+    "23",
+    "28"
+   ],
+   "roles": [
+    "studied",
+    "reagent"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 73
+  },
+  {
+   "formula": "Mg^2+",
+   "formulaUnicode": "Mg²⁺",
+   "nameRu": "ион магния",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "16"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 73
+  },
+  {
+   "formula": "Na2S",
+   "formulaUnicode": "Na₂S",
+   "nameRu": "сульфид натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_s",
+   "catalogSource": "inorganic",
+   "sections": [
+    "16",
+    "20",
+    "21",
+    "27",
+    "29",
+    "30",
+    "35"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 73
+  },
+  {
+   "formula": "B",
+   "formulaUnicode": "B",
+   "nameRu": "бор",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "B",
+   "sections": [
+    "17"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 74
+  },
+  {
+   "formula": "KNO3",
+   "formulaUnicode": "KNO₃",
+   "nameRu": "нитрат калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_k_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "17",
+    "19",
+    "30",
+    "39",
+    "42",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "reagent",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "table",
+    "text"
+   ],
+   "firstPage": 74
+  },
+  {
+   "formula": "P4",
+   "formulaUnicode": "P₄",
+   "nameRu": "белый фосфор",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "P",
+   "sections": [
+    "17",
+    "20",
+    "25",
+    "40",
+    "41"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "text"
+   ],
+   "firstPage": 74
+  },
+  {
+   "formula": "S8",
+   "formulaUnicode": "S₈",
+   "nameRu": "ромбическая сера",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "S",
+   "sections": [
+    "17",
+    "29"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 74
+  },
+  {
+   "formula": "Au",
+   "formulaUnicode": "Au",
+   "nameRu": "золото",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Au",
+   "sections": [
+    "17",
+    "28",
+    "32",
+    "39"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 75
+  },
+  {
+   "formula": "Ba",
+   "formulaUnicode": "Ba",
+   "nameRu": "барий",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Ba",
+   "sections": [
+    "17"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 75
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "сахар",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "17",
+    "32",
+    "42"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 76
+  },
+  {
+   "formula": "Al^3+",
+   "formulaUnicode": "Al³⁺",
+   "nameRu": "ион алюминия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "18"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 77
+  },
+  {
+   "formula": "Al2S3",
+   "formulaUnicode": "Al₂S₃",
+   "nameRu": "сульфид алюминия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_al_s",
+   "catalogSource": "inorganic",
+   "sections": [
+    "18",
+    "29"
+   ],
+   "roles": [
+    "studied",
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 77
+  },
+  {
+   "formula": "S^2-",
+   "formulaUnicode": "S²⁻",
+   "nameRu": "сульфид-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "18",
+    "30"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 77
+  },
+  {
+   "formula": "SO4^2-",
+   "formulaUnicode": "SO₄²⁻",
+   "nameRu": "сульфат-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "18",
+    "32",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "lab",
+    "text"
+   ],
+   "firstPage": 77
+  },
+  {
+   "formula": "Mg",
+   "formulaUnicode": "Mg",
+   "nameRu": "магний",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Mg",
+   "sections": [
+    "18",
+    "19",
+    "36",
+    "39"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 78
+  },
+  {
+   "formula": "O3",
+   "formulaUnicode": "O₃",
+   "nameRu": "озон",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "O",
+   "sections": [
+    "18",
+    "35",
+    "lab"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "exercise"
+   ],
+   "firstPage": 78
+  },
+  {
+   "formula": "BeCl2",
+   "formulaUnicode": "BeCl₂",
+   "nameRu": "хлорид бериллия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "18"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 79
+  },
+  {
+   "formula": "ClF3",
+   "formulaUnicode": "ClF₃",
+   "nameRu": "трифторид хлора",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "18"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 79
+  },
+  {
+   "formula": "FeS2",
+   "formulaUnicode": "FeS₂",
+   "nameRu": "пирит",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "fes2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "18",
+    "20",
+    "29",
+    "31",
+    "32",
+    "35",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "figure",
+    "lab",
+    "text"
+   ],
+   "firstPage": 79
+  },
+  {
+   "formula": "HMnO4",
+   "formulaUnicode": "HMnO₄",
+   "nameRu": "марганцовая кислота",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "hmno4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "18"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 79
+  },
+  {
+   "formula": "K2Cr2O7",
+   "formulaUnicode": "K₂Cr₂O₇",
+   "nameRu": "дихромат калия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_k2cr2o7",
+   "catalogSource": "inorganic",
+   "sections": [
+    "18",
+    "20"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 79
+  },
+  {
+   "formula": "XeO4",
+   "formulaUnicode": "XeO₄",
+   "nameRu": "оксид ксенона(VIII)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "18"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 79
+  },
+  {
+   "formula": "AgCl",
+   "formulaUnicode": "AgCl",
+   "nameRu": "хлорид серебра",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ag_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "19",
+    "27",
+    "28",
+    "34"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "table",
+    "text"
+   ],
+   "firstPage": 82
+  },
+  {
+   "formula": "AgNO3",
+   "formulaUnicode": "AgNO₃",
+   "nameRu": "нитрат серебра",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ag_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "19",
+    "27",
+    "28",
+    "34",
+    "39",
+    "41",
+    "lab"
+   ],
+   "roles": [
+    "reagent",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "table",
+    "text"
+   ],
+   "firstPage": 82
+  },
+  {
+   "formula": "HgO",
+   "formulaUnicode": "HgO",
+   "nameRu": "оксид ртути(II)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "19",
+    "20"
+   ],
+   "roles": [
+    "obtained",
+    "reagent"
+   ],
+   "contexts": [],
+   "firstPage": 82
+  },
+  {
+   "formula": "LiH",
+   "formulaUnicode": "LiH",
+   "nameRu": "гидрид лития",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "19"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [],
+   "firstPage": 82
+  },
+  {
+   "formula": "Al(NO3)3",
+   "formulaUnicode": "Al(NO₃)₃",
+   "nameRu": "нитрат алюминия",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "salt",
+   "catalogId": "salt_al_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "20"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [],
+   "firstPage": 83
+  },
+  {
+   "formula": "Cr2(SO4)3",
+   "formulaUnicode": "Cr₂(SO₄)₃",
+   "nameRu": "сульфат хрома(III)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_cr_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "20"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [],
+   "firstPage": 84
+  },
+  {
+   "formula": "K2MnO4",
+   "formulaUnicode": "K₂MnO₄",
+   "nameRu": "манганат калия",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "20"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [],
+   "firstPage": 84
+  },
+  {
+   "formula": "KClO3",
+   "formulaUnicode": "KClO₃",
+   "nameRu": "бертолетова соль",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_k_clo3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "20",
+    "23",
+    "27",
+    "28",
+    "34",
+    "40",
+    "41"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 84
+  },
+  {
+   "formula": "MnO2",
+   "formulaUnicode": "MnO₂",
+   "nameRu": "оксид марганца(IV)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": "mno2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "20",
+    "23",
+    "24",
+    "28",
+    "33",
+    "39"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "example",
+    "exercise",
+    "text"
+   ],
+   "firstPage": 84
+  },
+  {
+   "formula": "Cu(NO3)2",
+   "formulaUnicode": "Cu(NO₃)₂",
+   "nameRu": "нитрат меди(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_cu_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "20",
+    "38",
+    "39",
+    "41"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "exercise",
+    "lab",
+    "text"
+   ],
+   "firstPage": 85
+  },
+  {
+   "formula": "Fe2(SO4)3",
+   "formulaUnicode": "Fe₂(SO₄)₃",
+   "nameRu": "сульфат железа(III)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_fe3_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "20",
+    "lab"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 85
+  },
+  {
+   "formula": "KMnO4",
+   "formulaUnicode": "KMnO₄",
+   "nameRu": "перманганат калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_k_mno4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "20",
+    "22",
+    "23",
+    "27",
+    "28"
+   ],
+   "roles": [
+    "studied",
+    "reagent"
+   ],
+   "contexts": [
+    "example",
+    "text"
+   ],
+   "firstPage": 85
+  },
+  {
+   "formula": "MnCl2",
+   "formulaUnicode": "MnCl₂",
+   "nameRu": "хлорид марганца(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_mn_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "20",
+    "23",
+    "24",
+    "27",
+    "28"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "example",
+    "text"
+   ],
+   "firstPage": 85
+  },
+  {
+   "formula": "MnSO4",
+   "formulaUnicode": "MnSO₄",
+   "nameRu": "сульфат марганца(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_mn_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "20",
+    "22",
+    "28"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "example"
+   ],
+   "firstPage": 85
+  },
+  {
+   "formula": "MgI2",
+   "formulaUnicode": "MgI₂",
+   "nameRu": "йодид магния",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_mg_i",
+   "catalogSource": "inorganic",
+   "sections": [
+    "20"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 87
+  },
+  {
+   "formula": "Zn(NO3)2",
+   "formulaUnicode": "Zn(NO₃)₂",
+   "nameRu": "нитрат цинка",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_zn_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "20"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [],
+   "firstPage": 87
+  },
+  {
+   "formula": "XeF4",
+   "formulaUnicode": "XeF₄",
+   "nameRu": "тетрафторид ксенона",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "21"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 90
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "апатит",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "22"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 92
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "фосфориты",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "22"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 92
+  },
+  {
+   "formula": "MgBr2",
+   "formulaUnicode": "MgBr₂",
+   "nameRu": "бромид магния",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_mg_br",
+   "catalogSource": "inorganic",
+   "sections": [
+    "22"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 92
+  },
+  {
+   "formula": "Br^-",
+   "formulaUnicode": "Br⁻",
+   "nameRu": "бромид-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "22",
+    "28"
+   ],
+   "roles": [
+    "studied",
+    "reagent"
+   ],
+   "contexts": [
+    "table"
+   ],
+   "firstPage": 93
+  },
+  {
+   "formula": "KI",
+   "formulaUnicode": "KI",
+   "nameRu": "йодид калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_k_i",
+   "catalogSource": "inorganic",
+   "sections": [
+    "22",
+    "28"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 93
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "бензин",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "22"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 94
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "керосин",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "22"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 94
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "спирты",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "22"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 94
+  },
+  {
+   "formula": "C3H6O",
+   "formulaUnicode": "C₃H₆O",
+   "nameRu": "ацетон",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": "acetone",
+   "catalogSource": "organic",
+   "sections": [
+    "22"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [],
+   "firstPage": 94
+  },
+  {
+   "formula": "C6H6",
+   "formulaUnicode": "C₆H₆",
+   "nameRu": "бензол",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": "benzene",
+   "catalogSource": "organic",
+   "sections": [
+    "22",
+    "lab"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab"
+   ],
+   "firstPage": 94
+  },
+  {
+   "formula": "I^-",
+   "formulaUnicode": "I⁻",
+   "nameRu": "йодид-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "22",
+    "28"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "table"
+   ],
+   "firstPage": 95
+  },
+  {
+   "formula": "KCl·MgCl2·6H2O",
+   "formulaUnicode": "KCl·MgCl₂·6H₂O",
+   "nameRu": "карналлит",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "23",
+    "27"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 96
+  },
+  {
+   "formula": "KCl·MgSO4·3H2O",
+   "formulaUnicode": "KCl·MgSO₄·3H₂O",
+   "formulaVariants": [
+    "KCl·MgSO4·3H2O",
+    "MgSO4·KCl·3H2O"
+   ],
+   "nameRu": "каинит",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "23",
+    "27",
+    "43"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 96
+  },
+  {
+   "formula": "KCl·NaCl",
+   "formulaUnicode": "KCl·NaCl",
+   "nameRu": "сильвинит",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "23",
+    "27",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "table",
+    "text"
+   ],
+   "firstPage": 96
+  },
+  {
+   "formula": "MgCl2·6H2O",
+   "formulaUnicode": "MgCl₂·6H₂O",
+   "nameRu": "бишофит",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "23"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [],
+   "firstPage": 96
+  },
+  {
+   "formula": "HClO",
+   "formulaUnicode": "HClO",
+   "nameRu": "хлорноватистая кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "hclo",
+   "catalogSource": "inorganic",
+   "sections": [
+    "23",
+    "27"
+   ],
+   "roles": [
+    "studied",
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 97
+  },
+  {
+   "formula": "Sb",
+   "formulaUnicode": "Sb",
+   "nameRu": "сурьма",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Sb",
+   "sections": [
+    "23",
+    "36"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 97
+  },
+  {
+   "formula": "SbCl3",
+   "formulaUnicode": "SbCl₃",
+   "nameRu": "хлорид сурьмы(III)",
+   "nameInBook": false,
+   "formulaInBook": false,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "23"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [],
+   "firstPage": 97
+  },
+  {
+   "formula": "KClO",
+   "formulaUnicode": "KClO",
+   "nameRu": "гипохлорит калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "23",
+    "26",
+    "27",
+    "28"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 98
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "оксид свинца",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "26"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 113
+  },
+  {
+   "formula": "AlPO4",
+   "formulaUnicode": "AlPO₄",
+   "nameRu": "фосфат алюминия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_al_po4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "26"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 113
+  },
+  {
+   "formula": "HPO3",
+   "formulaUnicode": "HPO₃",
+   "nameRu": "метафосфорная кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "26",
+    "41"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 113
+  },
+  {
+   "formula": "Mg3(PO4)2",
+   "formulaUnicode": "Mg₃(PO₄)₂",
+   "nameRu": "фосфат магния",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "26"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 113
+  },
+  {
+   "formula": "Pb(OH)2",
+   "formulaUnicode": "Pb(OH)₂",
+   "nameRu": "гидроксид свинца(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "26"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 113
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "лакмус",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 115
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "метилоранж",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 115
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "фенолфталеин",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "27",
+    "39",
+    "lab"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "lab",
+    "text"
+   ],
+   "firstPage": 115
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "каменная соль",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 116
+  },
+  {
+   "formula": "CuCl",
+   "formulaUnicode": "CuCl",
+   "nameRu": "хлорид меди(I)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 117
+  },
+  {
+   "formula": "HgCl2",
+   "formulaUnicode": "HgCl₂",
+   "nameRu": "хлорид ртути(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 117
+  },
+  {
+   "formula": "NaClO",
+   "formulaUnicode": "NaClO",
+   "nameRu": "гипохлорит натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 117
+  },
+  {
+   "formula": "NaClO2",
+   "formulaUnicode": "NaClO₂",
+   "nameRu": "хлорит натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_clo2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 117
+  },
+  {
+   "formula": "NaClO3",
+   "formulaUnicode": "NaClO₃",
+   "nameRu": "хлорат натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_clo3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 117
+  },
+  {
+   "formula": "O",
+   "formulaUnicode": "O",
+   "nameRu": "атомарный кислород",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "O",
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 117
+  },
+  {
+   "formula": "PbCl2",
+   "formulaUnicode": "PbCl₂",
+   "nameRu": "хлорид свинца(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_pb_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "27",
+    "28"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "table",
+    "text"
+   ],
+   "firstPage": 117
+  },
+  {
+   "formula": "Ca(ClO)2",
+   "formulaUnicode": "Ca(ClO)₂",
+   "nameRu": "гипохлорит кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 118
+  },
+  {
+   "formula": "CaOCl2",
+   "formulaUnicode": "CaOCl₂",
+   "nameRu": "хлорная известь",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 118
+  },
+  {
+   "formula": "HClO2",
+   "formulaUnicode": "HClO₂",
+   "nameRu": "хлористая кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 118
+  },
+  {
+   "formula": "HClO3",
+   "formulaUnicode": "HClO₃",
+   "nameRu": "хлорноватая кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "hclo3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 118
+  },
+  {
+   "formula": "HClO4",
+   "formulaUnicode": "HClO₄",
+   "nameRu": "хлорная кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "hclo4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "27"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 118
+  },
+  {
+   "formula": "Ca5(PO4)3F",
+   "formulaUnicode": "Ca₅(PO₄)₃F",
+   "nameRu": "фторапатит",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28",
+    "40",
+    "41"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "figure",
+    "text"
+   ],
+   "firstPage": 119
+  },
+  {
+   "formula": "Na3[AlF6]",
+   "formulaUnicode": "Na₃[AlF₆]",
+   "nameRu": "криолит",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 119
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "чилийская селитра",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 120
+  },
+  {
+   "formula": "AgBr",
+   "formulaUnicode": "AgBr",
+   "nameRu": "бромид серебра",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ag_br",
+   "catalogSource": "inorganic",
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "table"
+   ],
+   "firstPage": 120
+  },
+  {
+   "formula": "AgI",
+   "formulaUnicode": "AgI",
+   "nameRu": "йодид серебра",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ag_i",
+   "catalogSource": "inorganic",
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "table"
+   ],
+   "firstPage": 120
+  },
+  {
+   "formula": "KIO3",
+   "formulaUnicode": "KIO₃",
+   "nameRu": "йодат калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 120
+  },
+  {
+   "formula": "NaIO3",
+   "formulaUnicode": "NaIO₃",
+   "nameRu": "йодат натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 120
+  },
+  {
+   "formula": "Pb",
+   "formulaUnicode": "Pb",
+   "nameRu": "свинец",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Pb",
+   "sections": [
+    "28",
+    "39"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 120
+  },
+  {
+   "formula": "Pb^2+",
+   "formulaUnicode": "Pb²⁺",
+   "nameRu": "ион свинца",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "contexts": [
+    "table"
+   ],
+   "firstPage": 120
+  },
+  {
+   "formula": "PbBr2",
+   "formulaUnicode": "PbBr₂",
+   "nameRu": "бромид свинца(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_pb_br",
+   "catalogSource": "inorganic",
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "table"
+   ],
+   "firstPage": 120
+  },
+  {
+   "formula": "PbI2",
+   "formulaUnicode": "PbI₂",
+   "nameRu": "йодид свинца(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_pb_i",
+   "catalogSource": "inorganic",
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "table"
+   ],
+   "firstPage": 120
+  },
+  {
+   "formula": "Pt",
+   "formulaUnicode": "Pt",
+   "nameRu": "платина",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Pt",
+   "sections": [
+    "28",
+    "32",
+    "37",
+    "39"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 120
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "тефлон",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 121
+  },
+  {
+   "formula": "ClO3^-",
+   "formulaUnicode": "ClO₃⁻",
+   "nameRu": "хлорат-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 121
+  },
+  {
+   "formula": "IO3^-",
+   "formulaUnicode": "IO₃⁻",
+   "nameRu": "йодат-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 121
+  },
+  {
+   "formula": "SiF4",
+   "formulaUnicode": "SiF₄",
+   "nameRu": "фторид кремния",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 121
+  },
+  {
+   "formula": "XeF2",
+   "formulaUnicode": "XeF₂",
+   "nameRu": "фторид ксенона(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 121
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "спиртовый раствор йода",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 122
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "фреон (хладон)",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 122
+  },
+  {
+   "formula": "Na2CO3",
+   "formulaUnicode": "Na₂CO₃",
+   "nameRu": "карбонат натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_co3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "28",
+    "39",
+    "41"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "text"
+   ],
+   "firstPage": 123
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "бромная вода",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "28"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 128
+  },
+  {
+   "formula": "MgCl2",
+   "formulaUnicode": "MgCl₂",
+   "nameRu": "хлорид магния",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_mg_cl",
+   "catalogSource": "inorganic",
+   "sections": [
+    "28",
+    "35"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 128
+  },
+  {
+   "formula": "OF2",
+   "formulaUnicode": "OF₂",
+   "nameRu": "фторид кислорода",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 129
+  },
+  {
+   "formula": "Po",
+   "formulaUnicode": "Po",
+   "nameRu": "полоний",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Po",
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 129
+  },
+  {
+   "formula": "Se",
+   "formulaUnicode": "Se",
+   "nameRu": "селен",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Se",
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 129
+  },
+  {
+   "formula": "Te",
+   "formulaUnicode": "Te",
+   "nameRu": "теллур",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Te",
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 129
+  },
+  {
+   "formula": "H2Se",
+   "formulaUnicode": "H₂Se",
+   "nameRu": "селеноводород",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 130
+  },
+  {
+   "formula": "H2Te",
+   "formulaUnicode": "H₂Te",
+   "nameRu": "теллуроводород",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 130
+  },
+  {
+   "formula": "Na2Se",
+   "formulaUnicode": "Na₂Se",
+   "nameRu": "селенид натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 130
+  },
+  {
+   "formula": "Na2Te",
+   "formulaUnicode": "Na₂Te",
+   "nameRu": "теллурид натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 130
+  },
+  {
+   "formula": "SeO2",
+   "formulaUnicode": "SeO₂",
+   "nameRu": "оксид селена(IV)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 130
+  },
+  {
+   "formula": "SeO3",
+   "formulaUnicode": "SeO₃",
+   "nameRu": "оксид селена(VI)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 130
+  },
+  {
+   "formula": "TeO2",
+   "formulaUnicode": "TeO₂",
+   "nameRu": "оксид теллура(IV)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 130
+  },
+  {
+   "formula": "TeO3",
+   "formulaUnicode": "TeO₃",
+   "nameRu": "оксид теллура(VI)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 130
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "пластическая сера",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 131
+  },
+  {
+   "formula": "CaSO4·2H2O",
+   "formulaUnicode": "CaSO₄·2H₂O",
+   "nameRu": "гипс",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29",
+    "32",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "figure",
+    "lab",
+    "text"
+   ],
+   "firstPage": 131
+  },
+  {
+   "formula": "CS2",
+   "formulaUnicode": "CS₂",
+   "nameRu": "сульфид углерода(IV)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29",
+    "40"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "table",
+    "text"
+   ],
+   "firstPage": 131
+  },
+  {
+   "formula": "Cu2S",
+   "formulaUnicode": "Cu₂S",
+   "nameRu": "медный блеск",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29",
+    "35"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "figure",
+    "text"
+   ],
+   "firstPage": 131
+  },
+  {
+   "formula": "MgSO4·7H2O",
+   "formulaUnicode": "MgSO₄·7H₂O",
+   "nameRu": "горькая соль",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "figure"
+   ],
+   "firstPage": 131
+  },
+  {
+   "formula": "Na2SO4·10H2O",
+   "formulaUnicode": "Na₂SO₄·10H₂O",
+   "nameRu": "глауберова соль",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29",
+    "32"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "figure",
+    "text"
+   ],
+   "firstPage": 131
+  },
+  {
+   "formula": "PbS",
+   "formulaUnicode": "PbS",
+   "nameRu": "сульфид свинца",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_pb_s",
+   "catalogSource": "inorganic",
+   "sections": [
+    "29",
+    "30",
+    "35"
+   ],
+   "roles": [
+    "obtained",
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "figure",
+    "text"
+   ],
+   "firstPage": 131
+  },
+  {
+   "formula": "ZnS",
+   "formulaUnicode": "ZnS",
+   "nameRu": "цинковая обманка",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_zn_s",
+   "catalogSource": "inorganic",
+   "sections": [
+    "29",
+    "31",
+    "35",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "reagent",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "figure",
+    "lab",
+    "text"
+   ],
+   "firstPage": 131
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "каучук",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "figure"
+   ],
+   "firstPage": 132
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "черный порох",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "figure"
+   ],
+   "firstPage": 132
+  },
+  {
+   "formula": "Ca(HSO3)2",
+   "formulaUnicode": "Ca(HSO₃)₂",
+   "nameRu": "гидросульфит кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "figure"
+   ],
+   "firstPage": 132
+  },
+  {
+   "formula": "FeS",
+   "formulaUnicode": "FeS",
+   "nameRu": "сульфид железа",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_fe2_s",
+   "catalogSource": "inorganic",
+   "sections": [
+    "29",
+    "30",
+    "33",
+    "35"
+   ],
+   "roles": [
+    "obtained",
+    "reagent"
+   ],
+   "contexts": [
+    "example",
+    "text"
+   ],
+   "firstPage": 132
+  },
+  {
+   "formula": "SCl2",
+   "formulaUnicode": "SCl₂",
+   "nameRu": "хлорид серы(II)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 132
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "сероводородная кислота",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "acid",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "30"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 133
+  },
+  {
+   "formula": "Li2S",
+   "formulaUnicode": "Li₂S",
+   "nameRu": "сульфид лития",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_li_s",
+   "catalogSource": "inorganic",
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 133
+  },
+  {
+   "formula": "SF6",
+   "formulaUnicode": "SF₆",
+   "nameRu": "фторид серы(VI)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "29"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 133
+  },
+  {
+   "formula": "CaS",
+   "formulaUnicode": "CaS",
+   "nameRu": "Сульфид кальция",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ca_s",
+   "catalogSource": "inorganic",
+   "sections": [
+    "30"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 134
+  },
+  {
+   "formula": "CuS",
+   "formulaUnicode": "CuS",
+   "nameRu": "сульфид меди",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_cu_s",
+   "catalogSource": "inorganic",
+   "sections": [
+    "30",
+    "35"
+   ],
+   "roles": [
+    "obtained",
+    "reagent"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 134
+  },
+  {
+   "formula": "Pb(NO3)2",
+   "formulaUnicode": "Pb(NO₃)₂",
+   "nameRu": "нитрат свинца(II)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_pb_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "30",
+    "39"
+   ],
+   "roles": [
+    "obtained",
+    "reagent"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 134
+  },
+  {
+   "formula": "Na2SO3",
+   "formulaUnicode": "Na₂SO₃",
+   "nameRu": "сульфит натрия (соль сернистой кислоты)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_so3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "31",
+    "35"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 135
+  },
+  {
+   "formula": "CaSO3",
+   "formulaUnicode": "CaSO₃",
+   "nameRu": "сульфит кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ca_so3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "31"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 136
+  },
+  {
+   "formula": "H2SO4·nSO3",
+   "formulaUnicode": "H₂SO₄·nSO₃",
+   "nameRu": "олеум",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "31",
+    "35"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 136
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "целлюлоза",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "32",
+    "42"
+   ],
+   "roles": [
+    "reagent",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 138
+  },
+  {
+   "formula": "Ag",
+   "formulaUnicode": "Ag",
+   "nameRu": "серебро",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Ag",
+   "sections": [
+    "32",
+    "39"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 138
+  },
+  {
+   "formula": "MgSO4",
+   "formulaUnicode": "MgSO₄",
+   "nameRu": "Сульфат магния",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_mg_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "32"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 138
+  },
+  {
+   "formula": "ZnSO4",
+   "formulaUnicode": "ZnSO₄",
+   "nameRu": "Сульфат цинка",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_zn_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "32",
+    "34"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 138
+  },
+  {
+   "formula": "BaSO4",
+   "formulaUnicode": "BaSO₄",
+   "nameRu": "сульфат бария",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ba_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "32",
+    "35"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "example",
+    "text"
+   ],
+   "firstPage": 139
+  },
+  {
+   "formula": "CaSO4",
+   "formulaUnicode": "CaSO₄",
+   "nameRu": "сульфат кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ca_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "32",
+    "41",
+    "43"
+   ],
+   "roles": [
+    "studied",
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 139
+  },
+  {
+   "formula": "CaSO4·0.5H2O",
+   "formulaUnicode": "CaSO₄·½H₂O",
+   "nameRu": "алебастр",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "32"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 139
+  },
+  {
+   "formula": "CuSO4·5H2O",
+   "formulaUnicode": "CuSO₄·5H₂O",
+   "nameRu": "медный купорос",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "32",
+    "35"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 139
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "известняк",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "34"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 143
+  },
+  {
+   "formula": "V2O5",
+   "formulaUnicode": "V₂O₅",
+   "nameRu": "оксид ванадия(V)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "33",
+    "35"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 143
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "оксиды железа",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "35"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 149
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "оксиды платины",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "35"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 149
+  },
+  {
+   "formula": "Bi",
+   "formulaUnicode": "Bi",
+   "nameRu": "висмут",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "elementSymbol": "Bi",
+   "sections": [
+    "36"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 155
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "белки",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "36",
+    "44"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 157
+  },
+  {
+   "formula": "Li3N",
+   "formulaUnicode": "Li₃N",
+   "nameRu": "нитрид лития",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "36"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 158
+  },
+  {
+   "formula": "Mg3N2",
+   "formulaUnicode": "Mg₃N₂",
+   "nameRu": "нитрид магния",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "36"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 158
+  },
+  {
+   "formula": "NH4OH",
+   "formulaUnicode": "NH₄OH",
+   "nameRu": "гидроксид аммония (нашатырный спирт)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "base",
+   "catalogId": "nh3_h2o",
+   "catalogSource": "inorganic",
+   "catalogMatch": "composition",
+   "sections": [
+    "37",
+    "42"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 160
+  },
+  {
+   "formula": "OH^-",
+   "formulaUnicode": "OH⁻",
+   "nameRu": "гидроксид-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "37"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 160
+  },
+  {
+   "formula": "(NH4)2HPO4",
+   "formulaUnicode": "(NH₄)₂HPO₄",
+   "nameRu": "гидрофосфат аммония",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "37",
+    "41",
+    "43"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 161
+  },
+  {
+   "formula": "(NH4)2SO4",
+   "formulaUnicode": "(NH₄)₂SO₄",
+   "nameRu": "сульфат аммония",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_nh4_so4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "37",
+    "42",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained"
+   ],
+   "contexts": [
+    "table",
+    "text"
+   ],
+   "firstPage": 161
+  },
+  {
+   "formula": "(NH4)3PO4",
+   "formulaUnicode": "(NH₄)₃PO₄",
+   "nameRu": "фосфат аммония",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_nh4_3_po4",
+   "catalogSource": "inorganic",
+   "sections": [
+    "37",
+    "41"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 161
+  },
+  {
+   "formula": "NH4H2PO4",
+   "formulaUnicode": "NH₄H₂PO₄",
+   "nameRu": "дигидрофосфат аммония",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "37",
+    "41",
+    "42",
+    "43"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 161
+  },
+  {
+   "formula": "NH4HSO4",
+   "formulaUnicode": "NH₄HSO₄",
+   "nameRu": "гидросульфат аммония",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "37"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 161
+  },
+  {
+   "formula": "NH4NO3",
+   "formulaUnicode": "NH₄NO₃",
+   "nameRu": "нитрат аммония",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_nh4_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "37",
+    "39",
+    "41",
+    "42",
+    "43",
+    "lab"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "table",
+    "text"
+   ],
+   "firstPage": 161
+  },
+  {
+   "formula": "(NH4)2CO3",
+   "formulaUnicode": "(NH₄)₂CO₃",
+   "nameRu": "карбонат аммония",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_nh4_co3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "37"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 162
+  },
+  {
+   "formula": "N2O4",
+   "formulaUnicode": "N₂O₄",
+   "nameRu": "диоксид азота (N2O4)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "38"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 163
+  },
+  {
+   "formula": "HNO2",
+   "formulaUnicode": "HNO₂",
+   "nameRu": "азотистая кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": "hno2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "38",
+    "39"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 164
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "царская водка",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "39"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 166
+  },
+  {
+   "formula": "AuCl3",
+   "formulaUnicode": "AuCl₃",
+   "nameRu": "хлорид золота(III)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "39"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 166
+  },
+  {
+   "formula": "Fe(NO3)3",
+   "formulaUnicode": "Fe(NO₃)₃",
+   "nameRu": "Нитрат железа(III)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_fe3_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "39"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 166
+  },
+  {
+   "formula": "PtCl4",
+   "formulaUnicode": "PtCl₄",
+   "nameRu": "хлорид платины(IV)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "39"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 166
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "древесина (древесная стружка)",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "39"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "figure"
+   ],
+   "firstPage": 167
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "скипидар",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "39"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 167
+  },
+  {
+   "formula": "KNO2",
+   "formulaUnicode": "KNO₂",
+   "nameRu": "нитрит калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_k_no2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "39"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 167
+  },
+  {
+   "formula": "NO3^-",
+   "formulaUnicode": "NO₃⁻",
+   "nameRu": "нитрат-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "39",
+    "42"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 168
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "лакмусовая бумажка",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "39"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "contexts": [
+    "lab"
+   ],
+   "firstPage": 169
+  },
+  {
+   "formula": "Ca(NO3)2",
+   "formulaUnicode": "Ca(NO₃)₂",
+   "nameRu": "нитрат кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ca_no3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "39",
+    "41",
+    "43"
+   ],
+   "roles": [
+    "studied",
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 169
+  },
+  {
+   "formula": "CaCN2",
+   "formulaUnicode": "CaCN₂",
+   "nameRu": "цианамид кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "39"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise"
+   ],
+   "firstPage": 173
+  },
+  {
+   "formula": "NaNO2",
+   "formulaUnicode": "NaNO₂",
+   "nameRu": "нитрит натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_no2",
+   "catalogSource": "inorganic",
+   "sections": [
+    "39"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "example"
+   ],
+   "firstPage": 173
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "нуклеиновые кислоты",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "40",
+    "44"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 174
+  },
+  {
+   "formula": "CaSiO3",
+   "formulaUnicode": "CaSiO₃",
+   "nameRu": "Силикат кальция",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_ca_sio3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "40",
+    "41"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "example",
+    "text"
+   ],
+   "firstPage": 174
+  },
+  {
+   "formula": "Ca3P2",
+   "formulaUnicode": "Ca₃P₂",
+   "nameRu": "фосфид кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "40",
+    "41"
+   ],
+   "roles": [
+    "obtained",
+    "mentioned"
+   ],
+   "contexts": [
+    "exercise",
+    "text"
+   ],
+   "firstPage": 176
+  },
+  {
+   "formula": "P2S3",
+   "formulaUnicode": "P₂S₃",
+   "nameRu": "сульфид фосфора(III)",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "40"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 176
+  },
+  {
+   "formula": "H4P2O7",
+   "formulaUnicode": "H₄P₂O₇",
+   "nameRu": "пирофосфатная кислота",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "acid",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 177
+  },
+  {
+   "formula": "P4O10",
+   "formulaUnicode": "P₄O₁₀",
+   "nameRu": "оксид фосфора(V)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "oxide",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 177
+  },
+  {
+   "formula": "Ag3PO4",
+   "formulaUnicode": "Ag₃PO₄",
+   "nameRu": "фосфат серебра",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 178
+  },
+  {
+   "formula": "CaHPO4",
+   "formulaUnicode": "CaHPO₄",
+   "nameRu": "гидрофосфат кальция",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41",
+    "43"
+   ],
+   "roles": [
+    "studied",
+    "obtained"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 178
+  },
+  {
+   "formula": "H2PO4^-",
+   "formulaUnicode": "H₂PO₄⁻",
+   "nameRu": "дигидрофосфат-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41",
+    "42"
+   ],
+   "roles": [
+    "studied",
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 178
+  },
+  {
+   "formula": "HPO4^2-",
+   "formulaUnicode": "HPO₄²⁻",
+   "nameRu": "гидрофосфат-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 178
+  },
+  {
+   "formula": "Na2HPO4",
+   "formulaUnicode": "Na₂HPO₄",
+   "nameRu": "гидрофосфат натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 178
+  },
+  {
+   "formula": "Na3PO4",
+   "formulaUnicode": "Na₃PO₄",
+   "nameRu": "фосфат натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 178
+  },
+  {
+   "formula": "NaH2PO4",
+   "formulaUnicode": "NaH₂PO₄",
+   "nameRu": "дигидрофосфат натрия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 178
+  },
+  {
+   "formula": "PO4^3-",
+   "formulaUnicode": "PO₄³⁻",
+   "nameRu": "ортофосфат-ион",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "ion",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 178
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "аденозинтрифосфат (АТФ)",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 179
+  },
+  {
+   "formula": "Ca5(PO4)3OH",
+   "formulaUnicode": "Ca₅(PO₄)₃OH",
+   "nameRu": "гидроксиапатит (костная ткань)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "figure"
+   ],
+   "firstPage": 180
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "красный фосфор (Pn)",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "figure"
+   ],
+   "firstPage": 181
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "черный фосфор",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "simple",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 181
+  },
+  {
+   "formula": "Na2SiO3",
+   "formulaUnicode": "Na₂SiO₃",
+   "nameRu": "Силикат натрия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_na_sio3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "history"
+   ],
+   "firstPage": 181
+  },
+  {
+   "formula": "NaNH4HPO4",
+   "formulaUnicode": "NaNH₄HPO₄",
+   "nameRu": "гидрофосфат натрия-аммония",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "contexts": [
+    "history"
+   ],
+   "firstPage": 181
+  },
+  {
+   "formula": "NaPO3",
+   "formulaUnicode": "NaPO₃",
+   "nameRu": "метафосфат натрия",
+   "nameInBook": false,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "history"
+   ],
+   "firstPage": 181
+  },
+  {
+   "formula": "K3PO4",
+   "formulaUnicode": "K₃PO₄",
+   "nameRu": "фосфат калия",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "41"
+   ],
+   "roles": [
+    "obtained"
+   ],
+   "contexts": [
+    "example"
+   ],
+   "firstPage": 184
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "крахмал",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "42",
+    "44"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 185
+  },
+  {
+   "formula": "Ca(H2PO4)2·2H2O",
+   "formulaUnicode": "Ca(H₂PO₄)₂·2H₂O",
+   "nameRu": "двойной суперфосфат",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "42",
+    "43"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "table",
+    "text"
+   ],
+   "firstPage": 187
+  },
+  {
+   "formula": "Ca(H2PO4)2·2H2O·CaSO4·2H2O",
+   "formulaUnicode": "Ca(H₂PO₄)₂·2H₂O·CaSO₄·2H₂O",
+   "formulaVariants": [
+    "Ca(H2PO4)2·2H2O·CaSO4·2H2O",
+    "Ca(H2PO4)2·CaSO4·4H2O"
+   ],
+   "nameRu": "простой суперфосфат",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "42",
+    "43"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "table",
+    "text"
+   ],
+   "firstPage": 187
+  },
+  {
+   "formula": "CO(NH2)2",
+   "formulaUnicode": "CO(NH₂)₂",
+   "nameRu": "карбамид (мочевина)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "42",
+    "43"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "table",
+    "text"
+   ],
+   "firstPage": 187
+  },
+  {
+   "formula": "(NH4)2HPO4·(NH4)2SO4",
+   "formulaUnicode": "(NH₄)₂HPO₄·(NH₄)₂SO₄",
+   "nameRu": "гидрофосфат аммония (в смеси с сульфатом аммония)",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "42"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "table"
+   ],
+   "firstPage": 188
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "аммиачная вода",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "43"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 189
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "кости животных (костный порошок)",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "43"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 190
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "аммофос",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "43"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 191
+  },
+  {
+   "formula": "CaHPO4·2H2O",
+   "formulaUnicode": "CaHPO₄·2H₂O",
+   "nameRu": "преципитат",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "43"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 191
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "древесная (растительная) зола",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "43"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 193
+  },
+  {
+   "formula": "K2CO3",
+   "formulaUnicode": "K₂CO₃",
+   "nameRu": "поташ",
+   "nameInBook": true,
+   "formulaInBook": true,
+   "kind": "salt",
+   "catalogId": "salt_k_co3",
+   "catalogSource": "inorganic",
+   "sections": [
+    "43"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 193
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "сахаристые вещества",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "44"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 194
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "витамин C",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "44"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 195
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "гемоглобин",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "44"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 195
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "глюконат кальция",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "44"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 195
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "соли марганца",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "44"
+   ],
+   "roles": [
+    "mentioned"
+   ],
+   "contexts": [
+    "text"
+   ],
+   "firstPage": 195
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "суперфосфат",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "salt",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "lab"
+   ],
+   "roles": [
+    "studied"
+   ],
+   "contexts": [
+    "table"
+   ],
+   "firstPage": 198
+  },
+  {
+   "formula": "CH3COOH",
+   "formulaUnicode": "CH₃COOH",
+   "nameRu": "уксусная кислота",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": "acetic-acid",
+   "catalogSource": "organic",
+   "sections": [
+    "lab"
+   ],
+   "roles": [
+    "reagent",
+    "lab"
+   ],
+   "contexts": [
+    "lab",
+    "table"
+   ],
+   "firstPage": 198
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "крахмальный клейстер",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "organic",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "lab"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "contexts": [
+    "lab"
+   ],
+   "firstPage": 202
+  },
+  {
+   "formula": null,
+   "formulaUnicode": null,
+   "nameRu": "спиртовой раствор йода",
+   "nameInBook": true,
+   "formulaInBook": false,
+   "kind": "other",
+   "catalogId": null,
+   "catalogSource": null,
+   "sections": [
+    "lab"
+   ],
+   "roles": [
+    "reagent"
+   ],
+   "contexts": [
+    "lab"
+   ],
+   "firstPage": 202
+  }
+ ]
+}

@@ -954,6 +954,56 @@ await test('oral exam pools are non-empty with rubrics for g7–g11, every chapt
   report.examPools = JSON.stringify(sizes)
 })
 
+/* ------------------------------------------- r9: гейт тождества, цитата, формулы */
+
+await test('r9: определение подвида/производного слова не выдаётся за определение термина', () => {
+  const hits: KnowledgeHitLike[] = [
+    { title: 'Полимеры', type: 'textbook', citation: '[Kimyo 10, §2.8, стр. 60]', score: 1,
+      text: 'Полимеризация – это реакция соединения одних и тех же молекул мономеров с образованием более крупных молекул полимеров.' },
+    { title: 'ATOMLAB: органика — Полимеры', type: 'card', citation: '[ATOMLAB]', score: 0.8,
+      text: 'Полимеры — это вещества из многократно повторяющихся звеньев, которые называются мономерами.' },
+  ]
+  const r = composeLocalAnswer({ query: 'Что такое полимеры?', hits, lang: 'ru', style: { channel: 'chat', noCheckQuestion: true } })
+  assert.ok(!/^Полимеризация/u.test(r.text), r.text)
+  assert.match(r.text, /Полимеры/u)
+})
+
+await test('r9: режим цитаты вместо пересказа, когда определения термина нет', () => {
+  const hits: KnowledgeHitLike[] = [
+    { title: 'Ионная связь', type: 'textbook', citation: '[Kimyo 8, §16, стр. 70]', score: 1,
+      text: 'Связь, которая возникает между ионами, называется ионной. Ионы — это заряженные частицы, образующиеся из атомов.' },
+  ]
+  const r = composeLocalAnswer({ query: 'Что такое ионы?', hits, lang: 'ru', style: { channel: 'chat', noCheckQuestion: true } })
+  assert.ok(!/называется ионной/u.test(r.sentences[0] ?? ''), r.text)
+  assert.match(r.text, /заряженные частицы/u)
+})
+
+await test('r9: en/uz без машинных связок «is a method involving …»', () => {
+  const hits: KnowledgeHitLike[] = [
+    { title: 'Валентность', type: 'textbook', citation: '[Kimyo 7, §2.6, стр. 40]', score: 1,
+      text: 'Валентность – это способность атома одного элемента присоединять определенное количество атомов другого элемента.' },
+    { title: 'glossary', type: 'glossary', score: 0, text: 'валентность\tvalency\tcore\nатом\tatom\tcore\nэлемент\telement\tcore' },
+  ]
+  for (const lang of ['en', 'uz'] as const) {
+    const q = lang === 'en' ? 'What is valency?' : 'Valentlik nima?'
+    if (lang === 'uz') hits[1] = { ...hits[1]!, text: 'валентность\tvalentlik\tcore\nатом\tatom\tcore\nэлемент\telement\tcore' }
+    const r = composeLocalAnswer({ query: q, hits, lang, style: { channel: 'chat', noCheckQuestion: true } })
+    assert.ok(!/is a (method|process|reaction) involving/iu.test(r.text), `${lang}: ${r.text}`)
+    // «способность» — не «способ»: родовое слово не может превратиться в «method» / «usul».
+    assert.ok(!/Valency is a method|Valentlik — usul/iu.test(r.text), `${lang}: ${r.text}`)
+    assert.match(r.text, /способность/u)
+    assert.ok(!/ishtirok etadigan/iu.test(r.text), `${lang}: ${r.text}`)
+  }
+})
+
+await test('r9: формула с потерянным атомом (OCR) в ответ не попадает', () => {
+  const hits: KnowledgeHitLike[] = [
+    { title: 'Каучук', type: 'textbook', citation: '[Kimyo 10, §2.11, стр. 74]', score: 1,
+      text: 'CH2=C–CH=CH2 → хлорпреновый каучук. Бутадиен-стирольный каучук получают сополимеризацией бутадиена со стиролом.' },
+  ]
+  const r = composeLocalAnswer({ query: 'Как получают каучук?', hits, lang: 'ru', style: { channel: 'chat', noCheckQuestion: true } })
+  assert.ok(!r.text.includes('CH2=C–CH=CH2'), r.text)
+})
 /* ------------------------------------------------------------------ summary */
 
 console.log('\n# Measured')
