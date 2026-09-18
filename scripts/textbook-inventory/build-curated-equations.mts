@@ -11,7 +11,7 @@ import { SCHOOL_REACTION_BANK } from '../../src/chemistry/schoolReactionBank'
 const norm = (s: string) => s.replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080)).replace(/[↑↓s]/g, '').replace(/→|=|⇄|⇌/g, '->')
 const bankByEq = new Map(SCHOOL_REACTION_BANK.map((r) => [norm(r.equationRu), r.id]))
 
-type Curated = { page: number; unit?: string; eq: string; type?: string; cond?: string | null; book?: string; exercise?: boolean }
+type Curated = { page: number; unit?: string; eq: string; type?: string; cond?: string | null; book?: string; exercise?: boolean; ionic?: boolean }
 type Unit = { unitId: string; pageStart: number | null; pageEnd: number | null; reactions: unknown[] }
 type GradeFile = { grade: number; gradeId: string; generatedAt: string; units: Unit[] }
 
@@ -54,9 +54,9 @@ for (const g of files) {
     u.reactions = list.map((r, i) => {
       const id = `r${i + 1}`
       const src = readerUnitHref(gradeId, u.unitId, { rx: id, page: u.pageStart })
-      const bankId = bankByEq.get(norm(r.eq)) ?? null
+      const bankId = r.ionic ? null : (bankByEq.get(norm(r.eq)) ?? null)
       const bankRes = bankId ? resolveReactorEquation({ reactionId: bankId }) : null
-      const res = bankRes?.ok ? bankRes : resolveReactorEquation({ equation: r.eq })
+      const res = r.ionic ? ({ ok: false, code: 'ionic' } as const) : bankRes?.ok ? bankRes : resolveReactorEquation({ equation: r.eq })
       const lab = res.ok
         ? { ok: true as const, href: bankRes?.ok && bankId ? reactorHrefForBank(bankId, { src }) : reactorHrefForEquation(r.eq, { src }) }
         : { ok: false as const, reason: res.code }
@@ -72,7 +72,7 @@ for (const g of files) {
         ...(r.exercise ? { exercise: true } : {}),
         conditions: r.cond ?? null,
         type: r.type ?? 'other',
-        isIonic: false,
+        isIonic: r.ionic === true,
         isGeneralScheme: false,
         bankId: bankRes?.ok ? bankId : null,
         lab,
