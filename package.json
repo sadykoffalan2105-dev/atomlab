@@ -59,7 +59,7 @@
     "kb:eval": "tsx scripts/kb/eval.mts",
     "kb:eval:old": "tsx scripts/kb/eval-old.mts",
     "kb:tune": "tsx scripts/kb/tune.mts",
-    "book:reader": "tsx scripts/textbook-inventory/build-book-reader.mts",
+    "book:reader": "tsx scripts/textbook-inventory/build-book-reader.mts && tsx scripts/textbook-inventory/build-curated-equations.mts",
     "test:elements-collapse": "tsx scripts/test-elements-collapse.mts",
     "test:synthesis-stability": "tsx scripts/test-synthesis-stability.mts",
     "test:lab3d-visibility": "tsx scripts/test-lab3d-visibility.mts",
@@ -76,7 +76,8 @@
     "test:homework-review": "tsx scripts/test-homework-review.mts",
     "smoke:reactor-preview": "node scripts/smoke-reactor-preview.mjs",
     "teacher:native": "node scripts/build-teacher-native.mjs",
-    "teacher:dev": "python -m teacher_service"
+    "teacher:dev": "python -m teacher_service",
+    "book:curated": "tsx scripts/textbook-inventory/build-curated-equations.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
