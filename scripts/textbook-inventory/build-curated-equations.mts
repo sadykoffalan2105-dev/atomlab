@@ -11,7 +11,7 @@ import { SCHOOL_REACTION_BANK } from '../../src/chemistry/schoolReactionBank'
 const norm = (s: string) => s.replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080)).replace(/[↑↓s]/g, '').replace(/→|=|⇄|⇌/g, '->')
 const bankByEq = new Map(SCHOOL_REACTION_BANK.map((r) => [norm(r.equationRu), r.id]))
 
-type Curated = { page: number; eq: string; type?: string; cond?: string | null; book?: string; exercise?: boolean }
+type Curated = { page: number; unit?: string; eq: string; type?: string; cond?: string | null; book?: string; exercise?: boolean }
 type Unit = { unitId: string; pageStart: number | null; pageEnd: number | null; reactions: unknown[] }
 type GradeFile = { grade: number; gradeId: string; generatedAt: string; units: Unit[] }
 
@@ -35,7 +35,9 @@ for (const g of files) {
   const byUnit = new Map<string, Curated[]>()
   const orphans: number[] = []
   for (const r of curated.reactions) {
-    const unit = out.units.find((u) => u.pageStart != null && u.pageEnd != null && r.page >= u.pageStart && r.page <= u.pageEnd)
+    const unit = r.unit
+      ? out.units.find((u) => u.unitId === r.unit)
+      : out.units.find((u) => u.pageStart != null && u.pageEnd != null && r.page >= u.pageStart && r.page <= u.pageEnd)
     if (!unit) {
       orphans.push(r.page)
       continue
