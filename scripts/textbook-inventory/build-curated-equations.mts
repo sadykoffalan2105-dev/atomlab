@@ -20,6 +20,7 @@ const SUBS = '₀₁₂₃₄₅₆₇₈₉'
 const unicode = (s: string) =>
   s
     .replace(/->/g, '→')
+    .replace(/\*/g, '·')
     .replace(/(?<=[A-Za-z\])])(\d+)/g, (d) => d.replace(/\d/g, (x) => SUBS[Number(x)]!))
     .replace(/\s+/g, ' ')
     .trim()
