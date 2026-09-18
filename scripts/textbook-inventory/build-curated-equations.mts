@@ -8,7 +8,7 @@ import { reactorHrefForBank, reactorHrefForEquation, resolveReactorEquation } fr
 import { SCHOOL_REACTION_BANK } from '../../src/chemistry/schoolReactionBank'
 
 // Банк школьных реакций: если уравнение совпадает, ссылка идёт через id банка (у него есть условия и кино-анимации).
-const norm = (s: string) => s.replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080)).replace(/[↑↓s]/g, '').replace(/→|=|⇄|⇌/g, '->')
+const norm = (s: string) => s.replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080)).replace(/[↑↓\s]/g, '').replace(/→|=|⇄|⇌/g, '->')
 const bankByEq = new Map(SCHOOL_REACTION_BANK.map((r) => [norm(r.equationRu), r.id]))
 
 type Curated = { page: number; unit?: string; eq: string; type?: string; cond?: string | null; book?: string; exercise?: boolean; ionic?: boolean }
