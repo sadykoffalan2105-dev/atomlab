@@ -135,7 +135,7 @@
     {"page":117,"eq":"H2 + F2 -> 2HF","type":"combination","cond":"идёт при комнатной температуре"},
     {"page":117,"eq":"H2 + Cl2 -> 2HCl","type":"combination","cond":"на свету, со взрывом"},
     {"page":117,"eq":"H2 + Br2 -> 2HBr","type":"combination","cond":"медленнее, чем с хлором"},
-    {"page":117,"eq":"H2 + I2 -> 2HI","type":"combination","book":"H2 + J2 ↔ 2HJ","cond":"обратимая реакция, не идёт до конца"},
+    {"page":117,"eq":"H2 + I2 <-> 2HI","type":"combination","book":"H2 + J2 ↔ 2HJ","cond":"обратимая реакция, не идёт до конца"},
     {"page":117,"eq":"H2 + S -> H2S","type":"combination","cond":"нагревание"},
     {"page":117,"eq":"3H2 + N2 -> 2NH3","type":"combination","cond":"высокая температура, катализатор (железо)"},
     {"page":117,"eq":"CuO + H2 -> Cu + H2O","type":"substitution","cond":"водород — восстановитель; нагревание"},
