@@ -14,7 +14,7 @@ import { LearnSlideDeckVisual } from './LearnSlideDeckVisual'
 import { LearnColumnPanelTools } from './LearnColumnPanelTools'
 import { LearnLessonSidebar } from './LearnLessonSidebar'
 import { LearnWorkspace } from './LearnWorkspace'
-import { LearnShellIcon, type LearnShellIconName } from './LearnShellIcon'
+import { LearnShellIcon } from './LearnShellIcon'
 import type { LearnChapter, LearnGrade, LearnSection, LearnSlide } from '../../types/learn'
 import {
   clearLastPosition,
@@ -27,34 +27,40 @@ import { learnNextSection, learnSectionPathId } from '../../data/learnCurriculum
 import { textbookSectionPage, gradeHasTextbook } from '../../data/learnTextbook'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { compoundById } from '../../data/compounds'
-import {
-  readLearnPanelLayout,
-  writeLearnPanelLayout,
-  type LearnPanelId,
-} from '../../learn/learnPanelLayoutStorage'
+import { writeLearnPanelLayout, type LearnPanelId } from '../../learn/learnPanelLayoutStorage'
 import { hasCyberDashboard } from '../../learn/learnCyberDashboard'
 import { useMediaQuery } from './book/bookUi'
 import { StudioEmptyState } from './studio/StudioKit'
-import { StudioPanelSwitch, StudioPresetBar, StudioSheet } from './studio/StudioControls'
+import { StudioColumnTabs, StudioPanelSwitch, StudioSheet, StudioWorkspaceSwitch } from './studio/StudioControls'
 import { StudioShortcutsButton } from './studio/StudioShortcuts'
 import { StudioResizer } from './studio/StudioResizer'
+import { StudioWorkspaceChooser } from './studio/StudioWorkspaceChooser'
 import { useStudioShortcuts } from './studio/useStudioShortcuts'
 import {
-  detectStudioPreset,
   readStudioPrefs,
   resizePair,
   STUDIO_DEFAULT_WIDTHS,
-  STUDIO_PANEL_ICON,
   STUDIO_PANEL_LABEL as PANEL_LABEL,
   STUDIO_PANELS,
-  STUDIO_PRESET_PANELS,
   studioGridTemplate,
   studioToneStyle,
   writeStudioPrefs,
   type StudioColumnId,
-  type StudioPreset,
   type StudioWidths,
 } from './studio/studioLayout'
+import {
+  readLessonWorkspace,
+  workspacePanels,
+  workspaceToneStyle,
+  writeLessonWorkspace,
+  STUDIO_WORKSPACES,
+  STUDIO_WORKSPACE_BY_KEY,
+  STUDIO_WORKSPACE_COLUMNS,
+  STUDIO_WORKSPACE_ICON,
+  STUDIO_WORKSPACE_LABEL,
+  STUDIO_WORKSPACE_WIDTHS,
+  type StudioWorkspace,
+} from './studio/studioWorkspaces'
 import kit from './studio/StudioKit.module.css'
 import shell from './studio/StudioShell.module.css'
 import styles from '../../pages/LearnPage.module.css'
@@ -70,13 +76,6 @@ const LearnAssistantPanel = lazy(() =>
 
 type OptionalPanel = LearnPanelId
 type MobileTab = 'main' | '3d' | 'work' | 'assistant'
-
-const PANEL_ICON: Record<MobileTab, LearnShellIconName> = {
-  main: 'users',
-  ...STUDIO_PANEL_ICON,
-}
-
-const PANEL_KEY_TO_ID: Record<'1' | '2' | '3', OptionalPanel> = { '1': '3d', '2': 'work', '3': 'assistant' }
 
 const LEAVE_MS = 170
 
@@ -147,11 +146,17 @@ export function LearnSectionRunner({
   const [slideIndex, setSlideIndex] = useState(0)
   const [doneBanner, setDoneBanner] = useState(false)
   const [mobileTab, setMobileTab] = useState<MobileTab>('main')
-  const [presentationMode, setPresentationMode] = useState(false)
-  const [expandedPanel, setExpandedPanel] = useState<'3d' | 'work' | 'assistant' | null>(null)
-  const [hiddenPanels, setHiddenPanels] = useState<Set<OptionalPanel>>(
-    () => new Set(readLearnPanelLayout().hidden),
+  // Рабочее пространство урока: «Обучение» · «Интерактивная доска» · «ИИ-учитель».
+  // null — выбор ещё не сделан, показываем экран выбора.
+  const [workspace, setWorkspace] = useState<StudioWorkspace | null>(() =>
+    readLessonWorkspace(learnSectionPathId(section)),
   )
+  const [chooserOpen, setChooserOpen] = useState(false)
+  const [expandedPanel, setExpandedPanel] = useState<'3d' | 'work' | 'assistant' | null>(null)
+  const [hiddenPanels, setHiddenPanels] = useState<Set<OptionalPanel>>(() => {
+    const panels = workspacePanels(readLessonWorkspace(learnSectionPathId(section)) ?? 'teach')
+    return new Set(STUDIO_PANELS.filter((id) => !panels.includes(id)))
+  })
   // Lesson Studio: ширины колонок, уходящие панели, подсказка, шторка, перетаскивание
   const [widths, setWidths] = useState<StudioWidths>(() => readStudioPrefs().widths)
   const [leaving, setLeaving] = useState<Set<OptionalPanel>>(() => new Set())
@@ -314,64 +319,70 @@ export function LearnSectionRunner({
     setMobileTab(panel === '3d' ? '3d' : panel === 'work' ? 'work' : 'assistant')
   }, [hiddenPanels, showPanel])
 
-  const toggleBoard = useCallback(() => {
-    setPresentationMode((v) => {
-      const next = !v
-      if (next) {
-        if (hiddenPanels.has('3d')) showPanel('3d')
-        if (hiddenPanels.has('work')) showPanel('work')
-        writeStudioPrefs({ preset: 'board' })
-      }
-      return next
-    })
-  }, [hiddenPanels, showPanel])
-
-  /** Раскладки поверх существующего состояния панелей (без нового глобального стейта). */
-  const applyPreset = useCallback(
-    (p: StudioPreset) => {
-      if (p === 'board') {
-        toggleBoard()
-        return
-      }
-      const want = STUDIO_PRESET_PANELS[p]
+  /** Переход в рабочее пространство: монтируются только его колонки. */
+  const pickWorkspace = useCallback(
+    (ws: StudioWorkspace) => {
       leaveTimers.current.forEach((timer) => window.clearTimeout(timer))
       leaveTimers.current.clear()
       setLeaving(new Set())
-      setPresentationMode(false)
-      const next = new Set<OptionalPanel>(STUDIO_PANELS.filter((id) => !want.includes(id)))
+      setWorkspace(ws)
+      writeLessonWorkspace(pathId, ws)
+      setChooserOpen(false)
+      setExpandedPanel(null)
+      const panels = workspacePanels(ws)
+      const next = new Set<OptionalPanel>(STUDIO_PANELS.filter((id) => !panels.includes(id)))
       setHiddenPanels(next)
       persistHidden(next)
-      setExpandedPanel((cur) => (cur && next.has(cur) ? null : cur))
-      setMobileTab((cur) => (cur !== 'main' && next.has(cur) ? 'main' : cur))
-      writeStudioPrefs({ preset: p })
+      setMobileTab(STUDIO_WORKSPACE_COLUMNS[ws][0] ?? 'main')
+      setWidths((prev) => {
+        const next = { ...prev, ...STUDIO_WORKSPACE_WIDTHS[ws] }
+        writeStudioPrefs({ widths: next, preset: ws === 'board' ? 'board' : null })
+        return next
+      })
     },
-    [persistHidden, toggleBoard],
+    [pathId, persistHidden],
   )
 
-  const activePreset = useMemo(
-    () => detectStudioPreset(hiddenPanels, presentationMode),
-    [hiddenPanels, presentationMode],
-  )
+  /**
+   * Смена урока без размонтирования компонента — восстанавливаем пространство
+   * этого урока прямо в рендере (паттерн React «adjusting state when props change»).
+   */
+  const [seenPathId, setSeenPathId] = useState(pathId)
+  if (seenPathId !== pathId) {
+    setSeenPathId(pathId)
+    const ws = readLessonWorkspace(pathId)
+    const panels = workspacePanels(ws ?? 'teach')
+    setWorkspace(ws)
+    setChooserOpen(false)
+    setExpandedPanel(null)
+    setHiddenPanels(new Set(STUDIO_PANELS.filter((id) => !panels.includes(id))))
+    setMobileTab(STUDIO_WORKSPACE_COLUMNS[ws ?? 'teach'][0] ?? 'main')
+  }
 
-  const visibleCols = useMemo<StudioColumnId[]>(() => {
-    const cols: StudioColumnId[] = ['main']
-    if (!hiddenPanels.has('3d')) cols.push('3d')
-    if (!hiddenPanels.has('work')) cols.push('work')
-    if (!presentationMode && !hiddenPanels.has('assistant')) cols.push('assistant')
-    return cols
-  }, [hiddenPanels, presentationMode])
+  const activeWs: StudioWorkspace = workspace ?? 'teach'
+  const wsPanels = workspacePanels(activeWs)
+  const presentationMode = activeWs === 'board'
+  const showChooser = workspace == null || chooserOpen
+
+  const toggleBoard = useCallback(() => {
+    pickWorkspace(workspace === 'board' ? 'teach' : 'board')
+  }, [pickWorkspace, workspace])
+
+  const visibleCols = useMemo<StudioColumnId[]>(
+    () => STUDIO_WORKSPACE_COLUMNS[activeWs].filter((c) => c === 'main' || !hiddenPanels.has(c)),
+    [activeWs, hiddenPanels],
+  )
 
   const visiblePanelCount = visibleCols.length
-  const onlyCockpit = visiblePanelCount === 1 && !presentationMode && !expandedPanel
-  const showResizers =
-    isDesktop && !presentationMode && !expandedPanel && visiblePanelCount > 1 && (isWide || visiblePanelCount < 4)
+  const onlyCockpit = visiblePanelCount === 1 && visibleCols[0] === 'main' && !expandedPanel
+  const showResizers = isDesktop && !expandedPanel && visiblePanelCount > 1 && (isWide || visiblePanelCount < 4)
 
   const gridTemplateColumns = useMemo(() => {
-    if (presentationMode || expandedPanel) return undefined
-    if (visibleCols.length === 1) return 'minmax(250px, 1fr) minmax(0, 1.6fr)'
+    if (expandedPanel) return undefined
+    if (visibleCols.length === 1) return visibleCols[0] === 'main' ? 'minmax(250px, 1fr) minmax(0, 1.6fr)' : '1fr'
     if (showResizers) return studioGridTemplate(visibleCols, widths)
     return visibleCols.map((c) => `minmax(0, ${widths[c]}fr)`).join(' ')
-  }, [visibleCols, widths, presentationMode, expandedPanel, showResizers])
+  }, [visibleCols, widths, expandedPanel, showResizers])
 
   /* ——— Изменение ширины колонок ——— */
 
@@ -419,11 +430,9 @@ export function LearnSectionRunner({
 
   const onPanelKey = useCallback(
     (key: '1' | '2' | '3') => {
-      const id = PANEL_KEY_TO_ID[key]
-      if (presentationMode && id === 'assistant') return
-      togglePanelVisibility(id)
+      pickWorkspace(STUDIO_WORKSPACE_BY_KEY[key])
     },
-    [presentationMode, togglePanelVisibility],
+    [pickWorkspace],
   )
 
   const onFullscreenKey = useCallback(() => {
@@ -449,7 +458,7 @@ export function LearnSectionRunner({
     onFullscreen: onFullscreenKey,
     onHelp: onHelpKey,
     onEscape: onEscapeKey,
-    enabled: !doneBanner,
+    enabled: !doneBanner && !showChooser,
   })
 
   const rememberPointerPanel = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
@@ -544,7 +553,6 @@ export function LearnSectionRunner({
 
   const layoutClass = [
     styles.learnLessonLayout,
-    presentationMode ? styles.learnLessonLayoutPresent : '',
     expandedPanel ? styles.learnLessonLayoutFs : '',
     dragging ? shell.layoutDragging : '',
   ]
@@ -619,7 +627,8 @@ export function LearnSectionRunner({
 
   return (
     <div
-      className={`${styles.page} ${styles.learnLessonOneScreen} ${presentationMode ? styles.learnPagePresent : ''}`}
+      className={`${styles.page} ${styles.learnLessonOneScreen}`}
+      data-studio-ws={activeWs}
       style={gradeToneStyle}
     >
       <header className={presentationMode ? `${shell.bar} ${shell.barPresent}` : shell.bar}>
@@ -658,11 +667,22 @@ export function LearnSectionRunner({
           <div className={shell.actionGroup}>{linkButtons(shell.linkLabel)}</div>
           <span className={shell.vDivider} aria-hidden="true" />
           <div className={shell.actionGroup}>
-            <StudioPresetBar active={activePreset} onPick={applyPreset} />
+            <StudioWorkspaceSwitch active={activeWs} onPick={pickWorkspace} />
+            <button
+              type="button"
+              className={`${kit.btn} ${shell.changeBtn}`}
+              onClick={() => setChooserOpen(true)}
+              title={t('learn.studio.ws.change')}
+              aria-haspopup="dialog"
+              data-studio-ws-change="1"
+            >
+              <LearnShellIcon name="layers" size={15} />
+              <span className={shell.linkLabel}>{t('learn.studio.ws.change')}</span>
+            </button>
             <StudioPanelSwitch
               hidden={hiddenPanels}
               expanded={expandedPanel}
-              presentationMode={presentationMode}
+              panels={wsPanels}
               onToggle={togglePanelVisibility}
             />
           </div>
@@ -688,20 +708,33 @@ export function LearnSectionRunner({
           <div className={shell.sheetRow}>{linkButtons(kit.btnLabel)}</div>
         </div>
         <div className={shell.sheetSection}>
-          <p className={shell.sheetLabel}>{t('learn.studio.presets')}</p>
-          <StudioPresetBar
-            active={activePreset}
-            onPick={(p) => {
-              applyPreset(p)
+          <p className={shell.sheetLabel}>{t('learn.studio.ws.switch')}</p>
+          <StudioWorkspaceSwitch
+            active={activeWs}
+            onPick={(ws) => {
+              pickWorkspace(ws)
               setSheetOpen(false)
             }}
             wrap
           />
+          <div className={shell.sheetRow}>
+            <button
+              type="button"
+              className={kit.btn}
+              onClick={() => {
+                setSheetOpen(false)
+                setChooserOpen(true)
+              }}
+            >
+              <LearnShellIcon name="layers" size={16} />
+              <span className={kit.btnLabel}>{t('learn.studio.ws.change')}</span>
+            </button>
+          </div>
         </div>
         <div className={shell.sheetSection}>
           <p className={shell.sheetLabel}>{t('learn.panel.menu')}</p>
           <div className={shell.sheetRow}>
-            {STUDIO_PANELS.filter((id) => !(presentationMode && id === 'assistant')).map((id) => (
+            {wsPanels.map((id) => (
               <button
                 key={id}
                 type="button"
@@ -727,37 +760,34 @@ export function LearnSectionRunner({
         />
       ) : null}
 
-      <div className={shell.dock} role="tablist" aria-label={t('learn.panel.menu')} data-studio-dock="1">
-        {(['main', '3d', 'work', 'assistant'] as const)
-          .filter((tab) => tab === 'main' || (!isPanelHidden(tab) && !(presentationMode && tab === 'assistant')))
-          .map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              role="tab"
-              aria-selected={mobileTab === tab}
-              className={mobileTab === tab ? shell.dockTabOn : shell.dockTab}
-              style={studioToneStyle(tab)}
-              onClick={() => setMobileTab(tab)}
-            >
-              <span className={shell.dockIcon}>
-                <LearnShellIcon name={PANEL_ICON[tab]} size={17} strokeWidth={2.2} />
-              </span>
-              <span className={shell.dockLabel}>
-                {t(
-                  tab === 'main'
-                    ? 'learn.studio.dockCockpit'
-                    : tab === '3d'
-                      ? 'learn.lesson.tab3d'
-                      : tab === 'work'
-                        ? 'learn.lesson.tabWork'
-                        : 'learn.lesson.tabAssistant',
-                )}
-              </span>
-            </button>
-          ))}
+      <div className={shell.dock} role="tablist" aria-label={t('learn.studio.ws.switch')} data-studio-dock="1">
+        {STUDIO_WORKSPACES.map((ws) => (
+          <button
+            key={ws}
+            type="button"
+            role="tab"
+            aria-selected={activeWs === ws}
+            className={activeWs === ws ? shell.dockTabOn : shell.dockTab}
+            style={workspaceToneStyle(ws)}
+            onClick={() => pickWorkspace(ws)}
+            data-studio-ws-dock={ws}
+          >
+            <span className={shell.dockIcon}>
+              <LearnShellIcon name={STUDIO_WORKSPACE_ICON[ws]} size={17} strokeWidth={2.2} />
+            </span>
+            <span className={shell.dockLabel}>{t(STUDIO_WORKSPACE_LABEL[ws])}</span>
+          </button>
+        ))}
       </div>
 
+      <StudioColumnTabs
+        cols={visibleCols}
+        active={mobileTab}
+        onPick={(id) => setMobileTab(id)}
+        label={t('learn.panel.menu')}
+      />
+
+      {workspace ? (
       <div
         ref={layoutRef}
         className={layoutClass}
@@ -766,14 +796,16 @@ export function LearnSectionRunner({
         data-resizable={showResizers ? '1' : undefined}
         onPointerDownCapture={rememberPointerPanel}
       >
-        <div
-          className={`${styles.learnColTheory} ${mobileTab !== 'main' ? styles.learnColHideMobile : ''}`}
-          data-studio-col="main"
-        >
-          <LearnColumnPanelTools label={t('learn.studio.cockpit')} subtitle={chapterTitle} icon="users" />
-          {theoryCol}
-        </div>
-        {resizerAfter('main')}
+        {visibleCols.includes('main') ? (
+          <div
+            className={`${styles.learnColTheory} ${mobileTab !== 'main' ? styles.learnColHideMobile : ''}`}
+            data-studio-col="main"
+          >
+            <LearnColumnPanelTools label={t('learn.studio.cockpit')} subtitle={chapterTitle} icon="users" />
+            {theoryCol}
+          </div>
+        ) : null}
+        {visibleCols.includes('main') ? resizerAfter('main') : null}
         {onlyCockpit && isDesktop ? (
           <div className={shell.emptyCol}>
             <StudioEmptyState
@@ -782,7 +814,7 @@ export function LearnSectionRunner({
               lead={t('learn.studio.emptyLead')}
               actions={
                 <>
-                  {STUDIO_PANELS.map((id) => (
+                  {wsPanels.map((id) => (
                     <button
                       key={id}
                       type="button"
@@ -794,13 +826,13 @@ export function LearnSectionRunner({
                       <span>{t(PANEL_LABEL[id])}</span>
                     </button>
                   ))}
-                  <StudioPresetBar className={shell.emptyPresets} active={activePreset} onPick={applyPreset} wrap />
+                  <StudioWorkspaceSwitch className={shell.emptyPresets} active={activeWs} onPick={pickWorkspace} wrap />
                 </>
               }
             />
           </div>
         ) : null}
-        {!isPanelHidden('3d') ? (
+        {visibleCols.includes('3d') ? (
           <div
             className={colClass('3d', styles.learnCol3d)}
             data-studio-col="3d"
@@ -822,8 +854,8 @@ export function LearnSectionRunner({
             />
           </div>
         ) : null}
-        {!isPanelHidden('3d') ? resizerAfter('3d') : null}
-        {!isPanelHidden('work') ? (
+        {visibleCols.includes('3d') ? resizerAfter('3d') : null}
+        {visibleCols.includes('work') ? (
           <div
             className={colClass('work', styles.learnColWork)}
             data-studio-col="work"
@@ -831,10 +863,10 @@ export function LearnSectionRunner({
           >
             <LearnColumnPanelTools
               expanded={expandedPanel === 'work'}
-              label={t('learn.panel.openWork')}
-              icon="pencil"
+              label={presentationMode ? t('learn.studio.ws.board') : t('learn.panel.openWork')}
+              icon={presentationMode ? 'board' : 'pencil'}
               onExpand={() => toggleExpanded('work')}
-              onHide={() => hidePanel('work')}
+              onHide={wsPanels.length > 1 ? () => hidePanel('work') : undefined}
             />
             <LearnWorkspace
               sectionPathId={pathId}
@@ -843,47 +875,54 @@ export function LearnSectionRunner({
             />
           </div>
         ) : null}
-        {!isPanelHidden('work') ? resizerAfter('work') : null}
-        {!presentationMode ? (
-          <>
-            {!isPanelHidden('assistant') ? (
-              <div
-                className={colClass('assistant', styles.learnColAssistant)}
-                data-studio-col="assistant"
-                data-studio-fs={expandedPanel === 'assistant' ? '1' : undefined}
-              >
-                <LearnColumnPanelTools
-                  expanded={expandedPanel === 'assistant'}
-                  label={t('learn.panel.openAssistant')}
-                  icon="sparkles"
-                  onExpand={() => toggleExpanded('assistant')}
-                  onHide={() => hidePanel('assistant')}
-                />
-                <Suspense
-                  fallback={
-                    <div className={styles.learnColLoading} aria-hidden="true">
-                      <span className={kit.skeleton} />
-                      <span className={kit.skeleton} />
-                      <span className={kit.skeleton} />
-                    </div>
-                  }
-                >
-                  <LearnAssistantPanel
-                    gradeId={grade.id}
-                    chapterId={chapter.id}
-                    section={section}
-                    slideIndex={slideIndex}
-                    slideTitle={slideTitle}
-                    slideBody=""
-                    grade={grade}
-                    chapter={chapter}
-                  />
-                </Suspense>
-              </div>
-            ) : null}
-          </>
+        {visibleCols.includes('work') ? resizerAfter('work') : null}
+        {visibleCols.includes('assistant') ? (
+          <div
+            className={colClass('assistant', styles.learnColAssistant)}
+            data-studio-col="assistant"
+            data-studio-fs={expandedPanel === 'assistant' ? '1' : undefined}
+          >
+            <LearnColumnPanelTools
+              expanded={expandedPanel === 'assistant'}
+              label={t('learn.panel.openAssistant')}
+              icon="sparkles"
+              onExpand={() => toggleExpanded('assistant')}
+              onHide={wsPanels.length > 1 ? () => hidePanel('assistant') : undefined}
+            />
+            <Suspense
+              fallback={
+                <div className={styles.learnColLoading} aria-hidden="true">
+                  <span className={kit.skeleton} />
+                  <span className={kit.skeleton} />
+                  <span className={kit.skeleton} />
+                </div>
+              }
+            >
+              <LearnAssistantPanel
+                gradeId={grade.id}
+                chapterId={chapter.id}
+                section={section}
+                slideIndex={slideIndex}
+                slideTitle={slideTitle}
+                slideBody=""
+                grade={grade}
+                chapter={chapter}
+              />
+            </Suspense>
+          </div>
         ) : null}
       </div>
+      ) : null}
+
+      {showChooser ? (
+        <StudioWorkspaceChooser
+          lessonTitle={titleParts.text}
+          badge={titleParts.badge}
+          current={workspace}
+          onPick={pickWorkspace}
+          onClose={workspace ? () => setChooserOpen(false) : undefined}
+        />
+      ) : null}
     </div>
   )
 }

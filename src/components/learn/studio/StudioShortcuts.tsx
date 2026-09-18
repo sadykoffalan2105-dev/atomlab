@@ -28,8 +28,8 @@ export function StudioShortcutsButton({
   }, [open, onClose])
 
   const rows: { keys: string[]; text: string }[] = [
-    { keys: ['1', '2', '3'], text: t('learn.studio.shortcut.panels') },
-    { keys: ['B'], text: t('learn.present.on') },
+    { keys: ['1', '2', '3'], text: t('learn.studio.ws.shortcut') },
+    { keys: ['B'], text: t('learn.studio.ws.board') },
     { keys: ['F'], text: t('learn.studio.shortcut.fullscreen') },
     { keys: ['Esc'], text: t('learn.studio.shortcut.escape') },
     { keys: ['←', '→'], text: t('learn.studio.shortcut.resize') },

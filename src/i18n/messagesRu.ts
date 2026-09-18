@@ -867,6 +867,28 @@ export const messagesRu = {
   'learn.studio.viz.cat.base': 'Основания',
   'learn.studio.viz.cat.salt': 'Соли',
   'learn.studio.viz.cat.other': 'Прочее',
+
+  // ——— Тема оформления ———
+  'theme.dark': 'Тёмная тема',
+  'theme.light': 'Светлая тема',
+  'theme.switchToDark': 'Включить тёмную тему',
+  'theme.switchToLight': 'Включить светлую тему',
+  'learn.studio.ws.title': 'Как проведём урок?',
+  'learn.studio.ws.lead': 'Выберите рабочее пространство — переключиться можно в любой момент клавишами 1 · 2 · 3.',
+  'learn.studio.ws.teach': 'Обучение',
+  'learn.studio.ws.teachDesc': 'Кабинет учителя с тестами, 3D-каталог и рабочая зона рядом.',
+  'learn.studio.ws.board': 'Интерактивная доска',
+  'learn.studio.ws.boardDesc': 'Доска во всю ширину — писать и объяснять перед классом.',
+  'learn.studio.ws.ai': 'ИИ-учитель',
+  'learn.studio.ws.aiDesc': 'Широкий диалог с ИИ: объяснит тему, проверит ответ, подскажет.',
+  'learn.studio.ws.change': 'Сменить режим',
+  'learn.studio.ws.switch': 'Рабочее пространство',
+  'learn.studio.ws.shortcut': 'Рабочее пространство урока',
+  'learn.studio.ws.open': 'Открыть',
+  'learn.studio.ws.current': 'Сейчас открыто',
+  'learn.studio.ws.go': 'Войти',
+  'learn.studio.ws.keep': 'Остаться здесь',
+  'learn.studio.ws.footHint': 'Enter — открыть · ← → — выбор · Esc — оставить как есть',
 } as const
 
 export type MessageKey = keyof typeof messagesRu

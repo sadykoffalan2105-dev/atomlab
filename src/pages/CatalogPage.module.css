@@ -36,7 +36,12 @@
     radial-gradient(46vw 32vw at 4% -8%, var(--lt-bg-glow-1), transparent 70%),
     radial-gradient(40vw 30vw at 100% 6%, var(--lt-bg-glow-2), transparent 70%),
     radial-gradient(60vw 36vw at 50% 110%, var(--lt-bg-glow-3), transparent 72%),
-    radial-gradient(ellipse 90% 80% at 50% 40%, #0a0f24 0%, var(--lt-bg) 60%, var(--lt-bg-deep) 100%);
+    radial-gradient(
+      ellipse 90% 80% at 50% 40%,
+      var(--lt-bg-core, #0a0f24) 0%,
+      var(--lt-bg) 60%,
+      var(--lt-bg-deep) 100%
+    );
 }
 
 .inner {
@@ -123,7 +128,7 @@
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9fdcff;
+  color: var(--lt-eyebrow, #9fdcff);
 }
 
 .title {
@@ -133,7 +138,13 @@
   font-weight: 800;
   line-height: var(--lt-lh-tight);
   letter-spacing: -0.015em;
-  background: linear-gradient(100deg, #f4f7ff 0%, #a9d8ff 42%, #c4b0ff 72%, #f5b4e0 100%);
+  background: linear-gradient(
+    100deg,
+    var(--lt-title-a, #f4f7ff) 0%,
+    var(--lt-title-b, #a9d8ff) 42%,
+    var(--lt-title-c, #c4b0ff) 72%,
+    var(--lt-title-d, #f5b4e0) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -165,7 +176,7 @@
   border: 1px solid color-mix(in srgb, var(--tone-a) 28%, var(--lt-border));
   background:
     radial-gradient(90% 90% at 0% 0%, color-mix(in srgb, var(--tone-a) 18%, transparent), transparent 70%),
-    rgba(8, 12, 26, 0.55);
+    rgba(var(--lt-ink-rgb, 8, 12, 26), 0.55);
   color: inherit;
   font-family: var(--lt-font);
   text-align: left;
@@ -199,7 +210,7 @@
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  background: linear-gradient(120deg, #fff 10%, var(--tone-a) 70%, var(--tone-b));
+  background: linear-gradient(120deg, var(--lt-title-a, #fff) 10%, var(--tone-a) 70%, var(--tone-b));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -225,7 +236,7 @@
   padding: 12px 14px;
   border-radius: var(--lt-radius-lg);
   border: 1px solid var(--lt-border);
-  background: rgba(12, 17, 34, 0.86);
+  background: rgba(var(--lt-ink-rgb, 12, 17, 34), 0.86);
   -webkit-backdrop-filter: var(--lt-blur);
   backdrop-filter: var(--lt-blur);
   box-shadow: var(--lt-shadow);
@@ -246,7 +257,7 @@
   padding: 4px;
   border-radius: var(--lt-radius-pill);
   border: 1px solid var(--lt-border);
-  background: rgba(6, 9, 19, 0.6);
+  background: rgba(var(--lt-ink-rgb, 6, 9, 19), 0.6);
 }
 
 .segBtn {
@@ -310,7 +321,7 @@
   padding: 0 42px 0 42px;
   border-radius: var(--lt-radius-pill);
   border: 1px solid var(--lt-border-strong);
-  background: rgba(6, 9, 19, 0.6);
+  background: rgba(var(--lt-ink-rgb, 6, 9, 19), 0.6);
   color: var(--lt-text);
   font-family: var(--lt-font);
   font-size: var(--lt-fs-body);
@@ -396,7 +407,7 @@
   padding: 0 13px;
   border: 1px solid var(--lt-border);
   border-radius: var(--lt-radius-pill);
-  background: rgba(6, 9, 19, 0.5);
+  background: rgba(var(--lt-ink-rgb, 6, 9, 19), 0.5);
   color: var(--lt-text-2);
   font-family: var(--lt-font);
   font-size: 13px;
@@ -429,7 +440,7 @@
 
 .chipOn,
 .chipOn:hover:not(:disabled) {
-  color: #fff;
+  color: var(--lt-on-tint, #fff);
   border-color: var(--lt-primary);
   background: rgba(91, 140, 255, 0.22);
   box-shadow: 0 0 0 1px rgba(91, 140, 255, 0.35);
@@ -437,13 +448,13 @@
 
 .chipTone:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--tone-a) 55%, transparent);
-  background: color-mix(in srgb, var(--tone-a) 10%, rgba(6, 9, 19, 0.5));
+  background: color-mix(in srgb, var(--tone-a) 10%, rgba(var(--lt-ink-rgb, 6, 9, 19), 0.5));
 }
 
 .chipTone.chipOn,
 .chipTone.chipOn:hover:not(:disabled) {
   border-color: var(--tone-a);
-  background: color-mix(in srgb, var(--tone-a) 22%, rgba(6, 9, 19, 0.55));
+  background: color-mix(in srgb, var(--tone-a) 22%, rgba(var(--lt-ink-rgb, 6, 9, 19), 0.55));
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--tone-a) 45%, transparent),
     0 8px 20px -10px var(--tone-a);
@@ -472,7 +483,7 @@
 
 .chipOn .chipCount {
   background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  color: var(--lt-on-tint, #fff);
 }
 
 .results {
@@ -628,7 +639,7 @@
   padding: 0;
   border-radius: 20px;
   border: 1px solid color-mix(in srgb, var(--tone-a) 20%, var(--lt-border));
-  background: linear-gradient(180deg, rgba(20, 27, 50, 0.9), rgba(10, 14, 29, 0.94));
+  background: linear-gradient(180deg, rgba(var(--lt-ink-rgb, 20, 27, 50), 0.9), rgba(var(--lt-ink-rgb, 10, 14, 29), 0.94));
   box-shadow: var(--lt-shadow-sm);
   color: inherit;
   font: inherit;
@@ -668,7 +679,7 @@
   background:
     radial-gradient(70% 90% at 50% 105%, color-mix(in srgb, var(--tone-a) 28%, transparent), transparent 70%),
     radial-gradient(55% 80% at 100% 0%, color-mix(in srgb, var(--tone-b) 20%, transparent), transparent 70%),
-    linear-gradient(180deg, rgba(6, 9, 20, 0.7), rgba(14, 20, 40, 0.3));
+    linear-gradient(180deg, rgba(var(--lt-ink-rgb, 6, 9, 20), 0.7), rgba(var(--lt-ink-rgb, 14, 20, 40), 0.3));
   overflow: hidden;
 }
 
@@ -717,14 +728,14 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--tone-a) 62%, #fff);
-  background: color-mix(in srgb, var(--tone-a) 18%, rgba(6, 9, 19, 0.75));
+  background: color-mix(in srgb, var(--tone-a) 18%, rgba(var(--lt-ink-rgb, 6, 9, 19), 0.75));
   border: 1px solid color-mix(in srgb, var(--tone-a) 42%, transparent);
 }
 
 .gradePill {
   right: 10px;
   color: var(--lt-text-2);
-  background: rgba(6, 9, 19, 0.66);
+  background: rgba(var(--lt-ink-rgb, 6, 9, 19), 0.66);
   border: 1px solid var(--lt-border);
   font-variant-numeric: tabular-nums;
 }
@@ -748,7 +759,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: color-mix(in srgb, var(--tone-a) 35%, #fff);
+  color: color-mix(in srgb, var(--tone-a) 35%, var(--lt-ink-solid, #fff));
 }
 
 .name {
@@ -905,7 +916,7 @@
   border: 1px solid color-mix(in srgb, var(--tone-a) 22%, var(--lt-border));
   background:
     radial-gradient(90% 60% at 0% 0%, color-mix(in srgb, var(--tone-a) 12%, transparent), transparent 62%),
-    linear-gradient(180deg, rgba(20, 27, 50, 0.9), rgba(10, 14, 29, 0.94));
+    linear-gradient(180deg, rgba(var(--lt-ink-rgb, 20, 27, 50), 0.9), rgba(var(--lt-ink-rgb, 10, 14, 29), 0.94));
   box-shadow: var(--lt-shadow-sm);
   transition:
     border-color var(--lt-dur) var(--lt-ease),
@@ -975,7 +986,7 @@
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid var(--lt-border);
-  background: rgba(3, 6, 15, 0.62);
+  background: rgba(var(--lt-ink-rgb, 3, 6, 15), 0.62);
   box-shadow: inset 3px 0 0 var(--tone-a);
   color: #eaf2ff;
   font-family: var(--lt-font-mono);
@@ -1021,7 +1032,7 @@
   padding: 0 16px;
   border-radius: var(--lt-radius-pill);
   border: 1px solid color-mix(in srgb, var(--tone-a) 45%, var(--lt-border));
-  background: color-mix(in srgb, var(--tone-a) 14%, rgba(6, 9, 19, 0.6));
+  background: color-mix(in srgb, var(--tone-a) 14%, rgba(var(--lt-ink-rgb, 6, 9, 19), 0.6));
   color: var(--lt-text);
   font-family: var(--lt-font);
   font-size: 13px;
@@ -1368,7 +1379,7 @@
   border: 1px solid color-mix(in srgb, var(--tone-a) 22%, var(--lt-border));
   background:
     radial-gradient(90% 60% at 0% 0%, color-mix(in srgb, var(--tone-a) 10%, transparent), transparent 62%),
-    linear-gradient(180deg, rgba(20, 27, 50, 0.9), rgba(10, 14, 29, 0.94));
+    linear-gradient(180deg, rgba(var(--lt-ink-rgb, 20, 27, 50), 0.9), rgba(var(--lt-ink-rgb, 10, 14, 29), 0.94));
   box-shadow: var(--lt-shadow-sm);
   scroll-margin-top: 220px;
   outline: none;
@@ -1394,7 +1405,7 @@
   padding: 3px 9px;
   border-radius: var(--lt-radius-pill);
   border: 1px solid var(--lt-border);
-  background: rgba(6, 9, 19, 0.5);
+  background: rgba(var(--lt-ink-rgb, 6, 9, 19), 0.5);
   color: var(--lt-text-2);
   font-size: 11px;
   font-weight: 750;
@@ -1473,7 +1484,7 @@
   padding: 0 16px;
   border-radius: var(--lt-radius-pill);
   border: 1px solid color-mix(in srgb, var(--tone-a) 45%, var(--lt-border));
-  background: color-mix(in srgb, var(--tone-a) 14%, rgba(6, 9, 19, 0.6));
+  background: color-mix(in srgb, var(--tone-a) 14%, rgba(var(--lt-ink-rgb, 6, 9, 19), 0.6));
   color: var(--lt-text);
   font-family: var(--lt-font);
   font-size: 13px;

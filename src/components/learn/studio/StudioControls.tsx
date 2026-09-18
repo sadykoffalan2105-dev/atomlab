@@ -7,11 +7,19 @@ import {
   STUDIO_PANEL_ICON,
   STUDIO_PANEL_LABEL,
   STUDIO_PANELS,
-  STUDIO_PANEL_KEY,
   STUDIO_PRESET_ORDER,
   studioToneStyle,
   type StudioPreset,
 } from './studioLayout'
+import {
+  STUDIO_WORKSPACES,
+  STUDIO_WORKSPACE_DESC,
+  STUDIO_WORKSPACE_ICON,
+  STUDIO_WORKSPACE_KEY,
+  STUDIO_WORKSPACE_LABEL,
+  workspaceToneStyle,
+  type StudioWorkspace,
+} from './studioWorkspaces'
 import kit from './StudioKit.module.css'
 import styles from './StudioShell.module.css'
 
@@ -37,6 +45,86 @@ const PRESET_HINT: Record<StudioPreset, MessageKey> = {
   '3d': 'learn.studio.preset.3dHint',
   ai: 'learn.studio.preset.aiHint',
   board: 'learn.present.hint',
+}
+
+/** Переключатель рабочих пространств: Обучение · Доска · ИИ-учитель (1/2/3). */
+export function StudioWorkspaceSwitch({
+  active,
+  onPick,
+  className,
+  wrap = false,
+}: {
+  active: StudioWorkspace
+  onPick: (ws: StudioWorkspace) => void
+  className?: string
+  wrap?: boolean
+}) {
+  const { t } = useT()
+  return (
+    <div
+      className={[kit.segmented, styles.wsSwitch, wrap ? styles.presetsWrap : '', className ?? '']
+        .filter(Boolean)
+        .join(' ')}
+      role="group"
+      aria-label={t('learn.studio.ws.switch')}
+    >
+      {STUDIO_WORKSPACES.map((ws) => {
+        const on = active === ws
+        const label = t(STUDIO_WORKSPACE_LABEL[ws])
+        return (
+          <button
+            key={ws}
+            type="button"
+            className={[kit.segmentedItem, styles.wsItem, on ? kit.segmentedItemActive : ''].filter(Boolean).join(' ')}
+            style={workspaceToneStyle(ws)}
+            onClick={() => onPick(ws)}
+            aria-pressed={on}
+            title={`${label} · ${t(STUDIO_WORKSPACE_DESC[ws])} (${STUDIO_WORKSPACE_KEY[ws]})`}
+            data-studio-ws={ws}
+          >
+            <LearnShellIcon name={STUDIO_WORKSPACE_ICON[ws]} size={15} />
+            <span className={styles.wsLabel}>{label}</span>
+            <Kbd className={styles.switchKbd}>{STUDIO_WORKSPACE_KEY[ws]}</Kbd>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Телефон/планшет: выбор видимой колонки внутри пространства. */
+export function StudioColumnTabs({
+  cols,
+  active,
+  onPick,
+  label,
+}: {
+  cols: readonly ('main' | LearnPanelId)[]
+  active: string
+  onPick: (id: 'main' | LearnPanelId) => void
+  label: string
+}) {
+  const { t } = useT()
+  if (cols.length < 2) return null
+  return (
+    <div className={`${kit.segmented} ${styles.mobileCols}`} role="group" aria-label={label}>
+      {cols.map((id) => (
+        <button
+          key={id}
+          type="button"
+          className={[kit.segmentedItem, styles.mobileColItem, active === id ? kit.segmentedItemActive : '']
+            .filter(Boolean)
+            .join(' ')}
+          style={studioToneStyle(id)}
+          onClick={() => onPick(id)}
+          aria-pressed={active === id}
+        >
+          <LearnShellIcon name={id === 'main' ? 'users' : STUDIO_PANEL_ICON[id]} size={15} />
+          <span>{id === 'main' ? t('learn.studio.cockpit') : t(STUDIO_PANEL_LABEL[id])}</span>
+        </button>
+      ))}
+    </div>
+  )
 }
 
 /** Сегментированный выбор раскладки: Урок · Тест · 3D · ИИ · Доска. */
@@ -93,24 +181,26 @@ export function StudioPresetBar({
 export function StudioPanelSwitch({
   hidden,
   expanded,
-  presentationMode,
+  panels = STUDIO_PANELS,
   onToggle,
   className,
 }: {
   hidden: ReadonlySet<LearnPanelId>
   expanded: LearnPanelId | null
-  presentationMode: boolean
+  /** Панели текущего рабочего пространства (по умолчанию — все). */
+  panels?: readonly LearnPanelId[]
   onToggle: (id: LearnPanelId) => void
   className?: string
 }) {
   const { t } = useT()
+  if (panels.length < 2) return null
   return (
     <div
       className={[kit.segmented, styles.panelSwitch, className ?? ''].filter(Boolean).join(' ')}
       role="group"
       aria-label={t('learn.panel.menu')}
     >
-      {STUDIO_PANELS.filter((id) => !(presentationMode && id === 'assistant')).map((id) => {
+      {panels.map((id) => {
         const isHidden = hidden.has(id)
         const state = isHidden ? 'off' : expanded === id ? 'fs' : 'on'
         const cls = [
@@ -127,13 +217,12 @@ export function StudioPanelSwitch({
             style={studioToneStyle(id)}
             onClick={() => onToggle(id)}
             aria-pressed={!isHidden}
-            title={`${label} · ${isHidden ? t('learn.panel.show') : t('learn.panel.hide')} (${STUDIO_PANEL_KEY[id]})`}
+            title={`${label} · ${isHidden ? t('learn.panel.show') : t('learn.panel.hide')}`}
             data-state={state}
             data-studio-switch={id}
           >
             <LearnShellIcon name={STUDIO_PANEL_ICON[id]} size={14} />
             <span className={styles.switchLabel}>{label}</span>
-            <Kbd className={styles.switchKbd}>{STUDIO_PANEL_KEY[id]}</Kbd>
           </button>
         )
       })}

@@ -1,0 +1,212 @@
+/**
+ * Глобальные темы приложения — «Aurora Lab (ночь)» и «Aurora Lab (день)».
+ *
+ * Атрибут data-app-theme ставится на <html> (см. src/theme/appTheme.ts).
+ * Селектор html[data-app-theme='…'] специфичнее, чем :root в learnTheme.css,
+ * поэтому базовые значения переопределяются здесь целиком.
+ *
+ * ВАЖНО: правила [data-pt-theme='…'] (periodicThemes.css) стоят на корне
+ * страницы «Таблица Менделеева», то есть на ДРУГОМ элементе ниже по дереву —
+ * они перебивают унаследованные от <html> значения в любой теме приложения.
+ *
+ * Помимо --lt-* здесь живут «хромовые» токены оболочки (--app-*): фон корня,
+ * шапка, капсулы навигации и переключателей.
+ */
+
+/* ═══ Тёмная тема (значения по умолчанию, записаны явно) ═══ */
+html[data-app-theme='dark'] {
+  color-scheme: dark;
+
+  --lt-bg: #060913;
+  --lt-bg-deep: #03050c;
+  --lt-bg-glow-1: rgba(56, 189, 248, 0.14);
+  --lt-bg-glow-2: rgba(168, 85, 247, 0.14);
+  --lt-bg-glow-3: rgba(45, 212, 191, 0.1);
+  --lt-surface: rgba(18, 24, 44, 0.72);
+  --lt-surface-2: rgba(24, 32, 58, 0.78);
+  --lt-surface-3: rgba(34, 44, 76, 0.85);
+  --lt-surface-solid: #111830;
+  --lt-surface-hover: rgba(40, 52, 90, 0.85);
+  --lt-border: rgba(148, 170, 230, 0.14);
+  --lt-border-strong: rgba(148, 170, 230, 0.28);
+  --lt-blur: saturate(140%) blur(14px);
+
+  --lt-text: #e8edff;
+  --lt-text-2: #b6c0e0;
+  --lt-text-3: #8793b8;
+  --lt-text-mute: #5f6a8f;
+
+  --lt-primary: #5b8cff;
+  --lt-primary-2: #8b5cf6;
+  --lt-grad-primary: linear-gradient(135deg, #5b8cff 0%, #8b5cf6 55%, #d946ef 100%);
+  --lt-accent-teal: #2dd4bf;
+  --lt-accent-cyan: #22d3ee;
+  --lt-accent-amber: #fbbf24;
+  --lt-accent-pink: #f472b6;
+  --lt-success: #34d399;
+  --lt-warning: #fbbf24;
+  --lt-danger: #fb7185;
+  --lt-info: #38bdf8;
+
+  --lt-g7-a: #22d3ee;
+  --lt-g7-b: #3b82f6;
+  --lt-g8-a: #a78bfa;
+  --lt-g8-b: #ec4899;
+  --lt-g9-a: #fbbf24;
+  --lt-g9-b: #f97316;
+  --lt-g10-a: #34d399;
+  --lt-g10-b: #14b8a6;
+  --lt-g11-a: #60a5fa;
+  --lt-g11-b: #6366f1;
+
+  --lt-shadow-sm: 0 2px 10px rgba(2, 6, 23, 0.35);
+  --lt-shadow: 0 10px 30px -8px rgba(2, 6, 23, 0.6), 0 2px 8px rgba(2, 6, 23, 0.35);
+  --lt-shadow-lg: 0 24px 60px -18px rgba(2, 6, 23, 0.75);
+  --lt-glow-primary: 0 8px 28px -6px rgba(91, 140, 255, 0.55);
+  --lt-ring: 0 0 0 3px rgba(91, 140, 255, 0.45);
+
+  /* ——— Оболочка приложения ——— */
+  /*
+   * --lt-title-* / --lt-ink-* / --lt-on-tint / --lt-eyebrow в тёмной теме НЕ задаём:
+   * страницы подставляют собственные исходные значения через fallback var(),
+   * поэтому «ночной» вид остаётся ровно таким, каким был.
+   */
+
+  --app-shell-bg:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(91, 140, 255, 0.07), transparent 50%),
+    linear-gradient(180deg, #05060e 0%, #0a0c18 40%, #05060e 100%);
+  --app-shell-text: #e8ecff;
+  --app-header-bg: rgba(6, 9, 19, 0.82);
+  --app-header-blur: saturate(140%) blur(14px);
+  --app-header-line:
+    linear-gradient(
+      90deg,
+      rgba(56, 189, 248, 0) 0%,
+      rgba(56, 189, 248, 0.45) 22%,
+      rgba(139, 92, 246, 0.45) 55%,
+      rgba(236, 72, 153, 0.35) 80%,
+      rgba(236, 72, 153, 0) 100%
+    );
+  --app-chrome-bg: rgba(3, 6, 15, 0.5);
+  --app-chrome-border: rgba(148, 170, 230, 0.14);
+  --app-chrome-text: rgba(170, 184, 220, 0.85);
+  --app-chrome-text-strong: #ffffff;
+  --app-chrome-hover: rgba(148, 170, 230, 0.1);
+  --app-nav-active-text: #ffffff;
+  --app-nav-active-border: rgba(129, 140, 248, 0.5);
+  --app-nav-active-bg: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(139, 92, 246, 0.26));
+  --app-logo-text: linear-gradient(100deg, #ffffff 0%, #c7d7ff 55%, #e7c6ff 100%);
+
+  /* Базовые переменные шаблона (index.css) — держим в такт теме. */
+  --text: #9ca3af;
+  --text-h: #f3f4f6;
+  --bg: #16171d;
+  --border: #2e303a;
+  --code-bg: #1f2028;
+}
+
+/* ═══ Светлая тема — «день»: белые поверхности, тени вместо свечения ═══ */
+html[data-app-theme='light'] {
+  color-scheme: light;
+
+  --lt-bg: #f4f7fc;
+  --lt-bg-deep: #e8edf6;
+  --lt-bg-glow-1: rgba(47, 98, 216, 0.09);
+  --lt-bg-glow-2: rgba(124, 58, 237, 0.08);
+  --lt-bg-glow-3: rgba(13, 148, 136, 0.07);
+  --lt-surface: rgba(255, 255, 255, 0.9);
+  --lt-surface-2: rgba(255, 255, 255, 0.96);
+  --lt-surface-3: #ffffff;
+  --lt-surface-solid: #ffffff;
+  --lt-surface-hover: rgba(23, 32, 51, 0.06);
+  --lt-border: rgba(23, 32, 51, 0.13);
+  --lt-border-strong: rgba(23, 32, 51, 0.26);
+  --lt-blur: none;
+
+  --lt-text: #172033;
+  --lt-text-2: #37425c;
+  --lt-text-3: #56617c;
+  --lt-text-mute: #79829a;
+
+  --lt-primary: #2f62d8;
+  --lt-primary-2: #7c3aed;
+  --lt-grad-primary: linear-gradient(135deg, #2f62d8 0%, #7c3aed 55%, #c026d3 100%);
+  --lt-accent-teal: #0d9488;
+  --lt-accent-cyan: #0e7490;
+  --lt-accent-amber: #b45309;
+  --lt-accent-pink: #db2777;
+  --lt-success: #15803d;
+  --lt-warning: #b45309;
+  --lt-danger: #dc2626;
+  --lt-info: #0369a1;
+
+  --lt-g7-a: #0891b2;
+  --lt-g7-b: #2563eb;
+  --lt-g8-a: #7c3aed;
+  --lt-g8-b: #db2777;
+  --lt-g9-a: #d97706;
+  --lt-g9-b: #ea580c;
+  --lt-g10-a: #059669;
+  --lt-g10-b: #0d9488;
+  --lt-g11-a: #2563eb;
+  --lt-g11-b: #4f46e5;
+
+  --lt-shadow-sm: 0 1px 3px rgba(23, 32, 51, 0.12);
+  --lt-shadow: 0 10px 28px -14px rgba(23, 32, 51, 0.3), 0 1px 3px rgba(23, 32, 51, 0.08);
+  --lt-shadow-lg: 0 24px 56px -26px rgba(23, 32, 51, 0.36);
+  --lt-glow-primary: 0 8px 20px -10px rgba(47, 98, 216, 0.55);
+  --lt-ring: 0 0 0 3px rgba(47, 98, 216, 0.45);
+
+  /* ——— Оболочка приложения ——— */
+  /* Тёмные полупрозрачные подложки страниц → белые (см. .smoke/theme/tint.mjs). */
+  --lt-ink-rgb: 255, 255, 255;
+  --lt-bg-core: #ffffff;
+  /* Тёмная «краска» там, где на тёмной теме стоял чистый белый текст/подмешивание. */
+  --lt-ink-solid: #0b1020;
+  --lt-on-tint: #16306b;
+  --lt-eyebrow: #0b6a99;
+
+  /* Опорные точки градиентных заголовков (страницы хабов и каталога). */
+  --lt-title-a: #101828;
+  --lt-title-b: #2f62d8;
+  --lt-title-c: #6d4bd8;
+  --lt-title-d: #a21caf;
+
+  --app-shell-bg:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(47, 98, 216, 0.1), transparent 55%),
+    linear-gradient(180deg, #ffffff 0%, #f1f5fc 40%, #e9eef8 100%);
+  --app-shell-text: #172033;
+  --app-header-bg: rgba(255, 255, 255, 0.88);
+  --app-header-blur: saturate(130%) blur(14px);
+  --app-header-line:
+    linear-gradient(
+      90deg,
+      rgba(47, 98, 216, 0) 0%,
+      rgba(47, 98, 216, 0.35) 22%,
+      rgba(124, 58, 237, 0.32) 55%,
+      rgba(192, 38, 211, 0.24) 80%,
+      rgba(192, 38, 211, 0) 100%
+    );
+  --app-chrome-bg: rgba(23, 32, 51, 0.04);
+  --app-chrome-border: rgba(23, 32, 51, 0.12);
+  --app-chrome-text: #4c566f;
+  --app-chrome-text-strong: #101828;
+  --app-chrome-hover: rgba(23, 32, 51, 0.08);
+  --app-nav-active-text: #ffffff;
+  --app-nav-active-border: transparent;
+  --app-nav-active-bg: linear-gradient(135deg, #2f62d8 0%, #6d4bd8 100%);
+  --app-logo-text: linear-gradient(100deg, #101828 0%, #2f62d8 60%, #7c3aed 100%);
+
+  /* Базовые переменные шаблона (index.css) — держим в такт теме. */
+  --text: #37425c;
+  --text-h: #101828;
+  --bg: #ffffff;
+  --border: rgba(23, 32, 51, 0.14);
+  --code-bg: #eef2f9;
+}
+
+/* Фон документа — чтобы overscroll и загрузка не мигали чужим цветом. */
+html[data-app-theme='light'],
+html[data-app-theme='light'] body {
+  background-color: #eef2f9;
+}

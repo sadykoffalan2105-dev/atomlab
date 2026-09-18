@@ -93,3 +93,33 @@
     transform: translateX(320%);
   }
 }
+
+/* ═══ Светлая тема приложения (html[data-app-theme='light']) ═══ */
+:global(html[data-app-theme='light']) .root {
+  background-color: #eef2f9;
+  background-image:
+    radial-gradient(ellipse 90% 60% at 50% 20%, rgba(47, 98, 216, 0.12), transparent 55%),
+    linear-gradient(180deg, #ffffff 0%, #eef2f9 45%, #e4eaf6 100%);
+  background-size: auto, auto;
+  color: #172033;
+}
+
+:global(html[data-app-theme='light']) .glow {
+  background: radial-gradient(circle, rgba(47, 98, 216, 0.16), transparent 70%);
+}
+
+:global(html[data-app-theme='light']) .brand {
+  color: #101828;
+}
+
+:global(html[data-app-theme='light']) .hint {
+  color: #56617c;
+}
+
+:global(html[data-app-theme='light']) .barTrack {
+  background: rgba(47, 98, 216, 0.14);
+}
+
+:global(html[data-app-theme='light']) .barFill {
+  background: linear-gradient(90deg, transparent, #2f62d8, transparent);
+}

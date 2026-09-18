@@ -1,0 +1,96 @@
+/* Кнопка «солнце ↔ луна» в шапке · токены --lt-* / --app-* (src/theme/appTheme.css). */
+
+.toggle {
+  position: relative;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--app-chrome-border, rgba(148, 170, 230, 0.16));
+  background: var(--app-chrome-bg, rgba(3, 6, 15, 0.5));
+  color: var(--app-chrome-text, rgba(170, 184, 220, 0.85));
+  cursor: pointer;
+  transition:
+    background var(--lt-dur, 240ms) var(--lt-ease, ease),
+    color var(--lt-dur, 240ms) var(--lt-ease, ease),
+    border-color var(--lt-dur, 240ms) var(--lt-ease, ease);
+}
+
+/* Тач: зона нажатия 44×44 без изменения высоты шапки. */
+.toggle::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.toggle:hover {
+  color: var(--app-chrome-text-strong, #fff);
+  background: var(--app-chrome-hover, rgba(148, 170, 230, 0.1));
+}
+
+.toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring, 0 0 0 3px rgba(91, 140, 255, 0.45));
+}
+
+.toggle[data-theme='light'] {
+  color: #b45309;
+  border-color: rgba(180, 83, 9, 0.28);
+  background: rgba(251, 191, 36, 0.16);
+}
+
+.toggle[data-theme='light']:hover {
+  background: rgba(251, 191, 36, 0.26);
+}
+
+.stage {
+  position: relative;
+  display: block;
+  width: 19px;
+  height: 19px;
+}
+
+.icon {
+  position: absolute;
+  inset: 0;
+  width: 19px;
+  height: 19px;
+  transition:
+    opacity 200ms var(--lt-ease, ease),
+    transform 200ms var(--lt-ease, ease);
+}
+
+/* Тёмная тема — видна луна (предлагаем «включить свет» солнцем? нет: показываем текущее). */
+.iconSun {
+  opacity: 0;
+  transform: rotate(-70deg) scale(0.5);
+}
+
+.iconMoon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.toggle[data-theme='light'] .iconSun {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.toggle[data-theme='light'] .iconMoon {
+  opacity: 0;
+  transform: rotate(70deg) scale(0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon,
+  .toggle {
+    transition-duration: 0ms;
+  }
+}

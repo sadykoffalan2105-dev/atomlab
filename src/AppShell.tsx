@@ -7,6 +7,7 @@ import { warmupLabSynthesisInfra } from './lab/labSynthesisWarmup'
 import { prefetchAppRoutes, prefetchRouteForPath } from './lab/prefetchAppRoutes'
 import { useLocale } from './i18n/useLocale'
 import { useT } from './i18n/useT'
+import { AppThemeToggle } from './theme/AppThemeToggle'
 import styles from './AppShell.module.css'
 
 type IconProps = { className?: string }
@@ -181,6 +182,7 @@ export function AppShell() {
           <div className={styles.updateSlot}>
             <DesktopUpdateBadge />
           </div>
+          <AppThemeToggle />
           <div className={styles.langPicker} role="group" aria-label={t('lang.toggle', { current: locale.toUpperCase() })}>
             {(['ru', 'en', 'uz'] as const).map((code) => (
               <button

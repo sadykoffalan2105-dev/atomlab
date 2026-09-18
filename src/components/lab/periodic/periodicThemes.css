@@ -12,6 +12,54 @@
  * var() в пользовательском свойстве вычисляется на корне страницы.
  */
 
+/* ═══ Аврора — тема страницы по умолчанию: ночные токены --lt-* независимо от темы приложения ═══
+ *
+ * Раньше «Аврора» опиралась на :root (приложение было только тёмным). После появления
+ * глобальной светлой темы (src/theme/appTheme.css) значения фиксируем здесь, иначе на
+ * светлой теме шапка страницы светлеет, а сама таблица остаётся тёмной.
+ * Кому нужна светлая таблица — в переключателе тем есть «Учебник» (paper).
+ */
+[data-pt-theme='aurora'] {
+  color-scheme: dark;
+  --lt-bg: #060913;
+  --lt-bg-deep: #03050c;
+  --lt-bg-glow-1: rgba(56, 189, 248, 0.14);
+  --lt-bg-glow-2: rgba(168, 85, 247, 0.14);
+  --lt-bg-glow-3: rgba(45, 212, 191, 0.1);
+  --lt-surface: rgba(18, 24, 44, 0.72);
+  --lt-surface-2: rgba(24, 32, 58, 0.78);
+  --lt-surface-3: rgba(34, 44, 76, 0.85);
+  --lt-surface-solid: #111830;
+  --lt-surface-hover: rgba(40, 52, 90, 0.85);
+  --lt-border: rgba(148, 170, 230, 0.14);
+  --lt-border-strong: rgba(148, 170, 230, 0.28);
+  --lt-blur: saturate(140%) blur(14px);
+  --lt-text: #e8edff;
+  --lt-text-2: #b6c0e0;
+  --lt-text-3: #8793b8;
+  --lt-text-mute: #5f6a8f;
+  --lt-primary: #5b8cff;
+  --lt-primary-2: #8b5cf6;
+  --lt-grad-primary: linear-gradient(135deg, #5b8cff 0%, #8b5cf6 55%, #d946ef 100%);
+  --lt-accent-teal: #2dd4bf;
+  --lt-accent-cyan: #22d3ee;
+  --lt-accent-amber: #fbbf24;
+  --lt-accent-pink: #f472b6;
+  --lt-success: #34d399;
+  --lt-warning: #fbbf24;
+  --lt-danger: #fb7185;
+  --lt-info: #38bdf8;
+  --lt-shadow-sm: 0 2px 10px rgba(2, 6, 23, 0.35);
+  --lt-shadow: 0 10px 30px -8px rgba(2, 6, 23, 0.6), 0 2px 8px rgba(2, 6, 23, 0.35);
+  --lt-shadow-lg: 0 24px 60px -18px rgba(2, 6, 23, 0.75);
+  --lt-glow-primary: 0 8px 28px -6px rgba(91, 140, 255, 0.55);
+  --lt-ring: 0 0 0 3px rgba(91, 140, 255, 0.45);
+  --lt-ink-rgb: 6, 9, 19;
+  --lt-ink-solid: #fff;
+  --lt-on-tint: #fff;
+  --lt-bg-core: #0a0f24;
+}
+
 /* ═══ Неон — киберпанк: чёрный фон, светящиеся контуры, моноширинные символы ═══ */
 [data-pt-theme='neon'] {
   --lt-bg: #05020c;

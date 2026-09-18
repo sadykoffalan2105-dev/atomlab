@@ -1,0 +1,442 @@
+/* =====================================================================
+   Выбор рабочего пространства урока — большие интерактивные карточки
+   в духе выбора класса на хабе «Обучение». Только токены --lt-*;
+   тон карточки приходит как --ws-a / --ws-b.
+   ===================================================================== */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow: auto;
+  background:
+    radial-gradient(60% 50% at 12% 0%, color-mix(in srgb, var(--lt-primary) 18%, transparent), transparent 70%),
+    radial-gradient(50% 45% at 92% 8%, color-mix(in srgb, var(--lt-accent-pink) 16%, transparent), transparent 72%),
+    color-mix(in srgb, var(--lt-bg-deep, var(--lt-bg)) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: wsFade var(--lt-dur, 200ms) var(--lt-ease, ease) both;
+}
+
+@keyframes wsFade {
+  from {
+    opacity: 0;
+  }
+}
+
+.dialog {
+  width: min(1040px, 100%);
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 720px;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-2);
+  color: var(--lt-text-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--lt-font-display, var(--lt-font));
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--lt-text);
+  overflow-wrap: anywhere;
+}
+
+.lead {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--lt-text-3, var(--lt-text-2));
+  overflow-wrap: anywhere;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 220px;
+  min-height: 300px;
+  padding: 18px 18px 16px;
+  border-radius: var(--lt-radius-lg, 22px);
+  border: 1px solid var(--lt-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ws-a) 12%, transparent), transparent 62%),
+    var(--lt-surface);
+  box-shadow: var(--lt-shadow);
+  color: var(--lt-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform var(--lt-dur, 200ms) var(--lt-ease, ease),
+    box-shadow var(--lt-dur, 200ms) var(--lt-ease, ease),
+    border-color var(--lt-dur, 200ms) var(--lt-ease, ease);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ws-a), var(--ws-b));
+  opacity: 0.8;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  inset: -40% -20% auto;
+  height: 70%;
+  background: radial-gradient(60% 60% at 50% 50%, color-mix(in srgb, var(--ws-a) 34%, transparent), transparent 72%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--lt-dur, 200ms) var(--lt-ease, ease);
+}
+
+.card:hover,
+.card:focus-visible {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--ws-a) 55%, var(--lt-border));
+  box-shadow:
+    var(--lt-shadow-lg, var(--lt-shadow)),
+    0 0 0 1px color-mix(in srgb, var(--ws-a) 34%, transparent),
+    0 18px 48px color-mix(in srgb, var(--ws-a) 26%, transparent);
+}
+
+.card:hover::after,
+.card:focus-visible::after {
+  opacity: 1;
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--lt-ring);
+  outline-offset: 3px;
+}
+
+.card:active {
+  transform: translateY(-1px);
+}
+
+.cardCurrent {
+  border-color: color-mix(in srgb, var(--ws-a) 50%, var(--lt-border));
+}
+
+.artWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 132px;
+  border-radius: var(--lt-radius, 16px);
+  background:
+    radial-gradient(70% 70% at 50% 40%, color-mix(in srgb, var(--ws-a) 16%, transparent), transparent 72%),
+    var(--lt-surface-2);
+  border: 1px solid color-mix(in srgb, var(--ws-a) 18%, var(--lt-border));
+  overflow: hidden;
+}
+
+.art {
+  width: 118px;
+  height: 118px;
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.cardTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--lt-text);
+  overflow-wrap: anywhere;
+  hyphens: manual;
+}
+
+.cardDesc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--lt-text-3, var(--lt-text-2));
+  overflow-wrap: anywhere;
+  hyphens: manual;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--lt-border);
+  font-size: 12px;
+  color: var(--lt-text-3, var(--lt-text-2));
+}
+
+.cardKbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cardGo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--ws-a) 72%, var(--lt-text));
+}
+
+.card:hover .cardGo > svg,
+.card:focus-visible .cardGo > svg {
+  transform: translateX(3px);
+}
+
+.cardGo > svg {
+  transition: transform var(--lt-dur, 200ms) var(--lt-ease, ease);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 44px;
+}
+
+.footHint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--lt-text-mute, var(--lt-text-3));
+}
+
+/* ——— Анимация арта ——— */
+
+.spin {
+  transform-origin: 60px 60px;
+  animation: wsSpin 16s linear infinite;
+}
+
+.spinBack {
+  transform-origin: 60px 60px;
+  animation: wsSpin 22s linear infinite reverse;
+}
+
+@keyframes wsSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.float {
+  animation: wsFloat 3.6s var(--lt-ease, ease) infinite;
+}
+
+@keyframes wsFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.draw {
+  stroke-dasharray: 150;
+  stroke-dashoffset: 150;
+  animation: wsDraw 4.2s var(--lt-ease, ease) infinite;
+}
+
+@keyframes wsDraw {
+  0% {
+    stroke-dashoffset: 150;
+  }
+  55%,
+  85% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+.pulse {
+  transform-origin: 60px 60px;
+  animation: wsPulse 3s var(--lt-ease, ease) infinite;
+}
+
+.pulseSlow {
+  transform-origin: 60px 60px;
+  animation: wsPulse 3s var(--lt-ease, ease) infinite 0.6s;
+}
+
+@keyframes wsPulse {
+  0% {
+    transform: scale(0.82);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+}
+
+.blink {
+  animation: wsBlink 2.4s steps(1, end) infinite;
+}
+
+@keyframes wsBlink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.25;
+  }
+}
+
+/* ——— Планшет / телефон ——— */
+
+@media (max-width: 900px) {
+  .overlay {
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    align-items: flex-start;
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .card {
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .artWrap {
+    flex: 0 0 auto;
+    width: 96px;
+    height: 96px;
+  }
+
+  .art {
+    width: 82px;
+    height: 82px;
+  }
+
+  .cardFoot {
+    border-top: 0;
+    padding-top: 4px;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 420px) {
+  .artWrap {
+    width: 76px;
+    height: 76px;
+  }
+
+  .art {
+    width: 66px;
+    height: 66px;
+  }
+
+  .cardGo > span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .card,
+  .cardGo > svg {
+    animation: none;
+    transition: none;
+  }
+
+  .spin,
+  .spinBack,
+  .float,
+  .draw,
+  .pulse,
+  .pulseSlow,
+  .blink {
+    animation: none;
+  }
+
+  .draw {
+    stroke-dashoffset: 0;
+  }
+
+  .pulse,
+  .pulseSlow {
+    opacity: 0.35;
+  }
+}

@@ -108,7 +108,13 @@
   line-height: var(--lt-lh-tight);
   font-weight: 800;
   letter-spacing: -0.02em;
-  background: linear-gradient(120deg, #f4f7ff 0%, #b9c9ff 40%, #d8b4fe 75%, #f0abfc 100%);
+  background: linear-gradient(
+    120deg,
+    var(--lt-title-a, #f4f7ff) 0%,
+    var(--lt-title-b, #b9c9ff) 40%,
+    var(--lt-title-c, #d8b4fe) 75%,
+    var(--lt-title-d, #f0abfc) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

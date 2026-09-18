@@ -12,7 +12,13 @@
 .page {
   --hub-ga: var(--lt-primary);
   --hub-gb: var(--lt-accent-pink);
-  --hub-title-grad: linear-gradient(100deg, #f1f4ff 0%, #a9c1ff 38%, #c4b0ff 66%, #f5b4f8 100%);
+  --hub-title-grad: linear-gradient(
+    100deg,
+    var(--lt-title-a, #f1f4ff) 0%,
+    var(--lt-title-b, #a9c1ff) 38%,
+    var(--lt-title-c, #c4b0ff) 66%,
+    var(--lt-title-d, #f5b4f8) 100%
+  );
   --hub-ink: #050a18;
 
   position: relative;

@@ -35,7 +35,7 @@
 
 html,
 body {
-  background-color: #03040a;
+  background-color: var(--lt-bg-deep, #03040a);
 }
 
 @media (prefers-color-scheme: dark) {
