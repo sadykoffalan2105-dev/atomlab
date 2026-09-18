@@ -296,6 +296,9 @@
     {"page":182,"eq":"P + 5HNO3 -> H3PO4 + 5NO2 + H2O","type":"redox","exercise":true,"book":"2) P + HNO3(конц.) → H3PO4 + NO2 + H2O"},
     {"page":182,"eq":"2P + 5H2SO4 -> 2H3PO4 + 5SO2 + 2H2O","type":"redox","exercise":true,"book":"3) P + H2SO4(конц.) → H3PO4 + SO2 + H2O"},
     {"page":183,"eq":"Ca3(PO4)2 + 5C + 3SiO2 -> 2P + 5CO + 3CaSiO3","type":"redox","cond":"пример 1: из 15,5 г фосфата кальция — 3,1 г фосфора"},
-    {"page":183,"eq":"4P + 5O2 -> 2P2O5","type":"combustion","cond":"пример 1: из 3,1 г фосфора — 0,05 моль P2O5"}
+    {"page":183,"eq":"4P + 5O2 -> 2P2O5","type":"combustion","cond":"пример 1: из 3,1 г фосфора — 0,05 моль P2O5"},
+    {"page":191,"eq":"Ca3(PO4)2 + 4H3PO4 -> 3Ca(H2PO4)2","type":"combination","cond":"двойной суперфосфат Ca(H2PO4)2·2H2O: 40–50 % P2O5, хорошо растворим в воде"},
+    {"page":191,"eq":"Ca(OH)2 + H3PO4 -> CaHPO4*2H2O","type":"neutralization","cond":"преципитат CaHPO4·2H2O: 30–35 % P2O5, мало растворим в воде"},
+    {"page":191,"eq":"CaCO3 + H3PO4 -> CaHPO4 + H2O + CO2","type":"exchange","cond":"получение преципитата из карбоната кальция"}
   ]
 }
