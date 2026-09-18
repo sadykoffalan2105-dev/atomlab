@@ -1,21 +1,35 @@
 /*
- * Рабочая зона — доска для записей пальцем/стилусом или с клавиатуры («Aurora Lab»).
- * Токены — src/learn/learnTheme.css. Локальные свойства: --bp-zoom (масштаб, ставится из TSX),
- * --bp-paper / --bp-dot (цвет «листа» и точечной сетки, производные от токенов).
+ * Рабочая зона — химическая тетрадь урока (Lesson Studio, «Aurora Lab»).
+ * Только токены --lt-* и color-mix(): работает во всех темах. Панель задаёт тон
+ * (--studio-tone = янтарь) — примитивы кита читают его сами.
+ * Локальные свойства: --bp-zoom (масштаб, из TSX), --bp-paper / --bp-dot / --bp-grid / --bp-rule
+ * (цвет «листа» и разлиновки), --bp-ctrl / --bp-key (размеры целей: 36 → 44 px на сенсоре).
  */
 
 .root {
-  --bp-paper: rgba(3, 5, 12, 0.78);
-  --bp-dot: rgba(148, 170, 230, 0.16);
+  --studio-tone: var(--lt-accent-amber);
+  --studio-tone-2: var(--lt-accent-pink);
+  --studio-wash: color-mix(in srgb, var(--studio-tone) 12%, transparent);
+  --studio-wash-strong: color-mix(in srgb, var(--studio-tone) 22%, transparent);
+  --studio-line: color-mix(in srgb, var(--studio-tone) 38%, var(--lt-border));
+  --bp-paper: color-mix(in srgb, var(--lt-bg) 58%, transparent);
+  --bp-dot: color-mix(in srgb, var(--lt-text) 17%, transparent);
+  --bp-grid: color-mix(in srgb, var(--lt-text) 9%, transparent);
+  --bp-rule: color-mix(in srgb, var(--studio-tone) 26%, transparent);
+  --bp-ctrl: 36px;
+  --bp-key: 34px;
 
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
+  container-type: inline-size;
+  container-name: workpad;
   font-family: var(--lt-font);
-  font-size: var(--lt-fs-body);
+  font-size: 14px;
   color: var(--lt-text);
 }
 
@@ -26,7 +40,7 @@
 }
 
 .root button {
-  font: inherit;
+  font-family: inherit;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -36,146 +50,473 @@
   box-shadow: var(--lt-ring);
 }
 
-/* ——— Панель инструментов ——— */
+/* ——— Ряды инструментов: прокручиваются внутри себя, страница — никогда ——— */
 
-.toolbar {
+.bar {
+  position: relative;
   flex-shrink: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+  min-width: 0;
 }
 
-.modeGroup,
+.barScroll {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  /* Вертикальный «выпуск» даёт место кольцу фокуса; по горизонтали его нет —
+     иначе ряд вылезает за панель на 4 px и колонка срезает крайнюю кнопку. */
+  margin: -4px 0;
+  padding: 4px 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.barScroll::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * В узкой колонке ряд инструментов заведомо не помещается, а полосы прокрутки
+ * нет — без затухания у правого края «Шаблоны» выглядят обрезанными, а не
+ * прокручиваемыми. В широкой панели ряд помещается, и маска не нужна.
+ */
+@container workpad (max-width: 700px) {
+  .barScroll {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent);
+  }
+}
+
+.barScroll > * {
+  flex-shrink: 0;
+}
+
+.spacer {
+  flex: 1 0 6px;
+  min-width: 6px;
+}
+
+.barLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 22px;
+  background: var(--lt-border);
+}
+
+/* Масштаб: − 100% + в одной капсуле */
+
 .zoomGroup {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border-radius: var(--lt-radius-pill);
+  gap: 1px;
+  padding: 2px;
+  border-radius: 14px;
   border: 1px solid var(--lt-border);
-  background: rgba(3, 5, 12, 0.55);
+  background: color-mix(in srgb, var(--lt-bg) 55%, transparent);
 }
 
-.tool,
-.toolOn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px 0 10px;
-  border: 0;
-  border-radius: var(--lt-radius-pill);
-  font-size: var(--lt-fs-small);
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background var(--lt-dur-fast) var(--lt-ease),
-    color var(--lt-dur-fast) var(--lt-ease);
-}
-
-.tool {
-  background: transparent;
-  color: var(--lt-text-3);
-}
-
-.tool:hover {
-  color: var(--lt-text);
-  background: rgba(148, 170, 230, 0.08);
-}
-
-.toolOn {
-  color: #fff;
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.36), rgba(91, 140, 255, 0.4));
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
-}
-
-.toolIcon {
-  flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
-}
-
-.stepBtn {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--lt-text-2);
-  font-size: 16px;
-  cursor: pointer;
-  transition:
-    background var(--lt-dur-fast) var(--lt-ease),
-    color var(--lt-dur-fast) var(--lt-ease);
-}
-
-.stepBtn:hover:not(:disabled) {
-  color: var(--lt-text);
-  background: var(--lt-surface-3);
-}
-
-.stepBtn:disabled {
-  cursor: not-allowed;
-  color: var(--lt-text-mute);
+.zoomGroup .zoomBtn {
+  width: calc(var(--bp-ctrl) - 6px);
+  min-width: calc(var(--bp-ctrl) - 6px);
+  min-height: calc(var(--bp-ctrl) - 6px);
+  border-radius: 10px;
 }
 
 .zoomValue {
-  height: 32px;
-  min-width: 58px;
-  padding: 0 8px;
+  min-width: 52px;
+  height: calc(var(--bp-ctrl) - 6px);
+  padding: 0 6px;
   border: 0;
-  border-radius: var(--lt-radius-pill);
+  border-radius: 10px;
   background: transparent;
   color: var(--lt-text);
+  font-size: 12px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: background var(--lt-dur-fast) var(--lt-ease);
+  transition:
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    color var(--lt-dur-fast) var(--lt-ease);
 }
 
 .zoomValue:hover {
-  background: rgba(148, 170, 230, 0.1);
+  background: var(--lt-surface-hover);
 }
 
-.zoomLabel {
-  font-size: var(--lt-fs-small);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+.zoomValueHot {
+  color: var(--studio-tone);
 }
 
-.ghostBtn {
-  margin-left: auto;
+/* Кнопки со значком + подписью (кит .btnGhost) — компактнее в тесной панели */
+
+.toolBtn {
+  min-height: var(--bp-ctrl);
+  padding: 0 11px 0 9px;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.toolBtn[aria-pressed='true'],
+.toolBtn[aria-expanded='true'] {
+  border-color: var(--studio-line);
+  background: var(--studio-wash);
+  color: var(--lt-text);
+}
+
+.toolBtn[aria-pressed='true'] > svg,
+.toolBtn[aria-expanded='true'] > svg {
+  color: var(--studio-tone);
+}
+
+.toolGlyph {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--studio-tone) 16%, transparent);
+  color: var(--studio-tone);
+  font-family: var(--lt-font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+/* Статус автосохранения */
+
+.status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 34px;
-  padding: 0 12px;
-  border: 1px solid transparent;
+  min-height: 26px;
+  max-width: 100%;
+  padding: 0 10px 0 8px;
   border-radius: var(--lt-radius-pill);
-  background: transparent;
-  color: var(--lt-text-2);
-  font-size: var(--lt-fs-small);
+  border: 1px solid var(--lt-border);
+  background: color-mix(in srgb, var(--lt-text) 5%, transparent);
+  color: var(--lt-text-3);
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition:
+    border-color var(--lt-dur) var(--lt-ease),
+    background-color var(--lt-dur) var(--lt-ease),
+    color var(--lt-dur) var(--lt-ease);
+}
+
+.status > svg {
+  flex-shrink: 0;
+  color: var(--lt-text-mute);
+}
+
+.statusSaved > svg {
+  color: var(--lt-success);
+}
+
+.statusNotice {
+  border-color: var(--studio-line);
+  background: var(--studio-wash);
+  color: var(--lt-text);
+}
+
+.statusNotice > svg {
+  color: var(--studio-tone);
+}
+
+.statusWarn {
+  border-color: color-mix(in srgb, var(--lt-danger) 40%, transparent);
+  background: color-mix(in srgb, var(--lt-danger) 10%, transparent);
+  color: var(--lt-text);
+}
+
+.statusWarn > svg {
+  color: var(--lt-danger);
+}
+
+.statusDot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--studio-tone);
+  animation: bpPulse 1.1s ease-in-out infinite;
+}
+
+@keyframes bpPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Подтверждение «стереть всё» прямо в ряду */
+
+.confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 3px 2px 10px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--lt-danger) 40%, transparent);
+  background: color-mix(in srgb, var(--lt-danger) 9%, transparent);
+  color: var(--lt-text);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  animation: bpIn var(--lt-dur-fast) var(--lt-ease);
+}
+
+.confirmBtn {
+  min-height: calc(var(--bp-ctrl) - 8px);
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 10px;
+}
+
+/* ——— Перо: цвета, толщина ——— */
+
+.swatches {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 14px;
+  border: 1px solid var(--lt-border);
+  background: color-mix(in srgb, var(--lt-bg) 55%, transparent);
+}
+
+.swatch {
+  display: grid;
+  place-items: center;
+  width: calc(var(--bp-ctrl) - 6px);
+  height: calc(var(--bp-ctrl) - 6px);
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    border-color var(--lt-dur-fast) var(--lt-ease),
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    transform var(--lt-dur-fast) var(--lt-ease);
+}
+
+.swatch::before {
+  content: '';
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lt-bg) 35%, transparent);
+}
+
+.swatch:hover {
+  transform: scale(1.08);
+}
+
+.swatch[aria-pressed='true'] {
+  border-color: var(--swatch);
+  background: color-mix(in srgb, var(--swatch) 16%, transparent);
+}
+
+.widthItem {
+  min-width: 34px;
+  padding: 0 8px;
+}
+
+.widthDot {
+  display: block;
+  width: var(--dot, 6px);
+  height: var(--dot, 6px);
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.paperItem {
+  min-width: 36px;
+  padding: 0 8px;
+}
+
+.paperItem > svg {
+  color: currentcolor;
+}
+
+/* ——— Палитра химических символов ——— */
+
+.palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  flex-shrink: 0;
+  min-width: 0;
+  padding: 8px 10px 9px;
+  border-radius: 14px;
+  border: 1px solid var(--lt-border);
+  background: color-mix(in srgb, var(--lt-surface-2) 82%, transparent);
+  animation: bpIn var(--lt-dur) var(--lt-ease);
+}
+
+.palGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.palLabel {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--lt-text-3);
+  white-space: nowrap;
+}
+
+.palKeys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.palKey {
+  min-width: var(--bp-key);
+  height: var(--bp-key);
+  padding: 0 8px;
+  border-radius: 9px;
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-3);
+  color: var(--lt-text);
+  font-family: var(--lt-font-mono);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1;
   white-space: nowrap;
   cursor: pointer;
   transition:
-    background var(--lt-dur-fast) var(--lt-ease),
-    color var(--lt-dur-fast) var(--lt-ease),
-    border-color var(--lt-dur-fast) var(--lt-ease);
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    border-color var(--lt-dur-fast) var(--lt-ease),
+    transform var(--lt-dur-fast) var(--lt-ease),
+    box-shadow var(--lt-dur-fast) var(--lt-ease);
 }
 
-.ghostBtn:hover:not(:disabled) {
-  color: var(--lt-danger);
-  border-color: rgba(251, 113, 133, 0.35);
-  background: rgba(251, 113, 133, 0.08);
+.palKey:hover {
+  border-color: var(--studio-line);
+  background: var(--studio-wash);
+  transform: translateY(-1px);
 }
 
-.ghostBtn:disabled {
-  cursor: not-allowed;
-  color: var(--lt-text-mute);
+.palKey:active {
+  transform: scale(0.94);
+  background: var(--studio-wash-strong);
+}
+
+/* Узкая панель или телефон: палитра остаётся клавиатурой — группы переносятся
+   по строкам, символы не прячутся за горизонтальную прокрутку. Высота ограничена,
+   чтобы палитра не съедала лист: при нехватке места прокручивается вертикально. */
+@container workpad (max-width: 559px) {
+  .palette {
+    gap: 8px 12px;
+    max-height: 232px;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+  }
+
+  .palGroup {
+    flex: 1 1 100%;
+  }
+}
+
+/* ——— Меню шаблонов ——— */
+
+.menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: var(--menu-left, 0px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: min(300px, 100%);
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--lt-border-strong);
+  background: var(--lt-surface);
+  backdrop-filter: var(--lt-blur);
+  -webkit-backdrop-filter: var(--lt-blur);
+  box-shadow: var(--lt-shadow);
+  animation: bpIn var(--lt-dur-fast) var(--lt-ease);
+}
+
+.menuTitle {
+  padding: 4px 10px 2px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--lt-text-3);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 10px 6px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--lt-text);
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  cursor: pointer;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  transition: background-color var(--lt-dur-fast) var(--lt-ease);
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  outline: none;
+  background: var(--studio-wash);
+}
+
+.menuItem:focus-visible {
+  box-shadow: var(--lt-ring);
+}
+
+.menuKey {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--studio-tone) 16%, transparent);
+  color: var(--studio-tone);
+  font-family: var(--lt-font-mono);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 /* ——— Лист ——— */
@@ -190,12 +531,10 @@
   border-radius: var(--lt-radius);
   border: 1px solid var(--lt-border-strong);
   background: var(--bp-paper);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    inset 0 0 0 1px rgba(3, 5, 12, 0.4);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--lt-text) 5%, transparent);
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 170, 230, 0.28) transparent;
+  scrollbar-color: color-mix(in srgb, var(--lt-text) 22%, transparent) transparent;
   transition:
     border-color var(--lt-dur) var(--lt-ease),
     box-shadow var(--lt-dur) var(--lt-ease);
@@ -208,7 +547,7 @@
 }
 
 .scrollViewport:focus-within {
-  border-color: rgba(91, 140, 255, 0.55);
+  border-color: var(--studio-line);
   box-shadow: var(--lt-ring);
 }
 
@@ -239,13 +578,30 @@
 .zoomShell {
   transform-origin: top left;
   width: 100%;
+}
+
+.root[data-mode='touch'] .zoomShell {
+  touch-action: none;
+}
+
+/* Разлиновка листа: точки / линейка / клетка / чистый */
+
+.root[data-paper='dots'] .zoomShell {
   background-image: radial-gradient(circle, var(--bp-dot) 1.2px, transparent 1.6px);
   background-size: 24px 24px;
   background-position: 12px 12px;
 }
 
-.root[data-mode='touch'] .zoomShell {
-  touch-action: none;
+.root[data-paper='lines'] .zoomShell {
+  background-image: linear-gradient(180deg, transparent calc(100% - 1px), var(--bp-rule) calc(100% - 1px));
+  background-size: 100% 32px;
+}
+
+.root[data-paper='grid'] .zoomShell {
+  background-image:
+    linear-gradient(90deg, var(--bp-grid) 1px, transparent 1px),
+    linear-gradient(180deg, var(--bp-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .textarea {
@@ -261,15 +617,33 @@
   font-family: var(--lt-font);
   font-size: calc(var(--lt-fs-body) * var(--bp-zoom, 1));
   line-height: 1.7;
+  tab-size: 4;
   padding: calc(14px * var(--bp-zoom, 1)) calc(18px * var(--bp-zoom, 1));
   background-color: transparent;
+  background-attachment: local;
+  caret-color: var(--studio-tone);
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--lt-text) 22%, transparent) transparent;
+}
+
+.root[data-paper='dots'] .textarea {
   background-image: radial-gradient(circle, var(--bp-dot) 1.2px, transparent 1.6px);
   background-size: calc(24px * var(--bp-zoom, 1)) calc(24px * var(--bp-zoom, 1));
   background-position: calc(12px * var(--bp-zoom, 1)) calc(12px * var(--bp-zoom, 1));
-  background-attachment: local;
-  caret-color: var(--lt-accent-cyan);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 170, 230, 0.28) transparent;
+}
+
+.root[data-paper='lines'] .textarea {
+  background-image: linear-gradient(180deg, transparent calc(100% - 1px), var(--bp-rule) calc(100% - 1px));
+  background-size: 100% 1.7em;
+  background-position: 0 calc(14px * var(--bp-zoom, 1));
+}
+
+.root[data-paper='grid'] .textarea {
+  background-image:
+    linear-gradient(90deg, var(--bp-grid) 1px, transparent 1px),
+    linear-gradient(180deg, var(--bp-grid) 1px, transparent 1px);
+  background-size: calc(24px * var(--bp-zoom, 1)) calc(24px * var(--bp-zoom, 1));
+  background-position: calc(18px * var(--bp-zoom, 1)) calc(14px * var(--bp-zoom, 1));
 }
 
 .textarea::placeholder {
@@ -278,7 +652,7 @@
 }
 
 .textarea::selection {
-  background: rgba(91, 140, 255, 0.4);
+  background: color-mix(in srgb, var(--studio-tone) 35%, transparent);
 }
 
 .rootPresent .textarea {
@@ -298,6 +672,10 @@
   background: transparent;
 }
 
+.root[data-eraser='1'] .inkCanvas {
+  cursor: cell;
+}
+
 .emptyHint {
   position: absolute;
   top: 18px;
@@ -310,9 +688,9 @@
   padding: 8px 14px 8px 8px;
   border-radius: var(--lt-radius-pill);
   border: 1px dashed var(--lt-border-strong);
-  background: rgba(18, 24, 44, 0.7);
+  background: color-mix(in srgb, var(--lt-surface) 88%, transparent);
   color: var(--lt-text-2);
-  font-size: var(--lt-fs-small);
+  font-size: 12.5px;
   font-weight: 600;
   line-height: 1.3;
   pointer-events: none;
@@ -326,33 +704,37 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  font-size: 16px;
-  color: var(--lt-accent-cyan);
-  background: rgba(34, 211, 238, 0.14);
+  color: var(--studio-tone);
+  background: color-mix(in srgb, var(--studio-tone) 16%, transparent);
 }
 
-/* ——— Подсказка снизу ——— */
+.emptyHintIcon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ——— Подвал: подсказка + статистика ——— */
 
 .footer {
   flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 4px 12px;
+  min-width: 0;
 }
 
 .hint {
   display: inline-flex;
   align-items: flex-start;
   gap: 6px;
-  max-width: 100%;
+  flex: 1 1 200px;
+  min-width: 0;
   margin: 0;
-  padding: 5px 12px 5px 8px;
-  border-radius: var(--lt-radius-pill);
-  border: 1px solid var(--lt-border);
-  background: rgba(18, 24, 44, 0.5);
-  font-size: var(--lt-fs-xs);
+  font-size: 12px;
   line-height: 1.35;
   color: var(--lt-text-3);
+  overflow-wrap: anywhere;
 }
 
 .hintIcon {
@@ -360,7 +742,39 @@
   width: 14px;
   height: 14px;
   margin-top: 1px;
-  color: var(--lt-accent-cyan);
+  color: var(--studio-tone);
+}
+
+.meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--lt-text-mute);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.kbdHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ——— Анимации ——— */
+
+@keyframes bpIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Одна колонка: лист с клавиатурой — фиксированной высоты, чтобы поле не «прыгало». */
@@ -377,25 +791,37 @@
 
 /* Сенсорные экраны и телефоны: цели ≥44px, без обрезанных подписей. */
 @media (pointer: coarse), (max-width: 720px) {
-  .tool,
-  .toolOn,
+  .root {
+    --bp-ctrl: 44px;
+    --bp-key: 44px;
+  }
+
+  .zoomGroup .zoomBtn {
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
   .zoomValue {
     height: 40px;
   }
 
-  .tool,
-  .toolOn {
-    padding: 0 14px 0 12px;
-  }
-
-  .stepBtn {
+  .swatch {
     width: 40px;
     height: 40px;
   }
 
-  .ghostBtn {
-    height: 44px;
-    padding: 0 14px;
+  .swatch::before {
+    width: 18px;
+    height: 18px;
+  }
+
+  .palKey {
+    font-size: 16px;
+  }
+
+  .kbdHint {
+    display: none;
   }
 
   .textarea {
@@ -404,17 +830,27 @@
   }
 }
 
-@media (max-width: 420px) {
-  .modeGroup {
-    flex: 1 1 100%;
+/* Режим доски: крупнее клавиши палитры и подсказка. */
+.rootPresent .palKey {
+  min-width: 44px;
+  height: 44px;
+  font-size: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .palette,
+  .menu,
+  .confirm {
+    animation: none;
   }
 
-  .modeGroup > button {
-    flex: 1 1 0;
-    justify-content: center;
+  .statusDot {
+    animation: none;
+    opacity: 1;
   }
 
-  .ghostBtn {
-    margin-left: auto;
+  .palKey:hover,
+  .swatch:hover {
+    transform: none;
   }
 }

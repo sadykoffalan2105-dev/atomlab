@@ -1,108 +1,666 @@
+/*
+ * Кабинет учителя — вкладка «Тест ученика» (compact-режим хаба).
+ * Только токены Aurora Lab; тон карточек формата задаётся через --studio-tone,
+ * поэтому примитивы кита (iconTile, cardSelected, cardCheck) подхватывают его сами.
+ */
+
 .hub {
-  padding: 0.85rem 0.95rem 1rem;
-  border-radius: 16px;
-  border: 1px solid rgba(120, 90, 255, 0.38);
-  background:
-    radial-gradient(ellipse 80% 55% at 15% 0%, rgba(120, 90, 255, 0.14), transparent 58%),
-    linear-gradient(155deg, rgba(16, 14, 42, 0.92), rgba(8, 10, 28, 0.96));
-  margin-bottom: 0.75rem;
+  container: cockpit / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  font-family: var(--lt-font);
+  color: var(--lt-text);
 }
 
-.hubCompact {
-  padding: 0;
-  border: none;
+/* ——— Тона форматов ——— */
+
+.toneMcq {
+  --studio-tone: var(--lt-primary);
+  --studio-tone-2: var(--lt-primary-2);
+}
+
+.toneOral {
+  --studio-tone: var(--lt-accent-cyan);
+  --studio-tone-2: var(--lt-primary);
+}
+
+.toneWritten {
+  --studio-tone: var(--lt-accent-amber);
+  --studio-tone-2: var(--lt-accent-pink);
+}
+
+.toneBalance {
+  --studio-tone: var(--lt-accent-teal);
+  --studio-tone-2: var(--lt-accent-cyan);
+}
+
+.toneFormulas {
+  --studio-tone: var(--lt-accent-pink);
+  --studio-tone-2: var(--lt-primary-2);
+}
+
+.toneProblems {
+  --studio-tone: var(--lt-primary-2);
+  --studio-tone-2: var(--lt-accent-pink);
+}
+
+/* ——— Блок с заголовком ——— */
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.blockHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 28px;
+}
+
+.blockTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  color: var(--lt-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.blockLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid transparent;
   background: transparent;
+  color: var(--lt-text-3);
+  font-family: var(--lt-font);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color var(--lt-dur-fast) var(--lt-ease),
+    background-color var(--lt-dur-fast) var(--lt-ease);
+}
+
+.blockLink > svg {
+  color: var(--studio-tone, var(--lt-primary));
+}
+
+.blockLink:hover:not(:disabled) {
+  color: var(--lt-text);
+  background: var(--lt-surface-hover);
+}
+
+.blockLink:disabled {
+  cursor: default;
+}
+
+.blockLink:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.kbdHint {
+  display: inline-flex;
+  gap: 3px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* ——— Заметка / пустое состояние ——— */
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
   margin: 0;
-}
-
-.hubCompact .modeRow {
-  margin-bottom: 0.3rem;
-  gap: 0.25rem;
-}
-
-.hubCompact .modeBtn,
-.hubCompact .modeBtnActive {
-  font-size: 0.64rem;
-  padding: 0.28rem 0.5rem;
-}
-
-.hubCompact .studentLine,
-.hubCompact .studentHint,
-.hubCompact .studentHintOptional {
-  font-size: 0.64rem;
-  margin-bottom: 0.2rem;
-}
-
-.head {
-  margin-bottom: 0.65rem;
-}
-
-.title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 800;
-  color: #e8e4ff;
-}
-
-.lead {
-  margin: 0.3rem 0 0;
-  font-size: 0.78rem;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px dashed var(--lt-border-strong);
+  background: color-mix(in srgb, var(--lt-text) 4%, transparent);
+  font-size: 12px;
   line-height: 1.45;
-  color: rgba(185, 180, 230, 0.9);
+  color: var(--lt-text-2);
+  overflow-wrap: anywhere;
 }
 
-.modeRow {
+.note > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--studio-tone, var(--lt-primary));
+}
+
+.empty {
+  padding: 20px 14px;
+}
+
+.addForm {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.addInput {
+  flex: 1 1 140px;
+  min-width: 0;
+  min-height: 38px;
+}
+
+/* ——— Выбранный ученик ——— */
+
+.selected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 8px 8px 10px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 45%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 14%, transparent), transparent 70%),
+    var(--lt-surface-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 22%, transparent);
+  animation: cockpitPop var(--lt-dur) var(--lt-ease);
+}
+
+.selectedText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.selectedLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--studio-tone, var(--lt-primary));
+}
+
+.selectedName {
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.2;
+  color: var(--lt-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectedActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.smallBtn {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.smallBtn[aria-pressed='true'] {
+  border-color: var(--studio-line, var(--lt-border-strong));
+  background: var(--studio-wash, color-mix(in srgb, var(--lt-primary) 12%, transparent));
+}
+
+/* ——— Выбор ученика ——— */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  animation: cockpitPop var(--lt-dur) var(--lt-ease);
+}
+
+.pickerCaption {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lt-text-3);
+}
+
+.pickerCaption > svg {
+  color: var(--studio-tone, var(--lt-primary));
+}
+
+.chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 0.55rem;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
 }
 
-.modeBtn,
-.modeBtnActive {
-  font: inherit;
-  font-size: 0.76rem;
-  font-weight: 700;
-  padding: 0.4rem 0.75rem;
-  border-radius: 999px;
+.chips > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chip,
+.chipOn,
+.chipMore {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 3px 11px 3px 3px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-2);
+  color: var(--lt-text-2);
+  font-family: var(--lt-font);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
-  border: 1px solid rgba(140, 120, 255, 0.45);
-  background: rgba(12, 10, 32, 0.85);
-  color: #ddd8ff;
+  transition:
+    transform var(--lt-dur-fast) var(--lt-ease),
+    border-color var(--lt-dur-fast) var(--lt-ease),
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    box-shadow var(--lt-dur) var(--lt-ease);
 }
 
-.modeBtnActive {
-  border-color: rgba(180, 150, 255, 0.75);
-  background: rgba(50, 35, 90, 0.75);
-  color: #fff;
+.chip:hover,
+.chipMore:hover {
+  color: var(--lt-text);
+  border-color: var(--lt-border-strong);
+  background: var(--lt-surface-hover);
+  transform: translateY(-1px);
 }
 
-.studentLine {
-  margin: 0 0 0.35rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #5cffd4;
+.chip:active,
+.chipOn:active,
+.chipMore:active {
+  transform: translateY(0) scale(0.98);
 }
 
-.studentHint {
-  margin: 0 0 0.35rem;
-  font-size: 0.76rem;
-  color: #ffc878;
+.chip:focus-visible,
+.chipOn:focus-visible,
+.chipMore:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
 }
 
-.studentHintOptional {
-  margin: 0 0 0.35rem;
-  font-size: 0.76rem;
-  color: rgba(160, 180, 210, 0.92);
+.chipOn {
+  color: var(--lt-text);
+  border-color: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 55%, transparent);
+  background: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 14%, var(--lt-surface-2));
 }
 
-.moleculeHint {
-  margin: 0 0 0.55rem;
-  font-size: 0.72rem;
-  line-height: 1.4;
-  color: rgba(160, 175, 205, 0.9);
-  padding: 0.4rem 0.55rem;
-  border-radius: 10px;
-  border: 1px dashed rgba(92, 255, 212, 0.3);
-  background: rgba(92, 255, 212, 0.05);
+.chipMore {
+  min-height: 36px;
+  padding: 3px 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chipName {
+  min-width: 0;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipMeta {
+  flex-shrink: 0;
+  color: var(--lt-text-mute);
+}
+
+.chipOn .chipMeta {
+  color: var(--studio-tone, var(--lt-primary));
+}
+
+/* ——— Карточки форматов ——— */
+
+.modeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.modeCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 10px 28px 10px 10px;
+  border-radius: 14px;
+}
+
+.modeCard:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.modeIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  transition:
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    box-shadow var(--lt-dur) var(--lt-ease),
+    color var(--lt-dur-fast) var(--lt-ease);
+}
+
+.modeText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.modeName {
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.2;
+  color: var(--lt-text);
+  /* «Коэффициенты» никогда не рвём посреди слова */
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.modeDesc {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--lt-text-3);
+  overflow-wrap: anywhere;
+}
+
+/* ——— Настройка и старт ——— */
+
+.setup {
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--lt-border);
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 10%, transparent), transparent 60%),
+    var(--lt-surface-2);
+}
+
+.setupRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.poolStat {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  text-align: left;
+}
+
+.poolValue {
+  font-family: var(--lt-font-display);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--studio-tone, var(--lt-primary));
+}
+
+.poolLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--lt-text-3);
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+.startBtn {
+  width: 100%;
+  min-height: 48px;
+  gap: 10px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.005em;
+}
+
+.startBtn:not(:disabled):active {
+  transform: translateY(0) scale(0.99);
+}
+
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, #fff 35%, transparent);
+  border-top-color: #fff;
+  animation: cockpitSpin 0.8s linear infinite;
+}
+
+.helper {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--lt-text-2);
+  overflow-wrap: anywhere;
+}
+
+.helper > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.helper[data-tone='ok'] {
+  color: var(--lt-success);
+}
+
+.helper[data-tone='warn'] {
+  color: var(--lt-warning);
+}
+
+.helper[data-tone='busy'] {
+  color: var(--lt-text-2);
+}
+
+.embedded {
+  min-width: 0;
+}
+
+/* ——— Степпер ——— */
+
+.stepsBlock {
+  padding-top: 12px;
+  border-top: 1px solid var(--lt-border);
+}
+
+.stepText {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.stepSub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lt-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.stepsNote {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--lt-text-3);
+  overflow-wrap: anywhere;
+}
+
+/* ——— Анимации ——— */
+
+@keyframes cockpitPop {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cockpitSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*
+ * Колонка 340–440px: карточки форматов ещё в два столбца, и самому длинному
+ * заголовку («Коэффициенты», 99px при 13px) не хватало 6px — слово вылезало
+ * за текстовую ячейку под бейдж выбора. Ужимаем плитку и кегль, перенос
+ * посреди слова по-прежнему запрещён.
+ */
+@container cockpit (min-width: 340px) and (max-width: 440px) {
+  .modeCard {
+    gap: 8px;
+    padding-right: 24px;
+  }
+
+  .modeIcon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .modeName {
+    font-size: 12px;
+  }
+}
+
+/* ——— Узкая колонка (≈ 300 px) ——— */
+
+@container cockpit (max-width: 339px) {
+  .modeGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .modeCard {
+    min-height: 56px;
+  }
+
+  .setupRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .poolStat {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+    max-width: none;
+    text-align: left;
+  }
+
+  .poolValue {
+    font-size: 18px;
+  }
+
+  .selected {
+    flex-wrap: wrap;
+  }
+
+  .selectedActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ——— Касание ——— */
+
+@media (pointer: coarse) {
+  .chip,
+  .chipOn,
+  .chipMore {
+    min-height: 44px;
+    padding-left: 5px;
+  }
+
+  .blockLink,
+  .smallBtn {
+    min-height: 40px;
+  }
+
+  .modeCard {
+    min-height: 68px;
+  }
+
+  .kbdHint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selected,
+  .picker {
+    animation: none;
+  }
+
+  .chip:hover,
+  .chipMore:hover,
+  .modeCard:active,
+  .startBtn:not(:disabled):active {
+    transform: none;
+  }
+
+  .spinner {
+    animation: none;
+    border-style: dashed;
+  }
 }

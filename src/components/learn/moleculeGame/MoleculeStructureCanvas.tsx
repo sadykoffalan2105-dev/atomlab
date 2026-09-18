@@ -1,4 +1,4 @@
-import { Suspense, useLayoutEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import type { CompoundDef } from '../../../types/chemistry'
@@ -16,7 +16,19 @@ type Props = {
   compound: CompoundDef
   quizMode?: boolean
   compact?: boolean
+  /** Автовращение сцены (учебный режим). */
+  autoRotate?: boolean
+  /** Любое изменение значения возвращает камеру в исходный ракурс. */
+  resetToken?: number
+  /** Первое взаимодействие пользователя с орбитой (чтобы спрятать подсказку). */
+  onInteract?: () => void
+  /** Встроенная подсказка «тяните — вращение»; родитель может рисовать свою. */
+  showHint?: boolean
 }
+
+/** Учебный режим: разрешаем небольшой зум колёсиком / щипком вокруг базового радиуса. */
+const LEARN_MIN_DISTANCE = CATALOG_HERO_VIEW.minDistance * 0.72
+const LEARN_MAX_DISTANCE = CATALOG_HERO_VIEW.maxDistance * 1.45
 
 /** Надёжный resize: R3F иногда стартует с 0×0 внутри flex/fullscreen. */
 function CanvasSizeBootstrap() {
@@ -35,6 +47,34 @@ function CanvasSizeBootstrap() {
       ran.current = true
     }
   }, [gl, size.width, size.height])
+
+  return null
+}
+
+type OrbitLike = {
+  target: { set: (x: number, y: number, z: number) => unknown }
+  update: () => unknown
+}
+
+/** Возврат камеры к исходному ракурсу при смене resetToken (первый рендер пропускаем). */
+function ViewReset({ token }: { token: number }) {
+  const camera = useThree((s) => s.camera)
+  const controls = useThree((s) => s.controls) as OrbitLike | null
+  const seen = useRef(token)
+
+  useEffect(() => {
+    if (seen.current === token) return
+    seen.current = token
+    const [x, y, z] = CATALOG_HERO_VIEW.cameraPosition
+    camera.position.set(x, y, z)
+    const [tx, ty, tz] = CATALOG_HERO_VIEW.target
+    if (controls) {
+      controls.target.set(tx, ty, tz)
+      controls.update()
+    } else {
+      camera.lookAt(tx, ty, tz)
+    }
+  }, [camera, controls, token])
 
   return null
 }
@@ -84,9 +124,15 @@ function MoleculeQuizScene({
 function MoleculeLearnScene({
   compound,
   compact,
+  autoRotate,
+  resetToken,
+  onInteract,
 }: {
   compound: CompoundDef
   compact: boolean
+  autoRotate: boolean
+  resetToken: number
+  onInteract?: () => void
 }) {
   return (
     <>
@@ -102,21 +148,35 @@ function MoleculeLearnScene({
         renderQuality="high"
       />
       <OrbitControls
-        enableZoom={false}
+        makeDefault
+        enableZoom
+        zoomSpeed={0.6}
         enablePan={false}
+        autoRotate={autoRotate}
+        autoRotateSpeed={1.1}
         target={CATALOG_HERO_VIEW.target}
-        minDistance={CATALOG_HERO_VIEW.minDistance}
-        maxDistance={CATALOG_HERO_VIEW.maxDistance}
+        minDistance={LEARN_MIN_DISTANCE}
+        maxDistance={LEARN_MAX_DISTANCE}
         minPolarAngle={CATALOG_HERO_VIEW.minPolarAngle}
         maxPolarAngle={CATALOG_HERO_VIEW.maxPolarAngle}
         enableDamping
         dampingFactor={0.06}
+        onStart={onInteract}
       />
+      <ViewReset token={resetToken} />
     </>
   )
 }
 
-export function MoleculeStructureCanvas({ compound, quizMode = false, compact = false }: Props) {
+export function MoleculeStructureCanvas({
+  compound,
+  quizMode = false,
+  compact = false,
+  autoRotate = false,
+  resetToken = 0,
+  onInteract,
+  showHint = true,
+}: Props) {
   const { t } = useT()
   const webglOk = isWebGLAvailable()
   const resetKey = useMemo(
@@ -161,28 +221,36 @@ export function MoleculeStructureCanvas({ compound, quizMode = false, compact = 
               {quizMode ? (
                 <MoleculeQuizScene compound={compound} compact={compact} />
               ) : (
-                <MoleculeLearnScene compound={compound} compact={compact} />
+                <MoleculeLearnScene
+                  compound={compound}
+                  compact={compact}
+                  autoRotate={autoRotate}
+                  resetToken={resetToken}
+                  onInteract={onInteract}
+                />
               )}
             </Suspense>
           </Canvas>
         </CanvasErrorBoundary>
       </div>
-      <p className={styles.hint}>
-        <svg
-          className={styles.hintIcon}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-          focusable="false"
-        >
-          <path d="M20 12a8 8 0 1 1-2.35-5.65M20 4v4.5h-4.5" />
-        </svg>
-        <span className={styles.hintText}>{t('learn.molecules.structure.rotateHint')}</span>
-      </p>
+      {showHint ? (
+        <p className={styles.hint}>
+          <svg
+            className={styles.hintIcon}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            focusable="false"
+          >
+            <path d="M20 12a8 8 0 1 1-2.35-5.65M20 4v4.5h-4.5" />
+          </svg>
+          <span className={styles.hintText}>{t('learn.molecules.structure.rotateHint')}</span>
+        </p>
+      ) : null}
     </div>
   )
 }

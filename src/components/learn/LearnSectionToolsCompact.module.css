@@ -1,125 +1,111 @@
-/* Вкладка «Инструменты» боковой панели урока — «Aurora Lab». */
+/* Вкладка «Инструменты» кабинета учителя — карточки кита с иконкой и описанием. */
 
 .toolsPane {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
   font-family: var(--lt-font);
   color: var(--lt-text);
 }
 
+/* Тон карточки — через --studio-tone, его читают iconTile и cardSelected кита */
+
 .toneTeal {
-  --tone-a: var(--lt-g10-a);
-  --tone-b: var(--lt-g10-b);
+  --studio-tone: var(--lt-accent-teal);
+  --studio-tone-2: var(--lt-accent-cyan);
+}
+
+.tonePrimary {
+  --studio-tone: var(--lt-primary);
+  --studio-tone-2: var(--lt-primary-2);
 }
 
 .tonePink {
-  --tone-a: var(--lt-g8-a);
-  --tone-b: var(--lt-g8-b);
+  --studio-tone: var(--lt-accent-pink);
+  --studio-tone-2: var(--lt-primary-2);
 }
 
 .toneAmber {
-  --tone-a: var(--lt-g9-a);
-  --tone-b: var(--lt-g9-b);
-}
-
-.toolCard,
-.infoCard,
-.linkCard {
-  position: relative;
-  border-radius: var(--lt-radius);
-  border: 1px solid var(--lt-border);
-  background:
-    radial-gradient(100% 90% at 0% 0%, color-mix(in srgb, var(--tone-a) 12%, transparent), transparent 60%),
-    var(--lt-surface-2);
+  --studio-tone: var(--lt-accent-amber);
+  --studio-tone-2: var(--lt-accent-pink);
 }
 
 .toolCard {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px;
+  min-width: 0;
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--studio-tone) 9%, transparent), transparent 60%),
+    var(--lt-surface-2);
 }
 
 .toolHead {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
 }
 
-.toolIcon {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  color: #fff;
-  background: linear-gradient(135deg, var(--tone-a), var(--tone-b));
-  box-shadow: 0 4px 12px -5px color-mix(in srgb, var(--tone-b) 85%, transparent);
+.toolText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.toolsLabel {
-  margin: 0;
-  font-size: var(--lt-fs-small);
-  font-weight: 800;
-  letter-spacing: -0.005em;
+.toolTitle {
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.2;
   color: var(--lt-text);
+  overflow-wrap: anywhere;
 }
 
-.toolsHint {
-  margin: 0;
-  font-size: var(--lt-fs-xs);
-  line-height: 1.45;
-  color: var(--lt-text-2);
+.toolDesc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--lt-text-3);
+  overflow-wrap: anywhere;
 }
 
 .equationList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
 }
 
 .equationList li {
+  min-width: 0;
   padding: 8px 10px;
-  border-radius: var(--lt-radius-sm);
+  border-radius: 10px;
   border: 1px solid var(--lt-border);
-  background: rgba(3, 5, 12, 0.45);
+  background: var(--lt-surface-3);
   overflow-x: auto;
   scrollbar-width: thin;
 }
 
 .equation {
   font-family: var(--lt-font-mono);
-  font-size: var(--lt-fs-small);
+  font-size: 13px;
   white-space: nowrap;
   color: var(--lt-text);
 }
 
 .toolAction {
   align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   min-height: 36px;
-  padding: 0 14px;
-  border-radius: var(--lt-radius-pill);
-  border: 1px solid color-mix(in srgb, var(--tone-a) 45%, transparent);
-  background: color-mix(in srgb, var(--tone-a) 12%, transparent);
-  font-size: var(--lt-fs-xs);
-  font-weight: 800;
-  color: var(--lt-text);
   text-decoration: none;
-  transition: background var(--lt-dur-fast) var(--lt-ease), transform var(--lt-dur) var(--lt-ease);
 }
 
-.toolAction:hover {
-  background: color-mix(in srgb, var(--tone-a) 24%, transparent);
-  transform: translateY(-1px);
+.toolAction > svg {
+  color: var(--studio-tone, var(--lt-primary));
 }
 
 /* Карточка теста по теме — компонент чужой, просто даём ему всю ширину */
@@ -127,74 +113,54 @@
   min-width: 0;
 }
 
-.toolGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-}
-
-@container lessonside (min-width: 420px) {
-  .toolGrid {
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-  }
-}
-
 .linkCard {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 52px;
-  padding: 10px 12px;
-  font-size: var(--lt-fs-small);
-  font-weight: 800;
-  color: var(--lt-text);
+  min-height: 56px;
   text-decoration: none;
-  transition:
-    transform var(--lt-dur) var(--lt-ease),
-    border-color var(--lt-dur) var(--lt-ease),
-    box-shadow var(--lt-dur) var(--lt-ease);
+  color: var(--lt-text);
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--studio-tone) 9%, transparent), transparent 60%),
+    var(--lt-surface-2);
 }
 
 .linkCard:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--tone-a) 50%, transparent);
+  border-color: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 45%, transparent);
   box-shadow: var(--lt-shadow-sm);
 }
 
-.linkText {
-  min-width: 0;
-  overflow-wrap: anywhere;
+.linkArrow {
+  flex-shrink: 0;
+  color: var(--lt-text-3);
+  transition:
+    transform var(--lt-dur-fast) var(--lt-ease),
+    color var(--lt-dur-fast) var(--lt-ease);
+}
+
+.linkCard:hover .linkArrow {
+  color: var(--studio-tone, var(--lt-primary));
+  transform: translateX(2px);
 }
 
 .infoCard {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 12px;
 }
 
-.infoBody {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.toolAction:focus-visible,
-.linkCard:focus-visible {
-  outline: none;
-  box-shadow: var(--lt-ring);
-}
-
-@media (pointer: coarse), (max-width: 720px) {
+@media (pointer: coarse) {
   .toolAction {
     min-height: 44px;
+  }
+
+  .linkCard {
+    min-height: 60px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toolAction:hover,
-  .linkCard:hover {
+  .linkCard:hover .linkArrow {
     transform: none;
   }
 }

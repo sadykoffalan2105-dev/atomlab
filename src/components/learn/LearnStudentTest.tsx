@@ -26,6 +26,11 @@ type Props = {
   variant?: 'default' | 'ai'
   disabled?: boolean
   embedded?: boolean
+  /**
+   * Внешняя настройка (кабинет учителя рисует свой выбор длины и кнопку старта):
+   * компонент показывает только оверлей теста, пока `active` истинно.
+   */
+  external?: { length: StudentTestLength; active: boolean; onClose: () => void }
 }
 
 type Phase = 'setup' | 'running' | 'results'
@@ -284,6 +289,45 @@ function StudentTestOverlay({
 }
 
 export function LearnStudentTest({
+  grade,
+  chapter,
+  section,
+  rosterSectionId,
+  testKind = 'topic',
+  variant = 'default',
+  disabled = false,
+  embedded = false,
+  external,
+}: Props) {
+  if (external) {
+    return external.active ? (
+      <StudentTestOverlay
+        grade={grade}
+        chapter={chapter}
+        section={section}
+        rosterSectionId={rosterSectionId}
+        testKind={testKind}
+        variant={variant}
+        length={external.length}
+        onClose={external.onClose}
+      />
+    ) : null
+  }
+  return (
+    <LearnStudentTestSetup
+      grade={grade}
+      chapter={chapter}
+      section={section}
+      rosterSectionId={rosterSectionId}
+      testKind={testKind}
+      variant={variant}
+      disabled={disabled}
+      embedded={embedded}
+    />
+  )
+}
+
+function LearnStudentTestSetup({
   grade,
   chapter,
   section,

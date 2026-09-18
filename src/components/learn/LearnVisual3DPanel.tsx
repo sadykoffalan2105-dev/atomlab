@@ -147,22 +147,20 @@ export function LearnVisual3DPanel({
   const [autoRotate, setAutoRotate] = useState(true)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
 
+  /*
+   * Кибер-дашборд (хаб «3D / каталог») — сам по себе полноценная панель кита
+   * со своей шапкой. Внешняя HUD-строка дублировала бы заголовок, поэтому здесь
+   * рамка «прозрачная»: только контейнер размера (.bare).
+   */
   if (visualId && hasCyberDashboard(visualId)) {
     return (
       <div
-        className={`${styles.frame} ${styles.cyber} ${presentationMode ? styles.present : ''}`}
+        className={`${styles.frame} ${styles.cyber} ${styles.bare} ${presentationMode ? styles.present : ''}`}
         style={{ ['--learn-accent' as string]: fallbackAccent }}
       >
-        <div className={styles.hud}>
-          <div className={styles.hudLeft}>
-            <span className={styles.badge}>{t('learn.visual.badge3d')}</span>
-            <span className={styles.hudHint}>{t('learn.visual.cyberHint')}</span>
-          </div>
-        </div>
         <div className={styles.stage}>
           <LearnCyberDashboard sceneId={visualId} presentationMode={presentationMode} />
         </div>
-        <div className={styles.glow} aria-hidden />
       </div>
     )
   }
@@ -280,15 +278,12 @@ export function LearnVisual3DPanel({
   if (useCyberDashboard && cyberSceneId) {
     return (
       <div
-        className={`${frameClass} ${styles.cyber}`}
+        className={`${frameClass} ${styles.cyber} ${styles.bare}`}
         style={{ ['--learn-accent' as string]: accent }}
       >
-        {hud(true)}
         <div className={styles.stage}>
           <LearnCyberDashboard sceneId={cyberSceneId} presentationMode={presentationMode} />
         </div>
-        <div className={styles.glow} aria-hidden />
-        <div className={styles.scanline} aria-hidden />
       </div>
     )
   }

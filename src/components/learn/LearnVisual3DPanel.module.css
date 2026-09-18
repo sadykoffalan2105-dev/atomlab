@@ -61,6 +61,23 @@
   min-height: clamp(380px, 72vh, 720px);
 }
 
+/*
+ * «Прозрачная» рамка: содержимое (хаб «3D / каталог») само рисует панель кита
+ * со своей шапкой, фоном и тоном. Внешняя рамка остаётся только контейнером
+ * размера — без границы, свечения, теней и собственного фона.
+ */
+.bare {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.bare .stage {
+  min-height: 0;
+}
+
 /* ——— HUD-шапка ——— */
 .hud {
   position: relative;

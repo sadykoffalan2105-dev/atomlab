@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { generateTaskProblem, answersClose, type LearnTaskGenerated } from '../../learn/learnTaskProblems'
 import { readWorkspaceDraft, writeWorkspaceDraft } from '../../learn/learnProgressStorage'
-import { LearnBoardPad } from './LearnBoardPad'
+import { LearnBoardPad, type BoardSaveState } from './LearnBoardPad'
 import { LearnShellIcon } from './LearnShellIcon'
+import kit from './studio/StudioKit.module.css'
 import styles from '../../pages/LearnPage.module.css'
 
 function parseLocaleNumber(raw: string): number | null {
@@ -29,11 +30,24 @@ export function LearnWorkspace({
   const [problem, setProblem] = useState<LearnTaskGenerated | null>(null)
   const [userText, setUserText] = useState('')
   const [feedback, setFeedback] = useState<Feedback>('idle')
+  // Статус автосохранения черновика — показывает сама «тетрадь» (чип в тулбаре).
+  const [saveState, setSaveState] = useState<BoardSaveState>('idle')
+  const [savedAt, setSavedAt] = useState<number | null>(null)
+  const dirtyRef = useRef(false)
+
+  const editScratch = useCallback((value: string) => {
+    dirtyRef.current = true
+    setSaveState('pending')
+    setScratch(value)
+  }, [])
 
   useEffect(() => {
     setScratch(readWorkspaceDraft(sectionPathId))
     setUserText('')
     setFeedback('idle')
+    dirtyRef.current = false
+    setSaveState('idle')
+    setSavedAt(null)
     if (taskCategoryId) {
       setProblem(generateTaskProblem(taskCategoryId))
     } else {
@@ -42,7 +56,13 @@ export function LearnWorkspace({
   }, [sectionPathId, taskCategoryId])
 
   useEffect(() => {
-    const timer = window.setTimeout(() => writeWorkspaceDraft(sectionPathId, scratch), 400)
+    const timer = window.setTimeout(() => {
+      writeWorkspaceDraft(sectionPathId, scratch)
+      if (!dirtyRef.current) return
+      dirtyRef.current = false
+      setSavedAt(Date.now())
+      setSaveState('saved')
+    }, 400)
     return () => window.clearTimeout(timer)
   }, [scratch, sectionPathId])
 
@@ -78,14 +98,12 @@ export function LearnWorkspace({
         <LearnBoardPad
           sectionPathId={sectionPathId}
           text={scratch}
-          onTextChange={setScratch}
+          onTextChange={editScratch}
           presentationMode={presentationMode}
+          saveState={saveState}
+          savedAt={savedAt}
         />
       </div>
-      <p className={styles.learnWorkspaceSaved} role="status">
-        <LearnShellIcon name="save" size={13} />
-        {t('learn.workspace.saved')}
-      </p>
 
       {problem && taskCategoryId ? (
         <section className={styles.learnWorkspaceTask}>
@@ -124,7 +142,7 @@ export function LearnWorkspace({
               <div className={styles.learnWorkspaceTaskActions}>
                 <button
                   type="button"
-                  className={`${styles.shellBtn} ${styles.shellBtnPrimary} ${styles.shellBtnSm}`}
+                  className={`${kit.btn} ${kit.btnPrimary}`}
                   onClick={checkNumeric}
                 >
                   <LearnShellIcon name="check" size={15} strokeWidth={2.4} />
@@ -132,7 +150,7 @@ export function LearnWorkspace({
                 </button>
                 <button
                   type="button"
-                  className={`${styles.shellBtn} ${styles.shellBtnGhost} ${styles.shellBtnSm}`}
+                  className={`${kit.btn} ${kit.btnGhost}`}
                   onClick={newProblem}
                 >
                   <LearnShellIcon name="plus" size={15} />

@@ -1,7 +1,9 @@
 import { useT } from '../../i18n/useT'
 import { LearnShellIcon } from './LearnShellIcon'
+import kit from './studio/StudioKit.module.css'
 import styles from '../../pages/LearnPage.module.css'
 
+/** Кнопка «на весь экран / свернуть» в стиле Lesson Studio (kit.btn). */
 export function LearnColumnExpandBtn({
   expanded,
   label,
@@ -17,7 +19,7 @@ export function LearnColumnExpandBtn({
   return (
     <button
       type="button"
-      className={expanded ? styles.learnColExpandOn : styles.learnColExpand}
+      className={expanded ? `${kit.btn} ${styles.learnColExpandOn}` : kit.btnGhost}
       onClick={onClick}
       aria-pressed={expanded}
       title={title}

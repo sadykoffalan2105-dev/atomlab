@@ -4,7 +4,7 @@
   background:
     radial-gradient(ellipse 80% 60% at 10% 0%, rgba(61, 255, 236, 0.12), transparent 55%),
     linear-gradient(155deg, rgba(14, 20, 42, 0.96), rgba(8, 10, 24, 0.98));
-  padding: 1rem 1.05rem 1.1rem;
+  padding: 16px 16.8px 17.6px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
 }
 
@@ -13,37 +13,37 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.65rem;
-  margin-bottom: 0.85rem;
+  gap: 10.4px;
+  margin-bottom: 13.6px;
 }
 
 .cardTitle {
   margin: 0;
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
 
 .cardMeta {
-  margin: 0.25rem 0 0;
-  font-size: 0.74rem;
+  margin: 4px 0 0;
+  font-size: 11.8px;
   color: rgba(170, 190, 230, 0.88);
   line-height: 1.45;
-  max-width: 36rem;
+  max-width: 576px;
 }
 
 .cardActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem;
+  gap: 6.4px;
 }
 
 .fullscreenBtn {
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 15.2px;
   line-height: 1;
-  padding: 0.42rem 0.55rem;
+  padding: 6.7px 8.8px;
   border-radius: 8px;
   border: 1px solid rgba(61, 255, 236, 0.38);
   background: rgba(8, 16, 32, 0.75);
@@ -58,9 +58,9 @@
 
 .drawBtn {
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 12.5px;
   font-weight: 700;
-  padding: 0.45rem 0.85rem;
+  padding: 7.2px 13.6px;
   border-radius: 999px;
   border: 1px solid rgba(61, 255, 236, 0.55);
   background: rgba(20, 55, 60, 0.65);
@@ -74,10 +74,10 @@
 }
 
 .placeholder {
-  padding: 1.5rem 0.75rem;
+  padding: 24px 12px;
   text-align: center;
   color: rgba(160, 180, 220, 0.85);
-  font-size: 0.85rem;
+  font-size: 13.6px;
 }
 
 .questionWrap {
@@ -96,8 +96,8 @@
 }
 
 .question {
-  margin: 0 0 0.85rem;
-  font-size: 0.95rem;
+  margin: 0 0 13.6px;
+  font-size: 15.2px;
   line-height: 1.55;
   font-weight: 600;
   color: #eef6ff;
@@ -108,22 +108,22 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.45rem;
+  gap: 7.2px;
 }
 
 .choice {
   width: 100%;
   display: flex;
   align-items: flex-start;
-  gap: 0.55rem;
+  gap: 8.8px;
   text-align: left;
-  padding: 0.55rem 0.65rem;
+  padding: 8.8px 10.4px;
   border-radius: 10px;
   border: 1px solid rgba(90, 120, 180, 0.38);
   background: rgba(8, 12, 28, 0.75);
   color: rgba(220, 230, 255, 0.95);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 13.1px;
   line-height: 1.4;
   cursor: pointer;
   transition:
@@ -158,44 +158,44 @@
 
 .choiceLetter {
   flex-shrink: 0;
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 21.6px;
+  height: 21.6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
   background: rgba(61, 255, 236, 0.15);
   color: #3dffec;
-  font-size: 0.72rem;
+  font-size: 11.5px;
   font-weight: 800;
 }
 
 .feedbackOk {
-  margin: 0.75rem 0 0;
-  font-size: 0.82rem;
+  margin: 12px 0 0;
+  font-size: 13.1px;
   color: #7dffb0;
   font-weight: 600;
 }
 
 .feedbackBad {
-  margin: 0.75rem 0 0;
-  font-size: 0.82rem;
+  margin: 12px 0 0;
+  font-size: 13.1px;
   color: #ffb199;
   font-weight: 600;
 }
 
 .explain {
-  margin: 0.45rem 0 0;
-  font-size: 0.78rem;
+  margin: 7.2px 0 0;
+  font-size: 12.5px;
   color: rgba(180, 200, 235, 0.9);
 }
 
 .descBtn {
-  margin-top: 0.75rem;
+  margin-top: 12px;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 12.5px;
   font-weight: 700;
-  padding: 0.45rem 0.85rem;
+  padding: 7.2px 13.6px;
   border-radius: 999px;
   border: 1px solid rgba(61, 255, 236, 0.45);
   background: rgba(18, 48, 55, 0.7);
@@ -212,25 +212,25 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: stretch;
-  gap: 0.65rem;
-  margin-top: 0.85rem;
+  gap: 10.4px;
+  margin-top: 13.6px;
   width: 100%;
 }
 
 .actionRow .descBtn,
 .nextBtn {
-  flex: 1 1 9.5rem;
-  max-width: 12.5rem;
-  min-width: min(100%, 9rem);
+  flex: 1 1 152px;
+  max-width: 200px;
+  min-width: min(100%, 144px);
   margin-top: 0;
   text-align: center;
 }
 
 .nextBtn {
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 12.5px;
   font-weight: 700;
-  padding: 0.45rem 0.85rem;
+  padding: 7.2px 13.6px;
   border-radius: 999px;
   border: 1px solid rgba(61, 255, 236, 0.55);
   background: rgba(20, 55, 60, 0.65);
@@ -244,7 +244,7 @@
 }
 
 .descPanel {
-  margin-top: 0.85rem;
+  margin-top: 13.6px;
   padding: 0;
   border-radius: 12px;
   border: 1px solid rgba(61, 255, 236, 0.2);
@@ -260,12 +260,12 @@
 .descPanelOpen {
   max-height: 1800px;
   opacity: 1;
-  padding: 0.85rem 0.9rem 0.95rem;
+  padding: 13.6px 14.4px 15.2px;
 }
 
 .descTitle {
-  margin: 0 0 0.55rem;
-  font-size: 0.82rem;
+  margin: 0 0 8.8px;
+  font-size: 13.1px;
   font-weight: 800;
   color: #7afcff;
 }
@@ -273,7 +273,7 @@
 .descGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.65rem;
+  gap: 10.4px;
 }
 
 .descVisual {
@@ -283,12 +283,12 @@
 .descTextBlock {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 8.8px;
 }
 
 .descText {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 13.1px;
   line-height: 1.58;
   color: rgba(200, 215, 245, 0.92);
 }

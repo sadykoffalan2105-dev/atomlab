@@ -24,6 +24,10 @@ export type LearnSidebarIconName =
   | 'flask'
   | 'sparkle'
   | 'users'
+  | 'user'
+  | 'plus'
+  | 'close'
+  | 'history'
 
 type Props = {
   name: LearnSidebarIconName
@@ -154,6 +158,25 @@ function paths(name: LearnSidebarIconName) {
     case 'sparkle':
       return (
         <path d="M12 3.5 13.9 9l5.6 2-5.6 2L12 18.5 10.1 13l-5.6-2 5.6-2L12 3.5Z" />
+      )
+    case 'user':
+      return (
+        <>
+          <circle cx="12" cy="8" r="3.6" />
+          <path d="M5 20c0-3.7 3.1-6.3 7-6.3s7 2.6 7 6.3" />
+        </>
+      )
+    case 'plus':
+      return <path d="M12 5v14M5 12h14" />
+    case 'close':
+      return <path d="M6 6l12 12M18 6 6 18" />
+    case 'history':
+      return (
+        <>
+          <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" />
+          <path d="M3.5 3.5v5h5" />
+          <path d="M12 7.5V12l3 2" />
+        </>
       )
     default:
       return null

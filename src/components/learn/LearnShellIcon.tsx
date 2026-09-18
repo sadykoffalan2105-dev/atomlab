@@ -24,6 +24,13 @@ export type LearnShellIconName =
   | 'plus'
   | 'eyeOff'
   | 'save'
+  | 'layout'
+  | 'more'
+  | 'grip'
+  | 'keyboard'
+  | 'clipboard'
+  | 'users'
+  | 'chevronRight'
 
 const PATHS: Record<LearnShellIconName, string[]> = {
   arrowLeft: ['M19 12H5', 'M11 18l-6-6 6-6'],
@@ -46,6 +53,13 @@ const PATHS: Record<LearnShellIconName, string[]> = {
   plus: ['M12 5v14', 'M5 12h14'],
   eyeOff: ['M3 3l18 18', 'M10.6 5.1A10.4 10.4 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-3 3.9', 'M6.6 6.6C4 8.3 2.5 12 2.5 12S6 19 12 19a9.6 9.6 0 0 0 5.4-1.6', 'M9.9 9.9a3 3 0 0 0 4.2 4.2'],
   save: ['M5 3h11l3 3v15H5z', 'M8 3v5h7V3', 'M8 21v-7h8v7'],
+  layout: ['M4 4h16v16H4z', 'M4 10h16', 'M10 10v10'],
+  more: ['M5 12h.01', 'M12 12h.01', 'M19 12h.01'],
+  grip: ['M9 6h.01', 'M15 6h.01', 'M9 12h.01', 'M15 12h.01', 'M9 18h.01', 'M15 18h.01'],
+  keyboard: ['M3 6h18v12H3z', 'M7 10h.01', 'M11 10h.01', 'M15 10h.01', 'M7 14h10'],
+  clipboard: ['M9 4h6v3H9z', 'M15 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2', 'M9 13l2 2 4-4'],
+  users: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M22 21v-2a4 4 0 0 0-3-3.9', 'M16 3.1a4 4 0 0 1 0 7.8'],
+  chevronRight: ['M9 6l6 6-6 6'],
 }
 
 export function LearnShellIcon({

@@ -46,12 +46,7 @@ export function LearnSlideDeckVisual({
       }`}
       style={{ ['--learn-accent' as string]: accent }}
     >
-      <div className={styles.learnVisualHud}>
-        <div className={styles.learnVisualHudLeft}>
-          <span className={styles.learnVisualHudBadge}>{t('learn.visual.badge3d')}</span>
-          <span className={styles.learnVisualHudHint}>{t('learn.visual.cyberHint')}</span>
-        </div>
-      </div>
+      {/* Шапку рисует сам хаб (заголовок + подсказка) — второй HUD убран, чтобы не дублировать. */}
       <div className={styles.learnVisualStage}>
         <LearnCyberDashboard sceneId={cyberSceneId} presentationMode={presentationMode} />
       </div>

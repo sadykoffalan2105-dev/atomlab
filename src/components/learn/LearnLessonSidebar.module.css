@@ -1,10 +1,12 @@
 /*
- * Левая колонка урока — «Aurora Lab».
- * Стеклянная панель с сегментированными вкладками; ширина колонки меняется
- * (сетка урока, мобильная вёрстка), поэтому адаптив — через container queries.
+ * Кабинет учителя — левая колонка урока (Lesson Studio).
+ * Рамку и стекло даёт сама колонка (.learnColTheory), здесь — вкладки, прокрутка
+ * и список класса. Адаптив по ширине колонки — container queries (lessonside).
  */
 
 .sidebar {
+  --studio-tone: var(--lt-primary-2);
+  --studio-tone-2: var(--lt-primary);
   container: lessonside / inline-size;
   position: relative;
   display: flex;
@@ -13,732 +15,366 @@
   min-height: 0;
   height: 100%;
   box-sizing: border-box;
-  border-radius: var(--lt-radius-lg);
-  border: 1px solid var(--lt-border);
-  background:
-    radial-gradient(140% 50% at 0% 0%, rgba(91, 140, 255, 0.11), transparent 60%),
-    radial-gradient(120% 45% at 100% 100%, rgba(168, 85, 247, 0.09), transparent 60%),
-    var(--lt-surface);
-  backdrop-filter: var(--lt-blur);
-  box-shadow: var(--lt-shadow);
-  overflow: clip;
+  background: transparent;
   font-family: var(--lt-font);
-  font-size: var(--lt-fs-body);
+  font-size: 13px;
   color: var(--lt-text);
 }
 
-.sidebar::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: var(--lt-grad-primary);
-  pointer-events: none;
-  z-index: 2;
-}
+/* ——— Вкладки ——— */
 
-/* ——— Сегментированные вкладки ——— */
-
-.tabRow {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
+.tabs {
+  composes: tabs from './studio/StudioKit.module.css';
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  margin: 14px 12px 0;
-  padding: 4px;
-  border-radius: var(--lt-radius);
-  border: 1px solid var(--lt-border);
-  background: rgba(3, 5, 12, 0.5);
+  gap: 2px;
+  padding: 4px 8px 0;
+  overflow: visible;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--studio-tone) 6%, transparent), transparent);
 }
 
-.tab,
-.tabOn {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.tab {
+  composes: tab from './studio/StudioKit.module.css';
   justify-content: center;
-  gap: 4px;
   min-width: 0;
-  min-height: 56px;
-  padding: 8px 6px;
-  border: none;
-  border-radius: var(--lt-radius-sm);
-  font: inherit;
-  font-family: var(--lt-font);
-  font-size: var(--lt-fs-xs);
-  font-weight: 700;
-  line-height: 1.2;
-  text-align: center;
-  color: var(--lt-text-3);
-  background: transparent;
-  cursor: pointer;
-  transition:
-    background var(--lt-dur) var(--lt-ease),
-    color var(--lt-dur-fast) var(--lt-ease),
-    box-shadow var(--lt-dur) var(--lt-ease);
+  min-height: 44px;
+  padding: 0 6px;
+  border-radius: 10px 10px 0 0;
 }
 
 .tab:hover {
-  color: var(--lt-text);
-  background: rgba(148, 170, 230, 0.08);
-}
-
-.tabOn {
-  color: #fff;
-  background:
-    linear-gradient(135deg, rgba(91, 140, 255, 0.28), rgba(139, 92, 246, 0.22) 60%, rgba(217, 70, 239, 0.16));
-  box-shadow:
-    inset 0 0 0 1px rgba(148, 170, 255, 0.38),
-    0 6px 16px -8px rgba(91, 140, 255, 0.7);
-}
-
-.tab:focus-visible,
-.tabOn:focus-visible {
-  outline: none;
-  box-shadow: var(--lt-ring);
+  background: color-mix(in srgb, var(--lt-text) 4%, transparent);
 }
 
 .tabIcon {
-  display: grid;
+  display: inline-grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
+  flex-shrink: 0;
   color: var(--lt-text-3);
-  background: rgba(148, 170, 230, 0.08);
-  transition: background var(--lt-dur) var(--lt-ease), color var(--lt-dur) var(--lt-ease);
+  transition: color var(--lt-dur-fast) var(--lt-ease);
 }
 
-.tabOn .tabIcon {
-  color: #fff;
-  background: var(--lt-grad-primary);
-  box-shadow: 0 4px 12px -4px rgba(139, 92, 246, 0.8);
+.tab[aria-selected='true'] .tabIcon {
+  color: var(--studio-tone, var(--lt-primary));
 }
 
 .tabLabel {
   min-width: 0;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  text-wrap: balance;
+  font-size: 13px;
+  line-height: 1.15;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tabCount {
-  position: absolute;
-  top: 5px;
-  right: 6px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  box-sizing: border-box;
-  display: grid;
-  place-items: center;
-  border-radius: var(--lt-radius-pill);
-  font-size: 11px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: #04121a;
-  background: linear-gradient(135deg, var(--lt-g10-a), var(--lt-g7-a));
+  margin-left: 2px;
 }
 
-/* Широкая колонка: иконка и подпись в строку */
-@container lessonside (min-width: 600px) {
-  .tab,
-  .tabOn {
-    flex-direction: row;
-    gap: 8px;
-    min-height: 44px;
-    padding: 6px 12px;
-    font-size: var(--lt-fs-small);
+/* Узкая колонка: иконка над подписью, подпись может занять две строки без разрыва слов */
+@container lessonside (max-width: 379px) {
+  .tab {
+    flex-direction: column;
+    gap: 3px;
+    min-height: 58px;
+    padding: 7px 4px 6px;
+  }
+
+  .tabLabel {
+    font-size: 12px;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
   }
 
   .tabCount {
-    position: static;
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    margin: 0;
   }
 }
 
 /* ——— Тело ——— */
 
 .body {
+  composes: scrollArea from './studio/StudioKit.module.css';
   flex: 1 1 auto;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 14px 12px 16px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 170, 230, 0.28) transparent;
+  padding: 12px 12px 16px;
+  scroll-padding-block: 12px;
 }
 
-.testPane,
-.classPane {
+.pane {
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+  animation: sidebarPaneIn var(--lt-dur) var(--lt-ease);
 }
 
-/* ——— Быстрый выбор ученика (вкладка теста) ——— */
-
-.quickCard {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  border-radius: var(--lt-radius);
-  border: 1px solid var(--lt-border);
-  background: var(--lt-surface-2);
-}
-
-.quickHead {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.quickIcon {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 9px;
-  color: #fff;
-  background: linear-gradient(135deg, var(--lt-g7-a), var(--lt-g7-b));
-}
-
-.quickTitle {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  font-size: var(--lt-fs-small);
-  font-weight: 800;
-  letter-spacing: -0.005em;
-  color: var(--lt-text);
-}
-
-.quickMore {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 30px;
-  padding: 0 10px;
-  border: none;
-  border-radius: var(--lt-radius-pill);
-  font: inherit;
-  font-size: var(--lt-fs-xs);
-  font-weight: 700;
-  color: var(--lt-text-2);
-  background: transparent;
-  cursor: pointer;
-  transition: color var(--lt-dur-fast) var(--lt-ease), background var(--lt-dur-fast) var(--lt-ease);
-}
-
-.quickMore:hover {
-  color: var(--lt-text);
-  background: rgba(148, 170, 230, 0.1);
-}
-
-.quickList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-
-@container lessonside (max-width: 279px) {
-  .quickList {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.quickRow,
-.quickRowActive {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 44px;
-  padding: 6px 8px;
-  border-radius: var(--lt-radius-sm);
-  border: 1px solid var(--lt-border);
-  background: rgba(3, 5, 12, 0.28);
-  font: inherit;
-  font-size: var(--lt-fs-small);
-  font-weight: 600;
-  text-align: left;
-  color: var(--lt-text-2);
-  cursor: pointer;
-  transition:
-    border-color var(--lt-dur-fast) var(--lt-ease),
-    background var(--lt-dur-fast) var(--lt-ease),
-    transform var(--lt-dur) var(--lt-ease);
-}
-
-.quickRow:hover {
-  color: var(--lt-text);
-  border-color: var(--lt-border-strong);
-  background: var(--lt-surface-hover);
-  transform: translateY(-1px);
-}
-
-.quickRowActive {
-  color: var(--lt-text);
-  border-color: transparent;
-  background:
-    linear-gradient(135deg, rgba(52, 211, 153, 0.16), rgba(34, 211, 238, 0.1)) padding-box,
-    linear-gradient(135deg, var(--lt-g10-a), var(--lt-g7-a)) border-box;
-}
-
-.quickName {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.quickCheck {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: #04121a;
-  background: var(--lt-success);
-}
-
-/* ——— Пустое состояние ——— */
-
-.emptyState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 12px;
-  border-radius: var(--lt-radius);
-  border: 1px dashed var(--lt-border-strong);
-  background: radial-gradient(80% 90% at 50% 0%, rgba(91, 140, 255, 0.1), transparent 70%);
-  text-align: center;
-}
-
-.emptyArt {
-  width: 96px;
-  height: 72px;
-}
-
-.emptyText {
-  margin: 0;
-  max-width: 34ch;
-  font-size: var(--lt-fs-small);
-  line-height: 1.45;
-  color: var(--lt-text-2);
-}
-
-.ctaBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 18px;
-  border: none;
-  border-radius: var(--lt-radius-pill);
-  font: inherit;
-  font-size: var(--lt-fs-small);
-  font-weight: 800;
-  color: #fff;
-  background: var(--lt-grad-primary);
-  box-shadow: 0 6px 18px -8px rgba(91, 140, 255, 0.7);
-  cursor: pointer;
-  transition: transform var(--lt-dur) var(--lt-ease), box-shadow var(--lt-dur) var(--lt-ease);
-}
-
-.ctaBtn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--lt-glow-primary);
-}
-
-/* ——— Список класса ——— */
+/* ——— Вкладка «Класс» ——— */
 
 .statRow {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-
-.statChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: var(--lt-radius-pill);
-  border: 1px solid var(--lt-border);
-  background: var(--lt-surface-2);
-  font-size: var(--lt-fs-xs);
-  font-weight: 700;
-  color: var(--lt-text-2);
-}
-
-.statChipAccent {
-  color: var(--lt-text);
-  border-color: color-mix(in srgb, var(--lt-success) 40%, transparent);
-  background: color-mix(in srgb, var(--lt-success) 12%, var(--lt-surface-2));
-}
-
-.statChip svg {
-  color: var(--lt-text-3);
-}
-
-.statChipAccent svg {
-  color: var(--lt-success);
+  min-width: 0;
 }
 
 .importCard {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px;
-  border-radius: var(--lt-radius);
+  min-width: 0;
+  padding: 10px;
+  border-radius: 14px;
   border: 1px solid var(--lt-border);
   background: var(--lt-surface-2);
 }
 
-.fieldLabel {
-  display: inline-flex;
+.importHead {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: var(--lt-fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--lt-text-3);
-}
-
-.importRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
-  align-items: end;
+  min-width: 0;
 }
 
-@container lessonside (max-width: 299px) {
-  .importRow {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.importText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
-.importInput,
-.searchInput {
-  box-sizing: border-box;
-  width: 100%;
-  font: inherit;
-  font-family: var(--lt-font);
-  font-size: var(--lt-fs-small);
+.importTitle {
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.2;
   color: var(--lt-text);
-  border-radius: var(--lt-radius-sm);
-  border: 1px solid var(--lt-border-strong);
-  background: rgba(3, 5, 12, 0.55);
-  transition: border-color var(--lt-dur-fast) var(--lt-ease), box-shadow var(--lt-dur-fast) var(--lt-ease);
+  cursor: pointer;
+}
+
+.importHint {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--lt-text-3);
+  overflow-wrap: anywhere;
 }
 
 .importInput {
-  min-height: 42px;
-  max-height: 160px;
-  padding: 10px 12px;
-  line-height: 1.35;
+  min-height: 64px;
+  padding: 9px 12px;
+  line-height: 1.4;
   resize: vertical;
-  field-sizing: content;
-}
-
-.importInput::placeholder,
-.searchInput::placeholder {
-  color: var(--lt-text-mute);
-}
-
-.importInput:focus,
-.searchInput:focus {
-  outline: none;
-  border-color: color-mix(in srgb, var(--lt-primary) 70%, transparent);
-  box-shadow: var(--lt-ring);
+  font-size: 13px;
 }
 
 .importBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 42px;
-  padding: 0 16px;
-  border: none;
-  border-radius: var(--lt-radius-pill);
-  font: inherit;
-  font-size: var(--lt-fs-small);
-  font-weight: 800;
-  color: #fff;
-  background: var(--lt-grad-primary);
-  box-shadow: 0 6px 18px -8px rgba(91, 140, 255, 0.7);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: transform var(--lt-dur) var(--lt-ease), box-shadow var(--lt-dur) var(--lt-ease);
-}
-
-.importBtn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--lt-glow-primary);
-}
-
-.searchWrap {
-  position: relative;
-}
-
-.searchIcon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--lt-text-3);
-  pointer-events: none;
-}
-
-.searchInput {
-  min-height: 40px;
-  padding: 0 12px 0 38px;
+  align-self: flex-start;
 }
 
 .noMatch {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
   margin: 0;
-  padding: 14px;
-  border-radius: var(--lt-radius);
+  padding: 10px 12px;
+  border-radius: 12px;
   border: 1px dashed var(--lt-border-strong);
-  font-size: var(--lt-fs-small);
+  font-size: 12px;
   color: var(--lt-text-3);
 }
 
-.studentGrid {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* ——— Список учеников ——— */
+
+.list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.studentRow {
-  display: flex;
-  align-items: stretch;
-  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   min-width: 0;
 }
 
-.studentBtn {
-  flex: 1 1 auto;
+.row,
+.rowActive {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-2);
+  transition:
+    border-color var(--lt-dur-fast) var(--lt-ease),
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    box-shadow var(--lt-dur) var(--lt-ease);
+}
+
+.row:hover {
+  border-color: var(--lt-border-strong);
+}
+
+.rowActive {
+  border-color: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 50%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 14%, transparent), transparent 70%),
+    var(--lt-surface-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 25%, transparent);
+}
+
+.rowMain {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
-  min-height: 52px;
-  padding: 8px 10px;
-  border-radius: var(--lt-radius-sm);
-  border: 1px solid var(--lt-border);
-  background: var(--lt-surface-2);
-  font: inherit;
-  font-size: var(--lt-fs-small);
-  text-align: left;
+  min-height: 44px;
+  padding: 4px 8px 4px 4px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
   color: var(--lt-text);
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-  transition:
-    border-color var(--lt-dur-fast) var(--lt-ease),
-    background var(--lt-dur-fast) var(--lt-ease),
-    transform var(--lt-dur) var(--lt-ease),
-    box-shadow var(--lt-dur) var(--lt-ease);
+  transition: background-color var(--lt-dur-fast) var(--lt-ease);
 }
 
-.studentBtn:hover {
-  border-color: var(--lt-border-strong);
+.rowMain:hover {
   background: var(--lt-surface-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--lt-shadow-sm);
 }
 
-.studentBtnActive {
-  border-color: transparent;
-  background:
-    linear-gradient(135deg, rgba(52, 211, 153, 0.15), rgba(34, 211, 238, 0.08)) padding-box,
-    linear-gradient(135deg, var(--lt-g10-a), var(--lt-g7-a)) border-box;
+.rowMain:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
 }
 
-.studentBtnActive:hover {
-  border-color: transparent;
-}
-
-.studentText {
-  flex: 1 1 auto;
-  min-width: 0;
+.rowText {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.studentName {
+.rowName {
+  font-size: 13px;
   font-weight: 700;
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.studentScore {
-  font-size: var(--lt-fs-xs);
-  font-weight: 500;
+.rowMeta {
+  font-size: 12px;
+  line-height: 1.25;
   color: var(--lt-text-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.studentBtnActive .studentScore {
-  color: var(--lt-text-2);
-}
-
-.ratingChip {
+.rowRating {
   flex-shrink: 0;
-  min-width: 34px;
-  height: 26px;
-  padding: 0 8px;
-  box-sizing: border-box;
-  display: grid;
-  place-items: center;
+  min-width: 26px;
+  padding: 2px 7px;
   border-radius: var(--lt-radius-pill);
-  font-size: var(--lt-fs-xs);
+  border: 1px solid color-mix(in srgb, var(--lt-success) 45%, transparent);
+  background: color-mix(in srgb, var(--lt-success) 14%, transparent);
+  font-size: 11px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  color: #fff;
-  background: var(--lt-grad-primary);
+  text-align: center;
+  color: var(--lt-success);
 }
 
-.studentActions {
-  flex-shrink: 0;
-  display: flex;
-  align-items: stretch;
-  gap: 6px;
-}
-
-.statsBtn,
-.conspectBtn {
-  flex-shrink: 0;
-  display: inline-grid;
+.rowCheck {
+  display: grid;
   place-items: center;
-  min-height: 40px;
-  border-radius: var(--lt-radius-sm);
-  font: inherit;
-  font-family: var(--lt-font);
-  cursor: pointer;
-  transition:
-    border-color var(--lt-dur-fast) var(--lt-ease),
-    background var(--lt-dur-fast) var(--lt-ease),
-    color var(--lt-dur-fast) var(--lt-ease);
-}
-
-.statsBtn {
-  width: 40px;
-  padding: 0;
-  border: 1px solid var(--lt-border);
-  background: var(--lt-surface-2);
-  color: var(--lt-text-2);
-}
-
-.statsBtn:hover {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--studio-tone, var(--lt-primary)), var(--studio-tone-2, var(--lt-primary-2)));
   color: #fff;
-  border-color: color-mix(in srgb, var(--lt-g7-a) 55%, transparent);
-  background: color-mix(in srgb, var(--lt-g7-a) 16%, var(--lt-surface-2));
 }
 
-.conspectBtn {
-  padding: 0 10px;
-  border: 1px solid color-mix(in srgb, var(--lt-accent-amber) 40%, transparent);
-  background: color-mix(in srgb, var(--lt-accent-amber) 10%, transparent);
-  color: #fde7b0;
-  font-size: var(--lt-fs-xs);
-  font-weight: 700;
-  line-height: 1.1;
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
-.conspectBtn:hover {
-  color: #fff4d6;
-  border-color: color-mix(in srgb, var(--lt-accent-amber) 65%, transparent);
-  background: color-mix(in srgb, var(--lt-accent-amber) 20%, transparent);
+.actionBtn {
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-color: transparent;
+  background: transparent;
 }
 
-.statsBtn:focus-visible,
-.conspectBtn:focus-visible,
-.studentBtn:focus-visible,
-.quickRow:focus-visible,
-.quickRowActive:focus-visible,
-.quickMore:focus-visible,
-.ctaBtn:focus-visible,
-.importBtn:focus-visible {
-  outline: none;
-  box-shadow: var(--lt-ring);
+.actionBtn:hover {
+  border-color: var(--lt-border);
 }
 
-/* Узкая колонка: действия ученика переносятся под карточку */
-@container lessonside (max-width: 339px) {
-  .studentRow {
-    flex-wrap: wrap;
+.actionPrimary {
+  color: var(--studio-tone, var(--lt-primary));
+}
+
+.actionPrimary:hover {
+  background: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 14%, transparent);
+  border-color: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 40%, transparent);
+}
+
+/* Совсем узко: действия под строкой */
+@container lessonside (max-width: 319px) {
+  .row,
+  .rowActive {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .studentBtn {
-    flex-basis: 100%;
-  }
-
-  .studentActions {
-    flex: 1 1 100%;
+  .rowActions {
     justify-content: flex-end;
+    padding: 0 2px 2px;
   }
 }
 
-@media (pointer: coarse), (max-width: 720px) {
-  .statsBtn,
-  .conspectBtn,
-  .importBtn,
-  .ctaBtn,
-  .searchInput,
-  .importInput {
-    min-height: 44px;
-  }
+/* ——— Анимации / касание ——— */
 
-  .statsBtn {
+@keyframes sidebarPaneIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .actionBtn {
     width: 44px;
-  }
-
-  .quickMore {
+    min-width: 44px;
     min-height: 44px;
   }
 
-  .tab,
-  .tabOn {
-    min-height: 56px;
+  .rowMain {
+    min-height: 48px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .quickRow:hover,
-  .studentBtn:hover,
-  .ctaBtn:hover,
-  .importBtn:hover {
-    transform: none;
+  .pane {
+    animation: none;
   }
 }

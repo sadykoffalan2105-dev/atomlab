@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import {
   CLASS_ROSTER_CHANGED,
@@ -20,6 +20,8 @@ import { ClassStudentConspectBtn } from './ClassStudentConspectBtn'
 import { LearnSectionToolsCompact } from './LearnSectionToolsCompact'
 import { LearnRosterAvatar, type RosterMasteryLevel } from './LearnRosterAvatar'
 import { LearnSidebarIcon, type LearnSidebarIconName } from './LearnSidebarIcon'
+import { StudioEmptyState } from './studio/StudioKit'
+import kit from './studio/StudioKit.module.css'
 import styles from './LearnLessonSidebar.module.css'
 
 type SidebarTab = 'test' | 'class' | 'tools'
@@ -32,15 +34,18 @@ type Props = {
   fromBook?: boolean
 }
 
-/** Сколько учеников показываем в быстром выборе на вкладке теста */
-const QUICK_PICK_MAX = 6
-
 const MASTERY_KEY: Record<RosterMasteryLevel, MessageKey> = {
   strong: 'learn.studentStats.mastery.strong',
   good: 'learn.studentStats.mastery.good',
   needsWork: 'learn.studentStats.mastery.needsWork',
   none: 'learn.studentStats.mastery.none',
 }
+
+const TABS: { id: SidebarTab; label: MessageKey; full: MessageKey; icon: LearnSidebarIconName }[] = [
+  { id: 'test', label: 'learn.studio.cockpit.tabTest', full: 'learn.studentTest.title', icon: 'test' },
+  { id: 'class', label: 'learn.studio.cockpit.tabClass', full: 'learn.classRoster.title', icon: 'class' },
+  { id: 'tools', label: 'learn.studio.cockpit.tabTools', full: 'learn.lesson.tabTools', icon: 'tools' },
+]
 
 function attemptLabel(
   t: (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string,
@@ -68,37 +73,6 @@ function attemptLabel(
   return t('learn.classRoster.noAttempts')
 }
 
-/** Небольшая иллюстрация для пустого списка класса */
-function EmptyRosterArt() {
-  return (
-    <svg className={styles.emptyArt} viewBox="0 0 96 72" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="lsEmptyA" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#22d3ee" />
-          <stop offset="100%" stopColor="#3b82f6" />
-        </linearGradient>
-        <linearGradient id="lsEmptyB" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#a78bfa" />
-          <stop offset="100%" stopColor="#ec4899" />
-        </linearGradient>
-        <linearGradient id="lsEmptyC" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#fbbf24" />
-          <stop offset="100%" stopColor="#f97316" />
-        </linearGradient>
-      </defs>
-      <ellipse cx="48" cy="64" rx="38" ry="6" fill="rgba(91,140,255,0.14)" />
-      <circle cx="24" cy="30" r="9" fill="url(#lsEmptyA)" opacity="0.85" />
-      <path d="M10 58c0-9 6.3-15 14-15s14 6 14 15" fill="url(#lsEmptyA)" opacity="0.55" />
-      <circle cx="72" cy="30" r="9" fill="url(#lsEmptyC)" opacity="0.85" />
-      <path d="M58 58c0-9 6.3-15 14-15s14 6 14 15" fill="url(#lsEmptyC)" opacity="0.55" />
-      <circle cx="48" cy="24" r="11" fill="url(#lsEmptyB)" />
-      <path d="M31 60c0-11 7.6-18 17-18s17 7 17 18" fill="url(#lsEmptyB)" opacity="0.8" />
-      <circle cx="80" cy="10" r="7" fill="#0b1226" stroke="rgba(148,170,230,0.45)" />
-      <path d="M80 7v6M77 10h6" stroke="#e8edff" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  )
-}
-
 export function LearnLessonSidebar({
   grade,
   chapter,
@@ -113,6 +87,7 @@ export function LearnLessonSidebar({
   const [paste, setPaste] = useState('')
   const [query, setQuery] = useState('')
   const [statsStudentId, setStatsStudentId] = useState<string | null>(null)
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
 
   const reload = useCallback(() => {
     setRoster(readClassRoster(rosterSectionId))
@@ -137,11 +112,24 @@ export function LearnLessonSidebar({
     setPaste('')
   }
 
-  const tabs: { id: SidebarTab; label: MessageKey; icon: LearnSidebarIconName }[] = [
-    { id: 'test', label: 'learn.studentTest.title', icon: 'test' },
-    { id: 'class', label: 'learn.classRoster.title', icon: 'class' },
-    { id: 'tools', label: 'learn.lesson.tabTools', icon: 'tools' },
-  ]
+  const onTabKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const idx = TABS.findIndex((x) => x.id === tab)
+    let next = -1
+    if (e.key === 'ArrowRight') next = (idx + 1) % TABS.length
+    else if (e.key === 'ArrowLeft') next = (idx - 1 + TABS.length) % TABS.length
+    else if (e.key === 'Home') next = 0
+    else if (e.key === 'End') next = TABS.length - 1
+    if (next < 0) return
+    e.preventDefault()
+    setTab(TABS[next].id)
+    tabRefs.current[next]?.focus()
+  }
+
+  /** Быстрое действие в списке: выбрать ученика и перейти к тесту */
+  const testStudent = (id: string) => {
+    setActiveStudent(rosterSectionId, id)
+    setTab('test')
+  }
 
   const studentCount = roster.students.length
   const normalizedQuery = query.trim().toLocaleLowerCase()
@@ -149,56 +137,47 @@ export function LearnLessonSidebar({
     ? roster.students.filter((s) => s.name.toLocaleLowerCase().includes(normalizedQuery))
     : roster.students
 
-  const quickStudents = (() => {
-    const list = roster.students.slice(0, QUICK_PICK_MAX)
-    const active = roster.students.find((s) => s.id === roster.activeStudentId)
-    if (active && !list.some((s) => s.id === active.id)) {
-      list[list.length - 1] = active
-    }
-    return list
-  })()
-
-  const statChips = (
-    <div className={styles.statRow}>
-      <span className={styles.statChip}>
-        <LearnSidebarIcon name="users" size={14} />
-        {t('learn.classRoster.count', { n: String(studentCount) })}
-      </span>
-      {avg !== null ? (
-        <span className={`${styles.statChip} ${styles.statChipAccent}`}>
-          <LearnSidebarIcon name="chart" size={14} />
-          {t('learn.classRoster.classAvg', { pct: String(avg) })}
-        </span>
-      ) : null}
-    </div>
-  )
-
   return (
     <aside className={styles.sidebar} aria-label={t('learn.lesson.sidebar')}>
-      <div className={styles.tabRow} role="tablist">
-        {tabs.map(({ id, label, icon }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            className={tab === id ? styles.tabOn : styles.tab}
-            onClick={() => setTab(id)}
-          >
-            <span className={styles.tabIcon}>
-              <LearnSidebarIcon name={icon} size={16} />
-            </span>
-            <span className={styles.tabLabel}>{t(label)}</span>
-            {id === 'class' && studentCount > 0 ? (
-              <span className={styles.tabCount}>{studentCount}</span>
-            ) : null}
-          </button>
-        ))}
+      <div className={styles.tabs} role="tablist" aria-label={t('learn.lesson.sidebar')} onKeyDown={onTabKey}>
+        {TABS.map(({ id, label, full, icon }, i) => {
+          const on = tab === id
+          return (
+            <button
+              key={id}
+              ref={(el) => {
+                tabRefs.current[i] = el
+              }}
+              id={`${uid}-tab-${id}`}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              aria-controls={`${uid}-pane-${id}`}
+              tabIndex={on ? 0 : -1}
+              title={t(full)}
+              className={`${on ? kit.tabActive : ''} ${styles.tab}`}
+              onClick={() => setTab(id)}
+            >
+              <span className={styles.tabIcon} aria-hidden="true">
+                <LearnSidebarIcon name={icon} size={16} />
+              </span>
+              <span className={styles.tabLabel}>{t(label)}</span>
+              {id === 'class' && studentCount > 0 ? (
+                <span className={`${kit.badge} ${styles.tabCount}`}>{studentCount}</span>
+              ) : null}
+            </button>
+          )
+        })}
       </div>
 
-      <div className={styles.body}>
+      <div className={`${kit.scrollArea} ${styles.body}`}>
         {tab === 'test' ? (
-          <div className={styles.testPane}>
+          <div
+            id={`${uid}-pane-test`}
+            role="tabpanel"
+            aria-labelledby={`${uid}-tab-test`}
+            className={styles.pane}
+          >
             <LearnStudentTestHub
               grade={grade}
               chapter={chapter}
@@ -208,128 +187,100 @@ export function LearnLessonSidebar({
               showMoleculeHint={false}
               onPickStudent={() => setTab('class')}
             />
-
-            <section className={styles.quickCard} aria-labelledby={`${uid}-quick`}>
-              <header className={styles.quickHead}>
-                <span className={styles.quickIcon}>
-                  <LearnSidebarIcon name="users" size={16} />
-                </span>
-                <h4 id={`${uid}-quick`} className={styles.quickTitle}>
-                  {t('learn.classRoster.title')}
-                </h4>
-                {studentCount > 0 ? (
-                  <button type="button" className={styles.quickMore} onClick={() => setTab('class')}>
-                    <span>{t('learn.classRoster.count', { n: String(studentCount) })}</span>
-                    <LearnSidebarIcon name="arrowRight" size={14} />
-                  </button>
-                ) : null}
-              </header>
-
-              {studentCount === 0 ? (
-                <div className={styles.emptyState}>
-                  <EmptyRosterArt />
-                  <p className={styles.emptyText}>{t('learn.classRoster.empty')}</p>
-                  <button type="button" className={styles.ctaBtn} onClick={() => setTab('class')}>
-                    <LearnSidebarIcon name="upload" size={16} />
-                    <span>{t('learn.classRoster.import')}</span>
-                  </button>
-                </div>
-              ) : (
-                <ul className={styles.quickList}>
-                  {quickStudents.map((student) => {
-                    const active = roster.activeStudentId === student.id
-                    const level = computeStudentMastery(student).masteryLevel
-                    return (
-                      <li key={student.id}>
-                        <button
-                          type="button"
-                          className={active ? styles.quickRowActive : styles.quickRow}
-                          aria-pressed={active}
-                          onClick={() => setActiveStudent(rosterSectionId, student.id)}
-                        >
-                          <LearnRosterAvatar
-                            name={student.name}
-                            size="sm"
-                            status={level}
-                            statusLabel={t(MASTERY_KEY[level])}
-                          />
-                          <span className={styles.quickName}>{student.name}</span>
-                          {active ? (
-                            <span className={styles.quickCheck} aria-hidden="true">
-                              <LearnSidebarIcon name="check" size={12} />
-                            </span>
-                          ) : null}
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </section>
           </div>
         ) : null}
 
         {tab === 'class' ? (
-          <div className={styles.classPane}>
-            {statChips}
-
-            <div className={styles.importCard}>
-              <label className={styles.fieldLabel} htmlFor={`${uid}-paste`}>
-                <LearnSidebarIcon name="upload" size={14} />
-                {t('learn.classRoster.pasteLabel')}
-              </label>
-              <div className={styles.importRow}>
-                <textarea
-                  id={`${uid}-paste`}
-                  className={styles.importInput}
-                  value={paste}
-                  onChange={(e) => setPaste(e.target.value)}
-                  placeholder={t('learn.classRoster.pastePh')}
-                  rows={1}
-                  aria-label={t('learn.classRoster.pasteLabel')}
-                />
-                <button type="button" className={styles.importBtn} onClick={onImport}>
-                  {t('learn.classRoster.import')}
-                </button>
-              </div>
+          <div
+            id={`${uid}-pane-class`}
+            role="tabpanel"
+            aria-labelledby={`${uid}-tab-class`}
+            className={styles.pane}
+          >
+            <div className={styles.statRow}>
+              <span className={kit.chipTone}>
+                <LearnSidebarIcon name="users" size={13} />
+                {t('learn.classRoster.count', { n: String(studentCount) })}
+              </span>
+              {avg !== null ? (
+                <span className={kit.chip}>
+                  <LearnSidebarIcon name="chart" size={13} />
+                  {t('learn.classRoster.classAvg', { pct: String(avg) })}
+                </span>
+              ) : null}
             </div>
 
-            {roster.students.length === 0 ? (
-              <div className={styles.emptyState}>
-                <EmptyRosterArt />
-                <p className={styles.emptyText}>{t('learn.classRoster.empty')}</p>
-              </div>
+            <section className={styles.importCard} aria-labelledby={`${uid}-import`}>
+              <header className={styles.importHead}>
+                <span className={`${kit.iconTile} ${kit.iconTileSoft}`} aria-hidden="true">
+                  <LearnSidebarIcon name="upload" size={15} />
+                </span>
+                <span className={styles.importText}>
+                  <label id={`${uid}-import`} className={styles.importTitle} htmlFor={`${uid}-paste`}>
+                    {t('learn.classRoster.pasteLabel')}
+                  </label>
+                  <span className={styles.importHint}>{t('learn.studio.cockpit.importHint')}</span>
+                </span>
+              </header>
+              <textarea
+                id={`${uid}-paste`}
+                className={`${kit.input} ${styles.importInput}`}
+                value={paste}
+                onChange={(e) => setPaste(e.target.value)}
+                placeholder={t('learn.classRoster.pastePh')}
+                rows={2}
+              />
+              <button
+                type="button"
+                className={`${kit.btn} ${styles.importBtn}`}
+                onClick={onImport}
+                disabled={parsePastedNames(paste).length === 0}
+              >
+                <LearnSidebarIcon name="upload" size={15} />
+                <span>{t('learn.classRoster.import')}</span>
+              </button>
+            </section>
+
+            {studentCount === 0 ? (
+              <StudioEmptyState
+                icon="users"
+                title={t('learn.studio.cockpit.noStudentsTitle')}
+                lead={t('learn.classRoster.empty')}
+              />
             ) : (
               <>
-                <div className={styles.searchWrap}>
-                  <LearnSidebarIcon name="search" size={16} className={styles.searchIcon} />
-                  <input
-                    type="search"
-                    className={styles.searchInput}
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder={t('catalog.search')}
-                    aria-label={t('catalog.search')}
-                  />
-                </div>
+                {studentCount > 5 ? (
+                  <label className={kit.searchField}>
+                    <LearnSidebarIcon name="search" size={15} />
+                    <input
+                      type="search"
+                      className={kit.input}
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={t('learn.studio.cockpit.searchStudent')}
+                      aria-label={t('catalog.search')}
+                    />
+                  </label>
+                ) : null}
                 {filteredStudents.length === 0 ? (
                   <p className={styles.noMatch}>
                     <LearnSidebarIcon name="search" size={14} />
-                    {t('learn.classRoster.count', { n: '0' })}
+                    {t('learn.studio.cockpit.searchNone')}
                   </p>
                 ) : (
-                  <ul className={styles.studentGrid}>
+                  <ul className={styles.list}>
                     {filteredStudents.map((student) => {
                       const active = roster.activeStudentId === student.id
                       const rating = computeStudentRating(student)
                       const level = computeStudentMastery(student).masteryLevel
                       const showRating = student.attempts.length > 0 || rating.conspectBonus > 0
                       return (
-                        <li key={student.id} className={styles.studentRow}>
+                        <li key={student.id} className={active ? styles.rowActive : styles.row}>
                           <button
                             type="button"
-                            className={`${styles.studentBtn} ${active ? styles.studentBtnActive : ''}`}
+                            className={styles.rowMain}
                             aria-pressed={active}
+                            title={active ? t('learn.studio.cockpit.rowSelected') : student.name}
                             onClick={() => setActiveStudent(rosterSectionId, student.id)}
                           >
                             <LearnRosterAvatar
@@ -337,15 +288,31 @@ export function LearnLessonSidebar({
                               status={level}
                               statusLabel={t(MASTERY_KEY[level])}
                             />
-                            <span className={styles.studentText}>
-                              <span className={styles.studentName}>{student.name}</span>
-                              <span className={styles.studentScore}>{attemptLabel(t, student)}</span>
+                            <span className={styles.rowText}>
+                              <span className={styles.rowName}>{student.name}</span>
+                              <span className={styles.rowMeta}>{attemptLabel(t, student)}</span>
                             </span>
                             {showRating ? (
-                              <span className={styles.ratingChip}>{rating.score}</span>
+                              <span className={styles.rowRating} title={t('learn.studentStats.open')}>
+                                {rating.score}
+                              </span>
+                            ) : null}
+                            {active ? (
+                              <span className={styles.rowCheck} aria-hidden="true">
+                                <LearnSidebarIcon name="check" size={12} />
+                              </span>
                             ) : null}
                           </button>
-                          <div className={styles.studentActions}>
+                          <div className={styles.rowActions}>
+                            <button
+                              type="button"
+                              className={`${kit.iconBtn} ${styles.actionBtn} ${styles.actionPrimary}`}
+                              title={t('learn.studio.cockpit.rowTest')}
+                              aria-label={`${t('learn.studio.cockpit.rowTest')}: ${student.name}`}
+                              onClick={() => testStudent(student.id)}
+                            >
+                              <LearnSidebarIcon name="play" size={15} />
+                            </button>
                             <ClassStudentConspectBtn
                               student={student}
                               rosterSectionId={rosterSectionId}
@@ -358,12 +325,12 @@ export function LearnLessonSidebar({
                             />
                             <button
                               type="button"
-                              className={styles.statsBtn}
+                              className={`${kit.iconBtn} ${styles.actionBtn}`}
                               title={t('learn.studentStats.open')}
-                              aria-label={t('learn.studentStats.open')}
+                              aria-label={`${t('learn.studentStats.open')}: ${student.name}`}
                               onClick={() => setStatsStudentId(student.id)}
                             >
-                              <LearnSidebarIcon name="chart" size={16} />
+                              <LearnSidebarIcon name="chart" size={15} />
                             </button>
                           </div>
                         </li>
@@ -377,12 +344,19 @@ export function LearnLessonSidebar({
         ) : null}
 
         {tab === 'tools' ? (
-          <LearnSectionToolsCompact
-            grade={grade}
-            chapter={chapter}
-            section={section}
-            fromBook={fromBook}
-          />
+          <div
+            id={`${uid}-pane-tools`}
+            role="tabpanel"
+            aria-labelledby={`${uid}-tab-tools`}
+            className={styles.pane}
+          >
+            <LearnSectionToolsCompact
+              grade={grade}
+              chapter={chapter}
+              section={section}
+              fromBook={fromBook}
+            />
+          </div>
         ) : null}
       </div>
 

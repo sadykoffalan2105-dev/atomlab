@@ -1,0 +1,790 @@
+/*
+ * Lesson Studio — оболочка урока: командная панель, раскладки, переключатель
+ * панелей, ручки изменения ширины, нижний док (телефон), шторка действий,
+ * подсказка по клавишам. Только токены var(--lt-*) + color-mix().
+ */
+
+/* ——— Командная панель ——— */
+
+.bar {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: var(--lt-radius);
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface);
+  backdrop-filter: var(--lt-blur);
+  -webkit-backdrop-filter: var(--lt-blur);
+  box-shadow: var(--lt-shadow-sm);
+}
+
+.bar::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: -1px;
+  height: 2px;
+  border-radius: var(--lt-radius-pill);
+  background: linear-gradient(90deg, transparent, var(--lesson-a, var(--lt-primary)), var(--lesson-b, var(--lt-primary-2)), transparent);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.barPresent {
+  border-color: color-mix(in srgb, var(--lt-accent-amber) 40%, var(--lt-border));
+}
+
+.barPresent::before {
+  background: linear-gradient(90deg, transparent, var(--lt-accent-amber), var(--lt-accent-pink), transparent);
+}
+
+.lead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 300px;
+  min-width: 0;
+}
+
+.back {
+  min-height: 38px;
+  padding: 0 12px 0 9px;
+  border-radius: var(--lt-radius-pill);
+  color: var(--lt-text-2);
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--lt-font-display);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  color: var(--lt-text);
+}
+
+.titleText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paraBadge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--lesson-a, var(--lt-primary)), var(--lesson-b, var(--lt-primary-2)));
+  color: #fff;
+  font-family: var(--lt-font);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+  box-shadow: 0 4px 14px -6px var(--lesson-a, var(--lt-primary));
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+
+.meta > * {
+  --studio-tone: var(--lesson-a, var(--lt-primary));
+}
+
+.metaWide {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.metaText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.actionGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.vDivider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 24px;
+  margin: 0 2px;
+  background: var(--lt-border-strong);
+}
+
+.linkBtn {
+  min-height: 38px;
+  border-radius: var(--lt-radius-pill);
+}
+
+.primaryBtn {
+  min-height: 38px;
+  border-radius: var(--lt-radius-pill);
+}
+
+/* ——— Раскладки и переключатель панелей ——— */
+
+.presets,
+.panelSwitch {
+  gap: 2px;
+}
+
+.presetItem {
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.presetBoardOn,
+.presetBoardOn:hover {
+  color: var(--lt-text);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--lt-accent-amber) 28%, transparent), color-mix(in srgb, var(--lt-accent-pink) 22%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lt-accent-amber) 55%, transparent);
+}
+
+.presetBoardOn > svg {
+  color: var(--lt-accent-amber);
+}
+
+.switchItem {
+  min-height: 32px;
+  padding: 0 9px 0 9px;
+}
+
+.switchLabel {
+  min-width: 0;
+}
+
+.switchKbd {
+  margin-left: 2px;
+}
+
+.segmentedItemActive .switchKbd,
+.switchItem[data-state='fs'] .switchKbd {
+  border-color: color-mix(in srgb, #fff 45%, transparent);
+  background: color-mix(in srgb, #fff 18%, transparent);
+  color: #fff;
+}
+
+.helpBtn {
+  width: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  border-color: var(--lt-border);
+  color: var(--lt-text-2);
+  font-family: var(--lt-font-mono);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.helpBtn[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--lt-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--lt-primary) 16%, transparent);
+  color: var(--lt-text);
+}
+
+/* ——— Подсказка по клавишам ——— */
+
+.helpWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.helpPop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: min(320px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 12px 12px 10px;
+  border-radius: var(--lt-radius);
+  border: 1px solid var(--lt-border-strong);
+  background: var(--lt-surface-solid);
+  box-shadow: var(--lt-shadow-lg);
+  animation: popIn var(--lt-dur) var(--lt-ease) both;
+}
+
+.helpTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--lt-text);
+}
+
+.helpList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.helpRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--lt-text-2);
+}
+
+.helpKeys {
+  display: inline-flex;
+  gap: 3px;
+  flex-shrink: 0;
+  min-width: 64px;
+}
+
+.helpText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ——— Сетка: колонки, ручки, появление ——— */
+
+.col {
+  animation: colIn var(--lt-dur) var(--lt-ease) both;
+}
+
+.colLeaving {
+  opacity: 0;
+  transform: scale(0.985);
+  transition:
+    opacity var(--lt-dur-fast) var(--lt-ease),
+    transform var(--lt-dur-fast) var(--lt-ease);
+  pointer-events: none;
+}
+
+.resizer {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  width: 10px;
+  margin: 0;
+  border-radius: var(--lt-radius-pill);
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+  transition: background-color var(--lt-dur-fast) var(--lt-ease);
+}
+
+.resizer::before {
+  content: '';
+  position: absolute;
+  inset: 0 -6px;
+}
+
+.resizerGrip {
+  display: grid;
+  place-items: center;
+  width: 10px;
+  height: 36px;
+  border-radius: var(--lt-radius-pill);
+  background: color-mix(in srgb, var(--lt-text) 10%, transparent);
+  color: var(--lt-text-3);
+  opacity: 0.85;
+  transition:
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    color var(--lt-dur-fast) var(--lt-ease),
+    opacity var(--lt-dur-fast) var(--lt-ease),
+    height var(--lt-dur) var(--lt-ease);
+}
+
+.resizer:hover .resizerGrip,
+.resizer:focus-visible .resizerGrip,
+.resizer[data-dragging] .resizerGrip {
+  height: 56px;
+  opacity: 1;
+  background: color-mix(in srgb, var(--lt-primary) 30%, transparent);
+  color: var(--lt-text);
+}
+
+.resizer:focus-visible .resizerGrip {
+  box-shadow: var(--lt-ring);
+}
+
+.resizer[data-dragging] {
+  background: color-mix(in srgb, var(--lt-primary) 14%, transparent);
+}
+
+.layoutDragging {
+  cursor: col-resize;
+}
+
+.layoutDragging .col {
+  pointer-events: none;
+  user-select: none;
+}
+
+.emptyCol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px;
+  animation: colIn var(--lt-dur) var(--lt-ease) both;
+}
+
+.emptyCard {
+  width: min(100%, 520px);
+}
+
+.emptyBtn {
+  border-radius: var(--lt-radius-pill);
+}
+
+.emptyPresets {
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* ——— Нижний док (телефон/планшет) ——— */
+
+.dock {
+  display: none;
+}
+
+.dockTab,
+.dockTabOn {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 5px 4px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--lt-text-3);
+  font-family: var(--lt-font);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    color var(--lt-dur-fast) var(--lt-ease);
+}
+
+.dockIcon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 24px;
+  border-radius: 9px;
+  color: var(--lt-text-3);
+  transition:
+    background-color var(--lt-dur) var(--lt-ease),
+    color var(--lt-dur) var(--lt-ease),
+    transform var(--lt-dur) var(--lt-ease);
+}
+
+.dockTabOn {
+  color: var(--lt-text);
+}
+
+.dockTabOn .dockIcon {
+  background: linear-gradient(135deg, var(--studio-tone, var(--lt-primary)), var(--studio-tone-2, var(--lt-primary-2)));
+  color: #fff;
+  box-shadow: 0 6px 14px -6px var(--studio-tone, var(--lt-primary));
+  transform: translateY(-1px);
+}
+
+.dockTab:focus-visible,
+.dockTabOn:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.dockLabel {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moreBtn {
+  display: none;
+}
+
+/* ——— Шторка действий (телефон) ——— */
+
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 11700;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: color-mix(in srgb, var(--lt-bg) 70%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 11710;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: min(84svh, 720px);
+  box-sizing: border-box;
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-radius: var(--lt-radius-lg) var(--lt-radius-lg) 0 0;
+  border: 1px solid var(--lt-border-strong);
+  border-bottom: 0;
+  background: var(--lt-surface-solid);
+  box-shadow: var(--lt-shadow-lg);
+  overflow-y: auto;
+  animation: sheetIn var(--lt-dur-slow) var(--lt-ease) both;
+}
+
+.sheetGrab {
+  align-self: center;
+  width: 42px;
+  height: 4px;
+  border-radius: var(--lt-radius-pill);
+  background: var(--lt-border-strong);
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sheetTitle {
+  flex: 1 1 auto;
+  margin: 0;
+  font-family: var(--lt-font-display);
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--lt-text);
+}
+
+.sheetSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sheetLabel {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lt-text-3);
+}
+
+.sheetRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sheetRow > * {
+  flex: 1 1 140px;
+  justify-content: flex-start;
+  min-height: 46px;
+}
+
+.sheetRow > .presetsWrap {
+  flex: 1 1 100%;
+}
+
+.presetsWrap {
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.presetsWrap > * {
+  flex: 1 1 auto;
+  min-height: 40px;
+}
+
+/* ——— Анимации ——— */
+
+@keyframes colIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheetIn {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* ——— Адаптив ——— */
+
+/* Командная панель ужимается ступенями, чтобы оставаться в одну строку:
+   ≤1699 — ссылки только иконками (подсказка в title), ≤1439 — панели иконка + клавиша,
+   ≤1279 — «назад» только стрелкой. */
+@media (max-width: 1699px) {
+  .linkBtn {
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
+  }
+
+  .linkBtn > .linkLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1439px) {
+  .switchLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .switchItem {
+    padding: 0 8px;
+  }
+}
+
+@media (max-width: 1279px) {
+  .back {
+    width: 38px;
+    padding: 0;
+  }
+
+  .backLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 1800px) {
+  .title {
+    font-size: 18px;
+  }
+
+  .bar {
+    padding: 10px 14px;
+  }
+
+  .back,
+  .linkBtn,
+  .primaryBtn {
+    min-height: 40px;
+  }
+}
+
+/* Планшет и телефон: нижний док, шторка действий */
+@media (max-width: 1023px) {
+  .dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    display: flex;
+    gap: 2px;
+    box-sizing: border-box;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--lt-border);
+    background: color-mix(in srgb, var(--lt-surface-solid) 92%, transparent);
+    backdrop-filter: var(--lt-blur);
+    -webkit-backdrop-filter: var(--lt-blur);
+    box-shadow: 0 -8px 24px -16px color-mix(in srgb, var(--lt-bg-deep, #000) 80%, transparent);
+  }
+
+  .resizer {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .bar {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 8px;
+    border-radius: var(--lt-radius-sm);
+  }
+
+  .lead {
+    flex: 1 1 auto;
+    gap: 8px;
+  }
+
+  .back {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+  }
+
+  .backLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .title {
+    font-size: 15px;
+  }
+
+  .meta {
+    gap: 4px;
+  }
+
+  .actions {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .actionGroup,
+  .vDivider,
+  .helpWrap {
+    display: none;
+  }
+
+  .primaryBtn {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  .primaryBtn > .linkLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .titleBlock {
+    gap: 4px;
+  }
+
+  .metaWide {
+    flex: 1 1 auto;
+  }
+
+  .moreBtn {
+    display: inline-flex;
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-color: var(--lt-border);
+    border-radius: var(--lt-radius-pill);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .col,
+  .emptyCol,
+  .helpPop,
+  .sheet {
+    animation: none;
+  }
+
+  .colLeaving {
+    transition: none;
+  }
+}

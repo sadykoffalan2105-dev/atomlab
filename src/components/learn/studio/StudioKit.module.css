@@ -1,0 +1,841 @@
+/*
+ * Lesson Studio kit — token-only primitives (Aurora Lab, var(--lt-*)).
+ * Every tint is color-mix() of a token, so all themes work. A panel root sets
+ * --studio-tone / --studio-tone-2; primitives fall back to the primary colour.
+ * Sizes in px (root rem ≈ 9px). No !important.
+ */
+
+.panel {
+  --studio-wash: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 12%, transparent);
+  --studio-wash-strong: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 22%, transparent);
+  --studio-line: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 38%, var(--lt-border));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  border-radius: var(--lt-radius);
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface);
+  backdrop-filter: var(--lt-blur);
+  -webkit-backdrop-filter: var(--lt-blur);
+  box-shadow: var(--lt-shadow);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  overflow: hidden;
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  z-index: 8;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, var(--studio-tone, var(--lt-primary)), var(--studio-tone-2, var(--lt-primary-2)));
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* ——— Шапка панели: плитка-иконка + заголовок/подзаголовок + действия ——— */
+
+.panelHead {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  /* Ровно 48px у всех панелей: 36px кнопка действия + 2×6px отступа не должны
+     перебивать min-height, иначе шапки колонок расходятся на 2–3px. */
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 5px 8px 5px 12px;
+  border-bottom: 1px solid var(--lt-border);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 9%, transparent), transparent);
+}
+
+.panelHeadText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.panelTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  color: var(--lt-text);
+}
+
+.panelSubtitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--lt-text-3);
+}
+
+.panelActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* ——— Плитка-иконка ——— */
+
+.iconTile {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--studio-tone, var(--lt-primary)), var(--studio-tone-2, var(--lt-primary-2)));
+  color: #fff;
+  box-shadow: 0 4px 12px -5px var(--studio-tone, var(--lt-primary));
+}
+
+.iconTileSoft {
+  background: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 16%, transparent);
+  color: var(--studio-tone, var(--lt-primary));
+  box-shadow: none;
+}
+
+.iconTileLg {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+/* ——— Кнопки ——— */
+
+.btn,
+.btnPrimary,
+.btnGhost,
+.btnDanger,
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-2);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform var(--lt-dur-fast) var(--lt-ease),
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    border-color var(--lt-dur-fast) var(--lt-ease),
+    box-shadow var(--lt-dur) var(--lt-ease),
+    color var(--lt-dur-fast) var(--lt-ease);
+}
+
+.btn > svg,
+.btnGhost > svg,
+.iconBtn > svg {
+  flex-shrink: 0;
+  color: var(--lt-text-2);
+  transition: color var(--lt-dur-fast) var(--lt-ease);
+}
+
+.btn:hover,
+.btnGhost:hover,
+.iconBtn:hover {
+  border-color: var(--lt-border-strong);
+  background: var(--lt-surface-hover);
+  transform: translateY(-1px);
+}
+
+.btn:hover > svg,
+.btnGhost:hover > svg,
+.iconBtn:hover > svg {
+  color: var(--lt-text);
+}
+
+.btn:active,
+.btnPrimary:active,
+.btnGhost:active,
+.btnDanger:active,
+.iconBtn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn:focus-visible,
+.btnPrimary:focus-visible,
+.btnGhost:focus-visible,
+.btnDanger:focus-visible,
+.iconBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.btn:disabled,
+.btnPrimary:disabled,
+.btnGhost:disabled,
+.btnDanger:disabled,
+.iconBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btnPrimary {
+  border-color: transparent;
+  background: var(--lt-grad-primary);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 6px 18px -10px color-mix(in srgb, var(--lt-primary) 90%, transparent);
+}
+
+.btnPrimary > svg {
+  color: #fff;
+}
+
+.btnPrimary:hover {
+  box-shadow: var(--lt-glow-primary);
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
+.btnGhost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--lt-text-2);
+}
+
+.btnDanger {
+  border-color: color-mix(in srgb, var(--lt-danger) 40%, transparent);
+  background: color-mix(in srgb, var(--lt-danger) 12%, transparent);
+  color: var(--lt-danger);
+}
+
+.btnDanger:hover {
+  background: color-mix(in srgb, var(--lt-danger) 20%, transparent);
+  transform: translateY(-1px);
+}
+
+.iconBtn {
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--lt-text-3);
+}
+
+.iconBtn > svg {
+  color: currentcolor;
+}
+
+.iconBtn[aria-pressed='true'] {
+  border-color: var(--studio-line, var(--lt-border-strong));
+  background: var(--studio-wash-strong, color-mix(in srgb, var(--lt-primary) 20%, transparent));
+  color: var(--lt-text);
+}
+
+.iconBtnDanger:hover {
+  border-color: color-mix(in srgb, var(--lt-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--lt-danger) 12%, transparent);
+  color: var(--lt-danger);
+}
+
+.btnLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ——— Сегментированный контрол ——— */
+
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 3px;
+  border-radius: 14px;
+  border: 1px solid var(--lt-border);
+  background: color-mix(in srgb, var(--lt-bg) 55%, transparent);
+}
+
+.segmentedItem {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--lt-text-2);
+  font-family: var(--lt-font);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    border-color var(--lt-dur-fast) var(--lt-ease),
+    color var(--lt-dur-fast) var(--lt-ease),
+    box-shadow var(--lt-dur) var(--lt-ease);
+}
+
+.segmentedItem > svg {
+  flex-shrink: 0;
+}
+
+.segmentedItem:hover {
+  color: var(--lt-text);
+  background: var(--lt-surface-hover);
+}
+
+.segmentedItem:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.segmentedItemActive,
+.segmentedItemActive:hover {
+  color: #fff;
+  background: var(--lt-grad-primary);
+  box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--lt-primary) 80%, transparent);
+}
+
+.segmentedItemOn {
+  border-color: var(--studio-line, var(--lt-border-strong));
+  background: var(--studio-wash, color-mix(in srgb, var(--lt-primary) 12%, transparent));
+  color: var(--lt-text);
+}
+
+.segmentedItemOn > svg {
+  color: var(--studio-tone, var(--lt-primary));
+}
+
+.segmentedItemOff {
+  color: var(--lt-text-3);
+}
+
+.segmentedItemOff > svg {
+  color: var(--lt-text-mute);
+}
+
+/* ——— Вкладки ——— */
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 0;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--lt-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--lt-text-3);
+  font-family: var(--lt-font);
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--lt-dur-fast) var(--lt-ease);
+}
+
+.tab::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: var(--lt-radius-pill);
+  background: transparent;
+  transition: background-color var(--lt-dur-fast) var(--lt-ease);
+}
+
+.tab:hover,
+.tabActive {
+  color: var(--lt-text);
+}
+
+.tabActive::after {
+  background: var(--studio-tone, var(--lt-primary));
+}
+
+.tab:focus-visible {
+  outline: none;
+  box-shadow: inset var(--lt-ring);
+}
+
+/* ——— Чипы ——— */
+
+.chip,
+.chipOn,
+.chipTone {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-height: 24px;
+  padding: 2px 9px 2px 7px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--lt-border);
+  background: color-mix(in srgb, var(--lt-text) 6%, transparent);
+  color: var(--lt-text-2);
+  font-family: var(--lt-font);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.chip > svg,
+.chipOn > svg,
+.chipTone > svg {
+  flex-shrink: 0;
+  color: var(--studio-tone, var(--lt-primary));
+}
+
+.chipOn {
+  border-color: color-mix(in srgb, var(--lt-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--lt-primary) 16%, transparent);
+  color: var(--lt-text);
+}
+
+.chipTone {
+  border-color: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 40%, transparent);
+  background: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 12%, transparent);
+  color: var(--lt-text);
+}
+
+.chipWrap {
+  min-height: 24px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* ——— Карточки ——— */
+
+.card,
+.cardInteractive,
+.cardSelected {
+  position: relative;
+  box-sizing: border-box;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-2);
+  color: var(--lt-text);
+  text-align: left;
+  font-family: var(--lt-font);
+  font-size: 13px;
+  line-height: 1.45;
+  transition:
+    transform var(--lt-dur-fast) var(--lt-ease),
+    border-color var(--lt-dur-fast) var(--lt-ease),
+    background-color var(--lt-dur-fast) var(--lt-ease),
+    box-shadow var(--lt-dur) var(--lt-ease);
+}
+
+.cardInteractive,
+.cardSelected {
+  cursor: pointer;
+}
+
+.cardInteractive:hover {
+  border-color: var(--lt-border-strong);
+  background: var(--lt-surface-hover);
+  transform: translateY(-1px);
+}
+
+.cardInteractive:focus-visible,
+.cardSelected:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.cardSelected {
+  border-color: color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 55%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 16%, transparent), transparent 70%),
+    var(--lt-surface-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--studio-tone, var(--lt-primary)) 35%, transparent);
+}
+
+.cardCheck {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--studio-tone, var(--lt-primary)), var(--studio-tone-2, var(--lt-primary-2)));
+  color: #fff;
+  box-shadow: 0 3px 8px -3px var(--studio-tone, var(--lt-primary));
+}
+
+/* ——— Поля ——— */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--lt-text-3);
+}
+
+.input {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--lt-border-strong);
+  background: var(--lt-surface-3);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: 14px;
+  transition:
+    border-color var(--lt-dur-fast) var(--lt-ease),
+    box-shadow var(--lt-dur-fast) var(--lt-ease);
+}
+
+.input::placeholder {
+  color: var(--lt-text-mute);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--studio-tone, var(--lt-primary));
+  box-shadow: var(--lt-ring);
+}
+
+.searchField {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.searchField > svg {
+  position: absolute;
+  left: 12px;
+  color: var(--lt-text-3);
+  pointer-events: none;
+}
+
+.searchField > .input {
+  padding-left: 36px;
+  border-radius: var(--lt-radius-pill);
+}
+
+/* ——— kbd, бейдж, стат ——— */
+
+.kbd {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 5px;
+  border: 1px solid var(--lt-border-strong);
+  border-bottom-width: 2px;
+  background: color-mix(in srgb, var(--lt-text) 7%, transparent);
+  color: var(--lt-text-3);
+  font-family: var(--lt-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.badge {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: var(--lt-radius-pill);
+  background: linear-gradient(135deg, var(--studio-tone, var(--lt-primary)), var(--studio-tone-2, var(--lt-primary-2)));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-2);
+}
+
+.statValue {
+  font-family: var(--lt-font-display);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--lt-text);
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--lt-text-3);
+  overflow-wrap: anywhere;
+}
+
+/* ——— Степпер ——— */
+
+.stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: studio-step;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--lt-text-3);
+  counter-increment: studio-step;
+}
+
+.step::before {
+  content: counter(studio-step);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--lt-border-strong);
+  background: var(--lt-surface-2);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--lt-text-2);
+}
+
+.stepActive {
+  color: var(--lt-text);
+  font-weight: 700;
+}
+
+.stepActive::before {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--studio-tone, var(--lt-primary)), var(--studio-tone-2, var(--lt-primary-2)));
+  color: #fff;
+  box-shadow: 0 4px 10px -4px var(--studio-tone, var(--lt-primary));
+}
+
+.stepDone {
+  color: var(--lt-text-2);
+}
+
+.stepDone::before {
+  content: '✓';
+  border-color: color-mix(in srgb, var(--lt-success) 50%, transparent);
+  background: color-mix(in srgb, var(--lt-success) 16%, transparent);
+  color: var(--lt-success);
+}
+
+/* ——— Пустое состояние, скелет, скролл, разделитель ——— */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 28px 20px;
+  border-radius: var(--lt-radius);
+  border: 1px dashed var(--lt-border-strong);
+  background: color-mix(in srgb, var(--lt-surface) 60%, transparent);
+  text-align: center;
+  color: var(--lt-text-2);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-family: var(--lt-font-display);
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--lt-text);
+  overflow-wrap: anywhere;
+}
+
+.emptyLead {
+  max-width: 44ch;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.skeleton {
+  display: block;
+  height: 12px;
+  border-radius: var(--lt-radius-pill);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--lt-text) 8%, transparent),
+    color-mix(in srgb, var(--lt-text) 18%, transparent),
+    color-mix(in srgb, var(--lt-text) 8%, transparent)
+  );
+  background-size: 200% 100%;
+  animation: studioShimmer 1.4s linear infinite;
+}
+
+@keyframes studioShimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+.scrollArea {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--lt-text) 22%, transparent) transparent;
+  overscroll-behavior: contain;
+}
+
+.scrollArea::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollArea::-webkit-scrollbar-thumb {
+  border-radius: var(--lt-radius-pill);
+  border: 2px solid transparent;
+  background: color-mix(in srgb, var(--lt-text) 22%, transparent);
+  background-clip: padding-box;
+}
+
+.divider {
+  flex-shrink: 0;
+  height: 1px;
+  margin: 4px 0;
+  border: 0;
+  background: var(--lt-border);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (pointer: coarse) {
+  .btn,
+  .btnPrimary,
+  .btnGhost,
+  .btnDanger {
+    min-height: 44px;
+  }
+
+  .iconBtn {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Сегмент — такая же цель нажатия, как кнопка: на тач-экране 44px. */
+  .segmentedItem {
+    min-height: 44px;
+  }
+
+  .tab {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:hover,
+  .btnPrimary:hover,
+  .btnGhost:hover,
+  .btnDanger:hover,
+  .iconBtn:hover,
+  .cardInteractive:hover {
+    transform: none;
+  }
+
+  .skeleton {
+    animation: none;
+  }
+}
