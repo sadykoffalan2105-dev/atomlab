@@ -1,6 +1,8 @@
 import { storyWallDuration } from '../cinema/core/storyTime'
 import { CLO2_FINISH } from '../cinema/scenes/clo2/storyboard'
+import { mgoScientificWatchdogMs } from './mgoScenarioTiming'
 import { naclScientificWatchdogMs } from './naclScenarioTiming'
+import { zncl2ScientificWatchdogMs } from './zncl2ScenarioTiming'
 
 /**
  * Таймауты гарантии успеха для научных сцен.
@@ -19,6 +21,8 @@ export function scientificSynthesisWatchdogMs(productId: string): number | null 
     return Math.ceil(storyWallDuration([CLO2_FINISH]) * 1000 + WATCHDOG_MARGIN_MS)
   }
   if (productId === 'nacl') return naclScientificWatchdogMs()
+  if (productId === 'mgo') return mgoScientificWatchdogMs()
+  if (productId === 'salt_zn_cl') return zncl2ScientificWatchdogMs()
   return null
 }
 

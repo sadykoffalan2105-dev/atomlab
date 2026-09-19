@@ -16,7 +16,7 @@ import { CLO2_STEPS } from './clo2Steps'
 export type Clo2StepStatus = 'idle' | 'playing' | 'paused' | 'finishing' | 'done'
 
 /** Уроки по шагам, которые умеет показывать панель механизма. */
-export type CinemaLessonId = 'clo2' | 'nacl'
+export type CinemaLessonId = string
 
 export type Clo2StepSnapshot = {
   /** runId прогона, к которому относится снимок; 0 — сцены нет */

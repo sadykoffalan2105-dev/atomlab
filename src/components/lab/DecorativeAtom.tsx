@@ -1,6 +1,14 @@
-import { AtomStructureModel } from './AtomStructureModel'
+import { CpkAtomModel } from './atom/CpkAtomModel'
 
-/** Декоративный атом в свободной лаборатории (кислород — голубое облако). */
+/**
+ * Декоративный атом свободной лаборатории — кислород в языке CPK-сфер
+ * реактора: красный шар (вдв 152 пм), электронное облако, ореол и подпись «O».
+ * Масштаб крупный: в свободной сцене атом один и держит центр кадра.
+ */
 export function DecorativeAtom() {
-  return <AtomStructureModel z={8} previewEmphasis cosmicStyle accentHex="#ff0d0d" />
+  return (
+    <group scale={3.4}>
+      <CpkAtomModel z={8} animate frameSkip={1} />
+    </group>
+  )
 }

@@ -4,6 +4,7 @@ import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance
 import { resolveReactorTermMolecule } from '../../lab/reactorPreviewMolecule'
 import { getTermGroupCenters } from './reactorPreviewLayout'
 import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
+import { cpkLabelIndices } from './atom/cpkAtomVisual'
 import { BondCylinder } from './MoleculeMesh'
 
 const BOND_COLOR = '#bcd6ff'
@@ -64,20 +65,22 @@ export function ReactorTermMoleculeOverlay({
     <>
       {entries.map(({ term, template, center }) => {
         const topY = template.atoms.reduce((m, a) => Math.max(m, a.pos[1]), 0) + 0.26
+        // Подписываем по одному атому каждого элемента молекулы: у HCl — H и Cl,
+        // у ZnCl₂ — Zn и один Cl, у H₂ — один H (второй шар тот же водород).
+        const labelSlots = cpkLabelIndices(template.atoms.map((a) => ({ z: a.z, group: 0 })))
         return (
           <group key={term.id} position={center} scale={scale}>
             {template.atoms.map((atom, ai) => (
               <group key={ai} position={atom.pos}>
                 <ReactorPreviewAtomSlot
                   z={atom.z}
+                  slotIndex={ai}
                   animate={false}
                   previewStatic
                   useFullDetail={false}
-                  synthesisGlass={false}
                   previewLite
                   electronFrameSkip={6}
-                  hideOrbitRings
-                  localLight={false}
+                  showLabel={labelSlots.has(ai)}
                 />
               </group>
             ))}

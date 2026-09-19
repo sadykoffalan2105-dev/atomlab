@@ -6,10 +6,10 @@ import { assertPreviewElectronAnimation } from '../../lab/reactorPreviewGuarante
 import { resolveReactorEditPerfFlags } from '../../lab/reactorEditPerfMode'
 import { createReactorInvalidateThrottle } from '../../lab/reactorInvalidateThrottle'
 import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
-import { getSynthesisDeviceClassification, getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
-import { SYNTHESIS_QUALITY_HIGH } from '../../lab/synthesisQualityLadder'
+import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import { warnIfReactorVisualDegraded } from '../../lab/reactorVisualPreservation'
 import { useReactorPreviewLayout } from '../../lab/useReactorPreviewLayout'
+import { cpkLabelIndices } from './atom/cpkAtomVisual'
 import {
   createPreviewEngineState,
   resolveFullDetailLatch,
@@ -96,7 +96,13 @@ function createTickArgs(
 const OWN_LIGHT = { ambient: 0.28, directional: 0.65, point: 0.9 } as const
 
 /**
- * Превью реагентов: полная Bohr-модель (протоны, нейтроны, электроны, орбиты).
+ * Выше этого числа атомов кластеры становятся такими плотными, что даже
+ * по одной подписи на элемент читаются как шум — там цвет CPK говорит сам.
+ */
+const PREVIEW_LABEL_MAX_SLOTS = 16
+
+/**
+ * Превью реагентов: CPK-сферы (цвет и радиус — настоящие, см. atom/CpkAtomModel).
  * Стабильность +/- — synthesisPreviewEngine (shell-hold, pin, policy).
  */
 export function ReactorTermsPreview({
@@ -225,6 +231,7 @@ export function ReactorTermsPreview({
    * термина, чтобы не показывать оба варианта разом.
    */
   const moleculeOverrideTermIndices = useMemo(() => reactorTermsWithMolecule(terms), [terms])
+
 
   const frame = resolvePreviewEngineFrame(engineRef.current, {
     terms,
@@ -800,8 +807,24 @@ export function ReactorTermsPreview({
     // Пока hold/pre-synth — продукт не владеет экраном (страховка против пустого центра).
     productOwnsScreen,
   }) && !productOwnsScreen
-  const editLocalLight = !sharedLighting && reactGroupVisible
-  // Collapse/flight: атомы летят в центр — электроны и spin только жрут GPU.
+  /**
+   * Подписи символов учат читать уравнение, но подписывать каждый шар нельзя:
+   * в «2 Na» это пять одинаковых спрайтов, а в K₂Cr₂O₇ (22 атома) — каша.
+   * Подписываем первое вхождение каждого элемента внутри его слагаемого.
+   * В полёте подписи не нужны совсем: атомы сходятся в одну точку.
+   */
+  const labelSlots = useMemo(
+    () =>
+      cpkLabelIndices(
+        // Слот может быть пустым (layoutAtoms разрежен) — индексы обязаны
+        // совпадать с индексами слотов, поэтому дыру отдаём как null, а не
+        // выбрасываем: cpkLabelIndices сам её пропустит.
+        renderAtoms.map((a) => (a ? { z: a.z, group: a.termIndex } : null)),
+      ),
+    [renderAtoms],
+  )
+  const labelsAllowed = !flightActive && n <= PREVIEW_LABEL_MAX_SLOTS
+  // Collapse/flight: атомы летят в центр — дыхание и spin только жрут GPU.
   const electronsLive =
     !flightActive && forceElectronMotion && reactGroupVisible && holdAtomsUi
   const bohrAnimate = electronsLive
@@ -812,18 +835,6 @@ export function ReactorTermsPreview({
     !holdAtomsUi ||
     motionPolicy.forceLiteMaterials ||
     Boolean(forceLite)
-  /**
-   * Transmission-стекло атомов (лишний проход рендера) — только сильный GPU и
-   * высокий уровень качества; иначе AtomStructureModel рисует дешёвое стекло.
-   */
-  const glassTransmission = useMemo(
-    () =>
-      !lowPower &&
-      !forceLite &&
-      (qualityLevel ?? 0) >= SYNTHESIS_QUALITY_HIGH &&
-      getSynthesisDeviceClassification().gpu === 'strong',
-    [lowPower, forceLite, qualityLevel],
-  )
   /** Свет всегда смонтирован (без sharedLighting); скрытое превью — intensity 0, а не unmount. */
   const ownLightK = reactGroupVisible ? 1 : 0
 
@@ -858,15 +869,13 @@ export function ReactorTermsPreview({
               <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
                 <ReactorPreviewAtomSlot
                   z={slotZ}
+                  slotIndex={i}
                   animate={bohrAnimate && slotVisible}
                   previewStatic={!holdAtomsUi || flightActive}
-                  useFullDetail={false}
-                  synthesisGlass={false}
-                  glassTransmission={glassTransmission}
+                  useFullDetail={engineRef.current.fullDetailLatch}
                   previewLite={slotPreviewLite}
                   electronFrameSkip={flightActive ? 8 : editSkip}
-                  hideOrbitRings={productOwnsScreen || !holdAtomsUi || flightActive}
-                  localLight={editLocalLight}
+                  showLabel={labelsAllowed && labelSlots.has(i)}
                 />
               </group>
             </group>

@@ -13,7 +13,16 @@ import { CLO2_STEP_IDS, type Clo2StepId } from '../../../lab/cinema/scenes/clo2/
 import { clo2StepStore, type Clo2StepStatus } from '../../../lab/cinema/scenes/clo2/clo2StepStore'
 import type { Clo2Locale } from '../../../lab/cinema/scenes/clo2/clo2MechanismText'
 import { getCinemaLesson, lessonStepIdAt } from '../../../lab/cinema/scenes/lessons'
+import { CaoEnergyPanel } from '../../../lab/cinema/scenes/cao/CaoEnergyPanel'
+import { Co2EnergyPanel } from '../../../lab/cinema/scenes/co2/Co2EnergyPanel'
+import { FesEnergyPanel } from '../../../lab/cinema/scenes/fes/FesEnergyPanel'
+import { H2oEnergyPanel } from '../../../lab/cinema/scenes/h2o/H2oEnergyPanel'
+import { HclEnergyPanel } from '../../../lab/cinema/scenes/hcl/HclEnergyPanel'
+import { MgoEnergyPanel } from '../../../lab/cinema/scenes/mgo/MgoEnergyPanel'
 import { NaclEnergyPanel } from '../../../lab/cinema/scenes/nacl/NaclEnergyPanel'
+import { Nh3EnergyPanel } from '../../../lab/cinema/scenes/nh3/Nh3EnergyPanel'
+import { So2EnergyPanel } from '../../../lab/cinema/scenes/so2/So2EnergyPanel'
+import { Zncl2EnergyPanel } from '../../../lab/cinema/scenes/zncl2/Zncl2EnergyPanel'
 import { getLabTeacherNarrator } from '../../../lab/teacher'
 import styles from './Clo2MechanismPanel.module.css'
 import { Clo2ElectronLedger } from './Clo2ElectronLedger'
@@ -392,6 +401,24 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
         >
           {lesson.id === 'nacl' ? (
             <NaclEnergyPanel locale={clo2Locale} compact={isMobile} />
+          ) : lesson.id === 'cao' ? (
+            <CaoEnergyPanel locale={clo2Locale} compact={isMobile} />
+          ) : lesson.id === 'nh3' ? (
+            <Nh3EnergyPanel locale={clo2Locale} compact={isMobile} />
+          ) : lesson.id === 'so2' ? (
+            <So2EnergyPanel locale={clo2Locale} compact={isMobile} />
+          ) : lesson.id === 'mgo' ? (
+            <MgoEnergyPanel locale={clo2Locale} compact={isMobile} />
+          ) : lesson.id === 'fes' ? (
+            <FesEnergyPanel locale={clo2Locale} compact={isMobile} />
+          ) : lesson.id === 'hcl' ? (
+            <HclEnergyPanel locale={clo2Locale} compact={isMobile} />
+          ) : lesson.id === 'h2o' ? (
+            <H2oEnergyPanel locale={clo2Locale} compact={isMobile} />
+          ) : lesson.id === 'co2' ? (
+            <Co2EnergyPanel locale={clo2Locale} compact={isMobile} />
+          ) : lesson.id === 'zncl2' ? (
+            <Zncl2EnergyPanel locale={clo2Locale} compact={isMobile} />
           ) : (
             <Clo2EnergyProfile locale={clo2Locale} compact={isMobile} caption={false} />
           )}

@@ -70,6 +70,17 @@
     "test:cinema-engine": "tsx scripts/test-cinema-engine.mts",
     "test:clo2-energetics": "tsx scripts/test-clo2-energetics.mts",
     "test:nacl-cinema": "tsx scripts/test-nacl-cinema.mts",
+    "test:co2-cinema": "tsx scripts/test-co2-cinema.mts",
+    "test:nh3-cinema": "tsx scripts/test-nh3-cinema.mts",
+    "test:so2-cinema": "tsx scripts/test-so2-cinema.mts",
+    "test:mgo-cinema": "tsx scripts/test-mgo-cinema.mts",
+    "test:fes-cinema": "tsx scripts/test-fes-cinema.mts",
+    "test:hcl-cinema": "tsx scripts/test-hcl-cinema.mts",
+    "test:h2o-cinema": "tsx scripts/test-h2o-cinema.mts",
+    "test:zncl2-cinema": "tsx scripts/test-zncl2-cinema.mts",
+    "test:cao-cinema": "tsx scripts/test-cao-cinema.mts",
+    "test:chem-data": "tsx scripts/test-chem-data.mts",
+    "test:cpk-atom": "tsx scripts/test-cpk-atom.mts",
     "test:device-tier": "tsx scripts/test-device-tier.mts",
     "test:instanced-atoms": "tsx scripts/test-instanced-atoms.mts",
     "perf:clo2": "node scripts/perf-clo2-cinema.mjs",
@@ -77,7 +88,9 @@
     "smoke:reactor-preview": "node scripts/smoke-reactor-preview.mjs",
     "teacher:native": "node scripts/build-teacher-native.mjs",
     "teacher:dev": "python -m teacher_service",
-    "book:curated": "tsx scripts/textbook-inventory/build-curated-equations.mts"
+    "book:curated": "tsx scripts/textbook-inventory/build-curated-equations.mts",
+    "catalog:rank": "tsx scripts/textbook-inventory/rank-substances.mts",
+    "verify:catalog200": "tsx scripts/verify-catalog-200.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

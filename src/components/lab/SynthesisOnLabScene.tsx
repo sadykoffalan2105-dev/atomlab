@@ -34,7 +34,7 @@ import { SynthesisLaunchCamera } from './SynthesisLaunchCamera'
 import { SynthesisIgniteBurst } from './SynthesisIgniteBurst'
 import { SynthesisBondBurst } from './SynthesisBondBurst'
 import { SynthesisArcReactor } from './SynthesisArcReactor'
-import { AtomStructureModel } from './AtomStructureModel'
+import { CpkAtomModel } from './atom/CpkAtomModel'
 import type { CompoundDef } from '../../types/chemistry'
 
 const FLY_DUR = 0.26
@@ -769,7 +769,7 @@ export function SynthesisOnLabScene({
         ? zSlots.map((z, i) => (
             <group key={`${runId}-fail-${i}-${z}`} ref={bindFlyGroup(i)}>
               <group scale={ATOM_SCALE} position={[0, 0, 0]}>
-                <AtomStructureModel z={z} animate previewEmphasis previewLite localLight={false} />
+                <CpkAtomModel z={z} animate lite slotIndex={i} frameSkip={2} />
               </group>
             </group>
           ))

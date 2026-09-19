@@ -6,73 +6,80 @@ export const NACL_TEXT_EN: NaclMechanismText = {
     speak: 'Let us watch sodium and chlorine become table salt: an electron moves from one atom to another.',
   },
   steps: {
-    approach: {
-      title: 'Atoms approach',
+    reactants: {
+      title: 'Starting substances',
       body:
-        'Left and right are sodium atoms: each has a single outer electron (3s¹) that it gives away easily. ' +
-        'In the middle is a chlorine molecule Cl₂: two atoms share one electron pair, and each is one electron short of a stable octet. ' +
-        'Atomic radius of Na is 1.86 Å, of Cl 0.99 Å.',
-      equation: '2 Na + Cl₂',
-      speak: 'Sodium atoms approach the chlorine molecule. Sodium has one outer electron; chlorine is one electron short of eight.',
+        'On the left is a piece of sodium metal: Na atoms sit in a body-centred cubic lattice (BCC, Im-3m), each with eight nearest neighbours 371.6 pm away. ' +
+        'On the right is a chlorine molecule Cl₂: two atoms held by one shared electron pair, bond length 198.8 pm. ' +
+        'The radius of a sodium atom in the metal is 186 pm, the covalent radius of a chlorine atom 102 pm (half the Cl–Cl bond length is 99 pm — the difference is within the reference spread). At 25 °C chlorine is a gas and sodium a solid metal.',
+      equation: '2 Na (s) + Cl₂ (g)',
+      note: 'Chlorine enters the reaction as the MOLECULE Cl₂, not as separate atoms: there are no lone chlorine atoms in the cylinder.',
+      speak: 'Sodium metal on the left, a chlorine molecule on the right. Chlorine is always diatomic.',
     },
-    homolysis: {
-      title: 'The Cl–Cl bond breaks',
+    sublimation: {
+      title: 'Sublimation and dissociation',
       body:
-        'Next to sodium the chlorine molecule becomes unstable: the shared pair splits evenly, one electron to each chlorine atom. ' +
-        'This is called homolytic cleavage. The result is two chlorine atoms with seven outer electrons each.',
-      equation: 'Cl₂ → 2 Cl',
-      note: 'In reality sodium burns in chlorine — the stages take a fraction of a second; here they are slowed down.',
-      speak: 'The bond between the chlorine atoms splits in half. Two chlorine atoms form.',
+        'Before anything can react the particles must be set free. A sodium atom leaves the metal lattice, which costs 107.3 kJ per mole (sublimation). ' +
+        'The Cl–Cl bond breaks homolytically: the shared pair splits evenly, one electron to each atom. Half a mole of Cl₂ takes 121.7 kJ. ' +
+        'Both stages are endothermic, so the energy ladder goes up.',
+      equation: 'Na (s) → Na (g);  ½ Cl₂ (g) → Cl (g)',
+      note: 'Only a nine-atom fragment of the metal is drawn; a real piece of sodium holds about 10²³ atoms.',
+      speak: 'A sodium atom leaves the metal and the chlorine bond splits in half. Both stages need energy.',
     },
     transfer: {
-      title: 'Electron transfer',
+      title: 'Giving and taking the electron',
       body:
-        'The single outer electron of sodium jumps to a chlorine atom. Sodium became the cation Na⁺ — it lost a whole electron shell and is about half the size (1.02 Å). ' +
-        'Chlorine accepted the electron, completed its octet and became the anion Cl⁻ — noticeably larger than the atom (1.81 Å). The ion charges are labelled.',
-      equation: 'Na − e⁻ → Na⁺ ;  Cl + e⁻ → Cl⁻',
-      note: 'The glow around sodium is a schematic highlight of the 3s orbital; the electron does not “fly” — it is redistributed between the atoms.',
-      speak: 'The sodium electron moves to chlorine. Sodium becomes a positive ion and shrinks; chlorine becomes a negative ion and grows.',
+        'The single outer electron of sodium (3s¹) moves to a chlorine atom; removing it costs 495.8 kJ/mol (the ionisation energy). ' +
+        'Sodium loses a whole electron shell and shrinks from 186 to 102 pm — it is now the cation Na⁺. ' +
+        'Chlorine completes its octet and swells from 102 to 181 pm: the anion Cl⁻ is about 1.8 times larger than Na⁺. Adding the electron releases 349 kJ/mol.',
+      equation: 'Na⁰ − 1e⁻ → Na⁺  (×2);  Cl₂⁰ + 2e⁻ → 2 Cl⁻',
+      note: 'The arc the electron flies along and the glowing ring around sodium are conventions: the transfer is a quantum jump, and the ring only marks where the outer electron is.',
+      speak: 'Sodium gives away one electron and gets smaller. Chlorine takes it and gets bigger.',
     },
     attraction: {
-      title: 'Ions attract',
+      title: 'Electrostatic attraction',
       body:
-        'Opposite charges attract: the cation Na⁺ and the anion Cl⁻ move together until their electron shells touch. ' +
-        'This is the ionic bond — electrostatic attraction between ions. It has no direction: an ion attracts neighbours from every side.',
-      equation: 'Na⁺ + Cl⁻ → Na⁺Cl⁻',
-      speak: 'Positive and negative ions attract each other. This is the ionic bond.',
+        'Opposite charges attract by Coulomb’s law: the force falls with the square of the distance between them. ' +
+        'Na⁺ and Cl⁻ come together until attraction is balanced by the repulsion of their filled electron shells — at 282 pm. ' +
+        'That is the ionic bond: not a shared pair, but the attraction of whole charges.',
+      equation: 'Na⁺ + Cl⁻ → Na⁺Cl⁻,  d = 282 pm',
+      note: 'The field lines are drawn as dots to show the direction of the pull; of course there are no real threads between the ions.',
+      speak: 'Plus and minus attract and settle two hundred eighty-two picometres apart.',
     },
     lattice: {
-      title: 'Crystal lattice',
+      title: 'The crystal lattice',
       body:
-        'Salt contains no separate NaCl molecules: the ions build a cubic lattice in which every Na⁺ is surrounded by six Cl⁻ and every Cl⁻ by six Na⁺. ' +
-        'The Na–Cl distance in the crystal is 2.82 Å. First a cube of eight ions forms, then neighbours attach to it and a 4×4×4 lattice fragment (64 ions) grows. At the end one Na⁺ and its six Cl⁻ neighbours are highlighted: coordination number 6.',
-      equation: '2 Na + Cl₂ → 2 NaCl',
-      note: 'The formula NaCl gives the 1 : 1 ratio of ions, not a molecule.',
-      speak: 'The ions settle into a cubic lattice: plus, minus, plus, minus. There are no separate salt molecules.',
+        'One pair is not the end: every ion attracts all its neighbours. The ions stack into the rock-salt lattice — space group Fm-3m, two face-centred cubic sublattices, cell edge 564.0 pm, Z = 4, density 2.165 g/cm³. ' +
+        'Charges alternate strictly, so ions of the same sign are never neighbours. ' +
+        'Each Na⁺ has exactly six Cl⁻ at the corners of an octahedron and each Cl⁻ six Na⁺: the coordination number is 6. Building the lattice releases 786 kJ/mol.',
+      equation: 'Na⁺ (g) + Cl⁻ (g) → NaCl (s),  U = −786 kJ/mol',
+      note: 'The frame shows a 4×4×4 fragment — 64 ions. A salt grain one millimetre across holds about 10¹⁹.',
+      speak: 'The ions build a cubic lattice. Every ion has six neighbours of the opposite sign.',
     },
     energy: {
-      title: 'Energy release',
+      title: 'The energy balance',
       body:
-        'The reaction is strongly exothermic: 411 kJ is released per mole of NaCl — sodium burns in chlorine with a bright yellow flame. ' +
-        'Most of the energy comes from assembling the lattice (−787 kJ/mol); it more than pays for removing the electron from sodium and breaking Cl₂.',
-      equation: '2 Na + Cl₂ → 2 NaCl,  ΔH° = −822 kJ (−411 kJ per mole of NaCl)',
-      speak: 'A lot of heat and light is released. The energy comes from building the ionic lattice.',
+        'Add up the Born–Haber cycle: +107.3 (sublimation) + 121.7 (dissociation) + 495.8 (ionisation) − 348.6 (electron affinity) − 787.0 (lattice) = −411 kJ per mole of NaCl. ' +
+        'Without the lattice energy the first four steps would add to +376 kJ/mol, and the process would absorb heat instead. ' +
+        'It is the lattice energy that makes the reaction exothermic: sodium burns in chlorine with a bright yellow flame.',
+      equation: '2 Na (s) + Cl₂ (g) → 2 NaCl (s),  ΔH = −822 kJ',
+      note: 'The yellow flame is light from excited sodium atoms (the D line, 589 nm), not the colour of the salt itself.',
+      speak: 'The result is minus four hundred eleven kilojoules per mole. The lattice supplies the energy.',
     },
   },
   legend: {
-    electron: 'Glowing dot — the 3s¹ electron of sodium; the trail shows its path to chlorine',
-    orbitalPhase: 'Blue ring — the outer (3s) orbital of sodium just before it gives up the electron',
+    electron: 'The blue dot with a trail is the electron being transferred.',
+    orbitalPhase: 'The glowing ring around sodium is a schematic mark for the outer 3s¹ electron, not the shape of the orbital.',
   },
-  safety:
-    'Sodium and chlorine are dangerous: the metal reacts explosively with water, chlorine is a toxic gas. The experiment is shown only in a fume hood.',
+  safety: 'Chlorine is poisonous and sodium catches fire on contact with water. Only a teacher may show sodium burning in chlorine, in a fume hood — never repeat it yourself.',
   energy: {
-    title: 'Where the energy comes from: Born–Haber cycle',
+    title: 'Born–Haber cycle',
     unit: 'kJ/mol',
-    caption: 'Costs (up) and gains (down) per 1 mol NaCl; the sum of the steps is the enthalpy of formation.',
+    caption: 'Costs (up) and gains (down) per mole of NaCl; the sum of the steps is the enthalpy of formation.',
     stages: {
       sublimation: 'Na (s) → Na (g)',
-      ionization: 'Na → Na⁺ + e⁻',
       dissociation: '½ Cl₂ → Cl',
+      ionization: 'Na → Na⁺ + e⁻',
       affinity: 'Cl + e⁻ → Cl⁻',
       lattice: 'Na⁺ + Cl⁻ → NaCl (s)',
       total: 'Total: ΔH°f',

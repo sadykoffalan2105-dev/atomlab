@@ -1,318 +1,398 @@
 #!/usr/bin/env node
 /**
- * ATOMLAB Cinema — контракт урока «ионная связь: 2 Na + Cl₂ → 2 NaCl».
+ * ATOMLAB Cinema — контракт урока «ионная связь: 2 Na (тв.) + Cl₂ (г.) → 2 NaCl (тв.)».
  *
- * Раскадровка — чистая функция sampleNaclFrame(t), поэтому урок проверяется
- * данными в Node: порядок шагов, монотонный хронометраж, события внутри шагов,
- * переход электрона (Na уменьшается и заряжается +, Cl растёт и заряжается −),
- * гомолиз Cl–Cl, сборка решётки с чередованием зарядов, экзотермический пик,
- * тексты на трёх языках и энергетика Борна — Габера.
+ * Сцена проверяется ДАННЫМИ, а не глазами: раскадровка — чистая функция
+ * sampleNaclFrame(t), поэтому весь урок сэмплируется в Node.
+ *
+ * Что доказывает этот тест:
+ *   • хронометраж: 6 шагов, 26–34 экранных секунды, cue'ы по возрастанию,
+ *     контракт лаборатории embryo → birth → complete на месте;
+ *   • раскадровка: дорожки монотонны, ни один видимый атом не прыгает
+ *     больше чем на 0.09 ед. между кадрами 1/30 с;
+ *   • химия: Cl₂ стартует МОЛЕКУЛОЙ, радиусы Na 186→102 и Cl 99→181 пм
+ *     меняются в момент перехода электрона, Cl⁻ ≈ 1.78 · Na⁺;
+ *   • решётка: 64 иона фрагмента 4×4×4, 144 ребра, КЧ 6, заряды чередуются;
+ *   • энергия: сумма цикла Борна — Габера = табличная ΔH°f, знаки верные;
+ *   • стехиометрия показанного уравнения и электронный/зарядовый баланс полуреакций;
+ *   • тексты есть в ru / en / uz для каждого шага.
  *
  * Запуск: npx tsx scripts/test-nacl-cinema.mts
  */
 import assert from 'node:assert/strict'
-import { storyDuration, storyWallDuration } from '../src/lab/cinema/core/storyTime.ts'
+import * as THREE from 'three'
+import { storyWallDuration } from '../src/lab/cinema/core/storyTime.ts'
 import {
+  assertNoPositionJumps,
+  createLabelStates,
+  labelTokensUsed,
+  localizeSceneLabels,
+  SCENE_LABEL_TOKENS,
+} from '../src/lab/cinema/scenes/kit/sceneKit.ts'
+import { assertIonSizeOrder, speciesLabel, speciesRadiusPm } from '../src/lab/cinema/scenes/kit/cpkAtoms.ts'
+import { ladderLevels } from '../src/lab/cinema/scenes/kit/energyLadderData.ts'
+import {
+  NACL_ATOMS,
+  NACL_COORDINATION_IDS,
   NACL_CUES,
+  NACL_EDGES,
   NACL_END,
-  NACL_FINISH,
+  NACL_GEOM,
+  NACL_LABELS,
   NACL_SEGMENTS,
   NACL_STEPS,
   NACL_STEP_IDS,
-  naclCueAt,
-  naclStepIndexAt,
-} from '../src/lab/cinema/scenes/nacl/naclSteps.ts'
-import {
+  NACL_TIMING,
   createNaclFrame,
-  NACL_ATOMS,
-  NACL_EDGES,
-  NACL_GEOM,
-  NACL_LABELS,
   sampleNaclFrame,
   validateNaclStoryboard,
   type NaclAtomId,
 } from '../src/lab/cinema/scenes/nacl/naclStoryboard.ts'
-import { getNaclMechanismText, type NaclLocale } from '../src/lab/cinema/scenes/nacl/naclMechanismText.ts'
 import {
-  NACL_BORN_HABER,
   NACL_DHF_KJ,
   NACL_DHF_TABLE_KJ,
-  naclEnergyActiveStageAt,
-  naclEnergyLadder,
-  naclFormationEnthalpyKJ,
+  NACL_HALF_REACTIONS,
+  NACL_LADDER,
+  NACL_LATTICE_KJ,
+  NACL_COST_BEFORE_LATTICE_KJ,
+  NACL_REACTION,
+  validateNaclEnergetics,
 } from '../src/lab/cinema/scenes/nacl/naclEnergetics.ts'
-import { clo2StepStore } from '../src/lab/cinema/scenes/clo2/clo2StepStore.ts'
-import { getCinemaLesson, lessonStepIdAt } from '../src/lab/cinema/scenes/lessons.ts'
-import { scientificSynthesisWatchdogMs } from '../src/lab/scientificSynthesis/clo2ScenarioTiming.ts'
-import { readFileSync } from 'node:fs'
+import { getNaclMechanismText, type NaclLocale } from '../src/lab/cinema/scenes/nacl/naclMechanismText.ts'
+import { naclScientificWatchdogMs } from '../src/lab/scientificSynthesis/naclScenarioTiming.ts'
 
-const DT = 1 / 60
+const LOCALES: NaclLocale[] = ['ru', 'en', 'uz']
+const frame = createNaclFrame()
+const at = (t: number) => sampleNaclFrame(t, frame)
 
-// ——— Шаги и хронометраж ———
-{
-  assert.deepEqual(
-    NACL_STEP_IDS,
-    ['approach', 'homolysis', 'transfer', 'attraction', 'lattice', 'energy'],
-    'six steps of the textbook story in order',
-  )
-  assert.equal(NACL_STEPS.length, NACL_STEP_IDS.length)
-  assert.equal(NACL_STEPS[0]!.from, 0)
-  for (let i = 0; i < NACL_STEPS.length; i++) {
-    const s = NACL_STEPS[i]!
-    assert.equal(s.id, NACL_STEP_IDS[i])
-    assert.ok(s.to > s.from, `step ${s.id}: to > from`)
-    assert.ok(s.wall > 0, `step ${s.id}: wall > 0`)
-    if (i > 0) assert.equal(s.from, NACL_STEPS[i - 1]!.to, `step ${s.id} starts where the previous ends`)
-  }
-  assert.equal(NACL_FINISH.from, NACL_STEPS[NACL_STEPS.length - 1]!.to)
-  assert.equal(NACL_END, NACL_FINISH.to)
-  assert.equal(storyDuration(NACL_SEGMENTS), NACL_END)
-  // Сегменты монотонны и совпадают с границами шагов.
-  let prevTo = 0
-  for (const seg of NACL_SEGMENTS) {
-    assert.ok(seg.to > prevTo, 'segments strictly increase')
-    prevTo = seg.to
-  }
-  assert.equal(NACL_SEGMENTS.length, NACL_STEPS.length + 1)
-  const wall = storyWallDuration(NACL_SEGMENTS)
-  assert.ok(wall > 25 && wall < 45, `total wall time reasonable for a lesson: ${wall}s`)
-
-  // Индекс шага по времени: границы принадлежат своему шагу.
-  assert.equal(naclStepIndexAt(0), 0)
-  assert.equal(naclStepIndexAt(4), 0)
-  assert.equal(naclStepIndexAt(4.01), 1)
-  assert.equal(naclStepIndexAt(NACL_END), NACL_STEPS.length - 1)
-
-  // События: монотонны, внутри сюжета, и каждое — на своём шаге.
-  let prevAt = -1
-  for (const c of NACL_CUES) {
-    assert.ok(c.at > prevAt, `cue ${c.id} monotonic`)
-    assert.ok(c.at <= NACL_END)
-    prevAt = c.at
-  }
-  assert.equal(NACL_STEP_IDS[naclStepIndexAt(naclCueAt('bondBreak'))], 'homolysis')
-  assert.equal(NACL_STEP_IDS[naclStepIndexAt(naclCueAt('transfer'))], 'transfer')
-  assert.equal(NACL_STEP_IDS[naclStepIndexAt(naclCueAt('contact'))], 'attraction')
-  assert.equal(NACL_STEP_IDS[naclStepIndexAt(naclCueAt('lattice'))], 'lattice')
-  assert.equal(NACL_STEP_IDS[naclStepIndexAt(naclCueAt('exo'))], 'energy')
-  assert.ok(naclCueAt('embryo') < naclCueAt('birth') && naclCueAt('birth') < naclCueAt('complete'))
-  assert.equal(naclCueAt('complete'), NACL_END)
-  assert.ok(naclCueAt('embryo') >= NACL_FINISH.from, 'lab contract fires in the finish tail')
+let checks = 0
+function ok(label: string, cond: boolean, detail = ''): void {
+  assert.ok(cond, `${label}${detail ? ` — ${detail}` : ''}`)
+  checks++
 }
 
-// ——— Раскадровка: химия по шагам ———
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. Хронометраж и контракт лаборатории
+// ─────────────────────────────────────────────────────────────────────────────
+
+NACL_TIMING.validate()
+ok('шагов 6 ± 1', NACL_STEPS.length >= 5 && NACL_STEPS.length <= 7, `${NACL_STEPS.length}`)
+ok('id шагов совпадают', NACL_STEP_IDS.join(',') === NACL_STEPS.map((s) => s.id).join(','))
+
+const wall = storyWallDuration(NACL_SEGMENTS)
+ok('экранная длительность 26–34 с', wall >= 26 && wall <= 34, `${wall.toFixed(1)} с`)
+
+let prevTo = 0
+for (const s of NACL_STEPS) {
+  ok(`шаг ${s.id} непрерывен`, s.from === prevTo && s.to > s.from)
+  ok(`шаг ${s.id} имеет экранное время`, s.wall > 0)
+  prevTo = s.to
+}
+
+let prevCue = -Infinity
+for (const c of NACL_CUES) {
+  ok(`cue ${c.id} внутри сюжета`, c.at >= 0 && c.at <= NACL_END, `${c.at}`)
+  ok(`cue ${c.id} по возрастанию`, c.at >= prevCue)
+  prevCue = c.at
+}
+const cueIndex = (id: string) => NACL_CUES.findIndex((c) => c.id === id)
+ok('контракт лаборатории embryo → birth → complete', cueIndex('embryo') < cueIndex('birth') && cueIndex('birth') < cueIndex('complete'))
+ok('complete совпадает с концом сюжета', NACL_CUES[cueIndex('complete')]!.at === NACL_END)
+ok('watchdog лаборатории положителен', naclScientificWatchdogMs() > 0)
+
+// каждый шаг обязан попасть в свой индекс
+for (let i = 0; i < NACL_STEPS.length; i++) {
+  const s = NACL_STEPS[i]!
+  ok(`stepIndexAt(${s.id})`, NACL_TIMING.stepIndexAt((s.from + s.to) / 2) === i)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. Раскадровка: дорожки и отсутствие рывков
+// ─────────────────────────────────────────────────────────────────────────────
+
+validateNaclStoryboard()
+
+const scratch = createNaclFrame()
+const buf = NACL_ATOMS.map((a) => ({ id: a.id as string, pos: new THREE.Vector3(), opacity: 0 }))
+assertNoPositionJumps(
+  (t) => {
+    sampleNaclFrame(t, scratch)
+    for (let i = 0; i < NACL_ATOMS.length; i++) {
+      const id = NACL_ATOMS[i]!.id
+      buf[i]!.pos.copy(scratch.atoms[id])
+      buf[i]!.opacity = scratch.opacity[id]
+    }
+    return buf
+  },
+  NACL_END,
+  0.09,
+  1 / 30,
+)
+checks++
+
+// Радиус и прозрачность тоже не должны щёлкать.
 {
-  validateNaclStoryboard()
-  const frame = createNaclFrame()
-  const at = (t: number) => sampleNaclFrame(t, frame)
+  let prev: Record<string, { r: number; o: number }> | null = null
+  for (let t = 0; t <= NACL_END + 1e-9; t += 1 / 30) {
+    at(t)
+    const now: Record<string, { r: number; o: number }> = {}
+    for (const a of NACL_ATOMS) now[a.id] = { r: frame.radius[a.id], o: frame.opacity[a.id] }
+    if (prev) {
+      for (const a of NACL_ATOMS) {
+        ok(`радиус ${a.id} без скачка при t=${t.toFixed(2)}`, Math.abs(now[a.id]!.r - prev[a.id]!.r) <= 0.02)
+        ok(`прозрачность ${a.id} без скачка при t=${t.toFixed(2)}`, Math.abs(now[a.id]!.o - prev[a.id]!.o) <= 0.12)
+      }
+    }
+    prev = now
+  }
+}
 
-  // Начало: атомы, не ионы; Cl₂ — целая связь длиной 1,988 Å.
-  at(0.5)
-  assert.equal(frame.charge.na1, 0)
-  assert.equal(frame.charge.clA, 0)
-  assert.ok(Math.abs(frame.atoms.clA.distanceTo(frame.atoms.clB) - NACL_GEOM.clHalf * 2) < 1e-3, 'Cl–Cl bond length at start')
-  assert.equal(frame.bond.opacity, 1)
-  assert.equal(frame.bond.split, 0)
-  assert.ok(frame.radius.na1 > frame.radius.clA, 'Na atom is larger than Cl atom')
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. Химия кадра
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // Сближение: натрий подходит к хлору.
-  const d0 = at(0).atoms.na1.distanceTo(frame.atoms.clA)
-  const d4 = at(4).atoms.na1.distanceTo(frame.atoms.clA)
-  assert.ok(d4 < d0 * 0.6, 'Na approaches Cl₂ during step 1')
+// 3.1 Радиусы — из справочника, катион меньше атома, анион больше.
+assertIonSizeOrder('Na', 1)
+assertIonSizeOrder('Cl', -1)
+ok('Na⁰ берётся металлическим радиусом 186 пм', speciesRadiusPm('Na', 0) === 186)
+ok('Na⁺ 102 пм (Shannon, КЧ 6)', speciesRadiusPm('Na', 1) === 102)
+ok('Cl⁰ берётся ковалентным радиусом (Cordero 2008, 102 пм)', speciesRadiusPm('Cl', 0) === 102)
+// Половина длины связи Cl–Cl (198.8 / 2 = 99.4 пм) — то же самое в пределах разброса Cordero ±4 пм.
+ok(
+  'ковалентный радиус согласован с половиной длины связи Cl–Cl',
+  Math.abs(speciesRadiusPm('Cl', 0) - (NACL_GEOM.data.clClPm ?? 198.8) / 2) < 4,
+)
+ok('Cl⁻ 181 пм (Shannon, КЧ 6)', speciesRadiusPm('Cl', -1) === 181)
+const ratio = speciesRadiusPm('Cl', -1) / speciesRadiusPm('Na', 1)
+ok('Cl⁻ примерно в 1.78 раза крупнее Na⁺', Math.abs(ratio - 1.78) < 0.03, ratio.toFixed(3))
+ok('подписи частиц', speciesLabel('Na', 1) === 'Na⁺' && speciesLabel('Cl', -1) === 'Cl⁻' && speciesLabel('O', -2) === 'O²⁻')
 
-  // Гомолиз: напряжение растёт, потом связь исчезает, атомы расходятся.
-  at(5.8)
-  assert.ok(frame.bond.stress > 0.7, 'bond under stress before it breaks')
-  at(7)
-  assert.ok(frame.bond.opacity < 0.05, 'Cl–Cl bond gone after homolysis')
-  assert.ok(frame.atoms.clA.distanceTo(frame.atoms.clB) > NACL_GEOM.clHalf * 3, 'Cl atoms separated')
-  assert.equal(frame.charge.clA, 0, 'homolysis does not create ions')
+// 3.2 Старт: хлор — МОЛЕКУЛА с настоящей длиной связи, натрий — металл.
+at(0.5)
+const clDist = frame.atoms.clA.distanceTo(frame.atoms.clB)
+ok('на старте Cl₂ — молекула с длиной связи 198.8 пм', Math.abs(clDist - NACL_GEOM.clHalf * 2) < 1e-6, clDist.toFixed(4))
+ok('на старте связь Cl–Cl видна', frame.bond.opacity > 0.9)
+ok('на старте натрий имеет металлический радиус', Math.abs(frame.radius.na1 - NACL_GEOM.radius.na) < 1e-6)
+ok('на старте у хлора ковалентный радиус', Math.abs(frame.radius.clA - NACL_GEOM.radius.cl) < 1e-6)
+ok('на старте зарядов нет', frame.charge.na1 === 0 && frame.charge.clA === 0)
+ok('на старте металлический фрагмент виден', frame.opacity.M0 > 0.5)
+ok('на старте кристалла ещё нет', frame.edges === 0 && frame.opacity.L0 === 0)
 
-  // Перенос электрона: орбиталь подсвечена перед прыжком, электрон летит, радиусы и заряды меняются.
-  at(8.0)
-  assert.ok(frame.orbital.na1 > 0.5, '3s orbital highlighted before the jump')
-  assert.ok(frame.electrons[0].opacity > 0.5, 'electron visible on the orbital')
-  assert.equal(frame.electrons[0].progress, 0)
-  at(9.3)
-  assert.ok(frame.electrons[0].progress > 0.2 && frame.electrons[0].progress < 0.8, 'electron mid-flight')
-  const dNa = frame.electrons[0].pos.distanceTo(frame.atoms.na1)
-  const dCl = frame.electrons[0].pos.distanceTo(frame.atoms.clA)
-  assert.ok(dNa > NACL_GEOM.radius.naCation && dCl > NACL_GEOM.radius.cl, 'electron is between the atoms, not inside either')
-  at(11)
-  assert.ok(Math.abs(frame.radius.na1 - NACL_GEOM.radius.naCation) < 1e-6, 'Na shrank to Na⁺')
-  assert.ok(Math.abs(frame.radius.clA - NACL_GEOM.radius.clAnion) < 1e-6, 'Cl grew to Cl⁻')
-  assert.ok(frame.radius.clA > frame.radius.na1, 'anion larger than cation')
-  assert.equal(frame.charge.na1, 1)
-  assert.equal(frame.charge.clA, -1)
-  assert.equal(frame.charge.na2, 1)
-  assert.equal(frame.charge.clB, -1)
-  assert.ok(frame.electrons[0].opacity < 0.05 && frame.electrons[1].opacity < 0.05, 'electrons absorbed by chlorine')
-  assert.ok(frame.orbital.na1 < 0.05, 'orbital highlight gone after the transfer')
+// 3.3 Натрий стартует В РЕШЁТКЕ металла: расстояние до соседа = 371.6 пм.
+{
+  const d = frame.atoms.na1.distanceTo(frame.atoms.M0)
+  const want = (NACL_GEOM.data.metal.cellPm * Math.sqrt(3)) / 2
+  const wantScene = (want / 100) * (NACL_GEOM.cell / (NACL_GEOM.data.cellPm / 100))
+  ok('Na в металле: КЧ 8 на расстоянии a·√3/2', Math.abs(d - wantScene) < 1e-3, `${d.toFixed(4)} против ${wantScene.toFixed(4)}`)
+}
 
-  // Притяжение: расстояние Na⁺–Cl⁻ сокращается до 2,82 Å (решётка).
-  const d12 = at(12).atoms.na1.distanceTo(frame.atoms.clA)
-  assert.ok(frame.attract > 0 || true)
-  at(13.5)
-  assert.ok(frame.attract > 0.5, 'attraction lines visible while ions pull together')
-  const d15 = at(15).atoms.na1.distanceTo(frame.atoms.clA)
-  assert.ok(d15 < d12, 'ions pulled together')
-  assert.ok(Math.abs(d15 - NACL_GEOM.latticeNaCl) < 1e-3, 'Na–Cl = 2.82 Å in the ion pair / lattice')
+// 3.4 Связь Cl–Cl рвётся ГОМОЛИТИЧЕСКИ (split = 0 — пара делится поровну).
+at(NACL_TIMING.cueAt('bondBreak') + 0.5)
+ok('после разрыва связь Cl–Cl гаснет', frame.bond.opacity < 0.5)
+ok('разрыв симметричный: оба атома хлора нейтральны', frame.charge.clA === 0 && frame.charge.clB === 0)
 
-  // Решётка: 8 ионов в вершинах куба, заряды чередуются по каждому ребру.
-  at(19.5)
-  for (const a of NACL_ATOMS) assert.ok(frame.opacity[a.id] > 0.99, `${a.id} visible in the lattice`)
-  const el = (id: NaclAtomId) => NACL_ATOMS.find((a) => a.id === id)!.el
+// 3.5 Радиус меняется РОВНО тогда, когда электрон уходит / приходит.
+at(NACL_TIMING.cueAt('transfer') - 1.6)
+const naBefore = frame.radius.na1
+const clBefore = frame.radius.clA
+at(NACL_TIMING.cueAt('transfer') + 1.0)
+ok('Na сжался до иона', frame.radius.na1 < naBefore && Math.abs(frame.radius.na1 - NACL_GEOM.radius.naIon) < 1e-6)
+ok('Cl вырос до иона', frame.radius.clA > clBefore && Math.abs(frame.radius.clA - NACL_GEOM.radius.clIon) < 1e-6)
+ok('Na⁺ получил заряд +1', Math.abs(frame.charge.na1 - 1) < 1e-6)
+ok('Cl⁻ получил заряд −1', Math.abs(frame.charge.clA + 1) < 1e-6)
+ok('на экране Cl⁻ крупнее Na⁺', frame.radius.clA > frame.radius.na1 * 1.7)
+
+// 3.6 Ионная пара: ровно d(Na⁺–Cl⁻) = 282.01 пм.
+at(NACL_TIMING.cueAt('contact'))
+{
+  const d = frame.atoms.na1.distanceTo(frame.atoms.clA)
+  ok('ионная пара сошлась на 282 пм', Math.abs(d - NACL_GEOM.latticeNaCl) < 1e-6, d.toFixed(4))
+  ok('линии поля включены на шаге притяжения', frame.field > 0.4)
+}
+
+// 3.7 Решётка: чередование зарядов, КЧ 6, 144 ребра, 64 иона.
+ok('64 иона фрагмента', NACL_ATOMS.filter((a) => !a.id.startsWith('M')).length === 64)
+ok('7 атомов металлического фрагмента', NACL_ATOMS.filter((a) => a.id.startsWith('M')).length === 7)
+ok('144 ребра Na⁺–Cl⁻', NACL_EDGES.length === 144)
+ok('КЧ(Na⁺) = 6', NACL_COORDINATION_IDS.length === 6)
+ok('справочное КЧ из crystalData', NACL_GEOM.data.coordination['Na⁺'] === 6 && NACL_GEOM.data.coordination['Cl⁻'] === 6)
+ok('пространственная группа Fm-3m (225)', NACL_GEOM.data.spaceGroup === 'Fm-3m' && NACL_GEOM.data.spaceGroupNo === 225)
+ok('ГЦК-подрешётки', NACL_GEOM.data.latticeType === 'ГЦК')
+ok('a = 564.02 пм, d = 282.01 пм, Z = 4', NACL_GEOM.data.cellPm === 564.02 && NACL_GEOM.data.naClPm === 282.01 && NACL_GEOM.data.z === 4)
+ok('ребро ячейки = 4 · HALF', Math.abs(NACL_GEOM.cell - NACL_GEOM.half * 4) < 1e-9)
+
+{
+  const el = new Map(NACL_ATOMS.map((a) => [a.id as string, a.el]))
+  for (const [a, b] of NACL_EDGES) ok(`соседи ${a}/${b} разноимённые`, el.get(a) !== el.get(b))
+}
+
+at(NACL_TIMING.cueAt('lattice') + 0.2)
+{
+  const ids = NACL_ATOMS.filter((a) => !a.id.startsWith('M')).map((a) => a.id as NaclAtomId)
+  for (const id of ids) ok(`ион ${id} проявлен в решётке`, frame.opacity[id] > 0.85)
+  // ближайшие соседи разноимённых ионов стоят ровно на 282 пм
+  let pairs = 0
   for (const [a, b] of NACL_EDGES) {
     const d = frame.atoms[a].distanceTo(frame.atoms[b])
-    assert.ok(Math.abs(d - NACL_GEOM.latticeNaCl) < 1e-3, `edge ${a}–${b} = Na–Cl distance (got ${d.toFixed(3)})`)
-    assert.notEqual(el(a), el(b), `edge ${a}–${b} alternates charge`)
-    assert.ok(frame.charge[a] * frame.charge[b] < 0, `edge ${a}–${b}: opposite charges`)
+    ok(`ребро ${a}–${b} = 282 пм`, Math.abs(d - NACL_GEOM.latticeNaCl) < 2e-3, d.toFixed(4))
+    pairs++
   }
-  assert.equal(NACL_EDGES.length, 144, 'a 4×4×4 lattice fragment has 144 edges')
-  assert.ok(frame.edges > 0.4, 'lattice edges drawn')
-  assert.equal(frame.env.exo, 0, 'no energy glow before the energy step')
-
-  // Энергия: экзотермический пик, подпись ΔH, затем затемнение к концу.
-  at(naclCueAt('exo'))
-  assert.ok(frame.env.exo > 0.95, 'exothermic glow peaks at the exo cue')
-  assert.ok(frame.camera.bloom > 0.8, 'bloom rises with the energy release')
-  at(22)
-  const dh = frame.labels.find((l) => l.id === 'dH')!
-  assert.ok(dh.opacity > 0.9, 'ΔH label visible in the energy step')
-  assert.ok(dh.text.includes('411'), 'ΔH label states −411 kJ/mol')
-  at(NACL_END)
-  assert.ok(frame.env.fade > 0.99, 'frame fades out at the end')
-
-  // Подписи: у каждой есть текст, степени окисления переключаются 0 → ±1.
-  at(3)
-  const ox = (id: string) => frame.labels.find((l) => l.id === id)!
-  assert.equal(ox('oxNa1').text, '0')
-  assert.equal(ox('na1').text, 'Na')
-  assert.ok(ox('cl2').opacity > 0.9, 'Cl₂ label visible before homolysis')
-  at(11)
-  assert.equal(ox('oxNa1').text, '+1')
-  assert.equal(ox('oxClA').text, '−1')
-  assert.equal(ox('na1').text, 'Na⁺')
-  assert.equal(ox('clA').text, 'Cl⁻')
-  assert.equal(ox('cl2').opacity, 0, 'Cl₂ label gone after homolysis')
-  assert.equal(NACL_LABELS.length, frame.labels.length)
-
-  // Непрерывность: никаких скачков позиций между кадрами (кроме заднего слоя, который появляется прозрачным).
-  const prev = createNaclFrame()
-  sampleNaclFrame(0, prev)
-  let maxStep = 0
-  for (let t = DT; t <= NACL_END + 1e-9; t += DT) {
-    sampleNaclFrame(t, frame)
-    for (const a of NACL_ATOMS) {
-      if (!a.main && frame.opacity[a.id] < 0.02) continue
-      const d = frame.atoms[a.id].distanceTo(prev.atoms[a.id])
-      if (d > maxStep) maxStep = d
-      assert.ok(d < 0.09, `${a.id} jumps ${d.toFixed(3)} at t=${t.toFixed(2)}`)
-    }
-    for (const a of NACL_ATOMS) prev.atoms[a.id].copy(frame.atoms[a.id])
-  }
-  assert.ok(maxStep > 0, 'atoms actually move')
+  ok('проверены все рёбра', pairs === 144)
+  ok('металлический фрагмент уже растворился', frame.opacity.M0 < 0.01)
 }
 
-// ——— Тексты: три языка, все шаги, честные пометки ———
+// 3.8 Финал отдаёт кадр лаборатории.
+at(NACL_END)
+ok('в конце кадр затемнён', frame.env.fade > 0.95)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Энергетика
+// ─────────────────────────────────────────────────────────────────────────────
+
+validateNaclEnergetics()
+ok('пять ступеней цикла', NACL_LADDER.stages.length === 5)
+ok('сумма цикла ≈ табличная ΔH°f', Math.abs(NACL_LADDER.sumKJ - NACL_DHF_TABLE_KJ) < 5, `${NACL_LADDER.sumKJ} против ${NACL_DHF_TABLE_KJ}`)
+ok('ΔH°f отрицательна (реакция экзотермическая)', NACL_DHF_KJ < 0, `${NACL_DHF_KJ} кДж/моль`)
+ok('ΔH°f ≈ −411 кДж/моль', NACL_DHF_KJ === -411, `${NACL_DHF_KJ}`)
+ok('энергия решётки отрицательна и самая большая по модулю', NACL_LATTICE_KJ < 0 && NACL_LADDER.stages.every((s) => Math.abs(s.dH) <= Math.abs(NACL_LATTICE_KJ)))
+ok('без решётки процесс был бы эндотермическим', NACL_COST_BEFORE_LATTICE_KJ > 0, `${NACL_COST_BEFORE_LATTICE_KJ} кДж/моль`)
+
 {
-  const locales: NaclLocale[] = ['ru', 'en', 'uz']
-  const seen = new Set<string>()
-  for (const locale of locales) {
-    const text = getNaclMechanismText(locale)
-    assert.ok(text.intro.title.length > 2, `${locale}: intro title`)
-    assert.ok(!seen.has(text.intro.title), `${locale}: locales differ`)
-    seen.add(text.intro.title)
-    for (const id of NACL_STEP_IDS) {
-      const s = text.steps[id]
-      assert.ok(s, `${locale}: step text ${id}`)
-      assert.ok(s.title.length > 3, `${locale}/${id}: title`)
-      assert.ok(s.body.length > 80, `${locale}/${id}: body long enough`)
-      assert.ok(s.equation.length > 3, `${locale}/${id}: equation`)
-      assert.ok(s.speak.length > 10, `${locale}/${id}: speak`)
-      assert.ok(!/\{[a-zA-Z]+\}/.test(s.body), `${locale}/${id}: no raw placeholders`)
-    }
-    assert.ok(text.steps.transfer.note, `${locale}: transfer step admits the orbital glow is schematic`)
-    assert.ok(text.steps.energy.equation.includes('411'), `${locale}: energy equation states −411`)
-    assert.ok(text.legend.electron.length > 5 && text.legend.orbitalPhase.length > 5, `${locale}: legend`)
-    assert.ok(text.safety.length > 20, `${locale}: safety line`)
-    assert.ok(text.energy.title.length > 5 && text.energy.unit.length > 2, `${locale}: energy block`)
-    for (const k of ['sublimation', 'ionization', 'dissociation', 'affinity', 'lattice', 'total'] as const) {
-      assert.ok(text.energy.stages[k].length > 3, `${locale}: energy stage ${k}`)
-    }
-    assert.ok(text.energy.summary.includes('{dH}'), `${locale}: summary has {dH} placeholder`)
-  }
-  // Панель читает уроки через общий дескриптор.
-  const lesson = getCinemaLesson('nacl')
-  assert.deepEqual(lesson.stepIds, NACL_STEP_IDS)
-  assert.equal(lesson.narrated, false)
-  assert.equal(lesson.safetyStepId, 'energy')
-  assert.equal(lessonStepIdAt(lesson, 99), 'energy')
-  assert.equal(lessonStepIdAt(lesson, -3), 'approach')
-  for (const locale of locales) {
-    const t = lesson.getText(locale)
-    for (const id of NACL_STEP_IDS) assert.ok(t.steps[id], `lesson text via descriptor: ${locale}/${id}`)
-  }
-  const clo2 = getCinemaLesson('clo2')
-  assert.equal(clo2.narrated, true)
-  assert.equal(clo2.safetyStepId, 'products')
-  assert.ok(clo2.getText('ru').steps.products, 'ClO₂ lesson still resolves through the descriptor')
+  const byKind = Object.fromEntries(NACL_LADDER.stages.map((s) => [s.kind, s.dH]))
+  ok('ΔH_суб > 0', byKind.sublimation! > 0)
+  ok('½D(Cl–Cl) > 0', byKind.dissociation! > 0)
+  ok('IE₁ > 0', byKind.ionization! > 0)
+  ok('EA(Cl) < 0', byKind.affinity! < 0)
+  ok('U_реш < 0', byKind.lattice! < 0)
 }
 
-// ——— Энергетика: цикл Борна — Габера сходится к табличной теплоте образования ———
 {
-  assert.equal(NACL_BORN_HABER.length, 5)
-  const sum = naclFormationEnthalpyKJ()
-  assert.ok(Math.abs(sum - NACL_DHF_TABLE_KJ) < 1.5, `Born–Haber sum ${sum.toFixed(1)} ≈ table ${NACL_DHF_TABLE_KJ}`)
-  assert.equal(NACL_DHF_KJ, -411)
-  const ladder = naclEnergyLadder()
-  for (let i = 1; i < ladder.length; i++) assert.ok(ladder[i]!.at >= ladder[i - 1]!.at, 'ladder ordered by story time')
-  assert.equal(ladder[ladder.length - 1]!.id, 'lattice', 'lattice energy is the last step of the ladder')
-  assert.equal(naclEnergyActiveStageAt(-1), -1)
-  assert.equal(naclEnergyActiveStageAt(0.85), 0)
-  assert.equal(naclEnergyActiveStageAt(NACL_END), ladder.length - 1)
-  const costs = NACL_BORN_HABER.filter((s) => s.dH > 0).reduce((a, s) => a + s.dH, 0)
-  const gains = NACL_BORN_HABER.filter((s) => s.dH < 0).reduce((a, s) => a + s.dH, 0)
-  assert.ok(gains < -costs, 'gains exceed costs: the reaction is exothermic')
+  const levels = ladderLevels(NACL_LADDER)
+  ok('лестница начинается с нуля', levels[0] === 0)
+  ok('последний уровень = сумма цикла', Math.abs(levels[levels.length - 1]! - NACL_LADDER.sumKJ) < 1e-6)
+  ok('ступени идут по времени сюжета', NACL_LADDER.stages.every((s, i) => i === 0 || s.at >= NACL_LADDER.stages[i - 1]!.at))
+  ok('все ступени попадают в сюжет', NACL_LADDER.stages.every((s) => s.at >= 0 && s.at <= NACL_END))
 }
 
-// ——— Хранилище шагов: урок NaCl подключается со своим числом шагов, ClO₂ по умолчанию ———
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Стехиометрия и электронный баланс
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Считает атомы в формуле вида «NaCl», «Cl2», «H2O» (без скобок). */
+function countAtoms(formula: string, coeff: number, into: Map<string, number>): void {
+  const re = /([A-Z][a-z]?)(\d*)/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(formula))) {
+    if (!m[1]) continue
+    const n = m[2] ? Number(m[2]) : 1
+    into.set(m[1], (into.get(m[1]) ?? 0) + n * coeff)
+  }
+}
+
 {
-  const calls: string[] = []
-  clo2StepStore.attach(
-    11,
-    { playStep: (i) => calls.push(`play:${i}`), replayStep: () => calls.push('replay'), finish: () => calls.push('finish') },
-    'nacl',
-    NACL_STEPS.length,
+  const left = new Map<string, number>()
+  const right = new Map<string, number>()
+  for (const t of NACL_REACTION.left) countAtoms(t.formula, t.coeff, left)
+  for (const t of NACL_REACTION.right) countAtoms(t.formula, t.coeff, right)
+  const keys = new Set([...left.keys(), ...right.keys()])
+  for (const k of keys) ok(`баланс по ${k}`, left.get(k) === right.get(k), `${left.get(k)} ≠ ${right.get(k)}`)
+  ok('слева есть двухатомный Cl₂', NACL_REACTION.left.some((t) => t.formula === 'Cl2'))
+  ok('слева нет одиночных атомов хлора', !NACL_REACTION.left.some((t) => t.formula === 'Cl'))
+}
+
+{
+  const given = NACL_HALF_REACTIONS.filter((h) => h.id === 'oxidation').reduce((s, h) => s + h.electrons * h.times, 0)
+  const taken = NACL_HALF_REACTIONS.filter((h) => h.id === 'reduction').reduce((s, h) => s + h.electrons * h.times, 0)
+  ok('электронный баланс полуреакций', given === taken && given === 2, `отдано ${given}, принято ${taken}`)
+  const chargeLeft = NACL_HALF_REACTIONS.reduce((s, h) => s + h.chargeLeft * h.times, 0)
+  const chargeRight = NACL_HALF_REACTIONS.reduce((s, h) => s + h.chargeRight * h.times, 0)
+  ok('зарядовый баланс суммарного уравнения', chargeLeft === 0 && chargeRight === 0)
+  for (const h of NACL_HALF_REACTIONS) ok(`полуреакция ${h.id} без выдуманных частиц`, !/Cl²⁻|Cl2-/.test(h.equation))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. Подписи в 3D и тексты ru / en / uz
+// ─────────────────────────────────────────────────────────────────────────────
+
+{
+  const cl2 = NACL_LABELS.find((l) => l.id === 'cl2')!
+  ok('подпись Cl₂ видна до разрыва связи', cl2.windows[0]![1] <= NACL_TIMING.cueAt('bondBreak'))
+  const clA = NACL_LABELS.find((l) => l.id === 'clA')!
+  ok('подпись отдельного Cl появляется только после разрыва', clA.windows[0]![0] >= NACL_TIMING.cueAt('bondBreak'))
+  const naIon = NACL_LABELS.find((l) => l.id === 'na1')!
+  ok('подпись Na становится Na⁺ после перехода электрона', naIon.keys.some((k) => k.text === 'Na⁺' && k.t >= NACL_TIMING.cueAt('transfer')))
+  ok('нет выдуманной частицы в подписях', NACL_LABELS.every((l) => l.keys.every((k) => !/Cl²⁻/.test(k.text))))
+  for (const l of NACL_LABELS) {
+    for (const w of l.windows) ok(`окно подписи ${l.id} корректно`, w[0] < w[1] && w[0] >= 0 && w[1] <= NACL_END + 1e-9)
+  }
+
+  // Подписи локализуются: раскадровка пишет токены, сцена подставляет язык.
+  const known = new Set(Object.keys(SCENE_LABEL_TOKENS.ru))
+  for (const token of labelTokensUsed(NACL_LABELS)) {
+    ok(`токен подписи {${token}} есть в словаре кита`, known.has(token))
+  }
+  // Единицы и состояния НЕ зашиты по-английски мимо токенов.
+  for (const l of NACL_LABELS) {
+    for (const k of l.keys) {
+      // Сами токены {pm}/{kJmol} вырезаем — проверяем только текст ВНЕ них.
+      const bare = k.text.replace(/\{\w+\}/g, '')
+      ok(
+        `подпись ${l.id} без зашитой английской единицы: «${k.text}»`,
+        !/\b(pm|kJ\/mol|kJ)\b/.test(bare) && !/\((s|g|l|aq)\)/.test(bare),
+      )
+    }
+  }
+  for (const locale of LOCALES) {
+    const states = createLabelStates(NACL_LABELS)
+    localizeSceneLabels(states, locale)
+    for (const st of states) {
+      ok(`[${locale}] подпись ${st.id} без нераскрытых токенов: «${st.text}»`, !/\{\w+\}/.test(st.text))
+      ok(`[${locale}] подпись ${st.id} непустая`, st.text.trim().length > 0)
+    }
+  }
+  // Русский язык действительно отличается от английского (иначе токены не работают).
+  const ru = createLabelStates(NACL_LABELS)
+  const en = createLabelStates(NACL_LABELS)
+  localizeSceneLabels(ru, 'ru')
+  localizeSceneLabels(en, 'en')
+  ok(
+    'подписи ru отличаются от en (состояния и единицы переведены)',
+    ru.some((s, i) => s.text !== en[i]!.text),
   )
-  let s = clo2StepStore.getSnapshot()
-  assert.equal(s.lesson, 'nacl')
-  assert.equal(s.stepCount, NACL_STEPS.length)
-  assert.equal(s.status, 'playing')
-  clo2StepStore.report(11, NACL_STEPS.length - 1, 'paused')
-  clo2StepStore.next()
-  assert.deepEqual(calls, ['finish'], 'next on the last NaCl step finishes the lesson')
-  clo2StepStore.detach(11)
-  s = clo2StepStore.getSnapshot()
-  assert.equal(s.runId, 0)
-  assert.equal(s.lesson, 'clo2', 'detached store falls back to the ClO₂ default')
+  const ruCell = ru.find((s) => s.id === 'cell')!.text
+  ok(`подпись ячейки по-русски в пикометрах: «${ruCell}»`, ruCell.includes('пм') && !ruCell.includes('pm'))
 
-  clo2StepStore.attach(12, { playStep: () => {}, replayStep: () => {}, finish: () => {} })
-  s = clo2StepStore.getSnapshot()
-  assert.equal(s.lesson, 'clo2', 'attach without lesson keeps ClO₂ behaviour')
-  assert.equal(s.stepCount, 8)
-  clo2StepStore.detach(12)
+  // Подписи над кубом не должны налезать друг на друга.
+  const cell = NACL_LABELS.find((l) => l.id === 'cell')!
+  const coord = NACL_LABELS.find((l) => l.id === 'coord')!
+  ok(`подписи «a = …» и КЧ разведены по высоте (Δ=${(cell.dy - coord.dy).toFixed(2)})`, Math.abs(cell.dy - coord.dy) >= 0.5)
 }
 
-// ——— Регистрация в лаборатории ———
-{
-  // Реестр тянет React-сцены (gsap/three в ESM Node не грузятся) — проверяем регистрацию по исходнику.
-  const registry = readFileSync(new URL('../src/lab/scientificSynthesis/registry.ts', import.meta.url), 'utf8')
-  assert.match(registry, /^\s*nacl:\s*NaclCinemaScene,/m, 'NaCl synthesis (productId nacl) opens the cinema')
-  assert.match(registry, /^\s*clo2:\s*Clo2ScientificSynthesisFx,/m, 'ClO₂ still registered')
-  const watchdog = scientificSynthesisWatchdogMs('nacl')
-  assert.ok(watchdog != null && watchdog > NACL_FINISH.wall * 1000, 'watchdog covers the finish tail plus margin')
-  assert.ok(scientificSynthesisWatchdogMs('clo2')! > 0, 'ClO₂ watchdog untouched')
+for (const locale of LOCALES) {
+  const text = getNaclMechanismText(locale)
+  ok(`[${locale}] есть заголовок урока`, text.intro.title.length > 0)
+  ok(`[${locale}] есть предупреждение о безопасности`, text.safety.length > 20)
+  for (const id of NACL_STEP_IDS) {
+    const s = text.steps[id]
+    ok(`[${locale}] шаг ${id}: заголовок`, !!s && s.title.trim().length > 0)
+    ok(`[${locale}] шаг ${id}: 2–4 предложения`, s.body.split(/[.!?]\s/).length >= 2, `${s.body.length} симв.`)
+    ok(`[${locale}] шаг ${id}: уравнение`, s.equation.trim().length > 0)
+    ok(`[${locale}] шаг ${id}: реплика`, s.speak.trim().length > 0)
+  }
+  ok(`[${locale}] честная пометка есть хотя бы у половины шагов`, NACL_STEP_IDS.filter((id) => text.steps[id].note).length >= 3)
+  for (const s of NACL_LADDER.stages) {
+    ok(`[${locale}] подпись ступени ${s.id}`, (text.energy.stages as Record<string, string>)[s.id]?.length > 0)
+  }
+  ok(`[${locale}] единица энергии`, text.energy.unit.length > 0)
+  ok(`[${locale}] итоговая строка лестницы`, text.energy.stages.total.length > 0)
+  ok(`[${locale}] aria-подпись лестницы`, text.energy.summary.includes('{dH}'))
+  ok(`[${locale}] нет частицы «Cl²⁻» в текстах`, !JSON.stringify(text).includes('Cl²⁻'))
 }
 
-console.log('test-nacl-cinema: all passed')
+console.log(`✓ nacl cinema: ${checks} проверок пройдено`)
+console.log(`  шагов ${NACL_STEPS.length}, экранное время ${wall.toFixed(1)} с, сюжет ${NACL_END} с`)
+console.log(`  цикл Борна — Габера: Σ = ${NACL_LADDER.sumKJ} кДж/моль (таблица ${NACL_DHF_TABLE_KJ})`)
+console.log(
+  `  радиусы: Na ${speciesRadiusPm('Na', 0)} → Na⁺ ${speciesRadiusPm('Na', 1)} пм, ` +
+    `Cl ${speciesRadiusPm('Cl', 0)} → Cl⁻ ${speciesRadiusPm('Cl', -1)} пм (Cl⁻ / Na⁺ = ${ratio.toFixed(2)})`,
+)

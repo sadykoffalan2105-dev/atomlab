@@ -3,6 +3,7 @@
  * Список id строит scripts/textbook-inventory/build-whitelist.mts (сверка формул учебников с каталогом по составу).
  */
 import whitelist from './catalogWhitelist.json'
+import top200 from './catalogTop200.json'
 
 /**
  * Вещества не из учебников, на которые опираются реактор и банк реакций (ClO₂-рецепт, реакции с KClO₄ и т. п.).
@@ -92,12 +93,33 @@ export const CATALOG_HIDDEN_IDS: ReadonlySet<string> = new Set([
 
 const TEXTBOOK_IDS: ReadonlySet<string> = new Set([...whitelist.inorganic, ...whitelist.organic])
 
+/**
+ * Ровно 200 неорганических веществ, которые видит ученик, — топ школьной значимости
+ * (параграфы учебников 7–11, выверенные уравнения, банк реакций, класс соединения).
+ * Считает scripts/textbook-inventory/rank-substances.mts --write.
+ */
+export const CATALOG_TOP_INORGANIC_IDS: ReadonlySet<string> = new Set(top200.visibleInorganic)
+
+/**
+ * Остальные неорганические вещества каталога: данные целиком остаются в приложении
+ * (лаборатория, банк реакций, уравнения учебника, база знаний учителя их по-прежнему
+ * находят по id), но в списках каталога они не показываются.
+ */
+export const CATALOG_DEMOTED_IDS: ReadonlySet<string> = new Set(top200.demotedInorganic)
+
 /** Вещество есть в учебниках (или нужно лаборатории) — остаётся в данных приложения. */
 export function isTextbookCompoundId(id: string): boolean {
   return id.startsWith('tb_') || TEXTBOOK_IDS.has(id) || CATALOG_HIDDEN_IDS.has(id)
 }
 
-/** Показывать ли вещество в каталоге и списках выбора. */
+/**
+ * Показывать ли вещество в каталоге и списках выбора.
+ *
+ * Неорганика: только 200 отобранных id (CATALOG_TOP_INORGANIC_IDS).
+ * Органика: как и раньше — всё, кроме CATALOG_HIDDEN_IDS.
+ * Скрытие не удаляет данные: compoundById, реактор и уравнения учебника видят вещество по-прежнему.
+ */
 export function isCatalogVisibleId(id: string): boolean {
-  return !CATALOG_HIDDEN_IDS.has(id)
+  if (CATALOG_HIDDEN_IDS.has(id)) return false
+  return !CATALOG_DEMOTED_IDS.has(id)
 }

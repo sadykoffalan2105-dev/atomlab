@@ -1,8 +1,20 @@
 import * as THREE from 'three'
-import { ang, COVALENT_RADIUS_A, IONIC_RADIUS_A, BOND_LENGTH_A } from '../../core/atoms'
-import { mix, norm, smoothstep } from '../../core/easing'
-import { sampleScalar, sampleVec3, validateTrack, windowFade, type ScalarTrack, type Vec3Track } from '../../core/tracks'
-import { NACL_END, NACL_FINISH, naclCueAt } from './naclSteps'
+import { bondLengthPm, getCrystal } from '../../../../chemistry/data'
+import { mix, smoothstep } from '../../core/easing'
+import { sampleScalar, sampleVec3, windowFade, type ScalarTrack, type Vec3Track } from '../../core/tracks'
+import { bondLength, pmToScene, speciesRadius } from '../kit/cpkAtoms'
+import { createElectronJump, sampleElectronJump, type ElectronJump } from '../kit/electronFx'
+import {
+  appearTrack,
+  createLabelStates,
+  fadeTrack,
+  rampTrack,
+  sampleLabels,
+  validateTracks,
+  type SceneLabelDef,
+  type SceneLabelState,
+} from '../kit/sceneKit'
+import { NACL_FINISH, NACL_END, naclCueAt } from './naclSteps'
 
 export {
   NACL_CUES,
@@ -11,42 +23,126 @@ export {
   NACL_SEGMENTS,
   NACL_STEPS,
   NACL_STEP_IDS,
+  NACL_TIMING,
   naclStepIndexAt,
   type NaclCueId,
   type NaclStepId,
 } from './naclSteps'
 
 /**
- * Раскадровка 2 Na + Cl₂ → 2 NaCl — чистая функция времени сюжета.
+ * Раскадровка 2 Na (тв.) + Cl₂ (г.) → 2 NaCl (тв.) — ЧИСТАЯ функция времени сюжета.
  *
- * Геометрия настоящая: Cl–Cl 1,988 Å; в решётке NaCl расстояние Na–Cl 2,82 Å
- * (половина ребра ячейки 5,64 Å). Радиусы: атом Na 1,66 Å (ковалентный) → Na⁺ 1,02 Å,
- * атом Cl 1,02 Å → Cl⁻ 1,81 Å — ученик видит, что катион меньше атома, а анион больше.
- * Всё, что показано схематично (сам «прыжок» электрона, свечение орбитали),
- * оговорено в тексте урока.
+ * Вся химия — из src/chemistry/data (ни одного числа руками):
+ *   • Na металлический: ОЦК, Im-3m (229), a = 429,06 пм, КЧ 8, d = 371,6 пм;
+ *   • Cl₂: длина связи 198,8 пм (D = 243,4 кДж/моль);
+ *   • NaCl: каменная соль, Fm-3m (225), две ГЦК-подрешётки, a = 564,02 пм,
+ *     d(Na⁺–Cl⁻) = 282,01 пм, КЧ 6/6, Z = 4, ρ = 2,165 г/см³;
+ *   • радиусы: Na⁰ 186 пм (металлический) → Na⁺ 102 пм; Cl⁰ 99 пм (ковалентный,
+ *     в молекуле Cl₂) → Cl⁻ 181 пм. На экране Cl⁻ ровно в 1,78 раза крупнее Na⁺.
+ *
+ * ЧТО НАРИСОВАНО СХЕМАТИЧНО (и так сказано в тексте урока):
+ *   • светящаяся оболочка вокруг натрия — знак «здесь внешний электрон 3s¹»,
+ *     а не форма орбитали;
+ *   • «прыжок» электрона по дуге: электрон не летит по траектории, переход
+ *     происходит мгновенно в квантовом смысле;
+ *   • показаны 64 иона фрагмента 4×4×4, в кристалле соли их порядка 10²³.
  */
 
-/** Восемь ионов сюжета + внешние узлы решётки L0…L55 (фрагмент 4×4×4). */
-export type NaclAtomId = 'na1' | 'na2' | 'clA' | 'clB' | 'na3' | 'na4' | 'clC' | 'clD' | `L${number}`
+// ─────────────────────────────────────────────────────────────────────────────
+// Геометрия из научного ядра
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SALT = getCrystal('nacl')!
+const METAL = getCrystal('na_metal')!
+
+/** Половина расстояния Na⁺–Cl⁻ = a/4: узлы решётки стоят в НЕЧЁТНЫХ кратных этой величины. */
+const HALF = pmToScene(SALT.cationAnionPm) / 2
+/** Ребро ячейки NaCl, мировые единицы (= 4·HALF). */
+const CELL = pmToScene(SALT.cellPm.a)
+/** Половина ребра ОЦК-ячейки натрия. */
+const MH = pmToScene(METAL.cellPm.a) / 2
+/** Половина длины связи Cl–Cl. */
+const CH = bondLength('Cl-Cl') / 2
+
+const R = {
+  na: speciesRadius('Na', 0),
+  naIon: speciesRadius('Na', 1),
+  cl: speciesRadius('Cl', 0),
+  clIon: speciesRadius('Cl', -1),
+} as const
+
+/** Радиус светящейся оболочки вокруг атома натрия (схематичная 3s¹). */
+const SHELL_NA = R.na * 1.35
+
+export const NACL_GEOM = {
+  radius: R,
+  half: HALF,
+  cell: CELL,
+  clHalf: CH,
+  metalHalf: MH,
+  shellNa: SHELL_NA,
+  /** расстояние Na⁺–Cl⁻ в решётке, мировые единицы */
+  latticeNaCl: HALF * 2,
+  /** справочные числа для подписей и тестов */
+  data: {
+    spaceGroup: SALT.spaceGroup,
+    spaceGroupNo: SALT.spaceGroupNo,
+    latticeType: SALT.latticeType,
+    cellPm: SALT.cellPm.a,
+    naClPm: SALT.cationAnionPm,
+    /** длина связи Cl–Cl, пм */
+    clClPm: bondLengthPm('Cl-Cl'),
+    coordination: SALT.coordination,
+    z: SALT.z,
+    densityGCm3: SALT.densityGCm3,
+    metal: { spaceGroup: METAL.spaceGroup, cellPm: METAL.cellPm.a, coordination: METAL.coordination },
+  },
+} as const
+
+/** Масштаб рига камеры: в кадре мало частиц, детали важны. */
+export const NACL_RIG_SCALE = 1.15
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Узлы решётки и металлический фрагмент
+// ─────────────────────────────────────────────────────────────────────────────
+
 export type NaclElement = 'Na' | 'Cl'
+export type NaclAtomId =
+  | 'na1'
+  | 'na2'
+  | 'clA'
+  | 'clB'
+  | 'na3'
+  | 'na4'
+  | 'clC'
+  | 'clD'
+  | `L${number}`
+  | `M${number}`
 
 type Site = readonly [number, number, number]
 
 /**
- * Узлы решётки NaCl в единицах HALF (половина расстояния Na–Cl): нечётные координаты −3…3 — куб 4×4×4.
- * Центральные восемь узлов (|x|,|y|,|z| = 1) — ионы сюжета; знак иона чередуется по сумме координат.
+ * Узлы каменной соли: все координаты НЕЧЁТНЫЕ (в единицах a/4), соседи отличаются
+ * на 2 по одной оси — это ровно d(Na⁺–Cl⁻) = a/2. Знак заряда чередуется по сумме
+ * координат, поэтому одноимённые ионы физически не могут оказаться соседями.
+ */
+const elementAtSite = (s: Site): NaclElement => ((((s[0] + s[1] + s[2]) % 4) + 4) % 4 === 1 ? 'Na' : 'Cl')
+
+/**
+ * Восемь центральных узлов — ионы сюжета. Пара na1/clA собирается спереди-сверху,
+ * пара na2/clB — сзади-снизу: натрий приходит СЛЕВА (из металла), хлор СПРАВА
+ * (из молекулы), поэтому их пути не пересекаются.
  */
 const STORY_SITES: Record<'na1' | 'na2' | 'clA' | 'clB' | 'na3' | 'na4' | 'clC' | 'clD', Site> = {
   na1: [-1, 1, 1],
-  na2: [1, -1, 1],
   clA: [1, 1, 1],
-  clB: [-1, -1, 1],
-  na3: [-1, -1, -1],
+  na2: [-1, -1, -1],
+  clB: [1, -1, -1],
+  na3: [1, -1, 1],
+  clC: [-1, -1, 1],
   na4: [1, 1, -1],
-  clC: [1, -1, -1],
   clD: [-1, 1, -1],
 }
-const elementAtSite = (s: Site): NaclElement => ((((s[0] + s[1] + s[2]) % 4) + 4) % 4 === 1 ? 'Na' : 'Cl')
 
 const LATTICE_IONS: { id: NaclAtomId; el: NaclElement; site: Site }[] = []
 {
@@ -65,6 +161,36 @@ export const SITE_BY_ID: Readonly<Record<string, Site>> = {
   ...Object.fromEntries(LATTICE_IONS.map((l) => [l.id, l.site])),
 }
 
+/**
+ * Фрагмент металлического натрия: ОЦК-ячейка (8 вершин + центр).
+ * Два атома из неё — na1 (вершина слева-сверху-спереди) и na2 (вершина
+ * справа-снизу-спереди) — уходят в реакцию; остальные семь остаются металлом.
+ */
+const METAL_CENTER: Site = [-1.75, 0, -0.1]
+const metalPos = (dx: number, dy: number, dz: number): [number, number, number] => [
+  METAL_CENTER[0] + dx,
+  METAL_CENTER[1] + dy,
+  METAL_CENTER[2] + dz,
+]
+
+const NA1_START = metalPos(-MH, MH, MH)
+const NA2_START = metalPos(MH, -MH, MH)
+
+/** Семь оставшихся узлов ОЦК-ячейки: центр + шесть вершин. */
+const METAL_SITES: Array<[number, number, number]> = [
+  metalPos(0, 0, 0),
+  metalPos(MH, MH, MH),
+  metalPos(-MH, -MH, MH),
+  metalPos(MH, MH, -MH),
+  metalPos(-MH, MH, -MH),
+  metalPos(MH, -MH, -MH),
+  metalPos(-MH, -MH, -MH),
+]
+
+export const METAL_ATOMS: readonly { id: NaclAtomId; pos: readonly [number, number, number] }[] = METAL_SITES.map(
+  (pos, i) => ({ id: `M${i}` as NaclAtomId, pos }),
+)
+
 export const NACL_ATOMS: readonly { id: NaclAtomId; el: NaclElement; main: boolean }[] = [
   { id: 'na1', el: 'Na', main: true },
   { id: 'na2', el: 'Na', main: true },
@@ -75,56 +201,137 @@ export const NACL_ATOMS: readonly { id: NaclAtomId; el: NaclElement; main: boole
   { id: 'clC', el: 'Cl', main: false },
   { id: 'clD', el: 'Cl', main: false },
   ...LATTICE_IONS.map((l) => ({ id: l.id, el: l.el, main: false })),
+  ...METAL_ATOMS.map((m) => ({ id: m.id, el: 'Na' as NaclElement, main: false })),
 ]
 
-/** Ионы, соседние с na1 в решётке — подсветка координационного числа 6. */
+/** Шесть ближайших соседей Cl⁻ у иона na1 — подсветка координационного числа 6. */
 export const NACL_COORDINATION_IDS: readonly NaclAtomId[] = NACL_ATOMS.filter((a) => {
-  const s = SITE_BY_ID[a.id]!
+  const s = SITE_BY_ID[a.id]
+  if (!s) return false
   const c = STORY_SITES.na1
   const d = [Math.abs(s[0] - c[0]), Math.abs(s[1] - c[1]), Math.abs(s[2] - c[2])]
   return d.filter((v) => v === 2).length === 1 && d.filter((v) => v === 0).length === 2
 }).map((a) => a.id)
 
-/** Масштаб рига камеры — как у ClO₂, чуть крупнее: ионов мало, детали важны. */
-export const NACL_RIG_SCALE = 1.15
+/** Рёбра фрагмента: пары ближайших соседей Na⁺–Cl⁻ (144 ребра во фрагменте 4×4×4). */
+export const NACL_EDGES: readonly (readonly [NaclAtomId, NaclAtomId])[] = (() => {
+  const ids = NACL_ATOMS.filter((a) => SITE_BY_ID[a.id]).map((a) => a.id)
+  const out: [NaclAtomId, NaclAtomId][] = []
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const a = SITE_BY_ID[ids[i]!]!
+      const b = SITE_BY_ID[ids[j]!]!
+      const d = [Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2])]
+      if (d.filter((v) => v === 2).length === 1 && d.filter((v) => v === 0).length === 2) out.push([ids[i]!, ids[j]!])
+    }
+  }
+  return out
+})()
 
-const ATOM_SCALE = 0.72
-/** Половина ребра кубического фрагмента: Na–Cl 2,82 Å. */
-const HALF = ang(2.82) / 2
+/** Связи металла: центр ОЦК-ячейки — восемь вершин (КЧ 8, d = 371,6 пм). */
+export const METAL_BONDS: readonly (readonly [NaclAtomId, NaclAtomId])[] = [
+  ['M0', 'na1'],
+  ['M0', 'na2'],
+  ['M0', 'M1'],
+  ['M0', 'M2'],
+  ['M0', 'M3'],
+  ['M0', 'M4'],
+  ['M0', 'M5'],
+  ['M0', 'M6'],
+]
 
-export const NACL_GEOM = {
-  /** радиусы в единицах сцены */
-  radius: {
-    na: ang(COVALENT_RADIUS_A.Na) * ATOM_SCALE,
-    naCation: ang(IONIC_RADIUS_A['Na+']) * ATOM_SCALE,
-    cl: ang(COVALENT_RADIUS_A.Cl) * ATOM_SCALE,
-    clAnion: ang(IONIC_RADIUS_A['Cl-']) * ATOM_SCALE,
-  },
-  /** половина длины связи Cl–Cl */
-  clHalf: ang(BOND_LENGTH_A.ClCl) / 2,
-  /** радиус подсветки 3s-орбитали натрия */
-  orbital3s: ang(COVALENT_RADIUS_A.Na) * ATOM_SCALE * 1.55,
-  half: HALF,
-  latticeNaCl: HALF * 2,
-} as const
+// ─────────────────────────────────────────────────────────────────────────────
+// Ключевые моменты
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ——— Ключевые моменты (story time) ———
-const T_BREAK = naclCueAt('bondBreak') // 6.0
-const T_E1 = { leave: 8.6, arrive: naclCueAt('transfer') } // 8.6 → 10.0
-const T_E2 = { leave: 8.95, arrive: 10.35 }
-const T_CONTACT = naclCueAt('contact') // 14.4
-const T_LATTICE = naclCueAt('lattice') // 19.2
-const T_EXO = naclCueAt('exo') // 20.8
+const T_SUB = naclCueAt('sublimate') // 5.2
+const T_BREAK = naclCueAt('bondBreak') // 7.0
+const T_TRANSFER = naclCueAt('transfer') // 11.0
+const T_CONTACT = naclCueAt('contact') // 15.4
+const T_LATTICE = naclCueAt('lattice') // 20.6
+const T_EXO = naclCueAt('exo') // 21.8
 
-const CH = NACL_GEOM.clHalf
+const T_E1 = { leave: 9.4, arrive: T_TRANSFER }
+const T_E2 = { leave: 9.75, arrive: T_TRANSFER + 0.35 }
 
-// ——— Рост кристалла: внешние 56 ионов подлетают к готовому кубу, ближние раньше ———
-const T_GROW = { from: 18.0, to: T_LATTICE - 0.1 }
-type LatticeMeta = { id: NaclAtomId; start: number; arrive: number; track: Vec3Track }
-const jitter = (n: number, k: number): number => {
+/** Куда Na и Cl встают после сублимации/диссоциации — перед переходом электрона. */
+const FREE = {
+  na1: [-1.05, 0.72, 0.1] as const,
+  na2: [-1.05, -0.72, -0.1] as const,
+  clA: [1.15, 0.72, 0.1] as const,
+  clB: [1.15, -0.72, -0.1] as const,
+}
+
+const siteXYZ = (id: keyof typeof STORY_SITES): [number, number, number] => {
+  const s = STORY_SITES[id]
+  return [s[0] * HALF, s[1] * HALF, s[2] * HALF]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Дорожки положений
+// ─────────────────────────────────────────────────────────────────────────────
+
+const POS: Partial<Record<NaclAtomId, Vec3Track>> = {
+  na1: [
+    { t: 0, v: NA1_START },
+    { t: T_SUB - 0.9, v: NA1_START },
+    { t: 6.2, v: FREE.na1, ease: 'smooth', arc: 0.18 },
+    { t: 13, v: FREE.na1 },
+    { t: T_CONTACT, v: siteXYZ('na1'), ease: 'inQuad' },
+  ],
+  na2: [
+    { t: 0, v: NA2_START },
+    { t: T_SUB - 0.3, v: NA2_START },
+    { t: 6.8, v: FREE.na2, ease: 'smooth', arc: -0.18 },
+    { t: 13, v: FREE.na2 },
+    { t: T_CONTACT, v: siteXYZ('na2'), ease: 'inQuad' },
+  ],
+  clA: [
+    { t: 0, v: [1.75, CH, 0] },
+    { t: 4, v: [1.75, CH, 0] },
+    { t: T_BREAK, v: [1.75, CH + 0.05, 0], ease: 'inQuad' },
+    { t: 8.4, v: FREE.clA, ease: 'smooth' },
+    { t: 13, v: FREE.clA },
+    { t: T_CONTACT, v: siteXYZ('clA'), ease: 'inQuad' },
+  ],
+  clB: [
+    { t: 0, v: [1.75, -CH, 0] },
+    { t: 4, v: [1.75, -CH, 0] },
+    { t: T_BREAK, v: [1.75, -CH - 0.05, 0], ease: 'inQuad' },
+    { t: 8.4, v: FREE.clB, ease: 'smooth' },
+    { t: 13, v: FREE.clB },
+    { t: T_CONTACT, v: siteXYZ('clB'), ease: 'inQuad' },
+  ],
+  // Задний/передний доборы восьмёрки: приходят из глубины, когда ионная пара уже стоит.
+  na3: [
+    { t: 16, v: [1.15, -1.0, -1.7] },
+    { t: 18.6, v: siteXYZ('na3'), ease: 'smooth' },
+  ],
+  na4: [
+    { t: 16, v: [1.15, 1.0, -1.7] },
+    { t: 18.6, v: siteXYZ('na4'), ease: 'smooth' },
+  ],
+  clC: [
+    { t: 16, v: [-1.15, -1.0, -1.7] },
+    { t: 18.6, v: siteXYZ('clC'), ease: 'smooth' },
+  ],
+  clD: [
+    { t: 16, v: [-1.15, 1.0, -1.7] },
+    { t: 18.6, v: siteXYZ('clD'), ease: 'smooth' },
+  ],
+}
+for (const m of METAL_ATOMS) POS[m.id] = [{ t: 0, v: m.pos }]
+
+// ——— Рост кристалла: 56 внешних ионов подлетают к готовой восьмёрке, ближние раньше ———
+const T_GROW = { from: 17.4, to: T_LATTICE - 0.1 }
+
+const noise = (n: number, k: number): number => {
   const s = Math.sin(n * 12.9898 + k * 78.233) * 43758.5453
   return (s - Math.floor(s)) * 2 - 1
 }
+
+type LatticeMeta = { id: NaclAtomId; start: number; arrive: number; track: Vec3Track }
+
 export const LATTICE_META: readonly LatticeMeta[] = LATTICE_IONS.map((l, i) => {
   const [x, y, z] = l.site
   return { l, i, dist: Math.hypot(x, y, z) }
@@ -132,214 +339,216 @@ export const LATTICE_META: readonly LatticeMeta[] = LATTICE_IONS.map((l, i) => {
   .sort((a, b) => a.dist - b.dist || a.i - b.i)
   .map(({ l, i }, rank, all) => {
     const arrive = T_GROW.from + (rank / Math.max(1, all.length - 1)) * (T_GROW.to - T_GROW.from)
-    const start = arrive - 1.6
+    const start = arrive - 1.9
     const [x, y, z] = l.site
-    const far = 1.9 + 0.3 * jitter(i, 1)
+    const far = 1.55 + 0.18 * noise(i, 1)
     const track: Vec3Track = [
-      { t: start, v: [x * HALF * far + 0.35 * jitter(i, 2), y * HALF * far + 0.35 * jitter(i, 3), z * HALF * far + 0.35 * jitter(i, 4)] },
-      { t: arrive, v: [x * HALF, y * HALF, z * HALF], ease: 'outCubic' },
+      {
+        t: start,
+        v: [x * HALF * far + 0.2 * noise(i, 2), y * HALF * far + 0.2 * noise(i, 3), z * HALF * far + 0.2 * noise(i, 4)],
+      },
+      { t: arrive, v: [x * HALF, y * HALF, z * HALF], ease: 'smooth' },
     ]
     return { id: l.id, start, arrive, track }
   })
+
 const LATTICE_TRACK: Record<string, Vec3Track> = Object.fromEntries(LATTICE_META.map((m) => [m.id, m.track]))
 const LATTICE_START: Record<string, number> = Object.fromEntries(LATTICE_META.map((m) => [m.id, m.start]))
+for (const m of LATTICE_META) POS[m.id] = m.track
 
-/** Дорожки положений. Порядок ключей проверяет validateNaclStoryboard(). */
-const POS: Record<NaclAtomId, Vec3Track> = {
-  na1: [
-    { t: 0, v: [-2.6, 1.0, 0] },
-    { t: 4, v: [-1.05, 0.7, 0], ease: 'outCubic' },
-    { t: 7, v: [-0.85, 0.62, 0], ease: 'smooth' },
-    { t: 12, v: [-0.85, 0.62, 0] },
-    { t: T_CONTACT, v: [-HALF, HALF, 0], ease: 'inQuad' },
-    { t: 15.6, v: [-HALF, HALF, 0] },
-    { t: 17.6, v: [-HALF, HALF, HALF], ease: 'smooth' },
-  ],
-  na2: [
-    { t: 0, v: [2.6, -1.0, 0] },
-    { t: 4, v: [1.05, -0.7, 0], ease: 'outCubic' },
-    { t: 7, v: [0.85, -0.62, 0], ease: 'smooth' },
-    { t: 12, v: [0.85, -0.62, 0] },
-    { t: T_CONTACT, v: [HALF, -HALF, 0], ease: 'inQuad' },
-    { t: 15.6, v: [HALF, -HALF, 0] },
-    { t: 17.6, v: [HALF, -HALF, HALF], ease: 'smooth' },
-  ],
-  clA: [
-    { t: 0, v: [0.12, CH, 0] },
-    { t: 4, v: [0, CH, 0], ease: 'smooth' },
-    { t: T_BREAK, v: [0.05, CH + 0.06, 0], ease: 'inQuad' },
-    { t: 7, v: [0.45, 0.62, 0], ease: 'outCubic' },
-    { t: 12, v: [0.45, 0.62, 0] },
-    { t: T_CONTACT, v: [HALF, HALF, 0], ease: 'inQuad' },
-    { t: 15.6, v: [HALF, HALF, 0] },
-    { t: 17.6, v: [HALF, HALF, HALF], ease: 'smooth' },
-  ],
-  clB: [
-    { t: 0, v: [0.12, -CH, 0] },
-    { t: 4, v: [0, -CH, 0], ease: 'smooth' },
-    { t: T_BREAK, v: [-0.05, -CH - 0.06, 0], ease: 'inQuad' },
-    { t: 7, v: [-0.45, -0.62, 0], ease: 'outCubic' },
-    { t: 12, v: [-0.45, -0.62, 0] },
-    { t: T_CONTACT, v: [-HALF, -HALF, 0], ease: 'inQuad' },
-    { t: 15.6, v: [-HALF, -HALF, 0] },
-    { t: 17.6, v: [-HALF, -HALF, HALF], ease: 'smooth' },
-  ],
-  // Задний слой куба приходит из глубины, когда передний квадрат собран.
-  na3: [
-    { t: 16, v: [-1.1, -1.0, -1.9] },
-    { t: 18.6, v: [-HALF, -HALF, -HALF], ease: 'smooth' },
-  ],
-  na4: [
-    { t: 16, v: [1.1, 1.0, -1.9] },
-    { t: 18.6, v: [HALF, HALF, -HALF], ease: 'smooth' },
-  ],
-  clC: [
-    { t: 16, v: [1.1, -1.0, -1.9] },
-    { t: 18.6, v: [HALF, -HALF, -HALF], ease: 'smooth' },
-  ],
-  clD: [
-    { t: 16, v: [-1.1, 1.0, -1.9] },
-    { t: 18.6, v: [-HALF, HALF, -HALF], ease: 'smooth' },
-  ],
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Скалярные дорожки
+// ─────────────────────────────────────────────────────────────────────────────
 
-const R = NACL_GEOM.radius
-const RADIUS_NA: ScalarTrack = [
-  { t: T_E1.leave, v: R.na },
-  { t: T_E1.leave + 1.8, v: R.naCation, ease: 'inOutSine' },
+/** РАДИУС МЕНЯЕТСЯ РОВНО ТОГДА, КОГДА ЭЛЕКТРОН УХОДИТ / ПРИХОДИТ. */
+const RADIUS_NA1 = rampTrack(T_E1.leave, R.na, T_E1.arrive + 0.2, R.naIon)
+const RADIUS_NA2 = rampTrack(T_E2.leave, R.na, T_E2.arrive + 0.2, R.naIon)
+const RADIUS_CLA = rampTrack(T_E1.arrive - 0.6, R.cl, T_E1.arrive + 0.7, R.clIon)
+const RADIUS_CLB = rampTrack(T_E2.arrive - 0.6, R.cl, T_E2.arrive + 0.7, R.clIon)
+
+const CHARGE_NA1 = rampTrack(T_E1.leave, 0, T_E1.arrive, 1, 'smooth')
+const CHARGE_NA2 = rampTrack(T_E2.leave, 0, T_E2.arrive, 1, 'smooth')
+const CHARGE_CLA = rampTrack(T_E1.arrive - 0.35, 0, T_E1.arrive + 0.3, -1, 'smooth')
+const CHARGE_CLB = rampTrack(T_E2.arrive - 0.35, 0, T_E2.arrive + 0.3, -1, 'smooth')
+
+/** Металл: остаётся в кадре, пока два атома не ушли, затем растворяется. */
+const METAL_OPACITY: ScalarTrack = [
+  { t: 0, v: 0 },
+  { t: 0.7, v: 1, ease: 'smooth' },
+  { t: 6.8, v: 1 },
+  { t: 8.2, v: 0, ease: 'smooth' },
 ]
-const RADIUS_NA2: ScalarTrack = [
-  { t: T_E2.leave, v: R.na },
-  { t: T_E2.leave + 1.8, v: R.naCation, ease: 'inOutSine' },
+const METAL_BOND_OPACITY: ScalarTrack = [
+  { t: 0, v: 0 },
+  { t: 0.9, v: 0.55, ease: 'smooth' },
+  { t: 4.2, v: 0.55 },
+  { t: 6.0, v: 0.2, ease: 'smooth' },
+  { t: 8.2, v: 0, ease: 'smooth' },
 ]
-const RADIUS_CL: ScalarTrack = [
-  { t: T_E1.arrive - 0.6, v: R.cl },
-  { t: T_E1.arrive + 0.7, v: R.clAnion, ease: 'inOutSine' },
-]
-const RADIUS_CL2: ScalarTrack = [
-  { t: T_E2.arrive - 0.6, v: R.cl },
-  { t: T_E2.arrive + 0.7, v: R.clAnion, ease: 'inOutSine' },
-]
-const CHARGE_NA: ScalarTrack = [
-  { t: T_E1.leave, v: 0 },
-  { t: T_E1.arrive, v: 1, ease: 'smooth' },
-]
-const CHARGE_NA2: ScalarTrack = [
-  { t: T_E2.leave, v: 0 },
-  { t: T_E2.arrive, v: 1, ease: 'smooth' },
-]
-const CHARGE_CL: ScalarTrack = [
-  { t: T_E1.arrive - 0.35, v: 0 },
-  { t: T_E1.arrive + 0.3, v: -1, ease: 'smooth' },
-]
-const CHARGE_CL2: ScalarTrack = [
-  { t: T_E2.arrive - 0.35, v: 0 },
-  { t: T_E2.arrive + 0.3, v: -1, ease: 'smooth' },
-]
-const BACK_OPACITY: ScalarTrack = [
-  { t: 16, v: 0 },
-  { t: 17.3, v: 1, ease: 'smooth' },
-]
-/** Связь Cl–Cl: напряжение растёт, потом разрыв. */
-const BOND_STRESS: ScalarTrack = [
-  { t: 4.2, v: 0 },
-  { t: T_BREAK, v: 1, ease: 'inQuad' },
-]
-const BOND_SPLIT: ScalarTrack = [
-  { t: T_BREAK - 0.15, v: 0 },
-  { t: T_BREAK + 0.35, v: 1, ease: 'outCubic' },
-]
-const BOND_OPACITY: ScalarTrack = [
-  { t: T_BREAK, v: 1 },
-  { t: T_BREAK + 0.7, v: 0, ease: 'smooth' },
-]
-/** Рёбра куба: появляются, когда задний слой на месте. */
+
+/** Восемь ионов сюжета: четыре доборных проявляются на шаге «решётка». */
+const BACK_OPACITY = appearTrack(16, 1.3)
+
+/** Связь Cl–Cl: натяжение растёт, затем ГОМОЛИТИЧЕСКИЙ разрыв (split = 0). */
+const BOND_STRESS = rampTrack(4.4, 0, T_BREAK, 1, 'inQuad')
+const BOND_SPLIT = rampTrack(T_BREAK - 0.15, 0, T_BREAK + 0.35, 1, 'outCubic')
+const BOND_OPACITY = rampTrack(T_BREAK, 1, T_BREAK + 0.7, 0, 'smooth')
+
+/** Рёбра решётки: проявляются, когда восьмёрка собрана. */
 const EDGES: ScalarTrack = [
-  { t: 17.4, v: 0 },
+  { t: 18.4, v: 0 },
   { t: T_LATTICE, v: 0.5, ease: 'smooth' },
-  { t: 23.6, v: 0.5 },
+  { t: 24.4, v: 0.5 },
   { t: NACL_FINISH.to, v: 0, ease: 'smooth' },
 ]
+
 const CAM_ZOOM: ScalarTrack = [
-  { t: 0, v: 0.96 },
-  { t: 4, v: 1.02, ease: 'smooth' },
-  { t: 7, v: 1.12, ease: 'smooth' },
-  { t: 12, v: 1.12 },
-  // Куб из восьми ионов, затем кристалл 4×4×4 втрое шире — отъезжаем, чтобы решётка с подписью помещалась и на 390px.
-  { t: 15, v: 1.1, ease: 'smooth' },
-  { t: 16.8, v: 0.98, ease: 'smooth' },
+  { t: 0, v: 0.86 },
+  { t: 4, v: 0.9, ease: 'smooth' },
+  { t: 8, v: 1.04, ease: 'smooth' },
+  { t: 13, v: 1.04 },
+  { t: T_CONTACT, v: 1.16, ease: 'smooth' },
+  { t: 16.6, v: 0.98, ease: 'smooth' },
   { t: T_LATTICE - 0.6, v: 0.5, ease: 'smooth' },
-  { t: 24, v: 0.47, ease: 'smooth' },
+  { t: 25, v: 0.47, ease: 'smooth' },
 ]
 const CAM_YAW: ScalarTrack = [
-  { t: 15, v: 0 },
-  { t: 20, v: 0.52, ease: 'smooth' },
-  { t: 24, v: 0.66, ease: 'smooth' },
+  { t: 16, v: 0 },
+  { t: 21, v: 0.52, ease: 'smooth' },
+  { t: 25, v: 0.66, ease: 'smooth' },
 ]
 const CAM_ROLL: ScalarTrack = [
-  { t: 15, v: 0 },
-  { t: 20, v: -0.16, ease: 'smooth' },
+  { t: 16, v: 0 },
+  { t: 21, v: -0.16, ease: 'smooth' },
 ]
 const CAM_OFFSET: Vec3Track = [
   { t: 0, v: [0, 0.05, 0] },
-  { t: 7, v: [0, 0.1, 0], ease: 'smooth' },
-  { t: 15, v: [0, 0.02, 0], ease: 'smooth' },
-  { t: 20, v: [0, 0.08, 0], ease: 'smooth' },
+  { t: 8, v: [0, 0.1, 0], ease: 'smooth' },
+  { t: 16, v: [0, 0.02, 0], ease: 'smooth' },
+  { t: 21, v: [0, 0.08, 0], ease: 'smooth' },
 ]
-const FADE: ScalarTrack = [
-  { t: NACL_FINISH.from, v: 0 },
-  { t: NACL_END, v: 1, ease: 'inQuad' },
-]
+const FADE = fadeTrack(NACL_FINISH)
 
-// ——— Подписи ———
-export type NaclLabelKind = 'species' | 'ox' | 'delta'
-export type NaclLabelDef = {
-  id: string
-  kind: NaclLabelKind
-  /** к какому атому привязана (или центр решётки) */
-  anchor: NaclAtomId | 'cube' | 'cl2'
-  /** смещение по y от края атома, единицы сцены */
-  dy: number
-  keys: readonly { t: number; text: string }[]
-  /** окна видимости [from, to) */
-  windows: readonly (readonly [number, number])[]
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Подписи в 3D
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Тексты подписей НЕ переводятся: это формулы и обозначения СИ, одинаковые
+ * в ru/en/uz («Na⁺», «282 pm», «ΔH°f = −411 kJ/mol»). Все словесные пояснения
+ * живут в naclMechanismText.{ts,en.ts,uz.ts} и показываются панелью урока.
+ */
+export type NaclLabelDef = SceneLabelDef & { anchor: NaclAtomId | 'cube' | 'cl2' | 'metal' | 'pair' }
+
+const CELL_PM = Math.round(NACL_GEOM.data.cellPm * 10) / 10
+const NACL_PM = Math.round(NACL_GEOM.data.naClPm)
 
 export const NACL_LABELS: readonly NaclLabelDef[] = [
-  // Подписи ионов уходят, когда решётка собрана: дальше кадр подписан одним «NaCl», без наложений.
-  { id: 'na1', kind: 'species', anchor: 'na1', dy: 0.2, keys: [{ t: 0, text: 'Na' }, { t: 10.2, text: 'Na⁺' }], windows: [[0.6, T_LATTICE - 0.2]] },
-  { id: 'na2', kind: 'species', anchor: 'na2', dy: 0.2, keys: [{ t: 0, text: 'Na' }, { t: 10.5, text: 'Na⁺' }], windows: [[0.6, T_LATTICE - 0.2]] },
-  { id: 'cl2', kind: 'species', anchor: 'cl2', dy: 0.2, keys: [{ t: 0, text: 'Cl₂' }], windows: [[0.6, T_BREAK - 0.1]] },
-  { id: 'clA', kind: 'species', anchor: 'clA', dy: 0.2, keys: [{ t: 0, text: 'Cl' }, { t: 10.3, text: 'Cl⁻' }], windows: [[T_BREAK + 0.3, T_LATTICE - 0.2]] },
-  { id: 'clB', kind: 'species', anchor: 'clB', dy: 0.2, keys: [{ t: 0, text: 'Cl' }, { t: 10.65, text: 'Cl⁻' }], windows: [[T_BREAK + 0.3, T_LATTICE - 0.2]] },
-  { id: 'oxNa1', kind: 'ox', anchor: 'na1', dy: -0.2, keys: [{ t: 0, text: '0' }, { t: 10.2, text: '+1' }], windows: [[1.2, 18.4]] },
-  { id: 'oxNa2', kind: 'ox', anchor: 'na2', dy: -0.2, keys: [{ t: 0, text: '0' }, { t: 10.5, text: '+1' }], windows: [[1.2, 18.4]] },
-  { id: 'oxClA', kind: 'ox', anchor: 'clA', dy: -0.2, keys: [{ t: 0, text: '0' }, { t: 10.3, text: '−1' }], windows: [[T_BREAK + 0.3, 18.4]] },
-  { id: 'oxClB', kind: 'ox', anchor: 'clB', dy: -0.2, keys: [{ t: 0, text: '0' }, { t: 10.65, text: '−1' }], windows: [[T_BREAK + 0.3, 18.4]] },
-  { id: 'nacl', kind: 'species', anchor: 'cube', dy: 3 * HALF + 1.05, keys: [{ t: 0, text: 'NaCl' }], windows: [[T_LATTICE - 0.1, 23.8]] },
-  { id: 'dH', kind: 'delta', anchor: 'cube', dy: -(3 * HALF + 0.95), keys: [{ t: 0, text: 'ΔH = −411 kJ/mol' }], windows: [[T_EXO, 23.8]] },
-  // Координационное число: один Na⁺ и шесть его соседей Cl⁻ подсвечиваются в конце урока.
-  { id: 'coord', kind: 'delta', anchor: 'cube', dy: 3 * HALF + 0.6, keys: [{ t: 0, text: 'Na⁺ · 6 Cl⁻' }], windows: [[21.6, 23.6]] },
+  { id: 'metal', kind: 'species', anchor: 'metal', dy: 0.95, keys: [{ t: 0, text: 'Na ({s})' }], windows: [[0.8, 6.6]] },
+  { id: 'cl2', kind: 'species', anchor: 'cl2', dy: 0.24, keys: [{ t: 0, text: 'Cl₂ ({g})' }], windows: [[0.8, T_BREAK - 0.1]] },
+  {
+    id: 'na1',
+    kind: 'species',
+    anchor: 'na1',
+    dy: 0.2,
+    keys: [
+      { t: 0, text: 'Na' },
+      { t: T_E1.arrive + 0.2, text: 'Na⁺' },
+    ],
+    windows: [[5.4, T_LATTICE - 0.2]],
+  },
+  {
+    id: 'na2',
+    kind: 'species',
+    anchor: 'na2',
+    dy: 0.2,
+    keys: [
+      { t: 0, text: 'Na' },
+      { t: T_E2.arrive + 0.2, text: 'Na⁺' },
+    ],
+    windows: [[6.0, T_LATTICE - 0.2]],
+  },
+  {
+    id: 'clA',
+    kind: 'species',
+    anchor: 'clA',
+    dy: 0.2,
+    keys: [
+      { t: 0, text: 'Cl' },
+      { t: T_E1.arrive + 0.3, text: 'Cl⁻' },
+    ],
+    windows: [[T_BREAK + 0.3, T_LATTICE - 0.2]],
+  },
+  {
+    id: 'clB',
+    kind: 'species',
+    anchor: 'clB',
+    dy: 0.2,
+    keys: [
+      { t: 0, text: 'Cl' },
+      { t: T_E2.arrive + 0.3, text: 'Cl⁻' },
+    ],
+    windows: [[T_BREAK + 0.3, T_LATTICE - 0.2]],
+  },
+  {
+    id: 'oxNa1',
+    kind: 'ox',
+    anchor: 'na1',
+    dy: -0.2,
+    keys: [
+      { t: 0, text: '0' },
+      { t: T_E1.arrive, text: '+1' },
+    ],
+    windows: [[6.2, 19.4]],
+  },
+  {
+    id: 'oxNa2',
+    kind: 'ox',
+    anchor: 'na2',
+    dy: -0.2,
+    keys: [
+      { t: 0, text: '0' },
+      { t: T_E2.arrive, text: '+1' },
+    ],
+    windows: [[6.8, 19.4]],
+  },
+  {
+    id: 'oxClA',
+    kind: 'ox',
+    anchor: 'clA',
+    dy: -0.2,
+    keys: [
+      { t: 0, text: '0' },
+      { t: T_E1.arrive + 0.1, text: '−1' },
+    ],
+    windows: [[T_BREAK + 0.3, 19.4]],
+  },
+  {
+    id: 'oxClB',
+    kind: 'ox',
+    anchor: 'clB',
+    dy: -0.2,
+    keys: [
+      { t: 0, text: '0' },
+      { t: T_E2.arrive + 0.1, text: '−1' },
+    ],
+    windows: [[T_BREAK + 0.3, 19.4]],
+  },
+  // Шаг 4: расстояние в ионной паре — то самое d(Na⁺–Cl⁻) из справочника.
+  { id: 'pair', kind: 'delta', anchor: 'pair', dy: 0.46, keys: [{ t: 0, text: `${NACL_PM} {pm}` }], windows: [[T_CONTACT - 0.1, 16.9]] },
+  // Шаг 5: параметр ячейки и координационное число.
+  // dy разведены на 0.62, иначе «a = …» и КЧ налезают друг на друга над кубом.
+  { id: 'cell', kind: 'delta', anchor: 'cube', dy: 3 * HALF + 1.17, keys: [{ t: 0, text: `a = ${CELL_PM} {pm}` }], windows: [[T_LATTICE - 0.2, 24.4]] },
+  { id: 'coord', kind: 'token', anchor: 'cube', dy: 3 * HALF + 0.55, keys: [{ t: 0, text: 'Na⁺ : 6 Cl⁻ · Cl⁻ : 6 Na⁺' }], windows: [[22.2, 24.4]] },
+  { id: 'nacl', kind: 'species', anchor: 'cube', dy: -(3 * HALF + 0.6), keys: [{ t: 0, text: 'NaCl ({s})' }], windows: [[T_LATTICE - 0.1, 24.6]] },
+  { id: 'dH', kind: 'delta', anchor: 'cube', dy: -(3 * HALF + 1.05), keys: [{ t: 0, text: 'ΔH°f = −411 {kJmol}' }], windows: [[T_EXO, 24.6]] },
 ]
 
-export type NaclLabelState = { id: string; kind: NaclLabelKind; pos: THREE.Vector3; opacity: number; text: string }
+export type NaclLabelState = SceneLabelState
 
-export type NaclElectronState = {
-  id: 'e1' | 'e2'
-  /** положение сейчас */
-  pos: THREE.Vector3
-  /** старт и финиш прыжка (поверхности атомов) */
-  from: THREE.Vector3
-  to: THREE.Vector3
-  /** нормаль дуги */
-  perp: THREE.Vector3
-  arc: number
-  /** 0 — ещё на орбитали Na, 1 — уже у Cl */
-  progress: number
-  opacity: number
-  /** яркость: разгорается на орбитали, пик в полёте */
-  glow: number
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Кадр
+// ─────────────────────────────────────────────────────────────────────────────
 
 export type NaclFrame = {
   atoms: Record<NaclAtomId, THREE.Vector3>
@@ -348,23 +557,23 @@ export type NaclFrame = {
   opacity: Record<NaclAtomId, number>
   emissive: Record<NaclAtomId, number>
   /** связь Cl–Cl */
-  bond: { order: number; stress: number; split: number; opacity: number }
-  /** рёбра кубического фрагмента (прозрачность) */
+  bond: { stress: number; split: number; opacity: number }
+  /** прозрачность связей металлического натрия */
+  metalBond: number
+  /** прозрачность рёбер фрагмента решётки */
   edges: number
-  electrons: [NaclElectronState, NaclElectronState]
-  /** подсветка 3s-орбитали каждого натрия, 0..1 */
-  orbital: { na1: number; na2: number }
-  /** сила «линий притяжения» между ионами пары, 0..1 */
-  attract: number
+  electrons: [ElectronJump, ElectronJump]
+  /** подсветка схематичной 3s-оболочки каждого натрия, 0..1 */
+  shell: { na1: number; na2: number }
+  /** сила линий электростатического поля между ионами пары, 0..1 */
+  field: number
+  /** подсветка координационного окружения Na⁺, 0..1 */
+  coord: number
   env: { exo: number; fade: number }
   labels: NaclLabelState[]
   camera: { zoom: number; offset: THREE.Vector3; yaw: number; roll: number; shake: number; bloom: number; vignette: number }
-  /** центр фрагмента решётки (для ореола и подписей) */
   cubeCenter: THREE.Vector3
-}
-
-function v3(): THREE.Vector3 {
-  return new THREE.Vector3()
+  metalCenter: THREE.Vector3
 }
 
 export function createNaclFrame(): NaclFrame {
@@ -374,131 +583,61 @@ export function createNaclFrame(): NaclFrame {
   const opacity = {} as Record<NaclAtomId, number>
   const emissive = {} as Record<NaclAtomId, number>
   for (const a of NACL_ATOMS) {
-    atoms[a.id] = v3()
+    atoms[a.id] = new THREE.Vector3()
     radius[a.id] = a.el === 'Na' ? R.na : R.cl
     charge[a.id] = 0
     opacity[a.id] = a.main ? 1 : 0
     emissive[a.id] = 0.08
   }
-  const electron = (id: 'e1' | 'e2'): NaclElectronState => ({
-    id,
-    pos: v3(),
-    from: v3(),
-    to: v3(),
-    perp: v3(),
-    arc: 0.28,
-    progress: 0,
-    opacity: 0,
-    glow: 0,
-  })
   return {
     atoms,
     radius,
     charge,
     opacity,
     emissive,
-    bond: { order: 1, stress: 0, split: 0, opacity: 1 },
+    bond: { stress: 0, split: 0, opacity: 1 },
+    metalBond: 0,
     edges: 0,
-    electrons: [electron('e1'), electron('e2')],
-    orbital: { na1: 0, na2: 0 },
-    attract: 0,
+    electrons: [createElectronJump('e1'), createElectronJump('e2')],
+    shell: { na1: 0, na2: 0 },
+    field: 0,
+    coord: 0,
     env: { exo: 0, fade: 0 },
-    labels: NACL_LABELS.map((l) => ({ id: l.id, kind: l.kind, pos: v3(), opacity: 0, text: l.keys[0]!.text })),
-    camera: { zoom: 1, offset: v3(), yaw: 0, roll: 0, shake: 0, bloom: 0.3, vignette: 0.3 },
-    cubeCenter: v3(),
+    labels: createLabelStates(NACL_LABELS),
+    camera: {
+      zoom: 1,
+      offset: new THREE.Vector3(),
+      yaw: 0,
+      roll: 0,
+      shake: 0,
+      bloom: 0.3,
+      vignette: 0.3,
+    },
+    cubeCenter: new THREE.Vector3(),
+    metalCenter: new THREE.Vector3(METAL_CENTER[0], METAL_CENTER[1], METAL_CENTER[2]),
   }
 }
 
-const _dir = new THREE.Vector3()
-const _z = new THREE.Vector3(0, 0, 1)
-
-/** Точка на дуге прыжка электрона при параметре p ∈ [0, 1] (без аллокаций). */
-export function naclElectronPoint(el: NaclElectronState, p: number, out: THREE.Vector3): THREE.Vector3 {
-  out.copy(el.from).lerp(el.to, p)
-  const bump = Math.sin(Math.PI * p)
-  return out.addScaledVector(el.perp, el.arc * bump)
-}
-
-function sampleElectron(
-  el: NaclElectronState,
-  t: number,
-  na: THREE.Vector3,
-  cl: THREE.Vector3,
-  rCl: number,
-  timing: { leave: number; arrive: number },
-  phase: number,
-): void {
-  _dir.copy(cl).sub(na)
-  if (_dir.lengthSq() < 1e-8) _dir.set(1, 0, 0)
-  _dir.normalize()
-  el.from.copy(na).addScaledVector(_dir, NACL_GEOM.orbital3s)
-  el.to.copy(cl).addScaledVector(_dir, -rCl * 0.55)
-  el.perp.copy(_dir).cross(_z)
-  if (el.perp.lengthSq() < 1e-8) el.perp.set(0, 1, 0)
-  el.perp.normalize()
-  // Знак дуги: у верхней пары выпуклость вверх, у нижней — вниз (симметрия кадра).
-  el.arc = 0.28 * Math.sign(na.y || 1)
-
-  const show = timing.leave - 1.4
-  if (t < show) {
-    el.opacity = 0
-    el.progress = 0
-    el.glow = 0
-    el.pos.copy(el.from)
-    return
-  }
-  if (t < timing.leave) {
-    // На 3s-орбитали: медленно обходит атом, разгорается перед прыжком.
-    const u = norm(show, timing.leave, t)
-    // Плоскость орбиты — xy; обход заканчивается в точке старта прыжка (со стороны хлора).
-    const start = Math.atan2(_dir.y, _dir.x)
-    const a = start + (1 - u) * (Math.PI * 1.6) * (phase >= 0 ? 1 : -1)
-    el.pos.set(na.x + Math.cos(a) * NACL_GEOM.orbital3s, na.y + Math.sin(a) * NACL_GEOM.orbital3s, na.z + 0.02)
-    el.opacity = smoothstep(0, 0.25, u)
-    el.progress = 0
-    el.glow = 0.35 + 0.65 * smoothstep(0.55, 1, u)
-    return
-  }
-  const p = smoothstep(0, 1, norm(timing.leave, timing.arrive, t))
-  const pe = p * p * (3 - 2 * p)
-  el.progress = pe
-  naclElectronPoint(el, pe, el.pos)
-  el.glow = 1
-  // Прибыл — растворяется в электронной оболочке хлора.
-  el.opacity = t <= timing.arrive ? 1 : 1 - smoothstep(0, 0.5, t - timing.arrive)
-}
-
-function labelText(def: NaclLabelDef, t: number): string {
-  let text = def.keys[0]!.text
-  for (const k of def.keys) if (t >= k.t) text = k.text
-  return text
-}
-
-function labelOpacity(def: NaclLabelDef, t: number): number {
-  let o = 0
-  for (const w of def.windows) o = Math.max(o, windowFade(w, t, 0.25))
-  return o
-}
-
-/**
- * Записывает кадр сюжета для момента t в заранее созданный frame (без аллокаций).
- */
+/** Записывает кадр сюжета для момента t в заранее созданный frame (без аллокаций). */
 export function sampleNaclFrame(t: number, frame: NaclFrame): NaclFrame {
   const { atoms, radius, charge, opacity, emissive } = frame
 
-  for (const a of NACL_ATOMS) sampleVec3(POS[a.id as keyof typeof POS] ?? LATTICE_TRACK[a.id]!, t, atoms[a.id])
+  for (const a of NACL_ATOMS) {
+    const track = POS[a.id] ?? LATTICE_TRACK[a.id]
+    if (track) sampleVec3(track, t, atoms[a.id])
+  }
 
-  radius.na1 = sampleScalar(RADIUS_NA, t)
+  radius.na1 = sampleScalar(RADIUS_NA1, t)
   radius.na2 = sampleScalar(RADIUS_NA2, t)
-  radius.clA = sampleScalar(RADIUS_CL, t)
-  radius.clB = sampleScalar(RADIUS_CL2, t)
-  radius.na3 = radius.na4 = R.naCation
-  radius.clC = radius.clD = R.clAnion
+  radius.clA = sampleScalar(RADIUS_CLA, t)
+  radius.clB = sampleScalar(RADIUS_CLB, t)
+  radius.na3 = radius.na4 = R.naIon
+  radius.clC = radius.clD = R.clIon
 
-  charge.na1 = sampleScalar(CHARGE_NA, t)
+  charge.na1 = sampleScalar(CHARGE_NA1, t)
   charge.na2 = sampleScalar(CHARGE_NA2, t)
-  charge.clA = sampleScalar(CHARGE_CL, t)
-  charge.clB = sampleScalar(CHARGE_CL2, t)
+  charge.clA = sampleScalar(CHARGE_CLA, t)
+  charge.clB = sampleScalar(CHARGE_CLB, t)
   charge.na3 = charge.na4 = 1
   charge.clC = charge.clD = -1
 
@@ -506,78 +645,96 @@ export function sampleNaclFrame(t: number, frame: NaclFrame): NaclFrame {
   opacity.na1 = opacity.na2 = opacity.clA = opacity.clB = 1
   opacity.na3 = opacity.na4 = opacity.clC = opacity.clD = back
 
-  // Внешние ионы решётки: уже готовые Na⁺/Cl⁻, проявляются на подлёте.
+  const metalA = sampleScalar(METAL_OPACITY, t)
+  frame.metalBond = sampleScalar(METAL_BOND_OPACITY, t)
+  for (const m of METAL_ATOMS) {
+    radius[m.id] = R.na
+    charge[m.id] = 0
+    opacity[m.id] = metalA
+  }
+
+  // Внешние ионы решётки: уже готовые Na⁺ / Cl⁻, проявляются на подлёте.
   for (const l of LATTICE_IONS) {
-    radius[l.id] = l.el === 'Na' ? R.naCation : R.clAnion
+    radius[l.id] = l.el === 'Na' ? R.naIon : R.clIon
     charge[l.id] = l.el === 'Na' ? 1 : -1
     const s = LATTICE_START[l.id]!
     opacity[l.id] = smoothstep(s, s + 0.55, t)
   }
-  // Координационное число: пульс подсветки Na⁺ и шести соседей Cl⁻ в конце урока.
-  const coord = windowFade([21.4, 23.6], t, 0.4) * (0.7 + 0.3 * Math.sin(t * 5.5))
 
-  // ——— Орбиталь 3s: разгорается перед прыжком, гаснет, когда электрон ушёл ———
-  frame.orbital.na1 = windowFade([T_E1.leave - 1.4, T_E1.leave + 0.25], t, 0.45)
-  frame.orbital.na2 = windowFade([T_E2.leave - 1.4, T_E2.leave + 0.25], t, 0.45)
+  // ——— Схематичная оболочка 3s¹: разгорается перед отдачей электрона ———
+  frame.shell.na1 = windowFade([T_E1.leave - 1.4, T_E1.leave + 0.25], t, 0.45)
+  frame.shell.na2 = windowFade([T_E2.leave - 1.4, T_E2.leave + 0.25], t, 0.45)
 
-  // ——— Электроны ———
-  sampleElectron(frame.electrons[0], t, atoms.na1, atoms.clA, radius.clA, T_E1, 0.4)
-  sampleElectron(frame.electrons[1], t, atoms.na2, atoms.clB, radius.clB, T_E2, -0.4)
+  // ——— Электроны: 3s¹ натрия достраивает октет хлора ———
+  sampleElectronJump(frame.electrons[0], t, {
+    donor: atoms.na1,
+    acceptor: atoms.clA,
+    shellRadius: SHELL_NA,
+    acceptorRadius: radius.clA,
+    leave: T_E1.leave,
+    arrive: T_E1.arrive,
+    arcSign: 1,
+  })
+  sampleElectronJump(frame.electrons[1], t, {
+    donor: atoms.na2,
+    acceptor: atoms.clB,
+    shellRadius: SHELL_NA,
+    acceptorRadius: radius.clB,
+    leave: T_E2.leave,
+    arrive: T_E2.arrive,
+    arcSign: -1,
+  })
 
   // ——— Связь Cl–Cl и рёбра решётки ———
-  frame.bond.order = 1
   frame.bond.stress = sampleScalar(BOND_STRESS, t)
   frame.bond.split = sampleScalar(BOND_SPLIT, t)
   frame.bond.opacity = sampleScalar(BOND_OPACITY, t)
   frame.edges = sampleScalar(EDGES, t)
 
-  // ——— Притяжение ионов ———
-  frame.attract = windowFade([12.3, T_CONTACT + 0.15], t, 0.5)
+  // ——— Шаг 4: электростатическое притяжение (закон Кулона) ———
+  frame.field = windowFade([13.2, T_CONTACT + 0.4], t, 0.5)
 
-  // ——— Энергия: пик на cue exo, потом ровное тёплое свечение ———
-  const rise = smoothstep(T_EXO - 0.7, T_EXO, t)
-  const settle = 1 - 0.55 * smoothstep(T_EXO, T_EXO + 1.6, t)
-  const exo = rise * settle
+  // ——— Шаг 5: координационное число 6 ———
+  frame.coord = windowFade([22.0, 24.4], t, 0.4) * (0.7 + 0.3 * Math.sin(t * 5.5))
+
+  // ——— Энергия: пик на cue exo, затем ровное тёплое свечение ———
+  const exo = smoothstep(T_EXO - 0.7, T_EXO, t) * (1 - 0.55 * smoothstep(T_EXO, T_EXO + 1.6, t))
   frame.env.exo = exo
   frame.env.fade = sampleScalar(FADE, t)
 
   for (const a of NACL_ATOMS) {
-    const base = a.el === 'Na' ? 0.1 : 0.08
-    let e = base + exo * 0.42
-    if (a.id === 'na1') e += frame.orbital.na1 * 0.3 + coord * 0.5
-    if (a.id === 'na2') e += frame.orbital.na2 * 0.3
-    if (coord > 0 && NACL_COORDINATION_IDS.includes(a.id)) e += coord * 0.4
+    let e = (a.el === 'Na' ? 0.1 : 0.08) + exo * 0.42
+    if (a.id === 'na1') e += frame.shell.na1 * 0.3 + frame.coord * 0.5
+    if (a.id === 'na2') e += frame.shell.na2 * 0.3
+    if (frame.coord > 0 && NACL_COORDINATION_IDS.includes(a.id)) e += frame.coord * 0.4
     emissive[a.id] = e
   }
 
-  // ——— Центр решётки ———
-  frame.cubeCenter.copy(atoms.na1).add(atoms.na2).add(atoms.clA).add(atoms.clB).multiplyScalar(0.25)
-  if (back > 0) {
-    const bz = mix(0, -HALF, back)
-    frame.cubeCenter.z = mix(frame.cubeCenter.z, (frame.cubeCenter.z + bz) * 0.5, back)
-  }
+  // ——— Центр фрагмента ———
+  frame.cubeCenter.copy(atoms.na1).add(atoms.clA).add(atoms.na2).add(atoms.clB).multiplyScalar(0.25)
+  if (back > 0) frame.cubeCenter.multiplyScalar(mix(1, 0, back))
 
   // ——— Подписи ———
-  for (let i = 0; i < NACL_LABELS.length; i++) {
-    const def = NACL_LABELS[i]!
-    const st = frame.labels[i]!
-    st.text = labelText(def, t)
-    const o = labelOpacity(def, t)
-    if (def.anchor === 'cube') {
+  sampleLabels(NACL_LABELS, frame.labels, t, (def, st) => {
+    const d = def as NaclLabelDef
+    if (d.anchor === 'cube') {
       st.pos.copy(frame.cubeCenter)
-      st.pos.y += def.dy
-    } else if (def.anchor === 'cl2') {
+      st.pos.y += d.dy
+    } else if (d.anchor === 'metal') {
+      st.pos.copy(frame.metalCenter)
+      st.pos.y += d.dy
+    } else if (d.anchor === 'cl2') {
       st.pos.copy(atoms.clA).lerp(atoms.clB, 0.5)
-      st.pos.x += radius.clA + 0.22
-      st.pos.y += def.dy - 0.2
+      st.pos.x += radius.clA + 0.26
+      st.pos.y += d.dy - 0.2
+    } else if (d.anchor === 'pair') {
+      st.pos.copy(atoms.na1).lerp(atoms.clA, 0.5)
+      st.pos.y += d.dy
     } else {
-      const p = atoms[def.anchor]
-      const r = radius[def.anchor]
-      st.pos.copy(p)
-      st.pos.y += def.dy > 0 ? r + def.dy : -(r + -def.dy)
+      st.pos.copy(atoms[d.anchor])
+      st.pos.y += d.dy > 0 ? radius[d.anchor] + d.dy : -(radius[d.anchor] - d.dy)
     }
-    st.opacity = o * (1 - frame.env.fade)
-  }
+  }, frame.env.fade)
 
   // ——— Камера ———
   const cam = frame.camera
@@ -585,42 +742,29 @@ export function sampleNaclFrame(t: number, frame: NaclFrame): NaclFrame {
   sampleVec3(CAM_OFFSET, t, cam.offset)
   cam.yaw = sampleScalar(CAM_YAW, t)
   cam.roll = sampleScalar(CAM_ROLL, t)
-  cam.shake = 0.35 * Math.max(0, 1 - Math.abs(t - T_BREAK) / 0.35) + 0.5 * Math.max(0, 1 - Math.abs(t - T_EXO) / 0.5)
-  cam.bloom = 0.3 + 0.25 * frame.orbital.na1 + 0.75 * exo
+  cam.shake = 0.3 * Math.max(0, 1 - Math.abs(t - T_BREAK) / 0.35) + 0.5 * Math.max(0, 1 - Math.abs(t - T_EXO) / 0.5)
+  cam.bloom = 0.3 + 0.25 * frame.shell.na1 + 0.75 * exo
   cam.vignette = 0.3 + 0.15 * exo
   return frame
 }
 
-/** Рёбра решётки: все пары соседних узлов (Na–Cl, расстояние 2·HALF) во фрагменте 4×4×4 — 144 ребра. */
-export const NACL_EDGES: readonly (readonly [NaclAtomId, NaclAtomId])[] = (() => {
-  const out: [NaclAtomId, NaclAtomId][] = []
-  for (let i = 0; i < NACL_ATOMS.length; i++) {
-    for (let j = i + 1; j < NACL_ATOMS.length; j++) {
-      const a = SITE_BY_ID[NACL_ATOMS[i]!.id]!
-      const b = SITE_BY_ID[NACL_ATOMS[j]!.id]!
-      const d = [Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2])]
-      if (d.filter((v) => v === 2).length === 1 && d.filter((v) => v === 0).length === 2) out.push([NACL_ATOMS[i]!.id, NACL_ATOMS[j]!.id])
-    }
-  }
-  return out
-})()
-
-/** Проверка порядка ключей — в dev и в тестах. */
+/** Проверка раскадровки — в dev и в тесте сцены. */
 export function validateNaclStoryboard(): void {
-  for (const id of Object.keys(POS) as (keyof typeof POS)[]) validateTrack(`pos.${id}`, POS[id])
-  for (const m of LATTICE_META) validateTrack(`pos.${m.id}`, m.track)
-  if (NACL_ATOMS.length !== 64) throw new Error(`nacl lattice: expected 64 ions, got ${NACL_ATOMS.length}`)
-  if (NACL_EDGES.length !== 144) throw new Error(`nacl lattice: expected 144 edges, got ${NACL_EDGES.length}`)
-  if (NACL_COORDINATION_IDS.length !== 6) throw new Error(`nacl lattice: Na⁺ must have 6 Cl⁻ neighbours, got ${NACL_COORDINATION_IDS.length}`)
-  const scalars: Record<string, ScalarTrack> = {
-    RADIUS_NA,
+  const vec: Record<string, Vec3Track> = {}
+  for (const [id, track] of Object.entries(POS)) if (track) vec[`pos.${id}`] = track
+  vec['cam.offset'] = CAM_OFFSET
+  validateTracks(vec)
+  validateTracks({
+    RADIUS_NA1,
     RADIUS_NA2,
-    RADIUS_CL,
-    RADIUS_CL2,
-    CHARGE_NA,
+    RADIUS_CLA,
+    RADIUS_CLB,
+    CHARGE_NA1,
     CHARGE_NA2,
-    CHARGE_CL,
-    CHARGE_CL2,
+    CHARGE_CLA,
+    CHARGE_CLB,
+    METAL_OPACITY,
+    METAL_BOND_OPACITY,
     BACK_OPACITY,
     BOND_STRESS,
     BOND_SPLIT,
@@ -630,14 +774,24 @@ export function validateNaclStoryboard(): void {
     CAM_YAW,
     CAM_ROLL,
     FADE,
-  }
-  for (const [name, track] of Object.entries(scalars)) validateTrack(name, track)
-  validateTrack('CAM_OFFSET', CAM_OFFSET)
-  for (const l of NACL_LABELS) validateTrack(`label.${l.id}`, l.keys)
-  // Решётка: каждое ребро соединяет катион с анионом.
+  })
+
+  if (NACL_ATOMS.length !== 71) throw new Error(`nacl: ожидалось 64 иона + 7 атомов металла, получилось ${NACL_ATOMS.length}`)
+  if (LATTICE_IONS.length !== 56) throw new Error(`nacl: во фрагменте 4×4×4 вне восьмёрки должно быть 56 ионов, получилось ${LATTICE_IONS.length}`)
+  if (NACL_EDGES.length !== 144) throw new Error(`nacl: ожидалось 144 ребра, получилось ${NACL_EDGES.length}`)
+  if (NACL_COORDINATION_IDS.length !== 6) throw new Error(`nacl: КЧ(Na⁺) обязано быть 6, получилось ${NACL_COORDINATION_IDS.length}`)
+
+  // Чередование зарядов: у каждого узла все ближайшие соседи — противоположного знака.
+  const elById = new Map(NACL_ATOMS.map((a) => [a.id, a.el]))
   for (const [a, b] of NACL_EDGES) {
-    const ea = NACL_ATOMS.find((x) => x.id === a)!.el
-    const eb = NACL_ATOMS.find((x) => x.id === b)!.el
-    if (ea === eb) throw new Error(`nacl lattice edge ${a}–${b} joins two ${ea}`)
+    if (elById.get(a) === elById.get(b)) throw new Error(`nacl: соседи ${a} и ${b} одноимённые — решётка построена неверно`)
   }
+
+  // Физика размера: катион меньше атома, анион больше; Cl⁻ ≈ 1,78 · Na⁺.
+  if (!(R.naIon < R.na)) throw new Error('nacl: Na⁺ обязан быть меньше атома Na')
+  if (!(R.clIon > R.cl)) throw new Error('nacl: Cl⁻ обязан быть больше атома Cl')
+  const ratio = R.clIon / R.naIon
+  if (ratio < 1.7 || ratio > 1.85) throw new Error(`nacl: Cl⁻ / Na⁺ = ${ratio.toFixed(2)}, ожидалось ≈ 1,78`)
+
+  if (NACL_END <= 0) throw new Error('nacl: пустой сюжет')
 }

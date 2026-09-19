@@ -50,7 +50,11 @@ export {
   COVALENT_RADIUS_A,
   CPK,
   IONIC_RADIUS_A,
+  METALLIC_RADIUS_A,
+  pmToAngstrom,
+  radiusForSpecies,
   SCENE_PER_ANGSTROM,
+  sceneRadius,
   type CpkSymbol,
 } from './core/atoms'
 export {

@@ -1,97 +1,80 @@
-import type { StorySegment } from '../../core/storyTime'
-import type { Cue } from '../../core/cues'
+import { defineSceneTiming, type SceneFinish, type SceneStep } from '../kit/sceneKit'
 
 /**
- * Синтез поваренной соли из простых веществ: 2 Na + Cl₂ → 2 NaCl (Kimyo, 7–8 класс:
- * ионная связь, переход электрона). Показываем школьную картину честно:
+ * 2 Na (тв.) + Cl₂ (г.) → 2 NaCl (тв.) — ионная связь, Kimyo 7–8 класс.
  *
- *   1) атомы Na и молекула Cl₂ сближаются;
- *   2) связь Cl–Cl рвётся гомолитически — по одному электрону каждому атому;
- *   3) единственный внешний электрон натрия (3s¹) переходит к хлору:
- *      Na → Na⁺ + e⁻ (радиус 1,86 → 1,02 Å), Cl + e⁻ → Cl⁻ (0,99 → 1,81 Å);
- *   4) разноимённые ионы притягиваются электростатически;
- *   5) ионы укладываются в фрагмент кубической решётки NaCl (Na–Cl 2,82 Å);
- *   6) выделяется энергия: ΔH°f(NaCl) = −411 кДж/моль.
+ * Шесть шагов урока:
+ *   1 «Исходные вещества»       — фрагмент металлического натрия (ОЦК, КЧ 8)
+ *                                 и МОЛЕКУЛА хлора Cl₂ с настоящей длиной связи;
+ *   2 «Сублимация и диссоциация» — атом Na выходит из металла (+107,3 кДж/моль),
+ *                                 связь Cl–Cl рвётся ГОМОЛИТИЧЕСКИ (+121,7 на ½Cl₂);
+ *   3 «Отдача и приём электрона» — 3s¹ уходит от Na (+495,8), приходит к Cl (−349);
+ *                                 радиусы меняются ровно в этот момент;
+ *   4 «Электростатическое притяжение» — ионы сходятся на 282 пм, показан закон Кулона;
+ *   5 «Кристаллическая решётка»  — фрагмент 4×4×4, чередование зарядов, КЧ 6 (−786);
+ *   6 «Энергетический итог»      — вся лестница Борна — Габера, ΔH°f ≈ −411 кДж/моль.
  *
- * Здесь только разметка времени: шаги урока, экранный хронометраж и события.
- * Файл без THREE и React — его читают тесты, watchdog лаборатории и панель урока.
+ * Здесь только РАЗМЕТКА ВРЕМЕНИ: без THREE и React — файл читают тесты,
+ * watchdog лаборатории и панель урока.
  */
 
-export const NACL_STEP_IDS = ['approach', 'homolysis', 'transfer', 'attraction', 'lattice', 'energy'] as const
+export const NACL_STEP_IDS = ['reactants', 'sublimation', 'transfer', 'attraction', 'lattice', 'energy'] as const
 
 export type NaclStepId = (typeof NACL_STEP_IDS)[number]
 
-export type NaclStep = {
-  id: NaclStepId
-  /** начало шага, story time */
-  from: number
-  /** конец шага — здесь пошаговый режим встаёт на паузу */
-  to: number
-  /** экранные секунды на шаг; > to − from = замедленная съёмка */
-  wall: number
-  ease: string
-}
+export type NaclStep = SceneStep<NaclStepId>
 
-export const NACL_STEPS: readonly NaclStep[] = [
-  // Экранное время ужато примерно на 15 %: урок идёт бодрее, длинный шаг — рост кристалла.
-  { id: 'approach', from: 0, to: 4, wall: 3.6, ease: 'power1.inOut' },
-  { id: 'homolysis', from: 4, to: 7, wall: 3.6, ease: 'sine.inOut' },
-  { id: 'transfer', from: 7, to: 12, wall: 6.6, ease: 'sine.inOut' },
-  { id: 'attraction', from: 12, to: 15, wall: 3.4, ease: 'power1.inOut' },
-  { id: 'lattice', from: 15, to: 20, wall: 6.4, ease: 'power1.inOut' },
-  { id: 'energy', from: 20, to: 24, wall: 4.4, ease: 'power1.inOut' },
+const STEPS: readonly NaclStep[] = [
+  { id: 'reactants', from: 0, to: 4, wall: 4.6, ease: 'power1.inOut' },
+  { id: 'sublimation', from: 4, to: 8, wall: 5.4, ease: 'sine.inOut' },
+  { id: 'transfer', from: 8, to: 13, wall: 6.6, ease: 'sine.inOut' },
+  { id: 'attraction', from: 13, to: 16, wall: 4.0, ease: 'power1.inOut' },
+  { id: 'lattice', from: 16, to: 21, wall: 6.4, ease: 'power1.inOut' },
+  { id: 'energy', from: 21, to: 25, wall: 4.6, ease: 'power1.inOut' },
 ]
 
 /** Хвост после последнего шага: затемнение и передача кадра продукту лаборатории. */
-export const NACL_FINISH = { from: 24, to: 24.8, wall: 1.2, ease: 'power2.in' } as const
-
-export const NACL_END = NACL_FINISH.to
-
-/** Экранный хронометраж: один сегмент на шаг — границы шагов совпадают с границами сегментов. */
-export const NACL_SEGMENTS: readonly StorySegment[] = [
-  ...NACL_STEPS.map((s) => ({ to: s.to, wall: s.wall, ease: s.ease })),
-  { to: NACL_FINISH.to, wall: NACL_FINISH.wall, ease: NACL_FINISH.ease },
-]
+export const NACL_FINISH: SceneFinish = { from: 25, to: 25.8, wall: 1.2, ease: 'power2.in' }
 
 export type NaclCueId =
-  /** связь Cl–Cl разорвана (гомолиз) */
+  /** атом натрия оторвался от металлической решётки (сублимация) */
+  | 'sublimate'
+  /** связь Cl–Cl разорвана гомолитически */
   | 'bondBreak'
-  /** электроны прибыли к атомам хлора: ионы Na⁺ и Cl⁻ есть */
+  /** электроны пришли к хлору: есть Na⁺ и Cl⁻ */
   | 'transfer'
-  /** ионы соприкоснулись — первая ионная пара */
+  /** ионы соприкоснулись — первая ионная пара, d = 282 пм */
   | 'contact'
-  /** фрагмент решётки собран */
+  /** фрагмент решётки 4×4×4 собран */
   | 'lattice'
-  /** пик выделения энергии */
+  /** пик выделения энергии: пламя горящего натрия в хлоре */
   | 'exo'
   /** контракт лаборатории: продукт существует, пора готовить героя */
   | 'embryo'
   | 'birth'
   | 'complete'
 
-export const NACL_CUES: readonly Cue<NaclCueId>[] = [
-  { at: 6.0, id: 'bondBreak' },
-  { at: 10.0, id: 'transfer' },
-  { at: 14.4, id: 'contact' },
-  { at: 19.6, id: 'lattice' },
-  { at: 20.8, id: 'exo' },
-  { at: 24.2, id: 'embryo' },
-  { at: 24.5, id: 'birth' },
-  { at: NACL_END, id: 'complete' },
-]
+export const NACL_TIMING = defineSceneTiming<NaclStepId, NaclCueId>({
+  steps: STEPS,
+  finish: NACL_FINISH,
+  cues: [
+    { at: 5.2, id: 'sublimate' },
+    { at: 7.0, id: 'bondBreak' },
+    { at: 11.0, id: 'transfer' },
+    { at: 15.4, id: 'contact' },
+    { at: 20.6, id: 'lattice' },
+    { at: 21.8, id: 'exo' },
+    { at: 25.2, id: 'embryo' },
+    { at: 25.5, id: 'birth' },
+    { at: NACL_FINISH.to, id: 'complete' },
+  ],
+})
 
-/** Шаг, внутри которого находится момент t (конец шага принадлежит ему самому). */
-export function naclStepIndexAt(t: number): number {
-  for (let i = 0; i < NACL_STEPS.length; i++) {
-    if (t <= NACL_STEPS[i]!.to) return i
-  }
-  return NACL_STEPS.length - 1
-}
+export const NACL_STEPS = NACL_TIMING.steps
+export const NACL_SEGMENTS = NACL_TIMING.segments
+export const NACL_CUES = NACL_TIMING.cues
+export const NACL_END = NACL_TIMING.end
 
-export function naclStepById(id: NaclStepId): NaclStep {
-  return NACL_STEPS.find((s) => s.id === id)!
-}
-
-export function naclCueAt(id: NaclCueId): number {
-  return NACL_CUES.find((c) => c.id === id)!.at
-}
+export const naclStepIndexAt = NACL_TIMING.stepIndexAt
+export const naclStepById = NACL_TIMING.stepById
+export const naclCueAt = NACL_TIMING.cueAt
