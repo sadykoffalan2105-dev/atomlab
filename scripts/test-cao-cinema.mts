@@ -32,6 +32,28 @@ import {
   localizeSceneLabels,
   SCENE_LABEL_TOKENS,
 } from '../src/lab/cinema/scenes/kit/sceneKit.ts'
+import { bondAngleDeg, bondLengthPm, getCrystal } from '../src/chemistry/data/index.ts'
+
+/**
+ * Числа, извлечённые из текста урока: «435,8», «−93,6», «+1307,4» → числа.
+ * Тексты не сверяются по фразам — сверяются ЧИСЛА с научным ядром.
+ */
+const NUM_RE = /[−-]?\+?\d+(?:[.,]\d+)?/g
+function numbersIn(text: string): number[] {
+  return [...text.matchAll(NUM_RE)].map((m) => Number(m[0].replace('−', '-').replace('+', '').replace(',', '.')))
+}
+/** Есть ли в тексте число, равное value с точностью tol. */
+function hasNumber(text: string, value: number, tol = 0.051): boolean {
+  return numbersIn(text).some((n) => Math.abs(n - value) <= tol)
+}
+/** Первое число после якоря (якорь — фрагмент формулы или символ, не фраза). */
+function numberAfter(text: string, anchor: string): number | null {
+  const i = text.indexOf(anchor)
+  if (i < 0) return null
+  const n = numbersIn(text.slice(i + anchor.length))
+  return n.length ? n[0]! : null
+}
+
 import { speciesRadiusPm } from '../src/lab/cinema/scenes/kit/cpkAtoms.ts'
 import { ladderLevels } from '../src/lab/cinema/scenes/kit/energyLadderData.ts'
 import {
@@ -372,8 +394,73 @@ for (const locale of ['ru', 'en', 'uz'] as const) {
 }
 // Каждый шаг честно называет, что нарисовано схематично.
 for (const id of CAO_STEP_IDS) ok((CAO_TEXT_RU.steps[id].note ?? '').length > 20, `ru/${id}: нет честной пометки note`)
-// Ключевой факт урока обязан прозвучать: это НЕ окислительно-восстановительная реакция.
-ok(/не\s+окислительно/i.test(CAO_TEXT_RU.steps.release.body), 'ru: шаг «release» обязан сказать, что степени окисления не меняются')
-ok(/1119|846/.test(CAO_TEXT_RU.steps.energy.body), 'ru: шаг «energy» обязан назвать температуру равновесия')
+// Степени окисления: считаются из электронейтральности (Ca +2, O −2), текст сверяется с расчётом.
+{
+  const OX_CA = 2
+  const OX_O = -2
+  const oxCInCaco3 = 0 - OX_CA - 3 * OX_O
+  const oxCInCo2 = 0 - 2 * OX_O
+  ok(oxCInCaco3 === oxCInCo2, `с.о. углерода не меняется: CaCO₃ ${oxCInCaco3}, CO₂ ${oxCInCo2} — реакция не окислительно-восстановительная`)
+  for (const locale of ['ru', 'en', 'uz'] as const) {
+    const body = getCaoMechanismText(locale).steps.release.body
+    for (const ox of [OX_CA, oxCInCaco3, OX_O]) ok(hasNumber(body, ox, 0), `${locale}: с.о. ${ox} в шаге «release» совпадает с расчётом`)
+  }
+}
+// Температура равновесия ΔG° = 0 в тексте = CAO_EQUILIBRIUM_K (и та же точка в °C).
+for (const locale of ['ru', 'en', 'uz'] as const) {
+  const text = getCaoMechanismText(locale)
+  const body = text.steps.energy.body
+  ok(hasNumber(body, Math.round(CAO_EQUILIBRIUM_K), 0), `${locale}: T(ΔG° = 0) в тексте = ${Math.round(CAO_EQUILIBRIUM_K)} K`)
+  ok(hasNumber(body, Math.round(Math.round(CAO_EQUILIBRIUM_K) - 273.15), 0), `${locale}: та же точка в °C = ${Math.round(Math.round(CAO_EQUILIBRIUM_K) - 273.15)}`)
+  // Вода в легенде: O–H и угол — из ядра.
+  ok(hasNumber(text.legend.water, bondAngleDeg('water'), 0.001), `${locale}: угол H–O–H в легенде = ядро (${bondAngleDeg('water')}°)`)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Разбор замечаний: 1119 K — приближение, а не измеренная точка
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 1119 K получены из ΔH°₂₉₈ и ΔS°₂₉₈, то есть в предположении, что они не
+// зависят от температуры. Опыт даёт p(CO₂) = 1 атм при 898 °C — НА 52 K ВЫШЕ.
+// Значит утверждение «при 1 атм разложение идёт чуть раньше» неверно, и текст
+// обязан назвать и точную температуру, и цену приближения.
+const CACO3_1ATM_C = 898
+const CACO3_1ATM_K = Math.round(CACO3_1ATM_C + 273.15)
+ok(CACO3_1ATM_K === 1171, `898 °C — это ${CACO3_1ATM_K} K, ожидалось 1171`)
+ok(
+  Math.round(CACO3_1ATM_K - CAO_EQUILIBRIUM_K) === 52,
+  `цена приближения ${(CACO3_1ATM_K - CAO_EQUILIBRIUM_K).toFixed(0)} K, ожидалось 52`,
+)
+ok(CACO3_1ATM_K > CAO_EQUILIBRIUM_K, 'опытная точка обязана лежать ВЫШЕ оценки 1119 K, а не ниже')
+
+const CAO_NOTE_RULES = {
+  ru: { early: /чуть раньше/i, exact: /898 °C/, kelvin: /1171 K/, approx: /298 K/ },
+  en: { early: /a little earlier/i, exact: /898 °C/, kelvin: /1171 K/, approx: /298 K/ },
+  uz: { early: /biroz erta/i, exact: /898 °C/, kelvin: /1171 K/, approx: /298 K/ },
+} as const
+for (const locale of ['ru', 'en', 'uz'] as const) {
+  const note = getCaoMechanismText(locale).steps.energy.note ?? ''
+  const r = CAO_NOTE_RULES[locale]
+  ok(!r.early.test(note), `${locale}: снято неверное «при 1 атм разложение идёт чуть раньше»`)
+  ok(r.exact.test(note), `${locale}: названа опытная температура 898 °C`)
+  ok(r.kelvin.test(note), `${locale}: названа та же температура в кельвинах (1171 K)`)
+  ok(r.approx.test(note), `${locale}: сказано, что ΔH° и ΔS° взяты при 298 K`)
+}
+
+// Тугоплавкость CaO: число из ядра, а не из головы, и сравнение с NaCl честное.
+const CAO_CELL = getCrystal('cao')!
+const NACL_CELL = getCrystal('nacl')!
+ok(CAO_CELL.meltingC === 2572, `t_пл(CaO) из ядра = ${CAO_CELL.meltingC}, ожидалось 2572`)
+ok(CAO_CELL.meltingC! > NACL_CELL.meltingC!, 'CaO обязан плавиться выше NaCl')
+// Множитель 4 верен ТОЛЬКО при одинаковом расстоянии: полный ≈ 5,5, а не 4.
+const CAO_COULOMB = 4 * (NACL_CELL.cationAnionPm / CAO_CELL.cationAnionPm) ** 2
+ok(CAO_COULOMB > 5.2 && CAO_COULOMB < 5.8, `кулоновский множитель CaO/NaCl = ${CAO_COULOMB.toFixed(2)}, а не 4`)
+const CAO_SAME_DISTANCE = { ru: /при том же расстоянии/i, en: /at the same distance/i, uz: /xuddi shu masofada/i } as const
+for (const locale of ['ru', 'en', 'uz'] as const) {
+  const body = getCaoMechanismText(locale).steps.rocksalt.body
+  ok(CAO_SAME_DISTANCE[locale].test(body), `${locale}: «вчетверо» оговорено одинаковым расстоянием`)
+  ok(body.includes(String(CAO_CELL.meltingC)), `${locale}: названа температура плавления CaO из ядра`)
+  ok(body.includes(String(NACL_CELL.meltingC)), `${locale}: есть сравнение с температурой плавления NaCl`)
+}
 
 console.log(`test-cao-cinema: OK — ${checks} проверок, сцена ${wall.toFixed(1)} c / ${CAO_END} c сюжета, ΔH = +${CAO_REACTION_DH_KJ.toFixed(1)} кДж/моль`)

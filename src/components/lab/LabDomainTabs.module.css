@@ -19,6 +19,7 @@
 }
 
 .tab {
+  position: relative;
   appearance: none;
   text-decoration: none;
   border: 1px solid transparent;
@@ -46,6 +47,18 @@
     box-shadow 0.18s ease;
 }
 
+/* Тач: зона нажатия 44px по высоте (сама пилюля остаётся 36px — ряд сегмента
+ * держит высоту вровень с кнопкой «Синтез»). По ширине пилюли и так шире 44px. */
+.tab::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
 .tab:hover {
   color: #ffffff;
   background: rgba(148, 170, 230, 0.12);
@@ -54,6 +67,32 @@
 .tab:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(91, 140, 255, 0.45);
+}
+
+/* Узкий телефон: ряд стоит в потоке над холстом — пилюля ниже на 4px,
+ * зона нажатия остаётся 44px (.tab::after выше). Фон и подписи берём из
+ * токенов оболочки: ряд ушёл с чёрного холста на подложку страницы и в
+ * светлой теме чёрный сегмент выглядел инородным пятном. */
+@media (max-width: 480px) {
+  .tab {
+    height: 32px;
+    padding: 0 13px;
+    font-size: 13px;
+    color: var(--app-chrome-text, rgba(196, 208, 236, 0.9));
+  }
+
+  .tab:hover {
+    color: var(--app-chrome-text-strong, #ffffff);
+    background: var(--app-chrome-hover, rgba(148, 170, 230, 0.12));
+  }
+
+  .tabs {
+    gap: 2px;
+    padding: 2px;
+    border-color: var(--app-chrome-border, rgba(148, 170, 230, 0.18));
+    background: var(--app-chrome-bg, rgba(6, 9, 19, 0.9));
+    box-shadow: none;
+  }
 }
 
 .tabActive,

@@ -1,109 +1,29 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react'
+import { useFrame } from '@react-three/fiber'
 import type * as THREE from 'three'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'
-import { assertPreviewElectronAnimation } from '../../lab/reactorPreviewGuarantee'
-import { resolveReactorEditPerfFlags } from '../../lab/reactorEditPerfMode'
-import { createReactorInvalidateThrottle } from '../../lab/reactorInvalidateThrottle'
-import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
-import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
-import { warnIfReactorVisualDegraded } from '../../lab/reactorVisualPreservation'
-import { useReactorPreviewLayout } from '../../lab/useReactorPreviewLayout'
-import { cpkLabelIndices } from './atom/cpkAtomVisual'
-import {
-  createPreviewEngineState,
-  resolveFullDetailLatch,
-  resolvePreviewEngineFrame,
-  resolvePreviewFramePolicy,
-  syncPreviewLayoutSlots,
-  tickSynthesisPreviewFrame,
-  bumpSettlePinUntil,
-  isSettlePinActive,
-  withSettlePinPolicy,
-  type PreviewFrameTickInput,
-} from '../../lab/synthesisPreviewEngine'
-import {
-  resolvePreviewEditingActive,
-  resolvePreviewExternalAtomControl,
-} from '../../lab/synthesisPreviewEngine/previewExternalControl'
-import { restorePreviewActiveSlotVisibility } from '../../lab/previewAtomFrameGuard'
-import { createReactorPreviewVisibilityGuard } from '../../lab/reactorPreviewVisibilityGuard'
-import {
-  bumpShieldOnCoeffEdit,
-  createShieldSnapshot,
-  resolveShieldRenderPolicy,
-  tickShieldPhase,
-  shieldForceShowActiveSlots,
-  shouldBumpShieldOnPreviewFrame,
-} from '../../lab/reactorPreviewShield'
-import {
-  resolvePreviewAtomInvariants,
-  resolveStableElectronFrameSkip,
-} from '../../lab/synthesisStabilityEngine'
-import {
-  pinCoeffEditAtomsHard,
-  shouldHardPinCoeffEditAtoms,
-  resolveBohrReactVisible,
-  type CoeffEditAtomPinOpts,
-} from '../../lab/coeffEditAtomPin'
-import {
-  PREVIEW_MOTION,
-  resolvePreviewMotionPolicy,
-  samplePreviewAtomMotion,
-  samplePreviewRootSpin,
-} from '../../lab/reactorPreviewMotionEngine'
-import { ReactorPreviewAtomSlot } from './ReactorPreviewAtomSlot'
-import { reactorPreviewAtomScale } from './reactorPreviewLayout'
-import { ReactorTermMoleculeOverlay } from './ReactorTermMoleculeOverlay'
-import { reactorTermsWithMolecule } from '../../lab/reactorPreviewMolecule'
-import type { ReactorPreviewVisibilityGuard } from '../../lab/reactorPreviewVisibilityGuard'
-
-/** Scratch pin-аргументов: создаётся один раз, дальше поля перезаписываются в кадре. */
-function createPinArgs(
-  atomGroupRefs: MutableRefObject<(THREE.Group | null)[]>,
-  atomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>,
-): CoeffEditAtomPinOpts {
-  return { slotCount: 0, layoutScale: 1, root: null, atomGroupRefs, atomScaleGroupRefs, positions: undefined }
-}
-
-/** Scratch аргументов tickSynthesisPreviewFrame — см. createPinArgs. */
-function createTickArgs(
-  policy: PreviewFrameTickInput['policy'],
-  atomGroupRefs: MutableRefObject<(THREE.Group | null)[]>,
-  atomScaleGroupRefs: MutableRefObject<(THREE.Group | null)[]>,
-  visibilityGuard: ReactorPreviewVisibilityGuard,
-  onRecoverLayout: () => void,
-): PreviewFrameTickInput {
-  return {
-    policy,
-    slotCount: 0,
-    groupVisible: false,
-    flightActive: false,
-    layoutPending: false,
-    layoutScale: 1,
-    layoutAtoms: [],
-    shellAtoms: [],
-    rootRef: null,
-    atomGroupRefs,
-    atomScaleGroupRefs,
-    visibilityGuard,
-    guardFrame: 0,
-    onRecoverLayout,
-  }
-}
+import { resolveBohrReactVisible } from '../../lab/coeffEditAtomPin'
+import { buildReactorParticles } from '../../lab/reactorParticles'
+import { resolvePreviewExternalAtomControl } from '../../lab/synthesisPreviewEngine/previewExternalControl'
+import { ReactorParticleField } from './ReactorParticleField'
+import { PREVIEW_ATOM_SCALE } from './reactorPreviewLayout'
 
 /** Собственный свет превью (когда нет sharedLighting) — базовые интенсивности. */
 const OWN_LIGHT = { ambient: 0.28, directional: 0.65, point: 0.9 } as const
 
 /**
- * Выше этого числа атомов кластеры становятся такими плотными, что даже
- * по одной подписи на элемент читаются как шум — там цвет CPK говорит сам.
- */
-const PREVIEW_LABEL_MAX_SLOTS = 16
-
-/**
- * Превью реагентов: CPK-сферы (цвет и радиус — настоящие, см. atom/CpkAtomModel).
- * Стабильность +/- — synthesisPreviewEngine (shell-hold, pin, policy).
+ * Превью реагентов на этапе балансировки: «частица = формульная единица».
+ *
+ * Раньше здесь рисовался слой «один шар на единицу коэффициента» и поверх него —
+ * оверлей молекулы; четыре императивных сторожа каждый кадр включали скрытый слот,
+ * и у Cl₂ появлялся третий, призрачный атом. Теперь атомы рисует только
+ * ReactorParticleField (настоящие молекулы, фрагменты решёток, формульные единицы),
+ * а слот-группы atomGroupRefs остались ПУСТЫМИ якорями полёта: внешние pin/guard
+ * могут включать им visible сколько угодно — в них нечего показывать.
+ *
+ * Контракт с LabScene/SynthesisConvergeStreams: atomGroupRefs[i] — i-я формульная
+ * единица (порядок членов уравнения, затем экземпляры), atomScaleGroupRefs[i] — её
+ * масштабная группа; до запуска слоты стоят в центрах частиц.
  */
 export function ReactorTermsPreview({
   terms,
@@ -112,19 +32,16 @@ export function ReactorTermsPreview({
   poseLocked = false,
   sharedLighting = false,
   forceLite = false,
-  qualityLevel,
-  synthesisGlass: _synthesisGlass = false,
   coeffEditBurst = false,
   coeffEditing = coeffEditBurst,
   previewOnlyMode = false,
   synthHoldPreview = false,
-  productPrewarm: _productPrewarm = false,
   lowPower = false,
-  frameBudgetLite = false,
   productOwnsScreen: productOwnsScreenProp,
   atomGroupRefs: atomGroupRefsExternal,
   atomScaleGroupRefs: atomScaleGroupRefsExternal,
   previewRootRef,
+  interactive = true,
 }: {
   terms: readonly ReactorEquationTerm[]
   visible?: boolean
@@ -141,518 +58,65 @@ export function ReactorTermsPreview({
   productPrewarm?: boolean
   lowPower?: boolean
   frameBudgetLite?: boolean
-  /** Явный сигнал LabScene: молекула владеет экраном — орбиты гасим. */
+  /** Явный сигнал LabScene: молекула владеет экраном — превью гасим. */
   productOwnsScreen?: boolean
   atomGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   atomScaleGroupRefs?: MutableRefObject<(THREE.Group | null)[]>
   previewRootRef?: MutableRefObject<THREE.Group | null>
+  /** Наведение/касание на атом — карточка валентного слоя (по умолчанию включено). */
+  interactive?: boolean
 }) {
-  const { invalidate } = useThree()
-  const engineRef = useRef(createPreviewEngineState())
-  const settlePinUntilRef = useRef(0)
-  const shieldRef = useRef(createShieldSnapshot())
-  /** Сколько Bohr уже смонтировано; растём +4/кадр → полный dichromate < 1с без wipe. */
-  const [mountCap, setMountCap] = useState(0)
-  const mountCapRef = useRef(0)
-  const lowPowerProfile = useMemo(() => getLowPowerDeviceProfile(getSynthesisDeviceTier()), [])
-  const editingActive = resolvePreviewEditingActive({
-    coeffEditing,
-    previewOnlyMode,
-    synthHoldPreview,
-  })
+  const termsSig = terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}:${t.compoundId ?? ''}`).join('|')
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- набор частиц зависит только от подписи членов
+  const particleSet = useMemo(() => buildReactorParticles(terms), [termsSig])
 
-  const framePolicy = useMemo(
-    () =>
-      resolvePreviewFramePolicy({
-        atomCount: 0,
-        editingActive,
-        coeffEditBurst,
-        coeffEditing,
-        flightActive,
-        groupVisible: true,
-        forceLite,
-        frameBudgetLite,
-        qualityLevel,
-        lowPowerProfile,
-      }),
-    [
-      editingActive,
-      coeffEditBurst,
-      coeffEditing,
-      flightActive,
-      forceLite,
-      frameBudgetLite,
-      qualityLevel,
-      lowPowerProfile,
-    ],
-  )
+  /** Слотов столько же, сколько формульных единиц (LabScene считает так же: сумма коэффициентов). */
+  const slotCount = useMemo(() => terms.reduce((s, t) => s + Math.max(0, Math.floor(t.coeff)), 0), [terms])
+  /** Якорей ровно по числу формульных единиц: они пустые, ± их (до)монтирует без визуального следа. */
+  const mountCount = slotCount
 
-  const perf = useMemo(
-    () =>
-      resolveReactorEditPerfFlags({
-        coeffEditBurst,
-        coeffEditing,
-        forceLite: framePolicy.effectiveForceLite,
-        lowPower,
-        atomEstimate: terms.reduce((s, t) => s + Math.max(0, Math.floor(t.coeff)), 0),
-      }),
-    [
-      coeffEditBurst,
-      coeffEditing,
-      framePolicy.effectiveForceLite,
-      lowPower,
-      lowPowerProfile.coeffEditLayoutDebounceMs,
-      terms,
-    ],
-  )
-
-  const invalidateThrottleRef = useRef(
-    createReactorInvalidateThrottle(framePolicy.maxInvalidateHz),
-  )
-  useEffect(() => {
-    invalidateThrottleRef.current = createReactorInvalidateThrottle(framePolicy.maxInvalidateHz)
-  }, [framePolicy.maxInvalidateHz])
-
-  const { atoms: previewAtoms, layoutPending } = useReactorPreviewLayout(
-    terms,
-    coeffEditBurst,
-    perf.layoutDebounceMs,
-    coeffEditing,
-  )
-
-  const termsSig = useMemo(
-    () => terms.map((t) => `${t.id}:${t.z}:${t.coeff}:${t.diatomic ? 1 : 0}`).join('|'),
-    [terms],
-  )
-
-  /**
-   * Термины с настоящей геометрией молекулы (атомы формулы + связи) —
-   * рендерятся ReactorTermMoleculeOverlay вместо обычных Bohr-слотов этого
-   * термина, чтобы не показывать оба варианта разом.
-   */
-  const moleculeOverrideTermIndices = useMemo(() => reactorTermsWithMolecule(terms), [terms])
-
-
-  const frame = resolvePreviewEngineFrame(engineRef.current, {
-    terms,
-    previewAtoms,
-    editingActive,
-    previewOnlyMode,
-    synthHoldPreview,
-    coeffEditing,
-    layoutPending,
-    lockPoolSize: framePolicy.lockPoolSize,
-    hotCoeffEdit: framePolicy.hotCoeffEdit,
-  })
-
-  const policy = useMemo(
-    () =>
-      resolvePreviewFramePolicy({
-        atomCount: frame.slotCount,
-        editingActive,
-        coeffEditBurst,
-        coeffEditing,
-        flightActive,
-        groupVisible: frame.groupVisible,
-        forceLite,
-        frameBudgetLite,
-        qualityLevel,
-        lowPowerProfile,
-      }),
-    [
-      frame.slotCount,
-      frame.groupVisible,
-      editingActive,
-      coeffEditBurst,
-      coeffEditing,
-      flightActive,
-      forceLite,
-      frameBudgetLite,
-      qualityLevel,
-      lowPowerProfile,
-    ],
-  )
-
-  settlePinUntilRef.current = bumpSettlePinUntil(
-    policy.hotCoeffEdit || previewOnlyMode,
-    performance.now(),
-    settlePinUntilRef.current,
-  )
-  const settlePin = isSettlePinActive(performance.now(), settlePinUntilRef.current)
-  let tickPolicy = withSettlePinPolicy(policy, settlePin || previewOnlyMode, frame.groupVisible)
-
-  // --- ReactorPreviewShield: единый закон видимости / электронов / lite ---
-  {
-    const now = performance.now()
-    /**
-     * bump ТОЛЬКО на реальный +/-. Раньше previewOnlyMode bump'ил каждый render
-     * (invalidate × pin) → phase навсегда hot, stickyLite с фейковым atomCount≥12,
-     * remountBan/gpuBan не сходили → hitch/мигание на dichromate.
-     */
-    if (shouldBumpShieldOnPreviewFrame({
-      hotCoeffEdit: policy.hotCoeffEdit,
-      coeffEditBurst,
-      coeffEditing,
-    })) {
-      shieldRef.current = bumpShieldOnCoeffEdit(
-        shieldRef.current,
-        now,
-        frame.slotCount,
-      )
-    }
-    shieldRef.current = tickShieldPhase(shieldRef.current, now)
-    const shield = resolveShieldRenderPolicy({
-      snap: shieldRef.current,
-      nowMs: now,
-      hotCoeffEdit: policy.hotCoeffEdit,
-      preSynthesis: previewOnlyMode,
-      atomCount: frame.slotCount,
-      groupVisible: true,
-      flightActive,
-      externalForceLite: policy.effectiveForceLite,
-    })
-    tickPolicy = {
-      ...tickPolicy,
-      // Pre-synth: pin ВСЕГДА, пока есть атомы.
-      pinEveryFrame:
-        (!flightActive && previewOnlyMode && (frame.slotCount > 0 || frame.hasActiveTerms)) ||
-        tickPolicy.pinEveryFrame ||
-        shield.pinEveryFrame,
-      lockVisualTier: true,
-      lockPoolSize: true,
-      // Collapse/flight: не крутить электроны — главный GPU-нагрузка на N Bohr.
-      electronAnimate:
-        !flightActive && (tickPolicy.electronAnimate || shield.electronAnimate),
-      // Не форсим lite thrash через live n — sticky denseLightLatch ниже.
-      effectiveForceLite:
-        shield.forceLite ||
-        tickPolicy.effectiveForceLite ||
-        engineRef.current.denseLightLatch,
-    }
-  }
-
-  engineRef.current.fullDetailLatch = resolveFullDetailLatch(
-    engineRef.current.fullDetailLatch,
-    frame.slotCount,
-    tickPolicy.lockVisualTier,
-    tickPolicy.effectiveForceLite,
-  )
-  /**
-   * Визуал реактора: при ≥10 слотах — lite-материалы (анти white-screen на K₂Cr₂O₇).
-   * Электроны и drift остаются; full nebula только на малых уравнениях.
-   * Tier залипает — нет full↔lite remount thrash.
-   */
-  if (!frame.hasActiveTerms) {
-    engineRef.current.denseLightLatch = false
-    engineRef.current.fullDetailLatch = true
-  } else if (
-    tickPolicy.effectiveForceLite ||
-    frame.slotCount >= PREVIEW_MOTION.denseFromSlots ||
-    frame.expectedAtomCount >= PREVIEW_MOTION.denseFromSlots
-  ) {
-    engineRef.current.denseLightLatch = true
-    engineRef.current.fullDetailLatch = false
-  } else if (previewOnlyMode || coeffEditing || tickPolicy.lockVisualTier) {
-    engineRef.current.denseLightLatch = false
-    engineRef.current.fullDetailLatch = true
-  }
-
-  const scale = reactorPreviewAtomScale(frame.slotCount)
   const groupRef = useRef<THREE.Group>(null)
   const lightRigRef = useRef<THREE.Group>(null)
-  const visibilityGuardRef = useRef(createReactorPreviewVisibilityGuard())
-  const guardFrameRef = useRef(0)
   const atomGroupRefsLocal = useRef<(THREE.Group | null)[]>([])
   const atomScaleGroupRefsLocal = useRef<(THREE.Group | null)[]>([])
   const atomGroupRefs = atomGroupRefsExternal ?? atomGroupRefsLocal
   const atomScaleGroupRefs = atomScaleGroupRefsExternal ?? atomScaleGroupRefsLocal
 
-  const { electronAnimate, driftAtoms, slowSpin } = tickPolicy
-  const n = frame.slotCount
-  /** Минимум пула = n (+engine); без жёстких 32 Bohr. */
-  const poolSize = Math.max(frame.poolSize, n)
-  const renderAtoms = frame.layoutAtoms
-  const shellAtoms = engineRef.current.shellAtoms
-  /**
-   * Единый движок инвариантов — SynthesisStabilityEngine.
-   * Все решения по holdPreview/atomsOnScreen/pin централизованы здесь.
-   */
-  const invariants = resolvePreviewAtomInvariants({
-    previewOnlyMode,
-    coeffEditing,
-    synthHoldPreview,
-    visibleProp: Boolean(visible),
-    hasActiveTerms: frame.hasActiveTerms,
-    slotCount: n,
-    shellCount: shellAtoms.length,
-    expectedAtomCount: frame.expectedAtomCount,
-    groupVisible: frame.groupVisible,
-  })
-  const { holdPreview, atomsOnScreen, stickySlotCount, keepMountPool } = invariants
+  const hasActiveTerms = slotCount > 0
+  const holdAtoms = previewOnlyMode || coeffEditing || synthHoldPreview
+  const productOwnsScreen = productOwnsScreenProp === true || (!holdAtoms && !visible)
+  const reactGroupVisible =
+    resolveBohrReactVisible({
+      visible: Boolean(visible),
+      previewOnlyMode,
+      coeffEditing,
+      synthHoldPreview,
+      atomsOnScreen: hasActiveTerms,
+      hasActiveTerms,
+      stickySlotCount: slotCount,
+      productOwnsScreen,
+    }) && !productOwnsScreen
 
-  const effectiveGroupVisible = atomsOnScreen
-
-  /**
-   * Во время синтеза атомы летят через GSAP (SynthesisConvergeStreams).
-   * До начала полёта (synthHoldPreview) — pin/guard; после — только GSAP.
-   */
+  /** Полёт синтеза: слоты двигает GSAP, частицы следуют за ними. */
   const externalAtomControl = resolvePreviewExternalAtomControl({
     flightActive,
     poseLocked,
     previewOnlyMode,
     synthHoldPreview,
   })
-
-  // Последнее состояние layout — для стабильных ref-коллбэков (позиция при mount).
-  const layoutStateRef = useRef({
-    n,
-    stickySlotCount,
-    scale: 1,
-    renderAtoms,
-    shellAtoms,
-    externalAtomControl,
-    groupVisible: effectiveGroupVisible,
-    atomsOnScreen,
-    holdPreview,
-    hasActiveTerms: frame.hasActiveTerms,
-    parentVisible: Boolean(visible),
-  })
-  const posRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
-  const scaleRefSettersRef = useRef<Array<(el: THREE.Group | null) => void>>([])
-
-  const getPosRef = useCallback(
-    (i: number) => {
-      let cb = posRefSettersRef.current[i]
-      if (!cb) {
-        cb = (el: THREE.Group | null) => {
-          atomGroupRefs.current[i] = el
-          if (!el) return
-          const ls = layoutStateRef.current
-          const hold = ls.holdPreview
-          const show =
-            (hold || ls.parentVisible) &&
-            i < ls.stickySlotCount &&
-            (ls.atomsOnScreen || hold || ls.hasActiveTerms)
-          if (show) {
-            el.visible = true
-            const atom = ls.renderAtoms[i] ?? ls.shellAtoms[i]
-            if (atom && !ls.externalAtomControl) {
-              el.position.set(atom.pos[0], atom.pos[1], atom.pos[2])
-            }
-          } else if (!hold && !ls.parentVisible) {
-            el.visible = false
-          }
-        }
-        posRefSettersRef.current[i] = cb
-      }
-      return cb
-    },
-    [atomGroupRefs],
-  )
-
-  const getScaleRef = useCallback(
-    (i: number) => {
-      let cb = scaleRefSettersRef.current[i]
-      if (!cb) {
-        cb = (el: THREE.Group | null) => {
-          atomScaleGroupRefs.current[i] = el
-          if (!el) return
-          const ls = layoutStateRef.current
-          const hold = ls.holdPreview
-          const show =
-            (hold || ls.parentVisible) &&
-            i < ls.stickySlotCount &&
-            (ls.atomsOnScreen || hold || ls.hasActiveTerms)
-          if (show) {
-            el.visible = true
-            if (!ls.externalAtomControl) {
-              el.scale.set(ls.scale, ls.scale, ls.scale)
-            }
-          } else if (!hold && !ls.parentVisible) {
-            el.visible = false
-          }
-        }
-        scaleRefSettersRef.current[i] = cb
-      }
-      return cb
-    },
-    [atomScaleGroupRefs],
-  )
-
-  layoutStateRef.current = {
-    n,
-    stickySlotCount,
-    scale,
-    renderAtoms,
-    shellAtoms,
-    externalAtomControl,
-    groupVisible: effectiveGroupVisible,
-    atomsOnScreen,
-    holdPreview,
-    hasActiveTerms: frame.hasActiveTerms,
-    parentVisible: Boolean(visible),
-  }
-
-  useEffect(() => {
-    assertPreviewElectronAnimation(electronAnimate, n)
-  }, [electronAnimate, n])
-
-  useEffect(() => {
-    warnIfReactorVisualDegraded({ hideOrbitRings: false, previewStaticFromBurst: false })
-  }, [])
+  const syncSlots = !externalAtomControl && !synthHoldPreview && !poseLocked
 
   useLayoutEffect(() => {
-    while (atomGroupRefs.current.length < poolSize) atomGroupRefs.current.push(null)
-    while (atomScaleGroupRefs.current.length < poolSize) atomScaleGroupRefs.current.push(null)
-  }, [poolSize, atomGroupRefs, atomScaleGroupRefs])
-
-  const syncLayout = useCallback(() => {
-    syncPreviewLayoutSlots(
-      n,
-      renderAtoms,
-      shellAtoms,
-      atomGroupRefs,
-      atomScaleGroupRefs,
-      scale,
-    )
-  }, [renderAtoms, shellAtoms, n, scale, atomGroupRefs, atomScaleGroupRefs])
+    if (previewRootRef) previewRootRef.current = groupRef.current
+  }, [previewRootRef])
 
   useLayoutEffect(() => {
-    if (!atomsOnScreen) return
-    if (externalAtomControl) return
-    if (n === 0 && shellAtoms.length === 0) return
-    syncPreviewLayoutSlots(n, renderAtoms, shellAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
-    invalidateThrottleRef.current.request(invalidate)
-  }, [
-    atomsOnScreen,
-    externalAtomControl,
-    termsSig,
-    invalidate,
-    renderAtoms,
-    shellAtoms,
-    n,
-    scale,
-    atomGroupRefs,
-    atomScaleGroupRefs,
-  ])
+    const g = groupRef.current
+    if (!g) return
+    g.visible = reactGroupVisible
+  }, [reactGroupVisible])
 
-  /**
-   * Всё, что в кадре зависит только от props/рендера, считаем раз за рендер:
-   * раньше shouldHardPin/policy-spread/motion-policy аллоцировались каждый кадр.
-   * holdAtoms = edit / pre-synth / synth-hold → pin.
-   * visible=false (product owns screen) → Bohr СКРЫТ, даже если terms ещё в уравнении.
-   * Иначе после синтеза 22 Bohr + молекула = хаос орбит (баг со скрина K₂Cr₂O₇).
-   */
-  const frameHoldAtoms = previewOnlyMode || coeffEditing || synthHoldPreview
-  const frameProductOwnsScreen =
-    productOwnsScreenProp === true || (!visible && !frameHoldAtoms)
-  const frameHardPin =
-    !frameProductOwnsScreen &&
-    shouldHardPinCoeffEditAtoms({
-      coeffEditing,
-      previewOnlyMode,
-      synthHoldPreview,
-      hasActiveTerms: frame.hasActiveTerms || stickySlotCount > 0,
-      synthLive: false,
-    })
-  const frameMotion = resolvePreviewMotionPolicy(Math.max(n, stickySlotCount))
-  /** Scratch-аргументы pin/tick — заполняются на месте в кадре (callee их не хранят). */
-  const pinArgsRef = useRef<CoeffEditAtomPinOpts | null>(null)
-  const tickArgsRef = useRef<PreviewFrameTickInput | null>(null)
-  const tickPolicyScratchRef = useRef<PreviewFrameTickInput['policy'] | null>(null)
-
-  useFrame((s) => {
-    const root = groupRef.current
-    const holdAtoms = frameHoldAtoms
-    const productOwnsScreen = frameProductOwnsScreen
-    const hardPin = frameHardPin
-
-    if (productOwnsScreen) {
-      if (root) root.visible = false
-      return
-    }
-
-    if (!atomsOnScreen && !holdAtoms && !frame.hasActiveTerms) {
-      if (root) root.visible = false
-      return
-    }
-    if (holdAtoms || hardPin || Boolean(visible)) {
-      if (root && !root.visible) root.visible = true
-    }
-
-    // Жёсткий pin каждый кадр — только пока Bohr должен быть на экране.
-    if ((holdAtoms || hardPin) && !externalAtomControl) {
-      const pin = pinArgsRef.current ?? (pinArgsRef.current = createPinArgs(atomGroupRefs, atomScaleGroupRefs))
-      pin.slotCount = Math.max(stickySlotCount, n, shellAtoms.length, frame.hasActiveTerms ? 1 : 0)
-      pin.layoutScale = scale
-      pin.root = root
-      pin.atomGroupRefs = atomGroupRefs
-      pin.atomScaleGroupRefs = atomScaleGroupRefs
-      pin.positions = renderAtoms.length > 0 ? renderAtoms : shellAtoms
-      pinCoeffEditAtomsHard(pin)
-    }
-
-    // Политика тика = tickPolicy + hold/hardPin; копируем в scratch без spread-объекта на кадр.
-    const tickFramePolicy = tickPolicyScratchRef.current ?? (tickPolicyScratchRef.current = { ...tickPolicy })
-    Object.assign(tickFramePolicy, tickPolicy)
-    tickFramePolicy.pinEveryFrame = tickPolicy.pinEveryFrame || holdAtoms || hardPin
-    tickFramePolicy.visibilityGuardEvery = Math.max(tickPolicy.visibilityGuardEvery, holdAtoms ? 6 : 2)
-
-    const tick =
-      tickArgsRef.current ??
-      (tickArgsRef.current = createTickArgs(
-        tickFramePolicy,
-        atomGroupRefs,
-        atomScaleGroupRefs,
-        visibilityGuardRef.current,
-        syncLayout,
-      ))
-    tick.policy = tickFramePolicy
-    tick.slotCount = stickySlotCount
-    tick.groupVisible = !productOwnsScreen && (atomsOnScreen || holdAtoms || hardPin)
-    tick.flightActive = externalAtomControl
-    tick.layoutPending = layoutPending
-    tick.layoutScale = scale
-    tick.layoutAtoms = renderAtoms
-    tick.shellAtoms = shellAtoms
-    tick.rootRef = groupRef.current
-    tick.atomGroupRefs = atomGroupRefs
-    tick.atomScaleGroupRefs = atomScaleGroupRefs
-    tick.visibilityGuard = visibilityGuardRef.current
-    tick.guardFrame = guardFrameRef.current
-    tick.onRecoverLayout = syncLayout
-    guardFrameRef.current = tickSynthesisPreviewFrame(tick)
-
-    if (externalAtomControl || n === 0 || productOwnsScreen) return
-    const t = s.clock.elapsedTime
-    const motion = frameMotion
-    if (root && slowSpin) root.rotation.y = samplePreviewRootSpin(t, motion.spinRate)
-
-    if (!driftAtoms) return
-    for (let i = 0; i < n; i++) {
-      const g = atomGroupRefs.current[i] ?? null
-      if (!g) continue
-      const atom = renderAtoms[i] ?? shellAtoms[i]
-      if (!atom) continue
-      const { pos } = atom
-      const [bx, by, bz] = pos
-      const [dx, dy, dz] = samplePreviewAtomMotion({
-        elapsedSec: t,
-        slotIndex: i,
-        atomicZ: atom.z,
-        driftAmp: motion.driftAmp,
-      })
-      g.position.set(bx + dx, by + dy, bz + dz)
-    }
-  })
-
-  /**
-   * Собственный свет превью: постоянный набор источников, пока sharedLighting=false.
-   * Раньше свет монтировался только при reactGroupVisible внутри скрываемой группы —
-   * показ/скрытие превью менял число источников в сцене → перекомпиляция всех
-   * освещённых материалов. Теперь свет вне скрываемой группы, «гасится» intensity=0,
-   * а поза копирует корень превью (свет по-прежнему вращается вместе с ним).
-   */
+  /** Свет копирует позу корня превью (постоянный набор источников — без перекомпиляции). */
   useFrame(() => {
     const rig = lightRigRef.current
     const root = groupRef.current
@@ -662,181 +126,8 @@ export function ReactorTermsPreview({
     rig.scale.copy(root.scale)
   })
 
-  useLayoutEffect(() => {
-    if (previewRootRef) previewRootRef.current = groupRef.current
-  }, [previewRootRef, n])
-
-  useLayoutEffect(() => {
-    const g = groupRef.current
-    if (!g) return
-    const holdAtoms = previewOnlyMode || coeffEditing || synthHoldPreview
-    // Product owns screen: hide Bohr root (shell stays mounted for next +/-).
-    if (!visible && !holdAtoms) {
-      g.visible = false
-      return
-    }
-    // Pre-synth / edit: НИКОГДА не гасим детей.
-    if (holdAtoms) {
-      g.visible = true
-      if (!externalAtomControl && stickySlotCount > 0) {
-        shieldForceShowActiveSlots({
-          slotCount: stickySlotCount,
-          root: g,
-          atomGroupRefs,
-          atomScaleGroupRefs,
-          layoutScale: scale,
-          forceFullScale: true,
-        })
-        pinCoeffEditAtomsHard({
-          slotCount: stickySlotCount,
-          layoutScale: scale,
-          root: g,
-          atomGroupRefs,
-          atomScaleGroupRefs,
-          positions: renderAtoms.length > 0 ? renderAtoms : shellAtoms,
-        })
-      }
-      return
-    }
-    if (!atomsOnScreen && !frame.hasActiveTerms) {
-      g.visible = false
-      return
-    }
-    g.visible = Boolean(visible)
-    if (visible && !externalAtomControl && n > 0) {
-      shieldForceShowActiveSlots({
-        slotCount: n,
-        root: g,
-        atomGroupRefs,
-        atomScaleGroupRefs,
-        layoutScale: scale,
-        forceFullScale: true,
-      })
-      restorePreviewActiveSlotVisibility({
-        atomCount: n,
-        rootRef: g,
-        atomGroupRefs,
-        atomScaleGroupRefs,
-        layoutScale: scale,
-      })
-      syncPreviewLayoutSlots(n, renderAtoms, shellAtoms, atomGroupRefs, atomScaleGroupRefs, scale)
-    }
-  }, [
-    previewOnlyMode,
-    coeffEditing,
-    synthHoldPreview,
-    visible,
-    atomsOnScreen,
-    effectiveGroupVisible,
-    externalAtomControl,
-    n,
-    stickySlotCount,
-    scale,
-    renderAtoms,
-    shellAtoms,
-    atomGroupRefs,
-    atomScaleGroupRefs,
-    frame.hasActiveTerms,
-  ])
-
-  const forceElectronMotion = true
-  /**
-   * Космический дизайн: сразу все слоты уравнения (дихромат = 22).
-   * Старый Math.min(16, …) резал mount при hold — чёрный пустой кадр при уравненном K₂Cr₂O₇.
-   */
-  const targetMount = Math.max(
-    stickySlotCount,
-    holdPreview ? Math.max(stickySlotCount, frame.hasActiveTerms ? 1 : 0) : 0,
-    Math.min(poolSize, stickySlotCount),
-  )
-
-  useEffect(() => {
-    if (targetMount <= 0) {
-      // Не сбрасываем mountCap при кратком targetMount=0, пока уравнение живо.
-      if (!keepMountPool && !frame.hasActiveTerms) {
-        mountCapRef.current = 0
-        setMountCap(0)
-      }
-      return
-    }
-    // Сразу все слоты — без ramp и без потолка 16.
-    if (holdPreview || mountCapRef.current < stickySlotCount) {
-      const jump = Math.max(stickySlotCount, targetMount)
-      if (jump !== mountCapRef.current) {
-        mountCapRef.current = jump
-        setMountCap(jump)
-      }
-      return
-    }
-    if (mountCapRef.current >= targetMount) return
-    let cancelled = false
-    let raf = 0
-    const step = () => {
-      if (cancelled) return
-      const next = Math.min(targetMount, mountCapRef.current + 8)
-      mountCapRef.current = next
-      setMountCap(next)
-      if (next < targetMount) raf = requestAnimationFrame(step)
-    }
-    raf = requestAnimationFrame(step)
-    return () => {
-      cancelled = true
-      cancelAnimationFrame(raf)
-    }
-  }, [targetMount, stickySlotCount, holdPreview, frame.hasActiveTerms, keepMountPool])
-
-  const mountBohrCount = Math.max(mountCap, stickySlotCount, targetMount)
-  /** Стабильный frame-skip через движок (stickySlotCount, без 1↔2 thrash). */
-  const editSkip = resolveStableElectronFrameSkip(stickySlotCount, {
-    deviceTier: getSynthesisDeviceTier(),
-    lowPower,
-  })
-  const holdAtomsUi = previewOnlyMode || coeffEditing || synthHoldPreview
-  const motionPolicy = frameMotion
-  /** Product owns screen → скрыть Bohr. Edit/pre-synth → всегда показать. */
-  const productOwnsScreen =
-    productOwnsScreenProp === true || (!holdAtomsUi && !visible)
-  const reactGroupVisible = resolveBohrReactVisible({
-    visible: Boolean(visible),
-    previewOnlyMode,
-    coeffEditing,
-    synthHoldPreview,
-    atomsOnScreen,
-    hasActiveTerms: frame.hasActiveTerms,
-    stickySlotCount,
-    // Пока hold/pre-synth — продукт не владеет экраном (страховка против пустого центра).
-    productOwnsScreen,
-  }) && !productOwnsScreen
-  /**
-   * Подписи символов учат читать уравнение, но подписывать каждый шар нельзя:
-   * в «2 Na» это пять одинаковых спрайтов, а в K₂Cr₂O₇ (22 атома) — каша.
-   * Подписываем первое вхождение каждого элемента внутри его слагаемого.
-   * В полёте подписи не нужны совсем: атомы сходятся в одну точку.
-   */
-  const labelSlots = useMemo(
-    () =>
-      cpkLabelIndices(
-        // Слот может быть пустым (layoutAtoms разрежен) — индексы обязаны
-        // совпадать с индексами слотов, поэтому дыру отдаём как null, а не
-        // выбрасываем: cpkLabelIndices сам её пропустит.
-        renderAtoms.map((a) => (a ? { z: a.z, group: a.termIndex } : null)),
-      ),
-    [renderAtoms],
-  )
-  const labelsAllowed = !flightActive && n <= PREVIEW_LABEL_MAX_SLOTS
-  // Collapse/flight: атомы летят в центр — дыхание и spin только жрут GPU.
-  const electronsLive =
-    !flightActive && forceElectronMotion && reactGroupVisible && holdAtomsUi
-  const bohrAnimate = electronsLive
-  /** Dense / collapse flight: lite-материалы обязательны. */
-  const slotPreviewLite =
-    lowPower ||
-    flightActive ||
-    !holdAtomsUi ||
-    motionPolicy.forceLiteMaterials ||
-    Boolean(forceLite)
-  /** Свет всегда смонтирован (без sharedLighting); скрытое превью — intensity 0, а не unmount. */
   const ownLightK = reactGroupVisible ? 1 : 0
+  const labelsAllowed = reactGroupVisible && syncSlots && !flightActive
 
   return (
     <>
@@ -847,44 +138,32 @@ export function ReactorTermsPreview({
           <pointLight position={[0, 0.5, 2.5]} intensity={OWN_LIGHT.point * ownLightK} distance={12} color="#7afcff" />
         </group>
       ) : null}
-      <group
-        ref={groupRef}
-        visible={reactGroupVisible}
-        frustumCulled={false}
-      >
-        {Array.from({ length: mountBohrCount }, (_, i) => {
-          const layoutAtom = i < n ? renderAtoms[i] : null
-          const shellAtom = i < shellAtoms.length ? shellAtoms[i] : null
-          const atom = layoutAtom ?? shellAtom
-          const incomingZ = atom?.z ?? engineRef.current.slotZ[i] ?? 1
-          if (atom != null) engineRef.current.slotZ[i] = incomingZ
-          const slotZ = engineRef.current.slotZ[i] ?? incomingZ
-          const slotVisible =
-            reactGroupVisible &&
-            i < stickySlotCount &&
-            i < mountBohrCount &&
-            !(atom && moleculeOverrideTermIndices.has(atom.termIndex))
-          return (
-            <group key={`slot-${i}`} visible={slotVisible} ref={getPosRef(i)}>
-              <group scale={scale} visible={slotVisible} ref={getScaleRef(i)}>
-                <ReactorPreviewAtomSlot
-                  z={slotZ}
-                  slotIndex={i}
-                  animate={bohrAnimate && slotVisible}
-                  previewStatic={!holdAtomsUi || flightActive}
-                  useFullDetail={engineRef.current.fullDetailLatch}
-                  previewLite={slotPreviewLite}
-                  electronFrameSkip={flightActive ? 8 : editSkip}
-                  showLabel={labelsAllowed && labelSlots.has(i)}
-                />
-              </group>
-            </group>
-          )
-        })}
-        <ReactorTermMoleculeOverlay
-          terms={terms}
-          scale={scale}
-          visible={reactGroupVisible && !flightActive}
+      <group ref={groupRef} visible={reactGroupVisible} frustumCulled={false}>
+        {/* Якоря полёта: пустые группы, без геометрии (см. комментарий компонента). */}
+        {Array.from({ length: mountCount }, (_, i) => (
+          <group
+            key={`slot-${i}`}
+            ref={(el) => {
+              atomGroupRefs.current[i] = el
+            }}
+          >
+            <group
+              ref={(el) => {
+                atomScaleGroupRefs.current[i] = el
+              }}
+              scale={PREVIEW_ATOM_SCALE}
+            />
+          </group>
+        ))}
+        <ReactorParticleField
+          set={particleSet}
+          visible={reactGroupVisible && hasActiveTerms}
+          lowPower={lowPower || forceLite}
+          syncSlots={syncSlots}
+          atomGroupRefs={atomGroupRefs}
+          atomScaleGroupRefs={atomScaleGroupRefs}
+          showLabels={labelsAllowed}
+          interactive={interactive && labelsAllowed}
         />
       </group>
     </>

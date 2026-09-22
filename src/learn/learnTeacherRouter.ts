@@ -5,7 +5,7 @@ import { buildAssistantSystemPrompt } from './learnAssistantPrompt'
 import { filterAssistantReply } from './learnAssistantGuard'
 import { buildTeacherChatPayload, isSmartAiConnected, requestPuterChat } from './learnPuterChat'
 import { citationForDisplay, retrieveForTeacher, type TeacherKnowledgeResult } from './teacherKnowledge'
-import { isSubstantiveQuestion, resolveTurn } from './brain/dualMode/followUps'
+import { detectNonQuestion, isSubstantiveQuestion, replyForNonQuestion, resolveTurn } from './brain/dualMode/followUps'
 import { composeLocalAnswer } from './brain/dualMode/localAnswerComposer'
 
 export type TeacherReplySource = 'faq' | 'local' | 'ollama' | 'api' | 'puter'
@@ -119,6 +119,14 @@ export async function composeLocalTeacherReply(
     .slice(0, -1)
     .filter((m) => m.role === 'user' && isSubstantiveQuestion(m.content))
     .map((m) => m.content)
+  // «Не знаю» / «ммм» / «спасибо» — отвечаем сразу, без поиска по базе (иначе учитель
+  // цепляется за слово «знаю» и пересказывает случайный параграф).
+  const nonQuestion = detectNonQuestion(text)
+  if (nonQuestion) {
+    const topic = previous[previous.length - 1] ?? ctx.sectionTitle
+    const reply = replyForNonQuestion(nonQuestion, ctx.locale, { topic, seed: messages.length })
+    return { text: reply, source: 'local', citations: [], confident: true }
+  }
   const resolved = resolveTurn(text, previous, ctx.locale, ctx.sectionTitle)
   const knowledge =
     // Результат по таймауту пуст — база ещё грузится; ждём тот же (кешированный) поиск ещё раз.

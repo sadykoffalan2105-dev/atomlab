@@ -11,7 +11,7 @@ export const NH3_TEXT_UZ: Nh3MechanismText = {
       title: 'Dastlabki moddalar',
       body:
         'Havoning 78 % i azot, ammo u deyarli reaksiyaga kirishmaydi. Sababi — uch karrali N≡N bog‘i: bitta σ va ikkita π bog‘, uzunligi 109,8 pm, uzish uchun 945 kJ/mol kerak. Bu darsdagi eng mustahkam bog‘. ' +
-        'Vodorod ham ikki atomli, lekin uning H–H bog‘i uch marta kuchsiz: 74,1 pm uzunlikda 436 kJ/mol. ' +
+        'Vodorod ham ikki atomli, lekin uning H–H bog‘i ikki barobardan ko‘proq kuchsiz: 74,1 pm uzunlikda 435,8 kJ/mol — 945 ga qarshi 435,8, nisbati 2,2. ' +
         'Ammiak olish uchun ikkala bog‘ni uzib, oltita yangi N–H bog‘ini yig‘ish kerak.',
       equation: 'N₂ (gaz) + 3 H₂ (gaz)',
       note: 'N–N o‘qi atrofidagi ko‘k yoylar — σ bog‘ ustidagi IKKITA π bog‘ning shartli belgisi, orbitallarning shakli emas.',
@@ -22,9 +22,10 @@ export const NH3_TEXT_UZ: Nh3MechanismText = {
       body:
         'K₂O va Al₂O₃ promotorli temir katalizatori tenglamaga kirmaydi, ammo usiz reaksiya amalda bormaydi. Molekulalar temir yuzasiga o‘tiradi (hajmiy markazlashgan kub panjara, Im-3m, katak qirrasi 286,65 pm, har bir atomning 248,2 pm masofada sakkizta qo‘shnisi bor). ' +
         'Metall elektronlari azotning bo‘shashtiruvchi orbitallariga o‘tadi: N≡N bog‘i kuchsizlanadi — ekranda uning karraligi uchdan nolgacha tushadi — va aynan yuzada uziladi. Vodorod atomlarga yanada osonroq ajraladi. ' +
-        'Ikki egri chiziqqa qarang: katalizatorsiz taxminan 945 kJ/mol to‘siqni yengish kerak, temirda ko‘rinma aktivlanish energiyasi atigi 60–100 kJ/mol.',
+        'Ikki egri chiziqqa qarang: katalizatorsiz to‘siq N≡N bog‘ energiyasidan, ya’ni 945 kJ/mol dan past bo‘lmaydi, temirda esa ko‘rinma aktivlanish energiyasi atigi 60–100 kJ/mol.',
       equation: 'N₂ (ads.) → 2 N (ads.);  H₂ (ads.) → 2 H (ads.)',
       note:
+        '945 kJ/mol — bu N≡N bog‘ining dissotsiatsiya entalpiyasi, ya’ni katalizatorsiz yo‘l to‘sig‘i uchun QUYIDAN BAHO, o‘lchangan aktivlanish energiyasi emas: gaz fazasida uch karrali bog‘ni undan kam energiya bilan uzib bo‘lmaydi. ' +
         'Katalizator FAQAT to‘siq balandligini pasaytiradi: ikkala egri chiziqning chap va o‘ng sathlari bir xil, ΔH katalizatorga bog‘liq emas. ' +
         '60–100 kJ/mol oralig‘i — promotorlangan temir uchun adabiyotdagi ko‘rinma aktivlanish energiyasining tarqoqligi; kadrda 18 atomli bo‘lak, katalizator donasida ular 10²⁰ ga yaqin.',
       speak: 'Temir uch karrali bog‘ni kuchsizlantiradi va to‘siqni taxminan o‘n barobar pasaytiradi. Issiqlik effekti esa o‘zgarmaydi.',
@@ -46,7 +47,9 @@ export const NH3_TEXT_UZ: Nh3MechanismText = {
         'Erkin NH₃ da azot sp³ holatida: uchta bog‘ va BITTA taqsimlanmagan juft. Shu juft tufayli molekula tekis emas, balki uchburchak piramida, H–N–H burchagi tetraedrik 109,5° o‘rniga 106,7° gacha siqilgan. ' +
         'Bunday piramida qutbli: dipol momenti 1,47 D. Shuning uchun ammiak suvda yaxshi eriydi va o‘tkir hidga ega.',
       equation: 'NH₃ (ads.) → NH₃ (gaz)',
-      note: 'Azot ustidagi ikkita yorug‘ nuqta — taqsimlanmagan juftning shartli tasviri: elektronlar bir nuqtada «turmaydi», bu elektron zichligi yuqori soha.',
+      note:
+        'Azot ustidagi ikkita yorug‘ nuqta — taqsimlanmagan juftning shartli tasviri: elektronlar bir nuqtada «turmaydi», bu elektron zichligi yuqori soha. ' +
+        '106,7° burchak mikroto‘lqinli ma’lumotlarga ko‘ra olingan (NIST CCCBDB, 106,67°); ayrim darsliklarda 107,3° chop etiladi, shuning uchun raqamlar bir oz farq qilishi mumkin.',
       speak: 'Ammiak uchib ketadi, temir o‘zgarmaydi. Taqsimlanmagan juft tufayli molekula bir yuz oltin nuqta yetti burchakli piramida.',
     },
     equilibrium: {
@@ -62,8 +65,8 @@ export const NH3_TEXT_UZ: Nh3MechanismText = {
     energy: {
       title: 'Energetik yakun',
       body:
-        'Bog‘ energiyalari bo‘yicha bir tenglamaga hisoblaymiz: bitta N≡N bog‘ini uzish +945 kJ, uchta H–H bog‘ini uzish yana +1308 kJ, oltita N–H bog‘ining hosil bo‘lishi esa −2346 kJ beradi. Yakun: −93 kJ. ' +
-        'Hosil bo‘lish issiqliklari bo‘yicha mustaqil hisob −91,8 kJ beradi (bu 2 · (−45,9)); 1 kJ farq 391 kJ/mol — N–H bog‘ining O‘RTACHA energiyasi bo‘lgani uchun chiqadi. ' +
+        'Bog‘ energiyalari bo‘yicha bir tenglamaga hisoblaymiz: bitta N≡N bog‘ini uzish +945 kJ, uchta H–H bog‘ini uzish yana +1307,4 kJ, oltita N–H bog‘ining hosil bo‘lishi esa −2346 kJ beradi. Yakun: −93,6 kJ. ' +
+        'Hosil bo‘lish issiqliklari bo‘yicha mustaqil hisob −91,8 kJ beradi (bu 2 · (−45,9)); taxminan 2 kJ farq 391 kJ/mol — N–H bog‘ining O‘RTACHA energiyasi bo‘lgani uchun chiqadi. ' +
         'Reaksiya ekzotermik, va aynan shu ammiakni azotli o‘g‘itlar uchun birinchi raqamli xomashyoga aylantirgan: hozirgi insoniyat oqsillaridagi azotning taxminan yarmi shu jarayondan o‘tgan.',
       equation: 'N₂ (gaz) + 3 H₂ (gaz) ⇌ 2 NH₃ (gaz),  ΔH = −92 kJ',
       note: 'Zina BIR TENGLAMAGA, ya’ni 2 mol NH₃ ga qurilgan; bir mol ammiakka bu −45,9 kJ.',

@@ -36,6 +36,26 @@
   isolation: isolate;
 }
 
+/*
+ * Узкий телефон: ряд «Неорганика · Органика · Синтез» уходит из зоны холста
+ * в обычный поток — строкой над 3D. Холст на телефоне и так делят док реактора
+ * и нижний лист урока; ещё и полупрозрачные пилюли поверх сцены делали
+ * подписи (Mg²⁺, 2e⁻, δ+) нечитаемыми. position: relative, а не static:
+ * в режиме «вещество» холст становится fixed, и ряду нужен свой z-index.
+ */
+@media (max-width: 480px) {
+  .rightHud {
+    position: relative;
+    top: auto;
+    right: auto;
+    justify-content: center;
+    gap: 8px;
+    /* Ряд стоит в потоке над холстом — каждый лишний пиксель отступа
+       отнимается у 3D; зону нажатия 44px пилюли добирают через ::after. */
+    padding: 4px 10px 3px;
+  }
+}
+
 /* «← назад к учебнику» после перехода по ссылке с src=. Слева, на одной линии с .rightHud. */
 .backToBook {
   position: fixed;
@@ -376,109 +396,13 @@
   text-align: left;
 }
 
-.synthProductCard {
-  position: relative;
-  display: block;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 12px 16px 13px 18px;
-  overflow: hidden;
-  border-radius: var(--lt-radius);
-  border: 1px solid color-mix(in srgb, var(--synth-glow, #5b8cff) 30%, rgba(148, 170, 230, 0.26));
-  background:
-    radial-gradient(
-      120% 90% at 0% 0%,
-      color-mix(in srgb, var(--synth-glow, #5b8cff) 16%, transparent),
-      transparent 64%
-    ),
-    linear-gradient(180deg, rgba(16, 22, 44, 0.94) 0%, rgba(9, 13, 28, 0.95) 100%);
-  box-shadow: var(--lt-shadow);
-  font-family: var(--lt-font);
-  line-height: var(--lt-lh);
-  animation: synthHudIn var(--lt-dur-slow) var(--lt-ease);
-}
-
-/* цветная кромка слева — акцент вещества (или фирменный градиент) */
-.synthProductCard::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--synth-glow, #5b8cff) 70%, #5b8cff),
-    #8b5cf6
-  );
-}
-
-.synthFormula {
-  display: inline-block;
-  margin: 0 10px 0 0;
-  font-family: var(--lt-font-display);
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: 0.01em;
-  color: #fff;
-  vertical-align: baseline;
-}
-
-.synthName {
-  display: inline-block;
-  font-size: var(--lt-fs-body);
-  font-weight: 650;
-  line-height: 1.3;
-  color: var(--lt-text-2);
-  vertical-align: baseline;
-}
-
-.synthDesc {
-  display: -webkit-box;
-  margin: 6px 0 0;
-  overflow: hidden;
-  font-size: var(--lt-fs-small);
-  line-height: 1.45;
-  color: var(--lt-text-3);
-  text-align: left;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
-
-@keyframes synthHudIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
+/* Сама карточка — hero/ProductHeroCard.module.css (токены темы: читаема и в светлой теме). */
 
 @media (max-width: 720px) {
   .synthProductDock {
     top: 70px;
     right: 12px;
-    width: min(300px, calc(100% - 24px));
-  }
-
-  .synthProductCard {
-    padding: 9px 12px 10px 14px;
-  }
-
-  .synthFormula {
-    font-size: 20px;
-  }
-
-  .synthDesc {
-    margin-top: 3px;
-    -webkit-line-clamp: 2;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .synthProductCard {
-    animation: none;
+    width: min(320px, calc(100% - 24px));
   }
 }
 
@@ -643,5 +567,47 @@
    * его кнопки; таблица в пошаговом уроке не нужна. */
   .wrap:has([data-lab-lesson-panel]) .panelFabReactorOpen {
     display: none;
+  }
+}
+
+/* Верх холста на ≤480px освободился (ряд .rightHud ушёл в поток) — карточки
+ * больше не отступают под бывший HUD. Блок стоит в конце файла: правила
+ * @media (max-width: 560px/720px) выше имеют ту же специфичность. */
+@media (max-width: 480px) {
+  .elementInfoDock {
+    top: 12px;
+    max-height: min(46%, calc(100% - 24px));
+  }
+
+  /* Ряд «Неорганика · Органика · Синтез» (≈47 px) лежит поверх верха холста — карточка
+   * героя встаёт под него, во всю ширину, а не под пилюли (было top: 12px). */
+  .synthProductDock {
+    top: 56px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}
+
+/* Узкий телефон: высоту ряда «Неорганика · Органика · Синтез» задаёт кнопка
+ * «Синтез». Ряд стоит в потоке над холстом, поэтому кнопка визуально ниже
+ * (36px), а зону нажатия 44px добирает ::after. Блок в конце файла: базовое
+ * правило .synthButton идёт выше и имеет ту же специфичность. */
+@media (max-width: 480px) {
+  .synthButton {
+    min-height: 36px;
+    height: 36px;
+    padding: 0 16px;
+    font-size: 13.5px;
+  }
+
+  .synthButton::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
   }
 }

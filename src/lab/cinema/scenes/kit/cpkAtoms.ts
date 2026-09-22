@@ -4,22 +4,26 @@
  * Единственная дверь сцены к размерам частиц. Радиус берётся для КОНКРЕТНОЙ
  * частицы, а не «для элемента»:
  *   • нейтральный металл  → металлический радиус (Na⁰ 186 пм);
- *   • неметалл в молекуле → ковалентный радиус   (Cl⁰ 99 пм);
+ *   • неметалл в молекуле → ковалентный радиус   (Cl⁰ 102 пм, Cordero 2008);
  *   • ион                 → ионный радиус Shannon, КЧ 6 (Na⁺ 102, Cl⁻ 181 пм).
  *
  * Отсюда школьный вывод, который ученик обязан УВИДЕТЬ:
  * катион МЕНЬШЕ своего атома (Na 186 → 102 пм, почти вдвое),
- * анион БОЛЬШЕ своего атома (Cl 99 → 181 пм), и Cl⁻ примерно в 1,8 раза
- * крупнее Na⁺. Ни одного числа руками — всё из src/chemistry/data.
+ * анион БОЛЬШЕ своего атома (Cl 102 → 181 пм), и Cl⁻ примерно в 1,8 раза
+ * крупнее Na⁺. В КОДЕ ни одного размера руками — всё через radiusForSpecies
+ * из src/chemistry/data; числа выше приведены только для чтения и сверяются тестом
+ * scripts/test-chem-data.mts — ни одно из них не имеет права разойтись с таблицей.
  *
- * Цвета — CPK (ATOMIC_DATA.cpk): H белый, C тёмно-серый, N синий, O красный,
- * Cl жёлто-зелёный, S жёлтый, Na фиолетовый, Mg светло-зелёный, Ca тёмно-зелёный,
- * Fe оранжево-коричневый, Zn сине-серый.
+ * Цвета — CPK/Jmol (ATOMIC_DATA.cpk): H белый (0xffffff), C почти чёрный (0x2a2a32),
+ * N синий, O алый (0xff0040), Cl канонический зелёный Jmol (0x1ff01f — не жёлто-зелёный:
+ * тот сливался с магнием), S жёлтый, Na фиолетовый, Mg светло-зелёный,
+ * Ca тёмно-зелёный, Fe оранжево-коричневый, Zn сине-серый.
  */
 import type * as THREE from 'three'
 import { ATOMIC_DATA, bondLengthPm, radiusForSpecies, type BondKey, type ElementSymbol } from '../../../../chemistry/data'
 import { ang, pmToAngstrom } from '../../core/atoms'
 import { writeHexLinear, writeVec3, type AtomPool, type BondPool } from '../../core/pools'
+import { writeSurface, type AtomSurface } from './materials'
 
 /**
  * Доля настоящего радиуса, которую рисуем шаром (стандартный приём ball-and-stick):
@@ -27,6 +31,14 @@ import { writeHexLinear, writeVec3, type AtomPool, type BondPool } from '../../c
  * поэтому отношения размеров (Cl⁻ / Na⁺ = 1,78) остаются честными.
  */
 export const SPECIES_SCALE = 0.72
+
+/**
+ * Доля радиуса для шаров ФРАГМЕНТА РЕШЁТКИ (сцены и герой одинаково): меньше SPECIES_SCALE,
+ * чтобы сквозь фрагмент читались рёбра ячеек и дальние слои. Доля одна на все ионы фрагмента —
+ * отношения размеров (Na⁺ : Cl⁻ = 102 : 181) остаются честными; в note шага сказано, что в
+ * настоящем кристалле соседние ионы касаются.
+ */
+export const LATTICE_BALL_SCALE = SPECIES_SCALE * 0.7
 
 /** Радиус частицы в ПИКОМЕТРАХ — для подписей и тестов. */
 export function speciesRadiusPm(symbol: ElementSymbol, charge = 0): number {
@@ -83,6 +95,11 @@ export type AtomWrite = {
   /** 0…1 — собственное свечение */
   emissive?: number
   opacity?: number
+  /**
+   * Материал по типу вещества — materialFor('metal' | 'ion' | 'covalent' | 'polar' | 'gas').
+   * Без него — прежний материал движка (слот сбрасывается, если раньше был задан).
+   */
+  surface?: AtomSurface
 }
 
 export function writeAtom(pool: AtomPool, i: number, a: AtomWrite): void {
@@ -90,8 +107,18 @@ export function writeAtom(pool: AtomPool, i: number, a: AtomWrite): void {
   pool.radius[i] = a.radius
   pool.charge[i] = a.charge ?? 0
   pool.emissive[i] = a.emissive ?? 0.08
-  pool.opacity[i] = a.opacity ?? 1
+  const s = a.surface
+  pool.opacity[i] = (a.opacity ?? 1) * (s ? s.opacityScale : 1)
   writeHexLinear(pool.color, i, a.colorHex)
+  if (s && s.lighten > 0) {
+    // Газ «легче»: цвет элемента чуть осветлён к белому (в линейном пространстве).
+    const o = i * 3
+    const c = pool.color
+    c[o] = c[o]! + (1 - c[o]!) * s.lighten
+    c[o + 1] = c[o + 1]! + (1 - c[o + 1]!) * s.lighten
+    c[o + 2] = c[o + 2]! + (1 - c[o + 2]!) * s.lighten
+  }
+  writeSurface(pool, i, s)
 }
 
 export type BondWrite = {
@@ -113,6 +140,8 @@ export type BondWrite = {
   split?: number
   /** −1…+1 — смещение электронной плотности (полярность связи) */
   polarity?: number
+  /** неподвижный штрих пунктира (водородная связь); по умолчанию штрих дробной кратности ползёт */
+  dashStatic?: boolean
 }
 
 export function writeBond(pool: BondPool, i: number, b: BondWrite): void {
@@ -129,6 +158,7 @@ export function writeBond(pool: BondPool, i: number, b: BondWrite): void {
   pool.split[i] = b.split ?? 0
   pool.polarity[i] = b.polarity ?? 0
   writeVec3(pool.piNormal, i, 0, 0, 0)
+  if (pool.dashStatic) pool.dashStatic[i] = b.dashStatic ? 1 : 0
 }
 
 /** Завершает кадр пула: сколько слотов рисовать и «данные поменялись». */

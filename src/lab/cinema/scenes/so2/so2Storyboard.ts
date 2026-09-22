@@ -21,7 +21,7 @@ import { SO2_FINISH, SO2_TIMING, so2CueAt, type So2CueId, type So2StepId } from 
  *
  * Вся химия приходит из src/chemistry/data через kit/cpkAtoms:
  *   d(S–S) 205,5 пм и ∠S–S–S 108° → корона S₈ (D4d);
- *   d(O=O) 120,8 пм → молекула кислорода;
+ *   d(O=O) из bondData (r_e) → молекула кислорода;
  *   d(S=O) 143,1 пм и ∠O–S–O 119,5° → уголковая SO₂;
  *   d(S=O в SO₃) 142,0 пм и 120° → плоская тригональная SO₃;
  *   d(O–H) и ∠H–O–H → молекулы воды на шаге «свойства».
@@ -205,7 +205,13 @@ function waterH(o: P3, sign: 1 | -1): P3 {
   return ligand(o, R_OH, waterAwayDeg(o) + (sign * ANG_H2O) / 2)
 }
 
-/** Призрак CO₂ для сравнения: линейная молекула, 180°. */
+/**
+ * Призрак CO₂ для сравнения: линейная молекула, 180°.
+ * Он ПОДПИСАН («CO₂: O–C–O 180°») и разобран в тексте шага «Вторая связь и угол»:
+ * у углерода три электронные группы превращаются в две, неподелённых пар нет —
+ * отсюда 180° против 119,5° у SO₂. Показывается ровно столько, сколько висит
+ * подпись, — неподписанных тел в кадре быть не должно.
+ */
 const CO2_CENTER: P3 = [0, 0.94, -0.26]
 const CO2_LEFT = ligand(CO2_CENTER, R_CO, -90)
 const CO2_RIGHT = ligand(CO2_CENTER, R_CO, 90)
@@ -314,28 +320,34 @@ const CROWN_FADE: ScalarTrack = [
   { t: 10.4, v: 0, ease: 'smooth' },
 ]
 
+/**
+ * ПРАВИЛО ПОДПИСАННОГО ТЕЛА. Вспомогательные частицы — две молекулы воды,
+ * третий кислород и призрак CO₂ — появляются и исчезают СТРОГО внутри окна
+ * своей подписи (labels «acid», «so3eq», «co2»). Иначе ученик на долю секунды
+ * видит в кадре тело, которое никак не названо. Проверяется тестом сцены.
+ */
 const WATER_FADE: ScalarTrack = [
   { t: 0, v: 0 },
-  { t: 17.2, v: 0 },
-  { t: 18, v: 1, ease: 'smooth' },
-  { t: 19.6, v: 1 },
-  { t: 20.3, v: 0, ease: 'smooth' },
+  { t: 18.05, v: 0 },
+  { t: 18.5, v: 1, ease: 'smooth' },
+  { t: 19.4, v: 1 },
+  { t: 19.75, v: 0, ease: 'smooth' },
 ]
 
 const CO2_FADE: ScalarTrack = [
   { t: 0, v: 0 },
-  { t: 13.6, v: 0 },
-  { t: 14.4, v: 0.55, ease: 'smooth' },
-  { t: 16.9, v: 0.55 },
-  { t: 17.6, v: 0, ease: 'smooth' },
+  { t: 14.3, v: 0 },
+  { t: 14.9, v: 0.55, ease: 'smooth' },
+  { t: 16.6, v: 0.55 },
+  { t: 17.1, v: 0, ease: 'smooth' },
 ]
 
 const OC_FADE: ScalarTrack = [
   { t: 0, v: 0 },
-  { t: 19.5, v: 0 },
-  { t: 20.2, v: 1, ease: 'smooth' },
-  { t: 21.9, v: 1 },
-  { t: 22.4, v: 0, ease: 'smooth' },
+  { t: 20.3, v: 0 },
+  { t: 20.8, v: 1, ease: 'smooth' },
+  { t: 21.8, v: 1 },
+  { t: 22.15, v: 0, ease: 'smooth' },
 ]
 
 /** Связь S0–S1: рвётся первой (кольцо раскрывается). */
@@ -532,6 +544,8 @@ const SO2_LABELS: readonly SceneLabelDef[] = [
   { id: 'ss', kind: 'delta', dy: -0.98, keys: [{ t: 0, text: `S–S ${Math.round(D_SS)} {pm}` }], windows: [[1.4, 5]] },
   { id: 'o2', kind: 'species', dy: 0.42, keys: [{ t: 0, text: 'O₂ ({g})' }], windows: [[0.6, 9.4]] },
   { id: 'oo', kind: 'delta', dy: -0.42, keys: [{ t: 0, text: `O=O ${Math.round(bondLengthPm('O=O'))} {pm}` }], windows: [[1.8, 8]] },
+  // Подпись намеренно начинается с «⅛ S₈»: +277 кДж/моль — СРЕДНЯЯ атомизация
+  // (одна связь S–S на вынесенный атом), а не цена двух связей первого атома.
   {
     id: 'atomize',
     kind: 'delta',
@@ -549,7 +563,13 @@ const SO2_LABELS: readonly SceneLabelDef[] = [
   { id: 'so', kind: 'delta', dy: 0.38, keys: [{ t: 0, text: `S=O ${Math.round(D_SO_PM)} {pm}` }], windows: [[11.8, 15.4]] },
   { id: 'lone', kind: 'ox', dy: -0.34, keys: [{ t: 0, text: '2e⁻' }], windows: [[15, 20.2]] },
   { id: 'angle', kind: 'delta', dy: -0.88, keys: [{ t: 0, text: `O–S–O ${ANG_SO2}°` }], windows: [[15.6, 19.2]] },
-  { id: 'co2', kind: 'species', dy: 0.34, keys: [{ t: 0, text: 'CO₂: O–C–O 180°' }], windows: [[14.2, 17.2]] },
+  {
+    id: 'co2',
+    kind: 'species',
+    dy: 0.34,
+    keys: [{ t: 0, text: `CO₂: O–C–O ${bondAngleDeg('carbonDioxide')}°` }],
+    windows: [[14.2, 17.2]],
+  },
   { id: 'dipole', kind: 'delta', dy: 0.38, keys: [{ t: 0, text: 'μ = 1.63 D' }], windows: [[16.6, 19.2]] },
   { id: 'acid', kind: 'species', dy: 0.9, keys: [{ t: 0, text: 'SO₂ + H₂O ⇌ H₂SO₃' }], windows: [[18, 19.8]] },
   { id: 'so3eq', kind: 'species', dy: 0.9, keys: [{ t: 0, text: '2 SO₂ + O₂ ⇌ 2 SO₃ (V₂O₅)' }], windows: [[20.2, 22.2]] },

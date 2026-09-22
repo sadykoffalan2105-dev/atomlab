@@ -59,13 +59,20 @@ export {
 } from './core/atoms'
 export {
   createBentFrame,
+  createBridgedFrame,
   measureAngle,
+  measureDihedral,
+  TETRAHEDRAL_ANGLE_DEG,
   TETRAHEDRAL_DIRS,
   writeBent,
+  writeBridged,
   writeDiatomic,
+  writeDihedral,
   writeLinear,
   writeTetrahedral,
+  writeTrigonalPlanar,
   type BentFrame,
+  type BridgedFrame,
 } from './core/vsepr'
 export { resolveCinemaQuality, type CinemaQuality, type CinemaTier } from './core/quality'
 export { damp, dampAlpha, lambdaFromLerp, springEase, springStep, springStepVec3, type SpringState } from './core/spring'
@@ -82,7 +89,30 @@ export {
   type LobePool,
 } from './core/pools'
 export * from './core/chem'
-export { computeAtomContacts, setAtomEnvIntensity, type AtomRenderMode } from './core/atomImpostorShader'
+export {
+  ATOM_SURFACE_GAS_FLAG,
+  ATOM_SURFACE_STRIDE,
+  computeAtomContacts,
+  packAtomSurfaces,
+  setAtomEnvIntensity,
+  type AtomRenderMode,
+} from './core/atomImpostorShader'
+export {
+  createLabelLayoutBuffers,
+  estimateLabelSize,
+  labelsOverlap,
+  layoutLabels,
+  type LabelLayoutBuffers,
+  type LabelRect,
+} from './core/labelLayout'
+export {
+  applyCameraToRig,
+  createSafeArea,
+  measureSafeArea,
+  SAFE_AREA_LAMBDA,
+  writeSafeRect,
+  type SafeArea,
+} from './core/safeArea'
 export { disposeLabEnvironment, getLabEnvironment } from './core/envLighting'
 export { writeBondBandDirection } from './core/bondBandShader'
 export { ORBITAL_PHASE_PALETTE, type OrbitalPhasePalette } from './core/orbitalLobeShader'
@@ -105,6 +135,7 @@ export { isSceneTextSafe, sceneText } from './core/glyphs'
 export { cinemaTexture, disposeCinemaTextures } from './core/textures'
 export { createBondMaterial } from './core/bondShader'
 export {
+  applyRigRotation,
   createBondState,
   createCameraRigState,
   createGlowState,
@@ -135,6 +166,7 @@ export { CinemaTimeProvider, setCinemaTimeFrozen, useCinemaTime, type CinemaTime
 export { InstancedAtoms, type InstancedAtomsProps } from './react/InstancedAtoms'
 export { InstancedBonds, type InstancedBondsProps } from './react/InstancedBonds'
 export { OrbitalLobes } from './react/OrbitalLobes'
+export { CELL_EDGE_COLOR, CinemaCellEdges } from './react/CinemaCellEdges'
 export { OrbitalRaymarch, type OrbitalRaymarchProps } from './react/OrbitalRaymarch'
 export { CinemaLightRig } from './react/CinemaLightRig'
 export { CinemaGlowPoints, type GlowPointsHandle } from './react/CinemaGlowPoints'

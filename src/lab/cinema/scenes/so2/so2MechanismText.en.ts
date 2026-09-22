@@ -11,7 +11,7 @@ export const SO2_TEXT_EN: So2MechanismText = {
       title: 'Sulfur and oxygen',
       body:
         'At room temperature sulfur is a yellow solid, and its particle is not a single atom but a crown-shaped RING of eight atoms, S₈: the S–S bond is 205.5 pm and the S–S–S angle is 108°. ' +
-        'Oxygen is the diatomic gas O₂ with a double bond 120.8 pm long; there are no free oxygen atoms in the air. ' +
+        'Oxygen is the diatomic gas O₂ with a double bond 120.75 pm long (r_e); there are no free oxygen atoms in the air. ' +
         'Once lit, sulfur burns with a quiet BLUE flame — that is the reaction we are going to take apart step by step.',
       equation: 'S (s, rhombic) + O₂ (g) → SO₂ (g)',
       note: 'One S₈ crown and one O₂ molecule are shown; a grain of sulfur holds some 10²⁰ such crowns.',
@@ -20,32 +20,34 @@ export const SO2_TEXT_EN: So2MechanismText = {
     ring: {
       title: 'The ring opens',
       body:
-        'Before sulfur can react, an atom has to be freed from the ring. First one S–S bond breaks and the crown turns into a chain, then a second one breaks and the end atom leaves. ' +
-        'Making one mole of gaseous sulfur atoms out of rhombic sulfur costs 277.2 kJ: this step is ENDOTHERMIC, energy has to be spent. ' +
+        'Before sulfur can react, an atom has to be freed from the ring. Every atom of the crown holds on to two neighbours, so first one S–S bond breaks and the crown turns into a chain, then a second one breaks and the end atom leaves. ' +
+        'The step is counted ON AVERAGE: the S₈ crown has eight atoms and exactly eight bonds, so ONE S–S bond falls to each sulfur atom taken out. That is why one mole of sulfur atoms costs 277.2 kJ and not twice as much: the step is ENDOTHERMIC, energy has to be spent. ' +
         'That is why sulfur must be lit: on its own it does not react with oxygen at room temperature.',
-      equation: '⅛ S₈ (s) → S (g),  ΔH = +277.2 kJ/mol',
-      note: 'Free sulfur atoms are rare in the flame and live for an instant: the scene shows HOW an atom is freed, not how many there are.',
-      speak: 'Two S–S bonds break and one sulfur atom leaves the crown.',
+      equation: '⅛ S₈ (s) → S (g),  ΔH = +277.2 kJ/mol (one S–S bond per atom on average)',
+      note:
+        '277.2 kJ/mol is the AVERAGE enthalpy of atomisation, ΔH°f(S, g), not the price of the first atom: taking the first atom out of the CLOSED ring means breaking two bonds, about 554 kJ. After that the ring is already open and the next atoms come off more cheaply — on average it works out at one bond per atom. ' +
+        'Free sulfur atoms are rare in the flame and live for an instant: the scene shows HOW an atom is freed, not how many there are.',
+      speak: 'Two S–S bonds break at the end atom and it leaves the crown; on average one bond falls to each atom.',
     },
     firstBond: {
       title: 'The first S=O bond',
       body:
         'The oxygen molecule has to be broken as well: O₂ → 2 O costs 498.4 kJ per mole. The break is HOMOLYTIC — the shared pair is split evenly and two identical atoms appear, not ions. ' +
-        'Then the sulfur atom and an oxygen atom come close and each contributes one electron to a shared pair. ' +
-        'That is the covalent S=O bond, 143.1 pm long: the electrons belong to both atoms at once, but are pulled towards the more electronegative oxygen.',
+        'Then the sulfur atom and an oxygen atom come close. Sulfur has two unpaired electrons in its ground state and so has oxygen — each atom shares both of them. ' +
+        'That makes TWO shared pairs, the double S=O bond, 143.1 pm long: the electrons belong to both atoms at once, but are pulled towards the more electronegative oxygen.',
       equation: 'O₂ (g) → 2 O (g), ΔH = +498.4 kJ/mol;   S (g) + O (g) → S=O',
       note: 'Electrons are drawn as glowing dots and the valence shell as a ring: this marks «the outer electrons are here», it is not the shape of an orbital.',
-      speak: 'Oxygen splits in half and sulfur shares an electron pair with it.',
+      speak: 'Oxygen splits in half and sulfur shares two electron pairs with it.',
     },
     bend: {
       title: 'The second bond and the 119.5° angle',
       body:
         'A second oxygen atom gives the second S=O bond. Sulfur now carries THREE electron groups: two bonds and one LONE PAIR. ' +
         'By VSEPR three groups spread out in a plane at about 120°, so the molecule comes out BENT; the lone pair is «fatter» than a bond and squeezes the angle down to 119.5°. ' +
-        'Carbon in CO₂ has only two groups and no lone pairs — which is why CO₂ is linear, 180°. ' +
+        'The translucent molecule floating above the frame is a CO₂ yardstick (labelled «CO₂: O–C–O 180°»): carbon there has only two electron groups and no lone pairs — which is why CO₂ is linear, 180°. ' +
         'Both bonds in SO₂ are the same length, 143.1 pm: the π electrons are delocalised over all three centres, so each bond order is not 2 but roughly 1.5. The molecule is polar, μ = 1.63 D.',
       equation: 'O=S=O,  ∠O–S–O = 119.5°,  d(S=O) = 143.1 pm,  μ = 1.63 D',
-      note: 'The move from the «wide» shape to the bent one is staged so that the push of the lone pair can be seen: in reality SO₂ is always bent.',
+      note: 'The move from the «wide» shape to the bent one is staged so that the push of the lone pair can be seen: in reality SO₂ is always bent. The translucent CO₂ above takes no part in the reaction — it is only a yardstick for the angle, and it appears and disappears together with its label.',
       speak: 'The lone pair on sulfur squeezes the angle — the molecule is bent, while CO₂ is linear.',
     },
     properties: {

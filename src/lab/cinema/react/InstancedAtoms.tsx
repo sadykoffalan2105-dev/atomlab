@@ -4,10 +4,12 @@ import * as THREE from 'three'
 import {
   ATOM_INSTANCE_STRIDE,
   ATOM_NEIGHBOR_STRIDE,
+  ATOM_SURFACE_STRIDE,
   createAtomMaterial,
   createIcosphereInstancedGeometry,
   createImpostorQuadGeometry,
   packAtomInstances,
+  packAtomSurfaces,
   syncAtomMaterialViewport,
   type AtomRenderMode,
 } from '../core/atomImpostorShader'
@@ -22,9 +24,11 @@ import type { AtomPool } from '../core/pools'
  *
  *   mode="impostor" — cinematic: идеальные сферы любого масштаба, корректная
  *                     глубина (пересекаются со связями и друг с другом), AA силуэта;
- *   mode="mesh"     — lite: икосфера detail 2, без discard и gl_FragDepth.
+ *   mode="mesh"     — lite: икосфера detail 4, без discard и gl_FragDepth.
  *
  * Режим и наличие contact — часть ключа шейдера: фиксируйте их на весь урок.
+ * Материал по типу вещества (pool.surface, kit/materials.ts) — отдельный
+ * атрибут aSurface в той же программе: смена материала не перекомпилирует шейдер.
  * Непрозрачность < 1: impostor — screen-door (порядок не важен, сортировки нет,
  * виден мелкий узор), mesh — атом сжимается и темнеет до исчезновения.
  * Заливка пропускается, если pool.version и pool.count не изменились —
@@ -47,6 +51,8 @@ type AtomBatch = {
   geometry: THREE.InstancedBufferGeometry
   data: Float32Array
   instances: THREE.InstancedInterleavedBuffer
+  surfaceData: Float32Array
+  surfaces: THREE.InstancedBufferAttribute
   neighbors: THREE.InstancedInterleavedBuffer | null
   lastPool: AtomPool | null
   lastVersion: number
@@ -62,6 +68,10 @@ function createAtomBatch(capacity: number, mode: AtomRenderMode, neighbors: Floa
   geometry.setAttribute('aSphere', new THREE.InterleavedBufferAttribute(instances, 4, 0))
   geometry.setAttribute('aColor', new THREE.InterleavedBufferAttribute(instances, 4, 4))
   geometry.setAttribute('aEnergy', new THREE.InterleavedBufferAttribute(instances, 2, 8))
+  const surfaceData = new Float32Array(cap * ATOM_SURFACE_STRIDE)
+  const surfaces = new THREE.InstancedBufferAttribute(surfaceData, ATOM_SURFACE_STRIDE)
+  surfaces.setUsage(THREE.DynamicDrawUsage)
+  geometry.setAttribute('aSurface', surfaces)
   let nb: THREE.InstancedInterleavedBuffer | null = null
   if (neighbors) {
     // Буфер соседей — прямо массив писателя, без копии.
@@ -73,7 +83,7 @@ function createAtomBatch(capacity: number, mode: AtomRenderMode, neighbors: Floa
     geometry.setAttribute('aNeighbor3', new THREE.InterleavedBufferAttribute(nb, 4, 12))
   }
   geometry.instanceCount = 0
-  return { geometry, data, instances, neighbors: nb, lastPool: null, lastVersion: -1, lastCount: -1 }
+  return { geometry, data, instances, surfaceData, surfaces, neighbors: nb, lastPool: null, lastVersion: -1, lastCount: -1 }
 }
 
 const drawingBufferSize = new THREE.Vector2()
@@ -94,6 +104,10 @@ function syncAtomBatch(batch: AtomBatch, pool: AtomPool, material: THREE.ShaderM
     batch.instances.clearUpdateRanges()
     batch.instances.addUpdateRange(0, n * ATOM_INSTANCE_STRIDE)
     batch.instances.needsUpdate = true
+    packAtomSurfaces(pool, batch.surfaceData)
+    batch.surfaces.clearUpdateRanges()
+    batch.surfaces.addUpdateRange(0, n * ATOM_SURFACE_STRIDE)
+    batch.surfaces.needsUpdate = true
     const nb = batch.neighbors
     if (nb) {
       const m = Math.min(n, nb.count)

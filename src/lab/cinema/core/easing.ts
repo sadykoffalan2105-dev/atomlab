@@ -54,6 +54,11 @@ export const Ease = {
   },
   inSine: (t: number) => 1 - Math.cos((clamp01(t) * Math.PI) / 2),
   outSine: (t: number) => Math.sin((clamp01(t) * Math.PI) / 2),
+  /**
+   * Ступенька: 0 до конца сегмента, 1 ровно в его конце. Так величина меняется
+   * В ОДИН КАДР (радиус иона в момент прихода электрона — kit/valence.octetSnap).
+   */
+  step: (t: number) => (t >= 1 ? 1 : 0),
   inOutSine: (t: number) => -(Math.cos(Math.PI * clamp01(t)) - 1) / 2,
   /** небольшой перелёт цели — щелчок ионной пары Na⁺Cl⁻ */
   outBack: (t: number) => {

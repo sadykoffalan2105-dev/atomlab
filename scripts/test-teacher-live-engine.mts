@@ -46,6 +46,7 @@ import {
 import { detectFollowUp, isSubstantiveQuestion, resolveTurn, stripLeadingDiscourse } from '../src/learn/brain/dualMode/followUps.ts'
 import { composeLocalAnswer, extractKeyTerm, type KnowledgeHitLike } from '../src/learn/brain/dualMode/localAnswerComposer.ts'
 import { parseVoiceIntent } from '../src/learn/brain/dualMode/intentParser.ts'
+import { FULL_ACCEPTANCE, gradeAnswer, summarizeQuality } from '../src/learn/brain/dualMode/answerQuality.ts'
 import {
   clearTeacherKnowledgeCache,
   citationForDisplay,
@@ -781,12 +782,12 @@ await test('definition = key term is the subject: «Наука химия изу
     },
     { title: 'Кислоты', type: 'textbook', text: 'Природные кислоты также называют органическими кислотами.' },
   ]
-  const r = composeLocalAnswer({ query: 'Что такое химия?', hits, lang: 'ru', seed: 0 })
+  const r = composeLocalAnswer({ query: 'Что такое химия?', hits, lang: 'ru', seed: 0, style: { noExplainerCards: true } })
   assert.ok(r.confident, r.text)
   assert.ok(r.sentences[0]!.startsWith('Наука химия изучает состав'), r.text)
   assert.ok(!/Лавуазье В/.test(r.text), 'caption glued to a sentence is dropped')
   assert.ok(!r.text.includes('Основные понятия'), 'KB card label is stripped')
-  const acid = composeLocalAnswer({ query: 'что такое кислота', hits, lang: 'ru', seed: 0 })
+  const acid = composeLocalAnswer({ query: 'что такое кислота', hits, lang: 'ru', seed: 0, style: { noExplainerCards: true } })
   assert.ok(!/Кислота — это природные/.test(acid.text), `bad reframe: ${acid.text}`)
 })
 
@@ -811,7 +812,7 @@ function hitsCorpus(hits: readonly KnowledgeHitLike[]): string {
 }
 
 await test('RU "что такое": direct definition first, example, check question, ≤ ~60 words, no invented facts', () => {
-  const r = composeLocalAnswer({ query: 'Что такое оксиды?', hits: OXIDE_HITS, lang: 'ru', seed: 1 })
+  const r = composeLocalAnswer({ query: 'Что такое оксиды?', hits: OXIDE_HITS, lang: 'ru', seed: 1, style: { noExplainerCards: true } })
   assert.ok(r.confident)
   assert.ok(r.sentences[0]!.startsWith('Оксиды — это сложные вещества'), r.text)
   assert.ok(r.text.includes('CO2'), 'example from the retrieved text')
@@ -828,13 +829,13 @@ await test('RU "что такое": direct definition first, example, check ques
 })
 
 await test('RU "почему": cause first; "пример": example present; "подробнее": longer but bounded', () => {
-  const why = composeLocalAnswer({ query: 'почему образуются оксиды', hits: OXIDE_HITS, lang: 'ru', style: { wantWhy: true } })
+  const why = composeLocalAnswer({ query: 'почему образуются оксиды', hits: OXIDE_HITS, lang: 'ru', style: { wantWhy: true, noExplainerCards: true } })
   assert.ok(why.confident)
   assert.ok(/потому что/.test(why.sentences[0]!), why.text)
-  const ex = composeLocalAnswer({ query: 'Что такое оксиды?', hits: OXIDE_HITS, lang: 'ru', style: { wantExample: true } })
+  const ex = composeLocalAnswer({ query: 'Что такое оксиды?', hits: OXIDE_HITS, lang: 'ru', style: { wantExample: true, noExplainerCards: true } })
   assert.ok(/Например/.test(ex.text))
-  const more = composeLocalAnswer({ query: 'Что такое оксиды?', hits: OXIDE_HITS, lang: 'ru', style: { detail: 'more' } })
-  assert.ok(countWords(more.text) >= countWords(composeLocalAnswer({ query: 'Что такое оксиды?', hits: OXIDE_HITS, lang: 'ru' }).text))
+  const more = composeLocalAnswer({ query: 'Что такое оксиды?', hits: OXIDE_HITS, lang: 'ru', style: { detail: 'more', noExplainerCards: true } })
+  assert.ok(countWords(more.text) >= countWords(composeLocalAnswer({ query: 'Что такое оксиды?', hits: OXIDE_HITS, lang: 'ru', style: { noExplainerCards: true } }).text))
   assert.ok(countWords(more.text) <= 160)
 })
 
@@ -853,6 +854,7 @@ await test('EN and UZ answers are spoken-style and use only retrieved text', () 
   const en = composeLocalAnswer({
     query: 'What is an oxide?',
     lang: 'en',
+    style: { noExplainerCards: true },
     hits: [
       {
         title: 'Oxides',
@@ -867,6 +869,7 @@ await test('EN and UZ answers are spoken-style and use only retrieved text', () 
   const uz = composeLocalAnswer({
     query: 'Oksid nima?',
     lang: 'uz',
+    style: { noExplainerCards: true },
     hits: [{ title: 'Oksidlar', type: 'definition', text: 'Oksidlar ikki elementdan iborat murakkab moddalar bo‘lib, ulardan biri kislorod hisoblanadi.' }],
   })
   assert.ok(uz.text.length > 0)
@@ -991,7 +994,9 @@ await test('r9: en/uz без машинных связок «is a method involvi
     assert.ok(!/is a (method|process|reaction) involving/iu.test(r.text), `${lang}: ${r.text}`)
     // «способность» — не «способ»: родовое слово не может превратиться в «method» / «usul».
     assert.ok(!/Valency is a method|Valentlik — usul/iu.test(r.text), `${lang}: ${r.text}`)
-    assert.match(r.text, /способность/u)
+    // Ответ на языке ученика: либо карточка объяснения (тогда кириллицы нет вовсе),
+    // либо русская цитата учебника — но с настоящим «способность», а не машинной связкой.
+    assert.ok(!/[А-Яа-яЁё]/.test(r.text) || /способность/u.test(r.text), `${lang}: ${r.text}`)
     assert.ok(!/ishtirok etadigan/iu.test(r.text), `${lang}: ${r.text}`)
   }
 })
@@ -1059,6 +1064,413 @@ await test('r10: «Так как A, B» — не причина, если сле
   const r = composeLocalAnswer({ query: 'Почему фтор — самый активный из галогенов?', hits, lang: 'ru', style: { channel: 'chat', noCheckQuestion: true, wantWhy: true } })
   assert.ok(!/^Так как фтор, бром, йод, как и хлор, в природе встречаются в основном в виде соединений и их ионы заряжены отрицательно\.$/u.test(r.sentences[0] ?? ''), r.text)
 })
+
+console.log('\n# Explainer cards: полный ответ, покрытие 7–9 класса, речь')
+
+/** 40+ типовых вопросов школьной программы — учитель обязан отвечать уверенно и без базы. */
+const CORE_QUESTIONS: readonly string[] = [
+  'Чем смесь отличается от химического соединения?',
+  'Чем физическое явление отличается от химического?',
+  'Что такое атом?',
+  'Что такое молекула?',
+  'Что такое химический элемент?',
+  'Что такое относительная атомная масса?',
+  'Как посчитать относительную молекулярную массу?',
+  'Как найти массовую долю элемента?',
+  'В чём смысл закона сохранения массы?',
+  'Что такое валентность?',
+  'Чем индекс отличается от коэффициента?',
+  'Как разделить смесь?',
+  'Какие свойства у кислорода?',
+  'Что такое горение?',
+  'Из чего состоит воздух?',
+  'Какое строение у атома?',
+  'Что такое изотопы?',
+  'Что такое периодический закон Менделеева?',
+  'Как меняются свойства элементов в периоде?',
+  'Почему инертные газы не вступают в реакции?',
+  'Что такое ковалентная связь?',
+  'Что такое ионная связь?',
+  'Почему NaCl хрупкий?',
+  'Почему металлы проводят электрический ток?',
+  'Почему молекула воды уголковая?',
+  'Почему соль растворяется в воде?',
+  'Что такое степень окисления?',
+  'Какие бывают типы химических реакций?',
+  'Как расставить коэффициенты в уравнении реакции?',
+  'Что такое моль?',
+  'Что такое оксиды?',
+  'Что такое кислоты?',
+  'Что такое основания?',
+  'Что такое соли?',
+  'Что такое реакция нейтрализации?',
+  'Что такое электролитическая диссоциация?',
+  'От чего зависит скорость реакции?',
+  'Что такое катализатор и как он работает?',
+  'Почему железо ржавеет?',
+  'Что такое амфотерность?',
+  'Что такое ряд активности металлов?',
+  'Что такое аллотропия?',
+]
+
+await test('покрытие: 40+ типовых вопросов 7–9 класса отвечены уверенно и полно (без базы знаний)', async () => {
+  const { matchExplainerCard } = await import('../src/learn/knowledge/learnExplainerAnswer.ts')
+  const weak: string[] = []
+  let withFormula = 0
+  for (const q of CORE_QUESTIONS) {
+    const card = matchExplainerCard(q, 'ru')
+    if (!card) {
+      weak.push(`нет карточки: ${q}`)
+      continue
+    }
+    const r = composeLocalAnswer({ query: q, hits: [], lang: 'ru', style: { channel: 'chat' }, seed: 3 })
+    if (!r.confident) weak.push(`не уверен: ${q}`)
+    if (r.sentences.length < 3) weak.push(`коротко (${r.sentences.length}): ${q}`)
+    if (!card.text.why) weak.push(`без причины: ${q}`)
+    if (/[→⇌=]|ω|Ar\(|n = m/u.test(r.text)) withFormula++
+  }
+  assert.equal(weak.length, 0, weak.join('; '))
+  assert.ok(withFormula >= CORE_QUESTIONS.length * 0.7, `формула только в ${withFormula} из ${CORE_QUESTIONS.length}`)
+  report.coreQuestions = CORE_QUESTIONS.length
+  report.coreWithFormula = withFormula
+})
+
+await test('форма ответа: что → почему → формула → пример → проверочный вопрос + ссылка в лабораторию', () => {
+  const r = composeLocalAnswer({ query: 'Почему железо ржавеет?', hits: [], lang: 'ru', style: { channel: 'chat' }, seed: 0 })
+  assert.ok(r.confident, r.text)
+  assert.match(r.text, /коррози|ржавчин/iu)
+  assert.match(r.text, /4Fe \+ 3O₂/u)
+  assert.match(r.text, /#\/\?reactor=1&eq=/u)
+  assert.ok(r.sentences.at(-1)!.endsWith('?'), r.sentences.at(-1))
+  const voice = composeLocalAnswer({ query: 'Почему железо ржавеет?', hits: [], lang: 'ru', style: { channel: 'voice' }, seed: 0 })
+  assert.ok(!/reactor=1/.test(voice.text), voice.text)
+  assert.ok(countWords(voice.text) < countWords(r.text))
+  const simpler = composeLocalAnswer({ query: 'Почему железо ржавеет?', hits: [], lang: 'ru', style: { channel: 'chat', simpler: true }, seed: 0 })
+  assert.ok(countWords(simpler.text) < countWords(r.text), simpler.text)
+})
+
+await test('follow-up по карточке: «подробнее» не повторяет определение, «пример» даёт пример', () => {
+  const base = composeLocalAnswer({ query: 'Что такое оксиды?', hits: [], lang: 'ru', style: { channel: 'chat' }, seed: 0 })
+  const more = composeLocalAnswer({
+    query: 'Что такое оксиды?',
+    hits: [],
+    lang: 'ru',
+    style: { channel: 'chat', detail: 'more', continuation: true },
+    seed: 1,
+  })
+  assert.notEqual(more.sentences[0], base.sentences[0])
+  assert.ok(/ошибка|путают|внимание/u.test(more.text), more.text)
+  const example = composeLocalAnswer({
+    query: 'Что такое оксиды?',
+    hits: [],
+    lang: 'ru',
+    style: { channel: 'chat', wantExample: true, continuation: true },
+    seed: 2,
+  })
+  assert.match(example.sentences[0]!, /(Пример|На практике|Из жизни)/u)
+})
+
+await test('без выдумок: вопрос вне программы карточкой не отвечается', () => {
+  const none = composeLocalAnswer({ query: 'Кто выиграл чемпионат мира по футболу?', hits: [], lang: 'ru', topicHint: 'Оксиды', suggestSmartAi: true })
+  assert.equal(none.confident, false, none.text)
+  const bio = composeLocalAnswer({ query: 'Что такое митохондрия?', hits: [], lang: 'ru' })
+  assert.equal(bio.confident, false, bio.text)
+})
+
+await test('en/uz: карточка отвечает на своём языке, без русских вставок', () => {
+  const en = composeLocalAnswer({ query: 'Why does iron rust?', hits: [], lang: 'en', style: { channel: 'chat' }, seed: 0 })
+  assert.ok(en.confident, en.text)
+  assert.ok(!/[А-Яа-яЁё]/.test(en.text), en.text)
+  const uz = composeLocalAnswer({ query: 'Nima uchun suv qutbli?', hits: [], lang: 'uz', style: { channel: 'chat' }, seed: 0 })
+  assert.ok(uz.confident, uz.text)
+  assert.ok(!/[А-Яа-яЁё]/.test(uz.text), uz.text)
+})
+
+await test('реплики без вопроса: «не знаю» → наводка, «ммм» → переспрос, «спасибо» → подтверждение', async () => {
+  const { detectNonQuestion, replyForNonQuestion } = await import('../src/learn/brain/dualMode/followUps.ts')
+  assert.equal(detectNonQuestion('не знаю'), 'dontknow')
+  assert.equal(detectNonQuestion('хз'), 'dontknow')
+  assert.equal(detectNonQuestion('ммм'), 'filler')
+  assert.equal(detectNonQuestion('э-э'), 'filler')
+  assert.equal(detectNonQuestion('спасибо'), 'ack')
+  assert.equal(detectNonQuestion('Почему железо ржавеет?'), null)
+  assert.equal(detectNonQuestion('не знаю, почему вода кипит'), null)
+  const hint = replyForNonQuestion('dontknow', 'ru', { topic: 'Почему железо ржавеет?', seed: 0 })
+  assert.match(hint, /гвозд|вод|кислород/iu, hint)
+  assert.ok(replyForNonQuestion('filler', 'ru', {}).length > 10)
+})
+
+await test('расчёт понимает падежные формы: «в 2 молях», «0,5 моля», «сколько литров»', () => {
+  const grams = composeLocalAnswer({ query: 'Сколько граммов в 2 молях воды?', hits: [], lang: 'ru', style: { noCheckQuestion: true } })
+  assert.match(grams.text, /36 г/u, grams.text)
+  const half = composeLocalAnswer({ query: 'Какая масса 0,5 моля NaOH?', hits: [], lang: 'ru', style: { noCheckQuestion: true } })
+  assert.match(half.text, /20 г/u, half.text)
+  const litres = composeLocalAnswer({ query: 'Сколько литров в 2 молях водорода?', hits: [], lang: 'ru', style: { noCheckQuestion: true } })
+  assert.match(litres.text, /44,8 л/u, litres.text)
+})
+
+await test('озвучка химии: Ar(Fe) — масса, «г/моль» — «грамм на моль», формулы по элементам', async () => {
+  const { prepareTextForHumanTts } = await import('../src/learn/learnSpeechText.ts')
+  const strip = (x: string) => x.replace(/́/g, '')
+  const ar = strip(prepareTextForHumanTts('Ar(Fe) = 56', 'ru'))
+  assert.match(ar, /относительная атомная масса желез/iu, ar)
+  assert.ok(!/аргон/i.test(ar), ar)
+  const m = strip(prepareTextForHumanTts('M(NaOH) = 40 г/моль', 'ru'))
+  assert.match(m, /молярная масса/iu, m)
+  assert.match(m, /грамм на моль/iu, m)
+  assert.ok(!/ или моль/i.test(m), m)
+  const eq = strip(prepareTextForHumanTts('2Al + 6HCl → 2AlCl₃ + 3H₂↑', 'ru'))
+  assert.match(eq, /плюс/iu, eq)
+  assert.match(eq, /образуется/iu, eq)
+  assert.match(eq, /газ выделяется/iu, eq)
+  assert.ok(!/AlCl|HCl|H₂|H2/.test(eq), eq)
+  const salt = strip(prepareTextForHumanTts('В пробирке K₂SiO₃.', 'ru'))
+  assert.ok(!/K₂SiO₃|K2SiO3/.test(salt), salt)
+  const na = strip(prepareTextForHumanTts('Nₐ = 6,02·10²³ моль⁻¹', 'ru'))
+  assert.match(na, /число Авогадро/iu, na)
+  assert.match(na, /умножить на/iu, na)
+  assert.match(na, /на моль/iu, na)
+  const en = prepareTextForHumanTts('Na₂O and H₂SO₄ react', 'en')
+  assert.ok(!/Na2O|H2SO4/.test(en), en)
+  const uz = prepareTextForHumanTts('Suvning formulasi H₂O', 'uz')
+  assert.ok(!/H2O/.test(uz), uz)
+  report.speechSample = eq
+})
+
+/* ---------------------------------------------- критерий качества ответа (r12) */
+
+/**
+ * Критерий «учитель объяснил полноценно» задан один раз в
+ * src/learn/brain/dualMode/answerQuality.ts и используется и здесь, и в прогонах .smoke —
+ * раньше критерия не было, и два независимых счёта по одному набору расходились вдвое.
+ */
+
+/** Набор приёмки: типовые вопросы 7–9 класса на трёх языках (по 10 на язык). */
+const QUALITY_SET: { q: string; lang: 'ru' | 'en' | 'uz'; expect: string[] }[] = [
+  { q: 'Почему вода в стакане испаряется?', lang: 'ru', expect: ['молекул', 'испар'] },
+  { q: 'Что такое молекула?', lang: 'ru', expect: ['молекул'] },
+  { q: 'Что такое относительная атомная масса?', lang: 'ru', expect: ['масс', 'атом'] },
+  { q: 'Почему соль растворяется в воде?', lang: 'ru', expect: ['раствор', 'ион', 'вод'] },
+  { q: 'Что такое степень окисления?', lang: 'ru', expect: ['окислен'] },
+  { q: 'Как расставить коэффициенты в уравнении?', lang: 'ru', expect: ['коэффициент', 'атом'] },
+  { q: 'Что такое изотопы?', lang: 'ru', expect: ['изотоп', 'нейтрон'] },
+  { q: 'Почему благородные газы не вступают в реакции?', lang: 'ru', expect: ['электрон', 'оболочк'] },
+  { q: 'Что такое ковалентная связь?', lang: 'ru', expect: ['связ', 'электрон'] },
+  { q: 'Что такое индикаторы?', lang: 'ru', expect: ['индикатор', 'цвет'] },
+  { q: 'What is a molecule?', lang: 'en', expect: ['molecul'] },
+  { q: 'What is an isotope?', lang: 'en', expect: ['isotope', 'neutron'] },
+  { q: 'What is oxidation state?', lang: 'en', expect: ['oxidation'] },
+  { q: 'What is a covalent bond?', lang: 'en', expect: ['bond', 'electron'] },
+  { q: 'Why do noble gases not react?', lang: 'en', expect: ['electron', 'shell'] },
+  { q: 'What is an indicator?', lang: 'en', expect: ['indicator', 'colour', 'color'] },
+  { q: 'What is a chemical element?', lang: 'en', expect: ['element', 'atom'] },
+  { q: 'Why does salt dissolve in water?', lang: 'en', expect: ['ion', 'water'] },
+  { q: 'What is relative atomic mass?', lang: 'en', expect: ['mass', 'atom'] },
+  { q: 'How do you balance a chemical equation?', lang: 'en', expect: ['coefficient', 'atom'] },
+  { q: 'Molekula nima?', lang: 'uz', expect: ['molekul'] },
+  { q: 'Izotoplar nima?', lang: 'uz', expect: ['izotop', 'neytron'] },
+  { q: 'Oksidlanish darajasi nima?', lang: 'uz', expect: ['oksidlanish'] },
+  { q: 'Kovalent bogʻ nima?', lang: 'uz', expect: ['bog', 'elektron'] },
+  { q: 'Nega nodir gazlar reaksiyaga kirishmaydi?', lang: 'uz', expect: ['elektron', 'qobiq'] },
+  { q: 'Indikator nima?', lang: 'uz', expect: ['indikator', 'rang'] },
+  { q: 'Kimyoviy element nima?', lang: 'uz', expect: ['element', 'atom'] },
+  { q: 'Nega tuz suvda eriydi?', lang: 'uz', expect: ['ion', 'suv'] },
+  { q: 'Nisbiy atom massasi nima?', lang: 'uz', expect: ['massa', 'atom'] },
+  { q: 'Kimyoviy tenglamada koeffitsientlar qanday qoʻyiladi?', lang: 'uz', expect: ['koeffitsient', 'atom'] },
+]
+
+await test('критерий качества: FULL / MINIMAL / FAIL считаются по обязательным и желательным признакам', () => {
+  const full = gradeAnswer({
+    question: 'Почему лёд плавает на воде?',
+    lang: 'ru',
+    expect: ['лёд', 'плотност'],
+    confident: true,
+    answer:
+      'Лёд легче воды и потому плавает. Причина вот в чём: при замерзании каждая молекула воды связывается ' +
+      'водородными связями с четырьмя соседями и встаёт в рыхлый каркас с пустотами. Формула: ρ(лёд) = 0,92 г/см³. ' +
+      'Например, айсберг держится на плаву. А теперь сам: почему лёд плавает?',
+  })
+  assert.equal(full.verdict, 'FULL', full.why.join('; '))
+
+  // Пересказ вопроса без причины — не объяснение.
+  const restated = gradeAnswer({
+    question: 'Почему лёд плавает на воде?',
+    lang: 'ru',
+    expect: ['лёд'],
+    confident: true,
+    answer: 'Лёд плавает на воде. Это известное свойство, его проходят в седьмом классе на уроке про воду и её роль в природе.',
+  })
+  assert.equal(restated.verdict, 'FAIL', restated.why.join('; '))
+
+  // Русский абзац в английской обёртке — язык ответа не совпал с языком вопроса.
+  const wrongLang = gradeAnswer({
+    question: 'Why does ice float on water?',
+    lang: 'en',
+    expect: ['ice', 'dens', 'плотност'],
+    confident: true,
+    answer:
+      'I have this answer only in my Russian textbook: «Лёд легче воды, потому что молекулы воды при замерзании ' +
+      'образуют рыхлый каркас с пустотами, и плотность льда меньше плотности воды».',
+  })
+  assert.equal(wrongLang.verdict, 'FAIL', wrongLang.why.join('; '))
+  assert.ok(wrongLang.why.some((w) => w.includes('язык')), wrongLang.why.join('; '))
+
+  // Нерелевантная цитата (промах поиска в кавычках) — хуже честного «не знаю».
+  const badQuote = gradeAnswer({
+    question: 'Почему нельзя наливать воду в кислоту?',
+    lang: 'ru',
+    expect: ['кислот'],
+    confident: true,
+    answer:
+      'Смотри. Причина вот в чём: выделяется много теплоты. В учебнике сказано так: ' +
+      '«Соединение фосфора с водородом образует ядовитый газ фосфин, который на воздухе самовоспламеняется».',
+  })
+  assert.equal(badQuote.verdict, 'FAIL', badQuote.why.join('; '))
+  assert.ok(badQuote.why.some((w) => w.includes('цитата')), badQuote.why.join('; '))
+
+  // Всё обязательное есть, желательного мало — MINIMAL, но не провал.
+  const minimal = gradeAnswer({
+    question: 'Что такое ион?',
+    lang: 'ru',
+    expect: ['ион'],
+    confident: true,
+    answer:
+      'Ион — это атом или группа атомов с зарядом. Причина заряда в том, что атом отдал или принял электроны, ' +
+      'и заряд ядра перестал компенсироваться зарядом оболочки.',
+  })
+  assert.equal(minimal.verdict, 'MINIMAL', minimal.why.join('; '))
+
+  // Мусорный ввод: переспрос без цитирования ввода — зачёт; цитирование — провал.
+  assert.equal(
+    gradeAnswer({ question: 'фыва олдж пррр', lang: 'ru', kind: 'gibberish', answer: 'Тут только набор букв, я не понял вопрос. Повтори, пожалуйста.' }).verdict,
+    'FULL',
+  )
+  assert.equal(
+    gradeAnswer({ question: 'фыва олдж пррр', lang: 'ru', kind: 'gibberish', answer: 'Точного ответа на «фыва олдж пррр» в моей базе нет.' }).verdict,
+    'FAIL',
+  )
+})
+
+await test('набор приёмки 30 вопросов ru/en/uz: FULL ≥ 90 %, провалов нет', () => {
+  const reports = QUALITY_SET.map((c, i) => {
+    const r = composeLocalAnswer({ query: c.q, hits: [], lang: c.lang, style: { channel: 'chat' }, seed: i })
+    return { c, report: gradeAnswer({ question: c.q, answer: r.text, lang: c.lang, expect: c.expect, confident: r.confident }) }
+  })
+  const bad = reports.filter((x) => x.report.verdict === 'FAIL').map((x) => `${x.c.lang}: ${x.c.q} — ${x.report.why.join(', ')}`)
+  assert.equal(bad.length, 0, bad.join(' | '))
+  const sum = summarizeQuality(reports.map((x) => x.report))
+  assert.ok(sum.accepted, `FULL ${sum.full}/${sum.total} (порог ${Math.round(FULL_ACCEPTANCE * 100)} %)`)
+  report.qualityFull = `${sum.full}/${sum.total}`
+})
+
+await test('безопасность: ответ приходит из карточки, а не из поиска по корпусу', async () => {
+  const { isSafetyQuestion } = await import('../src/learn/knowledge/learnExplainerAnswer.ts')
+  // Тот самый посторонний фрагмент, который однажды выдали за ответ.
+  const hits: KnowledgeHitLike[] = [
+    {
+      title: 'Метафосфорная кислота', type: 'textbook', citation: '[Kimyo 9, §5.4, стр. 88]', score: 3,
+      text: 'Метафосфорная кислота HPO3 при взаимодействии с водой образует ортофосфорную кислоту: HPO3 + H2O = H3PO4.',
+    },
+  ]
+  const cases = [
+    { q: 'Почему нельзя наливать воду в кислоту?', lang: 'ru' as const, must: /сначала вод|кислоту всегда наливают в воду|воду в кислоту/iu },
+    { q: 'Why must you never pour water into acid?', lang: 'en' as const, must: /acid into the water|water into acid/iu },
+    { q: 'Nima uchun kislotaga suv quyish mumkin emas?', lang: 'uz' as const, must: /kislota doimo suvga|suvni kislotaga/iu },
+  ]
+  for (const c of cases) {
+    assert.ok(isSafetyQuestion(c.q, c.lang), `не опознан вопрос безопасности: ${c.q}`)
+    const r = composeLocalAnswer({ query: c.q, hits, lang: c.lang, style: { channel: 'chat' }, seed: 0 })
+    assert.match(r.text, c.must)
+    // Посторонний фрагмент про метафосфорную кислоту в ответ не попадает ни в каком виде.
+    assert.ok(!/метафосфорн|HPO3|HPO₃|H3PO4|H₃PO₄/iu.test(r.text), `${c.lang}: ${r.text}`)
+    assert.ok(r.confident, `${c.lang}: ${r.text}`)
+    assert.ok(r.usedTitles.some((t) => t.startsWith('explainer:')), `ответ не из карточки: ${r.usedTitles.join(', ')}`)
+    const graded = gradeAnswer({ question: c.q, answer: r.text, lang: c.lang, expect: ['кислот', 'acid', 'kislota'], confident: r.confident })
+    assert.notEqual(graded.verdict, 'FAIL', graded.why.join('; '))
+  }
+})
+
+await test('закрывающее «Сможешь теперь сам объяснить…» — только когда объяснение было', () => {
+  // Ответ собран цитатой корпуса: объяснения не прозвучало, значит и «теперь ты» неуместно.
+  const hits: KnowledgeHitLike[] = [
+    {
+      title: 'Фосфор', type: 'textbook', citation: '[Kimyo 9, §5.4, стр. 88]', score: 2,
+      text: 'Метафосфорная кислота HPO3 при взаимодействии с водой образует ортофосфорную кислоту: HPO3 + H2O = H3PO4.',
+    },
+  ]
+  const r = composeLocalAnswer({ query: 'Что происходит с метафосфорной кислотой в воде?', hits, lang: 'ru', style: { channel: 'chat' }, seed: 0 })
+  assert.ok(!/Сможешь теперь сам объяснить/u.test(r.text), r.text)
+})
+
+await test('мусорный ввод: переспрос без цитирования, настоящий вопрос не путается с мусором', async () => {
+  const { looksLikeGibberish } = await import('../src/learn/brain/dualMode/gibberish.ts')
+  const { detectNonQuestion, replyForNonQuestion } = await import('../src/learn/brain/dualMode/followUps.ts')
+  for (const junk of ['фыва олдж пррр', 'qwrtplzk mnbvxz', 'asdfgh', 'пррр']) {
+    assert.ok(looksLikeGibberish(junk), `не опознан мусор: ${junk}`)
+    assert.equal(detectNonQuestion(junk), 'gibberish', junk)
+  }
+  for (const real of ['Что такое оксиды?', 'Why does ice float on water?', 'Oksidlar nima?', 'Сколько граммов в 2 молях воды?', 'Расскажи про фосфор']) {
+    assert.ok(!looksLikeGibberish(real), `настоящий вопрос принят за мусор: ${real}`)
+  }
+  for (const lang of ['ru', 'en', 'uz'] as const) {
+    const reply = replyForNonQuestion('gibberish', lang, { seed: 0 })
+    assert.ok(!/фыва|qwrtplzk/iu.test(reply), reply)
+    assert.ok(reply.length > 20, reply)
+  }
+})
+
+await test('язык ответа совпадает с языком вопроса; при пробеле в базе — честный отказ, а не русский абзац', () => {
+  for (const [lang, q] of [['en', 'What is a catalyst for?'], ['uz', 'Katalizator nima uchun kerak?']] as const) {
+    const r = composeLocalAnswer({ query: q, hits: [], lang, style: { channel: 'chat' }, seed: 0 })
+    assert.ok(r.confident, r.text)
+    assert.ok(!/[А-Яа-яЁё]/.test(r.text), `${lang}: ${r.text}`)
+  }
+  // Мимо темы: русская фраза не о вопросе — цитировать её в en/uz нельзя.
+  const offHits: KnowledgeHitLike[] = [
+    {
+      title: 'Условные знаки', type: 'textbook', citation: '[Kimyo 7, §3.1, стр. 55]', score: 1,
+      text: 'Условные знаки Для того чтобы составить уравнения химических реакций, необходимо знать определенные знаки.',
+    },
+  ]
+  for (const lang of ['en', 'uz'] as const) {
+    const q = lang === 'en' ? 'Why do stars shine at night?' : 'Yulduzlar nega porlaydi?'
+    const r = composeLocalAnswer({ query: q, hits: offHits, lang, style: { channel: 'chat' } })
+    assert.equal(r.confident, false, `${lang}: ${r.text}`)
+    assert.ok(!/Условные знаки/u.test(r.text), `${lang}: ${r.text}`)
+  }
+})
+
+await test('нарезка корпуса: заголовок не приклеивается к первому предложению цитаты', async () => {
+  const { stripGluedHeading } = await import('../src/learn/brain/dualMode/localAnswerComposer.ts')
+  assert.equal(
+    stripGluedHeading('Условные знаки Для того чтобы составить уравнения химических реакций, необходимо знать знаки.'),
+    'Для того чтобы составить уравнения химических реакций, необходимо знать знаки.',
+  )
+  // Обычное предложение не трогаем.
+  const plain = 'Валентность водорода всегда равна единице, а кислорода — двум.'
+  assert.equal(stripGluedHeading(plain), plain)
+})
+
+await test('чтение формул вслух: без тавтологии, один стиль на уравнение, сокращения целы', async () => {
+  const { prepareTextForHumanTts } = await import('../src/learn/learnSpeechText.ts')
+  const strip = (x: string) => x.replace(/́/g, '')
+  // Тавтология: рядом с названием формулу второй раз не читаем.
+  const named = strip(prepareTextForHumanTts('Вода H₂O и углекислый газ CO₂ получаются при горении.', 'ru'))
+  assert.ok(!/вода вода|газ углекислый газ/iu.test(named), named)
+  assert.ok(!/H₂O|CO₂/u.test(named), named)
+  // Один стиль на уравнение: сырых формул в озвучке не остаётся.
+  const mixed = strip(prepareTextForHumanTts('2Al + 3Cl₂ → 2AlCl₃', 'ru'))
+  assert.ok(!/AlCl₃|Cl₂|AlCl3/u.test(mixed), mixed)
+  // «↑» не проговаривается второй раз, если про газ уже сказано словами.
+  const gas = strip(prepareTextForHumanTts('Реакция идёт с выделением газа: Zn + 2HCl → ZnCl₂ + H₂↑', 'ru'))
+  assert.ok((gas.match(/газ/giu) ?? []).length <= 2, gas)
+  // Сокращения не рвут фразу пополам.
+  for (const abbr of ['и т. д.', 'и т. п.', 'см. стр. 42', 'см. рис. 3']) {
+    const parts = splitIntoSentences(`Оксиды бывают основные, кислотные ${abbr} Это важно.`)
+    assert.ok(parts.every((p) => !/\b(т|стр|рис|см)\.?$/u.test(p.trim())), `${abbr}: ${JSON.stringify(parts)}`)
+  }
+})
+
 /* ------------------------------------------------------------------ summary */
 
 console.log('\n# Measured')

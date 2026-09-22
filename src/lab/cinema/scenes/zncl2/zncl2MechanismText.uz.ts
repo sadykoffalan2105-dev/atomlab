@@ -31,9 +31,9 @@ export const ZNCL2_TEXT_UZ: Zncl2MechanismText = {
       title: 'H₂ molekulasining tug‘ilishi',
       body:
         'Sirtdagi ikkita qo‘shni vodorod atomi bir-birini topib, elektronlarini umumiy juftga birlashtiradi — shunday qilib uzunligi 74,14 pm bo‘lgan qutbsiz kovalent bog‘ hosil bo‘ladi. ' +
-        'Bu bog‘ni uzish uchun 436 kJ/mol kerak, shuning uchun H₂ molekulasi juda mustahkam va eritmada qolmaydi. ' +
+        'Bu bog‘ni uzish uchun 435,8 kJ/mol kerak, shuning uchun H₂ molekulasi juda mustahkam va eritmada qolmaydi. ' +
         'Molekulalar pufakchaga yig‘iladi, pufakcha plastinkadan uzilib yuqoriga ko‘tariladi: Kipp apparatida aynan shu pufakchalar ko‘rinadi.',
-      equation: '2 H → H₂ (gaz)↑,  d(H–H) = 74,14 pm,  E(H–H) = 436 kJ/mol',
+      equation: '2 H → H₂ (gaz)↑,  d(H–H) = 74,14 pm,  E(H–H) = 435,8 kJ/mol',
       note: 'Pufakcha nuqtalar halqasi bilan chizilgan. Diametri bir millimetr bo‘lgan haqiqiy pufakchada taxminan 10¹⁷ ta vodorod molekulasi bor.',
       speak: 'Ikki vodorod atomi molekulaga birlashadi. Pufakcha uzilib yuqoriga ko‘tariladi.',
     },
@@ -52,9 +52,11 @@ export const ZNCL2_TEXT_UZ: Zncl2MechanismText = {
       body:
         'Xlorid ionlari butun reaksiya davomida o‘zgarmadi: Cl⁻ edi, Cl⁻ bo‘lib qoldi. Bunday zarrachalar tomoshabin ionlar deyiladi va qisqa ionli tenglamaga yozilmaydi. ' +
         'Endi stakanda rux xlorid eritmasi bor: Zn²⁺ va Cl⁻ ionlari suv bilan ajratilgan va bir-biri bilan bog‘lanmagan. ' +
-        'Eritma bug‘latilsa, oq ZnCl₂ tuzi qoladi: tetragonal kristall, fazoviy guruh I-42d, a = 539,8 pm, c = 1033 pm, unda ruxni endi oltita suv emas, to‘rtta xlorid o‘raydi (Zn–Cl 229 pm).',
+        'Eritma QURUQ VODOROD XLORID OQIMIDA bug‘latilsa, oq suvsiz ZnCl₂ tuzi qoladi: tetragonal kristall, fazoviy guruh I-42d, a = 539,8 pm, c = 1033 pm, unda ruxni endi oltita suv emas, to‘rtta xlorid o‘raydi (Zn–Cl 229 pm).',
       equation: 'Zn + 2 H⁺ → Zn²⁺ + H₂↑  (Cl⁻ — tomoshabin)',
-      note: 'Konsentrlangan xlorid kislotada manzara murakkabroq: xlorid ionlari suvni siqib chiqaradi va [ZnCl₄]²⁻ kabi xlorokomplekslar hosil bo‘ladi. Sahnada suyultirilgan eritma ko‘rsatilgan, unda rux akvakompleks bo‘lib qoladi.',
+      note:
+        'Shunchaki suvni bug‘latish yetarli emas: suvli eritmadan avval GIDRATLAR kristallanadi, qizdirilganda esa HCl ajralishi bilan gidroliz boradi — Zn(OH)Cl, so‘ngra ZnO hosil bo‘ladi. Shuning uchun suvsiz ZnCl₂ quruq HCl oqimida bug‘latiladi yoki tionilxlorid SOCl₂ bilan suvsizlantiriladi (Greenwood & Earnshaw; Brauer). ' +
+        'Konsentrlangan xlorid kislotada manzara murakkabroq: xlorid ionlari suvni siqib chiqaradi va [ZnCl₄]²⁻ kabi xlorokomplekslar hosil bo‘ladi. Sahnada suyultirilgan eritma ko‘rsatilgan, unda rux akvakompleks bo‘lib qoladi.',
       speak: 'Xlorid ionlari o‘zgarmadi — ular tomoshabin. Stakanda rux xlorid eritmasi.',
     },
     energy: {
@@ -64,14 +66,14 @@ export const ZNCL2_TEXT_UZ: Zncl2MechanismText = {
         'Reaksiya nega umuman boradi degan savolga eng qisqa javobni kuchlanishlar qatori beradi: E°(Zn²⁺/Zn) = −0,76 V, E°(2H⁺/H₂) = 0,00 V, demak EYuK = +0,76 V > 0. ' +
         'Misda E° = +0,34 V, EYuK esa −0,34 V chiqadi — shuning uchun mis xlorid kislotada erimaydi va undan vodorodni siqib chiqarmaydi.',
       equation: 'Zn (qat.) + 2 HCl (eritma) → ZnCl₂ (eritma) + H₂ (gaz)↑,  ΔH = −153,9 kJ/mol',
-      note: 'Zinapoyaning alohida bosqichlari protonning gidratlanish entalpiyasi −1091 kJ/mol deb olingan shkalaga bog‘langan: zaryadi tenglashgan tenglamada bu tanlov qisqaradi, lekin bitta bosqichni boshqa ma’lumotnomadagi son bilan solishtirib bo‘lmaydi.',
+      note: 'Zinapoyaning alohida bosqichlari protonning gidratlanish entalpiyasi −1091 kJ/mol deb olingan shkalaga bog‘langan: zaryadi tenglashgan tenglamada bu tanlov qisqaradi, lekin bitta bosqichni boshqa ma’lumotnomadagi son bilan solishtirib bo‘lmaydi. H₂ yig‘ilish bosqichi −436 — xuddi shu termokimyoviy jadvallardan olingan −2 · ΔH°f(H, gaz); jadvaldagi bog‘ energiyasi E(H–H) = 435,8 undan 0,2 kJ/mol ga farq qiladi.',
       speak: 'Reaksiya issiqlik chiqarib boradi: minus bir yuz ellik to‘rt kilojoul. Rux vodoroddan faolroq, mis esa yo‘q.',
     },
   },
   legend: {
     electron: 'Izli ko‘k nuqta — metall bo‘ylab protonga ketayotgan elektron.',
     orbitalPhase: 'Plastinka ichidagi yaltirash — metallning erkin elektronlarining shartli belgisi, trayektoriyasi emas.',
-    water: 'Ikkita oq shar bilan qizil shar — suv molekulasi: O–H 95,8 pm, H–O–H burchagi 104,45°.',
+    water: 'Ikkita oq shar bilan qizil shar — suv molekulasi: O–H 95,8 pm, H–O–H burchagi 104,5°.',
   },
   safety:
     'Vodorod havo bilan portlovchi aralashma beradi va bitta uchqun yetarli, shuning uchun u suvni siqib chiqarish usulida yig‘iladi va yoqishdan oldin albatta tozalikka tekshiriladi. Xlorid kislota teri va ko‘zni kuydiradi: faqat ko‘zoynak va qo‘lqopda ishlang, kislotani suvga quying, aksincha emas.',

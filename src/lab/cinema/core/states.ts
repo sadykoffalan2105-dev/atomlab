@@ -104,12 +104,26 @@ export type CameraRigState = {
   offset: THREE.Vector3
   roll: number
   yaw: number
+  /**
+   * Наклон мира вокруг горизонтали, рад (облёт решётки «сверху-сбоку»).
+   * Порядок поворотов рига — 'YXZ': сначала yaw, затем pitch, затем roll;
+   * при pitch = 0 кадр совпадает с прежним (0, yaw, roll) бит в бит.
+   */
+  pitch: number
   /** 0..1 — тряска на ударе */
   shake: number
 }
 
 export function createCameraRigState(): CameraRigState {
-  return { zoom: 1, offset: new THREE.Vector3(), roll: 0, yaw: 0, shake: 0 }
+  return { zoom: 1, offset: new THREE.Vector3(), roll: 0, yaw: 0, pitch: 0, shake: 0 }
+}
+
+/**
+ * Поворот рига: yaw → pitch → roll (порядок 'YXZ'). extraRoll — добавка крена
+ * (тряска). При pitch = 0 результат совпадает с прежним rotation.set(0, yaw, roll).
+ */
+export function applyRigRotation(obj: THREE.Object3D, state: CameraRigState, extraRoll = 0): void {
+  obj.rotation.set(state.pitch ?? 0, state.yaw, state.roll + extraRoll, 'YXZ')
 }
 
 /** Пост-обработка кадра. */

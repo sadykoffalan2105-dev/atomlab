@@ -10,7 +10,7 @@
  *     контракт лаборатории embryo → birth → complete на месте;
  *   • раскадровка: дорожки монотонны, ни один видимый атом не прыгает
  *     больше чем на 0.09 ед. между кадрами 1/30 с;
- *   • химия: длина связи H–H = 74,14 пм, O–H = 95,8 пм, угол H–O–H = 104,45°,
+ *   • химия: длина связи H–H, O–H и угол H–O–H — из ядра (bondData),
  *     Zn–O = 208 пм у всех шести молекул аквакомплекса (КЧ 6),
  *     радиус цинка 134 → 74 пм ровно тогда, когда ион покидает решётку;
  *   • решётка металла: ГПУ-фрагмент, соседи в слое ровно на a = 266,49 пм,
@@ -25,7 +25,28 @@
  */
 import assert from 'node:assert/strict'
 import * as THREE from 'three'
-import { bondAngleDeg, bondLengthPm, getCrystal, radiusForSpecies } from '../src/chemistry/data/index.ts'
+import { bondAngleDeg, bondEnthalpyKJ, bondLengthPm, dHfKJ, getCrystal, radiusForSpecies } from '../src/chemistry/data/index.ts'
+
+/**
+ * Числа, извлечённые из текста урока: «435,8», «−93,6», «+1307,4» → числа.
+ * Тексты не сверяются по фразам — сверяются ЧИСЛА с научным ядром.
+ */
+const NUM_RE = /[−-]?\+?\d+(?:[.,]\d+)?/g
+function numbersIn(text: string): number[] {
+  return [...text.matchAll(NUM_RE)].map((m) => Number(m[0].replace('−', '-').replace('+', '').replace(',', '.')))
+}
+/** Есть ли в тексте число, равное value с точностью tol. */
+function hasNumber(text: string, value: number, tol = 0.051): boolean {
+  return numbersIn(text).some((n) => Math.abs(n - value) <= tol)
+}
+/** Первое число после якоря (якорь — фрагмент формулы или символ, не фраза). */
+function numberAfter(text: string, anchor: string): number | null {
+  const i = text.indexOf(anchor)
+  if (i < 0) return null
+  const n = numbersIn(text.slice(i + anchor.length))
+  return n.length ? n[0]! : null
+}
+
 import { storyWallDuration } from '../src/lab/cinema/core/storyTime.ts'
 import {
   assertNoPositionJumps,
@@ -181,7 +202,7 @@ ok('связь H–H видна после образования', frame.h2Bond
 at(9.5)
 ok('связи H–H ещё нет до встречи атомов', frame.h2Bond.opacity < 0.05)
 
-// —— Вода: O–H 95,8 пм и угол 104,45° ——
+// —— Вода: O–H и угол H–O–H из ядра ——
 at(18)
 for (let i = 0; i < 6; i++) {
   const o = frame.atoms[`W${i}` as 'oA']!
@@ -225,7 +246,7 @@ near('угол H–O–H в H₃O⁺, °', angA, bondAngleDeg('tetrahedral'), 0.
 ok('H₃O⁺ несёт положительный заряд', frame.charge.oA! > 0.2 && frame.charge.hA2! > 0.2)
 ok('голое ядро H⁺ меньше атома H', frame.radius.hA1! < frame.radius.hA2!)
 
-// После ухода протона остаётся именно вода: угол смыкается до 104,45°.
+// После ухода протона остаётся именно вода: угол смыкается до угла воды из ядра.
 at(11)
 const angW = (frame.atoms.hA2!.clone().sub(frame.atoms.oA!).angleTo(frame.atoms.hA3!.clone().sub(frame.atoms.oA!)) * 180) / Math.PI
 near('угол H–O–H после потери протона, °', angW, bondAngleDeg('water'), 0.05)
@@ -415,6 +436,28 @@ for (const locale of LOCALES) {
   ok(`${locale}: aria-подпись лестницы содержит {dH}`, energy.summary.includes('{dH}'))
   ok(`${locale}: указаны источники`, energy.sources.length > 20)
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// Разбор замечаний: соль в уроке — именно α-ZnCl₂ из ядра
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Плотность ZnCl₂ в ядре спорная (рентгеновская 3,01 против справочной 2,907),
+// поэтому урок её НЕ называет вовсе; зато модификация, группа, параметры ячейки
+// и координация обязаны совпадать с ядром слово в слово.
+const SALT = ZNCL2_GEOM.data.salt
+ok('соль урока — α-форма, группа I-42d (122)', SALT.spaceGroup === 'I-42d' && SALT.spaceGroupNo === 122, SALT.spaceGroup)
+ok('координация α-ZnCl₂: Zn 4, Cl 2', SALT.coordination['Zn²⁺'] === 4 && SALT.coordination['Cl⁻'] === 2)
+ok('решётка тетрагональная, c задан', SALT.cPm > 0 && SALT.aPm > 0, `${SALT.aPm} × ${SALT.cPm}`)
+for (const locale of LOCALES) {
+  const text = getZncl2MechanismText(locale)
+  const all = Object.values(text.steps).map((s) => `${s.body} ${s.note ?? ''}`).join(' ')
+  ok(`${locale}: названа группа α-формы из ядра`, all.includes(SALT.spaceGroup), SALT.spaceGroup)
+  ok(`${locale}: параметр a из ядра`, all.includes(String(SALT.aPm).replace('.', ',')) || all.includes(String(SALT.aPm)))
+  ok(`${locale}: d(Zn–Cl) из ядра`, all.includes(String(SALT.znClPm)))
+  // Спорное число в урок не просочилось ни в какой шкале.
+  // Структурно: единицы плотности в уроке нет вовсе — спорное число не названо ни в какой шкале.
+  ok(`${locale}: урок не называет плотность ZnCl₂`, !/г\/см³|g\/cm³|g\/sm³/.test(all))
+}
+
 // Переводы действительно разные.
 ok('ru ≠ en', getZncl2MechanismText('ru').steps.acid.body !== getZncl2MechanismText('en').steps.acid.body)
 ok('ru ≠ uz', getZncl2MechanismText('ru').steps.acid.body !== getZncl2MechanismText('uz').steps.acid.body)
@@ -475,5 +518,57 @@ for (const b of ZNCL2_AQUA_BONDS) {
   ok(`связь ${b.zn}←${b.o} соединяет существующие частицы`, ZNCL2_ATOMS.some((a) => a.id === b.zn) && ZNCL2_ATOMS.some((a) => a.id === b.o))
 }
 ok('у молекулы H₂ оба конца — бывшие протоны', ZNCL2_ATOMS.filter((a) => a.id === ZNCL2_H2_BOND.a || a.id === ZNCL2_H2_BOND.b).every((a) => a.role === 'proton'))
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. Замечание профессора (круг 2): безводный ZnCl₂ простым выпариванием не получить
+// ─────────────────────────────────────────────────────────────────────────────
+// Из водного раствора кристаллизуются ГИДРАТЫ, а при нагревании идёт гидролиз с
+// отщеплением HCl (Zn(OH)Cl → ZnO). Безводную соль упаривают в токе сухого HCl
+// либо обезвоживают SOCl₂ (Greenwood & Earnshaw; Brauer).
+{
+  const DRY_HCL: Record<Zncl2Locale, RegExp> = {
+    ru: /сухого хлороводорода|сухого HCl/i,
+    en: /dry hydrogen chloride|dry HCl/i,
+    uz: /quruq vodorod xlorid|quruq HCl/i,
+  }
+  const HYDRATES: Record<Zncl2Locale, RegExp> = {
+    ru: /ГИДРАТЫ|гидрат/,
+    en: /HYDRATES|hydrate/,
+    uz: /GIDRATLAR|gidrat/,
+  }
+  const HYDROLYSIS: Record<Zncl2Locale, RegExp> = {
+    ru: /гидролиз/i,
+    en: /hydrolysis/i,
+    uz: /gidroliz/i,
+  }
+  for (const locale of LOCALES) {
+    const step = getZncl2MechanismText(locale).steps.spectators
+    ok(`[${locale}] в шаге spectators упаривание идёт в токе сухого HCl`, DRY_HCL[locale].test(step.body), step.body.slice(0, 80))
+    ok(`[${locale}] note шага spectators предупреждает о гидратах`, HYDRATES[locale].test(step.note ?? ''))
+    ok(`[${locale}] note шага spectators называет гидролиз при нагревании`, HYDROLYSIS[locale].test(step.note ?? ''))
+  }
+}
+
+// ── Числа текста = научное ядро ──
+for (const locale of LOCALES) {
+  const text = getZncl2MechanismText(locale)
+  // Шаг hydrogen: d(H–H) и E(H–H) — из bondData.
+  const h = text.steps.hydrogen
+  ok(`[${locale}] d(H–H) в уравнении шага = bondData`, numberAfter(h.equation, 'd(H–H) =') === bondLengthPm('H-H'), h.equation)
+  ok(`[${locale}] E(H–H) в уравнении шага = bondData`, numberAfter(h.equation, 'E(H–H) =') === bondEnthalpyKJ('H-H'), h.equation)
+  ok(`[${locale}] E(H–H) в тексте шага = bondData`, hasNumber(h.body, bondEnthalpyKJ('H-H')))
+  // Шаг energy: каждая ступень цикла Гесса и итог — те же числа, что в лестнице ядра.
+  const e = text.steps.energy
+  for (const st of ZNCL2_LADDER.stages) ok(`[${locale}] ступень «${st.id}» ${st.dH} названа в тексте`, hasNumber(e.body, st.dH))
+  ok(`[${locale}] ΔH в тексте = сумма цикла ${ZNCL2_LADDER.sumKJ}`, hasNumber(e.body, ZNCL2_LADDER.sumKJ) && hasNumber(e.equation, ZNCL2_LADDER.sumKJ))
+  // Сборка H₂ = −2·ΔH°f(H, г): оговорка note сверяется с ядром (оба числа и их разность).
+  const rec = ZNCL2_LADDER.stages.find((s) => s.id === 'recombination')!
+  near(`[${locale}] сборка H₂ = −2·ΔH°f(H, г)`, rec.dH, -2 * dHfKJ('H(g)'), 1e-9)
+  ok(`[${locale}] note называет E(H–H) из bondData`, hasNumber(e.note ?? '', bondEnthalpyKJ('H-H')))
+  ok(`[${locale}] note называет расхождение ${Math.abs(rec.dH + bondEnthalpyKJ('H-H')).toFixed(1)}`, hasNumber(e.note ?? '', Math.abs(rec.dH + bondEnthalpyKJ('H-H'))))
+  // Вода в легенде: O–H и угол — из ядра.
+  ok(`[${locale}] O–H в легенде = bondData`, hasNumber(text.legend.water, bondLengthPm('O-H')))
+  ok(`[${locale}] угол H–O–H в легенде = ядро`, hasNumber(text.legend.water, bondAngleDeg('water'), 0.001))
+}
 
 console.log(`test-zncl2-cinema: OK, проверок ${checks}`)

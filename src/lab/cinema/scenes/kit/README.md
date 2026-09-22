@@ -17,10 +17,12 @@
    ДВУХАТОМНЫЕ молекулы; металлы — атомы в металлической решётке; углерод — графит;
    сера — S₈; фосфор — P₄. Никаких одиночных атомов хлора «на старте».
 3. **Размер частицы честный.** `speciesRadius(symbol, charge)`: катион МЕНЬШЕ атома,
-   анион БОЛЬШЕ. Радиус меняется РОВНО в момент перехода электрона (`rampTrack`).
+   анион БОЛЬШЕ. Радиус меняется РОВНО в кадр прихода электрона — `octetSnap(tArrive, rBefore, rAfter)`
+   из `valence.ts` с тем же `tArrive`, что у `sampleElectronJump` (старый `rampTrack` — плавное окно, для новых сцен не годится).
 4. **Никаких выдуманных частиц** («Cl²⁻» не существует). Полуреакции сводятся по электронам И по заряду.
-5. **Подписи в 3D не переводятся.** В сцене только формулы и обозначения СИ
-   (`Na⁺`, `Cl₂ (g)`, `282 pm`, `ΔH°f = −411 kJ/mol`) — они одинаковы в ru/en/uz.
+5. **В 3D — только формулы, заряды, числа и символы единиц.** Никаких фраз. Единицы и
+   агрегатные состояния — в соглашении учебника текущего языка через токены (`{pm}` → «пм» на ru,
+   «pm» на en/uz; `{g}` → «г.» / «g» / «gaz»), формулы и заряды (`Na⁺`, `Cl₂`, `ΔH°f`) не переводятся.
    Все словесные пояснения живут в `<id>MechanismText.{ts,en.ts,uz.ts}` и показываются панелью урока.
 6. **Схематичное — назвать схематичным.** Светящаяся оболочка, «полёт» электрона, фрагмент
    решётки вместо 10²³ ионов: это идёт в поле `note` текста шага.
@@ -127,10 +129,29 @@ commitPool(world.atoms, n)
 
 // электрон: внутри gp.begin() … gp.end()
 sampleElectronJump(el, t, { donor, acceptor, shellRadius, acceptorRadius, leave, arrive, arcSign: 1 })
-drawElectronShell(gp, donorPos, shellR, amount, elapsed)  // схематичная валентная оболочка
+drawValenceCloud(gp, donorPos, shellR, 1, amount, elapsed) // валентные электроны точками (valence.ts)
 drawElectron(gp, el, elapsed)                             // электрон со следом
-drawFieldLine(gp, plusIon, minusIon, amount, elapsed)     // линии поля (закон Кулона)
+drawFieldLines(gp, plusIon, minusIon, amount, elapsed)    // дуги поля (bondVisual.ts, закон Кулона)
+// устарели, оставлены для существующих сцен: drawElectronShell (кольцо), drawFieldLine (прямой отрезок)
 ```
+
+## (c1) Единый визуальный язык — какой модуль когда
+
+Всё ниже опционально: сцена, которая этого не зовёт, выглядит как раньше.
+
+| Что показать | Модуль | Как |
+|---|---|---|
+| Материал вещества | `materials.ts` | `writeAtom(pool, i, { …, surface: materialFor('metal' \| 'ion' \| 'covalent' \| 'polar' \| 'gas') })`. Металл в решётке — `metal`, ион в кристалле — `ion`, молекула — `covalent`, каркас δ+/δ− (SiO₂) — `polar`, реагент-газ (H₂, O₂, Cl₂) — `gas`. Материал меняется в тот же кадр, что и заряд (Na → Na⁺: `metal` → `ion`), шейдер один. |
+| Валентные электроны | `valence.ts` | `drawValenceCloud(gp, center, r, count, amount, elapsed, { skip })` — N точек по Льюису (Na 1, O 6 = 2 пары + 2 неспаренных, Cl 7). `count` сцена считает сама: `ATOMIC_DATA[el].valenceElectrons − charge`. Вместо `drawElectronShell` (кольцо 28 точек — устарело). |
+| Перенос электрона | `electronFx.ts` + `valence.ts` | `sampleElectronJump(el, t, { …, view })` возвращает `arrived`; в тот же кадр: облако донора `amount = 0`, облако акцептора — октет, радиусы — `octetSnap(arrive, …)`. `view` — направление к зрителю в системе рига: дуга всегда в плоскости экрана. |
+| σ / π / ионная / водородная / металлическая | `bondVisual.ts` | В начале кадра `resetBondVisuals(world)`, затем `writeBondVisual(world, i, a, b, kind, order, amount, planeNormal?, { colorA, colorB, gp, elapsed })`. `double`/`triple` — σ-трубка + π-лепестки над и под осью (`world.lobes`, рисует SceneShell); `ionic` — дуги поля точками (нужен `gp`, звать внутри `gp.begin()…end()`), трубки нет; `hbond` — нейтральный неподвижный пунктир. Ёмкость лепестков — `buildSceneWorld({ lobes })`, по `bondVisualLobeCount(kind)`. |
+| Камера | `camera.ts` | `const CAM = shotTrack([{ t, zoom, yaw, pitch, target }, …, ...orbitTrack(t0, t1, yaw0, yaw1, pitch)])`, в кадре `sampleShot(CAM, ctx.t, ctx.camera)`. В тесте — `assertCameraContinuity((t) => sampleShot(CAM, t, cam), end)`. |
+| Геометрия молекул | `core/vsepr.ts` | `writeTrigonalPlanar` (SO₃), `writeDihedral` (H₂O₂: a=H, b=O, c=O, d=H), `writeBridged` (Mn₂O₇, Cl₂O₇, SiO₄–O–SiO₄). Длины и углы — только аргументами из `bondData`. |
+| Прогрев | `useSceneWarmup.ts` | Включён в SceneShell по умолчанию (`warmup`): compileAsync рига до шага 0. Новый слой R3F в `children` монтируйте `visible`, а «пусто» выражайте нулём отрисовки (instanceCount 0 / drawRange 0). |
+| Подписи | `CinemaDomLabels` | SceneShell сам зажимает подписи в свободную область (не под панель) и разводит пересечения (`labelLayout`). |
+
+Сцена микромира тёмная в обеих темах приложения (как поле микроскопа) — цвета элементов и
+подписей рассчитаны на тёмный фон; панели и карточки вне Canvas обязаны читаться в обеих темах.
 
 ## (c2) Подписи в 3D — ОБЯЗАТЕЛЬНО через токены (ru/en/uz)
 

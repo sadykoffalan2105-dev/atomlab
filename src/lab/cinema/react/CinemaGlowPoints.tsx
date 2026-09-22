@@ -139,8 +139,9 @@ export function CinemaGlowPoints({
       },
       end() {
         const n = count.current
+        // Точки всегда visible: пустой кадр = drawRange 0 (ноль отрисовки), а программа
+        // скомпилирована на прогреве урока, а не в кадре первого электрона.
         buffers.geo.setDrawRange(0, n)
-        if (points.current) points.current.visible = n > 0
         if (n === 0) return
         buffers.pos.clearUpdateRanges()
         buffers.pos.addUpdateRange(0, n * 3)
@@ -164,6 +165,6 @@ export function CinemaGlowPoints({
   })
 
   return (
-    <points ref={points} geometry={buffers.geo} material={material} renderOrder={renderOrder} frustumCulled={false} visible={false} dispose={null} />
+    <points ref={points} geometry={buffers.geo} material={material} renderOrder={renderOrder} frustumCulled={false} dispose={null} />
   )
 }

@@ -98,13 +98,14 @@ function ok(cond: boolean, msg: string): void {
 
 // --- цвета CPK ---------------------------------------------------------------
 {
-  // Значения берутся из выверенной ATOMIC_DATA (chemistry/data), а не из Jmol:
-  // у Cl там именно жёлто-зелёный, у Ca — тёмно-зелёный, как требует стандарт.
+  // Значения берутся из выверенной ATOMIC_DATA (chemistry/data): у Ca там
+  // тёмно-зелёный, а у Cl — канонический Jmol #1FF01F, чтобы хлор не сливался
+  // с магнием (#8AFF00); различимость пар проверяет test:chem-data.
   eq(cpkColorHex(1), '#ffffff', 'H белый')
   eq(cpkColorHex(6), '#2a2a32', 'C тёмно-серый/чёрный')
   eq(cpkColorHex(7), '#3050f8', 'N синий')
   eq(cpkColorHex(8), '#ff0040', 'O красный')
-  eq(cpkColorHex(17), '#a6ff00', 'Cl жёлто-зелёный')
+  eq(cpkColorHex(17), '#1ff01f', 'Cl зелёный (Jmol)')
   eq(cpkColorHex(16), '#ffff30', 'S жёлтый')
   eq(cpkColorHex(11), '#8a2be2', 'Na фиолетовый')
   eq(cpkColorHex(12), '#8aff00', 'Mg светло-зелёный')

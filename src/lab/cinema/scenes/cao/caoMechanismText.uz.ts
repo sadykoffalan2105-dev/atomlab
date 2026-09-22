@@ -44,7 +44,8 @@ export const CAO_TEXT_UZ: CaoMechanismText = {
       body:
         'Qolgan Ca²⁺ va O²⁻ tosh tuzi panjarasiga qayta teriladi — fazoviy guruh Fm-3m, katak qirrasi 481,1 pm, eng yaqin Ca–O masofasi 240,5 pm, Z = 4. ' +
         'Har bir Ca²⁺ oltita O²⁻ bilan, har bir O²⁻ esa oltita Ca²⁺ bilan o‘ralgan: koordinatsion son 6 ga 6, bir xil zaryadlar hech qachon qo‘shni bo‘lmaydi. ' +
-        'Bu yerda zaryadlar ±1 emas, ±2, shuning uchun tortishish to‘rt barobar kuchli: CaO panjara energiyasi −3400 kJ/mol, NaCl da esa −787. Karbonat guruhlari ketgach kristall zichroq bo‘ldi: 3,34 va 2,711 g/sm³.',
+        'Bu yerda zaryadlar ±1 emas, ±2: xuddi shu masofada tortishish to‘rt barobar kuchli bo‘lardi, ionlar esa yana yaqinroq turadi (240,5 va 282,0 pm). CaO panjara energiyasi −3400 kJ/mol, NaCl da esa −787. ' +
+        'Shundan o‘tga chidamlilik: ohak faqat 2572 °C da, osh tuzi esa allaqachon 801 °C da suyuqlanadi. Karbonat guruhlari ketgach kristall zichroq bo‘ldi: 3,34 va 2,711 g/sm³.',
       equation: 'Ca²⁺ + O²⁻ → CaO (qat.),  d = 240,5 pm, KS 6 : 6',
       note: 'Kadrda 4 × 2 × 2 bo‘lak — ikkita elementar katak, 16 ion. Qum donasidek ohak bo‘lagida ular taxminan 10¹⁹ ta.',
       speak: 'Kalsiy va kislorod ohakning kubik panjarasiga teriladi. Har bir ionning oltita qo‘shnisi bor.',
@@ -67,14 +68,16 @@ export const CAO_TEXT_UZ: CaoMechanismText = {
         'Lekin gaz ajraladi va tartibsizlik keskin ortadi: ΔS° = +160,2 J/(mol·K). ΔG = ΔH − TΔS ifodasida harorat ortgan sari TΔS ustun keladi va T = 179 200 / 160,2 ≈ 1119 K (846 °C) da ΔG nolga aylanadi. Shundan yuqorida reaksiya boradi — shuning uchun pech 900…1000 °C da ushlab turiladi. ' +
         'So‘ndirilmagan ohak — bu sement, qurilish qorishmasi, po‘latni oltingugurt va fosfordan tozalash; ohaktoshni kuydirish Yerdagi eng ommaviy reaksiyalardan biri.',
       equation: 'CaCO₃ (qat.) → CaO (qat.) + CO₂ (gaz),  ΔH = +179,2 kJ/mol',
-      note: '1119 K — bu CO₂ ning standart bosimi 1 atm bo‘lgandagi ΔG° = 0 sharti; pechda gaz doim olib ketiladi, shuning uchun parchalanish biroz erta boshlanadi.',
+      note:
+        '1119 K — bu 298 K da o‘lchangan ΔH° va ΔS° bo‘yicha BAHO, ya’ni ular haroratga bog‘liq emas degan taxminda. ' +
+        'Aniq tajriba p(CO₂) = 1 atm ni 898 °C (1171 K) da beradi — 52 K farq shu taxminning bahosi. 898 °C dan pastda parchalanish faqat CO₂ doimiy olib ketilsa boradi, pechdagi kabi.',
       speak: 'Plyus bir yuz yetmish to‘qqiz kilojoul. Reaksiya faqat pechda boradi — ammo sement va ohak beradi.',
     },
   },
   legend: {
     electron: 'Ko‘k nuqtalar jufti — C–O bog‘ining elektron jufti: bog‘ uzilganda u butunlay kislorodda qoladi.',
     vibration: 'Panjara tugunlarining titrashi — issiqlik harakati; harorat qancha yuqori bo‘lsa, tebranish shuncha keng.',
-    water: 'Oq sharchalar — vodorod atomlari; suv molekulasi haqiqiy H–O–H burchagi 104,45° bilan chizilgan.',
+    water: 'Oq sharchalar — vodorod atomlari; suv molekulasi haqiqiy H–O–H burchagi 104,5° bilan chizilgan.',
   },
   safety:
     'So‘ndirilmagan ohak CaO terini kuydiradi va ayniqsa ko‘z uchun xavfli, so‘ndirishda esa suv qaynab sachraydi. Faqat ko‘zoynak va qo‘lqopda ishlanadi, ohak har doim suvga solinadi, aksincha emas.',

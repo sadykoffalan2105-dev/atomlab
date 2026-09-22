@@ -20,13 +20,18 @@ import {
 import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
 import { validateReactorEquation, type ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
-import type {
-  ReactorCoProductTerm,
-  ScientificReactorRecipe,
-  SciCoProductSpec,
-  SciLeftSpec,
+import {
+  hasScientificReactorRecipe,
+  type ReactorCoProductTerm,
+  type ScientificReactorRecipe,
+  type SciCoProductSpec,
+  type SciLeftSpec,
 } from '../chemistry/scientificReactorRecipes'
-import { getSchoolReaction } from '../chemistry/schoolReactionBank'
+import {
+  getSchoolReaction,
+  primaryReactionForCompound,
+  SCHOOL_REACTION_BANK,
+} from '../chemistry/schoolReactionBank'
 import { fromElementsPolicy } from '../chemistry/substanceSynthesisRoute'
 import { compoundById } from '../data/compounds'
 import { getElementBySymbol } from '../data/elements'
@@ -158,6 +163,45 @@ export function isOrganicFormula(formula: string, counts: Readonly<Record<string
   return /C(?![a-z])/.test(ascii.replace(/H?CO3|SCN|CN(?![a-z])/g, ''))
 }
 
+/** Ключ вещества для сравнения уравнений: id каталога или «z<номер>» для простого вещества. */
+function speciesKey(r: ResolvedSpecies): string | null {
+  if (r.kind === 'compound') return r.compound.id
+  if (r.kind === 'element') return `z${r.z}`
+  return null
+}
+
+/** Ключ уравнения без коэффициентов: «левые|правые», отсортированные. */
+function equationSpeciesKey(left: readonly ResolvedSpecies[], right: readonly ResolvedSpecies[]): string | null {
+  const l = left.map(speciesKey)
+  const r = right.map(speciesKey)
+  if ([...l, ...r].some((k) => k == null)) return null
+  return `${[...l].sort().join('+')}|${[...r].sort().join('+')}`
+}
+
+let bankProductBySpeciesCache: Map<string, string> | null = null
+
+/**
+ * Главный продукт для eq= без reaction=: если в банке есть реакция с тем же набором
+ * веществ слева и справа, берём её productId (фокус урока). Иначе в «Na₂O₂ + H₂SO₄ →
+ * Na₂SO₄ + H₂O₂» главным стала бы соль (первое вещество справа, кроме воды), и научная
+ * сцена H₂O₂ не включалась бы. Первая реакция банка с таким ключом побеждает.
+ */
+function bankProductForSpecies(key: string | null): string | null {
+  if (!key) return null
+  if (!bankProductBySpeciesCache) {
+    const m = new Map<string, string>()
+    for (const r of SCHOOL_REACTION_BANK) {
+      if (!r.productId) continue
+      const parsed = parseEquationText(r.equationRu)
+      if (!parsed || parsed.isScheme || parsed.isIonic) continue
+      const k = equationSpeciesKey(parsed.reactants.map(resolveSpecies), parsed.products.map(resolveSpecies))
+      if (k && !m.has(k)) m.set(k, r.productId)
+    }
+    bankProductBySpeciesCache = m
+  }
+  return bankProductBySpeciesCache.get(key) ?? null
+}
+
 /** Наименьший множитель, делающий все коэффициенты целыми (дроби вида 1/2, 3/2, 1/3…). */
 function integerScale(coeffs: readonly number[]): number | null {
   for (let m = 1; m <= 12; m++) {
@@ -246,6 +290,7 @@ export function resolveReactorEquation(
   const mainIdx =
     pick(spec.main) ??
     pick(bank?.productId) ??
+    (bank ? undefined : pick(bankProductForSpecies(equationSpeciesKey(left, right)))) ??
     compoundIdxs.find((i) => idOf(i) !== 'h2o') ??
     compoundIdxs[0]!
   const mainCompound = (right[mainIdx] as Extract<ResolvedSpecies, { kind: 'compound' }>).compound
@@ -398,11 +443,62 @@ export function sanitizeBackHref(src: string | null | undefined): string | null 
   return s
 }
 
+let productBankCache: Map<string, string | null> | null = null
+
+/**
+ * Реакция банка, дающая это вещество (или null).
+ * Научный рецепт собран вручную ровно для ClO₂, поэтому ссылка
+ * «#/?reactor=1&product=<id>» для остальных 199 веществ каталога не засевала
+ * левую часть уравнения: кнопка «Проверить и запустить синтез» оставалась серой
+ * и молча. Подбираем реакцию по продукту и работаем как с reaction=<bank-id>.
+ */
+export function bankReactionIdForProduct(productId: string | null | undefined): string | null {
+  if (!productId) return null
+  if (!productBankCache) productBankCache = new Map()
+  const cached = productBankCache.get(productId)
+  if (cached !== undefined) return cached
+  const ids: string[] = []
+  const primary = primaryReactionForCompound(productId)
+  if (primary) ids.push(primary.id)
+  for (const r of SCHOOL_REACTION_BANK) {
+    if (r.productId === productId && !ids.includes(r.id)) ids.push(r.id)
+  }
+  const found = ids.find((id) => isBankReactionReactorReady(id)) ?? null
+  productBankCache.set(productId, found)
+  return found
+}
+
+/**
+ * «product=<id>» без reaction= / eq= — подменяем реакцией банка.
+ * Ссылки с genEq=1 и с разделом учебника не трогаем: у них свой сценарий.
+ */
+function productFallbackLinkParams(params: URLSearchParams): ReactorLinkParams | null {
+  const productId = params.get('product')
+  if (!productId || params.get('reactor') !== '1') return null
+  if (params.get('genEq') === '1') return null
+  if (params.get('learnG') || params.get('learnC') || params.get('learnS')) return null
+  // Своё научное уравнение (ClO₂) важнее банка.
+  if (hasScientificReactorRecipe(productId)) return null
+  if (!compoundById[productId]) return null
+  const bankId = bankReactionIdForProduct(productId)
+  if (!bankId) return null
+  return {
+    spec: {
+      reactionId: bankId,
+      equation: null,
+      main: productId,
+      titleRu: params.get('title') || null,
+    },
+    balanceSelf: params.get('balance') === '1',
+    backHref: sanitizeBackHref(params.get('src')),
+  }
+}
+
 /** Параметры reaction= / eq= из query-строки; null — ссылка не про реакцию. */
 export function parseReactorLinkParams(params: URLSearchParams): ReactorLinkParams | null {
   const reactionId = params.get('reaction')
   const equation = params.get('eq')
-  if (!reactionId && !equation) return null
+  if (!reactionId && !equation) return productFallbackLinkParams(params)
   return {
     spec: {
       reactionId: reactionId || null,

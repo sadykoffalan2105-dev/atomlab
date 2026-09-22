@@ -40,6 +40,7 @@ import {
   so2Particles,
   validateSo2Storyboard,
   WATER_BONDS,
+  type So2AtomId,
 } from '../src/lab/cinema/scenes/so2/so2Storyboard.ts'
 import {
   SO2_ATOMIZATION_S_KJ,
@@ -59,6 +60,26 @@ import {
 } from '../src/lab/cinema/scenes/so2/so2Energetics.ts'
 import { SO2_STEP_IDS, so2CueAt } from '../src/lab/cinema/scenes/so2/so2Steps.ts'
 import { getSo2MechanismText, type So2Locale } from '../src/lab/cinema/scenes/so2/so2MechanismText.ts'
+
+/**
+ * Числа, извлечённые из текста урока: «435,8», «−93,6», «+1307,4» → числа.
+ * Тексты не сверяются по фразам — сверяются ЧИСЛА с научным ядром.
+ */
+const NUM_RE = /[−-]?\+?\d+(?:[.,]\d+)?/g
+function numbersIn(text: string): number[] {
+  return [...text.matchAll(NUM_RE)].map((m) => Number(m[0].replace('−', '-').replace('+', '').replace(',', '.')))
+}
+/** Есть ли в тексте число, равное value с точностью tol. */
+function hasNumber(text: string, value: number, tol = 0.051): boolean {
+  return numbersIn(text).some((n) => Math.abs(n - value) <= tol)
+}
+/** Первое число после якоря (якорь — фрагмент формулы или символ, не фраза). */
+function numberAfter(text: string, anchor: string): number | null {
+  const i = text.indexOf(anchor)
+  if (i < 0) return null
+  const n = numbersIn(text.slice(i + anchor.length))
+  return n.length ? n[0]! : null
+}
 
 let checks = 0
 function ok(cond: unknown, msg: string): void {
@@ -364,6 +385,104 @@ for (const [anchor, defs] of byAnchor) {
       )
     }
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. В кадре нет ни одного неподписанного тела
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Вспомогательные тела сцены — призрак CO₂, две молекулы воды и третий кислород.
+ * Каждое обязано появляться и исчезать СТРОГО внутри окна своей подписи: иначе
+ * ученик хотя бы на долю секунды видит тело, которое ничем не названо.
+ */
+const CAPTIONED: readonly { ids: readonly So2AtomId[]; label: string; what: string }[] = [
+  { ids: ['cc', 'cq', 'cr'], label: 'co2', what: 'призрак CO₂' },
+  { ids: ['w1o', 'w1a', 'w1b', 'w2o', 'w2a', 'w2b'], label: 'acid', what: 'молекулы воды' },
+  { ids: ['oc'], label: 'so3eq', what: 'третий кислород (SO₃)' },
+]
+for (const group of CAPTIONED) {
+  ok(SO2_LABELS.some((d) => d.id === group.label), `у группы «${group.what}» обязана быть подпись «${group.label}»`)
+}
+
+const capFrame = createSo2Frame()
+for (let t = 0; t <= SO2_TIMING.end + 1e-9; t += 1 / 60) {
+  sampleSo2Frame(t, capFrame)
+  for (const group of CAPTIONED) {
+    let vis = 0
+    for (const id of group.ids) vis = Math.max(vis, capFrame.opacity[id])
+    if (vis <= 1e-3) continue
+    const label = capFrame.labels.find((l) => l.id === group.label)!
+    ok(
+      label.opacity > 0,
+      `${group.what} виден при t = ${t.toFixed(2)} с (α = ${vis.toFixed(2)}), а подпись «${group.label}» уже погашена`,
+    )
+  }
+}
+
+// Подпись призрака берёт угол из справочника, а не пишет «180» руками.
+const co2Label = SO2_LABELS.find((d) => d.id === 'co2')!
+ok(
+  co2Label.keys[0]!.text.includes(`${bondAngleDeg('carbonDioxide')}°`),
+  `подпись призрака CO₂ обязана называть угол из справочника: «${co2Label.keys[0]!.text}»`,
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10. Разбор замечаний: связь S=O рождается ДВУМЯ парами, а не одной
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ONE_ELECTRON_EACH = /по электрону|one electron to a shared pair|bittadan elektron beradi/i
+const TWO_PAIRS = /два неспаренных электрона|two unpaired electrons|ikkitadan juftlashmagan elektron/i
+const GHOST_NAMED = /CO₂: O–C–O/
+for (const locale of LOCALES) {
+  const text = getSo2MechanismText(locale)
+  const first = text.steps.firstBond
+  ok(!ONE_ELECTRON_EACH.test(first.body), `${locale}: снято «каждый отдаёт по электрону» — это одинарная связь`)
+  ok(TWO_PAIRS.test(first.body), `${locale}: сказано, что каждый атом отдаёт по ДВА неспаренных электрона`)
+  // Молекула сравнения названа в тексте ровно так, как подписана в кадре.
+  const bend = text.steps.bend
+  ok(GHOST_NAMED.test(bend.body), `${locale}: в тексте шага «bend» названа подпись призрака CO₂`)
+  // Числа шага «bend» — из ядра: угол SO₂, угол эталона CO₂, d(S=O), μ(SO₂).
+  ok(hasNumber(bend.body, bondAngleDeg('sulfurDioxide')), `${locale}: ∠O–S–O в тексте = ядро (${bondAngleDeg('sulfurDioxide')}°)`)
+  ok(hasNumber(bend.body, bondAngleDeg('carbonDioxide')), `${locale}: угол эталона CO₂ в тексте = ядро`)
+  ok(hasNumber(bend.equation, bondLengthPm('S=O')), `${locale}: d(S=O) в уравнении шага = ядро (${bondLengthPm('S=O')} пм)`)
+  ok(hasNumber(bend.equation, dipoleDebye('SO2')), `${locale}: μ(SO₂) в уравнении шага = ядро`)
+  // O=O в шаге reactants — r_e из bondData.
+  const oo = numberAfter(text.steps.reactants.body, 'O₂')
+  ok(hasNumber(text.steps.reactants.body, bondLengthPm('O=O'), 0.001), `${locale}: d(O=O) в тексте = bondData (${bondLengthPm('O=O')} пм), первое число после O₂: ${oo}`)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 11. Замечание профессора (круг 2): +277,2 кДж/моль — СРЕДНЯЯ атомизация
+// ─────────────────────────────────────────────────────────────────────────────
+// В короне S₈ восемь атомов и ровно восемь связей, то есть в среднем ОДНА связь S–S
+// на вынесенный атом. Разорвать две связи, которыми держится первый атом замкнутого
+// кольца, стоит вдвое дороже — и текст обязан это различать.
+{
+  /** Средняя атомизация относится к одной связи S–S на атом. */
+  const crownAtoms = new Set(RING_BONDS.flat()).size
+  const perAtomBonds = RING_BONDS.length / crownAtoms
+  ok(
+    Math.abs(SO2_ATOMIZATION_S_KJ - 277.2) < 0.05,
+    `средняя атомизация серы = ΔH°f(S, г.) = ${SO2_ATOMIZATION_S_KJ} кДж/моль`,
+  )
+  const firstAtomKJ = Math.round(2 * SO2_ATOMIZATION_S_KJ)
+  ok(firstAtomKJ === 554, `две связи первого атома ≈ ${firstAtomKJ} кДж (ожидалось 554)`)
+
+  const AVERAGE: Record<So2Locale, RegExp> = { ru: /В СРЕДНЕМ|в среднем/, en: /AVERAGE|on average/, uz: /O‘RTACHA|o‘rtacha/ }
+  const TWO_BONDS: Record<So2Locale, RegExp> = { ru: /две связи/i, en: /two bonds/i, uz: /ikkita bog‘/i }
+  for (const locale of LOCALES) {
+    const ring = getSo2MechanismText(locale).steps.ring
+    ok(AVERAGE[locale].test(ring.body), `${locale}: в шаге ring сказано, что 277,2 — СРЕДНЕЕ на атом`)
+    ok(AVERAGE[locale].test(ring.equation), `${locale}: уравнение шага ring помечено как среднее на атом`)
+    ok(TWO_BONDS[locale].test(ring.note ?? ''), `${locale}: note шага ring говорит про две связи первого атома`)
+    ok(
+      (ring.note ?? '').includes(String(firstAtomKJ)),
+      `${locale}: note шага ring называет честные ${firstAtomKJ} кДж на первый атом кольца`,
+    )
+    ok(AVERAGE[locale].test(ring.speak), `${locale}: реплика шага ring тоже оговаривает усреднение`)
+  }
+  ok(Math.abs(perAtomBonds - 1) < 1e-9, `в короне S₈ на атом ровно одна связь S–S (сейчас ${perAtomBonds})`)
 }
 
 console.log(`test:so2-cinema — ok, ${checks} проверок`)

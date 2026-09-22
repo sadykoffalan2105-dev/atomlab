@@ -10,6 +10,7 @@ import {
   type StageVec3,
 } from './scientificReactorStageLayout'
 import { StageInstancedMolecules } from './stageInstancedAtoms'
+import { createSafeArea, measureSafeArea, SAFE_AREA_EVERY, type SafeArea } from '../../../lab/cinema/core/safeArea'
 
 export type ScientificReactorStageLabels = { balanced: string; unbalanced: string }
 
@@ -55,6 +56,51 @@ function fitStageToView(
     s = Math.min(maxScale, (STAGE_WIDTH_FILL * visibleWidth) / width)
   }
   if (Math.abs(group.scale.x - s) > 1e-3) group.scale.setScalar(s)
+}
+
+/** Высота DOM-подписей под рядом (px при ui = 1): строка слагаемых + отступ и карточка счёта атомов. */
+const TALLY_BELOW_PX = 112
+const _base = new THREE.Vector3()
+const _probe = new THREE.Vector3()
+
+/**
+ * Вертикаль ряда: композиция «молекулы + подписи + счёт атомов» центрируется в СВОБОДНОЙ области
+ * канвы (над панелью реактора), а если не влезает по высоте — ужимается. Раньше ряд стоял в центре
+ * канвы, и подписи «1 NaOH», «1 HCl» уходили под панель реактора (приёмка, naoh-hcl).
+ */
+function fitStageVertically(
+  group: THREE.Group,
+  camera: THREE.Camera,
+  sizeH: number,
+  safe: SafeArea,
+  topY: number,
+  tallyY: number,
+  ui: number,
+  position: StageVec3,
+  fit: { y: number; ready: boolean },
+): void {
+  if (!safe.ready) return
+  _base.set(position[0], position[1], position[2]).project(camera)
+  _probe.set(position[0], position[1] + 1, position[2]).project(camera)
+  const ppu = Math.abs(_probe.y - _base.y) * 0.5 * sizeH
+  if (ppu < 1e-3) return
+  let s = group.scale.x
+  const below = TALLY_BELOW_PX * ui
+  const freeH = Math.max(40, safe.bottom - safe.top)
+  const needPx = (topY - tallyY) * s * ppu + below
+  if (needPx > freeH * 0.92) {
+    s = Math.max(0.05, (freeH * 0.92 - below) / ((topY - tallyY) * ppu))
+    group.scale.setScalar(s)
+  }
+  // Экранные координаты (y вниз) относительно точки position.
+  const baseY = (1 - (_base.y + 1) / 2) * sizeH
+  const compTop = -topY * s * ppu
+  const compBottom = -tallyY * s * ppu + below
+  const wantBaseY = (safe.top + safe.bottom) / 2 - (compTop + compBottom) / 2
+  const dy = -(wantBaseY - baseY) / ppu
+  fit.y = fit.ready ? fit.y + (dy - fit.y) * 0.2 : dy
+  fit.ready = true
+  group.position.set(position[0], position[1] + fit.y, position[2])
 }
 
 const OK_COLOR = '#6dffae'
@@ -268,9 +314,20 @@ export function ScientificReactorStage({
   const ui = useUiScale()
   const groupRef = useRef<THREE.Group>(null)
 
-  useFrame(({ camera, size }) => {
-    if (!layout) return
+  const safe = useMemo(() => createSafeArea(), [])
+  const vfit = useRef({ y: 0, ready: false })
+  const vext = useMemo(() => {
+    if (!layout) return null
+    let top = 0
+    for (const t of layout.terms) top = Math.max(top, t.center[1] + t.clusterHeight / 2)
+    return { top, tally: layout.tallyPosition[1] }
+  }, [layout])
+
+  useFrame(({ camera, size, gl }) => {
+    if (!layout || !groupRef.current) return
     fitStageToView(groupRef.current, camera, size.width / Math.max(1, size.height), layout.fitScale, layout.width, position)
+    if (safe.counter++ % SAFE_AREA_EVERY === 0) measureSafeArea(safe, gl.domElement)
+    if (vext) fitStageVertically(groupRef.current, camera, size.height, safe, vext.top, vext.tally, ui, position, vfit.current)
   })
 
   if (!visible || !layout) return null

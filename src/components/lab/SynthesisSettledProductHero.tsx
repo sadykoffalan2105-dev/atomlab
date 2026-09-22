@@ -1,4 +1,4 @@
-import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
+import { ProductHero } from './hero/ProductHero'
 import type { CompoundDef } from '../../types/chemistry'
 
 const BG = {
@@ -7,20 +7,14 @@ const BG = {
 }
 
 /**
- * «Герой» в стиле каталога: после FSM успешного синтеза остаётся в сцене с орбитой, как в модалке каталога.
+ * «Герой» после FSM успешного синтеза: решётка или молекула по данным ядра (hero/ProductHero), без ауры.
  */
 export function SynthesisSettledProductHero({ compound }: { compound: CompoundDef }) {
   return (
     <>
       <color attach="background" args={[BG.c]} />
       <fog attach="fog" args={BG.f} />
-      <CatalogSubstanceDisplay
-        compound={compound}
-        reducedEffects
-        labSynthesisScene
-        renderQuality="high"
-        fxLevel="low"
-      />
+      <ProductHero compound={compound} showLabels />
     </>
   )
 }

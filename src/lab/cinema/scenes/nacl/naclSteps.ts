@@ -1,18 +1,17 @@
 import { defineSceneTiming, type SceneFinish, type SceneStep } from '../kit/sceneKit'
 
 /**
- * 2 Na (тв.) + Cl₂ (г.) → 2 NaCl (тв.) — ионная связь, Kimyo 7–8 класс.
+ * 2 Na (тв.) + Cl₂ (г.) → 2 NaCl (тв.) — ионная связь, Kimyo 7–8 класс. ЭТАЛОН набора сцен.
  *
- * Шесть шагов урока:
- *   1 «Исходные вещества»       — фрагмент металлического натрия (ОЦК, КЧ 8)
- *                                 и МОЛЕКУЛА хлора Cl₂ с настоящей длиной связи;
- *   2 «Сублимация и диссоциация» — атом Na выходит из металла (+107,3 кДж/моль),
- *                                 связь Cl–Cl рвётся ГОМОЛИТИЧЕСКИ (+121,7 на ½Cl₂);
- *   3 «Отдача и приём электрона» — 3s¹ уходит от Na (+495,8), приходит к Cl (−349);
- *                                 радиусы меняются ровно в этот момент;
- *   4 «Электростатическое притяжение» — ионы сходятся на 282 пм, показан закон Кулона;
- *   5 «Кристаллическая решётка»  — фрагмент 4×4×4, чередование зарядов, КЧ 6 (−786);
- *   6 «Энергетический итог»      — вся лестница Борна — Габера, ΔH°f ≈ −411 кДж/моль.
+ * Шесть шагов урока (числа — только в ядре src/chemistry/data, здесь их нет):
+ *   1 «Исходные вещества»       — ячейка металлического натрия (ОЦК) и молекула Cl₂;
+ *   2 «Сублимация и диссоциация» — два атома Na выходят из металла, остальной металл
+ *                                 гаснет полностью; связь Cl–Cl рвётся гомолитически;
+ *   3 «Отдача и приём электрона» — 3s¹ натрия уходит к хлору; Na → Na⁺ в кадр УХОДА
+ *                                 электрона, Cl → Cl⁻ — в кадр его ПРИХОДА;
+ *   4 «Электростатическое притяжение» — две газовые пары Na⁺Cl⁻ на r_e газовой молекулы;
+ *   5 «Кристаллическая решётка»  — фрагмент 2×2×2 ячейки (125 ионов), рёбра ячеек;
+ *   6 «Энергетический итог»      — облёт решётки, лестница Борна — Габера, без огня.
  *
  * Здесь только РАЗМЕТКА ВРЕМЕНИ: без THREE и React — файл читают тесты,
  * watchdog лаборатории и панель урока.
@@ -24,30 +23,31 @@ export type NaclStepId = (typeof NACL_STEP_IDS)[number]
 
 export type NaclStep = SceneStep<NaclStepId>
 
+/** Время сюжета (from/to) и экранные секунды (wall): каждый шаг 4–7 с, вся сцена 26–34 с. */
 const STEPS: readonly NaclStep[] = [
-  { id: 'reactants', from: 0, to: 4, wall: 4.6, ease: 'power1.inOut' },
-  { id: 'sublimation', from: 4, to: 8, wall: 5.4, ease: 'sine.inOut' },
-  { id: 'transfer', from: 8, to: 13, wall: 6.6, ease: 'sine.inOut' },
-  { id: 'attraction', from: 13, to: 16, wall: 4.0, ease: 'power1.inOut' },
-  { id: 'lattice', from: 16, to: 21, wall: 6.4, ease: 'power1.inOut' },
-  { id: 'energy', from: 21, to: 25, wall: 4.6, ease: 'power1.inOut' },
+  { id: 'reactants', from: 0, to: 4, wall: 4.8, ease: 'power1.inOut' },
+  { id: 'sublimation', from: 4, to: 8, wall: 5.2, ease: 'sine.inOut' },
+  { id: 'transfer', from: 8, to: 13, wall: 6.0, ease: 'sine.inOut' },
+  { id: 'attraction', from: 13, to: 16.5, wall: 4.6, ease: 'power1.inOut' },
+  { id: 'lattice', from: 16.5, to: 22, wall: 6.0, ease: 'power1.inOut' },
+  { id: 'energy', from: 22, to: 26, wall: 5.0, ease: 'power1.inOut' },
 ]
 
 /** Хвост после последнего шага: затемнение и передача кадра продукту лаборатории. */
-export const NACL_FINISH: SceneFinish = { from: 25, to: 25.8, wall: 1.2, ease: 'power2.in' }
+export const NACL_FINISH: SceneFinish = { from: 26, to: 26.8, wall: 1.2, ease: 'power2.in' }
 
 export type NaclCueId =
-  /** атом натрия оторвался от металлической решётки (сублимация) */
+  /** первый атом натрия оторвался от металлической решётки (сублимация) */
   | 'sublimate'
   /** связь Cl–Cl разорвана гомолитически */
   | 'bondBreak'
-  /** электроны пришли к хлору: есть Na⁺ и Cl⁻ */
+  /** второй электрон пришёл к хлору: обе пары Na⁺ / Cl⁻ готовы */
   | 'transfer'
-  /** ионы соприкоснулись — первая ионная пара, d = 282 пм */
+  /** газовые пары сошлись на r_e(NaCl, г.) */
   | 'contact'
-  /** фрагмент решётки 4×4×4 собран */
+  /** фрагмент 2×2×2 собран, рёбра ячеек видны */
   | 'lattice'
-  /** пик выделения энергии: пламя горящего натрия в хлоре */
+  /** итог энергии: ΔH°f на экране (без огня — огонь только в тексте урока) */
   | 'exo'
   /** контракт лаборатории: продукт существует, пора готовить героя */
   | 'embryo'
@@ -58,17 +58,29 @@ export const NACL_TIMING = defineSceneTiming<NaclStepId, NaclCueId>({
   steps: STEPS,
   finish: NACL_FINISH,
   cues: [
-    { at: 5.2, id: 'sublimate' },
-    { at: 7.0, id: 'bondBreak' },
-    { at: 11.0, id: 'transfer' },
+    { at: 4.9, id: 'sublimate' },
+    { at: 6.4, id: 'bondBreak' },
+    { at: 11.6, id: 'transfer' },
     { at: 15.4, id: 'contact' },
-    { at: 20.6, id: 'lattice' },
-    { at: 21.8, id: 'exo' },
-    { at: 25.2, id: 'embryo' },
-    { at: 25.5, id: 'birth' },
+    { at: 20.8, id: 'lattice' },
+    { at: 22.6, id: 'exo' },
+    // Контракт лаборатории — строго в хвосте, после последнего шага.
+    { at: 26.2, id: 'embryo' },
+    { at: 26.5, id: 'birth' },
     { at: NACL_FINISH.to, id: 'complete' },
   ],
 })
+
+/**
+ * Переходы электронов (время сюжета): leave — старт с оболочки Na, arrive — приход к Cl.
+ * В кадр leave Na становится Na⁺ (радиус, заряд, материал, подпись — octetSnap), в кадр arrive
+ * Cl становится Cl⁻: пока e⁻ летит, сумма зарядов 0. Второй приход
+ * совпадает с cue 'transfer'.
+ */
+export const NACL_ELECTRONS = {
+  e1: { leave: 9.8, arrive: 10.9 },
+  e2: { leave: 10.5, arrive: 11.6 },
+} as const
 
 export const NACL_STEPS = NACL_TIMING.steps
 export const NACL_SEGMENTS = NACL_TIMING.segments

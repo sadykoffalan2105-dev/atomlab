@@ -367,6 +367,89 @@ const bond = (id: Clo2BondId) => frame.bonds[id]
   assert.ok(frame.camera.shake > 0.5, 'the camera kicks at the Cl⁺ transfer')
 }
 
+// ——— Баланс уравнений: атомы, заряды, электроны ———
+const SUB_DIGITS = '₀₁₂₃₄₅₆₇₈₉'
+const SUP_DIGITS = '⁰¹²³⁴⁵⁶⁷⁸⁹'
+type SpeciesCount = { atoms: Map<string, number>; charge: number }
+function parseFormulaAtoms(f: string, into: Map<string, number>, mult: number): void {
+  let i = 0
+  const readNum = (): number => {
+    let s = ''
+    while (i < f.length && /\d/.test(f[i]!)) s += f[i++]
+    return s ? Number(s) : 1
+  }
+  const stack: Map<string, number>[] = [new Map()]
+  while (i < f.length) {
+    const c = f[i]!
+    if (c === '(') {
+      stack.push(new Map())
+      i++
+    } else if (c === ')') {
+      i++
+      const n = readNum()
+      const inner = stack.pop()!
+      const top = stack[stack.length - 1]!
+      for (const [el, k] of inner) top.set(el, (top.get(el) ?? 0) + k * n)
+    } else if (/[A-Z]/.test(c)) {
+      let el = c
+      i++
+      if (i < f.length && /[a-z]/.test(f[i]!)) el += f[i++]
+      const n = readNum()
+      const top = stack[stack.length - 1]!
+      top.set(el, (top.get(el) ?? 0) + n)
+    } else i++
+  }
+  for (const [el, k] of stack[0]!) into.set(el, (into.get(el) ?? 0) + k * mult)
+}
+function parseSpecies(raw: string): SpeciesCount {
+  let f = raw.replace(/\(.*?→.*?\)/g, '').replace(/\((газ|g|aq|р-р|gaz)\)/g, '').trim()
+  f = [...f].map((ch) => (SUB_DIGITS.includes(ch) ? String(SUB_DIGITS.indexOf(ch)) : ch)).join('')
+  let charge = 0
+  const m = f.match(/([⁰¹²³⁴⁵⁶⁷⁸⁹]*)([⁺⁻])$/)
+  if (m) {
+    const mag = m[1] ? Number([...m[1]].map((ch) => SUP_DIGITS.indexOf(ch)).join('')) : 1
+    charge = m[2] === '⁺' ? mag : -mag
+    f = f.slice(0, f.length - m[0].length)
+  }
+  const atoms = new Map<string, number>()
+  parseFormulaAtoms(f.replace(/[[\]]/g, ''), atoms, 1)
+  return { atoms, charge }
+}
+type SideTally = { atoms: Map<string, number>; charge: number; electrons: number }
+function tallySide(side: string): SideTally {
+  const out: SideTally = { atoms: new Map(), charge: 0, electrons: 0 }
+  for (const m of side.matchAll(/(^|[+−])\s*([^+−]+?)\s*(?=[+−]\s|$)/g)) {
+    const sign = m[1] === '−' ? -1 : 1
+    const t = m[2]!.trim().match(/^(\d+)?\s*(.+)$/)!
+    const n = (t[1] ? Number(t[1]) : 1) * sign
+    if (t[2] === 'e⁻') {
+      out.electrons += n
+      out.charge -= n
+      continue
+    }
+    const sp = parseSpecies(t[2]!)
+    for (const [el, k] of sp.atoms) out.atoms.set(el, (out.atoms.get(el) ?? 0) + k * n)
+    out.charge += sp.charge * n
+  }
+  return out
+}
+function assertBalanced(eq: string, label: string) {
+  const [l, r] = eq.split('→')
+  assert.ok(l && r, `${label}: в уравнении есть стрелка → («${eq}»)`)
+  const L = tallySide(l!.trim())
+  const R = tallySide(r!.trim())
+  assert.ok(L.atoms.size > 0 && R.atoms.size > 0, `${label}: разобраны частицы обеих сторон «${eq}»`)
+  for (const el of new Set([...L.atoms.keys(), ...R.atoms.keys()])) {
+    assert.equal(L.atoms.get(el) ?? 0, R.atoms.get(el) ?? 0, `${label}: баланс по ${el} в «${eq}»`)
+  }
+  assert.equal(L.charge, R.charge, `${label}: баланс зарядов в «${eq}»`)
+  return {
+    electronsLost: Math.max(0, R.electrons - L.electrons),
+    electronsGained: Math.max(0, L.electrons - R.electrons),
+    leftCount: (el: string) => L.atoms.get(el) ?? 0,
+  }
+}
+
 // ——— Тексты урока на трёх языках ———
 {
   for (const locale of ['ru', 'en', 'uz'] as Clo2Locale[]) {
@@ -379,9 +462,22 @@ const bond = (id: Clo2BondId) => frame.bonds[id]
     }
     const all = JSON.stringify(pack)
     assert.ok(!/NaCl\s*·?\s*(осадок|precipitate|choʻkma\b(?! emas))/i.test(all), `${locale}: NaCl must not be called a precipitate`)
-    assert.ok(pack.steps.clTransfer.equation.includes('ClOClO'), `${locale}: step 3 equation`)
-    assert.ok(pack.steps.split.equation.includes('2 ClO₂'), `${locale}: step 6 equation`)
-    assert.ok(/2e⁻/.test(pack.steps.balance.equation), `${locale}: electron balance`)
+    // Уравнения стадий сверяются не по строкам, а по балансу атомов и зарядов.
+    for (const id of ['clTransfer', 'split'] as const) {
+      const eq = pack.steps[id].equation
+      assertBalanced(eq, `${locale}: step ${id}`)
+    }
+    // Электронный баланс: полуреакции сбалансированы, отданные e⁻ = принятые,
+    // и их число = изменению степени окисления хлора ClO₂⁻ (+3) → ClO₂ (+4).
+    const parts = pack.steps.balance.equation.split(';').map((p) => p.trim())
+    assert.equal(parts.length, 3, `${locale}: balance — две полуреакции и итог`)
+    const ox = assertBalanced(parts[0]!, `${locale}: окисление`)
+    const red = assertBalanced(parts[1]!, `${locale}: восстановление`)
+    assertBalanced(parts[2]!, `${locale}: итог`)
+    assert.ok(ox.electronsLost > 0 && ox.electronsLost === red.electronsGained, `${locale}: отдано ${ox.electronsLost} e⁻, принято ${red.electronsGained}`)
+    const oxState = (charge: number, nO: number) => charge + 2 * nO // с.о. Cl при O = −2
+    const perCl = oxState(0, 2) - oxState(-1, 2)
+    assert.equal(ox.electronsLost, ox.leftCount('Cl') * perCl, `${locale}: число e⁻ = n(Cl) · Δс.о.`)
   }
 }
 

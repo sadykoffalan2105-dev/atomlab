@@ -60,15 +60,21 @@ function createWaveMaterial(): THREE.ShaderMaterial {
   })
 }
 
+/**
+ * Масштаб «пустого» эффекта: меш остаётся visible (программа прогрета на старте
+ * урока), но схлопнут в точку — треугольники вырождены, фрагментов ноль.
+ */
+const COLLAPSED_SCALE = 1e-6
+
 /** Покадровое состояние волны — вне компонента (правила react-hooks). */
 function updateShockwave(mesh: THREE.Mesh | null, mat: THREE.ShaderMaterial, state: WaveState): void {
   if (!mesh) return
   const a = state.amount
   if (a <= 0.001 || a >= 1) {
-    mesh.visible = false
+    mesh.scale.setScalar(COLLAPSED_SCALE)
+    mat.uniforms.uAmt!.value = 1
     return
   }
-  mesh.visible = true
   mesh.position.copy(state.center)
   mesh.scale.setScalar(0.12 + a * state.radius)
   mat.uniforms.uAmt!.value = a
@@ -112,10 +118,11 @@ function GlowSprite({
     if (!m || !mat.current) return
     const a = stateRef.current.amount
     if (a <= 0.015) {
-      m.visible = false
+      // Пусто: visible остаётся true (прогрев), спрайт схлопнут и прозрачен — ноль фрагментов.
+      m.scale.setScalar(COLLAPSED_SCALE)
+      mat.current.opacity = 0
       return
     }
-    m.visible = true
     m.position.copy(stateRef.current.center)
     m.quaternion.copy(s.camera.quaternion)
     const breath = pulse > 0 ? 1 + pulse * Math.sin(time.current.visual * 1.4) : 1
@@ -124,7 +131,7 @@ function GlowSprite({
   })
 
   return (
-    <mesh ref={mesh} geometry={geo} visible={false} dispose={null} renderOrder={renderOrder}>
+    <mesh ref={mesh} geometry={geo} scale={COLLAPSED_SCALE} dispose={null} renderOrder={renderOrder}>
       <meshBasicMaterial
         ref={mat}
         map={tex}
@@ -153,7 +160,7 @@ export function CinemaShockwave({ state }: { state: WaveState }) {
 
   useFrame(() => updateShockwave(mesh.current, mat, state))
 
-  return <mesh ref={mesh} geometry={geo} material={mat} visible={false} dispose={null} renderOrder={4} />
+  return <mesh ref={mesh} geometry={geo} material={mat} scale={COLLAPSED_SCALE} dispose={null} renderOrder={4} />
 }
 
 /** Подсвеченная зона реакции под молекулами — «стол» сцены. */

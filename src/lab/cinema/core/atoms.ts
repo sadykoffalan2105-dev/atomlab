@@ -17,8 +17,15 @@ import {
   ionicRadiusPm,
   metallicRadiusPm,
   radiusForSpecies as radiusForSpeciesPm,
+  reagentAngleDeg,
+  reagentBondPm,
+  type ReagentGeometryKey,
   type ElementSymbol,
+  type RadiusModel,
 } from '../../../chemistry/data'
+
+/** Опции радиуса частицы — те же, что у ядра: фактическое КЧ и модель (ionic/covalent/metallic). */
+export type SpeciesRadiusOpts = { readonly cn?: number; readonly model?: RadiusModel }
 
 /** Сцена: 1 Å = SCENE_PER_ANGSTROM мировых единиц. */
 export const SCENE_PER_ANGSTROM = 0.285
@@ -51,6 +58,7 @@ export const CPK = {
   Cl: ATOMIC_DATA.Cl.cpk,
   K: ATOMIC_DATA.K.cpk,
   Ca: ATOMIC_DATA.Ca.cpk,
+  V: ATOMIC_DATA.V.cpk,
   Cr: ATOMIC_DATA.Cr.cpk,
   Mn: ATOMIC_DATA.Mn.cpk,
   Fe: ATOMIC_DATA.Fe.cpk,
@@ -81,6 +89,7 @@ export const COVALENT_RADIUS_A = {
   Cl: covA('Cl'),
   K: covA('K'),
   Ca: covA('Ca'),
+  V: covA('V'),
   Cr: covA('Cr'),
   Mn: covA('Mn'),
   Fe: covA('Fe'),
@@ -100,6 +109,7 @@ export const METALLIC_RADIUS_A = {
   Al: metA('Al'),
   K: metA('K'),
   Ca: metA('Ca'),
+  V: metA('V'),
   Cr: metA('Cr'),
   Mn: metA('Mn'),
   Fe: metA('Fe'),
@@ -111,7 +121,7 @@ export const METALLIC_RADIUS_A = {
 }
 
 /**
- * Ионные радиусы, Å (Shannon 1976, КЧ 6).
+ * Ионные радиусы, Å (Shannon 1976, КЧ 6). Радиус при другом КЧ — radiusForSpecies(el, q, { cn }).
  * Катион МЕНЬШЕ своего атома, анион БОЛЬШЕ: Na⁺ 1.02 Å против Cl⁻ 1.81 Å —
  * на экране хлорид-ион обязан выглядеть примерно в 1.8 раза крупнее.
  */
@@ -127,6 +137,7 @@ export const IONIC_RADIUS_A = {
   'Cl-': ionA('Cl', -1),
   'K+': ionA('K', 1),
   'Ca2+': ionA('Ca', 2),
+  'V5+': ionA('V', 5),
   'Cr3+': ionA('Cr', 3),
   'Mn2+': ionA('Mn', 2),
   'Fe2+': ionA('Fe', 2),
@@ -153,13 +164,13 @@ export function atomRadius(symbol: CpkSymbol, scale = 0.72): number {
  * катион сжимается, анион раздувается, нейтральный металл берёт металлический радиус.
  * Именно эта функция обязана строить кадры ионных сцен.
  */
-export function sceneRadius(symbol: ElementSymbol, charge = 0, scale = 0.72): number {
-  return ang(pmToAngstrom(radiusForSpeciesPm(symbol, charge))) * scale
+export function sceneRadius(symbol: ElementSymbol, charge = 0, scale = 0.72, opts?: SpeciesRadiusOpts): number {
+  return ang(pmToAngstrom(radiusForSpeciesPm(symbol, charge, opts))) * scale
 }
 
 /** Радиус частицы в ПИКОМЕТРАХ (переэкспорт научного ядра — для подписей и тестов). */
-export function radiusForSpecies(symbol: ElementSymbol, charge = 0): number {
-  return radiusForSpeciesPm(symbol, charge)
+export function radiusForSpecies(symbol: ElementSymbol, charge = 0, opts?: SpeciesRadiusOpts): number {
+  return radiusForSpeciesPm(symbol, charge, opts)
 }
 
 /** Экспериментальные длины связей, Å (см. chemistry/data/bondData.ts). */
@@ -196,6 +207,31 @@ export const BOND_LENGTH_A = {
   FeS: pmToAngstrom(bondLengthPm('Fe-S')),
   /** Zn–S в сфалерите */
   ZnS: pmToAngstrom(bondLengthPm('Zn-S')),
+  // ── этап 11: десять сцен (числа — только из ядра) ──
+  /** S–O в SO₃ (г), D₃h */
+  SO3: pmToAngstrom(bondLengthPm('S=O(SO3)')),
+  /** Si–O в α-кварце (среднее) */
+  SiO: pmToAngstrom(bondLengthPm('Si-O')),
+  /** Si–Si в кристаллическом кремнии */
+  SiSi: pmToAngstrom(bondLengthPm('Si-Si')),
+  /** Pb–O в глёте */
+  PbO: pmToAngstrom(bondLengthPm('Pb-O')),
+  /** O–O в H₂O₂ (r_0) */
+  OO_H2O2: pmToAngstrom(bondLengthPm('O-O')),
+  /** O–H в H₂O₂ (r_0) */
+  OH_H2O2: pmToAngstrom(bondLengthPm('O-H(H2O2)')),
+  /** O–O в пероксид-ионе O₂²⁻ */
+  OO_peroxide: pmToAngstrom(bondLengthPm('O-O(O2 2-)')),
+  /** Mn=O концевая в Mn₂O₇ */
+  MnO_term: pmToAngstrom(bondLengthPm('Mn-O(term)')),
+  /** Mn–O мостиковая в Mn₂O₇ */
+  MnO_bridge: pmToAngstrom(bondLengthPm('Mn-O(bridge)')),
+  /** Mn–O в MnO₄⁻ */
+  MnO4: pmToAngstrom(bondLengthPm('Mn-O(MnO4)')),
+  /** Cl=O концевая в Cl₂O₇ (г) */
+  ClO_term: pmToAngstrom(bondLengthPm('Cl-O(term)')),
+  /** Cl–O мостиковая в Cl₂O₇ (г) */
+  ClO_bridge: pmToAngstrom(bondLengthPm('Cl-O(bridge)')),
 }
 
 /** Валентные углы, градусы (эксперимент / VSEPR). */
@@ -216,4 +252,29 @@ export const BOND_ANGLE_DEG = {
   trigonalPlanar: bondAngleDeg('trigonalPlanar'),
   /** линейная молекула (CO₂) */
   linear: bondAngleDeg('linear'),
+  // ── этап 11 ──
+  /** O–S–O в SO₃ (D₃h) */
+  sulfurTrioxide: bondAngleDeg('sulfurTrioxide'),
+  /** O–O–H в H₂O₂ (r_0) */
+  h2o2OOH: bondAngleDeg('hydrogenPeroxideOOH'),
+  /** Si–O–Si в α-кварце */
+  quartzSiOSi: bondAngleDeg('quartzSiOSi'),
+  /** O–Si–O в α-кварце */
+  quartzOSiO: bondAngleDeg('quartzOSiO'),
+  /** Mn–O–Mn в Mn₂O₇ */
+  mn2o7MnOMn: bondAngleDeg('mn2o7MnOMn'),
+  /** Cl–O–Cl в Cl₂O₇ (г) */
+  cl2o7ClOCl: bondAngleDeg('cl2o7ClOCl'),
+  /** O–Cl–O в Cl₂O₇ (г) */
+  cl2o7OClO: bondAngleDeg('cl2o7OClO'),
+}
+
+/** Длина связи частицы-реагента (H₂SO₄, HClO₄, P₄O₁₀, SO₄²⁻, S₃O₉, O₂²⁻, MnO₄⁻), Å — из ядра. */
+export function reagentBondA(key: ReagentGeometryKey, bond: string): number {
+  return pmToAngstrom(reagentBondPm(key, bond))
+}
+
+/** Валентный угол частицы-реагента, градусы — из ядра. */
+export function reagentAngle(key: ReagentGeometryKey, angle: string): number {
+  return reagentAngleDeg(key, angle)
 }

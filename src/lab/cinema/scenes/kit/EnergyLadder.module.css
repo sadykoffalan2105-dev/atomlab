@@ -41,10 +41,30 @@
   stroke: #7fd4ff;
 }
 
+/*
+ * Подписи ступеней на графике. SVG рисуется в viewBox 320 и ужимается до
+ * ширины панели (≈ 0.98), поэтому 11px давали 10.8px на экране — мельче
+ * порога читаемости. 13px → ≈ 12.8px, на телефоне 14px → ≈ 13.5px.
+ */
 .val {
-  font: 600 11px/1 var(--lt-font-mono, ui-monospace, monospace);
+  font: 600 13px/1 var(--lt-font-mono, ui-monospace, monospace);
   fill: var(--lt-text-3, #a8b5c9);
   transition: fill 0.25s var(--lt-ease, ease);
+}
+
+/*
+ * Ступеней больше пяти — колонка уже подписи, числа налезают друг на друга.
+ * Убираем числа со ступеней (итог оставляем): те же значения стоят строкой
+ * ниже в списке, набранные полноразмерным шрифтом.
+ */
+.wrap[data-dense='1'] .col:not(.total) .val {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .val {
+    font-size: 14px;
+  }
 }
 
 .col[data-state='done'] .level,
@@ -74,7 +94,7 @@
   list-style: none;
   display: grid;
   gap: 3px;
-  font-size: var(--lt-fs-small, 12px);
+  font-size: max(12.5px, var(--lt-fs-small, 12.5px));
   line-height: var(--lt-lh-tight, 1.25);
 }
 
@@ -125,7 +145,13 @@
 .num {
   font-family: var(--lt-font-mono, ui-monospace, monospace);
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: 12.5px;
+}
+
+/* множитель ступени «2 × 577,5 =» — приглушён, итог ступени остаётся главным */
+.factor {
+  color: var(--lt-text-3, #a8b5c9);
+  white-space: nowrap;
 }
 
 .sum {
@@ -138,7 +164,7 @@
 
 .caption {
   margin: 0;
-  font-size: var(--lt-fs-xs, 11px);
+  font-size: max(12px, var(--lt-fs-xs, 12px));
   line-height: 1.35;
   color: var(--lt-text-3, #a8b5c9);
 }

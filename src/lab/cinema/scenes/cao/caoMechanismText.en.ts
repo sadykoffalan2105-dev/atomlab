@@ -44,7 +44,8 @@ export const CAO_TEXT_EN: CaoMechanismText = {
       body:
         'The remaining Ca²⁺ and O²⁻ rearrange into the rock-salt lattice — space group Fm-3m, cell edge 481.1 pm, nearest Ca–O distance 240.5 pm, Z = 4. ' +
         'Every Ca²⁺ has six O²⁻ neighbours and every O²⁻ has six Ca²⁺: coordination number 6 to 6, and like charges are never neighbours. ' +
-        'The charges here are ±2 rather than ±1 as in table salt, so the attraction is four times stronger: the lattice energy of CaO is −3400 kJ/mol against −787 for NaCl. With the carbonate groups gone the crystal is denser: 3.34 against 2.711 g/cm³.',
+        'The charges here are ±2 rather than ±1 as in table salt: at the same distance the attraction would be four times stronger, and the ions also sit closer (240.5 against 282.0 pm). The lattice energy of CaO is −3400 kJ/mol against −787 for NaCl. ' +
+        'Hence the refractoriness: lime melts only at 2572 °C, while table salt melts at 801 °C. With the carbonate groups gone the crystal is denser: 3.34 against 2.711 g/cm³.',
       equation: 'Ca²⁺ + O²⁻ → CaO (s),  d = 240.5 pm, CN 6 : 6',
       note: 'The frame shows a 4 × 2 × 2 fragment — two unit cells, 16 ions. A grain of lime the size of a sand grain holds about 10¹⁹ of them.',
       speak: 'Calcium and oxygen stack into the cubic lattice of lime. Every ion has six neighbours.',
@@ -67,14 +68,16 @@ export const CAO_TEXT_EN: CaoMechanismText = {
         'But a gas is released and the disorder jumps: ΔS° = +160.2 J/(mol·K). In ΔG = ΔH − TΔS the TΔS term wins as temperature rises, and at T = 179 200 / 160.2 ≈ 1119 K (846 °C) ΔG becomes zero. Above that the reaction runs — which is why kilns are held at 900…1000 °C. ' +
         'Quicklime means cement, mortar, and the removal of sulfur and phosphorus from steel; burning limestone is one of the largest-scale reactions on Earth.',
       equation: 'CaCO₃ (s) → CaO (s) + CO₂ (g),  ΔH = +179.2 kJ/mol',
-      note: 'The 1119 K figure is the condition ΔG° = 0 at a standard CO₂ pressure of 1 atm; in a kiln the gas is carried away continuously, so decomposition starts a little earlier.',
+      note:
+        '1119 K is an ESTIMATE from ΔH° and ΔS° measured at 298 K, that is, on the assumption that neither depends on temperature. ' +
+        'The actual experiment reaches p(CO₂) = 1 atm at 898 °C (1171 K) — the 52 K gap is the price of that assumption. Below 898 °C the decomposition only runs if the CO₂ is carried away continuously, as it is in a kiln.',
       speak: 'Plus one hundred and seventy-nine kilojoules. It only runs in a kiln — but it gives us cement and lime.',
     },
   },
   legend: {
     electron: 'The blue pair of dots is the C–O bonding electron pair: when the bond breaks it stays entirely with the oxygen.',
     vibration: 'The trembling of the lattice sites is thermal motion; the hotter it is, the wider the swing.',
-    water: 'White spheres are hydrogen atoms; the water molecule is drawn with its real H–O–H angle of 104.45°.',
+    water: 'White spheres are hydrogen atoms; the water molecule is drawn with its real H–O–H angle of 104.5°.',
   },
   safety:
     'Quicklime CaO burns skin and is especially dangerous for the eyes, and slaking makes the water boil and spatter. Work only in goggles and gloves, and always add lime to water, never the other way round.',

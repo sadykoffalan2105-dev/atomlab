@@ -115,7 +115,7 @@ export const SO2_FACTS = {
   bondSOPm: bondLengthPm('S=O'),
   /** длина связи S–S в кольце, пм: 205,5 */
   bondSSPm: bondLengthPm('S-S'),
-  /** длина связи O=O, пм: 120,8 */
+  /** длина связи O=O, пм (r_e, bondData 'O=O') */
   bondOOPm: bondLengthPm('O=O'),
   /** дипольный момент SO₂, D: 1,63 (молекула полярна) */
   dipoleD: dipoleDebye('SO2')!,

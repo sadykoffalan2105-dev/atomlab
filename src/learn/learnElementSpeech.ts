@@ -12,6 +12,11 @@ const MULTI_SYMBOLS = [...SYMBOL_SPOKEN_RU.keys()]
 const COEFF_ELEMENT =
   /(\d+)\s*([A-Z][a-z]?)(?=\s*(?:[+]|$|[,.;:!?)]|(?:\s+(?:и|или|с|в)\s)))/g
 
+/** У символа элемента есть русское название («Al» → «алюминий») — такое вещество читается названием. */
+export function hasElementSpokenName(symbol: string): boolean {
+  return SYMBOL_SPOKEN_RU.has(symbol)
+}
+
 /** 4 Cr + 7 O2 → «4 хром + 7 кислород» — TTS не читает латиницу по буквам. */
 export function expandElementSymbolsForRussianSpeech(text: string): string {
   let out = text.replace(COEFF_ELEMENT, (match, num: string, sym: string) => {

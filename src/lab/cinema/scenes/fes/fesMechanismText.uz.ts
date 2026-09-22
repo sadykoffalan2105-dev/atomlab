@@ -41,10 +41,11 @@ export const FES_TEXT_UZ: FesMechanismText = {
       body:
         'Qarama-qarshi zaryadlar Kulon qonuni bo‘yicha tortishadi: ionlar 244,5 pm masofaga yaqinlashadi va kristall hosil qiladi. ' +
         'Temir(II)-sulfid — bu troilit, NiAs struktura tipi: har bir Fe²⁺ oltita S²⁻ oktaedri ichida, har bir S²⁻ esa oltita Fe²⁺ uchburchak prizmasi ichida turadi, KS 6/6. ' +
-        'Ionlar qat’iy navbatlashadi, shuning uchun bir xil zaryadlar hech qayerda tegmaydi. Bog‘ sof ionli emas: Fe va S ning elektromanfiyligi 1,83 va 2,58, farqi atigi 0,75 — ionli-kovalent bog‘.',
+        'Fe²⁺ va S²⁻ qatlamlari c o‘qi bo‘ylab navbatlashadi, lekin bu yerda osh tuzining shaxmat qoidasi ISHLAMAYDI: FeS₆ oktaedrlari YOQLARINI baham ko‘radi, shuning uchun temir ionlari ustun bo‘lib turadi va Fe–Fe masofasi atigi 293,9 pm. ' +
+        'Bir xil zaryadlar bevosita qo‘shni bo‘lib qoladi — aynan shu Fe–Fe kontaktlari troilitdagi bog‘ nega sof ionli emasligini tushuntiradi: Fe va S ning elektromanfiyligi 1,83 va 2,58, farqi atigi 0,75 — ionli-kovalent bog‘.',
       equation: 'Fe²⁺ + S²⁻ → FeS (qat.), d(Fe–S) = 244,5 pm, KS 6/6',
       note:
-        'Chizilgani — NiAs tipidagi IDEAL yacheyka (a = 344,3 pm, c = 587,7 pm); haqiqiy troilit esa uning biroz buzilgan √3a × 2c superstrukturasi: P-62c, a = 596,3 pm, c = 1175,4 pm, Z = 12, ρ = 4,61 g/sm³. ' +
+        'Chizilgani — NiAs tipidagi IDEAL yacheyka (a = 344,3 pm, c = 587,7 pm); haqiqiy troilit esa uning biroz buzilgan √3a × 2c superstrukturasi: P-62c, a = 596,3 pm, c = 1175,4 pm, Z = 12, ρ = 4,84 g/sm³ (rentgen, xuddi shu yacheykadan chiqadi). ' +
         'Shu buzilish tufayli chizilgan Fe–S masofasi o‘lchanganidan 1 % kattaroq. 31 iondan iborat qatlam ko‘rsatilgan.',
       speak: 'Ionlar tortishadi va nikel-arsenid tipidagi panjaraga tiziladi: har birida oltita qo‘shni.',
     },

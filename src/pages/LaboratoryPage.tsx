@@ -13,6 +13,7 @@ import {
 } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { LabDomainTabs } from '../components/lab/LabDomainTabs'
+import { ProductHeroCard } from '../components/lab/hero/ProductHeroCard'
 import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import { REACTOR_COEFF_MAX, REACTOR_EQUATION_MAX_TERMS } from '../chemistry/reactorLimits'
@@ -61,6 +62,7 @@ import {
   type ReactorLinkParams,
   type ReactorLinkResult,
 } from '../lab/reactorDeepLink'
+import { effectiveLabNeeds } from '../lab/reactionLabNeeds'
 import { getLabTeacherNarrator, hasLabTeacherScript, readLabTeacherVoiceEnabled } from '../lab/teacher'
 import type { Clo2TeacherLine } from '../lab/teacher/clo2TeacherScript'
 import { unlockAudioPlayback } from '../learn/learnSpeechPlayback'
@@ -89,6 +91,8 @@ import {
 import { getElementByZ } from '../data/elements'
 import type { CompoundDef, LabParticle, Vec3 } from '../types/chemistry'
 import styles from './LaboratoryPage.module.css'
+import sidePanelStyles from '../components/lab/ElementSidePanel.module.css'
+import mechPanelStyles from '../components/lab/scientific/Clo2MechanismPanel.module.css'
 
 const LabCanvas = lazy(() =>
   import('../components/lab/LabScene').then((m) => ({ default: m.LabCanvas })),
@@ -112,6 +116,39 @@ function preserveReactorMessageOnEquationEdit(msg: string): boolean {
   )
 }
 
+/**
+ * --lab-reactor-clearance — в ОДНОМ правиле таблицы стилей только для тех, кто его читает
+ * (⊞ над доком, компактная таблица, лист урока), а не инлайном на .wrap.
+ * Инлайн-свойство на .wrap наследуется всем ~3400 узлам лаборатории: каждая смена высоты
+ * реактора стоила полного пересчёта стилей 130–360 мс (замер прод-сборки, 1280×800) — это и был
+ * худший кадр после «Завершить». Правило по классам пересчитывает только свои узлы (~4 мс).
+ */
+let clearanceRule: CSSStyleRule | null = null
+function writeReactorClearance(px: number | null): void {
+  if (typeof document === 'undefined') return
+  if (!clearanceRule) {
+    if (px == null) return
+    const first = (cls: string | undefined) => (cls ? `.${cls.split(' ')[0]}` : null)
+    const sel = [first(styles.panelFabReactorOpen), first(sidePanelStyles.panelOpenCompact), first(mechPanelStyles.panel)]
+      .filter(Boolean)
+      .join(', ')
+    const el = document.createElement('style')
+    el.setAttribute('data-lab-reactor-clearance', '')
+    el.textContent = `${sel} {}`
+    document.head.appendChild(el)
+    clearanceRule = (el.sheet?.cssRules[0] as CSSStyleRule | undefined) ?? null
+    if (!clearanceRule) return
+  }
+  if (px == null) clearanceRule.style.removeProperty('--lab-reactor-clearance')
+  else clearanceRule.style.setProperty('--lab-reactor-clearance', `${px}px`)
+}
+
+/** Урок по шагам идёт (не закончен). */
+function readLessonActive(): boolean {
+  const s = clo2StepStore.getSnapshot()
+  return s.runId > 0 && s.status !== 'done'
+}
+
 export function LaboratoryPage() {
   const { locale, t } = useT()
   const [panelOpen, setPanelOpen] = useState(false)
@@ -127,6 +164,8 @@ export function LaboratoryPage() {
   const [equationRecipe, setEquationRecipe] = useState<ScientificReactorRecipe | null>(null)
   /** «← назад к учебнику» из src= ссылки. */
   const [deepLinkBackHref, setDeepLinkBackHref] = useState<string | null>(null)
+  /** id реакции банка из ссылки — условия реактора берутся по реакции, а не по продукту. */
+  const [linkedBankId, setLinkedBankId] = useState<string | null>(null)
   const [labHeatOn, setLabHeatOn] = useState(false)
   const [labPressureOn, setLabPressureOn] = useState(false)
   const [labCatalystOn, setLabCatalystOn] = useState(false)
@@ -164,7 +203,7 @@ export function LaboratoryPage() {
     const wrap = labWrapRef.current
     if (!wrap) return
     if (!reactorOpen) {
-      wrap.style.removeProperty('--lab-reactor-clearance')
+      writeReactorClearance(null)
       return
     }
 
@@ -177,7 +216,7 @@ export function LaboratoryPage() {
       const clearance = Math.round(h + 10)
       if (clearance === lastClearance) return
       lastClearance = clearance
-      wrap.style.setProperty('--lab-reactor-clearance', `${clearance}px`)
+      writeReactorClearance(clearance)
       // Debounce: balance-панель часто меняет высоту — без thrash WebGL.
       window.clearTimeout(resizeTimer)
       resizeTimer = window.setTimeout(() => {
@@ -196,7 +235,7 @@ export function LaboratoryPage() {
       ro.disconnect()
       window.clearTimeout(resizeTimer)
       window.removeEventListener('resize', syncReactorClearance)
-      wrap.style.removeProperty('--lab-reactor-clearance')
+      writeReactorClearance(null)
     }
   }, [reactorOpen])
 
@@ -656,6 +695,7 @@ export function LaboratoryPage() {
       setStructureZ(null)
       setPanelOpen(false)
       setDeepLinkBackHref(link.backHref)
+      setLinkedBankId(res.ok ? res.bankId : null)
       if (!res.ok) {
         const reason = t(`lab.deepLink.unsupported.${res.code}`, {
           formulas: res.details.formulas?.join(', ') ?? '',
@@ -743,9 +783,22 @@ export function LaboratoryPage() {
           setCoProducts(sci.coProducts)
           setProductCoeff(sci.productCoeff)
         })
+      } else if (c && !genEq) {
+        // Рецепта нет и реакции в банке нет (иначе ссылку увёл бы parseReactorLinkParams):
+        // сеем левую часть из лабораторного маршрута каталога. Если маршрут школьный
+        // (не из элементов) или его нет — applyGenerateEquationReagents скажет об этом
+        // текстом, а не оставит серую кнопку молча.
+        queueMicrotask(() => applyGenerateEquationReagents(c))
       }
     }
-  }, [location.key, location.search, location.hash, applyReactorLink, clearReactorSlots])
+  }, [
+    location.key,
+    location.search,
+    location.hash,
+    applyReactorLink,
+    applyGenerateEquationReagents,
+    clearReactorSlots,
+  ])
 
   const completeSynthesisSuccess = useCallback(
     (compound: CompoundDef, runIdForGuard: number) => {
@@ -753,16 +806,21 @@ export function LaboratoryPage() {
       guard.tryCompleteSuccess(runIdForGuard, () => {
         synthesisCompletingRef.current = true
         const name = getCompoundLocaleStrings(compound, locale, t).name
-        setReactorMessage(t('reactor.successProduct', { name, formula: compound.formulaUnicode }))
-        setSynthesisSettledProduct(compound)
         synthesisSettledProductRef.current = compound
         settledSnapshotRef.current = equationSignature
-        setRunId(0)
-        setLaboratorySynthesisView('substance')
         lastRunZSlotsRef.current = []
-        setSynthesisFlightSlots(null)
-        setSynthesisFlyTerms(null)
-        setSynthPhaseUi('settled')
+        // Переход «сцена → герой» — переходом React: рендер страницы режется на куски по ~5 мс,
+        // а не одним кадром 100+ мс после «Завершить». Сцена к этому моменту уже погасла (хвост),
+        // поэтому отложенный на несколько кадров коммит не даёт пустого кадра.
+        startTransition(() => {
+          setReactorMessage(t('reactor.successProduct', { name, formula: compound.formulaUnicode }))
+          setSynthesisSettledProduct(compound)
+          setRunId(0)
+          setLaboratorySynthesisView('substance')
+          setSynthesisFlightSlots(null)
+          setSynthesisFlyTerms(null)
+          setSynthPhaseUi('settled')
+        })
       })
     },
     [t, locale, equationSignature],
@@ -1019,7 +1077,7 @@ export function LaboratoryPage() {
     } else if (!isReactorBalancedFast(deferredLeftTerms, product, productCoeff)) {
       return false
     }
-    const lab = product.synthesisLab
+    const lab = effectiveLabNeeds(product.synthesisLab, product.id, linkedBankId)
     if (lab?.needsHeat && !labHeatOn) return false
     if (lab?.needsPressure && !labPressureOn) return false
     if (lab?.needsCatalyst && !labCatalystOn) return false
@@ -1033,6 +1091,7 @@ export function LaboratoryPage() {
     labHeatOn,
     labPressureOn,
     labCatalystOn,
+    linkedBankId,
   ])
 
   useEffect(() => {
@@ -1169,8 +1228,9 @@ export function LaboratoryPage() {
   const showSettledSynthesisView = reactorOpen && !synthRunActive && synthesisSettledProduct != null
   /** 3D/HUD продукта только во время синтеза или после успеха — не при подборе коэффициентов */
   // Пока идёт урок по шагам, о продукте рассказывает панель урока — карточка сверху мешает кадру.
-  const clo2Lesson = useSyncExternalStore(clo2StepStore.subscribe, clo2StepStore.getSnapshot)
-  const clo2LessonActive = clo2Lesson.runId > 0 && clo2Lesson.status !== 'done'
+  // Подписка сведена к булеву: страница перерисовывается только при старте/конце урока, а не на
+  // каждый «Далее» (полный рендер лаборатории на клике давал худший кадр 40–80 мс).
+  const clo2LessonActive = useSyncExternalStore(clo2StepStore.subscribe, readLessonActive, readLessonActive)
   const showSynthProductHud =
     ((synthRunActive && lastRunProduct != null) || showSettledSynthesisView) && !clo2LessonActive
   const productForHud =
@@ -1315,11 +1375,12 @@ export function LaboratoryPage() {
         ) : null}
         {showSynthProductHud && productForHud ? (
           <div className={styles.synthProductDock} role="status" aria-live="polite">
-            <div className={styles.synthProductCard}>
-              <span className={styles.synthFormula}>{productForHud.formulaUnicode}</span>
-              <span className={styles.synthName}>{productHudStrings?.name ?? productForHud.nameRu}</span>
-              <p className={styles.synthDesc}>{productHudStrings?.description ?? productForHud.descriptionRu}</p>
-            </div>
+            {/* Карточка героя: состояние при 25 °C, ΔH°f, строение и «почему так» (hero/ProductHeroCard). */}
+            <ProductHeroCard
+              compound={productForHud}
+              name={productHudStrings?.name ?? productForHud.nameRu}
+              description={productHudStrings?.description ?? productForHud.descriptionRu}
+            />
           </div>
         ) : null}
         {structureZ != null && getElementByZ(structureZ) && !panelOpen && !reactorOpen ? (

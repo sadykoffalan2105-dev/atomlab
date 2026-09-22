@@ -296,7 +296,8 @@ export const SCHOOL_REACTIONS_PART1: readonly SchoolReactionDef[] = [
     howToEn:
       '2SO₂ + O₂ ⇄ 2SO₃ with V₂O₅/Pt at ≈400–450 °C. Sulfur burns to SO₂ first — not a direct S→SO₃ school path.',
     passport: { heatEffect: 'exo', reversibility: 'reversible', catalytic: true },
-    catalystId: 'v2o5',
+    // V₂O₅ в каталоге — tb_v2o5 (textbookCompounds.data.ts); id 'v2o5' в compoundById нет.
+    catalystId: 'tb_v2o5',
   },
   {
     id: 'co-o2-co2',

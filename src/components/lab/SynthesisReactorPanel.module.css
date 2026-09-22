@@ -728,10 +728,77 @@
 .equalsColumn {
   flex: none;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: var(--rx-bubble-h);
+  justify-content: flex-end;
+  gap: 4px;
+  min-height: var(--rx-bubble-h);
   padding: 0 2px;
+}
+
+.equalsColumn .equalsSign {
+  display: flex;
+  align-items: center;
+  height: var(--rx-bubble-h);
+}
+
+/* Ступенька коэффициента: − [поле] +, зона нажатия кнопок 44 × 44 px */
+.coeffStepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.coeffStepBtn {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: 0 -9px;
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #e6ecff;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.coeffStepGlyph {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(148, 170, 230, 0.4);
+  background: rgba(148, 170, 230, 0.14);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    background var(--lt-dur-fast) ease,
+    border-color var(--lt-dur-fast) ease;
+}
+
+.coeffStepBtn:hover .coeffStepGlyph {
+  background: rgba(148, 170, 230, 0.3);
+  border-color: rgba(148, 170, 230, 0.7);
+}
+
+.coeffStepBtn:focus-visible {
+  outline: none;
+}
+
+.coeffStepBtn:focus-visible .coeffStepGlyph {
+  box-shadow: var(--lt-ring);
+}
+
+.coeffStepBtn:disabled {
+  cursor: default;
+  opacity: 0.35;
 }
 
 .equalsSign {
@@ -1565,7 +1632,7 @@
   color: #c9fff6;
 }
 
-/* ── Валентные полоски (ReagentValencyStrip / ReagentValencyInteract) ── */
+/* ── Валентные полоски (компоненты удалены; стили оставлены для истории разметки) ── */
 
 .valencyStrip {
   display: inline-flex;

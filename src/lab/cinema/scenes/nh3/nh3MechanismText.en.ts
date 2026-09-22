@@ -11,7 +11,7 @@ export const NH3_TEXT_EN: Nh3MechanismText = {
       title: 'The reactants',
       body:
         'Air is 78 % nitrogen, yet nitrogen hardly reacts at all. The reason is the triple bond N≡N: one σ bond and two π bonds, 109.8 pm long, 945 kJ/mol to break. It is the strongest bond in this lesson. ' +
-        'Hydrogen is diatomic too, but its H–H bond is three times weaker: 436 kJ/mol at a length of 74.1 pm. ' +
+        'Hydrogen is diatomic too, but its H–H bond is more than twice as weak: 435.8 kJ/mol at a length of 74.1 pm — 945 against 435.8 is a ratio of 2.2. ' +
         'To make ammonia both bonds must be broken and six new N–H bonds built.',
       equation: 'N₂ (g) + 3 H₂ (g)',
       note: 'The blue arcs around the N–N axis stand for the TWO π bonds on top of the σ bond; they are not the shape of the orbitals.',
@@ -22,9 +22,10 @@ export const NH3_TEXT_EN: Nh3MechanismText = {
       body:
         'The iron catalyst with its K₂O and Al₂O₃ promoters does not appear in the equation, yet without it the reaction practically does not run. The molecules land on the iron surface (body-centred cubic, Im-3m, cell edge 286.65 pm, eight neighbours at 248.2 pm). ' +
         'Metal electrons move into the antibonding orbitals of nitrogen: the N≡N bond weakens — on screen its order falls from three to zero — and breaks right on the surface. Hydrogen splits into atoms even more easily. ' +
-        'Look at the two curves: without a catalyst a barrier of about 945 kJ/mol has to be crossed, on iron the apparent activation energy is only 60–100 kJ/mol.',
+        'Look at the two curves: without a catalyst the barrier is no lower than the N≡N bond energy, 945 kJ/mol, while on iron the apparent activation energy is only 60–100 kJ/mol.',
       equation: 'N₂ (ads) → 2 N (ads);  H₂ (ads) → 2 H (ads)',
       note:
+        '945 kJ/mol is the dissociation enthalpy of the N≡N bond, that is a LOWER BOUND for the barrier of the uncatalysed route, not a measured activation energy: less than that cannot break the triple bond in the gas phase. ' +
         'A catalyst lowers ONLY the barrier: both curves start and end at the same levels, because ΔH does not depend on the catalyst. ' +
         'The 60–100 kJ/mol range is the spread of published apparent activation energies on promoted iron; the frame shows a fragment of 18 atoms, a catalyst grain holds about 10²⁰.',
       speak: 'Iron weakens the triple bond and cuts the barrier roughly tenfold. The heat of reaction stays exactly the same.',
@@ -46,7 +47,9 @@ export const NH3_TEXT_EN: Nh3MechanismText = {
         'In free NH₃ the nitrogen is sp³: three bonds and ONE lone pair. Because of that pair the molecule is not flat but a trigonal pyramid, and the H–N–H angle is squeezed to 106.7° instead of the tetrahedral 109.5°. ' +
         'Such a pyramid is polar: the dipole moment is 1.47 D. Hence ammonia dissolves so well in water — and hence its smell.',
       equation: 'NH₃ (ads) → NH₃ (g)',
-      note: 'The two glowing dots above the nitrogen stand for the lone pair: electrons do not sit at a point, this is a region of raised electron density.',
+      note:
+        'The two glowing dots above the nitrogen stand for the lone pair: electrons do not sit at a point, this is a region of raised electron density. ' +
+        'The 106.7° angle follows the microwave data (NIST CCCBDB, 106.67°); some textbooks print 107.3°, so the numbers may differ slightly.',
       speak: 'Ammonia leaves, the iron stays the same. The lone pair makes the molecule a pyramid with an angle of a hundred and six point seven.',
     },
     equilibrium: {
@@ -62,8 +65,8 @@ export const NH3_TEXT_EN: Nh3MechanismText = {
     energy: {
       title: 'The energy balance',
       body:
-        'Count it from bond energies, per equation: breaking one N≡N costs +945 kJ, breaking three H–H bonds another +1308 kJ, while forming six N–H bonds releases −2346 kJ. The sum is −93 kJ. ' +
-        'An independent count from heats of formation gives −91.8 kJ (that is 2 · (−45.9)); the 1 kJ gap appears because 391 kJ/mol is a MEAN N–H bond energy. ' +
+        'Count it from bond energies, per equation: breaking one N≡N costs +945 kJ, breaking three H–H bonds another +1307.4 kJ, while forming six N–H bonds releases −2346 kJ. The sum is −93.6 kJ. ' +
+        'An independent count from heats of formation gives −91.8 kJ (that is 2 · (−45.9)); the gap of about 2 kJ appears because 391 kJ/mol is a MEAN N–H bond energy. ' +
         'The reaction is exothermic, and that makes ammonia the number one feedstock for nitrogen fertilisers: roughly half of the nitrogen in the proteins of humankind has passed through this process.',
       equation: 'N₂ (g) + 3 H₂ (g) ⇌ 2 NH₃ (g),  ΔH = −92 kJ',
       note: 'The ladder is drawn per EQUATION, that is per 2 mol of NH₃; per mole of ammonia it is −45.9 kJ.',

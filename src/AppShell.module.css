@@ -52,6 +52,7 @@
 }
 
 .logo {
+  position: relative;
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -60,6 +61,20 @@
   border-radius: 12px;
   color: var(--app-shell-text, #f0f4ff);
   text-decoration: none;
+}
+
+/* Тач: зона нажатия 44px по высоте, визуальный размер логотипа не меняется. */
+.logo::after,
+.navLink::after,
+.langBtn::after,
+.langBtnActive::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 44px;
+  transform: translateY(-50%);
 }
 
 .logoMark {
@@ -122,6 +137,13 @@
 
 .updateSlot:empty {
   display: none;
+}
+
+/* Ячейка тумблера темы — нужна мобильной сетке шапки (см. @media 720px). */
+.themeSlot {
+  flex: none;
+  display: flex;
+  align-items: center;
 }
 
 .nav {
@@ -208,6 +230,7 @@
 
 .langBtn,
 .langBtnActive {
+  position: relative;
   min-width: 36px;
   height: 30px;
   padding: 0 8px;
@@ -283,7 +306,7 @@
 
   .header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     grid-template-rows: 50px 54px;
     align-items: center;
     gap: 0 10px;
@@ -327,9 +350,21 @@
     overflow: hidden;
   }
 
-  .langPicker {
+  .themeSlot {
     grid-column: 3;
     grid-row: 1;
+  }
+
+  .langPicker {
+    grid-column: 4;
+    grid-row: 1;
+  }
+
+  /* Тач: RU/EN/UZ получают 44px по ширине честно (::after расширять нельзя —
+     соседние кнопки рядом), по высоте зону даёт ::after выше. */
+  .langBtn,
+  .langBtnActive {
+    min-width: 44px;
   }
 
   .logoMark {
@@ -348,9 +383,35 @@
   }
 }
 
+/*
+ * Узкий телефон. Шапка занимает две строки, а под ней в лаборатории стоит ещё
+ * ряд «Неорганика · Органика · Синтез» — всё это отнимает высоту у 3D-холста.
+ * Ужимаем второй ряд до 46px (ссылки 36px + отступы сетки): зону нажатия 44px
+ * по-прежнему даёт .navLink::after, визуально ряд становится на 8px ниже.
+ */
 @media (max-width: 480px) {
+  .root {
+    --app-header-h: 96px;
+  }
+
+  .header {
+    grid-template-rows: 50px 46px;
+  }
+
+  .navLink,
+  .navLink:not(.navLinkActive) {
+    height: 36px;
+  }
+
   .updateSlot {
     display: none;
+  }
+
+  /* Ряд ссылок прокручивается вбок — правый край гаснет, чтобы обрез
+     последней вкладки читался как продолжение, а не как обрезанная вёрстка. */
+  .nav {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 22px), rgba(0, 0, 0, 0.25));
+    mask-image: linear-gradient(90deg, #000 calc(100% - 22px), rgba(0, 0, 0, 0.25));
   }
 }
 

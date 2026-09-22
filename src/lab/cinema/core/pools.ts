@@ -29,6 +29,13 @@ export type AtomPool = {
   charge: Float32Array
   /** 0..1 */
   opacity: Float32Array
+  /**
+   * xyzw × capacity — поверхность по типу вещества (kit/materials.ts):
+   * x metalness 0..1, y roughness 0..1, z anisotropy 0..1, w rimSoftness 0..1
+   * (w ≥ 2 — «газ»: прозрачность смешиванием, rimSoftness = w − 2).
+   * (0, 0, 0, 0) — прежний «стеклянный» материал атома без изменений.
+   */
+  surface: Float32Array
 }
 
 export type BondPool = {
@@ -60,6 +67,11 @@ export type BondPool = {
   thinning: Float32Array
   /** −1..1 — характер разрыва: −1 пара уходит к A, 0 поровну (гомолиз), +1 к B */
   split: Float32Array
+  /**
+   * Стиль пунктира: 0 — штрих дробной кратности ползёт по связи (делокализация),
+   * 1 — штрих неподвижен (водородная связь: это не поток электронов, а притяжение).
+   */
+  dashStatic: Float32Array
 }
 
 /** Вид орбитального лепестка. */
@@ -102,6 +114,7 @@ export function createAtomPool(capacity: number): AtomPool {
     emissive: new Float32Array(capacity),
     charge: new Float32Array(capacity),
     opacity: new Float32Array(capacity).fill(1),
+    surface: new Float32Array(capacity * 4),
   }
 }
 
@@ -123,6 +136,7 @@ export function createBondPool(capacity: number): BondPool {
     stress: new Float32Array(capacity),
     thinning: new Float32Array(capacity),
     split: new Float32Array(capacity),
+    dashStatic: new Float32Array(capacity),
   }
 }
 

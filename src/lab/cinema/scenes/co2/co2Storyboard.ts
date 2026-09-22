@@ -2,25 +2,29 @@ import * as THREE from 'three'
 import { getCrystal } from '../../../../chemistry/data'
 import { smoothstep } from '../../core/easing'
 import { sampleScalar, sampleVec3, type ScalarTrack, type Vec3Track } from '../../core/tracks'
-import { bondLength, pmToScene, speciesRadius } from '../kit/cpkAtoms'
+import { orbitTrack, sampleShot, shotTrack, type ShotTrack } from '../kit/camera'
+import { bondLength, LATTICE_BALL_SCALE, pmToScene, speciesRadius } from '../kit/cpkAtoms'
+import { cellEdges, cellMatrix, fracToPm, latticeCaption, latticeFragment, type LatticeSegment } from '../kit/lattice'
+import type { SubstanceKind } from '../kit/materials'
 import {
-  appearTrack,
   createLabelStates,
+  createSceneCamera,
   fadeTrack,
-  rampTrack,
   sampleLabels,
   validateTracks,
+  type SceneCamera,
   type SceneLabelDef,
   type SceneLabelState,
 } from '../kit/sceneKit'
-import { CO2_FACTS } from './co2Energetics'
-import { CO2_FINISH, CO2_END, co2CueAt } from './co2Steps'
+import { CO2_DHF_KJ, CO2_FACTS, CO_DHF_KJ } from './co2Energetics'
+import { CO2_END, CO2_FINISH, CO2_STAGES, CO2_STEPS, co2CueAt } from './co2Steps'
 
 export {
   CO2_CUES,
   CO2_END,
   CO2_FINISH,
   CO2_SEGMENTS,
+  CO2_STAGES,
   CO2_STEPS,
   CO2_STEP_IDS,
   CO2_TIMING,
@@ -32,21 +36,23 @@ export {
 /**
  * Раскадровка C (графит) + O₂ (г.) → CO₂ (г.) — ЧИСТАЯ функция времени сюжета.
  *
- * Вся химия — из src/chemistry/data (ни одного числа руками):
- *   • графит: P6₃/mmc (194), гексагональная, a = 246,12 пм, c = 670,9 пм,
- *     C–C внутри слоя 141,8 пм, КЧ 3, между слоями 335,45 пм = c/2, ρ = 2,266 г/см³;
- *   • O₂: длина связи 120,8 пм, D(O=O) = 498 кДж/моль, молекула ДВУХАТОМНАЯ;
- *   • CO₂: линейная, угол O=C=O = 180°, C=O 116,0 пм, E(C=O) = 799 кДж/моль,
- *     μ = 0 Д при Δχ(O − C) = 0,89 — связи полярны, молекула нет;
- *   • CO (угарный газ): C≡O 112,8 пм, 1072 кДж/моль — короче и прочнее, чем C=O.
+ * Ни одного числа химии: графит и сухой лёд — из crystalData через kit/lattice (позиции узлов,
+ * связи первой сферы, рёбра ячеек), длины связей — из bondData (O=O, C=O карбонила, C≡O, C=O в CO₂,
+ * O–H), радиусы — ковалентные (Кордеро) через speciesRadius, энергии — из thermoData.
  *
- * ЧТО НАРИСОВАНО СХЕМАТИЧНО (и так сказано в тексте урока):
- *   • фрагмент графита — 2 слоя по 24 атома («коронен»), в крупинке угля их 10²⁰ и больше;
- *   • sp-гибридные лепестки и π-облака — светящиеся точки, это ЗНАК области
- *     повышенной электронной плотности, а не изоповерхность волновой функции;
- *   • стрелки диполей связей — учебное обозначение вектора μ, а не объект микромира;
- *   • свободный атом C (г.) — ступень РАСЧЁТА по закону Гесса, а не частица пламени:
- *     уголь горит на поверхности твёрдой фазы.
+ * Механизм — как в реальном горении угля (закон «Химия»):
+ *   • O₂ садится на ДВА краевых атома верхнего слоя; O=O рвётся только когда обе связи C–O уже
+ *     замкнуты (диссоциативная хемосорбция) — гомолиза O₂ в газе нет;
+ *   • краевой атом уходит ВМЕСТЕ с кислородом — молекулой CO; свободного атома C (г.) нет ни в один кадр;
+ *   • CO дожигается радикалом ·OH: CO + ·OH → CO₂ + H·; π-пара второй связи CO переходит в новую C=O;
+ *   • молекула CO₂ сразу линейная (угловых промежуточных частиц нет);
+ *   • финал — фрагмент сухого льда (Pa-3): центральная молекула сюжета и 12 соседей.
+ *
+ * Правила эталона (scenes/nacl), выполненные по построению:
+ *   • у каждого атома есть span [первый, последний шаг]; вне него непрозрачность строго 0;
+ *   • каждый видимый атом подписан (label.hosts); на паузе шага все видимые атомы непрозрачны;
+ *   • огня, свечения, дыма, вспышек нет вовсе; эмиссия каждого атома постоянна всю сцену;
+ *   • π — лепестки kit/bondVisual, σ — трубка; двойная связь в решётке — две полосы трубки.
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,853 +60,1038 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const GRAPHITE = getCrystal('graphite')!
+const DRY = getCrystal('dry_ice')!
 
-/** C–C внутри слоя графита, мировые единицы. */
-const D_CC = pmToScene(GRAPHITE.cationAnionPm)
-/** Расстояние между слоями графита = c/2, мировые единицы. */
-const D_LAYER = pmToScene(GRAPHITE.cellPm.c! / 2)
-/** Длина связи O=O в молекуле кислорода. */
-const D_OO = bondLength('O=O')
-/** Длина связи C=O в CO₂. */
-const D_CO = bondLength('C=O(CO2)')
-/** Длина тройной связи C≡O в угарном газе. */
-const D_CO3 = bondLength('C#O')
-/** Длина связи O–H в воде. */
-const D_OH = bondLength('O-H')
+/**
+ * Доля ковалентного радиуса, которую рисуем шаром (ball-and-stick, параметр рисунка): одна на все
+ * атомы сцены — отношения C : O : H честные, а связи и π-лепестки видны между шарами.
+ */
+export const CO2_BALL_SCALE = LATTICE_BALL_SCALE
 
 const R = {
-  c: speciesRadius('C', 0),
-  o: speciesRadius('O', 0),
-  h: speciesRadius('H', 0),
+  C: speciesRadius('C', 0, CO2_BALL_SCALE),
+  O: speciesRadius('O', 0, CO2_BALL_SCALE),
+  H: speciesRadius('H', 0, CO2_BALL_SCALE),
 } as const
 
-export const CO2_GEOM = {
-  radius: R,
-  ccScene: D_CC,
-  layerScene: D_LAYER,
-  coScene: D_CO,
-  ooScene: D_OO,
-  /** справочные числа для подписей и тестов */
-  data: CO2_FACTS,
-} as const
+/** C–C внутри слоя графита и расстояние между слоями (c/2), мировые единицы. */
+const D_CC = pmToScene(GRAPHITE.cationAnionPm)
+const D_LAYER = pmToScene(GRAPHITE.cellPm.c! / 2)
+/** Длины связей сюжета, мировые единицы (bondData). */
+const D_OO = bondLength('O=O')
+const D_CO_SURF = bondLength('C=O')
+const D_CO_TRIPLE = bondLength('C#O')
+const D_CO2 = bondLength('C=O(CO2)')
+const D_OH = bondLength('O-H')
 
-/** Масштаб рига камеры: в кадре и решётка, и одна молекула — детали важны. */
-export const CO2_RIG_SCALE = 1.12
+type V3 = readonly [number, number, number]
+const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+const scale = (a: V3, k: number): V3 => [a[0] * k, a[1] * k, a[2] * k]
+const len = (a: V3): number => Math.hypot(a[0], a[1], a[2])
+const unit = (a: V3): V3 => scale(a, 1 / (len(a) || 1))
+const mid = (a: V3, b: V3): V3 => scale(add(a, b), 0.5)
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Фрагмент графита: два слоя сот в укладке AB (Бернал)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Графит: два слоя из базиса ядра ────────────────────────────────────────
 
-type Vec2 = readonly [number, number]
+/** Источник узлов: 6×6×1 ячеек P6₃/mmc (c → +Y, слои горизонтальны), из него вырезаются два слоя. */
+const G_SRC = latticeFragment('graphite', [6, 6, 1])
+/** Радиус выреза в плоскости слоя — 2,7 длины связи: центральное кольцо и шесть соседних (параметр рисунка). */
+const FLAKE_RADIUS = 2.7 * D_CC
 
-const SQ3 = Math.sqrt(3)
-/** Векторы трансляции сот: a1 = (√3·d, 0), a2 = (√3·d/2, 3d/2). */
-const A1: Vec2 = [SQ3 * D_CC, 0]
-const A2: Vec2 = [(SQ3 * D_CC) / 2, 1.5 * D_CC]
-/** Центр шестиугольника, вокруг которого вырезан фрагмент. */
-const RING_CENTER: Vec2 = [(SQ3 * D_CC) / 2, D_CC / 2]
+const G_Y = G_SRC.sites.map((s) => s.posScene[1])
+const TOP_Y = Math.max(...G_Y)
+const BOT_Y = Math.min(...G_Y)
+const layerOf = (y: number) => G_SRC.sites.map((_, i) => i).filter((i) => Math.abs(G_SRC.sites[i]!.posScene[1] - y) < 1e-6)
+const TOP_SRC = layerOf(TOP_Y)
+const BOT_SRC = layerOf(BOT_Y)
+const inPlane = (i: number, x: number, z: number) => Math.hypot(G_SRC.sites[i]!.posScene[0] - x, G_SRC.sites[i]!.posScene[2] - z)
+
 /**
- * Радиус выреза 2,7·d даёт ровно 24 атома: центральное кольцо плюс шесть
- * приросших — фрагмент строения коронена, 7 шестиугольников и 30 связей C–C.
+ * Центр шестиугольника слоя: узел ДРУГОГО слоя, над которым в укладке AB нет атома этого слоя,
+ * а на расстоянии C–C вокруг — ровно шесть. Берётся ближайший к точке (x0, z0).
  */
-const FLAKE_R = 2.7 * D_CC
+function hexCenter(layer: readonly number[], other: readonly number[], x0: number, z0: number): [number, number] {
+  let best: [number, number] | null = null
+  let bestD = Infinity
+  for (const j of other) {
+    const [x, , z] = G_SRC.sites[j]!.posScene
+    let ring = 0
+    let eclipsed = false
+    for (const i of layer) {
+      const d = inPlane(i, x, z)
+      if (d < 1e-4) eclipsed = true
+      else if (Math.abs(d - D_CC) < 1e-4) ring++
+    }
+    if (eclipsed || ring !== 6) continue
+    const d0 = Math.hypot(x - x0, z - z0)
+    if (d0 < bestD) {
+      bestD = d0
+      best = [x, z]
+    }
+  }
+  if (!best) throw new Error('co2: в слое графита не найден центр шестиугольника')
+  return best
+}
+const CT = hexCenter(TOP_SRC, BOT_SRC, 0, 0)
+const CB = hexCenter(BOT_SRC, TOP_SRC, CT[0], CT[1])
 
-/** Плоские координаты одного слоя сот. */
-function flakeSites(): Vec2[] {
-  const out: Vec2[] = []
-  for (let i = -3; i <= 3; i++) {
-    for (let j = -3; j <= 3; j++) {
-      const bx = i * A1[0] + j * A2[0]
-      const by = i * A1[1] + j * A2[1]
-      // Две подрешётки сот: узел и смещённый на одну связь вверх.
-      for (const dy of [0, D_CC]) {
-        const u = bx - RING_CENTER[0]
-        const v = by + dy - RING_CENTER[1]
-        if (Math.hypot(u, v) <= FLAKE_R + 1e-6) out.push([u, v])
+/** Связь слоя: пара узлов фрагмента на расстоянии первой сферы (связи генератора решётки). */
+const G_BOND_SET = new Set(G_SRC.bonds.map(([i, j]) => `${Math.min(i, j)}|${Math.max(i, j)}`))
+const bonded = (i: number, j: number) => G_BOND_SET.has(`${Math.min(i, j)}|${Math.max(i, j)}`)
+
+/** Вырез слоя вокруг центра шестиугольника; атомы с одним соседом отбрасываются (висячих нет). */
+function crop(layer: readonly number[], c: readonly [number, number]): number[] {
+  let keep = layer.filter((i) => inPlane(i, c[0], c[1]) <= FLAKE_RADIUS + 1e-6)
+  for (;;) {
+    const next = keep.filter((i) => keep.filter((j) => j !== i && bonded(i, j)).length >= 2)
+    if (next.length === keep.length) return keep
+    keep = next
+  }
+}
+const FLAKE_SRC: readonly number[] = [...crop(TOP_SRC, CT), ...crop(BOT_SRC, CB)]
+
+/** Центр фрагмента графита в мире и сдвиг «узел ядра → мир» (только перенос: решётка не искажается). */
+const GRAPHITE_CENTER: V3 = [-1.95, -0.22, -0.15]
+const G_SHIFT: V3 = [GRAPHITE_CENTER[0] - CT[0], GRAPHITE_CENTER[1], GRAPHITE_CENTER[2] - CT[1]]
+const srcPos = (i: number): V3 => add(G_SRC.sites[i]!.posScene, G_SHIFT)
+/** Высота верхнего слоя в мире. */
+const TOP_WORLD_Y = TOP_Y + G_SHIFT[1]
+
+/** Реагирующая пара: два связанных краевых атома верхнего слоя (по два соседа), обращённые к O₂ (+x). */
+const EDGE_PAIR = (() => {
+  const top = FLAKE_SRC.filter((i) => TOP_SRC.includes(i))
+  const deg = (i: number) => FLAKE_SRC.filter((j) => j !== i && bonded(i, j)).length
+  const edge = top.filter((i) => deg(i) === 2)
+  let best: [number, number] | null = null
+  let bestScore = -Infinity
+  for (const i of edge) {
+    for (const j of edge) {
+      if (j <= i || !bonded(i, j)) continue
+      const m = mid(srcPos(i), srcPos(j))
+      const score = m[0] + 0.25 * m[2]
+      if (score > bestScore) {
+        bestScore = score
+        best = srcPos(i)[0] >= srcPos(j)[0] ? [i, j] : [j, i]
       }
     }
   }
-  out.sort((p, q) => p[1] - q[1] || p[0] - q[0])
-  return out
+  if (!best) throw new Error('co2: на краю верхнего слоя нет пары связанных атомов с двумя соседями')
+  return best
+})()
+const SRC_C0 = EDGE_PAIR[0]
+const SRC_C1 = EDGE_PAIR[1]
+
+/** Направление sp²-связи наружу у краевого атома: против суммы направлений на двух соседей (120° к обоим). */
+function outward(i: number): V3 {
+  const p = srcPos(i)
+  let s: V3 = [0, 0, 0]
+  for (const j of FLAKE_SRC) if (j !== i && bonded(i, j)) s = add(s, unit(sub(srcPos(j), p)))
+  return unit(scale(s, -1))
 }
+const OUT0 = outward(SRC_C0)
+const OUT1 = outward(SRC_C1)
+const C0_SITE = srcPos(SRC_C0)
+const C1_SITE = srcPos(SRC_C1)
 
-const SHEET: readonly Vec2[] = flakeSites()
-
-/**
- * Укладка AB (Бернал): нижний слой сдвинут в плоскости ровно на ОДНУ связь C–C.
- * Тогда половина его атомов стоит точно под атомами верхнего слоя, а половина —
- * под центрами шестиугольников. Именно так уложен графит 2H (P6₃/mmc).
- */
-const AB_SHIFT: Vec2 = [0, D_CC]
-
-/** Наклон пластинки: видно и рисунок сот, и разделение на слои. */
-const TILT_X = -0.95
-const TILT_Y = 0.3
-const E_U = new THREE.Vector3(Math.cos(TILT_Y), 0, -Math.sin(TILT_Y))
-const E_V = new THREE.Vector3(
-  Math.sin(TILT_Y) * Math.sin(TILT_X),
-  Math.cos(TILT_X),
-  Math.cos(TILT_Y) * Math.sin(TILT_X),
-)
-const E_W = new THREE.Vector3(
-  Math.sin(TILT_Y) * Math.cos(TILT_X),
-  -Math.sin(TILT_X),
-  Math.cos(TILT_Y) * Math.cos(TILT_X),
-)
-
-/** Центр фрагмента графита в мире. */
-const GRAPHITE_CENTER = new THREE.Vector3(-1.42, 0.16, -0.3)
-
-function sheetToWorld(u: number, v: number, w: number): [number, number, number] {
-  return [
-    GRAPHITE_CENTER.x + u * E_U.x + v * E_V.x + w * E_W.x,
-    GRAPHITE_CENTER.y + u * E_U.y + v * E_V.y + w * E_W.y,
-    GRAPHITE_CENTER.z + u * E_U.z + v * E_V.z + w * E_W.z,
-  ]
-}
-
-export type Co2AtomId =
-  | 'c0'
-  | 'oA'
-  | 'oB'
-  | 'coC'
-  | 'coO'
-  | 'wO'
-  | 'wH1'
-  | 'wH2'
-  | `G${number}`
-  | `B${number}`
-
-type GraphiteAtom = {
-  id: Co2AtomId
-  layer: 0 | 1
-  uv: Vec2
-  pos: readonly [number, number, number]
-}
-
-const GRAPHITE_ATOMS: GraphiteAtom[] = []
-{
-  let n = 0
-  for (const [u, v] of SHEET) {
-    GRAPHITE_ATOMS.push({ id: `G${n++}` as Co2AtomId, layer: 0, uv: [u, v], pos: sheetToWorld(u, v, D_LAYER / 2) })
-  }
-  n = 0
-  for (const [u, v] of SHEET) {
-    const su = u + AB_SHIFT[0]
-    const sv = v + AB_SHIFT[1]
-    GRAPHITE_ATOMS.push({ id: `B${n++}` as Co2AtomId, layer: 1, uv: [su, sv], pos: sheetToWorld(su, sv, -D_LAYER / 2) })
-  }
-}
-
-/** Связи C–C внутри слоёв: соседи на расстоянии ровно d = 141,8 пм. */
-const GRAPHITE_BONDS_ALL: [Co2AtomId, Co2AtomId][] = (() => {
-  const out: [Co2AtomId, Co2AtomId][] = []
-  for (let i = 0; i < GRAPHITE_ATOMS.length; i++) {
-    for (let j = i + 1; j < GRAPHITE_ATOMS.length; j++) {
-      const a = GRAPHITE_ATOMS[i]!
-      const b = GRAPHITE_ATOMS[j]!
-      if (a.layer !== b.layer) continue
-      const d = Math.hypot(a.uv[0] - b.uv[0], a.uv[1] - b.uv[1])
-      if (Math.abs(d - D_CC) < 1e-4) out.push([a.id, b.id])
+/** Ячейка графита (ромбическая призма, a·a·c) у центра верхнего фрагмента — рёбра из kit/lattice. */
+const G_CELL_CORNER: V3 = (() => {
+  const m = cellMatrix('graphite')
+  let best: V3 = [0, 0, 0]
+  let bestD = Infinity
+  for (let i = -3; i <= 3; i++) {
+    for (let j = -3; j <= 3; j++) {
+      const c = fracToPm(m, [i + 0.5, j + 0.5, 0.5])
+      const x = pmToScene(c[0]) + G_SRC.offsetScene[0]
+      const z = pmToScene(c[2]) + G_SRC.offsetScene[2]
+      const d = Math.hypot(x - CT[0], z - CT[1])
+      if (d < bestD) {
+        bestD = d
+        const o = fracToPm(m, [i, j, 0])
+        best = [pmToScene(o[0]) + G_SRC.offsetScene[0], pmToScene(o[1]) + G_SRC.offsetScene[1], pmToScene(o[2]) + G_SRC.offsetScene[2]]
+      }
     }
   }
+  return add(best, G_SHIFT)
+})()
+/** Рёбра одной ячейки графита в мире (12 отрезков: 4 по a, 4 по b, 4 по c). */
+export const GRAPHITE_CELL_EDGES: readonly LatticeSegment[] = cellEdges('graphite', [1, 1, 1], { center: false }).map(
+  ([p, q]) => [add(p, G_CELL_CORNER) as [number, number, number], add(q, G_CELL_CORNER) as [number, number, number]],
+)
+export const GRAPHITE_CAPTION = latticeCaption('graphite')
+
+// ─── Сухой лёд: целые молекулы из фрагмента 2×2×2, ячейка 1×1×1 вокруг центральной ───────────
+
+const DRY_SRC = latticeFragment('dry_ice', [2, 2, 2])
+type DryMolecule = { c: number; o: [number, number] }
+/** Целые молекулы фрагмента: C с обеими связями C–O внутри фрагмента (первая сфера генератора). */
+const DRY_MOLECULES: readonly DryMolecule[] = (() => {
+  const out: DryMolecule[] = []
+  DRY_SRC.sites.forEach((s, i) => {
+    if (s.el !== 'C') return
+    const os = DRY_SRC.bonds.filter(([a, b]) => a === i || b === i).map(([a, b]) => (a === i ? b : a))
+    if (os.length === 2) out.push({ c: i, o: [os[0]!, os[1]!] })
+  })
   return out
 })()
+const DRY_CENTRAL = DRY_MOLECULES.find((m) => len(DRY_SRC.sites[m.c]!.posScene) < 1e-6)!
+const DRY_NEIGHBOURS = DRY_MOLECULES.filter((m) => m !== DRY_CENTRAL)
+const dryPos = (i: number): V3 => DRY_SRC.sites[i]!.posScene
+/**
+ * C=O внутри молекулы в кристалле — из базиса ячейки (x(O)·√3·a), а не из округлённого cationAnionPm:
+ * молекула сюжета встаёт ТОЧНО в узлы центральной молекулы, как и её соседи.
+ */
+const D_CO_SOLID = len(dryPos(DRY_CENTRAL.o[0]))
+/** Ось центральной молекулы (к тому O, что лежит в +x) — туда повернётся молекула сюжета. */
+const DRY_O_PLUS = dryPos(DRY_CENTRAL.o[0])[0] >= dryPos(DRY_CENTRAL.o[1])[0] ? DRY_CENTRAL.o[0] : DRY_CENTRAL.o[1]
+const DRY_O_MINUS = DRY_O_PLUS === DRY_CENTRAL.o[0] ? DRY_CENTRAL.o[1] : DRY_CENTRAL.o[0]
+const DRY_AXIS: V3 = unit(dryPos(DRY_O_PLUS))
+/** Рёбра одной элементарной ячейки сухого льда вокруг центральной молекулы. */
+export const DRY_CELL_EDGES: readonly LatticeSegment[] = cellEdges('dry_ice', [1, 1, 1])
+export const DRY_CAPTION = latticeCaption('dry_ice')
 
-/** Сколько соседей внутри слоя у атома фрагмента. */
-const NEIGHBOURS = new Map<Co2AtomId, number>()
-for (const [a, b] of GRAPHITE_BONDS_ALL) {
-  NEIGHBOURS.set(a, (NEIGHBOURS.get(a) ?? 0) + 1)
-  NEIGHBOURS.set(b, (NEIGHBOURS.get(b) ?? 0) + 1)
+export const CO2_GEOM = {
+  radius: R,
+  ballScale: CO2_BALL_SCALE,
+  cc: D_CC,
+  layer: D_LAYER,
+  oo: D_OO,
+  coSurface: D_CO_SURF,
+  coTriple: D_CO_TRIPLE,
+  co2: D_CO2,
+  oh: D_OH,
+  coSolid: D_CO_SOLID,
+  flakeCount: FLAKE_SRC.length,
+  dryMolecules: DRY_MOLECULES.length,
+  dryAxis: DRY_AXIS,
+  data: {
+    graphite: { spaceGroup: GRAPHITE.spaceGroup, a: GRAPHITE.cellPm.a, c: GRAPHITE.cellPm.c!, cc: GRAPHITE.cationAnionPm, layer: GRAPHITE.cellPm.c! / 2 },
+    dry: { spaceGroup: DRY.spaceGroup, a: DRY.cellPm.a, co: DRY.cationAnionPm, z: DRY.z, t: DRY.temperatureK!, neighbours: DRY.coordination['CO₂ (соседних молекул)']! },
+  },
+} as const
+
+/** Масштаб рига камеры. */
+export const CO2_RIG_SCALE = 1.12
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Состав кадра: атомы, их шаги и подписи
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type Co2Element = 'C' | 'O' | 'H'
+export type Co2AtomKind = 'story' | 'graphite' | 'dry'
+
+export type Co2AtomDef = {
+  id: string
+  el: Co2Element
+  kind: Co2AtomKind
+  /** индексы шагов [первый, последний], на которых атом имеет право быть видимым */
+  span: readonly [number, number]
 }
 
-/**
- * Реагирующий атом — краевой атом ВЕРХНЕГО слоя, у которого только два соседа
- * (внутри слоя у углерода КЧ 3, на краю — 2). Берём самый правый: к нему
- * подлетает кислород, и его уход хорошо виден.
- */
-const REACTING = (() => {
-  const edge = GRAPHITE_ATOMS.filter((a) => a.layer === 0 && NEIGHBOURS.get(a.id) === 2)
-  edge.sort((a, b) => b.pos[0] - a.pos[0])
-  const pick = edge[0]
-  if (!pick) throw new Error('co2: во фрагменте графита не нашлось краевого атома с двумя соседями')
-  return pick
-})()
+const LAST_STEP = CO2_STEPS.length - 1
+const stepFrom = (i: number) => CO2_STEPS[i]!.from
+const stepTo = (i: number) => CO2_STEPS[i]!.to
 
-/** Атомы фрагмента, которые остаются решёткой (реагирующий вынесен в «c0»). */
-const LATTICE_ATOMS: readonly GraphiteAtom[] = GRAPHITE_ATOMS.filter((a) => a.id !== REACTING.id)
-const LATTICE_IDS = new Set<string>(LATTICE_ATOMS.map((a) => a.id))
+const G_REST = FLAKE_SRC.filter((i) => i !== SRC_C0)
+const DRY_REST: readonly number[] = DRY_NEIGHBOURS.flatMap((m) => [m.c, m.o[0], m.o[1]])
 
-/** Связи фрагмента, НЕ затронутые реакцией. */
-export const GRAPHITE_BONDS: readonly (readonly [Co2AtomId, Co2AtomId])[] = GRAPHITE_BONDS_ALL.filter(
-  ([a, b]) => a !== REACTING.id && b !== REACTING.id,
-)
-
-/** Две связи, которые рвутся, когда атом углерода покидает слой. */
-export const BREAKING_BONDS: readonly (readonly [Co2AtomId, Co2AtomId])[] = GRAPHITE_BONDS_ALL.filter(
-  ([a, b]) => a === REACTING.id || b === REACTING.id,
-).map(([a, b]) => (a === REACTING.id ? (['c0', b] as const) : (['c0', a] as const)))
-
-const C0_SITE = REACTING.pos
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Ключевые моменты
-// ─────────────────────────────────────────────────────────────────────────────
-
-const T_IGNITE = co2CueAt('ignite') // 3.4
-const T_DETACH = co2CueAt('detach') // 6.6
-const T_BREAK = co2CueAt('o2Break') // 10.0
-const T_BOND1 = co2CueAt('bond1') // 12.2
-const T_BOND2 = co2CueAt('bond2') // 14.6
-const T_LINEAR = co2CueAt('linear') // 17.4
-const T_DIPOLE = co2CueAt('dipole') // 19.6
-const T_EXO = co2CueAt('exo') // 22.6
-const T_CO_WARN = co2CueAt('coWarn') // 24.4
-
-/** Молекула CO₂ строится вокруг этой точки; ось молекулы — мировой X. */
-const MOL_HOME: readonly [number, number, number] = [0.33, 0.22, 0.2]
-
-/**
- * Углы присоединения кислородов к оси X. Второй кислород подходит СБОКУ,
- * и промежуточная частица получается УГЛОВОЙ: угол O=C=O = 125° − (−30°) = 155°.
- * Отталкивание двух областей электронной плотности (VSEPR, две σ-связи без
- * неподелённых пар на углероде) разводит их на максимум — молекула выпрямляется в 180°.
- */
-const THETA_A_BENT = -30 * (Math.PI / 180)
-const THETA_B_BENT = 125 * (Math.PI / 180)
-const THETA_A_LINEAR = 0
-const THETA_B_LINEAR = Math.PI
-/** Угол O=C=O в промежуточной УГЛОВОЙ частице до выпрямления, градусы: 155. */
-export const CO2_BENT_ANGLE_DEG = Math.round((THETA_B_BENT - THETA_A_BENT) * (180 / Math.PI))
-
-/** Молекула кислорода-реагента до разрыва: центр и ось. */
-const O2_HOME = new THREE.Vector3(1.86, 0.5, 0.16)
-const O2_AXIS = new THREE.Vector3(0.22, 0.95, 0.12).normalize()
-
-const oxygenStart = (sign: number): [number, number, number] => [
-  O2_HOME.x + sign * O2_AXIS.x * (D_OO / 2),
-  O2_HOME.y + sign * O2_AXIS.y * (D_OO / 2),
-  O2_HOME.z + sign * O2_AXIS.z * (D_OO / 2),
+export const CO2_ATOMS: readonly Co2AtomDef[] = [
+  // c0 — краевой атом графита → C в CO → C в CO₂ → центральная молекула сухого льда
+  { id: 'c0', el: 'C', kind: 'story', span: [0, LAST_STEP] },
+  // oA, oB — молекула O₂; oA уходит с c0 в CO, oB остаётся на c1 комплексом C(O)
+  { id: 'oA', el: 'O', kind: 'story', span: [0, LAST_STEP] },
+  { id: 'oB', el: 'O', kind: 'story', span: [0, 2] },
+  // oC, hC — радикал ·OH: O переходит в CO₂, H уходит радикалом H·
+  { id: 'oC', el: 'O', kind: 'story', span: [3, LAST_STEP] },
+  { id: 'hC', el: 'H', kind: 'story', span: [3, 3] },
+  ...G_REST.map((_, k) => ({ id: `G${k}`, el: 'C' as Co2Element, kind: 'graphite' as const, span: [0, 2] as const })),
+  ...DRY_REST.map((si, k) => ({ id: `D${k}`, el: DRY_SRC.sites[si]!.el as Co2Element, kind: 'dry' as const, span: [LAST_STEP, LAST_STEP] as const })),
 ]
 
-/** Куда кислород встаёт в момент образования связи (угловая конфигурация). */
-const attachPoint = (theta: number): [number, number, number] => [
-  MOL_HOME[0] + Math.cos(theta) * D_CO,
-  MOL_HOME[1] + Math.sin(theta) * D_CO,
-  MOL_HOME[2],
+export const CO2_ATOM_INDEX: ReadonlyMap<string, number> = new Map(CO2_ATOMS.map((a, i) => [a.id, i]))
+const IDX = (id: string) => CO2_ATOM_INDEX.get(id)!
+const I_C0 = IDX('c0')
+const I_OA = IDX('oA')
+const I_OB = IDX('oB')
+const I_OC = IDX('oC')
+const I_HC = IDX('hC')
+const G_BASE = 5
+const D_BASE = G_BASE + G_REST.length
+const GRAPHITE_IDS = CO2_ATOMS.filter((a) => a.kind === 'graphite').map((a) => a.id)
+const DRY_IDS = CO2_ATOMS.filter((a) => a.kind === 'dry').map((a) => a.id)
+const STORY_MOL_IDS = ['c0', 'oA', 'oC'] as const
+
+/** Узел графита (индекс источника) для атома кадра: c0 и G*. */
+export const GRAPHITE_SITE_OF: ReadonlyMap<string, number> = new Map<string, number>([
+  ['c0', SRC_C0],
+  ...G_REST.map((si, k) => [`G${k}`, si] as [string, number]),
+])
+/** Узел сухого льда для атома кадра: молекула сюжета — центральная, D* — соседи. */
+export const DRY_SITE_OF: ReadonlyMap<string, number> = new Map<string, number>([
+  ['c0', DRY_CENTRAL.c],
+  ['oA', DRY_O_PLUS],
+  ['oC', DRY_O_MINUS],
+  ...DRY_REST.map((si, k) => [`D${k}`, si] as [string, number]),
+])
+/** Атом, который держит второй кислород комплексом C(O). */
+export const CO2_C1_ID = `G${G_REST.indexOf(SRC_C1)}`
+const I_C1 = IDX(CO2_C1_ID)
+export { DRY_SRC, G_SRC, DRY_MOLECULES }
+
+// ─── Связи (слоты пула) ─────────────────────────────────────────────────────
+
+export type Co2BondKind = 'oo' | 'coA' | 'surfB' | 'coC' | 'oh' | 'graphite' | 'graphiteBreak' | 'dry'
+export type Co2BondDef = { kind: Co2BondKind; a: number; b: number }
+
+const idOfSrc = (si: number) => (si === SRC_C0 ? I_C0 : G_BASE + G_REST.indexOf(si))
+const idOfDry = (si: number) => D_BASE + DRY_REST.indexOf(si)
+
+export const CO2_BONDS: readonly Co2BondDef[] = [
+  { kind: 'oo', a: I_OA, b: I_OB },
+  { kind: 'coA', a: I_C0, b: I_OA },
+  { kind: 'surfB', a: I_C1, b: I_OB },
+  { kind: 'coC', a: I_C0, b: I_OC },
+  { kind: 'oh', a: I_OC, b: I_HC },
+  ...G_SRC.bonds
+    .filter(([i, j]) => FLAKE_SRC.includes(i) && FLAKE_SRC.includes(j))
+    .map(([i, j]) => ({ kind: (i === SRC_C0 || j === SRC_C0 ? 'graphiteBreak' : 'graphite') as Co2BondKind, a: idOfSrc(i), b: idOfSrc(j) })),
+  ...DRY_NEIGHBOURS.flatMap((m) => [
+    { kind: 'dry' as const, a: idOfDry(m.c), b: idOfDry(m.o[0]) },
+    { kind: 'dry' as const, a: idOfDry(m.c), b: idOfDry(m.o[1]) },
+  ]),
 ]
+export const B_OO = 0
+export const B_COA = 1
+export const B_SURFB = 2
+export const B_COC = 3
+export const B_OH = 4
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Дорожки положений
+// Ключевые моменты и положения
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Атом углерода уходит из слоя ПЕРПЕНДИКУЛЯРНО плоскости — так и отрывается
- * частица с поверхности, а не «сквозь» соседей по слою.
- */
-const C0_LIFT: readonly [number, number, number] = [
-  C0_SITE[0] + E_W.x * 0.24,
-  C0_SITE[1] + E_W.y * 0.24,
-  C0_SITE[2] + E_W.z * 0.24,
-]
+const ADS = CO2_STAGES.adsorb
+const DES = CO2_STAGES.desorb
+const OXI = CO2_STAGES.oxidize
+const T_POLARITY = co2CueAt('polarity')
+const T_CRYSTAL = co2CueAt('crystal')
 
-const POS: Partial<Record<Co2AtomId, Vec3Track>> = {
-  // Атом углерода: сидит в слое, отрывается и становится центром будущей молекулы.
-  // К моменту T_BOND1 он ОБЯЗАН стоять ровно в MOL_HOME: с этого мгновения
-  // положения кислородов считаются от него, и любое расхождение дало бы рывок.
+/** Центр действия шагов 4–6: здесь стоит углерод молекулы и центр ячейки сухого льда. */
+const MOL_HOME: V3 = [0, 0, 0]
+const X_AXIS: V3 = [1, 0, 0]
+
+/** Кислороды, севшие на край: C=O карбонила по направлению sp² наружу. */
+const OA_ADS = add(C0_SITE, scale(OUT0, D_CO_SURF))
+const OB_ADS = add(C1_SITE, scale(OUT1, D_CO_SURF))
+/** O₂ над краем перед посадкой: ось параллельна паре, чуть снаружи и выше слоя. */
+const PAIR_AXIS = unit(sub(OA_ADS, OB_ADS))
+const O2_NEAR_C = add(add(mid(OA_ADS, OB_ADS), scale(unit(add(OUT0, OUT1)), 0.32)), [0, 0.12, 0])
+const OA_NEAR = add(O2_NEAR_C, scale(PAIR_AXIS, D_OO / 2))
+const OB_NEAR = add(O2_NEAR_C, scale(PAIR_AXIS, -D_OO / 2))
+/** O₂ на шаге 1: справа от графита, та же ориентация (двухатомная, r_e из ядра). */
+const O2_START_C: V3 = [0.95, TOP_WORLD_Y + 0.5, 0.4]
+const OA_START = add(O2_START_C, scale(PAIR_AXIS, D_OO / 2))
+const OB_START = add(O2_START_C, scale(PAIR_AXIS, -D_OO / 2))
+
+/** Графит уходит влево и гаснет полностью до паузы шага 3 (после десорбции CO). */
+const GR_OUT = { from: DES.at + 0.4, to: stepTo(2) - 0.7 }
+const GR_EXIT: V3 = [-0.9, 0, 0]
+
+/** Радикал ·OH входит слева и садится на свободный конец CO; H· уходит и гаснет до паузы шага 4. */
+const OH_START: V3 = [-1.85, 0.45, 0.3]
+const OC_BOND = add(MOL_HOME, scale(X_AXIS, -D_CO2))
+const H_AT_OXI = add(MOL_HOME, scale(X_AXIS, -(D_CO2 + D_OH)))
+const H_EXIT: V3 = [-1.35, 0.85, 0.35]
+const OH_APPEAR = { from: stepFrom(3) + 0.2, to: stepFrom(3) + 0.8 }
+const H_OUT = { from: OXI.at + 0.8, to: stepTo(3) - 0.6 }
+
+const POS: Record<string, Vec3Track> = {
   c0: [
     { t: 0, v: C0_SITE },
-    { t: T_DETACH - 0.5, v: C0_SITE },
-    { t: T_DETACH + 0.45, v: C0_LIFT, ease: 'outSine' },
-    { t: 9.4, v: [MOL_HOME[0] - 0.16, MOL_HOME[1] + 0.09, MOL_HOME[2] + 0.04], ease: 'smooth', arc: 0.1 },
-    { t: 11.4, v: MOL_HOME, ease: 'smooth' },
-    { t: CO2_END, v: MOL_HOME },
+    { t: DES.start, v: C0_SITE },
+    { t: DES.at, v: add(C0_SITE, scale(OUT0, 0.14)), ease: 'smooth' },
+    { t: stepTo(2) - 0.8, v: MOL_HOME, ease: 'smooth', arc: 0.15 },
   ],
-  // НИЖНИЙ атом кислорода идёт по нижнему пути и садится на углерод первым,
-  // ВЕРХНИЙ обходит молекулу сверху и приходит вторым: пути двух половинок
-  // разорванной молекулы расходятся сразу и нигде не пересекаются.
+  // До посадки O₂ летит целой молекулой; с кадра ADS.at кислороды «пристёгнуты» к углероду (sampleCo2Frame).
   oA: [
-    { t: 0, v: oxygenStart(-1) },
-    { t: 6.0, v: oxygenStart(-1) },
-    { t: T_BREAK, v: [1.83, 0.31, 0.12], ease: 'smooth' },
-    { t: T_BOND1, v: attachPoint(THETA_A_BENT), ease: 'smooth', arc: 0.08 },
-    { t: CO2_END, v: attachPoint(THETA_A_BENT) },
+    { t: 0, v: OA_START },
+    { t: stepFrom(1) + 0.3, v: OA_START },
+    { t: ADS.start + 0.4, v: OA_NEAR, ease: 'smooth', arc: 0.12 },
+    { t: ADS.at, v: OA_ADS, ease: 'smooth' },
   ],
   oB: [
-    { t: 0, v: oxygenStart(1) },
-    { t: 6.0, v: oxygenStart(1) },
-    { t: T_BREAK, v: [1.78, 0.68, 0.18], ease: 'smooth' },
-    { t: 11.6, v: [1.35, 0.85, 0.3], ease: 'smooth' },
-    { t: 13.2, v: [0.62, 1.0, 0.34], ease: 'smooth' },
-    { t: T_BOND2, v: attachPoint(THETA_B_BENT), ease: 'smooth' },
-    { t: CO2_END, v: attachPoint(THETA_B_BENT) },
+    { t: 0, v: OB_START },
+    { t: stepFrom(1) + 0.3, v: OB_START },
+    { t: ADS.start + 0.4, v: OB_NEAR, ease: 'smooth', arc: 0.12 },
+    { t: ADS.at, v: OB_ADS, ease: 'smooth' },
   ],
-  // Камео воды на шаге «полярность»: CO₂ + H₂O ⇌ H₂CO₃.
-  wO: [
-    { t: 19.2, v: [0.62, -1.45, 0.5] },
-    { t: 20.6, v: [0.6, -0.62, 0.38], ease: 'smooth' },
-    { t: CO2_END, v: [0.6, -0.62, 0.38] },
+  oC: [
+    { t: OH_APPEAR.from, v: OH_START },
+    { t: OXI.at, v: OC_BOND, ease: 'smooth', arc: 0.1 },
+  ],
+  hC: [
+    { t: OXI.at, v: H_AT_OXI },
+    { t: H_OUT.to, v: H_EXIT, ease: 'smooth' },
   ],
 }
+/** Сдвиг графита при уходе (0 → GR_EXIT). */
+const GR_SHIFT: ScalarTrack = [
+  { t: GR_OUT.from, v: 0 },
+  { t: GR_OUT.to, v: 1, ease: 'inQuad' },
+]
 
-/** Угарный газ: неподвижная «призрачная» молекула-предупреждение. */
-const CO_CENTER: readonly [number, number, number] = [1.42, -0.92, 0.12]
-POS.coC = [{ t: 0, v: [CO_CENTER[0] - D_CO3 / 2, CO_CENTER[1], CO_CENTER[2]] }]
-POS.coO = [{ t: 0, v: [CO_CENTER[0] + D_CO3 / 2, CO_CENTER[1], CO_CENTER[2]] }]
+// ─── Сухой лёд: соседи подлетают радиально и вырастают из точки ─────────────
 
-/** Решётка графита неподвижна. */
-for (const a of LATTICE_ATOMS) POS[a.id] = [{ t: 0, v: a.pos }]
+const GROW = { from: stepFrom(5) + 0.7, to: T_CRYSTAL - 0.6, flight: 1.2, appear: 0.7, reach: 0.9 }
+/** Старт каждого из 12 соседей (ранжирование по id — все соседи равноудалены от центра). */
+export const DRY_ARRIVAL: readonly { start: number; arrive: number }[] = DRY_NEIGHBOURS.map((_, k) => {
+  const start = GROW.from + (k / Math.max(1, DRY_NEIGHBOURS.length - 1)) * (GROW.to - GROW.from - GROW.flight)
+  return { start, arrive: start + GROW.flight }
+})
+const DRY_DIR: readonly V3[] = DRY_NEIGHBOURS.map((m) => unit(dryPos(m.c)))
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Скалярные дорожки
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Угол связи C=O к оси X: молекула выпрямляется из угловой в линейную. */
-const THETA_A: ScalarTrack = [
-  { t: 0, v: THETA_A_BENT },
-  { t: 15.2, v: THETA_A_BENT },
-  { t: T_LINEAR, v: THETA_A_LINEAR, ease: 'inOutSine' },
+const APPEAR: ScalarTrack = [
+  { t: 0, v: 0 },
+  { t: 0.6, v: 1, ease: 'smooth' },
 ]
-const THETA_B: ScalarTrack = [
-  { t: 0, v: THETA_B_BENT },
-  { t: 15.2, v: THETA_B_BENT },
-  { t: T_LINEAR, v: THETA_B_LINEAR, ease: 'inOutSine' },
-]
-
-/** Насколько кислород «пристёгнут» к углероду (0 — свободный полёт, 1 — связан). */
-const ATTACH_A = rampTrack(T_BOND1 - 0.45, 0, T_BOND1 + 0.2, 1, 'smooth')
-const ATTACH_B = rampTrack(T_BOND2 - 0.45, 0, T_BOND2 + 0.2, 1, 'smooth')
-
-/** Связь O=O: натяжение, затем ГОМОЛИТИЧЕСКИЙ разрыв (split = 0, пара делится поровну). */
-const O2_STRESS = rampTrack(7.6, 0, T_BREAK, 1, 'inQuad')
-const O2_THIN = rampTrack(T_BREAK - 0.2, 0, T_BREAK + 0.4, 1, 'outCubic')
-const O2_OPACITY = rampTrack(T_BREAK, 1, T_BREAK + 0.65, 0, 'smooth')
-
-/** Связи C=O: волна образования. */
-const FORM_A = rampTrack(T_BOND1 - 0.25, 0, T_BOND1 + 0.75, 1, 'smooth')
-const FORM_B = rampTrack(T_BOND2 - 0.25, 0, T_BOND2 + 0.75, 1, 'smooth')
-const BOND_A_OPACITY = appearTrack(T_BOND1 - 0.2, 0.5)
-const BOND_B_OPACITY = appearTrack(T_BOND2 - 0.2, 0.5)
-
-/** Две связи, которые рвутся при уходе атома из слоя. */
-const EDGE_STRESS = rampTrack(5.1, 0, T_DETACH, 1, 'inQuad')
-const EDGE_THIN = rampTrack(T_DETACH - 0.2, 0, T_DETACH + 0.35, 1, 'outCubic')
-const EDGE_OPACITY = rampTrack(T_DETACH, 1, T_DETACH + 0.55, 0, 'smooth')
-
-/** Фрагмент графита: виден всю сцену, но на шагах про молекулу уходит на второй план. */
 const GRAPHITE_OPACITY: ScalarTrack = [
   { t: 0, v: 0 },
-  { t: 0.8, v: 1, ease: 'smooth' },
-  { t: 13.4, v: 1 },
-  { t: 15.4, v: 0.34, ease: 'smooth' },
-  { t: 21.6, v: 0.34 },
-  { t: 23.0, v: 0.8, ease: 'smooth' },
+  { t: 0.6, v: 1, ease: 'smooth' },
+  { t: GR_OUT.from, v: 1 },
+  { t: GR_OUT.to, v: 0, ease: 'smooth' },
 ]
-const GRAPHITE_BOND_OPACITY: ScalarTrack = [
+const OH_OPACITY: ScalarTrack = [
+  { t: OH_APPEAR.from, v: 0 },
+  { t: OH_APPEAR.to, v: 1, ease: 'smooth' },
+]
+const H_OPACITY: ScalarTrack = [
+  { t: H_OUT.from, v: 1 },
+  { t: H_OUT.to, v: 0, ease: 'smooth' },
+]
+
+/** O=O: натяжение при посадке, разрыв в кадр ADS.at (split 0 — пара делится поровну между двумя C–O). */
+const OO_STRESS: ScalarTrack = [
+  { t: ADS.start, v: 0 },
+  { t: ADS.at, v: 1, ease: 'inQuad' },
+]
+const OO_THIN: ScalarTrack = [
+  { t: ADS.at - 0.2, v: 0 },
+  { t: ADS.at + 0.3, v: 1, ease: 'outCubic' },
+]
+const OO_OPACITY: ScalarTrack = [
   { t: 0, v: 0 },
-  { t: 1.0, v: 0.72, ease: 'smooth' },
-  { t: 13.4, v: 0.72 },
-  { t: 15.4, v: 0.2, ease: 'smooth' },
-  { t: 21.6, v: 0.2 },
-  { t: 23.0, v: 0.5, ease: 'smooth' },
+  { t: 0.6, v: 1, ease: 'smooth' },
+  { t: ADS.at, v: 1 },
+  { t: ADS.at + 0.5, v: 0, ease: 'smooth' },
+]
+/** Две связи C–O замыкаются РАНЬШЕ, чем рвётся O=O: к кадру ADS.at обе уже целые. */
+const CO_FORM: ScalarTrack = [
+  { t: ADS.at - 0.6, v: 0 },
+  { t: ADS.at - 0.05, v: 1, ease: 'smooth' },
+]
+/** Связи C–C краевого атома: натяжение → разрыв в кадр DES.at. */
+const CC_STRESS: ScalarTrack = [
+  { t: DES.start, v: 0 },
+  { t: DES.at, v: 1, ease: 'inQuad' },
+]
+const CC_THIN: ScalarTrack = [
+  { t: DES.at - 0.2, v: 0 },
+  { t: DES.at + 0.3, v: 1, ease: 'outCubic' },
+]
+const CC_OPACITY: ScalarTrack = [
+  { t: DES.at, v: 1 },
+  { t: DES.at + 0.5, v: 0, ease: 'smooth' },
+]
+/** O–H радикала: разрыв в кадр OXI.at; C–O из ·OH замыкается к этому кадру. */
+const OH_STRESS: ScalarTrack = [
+  { t: OXI.start, v: 0 },
+  { t: OXI.at, v: 1, ease: 'inQuad' },
+]
+const OH_THIN: ScalarTrack = [
+  { t: OXI.at - 0.2, v: 0 },
+  { t: OXI.at + 0.3, v: 1, ease: 'outCubic' },
+]
+const OH_BOND_OPACITY: ScalarTrack = [
+  { t: OXI.at, v: 1 },
+  { t: OXI.at + 0.45, v: 0, ease: 'smooth' },
+]
+const COC_FORM: ScalarTrack = [
+  { t: OXI.at - 0.5, v: 0 },
+  { t: OXI.at - 0.05, v: 1, ease: 'smooth' },
 ]
 
-/** Раскалённый уголь: разгорается к моменту поджига и снова вспыхивает на экзоэффекте. */
-const HEAT: ScalarTrack = [
-  { t: 0, v: 0 },
-  { t: 2.2, v: 0.15, ease: 'smooth' },
-  { t: T_IGNITE, v: 0.75, ease: 'smooth' },
-  { t: 8.4, v: 0.5, ease: 'smooth' },
-  { t: 15.4, v: 0.22, ease: 'smooth' },
-  { t: T_EXO, v: 1, ease: 'smooth' },
-  { t: CO2_END, v: 0.72, ease: 'smooth' },
+/** Длина C–O сюжета: карбонил (122) → C≡O (112,8) после ухода с края → C=O в CO₂ (116,0) → в кристалле. */
+const LEN_A: ScalarTrack = [
+  { t: DES.at, v: D_CO_SURF },
+  { t: DES.at + 0.8, v: D_CO_TRIPLE, ease: 'smooth' },
+  { t: OXI.at - 0.2, v: D_CO_TRIPLE },
+  { t: OXI.at + 0.6, v: D_CO2, ease: 'smooth' },
+  { t: stepFrom(5) + 0.3, v: D_CO2 },
+  { t: stepFrom(5) + 1.9, v: D_CO_SOLID, ease: 'smooth' },
+]
+const LEN_C: ScalarTrack = [
+  { t: stepFrom(5) + 0.3, v: D_CO2 },
+  { t: stepFrom(5) + 1.9, v: D_CO_SOLID, ease: 'smooth' },
+]
+/** Поворот оси CO: sp²-направление края → ось x (шаг 3); ось x → ось центральной молекулы решётки (шаг 6). */
+const TURN_1: ScalarTrack = [
+  { t: DES.at, v: 0 },
+  { t: stepTo(2) - 0.8, v: 1, ease: 'smooth' },
+]
+const TURN_2: ScalarTrack = [
+  { t: stepFrom(5) + 0.3, v: 0 },
+  { t: stepFrom(5) + 1.9, v: 1, ease: 'smooth' },
 ]
 
-/** Фоновые молекулы кислорода: газ вокруг угля. Уходят, когда камера берёт молекулу крупно. */
-const BG_OPACITY: ScalarTrack = [
-  { t: 0, v: 0 },
-  { t: 1.2, v: 0.75, ease: 'smooth' },
-  { t: 12.6, v: 0.75 },
-  { t: 14.4, v: 0, ease: 'smooth' },
+/**
+ * π-связи (лепестки kit/bondVisual). Язык связи:
+ *   O₂ — одна π; C(O) на краю — одна π (⟂ слою); CO — две π (вторая растёт при уходе с края);
+ *   при CO + ·OH вторая π CO переходит в новую связь C=O — в CO₂ две π в ПЕРПЕНДИКУЛЯРНЫХ плоскостях.
+ *   В середине шага 5 лепестки сворачиваются в запись двойной связи двумя полосами трубки (PI_OFF/ORDER_2).
+ */
+const PI_OFF = { from: T_POLARITY - 0.6, to: T_POLARITY }
+const PI_SURF: ScalarTrack = [
+  { t: ADS.at - 0.4, v: 0 },
+  { t: ADS.at + 0.2, v: 1, ease: 'smooth' },
+  { t: PI_OFF.from, v: 1 },
+  { t: PI_OFF.to, v: 0, ease: 'smooth' },
+]
+const PI_CO_SECOND: ScalarTrack = [
+  { t: DES.at, v: 0 },
+  { t: DES.at + 0.5, v: 1, ease: 'smooth' },
+  { t: OXI.at, v: 1 },
+  { t: OXI.at + 0.4, v: 0, ease: 'smooth' },
+]
+const PI_BOND_C: ScalarTrack = [
+  { t: OXI.at - 0.1, v: 0 },
+  { t: OXI.at + 0.4, v: 1, ease: 'smooth' },
+  { t: PI_OFF.from, v: 1 },
+  { t: PI_OFF.to, v: 0, ease: 'smooth' },
+]
+const ORDER_2: ScalarTrack = [
+  { t: PI_OFF.from, v: 1 },
+  { t: PI_OFF.to + 0.1, v: 2, ease: 'smooth' },
 ]
 
-/** sp-гибридные лепестки на углероде: показаны, пока молекула выпрямляется. */
-const SP: ScalarTrack = [
-  { t: 14.0, v: 0 },
-  { t: 15.4, v: 1, ease: 'smooth' },
-  { t: 18.2, v: 1 },
-  { t: 19.2, v: 0, ease: 'smooth' },
-]
-/** π-облака над и под осью молекулы (и в перпендикулярной плоскости). */
-const PI: ScalarTrack = [
-  { t: 15.8, v: 0 },
-  { t: T_LINEAR, v: 1, ease: 'smooth' },
-  { t: 18.6, v: 1 },
-  { t: 19.6, v: 0.25, ease: 'smooth' },
-  { t: 21.6, v: 0, ease: 'smooth' },
-]
-/** Стрелки дипольных моментов связей и их взаимное гашение. */
-const DIPOLE: ScalarTrack = [
-  { t: 18.4, v: 0 },
-  { t: T_DIPOLE, v: 1, ease: 'smooth' },
-  { t: 21.2, v: 1 },
-  { t: 21.6, v: 0, ease: 'smooth' },
-]
-/** Частичные заряды δ+ / δ−: появляются вместе с разговором о полярности. */
-const PARTIAL = rampTrack(18.2, 0, T_DIPOLE, 1, 'smooth')
-
-/** Камео воды: приходит и уходит внутри шага «полярность». */
-const WATER: ScalarTrack = [
-  { t: 19.2, v: 0 },
-  { t: 20.2, v: 0.9, ease: 'smooth' },
-  { t: 21.2, v: 0.9 },
-  { t: 21.6, v: 0, ease: 'smooth' },
+/** Полярность: частичные заряды δ± и векторы диполей связей (гаснут в начале шага 6). */
+const POLAR: ScalarTrack = [
+  { t: T_POLARITY - 0.4, v: 0 },
+  { t: T_POLARITY + 0.2, v: 1, ease: 'smooth' },
+  { t: stepFrom(5), v: 1 },
+  { t: stepFrom(5) + 0.5, v: 0, ease: 'smooth' },
 ]
 
-/** Предупреждение про угарный газ на шаге 6. */
-const CO_WARN: ScalarTrack = [
-  { t: T_CO_WARN - 0.6, v: 0 },
-  { t: T_CO_WARN + 0.5, v: 0.85, ease: 'smooth' },
-  { t: 25.6, v: 0.85 },
+/** Рёбра ячеек: графит (шаги 1–2), затем сухой лёд (шаг 6). */
+const GRAPHITE_EDGES: ScalarTrack = [
+  { t: 0.3, v: 0 },
+  { t: 1.1, v: 1, ease: 'smooth' },
+  { t: stepTo(1), v: 1 },
+  { t: DES.start, v: 0, ease: 'smooth' },
+]
+const DRY_EDGES: ScalarTrack = [
+  { t: T_CRYSTAL - 1.2, v: 0 },
+  { t: T_CRYSTAL, v: 1, ease: 'smooth' },
+  { t: CO2_FINISH.from, v: 1 },
   { t: CO2_FINISH.to, v: 0, ease: 'smooth' },
 ]
+/** С какого момента пул рёбер держит ячейку сухого льда (обе дорожки в этот момент = 0). */
+export const EDGE_SWITCH_T = stepFrom(3)
 
-const CAM_ZOOM: ScalarTrack = [
-  { t: 0, v: 0.72 },
-  { t: 3.6, v: 0.82, ease: 'smooth' },
-  { t: T_DETACH, v: 1.02, ease: 'smooth' },
-  { t: 9.2, v: 0.96, ease: 'smooth' },
-  { t: T_BOND1, v: 1.12, ease: 'smooth' },
-  { t: T_LINEAR, v: 1.3, ease: 'smooth' },
-  { t: T_DIPOLE, v: 1.24, ease: 'smooth' },
-  { t: 21.6, v: 1.2 },
-  { t: T_EXO, v: 0.78, ease: 'smooth' },
-  { t: 25.4, v: 0.7, ease: 'smooth' },
-]
-const CAM_YAW: ScalarTrack = [
-  { t: 0, v: -0.1 },
-  { t: 4.2, v: -0.26, ease: 'smooth' },
-  { t: 9.0, v: -0.05, ease: 'smooth' },
-  { t: 13.4, v: 0.08, ease: 'smooth' },
-  { t: T_LINEAR, v: 0.46, ease: 'smooth' },
-  { t: 18.8, v: 0.02, ease: 'smooth' },
-  { t: 21.6, v: 0.02 },
-  { t: 24.4, v: -0.22, ease: 'smooth' },
-]
-const CAM_ROLL: ScalarTrack = [
-  { t: 0, v: 0 },
-  { t: 13.4, v: 0 },
-  { t: T_LINEAR, v: -0.1, ease: 'smooth' },
-  { t: 19.0, v: 0, ease: 'smooth' },
-]
-const CAM_OFFSET: Vec3Track = [
-  { t: 0, v: [-0.1, 0.04, 0] },
-  { t: T_DETACH, v: [-0.42, 0.3, 0], ease: 'smooth' },
-  { t: 9.6, v: [0.1, 0.28, 0], ease: 'smooth' },
-  { t: T_BOND1, v: [0.32, 0.2, 0], ease: 'smooth' },
-  { t: T_LINEAR, v: [0.33, 0.2, 0], ease: 'smooth' },
-  { t: T_DIPOLE, v: [0.34, 0.06, 0], ease: 'smooth' },
-  { t: 21.6, v: [0.34, 0.06, 0] },
-  { t: T_EXO, v: [0.0, -0.04, 0], ease: 'smooth' },
-]
 const FADE = fadeTrack(CO2_FINISH)
 
+/** Камера: общий план, наезд на край слоя, проводка CO, крупно молекула, облёт сухого льда. */
+const EDGE_TARGET = mid(C0_SITE, C1_SITE)
+export const CO2_CAMERA: ShotTrack = shotTrack([
+  { t: 0, zoom: 0.7, yaw: -0.12, pitch: 0.55, target: [-0.75, TOP_WORLD_Y - 0.1, 0] },
+  { t: stepTo(0), zoom: 0.72 },
+  { t: ADS.at - 0.4, zoom: 1.0, pitch: 0.5, target: [EDGE_TARGET[0] + 0.15, EDGE_TARGET[1], EDGE_TARGET[2]] },
+  { t: stepTo(1), zoom: 1.0 },
+  { t: stepTo(2) - 0.8, zoom: 0.96, yaw: -0.04, pitch: 0.26, target: [-0.45, 0.05, 0] },
+  { t: stepTo(2), zoom: 0.96 },
+  { t: OXI.at - 0.2, zoom: 1.04, yaw: 0, pitch: 0.12, target: [-0.4, 0.05, 0] },
+  { t: stepTo(3), zoom: 1.04 },
+  { t: stepFrom(4) + 1.4, zoom: 1.42, pitch: 0.08, target: MOL_HOME },
+  { t: stepTo(4), zoom: 1.42 },
+  { t: stepFrom(5) + 2.0, zoom: 0.95, yaw: 0.3, pitch: 0.32 },
+  ...orbitTrack(stepFrom(5) + 2.2, stepTo(5), 0.3, 0.8, 0.32, 0.95),
+])
+
+/** Эмиссия — постоянная подсветка по элементу (почти чёрный CPK-углерод иначе не читается на тёмном поле). */
+export const CO2_BASE_EMISSIVE: Readonly<Record<Co2Element, number>> = { C: 0.2, O: 0.08, H: 0.08 }
+const BASE_BLOOM = 0.3
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Подписи в 3D
+// Подписи в 3D — только формулы, числа и символы единиц (токены)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Тексты подписей НЕ переводятся: это формулы, числа и обозначения СИ
- * («O₂ (г.)», «116 пм», «180°», «μ = 0 D»). Агрегатные состояния и единицы
- * идут ТОКЕНАМИ ({s}, {g}, {pm}, {kJmol}) — сцена подставляет язык один раз
- * за кадр через localizeSceneLabels(). Все словесные пояснения живут
- * в co2MechanismText.{ts,en.ts,uz.ts} и показываются панелью урока.
- */
 export type Co2LabelDef = SceneLabelDef & {
-  anchor: Co2AtomId | 'flake' | 'mol' | 'o2' | 'co' | 'water' | 'piUp'
+  anchor: 'flake' | 'layerGap' | 'ccBond' | 'cellTop' | 'cellEdge' | 'mid' | 'atom' | 'mol' | 'cubeAbove' | 'dryEdge'
+  /** атомы якоря 'mid' / 'atom' */
+  a?: string
+  b?: string
+  dx?: number
+  hosts: readonly string[]
 }
 
-const CC_PM = CO2_FACTS.graphite.ccPm
-const LAYER_PM = Math.round(CO2_FACTS.graphite.layerPm)
-const CO_PM = Math.round(CO2_FACTS.coPm)
-const OO_PM = CO2_FACTS.o2Pm
-const CO3_PM = CO2_FACTS.coTriplePm
+const fmt1 = (v: number) => (Math.round(v * 10) / 10).toFixed(1)
+const fmt2 = (v: number) => (Math.round(v * 100) / 100).toFixed(2)
+const signed = (v: number) => (v < 0 ? `−${fmt1(-v)}` : `+${fmt1(v)}`)
 
-/**
- * dy соседних подписей одного якоря разведены минимум на 0.44 мировых единицы,
- * иначе строки налезают друг на друга; пересекающиеся по времени подписи
- * не ставятся на одну высоту.
- */
+const T_GAS_TO_SOLID = stepFrom(5) + 1.1
+const W_GRAPHITE_LABELS = GR_OUT.to - 0.1
+
 export const CO2_LABELS: readonly Co2LabelDef[] = [
-  // ——— Шаг 1: графит и кислород ———
-  { id: 'flake', kind: 'species', anchor: 'flake', dy: 1.45, keys: [{ t: 0, text: 'C ({s})' }], windows: [[0.7, 8.6]] },
-  { id: 'sg', kind: 'token', anchor: 'flake', dy: 1.0, keys: [{ t: 0, text: CO2_FACTS.graphite.spaceGroup }], windows: [[1.4, 5.2]] },
-  { id: 'cc', kind: 'delta', anchor: 'flake', dy: -1.0, keys: [{ t: 0, text: `C–C  ${CC_PM} {pm}` }], windows: [[1.8, 6.2]] },
-  { id: 'layers', kind: 'delta', anchor: 'flake', dy: -1.46, keys: [{ t: 0, text: `${LAYER_PM} {pm}` }], windows: [[2.4, 6.2]] },
-  { id: 'o2', kind: 'species', anchor: 'o2', dy: 0.48, keys: [{ t: 0, text: 'O₂ ({g})' }], windows: [[0.7, T_BREAK - 0.1]] },
-  { id: 'oo', kind: 'delta', anchor: 'o2', dy: -0.48, keys: [{ t: 0, text: `${OO_PM} {pm}` }], windows: [[1.8, 5.4]] },
-
-  // ——— Шаг 2–3: свободные атомы (ступень РАСЧЁТА, см. note в тексте шага) ———
-  { id: 'cFree', kind: 'species', anchor: 'c0', dy: 0.22, keys: [{ t: 0, text: 'C' }], windows: [[T_DETACH + 0.4, T_BOND1 - 0.2]] },
-  { id: 'oAfree', kind: 'species', anchor: 'oA', dy: 0.2, keys: [{ t: 0, text: 'O' }], windows: [[T_BREAK + 0.4, T_BOND1 - 0.2]] },
-  { id: 'oBfree', kind: 'species', anchor: 'oB', dy: 0.2, keys: [{ t: 0, text: 'O' }], windows: [[T_BREAK + 0.4, T_BOND2 - 0.2]] },
-
-  // ——— Шаг 4: готовая молекула ———
-  { id: 'mol', kind: 'species', anchor: 'mol', dy: -1.05, keys: [{ t: 0, text: 'O=C=O ({g})' }], windows: [[T_LINEAR - 0.4, 25.6]] },
-  { id: 'coLen', kind: 'delta', anchor: 'mol', dy: 0.68, keys: [{ t: 0, text: `C=O  ${CO_PM} {pm}` }], windows: [[T_LINEAR - 0.2, 19.2]] },
-  { id: 'angle', kind: 'delta', anchor: 'mol', dy: 1.14, keys: [{ t: 0, text: `${CO2_FACTS.angleDeg}°` }], windows: [[T_LINEAR, 19.2]] },
-  { id: 'sp', kind: 'token', anchor: 'c0', dy: -0.3, keys: [{ t: 0, text: 'sp' }], windows: [[15.6, 18.7]] },
-  { id: 'pi', kind: 'token', anchor: 'piUp', dy: 0.16, keys: [{ t: 0, text: 'π' }], windows: [[T_LINEAR - 0.2, 18.7]] },
-
-  // ——— Шаг 5: полярность ———
-  { id: 'dqC', kind: 'ox', anchor: 'c0', dy: 0.26, keys: [{ t: 0, text: 'δ+' }], windows: [[18.8, 21.4]] },
-  { id: 'dqA', kind: 'ox', anchor: 'oA', dy: 0.24, keys: [{ t: 0, text: 'δ−' }], windows: [[18.8, 21.4]] },
-  { id: 'dqB', kind: 'ox', anchor: 'oB', dy: 0.24, keys: [{ t: 0, text: 'δ−' }], windows: [[18.8, 21.4]] },
-  { id: 'chi', kind: 'delta', anchor: 'mol', dy: 1.14, keys: [{ t: 0, text: `Δχ = ${CO2_FACTS.deltaChi}` }], windows: [[19.3, 21.2]] },
-  { id: 'mu', kind: 'delta', anchor: 'mol', dy: 0.68, keys: [{ t: 0, text: `μ = ${CO2_FACTS.dipoleD} D` }], windows: [[T_DIPOLE, 21.5]] },
-  { id: 'acid', kind: 'token', anchor: 'water', dy: -0.5, keys: [{ t: 0, text: 'CO₂ + H₂O ⇌ H₂CO₃' }], windows: [[20.4, 21.5]] },
-
-  // ——— Шаг 6: энергия и предупреждение про угарный газ ———
-  { id: 'dH', kind: 'delta', anchor: 'mol', dy: 0.68, keys: [{ t: 0, text: `ΔH°f = ${CO2_FACTS.dHfText} {kJmol}` }], windows: [[T_EXO, 25.6]] },
-  { id: 'coWarn', kind: 'species', anchor: 'co', dy: 0.46, keys: [{ t: 0, text: 'C≡O ({g})' }], windows: [[T_CO_WARN, 25.6]] },
-  { id: 'coEq', kind: 'token', anchor: 'co', dy: -0.46, keys: [{ t: 0, text: '2 C + O₂ → 2 CO' }], windows: [[T_CO_WARN + 0.2, 25.6]] },
-  { id: 'coDh', kind: 'delta', anchor: 'co', dy: -0.94, keys: [{ t: 0, text: `${CO2_FACTS.coDHfText} {kJmol} · ${CO3_PM} {pm}` }], windows: [[T_CO_WARN + 0.4, 25.6]] },
+  // Шаг 1: графит (ячейка, связь, слои) и O₂
+  { id: 'graphite', kind: 'species', anchor: 'flake', dy: 0.72, keys: [{ t: 0, text: 'C ({s})' }], windows: [[0.3, W_GRAPHITE_LABELS]], hosts: [...GRAPHITE_IDS, 'c0'] },
+  { id: 'gSg', kind: 'token', anchor: 'cellTop', dy: 0.3, keys: [{ t: 0, text: GRAPHITE.spaceGroup }], windows: [[0.8, DES.start]], hosts: [] },
+  { id: 'gA', kind: 'measure', anchor: 'cellEdge', dy: -0.28, keys: [{ t: 0, text: GRAPHITE_CAPTION[0]! }], windows: [[0.9, DES.start]], hosts: [] },
+  { id: 'gCC', kind: 'measure', anchor: 'ccBond', dy: 0.28, keys: [{ t: 0, text: `C–C ${fmt1(GRAPHITE.cationAnionPm)} {pm}` }], windows: [[1.2, DES.start]], hosts: [] },
+  { id: 'gLayer', kind: 'measure', anchor: 'layerGap', dy: 0, keys: [{ t: 0, text: `${fmt2(GRAPHITE.cellPm.c! / 2)} {pm}` }], windows: [[1.4, DES.start]], hosts: [] },
+  { id: 'o2', kind: 'species', anchor: 'mid', a: 'oA', b: 'oB', dy: 0.36, keys: [{ t: 0, text: 'O₂ ({g})' }], windows: [[0.3, ADS.at]], hosts: ['oA', 'oB'] },
+  { id: 'oo', kind: 'measure', anchor: 'mid', a: 'oA', b: 'oB', dy: -0.34, keys: [{ t: 0, text: `O=O ${fmt2(CO2_FACTS.o2Pm)} {pm}` }], windows: [[0.8, ADS.start]], hosts: [] },
+  // Шаг 2: поверхностные комплексы C(O)
+  { id: 'cOA', kind: 'species', anchor: 'mid', a: 'c0', b: 'oA', dy: 0.3, keys: [{ t: 0, text: 'C(O)' }], windows: [[ADS.at, DES.at]], hosts: ['c0', 'oA'] },
+  { id: 'cOB', kind: 'species', anchor: 'mid', a: CO2_C1_ID, b: 'oB', dy: -0.3, keys: [{ t: 0, text: 'C(O)' }], windows: [[ADS.at, W_GRAPHITE_LABELS]], hosts: [CO2_C1_ID, 'oB'] },
+  // Шаг 3: CO уходит с края
+  { id: 'co', kind: 'species', anchor: 'mid', a: 'c0', b: 'oA', dy: 0.34, keys: [{ t: 0, text: 'CO ({g})' }], windows: [[DES.at, OXI.at]], hosts: ['c0', 'oA'] },
+  { id: 'coLen', kind: 'measure', anchor: 'mid', a: 'c0', b: 'oA', dy: -0.34, keys: [{ t: 0, text: `C≡O ${fmt1(CO2_FACTS.coTriplePm)} {pm}` }], windows: [[DES.at + 0.6, OXI.start]], hosts: [] },
+  { id: 'dHco', kind: 'delta', anchor: 'mol', dy: 0.78, keys: [{ t: 0, text: `ΔH°f = ${signed(CO_DHF_KJ)} {kJmol}` }], windows: [[DES.at + 0.8, OXI.at]], hosts: [] },
+  // Шаг 4: CO + ·OH → CO₂ + H·
+  { id: 'oh', kind: 'species', anchor: 'mid', a: 'oC', b: 'hC', dy: 0.3, keys: [{ t: 0, text: '·OH' }], windows: [[OH_APPEAR.from, OXI.at]], hosts: ['oC', 'hC'] },
+  { id: 'h', kind: 'species', anchor: 'atom', a: 'hC', dy: 0.2, keys: [{ t: 0, text: 'H·' }], windows: [[OXI.at, H_OUT.to]], hosts: ['hC'] },
+  { id: 'co2g', kind: 'species', anchor: 'mol', dy: -0.62, keys: [{ t: 0, text: 'CO₂ ({g})' }], windows: [[OXI.at, T_GAS_TO_SOLID]], hosts: [...STORY_MOL_IDS] },
+  { id: 'dH', kind: 'delta', anchor: 'mol', dy: 0.78, keys: [{ t: 0, text: `ΔH°f = ${signed(CO2_DHF_KJ)} {kJmol}` }], windows: [[OXI.at + 0.4, stepFrom(4) + 1.6]], hosts: [] },
+  // Шаг 5: строение и полярность
+  { id: 'coLen2', kind: 'measure', anchor: 'mid', a: 'c0', b: 'oA', dy: -0.36, keys: [{ t: 0, text: `C=O ${fmt1(CO2_FACTS.coPm)} {pm}` }], windows: [[stepFrom(4) + 0.2, stepFrom(5) + 0.4]], hosts: [] },
+  { id: 'angle', kind: 'measure', anchor: 'mol', dy: 0.78, keys: [{ t: 0, text: `${CO2_FACTS.angleDeg}°` }], windows: [[stepFrom(4) + 1.7, stepFrom(5) + 0.4]], hosts: [] },
+  { id: 'dqC', kind: 'ox', anchor: 'atom', a: 'c0', dy: 0.2, keys: [{ t: 0, text: 'δ+' }], windows: [[T_POLARITY - 0.3, stepFrom(5) + 0.5]], hosts: [] },
+  { id: 'dqA', kind: 'ox', anchor: 'atom', a: 'oA', dy: 0.2, keys: [{ t: 0, text: 'δ−' }], windows: [[T_POLARITY - 0.3, stepFrom(5) + 0.5]], hosts: [] },
+  { id: 'dqC2', kind: 'ox', anchor: 'atom', a: 'oC', dy: 0.2, keys: [{ t: 0, text: 'δ−' }], windows: [[T_POLARITY - 0.3, stepFrom(5) + 0.5]], hosts: [] },
+  { id: 'chi', kind: 'delta', anchor: 'mol', dy: -1.0, keys: [{ t: 0, text: `Δχ = ${fmt2(CO2_FACTS.deltaChi)}` }], windows: [[T_POLARITY - 0.2, stepFrom(5) + 0.5]], hosts: [] },
+  { id: 'mu', kind: 'delta', anchor: 'mol', dy: 1.18, keys: [{ t: 0, text: `Σμ = ${CO2_FACTS.dipoleD}` }], windows: [[T_POLARITY, stepFrom(5) + 0.5]], hosts: [] },
+  // Шаг 6: сухой лёд
+  { id: 'solid', kind: 'species', anchor: 'cubeAbove', dy: 1.05, keys: [{ t: 0, text: 'CO₂ ({s})' }], windows: [[T_GAS_TO_SOLID, CO2_END]], hosts: [...DRY_IDS, ...STORY_MOL_IDS] },
+  { id: 'dryA', kind: 'measure', anchor: 'dryEdge', dy: -0.3, keys: [{ t: 0, text: DRY_CAPTION[0]! }], windows: [[T_CRYSTAL - 0.8, CO2_END]], hosts: [] },
+  { id: 'drySg', kind: 'token', anchor: 'cubeAbove', dy: 0.5, dx: -0.55, keys: [{ t: 0, text: DRY.spaceGroup }], windows: [[T_CRYSTAL - 0.6, CO2_END]], hosts: [] },
+  { id: 'dryCn', kind: 'token', anchor: 'cubeAbove', dy: 0.5, dx: 0.55, keys: [{ t: 0, text: `{cn} ${CO2_GEOM.data.dry.neighbours}` }], windows: [[T_CRYSTAL - 0.4, CO2_END]], hosts: [] },
 ]
 
 export type Co2LabelState = SceneLabelState
+
+/** Якоря подписей графита (в мире без сдвига ухода — сдвиг добавляется в кадре). */
+const CC_BOND_MID: V3 = (() => {
+  let best: V3 = [0, 0, 0]
+  let bestZ = -Infinity
+  for (const [i, j] of G_SRC.bonds) {
+    if (!FLAKE_SRC.includes(i) || !FLAKE_SRC.includes(j) || !TOP_SRC.includes(i)) continue
+    if (i === SRC_C0 || j === SRC_C0 || i === SRC_C1 || j === SRC_C1) continue
+    const m = mid(srcPos(i), srcPos(j))
+    if (m[2] > bestZ) {
+      bestZ = m[2]
+      best = m
+    }
+  }
+  return best
+})()
+const LAYER_GAP: V3 = [GRAPHITE_CENTER[0] - FLAKE_RADIUS - 0.35, GRAPHITE_CENTER[1], GRAPHITE_CENTER[2]]
+const CELL_TOP: V3 = (() => {
+  const top = Math.max(...GRAPHITE_CELL_EDGES.flatMap(([p, q]) => [p[1], q[1]]))
+  const c = GRAPHITE_CELL_EDGES.reduce<V3>((s, [p, q]) => add(s, scale(add(p, q), 1 / (2 * GRAPHITE_CELL_EDGES.length))), [0, 0, 0])
+  return [c[0], top, c[2]]
+})()
+/** Подпись a — у нижнего переднего ребра ячейки графита вдоль a. */
+const CELL_EDGE_A: V3 = (() => {
+  const bottom = Math.min(...GRAPHITE_CELL_EDGES.flatMap(([p, q]) => [p[1], q[1]]))
+  const cand = GRAPHITE_CELL_EDGES.filter(([p, q]) => Math.abs(p[1] - bottom) < 1e-6 && Math.abs(q[1] - bottom) < 1e-6)
+  cand.sort((u, v) => mid(v[0], v[1])[2] - mid(u[0], u[1])[2])
+  return mid(cand[0]![0], cand[0]![1])
+})()
+const DRY_TOP_Y = Math.max(...DRY_MOLECULES.flatMap((m) => [m.c, m.o[0], m.o[1]]).map((i) => dryPos(i)[1]))
+const DRY_EDGE_A: V3 = (() => {
+  const bottom = Math.min(...DRY_CELL_EDGES.flatMap(([p, q]) => [p[1], q[1]]))
+  const front = Math.max(...DRY_CELL_EDGES.flatMap(([p, q]) => [p[2], q[2]]))
+  const e = DRY_CELL_EDGES.find(
+    ([p, q]) => Math.abs(p[1] - bottom) < 1e-6 && Math.abs(q[1] - bottom) < 1e-6 && Math.abs(p[2] - front) < 1e-6 && Math.abs(q[2] - front) < 1e-6,
+  )!
+  return mid(e[0], e[1])
+})()
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Кадр
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const CO2_ATOMS: readonly { id: Co2AtomId; el: 'C' | 'O' | 'H' }[] = [
-  { id: 'c0', el: 'C' },
-  { id: 'oA', el: 'O' },
-  { id: 'oB', el: 'O' },
-  ...LATTICE_ATOMS.map((a) => ({ id: a.id, el: 'C' as const })),
-  { id: 'coC', el: 'C' },
-  { id: 'coO', el: 'O' },
-  { id: 'wO', el: 'O' },
-  { id: 'wH1', el: 'H' },
-  { id: 'wH2', el: 'H' },
-]
-
-/** Фоновые молекулы кислорода: центр и ось (газ вокруг раскалённого угля). */
-export const BACKGROUND_O2: readonly { center: readonly [number, number, number]; axis: readonly [number, number, number]; seed: number }[] = [
-  { center: [1.62, -1.12, -0.78], axis: [0.86, 0.32, 0.4], seed: 1 },
-  { center: [0.42, 1.34, -0.92], axis: [0.3, -0.5, 0.81], seed: 2 },
-]
+/** π-пары кадра: связь (атомы), нормаль π и количество 0…1. */
+export type Co2Pi = { a: number; b: number; normal: THREE.Vector3; amount: number }
+export const PI_O2 = 0
+export const PI_A = 1
+export const PI_A2 = 2
+export const PI_SURF_B = 3
+export const PI_C = 4
 
 export type Co2Frame = {
-  atoms: Record<Co2AtomId, THREE.Vector3>
-  radius: Record<Co2AtomId, number>
-  charge: Record<Co2AtomId, number>
-  opacity: Record<Co2AtomId, number>
-  emissive: Record<Co2AtomId, number>
-  /** связь O=O реагента */
-  o2Bond: { stress: number; thinning: number; opacity: number }
-  /** две связи C=O продукта */
-  coBond: { formA: number; formB: number; opacityA: number; opacityB: number }
-  /** рвущиеся связи атома, уходящего из слоя */
-  edgeBond: { stress: number; thinning: number; opacity: number }
-  graphite: { opacity: number; bondOpacity: number; heat: number }
-  /** фоновые молекулы O₂ */
-  bg: { opacity: number; pos: THREE.Vector3[] }
-  /** sp-лепестки, π-облака, стрелки диполей, камео воды, предупреждение про CO */
-  sp: number
-  pi: number
-  dipole: number
-  water: number
-  coWarn: number
-  env: { exo: number; fade: number }
+  t: number
+  pos: THREE.Vector3[]
+  radius: Float32Array
+  opacity: Float32Array
+  /** частичный заряд для окраски кромки (δ±, не ионы) */
+  charge: Float32Array
+  emissive: Float32Array
+  material: SubstanceKind[]
+  bond: { opacity: Float32Array; stress: Float32Array; thinning: Float32Array; form: Float32Array; order: Float32Array }
+  pi: [Co2Pi, Co2Pi, Co2Pi, Co2Pi, Co2Pi]
+  /** какой набор рёбер ячеек в пуле и его прозрачность */
+  edgeSet: 'graphite' | 'dry'
+  edges: number
+  /** амплитуды аннотаций (тест: в финале 0): векторы диполей и π-лепестки */
+  fx: { dipole: number; lobes: number }
+  /** сдвиг графита при уходе (для подписей) */
+  grShift: THREE.Vector3
   labels: Co2LabelState[]
-  camera: { zoom: number; offset: THREE.Vector3; yaw: number; roll: number; shake: number; bloom: number; vignette: number }
-  /** центр молекулы CO₂ = положение атома углерода */
-  molCenter: THREE.Vector3
-  /** точка над осью молекулы — якорь подписи π */
-  piAnchor: THREE.Vector3
-  graphiteCenter: THREE.Vector3
-  o2Center: THREE.Vector3
-  coCenter: THREE.Vector3
+  camera: SceneCamera
+  fade: number
+}
+
+const Y_UP = new THREE.Vector3(0, 1, 0)
+const Z_FWD = new THREE.Vector3(0, 0, 1)
+
+function createPi(a: number, b: number, normal: THREE.Vector3): Co2Pi {
+  return { a, b, normal: normal.clone(), amount: 0 }
 }
 
 export function createCo2Frame(): Co2Frame {
-  const atoms = {} as Record<Co2AtomId, THREE.Vector3>
-  const radius = {} as Record<Co2AtomId, number>
-  const charge = {} as Record<Co2AtomId, number>
-  const opacity = {} as Record<Co2AtomId, number>
-  const emissive = {} as Record<Co2AtomId, number>
-  for (const a of CO2_ATOMS) {
-    atoms[a.id] = new THREE.Vector3()
-    radius[a.id] = a.el === 'C' ? R.c : a.el === 'O' ? R.o : R.h
-    charge[a.id] = 0
-    opacity[a.id] = 0
-    emissive[a.id] = 0.08
-  }
+  const n = CO2_ATOMS.length
+  const nb = CO2_BONDS.length
   return {
-    atoms,
-    radius,
-    charge,
-    opacity,
-    emissive,
-    o2Bond: { stress: 0, thinning: 0, opacity: 1 },
-    coBond: { formA: 0, formB: 0, opacityA: 0, opacityB: 0 },
-    edgeBond: { stress: 0, thinning: 0, opacity: 1 },
-    graphite: { opacity: 0, bondOpacity: 0, heat: 0 },
-    bg: { opacity: 0, pos: BACKGROUND_O2.flatMap(() => [new THREE.Vector3(), new THREE.Vector3()]) },
-    sp: 0,
-    pi: 0,
-    dipole: 0,
-    water: 0,
-    coWarn: 0,
-    env: { exo: 0, fade: 0 },
+    t: 0,
+    pos: CO2_ATOMS.map(() => new THREE.Vector3()),
+    radius: new Float32Array(n),
+    opacity: new Float32Array(n),
+    charge: new Float32Array(n),
+    emissive: Float32Array.from(CO2_ATOMS, (a) => CO2_BASE_EMISSIVE[a.el]),
+    material: CO2_ATOMS.map(() => 'default' as SubstanceKind),
+    bond: {
+      opacity: new Float32Array(nb),
+      stress: new Float32Array(nb),
+      thinning: new Float32Array(nb),
+      form: new Float32Array(nb).fill(1),
+      order: new Float32Array(nb).fill(1),
+    },
+    pi: [
+      createPi(I_OA, I_OB, Y_UP),
+      createPi(I_C0, I_OA, Y_UP),
+      createPi(I_C0, I_OA, Z_FWD),
+      createPi(I_C1, I_OB, Y_UP),
+      createPi(I_C0, I_OC, Z_FWD),
+    ],
+    edgeSet: 'graphite',
+    edges: 0,
+    fx: { dipole: 0, lobes: 0 },
+    grShift: new THREE.Vector3(),
     labels: createLabelStates(CO2_LABELS),
-    camera: { zoom: 1, offset: new THREE.Vector3(), yaw: 0, roll: 0, shake: 0, bloom: 0.3, vignette: 0.3 },
-    molCenter: new THREE.Vector3(),
-    piAnchor: new THREE.Vector3(),
-    graphiteCenter: GRAPHITE_CENTER.clone(),
-    o2Center: O2_HOME.clone(),
-    coCenter: new THREE.Vector3(CO_CENTER[0], CO_CENTER[1], CO_CENTER[2]),
+    camera: createSceneCamera(),
+    fade: 0,
   }
 }
 
-const _free = new THREE.Vector3()
+const G_BASE_POS: readonly THREE.Vector3[] = G_REST.map((si) => new THREE.Vector3(...srcPos(si)))
+const DRY_SITE_POS: readonly THREE.Vector3[] = DRY_REST.map((si) => new THREE.Vector3(...dryPos(si)))
+const DRY_MOL_OF_ATOM: readonly number[] = DRY_REST.map((_, k) => Math.floor(k / 3))
+const DRY_DIR_V: readonly THREE.Vector3[] = DRY_DIR.map((d) => new THREE.Vector3(...d))
+const V_OUT0 = new THREE.Vector3(...OUT0)
+const V_OUT1 = new THREE.Vector3(...OUT1)
+const V_X = new THREE.Vector3(1, 0, 0)
+const V_DRY_AXIS = new THREE.Vector3(...DRY_AXIS)
+const V_GR_EXIT = new THREE.Vector3(...GR_EXIT)
+const TRACK_OF: readonly (Vec3Track | undefined)[] = CO2_ATOMS.map((a) => POS[a.id])
+const _dir = new THREE.Vector3()
+const _tmp = new THREE.Vector3()
+
+/** Кадр, для которого сейчас считаются подписи (anchorLabel — модульная функция, без замыканий). */
+let _cur: Co2Frame | null = null
+
+function anchorLabel(def: SceneLabelDef, st: SceneLabelState): void {
+  const f = _cur!
+  const d = def as Co2LabelDef
+  const p = f.pos
+  switch (d.anchor) {
+    case 'flake':
+      st.pos.set(GRAPHITE_CENTER[0], TOP_WORLD_Y + d.dy, GRAPHITE_CENTER[2]).add(f.grShift)
+      return
+    case 'layerGap':
+      st.pos.set(LAYER_GAP[0], LAYER_GAP[1] + d.dy, LAYER_GAP[2]).add(f.grShift)
+      return
+    case 'ccBond':
+      st.pos.set(CC_BOND_MID[0], CC_BOND_MID[1] + d.dy, CC_BOND_MID[2]).add(f.grShift)
+      return
+    case 'cellTop':
+      st.pos.set(CELL_TOP[0], CELL_TOP[1] + d.dy, CELL_TOP[2])
+      return
+    case 'cellEdge':
+      st.pos.set(CELL_EDGE_A[0], CELL_EDGE_A[1] + d.dy, CELL_EDGE_A[2])
+      return
+    case 'mid':
+      st.pos.copy(p[IDX(d.a!)]!).lerp(p[IDX(d.b!)]!, 0.5)
+      st.pos.y += d.dy
+      return
+    case 'atom': {
+      const i = IDX(d.a!)
+      st.pos.copy(p[i]!)
+      st.pos.y += d.dy > 0 ? f.radius[i]! + d.dy : -(f.radius[i]! - d.dy)
+      return
+    }
+    case 'mol':
+      st.pos.copy(p[I_C0]!)
+      st.pos.y += d.dy
+      return
+    case 'cubeAbove':
+      st.pos.set(d.dx ?? 0, DRY_TOP_Y + d.dy, 0)
+      return
+    case 'dryEdge':
+      st.pos.set(DRY_EDGE_A[0], DRY_EDGE_A[1] + d.dy, DRY_EDGE_A[2])
+      return
+  }
+}
+
+/** Направление C → oA в момент t: sp²-наружу → ось x (шаг 3) → ось центральной молекулы решётки (шаг 6). */
+function writeAxisA(t: number, out: THREE.Vector3): THREE.Vector3 {
+  const u1 = sampleScalar(TURN_1, t)
+  const u2 = sampleScalar(TURN_2, t)
+  if (u2 > 0) return out.copy(V_X).lerp(V_DRY_AXIS, u2).normalize()
+  return out.copy(V_OUT0).lerp(V_X, u1).normalize()
+}
 
 /** Записывает кадр сюжета для момента t в заранее созданный frame (без аллокаций). */
 export function sampleCo2Frame(t: number, frame: Co2Frame): Co2Frame {
-  const { atoms, radius, charge, opacity, emissive } = frame
+  frame.t = t
+  const { pos, radius, opacity, charge, material, bond } = frame
 
-  for (const a of CO2_ATOMS) {
-    const track = POS[a.id]
-    if (track) sampleVec3(track, t, atoms[a.id])
+  for (let i = 0; i < CO2_ATOMS.length; i++) {
+    const tr = TRACK_OF[i]
+    if (tr) sampleVec3(tr, t, pos[i]!)
+    radius[i] = R[CO2_ATOMS[i]!.el]
+    charge[i] = 0
   }
 
-  // ——— Кислороды: свободный полёт ↔ жёсткая посадка на связь C=O ———
-  // После присоединения положение считается ОТ углерода: длина связи всегда
-  // ровно 116,0 пм, а поворот к 180° идёт по углу, а не по прямой.
-  const molC = atoms.c0
-  for (const [id, thetaTrack, attachTrack] of [
-    ['oA', THETA_A, ATTACH_A],
-    ['oB', THETA_B, ATTACH_B],
-  ] as const) {
-    const w = sampleScalar(attachTrack, t)
-    if (w <= 0) continue
-    const theta = sampleScalar(thetaTrack, t)
-    _free.copy(atoms[id])
-    atoms[id].set(molC.x + Math.cos(theta) * D_CO, molC.y + Math.sin(theta) * D_CO, molC.z)
-    // w < 1 — короткая «притирка»: дорожка свободного полёта заканчивается ровно
-    // в этой же точке, поэтому шва нет ни на входе, ни на выходе.
-    if (w < 1) atoms[id].lerp(_free, 1 - w)
-  }
-
-  // ——— Вода: два водорода на своём кислороде, угол 104,45° ———
-  const wo = atoms.wO
-  const half = (104.45 / 2) * (Math.PI / 180)
-  atoms.wH1.set(wo.x + Math.sin(half) * D_OH, wo.y + Math.cos(half) * D_OH, wo.z)
-  atoms.wH2.set(wo.x - Math.sin(half) * D_OH, wo.y + Math.cos(half) * D_OH, wo.z)
-
-  // ——— Прозрачности ———
+  // ——— Графит: неподвижные слои, после десорбции CO уходят влево и гаснут полностью ———
   const gA = sampleScalar(GRAPHITE_OPACITY, t)
-  frame.graphite.opacity = gA
-  frame.graphite.bondOpacity = sampleScalar(GRAPHITE_BOND_OPACITY, t)
-  frame.graphite.heat = sampleScalar(HEAT, t)
-  for (const a of LATTICE_ATOMS) opacity[a.id] = gA
+  frame.grShift.copy(V_GR_EXIT).multiplyScalar(sampleScalar(GR_SHIFT, t))
+  for (let k = 0; k < G_BASE_POS.length; k++) {
+    const i = G_BASE + k
+    pos[i]!.copy(G_BASE_POS[k]!).add(frame.grShift)
+    opacity[i] = gA
+    material[i] = 'polar'
+  }
 
-  // Реагирующий атом: пока он в слое — живёт по прозрачности решётки, потом всегда виден.
-  const detached = smoothstep(T_DETACH - 0.6, T_DETACH + 0.2, t)
-  opacity.c0 = Math.max(gA, detached)
-  opacity.oA = smoothstep(0.6, 1.4, t)
-  opacity.oB = opacity.oA
-  frame.bg.opacity = sampleScalar(BG_OPACITY, t)
+  // ——— Атомы сюжета ———
+  const appear = sampleScalar(APPEAR, t)
+  opacity[I_C0] = appear
+  opacity[I_OA] = appear
+  opacity[I_OB] = t < GR_OUT.from ? appear : gA
+  const ohA = sampleScalar(OH_OPACITY, t)
+  opacity[I_OC] = ohA
+  opacity[I_HC] = t < OXI.at ? ohA : sampleScalar(H_OPACITY, t)
 
-  frame.water = sampleScalar(WATER, t)
-  opacity.wO = opacity.wH1 = opacity.wH2 = frame.water
-  frame.coWarn = sampleScalar(CO_WARN, t)
-  opacity.coC = opacity.coO = frame.coWarn
+  material[I_C0] = t < DES.at ? 'polar' : 'covalent'
+  material[I_OA] = t < ADS.at ? 'gas' : t < DES.at ? 'polar' : 'covalent'
+  material[I_OB] = t < ADS.at ? 'gas' : 'polar'
+  material[I_OC] = t < OXI.at ? 'gas' : 'covalent'
+  material[I_HC] = 'gas'
 
-  // ——— Фоновые молекулы кислорода: медленный дрейф ———
-  for (let k = 0; k < BACKGROUND_O2.length; k++) {
-    const m = BACKGROUND_O2[k]!
-    const s = m.seed
-    const dx = 0.12 * Math.sin(t * 0.32 + s * 1.7)
-    const dy = 0.1 * Math.sin(t * 0.27 + s * 2.9)
-    const dz = 0.1 * Math.sin(t * 0.21 + s * 0.8)
-    const spin = t * 0.24 + s
-    const ax = m.axis[0] * Math.cos(spin) - m.axis[2] * Math.sin(spin)
-    const az = m.axis[0] * Math.sin(spin) + m.axis[2] * Math.cos(spin)
-    const len = Math.hypot(ax, m.axis[1], az) || 1
-    const hx = (ax / len) * (D_OO / 2)
-    const hy = (m.axis[1] / len) * (D_OO / 2)
-    const hz = (az / len) * (D_OO / 2)
-    frame.bg.pos[k * 2]!.set(m.center[0] + dx + hx, m.center[1] + dy + hy, m.center[2] + dz + hz)
-    frame.bg.pos[k * 2 + 1]!.set(m.center[0] + dx - hx, m.center[1] + dy - hy, m.center[2] + dz - hz)
+  // Ось CO / CO₂ и длины: с кадра посадки кислород «пристёгнут» к своему углероду.
+  const axis = writeAxisA(t, _dir)
+  if (t >= ADS.at) {
+    pos[I_OA]!.copy(pos[I_C0]!).addScaledVector(axis, sampleScalar(LEN_A, t))
+    pos[I_OB]!.copy(pos[I_C1]!).addScaledVector(V_OUT1, D_CO_SURF)
+  }
+  if (t >= OXI.at) pos[I_OC]!.copy(pos[I_C0]!).addScaledVector(axis, -sampleScalar(LEN_C, t))
+  if (t < OXI.at) {
+    // H радикала — за своим O, наружу от углерода: O–H длиной из ядра.
+    _tmp.copy(pos[I_OC]!).sub(pos[I_C0]!).normalize()
+    pos[I_HC]!.copy(pos[I_OC]!).addScaledVector(_tmp, D_OH)
+  }
+
+  // ——— Сухой лёд: 12 соседних молекул подлетают радиально и вырастают из точки ———
+  for (let k = 0; k < DRY_SITE_POS.length; k++) {
+    const i = D_BASE + k
+    const m = DRY_MOL_OF_ATOM[k]!
+    const arr = DRY_ARRIVAL[m]!
+    const u = smoothstep(arr.start, arr.arrive, t)
+    const grow = t <= arr.start ? 0 : smoothstep(arr.start, arr.start + GROW.appear, t)
+    pos[i]!.copy(DRY_SITE_POS[k]!).addScaledVector(DRY_DIR_V[m]!, GROW.reach * (1 - u))
+    radius[i] = radius[i]! * grow
+    opacity[i] = grow * 3 >= 1 ? 1 : grow * 3
+    material[i] = 'covalent'
   }
 
   // ——— Связи ———
-  frame.o2Bond.stress = sampleScalar(O2_STRESS, t)
-  frame.o2Bond.thinning = sampleScalar(O2_THIN, t)
-  frame.o2Bond.opacity = sampleScalar(O2_OPACITY, t)
-  frame.edgeBond.stress = sampleScalar(EDGE_STRESS, t)
-  frame.edgeBond.thinning = sampleScalar(EDGE_THIN, t)
-  frame.edgeBond.opacity = sampleScalar(EDGE_OPACITY, t) * gA
-  frame.coBond.formA = sampleScalar(FORM_A, t)
-  frame.coBond.formB = sampleScalar(FORM_B, t)
-  frame.coBond.opacityA = sampleScalar(BOND_A_OPACITY, t)
-  frame.coBond.opacityB = sampleScalar(BOND_B_OPACITY, t)
+  writeBondTracks(t, frame, gA)
 
-  // ——— Орбитали, диполи, энергия ———
-  frame.sp = sampleScalar(SP, t)
-  frame.pi = sampleScalar(PI, t)
-  frame.dipole = sampleScalar(DIPOLE, t)
+  // ——— π-связи (нормали — ⟂ слою и ⟂ ему: в CO₂ две π в перпендикулярных плоскостях) ———
+  const pi = frame.pi
+  pi[PI_O2]!.amount = bond.opacity[B_OO]! * (1 - sampleScalar(OO_THIN, t))
+  pi[PI_A]!.amount = sampleScalar(PI_SURF, t)
+  pi[PI_A2]!.amount = sampleScalar(PI_CO_SECOND, t)
+  pi[PI_SURF_B]!.amount = sampleScalar(PI_SURF, t) * (t < GR_OUT.from ? 1 : gA)
+  pi[PI_C]!.amount = sampleScalar(PI_BOND_C, t)
+  let lobes = 0
+  for (let k = 0; k < 5; k++) lobes = Math.max(lobes, pi[k]!.amount)
+  frame.fx.lobes = lobes
 
-  // Частичные заряды: связь ПОЛЯРНА (Δχ = 0,89), поэтому δ+ на углероде и δ− на кислородах.
-  // Это НЕ ионы: значения дробные и нарисованы только для окраски кромки.
-  const partial = sampleScalar(PARTIAL, t)
-  charge.c0 = 0.55 * partial
-  charge.oA = charge.oB = -0.4 * partial
+  // ——— Полярность: δ+ на C, δ− на O (частичные заряды, не ионы) ———
+  const polar = sampleScalar(POLAR, t)
+  frame.fx.dipole = polar
+  charge[I_C0] = 0.5 * polar
+  charge[I_OA] = -0.35 * polar
+  charge[I_OC] = -0.35 * polar
 
-  const exo = smoothstep(T_EXO - 0.8, T_EXO, t) * (1 - 0.5 * smoothstep(T_EXO, T_EXO + 1.8, t))
-  frame.env.exo = exo
-  frame.env.fade = sampleScalar(FADE, t)
-
-  const heat = frame.graphite.heat
-  for (const a of CO2_ATOMS) {
-    // Углерод по CPK почти чёрный (0x2a2a32), поэтому решётке дан собственный
-    // базовый свет: иначе фрагмент графита сливается с ночным фоном сцены.
-    let e = (LATTICE_IDS.has(a.id) ? 0.22 + heat * 0.5 : 0.08) + exo * 0.4
-    if (a.id === 'c0') e = 0.22 + heat * 0.5 * (1 - detached) + frame.coBond.formA * 0.18 + exo * 0.4
-    if (a.id === 'coC' || a.id === 'coO') e = 0.08 + frame.coWarn * 0.3
-    emissive[a.id] = e
+  // ——— Рёбра ячеек ———
+  if (t < EDGE_SWITCH_T) {
+    frame.edgeSet = 'graphite'
+    frame.edges = sampleScalar(GRAPHITE_EDGES, t)
+  } else {
+    frame.edgeSet = 'dry'
+    frame.edges = sampleScalar(DRY_EDGES, t)
   }
 
-  // Радиусы неизменны: в ковалентной реакции ионов не образуется, атом остаётся атомом.
-  for (const a of CO2_ATOMS) radius[a.id] = a.el === 'C' ? R.c : a.el === 'O' ? R.o : R.h
-
-  // ——— Якоря ———
-  frame.molCenter.copy(molC)
-  // Якорь подписи «π» — над серединой ЛЕВОЙ связи C=O, чтобы не спорить с подписями
-  // длины и угла, которые висят над центром молекулы.
-  frame.piAnchor.set(molC.x - D_CO * 0.5, molC.y + 0.4, molC.z)
-  frame.o2Center.copy(atoms.oA).lerp(atoms.oB, 0.5)
+  frame.fade = sampleScalar(FADE, t)
 
   // ——— Подписи ———
-  sampleLabels(
-    CO2_LABELS,
-    frame.labels,
-    t,
-    (def, st) => {
-      const d = def as Co2LabelDef
-      if (d.anchor === 'flake') {
-        st.pos.copy(frame.graphiteCenter)
-        st.pos.y += d.dy
-      } else if (d.anchor === 'mol') {
-        st.pos.copy(frame.molCenter)
-        st.pos.y += d.dy
-      } else if (d.anchor === 'o2') {
-        st.pos.copy(frame.o2Center)
-        st.pos.y += d.dy
-        st.pos.x += 0.3
-      } else if (d.anchor === 'co') {
-        st.pos.copy(frame.coCenter)
-        st.pos.y += d.dy
-      } else if (d.anchor === 'water') {
-        st.pos.copy(atoms.wO)
-        st.pos.y += d.dy
-      } else if (d.anchor === 'piUp') {
-        st.pos.copy(frame.piAnchor)
-        st.pos.y += d.dy
-      } else {
-        st.pos.copy(atoms[d.anchor])
-        st.pos.y += d.dy > 0 ? radius[d.anchor] + d.dy : -(radius[d.anchor] - d.dy)
-      }
-    },
-    frame.env.fade,
-  )
+  _cur = frame
+  sampleLabels(CO2_LABELS, frame.labels, t, anchorLabel, frame.fade)
+  _cur = null
 
   // ——— Камера ———
   const cam = frame.camera
-  cam.zoom = sampleScalar(CAM_ZOOM, t)
-  sampleVec3(CAM_OFFSET, t, cam.offset)
-  cam.yaw = sampleScalar(CAM_YAW, t)
-  cam.roll = sampleScalar(CAM_ROLL, t)
-  cam.shake =
-    0.26 * Math.max(0, 1 - Math.abs(t - T_DETACH) / 0.35) +
-    0.28 * Math.max(0, 1 - Math.abs(t - T_BREAK) / 0.35) +
-    0.5 * Math.max(0, 1 - Math.abs(t - T_EXO) / 0.5)
-  cam.bloom = 0.3 + 0.3 * heat + 0.7 * exo
-  cam.vignette = 0.3 + 0.15 * exo
+  sampleShot(CO2_CAMERA, t, cam)
+  cam.shake = 0
+  cam.bloom = BASE_BLOOM
+  cam.vignette = Math.max(0.3, frame.fade)
   return frame
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Проверка раскадровки — в dev и в тесте сцены
-// ─────────────────────────────────────────────────────────────────────────────
+const BOND_KIND: readonly Co2BondKind[] = CO2_BONDS.map((b) => b.kind)
 
+function writeBondTracks(t: number, frame: Co2Frame, gA: number): void {
+  const { opacity, stress, thinning, form, order } = frame.bond
+  const ooA = sampleScalar(OO_OPACITY, t)
+  const coForm = sampleScalar(CO_FORM, t)
+  const order2 = sampleScalar(ORDER_2, t)
+  const ccStress = sampleScalar(CC_STRESS, t)
+  const ccThin = sampleScalar(CC_THIN, t)
+  const ccA = sampleScalar(CC_OPACITY, t)
+  const cocForm = sampleScalar(COC_FORM, t)
+  for (let k = 0; k < BOND_KIND.length; k++) {
+    stress[k] = 0
+    thinning[k] = 0
+    form[k] = 1
+    order[k] = 1
+    switch (BOND_KIND[k]) {
+      case 'oo':
+        opacity[k] = ooA
+        stress[k] = sampleScalar(OO_STRESS, t)
+        thinning[k] = sampleScalar(OO_THIN, t)
+        break
+      case 'coA':
+        opacity[k] = t < ADS.at - 0.6 ? 0 : coForm
+        form[k] = coForm
+        order[k] = order2
+        break
+      case 'surfB':
+        opacity[k] = coForm * (t < GR_OUT.from ? 1 : gA)
+        form[k] = coForm
+        break
+      case 'coC':
+        opacity[k] = cocForm
+        form[k] = cocForm
+        order[k] = order2
+        break
+      case 'oh':
+        opacity[k] = frame.opacity[I_OC]! * sampleScalar(OH_BOND_OPACITY, t)
+        stress[k] = sampleScalar(OH_STRESS, t)
+        thinning[k] = sampleScalar(OH_THIN, t)
+        break
+      case 'graphite':
+        opacity[k] = gA
+        break
+      case 'graphiteBreak':
+        opacity[k] = gA * ccA
+        stress[k] = ccStress
+        thinning[k] = ccThin
+        break
+      case 'dry': {
+        // Связь молекулы решётки проявляется вместе с ростом её шаров (доля радиуса C), без щелчка.
+        opacity[k] = frame.radius[CO2_BONDS[k]!.a]! / R.C
+        order[k] = 2
+        break
+      }
+    }
+  }
+}
+
+/** Проверка раскадровки — в dev и в тесте сцены. */
 export function validateCo2Storyboard(): void {
   const vec: Record<string, Vec3Track> = {}
-  for (const [id, track] of Object.entries(POS)) if (track) vec[`pos.${id}`] = track
-  vec['cam.offset'] = CAM_OFFSET
+  for (const [id, track] of Object.entries(POS)) vec[`pos.${id}`] = track
+  vec['cam.offset'] = CO2_CAMERA.offset
   validateTracks(vec)
   validateTracks({
-    THETA_A,
-    THETA_B,
-    ATTACH_A,
-    ATTACH_B,
-    O2_STRESS,
-    O2_THIN,
-    O2_OPACITY,
-    FORM_A,
-    FORM_B,
-    BOND_A_OPACITY,
-    BOND_B_OPACITY,
-    EDGE_STRESS,
-    EDGE_THIN,
-    EDGE_OPACITY,
+    GR_SHIFT,
+    APPEAR,
     GRAPHITE_OPACITY,
-    GRAPHITE_BOND_OPACITY,
-    HEAT,
-    BG_OPACITY,
-    SP,
-    PI,
-    DIPOLE,
-    PARTIAL,
-    WATER,
-    CO_WARN,
-    CAM_ZOOM,
-    CAM_YAW,
-    CAM_ROLL,
+    OH_OPACITY,
+    H_OPACITY,
+    OO_STRESS,
+    OO_THIN,
+    OO_OPACITY,
+    CO_FORM,
+    CC_STRESS,
+    CC_THIN,
+    CC_OPACITY,
+    OH_STRESS,
+    OH_THIN,
+    OH_BOND_OPACITY,
+    COC_FORM,
+    LEN_A,
+    LEN_C,
+    TURN_1,
+    TURN_2,
+    PI_SURF,
+    PI_CO_SECOND,
+    PI_BOND_C,
+    ORDER_2,
+    POLAR,
+    GRAPHITE_EDGES,
+    DRY_EDGES,
     FADE,
+    camZoom: CO2_CAMERA.zoom,
+    camYaw: CO2_CAMERA.yaw,
+    camPitch: CO2_CAMERA.pitch,
   })
 
-  // ——— Фрагмент графита ———
-  if (SHEET.length !== 24) throw new Error(`co2: в слое фрагмента ожидалось 24 атома (коронен), получилось ${SHEET.length}`)
-  if (GRAPHITE_ATOMS.length !== 48) throw new Error(`co2: два слоя = 48 атомов, получилось ${GRAPHITE_ATOMS.length}`)
-  if (GRAPHITE_BONDS_ALL.length !== 60) throw new Error(`co2: во фрагменте ожидалось 60 связей C–C, получилось ${GRAPHITE_BONDS_ALL.length}`)
-  if (BREAKING_BONDS.length !== 2) throw new Error(`co2: краевой атом обязан держаться на двух связях, получилось ${BREAKING_BONDS.length}`)
-  if (GRAPHITE_BONDS.length !== 58) throw new Error(`co2: после ухода атома должно остаться 58 связей, получилось ${GRAPHITE_BONDS.length}`)
-
-  // КЧ углерода внутри слоя ровно 3 — иначе соты построены неверно.
-  const inner = GRAPHITE_ATOMS.filter((a) => (NEIGHBOURS.get(a.id) ?? 0) === 3)
-  if (inner.length !== 2 * 12) throw new Error(`co2: у фрагмента коронена 12 атомов на слой с КЧ 3, получилось ${inner.length / 2}`)
-  for (const a of GRAPHITE_ATOMS) {
-    const n = NEIGHBOURS.get(a.id) ?? 0
-    if (n !== 2 && n !== 3) throw new Error(`co2: у атома ${a.id} ${n} соседей, в слое графита допустимо 2 (край) или 3`)
+  // Графит: оба слоя из узлов ядра, у каждого атома ≥ 2 соседей в слое, связи = C–C ядра.
+  const top = FLAKE_SRC.filter((i) => TOP_SRC.includes(i))
+  const bot = FLAKE_SRC.filter((i) => BOT_SRC.includes(i))
+  if (top.length === 0 || bot.length === 0) throw new Error('co2: во фрагменте графита обязаны быть два слоя')
+  for (const i of FLAKE_SRC) {
+    const n = FLAKE_SRC.filter((j) => j !== i && bonded(i, j)).length
+    if (n < 2 || n > GRAPHITE.coordination['C (в слое)']!) throw new Error(`co2: у атома графита ${i} ${n} соседей`)
   }
+  if (Math.abs(TOP_Y - BOT_Y - D_LAYER) > 1e-9) throw new Error('co2: расстояние между слоями ≠ c/2')
+  const c0Bonds = CO2_BONDS.filter((b) => b.kind === 'graphiteBreak')
+  if (c0Bonds.length !== 2) throw new Error(`co2: краевой атом держится на ${c0Bonds.length} связях, а не на двух`)
+  if (!bonded(SRC_C0, SRC_C1)) throw new Error('co2: реагирующая пара обязана быть связанной')
 
-  // Укладка AB: ровно половина атомов нижнего слоя стоит точно под атомами верхнего.
-  const top = new Set(GRAPHITE_ATOMS.filter((a) => a.layer === 0).map((a) => `${a.uv[0].toFixed(4)}|${a.uv[1].toFixed(4)}`))
-  const eclipsed = GRAPHITE_ATOMS.filter((a) => a.layer === 1 && top.has(`${a.uv[0].toFixed(4)}|${a.uv[1].toFixed(4)}`)).length
-  if (eclipsed < 8) throw new Error(`co2: укладка AB обязана ставить часть нижнего слоя точно под верхний, совпало ${eclipsed}`)
-
-  // ——— Геометрия молекулы ———
-  if (Math.abs(THETA_B_LINEAR - THETA_A_LINEAR - Math.PI) > 1e-9) {
-    throw new Error('co2: в линейной молекуле углы связей обязаны отличаться ровно на 180°')
+  // Сухой лёд: 13 целых молекул — центральная и 12 соседей на a/√2 (КЧ ядра), Z = 1 + 12·¼.
+  if (DRY_NEIGHBOURS.length !== CO2_GEOM.data.dry.neighbours) {
+    throw new Error(`co2: у центральной молекулы ${DRY_NEIGHBOURS.length} соседей, а КЧ ядра ${CO2_GEOM.data.dry.neighbours}`)
   }
-  if (!(CO2_BENT_ANGLE_DEG > 90 && CO2_BENT_ANGLE_DEG < CO2_FACTS.angleDeg)) {
-    throw new Error(`co2: промежуточная частица обязана быть УГЛОВОЙ (90° < ${CO2_BENT_ANGLE_DEG}° < 180°)`)
-  }
-  if (!(D_CO3 < D_CO)) throw new Error('co2: тройная связь C≡O обязана быть короче двойной C=O')
-  if (!(D_LAYER > 2 * D_CC)) throw new Error('co2: расстояние между слоями графита обязано быть много больше связи C–C')
+  if (1 + DRY_NEIGHBOURS.length / 4 !== DRY.z) throw new Error('co2: в ячейке сухого льда Z = 1 + 12·¼ обязано совпасть с ядром')
+  if (DRY_CELL_EDGES.length !== 12) throw new Error('co2: у одной ячейки 12 рёбер')
 
-  if (CO2_END <= 0) throw new Error('co2: пустой сюжет')
+  // Никаких событий лаборатории до конца последнего шага.
+  if (CO2_END <= stepTo(LAST_STEP)) throw new Error('co2: хвост сцены пустой')
 }

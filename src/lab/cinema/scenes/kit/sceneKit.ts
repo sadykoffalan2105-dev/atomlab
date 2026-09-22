@@ -22,7 +22,7 @@
 import { useState } from 'react'
 import * as THREE from 'three'
 import type { Cue } from '../../core/cues'
-import { createAtomPool, createBondPool, type AtomPool, type BondPool } from '../../core/pools'
+import { createAtomPool, createBondPool, createLobePool, type AtomPool, type BondPool, type LobePool } from '../../core/pools'
 import { createSafeArea, type SafeArea } from '../../core/safeArea'
 import {
   createCameraRigState,
@@ -38,6 +38,7 @@ import {
 } from '../../core/states'
 import { storyWallDuration, type StorySegment } from '../../core/storyTime'
 import { validateTrack, windowFade, type ScalarTrack, type Window } from '../../core/tracks'
+import { createEdgePool, type EdgePool } from './lattice'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Шаги урока и хронометраж
@@ -170,6 +171,16 @@ export type SceneGlowSpec<Id extends string> = {
 export type SceneWorld<G extends string = string, W extends string = string> = {
   atoms: AtomPool
   bonds: BondPool
+  /**
+   * Орбитальные лепестки: π-связи (kit/bondVisual.writeBondVisual), p-орбитали,
+   * неподелённые пары. SceneShell рисует их через OrbitalLobes; пустой пул — ноль отрисовки.
+   */
+  lobes: LobePool
+  /**
+   * Рёбра элементарных ячеек (kit/lattice.writeCellEdges) — только если сцена попросила
+   * buildSceneWorld({ edges }); SceneShell рисует их слоем CinemaCellEdges. Нет — слоя нет.
+   */
+  edges?: EdgePool
   rig: CameraRigState
   post: { current: PostDirector }
   /** ореолы и вспышки по имени; SceneShell сам рисует их как CinemaHalo/CinemaFlash */
@@ -195,6 +206,10 @@ export function buildSceneWorld<G extends string, W extends string>(opts: {
   atoms: number
   /** сколько связей и рёбер максимум */
   bonds: number
+  /** сколько записей орбитальных лепестков максимум (π-связь = 2 записи, по одной на атом); по умолчанию 24 */
+  lobes?: number
+  /** ёмкость слоя рёбер ячейки (отрезков); не задано — слоя нет, старые сцены не меняются */
+  edges?: number
   glows: readonly SceneGlowSpec<G>[]
   waves?: readonly SceneWaveSpec<W>[]
   /** цвет тёплого газа/свечения энергии (по умолчанию оранжевый экзо-эффект) */
@@ -214,6 +229,8 @@ export function buildSceneWorld<G extends string, W extends string>(opts: {
   return {
     atoms: createAtomPool(opts.atoms),
     bonds: createBondPool(opts.bonds),
+    lobes: createLobePool(opts.lobes ?? 24),
+    ...(opts.edges ? { edges: createEdgePool(opts.edges) } : {}),
     rig: createCameraRigState(),
     post: { current: createPostDirector() },
     glows,
@@ -287,6 +304,8 @@ export type SceneCamera = {
   zoom: number
   offset: THREE.Vector3
   yaw: number
+  /** наклон, рад (облёт решётки сверху-сбоку); 0 — прежний кадр. Дорожки — kit/camera.ts */
+  pitch: number
   roll: number
   /** 0…1 — тряска на ударе; при prefers-reduced-motion оболочка её приглушает */
   shake: number
@@ -295,7 +314,7 @@ export type SceneCamera = {
 }
 
 export function createSceneCamera(): SceneCamera {
-  return { zoom: 1, offset: new THREE.Vector3(), yaw: 0, roll: 0, shake: 0, bloom: 0.3, vignette: 0.3 }
+  return { zoom: 1, offset: new THREE.Vector3(), yaw: 0, pitch: 0, roll: 0, shake: 0, bloom: 0.3, vignette: 0.3 }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -344,8 +363,8 @@ export function appearTrack(t0: number, dur = 0.55): ScalarTrack {
  */
 export type SceneLabelDef = {
   id: string
-  /** стиль: species (формула), ox (степень окисления), delta (ΔH, числа), token */
-  kind: 'species' | 'ox' | 'delta' | 'token'
+  /** стиль: species (формула), ox (степень окисления), delta (δ±, ΔH), measure (размер: пм, a), token */
+  kind: 'species' | 'ox' | 'delta' | 'measure' | 'token'
   /** смещение по Y от края якоря: > 0 — над, < 0 — под */
   dy: number
   keys: readonly { t: number; text: string }[]
@@ -401,7 +420,10 @@ export function sampleLabels(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Язык 3D-подписей. Раскадровка остаётся ЧИСТОЙ и не знает про локаль: она
+ * Язык 3D-подписей (решение владельца проекта): в 3D только формулы, заряды,
+ * числа и символы единиц — в соглашении учебника текущего языка (ru: «пм»,
+ * «кДж/моль», «г.»; en: pm, kJ/mol, g). Никаких фраз в 3D — слова живут в панели урока.
+ * Раскадровка остаётся ЧИСТОЙ и не знает про локаль: она
  * пишет в текст подписи токены `{s}`, `{g}`, `{l}`, `{aq}`, `{pm}`, `{kJmol}`,
  * `{kJ}`, `{nm}`, а сцена один раз за кадр зовёт `localizeSceneLabels()`.
  */
@@ -412,9 +434,10 @@ export type SceneLocale = 'ru' | 'en' | 'uz'
  * интернациональны; переводятся только состояния вещества и единицы.
  */
 export const SCENE_LABEL_TOKENS: Readonly<Record<SceneLocale, Readonly<Record<string, string>>>> = {
-  ru: { s: 'тв.', g: 'г.', l: 'ж.', aq: 'р-р', pm: 'пм', nm: 'нм', kJmol: 'кДж/моль', kJ: 'кДж' },
-  en: { s: 's', g: 'g', l: 'l', aq: 'aq', pm: 'pm', nm: 'nm', kJmol: 'kJ/mol', kJ: 'kJ' },
-  uz: { s: 'qat.', g: 'gaz', l: 'suyuq.', aq: 'eritma', pm: 'pm', nm: 'nm', kJmol: 'kJ/mol', kJ: 'kJ' },
+  // cn — координационное число, символ учебника: ru «КЧ», en «CN», uz «KS» (koordinatsion son)
+  ru: { s: 'тв.', g: 'г.', l: 'ж.', aq: 'р-р', pm: 'пм', nm: 'нм', kJmol: 'кДж/моль', kJ: 'кДж', cn: 'КЧ' },
+  en: { s: 's', g: 'g', l: 'l', aq: 'aq', pm: 'pm', nm: 'nm', kJmol: 'kJ/mol', kJ: 'kJ', cn: 'CN' },
+  uz: { s: 'qat.', g: 'gaz', l: 'suyuq.', aq: 'eritma', pm: 'pm', nm: 'nm', kJmol: 'kJ/mol', kJ: 'kJ', cn: 'KS' },
 }
 
 /** Нормализует код языка приложения к языку сцены. */
@@ -425,29 +448,42 @@ export function toSceneLocale(locale: string | null | undefined): SceneLocale {
 }
 
 const TOKEN_RE = /\{(\w+)\}/g
-/** Кэш «сырой текст + локаль» → готовая строка: подписи считаются каждый кадр. */
-const labelCache = new Map<string, string>()
+/**
+ * Кэш «сырой текст → готовая строка» — отдельная карта на каждую локаль:
+ * поиск по самой строке подписи, без склейки ключа (ноль аллокаций в кадре).
+ */
+const labelCache: Readonly<Record<SceneLocale, Map<string, string>>> = { ru: new Map(), en: new Map(), uz: new Map() }
 
 /** Подставляет токены в одну строку (с кэшем, без аллокаций на повторах). */
-export function localizeLabelText(text: string, locale: SceneLocale): string {
-  if (text.indexOf('{') < 0) return text
-  const key = `${locale} ${text}`
-  const hit = labelCache.get(key)
+export function localizeLabelText(text: string, locale: SceneLocale, decimalComma = false): string {
+  const comma = decimalComma && locale !== 'en'
+  if (!comma && text.indexOf('{') < 0) return text
+  const cache = (comma ? labelCacheComma : labelCache)[locale] ?? labelCache.ru
+  const hit = cache.get(text)
   if (hit !== undefined) return hit
   const dict = SCENE_LABEL_TOKENS[locale]
-  const out = text.replace(TOKEN_RE, (whole, name: string) => dict[name] ?? whole)
-  labelCache.set(key, out)
+  let out = text.indexOf('{') < 0 ? text : text.replace(TOKEN_RE, (whole, name: string) => dict[name] ?? whole)
+  // ru/uz: десятичная запятая, как в панели урока (решение 8: числа в 3D — по локали). Включает сцена:
+  // у части старых сцен тесты ещё ждут точку, их переводит владелец сцены.
+  if (comma) out = out.replace(DECIMAL_RE, '$1,$2')
+  cache.set(text, out)
   return out
 }
+
+/** Кэш строк с десятичной запятой (отдельно: одна и та же сырая строка даёт разный результат). */
+const labelCacheComma: Readonly<Record<SceneLocale, Map<string, string>>> = { ru: new Map(), en: new Map(), uz: new Map() }
+
+/** Десятичная точка между цифрами: «236.1» → «236,1» (ru/uz). Обозначения вроде «Fm-3m» не задевает. */
+const DECIMAL_RE = /(\d)\.(\d)/g
 
 /**
  * Переводит подписи НА МЕСТЕ — вызывать в onFrame сразу после sampleFrame(),
  * иначе React-массив подписей заморозится (SceneShell мутирует его каждый кадр).
  */
-export function localizeSceneLabels(states: SceneLabelState[], locale: SceneLocale): void {
+export function localizeSceneLabels(states: SceneLabelState[], locale: SceneLocale, decimalComma = false): void {
   for (let i = 0; i < states.length; i++) {
     const st = states[i]!
-    st.text = localizeLabelText(st.text, locale)
+    st.text = localizeLabelText(st.text, locale, decimalComma)
   }
 }
 

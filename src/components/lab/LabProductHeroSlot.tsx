@@ -13,8 +13,8 @@ import {
 } from '../../lab/productGpuCompileCache'
 import { enqueueGpuCompile } from '../../lab/gpuCompileBudget'
 import type { CompoundDef } from '../../types/chemistry'
-import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
-import { CATALOG_HERO_DEFAULT_LAB_SCALE } from './catalogMoleculeHeroShared'
+import { ProductHero } from './hero/ProductHero'
+import { buildHeroModel } from './hero/heroGeometry'
 import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
 import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import { resolveVisiblePaintFrames } from '../../lab/synthesisStabilityEngine'
@@ -22,6 +22,21 @@ import { resolveVisiblePaintFrames } from '../../lab/synthesisStabilityEngine'
 const MICRO_SCALE = 0.001
 /** Видимый «зародыш» молекулы внутри glow до GSAP-рождения. */
 const EMBRYO_SCALE = 0.2
+/**
+ * Слой, которого нет у камеры: прогрев компилирует шейдеры, но в кадр не попадает.
+ * visible=false здесь нельзя — gl.compile ходит по traverseVisible и прогрев сорвётся,
+ * а микромасштаб сам по себе не спасает: emissive-точка всё равно ловится bloom'ом.
+ */
+const PREWARM_LAYER = 31
+/** Раз в сколько кадров повторяем маску: меши продукта монтируются не одним кадром. */
+const PREWARM_LAYER_REAPPLY = 12
+
+/** Модульная функция — ноль аллокаций в кадре (замыкание не пересоздаётся). */
+function applyPrewarmLayer(root: THREE.Object3D, hidden: boolean): void {
+  root.traverse((obj) => {
+    obj.layers.set(hidden ? PREWARM_LAYER : 0)
+  })
+}
 
 /**
  * Единый слот 3D-продукта: без своего background (фон в LabReactorEnvironment).
@@ -67,6 +82,9 @@ export function LabProductHeroSlot({
   const compileGenRef = useRef(0)
   const gpuCompiledRef = useRef(false)
   const prewarmPaintFramesRef = useRef(0)
+  /** Защёлка «ветка уведена на невидимый слой» + счётчик повторов маски. */
+  const prewarmLayerOnRef = useRef(false)
+  const prewarmLayerFrameRef = useRef(0)
   const visiblePaintFramesRef = useRef(0)
   const visiblePaintSentRef = useRef(false)
   const lastCompoundIdRef = useRef(compound.id)
@@ -76,6 +94,14 @@ export function LabProductHeroSlot({
     () => getLowPowerDeviceProfile(getSynthesisDeviceTier()).forceLiteReactor,
     [],
   )
+  /**
+   * Герой по данным ядра рисуется материалами кино-ядра (импостер атомов, полосы связей), которые
+   * освобождаются при размонтировании слота. three.compileAsync опрашивает готовность программ
+   * по таймеру и падает («reading 'isReady'»), если материал освобождён посреди опроса — очередь
+   * прогрева монтирует и снимает слоты часто. Поэтому для такого героя — только поштучный
+   * gl.compile (программы те же, что у сцен, и уже в кэше рендерера), без compileAsync.
+   */
+  const dataHero = useMemo(() => buildHeroModel(compound.id) !== null, [compound.id])
 
   /** Локальный ready (можно reveal) — без записи в session cache. */
   const notifyGpuCompiledLocal = useCallback(() => {
@@ -175,7 +201,7 @@ export function LabProductHeroSlot({
             releaseBudget?.()
             releaseBudget = null
           },
-          { skipCompileAsync: !shaderCompileAsync, meshesPerFrame: shaderCompileAsync ? 2 : 1 },
+          { skipCompileAsync: dataHero || !shaderCompileAsync, meshesPerFrame: shaderCompileAsync ? 2 : 1 },
         )
       })
     }
@@ -220,6 +246,7 @@ export function LabProductHeroSlot({
     notifyGpuCompiledLocal,
     notifyGpuCompiledPersisted,
     shaderCompileAsync,
+    dataHero,
   ])
 
   // Синтез: видимый продукт — приоритетный compile, БЕЗ snap scale=1 (убивает birth + hitch).
@@ -332,6 +359,26 @@ export function LabProductHeroSlot({
 
   // Считаем реально отрисованные кадры visible → paint. Micro-prewarm НЕ пишет GPU-cache.
   useFrame((state) => {
+    // Прогрев обязан быть абсолютно невидим: уводим всю ветку на слой без камеры.
+    const prewarmHidden = prewarm && !visible
+    const rootForLayer = groupRef.current
+    if (rootForLayer) {
+      if (prewarmHidden) {
+        prewarmLayerFrameRef.current += 1
+        if (
+          !prewarmLayerOnRef.current ||
+          prewarmLayerFrameRef.current % PREWARM_LAYER_REAPPLY === 0
+        ) {
+          prewarmLayerOnRef.current = true
+          applyPrewarmLayer(rootForLayer, true)
+        }
+      } else if (prewarmLayerOnRef.current) {
+        // Возврат в кадр — до gl.render этого же кадра, поэтому «дыры» нет.
+        prewarmLayerOnRef.current = false
+        prewarmLayerFrameRef.current = 0
+        applyPrewarmLayer(rootForLayer, false)
+      }
+    }
     if (visible && !prewarm && !visiblePaintSentRef.current) {
       const g = groupRef.current
       if (g) {
@@ -509,6 +556,8 @@ export function LabProductHeroSlot({
       ) : null}
       <group
         ref={groupRef}
+        // Имя — для диагностики и смоук-проверок «в кадре только сцена урока».
+        name="lab-product-hero-root"
         position={[0, 0, 0]}
         visible
         frustumCulled={false}
@@ -516,16 +565,16 @@ export function LabProductHeroSlot({
         renderOrder={emergeFromGlow ? 55 : 8}
       >
         <group ref={spinRef}>
-          <CatalogSubstanceDisplay
+          {/*
+            Герой по данным ядра (решётка из целых ячеек или молекула с геометрией bondData),
+            для прочих веществ — каталожная модель без ауры. Подписи — только в кадре:
+            не на невидимом прогреве и не зародышем внутри круга.
+          */}
+          <ProductHero
             compound={compound}
-            labScaleBoost={CATALOG_HERO_DEFAULT_LAB_SCALE}
-            reducedEffects
-            labSynthesisScene
-            renderQuality="synthesis"
-            fxLevel="low"
+            showLabels={visible && !prewarm && !embryoInGlow}
+            lowPower={lowPower}
             chaoticWobble={false}
-            // Атмосфера: при birth; зародыш без шара — круг даёт свечение.
-            showAtmosphere={visible && !prewarm && !embryoInGlow}
           />
         </group>
       </group>

@@ -231,14 +231,14 @@ test('материалы: defines, общие uniforms освещения, ча�
   mesh.dispose()
 })
 
-test('геометрии: квад 4 вершины, икосфера detail 2 индексирована', () => {
+test('геометрии: квад 4 вершины, икосфера detail 4 индексирована', () => {
   const quad = createImpostorQuadGeometry()
   assert.equal(quad.getAttribute('position').count, 4)
   assert.equal(quad.getIndex()!.count, 6)
   const ico = createIcosphereInstancedGeometry()
-  // three: detail 2 → (2+1)² = 9 треугольников на грань икосаэдра
-  assert.equal(ico.getAttribute('position').count, 92)
-  assert.equal(ico.getIndex()!.count, 180 * 3)
+  // three: detail 4 → (4+1)² = 25 треугольников на грань, 20·25 = 500; вершин 10·25 + 2 = 252 (detail 2 давал гранёный силуэт крупного Na)
+  assert.equal(ico.getAttribute('position').count, 252)
+  assert.equal(ico.getIndex()!.count, 500 * 3)
   const p = ico.getAttribute('position')
   for (let i = 0; i < p.count; i++) assert.ok(near(Math.hypot(p.getX(i), p.getY(i), p.getZ(i)), 1, 1e-5))
   quad.dispose()

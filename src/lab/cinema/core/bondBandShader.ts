@@ -71,11 +71,11 @@ export const BOND_INSTANCE_LAYOUT = {
   /** aPiNormal = (piNormal.xyz, split) */
   piNormal: 16,
   split: 19,
-  /** aState = (form, stress, thinning, резерв = 0) */
+  /** aState = (form, stress, thinning, dashStatic: 1 — неподвижный штрих водородной связи) */
   form: 20,
   stress: 21,
   thinning: 22,
-  reserved: 23,
+  dashStatic: 23,
 } as const
 
 /** Радиальные сегменты посредника: полный и облегчённый режим. */
@@ -206,7 +206,8 @@ export function packBondInstances(pool: BondPool, out: Float32Array, count: numb
     out[o + 20] = pool.form[i]
     out[o + 21] = pool.stress[i]
     out[o + 22] = pool.thinning[i]
-    out[o + 23] = 0
+    // Старые пулы без поля — штрих ползёт, как раньше.
+    out[o + 23] = pool.dashStatic ? pool.dashStatic[i]! : 0
   }
 }
 
@@ -234,7 +235,7 @@ const VERTEX_SHADER = /* glsl */ `
   attribute vec4 aColorA;   // colorA.rgb, polarity
   attribute vec4 aColorB;   // colorB.rgb, opacity
   attribute vec4 aPiNormal; // piNormal.xyz, split
-  attribute vec4 aState;    // form, stress, thinning, резерв
+  attribute vec4 aState;    // form, stress, thinning, dashStatic
 
   uniform float uPixelK;     // размер пикселя на глубине 1 (перспектива) или просто размер (орто)
   uniform float uProxyScale; // 1/cos(π/сегменты): многоугольник описан вокруг окружности
@@ -248,7 +249,7 @@ const VERTEX_SHADER = /* glsl */ `
   varying vec3 vColorB;
   varying vec4 vGeom;  // длина, радиус (вид), кратность, полярность
   varying vec4 vState; // form, stress, thinning, split
-  varying vec3 vMisc;  // opacity, число штрихов, зерно мерцания
+  varying vec4 vMisc;  // opacity, число штрихов, зерно мерцания, ползёт ли штрих (1/0)
 
   ${LAYOUT_GLSL}
 
@@ -301,7 +302,7 @@ const VERTEX_SHADER = /* glsl */ `
     vColorB = aColorB.rgb;
     vGeom = vec4(len, radiusV, aB.w, aColorA.w);
     vState = vec4(aState.x, aState.y, aState.z, aPiNormal.w);
-    vMisc = vec3(opacity, max(1.0, floor(len / max(uDashPeriod * radiusV, 1e-5) + 0.5)), fract(float(gl_InstanceID) * 0.618034));
+    vMisc = vec4(opacity, max(1.0, floor(len / max(uDashPeriod * radiusV, 1e-5) + 0.5)), fract(float(gl_InstanceID) * 0.618034), aState.w > 0.5 ? 0.0 : 1.0);
 
     vec4 mvPosition = vec4(pV, 1.0);
     gl_Position = projectionMatrix * mvPosition;
@@ -325,7 +326,7 @@ const FRAGMENT_SHADER = /* glsl */ `
   varying vec3 vColorB;
   varying vec4 vGeom;
   varying vec4 vState;
-  varying vec3 vMisc;
+  varying vec4 vMisc;
 
   ${LAYOUT_GLSL}
 
@@ -375,7 +376,7 @@ const FRAGMENT_SHADER = /* glsl */ `
 
   // Пунктир дробной кратности: штрихи со скруглёнными концами, ползут со временем.
   float bondDashAt(float s, float duty, float dashCount, float rbWorld) {
-    float p = fract(s * dashCount - uTime * uDashSpeed);
+    float p = fract(s * dashCount - uTime * uDashSpeed * vMisc.w);
     float halfDuty = 0.5 * duty;
     float endDist = (halfDuty - abs(p - halfDuty)) * gLen / dashCount;
     if (endDist <= 0.0) return 0.0;
@@ -433,7 +434,7 @@ const FRAGMENT_SHADER = /* glsl */ `
       float off = (fk - 0.5 * (nBands - 1.0)) * spacing * gRadius;
       float isDash = (duty < 0.999 && fk > nBands - 1.5) ? 1.0 : 0.0;
       float rk = prof;
-      if (isDash > 0.5) rk *= step(fract(s * dashCount - uTime * uDashSpeed), duty);
+      if (isDash > 0.5) rk *= step(fract(s * dashCount - uTime * uDashSpeed * vMisc.w), duty);
       float dx = x - off * nSide;
       if (rk <= 0.0) continue;
       // Покрытие пикселя; трубка тоньше пикселя гаснет, а не остаётся волоском в разрыве.

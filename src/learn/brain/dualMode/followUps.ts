@@ -7,6 +7,8 @@
  */
 import { extractKeyTerm, type ComposeStyle } from './localAnswerComposer'
 import { contentStems, foldText, type StemLang } from './textStems'
+import { explainerHint } from '../../knowledge/learnExplainerAnswer'
+import { looksLikeGibberish } from './gibberish'
 
 export type FollowUpKind = 'why' | 'example' | 'simpler' | 'more' | 'repeat' | 'topic'
 
@@ -145,4 +147,94 @@ export function isSubstantiveQuestion(text: string): boolean {
   const f = detectFollowUp(clean)
   if (f.kinds.length > 0 && f.needsPrevious) return false
   return contentStems(clean).length > 0
+}
+
+/* ------------------------------------------------- реплики без вопроса */
+
+export type NonQuestionKind = 'dontknow' | 'filler' | 'ack' | 'gibberish'
+
+/** «Не знаю», «хз», «не помню» — ученик сдаётся, ему нужна наводка, а не поиск по базе. */
+const DONT_KNOW_RE =
+  /^(я\s+)?(не\s+знаю|незнаю|не\s+помню|не\s+могу|затрудняюсь|хз|без\s+понятия|понятия\s+не\s+имею|сложно|трудно|не\s+получается|i\s+do\s?n'?t\s+know|dunno|no\s+idea|not\s+sure|bilmayman|bilmadim|eslay\s+olmayman)[\s.!?]*$/iu
+
+/** «Ммм», «эээ», «ну», «чё» — шум распознавания, на него отвечаем переспросом. */
+const FILLER_RE = /^(м+|э+|а+|у+|ну|так|что|чё|че|а\s*что|ага\s*что|hmm+|um+|uh+|eh+|well|so|nima|ha)[\s.!?]*$/iu
+
+/** «Понятно», «спасибо», «ок» — подтверждение, отвечаем коротко и идём дальше. */
+const ACK_RE =
+  /^(ага|угу|ок|окей|хорошо|ладно|понял|поняла|понятно|ясно|спасибо|спс|благодарю|всё\s+понятно|да|ok|okay|got\s+it|i\s+see|thanks|thank\s+you|clear|tushundim|rahmat|xo'?p|mayli|ha)[\s.!?]*$/iu
+
+/**
+ * Реплика ученика без вопроса: «не знаю» / мычание / подтверждение.
+ * Срабатывает только на короткой реплике — «не знаю, почему вода кипит» остаётся вопросом.
+ */
+export function detectNonQuestion(text: string): NonQuestionKind | null {
+  // «э-э», «м-м-м» — тянущиеся звуки пишутся через дефис, для разбора их склеиваем.
+  const t = stripLeadingDiscourse(text).trim().replace(/[«»"']/g, '').replace(/(?<=\p{L})-(?=\p{L})/gu, '')
+  if (!t || t.length > 40) return null
+  if (DONT_KNOW_RE.test(t)) return 'dontknow'
+  if (ACK_RE.test(t)) return 'ack'
+  if (FILLER_RE.test(t)) return 'filler'
+  // «фыва олдж пррр», «qwrtplzk mnbvxz» — не слова: переспрашиваем, ввод не цитируем.
+  if (looksLikeGibberish(t)) return 'gibberish'
+  return null
+}
+
+const NON_QUESTION_REPLIES: Record<StemLang, Record<NonQuestionKind, string[]>> = {
+  ru: {
+    dontknow: [
+      'Ничего страшного — давай вместе.',
+      'Это нормально, разберём по шагам.',
+      'Не беда, подскажу.',
+    ],
+    filler: [
+      'Повтори, пожалуйста, я не расслышал.',
+      'Скажи ещё раз — что именно непонятно: определение или пример?',
+      'Не разобрал вопрос. Повтори чуть медленнее.',
+    ],
+    ack: ['Отлично. Идём дальше?', 'Хорошо. Спрашивай, если что-то ещё непонятно.', 'Рад, что понятно. Двигаемся дальше?'],
+    // Ввод не цитируем: набор букв в ответе выглядел бы как принятая тема вопроса.
+    gibberish: [
+      'Кажется, вопрос набрался случайно — я не разобрал ни одного слова. Повтори, пожалуйста.',
+      'Тут только набор букв, я не понял вопрос. Напиши ещё раз словами — о чём спрашиваешь?',
+      'Не разобрал вопрос: в нём нет знакомых слов. Уточни, пожалуйста, что именно интересует.',
+    ],
+  },
+  en: {
+    dontknow: ['No problem — let us do it together.', 'That is fine, step by step.', 'No worries, I will give you a hint.'],
+    filler: ['Could you repeat that, please?', 'Say it again — what exactly is unclear: the definition or the example?'],
+    ack: ['Great. Shall we go on?', 'Good. Ask me if anything else is unclear.'],
+    gibberish: [
+      'That looks like random letters — I could not read a single word. Could you repeat the question?',
+      'I did not catch the question: there are no words I know. Please say again what exactly you mean.',
+    ],
+  },
+  uz: {
+    dontknow: ['Hechqisi yoʻq — birga koʻramiz.', 'Bu normal, bosqichma-bosqich koʻramiz.', 'Xavotir olma, yoʻl-yoʻriq beraman.'],
+    filler: ['Iltimos, qaytar — eshitmadim.', 'Yana bir bor ayt: nimasi tushunarsiz — taʼrifmi yoki misolmi?'],
+    ack: ['Zoʻr. Davom etamizmi?', 'Yaxshi. Yana tushunarsiz joyi boʻlsa, soʻra.'],
+    gibberish: [
+      'Bu tasodifiy harflarga oʻxshaydi — birorta soʻzni ajrata olmadim. Iltimos, savolni qaytar.',
+      'Savolni tushunmadim: tanish soʻz yoʻq. Iltimos, nimani soʻrayotganingni soʻz bilan yoz.',
+    ],
+  },
+}
+
+/**
+ * Ответ на реплику без вопроса. Для «не знаю» подмешивает наводку по текущей теме
+ * (слот hint карточки объяснения) и снова задаёт вопрос проще — база при этом не опрашивается.
+ */
+export function replyForNonQuestion(
+  kind: NonQuestionKind,
+  lang: StemLang,
+  options: { topic?: string; seed?: number } = {},
+): string {
+  const pool = NON_QUESTION_REPLIES[lang] ?? NON_QUESTION_REPLIES.ru
+  const seed = options.seed ?? 0
+  const lines = pool[kind]
+  const opener = lines[((seed % lines.length) + lines.length) % lines.length]!
+  if (kind !== 'dontknow' || !options.topic) return opener
+  const card = explainerHint(options.topic, lang)
+  if (!card) return opener
+  return `${opener} ${card.hint} ${card.check}`
 }

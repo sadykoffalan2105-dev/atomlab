@@ -1,0 +1,110 @@
+/* Счётчик атомов над знаком уравнения. Панель реактора тёмная в обеих темах —
+ * цвета заданы явно под тёмный фон, контраст ≥ 4.5:1. */
+
+.ledger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 7px 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(251, 113, 133, 0.55);
+  background: rgba(60, 14, 28, 0.55);
+  color: #ffd5dc;
+  transition:
+    border-color 220ms ease,
+    background-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.ledger[data-balanced='true'] {
+  border-color: rgba(52, 211, 153, 0.6);
+  background: rgba(8, 48, 34, 0.6);
+  color: #c9f7e2;
+}
+
+.ledger[data-flash='true'] {
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.35), 0 0 22px rgba(52, 211, 153, 0.45);
+}
+
+/* Строки элементов идут чипами в строку с переносом: пять элементов (KMnO₄ + H₂SO₄)
+ * занимают две короткие строки, а не пять — панель не растёт и не закрывает 3D. */
+.table {
+  display: block;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+.table tbody {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1px 9px;
+  max-width: 210px;
+}
+
+.table tr {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.table th,
+.table td {
+  padding: 0 1px;
+}
+
+.table .el {
+  padding-right: 3px;
+  text-align: left;
+  font-weight: 750;
+}
+
+.n {
+  min-width: 10px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.bar {
+  color: rgba(226, 232, 255, 0.45);
+}
+
+.rowBad .n {
+  color: #ff9aac;
+}
+
+.rowOk .n {
+  color: #7ff0bd;
+}
+
+.state {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.comment {
+  margin: 6px 0 0;
+  min-height: 1.3em;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #ffc9d2;
+  text-align: center;
+}
+
+.comment[data-balanced='true'] {
+  color: #9ff3cd;
+}
+
+.comment:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ledger {
+    transition: none;
+  }
+}

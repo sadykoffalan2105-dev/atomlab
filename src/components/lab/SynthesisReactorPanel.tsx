@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ChangeEvent,
   type FocusEvent,
   type KeyboardEvent,
@@ -19,7 +20,12 @@ import type { ReactorCoProductTerm } from '../../chemistry/scientificReactorReci
 import { REACTOR_COEFF_MAX } from '../../chemistry/reactorLimits'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
 import { compoundById } from '../../data/compounds'
+import { getSchoolReaction } from '../../chemistry/schoolReactionBank'
+import { useLocation } from 'react-router-dom'
+import { clo2StepStore } from '../../lab/cinema/scenes/clo2/clo2StepStore'
 import { ReactorBalancePanel } from './ReactorBalancePanel'
+import { effectiveLabNeeds } from '../../lab/reactionLabNeeds'
+import { ReactorAtomLedger, ReactorLedgerComment, useAtomLedger } from './ReactorAtomLedger'
 import type { BalanceLesson } from '../../chemistry/balanceLessonBank'
 import panelStyles from './SynthesisReactorPanel.module.css'
 
@@ -271,6 +277,42 @@ function reactorMessageTone(message: string, highlightError: boolean): MessageTo
 }
 
 /** Подписи раскрывающихся разделов (TODO: перенести в i18n-словари). */
+/** «шаг/всего» урока на паузе или '' — примитив для useSyncExternalStore (без лишних рендеров). */
+function readLessonPauseKey(): string {
+  const s = clo2StepStore.getSnapshot()
+  return s.runId > 0 && s.status === 'paused' && s.stepCount > 0 ? `${s.step + 1}/${s.stepCount}` : ''
+}
+
+/**
+ * Содержимое кнопки запуска. Урок по шагам стоит на паузе — «Пауза, шаг N из M» без спиннера.
+ * Подписка на шаги урока — ТОЛЬКО здесь: на «Далее» перерисовывается одна кнопка, а не весь
+ * реактор (его рендер на клике давал худший кадр 50–80 мс).
+ */
+function RunButtonContent({ synthesisRunning, locale, runningText, runText }: { synthesisRunning: boolean; locale: string; runningText: string; runText: string }) {
+  const lessonPauseKey = useSyncExternalStore(clo2StepStore.subscribe, readLessonPauseKey, readLessonPauseKey)
+  const pausedText =
+    synthesisRunning && lessonPauseKey
+      ? (LESSON_PAUSE_LABEL[locale] ?? LESSON_PAUSE_LABEL.ru!)
+          .replace('{n}', lessonPauseKey.split('/')[0]!)
+          .replace('{m}', lessonPauseKey.split('/')[1]!)
+      : null
+  return (
+    <>
+      <span className={panelStyles.reactorBtnPrimaryIcon} aria-hidden>
+        {synthesisRunning ? pausedText ? <IconPlay /> : <IconSpinner className={panelStyles.spin} /> : <IconPlay />}
+      </span>
+      <span>{synthesisRunning ? (pausedText ?? runningText) : runText}</span>
+    </>
+  )
+}
+
+/** Статус кнопки запуска, пока урок стоит на паузе между шагами. */
+const LESSON_PAUSE_LABEL: Record<string, string> = {
+  ru: 'Пауза, шаг {n} из {m}',
+  en: 'Paused, step {n} of {m}',
+  uz: 'Pauza, {n}-qadam / {m}',
+}
+
 const SECTION_LABELS: Record<string, { hints: string; steps: string; hide: string }> = {
   ru: { hints: 'Подсказки', steps: 'Этапы получения', hide: 'Скрыть' },
   en: { hints: 'Tips', steps: 'Production steps', hide: 'Hide' },
@@ -398,6 +440,72 @@ function CoeffKeyboardInput({
   )
 }
 
+/**
+ * Коэффициент со ступенькой: − [поле] +. Кнопки — зона нажатия 44 × 44 px
+ * (видимый круг меньше), поле по-прежнему принимает ввод с клавиатуры.
+ */
+function CoeffStepper(props: {
+  value: number
+  min: number
+  max: number
+  onChange: (n: number) => void
+  onFocusChange?: (focused: boolean) => void
+  ariaLabel: string
+  symbol: string
+  highlightError: boolean
+  dimWhenOne?: boolean
+  decLabel: string
+  incLabel: string
+}) {
+  const { value, min, max, onChange, symbol, decLabel, incLabel } = props
+  return (
+    <span className={panelStyles.coeffStepper}>
+      <button
+        type="button"
+        className={panelStyles.coeffStepBtn}
+        onClick={() => {
+          const n = clampCoeff(value - 1, min, max)
+          if (n !== value) onChange(n)
+        }}
+        disabled={value <= min}
+        aria-label={`${decLabel}: ${symbol}`}
+        title={`${decLabel}: ${symbol}`}
+        data-coeff-step="dec"
+      >
+        <span className={panelStyles.coeffStepGlyph} aria-hidden>
+          −
+        </span>
+      </button>
+      <CoeffKeyboardInput
+        value={value}
+        min={min}
+        max={max}
+        highlightError={props.highlightError}
+        dimWhenOne={props.dimWhenOne}
+        ariaLabel={props.ariaLabel}
+        onChange={onChange}
+        onFocusChange={props.onFocusChange}
+      />
+      <button
+        type="button"
+        className={panelStyles.coeffStepBtn}
+        onClick={() => {
+          const n = clampCoeff(value + 1, min, max)
+          if (n !== value) onChange(n)
+        }}
+        disabled={value >= max}
+        aria-label={`${incLabel}: ${symbol}`}
+        title={`${incLabel}: ${symbol}`}
+        data-coeff-step="inc"
+      >
+        <span className={panelStyles.coeffStepGlyph} aria-hidden>
+          +
+        </span>
+      </button>
+    </span>
+  )
+}
+
 export function SynthesisReactorPanel({
   open,
   onOpenGenerateEquationCatalog,
@@ -480,6 +588,7 @@ export function SynthesisReactorPanel({
   onTeacherReplay?: () => void
 }) {
   const { locale, t } = useT()
+  const location = useLocation()
   const coeffErr = highlightEquationError
   const coeffFocusGenRef = useRef(0)
   const coeffFocusReleaseTimerRef = useRef<number | null>(null)
@@ -545,13 +654,19 @@ export function SynthesisReactorPanel({
   )
 
   const visualTier = useMemo(() => (leftTerms.length > 0 ? getReactorVisualTier(leftTerms) : 'full'), [leftTerms])
+  /** Счётчик атомов «слева | справа» и комментарий к последнему ±. */
+  const atomLedger = useAtomLedger({ leftTerms, coProducts, productCompound, productCoeff }, synthesisRunning)
   const hasDiatomic = leftTerms.some((t) => t.diatomic)
 
   const hasObtainingSteps = Boolean(productStrings?.obtainingSteps && productStrings.obtainingSteps.length > 1)
   const activeSection: ReactorSection | null =
     openSection === 'steps' && !hasObtainingSteps ? null : openSection
 
-  const labNeeds = productCompound?.synthesisLab
+  const linkedReactionId = useMemo(() => {
+    const query = location.search || (window.location.hash.includes('?') ? window.location.hash.slice(window.location.hash.indexOf('?')) : '')
+    return new URLSearchParams(query.startsWith('?') ? query.slice(1) : query).get('reaction')
+  }, [location.search])
+  const labNeeds = effectiveLabNeeds(productCompound?.synthesisLab, productCompound?.id, linkedReactionId)
   const hasLabConditions = Boolean(
     productCompound && (labNeeds?.needsHeat || labNeeds?.needsPressure || labNeeds?.needsCatalyst),
   )
@@ -564,8 +679,18 @@ export function SynthesisReactorPanel({
   const showLabConditionsHint = hasLabConditions && equationBalanced && !canRun && !synthesisRunning
 
   const messageTone = message ? reactorMessageTone(message, highlightEquationError) : 'info'
+  // Эталон — по id реакции из ссылки (решение 9: id, а не продукт): у naoh-hcl продукт тоже NaCl,
+  // и «первая реакция с этим продуктом» подставила бы 2Na + Cl₂. Рецепт соединения — только без ссылки.
+  const linkedReaction = useMemo(
+    () => (linkedReactionId ? (getSchoolReaction(linkedReactionId) ?? null) : null),
+    [linkedReactionId],
+  )
   const recipeText = productCompound
-    ? (productStrings?.laboratoryRecipe ?? productCompound.laboratoryRecipeRu)
+    ? linkedReaction
+      ? linkedReaction.productId === productCompound.id
+        ? (locale === 'ru' ? linkedReaction.equationRu : linkedReaction.equationEn || linkedReaction.equationRu)
+        : null
+      : (productStrings?.laboratoryRecipe ?? productCompound.laboratoryRecipeRu)
     : null
 
   const sectionToggle = (id: ReactorSection, icon: ReactNode, label: string, title?: string) => (
@@ -706,13 +831,16 @@ export function SynthesisReactorPanel({
                         className={`${panelStyles.reagentBubble} ${coeffErr ? panelStyles.reagentBubbleError : ''}`}
                         style={{ ['--reagent-glow' as string]: reagentGlowHex(term.z) }}
                       >
-                        <CoeffKeyboardInput
+                        <CoeffStepper
                           value={term.coeff}
                           min={1}
                           max={COEFF_MAX}
                           highlightError={coeffErr}
                           dimWhenOne
                           ariaLabel={t('reactor.coeffFor', { symbol: termSymbolDisplay(term) })}
+                          symbol={termSymbolDisplay(term)}
+                          decLabel={t('reactor.coeffDecrease')}
+                          incLabel={t('reactor.coeffIncrease')}
                           onChange={(n) => onCoeffChange(term.id, n)}
                           onFocusChange={reportCoeffFocus}
                         />
@@ -734,8 +862,11 @@ export function SynthesisReactorPanel({
                 </div>
               </div>
 
-              <div className={panelStyles.equalsColumn} aria-hidden="true">
-                <span className={panelStyles.equalsSign}>{scientificMode ? '→' : '='}</span>
+              <div className={panelStyles.equalsColumn}>
+                {leftTerms.length > 0 ? <ReactorAtomLedger ledger={atomLedger.ledger} /> : null}
+                <span className={panelStyles.equalsSign} aria-hidden="true">
+                  {scientificMode ? '→' : '='}
+                </span>
               </div>
 
               <div className={`${panelStyles.productBlock} ${panelStyles.productBlockEquation}`}>
@@ -743,12 +874,18 @@ export function SynthesisReactorPanel({
                   <span className={panelStyles.productLabelCompact}>
                     {scientificMode ? t('reactor.products') : t('reactor.productGoal')}
                   </span>
-                  {equationBalanced ? (
-                    <span className={panelStyles.balanceBadge} role="status" aria-label={t('reactor.balanced')}>
-                      <IconCheck className={panelStyles.balanceCheck} size={12} />
-                      <span className={panelStyles.balanceBadgeText}>{t('reactor.balanced')}</span>
-                    </span>
-                  ) : null}
+                  {/* Место под плашку зарезервировано всегда (visibility, а не удаление):
+                      иначе карточка уравнения прыгает по ширине при каждом ±. */}
+                  <span
+                    className={panelStyles.balanceBadge}
+                    role={equationBalanced ? 'status' : undefined}
+                    aria-label={equationBalanced ? t('reactor.balanced') : undefined}
+                    aria-hidden={equationBalanced ? undefined : true}
+                    style={equationBalanced ? undefined : { visibility: 'hidden' }}
+                  >
+                    <IconCheck className={panelStyles.balanceCheck} size={12} />
+                    <span className={panelStyles.balanceBadgeText}>{t('reactor.balanced')}</span>
+                  </span>
                 </div>
                 <div className={`${panelStyles.equationTerms} ${panelStyles.productTerms}`}>
                   {coProducts.map((cp, idx) => (
@@ -762,13 +899,16 @@ export function SynthesisReactorPanel({
                         className={`${panelStyles.reagentBubble} ${coeffErr ? panelStyles.reagentBubbleError : ''}`}
                         style={{ ['--reagent-glow' as string]: coProductGlowHex(cp) }}
                       >
-                        <CoeffKeyboardInput
+                        <CoeffStepper
                           value={cp.coeff}
                           min={1}
                           max={COEFF_MAX}
                           highlightError={coeffErr}
                           dimWhenOne
                           ariaLabel={t('reactor.coeffFor', { symbol: coProductSymbolDisplay(cp) })}
+                          symbol={coProductSymbolDisplay(cp)}
+                          decLabel={t('reactor.coeffDecrease')}
+                          incLabel={t('reactor.coeffIncrease')}
                           onChange={(n) => onCoProductCoeffChange?.(cp.id, n)}
                           onFocusChange={reportCoeffFocus}
                         />
@@ -785,13 +925,16 @@ export function SynthesisReactorPanel({
                     className={`${panelStyles.productBubble} ${coeffErr ? panelStyles.productBubbleError : ''}`}
                     aria-label={t('reactor.productCoeffAria')}
                   >
-                    <CoeffKeyboardInput
+                    <CoeffStepper
                       value={productCoeff}
                       min={1}
                       max={COEFF_MAX}
                       highlightError={coeffErr}
                       dimWhenOne
                       ariaLabel={t('reactor.productCoeffAria')}
+                      symbol={productCompound?.formulaUnicode ?? t('reactor.productCoeffAria')}
+                      decLabel={t('reactor.coeffDecrease')}
+                      incLabel={t('reactor.coeffIncrease')}
                       onChange={onProductCoeffChange}
                       onFocusChange={reportCoeffFocus}
                     />
@@ -821,6 +964,10 @@ export function SynthesisReactorPanel({
               </div>
             </div>
 
+            {leftTerms.length > 0 ? (
+              // Комментарий к последнему ± относится к балансировке: во время синтеза он устарел.
+              <ReactorLedgerComment text={synthesisRunning ? '' : atomLedger.comment} balanced={atomLedger.ledger.balanced} />
+            ) : null}
             {ambiguousProductMatches.length > 1 ? (
               <p className={panelStyles.ambiguousHint} role="status">
                 {t('reactor.ambiguous')}
@@ -1076,12 +1223,8 @@ export function SynthesisReactorPanel({
               if (canRun && !synthesisRunning) onSynthesisPrewarmIntent?.()
             }}
             disabled={!canRun || synthesisRunning}
-            aria-busy={synthesisRunning}
           >
-            <span className={panelStyles.reactorBtnPrimaryIcon} aria-hidden>
-              {synthesisRunning ? <IconSpinner className={panelStyles.spin} /> : <IconPlay />}
-            </span>
-            <span>{synthesisRunning ? t('reactor.runRunning') : t('reactor.run')}</span>
+            <RunButtonContent synthesisRunning={synthesisRunning} locale={locale} runningText={t('reactor.runRunning')} runText={t('reactor.run')} />
           </button>
         </div>
       </div>

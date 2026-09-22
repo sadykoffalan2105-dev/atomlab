@@ -41,10 +41,11 @@ export const FES_TEXT_EN: FesMechanismText = {
       body:
         'Opposite charges attract by Coulomb’s law: the ions close in to 244.5 pm and then build a crystal. ' +
         'Iron(II) sulfide is troilite, structure type NiAs: every Fe²⁺ sits in an octahedron of six S²⁻, every S²⁻ in a trigonal prism of six Fe²⁺, coordination 6/6. ' +
-        'The ions strictly alternate, so like charges never touch. The bonding is not purely ionic: the electronegativities of Fe and S are 1.83 and 2.58, a difference of only 0.75 — an ionic-covalent bond.',
+        'Layers of Fe²⁺ and S²⁻ alternate along the c axis, but the chessboard rule of rock salt does NOT hold here: the FeS₆ octahedra share FACES, so the iron ions stand in columns only 293.9 pm apart. ' +
+        'Like charges do end up as direct neighbours — and it is exactly these Fe–Fe contacts that explain why the bonding in troilite is not purely ionic: the electronegativities of Fe and S are 1.83 and 2.58, a difference of only 0.75 — an ionic-covalent bond.',
       equation: 'Fe²⁺ + S²⁻ → FeS (s), d(Fe–S) = 244.5 pm, CN 6/6',
       note:
-        'What is drawn is the IDEAL NiAs subcell (a = 344.3 pm, c = 587.7 pm); real troilite is its slightly distorted √3a × 2c superstructure: P-62c, a = 596.3 pm, c = 1175.4 pm, Z = 12, ρ = 4.61 g/cm³. ' +
+        'What is drawn is the IDEAL NiAs subcell (a = 344.3 pm, c = 587.7 pm); real troilite is its slightly distorted √3a × 2c superstructure: P-62c, a = 596.3 pm, c = 1175.4 pm, Z = 12, ρ = 4.84 g/cm³ (X-ray, consistent with that very cell). ' +
         'Because of that distortion the drawn Fe–S distance is 1 % longer than the measured one. A slab of 31 ions is shown.',
       speak: 'The ions attract and settle into a nickel-arsenide-type lattice: six neighbours each.',
     },

@@ -1,0 +1,159 @@
+/* Карточка продукта над канвой лаборатории. Сцена тёмная в обеих темах, а карточка — панель
+ * интерфейса: фон и текст берутся из токенов темы (--lt-*), поэтому в светлой теме светлый фон
+ * с тёмным текстом, в тёмной — наоборот. Раньше фон был зашит тёмным, а текст шёл из токенов —
+ * в светлой теме серый текст на тёмно-синем был нечитаем. */
+.card {
+  position: relative;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 11px 14px 12px 17px;
+  overflow: hidden;
+  border-radius: var(--lt-radius, 14px);
+  border: 1px solid var(--lt-border-strong, rgba(148, 170, 230, 0.28));
+  background: color-mix(in srgb, var(--lt-surface-solid, #111830) 94%, transparent);
+  box-shadow: var(--lt-shadow, 0 10px 30px -12px rgba(0, 0, 0, 0.5));
+  color: var(--lt-text, #e8edff);
+  font-family: var(--lt-font, system-ui, sans-serif);
+  line-height: 1.4;
+  text-align: left;
+  animation: heroCardIn 0.32s ease-out;
+}
+
+/* кромка слева — акцент вещества */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--synth-glow, #5b8cff) 70%, var(--lt-primary, #5b8cff)),
+    var(--lt-primary-2, #8b5cf6)
+  );
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+
+.formula {
+  font-family: var(--lt-font-display, inherit);
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--lt-text, #e8edff);
+}
+
+.name {
+  font-size: var(--lt-fs-body, 15px);
+  font-weight: 650;
+  color: var(--lt-text-2, #b6c0e0);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.14));
+  background: var(--lt-surface-hover, rgba(40, 52, 90, 0.5));
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--lt-text, #e8edff);
+  white-space: nowrap;
+}
+
+.estimate {
+  font-weight: 500;
+  color: var(--lt-text-3, #8793b8);
+}
+
+.structure {
+  margin: 7px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--lt-text-2, #b6c0e0);
+}
+
+.why {
+  margin: 5px 0 0;
+  font-size: var(--lt-fs-small, 13px);
+  line-height: 1.45;
+  color: var(--lt-text, #e8edff);
+}
+
+.note {
+  margin: 5px 0 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--lt-text-3, #8793b8);
+}
+
+@keyframes heroCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .card {
+    padding: 8px 11px 9px 13px;
+  }
+
+  .formula {
+    font-size: 19px;
+  }
+
+  .facts {
+    margin-top: 5px;
+  }
+
+  .chip {
+    font-size: 11.5px;
+    padding: 1px 7px;
+  }
+
+  .structure {
+    display: none;
+  }
+
+  .why {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 12px;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+
+  .note {
+    display: none;
+  }
+}
+
+/* Узкий телефон: карточка во всю ширину над героем — «почему» в две строки, чтобы модели осталось место. */
+@media (max-width: 480px) {
+  .why {
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+}

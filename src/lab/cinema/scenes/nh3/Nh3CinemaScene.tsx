@@ -257,7 +257,7 @@ function writeBonds(pool: Parameters<typeof writeBond>[0], frame: Nh3Frame): voi
   })
 
   let n = 1
-  // Три связи H–H: тоже гомолиз, но заметно раньше — E = 436 против 945 кДж/моль.
+  // Три связи H–H: тоже гомолиз, но заметно раньше — E(H–H) в два с лишним раза меньше E(N≡N).
   for (const [a, b] of HH_PAIRS) {
     writeBond(pool, n++, {
       a: atoms[a],

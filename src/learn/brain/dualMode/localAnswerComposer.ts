@@ -23,6 +23,7 @@ import { sameUtterance } from '../voice/echoFilter'
 import { repairLayout } from '../../kb/layoutRepair'
 import { ELEMENT_NAMES_EN } from '../../../data/elementNamesEn'
 import { ELEMENT_NAMES_UZ } from '../../../data/elementNamesUz'
+import { composeExplainerAnswer, composeSafetyAnswer, isSafetyQuestion } from '../../knowledge/learnExplainerAnswer'
 import { contentStems, foldText, stemsMatch, strictStem, tokenizeWords, wordHasStem, QUESTION_STOPWORDS, type StemLang } from './textStems'
 import { answerFromBookIndex, detectPropertyQuestion, exampleFromBookIndex, obtainFromBookIndex, reactionsWithReagent, sameWord, type PropertyQuestion } from './bookIndexAnswer'
 
@@ -51,6 +52,8 @@ export interface ComposeStyle {
   noCheckQuestion?: boolean
   /** Чат урока (текст) или живой голос: голосом короче (1 поясняющая фраза), в чате — до 2. */
   channel?: 'chat' | 'voice'
+  /** Только текст учебника: карточки школьных объяснений не подмешиваем (проверка знаний по §). */
+  noExplainerCards?: boolean
   /**
    * Реплика продолжает прошлый вопрос («приведи пример», «а почему?», «подробнее» без своей темы): фразы
    * обычного ответа на этот вопрос уже прозвучали — не повторяем их.
@@ -272,8 +275,28 @@ const isGenericStem = (stem: string) => GENERIC_STEMS.some((g) => stem.startsWit
 
 /** Общие слова вопроса, по которым нельзя предлагать «близкую тему» («правило», «закон», «тип»). */
 const SUGGEST_STOP_RE = /^(правил|закон|тип|вид|свойств|способ|пример|процесс|явлени|устро|работ)/u
-/** Явно не химия: спорт, кино, музыка, политика (и нет понятий вопроса в найденном). */
-const OFF_DOMAIN_RE = /(футбол|хоккей|чемпионат|матч|олимпиад|фильм|сериал|музык|песн|певец|певиц|актер|актрис|президент|выбор|столиц|погод|кто выиграл)/u
+/**
+ * Явно не химия: спорт, кино, музыка, политика, астрономия, история, литература.
+ * Отдельная беда — слова, которые есть и в учебнике: «Солнечная система» цеплялась за
+ * «под воздействием солнечного света» из параграфа про фотосинтез, и вопрос про планеты
+ * получал уверенный ответ про кислород. Такие вопросы уходят в честный отказ.
+ */
+const OFF_DOMAIN_RE =
+  /(футбол|хоккей|чемпионат|матч|олимпиад|фильм|сериал|музык|песн|певец|певиц|актер|актрис|президент|выбор|столиц|погод|кто выиграл|планет|солнечн[ао]й систем|галактик|космос|космическ|астроном|звезд[аыуоне]|роман\b|повест|поэт\b|писател|художник|картин[ауы]\b|война|битв|династ|импер|футболист|сколько лет)/u
+
+/**
+ * Химическое слово в вопросе отменяет вердикт «не по химии»: «Почему на войне применяли
+ * хлор?» — вопрос по химии, хотя в нём есть «война».
+ */
+const CHEM_HINT_RE =
+  /(хими|атом|молекул|ион|элемент|веществ|реакц|формул|валентн|оксид|кислот|основани|щелоч|соль|соли|раствор|моль|масс|связ|заряд|электрон|протон|нейтрон|ядр|катализ|плотност|кристалл|металл|газ|жидкост|твёрд|тверд|окислен|восстановлен|электролиз|диссоциац|индикатор|изотоп|периодическ)/u
+
+/** Вопрос явно не по химии: тема из другого предмета и ни одного химического слова. */
+export function isOffDomainQuery(query: string, lang: StemLang): boolean {
+  if (lang !== 'ru') return false
+  const q = foldText(query)
+  return OFF_DOMAIN_RE.test(q) && !CHEM_HINT_RE.test(q)
+}
 
 /** Наречия/служебные слова вопроса, не несущие темы. */
 const QUESTION_FILLER = new Set([
@@ -1086,6 +1109,36 @@ function ensureEnd(s: string): string {
   return /[.!?…»]$/.test(t) ? t : `${t}.`
 }
 
+/**
+ * Снять заголовок, склеенный с первым предложением при нарезке корпуса.
+ *
+ * В тексте учебника заголовок стоит отдельной строкой; после склейки строк получается
+ * «Условные знаки Для того чтобы составить уравнения…» — ученику это читается как обрывок
+ * с чужим началом. Заголовок (короткая строка без личной формы глагола) снимаем, оставляя
+ * само предложение.
+ */
+export function stripGluedHeading(text: string): string {
+  const t = text.trim()
+  const words = t.split(/\s+/)
+  if (words.length < 6) return t
+  // Ищем начало настоящего предложения: заглавная буква после 1–5 слов заголовка.
+  for (let i = 1; i <= Math.min(5, words.length - 4); i++) {
+    const head = words.slice(0, i).join(' ')
+    if (/[.!?:;»)]$/u.test(head)) break
+    if (!/^[А-ЯЁ]/u.test(words[i] ?? '')) continue
+    // «В таблице Менделеева…» — не заголовок: предлог и короткое первое слово говорят,
+    // что предложение началось здесь же, а не строкой выше.
+    const headWords = head.split(/\s+/)
+    if (headWords[0]!.length < 4 || headWords.some((w) => SMALL_RU.test(w.replace(/[^\p{L}]/gu, '')))) continue
+    const tail = words.slice(i).join(' ')
+    if (tail.length < 30 || !isHeadingLike(head)) continue
+    // Хвост — настоящее предложение: с личной формой глагола или с оборотом «чтобы … необходимо».
+    if (!hasFiniteVerbRu(tail) && !/(чтобы|необходимо|нужно|следует|можно|нельзя)/iu.test(tail)) continue
+    return tail
+  }
+  return t
+}
+
 function capitalizeFirst(s: string): string {
   // «m(соли) = w·m(р-ра)», «pH», «n = m/M» — обозначения величин с маленькой буквы не трогаем.
   if (/^[a-zα-ω]{1,2}\s*[(=₀-₉]|^pH\b/u.test(s)) return s
@@ -1192,8 +1245,8 @@ const L = {
     pronoun: 'Он',
     glossLead: (terms: string) => terms,
     onlyRussian: '',
-    quote: (book: string | null, text: string) => `${book ?? 'Справочник ATOMLAB'}: «${text}»`,
-    quoteMode: (book: string | null, text: string) => `${book ? `В учебнике ${book} об этом сказано так` : 'В справочнике ATOMLAB об этом сказано так'}: «${text}»`,
+    quote: (book: string | null, text: string) => `${book ?? 'Справочник ATOMLAB'}: «${stripGluedHeading(text)}»`,
+    quoteMode: (book: string | null, text: string) => `${book ? `В учебнике ${book} об этом сказано так` : 'В справочнике ATOMLAB об этом сказано так'}: «${stripGluedHeading(text)}»`,
     exampleTerms: (terms: string) => `Пример из учебника: ${terms}.`,
     equation: (eq: string) => `Уравнение реакции: ${eq}.`,
   },
@@ -1229,8 +1282,8 @@ const L = {
     pronoun: 'It',
     glossLead: (terms: string) => `My textbooks are in Russian. The key terms of the answer are: ${terms}.`,
     onlyRussian: 'I have this answer only in my Russian textbook, so here is its exact sentence.',
-    quote: (book: string | null, text: string) => `${book ? `From the ${book} textbook` : 'From the ATOMLAB reference cards'} (in Russian): «${text}»`,
-    quoteMode: (book: string | null, text: string) => `${book ? `In the ${book} textbook (in Russian) it says` : 'In the ATOMLAB reference cards (in Russian) it says'}: «${text}»`,
+    quote: (book: string | null, text: string) => `${book ? `From the ${book} textbook` : 'From the ATOMLAB reference cards'} (in Russian): «${stripGluedHeading(text)}»`,
+    quoteMode: (book: string | null, text: string) => `${book ? `In the ${book} textbook (in Russian) it says` : 'In the ATOMLAB reference cards (in Russian) it says'}: «${stripGluedHeading(text)}»`,
     exampleTerms: (terms: string) => `An example from the textbook: ${terms}.`,
     equation: (eq: string) => `The reaction equation: ${eq}.`,
   },
@@ -1263,8 +1316,8 @@ const L = {
     pronoun: 'U',
     glossLead: (terms: string) => `Darsliklarim rus tilida. Javobning asosiy atamalari: ${terms}.`,
     onlyRussian: 'Bu javob menda faqat rus tilidagi darslikda bor, uning aynan gapini keltiraman.',
-    quote: (book: string | null, text: string) => `${book ? `${book} darsligidan` : 'ATOMLAB ma’lumotnomasidan'} (rus tilida): «${text}»`,
-    quoteMode: (book: string | null, text: string) => `${book ? `${book} darsligida (rus tilida) shunday deyilgan` : 'ATOMLAB ma’lumotnomasida (rus tilida) shunday deyilgan'}: «${text}»`,
+    quote: (book: string | null, text: string) => `${book ? `${book} darsligidan` : 'ATOMLAB ma’lumotnomasidan'} (rus tilida): «${stripGluedHeading(text)}»`,
+    quoteMode: (book: string | null, text: string) => `${book ? `${book} darsligida (rus tilida) shunday deyilgan` : 'ATOMLAB ma’lumotnomasida (rus tilida) shunday deyilgan'}: «${stripGluedHeading(text)}»`,
     exampleTerms: (terms: string) => `Darslikdagi misol: ${terms}.`,
     equation: (eq: string) => `Reaksiya tenglamasi: ${eq}.`,
   },
@@ -2435,10 +2488,24 @@ function composeBody(
   return { sentences, used, direct, missingWhy }
 }
 
-function checkQuestion(info: QuestionInfo, style: ComposeStyle, seed: number, missingWhy: boolean, originalQuery: string, answer = ""): string {
+function checkQuestion(
+  info: QuestionInfo,
+  style: ComposeStyle,
+  seed: number,
+  missingWhy: boolean,
+  originalQuery: string,
+  answer = "",
+  /**
+   * Ответ — дословная цитата корпуса, а не объяснение из карточки. Тогда закрывающее
+   * «Сможешь теперь сам объяснить, почему…?» запрещено: оно превращает промах поиска
+   * в ложную уверенность («я объяснил — теперь ты»), хотя объяснения не было.
+   */
+  quoted = false,
+): string {
   const t = L[info.lang]
   const term = info.keyTerm && info.keyTerm.length <= 40 ? info.keyTerm : null
   if (style.helper && term) return t.helperAsk(term)
+  if (quoted) return info.kind === 'definition' && term ? t.checkPlain : t.checkGeneric
   const whyRest =
     whyRemainder(originalQuery) ??
     (info.kind === 'why' && !missingWhy && !WHAT_IS_RE.test(originalQuery) && originalQuery.split(/\s+/).length <= 6
@@ -2467,6 +2534,30 @@ function checkQuestion(info: QuestionInfo, style: ComposeStyle, seed: number, mi
  * термина: пересказывать нельзя (пересказ и есть источник ошибок), поэтому приводим 1–2 фразы учебника
  * дословно, с рамкой «в учебнике сказано так» и подписью источника. Работает во всех локалях, в чате и голосом.
  */
+/**
+ * ЕДИНЫЙ ПОРОГ РЕЛЕВАНТНОСТИ (r11). Ниже него ответа нет — во всех трёх ветках (ru, en, uz,
+ * чат и голос) учитель говорит одно и то же: «точного ответа в базе нет» (L[lang].noAnswer).
+ * Разные пороги и разные тексты отказа в ветках и создавали ощущение, что учитель «то знает,
+ * то не знает» одно и то же.
+ */
+const RELEVANCE_MIN = 0.6
+/**
+ * Для en/uz порог выше: русская цитата в иноязычном ответе оправдана только уверенным
+ * попаданием в вопрос. Иначе ученик получает русский абзац мимо темы в английской обёртке —
+ * честный отказ полезнее.
+ */
+const FOREIGN_RELEVANCE_MIN = 1.2
+
+/** Годится ли русская фраза учебника как цитата в ответе на en/uz. */
+function foreignQuoteFits(c: Candidate, info: QuestionInfo): boolean {
+  if (c.score < FOREIGN_RELEVANCE_MIN || !c.keyAll) return false
+  if (info.kind === 'why') return c.causal && c.overlap >= 0.5
+  if (info.kind === 'definition') return c.headIdentity || c.exactKey
+  // Остальные виды вопроса («как понять, что реакция прошла») — цитата обязана быть О ТЕМЕ
+  // вопроса, а не просто упоминать её слова: иначе ученик получает русский абзац мимо темы.
+  return c.overlap >= 0.5 && (c.headIdentity || c.exactKey || c.titleKey)
+}
+
 function quoteAnswer(
   input: ComposeInput,
   info: QuestionInfo,
@@ -2474,6 +2565,8 @@ function quoteAnswer(
   hits: readonly KnowledgeHitLike[],
   style: ComposeStyle,
   seed: number,
+  /** Дополнительный гейт релевантности (en/uz: русская цитата только при уверенном попадании). */
+  extraFit?: (c: Candidate) => boolean,
 ): ComposedAnswer | null {
   const t = L[info.lang]
   // «… называется степенью диссоциации и обозначается …»: сразу после «называется» — сам термин.
@@ -2482,7 +2575,8 @@ function quoteAnswer(
     return Boolean(after) && info.keyStems.length > 0 && info.keyStems.every((k) => termIn(k, indexSentence(after!.split(/\s+/).slice(0, info.keyStems.length + 1).join(' '))))
   }
   const fit = (c: Candidate): boolean =>
-    c.score > 0.6 &&
+    c.score > RELEVANCE_MIN &&
+    (!extraFit || extraFit(c)) &&
     !c.imprecise &&
     !c.definesOther &&
     !c.subjectOther &&
@@ -2523,7 +2617,7 @@ function quoteAnswer(
     if (next) parts.push(shortenForVoice(ensureEnd(next.text), maxWords))
   }
   const sentences = [t.quoteMode(bookLabel(hits[best.hitIndex]), parts.join(' '))]
-  if (!style.noCheckQuestion) sentences.push(capitalizeFirst(checkQuestion(info, style, seed, false, input.query, sentences.join(' '))))
+  if (!style.noCheckQuestion) sentences.push(capitalizeFirst(checkQuestion(info, style, seed, false, input.query, sentences.join(' '), true)))
   return {
     text: sentences.join(' '),
     sentences,
@@ -2965,7 +3059,8 @@ function composeForeign(input: ComposeInput, info: QuestionInfo, style: ComposeS
     // Выверенная цитата (source-quote) относится к переводу, которого в ответе нет («Кислоты – …» на «кислотный оксид»).
     const ruQuote = sourceQuote ? (quoteText && quoteCand ? t.quote(bookLabel(ruHits[quoteCand.hitIndex]), shortenForVoice(quoteText, quoteWords)) : '') : quote
     const directQuote =
-      !ruQuote && !ruBody.missingWhy && !direct.offCondition && direct.keyAll && (direct.hitType === 'textbook' || direct.hitType === 'definition') && !isTelegraphicCard(direct.text, direct.hitType) &&
+      // r11: цитата русского учебника в ответе на en/uz — только выше общего порога релевантности.
+      !ruQuote && !ruBody.missingWhy && !direct.offCondition && direct.keyAll && foreignQuoteFits(direct, info) && (direct.hitType === 'textbook' || direct.hitType === 'definition') && !isTelegraphicCard(direct.text, direct.hitType) &&
       // r9: на «почему» цитата без причины («молекулы твёрдых веществ не рассеиваются») отвечает на другой вопрос.
       (info.kind !== 'why' || (ruInfo !== null && causeEvidence(direct.text, ruInfo)))
         ? t.quote(bookLabel(ruHits[direct.hitIndex]), shortenForVoice(ensureEnd(direct.text), quoteWords))
@@ -2975,7 +3070,7 @@ function composeForeign(input: ComposeInput, info: QuestionInfo, style: ComposeS
       // Цитаты нет, но уравнение реакции нужного класса понятно без перевода — это и есть пример.
       const eq = info.kind === 'example' ? equationForClass(input.hits, info, glossary) : null
       // r9: цитата русского учебника с родной рамкой — общий запасной выход вместо отказа.
-      if (!eq) return quoteAnswer(input, info, ruCands, ruHits, style, seed) ?? noAnswer(input, info, glossary)
+      if (!eq) return quoteAnswer(input, info, ruCands, ruHits, style, seed, (c) => foreignQuoteFits(c, info)) ?? noAnswer(input, info, glossary)
       const ask = style.noCheckQuestion ? [] : [capitalizeFirst(checkQuestion(info, style, seed, false, input.query, ''))]
       const out = [t.equation(eq.equation), ...ask]
       return {
@@ -3007,12 +3102,15 @@ function composeForeign(input: ComposeInput, info: QuestionInfo, style: ComposeS
     // «Parchalanish reaksiyasiga misol»: уравнение реакции нужного класса понятно на любом языке — лучше отказа.
     const eq = info.kind === 'example' ? equationForClass(input.hits, info, glossary) : null
     // r9: цитата русского учебника с родной рамкой — общий запасной выход вместо отказа.
-    if (!eq) return quoteAnswer(input, info, ruCands, ruHits, style, seed) ?? noAnswer(input, info, glossary)
+    if (!eq) return quoteAnswer(input, info, ruCands, ruHits, style, seed, (c) => foreignQuoteFits(c, info)) ?? noAnswer(input, info, glossary)
     sentences.push(t.equation(eq.equation))
     usedTitles.push(eq.hit.title)
     if (eq.hit.citation) usedCitations.push(eq.hit.citation)
   }
-  if (!style.noCheckQuestion) sentences.push(capitalizeFirst(checkQuestion(info, style, seed, Boolean(ruBody?.missingWhy && !nativePick), input.query, sentences.join(" "))))
+  // Ответ собран из русской цитаты (перевода на язык ученика не нашлось) — «теперь объясни сам» не предлагаем.
+  const quotedOnly = !nativePick && !gloss && members.length === 0
+  if (!style.noCheckQuestion)
+    sentences.push(capitalizeFirst(checkQuestion(info, style, seed, Boolean(ruBody?.missingWhy && !nativePick), input.query, sentences.join(" "), quotedOnly)))
   return { text: sentences.join(' '), sentences, confident: true, usedTitles: [...new Set(usedTitles)], usedCitations: [...new Set(usedCitations)], keyTerm: info.keyTerm }
 }
 
@@ -3083,7 +3181,7 @@ const CALC_UNITS = {
 
 /** Расчётный вопрос по формулировке (молярная масса, массовая доля, число с единицей) — на любом языке. */
 const CALC_INTENT_RE =
-  /(молярн\S*\s+масс|молекулярн\S*\s+масс|массов\S*\s+дол|molar\s+mass|molecular\s+mass|mass\s+fraction|molyar\s+massa|molekulyar\s+massa|massa\s+ulush|\d\s*(г|грамм\S*|моль|л|g|grams?|mol|moles?)(?![\p{L}]))/u
+  /(молярн\S*\s+масс|молекулярн\S*\s+масс|массов\S*\s+дол|molar\s+mass|molecular\s+mass|mass\s+fraction|molyar\s+massa|molekulyar\s+massa|massa\s+ulush|\d\s*(г|грамм\S*|мол(?:ь|ях|ями|ям|ей|я|и|ю)|моль|л|литр\S*|g|grams?|mol|moles?)(?![\p{L}]))/u
 
 /** 12,04·10²³ (en: 12.04·10²³). */
 function sci(x: number, lang: StemLang): string {
@@ -3113,7 +3211,7 @@ function solveByTable(info: QuestionInfo, cands: readonly Candidate[]): { senten
   type Q = { v: number; at: number; end: number }
   const find = (re: RegExp): Q[] => [...q.matchAll(re)].map((m) => ({ v: Number(m[1]!.replace(',', '.')), at: m.index!, end: m.index! + m[0].length }))
   const masses = find(/(\d+(?:[.,]\d+)?)\s*(?:г|грамм\S*|g|grams?|gramm)(?![\p{L}\d])/gu)
-  const moles = find(/(\d+(?:[.,]\d+)?)\s*(?:моль|молей|mol|moles?|mo'l)(?![\p{L}\d])/gu)
+  const moles = find(/(\d+(?:[.,]\d+)?)\s*(?:мол(?:ь|ях|ями|ям|ей|я|и|ю)|mol|moles?|mo'l)(?![\p{L}\d])/gu)
   const litres = find(/(\d+(?:[.,]\d+)?)\s*(?:л|литр\S*|дм3|дм³|l|litres?|liters?|litr)(?![\p{L}\d])/gu)
   const percents = find(/(\d+(?:[.,]\d+)?)\s*%/gu)
   const waterAfter = (x: Q) => /^\s*(?:чистой\s+)?(?:воды|вод|water|suv)/u.test(q.slice(x.end, x.end + 16))
@@ -3121,8 +3219,9 @@ function solveByTable(info: QuestionInfo, cands: readonly Candidate[]): { senten
   const cite = (re: RegExp) => cands.filter((c) => re.test(c.text) && !/\d\s*%/u.test(c.text) && !JUNK_RE.test(c.text)).slice(0, 1)
   const askW = /массов\S*\s+дол|mass\s+fraction|percentage|massa\s+ulush|процентн\S*\s+концентрац/u.test(q)
   const askN = /(сколько|число|количество)\s+(молекул|атомов|частиц|ионов)|how\s+many\s+(molecules|atoms|particles)|(molekula|atom)\S*\s+(soni|bor)|nechta\s+(molekula|atom)/u.test(q)
-  const askV = /объ[её]м|volume|hajm/u.test(q)
-  const askMol = /количеств\S*\s+веществ|сколько\s+моль|число\s+моль|how\s+many\s+moles|amount\s+of\s+substance|necha\s+mol|modda\s+miqdor/u.test(q)
+  // «Сколько литров займут 2 моля водорода?» — тоже вопрос об объёме, хотя слова «объём» в нём нет.
+  const askV = /объ[её]м|сколько\s+литр\S*|скольким\s+литр\S*|volume|how\s+many\s+(?:litres|liters)|hajm|necha\s+litr/u.test(q)
+  const askMol = /количеств\S*\s+веществ|сколько\s+мол(?:ь|ях|ями|ям|ей|я)|число\s+мол(?:ь|ях|ями|ям|ей|я)|how\s+many\s+moles|amount\s+of\s+substance|necha\s+mol|modda\s+miqdor/u.test(q)
   const askM = /(?<!\p{L})масс[аеуы]?(?!\S*\s+дол)(?!\p{L})|сколько\s+грамм|(?<!\p{L})mass(?!\s+fraction)|massasi|how\s+many\s+grams/u.test(q)
 
   // Растворы: ω = m(в-ва)/m(р-ра); m(р-ра) = m(в-ва) + m(воды); разбавление; m(в-ва) = ω·m(р-ра).
@@ -3293,7 +3392,7 @@ function solveCalc(info: QuestionInfo, all: readonly Candidate[]): { sentences: 
     const m = q.match(re)
     return m ? Number(m[1]!.replace(',', '.')) : null
   }
-  const moles = num(/(\d+(?:[,.]\d+)?)\s*моль(?!\p{L})/u)
+  const moles = num(/(\d+(?:[,.]\d+)?)\s*мол(?:ь|ях|ями|ям|ей|я|и|ю)(?!\p{L})/u)
   const litres = num(/(\d+(?:[,.]\d+)?)\s*(?:л|литр\S*|дм3|дм³)(?![\p{L}\d])/u)
   const vmRule = () => cands.find((c) => /22[,.]4/u.test(c.text) && /(объ[её]м|л\/моль|молярн)/iu.test(c.text) && !/\d\s*%/u.test(c.text))
   if (moles !== null && /объ[её]м/u.test(q) && !/раствор/u.test(q)) {
@@ -3461,10 +3560,29 @@ function effectOffQuestion(text: string, info: QuestionInfo): boolean {
 }
 
 /** r10: расчёт важнее «указателя учебника» («вычисли молярную массу … формула H2SO4»). */
-const BOOK_SKIP_RE = /(вычисл|рассчита|посчита|сколько|молярн|массов\S*\s+дол|найди\S*\s+(масс|объ|количеств)|\d\s*(г|грамм\S*|моль|л|мл)(?![\p{L}]))/iu
+const BOOK_SKIP_RE = /(вычисл|рассчита|посчита|сколько|молярн|массов\S*\s+дол|найди\S*\s+(масс|объ|количеств)|\d\s*(г|грамм\S*|мол(?:ь|ях|ями|ям|ей|я|и|ю)|л|литр\S*|мл)(?![\p{L}]))/iu
 
 export function composeLocalAnswer(input: ComposeInput): ComposedAnswer {
   const style = input.style ?? {}
+  // ВОПРОС БЕЗОПАСНОСТИ («почему нельзя наливать воду в кислоту») — только из карточки.
+  // Поиск по корпусу здесь запрещён: однажды он выдал посторонний фрагмент про метафосфорную
+  // кислоту с видом уверенного ответа. Нет карточки на языке ученика — честно отказываем.
+  if (isSafetyQuestion(input.query, input.lang)) {
+    const safe = composeSafetyAnswer({ query: input.query, lang: input.lang, style, seed: input.seed ?? 0 })
+    return safe ?? noAnswer(input, analyzeQuestion(input.query, input.lang, style, input.topicHint), [])
+  }
+  // Вопрос явно не по химии («Сколько планет в Солнечной системе?») — отказываем сразу.
+  // Иначе случайное общее слово («солнечный свет» из параграфа про фотосинтез) вытягивает
+  // из корпуса уверенный ответ не по теме, а это для ученика хуже честного «не знаю».
+  if (!style.helper && !style.continuation && isOffDomainQuery(input.query, input.lang)) {
+    return noAnswer(input, analyzeQuestion(input.query, input.lang, style, input.topicHint), [])
+  }
+  // Карточка школьного объяснения: полный ответ «что → почему → формула → пример → проверка».
+  // Срабатывает только при точном совпадении темы вопроса (см. matchExplainerCard), иначе — обычный путь.
+  if (!style.helper && !style.noExplainerCards) {
+    const card = composeExplainerAnswer({ query: input.query, lang: input.lang, style, seed: input.seed ?? 0 })
+    if (card) return card
+  }
   // r10: формула/название вещества, продукты реакции, реакции §, место в учебнике — по указателю учебника
   // (фрагменты type 'index' из проверенной инвентаризации: формулы и уравнения как в книге, с § и страницей).
   if (!style.helper && !style.continuation && !BOOK_SKIP_RE.test(input.query)) {
@@ -3562,6 +3680,7 @@ function composeLocalAnswerCore(input: ComposeInput): ComposedAnswer {
     if (again?.direct.example) picked = again
   }
   if (!picked || picked.direct.score <= 1.0) {
+    // Ниже единого порога релевантности пересказывать нечего — дальше только цитата или отказ.
     // Ворота доказательств: термин вопроса + признак типа ответа в любом найденном фрагменте — отвечаем из него.
     const gated = info.concepts.length > 0 && !style.helper ? evidenceGate(avoid.length ? fresh : cands, info) : undefined
     // r9: пересказ невозможен — цитируем учебник дословно, и только если и цитировать нечего, честно отказываем.

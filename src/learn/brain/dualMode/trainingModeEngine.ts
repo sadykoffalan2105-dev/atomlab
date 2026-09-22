@@ -18,7 +18,7 @@ import { citationForDisplay, retrieveForTeacher, type TeacherKnowledgeResult } f
 import type { EmotionState } from '../brainTypes'
 import { SentenceStreamSplitter } from '../voice/sentenceStream'
 import { emotionPromptHint } from './cameraEmotionCoach'
-import { resolveTurn, type ResolvedTurn } from './followUps'
+import { detectNonQuestion, replyForNonQuestion, resolveTurn, type ResolvedTurn } from './followUps'
 import { buildLiveOnlineBrainDirective } from './liveOnlineBrain'
 import { composeLocalAnswer, type ComposeStyle } from './localAnswerComposer'
 import { clarifyPrompt } from './personaProfiles'
@@ -138,6 +138,18 @@ export class TrainingModeEngine {
       if (timings.firstSentenceMs === null) timings.firstSentenceMs = Math.round(now() - t0)
       sentences.push(s)
       req.onSentence?.(s)
+    }
+
+    // Реплика без вопроса («не знаю», «ммм», «понятно») — короткий человеческий ответ
+    // с наводкой по теме; база знаний при этом не опрашивается.
+    const nonQuestion = detectNonQuestion(req.text)
+    if (nonQuestion) {
+      const topic = req.previousQuestions[req.previousQuestions.length - 1] ?? this.cfg.sectionTitle
+      const reply = replyForNonQuestion(nonQuestion, this.cfg.lang, { topic, seed: this.seed++ })
+      emit(reply)
+      req.onText?.(reply)
+      timings.totalMs = Math.round(now() - t0)
+      return { display: reply, text: reply, sentences, source: 'local', confident: true, citations: [], resolved, fellBack: false, timings }
     }
 
     const knowledgeP = this.knowledge(resolved.query, style, signal)

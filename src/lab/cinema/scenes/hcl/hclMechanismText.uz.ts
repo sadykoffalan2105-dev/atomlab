@@ -42,7 +42,7 @@ export const HCL_TEXT_UZ: HclMechanismText = {
       body:
         'H• radikali keyingi Cl₂ molekulasiga uriladi: ikkinchi HCl molekulasi va yana Cl• radikali — hammasi boshlangan aynan o‘sha radikal — hosil bo‘ladi. ' +
         'Bu bosqich molga 189 kJ chiqaradi, shuning uchun aralashma o‘zi qiziydi. Tiklangan radikal darhol yangi vodorod molekulasiga hujum qiladi va aylana takrorlanadi. ' +
-        'Zanjir o‘sishining ikki bosqichini qo‘shamiz: (+4) + (−189) = −184,6 kJ — bu butun reaksiyaning issiqlik effekti. Kvant energiyasi BIR marta sarflandi, foyda esa har aylanada olinadi.',
+        'Zanjir o‘sishining ikki bosqichini qo‘shamiz: (+4) + (−189) = −185 kJ — bu jadvaldagi −184,6 bilan ma’lumotnoma bog‘ energiyalarining yaxlitlanishi doirasida mos keladi. Kvant energiyasi BIR marta sarflandi, foyda esa har aylanada olinadi.',
       equation: 'H• + Cl₂ → HCl + Cl•,  ΔH = −189 kJ/mol',
       note: 'Zanjirning chuqur bo‘g‘inlari o‘rniga to‘rtta tayyor HCl molekulasi ko‘rsatilgan; aslida bitta yutilgan kvant taxminan 10⁶ ta molekula beradi — bu tartib bahosi.',
       speak: 'Vodorod radikali xlor molekulasini uzadi. Xlor radikali qaytadi va zanjir yana aylanadi.',
@@ -60,7 +60,7 @@ export const HCL_TEXT_UZ: HclMechanismText = {
     energy: {
       title: 'Energiya yakuni',
       body:
-        'Issiqlik effektini bog‘ energiyalari bo‘yicha hisoblaymiz: H–H (+436) va Cl–Cl (+243) bog‘larini uzamiz, ikkita H–Cl bog‘ini yig‘amiz (−2 · 431 = −862). Jami −183 kJ. ' +
+        'Issiqlik effektini bog‘ energiyalari bo‘yicha hisoblaymiz: H–H (+435,8) va Cl–Cl (+243) bog‘larini uzamiz, ikkita H–Cl bog‘ini yig‘amiz (−2 · 431 = −862). Jami −183,2 kJ. ' +
         'Mustaqil ravishda, hosil bo‘lish issiqliklari bo‘yicha: 2 · ΔH°f(HCl) = 2 · (−92,3) = −184,6 kJ. Ikki xil yo‘l deyarli bir xil natija beradi — bu Gess qonuni. ' +
         'Shuning uchun yorqin quyoshda vodorod va xlor aralashmasi portlaydi, qorong‘ilikda esa deyarli reaksiyaga kirishmaydi: gap reaksiya issiqligida emas, birinchi Cl–Cl bog‘ini kim uzishida.',
       equation: 'H₂ (gaz) + Cl₂ (gaz) → 2 HCl (gaz),  ΔH = −184,6 kJ',
@@ -76,7 +76,7 @@ export const HCL_TEXT_UZ: HclMechanismText = {
     'Vodorod va xlor aralashmasi yorqin yorug‘likdan yoki chaqnashdan portlaydi. Xlor zaharli, vodorod xlorid nafas yo‘llarini kuydiradi. Bu tajribani faqat o‘qituvchi tortish shkafida, himoya ekrani ortida o‘tkazadi — uni o‘zingiz takrorlash mumkin emas.',
   energy: {
     title: 'Bog‘ energiyalari',
-    unit: 'kJ/mol',
+    unit: 'kJ',
     caption: 'H₂ + Cl₂ → 2 HCl tenglamasi uchun uziladigan (yuqoriga) va hosil bo‘ladigan (pastga) bog‘lar; yig‘indi — issiqlik effekti.',
     stages: {
       bondClCl: 'Cl₂ → 2 Cl•',

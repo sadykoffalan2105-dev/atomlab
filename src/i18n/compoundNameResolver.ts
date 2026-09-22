@@ -93,6 +93,9 @@ const MANUAL: Record<string, { en: string; uz: string }> = {
   li2o2: { en: 'Lithium peroxide', uz: 'Litiy peroksidi' },
   na2o2: { en: 'Sodium peroxide', uz: 'Natriy peroksidi' },
   clo2: { en: 'Chlorine dioxide', uz: 'Xlor dioksidi' },
+  // Высшие оксиды (ангидриды HMnO₄ и HClO₄) — id из textbookCompounds.data.ts с префиксом tb_.
+  tb_mn2o7: { en: 'Manganese(VII) oxide', uz: 'Marganets(VII) oksidi' },
+  tb_cl2o7: { en: 'Dichlorine heptoxide', uz: 'Xlor(VII) oksidi' },
   hcl: { en: 'Hydrochloric acid', uz: 'Xlorid kislotasi' },
   hbr: { en: 'Hydrobromic acid', uz: 'Bromid kislotasi' },
   hi: { en: 'Hydroiodic acid', uz: 'Yodid kislotasi' },

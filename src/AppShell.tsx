@@ -182,7 +182,11 @@ export function AppShell() {
           <div className={styles.updateSlot}>
             <DesktopUpdateBadge />
           </div>
-          <AppThemeToggle />
+          {/* Собственная ячейка: на телефоне .headerTools раскладывается сеткой
+              (display: contents), и без явного места тумблер уезжал в новый ряд. */}
+          <div className={styles.themeSlot}>
+            <AppThemeToggle />
+          </div>
           <div className={styles.langPicker} role="group" aria-label={t('lang.toggle', { current: locale.toUpperCase() })}>
             {(['ru', 'en', 'uz'] as const).map((code) => (
               <button

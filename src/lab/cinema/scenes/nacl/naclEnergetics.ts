@@ -1,22 +1,18 @@
+import { LATTICE_ENTHALPY_KJ } from '../../../../chemistry/data'
 import { assertLadderMatchesFormation, buildBornHaberLadder, type Ladder } from '../kit/energyLadderData'
-import { naclCueAt, NACL_STEPS } from './naclSteps'
+import { naclCueAt, NACL_ELECTRONS, NACL_STEPS } from './naclSteps'
 
 /**
- * Энергетика 2 Na + Cl₂ → 2 NaCl — цикл Борна — Габера на 1 моль NaCl.
+ * Энергетика 2 Na + Cl₂ → 2 NaCl — цикл Борна — Габера на 1 моль NaCl (одна формульная
+ * единица, поэтому у всех ступеней множитель 1).
  *
- * Числа НЕ живут здесь: они приходят из BORN_HABER.nacl (chemistry/data/thermoData.ts),
- * кДж/моль, 298 K:
- *   сублимация Na (тв → г)          +107,3   (NIST-JANAF)
- *   диссоциация ½ Cl₂ → Cl          +121,7   (½ · D = ½ · 243,4)
- *   ионизация Na → Na⁺ + e⁻         +495,8   (IE₁ = 5,139 эВ, CRC)
- *   сродство Cl + e⁻ → Cl⁻          −348,6   (EA = 3,613 эВ, CRC)
- *   энергия решётки Na⁺ + Cl⁻ → NaCl −787,0  (цикл Борна — Габера)
- *   ─────────────────────────────────────────
- *   Σ = −410,8 ≈ ΔH°f(NaCl, тв) = −411,2 (табличное)
+ * Числа НЕ живут здесь: ступени приходят из BORN_HABER.nacl (chemistry/data/thermoData.ts):
+ * сублимация Na, ½D(Cl₂) = ΔH°f(Cl, г.) при 298 K (JANAF), IE₁(Na), EA₁(Cl) как энтальпия
+ * присоединения электрона (Δ_eg H < 0), энергия решётки U < 0. Сумма = табличная ΔH°f.
  *
  * Знаки принципиальны: три ступени вверх (затраты), две вниз (выигрыш).
  * Экзотермичность даёт ИМЕННО ЭНЕРГИЯ РЕШЁТКИ: без неё сумма первых четырёх
- * ступеней +376,2 кДж/моль — процесс был бы эндотермическим.
+ * ступеней положительна — процесс был бы эндотермическим.
  *
  * Файл без THREE и React — его читают панель энергии и тесты.
  */
@@ -25,32 +21,38 @@ import { naclCueAt, NACL_STEPS } from './naclSteps'
 const STAGE_AT: Record<string, number> = {
   sublimation: naclCueAt('sublimate'),
   dissociation: naclCueAt('bondBreak'),
-  ionization: naclCueAt('transfer') - 1.2,
-  affinity: naclCueAt('transfer') + 0.35,
+  ionization: NACL_ELECTRONS.e1.leave,
+  affinity: NACL_ELECTRONS.e1.arrive,
   lattice: naclCueAt('lattice'),
 }
 
 export const NACL_LADDER: Ladder = buildBornHaberLadder('nacl', STAGE_AT)
 
-/** Теплота образования NaCl (тв.) по сумме цикла, кДж/моль — для подписей: −411. */
-export const NACL_DHF_KJ = Math.round(NACL_LADDER.sumKJ)
+/** Ступень цикла по виду (для подписей и текстов). */
+export function naclStageKJ(kind: 'sublimation' | 'dissociation' | 'ionization' | 'affinity' | 'lattice'): number {
+  const s = NACL_LADDER.stages.find((x) => x.kind === kind)
+  if (!s) throw new Error(`nacl: нет ступени ${kind}`)
+  return s.dH
+}
+
+/** Теплота образования NaCl (тв.) по сумме цикла, кДж/моль, одна десятая — для 3D-подписи. */
+export const NACL_DHF_KJ = Math.round(NACL_LADDER.sumKJ * 10) / 10
 
 /** Табличная ΔH°f(NaCl, тв.), кДж/моль. */
 export const NACL_DHF_TABLE_KJ = NACL_LADDER.tableKJ
 
 /** Тепловой эффект уравнения 2 Na + Cl₂ → 2 NaCl (две формульные единицы), кДж. */
-export const NACL_REACTION_DH_KJ = 2 * NACL_DHF_KJ
+export const NACL_REACTION_DH_KJ = Math.round(2 * NACL_DHF_TABLE_KJ * 10) / 10
 
-/**
- * Сумма затратных ступеней (без энергии решётки), кДж/моль: +376,2.
- * Число для шага 6: «до решётки процесс ещё эндотермический».
- */
-export const NACL_COST_BEFORE_LATTICE_KJ = Math.round(
-  NACL_LADDER.stages.filter((s) => s.kind !== 'lattice').reduce((sum, s) => sum + s.dH, 0),
-)
+/** Сумма затратных ступеней (без энергии решётки), кДж/моль. */
+export const NACL_COST_BEFORE_LATTICE_KJ =
+  Math.round(NACL_LADDER.stages.filter((s) => s.kind !== 'lattice').reduce((sum, s) => sum + s.dH, 0) * 10) / 10
 
-/** Энергия решётки NaCl, кДж/моль (отрицательная). */
-export const NACL_LATTICE_KJ = NACL_LADDER.stages.find((s) => s.kind === 'lattice')!.dH
+/** Энергия решётки NaCl в цикле, кДж/моль (отрицательная). */
+export const NACL_LATTICE_KJ = naclStageKJ('lattice')
+
+/** Энергия решётки в таблице LATTICE_ENTHALPY_KJ (обязана совпадать со ступенью цикла). */
+export const NACL_LATTICE_TABLE_KJ = LATTICE_ENTHALPY_KJ['NaCl(s)']!
 
 /** Шаг урока, на котором показывают блок энергии целиком. */
 export const NACL_ENERGY_STEP_INDEX = NACL_STEPS.findIndex((s) => s.id === 'energy')
@@ -90,15 +92,18 @@ export const NACL_REACTION = {
   right: [{ formula: 'NaCl', coeff: 2 }],
 } as const
 
-/** Проверка для теста: сумма ступеней совпадает с табличной ΔH°f. */
+/** Проверка для теста: сумма ступеней совпадает с табличной ΔH°f, знаки верные. */
 export function validateNaclEnergetics(): void {
-  assertLadderMatchesFormation(NACL_LADDER, 5)
-  const lattice = NACL_LADDER.stages.find((s) => s.kind === 'lattice')
-  if (!lattice || lattice.dH >= 0) throw new Error('nacl: энергия решётки обязана быть отрицательной')
-  const up = NACL_LADDER.stages.filter((s) => s.dH > 0).map((s) => s.kind)
-  if (!up.includes('sublimation') || !up.includes('dissociation') || !up.includes('ionization')) {
-    throw new Error('nacl: сублимация, диссоциация и ионизация обязаны быть эндотермическими (ΔH > 0)')
+  assertLadderMatchesFormation(NACL_LADDER, 0.05)
+  if (!(NACL_LATTICE_KJ < 0)) throw new Error('nacl: энергия решётки обязана быть отрицательной')
+  if (Math.abs(NACL_LATTICE_KJ - NACL_LATTICE_TABLE_KJ) > 1e-9) {
+    throw new Error(`nacl: U в цикле ${NACL_LATTICE_KJ} ≠ U в таблице ${NACL_LATTICE_TABLE_KJ}`)
   }
-  const ea = NACL_LADDER.stages.find((s) => s.kind === 'affinity')
-  if (!ea || ea.dH >= 0) throw new Error('nacl: сродство хлора к электрону обязано быть отрицательным')
+  for (const k of ['sublimation', 'dissociation', 'ionization'] as const) {
+    if (!(naclStageKJ(k) > 0)) throw new Error(`nacl: ступень ${k} обязана быть эндотермической (ΔH > 0)`)
+  }
+  if (!(naclStageKJ('affinity') < 0)) throw new Error('nacl: Δ_eg H(Cl) обязана быть отрицательной')
+  for (const s of NACL_LADDER.stages) {
+    if ((s.multiplier ?? 1) !== 1) throw new Error(`nacl: у ступени ${s.id} множитель ${s.multiplier}, а в NaCl одна формульная единица`)
+  }
 }

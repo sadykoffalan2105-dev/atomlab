@@ -23,16 +23,19 @@ export type InstancedBondsProps = {
   lite?: boolean
 }
 
+/**
+ * Меш всегда visible: пустой пул = instanceCount 0 (three пропускает draw call),
+ * а программа компилируется на прогреве урока (compileAsync видит только
+ * видимые объекты), а не в кадре появления первой связи.
+ */
 function syncInstancedBonds(
-  mesh: THREE.Mesh | null,
   res: BondBandResources,
   pool: BondPool,
   timeSec: number,
   camera: THREE.Camera,
   heightPx: number,
 ): void {
-  const count = updateBondBands(res, pool, timeSec, camera, heightPx)
-  if (mesh) mesh.visible = count > 0
+  updateBondBands(res, pool, timeSec, camera, heightPx)
 }
 
 export function InstancedBonds({ pool, time, renderOrder = 1, lite = false }: InstancedBondsProps) {
@@ -46,7 +49,7 @@ export function InstancedBonds({ pool, time, renderOrder = 1, lite = false }: In
   }, [res])
 
   useFrame((state) => {
-    syncInstancedBonds(mesh.current, res, pool, time.current, state.camera, state.size.height * state.viewport.dpr)
+    syncInstancedBonds(res, pool, time.current, state.camera, state.size.height * state.viewport.dpr)
   })
 
   return (
@@ -56,7 +59,6 @@ export function InstancedBonds({ pool, time, renderOrder = 1, lite = false }: In
       material={res.material}
       renderOrder={renderOrder}
       frustumCulled={false}
-      visible={false}
       dispose={null}
     />
   )

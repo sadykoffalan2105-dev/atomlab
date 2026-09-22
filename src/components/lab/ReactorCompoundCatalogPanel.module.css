@@ -60,9 +60,15 @@
   transform: translateX(100%);
   /* Закрытая панель не рисуется поверх WebGL (visibility гаснет после анимации) */
   visibility: hidden;
+  /* …и не участвует в пересчёте стилей: ~2400 узлов каталога иначе пересчитывались при каждой
+   * перестройке лаборатории (замер: «Завершить» урока — кадр 100+ мс). После анимации закрытия
+   * содержимое пропускается целиком; открытие показывает его сразу. */
+  content-visibility: hidden;
   transition:
     transform var(--lt-dur-slow) var(--lt-ease),
-    visibility 0s linear var(--lt-dur-slow);
+    visibility 0s linear var(--lt-dur-slow),
+    content-visibility 0s linear var(--lt-dur-slow);
+  transition-behavior: allow-discrete;
   pointer-events: none;
 }
 
@@ -72,6 +78,7 @@
 .panel[data-open='true'] {
   transform: translateX(0);
   visibility: visible;
+  content-visibility: visible;
   pointer-events: auto;
   transition: none;
   animation: catalogDrawerIn var(--lt-dur-slow) var(--lt-ease);
@@ -112,7 +119,8 @@
   transition:
     opacity var(--lt-dur) var(--lt-ease),
     transform var(--lt-dur-slow) var(--lt-ease),
-    visibility 0s linear var(--lt-dur-slow);
+    visibility 0s linear var(--lt-dur-slow),
+    content-visibility 0s linear var(--lt-dur-slow);
   overscroll-behavior: contain;
 }
 

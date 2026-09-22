@@ -33,10 +33,12 @@ export function getCatalogFormulaSpeechRules(): ReadonlyArray<readonly [RegExp, 
     const ascii = toAsciiFormula(uni)
     if (uni.length < 2) continue
     // Не затирать очень короткие совпадения вроде «CO» внутри слов — только как формула-токен.
+    // Коэффициент уравнения («2AlCl3») формулу не закрывает: слева запрещена только буква,
+    // иначе вещество с коэффициентом оставалось непрочитанным и читалось по элементам.
     const pattern =
       uni === ascii
-        ? `(?<![\\p{L}\\d])${escapeRe(ascii)}(?![\\p{L}\\d])`
-        : `(?:${escapeRe(uni)}|(?<![\\p{L}\\d])${escapeRe(ascii)}(?![\\p{L}\\d]))`
+        ? `(?<![\\p{L}])${escapeRe(ascii)}(?![\\p{L}\\d])`
+        : `(?:${escapeRe(uni)}|(?<![\\p{L}])${escapeRe(ascii)}(?![\\p{L}\\d]))`
     rows.push({
       len: Math.max(uni.length, ascii.length),
       re: new RegExp(pattern, 'gu'),
@@ -48,10 +50,37 @@ export function getCatalogFormulaSpeechRules(): ReadonlyArray<readonly [RegExp, 
   return cached
 }
 
+let formulaNames: Set<string> | null = null
+
+/**
+ * Есть ли у формулы название в каталоге («AlCl₃» → «хлорид алюминия»).
+ * Нужно правилу «один стиль чтения на уравнение»: вещество с названием читается названием.
+ */
+export function hasCatalogFormulaName(token: string): boolean {
+  if (!formulaNames) {
+    formulaNames = new Set<string>()
+    for (const c of compoundsListAlphabeticalRu()) {
+      if (!c.nameRu?.trim()) continue
+      const uni = c.formulaUnicode.trim()
+      if (uni.length < 2) continue
+      formulaNames.add(uni)
+      formulaNames.add(toAsciiFormula(uni))
+    }
+  }
+  return formulaNames.has(token) || formulaNames.has(toAsciiFormula(token))
+}
+
 export function expandCatalogFormulasForSpeech(text: string): string {
   let out = text
   for (const [re, spoken] of getCatalogFormulaSpeechRules()) {
-    out = out.replace(re, spoken)
+    // Название в каталоге записано с заглавной («Хлорид цинка»), а в середине фразы
+    // оно звучит как обычное слово: «образуется хлорид цинка», а не «образуется Хлорид».
+    out = out.replace(re, (_m, ...rest) => {
+      const offset = rest[rest.length - 2] as number
+      const before = out.slice(0, offset).replace(/\s+$/u, '')
+      const midSentence = before.length > 0 && !/[.!?:;»"(]$/u.test(before)
+      return midSentence ? spoken.charAt(0).toLowerCase() + spoken.slice(1) : spoken
+    })
   }
   return out
 }

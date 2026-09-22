@@ -42,7 +42,7 @@ export const HCL_TEXT_EN: HclMechanismText = {
       body:
         'The H• radical crashes into the next Cl₂ molecule: a second HCl molecule forms and a Cl• radical appears again — exactly the one that started everything. ' +
         'This step releases 189 kJ per mole, so the mixture heats itself. The restored radical immediately attacks a fresh hydrogen molecule and the loop repeats. ' +
-        'Add the two propagation steps: (+4) + (−189) = −184.6 kJ — exactly the heat of the whole reaction. The quantum was spent ONCE, while the gain comes on every loop.',
+        'Add the two propagation steps: (+4) + (−189) = −185 kJ — it matches the tabulated −184.6 within the rounding of the reference bond energies. The quantum was spent ONCE, while the gain comes on every loop.',
       equation: 'H• + Cl₂ → HCl + Cl•,  ΔH = −189 kJ/mol',
       note: 'Four ready-made HCl molecules stand for the deeper links of the chain; in reality one absorbed quantum yields of the order of 10⁶ molecules — an order-of-magnitude estimate.',
       speak: 'The hydrogen radical breaks a chlorine molecule. The chlorine radical comes back and the chain goes round again.',
@@ -60,7 +60,7 @@ export const HCL_TEXT_EN: HclMechanismText = {
     energy: {
       title: 'The energy balance',
       body:
-        'Count the heat from bond energies: break H–H (+436) and Cl–Cl (+243), build two H–Cl bonds (−2 · 431 = −862). The total is −183 kJ. ' +
+        'Count the heat from bond energies: break H–H (+435.8) and Cl–Cl (+243), build two H–Cl bonds (−2 · 431 = −862). The total is −183.2 kJ. ' +
         'Independently, from heats of formation: 2 · ΔH°f(HCl) = 2 · (−92.3) = −184.6 kJ. Two different routes give almost the same number — that is Hess’s law. ' +
         'This is why the mixture explodes in bright sunlight yet barely reacts in the dark: what matters is not the heat of the reaction but who breaks the first Cl–Cl bond.',
       equation: 'H₂ (g) + Cl₂ (g) → 2 HCl (g),  ΔH = −184.6 kJ',
@@ -76,7 +76,7 @@ export const HCL_TEXT_EN: HclMechanismText = {
     'A hydrogen–chlorine mixture explodes on bright light or a flash. Chlorine is poisonous and hydrogen chloride burns the airways. Only a teacher may run this experiment, in a fume hood behind a safety screen — never repeat it yourself.',
   energy: {
     title: 'Bond energies',
-    unit: 'kJ/mol',
+    unit: 'kJ',
     caption: 'Bonds broken (up) and bonds made (down) for H₂ + Cl₂ → 2 HCl; the sum is the heat of the reaction.',
     stages: {
       bondClCl: 'Cl₂ → 2 Cl•',

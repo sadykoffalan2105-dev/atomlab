@@ -82,6 +82,26 @@ function ok(label: string, cond: boolean, detail = ''): void {
 }
 const close = (a: number, b: number, tol: number) => Math.abs(a - b) <= tol
 
+/**
+ * Числа, извлечённые из текста урока: «435,8», «−93,6», «+1307,4» → числа.
+ * Тексты не сверяются по фразам — сверяются ЧИСЛА с научным ядром.
+ */
+const NUM_RE = /[−-]?\+?\d+(?:[.,]\d+)?/g
+function numbersIn(text: string): number[] {
+  return [...text.matchAll(NUM_RE)].map((m) => Number(m[0].replace('−', '-').replace('+', '').replace(',', '.')))
+}
+/** Есть ли в тексте число, равное value с точностью tol. */
+function hasNumber(text: string, value: number, tol = 0.051): boolean {
+  return numbersIn(text).some((n) => Math.abs(n - value) <= tol)
+}
+/** Первое число после якоря (якорь — фрагмент формулы или символ, не фраза). */
+function numberAfter(text: string, anchor: string): number | null {
+  const i = text.indexOf(anchor)
+  if (i < 0) return null
+  const n = numbersIn(text.slice(i + anchor.length))
+  return n.length ? n[0]! : null
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Хронометраж и контракт лаборатории
 // ─────────────────────────────────────────────────────────────────────────────
@@ -399,6 +419,65 @@ for (const [anchor, list] of byAnchor) {
         `Δdy = ${Math.abs(list[i]!.dy - list[j]!.dy).toFixed(2)}`,
       )
     }
+  }
+}
+
+// ── Замечание профессора: лестница посчитана НА УРАВНЕНИЕ (2 моль HCl), значит «кДж», а не «кДж/моль» ──
+for (const locale of LOCALES) {
+  const text = getHclMechanismText(locale)
+  ok(
+    `[${locale}] единица лестницы без «/моль»: «${text.energy.unit}»`,
+    !/\/\s*mol|\/\s*моль/.test(text.energy.unit),
+  )
+  // Шаг energy: числа текста — ступени лестницы, их сумма и 2·ΔH°f(HCl) из ядра.
+  const eBody = text.steps.energy.body
+  for (const st of HCL_LADDER.stages) {
+    ok(`[${locale}] ступень «${st.id}» ${st.dH} кДж названа в тексте шага energy`, hasNumber(eBody, st.dH))
+  }
+  ok(`[${locale}] сумма по связям ${HCL_LADDER.sumKJ.toFixed(1)} кДж в тексте`, hasNumber(eBody, HCL_LADDER.sumKJ))
+  ok(`[${locale}] E(H–Cl) в тексте = bondData`, hasNumber(eBody, bondEnthalpyKJ('H-Cl')))
+  ok(`[${locale}] ΔH°f(HCl) в тексте = thermoData`, hasNumber(eBody, dHfKJ('HCl(g)')))
+  ok(`[${locale}] 2·ΔH°f(HCl) в тексте = ${HCL_LADDER.tableKJ}`, hasNumber(eBody, HCL_LADDER.tableKJ))
+}
+// Ступени действительно на уравнение: разрыв H₂ и Cl₂ целиком, образование ДВУХ связей H–Cl.
+{
+  const hh = HCL_LADDER.stages.find((s) => s.id === 'bondHH')!
+  const hcl = HCL_LADDER.stages.find((s) => s.id === 'bondHCl')!
+  ok('ступень H₂ → 2 H• = полная E(H–H)', Math.abs(hh.dH - bondEnthalpyKJ('H-H')) < 1e-9, `${hh.dH} кДж`)
+  ok('ступень 2 H• + 2 Cl• → 2 HCl = −2 · E(H–Cl)', Math.abs(hcl.dH + 2 * bondEnthalpyKJ('H-Cl')) < 1e-9, `${hcl.dH} кДж`)
+  ok(
+    'сумма лестницы = ΔH на уравнение, то есть 2 · ΔH°f(HCl)',
+    Math.abs(HCL_LADDER.sumKJ - 2 * dHfKJ('HCl(g)')) <= 10,
+    `${HCL_LADDER.sumKJ} кДж против 2 · ${dHfKJ('HCl(g)')}`,
+  )
+}
+
+// ── Замечание профессора (круг 2): сумма двух стадий роста цепи считается честно ──
+// (+4) + (−189) = −185, а не −184,6: −184,6 — это 2 · ΔH°f(HCl, г.), и совпадение
+// двух чисел надо оговаривать округлением справочных энергий связей, а не выдавать
+// сумму за точное равенство — ученик, который сложит сам, получит −185.
+{
+  // Стадии роста цепи — из ΔH°f ядра; в тексте они округлены до целых.
+  const p1 = Math.round(HCL_PROP1_KJ)
+  const p2 = Math.round(HCL_PROP2_KJ)
+  const tableKJ = 2 * dHfKJ('HCl(g)')
+  ok('сумма точных стадий = 2 · ΔH°f(HCl) (закон Гесса)', close(HCL_PROP1_KJ + HCL_PROP2_KJ, tableKJ, 1e-6), `${HCL_PROP1_KJ} + ${HCL_PROP2_KJ}`)
+  ok('сумма округлённых стадий отличается от таблицы меньше чем на 1', Math.abs(p1 + p2 - tableKJ) < 1, `${p1 + p2} против ${tableKJ}`)
+  /** «(+a) + (b) = c» — три числа, извлечённые из текста. */
+  const SUM_RE = /\(([+−-]?\d+(?:[.,]\d+)?)\)\s*\+\s*\(([+−-]?\d+(?:[.,]\d+)?)\)\s*=\s*([+−-]?\d+(?:[.,]\d+)?)/
+  for (const locale of LOCALES) {
+    const text = getHclMechanismText(locale)
+    const body = text.steps.propagation2.body
+    const m = body.match(SUM_RE)
+    ok(`[${locale}] в шаге propagation2 есть сложение двух стадий`, !!m, body.slice(0, 140))
+    if (!m) continue
+    const [a, b, c] = [m[1]!, m[2]!, m[3]!].map((x) => numbersIn(x)[0]!)
+    ok(`[${locale}] первое слагаемое = ΔH стадии 1 из ядра (${p1})`, a === p1, `${a}`)
+    ok(`[${locale}] второе слагаемое = ΔH стадии 2 из ядра (${p2})`, b === p2, `${b}`)
+    ok(`[${locale}] арифметика в тексте верна: ${a} + ${b} = ${c}`, a + b === c)
+    ok(`[${locale}] табличное 2 · ΔH°f(HCl) = ${tableKJ} названо рядом`, hasNumber(body, tableKJ))
+    // ΔH каждой стадии роста в уравнении шага — то же число из ядра.
+    ok(`[${locale}] уравнение propagation1: ΔH = ${p1}`, hasNumber(text.steps.propagation1.equation, p1, 0))
   }
 }
 

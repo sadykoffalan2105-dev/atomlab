@@ -33,7 +33,7 @@ export {
  *
  * Вся химия — из src/chemistry/data (ни одного числа руками):
  *   • N₂: тройная связь, d = 109,77 пм, E = 945 кДж/моль — самая прочная связь урока;
- *   • H₂: d = 74,14 пм, E = 436 кДж/моль;
+ *   • H₂: d = 74,14 пм, E = 435,8 кДж/моль (bondData);
  *   • NH₃: d(N–H) = 101,2 пм, угол H–N–H = 106,7°, тригональная пирамида, μ = 1,47 Д;
  *   • радиусы ковалентные: N 71 пм, H 31 пм (ионов в этой реакции нет вообще);
  *   • катализатор — α-Fe: ОЦК, Im-3m (229), a = 286,65 пм, d(Fe–Fe) = 248,2 пм, КЧ 8.
@@ -49,7 +49,8 @@ export {
  *     но атомы перемещаются по поверхности плавно, а на самом деле это
  *     дискретные перескоки между адсорбционными центрами;
  *   • две кривые активации нарисованы качественно: высота барьера без
- *     катализатора взята равной E(N≡N) = 945 кДж/моль, барьер на железе —
+ *     катализатора взята равной E(N≡N) = 945 кДж/моль — это ОЦЕНКА СНИЗУ
+ *     (энтальпия диссоциации связи), а не измеренная Eₐ; барьер на железе —
  *     интервал 60…100 кДж/моль (кажущаяся Eₐ, см. nh3Energetics.ts).
  */
 
@@ -413,7 +414,7 @@ const NN_STRESS: ScalarTrack = rampTrack(T_ADSORB, 0, T_SPLIT, 1, 'inQuad')
 const NN_THIN: ScalarTrack = rampTrack(T_SPLIT - 0.5, 0, T_SPLIT + 0.3, 1, 'outCubic')
 const NN_OPACITY: ScalarTrack = rampTrack(T_SPLIT, 1, T_SPLIT + 0.6, 0, 'smooth')
 
-/** Связь H–H рвётся на железе раньше и легче: E = 436 против 945 кДж/моль. */
+/** Связь H–H рвётся на железе раньше и легче: E(H–H) против E(N≡N) из bondData. */
 const HH_STRESS: ScalarTrack = rampTrack(T_ADSORB, 0, T_HH_SPLIT, 1, 'inQuad')
 const HH_THIN: ScalarTrack = rampTrack(T_HH_SPLIT - 0.4, 0, T_HH_SPLIT + 0.25, 1, 'outCubic')
 const HH_OPACITY: ScalarTrack = rampTrack(T_HH_SPLIT, 1, T_HH_SPLIT + 0.5, 0, 'smooth')

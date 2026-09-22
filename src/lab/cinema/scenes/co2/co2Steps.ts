@@ -1,63 +1,54 @@
 import { defineSceneTiming, type SceneFinish, type SceneStep } from '../kit/sceneKit'
 
 /**
- * C (графит) + O₂ (г.) → CO₂ (г.) — ковалентная полярная связь, Kimyo 7–8 класс.
+ * C (графит) + O₂ (г.) → CO₂ (г.) — горение угля, ковалентная полярная связь, Kimyo 7–8 класс.
  *
- * Шесть шагов урока:
- *   1 «Уголь и кислород»        — фрагмент ГРАФИТА (два слоя, P6₃/mmc, C–C 141,8 пм,
- *                                 между слоями 335,4 пм) и МОЛЕКУЛЫ O₂ (120,8 пм);
- *   2 «Атом покидает слой»      — с края слоя уходит атом углерода: энтальпия
- *                                 атомизации графита +716,7 кДж/моль — самая дорогая ступень;
- *   3 «Первая связь C=O»        — связь O=O рвётся гомолитически (+498 кДж/моль),
- *                                 первый атом кислорода садится на углерод;
- *   4 «Молекула выпрямляется»   — вторая связь C=O, sp-гибридизация, угол 180°,
- *                                 две σ- и две π-связи, длина C=O 116,0 пм;
- *   5 «Связи полярны, молекула — нет» — Δχ(O − C) = 0,89, но диполи связей
- *                                 направлены встречно и гасятся: μ = 0 D;
- *   6 «Энергия»                 — ΔH°f(CO₂) = −393,5 кДж/моль, тепло и свет пламени,
- *                                 предупреждение про угарный газ CO (ΔH°f = −110,5).
+ * Шесть шагов урока (числа — только в ядре src/chemistry/data, здесь их нет):
+ *   1 «Графит и кислород»        — два слоя графита из crystalData (P6₃/mmc) с ячейкой и молекула O₂;
+ *   2 «Кислород садится на край» — O₂ хемосорбируется на двух краевых атомах слоя: связь O=O
+ *                                  рвётся ТОЛЬКО одновременно с образованием двух связей C–O
+ *                                  (поверхностные комплексы C(O)); свободных атомов O нет;
+ *   3 «С края уходит CO»         — связи C–C краевого атома рвутся, C(O) десорбируется молекулой CO
+ *                                  (C≡O); свободного атома C (г.) в горении графита НЕТ;
+ *   4 «CO + ·OH → CO₂ + H·»      — сухой CO почти не горит: дожигание идёт через радикал ·OH;
+ *   5 «Строение CO₂»             — D∞h, 180°, две σ + две π в перпендикулярных плоскостях,
+ *                                  связи полярны, молекула — нет (векторы гасятся);
+ *   6 «Сухой лёд»                — молекулярная решётка Pa-3: центральная молекула и 12 соседей.
  *
  * Здесь только РАЗМЕТКА ВРЕМЕНИ: без THREE и React — файл читают тесты,
  * watchdog лаборатории и панель урока.
  */
 
-export const CO2_STEP_IDS = ['reactants', 'erosion', 'firstBond', 'linear', 'polarity', 'energy'] as const
+export const CO2_STEP_IDS = ['reactants', 'chemisorption', 'desorption', 'oxidation', 'structure', 'solid'] as const
 
 export type Co2StepId = (typeof CO2_STEP_IDS)[number]
 
 export type Co2Step = SceneStep<Co2StepId>
 
+/** Время сюжета (from/to) и экранные секунды (wall): каждый шаг 4–7 с, вся сцена 26–34 с. */
 const STEPS: readonly Co2Step[] = [
-  { id: 'reactants', from: 0, to: 4.2, wall: 4.8, ease: 'power1.inOut' },
-  { id: 'erosion', from: 4.2, to: 8.4, wall: 5.2, ease: 'sine.inOut' },
-  { id: 'firstBond', from: 8.4, to: 13.4, wall: 6.0, ease: 'sine.inOut' },
-  { id: 'linear', from: 13.4, to: 18.0, wall: 5.6, ease: 'power1.inOut' },
-  { id: 'polarity', from: 18.0, to: 21.6, wall: 4.4, ease: 'power1.inOut' },
-  { id: 'energy', from: 21.6, to: 25.8, wall: 5.0, ease: 'power1.inOut' },
+  { id: 'reactants', from: 0, to: 4, wall: 4.6, ease: 'power1.inOut' },
+  { id: 'chemisorption', from: 4, to: 8.5, wall: 5.2, ease: 'sine.inOut' },
+  { id: 'desorption', from: 8.5, to: 13, wall: 5.2, ease: 'sine.inOut' },
+  { id: 'oxidation', from: 13, to: 17.5, wall: 5.4, ease: 'sine.inOut' },
+  { id: 'structure', from: 17.5, to: 21.5, wall: 4.8, ease: 'power1.inOut' },
+  { id: 'solid', from: 21.5, to: 26.5, wall: 5.6, ease: 'power1.inOut' },
 ]
 
 /** Хвост после последнего шага: затемнение и передача кадра продукту лаборатории. */
-export const CO2_FINISH: SceneFinish = { from: 25.8, to: 26.6, wall: 1.2, ease: 'power2.in' }
+export const CO2_FINISH: SceneFinish = { from: 26.5, to: 27.3, wall: 1.2, ease: 'power2.in' }
 
 export type Co2CueId =
-  /** уголь раскалился: фрагмент графита светится, реакция может начаться */
-  | 'ignite'
-  /** атом углерода оторвался от края слоя (атомизация графита) */
-  | 'detach'
-  /** связь O=O разорвана гомолитически */
-  | 'o2Break'
-  /** первая связь C=O замкнулась */
-  | 'bond1'
-  /** вторая связь C=O замкнулась */
-  | 'bond2'
-  /** молекула выпрямилась: O=C=O, 180° */
-  | 'linear'
-  /** показаны диполи связей и их взаимное гашение */
-  | 'dipole'
-  /** пик выделения энергии: пламя горящего угля */
-  | 'exo'
-  /** предупреждение о неполном сгорании: 2 C + O₂ → 2 CO */
-  | 'coWarn'
+  /** O=O разорвана на поверхности: два комплекса C(O) на краю слоя */
+  | 'adsorb'
+  /** связи C–C краевого атома разорваны: молекула CO ушла с края */
+  | 'desorb'
+  /** CO + ·OH → CO₂ + H·: вторая связь C=O замкнулась, H· ушёл */
+  | 'oxidize'
+  /** показаны частичные заряды и векторы диполей связей */
+  | 'polarity'
+  /** молекулярная решётка сухого льда собрана, рёбра ячейки видны */
+  | 'crystal'
   /** контракт лаборатории: продукт существует, пора готовить героя */
   | 'embryo'
   | 'birth'
@@ -67,20 +58,30 @@ export const CO2_TIMING = defineSceneTiming<Co2StepId, Co2CueId>({
   steps: STEPS,
   finish: CO2_FINISH,
   cues: [
-    { at: 3.4, id: 'ignite' },
-    { at: 6.6, id: 'detach' },
-    { at: 10.0, id: 'o2Break' },
-    { at: 12.2, id: 'bond1' },
-    { at: 14.6, id: 'bond2' },
-    { at: 17.4, id: 'linear' },
-    { at: 19.6, id: 'dipole' },
-    { at: 22.6, id: 'exo' },
-    { at: 24.4, id: 'coWarn' },
-    { at: 26.0, id: 'embryo' },
-    { at: 26.3, id: 'birth' },
+    { at: 6.8, id: 'adsorb' },
+    { at: 10.2, id: 'desorb' },
+    { at: 15.2, id: 'oxidize' },
+    { at: 19.8, id: 'polarity' },
+    { at: 24.8, id: 'crystal' },
+    // Контракт лаборатории — строго в хвосте, после последнего шага.
+    { at: 26.7, id: 'embryo' },
+    { at: 27.0, id: 'birth' },
     { at: CO2_FINISH.to, id: 'complete' },
   ],
 })
+
+/**
+ * Стадии механизма (время сюжета): start — начало натяжения рвущейся связи,
+ * at — кадр события (совпадает с cue). Их читают раскадровка, энергетика и тест:
+ *   adsorb  — O₂ + 2 C(край) → 2 C(O): O=O рвётся в кадр at, C–O замкнуты к этому кадру;
+ *   desorb  — C(O) → CO (г.): две связи C–C краевого атома рвутся в кадр at;
+ *   oxidize — CO + ·OH → CO₂ + H·: O–H рвётся и C–O замыкается в кадр at.
+ */
+export const CO2_STAGES = {
+  adsorb: { start: 5.6, at: 6.8 },
+  desorb: { start: 9.0, at: 10.2 },
+  oxidize: { start: 14.4, at: 15.2 },
+} as const
 
 export const CO2_STEPS = CO2_TIMING.steps
 export const CO2_SEGMENTS = CO2_TIMING.segments

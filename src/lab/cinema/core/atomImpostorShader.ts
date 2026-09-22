@@ -24,11 +24,22 @@ import type { AtomPool } from './pools'
  *   [0..3] aSphere  xyz центр, w радиус
  *   [4..7] aColor   rgb линейный, a непрозрачность
  *   [8..9] aEnergy  emissive, charge
+ *
+ * Поверхность по типу вещества — ОТДЕЛЬНЫЙ буфер (ATOM_SURFACE_STRIDE = 4 float),
+ * чтобы раскладка выше осталась прежней:
+ *   aSurface  x metalness, y roughness, z anisotropy, w rimSoftness
+ *             (w ≥ 2 — «газ»: непрозрачность < 1 смешивается, а не screen-door).
+ * roughness = 0 — ПРЕЖНИЙ «стеклянный» набор констант бит в бит: сцены, которые
+ * не задают материал, выглядят как раньше. Программа и draw call остаются одни —
+ * Na → Na⁺ меняет материал в том же кадре, без переноса атома между пулами.
  */
 
 export type AtomRenderMode = 'impostor' | 'mesh'
 
 export const ATOM_INSTANCE_STRIDE = 10
+export const ATOM_SURFACE_STRIDE = 4
+/** Смещение w для «газа» в aSurface.w: w = ATOM_SURFACE_GAS_FLAG + rimSoftness. */
+export const ATOM_SURFACE_GAS_FLAG = 2
 export const ATOM_NEIGHBOR_SLOTS = 4
 /** 4 × vec4 на атом: xyz — вектор к центру соседа (мировые единицы пула), w — его радиус */
 export const ATOM_NEIGHBOR_STRIDE = 16
@@ -57,6 +68,20 @@ export function packAtomInstances(pool: AtomPool, out: Float32Array): number {
     out[o + 8] = pool.emissive[i]!
     out[o + 9] = pool.charge[i]!
   }
+  return n
+}
+
+/**
+ * Поверхности первых count атомов пула → плотный буфер aSurface (4 float на атом).
+ * Пул без поля surface (старый код) даёт нули — прежний материал.
+ */
+export function packAtomSurfaces(pool: AtomPool, out: Float32Array): number {
+  const n = Math.max(0, Math.min(pool.count, pool.capacity, Math.floor(out.length / ATOM_SURFACE_STRIDE)))
+  const src = pool.surface as Float32Array | undefined
+  const total = n * ATOM_SURFACE_STRIDE
+  const m = src ? Math.min(total, src.length) : 0
+  for (let k = 0; k < m; k++) out[k] = src![k]!
+  for (let k = m; k < total; k++) out[k] = 0
   return n
 }
 
@@ -187,34 +212,113 @@ const SHADE_GLSL = /* glsl */ `
     return max( r, vec3( 0.0 ) );
   }
 
+  // Процедурное окружение для металла (без текстур): небо над горизонтом, светлая
+  // полоса горизонта, тёмный «пол» и широкий софтбокс ключа. Яркость и оттенок берутся
+  // из SH окружения — металл отражает ту же комнату, что освещает остальные атомы, но с
+  // контрастом, по которому глаз узнаёт металл (зеркальные полосы, а не ровный глянец).
+  // rough размывает переходы; R — мировой единичный.
+  vec3 atomMetalEnv( vec3 R, float rough ) {
+    vec3 base = atomIrradiance( R ) * RECIPROCAL_PI;
+    float lum = dot( base, vec3( 0.2126, 0.7152, 0.0722 ) );
+    vec3 room = base + vec3( lum * 0.6 ); // отражение ахроматичнее диффуза
+    float y = R.y;
+    float blur = 0.03 + rough * 0.3;
+    float sky = smoothstep( -blur, blur, y );
+    // Небо темнеет к зениту, пол почти чёрный с едва заметным отражением «стола».
+    float shape = mix( 0.06, 0.75 - 0.3 * clamp( y, 0.0, 1.0 ), sky );
+    float yf = y + 0.35;
+    shape += 0.25 * exp( -( yf * yf ) / ( blur * blur * 4.0 ) );
+    // Резкая светлая линия горизонта — главный признак зеркального металла.
+    shape += 2.8 * exp( -( y * y ) / ( blur * blur ) ) * ( 1.0 - 0.5 * rough );
+    // Вторая, узкая полоса выше — «окно» комнаты: две линии блика читаются как металл.
+    float y2 = y - 0.45;
+    shape += 1.2 * exp( -( y2 * y2 ) / ( blur * blur * 0.5 ) ) * ( 1.0 - 0.6 * rough );
+    float kd = max( dot( R, uKeyDir ), 0.0 );
+    float sharp = mix( 140.0, 6.0, rough );
+    vec3 box = uKeyColor * ( pow( kd, sharp ) * 0.9 );
+    return room * shape + box;
+  }
+
   // N, V — мировые единичные; V направлен к наблюдателю. occ — контактное затенение 0..1.
-  vec3 atomShade( vec3 N, vec3 V, vec3 albedo, float emissive, float charge, float occ ) {
+  // surf = aSurface (metalness, roughness, anisotropy, rimSoftness [+2 — газ]); roughness 0 — прежний набор.
+  vec3 atomShade( vec3 N, vec3 V, vec3 albedo, float emissive, float charge, float occ, vec4 surf ) {
     float NoV = clamp( dot( N, V ), 0.0, 1.0 );
     float NoL = dot( N, uKeyDir );
+    bool legacy = surf.y <= 0.0;
+    float metal = legacy ? 0.0 : clamp( surf.x, 0.0, 1.0 );
+    float soft = legacy ? 0.0 : clamp( surf.w >= 2.0 ? surf.w - 2.0 : surf.w, 0.0, 1.0 );
 
     // Диффуз: окружение (уже содержит мягкий ключ) + wrap от ключа для формы.
+    // У металла диффуза почти нет — свет уходит в окрашенное отражение.
     float wrap = NoL * 0.5 + 0.5;
     wrap *= wrap;
     vec3 ambient = atomIrradiance( N ) * ( uEnvIntensity * RECIPROCAL_PI );
     vec3 keyWrap = uKeyColor * ( wrap * 0.16 * uEnvIntensity );
-    vec3 diffuse = albedo * ( ambient * occ + keyWrap * mix( 1.0, occ, 0.6 ) + 0.03 );
+    vec3 diffuse = albedo * ( ambient * occ + keyWrap * mix( 1.0, occ, 0.6 ) + 0.03 ) * ( 1.0 - 0.94 * metal );
 
-    // Небольшой GGX-блик ключа (roughness ≈ 0.4) — «стекло», не хром.
     vec3 H = normalize( uKeyDir + V );
     float NoH = clamp( dot( N, H ), 0.0, 1.0 );
-    const float a2 = 0.026;
-    float dd = NoH * NoH * ( a2 - 1.0 ) + 1.0;
-    float D = min( a2 / ( PI * dd * dd ), 9.0 );
-    float fres = 0.04 + 0.96 * pow( 1.0 - NoV, 5.0 );
-    vec3 spec = uKeyColor * ( D * clamp( NoL, 0.0, 1.0 ) * 0.03 * uEnvIntensity );
-    vec3 envSpec = atomIrradiance( reflect( -V, N ) ) * ( uEnvIntensity * RECIPROCAL_PI * fres * occ );
+    vec3 spec;
+    vec3 envSpec;
+    if ( legacy ) {
+      // Небольшой GGX-блик ключа (roughness ≈ 0.4) — «стекло», не хром.
+      const float a2 = 0.026;
+      float dd = NoH * NoH * ( a2 - 1.0 ) + 1.0;
+      float D = min( a2 / ( PI * dd * dd ), 9.0 );
+      float fres = 0.04 + 0.96 * pow( 1.0 - NoV, 5.0 );
+      spec = uKeyColor * ( D * clamp( NoL, 0.0, 1.0 ) * 0.03 * uEnvIntensity );
+      envSpec = atomIrradiance( reflect( -V, N ) ) * ( uEnvIntensity * RECIPROCAL_PI * fres * occ );
+    } else {
+      // Материал по типу вещества: F0 = 0.04 у диэлектрика, F0 = albedo у металла.
+      float rough = clamp( surf.y, 0.04, 1.0 );
+      float aniso = clamp( surf.z, 0.0, 0.9 );
+      float ar = max( rough * rough, 0.002 );
+      // Анизотропный GGX: блик вытянут вдоль «широт» вокруг вертикали, как у
+      // шлифованного металла; при aniso = 0 — обычный изотропный GGX.
+      vec3 Tg = cross( vec3( 0.0, 1.0, 0.0 ), N );
+      Tg = dot( Tg, Tg ) > 1e-6 ? normalize( Tg ) : vec3( 1.0, 0.0, 0.0 );
+      vec3 Bg = cross( N, Tg );
+      float ax = ar * ( 1.0 + aniso );
+      float ay = ar * ( 1.0 - 0.8 * aniso );
+      float th = dot( Tg, H ) / ax;
+      float bh = dot( Bg, H ) / ay;
+      float den = th * th + bh * bh + NoH * NoH;
+      float D = min( 1.0 / ( PI * ax * ay * den * den ), 16.0 );
+      // F0 металла = albedo (CPK — «паспорт» элемента), на 35 % сведённый к нейтральному
+      // серебру той же яркости: Na — фиолетово-серебристый, Mg — зелёно-серебристый,
+      // Al — серебристо-серый, Pb — тёмно-серый (пол 0.22 — иначе Pb на тёмной сцене чёрный).
+      float amax = max( max( albedo.r, albedo.g ), albedo.b );
+      vec3 metalF0 = max( mix( albedo, vec3( amax ), 0.35 ), vec3( 0.22 ) );
+      vec3 F0 = mix( vec3( 0.04 ), metalF0, metal );
+      vec3 fresV = F0 + ( 1.0 - F0 ) * pow( 1.0 - NoV, 5.0 );
+      vec3 specTint = mix( vec3( 1.0 ), metalF0, metal );
+      spec = uKeyColor * specTint * ( D * clamp( NoL, 0.0, 1.0 ) * mix( 0.03, 0.12, metal ) * uEnvIntensity );
+      // Отражение окружения. Диэлектрик (metal = 0) — прежнее размытое SH-отражение бит в бит.
+      // Металл — процедурная карта по отражённому вектору, согнутому анизотропией: блик и
+      // полосы горизонта тянутся вдоль «широт» (шлифованный металл, Filament bent normal).
+      vec3 envDiel = atomIrradiance( reflect( -V, N ) ) * RECIPROCAL_PI * mix( 1.0, 0.55, rough );
+      vec3 envCol = envDiel;
+      if ( metal > 0.0 ) {
+        vec3 aT = cross( Tg, V );
+        vec3 aN = cross( aT, Tg );
+        vec3 Nb = normalize( mix( N, aN, aniso * 0.6 ) );
+        vec3 envMetal = atomMetalEnv( reflect( -V, Nb ), rough ) * 1.8;
+        envCol = mix( envDiel, envMetal, metal );
+      }
+      envSpec = envCol * fresV * ( uEnvIntensity * occ );
+    }
 
-    // Кромка: цвет элемента, заряд смещает оттенок.
-    float rim = pow( 1.0 - NoV, 3.0 );
+    // Кромка: цвет элемента, заряд смещает оттенок. Мягкий ободок (ион, газ) —
+    // шире и светлее, без жёсткого края.
+    float rim = pow( 1.0 - NoV, mix( 3.0, 1.7, soft ) );
     float q = clamp( charge, -1.0, 1.0 );
     vec3 qTint = q < 0.0 ? vec3( 0.30, 0.86, 1.0 ) : vec3( 1.0, 0.62, 0.24 );
     vec3 rimCol = mix( mix( albedo, vec3( 1.0 ), 0.3 ), qTint, abs( q ) * 0.7 );
-    vec3 rimLight = rimCol * ( rim * ( 0.22 + 0.3 * abs( q ) ) );
+    // Ион (мягкий матовый материал, не газ) — ободок слабый, как френель матового тела, без
+    // «неонового» свечения края: заряд лишь чуть подкрашивает кромку (приёмка NaCl, шаги 3–4).
+    float ionLike = ( legacy || surf.w >= 2.0 ) ? 0.0 : soft * ( 1.0 - metal ) * smoothstep( 0.6, 0.75, surf.y );
+    float rimAmp = mix( 0.22 + 0.3 * abs( q ), 0.12 + 0.08 * abs( q ), ionLike );
+    vec3 rimLight = rimCol * ( rim * rimAmp * ( 1.0 + 0.35 * soft ) * ( 1.0 - 0.6 * metal ) );
 
     // Собственное свечение: ≤ 1 ровное, > 1 — энергия, центр разгорается в белое.
     float e = max( emissive, 0.0 );
@@ -284,11 +388,13 @@ const IMPOSTOR_VERTEX = /* glsl */ `
   attribute vec4 aSphere;
   attribute vec4 aColor;
   attribute vec2 aEnergy;
+  attribute vec4 aSurface;
   uniform float uViewportHeight;
   varying vec3 vRayPos;
   varying vec4 vSphere;
   varying vec4 vColor;
   varying vec2 vEnergy;
+  varying vec4 vSurface;
   ${CONTACT_VERTEX_PARS}
   #include <fog_pars_vertex>
 
@@ -299,6 +405,7 @@ const IMPOSTOR_VERTEX = /* glsl */ `
     float r = aSphere.w * scale;
     vColor = aColor;
     vEnergy = aEnergy;
+    vSurface = aSurface;
     vSphere = vec4( C, r );
     ${CONTACT_VERTEX}
 
@@ -342,6 +449,7 @@ const IMPOSTOR_FRAGMENT = /* glsl */ `
   varying vec4 vSphere;
   varying vec4 vColor;
   varying vec2 vEnergy;
+  varying vec4 vSurface;
   ${CONTACT_FRAGMENT_PARS}
   #include <fog_pars_fragment>
   #ifdef USE_LOGARITHMIC_DEPTH_BUFFER
@@ -380,7 +488,10 @@ const IMPOSTOR_FRAGMENT = /* glsl */ `
     vec3 Nv = normalize( P - C );
 
     // Непрозрачность < 1 — screen-door: порядок отрисовки не важен, сортировка не нужна.
-    if ( vColor.a < 0.999 && vColor.a <= atomBayer4( gl_FragCoord.xy ) + 0.03125 ) discard;
+    // «Газ» (aSurface.w ≥ 2) — без узора: альфа уходит в смешивание. Глубина пишется,
+    // поэтому газовую молекулу ставят отдельно, а не перед другими атомами.
+    bool gasBlend = vSurface.y > 0.0 && vSurface.w >= 2.0;
+    if ( !gasBlend && vColor.a < 0.999 && vColor.a <= atomBayer4( gl_FragCoord.xy ) + 0.03125 ) discard;
 
     // Полупокрытая кромка пишет глубину позади сферы: сосед, нарисованный позже
     // в том же батче, перекроет её целиком, а не оставит тёмный ореол.
@@ -398,9 +509,9 @@ const IMPOSTOR_FRAGMENT = /* glsl */ `
 
     vec3 N = normalize( ( vec4( Nv, 0.0 ) * viewMatrix ).xyz );
     vec3 V = normalize( ( vec4( -rd, 0.0 ) * viewMatrix ).xyz );
-    vec3 col = atomShade( N, V, vColor.rgb, vEnergy.x, vEnergy.y, occ );
+    vec3 col = atomShade( N, V, vColor.rgb, vEnergy.x, vEnergy.y, occ, vSurface );
 
-    gl_FragColor = vec4( col, cov );
+    gl_FragColor = vec4( col, gasBlend ? cov * clamp( vColor.a, 0.0, 1.0 ) : cov );
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
     #include <fog_fragment>
@@ -411,11 +522,13 @@ const MESH_VERTEX = /* glsl */ `
   attribute vec4 aSphere;
   attribute vec4 aColor;
   attribute vec2 aEnergy;
+  attribute vec4 aSurface;
   varying vec3 vViewPos;
   varying vec3 vNormalV;
   varying vec3 vCenter;
   varying vec4 vColor;
   varying vec2 vEnergy;
+  varying vec4 vSurface;
   ${CONTACT_VERTEX_PARS}
   #include <fog_pars_vertex>
 
@@ -428,6 +541,7 @@ const MESH_VERTEX = /* glsl */ `
     float r = aSphere.w * scale * fade;
     vColor = aColor;
     vEnergy = aEnergy;
+    vSurface = aSurface;
     vCenter = C;
     ${CONTACT_VERTEX}
     // Икосфера сферически симметрична — строим её прямо в системе вида.
@@ -446,6 +560,7 @@ const MESH_FRAGMENT = /* glsl */ `
   varying vec3 vCenter;
   varying vec4 vColor;
   varying vec2 vEnergy;
+  varying vec4 vSurface;
   ${CONTACT_FRAGMENT_PARS}
   #include <fog_pars_fragment>
   ${SHADE_GLSL}
@@ -458,7 +573,7 @@ const MESH_FRAGMENT = /* glsl */ `
     ${CONTACT_FRAGMENT}
     vec3 N = normalize( ( vec4( Nv, 0.0 ) * viewMatrix ).xyz );
     vec3 V = normalize( ( vec4( -rd, 0.0 ) * viewMatrix ).xyz );
-    vec3 col = atomShade( N, V, vColor.rgb, vEnergy.x, vEnergy.y, occ );
+    vec3 col = atomShade( N, V, vColor.rgb, vEnergy.x, vEnergy.y, occ, vSurface );
     col *= mix( 0.3, 1.0, clamp( vColor.a, 0.0, 1.0 ) );
     gl_FragColor = vec4( col, 1.0 );
     #include <tonemapping_fragment>
@@ -537,10 +652,11 @@ export function createImpostorQuadGeometry(): THREE.InstancedBufferGeometry {
 
 let icosphereData: { position: Float32Array; index: Uint16Array } | null = null
 
-/** Индексированная единичная икосфера detail 2 (как в three): 92 вершины, 180 треугольников. */
+/** Индексированная единичная икосфера detail 4: 252 вершины, 500 треугольников — при detail 2 крупный шар реактора
+ * (Na в металле) показывал гранёный силуэт (приёмка). Стоимость ничтожна даже для 200 инстансов. */
 function icosphereArrays(): { position: Float32Array; index: Uint16Array } {
   if (icosphereData) return icosphereData
-  const src = new THREE.IcosahedronGeometry(1, 2)
+  const src = new THREE.IcosahedronGeometry(1, 4)
   const p = src.getAttribute('position')
   const map = new Map<string, number>()
   const verts: number[] = []

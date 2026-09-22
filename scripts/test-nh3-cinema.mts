@@ -14,7 +14,7 @@
  *   6. 3D-подписи локализуются: все токены известны, после перевода не остаётся «{…}».
  */
 import * as THREE from 'three'
-import { bondEnthalpyKJ, bondLengthPm, bondAngleDeg, dipoleDebye } from '../src/chemistry/data/index.ts'
+import { bondEnthalpyKJ, bondLengthPm, bondAngleDeg, dHfKJ, dipoleDebye } from '../src/chemistry/data/index.ts'
 import {
   SCENE_LABEL_TOKENS,
   assertNoPositionJumps,
@@ -41,9 +41,11 @@ import {
   HABER,
   NH3_DELTA_N,
   NH3_ENTHALPY,
+  NH3_GEOMETRY,
   NH3_LADDER,
   NH3_REACTION,
   NH3_REACTION_DH_KJ,
+  NH3_DHF_KJ,
   NN_BOND_KJ,
   validateNh3Energetics,
 } from '../src/lab/cinema/scenes/nh3/nh3Energetics.ts'
@@ -59,6 +61,26 @@ function ok(cond: unknown, msg: string): void {
     failed++
     console.error(`  ✗ ${msg}`)
   }
+}
+
+/**
+ * Числа, извлечённые из текста урока: «435,8», «−93,6», «+1307,4» → числа.
+ * Тексты не сверяются по фразам — сверяются ЧИСЛА с научным ядром.
+ */
+const NUM_RE = /[−-]?\+?\d+(?:[.,]\d+)?/g
+function numbersIn(text: string): number[] {
+  return [...text.matchAll(NUM_RE)].map((m) => Number(m[0].replace('−', '-').replace('+', '').replace(',', '.')))
+}
+/** Есть ли в тексте число, равное value с точностью tol. */
+function hasNumber(text: string, value: number, tol = 0.051): boolean {
+  return numbersIn(text).some((n) => Math.abs(n - value) <= tol)
+}
+/** Первое число после якоря (якорь — фрагмент формулы или символ, не фраза). */
+function numberAfter(text: string, anchor: string): number | null {
+  const i = text.indexOf(anchor)
+  if (i < 0) return null
+  const n = numbersIn(text.slice(i + anchor.length))
+  return n.length ? n[0]! : null
 }
 
 function section(title: string): void {
@@ -256,14 +278,16 @@ ok(Math.abs(NH3_LADDER.sumKJ - NH3_LADDER.tableKJ) <= 5, `по связям ${NH
 ok(NH3_ENTHALPY.fromFormation < 0, 'реакция экзотермическая по ΔH°f')
 ok(NH3_REACTION_DH_KJ === -92, `ΔH уравнения = −92 кДж (сейчас ${NH3_REACTION_DH_KJ})`)
 ok(NN_BOND_KJ === bondEnthalpyKJ('N#N') && NN_BOND_KJ === 945, 'E(N≡N) = 945 кДж/моль из bondData')
-ok(bondEnthalpyKJ('H-H') === 436, 'E(H–H) = 436 кДж/моль из bondData')
+// E(H–H) в bondData (CRC, D₂₉₈) согласована с 2·ΔH°f(H, г) из thermoData в пределах 0,5 кДж.
+ok(Math.abs(bondEnthalpyKJ('H-H') - 2 * dHfKJ('H(g)')) <= 0.5, `E(H–H) = ${bondEnthalpyKJ('H-H')} ≈ 2·ΔH°f(H, г) = ${2 * dHfKJ('H(g)')}`)
+ok(NH3_GEOMETRY.hhBondKJ === bondEnthalpyKJ('H-H'), 'E(H–H) сцены взята из bondData')
 ok(bondEnthalpyKJ('N-H') === 391, 'E(N–H) = 391 кДж/моль из bondData')
 
 const nnStage = NH3_LADDER.stages.find((s) => s.id === 'nn')!
 const hhStage = NH3_LADDER.stages.find((s) => s.id === 'hh')!
 const nhStage = NH3_LADDER.stages.find((s) => s.id === 'nh')!
 ok(nnStage.dH === 945, 'ступень N≡N = +945 кДж')
-ok(hhStage.dH === 3 * 436, 'ступень 3 H–H = +1308 кДж')
+ok(Math.abs(hhStage.dH - 3 * bondEnthalpyKJ('H-H')) < 1e-9, `ступень 3 H–H = 3·E(H–H) = +${hhStage.dH} кДж`)
 ok(nhStage.dH === -6 * 391, 'ступень 6 N–H = −2346 кДж')
 for (const s of NH3_LADDER.stages) {
   ok(s.at >= 0 && s.at <= NH3_END, `ступень «${s.id}» привязана ко времени внутри сюжета`)
@@ -339,5 +363,76 @@ for (const def of NH3_LABELS) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+section('7. Замечания профессора: отношение прочностей связей и источник угла')
+
+// N≡N прочнее H–H в 2,17 раза — «втрое» было бы неверно.
+const BOND_RATIO = bondEnthalpyKJ('N#N') / bondEnthalpyKJ('H-H')
+ok(BOND_RATIO > 2 && BOND_RATIO < 2.5, `E(N≡N) / E(H–H) = ${BOND_RATIO.toFixed(2)} — «вдвое с лишним», а не «втрое»`)
+for (const locale of LOCALES) {
+  const text = getNh3MechanismText(locale)
+  const body = text.steps.reactants.body
+  // Числа шага reactants — из ядра: E(N≡N), E(H–H) и их отношение (одна цифра после запятой).
+  ok(hasNumber(body, bondEnthalpyKJ('N#N')), `${locale}: E(N≡N) в тексте = bondData (${bondEnthalpyKJ('N#N')})`)
+  ok(hasNumber(body, bondEnthalpyKJ('H-H')), `${locale}: E(H–H) в тексте = bondData (${bondEnthalpyKJ('H-H')})`)
+  ok(!hasNumber(body, Math.round(bondEnthalpyKJ('H-H')), 0) || Number.isInteger(bondEnthalpyKJ('H-H')), `${locale}: в тексте нет устаревшего округления E(H–H)`)
+  ok(hasNumber(body, Math.round(BOND_RATIO * 10) / 10, 0.001), `${locale}: отношение E(N≡N)/E(H–H) в тексте = ${BOND_RATIO.toFixed(1)}`)
+  ok(numbersIn(body).every((n) => n < 2.5 || n > 3.5), `${locale}: отношение прочностей не выдано за 3`)
+  // Угол H–N–H в note шага desorption — первое число с «°» совпадает с ядром.
+  const noteAngles = [...(text.steps.desorption.note ?? '').matchAll(/(\d+[.,]\d+)°/g)].map((m) => Number(m[1]!.replace(',', '.')))
+  ok(noteAngles[0] === bondAngleDeg('ammonia'), `${locale}: угол H–N–H в note = ядро (${noteAngles[0]} vs ${bondAngleDeg('ammonia')})`)
+  // Дипольный момент NH₃ в тексте шага desorption — из ядра.
+  ok(hasNumber(text.steps.desorption.body, dipoleDebye('NH3')), `${locale}: μ(NH₃) в тексте = ядро (${dipoleDebye('NH3')} Д)`)
+  // Шаг energy: каждая ступень лестницы, сумма по связям и расчёт по ΔH°f — те же числа, что в ядре.
+  const eBody = text.steps.energy.body
+  for (const st of NH3_LADDER.stages) {
+    ok(hasNumber(eBody, st.dH), `${locale}: ступень «${st.id}» ${st.dH} кДж названа в тексте шага energy`)
+  }
+  ok(hasNumber(eBody, NH3_LADDER.sumKJ), `${locale}: сумма по связям ${NH3_LADDER.sumKJ.toFixed(1)} кДж названа в тексте`)
+  ok(hasNumber(eBody, NH3_LADDER.tableKJ), `${locale}: расчёт по ΔH°f ${NH3_LADDER.tableKJ.toFixed(1)} кДж назван в тексте`)
+  ok(hasNumber(eBody, NH3_DHF_KJ), `${locale}: ΔH°f(NH₃) ${NH3_DHF_KJ} в тексте = thermoData`)
+  const gap = Math.abs(NH3_LADDER.sumKJ - NH3_LADDER.tableKJ)
+  ok(hasNumber(eBody, Math.round(gap), 0), `${locale}: расхождение ≈ ${Math.round(gap)} кДж названо верно (|${NH3_LADDER.sumKJ.toFixed(1)} − ${NH3_LADDER.tableKJ.toFixed(1)}|)`)
+  ok(hasNumber(text.steps.energy.equation, NH3_REACTION_DH_KJ, 0), `${locale}: ΔH в уравнении = ${NH3_REACTION_DH_KJ}`)
+  // Лестница посчитана НА УРАВНЕНИЕ, поэтому единица — «кДж», без «/моль».
+  const unit = text.energy.unit
+  ok(!/\/\s*mol|\/\s*моль/.test(unit), `${locale}: единица лестницы «${unit}» — на уравнение, без «/моль»`)
+}
+ok(bondAngleDeg('ammonia') === 106.7, `угол H–N–H в ядре = 106.7° (сейчас ${bondAngleDeg('ammonia')})`)
+
+// ─────────────────────────────────────────────────────────────────────────────
+section('8. Замечание профессора (круг 2): 945 кДж/моль — это D(N≡N), а не Eₐ')
+
+// Барьер некаталитического пути НЕ измерен: 945 кДж/моль — энтальпия диссоциации
+// тройной связи из bondData, то есть оценка СНИЗУ. Текст обязан это называть прямо.
+{
+  const dissociationKJ = bondEnthalpyKJ('N#N')
+  ok(dissociationKJ === 945, `D(N≡N) = 945 кДж/моль из bondData (сейчас ${dissociationKJ})`)
+  const LOWER_BOUND: Record<Nh3Locale, RegExp> = {
+    ru: /ОЦЕНКА СНИЗУ/,
+    en: /LOWER BOUND/,
+    uz: /QUYIDAN BAHO/,
+  }
+  const AS_MEASURED_EA: Record<Nh3Locale, RegExp> = {
+    ru: /барьер около 945|барьер примерно 945/i,
+    en: /barrier of about 945/i,
+    uz: /taxminan 945 kJ\/mol to‘siq/i,
+  }
+  for (const locale of LOCALES) {
+    const step = getNh3MechanismText(locale).steps.adsorption
+    ok(
+      !AS_MEASURED_EA[locale].test(step.body),
+      `${locale}: в шаге adsorption снято «барьер около 945» — это энергия связи, а не Eₐ`,
+    )
+    ok(step.body.includes(String(dissociationKJ)), `${locale}: в шаге adsorption названы 945 кДж/моль`)
+    // Интервал Eₐ на железе в тексте = HABER.eaCatalystKJ.
+    ok(
+      hasNumber(step.body, HABER.eaCatalystKJ[0], 0) && hasNumber(step.body, HABER.eaCatalystKJ[1], 0),
+      `${locale}: кажущаяся Eₐ на железе ${HABER.eaCatalystKJ.join('–')} кДж/моль в тексте = HABER`,
+    )
+    ok(LOWER_BOUND[locale].test(step.note ?? ''), `${locale}: note шага adsorption помечает 945 как оценку снизу`)
+    ok((step.note ?? '').includes(String(dissociationKJ)), `${locale}: note шага adsorption повторяет само число 945`)
+  }
+}
+
 console.log(`\n${failed === 0 ? '✓ ВСЁ ЗЕЛЁНОЕ' : '✗ ЕСТЬ ОШИБКИ'}: проверок ${checks}, ошибок ${failed}`)
 if (failed > 0) process.exit(1)

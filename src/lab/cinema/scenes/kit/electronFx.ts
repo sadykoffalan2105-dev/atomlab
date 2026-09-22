@@ -40,6 +40,12 @@ export type ElectronJump = {
   opacity: number
   /** яркость: разгорается на оболочке, максимум в полёте */
   glow: number
+  /**
+   * true начиная с кадра, в котором t ≥ arrive: электрон у акцептора. В ЭТОТ ЖЕ
+   * кадр сцена гасит облако донора, замыкает октет акцептора и переключает
+   * радиусы (kit/valence.octetSnap с тем же tArrive).
+   */
+  arrived: boolean
 }
 
 export function createElectronJump(id: string): ElectronJump {
@@ -53,12 +59,14 @@ export function createElectronJump(id: string): ElectronJump {
     progress: 0,
     opacity: 0,
     glow: 0,
+    arrived: false,
   }
 }
 
 const _dir = new THREE.Vector3()
 const _z = new THREE.Vector3(0, 0, 1)
 const _p = new THREE.Vector3()
+const _view = new THREE.Vector3()
 
 /** Точка на дуге прыжка при параметре p ∈ [0, 1] — без аллокаций. */
 export function electronPoint(el: ElectronJump, p: number, out: THREE.Vector3): THREE.Vector3 {
@@ -85,23 +93,56 @@ export type ElectronJumpSpec = {
   arcHeight?: number
   /** за сколько секунд до старта электрон проявляется на оболочке */
   lead?: number
+  /**
+   * Направление к зрителю в системе рига (не обязано быть нормировано). Дуга
+   * выгибается перпендикулярно и линии переноса, и лучу зрения — то есть в
+   * плоскости экрана при любом повороте рига. Без него — прежнее поведение
+   * (перпендикуляр через мировую ось Z).
+   */
+  view?: THREE.Vector3
+}
+
+/**
+ * Перпендикуляр к dir, лежащий в плоскости экрана: dir × view. Если dir почти
+ * параллелен view (перенос «на зрителя»), берётся ось, наименее сонаправленная с dir.
+ */
+function writeArcPerp(out: THREE.Vector3, dir: THREE.Vector3, view: THREE.Vector3): void {
+  out.copy(dir).cross(view)
+  if (out.lengthSq() > 1e-8 * Math.max(1e-12, view.lengthSq())) {
+    out.normalize()
+    return
+  }
+  const ax = Math.abs(dir.x)
+  const ay = Math.abs(dir.y)
+  const az = Math.abs(dir.z)
+  if (ax <= ay && ax <= az) out.set(1, 0, 0)
+  else if (ay <= az) out.set(0, 1, 0)
+  else out.set(0, 0, 1)
+  out.cross(dir).normalize()
 }
 
 /**
  * Считает состояние электрона в момент t. До `leave` он на оболочке донора,
  * между `leave` и `arrive` летит по дуге, после — гаснет внутри акцептора.
+ * Возвращает `el.arrived` (t ≥ arrive).
  */
-export function sampleElectronJump(el: ElectronJump, t: number, s: ElectronJumpSpec): void {
+export function sampleElectronJump(el: ElectronJump, t: number, s: ElectronJumpSpec): boolean {
   const lead = s.lead ?? 1.4
   _dir.copy(s.acceptor).sub(s.donor)
   if (_dir.lengthSq() < 1e-8) _dir.set(1, 0, 0)
   _dir.normalize()
   el.from.copy(s.donor).addScaledVector(_dir, s.shellRadius)
   el.to.copy(s.acceptor).addScaledVector(_dir, -s.acceptorRadius * 0.55)
-  el.perp.copy(_dir).cross(_z)
-  if (el.perp.lengthSq() < 1e-8) el.perp.set(0, 1, 0)
-  el.perp.normalize()
+  if (s.view) {
+    _view.copy(s.view)
+    writeArcPerp(el.perp, _dir, _view)
+  } else {
+    el.perp.copy(_dir).cross(_z)
+    if (el.perp.lengthSq() < 1e-8) el.perp.set(0, 1, 0)
+    el.perp.normalize()
+  }
   el.arc = (s.arcHeight ?? 0.28) * (s.arcSign ?? 1)
+  el.arrived = t >= s.arrive
 
   const show = s.leave - lead
   if (t < show) {
@@ -109,28 +150,38 @@ export function sampleElectronJump(el: ElectronJump, t: number, s: ElectronJumpS
     el.progress = 0
     el.glow = 0
     el.pos.copy(el.from)
-    return
+    return el.arrived
   }
   if (t < s.leave) {
     // На оболочке: обходит атом и приходит ровно в точку старта прыжка.
     const u = norm(show, s.leave, t)
-    const start = Math.atan2(_dir.y, _dir.x)
-    const a = start + (1 - u) * Math.PI * 1.6 * (s.arcSign ?? 1)
-    el.pos.set(
-      s.donor.x + Math.cos(a) * s.shellRadius,
-      s.donor.y + Math.sin(a) * s.shellRadius,
-      s.donor.z + 0.02,
-    )
+    const a = (1 - u) * Math.PI * 1.6 * (s.arcSign ?? 1)
+    if (s.view) {
+      // Окружность в плоскости экрана (dir, perp): при a = 0 — точка старта прыжка.
+      el.pos
+        .copy(s.donor)
+        .addScaledVector(_dir, Math.cos(a) * s.shellRadius)
+        .addScaledVector(el.perp, -Math.sin(a) * s.shellRadius)
+        .addScaledVector(_view.normalize(), 0.02)
+    } else {
+      const start = Math.atan2(_dir.y, _dir.x)
+      el.pos.set(
+        s.donor.x + Math.cos(start + a) * s.shellRadius,
+        s.donor.y + Math.sin(start + a) * s.shellRadius,
+        s.donor.z + 0.02,
+      )
+    }
     el.opacity = smoothstep(0, 0.25, u)
     el.progress = 0
     el.glow = 0.35 + 0.65 * smoothstep(0.55, 1, u)
-    return
+    return el.arrived
   }
   const p = smoothstep(0, 1, norm(s.leave, s.arrive, t))
   el.progress = p * p * (3 - 2 * p)
   electronPoint(el, el.progress, el.pos)
   el.glow = 1
   el.opacity = t <= s.arrive ? 1 : 1 - smoothstep(0, 0.5, t - s.arrive)
+  return el.arrived
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -164,6 +215,10 @@ export function drawElectron(
 /**
  * Электронная оболочка (валентная орбиталь) — пунктирное кольцо точек с бегущей
  * яркостью. Схематично: это НЕ форма орбитали, а знак «здесь внешний электрон».
+ *
+ * @deprecated Кольцо из 28 точек не говорит, СКОЛЬКО валентных электронов у атома.
+ * Новые сцены рисуют `drawValenceCloud` из `kit/valence.ts` (N отдельных точек по
+ * Льюису: у Na одна, у Cl семь, у O шесть). Оставлено для существующих сцен.
  */
 export function drawElectronShell(
   gp: GlowPointsHandle,
@@ -187,6 +242,9 @@ export function drawElectronShell(
 /**
  * Линии электростатического поля между разноимёнными ионами: точки бегут
  * от «+» к «−», цвет меняется по пути. Именно это иллюстрирует закон Кулона.
+ *
+ * @deprecated Прямой отрезок читается как «палочка» связи. Новые сцены рисуют
+ * дуги поля `drawFieldLines` из `kit/bondVisual.ts` (или `writeBondVisual(…, 'ionic', …)`).
  */
 export function drawFieldLine(
   gp: GlowPointsHandle,

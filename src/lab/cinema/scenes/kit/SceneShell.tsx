@@ -11,11 +11,13 @@ import { CinemaFlash, CinemaHalo, CinemaShockwave } from '../../react/CinemaFx'
 import { CinemaGlowPoints, type GlowPointsHandle } from '../../react/CinemaGlowPoints'
 import { CinemaPostFx } from '../../react/CinemaPostFx'
 import { CinemaPuffVolume } from '../../react/CinemaPuffVolume'
+import { CinemaCellEdges } from '../../react/CinemaCellEdges'
 import { CinemaCameraRig, CinemaEnvironment } from '../../react/CinemaStage'
 import { setCinemaTimeFrozen, useCinemaTime } from '../../react/CinemaTime'
 import { CinemaBurst, CinemaVfxStage, type VfxHandle, type VfxPreset } from '../../react/CinemaVfx'
 import { InstancedAtoms } from '../../react/InstancedAtoms'
 import { InstancedBonds } from '../../react/InstancedBonds'
+import { OrbitalLobes } from '../../react/OrbitalLobes'
 import { isPerfProbeEnabled } from '../../../perf/labPerfProbe'
 import { cinemaPlayhead, clo2StepStore, type CinemaLessonId, type Clo2StepStatus } from '../clo2/clo2StepStore'
 import type { ScientificSynthesisFxProps } from '../../../scientificSynthesis/types'
@@ -27,6 +29,7 @@ import {
   type SceneTiming,
   type SceneWorld,
 } from './sceneKit'
+import { useSceneWarmup } from './useSceneWarmup'
 
 export type { SceneCamera } from './sceneKit'
 
@@ -41,7 +44,9 @@ export type { SceneCamera } from './sceneKit'
  *     зависнет, ожидая продукт, поэтому defineSceneTiming().validate() их требует;
  *   • качество (lowPower → lite), prefers-reduced-motion (тряска камеры гасится);
  *   • рендер общего слоя: фон, пост-обработка, риг камеры, объёмное свечение,
- *     инстансные атомы и связи, ореолы, волны, точки-электроны, DOM-подписи, VFX.
+ *     инстансные атомы и связи, орбитальные π-лепестки, ореолы, волны,
+ *     точки-электроны, DOM-подписи (в свободной области), VFX;
+ *   • прогрев шейдеров ДО шага 0 (useSceneWarmup): все слои visible, пустые рисуют ноль.
  *
  * Сцене остаётся ОДНА функция кадра: посчитать раскадровку и записать пулы.
  */
@@ -83,7 +88,7 @@ type SceneFrameDeps<CueId extends string> = {
   onCue?: (id: CueId, ctx: SceneFrameCtx) => void
 }
 
-type SceneFrameView = { canvas: HTMLCanvasElement; camera: THREE.Camera; width: number; height: number }
+type SceneFrameView = { canvas: HTMLCanvasElement; camera: THREE.Camera; width: number; height: number; dt: number }
 
 /**
  * ОДИН кадр урока. Порядок важен:
@@ -156,6 +161,13 @@ export type SceneShellProps<StepId extends string, CueId extends string> = Pick<
   bondLite?: boolean
   /** префикс окна отладки: window.__<debugName>Freeze(t) */
   debugName?: string
+  /**
+   * Прогрев шейдеров до шага 0 (kit/useSceneWarmup): compileAsync рига, потом playStep(0).
+   * По умолчанию включён; false — шаг 0 стартует сразу, как раньше.
+   */
+  warmup?: boolean
+  /** раскладка DOM-подписей: зажим в свободную область и разнос пересечений (по умолчанию да) */
+  labelLayout?: boolean
   /** дополнительные узлы R3F внутри рига камеры */
   children?: ReactNode
 }
@@ -179,10 +191,15 @@ export function SceneShell<StepId extends string, CueId extends string>({
   glowPointsCapacity = 160,
   bursts = [],
   debugName = 'scene',
+  warmup = true,
+  labelLayout = true,
   children,
 }: SceneShellProps<StepId, CueId>) {
   const quality = useMemo(() => resolveCinemaQuality(lowPower), [lowPower])
   const lite = quality.tier === 'lite'
+  const rigRef = useRef<THREE.Group>(null)
+  // Все слои ниже смонтированы visible (пустые рисуют ноль) — compileAsync рига видит их все.
+  const warm = useSceneWarmup(rigRef, { enabled: warmup })
 
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -221,7 +238,12 @@ export function SceneShell<StepId extends string, CueId extends string>({
       cues.seek(t)
     }
 
+    // Шаг 0 стартует после прогрева шейдеров; если панель урока позвала шаг
+    // раньше (кнопка «Далее» во время прогрева), автостарт уже не нужен.
+    let started = false
+
     const playStep = (index: number) => {
+      started = true
       const i = Math.max(0, Math.min(lastIndex, index))
       const step = steps[i]!
       const t = clock.state.t
@@ -245,7 +267,9 @@ export function SceneShell<StepId extends string, CueId extends string>({
     }
 
     clo2StepStore.attach(runId, { playStep, replayStep, finish }, lesson, steps.length)
-    playStep(0)
+    const cancelAutostart = warm.whenReady(() => {
+      if (!started) playStep(0)
+    })
 
     if (isPerfProbeEnabled()) {
       // Отладка кадра: window.__naclFreeze(9.3) — встать на момент сюжета без анимации.
@@ -258,11 +282,12 @@ export function SceneShell<StepId extends string, CueId extends string>({
     }
 
     return () => {
+      cancelAutostart()
       clock.kill()
       clo2StepStore.detach(runId)
       setCinemaTimeFrozen(false)
     }
-  }, [runId, lesson, timing, debugName])
+  }, [runId, lesson, timing, debugName, warm])
 
   const time = useCinemaTime()
   const pointsRef = useRef<GlowPointsHandle>(null)
@@ -288,10 +313,10 @@ export function SceneShell<StepId extends string, CueId extends string>({
     [quality, camera, burstRefs],
   )
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     runSceneFrame(
       { world, ctx, camera, clockRef, cuesRef, cbRef, time, pointsRef, runId, onFrame, onCue },
-      { canvas: state.gl.domElement, camera: state.camera, width: state.size.width, height: state.size.height },
+      { canvas: state.gl.domElement, camera: state.camera, width: state.size.width, height: state.size.height, dt: delta },
     )
   }, -1)
 
@@ -300,12 +325,16 @@ export function SceneShell<StepId extends string, CueId extends string>({
       <CinemaEnvironment dust={quality.dust} background={background} fogNear={8} fogFar={24} />
       {quality.post ? <CinemaPostFx director={world.post} lite={lite} toneMapping="neutral" /> : null}
 
-      <CinemaCameraRig state={world.rig} baseScale={rigScale}>
+      <CinemaCameraRig state={world.rig} baseScale={rigScale} groupRef={rigRef}>
         {/* Тёплое объёмное свечение выделяющейся энергии. */}
         <CinemaPuffVolume state={world.puff} count={quality.gasPuffs} size={1.6} seed={21} renderOrder={-5} />
 
+        {/* Рёбра элементарных ячеек (kit/lattice) — только у сцен с buildSceneWorld({ edges }). */}
+        {world.edges ? <CinemaCellEdges pool={world.edges} renderOrder={0} /> : null}
         <InstancedBonds pool={world.bonds} time={world.visualTime} lite={lite} renderOrder={1} />
         <InstancedAtoms pool={world.atoms} mode={quality.impostorAtoms ? 'impostor' : 'mesh'} renderOrder={2} />
+        {/* π-лепестки связей и орбитали (kit/bondVisual); пустой пул — ноль отрисовки. */}
+        <OrbitalLobes pool={world.lobes} time={world.visualTime} renderOrder={6} />
 
         {world.glowSpecs.map((g) =>
           g.kind === 'flash' ? (
@@ -321,7 +350,7 @@ export function SceneShell<StepId extends string, CueId extends string>({
         {/* Электроны, следы, оболочки и линии поля — один draw call. */}
         <CinemaGlowPoints ref={pointsRef} capacity={glowPointsCapacity} renderOrder={10} />
 
-        <CinemaDomLabels labels={labels} />
+        <CinemaDomLabels labels={labels} safe={world.safe} layout={labelLayout} />
 
         {quality.vfx && bursts.length > 0 ? (
           <CinemaVfxStage>

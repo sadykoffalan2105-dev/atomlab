@@ -13,6 +13,7 @@ import {
   TEACHER_VOICE_OPENAI_SPEED,
 } from './learnTeacherVoiceProfile'
 import { prepareLabTeacherSpeechRaw } from '../lab/teacher/labTeacherSpeechPrep'
+import { expandRemainingFormulas, prepareChemNotationForSpeech } from './learnChemSpeech'
 
 export type SpeechPrepLocale = 'ru' | 'en' | 'uz'
 
@@ -40,7 +41,9 @@ export function stripMarkdownForSpeech(text: string): string {
     .replace(/^\s*[-*+]\s+/gm, '')
     .replace(/^\s*\d+[.)]\s+/gm, '')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/[️📖✦•·▪|🎤🔊⚗🧪🔬]/gu, ' ')
+    // «·» между числами — знак умножения (2·1), а не маркер списка.
+    .replace(/^\s*·\s/gmu, '')
+    .replace(/[️📖✦•▪|🎤🔊⚗🧪🔬]/gu, ' ')
     .replace(/\n{2,}/g, '. ')
     .replace(/\n/g, ' ')
     .replace(/\s{2,}/g, ' ')
@@ -76,6 +79,8 @@ export function prepareTextForHumanTts(
   if (options.profile === 'lab') {
     t = prepareLabTeacherSpeechRaw(t, locale)
   }
+  // Химическая запись — до словарей элементов: Ar(Fe) читается как масса, а не как аргон.
+  t = prepareChemNotationForSpeech(t, locale)
   t = normalizeChemicalNotation(t)
 
   if (locale === 'ru') {
@@ -131,6 +136,8 @@ export function prepareTextForHumanTts(
   }
 
   t = naturalizeSpeechText(t, locale, options)
+  // Формулы, которых нет в словаре названий, читаем по элементам («аш два эс о четыре»).
+  t = expandRemainingFormulas(t, locale)
 
   if (locale === 'ru') {
     t = applyRussianPronunciationLexicon(t)
@@ -144,8 +151,10 @@ export function prepareTextForHumanTts(
   return t
     .replace(/\s+([,.!?;:])/g, '$1')
     .replace(/,+\s*([.!?])/g, '$1')
-    .replace(/([,;])\s*/g, '$1 ')
+    .replace(/([,;])(?!\d)\s*/g, '$1 ')
     .replace(/\.{2,}/g, '.')
+    // «2алюминий» после раскрытия символов — цифра и слово слитно.
+    .replace(/(\d)(?=[а-яёА-ЯЁ])/gu, '$1 ')
     .replace(/\s{2,}/g, ' ')
     .trim()
 }

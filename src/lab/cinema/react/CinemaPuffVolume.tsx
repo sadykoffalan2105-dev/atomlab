@@ -142,13 +142,22 @@ function buildMaterial(blend: 'normal' | 'additive'): THREE.ShaderMaterial {
 }
 
 /** Покадровая заливка облака — вне компонента (правила react-hooks). */
-function updatePuffVolume(mesh: THREE.Mesh | null, mat: THREE.ShaderMaterial, state: PuffVolumeState, visual: number): void {
+function updatePuffVolume(
+  mesh: THREE.Mesh | null,
+  geo: THREE.InstancedBufferGeometry,
+  count: number,
+  mat: THREE.ShaderMaterial,
+  state: PuffVolumeState,
+  visual: number,
+): void {
   if (!mesh) return
+  // Меш всегда visible (программа прогрета на старте урока); пустое облако —
+  // instanceCount 0, three пропускает draw call.
   if (state.opacity <= 0.004) {
-    mesh.visible = false
+    geo.instanceCount = 0
     return
   }
-  mesh.visible = true
+  geo.instanceCount = count
   mesh.position.copy(state.center)
   const u = mat.uniforms
   u.uTime!.value = visual
@@ -195,7 +204,7 @@ export function CinemaPuffVolume({
     }
   }, [geo, mat])
 
-  useFrame(() => updatePuffVolume(meshRef.current, mat, state, time.current.visual))
+  useFrame(() => updatePuffVolume(meshRef.current, geo, Math.max(1, count), mat, state, time.current.visual))
 
   return (
     <mesh

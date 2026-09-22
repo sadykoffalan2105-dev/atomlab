@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import type { CameraRigState } from '../core/states'
+import { applyRigRotation, type CameraRigState } from '../core/states'
 import { useCinemaTime, type CinemaTimeState } from './CinemaTime'
 
 /**
@@ -25,19 +25,25 @@ function applyRig(g: THREE.Group, state: CameraRigState, baseScale: number, time
     state.offset.y + (shake > 0.001 ? Math.cos(t * 53.1) * 0.028 * shake : 0),
     state.offset.z,
   )
-  g.rotation.set(0, state.yaw, state.roll + (shake > 0.001 ? Math.sin(t * 41.7) * 0.012 * shake : 0))
+  // 'YXZ': поворот вокруг вертикали, затем наклон, затем крен. При pitch = 0 это
+  // ровно прежний поворот (0, yaw, roll).
+  applyRigRotation(g, state, shake > 0.001 ? Math.sin(t * 41.7) * 0.012 * shake : 0)
 }
 
 export function CinemaCameraRig({
   state,
   baseScale = 0.58,
+  groupRef,
   children,
 }: {
   state: CameraRigState
   baseScale?: number
+  /** внешний ref на группу рига — например, для прогрева шейдеров (kit/useSceneWarmup) */
+  groupRef?: RefObject<THREE.Group | null>
   children: ReactNode
 }) {
-  const group = useRef<THREE.Group>(null)
+  const own = useRef<THREE.Group>(null)
+  const group = groupRef ?? own
   const time = useCinemaTime()
 
   useFrame(() => {

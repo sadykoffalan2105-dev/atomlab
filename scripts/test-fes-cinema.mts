@@ -317,9 +317,36 @@ for (let i = 0; i < lattice.length; i++) {
   }
 }
 ok(
-  'одноимённые ионы не касаются: ближе них всегда противоион',
+  'ближайший сосед иона — всегда противоион',
   minSame > FES_GEOM.feSIdeal + 1e-6,
   `минимум ${pmOf(minSame).toFixed(1)} пм против d(Fe–S) ${FES_GEOM.data.feSIdealPm.toFixed(1)} пм`,
+)
+
+// НО: шахматного правила каменной соли в типе NiAs нет. Октаэдры FeS₆ делят
+// грани, поэтому железо стоит КОЛОНКАМИ вдоль оси c с шагом c_sub/2. Это не
+// артефакт раскадровки, а определяющая черта структурного типа — сцена и текст
+// урока обязаны говорить об этом одно и то же.
+ok(
+  'Fe–Fe колонки выведены из ячейки троилита: c₀/4',
+  Math.abs(FES_GEOM.data.feFeColumnPm * 4 - (FES_CRYSTAL.cellPm.c ?? 0)) < 1e-6,
+  `${FES_GEOM.data.feFeColumnPm.toFixed(2)} пм`,
+)
+const ironSites = lattice.filter((a) => a.el === 'Fe')
+let minFeFe = Infinity
+for (let i = 0; i < ironSites.length; i++) {
+  for (let j = i + 1; j < ironSites.length; j++) {
+    minFeFe = Math.min(minFeFe, frame.atoms[ironSites[i]!.id].distanceTo(frame.atoms[ironSites[j]!.id]))
+  }
+}
+ok(
+  'в кадре действительно есть прямые контакты Fe–Fe вдоль оси c',
+  Math.abs(pmOf(minFeFe) - FES_GEOM.data.feFeColumnPm) < 1.0,
+  `${pmOf(minFeFe).toFixed(1)} пм против c_sub/2 = ${FES_GEOM.data.feFeColumnPm.toFixed(1)} пм`,
+)
+ok(
+  'контакт Fe–Fe дальше связи Fe–S, но ближе второй координационной сферы NaCl',
+  pmOf(minFeFe) > FES_GEOM.data.feSIdealPm && pmOf(minFeFe) < FES_GEOM.data.feSIdealPm * Math.SQRT2,
+  `${pmOf(minFeFe).toFixed(1)} пм`,
 )
 
 // Ионная пара шага 4 стоит ровно на справочном расстоянии.
@@ -428,11 +455,40 @@ for (const locale of LOCALES) {
 }
 for (const [key, bag] of seen) ok(`переводы различаются: ${key}`, bag.size === LOCALES.length, `${bag.size} из ${LOCALES.length}`)
 
-// Схематичное названо схематичным.
-const ru = getFesMechanismText('ru')
-ok('шаг «решётка» честно назван фрагментом', Boolean(ru.steps.lattice.note && /идеальн|фрагмент|слой/i.test(ru.steps.lattice.note)))
-ok('шаг «переход» честно объясняет «полёт» электрона', Boolean(ru.steps.transfer.note && /квант|услов/i.test(ru.steps.transfer.note)))
-ok('шаг «смесь» честно объясняет магнит', Boolean(ru.steps.mixture.note && /магнит/i.test(ru.steps.mixture.note)))
+// Схематичное названо схематичным: у шагов с условной картинкой есть пометка note
+// во всех трёх локалях (что именно сказано — дело урока, а не теста).
+for (const locale of LOCALES) {
+  const t = getFesMechanismText(locale)
+  for (const id of ['lattice', 'transfer', 'mixture'] as const) {
+    ok(`${locale}/${id}: есть пометка note о схематичном`, (t.steps[id].note ?? '').length > 20)
+  }
+}
+
+// Разбор замечания: тип NiAs — не каменная соль. Текст урока не должен обещать,
+// что одноимённые ионы нигде не соприкасаются, и обязан назвать Fe–Fee ≈ 294 пм.
+const FE_FE_TEXT_PM = FES_GEOM.data.feFeColumnPm.toFixed(1).replace('.', ',')
+const FE_FE_TEXT_PM_EN = FES_GEOM.data.feFeColumnPm.toFixed(1)
+/** Опровергнутое собственной сценой утверждение — в трёх локалях сразу. */
+const CHESSBOARD_CLAIM =
+  /одноимённые заряды нигде не соприкасаются|like charges never touch|bir xil zaryadlar hech qayerda tegmaydi/i
+for (const locale of LOCALES) {
+  const text = getFesMechanismText(locale)
+  const body = text.steps.lattice.body
+  ok(`${locale}: снято ложное правило «одноимённые нигде не соприкасаются»`, !CHESSBOARD_CLAIM.test(body), body.slice(0, 60))
+  ok(
+    `${locale}: назван шаг колонки Fe–Fe (${FE_FE_TEXT_PM} пм)`,
+    body.includes(FE_FE_TEXT_PM) || body.includes(FE_FE_TEXT_PM_EN),
+    body.slice(0, 80),
+  )
+  // Плотность троилита в тексте обязана совпадать с ядром: если ядро поправят,
+  // тест заставит поправить и урок на всех трёх языках.
+  const dens = FES_GEOM.data.densityGCm3
+  ok(
+    `${locale}: плотность троилита в тексте взята из ядра (${dens})`,
+    text.steps.lattice.note!.includes(String(dens).replace('.', ',')) || text.steps.lattice.note!.includes(String(dens)),
+    text.steps.lattice.note!.slice(-60),
+  )
+}
 
 // Подписи в 3D: токены существуют и после локализации фигурных скобок не остаётся.
 for (const token of labelTokensUsed(FES_LABELS)) {

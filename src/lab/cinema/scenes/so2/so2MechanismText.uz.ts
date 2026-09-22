@@ -11,7 +11,7 @@ export const SO2_TEXT_UZ: So2MechanismText = {
       title: 'Oltingugurt va kislorod',
       body:
         'Oddiy sharoitda oltingugurt — sariq qattiq modda, uning zarrasi yakka atom emas, balki toj shaklidagi sakkiz atomli S₈ HALQASI: S–S bog‘i 205,5 pm, S–S–S burchagi 108°. ' +
-        'Kislorod esa ikki atomli O₂ gazi, qo‘sh bog‘ uzunligi 120,8 pm; havoda yakka kislorod atomlari bo‘lmaydi. ' +
+        'Kislorod esa ikki atomli O₂ gazi, qo‘sh bog‘ uzunligi 120,75 pm (r_e); havoda yakka kislorod atomlari bo‘lmaydi. ' +
         'Oltingugurt yoqilganda KO‘K alanga bilan yonadi — biz shu reaksiyani bosqichma-bosqich ko‘rib chiqamiz.',
       equation: 'S (qat., rombik) + O₂ (gaz) → SO₂ (gaz)',
       note: 'Ekranda bitta S₈ toji va bitta O₂ molekulasi; oltingugurt zarrachasida bunday tojlar 10²⁰ ga yaqin.',
@@ -20,32 +20,34 @@ export const SO2_TEXT_UZ: So2MechanismText = {
     ring: {
       title: 'Halqa ochiladi',
       body:
-        'Oltingugurt reaksiyaga kirishishi uchun atomni halqadan ozod qilish kerak. Avval bitta S–S bog‘i uziladi va toj zanjirga aylanadi, so‘ng ikkinchisi uziladi va chetki atom ajralib chiqadi. ' +
-        'Rombik oltingugurtdan bir mol gaz holidagi oltingugurt atomini olish uchun 277,2 kJ kerak: bu bosqich ENDOTERMIK, energiya sarflanadi. ' +
+        'Oltingugurt reaksiyaga kirishishi uchun atomni halqadan ozod qilish kerak. Tojdagi har bir atom ikkita qo‘shnisini ushlab turadi, shuning uchun avval bitta S–S bog‘i uziladi va toj zanjirga aylanadi, so‘ng ikkinchisi uziladi va chetki atom ajralib chiqadi. ' +
+        'Bu bosqich O‘RTACHA hisoblanadi: S₈ tojida sakkizta atom va roppa-rosa sakkizta bog‘ bor, ya’ni chiqarilgan har bir oltingugurt atomiga BITTA S–S bog‘i to‘g‘ri keladi. Shuning uchun bir mol oltingugurt atomi uchun 277,2 kJ kerak, ikki barobar emas: bu bosqich ENDOTERMIK, energiya sarflanadi. ' +
         'Shuning uchun oltingugurtni yoqish kerak: xona haroratida u kislorod bilan o‘z-o‘zidan reaksiyaga kirishmaydi.',
-      equation: '⅛ S₈ (qat.) → S (gaz),  ΔH = +277,2 kJ/mol',
-      note: 'Alangada erkin oltingugurt atomlari kam va bir lahza yashaydi: ekranda atom QANDAY ozod bo‘lishi ko‘rsatilgan, soni emas.',
-      speak: 'Ikkita S–S bog‘i uziladi va bitta oltingugurt atomi tojdan chiqadi.',
+      equation: '⅛ S₈ (qat.) → S (gaz),  ΔH = +277,2 kJ/mol (o‘rtacha atomiga bitta S–S bog‘i)',
+      note:
+        '277,2 kJ/mol — bu O‘RTACHA atomizatsiya entalpiyasi ΔH°f(S, gaz), birinchi atomning narxi emas: YOPIQ halqadan birinchi atomni chiqarish uchun ikkita bog‘ni uzish kerak, taxminan 554 kJ. Keyin halqa allaqachon ochilgan va navbatdagi atomlar arzonroq uziladi — o‘rtacha hisobda atomiga bitta bog‘ chiqadi. ' +
+        'Alangada erkin oltingugurt atomlari kam va bir lahza yashaydi: ekranda atom QANDAY ozod bo‘lishi ko‘rsatilgan, soni emas.',
+      speak: 'Chetki atomda ikkita S–S bog‘i uziladi va u tojdan chiqadi; o‘rtacha hisobda atomiga bitta bog‘ to‘g‘ri keladi.',
     },
     firstBond: {
       title: 'Birinchi S=O bog‘i',
       body:
         'Kislorod molekulasini ham uzish kerak: O₂ → 2 O bir molga 498,4 kJ turadi. Uzilish GOMOLITIK — umumiy juft teng bo‘linadi va ionlar emas, ikkita bir xil atom hosil bo‘ladi. ' +
-        'So‘ng oltingugurt atomi va kislorod atomi yaqinlashadi, har biri umumiy juftga bittadan elektron beradi. ' +
-        'Shunday qilib uzunligi 143,1 pm bo‘lgan kovalent S=O bog‘i paydo bo‘ladi: elektronlar ikkala atomga tegishli, lekin elektromanfiyroq kislorodga tortilgan.',
+        'So‘ng oltingugurt atomi va kislorod atomi yaqinlashadi. Oltingugurtda ham, kislorodda ham asosiy holatda ikkitadan juftlashmagan elektron bor — har bir atom ikkalasini ham umumiy qiladi. ' +
+        'Natijada IKKITA umumiy juft, ya’ni uzunligi 143,1 pm bo‘lgan qo‘sh S=O bog‘i paydo bo‘ladi: elektronlar ikkala atomga tegishli, lekin elektromanfiyroq kislorodga tortilgan.',
       equation: 'O₂ (gaz) → 2 O (gaz), ΔH = +498,4 kJ/mol;   S (gaz) + O (gaz) → S=O',
       note: 'Elektronlar yorug‘ nuqtalar, tashqi qavat esa halqa bilan ko‘rsatilgan: bu «tashqi elektronlar shu yerda» belgisi, orbital shakli emas.',
-      speak: 'Kislorod ikkiga bo‘linadi va oltingugurt u bilan elektron juftini baham ko‘radi.',
+      speak: 'Kislorod ikkiga bo‘linadi va oltingugurt u bilan birdaniga ikkita elektron juftini baham ko‘radi.',
     },
     bend: {
       title: 'Ikkinchi bog‘ va 119,5° burchak',
       body:
         'Ikkinchi kislorod atomi ikkinchi S=O bog‘ini beradi. Endi oltingugurt atrofida UCHTA elektron guruh bor: ikkita bog‘ va bitta TAQSIMLANMAGAN JUFT. ' +
         'Elektron juftlarining itarilishi nazariyasiga ko‘ra uchta guruh tekislikda taxminan 120° ga tarqaladi, shuning uchun molekula BURCHAKLI bo‘ladi; taqsimlanmagan juft bog‘dan «yo‘g‘onroq» va burchakni 119,5° gacha siqadi. ' +
-        'CO₂ dagi uglerodda guruh atigi ikkita va taqsimlanmagan juft yo‘q — shuning uchun CO₂ chiziqli, 180°. ' +
+        'Yuqorida kadrda solishtirish uchun yarim shaffof CO₂ molekulasi turadi («CO₂: O–C–O 180°» deb imzolangan): undagi uglerodda elektron guruh atigi ikkita va taqsimlanmagan juft yo‘q — shuning uchun CO₂ chiziqli, 180°. ' +
         'SO₂ dagi ikkala bog‘ ham bir xil, 143,1 pm: π-elektronlar uchta markazga delokallashgan, har bir bog‘ning tartibi 2 emas, taxminan 1,5. Molekula qutbli, μ = 1,63 D.',
       equation: 'O=S=O,  ∠O–S–O = 119,5°,  d(S=O) = 143,1 pm,  μ = 1,63 D',
-      note: '«Keng» shakldan burchakli shaklga o‘tish shartli ko‘rsatilgan — taqsimlanmagan juftning ta’siri ko‘rinsin uchun: aslida SO₂ doim burchakli.',
+      note: '«Keng» shakldan burchakli shaklga o‘tish shartli ko‘rsatilgan — taqsimlanmagan juftning ta’siri ko‘rinsin uchun: aslida SO₂ doim burchakli. Yuqoridagi yarim shaffof CO₂ reaksiyada qatnashmaydi, u faqat burchakni solishtirish uchun etalon va o‘z imzosi bilan birga paydo bo‘lib yo‘qoladi.',
       speak: 'Oltingugurtdagi taqsimlanmagan juft burchakni siqadi — molekula burchakli, CO₂ esa chiziqli.',
     },
     properties: {

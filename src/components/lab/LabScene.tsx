@@ -19,6 +19,7 @@ import { MoleculeMesh } from './MoleculeMesh'
 import { SynthesisOnLabScene } from './SynthesisOnLabScene'
 import { SynthesisElementsCollapseFx } from './SynthesisElementsCollapseFx'
 import { setCinemaActive } from '../../lab/cinemaActive'
+import { clo2StepStore } from '../../lab/cinema/scenes/clo2/clo2StepStore'
 import { InstantLabSynthesis } from './InstantLabSynthesis'
 import { getScientificSynthesisFx, hasScientificSynthesisFx } from '../../lab/scientificSynthesis/registry'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
@@ -39,7 +40,8 @@ import {
   getReactorPreviewPolicy,
   shouldRunGuardTick,
 } from '../../lab/synthesisLagGuard'
-import { CatalogSubstanceDisplay } from './CatalogSubstanceDisplay'
+import { ProductHero } from './hero/ProductHero'
+import { heroFrameGeometry, measureHeroFrame } from './hero/heroFrame'
 import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
 import { ReactorTermsPreview } from './ReactorTermsPreview'
 import {
@@ -94,6 +96,7 @@ import {
 } from '../../lab/synthesisLaunchGuard'
 import {
   createSynthesisCoverageTracker,
+  type SynthesisCoverage,
 } from '../../lab/synthesisVisualGuard'
 import {
   isEffectiveProductPainted,
@@ -148,6 +151,11 @@ function LabReactorClearColor() {
     scene.background = c
   }, [gl, scene])
   return null
+}
+
+/** Модульная функция вместо стрелки в кадре — ноль аллокаций в useFrame. */
+function killScaleTweens(scale: THREE.Vector3): void {
+  gsap.killTweensOf(scale)
 }
 
 /** Синхронизация clear color при переходе idle ↔ реактор — убирает «призрак» обложечного атома. */
@@ -293,17 +301,44 @@ function DraggableParticle({
 }
 
 function TransformPreviewHero({ compound }: { compound: CompoundDef }) {
-  return (
-    <>
-      <CatalogSubstanceDisplay
-        compound={compound}
-        reducedEffects
-        labSynthesisScene
-        renderQuality="high"
-        fxLevel="low"
-      />
-    </>
-  )
+  // Выбранный продукт до запуска — тот же герой, что после синтеза (решётка/молекула по данным, без ауры).
+  return <ProductHero compound={compound} showLabels />
+}
+
+/** Базовое смещение камеры каталожного кадра относительно цели. */
+const CATALOG_HERO_OFFSET_Y =
+  CATALOG_HERO_VIEW.cameraPosition[1] - CATALOG_HERO_VIEW.target[1]
+const CATALOG_HERO_OFFSET_Z =
+  CATALOG_HERO_VIEW.cameraPosition[2] - CATALOG_HERO_VIEW.target[2]
+const CATALOG_HERO_RADIUS = Math.hypot(CATALOG_HERO_OFFSET_Y, CATALOG_HERO_OFFSET_Z)
+export type CatalogHeroFrame = {
+  /** Цель камеры по X: центр свободной области левее/правее центра канвы (панель урока, карточка). */
+  targetX: number
+  /** Цель камеры по Y: ниже нуля — модель поднимается над доком реактора. */
+  targetY: number
+  /** Радиус орбиты: свободная область меньше канвы → камера отходит. */
+  radius: number
+}
+
+const CATALOG_HERO_FRAME_BASE: CatalogHeroFrame = {
+  targetX: CATALOG_HERO_VIEW.target[0],
+  targetY: CATALOG_HERO_VIEW.target[1],
+  radius: CATALOG_HERO_RADIUS,
+}
+
+/**
+ * Кадр героя продукта по СВОБОДНОЙ области канвы (hero/heroFrame): та же measureSafeArea, что у
+ * сцен (верхние пилюли, реактор, панель урока слева или снизу), плюс карточка продукта. Цель —
+ * по X и Y, расстояние — по описанной сфере героя вместе с подписями. Раньше учитывался только
+ * нижний док и только Y: на телефоне низ модели уходил под панель, а подпись — под тулбар.
+ */
+function measureCatalogHeroFrame(
+  canvas: HTMLCanvasElement | null,
+  compoundId: string | null | undefined,
+): CatalogHeroFrame {
+  const f = measureHeroFrame(canvas, heroFrameGeometry(compoundId), CATALOG_HERO_VIEW.fov, CATALOG_HERO_RADIUS)
+  if (!f) return CATALOG_HERO_FRAME_BASE
+  return { targetX: CATALOG_HERO_VIEW.target[0] + f.targetX, targetY: CATALOG_HERO_VIEW.target[1] + f.targetY, radius: f.radius }
 }
 
 function SceneContent({
@@ -450,6 +485,27 @@ function SceneContent({
   const previewStickyMountRef = useRef<SynthesisPreviewStickyRef | null>(null)
   const crossfadeGuardRef = useRef<ProductCrossfadeGuard | null>(null)
   const coverageTrackerRef = useRef(createSynthesisCoverageTracker())
+  /**
+   * Аргументы сторожей живут в стабильных объектах и только перезаписываются в кадре.
+   * Раньше здесь на каждый кадр рождалось ~6 объектов и 2 замыкания — пилообразный GC
+   * поверх живой 3D-сцены и «подвисание» на 1-2 кадра каждые несколько секунд.
+   */
+  const coveragePartsRef = useRef<SynthesisCoverage>({
+    preview: false,
+    product: false,
+    mergeFx: false,
+    convergeFx: false,
+    cosmicFx: false,
+  })
+  const coverageRescueInRef = useRef({
+    editMode: false,
+    cinemaOwnsScreen: false,
+    productSlotVisible: false,
+    productPrewarm: false,
+    heroLive: false,
+    birthTween: false,
+    phase: '' as string,
+  })
   const frameHoldRef = useRef(createSynthesisAntiStallGuard())
   const frameBudgetRef = useRef(createReactorFrameBudget())
   const previewContinuityRef = useRef(createReactorPreviewContinuityGuard())
@@ -585,12 +641,14 @@ function SceneContent({
     instantSynthesis &&
     currentSynthRunIdForCollapse > 0 &&
     (elementsCollapsePlaying || collapseFxLinger)
+  // Научная сцена — по РЕАКЦИИ, а не по продукту: реагенты синтеза (flyTerms) обязаны совпасть
+  // с сигнатурой сцены. «NaOH + HCl → NaCl» не играет «2 Na + Cl₂», Mg(OH)₂ → MgO — не горение Mg.
   const scientificMicroworldActive =
     synthActive &&
     showElementsCollapseFx &&
-    hasScientificSynthesisFx(synthesis?.product?.id)
+    hasScientificSynthesisFx(synthesis?.product?.id, synthesis?.flyTerms)
   const ScientificFx = scientificMicroworldActive
-    ? getScientificSynthesisFx(synthesis?.product?.id)
+    ? getScientificSynthesisFx(synthesis?.product?.id, synthesis?.flyTerms)
     : null
   void collapseRev
   // Флаг для Bohr-моделей: пока идёт урок-кино, ни один чужой атом не рисуется.
@@ -1023,6 +1081,10 @@ function SceneContent({
   const handleInstantSynthDone = useCallback(
     (kind: 'success' | 'fail') => {
       if (!synthesis?.onDone) return
+      // Урок-кино по шагам ждёт ученика: пока сцена на связи, прогон не закрываем,
+      // иначе setRunId(0) снимет ScientificFx и панель прямо посреди шага.
+      const lesson = clo2StepStore.getSnapshot()
+      if (lesson.runId === synthesis.runId && lesson.status !== 'done') return
       if (kind !== 'success') {
         synthesis.onDone(kind)
         return
@@ -1463,6 +1525,20 @@ function SceneContent({
 
   const catalogViewMode = previewActive || productTrulyOwnsScreen
 
+  /** Кадр каталожной модели с поправкой на нижний док реактора. */
+  const [catalogHeroFrame, setCatalogHeroFrame] = useState<CatalogHeroFrame>(
+    CATALOG_HERO_FRAME_BASE,
+  )
+  const catalogHeroFrameRef = useRef(catalogHeroFrame)
+  const catalogHeroTarget = useMemo<[number, number, number]>(
+    () => [
+      catalogHeroFrame.targetX,
+      catalogHeroFrame.targetY,
+      CATALOG_HERO_VIEW.target[2],
+    ],
+    [catalogHeroFrame],
+  )
+
   /**
    * Ракурс превью: при первом появлении / выходе из catalog / входе в pre-synth.
    * На каждом +/- только обновляем «домашнюю» позу — орбиту не замораживаем
@@ -1570,6 +1646,66 @@ function SceneContent({
     }
   }, [gl])
 
+  /**
+   * Кадр каталожной модели считаем по СВОБОДНОЙ высоте канвы (без дока реактора).
+   * Док меняет высоту (условия, сообщение, баланс), поэтому слушаем ResizeObserver.
+   */
+  const heroFrameCompoundId = productForSlot?.id ?? synthesisSettledProduct?.id ?? null
+  useLayoutEffect(() => {
+    if (!catalogViewMode) {
+      if (catalogHeroFrameRef.current !== CATALOG_HERO_FRAME_BASE) {
+        catalogHeroFrameRef.current = CATALOG_HERO_FRAME_BASE
+        setCatalogHeroFrame(CATALOG_HERO_FRAME_BASE)
+      }
+      return
+    }
+    const canvas = gl.domElement
+    const sync = () => {
+      const next = measureCatalogHeroFrame(canvas, heroFrameCompoundId)
+      const prev = catalogHeroFrameRef.current
+      if (
+        Math.abs(next.targetX - prev.targetX) < 0.004 &&
+        Math.abs(next.targetY - prev.targetY) < 0.004 &&
+        Math.abs(next.radius - prev.radius) < 0.004
+      ) {
+        return
+      }
+      catalogHeroFrameRef.current = next
+      setCatalogHeroFrame(next)
+    }
+    // Скролл сыплет событиями — считаем не чаще кадра.
+    let raf = 0
+    const syncSoon = () => {
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        raf = 0
+        sync()
+      })
+    }
+    sync()
+    const ro = new ResizeObserver(sync)
+    ro.observe(canvas)
+    const dock = document.querySelector<HTMLElement>('[data-lab-reactor]')
+    if (dock) ro.observe(dock)
+    window.addEventListener('resize', sync)
+    // На узком экране док липкий: при прокрутке он наезжает на канву, не меняя своих
+    // размеров, — ResizeObserver молчит, и кадр остался бы посчитанным по старому
+    // перекрытию. Слушаем скролл в фазе перехвата, чтобы ловить и внутренние скроллеры.
+    window.addEventListener('scroll', syncSoon, { passive: true, capture: true })
+    // Док и карточка продукта появляются/досчитывают высоту после первых кадров
+    // (сообщение об успехе, карточка героя) — перемеряем редко, setState только при сдвиге.
+    const late = window.setTimeout(sync, 160)
+    const poll = window.setInterval(sync, 500)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', sync)
+      window.removeEventListener('scroll', syncSoon, { capture: true } as EventListenerOptions)
+      if (raf) cancelAnimationFrame(raf)
+      window.clearTimeout(late)
+      window.clearInterval(poll)
+    }
+  }, [catalogViewMode, gl, heroFrameCompoundId])
+
   // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {
     if (!catalogViewMode) return
@@ -1577,9 +1713,15 @@ function SceneContent({
     // eslint-disable-next-line react-hooks/immutability
     p.fov = CATALOG_HERO_VIEW.fov
     p.updateProjectionMatrix()
-    const [x, y, z] = CATALOG_HERO_VIEW.cameraPosition
-    camera.position.set(x, y, z)
-    const [tx, ty, tz] = CATALOG_HERO_VIEW.target
+    const [, , tz] = CATALOG_HERO_VIEW.target
+    const tx = catalogHeroFrame.targetX
+    const ty = catalogHeroFrame.targetY
+    const k = catalogHeroFrame.radius / CATALOG_HERO_RADIUS
+    camera.position.set(
+      tx + CATALOG_HERO_VIEW.cameraPosition[0] * k,
+      ty + CATALOG_HERO_OFFSET_Y * k,
+      tz + CATALOG_HERO_OFFSET_Z * k,
+    )
     camera.lookAt(tx, ty, tz)
     if (orbRef.current?.target) {
       orbRef.current.target.set(tx, ty, tz)
@@ -1588,6 +1730,7 @@ function SceneContent({
   }, [
     camera,
     catalogViewMode,
+    catalogHeroFrame,
     showSettledHero,
     previewActive,
     synthesis?.runId,
@@ -1672,6 +1815,95 @@ function SceneContent({
     ],
   )
 
+  /**
+   * Восстановление покрытия кадра. Создаётся один раз и читает поля из ref —
+   * иначе на каждый кадр рождалось новое замыкание.
+   */
+  /** Тот же приём для continuity-guard: объект аргументов один на всю жизнь сцены. */
+  const previewContinuityInRef = useRef({
+    reactorViewOpen: false,
+    synthLive: false,
+    previewMounted: false,
+    previewVisible: false,
+    previewAtomCount: 0,
+    productPrewarm: false,
+    productPainted: false,
+    productOwnsScreen: false,
+    previewRootRef,
+    invalidate,
+  })
+  previewContinuityInRef.current.invalidate = invalidate
+
+  /** Вход lab3dVisibilityEngine — тоже один объект на сцену, а не новый каждый кадр. */
+  const rescueInputRef = useRef({
+    reactorOpen: false,
+    hasPreviewTerms: false,
+    coeffEditing: false,
+    preSynthesis: false,
+    synthLive: false,
+    showSettledHero: false,
+    productPainted: false,
+    productSlotVisible: false,
+    productPrewarm: false,
+    productScaleX: undefined as number | undefined,
+  })
+
+  /** Флаги для onMainThreadStall — колбэк создаётся один раз, а не каждый кадр. */
+  const frameHoldStallFlagsRef = useRef({ reactorIdle: false })
+  const onMainThreadStall = useCallback(() => {
+    if (frameHoldStallFlagsRef.current.reactorIdle) {
+      suppressGpuPrewarm()
+      if (forceLiteFxRef) forceLiteFxRef.current = true
+      synthForceLiteRef.current = true
+      return
+    }
+    suppressGpuPrewarm(1800)
+    if (forceLiteFxRef) forceLiteFxRef.current = true
+    synthForceLiteRef.current = true
+    // Через губернатор — иначе он на следующем кадре вернул бы прежний уровень.
+    const stallGov = fpsGovRef.current
+    if (
+      stallGov.forceDown(SYNTHESIS_QUALITY_BALANCED) ||
+      synthQualityLevelRef.current > stallGov.qualityLevel
+    ) {
+      const stallLevel = stallGov.qualityLevel
+      synthQualityLevelRef.current = stallLevel
+      qualityUiRequestRef.current.level = stallLevel
+      qualityUiRequestRef.current.at = performance.now()
+      startTransition(() => setSynthQualityLevel(stallLevel))
+    }
+  }, [forceLiteFxRef])
+  const frameHoldInRef = useRef({
+    invalidate,
+    reactorEdit: false,
+    synthesisLive: false,
+    onMainThreadStall,
+  })
+  frameHoldInRef.current.onMainThreadStall = onMainThreadStall
+
+  const coverageRecover = useCallback(() => {
+    const inp = coverageRescueInRef.current
+    // Урок-кино сам рисует кадр: спасателю запрещено включать Bohr поверх сцены.
+    if (
+      previewRootRef.current &&
+      !inp.cinemaOwnsScreen &&
+      (inp.editMode || !inp.productSlotVisible || inp.productPrewarm)
+    ) {
+      previewRootRef.current.visible = true
+      invalidate()
+    }
+    const g = productRootGroupRef.current
+    // Пока идёт GSAP-рождение молекулы, снапить scale нельзя — это и есть «дёрг».
+    if (g && inp.heroLive && inp.productSlotVisible && !inp.birthTween) {
+      if (g.scale.x < 0.86) g.scale.set(1, 1, 1)
+      invalidate()
+    }
+    if (inp.phase === 'mergeFlash' || inp.phase === 'product') {
+      setForceProductSlot(true)
+      setProductRevealReady(true)
+    }
+  }, [invalidate])
+
   useFrame((_, delta) => {
     frameHoldRef.current.markRendered()
     frameBudgetRef.current.sample(Math.min(120, Math.max(0.5, delta * 1000)))
@@ -1725,36 +1957,32 @@ function SceneContent({
       (synthesisRunActive || synthActive || reactorViewOpen) &&
       shouldRunGuardTick(coverageFrameRef.current, coverageEvery)
     ) {
+      // Поля пишем в стабильные объекты: ноль аллокаций в кадре (minor GC = рывок сцены).
+      const parts = coveragePartsRef.current
+      // Во время урока-кино Bohr не считается покрытием кадра — кадр рисует сама сцена.
+      parts.preview =
+        reactorPreviewVisible && reactorPreviewMounted && !scientificMicroworldActive
+      // micro-prewarm НЕ coverage — иначе пустой центр не ловится.
+      parts.product = productSlotVisibleResolved && !productPrewarmResolved
+      parts.mergeFx = synthesisPhase === 'mergeFlash'
+      parts.convergeFx =
+        elementsCollapsePlaying ||
+        synthesisPhase === 'converge' ||
+        synthesisPhase === 'ignite' ||
+        synthesisPhase === 'flying'
+      parts.cosmicFx = false
+      const rescueIn = coverageRescueInRef.current
+      rescueIn.editMode = reactorViewOpen && !synthesisRunActive && !synthActive
+      rescueIn.cinemaOwnsScreen = scientificMicroworldActive
+      rescueIn.productSlotVisible = productSlotVisibleResolved
+      rescueIn.productPrewarm = productPrewarmResolved
+      rescueIn.heroLive = showSettledHero || synthActive || synthesisRunActive
+      rescueIn.birthTween = productBirthActive || productEmbryoOnly
+      rescueIn.phase = synthesisPhase
       coverageTrackerRef.current.tick(
         synthesisRunActive || synthActive || reactorViewOpen,
-        {
-          preview: reactorPreviewVisible && reactorPreviewMounted,
-          // micro-prewarm НЕ coverage — иначе пустой центр не ловится.
-          product: productSlotVisibleResolved && !productPrewarmResolved,
-          mergeFx: synthesisPhase === 'mergeFlash',
-          convergeFx:
-            elementsCollapsePlaying ||
-            synthesisPhase === 'converge' ||
-            synthesisPhase === 'ignite' ||
-            synthesisPhase === 'flying',
-          cosmicFx: false,
-        },
-        () => {
-          const editMode = reactorViewOpen && !synthesisRunActive && !synthActive
-          if (previewRootRef.current && (editMode || !productSlotVisibleResolved || productPrewarmResolved)) {
-            previewRootRef.current.visible = true
-            invalidate()
-          }
-          const g = productRootGroupRef.current
-          if (g && (showSettledHero || synthActive || synthesisRunActive) && productSlotVisibleResolved) {
-            if (g.scale.x < 0.86) g.scale.set(1, 1, 1)
-            invalidate()
-          }
-          if (synthesisPhase === 'mergeFlash' || synthesisPhase === 'product') {
-            setForceProductSlot(true)
-            setProductRevealReady(true)
-          }
-        },
+        parts,
+        coverageRecover,
       )
     }
 
@@ -1763,37 +1991,47 @@ function SceneContent({
     void continuityProductId
 
     // Единый gate hide Bohr — ДО continuity (иначе painted без full-scale гасит корень).
-    const productScreenOkEarly = canHideBohrForProduct({
-      productPainted: productPaintedRef.current,
-      slotVisible: productSlotVisibleResolved,
-      prewarm: productPrewarmResolved,
-      coeffEditing: coeffEditingActive,
-      preSynthesis: preSynthesisPreview,
-      scaleX: productRootGroupRef.current?.scale.x,
-      showSettledHero,
-    })
+    // Урок-кино владеет кадром целиком: во время сцены экран принадлежит ей, а не Bohr.
+    // Без этого сторож каждый кадр «спасал» забытые слоты реагентов поверх урока.
+    const productScreenOkEarly =
+      scientificMicroworldActive ||
+      canHideBohrForProduct({
+        productPainted: productPaintedRef.current,
+        slotVisible: productSlotVisibleResolved,
+        prewarm: productPrewarmResolved,
+        coeffEditing: coeffEditingActive,
+        preSynthesis: preSynthesisPreview,
+        scaleX: productRootGroupRef.current?.scale.x,
+        showSettledHero,
+      })
 
-    previewContinuityRef.current.tick({
-      reactorViewOpen,
-      synthLive: synthesisRunActive || synthActive,
-      previewMounted: reactorPreviewMounted,
-      // Pre-synth / coeff edit: никогда не отдаём hide корня continuity-guard'у.
-      previewVisible:
-        reactorPreviewVisible ||
-        (reactorViewOpen && !synthesisRunActive && !synthActive && !showSettledHero),
-      previewAtomCount,
-      productPrewarm: productPrewarmActive,
-      productPainted:
-        effectiveProductPainted &&
-        productSlotVisibleResolved &&
-        !productPrewarmResolved &&
-        !coeffEditingActive &&
-        !preSynthesisPreview &&
-        (synthesisRunActive || synthActive || showSettledHero),
-      productOwnsScreen: productScreenOkEarly,
-      previewRootRef,
-      invalidate,
-    })
+    const contIn = previewContinuityInRef.current
+    contIn.reactorViewOpen = reactorViewOpen
+    contIn.synthLive = synthesisRunActive || synthActive
+    contIn.previewMounted = reactorPreviewMounted
+    // Pre-synth / coeff edit: никогда не отдаём hide корня continuity-guard'у.
+    // Но во время урока-кино previewVisible=false — иначе сторож считает кадр пустым
+    // и каждый кадр восстанавливает корень Bohr поверх научной сцены.
+    contIn.previewVisible =
+      !scientificMicroworldActive &&
+      (reactorPreviewVisible ||
+        (reactorViewOpen && !synthesisRunActive && !synthActive && !showSettledHero))
+    contIn.previewAtomCount = previewAtomCount
+    contIn.productPrewarm = productPrewarmActive
+    contIn.productPainted =
+      effectiveProductPainted &&
+      productSlotVisibleResolved &&
+      !productPrewarmResolved &&
+      !coeffEditingActive &&
+      !preSynthesisPreview &&
+      (synthesisRunActive || synthActive || showSettledHero)
+    contIn.productOwnsScreen = productScreenOkEarly
+    previewContinuityRef.current.tick(contIn)
+
+    // Имя корня Bohr — для диагностики и смоук-проверок «в кадре только сцена урока».
+    if (previewRootRef.current && previewRootRef.current.name === '') {
+      previewRootRef.current.name = 'lab-bohr-preview-root'
+    }
 
     // Жёсткий restore корня каждый кадр в pre-synth / coeff-edit — против залипшего visible=false.
     if (
@@ -1825,25 +2063,27 @@ function SceneContent({
         root: previewRootRef.current,
         atomGroupRefs: previewAtomGroupRefs,
         atomScaleGroupRefs: previewAtomScaleGroupRefs,
-        killScaleTweens: (s) => gsap.killTweensOf(s),
+        killScaleTweens: killScaleTweens,
       })
     }
 
     // Lab3DVisibilityEngine: rescue пустого центра (оба бага со скринов).
     const productScaleX = productRootGroupRef.current?.scale.x
-    const rescue = resolveLab3dFrameRescue({
-      reactorOpen: reactorViewOpen,
-      hasPreviewTerms: effectivePreviewTerms != null && effectivePreviewTerms.length >= 1,
-      coeffEditing: coeffEditingActive,
-      preSynthesis: preSynthesisPreview,
-      synthLive: synthesisRunActive || synthActive,
-      showSettledHero,
-      productPainted: productPaintedRef.current,
-      productSlotVisible: productSlotVisibleResolved,
-      productPrewarm: productPrewarmResolved,
-      productScaleX,
-    })
-    if (rescue.invalidatePaint && productPaintedRef.current) {
+    const rescueIn3d = rescueInputRef.current
+    rescueIn3d.reactorOpen = reactorViewOpen
+    rescueIn3d.hasPreviewTerms =
+      effectivePreviewTerms != null && effectivePreviewTerms.length >= 1
+    rescueIn3d.coeffEditing = coeffEditingActive
+    rescueIn3d.preSynthesis = preSynthesisPreview
+    rescueIn3d.synthLive = synthesisRunActive || synthActive
+    rescueIn3d.showSettledHero = showSettledHero
+    rescueIn3d.productPainted = productPaintedRef.current
+    rescueIn3d.productSlotVisible = productSlotVisibleResolved
+    rescueIn3d.productPrewarm = productPrewarmResolved
+    rescueIn3d.productScaleX = productScaleX
+    const rescue = resolveLab3dFrameRescue(rescueIn3d)
+    // Во время урока-кино не сбрасываем paint: это setState из кадра → полный ререндер сцены.
+    if (rescue.invalidatePaint && productPaintedRef.current && !scientificMicroworldActive) {
       productPaintedRef.current = false
       paintedForRunIdRef.current = 0
       setProductPainted(false)
@@ -1851,7 +2091,17 @@ function SceneContent({
     if (rescue.forceBohrRootVisible && !productScreenOk && previewRootRef.current) {
       previewRootRef.current.visible = true
     }
-    if (rescue.forceProductFullScale && !productBirthActive) {
+    /**
+     * Окно embryo → birth: идёт GSAP-твин рождения молекулы (scale 0 → 1, ~1.15 с).
+     * productBirthActive там ещё false, поэтому старый охранник убивал твин на первом
+     * же кадре и молекула «прыгала» в полный размер. Добавили всё окно жизни круга.
+     */
+    if (
+      rescue.forceProductFullScale &&
+      !productBirthActive &&
+      !productEmbryoOnly &&
+      !scientificMicroworldActive
+    ) {
       const g = productRootGroupRef.current
       if (g && g.scale.x < 0.86) {
         gsap.killTweensOf(g.scale)
@@ -1862,7 +2112,9 @@ function SceneContent({
 
     // Порог emptyCenterRescueFrames: дополнительный nudge если центр пуст.
     // Не restore Bohr, если молекула уже full-scale на экране.
+    // Урок-кино сам закрывает кадр — для него центр всегда «покрыт».
     const centerOk =
+      scientificMicroworldActive ||
       suppressBohrPinForCollapseHandoff ||
       collapseFxLinger ||
       isCenterCovered({
@@ -1907,7 +2159,7 @@ function SceneContent({
             root: previewRootRef.current,
             atomGroupRefs: previewAtomGroupRefs,
             atomScaleGroupRefs: previewAtomScaleGroupRefs,
-            killScaleTweens: (s) => gsap.killTweensOf(s),
+            killScaleTweens: killScaleTweens,
           })
         }
       }
@@ -1922,15 +2174,18 @@ function SceneContent({
       paintedForRunId: paintedForRunIdRef.current,
       showSettledHero,
     })
-    const productScreenOkForHide = canHideBohrForProduct({
-      productPainted: paintOkForRun,
-      slotVisible: productSlotVisibleResolved,
-      prewarm: productPrewarmResolved,
-      coeffEditing: coeffEditingActive,
-      preSynthesis: preSynthesisPreview,
-      scaleX: productRootGroupRef.current?.scale.x,
-      showSettledHero,
-    })
+    // Урок-кино владеет экраном — корень Bohr гасим активно, а не «ждём paint продукта».
+    const productScreenOkForHide =
+      scientificMicroworldActive ||
+      canHideBohrForProduct({
+        productPainted: paintOkForRun,
+        slotVisible: productSlotVisibleResolved,
+        prewarm: productPrewarmResolved,
+        coeffEditing: coeffEditingActive,
+        preSynthesis: preSynthesisPreview,
+        scaleX: productRootGroupRef.current?.scale.x,
+        showSettledHero,
+      })
     const mustShowBohr =
       reactorViewOpen &&
       effectivePreviewTerms != null &&
@@ -1952,35 +2207,14 @@ function SceneContent({
       previewRootRef.current.visible = true
     }
 
-    frameHoldRef.current.tick({
-      invalidate,
-      // Во время +/- не усиливаем hitch лишними invalidate-burst.
-      reactorEdit: reactorViewOpen && !synthesisRunActive && !coeffEditingActive,
-      synthesisLive: synthesisRunActive || synthActive,
-      onMainThreadStall: () => {
-        if (reactorViewOpen && !synthesisRunActive && !synthActive) {
-          suppressGpuPrewarm()
-          if (forceLiteFxRef) forceLiteFxRef.current = true
-          synthForceLiteRef.current = true
-          return
-        }
-        suppressGpuPrewarm(1800)
-        if (forceLiteFxRef) forceLiteFxRef.current = true
-        synthForceLiteRef.current = true
-        // Через губернатор — иначе он на следующем кадре вернул бы прежний уровень.
-        const stallGov = fpsGovRef.current
-        if (
-          stallGov.forceDown(SYNTHESIS_QUALITY_BALANCED) ||
-          synthQualityLevelRef.current > stallGov.qualityLevel
-        ) {
-          const stallLevel = stallGov.qualityLevel
-          synthQualityLevelRef.current = stallLevel
-          qualityUiRequestRef.current.level = stallLevel
-          qualityUiRequestRef.current.at = performance.now()
-          startTransition(() => setSynthQualityLevel(stallLevel))
-        }
-      },
-    })
+    const holdIn = frameHoldInRef.current
+    holdIn.invalidate = invalidate
+    // Во время +/- не усиливаем hitch лишними invalidate-burst.
+    holdIn.reactorEdit = reactorViewOpen && !synthesisRunActive && !coeffEditingActive
+    holdIn.synthesisLive = synthesisRunActive || synthActive
+    frameHoldStallFlagsRef.current.reactorIdle =
+      reactorViewOpen && !synthesisRunActive && !synthActive
+    frameHoldRef.current.tick(holdIn)
 
     if (
       previewMotionLocked &&
@@ -2006,7 +2240,13 @@ function SceneContent({
     const gov = fpsGovRef.current
     if (perfGuardActive) {
       // DPR адаптируется только в запуске и не во время +/- (смена DPR при правке рвала WebGL).
-      gov.setAdaptResolution((synthActive || synthesisRunActive) && !coeffEditingActive)
+      // Урок-кино тоже неприкосновенен: смена dpr пересоздаёт все FBO и композер
+      // постобработки прямо посреди сцены — гарантированный провал кадра.
+      gov.setAdaptResolution(
+        (synthActive || synthesisRunActive) &&
+          !coeffEditingActive &&
+          !scientificMicroworldActive,
+      )
       // Реальное время кадра: оценка раз в 250 мс по p90; true — только при смене уровня/DPR.
       if (gov.sample(delta)) {
         onResolutionScaleChange?.(gov.resolutionScale)
@@ -2076,14 +2316,21 @@ function SceneContent({
       {/* Не pin'им clear каждый кадр при +/-: это даёт синий кадр без звёзд при hitch. */}
       {reactorBackdrop ? <LabReactorClearColor /> : null}
       {reactorBackdrop ? (
-        <LabSynthesisCosmicBackdrop
-          lite={
-            // В реакторе всегда lite Stars — full 900 + Bohr/молекула = hitch / white-screen.
-            true
-          }
-          frozen={synthActive || synthesisRunActive || showElementsCollapseFx}
-          collapseActive={showElementsCollapseFx || collapseFxLinger}
-        />
+        // Имя корня — для сторожа .smoke/cinema/stage-guard.mjs: звёздный фон реактора
+        // не принадлежит сцене урока, но урок рисуется поверх него намеренно
+        // (SynthesisOnLabScene externalCosmicBackdrop), поэтому сторож знает его по имени,
+        // а не считает «ничьим» мешем. Фон сцены ставят LabSceneClearSync/LabReactorClearColor,
+        // так что обёртка не ломает <color attach="background"> внутри бэкдропа.
+        <group name="lab-reactor-backdrop-root">
+          <LabSynthesisCosmicBackdrop
+            lite={
+              // В реакторе всегда lite Stars — full 900 + Bohr/молекула = hitch / white-screen.
+              true
+            }
+            frozen={synthActive || synthesisRunActive || showElementsCollapseFx}
+            collapseActive={showElementsCollapseFx || collapseFxLinger}
+          />
+        </group>
       ) : null}
       {reactorBackdrop ? <LabReactorLights /> : null}
       {reactorViewOpen ? (
@@ -2103,16 +2350,22 @@ function SceneContent({
         />
       ) : null}
       {gpuQueueActive ? (
-        <LabSynthesisGpuQueue
-          compounds={popularPrewarmCompounds}
-          priorityCompound={gpuQueuePriorityCompound}
-          active={gpuQueueActive}
-        />
+        // Имя корня — для сторожа .smoke/cinema/stage-guard.mjs: очередь прогрева
+        // не принадлежит сцене урока и не должна попадать в кадр.
+        <group name="lab-gpu-queue-root">
+          <LabSynthesisGpuQueue
+            compounds={popularPrewarmCompounds}
+            priorityCompound={gpuQueuePriorityCompound}
+            active={gpuQueueActive}
+          />
+        </group>
       ) : null}
 
       {/* Свободная сцена (декоративный атом, частицы) не показывается поверх урока-кино, даже если панель реактора свёрнута. */}
       {!reactorViewOpen && !scientificMicroworldActive ? (
-        <>
+        // Имя корня — для сторожа .smoke/cinema/stage-guard.mjs: экран входа
+        // (декоративный атом, частицы, космический фон) чужой уроку-кино.
+        <group name="lab-decor-atom-root">
           <LabIdleCosmicBackdrop lite={deviceTier === 'low'} />
           <ambientLight intensity={0.22} />
           <directionalLight position={[4, 6, 2]} intensity={0.55} color="#b8c8ff" />
@@ -2137,7 +2390,7 @@ function SceneContent({
               onInspectAtom={onInspectAtom}
             />
           ))}
-        </>
+        </group>
       ) : null}
 
       {reactorViewOpen ? (
@@ -2222,17 +2475,21 @@ function SceneContent({
           ) : null}
           {synthActive && synthesis && instantSynthesis && showElementsCollapseFx ? (
             ScientificFx ? (
-              <ScientificFx
-                key={`sci-${synthesis.product?.id ?? 'unknown'}-${synthesis.runId}`}
-                runId={synthesis.runId}
-                // Зафиксировано на старте запуска — без смены материалов посреди урока.
-                lowPower={cinemaLowPower}
-                teacherMode={teacherMode}
-                onNarrationCue={onNarrationCue}
-                onEmbryoReady={handleElementsCollapseEmbryoReady}
-                onBirthReady={handleElementsCollapseBirthReady}
-                onComplete={handleElementsCollapseComplete}
-              />
+              // Корень сцены урока-кино: сторож stage-guard считает чужим всё,
+              // что рисуется в кадре мимо этой ветки.
+              <group name="lab-cinema-scene-root">
+                <ScientificFx
+                  key={`sci-${synthesis.product?.id ?? 'unknown'}-${synthesis.runId}`}
+                  runId={synthesis.runId}
+                  // Зафиксировано на старте запуска — без смены материалов посреди урока.
+                  lowPower={cinemaLowPower}
+                  teacherMode={teacherMode}
+                  onNarrationCue={onNarrationCue}
+                  onEmbryoReady={handleElementsCollapseEmbryoReady}
+                  onBirthReady={handleElementsCollapseBirthReady}
+                  onComplete={handleElementsCollapseComplete}
+                />
+              </group>
             ) : (
               <SynthesisElementsCollapseFx
                 key={`collapse-${synthesis.runId}`}
@@ -2251,7 +2508,16 @@ function SceneContent({
               />
             )
           ) : null}
-          {synthActive && synthesis && instantSynthesis && !elementsCollapsePlaying ? (
+          {/*
+            Пока урок-кино владеет экраном, прогон закрывать нельзя: InstantLabSynthesis
+            монтировался ровно по cue 'birth' и через ~0.2 с звал onDone → setRunId(0) →
+            сцена и панель урока исчезали, не доиграв хвост.
+          */}
+          {synthActive &&
+          synthesis &&
+          instantSynthesis &&
+          !elementsCollapsePlaying &&
+          !scientificMicroworldActive ? (
             <InstantLabSynthesis
               runId={synthesis.runId}
               onDone={handleInstantSynthDone}
@@ -2313,13 +2579,12 @@ function SceneContent({
         enableRotate={!synthActive && !synthesisRunActive}
         enableZoom={!catalogViewMode && !synthActive && !synthesisRunActive}
         // Во время pre-synth можно свободно крутить; damping чуть живее для осмотра.
-        minDistance={catalogViewMode ? CATALOG_HERO_VIEW.minDistance : LAB_ORBIT.minDistance}
-        maxDistance={catalogViewMode ? CATALOG_HERO_VIEW.maxDistance : LAB_ORBIT.maxDistance}
+        // Радиус каталожного кадра зависит от свободной полосы над доком реактора.
+        minDistance={catalogViewMode ? catalogHeroFrame.radius : LAB_ORBIT.minDistance}
+        maxDistance={catalogViewMode ? catalogHeroFrame.radius : LAB_ORBIT.maxDistance}
         minPolarAngle={catalogViewMode ? CATALOG_HERO_VIEW.minPolarAngle : LAB_ORBIT.minPolarAngle}
         maxPolarAngle={catalogViewMode ? CATALOG_HERO_VIEW.maxPolarAngle : LAB_ORBIT.maxPolarAngle}
-        target={
-          catalogViewMode ? CATALOG_HERO_VIEW.target : reactorOrbitTargetRef.current
-        }
+        target={catalogViewMode ? catalogHeroTarget : reactorOrbitTargetRef.current}
         enableDamping={LAB_ORBIT.enableDamping}
         dampingFactor={LAB_ORBIT.dampingFactor}
       />

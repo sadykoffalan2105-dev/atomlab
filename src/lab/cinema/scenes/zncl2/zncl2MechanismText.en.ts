@@ -31,9 +31,9 @@ export const ZNCL2_TEXT_EN: Zncl2MechanismText = {
       title: 'A hydrogen molecule is born',
       body:
         'Two neighbouring hydrogen atoms on the surface find each other and put their electrons into one shared pair — a non-polar covalent bond 74.14 pm long. ' +
-        'Breaking that bond costs 436 kJ/mol, so the H₂ molecule is very stable and does not stay in solution. ' +
+        'Breaking that bond costs 435.8 kJ/mol, so the H₂ molecule is very stable and does not stay in solution. ' +
         'The molecules gather into a bubble, the bubble leaves the plate and floats up: these are the bubbles you see in a Kipp apparatus.',
-      equation: '2 H → H₂ (g)↑,  d(H–H) = 74.14 pm,  E(H–H) = 436 kJ/mol',
+      equation: '2 H → H₂ (g)↑,  d(H–H) = 74.14 pm,  E(H–H) = 435.8 kJ/mol',
       note: 'The bubble is drawn as rings of dots. A real millimetre bubble holds some 10¹⁷ hydrogen molecules.',
       speak: 'Two hydrogen atoms join into a molecule. The bubble breaks away and rises.',
     },
@@ -52,9 +52,11 @@ export const ZNCL2_TEXT_EN: Zncl2MechanismText = {
       body:
         'The chloride ions did not change at all: Cl⁻ before, Cl⁻ after. Such particles are called spectator ions and are left out of the net ionic equation. ' +
         'The beaker now holds a solution of zinc chloride: the Zn²⁺ and Cl⁻ ions are separated by water and not bonded to each other. ' +
-        'Evaporate the solution and white ZnCl₂ is left: a tetragonal crystal, space group I-42d, a = 539.8 pm, c = 1033 pm, where zinc is surrounded not by six water molecules but by four chlorides (Zn–Cl 229 pm).',
+        'Evaporate the solution IN A STREAM OF DRY HYDROGEN CHLORIDE and white anhydrous ZnCl₂ is left: a tetragonal crystal, space group I-42d, a = 539.8 pm, c = 1033 pm, where zinc is surrounded not by six water molecules but by four chlorides (Zn–Cl 229 pm).',
       equation: 'Zn + 2 H⁺ → Zn²⁺ + H₂↑  (Cl⁻ is a spectator)',
-      note: 'In concentrated hydrochloric acid the picture is more complex: chloride ions push the water out and chloro complexes such as [ZnCl₄]²⁻ appear. The scene shows a dilute solution, where zinc stays an aqua complex.',
+      note:
+        'Simply boiling the water off is not enough: HYDRATES crystallise out of the aqueous solution first, and on heating hydrolysis sets in with loss of HCl, giving Zn(OH)Cl and then ZnO. That is why anhydrous ZnCl₂ is evaporated in a stream of dry HCl or dehydrated with thionyl chloride SOCl₂ (Greenwood & Earnshaw; Brauer). ' +
+        'In concentrated hydrochloric acid the picture is more complex: chloride ions push the water out and chloro complexes such as [ZnCl₄]²⁻ appear. The scene shows a dilute solution, where zinc stays an aqua complex.',
       speak: 'The chloride ions are unchanged — they are spectators. The beaker holds zinc chloride solution.',
     },
     energy: {
@@ -64,14 +66,14 @@ export const ZNCL2_TEXT_EN: Zncl2MechanismText = {
         'The shortest answer to "why does it go at all" is the activity series: E°(Zn²⁺/Zn) = −0.76 V, E°(2H⁺/H₂) = 0.00 V, so the cell potential is +0.76 V > 0. ' +
         'For copper E° = +0.34 V and the cell potential comes out as −0.34 V — which is why copper does not dissolve in hydrochloric acid and does not release hydrogen from it.',
       equation: 'Zn (s) + 2 HCl (aq) → ZnCl₂ (aq) + H₂ (g)↑,  ΔH = −153.9 kJ/mol',
-      note: 'The individual rungs use the scale where the hydration enthalpy of the proton is taken as −1091 kJ/mol: the choice cancels out in a charge-balanced equation, but a single rung must not be compared with a number from another compilation.',
+      note: 'The individual rungs use the scale where the hydration enthalpy of the proton is taken as −1091 kJ/mol: the choice cancels out in a charge-balanced equation, but a single rung must not be compared with a number from another compilation. The H₂ assembly rung, −436, is −2 · ΔH°f(H, g) from the same thermochemical tables; the tabulated bond energy E(H–H) = 435.8 differs from it by 0.2 kJ/mol.',
       speak: 'The reaction gives off heat: minus one hundred and fifty four kilojoules. Zinc is more active than hydrogen; copper is not.',
     },
   },
   legend: {
     electron: 'A blue dot with a trail is an electron travelling through the metal to a proton.',
     orbitalPhase: 'The shimmer inside the plate marks the free electrons of the metal — not their trajectories.',
-    water: 'A red sphere with two white ones is a water molecule: O–H 95.8 pm, H–O–H angle 104.45°.',
+    water: 'A red sphere with two white ones is a water molecule: O–H 95.8 pm, H–O–H angle 104.5°.',
   },
   safety:
     'Hydrogen mixed with air is explosive and a single spark is enough, so it is collected over water and always tested for purity before being lit. Hydrochloric acid burns skin and eyes: wear goggles and gloves, and always add the acid to the water, never the other way round.',

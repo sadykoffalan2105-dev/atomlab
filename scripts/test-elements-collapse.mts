@@ -20,9 +20,12 @@ import { synthesisLaunchWatchdogMs } from '../src/lab/synthesisLaunchTiming.ts'
 }
 
 {
+  // Актуальный lab-профиль (COLLAPSE_LAB_QUALITY): 0.72 + 0.14 + 0.72 + 0.55 + 0.95 ≈ 3.08 с
+  // и бюджет искр 480. Держим коридор вокруг него: лаб всё ещё короче демо (~4.5 с).
   const lab = estimateCollapseDurationSec()
-  assert.ok(lab > 1.8 && lab < 2.6, `lab duration ~2.2s, got ${lab}`)
-  assert.ok(COLLAPSE_LAB_QUALITY.max_particles <= 420)
+  assert.ok(lab > 2.8 && lab < 3.4, `lab duration ~3.1s, got ${lab}`)
+  assert.ok(lab < estimateCollapseDurationSec(COLLAPSE_DEMO_QUALITY), 'lab короче демо')
+  assert.ok(COLLAPSE_LAB_QUALITY.max_particles <= 480)
   assert.ok(PRODUCT_BIRTH_FROM_COLLAPSE_SEC > 0.7 && PRODUCT_BIRTH_FROM_COLLAPSE_SEC < 1.2)
 }
 

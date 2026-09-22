@@ -1,92 +1,100 @@
 import type { H2oMechanismText } from './h2oMechanismText'
 
-/** «2 H₂ + O₂ → 2 H₂O» darsining o‘zbekcha matni. Raqamlar ruscha variant bilan bir xil. */
 export const H2O_TEXT_UZ: H2oMechanismText = {
   intro: {
-    title: 'Qutbli kovalent bog‘',
-    speak: 'Vodorod kislorodda qanday yonishini ko‘ramiz: elektron juftlari umumiy bo‘ladi va suv hosil bo‘ladi.',
+    title: 'Zanjir reaksiya va qutbli molekula',
+    speak: 'Vodorod va kisloroddan suv qanday tug‘ilishini ko‘ramiz — radikallar zanjiri orqali.',
   },
   steps: {
     reactants: {
-      title: 'Gremuchiy gaz (portlovchi aralashma)',
+      title: 'Qaldiroq gaz',
       body:
-        'Chapda ikkita vodorod molekulasi H₂, o‘ngda bitta kislorod molekulasi O₂. 25 °C da ikkala oddiy modda ham gaz va aynan IKKI ATOMLI molekulalardan iborat: ballonda yakka H yoki O atomlari yo‘q. ' +
-        'H₂ molekulasida atomlar bitta umumiy elektron jufti bilan bog‘langan, yadrolar orasi 74,14 pm; O₂ da bog‘ qo‘sh va kaltaroq — 120,8 pm. ' +
-        'Ikki hajm vodorod va bir hajm kislorod aralashmasi portlovchi gaz deyiladi: u yillab turishi mumkin, ammo bitta uchqundan bir zumda reaksiyaga kirishadi.',
-      equation: '2 H₂ (gaz) + O₂ (gaz)',
-      note: 'Sharchalar radiusi kovalent: H 31 pm, O 66 pm — shuning uchun vodorod kisloroddan ikki barobar kichik ko‘rinadi.',
-      speak: 'Vodorod va kislorod — ikki atomli gazlar. Ikki hajm vodorod va bir hajm kislorod portlovchi aralashma.',
+        'Kadrda ikki hajm vodorod bilan bir hajm kislorod aralashmasi (qaldiroq gaz): to‘rtta H₂ molekulasi va ikkita O₂ molekulasi. 25 °C da ikkala modda ham ikki atomli molekulalardan iborat gaz, ballonda yakka atomlar yo‘q. ' +
+        'H₂ da bitta σ-bog‘, rₑ = 74,14 pm, uzilish energiyasi 435,8 kJ/mol; O₂ da bog‘ qo‘sh (σ + π), rₑ = 120,75 pm, uzilish energiyasi 498,4 kJ/mol. ' +
+        'O₂ molekulasi — triplet: unda ikkita juftlashmagan elektron bor, shuning uchun suyuq kislorod magnitga tortiladi.',
+      equation: '2 H₂ (gaz) + O₂ (gaz);  kadrda 4 H₂ + 2 O₂',
+      note: 'Sharchalar — Kordero kovalent radiuslari (H 31 pm, O 66 pm), 0,72 ulushda chizilgan. O₂ dagi ikki havorang nuqta — tripletning ikki juftlashmagan elektroni; aslida ular butun molekulaning ikki π*-orbitali bo‘ylab delokallashgan, nuqtalar elektronlar sonini ko‘rsatadi, joyini emas. 10²³ o‘rniga to‘rtta H₂ va ikkita O₂ — soddalashtirish.',
+      speak: 'Vodorod va kislorod — ikki atomli gazlar. Ikki hajm vodorodga bir hajm kislorod — bu qaldiroq gaz.',
     },
     spark: {
-      title: 'Uchqun: bog‘lar uziladi',
+      title: 'Uchqun: initsiirlash',
       body:
-        'Aralashma o‘z-o‘zidan yonmaydi: reaksiya boshlanishi uchun aktivlanish energiyasi kerak — uchqun, alanga yoki katalizator. ' +
-        'Uchqundan bog‘lar GOMOLITIK uziladi: umumiy juft teng bo‘linadi va har bir bo‘lak bittadan elektron oladi. Natijada juftlashmagan elektronli erkin radikallar H· va O· hosil bo‘ladi. ' +
-        'Bog‘ni uzish endotermik jarayon: ikkita H–H va bitta O=O bog‘iga 2 · 436 + 498 = 1370 kJ kerak. Energiya zinapoyasida bular YUQORIGA qadam.',
-      equation: '2 H₂ → 4 H· (+872 kJ);  O₂ → 2 O· (+498 kJ)',
-      note: 'Haqiqiy vodorod yonishi — zanjirli radikal reaksiya (H· + O₂ → ·OH + O· va hokazo). Bu yerda soddalashtirilgan «avval hammasini uzdik, keyin hammasini yig‘dik» manzarasi ko‘rsatilgan: bog‘ energiyalari bo‘yicha hisob aynan shuni nazarda tutadi va Gess qonuni bo‘yicha yakuniy natija bir xil chiqadi.',
-      speak: 'Uchqun kerak. Bog‘lar teng bo‘linadi, radikallar paydo bo‘ladi — bunga energiya sarflanadi.',
+        'Xona haroratida aralashma yillab turishi mumkin: yondirmasdan reaksiya bormaydi. ' +
+        'Uchqun bitta H₂ molekulasidagi bog‘ni gomolitik uzadi — umumiy juft teng bo‘linadi va ikkita H· radikali hosil bo‘ladi, har birida bittadan juftlashmagan elektron. ' +
+        'Buning uchun +436,0 kJ/mol kerak — bu zanjirning initsiirlanishi. Ikkinchi H· radikali kadrdan chiqib, o‘z zanjirini boshlaydi.',
+      equation: 'H₂ → 2 H·,  ΔH = +436,0 kJ/mol',
+      note: 'Bosqich atomar vodorodning hosil bo‘lish issiqligidan hisoblangan: 2 · 218,0 = 436,0 kJ/mol (NIST-JANAF); jadvaldagi H–H bog‘ energiyasi 435,8, ma’lumotnomalar orasidagi farq 0,2 kJ/mol. Chaqnash — energiya berilishining shartli belgisi, u molekulalardan tashqarida; haqiqiy uchqunda birinchi radikallar turli yo‘llar bilan, jumladan O₂ dan ham hosil bo‘ladi.',
+      speak: 'Uchqun vodorod molekulasini ikkiga bo‘ladi — ikkita radikal paydo bo‘ladi.',
     },
-    bonds: {
-      title: 'Yangi O–H bog‘lari',
+    branching: {
+      title: 'Zanjirning tarmoqlanishi',
       body:
-        'Radikallar soniyaning juda kichik ulushicha yashaydi va darhol qayta tuziladi: har bir kislorod atomi ikkita vodorod atomini oladi. ' +
-        'H atomi bitta elektron, O atomi ikkinchisini beradi va bu JUFT UMUMIY bo‘ladi — kovalent bog‘ shunday tuzilgan. O–H bog‘ uzunligi 95,8 pm. ' +
-        'Ammo juft teng bo‘linmaydi: kislorodning elektromanfiyligi 3,44, vodorodniki esa 2,20, shuning uchun umumiy juft buluti kislorod tomonga siljigan. Bunday bog‘ QUTBLI kovalent bog‘ deyiladi.',
-      equation: '4 H· + 2 O· → 2 H₂O (gaz);  4 · (−463 kJ)',
-      note: 'Vodoroddan kislorodga uchayotgan nurli nuqta — shartli belgi. Kovalent bog‘da elektron butunlay berilmaydi: juft umumiy bo‘lib qoladi, faqat uning buluti siljiydi. To‘liq berilishi ion bog‘i bo‘lardi, NaCl dagi kabi.',
-      speak: 'Har bir kislorod ikkita vodorodni oladi. Elektron jufti umumiy, lekin kislorod tomonga siljigan.',
+        'H· radikali O₂ molekulasiga urilib, bitta kislorod atomini olib ketadi: H· + O₂ → ·OH + O. Bosqich endotermik, +68,5 kJ/mol, — shuning uchun yondirilmagan qaldiroq gaz barqaror. ' +
+        'Bo‘shagan O atomi — IKKITA juftlashmagan elektronli O(³P); u darhol H₂ dan vodorod atomini tortib oladi: O + H₂ → ·OH + H·, +6,1 kJ/mol. ' +
+        'Bitta radikaldan uchta bo‘ldi: zanjir tarmoqlandi.',
+      equation: 'H· + O₂ → ·OH + O(³P);  O(³P) + H₂ → ·OH + H·',
+      note: 'Nuqtalar — juftlashmagan elektronlar: H· da bitta, ·OH da bitta (kislorodda), O atomida ikkita. Kislorod atomini bitta nuqta bilan «O·» deb yozish noto‘g‘ri: O(³P) atomida ikkita juftlashmagan elektron bor. Har bir bosqichda ularning soni saqlanadi: 1 + 2 = 1 + 2 va 2 + 0 = 1 + 1. ·OH radikalidagi O–H uzunligi suvdagidek, 95,8 pm chizilgan; radikalning o‘zida bog‘ biroz uzunroq.',
+      speak: 'Bitta radikal uchtaga aylanadi — zanjir tarmoqlanadi.',
+    },
+    propagation: {
+      title: 'Zanjirning davom etishi',
+      body:
+        '·OH radikallari H₂ molekulalaridan vodorodni tortib oladi: ·OH + H₂ → H₂O + H·. Bu bosqich ekzotermik, −61,1 kJ/mol: aynan shu yerda suv tug‘iladi va issiqlik ajraladi. ' +
+        'Har bir bunday qadam H· radikalini qaytaradi va zanjir davom etadi. ' +
+        'Bitta bo‘g‘in natijasi: H· + O₂ + 3 H₂ → 2 H₂O + 3 H·, ΔH = −47,6 kJ/mol — radikallar uch barobar ko‘paydi, bo‘g‘inlar ko‘chkidek ko‘payadi va aralashma portlaydi.',
+      equation: '·OH + H₂ → H₂O + H·  (×2)',
+      note: 'Uchta H· radikali yo‘qolmaydi: haqiqiy aralashmada har biri yangi bo‘g‘in boshlaydi, zanjir esa ikki radikal idish devorida yoki uchinchi zarracha bilan uchrashganda uziladi (2 H· → H₂). Barcha zarrachalar neytral — faqat juftlashmagan elektronlar soni o‘zgaradi. Kadrdagi ikkinchi O₂ o‘z H· ini kutadi.',
+      speak: 'OH radikali vodorodni oladi — suv hosil bo‘ladi va yana radikal qaytadi.',
     },
     molecule: {
-      title: 'Burchakli molekula',
+      title: 'Suv molekulasi',
       body:
-        'Suv molekulasi to‘g‘ri emas, burchakli: H–O–H burchagi 104,45°. Kislorodda to‘rtta elektron jufti bor — ikkitasi bog‘lovchi va IKKITASI TAQSIMLANMAGAN (ular yarim shaffof bargchalar bilan chizilgan). ' +
-        'To‘rt juft bir-birini itaradi va tetraedrga (109,5°) intiladi, ammo taqsimlanmagan juftlar bog‘lovchilaridan «yo‘g‘onroq» va bog‘lar orasidagi burchakni 104,45° gacha siqadi. Kislorodning bu holati sp³-gibridlanish deyiladi. ' +
-        'Aynan shu burchak tufayli suv tekis tayoqcha emas, burchak shaklida; uning deyarli butun kimyosi shunga asoslangan.',
-      equation: 'H₂O: ∠H–O–H = 104,45°, d(O–H) = 95,8 pm',
-      note: 'Faqat H–O–H burchagi o‘lchanadi. Taqsimlanmagan juftlarning yo‘nalishini tajriba bevosita bermaydi, shuning uchun bargchalar ideal tetraedr burchagi 109,47° bo‘yicha chizilgan — bu model, o‘lchov emas.',
-      speak: 'Burchak bir yuz to‘rt yarim daraja. Ikkita taqsimlanmagan juft bog‘larni siqadi.',
+        'Suv molekulasi burchakli: ikkita O–H bog‘i 95,8 pm dan, H–O–H burchagi 104,5° (tebranish bo‘yicha o‘rtachalangan r₀; muvozanat rₑ qiymatlari — 95,72 pm va 104,52°). ' +
+        'Kislorodning elektromanfiyligi 3,44, vodorodniki 2,20: umumiy juftlar kislorod tomon siljigan, O da qisman zaryad δ−, H da δ+. ' +
+        'Molekula burchakli bo‘lgani uchun ikki qutbli bog‘ vektorlari bir-birini yo‘qotmaydi: dipol momenti μ = 1,855 D.',
+      equation: 'H₂O: d(O–H) = 95,8 pm, ∠H–O–H = 104,5°, μ = 1,855 D',
+      note: 'Kislorodda ikkita bo‘linmagan juft bor — maktab sp³ sxemasidagi havorang yarim shaffof bo‘lakchalar (109,5° tetraedrik burchak ostidagi «quyon quloqlari»). Fotoelektron spektrlarga ko‘ra juftlar teng emas (1b₁ va 3a₁ orbitallari), shuning uchun bo‘lakchalar o‘lchov emas, model: faqat H–O–H burchagi o‘lchanadi. Bog‘larning qutbliligi shu qadamda ta’kidlangan — bog‘lar hosil bo‘lgan paytdanoq qutbli.',
+      speak: 'Suv molekulasi — burchak. Kislorod elektronlarni o‘ziga tortadi, shuning uchun molekula qutbli.',
     },
-    polarity: {
-      title: 'Qutblilik va vodorod bog‘i',
+    ice: {
+      title: 'Muz Ih',
       body:
-        'Elektronlarning siljishi tufayli kislorodda qisman manfiy zaryad δ−, vodorodlarda esa qisman musbat δ+ paydo bo‘ladi. Bular ion emas: zaryad KASR, kislorodda taxminan −0,66 e, har bir vodorodda +0,33 e. ' +
-        'Molekula burchakli, shuning uchun zaryadlar bir-birini yo‘qotmaydi — momenti 1,85 D bo‘lgan dipol hosil bo‘ladi. Shuning uchun suv tuzlarni eritadi: uning dipollari ionlarni o‘rab olib, panjarani ajratadi. ' +
-        'Bir molekulaning vodorodi qo‘shnisining kislorodiga tortiladi — bu vodorod bog‘i, H···O ≈ 185 pm (kislorod yadrolari orasi taxminan 280 pm). U oddiy O–H bog‘idan yigirma barobardan ko‘proq kuchsiz, ammo aynan shuning uchun suv minus sakson emas, 100 °C da qaynaydi.',
-      equation: 'H₂O: δ−(O) ≈ −0,66 e, δ+(H) ≈ +0,33 e, μ = 1,85 D',
-      note: 'Qisman zaryadlar dipol momentidan eng sodda nuqtaviy zaryadlar modelida hisoblangan: μ = 2·q·d·cos(θ/2). Aniqroq modellar boshqa raqam beradi — δ hisoblash usuliga bog‘liq va o‘lchanadigan kattalik emas.',
-      speak: 'Kislorodda minus, vodorodlarda plyus. Shuning uchun molekulalar vodorod bog‘lari bilan bir-biriga yopishadi.',
+        'Sovitilganda suv molekulalari muz Ih ga yig‘iladi: fazoviy guruh P6₃/mmc, a = 451,8 pm, c = 735,6 pm, Z = 4. ' +
+        'Har bir molekula to‘rtta qo‘shnisi bilan vodorod bog‘lari orqali bog‘langan (KS 4), O···O masofasi 276,2 pm; har bir O···O chizig‘ida aynan bitta H atomi, har bir O da ikkita o‘ziniki (Bernal — Faulerning muz qoidalari). ' +
+        'Tetraedrlar to‘ri g‘ovak, unda bo‘shliq ko‘p, shuning uchun muzning zichligi — 0,92 g/sm³ (250 K da) — suyuq suvnikidan kichik va muz suzib yuradi.',
+      equation: 'H₂O (suyuq.) → H₂O (qat., muz Ih)',
+      note: 'Fragment — 2×2×1 elementar yacheyka, 16 molekula; och chiziqlar — yacheyka qirralari, punktir — H···O vodorod bog‘lari. Yadro bazisida faqat kislorod panjarachasi bor: muzda H atomlari tartibsiz, bu yerda muz qoidalariga mos joylashuvlardan biri ko‘rsatilgan. H O···O chizig‘ida 95,8 pm masofada turadi — muzda O–H bog‘i biroz uzunroq, H–O–H burchagi esa tetraedrikka yaqin. Zichlik — rentgen zichligi, 250 K dagi yacheykadan.',
+      speak: 'Muzda har bir molekula to‘rtta qo‘shnisini vodorod bog‘lari bilan ushlaydi. To‘r g‘ovak, shuning uchun muz suvdan yengil.',
     },
     energy: {
-      title: 'Energiya yakuni',
+      title: 'Energetik natija',
       body:
-        'Bog‘larni uzishga 1370 kJ sarfladik, to‘rtta O–H bog‘i hosil bo‘lishida esa 1852 kJ oldik. Yutuq — ikki molekulaga 482 kJ, ya’ni bir mol suvga 241 kJ. ' +
-        'Suv BUG‘ining ma’lumotnomadagi hosil bo‘lish issiqligi −241,8 kJ/mol — bog‘ energiyalari bo‘yicha hisob mos keldi. Bug‘ suyuqlikka aylansa, yana 44 kJ/mol ajraladi va suyuq suv uchun ΔH°f = −285,8 kJ/mol. ' +
-        'Minus energiya ajralishini bildiradi: vodorod rangsiz issiq alanga bilan yonadi, sovuq sirtda esa darhol suv tomchilari o‘tiradi.',
-      equation: '2 H₂ (gaz) + O₂ (gaz) → 2 H₂O (gaz), ΔH = −482 kJ',
-      note: 'Sahnada BUG‘ ko‘rsatilgan: bog‘ energiyalari gaz holidagi molekulalarga tegishli. −285,8 kJ/mol qiymati suyuq suv uchun, 44 kJ/mol farq esa kondensatsiya issiqligi.',
-      speak: 'Yakun: bir mol bug‘ga minus ikki yuz qirq ikki kilojoul, suyuq suvga minus ikki yuz sakson olti.',
+        'Gess qonuni bosqichlarini erkin atomlar orqali qo‘shamiz: +436,0 (H₂ → 2 H) + 249,2 (½ O₂ → O) − 429,9 (H + O → ·OH) − 497,1 (H + ·OH → H₂O) = −241,8 kJ bir mol suv bug‘iga — aynan jadvaldagi hosil bo‘lish issiqligi. ' +
+        'Butun tenglama 2 H₂ + O₂ → 2 H₂O (gaz) uchun 483,6 kJ ajraladi. ' +
+        'Bug‘ kondensatlansa, yana 44,0 kJ/mol ajraladi va suyuq suv uchun ΔH°f = −285,8 kJ/mol.',
+      equation: '2 H₂ (gaz) + O₂ (gaz) → 2 H₂O (gaz),  ΔH = −483,6 kJ',
+      note: 'Bu reaksiya bosqichlari emas, hisob yo‘li: haqiqiy yo‘l — 2–4 qadamlardagi zanjir, lekin Gess qonuniga ko‘ra natija yo‘lga bog‘liq emas. 436,0 = 2 · 218,0 bosqichi — atomar vodorodning ikki hosil bo‘lish issiqligi; 429,9 va 497,1 — O–H bog‘larining ketma-ket uzilish energiyalari: ·OH radikalidagi bog‘ birinchisidan osonroq uziladi. O‘rtacha bog‘ energiyalari bo‘yicha maktab hisobi (2 · 435,8 + 498 − 4 · 463) −482,4 kJ beradi — o‘rtachalash tufayli modul bo‘yicha 1,2 kJ kam. Vodorod deyarli rangsiz issiq alanga bilan yonadi; 3D da alanga chizilmaydi.',
+      speak: 'Natija: bir mol bug‘ga minus ikki yuz qirq ikki kilojoul. Energiyani yangi O–H bog‘lari beradi.',
     },
   },
   legend: {
-    electron: 'Izli ko‘k nuqta — umumiy juftga qo‘shilayotgan elektron.',
-    orbitalPhase: 'Kisloroddagi yarim shaffof bargchalar — ikkita taqsimlanmagan elektron jufti (model bo‘yicha chizilgan).',
-    water: 'Molekulalar orasidagi ingichka punktir chiziq — vodorod bog‘i, kovalent emas.',
+    electron: 'Zarrachalar yonidagi havorang nuqtalar — radikallarning juftlashmagan elektronlari: H· da bitta, ·OH da bitta, O(³P) da ikkita, O₂ molekulasida ikkita.',
+    orbitalPhase: 'Kisloroddagi havorang yarim shaffof bo‘lakchalar — ikkita bo‘linmagan juft (maktab sp³ sxemasi).',
+    water: 'Molekulalar orasidagi punktir — H···O vodorod bog‘i, kovalent bog‘ emas.',
   },
-  safety:
-    'Vodorod va kislorod aralashmasi keng chegarada portlovchi. Portlovchi gaz tajribasini faqat o‘qituvchi, juda kichik hajmda va himoya ko‘zoynagida o‘tkazadi — bunday aralashmani mustaqil tayyorlash mumkin emas.',
+  safety: 'Qaldiroq gaz uchqundan portlaydi. Tajribani faqat o‘qituvchi ko‘rsatadi — juda kichik hajmdagi gaz bilan, himoya ekrani ortida; vodorodni kislorod bilan mustaqil aralashtirish mumkin emas.',
   energy: {
-    title: 'Bog‘ energiyalari bo‘yicha energiya (Gess qonuni)',
+    title: 'Gess qonuni bo‘yicha energiya',
     unit: 'kJ/mol',
-    caption: '1 mol H₂O bug‘iga sarf (yuqoriga) va yutuq (pastga); qadamlar yig‘indisi — hosil bo‘lish issiqligi.',
+    caption: 'Erkin atomlar orqali hisob yo‘li (reaksiya bosqichlari emas), 1 mol H₂O (bug‘) ga; bosqichlar yig‘indisi — hosil bo‘lish issiqligi.',
     stages: {
       dissocHH: 'H₂ → 2 H',
       dissocOO: '½ O₂ → O',
-      bond1: 'H + O → HO',
-      bond2: 'H + HO → H₂O',
-      total: 'Yakun: ΔH°f',
+      bond1: 'H + O → ·OH',
+      bond2: 'H + ·OH → H₂O',
+      total: 'Natija: ΔH°f',
     },
-    summary: 'H₂O uchun bog‘ energiyalari bo‘yicha hisob: qadamlar yig‘indisi {dH} kJ/mol',
-    sources: 'Ma’lumotnoma qiymatlari: CRC Handbook, NIST-JANAF (bog‘ energiyalari, hosil bo‘lish issiqliklari); H–O–H burchagi — mikroto‘lqinli spektroskopiya.',
+    summary: 'H₂O uchun atomlar orqali yo‘l: bosqichlar yig‘indisi {dH} kJ/mol',
+    sources: 'Ma’lumotnoma qiymatlari: NIST-JANAF va CRC Handbook (ΔH°f, bog‘ energiyalari), NIST CCCBDB (molekula geometriyasi); muz Ih — rentgen-struktura ma’lumotlari.',
   },
 }

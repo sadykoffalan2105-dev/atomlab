@@ -23,6 +23,8 @@ export function NaclEnergyPanel({ locale, compact = false }: { locale: NaclLocal
         caption: text.caption,
         sources: text.sources,
         summary: text.summary,
+        // Десятичный знак по соглашению учебника языка: ru/uz — запятая, en — точка.
+        decimal: locale === 'en' ? '.' : ',',
       }}
     />
   )

@@ -5,6 +5,8 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type RefObject,
 } from 'react'
@@ -49,8 +51,18 @@ const COLLAPSED_KEY = 'atomlab-clo2-panel-collapsed'
 const SECTION_KEY_PREFIX = 'atomlab-clo2-section-'
 
 const MOBILE_QUERY = '(max-width: 720px)'
+/** Узкий телефон: панель урока живёт нижним листом с ручкой перетаскивания. */
+const SHEET_QUERY = '(max-width: 480px)'
 /** Высокий широкий экран: профиль энергии помещается без прокрутки — открыт по умолчанию. */
 const ROOMY_QUERY = '(min-width: 721px) and (min-height: 900px)'
+
+/** Нижний лист: минимальная и максимальная высота перетаскивания, px. */
+const SHEET_MIN_PX = 132
+/** Доля высоты холста, выше которой лист не растёт даже вручную. */
+const SHEET_MAX_RATIO = 0.62
+/** Шаг клавиатурного изменения высоты листа, px. */
+const SHEET_STEP_PX = 32
+const SHEET_H_VAR = '--mech-sheet-h'
 
 function mediaMatches(query: string): boolean {
   return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(query).matches
@@ -101,18 +113,58 @@ const REACTOR_GAP_PX = 10
 const COLLAPSED_REACTOR_GAP_MOBILE_PX = 76
 const BOTTOM_GAP_VAR = '--clo2-panel-bottom-gap'
 
-/** Верх реактора без учёта transform (анимация открытия не дёргает панель). */
-function reactorLayoutTop(reactor: HTMLElement): number {
-  const cs = getComputedStyle(reactor)
-  const bottom = parseFloat(cs.bottom)
-  if (cs.position === 'fixed' && Number.isFinite(bottom)) return window.innerHeight - bottom - reactor.offsetHeight
-  return reactor.getBoundingClientRect().top
+/**
+ * Отложенное чтение раскладки «после кадра». Колбэк MutationObserver, transitionend,
+ * resize и ResizeObserver приходят в момент, когда DOM грязный (React только что
+ * закоммитил шаг, кино пишет подписи): чтение геометрии там = принудительная
+ * раскладка посреди кадра. Здесь чтение уходит в задачу сразу после отрисовки
+ * (rAF → MessageChannel): раскладка к этому моменту уже посчитана браузером, чтение
+ * бесплатно, а запись стиля попадает в следующий кадр без второго прохода.
+ * Повторные вызовы до срабатывания склеиваются в одно чтение.
+ */
+function createAfterPaint(run: () => void): { schedule: () => void; cancel: () => void } {
+  let raf = 0
+  let queued = false
+  let alive = true
+  const ch = typeof MessageChannel === 'function' ? new MessageChannel() : null
+  const fire = () => {
+    queued = false
+    if (alive) run()
+  }
+  if (ch) ch.port1.onmessage = fire
+  return {
+    schedule() {
+      if (queued || !alive) return
+      queued = true
+      raf = requestAnimationFrame(() => {
+        raf = 0
+        if (ch) ch.port2.postMessage(0)
+        else window.setTimeout(fire, 0)
+      })
+    },
+    cancel() {
+      alive = false
+      queued = false
+      if (raf) cancelAnimationFrame(raf)
+      raf = 0
+      if (ch) {
+        ch.port1.onmessage = null
+        ch.port1.close()
+      }
+    },
+  }
 }
 
 /**
  * Реальная высота реактора меняется без resize окна (балансировка, запуск синтеза),
  * а --lab-reactor-clearance пересчитывается только по resize .wrap. Панель меряет
  * [data-lab-reactor] сама и пишет --clo2-panel-bottom-gap (CSS берёт его первым).
+ *
+ * Горячий путь («Далее», «Завершить», анимация дока) не читает раскладку синхронно:
+ * все поводы (ResizeObserver, мутации атрибутов дока, transitionend, resize) только
+ * планируют одно чтение после кадра (createAfterPaint). Вычисленный стиль дока
+ * (position/bottom) кэшируется и перечитывается лишь при мутации атрибутов или resize.
+ * Верх реактора берётся без учёта transform — анимация открытия не дёргает панель.
  */
 function useReactorBottomGap(panelRef: RefObject<HTMLElement | null>, enabled: boolean, isMobile: boolean): void {
   useLayoutEffect(() => {
@@ -122,40 +174,219 @@ function useReactorBottomGap(panelRef: RefObject<HTMLElement | null>, enabled: b
     if (!enabled || !panel || !host || !reactor) return
     let last = Number.NaN
     let settleTimer = 0
-    const apply = () => {
+    let styleDirty = true
+    let fixedBottom = Number.NaN
+    const measure = () => {
       let gap = REACTOR_GAP_PX
       if (reactor.getAttribute('data-collapsed') === 'true') {
         if (isMobile) gap = COLLAPSED_REACTOR_GAP_MOBILE_PX
-      } else if (reactor.offsetHeight > 0) {
-        gap += Math.max(0, host.getBoundingClientRect().bottom - reactorLayoutTop(reactor))
+      } else {
+        const h = reactor.offsetHeight
+        if (h > 0) {
+          if (styleDirty) {
+            const cs = getComputedStyle(reactor)
+            const bottom = parseFloat(cs.bottom)
+            fixedBottom = cs.position === 'fixed' && Number.isFinite(bottom) ? bottom : Number.NaN
+            styleDirty = false
+          }
+          const top = Number.isFinite(fixedBottom) ? window.innerHeight - fixedBottom - h : reactor.getBoundingClientRect().top
+          gap += Math.max(0, host.getBoundingClientRect().bottom - top)
+        }
       }
       gap = Math.round(gap)
       if (gap === last) return
       last = gap
       panel.style.setProperty(BOTTOM_GAP_VAR, `${gap}px`)
     }
-    const applyAndSettle = () => {
-      apply()
+    const later = createAfterPaint(measure)
+    const onStyleChange = () => {
+      styleDirty = true
+      later.schedule()
+      // Док может доехать CSS-переходом высоты — перемер после его конца.
       window.clearTimeout(settleTimer)
-      settleTimer = window.setTimeout(apply, 480)
+      settleTimer = window.setTimeout(later.schedule, 480)
     }
-    apply()
-    const ro = new ResizeObserver(apply)
+    // Первый замер — синхронно при монтировании (до первой отрисовки панели, без скачка).
+    // Это один раз на показ панели, а не на шаг урока.
+    measure()
+    const ro = new ResizeObserver(later.schedule)
     ro.observe(reactor)
     ro.observe(host)
-    const mo = new MutationObserver(applyAndSettle)
+    const mo = new MutationObserver(onStyleChange)
     mo.observe(reactor, { attributes: true, attributeFilter: ['data-collapsed', 'data-open', 'class'] })
-    reactor.addEventListener('transitionend', apply)
-    window.addEventListener('resize', apply)
+    reactor.addEventListener('transitionend', later.schedule)
+    window.addEventListener('resize', onStyleChange)
     return () => {
+      later.cancel()
       ro.disconnect()
       mo.disconnect()
       window.clearTimeout(settleTimer)
-      reactor.removeEventListener('transitionend', apply)
-      window.removeEventListener('resize', apply)
+      reactor.removeEventListener('transitionend', later.schedule)
+      window.removeEventListener('resize', onStyleChange)
       panel.style.removeProperty(BOTTOM_GAP_VAR)
     }
   }, [panelRef, enabled, isMobile])
+}
+
+/**
+ * Узкий телефон: док реактора занимает до 63 % высоты холста (замер 390×844:
+ * канва 143…844, реактор 405…844). Вместе с листом урока на 3D не оставалось
+ * и 30 px — сцену было не видно ни на одном шаге. Пока идёт пошаговый урок,
+ * док сворачивается один раз своей же кнопкой «Скрыть реактор»; вернуть его
+ * можно кнопкой «Показать реактор», которую док рисует в свёрнутом виде.
+ * Кнопку ищем по подписи (aria-label), поэтому перевёрстка дока нас не ломает:
+ * не нашли — ничего не делаем.
+ */
+function useCollapseReactorForLesson(enabled: boolean, hideLabel: string): void {
+  useEffect(() => {
+    if (!enabled) return
+    let mo: MutationObserver | null = null
+    let timer = 0
+    let done = false
+    const stop = () => {
+      done = true
+      mo?.disconnect()
+      mo = null
+      window.clearTimeout(timer)
+      timer = 0
+    }
+    const collapse = () => {
+      if (done) return
+      const reactor = document.querySelector<HTMLElement>('[data-lab-reactor]')
+      if (!reactor || reactor.offsetHeight === 0) return
+      if (reactor.getAttribute('data-collapsed') === 'true') {
+        stop()
+        return
+      }
+      const buttons = Array.from(reactor.querySelectorAll<HTMLButtonElement>('button'))
+      const btn =
+        buttons.find((b) => (b.getAttribute('aria-label') ?? '') === hideLabel) ??
+        buttons.filter((b) => /reactorBtnIcon/.test(b.className)).pop()
+      if (!btn) return
+      stop()
+      btn.click()
+    }
+    collapse()
+    if (!done) {
+      // Док может появиться позже урока (анимация запуска синтеза) — ждём его,
+      // но наблюдаем только до первого срабатывания: кино идёт, мутаций много.
+      mo = new MutationObserver(collapse)
+      mo.observe(document.body, { childList: true, subtree: true })
+      timer = window.setTimeout(collapse, 900)
+    }
+    return stop
+  }, [enabled, hideLabel])
+}
+
+/**
+ * Затухание у кромок прокрутки. Текст шага длиннее окна — срез посреди строки
+ * читается как сломанная вёрстка; градиент сверху/снизу показывает, что
+ * содержимое продолжается. Флаги ставим на обёртке, CSS их только показывает.
+ */
+function useScrollFade(
+  wrapRef: RefObject<HTMLElement | null>,
+  scrollRef: RefObject<HTMLElement | null>,
+  deps: unknown,
+): void {
+  // Наблюдатели живут, пока живут узлы; смена шага (deps) только подписывает новых
+  // детей — без синхронного чтения scrollHeight сразу после коммита React (это была
+  // принудительная раскладка на каждый «Далее»).
+  const liveRef = useRef<{ wrap: HTMLElement; box: HTMLElement; ro: ResizeObserver; dispose: () => void } | null>(null)
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current
+    const box = scrollRef.current
+    const live = liveRef.current
+    if (live && live.wrap === wrap && live.box === box) {
+      // Тот же узел, новый шаг: React мог заменить детей — подписываем их. observe()
+      // раскладку не читает; первое уведомление о новом узле придёт после раскладки и
+      // запустит замер. Смена текста той же высоты геометрию не меняет — флаги верны.
+      for (const child of Array.from(box.children)) live.ro.observe(child)
+      return
+    }
+    live?.dispose()
+    liveRef.current = null
+    if (!wrap || !box) return
+    // Прошлое записанное состояние: в DOM уходят только изменения (атрибуты data-*
+    // перезапускают стиль обёртки, лишние записи — лишний пересчёт).
+    let fadeTop = ''
+    let fadeBottom = ''
+    let scrollable = ''
+    let sbH = ''
+    let sbTop = ''
+    // Кэш геометрии: высоты читаются только после кадра, scrollTop — в событии прокрутки.
+    let scrollH = 0
+    let clientH = 0
+    let scrollTop = 0
+    const write = () => {
+      const rest = scrollH - clientH - scrollTop
+      const ft = scrollTop > 2 ? '1' : '0'
+      const fb = rest > 2 ? '1' : '0'
+      // Собственный индикатор прокрутки: на телефоне системная полоса
+      // наложенная и показывается только во время скролла — читателю не видно,
+      // что текст продолжается. Доля и положение ползунка — в процентах.
+      const full = scrollH || 1
+      const sc = scrollH - clientH > 2 ? '1' : '0'
+      const h = `${Math.max(12, (clientH / full) * 100)}%`
+      const tp = `${(scrollTop / full) * 100}%`
+      if (ft !== fadeTop) wrap.dataset.fadeTop = fadeTop = ft
+      if (fb !== fadeBottom) wrap.dataset.fadeBottom = fadeBottom = fb
+      if (sc !== scrollable) wrap.dataset.scrollable = scrollable = sc
+      if (h !== sbH) wrap.style.setProperty('--mech-sb-h', (sbH = h))
+      if (tp !== sbTop) wrap.style.setProperty('--mech-sb-top', (sbTop = tp))
+    }
+    const measure = () => {
+      scrollH = box.scrollHeight
+      clientH = box.clientHeight
+      scrollTop = box.scrollTop
+      write()
+    }
+    const later = createAfterPaint(measure)
+    let scrollRaf = 0
+    const onScroll = () => {
+      // Прокрутка раскладку не пачкает — scrollTop читается дёшево; запись — раз в кадр.
+      scrollTop = box.scrollTop
+      if (!scrollRaf)
+        scrollRaf = requestAnimationFrame(() => {
+          scrollRaf = 0
+          write()
+        })
+    }
+    box.addEventListener('scroll', onScroll, { passive: true })
+    const ro = new ResizeObserver(later.schedule)
+    ro.observe(box)
+    for (const child of Array.from(box.children)) ro.observe(child)
+    liveRef.current = {
+      wrap,
+      box,
+      ro,
+      dispose: () => {
+        later.cancel()
+        if (scrollRaf) cancelAnimationFrame(scrollRaf)
+        box.removeEventListener('scroll', onScroll)
+        ro.disconnect()
+      },
+    }
+  }, [wrapRef, scrollRef, deps])
+  useLayoutEffect(
+    () => () => {
+      liveRef.current?.dispose()
+      liveRef.current = null
+    },
+    [],
+  )
+}
+
+/** Предел высоты листа: не выше SHEET_MAX_RATIO от холста, но и не ниже минимума. */
+function sheetMaxPx(panel: HTMLElement): number {
+  const host = panel.parentElement
+  const h = host ? host.getBoundingClientRect().height : window.innerHeight
+  return Math.max(SHEET_MIN_PX, Math.round(h * SHEET_MAX_RATIO))
+}
+
+function setSheetHeight(panel: HTMLElement, px: number): number {
+  const clamped = Math.min(Math.max(px, SHEET_MIN_PX), sheetMaxPx(panel))
+  panel.style.setProperty(SHEET_H_VAR, `${clamped}px`)
+  return clamped
 }
 
 function toClo2Locale(locale: string): Clo2Locale {
@@ -188,14 +419,28 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const narrationMark = useRef<NarrationMark | null>(null)
   const isMobile = useMediaQuery(MOBILE_QUERY)
+  const isSheet = useMediaQuery(SHEET_QUERY)
 
   const panelRef = useRef<HTMLElement>(null)
+  const scrollWrapRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef<{ id: number; y0: number; h0: number; moved: boolean } | null>(null)
+  const suppressClick = useRef(false)
 
   const { runId, step, stepCount, status, autoplay } = snapshot
   const visible = active && runId > 0
   const clo2Locale = toClo2Locale(locale)
 
   useReactorBottomGap(panelRef, visible, isMobile)
+  useCollapseReactorForLesson(visible && isSheet, t('reactor.hidePanel'))
+  useScrollFade(scrollWrapRef, scrollRef, `${visible ? 1 : 0}:${runId}:${step}:${collapsed ? 1 : 0}:${locale}`)
+
+  // Ручная высота листа живёт только на узком телефоне: на широком экране
+  // панель снова колонка слева, инлайновый размер там только мешает.
+  useEffect(() => {
+    if (isSheet) return
+    panelRef.current?.style.removeProperty(SHEET_H_VAR)
+  }, [isSheet])
 
   // Док тоже ставит язык, но панель может жить без него; эффект стоит до озвучки.
   // Смена языка прерывает текущую реплику — повторяем шаг уже на новом языке.
@@ -289,6 +534,68 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
     })
   }
 
+  /* ── Ручка нижнего листа: тянем высоту, короткий тап — свернуть/развернуть ── */
+
+  const onGripDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const panel = panelRef.current
+    if (!panel) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragRef.current = { id: e.pointerId, y0: e.clientY, h0: panel.offsetHeight, moved: false }
+  }
+
+  const onGripMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current
+    const panel = panelRef.current
+    if (!drag || !panel || drag.id !== e.pointerId) return
+    const dy = drag.y0 - e.clientY
+    if (!drag.moved && Math.abs(dy) < 4) return
+    drag.moved = true
+    if (collapsed) {
+      // Свёрнутую полосу тянут вверх — разворачиваем и продолжаем с минимума.
+      if (dy < 16) return
+      setCollapsed(false)
+      writeFlag(COLLAPSED_KEY, false)
+      drag.h0 = SHEET_MIN_PX
+      drag.y0 = e.clientY
+      return
+    }
+    setSheetHeight(panel, drag.h0 + dy)
+  }
+
+  const onGripUp = () => {
+    const drag = dragRef.current
+    const panel = panelRef.current
+    dragRef.current = null
+    if (!drag) return
+    suppressClick.current = drag.moved
+    // Дотянули почти до минимума — считаем это жестом «свернуть».
+    if (drag.moved && !collapsed && panel && panel.offsetHeight <= SHEET_MIN_PX + 24) {
+      setCollapsed(true)
+      writeFlag(COLLAPSED_KEY, true)
+    }
+  }
+
+  const onGripClick = () => {
+    if (suppressClick.current) {
+      suppressClick.current = false
+      return
+    }
+    toggleCollapsed()
+  }
+
+  const onGripKey = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    const panel = panelRef.current
+    if (!panel || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return
+    e.preventDefault()
+    if (collapsed) {
+      if (e.key !== 'ArrowUp') return
+      setCollapsed(false)
+      writeFlag(COLLAPSED_KEY, false)
+      return
+    }
+    setSheetHeight(panel, panel.offsetHeight + (e.key === 'ArrowUp' ? SHEET_STEP_PX : -SHEET_STEP_PX))
+  }
+
   return (
     <section
       ref={panelRef}
@@ -299,6 +606,21 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
       data-status={status}
       data-collapsed={collapsed ? '1' : undefined}
     >
+      {isSheet ? (
+        <button
+          type="button"
+          className={styles.grip}
+          aria-label={collapseLabel}
+          title={collapseLabel}
+          aria-expanded={!collapsed}
+          onPointerDown={onGripDown}
+          onPointerMove={onGripMove}
+          onPointerUp={onGripUp}
+          onPointerCancel={onGripUp}
+          onClick={onGripClick}
+          onKeyDown={onGripKey}
+        />
+      ) : null}
       <header className={styles.head}>
         <div className={styles.headRow}>
           <span className={styles.kicker}>
@@ -351,123 +673,127 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
         </div>
       </header>
 
-      <div className={styles.scroll}>
-        {/* Шапка шага: заголовок и уравнение стадии — видны и в свёрнутой панели; объяснение ниже. */}
-        <div className={styles.stepText} aria-live="polite" aria-atomic="true">
-          <h3 className={styles.title}>{stepText.title}</h3>
-          <p className={styles.equation} translate="no">
-            {equationParts.map((part, i) => (
-              <span key={i} className={styles.equationLine}>
-                {part}
-              </span>
-            ))}
-          </p>
-          <p className={`${styles.body} ${styles.details}`}>{stepText.body}</p>
-        </div>
-
-        {stepText.note ? (
-          <p className={`${styles.note} ${styles.details}`}>
-            <span className={styles.noteMark} aria-hidden>
-              <InfoIcon />
-            </span>
-            <span className={styles.srOnly}>{t('lab.mechanism.note')}: </span>
-            <span>{stepText.note}</span>
-          </p>
-        ) : null}
-
-        {stepId === lesson.safetyStepId ? (
-          <p className={`${styles.safety} ${styles.details}`}>
-            <span className={styles.safetyMark} aria-hidden>
-              <WarningIcon />
-            </span>
-            <span className={styles.srOnly}>{t('lab.mechanism.safety')}: </span>
-            <span>{text.safety}</span>
-          </p>
-        ) : null}
-
-        {lesson.id === 'clo2' ? (
-          <div className={`${styles.ledgerRow} ${styles.details}`}>
-            <Clo2ElectronLedger locale={clo2Locale} />
+      <div className={styles.scrollWrap} ref={scrollWrapRef}>
+        {/* постоянно видимый индикатор прокрутки (телефон: системная полоса наложенная) */}
+        <span className={styles.rail} aria-hidden />
+        <div className={styles.scroll} ref={scrollRef}>
+          {/* Шапка шага: заголовок и уравнение стадии — видны и в свёрнутой панели; объяснение ниже. */}
+          <div className={styles.stepText} aria-live="polite" aria-atomic="true">
+            <h3 className={styles.title}>{stepText.title}</h3>
+            <p className={styles.equation} translate="no">
+              {equationParts.map((part, i) => (
+                <span key={i} className={styles.equationLine}>
+                  {part}
+                </span>
+              ))}
+            </p>
+            <p className={`${styles.body} ${styles.details}`}>{stepText.body}</p>
           </div>
-        ) : null}
 
-        <LessonSection
-          id="energy"
-          className={styles.details}
-          title={text.energy.title}
-          meta={text.energy.axisG}
-          icon={<EnergyIcon />}
-          defaultOpen={mediaMatches(ROOMY_QUERY)}
-        >
-          {lesson.id === 'nacl' ? (
-            <NaclEnergyPanel locale={clo2Locale} compact={isMobile} />
-          ) : lesson.id === 'cao' ? (
-            <CaoEnergyPanel locale={clo2Locale} compact={isMobile} />
-          ) : lesson.id === 'nh3' ? (
-            <Nh3EnergyPanel locale={clo2Locale} compact={isMobile} />
-          ) : lesson.id === 'so2' ? (
-            <So2EnergyPanel locale={clo2Locale} compact={isMobile} />
-          ) : lesson.id === 'mgo' ? (
-            <MgoEnergyPanel locale={clo2Locale} compact={isMobile} />
-          ) : lesson.id === 'fes' ? (
-            <FesEnergyPanel locale={clo2Locale} compact={isMobile} />
-          ) : lesson.id === 'hcl' ? (
-            <HclEnergyPanel locale={clo2Locale} compact={isMobile} />
-          ) : lesson.id === 'h2o' ? (
-            <H2oEnergyPanel locale={clo2Locale} compact={isMobile} />
-          ) : lesson.id === 'co2' ? (
-            <Co2EnergyPanel locale={clo2Locale} compact={isMobile} />
-          ) : lesson.id === 'zncl2' ? (
-            <Zncl2EnergyPanel locale={clo2Locale} compact={isMobile} />
-          ) : (
-            <Clo2EnergyProfile locale={clo2Locale} compact={isMobile} caption={false} />
-          )}
-        </LessonSection>
+          {stepText.note ? (
+            <p className={`${styles.note} ${styles.details}`}>
+              <span className={styles.noteMark} aria-hidden>
+                <InfoIcon />
+              </span>
+              <span className={styles.srOnly}>{t('lab.mechanism.note')}: </span>
+              <span>{stepText.note}</span>
+            </p>
+          ) : null}
 
-        <LessonSection
-          id="legend"
-          className={styles.details}
-          title={t('lab.mechanism.legend')}
-          icon={<LegendIcon />}
-          defaultOpen={false}
-        >
-          <ul className={styles.legend} aria-label={t('lab.mechanism.legend')}>
-            <li>
-              <ElectronIcon />
-              <span>{text.legend.electron}</span>
-            </li>
-            {text.legend.pairArrow ? (
+          {stepId === lesson.safetyStepId ? (
+            <p className={`${styles.safety} ${styles.details}`}>
+              <span className={styles.safetyMark} aria-hidden>
+                <WarningIcon />
+              </span>
+              <span className={styles.srOnly}>{t('lab.mechanism.safety')}: </span>
+              <span>{text.safety}</span>
+            </p>
+          ) : null}
+
+          {lesson.id === 'clo2' ? (
+            <div className={`${styles.ledgerRow} ${styles.details}`}>
+              <Clo2ElectronLedger locale={clo2Locale} />
+            </div>
+          ) : null}
+
+          <LessonSection
+            id="energy"
+            className={styles.details}
+            title={text.energy.title}
+            meta={text.energy.axisG}
+            icon={<EnergyIcon />}
+            defaultOpen={mediaMatches(ROOMY_QUERY)}
+          >
+            {lesson.id === 'nacl' ? (
+              <NaclEnergyPanel locale={clo2Locale} compact={isMobile} />
+            ) : lesson.id === 'cao' ? (
+              <CaoEnergyPanel locale={clo2Locale} compact={isMobile} />
+            ) : lesson.id === 'nh3' ? (
+              <Nh3EnergyPanel locale={clo2Locale} compact={isMobile} />
+            ) : lesson.id === 'so2' ? (
+              <So2EnergyPanel locale={clo2Locale} compact={isMobile} />
+            ) : lesson.id === 'mgo' ? (
+              <MgoEnergyPanel locale={clo2Locale} compact={isMobile} />
+            ) : lesson.id === 'fes' ? (
+              <FesEnergyPanel locale={clo2Locale} compact={isMobile} />
+            ) : lesson.id === 'hcl' ? (
+              <HclEnergyPanel locale={clo2Locale} compact={isMobile} />
+            ) : lesson.id === 'h2o' ? (
+              <H2oEnergyPanel locale={clo2Locale} compact={isMobile} />
+            ) : lesson.id === 'co2' ? (
+              <Co2EnergyPanel locale={clo2Locale} compact={isMobile} />
+            ) : lesson.id === 'zncl2' ? (
+              <Zncl2EnergyPanel locale={clo2Locale} compact={isMobile} />
+            ) : (
+              <Clo2EnergyProfile locale={clo2Locale} compact={isMobile} caption={false} />
+            )}
+          </LessonSection>
+
+          <LessonSection
+            id="legend"
+            className={styles.details}
+            title={t('lab.mechanism.legend')}
+            icon={<LegendIcon />}
+            defaultOpen={false}
+          >
+            <ul className={styles.legend} aria-label={t('lab.mechanism.legend')}>
               <li>
-                <PairArrowIcon />
-                <span>{text.legend.pairArrow}</span>
+                <ElectronIcon />
+                <span>{text.legend.electron}</span>
               </li>
-            ) : null}
-            {text.legend.singleArrow ? (
-              <li>
-                <SingleArrowIcon />
-                <span>{text.legend.singleArrow}</span>
-              </li>
-            ) : null}
-            {text.legend.orbitalPhase ? (
-              <li>
-                <OrbitalPhaseIcon />
-                <span>{text.legend.orbitalPhase}</span>
-              </li>
-            ) : null}
-            {text.legend.vibration ? (
-              <li>
-                <VibrationIcon />
-                <span>{text.legend.vibration}</span>
-              </li>
-            ) : null}
-            {text.legend.water ? (
-              <li className={styles.legendWater}>
-                <WaterIcon />
-                <span>{text.legend.water}</span>
-              </li>
-            ) : null}
-          </ul>
-        </LessonSection>
+              {text.legend.pairArrow ? (
+                <li>
+                  <PairArrowIcon />
+                  <span>{text.legend.pairArrow}</span>
+                </li>
+              ) : null}
+              {text.legend.singleArrow ? (
+                <li>
+                  <SingleArrowIcon />
+                  <span>{text.legend.singleArrow}</span>
+                </li>
+              ) : null}
+              {text.legend.orbitalPhase ? (
+                <li>
+                  <OrbitalPhaseIcon />
+                  <span>{text.legend.orbitalPhase}</span>
+                </li>
+              ) : null}
+              {text.legend.vibration ? (
+                <li>
+                  <VibrationIcon />
+                  <span>{text.legend.vibration}</span>
+                </li>
+              ) : null}
+              {text.legend.water ? (
+                <li className={styles.legendWater}>
+                  <WaterIcon />
+                  <span>{text.legend.water}</span>
+                </li>
+              ) : null}
+            </ul>
+          </LessonSection>
+        </div>
       </div>
 
       <footer className={styles.controls}>
@@ -494,7 +820,17 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
           <span className={styles.switch} aria-hidden />
           {t('lab.mechanism.autoplay')}
         </button>
-        <button type="button" className={styles.primaryBtn} onClick={() => clo2StepStore.next()} disabled={!canNext}>
+        {/* aria-disabled, а не disabled: отключение кнопки в фокусе (её только что нажали) сбрасывает
+            фокус и пересчитывает стили всей страницы — худший кадр после «Далее»; фокус с клавиатуры
+            тоже не теряется. */}
+        <button
+          type="button"
+          className={styles.primaryBtn}
+          onClick={() => {
+            if (canNext) clo2StepStore.next()
+          }}
+          aria-disabled={!canNext}
+        >
           {isLast ? t('lab.mechanism.finish') : t('lab.mechanism.next')}
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
             {isLast ? (

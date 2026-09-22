@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { cinemaPlayhead } from '../clo2/clo2StepStore'
-import { activeStageAt, formatKJ, ladderLevels, type Ladder } from './energyLadderData'
+import { activeStageAt, formatKJ, formatStageFactor, ladderDigits, ladderLevels, type Ladder } from './energyLadderData'
 import styles from './EnergyLadder.module.css'
 
 /**
@@ -37,6 +37,11 @@ export type EnergyLadderText = {
   sources?: string
   /** aria-label графика; {dH} заменяется суммой */
   summary?: string
+  /**
+   * десятичный знак в множителях ступеней («2 × 577,5»); по умолчанию «,», если единица
+   * написана кириллицей (ru), иначе «.»
+   */
+  decimal?: string
 }
 
 export function EnergyLadder({
@@ -92,10 +97,19 @@ export function EnergyLadder({
   }, [ladder])
 
   const totalKJ = Math.round(ladder.sumKJ)
-  const summary = (text.summary ?? '{dH}').replace('{dH}', String(totalKJ))
+  const decimal = text.decimal ?? (/[А-Яа-яЁё]/.test(text.unit) ? ',' : '.')
+  // График тесный — целые; список ступеней — с точностью данных ядра (как в тексте урока и в 3D).
+  const digits = ladderDigits(ladder)
+  const summary = (text.summary ?? '{dH}').replace('{dH}', formatKJ(ladder.sumKJ, digits, decimal))
 
   return (
-    <div ref={root} className={styles.wrap} data-compact={compact ? '1' : undefined}>
+    <div
+      ref={root}
+      className={styles.wrap}
+      data-compact={compact ? '1' : undefined}
+      // Тесная лестница: подписи ступеней на графике уступают место списку ниже.
+      data-dense={ladder.stages.length > 5 ? '1' : undefined}
+    >
       <svg className={styles.chart} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary}>
         <line className={styles.zero} x1={PAD_L} x2={W - PAD_R} y1={layout.zeroY} y2={layout.zeroY} />
         {layout.cols.map((c, i) => (
@@ -122,7 +136,12 @@ export function EnergyLadder({
               {text.stages[s.id] ?? s.equation}
             </span>
             <span className={styles.num}>
-              {formatKJ(s.dH)} {text.unit}
+              {(() => {
+                // Ступень с множителем (Al₂O₃: 2 Al, 3 O) — «2 × 577,5 = +1155»; без множителя — как раньше.
+                const f = formatStageFactor(s, decimal)
+                return f ? <span className={styles.factor}>{f} = </span> : null
+              })()}
+              {formatKJ(s.dH, digits, decimal)} {text.unit}
             </span>
           </li>
         ))}
@@ -130,7 +149,7 @@ export function EnergyLadder({
           <span className={styles.dot} aria-hidden />
           <span className={styles.eq}>{text.total}</span>
           <span className={styles.num}>
-            {formatKJ(totalKJ)} {text.unit}
+            {formatKJ(ladder.sumKJ, digits, decimal)} {text.unit}
           </span>
         </li>
       </ul>

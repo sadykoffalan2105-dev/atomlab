@@ -1,6 +1,7 @@
 import type { SpeechPrepLocale } from './learnSpeechText'
-import { expandElementSymbolsForRussianSpeech } from './learnElementSpeech'
-import { expandCatalogFormulasForSpeech } from './learnCatalogFormulaSpeech'
+import { expandElementSymbolsForRussianSpeech, hasElementSpokenName } from './learnElementSpeech'
+import { expandCatalogFormulasForSpeech, hasCatalogFormulaName } from './learnCatalogFormulaSpeech'
+import { readFormulaAloud } from './learnChemSpeech'
 
 /** Формулы → как говорит учитель (длинные совпадения первыми). */
 const FORMULA_SPEECH_RU: ReadonlyArray<readonly [RegExp, string]> = [
@@ -147,12 +148,99 @@ export function applyYoLetterFixes(text: string): string {
  */
 const FORMULA_SPEECH_RU_BOUNDED: ReadonlyArray<readonly [RegExp, string]> = FORMULA_SPEECH_RU.map(([re, spoken]) => {
   const flags = re.flags.includes('g') ? re.flags : `${re.flags}g`
-  return [new RegExp(`(?<![A-Za-z0-9₀-₉])(?:${re.source})(?![A-Za-z0-9₀-₉])`, flags), spoken] as const
+  // Коэффициент уравнения формулу не закрывает: в «2HCl» это тот же HCl, и читать его
+  // надо так же, как остальные вещества уравнения (иначе в одной фразе два стиля).
+  return [new RegExp(`(?<![A-Za-z₀-₉])(?:${re.source})(?![A-Za-z0-9₀-₉])`, flags), spoken] as const
 })
+
+/* ---------------------------------------------------- формулы рядом с названием */
+
+/**
+ * Основа русского названия для нестрогого сравнения: «вода» → «вод», «углекислый газ» →
+ * «углекисл газ». Нужна, чтобы «Воды H₂O» тоже считалось «название рядом».
+ */
+/** Экранировать спецсимволы регулярного выражения в куске обычного текста. */
+function escapeRe(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function nameStemPattern(name: string): string {
+  return name
+    .split(/\s+/)
+    .map((w) => {
+      const stem = escapeRe(w.length >= 6 ? w.slice(0, -2) : w.length >= 4 ? w.slice(0, -1) : w)
+      return w.length >= 6 ? `${stem}\\p{L}{0,3}` : w.length >= 4 ? `${stem}\\p{L}{0,2}` : stem
+    })
+    .join('\\s+')
+}
+
+/**
+ * Убрать формулу, рядом с которой уже стоит её русское название.
+ *
+ * «Вода H₂O и углекислый газ CO₂ …» озвучивалось как «вода вода и углекислый газ
+ * углекислый газ» — тавтология. Название важнее формулы, поэтому формулу снимаем
+ * вместе со связкой («NaCl — поваренная соль» → «поваренная соль»).
+ */
+export function dropFormulasNamedNearby(text: string): string {
+  let out = text
+  for (const [re, name] of FORMULA_SPEECH_RU) {
+    const f = `(?:${re.source})`
+    const n = nameStemPattern(name)
+    // «название (формула)», «название формула», «название — формула»
+    out = out.replace(new RegExp(`(${n})\\s*(?:[—–-]\\s*)?\\(\\s*${f}\\s*\\)`, 'giu'), '$1')
+    out = out.replace(new RegExp(`(${n})\\s+(?:[—–-]\\s+)?${f}(?![A-Za-z0-9₀-₉])`, 'giu'), '$1')
+    // «формула (название)», «формула — название»
+    out = out.replace(new RegExp(`(?<![A-Za-z0-9₀-₉])${f}\\s*\\(\\s*(${n})\\s*\\)`, 'giu'), '$1')
+    out = out.replace(new RegExp(`(?<![A-Za-z0-9₀-₉])${f}\\s*[—–]\\s*(${n})`, 'giu'), '$1')
+  }
+  return out.replace(/\s{2,}/g, ' ')
+}
+
+/**
+ * ОДИН СТИЛЬ ЧТЕНИЯ НА УРАВНЕНИЕ. В «2Al + 3Cl₂ → 2AlCl₃» у Al названия вещества нет,
+ * у Cl₂ есть, а AlCl₃ пришлось бы читать по буквам — в одной фразе получалось три разных
+ * стиля. Правило: название есть у КАЖДОГО вещества уравнения — читаем названиями; нет хотя
+ * бы у одного — всё уравнение читается поэлементно (одинаково для всех формул).
+ *
+ * Вызывается ДО словарей и операторов (иначе стрелка уже стала словом «образуется»).
+ */
+const EQUATION_SEGMENT_RE = /[^.!?;]*(?:→|⟶|->|⇌|↔)[^.!?;]*/gu
+/**
+ * Формула уравнения вместе с коэффициентом: «2HCl» — тот же HCl. Раньше коэффициент
+ * закрывал формулу от разбора (в «Zn + 2HCl → ZnCl₂» вещество HCl просто не находилось),
+ * и правило «один стиль» решало по неполному списку веществ.
+ */
+const EQ_TOKEN_RE = /(?<![\p{L}₀-₉])(\d*)((?:[A-Z][a-z]?[₀-₉0-9]*|\((?:[A-Z][a-z]?[₀-₉0-9]*)+\)[₀-₉0-9]*){1,8})(?![\p{L}])/gu
+
+/** Есть ли у формулы готовое русское название («вода», «хлорид алюминия») — в ручных правилах или в каталоге. */
+function hasSpokenName(token: string): boolean {
+  if (FORMULA_SPEECH_RU.some(([re]) => new RegExp(`^(?:${re.source})$`, 'iu').test(token))) return true
+  // Одиночный символ элемента («Al», «Zn») тоже читается названием, а не по буквам.
+  if (/^[A-Z][a-z]?$/.test(token) && hasElementSpokenName(token)) return true
+  return hasCatalogFormulaName(token)
+}
+
+export function unifyEquationFormulaStyle(text: string, locale: SpeechPrepLocale): string {
+  if (locale !== 'ru' || !/(→|⟶|->|⇌|↔)/u.test(text)) return text
+  return text.replace(EQUATION_SEGMENT_RE, (segment) => {
+    const tokens = [...new Set([...segment.matchAll(EQ_TOKEN_RE)].map((m) => m[2]!))].filter(
+      (t) => t.length >= 2 && !/^[IVXLCDM]+$/.test(t),
+    )
+    if (tokens.length < 2) return segment
+    if (tokens.every(hasSpokenName)) return segment
+    // Смешанный случай: сразу раскрываем ВСЕ формулы уравнения поэлементно.
+    return segment.replace(EQ_TOKEN_RE, (whole: string, coef: string, tok: string) =>
+      tokens.includes(tok) ? `${coef}${coef ? ' ' : ''}${readFormulaAloud(tok, 'ru')}` : whole,
+    )
+  })
+}
 
 function expandFormulasForSpeech(text: string, locale: SpeechPrepLocale): string {
   if (locale !== 'ru') return text
-  let out = text
+  // Тавтологию «вода H₂O» снимаем ДО словаря: иначе прочитается «вода вода».
+  let out = dropFormulasNamedNearby(text)
+  // ОДИН стиль на уравнение — до словарей, пока формулы ещё формулы.
+  out = unifyEquationFormulaStyle(out, locale)
   for (const [re, spoken] of FORMULA_SPEECH_RU_BOUNDED) {
     out = out.replace(re, spoken)
   }
@@ -250,7 +338,8 @@ export function naturalizeSpeechText(
     .replace(/\s+([,.!?])/g, '$1')
     // «(… века).» → «…века, .» — лишняя запятая перед концом фразы
     .replace(/,+\s*([.!?])/g, '$1')
-    .replace(/([,!?])\s*/g, '$1 ')
+    // «6,02» — десятичная запятая, пробел после неё не ставим.
+    .replace(/([,!?])(?!\d)\s*/g, '$1 ')
     .replace(/\.{2,}/g, '.')
     .replace(/\s{2,}/g, ' ')
     .trim()

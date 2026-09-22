@@ -1090,4 +1090,124 @@ export const SCHOOL_REACTIONS_PART5: readonly SchoolReactionDef[] = [
     howToEn: 'Chlorite oxidized by chlorine — not direct Cl₂ + O₂ synthesis.',
     passport: { heatEffect: 'exo', isRedox: true, phaseKind: 'heterogeneous' },
   },
+  // ── Этап 3 OPUS-3D-FORMATION-11: реакции для научных сцен sio2 / pbo / h2o2 / tb_mn2o7 / tb_cl2o7 ──
+  {
+    id: 'si-o2-sio2',
+    titleRu: 'Окисление кремния',
+    titleEn: 'Silicon oxidation',
+    reactionClass: 'combination',
+    // Учебник 9 кл.: «Si + O₂ → SiO₂» (equations-g9.json, p13).
+    grades: [9],
+    equationRu: 'Si + O₂ → SiO₂',
+    equationEn: 'Si + O₂ → SiO₂',
+    productId: 'sio2',
+    kind: 'synthesis',
+    compoundIds: ['sio2'],
+    reactants: [
+      { kind: 'element', z: 14, coeff: 1 },
+      { kind: 'element', z: 8, coeff: 1, diatomic: true },
+    ],
+    howToRu:
+      'Кремний сгорает в O₂ только при сильном нагреве (порошок, выше ~400 °C): мешает плотная плёнка оксида. Продукт — аморфный SiO₂ (термический оксид), а не кварц; α-кварц растёт из расплава и гидротермально. Каждый Si — четыре σ-связи Si–O в тетраэдре SiO₄, поэтому SiO₂ — каркас, а не молекула.',
+    howToEn:
+      'Silicon burns in O₂ only when strongly heated (powder, above ~400 °C): the dense oxide film slows it. The product is amorphous SiO₂ (thermal oxide), not quartz; α-quartz grows from melts or hydrothermally. Each Si forms four Si–O σ-bonds in an SiO₄ tetrahedron, so SiO₂ is a network, not a molecule.',
+    // ΔH°f(SiO₂, α-кварц) = −910,7 кДж/моль (CRC Handbook, NBS) → реакция экзотермична.
+    passport: { heatEffect: 'exo', isRedox: true, phaseKind: 'heterogeneous' },
+  },
+  {
+    id: 'pb-o2-pbo',
+    titleRu: 'Окисление свинца (глёт)',
+    titleEn: 'Lead oxidation (litharge)',
+    reactionClass: 'combination',
+    // В учебнике 9 кл. PbO получают только разложением 2Pb(NO₃)₂ (equations-g9.json p11); окисление Pb — практический способ получения глёта.
+    grades: [9],
+    equationRu: '2Pb + O₂ → 2PbO',
+    equationEn: '2Pb + O₂ → 2PbO',
+    productId: 'pbo',
+    kind: 'synthesis',
+    compoundIds: ['pbo'],
+    reactants: [
+      { kind: 'element', z: 82, coeff: 2 },
+      { kind: 'element', z: 8, coeff: 1, diatomic: true },
+    ],
+    howToRu:
+      'Так PbO получают на практике: расплавленный свинец окисляют воздухом (выше 489 °C сначала жёлтый массикот, при медленном охлаждении — красный глёт). В учебнике PbO получают разложением: 2Pb(NO₃)₂ → 2PbO + 4NO₂ + O₂. Соединения свинца ядовиты — только виртуально.',
+    howToEn:
+      'This is how PbO is made in practice: molten lead is oxidized by air (above 489 °C yellow massicot forms first, slow cooling gives red litharge). The textbook route is decomposition: 2Pb(NO₃)₂ → 2PbO + 4NO₂ + O₂. Lead compounds are toxic — virtual only.',
+    // ΔH°f(PbO): глёт −219,0, массикот −217,3 кДж/моль (CRC Handbook) → экзотермична.
+    passport: { heatEffect: 'exo', isRedox: true, phaseKind: 'heterogeneous' },
+  },
+  {
+    id: 'na2o2-h2so4-h2o2',
+    titleRu: 'Получение пероксида водорода',
+    titleEn: 'Hydrogen peroxide from sodium peroxide',
+    reactionClass: 'exchange',
+    // Учебник 9 кл., §21: «Na₂O₂ + H₂SO₄ → Na₂SO₄ + H₂O₂» (equations-g9.json p21 r16).
+    grades: [9],
+    equationRu: 'Na₂O₂ + H₂SO₄ → Na₂SO₄ + H₂O₂',
+    equationEn: 'Na₂O₂ + H₂SO₄ → Na₂SO₄ + H₂O₂',
+    productId: 'h2o2',
+    kind: 'practice_only',
+    compoundIds: ['na2o2', 'h2so4', 'salt_na_so4', 'h2o2'],
+    reactants: [
+      { kind: 'compound', compoundId: 'na2o2', coeff: 1 },
+      { kind: 'compound', compoundId: 'h2so4', coeff: 1 },
+    ],
+    howToRu:
+      'Пероксид-ион O₂²⁻ уже есть в Na₂O₂: кислота только протонирует его (H–O–O–H), степень окисления O остаётся −1 — это не ОВР. Кислота разбавленная и охлаждённая (0–5 °C): нагрев разлагает H₂O₂. Исторический метод Тенара — то же с BaO₂ (BaSO₄ уходит в осадок).',
+    howToEn:
+      'The peroxide ion O₂²⁻ is already in Na₂O₂: the acid only protonates it (H–O–O–H), oxygen stays at −1 — not a redox reaction. Use dilute, cold acid (0–5 °C): heat decomposes H₂O₂. The historical Thénard method does the same with BaO₂ (BaSO₄ precipitates).',
+    // ΔH°f, кДж/моль (NBS/CRC): Na₂O₂(т) −510,9; H₂SO₄(ж) −814,0; Na₂SO₄(т) −1387,1; H₂O₂(ж) −187,8 → ΔH ≈ −250 кДж: экзо.
+    passport: { heatEffect: 'exo', isRedox: false },
+  },
+  {
+    id: 'kmno4-h2so4-mn2o7',
+    titleRu: 'Получение оксида марганца(VII)',
+    titleEn: 'Manganese(VII) oxide formation',
+    reactionClass: 'exchange',
+    // Учебник 9 кл., «Марганец», с. 154: «2KMnO₄ + H₂SO₄ → Mn₂O₇ + K₂SO₄ + H₂O» (equations-g9.json p33 r10).
+    grades: [9],
+    equationRu: '2KMnO₄ + H₂SO₄ → Mn₂O₇ + K₂SO₄ + H₂O',
+    equationEn: '2KMnO₄ + H₂SO₄ → Mn₂O₇ + K₂SO₄ + H₂O',
+    productId: 'tb_mn2o7',
+    kind: 'practice_only',
+    compoundIds: ['salt_k_mno4', 'h2so4', 'tb_mn2o7', 'salt_k_so4', 'h2o'],
+    reactants: [
+      { kind: 'compound', compoundId: 'salt_k_mno4', coeff: 2 },
+      { kind: 'compound', compoundId: 'h2so4', coeff: 1 },
+    ],
+    howToRu:
+      'Запись учебника. В концентрированной H₂SO₄ реально образуется KHSO₄: 2KMnO₄ + 2H₂SO₄ → Mn₂O₇ + 2KHSO₄ + H₂O. MnO₄⁻ протонируется до HMnO₄, две молекулы отщепляют воду — ангидрид Mn₂O₇ (Mn +7, не ОВР). Взрывоопасен, воспламеняет спирт — только виртуально.',
+    howToEn:
+      'Textbook equation. In concentrated H₂SO₄ KHSO₄ actually forms: 2KMnO₄ + 2H₂SO₄ → Mn₂O₇ + 2KHSO₄ + H₂O. MnO₄⁻ is protonated to HMnO₄; two molecules lose water to the anhydride Mn₂O₇ (Mn +7, no redox). Explosive, ignites alcohol — virtual only.',
+    // Знак — по реальному маршруту в конц. кислоте (KHSO₄). ΔH°f, кДж/моль: KMnO₄(т) −837,2; H₂SO₄(ж) −814,0;
+    // KHSO₄(т) −1160,6; H₂O(ж) −285,8 (NBS/CRC); Mn₂O₇(ж) ≈ −743 (оценочно, Лидин; в CRC/JANAF нет) → ΔH ≈ −48 кДж.
+    // По записи учебника с K₂SO₄(т) −1437,8 сумма ≈ +22 кДж — в пределах погрешности оценки Mn₂O₇; смесь с конц. кислотой греется.
+    passport: { heatEffect: 'exo', isRedox: false, phaseKind: 'heterogeneous' },
+  },
+  {
+    id: 'hclo4-p4o10-cl2o7',
+    titleRu: 'Получение оксида хлора(VII)',
+    titleEn: 'Dichlorine heptoxide formation',
+    reactionClass: 'exchange',
+    // Учебник 7 кл., «Оксиды», с. 107: «2HClO₄ → Cl₂O₇ + H₂O» — формальная сводка; воду забирает P₄O₁₀.
+    // Тип grades ограничен 7|8|9: Cl₂O₇ есть ещё в 11 кл. («Эквивалент», с. 45).
+    grades: [7],
+    equationRu: '4HClO₄ + P₄O₁₀ → 2Cl₂O₇ + 4HPO₃',
+    equationEn: '4HClO₄ + P₄O₁₀ → 2Cl₂O₇ + 4HPO₃',
+    productId: 'tb_cl2o7',
+    kind: 'practice_only',
+    compoundIds: ['hclo4', 'tb_p4o10', 'tb_cl2o7', 'tb_hpo3'],
+    reactants: [
+      { kind: 'compound', compoundId: 'hclo4', coeff: 4 },
+      { kind: 'compound', compoundId: 'tb_p4o10', coeff: 1 },
+    ],
+    howToRu:
+      'Учебник пишет 2HClO₄ → Cl₂O₇ + H₂O — это формальная сводка: воду у безводной HClO₄ забирает осушитель P₄O₁₀ (−10 °C, отгонка в вакууме), метафосфорная кислота — полимер (HPO₃)ₙ. Cl₂O₇ — эндотермическое соединение (ΔH°f > 0), детонирует от удара и нагрева — только виртуально.',
+    howToEn:
+      'The textbook writes 2HClO₄ → Cl₂O₇ + H₂O as a formal summary: the drying agent P₄O₁₀ takes the water from anhydrous HClO₄ (−10 °C, vacuum distillation); metaphosphoric acid is the polymer (HPO₃)ₙ. Cl₂O₇ is an endothermic compound (ΔH°f > 0) that detonates on impact or heating — virtual only.',
+    // Сам Cl₂O₇ эндотермичен: ΔH°f(ж) ≈ +238 кДж/моль (NBS). Реакцию целиком тянет гидратация P₄O₁₀:
+    // HClO₄(ж) −40,6; P₄O₁₀(т) −2984,0; HPO₃(т) ≈ −948,5 (NBS) → ΔH ≈ 2·238 + 4·(−948,5) + 4·40,6 + 2984 ≈ −171 кДж: экзо.
+    passport: { heatEffect: 'exo', isRedox: false, phaseKind: 'heterogeneous' },
+  },
 ] as const
