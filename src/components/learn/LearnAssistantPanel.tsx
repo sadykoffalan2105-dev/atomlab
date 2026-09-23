@@ -472,10 +472,16 @@ export function LearnAssistantPanel({
         setInput((prev) => (prev.trim() ? `${prev.trimEnd()} ${transcript}` : transcript))
         inputRef.current?.focus()
       },
-      () => setListening(false),
+      (code) => {
+        setListening(false)
+        // Молчаливое выключение микрофона читалось как «учитель не слышит». Называем причину.
+        if (code === 'no-speech') setError(t('learn.assistant.micNoSpeech'))
+        else if (code === 'network' || code === 'audio-capture') setError(t('learn.assistant.micNetwork'))
+      },
     )
+    if (started) setError(null)
     setListening(started)
-  }, [listening, speechLocale, speech])
+  }, [listening, speechLocale, speech, t])
 
   useEffect(() => {
     void checkTeacherServiceHealth()

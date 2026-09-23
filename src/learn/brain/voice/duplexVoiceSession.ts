@@ -264,6 +264,27 @@ export class DuplexVoiceSession {
     this.bargeIn.setAiSpeaking(v)
     if (!v) this.aiEndedAt = this.s.now()
     this.cfg.onAiSpeakingChange?.(v)
+    if (!v) this.replayPendingAfterAi()
+  }
+
+  /**
+   * Учитель договорил: то, что ученик успел сказать во время его речи и что не было барджином,
+   * отдаём детектору конца реплики — как будто сказано только что. Эхо колонок по-прежнему отсеивается.
+   */
+  private replayPendingAfterAi(): void {
+    if (!this.active || this.muted) return
+    const fresh = this.freshFinal(this.sttSession.committed)
+    const interim = this.lastInterim
+    const pending = `${fresh} ${interim}`.replace(/\s+/g, ' ').trim()
+    if (!pending) return
+    if (this.isEcho(pending)) {
+      if (fresh && this.isEcho(fresh)) this.consumedLen = this.sttSession.committed.length
+      return
+    }
+    this.cfg.onPartial?.(pending)
+    if (this.turn !== 'user_speaking' && this.turn !== 'thinking') this.setTurn('user_speaking')
+    if (interim) this.turnEnd.interim(interim)
+    if (fresh) this.turnEnd.final(fresh)
   }
 
   /** Явно сообщить «я думаю» (пока идёт оценка/генерация). */
@@ -354,10 +375,11 @@ export class DuplexVoiceSession {
         if (fresh && this.isEcho(fresh)) this.consumedLen = this.sttSession.committed.length
         return
       }
-      if (!this.bargeInEnabled) {
-        if (fresh) this.consumedLen = this.sttSession.committed.length
-        return
-      }
+      // Не эхо — значит, ученик заговорил, пока учитель договаривает (обычно отвечает на вопрос,
+      // не дожидаясь конца фразы). Раньше при выключенном барджине такой текст помечался прочитанным
+      // и пропадал — учитель «не слышал» ответ. Теперь он ждёт конца речи учителя (replayPendingAfterAi).
+      this.lastInterim = interim
+      if (!this.bargeInEnabled) return
       this.bargeIn.transcript(pending)
       return
     }

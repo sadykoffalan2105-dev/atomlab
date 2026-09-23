@@ -150,8 +150,10 @@ export class LearnSpeechRecognition {
         }
         failures++
         if (code === 'no-speech') {
+          // Chrome закрывает сессию после нескольких секунд тишины; чем быстрее новая, тем меньше
+          // шанс потерять первые слоги фразы, начатой в этот зазор.
           failures = 0
-          scheduleNextSession(120)
+          scheduleNextSession(20)
           return
         }
         if (code === 'network' || code === 'audio-capture') {
@@ -170,7 +172,7 @@ export class LearnSpeechRecognition {
           return
         }
         // Если перезапуск уже запланирован (onerror) — не дублируем.
-        if (!this.oralRestartTimer) scheduleNextSession(60)
+        if (!this.oralRestartTimer) scheduleNextSession(20)
       }
 
       this.recognition = recognition

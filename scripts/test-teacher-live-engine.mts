@@ -1509,6 +1509,50 @@ await test('оценщик: ответ не по теме вопроса не п
   assert.equal(on.onTopic, true, JSON.stringify(on))
 })
 
+await test('ответ ученика во время последней фразы учителя не теряется: фиксируется, когда учитель договорил', async () => {
+  for (const bargeIn of [false, true]) {
+    const h = makeDuplex()
+    await h.d.begin({} as MediaStream)
+    h.d.setBargeInEnabled(bargeIn)
+    const turn = h.d.beginTeacherTurn()
+    turn.push('Какова валентность водорода в воде?')
+    turn.end()
+    await sleep(80)
+    assert.ok(h.d.isAiSpeaking(), 'учитель ещё говорит')
+    // Ученик отвечает, не дожидаясь конца фразы; тихо, без барджина по громкости.
+    h.stt.interim('валентность водорода')
+    h.stt.final('валентность водорода равна единице')
+    await sleep(60)
+    assert.equal(h.utterances.length, 0, 'во время речи учителя реплика не фиксируется')
+    assert.equal(h.bargeIns.length, 0, 'тихий ответ — не барджин')
+    const t0 = performance.now()
+    while (h.d.isAiSpeaking() && performance.now() - t0 < 4000) await sleep(40)
+    assert.ok(!h.d.isAiSpeaking(), 'учитель договорил')
+    await sleep(1200)
+    assert.ok(
+      h.utterances.some((u) => u.text.includes('валентность водорода равна единице')),
+      `bargeIn=${bargeIn}: ответ потерян; зафиксировано: ${JSON.stringify(h.utterances.map((u) => u.text))}`,
+    )
+    h.d.end()
+  }
+})
+
+await test('эхо колонок во время речи учителя по-прежнему не становится репликой ученика', async () => {
+  const h = makeDuplex()
+  await h.d.begin({} as MediaStream)
+  h.d.setBargeInEnabled(false)
+  const turn = h.d.beginTeacherTurn()
+  turn.push('Оксиды — это сложные вещества, в состав которых входит кислород.')
+  turn.end()
+  await sleep(80)
+  h.stt.final('оксиды это сложные вещества в состав которых входит кислород')
+  const t0 = performance.now()
+  while (h.d.isAiSpeaking() && performance.now() - t0 < 4000) await sleep(40)
+  await sleep(1200)
+  assert.equal(h.utterances.length, 0, JSON.stringify(h.utterances.map((u) => u.text)))
+  h.d.end()
+})
+
 console.log('\n# Measured')
 for (const [k, v] of Object.entries(report)) console.log(`  ${k}: ${v}`)
 console.log(`\n${passed} passed, ${failed} failed`)
