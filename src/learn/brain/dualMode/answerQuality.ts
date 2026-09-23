@@ -20,7 +20,7 @@
  * ВЕРДИКТ: FULL — всё обязательное и ≥ 2 желательных; MINIMAL — всё обязательное;
  * FAIL — иначе. Приёмка набора: FULL ≥ FULL_ACCEPTANCE, MINIMAL = 100 %.
  */
-import { contentStems, foldText } from './textStems'
+import { contentStems, foldText, stemsMatch } from './textStems'
 
 export type QualityLang = 'ru' | 'en' | 'uz'
 export type QualityKind = 'chem' | 'offtopic' | 'gibberish'
@@ -131,6 +131,21 @@ function quotesTheInput(question: string, answer: string): boolean {
 
 /* ------------------------------------------------------------------- вердикт */
 
+/** Слова вопроса, по которым тему опознать нельзя (есть почти в любом вопросе). */
+const HEAD_WEAK = [
+  'веществ', 'химическ', 'хими', 'реакц', 'найт', 'наход', 'определ', 'посчит', 'вычисл', 'получ', 'объясн', 'расскаж',
+  'бывают', 'вид', 'такое', 'прост', 'словам', 'суть', 'тем', 'урок', 'параграф',
+  'substanc', 'chemic', 'reaction', 'find', 'calcul', 'determin', 'explain', 'kind', 'type', 'simpl',
+  'modda', 'kimyo', 'reaksiya', 'top', 'hisobla', 'aniqla', 'tushuntir', 'tur',
+]
+
+function questionHeadsCovered(question: string, answer: string): boolean {
+  const heads = contentStems(question).filter((s) => s.length >= 4 && !HEAD_WEAK.some((w) => s.startsWith(w)))
+  if (heads.length === 0) return true
+  const aStems = contentStems(answer)
+  return heads.some((h) => aStems.some((a) => stemsMatch(a, h)))
+}
+
 export function gradeAnswer(input: QualityInput): QualityReport {
   const text = (input.answer ?? '').trim()
   const kind = input.kind ?? 'chem'
@@ -142,7 +157,13 @@ export function gradeAnswer(input: QualityInput): QualityReport {
   const clarified = CLARIFY_RE.test(text)
   const quotesInput = quotesTheInput(input.question, text)
   const langOk = input.lang === 'ru' ? share >= 0.8 : share <= 0.2
-  const onTopic = (input.expect ?? []).length === 0 || (input.expect ?? []).some((w) => flat.includes(foldText(w)))
+  // Без явного expect тема выводится из самого вопроса: хотя бы одно его смысловое слово
+  // («эквивалент», «изомерия») обязано встретиться в ответе. Иначе красивый ответ про Mr
+  // на вопрос про эквивалент проходил как FULL.
+  const onTopic =
+    (input.expect ?? []).length > 0
+      ? (input.expect ?? []).some((w) => flat.includes(foldText(w)))
+      : questionHeadsCovered(input.question, text)
   const particles = CAUSE_RE.test(text) && PARTICLE_RE.test(text) && words >= 25
   const quoteOk = quoteRelevant(input.question, text)
   const formula = FORMULA_RE.test(text)

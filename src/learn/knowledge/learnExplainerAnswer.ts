@@ -7,7 +7,7 @@
  * составитель (brain/dualMode/localAnswerComposer).
  */
 import type { ComposeStyle, ComposedAnswer } from '../brain/dualMode/localAnswerComposer'
-import { contentStems, foldText, stemsMatch, type StemLang } from '../brain/dualMode/textStems'
+import { contentStems, foldText, stemWord, stemsMatch, type StemLang } from '../brain/dualMode/textStems'
 import { EXPLAINER_CARDS, explainerCardById, type ExplainerCard, type ExplainerCardText, type ExplainerKind } from './learnExplainerCards'
 import { EXPLAINER_CARDS_I18N } from './learnExplainerCardsI18n'
 import { matchSafetyQuestion } from './learnSafetyQuestions'
@@ -26,6 +26,10 @@ const WEAK_STEMS = [
   'вещество', 'веществ', 'химическ', 'химия', 'реакц', 'урок', 'тема', 'параграф', 'пример', 'задач',
   'substanc', 'chemical', 'chemistr', 'reaction', 'lesson', 'topic', 'example',
   'modda', 'kimyo', 'reaksiya', 'dars', 'mavzu', 'misol',
+  // Глаголы вопроса: «как найти», «как определить», «объясни» — они про форму вопроса, не про тему.
+  'найт', 'наход', 'определ', 'посчит', 'вычисл', 'получ', 'объясн', 'расскаж', 'узна', 'поня', 'поним',
+  'know', 'find', 'calcul', 'determin', 'explain', 'understand', 'happen', 'tell',
+  'bil', 'top', 'hisobla', 'aniqla', 'tushuntir',
 ]
 
 /**
@@ -51,6 +55,51 @@ function questionKinds(query: string): ExplainerKind[] {
   }
   if (kinds.length === 0 || /(что такое|что это|кто такой|what is|what are|nima|qanday modda)/iu.test(q)) kinds.push('what')
   return kinds
+}
+
+/** Основы всех текстов карточки (что/почему/формула/пример…): лишнее слово вопроса, которое карточка сама
+ * упоминает («металлов» у карточки про коррозию), темой не считается. */
+const CARD_BODY_STEMS = new Map<string, Set<string>>()
+function cardBodyStems(card: ExplainerCard, text: ExplainerCardText, lang: StemLang): Set<string> {
+  const key = card.id + ':' + lang
+  let set = CARD_BODY_STEMS.get(key)
+  if (!set) {
+    const body = [text.what, text.why, text.formula, text.example, text.misconception, text.simple, text.hint].filter(Boolean).join(' ')
+    set = new Set(contentStems(body))
+    CARD_BODY_STEMS.set(key, set)
+  }
+  return set
+}
+
+const VOWEL_TAIL_RE = /^[аеёиоуыэюяьйaeiouy]*$/u
+
+/** Стеммер режет «электролиз», «электролит» и «электролитический» до одной основы «электрол».
+ * Для однословного триггера сверяем сырые слова: они обязаны совпадать вплоть до окончания —
+ * «коррозия/коррозии» и «моль/моля» подходят, «электролиз/электролит» нет. */
+function rawWordsClose(a: string, b: string): boolean {
+  if (a === b) return true
+  let p = 0
+  while (p < a.length && p < b.length && a[p] === b[p]) p++
+  if (p < Math.max(a.length, b.length) - 1) return false
+  return VOWEL_TAIL_RE.test(a.slice(p)) && VOWEL_TAIL_RE.test(b.slice(p))
+}
+
+function singleStemRawMatch(term: string, query: string, stem: string): boolean {
+  // Склейка основ — беда русского стеммера; для латиницы (en, uz с длинными «-lar», «-ning») сверка сырых слов не нужна.
+  if (!/[а-яё]/iu.test(stem)) return true
+  const toks = (x: string) => foldText(x).split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+  const tWords = toks(term).filter((w) => stemWord(w) === stem)
+  const qWords = toks(query).filter((w) => stemWord(w) === stem)
+  return tWords.some((tw) => qWords.some((qw) => rawWordsClose(tw, qw)))
+}
+
+/** Короткие символы величин в триггере (mr, ar, ph…), которые contentStems не видит: без них триггер
+ * «как найти mr» вырождается в «найти». Служебные «to», «an», «va» сюда не относятся. */
+const SHORT_SYMBOLS = new Set(['mr', 'ar', 'ph', 'poh', 'dh', 'dg', 'ds', 'ka', 'kb', 'kw', 'pk', 'ic', 'nm', 'pm'])
+function shortTokensPresent(term: string, query: string): boolean {
+  const toks = (x: string) => foldText(x).split(/[^p{L}p{N}]+/u).filter(Boolean)
+  const qTok = new Set(toks(query))
+  return toks(term).every((t) => !SHORT_SYMBOLS.has(t) || qTok.has(t))
 }
 
 /** Числовая задача («сколько граммов в 2 молях») — её решает расчётный решатель, не карточка. */
@@ -86,6 +135,10 @@ export function matchExplainerCard(query: string, lang: StemLang): ExplainerMatc
     for (const term of cardTerms(card, lang)) {
       const tStems = contentStems(term)
       if (tStems.length === 0) continue
+      // Короткие токены триггера («mr», «ph», «ar») стеммер отбрасывает, и триггер «как найти mr»
+      // вырождался в одно слово «найти» — им закрывался любой вопрос «как найти …». Такие токены
+      // обязаны стоять в вопросе буквально, иначе триггер не подходит.
+      if (!shortTokensPresent(term, q)) continue
       const matched = tStems.filter((t) => qStems.some((s) => stemsMatch(s, t)))
       // Пропуск одного слова из длинного триггера («signs of a chemical reaction» против
       // «how do I know that a chemical reaction has happened») — ещё попадание, но со штрафом.
@@ -97,8 +150,22 @@ export function matchExplainerCard(query: string, lang: StemLang): ExplainerMatc
       if (strong.length === 0) continue
       // «Лишние» слова вопроса: их не покрыл триггер — значит спрашивают про что-то ещё.
       const leftover = qStems.filter((s) => s.length >= 4 && !isWeakStem(s) && !tStems.some((t) => stemsMatch(s, t)))
+      // Слово, которое карточка сама упоминает в тексте («металлов» у коррозии), — не другая тема.
+      const body = cardBodyStems(card, text, lang)
+      const foreign = leftover.filter((s) => ![...body].some((b) => stemsMatch(s, b)))
+      // Одно чужое слово терпим (узбекские «kerak», «uchun» не всегда стоп-слова), два — уже другой вопрос.
       const allowExtra = tStems.length >= 3 ? 2 : 1
-      if (leftover.length > allowExtra) continue
+      if (foreign.length > allowExtra) continue
+      // Пропущенное слово триггера — его суть («доля» в «массовая доля»): без него триггер годится,
+      // только если в вопросе нет ни одного чужого смыслового слова.
+      if (nearMiss) {
+        const missedStem = tStems.find((t) => !matched.includes(t))
+        // Строго — только для русских триггеров: у en/uz терминов мало, и почти-попадание с синонимом
+        // («nodir gazlar» вместо «inert gazlar») для них штатный путь.
+        if (missedStem && /[а-яё]/iu.test(missedStem) && !isWeakStem(missedStem) && foreign.length > 0) continue
+      }
+      // Однословный триггер: сверяем сырые слова, чтобы «электролиз» не сходил за «электролит».
+      if (tStems.length === 1 && !singleStemRawMatch(term, q, tStems[0]!)) continue
       // «Чем ион отличается от атома?» нельзя закрывать карточкой «что такое атом»:
       // у вопроса явный признак сравнения, а карточка сравнение не описывает.
       if (kinds.includes('compare') && !card.kinds.includes('compare')) continue

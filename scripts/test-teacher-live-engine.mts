@@ -1473,6 +1473,42 @@ await test('чтение формул вслух: без тавтологии, �
 
 /* ------------------------------------------------------------------ summary */
 
+await test('карточки не подменяют тему: «как найти X» и похожие слова не цепляют чужую карточку', async () => {
+  const { matchExplainerCard } = await import('../src/learn/knowledge/learnExplainerAnswer.ts')
+  const traps: [string, string][] = [
+    ['Что такое эквивалент вещества и как его найти?', 'g7-mr'],
+    ['Как найти количество вещества?', 'g7-mr'],
+    ['Как найти массу вещества по уравнению?', 'g7-mass-fraction'],
+    ['Как найти молярную массу эквивалента?', 'g7-mass-fraction'],
+    ['Что такое электролиз?', 'g9-dissociation'],
+  ]
+  const bad: string[] = []
+  for (const [q, wrong] of traps) {
+    const m = matchExplainerCard(q, 'ru')
+    if (m && m.card.id === wrong) bad.push(q + ' → ' + m.card.id)
+  }
+  assert.equal(bad.length, 0, bad.join('; '))
+  for (const [q, want] of [
+    ['Что такое моль?', 'g8-mole'],
+    ['Что такое степень окисления?', 'g8-oxidation-state'],
+    ['Что такое гидролиз солей?', 'g9-hydrolysis'],
+    ['Что такое аллотропия?', 'g9-allotropy'],
+    ['Как найти mr?', 'g7-mr'],
+  ] as const) {
+    const m = matchExplainerCard(q, 'ru')
+    assert.equal(m?.card.id, want, q + ' → ' + (m?.card.id ?? 'нет'))
+  }
+})
+
+await test('оценщик: ответ не по теме вопроса не проходит как FULL', () => {
+  const q = 'Что такое эквивалент вещества и как его найти?'
+  const off = gradeAnswer({ question: q, answer: 'Относительная молекулярная масса Mr — сумма относительных атомных масс всех атомов в формуле. Причина вот в чём: молекула состоит из атомов. Вот уравнение: Mr(H₂SO₄) = 98. На практике: Mr(H₂O) = 18. Проверим: посчитай Mr(CaCO₃)?', lang: 'ru', kind: 'chem', confident: true, citations: [] } as never)
+  assert.equal(off.onTopic, false, JSON.stringify(off))
+  assert.equal(off.verdict, 'FAIL')
+  const on = gradeAnswer({ question: q, answer: 'Эквивалент — это такое количество вещества, которое соединяется с 1 моль атомов водорода или замещает его в реакциях. Причина вот в чём: атомы и ионы обмениваются электронами и связями по одному. Вот уравнение: Э = M / валентность. На практике: эквивалент кальция 40 / 2 = 20 г/моль. Проверим: найди эквивалент алюминия?', lang: 'ru', kind: 'chem', confident: true, citations: [] } as never)
+  assert.equal(on.onTopic, true, JSON.stringify(on))
+})
+
 console.log('\n# Measured')
 for (const [k, v] of Object.entries(report)) console.log(`  ${k}: ${v}`)
 console.log(`\n${passed} passed, ${failed} failed`)
