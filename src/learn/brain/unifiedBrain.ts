@@ -268,7 +268,7 @@ export class UnifiedBrain {
     trace.add('recall_memory', `sensitivity=${profile.rapport.sensitivity.toFixed(2)}, misses=${this.consecutiveMisses}`, 'персонализация тона и подсказки')
 
     // 4) Выбор педагогической стратегии.
-    const decision = decideStrategy({ fused, grade, profile, consecutiveMisses: this.consecutiveMisses })
+    const decision = decideStrategy({ fused, grade, profile, consecutiveMisses: this.consecutiveMisses, studentSpoke: true })
     trace.add('choose_strategy', decision.rationale, `action=${decision.action}, tone=${decision.tone}, hint=${decision.hintLevel}`)
 
     // 5) Генерация реплики (при необходимости с опорой на базу знаний).

@@ -17,6 +17,12 @@ export interface StrategyInput {
   profile: StudentProfile
   /** Сколько подряд неверных/частичных ответов по текущему вопросу. */
   consecutiveMisses: number
+  /**
+   * Ученик только что сказал что-то по делу. Тогда сигналы камеры (подозрение, «нет в кадре»,
+   * «отвлёкся») меняют лишь тон и длину, но не подменяют ответ: иначе ученик спрашивает —
+   * а слышит «вернись к уроку», и решает, что учитель его не услышал.
+   */
+  studentSpoke?: boolean
 }
 
 function verbosityFor(fused: FusedContext): StrategyDecision['verbosity'] {
@@ -29,8 +35,8 @@ export function decideStrategy(input: StrategyInput): StrategyDecision {
   const { fused, grade, profile, consecutiveMisses } = input
   const sensitive = profile.rapport.sensitivity > 0.55
 
-  // 1) Подозрение на списывание — деликатный сигнал целостности.
-  if (fused.integrityRisk > 0.6) {
+  // 1) Подозрение на списывание — деликатный сигнал целостности (только между репликами ученика).
+  if (!input.studentSpoke && fused.integrityRisk > 0.6) {
     return {
       tone: 'neutral',
       action: 'integrity_nudge',
@@ -42,7 +48,7 @@ export function decideStrategy(input: StrategyInput): StrategyDecision {
   }
 
   // 2) Ученик отсутствует/отвёл взгляд надолго — переустанавливаем контакт.
-  if (fused.engagement === 'absent') {
+  if (!input.studentSpoke && fused.engagement === 'absent') {
     return {
       tone: 'warm',
       action: 're_engage',
@@ -52,7 +58,7 @@ export function decideStrategy(input: StrategyInput): StrategyDecision {
       rationale: 'Лицо не в кадре — зовём ученика вернуться к уроку.',
     }
   }
-  if (fused.engagement === 'distracted' && fused.emotion !== 'bored' && fused.emotion !== 'tired') {
+  if (!input.studentSpoke && fused.engagement === 'distracted' && fused.emotion !== 'bored' && fused.emotion !== 'tired') {
     return {
       tone: 'encouraging',
       action: 're_engage',

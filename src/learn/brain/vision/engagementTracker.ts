@@ -126,6 +126,42 @@ export interface EngagementTrackerOptions {
 
 const AWAY_ABSENT_MS = 2500
 
+export interface EngagementInput {
+  /** Есть ли настоящий FaceDetector (иначе — эвристика по цвету кожи и яркости). */
+  detectorBacked: boolean
+  count: number
+  present: boolean
+  /** Движение в кадре 0..1 — без детектора это главный признак присутствия. */
+  motion: number
+  secondaryScreen: boolean
+  lookingAwayMs: number
+  onScreen: boolean
+  emotion: EmotionState
+}
+
+export interface EngagementVerdict {
+  engagement: EngagementLevel
+  present: boolean
+  secondaryScreenSuspected: boolean
+}
+
+/**
+ * Уровень вовлечённости по наблюдению. Без настоящего детектора лиц «второй экран» — это просто яркое
+ * пятно в кадре (монитор, лампа, окно), а «нет лица» — мало пикселей цвета кожи (тёмная комната, очки).
+ * На таких догадках нельзя объявлять ученика «подозрительным» или «отсутствующим»: учитель после этого
+ * переставал отвечать по существу. Движение в кадре надёжнее: человек здесь.
+ */
+export function resolveEngagement(input: EngagementInput): EngagementVerdict {
+  const secondaryScreenSuspected = input.detectorBacked && (input.secondaryScreen || input.count > 1)
+  const present = input.present || (!input.detectorBacked && input.motion >= 0.03)
+  let engagement: EngagementLevel = 'focused'
+  if (input.detectorBacked && (input.count > 1 || input.secondaryScreen)) engagement = 'suspicious'
+  else if (!present || input.lookingAwayMs > AWAY_ABSENT_MS) engagement = 'absent'
+  else if (!input.onScreen) engagement = 'distracted'
+  else if (input.emotion === 'bored' || input.emotion === 'tired') engagement = 'distracted'
+  return { engagement, present, secondaryScreenSuspected }
+}
+
 export class EngagementTracker {
   private readonly video: HTMLVideoElement
   private readonly analyzer: FaceAnalyzer
@@ -350,11 +386,18 @@ export class EngagementTracker {
 
     const emotion = this.classifyEmotion(onScreen, yaw, pitch, obs.motion, size, obs.brightness)
 
-    let engagement: EngagementLevel = 'focused'
-    if (count > 1 || obs.secondaryScreen) engagement = 'suspicious'
-    else if (!present || lookingAwayMs > AWAY_ABSENT_MS) engagement = 'absent'
-    else if (!onScreen) engagement = 'distracted'
-    else if (emotion === 'bored' || emotion === 'tired') engagement = 'distracted'
+    const verdict = resolveEngagement({
+      detectorBacked: this.faceDetector != null,
+      count,
+      present,
+      motion: obs.motion,
+      secondaryScreen: obs.secondaryScreen,
+      lookingAwayMs,
+      onScreen,
+      emotion,
+    })
+    const engagement = verdict.engagement
+    present = verdict.present
 
     const confidence = Math.min(
       1,
@@ -370,7 +413,7 @@ export class EngagementTracker {
       emotion,
       confidence,
       lookingAwayMs,
-      secondaryScreenSuspected: obs.secondaryScreen || count > 1,
+      secondaryScreenSuspected: verdict.secondaryScreenSuspected,
       brightness: obs.brightness,
     }
     this.onSignal(signal)

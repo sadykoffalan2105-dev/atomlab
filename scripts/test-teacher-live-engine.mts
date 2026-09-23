@@ -1553,6 +1553,40 @@ await test('эхо колонок во время речи учителя по-�
   h.d.end()
 })
 
+await test('камера без детектора лиц не объявляет ученика «подозрительным» и не теряет его в тёмной комнате', async () => {
+  const { resolveEngagement } = await import('../src/learn/brain/vision/engagementTracker.ts')
+  const base = { count: 1, present: true, motion: 0, secondaryScreen: false, lookingAwayMs: 0, onScreen: true, emotion: 'neutral' as const }
+  // Монитор в кадре: эвристика видит «второй экран» — без детектора это не подозрение.
+  const glow = resolveEngagement({ ...base, detectorBacked: false, secondaryScreen: true })
+  assert.equal(glow.engagement, 'focused')
+  assert.equal(glow.secondaryScreenSuspected, false)
+  // С настоящим детектором два лица — по-прежнему подозрение.
+  assert.equal(resolveEngagement({ ...base, detectorBacked: true, count: 2 }).engagement, 'suspicious')
+  // Мало пикселей цвета кожи, но в кадре движение — ученик здесь.
+  const dark = resolveEngagement({ ...base, detectorBacked: false, present: false, motion: 0.08 })
+  assert.equal(dark.present, true)
+  assert.equal(dark.engagement, 'focused')
+  // Пустой неподвижный кадр — по-прежнему «отсутствует».
+  assert.equal(resolveEngagement({ ...base, detectorBacked: false, present: false, motion: 0 }).engagement, 'absent')
+})
+
+await test('стратегия: сигналы камеры не подменяют ответ на реплику ученика', async () => {
+  const { decideStrategy } = await import('../src/learn/brain/pedagogicalStrategy.ts')
+  const profile = { studentId: 't', updatedMs: 0, rapport: { sensitivity: 0.5 }, mastery: {}, misconceptions: [] } as never
+  const fusedBase = { tsMs: 0, attention: 0.05, emotion: 'neutral', emotionConfidence: 0.2, engagement: 'focused', speaking: false, integrityRisk: 0, labCorrectness: null, lastTranscript: '', present: true } as const
+  const grade = { verdict: 'partial', score: 1, feedback: '' } as never
+  for (const fused of [
+    { ...fusedBase, integrityRisk: 0.9, engagement: 'suspicious' as const },
+    { ...fusedBase, engagement: 'absent' as const, present: false },
+    { ...fusedBase, engagement: 'distracted' as const },
+  ]) {
+    const spoke = decideStrategy({ fused: fused as never, grade, profile, consecutiveMisses: 0, studentSpoke: true })
+    assert.ok(!['integrity_nudge', 're_engage'].includes(spoke.action), `${fused.engagement}: ${spoke.action}`)
+    const idle = decideStrategy({ fused: fused as never, grade: null, profile, consecutiveMisses: 0 })
+    assert.ok(['integrity_nudge', 're_engage'].includes(idle.action), `между репликами: ${idle.action}`)
+  }
+})
+
 console.log('\n# Measured')
 for (const [k, v] of Object.entries(report)) console.log(`  ${k}: ${v}`)
 console.log(`\n${passed} passed, ${failed} failed`)
