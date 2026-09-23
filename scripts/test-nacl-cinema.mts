@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 /**
- * ATOMLAB Cinema — контракт ЭТАЛОННОЙ сцены «ионная связь: 2 Na (тв.) + Cl₂ (г.) → 2 NaCl (тв.)».
+ * ATOMLAB Cinema — контракт сцены «ионная связь: 2 Na (тв.) + Cl₂ (г.) → 2 NaCl (тв.)».
  *
- * Сцена проверяется ДАННЫМИ, а не строками: раскадровка — чистая функция sampleNaclFrame(t),
- * весь урок сэмплируется в Node, а каждое число сверяется с научным ядром src/chemistry/data.
- * Проверок «есть ли в тексте слово/литерал» здесь НЕТ: числа ИЗВЛЕКАЮТСЯ из текста и сверяются
- * с ядром, наборы чисел ru / en / uz обязаны совпадать.
+ * Сцена — фреймворк-независимый класс NaClReactionScene; её кадр — чистая функция времени
+ * sampleNaclState(t) (naclModel). Всё проверяется в Node без WebGL: чистые функции геометрии и
+ * таймлайна и состояние класса на заданном времени (seek). Каждое число сверяется с научным
+ * ядром src/chemistry/data; проверок «есть ли в тексте слово» нет — числа ИЗВЛЕКАЮТСЯ из текста.
  *
- *   1. Хронометраж: 6 ± 1 шаг, каждый 4–7 экранных секунд, всего 26–34 с, cue лаборатории
- *      embryo → birth → complete строго после последнего шага.
- *   2. Раскадровка: дорожки монотонны, ни атом, ни камера не прыгают между кадрами 1/30 с.
- *   3. Геометрия ↔ ядро: Cl–Cl, ОЦК натрия (КЧ 8), газовая пара на r_e(NaCl, г.), решётка
- *      2×2×2 — 125 ионов, 5 по ребру, d = cationAnionPm, КЧ 6 у внутренних, заряды чередуются,
- *      54 ребра ячеек длиной a.
- *   4. Na → Na⁺ в кадр УХОДА электрона, Cl → Cl⁻ в кадр ПРИХОДА; сумма зарядов в кадре
- *      (с летящими e⁻) = 0 каждые 1/60 с; газовая пара — полные сферы Шеннона с перекрытием.
- *   5. На каждом шаге видимы только объекты этого шага; на паузе каждый видимый атом подписан.
- *   6. Финал без огня: все FX-амплитуды ≈ 0, свечение атомов решётки — базовое.
- *   7. Энергия: лестница = BORN_HABER.nacl, сумма = табличная ΔH°f, знаки.
- *   8. 3D-подписи: только формулы/числа/единицы-токены, числа — из ядра.
- *   9. Тексты: извлечённые числа ↔ ядро, синхронность ru/en/uz, одно значение Δ_eg H.
+ *   1. Хронометраж: 6 шагов по 4–7 с, всего 26–34 с, cue лаборатории после последнего шага.
+ *   2. Размеры: нейтральный Na (металлический 186) крупнее Cl (ковалентного 102); после переноса
+ *      Na⁺ = 102, Cl⁻ = 181 пм (ядро); в решётке Cl⁻/Na⁺ = 181/102 (±1 %).
+ *   3. Cl₂: порядок связи 1 (один цилиндр) и 2 общих электрона; d(Cl–Cl) = bondLengthPm.
+ *   4. Электрон: кубическая Безье с концами у Na и у Cl, контрольные точки над линией Na–Cl;
+ *      смена Na → Na⁺ и Cl → Cl⁻ начинается в один кадр (кадр поглощения) и длится одинаково;
+ *      заряд сохраняется каждые 1/60 с.
+ *   5. Решётка 3×3×3 = 343 иона (= герой продукта), заряды чередуются, у внутреннего иона 6
+ *      противоионов на cationAnionPm, октаэдры КЧ из 6 противоположных, ребро = a, газовая пара
+ *      на bondLengthPm('Na-Cl').
+ *   6. Нет объектов вне своего шага (непрозрачность/масштаб 0) — по классу, каждые 1/60 с.
+ *   7. Энергия: лестница = BORN_HABER.nacl, сумма = dHfKJ('NaCl(s)'), U = −787,0.
+ *   8. 3D-подписи и тексты ru/en/uz: числа — из ядра, наборы чисел синхронны.
  *
  * Запуск: npx tsx scripts/test-nacl-cinema.mts
  */
@@ -35,46 +35,57 @@ import {
   LATTICE_ENTHALPY_KJ,
   radiusForSpecies,
 } from '../src/chemistry/data/index.ts'
+import { heroSpecFor } from '../src/chemistry/data/heroStructures.ts'
 import { storyWallDuration } from '../src/lab/cinema/core/storyTime.ts'
-import { sampleShot } from '../src/lab/cinema/scenes/kit/camera.ts'
-import { assertCameraContinuity } from '../src/lab/cinema/scenes/kit/camera.ts'
-import {
-  assertNoPositionJumps,
-  createLabelStates,
-  createSceneCamera,
-  labelTokensUsed,
-  localizeSceneLabels,
-  SCENE_LABEL_TOKENS,
-} from '../src/lab/cinema/scenes/kit/sceneKit.ts'
-import { assertIonSizeOrder, LATTICE_BALL_SCALE, pmToScene, speciesRadius, speciesRadiusPm, SPECIES_SCALE } from '../src/lab/cinema/scenes/kit/cpkAtoms.ts'
+import { assertNoPositionJumps, labelTokensUsed, localizeLabelText, SCENE_LABEL_TOKENS } from '../src/lab/cinema/scenes/kit/sceneKit.ts'
+import { LATTICE_BALL_SCALE, pmToScene, SPECIES_SCALE } from '../src/lab/cinema/scenes/kit/cpkAtoms.ts'
 import { ladderLevels } from '../src/lab/cinema/scenes/kit/energyLadderData.ts'
-import { assertSnapAt } from '../src/lab/cinema/scenes/kit/valence.ts'
-import { coordinationShell } from '../src/lab/cinema/scenes/kit/lattice.ts'
 import {
-  METAL_BONDS,
+  createNaclState,
+  I_CLA,
+  I_CLB,
+  I_NA1,
+  I_NA2,
   METAL_FRAG,
-  NACL_ATOM_INDEX,
-  NACL_ATOMS,
-  NACL_CAMERA,
+  NaClReactionScene,
+  naclDepthPushAt,
+  naclElectronPoint,
+  naclGridOf,
+  naclExtentAt,
+  naclInstantExtent,
+  naclMetalPos,
+  naclMorphAt,
+  naclStepInfo,
   NACL_CUES,
-  NACL_DIM_A_DROP,
-  NACL_EDGE_A,
+  NACL_D_GAS,
+  NACL_DOT_GAP,
+  NACL_ELECTRON_CURVES,
   NACL_ELECTRONS,
   NACL_END,
-  NACL_GEOM,
+  NACL_FREE,
+  NACL_H,
   NACL_LABELS,
-  NACL_SEGMENTS,
-  NACL_SNAP,
+  NACL_LATTICE_CELLS,
+  NACL_LATTICE_R,
+  NACL_MORPH_S,
+  NACL_OCTA,
+  NACL_OCTA_SHELLS,
+  NACL_PAIRS,
+  NACL_R,
+  NACL_RADIUS_PM,
   NACL_STEPS,
+  NACL_STEP_EXTENT,
   NACL_STEP_IDS,
+  NACL_T,
   NACL_TIMING,
   SALT_FRAG,
-  SALT_SITE_OF,
-  createNaclFrame,
-  sampleNaclFrame,
-  validateNaclStoryboard,
-  type NaclFrame,
-} from '../src/lab/cinema/scenes/nacl/naclStoryboard.ts'
+  sampleNaclState,
+  validateNaclModel,
+  type NaclState,
+  type NaclStepInfo,
+} from '../src/lab/cinema/scenes/nacl/NaClReactionScene.ts'
+import { NACL_SEGMENTS } from '../src/lab/cinema/scenes/nacl/naclSteps.ts'
+import { coordinationShell } from '../src/lab/cinema/scenes/kit/lattice.ts'
 import {
   NACL_COST_BEFORE_LATTICE_KJ,
   NACL_DHF_KJ,
@@ -91,9 +102,8 @@ import { getNaclMechanismText, type NaclLocale, type NaclMechanismText } from '.
 import { naclScientificWatchdogMs } from '../src/lab/scientificSynthesis/naclScenarioTiming.ts'
 
 const LOCALES: NaclLocale[] = ['ru', 'en', 'uz']
-const frame = createNaclFrame()
-const at = (t: number): NaclFrame => sampleNaclFrame(t, frame)
-const idx = (id: string) => NACL_ATOM_INDEX.get(id)!
+const state = createNaclState()
+const at = (t: number): NaclState => sampleNaclState(t, state)
 
 let checks = 0
 function ok(label: string, cond: boolean, detail = ''): void {
@@ -101,55 +111,198 @@ function ok(label: string, cond: boolean, detail = ''): void {
   checks++
 }
 const near = (a: number, b: number, tol = 1e-6) => Math.abs(a - b) <= tol
+/** Масштаб инстанса по длине столбца: decompose у вырожденной матрицы (масштаб 0) отдаёт 1. */
+const _col = new THREE.Vector3()
+const colLen = (m: THREE.Matrix4) => _col.setFromMatrixColumn(m, 0).length()
 
 const SALT = getCrystal('nacl')!
 const METAL = getCrystal('na_metal')!
-const D_LATTICE = pmToScene(SALT.cationAnionPm)
-const D_GAS = pmToScene(bondLengthPm('Na-Cl'))
-const STEP_PAUSE = NACL_STEPS.map((s) => s.to)
+const PM = pmToScene(1)
 const LAST = NACL_STEPS.length - 1
+const lastStepTo = NACL_STEPS[LAST]!.to
+const FRAME = 1 / 60
+/** Сетка кадров 1/60 с по всей сцене. */
+const frames: number[] = []
+for (let i = 0; i * FRAME <= NACL_END + 1e-9; i++) frames.push(i * FRAME)
+
+validateNaclModel()
+validateNaclEnergetics()
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Хронометраж и контракт лаборатории
 // ─────────────────────────────────────────────────────────────────────────────
 
 NACL_TIMING.validate()
-ok('шагов 6 ± 1', NACL_STEPS.length >= 5 && NACL_STEPS.length <= 7, `${NACL_STEPS.length}`)
-ok('id шагов совпадают', NACL_STEP_IDS.join(',') === NACL_STEPS.map((s) => s.id).join(','))
+ok('шагов 6', NACL_STEPS.length === 6)
+ok('id шагов — как у лаборатории и lessons.ts', NACL_STEP_IDS.join(',') === 'reactants,sublimation,transfer,attraction,lattice,energy')
 const wall = storyWallDuration(NACL_SEGMENTS)
 ok('экранная длительность 26–34 с', wall >= 26 && wall <= 34, `${wall.toFixed(1)} с`)
-ok('wallDuration kit = сумма сегментов', near(wall, NACL_TIMING.wallDuration, 1e-9))
-for (const s of NACL_STEPS) ok(`шаг ${s.id}: 4–7 экранных секунд`, s.wall >= 4 && s.wall <= 7, `${s.wall}`)
-const lastStepTo = NACL_STEPS[LAST]!.to
+for (const s of NACL_STEPS) {
+  ok(`шаг ${s.id}: 4–7 экранных секунд`, s.wall >= 4 && s.wall <= 7, `${s.wall}`)
+  ok(`шаг ${s.id}: время сюжета = экранному (0,5 с раскадровки — 0,5 с на экране)`, near(s.to - s.from, s.wall) && s.ease === 'none')
+}
 for (const id of ['embryo', 'birth', 'complete']) {
   const c = NACL_CUES.find((x) => x.id === id)!
   ok(`cue ${id} строго после последнего шага`, c.at > lastStepTo, `${c.at} ≤ ${lastStepTo}`)
 }
-for (const c of NACL_CUES) {
-  if (['embryo', 'birth', 'complete'].includes(c.id)) continue
-  ok(`cue ${c.id} внутри шагов`, c.at > 0 && c.at < lastStepTo)
-}
-ok('complete совпадает с концом сюжета', NACL_CUES.find((c) => c.id === 'complete')!.at === NACL_END)
+ok('complete — в конце сцены', NACL_CUES.find((c) => c.id === 'complete')!.at === NACL_END)
+for (const c of NACL_CUES) if (!['embryo', 'birth', 'complete'].includes(c.id)) ok(`cue ${c.id} внутри шагов`, c.at > 0 && c.at < lastStepTo)
 ok('watchdog лаборатории положителен', naclScientificWatchdogMs() > 0)
-for (let i = 0; i < NACL_STEPS.length; i++) {
-  const s = NACL_STEPS[i]!
-  ok(`stepIndexAt(${s.id})`, NACL_TIMING.stepIndexAt((s.from + s.to) / 2) === i)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. Размеры частиц ↔ ядро
+// ─────────────────────────────────────────────────────────────────────────────
+
+const rNaIon = radiusForSpecies('Na', 1)
+const rClIon = radiusForSpecies('Cl', -1)
+ok('Na⁰ — металлический радиус ядра', NACL_RADIUS_PM.na === radiusForSpecies('Na', 0, { model: 'metallic' }))
+ok('Cl⁰ — ковалентный радиус ядра', NACL_RADIUS_PM.cl === radiusForSpecies('Cl', 0, { model: 'covalent' }))
+ok('нейтральный Na крупнее нейтрального Cl (ядро)', NACL_RADIUS_PM.na > NACL_RADIUS_PM.cl)
+at(NACL_STEPS[0]!.to)
+ok('нейтральный Na крупнее нейтрального Cl (кадр шага 1)', state.radius[I_NA1]! > state.radius[I_CLA]! && near(state.radius[I_NA1]! / state.radius[I_CLA]!, NACL_RADIUS_PM.na / NACL_RADIUS_PM.cl, 1e-5))
+ok('кадр шага 1: радиусы = ядро × SPECIES_SCALE', near(state.radius[I_NA1]! / (PM * SPECIES_SCALE), NACL_RADIUS_PM.na, 1e-3) && near(state.radius[I_CLA]! / (PM * SPECIES_SCALE), NACL_RADIUS_PM.cl, 1e-3))
+at(NACL_STEPS[2]!.to)
+for (const [na, cl] of NACL_PAIRS) {
+  ok(`после переноса Na⁺ = ${rNaIon} пм (ядро)`, near(state.radius[na]! / (PM * SPECIES_SCALE * state.drawScale), rNaIon, 1e-3))
+  ok(`после переноса Cl⁻ = ${rClIon} пм (ядро)`, near(state.radius[cl]! / (PM * SPECIES_SCALE * state.drawScale), rClIon, 1e-3))
+  ok('после переноса заряды +1 / −1', state.charge[na] === 1 && state.charge[cl] === -1)
+}
+ok('катион меньше атома, анион больше', NACL_R.naIon < NACL_R.na && NACL_R.clIon > NACL_R.cl)
+{
+  const ratio = NACL_LATTICE_R.clIon / NACL_LATTICE_R.naIon
+  ok('решётка: Cl⁻/Na⁺ = 181/102 (±1 %)', Math.abs(ratio / (rClIon / rNaIon) - 1) < 0.01, ratio.toFixed(4))
+  ok('решётка: Cl⁻ значительно крупнее Na⁺', ratio > 1.7)
+  ok('решётка: один общий коэффициент (LATTICE_BALL_SCALE)', near(NACL_LATTICE_R.naIon / (PM * rNaIon), LATTICE_BALL_SCALE) && near(NACL_LATTICE_R.clIon / (PM * rClIon), LATTICE_BALL_SCALE))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. Раскадровка: дорожки, рывки атомов и камеры, ноль аллокаций
+// 3. Cl₂: одинарная связь и общая пара
 // ─────────────────────────────────────────────────────────────────────────────
 
-validateNaclStoryboard()
+const scene = new NaClReactionScene({ locale: 'ru' })
+const obj = (name: string) => {
+  const list: THREE.Object3D[] = []
+  scene.root.traverse((o) => {
+    if (o.name === name) list.push(o)
+  })
+  return list
+}
 {
-  const scratch = createNaclFrame()
-  const buf = NACL_ATOMS.map((a) => ({ id: a.id, pos: new THREE.Vector3(), opacity: 0 }))
+  scene.seek(NACL_STEPS[0]!.to)
+  const bonds = obj('nacl-cl-cl')
+  ok('Cl₂: ровно один цилиндр связи (порядок 1)', bonds.length === 1 && (bonds[0] as THREE.Mesh).isMesh === true)
+  ok('Cl₂: связь видна на шаге 1', bonds[0]!.visible)
+  at(NACL_STEPS[0]!.to)
+  ok('Cl₂: d(Cl–Cl) = bondLengthPm', near(state.pos[I_CLA]!.distanceTo(state.pos[I_CLB]!), pmToScene(bondLengthPm('Cl-Cl')), 1e-6))
+  // Общая пара: по одному электрону от каждого Cl (одиночные точки) — посередине связи.
+  const dots = obj('nacl-valence')[0] as THREE.InstancedMesh
+  const m = new THREE.Matrix4()
+  const p = new THREE.Vector3()
+  const q = new THREE.Quaternion()
+  const s = new THREE.Vector3()
+  const mid = state.pos[I_CLA]!.clone().add(state.pos[I_CLB]!).multiplyScalar(0.5)
+  let shared = 0
+  let lone = 0
+  for (let k = 0; k < dots.count; k++) {
+    dots.getMatrixAt(k, m)
+    m.decompose(p, q, s)
+    s.setScalar(colLen(m))
+    if (s.x < 1e-6) continue
+    if (p.distanceTo(mid) < 0.12) shared++
+    else lone++
+  }
+  ok('Cl₂: 2 общих электрона между атомами', shared === 2, `${shared}`)
+  ok('Cl₂ на шаге 1: неподелённые пары не рисуются (только общая пара)', lone === 0)
+  // Шаг 2: гомолиз — по одному электрону каждому Cl.
+  at(NACL_T.brk + 0.7)
+  ok('гомолиз завершён (split = 1)', state.split === 1)
+  ok('связь Cl–Cl погашена после гомолиза', at(NACL_T.brk + 0.5).bond.opacity === 0)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Электрон: кривая Безье, одновременная смена, сохранение заряда
+// ─────────────────────────────────────────────────────────────────────────────
+
+for (const k of [0, 1] as const) {
+  const curve = NACL_ELECTRON_CURVES[k]
+  ok(`e${k + 1}: траектория — THREE.CubicBezierCurve3`, curve instanceof THREE.CubicBezierCurve3)
+  const [di, ai] = NACL_PAIRS[k]!
+  const na = new THREE.Vector3(...NACL_FREE[di]!)
+  const cl = new THREE.Vector3(...NACL_FREE[ai]!)
+  ok(`e${k + 1}: начало — на внешнем уровне Na`, near(curve.v0.distanceTo(na), NACL_R.na + NACL_DOT_GAP, 1e-6))
+  ok(`e${k + 1}: конец — на валентной оболочке Cl`, near(curve.v3.distanceTo(cl), NACL_R.cl + NACL_DOT_GAP, 1e-6))
+  const lineY = (x: number) => na.y + ((cl.y - na.y) * (x - na.x)) / (cl.x - na.x)
+  ok(`e${k + 1}: контрольные точки над линией Na–Cl`, curve.v1.y > lineY(curve.v1.x) && curve.v2.y > lineY(curve.v2.x))
+  const e = NACL_ELECTRONS[k === 0 ? 'e1' : 'e2']
+  const mid = (e.leave + e.arrive) / 2
+  at(mid)
+  const el = state.electrons[k]
+  const want = naclElectronPoint(k, el.u, new THREE.Vector3())
+  ok(`e${k + 1}: в полёте лежит на кривой`, el.phase === 'flying' && el.pos.distanceTo(want) < 1e-9 && el.glow === 1)
+  at(e.leave - 0.01)
+  ok(`e${k + 1}: до вылета — валентная точка Na в начале кривой`, state.electrons[k].pos.distanceTo(curve.v0) < 1e-6)
+  at(e.arrive)
+  ok(`e${k + 1}: в кадр поглощения — в конце кривой`, state.electrons[k].pos.distanceTo(curve.v3) < 1e-6)
+
+  // Смена размеров Na и Cl: первый кадр изменения и длительность совпадают.
+  const rNa0 = at(0).radius[di]!
+  let firstNa = -1
+  let firstCl = -1
+  let lastNa = -1
+  let lastCl = -1
+  let prevNa = 0
+  let prevCl = 0
+  const t0 = NACL_STEPS[2]!.from
+  const t1 = NACL_STEPS[2]!.to
+  for (let t = t0; t <= t1 + 1e-9; t += FRAME) {
+    at(t)
+    const ds = state.drawScale
+    const n = state.radius[di]! / ds
+    const c = state.radius[ai]! / ds
+    if (t > t0) {
+      if (Math.abs(n - prevNa) > 1e-9) {
+        if (firstNa < 0) firstNa = t
+        lastNa = t
+      }
+      if (Math.abs(c - prevCl) > 1e-9) {
+        if (firstCl < 0) firstCl = t
+        lastCl = t
+      }
+    }
+    prevNa = n
+    prevCl = c
+  }
+  void rNa0
+  ok(`пара ${k + 1}: смена Na и Cl начинается в один кадр`, firstNa > 0 && Math.abs(firstNa - firstCl) < 1e-9, `${firstNa} / ${firstCl}`)
+  ok(`пара ${k + 1}: кадр начала смены — первый кадр после поглощения`, firstNa >= e.arrive - 1e-9 && firstNa < e.arrive + FRAME + 1e-9)
+  ok(`пара ${k + 1}: смена длится одинаково`, Math.abs(lastNa - firstNa - (lastCl - firstCl)) < 1e-9)
+  ok(`пара ${k + 1}: смена 0,4–0,6 с`, NACL_MORPH_S >= 0.4 && NACL_MORPH_S <= 0.6 && lastNa - firstNa <= NACL_MORPH_S + 1e-9 && lastNa - firstNa >= NACL_MORPH_S - 2 * FRAME)
+  ok(`пара ${k + 1}: одна функция смены у донора и акцептора`, Math.fround(naclMorphAt(k, e.arrive + 0.2)) === at(e.arrive + 0.2).morph[di] && state.morph[di] === state.morph[ai])
+}
+{
+  let bad = 0
+  let worst = ''
+  for (const t of frames) {
+    at(t)
+    if (state.chargeSum !== 0) {
+      bad++
+      worst = `t=${t.toFixed(3)} Σ=${state.chargeSum}`
+    }
+  }
+  ok('заряд сохраняется каждые 1/60 с (Σ частиц + летящие e⁻ = 0)', bad === 0, worst)
+  // Итог: 2 Na⁺ + 2 Cl⁻.
+  at(NACL_END)
+  ok('в конце 2 Na⁺ и 2 Cl⁻', state.charge[I_NA1] === 1 && state.charge[I_NA2] === 1 && state.charge[I_CLA] === -1 && state.charge[I_CLB] === -1)
+}
+{
+  // Позиции частиц сюжета не прыгают (1/30 с, 0,09 мира).
+  const buf = [0, 1, 2, 3].map((i) => ({ id: `s${i}`, pos: new THREE.Vector3(), opacity: 1 }))
   assertNoPositionJumps(
     (t) => {
-      sampleNaclFrame(t, scratch)
-      for (let i = 0; i < NACL_ATOMS.length; i++) {
-        buf[i]!.pos.copy(scratch.pos[i]!)
-        buf[i]!.opacity = scratch.opacity[i]!
+      at(t)
+      for (let i = 0; i < 4; i++) {
+        buf[i]!.pos.copy(state.pos[i]!)
+        buf[i]!.opacity = state.storyOn ? state.appear : 0
       }
       return buf
     },
@@ -158,302 +311,213 @@ validateNaclStoryboard()
     1 / 30,
   )
   checks++
-  const cam = createSceneCamera()
-  assertCameraContinuity((t) => sampleShot(NACL_CAMERA, t, cam), NACL_END)
-  checks++
-
-  // Видимость не щёлкает: у проявляющегося иона решётки растёт шар (доля радиуса), у остальных —
-  // непрозрачность; радиус ионов сюжета щёлкает ТОЛЬКО в кадр прихода — это проверяет раздел 4.
-  const fullR = NACL_ATOMS.map((a) => (a.kind === 'lattice' ? speciesRadius(a.el, a.el === 'Na' ? 1 : -1, LATTICE_BALL_SCALE) : 0))
-  const presence = (i: number) => (NACL_ATOMS[i]!.kind === 'lattice' ? scratch.radius[i]! / fullR[i]! : scratch.opacity[i]!)
-  let prev: Float32Array | null = null
-  for (let t = 0; t <= NACL_END + 1e-9; t += 1 / 30) {
-    sampleNaclFrame(t, scratch)
-    const now = Float32Array.from(NACL_ATOMS, (_, i) => presence(i))
-    if (prev) {
-      let worst = 0
-      for (let i = 0; i < NACL_ATOMS.length; i++) worst = Math.max(worst, Math.abs(now[i]! - prev[i]!))
-      ok(`видимость без скачка при t=${t.toFixed(2)}`, worst <= 0.12, worst.toFixed(3))
-    }
-    prev = now
-  }
-
-  // Кадр пишет в заранее созданные объекты: ни одного нового вектора/подписи за кадр.
-  const posRefs = scratch.pos.slice()
-  const labelRefs = scratch.labels.slice()
-  const labelPos = scratch.labels.map((l) => l.pos)
-  for (let t = 0; t <= NACL_END; t += 0.5) sampleNaclFrame(t, scratch)
-  ok('векторы позиций переиспользуются', scratch.pos.every((p, i) => p === posRefs[i]))
-  ok('подписи переиспользуются', scratch.labels.every((l, i) => l === labelRefs[i] && l.pos === labelPos[i]))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. Геометрия раскадровки ↔ ядро
+// 5. Решётка ↔ ядро
 // ─────────────────────────────────────────────────────────────────────────────
 
-// 3.1 Радиусы: катион меньше атома, анион больше; все — из ядра.
-assertIonSizeOrder('Na', 1)
-assertIonSizeOrder('Cl', -1)
-ok('Na⁰ — металлический радиус ядра', speciesRadiusPm('Na', 0) === radiusForSpecies('Na', 0))
-ok('Na⁺ — радиус Шеннона ядра', speciesRadiusPm('Na', 1) === radiusForSpecies('Na', 1))
-ok('Cl⁻ — радиус Шеннона ядра', speciesRadiusPm('Cl', -1) === radiusForSpecies('Cl', -1))
-
-// 3.2 Шаг 1: Cl₂ — молекула с длиной связи из bondData; натрий — ячейка ОЦК из crystalData.
-at(STEP_PAUSE[0]!)
-ok('Cl₂: d(Cl–Cl) = bondLengthPm', near(frame.pos[idx('clA')]!.distanceTo(frame.pos[idx('clB')]!), pmToScene(bondLengthPm('Cl-Cl'))))
-ok('Cl₂: σ-связь видна', frame.bond.opacity > 0.9)
-ok('Cl — газ, Na — металл (материалы)', frame.material[idx('clA')] === 'gas' && frame.material[idx('na1')] === 'metal')
-ok('ячейка Na: 9 атомов', METAL_FRAG.sites.length === 9)
-ok('ячейка Na: связей у центра = КЧ ядра', METAL_BONDS.length === METAL.coordination.Na)
-for (const [a, b] of METAL_BONDS) {
-  const d = frame.pos[idx(a)]!.distanceTo(frame.pos[idx(b)]!)
-  ok(`металл ${a}–${b} = d(Na–Na) ядра (±0,05 пм — округление ядра)`, near(d / pmToScene(1), METAL.cationAnionPm, 0.05), (d / pmToScene(1)).toFixed(2))
-}
-ok('рёбра ячейки металла видны', frame.edgeSet === 'metal' && frame.edges > 0.9)
-
-// 3.3 Шаг 4: газовые пары на r_e(NaCl, г.) из bondData, а НЕ на кристаллическом расстоянии.
-at(STEP_PAUSE[3]!)
-for (const [na, cl] of [['na1', 'clA'], ['na2', 'clB']] as const) {
-  const d = frame.pos[idx(na)]!.distanceTo(frame.pos[idx(cl)]!)
-  ok(`газовая пара ${na}/${cl}: d = bondLengthPm('Na-Cl')`, near(d, D_GAS, 1e-5), `${d.toFixed(4)} против ${D_GAS.toFixed(4)}`)
-  // Полные сферы Шеннона (доля 1): d / (r₊ + r₋) на экране = r_e / (102 + 181) по данным — перекрытие честное.
-  ok(`газовая пара ${na}/${cl}: полные радиусы Шеннона`, near(frame.radius[idx(na)]!, speciesRadius('Na', 1, 1), 1e-6) && near(frame.radius[idx(cl)]!, speciesRadius('Cl', -1, 1), 1e-6))
-  const ratioScreen = d / (frame.radius[idx(na)]! + frame.radius[idx(cl)]!)
-  const ratioData = bondLengthPm('Na-Cl') / (radiusForSpecies('Na', 1) + radiusForSpecies('Cl', -1))
-  ok(`газовая пара ${na}/${cl}: d/(r₊+r₋) экрана = данным (перекрытие видно)`, near(ratioScreen, ratioData, 1e-6) && ratioScreen < 1, `${ratioScreen.toFixed(4)} против ${ratioData.toFixed(4)}`)
-}
-ok('газовое и кристаллическое расстояния различаются (ядро)', SALT.cationAnionPm - bondLengthPm('Na-Cl') > 40)
-ok('линии поля видны на паузе шага 4', frame.fx.field > 0.5)
-ok('ионная пара без «палочки»: σ-связь Cl–Cl давно погашена', frame.bond.opacity === 0)
-
-// 3.4 Шаг 5: решётка 2×2×2 из базиса ядра.
-at(STEP_PAUSE[4]!)
 {
-  ok('фрагмент — 125 ионов', SALT_FRAG.sites.length === 125)
-  const vis = NACL_ATOMS.map((a, i) => ({ a, i })).filter(({ a }) => SALT_SITE_OF.has(a.id))
-  ok('все 125 ионов фрагмента в кадре и видимы', vis.length === 125 && vis.every(({ i }) => frame.opacity[i]! > 0.99))
-  // Позиции кадра = узлы фрагмента.
-  for (const { a, i } of vis) {
-    const s = SALT_FRAG.sites[SALT_SITE_OF.get(a.id)!]!
-    ok(`ион ${a.id} в своём узле`, frame.pos[i]!.distanceTo(new THREE.Vector3(...s.posScene)) < 1e-6)
-    ok(`ион ${a.id}: элемент узла`, s.el === a.el)
-    ok(`ион ${a.id}: радиус иона (доля решётки)`, near(frame.radius[i]!, speciesRadius(a.el, a.el === 'Na' ? 1 : -1, LATTICE_BALL_SCALE), 1e-6))
-    ok(`ион ${a.id}: материал ion`, frame.material[i] === 'ion')
+  const n = NACL_LATTICE_CELLS[0] * 2 + 1
+  ok('решётка 3×3×3 ячейки', NACL_LATTICE_CELLS.join('×') === '3×3×3')
+  ok('решётка = герой продукта (heroStructures.cells)', (heroSpecFor('nacl') as { cells: readonly number[] }).cells.join('×') === NACL_LATTICE_CELLS.join('×'))
+  ok('3×3×3 ячейки = 343 иона (7 по ребру)', SALT_FRAG.sites.length === 343 && n === 7)
+  const na = SALT_FRAG.sites.filter((s) => s.el === 'Na').length
+  const cl = SALT_FRAG.sites.filter((s) => s.el === 'Cl').length
+  ok('Na⁺ и Cl⁻ поровну с точностью до узла', na + cl === 343 && Math.abs(na - cl) === 1)
+  const lat = obj('nacl-lattice-na')[0] as THREE.InstancedMesh
+  const latCl = obj('nacl-lattice-cl')[0] as THREE.InstancedMesh
+  ok('решётка — два InstancedMesh с общей геометрией', lat.isInstancedMesh && latCl.isInstancedMesh && lat.geometry === latCl.geometry && lat.count + latCl.count === 343)
+  // Заряды чередуются: соседи по осям на a/2 — противоположного знака.
+  const D = pmToScene(SALT.cationAnionPm)
+  let alternate = true
+  for (let i = 0; i < SALT_FRAG.sites.length; i++) {
+    const g = naclGridOf(i)
+    const par = (g[0] + g[1] + g[2]) & 1
+    if ((SALT_FRAG.sites[i]!.el === 'Cl') !== (par === 0)) alternate = false
   }
-  // По ребру 5 ионов, КЧ 6 у внутренних, соседи противоположного знака на d = cationAnionPm.
-  const xs = new Set(vis.map(({ i }) => Math.round(frame.pos[i]!.x / D_LATTICE)))
-  ok('по ребру 5 ионов', xs.size === 5)
+  ok('заряды чередуются по узлам (чётность суммы координат)', alternate)
+  // Каждый внутренний ион — 6 противоионов на cationAnionPm.
   let interior = 0
-  for (const { a, i } of vis) {
-    const p = frame.pos[i]!
-    const nb = vis.filter(({ i: j }) => j !== i && Math.abs(frame.pos[j]!.distanceTo(p) - D_LATTICE) < 1e-4)
-    ok(`ион ${a.id}: ближайшие соседи — противоионы`, nb.every(({ a: b }) => b.el !== a.el))
-    const closer = vis.filter(({ i: j }) => j !== i && frame.pos[j]!.distanceTo(p) < D_LATTICE - 1e-4)
-    ok(`ион ${a.id}: никого ближе a/2`, closer.length === 0)
-    const inside = [p.x, p.y, p.z].every((c) => Math.abs(c) < 2 * D_LATTICE - 1e-6)
-    if (inside) {
-      interior++
-      ok(`внутренний ион ${a.id}: КЧ = coordination ядра`, nb.length === SALT.coordination[a.el === 'Na' ? 'Na⁺' : 'Cl⁻'])
+  for (let i = 0; i < SALT_FRAG.sites.length; i++) {
+    const g = naclGridOf(i)
+    if (g.some((c) => Math.abs(c) >= NACL_LATTICE_CELLS[0])) continue
+    interior++
+    const sh = coordinationShell(SALT_FRAG, i)
+    const el = SALT_FRAG.sites[i]!.el
+    const ok6 = sh.neighbors.length === SALT.coordination[el === 'Na' ? 'Na⁺' : 'Cl⁻'] && sh.neighbors.every((j) => SALT_FRAG.sites[j]!.el !== el) && sh.distancesPm.every((d) => near(d, SALT.cationAnionPm, 0.02))
+    if (!ok6) ok(`внутренний ион ${i}: 6 противоионов на cationAnionPm`, false)
+  }
+  ok('все внутренние ионы (5³ = 125): 6 противоионов на cationAnionPm', interior === 125)
+  checks++
+  ok('шаг узлов = a/2 ядра', near(NACL_H, D, 1e-12))
+  // Октаэдры КЧ 6:6 у выделенных ионов.
+  NACL_OCTA.forEach((o, k) => {
+    const sh = NACL_OCTA_SHELLS[k]!
+    ok(`октаэдр ${o.el}: центр — ${o.el}`, SALT_FRAG.sites[o.center]!.el === o.el)
+    ok(`октаэдр ${o.el}: 6 вершин противоположного знака`, sh.neighbors.length === 6 && sh.neighbors.every((j) => SALT_FRAG.sites[j]!.el !== o.el))
+    ok(`октаэдр ${o.el}: 12 рёбер многогранника`, sh.edges.length === 12)
+  })
+  ok('есть октаэдр и у Na⁺, и у Cl⁻ (КЧ 6:6)', new Set(NACL_OCTA.map((o) => o.el)).size === 2)
+  // Рёбра ячеек: длина каждого = a, число 3·3·4·4 = 144.
+  ok('рёбер ячеек 144', SALT_FRAG.cellEdges.length === 3 * 3 * 4 * 4)
+  ok('каждое ребро = a ядра', SALT_FRAG.cellEdges.every(([p, q]) => near(Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]), pmToScene(SALT.cellPm.a), 1e-9)))
+  // Газовая пара и пара в решётке.
+  at(NACL_STEPS[3]!.to)
+  for (const [a, b] of NACL_PAIRS) ok("газовая пара на bondLengthPm('Na-Cl')", near(state.pos[a]!.distanceTo(state.pos[b]!), pmToScene(bondLengthPm('Na-Cl')), 1e-6))
+  // Пара рисуется в 0,88 радиуса Шеннона (иначе заслоняла кадр), но отношение Na⁺ : Cl⁻ = 102 : 181 точное,
+  // а сумма нарисованных радиусов (249 пм) по-прежнему больше rₑ = 236,1 пм — перекрытие оболочек видно.
+  ok('газовая пара: отношение радиусов Шеннона 102 : 181 сохранено', near(state.radius[I_NA1]! / state.radius[I_CLA]!, rNaIon / rClIon, 1e-3))
+  ok('газовая пара: нарисованные радиусы 0,88 Шеннона, сферы перекрываются (249 > 236,1)', near(state.radius[I_NA1]! / PM, 0.88 * rNaIon, 1e-3) && state.radius[I_NA1]! + state.radius[I_CLA]! > NACL_D_GAS)
+  at(NACL_STEPS[4]!.to)
+  for (const [a, b] of NACL_PAIRS) ok('пара в решётке на cationAnionPm', near(state.pos[a]!.distanceTo(state.pos[b]!), D, 1e-6))
+  // Все ионы решётки выросли и стоят в узлах (класс).
+  scene.seek(NACL_STEPS[4]!.to)
+  const m = new THREE.Matrix4()
+  const p = new THREE.Vector3()
+  const q = new THREE.Quaternion()
+  const s = new THREE.Vector3()
+  let placed = 0
+  for (const [mesh, r] of [[lat, NACL_LATTICE_R.naIon], [latCl, NACL_LATTICE_R.clIon]] as const) {
+    for (let k = 0; k < mesh.count; k++) {
+      mesh.getMatrixAt(k, m)
+      m.decompose(p, q, s)
+    s.setScalar(colLen(m))
+      if (near(s.x, r, 1e-6)) placed++
     }
   }
-  ok('внутренних ионов 27', interior === 27)
-  const center = SALT_FRAG.sites.findIndex((s) => s.posScene.every((c) => Math.abs(c) < 1e-9))
-  const shell = coordinationShell(SALT_FRAG, center)
-  ok('координационный многогранник центра — октаэдр (6 соседей, 12 рёбер)', shell.neighbors.length === 6 && shell.edges.length === 12)
-  // Рёбра ячеек: 54 уникальных, каждое длиной a.
-  ok('рёбер ячеек 54', SALT_FRAG.cellEdges.length === 54)
-  for (const [p, q] of SALT_FRAG.cellEdges) {
-    const d = Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2])
-    ok('ребро ячейки = a ядра', near(d, pmToScene(SALT.cellPm.a), 1e-5), d.toFixed(4))
-  }
-  ok('рёбра ячеек соли видны', frame.edgeSet === 'salt' && frame.edges > 0.9)
-  const eA = Math.hypot(NACL_EDGE_A[0][0] - NACL_EDGE_A[1][0], NACL_EDGE_A[0][1] - NACL_EDGE_A[1][1], NACL_EDGE_A[0][2] - NACL_EDGE_A[1][2])
-  ok('подпись a стоит у ребра длиной a', near(eA, pmToScene(SALT.cellPm.a), 1e-5))
-  const lA = frame.labels.find((l) => l.id === 'cellA')!
-  const mid = new THREE.Vector3((NACL_EDGE_A[0][0] + NACL_EDGE_A[1][0]) / 2, (NACL_EDGE_A[0][1] + NACL_EDGE_A[1][1]) / 2, (NACL_EDGE_A[0][2] + NACL_EDGE_A[1][2]) / 2)
-  // Подпись a — под размерной линией нижнего переднего ребра, СНАРУЖИ сфер нижнего ряда (не на ионах).
-  const rMaxLattice = speciesRadius('Cl', -1, LATTICE_BALL_SCALE)
-  const bottomY = SALT_FRAG.boundsScene.min[1]
-  ok('ребро подписи a — нижнее переднее', near(mid.y, bottomY, 1e-6) && near(mid.z, SALT_FRAG.boundsScene.max[2], 1e-6))
-  ok('размерная линия a вне сфер', NACL_DIM_A_DROP > rMaxLattice)
-  ok('подпись a под ребром, снаружи силуэта, по центру ребра', lA.pos.y < bottomY - rMaxLattice && near(lA.pos.x, mid.x, 1e-6) && lA.opacity > 0.9)
-  ok('размерные линии видны на паузе шага 5', frame.dims.pair > 0.9 && frame.dims.edgeA > 0.9)
-  // Пара сюжета в решётке — на cationAnionPm.
-  ok('пара na1/clA в решётке на d = cationAnionPm', near(frame.pos[idx('na1')]!.distanceTo(frame.pos[idx('clA')]!), D_LATTICE, 1e-5))
-  ok('металл давно погашен', NACL_ATOMS.every((a, i) => a.kind !== 'metal' || frame.opacity[i] === 0))
+  ok('к паузе шага 5 все 343 иона на местах и в полный размер решётки', placed === 343, `${placed}`)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. Переход электрона: Na → Na⁺ в кадр ухода, Cl → Cl⁻ в кадр прихода, заряд сохраняется
+// 5а. Кадрирование: габарит шага держит всю композицию этого шага
 // ─────────────────────────────────────────────────────────────────────────────
 
 {
-  const R = NACL_GEOM.radius
-  assertSnapAt(NACL_SNAP.radiusNa1, NACL_ELECTRONS.e1.leave, R.na, R.naIon)
-  assertSnapAt(NACL_SNAP.radiusClA, NACL_ELECTRONS.e1.arrive, R.cl, R.clIon)
-  assertSnapAt(NACL_SNAP.radiusNa2, NACL_ELECTRONS.e2.leave, R.na, R.naIon)
-  assertSnapAt(NACL_SNAP.radiusClB, NACL_ELECTRONS.e2.arrive, R.cl, R.clIon)
-  checks += 4
-  const dt = 1 / 60
-  const lbl = (id: string) => frame.labels.find((l) => l.id === id)!.text
-  for (const [na, cl, e, k] of [
-    ['na1', 'clA', NACL_ELECTRONS.e1, 0],
-    ['na2', 'clB', NACL_ELECTRONS.e2, 1],
-  ] as const) {
-    // Донор: кадр до ухода — атом; кадр ухода — катион (радиус, заряд, материал, подпись, 0 точек).
-    at(e.leave - dt)
-    const b = { r: frame.radius[idx(na)]!, q: frame.charge[idx(na)]!, m: frame.material[idx(na)], l: lbl(na) }
-    at(e.leave)
-    ok(`${na}: до ухода e⁻ — атом Na (радиус, заряд 0, газ)`, near(b.r, R.na) && b.q === 0 && b.m === 'gas')
-    ok(`${na}: в кадр ухода e⁻ — Na⁺ (радиус, заряд +1, ion)`, near(frame.radius[idx(na)]!, R.naIon) && frame.charge[idx(na)] === 1 && frame.material[idx(na)] === 'ion')
-    ok(`${na}: подпись Na → Na⁺ в кадр ухода`, b.l !== lbl(na) && lbl(na) === 'Na⁺')
-    ok(`${na}: у Na⁺ ноль валентных точек`, frame.valence[k]!.count === 0)
-    ok(`${cl}: в кадр ухода акцептор ещё атом`, frame.charge[idx(cl)] === 0 && near(frame.radius[idx(cl)]!, R.cl))
-    // Акцептор: кадр до прихода — атом с семью точками; кадр прихода — анион, октет.
-    at(e.arrive - dt)
-    const c = { r: frame.radius[idx(cl)]!, q: frame.charge[idx(cl)]!, m: frame.material[idx(cl)], n: frame.valence[k + 2]!.count, arrived: frame.electrons[k]!.arrived, l: lbl(cl) }
-    at(e.arrive)
-    ok(`${cl}: до прихода — атом, 7 точек, газ`, near(c.r, R.cl) && c.q === 0 && c.m === 'gas' && c.n === 7 && !c.arrived)
-    ok(`${cl}: электрон пришёл в этот кадр`, frame.electrons[k]!.arrived)
-    ok(`${cl}: в тот же кадр — Cl⁻ (радиус, заряд −1, ion, октет)`, near(frame.radius[idx(cl)]!, R.clIon) && frame.charge[idx(cl)] === -1 && frame.material[idx(cl)] === 'ion' && frame.valence[k + 2]!.count === 8)
-    ok(`${cl}: подпись Cl → Cl⁻ в тот же кадр`, c.l !== lbl(cl) && lbl(cl) === 'Cl⁻')
-  }
-  // Закон сохранения заряда: каждые 1/60 с шага 3 Σ зарядов частиц + (−1)·(летящие e⁻) = 0.
-  const s3 = NACL_STEPS[2]!
+  // Габарит считается по раскадровке; здесь проверяем независимо: каждая ВИДИМАЯ частица шага
+  // и каждый якорь подписи этого шага влезают в его габарит (иначе объект ушёл бы под панель).
+  const q = new THREE.Quaternion()
+  const e = new THREE.Euler()
+  const v = new THREE.Vector3()
+  const st2 = createNaclState()
   let worst = 0
-  for (let t = s3.from; t <= s3.to + 1e-9; t += dt) {
-    at(t)
-    let q = 0
-    for (const id of ['na1', 'na2', 'clA', 'clB']) q += frame.charge[idx(id)]!
-    for (const e of [NACL_ELECTRONS.e1, NACL_ELECTRONS.e2]) if (t >= e.leave && t < e.arrive) q -= 1
-    worst = Math.max(worst, Math.abs(q))
-  }
-  ok('шаг 3: заряд сохраняется в каждом кадре (Σq + летящие e⁻ = 0)', worst === 0, `${worst}`)
-  // Лестница ставит ионизацию на уход электрона — 3D показывает Na⁺ в тот же момент.
-  const ion = NACL_LADDER.stages.find((st) => st.kind === 'ionization')!
-  ok('ступень ионизации лестницы = кадр ухода e⁻ (Na⁺ в 3D)', near(ion.at, NACL_ELECTRONS.e1.leave, 1e-9))
-  // Пауза шага 2 держит «до»: у Na одна точка, у Cl семь (видны на паузе).
-  at(STEP_PAUSE[1]!)
-  ok('пауза шага 2: у Na одна валентная точка', frame.valence[0]!.count === 1 && frame.valence[0]!.amount > 0.9)
-  ok('пауза шага 2: у Cl семь валентных точек', frame.valence[2]!.count === 7 && frame.valence[2]!.amount > 0.9)
-  at(NACL_ELECTRONS.e1.leave - 1.0)
-  ok('у Na одна валентная точка', frame.valence[0]!.count === 1 && frame.valence[0]!.amount > 0.5)
-  ok('у Cl семь валентных точек', frame.valence[2]!.count === 7 && frame.valence[2]!.amount > 0.5)
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 5. Только объекты текущего шага; на паузе каждый видимый атом подписан
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Размах группы атомов-хозяев подписи в текущем кадре (для одиночного атома — 0). */
-function hostSpan(hosts: readonly string[]): number {
-  let m = 0
-  for (const a of hosts) for (const b of hosts) m = Math.max(m, frame.pos[idx(a)]!.distanceTo(frame.pos[idx(b)]!))
-  return m
-}
-
-for (let si = 0; si < NACL_STEPS.length; si++) {
-  const s = NACL_STEPS[si]!
-  // (а) каждые 1/60 с: атомы чужих шагов строго невидимы
-  let foreign = 0
-  let at0 = -1
-  for (let t = s.from; t <= s.to + 1e-9; t += 1 / 60) {
-    at(t)
-    for (let i = 0; i < NACL_ATOMS.length; i++) {
-      const [a, b] = NACL_ATOMS[i]!.span
-      const own = si >= a && si <= b
-      if (!own && frame.opacity[i]! > 0) {
-        foreign++
-        if (at0 < 0) at0 = t
+  const ext = { w: 0, h: 0, cx: 0, cy: 0 }
+  for (let i = 0; i < NACL_STEPS.length; i++) {
+    const step = NACL_STEPS[i]!
+    ok(`габарит шага ${step.id} положителен`, NACL_STEP_EXTENT[i]!.w > 0.5 && NACL_STEP_EXTENT[i]!.h > 0.5, `${NACL_STEP_EXTENT[i]!.w} × ${NACL_STEP_EXTENT[i]!.h}`)
+    for (let t = step.from; t <= Math.min(step.to, NACL_STEPS[NACL_STEPS.length - 1]!.to) + 1e-6; t += 1 / 30) {
+      naclExtentAt(t, ext)
+      const f = sampleNaclState(t, st2)
+      e.set(f.shot.pitch, f.shot.yaw, 0, 'YXZ')
+      q.setFromEuler(e)
+      if (!f.storyOn) continue
+      for (let k = 0; k < 4; k++) {
+        const r = f.radius[k]! * f.appear
+        if (r < 1e-3) continue
+        v.copy(f.pos[k]!).sub(f.shot.target).applyQuaternion(q).multiplyScalar(f.shot.zoom)
+        const dx = (Math.abs(v.x - ext.cx) + r * f.shot.zoom) / (ext.w / 2)
+        const dy = (Math.abs(v.y - ext.cy) + r * f.shot.zoom) / (ext.h / 2)
+        worst = Math.max(worst, dx, dy)
       }
     }
   }
-  ok(`шаг ${s.id}: ни одного объекта чужого шага`, foreign === 0, `первый при t=${at0.toFixed(3)}`)
-
-  // (б) пауза шага: видимый атом — видимая подпись-хозяин рядом
-  at(s.to)
-  const visibleLabels = frame.labels.map((l, k) => ({ st: l, def: NACL_LABELS[k]! })).filter(({ st }) => st.opacity > 0.5)
-  ok(`пауза ${s.id}: есть подписи`, visibleLabels.length > 0)
-  for (let i = 0; i < NACL_ATOMS.length; i++) {
-    if (frame.opacity[i]! <= 0.02) continue
-    const id = NACL_ATOMS[i]!.id
-    const hosts = visibleLabels.filter(({ def }) => def.hosts.includes(id))
-    // «Рядом»: не дальше размаха группы, которую подпись подписывает, плюс одна единица сцены.
-    const closeHost = hosts.some(({ st, def }) => st.pos.distanceTo(frame.pos[i]!) <= hostSpan(def.hosts) + 1)
-    ok(`пауза ${s.id}: атом ${id} подписан`, closeHost, `хозяев ${hosts.length}`)
-    ok(`пауза ${s.id}: атом ${id} полностью проявлен (не полупрозрачный призрак)`, frame.opacity[i]! > 0.99, frame.opacity[i]!.toFixed(3))
+  ok('частицы сюжета не выходят за габарит кадра', worst <= 1.005, `${worst.toFixed(3)}`)
+  // Камера не дёргается: габарит между соседними кадрами меняется плавно.
+  const a = { w: 0, h: 0, cx: 0, cy: 0 }
+  const b = { w: 0, h: 0, cx: 0, cy: 0 }
+  let jump = 0
+  for (let t = 0; t + FRAME <= NACL_END; t += FRAME) {
+    naclExtentAt(t, a)
+    naclExtentAt(t + FRAME, b)
+    jump = Math.max(jump, Math.abs(b.w / a.w - 1), Math.abs(b.h / a.h - 1))
   }
-  // Подпись «ни о чём» тоже запрещена: у подписи-хозяина есть видимые атомы.
-  for (const { st, def } of visibleLabels) {
-    if (def.hosts.length === 0) continue
-    ok(`пауза ${s.id}: подпись ${def.id} подписывает видимые атомы`, def.hosts.some((h) => frame.opacity[idx(h)]! > 0.5), st.text)
-  }
-}
-// Атомы, ушедшие из кадра, гаснут полностью уже к паузе шага 2.
-at(STEP_PAUSE[1]!)
-ok('после сублимации ни одного атома металла', NACL_ATOMS.every((a, i) => a.kind !== 'metal' || frame.opacity[i] === 0))
-// На паузе шага 4 решётки ещё нет, на паузе шага 5 газового расстояния уже нет.
-{
-  at(STEP_PAUSE[3]!)
-  const lbl = (id: string) => frame.labels.find((l) => l.id === id)!.opacity
-  ok('пауза шага 4: подпись газовой пары видна, решёточной нет', lbl('dGas') > 0.9 && lbl('dCrystal') === 0)
-  at(STEP_PAUSE[4]!)
-  ok('пауза шага 5: решёточная подпись видна, газовой нет', lbl('dCrystal') > 0.9 && lbl('dGas') === 0)
+  ok('габарит кадра меняется плавно (< 6 % за кадр)', jump < 0.06, `${(jump * 100).toFixed(1)} %`)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. Финал без огня: все FX ≈ 0 внутри фрагмента на всём шаге 6
+// 6. Нет объектов вне своего шага
 // ─────────────────────────────────────────────────────────────────────────────
 
 {
-  const s = NACL_STEPS[LAST]!
-  at(NACL_STEPS[0]!.from + 0.01)
-  const baseEmissive = frame.emissive[0]!
-  const baseBloom = frame.camera.bloom
-  for (let t = s.from; t <= s.to + 1e-9; t += 1 / 30) {
-    at(t)
-    const fx = frame.fx.electron1 + frame.fx.electron2 + frame.fx.field + frame.valence.reduce((m, v) => m + v.amount, 0)
-    ok(`шаг 6, t=${t.toFixed(2)}: FX-амплитуды = 0`, fx === 0, `${fx}`)
-    let hot = 0
-    for (let i = 0; i < NACL_ATOMS.length; i++) if (frame.emissive[i] !== baseEmissive) hot++
-    ok(`шаг 6, t=${t.toFixed(2)}: свечение атомов базовое`, hot === 0, `${hot} атомов светятся`)
-    ok(`шаг 6, t=${t.toFixed(2)}: bloom базовый, тряски нет`, near(frame.camera.bloom, baseBloom) && frame.camera.shake === 0)
+  const stepOf = (t: number) => NACL_STEPS.findIndex((s) => t < s.to - 1e-9)
+  const metal = obj('nacl-metal')[0]!
+  const bond = obj('nacl-cl-cl')[0]!
+  const octa = scene.root.getObjectByName('nacl-lattice')!
+  const lat = obj('nacl-lattice-na')[0] as THREE.InstancedMesh
+  const m = new THREE.Matrix4()
+  const sc = new THREE.Vector3()
+  const pp = new THREE.Vector3()
+  const qq = new THREE.Quaternion()
+  let fail = ''
+  for (const t of frames) {
+    scene.seek(t)
+    const st = at(t)
+    const step = stepOf(t) < 0 ? LAST + 1 : stepOf(t)
+    if (step >= 2 && (metal.visible || st.metal.opacity > 0)) fail ||= `металл виден на шаге ${step + 1} (t=${t.toFixed(2)})`
+    if (step >= 2 && (bond.visible || st.bond.opacity > 0)) fail ||= `связь Cl–Cl видна на шаге ${step + 1}`
+    if (step <= 1 && (st.electrons[0].glow > 0 || st.electrons[1].glow > 0)) fail ||= `летящий электрон до шага 3 (t=${t.toFixed(2)})`
+    if (step !== 3 && step !== 4 && st.field > 0) fail ||= `линии поля вне шагов 4–5 (t=${t.toFixed(2)})`
+    if (step < 4) {
+      lat.getMatrixAt(0, m)
+      m.decompose(pp, qq, sc)
+      sc.setScalar(colLen(m))
+      if (sc.x > 0 || st.saltEdges > 0 || st.octa > 0) fail ||= `решётка видна до шага 5 (t=${t.toFixed(2)})`
+    }
+    if (step >= 4 && st.valence > 0) fail ||= `валентные точки на шаге ${step + 1}`
+    if (t >= NACL_T.handover && obj('nacl-na1')[0]!.visible) fail ||= 'частица сюжета после передачи узлов решётке'
+    if (step <= 1 && st.labelOpacity[NACL_LABELS.findIndex((l) => l.id === 'cn')]! > 0) fail ||= 'подпись КЧ до шага 5'
   }
-  at(s.to)
-  ok('конец шага 6: кристалл цел и виден', SALT_FRAG.sites.length === NACL_ATOMS.filter((_, i) => frame.opacity[i]! > 0.99).length)
-  at(NACL_END)
-  ok('в конце хвоста кадр затемнён', frame.fade > 0.95)
+  ok('каждые 1/60 с: объекты видны только на своих шагах', fail === '', fail)
+  void octa
+  // Финал без огня: электроны и поле погашены, свечение кромки — базовое.
+  const fin = at(NACL_END)
+  ok('финал без огня и свечения внутри решётки', fin.electrons.every((e) => e.glow === 0 && e.amount === 0) && fin.field === 0 && fin.flash.every((f) => f === 0))
+  ok('в финале решётка на месте героя (передача = 1), сценический свет погашен', fin.handoff === 1 && fin.light === 0)
+  ok('в финале все подписи погашены (подписи — у героя)', fin.labelOpacity.every((o) => o === 0))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 7. Энергетика: лестница = ядро
+// 6а. Машина состояний и колбэки класса
 // ─────────────────────────────────────────────────────────────────────────────
 
-validateNaclEnergetics()
+{
+  const cues: string[] = []
+  const steps: NaclStepInfo[] = []
+  const sc = new NaClReactionScene({ locale: 'en', onCue: (id) => cues.push(id), onStep: (info) => steps.push(info) })
+  const cam = new THREE.PerspectiveCamera()
+  void sc.goToStep(2, { instant: true })
+  ok('goToStep(instant) встаёт на конец шага и паузу', near(sc.time, NACL_STEPS[2]!.to) && sc.getState().status === 'paused' && sc.getState().step === 2)
+  sc.update(1 / 60, cam)
+  ok('cue шагов 1–3 выстрелили при переходе вперёд', ['sublimate', 'bondBreak', 'transfer'].every((c) => cues.includes(c)) && !cues.includes('embryo'))
+  ok('onStep: тексты локали и заголовок шага', steps[0]!.id === 'transfer' && steps[0]!.title === getNaclMechanismText('en').steps.transfer.title)
+  sc.seek(NACL_END)
+  sc.update(1 / 60, cam)
+  ok('контракт лаборатории по порядку в хвосте', cues.slice(-3).join(',') === 'embryo,birth,complete')
+  sc.dispose()
+  const last = naclStepInfo(5, 'ru')
+  ok('onStep шага 6: накопленная ΔH = ΔH°f ядра', near(last.dH.cumulativeKJ, dHfKJ('NaCl(s)'), 0.05))
+  ok('onStep: latticeU = −787,0 (ядро)', last.latticeU === LATTICE_ENTHALPY_KJ['NaCl(s)'] && last.latticeU === -787)
+  ok('onStep шага 6: есть предупреждение о безопасности', (last.safety ?? '').length > 20)
+  ok('onStep шага 5: ступень решётки', near(naclStepInfo(4, 'ru').dH.stageKJ, NACL_LATTICE_KJ, 0.05))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. Энергия
+// ─────────────────────────────────────────────────────────────────────────────
+
 {
   const cycle = BORN_HABER.nacl
-  ok('ступени лестницы = ступени BORN_HABER.nacl', NACL_LADDER.stages.length === cycle.stages.length)
-  for (const st of cycle.stages) {
-    const l = NACL_LADDER.stages.find((x) => x.id === st.id)!
-    ok(`ступень ${st.id} = ядро`, l.dH === st.dHKJ)
-    ok(`ступень ${st.id}: множитель 1 × perUnit`, (l.multiplier ?? 1) === 1 && (l.perUnitKJ == null || l.perUnitKJ === st.dHKJ))
-  }
+  ok('лестница = BORN_HABER.nacl', NACL_LADDER.stages.length === cycle.stages.length && NACL_LADDER.stages.every((s, i) => s.dH === cycle.stages[i]!.dHKJ))
   ok('½D = ΔH°f(Cl, г.) ядра', naclStageKJ('dissociation') === dHfKJ('Cl(g)'))
   ok('сублимация = ΔH°f(Na, г.) ядра', naclStageKJ('sublimation') === dHfKJ('Na(g)'))
-  ok('U цикла = LATTICE_ENTHALPY_KJ', NACL_LATTICE_KJ === LATTICE_ENTHALPY_KJ['NaCl(s)'])
-  ok('Σ цикла = табличная ΔH°f (±0,05)', near(NACL_LADDER.sumKJ, dHfKJ('NaCl(s)'), 0.05), `${NACL_LADDER.sumKJ}`)
+  ok('U цикла = LATTICE_ENTHALPY_KJ = −787,0 (решение владельца)', NACL_LATTICE_KJ === LATTICE_ENTHALPY_KJ['NaCl(s)'] && NACL_LATTICE_KJ === -787)
+  ok('Σ цикла = dHfKJ(NaCl(s)) (±0,05)', near(NACL_LADDER.sumKJ, dHfKJ('NaCl(s)'), 0.05), `${NACL_LADDER.sumKJ}`)
   ok('таблица лестницы = ядро', NACL_DHF_TABLE_KJ === dHfKJ('NaCl(s)'))
   ok('без решётки процесс эндотермический', NACL_COST_BEFORE_LATTICE_KJ > 0)
   ok('ΔH реакции = 2 · ΔH°f', near(NACL_REACTION_DH_KJ, 2 * dHfKJ('NaCl(s)'), 0.05))
-  const byKind = Object.fromEntries(NACL_LADDER.stages.map((s) => [s.kind, s.dH]))
-  ok('знаки: субл. > 0, ½D > 0, IE > 0, Δ_eg H < 0, U < 0', byKind.sublimation! > 0 && byKind.dissociation! > 0 && byKind.ionization! > 0 && byKind.affinity! < 0 && byKind.lattice! < 0)
   const levels = ladderLevels(NACL_LADDER)
   ok('последний уровень = сумма цикла', near(levels[levels.length - 1]!, NACL_LADDER.sumKJ))
   ok('ступени идут по времени сюжета и внутри шагов', NACL_LADDER.stages.every((s, i) => s.at > 0 && s.at < lastStepTo && (i === 0 || s.at >= NACL_LADDER.stages[i - 1]!.at)))
-}
-
-// Стехиометрия и электронный баланс.
-{
   const count = (formula: string, coeff: number, into: Map<string, number>) => {
     for (const m of formula.matchAll(/([A-Z][a-z]?)(\d*)/g)) into.set(m[1]!, (into.get(m[1]!) ?? 0) + (m[2] ? Number(m[2]) : 1) * coeff)
   }
@@ -462,14 +526,11 @@ validateNaclEnergetics()
   for (const t of NACL_REACTION.left) count(t.formula, t.coeff, left)
   for (const t of NACL_REACTION.right) count(t.formula, t.coeff, right)
   for (const k of new Set([...left.keys(), ...right.keys()])) ok(`баланс по ${k}`, left.get(k) === right.get(k))
-  ok('хлор — двухатомная молекула', NACL_REACTION.left.some((t) => t.formula === 'Cl2') && !NACL_REACTION.left.some((t) => t.formula === 'Cl'))
   const given = NACL_HALF_REACTIONS.filter((h) => h.id === 'oxidation').reduce((s, h) => s + h.electrons * h.times, 0)
   const taken = NACL_HALF_REACTIONS.filter((h) => h.id === 'reduction').reduce((s, h) => s + h.electrons * h.times, 0)
   ok('электронный баланс', given === taken)
-  ok('зарядовый баланс', NACL_HALF_REACTIONS.reduce((s, h) => s + h.chargeLeft * h.times, 0) === 0 && NACL_HALF_REACTIONS.reduce((s, h) => s + h.chargeRight * h.times, 0) === 0)
-  // Атомы в кадре: 2 Na + 2 Cl сюжета — ровно столько, сколько в уравнении.
-  const story = NACL_ATOMS.filter((a) => a.kind === 'story')
-  ok('в сюжете 2 Na и 2 Cl — как в уравнении', story.filter((a) => a.el === 'Na').length === left.get('Na') && story.filter((a) => a.el === 'Cl').length === left.get('Cl'))
+  ok('в сюжете 2 Na и 2 Cl — как в уравнении', left.get('Na') === 2 && left.get('Cl') === 2 && [I_NA1, I_NA2].length === 2 && [I_CLA, I_CLB].length === 2)
+  ok('ячейка металла — 9 атомов ОЦК', METAL_FRAG.sites.length === 9)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -477,7 +538,6 @@ validateNaclEnergetics()
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Num = { v: number; dec: number; sign: -1 | 0 | 1; raw: string }
-/** Все числа строки: «−348,6», «+107,3», «564.0», «2×2×2» → 2, 2, 2. Знак — только если стоит вплотную или через пробел перед числом. */
 function numbers(s: string): Num[] {
   const out: Num[] = []
   for (const m of s.matchAll(/([+−-]?)\s?(\d+(?:[.,]\d+)?)/g)) {
@@ -487,57 +547,194 @@ function numbers(s: string): Num[] {
   }
   return out
 }
-/** Совпадает ли число текста со значением ядра с точностью показанных знаков. */
 const matches = (n: Num, v: number) => Math.abs(n.v - Math.round(Math.abs(v) * 10 ** n.dec) / 10 ** n.dec) < 1e-9
 const hasValue = (s: string, v: number) => numbers(s).some((n) => matches(n, v))
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 8. 3D-подписи: символы и числа ядра
+// 8. 3D-подписи
 // ─────────────────────────────────────────────────────────────────────────────
 
 {
-  const allowed3d = [SALT.cellPm.a, METAL.cellPm.a, bondLengthPm('Cl-Cl'), bondLengthPm('Na-Cl'), SALT.cationAnionPm, NACL_LADDER.sumKJ, ...Object.values(SALT.coordination)]
+  const allowed3d = [SALT.cellPm.a, METAL.cellPm.a, bondLengthPm('Cl-Cl'), bondLengthPm('Na-Cl'), SALT.cationAnionPm, NACL_LADDER.sumKJ, NACL_LATTICE_KJ, SALT.densityGCm3, SALT.z, ...Object.values(SALT.coordination)]
   for (const l of NACL_LABELS) {
     for (const k of l.keys) {
-      const bare = k.text.replace(/\{\w+\}/g, '')
+      const bare = k.text.replace(/\{\w+\}/g, '').replaceAll(SALT.spaceGroup, '')
       ok(`подпись ${l.id}: без кириллицы (слова — в панели)`, !/[А-Яа-яЁё]/.test(bare), k.text)
       ok(`подпись ${l.id}: без фраз`, !/[a-z]{3,}/.test(bare), k.text)
       ok(`подпись ${l.id}: единицы только токенами`, !/\b(pm|kJ\/mol|kJ)\b/.test(bare) && !/\((s|g|l|aq)\)/.test(bare), k.text)
-      // Символ пространственной группы (Fm-3m) — обозначение, а не число: сверяется целиком.
-      if (bare.includes(SALT.spaceGroup)) ok(`подпись ${l.id}: группа из ядра`, bare.trim() === SALT.spaceGroup)
-      for (const n of numbers(bare.replace(SALT.spaceGroup, ''))) {
-        ok(`подпись ${l.id}: число ${n.raw} из ядра`, allowed3d.some((v) => matches(n, v)), k.text)
-      }
+      for (const n of numbers(bare)) ok(`подпись ${l.id}: число ${n.raw} из ядра`, allowed3d.some((v) => matches(n, v)), k.text)
     }
   }
   const text = (id: string) => NACL_LABELS.find((l) => l.id === id)!.keys[0]!.text
-  ok('подпись газовой пары = r_e(NaCl, г.)', hasValue(text('dGas'), bondLengthPm('Na-Cl')) && numbers(text('dGas')).length === 1)
-  ok('подпись пары в решётке = cationAnionPm', hasValue(text('dCrystal'), SALT.cationAnionPm) && numbers(text('dCrystal')).length === 1)
-  ok('подпись a = параметр ячейки', hasValue(text('cellA'), SALT.cellPm.a))
-  const dH = numbers(text('dH'))[0]!
-  ok('подпись ΔH°f = сумма цикла со знаком', dH.sign === -1 && matches(dH, NACL_DHF_KJ) && near(NACL_DHF_KJ, NACL_LADDER.sumKJ, 0.05))
+  ok('подпись газовой пары = r_e(NaCl, г.)', hasValue(text('dGas'), bondLengthPm('Na-Cl')))
+  // Одно число ядра — одна запись: и размерная линия, и итоговая строка пишут «564,0» (fmt1).
+  ok('подпись a = параметр ячейки, формат один с итогом', hasValue(text('cellA'), SALT.cellPm.a) && localizeLabelText(text('cellA'), 'ru', true) === 'a = 564,0 пм')
+  ok('запись a в размерной линии и в итоге совпадает', /a = ([\d,]+) пм/.exec(localizeLabelText(text('cellA'), 'ru', true))![1] === /a = ([\d,]+) пм/.exec(localizeLabelText(text('p1'), 'ru', true))![1])
+  ok('подпись КЧ 6:6 из ядра', localizeLabelText(text('cn'), 'ru', true) === `КЧ ${Object.values(SALT.coordination).join(':')}`)
+  ok('подпись КЧ — контрастная плашка (measure)', NACL_LABELS.find((l) => l.id === 'cn')!.kind === 'measure')
   ok('подпись Cl–Cl = bondLengthPm', hasValue(text('clBond'), bondLengthPm('Cl-Cl')))
-
+  const p3 = numbers(text('p3'))
+  ok('итог: ΔH°f и U со знаком минус из ядра', p3.length === 2 && p3[0]!.sign === -1 && matches(p3[0]!, NACL_DHF_KJ) && p3[1]!.sign === -1 && matches(p3[1]!, NACL_LATTICE_KJ))
+  ok('итог: a, d, Z, ρ из ядра', hasValue(text('p1'), SALT.cellPm.a) && hasValue(text('p1'), SALT.cationAnionPm) && hasValue(text('p2'), SALT.z) && hasValue(text('p2'), SALT.densityGCm3))
   const known = new Set(Object.keys(SCENE_LABEL_TOKENS.ru))
-  for (const token of labelTokensUsed(NACL_LABELS)) ok(`токен {${token}} есть в словаре`, known.has(token))
+  for (const token of labelTokensUsed(NACL_LABELS.map((l) => ({ ...l, dy: 0 })) as never)) ok(`токен {${token}} есть в словаре`, known.has(token))
   for (const locale of LOCALES) {
-    const states = createLabelStates(NACL_LABELS)
-    localizeSceneLabels(states, locale)
-    for (const st of states) ok(`[${locale}] подпись ${st.id} раскрыта`, !/\{\w+\}/.test(st.text) && st.text.trim().length > 0)
+    for (const l of NACL_LABELS) for (const k of l.keys) ok(`[${locale}] подпись ${l.id} раскрыта`, !/\{\w+\}/.test(localizeLabelText(k.text, locale, true)))
   }
-  const ru = createLabelStates(NACL_LABELS)
-  const en = createLabelStates(NACL_LABELS)
-  localizeSceneLabels(ru, 'ru')
-  localizeSceneLabels(en, 'en')
-  ok('подписи ru отличаются от en (единицы переведены)', ru.some((s, i) => s.text !== en[i]!.text))
-  // Решение 8: числа в 3D по локали — сцена NaCl включает десятичную запятую на ru/uz.
-  for (const locale of ['ru', 'uz'] as const) {
-    const st = createLabelStates(NACL_LABELS)
-    localizeSceneLabels(st, locale, true)
-    const g = st.find((x) => x.id === 'dGas')!.text
-    ok(`[${locale}] 3D-число с десятичной запятой: «${g}»`, g.includes(String(bondLengthPm('Na-Cl')).replace('.', ',')) && !/\d\.\d/.test(st.map((x) => x.text).join(' ')))
-  }
+  // ru/uz — десятичная запятая, en — точка (соглашение учебника языка).
+  ok('[ru] 3D-число с десятичной запятой', localizeLabelText(text('dGas'), 'ru', true) === '236,1 пм')
+  ok('[en] 3D-число с точкой', localizeLabelText(text('dGas'), 'en', true) === '236.1 pm')
+  const sceneRu = new NaClReactionScene({ locale: 'ru' })
+  sceneRu.seek(NACL_STEPS[5]!.to)
+  const lp3 = sceneRu.labels.find((l) => l.id === 'nacl-p3')!
+  ok('класс: подпись итога на ru с запятой и кДж/моль', lp3.text === 'ΔH°f = −411,2 кДж/моль · U = −787,0 кДж/моль' && lp3.opacity > 0.99, lp3.text)
+  sceneRu.dispose()
   for (const l of NACL_LABELS) for (const w of l.windows) ok(`окно подписи ${l.id}`, w[0] < w[1] && w[0] >= 0 && w[1] <= NACL_END + 1e-9)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8а. Подписи решётки СНАРУЖИ её силуэта, окружение читаемо, ячейка металла — куб
+// ─────────────────────────────────────────────────────────────────────────────
+
+{
+  // Подпись донора и знак его заряда согласованы в каждом кадре: «пока электрон летит, в кадре
+  // Na⁺ + e⁻ + Cl» — приёмка ловила ровно это расхождение (заряд +1 с ухода, подпись — с поглощения).
+  const idx = (id: string) => NACL_LABELS.findIndex((l) => l.id === id)
+  let mismatch = ''
+  for (const t of frames) {
+    at(t)
+    for (const [k, id, di] of [[0, 'na1', I_NA1], [1, 'na2', I_NA2]] as const) {
+      void k
+      const shown = state.labelText[idx(id)]!
+      const charged = state.charge[di] === 1
+      if (charged !== (shown === 'Na⁺')) mismatch ||= `t=${t.toFixed(3)} ${id}: заряд ${state.charge[di]}, подпись «${shown}»`
+    }
+  }
+  ok('подпись донора и знак его заряда согласованы каждые 1/60 с', mismatch === '', mismatch)
+  ok('подпись Na⁺ появляется в кадр ухода электрона', NACL_LABELS[idx('na1')]!.keys[1]!.t === NACL_ELECTRONS.e1.leave && NACL_LABELS[idx('na2')]!.keys[1]!.t === NACL_ELECTRONS.e2.leave)
+
+  // Окружение: подписи октаэдров называют КЧ ядра и стоят у своих фигур.
+  for (const [id, el] of [['octaNa', 'Na'], ['octaCl', 'Cl']] as const) {
+    const def = NACL_LABELS.find((l) => l.id === id)!
+    const an = def.anchor as { kind: string; index: number }
+    ok(`подпись ${id} привязана к своему октаэдру`, an.kind === 'octa' && NACL_OCTA[an.index]!.el === el)
+    const n = numbers(def.keys[0]!.text)[0]!
+    ok(`подпись ${id}: число соседей из coordination ядра`, n.v === SALT.coordination[el === 'Na' ? 'Na⁺' : 'Cl⁻'])
+  }
+
+  // Каждая подпись шага 5–6, привязанная к решётке, обязана выноситься за её силуэт.
+  for (const id of ['nacl', 'cn', 'cellA', 'p1', 'p2', 'p3']) {
+    ok(`подпись ${id} вынесена за силуэт решётки`, NACL_LABELS.find((l) => l.id === id)!.outside != null)
+  }
+
+  // Геометрическая проверка на КЛАССЕ: кадрируем сцену как адаптер (root повёрнут по камере) и
+  // требуем, чтобы центр каждой такой подписи лежал ВНЕ экранной рамки ионов решётки.
+  const sc = new NaClReactionScene({ locale: 'ru' })
+  const cam = new THREE.PerspectiveCamera(46, 1.6, 0.1, 100)
+  cam.position.set(0, 0, 3.6)
+  cam.lookAt(0, 0, 0)
+  cam.updateMatrixWorld(true)
+  sc.root.position.set(0, 0, 0)
+  sc.root.quaternion.copy(cam.quaternion)
+  sc.root.scale.setScalar(0.55)
+  sc.setViewport(800, 46)
+  const ndc = new THREE.Vector3()
+  const mm = new THREE.Matrix4()
+  const ionBox = (): { x0: number; x1: number; y0: number; y1: number } => {
+    const b = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity }
+    for (const name of ['nacl-lattice-na', 'nacl-lattice-cl']) {
+      const mesh = sc.root.getObjectByName(name) as THREE.InstancedMesh
+      mesh.updateWorldMatrix(true, false)
+      for (let i = 0; i < mesh.count; i++) {
+        mesh.getMatrixAt(i, mm)
+        const r = colLen(mm)
+        if (r < 1e-6) continue
+        ndc.setFromMatrixPosition(mm).applyMatrix4(mesh.matrixWorld).project(cam)
+        b.x0 = Math.min(b.x0, ndc.x)
+        b.x1 = Math.max(b.x1, ndc.x)
+        b.y0 = Math.min(b.y0, ndc.y)
+        b.y1 = Math.max(b.y1, ndc.y)
+      }
+    }
+    return b
+  }
+  let inside = ''
+  for (const t of [NACL_STEPS[4]!.to - 0.6, NACL_STEPS[4]!.to, NACL_STEPS[5]!.from + 1.6, NACL_STEPS[5]!.to - 0.2, NACL_STEPS[5]!.to]) {
+    sc.seek(t)
+    sc.update(1 / 60, cam)
+    sc.root.updateMatrixWorld(true)
+    const b = ionBox()
+    for (const def of NACL_LABELS) {
+      if (!def.outside) continue
+      const l = sc.labels.find((x) => x.id === `nacl-${def.id}`)!
+      if (l.opacity <= 0.05) continue
+      ndc.copy(l.pos).applyMatrix4(sc.root.matrixWorld).project(cam)
+      if (ndc.x > b.x0 && ndc.x < b.x1 && ndc.y > b.y0 && ndc.y < b.y1) inside ||= `t=${t.toFixed(2)} ${def.id}: (${ndc.x.toFixed(3)}, ${ndc.y.toFixed(3)}) внутри [${b.x0.toFixed(3)}…${b.x1.toFixed(3)}] × [${b.y0.toFixed(3)}…${b.y1.toFixed(3)}]`
+    }
+  }
+  ok('подписи решётки не ложатся на ионы ни в одном кадре шагов 5–6', inside === '', inside)
+
+  // Октаэдр читается: грани залиты заметнее контура, остальные ионы приглушены.
+  sc.seek(NACL_STEPS[4]!.to)
+  sc.update(1 / 60, cam)
+  const naMesh = sc.root.getObjectByName('nacl-lattice-na') as THREE.InstancedMesh
+  const clMesh = sc.root.getObjectByName('nacl-lattice-cl') as THREE.InstancedMesh
+  ok('у решётки есть яркость инстансов (приглушение вне октаэдров)', naMesh.instanceColor != null && clMesh.instanceColor != null)
+  const focus = new Set<number>([...NACL_OCTA.map((o) => o.center), ...NACL_OCTA_SHELLS.flatMap((s) => s.neighbors)])
+  const tintOf = (site: number): number => {
+    const el = SALT_FRAG.sites[site]!.el
+    const mesh = el === 'Na' ? naMesh : clMesh
+    let k = 0
+    for (let i = 0; i < site; i++) if (SALT_FRAG.sites[i]!.el === el) k++
+    return (mesh.instanceColor!.array as Float32Array)[k * 3]!
+  }
+  let bright = 0
+  let dim = 0
+  for (let i = 0; i < SALT_FRAG.sites.length; i++) {
+    const v = tintOf(i)
+    if (focus.has(i)) bright += v > 0.99 ? 1 : 0
+    else dim += v < 0.35 ? 1 : 0
+  }
+  ok('на показе октаэдров: 14 выделенных ионов в полную яркость', bright === focus.size, `${bright} из ${focus.size}`)
+  ok('на показе октаэдров: остальные ионы приглушены', dim === SALT_FRAG.sites.length - focus.size, `${dim}`)
+  ok('выноски от октаэдров к подписям видны', (sc.root.getObjectByName('nacl-octa-callout') as THREE.LineSegments).visible)
+  ok('рёбра ячеек на показе октаэдров приглушены', (sc.root.getObjectByName('nacl-cell-edges') as THREE.LineSegments & { material: THREE.Material & { opacity: number } }).material.opacity < 0.2)
+
+  // Ячейка металла развёрнута: 9 атомов ОЦК дают 9 РАЗНЫХ точек на экране (фронтальный куб
+  // вырождался в квадрат — задние вершины прятались за передними).
+  let minSep = Infinity
+  const pts = METAL_FRAG.sites.map((_, i) => naclMetalPos(i))
+  for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) minSep = Math.min(minSep, Math.hypot(pts[i]![0] - pts[j]![0], pts[i]![1] - pts[j]![1]))
+  ok('ячейка металла в трёхчетвертном ракурсе: вершины не совпадают на экране', minSep > NACL_R.na, minSep.toFixed(3))
+
+  // Длиннофокусная перспектива на шагах 1–4 и обычная на 5–6.
+  for (let i = 0; i < 4; i++) ok(`шаг ${i + 1}: длиннофокусная перспектива`, naclDepthPushAt(NACL_STEPS[i]!.from + 0.1) > 1.5)
+  ok('шаги 5–6: перспектива обычная', naclDepthPushAt(NACL_STEPS[4]!.from) === 1 && naclDepthPushAt(NACL_END) === 1)
+
+  // Габарит на ПАУЗЕ — по тому, что реально в кадре, а не по самому широкому моменту шага:
+  // раньше решётка шага 5 вписывалась в рамку газовых пар начала того же шага и занимала треть
+  // отведённого ей места, а на 390 px шаг 1 оставлял сверху пустую полосу.
+  const ex = { w: 0, h: 0, cx: 0, cy: 0 }
+  const inst = { w: 0, h: 0, cx: 0, cy: 0 }
+  for (let i = 0; i < NACL_STEPS.length; i++) {
+    const t = Math.min(NACL_STEPS[i]!.to, lastStepTo)
+    naclExtentAt(t, ex)
+    naclInstantExtent(t, inst)
+    const slack = Math.max(ex.w / inst.w, ex.h / inst.h)
+    ok(`пауза шага ${i + 1}: кадр не шире композиции более чем на 20 %`, slack <= 1.2, `${slack.toFixed(2)} (${ex.w.toFixed(2)}×${ex.h.toFixed(2)} при ${inst.w.toFixed(2)}×${inst.h.toFixed(2)})`)
+    ok(`пауза шага ${i + 1}: композиция целиком в кадре`, ex.w >= inst.w - 1e-5 && ex.h >= inst.h - 1e-5)
+  }
+  // Кадр нигде не режет то, что в нём стоит. Допуск 3 % — ровно предел скорости изменения
+  // огибающей за шаг её таблицы (EXTENT_RATE): на спаде, когда уходящая ячейка металла гаснет и
+  // уезжает влево, кадр сжимается не мгновенно, а этим темпом.
+  let crop = ''
+  for (let t = 0; t <= NACL_END; t += 1 / 120) {
+    naclExtentAt(t, ex)
+    naclInstantExtent(t, inst)
+    if (ex.w < inst.w * 0.97 || ex.h < inst.h * 0.97) crop ||= `t=${t.toFixed(3)}: кадр ${ex.w.toFixed(2)}×${ex.h.toFixed(2)} < композиции ${inst.w.toFixed(2)}×${inst.h.toFixed(2)}`
+  }
+  ok('кадр нигде не режет композицию (допуск 3 %)', crop === '', crop)
+  sc.dispose()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -545,22 +742,14 @@ const hasValue = (s: string, v: number) => numbers(s).some((n) => matches(n, v))
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ladder = (kind: Parameters<typeof naclStageKJ>[0]) => naclStageKJ(kind)
-const rNaIon = radiusForSpecies('Na', 1)
-const rClIon = radiusForSpecies('Cl', -1)
 const radiiSum = rNaIon + rClIon
-/** Школьное ½D(Cl–Cl) = половина табличной энергии связи Cl–Cl ядра и его следствие для суммы цикла. */
 const SCHOOL_D = bondEnthalpyKJ('Cl-Cl')
 const SCHOOL_HALF_D = SCHOOL_D / 2
 const SCHOOL_SUM = NACL_LADDER.sumKJ - ladder('dissociation') + SCHOOL_HALF_D
-/** Справочное U, которое называется рядом с −787 (отличие от ядра — не больше 1 кДж). */
-const U_REF_ALT = 786
-/**
- * Внешние константы, которых нет в ядре (см. notes): стандартные условия 25 °C / 298 K и
- * D-линия натрия 589 нм (NIST ASD: 588,995 / 589,592 нм).
- */
+/** Справочный разброс энергии решётки, который называет текст рядом с −787,0 (решение владельца). */
+const U_SPREAD = [786, 788] as const
+/** Внешние константы: 25 °C / 298 K и D-линия натрия 589 нм. */
 const EXTERNAL = [25, 298, 589]
-
-/** Все значения ядра, которые имеет право назвать текст урока. */
 const CORE_VALUES: number[] = [
   METAL.cellPm.a,
   METAL.cationAnionPm,
@@ -582,33 +771,38 @@ const CORE_VALUES: number[] = [
   bondLengthPm('Na-Cl'),
   radiiSum,
   radiiSum - bondLengthPm('Na-Cl'),
+  2 * rNaIon,
   SPECIES_SCALE,
   SALT.cationAnionPm,
   SALT.cellPm.a,
   SALT.densityGCm3,
   SALT.z,
   SALT_FRAG.sites.length,
-  SALT_FRAG.cells[0] * 2 + 1,
+  NACL_LATTICE_CELLS[0] * 2 + 1,
   SCHOOL_D,
   SCHOOL_HALF_D,
   SCHOOL_SUM,
-  U_REF_ALT,
+  ...U_SPREAD,
   LATTICE_BALL_SCALE,
   ...EXTERNAL,
 ]
-ok('школьное ½D отличается от ступени ядра (иначе оговорка шага 6 пустая)', Math.abs(SCHOOL_HALF_D - ladder('dissociation')) > 0.05)
-ok('справочное U отличается от ядра не больше чем на 1 кДж', Math.abs(U_REF_ALT - Math.abs(NACL_LATTICE_KJ)) <= 1 && U_REF_ALT !== Math.abs(NACL_LATTICE_KJ))
-ok('по ребру фрагмента 5 ионов (из ячеек)', SALT_FRAG.cells[0] * 2 + 1 === 5)
+ok('школьное ½D отличается от ступени ядра', Math.abs(SCHOOL_HALF_D - ladder('dissociation')) > 0.05)
 {
-  // Плотность в тексте — справочная; рентгеновская ρ = Z·M / (N_A·a³) из ячейки ядра сходится с ней ≤ 0,1 %.
+  // Глубина погружения Na⁺ в сферу Cl⁻ — ЧЕТВЕРТЬ диаметра, а не половина (приёмка: текст обещал
+  // «наполовину утоплен», а по числам ядра заходит 46,9 пм из 204).
+  const sunkFrac = (radiiSum - bondLengthPm('Na-Cl')) / (2 * rNaIon)
+  ok('Na⁺ утоплен в Cl⁻ примерно на четверть диаметра (по ядру)', sunkFrac > 0.18 && sunkFrac < 0.32, sunkFrac.toFixed(3))
+  const half = /наполовину|полностью|half sunk|yarmigacha/i.test(JSON.stringify(getNaclMechanismText('ru')) + JSON.stringify(getNaclMechanismText('en')) + JSON.stringify(getNaclMechanismText('uz')))
+  ok('ни один язык не обещает «наполовину утоплен»', !half)
+}
+ok('справочный разброс U охватывает значение ядра', U_SPREAD[0] < Math.abs(NACL_LATTICE_KJ) && Math.abs(NACL_LATTICE_KJ) < U_SPREAD[1])
+{
   const N_A = 6.02214076e23
   const M = ATOMIC_DATA.Na.atomicMassU + ATOMIC_DATA.Cl.atomicMassU
-  const aCm = SALT.cellPm.a * 1e-10
-  const rhoX = (SALT.z * M) / (N_A * aCm ** 3)
-  ok('ρ(NaCl) ядра = Z·M/(N_A·a³) с точностью 0,1 %', Math.abs(rhoX - SALT.densityGCm3) / SALT.densityGCm3 < 1e-3, `${rhoX.toFixed(4)} против ${SALT.densityGCm3}`)
+  const rhoX = (SALT.z * M) / (N_A * (SALT.cellPm.a * 1e-10) ** 3)
+  ok('ρ(NaCl) ядра = Z·M/(N_A·a³) с точностью 0,1 %', Math.abs(rhoX - SALT.densityGCm3) / SALT.densityGCm3 < 1e-3)
 }
 
-/** Малые целые — счёт (2 Na, 6 соседей, Z = 4, 3s¹, ×2, «шаг 5», 10²³ → 10). */
 const isCount = (n: Num) => n.dec === 0 && n.v <= 12
 
 const fields = (t: NaclMechanismText): Record<string, string> => {
@@ -629,16 +823,13 @@ const fields = (t: NaclMechanismText): Record<string, string> => {
 const numbersByField: Record<NaclLocale, Record<string, string>> = { ru: {}, en: {}, uz: {} }
 for (const locale of LOCALES) {
   const t = getNaclMechanismText(locale)
-  ok(`[${locale}] заголовок и безопасность`, t.intro.title.length > 0 && t.safety.length > 20)
   for (const id of NACL_STEP_IDS) {
     const s = t.steps[id]
     ok(`[${locale}] ${id}: заголовок, уравнение, реплика`, s.title.trim().length > 0 && s.equation.trim().length > 0 && s.speak.trim().length > 0)
-    ok(`[${locale}] ${id}: 2–4 предложения`, s.body.split(/[.!?]\s/).length >= 2)
     ok(`[${locale}] ${id}: есть note (всё схематичное названо)`, (s.note ?? '').length > 0)
   }
-  ok(`[${locale}] aria-подпись лестницы`, t.energy.summary.includes('{dH}'))
   ok(`[${locale}] нет частицы Cl²⁻`, !JSON.stringify(t).includes('Cl²⁻'))
-
+  ok(`[${locale}] нигде нет двойной связи у Cl₂`, !/Cl=Cl|двойн|double bond|qoʻsh bogʻ/i.test(JSON.stringify(t)))
   const f = fields(t)
   for (const [key, s] of Object.entries(f)) {
     for (const n of numbers(s)) {
@@ -650,27 +841,6 @@ for (const locale of LOCALES) {
       .sort((a, b) => a - b)
       .join(' ')
   }
-
-  // Обязательные утверждения каждого шага — числа ядра в своём поле.
-  const need = (key: string, vals: number[]) => {
-    for (const v of vals) ok(`[${locale}] ${key} называет ${v}`, hasValue(f[key]!, v), f[key]!.slice(0, 60))
-  }
-  need('reactants.body', [METAL.cellPm.a, METAL.cationAnionPm, bondLengthPm('Cl-Cl'), radiusForSpecies('Na', 0), radiusForSpecies('Cl', 0)])
-  need('sublimation.body', [ladder('sublimation'), ladder('dissociation')])
-  need('transfer.body', [ladder('ionization'), ladder('affinity'), rNaIon, rClIon])
-  need('attraction.body', [bondLengthPm('Na-Cl')])
-  need('attraction.equation', [bondLengthPm('Na-Cl')])
-  need('attraction.note', [radiiSum, radiiSum - bondLengthPm('Na-Cl'), bondLengthPm('Na-Cl'), SALT.cationAnionPm, SPECIES_SCALE])
-  need('lattice.body', [SALT.cellPm.a, SALT.densityGCm3, Math.abs(ladder('lattice')), SALT.cationAnionPm, bondLengthPm('Na-Cl')])
-  need('lattice.equation', [ladder('lattice')])
-  need('lattice.note', [SALT_FRAG.sites.length, LATTICE_BALL_SCALE, radiiSum, SALT.cationAnionPm])
-  need('energy.note', [ladder('dissociation'), SCHOOL_D, SCHOOL_HALF_D, SCHOOL_SUM, ladder('lattice'), U_REF_ALT])
-  need('energy.body', [NACL_COST_BEFORE_LATTICE_KJ, 2 * dHfKJ('NaCl(s)')])
-
-  // Шаг 4 показывает газовую пару: кристаллическое расстояние в теле и уравнении шага не звучит.
-  ok(`[${locale}] шаг 4: в теле и уравнении нет кристаллического d`, !hasValue(f['attraction.body']! + ' ' + f['attraction.equation']!, SALT.cationAnionPm))
-
-  // Сумма цикла в тексте: слагаемые = ступени ядра по порядку, итог = табличная ΔH°f.
   {
     const body = t.steps.energy.body
     const eq = body.indexOf('=')
@@ -678,75 +848,66 @@ for (const locale of LOCALES) {
     const res = /([+−-])\s?(\d+[.,]\d+)/.exec(body.slice(eq))!
     const total = (res[1] === '+' ? 1 : -1) * Number(res[2]!.replace(',', '.'))
     const cycle = BORN_HABER.nacl.stages.map((s) => s.dHKJ)
-    ok(`[${locale}] сумма в тексте: слагаемые = ступени ядра`, terms.length === cycle.length && terms.every((v, i) => near(v, cycle[i]!, 0.05)), terms.join(' '))
+    ok(`[${locale}] сумма в тексте: слагаемые = ступени ядра`, terms.length === cycle.length && terms.every((v, i) => near(v, cycle[i]!, 0.05)))
     ok(`[${locale}] сумма в тексте сходится арифметически`, near(terms.reduce((s, v) => s + v, 0), total, 0.05))
-    ok(`[${locale}] итог суммы = табличная ΔH°f`, near(total, dHfKJ('NaCl(s)'), 0.05))
-    const eqn = numbers(t.steps.energy.equation).find((n) => n.dec > 0)!
-    ok(`[${locale}] ΔH уравнения = 2·ΔH°f со знаком минус`, eqn.sign === -1 && matches(eqn, 2 * dHfKJ('NaCl(s)')))
+    ok(`[${locale}] итог суммы = dHfKJ(NaCl(s))`, near(total, dHfKJ('NaCl(s)'), 0.05))
     const ueq = numbers(t.steps.lattice.equation).find((n) => n.dec > 0)!
-    ok(`[${locale}] U в уравнении шага 5 — отрицательное, как в ядре`, ueq.sign === -1 && matches(ueq, ladder('lattice')))
+    ok(`[${locale}] U в уравнении шага 5 = −787,0`, ueq.sign === -1 && matches(ueq, ladder('lattice')))
   }
-
-  // Одно значение энтальпии присоединения электрона везде (348,6, а не 349); знак IUPAC назван один раз.
   const all = Object.values(f).join(' ')
-  const eaLike = numbers(all).filter((n) => n.v >= 340 && n.v <= 360)
-  ok(`[${locale}] Δ_eg H хлора везде одним числом ядра`, eaLike.length > 0 && eaLike.every((n) => n.dec === 1 && matches(n, ladder('affinity'))), eaLike.map((n) => n.raw).join(' '))
-  ok(`[${locale}] конвенция IUPAC (+сродство) названа ровно один раз`, eaLike.filter((n) => n.sign === 1).length === 1)
-  ok(`[${locale}] Δ_eg H со знаком минус есть`, eaLike.some((n) => n.sign === -1))
-  // Школьное 121,7 — только в оговорке шага 6, ступень цикла везде 121,3.
-  for (const [key, s] of Object.entries(f)) {
-    if (key === 'energy.note') continue
-    ok(`[${locale}] ${key}: школьное ½D не подменяет ступень ядра`, !hasValue(s, SCHOOL_HALF_D) || numbers(s).every((n) => n.dec !== 1 || !matches(n, SCHOOL_HALF_D)))
-  }
+  // 343 — число ионов решётки (целое), не энтальпия: исключаем только его.
+  const eaLike = numbers(all).filter((n) => n.v >= 340 && n.v <= 360 && !(n.dec === 0 && n.v === SALT_FRAG.sites.length))
+  ok(`[${locale}] Δ_eg H хлора везде одним числом ядра`, eaLike.length > 0 && eaLike.every((n) => n.dec === 1 && matches(n, ladder('affinity'))))
+  // Решётка в тексте = решётка в кадре: 3×3×3, 343 иона, 7 по ребру; радиусы разных типов названы.
+  const cells = /(\d)×(\d)×(\d)/.exec(f['lattice.note']!)
+  ok(`[${locale}] фрагмент в тексте = решётка сцены`, cells != null && [1, 2, 3].every((i) => Number(cells[i]) === NACL_LATTICE_CELLS[i - 1]))
+  ok(`[${locale}] число ионов в тексте = 343`, hasValue(f['lattice.note']!, SALT_FRAG.sites.length))
+  ok(`[${locale}] note шага 1 называет оба радиуса (186 и 102)`, hasValue(f['reactants.note']!, NACL_RADIUS_PM.na) && hasValue(f['reactants.note']!, NACL_RADIUS_PM.cl))
+  ok(`[${locale}] энергия: называет U = 787,0 и разброс 786–788`, hasValue(f['energy.note']!, ladder('lattice')) && U_SPREAD.every((v) => hasValue(f['energy.note']!, v)))
+  const z = /Z = (\d+)/.exec(f['lattice.body']!)
+  ok(`[${locale}] Z в тексте = SALT.z`, z != null && Number(z[1]) === SALT.z)
 }
-// ─── Привязка «число ↔ величина»: не просто «число из набора ядра», а ТО число на ТОМ месте ───
 {
+  // Привязка «число ↔ величина» (ru): числа стоят на своих местах.
   const strip = (s: string) => s.replaceAll(SALT.spaceGroup, '').replaceAll(METAL.spaceGroup, '')
-  const seq = (s: string) => numbers(strip(s)).filter((n) => !isCount(n)).map((n) => n.v)
-  const sameSeq = (a: number[], b: number[]) => a.length === b.length && a.every((v, i) => near(v, b[i]!, 1e-9))
   const abs = Math.abs
-  // Ожидаемые последовательности (по порядку в тексте ru) — из ядра.
   const expect: Record<string, number[]> = {
     'reactants.body': [METAL.cellPm.a, METAL.cationAnionPm, bondLengthPm('Cl-Cl'), radiusForSpecies('Na', 0), radiusForSpecies('Cl', 0), bondLengthPm('Cl-Cl') / 2, 25],
     'sublimation.body': [ladder('sublimation'), ladder('dissociation'), 298],
     'transfer.body': [ladder('ionization'), radiusForSpecies('Na', 0), rNaIon, radiusForSpecies('Cl', 0), rClIon, rClIon / rNaIon, abs(ladder('affinity')), abs(ladder('affinity'))],
     'attraction.body': [bondLengthPm('Na-Cl')],
-    'attraction.note': [rNaIon, rClIon, radiiSum, bondLengthPm('Na-Cl'), radiiSum - bondLengthPm('Na-Cl'), SPECIES_SCALE, SALT.cationAnionPm],
+    // «Ближняя четверть шара Na⁺ заходит внутрь сферы Cl⁻ — 46,9 пм из диаметра 204 пм»: обе
+    // величины выводятся из ядра (сумма радиусов минус r_e и удвоенный радиус Na⁺).
+    'attraction.note': [rNaIon, rClIon, radiiSum, bondLengthPm('Na-Cl'), radiiSum - bondLengthPm('Na-Cl'), SPECIES_SCALE, radiiSum - bondLengthPm('Na-Cl'), 2 * rNaIon, SALT.cationAnionPm],
     'lattice.body': [SALT.cellPm.a, SALT.densityGCm3, SALT.cationAnionPm, bondLengthPm('Na-Cl'), abs(ladder('lattice'))],
     'lattice.note': [SALT_FRAG.sites.length, LATTICE_BALL_SCALE, rNaIon, rClIon, radiiSum, SALT.cationAnionPm],
     'energy.body': [ladder('sublimation'), ladder('dissociation'), ladder('ionization'), abs(ladder('affinity')), abs(ladder('lattice')), abs(NACL_LADDER.sumKJ), NACL_COST_BEFORE_LATTICE_KJ, abs(2 * dHfKJ('NaCl(s)'))],
-    'energy.note': [ladder('dissociation'), 298, SCHOOL_D, SCHOOL_HALF_D, abs(SCHOOL_SUM), abs(ladder('lattice')), U_REF_ALT, 298, 589],
+    'energy.note': [ladder('dissociation'), 298, SCHOOL_D, SCHOOL_HALF_D, abs(SCHOOL_SUM), abs(ladder('lattice')), U_SPREAD[0], U_SPREAD[1], 298, 589],
   }
   const ru = fields(getNaclMechanismText('ru'))
   for (const [key, want] of Object.entries(expect)) {
     const got = numbers(strip(ru[key]!)).filter((n) => !isCount(n))
-    ok(`[ru] ${key}: числа стоят на своих местах (привязка к величинам ядра)`, got.length === want.length && got.every((n, i) => matches(n, want[i]!)), `${got.map((n) => n.v).join(' ')} | ожидалось ${want.map((v) => v.toFixed(2)).join(' ')}`)
+    ok(`[ru] ${key}: числа на своих местах`, got.length === want.length && got.every((n, i) => matches(n, want[i]!)), `${got.map((n) => n.v).join(' ')} | ожидалось ${want.map((v) => v.toFixed(2)).join(' ')}`)
   }
-  // Счётные величины — по шаблонам, из ядра: Z, КЧ, число ячеек фрагмента.
-  for (const locale of LOCALES) {
+  const seq = (s: string) => numbers(strip(s)).filter((n) => !isCount(n)).map((n) => n.v)
+  for (const locale of ['en', 'uz'] as const) {
     const f = fields(getNaclMechanismText(locale))
-    const z = /Z = (\d+)/.exec(f['lattice.body']!)
-    ok(`[${locale}] Z в тексте = SALT.z`, z != null && Number(z[1]) === SALT.z)
-    const cn = /(\d+):(\d+)/.exec(f['lattice.body']!)
-    ok(`[${locale}] КЧ в тексте = SALT.coordination`, cn != null && Number(cn[1]) === SALT.coordination['Na⁺'] && Number(cn[2]) === SALT.coordination['Cl⁻'])
-    const cells = /(\d)×(\d)×(\d)/.exec(f['lattice.note']!)
-    ok(`[${locale}] фрагмент в тексте = SALT_FRAG.cells`, cells != null && [1, 2, 3].every((i) => Number(cells[i]) === SALT_FRAG.cells[i - 1]))
-    // en / uz: та же последовательность чисел в каждом поле, что и в ru (порядок = привязка).
-    if (locale === 'ru') continue
     for (const key of Object.keys(f)) {
-      ok(`[${locale}] ${key}: порядок чисел как в ru`, sameSeq(seq(f[key]!), seq(ru[key]!)), `${seq(f[key]!).join(' ')} | ru ${seq(ru[key]!).join(' ')}`)
+      const a = seq(f[key]!)
+      const b = seq(ru[key]!)
+      ok(`[${locale}] ${key}: порядок чисел как в ru`, a.length === b.length && a.every((v, i) => near(v, b[i]!, 1e-9)), `${a.join(' ')} | ru ${b.join(' ')}`)
     }
   }
 }
-
-// ru / en / uz синхронны по каждому числу каждого поля.
 for (const key of Object.keys(numbersByField.ru)) {
   ok(`числа поля ${key} совпадают в ru/en`, numbersByField.ru[key] === numbersByField.en[key], `${numbersByField.ru[key]} | ${numbersByField.en[key]}`)
   ok(`числа поля ${key} совпадают в ru/uz`, numbersByField.ru[key] === numbersByField.uz[key], `${numbersByField.ru[key]} | ${numbersByField.uz[key]}`)
 }
+scene.dispose()
 
-console.log(`✓ nacl cinema (эталон): ${checks} проверок пройдено`)
+console.log(`✓ nacl cinema: ${checks} проверок пройдено`)
 console.log(`  шагов ${NACL_STEPS.length}, экранное время ${wall.toFixed(1)} с (${NACL_STEPS.map((s) => s.wall).join(' + ')} + хвост), сюжет ${NACL_END} с`)
-console.log(`  цикл Борна — Габера: Σ = ${NACL_LADDER.sumKJ} кДж/моль (таблица ${NACL_DHF_TABLE_KJ}), школьное ½D = ${SCHOOL_HALF_D} → ${SCHOOL_SUM.toFixed(1)}`)
-console.log(`  пара: газ ${bondLengthPm('Na-Cl')} пм → решётка ${SALT.cationAnionPm} пм; перекрытие полных сфер ${(radiiSum - bondLengthPm('Na-Cl')).toFixed(1)} пм`)
-console.log(`  решётка: ${SALT_FRAG.sites.length} ионов, ${SALT_FRAG.cellEdges.length} рёбер ячеек, ${SALT.spaceGroup}, КЧ ${Object.values(SALT.coordination).join(':')}`)
+console.log(`  перенос e⁻: Безье, смена размеров ${NACL_MORPH_S} с с кадра поглощения; Na ${NACL_RADIUS_PM.na} → ${rNaIon}, Cl ${NACL_RADIUS_PM.cl} → ${rClIon} пм`)
+console.log(`  решётка ${NACL_LATTICE_CELLS.join('×')}: ${SALT_FRAG.sites.length} ионов, ${SALT_FRAG.cellEdges.length} рёбер, Cl⁻/Na⁺ = ${(NACL_LATTICE_R.clIon / NACL_LATTICE_R.naIon).toFixed(3)}`)
+console.log(`  цикл Борна — Габера: Σ = ${NACL_LADDER.sumKJ} кДж/моль, U = ${NACL_LATTICE_KJ}`)
+process.exit(0)

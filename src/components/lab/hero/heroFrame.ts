@@ -7,7 +7,8 @@
  * Камера целится по X и Y так, чтобы центр композиции (модель + подписи) встал в центр свободной
  * области, и отъезжает, пока описанная сфера композиции не впишется в неё с полем.
  */
-import { createSafeArea, measureSafeArea } from '../../../lab/cinema/core/safeArea'
+import { createSafeArea, measureSafeArea, writeSafeRect } from '../../../lab/cinema/core/safeArea'
+import { CATALOG_HERO_VIEW } from '../labOrbitConstants'
 import { buildHeroModel } from './heroGeometry'
 
 /** Радиус описанной сферы модели героя в мире после нормировки (кристалл и молекула одинаково). */
@@ -63,12 +64,14 @@ const safe = createSafeArea()
  */
 export function measureHeroFreeRect(
   canvas: HTMLCanvasElement,
+  opts: { ignoreLessonPanel?: boolean } = {},
 ): { left: number; right: number; top: number; bottom: number; width: number; height: number } | null {
   const r = canvas.getBoundingClientRect()
   if (r.width < 40 || r.height < 80) return null
   safe.counter = 0
   safe.ready = false
-  measureSafeArea(safe, canvas)
+  if (opts.ignoreLessonPanel) measureWithoutLessonPanel(canvas, r)
+  else measureSafeArea(safe, canvas)
   if (!safe.ready) return null
   const { left, bottom } = safe
   let { right, top } = safe
@@ -93,6 +96,23 @@ export function measureHeroFreeRect(
 }
 
 /**
+ * Свободная область БЕЗ панели урока — такой её увидит герой после урока (панель уходит вместе
+ * со сценой). Та же логика, что core/safeArea.measureSafeArea: верхние пилюли и док реактора.
+ */
+function measureWithoutLessonPanel(canvas: HTMLCanvasElement, r: DOMRect): void {
+  let top = r.top + Math.min(90, r.height * 0.1)
+  let bottom = r.bottom
+  const reactor = document.querySelector<HTMLElement>('[data-lab-reactor]')
+  if (reactor) {
+    const rr = reactor.getBoundingClientRect()
+    if (rr.height > 0 && rr.top > r.top + r.height * 0.35 && rr.top < bottom) bottom = rr.top
+  }
+  if (bottom - top < r.height * 0.3) top = r.top
+  writeSafeRect(safe, r.width, r.height, 0, r.width, top - r.top, bottom - r.top)
+  void canvas
+}
+
+/**
  * Кадр героя: цель камеры (X, Y) и расстояние, при которых композиция радиуса fitRadius
  * вписана в свободную область. baseDistance — прежний каталожный радиус орбиты (не ближе 0,8 от него).
  */
@@ -101,9 +121,10 @@ export function measureHeroFrame(
   geom: HeroFrameGeometry,
   fovDeg: number,
   baseDistance: number,
+  opts: { ignoreLessonPanel?: boolean } = {},
 ): HeroFrame | null {
   if (!canvas) return null
-  const free = measureHeroFreeRect(canvas)
+  const free = measureHeroFreeRect(canvas, opts)
   if (!free) return null
   const tanH = Math.tan((fovDeg * Math.PI) / 360)
   // Полоса под подпись кристалла — снизу свободной области; модель центрируется над ней.
@@ -121,4 +142,45 @@ export function measureHeroFrame(
     targetY: (cy - free.height / 2) / pxPerWorld,
     radius,
   }
+}
+
+// ─── Каталожный кадр героя: цель и положение камеры ───
+
+const CAT_OFFSET_Y = CATALOG_HERO_VIEW.cameraPosition[1] - CATALOG_HERO_VIEW.target[1]
+const CAT_OFFSET_Z = CATALOG_HERO_VIEW.cameraPosition[2] - CATALOG_HERO_VIEW.target[2]
+/** Базовый радиус каталожной орбиты. */
+export const CATALOG_HERO_BASE_RADIUS = Math.hypot(CAT_OFFSET_Y, CAT_OFFSET_Z)
+
+export type CatalogHeroFrameValue = { targetX: number; targetY: number; radius: number }
+
+/**
+ * Каталожный кадр героя вещества (цель по X/Y и радиус орбиты) — ОДНА функция для лаборатории
+ * (LabScene) и сцены урока, которая в хвосте подводит камеру к этому кадру.
+ */
+export function catalogHeroFrameFor(
+  canvas: HTMLCanvasElement | null,
+  compoundId: string | null | undefined,
+  opts: { ignoreLessonPanel?: boolean } = {},
+): CatalogHeroFrameValue {
+  const base = { targetX: CATALOG_HERO_VIEW.target[0], targetY: CATALOG_HERO_VIEW.target[1], radius: CATALOG_HERO_BASE_RADIUS }
+  const f = measureHeroFrame(canvas, heroFrameGeometry(compoundId), CATALOG_HERO_VIEW.fov, CATALOG_HERO_BASE_RADIUS, opts)
+  if (!f) return base
+  return { targetX: CATALOG_HERO_VIEW.target[0] + f.targetX, targetY: CATALOG_HERO_VIEW.target[1] + f.targetY, radius: f.radius }
+}
+
+/** Положение камеры и цель для кадра героя (как у LabScene в каталожном режиме). */
+export function catalogHeroCameraPose(
+  frame: CatalogHeroFrameValue,
+  out: { position: [number, number, number]; target: [number, number, number]; fov: number },
+): { position: [number, number, number]; target: [number, number, number]; fov: number } {
+  const k = frame.radius / CATALOG_HERO_BASE_RADIUS
+  const tz = CATALOG_HERO_VIEW.target[2]
+  out.position[0] = frame.targetX + CATALOG_HERO_VIEW.cameraPosition[0] * k
+  out.position[1] = frame.targetY + CAT_OFFSET_Y * k
+  out.position[2] = tz + CAT_OFFSET_Z * k
+  out.target[0] = frame.targetX
+  out.target[1] = frame.targetY
+  out.target[2] = tz
+  out.fov = CATALOG_HERO_VIEW.fov
+  return out
 }

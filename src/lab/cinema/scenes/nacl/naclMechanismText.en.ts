@@ -13,7 +13,7 @@ export const NACL_TEXT_EN: NaclMechanismText = {
         'On the right is a chlorine molecule Cl₂: two atoms held by one shared electron pair (a σ bond), bond length 198.8 pm. ' +
         'The radius of a sodium atom in the metal is 186 pm, the covalent radius of chlorine 102 pm (half the Cl–Cl bond length is 99.4 pm — the difference is within the reference spread). At 25 °C chlorine is a gas and sodium a solid metal.',
       equation: '2 Na (s) + Cl₂ (g)',
-      note: 'Chlorine reacts as the MOLECULE Cl₂ — there are no lone chlorine atoms in the cylinder. The pale threads in the sodium cell are a sketch of metallic bonding (electrons shared by the whole crystal), not separate bonds between pairs of atoms.',
+      note: 'Chlorine reacts as the MOLECULE Cl₂ — there are no lone chlorine atoms in the cylinder. The sodium sphere is drawn larger than the chlorine sphere, and the data say so: 186 pm is the metallic radius (an atom in the metal), 102 pm the covalent radius (an atom in a molecule). These are radii of DIFFERENT kinds: they show the order of size, not a comparison of atoms measured the same way. The light lines around sodium are unit-cell edges, not bonds; the metal is matte — sodium tarnishes quickly in air.',
       speak: 'A cell of sodium metal on the left, a chlorine molecule on the right. Chlorine is always diatomic.',
     },
     sublimation: {
@@ -33,7 +33,7 @@ export const NACL_TEXT_EN: NaclMechanismText = {
         'Sodium loses its whole outer shell and shrinks from 186 to 102 pm — it is now the cation Na⁺. Chlorine gains its eighth electron, completes the octet and grows from 102 to 181 pm: the anion Cl⁻ is about 1.8 times larger than Na⁺. ' +
         'Adding the electron releases energy: Δ_eg H = −348.6 kJ/mol. In IUPAC usage the same quantity is called the electron affinity and written with a plus sign, +348.6 kJ/mol — one process, only the sign convention differs.',
       equation: 'Na⁰ − 1e⁻ → Na⁺  (×2);  Cl⁰ + 1e⁻ → Cl⁻  (×2)',
-      note: 'The dots around the atoms count valence electrons in the Lewis manner (one on Na, seven on Cl, eight on Cl⁻); they are not electron positions. The arc the electron flies along and the slowed-down time are conventions: the transfer is a quantum jump. Na shrinks the moment the electron leaves (Na → Na⁺ + e⁻ is the ionisation itself), Cl grows the moment it arrives. Radii of different kinds are compared here: the metallic radius of Na and the covalent radius of Cl against Shannon ionic radii; the trend is right, but the numbers come from different scales.',
+      note: 'The dots around the atoms count valence electrons in the Lewis manner (one on Na, seven on Cl, eight on Cl⁻); they are not electron positions. The arc the electron flies along and the slowed-down time are conventions: the transfer is a quantum jump. The donor label changes to Na⁺ on the frame the electron LEAVES — that is when the charge appears (Na → Na⁺ + e⁻ is the ionisation itself), so while the electron is in flight the frame shows Na⁺ + e⁻ + Cl and the charges still sum to zero. The size and colour of Na and Cl change later and together, at the moment of absorption, so that the change of the two particles reads as one event. The second transfer repeats the first for the second pair of atoms. Radii of different kinds are compared here: the metallic radius of Na and the covalent radius of Cl against Shannon ionic radii; the trend is right, but the numbers come from different scales.',
       speak: 'Sodium gives away one electron and gets smaller. Chlorine takes it and gets bigger.',
     },
     attraction: {
@@ -44,7 +44,7 @@ export const NACL_TEXT_EN: NaclMechanismText = {
         'That is the ionic bond: not a shared pair, but the attraction of whole charges.',
       equation: 'Na⁺ (g) + Cl⁻ (g) → Na⁺Cl⁻ (g),  rₑ = 236.1 pm',
       note:
-        'The sum of Shannon ionic (effective) radii for coordination number 6, 102 + 181 = 283 pm, is larger than 236.1 pm: the spheres of the gas pair overlap by 47 pm. This is not a mistake — in the gas the ions polarise each other, and Shannon gives no radii for an isolated pair. In this step the spheres are drawn at the full Shannon radius (in steps 1–3 at 0.72 of it), so the overlap is visible: the smaller Na⁺ is half sunk into Cl⁻. ' +
+        'The sum of Shannon ionic (effective) radii for coordination number 6, 102 + 181 = 283 pm, is larger than 236.1 pm: the spheres of the gas pair overlap by 47 pm. This is not a mistake — in the gas the ions polarise each other, and Shannon gives no radii for an isolated pair. In this step the spheres are drawn at the full Shannon radius (in steps 1–3 at 0.72 of it), so the overlap is visible: the near quarter of the Na⁺ sphere reaches inside the Cl⁻ sphere — 46.9 pm out of its 204 pm diameter. ' +
         'In the crystal the same pair sits 282.0 pm apart (step 5). The dotted arcs sketch field lines; two pairs instead of a huge number is a simplification.',
       speak: 'Plus and minus attract. In a gaseous salt molecule the ions come within two hundred thirty-six picometres.',
     },
@@ -54,8 +54,8 @@ export const NACL_TEXT_EN: NaclMechanismText = {
         'One pair is not the end: every ion attracts all its neighbours. The ions stack into the rock-salt lattice — space group Fm-3m, two face-centred cubic sublattices, cell edge a = 564.0 pm, Z = 4, reference density 2.165 g/cm³. ' +
         'Each Na⁺ has six Cl⁻ at the corners of an octahedron and each Cl⁻ six Na⁺: the coordination number is 6:6. The repulsion of the filled shells of six neighbours adds up, so the equilibrium in the crystal lies farther out than in the gas: 282.0 pm instead of 236.1 pm. ' +
         'Building the lattice from gaseous ions releases 787.0 kJ/mol.',
-      equation: 'Na⁺ (g) + Cl⁻ (g) → NaCl (s),  U = −787.0 kJ/mol',
-      note: 'The frame shows a fragment of 2×2×2 unit cells — 125 ions, 5 along each edge; the light lines are cell edges, not bonds. The lattice spheres are drawn at 0.5 of their radius so that the edges show through the fragment: in a real crystal neighbouring ions touch (102 + 181 = 283 ≈ 282.0 pm). A salt grain one millimetre across holds about 10¹⁹ ions.',
+      equation: 'Na⁺ (g) + Cl⁻ (g) → NaCl (s),  U = −787.0 kJ/mol',
+      note: 'The frame shows a fragment of 3×3×3 unit cells — 343 ions, 7 along each edge; the light lines are cell edges, not bonds. The translucent octahedra are the surroundings of two chosen ions: six Cl⁻ around Na⁺ and six Na⁺ around Cl⁻ (CN 6:6). The fill and the outline of an octahedron are the faces and edges of the COORDINATION POLYHEDRON, not bonds: an ionic lattice has no bonds. While the octahedra are shown the other ions are dimmed, so the six neighbours can be counted. The lattice spheres are drawn at 0.5 of their radius so that the edges show through the fragment: in a real crystal neighbouring ions touch (102 + 181 = 283 ≈ 282.0 pm). A salt grain one millimetre across holds about 10¹⁹ ions.',
       speak: 'The ions build a cubic lattice. Every ion has six neighbours of the opposite sign.',
     },
     energy: {
@@ -64,9 +64,9 @@ export const NACL_TEXT_EN: NaclMechanismText = {
         'Add up the Born–Haber cycle: +107.3 (sublimation) + 121.3 (dissociation) + 495.8 (ionisation) − 348.6 (electron gain) − 787.0 (lattice) = −411.2 kJ per mole of NaCl — exactly the tabulated enthalpy of formation. ' +
         'Without the lattice energy the first four steps would add to +375.8 kJ/mol, and the process would absorb heat instead. ' +
         'It is the lattice energy that makes the reaction exothermic: the equation 2 Na + Cl₂ releases 822.4 kJ.',
-      equation: '2 Na (s) + Cl₂ (g) → 2 NaCl (s),  ΔH = −822.4 kJ',
+      equation: '2 Na (s) + Cl₂ (g) → 2 NaCl (s),  ΔH = −822.4 kJ',
       note:
-        'Electron balance of the equation: 2 Na⁰ − 2e⁻ → 2 Na⁺, Cl₂⁰ + 2e⁻ → 2 Cl⁻ — as many electrons are given as are taken. The step ½ Cl₂ → Cl is taken equal to ΔH°f(Cl, g) = 121.3 kJ/mol at 298 K (NIST-JANAF) — with it the cycle closes exactly. School tables take half the Cl–Cl bond energy (243 kJ/mol) — 121.5, and then the sum comes out as −411.0. The lattice step −787.0 closes the cycle here; some handbooks give −786. Strictly this is the lattice enthalpy at 298 K: the lattice energy U differs from it by about 2RT ≈ 5 kJ/mol. ' +
+        'Electron balance of the equation: 2 Na⁰ − 2e⁻ → 2 Na⁺, Cl₂⁰ + 2e⁻ → 2 Cl⁻ — as many electrons are given as are taken. The step ½ Cl₂ → Cl is taken equal to ΔH°f(Cl, g) = 121.3 kJ/mol at 298 K (NIST-JANAF) — with it the cycle closes exactly. School tables take half the Cl–Cl bond energy (243 kJ/mol) — 121.5, and then the sum comes out as −411.0. The lattice step −787.0 kJ/mol is the value with which the cycle closes exactly; reference values lie between 786–788 kJ/mol. Strictly this is the lattice enthalpy at 298 K: the lattice energy U differs from it by about 2RT ≈ 5 kJ/mol. ' +
         'Sodium burns in chlorine with a bright yellow flame — the glow of excited sodium atoms (the D line, 589 nm) above the metal, not the colour of the salt; the flame is not drawn in 3D.',
       speak: 'The result is minus four hundred eleven kilojoules per mole of salt. The lattice supplies the energy.',
     },

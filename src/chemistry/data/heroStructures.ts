@@ -79,7 +79,9 @@ export type HeroSpec = CrystalHeroSpec | MoleculeHeroSpec
 
 export const HERO_STRUCTURES: Readonly<Record<string, HeroSpec>> = {
   // ── ионные и атомные решётки ──
-  nacl: { kind: 'crystal', crystalId: 'nacl', cells: [2, 2, 2], radiusModel: 'ionic', drawBonds: false, phase: 'solid', formationKey: 'NaCl(s)' },
+  // 3×3×3 — та же решётка, которой кончается сцена урока (scenes/nacl): сцена встаёт на место героя
+  // без второй решётки в кадре, карточка описывает ровно то, что видно (343 иона, 7 по ребру)
+  nacl: { kind: 'crystal', crystalId: 'nacl', cells: [3, 3, 3], radiusModel: 'ionic', drawBonds: false, phase: 'solid', formationKey: 'NaCl(s)' },
   mgo: { kind: 'crystal', crystalId: 'mgo', cells: [2, 2, 2], radiusModel: 'ionic', drawBonds: false, phase: 'solid', formationKey: 'MgO(s)' },
   // Корунд: c ≈ 2,7·a, поэтому 2×2×1 целых ячейки — почти кубический фрагмент (2×2×2 был бы столбом)
   al2o3: { kind: 'crystal', crystalId: 'corundum', cells: [2, 2, 1], radiusModel: 'ionic', drawBonds: false, phase: 'solid', formationKey: 'Al2O3(s)' },

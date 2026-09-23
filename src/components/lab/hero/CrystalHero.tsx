@@ -7,6 +7,6 @@ import { HeroStructureView } from './HeroStructureView'
  * Кордеро у полярно-ковалентного каркаса, видимые рёбра ячеек (cellEdges), подпись a / группа / КЧ
  * (latticeCaption) и медленный облёт. Без огня, свечения и ауры — свет только сценический.
  */
-export function CrystalHero({ model, showLabels, lowPower }: { model: HeroModel; showLabels: boolean; lowPower?: boolean }) {
-  return <HeroStructureView model={model} showLabels={showLabels} lowPower={lowPower} />
+export function CrystalHero({ model, showLabels, lowPower, handoff }: { model: HeroModel; showLabels: boolean; lowPower?: boolean; handoff?: boolean }) {
+  return <HeroStructureView model={model} showLabels={showLabels} lowPower={lowPower} handoff={handoff} />
 }

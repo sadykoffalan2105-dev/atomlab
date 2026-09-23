@@ -434,10 +434,11 @@ export type SceneLocale = 'ru' | 'en' | 'uz'
  * интернациональны; переводятся только состояния вещества и единицы.
  */
 export const SCENE_LABEL_TOKENS: Readonly<Record<SceneLocale, Readonly<Record<string, string>>>> = {
-  // cn — координационное число, символ учебника: ru «КЧ», en «CN», uz «KS» (koordinatsion son)
-  ru: { s: 'тв.', g: 'г.', l: 'ж.', aq: 'р-р', pm: 'пм', nm: 'нм', kJmol: 'кДж/моль', kJ: 'кДж', cn: 'КЧ' },
-  en: { s: 's', g: 'g', l: 'l', aq: 'aq', pm: 'pm', nm: 'nm', kJmol: 'kJ/mol', kJ: 'kJ', cn: 'CN' },
-  uz: { s: 'qat.', g: 'gaz', l: 'suyuq.', aq: 'eritma', pm: 'pm', nm: 'nm', kJmol: 'kJ/mol', kJ: 'kJ', cn: 'KS' },
+  // cn — координационное число, символ учебника: ru «КЧ», en «CN», uz «KS» (koordinatsion son);
+  // gcm3 — единица плотности (uz: «sm» — сантиметр в узбекской записи)
+  ru: { s: 'тв.', g: 'г.', l: 'ж.', aq: 'р-р', pm: 'пм', nm: 'нм', kJmol: 'кДж/моль', kJ: 'кДж', cn: 'КЧ', gcm3: 'г/см³' },
+  en: { s: 's', g: 'g', l: 'l', aq: 'aq', pm: 'pm', nm: 'nm', kJmol: 'kJ/mol', kJ: 'kJ', cn: 'CN', gcm3: 'g/cm³' },
+  uz: { s: 'qat.', g: 'gaz', l: 'suyuq.', aq: 'eritma', pm: 'pm', nm: 'nm', kJmol: 'kJ/mol', kJ: 'kJ', cn: 'KS', gcm3: 'g/sm³' },
 }
 
 /** Нормализует код языка приложения к языку сцены. */

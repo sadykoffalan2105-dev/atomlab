@@ -13,7 +13,7 @@ export const NACL_TEXT_UZ: NaclMechanismText = {
         'Oʻngda — xlor molekulasi Cl₂: ikki atom bitta umumiy elektron jufti bilan bogʻlangan (σ-bogʻ), bogʻ uzunligi 198,8 pm. ' +
         'Metalldagi natriy atomining radiusi 186 pm, xlorning kovalent radiusi 102 pm (Cl–Cl bogʻ uzunligining yarmi 99,4 pm — farq maʼlumotnoma tarqoqligi doirasida). 25 °C da xlor — gaz, natriy — qattiq metall.',
       equation: '2 Na (q.) + Cl₂ (g.)',
-      note: 'Xlor reaksiyaga Cl₂ MOLEKULASI holida kirishadi — ballonda yakka xlor atomlari yoʻq. Natriy katagidagi xira iplar — metall bogʻlanishning sxemasi (butun kristallning umumiy elektronlari), atomlar juftlari orasidagi alohida bogʻlar emas.',
+      note: 'Xlor reaksiyaga Cl₂ MOLEKULASI holida kirishadi — ballonda yakka xlor atomlari yoʻq. Natriy shari xlor sharidan kattaroq chizilgan va bu maʼlumotlarga mos: 186 pm — metall radius (metalldagi atom), 102 pm — kovalent radius (molekuladagi atom). Bular TURLI xil radiuslar: ular oʻlchamlar tartibini koʻrsatadi, bir xil oʻlchangan atomlarni solishtirmaydi. Natriy atrofidagi och chiziqlar — elementar katak qirralari, bogʻlar emas; metall xira — natriy havoda tez xiralashadi.',
       speak: 'Chapda metall natriy katagi, oʻngda xlor molekulasi. Xlor doim ikki atomli.',
     },
     sublimation: {
@@ -33,7 +33,7 @@ export const NACL_TEXT_UZ: NaclMechanismText = {
         'Natriy butun tashqi qatlamini yoʻqotadi va 186 pm dan 102 pm gacha kichrayadi — bu Na⁺ kationi. Xlor sakkizinchi elektronni oladi, oktetni toʻldiradi va 102 pm dan 181 pm gacha kattalashadi: Cl⁻ anioni Na⁺ dan taxminan 1,8 marta yirik. ' +
         'Elektron qoʻshilishi energiya ajratadi: Δ_eg H = −348,6 kJ/mol. IUPAC yozuvida xuddi shu kattalik elektronga moyillik deb ataladi va musbat ishora bilan yoziladi: +348,6 kJ/mol — jarayon bitta, faqat ishora kelishuvi boshqacha.',
       equation: 'Na⁰ − 1e⁻ → Na⁺  (×2);  Cl⁰ + 1e⁻ → Cl⁻  (×2)',
-      note: 'Atomlar atrofidagi nuqtalar — Lyuis boʻyicha valent elektronlar soni (Na da bitta, Cl da yettita, Cl⁻ da sakkizta), ularning joylashuvi emas. Elektronning yoy boʻylab «uchishi» va sekinlashtirilgan vaqt — shartli: oʻtish kvant sakrashi. Na elektron ketgan onda kichrayadi (Na → Na⁺ + e⁻ — bu ionlanishning oʻzi), Cl esa elektron yetib kelgan onda kattalashadi. Bu yerda turli xil radiuslar solishtiriladi: Na ning metall radiusi va Cl ning kovalent radiusi Shennonning ion radiuslari bilan; tendensiya toʻgʻri, lekin sonlar turli shkalalardan olingan.',
+      note: 'Atomlar atrofidagi nuqtalar — Lyuis boʻyicha valent elektronlar soni (Na da bitta, Cl da yettita, Cl⁻ da sakkizta), ularning joylashuvi emas. Elektronning yoy boʻylab «uchishi» va sekinlashtirilgan vaqt — shartli: oʻtish kvant sakrashi. Donor yozuvi elektron KETGAN kadrda Na⁺ ga oʻzgaradi — zaryad aynan shunda paydo boʻladi (Na → Na⁺ + e⁻ — bu ionlanishning oʻzi), shuning uchun elektron uchayotganda kadrda Na⁺ + e⁻ + Cl turadi va zaryadlar yigʻindisi nolga teng. Na va Cl ning oʻlchami va rangi keyinroq, yutilish onida va bir vaqtda oʻzgaradi — ikki zarrachaning oʻzgarishi bitta hodisa boʻlib oʻqilsin. Ikkinchi oʻtish — birinchisining ikkinchi atomlar jufti uchun takrori. Bu yerda turli xil radiuslar solishtiriladi: Na ning metall radiusi va Cl ning kovalent radiusi Shennonning ion radiuslari bilan; tendensiya toʻgʻri, lekin sonlar turli shkalalardan olingan.',
       speak: 'Natriy bitta elektron beradi va kichrayadi. Xlor elektronni oladi va kattalashadi.',
     },
     attraction: {
@@ -44,7 +44,7 @@ export const NACL_TEXT_UZ: NaclMechanismText = {
         'Ion bogʻlanish shu: umumiy juft emas, balki butun zaryadlarning tortishishi.',
       equation: 'Na⁺ (g.) + Cl⁻ (g.) → Na⁺Cl⁻ (g.),  rₑ = 236,1 pm',
       note:
-        'Shennonning KS 6 dagi ion (effektiv) radiuslari yigʻindisi 102 + 181 = 283 pm, bu 236,1 pm dan katta: gaz juftining sferalari 47 pm ga ustma-ust tushadi. Bu xato emas — gazda ionlar bir-birini qutblaydi, Shennonda esa yakka juft uchun radiuslar yoʻq. Bu qadamda sharlar Shennonning toʻliq radiusida chizilgan (1–3-qadamlarda radiusning 0,72 qismida), shuning uchun ustma-ust tushish koʻrinadi: kichikroq Na⁺ Cl⁻ ichiga yarmigacha botgan. ' +
+        'Shennonning KS 6 dagi ion (effektiv) radiuslari yigʻindisi 102 + 181 = 283 pm, bu 236,1 pm dan katta: gaz juftining sferalari 47 pm ga ustma-ust tushadi. Bu xato emas — gazda ionlar bir-birini qutblaydi, Shennonda esa yakka juft uchun radiuslar yoʻq. Bu qadamda sharlar Shennonning toʻliq radiusida chizilgan (1–3-qadamlarda radiusning 0,72 qismida), shuning uchun ustma-ust tushish koʻrinadi: Na⁺ sharining yaqin choragi Cl⁻ sferasi ichiga kiradi — 46,9 pm, uning 204 pm diametridan. ' +
         'Kristallda xuddi shu juft 282,0 pm masofada turadi (5-qadam). Nuqtali yoylar — maydon chiziqlarining sxemasi; son-sanoqsiz juft oʻrniga ikkita juft — soddalashtirish.',
       speak: 'Plyus va minus tortishadi. Gaz holidagi tuz molekulasida ionlar ikki yuz oʻttiz olti pikometrgacha yaqinlashadi.',
     },
@@ -54,8 +54,8 @@ export const NACL_TEXT_UZ: NaclMechanismText = {
         'Bitta juft bilan ish tugamaydi: har bir ion barcha qoʻshnilarini tortadi. Ionlar tosh tuzi panjarasiga joylashadi — fazoviy guruh Fm-3m, ikkita yoqlari markazlashgan kubik (YMK) ost-panjara, katak qirrasi a = 564,0 pm, Z = 4, maʼlumotnomadagi zichlik 2,165 g/sm³. ' +
         'Har bir Na⁺ ning oktaedr uchlarida oltita Cl⁻ qoʻshnisi bor, har bir Cl⁻ ning esa oltita Na⁺: koordinatsion son 6:6. Oltita qoʻshnining toʻlgan qobiqlari itarilishi qoʻshiladi, shuning uchun kristallda muvozanat gazdagidan uzoqroqda yuzaga keladi: 282,0 pm (gazda 236,1 pm edi). ' +
         'Gaz holidagi ionlardan panjaraning yigʻilishi 787,0 kJ/mol ajratadi.',
-      equation: 'Na⁺ (g.) + Cl⁻ (g.) → NaCl (q.),  U = −787,0 kJ/mol',
-      note: 'Kadrda 2×2×2 elementar katakdan iborat boʻlak — 125 ta ion, har qirrada 5 tadan; och chiziqlar — katak qirralari, bogʻlar emas. Panjara sharlari radiusning 0,5 qismida chizilgan, toki boʻlak orqali qirralar koʻrinsin: haqiqiy kristallda qoʻshni ionlar bir-biriga tegib turadi (102 + 181 = 283 ≈ 282,0 pm). Bir millimetrli tuz donasida ionlar soni 10¹⁹ ga yaqin.',
+      equation: 'Na⁺ (g.) + Cl⁻ (g.) → NaCl (q.),  U = −787,0 kJ/mol',
+      note: 'Kadrda 3×3×3 elementar katakdan iborat boʻlak — 343 ta ion, har qirrada 7 tadan; och chiziqlar — katak qirralari, bogʻlar emas. Yarim shaffof oktaedrlar — ikki tanlangan ion atrofi: Na⁺ atrofida oltita Cl⁻, Cl⁻ atrofida oltita Na⁺ (KS 6:6). Oktaedrning boʻyogʻi va konturi — ATROF KOʻPYOQLIGINING yoqlari va qirralari, bogʻlar emas: ion panjarasida bogʻ yoʻq. Oktaedrlar koʻrsatilayotganda qolgan ionlar soʻndiriladi — oltita qoʻshnini sanash mumkin. Panjara sharlari radiusning 0,5 qismida chizilgan, toki boʻlak orqali qirralar koʻrinsin: haqiqiy kristallda qoʻshni ionlar bir-biriga tegib turadi (102 + 181 = 283 ≈ 282,0 pm). Bir millimetrli tuz donasida ionlar soni 10¹⁹ ga yaqin.',
       speak: 'Ionlar kubik panjara hosil qiladi. Har bir ionning qarama-qarshi ishorali oltita qoʻshnisi bor.',
     },
     energy: {
@@ -64,9 +64,9 @@ export const NACL_TEXT_UZ: NaclMechanismText = {
         'Born — Haber siklining barcha bosqichlarini qoʻshamiz: +107,3 (sublimatsiya) + 121,3 (dissotsiatsiya) + 495,8 (ionlanish) − 348,6 (elektron qoʻshilishi) − 787,0 (panjara) = har mol NaCl uchun −411,2 kJ — aynan jadvaldagi hosil boʻlish issiqligi. ' +
         'Panjara energiyasisiz dastlabki toʻrt bosqich yigʻindisi +375,8 kJ/mol boʻlar edi, yaʼni jarayon issiqlik yutgan boʻlardi. ' +
         'Reaksiyani ekzotermik qiladigan narsa aynan panjara energiyasi: 2 Na + Cl₂ tenglamasi boʻyicha 822,4 kJ ajraladi.',
-      equation: '2 Na (q.) + Cl₂ (g.) → 2 NaCl (q.),  ΔH = −822,4 kJ',
+      equation: '2 Na (q.) + Cl₂ (g.) → 2 NaCl (q.),  ΔH = −822,4 kJ',
       note:
-        'Tenglamaning elektron balansi: 2 Na⁰ − 2e⁻ → 2 Na⁺, Cl₂⁰ + 2e⁻ → 2 Cl⁻ — qancha elektron berilsa, shuncha olinadi. ½ Cl₂ → Cl bosqichi ΔH°f(Cl, gaz) = 121,3 kJ/mol ga teng olingan (298 K, NIST-JANAF) — u bilan sikl aniq yopiladi. Maktab jadvallari Cl–Cl bogʻ energiyasining (243 kJ/mol) yarmini oladi — 121,5, unda yigʻindi −411,0 chiqadi. Panjara bosqichi −787,0 siklni yopadi; maʼlumotnomalarda −786 ham uchraydi. Qatʼiy aytganda, bu 298 K dagi panjara entalpiyasi: panjara energiyasi U undan taxminan 2RT ≈ 5 kJ/mol ga farq qiladi. ' +
+        'Tenglamaning elektron balansi: 2 Na⁰ − 2e⁻ → 2 Na⁺, Cl₂⁰ + 2e⁻ → 2 Cl⁻ — qancha elektron berilsa, shuncha olinadi. ½ Cl₂ → Cl bosqichi ΔH°f(Cl, gaz) = 121,3 kJ/mol ga teng olingan (298 K, NIST-JANAF) — u bilan sikl aniq yopiladi. Maktab jadvallari Cl–Cl bogʻ energiyasining (243 kJ/mol) yarmini oladi — 121,5, unda yigʻindi −411,0 chiqadi. Panjara bosqichi −787,0 kJ/mol — sikl aynan yopiladigan qiymat; maʼlumotnomadagi qiymatlar 786–788 kJ/mol oraligʻida. Qatʼiy aytganda, bu 298 K dagi panjara entalpiyasi: panjara energiyasi U undan taxminan 2RT ≈ 5 kJ/mol ga farq qiladi. ' +
         'Natriy xlorda yorqin sariq alanga bilan yonadi — bu metall ustidagi qoʻzgʻalgan natriy atomlarining nuri (D chizigʻi, 589 nm), tuzning rangi emas; 3D da alanga chizilmaydi.',
       speak: 'Yakun: har mol tuz uchun minus toʻrt yuz oʻn bir kilojoul. Energiyani kristall panjara beradi.',
     },

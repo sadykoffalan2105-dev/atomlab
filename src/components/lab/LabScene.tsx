@@ -1,5 +1,6 @@
 import {
   memo,
+  Suspense,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -9,7 +10,7 @@ import {
   startTransition,
 } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, DragControls } from '@react-three/drei'
+import { OrbitControls, DragControls, Text } from '@react-three/drei'
 import { gsap } from 'gsap'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
@@ -41,7 +42,8 @@ import {
   shouldRunGuardTick,
 } from '../../lab/synthesisLagGuard'
 import { ProductHero } from './hero/ProductHero'
-import { heroFrameGeometry, measureHeroFrame } from './hero/heroFrame'
+import { catalogHeroCameraPose, catalogHeroFrameFor } from './hero/heroFrame'
+import { heroHandoff } from './hero/heroHandoff'
 import { CatalogCanvasResizeSync } from './CatalogCanvasResizeSync'
 import { ReactorTermsPreview } from './ReactorTermsPreview'
 import {
@@ -138,6 +140,24 @@ import { isPerfProbeEnabled } from '../../lab/perf/labPerfProbe'
 import { LabSynthesisGpuQueue } from './LabSynthesisGpuQueue'
 
 /** Свободная лаборатория — фиолетовый космос (LabIdleCosmicBackdrop). */
+
+/**
+ * Первый в сессии drei <Text> подвешивает Suspense, пока troika тянет шрифт с CDN (1–3 с). r3f поднимает
+ * такое подвисание до Suspense страницы вокруг холста — и React прячет ВЕСЬ холст: «Нагрев» → прогрев
+ * героя → первая 3D-подпись → пустой кадр на секунды. Невидимый текст с теми же ключами кэша
+ * (шрифт и набор символов по умолчанию) грузит шрифт при старте холста внутри своей границы Suspense;
+ * все последующие подписи монтируются синхронно.
+ */
+function TroikaFontWarmup() {
+  return (
+    <Suspense fallback={null}>
+      <Text visible={false} fontSize={0.01} position={[0, -1000, 0]}>
+        ·
+      </Text>
+    </Suspense>
+  )
+}
+
 const LAB_SCENE_CLEAR_HEX = LAB_IDLE_COSMIC_BG
 /** Реактор / синтез / каталожный кадр — фон через LabSynthesisCosmicBackdrop. */
 const REACTOR_SCENE_HEX = '#0a0818'
@@ -336,9 +356,39 @@ function measureCatalogHeroFrame(
   canvas: HTMLCanvasElement | null,
   compoundId: string | null | undefined,
 ): CatalogHeroFrame {
-  const f = measureHeroFrame(canvas, heroFrameGeometry(compoundId), CATALOG_HERO_VIEW.fov, CATALOG_HERO_RADIUS)
-  if (!f) return CATALOG_HERO_FRAME_BASE
-  return { targetX: CATALOG_HERO_VIEW.target[0] + f.targetX, targetY: CATALOG_HERO_VIEW.target[1] + f.targetY, radius: f.radius }
+  // Та же функция, по которой сцена урока в хвосте подводит камеру к герою (hero/heroFrame).
+  return catalogHeroFrameFor(canvas, compoundId)
+}
+
+/** Плавный доезд камеры к каталожному кадру после передачи кадра сценой урока (heroHandoff). */
+type CatalogGlide = {
+  fromPos: THREE.Vector3
+  fromTarget: THREE.Vector3
+  fromFov: number
+  toPos: THREE.Vector3
+  toTarget: THREE.Vector3
+  toFov: number
+  t0: number
+  dur: number
+}
+const CATALOG_GLIDE_MS = 650
+const _glidePose = { position: [0, 0, 0] as [number, number, number], target: [0, 0, 0] as [number, number, number], fov: 46 }
+const _glideV = new THREE.Vector3()
+
+/** Шаг доезда (модульная функция: ноль аллокаций в кадре). true — доезд закончен. */
+function stepCatalogGlide(g: CatalogGlide, cam: THREE.PerspectiveCamera, orb: OrbitControlsImpl | null, now: number): boolean {
+  const x = Math.min(1, Math.max(0, (now - g.t0) / g.dur))
+  const u = x * x * x * (x * (x * 6 - 15) + 10)
+  cam.position.lerpVectors(g.fromPos, g.toPos, u)
+  _glideV.lerpVectors(g.fromTarget, g.toTarget, u)
+  cam.lookAt(_glideV)
+  const fov = g.fromFov + (g.toFov - g.fromFov) * u
+  if (Math.abs(cam.fov - fov) > 1e-4) {
+    cam.fov = fov
+    cam.updateProjectionMatrix()
+  }
+  if (orb?.target) orb.target.copy(_glideV)
+  return x >= 1
 }
 
 function SceneContent({
@@ -466,6 +516,14 @@ function SceneContent({
   const [productPainted, setProductPainted] = useState(false)
   /** Ревизия после birth/complete collapse FX. */
   const collapseDoneRunIdRef = useRef(0)
+  /**
+   * Тот же факт «birth случился на этом прогоне», но состоянием — для чтения в РЕНДЕРЕ. Реф
+   * ставится сразу (колбэки и эффекты идемпотентны), а рендер читает состояние: оно коммитится
+   * вместе с collapseFxLinger. Поэтому cue сцены урока можно отдавать в startTransition (рендер
+   * лаборатории режется на кусочки, без длинного кадра) — промежуточный рендер не увидит
+   * «birth есть, linger ещё нет» и не снимет сцену посреди хвоста.
+   */
+  const [collapseBirthRunId, setCollapseBirthRunId] = useState(0)
   const [collapseRev, setCollapseRev] = useState(0)
   /** FX ещё fade'ится, пока молекула уже рождается из круга. */
   const [collapseFxLinger, setCollapseFxLinger] = useState(false)
@@ -631,11 +689,12 @@ function SceneContent({
    * Instant: FX с первого кадра нового runId (без waiting state=false).
    * collapseDoneRunIdRef === runId после onBirthReady (молекула рождается из круга).
    */
+  const collapseBirthDone = currentSynthRunIdForCollapse > 0 && collapseBirthRunId === currentSynthRunIdForCollapse
   const elementsCollapsePlaying =
     synthActive &&
     instantSynthesis &&
     currentSynthRunIdForCollapse > 0 &&
-    collapseDoneRunIdRef.current !== currentSynthRunIdForCollapse
+    !collapseBirthDone
   const showElementsCollapseFx =
     synthActive &&
     instantSynthesis &&
@@ -660,6 +719,7 @@ function SceneContent({
   useLayoutEffect(() => {
     if (!synthActive) {
       collapseDoneRunIdRef.current = 0
+      setCollapseBirthRunId(0)
       setCollapseFxLinger(false)
       setCollapseEmbryo(false)
       if (collapseLingerTimerRef.current) {
@@ -697,6 +757,7 @@ function SceneContent({
   const handleElementsCollapseBirthReady = useCallback(() => {
     if (currentSynthRunIdForCollapse > 0) {
       collapseDoneRunIdRef.current = currentSynthRunIdForCollapse
+      setCollapseBirthRunId(currentSynthRunIdForCollapse)
     }
     setCollapseEmbryo(true)
     setCollapseFxLinger(true)
@@ -899,7 +960,7 @@ function SceneContent({
     (synthActive &&
       instantSynthesis &&
       currentSynthRunId > 0 &&
-      collapseDoneRunIdRef.current === currentSynthRunId &&
+      collapseBirthDone &&
       !effectiveProductPainted)
 
   const continuity = useMemo(
@@ -970,9 +1031,7 @@ function SceneContent({
     prewarmCompoundId: prewarmCompoundIdRef.current,
     forceVisibleInGlow:
       instantSynthesis &&
-      (collapseFxLinger ||
-        (collapseEmbryo &&
-          collapseDoneRunIdRef.current === currentSynthRunIdForCollapse)) &&
+      (collapseFxLinger || (collapseEmbryo && collapseBirthDone)) &&
       // Не форсим full-visible без реального GPU — иначе K₂Cr₂O₇ даёт sync hitch 4–5с.
       (prewarmReadyRef.current ||
         prewarmReady ||
@@ -1034,12 +1093,8 @@ function SceneContent({
     instantSynthesis &&
     elementsCollapsePlaying &&
     collapseEmbryo &&
-    collapseDoneRunIdRef.current !== currentSynthRunIdForCollapse
-  const productGlowHandoff =
-    instantSynthesis &&
-    (collapseFxLinger ||
-      (collapseEmbryo &&
-        collapseDoneRunIdRef.current === currentSynthRunIdForCollapse))
+    !collapseBirthDone
+  const productGlowHandoff = instantSynthesis && (collapseFxLinger || (collapseEmbryo && collapseBirthDone))
   const productSlotVisibleResolved = productEmbryoOnly
     ? productSlotView.gpuReady
     : productGlowHandoff
@@ -1706,25 +1761,41 @@ function SceneContent({
     }
   }, [catalogViewMode, gl, heroFrameCompoundId])
 
+  const catalogGlideRef = useRef<CatalogGlide | null>(null)
   // eslint-disable-next-line react-hooks/immutability
   useLayoutEffect(() => {
-    if (!catalogViewMode) return
+    if (!catalogViewMode) {
+      catalogGlideRef.current = null
+      return
+    }
     const p = camera as THREE.PerspectiveCamera
+    const pose = catalogHeroCameraPose(catalogHeroFrame, _glidePose)
+    // Герой пришёл из сцены урока (решётка сцены встала на его место, камера уже подъехала к кадру):
+    // не прыгаем, а доезжаем. Так же — при позднем пересчёте кадра (карточка продукта появилась).
+    const handoff = heroHandoff.getSnapshot()
+    const fromScene = handoff.released && handoff.compoundId != null && handoff.compoundId === heroFrameCompoundId
+    if (fromScene && !userOrbitingRef.current) {
+      const orb = orbRef.current
+      catalogGlideRef.current = {
+        fromPos: camera.position.clone(),
+        fromTarget: orb?.target ? orb.target.clone() : new THREE.Vector3(pose.target[0], pose.target[1], pose.target[2]),
+        fromFov: p.fov,
+        toPos: new THREE.Vector3(pose.position[0], pose.position[1], pose.position[2]),
+        toTarget: new THREE.Vector3(pose.target[0], pose.target[1], pose.target[2]),
+        toFov: pose.fov,
+        t0: performance.now(),
+        dur: CATALOG_GLIDE_MS,
+      }
+      return
+    }
+    catalogGlideRef.current = null
     // eslint-disable-next-line react-hooks/immutability
-    p.fov = CATALOG_HERO_VIEW.fov
+    p.fov = pose.fov
     p.updateProjectionMatrix()
-    const [, , tz] = CATALOG_HERO_VIEW.target
-    const tx = catalogHeroFrame.targetX
-    const ty = catalogHeroFrame.targetY
-    const k = catalogHeroFrame.radius / CATALOG_HERO_RADIUS
-    camera.position.set(
-      tx + CATALOG_HERO_VIEW.cameraPosition[0] * k,
-      ty + CATALOG_HERO_OFFSET_Y * k,
-      tz + CATALOG_HERO_OFFSET_Z * k,
-    )
-    camera.lookAt(tx, ty, tz)
+    camera.position.set(pose.position[0], pose.position[1], pose.position[2])
+    camera.lookAt(pose.target[0], pose.target[1], pose.target[2])
     if (orbRef.current?.target) {
-      orbRef.current.target.set(tx, ty, tz)
+      orbRef.current.target.set(pose.target[0], pose.target[1], pose.target[2])
       orbRef.current.update?.()
     }
   }, [
@@ -1736,7 +1807,19 @@ function SceneContent({
     synthesis?.runId,
     synthesisSettledProduct?.id,
     synthesisPhase,
+    heroFrameCompoundId,
   ])
+
+  // Доезд камеры к кадру героя: после OrbitControls.update (приоритет −1), до рендера кадра.
+  useFrame(() => {
+    const g = catalogGlideRef.current
+    if (!g) return
+    if (userOrbitingRef.current) {
+      catalogGlideRef.current = null
+      return
+    }
+    if (stepCatalogGlide(g, camera as THREE.PerspectiveCamera, orbRef.current, performance.now())) catalogGlideRef.current = null
+  })
 
   useEffect(() => {
     const staticCap = computeStaticQualityCap({
@@ -2401,7 +2484,11 @@ function SceneContent({
               terms={effectivePreviewTerms}
               flightActive={previewFlightActive}
               poseLocked={previewPoseLocked}
-              sharedLighting={synthActive || synthesisRunActive || preSynthesisPreview}
+              // Всегда общий свет лаборатории (LabReactorLights смонтирован при открытом реакторе).
+              // Свой риг превью монтировался только после синтеза: +1 источник каждого типа в сцене
+              // перекомпилировал ВСЕ освещённые материалы (и героя) — кадр 300–500 мс ровно при
+              // передаче героя. Вид превью после синтеза теперь тот же, что до него.
+              sharedLighting
               forceLite={previewForceLite || editForceLite}
               qualityLevel={synthQualityLevel}
               synthesisGlass={synthQualityFeatures.glassAtoms}
@@ -2551,26 +2638,29 @@ function SceneContent({
 
       {/* Resize sync всегда: balance-панель меняет высоту реактора → иначе 0×0 / белый canvas. */}
       <CatalogCanvasResizeSync touchDpr={false} />
+      {/* Любое подвисание героя (шрифт подписи, ресурс) остаётся внутри слота — холст не прячется. */}
       {showProductDuringCollapse ? (
-        <LabProductHeroSlot
-          compound={productForSlot!}
-          visible={productSlotVisibleResolved}
-          prewarm={productPrewarmResolved}
-          entrance={productSlotEntrance}
-          runId={synthesis?.runId ?? lastSynthRunIdRef.current}
-          birthEntrance={productBirthActive}
-          entranceDuration={
-            productBirthActive || productEmbryoOnly ? PRODUCT_BIRTH_FROM_COLLAPSE_SEC : 0
-          }
-          shaderCompileAsync={productPrewarmResolved}
-          onGpuCompiled={handleProductGpuCompiled}
-          onProductVisiblePaint={handleProductVisiblePaint}
-          rootGroupRef={productRootGroupRef}
-          emergeFromGlow={
-            productBirthActive || collapseFxLinger || productEmbryoOnly || productGlowHandoff
-          }
-          embryoInGlow={productEmbryoOnly && productSlotVisibleResolved}
-        />
+        <Suspense fallback={null}>
+          <LabProductHeroSlot
+            compound={productForSlot!}
+            visible={productSlotVisibleResolved}
+            prewarm={productPrewarmResolved}
+            entrance={productSlotEntrance}
+            runId={synthesis?.runId ?? lastSynthRunIdRef.current}
+            birthEntrance={productBirthActive}
+            entranceDuration={
+              productBirthActive || productEmbryoOnly ? PRODUCT_BIRTH_FROM_COLLAPSE_SEC : 0
+            }
+            shaderCompileAsync={productPrewarmResolved}
+            onGpuCompiled={handleProductGpuCompiled}
+            onProductVisiblePaint={handleProductVisiblePaint}
+            rootGroupRef={productRootGroupRef}
+            emergeFromGlow={
+              productBirthActive || collapseFxLinger || productEmbryoOnly || productGlowHandoff
+            }
+            embryoInGlow={productEmbryoOnly && productSlotVisibleResolved}
+          />
+        </Suspense>
       ) : null}
       <OrbitControls
         ref={orbRef}
@@ -2819,6 +2909,7 @@ function LabCanvasImpl({
           canvas.addEventListener('webglcontextrestored', onRestored)
         }}
       >
+        <TroikaFontWarmup />
         {perfProbe ? <LabPerfProbe /> : null}
         <SceneContent
           particles={particles}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore, type MutableRefObject } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { gsap } from 'gsap'
 import type * as THREE from 'three'
@@ -15,6 +15,7 @@ import { enqueueGpuCompile } from '../../lab/gpuCompileBudget'
 import type { CompoundDef } from '../../types/chemistry'
 import { ProductHero } from './hero/ProductHero'
 import { buildHeroModel } from './hero/heroGeometry'
+import { heroHandoff } from './hero/heroHandoff'
 import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
 import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
 import { resolveVisiblePaintFrames } from '../../lab/synthesisStabilityEngine'
@@ -103,6 +104,18 @@ export function LabProductHeroSlot({
    */
   const dataHero = useMemo(() => buildHeroModel(compound.id) !== null, [compound.id])
 
+  /**
+   * Передача кадра от сцены урока (hero/heroHandoff): герой этого прогона стоит в полный размер,
+   * без «рождения из круга» и без вращения слота, и невидим, пока сцена не отпустит его, — в этот
+   * кадр её решётка уже стоит ровно на месте героя. В кадре всегда ровно одна решётка.
+   */
+  const handoffSnap = useSyncExternalStore(heroHandoff.subscribe, heroHandoff.getSnapshot, heroHandoff.getSnapshot)
+  const seamless = heroHandoff.isClaimed(runId, compound.id) && handoffSnap.runId === runId
+  const seamlessRef = useRef(seamless)
+  seamlessRef.current = seamless
+  const handoffHoldRef = useRef(false)
+  handoffHoldRef.current = seamless && (!handoffSnap.released || !visible || prewarm)
+
   /** Локальный ready (можно reveal) — без записи в session cache. */
   const notifyGpuCompiledLocal = useCallback(() => {
     if (gpuCompiledRef.current) return
@@ -178,7 +191,8 @@ export function LabProductHeroSlot({
         return
       }
 
-      root.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
+      // Передача кадра: герой невидим (слой без камеры) и уже в полный размер — не сжимаем.
+      if (!seamlessRef.current) root.scale.set(MICRO_SCALE, MICRO_SCALE, MICRO_SCALE)
       invalidate()
 
       requestAnimationFrame(() => {
@@ -252,6 +266,13 @@ export function LabProductHeroSlot({
   // Синтез: видимый продукт — приоритетный compile, БЕЗ snap scale=1 (убивает birth + hitch).
   useEffect(() => {
     if (!visible || prewarm) return
+    // Передача кадра от сцены урока: её решётка — ТА ЖЕ геометрия и те же материалы, и сцена
+    // прогрела их своим warmup до первого шага. Гонять здесь ещё один chunked compile незачем:
+    // он давал лишний длинный кадр ровно в хвосте, когда герой монтируется.
+    if (seamlessRef.current) {
+      notifyGpuCompiledLocal()
+      return
+    }
     if (isProductGpuCompiled(compound.id)) {
       notifyGpuCompiledLocal()
       return
@@ -360,7 +381,9 @@ export function LabProductHeroSlot({
   // Считаем реально отрисованные кадры visible → paint. Micro-prewarm НЕ пишет GPU-cache.
   useFrame((state) => {
     // Прогрев обязан быть абсолютно невидим: уводим всю ветку на слой без камеры.
-    const prewarmHidden = prewarm && !visible
+    // Так же держим героя, на которого сцена урока заявила передачу, пока она его не отпустит.
+    const handoffHold = handoffHoldRef.current
+    const prewarmHidden = (prewarm && !visible) || handoffHold
     const rootForLayer = groupRef.current
     if (rootForLayer) {
       if (prewarmHidden) {
@@ -378,7 +401,10 @@ export function LabProductHeroSlot({
         prewarmLayerFrameRef.current = 0
         applyPrewarmLayer(rootForLayer, false)
       }
+      // Герой передачи в кадре полным размером — сцена выключит свою решётку.
+      if (seamlessRef.current && !handoffHold && visible && !prewarm) heroHandoff.markShown(runId)
     }
+    if (handoffHold) return
     if (visible && !prewarm && !visiblePaintSentRef.current) {
       const g = groupRef.current
       if (g) {
@@ -418,6 +444,18 @@ export function LabProductHeroSlot({
     const g = groupRef.current
     const spin = spinRef.current
     if (!g) return
+
+    // Передача кадра от сцены: полный размер и нулевой поворот слота всегда — поза героя совпадает
+    // с позой решётки сцены, никакого «роста» и доворота.
+    if (seamless) {
+      gsap.killTweensOf(g.scale)
+      if (spin) gsap.killTweensOf(spin.rotation)
+      g.scale.set(1, 1, 1)
+      if (spin) spin.rotation.set(0, 0, 0)
+      revealedForRunRef.current = runId
+      wasPrewarmRef.current = false
+      return
+    }
 
     if (visible && (entrance === 'instant' || entrance === 'none')) {
       wasPrewarmRef.current = false
@@ -537,6 +575,7 @@ export function LabProductHeroSlot({
     embryoInGlow,
     onProductVisiblePaint,
     invalidate,
+    seamless,
   ])
 
   /** Локальный свет отключён: LabReactorLights уже освещает сцену — иначе вспышка на старте синтеза. */
@@ -562,7 +601,7 @@ export function LabProductHeroSlot({
         visible
         frustumCulled={false}
         // Поверх glow/ring (35–42), чтобы молекула «выходила» из круга, а не пряталась под ним.
-        renderOrder={emergeFromGlow ? 55 : 8}
+        renderOrder={emergeFromGlow && !seamless ? 55 : 8}
       >
         <group ref={spinRef}>
           {/*
@@ -572,9 +611,10 @@ export function LabProductHeroSlot({
           */}
           <ProductHero
             compound={compound}
-            showLabels={visible && !prewarm && !embryoInGlow}
+            showLabels={visible && !prewarm && !embryoInGlow && (!seamless || handoffSnap.shown)}
             lowPower={lowPower}
             chaoticWobble={false}
+            handoff={seamless}
           />
         </group>
       </group>

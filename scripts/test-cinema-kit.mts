@@ -713,10 +713,11 @@ test('графит: 3 соседа на a/√3 в слое, слой ⟂ оси 
 test('подпись решётки и пул рёбер ячейки', () => {
   const cr = getCrystal('nacl')!
   const cap = latticeCaption('nacl')
-  ok(cap[0] === `a = ${Math.round(cr.cellPm.a)} {pm}`, cap[0]!)
+  ok(cap[0] === `a = ${cr.cellPm.a.toFixed(1)} {pm}`, cap[0]!)
   ok(cap.includes(cr.spaceGroup), 'группа')
   ok(cap.at(-1) === `{cn} ${Object.values(cr.coordination).join(':')}`, cap.at(-1)!)
-  ok(localizeLabelText(cap[0]!, 'ru') === `a = ${Math.round(cr.cellPm.a)} пм`, 'ru: пм')
+  ok(localizeLabelText(cap[0]!, 'ru') === `a = ${cr.cellPm.a.toFixed(1)} пм`, 'ru: пм')
+  ok(localizeLabelText(cap[0]!, 'ru', true) === `a = ${cr.cellPm.a.toFixed(1).replace('.', ',')} пм`, 'ru: десятичная запятая по соглашению учебника')
   ok(localizeLabelText(cap.at(-1)!, 'en') === `CN ${Object.values(cr.coordination).join(':')}`, 'en: CN')
   const lit = latticeCaption('litharge')
   ok(lit.some((s) => s.startsWith('c = ')) && !lit.some((s) => s.startsWith('b = ')), 'тетрагональная: a и c')

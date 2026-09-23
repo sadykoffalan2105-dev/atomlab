@@ -17,15 +17,18 @@ export function ProductHero({
   showLabels,
   lowPower = false,
   chaoticWobble = false,
+  handoff = false,
 }: {
   compound: CompoundDef
   /** DOM-подписи (символы, заряды, a, КЧ): только когда герой в кадре — не на прогреве и не зародышем */
   showLabels: boolean
   lowPower?: boolean
   chaoticWobble?: boolean
+  /** слот героя, на который сцена урока заявила передачу кадра (hero/heroHandoff) */
+  handoff?: boolean
 }) {
   const model = useMemo(() => buildHeroModel(compound.id), [compound.id])
-  if (model?.spec.kind === 'crystal') return <CrystalHero model={model} showLabels={showLabels} lowPower={lowPower} />
+  if (model?.spec.kind === 'crystal') return <CrystalHero model={model} showLabels={showLabels} lowPower={lowPower} handoff={handoff} />
   if (model?.spec.kind === 'molecule') return <MoleculeHero model={model} showLabels={showLabels} lowPower={lowPower} />
   return (
     <CatalogSubstanceDisplay

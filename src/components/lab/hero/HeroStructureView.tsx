@@ -16,6 +16,7 @@ import type { SceneWorld } from '../../../lab/cinema/scenes/kit/sceneKit'
 import { localizeLabelText, toSceneLocale } from '../../../lab/cinema/scenes/kit/sceneKit'
 import type { HeroModel } from './heroGeometry'
 import { CAPTION_GAP_PX, CAPTION_LINE_PX, HERO_FIT_RADIUS, HERO_ORBIT_RAD_PER_SEC, heroCaptionLines } from './heroFrame'
+import { NaclHeroBody } from './NaclHeroBody'
 
 /**
  * Общий рендер героя: атомы — один InstancedAtoms (материалы kit: ion / polar / covalent / gas),
@@ -36,8 +37,14 @@ const BOND_RADIUS = 0.05
 const _scale = new THREE.Vector3()
 const _target = new THREE.Vector3()
 
-/** Подпись кристалла над узлом: высота над центром в радиусах шара (снаружи сферы). */
-const CRYSTAL_LABEL_LIFT = 1.6
+/**
+ * Подпись кристалла над узлом: высота над центром в радиусах шара. Подъём заметный — между
+ * текстом и шаром должна помещаться ВИДИМАЯ выноска (при подъёме в два радиуса отрезок выходил
+ * короче самой надписи и прятался под ней).
+ */
+const CRYSTAL_LABEL_LIFT = 4.2
+/** Цвет выноски «подпись → её ион» (приёмка: «Na⁺» и «Cl⁻» висели рядом над решёткой без выносок). */
+const LEADER_COLOR = 0xcfe4ff
 
 /** Подпись кристалла: текущий узел-якорь и кандидаты верхнего слоя (см. HeroLabel.candidates). */
 type CrystalLabelTrack = { candidates: number[]; current: number; minSep: number }
@@ -46,8 +53,11 @@ type CrystalLabelTrack = { candidates: number[]; current: number; minSep: number
  * Кристалл: каждый кадр подпись сорта переезжает (плавно, без моргания) к узлу верхнего слоя,
  * который после облёта дальше всех от зрителя, — над ним нет чужих сфер. Разные сорта не садятся
  * на соседние узлы (minSep). Гистерезис: якорь меняется, только если новый заметно дальше.
+ *
+ * Заодно пишется ВЫНОСКА от текста к своему шару: без неё «Na⁺» и «Cl⁻» стояли в шестидесяти
+ * пикселях друг от друга над верхним краем решётки, и какой ион назван — понять было нельзя.
  */
-function trackCrystalLabels(model: HeroModel, labels: DomLabelSource[], tracks: (CrystalLabelTrack | null)[], spinY: number, d: number): void {
+function trackCrystalLabels(model: HeroModel, labels: DomLabelSource[], tracks: (CrystalLabelTrack | null)[], spinY: number, d: number, leader?: Float32Array): void {
   const s = Math.sin(spinY)
   const c = Math.cos(spinY)
   const k = 1 - Math.exp(-d * 5)
@@ -83,6 +93,15 @@ function trackCrystalLabels(model: HeroModel, labels: DomLabelSource[], tracks: 
     const a = model.atoms[best]!
     _target.set(a.pos[0], a.pos[1] + a.radius * CRYSTAL_LABEL_LIFT, a.pos[2])
     label.pos.lerp(_target, k)
+    if (leader) {
+      const o = li * 6
+      leader[o] = a.pos[0]
+      leader[o + 1] = a.pos[1] + a.radius * 1.05
+      leader[o + 2] = a.pos[2]
+      leader[o + 3] = label.pos.x
+      leader[o + 4] = label.pos.y - a.radius * 1.15
+      leader[o + 5] = label.pos.z
+    }
   }
 }
 const _rootPos = new THREE.Vector3()
@@ -104,13 +123,18 @@ function stepHeroFrame(
     atomLabels: DomLabelSource[]
     captionLabels: DomLabelSource[]
     labelTracks: (CrystalLabelTrack | null)[]
+    leader: { geometry: THREE.BufferGeometry; material: THREE.LineBasicMaterial } | null
   },
 ): void {
   const d = Math.min(0.1, Math.max(0, dt))
   f.time.current += d
   if (f.spin) {
     f.spin.rotation.y += d * HERO_ORBIT_RAD_PER_SEC
-    if (f.labelTracks.length > 0) trackCrystalLabels(f.model, f.atomLabels, f.labelTracks, f.spin.rotation.y, d)
+    if (f.labelTracks.length > 0) {
+      const buf = f.leader ? ((f.leader.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array) : undefined
+      trackCrystalLabels(f.model, f.atomLabels, f.labelTracks, f.spin.rotation.y, d, buf)
+      if (f.leader) f.leader.geometry.getAttribute('position').needsUpdate = true
+    }
   }
   // Подписи проявляются, когда герой вырос почти до полного размера (после «рождения»).
   let op = 0
@@ -120,6 +144,7 @@ function stepHeroFrame(
     op = smoothstep(0.82 * f.scale, 0.98 * f.scale, _scale.x)
   }
   for (let i = 0; i < f.atomLabels.length; i++) f.atomLabels[i]!.opacity = op
+  if (f.leader) f.leader.material.opacity = op * 0.7
   // Подпись под моделью: строки через фиксированные CSS-пиксели при любом масштабе кадра.
   if (root && f.captionLabels.length > 0 && op > 0) {
     const cam = state.camera as THREE.PerspectiveCamera
@@ -139,11 +164,14 @@ export function HeroStructureView({
   model,
   showLabels,
   lowPower = false,
+  handoff = false,
 }: {
   model: HeroModel
   /** DOM-подписи: только когда герой реально в кадре (не прогрев, не зародыш) */
   showLabels: boolean
   lowPower?: boolean
+  /** слот, на который сцена урока заявила передачу кадра (hero/heroHandoff) */
+  handoff?: boolean
 }) {
   const locale = toSceneLocale(useLocale().locale)
   const rootRef = useRef<THREE.Group>(null)
@@ -152,6 +180,8 @@ export function HeroStructureView({
   const scale = HERO_FIT_RADIUS / Math.max(1e-6, model.radius)
 
   const pools = useMemo(() => {
+    // NaCl рисует своё тело (NaclHeroBody) — пулы кино-ядра ему не нужны: не тратим кадр embryo.
+    if (model.compoundId === 'nacl') return { atoms: createAtomPool(1), bonds: createBondPool(1), edges: createEdgePool(1) }
     const atoms = createAtomPool(Math.max(1, model.atoms.length))
     const bonds = createBondPool(Math.max(1, model.bonds.length))
     const edges = createEdgePool(Math.max(1, model.cellEdges.length))
@@ -217,7 +247,8 @@ export function HeroStructureView({
               ? new THREE.Vector3(a.pos[0], a.pos[1] + a.radius * CRYSTAL_LABEL_LIFT, a.pos[2])
               : new THREE.Vector3(a.pos[0] + a.radius * 1.25, a.pos[1] + a.radius * 0.6, a.pos[2]),
             opacity: 0,
-            text: localizeLabelText(l.text, locale),
+            // Десятичная запятая на ru/uz — то же соглашение, что у подписей сцены урока.
+            text: localizeLabelText(l.text, locale, true),
           }
         }),
     [model, locale],
@@ -230,7 +261,7 @@ export function HeroStructureView({
         // Y пересчитывается в кадре: отступ и шаг строк заданы в пикселях, а не в долях модели.
         pos: new THREE.Vector3(0, -model.radius, 0),
         opacity: 0,
-        text: localizeLabelText(text, locale),
+        text: localizeLabelText(text, locale, true),
       })),
     [model, locale],
   )
@@ -249,16 +280,37 @@ export function HeroStructureView({
         const q = model.atoms[j]!.pos
         nn = Math.min(nn, Math.hypot(p[0] - q[0], p[2] - q[2]))
       }
-      return { candidates: cand, current: l.atom, minSep: Number.isFinite(nn) ? nn * 0.75 : 0 }
+      // Разные сорта разводятся на полтора шага сетки: раньше «Na⁺» и «Cl⁻» садились на соседние
+      // узлы и на экране оказывались в шестидесяти пикселях друг от друга.
+      return { candidates: cand, current: l.atom, minSep: Number.isFinite(nn) ? nn * 1.6 : 0 }
     })
   }, [model])
+
+  /** Выноски «подпись → её ион» (только у кристалла): отрезок на подпись, буфер пишется в кадре. */
+  const leader = useMemo(() => {
+    if (labelTracks.length === 0) return null
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(labelTracks.length * 6), 3))
+    // depthTest выключен намеренно: выноска — это «чертёж» поверх модели; с тестом глубины отрезок
+    // от ДАЛЬНЕГО узла верхнего слоя (над ним нет чужих сфер) полностью прятался за кристаллом.
+    const material = new THREE.LineBasicMaterial({ color: LEADER_COLOR, transparent: true, opacity: 0, depthTest: false, depthWrite: false, fog: false })
+    return { geometry, material }
+  }, [labelTracks])
+
+  useEffect(() => {
+    if (!leader) return
+    return () => {
+      leader.geometry.dispose()
+      leader.material.dispose()
+    }
+  }, [leader])
 
   useEffect(() => {
     time.current = 0
   }, [model])
 
   useFrame((state, dt) => {
-    stepHeroFrame(state, dt, { root: rootRef.current, spin: spinRef.current, time, showLabels, scale, model, atomLabels, captionLabels, labelTracks })
+    stepHeroFrame(state, dt, { root: rootRef.current, spin: spinRef.current, time, showLabels, scale, model, atomLabels, captionLabels, labelTracks, leader })
   })
 
   return (
@@ -266,9 +318,17 @@ export function HeroStructureView({
       {/* Наклон к зрителю снаружи, облёт — вращение вокруг собственной вертикали внутри. */}
       <group rotation={[0.32, 0, 0]}>
         <group ref={spinRef} rotation={[0, 0.55, 0]}>
-          <InstancedAtoms pool={pools.atoms} mode={lowPower ? 'mesh' : 'impostor'} renderOrder={9} />
-          {model.bonds.length > 0 ? <InstancedBonds pool={pools.bonds} time={time} renderOrder={10} lite={lowPower} /> : null}
-          {model.cellEdges.length > 0 ? <CinemaCellEdges pool={pools.edges} renderOrder={11} /> : null}
+          {model.compoundId === 'nacl' ? (
+            // NaCl — та же решётка, что в финале сцены урока (без второй решётки при передаче кадра).
+            <NaclHeroBody lowPower={lowPower} handoff={handoff} />
+          ) : (
+            <>
+              <InstancedAtoms pool={pools.atoms} mode={lowPower ? 'mesh' : 'impostor'} renderOrder={9} />
+              {model.bonds.length > 0 ? <InstancedBonds pool={pools.bonds} time={time} renderOrder={10} lite={lowPower} /> : null}
+              {model.cellEdges.length > 0 ? <CinemaCellEdges pool={pools.edges} renderOrder={11} /> : null}
+            </>
+          )}
+          {showLabels && leader ? <lineSegments geometry={leader.geometry} material={leader.material} renderOrder={12} frustumCulled={false} /> : null}
           {showLabels && atomLabels.length > 0 ? <CinemaDomLabels labels={atomLabels} layout={false} /> : null}
         </group>
       </group>

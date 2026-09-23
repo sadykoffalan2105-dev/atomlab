@@ -96,9 +96,27 @@
   line-height: var(--lt-lh);
   letter-spacing: normal;
   pointer-events: auto;
-  transition:
-    border-color var(--lt-dur-slow) var(--lt-ease),
-    box-shadow var(--lt-dur-slow) var(--lt-ease);
+  /*
+   * Своя плоскость композитора и своя область раскладки: перекраска панели на смене
+   * шага не трогает плитки общего слоя страницы (на нём лежит и канва урока), а смена
+   * текста шага не поднимает пересчёт раскладки выше панели.
+   */
+  contain: layout paint style;
+  will-change: transform;
+  /*
+   * ПЕРЕХОДОВ КРАСКИ ЗДЕСЬ НЕТ — И НЕ ДОЛЖНО БЫТЬ.
+   *
+   * Панель лежит поверх живого WebGL и занимает 372×439 px. Раньше смена шага
+   * (data-status: playing ↔ paused) вела border-color и box-shadow переходом
+   * 420 мс: каждый кадр перехода Blink перекрашивал ВСЮ панель (Paint SECTION
+   * ._panel + три PaintImage её градиентов), а Chrome заново растеризовал её
+   * плитки на том же GPU, что рисует сцену. Замер (прод-сборка, 1280×800):
+   * 10 задач RendererRasterWorker по 16–64 мс подряд, ~345 мс растра за 500 мс
+   * после каждой смены шага — ровно все просадки кадра в уроке. Без перехода
+   * панель перекрашивается один раз на шаг.
+   *
+   * Переходы transform/opacity композитору не мешают и разрешены.
+   */
 }
 
 .panel *,
@@ -366,9 +384,7 @@
   border-radius: var(--lt-radius-pill);
   background: rgba(148, 170, 230, 0.16);
   overflow: hidden;
-  transition:
-    background var(--lt-dur-slow) var(--lt-ease),
-    box-shadow var(--lt-dur-slow) var(--lt-ease);
+  /* Без перехода краски: сегменты меняют состояние ровно на смене шага — см. .panel. */
 }
 
 .seg[data-state='done'] {
@@ -801,12 +817,13 @@
   white-space: nowrap;
   cursor: pointer;
   touch-action: manipulation;
+  /*
+   * Только композитные свойства: «Далее» гаснет и зажигается на КАЖДОЙ смене шага
+   * (disabled ↔ enabled), и переход краски (background/box-shadow/border-color)
+   * перекрашивал кнопку 240 мс подряд поверх живого WebGL — см. комментарий у .panel.
+   */
   transition:
     transform var(--lt-dur-fast) var(--lt-ease),
-    border-color var(--lt-dur) var(--lt-ease),
-    color var(--lt-dur) var(--lt-ease),
-    background var(--lt-dur) var(--lt-ease),
-    box-shadow var(--lt-dur) var(--lt-ease),
     opacity var(--lt-dur) var(--lt-ease);
 }
 
@@ -1166,6 +1183,20 @@
     flex: none;
     white-space: nowrap;
     overflow-wrap: normal;
+  }
+
+  /* ОДНА стадия — переносим её по строкам, а не прячем хвост за правым краем: на 390 px
+   * «U = −787,0 кДж/моль» обрывалось на «кДж/», и ученик видел число без единицы.
+   * (Единица держится при числе неразрывным пробелом — см. naclMechanismText.) */
+  .panel[data-collapsed='1'] .equation:not(:has(.equationLine + .equationLine)) {
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  .panel[data-collapsed='1'] .equation:not(:has(.equationLine + .equationLine)) .equationLine {
+    flex: 0 1 auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 }
 

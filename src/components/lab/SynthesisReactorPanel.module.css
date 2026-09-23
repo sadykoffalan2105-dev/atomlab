@@ -1509,6 +1509,22 @@
 
 .reactorBtnPrimaryRunning {
   cursor: progress;
+  overflow: hidden;
+}
+
+/*
+ * Блик «идёт синтез» — полупрозрачная полоса, которую двигает transform (композитор). Раньше
+ * анимировался background-position кнопки: перерисовка ~1250×265 px в каждом кадре на всё время
+ * синтеза, и на слабых GPU кадры сцены урока растягивались до 50–100 мс.
+ */
+.reactorBtnPrimaryRunning::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.16) 50%, transparent 80%);
+  pointer-events: none;
+  will-change: transform;
   animation: rxRunShimmer 1.6s ease-in-out infinite alternate;
 }
 
@@ -1528,10 +1544,10 @@
 
 @keyframes rxRunShimmer {
   from {
-    background-position: 0% 0;
+    transform: translateX(-60%);
   }
   to {
-    background-position: 100% 0;
+    transform: translateX(60%);
   }
 }
 
@@ -2019,6 +2035,7 @@
   .teacherLive,
   .labCondCatalystPulse,
   .reactorBtnPrimaryRunning,
+  .reactorBtnPrimaryRunning::after,
   .spin {
     animation: none;
     transition: none;

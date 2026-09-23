@@ -373,12 +373,22 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
+  opacity: 1;
+  /* Своя композиционная плоскость: показ после урока — смена прозрачности на уже
+   * отрисованном слое, без вставки узла, раскладки и растеризации страницы. */
+  will-change: opacity;
+  transition: opacity 0.3s ease;
   background: radial-gradient(
     ellipse 88% 80% at 50% 40%,
     rgba(0, 0, 0, 0) 0%,
     color-mix(in srgb, var(--synth-glow, #0a0c18) 12%, transparent) 78%,
     rgba(2, 4, 12, 0.22) 100%
   );
+}
+
+/* Синтез идёт (в том числе урок по шагам): слой готов, но его не видно. */
+.synthVignette[data-hidden='1'] {
+  opacity: 0;
 }
 
 /* Карточка продукта (запуск / результат синтеза): формула, название, краткое описание.
@@ -394,6 +404,16 @@
   width: min(340px, calc(100% - 32px));
   pointer-events: none;
   text-align: left;
+  opacity: 1;
+  /* Своя композиционная плоскость: показ карточки после урока — смена прозрачности на уже
+   * отрисованном слое, без раскладки и растеризации страницы. */
+  will-change: opacity;
+  transition: opacity 0.3s ease;
+}
+
+/* Урок идёт: место карточки занято (кадр героя уже считает с ней), но её не видно. */
+.synthProductDock[data-hidden='1'] {
+  opacity: 0;
 }
 
 /* Сама карточка — hero/ProductHeroCard.module.css (токены темы: читаема и в светлой теме). */

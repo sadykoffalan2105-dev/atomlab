@@ -1231,8 +1231,15 @@ export function LaboratoryPage() {
   // Подписка сведена к булеву: страница перерисовывается только при старте/конце урока, а не на
   // каждый «Далее» (полный рендер лаборатории на клике давал худший кадр 40–80 мс).
   const clo2LessonActive = useSyncExternalStore(clo2StepStore.subscribe, readLessonActive, readLessonActive)
-  const showSynthProductHud =
-    ((synthRunActive && lastRunProduct != null) || showSettledSynthesisView) && !clo2LessonActive
+  /**
+   * Карточка продукта СМОНТИРОВАНА с начала синтеза, в том числе на время урока, — просто
+   * прозрачная. Две причины: её место в раскладке зарезервировано заранее, поэтому кадр героя,
+   * который сцена урока меряет на паузе последнего шага, совпадает с кадром после урока (иначе
+   * герой уезжал на ~190 px, когда карточка появлялась); и конец урока не вставляет в страницу
+   * новый узел — показ идёт сменой прозрачности на готовом слое, без раскладки и растеризации.
+   */
+  const mountSynthProductHud = ((synthRunActive && lastRunProduct != null) || showSettledSynthesisView)
+  const showSynthProductHud = mountSynthProductHud && !clo2LessonActive
   const productForHud =
     synthRunActive && lastRunProduct != null
       ? lastRunProduct
@@ -1370,11 +1377,27 @@ export function LaboratoryPage() {
           </Suspense>
         </div>
         <Clo2MechanismPanel active={reactorOpen} />
-        {showSettledSynthesisView ? (
-          <div className={styles.synthVignette} aria-hidden />
+        {/*
+          Виньетка смонтирована с начала синтеза (как и карточка продукта) — просто прозрачная.
+          Вставка полноэкранного слоя в конце урока стоила полной раскладки и растеризации
+          страницы (замер прод-сборки: UpdateLayoutTree 55 мс на 1031 узле + Layout 99 мс) ровно
+          в окне «Завершить + 2 с»; показ через прозрачность идёт на уже отрисованном слое.
+        */}
+        {mountSynthProductHud ? (
+          <div
+            className={styles.synthVignette}
+            data-hidden={showSettledSynthesisView ? undefined : '1'}
+            aria-hidden
+          />
         ) : null}
-        {showSynthProductHud && productForHud ? (
-          <div className={styles.synthProductDock} role="status" aria-live="polite">
+        {mountSynthProductHud && productForHud ? (
+          <div
+            className={styles.synthProductDock}
+            data-hidden={showSynthProductHud ? undefined : '1'}
+            aria-hidden={showSynthProductHud ? undefined : true}
+            role={showSynthProductHud ? 'status' : undefined}
+            aria-live={showSynthProductHud ? 'polite' : undefined}
+          >
             {/* Карточка героя: состояние при 25 °C, ΔH°f, строение и «почему так» (hero/ProductHeroCard). */}
             <ProductHeroCard
               compound={productForHud}
