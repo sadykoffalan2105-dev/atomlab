@@ -70,13 +70,6 @@ type QuickAction = {
 
 const QUICK_ACTIONS: readonly QuickAction[] = [
   {
-    to: '/learn/talk',
-    titleKey: 'learn.talk.open',
-    descKey: 'learn.talk.lead',
-    icon: IconSparkles,
-    tone: toneStyle('var(--lt-accent-cyan)', 'var(--lt-g8-b)'),
-  },
-  {
     to: '/learn/pathways',
     titleKey: 'learn.pathways.open',
     descKey: 'learn.pathways.lead',
@@ -179,16 +172,16 @@ function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
           </div>
         </div>
 
-        <Link to="/vr-lab?from=learn" className={styles.vrBanner}>
+        <Link to="/learn/talk" className={styles.vrBanner}>
           <VrLabArt className={styles.vrArt} />
           <span className={styles.vrBody}>
             <span className={styles.vrBadge}>
-              <IconVr />
+              <IconSparkles />
             </span>
-            <span className={styles.vrTitle}>{t('learn.vrLab.title')}</span>
-            <span className={styles.vrLead}>{t('vrLab.lead')}</span>
+            <span className={styles.vrTitle}>{t('learn.talk.title')}</span>
+            <span className={styles.vrLead}>{t('learn.talk.lead')}</span>
             <span className={`${styles.btn} ${styles.btnLight}`}>
-              {t('learn.vrLab.open')}
+              {t('learn.talk.open')}
               <IconArrowRight />
             </span>
           </span>

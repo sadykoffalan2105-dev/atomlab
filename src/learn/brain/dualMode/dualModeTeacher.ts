@@ -902,8 +902,8 @@ export class TeacherIntelligence {
         : 'Salom! Men kimyo murabbiyingizman. Istalgan savolni bering — meni to‘xtatishingiz mumkin.'
     }
     return topic
-      ? `Привет! Поговорим про «${topic}». Спрашивай что угодно — перебивать меня можно в любой момент.`
-      : 'Привет! Я твой наставник по химии. Спрашивай что угодно — перебивать меня можно в любой момент.'
+      ? `Привет! Поговорим про «${topic}». Спрашивай что угодно.`
+      : 'Привет! Я твой наставник по химии. Спрашивай что угодно.'
   }
 
   private fallbackLine(): string {

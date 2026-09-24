@@ -92,5 +92,5 @@ export const learnTeacherExamRu = {
   'learn.teacherExam.liveNoMic': 'Микрофон не подключён — можно общаться текстом.',
   'learn.teacherExam.liveGreetingWait': 'Секунду, преподаватель готовится…',
   'learn.teacherExam.liveEngagement': 'Вовлечённость',
-  'learn.teacherExam.liveTip': 'Говорите естественно — можно перебивать ИИ голосом. Скажите «дай ещё вопрос» или «следующая тема».',
+  'learn.teacherExam.liveTip': 'Говорите естественно. Скажите «дай ещё вопрос» или «следующая тема».',
 } as const
