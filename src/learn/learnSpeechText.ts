@@ -240,4 +240,5 @@ export const BROWSER_NEURAL_HINTS = TEACHER_BROWSER_VOICE_HINTS
 
 export const BROWSER_SPEECH_RATE = TEACHER_BROWSER_RATE
 
-export const BROWSER_SENTENCE_GAP_MS = 50
+// 50 мс сливали фразы в одну; 140 мс — короткий вдох между предложениями, как у учителя у доски.
+export const BROWSER_SENTENCE_GAP_MS = 140

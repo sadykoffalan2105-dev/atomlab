@@ -587,6 +587,12 @@ export const messagesUz: Record<MessageKey, string> = {
   /* O'qish hablari: bosh sahifa, sinf, bob */
   'learn.hubUi.overall': 'Umumiy natija',
   'learn.hubUi.quickTitle': 'Tezkor boshlash',
+  'learn.talk.open': 'AI o‘qituvchi: suhbat',
+  'learn.talk.lead': '7–11-sinf istalgan mavzusi bo‘yicha ovozli yoki matnli suhbat: tushuntiradi, so‘raydi, tekshiradi.',
+  'learn.talk.title': 'AI o‘qituvchi bilan suhbat',
+  'learn.talk.sub': 'Sinfni tanlang — o‘qituvchi sizning darsligingizga tayanadi. Ovoz bilan gaplashish uchun «Onlayn suhbatni boshlash» tugmasini bosing yoki savolni matn bilan yozing.',
+  'learn.talk.grade': 'Sinf',
+  'learn.talk.back': 'O‘qishga qaytish',
   'learn.hubUi.gradesTitle': 'Sinfni tanlang',
   'learn.hubUi.open': 'Ochish',
   'learn.hubUi.resumeEyebrow': "Shu yerda to'xtagan edingiz",

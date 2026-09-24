@@ -70,6 +70,13 @@ type QuickAction = {
 
 const QUICK_ACTIONS: readonly QuickAction[] = [
   {
+    to: '/learn/talk',
+    titleKey: 'learn.talk.open',
+    descKey: 'learn.talk.lead',
+    icon: IconSparkles,
+    tone: toneStyle('var(--lt-accent-cyan)', 'var(--lt-g8-b)'),
+  },
+  {
     to: '/learn/pathways',
     titleKey: 'learn.pathways.open',
     descKey: 'learn.pathways.lead',

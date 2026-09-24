@@ -149,10 +149,12 @@ export const TEACHER_VOICE_FEMALE_NAMES = [
   'google russian',
 ]
 
+// Системные голоса на 1,18 звучали скороговоркой (владелец: «плохо говорит»); 1,04–1,06 — темп
+// спокойного объяснения у доски, паузы между фразами добавляет speakWithBrowserVoice.
 export const TEACHER_BROWSER_RATE: Record<SpeechPrepLocale, number> = {
-  ru: 1.18,
-  en: 1.14,
-  uz: 1.16,
+  ru: 1.04,
+  en: 1.04,
+  uz: 1.04,
 }
 
 export const TEACHER_BROWSER_PITCH: Record<SpeechPrepLocale, number> = {

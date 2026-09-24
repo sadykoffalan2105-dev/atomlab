@@ -22,6 +22,9 @@ const LearnPathwayPage = lazy(() =>
   import('./pages/LearnPathwayPage').then((m) => ({ default: m.LearnPathwayPage })),
 )
 const VrLabPage = lazy(() => import('./pages/VrLabPage').then((m) => ({ default: m.VrLabPage })))
+const LearnTalkPage = lazy(() =>
+  import('./pages/LearnTalkPage').then((m) => ({ default: m.LearnTalkPage })),
+)
 const OrganicLabPage = lazy(() =>
   import('./pages/OrganicLabPage').then((m) => ({ default: m.OrganicLabPage })),
 )
@@ -68,6 +71,7 @@ export default function App() {
               <Route path="learn/pathways" element={<LearnPathwaysHub />} />
               <Route path="learn/pathway/:pathwayId" element={<LearnPathwayPage />} />
               <Route path="learn/pathway/:pathwayId/:stepId" element={<LearnPathwayPage />} />
+              <Route path="learn/talk" element={<LearnTalkPage />} />
               <Route path="learn/teacher" element={<LearnTeacherHub />} />
               <Route path="learn/research" element={<LearnResearchLab />} />
               <Route path="learn/research/:mode" element={<LearnResearchLab />} />

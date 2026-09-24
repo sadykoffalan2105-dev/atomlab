@@ -1,0 +1,93 @@
+/* Страница «Разговор с ИИ-учителем»: шапка с выбором класса и панель учителя во всю ширину. */
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 26px 28px;
+  margin-bottom: 18px;
+}
+
+.headText {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(26px, 3.2vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.grades {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.gradesLabel {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.66;
+  margin-right: 4px;
+}
+
+.grade,
+.gradeOn {
+  min-width: 44px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.grade:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.gradeOn {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--lt-accent-teal, #2dd4bf), var(--lt-accent-cyan, #22d3ee));
+  color: #061018;
+}
+
+.back {
+  flex: none;
+  white-space: nowrap;
+}
+
+.panel {
+  min-height: 60vh;
+}
+
+.loading {
+  min-height: 320px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+@media (max-width: 720px) {
+  .head {
+    flex-direction: column;
+    padding: 20px 16px;
+  }
+
+  .back {
+    width: 100%;
+    justify-content: center;
+  }
+}

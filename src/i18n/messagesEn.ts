@@ -586,6 +586,12 @@ export const messagesEn: Record<MessageKey, string> = {
   /* Learn hubs: landing, grade, chapter */
   'learn.hubUi.overall': 'Overall progress',
   'learn.hubUi.quickTitle': 'Quick start',
+  'learn.talk.open': 'AI teacher: talk',
+  'learn.talk.lead': 'Voice or text dialogue on any topic of grades 7–11: explains, asks, checks.',
+  'learn.talk.title': 'Talk to the AI teacher',
+  'learn.talk.sub': 'Pick a grade — the teacher will rely on your textbook. Press “Start live dialogue” to talk by voice, or type a question.',
+  'learn.talk.grade': 'Grade',
+  'learn.talk.back': 'Back to learning',
   'learn.hubUi.gradesTitle': 'Choose your grade',
   'learn.hubUi.open': 'Open',
   'learn.hubUi.resumeEyebrow': 'Pick up where you left off',
