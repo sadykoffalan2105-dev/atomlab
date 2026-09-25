@@ -12,6 +12,7 @@ import type { ReaderGrade, ReaderReaction, ReaderUnit } from '../../../data/text
 const REASON_KEYS: Record<string, MessageKey> = {
   ionic: 'learn.book.rx.unsupported.ionic',
   scheme: 'learn.book.rx.unsupported.scheme',
+  generalFormula: 'learn.book.rx.unsupported.generalFormula',
   unknownSubstance: 'learn.book.rx.unsupported.unknownSubstance',
   organic: 'learn.book.rx.unsupported.organic',
   noCompoundProduct: 'learn.book.rx.unsupported.noCompoundProduct',

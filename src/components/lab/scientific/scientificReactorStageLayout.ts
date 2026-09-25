@@ -2,10 +2,17 @@
  * Чистая раскладка «сцены реактора» научного маршрута (без WebGL):
  * ряд «реагенты → продукты» из настоящих формульных единиц + счёт атомов.
  * THREE не импортируется — функция тестируется в Node.
+ *
+ * Кроме веществ каталога член ряда может быть частицей реактора вне каталога
+ * (src/data/labSpecies.ts): ион (Na⁺ — шар с зарядом, SO₄²⁻ — тетраэдр), электрон e⁻,
+ * органическая молекула, простое вещество-продукт. Если в уравнении есть заряды,
+ * к счёту атомов добавляется строка заряда (kind: 'charge').
  */
 import type { ReactorEquationTerm } from '../../../chemistry/reactorEquationBalance'
-import { compoundById } from '../../../data/compounds'
+import { ATOMIC_DATA, isElementSymbol as isCoreElementSymbol } from '../../../chemistry/data'
+import { diatomicBondA } from '../../../chemistry/labSpeciesGeometry'
 import { getElementBySymbol, getElementByZ } from '../../../data/elements'
+import { ELECTRON_SPECIES_ID, labCompoundById as compoundById, labSpeciesKind } from '../../../data/labSpecies'
 import {
   BOND_LENGTH_A,
   COVALENT_RADIUS_A,
@@ -68,7 +75,14 @@ export type StageTermLabel = {
 
 export type StageSeparator = { key: string; glyph: '+' | '→'; position: StageVec3 }
 
-export type StageTallyRow = { symbol: string; left: number; right: number; equal: boolean }
+export type StageTallyRow = {
+  symbol: string
+  left: number
+  right: number
+  equal: boolean
+  /** 'charge' — строка суммарного заряда (ионы, электроны); symbol у неё «±». */
+  kind?: 'atom' | 'charge'
+}
 
 export type ScientificStageLayout = {
   roles: StageRoleSpec[]
@@ -148,18 +162,33 @@ function roleId(symbol: string, charge: number): string {
   return `${symbol}${mag === 1 ? '' : mag}${charge > 0 ? '+' : '-'}`
 }
 
+/** Символ «атома»-электрона в раскладке (роль 'e-'): маленькая голубая частица. */
+export const STAGE_ELECTRON_SYMBOL = 'e'
+const ELECTRON_COLOR = 0x7fd4ff
+const ELECTRON_RADIUS = 0.075
+
 function colorFor(symbol: string): number {
+  if (symbol === STAGE_ELECTRON_SYMBOL) return ELECTRON_COLOR
   const cpk = (CPK as Record<string, number>)[symbol]
   if (cpk != null) return cpk
+  if (isCoreElementSymbol(symbol)) return ATOMIC_DATA[symbol].cpk
   const hex = getElementBySymbol(symbol)?.cpkHex
   const n = hex ? Number.parseInt(hex, 16) : Number.NaN
   return Number.isFinite(n) ? n : 0x99aabb
 }
 
+/** Ковалентный радиус, Å: кино-таблица, затем научное ядро (Li, Be, Ni, Rb, W …). */
+function covalentA(symbol: string): number | null {
+  const covA = (COVALENT_RADIUS_A as Record<string, number>)[symbol]
+  if (covA != null) return covA
+  return isCoreElementSymbol(symbol) ? ATOMIC_DATA[symbol].covalentRadiusPm / 100 : null
+}
+
 function radiusFor(symbol: string, charge: number): number {
+  if (symbol === STAGE_ELECTRON_SYMBOL) return ELECTRON_RADIUS
   const fixed = ROLE_RADIUS[roleId(symbol, charge)]
   if (fixed != null) return fixed
-  const covA = (COVALENT_RADIUS_A as Record<string, number>)[symbol]
+  const covA = covalentA(symbol)
   const cov = covA != null ? Math.min(0.3, Math.max(0.1, covA * SCENE_PER_ANGSTROM * 0.72 * 1.1)) : 0.2
   if (charge > 0) return Math.min(cov, 0.18)
   if (charge < 0) return cov * 1.17
@@ -358,8 +387,28 @@ function compoundTemplate(compoundId: string): UnitTemplate | null {
   if (cached) return cached
   const compound = compoundById[compoundId]
   if (!compound) return null
+  // Электрон: атомов нет — одна маленькая частица e⁻.
+  if (compoundId === ELECTRON_SPECIES_ID) {
+    const tpl = finalizeTemplate([{ symbol: STAGE_ELECTRON_SYMBOL, charge: -1, pos: [0, 0, 0] }], [], null)
+    templateCache.set(compoundId, tpl)
+    return tpl
+  }
+  // Простое вещество-продукт (O₂, Hg): тот же вид, что у простого вещества слева.
+  if (labSpeciesKind(compoundId) === 'simple') {
+    const [sym, count] = Object.entries(compound.composition)[0] ?? []
+    const el = sym ? getElementBySymbol(sym) : undefined
+    const tpl = el ? elementTemplate(el.z, count === 2) : null
+    if (tpl) templateCache.set(compoundId, tpl)
+    return tpl
+  }
   const raw = compound.atoms
   const n = raw.length
+  // Одноатомный ион (Na⁺, Cl⁻, Fe³⁺): шар с зарядом — радиус и кромка катиона/аниона.
+  if (n === 1 && compound.charge) {
+    const tpl = finalizeTemplate([{ symbol: raw[0]!.symbol, charge: compound.charge, pos: [0, 0, 0] }], [], null)
+    templateCache.set(compoundId, tpl)
+    return tpl
+  }
 
   // Компоненты связности: ионы соли в растворе — отдельные фрагменты.
   const parent = raw.map((_, i) => i)
@@ -483,8 +532,9 @@ function elementTemplate(z: number, diatomic: boolean): UnitTemplate | null {
   if (!el) return null
   const sym = el.symbol
   if (!diatomic) return finalizeTemplate([{ symbol: sym, charge: 0, pos: [0, 0, 0] }], [], null)
+  // Длина связи X–X из научного ядра (H₂ 74 пм, N₂ 110 пм, I₂ 267 пм …).
   const bondA =
-    sym === 'Cl' ? BOND_LENGTH_A.ClCl : sym === 'O' ? BOND_LENGTH_A.OO : 1.5
+    sym === 'Cl' ? BOND_LENGTH_A.ClCl : sym === 'O' ? BOND_LENGTH_A.OO : (diatomicBondA(sym) ?? 1.5)
   const half = (bondA * STAGE_WORLD_PER_ANGSTROM) / 2
   return finalizeTemplate(
     [
@@ -539,6 +589,8 @@ type RowTerm = {
   formula: string
   template: UnitTemplate | null
   composition: Record<string, number>
+  /** заряд формульной единицы (ион, электрон); 0 — нейтральная */
+  charge: number
 }
 
 function clampCoeff(n: number): number {
@@ -568,6 +620,7 @@ export function scientificStageLayout(
         formula: c?.formulaUnicode ?? t.compoundId,
         template: compoundTemplate(t.compoundId),
         composition: c?.composition ?? {},
+        charge: c?.charge ?? 0,
       })
     } else {
       const el = getElementByZ(t.z)
@@ -579,6 +632,7 @@ export function scientificStageLayout(
         formula: `${sym}${t.diatomic ? '₂' : ''}`,
         template: elementTemplate(t.z, Boolean(t.diatomic)),
         composition: el ? { [sym]: t.diatomic ? 2 : 1 } : {},
+        charge: 0,
       })
     }
   }
@@ -591,6 +645,7 @@ export function scientificStageLayout(
       formula: c?.formulaUnicode ?? compoundId,
       template: compoundTemplate(compoundId),
       composition: c?.composition ?? {},
+      charge: c?.charge ?? 0,
     })
   }
   const pushElement = (key: string, z: number, diatomic: boolean, coeff: number) => {
@@ -603,6 +658,7 @@ export function scientificStageLayout(
       formula: `${sym}${diatomic ? '₂' : ''}`,
       template: elementTemplate(z, diatomic),
       composition: el ? { [sym]: diatomic ? 2 : 1 } : {},
+      charge: 0,
     })
   }
   for (const cp of coProducts) {
@@ -755,8 +811,18 @@ export function scientificStageLayout(
   const rows: StageTallyRow[] = order.map((symbol) => {
     const l = left[symbol] ?? 0
     const r = right[symbol] ?? 0
-    return { symbol, left: l, right: r, equal: l === r }
+    return { symbol, left: l, right: r, equal: l === r, kind: 'atom' }
   })
+  // ── счёт зарядов (ионы, электроны): Ba²⁺ + SO₄²⁻ → BaSO₄ даёт «± 0 = 0» ──
+  if (rowTerms.some((rt) => rt.charge !== 0)) {
+    let ql = 0
+    let qr = 0
+    for (const rt of rowTerms) {
+      if (rt.side === 'left') ql += rt.charge * rt.coeff
+      else qr += rt.charge * rt.coeff
+    }
+    rows.push({ symbol: '±', left: ql, right: qr, equal: ql === qr, kind: 'charge' })
+  }
 
   return {
     roles: [...roles.values()],

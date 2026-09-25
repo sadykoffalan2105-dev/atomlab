@@ -28,9 +28,9 @@ function outerFromConfiguration(conf: string): number {
   return count
 }
 
-// Элементы реакций 7 класса (каталог) и их ионы.
-// Li в ядре пока нет — добавляется вместе со сценой Li₂O (план 7 класса, этап 3); схема Li — из правила слоёв.
-const ELEMENTS = ['H', 'C', 'O', 'Na', 'Mg', 'Al', 'P', 'Cl', 'K', 'Ca', 'Fe', 'Zn'] as const
+// Элементы реакций 7–9 классов (каталог) и их ионы: слои школьной схемы ↔ конфигурация ядра.
+// Rb и W в ядре есть, но школьная схема слоёв задана до Ca и для d-металлов Cr…Zn.
+const ELEMENTS = ['H', 'Li', 'Be', 'C', 'O', 'Na', 'Mg', 'Al', 'P', 'Cl', 'K', 'Ca', 'Fe', 'Ni', 'Zn'] as const
 for (const el of ELEMENTS) {
   const a = ATOMIC_DATA[el]
   if (!a) throw new Error(`нет ${el} в ATOMIC_DATA`)

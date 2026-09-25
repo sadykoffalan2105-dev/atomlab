@@ -74,6 +74,9 @@ export const CATALOG_HIDDEN_IDS: ReadonlySet<string> = new Set([
   'tb_feco5',
   'tb_scoh3',
   'tb_sc2o3',
+  // Продукты гидролиза из одного задания 9 класса (§ 7, с. 36): нужны реактору, в каталоге не показываем.
+  'tb_znohcl',
+  'tb_khso3',
   // Органика из таблиц гомологов и единичных задач 10 класса (вне основной программы)
   'n-tridecane',
   'n-tetradecane',

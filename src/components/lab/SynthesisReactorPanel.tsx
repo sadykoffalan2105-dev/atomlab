@@ -19,7 +19,8 @@ import type { LeftCatalogMatch, ReactorEquationTerm } from '../../chemistry/reac
 import type { ReactorCoProductTerm } from '../../chemistry/scientificReactorRecipes'
 import { REACTOR_COEFF_MAX } from '../../chemistry/reactorLimits'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
-import { compoundById } from '../../data/compounds'
+// Каталог + частицы реактора вне каталога (ионы, e⁻, органика): подписи членов уравнения.
+import { labCompoundById as compoundById } from '../../data/labSpecies'
 import { getSchoolReaction } from '../../chemistry/schoolReactionBank'
 import { useLocation } from 'react-router-dom'
 import { clo2StepStore } from '../../lab/cinema/scenes/clo2/clo2StepStore'
@@ -538,6 +539,7 @@ export function SynthesisReactorPanel({
   onLabPressureChange,
   onLabCatalystChange,
   scientificMode = false,
+  runUnavailableHint = null,
   teacherAvailable = false,
   teacherVoiceOn = false,
   teacherSpeaking = false,
@@ -578,6 +580,11 @@ export function SynthesisReactorPanel({
   onLabPressureChange?: (on: boolean) => void
   onLabCatalystChange?: (on: boolean) => void
   scientificMode?: boolean
+  /**
+   * Запуск синтеза для этой реакции недоступен (реакция только «шарами») — нейтральное
+   * пояснение у кнопки: «анимация этой реакции появится позже».
+   */
+  runUnavailableHint?: string | null
   /** Объяснение синтеза (озвучка) — только по кнопке у реактора. */
   teacherAvailable?: boolean
   teacherVoiceOn?: boolean
@@ -667,8 +674,11 @@ export function SynthesisReactorPanel({
     return new URLSearchParams(query.startsWith('?') ? query.slice(1) : query).get('reaction')
   }, [location.search])
   const labNeeds = effectiveLabNeeds(productCompound?.synthesisLab, productCompound?.id, linkedReactionId)
+  // Реакция только «шарами» (runUnavailableHint): запуска нет — и условий запуска тоже не показываем.
   const hasLabConditions = Boolean(
-    productCompound && (labNeeds?.needsHeat || labNeeds?.needsPressure || labNeeds?.needsCatalyst),
+    !runUnavailableHint &&
+      productCompound &&
+      (labNeeds?.needsHeat || labNeeds?.needsPressure || labNeeds?.needsCatalyst),
   )
   const labNeedCount = [labNeeds?.needsHeat, labNeeds?.needsPressure, labNeeds?.needsCatalyst].filter(Boolean).length
   const labOnCount =
@@ -685,7 +695,8 @@ export function SynthesisReactorPanel({
     () => (linkedReactionId ? (getSchoolReaction(linkedReactionId) ?? null) : null),
     [linkedReactionId],
   )
-  const recipeText = productCompound
+  // Реакция «шарами»: «эталон» получения главного продукта (H₂O из 2H₂ + O₂ при CH₄ + 2O₂) сбил бы с толку.
+  const recipeText = productCompound && !runUnavailableHint
     ? linkedReaction
       ? linkedReaction.productId === productCompound.id
         ? (locale === 'ru' ? linkedReaction.equationRu : linkedReaction.equationEn || linkedReaction.equationRu)
@@ -1210,6 +1221,14 @@ export function SynthesisReactorPanel({
                 <span className={panelStyles.reactorMsgText}>{t('reactor.labConditionsNeeded')}</span>
               </p>
             ) : null}
+            {runUnavailableHint ? (
+              <p className={panelStyles.reactorMsg} data-tone="info" role="note">
+                <span className={panelStyles.reactorMsgIcon} aria-hidden>
+                  <IconTone tone="info" />
+                </span>
+                <span className={panelStyles.reactorMsgText}>{runUnavailableHint}</span>
+              </p>
+            ) : null}
           </div>
 
           <button
@@ -1223,6 +1242,7 @@ export function SynthesisReactorPanel({
               if (canRun && !synthesisRunning) onSynthesisPrewarmIntent?.()
             }}
             disabled={!canRun || synthesisRunning}
+            title={runUnavailableHint ?? undefined}
           >
             <RunButtonContent synthesisRunning={synthesisRunning} locale={locale} runningText={t('reactor.runRunning')} runText={t('reactor.run')} />
           </button>

@@ -220,6 +220,34 @@ for (const [id, nameRu, formulaUnicode, composition, descriptionRu] of SIMPLE) {
   out.unshift({ id, category: 'other', nameRu, formulaUnicode, composition, descriptionRu, grades: [7, 8, 9] })
 }
 
+/**
+ * Вещества из заданий учебника, которых нет в инвентаре подстрок: их нашла проверка ссылок
+ * «открыть в лаборатории» (scripts/verify-lab-links.mts, причина unknownSubstance).
+ */
+const LAB_LINK_EXTRA: Out[] = [
+  {
+    id: 'tb_znohcl',
+    category: 'salt',
+    nameRu: 'Гидроксохлорид цинка',
+    formulaUnicode: 'Zn(OH)Cl',
+    composition: { Zn: 1, O: 1, H: 1, Cl: 1 },
+    descriptionRu: `Гидроксохлорид цинка (Zn(OH)Cl). ${CATEGORY_TEXT.salt} В учебниках «Химия»: 9 класс — «Гидролиз солей» (с. 36).`,
+    grades: [9],
+    obtainingStepsRu: [{ step: 1, equation: 'ZnCl₂ + H₂O ⇄ Zn(OH)Cl + HCl', note: 'Уравнение из учебника: 9 класс, «Гидролиз солей», с. 36' }],
+  },
+  {
+    id: 'tb_khso3',
+    category: 'salt',
+    nameRu: 'Гидросульфит калия',
+    formulaUnicode: 'KHSO₃',
+    composition: { K: 1, H: 1, S: 1, O: 3 },
+    descriptionRu: `Гидросульфит калия (KHSO₃). ${CATEGORY_TEXT.salt} В учебниках «Химия»: 9 класс — «Гидролиз солей» (с. 36).`,
+    grades: [9],
+    obtainingStepsRu: [{ step: 1, equation: 'K₂SO₃ + H₂O ⇄ KHSO₃ + KOH', note: 'Уравнение из учебника: 9 класс, «Гидролиз солей», с. 36' }],
+  },
+]
+for (const o of LAB_LINK_EXTRA) if (!out.some((x) => x.id === o.id)) out.push(o)
+
 // Способ получения — только из уравнений учебников, где вещество стоит в продуктах
 // (иначе каталог рисует бессмысленный «синтез из простых веществ»).
 type Rx = {
@@ -286,7 +314,7 @@ function obtainingSteps(o: Out): Step[] {
 }
 let withRoute = 0
 for (const o of out) {
-  o.obtainingStepsRu = obtainingSteps(o)
+  o.obtainingStepsRu = o.obtainingStepsRu ?? obtainingSteps(o)
   if (/учебник/i.test(o.obtainingStepsRu[0]?.note ?? '')) withRoute++
 }
 console.log('obtaining routes from textbooks:', withRoute, 'of', out.length)

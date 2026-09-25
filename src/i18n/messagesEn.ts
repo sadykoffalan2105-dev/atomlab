@@ -219,6 +219,7 @@ export const messagesEn: Record<MessageKey, string> = {
     'Mass balance error: atom counts on the left and right do not match. Check coefficients.',
   'errors.reactor.SCHOOL_ROUTE_ONLY':
     '{formula} cannot be built by joining elements in the reactor. Open the Reactions catalog (molecule + molecule).',
+  'errors.reactor.STAGE_ONLY': 'The animation of this reaction is coming later — for now you can explore it particle by particle and balance it.',
 
   'errors.parse.LEFT_EMPTY': 'Enter the left-hand side of the equation.',
   'errors.parse.SEGMENT_PARSE_FAIL': 'Could not parse term: “{segment}”. Example: 4Cr + 4K + 7O₂.',
@@ -355,6 +356,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab.teacher.idle': 'Turn on Explain so the teacher can guide each step.',
   'lab.stage.balanced': 'atoms balanced ✓',
   'lab.stage.unbalanced': 'atoms not balanced',
+  'lab.stage.balancedCharge': 'atoms and charges balanced ✓',
+  'lab.stage.unbalancedCharge': 'atoms or charges not balanced',
   'lab.mechanism.panelAria': 'Step-by-step reaction mechanism',
   'lab.mechanism.progressAria': 'Lesson progress',
   'lab.mechanism.stepOf': 'Step {n} of {total}',
@@ -641,17 +644,22 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab.deepLink.conditions': 'Conditions: {conditions}.',
   'lab.deepLink.scientificRoute': 'Scientific route: {title}. {equation} — ready to run the synthesis.',
   'lab.deepLink.backToBook': '← back to the textbook',
+  'lab.deepLink.loadedStageOnly': '{title}: {equation}. The reaction is laid out particle by particle: all particles are in the reactor.',
+  'lab.deepLink.loadedStageOnlyBalance':
+    '{title}: the particles are in the reactor — balance the reaction.',
   'lab.deepLink.unsupported.ionic':
     'An ionic equation cannot be loaded into the reactor: write the reaction in molecular form.',
   'lab.deepLink.unsupported.scheme':
     'This cannot be loaded into the reactor: it is a general scheme, a chain of reactions, or unreadable text.',
+  'lab.deepLink.unsupported.generalFormula':
+    'This cannot be loaded into the reactor: “n” in the formula means a general formula (polymer, oleum, rust), not a substance of definite composition.',
   'lab.deepLink.unsupported.unknownSubstance': 'This reaction cannot be loaded: the lab catalog has no {formulas}.',
   'lab.deepLink.unsupported.organic':
     'This reaction cannot be loaded: {formulas} is organic — open it in the organic lab.',
   'lab.deepLink.unsupported.noCompoundProduct':
     'This reaction cannot be loaded: none of the products is a compound from the catalog.',
   'lab.deepLink.unsupported.tooManyTerms':
-    'This reaction cannot be loaded: too many substances (up to 8 reagents and 4 products, numbers up to 9999).',
+    'This reaction cannot be loaded: too many substances (up to 8 reagents and 5 products, numbers up to 9999).',
   'lab.deepLink.unsupported.unbalanced': 'This reaction cannot be loaded: the equation is not balanced ({details}).',
   'reactor.products': 'Products',
   'catalog.rx.openLab': 'Open in the lab',
@@ -708,10 +716,12 @@ export const messagesEn: Record<MessageKey, string> = {
   'learn.book.rx.schemeBadge': 'Scheme',
   'learn.book.rx.unsupported.ionic': 'This is an ionic equation. The reactor works with molecular equations — look for the molecular form in the text.',
   'learn.book.rx.unsupported.scheme': 'This is a general scheme or a chain of transformations, not a single reaction with specific substances.',
+  'learn.book.rx.unsupported.generalFormula':
+    'The record contains “n” — a general formula (polymer, oleum, rust), not a substance with a definite number of atoms, so it cannot be laid out particle by particle.',
   'learn.book.rx.unsupported.unknownSubstance': 'One of the substances is not in the lab catalog yet.',
   'learn.book.rx.unsupported.organic': 'This reaction involves organic compounds — explore it in the organic lab.',
   'learn.book.rx.unsupported.noCompoundProduct': 'None of the products is a compound from the catalog, so the reactor has nothing to make.',
-  'learn.book.rx.unsupported.tooManyTerms': 'Too many substances for the reactor (up to 8 reagents and 4 products).',
+  'learn.book.rx.unsupported.tooManyTerms': 'Too many substances for the reactor (up to 8 reagents and 5 products).',
   'learn.book.rx.unsupported.unbalanced': 'The equation was recognised with an error and is not balanced.',
   'learn.book.rx.unsupported.other': 'This reaction cannot be loaded into the reactor yet.',
   'learn.book.rx.type.combination': 'Combination',

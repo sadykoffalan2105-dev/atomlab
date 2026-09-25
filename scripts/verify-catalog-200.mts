@@ -20,6 +20,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { compoundById } from '../src/data/compounds.ts'
+import { labCompoundById } from '../src/data/labSpecies.ts'
 import {
   CATALOG_DEMOTED_IDS,
   CATALOG_HIDDEN_IDS,
@@ -146,7 +147,8 @@ for (const g of GRADES) {
         problems.push(`g${g}/${u.unitId}/${rx.id}: resolveReactorEquation → ${r.code}`)
         continue
       }
-      if (!compoundById[r.productCompoundId]) {
+      // Реакция «шарами» (ионы, e⁻, органика, простое вещество): продукт — частица реактора вне каталога.
+      if (!(r.stageOnly ? labCompoundById : compoundById)[r.productCompoundId]) {
         problems.push(`g${g}/${u.unitId}/${rx.id}: продукт ${r.productCompoundId} пропал из данных`)
         continue
       }
@@ -163,7 +165,7 @@ for (const rx of SCHOOL_REACTION_BANK) {
   const r = resolveReactorEquation({ reactionId: rx.id }, { newId })
   if (r.ok) {
     bankOk++
-    if (!compoundById[r.productCompoundId]) {
+    if (!(r.stageOnly ? labCompoundById : compoundById)[r.productCompoundId]) {
       problems.push(`банк ${rx.id}: продукт ${r.productCompoundId} пропал из данных`)
     }
   }

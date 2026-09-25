@@ -13,8 +13,9 @@
 
 /**
  * Можно ли открыть реакцию в лаборатории.
- * reason — код отказа resolveReactorEquation (ionic | scheme | unknownSubstance | organic |
- * noCompoundProduct | tooManyTerms | unbalanced); altHref — запасная ссылка (например, органическая лаборатория).
+ * reason — код отказа resolveReactorEquation (scheme | generalFormula | unknownSubstance | organic |
+ * noCompoundProduct | tooManyTerms | unbalanced; ionic — только в старых данных: ионы теперь частицы реактора);
+ * altHref — запасная ссылка (например, органическая лаборатория).
  */
 export type ReaderLab = { ok: true; href: string } | { ok: false; reason: string; altHref?: string }
 

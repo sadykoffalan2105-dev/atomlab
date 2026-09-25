@@ -217,6 +217,7 @@ export const messagesRu = {
     'Ошибка в балансе масс: число атомов каждого элемента слева и справа не совпадает. Проверь коэффициенты.',
   'errors.reactor.SCHOOL_ROUTE_ONLY':
     '{formula} не собирают прямым соединением атомов/простых веществ в реакторе. Откройте каталог «Реакции» (молекула + молекула).',
+  'errors.reactor.STAGE_ONLY': 'Анимация этой реакции появится позже — пока её можно разобрать по шарикам и уравнять.',
 
   'errors.parse.LEFT_EMPTY': 'Введите левую часть уравнения.',
   'errors.parse.SEGMENT_PARSE_FAIL': 'Не удалось разобрать слагаемое: «{segment}». Пример: 4Cr + 4K + 7O₂.',
@@ -352,6 +353,8 @@ export const messagesRu = {
   'lab.teacher.idle': 'Включите «Объяснение», чтобы учитель вёл реакцию по шагам.',
   'lab.stage.balanced': 'атомы уравнены ✓',
   'lab.stage.unbalanced': 'атомы не уравнены',
+  'lab.stage.balancedCharge': 'атомы и заряды уравнены ✓',
+  'lab.stage.unbalancedCharge': 'атомы или заряды не уравнены',
   'lab.mechanism.panelAria': 'Механизм реакции по шагам',
   'lab.mechanism.progressAria': 'Прогресс урока',
   'lab.mechanism.stepOf': 'Шаг {n} из {total}',
@@ -639,17 +642,22 @@ export const messagesRu = {
   'lab.deepLink.conditions': 'Условия: {conditions}.',
   'lab.deepLink.scientificRoute': 'Научный маршрут: {title}. {equation} — можно запускать синтез.',
   'lab.deepLink.backToBook': '← назад к учебнику',
+  'lab.deepLink.loadedStageOnly': '{title}: {equation}. Реакция разложена по шарикам: все частицы уже в реакторе.',
+  'lab.deepLink.loadedStageOnlyBalance':
+    '{title}: частицы уже в реакторе — уравняйте реакцию.',
   'lab.deepLink.unsupported.ionic':
     'Ионное уравнение нельзя загрузить в реактор: запишите реакцию в молекулярном виде.',
   'lab.deepLink.unsupported.scheme':
     'Эту запись нельзя загрузить в реактор: это схема, цепочка превращений или нераспознанный текст.',
+  'lab.deepLink.unsupported.generalFormula':
+    'Эту запись нельзя загрузить в реактор: «n» в формуле — общая формула (полимер, олеум, ржавчина), а не вещество с определённым составом.',
   'lab.deepLink.unsupported.unknownSubstance': 'Реакцию нельзя загрузить: в каталоге лаборатории нет вещества {formulas}.',
   'lab.deepLink.unsupported.organic':
     'Реакцию нельзя загрузить: {formulas} — органическое вещество, откройте органическую лабораторию.',
   'lab.deepLink.unsupported.noCompoundProduct':
     'Реакцию нельзя загрузить: среди продуктов нет сложного вещества из каталога.',
   'lab.deepLink.unsupported.tooManyTerms':
-    'Реакцию нельзя загрузить: слишком много веществ (до 8 реагентов и 4 продуктов, числа до 9999).',
+    'Реакцию нельзя загрузить: слишком много веществ (до 8 реагентов и 5 продуктов, числа до 9999).',
   'lab.deepLink.unsupported.unbalanced': 'Реакцию нельзя загрузить: уравнение в ссылке не уравнено ({details}).',
   'reactor.products': 'Продукты',
   'catalog.rx.openLab': 'Открыть в лаборатории',
@@ -706,10 +714,12 @@ export const messagesRu = {
   'learn.book.rx.schemeBadge': 'Схема',
   'learn.book.rx.unsupported.ionic': 'Это ионное уравнение. Реактор работает с молекулярными уравнениями — найдите в тексте молекулярную запись этой реакции.',
   'learn.book.rx.unsupported.scheme': 'Это общая схема или цепочка превращений, а не одна реакция с конкретными веществами.',
+  'learn.book.rx.unsupported.generalFormula':
+    'В записи стоит «n» — это общая формула (полимер, олеум, ржавчина), а не вещество с определённым числом атомов, поэтому разложить её по шарикам нельзя.',
   'learn.book.rx.unsupported.unknownSubstance': 'Одного из веществ пока нет в каталоге лаборатории.',
   'learn.book.rx.unsupported.organic': 'Реакция с органическими веществами — её можно разобрать в органической лаборатории.',
   'learn.book.rx.unsupported.noCompoundProduct': 'Среди продуктов нет сложного вещества из каталога, поэтому реактору нечего получить.',
-  'learn.book.rx.unsupported.tooManyTerms': 'В реакции слишком много веществ для реактора (до 8 реагентов и 4 продуктов).',
+  'learn.book.rx.unsupported.tooManyTerms': 'В реакции слишком много веществ для реактора (до 8 реагентов и 5 продуктов).',
   'learn.book.rx.unsupported.unbalanced': 'Уравнение распознано из учебника с ошибкой и не уравнено.',
   'learn.book.rx.unsupported.other': 'Эту реакцию пока нельзя загрузить в реактор.',
   'learn.book.rx.type.combination': 'Соединение',

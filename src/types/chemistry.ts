@@ -51,6 +51,11 @@ export interface CompoundDef {
   /** Структурированные этапы получения (для UI «по шагам»). */
   obtainingStepsRu: readonly ObtainingStepRu[]
   category: CompoundCategory
+  /**
+   * Заряд частицы (ион SO₄²⁻ → −2, электрон → −1). Нет — нейтральное вещество.
+   * Бывает только у частиц реактора из src/data/labSpecies.ts, в каталоге таких нет.
+   */
+  charge?: number
   /** Опционально: для панели «Реактор» — обязательные условия перед запуском. */
   synthesisLab?: SynthesisLabConditions
   /**

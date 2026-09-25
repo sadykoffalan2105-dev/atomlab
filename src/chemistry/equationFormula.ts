@@ -418,6 +418,13 @@ function parseSpecies(termRaw: string): EquationSpecies {
   return { formula: split.core, coeff, counts, charge: split.charge, electron: false }
 }
 
+/** «Fe − 2e⁻» → { main: «Fe», electrons: «2e» }; null — в члене нет «− nē». */
+function splitElectronLoss(term: string): { main: string; electrons: string } | null {
+  const m = term.match(/^(.*\S)\s+[−–-]\s*(\d*)\s*[eē](?:⁻|\^?-)?$/)
+  if (!m) return null
+  return { main: m[1]!.trim(), electrons: `${m[2] ?? ''}e` }
+}
+
 /** Из текста учебника: неразрывные пробелы, «−», двойные пробелы. */
 function normalizeEquationText(text: string): string {
   return text
@@ -466,9 +473,26 @@ export function parseEquationText(textRaw: string): ParsedEquationText | null {
     }
   }
 
-  const leftTerms = splitTerms(leftText)
-  const rightTerms = splitTerms(rightRaw)
-  if (!leftTerms || !rightTerms) return null
+  const leftSplit = splitTerms(leftText)
+  const rightSplit = splitTerms(rightRaw)
+  if (!leftSplit || !rightSplit) return null
+  // Полуреакция окисления «Fe − 2e⁻ → Fe²⁺»: отданные электроны переносим вправо
+  // («Fe → Fe²⁺ + 2e⁻») — та же реакция, но все члены с положительными коэффициентами.
+  const leftTerms: string[] = []
+  const rightTerms: string[] = []
+  const moveLost = (terms: readonly string[], keep: string[], other: string[]) => {
+    for (const t of terms) {
+      const lost = splitElectronLoss(t)
+      if (lost) {
+        keep.push(lost.main)
+        other.push(lost.electrons)
+      } else keep.push(t)
+    }
+  }
+  moveLost(leftSplit, leftTerms, rightTerms)
+  const rightOwn: string[] = []
+  moveLost(rightSplit, rightOwn, leftTerms)
+  rightTerms.unshift(...rightOwn)
   const reactants = leftTerms.map(parseSpecies)
   const products = rightTerms.map(parseSpecies)
   const all = [...reactants, ...products]

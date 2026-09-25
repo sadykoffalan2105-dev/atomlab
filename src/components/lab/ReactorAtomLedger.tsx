@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getElementByZ } from '../../data/elements'
-import { compoundById } from '../../data/compounds'
+import { labCompoundById as compoundById } from '../../data/labSpecies'
 import type { MessageKey } from '../../i18n/messagesRu'
 import { useT } from '../../i18n/useT'
 import type { ReactorEquationTerm } from '../../chemistry/reactorEquationBalance'

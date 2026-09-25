@@ -37,6 +37,7 @@ import {
 import type { ReactorEquationTerm } from '../chemistry/reactorEquationBalance'
 import type { ReactorCoProductTerm } from '../chemistry/scientificReactorRecipes'
 import { compoundById } from '../data/compounds'
+import { labCompoundById } from '../data/labSpecies'
 import { getElementByZ } from '../data/elements'
 import type { CompoundDef } from '../types/chemistry'
 import { latticeFragment } from './cinema/scenes/kit/lattice'
@@ -775,7 +776,8 @@ export type Composition = Record<string, number>
 /** Состав ОДНОЙ формульной единицы члена уравнения (для двухатомного — молекулы X₂). */
 export function termUnitComposition(term: { z?: number; compoundId?: string; diatomic?: boolean }): Composition | null {
   if (term.compoundId) {
-    const c = compoundById[term.compoundId]
+    // ионы, e⁻, органика реакций учебника — тоже по составу
+    const c = labCompoundById[term.compoundId]
     if (!c) return null
     const out: Composition = {}
     for (const [s, n] of Object.entries(c.composition)) {

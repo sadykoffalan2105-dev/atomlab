@@ -57,7 +57,8 @@ for (const g of files) {
       const src = readerUnitHref(gradeId, u.unitId, { rx: id, page: u.pageStart })
       const bankId = r.ionic ? null : (bankByEq.get(norm(r.eq)) ?? null)
       const bankRes = bankId ? resolveReactorEquation({ reactionId: bankId }) : null
-      const res = r.ionic ? ({ ok: false, code: 'ionic' } as const) : bankRes?.ok ? bankRes : resolveReactorEquation({ equation: r.eq })
+      // Ионные уравнения и полуреакции тоже открываются — ионы и e⁻ стали частицами реактора.
+      const res = bankRes?.ok ? bankRes : resolveReactorEquation({ equation: r.eq })
       const lab = res.ok
         ? { ok: true as const, href: bankRes?.ok && bankId ? reactorHrefForBank(bankId, { src }) : reactorHrefForEquation(r.eq, { src }) }
         : { ok: false as const, reason: res.code }

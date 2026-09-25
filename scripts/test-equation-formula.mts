@@ -195,6 +195,24 @@ test('ionic', () => {
   assert.equal(eq5.reactants.length, 2)
   assert.equal(isParsedEquationBalanced(eq5), true)
 })
+test('electron loss «− nē» moves to the other side', () => {
+  const eq = parseEquationText('Fe − 2e⁻ → Fe²⁺')!
+  assert.equal(eq.isScheme, false)
+  assert.equal(eq.isIonic, true)
+  assert.deepEqual(eq.reactants.map((s) => s.formula), ['Fe'])
+  assert.deepEqual(eq.products.map((s) => [s.formula, s.coeff, s.charge]), [['Fe', 1, 2], ['e', 2, -1]])
+  assert.equal(isParsedEquationBalanced(eq), true)
+  assert.equal(formatEquationUnicode(eq), 'Fe → Fe²⁺ + 2ē')
+  const eq2 = parseEquationText('4OH⁻ − 4e⁻ → 2H₂O + O₂')!
+  assert.equal(isParsedEquationBalanced(eq2), true)
+  assert.equal(eq2.products.length, 3)
+  const eq3 = parseEquationText('2H₂O − 4e⁻ → O₂ + 4H⁺')!
+  assert.equal(isParsedEquationBalanced(eq3), true)
+  // «Cl-» — заряд аниона, а не «минус электрон»
+  assert.equal(parseEquationText('Ag+ + Cl- = AgCl')!.reactants.length, 2)
+  // заряд не сходится при верных атомах
+  assert.deepEqual(equationImbalance(parseEquationText('Fe → Fe²⁺ + e⁻')!), ['charge: 0≠1'])
+})
 test('schemes', () => {
   assert.equal(parseEquationText('Ca → CaO → Ca(OH)₂')!.isScheme, true)
   assert.equal(parseEquationText('4NH₃ + 5O₂ → 4NO + 6H₂O; 2NO + O₂ → 2NO₂')!.isScheme, true)
