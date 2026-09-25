@@ -2,7 +2,7 @@
  * АВТОГЕНЕРАЦИЯ — не редактировать вручную.
  * Пересборка: npx tsx scripts/build-compound-grade-map.mts
  * Источники: сверка учебников Kimyo 7–11 (evidence + TEXTBOOK_EXTRA_GRADES), schoolInorganicManifest, правила ФГОС.
- * Статистика: 7 кл.=176, 8 кл.=277, 9 кл.=304, 10 кл.=93, 11 кл.=180, всего=478; органика=49
+ * Статистика: 7 кл.=176, 8 кл.=277, 9 кл.=306, 10 кл.=93, 11 кл.=180, всего=480; органика=49
  */
 import type { InorganicSchoolGrade } from './compoundGradeIndex'
 
@@ -3931,6 +3931,18 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли",
     "firstPage": 155
+  },
+  "tb_znohcl": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
+  },
+  "tb_khso3": {
+    "grades": [
+      9
+    ],
+    "chapter": "соли"
   }
 } as const
 

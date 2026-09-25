@@ -219,6 +219,7 @@ export const messagesUz: Record<MessageKey, string> = {
     'Massa muvozanati xatosi: har bir element atomlari soni chap va o\'ngda mos kelmaydi. Koeffitsientlarni tekshiring.',
   'errors.reactor.SCHOOL_ROUTE_ONLY':
     '{formula} reaktorda atomlar/oddiy moddalar birlashuvi bilan yig\'ilmaydi. «Reaksiyalar» katalogini oching (molekula + molekula).',
+  'errors.reactor.STAGE_ONLY': 'Bu reaksiya animatsiyasi keyinroq qo\'shiladi — hozircha uni zarrachalar bo\'yicha ko\'rib chiqish va tenglashtirish mumkin.',
 
   'errors.parse.LEFT_EMPTY': 'Tenglama chap qismini kiriting.',
   'errors.parse.SEGMENT_PARSE_FAIL': 'Qo\'shimchani tahlil qilib bo\'lmadi: «{segment}». Misol: 4Cr + 4K + 7O₂.',
@@ -355,6 +356,8 @@ export const messagesUz: Record<MessageKey, string> = {
   'lab.teacher.idle': 'Bosqichma-bosqich olib borish uchun «Tushuntirish»ni yoqing.',
   'lab.stage.balanced': 'atomlar tenglashtirildi ✓',
   'lab.stage.unbalanced': 'atomlar tenglashtirilmagan',
+  'lab.stage.balancedCharge': 'atomlar va zaryadlar tenglashtirildi ✓',
+  'lab.stage.unbalancedCharge': 'atomlar yoki zaryadlar tenglashtirilmagan',
   'lab.mechanism.panelAria': 'Reaksiya mexanizmi bosqichma-bosqich',
   'lab.mechanism.progressAria': 'Dars jarayoni',
   'lab.mechanism.stepOf': '{n}-bosqich, jami {total}',
@@ -642,16 +645,21 @@ export const messagesUz: Record<MessageKey, string> = {
   'lab.deepLink.conditions': 'Sharoit: {conditions}.',
   'lab.deepLink.scientificRoute': 'Ilmiy yo‘l: {title}. {equation} — sintezni boshlash mumkin.',
   'lab.deepLink.backToBook': '← darslikka qaytish',
+  'lab.deepLink.loadedStageOnly': '{title}: {equation}. Reaksiya zarrachalarga ajratilgan: barcha zarrachalar reaktorda.',
+  'lab.deepLink.loadedStageOnlyBalance':
+    '{title}: zarrachalar reaktorda — reaksiyani tenglashtiring.',
   'lab.deepLink.unsupported.ionic':
     'Ionli tenglamani reaktorda tekshirib bo‘lmaydi: reaksiyani molekulyar ko‘rinishda yozing.',
   'lab.deepLink.unsupported.scheme':
     'Bu aniq moddalar bilan yozilgan bitta tenglama emas (umumiy sxema, o‘zgarishlar zanjiri yoki yozuv tanilmadi).',
+  'lab.deepLink.unsupported.generalFormula':
+    'Bu yozuvni reaktorga yuklab bo‘lmaydi: formuladagi «n» — umumiy formula (polimer, oleum, zang), tarkibi aniq modda emas.',
   'lab.deepLink.unsupported.unknownSubstance': 'Laboratoriya katalogida bunday modda yo‘q: {formulas}.',
   'lab.deepLink.unsupported.organic': 'Organik modda ({formulas}) — bu reaksiyani organik laboratoriyada oching.',
   'lab.deepLink.unsupported.noCompoundProduct':
     'Mahsulotlar orasida katalogdagi murakkab modda yo‘q — reaktor hech narsa olmaydi.',
   'lab.deepLink.unsupported.tooManyTerms':
-    'Reaktor uchun moddalar juda ko‘p: 8 tagacha reagent, 4 tagacha mahsulot, koeffitsiyent 9999 gacha.',
+    'Reaktor uchun moddalar juda ko‘p: 8 tagacha reagent, 5 tagacha mahsulot, koeffitsiyent 9999 gacha.',
   'lab.deepLink.unsupported.unbalanced': 'Havoladagi tenglama muvozanatlanmagan ({details}).',
   'reactor.products': 'Mahsulotlar',
   'catalog.rx.openLab': 'Laboratoriyada ochish',
@@ -708,10 +716,12 @@ export const messagesUz: Record<MessageKey, string> = {
   'learn.book.rx.schemeBadge': 'Sxema',
   'learn.book.rx.unsupported.ionic': 'Bu ionli tenglama. Reaktor molekulyar tenglamalar bilan ishlaydi — matndan uning molekulyar yozuvini toping.',
   'learn.book.rx.unsupported.scheme': 'Bu umumiy sxema yoki o‘zgarishlar zanjiri, aniq moddalar bilan bitta reaksiya emas.',
+  'learn.book.rx.unsupported.generalFormula':
+    'Yozuvda «n» bor — bu umumiy formula (polimer, oleum, zang), atomlar soni aniq bo‘lgan modda emas, shuning uchun uni zarrachalarga ajratib bo‘lmaydi.',
   'learn.book.rx.unsupported.unknownSubstance': 'Moddalardan biri hozircha laboratoriya katalogida yo‘q.',
   'learn.book.rx.unsupported.organic': 'Organik moddalar ishtirokidagi reaksiya — uni organik laboratoriyada ko‘rib chiqing.',
   'learn.book.rx.unsupported.noCompoundProduct': 'Mahsulotlar orasida katalogdagi murakkab modda yo‘q, reaktor hech narsa olmaydi.',
-  'learn.book.rx.unsupported.tooManyTerms': 'Reaktor uchun moddalar juda ko‘p (8 tagacha reagent va 4 tagacha mahsulot).',
+  'learn.book.rx.unsupported.tooManyTerms': 'Reaktor uchun moddalar juda ko‘p (8 tagacha reagent va 5 tagacha mahsulot).',
   'learn.book.rx.unsupported.unbalanced': 'Tenglama xato bilan tanib olingan va muvozanatlanmagan.',
   'learn.book.rx.unsupported.other': 'Bu reaksiyani hozircha reaktorga yuklab bo‘lmaydi.',
   'learn.book.rx.type.combination': 'Birikish',

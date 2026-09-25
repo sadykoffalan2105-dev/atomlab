@@ -35,10 +35,30 @@ import {
 import { fromElementsPolicy } from '../chemistry/substanceSynthesisRoute'
 import { compoundById } from '../data/compounds'
 import { getElementBySymbol } from '../data/elements'
+import {
+  electronSpecies,
+  ionSpeciesFor,
+  organicSpeciesFor,
+  simpleSpeciesFor,
+  type LabSpeciesKind,
+} from '../data/labSpecies'
 import type { CompoundDef } from '../types/chemistry'
 
-/** Не больше продуктов справа (главный + побочные). */
-export const REACTOR_LINK_MAX_PRODUCTS = 4
+/**
+ * Не больше продуктов справа (главный + побочные). 5 — ровно столько, сколько в самой
+ * длинной реакции учебников 7–9 классов (8 кл., § 22: KMnO₄ + NaCl + H₂SO₄ → 5 веществ).
+ */
+export const REACTOR_LINK_MAX_PRODUCTS = 5
+
+/**
+ * Реакция открывается только «шарами» (экран реакции, счёт атомов и зарядов), без запуска
+ * синтеза — анимация таких реакций появится позже:
+ *  • electron — полуреакция с электронами (электролиз, коррозия);
+ *  • ionic — ионное уравнение (диссоциация, краткая ионная форма);
+ *  • organic — есть органическое вещество (CH₄, C₂H₅OH …);
+ *  • simpleProduct — все продукты — простые вещества (2H₂O → 2H₂ + O₂).
+ */
+export type ReactorStageOnlyReason = 'electron' | 'ionic' | 'organic' | 'simpleProduct'
 
 export type ReactorLinkSpec = {
   /** id реакции из SCHOOL_REACTION_BANK */
@@ -54,6 +74,8 @@ export type ReactorLinkSpec = {
 export type ReactorLinkFailCode =
   | 'ionic'
   | 'scheme'
+  /** Общая формула с «n» — (C₆H₁₀O₅)n, H₂SO₄·nSO₃, Fe₂O₃·nH₂O, CₙH₂ₙ₊₂: не реакция с определённым составом. */
+  | 'generalFormula'
   | 'unknownSubstance'
   | 'organic'
   | 'noCompoundProduct'
@@ -83,6 +105,8 @@ export type ReactorLinkOk = {
   /** Уравнение с целыми коэффициентами, Unicode. */
   equationUnicode: string
   bankId: string | null
+  /** Не null — только экран реакции, синтез не запускается (см. ReactorStageOnlyReason). */
+  stageOnly: ReactorStageOnlyReason | null
 }
 
 export type ReactorLinkFail = {
@@ -120,7 +144,8 @@ function compoundByCompositionKey(key: string): CompoundDef | null {
 
 type ResolvedSpecies =
   | { kind: 'element'; z: number; diatomic: boolean; atomsPerUnit: number }
-  | { kind: 'compound'; compound: CompoundDef; glowZ: number }
+  /** lab — частица вне каталога (ион, электрон, органика): реакция только «шарами», без синтеза. */
+  | { kind: 'compound'; compound: CompoundDef; glowZ: number; lab?: LabSpeciesKind }
   | { kind: 'missing'; organic: boolean; formula: string }
 
 function glowZForCounts(counts: Readonly<Record<string, number>>): number {
@@ -129,9 +154,22 @@ function glowZForCounts(counts: Readonly<Record<string, number>>): number {
   return (sym ? getElementBySymbol(sym)?.z : undefined) ?? 1
 }
 
+function chargeSuffix(q: number): string {
+  if (q === 0) return ''
+  const mag = Math.abs(q)
+  return `^${mag === 1 ? '' : mag}${q > 0 ? '+' : '-'}`
+}
+
 function resolveSpecies(s: EquationSpecies): ResolvedSpecies {
   const counts = s.counts ?? {}
   const syms = Object.keys(counts)
+  if (s.electron) return { kind: 'compound', compound: electronSpecies(), glowZ: 1, lab: 'electron' }
+  if (s.charge !== 0) {
+    // Ион — отдельная частица реактора: Na⁺ — шар с зарядом, SO₄²⁻ — тетраэдр.
+    const ion = s.counts ? ionSpeciesFor(counts, s.charge) : null
+    if (ion) return { kind: 'compound', compound: ion, glowZ: glowZForCounts(counts), lab: 'ion' }
+    return { kind: 'missing', organic: false, formula: formulaToUnicode(`${s.formula}${chargeSuffix(s.charge)}`) }
+  }
   const formula = formulaToUnicode(s.formula)
   if (syms.length === 1) {
     const sym = syms[0]!
@@ -150,7 +188,13 @@ function resolveSpecies(s: EquationSpecies): ResolvedSpecies {
   }
   const compound = compoundByCompositionKey(formulaCompositionKey(counts))
   if (compound) return { kind: 'compound', compound, glowZ: glowZForCounts(counts) }
-  return { kind: 'missing', organic: isOrganicFormula(s.formula, counts), formula }
+  const organic = isOrganicFormula(s.formula, counts)
+  if (organic) {
+    // Органика школьных уравнений (CH₄, C₂H₅OH …): формульная единица с 3D-геометрией.
+    const org = organicSpeciesFor(counts)
+    if (org) return { kind: 'compound', compound: org, glowZ: 6, lab: 'organic' }
+  }
+  return { kind: 'missing', organic, formula }
 }
 
 /**
@@ -252,10 +296,13 @@ export function resolveReactorEquation(
   const ctx = { titleRu: titleHint ?? rawUnicode, equationUnicode: rawUnicode, bankId }
 
   if (parsed.isScheme) {
-    const placeholder = [...parsed.reactants, ...parsed.products].some((s) => s.counts == null)
-    return fail('scheme', { reason: placeholder ? 'placeholder' : 'chain' }, ctx)
+    const unparsed = [...parsed.reactants, ...parsed.products].filter((s) => s.counts == null)
+    // «n» вместо числа (полимер, олеум, ржавчина, гомологический ряд) — общая формула, а не вещество.
+    if (unparsed.some((s) => /(^|[^a-z])\d*n(?=[A-Z(\d+]|$)|\)n\b/.test(s.formula))) {
+      return fail('generalFormula', { reason: 'placeholder' }, ctx)
+    }
+    return fail('scheme', { reason: unparsed.length > 0 ? 'placeholder' : 'chain' }, ctx)
   }
-  if (parsed.isIonic) return fail('ionic', {}, ctx)
 
   const left = parsed.reactants.map(resolveSpecies)
   const right = parsed.products.map(resolveSpecies)
@@ -284,16 +331,47 @@ export function resolveReactorEquation(
   const compoundIdxs = right
     .map((r, i) => (r.kind === 'compound' ? i : -1))
     .filter((i) => i >= 0)
-  if (compoundIdxs.length === 0) return fail('noCompoundProduct', {}, ctx)
-  const idOf = (i: number) => (right[i] as Extract<ResolvedSpecies, { kind: 'compound' }>).compound.id
-  const pick = (id: string | null | undefined) => (id ? compoundIdxs.find((i) => idOf(i) === id) : undefined)
-  const mainIdx =
-    pick(spec.main) ??
-    pick(bank?.productId) ??
-    (bank ? undefined : pick(bankProductForSpecies(equationSpeciesKey(left, right)))) ??
-    compoundIdxs.find((i) => idOf(i) !== 'h2o') ??
-    compoundIdxs[0]!
-  const mainCompound = (right[mainIdx] as Extract<ResolvedSpecies, { kind: 'compound' }>).compound
+  const labKinds = new Set<LabSpeciesKind>()
+  for (const r of [...left, ...right]) if (r.kind === 'compound' && r.lab) labKinds.add(r.lab)
+  const stageOnly: ReactorStageOnlyReason | null = labKinds.has('electron')
+    ? 'electron'
+    : labKinds.has('ion')
+      ? 'ionic'
+      : labKinds.has('organic')
+        ? 'organic'
+        : compoundIdxs.length === 0
+          ? 'simpleProduct'
+          : null
+
+  let mainIdx: number
+  let mainCompound: CompoundDef
+  if (stageOnly) {
+    // Синтеза нет, «главный» продукт — просто последний член ряда: берём последний продукт
+    // уравнения, и сцена (побочные, затем главный) показывает продукты в порядке учебника.
+    // Простое вещество справа (O₂, Hg) — частица реактора simple_*.
+    let found: { idx: number; compound: CompoundDef } | null = null
+    for (let i = right.length - 1; i >= 0 && !found; i--) {
+      const r = right[i]!
+      if (r.kind === 'compound') found = { idx: i, compound: r.compound }
+      else if (r.kind === 'element') {
+        const simple = simpleSpeciesFor(r.z, r.diatomic ? 2 : r.atomsPerUnit)
+        if (simple) found = { idx: i, compound: simple }
+      }
+    }
+    if (!found) return fail('noCompoundProduct', {}, ctx)
+    mainIdx = found.idx
+    mainCompound = found.compound
+  } else {
+    const idOf = (i: number) => (right[i] as Extract<ResolvedSpecies, { kind: 'compound' }>).compound.id
+    const pick = (id: string | null | undefined) => (id ? compoundIdxs.find((i) => idOf(i) === id) : undefined)
+    mainIdx =
+      pick(spec.main) ??
+      pick(bank?.productId) ??
+      (bank ? undefined : pick(bankProductForSpecies(equationSpeciesKey(left, right)))) ??
+      compoundIdxs.find((i) => idOf(i) !== 'h2o') ??
+      compoundIdxs[0]!
+    mainCompound = (right[mainIdx] as Extract<ResolvedSpecies, { kind: 'compound' }>).compound
+  }
   const productTargetCoeff = intCoeff(parsed.products[mainIdx]!)
 
   // ── рецепт с целевыми коэффициентами ──
@@ -344,11 +422,12 @@ export function resolveReactorEquation(
     conditions: parsed.conditions,
     equationUnicode,
     bankId,
+    stageOnly,
   }
 
   // ── обычный маршрут: только элементы → одно вещество ──
   const elementsOnly = leftSpecs.every((s) => s.kind === 'element') && coSpecs.length === 0
-  if (elementsOnly && fromElementsPolicy(mainCompound.id) !== 'forbidden') {
+  if (!stageOnly && elementsOnly && fromElementsPolicy(mainCompound.id) !== 'forbidden') {
     const targetTerms: ReactorEquationTerm[] = leftSpecs.map((s) => {
       const el = s as Extract<SciLeftSpec, { kind: 'element' }>
       return { id: newId(), z: el.z, coeff: el.targetCoeff, ...(el.diatomic ? { diatomic: true as const } : {}) }
@@ -368,6 +447,7 @@ export function resolveReactorEquation(
     left: leftSpecs,
     coProducts: coSpecs,
     productTargetCoeff,
+    ...(stageOnly ? { stageOnly: true } : {}),
   }
   const leftTerms: ReactorEquationTerm[] = leftSpecs.map((s) =>
     s.kind === 'compound'
@@ -463,7 +543,11 @@ export function bankReactionIdForProduct(productId: string | null | undefined): 
   for (const r of SCHOOL_REACTION_BANK) {
     if (r.productId === productId && !ids.includes(r.id)) ids.push(r.id)
   }
-  const found = ids.find((id) => isBankReactionReactorReady(id)) ?? null
+  // Сначала реакция, которую можно запустить; «только шарами» — если другой нет.
+  const found =
+    ids.find((id) => isBankReactionReactorReady(id) && isBankReactionSynthesizable(id)) ??
+    ids.find((id) => isBankReactionReactorReady(id)) ??
+    null
   productBankCache.set(productId, found)
   return found
 }
@@ -509,6 +593,19 @@ export function parseReactorLinkParams(params: URLSearchParams): ReactorLinkPara
     balanceSelf: params.get('balance') === '1',
     backHref: sanitizeBackHref(params.get('src')),
   }
+}
+
+let bankSynthCache: Map<string, boolean> | null = null
+
+/** Реакция банка открывается с запуском синтеза (не «только шарами»). */
+export function isBankReactionSynthesizable(reactionId: string): boolean {
+  if (!bankSynthCache) bankSynthCache = new Map()
+  const cached = bankSynthCache.get(reactionId)
+  if (cached != null) return cached
+  const r = resolveReactorEquation({ reactionId })
+  const ok = r.ok && r.stageOnly == null
+  bankSynthCache.set(reactionId, ok)
+  return ok
 }
 
 let bankSupportCache: Map<string, boolean> | null = null

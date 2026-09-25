@@ -31,6 +31,8 @@
 export type ElementSymbol =
   | 'H'
   | 'He'
+  | 'Li'
+  | 'Be'
   | 'C'
   | 'N'
   | 'O'
@@ -50,13 +52,16 @@ export type ElementSymbol =
   | 'Cr'
   | 'Mn'
   | 'Fe'
+  | 'Ni'
   | 'Cu'
   | 'Zn'
   | 'Br'
+  | 'Rb'
   | 'Ag'
   | 'I'
   | 'Cs'
   | 'Ba'
+  | 'W'
   | 'Pb'
 
 /** Ионные радиусы: ключ — заряд иона (строка, чтобы «+2» читалось в коде), значение — пм. */
@@ -156,6 +161,53 @@ export const ATOMIC_DATA: Readonly<Record<ElementSymbol, AtomicDatum>> = {
     electronAffinityKJ: 0,
     electronAffinityNote: 'He⁻ не существует: анион несвязан, процесс эндотермичен (оценка ≈ +48 кДж/моль)',
     configuration: '1s²',
+    valenceElectrons: 2,
+  },
+  // Li и Be — реакции учебника 7–9 кл. (2Li + Cl₂, 4Li + O₂, BeO, BeCl₂): значения из тех же таблиц,
+  // что и у остальных элементов (Slater, Cordero, CRC, Bondi/Mantina, Shannon, CRC IE, NIST EA).
+  Li: {
+    symbol: 'Li',
+    z: 3,
+    atomicMassU: 6.94,
+    nameRu: 'литий',
+    atomicRadiusPm: 145,
+    covalentRadiusPm: 128,
+    metallicRadiusPm: 152,
+    vdwRadiusPm: 182,
+    ionicRadiiPm: { '+1': 76 },
+    // Shannon 1976: Li⁺ КЧ 4 — 59, КЧ 6 — 76, КЧ 8 — 92
+    ionicRadiiByCnPm: { '+1': { '4': 59, '6': 76, '8': 92 } },
+    cpk: 0xcc80ff,
+    electronegativity: 0.98,
+    ie1KJ: 520.2,
+    ie2KJ: 7298.1,
+    ie3KJ: 11815.0,
+    electronAffinityKJ: -59.6,
+    configuration: '[He] 2s¹',
+    valenceElectrons: 1,
+  },
+  Be: {
+    symbol: 'Be',
+    z: 4,
+    atomicMassU: 9.0122,
+    nameRu: 'бериллий',
+    atomicRadiusPm: 105,
+    covalentRadiusPm: 96,
+    metallicRadiusPm: 112,
+    // У Bondi бериллия нет — согласованный ряд Mantina et al., J. Phys. Chem. A 113 (2009) 5806.
+    vdwRadiusPm: 153,
+    ionicRadiiPm: { '+2': 45 },
+    // Shannon 1976: Be²⁺ КЧ 3 — 16, КЧ 4 — 27 (BeO, BeCl₂ — тетраэдры), КЧ 6 — 45
+    ionicRadiiByCnPm: { '+2': { '3': 16, '4': 27, '6': 45 } },
+    ionicRadiiNote: 'в соединениях Be²⁺ почти всегда тетраэдрический (КЧ 4, 27 пм); КЧ 6 — формальная запись таблицы',
+    cpk: 0xc2ff00,
+    electronegativity: 1.57,
+    ie1KJ: 899.5,
+    ie2KJ: 1757.1,
+    ie3KJ: 14848.7,
+    electronAffinityKJ: 0,
+    electronAffinityNote: 'Be⁻ несвязан (оболочка 2s² заполнена), процесс эндотермичен',
+    configuration: '[He] 2s²',
     valenceElectrons: 2,
   },
   C: {
@@ -544,6 +596,29 @@ export const ATOMIC_DATA: Readonly<Record<ElementSymbol, AtomicDatum>> = {
     configuration: '[Ar] 3d⁶ 4s²',
     valenceElectrons: 8,
   },
+  // Ni — 8–9 кл. (NiO, NiSO₄, никелирование); d-металл: валентные s+d (3d⁸ 4s²).
+  Ni: {
+    symbol: 'Ni',
+    z: 28,
+    atomicMassU: 58.693,
+    nameRu: 'никель',
+    atomicRadiusPm: 135,
+    covalentRadiusPm: 124,
+    metallicRadiusPm: 124,
+    vdwRadiusPm: 163,
+    ionicRadiiPm: { '+2': 69 },
+    // Shannon 1976: Ni²⁺ КЧ 4 — 55, КЧ 6 — 69
+    ionicRadiiByCnPm: { '+2': { '4': 55, '6': 69 } },
+    cpk: 0x50d050,
+    electronegativity: 1.91,
+    ie1KJ: 737.1,
+    ie2KJ: 1753.0,
+    ie3KJ: 3395,
+    electronAffinityKJ: -111.6,
+    configuration: '[Ar] 3d⁸ 4s²',
+    valenceElectrons: 10,
+    valenceElectronsNote: 'd-оболочка недозаполнена (3d⁸): s+d = 10, как Fe — 8, Mn — 7',
+  },
   Cu: {
     symbol: 'Cu',
     z: 29,
@@ -609,6 +684,29 @@ export const ATOMIC_DATA: Readonly<Record<ElementSymbol, AtomicDatum>> = {
     electronAffinityKJ: -324.6,
     configuration: '[Ar] 3d¹⁰ 4s² 4p⁵',
     valenceElectrons: 7,
+  },
+  // Rb — щелочной металл из таблиц 8 кл. (RbOH, Rb₂O, RbCl).
+  Rb: {
+    symbol: 'Rb',
+    z: 37,
+    atomicMassU: 85.468,
+    nameRu: 'рубидий',
+    atomicRadiusPm: 235,
+    covalentRadiusPm: 220,
+    metallicRadiusPm: 248,
+    // У Bondi рубидия нет — согласованный ряд Mantina et al., J. Phys. Chem. A 113 (2009) 5806.
+    vdwRadiusPm: 303,
+    ionicRadiiPm: { '+1': 152 },
+    // Shannon 1976: Rb⁺ КЧ 6 — 152, КЧ 8 — 161
+    ionicRadiiByCnPm: { '+1': { '6': 152, '8': 161 } },
+    cpk: 0x702eb0,
+    electronegativity: 0.82,
+    ie1KJ: 403.0,
+    ie2KJ: 2633,
+    ie3KJ: 3860,
+    electronAffinityKJ: -46.9,
+    configuration: '[Kr] 5s¹',
+    valenceElectrons: 1,
   },
   Ag: {
     symbol: 'Ag',
@@ -693,6 +791,28 @@ export const ATOMIC_DATA: Readonly<Record<ElementSymbol, AtomicDatum>> = {
     electronAffinityKJ: -14.0,
     configuration: '[Xe] 6s²',
     valenceElectrons: 2,
+  },
+  // W — 7–9 кл. (WO₃ + 3H₂ → W + 3H₂O, нить лампы накаливания).
+  W: {
+    symbol: 'W',
+    z: 74,
+    atomicMassU: 183.84,
+    nameRu: 'вольфрам',
+    atomicRadiusPm: 135,
+    covalentRadiusPm: 162,
+    metallicRadiusPm: 139,
+    // У Bondi вольфрама нет — Alvarez, Dalton Trans. 42 (2013) 8617.
+    vdwRadiusPm: 218,
+    // Shannon 1976, КЧ 6: W⁴⁺ — 66, W⁶⁺ — 60 (WO₃)
+    ionicRadiiPm: { '+4': 66, '+6': 60 },
+    cpk: 0x2194d6,
+    electronegativity: 2.36,
+    ie1KJ: 770,
+    ie2KJ: 1700,
+    electronAffinityKJ: -78.8,
+    configuration: '[Xe] 4f¹⁴ 5d⁴ 6s²',
+    valenceElectrons: 6,
+    valenceElectronsNote: '4f¹⁴ заполнена и не участвует; 5d⁴ 6s² — до W(VI) в WO₃',
   },
   Pb: {
     symbol: 'Pb',

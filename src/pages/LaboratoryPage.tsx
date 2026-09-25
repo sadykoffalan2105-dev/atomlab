@@ -83,6 +83,7 @@ import {
 } from '../components/lab/ReactorCompoundCatalogPanel'
 import { SynthesisReactorPanel } from '../components/lab/SynthesisReactorPanel'
 import { compoundById } from '../data/compounds'
+import { labCompoundById } from '../data/labSpecies'
 import {
   getSectionAllowedProductIds,
   parseLearnEquationScope,
@@ -162,6 +163,12 @@ export function LaboratoryPage() {
   const [productCoeff, setProductCoeff] = useState(1)
   /** Рецепт из ссылки (reaction= / eq=); иначе статическая таблица по productCompoundId. */
   const [equationRecipe, setEquationRecipe] = useState<ScientificReactorRecipe | null>(null)
+  /**
+   * Реакция из ссылки (учебник, банк) по маршруту «элементы → вещество» (2Li + Cl₂ → 2LiCl):
+   * до запуска поле показывает тот же экран реакции «шарами», что и научный маршрут.
+   * Храним id продукта: выбор другого вещества в каталоге выключает экран сам.
+   */
+  const [linkStageProductId, setLinkStageProductId] = useState<string | null>(null)
   /** «← назад к учебнику» из src= ссылки. */
   const [deepLinkBackHref, setDeepLinkBackHref] = useState<string | null>(null)
   /** id реакции банка из ссылки — условия реактора берутся по реакции, а не по продукту. */
@@ -281,8 +288,10 @@ export function LaboratoryPage() {
     )
   }, [learnEquationScope])
 
+  // labCompoundById: каталог + частицы реактора вне каталога (ионы, электрон, органика,
+  // простое вещество-продукт) — для реакций учебника, открытых «шарами».
   const productCompound = useMemo(
-    () => (productCompoundId ? (compoundById[productCompoundId] ?? null) : null),
+    () => (productCompoundId ? (labCompoundById[productCompoundId] ?? null) : null),
     [productCompoundId],
   )
 
@@ -431,7 +440,7 @@ export function LaboratoryPage() {
         coProducts,
         productCompound ?? undefined,
         productCoeff,
-        compoundById,
+        labCompoundById,
         activeRecipe,
       )
     }
@@ -564,6 +573,7 @@ export function LaboratoryPage() {
     forceEditHoldRef.current()
     setReactorMessage(null)
     setEquationRecipe(null)
+    setLinkStageProductId(null)
     setReactorOpen(true)
     if (lesson.kind === 'practice_only') {
       setReactorMessage(
@@ -605,6 +615,7 @@ export function LaboratoryPage() {
 
       productLockedRef.current = true
       setEquationRecipe(null)
+      setLinkStageProductId(null)
       setProductCompoundId(id)
       setProductCoeff(1)
 
@@ -628,6 +639,7 @@ export function LaboratoryPage() {
     getLabTeacherNarrator().stop()
     resetEquation()
     setEquationRecipe(null)
+    setLinkStageProductId(null)
     setReactorMessage(null)
     setSynthesisSettledProduct(null)
     settledSnapshotRef.current = null
@@ -652,6 +664,7 @@ export function LaboratoryPage() {
       if (!next) {
         resetEquation()
         setEquationRecipe(null)
+        setLinkStageProductId(null)
         setDeepLinkBackHref(null)
         setReactorSessionKey((k) => k + 1)
         setRunId(0)
@@ -705,16 +718,25 @@ export function LaboratoryPage() {
         return
       }
       setEquationRecipe(res.recipe ?? null)
+      setLinkStageProductId(res.recipe ? null : res.productCompoundId)
       setLeftTerms(res.leftTerms)
       setCoProducts(res.coProducts)
       setProductCompoundId(res.productCompoundId)
       setProductCoeff(res.productCoeff)
-      const loaded = link.balanceSelf
-        ? t('lab.deepLink.loadedBalance', { title: res.titleRu })
-        : t('lab.deepLink.loaded', { title: res.titleRu, equation: res.equationUnicode })
+      // Реакция только «шарами» (ионы, электроны, органика, простое вещество-продукт):
+      // запуска синтеза нет — говорим об этом сразу, спокойно, без «ошибки».
+      const loaded = res.stageOnly
+        ? link.balanceSelf
+          ? t('lab.deepLink.loadedStageOnlyBalance', { title: res.titleRu })
+          : t('lab.deepLink.loadedStageOnly', { title: res.titleRu, equation: res.equationUnicode })
+        : link.balanceSelf
+          ? t('lab.deepLink.loadedBalance', { title: res.titleRu })
+          : t('lab.deepLink.loaded', { title: res.titleRu, equation: res.equationUnicode })
       const conditions = res.conditions ? ` ${t('lab.deepLink.conditions', { conditions: res.conditions })}` : ''
-      setReactorMessage(`${loaded}${conditions}`)
-      const compound = compoundById[res.productCompoundId]
+      // Ссылка без заголовка: заголовок = само уравнение — не повторяем его дважды.
+      const loadedOnce = loaded.replace(`${res.equationUnicode}: ${res.equationUnicode}`, res.equationUnicode)
+      setReactorMessage(`${loadedOnce}${conditions}`)
+      const compound = res.stageOnly ? undefined : compoundById[res.productCompoundId]
       if (compound) {
         if (!res.recipe) warmupReactorPreviewTerms(res.leftTerms)
         warmupLabSynthesisReactorOpen(catalogList, compound, res.recipe ? undefined : res.leftTerms)
@@ -1038,27 +1060,39 @@ export function LaboratoryPage() {
 
   /** Научный маршрут: до запуска поле реактора показывает реагенты и продукты молекулами. */
   const scientificStage = useMemo<ScientificStageInput | null>(() => {
-    if (!reactorOpen || !productCompoundId || !activeRecipe) return null
-    const product = compoundById[productCompoundId]
+    // Маршрут «элементы → вещество» из ссылки учебника тоже показывает экран реакции.
+    const linkStage = !activeRecipe && linkStageProductId != null && linkStageProductId === productCompoundId
+    if (!reactorOpen || !productCompoundId || (!activeRecipe && !linkStage)) return null
+    const product = labCompoundById[productCompoundId]
     if (!product) return null
+    // Ионы и электроны: под рядом считаются и заряды — подпись «атомы и заряды».
+    const charged =
+      Boolean(product.charge) ||
+      [...deferredLeftTerms, ...coProducts].some((term) => Boolean(term.compoundId && labCompoundById[term.compoundId]?.charge))
     return {
       leftTerms: deferredLeftTerms,
       coProducts,
       productId: product.id,
       productCoeff,
-      balanced: isScientificEquationBalanced(
-        deferredLeftTerms,
-        coProducts,
-        product,
-        productCoeff,
-        compoundById,
-        activeRecipe,
-      ),
-      labels: { balanced: t('lab.stage.balanced'), unbalanced: t('lab.stage.unbalanced') },
+      balanced: activeRecipe
+        ? isScientificEquationBalanced(
+            deferredLeftTerms,
+            coProducts,
+            product,
+            productCoeff,
+            labCompoundById,
+            activeRecipe,
+          )
+        : isReactorBalancedFast(deferredLeftTerms, product, productCoeff),
+      labels: charged
+        ? { balanced: t('lab.stage.balancedCharge'), unbalanced: t('lab.stage.unbalancedCharge') }
+        : { balanced: t('lab.stage.balanced'), unbalanced: t('lab.stage.unbalanced') },
     }
-  }, [reactorOpen, productCompoundId, activeRecipe, deferredLeftTerms, coProducts, productCoeff, t])
+  }, [reactorOpen, productCompoundId, activeRecipe, linkStageProductId, deferredLeftTerms, coProducts, productCoeff, t])
 
   const canRunSynthesis = useMemo(() => {
+    // Реакция только «шарами»: анимации синтеза пока нет — кнопка неактивна, пояснение в панели.
+    if (activeRecipe?.stageOnly) return false
     const product = productCompoundId ? compoundById[productCompoundId] : undefined
     if (!product) return false
     if (activeRecipe) {
@@ -1460,6 +1494,7 @@ export function LaboratoryPage() {
         onLabPressureChange={setLabPressureOn}
         onLabCatalystChange={setLabCatalystOn}
         scientificMode={activeRecipe != null}
+        runUnavailableHint={activeRecipe?.stageOnly ? t('errors.reactor.STAGE_ONLY') : null}
         teacherAvailable={hasLabTeacherScript(productCompoundId)}
         teacherVoiceOn={teacherVoiceOn}
         teacherSpeaking={teacherSpeaking}

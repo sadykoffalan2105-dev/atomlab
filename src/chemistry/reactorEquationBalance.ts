@@ -34,6 +34,8 @@ export type ReactorValidationErrorCode =
   | 'LEFT_PARSE_FAIL'
   | 'BALANCE_MISMATCH'
   | 'SCHOOL_ROUTE_ONLY'
+  /** Реакция только «шарами»: анимация синтеза для неё появится позже. */
+  | 'STAGE_ONLY'
 
 export type ReactorValidationResult =
   | { ok: true; zSlots: number[]; compound: CompoundDef }

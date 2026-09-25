@@ -32,6 +32,11 @@ export type ScientificReactorRecipe = {
   coProducts: readonly SciCoProductSpec[]
   productTargetCoeff: number
   titleRu: string
+  /**
+   * Только экран реакции «шарами» (ионы, электроны, органика, простое вещество-продукт):
+   * уравнивать можно, запуск синтеза недоступен — анимация этой реакции появится позже.
+   */
+  stageOnly?: boolean
 }
 
 /**
@@ -215,7 +220,32 @@ export function isScientificEquationBalanced(
   const left = compositionFromScientificLeft(leftTerms, compoundById)
   if (!left) return false
   const right = compositionFromScientificRight(product, productCoeff, coProducts, compoundById)
-  return compositionKey(left) === compositionKey(right)
+  if (compositionKey(left) !== compositionKey(right)) return false
+  // Ионы и электроны: заряд слева = заряд справа (Fe → Fe²⁺ + 2e⁻, а не + e⁻).
+  return chargeOfScientificSide(leftTerms, compoundById) === chargeOfScientificRight(product, productCoeff, coProducts, compoundById)
+}
+
+/** Суммарный заряд левой части (ионы, электроны); у простых веществ и нейтральных веществ — 0. */
+export function chargeOfScientificSide(
+  terms: readonly { compoundId?: string; coeff: number }[],
+  compoundById: Readonly<Record<string, CompoundDef>>,
+): number {
+  let q = 0
+  for (const t of terms) {
+    if (!t.compoundId) continue
+    q += (compoundById[t.compoundId]?.charge ?? 0) * Math.max(0, Math.floor(t.coeff))
+  }
+  return q
+}
+
+/** Суммарный заряд правой части: главный продукт × коэффициент + побочные. */
+export function chargeOfScientificRight(
+  product: CompoundDef,
+  productCoeff: number,
+  coProducts: readonly ReactorCoProductTerm[],
+  compoundById: Readonly<Record<string, CompoundDef>>,
+): number {
+  return (product.charge ?? 0) * Math.max(0, Math.floor(productCoeff)) + chargeOfScientificSide(coProducts, compoundById)
 }
 
 /** Текст уравнения рецепта с целевыми коэффициентами: «2NaClO₂ + Cl₂ → 2NaCl + 2ClO₂». */

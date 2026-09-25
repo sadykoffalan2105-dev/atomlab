@@ -112,6 +112,10 @@ export function prepareGuaranteedSynthesisRun(input: {
   if (!productId) {
     return { ok: false, code: 'NO_PRODUCT' }
   }
+  // Реакция только «шарами» (ионы, электроны, органика, простое вещество-продукт) — без запуска.
+  if (input.recipe?.stageOnly && input.recipe.productId === productId) {
+    return { ok: false, code: 'STAGE_ONLY' }
+  }
 
   const catalogCompound = resolveCatalogProduct(compoundById, productId)
   if (!catalogCompound) {
