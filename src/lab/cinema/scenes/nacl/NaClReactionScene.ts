@@ -21,7 +21,9 @@ import {
   type NaclRim,
 } from './naclLatticeView'
 import { getNaclMechanismText } from './naclMechanismText'
-import { createNaclElectronClouds, naclRingTexture, NACL_NA_OUTER_FILL, type NaclCloudView } from './naclElectronCloud'
+import { createElectronClouds, ringFlashTexture, type ElectronCloudView } from '../kit/electronClouds'
+import { ATOMIC_DATA } from '../../../../chemistry/data/atomicData'
+import { outerElectrons } from '../../../../chemistry/data/electronLevels'
 import {
   createNaclState,
   I_CLA,
@@ -138,6 +140,8 @@ const ELECTRON_COLOR = new THREE.Color(0x9ee4ff)
 const DIM_COLOR = 0xcfeeff
 /** Цвет выносок к октаэдрам (тот же, что у размерных линий, — это тоже «чертёж», а не связи). */
 const CALLOUT_COLOR = 0xbfe3ff
+/** Доля заполнения внешнего слоя атома Na (1 из 8) — из школьной схемы слоёв ядра. */
+const NA_OUTER_FILL = outerElectrons(ATOMIC_DATA.Na.z) / 8
 
 /**
  * Вершины рамки фрагмента, расширенной на радиус самого крупного иона: по ним считается экранный
@@ -254,7 +258,7 @@ export class NaClReactionScene {
   private readonly calloutMat: THREE.LineBasicMaterial
   private readonly ownGeos: THREE.BufferGeometry[] = []
   /** Электронные облака внешнего уровня 4 частиц сюжета (школьная модель строения атома). */
-  private readonly clouds: NaclCloudView
+  private readonly clouds: ElectronCloudView
   /** Кольца-вспышки: отрыв электрона (Na) и захват (Cl). */
   private readonly rings: THREE.Sprite[] = []
   private readonly ringMats: THREE.SpriteMaterial[] = []
@@ -386,9 +390,9 @@ export class NaClReactionScene {
     this.stage.add(this.trail)
 
     // ——— электронные облака внешнего уровня и кольца-вспышки отрыва/захвата ———
-    this.clouds = createNaclElectronClouds({ lowPower: opts.lowPower, color: ELECTRON_COLOR })
+    this.clouds = createElectronClouds({ atoms: NACL_STORY.length, lowPower: opts.lowPower, color: ELECTRON_COLOR })
     this.stage.add(this.clouds.points)
-    const ringTex = naclRingTexture()
+    const ringTex = ringFlashTexture()
     for (let i = 0; i < 4; i++) {
       const rm = new THREE.SpriteMaterial({ map: ringTex, color: ELECTRON_COLOR, blending: THREE.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, fog: false })
       const ring = new THREE.Sprite(rm)
@@ -923,7 +927,7 @@ export class NaClReactionScene {
       const [di, ai] = NACL_PAIRS[k]!
       const e = T.e[k]!
       const stretch = naclSmooth(e.leave - T.windUp, e.leave, t) * (1 - naclSmooth(e.leave, e.leave + 0.6, t))
-      const fillNa = t < e.arrive ? NACL_NA_OUTER_FILL * (1 - naclSmooth(e.leave, e.leave + 0.55, t)) : naclSmooth(e.arrive, e.arrive + T.morph + 0.35, t)
+      const fillNa = t < e.arrive ? NA_OUTER_FILL * (1 - naclSmooth(e.leave, e.leave + 0.55, t)) : naclSmooth(e.arrive, e.arrive + T.morph + 0.35, t)
       this.clouds.set(di, s.pos[di]!, s.radius[di]! * s.appear, fillNa, cin * (1 + 1.2 * stretch + 0.6 * s.flash[di]!), 0, this.holeDir, stretch, this.stretchDir[k]!)
       const hole = 1 - naclSmooth(e.arrive - 0.12, e.arrive + 0.3, t)
       this.clouds.set(ai, s.pos[ai]!, s.radius[ai]! * s.appear, 1, cin * (0.85 + 0.9 * s.flash[ai]!), hole, this.holeDir, 0, this.stretchDir[k]!)

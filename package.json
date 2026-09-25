@@ -81,6 +81,7 @@
     "test:cao-cinema": "tsx scripts/test-cao-cinema.mts",
     "test:chem-data": "tsx scripts/test-chem-data.mts",
     "test:crystal-basis": "tsx scripts/test-crystal-basis.mts",
+    "test:electron-levels": "tsx scripts/test-electron-levels.mts",
     "test:cinema-kit": "tsx scripts/test-cinema-kit.mts",
     "test:reactor-particles": "tsx scripts/test-reactor-particles.mts",
     "test:product-hero": "tsx scripts/test-product-hero.mts",

@@ -1,31 +1,28 @@
 import * as THREE from 'three'
 
 /**
- * Электронное облако ВНЕШНЕГО энергетического уровня частиц сюжета NaCl (школьная модель, Kimyo 8:
+ * Электронное облако ВНЕШНЕГО энергетического уровня частиц сцены (школьная модель, Kimyo 8:
  * «электроны образуют вокруг ядра как бы электронное облако»). Облако — мерцающая «пыль» точек у
  * поверхности шара, как точечные рисунки облаков в учебнике:
- *   • плотность = доля заполнения уровня (fill): у Na — 1 электрон из 8, у Cl — 7 из 8;
- *   • у Cl в облаке «окно» (hole) там, куда придёт восьмой электрон, — оно закрывается в кадр захвата;
- *   • перед отрывом облако Na вытягивается к хлору (stretch) и уходит вместе с электроном;
- *   • у Na⁺ облаком становится завершённый второй уровень (8 e⁻) — оно проявляется по мере сжатия шара.
+ *   • плотность = доля заполнения уровня (fill = внешних электронов / 8, см. chemistry/data/electronLevels);
+ *     у Na — 1 из 8, у Cl — 7 из 8;
+ *   • у акцептора в облаке «окно» (hole) там, куда придёт электрон, — оно закрывается в кадр захвата;
+ *   • перед отрывом облако донора вытягивается к партнёру (stretch) и уходит вместе с электроном;
+ *   • у катиона облаком становится завершённый предвнешний уровень — он проявляется по мере сжатия шара.
+ * Первая сцена — NaCl (scenes/nacl); число частиц задаёт сцена.
  * Все параметры — uniform'ы: геометрия создаётся один раз, в кадре ноль аллокаций.
  */
 
-export const NACL_CLOUD_ATOMS = 4
-
-/** Доля заполнения внешнего уровня атома Na: 1 электрон из 8. */
-export const NACL_NA_OUTER_FILL = 1 / 8
-
-const VERT = /* glsl */ `
+const vert = (n: number) => /* glsl */ `
 attribute float aAtom;
 attribute vec3 aDir;
 attribute float aR;
 attribute float aRank;
 attribute float aSeed;
-uniform vec4 uCenter[${NACL_CLOUD_ATOMS}];
-uniform vec4 uParam[${NACL_CLOUD_ATOMS}];
-uniform vec3 uHoleDir[${NACL_CLOUD_ATOMS}];
-uniform vec3 uStretchDir[${NACL_CLOUD_ATOMS}];
+uniform vec4 uCenter[${n}];
+uniform vec4 uParam[${n}];
+uniform vec3 uHoleDir[${n}];
+uniform vec3 uStretchDir[${n}];
 uniform float uTime;
 uniform float uSize;
 uniform float uPxScale;
@@ -90,7 +87,7 @@ function mulberry32(seed: number): () => number {
   }
 }
 
-export type NaclCloudView = {
+export type ElectronCloudView = {
   points: THREE.Points
   material: THREE.ShaderMaterial
   /** Параметры облака частицы i (в системе stage). */
@@ -100,16 +97,17 @@ export type NaclCloudView = {
   dispose(): void
 }
 
-export function createNaclElectronClouds(opts: { lowPower?: boolean; color: THREE.Color }): NaclCloudView {
+export function createElectronClouds(opts: { atoms: number; lowPower?: boolean; color: THREE.Color }): ElectronCloudView {
+  const atoms = opts.atoms
   const perAtom = opts.lowPower ? 140 : 260
-  const n = perAtom * NACL_CLOUD_ATOMS
+  const n = perAtom * atoms
   const atom = new Float32Array(n)
   const dir = new Float32Array(n * 3)
   const rad = new Float32Array(n)
   const rank = new Float32Array(n)
   const seed = new Float32Array(n)
   const rnd = mulberry32(0x4e61436c)
-  for (let a = 0; a < NACL_CLOUD_ATOMS; a++) {
+  for (let a = 0; a < atoms; a++) {
     for (let j = 0; j < perAtom; j++) {
       const o = a * perAtom + j
       atom[o] = a
@@ -137,13 +135,13 @@ export function createNaclElectronClouds(opts: { lowPower?: boolean; color: THRE
   geometry.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1))
   geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e4)
 
-  const uCenter = Array.from({ length: NACL_CLOUD_ATOMS }, () => new THREE.Vector4())
-  const uParam = Array.from({ length: NACL_CLOUD_ATOMS }, () => new THREE.Vector4())
-  const uHoleDir = Array.from({ length: NACL_CLOUD_ATOMS }, () => new THREE.Vector3(1, 0, 0))
-  const uStretchDir = Array.from({ length: NACL_CLOUD_ATOMS }, () => new THREE.Vector3(1, 0, 0))
+  const uCenter = Array.from({ length: atoms }, () => new THREE.Vector4())
+  const uParam = Array.from({ length: atoms }, () => new THREE.Vector4())
+  const uHoleDir = Array.from({ length: atoms }, () => new THREE.Vector3(1, 0, 0))
+  const uStretchDir = Array.from({ length: atoms }, () => new THREE.Vector3(1, 0, 0))
   const dpr = typeof window !== 'undefined' ? Math.min(2, window.devicePixelRatio || 1) : 1
   const material = new THREE.ShaderMaterial({
-    vertexShader: VERT,
+    vertexShader: vert(atoms),
     fragmentShader: FRAG,
     uniforms: {
       uCenter: { value: uCenter },
@@ -163,7 +161,7 @@ export function createNaclElectronClouds(opts: { lowPower?: boolean; color: THRE
     fog: false,
   })
   const points = new THREE.Points(geometry, material)
-  points.name = 'nacl-electron-clouds'
+  points.name = 'electron-clouds'
   points.frustumCulled = false
   points.renderOrder = 9
 
@@ -189,8 +187,8 @@ export function createNaclElectronClouds(opts: { lowPower?: boolean; color: THRE
 
 let ringTex: THREE.DataTexture | null = null
 
-/** Кольцо-вспышка (без DOM): отрыв электрона у Na и захват у Cl. */
-export function naclRingTexture(): THREE.DataTexture {
+/** Кольцо-вспышка (без DOM): отрыв электрона у донора и захват у акцептора. */
+export function ringFlashTexture(): THREE.DataTexture {
   if (ringTex) return ringTex
   const n = 96
   const data = new Uint8Array(n * n * 4)
