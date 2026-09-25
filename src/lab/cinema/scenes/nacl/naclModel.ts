@@ -3,7 +3,6 @@ import { bondLengthPm, getCrystal, radiusForSpecies, type ElementSymbol } from '
 import { heroSpecFor } from '../../../../chemistry/data/heroStructures'
 import { bondLength, LATTICE_BALL_SCALE, pmToScene, SPECIES_SCALE, speciesRadius } from '../kit/cpkAtoms'
 import { coordinationShell, latticeCaption, latticeFragment } from '../kit/lattice'
-import { NACL_DHF_KJ, NACL_LATTICE_KJ } from './naclEnergetics'
 import { NACL_ELECTRONS, NACL_END, NACL_FINISH, NACL_MORPH_S, NACL_STEPS, naclCueAt } from './naclSteps'
 
 /**
@@ -14,7 +13,7 @@ import { NACL_ELECTRONS, NACL_END, NACL_FINISH, NACL_MORPH_S, NACL_STEPS, naclCu
  *
  * Ни одного числа химии: радиусы — radiusForSpecies через kit/cpkAtoms (Na⁰ металлический 186 пм,
  * Cl⁰ ковалентный 102 пм, ионы — Шеннон при КЧ 6: 102 и 181 пм), длины — bondData (Cl–Cl, газовая
- * Na–Cl), решётки — crystalData через kit/lattice (ОЦК натрия, каменная соль 3×3×3 ячейки — столько
+ * Na–Cl), решётки — crystalData через kit/lattice (ОЦК натрия, каменная соль 2×2×2 ячейки — столько
  * же, сколько у героя продукта в heroStructures), энергия — цикл Борна — Габера ядра.
  *
  * Параметры РИСУНКА (не химии) названы и собраны здесь: доли радиуса шаров (SPECIES_SCALE,
@@ -137,9 +136,20 @@ export const NACL_PAIRS = [
  * Координационные октаэдры КЧ 6:6 — у Na⁺ (вершины — 6 Cl⁻) и у Cl⁻ (вершины — 6 Na⁺), оба у передней
  * грани: вершина каждого выходит на лицевую плоскость и видна сквозь фрагмент, октаэдры не касаются.
  */
+/** Первый из кандидатов, где стоит ион el (чётность узла зависит от числа ячеек фрагмента). */
+function naclPickSite(el: ElementSymbol, cands: readonly Grid[]): number {
+  for (const c of cands) {
+    const i = naclSiteAt(c[0], c[1], c[2])
+    if (SALT_FRAG.sites[i]!.el === el) return i
+  }
+  throw new Error(`nacl: среди кандидатов нет узла ${el}`)
+}
+
+// Внутренние узлы переднего слоя (z = HALF − 1): у каждого полные 6 соседей, октаэдры не касаются
+// (L1-расстояние между центрами ≥ 3 шага сетки при любой чётности).
 export const NACL_OCTA = [
-  { center: naclSiteAt(-2, 1, NACL_GRID_HALF - 1), el: 'Na' as ElementSymbol },
-  { center: naclSiteAt(1, -1, NACL_GRID_HALF - 1), el: 'Cl' as ElementSymbol },
+  { center: naclPickSite('Na', [[-1, 1, NACL_GRID_HALF - 1], [-1, 0, NACL_GRID_HALF - 1]]), el: 'Na' as ElementSymbol },
+  { center: naclPickSite('Cl', [[1, 0, NACL_GRID_HALF - 1], [1, -1, NACL_GRID_HALF - 1]]), el: 'Cl' as ElementSymbol },
 ] as const
 
 /** Вершины октаэдров — 6 противоионов (по связям фрагмента). */
@@ -393,8 +403,9 @@ export const NACL_SHOTS: readonly ShotKey[] = [
   { t: stepTo(2), zoom: 1.45, yaw: 0, pitch: 0, target: [-0.12, 0, NACL_STAGE_Z] },
   { t: naclCueAt('contact'), zoom: 1.85, yaw: 0, pitch: 0, target: [-NACL_H / 2, 0, NACL_STAGE_Z] },
   { t: stepTo(3), zoom: 1.85, yaw: 0, pitch: 0, target: [-NACL_H / 2, 0, NACL_STAGE_Z] },
-  { t: NACL_T.saltEdges[0], zoom: 0.44, yaw: 0.42, pitch: 0.3, target: [0, 0.35, 0] },
-  { t: NACL_END, zoom: 0.44, yaw: 0.42, pitch: 0.3, target: [0, 0.35, 0] },
+  // Решётка 5×5×5 ионов: крупнее в кадре, подписей-«итогов» под ней больше нет — центр почти в нуле.
+  { t: NACL_T.saltEdges[0], zoom: 0.6, yaw: 0.42, pitch: 0.3, target: [0, 0.15, 0] },
+  { t: NACL_END, zoom: 0.6, yaw: 0.42, pitch: 0.3, target: [0, 0.15, 0] },
 ]
 
 export type NaclShot = { zoom: number; yaw: number; pitch: number; target: THREE.Vector3 }
@@ -436,12 +447,14 @@ export function naclDepthPushAt(t: number): number {
 // Подписи в 3D — только формулы, заряды, числа и символы единиц (токены)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const fmt1 = (v: number) => (Math.round(v * 10) / 10).toFixed(1)
-const fmtSigned = (v: number) => (v < 0 ? `−${fmt1(-v)}` : `+${fmt1(v)}`)
 
 export type NaclLabelAnchor =
   /** над (side 1) или под (side −1) частицей сюжета */
   | { kind: 'story'; index: number; side: 1 | -1 }
+  /** в центре шара частицы сюжета — символ элемента или иона ВНУТРИ шара */
+  | { kind: 'inside'; index: number }
+  /** в центре k-го атома ячейки металла (NACL_METAL_REST[k]) */
+  | { kind: 'metalAtom'; index: number }
   | { kind: 'electron'; index: 0 | 1 }
   /** точка в системе stage (не вращается с решёткой) */
   | { kind: 'stage'; p: V3 }
@@ -464,7 +477,8 @@ export type NaclLabelOutside = { side: 'above' | 'below' | 'left' | 'right'; row
 
 export type NaclLabelDef = {
   id: string
-  kind: 'species' | 'measure' | 'token'
+  /** atom — символ внутри шара (раскладка его не двигает) */
+  kind: 'species' | 'measure' | 'token' | 'atom'
   keys: readonly { t: number; text: string }[]
   windows: readonly (readonly [number, number])[]
   anchor: NaclLabelAnchor
@@ -473,7 +487,8 @@ export type NaclLabelDef = {
 
 const T = NACL_T
 const E = NACL_ELECTRONS
-const STORY_END = T.toLattice[1] + 0.3
+/** Символы внутри шаров гаснут, как только пары пошли в узлы решётки. */
+const INSIDE_END = T.toLattice[0] + 0.35
 const HALF = NACL_GRID_HALF * NACL_H
 /**
  * Размерная линия ребра a: нижнее переднее ребро ПЕРВОЙ ячейки (2 шага сетки = a), опущенное под
@@ -490,44 +505,23 @@ export const NACL_DIM_A = {
 export const NACL_DIM_GAS_DROP = NACL_R.clIon / SPECIES_SCALE + 0.12
 
 export const NACL_LABELS: readonly NaclLabelDef[] = [
-  // Шаг 1: металл и молекула
+  // Шаг 1: вещества (подпись над группой) и символы элементов ВНУТРИ шаров
   { id: 'metal', kind: 'species', keys: [{ t: 0, text: 'Na ({s})' }], windows: [[0.3, T.metalOut[1]]], anchor: { kind: 'metal' } },
-  { id: 'metalA', kind: 'measure', keys: [{ t: 0, text: `a = ${fmt1(NACL_METAL.cellPm.a)} {pm}` }], windows: [[0.8, T.detach[0]]], anchor: { kind: 'stage', p: [NACL_METAL_CENTER[0], NACL_METAL_CENTER[1] - pmToScene(NACL_METAL.cellPm.a) / 2 - 0.62, NACL_STAGE_Z] } },
   { id: 'cl2', kind: 'species', keys: [{ t: 0, text: 'Cl₂ ({g})' }], windows: [[0.3, T.brk]], anchor: { kind: 'cl2' } },
-  { id: 'clBond', kind: 'measure', keys: [{ t: 0, text: `${fmt1(bondLengthPm('Cl-Cl'))} {pm}` }], windows: [[0.8, T.brk - 0.4]], anchor: { kind: 'clBond' } },
-  // Шаги 2–4: частицы сюжета. Подпись ДОНОРА меняется в кадр УХОДА электрона (тогда же, когда
-  // модель ставит ему заряд +1): пока e⁻ летит, в кадре стоит Na⁺ + e⁻ + Cl и сумма зарядов видна
-  // нулевой. Размер и цвет у обоих партнёров меняются позже — в кадр поглощения (решение владельца).
-  { id: 'na1', kind: 'species', keys: [{ t: 0, text: 'Na ({g})' }, { t: E.e1.leave, text: 'Na⁺' }], windows: [[T.detach[0] + 0.5, STORY_END]], anchor: { kind: 'story', index: I_NA1, side: 1 } },
-  { id: 'na2', kind: 'species', keys: [{ t: 0, text: 'Na ({g})' }, { t: E.e2.leave, text: 'Na⁺' }], windows: [[T.detach[0] + 1.1, STORY_END]], anchor: { kind: 'story', index: I_NA2, side: -1 } },
-  { id: 'clA', kind: 'species', keys: [{ t: 0, text: 'Cl ({g})' }, { t: E.e1.arrive, text: 'Cl⁻' }], windows: [[T.brk, STORY_END]], anchor: { kind: 'story', index: I_CLA, side: 1 } },
-  { id: 'clB', kind: 'species', keys: [{ t: 0, text: 'Cl ({g})' }, { t: E.e2.arrive, text: 'Cl⁻' }], windows: [[T.brk, STORY_END]], anchor: { kind: 'story', index: I_CLB, side: -1 } },
+  ...NACL_METAL_REST.map((_, k): NaclLabelDef => ({ id: `m${k}`, kind: 'atom', keys: [{ t: 0, text: 'Na' }], windows: [[0.3, T.metalOut[0] + 0.2]], anchor: { kind: 'metalAtom', index: k } })),
+  // Шаги 1–4: частицы сюжета — символ внутри шара. Подпись ДОНОРА меняется в кадр УХОДА электрона
+  // (тогда же модель ставит ему заряд +1): пока e⁻ летит, в кадре Na⁺ + e⁻ + Cl и сумма зарядов нулевая.
+  // Гаснут до сжатия в решётку: ион решётки мал для надписи внутри.
+  { id: 'na1', kind: 'atom', keys: [{ t: 0, text: 'Na' }, { t: E.e1.leave, text: 'Na⁺' }], windows: [[0.3, INSIDE_END]], anchor: { kind: 'inside', index: I_NA1 } },
+  { id: 'na2', kind: 'atom', keys: [{ t: 0, text: 'Na' }, { t: E.e2.leave, text: 'Na⁺' }], windows: [[0.3, INSIDE_END]], anchor: { kind: 'inside', index: I_NA2 } },
+  { id: 'clA', kind: 'atom', keys: [{ t: 0, text: 'Cl' }, { t: E.e1.arrive, text: 'Cl⁻' }], windows: [[0.3, INSIDE_END]], anchor: { kind: 'inside', index: I_CLA } },
+  { id: 'clB', kind: 'atom', keys: [{ t: 0, text: 'Cl' }, { t: E.e2.arrive, text: 'Cl⁻' }], windows: [[0.3, INSIDE_END]], anchor: { kind: 'inside', index: I_CLB } },
   { id: 'e1', kind: 'token', keys: [{ t: 0, text: 'e⁻' }], windows: [[E.e1.leave - T.windUp, E.e1.arrive + 0.1]], anchor: { kind: 'electron', index: 0 } },
   { id: 'e2', kind: 'token', keys: [{ t: 0, text: 'e⁻' }], windows: [[E.e2.leave - T.windUp, E.e2.arrive + 0.1]], anchor: { kind: 'electron', index: 1 } },
-  // Шаг 4: газовая пара — r_e(NaCl, г.)
-  { id: 'dGas', kind: 'measure', keys: [{ t: 0, text: `${fmt1(bondLengthPm('Na-Cl'))} {pm}` }], windows: [[naclCueAt('contact') - 0.6, T.toLattice[0] + 0.4]], anchor: { kind: 'gasPair' } },
-  // Шаг 5: решётка — подписи СНАРУЖИ силуэта решётки (класс выносит их каждый кадр)
+  // Шаг 5–6: решётка — название над силуэтом и окружение выделенных ионов (школьное «шесть соседей»)
   { id: 'nacl', kind: 'species', keys: [{ t: 0, text: 'NaCl ({s})' }], windows: [[T.grow.from + 1.4, NACL_END]], anchor: { kind: 'lattice', p: [0, HALF, 0] }, outside: { side: 'above' } },
-  // Шаг 6 называет a в итоговой строке (p1) — размерная линия и её подпись уходят, чтобы не дублировать.
-  // Формат один с итогом: «564,0 пм» (fmt1), а не «564» из latticeCaption.
-  { id: 'cellA', kind: 'measure', keys: [{ t: 0, text: `a = ${fmt1(NACL_SALT.cellPm.a)} {pm}` }], windows: [[T.dimA[0], T.finalLabels]], anchor: { kind: 'lattice', p: [(NACL_DIM_A.from[0] + NACL_DIM_A.to[0]) / 2, -HALF - NACL_DIM_A.drop - 0.24, HALF] }, outside: { side: 'below' } },
-  {
-    id: 'cn',
-    kind: 'measure',
-    keys: [{ t: 0, text: SALT_CAPTION[2]! }],
-    windows: [[T.octa[0], NACL_END]],
-    // Слева сверху, СНАРУЖИ проекции решётки: в системе решётки якорь уезжал внутрь силуэта.
-    anchor: { kind: 'lattice', p: [-HALF, HALF, 0] },
-    outside: { side: 'left' },
-  },
-  // Окружение выделенных ионов: «6 Cl⁻» у октаэдра Na⁺ и «6 Na⁺» у октаэдра Cl⁻ — с выноской
-  // от самой фигуры (число соседей берётся из coordination ядра).
   { id: 'octaNa', kind: 'measure', keys: [{ t: 0, text: `${NACL_SALT.coordination['Na⁺']} Cl⁻` }], windows: [[T.octa[0] + 0.1, NACL_END]], anchor: { kind: 'octa', index: 0, dir: -1 } },
   { id: 'octaCl', kind: 'measure', keys: [{ t: 0, text: `${NACL_SALT.coordination['Cl⁻']} Na⁺` }], windows: [[T.octa[0] + 0.1, NACL_END]], anchor: { kind: 'octa', index: 1, dir: 1 } },
-  // Шаг 6: зафиксированные параметры и энергия (числа — из ядра), полосой под решёткой
-  { id: 'p1', kind: 'measure', keys: [{ t: 0, text: `${NACL_SALT.spaceGroup} · a = ${fmt1(NACL_SALT.cellPm.a)} {pm} · d = ${fmt1(NACL_SALT.cationAnionPm)} {pm}` }], windows: [[T.finalLabels, NACL_END]], anchor: { kind: 'stage', p: [0, -HALF - 0.75, 0] }, outside: { side: 'below', row: 0 } },
-  { id: 'p2', kind: 'measure', keys: [{ t: 0, text: `Z = ${NACL_SALT.z} · ρ = ${NACL_SALT.densityGCm3} {gcm3}` }], windows: [[T.finalLabels + 0.2, NACL_END]], anchor: { kind: 'stage', p: [0, -HALF - 1.75, 0] }, outside: { side: 'below', row: 1 } },
-  { id: 'p3', kind: 'measure', keys: [{ t: 0, text: `ΔH°f = ${fmtSigned(NACL_DHF_KJ)} {kJmol} · U = ${fmtSigned(NACL_LATTICE_KJ)} {kJmol}` }], windows: [[T.finalLabels + 0.4, NACL_END]], anchor: { kind: 'stage', p: [0, -HALF - 2.75, 0] }, outside: { side: 'below', row: 2 } },
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -749,13 +743,14 @@ export function sampleNaclState(t: number, s: NaclState): NaclState {
 
   // ——— Шаг 4: линии поля и расстояние газовой пары ———
   s.field = windowFade(T.field[0], T.field[1], 0.5, t)
-  s.dimGas = windowFade(naclCueAt('contact') - 0.6, T.toLattice[0] + 0.4, 0.3, t)
+  // Школьная версия: размерных линий (rₑ пары, ребро a) нет — только вещества, ионы и их окружение.
+  s.dimGas = 0
 
   // ——— Решётка ———
   s.saltEdges = naclSmooth(T.saltEdges[0], T.saltEdges[1], t)
   const tail = naclSmooth(T.finish[0], T.finish[0] + 0.45, t)
   s.octa = naclSmooth(T.octa[0], T.octa[1], t) * (1 - tail)
-  s.dimA = naclSmooth(T.dimA[0], T.dimA[1], t) * (1 - naclSmooth(T.finalLabels - 0.3, T.finalLabels, t))
+  s.dimA = 0
   s.spin = naclSpinAt(t)
   s.handoff = naclSmooth(T.finish[0], T.finish[1], t)
   s.light = 1 - s.handoff

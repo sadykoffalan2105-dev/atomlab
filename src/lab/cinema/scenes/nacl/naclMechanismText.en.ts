@@ -3,77 +3,55 @@ import type { NaclMechanismText } from './naclMechanismText'
 export const NACL_TEXT_EN: NaclMechanismText = {
   intro: {
     title: 'Ionic bond',
-    speak: 'Let us watch sodium and chlorine become table salt: an electron moves from one atom to another.',
+    speak: 'Let us watch sodium and chlorine turn into table salt: an electron moves from one atom to another.',
   },
   steps: {
     reactants: {
       title: 'Starting substances',
-      body:
-        'On the left is one unit cell of sodium metal: a body-centred cubic lattice (BCC, Im-3m), cell edge a = 429.1 pm, every atom with eight nearest neighbours 371.6 pm away. ' +
-        'On the right is a chlorine molecule Cl₂: two atoms held by one shared electron pair (a σ bond), bond length 198.8 pm. ' +
-        'The radius of a sodium atom in the metal is 186 pm, the covalent radius of chlorine 102 pm (half the Cl–Cl bond length is 99.4 pm — the difference is within the reference spread). At 25 °C chlorine is a gas and sodium a solid metal.',
-      equation: '2 Na (s) + Cl₂ (g)',
-      note: 'Chlorine reacts as the MOLECULE Cl₂ — there are no lone chlorine atoms in the cylinder. The sodium sphere is drawn larger than the chlorine sphere, and the data say so: 186 pm is the metallic radius (an atom in the metal), 102 pm the covalent radius (an atom in a molecule). These are radii of DIFFERENT kinds: they show the order of size, not a comparison of atoms measured the same way. The light lines around sodium are unit-cell edges, not bonds; the metal is matte — sodium tarnishes quickly in air.',
-      speak: 'A cell of sodium metal on the left, a chlorine molecule on the right. Chlorine is always diatomic.',
+      body: 'Sodium is a soft silvery metal: in its crystal the Na atoms are closely packed. Chlorine is a yellow-green poisonous gas made of diatomic Cl₂ molecules, in which two atoms share a pair of electrons. When sodium and chlorine meet they react vigorously — table salt NaCl forms.',
+      equation: '2Na + Cl₂',
+      note: 'The symbol inside each ball is the chemical symbol of the element. One cell of the metal and one chlorine molecule are shown; a real piece of sodium has billions of times more atoms.',
+      speak: 'On the left is sodium metal, on the right a chlorine molecule. Chlorine always comes as two atoms.',
     },
     sublimation: {
-      title: 'Sublimation and dissociation',
-      body:
-        'Before anything can react the particles must be set free. A sodium atom leaves the metal, which costs 107.3 kJ per mole (sublimation). ' +
-        'The Cl–Cl bond breaks homolytically: the shared pair splits evenly, one electron to each atom. Half a mole of Cl₂ takes 121.3 kJ — the tabulated enthalpy of formation of atomic chlorine, ΔH°f(Cl, g), at 298 K. ' +
-        'Both stages are endothermic, so the energy ladder goes up.',
-      equation: 'Na (s) → Na (g);  ½ Cl₂ (g) → Cl (g)',
-      note: 'Only one cell of the metal is drawn: two atoms go on to react and the rest leave the frame — a real piece of sodium holds about 10²³ atoms. At the end of the step the valence dots appear — the starting state before the electron moves: one on Na, seven on Cl.',
-      speak: 'A sodium atom leaves the metal and the chlorine bond splits in half. Both stages need energy.',
+      title: 'Structure of sodium and chlorine atoms',
+      body: 'Separate atoms take part in the reaction: sodium atoms leave the metal and the chlorine molecule splits into two atoms. The sodium nucleus has a charge of +11, and its electrons sit on three energy levels: 2, 8, 1 — only one electron on the outer level. The chlorine nucleus has a charge of +17, electrons 2, 8, 7 — it is one electron short of a complete outer level of eight.',
+      equation: 'Na (+11): 2, 8, 1      Cl (+17): 2, 8, 7',
+      note: 'The cloud of light specks around a ball is the electron cloud of the outer level: sparse for sodium (one electron), dense for chlorine (seven electrons) with a “window” where the missing one goes. The large blue dots are outer-level electrons you can count.',
+      speak: 'Sodium has one electron on its outer level, chlorine has seven. Chlorine is one electron short of eight.',
     },
     transfer: {
-      title: 'Giving and taking the electron',
-      body:
-        'The single outer electron of sodium (3s¹) moves to a chlorine atom; removing it costs 495.8 kJ/mol (the ionisation energy). ' +
-        'Sodium loses its whole outer shell and shrinks from 186 to 102 pm — it is now the cation Na⁺. Chlorine gains its eighth electron, completes the octet and grows from 102 to 181 pm: the anion Cl⁻ is about 1.8 times larger than Na⁺. ' +
-        'Adding the electron releases energy: Δ_eg H = −348.6 kJ/mol. In IUPAC usage the same quantity is called the electron affinity and written with a plus sign, +348.6 kJ/mol — one process, only the sign convention differs.',
-      equation: 'Na⁰ − 1e⁻ → Na⁺  (×2);  Cl⁰ + 1e⁻ → Cl⁻  (×2)',
-      note: 'The dots around the atoms count valence electrons in the Lewis manner (one on Na, seven on Cl, eight on Cl⁻); they are not electron positions. The arc the electron flies along and the slowed-down time are conventions: the transfer is a quantum jump. The donor label changes to Na⁺ on the frame the electron LEAVES — that is when the charge appears (Na → Na⁺ + e⁻ is the ionisation itself), so while the electron is in flight the frame shows Na⁺ + e⁻ + Cl and the charges still sum to zero. The size and colour of Na and Cl change later and together, at the moment of absorption, so that the change of the two particles reads as one event. The second transfer repeats the first for the second pair of atoms. Radii of different kinds are compared here: the metallic radius of Na and the covalent radius of Cl against Shannon ionic radii; the trend is right, but the numbers come from different scales.',
-      speak: 'Sodium gives away one electron and gets smaller. Chlorine takes it and gets bigger.',
+      title: 'Electron transfer',
+      body: 'It is easier for sodium to give away one outer electron than to take seven; it is easier for chlorine to take one than to give away seven. So an electron moves from the sodium atom to the chlorine atom. Sodium loses its outer level — the complete level of eight electrons is now outside (2, 8): the atom has become a positive ion Na⁺. Chlorine has filled its outer level to eight electrons (2, 8, 8): the atom has become a negative ion Cl⁻.',
+      equation: 'Na⁰ − 1e⁻ → Na⁺      Cl⁰ + 1e⁻ → Cl⁻',
+      note: 'The Na⁺ ion is smaller than the Na atom — it has one electron level fewer. The Cl⁻ ion is larger than the Cl atom — the extra electron spreads the cloud. The electron flying along an arc is a visual scheme: in reality the transfer happens when the atoms collide. The two chlorine atoms of the Cl₂ molecule each take one electron from two sodium atoms.',
+      speak: 'Sodium gives away an electron and becomes a positive ion. Chlorine takes the electron and becomes a negative ion. Now both have eight electrons outside.',
     },
     attraction: {
-      title: 'Electrostatic attraction',
-      body:
-        'Opposite charges attract by Coulomb’s law: the force falls with the square of the distance between them. ' +
-        'Na⁺ and Cl⁻ come together until attraction is balanced by the repulsion of their filled electron shells. For a single gaseous NaCl molecule this equilibrium distance is 236.1 pm. ' +
-        'That is the ionic bond: not a shared pair, but the attraction of whole charges.',
-      equation: 'Na⁺ (g) + Cl⁻ (g) → Na⁺Cl⁻ (g),  rₑ = 236.1 pm',
-      note:
-        'The sum of Shannon ionic (effective) radii for coordination number 6, 102 + 181 = 283 pm, is larger than 236.1 pm: the spheres of the gas pair overlap by 47 pm. This is not a mistake — in the gas the ions polarise each other, and Shannon gives no radii for an isolated pair. In this step the spheres are drawn at the full Shannon radius (in steps 1–3 at 0.72 of it), so the overlap is visible: the near quarter of the Na⁺ sphere reaches inside the Cl⁻ sphere — 46.9 pm out of its 204 pm diameter. ' +
-        'In the crystal the same pair sits 282.0 pm apart (step 5). The dotted arcs sketch field lines; two pairs instead of a huge number is a simplification.',
-      speak: 'Plus and minus attract. In a gaseous salt molecule the ions come within two hundred thirty-six picometres.',
+      title: 'Ionic bond',
+      body: 'Ions are charged particles. The positive ion Na⁺ and the negative ion Cl⁻ attract each other. The bond that forms between ions is called an ionic bond. It forms between atoms of a typical metal and a typical non-metal, for example in NaCl, KBr, Na₂S.',
+      equation: 'Na⁺ + Cl⁻ → Na⁺Cl⁻',
+      note: 'The running dots between the ions are a symbolic picture of electric attraction. The ions share no electron pair: the electron has moved over to chlorine entirely.',
+      speak: 'Plus and minus attract. The bond between ions is called ionic.',
     },
     lattice: {
-      title: 'The crystal lattice',
-      body:
-        'One pair is not the end: every ion attracts all its neighbours. The ions stack into the rock-salt lattice — space group Fm-3m, two face-centred cubic sublattices, cell edge a = 564.0 pm, Z = 4, reference density 2.165 g/cm³. ' +
-        'Each Na⁺ has six Cl⁻ at the corners of an octahedron and each Cl⁻ six Na⁺: the coordination number is 6:6. The repulsion of the filled shells of six neighbours adds up, so the equilibrium in the crystal lies farther out than in the gas: 282.0 pm instead of 236.1 pm. ' +
-        'Building the lattice from gaseous ions releases 787.0 kJ/mol.',
-      equation: 'Na⁺ (g) + Cl⁻ (g) → NaCl (s),  U = −787.0 kJ/mol',
-      note: 'The frame shows a fragment of 3×3×3 unit cells — 343 ions, 7 along each edge; the light lines are cell edges, not bonds. The translucent octahedra are the surroundings of two chosen ions: six Cl⁻ around Na⁺ and six Na⁺ around Cl⁻ (CN 6:6). The fill and the outline of an octahedron are the faces and edges of the COORDINATION POLYHEDRON, not bonds: an ionic lattice has no bonds. While the octahedra are shown the other ions are dimmed, so the six neighbours can be counted. The lattice spheres are drawn at 0.5 of their radius so that the edges show through the fragment: in a real crystal neighbouring ions touch (102 + 181 = 283 ≈ 282.0 pm). A salt grain one millimetre across holds about 10¹⁹ ions.',
-      speak: 'The ions build a cubic lattice. Every ion has six neighbours of the opposite sign.',
+      title: 'Ionic crystal lattice',
+      body: 'Each ion attracts not just one but all neighbours of opposite charge. That is why the ions line up in a crystal lattice where Na⁺ and Cl⁻ ions alternate at the lattice points. Every Na⁺ ion is surrounded by six Cl⁻ ions, and every Cl⁻ by six Na⁺ ions. There are no separate NaCl molecules in the crystal: the formula shows that there are as many sodium ions as chloride ions.',
+      equation: 'Na⁺ + Cl⁻ → NaCl (crystal)',
+      note: 'A tiny piece of the crystal is shown — 5 ions along each edge. The light polyhedra pick out the six neighbours of one Na⁺ ion and one Cl⁻ ion; the thin lines are cube edges, not bonds.',
+      speak: 'The ions pack into a cubic lattice. Each ion is surrounded by six ions of opposite charge.',
     },
     energy: {
-      title: 'The energy balance',
-      body:
-        'Add up the Born–Haber cycle: +107.3 (sublimation) + 121.3 (dissociation) + 495.8 (ionisation) − 348.6 (electron gain) − 787.0 (lattice) = −411.2 kJ per mole of NaCl — exactly the tabulated enthalpy of formation. ' +
-        'Without the lattice energy the first four steps would add to +375.8 kJ/mol, and the process would absorb heat instead. ' +
-        'It is the lattice energy that makes the reaction exothermic: the equation 2 Na + Cl₂ releases 822.4 kJ.',
-      equation: '2 Na (s) + Cl₂ (g) → 2 NaCl (s),  ΔH = −822.4 kJ',
-      note:
-        'Electron balance of the equation: 2 Na⁰ − 2e⁻ → 2 Na⁺, Cl₂⁰ + 2e⁻ → 2 Cl⁻ — as many electrons are given as are taken. The step ½ Cl₂ → Cl is taken equal to ΔH°f(Cl, g) = 121.3 kJ/mol at 298 K (NIST-JANAF) — with it the cycle closes exactly. School tables take half the Cl–Cl bond energy (243 kJ/mol) — 121.5, and then the sum comes out as −411.0. The lattice step −787.0 kJ/mol is the value with which the cycle closes exactly; reference values lie between 786–788 kJ/mol. Strictly this is the lattice enthalpy at 298 K: the lattice energy U differs from it by about 2RT ≈ 5 kJ/mol. ' +
-        'Sodium burns in chlorine with a bright yellow flame — the glow of excited sodium atoms (the D line, 589 nm) above the metal, not the colour of the salt; the flame is not drawn in 3D.',
-      speak: 'The result is minus four hundred eleven kilojoules per mole of salt. The lattice supplies the energy.',
+      title: 'Summary: sodium chloride',
+      body: 'Each sodium atom gave away one electron and each chlorine atom took one electron. Na⁺ and Cl⁻ ions formed, held in the crystal by ionic bonds. This is sodium chloride — table salt. Substances with an ionic lattice are hard and have high melting points; their solutions and melts conduct electricity.',
+      equation: '2Na + Cl₂ → 2NaCl',
+      note: 'Electron balance: 2Na⁰ − 2e⁻ → 2Na⁺, Cl₂⁰ + 2e⁻ → 2Cl⁻ — as many electrons are given as are taken. The lattice turns slowly so the alternating ions can be seen from every side.',
+      speak: 'Sodium gave its electrons away, chlorine took them. Table salt with ionic bonds has formed.',
     },
   },
   legend: {
     electron: 'The blue dot with a trail and the label e⁻ is the electron being transferred.',
-    orbitalPhase: 'Blue dots around an atom are its valence electrons in the Lewis manner: one on Na (3s¹), seven on Cl, eight on Cl⁻. They count electrons; they are not the shape of an orbital.',
+    orbitalPhase: 'The cloud of light specks is the electron cloud of the outer level: sparse for Na (one electron), dense for Cl (seven), complete for the ions (eight). The large blue dots are outer-level electrons.',
   },
   safety: 'Chlorine is poisonous and sodium catches fire on contact with water. Only a teacher may show sodium burning in chlorine, in a fume hood — never repeat it yourself.',
   energy: {

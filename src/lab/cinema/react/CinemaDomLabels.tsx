@@ -55,6 +55,10 @@ const KIND_STYLE: Record<string, string> = {
   measure:
     'font: 600 12.5px/1 "Inter", system-ui, sans-serif; color: #cfeeff; padding: 3px 7px; border-radius: 6px;' +
     'background: rgba(6, 12, 26, 0.78); border: 1px solid rgba(150, 205, 255, 0.35); font-variant-numeric: tabular-nums;',
+  // Символ элемента/иона ВНУТРИ шара: крупный, белый, с тенью — читается и на фиолетовом Na, и на зелёном Cl.
+  atom:
+    'font: 700 16px/1 "Inter", system-ui, sans-serif; color: #ffffff; letter-spacing: 0.01em;' +
+    'text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.55);',
   token:
     'font: 700 13px/1 "Inter", system-ui, sans-serif; color: #fff3c4; text-shadow: 0 0 10px rgba(255,190,80,0.9);',
 }
@@ -201,7 +205,8 @@ export function CinemaDomLabels({
       if (!(src.opacity > 0.01)) continue
       _v.copy(src.pos).applyMatrix4(g.matrixWorld).project(camera)
       if (_v.z > 1 || _v.z < -1) continue
-      b.on[i] = 1
+      // Символ внутри шара закреплён за центром шара: раскладка его не двигает (on = 2).
+      b.on[i] = src.kind === 'atom' ? 2 : 1
       b.x[i] = (_v.x * 0.5 + 0.5) * w
       b.y[i] = (-_v.y * 0.5 + 0.5) * h
       estimateLabelSize(src.kind, src.text, scale, _size)

@@ -19,7 +19,7 @@ export type LabelLayoutBuffers = {
   y: Float32Array
   w: Float32Array
   h: Float32Array
-  /** 1 — подпись видима и участвует в раскладке */
+  /** 1 — подпись видима и участвует в раскладке; 2 — видима, но закреплена (символ внутри шара) */
   on: Uint8Array
   /** порядок обхода по y (индексы видимых), заполняется layoutLabels */
   order: Int32Array
@@ -38,9 +38,9 @@ export function createLabelLayoutBuffers(n: number): LabelLayoutBuffers {
 }
 
 /** Средняя ширина глифа и высота строки по стилю подписи, px (шрифты CinemaDomLabels). */
-const GLYPH_W: Record<string, number> = { species: 8.2, ox: 7.4, delta: 8.4, token: 8.0 }
-const LINE_H: Record<string, number> = { species: 17, ox: 19, delta: 17, token: 15 }
-const PAD_W: Record<string, number> = { species: 4, ox: 14, delta: 4, token: 4 }
+const GLYPH_W: Record<string, number> = { atom: 9.6, species: 8.2, ox: 7.4, delta: 8.4, token: 8.0 }
+const LINE_H: Record<string, number> = { atom: 18, species: 17, ox: 19, delta: 17, token: 15 }
+const PAD_W: Record<string, number> = { atom: 2, species: 4, ox: 14, delta: 4, token: 4 }
 
 /** Оценка размера подписи в px (без чтения DOM). */
 export function estimateLabelSize(kind: string, text: string, scale: number, out: { w: number; h: number }): void {
@@ -73,7 +73,8 @@ function clampInto(b: LabelLayoutBuffers, i: number, rect: LabelRect, margin: nu
 export function layoutLabels(b: LabelLayoutBuffers, n: number, rect: LabelRect | null, gap = 3, margin = 6): void {
   let m = 0
   for (let i = 0; i < n; i++) {
-    if (!b.on[i]) continue
+    // on = 2 — подпись закреплена (символ внутри шара): не зажимается и не разносится.
+    if (b.on[i] !== 1) continue
     if (rect) clampInto(b, i, rect, margin)
     // вставка по возрастанию y — подписей единицы-десятки, сортировка вставками без аллокаций
     let k = m++

@@ -21,6 +21,7 @@ import {
   type NaclRim,
 } from './naclLatticeView'
 import { getNaclMechanismText } from './naclMechanismText'
+import { createNaclElectronClouds, naclRingTexture, NACL_NA_OUTER_FILL, type NaclCloudView } from './naclElectronCloud'
 import {
   createNaclState,
   I_CLA,
@@ -31,6 +32,7 @@ import {
   naclShellPoint,
   naclSingleAngle,
   NACL_CL2_CENTER,
+  NACL_CL_ARRIVE_ANGLE,
   NACL_CL_DOT_ANGLES,
   NACL_DIM_A,
   NACL_DIM_GAS_DROP,
@@ -39,6 +41,7 @@ import {
   NACL_LATTICE_DIR,
   NACL_LATTICE_R,
   naclMetalPoint,
+  naclSmooth,
   NACL_METAL_CENTER,
   NACL_METAL_REST,
   NACL_OCTA,
@@ -250,6 +253,20 @@ export class NaClReactionScene {
   private readonly calloutGeo: THREE.BufferGeometry
   private readonly calloutMat: THREE.LineBasicMaterial
   private readonly ownGeos: THREE.BufferGeometry[] = []
+  /** Электронные облака внешнего уровня 4 частиц сюжета (школьная модель строения атома). */
+  private readonly clouds: NaclCloudView
+  /** Кольца-вспышки: отрыв электрона (Na) и захват (Cl). */
+  private readonly rings: THREE.Sprite[] = []
+  private readonly ringMats: THREE.SpriteMaterial[] = []
+  /** Направление «окна» в облаке Cl — туда прилетает восьмой электрон (в плоскости кадра). */
+  private readonly holeDir = new THREE.Vector3(Math.cos(NACL_CL_ARRIVE_ANGLE), Math.sin(NACL_CL_ARRIVE_ANGLE), 0)
+  /** Куда тянется облако Na перед отрывом: касательная к пути электрона в начале. */
+  private readonly stretchDir = NACL_ELECTRON_CURVES.map((c) => c.v1.clone().sub(c.v0).normalize())
+  /** Видимость символов внутри шаров (плавно: шар заслонён другим — символ гаснет). */
+  private readonly insideVis = new Float32Array(NACL_LABELS.length).fill(1)
+  /** Экранные круги шаров: x, y, глубина, радиус (проективные единицы); 4 сюжета + 7 металла. */
+  private readonly discs = new Float32Array((4 + NACL_METAL_REST.length) * 4)
+  private lastDt = 1 / 60
 
   // ——— рабочие объекты (ноль аллокаций в кадре) ———
   private readonly _v = new THREE.Vector3()
@@ -368,6 +385,20 @@ export class NaClReactionScene {
     this.trail.renderOrder = 11
     this.stage.add(this.trail)
 
+    // ——— электронные облака внешнего уровня и кольца-вспышки отрыва/захвата ———
+    this.clouds = createNaclElectronClouds({ lowPower: opts.lowPower, color: ELECTRON_COLOR })
+    this.stage.add(this.clouds.points)
+    const ringTex = naclRingTexture()
+    for (let i = 0; i < 4; i++) {
+      const rm = new THREE.SpriteMaterial({ map: ringTex, color: ELECTRON_COLOR, blending: THREE.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, fog: false })
+      const ring = new THREE.Sprite(rm)
+      ring.visible = false
+      ring.renderOrder = 12
+      this.rings.push(ring)
+      this.ringMats.push(rm)
+      this.stage.add(ring)
+    }
+
     // ——— линии поля газовых пар (точки по дугам, без «палочки») ———
     const nField = 2 * FIELD_ARCS * FIELD_DOTS
     this.fieldGeo = new THREE.BufferGeometry()
@@ -390,7 +421,7 @@ export class NaClReactionScene {
     this.dimGas.renderOrder = 13
     this.stage.add(this.dimGas)
 
-    // ——— решётка 3×3×3 ячейки: два InstancedMesh + рёбра ячеек (общий код с героем) ———
+    // ——— решётка 2×2×2 ячейки (125 ионов): два InstancedMesh + рёбра ячеек (общий код с героем) ———
     this.lattice = createNaclLatticeView({ settled: false, lowPower: opts.lowPower })
     this.stage.add(this.lattice.group)
 
@@ -623,6 +654,8 @@ export class NaClReactionScene {
     this.electronMat.dispose()
     for (const m of this.haloMats) m.dispose()
     this.trailMat.dispose()
+    this.clouds.dispose()
+    for (const m of this.ringMats) m.dispose()
     this.fieldMat.dispose()
     this.dimGasMat.dispose()
     this.dimAMat.dispose()
@@ -650,6 +683,7 @@ export class NaClReactionScene {
     if (this.disposed) return
     const d = Math.min(0.1, Math.max(0, dt))
     this.visual += d
+    this.lastDt = d
     const t = this.clock.t
     this.fireCues(t)
     this.apply(t, false)
@@ -853,6 +887,9 @@ export class NaClReactionScene {
       this.dimGas.geometry.getAttribute('position').needsUpdate = true
     }
 
+    // ——— электронные облака внешнего уровня и кольца отрыва/захвата ———
+    this.applyClouds(t, s)
+
     // ——— свет ———
     this.lights.ambient.intensity = LIGHT.ambient * s.light
     this.lights.key.intensity = LIGHT.key * s.light
@@ -872,6 +909,38 @@ export class NaClReactionScene {
    * сотен шаров и посчитать их было нельзя (приёмка: «октаэдр нечитаем»). Яркость пишется в
    * instanceColor и обновляется, только когда доля фокуса реально сменилась.
    */
+  /**
+   * Облака: появляются, когда атомы свободны (шаг 2), и уходят, когда пары встают в решётку.
+   * Na: 1 e⁻ из 8 (редкое облако) → перед отрывом тянется к хлору и уходит с электроном → в кадр
+   * захвата проявляется завершённый второй уровень Na⁺ (8 e⁻) по мере сжатия шара.
+   * Cl: 7 из 8 — плотное облако с «окном» под восьмой электрон; окно закрывается в кадр захвата.
+   */
+  private applyClouds(t: number, s: NaclState): void {
+    const T = NACL_T
+    const cin = s.storyOn ? naclSmooth(T.valenceIn[0] - 0.5, T.valenceIn[1], t) * (1 - naclSmooth(T.toLattice[0], T.toLattice[0] + 0.6, t)) : 0
+    this.clouds.points.visible = cin > 0.002
+    for (let k = 0 as 0 | 1; k < 2; k = (k + 1) as 0 | 1) {
+      const [di, ai] = NACL_PAIRS[k]!
+      const e = T.e[k]!
+      const stretch = naclSmooth(e.leave - T.windUp, e.leave, t) * (1 - naclSmooth(e.leave, e.leave + 0.6, t))
+      const fillNa = t < e.arrive ? NACL_NA_OUTER_FILL * (1 - naclSmooth(e.leave, e.leave + 0.55, t)) : naclSmooth(e.arrive, e.arrive + T.morph + 0.35, t)
+      this.clouds.set(di, s.pos[di]!, s.radius[di]! * s.appear, fillNa, cin * (1 + 1.2 * stretch + 0.6 * s.flash[di]!), 0, this.holeDir, stretch, this.stretchDir[k]!)
+      const hole = 1 - naclSmooth(e.arrive - 0.12, e.arrive + 0.3, t)
+      this.clouds.set(ai, s.pos[ai]!, s.radius[ai]! * s.appear, 1, cin * (0.85 + 0.9 * s.flash[ai]!), hole, this.holeDir, 0, this.stretchDir[k]!)
+      // кольца: у Na — в кадр отрыва, у Cl — в кадр захвата
+      for (const [idx, at, dur] of [[di, e.leave, 0.6], [ai, e.arrive, 0.75]] as const) {
+        const pr = (t - at) / dur
+        const ring = this.rings[idx]!
+        ring.visible = s.storyOn && pr >= 0 && pr < 1
+        if (!ring.visible) continue
+        const r = s.radius[idx]! * s.appear
+        ring.position.copy(s.pos[idx]!)
+        ring.scale.setScalar(2 * r * (1.1 + 1.5 * pr))
+        this.ringMats[idx]!.opacity = 0.8 * Math.pow(1 - pr, 1.5)
+      }
+    }
+  }
+
   private applyOctaFocus(amount: number): void {
     const k = Math.round(amount * 100) / 100
     if (k === this.octaFocus) return
@@ -927,6 +996,8 @@ export class NaClReactionScene {
       this.trailGeo.getAttribute('position').needsUpdate = true
       this.trailGeo.getAttribute('color').needsUpdate = true
     }
+
+    this.clouds.frame(this.visual, this.pxPerProjUnit())
 
     // ——— линии поля: точки текут от Na⁺ к Cl⁻ по дугам над и под парой ———
     const fp = (this.fieldGeo.getAttribute('position') as THREE.BufferAttribute).array as Float32Array
@@ -1033,6 +1104,14 @@ export class NaClReactionScene {
           p.set(c.x, c.y + an.side * (s.radius[an.index]! + 0.2), c.z).applyMatrix4(this.stage.matrix)
           break
         }
+        case 'inside':
+          p.copy(s.pos[an.index]!).applyMatrix4(this.stage.matrix)
+          break
+        case 'metalAtom': {
+          const mp = naclMetalPos(NACL_METAL_REST[an.index]!)
+          p.set(mp[0] + s.metal.shiftX, mp[1], mp[2]).applyMatrix4(this.stage.matrix)
+          break
+        }
         case 'electron':
           p.copy(s.electrons[an.index].pos)
           p.y += an.index === 0 ? 0.2 : -0.2
@@ -1064,6 +1143,7 @@ export class NaClReactionScene {
       else if (def.outside) this.placeOutside(l, def.outside)
     }
 
+    this.applyInsideLabels()
     // ——— выноски к октаэдрам: от центра фигуры к её подписи ———
     this.writeCallouts(lg)
   }
@@ -1150,6 +1230,61 @@ export class NaClReactionScene {
   setViewport(heightPx: number, fovDeg: number): void {
     if (heightPx > 1) this.viewportH = heightPx
     if (fovDeg > 1) this.viewportFov = fovDeg
+  }
+
+  /**
+   * Символ внутри шара виден, только если шар на экране достаточно крупный (радиус от ~12 px) и его
+   * центр не заслонён более близким шаром (задние атомы ячейки металла): иначе DOM-надпись легла бы
+   * на чужой шар. Экранные круги — в проективных единицах системы root (она повёрнута по камере).
+   */
+  private applyInsideLabels(): void {
+    const s = this.state
+    const cam = this._u
+    const zoom = this.stage.scale.x
+    const px = this.pxPerProjUnit()
+    const D = this.discs
+    const nStory = 4
+    const put = (j: number, x: number, y: number, z: number, r: number, on: boolean) => {
+      const o = j * 4
+      const depth = cam.z - z
+      if (!on || depth < 0.02 || r <= 0) {
+        D[o + 2] = -1
+        return
+      }
+      D[o] = (x - cam.x) / depth
+      D[o + 1] = (y - cam.y) / depth
+      D[o + 2] = depth
+      D[o + 3] = r / depth
+    }
+    for (let i = 0; i < nStory; i++) {
+      this._v.copy(s.pos[i]!).applyMatrix4(this.stage.matrix)
+      put(i, this._v.x, this._v.y, this._v.z, s.radius[i]! * s.appear * zoom, this.story[i]!.visible)
+    }
+    for (let k = 0; k < NACL_METAL_REST.length; k++) {
+      const mp = naclMetalPos(NACL_METAL_REST[k]!)
+      this._v.set(mp[0] + s.metal.shiftX, mp[1], mp[2]).applyMatrix4(this.stage.matrix)
+      put(nStory + k, this._v.x, this._v.y, this._v.z, NACL_R.na * s.appear * zoom, this.metalRest.visible)
+    }
+    const nDisc = D.length / 4
+    const blend = Math.min(1, this.lastDt * 12)
+    for (let i = 0; i < NACL_LABELS.length; i++) {
+      const an = NACL_LABELS[i]!.anchor
+      if (an.kind !== 'inside' && an.kind !== 'metalAtom') continue
+      const own = an.kind === 'inside' ? an.index : nStory + an.index
+      const o = own * 4
+      let target = 0
+      if (D[o + 2]! > 0) {
+        target = naclSmooth(11, 16, D[o + 3]! * px)
+        for (let j = 0; j < nDisc && target > 0; j++) {
+          if (j === own) continue
+          const q = j * 4
+          if (!(D[q + 2]! > 0) || D[q + 2]! >= D[o + 2]!) continue
+          if (Math.hypot(D[o]! - D[q]!, D[o + 1]! - D[q + 1]!) < 0.8 * D[q + 3]!) target = 0
+        }
+      }
+      this.insideVis[i] = this.insideVis[i]! + (target - this.insideVis[i]!) * blend
+      this.labels[i]!.opacity = s.labelOpacity[i]! * this.insideVis[i]!
+    }
   }
 
   /** Выноска от центра каждого октаэдра к его подписи (обе точки — в системе root). */

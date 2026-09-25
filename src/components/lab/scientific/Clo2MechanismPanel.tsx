@@ -716,38 +716,41 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
             </div>
           ) : null}
 
-          <LessonSection
-            id="energy"
-            className={styles.details}
-            title={text.energy.title}
-            meta={text.energy.axisG}
-            icon={<EnergyIcon />}
-            defaultOpen={mediaMatches(ROOMY_QUERY)}
-          >
-            {lesson.id === 'nacl' ? (
-              <NaclEnergyPanel locale={clo2Locale} compact={isMobile} />
-            ) : lesson.id === 'cao' ? (
-              <CaoEnergyPanel locale={clo2Locale} compact={isMobile} />
-            ) : lesson.id === 'nh3' ? (
-              <Nh3EnergyPanel locale={clo2Locale} compact={isMobile} />
-            ) : lesson.id === 'so2' ? (
-              <So2EnergyPanel locale={clo2Locale} compact={isMobile} />
-            ) : lesson.id === 'mgo' ? (
-              <MgoEnergyPanel locale={clo2Locale} compact={isMobile} />
-            ) : lesson.id === 'fes' ? (
-              <FesEnergyPanel locale={clo2Locale} compact={isMobile} />
-            ) : lesson.id === 'hcl' ? (
-              <HclEnergyPanel locale={clo2Locale} compact={isMobile} />
-            ) : lesson.id === 'h2o' ? (
-              <H2oEnergyPanel locale={clo2Locale} compact={isMobile} />
-            ) : lesson.id === 'co2' ? (
-              <Co2EnergyPanel locale={clo2Locale} compact={isMobile} />
-            ) : lesson.id === 'zncl2' ? (
-              <Zncl2EnergyPanel locale={clo2Locale} compact={isMobile} />
-            ) : (
-              <Clo2EnergyProfile locale={clo2Locale} compact={isMobile} caption={false} />
-            )}
-          </LessonSection>
+          {/* NaCl — школьная версия (8 класс): энергетики (цикл Борна — Габера) в уроке нет. */}
+          {lesson.id !== 'nacl' ? (
+            <LessonSection
+              id="energy"
+              className={styles.details}
+              title={text.energy.title}
+              meta={text.energy.axisG}
+              icon={<EnergyIcon />}
+              defaultOpen={mediaMatches(ROOMY_QUERY)}
+            >
+              {lesson.id === 'nacl' ? (
+                <NaclEnergyPanel locale={clo2Locale} compact={isMobile} />
+              ) : lesson.id === 'cao' ? (
+                <CaoEnergyPanel locale={clo2Locale} compact={isMobile} />
+              ) : lesson.id === 'nh3' ? (
+                <Nh3EnergyPanel locale={clo2Locale} compact={isMobile} />
+              ) : lesson.id === 'so2' ? (
+                <So2EnergyPanel locale={clo2Locale} compact={isMobile} />
+              ) : lesson.id === 'mgo' ? (
+                <MgoEnergyPanel locale={clo2Locale} compact={isMobile} />
+              ) : lesson.id === 'fes' ? (
+                <FesEnergyPanel locale={clo2Locale} compact={isMobile} />
+              ) : lesson.id === 'hcl' ? (
+                <HclEnergyPanel locale={clo2Locale} compact={isMobile} />
+              ) : lesson.id === 'h2o' ? (
+                <H2oEnergyPanel locale={clo2Locale} compact={isMobile} />
+              ) : lesson.id === 'co2' ? (
+                <Co2EnergyPanel locale={clo2Locale} compact={isMobile} />
+              ) : lesson.id === 'zncl2' ? (
+                <Zncl2EnergyPanel locale={clo2Locale} compact={isMobile} />
+              ) : (
+                <Clo2EnergyProfile locale={clo2Locale} compact={isMobile} caption={false} />
+              )}
+            </LessonSection>
+          ) : null}
 
           <LessonSection
             id="legend"
