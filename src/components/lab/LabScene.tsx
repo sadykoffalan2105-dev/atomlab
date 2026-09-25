@@ -56,6 +56,8 @@ export type ScientificStageInput = {
   leftTerms: readonly ReactorEquationTerm[]
   coProducts: readonly StageCoProduct[]
   productId: string
+  /** место главного продукта в правой части (как в учебнике); нет — последний */
+  productIndex?: number
   productCoeff: number
   balanced: boolean
   labels?: ScientificReactorStageLabels
@@ -2527,6 +2529,7 @@ function SceneContent({
               leftTerms={scientificStage.leftTerms}
               coProducts={scientificStage.coProducts}
               productId={scientificStage.productId}
+              productIndex={scientificStage.productIndex}
               productCoeff={scientificStage.productCoeff}
               balanced={scientificStage.balanced}
               labels={scientificStage.labels}

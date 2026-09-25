@@ -1073,6 +1073,7 @@ export function LaboratoryPage() {
       leftTerms: deferredLeftTerms,
       coProducts,
       productId: product.id,
+      productIndex: activeRecipe?.productIndex,
       productCoeff,
       balanced: activeRecipe
         ? isScientificEquationBalanced(

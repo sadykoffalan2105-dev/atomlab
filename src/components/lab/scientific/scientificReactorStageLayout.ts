@@ -123,7 +123,9 @@ const MAX_BOND_WORLD = 0.62
 
 const BOND_RADIUS = 0.04
 /** зазор между поверхностями разнесённых ионов (раствор, связи нет) */
-const ION_GAP = 0.16
+/** Зазор между ионами одной формульной единицы. Молекулы на экране покачиваются (до ~14° по оси Y):
+ * при 0,16 задний атом аниона заходил на катион (Ba²⁺ на O в BaSO₄). */
+const ION_GAP = 0.26
 const COPY_GAP = 0.24
 const ITEM_GAP = 0.3
 const PLUS_WIDTH = 0.42
@@ -131,12 +133,44 @@ const ARROW_WIDTH = 0.95
 const ROW_Y = 0.5
 const MAX_ROW_WIDTH = 10.8
 const LABEL_GAP = 0.2
+/** высота подписи формулы под рядом (формула + строка ионов) — для раскладки в два ряда */
+const ROW_LABEL_BLOCK = 0.95
+/** зазор между подписями верхнего ряда и шарами нижнего */
+const ROW_SPLIT_GAP = 0.45
 const TALLY_DROP = 0.1
 export const STAGE_MAX_VISIBLE_COPIES = 4
 
 const ROLE_RADIUS: Record<string, number> = { Cl: 0.23, O: 0.15, 'Na+': 0.18, 'Cl-': 0.27 }
 
 /** Заряды простых катионов — для ионной записи и радиусов в растворе. */
+/** s-металлы: с неметаллами всегда ионная связь (школа, Kimyo 8) — связи M–неметалл в модели каталога не рисуются. */
+const S_BLOCK = new Set(['Li', 'Na', 'K', 'Rb', 'Cs', 'Be', 'Mg', 'Ca', 'Sr', 'Ba'])
+/** Металлы-катионы оснований: связь M–O(H) в модели каталога — это ион металла и гидроксид-ион. */
+const HYDROXIDE_CATIONS = new Set(['Al', 'Zn', 'Fe', 'Cu', 'Ag', 'Ni', 'Pb', 'Cr', 'Mn', 'Sn', 'Hg', 'Co'])
+/** Заряд простых анионов — по нему считается заряд катиона, когда его нет в CATION_CHARGE (Fe²⁺ / Fe³⁺, Cu²⁺, Al³⁺). */
+function simpleAnionCharge(symbols: readonly string[]): number | null {
+  const k = [...symbols].sort().join('')
+  if (k === 'HO') return -1
+  if (k === 'F' || k === 'Cl' || k === 'Br' || k === 'I' || k === 'H') return -1
+  if (k === 'O' || k === 'S') return -2
+  return OXOANION_CHARGE[k] ?? null
+}
+
+/** Частые кислотные остатки школьных солей (ключ — отсортированные символы атомов). MnO₄ нет: MnO₄⁻ и MnO₄²⁻
+ * различаются только зарядом — их заряд выводится из катиона (K⁺). */
+const OXOANION_CHARGE: Readonly<Record<string, number>> = {
+  OOOOS: -2, // SO₄²⁻
+  OOOS: -2, // SO₃²⁻
+  COOO: -2, // CO₃²⁻
+  NOOO: -1, // NO₃⁻
+  NOO: -1, // NO₂⁻
+  OOOOP: -3, // PO₄³⁻
+  ClOOO: -1, // ClO₃⁻
+  ClOOOO: -1, // ClO₄⁻
+  OOOOSi: -4, // SiO₄⁴⁻
+  OOOSi: -2, // SiO₃²⁻
+}
+
 const CATION_CHARGE: Record<string, number> = {
   Li: 1, Na: 1, K: 1, Rb: 1, Cs: 1, Ag: 1,
   Mg: 2, Ca: 2, Sr: 2, Ba: 2, Zn: 2,
@@ -370,6 +404,17 @@ function finalizeTemplate(
   }
 }
 
+/** Подпись иона: гидроксокомплекс — «[Al(OH)₄]», остальное — брутто-формула фрагмента. */
+function ionLabel(symbols: readonly string[]): string {
+  const count = (e: string) => symbols.filter((x) => x === e).length
+  const metals = symbols.filter((x) => x !== 'O' && x !== 'H')
+  const nO = count('O')
+  if (metals.length === 1 && nO >= 2 && nO === count('H') && symbols.length === 1 + 2 * nO) {
+    return `[${metals[0]}(OH)${subscript(nO)}]`
+  }
+  return fragmentFormula(symbols)
+}
+
 function fragmentFormula(symbols: readonly string[]): string {
   const order: string[] = []
   const counts: Record<string, number> = {}
@@ -411,10 +456,35 @@ function compoundTemplate(compoundId: string): UnitTemplate | null {
   }
 
   // Компоненты связности: ионы соли в растворе — отдельные фрагменты.
+  // Связь в модели каталога между ионами не рисуется: s-металл — неметалл (Na–O в NaOH, Ca–O в Ca(OH)₂,
+  // K–O в K₂O₂) и металл — O гидроксида (Fe–OH, Cu–OH), кроме комплексных ионов вида [Al(OH)₄]⁻.
+  const complexIon = compound.formulaUnicode.includes('[')
+  const hasH = new Set<number>()
+  for (const [a, b] of compound.bonds) {
+    if (raw[a]?.symbol === 'H') hasH.add(b)
+    if (raw[b]?.symbol === 'H') hasH.add(a)
+  }
+  const NONMETAL_CORE = new Set(['S', 'N', 'C', 'P', 'Cl', 'Si'])
+  const oBoundToNonmetal = new Set<number>()
+  for (const [a, b] of compound.bonds) {
+    if (raw[a]?.symbol === 'O' && NONMETAL_CORE.has(raw[b]?.symbol ?? '')) oBoundToNonmetal.add(a)
+    if (raw[b]?.symbol === 'O' && NONMETAL_CORE.has(raw[a]?.symbol ?? '')) oBoundToNonmetal.add(b)
+  }
+  const ionicBond = (a: number, b: number): boolean => {
+    const sa = raw[a]?.symbol ?? ''
+    const sb = raw[b]?.symbol ?? ''
+    for (const [m, x, xi] of [[sa, sb, b], [sb, sa, a]] as const) {
+      if (S_BLOCK.has(m) && !S_BLOCK.has(x) && !HYDROXIDE_CATIONS.has(x)) return true
+      if (!complexIon && HYDROXIDE_CATIONS.has(m) && x === 'O' && hasH.has(xi)) return true
+      // Соль переходного металла с кислотным остатком: M–O–S/N/C/P в модели — это катион и анион (Cu²⁺ SO₄²⁻).
+      if (!complexIon && HYDROXIDE_CATIONS.has(m) && x === 'O' && oBoundToNonmetal.has(xi)) return true
+    }
+    return false
+  }
   const parent = raw.map((_, i) => i)
   const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i]!)))
   for (const [a, b] of compound.bonds) {
-    if (a < n && b < n) parent[find(a)] = find(b)
+    if (a < n && b < n && !ionicBond(a, b)) parent[find(a)] = find(b)
   }
   const groups = new Map<number, number[]>()
   for (let i = 0; i < n; i++) {
@@ -426,7 +496,21 @@ function compoundTemplate(compoundId: string): UnitTemplate | null {
   const fragments = [...groups.values()]
 
   // Заряды: только для солей с известным простым катионом.
-  const isSalt = compound.category === 'salt' && fragments.length > 1
+  const metalFrags = fragments.filter((f) => f.length === 1 && !simpleAnionCharge([raw[f[0]!]!.symbol]) && raw[f[0]!]!.symbol !== 'O')
+  const derivedCationCharge = (sym: string): number | undefined => {
+    const same = metalFrags.filter((f) => raw[f[0]!]!.symbol === sym).length
+    if (same === 0 || metalFrags.length !== same) return undefined
+    let total = 0
+    for (const f of fragments) {
+      if (metalFrags.includes(f)) continue
+      const q = simpleAnionCharge(f.map((gi) => raw[gi]!.symbol))
+      if (q == null) return undefined
+      total += q
+    }
+    const c = -total / same
+    return Number.isInteger(c) && c > 0 && c <= 4 ? c : undefined
+  }
+  const isSalt = fragments.length > 1 && (compound.category === 'salt' || compound.category === 'base' || compound.category === 'oxide' || compound.category === 'other')
   const fragCharge = new Array<number>(fragments.length).fill(0)
   let ionic = false
   if (isSalt) {
@@ -434,7 +518,7 @@ function compoundTemplate(compoundId: string): UnitTemplate | null {
     const anionIdx: number[] = []
     fragments.forEach((f, fi) => {
       const sym = raw[f[0]!]!.symbol
-      const cq = f.length === 1 ? CATION_CHARGE[sym] : undefined
+      const cq = f.length === 1 ? (CATION_CHARGE[sym] ?? derivedCationCharge(sym)) : undefined
       if (cq != null) {
         fragCharge[fi] = cq
         q += cq
@@ -442,7 +526,13 @@ function compoundTemplate(compoundId: string): UnitTemplate | null {
         anionIdx.push(fi)
       }
     })
-    if (q > 0 && anionIdx.length > 0 && q % anionIdx.length === 0) {
+    // Известные заряды остатков (OH⁻, CO₃²⁻, SO₄²⁻…) — точнее равного деления: малахит 3Cu²⁺ 2CO₃²⁻ 2OH⁻.
+    const known = anionIdx.map((fi) => simpleAnionCharge(fragments[fi]!.map((gi) => raw[gi]!.symbol)))
+    const knownSum = known.reduce<number>((acc, v) => acc + (v ?? 0), 0)
+    if (q > 0 && anionIdx.length > 0 && known.every((v) => v != null) && knownSum === -q) {
+      anionIdx.forEach((fi, k) => (fragCharge[fi] = known[k]!))
+      ionic = true
+    } else if (q > 0 && anionIdx.length > 0 && q % anionIdx.length === 0) {
       for (const fi of anionIdx) fragCharge[fi] = -q / anionIdx.length
       ionic = true
     } else {
@@ -506,7 +596,7 @@ function compoundTemplate(compoundId: string): UnitTemplate | null {
     cursor = start + (box.maxX - box.minX)
 
     if (ionic) {
-      ionParts.push(`${fragmentFormula(f.map((gi) => raw[gi]!.symbol))}${chargeText(fragCharge[fi]!)}`)
+      ionParts.push(`${ionLabel(f.map((gi) => raw[gi]!.symbol))}${chargeText(fragCharge[fi]!)}`)
     }
   }
 
@@ -607,6 +697,10 @@ export function scientificStageLayout(
   coProducts: readonly StageCoProduct[],
   productId: string,
   productCoeff: number,
+  /** место главного продукта среди продуктов уравнения учебника; нет — последний */
+  productIndex?: number,
+  /** портретный экран: реагенты — верхний ряд, «→ продукты» — нижний */
+  opts?: { twoRows?: boolean },
 ): ScientificStageLayout {
   const rowTerms: RowTerm[] = []
 
@@ -661,11 +755,13 @@ export function scientificStageLayout(
       charge: 0,
     })
   }
-  for (const cp of coProducts) {
+  const mainAt = productIndex != null && productIndex >= 0 ? Math.min(productIndex, coProducts.length) : coProducts.length
+  coProducts.forEach((cp, i) => {
+    if (i === mainAt && productId) pushCompound(`product:${productId}`, productId, productCoeff)
     if (cp.compoundId != null) pushCompound(cp.id, cp.compoundId, cp.coeff)
     else if (cp.z != null) pushElement(cp.id, cp.z, Boolean(cp.diatomic), cp.coeff)
-  }
-  if (productId) pushCompound(`product:${productId}`, productId, productCoeff)
+  })
+  if (mainAt >= coProducts.length && productId) pushCompound(`product:${productId}`, productId, productCoeff)
 
   // ── ширины элементов ряда ──
   type Placed = RowTerm & {
@@ -726,10 +822,35 @@ export function scientificStageLayout(
     items.unshift({ kind: 'sep', glyph: '→', width: ARROW_WIDTH, key: 'sep:start' })
   }
 
-  const width = items.reduce((s, it) => s + it.width, 0) + Math.max(0, items.length - 1) * ITEM_GAP
+  const rowWidthOf = (list: readonly Item[]) => list.reduce((acc, it) => acc + it.width, 0) + Math.max(0, list.length - 1) * ITEM_GAP
+  const rowHeightOf = (list: readonly Item[]) => list.reduce((m, it) => (it.kind === 'term' ? Math.max(m, it.term.clusterH) : m), 0.4)
+  const arrowAt = items.findIndex((it) => it.kind === 'sep' && it.glyph === '→')
+  const split = Boolean(opts?.twoRows) && arrowAt > 0
+  type Row = { list: Item[]; y: number; labelY: number }
+  const rowsPlan: Row[] = []
+  let width: number
+  let tallyY: number
+  if (!split) {
+    const h = rowHeightOf(items)
+    const labelY = ROW_Y - h / 2 - LABEL_GAP
+    rowsPlan.push({ list: items, y: ROW_Y, labelY })
+    width = rowWidthOf(items)
+    tallyY = labelY - TALLY_DROP
+  } else {
+    const top = items.slice(0, arrowAt)
+    const bottom = items.slice(arrowAt)
+    const h1 = rowHeightOf(top)
+    const h2 = rowHeightOf(bottom)
+    // от центра верхнего ряда до центра нижнего: полвысоты, подписи формул, зазор, полвысоты
+    const step = h1 / 2 + LABEL_GAP + ROW_LABEL_BLOCK + ROW_SPLIT_GAP + h2 / 2
+    const y1 = ROW_Y + step / 2
+    const y2 = y1 - step
+    rowsPlan.push({ list: top, y: y1, labelY: y1 - h1 / 2 - LABEL_GAP })
+    rowsPlan.push({ list: bottom, y: y2, labelY: y2 - h2 / 2 - LABEL_GAP })
+    width = Math.max(rowWidthOf(top), rowWidthOf(bottom))
+    tallyY = y2 - h2 / 2 - LABEL_GAP - TALLY_DROP
+  }
   const fitScale = width > MAX_ROW_WIDTH ? MAX_ROW_WIDTH / width : 1
-  const maxClusterH = placed.reduce((m, p) => Math.max(m, p.clusterH), 0.4)
-  const labelY = ROW_Y - maxClusterH / 2 - LABEL_GAP
 
   const roles = new Map<string, StageRoleSpec>()
   const units: StageUnit[] = []
@@ -738,16 +859,19 @@ export function scientificStageLayout(
   const terms: StageTermLabel[] = []
   const separators: StageSeparator[] = []
 
-  let x = -width / 2
-  for (const it of items) {
+  for (const row of rowsPlan) {
+  const ROW_Y_HERE = row.y
+  const labelY = row.labelY
+  let x = -rowWidthOf(row.list) / 2
+  for (const it of row.list) {
     const cx = x + it.width / 2
     if (it.kind === 'sep') {
-      separators.push({ key: it.key, glyph: it.glyph, position: [cx, ROW_Y, 0] })
+      separators.push({ key: it.key, glyph: it.glyph, position: [cx, ROW_Y_HERE, 0] })
     } else {
       const p = it.term
       // центр кластера по x/y совпадает с точкой ряда
       const baseX = cx - p.clusterCx
-      const baseY = ROW_Y - p.clusterCy
+      const baseY = ROW_Y_HERE - p.clusterCy
       p.offsets.forEach((o, copy) => {
         const tpl = p.template
         const unitIndex = units.length
@@ -785,14 +909,15 @@ export function scientificStageLayout(
         ionFormula: p.template?.ionFormula ?? null,
         visibleCopies: p.visible,
         hiddenCopies: Math.max(0, p.coeff - p.visible),
-        center: [cx, ROW_Y, 0],
+        center: [cx, ROW_Y_HERE, 0],
         labelPosition: [cx, labelY, 0],
-        badgePosition: [cx + p.clusterW / 2 + 0.14, ROW_Y + p.clusterH / 2 + 0.12, 0.2],
+        badgePosition: [cx + p.clusterW / 2 + 0.14, ROW_Y_HERE + p.clusterH / 2 + 0.12, 0.2],
         clusterWidth: p.clusterW,
         clusterHeight: p.clusterH,
       })
     }
     x += it.width + ITEM_GAP
+  }
   }
 
   // ── счёт атомов ──
@@ -833,7 +958,7 @@ export function scientificStageLayout(
     terms,
     separators,
     tally: { rows, equal: rows.length > 0 && rows.every((r) => r.equal) },
-    tallyPosition: [0, labelY - TALLY_DROP, 0],
+    tallyPosition: [0, tallyY, 0],
     width,
     fitScale,
   }

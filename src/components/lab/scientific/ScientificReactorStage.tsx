@@ -18,6 +18,8 @@ export type ScientificReactorStageProps = {
   leftTerms: readonly ReactorEquationTerm[]
   coProducts: readonly StageCoProduct[]
   productId: string
+  /** место главного продукта в правой части (как в учебнике); нет — последний */
+  productIndex?: number
   productCoeff: number
   balanced: boolean
   lowPower: boolean
@@ -341,6 +343,7 @@ export function ScientificReactorStage({
   leftTerms,
   coProducts,
   productId,
+  productIndex,
   productCoeff,
   balanced,
   lowPower,
@@ -348,9 +351,12 @@ export function ScientificReactorStage({
   labels = DEFAULT_LABELS,
   position = ORIGIN,
 }: ScientificReactorStageProps) {
+  // Портретный экран и 4+ вещества: в один ряд шары мельче 10 px и символы в них не видны — два ряда.
+  const aspect = useThree((st) => st.size.width / Math.max(1, st.size.height))
+  const twoRows = aspect < 0.95 && leftTerms.length + coProducts.length + (productId ? 1 : 0) >= 4
   const layout = useMemo(
-    () => (visible ? scientificStageLayout(leftTerms, coProducts, productId, productCoeff) : null),
-    [visible, leftTerms, coProducts, productId, productCoeff],
+    () => (visible ? scientificStageLayout(leftTerms, coProducts, productId, productCoeff, productIndex, { twoRows }) : null),
+    [visible, leftTerms, coProducts, productId, productCoeff, productIndex, twoRows],
   )
   const ui = useUiScale()
   const groupRef = useRef<THREE.Group>(null)

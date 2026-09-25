@@ -447,6 +447,7 @@ export function resolveReactorEquation(
     left: leftSpecs,
     coProducts: coSpecs,
     productTargetCoeff,
+    productIndex: mainIdx,
     ...(stageOnly ? { stageOnly: true } : {}),
   }
   const leftTerms: ReactorEquationTerm[] = leftSpecs.map((s) =>
