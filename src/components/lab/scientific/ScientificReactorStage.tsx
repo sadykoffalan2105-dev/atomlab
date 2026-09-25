@@ -39,6 +39,11 @@ const _stageCenter = new THREE.Vector3()
 /**
  * Масштаб ряда под текущий кадр. Камеру лаборатория ставит императивно (без ререндера React),
  * поэтому считаем в кадре, а не через селектор useThree: на узком/портретном холсте ряд ужимается.
+ *
+ * Приём «отодвинуть группу от камеры в k раз и во столько же увеличить» здесь сознательно
+ * не применяется: гомотетия с центром в камере сохраняет каждый луч, поэтому ни положение,
+ * ни форма шаров на экране от неё не меняются (эллипсы у краёв — тоже). Круглые шары у
+ * краёв кадра даёт проекция в stageAtomMaterials (смещения вершин в масштабе глубины центра).
  */
 function fitStageToView(
   group: THREE.Group | null,
@@ -59,7 +64,7 @@ function fitStageToView(
 }
 
 /** Высота DOM-подписей под рядом (px при ui = 1): строка слагаемых + отступ и карточка счёта атомов. */
-const TALLY_BELOW_PX = 112
+const TALLY_BELOW_PX = 124
 const _base = new THREE.Vector3()
 const _probe = new THREE.Vector3()
 
@@ -105,6 +110,8 @@ function fitStageVertically(
 
 const OK_COLOR = '#6dffae'
 const WARN_COLOR = '#ffb547'
+const TEXT_COLOR = '#eef3ff'
+const MUTED_COLOR = '#a9b8d6'
 /** Html поверх канваса, но под модалками/панелями страницы */
 const Z_RANGE: [number, number] = [12, 0]
 
@@ -117,8 +124,8 @@ const labelWrap: CSSProperties = {
   pointerEvents: 'none',
   userSelect: 'none',
   fontFamily: 'inherit',
-  color: '#eaf2ff',
-  textShadow: '0 0 6px rgba(4, 10, 24, 0.95), 0 1px 2px rgba(0, 0, 0, 0.9)',
+  color: TEXT_COLOR,
+  textShadow: '0 0 8px rgba(4, 10, 24, 0.9), 0 1px 2px rgba(0, 0, 0, 0.85)',
 }
 
 /** Размер подписей следует за высотой канваса (Html — это px, не мир). */
@@ -142,23 +149,40 @@ const TermLabel = memo(function TermLabel({
   return (
     <Html position={position} zIndexRange={Z_RANGE} style={{ pointerEvents: 'none' }}>
       <div style={labelWrap}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: `${0.3 * ui}em` }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: `${5 * ui}px` }}>
           <span
             style={{
               fontSize: `${26 * ui}px`,
               fontWeight: 800,
               lineHeight: 1,
               color: '#ffffff',
+              fontVariantNumeric: 'tabular-nums',
               // как dimWhenOne в панели реактора: «1» есть, но не мешает читать формулу
               opacity: coeff === 1 ? 0.35 : 1,
             }}
           >
             {coeff}
           </span>
-          <span style={{ fontSize: `${19 * ui}px`, fontWeight: 600, lineHeight: 1 }}>{formula}</span>
+          <span style={{ fontSize: `${20 * ui}px`, fontWeight: 650, lineHeight: 1, letterSpacing: '0.01em' }}>
+            {formula}
+          </span>
         </div>
         {ionFormula ? (
-          <span style={{ fontSize: `${11.5 * ui}px`, opacity: 0.7, marginTop: `${3 * ui}px`, letterSpacing: '0.02em' }}>
+          <span
+            style={{
+              fontSize: `${11.5 * ui}px`,
+              fontWeight: 600,
+              lineHeight: 1.25,
+              color: MUTED_COLOR,
+              marginTop: `${5 * ui}px`,
+              padding: `${1 * ui}px ${7 * ui}px`,
+              borderRadius: 999,
+              background: 'rgba(120, 150, 215, 0.13)',
+              border: '1px solid rgba(150, 180, 240, 0.18)',
+              letterSpacing: '0.03em',
+              textShadow: 'none',
+            }}
+          >
             {ionFormula}
           </span>
         ) : null}
@@ -183,10 +207,12 @@ const Separator = memo(function Separator({
           ...labelWrap,
           transform: undefined,
           display: 'block',
-          fontSize: `${(glyph === '→' ? 34 : 28) * ui}px`,
-          fontWeight: 700,
+          fontSize: `${(glyph === '→' ? 36 : 28) * ui}px`,
+          // тонкие знаки: ряд читается как уравнение, а не как набор кнопок
+          fontWeight: glyph === '→' ? 400 : 300,
           lineHeight: 1,
-          opacity: 0.85,
+          color: glyph === '→' ? '#ffffff' : MUTED_COLOR,
+          opacity: glyph === '→' ? 0.9 : 1,
         }}
       >
         {glyph}
@@ -249,17 +275,28 @@ const TallyCard = memo(function TallyCard({
         style={{
           ...labelWrap,
           // под строкой подписей слагаемых (их высота в px)
-          marginTop: `${(58 * ui).toFixed(1)}px`,
-          gap: `${5 * ui}px`,
-          padding: `${7 * ui}px ${12 * ui}px`,
-          borderRadius: 12 * ui,
-          background: 'rgba(8, 14, 30, 0.72)',
-          border: `1px solid ${accent}66`,
-          boxShadow: `0 0 14px ${accent}33`,
+          marginTop: `${(64 * ui).toFixed(1)}px`,
+          gap: `${6 * ui}px`,
+          padding: `${7 * ui}px ${10 * ui}px ${6 * ui}px`,
+          borderRadius: 14 * ui,
+          background: 'rgba(9, 14, 30, 0.8)',
+          border: `1px solid ${accent}55`,
+          boxShadow: `0 6px 22px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05)`,
           textShadow: 'none',
         }}
       >
-        <div style={{ display: 'flex', gap: `${10 * ui}px` }}>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: `${5 * ui}px`,
+            // Узкий экран: фишки переносятся, карточка не вылезает за край. Без max-content
+            // контейнер у точки привязки Html нулевой ширины — фишки встали бы столбиком.
+            width: 'max-content',
+            maxWidth: '88vw',
+          }}
+        >
           {rows.map((r) => {
             const c = r.equal ? OK_COLOR : WARN_COLOR
             return (
@@ -270,19 +307,23 @@ const TallyCard = memo(function TallyCard({
                   alignItems: 'baseline',
                   gap: `${4 * ui}px`,
                   fontSize: `${13 * ui}px`,
+                  lineHeight: 1.2,
                   fontVariantNumeric: 'tabular-nums',
                   color: c,
+                  padding: `${2 * ui}px ${7 * ui}px`,
+                  borderRadius: 8 * ui,
+                  background: r.equal ? 'rgba(109, 255, 174, 0.08)' : 'rgba(255, 181, 71, 0.12)',
                 }}
               >
-                <b style={{ color: '#eaf2ff', fontWeight: 700 }}>{r.symbol}</b>
+                <b style={{ color: TEXT_COLOR, fontWeight: 700 }}>{r.symbol}</b>
                 <span>{r.left}</span>
-                <span style={{ opacity: 0.8 }}>{r.equal ? '=' : '≠'}</span>
+                <span style={{ opacity: 0.7 }}>{r.equal ? '=' : '≠'}</span>
                 <span>{r.right}</span>
               </span>
             )
           })}
         </div>
-        <span style={{ fontSize: `${12 * ui}px`, fontWeight: 700, color: accent }}>
+        <span style={{ fontSize: `${12 * ui}px`, fontWeight: 700, color: accent, letterSpacing: '0.02em' }}>
           {balanced ? balancedText : unbalancedText}
         </span>
       </div>
@@ -314,7 +355,8 @@ export function ScientificReactorStage({
   const ui = useUiScale()
   const groupRef = useRef<THREE.Group>(null)
 
-  const safe = useMemo(() => createSafeArea(), [])
+  // Свободная область канвы меряется в кадре: изменяемое состояние — в ref, не в useMemo.
+  const safeRef = useRef<SafeArea | null>(null)
   const vfit = useRef({ y: 0, ready: false })
   const vext = useMemo(() => {
     if (!layout) return null
@@ -326,6 +368,7 @@ export function ScientificReactorStage({
   useFrame(({ camera, size, gl }) => {
     if (!layout || !groupRef.current) return
     fitStageToView(groupRef.current, camera, size.width / Math.max(1, size.height), layout.fitScale, layout.width, position)
+    const safe = (safeRef.current ??= createSafeArea())
     if (safe.counter++ % SAFE_AREA_EVERY === 0) measureSafeArea(safe, gl.domElement)
     if (vext) fitStageVertically(groupRef.current, camera, size.height, safe, vext.top, vext.tally, ui, position, vfit.current)
   })
