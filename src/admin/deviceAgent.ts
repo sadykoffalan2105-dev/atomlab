@@ -279,7 +279,7 @@ export function createDeviceAgent(config: DeviceAgentConfig | null, env: DeviceA
       body: JSON.stringify(body),
       keepalive: opts?.keepalive,
     })
-    let json: Record<string, unknown> | null = null
+    let json: Record<string, unknown> | null
     try {
       const text = await res.text()
       json = text ? (JSON.parse(text) as Record<string, unknown>) : null

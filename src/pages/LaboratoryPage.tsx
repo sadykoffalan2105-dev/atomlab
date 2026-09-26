@@ -93,6 +93,7 @@ import { getElementByZ } from '../data/elements'
 import type { CompoundDef, LabParticle, Vec3 } from '../types/chemistry'
 import styles from './LaboratoryPage.module.css'
 import sidePanelStyles from '../components/lab/ElementSidePanel.module.css'
+import { trackUsage } from '../admin/deviceAgentHost'
 import mechPanelStyles from '../components/lab/scientific/Clo2MechanismPanel.module.css'
 
 const LabCanvas = lazy(() =>
@@ -829,6 +830,7 @@ export function LaboratoryPage() {
         synthesisCompletingRef.current = true
         const name = getCompoundLocaleStrings(compound, locale, t).name
         synthesisSettledProductRef.current = compound
+        trackUsage('reaction_run', compound.id)
         settledSnapshotRef.current = equationSignature
         lastRunZSlotsRef.current = []
         // Переход «сцена → герой» — переходом React: рендер страницы режется на куски по ~5 мс,

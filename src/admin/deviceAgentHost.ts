@@ -9,6 +9,7 @@ import { useSyncExternalStore } from 'react'
 import { version as APP_VERSION } from '../../package.json'
 import { getAtomlabDesktop, isAtomlabDesktop } from '../electronBridge.types'
 import { collectDeviceInfo, createDeviceAgent, type DeviceAgent, type DeviceAgentConfig, type DeviceAgentState } from './deviceAgent'
+import type { UsageEventKind } from './protocol'
 import { getSchoolAccountId, clearSchoolSession } from './schoolSession'
 
 export function readAdminConfig(): DeviceAgentConfig | null {
@@ -103,11 +104,45 @@ export function startDeviceAgent(): DeviceAgent {
   wired = true
   a.start()
   if (!a.getState().configured) return a
+  const startedAt = Date.now()
+  let sessionOpen = false
+  const openSession = () => {
+    if (sessionOpen || !a.getState().enrolled) return
+    sessionOpen = true
+    a.track('session_start')
+  }
+  openSession()
+  // Подключили устройство посреди работы — сессия начинается с этого момента.
+  a.subscribe(openSession)
   document.addEventListener('visibilitychange', () => {
     a.notifyVisibility()
     if (document.visibilityState === 'hidden') void a.flushUsage({ keepalive: true })
   })
+  window.addEventListener('pagehide', () => {
+    if (sessionOpen) a.track('session_end', null, { durationSec: (Date.now() - startedAt) / 1000 })
+    sessionOpen = false
+    void a.flushUsage({ keepalive: true })
+  })
   return a
+}
+
+/**
+ * Событие использования для платформы школ. Без адреса сервера или без подключения — ничего не делает.
+ * target — только маршрут или id урока/реакции; никаких текстов, имён и ответов учеников.
+ */
+export function trackUsage(kind: UsageEventKind, target?: string | null): void {
+  getDeviceAgent().track(kind, target)
+}
+
+/** Урок учебника или задания по маршруту: «/learn/g/g7/c/c1/s/s01» → «g7/c1/s01». */
+export function lessonTargetFromPath(pathname: string): string | null {
+  const book = pathname.match(/^\/learn\/g\/([^/]+)\/c\/([^/]+)\/s\/([^/]+)/)
+  if (book) return `${book[1]}/${book[2]}/${book[3]}`
+  const task = pathname.match(/^\/learn\/tasks\/([^/]+)/)
+  if (task) return `tasks/${task[1]}`
+  const pathway = pathname.match(/^\/learn\/pathway\/([^/]+)\/([^/]+)/)
+  if (pathway) return `pathway/${pathway[1]}/${pathway[2]}`
+  return null
 }
 
 export function useDeviceAgentState(): DeviceAgentState {

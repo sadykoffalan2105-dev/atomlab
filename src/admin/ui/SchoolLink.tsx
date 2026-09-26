@@ -6,10 +6,10 @@
  */
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useT, type MessageKey } from '../../i18n/useT'
 import type { EnrollErrorCode } from '../protocol'
-import { getDeviceAgent, startDeviceAgent, useDeviceAgentState } from '../deviceAgentHost'
+import { getDeviceAgent, lessonTargetFromPath, startDeviceAgent, trackUsage, useDeviceAgentState } from '../deviceAgentHost'
 import styles from './SchoolLink.module.css'
 
 function IconSchool({ className }: { className?: string }) {
@@ -265,7 +265,8 @@ export function SchoolLinkButton({ className }: { className?: string }) {
         <IconSchool className={styles.headerIcon} />
         {connected ? <span className={styles.headerDot} aria-hidden /> : null}
       </button>
-      {open ? <SchoolLinkDialog onClose={close} /> : null}
+      {/* Под экраном блокировки окно не нужно (и не должно ловить фокус). */}
+      {open && !state.locked ? <SchoolLinkDialog onClose={close} /> : null}
     </>
   )
 }
@@ -347,9 +348,18 @@ export function DeviceAgentHost() {
   const { t } = useT()
   const state = useDeviceAgentState()
 
+  const { pathname } = useLocation()
+
   useEffect(() => {
     startDeviceAgent()
   }, [])
+
+  // Какие разделы открывают — только маршрут, без параметров и данных учеников.
+  useEffect(() => {
+    trackUsage('route_view', pathname)
+    const lesson = lessonTargetFromPath(pathname)
+    if (lesson) trackUsage('lesson_open', lesson)
+  }, [pathname])
 
   const dismiss = useCallback((id: string) => getDeviceAgent().dismissMessage(id), [])
   const dismissRevoked = useCallback(() => getDeviceAgent().clearRevoked(), [])
