@@ -359,10 +359,13 @@
   left: 50%;
   z-index: 5;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  /* Одна строка с прокруткой: в уроках с учебника до ~20 молекул, перенос налезал на карточку названия. */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 170, 230, 0.35) transparent;
   gap: 4px;
-  max-width: min(calc(100% - 32px), 640px);
+  max-width: min(calc(100% - 32px), 860px);
   padding: 4px;
   border-radius: var(--lt-radius);
   border: 1px solid rgba(148, 170, 230, 0.18);
@@ -375,6 +378,8 @@
 .molChip {
   appearance: none;
   display: inline-flex;
+  /* в строке с прокруткой чип не сжимается — иначе названия изомеров налезают друг на друга */
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   min-width: 52px;

@@ -18,6 +18,8 @@ export type OrganicViewHints = {
   /** Атом для панели гибридизации (обычно ключевой C) */
   hybridFocusId?: string
   hybridFocus?: Hybridization
+  /** Подписать над каждым C его тип (I–IV: первичный … четвертичный) */
+  carbonDegrees?: boolean
 }
 
 export type OrganicMoleculeDef = {

@@ -206,6 +206,9 @@ const BOND_LEN: Record<string, number> = {
   NH: 1.01,
   CCl: 1.78,
   HCl: 1.27,
+  BrC: 1.94,
+  CS: 1.82,
+  HS: 1.34,
   OO: 1.48,
   NN: 1.45,
   default: 1.4,
@@ -454,10 +457,10 @@ export function layoutOrganicGraph(graph: OrganicGraph): OrganicGraph {
     placeHydrogens(graph, pos)
   }
 
-  return {
+  return relaxOrganicGeometry({
     ...graph,
     atoms: graph.atoms.map((a) => ({ ...a, pos: pos.get(a.id) ?? a.pos })),
-  }
+  })
 }
 
 /** Повернуть соседа (и его поддерево) вокруг центра вокруг оси Y. */
@@ -532,6 +535,195 @@ export function suggestAttachTarget(graph: OrganicGraph): string | undefined {
     if (freeValence(graph, a.id) > 0) return a.id
   }
   return graph.atoms.find((a) => freeValence(graph, a.id) > 0)?.id
+}
+
+/* ── Доводка геометрии: связи, углы по гибридизации, кольца, отталкивание несвязанных ── */
+
+function bondTargetLen(a: OrganicElement, b: OrganicElement, order: number, aromatic: boolean): number {
+  const key = bondKey(a, b)
+  if (aromatic && key === 'CC') return 1.39
+  if (order === 3) return key === 'CC' ? 1.2 : key === 'CN' ? 1.16 : bondLength(a, b) * 0.8
+  if (order === 2) {
+    if (key === 'CC') return 1.34
+    if (key === 'CO') return 1.23
+    if (key === 'CN') return 1.28
+    return bondLength(a, b) * 0.88
+  }
+  return bondLength(a, b)
+}
+
+/** Кратчайший путь a → b, не проходя через center (для размера кольца угла a–center–b). */
+function ringPathLen(adj: number[][], a: number, b: number, center: number, limit = 7): number | null {
+  const dist = new Map<number, number>([[a, 0]])
+  const q = [a]
+  while (q.length) {
+    const cur = q.shift()!
+    const d = dist.get(cur)!
+    if (d >= limit) continue
+    for (const n of adj[cur]!) {
+      if (n === center || dist.has(n)) continue
+      if (n === b) return d + 1
+      dist.set(n, d + 1)
+      q.push(n)
+    }
+  }
+  return null
+}
+
+/**
+ * Позиционная релаксация (PBD): длины связей с учётом кратности, углы 109.5° / 120° / 180°
+ * по гибридизации (в малых кольцах — угол многоугольника), отталкивание атомов через 3+ связи.
+ * Раньше BFS-раскладка по тетраэдрическим направлениям давала наложения (H в 0.45 Å от C)
+ * и незамкнутые кольца у замещённых циклов (толуол, метилциклопропан).
+ */
+export function relaxOrganicGeometry(graph: OrganicGraph, maxIterations = 320): OrganicGraph {
+  const n = graph.atoms.length
+  // крупные молекулы (жиры, каротин) — меньше итераций: пар «через 3+ связи» там десятки тысяч
+  const iterations = n > 90 ? Math.round(maxIterations / 2) : maxIterations
+  if (n < 3) return graph
+  const idx = new Map(graph.atoms.map((a, i) => [a.id, i]))
+  const el = graph.atoms.map((a) => a.element)
+  const adj: number[][] = graph.atoms.map(() => [])
+  const bonds: { i: number; j: number; order: number }[] = []
+  for (const b of graph.bonds) {
+    const i = idx.get(b.a)
+    const j = idx.get(b.b)
+    if (i == null || j == null) continue
+    adj[i]!.push(j)
+    adj[j]!.push(i)
+    bonds.push({ i, j, order: b.order })
+  }
+  const orderOf = (i: number, j: number) => bonds.find((b) => (b.i === i && b.j === j) || (b.i === j && b.j === i))?.order ?? 1
+
+  // Ароматическое (кекулевское) шестичленное кольцо из sp2-атомов C → все связи 1.39 Å
+  const aromaticBond = new Set<string>()
+  const heavyAdj = adj.map((ns, i) => (el[i] === 'H' ? [] : ns.filter((j) => el[j] !== 'H')))
+  const visitRing = (path: number[]) => {
+    const cur = path[path.length - 1]!
+    if (path.length === 6) {
+      if (!heavyAdj[cur]!.includes(path[0]!)) return
+      const ring = [...path]
+      let doubles = 0
+      for (let k = 0; k < 6; k++) if (orderOf(ring[k]!, ring[(k + 1) % 6]!) === 2) doubles += 1
+      if (doubles === 3 && ring.every((a) => el[a] === 'C')) {
+        for (let k = 0; k < 6; k++) aromaticBond.add([ring[k]!, ring[(k + 1) % 6]!].sort((x, y) => x - y).join('-'))
+      }
+      return
+    }
+    for (const nx of heavyAdj[cur]!) {
+      if (path.includes(nx) || nx < path[0]!) continue
+      path.push(nx)
+      visitRing(path)
+      path.pop()
+    }
+  }
+  for (let s = 0; s < n; s++) if (el[s] === 'C') visitRing([s])
+  const isAromatic = (i: number, j: number) => aromaticBond.has([i, j].sort((x, y) => x - y).join('-'))
+
+  const lenOf = (i: number, j: number) => bondTargetLen(el[i]!, el[j]!, orderOf(i, j), isAromatic(i, j))
+
+  type Pair = { i: number; j: number; d: number; k: number }
+  const pairs: Pair[] = bonds.map((b) => ({ i: b.i, j: b.j, d: lenOf(b.i, b.j), k: 1 }))
+  const near = new Set<string>()
+  const key = (i: number, j: number) => (i < j ? `${i}-${j}` : `${j}-${i}`)
+  for (const b of bonds) near.add(key(b.i, b.j))
+
+  for (let c = 0; c < n; c++) {
+    const ns = adj[c]!
+    if (ns.length < 2) continue
+    let doubles = 0
+    let triple = false
+    for (const j of ns) {
+      const o = orderOf(c, j)
+      if (o === 2) doubles += 1
+      if (o === 3) triple = true
+    }
+    const aromaticCenter = ns.some((j) => isAromatic(c, j))
+    const linear = triple || doubles >= 2
+    const trigonal = !linear && (doubles === 1 || aromaticCenter)
+    for (let x = 0; x < ns.length; x++) {
+      for (let y = x + 1; y < ns.length; y++) {
+        const a = ns[x]!
+        const b = ns[y]!
+        let theta = linear ? 180 : trigonal ? 120 : 109.5
+        const path = el[a] !== 'H' && el[b] !== 'H' ? ringPathLen(heavyAdj, a, b, c) : null
+        const ringSize = path != null ? path + 2 : null
+        if (ringSize != null && ringSize <= 5) theta = ((ringSize - 2) * 180) / ringSize
+        else if (ringSize === 6 && !trigonal) theta = 111
+        else if (!linear && !trigonal) {
+          // экзоциклическая связь у атома малого кольца: угол шире тетраэдрического
+          let smallest = 99
+          for (let p = 0; p < ns.length; p++)
+            for (let q2 = p + 1; q2 < ns.length; q2++) {
+              const pl = ringPathLen(heavyAdj, ns[p]!, ns[q2]!, c)
+              if (pl != null) smallest = Math.min(smallest, pl + 2)
+            }
+          if (smallest === 3) theta = 117
+          else if (smallest === 4) theta = 114
+          else if (smallest === 5) theta = 111
+        }
+        const la = lenOf(c, a)
+        const lb = lenOf(c, b)
+        const rad = (theta * Math.PI) / 180
+        const d = Math.sqrt(la * la + lb * lb - 2 * la * lb * Math.cos(rad))
+        pairs.push({ i: a, j: b, d, k: 0.6 })
+        near.add(key(a, b))
+      }
+    }
+  }
+
+  const far: { i: number; j: number; d: number }[] = []
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++) {
+      if (near.has(key(i, j))) continue
+      const hi = el[i] === 'H'
+      const hj = el[j] === 'H'
+      far.push({ i, j, d: hi && hj ? 2.0 : hi || hj ? 2.4 : 2.7 })
+    }
+
+  // старт: текущие позиции + крошечный детерминированный сдвиг (выход из плоских ловушек)
+  const P = graph.atoms.map((a, i) => [
+    a.pos[0] + Math.sin(i * 12.9898) * 0.04,
+    a.pos[1] + Math.sin(i * 78.233) * 0.04,
+    a.pos[2] + Math.sin(i * 37.719) * 0.04,
+  ])
+  const project = (i: number, j: number, d: number, k: number, onlyPush = false) => {
+    const pi = P[i]!
+    const pj = P[j]!
+    const dx = pj[0]! - pi[0]!
+    const dy = pj[1]! - pi[1]!
+    const dz = pj[2]! - pi[2]!
+    const L = Math.hypot(dx, dy, dz) || 1e-6
+    if (onlyPush && L >= d) return
+    const f = ((L - d) / L) * 0.5 * k
+    pi[0]! += dx * f
+    pi[1]! += dy * f
+    pi[2]! += dz * f
+    pj[0]! -= dx * f
+    pj[1]! -= dy * f
+    pj[2]! -= dz * f
+  }
+  for (let it = 0; it < iterations; it++) {
+    for (const p of pairs) project(p.i, p.j, p.d, p.k)
+    const push = it < iterations * 0.85 ? 0.35 : 0.15
+    for (const f of far) project(f.i, f.j, f.d, push, true)
+  }
+  // финальная доводка только связей и углов
+  for (let it = 0; it < 40; it++) for (const p of pairs) project(p.i, p.j, p.d, p.k)
+
+  // центрировать по тяжёлым атомам
+  const heavyIdx = graph.atoms.map((a, i) => (a.element === 'H' ? -1 : i)).filter((i) => i >= 0)
+  const ci = heavyIdx.length ? heavyIdx : graph.atoms.map((_, i) => i)
+  const cx = ci.reduce((s, i) => s + P[i]![0]!, 0) / ci.length
+  const cy = ci.reduce((s, i) => s + P[i]![1]!, 0) / ci.length
+  const cz = ci.reduce((s, i) => s + P[i]![2]!, 0) / ci.length
+  return {
+    ...graph,
+    atoms: graph.atoms.map((a, i) => ({
+      ...a,
+      pos: [P[i]![0]! - cx, P[i]![1]! - cy, P[i]![2]! - cz] as Vec3,
+    })),
+  }
 }
 
 export type { OrganicAtom }

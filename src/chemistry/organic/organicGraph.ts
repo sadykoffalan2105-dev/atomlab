@@ -1,6 +1,6 @@
 import type { Atom3D, Vec3 } from '../../types/chemistry'
 
-export type OrganicElement = 'C' | 'H' | 'O' | 'N' | 'Cl'
+export type OrganicElement = 'C' | 'H' | 'O' | 'N' | 'Cl' | 'Br' | 'S'
 
 export type OrganicAtom = {
   id: string
@@ -33,6 +33,8 @@ const MAX_VALENCE: Record<OrganicElement, number> = {
   O: 2,
   N: 3,
   Cl: 1,
+  Br: 1,
+  S: 2,
 }
 
 let idSeq = 0
@@ -55,7 +57,7 @@ export function createFormulaKit(
 ): OrganicGraph {
   resetOrganicIdSeq(0)
   const atoms: OrganicAtom[] = []
-  const groups: OrganicElement[] = ['C', 'O', 'N', 'Cl', 'H']
+  const groups: OrganicElement[] = ['C', 'O', 'N', 'S', 'Cl', 'Br', 'H']
   let groupIndex = 0
   for (const el of groups) {
     const n = counts[el] ?? 0
@@ -291,7 +293,7 @@ export function compositionOf(graph: OrganicGraph): Record<string, number> {
 
 export function formulaUnicode(graph: OrganicGraph): string {
   const c = compositionOf(graph)
-  const order = ['C', 'H', 'O', 'N', 'Cl'] as const
+  const order = ['C', 'H', 'O', 'N', 'S', 'Cl', 'Br'] as const
   let s = ''
   for (const el of order) {
     const n = c[el]
@@ -389,17 +391,26 @@ export function matchesSkeletonSpec(graph: OrganicGraph, spec: SkeletonSpec): bo
 }
 
 /**
- * Связать тяжёлые атомы набора по эталону скелета (порядок атомов как в kit: C, O, N, Cl).
+ * Связать тяжёлые атомы набора по эталону скелета.
+ * i-й элемент эталона берёт очередной свободный атом того же элемента из набора
+ * (раньше брался i-й тяжёлый атом по порядку C, O, N, Cl — эталон вида O–C–C–O
+ * превращался в C–C–O–O).
  */
 export function applySkeletonBonds(graph: OrganicGraph, spec: SkeletonSpec): OrganicGraph {
-  const orderEls: OrganicElement[] = ['C', 'O', 'N', 'Cl']
-  const heavies: OrganicAtom[] = []
-  for (const el of orderEls) {
-    for (const a of graph.atoms) {
-      if (a.element === el) heavies.push(a)
-    }
+  const pools = new Map<OrganicElement, OrganicAtom[]>()
+  for (const a of graph.atoms) {
+    if (a.element === 'H') continue
+    const list = pools.get(a.element) ?? []
+    list.push(a)
+    pools.set(a.element, list)
   }
-  if (heavies.length < spec.elements.length) return graph
+  const used = new Map<OrganicElement, number>()
+  const heavies: (OrganicAtom | undefined)[] = spec.elements.map((el) => {
+    const k = used.get(el) ?? 0
+    used.set(el, k + 1)
+    return pools.get(el)?.[k]
+  })
+  if (heavies.some((a) => !a)) return graph
 
   let next = graph
   for (const e of spec.edges) {

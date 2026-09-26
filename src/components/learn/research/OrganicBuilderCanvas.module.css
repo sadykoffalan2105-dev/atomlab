@@ -650,9 +650,25 @@
 
 .eqArrow {
   align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
   font-size: 1.25rem;
   color: #67e8f9;
   padding-top: 1.2rem;
+}
+
+/* Условия реакции над стрелкой: свет, t, кат., Pt … */
+.eqCond {
+  max-width: 120px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  text-align: center;
+  color: #a5f3fc;
+  white-space: normal;
 }
 
 .eqBank {

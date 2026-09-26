@@ -19,11 +19,13 @@ import { TEXTBOOK_ORGANIC_SPECS, type TextbookOrganicSpec } from './textbookOrga
 import { applySkeletonBonds, autoBondKitHydrogens, createFormulaKit } from '../../chemistry/organic/organicGraph'
 import { layoutOrganicGraph } from '../../chemistry/organic/organicLayout'
 
+/** Молекула каталога: 3D-граф (раскладка + релаксация) строится лениво, при первом показе. */
 function fromChallenge(c: OrganicBuildChallenge): OrganicMoleculeDef {
   const grade = organicGradeForMolecule(c.id, c.classId)
-  const graph = buildShowcaseGraph(c)
-  const heavy = graph.atoms.find((a) => a.element === 'C')
-  const hyb = heavy ? hybridizationOf(graph, heavy.id) : undefined
+  let graph: OrganicMoleculeDef['graph'] | undefined
+  let groups: OrganicMoleculeDef['functionalGroups'] | undefined
+  let hints: OrganicMoleculeDef['viewHints'] | null = null
+  const build = () => (graph ??= buildShowcaseGraph(c))
   return {
     id: c.id,
     classId: c.classId,
@@ -35,15 +37,31 @@ function fromChallenge(c: OrganicBuildChallenge): OrganicMoleculeDef {
     descriptionEn: c.hintEn,
     descriptionUz: c.hintUz,
     grade,
-    graph,
-    functionalGroups: inferFunctionalGroups(graph, c.classId),
+    get graph() {
+      return build()
+    },
+    get functionalGroups() {
+      return (groups ??= inferFunctionalGroups(build(), c.classId))
+    },
     equationRu: c.equationRu,
     equationEn: c.equationEn,
     equationUz: c.equationUz,
     challengeId: c.id,
-    viewHints: heavy
-      ? { hybridFocusId: heavy.id, hybridFocus: hyb === 'terminal' ? 'sp3' : hyb }
-      : undefined,
+    get viewHints() {
+      if (hints === null) {
+        const g = build()
+        const heavy = g.atoms.find((a) => a.element === 'C')
+        const hyb = heavy ? hybridizationOf(g, heavy.id) : undefined
+        hints = heavy
+          ? {
+              hybridFocusId: heavy.id,
+              hybridFocus: hyb === 'terminal' ? 'sp3' : hyb,
+              carbonDegrees: c.showCarbonDegrees,
+            }
+          : undefined
+      }
+      return hints
+    },
     accentColor: accentForClass(c.classId),
   }
 }
