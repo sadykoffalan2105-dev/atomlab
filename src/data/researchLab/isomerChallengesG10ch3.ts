@@ -140,4 +140,22 @@ export const G10_CH3_ISOMER_CHALLENGES: readonly IsomerChallenge[] = [
       ['divinyl-ether', 'Дивиниловый эфир', 'Divinyl ether', 'Divinil efiri', 'C₄H₆O', false, 'ether', 'Ловушка: две двойные связи — C₄H₆O.', 'Trap: two double bonds — C₄H₆O.', 'Tuzoq: ikki qoʻsh bogʻ — C₄H₆O.'],
     ]),
   },
+  {
+    id: 'c3h6o-carbonyl',
+    formula: 'C₃H₆O · карбонильные',
+    targetCount: 2,
+    titleRu: 'Альдегид и кетон состава C₃H₆O',
+    titleEn: 'The aldehyde and the ketone C₃H₆O',
+    titleUz: 'C₃H₆O tarkibli aldegid va keton',
+    hintRu: 'Учебник, с. 137: пропаналь и ацетон — межклассовые изомеры C₃H₆O (группа C=O на конце цепи или в середине). Отметьте оба карбонильных соединения.',
+    hintEn: 'Textbook p. 137: propanal and acetone are interclass isomers of C₃H₆O (C=O at the end of the chain or in the middle). Mark both carbonyl compounds.',
+    hintUz: 'Darslik, 137-bet: propanal va atseton — C₃H₆O ning sinflararo izomerlari (C=O zanjir oxirida yoki oʻrtasida). Ikkala karbonil birikmani belgilang.',
+    candidates: cands([
+      ['propanal', 'Пропаналь', 'Propanal', 'Propanal', 'C₃H₆O', true, 'carbonyl', 'Альдегид: C=O на конце цепи.', 'Aldehyde: C=O at the chain end.', 'Aldegid: C=O zanjir oxirida.'],
+      ['propanol', 'Пропан-1-ол', 'Propan-1-ol', 'Propan-1-ol', 'C₃H₈O', false, 'alcohol', 'Ловушка: спирт C₃H₈O — продукт гидрирования пропаналя.', 'Trap: the alcohol C₃H₈O — the hydrogenation product of propanal.', 'Tuzoq: spirt C₃H₈O — propanalning gidrogenlanish mahsuloti.'],
+      ['acetone', 'Ацетон (пропан-2-он)', 'Acetone (propan-2-one)', 'Atseton (propan-2-on)', 'C₃H₆O', true, 'carbonyl', 'Кетон: C=O в середине цепи.', 'Ketone: C=O in the middle of the chain.', 'Keton: C=O zanjir oʻrtasida.'],
+      ['acetaldehyde', 'Этаналь', 'Ethanal', 'Etanal', 'C₂H₄O', false, 'carbonyl', 'Ловушка: гомолог C₂H₄O.', 'Trap: the homologue C₂H₄O.', 'Tuzoq: gomolog C₂H₄O.'],
+      ['butanone', 'Бутанон', 'Butanone', 'Butanon', 'C₄H₈O', false, 'carbonyl', 'Ловушка: гомолог C₄H₈O.', 'Trap: the homologue C₄H₈O.', 'Tuzoq: gomolog C₄H₈O.'],
+    ]),
+  },
 ]

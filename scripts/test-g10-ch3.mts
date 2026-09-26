@@ -337,6 +337,21 @@ const SPEC: Record<string, Expect> = {
   'butyl-isopropyl-ether': { f: 'C7H16O', name: /2-Бутоксипропан/ },
   'n-butanol': { f: 'C4H10O', chain: 4 },
   chloromethane: { f: 'CH3Cl' },
+  // § 3.9–3.11 (с. 133–138)
+  propanal: { f: 'C3H6O', chain: 3 },
+  butanal: { f: 'C4H8O', chain: 4 },
+  isobutanal: { f: 'C4H8O', chain: 3, name: /2-Метилпропаналь/ },
+  'vinyl-alcohol': { f: 'C2H4O', name: /этенол/ },
+  '1-1-dichloroethane': { f: 'C2H4Cl2' },
+  'propanoic-acid': { f: 'C3H6O2', chain: 3 },
+  acetylene: { f: 'C2H2' },
+  acetone: { f: 'C3H6O' },
+  butanone: { f: 'C4H8O' },
+  'pentan-3-one': { f: 'C5H10O', chain: 5, name: /пентан-3-он/ },
+  'pentan-2-one': { f: 'C5H10O', chain: 5, name: /пентан-2-он/ },
+  propyne: { f: 'C3H4' },
+  '2-2-dichloropropane': { f: 'C3H6Cl2' },
+  'acetic-acid': { f: 'C2H4O2' },
 }
 
 const ownIds = new Set(G10_CH3_BUILD_CHALLENGES.map((c) => c.id))
@@ -430,7 +445,7 @@ function checkBalance(eq: GradeEq): void {
 }
 
 // ── 3. Уроки ─────────────────────────────────────────────
-const LESSONS = ['alcohols', 'polyols', 'phenols', 'ethers']
+const LESSONS = ['alcohols', 'polyols', 'phenols', 'ethers', 'aldehydes', 'ketones']
 const isoById = new Map(ISOMER_CHALLENGES.map((x) => [x.id, x]))
 const usedEq = new Set<string>()
 for (const lid of LESSONS) {
@@ -534,6 +549,8 @@ const FIXES: Record<string, { hint: RegExp; notLeft?: string; notRight?: string 
   'g10c3-phenol-fecl3': { hint: /не уравнено/ },
   'g10c3-benzene-cl2': { hint: /«\+ 2Cl₂»/, notLeft: '2Cl₂' },
   'g10c3-oxonium': { hint: /не реагирует/ },
+  'g10c3-cuoh-cu2o': { hint: /«в красную медь Cu₂O»[\s\S]*оксид меди\(I\)/ },
+  'g10c3-phenol-formaldehyde': { hint: /нет коэффициента n/ },
 }
 for (const [eid, fx] of Object.entries(FIXES)) {
   checks += 1

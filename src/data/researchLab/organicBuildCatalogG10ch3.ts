@@ -22,6 +22,7 @@ const CC_D: IrPeak = { wavenumber: 1650, intensity: 0.55, label: 'C=C' }
 const CO_ALD: IrPeak = { wavenumber: 1730, intensity: 0.9, label: 'C=O' }
 const CO_EST: IrPeak = { wavenumber: 1740, intensity: 0.9, label: 'C=O (сл. эфир)' }
 const AROM: IrPeak = { wavenumber: 1500, intensity: 0.5, label: 'Ar' }
+const CO_KET: IrPeak = { wavenumber: 1715, intensity: 0.92, label: 'C=O' }
 
 const ORGANIC_ATOMS = ['Cl', 'Br', 'C', 'O', 'N', 'S'] as const satisfies readonly OrganicElement[]
 const VALENCE: Record<(typeof ORGANIC_ATOMS)[number], number> = { C: 4, O: 2, N: 3, S: 2, Cl: 1, Br: 1 }
@@ -363,4 +364,38 @@ export const G10_CH3_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
     ['2-Butoxypropane', 'CH₃CH(CH₃)–O–(CH₂)₃CH₃ (butyl isopropyl ether). Textbook p. 132: concentrated HI cleaves the ether — propan-2-ol and 1-iodobutane.', '2-Butoxypropane built.'],
     ['2-Butoksipropan', 'CH₃CH(CH₃)–O–(CH₂)₃CH₃ (butilizopropil efiri). Darslik, 132-bet: konsentrlangan HI efirni parchalaydi — propan-2-ol va 1-yodbutan.', '2-Butoksipropan yigʻildi.'],
     'CH₃CH(CH₃)–O–(CH₂)₃CH₃ + HI → CH₃CH(OH)CH₃ + CH₃(CH₂)₃I', { ir: [CH, CO_ETH] }),
+
+  // ——— § 3.9–3.10 Альдегиды (с. 133–136) ———
+  m('propanal', 'aldehyde', 'C₃H₆O', 'CCC=O',
+    ['Пропаналь (пропионовый альдегид)', 'CH₃–CH₂–CHO. Учебник, с. 133–134: гидрирование даёт пропан-1-ол, «серебряное зеркало» — пропановую кислоту. С. 137: изомер ацетона (C₃H₆O).', 'Пропаналь собран.'],
+    ['Propanal (propionaldehyde)', 'CH₃–CH₂–CHO. Textbook pp. 133–134: hydrogenation gives propan-1-ol, the “silver mirror” gives propanoic acid. P. 137: an isomer of acetone (C₃H₆O).', 'Propanal built.'],
+    ['Propanal (propion aldegid)', 'CH₃–CH₂–CHO. Darslik, 133–134-betlar: gidrogenlash propan-1-ol, «kumush koʻzgu» — propan kislota beradi. 137-bet: atsetonning izomeri (C₃H₆O).', 'Propanal yigʻildi.'],
+    'CH₃CH₂CHO + H₂ → CH₃CH₂CH₂OH', { ir: [CH, CO_ALD] }),
+  m('butanal', 'aldehyde', 'C₄H₈O', 'CCCC=O',
+    ['Бутаналь (масляный альдегид)', 'CH₃–CH₂–CH₂–CHO. Учебник, с. 133: гомологический ряд альдегидов.', 'Бутаналь собран.'],
+    ['Butanal (butyraldehyde)', 'CH₃–CH₂–CH₂–CHO. Textbook p. 133: the homologous series of aldehydes.', 'Butanal built.'],
+    ['Butanal (moy aldegidi)', 'CH₃–CH₂–CH₂–CHO. Darslik, 133-bet: aldegidlarning gomologik qatori.', 'Butanal yigʻildi.'],
+    'C₃H₇–CHO — бутаналь', { ir: [CH, CO_ALD] }),
+  m('isobutanal', 'aldehyde', 'C₄H₈O', 'CC(C)C=O',
+    ['2-Метилпропаналь (изомасляный альдегид)', '(CH₃)₂CH–CHO. Учебник, с. 133: изомер бутаналя с разветвлённой цепью; нумерация от атома C альдегидной группы.', '2-Метилпропаналь собран.'],
+    ['2-Methylpropanal (isobutyraldehyde)', '(CH₃)₂CH–CHO. Textbook p. 133: a branched isomer of butanal; numbering starts at the aldehyde carbon.', '2-Methylpropanal built.'],
+    ['2-Metilpropanal (izomoy aldegidi)', '(CH₃)₂CH–CHO. Darslik, 133-bet: butanalning tarmoqlangan izomeri; raqamlash aldegid guruhi C atomidan.', '2-Metilpropanal yigʻildi.'],
+    '(CH₃)₂CH–CHO — 2-метилпропаналь', { ir: [CH, CO_ALD] }),
+  m('vinyl-alcohol', 'alcohol', 'C₂H₄O', 'C=CO',
+    ['Виниловый спирт (этенол)', 'CH₂=CH–OH: группа OH у атома C двойной связи. Учебник, с. 133: неустойчивое промежуточное вещество реакции Кучерова — сразу перестраивается в уксусный альдегид (изомер C₂H₄O).', 'Этенол собран — он неустойчив.'],
+    ['Vinyl alcohol (ethenol)', 'CH₂=CH–OH: OH on a double-bond carbon. Textbook p. 133: the unstable intermediate of the Kucherov reaction — it at once rearranges into acetaldehyde (an isomer, C₂H₄O).', 'Ethenol built — it is unstable.'],
+    ['Vinil spirti (etenol)', 'CH₂=CH–OH: OH qoʻsh bogʻ C atomida. Darslik, 133-bet: Kucherov reaksiyasining beqaror oraliq moddasi — darhol sirka aldegidiga aylanadi (C₂H₄O izomeri).', 'Etenol yigʻildi — u beqaror.'],
+    'HC≡CH + H₂O → [CH₂=CH–OH] → CH₃CHO', { ir: [OH, CC_D] }),
+
+  // ——— § 3.11 Кетоны (с. 137–138) ———
+  m('pentan-3-one', 'ketone', 'C₅H₁₀O', 'CCC(=O)CC',
+    ['Диэтилкетон (пентан-3-он)', 'C₂H₅–CO–C₂H₅. Учебник, с. 137: карбонильная группа в середине цепи из 5 C.', 'Пентан-3-он собран.'],
+    ['Diethyl ketone (pentan-3-one)', 'C₂H₅–CO–C₂H₅. Textbook p. 137: the carbonyl group in the middle of a 5-carbon chain.', 'Pentan-3-one built.'],
+    ['Dietilketon (pentan-3-on)', 'C₂H₅–CO–C₂H₅. Darslik, 137-bet: karbonil guruhi 5 C zanjir oʻrtasida.', 'Pentan-3-on yigʻildi.'],
+    'C₂H₅–CO–C₂H₅ — пентан-3-он', { ir: [CH, CO_KET] }),
+  m('pentan-2-one', 'ketone', 'C₅H₁₀O', 'CC(=O)CCC',
+    ['Метилпропилкетон (пентан-2-он)', 'CH₃–CO–CH₂–CH₂–CH₃. Учебник, с. 137: изомер диэтилкетона — положение группы C=O другое.', 'Пентан-2-он собран.'],
+    ['Methyl propyl ketone (pentan-2-one)', 'CH₃–CO–CH₂–CH₂–CH₃. Textbook p. 137: an isomer of diethyl ketone with the C=O in another position.', 'Pentan-2-one built.'],
+    ['Metilpropilketon (pentan-2-on)', 'CH₃–CO–CH₂–CH₂–CH₃. Darslik, 137-bet: dietilketon izomeri — C=O guruhi boshqa holatda.', 'Pentan-2-on yigʻildi.'],
+    'CH₃–CO–C₃H₇ — пентан-2-он', { ir: [CH, CO_KET] }),
 ]
