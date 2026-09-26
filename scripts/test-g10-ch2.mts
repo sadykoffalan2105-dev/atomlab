@@ -298,6 +298,11 @@ const SPEC_MOLECULES: Record<string, Expect> = {
   styrene: { f: 'C8H8', ring: 6 },
   '1-2-dichloroethylbenzene': { f: 'C8H8Cl2', ring: 6 },
   '1-chloroethylbenzene': { f: 'C8H9Cl', ring: 6 },
+  biphenyl: { f: 'C12H10', ring: 6 },
+  diphenylmethane: { f: 'C13H12', ring: 6 },
+  triphenylmethane: { f: 'C19H16', ring: 6 },
+  naphthalene: { f: 'C10H8' },
+  anthracene: { f: 'C14H10' },
   // § 2.18–2.23
   methane: { f: 'CH4' },
   ethane: { f: 'C2H6' },
@@ -322,7 +327,6 @@ const REGISTRY_ONLY: Record<string, string> = {
   '1-phenylethane-1-2-diol': 'C8H10O2',
   'ethyl-benzoate': 'C9H10O2',
   'ethylene-oxide': 'C2H4O',
-  naphthalene: 'C10H8',
 }
 
 for (const [id, exp] of Object.entries(SPEC_MOLECULES)) {

@@ -482,7 +482,11 @@ export const ORGANIC_CURRICULUM: readonly OrganicLesson[] = [
       '1-phenylethanol',
       '1-phenylethane-1-2-diol',
       'acetylene',
+      'biphenyl',
+      'diphenylmethane',
+      'triphenylmethane',
       'naphthalene',
+      'anthracene',
     ],
     equationIds: [
       'g10-aren-c6h12-dehydro',
