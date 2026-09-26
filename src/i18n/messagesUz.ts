@@ -1,6 +1,7 @@
 import { learnPackUz } from './learnPackUz'
 import { learnGradePackUz } from './learnGradePacks'
 import { vrLabUz } from './vrLabUz'
+import { schoolLinkUz } from './schoolLinkUz'
 import type { MessageKey } from './messagesRu'
 
 /** O'zbek (lotin) UI satrlari (messagesRu bilan bir xil kalitlar). */
@@ -10,6 +11,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'nav.catalog': 'Moddalar katalogi',
   'nav.learn': 'O\'rganish',
   ...vrLabUz,
+  ...schoolLinkUz,
   'lab.domainAria': 'Laboratoriya turi',
   'lab.domainInorganic': 'Anorganik',
   'lab.domainOrganic': 'Organik',

@@ -8,6 +8,7 @@ import { prefetchAppRoutes, prefetchRouteForPath } from './lab/prefetchAppRoutes
 import { useLocale } from './i18n/useLocale'
 import { useT } from './i18n/useT'
 import { AppThemeToggle } from './theme/AppThemeToggle'
+import { DeviceAgentHost, SchoolLinkButton } from './admin/ui/SchoolLink'
 import styles from './AppShell.module.css'
 
 type IconProps = { className?: string }
@@ -185,6 +186,7 @@ export function AppShell() {
           {/* Собственная ячейка: на телефоне .headerTools раскладывается сеткой
               (display: contents), и без явного места тумблер уезжал в новый ряд. */}
           <div className={styles.themeSlot}>
+            <SchoolLinkButton />
             <AppThemeToggle />
           </div>
           <div className={styles.langPicker} role="group" aria-label={t('lang.toggle', { current: locale.toUpperCase() })}>
@@ -212,6 +214,8 @@ export function AppShell() {
       <main className={styles.main}>
         <Outlet />
       </main>
+      {/* Связь с платформой школ: экран блокировки и сообщения администратора (без настроек — ничего). */}
+      <DeviceAgentHost />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { learnPackRu } from './learnPackRu'
 import { learnGradePackRu } from './learnGradePacks'
 import { vrLabRu } from './vrLabRu'
+import { schoolLinkRu } from './schoolLinkRu'
 
 /** Русские строки UI и ошибок (ключи совпадают с messagesEn). */
 export const messagesRu = {
@@ -9,6 +10,7 @@ export const messagesRu = {
   'nav.catalog': 'Каталог веществ',
   'nav.learn': 'Обучение',
   ...vrLabRu,
+  ...schoolLinkRu,
   'lab.domainAria': 'Тип лаборатории',
   'lab.domainInorganic': 'Неорганика',
   'lab.domainOrganic': 'Органика',

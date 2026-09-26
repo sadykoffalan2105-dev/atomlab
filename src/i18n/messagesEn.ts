@@ -1,6 +1,7 @@
 import { learnPackEn } from './learnPackEn'
 import { learnGradePackEn } from './learnGradePacks'
 import { vrLabEn } from './vrLabEn'
+import { schoolLinkEn } from './schoolLinkEn'
 import type { MessageKey } from './messagesRu'
 
 /** English UI strings (same keys as messagesRu). */
@@ -10,6 +11,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'nav.catalog': 'Substance catalog',
   'nav.learn': 'Learn',
   ...vrLabEn,
+  ...schoolLinkEn,
   'lab.domainAria': 'Lab type',
   'lab.domainInorganic': 'Inorganic',
   'lab.domainOrganic': 'Organic',
