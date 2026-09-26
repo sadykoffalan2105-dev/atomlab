@@ -365,6 +365,8 @@ export type SkeletonSpec = {
   elements: readonly OrganicElement[]
   /** [i, j, order?] индексы в elements */
   edges: readonly (readonly [number, number] | readonly [number, number, 1 | 2 | 3])[]
+  /** Цис/транс у двойной связи: [a, b, c, d, 'cis' | 'trans'] — индексы a–b=c–d в elements (только 3D-раскладка) */
+  stereo?: readonly (readonly [number, number, number, number, 'cis' | 'trans'])[]
 }
 
 export function graphFromSkeletonSpec(spec: SkeletonSpec): OrganicGraph {

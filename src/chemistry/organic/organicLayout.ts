@@ -65,6 +65,10 @@ function vecAdd(a: Vec3, b: Vec3): Vec3 {
   return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
 }
 
+function cross3(a: Vec3, b: Vec3): Vec3 {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+}
+
 function vecScale(v: Vec3, s: number): Vec3 {
   return [v[0] * s, v[1] * s, v[2] * s]
 }
@@ -402,8 +406,14 @@ function layoutByBfs(graph: OrganicGraph): Map<string, Vec3> {
   return pos
 }
 
+/**
+ * Цис/транс у двойной связи: [a, b, c, d, 'cis' | 'trans'] — id атомов a–b=c–d
+ * (a — заместитель у b, d — заместитель у c).
+ */
+export type StereoSpec = readonly (readonly [string, string, string, string, 'cis' | 'trans'])[]
+
 /** BFS-layout + правильные кольца (C₃–C₆) и расстановка H. */
-export function layoutOrganicGraph(graph: OrganicGraph): OrganicGraph {
+export function layoutOrganicGraph(graph: OrganicGraph, opts: { stereo?: StereoSpec } = {}): OrganicGraph {
   if (graph.atoms.length === 0) return graph
 
   const cycle = findLargestHeavyCycle(graph)
@@ -457,10 +467,14 @@ export function layoutOrganicGraph(graph: OrganicGraph): OrganicGraph {
     placeHydrogens(graph, pos)
   }
 
-  return relaxOrganicGeometry({
-    ...graph,
-    atoms: graph.atoms.map((a) => ({ ...a, pos: pos.get(a.id) ?? a.pos })),
-  })
+  return relaxOrganicGeometry(
+    {
+      ...graph,
+      atoms: graph.atoms.map((a) => ({ ...a, pos: pos.get(a.id) ?? a.pos })),
+    },
+    320,
+    opts.stereo,
+  )
 }
 
 /** Повернуть соседа (и его поддерево) вокруг центра вокруг оси Y. */
@@ -576,7 +590,7 @@ function ringPathLen(adj: number[][], a: number, b: number, center: number, limi
  * Раньше BFS-раскладка по тетраэдрическим направлениям давала наложения (H в 0.45 Å от C)
  * и незамкнутые кольца у замещённых циклов (толуол, метилциклопропан).
  */
-export function relaxOrganicGeometry(graph: OrganicGraph, maxIterations = 320): OrganicGraph {
+export function relaxOrganicGeometry(graph: OrganicGraph, maxIterations = 320, stereo?: StereoSpec): OrganicGraph {
   const n = graph.atoms.length
   // крупные молекулы (жиры, каротин) — меньше итераций: пар «через 3+ связи» там десятки тысяч
   const iterations = n > 90 ? Math.round(maxIterations / 2) : maxIterations
@@ -597,6 +611,7 @@ export function relaxOrganicGeometry(graph: OrganicGraph, maxIterations = 320): 
 
   // Ароматическое (кекулевское) шестичленное кольцо из sp2-атомов C → все связи 1.39 Å
   const aromaticBond = new Set<string>()
+  const aromaticRings: number[][] = []
   const heavyAdj = adj.map((ns, i) => (el[i] === 'H' ? [] : ns.filter((j) => el[j] !== 'H')))
   const visitRing = (path: number[]) => {
     const cur = path[path.length - 1]!
@@ -607,6 +622,7 @@ export function relaxOrganicGeometry(graph: OrganicGraph, maxIterations = 320): 
       for (let k = 0; k < 6; k++) if (orderOf(ring[k]!, ring[(k + 1) % 6]!) === 2) doubles += 1
       if (doubles === 3 && ring.every((a) => el[a] === 'C')) {
         for (let k = 0; k < 6; k++) aromaticBond.add([ring[k]!, ring[(k + 1) % 6]!].sort((x, y) => x - y).join('-'))
+        aromaticRings.push(ring)
       }
       return
     }
@@ -627,6 +643,12 @@ export function relaxOrganicGeometry(graph: OrganicGraph, maxIterations = 320): 
   const near = new Set<string>()
   const key = (i: number, j: number) => (i < j ? `${i}-${j}` : `${j}-${i}`)
   for (const b of bonds) near.add(key(b.i, b.j))
+  // бензольное кольцо плоское: пара-атомы на расстоянии 2 · 1,39 Å (иначе кольцо остаётся «креслом»)
+  for (const ring of aromaticRings)
+    for (let k = 0; k < 3; k++) {
+      pairs.push({ i: ring[k]!, j: ring[k + 3]!, d: 2.78, k: 0.8 })
+      near.add(key(ring[k]!, ring[k + 3]!))
+    }
 
   for (let c = 0; c < n; c++) {
     const ns = adj[c]!
@@ -672,6 +694,81 @@ export function relaxOrganicGeometry(graph: OrganicGraph, maxIterations = 320): 
     }
   }
 
+  // Плоская двойная связь (и сопряжённая одинарная между sp²-атомами): заместители a–b=c–d лежат в одной
+  // плоскости — расстояние a…d «цис» или «транс». По умолчанию тяжёлые заместители — в транс-положении
+  // (главная цепь зигзагом); явный цис/транс — из stereo (цис- и транс-бутен-2, с. 59).
+  // Кумулированные C=C=C (аллены): плоскости концевых групп взаимно перпендикулярны.
+  const stereoIdx = (stereo ?? [])
+    .map(([a, b, c, d, r]) => [idx.get(a), idx.get(b), idx.get(c), idx.get(d), r] as const)
+    .filter((t): t is readonly [number, number, number, number, 'cis' | 'trans'] => t.slice(0, 4).every((v) => v != null))
+  const trigonalAt = (c: number) => {
+    const ns = adj[c]!
+    if (ns.length !== 3) return false
+    let doubles = 0
+    for (const j of ns) {
+      const o = orderOf(c, j)
+      if (o === 3) return false
+      if (o === 2) doubles += 1
+    }
+    return doubles === 1 || (doubles === 0 && ns.some((j) => isAromatic(c, j)))
+  }
+  const bondInRing = (b: number, c: number) => heavyAdj[b]!.some((x) => x !== c && ringPathLen(heavyAdj, x, c, b) != null)
+  const heavyFirst = (list: number[]) => [...list].sort((x, y) => Number(el[x] === 'H') - Number(el[y] === 'H') || x - y)
+  /** Точная доводка: двугранный угол a–b–c–d = deg поворотом стороны `side` (не заходя в `cut`) вокруг оси b→c. */
+  const torsions: { a: number; b: number; c: number; d: number; deg: number; side: number; cut: number }[] = []
+  const addPlanar = (b: number, c: number, explicit?: readonly [number, number, 'cis' | 'trans']) => {
+    const subsB = heavyFirst(adj[b]!.filter((x) => x !== c))
+    const subsC = heavyFirst(adj[c]!.filter((x) => x !== b))
+    if (!subsB.length || !subsC.length) return
+    const a0 = explicit?.[0] ?? subsB[0]!
+    const d0 = explicit?.[1] ?? subsC[0]!
+    const r0 = explicit?.[2] ?? 'trans'
+    torsions.push({ a: a0, b, c, d: d0, deg: r0 === 'cis' ? 0 : 180, side: c, cut: b })
+    const L = lenOf(b, c)
+    for (const a of subsB)
+      for (const d of subsC) {
+        const r = (a === a0) === (d === d0) ? r0 : r0 === 'cis' ? 'trans' : 'cis'
+        const la = lenOf(a, b)
+        const ld = lenOf(c, d)
+        const dx = L + (la + ld) / 2
+        const dy = r === 'cis' ? ((ld - la) * Math.sqrt(3)) / 2 : ((la + ld) * Math.sqrt(3)) / 2
+        pairs.push({ i: a, j: d, d: Math.hypot(dx, dy), k: 0.5 })
+        near.add(key(a, d))
+      }
+  }
+  for (const bd of bonds) {
+    const { i: b, j: c, order } = bd
+    if (el[b] !== 'C' || el[c] !== 'C' || isAromatic(b, c)) continue
+    if (order === 2) {
+      if (!trigonalAt(b) || !trigonalAt(c) || bondInRing(b, c)) continue
+      const ex = stereoIdx.find(([, x, y]) => (x === b && y === c) || (x === c && y === b))
+      const explicit = ex ? (ex[1] === b ? ([ex[0], ex[3], ex[4]] as const) : ([ex[3], ex[0], ex[4]] as const)) : undefined
+      addPlanar(b, c, explicit)
+    } else if (order === 1 && trigonalAt(b) && trigonalAt(c) && !bondInRing(b, c)) {
+      addPlanar(b, c) // сопряжение: s-транс, плоский зигзаг (бутадиен, изопрен, стирол)
+    }
+  }
+  // аллен: b=c=d, c — sp; группы у b и у d во взаимно перпендикулярных плоскостях
+  for (let c = 0; c < n; c++) {
+    const ns = adj[c]!
+    if (el[c] !== 'C' || ns.length !== 2 || ns.some((j) => orderOf(c, j) !== 2)) continue
+    const [b, d] = ns as [number, number]
+    if (!trigonalAt(b) || !trigonalAt(d)) continue
+    const lb = lenOf(b, c)
+    const ld2 = lenOf(c, d)
+    const a0 = adj[b]!.find((x) => x !== c)
+    const e0 = adj[d]!.find((x) => x !== c)
+    if (a0 != null && e0 != null) torsions.push({ a: a0, b, c: d, d: e0, deg: 90, side: d, cut: c })
+    for (const a of adj[b]!.filter((x) => x !== c))
+      for (const e of adj[d]!.filter((x) => x !== c)) {
+        const la = lenOf(a, b)
+        const le = lenOf(d, e)
+        const dx = lb + ld2 + (la + le) / 2
+        pairs.push({ i: a, j: e, d: Math.sqrt(dx * dx + 0.75 * (la * la + le * le)), k: 0.5 })
+        near.add(key(a, e))
+      }
+  }
+
   const far: { i: number; j: number; d: number }[] = []
   for (let i = 0; i < n; i++)
     for (let j = i + 1; j < n; j++) {
@@ -708,8 +805,148 @@ export function relaxOrganicGeometry(graph: OrganicGraph, maxIterations = 320): 
     const push = it < iterations * 0.85 ? 0.35 : 0.15
     for (const f of far) project(f.i, f.j, f.d, push, true)
   }
+  // плоские C=C и цис/транс: точный поворот половины молекулы вокруг связи (длины и углы не меняются)
+  const at = (i: number) => P[i]! as unknown as Vec3
+  const sideOf = (side: number, cut: number) => {
+    const seen = new Set<number>([side])
+    const q = [side]
+    while (q.length) {
+      const cur = q.shift()!
+      for (const nx of adj[cur]!) {
+        if (seen.has(nx) || (cur === side && nx === cut)) continue
+        seen.add(nx)
+        q.push(nx)
+      }
+    }
+    return seen
+  }
+  const signedDihedral = (a: number, b: number, c: number, d: number) => {
+    const pa = P[a]! as unknown as Vec3
+    const pb = P[b]! as unknown as Vec3
+    const pc = P[c]! as unknown as Vec3
+    const pd = P[d]! as unknown as Vec3
+    const b1 = vecSub(pb, pa)
+    const b2 = vecSub(pc, pb)
+    const b3 = vecSub(pd, pc)
+    const n1 = cross3(b1, b2)
+    const n2 = cross3(b2, b3)
+    const m1 = cross3(n1, vecNorm(b2))
+    return (Math.atan2(vecDot(m1, n2), vecDot(n1, n2)) * 180) / Math.PI
+  }
+  const rotateSet = (set: Set<number>, b: number, c: number, deg: number) => {
+    const o = P[b]! as unknown as Vec3
+    const u = vecNorm(vecSub(P[c]! as unknown as Vec3, o))
+    const t = (deg * Math.PI) / 180
+    const cs = Math.cos(t)
+    const sn = Math.sin(t)
+    for (const i of set) {
+      const v = vecSub(P[i]! as unknown as Vec3, o)
+      const kxv = cross3(u, v)
+      const kv = vecDot(u, v)
+      P[i] = [
+        o[0] + v[0] * cs + kxv[0] * sn + u[0] * kv * (1 - cs),
+        o[1] + v[1] * cs + kxv[1] * sn + u[1] * kv * (1 - cs),
+        o[2] + v[2] * cs + kxv[2] * sn + u[2] * kv * (1 - cs),
+      ]
+    }
+  }
+  const wrap = (x: number) => ((((x + 180) % 360) + 360) % 360) - 180
+  const applyTorsions = () => {
+    for (const t of torsions) {
+      const set = sideOf(t.side, t.cut)
+      if (set.has(t.cut) || set.has(t.b)) continue // связь в кольце — не крутим
+      const now = signedDihedral(t.a, t.b, t.c, t.d)
+      const opts = t.deg === 0 || t.deg === 180 ? [t.deg] : [t.deg, -t.deg]
+      let delta = wrap(opts[0]! - now)
+      for (const o of opts) if (Math.abs(wrap(o - now)) < Math.abs(delta)) delta = wrap(o - now)
+      if (Math.abs(delta) < 0.5) continue
+      rotateSet(set, t.b, t.c, delta)
+      const after = signedDihedral(t.a, t.b, t.c, t.d)
+      if (!opts.some((o) => Math.abs(wrap(o - after)) < 1)) rotateSet(set, t.b, t.c, -2 * delta)
+    }
+  }
+  // бензольное кольцо — строго плоское: атомы кольца и заместители (со своими поддеревьями) — в плоскость кольца
+  const flattenAromatics = () => {
+    for (const ring of aromaticRings) {
+      const cc = [0, 0, 0]
+      for (const i of ring) for (let k = 0; k < 3; k++) cc[k]! += P[i]![k]! / ring.length
+      const c: Vec3 = [cc[0]!, cc[1]!, cc[2]!]
+      let nrm: Vec3 = [0, 0, 0]
+      for (let k = 0; k < ring.length; k++) {
+        nrm = vecAdd(nrm, cross3(vecSub(at(ring[k]!), c), vecSub(at(ring[(k + 1) % ring.length]!), c)))
+      }
+      if (vecLen(nrm) < 1e-6) continue
+      nrm = vecNorm(nrm)
+      const shiftSet = (set: Iterable<number>, off: number) => {
+        for (const j of set) P[j] = [P[j]![0]! - nrm[0] * off, P[j]![1]! - nrm[1] * off, P[j]![2]! - nrm[2] * off]
+      }
+      for (const i of ring) {
+        const off = vecDot(vecSub(at(i), c), nrm)
+        shiftSet([i], off)
+        for (const x of adj[i]!) {
+          if (ring.includes(x)) continue
+          const set = sideOf(x, i)
+          if (set.has(i)) continue // конденсированное кольцо — его выпрямит своя проходка
+          shiftSet(set, off) // заместитель едет вместе с атомом кольца…
+          // …и жёстко поворачивается вокруг него в плоскость кольца (длины и углы внутри заместителя не меняются)
+          const v = vecSub(at(x), at(i))
+          const vIn = vecSub(v, vecScale(nrm, vecDot(v, nrm)))
+          if (vecLen(vIn) < 1e-6) continue
+          const axis = cross3(v, vIn)
+          if (vecLen(axis) < 1e-9) continue
+          const cosA = Math.max(-1, Math.min(1, vecDot(vecNorm(v), vecNorm(vIn))))
+          const t = Math.acos(cosA)
+          const u = vecNorm(axis)
+          const o = at(i)
+          const cs = Math.cos(t)
+          const sn = Math.sin(t)
+          for (const j of set) {
+            const w = vecSub(at(j), o)
+            const kxw = cross3(u, w)
+            const kw = vecDot(u, w)
+            P[j] = [
+              o[0] + w[0] * cs + kxw[0] * sn + u[0] * kw * (1 - cs),
+              o[1] + w[1] * cs + kxw[1] * sn + u[1] * kw * (1 - cs),
+              o[2] + w[2] * cs + kxw[2] * sn + u[2] * kw * (1 - cs),
+            ]
+          }
+        }
+      }
+    }
+  }
+  flattenAromatics()
+  applyTorsions()
   // финальная доводка только связей и углов
   for (let it = 0; it < 40; it++) for (const p of pairs) project(p.i, p.j, p.d, p.k)
+  flattenAromatics()
+  applyTorsions()
+  // H у sp²-углерода — строго в плоскости его соседей (=CH–, =CH₂, ароматическое C–H)
+  const lenCH = bondLength('C', 'H')
+  const placeH = (h: number, c: number, dir: Vec3) => {
+    const pc = at(c)
+    P[h] = [pc[0] + dir[0] * lenCH, pc[1] + dir[1] * lenCH, pc[2] + dir[2] * lenCH]
+  }
+  for (let c = 0; c < n; c++) {
+    if (el[c] !== 'C' || !trigonalAt(c)) continue
+    const hs = adj[c]!.filter((x) => el[x] === 'H')
+    const hv = adj[c]!.filter((x) => el[x] !== 'H')
+    if (hs.length === 1 && hv.length === 2) {
+      const s1 = vecNorm(vecSub(at(hv[0]!), at(c)))
+      const s2 = vecNorm(vecSub(at(hv[1]!), at(c)))
+      if (vecLen(vecAdd(s1, s2)) > 0.2) placeH(hs[0]!, c, vecNorm(vecScale(vecAdd(s1, s2), -1)))
+    } else if (hs.length === 2 && hv.length === 1) {
+      const b = hv[0]!
+      const ref = heavyFirst(adj[b]!.filter((x) => x !== c))[0]
+      if (ref == null) continue
+      const u = vecNorm(vecSub(at(b), at(c)))
+      const r = vecSub(at(ref), at(b))
+      const wRaw = vecSub(r, vecScale(u, vecDot(r, u)))
+      if (vecLen(wRaw) < 0.3) continue // линейный сосед (аллен): плоскость задаёт поворот
+      const w = vecNorm(wRaw)
+      placeH(hs[0]!, c, vecNorm(vecAdd(vecScale(u, -0.5), vecScale(w, Math.sqrt(3) / 2))))
+      placeH(hs[1]!, c, vecNorm(vecAdd(vecScale(u, -0.5), vecScale(w, -Math.sqrt(3) / 2))))
+    }
+  }
 
   // центрировать по тяжёлым атомам
   const heavyIdx = graph.atoms.map((a, i) => (a.element === 'H' ? -1 : i)).filter((i) => i >= 0)
