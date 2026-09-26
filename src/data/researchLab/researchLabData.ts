@@ -1,4 +1,5 @@
 /** Данные режимов органической лаборатории (изомеры и реэкспорт каталога сборки). */
+import { G10_CH3_ISOMER_CHALLENGES } from './isomerChallengesG10ch3'
 
 export type IrPeak = {
   /** см⁻¹ */
@@ -429,6 +430,7 @@ export const ISOMER_CHALLENGES: readonly IsomerChallenge[] = [
       ['ethylcyclopropane', 'Этилциклопропан', 'Ethylcyclopropane', 'Etiltsiklopropan', 'C₅H₁₀', true, 'ring', 'Кольцо из 3 C + этил.', 'Three-carbon ring + ethyl.', '3 C li halqa + etil.'],
     ]),
   },
+  ...G10_CH3_ISOMER_CHALLENGES, // ——— Kimyo 10, гл. III (§ 3.1–3.21): isomerChallengesG10ch3.ts ———
 ]
 
 export {

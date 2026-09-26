@@ -1,0 +1,105 @@
+/**
+ * Kimyo 10, глава III (§ 3.1–3.21): задания режима «Изомеры» по примерам учебника.
+ * Источник — docs/textbook/g10-ch3-*.md. Кандидаты — молекулы органической лаборатории (id реестра).
+ */
+import type { IrPeak, IsomerCandidate, IsomerChallenge } from './researchLabData'
+
+const OH: IrPeak = { wavenumber: 3350, intensity: 0.92, label: 'O–H' }
+const CH: IrPeak = { wavenumber: 2920, intensity: 0.7, label: 'C–H' }
+const CO: IrPeak = { wavenumber: 1100, intensity: 0.55, label: 'C–O' }
+const CO_ETH: IrPeak = { wavenumber: 1120, intensity: 0.65, label: 'C–O (эфир)' }
+const C_O: IrPeak = { wavenumber: 1720, intensity: 0.9, label: 'C=O' }
+const AROM: IrPeak = { wavenumber: 1500, intensity: 0.5, label: 'Ar' }
+
+const PALETTE = ['#7dd3fc', '#a5b4fc', '#c4b5fd', '#f0abfc', '#fda4af', '#fcd34d', '#86efac', '#5eead4', '#fdba74']
+
+type Kind = 'alcohol' | 'ether' | 'carbonyl' | 'acid' | 'ester' | 'phenol'
+const KIND: Record<Kind, { skeleton: IsomerCandidate['skeleton']; groups: string[]; ir: IrPeak[] }> = {
+  alcohol: { skeleton: 'alcohol', groups: ['alcohol', 'OH'], ir: [OH, CH, CO] },
+  ether: { skeleton: 'ether', groups: ['ether'], ir: [CH, CO_ETH] },
+  carbonyl: { skeleton: 'n', groups: ['carbonyl'], ir: [CH, C_O] },
+  acid: { skeleton: 'n', groups: ['acid', 'OH'], ir: [OH, C_O] },
+  ester: { skeleton: 'n', groups: ['ester'], ir: [CH, C_O, CO_ETH] },
+  phenol: { skeleton: 'ring', groups: ['phenol', 'OH'], ir: [OH, AROM] },
+}
+
+type Row = readonly [id: string, ru: string, en: string, uz: string, formula: string, correct: boolean, kind: Kind, noteRu: string, noteEn: string, noteUz: string]
+
+function cands(rows: readonly Row[]): IsomerCandidate[] {
+  return rows.map(([id, nameRu, nameEn, nameUz, formula, correct, kind, hazardRu, hazardEn, hazardUz], i) => ({
+    id,
+    nameRu,
+    nameEn,
+    nameUz,
+    formula,
+    correct,
+    skeleton: KIND[kind].skeleton,
+    functionalGroups: KIND[kind].groups,
+    irPeaks: KIND[kind].ir,
+    hazardRu,
+    hazardEn,
+    hazardUz,
+    color: PALETTE[i % PALETTE.length]!,
+  }))
+}
+
+export const G10_CH3_ISOMER_CHALLENGES: readonly IsomerChallenge[] = [
+  {
+    id: 'c2h6o',
+    formula: 'C₂H₆O',
+    targetCount: 2,
+    titleRu: 'C₂H₆O: спирт и простой эфир',
+    titleEn: 'C₂H₆O: an alcohol and an ether',
+    titleUz: 'C₂H₆O: spirt va oddiy efir',
+    hintRu: 'Учебник, с. 109: этанол и диметиловый эфир — межклассовые изомеры. Отметьте оба вещества состава C₂H₆O.',
+    hintEn: 'Textbook p. 109: ethanol and dimethyl ether are interclass isomers. Mark both C₂H₆O compounds.',
+    hintUz: 'Darslik, 109-bet: etanol va dimetil efiri — sinflararo izomerlar. C₂H₆O tarkibli ikkala moddani belgilang.',
+    candidates: cands([
+      ['ethanol', 'Этанол', 'Ethanol', 'Etanol', 'C₂H₆O', true, 'alcohol', 'Спирт: группа OH, водородные связи — жидкость.', 'Alcohol: OH group, hydrogen bonds — a liquid.', 'Spirt: OH guruhi, vodorod bogʻlar — suyuqlik.'],
+      ['methanol', 'Метанол', 'Methanol', 'Metanol', 'CH₄O', false, 'alcohol', 'Ловушка: CH₄O — другая формула (гомолог).', 'Trap: CH₄O is another formula (a homologue).', 'Tuzoq: CH₄O — boshqa formula (gomolog).'],
+      ['dimethyl-ether', 'Диметиловый эфир', 'Dimethyl ether', 'Dimetil efiri', 'C₂H₆O', true, 'ether', 'Простой эфир: нет OH, при обычных условиях газ.', 'Ether: no OH, a gas at room conditions.', 'Oddiy efir: OH yoʻq, oddiy sharoitda gaz.'],
+      ['acetaldehyde', 'Этаналь', 'Ethanal', 'Etanal', 'C₂H₄O', false, 'carbonyl', 'Ловушка: C₂H₄O — на два H меньше.', 'Trap: C₂H₄O has two H fewer.', 'Tuzoq: C₂H₄O — ikki H kam.'],
+    ]),
+  },
+  {
+    id: 'c3h8o',
+    formula: 'C₃H₈O',
+    targetCount: 3,
+    titleRu: 'Все изомеры C₃H₈O',
+    titleEn: 'All isomers of C₃H₈O',
+    titleUz: 'C₃H₈O ning barcha izomerlari',
+    hintRu: 'Учебник, с. 109 и 130–131: пропанол-1 и пропанол-2 — изомеры положения OH, метилэтиловый эфир — межклассовый изомер. Всего три вещества.',
+    hintEn: 'Textbook pp. 109 and 130–131: propan-1-ol and propan-2-ol are OH-position isomers, methyl ethyl ether is an interclass isomer. Three compounds in all.',
+    hintUz: 'Darslik, 109 va 130–131-betlar: propanol-1 va propanol-2 — OH holati izomerlari, metiletil efiri — sinflararo izomer. Jami uchta modda.',
+    candidates: cands([
+      ['propanol', 'Пропан-1-ол', 'Propan-1-ol', 'Propan-1-ol', 'C₃H₈O', true, 'alcohol', 'Первичный спирт: OH у крайнего C.', 'Primary alcohol: OH on the end carbon.', 'Birlamchi spirt: OH chetki C da.'],
+      ['allyl-alcohol', 'Проп-2-ен-1-ол', 'Prop-2-en-1-ol', 'Prop-2-en-1-ol', 'C₃H₆O', false, 'alcohol', 'Ловушка: двойная связь — C₃H₆O.', 'Trap: a double bond — C₃H₆O.', 'Tuzoq: qoʻsh bogʻ — C₃H₆O.'],
+      ['propan-2-ol', 'Пропан-2-ол', 'Propan-2-ol', 'Propan-2-ol', 'C₃H₈O', true, 'alcohol', 'Вторичный спирт: OH у среднего C.', 'Secondary alcohol: OH on the middle carbon.', 'Ikkilamchi spirt: OH oʻrtadagi C da.'],
+      ['ethanol', 'Этанол', 'Ethanol', 'Etanol', 'C₂H₆O', false, 'alcohol', 'Ловушка: гомолог, C₂H₆O.', 'Trap: a homologue, C₂H₆O.', 'Tuzoq: gomolog, C₂H₆O.'],
+      ['methoxyethane', 'Метоксиэтан', 'Methoxyethane', 'Metoksietan', 'C₃H₈O', true, 'ether', 'Простой эфир: межклассовый изомер пропанолов.', 'An ether: interclass isomer of the propanols.', 'Oddiy efir: propanollarning sinflararo izomeri.'],
+      ['propanal', 'Пропаналь', 'Propanal', 'Propanal', 'C₃H₆O', false, 'carbonyl', 'Ловушка: альдегид C₃H₆O.', 'Trap: the aldehyde C₃H₆O.', 'Tuzoq: aldegid C₃H₆O.'],
+    ]),
+  },
+  {
+    id: 'c4h10o2-diols',
+    formula: 'C₄H₁₀O₂ · диолы',
+    targetCount: 6,
+    titleRu: 'Гликоли C₄ из таблицы с. 117',
+    titleEn: 'C₄ glycols from the table on p. 117',
+    titleUz: '117-bet jadvalidagi C₄ glikollar',
+    hintRu: 'Учебник, с. 117: шесть двухатомных спиртов C₄H₁₀O₂ (две группы OH у разных атомов C). В таблице учебника названия со 2-й строки сдвинуты на строку — здесь названия верные.',
+    hintEn: 'Textbook p. 117: six diols C₄H₁₀O₂ (two OH groups on different carbons). From row 2 on, the textbook table shifts the names by one row — the names here are correct.',
+    hintUz: 'Darslik, 117-bet: oltita ikki atomli spirt C₄H₁₀O₂ (ikki OH turli C larda). Darslik jadvalida 2-qatordan nomlar bir qatorga surilgan — bu yerda nomlar toʻgʻri.',
+    candidates: cands([
+      ['butane-1-2-diol', 'Бутан-1,2-диол', 'Butane-1,2-diol', 'Butan-1,2-diol', 'C₄H₁₀O₂', true, 'alcohol', 'α-Гликоль: OH у соседних C.', 'α-Glycol: OH on neighbouring carbons.', 'α-Glikol: OH qoʻshni C larda.'],
+      ['butane-1-2-4-triol', 'Бутан-1,2,4-триол', 'Butane-1,2,4-triol', 'Butan-1,2,4-triol', 'C₄H₁₀O₃', false, 'alcohol', 'Ловушка: три OH — C₄H₁₀O₃.', 'Trap: three OH — C₄H₁₀O₃.', 'Tuzoq: uchta OH — C₄H₁₀O₃.'],
+      ['butane-1-3-diol', 'Бутан-1,3-диол', 'Butane-1,3-diol', 'Butan-1,3-diol', 'C₄H₁₀O₂', true, 'alcohol', 'β-Гликоль (в учебнике — «1,2-бутиленгликоль»).', 'β-Glycol (the textbook: “1,2-butylene glycol”).', 'β-Glikol (darslikda — «1,2-butilenglikol»).'],
+      ['butane-1-4-diol', 'Бутан-1,4-диол', 'Butane-1,4-diol', 'Butan-1,4-diol', 'C₄H₁₀O₂', true, 'alcohol', 'γ-Гликоль (в учебнике — «бутандиол-1,3»).', 'γ-Glycol (the textbook: “butane-1,3-diol”).', 'γ-Glikol (darslikda — «butandiol-1,3»).'],
+      ['n-butanol', 'Бутан-1-ол', 'Butan-1-ol', 'Butan-1-ol', 'C₄H₁₀O', false, 'alcohol', 'Ловушка: одноатомный спирт, C₄H₁₀O.', 'Trap: a monohydric alcohol, C₄H₁₀O.', 'Tuzoq: bir atomli spirt, C₄H₁₀O.'],
+      ['butane-2-3-diol', 'Бутан-2,3-диол', 'Butane-2,3-diol', 'Butan-2,3-diol', 'C₄H₁₀O₂', true, 'alcohol', 'α-Гликоль (в учебнике — «бутандиол-1,4»).', 'α-Glycol (the textbook: “butane-1,4-diol”).', 'α-Glikol (darslikda — «butandiol-1,4»).'],
+      ['2-methylpropane-1-2-diol', '2-Метилпропан-1,2-диол', '2-Methylpropane-1,2-diol', '2-Metilpropan-1,2-diol', 'C₄H₁₀O₂', true, 'alcohol', 'Разветвлённый (в учебнике — «бутандиол-2,3»).', 'Branched (the textbook: “butane-2,3-diol”).', 'Tarmoqlangan (darslikda — «butandiol-2,3»).'],
+      ['ethylene-glycol', 'Этиленгликоль', 'Ethylene glycol', 'Etilenglikol', 'C₂H₆O₂', false, 'alcohol', 'Ловушка: гомолог C₂H₆O₂.', 'Trap: the homologue C₂H₆O₂.', 'Tuzoq: gomolog C₂H₆O₂.'],
+      ['2-methylpropane-1-3-diol', '2-Метилпропан-1,3-диол', '2-Methylpropane-1,3-diol', '2-Metilpropan-1,3-diol', 'C₄H₁₀O₂', true, 'alcohol', 'Разветвлённый β-гликоль (в учебнике — «2-метилпропандиол-1,2»).', 'Branched β-glycol (the textbook: “2-methylpropane-1,2-diol”).', 'Tarmoqlangan β-glikol (darslikda — «2-metilpropandiol-1,2»).'],
+    ]),
+  },
+]
