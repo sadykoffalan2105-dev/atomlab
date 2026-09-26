@@ -307,6 +307,36 @@ const SPEC: Record<string, Expect> = {
   'ethylene-oxide': { f: 'C2H4O', heavyRing: 3, name: /оксиран/ },
   '1-2-3-trichloropropane': { f: 'C3H5Cl3', chain: 3 },
   acetaldehyde: { f: 'C2H4O' },
+  // § 3.6–3.7 (с. 123–128)
+  phenol: { f: 'C6H6O', ring: 6 },
+  'benzyl-alcohol': { f: 'C7H8O', ring: 6, name: /фенилметанол/ },
+  '1-phenylethanol': { f: 'C8H10O', ring: 6, name: /1-фенилэтан-1-ол/ },
+  '2-phenylethanol': { f: 'C8H10O', ring: 6, name: /2-фенилэтан-1-ол/ },
+  '2-phenylpropan-1-ol': { f: 'C9H12O', ring: 6, name: /2-фенилпропан-1-ол/ },
+  '1-phenylbutan-1-ol': { f: 'C10H14O', ring: 6, name: /1-фенилбутан-1-ол/ },
+  '2-methyl-1-phenylpropan-2-ol': { f: 'C10H14O', ring: 6, name: /2-метил-1-фенилпропан-2-ол/ },
+  'o-cresol': { f: 'C7H8O', ring: 6 },
+  'm-cresol': { f: 'C7H8O', ring: 6 },
+  'p-cresol': { f: 'C7H8O', ring: 6 },
+  catechol: { f: 'C6H6O2', ring: 6, name: /Пирокатехин[\s\S]*пирокатексин/ },
+  resorcinol: { f: 'C6H6O2', ring: 6, name: /бензол-1,3-диол/ },
+  hydroquinone: { f: 'C6H6O2', ring: 6, name: /бензол-1,4-диол/ },
+  pyrogallol: { f: 'C6H6O3', ring: 6, name: /бензол-1,2,3-триол/ },
+  phloroglucinol: { f: 'C6H6O3', ring: 6, name: /Флороглюцин[\s\S]*флорогютцин/ },
+  '2-4-6-tribromophenol': { f: 'C6H3Br3O', ring: 6 },
+  '2-4-6-trimethylphenol': { f: 'C9H12O', ring: 6 },
+  'salicyl-alcohol': { f: 'C7H8O2', ring: 6 },
+  'dihydroxydiphenylmethane': { f: 'C13H12O2', ring: 6 },
+  'benzyl-chloride': { f: 'C7H7Cl', ring: 6 },
+  chlorobenzene: { f: 'C6H5Cl', ring: 6 },
+  benzene: { f: 'C6H6', ring: 6 },
+  // § 3.8 (с. 130–132)
+  'methyl-propyl-ether': { f: 'C4H10O', name: /1-метоксипропан/ },
+  'divinyl-ether': { f: 'C4H6O', name: /этенилоксиэтен/ },
+  anisole: { f: 'C7H8O', ring: 6, name: /метоксибензол/ },
+  'butyl-isopropyl-ether': { f: 'C7H16O', name: /2-Бутоксипропан/ },
+  'n-butanol': { f: 'C4H10O', chain: 4 },
+  chloromethane: { f: 'CH3Cl' },
 }
 
 const ownIds = new Set(G10_CH3_BUILD_CHALLENGES.map((c) => c.id))
@@ -400,7 +430,7 @@ function checkBalance(eq: GradeEq): void {
 }
 
 // ── 3. Уроки ─────────────────────────────────────────────
-const LESSONS = ['alcohols', 'polyols']
+const LESSONS = ['alcohols', 'polyols', 'phenols', 'ethers']
 const isoById = new Map(ISOMER_CHALLENGES.map((x) => [x.id, x]))
 const usedEq = new Set<string>()
 for (const lid of LESSONS) {
@@ -498,6 +528,12 @@ const FIXES: Record<string, { hint: RegExp; notLeft?: string; notRight?: string 
   'g10c3-glycerol-rcooh': { hint: /«−H₂O»/ },
   'g10c3-chain1-elim': { hint: /Zn/, notLeft: 'Zn' },
   'g10c3-fat-hydrolysis-118': { hint: /омыление — щелочной гидролиз/ },
+  'g10c3-phenol-naoh': { hint: /«2C₆H₅OH \+ NaOH»/, notLeft: '2C₆H₅OH' },
+  'g10c3-phenolate-co2': { hint: /«→ 2C₆H₅OH»/, notRight: '2C₆H₅OH' },
+  'g10c3-phenol-br2': { hint: /«\+ 3Br₂»/, notRight: '3Br₂' },
+  'g10c3-phenol-fecl3': { hint: /не уравнено/ },
+  'g10c3-benzene-cl2': { hint: /«\+ 2Cl₂»/, notLeft: '2Cl₂' },
+  'g10c3-oxonium': { hint: /не реагирует/ },
 }
 for (const [eid, fx] of Object.entries(FIXES)) {
   checks += 1
