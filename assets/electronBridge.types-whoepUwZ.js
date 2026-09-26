@@ -1,0 +1,1 @@
+function e(){return typeof window<`u`&&window.atomlabDesktop?.isDesktop===!0}function t(){return window.atomlabDesktop??null}export{e as n,t};
