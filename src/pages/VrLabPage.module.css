@@ -12,6 +12,9 @@
   max-height: 100%;
   overflow: hidden;
   padding: 0.65rem 0.85rem 0.85rem;
+  /* Ночной остров на всю страницу: днём красит себя сам, ночью прозрачен (как было). */
+  background: var(--lt-night-backdrop, transparent);
+  color: var(--app-shell-text);
 }
 
 @media (max-width: 960px) {

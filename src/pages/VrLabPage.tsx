@@ -160,8 +160,10 @@ export function VrLabPage() {
     return 'vrLab.hint.dragAndPour'
   }, [busy, canFillFlask, canPourVat, selectedShelf?.content])
 
+  // data-app-night: VR-лаборатория задумана ночной в обеих темах (сцена одна и та же),
+  // поэтому страница — «ночной остров» с ночными токенами (src/theme/appTheme.css).
   return (
-    <div className={styles.wrap}>
+    <div className={styles.wrap} data-app-night="">
       <header className={styles.header}>
         <div>
           <Link className={styles.backLink} to={fromLearn ? '/learn' : '/'}>

@@ -381,8 +381,11 @@ export function OrganicLabPage() {
           </header>
 
           {mode === 'view' && displayMol ? (
+            // data-app-night: 3D-вьюпорт и его HUD задуманы тёмными в обеих темах
+            // (ночные токены — src/theme/appTheme.css); шапка и список уроков — по теме.
             <div
               className={styles.viewStage}
+              data-app-night=""
               style={{ ['--synth-glow' as string]: displayMol.accentColor ?? '#0a0c18' }}
             >
               <div className={styles.molChips} role="listbox" aria-label={t('organicLab.moleculesAria')}>
@@ -477,7 +480,7 @@ export function OrganicLabPage() {
           ) : null}
 
           {mode === 'build' && canBuild ? (
-            <div className={styles.buildStage}>
+            <div className={styles.buildStage} data-app-night="">
               <ResearchBuilderMode
                 key={`${lesson.id}-${buildInitialId ?? 'build'}`}
                 allowedChallengeIds={buildIds}
@@ -489,7 +492,7 @@ export function OrganicLabPage() {
           ) : null}
 
           {mode === 'equation' && canEquation ? (
-            <div className={styles.equationStage}>
+            <div className={styles.equationStage} data-app-night="">
               <ResearchEquationBuilder
                 key={lesson.id}
                 onMacro={() => {}}
@@ -501,7 +504,7 @@ export function OrganicLabPage() {
           ) : null}
 
           {mode === 'isomer' && canIsomer ? (
-            <div className={styles.equationStage}>
+            <div className={styles.equationStage} data-app-night="">
               <ResearchIsomersMode
                 key={lesson.id}
                 allowedChallengeIds={lesson.isomerChallengeIds}
@@ -511,7 +514,7 @@ export function OrganicLabPage() {
           ) : null}
 
           {mode === 'name' && canName && lesson.nomenclatureQuizId ? (
-            <div className={styles.equationStage}>
+            <div className={styles.equationStage} data-app-night="">
               <OrganicNomenclatureMode
                 key={lesson.id}
                 quizId={lesson.nomenclatureQuizId}
@@ -521,7 +524,7 @@ export function OrganicLabPage() {
           ) : null}
 
           {mode === 'equation' && !canEquation ? (
-            <p className={styles.emptyNote}>{t('organicLab.eqEmpty')}</p>
+            <p className={styles.emptyNote} data-app-night="">{t('organicLab.eqEmpty')}</p>
           ) : null}
         </div>
       </div>

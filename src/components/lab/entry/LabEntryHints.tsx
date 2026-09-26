@@ -41,29 +41,53 @@ const TITLE_TOP_PX = 78
 /** На телефоне полоса разделов стоит над канвасом — заголовку место у верхней кромки. */
 const TIGHT_TITLE_TOP_PX = 26
 
-const ACCENT: Record<
-  AppThemeId,
-  { title: string; equation: string; product: string; hint: string; hintBg: string; hintEdge: string; shadow: string }
-> = {
+/** Дополнительный зазор под уравнением, когда подписи стоят на плашках (светлая тема). */
+const PLATE_GAP_PX = 10
+
+type HintAccent = {
+  title: string
+  equation: string
+  product: string
+  hint: string
+  hintBg: string
+  hintEdge: string
+  shadow: string
+  /**
+   * Плашка под заголовком, уравнением и названием продукта. null — подписи прямо
+   * на небе (ночь: светлый текст на тёмном небе читается сам).
+   */
+  plate: { bg: string; edge: string; shadow: string } | null
+}
+
+const ACCENT: Record<AppThemeId, HintAccent> = {
   dark: {
     title: 'rgba(214, 228, 255, 0.92)',
-    equation: 'rgba(146, 176, 236, 0.86)',
+    // Было rgba(146, 176, 236, 0.86): при штатной приглушённости 0.7–0.8 формула
+    // на ночном небе давала 3.9:1 — чуть светлее и плотнее, ≥ 4.9:1.
+    equation: 'rgba(168, 194, 244, 0.92)',
     product: '#eaf3ff',
     hint: 'rgba(196, 216, 250, 0.9)',
     hintBg: 'rgba(10, 18, 42, 0.55)',
     hintEdge: 'rgba(120, 160, 240, 0.28)',
     shadow: '0 1px 14px rgba(2, 6, 20, 0.85)',
+    plate: null,
   },
-  // Светлая тема: фон сцены дневной, поэтому подписи ТЁМНЫЕ, а тень — светлая
-  // (ореол), иначе тонкие буквы на светлом расплываются.
+  // Светлая тема: небо сцены — холодный голубой СРЕДНЕЙ светлоты (так нужно белому
+  // водороду, см. labEntryPalette.ts), и ни тёмный, ни светлый текст прямо на нём
+  // не добирает 4.5:1 (было 3.1–3.9, у погашенной формулы 1.2). Поэтому подписи
+  // стоят на непрозрачных плашках, а цвета берутся из токенов темы — как у
+  // обычных блоков страницы (src/theme/appTheme.css).
   light: {
-    title: 'rgba(23, 34, 62, 0.94)',
-    equation: 'rgba(46, 66, 110, 0.88)',
-    product: '#111c38',
-    hint: 'rgba(28, 41, 72, 0.94)',
-    hintBg: 'rgba(255, 255, 255, 0.72)',
-    hintEdge: 'rgba(90, 124, 190, 0.34)',
-    shadow: '0 1px 12px rgba(236, 243, 255, 0.9)',
+    title: 'var(--lt-text)',
+    // Основной токен, а не --lt-text-2: погашенная (0.72) плашка с формулой иначе
+    // проседает до 3.7:1 на холодном небе.
+    equation: 'var(--lt-text)',
+    product: 'var(--lt-text)',
+    hint: 'var(--lt-text)',
+    hintBg: 'var(--lt-surface-solid)',
+    hintEdge: 'var(--lt-border-strong)',
+    shadow: 'none',
+    plate: { bg: 'var(--lt-surface-solid)', edge: 'var(--lt-border)', shadow: 'var(--lt-shadow-sm)' },
   },
 }
 
@@ -71,7 +95,16 @@ type Node = { el: HTMLDivElement; text: string; opacity: number }
 
 type HintNodes = { title: Node; equation: Node; product: Node; hint: Node }
 
-/** Тема меняет тон подписей и направление тени: на светлом фоне тень светлая. */
+/** Плашка под подписью (или её снятие — ночью подписи стоят прямо на небе). */
+function applyPlate(el: HTMLDivElement, plate: HintAccent['plate']): void {
+  el.style.background = plate ? plate.bg : 'transparent'
+  el.style.border = plate ? `1px solid ${plate.edge}` : 'none'
+  el.style.boxShadow = plate ? plate.shadow : 'none'
+  el.style.borderRadius = plate ? '999px' : '0'
+  el.style.padding = plate ? '4px 14px' : '0'
+}
+
+/** Тема меняет тон подписей, тень и плашки: днём подписи стоят на плашках. */
 function applyHintTheme(n: HintNodes, theme: AppThemeId): void {
   const a = ACCENT[theme]
   n.title.el.style.color = a.title
@@ -79,22 +112,26 @@ function applyHintTheme(n: HintNodes, theme: AppThemeId): void {
   n.equation.el.style.color = a.equation
   n.equation.el.style.textShadow = a.shadow
   n.product.el.style.color = a.product
-  n.product.el.style.textShadow =
-    theme === 'light' ? `0 0 16px rgba(255,255,255,0.95), ${a.shadow}` : `0 0 18px rgba(90,150,255,0.45), ${a.shadow}`
+  n.product.el.style.textShadow = a.plate ? 'none' : `0 0 18px rgba(90,150,255,0.45), ${a.shadow}`
+  applyPlate(n.title.el, a.plate)
+  applyPlate(n.equation.el, a.plate)
+  applyPlate(n.product.el, a.plate)
   n.hint.el.style.color = a.hint
   n.hint.el.style.background = a.hintBg
   n.hint.el.style.borderColor = a.hintEdge
 }
 
 /** Низ кадра делится с кнопкой ⊞: на телефоне чип встаёт над ней и переносится по словам. */
-function applyHintLayout(n: HintNodes, width: number): void {
+function applyHintLayout(n: HintNodes, width: number, theme: AppThemeId): void {
   const tight = width > 0 && width < FAB_WIDTH_PX
+  // Плашки добавляют подписям высоту — уравнение опускается, чтобы не прилипать к заголовку.
+  const gap = ACCENT[theme].plate ? PLATE_GAP_PX : 0
   // Заголовок на телефоне поднят к самому верху кадра: полоса разделов
   // (Неорганика | Органика | Синтез) там уходит НАД канвас, и место свободно.
   n.title.el.style.top = tight ? `${TIGHT_TITLE_TOP_PX}px` : `${TITLE_TOP_PX}px`
   n.equation.el.style.top = tight
-    ? `calc(${TIGHT_TITLE_TOP_PX}px + 2.05em)`
-    : `calc(${TITLE_TOP_PX}px + 2.1em)`
+    ? `calc(${TIGHT_TITLE_TOP_PX + gap}px + 2.05em)`
+    : `calc(${TITLE_TOP_PX + gap}px + 2.1em)`
   n.hint.el.style.bottom = tight ? `${FAB_CLEARANCE_PX}px` : '6%'
   n.hint.el.style.whiteSpace = tight ? 'normal' : 'nowrap'
   n.hint.el.style.maxWidth = tight ? 'calc(100% - 40px)' : 'calc(100% - 32px)'
@@ -175,7 +212,7 @@ export function LabEntryHints({ runtime, theme, compact, beltHoverRef }: LabEntr
     host.appendChild(layer)
     const created: HintNodes = { title, equation, product, hint }
     applyHintTheme(created, themeRef.current)
-    applyHintLayout(created, widthRef.current)
+    applyHintLayout(created, widthRef.current, themeRef.current)
     nodes.current = created
     return () => {
       nodes.current = null
@@ -190,8 +227,8 @@ export function LabEntryHints({ runtime, theme, compact, beltHoverRef }: LabEntr
 
   useEffect(() => {
     const n = nodes.current
-    if (n) applyHintLayout(n, width)
-  }, [width])
+    if (n) applyHintLayout(n, width, theme)
+  }, [width, theme])
 
   // Описание сцены для скринридера: обновляется только при смене локали.
   useEffect(() => {
@@ -252,12 +289,15 @@ export function LabEntryHints({ runtime, theme, compact, beltHoverRef }: LabEntr
     // без единой строки о том, что здесь происходит. Полоса разделов на узком
     // экране уходит над канвасом, так что место под ним свободно.
     setOpacity(n.title, intro * 0.95)
-    // Уравнение вверху гаснет, когда продукт уже назван внизу, — иначе две
-    // строки об одном и том же спорят друг с другом.
-    setOpacity(n.equation, intro * (made ? 0.24 : compact ? 0.7 : 0.8))
+    // Уравнение вверху чуть приглушается, когда продукт уже назван внизу, но
+    // остаётся читаемым: при 0.24 формула падала до 1.2–1.4:1 («еле видна»),
+    // при 0.72 — ≥ 4.5:1 в обеих темах.
+    setOpacity(n.equation, intro * (made ? 0.72 : compact ? 0.7 : 0.8))
     setOpacity(n.product, belt ? intro : intro * named)
     // Подсказка «задержите палец» разгорается, пока «магнит» работает.
-    setOpacity(n.hint, intro * (hovered ? 1 : made ? 0.88 : 0.66 + 0.32 * rt.boost))
+    // Днём нижний порог пульса выше (0.8): плашка на светлом небе при 0.66 давала 4.3:1.
+    const hintFloor = themeRef.current === 'light' ? 0.8 : 0.66
+    setOpacity(n.hint, intro * (hovered ? 1 : made ? 0.88 : hintFloor + (0.98 - hintFloor) * rt.boost))
   })
 
   return null

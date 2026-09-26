@@ -210,7 +210,13 @@
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  background: linear-gradient(120deg, var(--lt-title-a, #fff) 10%, var(--tone-a) 70%, var(--tone-b));
+  /* Днём пастельный тон плитки приглушается к чернилам (--lt-tone-keep), ночью идёт как есть. */
+  background: linear-gradient(
+    120deg,
+    var(--lt-title-a, #fff) 10%,
+    color-mix(in srgb, var(--tone-a) var(--lt-tone-keep, 100%), var(--lt-ink-1, #000)) 70%,
+    color-mix(in srgb, var(--tone-b) var(--lt-tone-keep, 100%), var(--lt-ink-1, #000))
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -497,7 +503,7 @@
 
 .resultsTotal {
   font-weight: 600;
-  color: var(--lt-text-mute);
+  color: var(--lt-text-3);
 }
 
 .scrollRow {

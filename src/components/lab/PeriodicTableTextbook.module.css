@@ -185,7 +185,8 @@
   min-height: 0;
   font-size: var(--lt-fs-xs);
   font-weight: 650;
-  color: var(--lt-text-mute);
+  /* Подписи осей 11 px: с --lt-text-mute было 3.2–3.6:1, с --lt-text-3 — ≥ 4.5:1. */
+  color: var(--lt-text-3);
 }
 
 .textbookPageFit .gridTextbook .subHeadGroup span {
@@ -223,12 +224,12 @@
 }
 
 .textbookPageFit .gridTextbook .axisRow {
-  color: var(--lt-text-mute);
+  color: var(--lt-text-3);
 }
 
 .textbookPageFit .gridTextbook .cornerPeriod,
 .textbookPageFit .gridTextbook .cornerRow {
-  color: var(--lt-text-mute);
+  color: var(--lt-text-3);
 }
 
 /* ——— Пустые места ——— */

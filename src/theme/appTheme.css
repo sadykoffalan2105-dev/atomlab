@@ -165,6 +165,33 @@ html[data-app-theme='light'] {
   --lt-ink-solid: #0b1020;
   --lt-on-tint: #16306b;
   --lt-eyebrow: #0b6a99;
+  /*
+   * Текст на бывших «ночных» подложках (они в светлой теме стали светлыми через
+   * --lt-ink-rgb / --lt-bg-core). В тёмной теме эти токены НЕ задаём: место пишет
+   * своё исходное ночное значение запасным, например
+   *   color: var(--lt-ink-2, rgba(180, 195, 230, 0.9));
+   * так ночь остаётся пиксель в пиксель прежней, а день получает цвет темы.
+   * Блоки, тёмные в обеих темах, сбрасывают их в initial (см. OrganicLabPage.module.css).
+   */
+  --lt-ink-1: #172033;
+  --lt-ink-2: #37425c;
+  --lt-ink-3: #56617c;
+  --lt-ink-teal: #0f766e;
+  --lt-ink-amber: #92400e;
+  --lt-ink-success: #166534;
+  --lt-ink-info: #075985;
+  --lt-ink-violet: #6d28d9;
+  --lt-ink-pink: #9d174d;
+  /* Доля «ночного» пастельного тона в цветном тексте днём: color-mix(тон var(--lt-tone-keep, 100%), чернила). */
+  --lt-tone-keep: 45%;
+  /*
+   * Подложка «ночного острова» (data-app-night, см. конец файла), который занимает
+   * всю страницу: ночью её роль играет фон оболочки, днём остров красит себя сам.
+   * В тёмной теме не задаём — там var(--lt-night-backdrop, transparent) прозрачен.
+   */
+  --lt-night-backdrop:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(91, 140, 255, 0.07), transparent 50%),
+    linear-gradient(180deg, #05060e 0%, #0a0c18 40%, #05060e 100%);
 
   /* Опорные точки градиентных заголовков (страницы хабов и каталога). */
   --lt-title-a: #101828;
@@ -209,4 +236,85 @@ html[data-app-theme='light'] {
 html[data-app-theme='light'],
 html[data-app-theme='light'] body {
   background-color: #eef2f9;
+}
+
+/*
+ * ═══ «Ночной остров» — блок, задуманный тёмным в ОБЕИХ темах ═══
+ *
+ * Ставится атрибутом data-app-night на корень блока (3D-вьюпорт органики,
+ * VR-лаборатория). Внутри действуют ночные токены, поэтому текст на жёстко
+ * тёмных подложках остаётся светлым и в светлой теме, а обычные блоки вокруг
+ * получают дневные значения. В тёмной теме значения те же, что и на <html>, —
+ * ночь не меняется ни на пиксель.
+ *
+ * Дневные «переходники» (--lt-ink-*, --lt-title-*, --lt-on-tint, --lt-eyebrow,
+ * --lt-bg-core) сбрасываются в initial: тогда var(--x, ночное) внутри острова
+ * берёт свой ночной запасной цвет — ровно как в тёмной теме.
+ */
+html[data-app-theme] [data-app-night] {
+  color-scheme: dark;
+
+  --lt-bg: #060913;
+  --lt-bg-deep: #03050c;
+  --lt-bg-glow-1: rgba(56, 189, 248, 0.14);
+  --lt-bg-glow-2: rgba(168, 85, 247, 0.14);
+  --lt-bg-glow-3: rgba(45, 212, 191, 0.1);
+  --lt-surface: rgba(18, 24, 44, 0.72);
+  --lt-surface-2: rgba(24, 32, 58, 0.78);
+  --lt-surface-3: rgba(34, 44, 76, 0.85);
+  --lt-surface-solid: #111830;
+  --lt-surface-hover: rgba(40, 52, 90, 0.85);
+  --lt-border: rgba(148, 170, 230, 0.14);
+  --lt-border-strong: rgba(148, 170, 230, 0.28);
+  --lt-blur: saturate(140%) blur(14px);
+
+  --lt-text: #e8edff;
+  --lt-text-2: #b6c0e0;
+  --lt-text-3: #8793b8;
+  --lt-text-mute: #5f6a8f;
+
+  --lt-primary: #5b8cff;
+  --lt-primary-2: #8b5cf6;
+  --lt-grad-primary: linear-gradient(135deg, #5b8cff 0%, #8b5cf6 55%, #d946ef 100%);
+  --lt-accent-teal: #2dd4bf;
+  --lt-accent-cyan: #22d3ee;
+  --lt-accent-amber: #fbbf24;
+  --lt-accent-pink: #f472b6;
+  --lt-success: #34d399;
+  --lt-warning: #fbbf24;
+  --lt-danger: #fb7185;
+  --lt-info: #38bdf8;
+
+  --lt-shadow-sm: 0 2px 10px rgba(2, 6, 23, 0.35);
+  --lt-shadow: 0 10px 30px -8px rgba(2, 6, 23, 0.6), 0 2px 8px rgba(2, 6, 23, 0.35);
+  --lt-shadow-lg: 0 24px 60px -18px rgba(2, 6, 23, 0.75);
+  --lt-glow-primary: 0 8px 28px -6px rgba(91, 140, 255, 0.55);
+  --lt-ring: 0 0 0 3px rgba(91, 140, 255, 0.45);
+
+  --app-shell-text: #e8ecff;
+  --app-chrome-bg: rgba(3, 6, 15, 0.5);
+  --app-chrome-border: rgba(148, 170, 230, 0.14);
+  --app-chrome-text: rgba(170, 184, 220, 0.85);
+  --app-chrome-text-strong: #ffffff;
+  --app-chrome-hover: rgba(148, 170, 230, 0.1);
+
+  --lt-ink-rgb: initial;
+  --lt-bg-core: initial;
+  --lt-ink-solid: initial;
+  --lt-on-tint: initial;
+  --lt-eyebrow: initial;
+  --lt-title-a: initial;
+  --lt-title-b: initial;
+  --lt-title-c: initial;
+  --lt-title-d: initial;
+  --lt-ink-1: initial;
+  --lt-ink-2: initial;
+  --lt-ink-3: initial;
+  --lt-ink-teal: initial;
+  --lt-ink-amber: initial;
+  --lt-ink-success: initial;
+  --lt-ink-info: initial;
+  --lt-ink-violet: initial;
+  --lt-ink-pink: initial;
+  --lt-tone-keep: initial;
 }
