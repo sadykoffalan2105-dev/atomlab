@@ -596,6 +596,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'learn.talk.sub': 'Sinfni tanlang — o‘qituvchi sizning darsligingizga tayanadi. Ovoz bilan gaplashish uchun «Onlayn suhbatni boshlash» tugmasini bosing yoki savolni matn bilan yozing.',
   'learn.talk.grade': 'Sinf',
   'learn.talk.back': 'O‘qishga qaytish',
+  'learn.talk.status': 'Onlayn · ovoz va matn',
   'learn.hubUi.gradesTitle': 'Sinfni tanlang',
   'learn.hubUi.open': 'Ochish',
   'learn.hubUi.resumeEyebrow': "Shu yerda to'xtagan edingiz",

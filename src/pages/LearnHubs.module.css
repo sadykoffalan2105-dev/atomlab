@@ -547,6 +547,107 @@
   box-shadow: 0 10px 28px -10px rgba(255, 255, 255, 0.55);
 }
 
+/*
+ * Карточка «Разговор с ИИ-учителем» — модификатор .vrBanner: «экран ИИ» с точечной сеткой,
+ * свечением ядра и статусом «онлайн». Тёмная в обеих темах намеренно — поэтому текст в ней
+ * жёстко светлый (как и у .vrBanner), а не var(--lt-text).
+ */
+.aiBanner {
+  border-color: rgba(103, 232, 249, 0.3);
+  background:
+    radial-gradient(55% 75% at 78% 36%, rgba(34, 211, 238, 0.3), transparent 62%),
+    radial-gradient(70% 90% at 0% 100%, rgba(124, 58, 237, 0.5), transparent 64%),
+    radial-gradient(50% 60% at 100% 100%, rgba(236, 72, 153, 0.2), transparent 70%),
+    linear-gradient(150deg, #06132a 0%, #0c1640 52%, #190f45 100%);
+}
+
+/* Точечная «сетка данных» под иллюстрацией, гаснет к краям. */
+.aiBanner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  background-image: radial-gradient(rgba(165, 205, 255, 0.26) 1px, transparent 1.4px);
+  background-size: 16px 16px;
+  -webkit-mask-image: radial-gradient(70% 85% at 74% 38%, #000 0%, transparent 78%);
+  mask-image: radial-gradient(70% 85% at 74% 38%, #000 0%, transparent 78%);
+}
+
+.aiBanner:hover {
+  border-color: rgba(165, 243, 252, 0.6);
+  box-shadow: var(--lt-shadow-lg), 0 18px 54px -18px rgba(139, 92, 246, 0.65);
+}
+
+/* Иллюстрация ИИ крупнее колбы VR: ядро — главный акцент карточки. */
+.aiArt {
+  top: -14px;
+  right: -6px;
+  width: min(66%, 372px);
+}
+
+.aiBanner:hover .aiArt {
+  transform: translateY(-3px) scale(1.02);
+}
+
+.aiBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.aiBadge {
+  border-color: rgba(165, 243, 252, 0.5);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.42), rgba(139, 92, 246, 0.5));
+  box-shadow:
+    0 0 0 4px rgba(34, 211, 238, 0.1),
+    0 8px 24px -8px rgba(34, 211, 238, 0.75);
+  color: #fff;
+}
+
+.aiStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 4px 12px 4px 10px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(6, 12, 30, 0.5);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  font-size: var(--lt-fs-xs);
+  font-weight: 650;
+  line-height: 1.2;
+  color: #e0f2fe;
+  white-space: nowrap;
+}
+
+.aiStatusDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  animation: aiOnline 2.2s ease-out infinite;
+}
+
+@keyframes aiOnline {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px rgba(52, 211, 153, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aiStatusDot {
+    animation: none;
+  }
+}
+
 /* Быстрый старт */
 
 .quickGrid {
@@ -1660,6 +1761,21 @@
     margin: 0 auto;
   }
 
+  /* ИИ-карточка: под ядром ещё звуковая волна — текст начинаем ниже неё. */
+  .aiBanner {
+    padding-top: 184px;
+  }
+
+  .aiArt {
+    top: -12px;
+    right: 0;
+    width: min(84%, 290px);
+  }
+
+  .aiBanner .vrBody {
+    max-width: 100%;
+  }
+
   .bandChapter .gradeBadge {
     grid-row: span 2;
   }
@@ -1868,7 +1984,8 @@
   }
 
   .gradeCard:hover .gradeGlyph,
-  .vrBanner:hover .vrArt {
+  .vrBanner:hover .vrArt,
+  .aiBanner:hover .aiArt {
     transform: none;
   }
 }
