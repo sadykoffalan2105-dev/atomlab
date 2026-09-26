@@ -34,6 +34,13 @@ const TYPE_KEYS: Record<string, MessageKey> = {
   combustion: 'learn.book.rx.type.combustion',
   hydrolysis: 'learn.book.rx.type.hydrolysis',
   polymerization: 'learn.book.rx.type.polymerization',
+  // органические типы § 1.6 учебника 10 класса
+  addition: 'learn.book.rx.type.addition',
+  elimination: 'learn.book.rx.type.elimination',
+  isomerization: 'learn.book.rx.type.isomerization',
+  condensation: 'learn.book.rx.type.condensation',
+  polycondensation: 'learn.book.rx.type.polycondensation',
+  radical: 'learn.book.rx.type.radical',
 }
 
 export function reactionTypeKey(type: string): MessageKey {

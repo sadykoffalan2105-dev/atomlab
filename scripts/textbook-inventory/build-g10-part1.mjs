@@ -25,7 +25,7 @@ const deUni = (s) => s.replace(/[₀-₉ₙ]/g, (c) => SUBD[c]).replace(/⁺/g, 
 function parseFormula(f0) {
   let f = deUni(f0).trim().replace(/[↑↓]/g, '');
   f = f.replace(/\d*[+-]$/, (m) => (/^[A-Z][a-z]?\d*[+-]$/.test(f) ? '' : m)); // ion charge like Hg2+
-  f = f.replace(/\*/g, '');
+  f = f.replace(/[*•]/g, ''); // radical dot (Cl•, R•) and old «*» notation
   f = f.replace(/[-–—=≡]/g, '').replace(/\s+/g, '');
   const parts = f.split(/[·]/);
   const total = {};
@@ -164,7 +164,9 @@ for (const b of cat.bank) {
 // ---------- build ----------
 const KINDS = new Set(['simple', 'oxide', 'acid', 'base', 'salt', 'organic', 'other']);
 const ROLES = new Set(['studied', 'obtained', 'reagent', 'mentioned']);
-const TYPES = new Set(['combination', 'decomposition', 'substitution', 'exchange', 'redox', 'neutralization', 'combustion', 'hydrolysis', 'polymerization', 'other']);
+const TYPES = new Set(['combination', 'decomposition', 'substitution', 'exchange', 'redox', 'neutralization', 'combustion', 'hydrolysis', 'polymerization', 'other',
+  // organic reaction types as in § 1.6 of the book
+  'addition', 'elimination', 'isomerization', 'condensation', 'polycondensation', 'radical']);
 const clampQuote = (q, where) => { if (q && q.length > 160) { warn(`quote >160 (${q.length}) at ${where}`); return q.slice(0, 157) + '...'; } return q; };
 
 const N = secList.length;
@@ -202,7 +204,7 @@ for (let i = 0; i < half; i++) {
     if (!TYPES.has(type)) warn('bad type ' + where);
     if (page < pageStart || page > pageEnd) warn(`page ${page} outside ${pageStart}-${pageEnd} ${where}`);
     const parsed = parseEquation(equation);
-    const general = !!o.general || [...parsed.reactants, ...parsed.products].some((x) => /^R|R-|-R|R\*|Cn/.test(x.formula));
+    const general = !!o.general || [...parsed.reactants, ...parsed.products].some((x) => /^R|R-|-R|R[*•]|Cn/.test(x.formula));
     const rec = {
       equationAsInBook: asInBook,
       equation,
@@ -229,6 +231,20 @@ for (let i = 0; i < half; i++) {
     }
     if (o.described) rec.describedInTextOnly = true;
     if (o.note) rec.note = o.note;
+    // catalog card: explanation shown to the student; a general scheme kept as a card; a concrete example (R = CH3)
+    // of a scheme — only to pick the organic lab lesson (build-book-reader.mts)
+    if (o.show) rec.catalogNote = o.show;
+    if (o.catalog) {
+      if (!general) warn('catalog:true on a non-scheme ' + where);
+      rec.showInCatalog = true;
+    }
+    if (o.labAs) {
+      try {
+        const b = balanceOf(parseEquation(o.labAs));
+        if (!b.ok) warn(`UNBALANCED labAs ${where} ${b.diff.join(',')}`);
+      } catch (e) { warn('labAs parse ' + where + ': ' + e.message); }
+      rec.labExample = o.labAs;
+    }
     return rec;
   });
   const labWorks = d.labs.map(([title, page, subs]) => ({ title, page, substances: subs }));

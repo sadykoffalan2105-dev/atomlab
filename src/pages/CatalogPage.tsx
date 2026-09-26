@@ -16,6 +16,7 @@ import {
   gradeToReaderId,
   labHrefWithSrc,
   normalizeFormulaQuery,
+  ORGANIC_REACTION_TYPES,
   paginateUnits,
   parseGradeParam,
   REACTION_TYPE_ORDER,
@@ -110,6 +111,12 @@ const REACTION_TYPE_TONE: Record<string, string> = {
   redox: '#fbbf24',
   hydrolysis: '#60a5fa',
   polymerization: '#c084fc',
+  addition: '#22d3ee',
+  elimination: '#fb923c',
+  isomerization: '#e879f9',
+  condensation: '#a3e635',
+  polycondensation: '#818cf8',
+  radical: '#facc15',
   other: '#94a3b8',
 }
 
@@ -117,6 +124,7 @@ const KNOWN_TYPES = new Set(REACTION_TYPE_ORDER)
 const KNOWN_REASONS = new Set([
   'ionic',
   'scheme',
+  'generalFormula',
   'unknownSubstance',
   'organic',
   'noCompoundProduct',
@@ -457,6 +465,12 @@ const TextbookReactionRow = memo(function TextbookReactionRow({
       {r.conditions ? (
         <p className={styles.rxMeta}>
           <span className={styles.rxMetaLabel}>{t('learn.book.rx.conditions')}:</span> {r.conditions}
+        </p>
+      ) : null}
+
+      {r.note ? (
+        <p className={styles.rxMeta}>
+          <span className={styles.rxMetaLabel}>{t('learn.book.rx.note')}:</span> {r.note}
         </p>
       ) : null}
 
@@ -1071,6 +1085,8 @@ export function CatalogPage() {
                     </button>
                     {REACTION_TYPE_ORDER.map((type) => {
                       const n = reactionTypeCounts.get(type) ?? 0
+                      // органические типы § 1.6 — только там, где такие реакции есть (иначе 6 пустых чипов в 7–9 классах)
+                      if (n === 0 && reactionType !== type && ORGANIC_REACTION_TYPES.has(type)) return null
                       const tone = REACTION_TYPE_TONE[type] ?? REACTION_TYPE_TONE.other!
                       return (
                         <button

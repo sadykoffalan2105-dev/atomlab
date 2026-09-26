@@ -42,6 +42,11 @@ export type ReaderReaction = {
   isGeneralScheme: boolean
   bankId: string | null
   lab: ReaderLab
+  /**
+   * Пояснение к карточке (по-русски, как и conditions): названия веществ из учебника с IUPAC-вариантом,
+   * исправленная опечатка учебника, «пример R = CH₃» к общей схеме. Нет — пояснения нет.
+   */
+  note?: string
 }
 
 /**

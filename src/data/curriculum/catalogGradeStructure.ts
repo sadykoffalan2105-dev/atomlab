@@ -120,8 +120,25 @@ export const REACTION_TYPE_ORDER: readonly string[] = [
   'redox',
   'hydrolysis',
   'polymerization',
+  // органические типы § 1.6 (10 класс); чип без реакций в выбранном классе скрыт — см. ORGANIC_REACTION_TYPES
+  'addition',
+  'elimination',
+  'isomerization',
+  'condensation',
+  'polycondensation',
+  'radical',
   'other',
 ]
+
+/** Типы органических реакций (§ 1.6 учебника 10 класса): в фильтре каталога показываются, только если такие реакции есть. */
+export const ORGANIC_REACTION_TYPES: ReadonlySet<string> = new Set([
+  'addition',
+  'elimination',
+  'isomerization',
+  'condensation',
+  'polycondensation',
+  'radical',
+])
 
 /** Первые юниты, пока не наберётся limit реакций (юнит не режется); юнит с индексом mustInclude входит всегда. */
 export function paginateUnits(units: readonly FilteredUnit[], limit: number, mustInclude = -1): FilteredUnit[] {
