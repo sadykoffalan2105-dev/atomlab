@@ -1156,7 +1156,8 @@ function condensedAscii(r: InvReaction): string | null {
   return `${l} ${reversible ? '<=>' : '->'} ${p}`
 }
 
-function prepareReactions(list: InvReaction[]): InvRx[] {
+/** perPage (10 класс): то же уравнение на другой странице параграфа — своя карточка (с. 66 и с. 67 — полибутадиен). */
+function prepareReactions(list: InvReaction[], perPage = false): InvRx[] {
   const out: InvRx[] = []
   const seen = new Set<string>()
   for (const r of list) {
@@ -1170,8 +1171,9 @@ function prepareReactions(list: InvReaction[]): InvRx[] {
       .replace(/→\(\s*\)/g, '→')
       .replace(/\s{2,}/g, ' ')
     const key = fullKey(ascii)
-    if (!key || seen.has(key)) continue
-    seen.add(key)
+    const seenKey = perPage ? `${r.page ?? r.pages?.[0] ?? ''}|${key}` : key
+    if (!key || seen.has(seenKey)) continue
+    seen.add(seenKey)
     const texts = (chain ? [r.equationAsInBook] : [r.equationAsInBook, r.equation, r.equationUnicode, r.equationAscii, ascii]).filter(
       (s): s is string => typeof s === 'string' && /[A-Za-z]/.test(s) && /=|→|->|⇄|⇌/.test(s),
     )
@@ -1577,7 +1579,7 @@ const SHOWN_SCHEMES = new WeakSet<ReaderReaction>()
 function buildUnit(grade: Grade, sec: InvSection, draft: DraftBlock[], stats: GradeStats): FullUnit {
   const unitId = unitIdFor(grade, sec)
   const { chapterId, chapterTitle } = unitChapter(grade, sec)
-  const reactionsInv = prepareReactions(sec.reactions ?? [])
+  const reactionsInv = prepareReactions(sec.reactions ?? [], grade === 10)
   const reactions: ReaderReaction[] = reactionsInv.map((r, i) => {
     const id = `r${i + 1}`
     const lab = labFor(grade, unitId, sec.pageStart ?? null, r, id)
@@ -1961,10 +1963,14 @@ for (const grade of GRADES) {
     if (r.exercise && !r.asInBook) return false
     const body = r.equation.replace(/\([^)]*\)/g, ' ').replace(/\[[^\]]*\]/g, ' ')
     if (/[А-Яа-яЁё]{3,}/.test(body)) return false
-    const m = body.split(/→|⇄|⇌|=|->/)
+    // 10 класс: сторона-полимер «(–CH₂–CH₂–)ₙ» — формула, а не слова: скобки убираются, только если в них кириллица
+    const sides = grade === 10 ? r.equation.replace(/\([^)]*[А-Яа-яЁё][^)]*\)/g, ' ') : body
+    const m = sides.split(/→|⇄|⇌|=|->/)
     if (m.length < 2 || !formulaSide.test(m[0]!) || !formulaSide.test(m[m.length - 1]!)) return false
     if (/не идёт|не идет|\?/.test(r.equation)) return false
-    const k = r.equationAscii.replace(/\s+/g, '').toLowerCase()
+    // 10 класс: то же уравнение на другой странице — своя карточка этой страницы (как в 7–9 классах);
+    // остальные классы — одна карточка на класс
+    const k = (grade === 10 ? `${r.page}|` : '') + r.equationAscii.replace(/\s+/g, '').toLowerCase()
     if (seenEq.has(k)) return false
     seenEq.add(k)
     return true
