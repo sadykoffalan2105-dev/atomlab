@@ -3,7 +3,7 @@
  * Без адреса платформы страница пишет «Платформа школ пока не подключена» и ничего не отправляет.
  */
 import { useCallback, useId, useState, useSyncExternalStore, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useT, type MessageKey } from '../i18n/useT'
 import { readAdminConfig } from '../admin/deviceAgentHost'
 import { classLogin } from '../admin/schoolLogin'
@@ -29,7 +29,9 @@ export function SchoolLoginPage() {
   const session = useSyncExternalStore(subscribeSchoolSession, sessionSnapshot, sessionSnapshot)
   const loginId = useId()
   const passId = useId()
-  const [login, setLogin] = useState('')
+  // Карточка с QR из консоли ATOMLAB Admin открывает #/school-login?login=… — логин подставляется сам.
+  const [searchParams] = useSearchParams()
+  const [login, setLogin] = useState(() => (searchParams.get('login') ?? '').trim().slice(0, 64))
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<{ code: ClassLoginErrorCode; opensAt?: string | null } | null>(null)
