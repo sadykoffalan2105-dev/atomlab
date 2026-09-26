@@ -1969,8 +1969,9 @@ for (const grade of GRADES) {
     if (m.length < 2 || !formulaSide.test(m[0]!) || !formulaSide.test(m[m.length - 1]!)) return false
     if (/не идёт|не идет|\?/.test(r.equation)) return false
     // 10 класс: то же уравнение на другой странице — своя карточка этой страницы (как в 7–9 классах);
-    // остальные классы — одна карточка на класс
-    const k = (grade === 10 ? `${r.page}|` : '') + r.equationAscii.replace(/\s+/g, '').toLowerCase()
+    // 11 класс — только у карточки со своим пояснением (исправленная опечатка страницы, с. 126); остальные — одна на класс
+    const perPage = grade === 10 || (grade === 11 && !!r.note)
+    const k = (perPage ? `${r.page}|` : '') + r.equationAscii.replace(/\s+/g, '').toLowerCase()
     if (seenEq.has(k)) return false
     seenEq.add(k)
     return true
