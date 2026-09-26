@@ -1,4 +1,5 @@
 /** Учебные уравнения 10–11 классов (Kimyo) — для конструктора в 3D-студии. */
+import { G10_CH2_EQUATIONS } from './g10EquationsCh2'
 
 export type GradeEq = {
   id: string
@@ -1196,6 +1197,7 @@ export const G10_G11_EDU_EQUATIONS: readonly GradeEq[] = [
     displayRu: 'Ba²⁺ + SO₄²⁻ → BaSO₄↓',
     hintRu: 'Качественная реакция на сульфат.',
   }),
+  ...G10_CH2_EQUATIONS, // Kimyo 10, гл. II § 2.6–2.24 (с. 55–102) — g10EquationsCh2.ts
 ]
 
 export function equationsByGrade(grade: 'g10' | 'g11' | 'all'): GradeEq[] {
