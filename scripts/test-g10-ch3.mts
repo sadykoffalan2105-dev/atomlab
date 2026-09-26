@@ -352,6 +352,38 @@ const SPEC: Record<string, Expect> = {
   propyne: { f: 'C3H4' },
   '2-2-dichloropropane': { f: 'C3H6Cl2' },
   'acetic-acid': { f: 'C2H4O2' },
+  // § 3.12–3.13 (с. 140–142)
+  'butanoic-acid': { f: 'C4H8O2', chain: 4, name: /бутановая/ },
+  'pentanoic-acid': { f: 'C5H10O2', chain: 5, name: /пентановая/ },
+  'hexanoic-acid': { f: 'C6H12O2', chain: 6, name: /гексановая/ },
+  'palmitic-acid': { f: 'C16H32O2', chain: 16, name: /гексадекановая/ },
+  'margaric-acid': { f: 'C17H34O2', chain: 17 },
+  'stearic-acid': { f: 'C18H36O2', chain: 18, name: /октадекановая/ },
+  '2-methylbutanoic-acid': { f: 'C5H10O2', chain: 4 },
+  'chloroacetic-acid': { f: 'C2H3ClO2', name: /Хлоруксусная[\s\S]*хлорическая/ },
+  'dichloroacetic-acid': { f: 'C2H2Cl2O2', name: /Дихлоруксусная[\s\S]*дихлорическая/ },
+  'trichloroacetic-acid': { f: 'C2HCl3O2', name: /Трихлоруксусная[\s\S]*трихлорическая/ },
+  // § 3.14–3.15 (с. 146–149)
+  'methyl-formate': { f: 'C2H4O2' },
+  'ethyl-formate': { f: 'C3H6O2' },
+  'methyl-acetate': { f: 'C3H6O2' },
+  'methyl-propionate': { f: 'C4H8O2' },
+  'butyl-acetate': { f: 'C6H12O2' },
+  'butyl-propionate': { f: 'C7H14O2', name: /H₃C₂–C₂H–C\(O\)–O–C₄H₉/ },
+  'ethyl-isobutyrate': { f: 'C6H12O2', name: /этил-2-метилпропаноат/ },
+  'ethyl-butyrate': { f: 'C6H12O2', name: /CH₃–CH₂–C\(O\)–O–CH₂–CH₂»/ },
+  'propyl-propionate': { f: 'C6H12O2', name: /пропилпропонат/ },
+  'isopropyl-propionate': { f: 'C6H12O2', name: /пропан-2-илпропаноат/ },
+  'isoamyl-acetate': { f: 'C7H14O2', name: /3-метилбутилэтаноат/ },
+  'pentyl-formate': { f: 'C6H12O2', name: /пентилметионат/ },
+  // § 3.16–3.17 (с. 152–155)
+  'palmitoleic-acid': { f: 'C16H30O2', chain: 16 },
+  'oleic-acid': { f: 'C18H34O2', chain: 18 },
+  'linoleic-acid': { f: 'C18H32O2', chain: 18 },
+  'linolenic-acid': { f: 'C18H30O2', chain: 18 },
+  tristearin: { f: 'C57H110O6' },
+  tripalmitin: { f: 'C51H98O6' },
+  triolein: { f: 'C57H104O6' },
 }
 
 const ownIds = new Set(G10_CH3_BUILD_CHALLENGES.map((c) => c.id))
@@ -445,7 +477,7 @@ function checkBalance(eq: GradeEq): void {
 }
 
 // ── 3. Уроки ─────────────────────────────────────────────
-const LESSONS = ['alcohols', 'polyols', 'phenols', 'ethers', 'aldehydes', 'ketones']
+const LESSONS = ['alcohols', 'polyols', 'phenols', 'ethers', 'aldehydes', 'ketones', 'acids', 'esters', 'fats']
 const isoById = new Map(ISOMER_CHALLENGES.map((x) => [x.id, x]))
 const usedEq = new Set<string>()
 for (const lid of LESSONS) {
@@ -551,6 +583,9 @@ const FIXES: Record<string, { hint: RegExp; notLeft?: string; notRight?: string 
   'g10c3-oxonium': { hint: /не реагирует/ },
   'g10c3-cuoh-cu2o': { hint: /«в красную медь Cu₂O»[\s\S]*оксид меди\(I\)/ },
   'g10c3-phenol-formaldehyde': { hint: /нет коэффициента n/ },
+  'g10c3-fat-acid-hydrolysis': { hint: /«\+ R–COOH» без коэффициента 3/ },
+  'g10c3-berthelot': { hint: /«3H₃₃C₁₇–COOH»/, notLeft: '3H₃₃C₁₇–COOH' },
+  'g10c3-acetic-cl2': { hint: /хлорическая/ },
 }
 for (const [eid, fx] of Object.entries(FIXES)) {
   checks += 1
