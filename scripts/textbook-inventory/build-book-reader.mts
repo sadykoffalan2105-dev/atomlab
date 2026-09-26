@@ -1286,7 +1286,8 @@ const speciesCore = (term: string | null | undefined) =>
     .replace(/^(?:\d+n|\d+|n)(?=[A-Z(\[])/, '')
     .replace(/^[•·∙*]+|[•·∙*]+$/g, '')
     .replace(/\)n$/, ')')
-    .replace(/[-=≡↑↓]/g, '')
+    // связи в уравнениях уроков пишутся и дефисом, и тире (CH₃–CH₂Cl): иначе формула не распознаётся
+    .replace(/[-‐‑–—=≡↑↓]/g, '')
     .trim()
 
 /** Composition key of an organic species ("CH3COOH", "C₂H₅OH"); null for inorganic carbon (NaHCO₃, KCN) and the rest. */
@@ -1321,6 +1322,24 @@ const ORGANIC_LESSON_EQS: OrganicEq[] = ORGANIC_CURRICULUM.flatMap((lesson) =>
  * Organic lab lesson whose equation mode fits the reaction: the same equation, otherwise the most shared organic
  * substances (at least one). null — no lesson practises these substances (no link then, only the reason).
  */
+/**
+ * Урок, где ровно это уравнение уже есть в режиме уравнения (обе стороны по составу), — даже без органики
+ * в карточке: «Cl₂ → Cl• + Cl•» (с. 28) ведёт в «Типы реакций», а не по примеру схемы в «Алканы».
+ */
+function exactLessonHref(r: InvReaction, src: string): string | null {
+  const keys = (list: InvSpecies[] | undefined) =>
+    new Set((list ?? []).map((s) => {
+      const c = parseFormula(speciesCore(s.formula))?.counts
+      return c ? formulaCompositionKey(c) : null
+    }).filter((k): k is string => !!k))
+  const left = keys(r.reactants)
+  const right = keys(r.products)
+  if (!left.size || !right.size) return null
+  const same = (a: Set<string>, b: Set<string>) => a.size === b.size && [...a].every((k) => b.has(k))
+  const hit = ORGANIC_LESSON_EQS.find((e) => same(left, e.left) && same(right, e.right))
+  return hit ? `/organic?${new URLSearchParams({ lesson: hit.lessonId, mode: 'equation', src }).toString()}` : null
+}
+
 function organicAltHref(r: InvReaction, src: string): string | null {
   const keys = (list: InvSpecies[] | undefined) =>
     new Set((list ?? []).map((s) => {
@@ -1371,7 +1390,7 @@ function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx
   // organic reaction reads «organic» (structural formulas «CH₂=CH₂» fail the parser as a scheme). An organic lab
   // lesson is offered only when it practises these substances.
   const failWith = (code: string): ReaderLab => {
-    const alt = organic && code !== 'ionic' ? organicAltHref(probe, src) : null
+    const alt = code !== 'ionic' ? (exactLessonHref(r, src) ?? (organic ? organicAltHref(probe, src) : null)) : null
     // «(C₆H₇O₂(OH)₃)n + …» without a lesson keeps its «n — general formula» explanation
     const reason = organic && code !== 'ionic' && !r.isGeneralScheme && (alt || code !== 'generalFormula') ? 'organic' : code
     return alt ? { ok: false, reason, altHref: alt } : { ok: false, reason }
