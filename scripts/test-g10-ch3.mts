@@ -384,6 +384,23 @@ const SPEC: Record<string, Expect> = {
   tristearin: { f: 'C57H110O6' },
   tripalmitin: { f: 'C51H98O6' },
   triolein: { f: 'C57H104O6' },
+  // § 3.18–3.21 (с. 156–167)
+  'glucose-open': { f: 'C6H12O6', chain: 6 },
+  'fructose-open': { f: 'C6H12O6', chain: 6 },
+  ribose: { f: 'C5H10O5', chain: 5 },
+  glyceraldehyde: { f: 'C3H6O3', name: /глицериновый альдегид[\s\S]*«альдегид D-глицерина»/i },
+  dihydroxyacetone: { f: 'C3H6O3', name: /диоксиацетон/ },
+  'alpha-glucopyranose': { f: 'C6H12O6', heavyRing: 6 },
+  fructofuranose: { f: 'C6H12O6', heavyRing: 5 },
+  'methyl-glucoside': { f: 'C7H14O6', heavyRing: 6 },
+  'glucose-pentaacetate': { f: 'C16H22O11', heavyRing: 6 },
+  'gluconic-acid': { f: 'C6H12O7', chain: 6 },
+  'sucrose-structure': { f: 'C12H22O11', heavyRing: 6 },
+  maltose: { f: 'C12H22O11', heavyRing: 6 },
+  lactose: { f: 'C12H22O11', heavyRing: 6 },
+  'amylose-fragment': { f: 'C18H32O16', heavyRing: 6 },
+  'amylopectin-fragment': { f: 'C18H32O16', heavyRing: 6 },
+  'cellulose-fragment': { f: 'C18H32O16', heavyRing: 6 },
 }
 
 const ownIds = new Set(G10_CH3_BUILD_CHALLENGES.map((c) => c.id))
@@ -477,7 +494,19 @@ function checkBalance(eq: GradeEq): void {
 }
 
 // ── 3. Уроки ─────────────────────────────────────────────
-const LESSONS = ['alcohols', 'polyols', 'phenols', 'ethers', 'aldehydes', 'ketones', 'acids', 'esters', 'fats']
+const LESSONS = [
+  'alcohols',
+  'polyols',
+  'phenols',
+  'ethers',
+  'aldehydes',
+  'ketones',
+  'acids',
+  'esters',
+  'fats',
+  'carbohydrates',
+  'disaccharides',
+]
 const isoById = new Map(ISOMER_CHALLENGES.map((x) => [x.id, x]))
 const usedEq = new Set<string>()
 for (const lid of LESSONS) {
@@ -586,6 +615,10 @@ const FIXES: Record<string, { hint: RegExp; notLeft?: string; notRight?: string 
   'g10c3-fat-acid-hydrolysis': { hint: /«\+ R–COOH» без коэффициента 3/ },
   'g10c3-berthelot': { hint: /«3H₃₃C₁₇–COOH»/, notLeft: '3H₃₃C₁₇–COOH' },
   'g10c3-acetic-cl2': { hint: /хлорическая/ },
+  'g10c3-glucose-acetylation': { hint: /нет 5H₂O/ },
+  'g10c3-glucose-cuoh2-blue': { hint: /«раствор становится ярко-коричневым»[\s\S]*ярко-синий/ },
+  'g10c3-starch-to-maltose': { hint: /n\/2/ },
+  'g10c3-grape-juice-cuoh2': { hint: /жёлтый осадок — CuOH, красный — Cu₂O, а CuO чёрный/ },
 }
 for (const [eid, fx] of Object.entries(FIXES)) {
   checks += 1
