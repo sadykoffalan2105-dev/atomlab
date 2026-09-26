@@ -717,13 +717,59 @@ export function relaxOrganicGeometry(graph: OrganicGraph, maxIterations = 320): 
   const cx = ci.reduce((s, i) => s + P[i]![0]!, 0) / ci.length
   const cy = ci.reduce((s, i) => s + P[i]![1]!, 0) / ci.length
   const cz = ci.reduce((s, i) => s + P[i]![2]!, 0) / ci.length
+  const C = P.map((p) => [p[0]! - cx, p[1]! - cy, p[2]! - cz] as Vec3)
+  const [e1, e2, e3] = principalAxes(ci.map((i) => C[i]!))
+  // длинная ось молекулы — вдоль экрана (x), вторая — вверх (y); плоскость чуть наклонена к камере,
+  // чтобы кольца и «кресло» читались в перспективе, а цепи не уходили под HUD по диагонали
+  const tilt = (25 * Math.PI) / 180
+  const ct = Math.cos(tilt)
+  const st = Math.sin(tilt)
   return {
     ...graph,
-    atoms: graph.atoms.map((a, i) => ({
-      ...a,
-      pos: [P[i]![0]! - cx, P[i]![1]! - cy, P[i]![2]! - cz] as Vec3,
-    })),
+    atoms: graph.atoms.map((a, i) => {
+      const p = C[i]!
+      const x = vecDot(p, e1)
+      const y = vecDot(p, e2)
+      const z = vecDot(p, e3)
+      return { ...a, pos: [x, y * ct - z * st, y * st + z * ct] as Vec3 }
+    }),
   }
+}
+
+/** Главные оси облака точек (по убыванию разброса), правая тройка. */
+function principalAxes(points: readonly Vec3[]): [Vec3, Vec3, Vec3] {
+  const m = [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+  ]
+  for (const p of points) for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) m[r]![c]! += p[r]! * p[c]!
+  const mul = (v: Vec3): Vec3 => [
+    m[0]![0]! * v[0] + m[0]![1]! * v[1] + m[0]![2]! * v[2],
+    m[1]![0]! * v[0] + m[1]![1]! * v[1] + m[1]![2]! * v[2],
+    m[2]![0]! * v[0] + m[2]![1]! * v[1] + m[2]![2]! * v[2],
+  ]
+  const power = (seed: Vec3, ortho: Vec3[]): Vec3 => {
+    let v = seed
+    for (let k = 0; k < 60; k++) {
+      let w = mul(v)
+      for (const o of ortho) w = vecSub(w, vecScale(o, vecDot(w, o)))
+      if (vecLen(w) < 1e-9) break
+      v = vecNorm(w)
+    }
+    for (const o of ortho) v = vecSub(v, vecScale(o, vecDot(v, o)))
+    return vecLen(v) < 1e-6 ? seed : vecNorm(v)
+  }
+  const e1 = power(vecNorm([1, 0.31, 0.17]), [])
+  let seed2: Vec3 = Math.abs(e1[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]
+  seed2 = vecNorm(vecSub(seed2, vecScale(e1, vecDot(seed2, e1))))
+  const e2 = power(seed2, [e1])
+  const e3: Vec3 = [
+    e1[1] * e2[2] - e1[2] * e2[1],
+    e1[2] * e2[0] - e1[0] * e2[2],
+    e1[0] * e2[1] - e1[1] * e2[0],
+  ]
+  return [e1, e2, e3]
 }
 
 export type { OrganicAtom }
