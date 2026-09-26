@@ -68,6 +68,43 @@ function FunctionalGroupOverlays({ mol }: { mol: OrganicMoleculeDef }) {
   )
 }
 
+const DEGREE_LABEL = ['', 'I', 'II', 'III', 'IV'] as const
+
+/** Тип атома C по числу соседних C: I — первичный … IV — четвертичный (учебник, с. 44). */
+function CarbonDegreeTags({ mol }: { mol: OrganicMoleculeDef }) {
+  const { t } = useT()
+  const carbons = mol.graph.atoms.filter((a) => a.element === 'C')
+  const els = new Map(mol.graph.atoms.map((a) => [a.id, a.element]))
+  return (
+    <group>
+      {carbons.map((a) => {
+        let n = 0
+        for (const b of mol.graph.bonds) {
+          const other = b.a === a.id ? b.b : b.b === a.id ? b.a : null
+          if (other && els.get(other) === 'C') n += 1
+        }
+        const deg = Math.min(4, Math.max(1, n)) as 1 | 2 | 3 | 4
+        return (
+          <Html
+            key={a.id}
+            position={[a.pos[0], a.pos[1] + 0.62, a.pos[2]]}
+            center
+            style={{ pointerEvents: 'none' }}
+          >
+            <span
+              className={styles.degreeTag}
+              data-degree={deg}
+              title={t(`organicLab.carbonDegree${deg}`)}
+            >
+              {DEGREE_LABEL[deg]}
+            </span>
+          </Html>
+        )
+      })}
+    </group>
+  )
+}
+
 function HybridCenters({ mol }: { mol: OrganicMoleculeDef }) {
   return (
     <group>
@@ -157,7 +194,10 @@ function Scene({
     [mol],
   )
   const n = mol.graph.atoms.length
-  const scale = n <= 8 ? 1.15 : n <= 16 ? 0.9 : n <= 28 ? 0.72 : 0.55
+  const byCount = n <= 8 ? 1.15 : n <= 16 ? 0.9 : n <= 28 ? 0.72 : 0.55
+  // длинные молекулы (терефталевая кислота, 4-(бромметил)гептан) не должны уходить под HUD
+  const radius = mol.graph.atoms.reduce((r, a) => Math.max(r, Math.hypot(a.pos[0], a.pos[1], a.pos[2])), 0)
+  const scale = radius > 0 ? Math.min(byCount, 2.7 / radius) : byCount
 
   return (
     <>
@@ -182,6 +222,7 @@ function Scene({
           {mode === 'ballStick' || mode === 'hybridization' ? (
             <group scale={scale}>
               <FunctionalGroupOverlays mol={mol} />
+              {mode === 'ballStick' && mol.viewHints?.carbonDegrees ? <CarbonDegreeTags mol={mol} /> : null}
               {mode === 'hybridization' ? <HybridCenters mol={mol} /> : null}
             </group>
           ) : null}

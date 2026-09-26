@@ -85,6 +85,42 @@
   line-height: 1.3;
 }
 
+/* Тип атома C (изооктан, с. 44): I первичный · II вторичный · III третичный · IV четвертичный */
+.degreeTag {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: 7px;
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  background: rgba(8, 12, 26, 0.9);
+  color: #e2e8f0;
+  font-family: var(--lt-font);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.degreeTag[data-degree='1'] {
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #bae6fd;
+}
+
+.degreeTag[data-degree='2'] {
+  border-color: rgba(52, 211, 153, 0.6);
+  color: #a7f3d0;
+}
+
+.degreeTag[data-degree='3'] {
+  border-color: rgba(251, 191, 36, 0.65);
+  color: #fde68a;
+}
+
+.degreeTag[data-degree='4'] {
+  border-color: rgba(244, 114, 182, 0.65);
+  color: #fbcfe8;
+}
+
 .skeletonWrap {
   display: grid;
   place-items: center;

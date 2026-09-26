@@ -294,7 +294,9 @@ export function ResearchBuilderMode({
       ['H', challenge.kit.H],
       ['O', challenge.kit.O],
       ['N', challenge.kit.N],
+      ['S', challenge.kit.S],
       ['Cl', challenge.kit.Cl],
+      ['Br', challenge.kit.Br],
     ] as const
   ).filter(([, n]) => n && n > 0)
 

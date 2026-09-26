@@ -19,7 +19,51 @@ function pickOpt(label: { labelRu: string; labelEn: string; labelUz: string }, l
   return label.labelRu
 }
 
+function quizTitle(id: string, locale: string): string {
+  const z = NOMENCLATURE_QUIZ_BY_ID[id]
+  if (!z) return id
+  if (locale === 'en') return z.titleEn
+  if (locale === 'uz') return z.titleUz
+  return z.titleRu
+}
+
+/** Несколько квизов урока — переключатель сверху; у каждого свой счёт. */
 export function OrganicNomenclatureMode({
+  quizId,
+  quizIds,
+  onComplete,
+}: {
+  quizId: string
+  /** Все квизы урока (первый — основной); переключатель показывается, если их больше одного */
+  quizIds?: readonly string[]
+  onComplete?: () => void
+}) {
+  const { locale } = useLocale()
+  const ids = (quizIds?.length ? quizIds : [quizId]).filter((id) => NOMENCLATURE_QUIZ_BY_ID[id])
+  const [active, setActive] = useState(ids[0] ?? quizId)
+  if (ids.length <= 1) return <NomenclatureQuizRunner quizId={active} onComplete={onComplete} />
+  return (
+    <div className={styles.multi}>
+      <div className={styles.quizTabs} role="tablist">
+        {ids.map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={id === active}
+            className={`${styles.quizTab} ${id === active ? styles.quizTabActive : ''}`}
+            onClick={() => setActive(id)}
+          >
+            {quizTitle(id, locale)}
+          </button>
+        ))}
+      </div>
+      <NomenclatureQuizRunner key={active} quizId={active} onComplete={onComplete} />
+    </div>
+  )
+}
+
+function NomenclatureQuizRunner({
   quizId,
   onComplete,
 }: {

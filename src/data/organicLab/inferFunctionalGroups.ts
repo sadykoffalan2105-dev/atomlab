@@ -45,8 +45,66 @@ export function inferFunctionalGroups(
     })
   }
 
+  const elOf = (id: string) => graph.atoms.find((x) => x.id === id)?.element
+  const neighborsOf = (id: string) =>
+    graph.bonds
+      .filter((b) => b.a === id || b.b === id)
+      .map((b) => ({ id: b.a === id ? b.b : b.a, order: b.order }))
+
+  // Карбоксил –COOH по строению (у любого класса: кислоты, цистеин, терефталевая кислота)
+  const carboxylO = new Set<string>()
+  for (const c of graph.atoms.filter((x) => x.element === 'C')) {
+    const oxy = neighborsOf(c.id).filter((n) => elOf(n.id) === 'O')
+    const dbl = oxy.find((o) => o.order === 2)
+    const oh = oxy.find(
+      (o) => o.order === 1 && neighborsOf(o.id).some((m) => elOf(m.id) === 'H'),
+    )
+    if (dbl && oh) {
+      carboxylO.add(dbl.id)
+      carboxylO.add(oh.id)
+      push('-COOH', 'Карбоксил', [c.id, dbl.id, oh.id], 'Carboxyl', 'Karboksil')
+    }
+  }
+
+  // Бензольное кольцо: шесть C с чередованием связей — одна метка «Ar» вместо трёх «C=C»
+  const aromaticBonds = new Set<string>()
+  const cAdj = new Map<string, string[]>()
+  for (const x of graph.atoms) if (x.element === 'C') cAdj.set(x.id, [])
+  for (const b of graph.bonds) {
+    if (cAdj.has(b.a) && cAdj.has(b.b)) {
+      cAdj.get(b.a)!.push(b.b)
+      cAdj.get(b.b)!.push(b.a)
+    }
+  }
+  const rings: string[][] = []
+  const walk = (path: string[]) => {
+    const cur = path[path.length - 1]!
+    if (path.length === 6) {
+      if (cAdj.get(cur)!.includes(path[0]!)) rings.push([...path])
+      return
+    }
+    for (const nx of cAdj.get(cur)!) {
+      if (path.includes(nx) || nx < path[0]!) continue
+      path.push(nx)
+      walk(path)
+      path.pop()
+    }
+  }
+  for (const id of cAdj.keys()) walk([id])
+  const ringKeys = new Set<string>()
+  for (const ring of rings) {
+    const key = [...ring].sort().join('|')
+    if (ringKeys.has(key)) continue
+    ringKeys.add(key)
+    const pairs = ring.map((id, i) => [id, ring[(i + 1) % 6]!] as const)
+    const doubles = pairs.filter(([x, y]) => bondOrderBetween(graph, x, y) === 2).length
+    if (doubles !== 3) continue
+    for (const [x, y] of pairs) aromaticBonds.add([x, y].sort().join('-'))
+    push('Ar', 'Бензольное кольцо', [...ring], 'Benzene ring', 'Benzol halqasi')
+  }
+
   for (const a of graph.atoms) {
-    if (a.element === 'O') {
+    if (a.element === 'O' && !carboxylO.has(a.id)) {
       const ns = neighborEls(graph, a.id)
       const hN = graph.bonds
         .filter((b) => b.a === a.id || b.b === a.id)
@@ -77,6 +135,14 @@ export function inferFunctionalGroups(
       push('-Cl', 'Галоген', [a.id], 'Halogen', 'Galogen')
     }
 
+    if (a.element === 'Br') {
+      push('-Br', 'Галоген', [a.id], 'Halogen', 'Galogen')
+    }
+
+    if (a.element === 'S' && neighborEls(graph, a.id).includes('H')) {
+      push('-SH', 'Сульфанил (тиол)', [a.id], 'Sulfanyl (thiol)', 'Sulfanil (tiol)')
+    }
+
     if (a.element === 'N') {
       const hN = neighborEls(graph, a.id).filter((e) => e === 'H').length
       if (hN >= 1) push('-NH₂', 'Аминогруппа', [a.id], 'Amino', 'Amino')
@@ -93,32 +159,15 @@ export function inferFunctionalGroups(
     const key = [b.a, b.b].sort().join('-')
     if (seen.has(key)) continue
     seen.add(key)
+    if (aromaticBonds.has(key)) continue
     if (b.order === 2) push('C=C', 'Двойная связь', [b.a, b.b], 'Double bond', 'Qoʻsh bogʻ')
     if (b.order === 3) push('C≡C', 'Тройная связь', [b.a, b.b], 'Triple bond', 'Uch bogʻ')
   }
 
-  if (classId === 'arene' || classId === 'phenol') {
+  if ((classId === 'arene' || classId === 'phenol') && aromaticBonds.size === 0) {
     const carbons = graph.atoms.filter((a) => a.element === 'C').slice(0, 6)
     if (carbons.length >= 6) {
       push('Ar', 'Ароматическое кольцо', carbons.map((c) => c.id), 'Aromatic ring', 'Aromatik halqa')
-    }
-  }
-
-  if (classId === 'acid') {
-    // carboxyl: C with =O and -OH
-    for (const c of graph.atoms.filter((a) => a.element === 'C')) {
-      const neigh = graph.bonds
-        .filter((b) => b.a === c.id || b.b === c.id)
-        .map((b) => {
-          const oid = b.a === c.id ? b.b : b.a
-          const el = graph.atoms.find((x) => x.id === oid)?.element
-          return { id: oid, el, order: b.order }
-        })
-      const oxy = neigh.filter((n) => n.el === 'O')
-      if (oxy.length >= 2 && oxy.some((o) => o.order === 2)) {
-        push('-COOH', 'Карбоксил', [c.id, ...oxy.map((o) => o.id)], 'Carboxyl', 'Karboksil')
-        break
-      }
     }
   }
 

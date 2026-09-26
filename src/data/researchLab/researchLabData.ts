@@ -16,7 +16,7 @@ export type IsomerCandidate = {
   formula: string
   /** Верный ответ для текущего задания */
   correct: boolean
-  skeleton: 'n' | 'iso' | 'neo' | 'sec' | 'tert' | 'ether' | 'alcohol'
+  skeleton: 'n' | 'iso' | 'neo' | 'sec' | 'tert' | 'ether' | 'alcohol' | 'ring'
   functionalGroups: readonly string[]
   irPeaks: readonly IrPeak[]
   /** Краткое свойство / «катастрофа» */
@@ -44,6 +44,53 @@ const CH_PEAK: IrPeak = { wavenumber: 2920, intensity: 0.7, label: 'C–H' }
 const CO_PEAK: IrPeak = { wavenumber: 1100, intensity: 0.55, label: 'C–O' }
 const CO_ETHER: IrPeak = { wavenumber: 1120, intensity: 0.65, label: 'C–O (эфир)' }
 const NO_OH: IrPeak[] = [CH_PEAK, CO_ETHER]
+
+const PALETTE = ['#7dd3fc', '#a5b4fc', '#c4b5fd', '#f0abfc', '#fda4af', '#fcd34d', '#86efac', '#5eead4', '#fdba74']
+
+type CandRow = readonly [
+  id: string,
+  ru: string,
+  en: string,
+  uz: string,
+  formula: string,
+  correct: boolean,
+  skeleton: IsomerCandidate['skeleton'],
+  noteRu: string,
+  noteEn: string,
+  noteUz: string,
+]
+
+/** Карточки-кандидаты из строк [id, RU, EN, UZ, формула, верно?, тип скелета, пояснение RU/EN/UZ]. */
+function cands(rows: readonly CandRow[]): IsomerCandidate[] {
+  return rows.map(([id, nameRu, nameEn, nameUz, formula, correct, skeleton, hazardRu, hazardEn, hazardUz], i) => ({
+    id,
+    nameRu,
+    nameEn,
+    nameUz,
+    formula,
+    correct,
+    skeleton,
+    functionalGroups: skeleton === 'ring' ? ['cycloalkane'] : ['alkane'],
+    irPeaks: [CH_PEAK],
+    hazardRu,
+    hazardEn,
+    hazardUz,
+    color: PALETTE[i % PALETTE.length]!,
+  }))
+}
+
+/** Девять изомеров C₇H₁₆ (Kimyo 10, с. 43); `c5` — главная цепь из 5 C (задача с. 45). */
+const C7H16_ROWS: readonly (readonly [...CandRow, c5: boolean])[] = [
+  ['n-heptane', 'Гептан', 'Heptane', 'Geptan', 'C₇H₁₆', true, 'n', 'Цепь из 7 C без ветвей.', 'Seven-carbon chain, no branches.', 'Shoxsiz 7 C zanjir.', false],
+  ['2-2-dimethylpentane', '2,2-Диметилпентан', '2,2-Dimethylpentane', '2,2-Dimetilpentan', 'C₇H₁₆', true, 'neo', 'Цепь 5 C, два метила у C2.', 'Five-carbon chain, two methyls on C2.', '5 C zanjir, C2 da ikki metil.', true],
+  ['2-methylhexane', '2-Метилгексан', '2-Methylhexane', '2-Metilgeksan', 'C₇H₁₆', true, 'iso', 'Цепь 6 C, метил у C2.', 'Six-carbon chain, methyl on C2.', '6 C zanjir, C2 da metil.', false],
+  ['2-3-dimethylpentane', '2,3-Диметилпентан', '2,3-Dimethylpentane', '2,3-Dimetilpentan', 'C₇H₁₆', true, 'iso', 'Цепь 5 C, метилы у C2 и C3.', 'Five-carbon chain, methyls on C2 and C3.', '5 C zanjir, C2 va C3 da metil.', true],
+  ['3-methylhexane', '3-Метилгексан', '3-Methylhexane', '3-Metilgeksan', 'C₇H₁₆', true, 'iso', 'Цепь 6 C, метил у C3.', 'Six-carbon chain, methyl on C3.', '6 C zanjir, C3 da metil.', false],
+  ['2-4-dimethylpentane', '2,4-Диметилпентан', '2,4-Dimethylpentane', '2,4-Dimetilpentan', 'C₇H₁₆', true, 'iso', 'Цепь 5 C, метилы у C2 и C4.', 'Five-carbon chain, methyls on C2 and C4.', '5 C zanjir, C2 va C4 da metil.', true],
+  ['2-2-3-trimethylbutane', '2,2,3-Триметилбутан', '2,2,3-Trimethylbutane', '2,2,3-Trimetilbutan', 'C₇H₁₆', true, 'neo', 'Цепь 4 C, три метила.', 'Four-carbon chain, three methyls.', '4 C zanjir, uchta metil.', false],
+  ['3-3-dimethylpentane', '3,3-Диметилпентан', '3,3-Dimethylpentane', '3,3-Dimetilpentan', 'C₇H₁₆', true, 'neo', 'Цепь 5 C, два метила у C3.', 'Five-carbon chain, two methyls on C3.', '5 C zanjir, C3 da ikki metil.', true],
+  ['3-ethylpentane', '3-Этилпентан', '3-Ethylpentane', '3-Etilpentan', 'C₇H₁₆', true, 'iso', 'Цепь 5 C, этил у C3.', 'Five-carbon chain, ethyl on C3.', '5 C zanjir, C3 da etil.', true],
+]
 
 export const ISOMER_CHALLENGES: readonly IsomerChallenge[] = [
   {
@@ -297,6 +344,90 @@ export const ISOMER_CHALLENGES: readonly IsomerChallenge[] = [
         color: '#fb7185',
       },
     ],
+  },
+  {
+    id: 'c7h16',
+    formula: 'C₇H₁₆',
+    targetCount: 9,
+    titleRu: 'Все 9 изомеров гептана',
+    titleEn: 'All 9 heptane isomers',
+    titleUz: 'Geptanning barcha 9 izomeri',
+    hintRu:
+      'Учебник, с. 43: число изомеров растёт с длиной цепи — C₄H₁₀ 2, C₅H₁₂ 3, C₆H₁₄ 5, C₇H₁₆ 9, C₈H₁₈ 18, C₉H₂₀ 35, C₁₀H₂₂ 75. Отметьте все девять изомеров C₇H₁₆ (карточки другой формулы — ловушки).',
+    hintEn:
+      'Textbook p. 43: the number of isomers grows with chain length — C₄H₁₀ 2, C₅H₁₂ 3, C₆H₁₄ 5, C₇H₁₆ 9, C₈H₁₈ 18, C₉H₂₀ 35, C₁₀H₂₂ 75. Mark all nine C₇H₁₆ isomers (cards with another formula are traps).',
+    hintUz:
+      'Darslik, 43-bet: izomerlar soni zanjir uzunligi bilan oshadi — C₄H₁₀ 2, C₅H₁₂ 3, C₆H₁₄ 5, C₇H₁₆ 9, C₈H₁₈ 18, C₉H₂₀ 35, C₁₀H₂₂ 75. C₇H₁₆ ning toʻqqizta izomerini belgilang (boshqa formulali kartalar — tuzoq).',
+    candidates: cands([
+      ...C7H16_ROWS.slice(0, 3).map((r) => r.slice(0, 10) as unknown as CandRow),
+      ['c7-trap-hexane', 'н-Гексан', 'n-Hexane', 'n-Geksan', 'C₆H₁₄', false, 'n', 'Ловушка: C₆H₁₄ — другая формула.', 'Trap: C₆H₁₄ is another formula.', 'Tuzoq: C₆H₁₄ — boshqa formula.'],
+      ...C7H16_ROWS.slice(3, 7).map((r) => r.slice(0, 10) as unknown as CandRow),
+      ['c7-trap-isooctane', '2,2,4-Триметилпентан (изооктан)', '2,2,4-Trimethylpentane (isooctane)', '2,2,4-Trimetilpentan (izooktan)', 'C₈H₁₈', false, 'neo', 'Ловушка: C₈H₁₈ — другая формула.', 'Trap: C₈H₁₈ is another formula.', 'Tuzoq: C₈H₁₈ — boshqa formula.'],
+      ...C7H16_ROWS.slice(7).map((r) => r.slice(0, 10) as unknown as CandRow),
+    ]),
+  },
+  {
+    id: 'c7h16-c5chain',
+    formula: 'C₇H₁₆ · C₅',
+    targetCount: 5,
+    titleRu: 'Задача: алкан с M = 100 и цепью из 5 C',
+    titleEn: 'Task: an alkane with M = 100 and a 5-carbon chain',
+    titleUz: 'Masala: M = 100 va 5 C zanjirli alkan',
+    hintRu:
+      'Учебник, с. 45: плотность пара по водороду 50, значит M = 2 · 50 = 100 г/моль; 14n + 2 = 100 → n = 7, это C₇H₁₆. Выберите изомеры, у которых главная (самая длинная) цепь — ровно 5 атомов C.',
+    hintEn:
+      'Textbook p. 45: vapour density relative to hydrogen is 50, so M = 2 · 50 = 100 g/mol; 14n + 2 = 100 → n = 7, i.e. C₇H₁₆. Pick the isomers whose main (longest) chain is exactly 5 carbons.',
+    hintUz:
+      'Darslik, 45-bet: bugʻning vodorodga nisbatan zichligi 50, demak M = 2 · 50 = 100 g/mol; 14n + 2 = 100 → n = 7, bu C₇H₁₆. Asosiy (eng uzun) zanjiri aynan 5 C boʻlgan izomerlarni tanlang.',
+    candidates: cands(
+      C7H16_ROWS.map(
+        (r) =>
+          [r[0], r[1], r[2], r[3], r[4], r[10], r[6], r[10] ? r[7] : `Нет: ${r[7]}`, r[10] ? r[8] : `No: ${r[8]}`, r[10] ? r[9] : `Yoʻq: ${r[9]}`] as const,
+      ),
+    ),
+  },
+  {
+    id: 'c4h8-ring',
+    formula: 'C₄H₈ · цикл',
+    targetCount: 2,
+    titleRu: 'Циклоалканы C₄H₈',
+    titleEn: 'Cycloalkanes C₄H₈',
+    titleUz: 'Tsikloalkanlar C₄H₈',
+    hintRu:
+      'Учебник, с. 52: изомерия циклоалканов начинается с циклобутана — у C₄H₈ два циклических изомера. Алкен той же формулы — межклассовый изомер, в этом задании он не считается.',
+    hintEn:
+      'Textbook p. 52: cycloalkane isomerism starts with cyclobutane — C₄H₈ has two cyclic isomers. An alkene of the same formula is an interclass isomer and does not count here.',
+    hintUz:
+      'Darslik, 52-bet: tsikloalkanlar izomeriyasi tsiklobutandan boshlanadi — C₄H₈ ning ikkita halqali izomeri bor. Shu formulali alken — sinflararo izomer, bu topshiriqda hisoblanmaydi.',
+    candidates: cands([
+      ['cyclobutane', 'Циклобутан', 'Cyclobutane', 'Tsiklobutan', 'C₄H₈', true, 'ring', 'Кольцо из 4 C.', 'Four-carbon ring.', '4 C li halqa.'],
+      ['but-1-ene', 'Бутен-1', 'But-1-ene', 'Buten-1', 'C₄H₈', false, 'n', 'Та же формула, но кольца нет — это алкен (межклассовый изомер).', 'Same formula but no ring — an alkene (interclass isomer).', 'Formula bir xil, lekin halqa yoʻq — bu alken (sinflararo izomer).'],
+      ['methylcyclopropane', 'Метилциклопропан', 'Methylcyclopropane', 'Metiltsiklopropan', 'C₄H₈', true, 'ring', 'Кольцо из 3 C + метил.', 'Three-carbon ring + methyl.', '3 C li halqa + metil.'],
+      ['cyclopropane', 'Циклопропан', 'Cyclopropane', 'Tsiklopropan', 'C₃H₆', false, 'ring', 'Ловушка: C₃H₆ — другая формула.', 'Trap: C₃H₆ is another formula.', 'Tuzoq: C₃H₆ — boshqa formula.'],
+    ]),
+  },
+  {
+    id: 'c5h10-ring',
+    formula: 'C₅H₁₀ · цикл',
+    targetCount: 5,
+    titleRu: 'Циклические изомеры C₅H₁₀',
+    titleEn: 'Cyclic isomers of C₅H₁₀',
+    titleUz: 'C₅H₁₀ ning halqali izomerlari',
+    hintRu:
+      'Учебник, с. 53: «циклопентан имеет 5 изомеров» — в это число входит сам циклопентан; цис/транс не различаются. Пентены той же формулы — межклассовые изомеры, их не отмечайте.',
+    hintEn:
+      'Textbook p. 53: “cyclopentane has 5 isomers” — cyclopentane itself is counted; cis/trans are not distinguished. Pentenes of the same formula are interclass isomers — do not mark them.',
+    hintUz:
+      'Darslik, 53-bet: «tsiklopentanning 5 ta izomeri bor» — bu songa tsiklopentanning oʻzi ham kiradi; sis/trans farqlanmaydi. Shu formulali pentenlar — sinflararo izomerlar, ularni belgilamang.',
+    candidates: cands([
+      ['cyclopentane', 'Циклопентан', 'Cyclopentane', 'Tsiklopentan', 'C₅H₁₀', true, 'ring', 'Кольцо из 5 C.', 'Five-carbon ring.', '5 C li halqa.'],
+      ['pent-1-ene', 'Пентен-1', 'Pent-1-ene', 'Penten-1', 'C₅H₁₀', false, 'n', 'Та же формула, но кольца нет — алкен (межклассовый изомер).', 'Same formula but no ring — an alkene (interclass isomer).', 'Formula bir xil, lekin halqa yoʻq — alken (sinflararo izomer).'],
+      ['methylcyclobutane', 'Метилциклобутан', 'Methylcyclobutane', 'Metiltsiklobutan', 'C₅H₁₀', true, 'ring', 'Кольцо из 4 C + метил.', 'Four-carbon ring + methyl.', '4 C li halqa + metil.'],
+      ['1-1-dimethylcyclopropane', '1,1-Диметилциклопропан', '1,1-Dimethylcyclopropane', '1,1-Dimetiltsiklopropan', 'C₅H₁₀', true, 'ring', 'Кольцо из 3 C, оба метила у одного C.', 'Three-carbon ring, both methyls on one C.', '3 C li halqa, ikkala metil bitta C da.'],
+      ['cyclohexane', 'Циклогексан', 'Cyclohexane', 'Tsiklogeksan', 'C₆H₁₂', false, 'ring', 'Ловушка: C₆H₁₂ — другая формула.', 'Trap: C₆H₁₂ is another formula.', 'Tuzoq: C₆H₁₂ — boshqa formula.'],
+      ['1-2-dimethylcyclopropane', '1,2-Диметилциклопропан', '1,2-Dimethylcyclopropane', '1,2-Dimetiltsiklopropan', 'C₅H₁₀', true, 'ring', 'Кольцо из 3 C, метилы у соседних C.', 'Three-carbon ring, methyls on neighbouring C.', '3 C li halqa, metillar qoʻshni C da.'],
+      ['ethylcyclopropane', 'Этилциклопропан', 'Ethylcyclopropane', 'Etiltsiklopropan', 'C₅H₁₀', true, 'ring', 'Кольцо из 3 C + этил.', 'Three-carbon ring + ethyl.', '3 C li halqa + etil.'],
+    ]),
   },
 ]
 

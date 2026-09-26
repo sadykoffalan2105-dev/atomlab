@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { LabDomainTabs } from '../components/lab/LabDomainTabs'
 import { OrganicMoleculeViewer } from '../components/organicLab/OrganicMoleculeViewer'
@@ -170,6 +170,22 @@ export function OrganicLabPage() {
     setMode(resolvedMode)
   }, [initialLesson.id, resolvedMolId, resolvedMode])
   const displayMol = organicMoleculeById[browseMolId] ?? molCandidates[0] ?? null
+  /** Формулы, которые в уроке встречаются больше одного раза (изомеры): у таких чипов — название. */
+  const dupFormulas = useMemo(() => {
+    const seen = new Map<string, number>()
+    for (const m of molCandidates) seen.set(m.formula, (seen.get(m.formula) ?? 0) + 1)
+    return new Set([...seen].filter(([, n]) => n > 1).map(([f]) => f))
+  }, [molCandidates])
+  /** Строка чипов прокручивается: активная молекула всегда в поле зрения (терефталевая кислота — 13-я из 15). */
+  const chipsRef = useRef<HTMLDivElement>(null)
+  const displayMolId = displayMol?.id
+  useEffect(() => {
+    const box = chipsRef.current
+    const el = box?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!box || !el) return
+    if (box.scrollWidth <= box.clientWidth) return
+    box.scrollLeft = Math.max(0, el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2)
+  }, [displayMolId, mode, lessonId])
 
   const buildIds = useMemo(() => buildableIds(lesson), [lesson])
   const buildInitialId = useMemo(() => {
@@ -388,7 +404,12 @@ export function OrganicLabPage() {
               data-app-night=""
               style={{ ['--synth-glow' as string]: displayMol.accentColor ?? '#0a0c18' }}
             >
-              <div className={styles.molChips} role="listbox" aria-label={t('organicLab.moleculesAria')}>
+              <div
+                ref={chipsRef}
+                className={styles.molChips}
+                role="listbox"
+                aria-label={t('organicLab.moleculesAria')}
+              >
                 {molCandidates.map((m) => (
                   <button
                     key={m.id}
@@ -396,9 +417,10 @@ export function OrganicLabPage() {
                     role="option"
                     aria-selected={m.id === displayMol.id}
                     className={`${styles.molChip} ${m.id === displayMol.id ? styles.molChipActive : ''}`}
+                    title={`${pickName(m, locale)} · ${m.formula}`}
                     onClick={() => selectMol(m.id)}
                   >
-                    {m.formula}
+                    {dupFormulas.has(m.formula) ? pickName(m, locale) : m.formula}
                   </button>
                 ))}
               </div>
@@ -518,6 +540,7 @@ export function OrganicLabPage() {
               <OrganicNomenclatureMode
                 key={lesson.id}
                 quizId={lesson.nomenclatureQuizId}
+                quizIds={[lesson.nomenclatureQuizId, ...(lesson.extraQuizIds ?? [])]}
                 onComplete={() => patchProgress(lesson.id, { named: true, viewed: true })}
               />
             </div>

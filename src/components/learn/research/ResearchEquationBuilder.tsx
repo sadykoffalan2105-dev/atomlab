@@ -33,6 +33,12 @@ function hintLabel(eq: GradeEq, locale: string) {
   return eq.hintRu
 }
 
+function conditionsLabel(eq: GradeEq, locale: string): string {
+  if (locale === 'en') return eq.conditionsEn ?? eq.conditionsRu ?? ''
+  if (locale === 'uz') return eq.conditionsUz ?? eq.conditionsRu ?? ''
+  return eq.conditionsRu ?? ''
+}
+
 function buildBank(target: GradeEq, pool: readonly GradeEq[]): string[] {
   const needed = [...target.left, ...target.right]
   const distractors: string[] = []
@@ -168,6 +174,7 @@ export function ResearchEquationBuilder({
   if (!target) {
     return <p className={styles.hintLine}>{t('learn.research.eqBuilderEmpty')}</p>
   }
+  const cond = conditionsLabel(target, locale)
 
   return (
     <div className={styles.eqBuilder} key={`${target.id}-${seed}`}>
@@ -250,8 +257,9 @@ export function ResearchEquationBuilder({
           </div>
         </div>
 
-        <span className={styles.eqArrow} aria-hidden>
-          →
+        <span className={styles.eqArrow} aria-hidden={cond ? undefined : true} data-eq-conditions={cond || undefined}>
+          {cond ? <span className={styles.eqCond}>{cond}</span> : null}
+          <span aria-hidden>→</span>
         </span>
 
         <div className={styles.eqSide}>
@@ -324,7 +332,7 @@ export function ResearchEquationBuilder({
       </div>
 
       <p className={styles.eqPreview}>
-        {left.length ? left.join(' + ') : '…'} → {right.length ? right.join(' + ') : '…'}
+        {left.length ? left.join(' + ') : '…'} {cond ? `—(${cond})→` : '→'} {right.length ? right.join(' + ') : '…'}
       </p>
 
       <div className={styles.toolbar}>
