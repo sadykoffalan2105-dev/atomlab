@@ -291,6 +291,13 @@ export function ReactionCard({ rx, gradeId, unitId, anchor, sheet, contextLabel,
         </p>
       ) : null}
 
+      {rx.note ? (
+        <p className={styles.rxCardCond}>
+          <span className={styles.rxCardCondLabel}>{t('learn.book.rx.note')}</span>
+          {rx.note}
+        </p>
+      ) : null}
+
       {rx.lab.ok ? (
         <>
           <p className={styles.rxCardReady}>

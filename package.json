@@ -97,7 +97,9 @@
     "teacher:dev": "python -m teacher_service",
     "book:curated": "tsx scripts/textbook-inventory/build-curated-equations.mts",
     "catalog:rank": "tsx scripts/textbook-inventory/rank-substances.mts",
-    "verify:catalog200": "tsx scripts/verify-catalog-200.mts"
+    "verify:catalog200": "tsx scripts/verify-catalog-200.mts",
+    "book:g10": "node scripts/textbook-inventory/build-g10-part1.mjs && node scripts/textbook-inventory/merge-parts.mjs 10 && tsx scripts/textbook-inventory/build-book-reader.mts --grade 10",
+    "verify:book-g10": "tsx scripts/verify-book-g10-ch1-2.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

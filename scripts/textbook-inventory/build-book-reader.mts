@@ -106,6 +106,12 @@ type InvReaction = {
   inExercise?: boolean
   note?: string | null
   quote?: string | null
+  /** Пояснение для карточки каталога/панели (build-g10-part1.mjs: opts.show) — показывается ученику. */
+  catalogNote?: string | null
+  /** Общая схема учебника (R, A, B), которую всё же показать карточкой (opts.catalog). */
+  showInCatalog?: boolean
+  /** Конкретный пример схемы (R = CH3): только для подбора урока органической лаборатории (opts.labAs). */
+  labExample?: string | null
 }
 type InvSubstance = {
   formula?: string | null
@@ -1268,9 +1274,24 @@ function fixFormulaCase(text: string, r: InvRx): string {
   return text.replace(/(?<![A-Za-z])[A-Za-z][A-Za-z0-9]*(?:\([A-Za-z0-9]+\)\d*[A-Za-z0-9]*)*/g, (tok) => species.get(tok.toLowerCase()) ?? tok)
 }
 
+/**
+ * Formula core of a term for composition matching: without the coefficient («2», «n», «2n»), the radical dot
+ * («CH₃•», «Cl·», «•CH₃», «R*»), the polymer index «(C₈H₈)ₙ» and the bond marks «-», «=», «≡»
+ * (a hydrate dot inside «CuSO₄·5H₂O» stays).
+ */
+const speciesCore = (term: string | null | undefined) =>
+  asciiDigits(term ?? '')
+    .replace(/ₙ/g, 'n')
+    .trim()
+    .replace(/^(?:\d+n|\d+|n)(?=[A-Z(\[])/, '')
+    .replace(/^[•·∙*]+|[•·∙*]+$/g, '')
+    .replace(/\)n$/, ')')
+    .replace(/[-=≡↑↓]/g, '')
+    .trim()
+
 /** Composition key of an organic species ("CH3COOH", "C₂H₅OH"); null for inorganic carbon (NaHCO₃, KCN) and the rest. */
 function organicKey(formulaRaw: string | null | undefined): string | null {
-  const f = asciiDigits(formulaRaw ?? '').replace(/^\d+(?=[A-Z(\[])/, '').replace(/[-=≡↑↓]/g, '').trim()
+  const f = speciesCore(formulaRaw)
   const counts = f ? parseFormula(f)?.counts : null
   return counts && isOrganicFormula(f, counts) ? formulaCompositionKey(counts) : null
 }
@@ -1285,7 +1306,7 @@ type OrganicEq = { lessonId: string; left: Set<string>; right: Set<string>; orga
 const ORGANIC_LESSON_EQS: OrganicEq[] = ORGANIC_CURRICULUM.flatMap((lesson) =>
   G10_G11_EDU_EQUATIONS.filter((e) => lesson.equationIds.includes(e.id)).map((e) => {
     const keyOf = (term: string) => {
-      const f = asciiDigits(term).replace(/^\d+(?=[A-Z(\[])/, '').replace(/[-=≡↑↓]/g, '')
+      const f = speciesCore(term)
       const c = parseFormula(f)?.counts
       return c ? formulaCompositionKey(c) : null
     }
@@ -1303,7 +1324,7 @@ const ORGANIC_LESSON_EQS: OrganicEq[] = ORGANIC_CURRICULUM.flatMap((lesson) =>
 function organicAltHref(r: InvReaction, src: string): string | null {
   const keys = (list: InvSpecies[] | undefined) =>
     new Set((list ?? []).map((s) => {
-      const f = asciiDigits(s.formula ?? '').replace(/[-=≡↑↓]/g, '')
+      const f = speciesCore(s.formula)
       const c = parseFormula(f)?.counts
       return c ? formulaCompositionKey(c) : null
     }).filter((k): k is string => !!k))
@@ -1328,15 +1349,31 @@ function organicAltHref(r: InvReaction, src: string): string | null {
 
 const labReasonCounts = new Map<string, number>()
 
+/** Species of the reaction for the organic lab match: the concrete example (labExample) of a scheme, else itself. */
+function labProbe(r: InvReaction): InvReaction {
+  if (!r.labExample) return r
+  const [l, p] = r.labExample.split(/\s*(?:→|->|=|⇌|<=>)\s*/)
+  if (!l || !p) return r
+  const side = (t: string): InvSpecies[] =>
+    t.split(/\s+\+\s+/).map((x) => {
+      const m = /^(\d+)(?=[A-Z(\[])/.exec(x.trim())
+      return { formula: m ? x.trim().slice(m[1]!.length) : x.trim(), coeff: m ? Number(m[1]) : 1 }
+    })
+  return { ...r, reactants: side(l), products: side(p) }
+}
+
 function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx, rxId: string): ReaderLab {
   const src = readerUnitHref(`g${grade}`, unitId, { rx: rxId, page: pageStart })
-  const organic = isOrganicSpeciesList(r)
+  // a scheme «R–H + Cl• → R• + HCl» picks its organic lesson by the book's concrete example (R = CH₃)
+  const probe = labProbe(r)
+  const organic = isOrganicSpeciesList(probe)
   // a refusal keeps its code (a general scheme «AB + C → AC + B» is a scheme, NaHCO₃ is not organic); only a real
   // organic reaction reads «organic» (structural formulas «CH₂=CH₂» fail the parser as a scheme). An organic lab
   // lesson is offered only when it practises these substances.
   const failWith = (code: string): ReaderLab => {
-    const reason = organic && code !== 'ionic' && !r.isGeneralScheme ? 'organic' : code
-    const alt = organic && code !== 'ionic' ? organicAltHref(r, src) : null
+    const alt = organic && code !== 'ionic' ? organicAltHref(probe, src) : null
+    // «(C₆H₇O₂(OH)₃)n + …» without a lesson keeps its «n — general formula» explanation
+    const reason = organic && code !== 'ionic' && !r.isGeneralScheme && (alt || code !== 'generalFormula') ? 'organic' : code
     return alt ? { ok: false, reason, altHref: alt } : { ok: false, reason }
   }
   if (r.isGeneralScheme) return failWith('scheme')
@@ -1515,6 +1552,9 @@ type GradeStats = {
   emptyUnits: string[]
 }
 
+/** General schemes the inventory asks to keep as cards (showInCatalog): «R–H + Cl• → R• + HCl», Kolbe «2R–COONa…». */
+const SHOWN_SCHEMES = new WeakSet<ReaderReaction>()
+
 function buildUnit(grade: Grade, sec: InvSection, draft: DraftBlock[], stats: GradeStats): FullUnit {
   const unitId = unitIdFor(grade, sec)
   const { chapterId, chapterTitle } = unitChapter(grade, sec)
@@ -1533,7 +1573,11 @@ function buildUnit(grade: Grade, sec: InvSection, draft: DraftBlock[], stats: Gr
       isGeneralScheme: r.isGeneralScheme === true,
       bankId: r.bankId ?? null,
       lab,
+      ...(r.catalogNote ? { note: norm(r.catalogNote) } : {}),
     }
+  })
+  reactionsInv.forEach((r, i) => {
+    if (r.isGeneralScheme && r.showInCatalog) SHOWN_SCHEMES.add(reactions[i]!)
   })
 
   // ── inline reaction chips ──
@@ -1894,7 +1938,7 @@ for (const grade of GRADES) {
   const seenEq = new Set<string>()
   const formulaSide = /[A-Z][a-z]?[₀-₉0-9]*/
   const keepReaction = (r: ReaderReaction): boolean => {
-    if (r.isGeneralScheme) return false
+    if (r.isGeneralScheme && !SHOWN_SCHEMES.has(r)) return false
     if (r.exercise && !r.asInBook) return false
     const body = r.equation.replace(/\([^)]*\)/g, ' ').replace(/\[[^\]]*\]/g, ' ')
     if (/[А-Яа-яЁё]{3,}/.test(body)) return false
