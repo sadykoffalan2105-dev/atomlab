@@ -26,8 +26,9 @@ import { LearnTextbookReader } from '../components/learn/LearnTextbookReader'
 import { gradeHasTextbook } from '../data/learnTextbookG7'
 import { prefetchLearnSectionHub, prefetchWasmCore } from '../learn/learnHubPrefetch'
 import { GradeGlyph } from '../components/learn/hub/GradeGlyph'
-import { EmptyStateArt, VrLabArt } from '../components/learn/hub/HubArt'
+import { AiTeacherArt, EmptyStateArt } from '../components/learn/hub/HubArt'
 import {
+  IconAiChat,
   IconArrowLeft,
   IconArrowRight,
   IconBook,
@@ -172,11 +173,17 @@ function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
           </div>
         </div>
 
-        <Link to="/learn/talk" className={styles.vrBanner}>
-          <VrLabArt className={styles.vrArt} />
+        <Link to="/learn/talk" className={`${styles.vrBanner} ${styles.aiBanner}`}>
+          <AiTeacherArt className={`${styles.vrArt} ${styles.aiArt}`} />
           <span className={styles.vrBody}>
-            <span className={styles.vrBadge}>
-              <IconSparkles />
+            <span className={styles.aiBadgeRow}>
+              <span className={`${styles.vrBadge} ${styles.aiBadge}`}>
+                <IconAiChat />
+              </span>
+              <span className={styles.aiStatus}>
+                <span className={styles.aiStatusDot} aria-hidden />
+                {t('learn.talk.status')}
+              </span>
             </span>
             <span className={styles.vrTitle}>{t('learn.talk.title')}</span>
             <span className={styles.vrLead}>{t('learn.talk.lead')}</span>

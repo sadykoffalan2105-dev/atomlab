@@ -593,6 +593,7 @@ export const messagesRu = {
   'learn.talk.sub': 'Выберите класс — учитель будет опираться на ваш учебник. Нажмите «Начать онлайн-диалог», чтобы говорить голосом, или задайте вопрос текстом.',
   'learn.talk.grade': 'Класс',
   'learn.talk.back': 'К обучению',
+  'learn.talk.status': 'Онлайн · голос и текст',
   'learn.hubUi.gradesTitle': 'Выберите класс',
   'learn.hubUi.open': 'Открыть',
   'learn.hubUi.resumeEyebrow': 'Вы остановились здесь',

@@ -1,18 +1,143 @@
-/* Страница «Разговор с ИИ-учителем»: шапка с выбором класса и панель учителя во всю ширину. */
+/* Страница «Разговор с ИИ-учителем»: шапка с «ядром ИИ» и выбором класса, панель учителя во всю ширину. */
 
 .head {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
+  gap: 22px;
   padding: 26px 28px;
   margin-bottom: 18px;
 }
 
+/* Свечение и точечная «сетка данных» справа — только токены, чтобы работало в обеих темах. */
+.head::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(34% 120% at 0% 0%, color-mix(in srgb, var(--lt-accent-cyan) 16%, transparent), transparent 72%),
+    radial-gradient(40% 150% at 100% 0%, color-mix(in srgb, var(--lt-primary-2) 16%, transparent), transparent 70%);
+}
+
+.head::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(color-mix(in srgb, var(--lt-primary) 40%, transparent) 1px, transparent 1.4px);
+  background-size: 16px 16px;
+  -webkit-mask-image: radial-gradient(46% 110% at 92% 30%, #000 0%, transparent 80%);
+  mask-image: radial-gradient(46% 110% at 92% 30%, #000 0%, transparent 80%);
+}
+
+/* Голосовая волна ИИ — декор правой части шапки (на узких экранах скрыта). */
+.wave {
+  position: absolute;
+  right: 28px;
+  bottom: 24px;
+  z-index: -1;
+  width: min(32%, 400px);
+  height: 96px;
+  pointer-events: none;
+  opacity: 0.9;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 30%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 30%);
+}
+
+@media (max-width: 1100px) {
+  .wave {
+    display: none;
+  }
+}
+
+/*
+ * «Ядро ИИ» — аватар учителя. Тёмный «экран» в обеих темах намеренно (свечение ядра читается
+ * только на тёмном), поэтому фон задан жёстко, а не токеном.
+ */
+.orb {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #1b2658 0%, #0a1030 62%, #060a1c 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(103, 232, 249, 0.35),
+    0 0 0 6px color-mix(in srgb, var(--lt-accent-cyan) 10%, transparent),
+    0 14px 34px -14px rgba(34, 211, 238, 0.75);
+}
+
+.orbArt {
+  width: 78px;
+  height: 78px;
+}
+
+.orbDot {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2.5px solid var(--lt-surface-solid);
+  background: var(--lt-success);
+}
+
 .headText {
   display: grid;
+  flex: 1 1 auto;
   gap: 12px;
   min-width: 0;
+}
+
+.eyebrowRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 4px 12px 4px 10px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid color-mix(in srgb, var(--lt-success) 40%, var(--lt-border));
+  background: color-mix(in srgb, var(--lt-success) 10%, transparent);
+  font-size: var(--lt-fs-xs);
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--lt-text-2);
+  white-space: nowrap;
+}
+
+.statusDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lt-success);
+  animation: talkOnline 2.2s ease-out infinite;
+}
+
+@keyframes talkOnline {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--lt-success) 60%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--lt-success) 0%, transparent);
+  }
 }
 
 .title {
@@ -20,6 +145,7 @@
   font-size: clamp(26px, 3.2vw, 40px);
   line-height: 1.1;
   letter-spacing: -0.02em;
+  color: var(--lt-text);
 }
 
 .grades {
@@ -34,7 +160,7 @@
   font-size: 12px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  opacity: 0.66;
+  color: var(--lt-text-3);
   margin-right: 4px;
 }
 
@@ -44,9 +170,9 @@
   height: 40px;
   padding: 0 14px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.05);
-  color: inherit;
+  border: 1px solid var(--lt-border-strong);
+  background: var(--lt-surface-2);
+  color: var(--lt-text);
   font: inherit;
   font-weight: 700;
   font-size: 16px;
@@ -55,14 +181,22 @@
 }
 
 .grade:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--lt-surface-hover);
   transform: translateY(-1px);
 }
 
+.grade:focus-visible,
+.gradeOn:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+/* Выбранный класс — фирменный градиент ИИ (синий → фиолетовый) с белым текстом: контрастно в обеих темах. */
 .gradeOn {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--lt-accent-teal, #2dd4bf), var(--lt-accent-cyan, #22d3ee));
-  color: #061018;
+  background: linear-gradient(135deg, var(--lt-primary), var(--lt-primary-2));
+  color: #fff;
+  box-shadow: var(--lt-glow-primary);
 }
 
 .back {
@@ -70,24 +204,76 @@
   white-space: nowrap;
 }
 
-.panel {
-  min-height: 60vh;
+/*
+ * Панель учителя — size-контейнер: сама по себе высоту не набирает. На десктопе даём ей
+ * высоту экрана, иначе она сжимается до min-height и прячет шапку «ИИ-учитель» и приветствие.
+ */
+@media (min-width: 1024px) {
+  .panel {
+    display: flex;
+    flex-direction: column;
+    height: clamp(560px, calc(100dvh - var(--app-header-h, 58px) - 36px), 940px);
+  }
 }
 
 .loading {
+  flex: 1 1 auto;
   min-height: 320px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--lt-surface);
 }
 
 @media (max-width: 720px) {
   .head {
     flex-direction: column;
+    gap: 14px;
     padding: 20px 16px;
+  }
+
+  /* Точечная сетка — только за «ядром» в углу, чтобы не рябила под текстом. */
+  .head::after {
+    -webkit-mask-image: radial-gradient(34% 22% at 88% 8%, #000 0%, transparent 85%);
+    mask-image: radial-gradient(34% 22% at 88% 8%, #000 0%, transparent 85%);
+  }
+
+  /* На телефоне «ядро» — компактный значок в правом верхнем углу шапки. */
+  .orb {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 58px;
+    height: 58px;
+    margin: 0;
+  }
+
+  .orbArt {
+    width: 52px;
+    height: 52px;
+  }
+
+  .orbDot {
+    right: 2px;
+    bottom: 2px;
+    width: 12px;
+    height: 12px;
+  }
+
+  .eyebrowRow {
+    padding-right: 70px;
   }
 
   .back {
     width: 100%;
     justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusDot {
+    animation: none;
+  }
+
+  .grade:hover {
+    transform: none;
   }
 }

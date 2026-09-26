@@ -595,6 +595,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'learn.talk.sub': 'Pick a grade — the teacher will rely on your textbook. Press “Start live dialogue” to talk by voice, or type a question.',
   'learn.talk.grade': 'Grade',
   'learn.talk.back': 'Back to learning',
+  'learn.talk.status': 'Online · voice & text',
   'learn.hubUi.gradesTitle': 'Choose your grade',
   'learn.hubUi.open': 'Open',
   'learn.hubUi.resumeEyebrow': 'Pick up where you left off',

@@ -154,6 +154,20 @@ export function IconFlask(p: IconProps) {
   )
 }
 
+/** ИИ-собеседник: пузырь диалога с «искрой» ИИ внутри. */
+export function IconAiChat(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M12 3.5c-4.9 0-8.5 3.2-8.5 7.4 0 2.2 1 4.1 2.7 5.5L5.5 20.5l4.3-2.2c.7.1 1.4.2 2.2.2 4.9 0 8.5-3.2 8.5-7.6S16.9 3.5 12 3.5z" />
+      <path
+        d="M12 7.2c.3 1.7 1.1 2.6 2.9 3.2-1.8.6-2.6 1.5-2.9 3.2-.3-1.7-1.1-2.6-2.9-3.2 1.8-.6 2.6-1.5 2.9-3.2z"
+        fill="currentColor"
+        strokeWidth={1.2}
+      />
+    </Svg>
+  )
+}
+
 export function IconSparkles(p: IconProps) {
   return (
     <Svg {...p}>

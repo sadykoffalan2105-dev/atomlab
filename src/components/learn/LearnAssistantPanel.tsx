@@ -37,7 +37,6 @@ import {
 import {
   IconAlert,
   IconArrowRight,
-  IconAtom,
   IconBookmark,
   IconBroadcast,
   IconBulb,
@@ -56,6 +55,7 @@ import {
   IconStop,
   IconTrash,
 } from './LearnAiIcons'
+import { AiCoreAvatar } from './hub/HubArt'
 import { extractCitations } from './teacher/citations'
 import { BrainChip, SmartAiCta, SourceChips, type TeacherBrain } from './teacher/TeacherChips'
 import {
@@ -922,7 +922,7 @@ export function LearnAssistantPanel({
       <header className={styles.head}>
         <div className={styles.identity}>
           <span className={styles.avatar} data-state={statusState} aria-hidden>
-            <IconAtom className={styles.avatarIcon} />
+            <AiCoreAvatar className={styles.avatarCore} />
             <span className={styles.statusDot} data-state={statusState} />
           </span>
           <div className={styles.brandText}>
@@ -1111,8 +1111,8 @@ export function LearnAssistantPanel({
           {!hasMessages ? (
             <div className={styles.welcome}>
               <div className={styles.welcomeHero}>
-                <span className={`${kit.iconTile} ${kit.iconTileLg} ${styles.welcomeTile}`} aria-hidden>
-                  <IconAtom />
+                <span className={styles.welcomeOrb} aria-hidden>
+                  <AiCoreAvatar className={styles.welcomeOrbArt} />
                 </span>
                 <div className={styles.welcomeCopy}>
                   <p className={styles.welcomeTitle}>{t('learn.teacherUi.emptyTitle', { topic: sectionTitle })}</p>
@@ -1145,7 +1145,7 @@ export function LearnAssistantPanel({
               return (
                 <div key={`${m.at}-${i}`} className={styles.rowBot}>
                   <span className={styles.botAvatar} aria-hidden>
-                    <IconAtom />
+                    <IconSparkle />
                   </span>
                   <div className={styles.bubbleBot} data-streaming={isStreaming ? '1' : undefined}>
                     <span className={kit.srOnly}>{t('learn.assistant.ai')}: </span>
@@ -1214,7 +1214,7 @@ export function LearnAssistantPanel({
             {loading ? (
               <div className={styles.rowBot}>
                 <span className={styles.botAvatar} aria-hidden>
-                  <IconAtom />
+                  <IconSparkle />
                 </span>
                 <div className={styles.typing} role="status">
                   <span className={styles.typingDots} aria-hidden>

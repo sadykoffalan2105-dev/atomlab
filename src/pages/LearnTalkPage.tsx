@@ -2,7 +2,8 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { LEARN_GRADES } from '../data/learnCurriculumUz'
 import { useT } from '../i18n/useT'
-import { IconArrowLeft, IconSparkles } from '../components/learn/hub/HubIcons'
+import { AiCoreAvatar, AiVoiceWave } from '../components/learn/hub/HubArt'
+import { IconAiChat, IconArrowLeft } from '../components/learn/hub/HubIcons'
 import hub from './LearnHubs.module.css'
 import styles from './LearnTalkPage.module.css'
 
@@ -54,11 +55,22 @@ export function LearnTalkPage() {
   return (
     <div className={hub.page}>
       <section className={`${hub.glass} ${styles.head}`}>
+        <AiVoiceWave className={styles.wave} />
+        <span className={styles.orb} aria-hidden>
+          <AiCoreAvatar className={styles.orbArt} />
+          <span className={styles.orbDot} />
+        </span>
         <div className={styles.headText}>
-          <span className={hub.eyebrow}>
-            <IconSparkles />
-            {t('learn.talk.open')}
-          </span>
+          <div className={styles.eyebrowRow}>
+            <span className={hub.eyebrow}>
+              <IconAiChat />
+              {t('learn.talk.open')}
+            </span>
+            <span className={styles.status}>
+              <span className={styles.statusDot} aria-hidden />
+              {t('learn.talk.status')}
+            </span>
+          </div>
           <h1 className={styles.title}>{t('learn.talk.title')}</h1>
           <p className={hub.lead}>{t('learn.talk.sub')}</p>
           <div className={styles.grades} role="radiogroup" aria-label={t('learn.talk.grade')}>

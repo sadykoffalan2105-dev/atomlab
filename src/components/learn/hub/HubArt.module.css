@@ -1,0 +1,176 @@
+/*
+ * Анимации иллюстраций ИИ-учителя (AiTeacherArt, AiCoreAvatar).
+ * Только transform/opacity — дёшево для GPU. При prefers-reduced-motion: reduce всё неподвижно.
+ */
+
+.ai {
+  overflow: visible;
+}
+
+/* Ядро ИИ: мягкое «дыхание» ореола. */
+.halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: aiHalo 4.2s ease-in-out infinite;
+}
+
+.core {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: aiCore 4.2s ease-in-out infinite;
+}
+
+/* Пунктирное кольцо-«сканер» медленно вращается вокруг ядра. */
+.scan {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: aiSpin 18s linear infinite;
+}
+
+.scanRev {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: aiSpin 26s linear infinite reverse;
+}
+
+/* Электроны/узлы на орбитах мерцают по очереди. */
+.twinkle {
+  animation: aiTwinkle 2.8s ease-in-out infinite;
+}
+
+.twinkle:nth-of-type(2n) {
+  animation-delay: -0.9s;
+}
+
+.twinkle:nth-of-type(3n) {
+  animation-delay: -1.7s;
+}
+
+/* Звуковая волна голоса: столбики эквалайзера. */
+.bar {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: aiBar 1.35s ease-in-out infinite;
+}
+
+/* Точки «печатает…» в пузыре ИИ. */
+.dot {
+  animation: aiDot 1.4s ease-in-out infinite;
+}
+
+.dot:nth-of-type(2) {
+  animation-delay: 0.18s;
+}
+
+.dot:nth-of-type(3) {
+  animation-delay: 0.36s;
+}
+
+/* Импульсы, бегущие по линиям нейросети к ядру. */
+.pulse {
+  animation: aiPulse 3.6s linear infinite;
+}
+
+/* Пузыри диалога слегка «парят». */
+.float {
+  animation: aiFloat 6s ease-in-out infinite;
+}
+
+.floatAlt {
+  animation: aiFloat 7s ease-in-out -2.5s infinite;
+}
+
+@keyframes aiHalo {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes aiCore {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes aiSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes aiTwinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes aiBar {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes aiDot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes aiPulse {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -120;
+  }
+}
+
+@keyframes aiFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halo,
+  .core,
+  .scan,
+  .scanRev,
+  .twinkle,
+  .bar,
+  .dot,
+  .pulse,
+  .float,
+  .floatAlt {
+    animation: none;
+  }
+}
