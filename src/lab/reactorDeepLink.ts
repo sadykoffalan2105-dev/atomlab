@@ -78,6 +78,8 @@ export type ReactorLinkFailCode =
   | 'generalFormula'
   | 'unknownSubstance'
   | 'organic'
+  /** Ядерная реакция (²⁷₁₃Al + ⁴₂He → …, «27/13/Al»): меняются ядра, а реактор — химический. */
+  | 'nuclear'
   | 'noCompoundProduct'
   | 'tooManyTerms'
   | 'unbalanced'
@@ -191,7 +193,7 @@ function resolveSpecies(s: EquationSpecies): ResolvedSpecies {
   const organic = isOrganicFormula(s.formula, counts)
   if (organic) {
     // Органика школьных уравнений (CH₄, C₂H₅OH …): формульная единица с 3D-геометрией.
-    const org = organicSpeciesFor(counts)
+    const org = organicSpeciesFor(counts, s.formula)
     if (org) return { kind: 'compound', compound: org, glowZ: 6, lab: 'organic' }
   }
   return { kind: 'missing', organic, formula }
@@ -259,6 +261,17 @@ function defaultIdFactory(): () => string {
   return () => `deeplink-${++n}`
 }
 
+/**
+ * Ядерное уравнение: нуклид с массовым и зарядовым числом — «27/13/Al», «1/0/n» (ASCII инвентаря учебника)
+ * или «²⁷₁₃Al», «¹₀n» (верхний индекс — массовое число, нижний — заряд ядра).
+ */
+export function isNuclearEquationText(text: string): boolean {
+  return (
+    /(^|[\s+])\d+\/[+-]?\d+\/[A-Za-z]{1,2}(?=[\s+]|$)/.test(text) ||
+    /(^|[\s+\d])[⁰¹²³⁴⁵⁶⁷⁸⁹]+[₀₁₂₃₄₅₆₇₈₉₋]+(?:[A-Z][a-z]?|n|p|e)(?=[\s+]|$)/.test(text)
+  )
+}
+
 function fail(
   code: ReactorLinkFailCode,
   details: ReactorLinkFailDetails,
@@ -287,6 +300,10 @@ export function resolveReactorEquation(
       { reason: spec.reactionId ? 'notFound' : 'parse' },
       { titleRu: titleHint, equationUnicode: null, bankId },
     )
+  }
+
+  if (isNuclearEquationText(text)) {
+    return fail('nuclear', { reason: 'nuclide' }, { titleRu: titleHint ?? text, equationUnicode: text, bankId })
   }
 
   const parsed = parseEquationText(text)

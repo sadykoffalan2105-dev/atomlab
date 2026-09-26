@@ -7,7 +7,8 @@
  * Реакции «только шарами» (stageOnly: ионы, электроны, органика, простое вещество-продукт):
  * уравнение сбалансировано по атомам И зарядам, синтез честно отказывает (STAGE_ONLY),
  * экран реакции (scientificStageLayout) строится — у каждого члена есть частицы, счёт сходится.
- * Печатает покрытие по причинам отказа и покрытие уравнений учебников 7–9 классов.
+ * Печатает покрытие по причинам отказа и покрытие уравнений учебников 7–9 классов (curated/gN.json)
+ * и каталога «Реакции учебника» 11 класса (equations-g11.json: не открываются только ядерные реакции и общие схемы).
  *
  * Run: npx tsx scripts/verify-lab-links.mts [--list]
  */
@@ -169,7 +170,21 @@ const TEXTBOOK: {
   // атомы сходятся, заряд — нет
   { eq: 'Fe → Fe²⁺ + e⁻', expect: 'unbalanced' },
   // ион, которого нет в реестре
-  { eq: 'MnO₄⁻ + e⁻ → MnO₄²⁻', expect: 'unknownSubstance' },
+  { eq: 'Co²⁺ + 2e⁻ → Co', expect: 'unknownSubstance' },
+  // ионы 11 класса (ОВР методом полуреакций): перманганат, манганат, нитрит, дихромат, арсенат
+  { eq: 'MnO₄⁻ + e⁻ → MnO₄²⁻', expect: 'ok', stage: 'electron' },
+  { eq: '2MnO4^- + 6H^+ + 5NO2^- -> 2Mn^2+ + 3H2O + 5NO3^-', expect: 'ok', stage: 'ionic' },
+  { eq: 'Cr2O7^2- + 14H^+ + 6I^- -> 2Cr^3+ + 7H2O + 3I2', expect: 'ok', stage: 'ionic' },
+  { eq: 'Pb²⁺ + 2I⁻ → PbI₂↓', expect: 'ok', stage: 'ionic' },
+  // гидролиз ацетатов и этерификация: ацетат-ион — частица, уксусная кислота и метилацетат — по записи формулы
+  { eq: 'CH3COO^- + H2O <=> CH3COOH + OH^-', expect: 'ok', stage: 'ionic' },
+  { eq: 'CH3COONH4 + H2O <=> CH3COOH + NH4OH', expect: 'ok', stage: 'organic' },
+  { eq: 'CH3COOH + CH3OH <=> CH3COOCH3 + H2O', expect: 'ok', stage: 'organic' },
+  // метилформиат HCOOCH₃ того же состава C₂H₄O₂, что и уксусная кислота, — не подменяется ею
+  { eq: 'HCOOH + CH3OH -> HCOOCH3 + H2O', expect: 'organic' },
+  // ядерные реакции — отдельная причина: реактор химический
+  { eq: '27/13/Al + 4/2/He -> 30/14/Si + 1/1/H', expect: 'nuclear' },
+  { eq: '²²⁶₈₈Ra → ²²²₈₆Rn + ⁴₂He', expect: 'nuclear' },
   { eq: 'Ca → CaO → Ca(OH)₂', expect: 'scheme' },
   { eq: 'Me + H2O = MeOH + H2', expect: 'scheme' },
   { eq: 'CH4 + 2O2 = CO2 + 2H2O', expect: 'ok', stage: 'organic' },
@@ -248,6 +263,53 @@ for (const g of [7, 8, 9]) {
     .map(([k, v]) => `${k} ${v}`)
     .join(', ')
   const line = `g${g}: ${ok}/${n} открываются (${((ok / n) * 100).toFixed(1)}%), из них только «шарами»: ${stageText || '0'}`
+  coverage.push(line)
+  console.log(`\n${line}`)
+  for (const [code, list] of Object.entries(fails)) console.log(`  ${code}: ${list.length}\n    - ${list.join('\n    - ')}`)
+}
+
+// ── каталог «Реакции учебника» 11 класса (src/data/textbook/equations-g11.json) ──
+// Общие схемы (Me, A + B) — не реакции с определённым составом; ядерные реакции — реактор химический.
+// Всё остальное открывается, и поле lab в json совпадает с резолвером (json не устарел).
+{
+  const g11 = JSON.parse(fs.readFileSync('src/data/textbook/equations-g11.json', 'utf8')) as {
+    units: { unitId: string; reactions: { id: string; page: number | null; equationAscii: string; isGeneralScheme: boolean; bankId: string | null; lab: { ok: boolean; reason?: string } }[] }[]
+  }
+  let n = 0
+  let ok = 0
+  let schemes = 0
+  const stage: Record<string, number> = {}
+  const fails: Record<string, string[]> = {}
+  for (const u of g11.units) {
+    for (const rx of u.reactions) {
+      const label = `g11 ${u.unitId} ${rx.id} p${rx.page} ${rx.equationAscii}`
+      if (rx.isGeneralScheme) {
+        schemes++
+        if (rx.lab.ok) tbProblems.push(`${label}: общая схема открывается в реакторе`)
+        continue
+      }
+      n++
+      const bankRes = rx.bankId ? resolveReactorEquation({ reactionId: rx.bankId }, { newId }) : null
+      const r = bankRes?.ok ? bankRes : resolveReactorEquation({ equation: rx.equationAscii }, { newId })
+      if (r.ok !== rx.lab.ok) tbProblems.push(`${label}: lab.ok в json ${rx.lab.ok}, резолвер ${r.ok} — перегенерируйте книгу`)
+      if (r.ok) {
+        ok++
+        if (r.stageOnly) stage[r.stageOnly] = (stage[r.stageOnly] ?? 0) + 1
+        tbProblems.push(...checkOk(label, r))
+      } else {
+        ;(fails[r.code] ??= []).push(`p${rx.page} ${rx.equationAscii}`)
+        if (r.code !== 'nuclear' && r.code !== 'generalFormula') tbProblems.push(`${label}: не открывается (${r.code} ${JSON.stringify(r.details)})`)
+        if (rx.lab.ok === false && rx.lab.reason !== r.code) tbProblems.push(`${label}: причина в json ${rx.lab.reason}, резолвер ${r.code}`)
+      }
+    }
+  }
+  const stageText = Object.entries(stage)
+    .map(([k, v]) => `${k} ${v}`)
+    .join(', ')
+  const failText = Object.entries(fails)
+    .map(([k, v]) => `${k} ${v.length}`)
+    .join(', ')
+  const line = `g11: ${ok}/${n} открываются (${((ok / n) * 100).toFixed(1)}%), из них только «шарами»: ${stageText || '0'}; не открываются: ${failText || '0'}; общих схем (карточки без реактора): ${schemes}`
   coverage.push(line)
   console.log(`\n${line}`)
   for (const [code, list] of Object.entries(fails)) console.log(`  ${code}: ${list.length}\n    - ${list.join('\n    - ')}`)

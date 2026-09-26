@@ -15,6 +15,7 @@ const REASON_KEYS: Record<string, MessageKey> = {
   generalFormula: 'learn.book.rx.unsupported.generalFormula',
   unknownSubstance: 'learn.book.rx.unsupported.unknownSubstance',
   organic: 'learn.book.rx.unsupported.organic',
+  nuclear: 'learn.book.rx.unsupported.nuclear',
   noCompoundProduct: 'learn.book.rx.unsupported.noCompoundProduct',
   tooManyTerms: 'learn.book.rx.unsupported.tooManyTerms',
   unbalanced: 'learn.book.rx.unsupported.unbalanced',

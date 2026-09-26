@@ -1,7 +1,7 @@
 {
  "grade": 11,
  "source": "public/textbooks/kimyo-11-ru.pdf (Kimyo 11, рус. изд.; нет текстового слоя — OCR + визуальная проверка страниц)",
- "generatedAt": "2026-09-16T08:42:16.616Z",
+ "generatedAt": "2026-09-26T19:33:16.824Z",
  "mergedFrom": [
   "src/data/textbook/inventory-g11-part1.json",
   "src/data/textbook/inventory-g11-part2.json"
@@ -89,30 +89,88 @@
    "CdSO4",
    "Cd(NO3)2"
   ],
-  "uniqueReactions": 175,
-  "uniqueReactionsReal": 156,
+  "uniqueReactions": 174,
+  "uniqueReactionsReal": 155,
   "uniqueGeneralSchemes": 19,
-  "uniqueIonic": 45,
+  "uniqueIonic": 46,
   "uniqueNuclear": 8,
   "uniqueMappedToBankExact": 26,
   "uniqueMappedToBankLoose": 1,
-  "unbalanced": 1
+  "unbalanced": 0
  },
  "verification": {
-  "method": "выборочная проверка: для каждого раздела выборки — OCR-текст страниц + рендер страниц PDF в PNG (pdfjs, масштаб 1.6–2) и сравнение со списком веществ/уравнений",
-  "sampledSections": [],
-  "pagesViewed": [],
-  "fixLog": [],
-  "unbalanced": [
-   {
-    "section": "c6-s03",
-    "page": 126,
-    "equation": "CO2 + O2 <=> CO",
-    "detail": "O: 4≠1",
-    "note": "так в книге (с. 126, тест 5, вариант 4); схема химически некорректна и не уравнивается — вероятно имелось в виду 2CO + O2 ⇌ 2CO2",
-    "unbalanceable": false
-   }
-  ]
+  "method": "выборочная проверка: для каждого раздела выборки — OCR-текст страниц + рендер страниц PDF в PNG (pdfjs, масштаб 1.6–2) и сравнение со списком веществ/уравнений; с. 55–59, 97–99, 107–117, 126–133, 142–143 — сверка с расшифровкой docs/textbook/g11-ionic-rate-redox-electrolysis.md",
+  "sampledSections": [
+   "c3-s02",
+   "c3-s03",
+   "c5-s01",
+   "c5-s02",
+   "c5-s03",
+   "c6-s01",
+   "c6-s02",
+   "c6-s03",
+   "c7-s01",
+   "c7-s02",
+   "c8-s01",
+   "c8-s02"
+  ],
+  "pagesViewed": [
+   126
+  ],
+  "fixLog": [
+   "[c3-s02] ~ reaction Pb(NO3)2 + 2KI -> PbI2(s) + 2KNO3 -> {\"catalogNote\":\"В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I. Иодид свинца(II) PbI₂ — жёлтый осадок.\"}",
+   "[c3-s02] ~ reaction Pb^2+ + 2NO3^- + 2K^+ + 2I^- -> PbI2(s) + 2K^+ + 2NO3^- -> {\"catalogNote\":\"Полное ионное уравнение. В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I.\"}",
+   "[c3-s02] ~ reaction Pb^2+ + 2I^- -> PbI2(s) -> {\"catalogNote\":\"Сокращённое ионное уравнение. В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I.\"}",
+   "[c3-s02] ~ reaction CO3^2- + 2H^+ <=> CO2(g) + H2O -> {\"equation\":\"CO₃²⁻ + 2H⁺ → CO₂↑ + H₂O\",\"equationAscii\":\"CO3^2- + 2H^+ -> CO2(g) + H2O\",\"catalogNote\":\"В учебнике здесь двусторонняя стрелка ⇄. Реакция идёт до конца: углекислый газ уходит из раствора, поэтому пишут →.\"}",
+   "[c3-s02] ~ reaction 2H^+ + 2OH^- -> 2H2O -> {\"catalogNote\":\"Так записано в учебнике. Сокращённое ионное уравнение пишут с наименьшими коэффициентами: H⁺ + OH⁻ → H₂O.\"}",
+   "[c3-s02] + reaction H^+ + OH^- -> H2O",
+   "[c3-s02] ~ reaction Ba^2+ + 2OH^- + 2NH4^+ + SO4^2- -> BaSO4(s) + 2NH3(g) + 2H2O -> {\"catalogNote\":\"Одновременно образуются осадок (BaSO₄↓), газ (NH₃↑) и вода — реакция идёт до конца.\"}",
+   "[c3-s03] ~ reaction NH4Cl + H2O <=> NH4OH + HCl -> {\"catalogNote\":\"Гидролиз по катиону, среда кислая. NH₄OH — школьная запись гидрата аммиака NH₃·H₂O. В учебнике вода записана как HOH.\"}",
+   "[c3-s03] ~ reaction NH4^+ + H2O <=> NH4OH + H^+ -> {\"catalogNote\":\"Гидролиз по катиону, среда кислая. NH₄OH — школьная запись гидрата аммиака NH₃·H₂O.\"}",
+   "[c3-s03] ~ reaction MgCl2 + 2H2O <=> Mg(OH)2 + 2HCl -> {\"catalogNote\":\"Упрощение учебника: гидролиз двухзарядного катиона идёт в основном по первой ступени — Mg²⁺ + H₂O ⇄ MgOH⁺ + H⁺ (MgCl₂ + H₂O ⇄ MgOHCl + HCl); среда кислая.\"}",
+   "[c3-s03] ~ reaction Mg^2+ + 2H2O <=> Mg(OH)2 + 2H^+ -> {\"catalogNote\":\"Упрощение учебника: гидролиз двухзарядного катиона идёт в основном по первой ступени — Mg²⁺ + H₂O ⇄ MgOH⁺ + H⁺ (MgCl₂ + H₂O ⇄ MgOHCl + HCl); среда кислая.\"}",
+   "[c3-s03] ~ reaction CH3COONa + H2O <=> CH3COOH + NaOH -> {\"catalogNote\":\"Гидролиз по аниону, среда щелочная. Ацетат натрия — натриевая соль уксусной (этановой) кислоты.\"}",
+   "[c3-s03] ~ reaction CH3COO^- + H2O <=> CH3COOH + OH^- -> {\"catalogNote\":\"Гидролиз по аниону: ацетат-ион связывает H⁺ воды, накапливаются OH⁻ — среда щелочная.\"}",
+   "[c3-s03] ~ reaction CH3COONH4 + H2O <=> CH3COOH + NH4OH -> {\"catalogNote\":\"Гидролиз по катиону и по аниону: слабая кислота и слабое основание — среда близка к нейтральной.\"}",
+   "[c3-s03] ~ reaction CH3COO^- + NH4^+ + H2O <=> CH3COOH + NH4OH -> {\"catalogNote\":\"Гидролиз по катиону и по аниону — среда близка к нейтральной.\"}",
+   "[c5-s01] ~ reaction BaCl2 + H2SO4 -> BaSO4 + 2HCl -> {\"catalogNote\":\"Пример быстрой реакции: осадок BaSO₄ выпадает сразу.\"}",
+   "[c5-s01] ~ reaction 4Fe + 6H2O + 3O2 -> 4Fe(OH)3 -> {\"catalogNote\":\"Пример медленной реакции — коррозия (ржавление) железа.\"}",
+   "[c5-s02] ~ reaction 4NH3 + 3O2 -> 2N2 + 6H2O -> {\"catalogNote\":\"Задача: v = k[NH₃]⁴[O₂]³; при увеличении давления в 2 раза скорость растёт в 2⁴·2³ = 128 раз. Закон действующих масс с коэффициентами уравнения в показателях верен только для элементарных реакций — это школьное упрощение.\"}",
+   "[c5-s02] ~ reaction C3H8 + 5O2 -> 3CO2 + 4H2O -> {\"catalogNote\":\"Задача 4 (k = 2, давление увеличили в 3 раза): v₀ = 2·1·1⁵ = 2; v = 2·3·3⁵ = 1458 моль/(л·мин) — скорость выросла в 3⁶ = 729 раз. Закон действующих масс с коэффициентами уравнения в показателях верен только для элементарных реакций — это школьное упрощение.\"}",
+   "[c5-s03] ~ reaction Fe2O3 + 3CO -> 2Fe + 3CO2 -> {\"catalogNote\":\"Задача (v = 8, давление уменьшили в 4 раза): твёрдые вещества в выражение скорости не входят, v = k[CO]³ — скорость уменьшится в 4³ = 64 раза, v = 0,125.\"}",
+   "[c6-s01] ~ reaction CaCl2 + H2SO4 -> CaSO4 + 2HCl -> {\"catalogNote\":\"Необратимая реакция: образуется осадок CaSO₄↓ (малорастворимый).\"}",
+   "[c6-s01] ~ reaction K2CO3 + 2HCl -> 2KCl + CO2 + H2O -> {\"catalogNote\":\"Необратимая реакция: выделяется газ CO₂↑.\"}",
+   "[c6-s01] ~ reaction NaOH + HCl -> NaCl + H2O -> {\"catalogNote\":\"Необратимая реакция: образуется вода (малодиссоциирующее вещество).\"}",
+   "[c6-s01] ~ reaction 2Mg + O2 -> 2MgO -> {\"conditions\":\"ΔH ≈ −1203 кДж\",\"catalogNote\":\"В учебнике «ΔH = −602,5 кДж/моль» — это теплота образования 1 моль MgO (справочно ΔH°f(MgO) = −601,6 кДж/моль, NIST). В уравнении образуется 2 моль MgO, поэтому для него ΔH ≈ 2·(−601,6) ≈ −1203 кДж. Необратимая реакция: выделяется много энергии.\"}",
+   "[c6-s01] ~ reaction SO2 + H2O <=> H2SO3 -> {\"catalogNote\":\"Обратимая реакция: сернистая кислота неустойчива и распадается обратно (см. следующее уравнение).\"}",
+   "[c6-s01] ~ reaction H2SO3 <=> SO2 + H2O -> {\"catalogNote\":\"Обратная реакция к SO₂ + H₂O ⇄ H₂SO₃.\"}",
+   "[c6-s02] ~ reaction CO2 + H2 <=> CO + H2O -> {\"catalogNote\":\"В учебнике две записи с одинарными стрелками: CO₂ + H₂ → CO + H₂O и CO + H₂O → CO₂ + H₂. Это прямая и обратная реакции одного равновесия: CO₂ + H₂ ⇄ CO + H₂O.\"}",
+   "[c6-s02] - reaction CO + H2O <=> CO2 + H2 (с. 117: обратная реакция того же равновесия CO₂ + H₂ ⇄ CO + H₂O (одна карточка))",
+   "[c6-s03] ~ reaction CO2 + O2 <=> CO -> {\"eq\":\"2CO + O2 <=> 2CO2\",\"type\":\"combustion\",\"catalogNote\":\"В учебнике (тест 5, вариант 4) напечатано «CO₂(г) + O₂(г) ⇄ CO(г)» — такой реакции нет (опечатка). По смыслу — горение угарного газа 2CO + O₂ ⇄ 2CO₂: газов 3 моль → 2 моль, давление влияет на равновесие.\"}",
+   "[c7-s01] ~ reaction 3As2S3 + 28HNO3 + 4H2O -> 6H3AsO4 + 9H2SO4 + 28NO -> {\"catalogNote\":\"Учебник называет эту запись «полным ионным уравнением» — на самом деле это молекулярное уравнение. Проверка: H 36 = 36, O 88 = 88.\"}",
+   "[c7-s02] ~ reaction 2KMnO4 + 5NaNO2 + 3H2SO4 -> 2MnSO4 + 5NaNO3 + K2SO4 + 3H2O -> {\"catalogNote\":\"Кислая среда: перманганат (фиолетовый) восстанавливается до бесцветного Mn²⁺.\"}",
+   "[c7-s02] ~ reaction 2MnO4^- + 6H^+ + 5NO2^- -> 2Mn^2+ + 3H2O + 5NO3^- -> {\"catalogNote\":\"В учебнике «… → 2Mn²⁺ + 8H₂O + 5NO₃⁻» — опечатка: после сокращения 5H₂O слева справа остаётся 3H₂O.\"}",
+   "[c7-s02] ~ reaction 2KMnO4 + 3NaNO2 + H2O -> 2MnO2 + 3NaNO3 + 2KOH -> {\"catalogNote\":\"Нейтральная среда: выпадает бурый осадок MnO₂.\"}",
+   "[c7-s02] ~ reaction 2KMnO4 + NaNO2 + 2KOH -> 2K2MnO4 + NaNO3 + H2O -> {\"catalogNote\":\"Щелочная среда: образуется манганат K₂MnO₄ — раствор зелёный.\"}",
+   "[c7-s01] ~ reaction NO2 + 2HI -> NO + I2 + H2O -> {\"catalogNote\":\"В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I.\"}",
+   "[c7-s03] ~ reaction K2Cr2O7 + 6KI + 7H2SO4 -> Cr2(SO4)3 + 3I2 + 4K2SO4 + 7H2O -> {\"catalogNote\":\"В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I. Оранжевый дихромат переходит в зелёную соль хрома(III).\"}",
+   "[c7-s03] ~ reaction 2I^- -> I2 + 2e^- -> {\"catalogNote\":\"В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I.\"}",
+   "[c7-s03] ~ reaction Cr2O7^2- + 14H^+ + 6I^- -> 2Cr^3+ + 7H2O + 3I2 -> {\"catalogNote\":\"В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I.\"}",
+   "[c8-s01] ~ reaction CuCl2 -> Cu + Cl2 -> {\"pages\":[143],\"conditions\":\"электролиз раствора\",\"catalogNote\":\"В учебнике: CuCl₂ + H₂O → Cu + Cl₂↑ + H₂O — вода записана слева и справа, в реакции она не участвует. Катод: Cu²⁺ + 2e⁻ → Cu; анод: 2Cl⁻ − 2e⁻ → Cl₂ (полуреакции — с. 139).\"}",
+   "[c8-s01] ~ reaction K2CO3 + 2H2O -> K2CO3 + 2H2 + O2 -> {\"eq\":\"2H2O -> 2H2 + O2\",\"pages\":[142],\"conditions\":\"электролиз раствора K₂CO₃\",\"catalogNote\":\"В учебнике: K₂CO₃ + 2H₂O → K₂CO₃ + 2H₂↑ + O₂↑. Карбонат калия — электролит, он не расходуется: по сути идёт электролиз воды (катод — H₂, анод — O₂).\"}",
+   "[c8-s02] ~ reaction K2CO3 + 2H2O -> K2CO3 + 2H2 + O2 -> {\"eq\":\"2H2O -> 2H2 + O2\",\"pages\":[146],\"conditions\":\"электролиз раствора K₂CO₃\",\"catalogNote\":\"В учебнике: K₂CO₃ + 2H₂O → K₂CO₃ + 2H₂↑ + O₂↑. Карбонат калия — электролит, он не расходуется: по сути идёт электролиз воды (катод — H₂, анод — O₂).\"}",
+   "[c8-s01] ~ reaction MnSO4 + 2H2O -> Mn + H2 + O2 + H2SO4 -> {\"catalogNote\":\"Металл средней активности: на катоде одновременно восстанавливаются Mn²⁺ и вода (Mn и H₂), на аноде — O₂. Уравнение уравнено (e⁻: 2 + 2 = 4); соотношение Mn и H₂ зависит от условий — это школьная запись.\"}",
+   "[c8-s01] ~ reaction 2MnCl2 + 2H2O -> Mn + H2 + 2Cl2 + Mn(OH)2 -> {\"catalogNote\":\"Металл средней активности: на катоде Mn и H₂, на аноде Cl₂.\"}",
+   "[c8-s01] ~ reaction 2CuSO4 + 2H2O -> 2Cu + O2 + 2H2SO4 -> {\"catalogNote\":\"Малоактивный металл (после H): на катоде только медь, на аноде O₂.\"}",
+   "[c8-s01] ~ reaction MeSO4 + 2H2O -> MeSO4 + 2H2 + O2 -> {\"eq\":\"MeSO4 + 2H2O -> MeSO4 + 2H2 + O2\",\"conditions\":\"электролиз раствора; активные металлы (Li … Al)\",\"catalogNote\":\"Соль не расходуется — по сути идёт электролиз воды: 2H₂O → 2H₂ + O₂ (катод — H₂, анод — O₂). В таблице учебника Al отнесён к металлам средней активности — это ошибка: из водных растворов Al³⁺ не восстанавливается (на катоде только H₂), алюминий получают электролизом расплава (учебник сам пишет это ниже на с. 143). Школьное правило: Li … Al — на катоде только H₂; после Al до H — металл и H₂; после H — только металл.\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
+   "[c8-s01] ~ reaction MeCl + 2H2O -> MeOH + H2 + Cl2 -> {\"eq\":\"2MeCl + 2H2O -> 2MeOH + H2 + Cl2\",\"conditions\":\"электролиз раствора; активные металлы\",\"catalogNote\":\"Катод — H₂ (у катода копится щёлочь MeOH), анод — Cl₂; пример — 2KCl + 2H₂O → H₂ + Cl₂ + 2KOH (с. 142). В учебнике: MeCl + 2H₂O → MeOH + H₂ + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
+   "[c8-s01] ~ reaction MeSO4 + 2H2O -> Me + H2 + O2 + H2SO4 -> {\"eq\":\"MeSO4 + 2H2O -> Me + H2 + O2 + H2SO4\",\"conditions\":\"электролиз раствора; металлы средней активности (после Al до H)\",\"catalogNote\":\"На катоде одновременно металл и H₂, на аноде — O₂; соотношение Me и H₂ зависит от условий (пример — MnSO₄, с. 142). Без выделения водорода: 2MeSO₄ + 2H₂O → 2Me + O₂ + 2H₂SO₄.\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
+   "[c8-s01] ~ reaction MeCl + 2H2O -> MeOH + Me + H2 + Cl2 -> {\"eq\":\"2MeCl2 + 2H2O -> Me + H2 + 2Cl2 + Me(OH)2\",\"conditions\":\"электролиз раствора; металлы средней активности (после Al до H)\",\"catalogNote\":\"Как в примере учебника с MnCl₂ (с. 143): на катоде металл и H₂, на аноде Cl₂. В учебнике: MeCl + 2H₂O → MeOH + Me + H₂ + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
+   "[c8-s01] ~ reaction MeSO4 + 2H2O -> Me + O2 + H2SO4 -> {\"eq\":\"2MeSO4 + 2H2O -> 2Me + O2 + 2H2SO4\",\"conditions\":\"электролиз раствора; малоактивные металлы (после H: Cu … Au)\",\"catalogNote\":\"На катоде только металл, на аноде O₂; пример — 2CuSO₄ + 2H₂O → 2Cu + O₂ + 2H₂SO₄. В учебнике: MeSO₄ + 2H₂O → Me + O₂ + H₂SO₄. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
+   "[c8-s01] ~ reaction MeCl + 2H2O -> Me + Cl2 + H2O -> {\"eq\":\"MeCl2 -> Me + Cl2\",\"conditions\":\"электролиз раствора; малоактивные металлы (после H)\",\"catalogNote\":\"Разлагается только соль, вода не участвует; пример — CuCl₂ → Cu + Cl₂. В учебнике: MeCl + 2H₂O → Me + Cl₂ + H₂O. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
+   "[c8-s01] ~ reaction MeCl -> Me + Cl2 -> {\"eq\":\"2MeCl -> 2Me + Cl2\",\"conditions\":\"электролиз расплава; все металлы\",\"catalogNote\":\"Расплав: катод — металл, анод — Cl₂; пример — 2NaCl → 2Na + Cl₂ (с. 140). В учебнике: MeCl → Me + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true}"
+  ],
+  "unbalanced": []
  },
  "sections": [
   {
@@ -4831,6 +4889,7 @@
      "quote": "1. Реакции, протекающие с образованием осадка: Pb(NO3)2 + 2KJ → PbJ2↓ + 2KNO3 (молекулярное уравнение)",
      "bankId": "pb-no3-ki",
      "note": "в книге иод обозначен J (KJ, PbJ2)",
+     "catalogNote": "В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I. Иодид свинца(II) PbI₂ — жёлтый осадок.",
      "bankMatch": "exact"
     },
     {
@@ -4881,7 +4940,8 @@
      ],
      "quote": "Pb2+ + 2NO3- + 2K+ + 2J- → PbJ2↓ + 2K+ + 2NO3- (полное ионное уравнение)",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Полное ионное уравнение. В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I."
     },
     {
      "equationAsInBook": "Pb2+ + 2J- → PbJ2↓ (сокращенное ионное уравнение)",
@@ -4915,7 +4975,8 @@
      ],
      "quote": "Pb2+ + 2J- → PbJ2↓ (сокращенное ионное уравнение)",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Сокращённое ионное уравнение. В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I."
     },
     {
      "equationAsInBook": "Na2CO3 + 2HCl → 2NaCl + H2CO3 → H2O + CO2↑",
@@ -5016,8 +5077,8 @@
     },
     {
      "equationAsInBook": "CO3 2- + 2H+ ⟷ CO2↑ + H2O",
-     "equation": "CO₃²⁻ + 2H⁺ ⇌ CO₂↑ + H₂O",
-     "equationAscii": "CO3^2- + 2H^+ <=> CO2(g) + H2O",
+     "equation": "CO₃²⁻ + 2H⁺ → CO₂↑ + H₂O",
+     "equationAscii": "CO3^2- + 2H^+ -> CO2(g) + H2O",
      "reactants": [
       {
        "formula": "CO3^2-",
@@ -5050,7 +5111,8 @@
      ],
      "quote": "CO32- + 2H+ ⟷ CO2↑ + H2O",
      "bankId": null,
-     "note": "в книге двусторонняя стрелка"
+     "note": "в книге двусторонняя стрелка",
+     "catalogNote": "В учебнике здесь двусторонняя стрелка ⇄. Реакция идёт до конца: углекислый газ уходит из раствора, поэтому пишут →."
     },
     {
      "equationAsInBook": "H2SO4 + 2KOH → K2SO4 + 2H2O",
@@ -5173,7 +5235,8 @@
      ],
      "quote": "2H+ + 2OH- → 2H2O",
      "bankId": null,
-     "note": "коэффициенты не сокращены (в книге 2H+ + 2OH- → 2H2O)"
+     "note": "коэффициенты не сокращены (в книге 2H+ + 2OH- → 2H2O)",
+     "catalogNote": "Так записано в учебнике. Сокращённое ионное уравнение пишут с наименьшими коэффициентами: H⁺ + OH⁻ → H₂O."
     },
     {
      "equationAsInBook": "Ba(OH)2 + (NH4)2SO4 → BaSO4↓ + 2NH3↑ + 2H2O",
@@ -5265,7 +5328,8 @@
      ],
      "quote": "Ba2+ + 2OH- + 2NH4+ + SO42- → BaSO4↓ + 2NH3↑ + 2H2O",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Одновременно образуются осадок (BaSO₄↓), газ (NH₃↑) и вода — реакция идёт до конца."
     },
     {
      "equationAsInBook": "CaCl2 ⟷ Ca2+ + 2Cl-",
@@ -5300,6 +5364,41 @@
      "quote": "Теперь напишем процесс диссоциации хлорида кальция CaCl2 ⟷ Ca2+ + 2Cl-",
      "bankId": null,
      "note": null
+    },
+    {
+     "equationAsInBook": null,
+     "equation": "H⁺ + OH^- -> H2O",
+     "equationAscii": "H^+ + OH^- -> H2O",
+     "reactants": [
+      {
+       "formula": "H^+",
+       "coeff": 1
+      },
+      {
+       "formula": "OH^-",
+       "coeff": 1
+      }
+     ],
+     "products": [
+      {
+       "formula": "H2O",
+       "coeff": 1
+      }
+     ],
+     "conditions": null,
+     "type": "neutralization",
+     "subtype": "net-ionic",
+     "isGeneralScheme": false,
+     "isIonic": true,
+     "balanced": true,
+     "page": 56,
+     "pages": [
+      56
+     ],
+     "quote": null,
+     "bankId": null,
+     "note": null,
+     "catalogNote": "Сокращённое ионное уравнение нейтрализации H₂SO₄ + 2KOH с наименьшими коэффициентами (в учебнике — 2H⁺ + 2OH⁻ → 2H₂O)."
     },
     {
      "equationAsInBook": "HNO2 ⟷ H+ + NO2-",
@@ -6261,6 +6360,7 @@
      "quote": "1. Гидролиз соли, образованной сильной кислотой и слабым основанием называется гидролизом по катитону: NH4Cl + HOH ⟷ NH4OH + HCl",
      "bankId": "nh4cl-hydrolysis",
      "note": "в книге вода записана как HOH; в банке реакций продукт записан как NH3 + HCl вместо NH4OH",
+     "catalogNote": "Гидролиз по катиону, среда кислая. NH₄OH — школьная запись гидрата аммиака NH₃·H₂O. В учебнике вода записана как HOH.",
      "bankMatch": "equivalent"
     },
     {
@@ -6345,7 +6445,8 @@
      ],
      "quote": "NH4+ + HOH ⟷ NH4OH + H+",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Гидролиз по катиону, среда кислая. NH₄OH — школьная запись гидрата аммиака NH₃·H₂O."
     },
     {
      "equationAsInBook": "MgCl2 + 2HOH ⟷ Mg(OH)2 + 2HCl",
@@ -6383,7 +6484,8 @@
      ],
      "quote": "или MgCl2 + 2HOH ⟷ Mg(OH)2 + 2HCl",
      "bankId": null,
-     "note": "в книге гидролиз записан упрощённо в одну ступень (без MgOHCl)"
+     "note": "в книге гидролиз записан упрощённо в одну ступень (без MgOHCl)",
+     "catalogNote": "Упрощение учебника: гидролиз двухзарядного катиона идёт в основном по первой ступени — Mg²⁺ + H₂O ⇄ MgOH⁺ + H⁺ (MgCl₂ + H₂O ⇄ MgOHCl + HCl); среда кислая."
     },
     {
      "equationAsInBook": "Mg2+ + 2Cl- + 2HOH ⟷ Mg(OH)2 + 2H+ + 2Cl-",
@@ -6467,7 +6569,8 @@
      ],
      "quote": "Mg2+ + 2HOH ⟷ Mg(OH)2 + 2H+",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Упрощение учебника: гидролиз двухзарядного катиона идёт в основном по первой ступени — Mg²⁺ + H₂O ⇄ MgOH⁺ + H⁺ (MgCl₂ + H₂O ⇄ MgOHCl + HCl); среда кислая."
     },
     {
      "equationAsInBook": "CH3COONa + HOH ⟷ CH3COOH + NaOH",
@@ -6505,7 +6608,8 @@
      ],
      "quote": "2. Гидролиз соли,образованной слабой кислотой и сильным основанием называется гидролизом по аниону. CH3COONa + HOH ⟷ CH3COOH + NaOH",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Гидролиз по аниону, среда щелочная. Ацетат натрия — натриевая соль уксусной (этановой) кислоты."
     },
     {
      "equationAsInBook": "CH3COO- + Na+ + HOH ⟷ CH3COOH + Na+ + OH-",
@@ -6589,7 +6693,8 @@
      ],
      "quote": "CH3COO- + HOH ⟷ CH3COOH + OH-",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Гидролиз по аниону: ацетат-ион связывает H⁺ воды, накапливаются OH⁻ — среда щелочная."
     },
     {
      "equationAsInBook": "CH3COONH4 + HOH ⟷ CH3COOH + NH4OH",
@@ -6627,7 +6732,8 @@
      ],
      "quote": "3. Гидролиз соли, образованной слабой кислотой и слабым основанием называется гидролизом и по катиону и по аниону",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Гидролиз по катиону и по аниону: слабая кислота и слабое основание — среда близка к нейтральной."
     },
     {
      "equationAsInBook": "CH3COO- + NH4+ + HOH ⟷ CH3COOH + NH4OH",
@@ -6669,7 +6775,8 @@
      ],
      "quote": "CH3COO- + NH4+ + HOH ⟷ CH3COOH + NH4OH",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Гидролиз по катиону и по аниону — среда близка к нейтральной."
     },
     {
      "equationAsInBook": "H2O ⟷ H+ + OH-",
@@ -9835,6 +9942,7 @@
      "quote": "Если смешать растворы хлорида бария и серной кислоты, за довольно короткое время образуется белый осадок сульфата бария.",
      "bankId": "bacl2-h2so4",
      "note": null,
+     "catalogNote": "Пример быстрой реакции: осадок BaSO₄ выпадает сразу.",
      "bankMatch": "exact"
     },
     {
@@ -9873,7 +9981,8 @@
      ],
      "quote": "А вот коррозия железа протекает довольно долго. 4Fe + 6H2O + 3O2 → 4Fe(OH)3",
      "bankId": null,
-     "note": "коррозия железа (пример медленной реакции)"
+     "note": "коррозия железа (пример медленной реакции)",
+     "catalogNote": "Пример медленной реакции — коррозия (ржавление) железа."
     },
     {
      "equationAsInBook": "2K + 2H2O = 2KOH + H2↑",
@@ -10972,7 +11081,8 @@
      "note": null,
      "variantsAsInBook": [
       "NH3 + O2 ⇌ N2 + H2O (схема без коэффициентов)"
-     ]
+     ],
+     "catalogNote": "Задача: v = k[NH₃]⁴[O₂]³; при увеличении давления в 2 раза скорость растёт в 2⁴·2³ = 128 раз. Закон действующих масс с коэффициентами уравнения в показателях верен только для элементарных реакций — это школьное упрощение."
     },
     {
      "equationAsInBook": "C3H8 + 5O2 → 3CO2 + 4H2O",
@@ -11013,7 +11123,8 @@
      "note": null,
      "variantsAsInBook": [
       "C3H8 + O2 → CO2 + H2O (схема)"
-     ]
+     ],
+     "catalogNote": "Задача 4 (k = 2, давление увеличили в 3 раза): v₀ = 2·1·1⁵ = 2; v = 2·3·3⁵ = 1458 моль/(л·мин) — скорость выросла в 3⁶ = 729 раз. Закон действующих масс с коэффициентами уравнения в показателях верен только для элементарных реакций — это школьное упрощение."
     },
     {
      "equationAsInBook": "2NH3(г) ⇌ N2(г)+3H2(г)",
@@ -11401,7 +11512,8 @@
      "note": null,
      "variantsAsInBook": [
       "Fe2O3(тв) + СО(г) → Fe(тв) + СО2(г) (схема)"
-     ]
+     ],
+     "catalogNote": "Задача (v = 8, давление уменьшили в 4 раза): твёрдые вещества в выражение скорости не входят, v = k[CO]³ — скорость уменьшится в 4³ = 64 раза, v = 0,125."
     },
     {
      "equationAsInBook": "CH4 + O2 → CO2 + H2O",
@@ -12040,7 +12152,8 @@
      ],
      "quote": "Реакции будут необратимыми… 1. Из системы реакции в качестве продуктов выделяется газ или выпадает осадок",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Необратимая реакция: образуется осадок CaSO₄↓ (малорастворимый)."
     },
     {
      "equationAsInBook": "K2CO3 + 2HCl → 2KCl + CO2↑ + H2O",
@@ -12083,6 +12196,7 @@
      "quote": "Из системы реакции в качестве продуктов выделяется газ или выпадает осадок",
      "bankId": "k2co3-hcl",
      "note": null,
+     "catalogNote": "Необратимая реакция: выделяется газ CO₂↑.",
      "bankMatch": "exact"
     },
     {
@@ -12122,6 +12236,7 @@
      "quote": "2. Продуктом реакции является малодиссоциируемое вещество, например вода",
      "bankId": "naoh-hcl",
      "note": null,
+     "catalogNote": "Необратимая реакция: образуется вода (малодиссоциирующее вещество).",
      "bankMatch": "exact"
     },
     {
@@ -12144,7 +12259,7 @@
        "coeff": 2
       }
      ],
-     "conditions": "ΔH = −602,5 кДж/моль",
+     "conditions": "ΔH ≈ −1203 кДж",
      "type": "combustion",
      "subtype": null,
      "isGeneralScheme": false,
@@ -12157,6 +12272,7 @@
      "quote": "3. В результате реакции выделяется большое количество энергии, например при горении магния",
      "bankId": "mg-o2-mgo",
      "note": null,
+     "catalogNote": "В учебнике «ΔH = −602,5 кДж/моль» — это теплота образования 1 моль MgO (справочно ΔH°f(MgO) = −601,6 кДж/моль, NIST). В уравнении образуется 2 моль MgO, поэтому для него ΔH ≈ 2·(−601,6) ≈ −1203 кДж. Необратимая реакция: выделяется много энергии.",
      "bankMatch": "exact"
     },
     {
@@ -12192,6 +12308,7 @@
      "quote": "Оксид серы (IV), взаимодействуя с водой, образует сернистую кислоту",
      "bankId": "so2-h2o",
      "note": null,
+     "catalogNote": "Обратимая реакция: сернистая кислота неустойчива и распадается обратно (см. следующее уравнение).",
      "bankMatch": "exact"
     },
     {
@@ -12226,7 +12343,8 @@
      ],
      "quote": "с увеличением количества образующегося сернистой кислоты в растворе, начинает протекать и обратная реакция",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Обратная реакция к SO₂ + H₂O ⇄ H₂SO₃."
     },
     {
      "equationAsInBook": "aA + bB = cC + dD",
@@ -13117,45 +13235,8 @@
      ],
      "quote": "если в систему, находящейся в состоянии равновесия, добавить дополнительно СО2… химическое равновесие сместится вправо",
      "bankId": null,
-     "note": null
-    },
-    {
-     "equationAsInBook": "СО + H2O → CO2 + H2",
-     "equation": "CO + H₂O ⇌ CO₂ + H₂",
-     "equationAscii": "CO + H2O <=> CO2 + H2",
-     "reactants": [
-      {
-       "formula": "CO",
-       "coeff": 1
-      },
-      {
-       "formula": "H2O",
-       "coeff": 1
-      }
-     ],
-     "products": [
-      {
-       "formula": "CO2",
-       "coeff": 1
-      },
-      {
-       "formula": "H2",
-       "coeff": 1
-      }
-     ],
-     "conditions": null,
-     "type": "redox",
-     "subtype": null,
-     "isGeneralScheme": false,
-     "isIonic": false,
-     "balanced": true,
-     "page": 117,
-     "pages": [
-      117
-     ],
-     "quote": "при увеличении концентрации СО… химическое равновесие сместится в сторону обратной реакции.",
-     "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "В учебнике две записи с одинарными стрелками: CO₂ + H₂ → CO + H₂O и CO + H₂O → CO₂ + H₂. Это прямая и обратная реакции одного равновесия: CO₂ + H₂ ⇄ CO + H₂O."
     },
     {
      "equationAsInBook": "2SO2 + O2 ⇌ 2SO3 + Q",
@@ -14545,12 +14626,12 @@
     },
     {
      "equationAsInBook": "CO2(г) + O2(г) ⇌ CO(г)",
-     "equation": "CO₂ + O₂ ⇌ CO",
-     "equationAscii": "CO2 + O2 <=> CO",
+     "equation": "2CO + O2 <=> 2CO2",
+     "equationAscii": "2CO + O2 <=> 2CO2",
      "reactants": [
       {
-       "formula": "CO2",
-       "coeff": 1
+       "formula": "CO",
+       "coeff": 2
       },
       {
        "formula": "O2",
@@ -14559,24 +14640,25 @@
      ],
      "products": [
       {
-       "formula": "CO",
-       "coeff": 1
+       "formula": "CO2",
+       "coeff": 2
       }
      ],
      "conditions": "газы",
-     "type": "other",
+     "type": "combustion",
      "subtype": null,
      "isGeneralScheme": false,
      "isIonic": false,
-     "balanced": false,
+     "balanced": true,
      "page": 126,
      "pages": [
       126
      ],
      "quote": "4) CO2(г) + O2(г) ⇌ CO(г)",
-     "bankId": null,
+     "bankId": "co-o2-co2",
      "note": "так в книге (с. 126, тест 5, вариант 4); схема химически некорректна и не уравнивается — вероятно имелось в виду 2CO + O2 ⇌ 2CO2",
-     "balanceDetail": "O: 4≠1"
+     "catalogNote": "В учебнике (тест 5, вариант 4) напечатано «CO₂(г) + O₂(г) ⇄ CO(г)» — такой реакции нет (опечатка). По смыслу — горение угарного газа 2CO + O₂ ⇄ 2CO₂: газов 3 моль → 2 моль, давление влияет на равновесие.",
+     "bankMatch": "exact"
     },
     {
      "equationAsInBook": null,
@@ -15366,7 +15448,8 @@
      "note": null,
      "variantsAsInBook": [
       "As2S3 + HNO3 + H2O → H3AsO4 + H2SO4 + NO (с. 127, схема)"
-     ]
+     ],
+     "catalogNote": "Учебник называет эту запись «полным ионным уравнением» — на самом деле это молекулярное уравнение. Проверка: H 36 = 36, O 88 = 88."
     },
     {
      "equationAsInBook": "NO3- + 4H+ + 3е → NO + 2H2O",
@@ -15848,7 +15931,8 @@
      ],
      "quote": "4) NO2 + HJ = NO + J2 + H2O",
      "bankId": null,
-     "note": "в книге йод обозначен J; схема без коэффициентов (упражнения 1 и 2)"
+     "note": "в книге йод обозначен J; схема без коэффициентов (упражнения 1 и 2)",
+     "catalogNote": "В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I."
     },
     {
      "equationAsInBook": "NO2 = NO + O2",
@@ -16714,7 +16798,8 @@
      "note": null,
      "variantsAsInBook": [
       "KMnO4 + NaNO2 + H2SO4 → MnSO4 + NaNO3 + K2SO4 + H2O (схема)"
-     ]
+     ],
+     "catalogNote": "Кислая среда: перманганат (фиолетовый) восстанавливается до бесцветного Mn²⁺."
     },
     {
      "equationAsInBook": "MnO4- + 8H+ + 5e → Mn2+ + 4H2O",
@@ -16844,7 +16929,8 @@
      ],
      "quote": "2MnO4- + 16H+ + 5NO2- + 5H2O → 2Mn2+ + 8H2O + 5NO3- + 10H+",
      "bankId": null,
-     "note": "в книге после сокращения оставлено 8H2O (опечатка) — должно быть 3H2O; исправлено"
+     "note": "в книге после сокращения оставлено 8H2O (опечатка) — должно быть 3H2O; исправлено",
+     "catalogNote": "В учебнике «… → 2Mn²⁺ + 8H₂O + 5NO₃⁻» — опечатка: после сокращения 5H₂O слева справа остаётся 3H₂O."
     },
     {
      "equationAsInBook": "2KMnO4 + 3NaNO2 + H2O → 2MnO2 + 3NaNO3 + 2KOH",
@@ -16893,7 +16979,8 @@
      "note": null,
      "variantsAsInBook": [
       "KMnO4 + NaNO2 + H2O → MnO2 + NaNO3 + KOH (схема)"
-     ]
+     ],
+     "catalogNote": "Нейтральная среда: выпадает бурый осадок MnO₂."
     },
     {
      "equationAsInBook": "MnO4- + 2H2O + 3e → MnO2 + 4OH-",
@@ -17075,7 +17162,8 @@
      "note": null,
      "variantsAsInBook": [
       "KMnO4 + NaNO2 + KOH → K2MnO4 + NaNO3 + H2O (схема)"
-     ]
+     ],
+     "catalogNote": "Щелочная среда: образуется манганат K₂MnO₄ — раствор зелёный."
     },
     {
      "equationAsInBook": "MnO4- + 1е → MnO4 2-",
@@ -18065,6 +18153,7 @@
      "variantsAsInBook": [
       "K2Cr2O7 + KJ + H2SO4 → Cr2(SO4)3 + J2 + K2SO4 + H2O (схема)"
      ],
+     "catalogNote": "В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I. Оранжевый дихромат переходит в зелёную соль хрома(III).",
      "bankMatch": "exact"
     },
     {
@@ -18141,7 +18230,8 @@
      ],
      "quote": "2 моля восстановителя (KJ) принимает 2 электрона.",
      "bankId": null,
-     "note": "в книге йод обозначен J"
+     "note": "в книге йод обозначен J",
+     "catalogNote": "В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I."
     },
     {
      "equationAsInBook": "Cr2O7 2- + 14H+ + 6J- → 2Cr3+ + 7H2O + 3J2",
@@ -18187,7 +18277,8 @@
      ],
      "quote": "Сначала уравняем реакцию.",
      "bankId": null,
-     "note": "в книге йод обозначен J"
+     "note": "в книге йод обозначен J",
+     "catalogNote": "В учебнике иод записан старым символом J (KJ, PbJ₂, J₂); сейчас его обозначают I."
     },
     {
      "equationAsInBook": "10FeSO4 + 2KMnO4 + 8H2SO4 → 5Fe2(SO4)3 + 2MnSO4 + K2SO4 + 8H2O",
@@ -19883,42 +19974,6 @@
      "note": null
     },
     {
-     "equationAsInBook": "CuCl2 + H2O → Cu + Cl2↑ + H2O",
-     "equation": "CuCl₂ → Cu + Cl₂↑",
-     "equationAscii": "CuCl2 -> Cu + Cl2",
-     "reactants": [
-      {
-       "formula": "CuCl2",
-       "coeff": 1
-      }
-     ],
-     "products": [
-      {
-       "formula": "Cu",
-       "coeff": 1
-      },
-      {
-       "formula": "Cl2",
-       "coeff": 1
-      }
-     ],
-     "conditions": "электролиз (раствор)",
-     "type": "redox",
-     "subtype": "electrolysis",
-     "isGeneralScheme": false,
-     "isIonic": false,
-     "balanced": true,
-     "page": 139,
-     "pages": [
-      139,
-      141,
-      143
-     ],
-     "quote": "6. При электролизе пассивных металлов, растворы солей содержащие осадок безкислородной кислоты: электролизуется только соль, вода остается неизменной.",
-     "bankId": null,
-     "note": "в книге с. 143: CuCl2 + H2O → Cu + Cl2↑ + H2O (вода не изменяется); на с. 139–141 процесс описан словами и полуреакциями"
-    },
-    {
      "equationAsInBook": "Na+ + e = Na",
      "equation": "Na⁺ + e⁻ → Na",
      "equationAscii": "Na^+ + e^- -> Na",
@@ -20026,23 +20081,15 @@
     },
     {
      "equationAsInBook": "K2CO3 + 2H2O → K2CO3 + 2H2↑ + O2↑",
-     "equation": "K₂CO₃ + 2H₂O → K₂CO₃ + 2H₂↑ + O₂↑",
-     "equationAscii": "K2CO3 + 2H2O -> K2CO3 + 2H2 + O2",
+     "equation": "2H2O -> 2H2 + O₂",
+     "equationAscii": "2H2O -> 2H2 + O2",
      "reactants": [
-      {
-       "formula": "K2CO3",
-       "coeff": 1
-      },
       {
        "formula": "H2O",
        "coeff": 2
       }
      ],
      "products": [
-      {
-       "formula": "K2CO3",
-       "coeff": 1
-      },
       {
        "formula": "H2",
        "coeff": 2
@@ -20052,7 +20099,7 @@
        "coeff": 1
       }
      ],
-     "conditions": "электролиз раствора",
+     "conditions": "электролиз раствора K₂CO₃",
      "type": "decomposition",
      "subtype": "electrolysis",
      "isGeneralScheme": false,
@@ -20064,7 +20111,8 @@
      ],
      "quote": "1. При электролизе солей, состоящих из активного металла и остатка кислородсодержащей кислоты, на катоде выделится водород а на аноде кислород.",
      "bankId": null,
-     "note": "по сути электролиз воды: 2H2O → 2H2 + O2"
+     "note": "по сути электролиз воды: 2H2O → 2H2 + O2",
+     "catalogNote": "В учебнике: K₂CO₃ + 2H₂O → K₂CO₃ + 2H₂↑ + O₂↑. Карбонат калия — электролит, он не расходуется: по сути идёт электролиз воды (катод — H₂, анод — O₂)."
     },
     {
      "equationAsInBook": "2KCl + 2H2O → H2↑ + Cl2↑ + 2KOH",
@@ -20152,7 +20200,43 @@
      ],
      "quote": "3. При электролизе солей, состоящих из металла средней активности и остатка кислородсодержащей кислоты на катоде выделится металл и водород",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Металл средней активности: на катоде одновременно восстанавливаются Mn²⁺ и вода (Mn и H₂), на аноде — O₂. Уравнение уравнено (e⁻: 2 + 2 = 4); соотношение Mn и H₂ зависит от условий — это школьная запись."
+    },
+    {
+     "equationAsInBook": "CuCl2 + H2O → Cu + Cl2↑ + H2O",
+     "equation": "CuCl₂ → Cu + Cl₂↑",
+     "equationAscii": "CuCl2 -> Cu + Cl2",
+     "reactants": [
+      {
+       "formula": "CuCl2",
+       "coeff": 1
+      }
+     ],
+     "products": [
+      {
+       "formula": "Cu",
+       "coeff": 1
+      },
+      {
+       "formula": "Cl2",
+       "coeff": 1
+      }
+     ],
+     "conditions": "электролиз раствора",
+     "type": "redox",
+     "subtype": "electrolysis",
+     "isGeneralScheme": false,
+     "isIonic": false,
+     "balanced": true,
+     "page": 143,
+     "pages": [
+      143
+     ],
+     "quote": "6. При электролизе пассивных металлов, растворы солей содержащие осадок безкислородной кислоты: электролизуется только соль, вода остается неизменной.",
+     "bankId": null,
+     "note": "в книге с. 143: CuCl2 + H2O → Cu + Cl2↑ + H2O (вода не изменяется); на с. 139–141 процесс описан словами и полуреакциями",
+     "catalogNote": "В учебнике: CuCl₂ + H₂O → Cu + Cl₂↑ + H₂O — вода записана слева и справа, в реакции она не участвует. Катод: Cu²⁺ + 2e⁻ → Cu; анод: 2Cl⁻ − 2e⁻ → Cl₂ (полуреакции — с. 139)."
     },
     {
      "equationAsInBook": "2MnCl2 + 2H2O → Mn + H2↑ + 2Cl2↑ + Mn(OH)2",
@@ -20198,7 +20282,8 @@
      ],
      "quote": "4. При электролизе солей, состоящих из металла средней активности и остатка бескислородной кислоты, на катоде выделится металл и водород",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Металл средней активности: на катоде Mn и H₂, на аноде Cl₂."
     },
     {
      "equationAsInBook": "2CuSO4 + 2H2O → 2Cu + O2↑ + 2H2SO4",
@@ -20240,11 +20325,12 @@
      ],
      "quote": "5. При электролизе пассивных металлов, растворы солей содержащие остаток кислородной кислоты: на катоде отделяется металл, на аноде кислород",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Малоактивный металл (после H): на катоде только медь, на аноде O₂."
     },
     {
      "equationAsInBook": "MeSO4 + 2H2O → MeSO4 + 2H2 + O2",
-     "equation": "MeSO4 + 2H₂O → MeSO4 + 2H₂ + O₂",
+     "equation": "MeSO4 + 2H2O -> MeSO4 + 2H₂ + O₂",
      "equationAscii": "MeSO4 + 2H2O -> MeSO4 + 2H2 + O2",
      "reactants": [
       {
@@ -20270,7 +20356,7 @@
        "coeff": 1
       }
      ],
-     "conditions": "электролиз раствора; активные металлы (Li … Be)",
+     "conditions": "электролиз раствора; активные металлы (Li … Al)",
      "type": "decomposition",
      "subtype": "electrolysis",
      "isGeneralScheme": true,
@@ -20282,11 +20368,13 @@
      ],
      "quote": "Таблица: растворы, кислородные, Li, Cs, Rb, K, Ba, Sr, Ca, Na, Mg, Be",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Соль не расходуется — по сути идёт электролиз воды: 2H₂O → 2H₂ + O₂ (катод — H₂, анод — O₂). В таблице учебника Al отнесён к металлам средней активности — это ошибка: из водных растворов Al³⁺ не восстанавливается (на катоде только H₂), алюминий получают электролизом расплава (учебник сам пишет это ниже на с. 143). Школьное правило: Li … Al — на катоде только H₂; после Al до H — металл и H₂; после H — только металл.",
+     "showInCatalog": true
     },
     {
      "equationAsInBook": "MeSO4 + 2H2O → Me + H2 + O2 + H2SO4",
-     "equation": "MeSO4 + 2H₂O → Me + H₂ + O₂ + H₂SO₄",
+     "equation": "MeSO4 + 2H2O -> Me + H₂ + O₂ + H₂SO₄",
      "equationAscii": "MeSO4 + 2H2O -> Me + H2 + O2 + H2SO4",
      "reactants": [
       {
@@ -20316,7 +20404,7 @@
        "coeff": 1
       }
      ],
-     "conditions": "электролиз раствора; металлы средней активности (Al … Pb)",
+     "conditions": "электролиз раствора; металлы средней активности (после Al до H)",
      "type": "redox",
      "subtype": "electrolysis",
      "isGeneralScheme": true,
@@ -20328,16 +20416,18 @@
      ],
      "quote": "Таблица: растворы, кислородные, Al, Mn, Zn, Cr, Fe, Cd, Co, Ni, Sn, Pb",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "На катоде одновременно металл и H₂, на аноде — O₂; соотношение Me и H₂ зависит от условий (пример — MnSO₄, с. 142). Без выделения водорода: 2MeSO₄ + 2H₂O → 2Me + O₂ + 2H₂SO₄.",
+     "showInCatalog": true
     },
     {
      "equationAsInBook": "MeSO4 + 2H2O → Me + O2 + H2SO4",
-     "equation": "MeSO4 + 2H₂O → Me + O₂ + H₂SO₄",
-     "equationAscii": "MeSO4 + 2H2O -> Me + O2 + H2SO4",
+     "equation": "2MeSO4 + 2H2O -> 2Me + O₂ + 2H₂SO₄",
+     "equationAscii": "2MeSO4 + 2H2O -> 2Me + O2 + 2H2SO4",
      "reactants": [
       {
        "formula": "MeSO4",
-       "coeff": 1
+       "coeff": 2
       },
       {
        "formula": "H2O",
@@ -20347,7 +20437,7 @@
      "products": [
       {
        "formula": "Me",
-       "coeff": 1
+       "coeff": 2
       },
       {
        "formula": "O2",
@@ -20355,10 +20445,10 @@
       },
       {
        "formula": "H2SO4",
-       "coeff": 1
+       "coeff": 2
       }
      ],
-     "conditions": "электролиз раствора; пассивные металлы (Cu … Au)",
+     "conditions": "электролиз раствора; малоактивные металлы (после H: Cu … Au)",
      "type": "redox",
      "subtype": "electrolysis",
      "isGeneralScheme": true,
@@ -20370,16 +20460,18 @@
      ],
      "quote": "Таблица: растворы, кислородные, Cu, Hg, Ag, Pd, Pt, Au",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "На катоде только металл, на аноде O₂; пример — 2CuSO₄ + 2H₂O → 2Cu + O₂ + 2H₂SO₄. В учебнике: MeSO₄ + 2H₂O → Me + O₂ + H₂SO₄. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
+     "showInCatalog": true
     },
     {
      "equationAsInBook": "MeCl + 2H2O → MeOH + H2 + Cl2",
-     "equation": "MeCl + 2H₂O → MeOH + H₂ + Cl₂",
-     "equationAscii": "MeCl + 2H2O -> MeOH + H2 + Cl2",
+     "equation": "2MeCl + 2H2O -> 2MeOH + H₂ + Cl₂",
+     "equationAscii": "2MeCl + 2H2O -> 2MeOH + H2 + Cl2",
      "reactants": [
       {
        "formula": "MeCl",
-       "coeff": 1
+       "coeff": 2
       },
       {
        "formula": "H2O",
@@ -20389,7 +20481,7 @@
      "products": [
       {
        "formula": "MeOH",
-       "coeff": 1
+       "coeff": 2
       },
       {
        "formula": "H2",
@@ -20412,16 +20504,18 @@
      ],
      "quote": "Таблица: растворы, бескислородные, Li, Cs, Rb, K, Ba, Sr, Ca, Na, Mg, Be",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Катод — H₂ (у катода копится щёлочь MeOH), анод — Cl₂; пример — 2KCl + 2H₂O → H₂ + Cl₂ + 2KOH (с. 142). В учебнике: MeCl + 2H₂O → MeOH + H₂ + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
+     "showInCatalog": true
     },
     {
      "equationAsInBook": "MeCl + 2H2O → MeOH + Me + H2 + Cl2",
-     "equation": "MeCl + 2H₂O → MeOH + Me + H₂ + Cl₂",
-     "equationAscii": "MeCl + 2H2O -> MeOH + Me + H2 + Cl2",
+     "equation": "2MeCl2 + 2H2O -> Me + H₂ + 2Cl₂ + Me(OH)2",
+     "equationAscii": "2MeCl2 + 2H2O -> Me + H2 + 2Cl2 + Me(OH)2",
      "reactants": [
       {
-       "formula": "MeCl",
-       "coeff": 1
+       "formula": "MeCl2",
+       "coeff": 2
       },
       {
        "formula": "H2O",
@@ -20429,10 +20523,6 @@
       }
      ],
      "products": [
-      {
-       "formula": "MeOH",
-       "coeff": 1
-      },
       {
        "formula": "Me",
        "coeff": 1
@@ -20443,10 +20533,14 @@
       },
       {
        "formula": "Cl2",
+       "coeff": 2
+      },
+      {
+       "formula": "Me(OH)2",
        "coeff": 1
       }
      ],
-     "conditions": "электролиз раствора; металлы средней активности",
+     "conditions": "электролиз раствора; металлы средней активности (после Al до H)",
      "type": "redox",
      "subtype": "electrolysis",
      "isGeneralScheme": true,
@@ -20458,20 +20552,18 @@
      ],
      "quote": "Таблица: растворы, бескислородные, Al, Mn, Zn, Cr, Fe, Cd, Co, Ni, Sn, Pb",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Как в примере учебника с MnCl₂ (с. 143): на катоде металл и H₂, на аноде Cl₂. В учебнике: MeCl + 2H₂O → MeOH + Me + H₂ + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
+     "showInCatalog": true
     },
     {
      "equationAsInBook": "MeCl + 2H2O → Me + Cl2 + H2O",
-     "equation": "MeCl + 2H₂O → Me + Cl₂ + H₂O",
-     "equationAscii": "MeCl + 2H2O -> Me + Cl2 + H2O",
+     "equation": "MeCl2 -> Me + Cl₂",
+     "equationAscii": "MeCl2 -> Me + Cl2",
      "reactants": [
       {
-       "formula": "MeCl",
+       "formula": "MeCl2",
        "coeff": 1
-      },
-      {
-       "formula": "H2O",
-       "coeff": 2
       }
      ],
      "products": [
@@ -20482,13 +20574,9 @@
       {
        "formula": "Cl2",
        "coeff": 1
-      },
-      {
-       "formula": "H2O",
-       "coeff": 1
       }
      ],
-     "conditions": "электролиз раствора; пассивные металлы",
+     "conditions": "электролиз раствора; малоактивные металлы (после H)",
      "type": "redox",
      "subtype": "electrolysis",
      "isGeneralScheme": true,
@@ -20500,7 +20588,9 @@
      ],
      "quote": "Таблица: растворы, бескислородные, Cu, Hg, Ag, Pd, Pt, Au",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Разлагается только соль, вода не участвует; пример — CuCl₂ → Cu + Cl₂. В учебнике: MeCl + 2H₂O → Me + Cl₂ + H₂O. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
+     "showInCatalog": true
     },
     {
      "equationAsInBook": "MeSO4 → Me + O2 + SO3",
@@ -20542,25 +20632,25 @@
     },
     {
      "equationAsInBook": "MeCl → Me + Cl2",
-     "equation": "MeCl → Me + Cl₂",
-     "equationAscii": "MeCl -> Me + Cl2",
+     "equation": "2MeCl -> 2Me + Cl₂",
+     "equationAscii": "2MeCl -> 2Me + Cl2",
      "reactants": [
       {
        "formula": "MeCl",
-       "coeff": 1
+       "coeff": 2
       }
      ],
      "products": [
       {
        "formula": "Me",
-       "coeff": 1
+       "coeff": 2
       },
       {
        "formula": "Cl2",
        "coeff": 1
       }
      ],
-     "conditions": "электролиз расплава; все группы металлов",
+     "conditions": "электролиз расплава; все металлы",
      "type": "redox",
      "subtype": "electrolysis",
      "isGeneralScheme": true,
@@ -20572,7 +20662,9 @@
      ],
      "quote": "Таблица: расплавы, бескислородные: MeCl→Me+Cl2",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "Расплав: катод — металл, анод — Cl₂; пример — 2NaCl → 2Na + Cl₂ (с. 140). В учебнике: MeCl → Me + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
+     "showInCatalog": true
     }
    ],
    "labWorks": [
@@ -21150,23 +21242,15 @@
     },
     {
      "equationAsInBook": "K2CO3 + 2H2O → K2CO3 + 2H2↑ + O2↑",
-     "equation": "K₂CO₃ + 2H₂O → K₂CO₃ + 2H₂↑ + O₂↑",
-     "equationAscii": "K2CO3 + 2H2O -> K2CO3 + 2H2 + O2",
+     "equation": "2H2O -> 2H2 + O₂",
+     "equationAscii": "2H2O -> 2H2 + O2",
      "reactants": [
-      {
-       "formula": "K2CO3",
-       "coeff": 1
-      },
       {
        "formula": "H2O",
        "coeff": 2
       }
      ],
      "products": [
-      {
-       "formula": "K2CO3",
-       "coeff": 1
-      },
       {
        "formula": "H2",
        "coeff": 2
@@ -21176,7 +21260,7 @@
        "coeff": 1
       }
      ],
-     "conditions": "электролиз раствора",
+     "conditions": "электролиз раствора K₂CO₃",
      "type": "decomposition",
      "subtype": "electrolysis",
      "isGeneralScheme": false,
@@ -21188,7 +21272,8 @@
      ],
      "quote": "при электролизе раствора K2CO3 электролизируется только вода, так как соль содержит активный металл.",
      "bankId": null,
-     "note": null
+     "note": null,
+     "catalogNote": "В учебнике: K₂CO₃ + 2H₂O → K₂CO₃ + 2H₂↑ + O₂↑. Карбонат калия — электролит, он не расходуется: по сути идёт электролиз воды (катод — H₂, анод — O₂)."
     },
     {
      "equationAsInBook": "2H2O + 2KCl → H2↑ + Cl2↑ + 2KOH",

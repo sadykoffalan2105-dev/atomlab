@@ -127,6 +127,7 @@ const KNOWN_REASONS = new Set([
   'generalFormula',
   'unknownSubstance',
   'organic',
+  'nuclear',
   'noCompoundProduct',
   'tooManyTerms',
   'unbalanced',
