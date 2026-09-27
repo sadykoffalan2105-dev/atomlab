@@ -109,9 +109,16 @@ function tb(p: {
     allowNitrogen: Boolean(p.kit.N),
     allowChlorine: Boolean(p.kit.Cl),
     equationRu: p.equationRu,
-    equationEn: p.equationRu,
-    equationUz: p.equationRu,
+    equationEn: localizedEquation(p.equationRu, p.en[0]),
+    equationUz: localizedEquation(p.equationRu, p.uz[0]),
   }
+}
+
+/** «формула — название» → та же формула с названием на языке интерфейса; уравнения (со стрелкой) не меняются. */
+function localizedEquation(ru: string, title: string): string {
+  const at = ru.indexOf(' — ')
+  if (at < 0 || ru.includes('→')) return ru
+  return `${ru.slice(0, at)} — ${title}`
 }
 
 const ENE = [CH, CC_D] as const
@@ -232,7 +239,7 @@ export const G10_CH2_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
     uz: ['sis-Buten-2', 'Ikkala CH₃ guruhi qoʻsh bogʻning bir tomonida (IUPAC: (Z)-but-2-en). Darslik, 59-bet: π-bogʻ C=C atrofida aylanishga yoʻl qoʻymaydi, shuning uchun sis- va trans-shakllar — turli moddalar.', 'sis-Buten-2 yigʻildi: metillar bir tomonda.'],
     skeleton: chainSk(4, { bonds: { 2: 2 }, stereo: [[0, 1, 2, 3, 'cis']] }),
     irPeaks: ENE,
-    equationRu: 'цис-CH₃–CH=CH–CH₃ — (Z)-бут-2-ен',
+    equationRu: 'CH₃–CH=CH–CH₃ — (Z)-бут-2-ен',
   }),
   tb({
     id: 'trans-but-2-ene',
@@ -245,7 +252,7 @@ export const G10_CH2_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
     uz: ['trans-Buten-2', 'CH₃ guruhlari qoʻsh bogʻning turli tomonlarida (IUPAC: (E)-but-2-en). Darslik, 59-bet: geometrik (sis-trans) izomeriya.', 'trans-Buten-2 yigʻildi: metillar turli tomonda.'],
     skeleton: chainSk(4, { bonds: { 2: 2 }, stereo: [[0, 1, 2, 3, 'trans']] }),
     irPeaks: ENE,
-    equationRu: 'транс-CH₃–CH=CH–CH₃ — (E)-бут-2-ен',
+    equationRu: 'CH₃–CH=CH–CH₃ — (E)-бут-2-ен',
   }),
   tb({
     id: 'pent-2-ene',
@@ -344,7 +351,7 @@ export const G10_CH2_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
     uz: ['1-Xlorpropan', 'CH₃–CH₂–CH₂Cl (C₃H₇Cl). Darslik, 60-bet: KOH ning spirtli eritmasi HCl ni ajratadi — propen hosil boʻladi.', '1-Xlorpropan yigʻildi.'],
     skeleton: chainSk(3, { het: [[2, 'Cl']] }),
     irPeaks: [CH, CCL],
-    equationRu: 'C₃H₇Cl + KOH (спирт.) → C₃H₆ + KCl + H₂O',
+    equationRu: 'C₃H₇Cl + KOH → C₃H₆ + KCl + H₂O',
   }),
   // ——— § 2.10 Алкадиены: строение и изомерия (с. 63–65) ———
   tb({
@@ -420,7 +427,7 @@ export const G10_CH2_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
     uz: ['sis-Pentadiyen-1,3', 'CH₃ va vinil –CH=CH₂ C3=C4 bogʻining bir tomonida (IUPAC: (Z)-penta-1,3-diyen). Darslik, 65-bet.', 'sis-Pentadiyen-1,3 yigʻildi.'],
     skeleton: chainSk(5, { bonds: { 1: 2, 3: 2 }, stereo: [[1, 2, 3, 4, 'cis']] }),
     irPeaks: ENE,
-    equationRu: 'цис-H₂C=CH–CH=CH–CH₃ — (Z)-пента-1,3-диен',
+    equationRu: 'H₂C=CH–CH=CH–CH₃ — (Z)-пента-1,3-диен',
   }),
   tb({
     id: 'trans-penta-1-3-diene',
@@ -432,7 +439,7 @@ export const G10_CH2_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
     uz: ['trans-Pentadiyen-1,3', 'CH₃ va vinil –CH=CH₂ C3=C4 bogʻining turli tomonlarida (IUPAC: (E)-penta-1,3-diyen). Darslik, 65-bet.', 'trans-Pentadiyen-1,3 yigʻildi.'],
     skeleton: chainSk(5, { bonds: { 1: 2, 3: 2 }, stereo: [[1, 2, 3, 4, 'trans']] }),
     irPeaks: ENE,
-    equationRu: 'транс-H₂C=CH–CH=CH–CH₃ — (E)-пента-1,3-диен',
+    equationRu: 'H₂C=CH–CH=CH–CH₃ — (E)-пента-1,3-диен',
   }),
   tb({
     id: 'penta-1-4-diene',
