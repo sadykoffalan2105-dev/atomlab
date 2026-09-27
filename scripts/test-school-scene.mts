@@ -29,6 +29,10 @@ import { SCHOOL_STEP_IDS, type SchoolLocale, type SchoolSceneSpec } from '../src
 import { H2O_SPEC } from '../src/lab/cinema/scenes/h2o/h2oSpec.ts'
 import { H2O_FINISH } from '../src/lab/cinema/scenes/h2o/h2oSteps.ts'
 import { FIX_CO, FIX_NH4CL, FIX_NO2 } from '../src/lab/cinema/scenes/school/schoolFixtures.ts'
+import { NO_SCENE_SPEC } from '../src/lab/cinema/scenes/no/noSpec.ts'
+import { NO2_SCENE_SPEC } from '../src/lab/cinema/scenes/no2/no2Spec.ts'
+import { N2O_SCENE_SPEC } from '../src/lab/cinema/scenes/n2o/n2oSpec.ts'
+import { N2O5_SCENE_SPEC } from '../src/lab/cinema/scenes/n2o5/n2o5Spec.ts'
 import { bondAngleDeg, bondLengthPm } from '../src/chemistry/data/bondData.ts'
 
 let passed = 0
@@ -254,7 +258,7 @@ function checkSpec(spec: SchoolSceneSpec, opts: { texts?: boolean } = {}): { a: 
 }
 
 // ——— все спецификации ———
-const SPECS: SchoolSceneSpec[] = [H2O_SPEC]
+const SPECS: SchoolSceneSpec[] = [H2O_SPEC, NO_SCENE_SPEC, NO2_SCENE_SPEC, N2O_SCENE_SPEC, N2O5_SCENE_SPEC]
 const built = SPECS.map(checkSpec)
 
 // ——— Прочность движка: учебные «заготовки» с донорно-акцепторной парой, тройной связью,

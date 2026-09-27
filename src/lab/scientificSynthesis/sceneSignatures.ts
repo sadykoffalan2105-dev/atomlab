@@ -45,6 +45,15 @@ export const SCIENTIFIC_SCENE_SIGNATURES = {
   cao: [{ compounds: ['salt_ca_co3'] }],
   // 2 H₂ + O₂ → 2 H₂O (bank 'h2-o2-h2o'); 2H₂O₂ → 2H₂O + O₂ — не эта сцена
   h2o: [{ elements: ['H', 'O'] }],
+  // N₂ + O₂ → 2NO (bank 'n2-o2-no'); окисление аммиака 4NH₃ + 5O₂ → 4NO + 6H₂O — не эта сцена
+  no: [{ elements: ['N', 'O'] }],
+  // 2NO + O₂ → 2NO₂ (bank 'no-o2-no2'); Cu + HNO₃ (конц.) → … NO₂ — не эта сцена
+  no2: [{ compounds: ['no'], elements: ['O'] }],
+  // NH₄NO₃ →(t°) N₂O + 2H₂O (bank 'nh4no3-n2o')
+  n2o: [{ compounds: ['salt_nh4_no3'] }],
+  // N₂O₅ + H₂O → 2HNO₃ (bank 'n2o5-h2o-hno3') — школьная сцена оксида азота(V); Оствальд, 4NO₂ + O₂ + 2H₂O,
+  // KNO₃ + H₂SO₄ и прочие пути к HNO₃ — не эта сцена
+  hno3: [{ compounds: ['n2o5', 'h2o'] }],
   // N₂ + 3 H₂ ⇌ 2 NH₃ (bank 'n2-h2-nh3')
   nh3: [{ elements: ['N', 'H'] }],
   // Fe + S → FeS (bank 'fe-s-fes')
