@@ -6,6 +6,8 @@ import { CO_SPEC } from './co'
 import { CO2_SPEC } from './co2'
 import { H2O_SPEC } from './h2o'
 import { NACL_SPEC } from './nacl'
+import { NO_SPEC } from './no'
+import { NO2_SPEC } from './no2'
 import { SO2_SPEC } from './so2'
 import { SO3_SPEC } from './so3'
 import type { SchoolSceneSpec, SchoolSpecId } from './types'
@@ -17,6 +19,8 @@ export const SCHOOL_SPECS: Readonly<Partial<Record<SchoolSpecId, SchoolSceneSpec
   co: CO_SPEC,
   so2: SO2_SPEC,
   so3: SO3_SPEC,
+  no: NO_SPEC,
+  no2: NO2_SPEC,
 }
 
 export function schoolSpecFor(id: string): SchoolSceneSpec | null {
