@@ -20,7 +20,9 @@
  * примеру учебника; здесь это уравнение примера (Unicode), href ведёт именно на него. У отказа example — пример есть,
  * но реактор его пока не собирает (нет вещества).
  */
-export type ReaderLab = { ok: true; href: string; example?: string } | { ok: false; reason: string; altHref?: string; example?: string }
+export type ReaderLab =
+  | { ok: true; href: string; altHref?: string; example?: string }
+  | { ok: false; reason: string; altHref?: string; example?: string }
 
 /**
  * Реакция параграфа. id — «r1», «r2»… (уникален в юните, для ?rx=). lab.href — путь роутера

@@ -83,7 +83,8 @@ for (const g of files) {
       const bankRes = bankId ? resolveReactorEquation({ reactionId: bankId }) : null
       // Ионные уравнения и полуреакции тоже открываются — ионы и e⁻ стали частицами реактора.
       const res = bankRes?.ok ? bankRes : resolveReactorEquation({ equation: r.eq })
-      const byExample = !res.ok && (res.code === 'generalFormula' || res.code === 'scheme') ? exampleLab(r.labExample, src) : null
+      // только формула с «n» (полимер, олеум, ржавчина) — по примеру учебника
+      const byExample = !res.ok && res.code === 'generalFormula' ? exampleLab(r.labExample, src) : null
       const lab = res.ok
         ? { ok: true as const, href: bankRes?.ok && bankId ? reactorHrefForBank(bankId, { src }) : reactorHrefForEquation(r.eq, { src }) }
         : (byExample ?? { ok: false as const, reason: res.code, ...(r.labExample ? { example: exampleDisplay(r.labExample) } : {}) })

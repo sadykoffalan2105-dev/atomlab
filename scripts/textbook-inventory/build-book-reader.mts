@@ -1387,16 +1387,6 @@ function labProbe(r: InvReaction): InvReaction {
   return { ...r, reactants: side(l), products: side(p) }
 }
 
-/**
- * Общая схема (R, Me, Hal) или формула с «n» (полимер, олеум, ржавчина) открывается в реакторе по конкретному примеру
- * учебника (labExample, scheme-example.mts): «2MeCl → 2Me + Cl₂» — «2NaCl → 2Na + Cl₂» (с. 140). null — примера нет
- * или реактор его пока не собирает (вещества нет в реакторе).
- */
-const exampleLab = (r: InvReaction, src: string): ReaderLab | null => exampleLabFor(r.labExample, src)
-/** Отказ схемы с примером: пример в данных остаётся (реактор откроет его, когда появится вещество). */
-const withExample = (lab: ReaderLab, r: InvReaction): ReaderLab =>
-  !lab.ok && r.labExample?.trim() ? { ...lab, example: exampleDisplay(r.labExample) } : lab
-
 function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx, rxId: string): ReaderLab {
   const src = readerUnitHref(`g${grade}`, unitId, { rx: rxId, page: pageStart })
   // a scheme «R–H + Cl• → R• + HCl» picks its organic lesson by the book's concrete example (R = CH₃)
@@ -1411,8 +1401,7 @@ function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx
     const reason = organic && code !== 'ionic' && !r.isGeneralScheme && (alt || code !== 'generalFormula') ? 'organic' : code
     return alt ? { ok: false, reason, altHref: alt } : { ok: false, reason }
   }
-  // общая схема — по примеру учебника (labExample), если реактор его собирает
-  if (r.isGeneralScheme) return exampleLab(r, src) ?? withExample(failWith('scheme'), r)
+  if (r.isGeneralScheme) return failWith('scheme')
   let res: ReactorLinkResult | null = null
   if (r.bankId) {
     res = resolveReactorEquation({ reactionId: r.bankId })
@@ -1428,11 +1417,7 @@ function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx
   }
   res = resolveReactorEquation({ equation: r.ascii })
   if (res.ok) return { ok: true, href: reactorHrefForEquation(r.ascii, { src }) }
-  // «n» в формуле (полимер, олеум) — тоже по примеру учебника: «на одно звено» и т. п.
-  const general = res.code === 'generalFormula' || res.code === 'scheme'
-  const byExample = general ? exampleLab(r, src) : null
-  if (byExample) return byExample
-  return general ? withExample(failWith(res.code), r) : failWith(res.code)
+  return failWith(res.code)
 }
 
 // ═════════════════════════════ substances ═════════════════════════════
@@ -1592,6 +1577,29 @@ type GradeStats = {
   emptyUnits: string[]
 }
 
+/**
+ * Общая схема (R, Me, Hal) или формула с «n» (полимер, олеум, ржавчина) открывается в реакторе по конкретному примеру
+ * учебника (labExample, scheme-example.mts): «2MeCl → 2Me + Cl₂» — «2NaCl → 2Na + Cl₂» (с. 140), «(C₆H₁₀O₅)ₙ + nH₂O» —
+ * на одно звено. Только схемы и формулы с «n»: у обычной карточки labAs — пример для подбора урока органической
+ * лаборатории («Cl₂ → Cl• + Cl•» — не «CH₄ + Cl₂»). Реактор примера не собирает (нет вещества) — отказ остаётся, пример
+ * записывается в lab.example; ссылка в органическую лабораторию (altHref) сохраняется второй кнопкой.
+ */
+function withSchemeExample(grade: Grade, unitId: string, pageStart: number | null, r: InvRx, rx: ReaderReaction): ReaderLab {
+  const lab = rx.lab
+  const example = r.labExample?.trim()
+  if (lab.ok || !example) return lab
+  if (r.isGeneralScheme !== true && !isGeneralFormula(r.ascii)) return lab
+  const byExample = exampleLabFor(example, readerUnitHref(`g${grade}`, unitId, { rx: rx.id, page: pageStart }))
+  if (!byExample) return { ...lab, example: exampleDisplay(example) }
+  return lab.altHref ? { ...byExample, altHref: lab.altHref } : byExample
+}
+
+/** Формула с «n» — отказ реактора generalFormula («(C₆H₁₀O₅)n», «H₂SO₄·nSO₃»), а не просто непонятная запись. */
+function isGeneralFormula(ascii: string): boolean {
+  const res = resolveReactorEquation({ equation: ascii })
+  return !res.ok && res.code === 'generalFormula'
+}
+
 /** General schemes the inventory asks to keep as cards (showInCatalog): «R–H + Cl• → R• + HCl», Kolbe «2R–COONa…». */
 const SHOWN_SCHEMES = new WeakSet<ReaderReaction>()
 
@@ -1618,6 +1626,12 @@ function buildUnit(grade: Grade, sec: InvSection, draft: DraftBlock[], stats: Gr
   })
   reactionsInv.forEach((r, i) => {
     if (r.isGeneralScheme && r.showInCatalog) SHOWN_SCHEMES.add(reactions[i]!)
+  })
+
+  // общая схема или формула с «n» — в реакторе по примеру учебника
+  reactionsInv.forEach((r, i) => {
+    const rx = reactions[i]!
+    rx.lab = withSchemeExample(grade, unitId, sec.pageStart ?? null, r, rx)
   })
 
   // ── inline reaction chips ──

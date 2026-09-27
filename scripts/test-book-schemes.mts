@@ -197,7 +197,11 @@ for (const grade of [7, 8, 9, 10, 11]) {
         if (r.lab.ok) problems.push(`${label}: ядерная реакция открывается в химическом реакторе`)
         continue
       }
-      if (!r.isGeneralScheme && !hasN(r.equationAscii)) continue
+      if (!r.isGeneralScheme && !hasN(r.equationAscii)) {
+        // пример — только у схемы: у обычной карточки реактор открывает её саму («Cl₂ → Cl• + Cl•» — не «CH₄ + Cl₂»)
+        if (r.lab.example) problems.push(`${label}: пример ${r.lab.example} у карточки, которая не схема`)
+        continue
+      }
       const ex = r.lab.example
       if (!ex) {
         const why =
