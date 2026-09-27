@@ -232,6 +232,72 @@ export function atomInfo(id: string, element: SchoolAtomInfo['element']): School
   }
 }
 
+/**
+ * Заряды после разрыва (SchoolSceneSpec.splitCharges): лишние электроны атомов переходят к атомам,
+ * которым их не хватает. Сначала атом отдаёт «чужой» электрон (полученный ионом от другого атома),
+ * и получатель в первую очередь забирает СВОЙ электрон — ион NH₄⁺ получает назад именно тот
+ * электрон, который был у O⁻ нитрата. Правит списки свободных электронов фазы S на месте.
+ */
+function neutralizeSplit(
+  spec: SchoolSceneSpec,
+  atoms: readonly SchoolAtomInfo[],
+  idx: (id: string, where: string) => number,
+  owner: readonly number[],
+  rBonds: readonly PhaseBond[],
+  keptPairs: readonly number[],
+  pairedFree: number[][],
+  singleFree: number[][],
+): void {
+  const held = atoms.map((_, i) => pairedFree[i]!.length + singleFree[i]!.length)
+  rBonds.forEach((b, k) => {
+    for (let q = 0; q < keptPairs[k]!; q++) {
+      const o = b.pairs[q]!
+      if (o === 'ab') {
+        held[b.a]! += 1
+        held[b.b]! += 1
+      } else held[o === 'a' ? b.a : b.b]! += 2
+    }
+  })
+  const want = atoms.map((a, i) => {
+    const q = spec.splitCharges![a.id]
+    return q === undefined ? held[i]! : a.valence - q
+  })
+  for (const id of Object.keys(spec.splitCharges!)) idx(id, 'splitCharges')
+  const pool: number[] = []
+  const takeOut = (i: number): number => {
+    const pf = pairedFree[i]!
+    const sf = singleFree[i]!
+    for (let k = 0; k < pf.length; k++) {
+      if (owner[pf[k]!] === i) continue
+      const j = k % 2 === 0 ? k + 1 : k - 1
+      const x = pf[k]!
+      sf.push(pf[j]!)
+      pf.splice(Math.min(k, j), 2)
+      return x
+    }
+    for (let k = 0; k < sf.length; k++) if (owner[sf[k]!] !== i) return sf.splice(k, 1)[0]!
+    if (sf.length) return sf.pop()!
+    if (pf.length >= 2) {
+      const x1 = pf.pop()!
+      sf.push(pf.pop()!)
+      return x1
+    }
+    return fail(spec, `splitCharges: у атома ${atoms[i]!.id} нечего отдать`)
+  }
+  atoms.forEach((_, i) => {
+    for (let s = held[i]! - want[i]!; s > 0; s--) pool.push(takeOut(i))
+  })
+  atoms.forEach((a, i) => {
+    for (let d = want[i]! - held[i]!; d > 0; d--) {
+      const own = pool.findIndex((x) => owner[x] === i)
+      const k = own >= 0 ? own : 0
+      if (!pool.length) fail(spec, `splitCharges: атому ${a.id} не хватает электронов других атомов`)
+      singleFree[i]!.push(pool.splice(k, 1)[0]!)
+    }
+  })
+  if (pool.length) fail(spec, `splitCharges: ${pool.length} электрон(ов) без места — сумма зарядов после разрыва не сходится`)
+}
+
 export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
   const atoms = spec.atoms.map((a) => atomInfo(a.id, a.element))
   const index = new Map<string, number>()
@@ -455,6 +521,7 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
     atoms.forEach((_, i) => {
       for (const x of rSingleSlots[i]!) singleFree[i]!.push(x)
     })
+    if (spec.splitCharges) neutralizeSplit(spec, atoms, idx, owner, rBonds, keptPairs, pairedFree, singleFree)
     // Сохранившиеся пары — на местах (индекс связи S).
     rBonds.forEach((b, k) => {
       for (let q = 0; q < keptPairs[k]!; q++) {
@@ -509,24 +576,30 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
   const availSingle: number[][] = sSingleSlots.map((l) => [...l])
   const availLone: number[][][] = sLoneSlots.map((l) => l.map((pr) => [...pr]))
   {
-    const moved: number[] = []
+    const moved: { x: number; from: number }[] = []
     atoms.forEach((a, i) => {
       let surplus = heldS[i]! - (a.valence - pQ[i]!)
       while (surplus > 0) {
         const x = availSingle[i]!.pop()
-        if (x !== undefined) moved.push(x)
+        if (x !== undefined) moved.push({ x, from: i })
         else {
           const pr = availLone[i]!.pop() ?? fail(spec, `продукты: у атома ${a.id} нечего отдать для заряда ${pQ[i]}`)
-          moved.push(pr[1]!)
+          moved.push({ x: pr[1]!, from: i })
           availSingle[i]!.push(pr[0]!)
         }
         surplus--
       }
     })
+    // Электрон уходит к атому, с которым донор связан в продукте (H⁺ + O⁻ → O–H: пара O становится
+    // общей), иначе — «свой» электрон атома, иначе — первый по порядку.
+    const bondedP = (i: number, j: number) => pBonds.some((b) => (b.a === i && b.b === j) || (b.a === j && b.b === i))
     atoms.forEach((a, i) => {
       let deficit = a.valence - pQ[i]! - heldS[i]!
       while (deficit > 0) {
-        availSingle[i]!.push(moved.shift() ?? fail(spec, `продукты: атому ${a.id} не хватает электронов для заряда ${pQ[i]}`))
+        if (!moved.length) fail(spec, `продукты: атому ${a.id} не хватает электронов для заряда ${pQ[i]}`)
+        let k = moved.findIndex((m) => bondedP(m.from, i))
+        if (k < 0) k = moved.findIndex((m) => owner[m.x] === i)
+        availSingle[i]!.push(moved.splice(Math.max(0, k), 1)[0]!.x)
         deficit--
       }
     })
