@@ -41,6 +41,8 @@ export const SCIENTIFIC_SCENE_SIGNATURES = {
   nacl: [{ elements: ['Na', 'Cl'] }],
   // C (графит) + O₂ → CO₂ (bank 'c-o2-co2'); 2CO + O₂ и H₂CO₃ → … — не эта сцена
   co2: [{ elements: ['C', 'O'] }],
+  // 2C + O₂ → 2CO (bank 'c-o2-co'); восстановление CO₂ углём (CO₂ + C) — не эта сцена
+  co: [{ elements: ['C', 'O'] }],
   // Обжиг известняка CaCO₃ → CaO + CO₂ (bank 'caco3-decomp'); 2Ca + O₂ → 2CaO — не эта сцена
   cao: [{ compounds: ['salt_ca_co3'] }],
   // 2 H₂ + O₂ → 2 H₂O (bank 'h2-o2-h2o'); 2H₂O₂ → 2H₂O + O₂ — не эта сцена
@@ -51,6 +53,8 @@ export const SCIENTIFIC_SCENE_SIGNATURES = {
   salt_fe2_s: [{ elements: ['Fe', 'S'] }],
   // S + O₂ → SO₂ (bank 's-o2-so2'); обжиг FeS₂ и горение H₂S — не эта сцена
   so2: [{ elements: ['S', 'O'] }],
+  // 2SO₂ + O₂ ⇄ 2SO₃ (bank 'so2-o2-so3'); другие пути к SO₃ — не эта сцена
+  so3: [{ compounds: ['so2'], elements: ['O'] }],
   // H₂ + Cl₂ → 2 HCl (bank 'h2-cl2-hcl')
   hcl: [{ elements: ['H', 'Cl'] }],
   // 2 Mg + O₂ → 2 MgO (bank 'mg-o2-mgo'); разложение Mg(OH)₂ — не эта сцена

@@ -16,13 +16,11 @@ import { clo2StepStore, type Clo2StepStatus } from '../../../lab/cinema/scenes/c
 import type { Clo2Locale } from '../../../lab/cinema/scenes/clo2/clo2MechanismText'
 import { getCinemaLesson, lessonStepIdAt } from '../../../lab/cinema/scenes/lessons'
 import { CaoEnergyPanel } from '../../../lab/cinema/scenes/cao/CaoEnergyPanel'
-import { Co2EnergyPanel } from '../../../lab/cinema/scenes/co2/Co2EnergyPanel'
 import { FesEnergyPanel } from '../../../lab/cinema/scenes/fes/FesEnergyPanel'
 import { HclEnergyPanel } from '../../../lab/cinema/scenes/hcl/HclEnergyPanel'
 import { MgoEnergyPanel } from '../../../lab/cinema/scenes/mgo/MgoEnergyPanel'
 import { NaclEnergyPanel } from '../../../lab/cinema/scenes/nacl/NaclEnergyPanel'
 import { Nh3EnergyPanel } from '../../../lab/cinema/scenes/nh3/Nh3EnergyPanel'
-import { So2EnergyPanel } from '../../../lab/cinema/scenes/so2/So2EnergyPanel'
 import { Zncl2EnergyPanel } from '../../../lab/cinema/scenes/zncl2/Zncl2EnergyPanel'
 import { getLabTeacherNarrator } from '../../../lab/teacher'
 import styles from './Clo2MechanismPanel.module.css'
@@ -731,16 +729,12 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
                 <CaoEnergyPanel locale={clo2Locale} compact={isMobile} />
               ) : lesson.id === 'nh3' ? (
                 <Nh3EnergyPanel locale={clo2Locale} compact={isMobile} />
-              ) : lesson.id === 'so2' ? (
-                <So2EnergyPanel locale={clo2Locale} compact={isMobile} />
               ) : lesson.id === 'mgo' ? (
                 <MgoEnergyPanel locale={clo2Locale} compact={isMobile} />
               ) : lesson.id === 'fes' ? (
                 <FesEnergyPanel locale={clo2Locale} compact={isMobile} />
               ) : lesson.id === 'hcl' ? (
                 <HclEnergyPanel locale={clo2Locale} compact={isMobile} />
-              ) : lesson.id === 'co2' ? (
-                <Co2EnergyPanel locale={clo2Locale} compact={isMobile} />
               ) : lesson.id === 'zncl2' ? (
                 <Zncl2EnergyPanel locale={clo2Locale} compact={isMobile} />
               ) : (

@@ -7,9 +7,11 @@ import { FesCinemaScene } from '../cinema/scenes/fes/FesCinemaScene'
 import { H2oCinemaScene } from '../cinema/scenes/h2o/H2oCinemaScene'
 import { HclCinemaScene } from '../cinema/scenes/hcl/HclCinemaScene'
 import { Co2CinemaScene } from '../cinema/scenes/co2/Co2CinemaScene'
+import { CoCinemaScene } from '../cinema/scenes/co/CoCinemaScene'
 import { NaclCinemaScene } from '../cinema/scenes/nacl/NaclCinemaScene'
 import { Nh3CinemaScene } from '../cinema/scenes/nh3/Nh3CinemaScene'
 import { So2CinemaScene } from '../cinema/scenes/so2/So2CinemaScene'
+import { So3CinemaScene } from '../cinema/scenes/so3/So3CinemaScene'
 import { Zncl2CinemaScene } from '../cinema/scenes/zncl2/Zncl2CinemaScene'
 import type { ScientificSynthesisFxProps } from './types'
 import {
@@ -37,8 +39,10 @@ const REGISTRY: Record<ScientificSceneProductId, ComponentType<ScientificSynthes
   clo2: Clo2ScientificSynthesisFx,
   // Учебник 7–8: ионная связь, 2 Na + Cl₂ → 2 NaCl (bank 'na-cl-nacl'). Сцена принимает контракт лаборатории напрямую.
   nacl: NaclCinemaScene,
-  // Учебник 7–8: ковалентная полярная связь, C (графит) + O₂ → CO₂ (bank 'c-o2-co2').
+  // Учебник 7 (§ 4.5, с. 95): школьная сцена образования молекулы, C + O₂ → CO₂ (bank 'c-o2-co2'): O=C=O, 180°.
   co2: Co2CinemaScene,
+  // Учебник 7 (§ 2.12, с. 69): школьная сцена, 2C + O₂ → 2CO (bank 'c-o2-co'): C≡O, донорная пара кислорода.
+  co: CoCinemaScene,
   // Учебник 8: обжиг известняка CaCO₃ → CaO + CO₂ (bank 'caco3-decomp'). У 'ca-o2-cao' тот же продукт, но другая реакция — сцена не играет.
   cao: CaoCinemaScene,
   // Учебник 7: ковалентная полярная связь и водородная связь, 2 H₂ + O₂ → 2 H₂O (bank 'h2-o2-h2o').
@@ -47,8 +51,10 @@ const REGISTRY: Record<ScientificSceneProductId, ComponentType<ScientificSynthes
   nh3: Nh3CinemaScene,
   // Учебник 7–8: «смесь или соединение», Fe + S → FeS (bank 'fe-s-fes', productId 'salt_fe2_s').
   salt_fe2_s: FesCinemaScene,
-  // Учебник 8–9: ковалентная полярная связь, S + O₂ → SO₂ (bank 's-o2-so2').
+  // Учебник 7 (§ 4.5, с. 95): школьная сцена, S + O₂ → SO₂ (bank 's-o2-so2'): O=S=O, 119,5°.
   so2: So2CinemaScene,
+  // Учебник 7 (с. 96), 8 (с. 136): школьная сцена, 2SO₂ + O₂ ⇄ 2SO₃ (bank 'so2-o2-so3'): связи S=O сохраняются.
+  so3: So3CinemaScene,
   // Учебник 8: цепная радикальная реакция, H₂ + Cl₂ → 2 HCl (bank 'h2-cl2-hcl'). Свет запускает цепь.
   hcl: HclCinemaScene,
   // Учебник 7: горение магния, 2 Mg + O₂ → 2 MgO (bank 'mg-o2-mgo'). Два электрона на атом, EA₂ > 0.
