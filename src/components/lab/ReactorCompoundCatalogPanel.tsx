@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { COMPOUND_CATEGORY_ORDER } from '../../data/compoundCategoryLabels'
 import { filterCompoundsForCatalog } from '../../data/compoundCatalogFilter'
 import { compoundById } from '../../data/compounds'
-import { isCatalogVisibleId } from '../../data/textbook/catalogWhitelist'
+import { catalogSchoolRank, isCatalogVisibleId } from '../../data/textbook/catalogWhitelist'
 import { compoundSearchBlob, getCompoundLocaleStrings } from '../../i18n/compoundLocale'
 import type { MessageKey } from '../../i18n/useT'
 import { useT } from '../../i18n/useT'
@@ -180,6 +180,8 @@ export function ReactorCompoundCatalogPanel({
       const arr = m.get(c.category) ?? m.get('other')!
       arr.push(c)
     }
+    // каталог показывает все вещества учебников — сначала самые важные для школьного курса
+    for (const arr of m.values()) arr.sort((a, b) => catalogSchoolRank(a.id) - catalogSchoolRank(b.id))
     return m
   }, [filtered])
 

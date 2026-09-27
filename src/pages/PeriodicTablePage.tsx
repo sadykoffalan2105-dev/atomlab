@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { PeriodicTableTextbook } from '../components/lab/PeriodicTableTextbook'
 import { PeriodicTableCosmos } from '../components/lab/PeriodicTableCosmos'
 import { IconAtomGrid, IconInfoHud, IconSearch, IconSolubility } from '../components/lab/PeriodicTableHudIcons'
@@ -11,6 +12,7 @@ import '../components/lab/periodic/periodicThemes.css'
 import { SolubilityTable } from '../components/lab/SolubilityTable'
 import { ElementDetailModal } from '../components/lab/ElementDetailModal'
 import type { ElementCategoryFilterId } from '../data/elementCategory'
+import { getElementBySymbol } from '../data/elements'
 import { useT } from '../i18n/useT'
 import pageStyles from './PeriodicTablePage.module.css'
 
@@ -40,7 +42,10 @@ function useMediaQuery(query: string): boolean {
 /** Полноэкранная таблица: клик по ячейке — карточка со всеми данными элемента. */
 export function PeriodicTablePage() {
   const { t, locale } = useT()
-  const [detailZ, setDetailZ] = useState<number | null>(null)
+  const [searchParams] = useSearchParams()
+  /** ?el=Zn — сразу открыть карточку элемента (ссылка из каталога простых веществ). */
+  const elParam = searchParams.get('el')
+  const [detailZ, setDetailZ] = useState<number | null>(() => (elParam ? (getElementBySymbol(elParam)?.z ?? null) : null))
   const [tab, setTab] = useState<TableTab>('mendeleev')
   const [showIntro, setShowIntro] = useState(false)
   const [hoverZ, setHoverZ] = useState<number | null>(null)

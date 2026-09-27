@@ -3,7 +3,7 @@
  * Список id строит scripts/textbook-inventory/build-whitelist.mts (сверка формул учебников с каталогом по составу).
  */
 import whitelist from './catalogWhitelist.json'
-import top200 from './catalogTop200.json'
+import rank from './catalogRank.json'
 
 /**
  * Вещества не из учебников, на которые опираются реактор и банк реакций (ClO₂-рецепт, реакции с KClO₄ и т. п.).
@@ -18,6 +18,9 @@ export const CATALOG_HIDDEN_IDS: ReadonlySet<string> = new Set([
   'salt_fe3_s',
   'adamantane',
   'triacetin',
+  // Упрощённая схема сахарозы с неполным составом (C₁₁H₁₂O₁₁ вместо C₁₂H₂₂O₁₁): в каталоге — полная модель
+  // 'sucrose-structure' (Kimyo 10, гл. III); упрощённая остаётся в данных для просмотра в студии органики.
+  'sucrose',
   // Гипотетические формулы из упражнений учебника (не выделены как индивидуальные вещества):
   // данные сохранены, в каталоге не показываем.
   'tb_i2o7',
@@ -25,10 +28,8 @@ export const CATALOG_HIDDEN_IDS: ReadonlySet<string> = new Set([
   'tb_cl2o5',
   'tb_br2o7',
   'tb_h4v2o7',
-  'tb_fen',
   'tb_hgoh2',
   'tb_hg2o',
-  'salt_fe3_co3',
   'salt_al_co3',
   // Единичные упоминания вне программы (минералы-силикаты в таблицах, экзотика Sc/Ge/Xe/Pt/Bi/Cd, опечатки книги):
   // данные сохранены, в каталоге не показываем.
@@ -69,14 +70,10 @@ export const CATALOG_HIDDEN_IDS: ReadonlySet<string> = new Set([
   'tb_al4p2o73',
   'tb_sr3po42',
   'tb_bino33',
-  'tb_nocl',
   'tb_cdno32',
   'tb_feco5',
   'tb_scoh3',
   'tb_sc2o3',
-  // Продукты гидролиза из одного задания 9 класса (§ 7, с. 36): нужны реактору, в каталоге не показываем.
-  'tb_znohcl',
-  'tb_khso3',
   // Органика из таблиц гомологов и единичных задач 10 класса (вне основной программы)
   'n-tridecane',
   'n-tetradecane',
@@ -96,19 +93,22 @@ export const CATALOG_HIDDEN_IDS: ReadonlySet<string> = new Set([
 
 const TEXTBOOK_IDS: ReadonlySet<string> = new Set([...whitelist.inorganic, ...whitelist.organic])
 
-/**
- * Ровно 200 неорганических веществ, которые видит ученик, — топ школьной значимости
- * (параграфы учебников 7–11, выверенные уравнения, банк реакций, класс соединения).
- * Считает scripts/textbook-inventory/rank-substances.mts --write.
+/*
+ * Правила «ровно 200 видимых неорганических» больше нет: каталог показывает каждое вещество из реакций учебников 7–11
+ * (проверка — scripts/test-catalog-textbook-substances.mts). Из CATALOG_HIDDEN_IDS убраны вещества, которые стоят
+ * в реакциях книг: Zn(OH)Cl и KHSO₃ (9 кл., гидролиз, с. 36), Fe₂(CO₃)₃ (9 кл., с. 37 — полный гидролиз),
+ * FeN (9 кл., с. 159 — Fe + N₂), NOCl (11 кл., с. 120 — 2NO + Cl₂ ⇌ 2NOCl).
  */
-export const CATALOG_TOP_INORGANIC_IDS: ReadonlySet<string> = new Set(top200.visibleInorganic)
 
-/**
- * Остальные неорганические вещества каталога: данные целиком остаются в приложении
- * (лаборатория, банк реакций, уравнения учебника, база знаний учителя их по-прежнему
- * находят по id), но в списках каталога они не показываются.
- */
-export const CATALOG_DEMOTED_IDS: ReadonlySet<string> = new Set(top200.demotedInorganic)
+/** Неорганические вещества каталога в порядке школьной значимости (scripts/textbook-inventory/rank-substances.mts --write). */
+export const CATALOG_INORGANIC_RANK: readonly string[] = rank.rankedInorganic
+
+const RANK_INDEX: ReadonlyMap<string, number> = new Map(CATALOG_INORGANIC_RANK.map((id, i) => [id, i]))
+
+/** Место вещества в рейтинге школьной значимости (0 — самое важное); вне рейтинга — Infinity. */
+export function catalogSchoolRank(id: string): number {
+  return RANK_INDEX.get(id) ?? Number.POSITIVE_INFINITY
+}
 
 /** Вещество есть в учебниках (или нужно лаборатории) — остаётся в данных приложения. */
 export function isTextbookCompoundId(id: string): boolean {
@@ -116,13 +116,9 @@ export function isTextbookCompoundId(id: string): boolean {
 }
 
 /**
- * Показывать ли вещество в каталоге и списках выбора.
- *
- * Неорганика: только 200 отобранных id (CATALOG_TOP_INORGANIC_IDS).
- * Органика: как и раньше — всё, кроме CATALOG_HIDDEN_IDS.
+ * Показывать ли вещество в каталоге и списках выбора: всё из учебников, кроме CATALOG_HIDDEN_IDS.
  * Скрытие не удаляет данные: compoundById, реактор и уравнения учебника видят вещество по-прежнему.
  */
 export function isCatalogVisibleId(id: string): boolean {
-  if (CATALOG_HIDDEN_IDS.has(id)) return false
-  return !CATALOG_DEMOTED_IDS.has(id)
+  return !CATALOG_HIDDEN_IDS.has(id)
 }

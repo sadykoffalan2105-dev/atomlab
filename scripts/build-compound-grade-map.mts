@@ -3,12 +3,16 @@
  * Источник истины — сверка учебников Kimyo 7–11 (textbookWhitelist.json evidence[id].grades / firstPage
  * и TEXTBOOK_EXTRA_GRADES для tb_* веществ); для веществ без свидетельств — текст § 7–9, манифест, правила ФГОС.
  *
+ * Плюс классы из реакций учебников (src/data/textbook/equations-gN.json): вещество, которое стоит в реакции
+ * N класса, показывается в каталоге N класса (scripts/test-catalog-textbook-substances.mts).
+ *
  * Запуск: npx tsx scripts/build-compound-grade-map.mts
  */
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { compoundById } from '../src/data/compounds.ts'
+import { CATALOG_HIDDEN_IDS } from '../src/data/textbook/catalogWhitelist.ts'
 import { CURRICULUM_COMPOUNDS } from '../src/data/curriculum/schoolInorganicManifest.ts'
 import g7 from '../src/data/g7TextbookKnowledge.json' with { type: 'json' }
 import g8 from '../src/data/g8TextbookKnowledge.json' with { type: 'json' }
@@ -16,6 +20,9 @@ import g9 from '../src/data/g9TextbookKnowledge.json' with { type: 'json' }
 import type { CompoundDef } from '../src/types/chemistry.ts'
 import textbookWhitelist from '../src/data/textbook/textbookWhitelist.json' with { type: 'json' }
 import { TEXTBOOK_EXTRA_GRADES } from '../src/data/textbookCompounds.data.ts'
+import { ORGANIC_MOLECULES } from '../src/data/organicLab/organicMoleculeRegistry.ts'
+import { organicGradeForMolecule } from '../src/data/curriculum/compoundGradeIndex.ts'
+import { ATOMIC_NOTATION_ALIAS, collectBookSpecies, compositionKey } from './plan/bookSpecies.mts'
 
 /** Классы, где вещество найдено при сверке учебников (scripts/textbook-inventory/build-whitelist.mts). */
 const TEXTBOOK_EVIDENCE = textbookWhitelist.evidence as Record<string, { grades: number[]; firstPage?: number }>
@@ -242,6 +249,20 @@ function textbookGrades(id: string): Grade[] {
   return mergeGrades(ev, extra)
 }
 
+/** Вещества реакций учебников: ключ состава → классы и первая страница. «[H]», «O» — это H₂ и O₂. */
+const BOOK_RX = new Map<string, { grades: Grade[]; firstPage?: number }>()
+for (const sp of collectBookSpecies()) {
+  const [k0, v] = sp
+  const k = ATOMIC_NOTATION_ALIAS[k0] ?? k0
+  const grades = [...v.grades].filter(isGrade)
+  const g0 = Math.min(...grades)
+  const prev = BOOK_RX.get(k)
+  BOOK_RX.set(k, {
+    grades: mergeGrades(prev?.grades ?? [], grades),
+    firstPage: prev?.firstPage ?? v.firstPage.get(g0),
+  })
+}
+
 const map: Record<string, Entry> = {}
 
 for (const c of Object.values(compoundById)) {
@@ -249,9 +270,10 @@ for (const c of Object.values(compoundById)) {
   const fromBook = gradesFromTextbook(c)
   const fromRules = manifest ? ([...manifest.grades] as Grade[]) : inferGradesRule(c)
   const evidence = textbookGrades(c.id)
-  const grades = evidence.length > 0 ? evidence : mergeGrades(fromBook, fromRules)
+  const rx = BOOK_RX.get(compositionKey(c.composition))
+  const grades = mergeGrades(evidence.length > 0 ? evidence : mergeGrades(fromBook, fromRules), rx?.grades ?? [])
   const chapter = (manifest?.chapter as Chapter | undefined) ?? inferChapter(c)
-  const firstPage = TEXTBOOK_EVIDENCE[c.id]?.firstPage
+  const firstPage = TEXTBOOK_EVIDENCE[c.id]?.firstPage ?? rx?.firstPage
   map[c.id] = {
     grades: grades.length > 0 ? grades : [8],
     chapter,
@@ -268,6 +290,47 @@ for (const id of Object.keys(TEXTBOOK_EVIDENCE)) {
   const firstPage = TEXTBOOK_EVIDENCE[id]?.firstPage
   organicMap[id] = { grades, ...(typeof firstPage === 'number' ? { firstPage } : {}) }
 }
+
+/*
+ * Органика из реакций учебников: класс реакции добавляется первой видимой молекуле этого состава
+ * (порядок реестра), если ни одна молекула этого состава ещё не показана в этом классе
+ * (показана — по свидетельствам учебников или, без них, по ступени 3D-модели, как organicGradesForMolecule).
+ * Молекула без свидетельств получает только классы реакций учебника.
+ */
+const HIDDEN_ORGANIC = new Set(
+  ORGANIC_MOLECULES.filter((m) => !isTextbookVisible(m.id)).map((m) => m.id),
+)
+function isTextbookVisible(id: string): boolean {
+  return !CATALOG_HIDDEN_IDS.has(id)
+}
+const organicBase = (m: { id: string; classId: string }): Grade[] => {
+  const ev = organicMap[m.id]?.grades
+  if (ev?.length) return [...ev]
+  return organicGradeForMolecule(m.id, m.classId) === 'g11' ? [11] : [10]
+}
+const organicByKey = new Map<string, (typeof ORGANIC_MOLECULES)[number][]>()
+for (const m of ORGANIC_MOLECULES) {
+  if (compoundById[m.id] || HIDDEN_ORGANIC.has(m.id)) continue
+  const counts: Record<string, number> = {}
+  for (const a of m.graph.atoms) counts[a.element] = (counts[a.element] ?? 0) + 1
+  const k = compositionKey(counts)
+  organicByKey.set(k, [...(organicByKey.get(k) ?? []), m])
+}
+let organicRxAdded = 0
+for (const [k, rx] of BOOK_RX) {
+  const mols = organicByKey.get(k)
+  if (!mols?.length) continue
+  for (const g of rx.grades) {
+    if (mols.some((m) => organicBase(m).includes(g))) continue
+    const m = mols[0]!
+    // без свидетельств текста — только классы реакций учебника (догадка «ступень 3D-модели» не добавляется)
+    const grades = mergeGrades(organicMap[m.id]?.grades ?? [], [g])
+    const firstPage = organicMap[m.id]?.firstPage ?? rx.firstPage
+    organicMap[m.id] = { grades, ...(typeof firstPage === 'number' ? { firstPage } : {}) }
+    organicRxAdded++
+  }
+}
+console.log('органика: классов из реакций учебников добавлено', organicRxAdded)
 
 const stats = { 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, total: 0, organic: Object.keys(organicMap).length }
 for (const e of Object.values(map)) {

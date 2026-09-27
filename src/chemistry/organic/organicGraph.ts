@@ -1,11 +1,16 @@
 import type { Atom3D, Vec3 } from '../../types/chemistry'
 
-export type OrganicElement = 'C' | 'H' | 'O' | 'N' | 'Cl' | 'Br' | 'S'
+export type OrganicElement = 'C' | 'H' | 'O' | 'N' | 'Cl' | 'Br' | 'I' | 'S'
 
 export type OrganicAtom = {
   id: string
   element: OrganicElement
   pos: Vec3
+  /**
+   * Валентность этого атома, если она не обычная для элемента: N⁺ нитрогруппы и нитратов — 4, O⁻ — 1,
+   * S(VI) сульфокислот и эфиров серной кислоты — 6. Задаётся скелетом (SkeletonSpec.valence).
+   */
+  valence?: number
 }
 
 export type OrganicBond = {
@@ -34,6 +39,7 @@ const MAX_VALENCE: Record<OrganicElement, number> = {
   N: 3,
   Cl: 1,
   Br: 1,
+  I: 1,
   S: 2,
 }
 
@@ -57,7 +63,7 @@ export function createFormulaKit(
 ): OrganicGraph {
   resetOrganicIdSeq(0)
   const atoms: OrganicAtom[] = []
-  const groups: OrganicElement[] = ['C', 'O', 'N', 'S', 'Cl', 'Br', 'H']
+  const groups: OrganicElement[] = ['C', 'O', 'N', 'S', 'Cl', 'Br', 'I', 'H']
   let groupIndex = 0
   for (const el of groups) {
     const n = counts[el] ?? 0
@@ -170,17 +176,22 @@ export function usedValence(graph: OrganicGraph, atomId: string): number {
   return sum
 }
 
+/** Валентность конкретного атома: особая (N⁺, O⁻, S(VI)) или обычная для элемента. */
+export function atomMaxValence(atom: OrganicAtom): number {
+  return atom.valence ?? MAX_VALENCE[atom.element]
+}
+
 export function freeValence(graph: OrganicGraph, atomId: string): number {
   const atom = graph.atoms.find((a) => a.id === atomId)
   if (!atom) return 0
-  return maxValence(atom.element) - usedValence(graph, atomId)
+  return atomMaxValence(atom) - usedValence(graph, atomId)
 }
 
 export function valenceErrors(graph: OrganicGraph): ValenceError[] {
   const out: ValenceError[] = []
   for (const atom of graph.atoms) {
     const used = usedValence(graph, atom.id)
-    const max = maxValence(atom.element)
+    const max = atomMaxValence(atom)
     if (used > max) {
       out.push({ atomId: atom.id, element: atom.element, used, max })
     }
@@ -293,7 +304,7 @@ export function compositionOf(graph: OrganicGraph): Record<string, number> {
 
 export function formulaUnicode(graph: OrganicGraph): string {
   const c = compositionOf(graph)
-  const order = ['C', 'H', 'O', 'N', 'S', 'Cl', 'Br'] as const
+  const order = ['C', 'H', 'O', 'N', 'S', 'Cl', 'Br', 'I'] as const
   let s = ''
   for (const el of order) {
     const n = c[el]
@@ -367,14 +378,18 @@ export type SkeletonSpec = {
   edges: readonly (readonly [number, number] | readonly [number, number, 1 | 2 | 3])[]
   /** Цис/транс у двойной связи: [a, b, c, d, 'cis' | 'trans'] — индексы a–b=c–d в elements (только 3D-раскладка) */
   stereo?: readonly (readonly [number, number, number, number, 'cis' | 'trans'])[]
+  /** Особая валентность атома скелета: [индекс в elements, валентность] (N⁺ — 4, O⁻ — 1, S(VI) — 6). */
+  valence?: readonly (readonly [number, number])[]
 }
 
 export function graphFromSkeletonSpec(spec: SkeletonSpec): OrganicGraph {
   resetOrganicIdSeq(0)
+  const valence = new Map(spec.valence ?? [])
   const atoms: OrganicAtom[] = spec.elements.map((element, i) => ({
     id: `t_${element}_${i}`,
     element,
     pos: [i * 1.4, 0, 0] as Vec3,
+    ...(valence.has(i) ? { valence: valence.get(i) } : {}),
   }))
   const bonds: OrganicBond[] = spec.edges.map((e, i) => {
     const order = (e[2] ?? 1) as 1 | 2 | 3
@@ -415,6 +430,14 @@ export function applySkeletonBonds(graph: OrganicGraph, spec: SkeletonSpec): Org
   if (heavies.some((a) => !a)) return graph
 
   let next = graph
+  if (spec.valence?.length) {
+    const byId = new Map<string, number>()
+    for (const [i, v] of spec.valence) {
+      const a = heavies[i]
+      if (a) byId.set(a.id, v)
+    }
+    next = { ...next, atoms: next.atoms.map((a) => (byId.has(a.id) ? { ...a, valence: byId.get(a.id) } : a)) }
+  }
   for (const e of spec.edges) {
     const order = (e[2] ?? 1) as 1 | 2 | 3
     const a = heavies[e[0]]

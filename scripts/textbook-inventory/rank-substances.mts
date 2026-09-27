@@ -9,10 +9,11 @@
  *  4) класс вещества (оксид / кислота / основание / соль) из элементов программы 7–11;
  *  5) короткий ручной список «без этого школьного курса не бывает».
  *
- * Печатает рейтинг и пишет src/data/textbook/catalogTop200.json
- * (список видимых id и список понижённых id) при флаге --write.
+ * Печатает рейтинг и пишет src/data/textbook/catalogRank.json (все неорганические вещества каталога
+ * в порядке школьной значимости) при флаге --write. Правила «ровно 200 видимых» больше нет:
+ * каталог показывает каждое вещество учебников, рейтинг задаёт только порядок.
  *
- * Run: npx tsx scripts/textbook-inventory/rank-substances.mts [--write] [--top=200] [--all]
+ * Run: npx tsx scripts/textbook-inventory/rank-substances.mts [--write] [--all]
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -28,7 +29,6 @@ const ROOT = path.resolve(HERE, '..', '..')
 const TB = path.join(ROOT, 'src', 'data', 'textbook')
 const GRADES = [7, 8, 9, 10, 11] as const
 
-const TARGET = Number(process.argv.find((a) => a.startsWith('--top='))?.slice(6) ?? 200)
 const WRITE = process.argv.includes('--write')
 const SHOW_ALL = process.argv.includes('--all')
 
@@ -310,19 +310,10 @@ const scored = CANDIDATES.map((c) => scoreOne(c.id)).sort(
   (a, b) => b.score - a.score || a.id.localeCompare(b.id),
 )
 
-// ── отбор ────────────────────────────────────────────────────────────────────
+// ── порядок: сначала обязательные (ядро курса, сцены, рецепты, §>8), затем по счёту ───────────
 const forced = scored.filter((s) => s.forced != null)
-if (forced.length > TARGET) {
-  console.error(`обязательных ${forced.length} > ${TARGET} — правило forced слишком широкое`)
-  process.exit(1)
-}
-const keep = new Set(forced.map((s) => s.id))
-for (const s of scored) {
-  if (keep.size >= TARGET) break
-  keep.add(s.id)
-}
-const visible = scored.filter((s) => keep.has(s.id))
-const demoted = scored.filter((s) => !keep.has(s.id))
+const ranked = [...forced, ...scored.filter((s) => s.forced == null)]
+const visible = ranked
 
 // ── отчёт ────────────────────────────────────────────────────────────────────
 const fmt = (s: ScoredSubstance) =>
@@ -343,30 +334,24 @@ const byCat = (list: ScoredSubstance[]) => {
   for (const s of list) m.set(s.category, (m.get(s.category) ?? 0) + 1)
   return [...m.entries()].sort().map(([k, v]) => `${k} ${v}`).join(', ')
 }
-console.log(`\nОСТАЁТСЯ ${visible.length}: ${byCat(visible)}`)
-console.log(`СКРЫВАЕТСЯ ${demoted.length}: ${byCat(demoted)}`)
+console.log(`\nВ КАТАЛОГЕ ${visible.length}: ${byCat(visible)}`)
 
 console.log('\n── топ-12 ──')
 for (const s of visible.slice(0, 12)) console.log(fmt(s))
-console.log('\n── последние 12, которые прошли ──')
+console.log('\n── последние 12 ──')
 for (const s of visible.slice(-12)) console.log(fmt(s))
-console.log('\n── первые 12, которые не прошли ──')
-for (const s of demoted.slice(0, 12)) console.log(fmt(s))
 if (SHOW_ALL) {
   console.log('\n── весь рейтинг ──')
-  for (const s of scored) console.log(`${keep.has(s.id) ? '+' : '-'} ${fmt(s)}`)
+  for (const s of visible) console.log(fmt(s))
 }
 
 if (WRITE) {
   const out = {
-    generatedAt: new Date().toISOString(),
     generator: 'scripts/textbook-inventory/rank-substances.mts',
-    target: TARGET,
-    note: 'Видимые в каталоге неорганические вещества (топ по школьной значимости). Данные остальных сохранены, они просто не показываются.',
-    visibleInorganic: visible.map((s) => s.id).sort(),
-    demotedInorganic: demoted.map((s) => s.id).sort(),
+    note: 'Все неорганические вещества каталога в порядке школьной значимости (первое — самое важное). Видимость от рейтинга не зависит: каталог показывает каждое вещество учебников 7–11.',
+    rankedInorganic: visible.map((s) => s.id),
   }
-  const file = path.join(TB, 'catalogTop200.json')
+  const file = path.join(TB, 'catalogRank.json')
   writeFileSync(file, `${JSON.stringify(out, null, 1)}\n`, 'utf8')
-  console.log(`\n→ ${path.relative(ROOT, file)}: visible ${out.visibleInorganic.length}, demoted ${out.demotedInorganic.length}`)
+  console.log(`\n→ ${path.relative(ROOT, file)}: ${out.rankedInorganic.length} веществ`)
 }
