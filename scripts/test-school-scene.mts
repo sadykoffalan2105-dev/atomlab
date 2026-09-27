@@ -19,6 +19,9 @@
  *   7. Тексты ru / en / uz: все шаги заполнены; дробные числа — из ядра (длины и углы спецификации),
  *      наборы чисел трёх языков совпадают.
  *   8. H₂O (эталон): все шаги и фазы — поштучно.
+ *   9. Сцены из научных спецификаций (school/specs: CO₂, CO, SO₂, SO₃): уравнение, шаги, тексты,
+ *      связи (порядок, донор пары, ключ длины), неподелённые пары, неспаренные электроны, углы и
+ *      splitElectrons сцены = научной спецификации; ключевые фазы каждого вещества — поштучно.
  *
  * Запуск: npx tsx scripts/test-school-scene.mts
  */
@@ -30,6 +33,15 @@ import { H2O_SPEC } from '../src/lab/cinema/scenes/h2o/h2oSpec.ts'
 import { H2O_FINISH } from '../src/lab/cinema/scenes/h2o/h2oSteps.ts'
 import { FIX_CO, FIX_NH4CL, FIX_NO2 } from '../src/lab/cinema/scenes/school/schoolFixtures.ts'
 import { bondAngleDeg, bondLengthPm } from '../src/chemistry/data/bondData.ts'
+import { CO2_SCHOOL_SPEC } from '../src/lab/cinema/scenes/co2/co2Spec.ts'
+import { CO2_FINISH } from '../src/lab/cinema/scenes/co2/co2Steps.ts'
+import { CO_SCHOOL_SPEC } from '../src/lab/cinema/scenes/co/coSpec.ts'
+import { CO_FINISH } from '../src/lab/cinema/scenes/co/coSteps.ts'
+import { SO2_SCHOOL_SPEC } from '../src/lab/cinema/scenes/so2/so2Spec.ts'
+import { SO2_FINISH } from '../src/lab/cinema/scenes/so2/so2Steps.ts'
+import { SO3_SCHOOL_SPEC } from '../src/lab/cinema/scenes/so3/so3Spec.ts'
+import { SO3_FINISH } from '../src/lab/cinema/scenes/so3/so3Steps.ts'
+import { SCHOOL_SPECS, lessonText, pairOrigins, stepTimings, type ParticleSpec, type SchoolScienceSpec } from '../src/lab/cinema/scenes/school/specs/index.ts'
 
 let passed = 0
 function ok(name: string, fn: () => void): void {
@@ -87,9 +99,10 @@ function checkSpec(spec: SchoolSceneSpec, opts: { texts?: boolean } = {}): { a: 
   const tag = `[${spec.id}]`
 
   ok(`${tag} баланс атомов`, () => {
-    const [l, r] = spec.equation.split('→')
+    // Стрелка «→» или обратимая «⇄» (2SO₂ + O₂ ⇄ 2SO₃).
+    const [l, r] = spec.equation.split(/→|⇄/)
     assert.ok(l && r, `${tag} уравнение без стрелки`)
-    const left = parseSide(l.replace(/⇄/g, ''))
+    const left = parseSide(l)
     const right = parseSide(r)
     assert.ok(sameCounts(left, right), `${tag} уравнение не уравнено`)
     const atoms = new Map<string, number>()
@@ -254,7 +267,7 @@ function checkSpec(spec: SchoolSceneSpec, opts: { texts?: boolean } = {}): { a: 
 }
 
 // ——— все спецификации ———
-const SPECS: SchoolSceneSpec[] = [H2O_SPEC]
+const SPECS: SchoolSceneSpec[] = [H2O_SPEC, CO2_SCHOOL_SPEC, CO_SCHOOL_SPEC, SO2_SCHOOL_SPEC, SO3_SCHOOL_SPEC]
 const built = SPECS.map(checkSpec)
 
 // ——— Прочность движка: учебные «заготовки» с донорно-акцепторной парой, тройной связью,
@@ -369,5 +382,185 @@ for (const fx of [FIX_CO, FIX_NO2, FIX_NH4CL]) {
     assert.equal(H2O_FINISH.to, m.finish.to)
   })
 }
+
+// ——— сцены из научных спецификаций: химия сцены = химии спецификации ———
+type MolSig = { bonds: string[]; lone: string[]; unpaired: string[]; angles: string[] }
+const sortJ = (xs: string[]) => [...xs].sort()
+function sceneMolSig(spec: SchoolSceneSpec, mol: SchoolSceneSpec['products'][number]): MolSig {
+  const el = (id: string) => spec.atoms.find((x) => x.id === id)!.element
+  return {
+    bonds: sortJ(
+      mol.bonds.map((b) => {
+        const pairs = b.pairs.map((o) => (o === 'ab' ? 'ab' : `донор ${el(o === 'a' ? b.a : b.b)}`)).join(',')
+        return `${sortJ([el(b.a), el(b.b)]).join('-')}:${pairs}:${b.bondKey}`
+      }),
+    ),
+    lone: sortJ(Object.entries(mol.lonePairs ?? {}).filter(([, n]) => n).map(([id, n]) => `${el(id)}:${n}`)),
+    unpaired: sortJ(Object.entries(mol.unpaired ?? {}).filter(([, n]) => n).map(([id, n]) => `${el(id)}:${n}`)),
+    angles: sortJ((mol.angles ?? []).map((an) => `${an.angleKey}`)),
+  }
+}
+function particleSig(p: ParticleSpec): MolSig {
+  const el = (id: string) => p.atoms.find((x) => x.id === id)!.element
+  return {
+    bonds: sortJ(
+      p.bonds.map((b) => {
+        const pairs = pairOrigins(b).map((o) => (o === 'ab' ? 'ab' : `донор ${el(o === 'a' ? b.a : b.b)}`)).join(',')
+        return `${sortJ([el(b.a), el(b.b)]).join('-')}:${pairs}:${'bond' in b.length ? b.length.bond : '?'}`
+      }),
+    ),
+    lone: sortJ(Object.entries(p.lonePairs).filter(([, n]) => n).map(([id, n]) => `${el(id)}:${n}`)),
+    unpaired: sortJ(Object.entries(p.unpaired).filter(([, n]) => n).map(([id, n]) => `${el(id)}:${n}`)),
+    angles: sortJ((p.angles ?? []).map((an) => ('angle' in an.ref ? an.ref.angle : '?'))),
+  }
+}
+function checkScience(spec: SchoolSceneSpec, sci: SchoolScienceSpec): void {
+  const tag = `[${spec.id} ↔ specs/${sci.id}]`
+  ok(`${tag} уравнение, шаги и тексты — из спецификации`, () => {
+    assert.equal(spec.equation, sci.reaction.equation)
+    assert.deepEqual(spec.steps, stepTimings(sci))
+    assert.equal(spec.textbook.page, sci.reaction.sources[0]!.pages[0])
+    for (const loc of ['ru', 'en', 'uz'] as const) assert.deepEqual(spec.text[loc], lessonText(sci, loc), `${tag} текст ${loc}`)
+    assert.deepEqual(spec.captions, sci.captions)
+  })
+  ok(`${tag} молекулы сцены = частицам спецификации`, () => {
+    const side = (mols: SchoolSceneSpec['reactants'], terms: SchoolScienceSpec['reaction']['reactants']) => {
+      // Число молекул каждой формулы = коэффициенту уравнения.
+      for (const t of terms) assert.equal(mols.filter((m) => m.formula === t.formula).length, t.coef, `${tag} ${t.formula}: не ${t.coef} шт.`)
+      assert.equal(mols.length, terms.reduce((s, t) => s + t.coef, 0))
+      for (const mol of mols) {
+        const term = terms.find((t) => t.formula === mol.formula)!
+        const p = sci.particles.find((x) => x.id === term.particle)!
+        const got = sceneMolSig(spec, mol)
+        const want = particleSig(p)
+        assert.deepEqual(got.bonds, want.bonds, `${tag} ${mol.id}: связи`)
+        assert.deepEqual(got.lone, want.lone, `${tag} ${mol.id}: неподелённые пары`)
+        assert.deepEqual(got.unpaired, want.unpaired, `${tag} ${mol.id}: неспаренные электроны`)
+        for (const k of got.angles) assert.ok(want.angles.includes(k), `${tag} ${mol.id}: угол ${k} не из спецификации`)
+      }
+    }
+    side(spec.reactants, sci.reaction.reactants)
+    side(spec.products, sci.reaction.products)
+  })
+  ok(`${tag} раскладка электронов перед связыванием (splitElectrons)`, () => {
+    const want = new Map<string, string>()
+    for (const se of sci.mechanism.splitElectrons ?? []) {
+      const p = sci.particles.find((x) => x.id === se.particle)!
+      const el = p.atoms.find((x) => x.id === se.atom)!.element
+      for (const mol of spec.reactants.filter((m) => m.formula === p.formula)) {
+        for (const id of mol.atoms) if (spec.atoms.find((x) => x.id === id)!.element === el) want.set(id, `${se.lone}+${se.unpaired}`)
+      }
+    }
+    const got = new Map(Object.entries(spec.splitElectrons ?? {}).map(([id, v]) => [id, `${v.lone}+${v.unpaired}`]))
+    assert.deepEqual(got, want)
+  })
+}
+for (const [spec, sci] of [
+  [CO2_SCHOOL_SPEC, SCHOOL_SPECS.co2],
+  [CO_SCHOOL_SPEC, SCHOOL_SPECS.co],
+  [SO2_SCHOOL_SPEC, SCHOOL_SPECS.so2],
+  [SO3_SCHOOL_SPEC, SCHOOL_SPECS.so3],
+] as const) {
+  checkScience(spec, sci)
+}
+ok('хвосты сцен совпадают с *Steps', () => {
+  for (const [spec, fin] of [
+    [CO2_SCHOOL_SPEC, CO2_FINISH],
+    [CO_SCHOOL_SPEC, CO_FINISH],
+    [SO2_SCHOOL_SPEC, SO2_FINISH],
+    [SO3_SCHOOL_SPEC, SO3_FINISH],
+  ] as const) {
+    const m = buildSchoolModel(spec)
+    assert.equal(fin.from, m.finish.from, `${spec.id}: хвост`)
+    assert.equal(fin.to, m.finish.to, `${spec.id}: хвост`)
+  }
+})
+
+// ——— поштучно: CO₂, CO, SO₂, SO₃ ———
+const analysisOf = (spec: SchoolSceneSpec) => built[SPECS.indexOf(spec)]!
+const ofEl = (a: SchoolAnalysis, el: string) => a.atoms.map((x, i) => (x.element === el ? i : -1)).filter((i) => i >= 0)
+/** Косинус между направлением неподелённой пары и направлением на партнёра по связи. */
+function loneCos(a: SchoolAnalysis, i: number, q: number): number[] {
+  const d = a.P.atoms[i]!.loneDirs[q]!
+  return a.P.bonds
+    .filter((b) => b.a === i || b.b === i)
+    .map((b) => {
+      const j = b.a === i ? b.b : b.a
+      const u = [a.P.pos[j]![0] - a.P.pos[i]![0], a.P.pos[j]![1] - a.P.pos[i]![1], a.P.pos[j]![2] - a.P.pos[i]![2]]
+      return (d[0] * u[0]! + d[1] * u[1]! + d[2] * u[2]!) / Math.hypot(...u)
+    })
+}
+/** Видимые точки электронов на шаге (альфа > 0,5). */
+function visibleAt(m: SchoolModel, t: number): number {
+  const st = createSchoolState(m)
+  sampleSchoolState(m, t, st)
+  return [...st.elAlpha].filter((x) => x > 0.5).length
+}
+ok('CO₂: C +6 )2 )4 — пара и 2 неспаренных; перед связями 4 неспаренных; O=C=O без пар у C', () => {
+  const { a, m } = analysisOf(CO2_SCHOOL_SPEC)
+  const [c] = ofEl(a, 'C')
+  assert.deepEqual([a.R.atoms[c!]!.lone, a.R.atoms[c!]!.single], [1, 2], 'C на шаге atoms: 1 пара + 2 неспаренных')
+  assert.deepEqual([a.S.atoms[c!]!.lone, a.S.atoms[c!]!.single], [0, 4], 'C перед связями: 4 неспаренных')
+  assert.deepEqual([a.P.atoms[c!]!.lone, a.P.atoms[c!]!.single], [0, 0])
+  for (const o of ofEl(a, 'O')) assert.equal(a.P.atoms[o]!.lone, 2, 'у каждого O в CO₂ две неподелённые пары')
+  assert.equal(a.broken.length, 2, 'рвётся только O=O (2 пары)')
+  assert.equal(a.formed.length, 4, 'две двойные связи: 4 пары')
+  assert.equal(bondLengthPm('C=O(CO2)'), 116.0)
+  assert.equal(bondAngleDeg('carbonDioxide'), 180)
+  // Кадр шага atoms: 4 + 2·6 = 16 точек; шага molecule: 8 точек неподелённых пар O.
+  assert.equal(visibleAt(m, m.step.atoms.to - 0.3), 16)
+  assert.equal(visibleAt(m, m.step.molecule.to - 0.01), 8)
+})
+ok('CO: C≡O — 2 обменные пары + донорная пара O; по неподелённой паре у C и O на оси снаружи', () => {
+  const { a, m } = analysisOf(CO_SCHOOL_SPEC)
+  assert.equal(a.formed.length, 6)
+  a.P.bonds.forEach((b) => {
+    const donors = b.pairs.filter((o) => o !== 'ab').map((o) => a.atoms[o === 'a' ? b.a : b.b]!.element)
+    assert.deepEqual(donors, ['O'], 'донор третьей пары — кислород')
+    assert.equal(b.pairs.length, 3)
+    assert.ok(Math.abs(b.lengthPm - 112.8) < 1e-9)
+  })
+  for (const i of [...ofEl(a, 'C'), ...ofEl(a, 'O')]) {
+    assert.equal(a.P.atoms[i]!.lone, 1)
+    assert.equal(a.P.atoms[i]!.single, 0)
+    for (const cos of loneCos(a, i, 0)) assert.ok(cos < -0.999, `неподелённая пара ${a.atoms[i]!.id} не на оси снаружи (cos = ${cos.toFixed(3)})`)
+  }
+  // Донорная пара — электроны O: после образования у O 2 (обменные) + 2 (донор) + 2 (своя пара) = 6.
+  assert.equal(visibleAt(m, m.step.atoms.to - 0.3), 2 * 4 + 2 * 6)
+  assert.equal(visibleAt(m, m.step.molecule.to - 0.01), 8, 'после шага molecule — 4 неподелённые пары')
+})
+ok('SO₂: S +16 )2 )8 )6; перед связями пара + 4 неспаренных; у S одна неподелённая пара снаружи угла', () => {
+  const { a, m } = analysisOf(SO2_SCHOOL_SPEC)
+  const [s] = ofEl(a, 'S')
+  assert.deepEqual([a.R.atoms[s!]!.lone, a.R.atoms[s!]!.single], [2, 2])
+  assert.deepEqual([a.S.atoms[s!]!.lone, a.S.atoms[s!]!.single], [1, 4])
+  assert.deepEqual([a.P.atoms[s!]!.lone, a.P.atoms[s!]!.single], [1, 0])
+  for (const cos of loneCos(a, s!, 0)) assert.ok(cos < -0.4, `пара S смотрит на связь S=O (cos = ${cos.toFixed(2)})`)
+  for (const o of ofEl(a, 'O')) assert.equal(a.P.atoms[o]!.lone, 2)
+  assert.equal(a.formed.length, 4)
+  assert.equal(bondAngleDeg('sulfurDioxide'), 119.5)
+  assert.equal(visibleAt(m, m.step.molecule.to - 0.01), 10, 'пара S + по две пары у O')
+})
+ok('SO₃: S=O молекул SO₂ сохраняются, рвётся только O=O; третья S=O — из пары S и неспаренных O', () => {
+  const { a, m } = analysisOf(SO3_SCHOOL_SPEC)
+  assert.equal(a.broken.length, 2, 'рвутся только 2 пары O=O')
+  assert.deepEqual(a.keptPairs.filter((x) => x === 2).length, 4, 'четыре связи S=O сохраняются целиком')
+  assert.equal(a.formed.length, 4, 'по одной новой двойной связи у каждого S')
+  for (const s of ofEl(a, 'S')) {
+    assert.deepEqual([a.R.atoms[s]!.lone, a.R.atoms[s]!.single], [1, 0], 'S в SO₂: одна неподелённая пара')
+    assert.deepEqual([a.S.atoms[s]!.lone, a.S.atoms[s]!.single], [0, 2], 'пара S распаривается')
+    assert.deepEqual([a.P.atoms[s]!.lone, a.P.atoms[s]!.single], [0, 0], 'у S в SO₃ пар нет')
+  }
+  for (const o of ofEl(a, 'O')) assert.equal(a.P.atoms[o]!.lone, 2)
+  assert.equal(bondLengthPm('S=O(SO3)'), 141.98)
+  assert.equal(bondAngleDeg('sulfurTrioxide'), 120)
+  // Сохранённые штрихи S=O видны весь шаг breaking.
+  const st = createSchoolState(m)
+  sampleSchoolState(m, m.step.breaking.to - 0.01, st)
+  const kept = m.sticks.map((x, k) => (x.phase === 'r' && x.pair < a.keptPairs[x.bond]! ? k : -1)).filter((k) => k >= 0)
+  assert.equal(kept.length, 8)
+  for (const k of kept) assert.ok(st.stickAlpha[k]! > 0.1, 'штрих сохранённой S=O погас при разрыве')
+  assert.equal(visibleAt(m, m.step.molecule.to - 0.01), 24, 'по две пары у шести O')
+})
 
 console.log(`✓ school scenes: ${passed} проверок, спецификаций: ${SPECS.length}`)
