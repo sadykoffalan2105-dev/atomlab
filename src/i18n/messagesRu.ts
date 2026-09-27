@@ -719,6 +719,7 @@ export const messagesRu = {
   'learn.book.rx.note': 'Пояснение',
   'learn.book.rx.chipAria': 'Реакция {equation} — подробнее',
   'learn.book.rx.labReady': 'Готово к запуску в реакторе',
+  'learn.book.rx.labExample': 'В реакторе — пример учебника: {equation}',
   'learn.book.rx.unsupportedTitle': 'В реакторе пока недоступно',
   'learn.book.rx.ionicBadge': 'Ионное',
   'learn.book.rx.schemeBadge': 'Схема',

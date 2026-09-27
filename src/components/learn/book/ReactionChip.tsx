@@ -300,9 +300,9 @@ export function ReactionCard({ rx, gradeId, unitId, anchor, sheet, contextLabel,
 
       {rx.lab.ok ? (
         <>
-          <p className={styles.rxCardReady}>
+          <p className={styles.rxCardReady} data-book-rx-example={rx.lab.example ? rx.id : undefined}>
             <IconSpark />
-            {t('learn.book.rx.labReady')}
+            {rx.lab.example ? t('learn.book.rx.labExample', { equation: rx.lab.example }) : t('learn.book.rx.labReady')}
           </p>
           <div className={styles.rxCardActions}>
             <Link ref={setPrimary} className={styles.btnPrimary} to={rx.lab.href} data-book-rx-open-lab={rx.id}>

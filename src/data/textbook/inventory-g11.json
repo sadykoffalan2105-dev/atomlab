@@ -1,7 +1,7 @@
 {
  "grade": 11,
  "source": "public/textbooks/kimyo-11-ru.pdf (Kimyo 11, рус. изд.; нет текстового слоя — OCR + визуальная проверка страниц)",
- "generatedAt": "2026-09-26T20:52:38.745Z",
+ "generatedAt": "2026-09-27T04:55:19.183Z",
  "mergedFrom": [
   "src/data/textbook/inventory-g11-part1.json",
   "src/data/textbook/inventory-g11-part2.json"
@@ -162,13 +162,13 @@
    "[c8-s01] ~ reaction MnSO4 + 2H2O -> Mn + H2 + O2 + H2SO4 -> {\"catalogNote\":\"Металл средней активности: на катоде одновременно восстанавливаются Mn²⁺ и вода (Mn и H₂), на аноде — O₂. Уравнение уравнено (e⁻: 2 + 2 = 4); соотношение Mn и H₂ зависит от условий — это школьная запись.\"}",
    "[c8-s01] ~ reaction 2MnCl2 + 2H2O -> Mn + H2 + 2Cl2 + Mn(OH)2 -> {\"catalogNote\":\"Металл средней активности: на катоде Mn и H₂, на аноде Cl₂.\"}",
    "[c8-s01] ~ reaction 2CuSO4 + 2H2O -> 2Cu + O2 + 2H2SO4 -> {\"catalogNote\":\"Малоактивный металл (после H): на катоде только медь, на аноде O₂.\"}",
-   "[c8-s01] ~ reaction MeSO4 + 2H2O -> MeSO4 + 2H2 + O2 -> {\"eq\":\"MeSO4 + 2H2O -> MeSO4 + 2H2 + O2\",\"conditions\":\"электролиз раствора; активные металлы (Li … Al)\",\"catalogNote\":\"Соль не расходуется — по сути идёт электролиз воды: 2H₂O → 2H₂ + O₂ (катод — H₂, анод — O₂). В таблице учебника Al отнесён к металлам средней активности — это ошибка: из водных растворов Al³⁺ не восстанавливается (на катоде только H₂), алюминий получают электролизом расплава (учебник сам пишет это ниже на с. 143). Школьное правило: Li … Al — на катоде только H₂; после Al до H — металл и H₂; после H — только металл.\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
-   "[c8-s01] ~ reaction MeCl + 2H2O -> MeOH + H2 + Cl2 -> {\"eq\":\"2MeCl + 2H2O -> 2MeOH + H2 + Cl2\",\"conditions\":\"электролиз раствора; активные металлы\",\"catalogNote\":\"Катод — H₂ (у катода копится щёлочь MeOH), анод — Cl₂; пример — 2KCl + 2H₂O → H₂ + Cl₂ + 2KOH (с. 142). В учебнике: MeCl + 2H₂O → MeOH + H₂ + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
-   "[c8-s01] ~ reaction MeSO4 + 2H2O -> Me + H2 + O2 + H2SO4 -> {\"eq\":\"MeSO4 + 2H2O -> Me + H2 + O2 + H2SO4\",\"conditions\":\"электролиз раствора; металлы средней активности (после Al до H)\",\"catalogNote\":\"На катоде одновременно металл и H₂, на аноде — O₂; соотношение Me и H₂ зависит от условий (пример — MnSO₄, с. 142). Без выделения водорода: 2MeSO₄ + 2H₂O → 2Me + O₂ + 2H₂SO₄.\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
-   "[c8-s01] ~ reaction MeCl + 2H2O -> MeOH + Me + H2 + Cl2 -> {\"eq\":\"2MeCl2 + 2H2O -> Me + H2 + 2Cl2 + Me(OH)2\",\"conditions\":\"электролиз раствора; металлы средней активности (после Al до H)\",\"catalogNote\":\"Как в примере учебника с MnCl₂ (с. 143): на катоде металл и H₂, на аноде Cl₂. В учебнике: MeCl + 2H₂O → MeOH + Me + H₂ + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
-   "[c8-s01] ~ reaction MeSO4 + 2H2O -> Me + O2 + H2SO4 -> {\"eq\":\"2MeSO4 + 2H2O -> 2Me + O2 + 2H2SO4\",\"conditions\":\"электролиз раствора; малоактивные металлы (после H: Cu … Au)\",\"catalogNote\":\"На катоде только металл, на аноде O₂; пример — 2CuSO₄ + 2H₂O → 2Cu + O₂ + 2H₂SO₄. В учебнике: MeSO₄ + 2H₂O → Me + O₂ + H₂SO₄. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
-   "[c8-s01] ~ reaction MeCl + 2H2O -> Me + Cl2 + H2O -> {\"eq\":\"MeCl2 -> Me + Cl2\",\"conditions\":\"электролиз раствора; малоактивные металлы (после H)\",\"catalogNote\":\"Разлагается только соль, вода не участвует; пример — CuCl₂ → Cu + Cl₂. В учебнике: MeCl + 2H₂O → Me + Cl₂ + H₂O. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true}",
-   "[c8-s01] ~ reaction MeCl -> Me + Cl2 -> {\"eq\":\"2MeCl -> 2Me + Cl2\",\"conditions\":\"электролиз расплава; все металлы\",\"catalogNote\":\"Расплав: катод — металл, анод — Cl₂; пример — 2NaCl → 2Na + Cl₂ (с. 140). В учебнике: MeCl → Me + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true}"
+   "[c8-s01] ~ reaction MeSO4 + 2H2O -> MeSO4 + 2H2 + O2 -> {\"eq\":\"MeSO4 + 2H2O -> MeSO4 + 2H2 + O2\",\"conditions\":\"электролиз раствора; активные металлы (Li … Al)\",\"catalogNote\":\"Соль не расходуется — по сути идёт электролиз воды: 2H₂O → 2H₂ + O₂ (катод — H₂, анод — O₂). Пример: Me = Mg из той же строки таблицы — MgSO₄ + 2H₂O → MgSO₄ + 2H₂ + O₂; так же в учебнике на с. 142 — раствор K₂CO₃. В реакторе — суммарная реакция 2H₂O → 2H₂ + O₂: соль остаётся в растворе без изменений. В таблице учебника Al отнесён к металлам средней активности — это ошибка: из водных растворов Al³⁺ не восстанавливается (на катоде только H₂), алюминий получают электролизом расплава (учебник сам пишет это ниже на с. 143). Школьное правило: Li … Al — на катоде только H₂; после Al до H — металл и H₂; после H — только металл.\",\"showInCatalog\":true,\"isGeneralScheme\":true,\"labExample\":\"2H2O -> 2H2 + O2\"}",
+   "[c8-s01] ~ reaction MeCl + 2H2O -> MeOH + H2 + Cl2 -> {\"eq\":\"2MeCl + 2H2O -> 2MeOH + H2 + Cl2\",\"conditions\":\"электролиз раствора; активные металлы\",\"catalogNote\":\"Катод — H₂ (у катода копится щёлочь MeOH), анод — Cl₂; пример — 2KCl + 2H₂O → H₂ + Cl₂ + 2KOH (с. 142). В учебнике: MeCl + 2H₂O → MeOH + H₂ + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true,\"labExample\":\"2KCl + 2H2O -> H2 + Cl2 + 2KOH\"}",
+   "[c8-s01] ~ reaction MeSO4 + 2H2O -> Me + H2 + O2 + H2SO4 -> {\"eq\":\"MeSO4 + 2H2O -> Me + H2 + O2 + H2SO4\",\"conditions\":\"электролиз раствора; металлы средней активности (после Al до H)\",\"catalogNote\":\"На катоде одновременно металл и H₂, на аноде — O₂; соотношение Me и H₂ зависит от условий (пример — MnSO₄ + 2H₂O → Mn + H₂ + O₂ + H₂SO₄, с. 142). Без выделения водорода: 2MeSO₄ + 2H₂O → 2Me + O₂ + 2H₂SO₄.\",\"showInCatalog\":true,\"isGeneralScheme\":true,\"labExample\":\"MnSO4 + 2H2O -> Mn + H2 + O2 + H2SO4\"}",
+   "[c8-s01] ~ reaction MeCl + 2H2O -> MeOH + Me + H2 + Cl2 -> {\"eq\":\"2MeCl2 + 2H2O -> Me + H2 + 2Cl2 + Me(OH)2\",\"conditions\":\"электролиз раствора; металлы средней активности (после Al до H)\",\"catalogNote\":\"Как в примере учебника с MnCl₂ (с. 143): на катоде металл и H₂, на аноде Cl₂; пример — 2MnCl₂ + 2H₂O → Mn + H₂ + 2Cl₂ + Mn(OH)₂. В учебнике: MeCl + 2H₂O → MeOH + Me + H₂ + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true,\"labExample\":\"2MnCl2 + 2H2O -> Mn + H2 + 2Cl2 + Mn(OH)2\"}",
+   "[c8-s01] ~ reaction MeSO4 + 2H2O -> Me + O2 + H2SO4 -> {\"eq\":\"2MeSO4 + 2H2O -> 2Me + O2 + 2H2SO4\",\"conditions\":\"электролиз раствора; малоактивные металлы (после H: Cu … Au)\",\"catalogNote\":\"На катоде только металл, на аноде O₂; пример — 2CuSO₄ + 2H₂O → 2Cu + O₂ + 2H₂SO₄ (с. 143). В учебнике: MeSO₄ + 2H₂O → Me + O₂ + H₂SO₄. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true,\"labExample\":\"2CuSO4 + 2H2O -> 2Cu + O2 + 2H2SO4\"}",
+   "[c8-s01] ~ reaction MeCl + 2H2O -> Me + Cl2 + H2O -> {\"eq\":\"MeCl2 -> Me + Cl2\",\"conditions\":\"электролиз раствора; малоактивные металлы (после H)\",\"catalogNote\":\"Разлагается только соль, вода не участвует; пример — CuCl₂ → Cu + Cl₂ (с. 143). В учебнике: MeCl + 2H₂O → Me + Cl₂ + H₂O. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true,\"labExample\":\"CuCl2 -> Cu + Cl2\"}",
+   "[c8-s01] ~ reaction MeCl -> Me + Cl2 -> {\"eq\":\"2MeCl -> 2Me + Cl2\",\"conditions\":\"электролиз расплава; все металлы\",\"catalogNote\":\"Расплав: катод — металл, анод — Cl₂; пример — 2NaCl → 2Na + Cl₂ (с. 140). В учебнике: MeCl → Me + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).\",\"showInCatalog\":true,\"isGeneralScheme\":true,\"labExample\":\"2NaCl -> 2Na + Cl2\"}"
   ],
   "unbalanced": []
  },
@@ -20369,8 +20369,9 @@
      "quote": "Таблица: растворы, кислородные, Li, Cs, Rb, K, Ba, Sr, Ca, Na, Mg, Be",
      "bankId": null,
      "note": null,
-     "catalogNote": "Соль не расходуется — по сути идёт электролиз воды: 2H₂O → 2H₂ + O₂ (катод — H₂, анод — O₂). В таблице учебника Al отнесён к металлам средней активности — это ошибка: из водных растворов Al³⁺ не восстанавливается (на катоде только H₂), алюминий получают электролизом расплава (учебник сам пишет это ниже на с. 143). Школьное правило: Li … Al — на катоде только H₂; после Al до H — металл и H₂; после H — только металл.",
-     "showInCatalog": true
+     "catalogNote": "Соль не расходуется — по сути идёт электролиз воды: 2H₂O → 2H₂ + O₂ (катод — H₂, анод — O₂). Пример: Me = Mg из той же строки таблицы — MgSO₄ + 2H₂O → MgSO₄ + 2H₂ + O₂; так же в учебнике на с. 142 — раствор K₂CO₃. В реакторе — суммарная реакция 2H₂O → 2H₂ + O₂: соль остаётся в растворе без изменений. В таблице учебника Al отнесён к металлам средней активности — это ошибка: из водных растворов Al³⁺ не восстанавливается (на катоде только H₂), алюминий получают электролизом расплава (учебник сам пишет это ниже на с. 143). Школьное правило: Li … Al — на катоде только H₂; после Al до H — металл и H₂; после H — только металл.",
+     "showInCatalog": true,
+     "labExample": "2H2O -> 2H2 + O2"
     },
     {
      "equationAsInBook": "MeSO4 + 2H2O → Me + H2 + O2 + H2SO4",
@@ -20417,8 +20418,9 @@
      "quote": "Таблица: растворы, кислородные, Al, Mn, Zn, Cr, Fe, Cd, Co, Ni, Sn, Pb",
      "bankId": null,
      "note": null,
-     "catalogNote": "На катоде одновременно металл и H₂, на аноде — O₂; соотношение Me и H₂ зависит от условий (пример — MnSO₄, с. 142). Без выделения водорода: 2MeSO₄ + 2H₂O → 2Me + O₂ + 2H₂SO₄.",
-     "showInCatalog": true
+     "catalogNote": "На катоде одновременно металл и H₂, на аноде — O₂; соотношение Me и H₂ зависит от условий (пример — MnSO₄ + 2H₂O → Mn + H₂ + O₂ + H₂SO₄, с. 142). Без выделения водорода: 2MeSO₄ + 2H₂O → 2Me + O₂ + 2H₂SO₄.",
+     "showInCatalog": true,
+     "labExample": "MnSO4 + 2H2O -> Mn + H2 + O2 + H2SO4"
     },
     {
      "equationAsInBook": "MeSO4 + 2H2O → Me + O2 + H2SO4",
@@ -20461,8 +20463,9 @@
      "quote": "Таблица: растворы, кислородные, Cu, Hg, Ag, Pd, Pt, Au",
      "bankId": null,
      "note": null,
-     "catalogNote": "На катоде только металл, на аноде O₂; пример — 2CuSO₄ + 2H₂O → 2Cu + O₂ + 2H₂SO₄. В учебнике: MeSO₄ + 2H₂O → Me + O₂ + H₂SO₄. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
-     "showInCatalog": true
+     "catalogNote": "На катоде только металл, на аноде O₂; пример — 2CuSO₄ + 2H₂O → 2Cu + O₂ + 2H₂SO₄ (с. 143). В учебнике: MeSO₄ + 2H₂O → Me + O₂ + H₂SO₄. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
+     "showInCatalog": true,
+     "labExample": "2CuSO4 + 2H2O -> 2Cu + O2 + 2H2SO4"
     },
     {
      "equationAsInBook": "MeCl + 2H2O → MeOH + H2 + Cl2",
@@ -20506,7 +20509,8 @@
      "bankId": null,
      "note": null,
      "catalogNote": "Катод — H₂ (у катода копится щёлочь MeOH), анод — Cl₂; пример — 2KCl + 2H₂O → H₂ + Cl₂ + 2KOH (с. 142). В учебнике: MeCl + 2H₂O → MeOH + H₂ + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
-     "showInCatalog": true
+     "showInCatalog": true,
+     "labExample": "2KCl + 2H2O -> H2 + Cl2 + 2KOH"
     },
     {
      "equationAsInBook": "MeCl + 2H2O → MeOH + Me + H2 + Cl2",
@@ -20553,8 +20557,9 @@
      "quote": "Таблица: растворы, бескислородные, Al, Mn, Zn, Cr, Fe, Cd, Co, Ni, Sn, Pb",
      "bankId": null,
      "note": null,
-     "catalogNote": "Как в примере учебника с MnCl₂ (с. 143): на катоде металл и H₂, на аноде Cl₂. В учебнике: MeCl + 2H₂O → MeOH + Me + H₂ + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
-     "showInCatalog": true
+     "catalogNote": "Как в примере учебника с MnCl₂ (с. 143): на катоде металл и H₂, на аноде Cl₂; пример — 2MnCl₂ + 2H₂O → Mn + H₂ + 2Cl₂ + Mn(OH)₂. В учебнике: MeCl + 2H₂O → MeOH + Me + H₂ + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
+     "showInCatalog": true,
+     "labExample": "2MnCl2 + 2H2O -> Mn + H2 + 2Cl2 + Mn(OH)2"
     },
     {
      "equationAsInBook": "MeCl + 2H2O → Me + Cl2 + H2O",
@@ -20589,8 +20594,9 @@
      "quote": "Таблица: растворы, бескислородные, Cu, Hg, Ag, Pd, Pt, Au",
      "bankId": null,
      "note": null,
-     "catalogNote": "Разлагается только соль, вода не участвует; пример — CuCl₂ → Cu + Cl₂. В учебнике: MeCl + 2H₂O → Me + Cl₂ + H₂O. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
-     "showInCatalog": true
+     "catalogNote": "Разлагается только соль, вода не участвует; пример — CuCl₂ → Cu + Cl₂ (с. 143). В учебнике: MeCl + 2H₂O → Me + Cl₂ + H₂O. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
+     "showInCatalog": true,
+     "labExample": "CuCl2 -> Cu + Cl2"
     },
     {
      "equationAsInBook": "MeSO4 → Me + O2 + SO3",
@@ -20664,7 +20670,8 @@
      "bankId": null,
      "note": null,
      "catalogNote": "Расплав: катод — металл, анод — Cl₂; пример — 2NaCl → 2Na + Cl₂ (с. 140). В учебнике: MeCl → Me + Cl₂. В учебнике схемы таблицы не уравнены, а заряд металла в них разный (MeSO₄ — Me²⁺, MeCl — Me⁺).",
-     "showInCatalog": true
+     "showInCatalog": true,
+     "labExample": "2NaCl -> 2Na + Cl2"
     }
    ],
    "labWorks": [

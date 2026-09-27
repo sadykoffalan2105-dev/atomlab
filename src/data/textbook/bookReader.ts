@@ -16,8 +16,10 @@
  * reason — код отказа resolveReactorEquation (scheme | generalFormula | unknownSubstance | organic |
  * noCompoundProduct | tooManyTerms | unbalanced; ionic — только в старых данных: ионы теперь частицы реактора);
  * altHref — запасная ссылка (например, органическая лаборатория).
+ * example — общая схема (R, Me, Hal) или формула с «n» (полимер, олеум) открывается в реакторе по конкретному
+ * примеру учебника; здесь это уравнение примера (Unicode), href ведёт именно на него.
  */
-export type ReaderLab = { ok: true; href: string } | { ok: false; reason: string; altHref?: string }
+export type ReaderLab = { ok: true; href: string; example?: string } | { ok: false; reason: string; altHref?: string }
 
 /**
  * Реакция параграфа. id — «r1», «r2»… (уникален в юните, для ?rx=). lab.href — путь роутера

@@ -475,6 +475,12 @@ const TextbookReactionRow = memo(function TextbookReactionRow({
         </p>
       ) : null}
 
+      {showLab && r.lab.ok && r.lab.example ? (
+        <p className={styles.rxMeta} data-rx-lab-example={`${unitId}-${r.id}`}>
+          {t('learn.book.rx.labExample', { equation: r.lab.example })}
+        </p>
+      ) : null}
+
       {showLab ? (
         r.lab.ok ? (
           <div className={styles.rxBtns}>

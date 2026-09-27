@@ -171,7 +171,7 @@
     {"page":139,"eq":"CuSO4 + 5H2O -> CuSO4*5H2O","type":"combination","cond":"образование кристаллогидрата (медный купорос)"},
     {"page":139,"eq":"H2SO4 + H2O -> H2SO4*H2O","type":"combination","cond":"гидрат серной кислоты"},
     {"page":139,"eq":"NaOH + H2O -> NaOH*H2O","type":"combination","cond":"гидрат едкого натра"},
-    {"page":139,"eq":"6nCO2 + 5nH2O -> (C6H10O5)n + 6nO2","type":"other","cond":"фотосинтез крахмала, при воздействии света"},
+    {"page":139,"eq":"6nCO2 + 5nH2O -> (C6H10O5)n + 6nO2","type":"other","cond":"фотосинтез крахмала, при воздействии света","labExample":"6CO2 + 5H2O -> C6H10O5 + 6O2","note":"Крахмал (C₆H₁₀O₅)ₙ — полимер: n — число звеньев C₆H₁₀O₅ (остатков глюкозы, учебник называет звено на этой же странице). Пример на одно звено (n = 1): 6CO₂ + 5H₂O → C₆H₁₀O₅ + 6O₂."},
     {"page":139,"eq":"2H2O -> 2H2 + O2","type":"decomposition","cond":"электрический ток"},
     {"page":139,"eq":"Ca + H2 -> CaH2","type":"combination","exercise":true,"book":"Ca → CaH2 → Ca(OH)2 (задание 2, шаг 1)"},
     {"page":139,"eq":"CaH2 + 2H2O -> Ca(OH)2 + 2H2","type":"exchange","exercise":true,"book":"Ca → CaH2 → Ca(OH)2 (задание 2, шаг 2)"},

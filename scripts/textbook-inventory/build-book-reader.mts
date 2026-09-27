@@ -46,6 +46,7 @@ import { readerUnitHref, type ReaderGrade, type ReaderLab, type ReaderReaction, 
 import { learnGradesOutlineRu } from '../../src/i18n/learn/gradesOutlineRu.ts'
 import { appFormulas } from '../kb/lib/cards.mts'
 import { letterRatio, loadLayoutParagraphs, loadOcrParagraphs, repairJoinedOcr, type Para } from '../kb/lib/pages.mts'
+import { exampleLab as exampleLabFor } from './scheme-example.mts'
 import { addKnownFormulas, capitalizeSentences, parseFormula as kbParseFormula, segmentGlued } from '../kb/lib/textRepair.mts'
 
 // Internal page-text model: used only to place reactions in the text and to detect exercises; NOT emitted
@@ -110,7 +111,10 @@ type InvReaction = {
   catalogNote?: string | null
   /** Общая схема учебника (R, A, B), которую всё же показать карточкой (opts.catalog). */
   showInCatalog?: boolean
-  /** Конкретный пример схемы (R = CH3): только для подбора урока органической лаборатории (opts.labAs). */
+  /**
+   * Конкретный пример схемы или формулы с «n» из учебника (R = CH3, Me = Cu, n = 1): по нему схема открывается в реакторе
+   * (scheme-example.mts) и подбирается урок органической лаборатории (opts.labAs).
+   */
   labExample?: string | null
 }
 type InvSubstance = {
@@ -1383,6 +1387,13 @@ function labProbe(r: InvReaction): InvReaction {
   return { ...r, reactants: side(l), products: side(p) }
 }
 
+/**
+ * Общая схема (R, Me, Hal) или формула с «n» (полимер, олеум, ржавчина) открывается в реакторе по конкретному примеру
+ * учебника (labExample, scheme-example.mts): «2MeCl → 2Me + Cl₂» — «2NaCl → 2Na + Cl₂» (с. 140). null — примера нет
+ * или реактор его пока не собирает (вещества нет в реакторе).
+ */
+const exampleLab = (r: InvReaction, src: string): ReaderLab | null => exampleLabFor(r.labExample, src)
+
 function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx, rxId: string): ReaderLab {
   const src = readerUnitHref(`g${grade}`, unitId, { rx: rxId, page: pageStart })
   // a scheme «R–H + Cl• → R• + HCl» picks its organic lesson by the book's concrete example (R = CH₃)
@@ -1397,7 +1408,8 @@ function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx
     const reason = organic && code !== 'ionic' && !r.isGeneralScheme && (alt || code !== 'generalFormula') ? 'organic' : code
     return alt ? { ok: false, reason, altHref: alt } : { ok: false, reason }
   }
-  if (r.isGeneralScheme) return failWith('scheme')
+  // общая схема — по примеру учебника (labExample), если реактор его собирает
+  if (r.isGeneralScheme) return exampleLab(r, src) ?? failWith('scheme')
   let res: ReactorLinkResult | null = null
   if (r.bankId) {
     res = resolveReactorEquation({ reactionId: r.bankId })
@@ -1413,6 +1425,9 @@ function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx
   }
   res = resolveReactorEquation({ equation: r.ascii })
   if (res.ok) return { ok: true, href: reactorHrefForEquation(r.ascii, { src }) }
+  // «n» в формуле (полимер, олеум) — тоже по примеру учебника: «на одно звено» и т. п.
+  const byExample = res.code === 'generalFormula' || res.code === 'scheme' ? exampleLab(r, src) : null
+  if (byExample) return byExample
   return failWith(res.code)
 }
 
