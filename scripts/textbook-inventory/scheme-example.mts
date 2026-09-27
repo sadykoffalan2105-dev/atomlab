@@ -50,16 +50,19 @@ export function exampleDisplay(example: string): string {
 
 export type ExampleLab = { ok: true; href: string; example: string }
 
-/** Результат реактора для примера: первая запись, которую реактор собирает, иначе отказ первой записи. */
+/**
+ * Результат реактора для примера: первая запись, которую реактор собирает; иначе самый понятный отказ — «нет вещества»
+ * (organic / unknownSubstance с формулами) важнее «не разобрать запись» (scheme у «CH₃•», «CH₂Cl-CH₂Cl»).
+ */
 export function resolveExample(example: string): { text: string; res: ReactorLinkResult } {
   const texts = reactorExampleTexts(example)
-  let first: { text: string; res: ReactorLinkResult } | null = null
+  let fail: { text: string; res: ReactorLinkResult } | null = null
   for (const text of texts) {
     const res = resolveReactorEquation({ equation: text })
     if (res.ok) return { text, res }
-    first ??= { text, res }
+    if (!fail || (fail.res.ok === false && fail.res.code === 'scheme' && res.code !== 'scheme')) fail = { text, res }
   }
-  return first!
+  return fail!
 }
 
 /** Ссылка в реактор на пример схемы; null — примера нет или реактор его пока не собирает (вещества нет в реакторе). */

@@ -46,7 +46,7 @@ import { readerUnitHref, type ReaderGrade, type ReaderLab, type ReaderReaction, 
 import { learnGradesOutlineRu } from '../../src/i18n/learn/gradesOutlineRu.ts'
 import { appFormulas } from '../kb/lib/cards.mts'
 import { letterRatio, loadLayoutParagraphs, loadOcrParagraphs, repairJoinedOcr, type Para } from '../kb/lib/pages.mts'
-import { exampleLab as exampleLabFor } from './scheme-example.mts'
+import { exampleDisplay, exampleLab as exampleLabFor } from './scheme-example.mts'
 import { addKnownFormulas, capitalizeSentences, parseFormula as kbParseFormula, segmentGlued } from '../kb/lib/textRepair.mts'
 
 // Internal page-text model: used only to place reactions in the text and to detect exercises; NOT emitted
@@ -1393,6 +1393,9 @@ function labProbe(r: InvReaction): InvReaction {
  * или реактор его пока не собирает (вещества нет в реакторе).
  */
 const exampleLab = (r: InvReaction, src: string): ReaderLab | null => exampleLabFor(r.labExample, src)
+/** Отказ схемы с примером: пример в данных остаётся (реактор откроет его, когда появится вещество). */
+const withExample = (lab: ReaderLab, r: InvReaction): ReaderLab =>
+  !lab.ok && r.labExample?.trim() ? { ...lab, example: exampleDisplay(r.labExample) } : lab
 
 function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx, rxId: string): ReaderLab {
   const src = readerUnitHref(`g${grade}`, unitId, { rx: rxId, page: pageStart })
@@ -1409,7 +1412,7 @@ function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx
     return alt ? { ok: false, reason, altHref: alt } : { ok: false, reason }
   }
   // общая схема — по примеру учебника (labExample), если реактор его собирает
-  if (r.isGeneralScheme) return exampleLab(r, src) ?? failWith('scheme')
+  if (r.isGeneralScheme) return exampleLab(r, src) ?? withExample(failWith('scheme'), r)
   let res: ReactorLinkResult | null = null
   if (r.bankId) {
     res = resolveReactorEquation({ reactionId: r.bankId })
@@ -1426,9 +1429,10 @@ function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx
   res = resolveReactorEquation({ equation: r.ascii })
   if (res.ok) return { ok: true, href: reactorHrefForEquation(r.ascii, { src }) }
   // «n» в формуле (полимер, олеум) — тоже по примеру учебника: «на одно звено» и т. п.
-  const byExample = res.code === 'generalFormula' || res.code === 'scheme' ? exampleLab(r, src) : null
+  const general = res.code === 'generalFormula' || res.code === 'scheme'
+  const byExample = general ? exampleLab(r, src) : null
   if (byExample) return byExample
-  return failWith(res.code)
+  return general ? withExample(failWith(res.code), r) : failWith(res.code)
 }
 
 // ═════════════════════════════ substances ═════════════════════════════

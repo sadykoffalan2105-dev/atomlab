@@ -6,7 +6,7 @@ import path from 'node:path'
 import { readerUnitHref } from '../../src/data/textbook/bookReader'
 import { reactorHrefForBank, reactorHrefForEquation, resolveReactorEquation } from '../../src/lab/reactorDeepLink'
 import { SCHOOL_REACTION_BANK } from '../../src/chemistry/schoolReactionBank'
-import { exampleLab, resolveExample } from './scheme-example.mts'
+import { exampleDisplay, exampleLab, resolveExample } from './scheme-example.mts'
 
 /** Почему пример не открылся: код реактора и вещества, которых в нём нет. */
 function describeExample(example: string): string {
@@ -86,7 +86,7 @@ for (const g of files) {
       const byExample = !res.ok && (res.code === 'generalFormula' || res.code === 'scheme') ? exampleLab(r.labExample, src) : null
       const lab = res.ok
         ? { ok: true as const, href: bankRes?.ok && bankId ? reactorHrefForBank(bankId, { src }) : reactorHrefForEquation(r.eq, { src }) }
-        : (byExample ?? { ok: false as const, reason: res.code })
+        : (byExample ?? { ok: false as const, reason: res.code, ...(r.labExample ? { example: exampleDisplay(r.labExample) } : {}) })
       total++
       if (lab.ok) ok++
       else fails.push(`${u.unitId}/${id} ${r.eq} → ${res.ok ? '?' : res.code}${r.labExample ? ` (пример ${r.labExample} → ${describeExample(r.labExample)})` : ''}`)
