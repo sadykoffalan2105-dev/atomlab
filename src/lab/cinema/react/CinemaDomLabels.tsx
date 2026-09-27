@@ -59,6 +59,10 @@ const KIND_STYLE: Record<string, string> = {
   atom:
     'font: 700 16px/1 "Inter", system-ui, sans-serif; color: #ffffff; letter-spacing: 0.01em;' +
     'text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.55);',
+  // Символ внутри СВЕТЛОГО шара (H — белый CPK, S — жёлтый): тёмный текст со светлым ореолом.
+  atomDark:
+    'font: 700 16px/1 "Inter", system-ui, sans-serif; color: #111822; letter-spacing: 0.01em;' +
+    'text-shadow: 0 0 3px rgba(255,255,255,0.75), 0 0 8px rgba(255,255,255,0.35);',
   token:
     'font: 700 13px/1 "Inter", system-ui, sans-serif; color: #fff3c4; text-shadow: 0 0 10px rgba(255,190,80,0.9);',
 }
@@ -206,7 +210,7 @@ export function CinemaDomLabels({
       _v.copy(src.pos).applyMatrix4(g.matrixWorld).project(camera)
       if (_v.z > 1 || _v.z < -1) continue
       // Символ внутри шара закреплён за центром шара: раскладка его не двигает (on = 2).
-      b.on[i] = src.kind === 'atom' ? 2 : 1
+      b.on[i] = src.kind === 'atom' || src.kind === 'atomDark' ? 2 : 1
       b.x[i] = (_v.x * 0.5 + 0.5) * w
       b.y[i] = (-_v.y * 0.5 + 0.5) * h
       estimateLabelSize(src.kind, src.text, scale, _size)

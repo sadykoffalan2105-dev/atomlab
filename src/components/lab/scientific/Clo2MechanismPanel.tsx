@@ -18,7 +18,6 @@ import { getCinemaLesson, lessonStepIdAt } from '../../../lab/cinema/scenes/less
 import { CaoEnergyPanel } from '../../../lab/cinema/scenes/cao/CaoEnergyPanel'
 import { Co2EnergyPanel } from '../../../lab/cinema/scenes/co2/Co2EnergyPanel'
 import { FesEnergyPanel } from '../../../lab/cinema/scenes/fes/FesEnergyPanel'
-import { H2oEnergyPanel } from '../../../lab/cinema/scenes/h2o/H2oEnergyPanel'
 import { HclEnergyPanel } from '../../../lab/cinema/scenes/hcl/HclEnergyPanel'
 import { MgoEnergyPanel } from '../../../lab/cinema/scenes/mgo/MgoEnergyPanel'
 import { NaclEnergyPanel } from '../../../lab/cinema/scenes/nacl/NaclEnergyPanel'
@@ -716,8 +715,8 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
             </div>
           ) : null}
 
-          {/* NaCl — школьная версия (8 класс): энергетики (цикл Борна — Габера) в уроке нет. */}
-          {lesson.id !== 'nacl' ? (
+          {/* NaCl и школьные сцены образования молекулы: энергетики в уроке нет. */}
+          {lesson.id !== 'nacl' && !lesson.school ? (
             <LessonSection
               id="energy"
               className={styles.details}
@@ -740,8 +739,6 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
                 <FesEnergyPanel locale={clo2Locale} compact={isMobile} />
               ) : lesson.id === 'hcl' ? (
                 <HclEnergyPanel locale={clo2Locale} compact={isMobile} />
-              ) : lesson.id === 'h2o' ? (
-                <H2oEnergyPanel locale={clo2Locale} compact={isMobile} />
               ) : lesson.id === 'co2' ? (
                 <Co2EnergyPanel locale={clo2Locale} compact={isMobile} />
               ) : lesson.id === 'zncl2' ? (
@@ -786,6 +783,24 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
                 <li>
                   <VibrationIcon />
                   <span>{text.legend.vibration}</span>
+                </li>
+              ) : null}
+              {text.legend.sharedPair ? (
+                <li>
+                  <SharedPairIcon />
+                  <span>{text.legend.sharedPair}</span>
+                </li>
+              ) : null}
+              {text.legend.lonePair ? (
+                <li>
+                  <LonePairIcon />
+                  <span>{text.legend.lonePair}</span>
+                </li>
+              ) : null}
+              {text.legend.unpaired ? (
+                <li>
+                  <UnpairedIcon />
+                  <span>{text.legend.unpaired}</span>
                 </li>
               ) : null}
               {text.legend.water ? (
@@ -965,6 +980,40 @@ function ElectronIcon() {
     <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
       <circle cx="14" cy="7" r="5.5" className={styles.electronHalo} />
       <circle cx="14" cy="7" r="2.4" className={styles.electronCore} />
+    </svg>
+  )
+}
+
+/** Школьная сцена: две точки между двумя атомами и штрих — общая пара (связь). */
+function SharedPairIcon() {
+  return (
+    <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
+      <circle cx="4" cy="7" r="3.4" fill="currentColor" opacity="0.45" />
+      <circle cx="24" cy="7" r="3.4" fill="currentColor" opacity="0.45" />
+      <circle cx="11.5" cy="7" r="2.3" className={styles.electronCore} />
+      <circle cx="16.5" cy="7" r="2.3" className={styles.electronCore} />
+    </svg>
+  )
+}
+
+/** Школьная сцена: две точки у одного атома — неподелённая пара. */
+function LonePairIcon() {
+  return (
+    <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
+      <circle cx="9" cy="7" r="4.6" fill="currentColor" opacity="0.45" />
+      <circle cx="18" cy="4" r="2.3" className={styles.electronCore} />
+      <circle cx="18" cy="10" r="2.3" className={styles.electronCore} />
+    </svg>
+  )
+}
+
+/** Школьная сцена: одна точка с ореолом — неспаренный электрон. */
+function UnpairedIcon() {
+  return (
+    <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
+      <circle cx="9" cy="7" r="4.6" fill="currentColor" opacity="0.45" />
+      <circle cx="19" cy="7" r="4.6" className={styles.electronHalo} />
+      <circle cx="19" cy="7" r="2.3" className={styles.electronCore} />
     </svg>
   )
 }
