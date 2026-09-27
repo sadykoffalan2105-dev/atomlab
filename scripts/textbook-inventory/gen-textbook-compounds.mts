@@ -5,6 +5,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { ascii, parseComposition } from './formula.mts'
+import { SALT_GEOMETRY, type GeoAtom } from './salt-geometry.mts'
 
 type Row = { formula: string; nameRu: string; kind: string; grades: number[]; mentions: number; comp: Record<string, number>; group: string }
 const { rows } = JSON.parse(fs.readFileSync('.smoke/textbook-inventory/missing-classified.json', 'utf8')) as { rows: Row[] }
@@ -175,6 +176,9 @@ type Out = {
   descriptionRu: string
   grades: number[]
   obtainingStepsRu?: { step: number; equation: string; note?: string }[]
+  /** 3D-модель (соли и комплексы органики — salt-geometry.mts); без неё модель строит compounds.ts. */
+  atoms?: GeoAtom[]
+  bonds?: [number, number][]
 }
 const out: Out[] = []
 const noName: string[] = []
@@ -260,10 +264,10 @@ const BOOK_RX_EXTRA: BookRxExtra[] = [
   ['tb_cu_glycerate', 'salt', 'Глицерат меди(II)', '[C₃H₅(OH)₂O]₂Cu', 'Алкоголят меди(II) глицерина: ярко-синий раствор — качественная реакция на многоатомные спирты.', '10 класс — «Многоатомные спирты», с. 120', '2C₃H₅(OH)₃ + Cu(OH)₂ → [C₃H₅(OH)₂O]₂Cu + 2H₂O'],
   ['tb_cu_glycolate', 'salt', 'Гликолят меди(II)', '[HOCH₂CH₂O]₂Cu', 'Алкоголят меди(II) этиленгликоля: ярко-синий раствор — качественная реакция на многоатомные спирты.', '10 класс — «Многоатомные спирты», с. 121', '2HOCH₂CH₂OH + Cu(OH)₂ → [HOCH₂CH₂O]₂Cu + 2H₂O'],
   ['tb_fe_phenol_complex', 'salt', 'Комплекс железа(III) с фенолом', '[Fe(C₆H₅OH)₆]Cl₃', 'Комплексная соль фиолетового (в учебнике — пурпурного) цвета: качественная реакция на фенол с хлоридом железа(III).', '10 класс — «Фенолы», с. 126', '6C₆H₅OH + FeCl₃ → [Fe(C₆H₅OH)₆]Cl₃'],
-  ['tb_c7h7ok', 'salt', 'Крезолят калия', 'C₇H₇OK', 'Фенолят: атом водорода группы OH крезола (метилфенола) C₇H₇OH замещён на калий.', '10 класс — «Свойства фенола», с. 129', '2C₇H₇OH + 2K → 2C₇H₇OK + H₂'],
+  ['tb_c7h7ok', 'salt', 'Крезолят калия', 'C₇H₇OK', 'Фенолят: атом водорода группы OH крезола (метилфенола) C₇H₇OH замещён на калий; модель — о-крезолят (о-крезол — представитель фенолов, с. 126).', '10 класс — «Свойства фенола», с. 129', '2C₇H₇OH + 2K → 2C₇H₇OK + H₂'],
   ['tb_diethyloxonium_hso4', 'salt', 'Гидросульфат диэтилоксония', '[(C₂H₅)₂OH]HSO₄', 'Оксониевая соль: простой эфир присоединяет протон серной кислоты (основные свойства эфиров).', '10 класс — «Простые эфиры», с. 131', '(C₂H₅)₂O + H₂SO₄ → [(C₂H₅)₂OH]HSO₄'],
   ['tb_c2h5na', 'other', 'Этилнатрий', 'C₂H₅Na', 'Металлоорганическое соединение: атом натрия связан непосредственно с атомом углерода.', '10 класс — «Простые эфиры», с. 132', 'C₂H₅OC₂H₅ + 2Na → C₂H₅ONa + C₂H₅Na'],
-  ['tb_c6h10o6cu', 'salt', 'Алкоголят меди(II) глюкозы', 'C₆H₁₀O₆Cu', 'Запись учебника (с. 158) для взаимодействия глюкозы с Cu(OH)₂ на холоде; точнее соотношение 2 : 1 — (C₆H₁₁O₆)₂Cu (с. 159). Раствор ярко-синий.', '10 класс — «Глюкоза», с. 158', 'C₆H₁₂O₆ + Cu(OH)₂ → C₆H₁₀O₆Cu + 2H₂O'],
+  ['tb_c6h10o6cu', 'salt', 'Алкоголят меди(II) глюкозы', 'C₆H₁₀O₆Cu', 'Запись учебника (с. 158) для взаимодействия глюкозы с Cu(OH)₂ на холоде; точнее соотношение 2 : 1 — (C₆H₁₁O₆)₂Cu (с. 159). Раствор ярко-синий. Модель: Cu²⁺ связан с атомами O групп OH при C2 и C3.', '10 класс — «Глюкоза», с. 158', 'C₆H₁₂O₆ + Cu(OH)₂ → C₆H₁₀O₆Cu + 2H₂O'],
   ['tb_nh4_gluconate', 'salt', 'Глюконат аммония', 'CH₂OH(CHOH)₄COONH₄', 'Соль глюконовой кислоты: продукт реакции «серебряного зеркала» с глюкозой.', '10 класс — «Глюкоза», с. 158', 'CH₂OH(CHOH)₄COH + 2[Ag(NH₃)₂]OH → CH₂OH(CHOH)₄COONH₄ + 2Ag + 3NH₃ + H₂O'],
   ['tb_cu_glucosate', 'salt', 'Комплекс глюкозы с медью(II)', '(C₆H₁₁O₆)₂Cu', 'Качественная реакция на глюкозу как многоатомный спирт: на холоде раствор ярко-синий (в учебнике — «ярко-коричневый»; бурый Cu₂O выпадает только при нагревании).', '10 класс — «Глюкоза», с. 159', '2C₆H₁₂O₆ + Cu(OH)₂ → (C₆H₁₁O₆)₂Cu + 2H₂O'],
   ['tb_ca_saccharate', 'salt', 'Сахарат кальция', 'C₁₂H₂₂O₁₁·CaO', 'Растворимое соединение сахарозы с оксидом кальция: так сахар отделяют от примесей при производстве; CO₂ снова выделяет сахарозу.', '10 класс — «Сахароза», с. 162', 'C₁₂H₂₂O₁₁ + Ca(OH)₂ → C₁₂H₂₂O₁₁·CaO + H₂O'],
@@ -284,6 +288,7 @@ for (const [id, category, nameRu, formulaU, what, where, equation] of BOOK_RX_EX
     descriptionRu: `${nameRu} (${formulaU}). ${what} В учебниках «Химия»: ${where}.`,
     grades: [grade],
     obtainingStepsRu: [{ step: 1, equation, note: `Уравнение из учебника: ${where}` }],
+    ...SALT_GEOMETRY[id]?.(),
   })
 }
 

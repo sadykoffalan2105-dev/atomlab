@@ -29,10 +29,13 @@ const VALENCE: Record<(typeof ATOMS)[number], number> = { C: 4, O: 2, N: 3, S: 2
 const BRACKET: Record<string, { el: OrganicElement; valence: number }> = {
   '[N+]': { el: 'N', valence: 4 },
   '[O-]': { el: 'O', valence: 1 },
+  // для 3D-моделей солей (scripts/textbook-inventory/salt-geometry.mts): оксоний и карбанион
+  '[O+]': { el: 'O', valence: 3 },
+  '[C-]': { el: 'C', valence: 3 },
 }
 
 /** Упрощённый SMILES → скелет тяжёлых атомов (+ особая валентность N⁺, O⁻, S(VI)). */
-function smilesSkeleton(src: string): SkeletonSpec {
+export function smilesSkeleton(src: string): SkeletonSpec {
   const elements: OrganicElement[] = []
   const edges: ([number, number] | [number, number, 1 | 2 | 3])[] = []
   const special = new Map<number, number>()
@@ -99,7 +102,7 @@ function smilesSkeleton(src: string): SkeletonSpec {
 }
 
 /** Набор атомов по скелету: тяжёлые атомы + H по валентности (с особой валентностью). */
-function kitOf(s: SkeletonSpec): OrganicKit {
+export function kitOf(s: SkeletonSpec): OrganicKit {
   const used = s.elements.map(() => 0)
   for (const e of s.edges) {
     used[e[0]]! += e[2] ?? 1
