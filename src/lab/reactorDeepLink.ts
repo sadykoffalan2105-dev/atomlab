@@ -38,10 +38,12 @@ import { getElementBySymbol } from '../data/elements'
 import {
   electronSpecies,
   ionSpeciesFor,
+  LAB_ORGANIC_CATALOG_ID,
   organicSpeciesFor,
   simpleSpeciesFor,
   type LabSpeciesKind,
 } from '../data/labSpecies'
+import { labOrganicSpeciesFor, pickOrganic } from '../data/labOrganicSpecies'
 import type { CompoundDef } from '../types/chemistry'
 
 /**
@@ -69,6 +71,11 @@ export type ReactorLinkSpec = {
   main?: string | null
   /** Заголовок для сообщения в реакторе. */
   titleRu?: string | null
+  /**
+   * Изомер брутто-формулы, который учебник имеет в виду на этой странице: номер члена уравнения
+   * (реагенты, затем продукты, с 0) → id реестра органики. «C₂H₄O» на с. 61 — этиленоксид, а не этаналь.
+   */
+  isomers?: Readonly<Record<number, string>> | null
 }
 
 export type ReactorLinkFailCode =
@@ -162,7 +169,7 @@ function chargeSuffix(q: number): string {
   return `^${mag === 1 ? '' : mag}${q > 0 ? '+' : '-'}`
 }
 
-function resolveSpecies(s: EquationSpecies): ResolvedSpecies {
+function resolveSpecies(s: EquationSpecies, hint?: string | null): ResolvedSpecies {
   const counts = s.counts ?? {}
   const syms = Object.keys(counts)
   if (s.electron) return { kind: 'compound', compound: electronSpecies(), glowZ: 1, lab: 'electron' }
@@ -188,14 +195,26 @@ function resolveSpecies(s: EquationSpecies): ResolvedSpecies {
       return { kind: 'missing', organic: false, formula }
     }
   }
-  const compound = compoundByCompositionKey(formulaCompositionKey(counts))
-  if (compound) return { kind: 'compound', compound, glowZ: glowZForCounts(counts) }
   const organic = isOrganicFormula(s.formula, counts)
-  if (organic) {
-    // Органика школьных уравнений (CH₄, C₂H₅OH …): формульная единица с 3D-геометрией.
-    const org = organicSpeciesFor(counts, s.formula)
-    if (org) return { kind: 'compound', compound: org, glowZ: 6, lab: 'organic' }
+  // соль органической кислоты без водорода (оксалат калия «KOOC–COOK») — тоже органика
+  const organicSalt = !organic && (counts.C ?? 0) > 0 && /COO|OOC/.test(s.formula) && !/CO3/.test(s.formula)
+  const compound = compoundByCompositionKey(formulaCompositionKey(counts))
+  if (compound && !organic && !organicSalt) return { kind: 'compound', compound, glowZ: glowZForCounts(counts) }
+  if (organic || organicSalt) {
+    // Органика: формульная единица школьных уравнений 7–9 кл. (CH₄, C₂H₅OH …) — если запись о том же
+    // веществе; иначе вещество реестра органики по строению записи (изомеры различаются) или скелет записи.
+    const pick = pickOrganic(s.formula, counts, hint)
+    const old = organicSpeciesFor(counts, s.formula)
+    const oldId = old ? LAB_ORGANIC_CATALOG_ID[old.id] : undefined
+    if (old && !s.polymer && (!pick || (oldId != null && oldId === pick.registryId))) {
+      return { kind: 'compound', compound: old, glowZ: 6, lab: 'organic' }
+    }
+    const org = labOrganicSpeciesFor(s.formula, counts, hint)
+    if (org) return { kind: 'compound', compound: org.compound, glowZ: 6, lab: 'organic' }
   }
+  // Органическая соль каталога (tb_…) — только если строения записи не нашлось: у этих частиц каталога нет
+  // связей (заготовка), и экран реакции «шарами» строится по скелету записи учебника.
+  if (compound && !s.polymer) return { kind: 'compound', compound, glowZ: glowZForCounts(counts) }
   return { kind: 'missing', organic, formula }
 }
 
@@ -240,7 +259,7 @@ function bankProductForSpecies(key: string | null): string | null {
       if (!r.productId) continue
       const parsed = parseEquationText(r.equationRu)
       if (!parsed || parsed.isScheme || parsed.isIonic) continue
-      const k = equationSpeciesKey(parsed.reactants.map(resolveSpecies), parsed.products.map(resolveSpecies))
+      const k = equationSpeciesKey(parsed.reactants.map((s) => resolveSpecies(s)), parsed.products.map((s) => resolveSpecies(s)))
       if (k && !m.has(k)) m.set(k, r.productId)
     }
     bankProductBySpeciesCache = m
@@ -321,8 +340,9 @@ export function resolveReactorEquation(
     return fail('scheme', { reason: unparsed.length > 0 ? 'placeholder' : 'chain' }, ctx)
   }
 
-  const left = parsed.reactants.map(resolveSpecies)
-  const right = parsed.products.map(resolveSpecies)
+  const hints = spec.isomers ?? {}
+  const left = parsed.reactants.map((s, i) => resolveSpecies(s, hints[i]))
+  const right = parsed.products.map((s, i) => resolveSpecies(s, hints[parsed.reactants.length + i]))
   const missing = [...left, ...right].filter((r): r is Extract<ResolvedSpecies, { kind: 'missing' }> => r.kind === 'missing')
   if (missing.length > 0) {
     const formulas = [...new Set(missing.map((m) => m.formula))]
@@ -503,10 +523,31 @@ export type ReactorHrefOptions = {
   src?: string | null
   /** Заголовок реакции для сообщения в реакторе. */
   title?: string | null
+  /** Изомеры брутто-формул по номеру члена уравнения (ReactorLinkSpec.isomers). */
+  isomers?: Readonly<Record<number, string>> | null
+}
+
+/** «0:maltose,3:fructose» ↔ {0: 'maltose', 3: 'fructose'}. */
+export function formatIsomersParam(isomers: Readonly<Record<number, string>>): string {
+  return Object.entries(isomers)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([i, id]) => `${i}:${id}`)
+    .join(',')
+}
+
+export function parseIsomersParam(raw: string | null | undefined): Record<number, string> | null {
+  if (!raw) return null
+  const out: Record<number, string> = {}
+  for (const part of raw.split(',')) {
+    const m = /^(\d{1,2}):([a-z0-9-]{1,60})$/.exec(part.trim())
+    if (m) out[Number(m[1])] = m[2]!
+  }
+  return Object.keys(out).length ? out : null
 }
 
 function appendOptions(base: string, opts?: ReactorHrefOptions): string {
   let href = base
+  if (opts?.isomers && Object.keys(opts.isomers).length) href += `&iso=${encodeURIComponent(formatIsomersParam(opts.isomers))}`
   if (opts?.main) href += `&main=${encodeURIComponent(opts.main)}`
   if (opts?.balance) href += '&balance=1'
   if (opts?.title) href += `&title=${encodeURIComponent(opts.title)}`
@@ -607,6 +648,7 @@ export function parseReactorLinkParams(params: URLSearchParams): ReactorLinkPara
       equation: equation || null,
       main: params.get('main') || null,
       titleRu: params.get('title') || null,
+      isomers: parseIsomersParam(params.get('iso')),
     },
     balanceSelf: params.get('balance') === '1',
     backHref: sanitizeBackHref(params.get('src')),

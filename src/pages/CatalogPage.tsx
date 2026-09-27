@@ -582,9 +582,19 @@ const TextbookReactionRow = memo(function TextbookReactionRow({
               to={labHrefWithSrc(r.lab.href, src)}
               data-rx-lab-link={`${unitId}-${r.id}`}
             >
-              {t('catalog.rx.openLab')}
+              {r.lab.altHref ? t('learn.book.rx.openReactor') : t('catalog.rx.openLab')}
               <span aria-hidden>→</span>
             </Link>
+            {r.lab.altHref ? (
+              // органика: реактор «шарами» + органическая лаборатория второй кнопкой
+              <Link
+                className={`${styles.rxLabLink} ${styles.rxLabLinkGhost}`}
+                to={r.lab.altHref}
+                data-rx-organic-link={`${unitId}-${r.id}`}
+              >
+                {t('learn.book.rx.openOrganicLab')}
+              </Link>
+            ) : null}
             <Link className={`${styles.rxLabLink} ${styles.rxLabLinkGhost}`} to={labHrefWithSrc(r.lab.href, src, true)}>
               {t('learn.book.rx.balanceSelf')}
             </Link>

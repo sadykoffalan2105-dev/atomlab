@@ -109,6 +109,12 @@ const _color = new THREE.Color()
 const _rim = new THREE.Color()
 const _white = new THREE.Color(0xffffff)
 const Y_AXIS = new THREE.Vector3(0, 1, 0)
+const Z_AXIS = new THREE.Vector3(0, 0, 1)
+const X_AXIS = new THREE.Vector3(1, 0, 0)
+const _side = new THREE.Vector3()
+/** Кратная связь: стержни тоньше одинарного и разнесены на столько своих радиусов. */
+const MULTI_BOND_THIN = 0.62
+const MULTI_BOND_GAP = 3.4
 
 const easeOutCubic = (x: number) => 1 - (1 - x) ** 3
 
@@ -269,7 +275,16 @@ export function StageInstancedMolecules({
         const grow = unitGrow[b.unit] ?? 1
         _quat.setFromUnitVectors(Y_AXIS, _dir.multiplyScalar(1 / len))
         _pos.set(ax, ay, az).addScaledVector(_dir, len / 2)
-        _m.compose(_pos, _quat, _scale.set(bondR * grow, len, bondR * grow))
+        let r = bondR
+        if (b.order && b.order > 1) {
+          // кратная связь: стержни рядом, в плоскости экрана (поперёк связи)
+          _side.crossVectors(_dir, Z_AXIS)
+          if (_side.lengthSq() < 1e-6) _side.crossVectors(_dir, X_AXIS)
+          _side.normalize()
+          r = bondR * MULTI_BOND_THIN
+          _pos.addScaledVector(_side, ((b.index ?? 0) - (b.order - 1) / 2) * r * MULTI_BOND_GAP * grow)
+        }
+        _m.compose(_pos, _quat, _scale.set(r * grow, len, r * grow))
       }
       bondMesh.setMatrixAt(bi, _m)
     }

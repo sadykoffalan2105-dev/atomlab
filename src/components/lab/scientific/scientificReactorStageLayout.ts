@@ -41,7 +41,8 @@ export type StageAtom = {
   radius: number
 }
 
-export type StageBond = { unit: number; a: number; b: number }
+/** order/index — кратная связь: стержень index из order параллельных. */
+export type StageBond = { unit: number; a: number; b: number; order?: number; index?: number }
 
 export type StageUnit = {
   /** стабильный ключ копии: `${termKey}#${copy}` — по нему анимируется появление */
@@ -293,8 +294,52 @@ function rotateAll(pts: V[], from: V, to: V): V[] {
  * плоскости: у изогнутых молекул центральный атом сверху («Λ»), так что
  * ClO₂⁻ реагента и ClO₂ продукта читаются одинаково.
  */
+/** Крупный фрагмент (жир, мыло, звено целлюлозы): от этого числа атомов — по главным осям. */
+const LARGE_FRAGMENT_ATOMS = 40
+
+/** Главная ось облака точек (степенной метод на ковариации), единичная. */
+function principalAxis(pts: readonly V[], skip?: V): V {
+  const cov = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+  for (const p of pts) {
+    let q = p
+    if (skip) {
+      const d = dot3(q, skip)
+      q = [q[0] - skip[0] * d, q[1] - skip[1] * d, q[2] - skip[2] * d]
+    }
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) cov[i * 3 + j]! += q[i]! * q[j]!
+  }
+  let v: V = skip ? (Math.abs(skip[0]) < 0.9 ? cross3(skip, [1, 0, 0]) : cross3(skip, [0, 1, 0])) : [1, 0.37, 0.19]
+  for (let it = 0; it < 60; it++) {
+    const w: V = [
+      cov[0]! * v[0] + cov[1]! * v[1] + cov[2]! * v[2],
+      cov[3]! * v[0] + cov[4]! * v[1] + cov[5]! * v[2],
+      cov[6]! * v[0] + cov[7]! * v[1] + cov[8]! * v[2],
+    ]
+    const l = len3(w)
+    if (l < 1e-12) break
+    v = [w[0] / l, w[1] / l, w[2] / l]
+  }
+  return v
+}
+
+/** Длинная ось — вдоль x, вторая — вдоль y: молекула из сотни атомов ложится в ряд, а не встаёт столбом. */
+function orientLargeFragment(out: V[]): V[] {
+  const a1 = principalAxis(out)
+  let pts = rotateAll(out, a1, [1, 0, 0])
+  const a2 = principalAxis(pts, [1, 0, 0])
+  const ang = Math.atan2(a2[2], a2[1])
+  pts = pts.map((p) => rotate(p, [1, 0, 0], -ang))
+  return pts
+}
+
 function orientFragment(pts: V[], bonds: readonly (readonly [number, number])[]): V[] {
   if (pts.length <= 1) return pts.map(() => [0, 0, 0])
+  if (pts.length >= LARGE_FRAGMENT_ATOMS) {
+    const n = pts.length
+    const c: V = [0, 0, 0]
+    for (const p of pts) for (let k = 0; k < 3; k++) c[k]! += p[k]! / n
+    return orientLargeFragment(pts.map((p) => sub3(p, c)))
+  }
   const n = pts.length
   const c: V = [0, 0, 0]
   for (const p of pts) {
@@ -636,7 +681,22 @@ function elementTemplate(z: number, diatomic: boolean): UnitTemplate | null {
   )
 }
 
+/** Ряд с крупной молекулой ужат сильнее — члены раздвигаются до ширины подписи. */
+const LABEL_AWARE_FIT = 0.75
+/** Ширина символа подписи члена в мировых единицах при масштабе 1 (подстрочные цифры уже). */
+const LABEL_WORLD_PER_CHAR = 0.19
+
+function labelWorldWidth(coeff: number, formula: string): number {
+  let chars = String(coeff).length + 1
+  for (const ch of formula) chars += /[₀-₉ₙ⁰-⁹⁺⁻]/.test(ch) ? 0.6 : 1
+  return chars * LABEL_WORLD_PER_CHAR
+}
+
 function copyOffsets(n: number, cellW: number, cellH: number): V[] {
+  // длинные молекулы (мыло C₁₇H₃₅COONa) — стопкой, как параллельные цепи, а не треугольником вширь
+  if (n > 1 && cellW > 3 && cellW > 2.4 * cellH) {
+    return Array.from({ length: n }, (_, i) => [0, ((n - 1) / 2 - i) * cellH, i % 2 ? 0.08 : -0.08] as V)
+  }
   switch (n) {
     case 0:
       return []
@@ -699,8 +759,11 @@ export function scientificStageLayout(
   productCoeff: number,
   /** место главного продукта среди продуктов уравнения учебника; нет — последний */
   productIndex?: number,
-  /** портретный экран: реагенты — верхний ряд, «→ продукты» — нижний */
-  opts?: { twoRows?: boolean },
+  /**
+   * twoRows — портретный экран: реагенты — верхний ряд, «→ продукты» — нижний;
+   * maxWidth — видимая ширина кадра в мировых единицах (для раздвижки членов под подписи).
+   */
+  opts?: { twoRows?: boolean; maxWidth?: number },
 ): ScientificStageLayout {
   const rowTerms: RowTerm[] = []
 
@@ -826,6 +889,23 @@ export function scientificStageLayout(
   const rowHeightOf = (list: readonly Item[]) => list.reduce((m, it) => (it.kind === 'term' ? Math.max(m, it.term.clusterH) : m), 0.4)
   const arrowAt = items.findIndex((it) => it.kind === 'sep' && it.glyph === '→')
   const split = Boolean(opts?.twoRows) && arrowAt > 0
+  // Крупные молекулы (жир, мыло): сцена ужимается, а подписи «3 NaOH», «1 C₃H₅(OH)₃» — нет, и у мелких
+  // соседей они наезжают друг на друга. Раздвигаем члены до ширины подписи в масштабе сцены
+  // (только при крупной молекуле в ряду — раскладка реакций 7–9 классов не меняется).
+  if (placed.some((p) => (p.template?.atoms.length ?? 0) >= LARGE_FRAGMENT_ATOMS)) {
+    const widest = () =>
+      split ? Math.max(rowWidthOf(items.slice(0, arrowAt)), rowWidthOf(items.slice(arrowAt))) : rowWidthOf(items)
+    // сцена не шире видимой ширины кадра (узкий экран телефона ужимает её сильнее MAX_ROW_WIDTH)
+    const cap = Math.min(MAX_ROW_WIDTH, opts?.maxWidth ?? Infinity)
+    for (let pass = 0; pass < 3; pass++) {
+      const w = widest()
+      const preFit = w > cap ? cap / w : 1
+      if (preFit >= LABEL_AWARE_FIT) break
+      for (const it of items) {
+        if (it.kind === 'term') it.width = Math.max(it.term.clusterW, labelWorldWidth(it.term.coeff, it.term.formula) / preFit)
+      }
+    }
+  }
   type Row = { list: Item[]; y: number; labelY: number }
   const rowsPlan: Row[] = []
   let width: number
@@ -888,7 +968,20 @@ export function scientificStageLayout(
               radius: role.radius,
             })
           }
-          for (const [a, b] of tpl.bonds) bonds.push({ unit: unitIndex, a: atomStart + a, b: atomStart + b })
+          // кратная связь — несколько одинаковых записей (как в MoleculeMesh): C=C, C≡C, C=O — параллельные стержни
+          const mult = new Map<string, number>()
+          for (const [a, b] of tpl.bonds) {
+            const k = a < b ? `${a}-${b}` : `${b}-${a}`
+            mult.set(k, (mult.get(k) ?? 0) + 1)
+          }
+          const seenBond = new Map<string, number>()
+          for (const [a, b] of tpl.bonds) {
+            const k = a < b ? `${a}-${b}` : `${b}-${a}`
+            const n = mult.get(k) ?? 1
+            const i = seenBond.get(k) ?? 0
+            seenBond.set(k, i + 1)
+            bonds.push({ unit: unitIndex, a: atomStart + a, b: atomStart + b, ...(n > 1 ? { order: n, index: i } : {}) })
+          }
         }
         units.push({
           key: `${p.key}#${copy}`,

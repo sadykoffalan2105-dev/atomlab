@@ -21,13 +21,22 @@ export type ParsedFormula = {
 }
 
 export type EquationSpecies = {
-  /** Нормализованная ASCII-формула без коэффициента, заряда и пометок (напр. «Ca(OH)2», «CuSO4*5H2O»). */
+  /**
+   * Нормализованная ASCII-формула без коэффициента, заряда и пометок (напр. «Ca(OH)2», «CuSO4*5H2O»).
+   * Структурная запись органики сохраняет связи: «CH3-CH2Cl», «CH2=CH2», «HC≡CH», звено «(-CH2-CH2-)n».
+   */
   formula: string
   coeff: number
   /** null — формулу не удалось разобрать (обобщённая схема, «Me», «R», «CnH2n+2»…). */
   counts: FormulaCounts | null
   charge: number
   electron: boolean
+  /** Коэффициент с «n» («nCH₂=CHCl», «3nHNO₃»): уравнение записано на звено полимера. */
+  perUnit?: boolean
+  /** Звено полимера «(–CH₂–CH₂–)ₙ»: counts — состав одного звена. */
+  polymer?: boolean
+  /** Радикал «Cl•», «CH₃•»: counts — состав частицы. */
+  radical?: boolean
 }
 
 export type EquationArrow = '→' | '⇌' | '='
@@ -282,6 +291,16 @@ const ARROW_TOKENS: readonly ArrowToken[] = [
 type ArrowHit = { index: number; length: number; kind: EquationArrow }
 
 function findArrows(text: string): ArrowHit[] {
+  const hits = findArrowTokens(text)
+  // «=» — двойная связь структурной формулы (CH₂=CH₂), если в уравнении есть настоящая стрелка
+  // или знак «=» между членами стоит с пробелами, а в формуле — без них
+  const isEq = (h: ArrowHit) => h.kind === '=' && h.length === 1
+  if (hits.some((h) => !isEq(h))) return hits.filter((h) => !isEq(h))
+  const spaced = hits.filter((h) => /\s/.test(text[h.index - 1] ?? ' ') && /\s/.test(text[h.index + 1] ?? ' '))
+  return spaced.length > 0 && spaced.length < hits.length ? spaced : hits
+}
+
+function findArrowTokens(text: string): ArrowHit[] {
   const hits: ArrowHit[] = []
   let depth = 0
   let i = 0
@@ -369,7 +388,9 @@ function splitTerms(side: string): string[] | null {
       let j = i + 1
       while (j < s.length && /\s/.test(s[j]!)) j++
       const next = s[j]
-      if (cur.trim().length > 0 && isTermStart(next)) {
+      // «+ nH₂O», «+ 3nHNO₃» — коэффициент на звено полимера
+      const perUnitStart = next === 'n' && /[A-Z([]/.test(s[j + 1] ?? '')
+      if (cur.trim().length > 0 && (isTermStart(next) || perUnitStart)) {
         out.push(cur)
         cur = ''
         continue
@@ -399,10 +420,36 @@ function parseCoeffText(text: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
+/** Связи в записи формулы: «CH₃–CH₂Cl», «CH₂=CH₂», «HC≡CH»; звено полимера «(–CH₂–CH₂–)n». */
+const STRUCT_BOND_RE = /[A-Za-z0-9)\]][-–=≡][A-Z([]|[A-Z][a-z]?\d*[-–][A-Z([]/
+const POLYMER_RE = /^\([-–].*[-–]\)(?:n|ₙ)$/
+
+/** Структурная запись органики: связи убираются только для счёта атомов, запись остаётся. */
+function parseStructuralSpecies(body: string, coeff: number, perUnit: boolean): EquationSpecies | null {
+  const ascii = normalizeFormulaChars(body).replace(/\s+/g, '').replace(/ₙ$/, 'n')
+  // звено: «(–CH₂–CH₂–)n» или брутто-запись звена «(C₆H₁₀O₅)n», «(C₆H₇O₂(OH)₃)n»
+  const polymer = POLYMER_RE.test(ascii) || /^\((?![-–]).+\)n$/.test(ascii)
+  if (!polymer && !STRUCT_BOND_RE.test(ascii)) return null
+  if (/\^/.test(ascii)) return null
+  const core = (polymer ? ascii.replace(/\)n$/, ')') : ascii).replace(/[-=≡]/g, '')
+  const counts = parseCoreCounts(core)
+  if (!counts) return null
+  return {
+    formula: ascii,
+    coeff,
+    counts,
+    charge: 0,
+    electron: false,
+    ...(perUnit ? { perUnit: true } : {}),
+    ...(polymer ? { polymer: true } : {}),
+  }
+}
+
 function parseSpecies(termRaw: string): EquationSpecies {
   const term = stripSpeciesMarks(termRaw)
   let coeff = 1
   let body = term
+  let perUnit = false
   const m = term.match(/^(\d+(?:[.,]\d+)?(?:\/\d+)?|\d*[½⅓⅔¼¾⅕⅙⅛])\s*(.+)$/)
   if (m) {
     const c = parseCoeffText(m[1]!)
@@ -411,11 +458,27 @@ function parseSpecies(termRaw: string): EquationSpecies {
       body = m[2]!
     }
   }
+  // «nCH₂=CHCl», «3nHNO₃» — коэффициент на звено полимера
+  const nm = /^(\d*)n(?=[A-Z([])/.exec(body)
+  if (nm) {
+    // «6nCO₂»: число уже снято выше; «3nHNO₃» без пробела — здесь
+    if (nm[1]) coeff = Number(nm[1])
+    body = body.slice(nm[0].length)
+    perUnit = true
+  }
+  const structural = parseStructuralSpecies(body, coeff, perUnit)
+  if (structural) return structural
+  // радикал «Cl•», «•CH₃» (точка не гидратная: за ней ничего нет)
+  const rad = /^[•·∙]?([A-Z][A-Za-z0-9]*)[•·∙]?$/.exec(body)
+  if (rad && /[•·∙]/.test(body)) {
+    const counts = parseCoreCounts(normalizeFormulaChars(rad[1]!))
+    if (counts) return { formula: rad[1]!, coeff, counts, charge: 0, electron: false, radical: true }
+  }
   const split = splitCoreAndCharge(body)
   if (!split) return { formula: body.replace(/\s+/g, ''), coeff, counts: null, charge: 0, electron: false }
   if (split.electron) return { formula: 'e', coeff, counts: {}, charge: -1, electron: true }
   const counts = parseCoreCounts(split.core)
-  return { formula: split.core, coeff, counts, charge: split.charge, electron: false }
+  return { formula: split.core, coeff, counts, charge: split.charge, electron: false, ...(perUnit ? { perUnit: true } : {}) }
 }
 
 /** «Fe − 2e⁻» → { main: «Fe», electrons: «2e» }; null — в члене нет «− nē». */
@@ -540,7 +603,13 @@ function speciesToUnicode(s: EquationSpecies): string {
   if (s.electron) return `${formatCoeff(s.coeff)}ē`
   const q = s.charge
   const chargeText = q === 0 ? '' : `^${Math.abs(q) === 1 ? '' : Math.abs(q)}${q > 0 ? '+' : '-'}`
-  return `${formatCoeff(s.coeff)}${formulaToUnicode(s.formula + chargeText)}`
+  const n = s.perUnit ? 'n' : ''
+  if (s.polymer || s.charge === 0) {
+    // структурная запись: связи — тире, звено полимера — «(–CH₂–CH₂–)ₙ»
+    const f = s.polymer ? `${formulaToUnicode(s.formula.replace(/\)n$/, ')'))}ₙ` : formulaToUnicode(s.formula)
+    return `${formatCoeff(s.coeff)}${n}${f.replace(/(?<=[A-Za-z0-9₀-₉)\](])-|-(?=[A-Z([)])/g, '–')}${s.radical ? '•' : ''}`
+  }
+  return `${formatCoeff(s.coeff)}${n}${formulaToUnicode(s.formula + chargeText)}`
 }
 
 /** Обратно в текст: «2H₂ + O₂ → 2H₂O». */
@@ -556,7 +625,7 @@ export function formatEquationAscii(eq: Pick<ParsedEquationText, 'reactants' | '
     if (s.electron) return `${c}e`
     const q = s.charge
     const chargeText = q === 0 ? '' : `^${Math.abs(q) === 1 ? '' : Math.abs(q)}${q > 0 ? '+' : '-'}`
-    return `${c}${s.formula}${chargeText}`
+    return `${c}${s.perUnit ? 'n' : ''}${s.formula}${chargeText}${s.radical ? '•' : ''}`
   }
   const arrow = eq.arrow === '⇌' ? '<=>' : eq.arrow === '=' ? '=' : '->'
   return `${eq.reactants.map(sp).join(' + ')} ${arrow} ${eq.products.map(sp).join(' + ')}`

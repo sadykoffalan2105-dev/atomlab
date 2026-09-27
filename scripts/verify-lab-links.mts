@@ -180,8 +180,9 @@ const TEXTBOOK: {
   { eq: 'CH3COO^- + H2O <=> CH3COOH + OH^-', expect: 'ok', stage: 'ionic' },
   { eq: 'CH3COONH4 + H2O <=> CH3COOH + NH4OH', expect: 'ok', stage: 'organic' },
   { eq: 'CH3COOH + CH3OH <=> CH3COOCH3 + H2O', expect: 'ok', stage: 'organic' },
-  // метилформиат HCOOCH₃ того же состава C₂H₄O₂, что и уксусная кислота, — не подменяется ею
-  { eq: 'HCOOH + CH3OH -> HCOOCH3 + H2O', expect: 'organic' },
+  // метилформиат HCOOCH₃ того же состава C₂H₄O₂, что и уксусная кислота, — не подменяется ею:
+  // вещество реестра органики по строению записи (labOrganicSpecies)
+  { eq: 'HCOOH + CH3OH -> HCOOCH3 + H2O', expect: 'ok', stage: 'organic' },
   // ядерные реакции — отдельная причина: реактор химический
   { eq: '27/13/Al + 4/2/He -> 30/14/Si + 1/1/H', expect: 'nuclear' },
   { eq: '²²⁶₈₈Ra → ²²²₈₆Rn + ⁴₂He', expect: 'nuclear' },
@@ -193,8 +194,13 @@ const TEXTBOOK: {
   { eq: 'H2 + HCHO -> CH3OH', expect: 'ok', stage: 'organic' },
   // гидрокарбонат, которого нет в каталоге, — неорганика, а не «organic»
   { eq: 'Fe(HCO3)2 = FeCO3 + CO2 + H2O', expect: 'unknownSubstance' },
-  // органика вне реестра реактора
-  { eq: 'C4H10 + Cl2 = C4H9Cl + HCl', expect: 'organic' },
+  // органика 10 класса: вещество реестра органики по записи (C₄H₉ — н-бутил)
+  { eq: 'C4H10 + Cl2 = C4H9Cl + HCl', expect: 'ok', stage: 'organic' },
+  // структурные формулы: «=» — двойная связь, «-» — простая, «≡» — тройная
+  { eq: 'CH2=CH2 + Br2 -> CH2Br-CH2Br', expect: 'ok', stage: 'organic' },
+  { eq: 'HC≡CH + H2O -> CH3-CHO', expect: 'ok', stage: 'organic' },
+  // полимеризация: одно звено с пометкой n
+  { eq: 'nCH2=CHCl -> (-CH2-CHCl-)n', expect: 'ok', stage: 'organic' },
   // продукты — только простые вещества
   { eq: '2H2O = 2H2 + O2', expect: 'ok', stage: 'simpleProduct', main: 'simple_O2' },
   { eq: '2HgO -> 2Hg + O2', expect: 'ok', stage: 'simpleProduct' },
@@ -206,7 +212,8 @@ const TEXTBOOK: {
   { eq: '2CaSO4*2H2O = 2CaSO4*0.5H2O + 3H2O', expect: 'unknownSubstance' },
   { eq: 'H2 + O2 = H2O', expect: 'unbalanced' },
   { eq: 'A + B = C', expect: 'scheme' },
-  { eq: '6nCO2 + 5nH2O -> (C6H10O5)n + 6nO2', expect: 'generalFormula' },
+  // фотосинтез крахмала: уравнение на одно звено (C₆H₁₀O₅)ₙ
+  { eq: '6nCO2 + 5nH2O -> (C6H10O5)n + 6nO2', expect: 'ok', stage: 'organic' },
   { eq: 'Fe2O3*nH2O -> Fe2O3 + nH2O', expect: 'generalFormula' },
 ]
 const tbProblems: string[] = []
@@ -268,21 +275,34 @@ for (const g of [7, 8, 9]) {
   for (const [code, list] of Object.entries(fails)) console.log(`  ${code}: ${list.length}\n    - ${list.join('\n    - ')}`)
 }
 
-// ── каталог «Реакции учебника» 11 класса (src/data/textbook/equations-g11.json) ──
-// Общие схемы (Me, A + B) — не реакции с определённым составом; ядерные реакции — реактор химический.
-// Всё остальное открывается, и поле lab в json совпадает с резолвером (json не устарел).
-{
-  const g11 = JSON.parse(fs.readFileSync('src/data/textbook/equations-g11.json', 'utf8')) as {
-    units: { unitId: string; reactions: { id: string; page: number | null; equationAscii: string; isGeneralScheme: boolean; bankId: string | null; lab: { ok: boolean; reason?: string } }[] }[]
+// ── каталоги «Реакции учебника» 10 и 11 классов (src/data/textbook/equations-gN.json) ──
+// Общие схемы (Me, A + B, R–COOH) — не реакции с определённым составом; ядерные реакции — реактор химический.
+// Всё остальное открывается (органика — «шарами», с органической лабораторией второй кнопкой), и поле lab
+// в json совпадает с резолвером (json не устарел). Открываемая карточка проверяется по своей ссылке: в ней
+// и изомер брутто-формулы для этой страницы (iso=).
+for (const grade of [10, 11]) {
+  const book = JSON.parse(fs.readFileSync(`src/data/textbook/equations-g${grade}.json`, 'utf8')) as {
+    units: {
+      unitId: string
+      reactions: {
+        id: string
+        page: number | null
+        equationAscii: string
+        isGeneralScheme: boolean
+        bankId: string | null
+        lab: { ok: boolean; reason?: string; href?: string; altHref?: string }
+      }[]
+    }[]
   }
   let n = 0
   let ok = 0
   let schemes = 0
+  let withOrganicLab = 0
   const stage: Record<string, number> = {}
   const fails: Record<string, string[]> = {}
-  for (const u of g11.units) {
+  for (const u of book.units) {
     for (const rx of u.reactions) {
-      const label = `g11 ${u.unitId} ${rx.id} p${rx.page} ${rx.equationAscii}`
+      const label = `g${grade} ${u.unitId} ${rx.id} p${rx.page} ${rx.equationAscii}`
       if (rx.isGeneralScheme) {
         schemes++
         if (rx.lab.ok) tbProblems.push(`${label}: общая схема открывается в реакторе`)
@@ -290,7 +310,15 @@ for (const g of [7, 8, 9]) {
       }
       n++
       const bankRes = rx.bankId ? resolveReactorEquation({ reactionId: rx.bankId }, { newId }) : null
-      const r = bankRes?.ok ? bankRes : resolveReactorEquation({ equation: rx.equationAscii }, { newId })
+      const linkSpec = rx.lab.ok && rx.lab.href ? parseReactorLinkParams(new URLSearchParams(rx.lab.href.split('?')[1] ?? '')) : null
+      const r = bankRes?.ok
+        ? bankRes
+        : resolveReactorEquation(linkSpec?.spec ?? { equation: rx.equationAscii }, { newId })
+      if (rx.lab.ok && rx.lab.altHref) {
+        withOrganicLab++
+        if (!rx.lab.altHref.startsWith('/organic?')) tbProblems.push(`${label}: вторая кнопка не в органическую лабораторию`)
+        if (r.ok && r.stageOnly !== 'organic') tbProblems.push(`${label}: вторая кнопка у неорганической реакции`)
+      }
       if (r.ok !== rx.lab.ok) tbProblems.push(`${label}: lab.ok в json ${rx.lab.ok}, резолвер ${r.ok} — перегенерируйте книгу`)
       if (r.ok) {
         ok++
@@ -309,7 +337,7 @@ for (const g of [7, 8, 9]) {
   const failText = Object.entries(fails)
     .map(([k, v]) => `${k} ${v.length}`)
     .join(', ')
-  const line = `g11: ${ok}/${n} открываются (${((ok / n) * 100).toFixed(1)}%), из них только «шарами»: ${stageText || '0'}; не открываются: ${failText || '0'}; общих схем (карточки без реактора): ${schemes}`
+  const line = `g${grade}: ${ok}/${n} открываются (${((ok / n) * 100).toFixed(1)}%), из них только «шарами»: ${stageText || '0'}; с органической лабораторией второй кнопкой: ${withOrganicLab}; не открываются: ${failText || '0'}; общих схем (карточки без реактора): ${schemes}`
   coverage.push(line)
   console.log(`\n${line}`)
   for (const [code, list] of Object.entries(fails)) console.log(`  ${code}: ${list.length}\n    - ${list.join('\n    - ')}`)

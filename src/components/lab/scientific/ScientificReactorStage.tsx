@@ -36,6 +36,12 @@ const DEFAULT_LABELS: ScientificReactorStageLabels = {
 const ORIGIN: StageVec3 = [0, 0, 0]
 /** Доля видимой ширины кадра, которую может занять ряд «реагенты → продукты». */
 const STAGE_WIDTH_FILL = 0.9
+/** Ряд ужат сильнее этого — пробуем два ряда (крупные органические молекулы). */
+const STAGE_TWO_ROWS_FIT = 0.6
+/** Свободная область над панелью реактора ≈ половина высоты канвы: её пропорция ≈ 2,2 × пропорция канвы. */
+const STAGE_REGION_ASPECT = 2.2
+/** Крупная молекула (жир, мыло, звено целлюлозы): только с ней пробуем два ряда на широком экране. */
+const STAGE_LARGE_MOLECULE_ATOMS = 40
 const _stageCenter = new THREE.Vector3()
 
 /**
@@ -354,10 +360,35 @@ export function ScientificReactorStage({
   // Портретный экран и 4+ вещества: в один ряд шары мельче 10 px и символы в них не видны — два ряда.
   const aspect = useThree((st) => st.size.width / Math.max(1, st.size.height))
   const twoRows = aspect < 0.95 && leftTerms.length + coProducts.length + (productId ? 1 : 0) >= 4
-  const layout = useMemo(
-    () => (visible ? scientificStageLayout(leftTerms, coProducts, productId, productCoeff, productIndex, { twoRows }) : null),
-    [visible, leftTerms, coProducts, productId, productCoeff, productIndex, twoRows],
-  )
+  const camera = useThree((st) => st.camera)
+  const layout = useMemo(() => {
+    if (!visible) return null
+    // видимая ширина кадра на глубине сцены (как в fitStageToView) — подписи крупных молекул не наезжают
+    const maxWidth =
+      camera instanceof THREE.PerspectiveCamera
+        ? STAGE_WIDTH_FILL *
+          2 *
+          camera.position.distanceTo(_stageCenter.set(position[0], position[1] + 0.5, position[2])) *
+          Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) *
+          aspect
+        : undefined
+    const one = scientificStageLayout(leftTerms, coProducts, productId, productCoeff, productIndex, { twoRows, maxWidth })
+    // Крупные молекулы (жир — ~170 атомов, мыло, звено целлюлозы): ряд ужимается так, что шары не разглядеть.
+    // Пробуем «реагенты сверху, → продукты снизу» и берём раскладку, которая крупнее влезает в свободную
+    // область над панелью реактора (по ширине и по высоте; область — примерно вдвое шире канвы по пропорции).
+    const hasLarge = one.units.some((u) => u.atomCount >= STAGE_LARGE_MOLECULE_ATOMS)
+    if (!twoRows && hasLarge && one.fitScale < STAGE_TWO_ROWS_FIT && leftTerms.length > 0) {
+      const two = scientificStageLayout(leftTerms, coProducts, productId, productCoeff, productIndex, { twoRows: true, maxWidth })
+      const regionAspect = aspect * STAGE_REGION_ASPECT
+      const score = (l: typeof one) => {
+        let top = 0
+        for (const t of l.terms) top = Math.max(top, t.center[1] + t.clusterHeight / 2)
+        return Math.min(regionAspect / Math.max(l.width, 1e-3), 1 / Math.max(top - l.tallyPosition[1], 1e-3))
+      }
+      if (score(two) > score(one) * 1.1) return two
+    }
+    return one
+  }, [visible, leftTerms, coProducts, productId, productCoeff, productIndex, twoRows, camera, aspect, position])
   const ui = useUiScale()
   const groupRef = useRef<THREE.Group>(null)
 
