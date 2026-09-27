@@ -18,5 +18,7 @@ export function effectiveLabNeeds(
   const r = getSchoolReaction(bankReactionId)
   if (!r || r.productId !== compoundId) return compoundNeeds
   if (r.reactionClass === 'neutralization') return NO_CONDITIONS
+  // У реакции банка свои условия (N₂O₅ + H₂O → 2HNO₃ — без условий, хотя HNO₃ в данных — процесс Оствальда).
+  if (r.labNeeds) return r.labNeeds
   return compoundNeeds
 }

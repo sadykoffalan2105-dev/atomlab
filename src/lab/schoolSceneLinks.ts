@@ -33,10 +33,9 @@ export const G7_FIRST10_SCENE_REACTIONS: Readonly<Record<string, SchoolSceneReac
   so3: { bankId: 'so2-o2-so3', equation: '2SO₂ + O₂ ⇄ 2SO₃', main: 'so3' },
   no: { bankId: 'n2-o2-no', equation: 'N₂ + O₂ → 2NO', main: 'no' },
   no2: { bankId: 'no-o2-no2', equation: '2NO + O₂ → 2NO₂', main: 'no2' },
-  // В банке реакции нет — лаборатория открывается по записи уравнения.
-  n2o: { bankId: null, equation: 'NH₄NO₃ → N₂O + 2H₂O', main: 'n2o' },
+  n2o: { bankId: 'nh4no3-n2o', equation: 'NH₄NO₃ → N₂O + 2H₂O', main: 'n2o' },
   // N₂O₅ в сцене — реагент (кислотный оксид + вода); продукт реакции — HNO₃.
-  n2o5: { bankId: null, equation: 'N₂O₅ + H₂O → 2HNO₃', main: 'hno3' },
+  n2o5: { bankId: 'n2o5-h2o-hno3', equation: 'N₂O₅ + H₂O → 2HNO₃', main: 'hno3' },
 }
 
 export type SchoolSceneLink = {

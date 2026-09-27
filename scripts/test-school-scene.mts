@@ -32,6 +32,10 @@ import { SCHOOL_STEP_IDS, type SchoolLocale, type SchoolSceneSpec } from '../src
 import { H2O_SPEC } from '../src/lab/cinema/scenes/h2o/h2oSpec.ts'
 import { H2O_FINISH } from '../src/lab/cinema/scenes/h2o/h2oSteps.ts'
 import { FIX_CO, FIX_NH4CL, FIX_NO2 } from '../src/lab/cinema/scenes/school/schoolFixtures.ts'
+import { NO_SCENE_SPEC } from '../src/lab/cinema/scenes/no/noSpec.ts'
+import { NO2_SCENE_SPEC } from '../src/lab/cinema/scenes/no2/no2Spec.ts'
+import { N2O_SCENE_SPEC } from '../src/lab/cinema/scenes/n2o/n2oSpec.ts'
+import { N2O5_SCENE_SPEC } from '../src/lab/cinema/scenes/n2o5/n2o5Spec.ts'
 import { bondAngleDeg, bondLengthPm } from '../src/chemistry/data/bondData.ts'
 import { CO2_SCHOOL_SPEC } from '../src/lab/cinema/scenes/co2/co2Spec.ts'
 import { CO2_FINISH } from '../src/lab/cinema/scenes/co2/co2Steps.ts'
@@ -267,7 +271,17 @@ function checkSpec(spec: SchoolSceneSpec, opts: { texts?: boolean } = {}): { a: 
 }
 
 // ——— все спецификации ———
-const SPECS: SchoolSceneSpec[] = [H2O_SPEC, CO2_SCHOOL_SPEC, CO_SCHOOL_SPEC, SO2_SCHOOL_SPEC, SO3_SCHOOL_SPEC]
+const SPECS: SchoolSceneSpec[] = [
+  H2O_SPEC,
+  CO2_SCHOOL_SPEC,
+  CO_SCHOOL_SPEC,
+  SO2_SCHOOL_SPEC,
+  SO3_SCHOOL_SPEC,
+  NO_SCENE_SPEC,
+  NO2_SCENE_SPEC,
+  N2O_SCENE_SPEC,
+  N2O5_SCENE_SPEC,
+]
 const built = SPECS.map(checkSpec)
 
 // ——— Прочность движка: учебные «заготовки» с донорно-акцепторной парой, тройной связью,
@@ -295,6 +309,76 @@ for (const fx of [FIX_CO, FIX_NO2, FIX_NH4CL]) {
       const n1 = a.index.get('N1')!
       assert.equal(a.P.atoms[n1]!.single, 1, 'неспаренный электрон остаётся на N')
     }
+  })
+}
+
+// ——— оксиды азота поштучно (научные спецификации specs/no*.ts, n2o*.ts) ———
+{
+  const byId = (id: string) => built[SPECS.findIndex((s) => s.id === id)]!.a
+  const [no, no2, n2o, n2o5] = [byId('no'), byId('no2'), byId('n2o'), byId('n2o5')]
+  const at = (a: SchoolAnalysis, id: string) => a.index.get(id)!
+  ok('NO: N≡N и O=O рвутся, у N в NO пара + неспаренный, у O две пары; 11 электронов', () => {
+    assert.equal(no!.broken.length, 5, '3 пары N≡N + 2 пары O=O')
+    assert.equal(no!.formed.length, 4, 'по две пары N=O в двух молекулах')
+    for (const n of ['N1', 'N2']) {
+      assert.equal(no!.S.atoms[at(no!, n)]!.single, 3, `${n} после разрыва: 3 неспаренных`)
+      assert.equal(no!.P.atoms[at(no!, n)]!.lone, 1)
+      assert.equal(no!.P.atoms[at(no!, n)]!.single, 1, `${n} в NO: один неспаренный электрон`)
+    }
+    const perMol = electronsOfAtom(no!.P, at(no!, 'N1')) + electronsOfAtom(no!.P, at(no!, 'O1'))
+    assert.equal(perMol, 11)
+  })
+  ok('NO₂: N=O сохраняется, рвётся только O=O, N→O — пара азота, неспаренный остаётся на N', () => {
+    assert.equal(no2!.persistPairs.filter((x) => x === 2).length, 2)
+    assert.equal(no2!.broken.length, 2)
+    const dative = no2!.formed.filter((f) => no2!.P.bonds[f.pBond]!.pairs[f.pair] !== 'ab')
+    assert.equal(dative.length, 2, 'в каждой NO₂ одна донорно-акцепторная пара')
+    for (const [n, o] of [['N1', 'O3'], ['N2', 'O4']] as const) {
+      assert.equal(no2!.S.atoms[at(no2!, o)]!.lone, 3, `${o} — акцептор: 3 пары`)
+      assert.equal(no2!.P.atoms[at(no2!, n)]!.single, 1)
+      // Пара донора в фазе S смотрит на акцептор.
+      const d = no2!.S.atoms[at(no2!, n)]!.loneDirs[0]!
+      const u = no2!.S.pos[at(no2!, o)]!.map((v, k) => v - no2!.S.pos[at(no2!, n)]![k]!)
+      const cos = (d[0] * u[0]! + d[1] * u[1]! + d[2] * u[2]!) / Math.hypot(...u)
+      assert.ok(cos > 0.95, `пара ${n} не смотрит на ${o} (cos ${cos.toFixed(2)})`)
+    }
+  })
+  ok('N₂O: ионы NH₄⁺ и NO₃⁻ → нейтральные атомы (splitCharges), N→O сохраняется, N≡N образуется', () => {
+    assert.equal(n2o!.R.charge[at(n2o!, 'N1')], 1, 'NH₄⁺')
+    assert.equal(n2o!.R.charge[at(n2o!, 'O3')], -1, 'O⁻ нитрата')
+    n2o!.S.charge.forEach((q, i) => assert.equal(q, 0, `после разрыва ${n2o!.atoms[i]!.id} не нейтрален`))
+    // Азоту аммония возвращается именно его электрон.
+    const back = n2o!.electrons.filter((e) => e.owner === at(n2o!, 'N1') && e.r.kind === 'lone')
+    assert.equal(back.length, 1, 'электрон N1 в фазе R — в паре O⁻')
+    assert.equal(back[0]!.s.kind === 'lone' || back[0]!.s.kind === 'single' ? back[0]!.s.atom : -1, at(n2o!, 'N1'))
+    const kept = n2o!.P.bonds.findIndex((b) => b.a === at(n2o!, 'N2') && b.b === at(n2o!, 'O2'))
+    assert.equal(n2o!.persistPairs[kept], 1, 'N→O нитрата сохраняется')
+    assert.equal(n2o!.P.atoms[at(n2o!, 'N1')]!.lone, 1)
+    assert.equal(n2o!.P.atoms[at(n2o!, 'O2')]!.lone, 3)
+  })
+  ok('N₂O₅ + H₂O: гетеролиз (breakTo) → NO₃⁻, NO₂⁺, OH⁻, H⁺; у N в HNO₃ четыре общие пары', () => {
+    assert.equal(n2o5!.S.charge[at(n2o5!, 'H1')], 1, 'H⁺')
+    assert.equal(n2o5!.S.charge[at(n2o5!, 'O6')], -1, 'OH⁻')
+    assert.equal(n2o5!.S.charge[at(n2o5!, 'O1')], -1, 'мостиковый O⁻')
+    assert.equal(n2o5!.S.charge[at(n2o5!, 'N2')], 1, 'NO₂⁺')
+    n2o5!.P.charge.forEach((q, i) => assert.equal(q, 0, `в HNO₃ ${n2o5!.atoms[i]!.id} не нейтрален`))
+    for (const n of ['N1', 'N2']) {
+      const pairs = n2o5!.P.bonds.filter((b) => b.a === at(n2o5!, n) || b.b === at(n2o5!, n)).reduce((x, b) => x + b.pairs.length, 0)
+      assert.equal(pairs, 4, `${n}: четыре общие пары`)
+      assert.equal(n2o5!.P.atoms[at(n2o5!, n)]!.lone + n2o5!.P.atoms[at(n2o5!, n)]!.single, 0)
+    }
+    // Пара разорванной O–H воды уходит в связь O–N второй кислоты, пара мостика — в O–H первой.
+    const ohBond = n2o5!.P.bonds.findIndex((b) => b.a === at(n2o5!, 'H1') && b.b === at(n2o5!, 'O1'))
+    const onBond = n2o5!.P.bonds.findIndex((b) => b.a === at(n2o5!, 'N2') && b.b === at(n2o5!, 'O6'))
+    const brokenPairOf = (a: string, b: string) => n2o5!.broken.findIndex((x) => {
+      const rb = n2o5!.R.bonds[x.rBond]!
+      return (rb.a === at(n2o5!, a) && rb.b === at(n2o5!, b)) || (rb.a === at(n2o5!, b) && rb.b === at(n2o5!, a))
+    })
+    const bridge = brokenPairOf('N2', 'O1')
+    const water = brokenPairOf('O6', 'H1')
+    const into = (bi: number) => new Set(n2o5!.electrons.filter((e) => e.broken === bi).map((e) => (e.p.kind === 'bond' ? e.p.bond : -1)))
+    assert.deepEqual(into(bridge), new Set([ohBond]))
+    assert.deepEqual(into(water), new Set([onBond]))
   })
 }
 

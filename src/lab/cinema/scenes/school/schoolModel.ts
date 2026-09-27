@@ -65,7 +65,7 @@ export type SchoolLabelAnchor =
   | { readonly kind: 'layers'; readonly atom: number }
   | { readonly kind: 'molR'; readonly mol: number }
   | { readonly kind: 'molP'; readonly mol: number }
-  /** others — прочие соседи центрального атома в продукте (SO₃: третий O): подпись их обходит. */
+  /** others — прочие соседи центрального атома в продукте (SO₃: третий O); при трёх соседях и больше подпись угла — над молекулой. */
   | { readonly kind: 'angle'; readonly a: number; readonly center: number; readonly b: number; readonly others: readonly number[] }
   /** Середина связи продукта (подпись донорно-акцепторной пары «O → C»), сдвиг поперёк оси. */
   | { readonly kind: 'bond'; readonly bond: number }
@@ -299,9 +299,10 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
   spec.products.forEach((m, k) => {
     labels.push({ id: `molP-${m.id}`, kind: 'species', text: all(m.formula), anchor: { kind: 'molP', mol: k }, from: step.molecule.from + 1.0, to: end })
   })
-  // Угол — только у первой молекулы продукта (у одинаковых молекул он одинаков).
-  const firstP = spec.products[0]
-  for (const ang of firstP?.angles ?? []) {
+  // Угол — у первой молекулы каждой формулы (у одинаковых молекул он одинаков): N₂O и H₂O — оба.
+  const angled = new Set<string>()
+  const angleMols = spec.products.filter((mol) => !angled.has(mol.formula) && angled.add(mol.formula))
+  for (const ang of angleMols.flatMap((mol) => (mol.angles ?? []).filter((x) => x.label !== false))) {
     const deg = angleDegOf(spec, ang)
     const txt = `∠${ang.a.replace(/\d+$/, '')}${ang.center.replace(/\d+$/, '')}${ang.b.replace(/\d+$/, '')} = ${deg}°`
     const [ia, ic, ib] = [a.index.get(ang.a)!, a.index.get(ang.center)!, a.index.get(ang.b)!]
@@ -386,9 +387,10 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
       probe(loose)
     }
     if (s.id === 'molecule' || s.id === 'result') probe(a.P.pos)
-    // Полосы подписей сверху и снизу.
+    // Полосы подписей сверху и снизу; на шагах molecule / result — и формулы продуктов по бокам.
     const pad = 48
-    return { w: maxX - minX, h: maxY - minY + 2 * pad, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 }
+    const side = s.id === 'molecule' || s.id === 'result' ? 70 : 0
+    return { w: maxX - minX + 2 * side, h: maxY - minY + 2 * pad, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 }
   })
 
   // Кадр не «прыгает» по масштабу между шагами: габарит шага — не меньше 0,8 общего.
@@ -472,6 +474,9 @@ function rotYX(x: number, y: number, z: number, yaw: number, pitch: number, out:
   out[2] = -x * sy + z1 * cy
 }
 const _r: number[] = [0, 0, 0]
+const _sq: number[] = [0, 0, 0]
+/** Доля z у неподелённой пары, смотрящей в камеру (см. electronPlace): 1 — как есть, 0 — в плоскости кадра. */
+const FRONT_SQUASH = 0.35
 
 // ——— рабочие буферы (ноль аллокаций в кадре) ———
 /** Текущий поворот молекул продукта (ставит sampleSchoolState до расчёта мест электронов). */
@@ -527,6 +532,19 @@ function placePos(m: SchoolModel, ph: Phase, place: ElectronPlace, pos: Float32A
     rotYX(d[0]!, d[1]!, d[2]!, rot.yaw, rot.pitch, _r)
     d = _r
   }
+  // Пара объёмного атома (O в H₂O, в группе OH), смотрящая почти в камеру, ложилась на символ элемента:
+  // прижимаем её к плоскости кадра (z × FRONT_SQUASH), как в точечной формуле учебника — пара остаётся
+  // по ту же сторону плоскости (знак z) и с той же стороны атома, только не закрывает букву.
+  // Прижатие плавное (по z и по доле направления в плоскости) — при повороте молекулы пара не прыгает.
+  const sq = place.kind === 'lone' ? schoolSmooth(0.2, 0.5, d[2]!) * schoolSmooth(0.1, 0.3, Math.hypot(d[0]!, d[1]!)) : 0
+  if (sq > 0) {
+    const z = d[2]! * (1 - (1 - FRONT_SQUASH) * sq)
+    const l = Math.hypot(d[0]!, d[1]!, z)
+    _sq[0] = d[0]! / l
+    _sq[1] = d[1]! / l
+    _sq[2] = z / l
+    d = _sq
+  }
   // Пара, смотрящая от зрителя (−z), при перспективе прячется за свой шар: отодвигаем её от ядра
   // по тому же направлению (число и направление пар не меняются — только читаемость кадра).
   const r = m.ballR[i]! + D.shellGap + D.backLift * Math.max(0, -d[2]!)
@@ -578,8 +596,9 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
   // молекул перспектива не раздувает размер). Наклон показывает обе неподелённые пары O (они вне
   // плоскости H–O–H), рыскание — объём молекулы. ———
   const mt = schoolSmooth(step.molecule.from + 1.0, step.molecule.to - 0.3, t)
-  rot.pitch = lerp(0, 0.5, mt)
-  rot.yaw = t < step.result.from ? lerp(0, 0.42, mt) : lerp(0.42, -0.62, schoolSmooth(step.result.from, m.finish.from, t))
+  const turn = m.spec.productTurn ?? 1
+  rot.pitch = lerp(0, 0.5 * turn, mt)
+  rot.yaw = (t < step.result.from ? lerp(0, 0.42, mt) : lerp(0.42, -0.62, schoolSmooth(step.result.from, m.finish.from, t))) * turn
   s.molYaw = rot.yaw
   s.molPitch = rot.pitch
 
@@ -808,35 +827,50 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
         s.labelPos[o] = (x0 + x1) / 2
         s.labelPos[o + 1] = y0 - 26
       } else {
-        s.labelPos[o] = x1 + 46
+        // Формула продукта — с внешней стороны: у левой молекулы слева, у правой (и центральной) справа,
+        // чтобы подпись в промежутке не читалась как подпись соседней молекулы.
+        s.labelPos[o] = mol.place[0] < -1 ? x0 - 46 : x1 + 46
         s.labelPos[o + 1] = (y0 + y1) / 2
       }
       s.labelPos[o + 2] = 0
     } else if (an.kind === 'angle') {
       const c = an.center * 3
-      const bx = (s.atomPos[an.a * 3]! + s.atomPos[an.b * 3]!) / 2 - s.atomPos[c]!
-      const by = (s.atomPos[an.a * 3 + 1]! + s.atomPos[an.b * 3 + 1]!) / 2 - s.atomPos[c + 1]!
-      const bl = Math.hypot(bx, by)
+      // Биссектриса — по ЕДИНИЧНЫМ векторам к соседям: у линейной молекулы с разными длинами связей
+      // (N–N–O) середина соседей не совпадает с центром, но биссектрисы нет — подпись над центром.
+      const ax = s.atomPos[an.a * 3]! - s.atomPos[c]!
+      const ay = s.atomPos[an.a * 3 + 1]! - s.atomPos[c + 1]!
+      const cx = s.atomPos[an.b * 3]! - s.atomPos[c]!
+      const cy = s.atomPos[an.b * 3 + 1]! - s.atomPos[c + 1]!
+      const al = Math.hypot(ax, ay) || 1
+      const cl = Math.hypot(cx, cy) || 1
+      const bx = ax / al + cx / cl
+      const by = ay / al + cy / cl
+      const bl = Math.hypot(bx, by) > 0.05 ? Math.hypot(bx, by) : 0
       // Подпись угла — с внешней стороны атома (против биссектрисы угла), над облаком. У линейной
-      // молекулы (CO₂, 180°) биссектрисы нет — подпись над центральным атомом.
-      const r = m.cloudR[an.center]! * 1.6 + 20
-      let ux = bl > 1e-3 ? -bx / bl : 0
-      let uy = bl > 1e-3 ? -by / bl : 1
-      // Снаружи угла стоит другой сосед центра (плоский треугольник SO₃: против биссектрисы любого угла —
-      // третий атом O) — тогда подпись внутри угла, по биссектрисе.
-      for (const j of an.others) {
-        const ox = s.atomPos[j * 3]! - s.atomPos[c]!
-        const oy = s.atomPos[j * 3 + 1]! - s.atomPos[c + 1]!
-        const ol = Math.hypot(ox, oy)
-        if (bl > 1e-3 && ol > 1e-3 && (ox * ux + oy * uy) / ol > 0.77) {
-          ux = -ux
-          uy = -uy
-          break
+      // молекулы (CO₂, 180°) биссектрисы нет — подпись над центральным атомом. Если у центра три
+      // соседа и больше (N в HNO₃), снаружи стоит третий атом, а внутри угла — концевые атомы:
+      // подпись — над всей молекулой (на телефоне плашка крупнее молекулы и закрыла бы атомы).
+      let nb = 0
+      for (const b of a.P.bonds) if (b.a === an.center || b.b === an.center) nb++
+      if (nb >= 3) {
+        const id = a.atoms[an.center]!.id
+        const mol = m.spec.products.find((p) => p.atoms.includes(id))
+        let top = s.atomPos[c + 1]! + m.cloudR[an.center]!
+        for (const aid of mol?.atoms ?? []) {
+          const i = a.index.get(aid)!
+          top = Math.max(top, s.atomPos[i * 3 + 1]! + m.cloudR[i]!)
         }
+        s.labelPos[o] = s.atomPos[c]!
+        s.labelPos[o + 1] = top + 30
+        s.labelPos[o + 2] = s.atomPos[c + 2]!
+      } else {
+        const r = m.cloudR[an.center]! * 1.6 + 20
+        const ux = bl > 1e-3 ? -bx / bl : 0
+        const uy = bl > 1e-3 ? -by / bl : 1
+        s.labelPos[o] = s.atomPos[c]! + ux * r
+        s.labelPos[o + 1] = s.atomPos[c + 1]! + uy * r
+        s.labelPos[o + 2] = s.atomPos[c + 2]!
       }
-      s.labelPos[o] = s.atomPos[c]! + ux * r
-      s.labelPos[o + 1] = s.atomPos[c + 1]! + uy * r
-      s.labelPos[o + 2] = s.atomPos[c + 2]!
     } else if (an.kind === 'bond') {
       const b = a.P.bonds[an.bond]!
       const ax = s.atomPos[b.a * 3]!

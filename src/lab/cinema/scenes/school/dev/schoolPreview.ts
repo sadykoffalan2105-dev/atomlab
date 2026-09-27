@@ -3,6 +3,10 @@ import { SchoolReactionScene } from '../SchoolReactionScene'
 import { H2O_SPEC } from '../../h2o/h2oSpec'
 import { FIX_CO, FIX_NH4CL, FIX_NO2 } from '../schoolFixtures'
 import { EQUATION_PART_SEP } from '../schoolModel'
+import { NO_SCENE_SPEC } from '../../no/noSpec'
+import { NO2_SCENE_SPEC } from '../../no2/no2Spec'
+import { N2O_SCENE_SPEC } from '../../n2o/n2oSpec'
+import { N2O5_SCENE_SPEC } from '../../n2o5/n2o5Spec'
 import type { SchoolSceneSpec } from '../schoolSpec'
 
 /**
@@ -14,6 +18,10 @@ import type { SchoolSceneSpec } from '../schoolSpec'
 
 const SPECS: Record<string, SchoolSceneSpec> = {
   h2o: H2O_SPEC,
+  no: NO_SCENE_SPEC,
+  no2: NO2_SCENE_SPEC,
+  n2o: N2O_SCENE_SPEC,
+  n2o5: N2O5_SCENE_SPEC,
   'fixture-co': FIX_CO,
   'fixture-no2': FIX_NO2,
   'fixture-nh4cl': FIX_NH4CL,

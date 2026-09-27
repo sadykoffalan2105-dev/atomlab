@@ -9,6 +9,10 @@ import { HclCinemaScene } from '../cinema/scenes/hcl/HclCinemaScene'
 import { Co2CinemaScene } from '../cinema/scenes/co2/Co2CinemaScene'
 import { CoCinemaScene } from '../cinema/scenes/co/CoCinemaScene'
 import { NaclCinemaScene } from '../cinema/scenes/nacl/NaclCinemaScene'
+import { NoCinemaScene } from '../cinema/scenes/no/NoCinemaScene'
+import { No2CinemaScene } from '../cinema/scenes/no2/No2CinemaScene'
+import { N2oCinemaScene } from '../cinema/scenes/n2o/N2oCinemaScene'
+import { N2o5CinemaScene } from '../cinema/scenes/n2o5/N2o5CinemaScene'
 import { Nh3CinemaScene } from '../cinema/scenes/nh3/Nh3CinemaScene'
 import { So2CinemaScene } from '../cinema/scenes/so2/So2CinemaScene'
 import { So3CinemaScene } from '../cinema/scenes/so3/So3CinemaScene'
@@ -47,6 +51,14 @@ const REGISTRY: Record<ScientificSceneProductId, ComponentType<ScientificSynthes
   cao: CaoCinemaScene,
   // Учебник 7: ковалентная полярная связь и водородная связь, 2 H₂ + O₂ → 2 H₂O (bank 'h2-o2-h2o').
   h2o: H2oCinemaScene,
+  // Учебник 7: школьная сцена, N₂ + O₂ → 2NO — молния рвёт N≡N, у NO неспаренный электрон (bank 'n2-o2-no').
+  no: NoCinemaScene,
+  // Учебник 7: школьная сцена, 2NO + O₂ → 2NO₂ — N=O сохраняется, новая связь N→O (bank 'no-o2-no2').
+  no2: No2CinemaScene,
+  // Учебник 8 (с. 168): школьная сцена, NH₄NO₃ →(t°) N₂O + 2H₂O — ионы → N≡N→O и две воды (bank 'nh4no3-n2o').
+  n2o: N2oCinemaScene,
+  // Учебник 7 (с. 139): школьная сцена оксида азота(V), N₂O₅ + H₂O → 2HNO₃ (bank 'n2o5-h2o-hno3'); урок — «n2o5».
+  hno3: N2o5CinemaScene,
   // Учебник 9: обратимая реакция и катализ, N₂ + 3 H₂ ⇌ 2 NH₃ (bank 'n2-h2-nh3').
   nh3: Nh3CinemaScene,
   // Учебник 7–8: «смесь или соединение», Fe + S → FeS (bank 'fe-s-fes', productId 'salt_fe2_s').

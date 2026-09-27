@@ -154,9 +154,9 @@ export const LEGEND: SchoolScienceSpec['legend'] = {
 export const LEGEND_DATIVE: SchoolScienceSpec['legend'] = {
   ...LEGEND,
   sharedPair: {
-    ru: 'Две точки между ядрами — общая электронная пара (одна черта). Стрелка у пары — донорно-акцепторная связь: обе точки пришли от одного атома.',
-    en: 'Two dots between the nuclei are a shared electron pair (one dash). An arrow at a pair marks a donor-acceptor bond: both dots came from one atom.',
-    uz: 'Yadrolar orasidagi ikki nuqta — umumiy elektron jufti (bitta chiziqcha). Juft yonidagi strelka — donor-akseptor bogʻ: ikkala nuqta bitta atomdan kelgan.',
+    ru: 'Две точки между ядрами — общая электронная пара (одна черта). Стрелка в записи связи (N→O) — донорно-акцепторная связь: обе точки пары пришли от одного атома.',
+    en: 'Two dots between the nuclei are a shared electron pair (one dash). An arrow in a bond notation (N→O) marks a donor-acceptor bond: both dots of the pair came from one atom.',
+    uz: 'Yadrolar orasidagi ikki nuqta — umumiy elektron jufti (bitta chiziqcha). Bogʻ yozuvidagi strelka (N→O) — donor-akseptor bogʻ: juftning ikkala nuqtasi bitta atomdan kelgan.',
   },
 }
 

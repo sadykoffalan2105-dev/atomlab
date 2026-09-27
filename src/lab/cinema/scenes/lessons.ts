@@ -11,7 +11,11 @@ import { FES_STEP_IDS } from './fes/fesSteps'
 import { getFesMechanismText } from './fes/fesMechanismText'
 import { H2O_STEP_IDS } from './h2o/h2oSteps'
 import { getH2oMechanismText } from './h2o/h2oMechanismText'
-import type { SchoolLessonText } from './school/schoolSpec'
+import { SCHOOL_STEP_IDS, type SchoolLessonText } from './school/schoolSpec'
+import { NO_SCENE_SPEC } from './no/noSpec'
+import { NO2_SCENE_SPEC } from './no2/no2Spec'
+import { N2O_SCENE_SPEC } from './n2o/n2oSpec'
+import { N2O5_SCENE_SPEC } from './n2o5/n2o5Spec'
 import { HCL_STEP_IDS } from './hcl/hclSteps'
 import { getHclMechanismText } from './hcl/hclMechanismText'
 import { MGO_STEP_IDS } from './mgo/mgoSteps'
@@ -133,6 +137,42 @@ const LESSONS: Record<string, CinemaLesson> = {
     narrated: false,
     school: true,
     getText: (locale) => schoolLessonText(getH2oMechanismText(locale)),
+  },
+  // Школьные сцены оксидов азота (scenes/school): тексты — научные спецификации specs/no*.ts, n2o*.ts.
+  no: {
+    id: 'no',
+    stepIds: SCHOOL_STEP_IDS,
+    // Оксиды азота ядовиты: предупреждение — на итоге.
+    safetyStepId: 'result',
+    narrated: false,
+    school: true,
+    getText: (locale) => schoolLessonText(NO_SCENE_SPEC.text[locale]),
+  },
+  no2: {
+    id: 'no2',
+    stepIds: SCHOOL_STEP_IDS,
+    safetyStepId: 'result',
+    narrated: false,
+    school: true,
+    getText: (locale) => schoolLessonText(NO2_SCENE_SPEC.text[locale]),
+  },
+  n2o: {
+    id: 'n2o',
+    stepIds: SCHOOL_STEP_IDS,
+    // Нитрат аммония при сильном нагревании может взорваться — предупреждение на шаге нагревания.
+    safetyStepId: 'breaking',
+    narrated: false,
+    school: true,
+    getText: (locale) => schoolLessonText(N2O_SCENE_SPEC.text[locale]),
+  },
+  n2o5: {
+    id: 'n2o5',
+    stepIds: SCHOOL_STEP_IDS,
+    // N₂O₅ и HNO₃ едкие — предупреждение сразу, на исходных веществах.
+    safetyStepId: 'reactants',
+    narrated: false,
+    school: true,
+    getText: (locale) => schoolLessonText(N2O5_SCENE_SPEC.text[locale]),
   },
   nh3: {
     id: 'nh3',

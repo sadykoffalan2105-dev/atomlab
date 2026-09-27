@@ -232,6 +232,72 @@ export function atomInfo(id: string, element: SchoolAtomInfo['element']): School
   }
 }
 
+/**
+ * Заряды после разрыва (SchoolSceneSpec.splitCharges): лишние электроны атомов переходят к атомам,
+ * которым их не хватает. Сначала атом отдаёт «чужой» электрон (полученный ионом от другого атома),
+ * и получатель в первую очередь забирает СВОЙ электрон — ион NH₄⁺ получает назад именно тот
+ * электрон, который был у O⁻ нитрата. Правит списки свободных электронов фазы S на месте.
+ */
+function neutralizeSplit(
+  spec: SchoolSceneSpec,
+  atoms: readonly SchoolAtomInfo[],
+  idx: (id: string, where: string) => number,
+  owner: readonly number[],
+  rBonds: readonly PhaseBond[],
+  keptPairs: readonly number[],
+  pairedFree: number[][],
+  singleFree: number[][],
+): void {
+  const held = atoms.map((_, i) => pairedFree[i]!.length + singleFree[i]!.length)
+  rBonds.forEach((b, k) => {
+    for (let q = 0; q < keptPairs[k]!; q++) {
+      const o = b.pairs[q]!
+      if (o === 'ab') {
+        held[b.a]! += 1
+        held[b.b]! += 1
+      } else held[o === 'a' ? b.a : b.b]! += 2
+    }
+  })
+  const want = atoms.map((a, i) => {
+    const q = spec.splitCharges![a.id]
+    return q === undefined ? held[i]! : a.valence - q
+  })
+  for (const id of Object.keys(spec.splitCharges!)) idx(id, 'splitCharges')
+  const pool: number[] = []
+  const takeOut = (i: number): number => {
+    const pf = pairedFree[i]!
+    const sf = singleFree[i]!
+    for (let k = 0; k < pf.length; k++) {
+      if (owner[pf[k]!] === i) continue
+      const j = k % 2 === 0 ? k + 1 : k - 1
+      const x = pf[k]!
+      sf.push(pf[j]!)
+      pf.splice(Math.min(k, j), 2)
+      return x
+    }
+    for (let k = 0; k < sf.length; k++) if (owner[sf[k]!] !== i) return sf.splice(k, 1)[0]!
+    if (sf.length) return sf.pop()!
+    if (pf.length >= 2) {
+      const x1 = pf.pop()!
+      sf.push(pf.pop()!)
+      return x1
+    }
+    return fail(spec, `splitCharges: у атома ${atoms[i]!.id} нечего отдать`)
+  }
+  atoms.forEach((_, i) => {
+    for (let s = held[i]! - want[i]!; s > 0; s--) pool.push(takeOut(i))
+  })
+  atoms.forEach((a, i) => {
+    for (let d = want[i]! - held[i]!; d > 0; d--) {
+      const own = pool.findIndex((x) => owner[x] === i)
+      const k = own >= 0 ? own : 0
+      if (!pool.length) fail(spec, `splitCharges: атому ${a.id} не хватает электронов других атомов`)
+      singleFree[i]!.push(pool.splice(k, 1)[0]!)
+    }
+  })
+  if (pool.length) fail(spec, `splitCharges: ${pool.length} электрон(ов) без места — сумма зарядов после разрыва не сходится`)
+}
+
 export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
   const atoms = spec.atoms.map((a) => atomInfo(a.id, a.element))
   const index = new Map<string, number>()
@@ -455,6 +521,7 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
     atoms.forEach((_, i) => {
       for (const x of rSingleSlots[i]!) singleFree[i]!.push(x)
     })
+    if (spec.splitCharges) neutralizeSplit(spec, atoms, idx, owner, rBonds, keptPairs, pairedFree, singleFree)
     // Сохранившиеся пары — на местах (индекс связи S).
     rBonds.forEach((b, k) => {
       for (let q = 0; q < keptPairs[k]!; q++) {
@@ -509,24 +576,30 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
   const availSingle: number[][] = sSingleSlots.map((l) => [...l])
   const availLone: number[][][] = sLoneSlots.map((l) => l.map((pr) => [...pr]))
   {
-    const moved: number[] = []
+    const moved: { x: number; from: number }[] = []
     atoms.forEach((a, i) => {
       let surplus = heldS[i]! - (a.valence - pQ[i]!)
       while (surplus > 0) {
         const x = availSingle[i]!.pop()
-        if (x !== undefined) moved.push(x)
+        if (x !== undefined) moved.push({ x, from: i })
         else {
           const pr = availLone[i]!.pop() ?? fail(spec, `продукты: у атома ${a.id} нечего отдать для заряда ${pQ[i]}`)
-          moved.push(pr[1]!)
+          moved.push({ x: pr[1]!, from: i })
           availSingle[i]!.push(pr[0]!)
         }
         surplus--
       }
     })
+    // Электрон уходит к атому, с которым донор связан в продукте (H⁺ + O⁻ → O–H: пара O становится
+    // общей), иначе — «свой» электрон атома, иначе — первый по порядку.
+    const bondedP = (i: number, j: number) => pBonds.some((b) => (b.a === i && b.b === j) || (b.a === j && b.b === i))
     atoms.forEach((a, i) => {
       let deficit = a.valence - pQ[i]! - heldS[i]!
       while (deficit > 0) {
-        availSingle[i]!.push(moved.shift() ?? fail(spec, `продукты: атому ${a.id} не хватает электронов для заряда ${pQ[i]}`))
+        if (!moved.length) fail(spec, `продукты: атому ${a.id} не хватает электронов для заряда ${pQ[i]}`)
+        let k = moved.findIndex((m) => bondedP(m.from, i))
+        if (k < 0) k = moved.findIndex((m) => owner[m.x] === i)
+        availSingle[i]!.push(moved.splice(Math.max(0, k), 1)[0]!.x)
         deficit--
       }
     })
@@ -605,7 +678,16 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
   }
 
   // ——— направления мест у атомов ———
-  const dirsFor = (bonds: readonly PhaseBond[], pos: readonly V3[], lone: readonly number[], single: readonly number[], singleTargets?: (i: number) => V3[]): PhaseAtom[] =>
+  const dirsFor = (
+    bonds: readonly PhaseBond[],
+    pos: readonly V3[],
+    lone: readonly number[],
+    single: readonly number[],
+    singleTargets?: (i: number) => V3[],
+    loneTargets?: (i: number) => V3[],
+    avoid?: (i: number) => V3[],
+    lewis = false,
+  ): PhaseAtom[] =>
     atoms.map((_, i) => {
       const fixed: V3[] = []
       for (const b of bonds) {
@@ -615,17 +697,27 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
       const targets = singleTargets?.(i) ?? []
       const singleDirs: V3[] = targets.slice(0, single[i]!)
       const nFreeSingle = single[i]! - singleDirs.length
+      const loneFixed: V3[] = (loneTargets?.(i) ?? []).slice(0, lone[i]!)
+      const nFreeLone = lone[i]! - loneFixed.length
+      // Не больше трёх направлений (соседи + пары + неспаренные) — атом плоский (sp², sp): его пары
+      // лежат в плоскости связей. Если связи в плоскости кадра, пары рисуем в ней же — так их не
+      // прячет шар (NO, NO₂, O₂, концевой N в N₂O). У концевого атома (одна связь) формы нет —
+      // его пары тоже в плоскости, как в точечной формуле учебника (O в N₂O, O⁻ нитрата).
+      // Центральный атом с четырьмя направлениями (O в H₂O, N в NH₄⁺) — объём (тетраэдр) — но только
+      // у продуктов (шаг molecule показывает форму); реагенты и атомы после разрыва (lewis) рисуются
+      // точечной формулой учебника в плоскости кадра, иначе две пары O воды слились бы в проекции.
+      const flat = (lewis || fixed.length <= 1 || fixed.length + lone[i]! + single[i]! <= 3) && fixed.every((f) => Math.abs(f[2]) < 0.2)
       const relaxed = relaxDomains(
-        [...fixed, ...singleDirs],
-        lone[i]! + nFreeSingle,
-        [...new Array<number>(lone[i]!).fill(1.25), ...new Array<number>(nFreeSingle).fill(0.8)],
-        fixed.length === 0,
+        [...fixed, ...singleDirs, ...loneFixed, ...(avoid?.(i) ?? [])],
+        nFreeLone + nFreeSingle,
+        [...new Array<number>(nFreeLone).fill(1.25), ...new Array<number>(nFreeSingle).fill(0.8)],
+        fixed.length === 0 || flat,
       )
       return {
         lone: lone[i]!,
         single: single[i]!,
-        loneDirs: relaxed.slice(0, lone[i]!),
-        singleDirs: [...singleDirs, ...relaxed.slice(lone[i]!)],
+        loneDirs: [...loneFixed, ...relaxed.slice(0, nFreeLone)],
+        singleDirs: [...singleDirs, ...relaxed.slice(nFreeLone)],
       }
     })
 
@@ -652,6 +744,23 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
     })
     return out
   }
+  // Донорно-акцепторная пара в фазе S: неподелённая пара донора (первые пары атома — их и берёт
+  // takeLone) смотрит на акцептор, а пары акцептора обходят направление на донора — «свободное место».
+  const dativeDirs = (i: number, role: 'donor' | 'acceptor'): V3[] => {
+    const out: V3[] = []
+    for (const fp of formed) {
+      const b = pBonds[fp.pBond]!
+      const o = b.pairs[fp.pair]!
+      if (o === 'ab') continue
+      const donor = o === 'a' ? b.a : b.b
+      const acc = donor === b.a ? b.b : b.a
+      const [from, to] = role === 'donor' ? [donor, acc] : [acc, donor]
+      if (from !== i) continue
+      const d0 = sub(sPos[to]!, sPos[i]!)
+      out.push(norm(Math.hypot(d0[0], d0[1]) > 1e-3 ? [d0[0], d0[1], 0] : d0))
+    }
+    return out
+  }
   // Формирующиеся неспаренные электроны идут первыми в списке слотов S.
   atoms.forEach((_, i) => {
     const slots = sSingleSlots[i]!
@@ -663,8 +772,13 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
     slots.forEach((x, q) => (placeS[x] = { kind: 'single', atom: i, index: q }))
   })
 
-  const R: Phase = { bonds: rBonds, atoms: dirsFor(rBonds, rPos, rLone, rSingle), pos: rPos, charge: rQ }
-  const S: Phase = { bonds: sBonds, atoms: dirsFor(sBonds, sPos, sLone, sSingle, sTargets), pos: sPos, charge: sQ }
+  const R: Phase = { bonds: rBonds, atoms: dirsFor(rBonds, rPos, rLone, rSingle, undefined, undefined, undefined, true), pos: rPos, charge: rQ }
+  const S: Phase = {
+    bonds: sBonds,
+    atoms: dirsFor(sBonds, sPos, sLone, sSingle, sTargets, (i) => dativeDirs(i, 'donor'), (i) => dativeDirs(i, 'acceptor'), true),
+    pos: sPos,
+    charge: sQ,
+  }
   const P: Phase = { bonds: pBonds, atoms: dirsFor(pBonds, pPos, pLone, pSingle), pos: pPos, charge: pQ }
 
   const electrons: SchoolElectron[] = []

@@ -89,6 +89,8 @@ export type SchoolAngleSpec = {
   readonly angleKey?: AngleKey
   readonly deg?: number
   readonly source?: string
+  /** false — угол только проверяется тестом, в кадре не подписывается (второй угол той же молекулы). */
+  readonly label?: boolean
 }
 
 export type SchoolMoleculeSpec = {
@@ -180,6 +182,21 @@ export type SchoolSceneSpec = {
   readonly split: Readonly<Record<string, SchoolVec3>>
   /** Необязательная перестройка электронов свободного атома (см. SchoolSplitElectrons). */
   readonly splitElectrons?: Readonly<Record<string, SchoolSplitElectrons>>
+  /**
+   * Заряды атомов ПОСЛЕ РАЗРЫВА (шаги breaking → pairs), если они не такие, как даёт сам разрыв.
+   * Нужны, когда реагент — ионы, а сцена по учебнику разбирает их на НЕЙТРАЛЬНЫЕ атомы
+   * (NH₄NO₃ → N + NO + 4H + 2O): у иона NH₄⁺ после разрыва N–H азоту не хватает электрона, у O⁻
+   * нитрата он лишний. Движок переносит лишние электроны к атомам, которым их не хватает (сначала
+   * возвращает «чужие» электроны их хозяевам), — как и для зарядов продуктов. Атом без записи
+   * сохраняет заряд, который получился при разрыве. splitElectrons применяется уже после переноса.
+   */
+  readonly splitCharges?: Readonly<Record<string, number>>
+  /**
+   * Доля поворота молекул продукта на шагах molecule / result (1 — по умолчанию: наклон и рыскание,
+   * чтобы увидеть неподелённые пары вне плоскости, как у H₂O). Плоским и линейным молекулам (NO₂,
+   * N₂O, HNO₃) хватает лёгкого поворота — иначе угол «сплющивается» и пары уходят за шары.
+   */
+  readonly productTurn?: number
   /** Шесть шагов по порядку SCHOOL_STEP_IDS. */
   readonly steps: readonly SchoolStepTiming[]
   /** Подписи в 3D (коротко): условия реакции, «газ», наблюдение. */
