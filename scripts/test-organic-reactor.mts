@@ -162,6 +162,27 @@ for (const id of organicIds) {
   ok(sp && labCompoundById[sp.compound.id]?.nameRu === 'Хлорэтан', 'org:CH3-CH2Cl по id — хлорэтан')
   ok(labCompoundById['org:C2H4O@ethylene-oxide']?.nameRu.startsWith('Этиленоксид'), 'org:C2H4O@ethylene-oxide по id — этиленоксид')
 }
+// изомер страницы из ссылки карточки: с. 61 — этиленоксид, с. 54 — циклопентан, с. 161 — α-глюкоза и фруктоза
+{
+  const g10 = JSON.parse(fs.readFileSync('src/data/textbook/equations-g10.json', 'utf8')) as {
+    units: { reactions: { page: number | null; equationAscii: string; lab: { ok: boolean; href?: string } }[] }[]
+  }
+  const cards = g10.units.flatMap((u) => u.reactions)
+  const namesOf = (page: number, ascii: string) => {
+    const rx = cards.find((r) => r.page === page && r.equationAscii === ascii)
+    if (!rx?.lab.ok || !rx.lab.href) return []
+    const link = parseReactorLinkParams(new URLSearchParams(rx.lab.href.split('?')[1] ?? ''))
+    const r = link ? resolveReactorEquation(link.spec) : null
+    if (!r?.ok) return []
+    return [...r.leftTerms.map((t) => t.compoundId), ...r.coProducts.map((t) => t.compoundId), r.productCompoundId].map(
+      (id) => (id ? (labCompoundById[id]?.nameRu ?? id) : ''),
+    )
+  }
+  ok(namesOf(61, '2C2H4 + O2 -> 2C2H4O').some((n) => n.startsWith('Этиленоксид')), 'с. 61: C₂H₄O — этиленоксид')
+  ok(namesOf(54, 'BrCH2-CH2-CH2-CH2-CH2Br + Zn -> C5H10 + ZnBr2').includes('Циклопентан'), 'с. 54: C₅H₁₀ — циклопентан')
+  const p161 = namesOf(161, 'C12H22O11 + H2O -> C6H12O6 + C6H12O6')
+  ok(p161.some((n) => n.startsWith('α-Глюкоза')) && p161.includes('Фруктоза'), `с. 161: глюкоза и фруктоза (${p161.join(', ')})`)
+}
 // 7–9 классы: прежние формульные единицы не подменены
 {
   const r = resolveReactorEquation({ equation: 'C2H5OH + 3O2 = 2CO2 + 3H2O' })
