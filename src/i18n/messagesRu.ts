@@ -402,6 +402,7 @@ export const messagesRu = {
   'compound.obtainingSteps': 'Этапы получения',
   'compound.schoolReaction': 'Школьная реакция',
   'compound.openInReactions': 'Открыть в «Реакции»',
+  'compound.watchFormation': '▶ Смотреть, как образуется',
   'compound.schoolReactionAria': 'Открыть школьную реакцию в каталоге',
   'compound.preview3d': 'Трёхмерная модель вещества',
   'compound.labExampleAria': 'Получение вещества',

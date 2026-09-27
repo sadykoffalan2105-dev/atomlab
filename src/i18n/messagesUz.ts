@@ -405,6 +405,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'compound.obtainingSteps': 'Olish bosqichlari',
   'compound.schoolReaction': 'Maktab reaksiyasi',
   'compound.openInReactions': '«Reaksiyalar»da ochish',
+  'compound.watchFormation': '▶ Qanday hosil boʻlishini koʻrish',
   'compound.schoolReactionAria': 'Maktab reaksiyasini katalogda ochish',
   'compound.preview3d': 'Uch o\'lchamli model',
   'compound.labExampleAria': 'Moddani olish',
