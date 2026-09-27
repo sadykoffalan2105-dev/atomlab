@@ -23,7 +23,6 @@ import type { SchoolSceneSpec } from './schoolSpec'
  *   • ставит тёмный фон сцены и на выходе возвращает фон лаборатории.
  */
 
-const SCENE_BG = new THREE.Color('#0a0b10')
 const FILL = 0.9
 const WARMUP_TIMEOUT_MS = 1500
 const DONE_DELAY_MS = 320
@@ -54,11 +53,22 @@ function persistentLights(scene: THREE.Scene): SchoolLightRig {
 type Runtime = {
   scene: SchoolReactionScene
   safe: SafeArea
-  bg: THREE.Color
-  prevBg: THREE.Color | null
   ox: number
   oy: number
   scale: number
+}
+
+/** Фон урока — фоном сцены R3F; возвращает прежний фон лаборатории (или null). */
+function takeBackground(threeScene: THREE.Scene, scene: SchoolReactionScene): THREE.Color | null {
+  const prev = threeScene.background instanceof THREE.Color ? threeScene.background : null
+  scene.setHostBackground(prev)
+  threeScene.background = scene.background
+  return prev
+}
+
+/** Вернуть фон лаборатории (если его за время урока не заменили). */
+function restoreBackground(threeScene: THREE.Scene, scene: SchoolReactionScene, prev: THREE.Color | null): void {
+  if (threeScene.background === scene.background) threeScene.background = prev
 }
 
 const _extent = { w: 1, h: 1, cx: 0, cy: 0 }
@@ -168,10 +178,8 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
         else cb.onNarrationCue?.(id)
       },
     })
-    const prev = threeScene.background instanceof THREE.Color ? threeScene.background : null
-    const bg = SCENE_BG.clone()
-    threeScene.background = bg
-    const runtime: Runtime = { scene, safe: createSafeArea(), bg, prevBg: prev, ox: 0, oy: 0, scale: 0 }
+    const prevBg = takeBackground(threeScene, scene)
+    const runtime: Runtime = { scene, safe: createSafeArea(), ox: 0, oy: 0, scale: 0 }
     clo2StepStore.attach(
       runId,
       {
@@ -213,7 +221,7 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
       cancelAnimationFrame(raf)
       scene.dispose()
       clo2StepStore.detach(runId)
-      if (threeScene.background === runtime.bg) threeScene.background = runtime.prevBg
+      restoreBackground(threeScene, scene, prevBg)
       setRt(null)
     }
   }, [runId, lowPower, gl, camera, threeScene, spec, lesson])
@@ -223,15 +231,8 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
     const cam = state.camera as THREE.PerspectiveCamera
     const controls = state.controls as unknown as Controls
     frameRoot(rt, cam, controls, state.gl.domElement, state.size.width, state.size.height, dt)
-    const scene = rt.scene
-    scene.update(dt, cam)
-    const t = scene.time
-    const fin = scene.model.finish
-    if (rt.prevBg) {
-      const u = Math.min(1, Math.max(0, (t - fin.from) / (fin.to - fin.from)))
-      rt.bg.copy(SCENE_BG).lerp(rt.prevBg, u)
-    }
-    cinemaPlayhead.t = t
+    rt.scene.update(dt, cam)
+    cinemaPlayhead.t = rt.scene.time
     cinemaPlayhead.runId = runId
   })
 

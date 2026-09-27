@@ -299,6 +299,49 @@ for (const fx of [FIX_CO, FIX_NO2]) {
       }
     })
   })
+  ok('H₂O: кадр каждого шага', () => {
+    const st = createSchoolState(m)
+    const vis = (arr: Float32Array) => [...arr].filter((x) => x > 0.5).length
+    const lab = (id: string) => st.labelOpacity[m.labels.findIndex((l) => l.id === id)]!
+    const at = (id: string) => st.atomPos.slice(a.index.get(id)! * 3, a.index.get(id)! * 3 + 3)
+    const rSticks = m.sticks.map((x, k) => (x.phase === 'r' ? k : -1)).filter((k) => k >= 0)
+    const pSticks = m.sticks.map((x, k) => (x.phase === 'p' ? k : -1)).filter((k) => k >= 0)
+    // 1. Реагенты: 2 штриха H–H и 2 штриха O=O, электронов и облаков нет, формулы и «гремучая смесь» видны.
+    sampleSchoolState(m, m.step.reactants.to - 0.01, st)
+    assert.equal(rSticks.filter((k) => st.stickAlpha[k]! > 0.9).length, 4)
+    assert.equal(vis(st.elAlpha), 0)
+    assert.equal(st.cloudAmount, 0)
+    assert.ok(lab('molR-O2') > 0.9 && lab('caption-reactants') > 0.9)
+    // 2. Строение атомов: все 16 электронов внешнего слоя, облака, схемы слоёв H и O.
+    sampleSchoolState(m, m.step.atoms.to - 0.3, st)
+    assert.equal(vis(st.elAlpha), 16)
+    assert.ok(st.cloudAmount > 0.9)
+    assert.ok(lab('layers-H') > 0.9 && lab('layers-O') > 0.9)
+    // 3. Разрыв: штрихов нет, 4 + 2·2 = 8 неспаренных (ореол) электронов, атомы в позициях split.
+    sampleSchoolState(m, m.step.breaking.to - 0.01, st)
+    assert.equal(rSticks.filter((k) => st.stickAlpha[k]! > 0.01).length, 0)
+    assert.equal([...st.elGlow].filter((g) => g > 0.9).length, 8)
+    for (const id of ['H1', 'O1', 'H4']) assert.ok(dist(at(id), H2O_SPEC.split[id]!) < 0.5, `${id} не в split`)
+    // Облака «худеют»: у H заполнение 1/2, у O 6/8.
+    assert.ok(Math.abs(st.cloudFill[a.index.get('H1')!]! - 0.5) < 1e-6 && Math.abs(st.cloudFill[a.index.get('O1')!]! - 0.75) < 1e-6)
+    // 4. Общие пары: неспаренных не осталось, облака заполнены (H — 2, O — 8).
+    sampleSchoolState(m, m.step.pairs.to - 0.01, st)
+    assert.equal([...st.elGlow].filter((g) => g > 0.9).length, 0)
+    for (let i = 0; i < a.atoms.length; i++) assert.ok(st.cloudFill[i]! > 0.999, `облако ${a.atoms[i]!.id} не заполнено`)
+    // 5. Молекула: 4 штриха O–H, точки общих пар стянуты в штрихи, видны 8 электронов неподелённых пар, угол подписан.
+    sampleSchoolState(m, m.step.molecule.to - 0.01, st)
+    assert.equal(pSticks.filter((k) => st.stickAlpha[k]! > 0.99).length, 4)
+    assert.equal(vis(st.elAlpha), 8)
+    assert.ok(lab('angle-H1-O1-H2') > 0.9 && lab('molP-W1') > 0.9)
+    // 6. Итог: уравнение и подпись «вода» видны, геометрия та же.
+    sampleSchoolState(m, m.step.result.to - 0.01, st)
+    assert.ok(lab('equation') > 0.9 && lab('caption-result') > 0.9)
+    assert.ok(Math.abs(dist(at('O1'), at('H1')) - 95.8) < 0.5)
+    // Хвост: всё гаснет.
+    sampleSchoolState(m, m.finish.to, st)
+    assert.equal(vis(st.elAlpha), 0)
+    assert.equal(st.fade, 0)
+  })
   ok('H₂O: хвост совпадает с h2oSteps', () => {
     assert.equal(H2O_FINISH.from, m.finish.from)
     assert.equal(H2O_FINISH.to, m.finish.to)

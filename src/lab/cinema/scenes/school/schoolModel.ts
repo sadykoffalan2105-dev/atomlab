@@ -534,7 +534,7 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
   for (let k = 0; k < a.electrons.length; k++) {
     const e = a.electrons[k]!
     let alpha = eOn
-    let glow = 0.3
+    let glow: number
     if (t < step.breaking.from) {
       placePos(m, a.R, e.r, s.atomPos, 1, _p)
       s.elPos[k * 3] = _p[0]!
@@ -588,8 +588,8 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
     } else alpha = pOn
     const ia = b.a * 3
     const ib = b.b * 3
-    let ux = s.atomPos[ib]! - s.atomPos[ia]!
-    let uy = s.atomPos[ib + 1]! - s.atomPos[ia + 1]!
+    const ux = s.atomPos[ib]! - s.atomPos[ia]!
+    const uy = s.atomPos[ib + 1]! - s.atomPos[ia + 1]!
     const dl = Math.hypot(ux, uy)
     let nx = dl > 1e-3 ? uy / dl : 1
     let ny = dl > 1e-3 ? -ux / dl : 0
@@ -603,7 +603,6 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
     s.stickB[k * 3 + 1] = s.atomPos[ib + 1]! + ny
     s.stickB[k * 3 + 2] = s.atomPos[ib + 2]!
     s.stickAlpha[k] = alpha * s.appear * s.fade
-    void ux
   }
 
   // ——— облака внешнего слоя ———
@@ -619,7 +618,6 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       const w = m.moveBreak[i]!
       f = lerp(m.fillR[i]!, m.fillS[i]!, schoolSmooth(w.t0 + 0.3, w.t1, t))
     } else {
-      f = m.fillS[i]!
       // Заполнение растёт с каждой образованной парой атома; облако тянется к партнёру.
       let got = 0
       let need = 0
@@ -685,8 +683,9 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       let x1 = -Infinity
       let y0 = Infinity
       let y1 = -Infinity
-      for (const id of mol.atoms) {
-        const i = a.index.get(id)!
+      const ids = mol.atoms
+      for (let j = 0; j < ids.length; j++) {
+        const i = a.index.get(ids[j]!)!
         x0 = Math.min(x0, s.atomPos[i * 3]! - m.cloudR[i]!)
         x1 = Math.max(x1, s.atomPos[i * 3]! + m.cloudR[i]!)
         y0 = Math.min(y0, s.atomPos[i * 3 + 1]! - m.cloudR[i]!)

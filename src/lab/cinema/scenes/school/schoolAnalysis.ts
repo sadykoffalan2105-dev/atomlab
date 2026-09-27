@@ -184,7 +184,7 @@ function relaxDomains(fixed: readonly V3[], freeCount: number, weights: readonly
  */
 function relaxPlanar(fixed: readonly V3[], freeCount: number, weights: readonly number[]): V3[] {
   const fa = fixed.map((f) => Math.atan2(f[1], f[0]))
-  let back = 0
+  let back: number
   if (fa.length) {
     let sx = 0
     let sy = 0

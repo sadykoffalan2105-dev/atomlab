@@ -63,8 +63,17 @@ const ELECTRON_COLOR = new THREE.Color(0x9ee4ff)
 /** Матовый шар: без лака, высокая шероховатость, лёгкий блик. */
 const MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.16 } as const
 
+/** Фон сцены (тёмное поле микроскопа, как у NaCl). */
+export const SCHOOL_SCENE_BG = new THREE.Color('#0a0b10')
+
 export class SchoolReactionScene {
   readonly root = new THREE.Group()
+  /**
+   * Цвет фона кадра: хост ставит его фоном своей сцены. В хвосте он плавно переходит к цвету
+   * фона хоста (setHostBackground), чтобы после урока не было скачка.
+   */
+  readonly background = SCHOOL_SCENE_BG.clone()
+  private hostBackground: THREE.Color | null = null
   readonly labels: SchoolSceneLabel[]
   readonly model: SchoolModel
 
@@ -313,6 +322,11 @@ export class SchoolReactionScene {
     return out
   }
 
+  /** Фон хоста, к которому кадр переходит в хвосте (null — остаётся тёмным). */
+  setHostBackground(color: THREE.Color | null): void {
+    this.hostBackground = color
+  }
+
   setViewport(heightPx: number, fovDeg: number): void {
     if (heightPx > 1) this.viewportH = heightPx
     if (fovDeg > 1) this.viewportFov = fovDeg
@@ -368,6 +382,11 @@ export class SchoolReactionScene {
     this.fireCues(t)
     this.apply(t, false)
     this.animate(camera)
+    if (this.hostBackground) {
+      const fin = this.model.finish
+      const u = Math.min(1, Math.max(0, (t - fin.from) / (fin.to - fin.from)))
+      this.background.copy(SCHOOL_SCENE_BG).lerp(this.hostBackground, u)
+    }
     const s = this.model.timing.steps[this.stepIndex]!
     this.opts.onProgress?.(this.stepIndex, Math.min(1, Math.max(0, (t - s.from) / (s.to - s.from))))
   }
