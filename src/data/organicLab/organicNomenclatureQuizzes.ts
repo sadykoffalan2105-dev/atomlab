@@ -1,5 +1,6 @@
 /** Краткие квизы по номенклатуре Kimyo 10 (гл. I и классы углеводородов). */
 import { G10_CH2_QUIZZES } from './organicQuizzesG10ch2'
+import { G10_CH3_QUIZZES } from './organicQuizzesG10ch3'
 
 export type NomenclatureOption = {
   id: string
@@ -319,6 +320,7 @@ export const NOMENCLATURE_QUIZZES: readonly NomenclatureQuiz[] = [
     ],
   },
   ...G10_CH2_QUIZZES, // Kimyo 10, гл. II § 2.7–2.23 — organicQuizzesG10ch2.ts
+  ...G10_CH3_QUIZZES, // ——— Kimyo 10, гл. III (§ 3.1–3.21): organicQuizzesG10ch3.ts ———
 ]
 
 export const NOMENCLATURE_QUIZ_BY_ID: Readonly<Record<string, NomenclatureQuiz>> = Object.fromEntries(

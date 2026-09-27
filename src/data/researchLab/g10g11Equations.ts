@@ -1,5 +1,6 @@
 /** Учебные уравнения 10–11 классов (Kimyo) — для конструктора в 3D-студии. */
 import { G10_CH2_EQUATIONS } from './g10EquationsCh2'
+import { G10_CH3_EQUATIONS } from './g10EquationsCh3'
 
 export type GradeEq = {
   id: string
@@ -1198,6 +1199,7 @@ export const G10_G11_EDU_EQUATIONS: readonly GradeEq[] = [
     hintRu: 'Качественная реакция на сульфат.',
   }),
   ...G10_CH2_EQUATIONS, // Kimyo 10, гл. II § 2.6–2.24 (с. 55–102) — g10EquationsCh2.ts
+  ...G10_CH3_EQUATIONS, // ——— Kimyo 10, гл. III (§ 3.1–3.21, с. 103–167): g10EquationsCh3.ts ———
 ]
 
 export function equationsByGrade(grade: 'g10' | 'g11' | 'all'): GradeEq[] {

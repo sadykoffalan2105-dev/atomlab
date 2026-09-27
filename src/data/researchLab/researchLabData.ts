@@ -1,5 +1,6 @@
 /** Данные режимов органической лаборатории (изомеры и реэкспорт каталога сборки). */
 import { G10_CH2_ISOMER_CHALLENGES } from './isomerChallengesG10ch2'
+import { G10_CH3_ISOMER_CHALLENGES } from './isomerChallengesG10ch3'
 
 export type IrPeak = {
   /** см⁻¹ */
@@ -431,6 +432,7 @@ export const ISOMER_CHALLENGES: readonly IsomerChallenge[] = [
     ]),
   },
   ...G10_CH2_ISOMER_CHALLENGES, // Kimyo 10, гл. II § 2.7–2.17 — isomerChallengesG10ch2.ts
+  ...G10_CH3_ISOMER_CHALLENGES, // ——— Kimyo 10, гл. III (§ 3.1–3.21): isomerChallengesG10ch3.ts ———
 ]
 
 export {
