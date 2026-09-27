@@ -5,6 +5,7 @@
  * Масштаб: одинарная связь ≈ 0.5–0.6 ед., O–H ≈ 0.31–0.34.
  */
 import type { Atom3D, CompoundCategory, Vec3 } from '../types/chemistry'
+import { BOND_ANGLES, bondLengthPm, reagentAngleDeg, reagentBondPm } from './data/bondData'
 
 type V = [number, number, number]
 type Bond = [number, number]
@@ -866,7 +867,64 @@ function b4o7h2(): Frag {
   return centerFrag(fragOf(sym, pos, bonds, 0))
 }
 
+// ---------- молекулы по научному ядру (bondData): длины и углы — числа ядра ----------
+/** Масштаб приложения: ед. на пм (как bondLen: 0.32 ед. на Å ковалентных радиусов). */
+export const INORGANIC_UNITS_PER_PM = 0.0032
+const pmU = (pm: number): number => pm * INORGANIC_UNITS_PER_PM
+
+/** Угловая молекула A–X–A по ядру: длина связи и угол. */
+function bentCore(center: string, lig: string, lenPm: number, angleDeg: number): Frag {
+  return axn(center, [{ sym: lig, len: pmU(lenPm) }, { sym: lig, len: pmU(lenPm) }], 0, bentDirs(angleDeg))
+}
+
+/** N₂O: линейная N–N–O (C∞v), N–N 112,8 и N–O 118,4 пм (ядро 'N-N(N2O)', 'N-O(N2O)'). */
+function n2oCore(): Frag {
+  const nn = pmU(bondLengthPm('N-N(N2O)'))
+  const no = pmU(bondLengthPm('N-O(N2O)'))
+  return centerFrag(fragOf(['N', 'N', 'O'], [[-nn, 0, 0], [0, 0, 0], [no, 0, 0]], [[0, 1], [1, 2]], 0))
+}
+
+/**
+ * N₂O₅ (г): O₂N–O–NO₂ по REAGENT_GEOMETRY.n2o5 ядра — мост N–O 150,5 пм, концевые N–O 118,8 пм,
+ * ∠N–O–N 112,3°, ∠O–N–O концевых 134,2°. Группы NO₂ повёрнуты из плоскости N–O–N (C₂, «пропеллер»).
+ */
+function n2o5Core(): Frag {
+  const nb = pmU(reagentBondPm('n2o5', 'N–O(мост)'))
+  const nt = pmU(reagentBondPm('n2o5', 'N=O'))
+  const non = (reagentAngleDeg('n2o5', '∠N–O–N') * Math.PI) / 180
+  const ono = (reagentAngleDeg('n2o5', '∠O=N=O') * Math.PI) / 180
+  const sym: string[] = ['O']
+  const pos: V[] = [[0, 0, 0]]
+  const bonds: Bond[] = []
+  for (const sign of [1, -1]) {
+    const dn: V = [sign * Math.sin(non / 2), -Math.cos(non / 2), 0]
+    const n = mul(dn, nb)
+    const ni = sym.length
+    sym.push('N')
+    pos.push(n)
+    bonds.push([0, ni])
+    // Концевые O: биссектриса — продолжение связи O(мост)–N, плоскость группы повёрнута на ±30° (C₂).
+    const axis = dn
+    const side = rotate([0, 0, 1], axis, sign * (Math.PI / 6))
+    const inPlane = norm(cross(axis, side))
+    for (const k of [1, -1]) {
+      const d = norm(add(mul(axis, Math.cos(ono / 2)), mul(inPlane, k * Math.sin(ono / 2))))
+      sym.push('O')
+      pos.push(add(n, mul(d, nt)))
+      bonds.push([ni, sym.length - 1])
+    }
+  }
+  return centerFrag(fragOf(sym, pos, bonds, 0))
+}
+
 const MOLECULES: Record<string, () => Frag> = {
+  // Первые вещества каталога 7 класса — геометрия по ядру (bondData), как в школьных сценах.
+  CO: () => diatomic('C', 'O', 0, 3, pmU(bondLengthPm('C#O'))),
+  NO: () => diatomic('N', 'O', 0, 2, pmU(bondLengthPm('N=O'))),
+  NO2: () => bentCore('N', 'O', bondLengthPm('N-O(NO2)'), BOND_ANGLES.nitrogenDioxide.deg),
+  SO2: () => bentCore('S', 'O', bondLengthPm('S=O'), BOND_ANGLES.sulfurDioxide.deg),
+  N2O: n2oCore,
+  N2O5: n2o5Core,
   H2: () => diatomic('H', 'H', 0, 1, 0.3),
   O2: () => diatomic('O', 'O', 0, 2),
   N2: () => diatomic('N', 'N', 0, 3),
@@ -926,6 +984,23 @@ const MOLECULES: Record<string, () => Frag> = {
   HPO3: () => oxo('P', 3, 1, 0, TRIG),
   H2SiO3: () => oxo('Si', 3, 2, 0, TRIG),
   HAlO2: () => oxo('Al', 2, 1, 0, LIN),
+}
+
+/** Молекулы, чья геометрия берётся из научного ядра (для карточек каталога — catalogGeometryOverrides). */
+const CORE_MOLECULES = ['CO', 'NO', 'NO2', 'SO2', 'N2O', 'N2O5'] as const
+export type CoreMoleculeFormula = (typeof CORE_MOLECULES)[number]
+
+/**
+ * Масштаб ручных моделей карточки каталога (catalogGeometryOverrides: SO₂ ≈ 0,55 ед. на S=O) — 0,004 ед. на пм,
+ * в 1,25 раза крупнее общего генератора: у малых молекул шары не слипаются, видны стержни связей.
+ */
+const CATALOG_CARD_SCALE = 1.25
+
+/** Геометрия молекулы по ядру bondData для карточки каталога (0,004 ед. на пм), центр — в центре атомов. */
+export function coreMoleculeGeometry(formula: CoreMoleculeFormula): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
+  const fr = MOLECULES[formula]!()
+  const k = CATALOG_CARD_SCALE
+  return { atoms: fr.sym.map((sym, i) => ({ symbol: sym, pos: [fr.pos[i]![0] * k, fr.pos[i]![1] * k, fr.pos[i]![2] * k] as Vec3 })), bonds: fr.bonds }
 }
 
 /** Формулы соединений с ковалентной решёткой: кластер с «контактными» связями. */

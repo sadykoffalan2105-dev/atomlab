@@ -1,5 +1,6 @@
 import type { Atom3D, Vec3 } from '../types/chemistry'
 import pubchemGeometryById from '../data/pubchemGeometryById.json'
+import { coreMoleculeGeometry } from './inorganicGeometry'
 
 type PubChemGeometryById = Record<
   string,
@@ -115,44 +116,6 @@ function nh3Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, nu
     [0, 3],
   ]
   return { atoms, bonds }
-}
-
-/** SO₂: изогнутая (угол O–S–O ≈ 119°). */
-function so2Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
-  const d = 0.55
-  const a = 59.5 * (Math.PI / 180)
-  const o0: Vec3 = [d * Math.sin(a), 0, d * Math.cos(a)]
-  const o1: Vec3 = [-d * Math.sin(a), 0, d * Math.cos(a)]
-  return {
-    atoms: [
-      { symbol: 'S', pos: [0, 0, 0] },
-      { symbol: 'O', pos: o0 },
-      { symbol: 'O', pos: o1 },
-    ],
-    bonds: [
-      [0, 1],
-      [0, 2],
-    ],
-  }
-}
-
-/** NO₂: изогнутая (угол O–N–O ≈ 134°). */
-function no2Geometry(): { atoms: Atom3D[]; bonds: readonly (readonly [number, number])[] } {
-  const d = 0.52
-  const a = 67 * (Math.PI / 180)
-  const o0: Vec3 = [d * Math.sin(a), 0, d * Math.cos(a)]
-  const o1: Vec3 = [-d * Math.sin(a), 0, d * Math.cos(a)]
-  return {
-    atoms: [
-      { symbol: 'N', pos: [0, 0, 0] },
-      { symbol: 'O', pos: o0 },
-      { symbol: 'O', pos: o1 },
-    ],
-    bonds: [
-      [0, 1],
-      [0, 2],
-    ],
-  }
 }
 
 /**
@@ -1453,10 +1416,19 @@ export function getMolecularGeometryOrNull(
       return h2so4Geometry()
     case 'so3':
       return so3Geometry()
+    // Первые вещества 7 класса: геометрия по научному ядру (bondData) — как в школьных сценах.
     case 'so2':
-      return so2Geometry()
+      return coreMoleculeGeometry('SO2')
     case 'no2':
-      return no2Geometry()
+      return coreMoleculeGeometry('NO2')
+    case 'co':
+      return coreMoleculeGeometry('CO')
+    case 'no':
+      return coreMoleculeGeometry('NO')
+    case 'n2o':
+      return coreMoleculeGeometry('N2O')
+    case 'n2o5':
+      return coreMoleculeGeometry('N2O5')
     case 'clo2':
       return clo2Geometry()
     case 'salt_na_clo2':

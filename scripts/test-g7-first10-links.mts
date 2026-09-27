@@ -8,6 +8,7 @@
  *   2. ссылка карточки открывается в реакторе, синтез запускается (не «только шарами»);
  *   3. для реакции ссылки scientificSceneFor даёт сцену — в лаборатории играет школьная сцена этого
  *      вещества, и кнопка карточки зовёт «▶ Смотреть, как образуется».
+ *   4. 3D-модель карточки каталога CO, NO, NO₂, SO₂, N₂O, N₂O₅ = ядру (длины и углы bondData).
  * Вещества агента B (NO, NO₂, N₂O, N₂O₅): сцены делаются в соседней ветке — отсутствие сцены пока
  * допускается с пометкой TODO-B (ведущий уберёт допуск после слияния).
  *
@@ -19,6 +20,8 @@ import { resolveReactorEquation } from '../src/lab/reactorDeepLink.ts'
 import { G7_FIRST10_SCENE_REACTIONS, schoolSceneLinkForCompound } from '../src/lab/schoolSceneLinks.ts'
 import { scientificSceneFor } from '../src/lab/scientificSynthesis/sceneSignatures.ts'
 import { SCHOOL_SPEC_IDS, SCHOOL_SPECS } from '../src/lab/cinema/scenes/school/specs/index.ts'
+import { compoundById } from '../src/data/compounds.ts'
+import { BOND_ANGLES, bondLengthPm, reagentAngleDeg, reagentBondPm } from '../src/chemistry/data/bondData.ts'
 
 /** TODO-B: сцены NO, NO₂, N₂O, N₂O₅ — в ветке агента B; после слияния список пуст. */
 const TODO_B = new Set<string>(['no', 'no2', 'n2o', 'n2o5'])
@@ -63,6 +66,71 @@ for (const id of SCHOOL_SPEC_IDS) {
   assert.ok(scene, `${id}: для реакции карточки нет сцены (продукт ${r.productCompoundId})`)
   assert.equal(link.hasScene, true, `${id}: кнопка карточки не зовёт смотреть анимацию`)
   passed++
+}
+
+// ——— 3D-модель карточки каталога = ядру (длины в масштабе 0,004 ед./пм ± 0,5 пм, углы ± 0,5°) ———
+{
+  const U = 0.004
+  const dist = (p: readonly number[], q: readonly number[]) => Math.hypot(p[0]! - q[0]!, p[1]! - q[1]!, p[2]! - q[2]!)
+  const angle = (a: readonly number[], c: readonly number[], b: readonly number[]) => {
+    const u = [a[0]! - c[0]!, a[1]! - c[1]!, a[2]! - c[2]!]
+    const v = [b[0]! - c[0]!, b[1]! - c[1]!, b[2]! - c[2]!]
+    return (Math.acos((u[0]! * v[0]! + u[1]! * v[1]! + u[2]! * v[2]!) / (Math.hypot(...u) * Math.hypot(...v))) * 180) / Math.PI
+  }
+  /** Ожидание: связи «AB» → пм (мультимножество), углы «A-B-C» с центром B → градусы. */
+  const WANT: Record<string, { bonds: Record<string, number[]>; angles: Record<string, number[]> }> = {
+    co: { bonds: { CO: [bondLengthPm('C#O')] }, angles: {} },
+    no: { bonds: { NO: [bondLengthPm('N=O')] }, angles: {} },
+    no2: { bonds: { NO: [bondLengthPm('N-O(NO2)'), bondLengthPm('N-O(NO2)')] }, angles: { 'O-N-O': [BOND_ANGLES.nitrogenDioxide.deg] } },
+    so2: { bonds: { OS: [bondLengthPm('S=O'), bondLengthPm('S=O')] }, angles: { 'O-S-O': [BOND_ANGLES.sulfurDioxide.deg] } },
+    n2o: { bonds: { NN: [bondLengthPm('N-N(N2O)')], NO: [bondLengthPm('N-O(N2O)')] }, angles: { 'N-N-O': [BOND_ANGLES.nitrousOxide.deg] } },
+    n2o5: {
+      bonds: { NO: [...Array(2).fill(reagentBondPm('n2o5', 'N–O(мост)')), ...Array(4).fill(reagentBondPm('n2o5', 'N=O'))] },
+      angles: { 'N-O-N': [reagentAngleDeg('n2o5', '∠N–O–N')] },
+    },
+  }
+  for (const [id, want] of Object.entries(WANT)) {
+    const c = compoundById[id]!
+    const got: Record<string, number[]> = {}
+    for (const [i, j] of c.bonds) {
+      const key = [c.atoms[i]!.symbol, c.atoms[j]!.symbol].sort().join('')
+      ;(got[key] ??= []).push(dist(c.atoms[i]!.pos, c.atoms[j]!.pos) / U)
+    }
+    assert.deepEqual(Object.keys(got).sort(), Object.keys(want.bonds).sort(), `${id}: связи модели каталога`)
+    for (const [k, list] of Object.entries(want.bonds)) {
+      const g = [...got[k]!].sort((x, y) => x - y)
+      const w = [...list].sort((x, y) => x - y)
+      assert.equal(g.length, w.length, `${id}: связей ${k}`)
+      g.forEach((x, n) => assert.ok(Math.abs(x - w[n]!) <= 0.5, `${id}: ${k} = ${x.toFixed(1)} пм ≠ ${w[n]} пм`))
+    }
+    for (const [k, [deg]] of Object.entries(want.angles)) {
+      const [ea, ec, eb] = k.split('-')
+      let found = false
+      c.atoms.forEach((ctr, ci) => {
+        if (ctr.symbol !== ec) return
+        const nb = c.bonds.filter(([i, j]) => i === ci || j === ci).map(([i, j]) => (i === ci ? j : i))
+        for (const x of nb) for (const y of nb) {
+          if (x >= y) continue
+          const sx = c.atoms[x]!.symbol
+          const sy = c.atoms[y]!.symbol
+          if (!((sx === ea && sy === eb) || (sx === eb && sy === ea))) continue
+          found = true
+          const v = angle(c.atoms[x]!.pos, ctr.pos, c.atoms[y]!.pos)
+          assert.ok(Math.abs(v - deg!) <= 0.5, `${id}: ∠${k} = ${v.toFixed(1)}° ≠ ${deg}°`)
+        }
+      })
+      assert.ok(found, `${id}: нет угла ${k}`)
+    }
+  }
+  // Концевые O–N–O у N₂O₅: 134,2°.
+  const n5 = compoundById.n2o5!
+  n5.atoms.forEach((a, ci) => {
+    if (a.symbol !== 'N') return
+    const term = n5.bonds.filter(([i, j]) => i === ci || j === ci).map(([i, j]) => (i === ci ? j : i)).filter((k) => dist(n5.atoms[k]!.pos, a.pos) / U < 130)
+    assert.equal(term.length, 2)
+    const v = angle(n5.atoms[term[0]!]!.pos, a.pos, n5.atoms[term[1]!]!.pos)
+    assert.ok(Math.abs(v - reagentAngleDeg('n2o5', '∠O=N=O')) <= 0.5, `n2o5: ∠ONO концевых = ${v.toFixed(1)}°`)
+  })
 }
 
 console.log(`✓ g7 first10 links: сцена по ссылке карточки — ${passed} из ${SCHOOL_SPEC_IDS.length}${todo.length ? `; TODO-B (ждут сцен ветки B): ${todo.join(', ')}` : ''}`)
