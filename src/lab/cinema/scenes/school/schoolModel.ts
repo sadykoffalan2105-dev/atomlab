@@ -254,7 +254,8 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     })
   })
   spec.reactants.forEach((m, k) => {
-    labels.push({ id: `molR-${m.id}`, kind: 'species', text: all(m.formula), anchor: { kind: 'molR', mol: k }, from: 0.3, to: step.breaking.from + 0.7 })
+    // Состояние вещества — токеном ({g} → «г.» / «g» / «gaz»), как у подписей NaCl.
+    labels.push({ id: `molR-${m.id}`, kind: 'species', text: all(`${m.formula} ({${m.state}})`), anchor: { kind: 'molR', mol: k }, from: 0.3, to: step.breaking.from + 0.7 })
   })
   spec.products.forEach((m, k) => {
     labels.push({ id: `molP-${m.id}`, kind: 'species', text: all(m.formula), anchor: { kind: 'molP', mol: k }, from: step.molecule.from + 1.0, to: end })
