@@ -729,11 +729,14 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       const c = an.center * 3
       const bx = (s.atomPos[an.a * 3]! + s.atomPos[an.b * 3]!) / 2 - s.atomPos[c]!
       const by = (s.atomPos[an.a * 3 + 1]! + s.atomPos[an.b * 3 + 1]!) / 2 - s.atomPos[c + 1]!
-      const bl = Math.hypot(bx, by) || 1
-      // Подпись угла — с внешней стороны атома (против биссектрисы угла), над облаком.
+      const bl = Math.hypot(bx, by)
+      // Подпись угла — с внешней стороны атома (против биссектрисы угла), над облаком. У линейной
+      // молекулы (CO₂, 180°) биссектрисы нет — подпись над центральным атомом.
       const r = m.cloudR[an.center]! * 1.6 + 20
-      s.labelPos[o] = s.atomPos[c]! - (bx / bl) * r
-      s.labelPos[o + 1] = s.atomPos[c + 1]! - (by / bl) * r
+      const ux = bl > 1e-3 ? -bx / bl : 0
+      const uy = bl > 1e-3 ? -by / bl : 1
+      s.labelPos[o] = s.atomPos[c]! + ux * r
+      s.labelPos[o + 1] = s.atomPos[c + 1]! + uy * r
       s.labelPos[o + 2] = s.atomPos[c + 2]!
     } else if (an.kind === 'top') {
       s.labelPos[o] = (minX + maxX) / 2
