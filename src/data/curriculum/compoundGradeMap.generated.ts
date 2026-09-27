@@ -2,7 +2,7 @@
  * АВТОГЕНЕРАЦИЯ — не редактировать вручную.
  * Пересборка: npx tsx scripts/build-compound-grade-map.mts
  * Источники: сверка учебников Kimyo 7–11 (evidence + TEXTBOOK_EXTRA_GRADES), schoolInorganicManifest, правила ФГОС.
- * Статистика: 7 кл.=178, 8 кл.=277, 9 кл.=307, 10 кл.=94, 11 кл.=180, всего=480; органика=62
+ * Статистика: 7 кл.=178, 8 кл.=277, 9 кл.=307, 10 кл.=106, 11 кл.=181, всего=493; органика=62
  */
 import type { InorganicSchoolGrade } from './compoundGradeIndex'
 
@@ -3949,6 +3949,97 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     ],
     "chapter": "соли",
     "firstPage": 36
+  },
+  "tb_k2c2o4": {
+    "grades": [
+      10
+    ],
+    "chapter": "соли",
+    "firstPage": 75
+  },
+  "tb_c6h5cook": {
+    "grades": [
+      10
+    ],
+    "chapter": "соли",
+    "firstPage": 83
+  },
+  "tb_cu_glycerate": {
+    "grades": [
+      10
+    ],
+    "chapter": "соли",
+    "firstPage": 120
+  },
+  "tb_cu_glycolate": {
+    "grades": [
+      10
+    ],
+    "chapter": "соли",
+    "firstPage": 121
+  },
+  "tb_fe_phenol_complex": {
+    "grades": [
+      10
+    ],
+    "chapter": "соли",
+    "firstPage": 126
+  },
+  "tb_c7h7ok": {
+    "grades": [
+      10
+    ],
+    "chapter": "соли",
+    "firstPage": 129
+  },
+  "tb_diethyloxonium_hso4": {
+    "grades": [
+      10
+    ],
+    "chapter": "соли",
+    "firstPage": 131
+  },
+  "tb_c2h5na": {
+    "grades": [
+      10
+    ],
+    "chapter": "прочее",
+    "firstPage": 132
+  },
+  "tb_c6h10o6cu": {
+    "grades": [
+      10
+    ],
+    "chapter": "соли",
+    "firstPage": 158
+  },
+  "tb_nh4_gluconate": {
+    "grades": [
+      10
+    ],
+    "chapter": "соли",
+    "firstPage": 158
+  },
+  "tb_cu_glucosate": {
+    "grades": [
+      10
+    ],
+    "chapter": "соли",
+    "firstPage": 159
+  },
+  "tb_ca_saccharate": {
+    "grades": [
+      10
+    ],
+    "chapter": "соли",
+    "firstPage": 162
+  },
+  "tb_ch3coonh4": {
+    "grades": [
+      11
+    ],
+    "chapter": "соли",
+    "firstPage": 59
   }
 } as const
 

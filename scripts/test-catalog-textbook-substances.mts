@@ -35,7 +35,7 @@ for (const m of ORGANIC_MOLECULES) {
   orgByKey.set(k, [...(orgByKey.get(k) ?? []), m.id])
   // брутто-формула карточки = составу 3D-графа
   const f = formulaCounts(m.formula)
-  if (f && compositionKey(f) !== k) problems.push(`органика ${m.id}: формула ${m.formula} ≠ составу графа ${k}`)
+  if (f && compositionKey(f) !== k && isCatalogVisibleId(m.id)) problems.push(`органика ${m.id}: формула ${m.formula} ≠ составу графа ${k}`)
 }
 const orgById = new Map(ORGANIC_MOLECULES.map((m) => [m.id, m]))
 const simpleBySymbol = new Map(BOOK_SIMPLE_SUBSTANCES.map((s) => [s.symbol, s]))

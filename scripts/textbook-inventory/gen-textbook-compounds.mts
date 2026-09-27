@@ -248,6 +248,45 @@ const LAB_LINK_EXTRA: Out[] = [
 ]
 for (const o of LAB_LINK_EXTRA) if (!out.some((x) => x.id === o.id)) out.push(o)
 
+/**
+ * Соли, алкоголяты и комплексы органических веществ из реакций учебников 10–11 классов
+ * (src/data/textbook/equations-g10/g11.json), которых не было в каталоге. Названия — по инвентарю книги
+ * (substances-g10/g11.json), формула и состав — как в уравнении; проверка — scripts/test-catalog-textbook-substances.mts.
+ */
+type BookRxExtra = [id: string, category: string, nameRu: string, formula: string, what: string, where: string, equation: string]
+const BOOK_RX_EXTRA: BookRxExtra[] = [
+  ['tb_k2c2o4', 'salt', 'Оксалат калия', 'K₂C₂O₄', 'Соль щавелевой кислоты; в учебнике записан структурной формулой KOOC–COOK.', '10 класс — «Алкины», с. 75', '3CH≡CH + 8KMnO₄ → 3KOOC–COOK + 8MnO₂ + 2KOH + 2H₂O'],
+  ['tb_c6h5cook', 'salt', 'Бензоат калия', 'C₆H₅COOK', 'Соль бензойной кислоты: продукт окисления стирола раствором KMnO₄.', '10 класс — «Стирол», с. 83', '3C₆H₅–CH=CH₂ + 10KMnO₄ → 3C₆H₅–COOK + 3K₂CO₃ + 10MnO₂ + KOH + 4H₂O'],
+  ['tb_cu_glycerate', 'salt', 'Глицерат меди(II)', '[C₃H₅(OH)₂O]₂Cu', 'Алкоголят меди(II) глицерина: ярко-синий раствор — качественная реакция на многоатомные спирты.', '10 класс — «Многоатомные спирты», с. 120', '2C₃H₅(OH)₃ + Cu(OH)₂ → [C₃H₅(OH)₂O]₂Cu + 2H₂O'],
+  ['tb_cu_glycolate', 'salt', 'Гликолят меди(II)', '[HOCH₂CH₂O]₂Cu', 'Алкоголят меди(II) этиленгликоля: ярко-синий раствор — качественная реакция на многоатомные спирты.', '10 класс — «Многоатомные спирты», с. 121', '2HOCH₂CH₂OH + Cu(OH)₂ → [HOCH₂CH₂O]₂Cu + 2H₂O'],
+  ['tb_fe_phenol_complex', 'salt', 'Комплекс железа(III) с фенолом', '[Fe(C₆H₅OH)₆]Cl₃', 'Комплексная соль фиолетового (в учебнике — пурпурного) цвета: качественная реакция на фенол с хлоридом железа(III).', '10 класс — «Фенолы», с. 126', '6C₆H₅OH + FeCl₃ → [Fe(C₆H₅OH)₆]Cl₃'],
+  ['tb_c7h7ok', 'salt', 'Крезолят калия', 'C₇H₇OK', 'Фенолят: атом водорода группы OH крезола (метилфенола) C₇H₇OH замещён на калий.', '10 класс — «Свойства фенола», с. 129', '2C₇H₇OH + 2K → 2C₇H₇OK + H₂'],
+  ['tb_diethyloxonium_hso4', 'salt', 'Гидросульфат диэтилоксония', '[(C₂H₅)₂OH]HSO₄', 'Оксониевая соль: простой эфир присоединяет протон серной кислоты (основные свойства эфиров).', '10 класс — «Простые эфиры», с. 131', '(C₂H₅)₂O + H₂SO₄ → [(C₂H₅)₂OH]HSO₄'],
+  ['tb_c2h5na', 'other', 'Этилнатрий', 'C₂H₅Na', 'Металлоорганическое соединение: атом натрия связан непосредственно с атомом углерода.', '10 класс — «Простые эфиры», с. 132', 'C₂H₅OC₂H₅ + 2Na → C₂H₅ONa + C₂H₅Na'],
+  ['tb_c6h10o6cu', 'salt', 'Алкоголят меди(II) глюкозы', 'C₆H₁₀O₆Cu', 'Запись учебника (с. 158) для взаимодействия глюкозы с Cu(OH)₂ на холоде; точнее соотношение 2 : 1 — (C₆H₁₁O₆)₂Cu (с. 159). Раствор ярко-синий.', '10 класс — «Глюкоза», с. 158', 'C₆H₁₂O₆ + Cu(OH)₂ → C₆H₁₀O₆Cu + 2H₂O'],
+  ['tb_nh4_gluconate', 'salt', 'Глюконат аммония', 'CH₂OH(CHOH)₄COONH₄', 'Соль глюконовой кислоты: продукт реакции «серебряного зеркала» с глюкозой.', '10 класс — «Глюкоза», с. 158', 'CH₂OH(CHOH)₄COH + 2[Ag(NH₃)₂]OH → CH₂OH(CHOH)₄COONH₄ + 2Ag + 3NH₃ + H₂O'],
+  ['tb_cu_glucosate', 'salt', 'Комплекс глюкозы с медью(II)', '(C₆H₁₁O₆)₂Cu', 'Качественная реакция на глюкозу как многоатомный спирт: на холоде раствор ярко-синий (в учебнике — «ярко-коричневый»; бурый Cu₂O выпадает только при нагревании).', '10 класс — «Глюкоза», с. 159', '2C₆H₁₂O₆ + Cu(OH)₂ → (C₆H₁₁O₆)₂Cu + 2H₂O'],
+  ['tb_ca_saccharate', 'salt', 'Сахарат кальция', 'C₁₂H₂₂O₁₁·CaO', 'Растворимое соединение сахарозы с оксидом кальция: так сахар отделяют от примесей при производстве; CO₂ снова выделяет сахарозу.', '10 класс — «Сахароза», с. 162', 'C₁₂H₂₂O₁₁ + Ca(OH)₂ → C₁₂H₂₂O₁₁·CaO + H₂O'],
+  ['tb_ch3coonh4', 'salt', 'Ацетат аммония', 'CH₃COONH₄', 'Соль слабой кислоты и слабого основания: гидролизуется и по катиону, и по аниону.', '11 класс — «Гидролиз солей», с. 59', 'CH₃COONH₄ + H₂O ⇄ CH₃COOH + NH₄OH'],
+]
+for (const [id, category, nameRu, formulaU, what, where, equation] of BOOK_RX_EXTRA) {
+  const grade = Number(where.slice(0, 2))
+  const asciiF = formulaU.replace(/[₀-₉]/g, (d) => String('₀₁₂₃₄₅₆₇₈₉'.indexOf(d))).replace(/·/g, '*')
+  const composition = parseComposition(asciiF)
+  if (!composition) throw new Error(`не разбирается формула ${formulaU}`)
+  if (out.some((x) => x.id === id || compKey(x.composition) === compKey(composition))) continue
+  out.push({
+    id,
+    category,
+    nameRu,
+    formulaUnicode: formulaU,
+    composition,
+    descriptionRu: `${nameRu} (${formulaU}). ${what} В учебниках «Химия»: ${where}.`,
+    grades: [grade],
+    obtainingStepsRu: [{ step: 1, equation, note: `Уравнение из учебника: ${where}` }],
+  })
+}
+
 // Способ получения — только из уравнений учебников, где вещество стоит в продуктах
 // (иначе каталог рисует бессмысленный «синтез из простых веществ»).
 type Rx = {
