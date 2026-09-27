@@ -139,13 +139,31 @@ export function inferFunctionalGroups(
       push('-Br', 'Галоген', [a.id], 'Halogen', 'Galogen')
     }
 
-    if (a.element === 'S' && neighborEls(graph, a.id).includes('H')) {
+    if (a.element === 'I') {
+      push('-I', 'Галоген', [a.id], 'Halogen', 'Galogen')
+    }
+
+    // S(VI) с тремя O: сульфогруппа –SO₃H (бензолсульфокислота) или эфир серной кислоты –O–SO₃H
+    const sulfurO = a.element === 'S' ? neighborsOf(a.id).filter((x) => elOf(x.id) === 'O') : []
+    if (sulfurO.length >= 3) {
+      const ester = sulfurO.some((o) => neighborsOf(o.id).some((m) => elOf(m.id) === 'C'))
+      const ids = [a.id, ...sulfurO.map((o) => o.id)]
+      if (ester) push('-OSO₃H', 'Эфир серной кислоты', ids, 'Sulfate ester', 'Sulfat kislota efiri')
+      else push('-SO₃H', 'Сульфогруппа', ids, 'Sulfo group', 'Sulfoguruh')
+    } else if (a.element === 'S' && neighborEls(graph, a.id).includes('H')) {
       push('-SH', 'Сульфанил (тиол)', [a.id], 'Sulfanyl (thiol)', 'Sulfanil (tiol)')
     }
 
     if (a.element === 'N') {
+      // N⁺ с двумя O: нитрогруппа –NO₂ (у C) или нитратная группа –O–NO₂ (эфир азотной кислоты)
+      const nitroO = neighborsOf(a.id).filter((x) => elOf(x.id) === 'O')
       const hN = neighborEls(graph, a.id).filter((e) => e === 'H').length
-      if (hN >= 1) push('-NH₂', 'Аминогруппа', [a.id], 'Amino', 'Amino')
+      if (nitroO.length >= 2) {
+        const ids = [a.id, ...nitroO.map((o) => o.id)]
+        if (nitroO.some((o) => neighborsOf(o.id).some((m) => elOf(m.id) === 'C'))) {
+          push('-ONO₂', 'Нитратная группа', ids, 'Nitrate group', 'Nitrat guruhi')
+        } else push('-NO₂', 'Нитрогруппа', ids, 'Nitro group', 'Nitroguruh')
+      } else if (hN >= 1) push('-NH₂', 'Аминогруппа', [a.id], 'Amino', 'Amino')
       else push('-N=', 'Азот', [a.id], 'Nitrogen', 'Azot')
     }
   }
