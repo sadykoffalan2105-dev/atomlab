@@ -14,6 +14,8 @@ const data = {};
 for (const f of fs.readdirSync(dataDir).filter((f) => /^g10p2-data-.*\.mjs$/.test(f)).sort()) {
   Object.assign(data, (await import(pathToFileURL(path.join(dataDir, f)).href)).default);
 }
+// сверка с расшифровками docs/textbook/g10-ch2-alkynes-arenes.md и g10-ch3-*.md: дополнения и исправления разделов
+(await import(pathToFileURL(path.join(dataDir, 'g10p2-fixes.mjs')).href)).FIXES(data);
 
 // ---------- formula parsing ----------
 const SUBD = { '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9', 'ₙ': 'n' };
@@ -193,6 +195,15 @@ for (let i = start; i < N; i++) {
     } catch (e) { problems.push(`${s.id} eq parse: ${r.e} ${e.message}`); rec.bankId = null; }
     if (r.q && r.q.length > 160) problems.push(`rx quote>160 ${s.id} p${r.p}`);
     if (r.n) rec.note = r.n;
+    // карточка каталога (как build-g10-part1.mjs): show — пояснение ученику, catalog — общая схема карточкой,
+    // labAs — конкретный пример схемы для урока органической лаборатории, ex — задание учебника (ответ скрыт)
+    if (r.show) rec.catalogNote = r.show;
+    if (r.catalog) { if (!r.g) problems.push(`catalog on a non-scheme ${s.id} p${r.p}: ${r.e}`); rec.showInCatalog = true; }
+    if (r.labAs) {
+      try { const bc = balanceCheck(r.labAs); if (!bc.ok) problems.push(`UNBALANCED labAs ${s.id} p${r.p}: ${r.labAs} [${bc.diff}]`); } catch (e) { problems.push(`labAs parse ${r.labAs}: ${e.message}`); }
+      rec.labExample = r.labAs;
+    }
+    if (r.ex) rec.fromExercise = true;
     sec.reactions.push(rec);
   }
   sec.labWorks = (d?.labs || []).map((l) => ({ title: l.title, page: l.p, substances: l.subs }));

@@ -12,8 +12,10 @@ import assert from 'node:assert/strict'
 import { bondAngleDeg, bondLengthPm } from '../src/chemistry/data/index.ts'
 import { formulaCompositionKey, parseFormula } from '../src/chemistry/equationFormula.ts'
 import {
+  ACETIC_ACID,
   ION_ANGLE_DEG,
   ION_BOND_A,
+  METHYL_ACETATE,
   angleAt,
   diatomicBondA,
   distance,
@@ -30,6 +32,7 @@ import {
   ionSpeciesFor,
   labCompoundById,
   labSpeciesKind,
+  organicSpeciesFor,
   simpleSpeciesFor,
 } from '../src/data/labSpecies.ts'
 
@@ -84,6 +87,53 @@ checkCentered('IO3', ION_BOND_A.IO_iodate, ION_ANGLE_DEG.iodate, 'IO₃⁻ пи�
 const planar = (g: LabGeometry) => g.atoms.every((a) => Math.abs(a.pos[2] - g.atoms[0]!.pos[2]) < 1e-9)
 ok(planar(ionGeometry('CO3')!) && planar(ionGeometry('NO3')!), 'CO₃²⁻ и NO₃⁻ плоские')
 ok(!planar(ionGeometry('H3O')!) && !planar(ionGeometry('ClO3')!), 'H₃O⁺ и ClO₃⁻ — пирамиды')
+// ионы 11 класса: тетраэдры AsO₄³⁻, MnO₄⁻, MnO₄²⁻ (Mn–O у манганата длиннее), изогнутый NO₂⁻
+checkCentered('AsO4', ION_BOND_A.AsO_arsenate, tetra, 'AsO₄³⁻ тетраэдр')
+checkCentered('MnO4', ION_BOND_A.MnO_permanganate, tetra, 'MnO₄⁻ тетраэдр')
+checkCentered('MnO4_2', ION_BOND_A.MnO_manganate, tetra, 'MnO₄²⁻ тетраэдр')
+ok(ION_BOND_A.MnO_manganate > ION_BOND_A.MnO_permanganate, 'Mn–O: манганат длиннее перманганата')
+checkCentered('NO2', ION_BOND_A.NO_nitrite, ION_ANGLE_DEG.nitrite, 'NO₂⁻ изогнутый')
+ok(ionSpeciesFor({ Mn: 1, O: 4 }, -1) !== ionSpeciesFor({ Mn: 1, O: 4 }, -2), 'MnO₄⁻ ≠ MnO₄²⁻')
+for (const [counts, q, label] of [
+  [{ Pb: 1 }, 2, 'Pb²⁺'],
+  [{ Mn: 1 }, 2, 'Mn²⁺'],
+  [{ Cr: 1 }, 3, 'Cr³⁺'],
+  [{ I: 1 }, -1, 'I⁻'],
+  [{ N: 1, O: 2 }, -1, 'NO₂⁻'],
+  [{ As: 1, O: 4 }, -3, 'AsO₄³⁻'],
+  [{ Cr: 2, O: 7 }, -2, 'Cr₂O₇²⁻'],
+  [{ C: 2, H: 3, O: 2 }, -1, 'CH₃COO⁻'],
+] as const) {
+  ok(ionSpeciesFor(counts, q) != null, `${label}: есть в реестре`)
+}
+// дихромат: два тетраэдра с общим O, Cr–O–Cr 126°, концевые и мостиковые длины из таблицы модуля
+{
+  const g = ionGeometry('Cr2O7')!
+  ok(g.atoms.length === 9 && g.bonds.length === 8, 'Cr₂O₇²⁻: 9 атомов, 8 связей')
+  near(angleAt(g, 1, 0, 2), ION_ANGLE_DEG.dichromateBridge, 1e-6, 'Cr₂O₇²⁻: Cr–O–Cr')
+  near(distance(g, 0, 1), ION_BOND_A.CrO_dichromate_bridge, 1e-9, 'Cr₂O₇²⁻: Cr–O мостиковый')
+  for (const cr of [1, 2]) {
+    const nb = neighbors(g, cr)
+    ok(nb.length === 4, `Cr₂O₇²⁻: у Cr${cr} четыре O`)
+    for (const o of nb) if (o !== 0) near(distance(g, cr, o), ION_BOND_A.CrO_dichromate_term, 1e-9, 'Cr₂O₇²⁻: Cr–O концевой')
+    for (let i = 0; i < nb.length; i++)
+      for (let j = i + 1; j < nb.length; j++) near(angleAt(g, nb[i]!, cr, nb[j]!), tetra, 0.01, 'Cr₂O₇²⁻: тетраэдр у Cr')
+  }
+  const oxy = g.atoms.map((a, i) => (a.symbol === 'O' ? i : -1)).filter((i) => i >= 0)
+  let minOO = Infinity
+  for (let i = 0; i < oxy.length; i++) for (let j = i + 1; j < oxy.length; j++) minOO = Math.min(minOO, distance(g, oxy[i]!, oxy[j]!))
+  ok(minOO > 2.4, `Cr₂O₇²⁻: атомы O не сближены (${minOO.toFixed(3)} Å)`)
+}
+// ацетат-ион: плоский карбоксилат, обе C–O одинаковые, O–C–O 125°, C–C–O 117.5°
+{
+  const g = ionGeometry('CH3COO')!
+  near(distance(g, 0, 1), ION_BOND_A.CO_carboxylate, 1e-9, 'CH₃COO⁻: C–O')
+  near(distance(g, 0, 2), ION_BOND_A.CO_carboxylate, 1e-9, 'CH₃COO⁻: C–O (делокализация)')
+  near(angleAt(g, 1, 0, 2), ION_ANGLE_DEG.carboxylate, 1e-6, 'CH₃COO⁻: O–C–O')
+  near(angleAt(g, 1, 0, 3), 117.5, 1e-6, 'CH₃COO⁻: C–C–O')
+  near(angleAt(g, 2, 0, 3), 117.5, 1e-6, 'CH₃COO⁻: C–C–O (второй)')
+  near(distance(g, 0, 3), ION_BOND_A.CC_acetyl, 1e-9, 'CH₃COO⁻: C–C')
+}
 // гидроксил оксоаниона: O–H из ядра, угол X–O–H из таблицы модуля
 for (const key of ['HSO4', 'HPO4', 'H2PO4', 'HCO3']) {
   const g = ionGeometry(key)!
@@ -97,7 +147,7 @@ for (const key of ['HSO4', 'HPO4', 'H2PO4', 'HCO3']) {
 
 // ── 3. Органика: длины из ядра, углы, нет наложений ──
 const orgs = allLabOrganics()
-ok(orgs.length === 7, `органических частиц ${orgs.length}`)
+ok(orgs.length === 10, `органических частиц ${orgs.length}`)
 const minNonBonded = (g: LabGeometry) => {
   const bonded = new Set(g.bonds.map(([a, b]) => `${Math.min(a, b)}-${Math.max(a, b)}`))
   let m = Infinity
@@ -151,6 +201,37 @@ near(angleAt(glc, 4, 5, 0), 111.5, 2, 'глюкоза: C5–O5–C1 тетраэ
   const triple = u[0]! * (v[1]! * w[2]! - v[2]! * w[1]!) - u[1]! * (v[0]! * w[2]! - v[2]! * w[0]!) + u[2]! * (v[0]! * w[1]! - v[1]! * w[0]!)
   ok(triple < 0, 'глюкоза: C5 в R-конфигурации (D-сахар)')
 }
+
+// уксусная кислота: C=O короче C–O, группа COOH плоская, syn-водород; метилацетат — Z-конформер
+{
+  const g = organicGeometry('CH3COOH')!
+  near(distance(g, 0, 1), ACETIC_ACID.CO_double, 1e-9, 'CH₃COOH: C=O')
+  near(distance(g, 0, 2), ACETIC_ACID.CO_single, 1e-9, 'CH₃COOH: C–O')
+  near(angleAt(g, 1, 0, 3), ACETIC_ACID.CCO_double, 1e-6, 'CH₃COOH: C–C=O')
+  near(angleAt(g, 1, 0, 2) + angleAt(g, 1, 0, 3) + angleAt(g, 2, 0, 3), 360, 1e-6, 'CH₃COOH: карбоксил плоский')
+  near(angleAt(g, 0, 2, 4), ACETIC_ACID.COH, 1e-6, 'CH₃COOH: C–O–H')
+  near(distance(g, 2, 4), bondLengthPm('O-H') / 100, 1e-9, 'CH₃COOH: O–H (ядро)')
+  ok(distance(g, 1, 4) < distance(g, 3, 4), 'CH₃COOH: syn — H гидроксила ближе к O=, чем к метилу')
+  const m = organicGeometry('CH3COOCH3')!
+  near(angleAt(m, 0, 2, 4), METHYL_ACETATE.COC, 1e-6, 'CH₃COOCH₃: C–O–C')
+  near(distance(m, 2, 4), METHYL_ACETATE.OMe, 1e-9, 'CH₃COOCH₃: O–CH₃')
+  ok(distance(m, 1, 4) < distance(m, 3, 4), 'CH₃COOCH₃: Z-конформер (метил у O — со стороны C=O)')
+  // ацетат аммония: ион аммония — тетраэдр, водородная связь N–H···O не рисуется, N···O = 2.83 Å
+  const a = organicGeometry('CH3COONH4')!
+  const n = a.atoms.findIndex((x) => x.symbol === 'N')
+  const nh = neighbors(a, n)
+  ok(nh.length === 4 && nh.every((h) => a.atoms[h]!.symbol === 'H'), 'CH₃COONH₄: N — четыре H')
+  for (const h of nh) near(distance(a, n, h), ION_BOND_A.NH_ammonium, 1e-9, 'CH₃COONH₄: N–H')
+  for (let i = 0; i < nh.length; i++) for (let j = i + 1; j < nh.length; j++) near(angleAt(a, nh[i]!, n, nh[j]!), tetra, 0.01, 'CH₃COONH₄: NH₄⁺ тетраэдр')
+  near(distance(a, n, 1), ION_BOND_A.NO_hbond_ammonium, 1e-9, 'CH₃COONH₄: N···O водородной связи')
+  ok(!a.bonds.some(([x, y]) => (x === 1 && y > 6) || (y === 1 && x > 6)), 'CH₃COONH₄: связь H···O не рисуется')
+}
+// изомеры по составу различаются записью: C₂H₄O₂ HCOOCH₃ — не уксусная кислота, C₃H₆O₂ CH₃CH₂COOH — не метилацетат
+ok(organicSpeciesFor({ C: 2, H: 4, O: 2 }, 'CH3COOH')?.id === 'org_acetic_acid', 'CH3COOH → уксусная кислота')
+ok(organicSpeciesFor({ C: 2, H: 4, O: 2 }, 'CH₃–COOH')?.id === 'org_acetic_acid', 'CH₃–COOH (тире, Unicode) → уксусная кислота')
+ok(organicSpeciesFor({ C: 2, H: 4, O: 2 }, 'HCOOCH3') == null, 'HCOOCH3 — не уксусная кислота')
+ok(organicSpeciesFor({ C: 3, H: 6, O: 2 }, 'CH3CH2COOH') == null, 'CH3CH2COOH — не метилацетат')
+ok(organicSpeciesFor({ C: 2, H: 6, O: 1 }, 'C2H5OH')?.id === 'org_ethanol', 'C2H5OH по составу — этанол (как раньше)')
 
 // ── 4. Простые вещества и электрон ──
 for (const [sym, z] of [['H', 1], ['N', 7], ['O', 8], ['Cl', 17]] as const) {

@@ -663,6 +663,8 @@ export const messagesUz: Record<MessageKey, string> = {
     'Bu yozuvni reaktorga yuklab bo‘lmaydi: formuladagi «n» — umumiy formula (polimer, oleum, zang), tarkibi aniq modda emas.',
   'lab.deepLink.unsupported.unknownSubstance': 'Laboratoriya katalogida bunday modda yo‘q: {formulas}.',
   'lab.deepLink.unsupported.organic': 'Organik modda ({formulas}) — bu reaksiyani organik laboratoriyada oching.',
+  'lab.deepLink.unsupported.nuclear':
+    'Reaksiyani yuklab bo‘lmaydi: bu yadro reaksiyasi — atom yadrolari o‘zgaradi, reaktor esa kimyoviy va moddalarni atomlardan yig‘adi.',
   'lab.deepLink.unsupported.noCompoundProduct':
     'Mahsulotlar orasida katalogdagi murakkab modda yo‘q — reaktor hech narsa olmaydi.',
   'lab.deepLink.unsupported.tooManyTerms':
@@ -728,6 +730,8 @@ export const messagesUz: Record<MessageKey, string> = {
     'Yozuvda «n» bor — bu umumiy formula (polimer, oleum, zang), atomlar soni aniq bo‘lgan modda emas, shuning uchun uni zarrachalarga ajratib bo‘lmaydi.',
   'learn.book.rx.unsupported.unknownSubstance': 'Moddalardan biri hozircha laboratoriya katalogida yo‘q.',
   'learn.book.rx.unsupported.organic': 'Organik moddalar ishtirokidagi reaksiya — uni organik laboratoriyada ko‘rib chiqing.',
+  'learn.book.rx.unsupported.nuclear':
+    'Bu yadro reaksiyasi: atom yadrolarining o‘zi o‘zgaradi (massa sonlari va yadro zaryadlari yig‘indisi saqlanadi). Reaktor kimyoviy — u yadrolar o‘zgarishini emas, atomlar orasidagi bog‘lar qayta tuzilishini ko‘rsatadi.',
   'learn.book.rx.unsupported.noCompoundProduct': 'Mahsulotlar orasida katalogdagi murakkab modda yo‘q, reaktor hech narsa olmaydi.',
   'learn.book.rx.unsupported.tooManyTerms': 'Reaktor uchun moddalar juda ko‘p (8 tagacha reagent va 5 tagacha mahsulot).',
   'learn.book.rx.unsupported.unbalanced': 'Tenglama xato bilan tanib olingan va muvozanatlanmagan.',

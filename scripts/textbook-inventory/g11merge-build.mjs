@@ -93,7 +93,8 @@ function makeReaction(r) {
     bankId: null,
     note: r.note ?? null,
   }
-  for (const k of ['describedInWords', 'variantsAsInBook', 'unbalanceable', 'bankMatchManual']) if (r[k] !== undefined) o[k] = r[k]
+  // catalogNote — пояснение для ученика (карточка каталога, панель читалки); showInCatalog — общая схема карточкой
+  for (const k of ['describedInWords', 'variantsAsInBook', 'unbalanceable', 'bankMatchManual', 'catalogNote', 'showInCatalog', 'labExample']) if (r[k] !== undefined) o[k] = r[k]
   if (r.words) o.describedInWords = true
   if (r.bankMatch === 'equivalent') o.bankMatchManual = { bankId: r.bankId, match: 'equivalent' }
   return o

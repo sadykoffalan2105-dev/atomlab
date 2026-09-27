@@ -663,6 +663,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab.deepLink.unsupported.unknownSubstance': 'This reaction cannot be loaded: the lab catalog has no {formulas}.',
   'lab.deepLink.unsupported.organic':
     'This reaction cannot be loaded: {formulas} is organic — open it in the organic lab.',
+  'lab.deepLink.unsupported.nuclear':
+    'This reaction cannot be loaded: it is a nuclear reaction — atomic nuclei change, while the reactor is chemical and builds substances from atoms.',
   'lab.deepLink.unsupported.noCompoundProduct':
     'This reaction cannot be loaded: none of the products is a compound from the catalog.',
   'lab.deepLink.unsupported.tooManyTerms':
@@ -728,6 +730,8 @@ export const messagesEn: Record<MessageKey, string> = {
     'The record contains “n” — a general formula (polymer, oleum, rust), not a substance with a definite number of atoms, so it cannot be laid out particle by particle.',
   'learn.book.rx.unsupported.unknownSubstance': 'One of the substances is not in the lab catalog yet.',
   'learn.book.rx.unsupported.organic': 'This reaction involves organic compounds — explore it in the organic lab.',
+  'learn.book.rx.unsupported.nuclear':
+    'This is a nuclear reaction: the atomic nuclei themselves change (mass numbers and nuclear charges add up on both sides). The reactor is chemical — it shows bonds between atoms rearranging, not nuclei transforming.',
   'learn.book.rx.unsupported.noCompoundProduct': 'None of the products is a compound from the catalog, so the reactor has nothing to make.',
   'learn.book.rx.unsupported.tooManyTerms': 'Too many substances for the reactor (up to 8 reagents and 5 products).',
   'learn.book.rx.unsupported.unbalanced': 'The equation was recognised with an error and is not balanced.',

@@ -1,21 +1,21 @@
 {
  "grade": 11,
  "source": "public/textbooks/kimyo-11-ru.pdf (Kimyo 11, рус. изд.; нет текстового слоя — OCR + визуальная проверка страниц)",
- "generatedAt": "2026-09-16T08:42:16.616Z",
+ "generatedAt": "2026-09-26T20:52:38.745Z",
  "notes": [
   "Уникальные реакции (ключ — состав и коэффициенты реагентов/продуктов; общие схемы — по тексту). id — стабильный slug из формул.",
   "isGeneralScheme — буквенные/общие схемы (A + B ⇌ C, MeSO4 …); isIonic — ионные уравнения, диссоциация, полуреакции; balanceMode nuclear — ядерные уравнения.",
   "bankId — SCHOOL_REACTION_BANK; bankMatch: exact | same-species-other-coefficients | equivalent."
  ],
  "stats": {
-  "reactions": 175,
-  "real": 156,
+  "reactions": 174,
+  "real": 155,
   "generalSchemes": 19,
-  "ionic": 45,
+  "ionic": 46,
   "nuclear": 8,
   "bankExact": 26,
   "bankLoose": 1,
-  "unbalanced": 1
+  "unbalanced": 0
  },
  "reactions": [
   {
@@ -983,8 +983,8 @@
   },
   {
    "id": "g11-co32m-hp--co2-h2o",
-   "equation": "CO₃²⁻ + 2H⁺ ⇌ CO₂↑ + H₂O",
-   "equationAscii": "CO3^2- + 2H^+ <=> CO2(g) + H2O",
+   "equation": "CO₃²⁻ + 2H⁺ → CO₂↑ + H₂O",
+   "equationAscii": "CO3^2- + 2H^+ -> CO2(g) + H2O",
    "equationAsInBook": "CO3 2- + 2H+ ⟷ CO2↑ + H2O",
    "reactants": [
     {
@@ -1272,6 +1272,42 @@
    "conditions": null,
    "type": "other",
    "subtype": "dissociation",
+   "sections": [
+    "c3-s02"
+   ],
+   "page": 56,
+   "pages": [
+    56
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": true,
+   "balanced": true
+  },
+  {
+   "id": "g11-hp-ohm--h2o-v2",
+   "equation": "H⁺ + OH^- -> H2O",
+   "equationAscii": "H^+ + OH^- -> H2O",
+   "equationAsInBook": null,
+   "reactants": [
+    {
+     "formula": "H^+",
+     "coeff": 1
+    },
+    {
+     "formula": "OH^-",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "H2O",
+     "coeff": 1
+    }
+   ],
+   "conditions": null,
+   "type": "neutralization",
+   "subtype": "net-ionic",
    "sections": [
     "c3-s02"
    ],
@@ -2350,7 +2386,8 @@
    "sections": [
     "c5-s01",
     "c5-s02",
-    "c6-s02"
+    "c6-s02",
+    "c6-s03"
    ],
    "page": 103,
    "pages": [
@@ -2358,7 +2395,8 @@
     104,
     109,
     120,
-    121
+    121,
+    126
    ],
    "bankId": "co-o2-co2",
    "isGeneralScheme": false,
@@ -2926,7 +2964,7 @@
      "coeff": 2
     }
    ],
-   "conditions": "ΔH = −602,5 кДж/моль",
+   "conditions": "ΔH ≈ −1203 кДж",
    "type": "combustion",
    "subtype": null,
    "sections": [
@@ -3329,48 +3367,6 @@
    "pages": [
     117,
     121,
-    126
-   ],
-   "bankId": null,
-   "isGeneralScheme": false,
-   "isIonic": false,
-   "balanced": true
-  },
-  {
-   "id": "g11-co-h2o--co2-h2",
-   "equation": "CO + H₂O ⇌ CO₂ + H₂",
-   "equationAscii": "CO + H2O <=> CO2 + H2",
-   "equationAsInBook": "СО + H2O → CO2 + H2",
-   "reactants": [
-    {
-     "formula": "CO",
-     "coeff": 1
-    },
-    {
-     "formula": "H2O",
-     "coeff": 1
-    }
-   ],
-   "products": [
-    {
-     "formula": "CO2",
-     "coeff": 1
-    },
-    {
-     "formula": "H2",
-     "coeff": 1
-    }
-   ],
-   "conditions": null,
-   "type": "redox",
-   "subtype": null,
-   "sections": [
-    "c6-s02",
-    "c6-s03"
-   ],
-   "page": 117,
-   "pages": [
-    117,
     126
    ],
    "bankId": null,
@@ -4187,28 +4183,32 @@
    "note": "в книге схема без коэффициентов; коэффициенты расставлены"
   },
   {
-   "id": "g11-co2-o2--co",
-   "equation": "CO₂ + O₂ ⇌ CO",
-   "equationAscii": "CO2 + O2 <=> CO",
-   "equationAsInBook": "CO2(г) + O2(г) ⇌ CO(г)",
+   "id": "g11-co-h2o--co2-h2",
+   "equation": "CO + H₂O ⇌ CO₂ + H₂",
+   "equationAscii": "CO + H2O <=> CO2 + H2",
+   "equationAsInBook": "СО(г) +H2O(г) =CO2(г)+H2(г)",
    "reactants": [
     {
-     "formula": "CO2",
+     "formula": "CO",
      "coeff": 1
     },
     {
-     "formula": "O2",
+     "formula": "H2O",
      "coeff": 1
     }
    ],
    "products": [
     {
-     "formula": "CO",
+     "formula": "CO2",
+     "coeff": 1
+    },
+    {
+     "formula": "H2",
      "coeff": 1
     }
    ],
-   "conditions": "газы",
-   "type": "other",
+   "conditions": "газы; 850 °C, Kp = 1",
+   "type": "redox",
    "subtype": null,
    "sections": [
     "c6-s03"
@@ -4220,9 +4220,7 @@
    "bankId": null,
    "isGeneralScheme": false,
    "isIonic": false,
-   "balanced": false,
-   "balanceDetail": "O: 4≠1",
-   "note": "так в книге (с. 126, тест 5, вариант 4); схема химически некорректна и не уравнивается — вероятно имелось в виду 2CO + O2 ⇌ 2CO2"
+   "balanced": true
   },
   {
    "id": "g11-as2s3-hno3-h2o--h3aso4-h2so4-no",
@@ -6538,45 +6536,6 @@
    "balanced": true
   },
   {
-   "id": "g11-cucl2--cu-cl2",
-   "equation": "CuCl₂ → Cu + Cl₂↑",
-   "equationAscii": "CuCl2 -> Cu + Cl2",
-   "equationAsInBook": "CuCl2 + H2O → Cu + Cl2↑ + H2O",
-   "reactants": [
-    {
-     "formula": "CuCl2",
-     "coeff": 1
-    }
-   ],
-   "products": [
-    {
-     "formula": "Cu",
-     "coeff": 1
-    },
-    {
-     "formula": "Cl2",
-     "coeff": 1
-    }
-   ],
-   "conditions": "электролиз (раствор)",
-   "type": "redox",
-   "subtype": "electrolysis",
-   "sections": [
-    "c8-s01"
-   ],
-   "page": 139,
-   "pages": [
-    139,
-    141,
-    143
-   ],
-   "bankId": null,
-   "isGeneralScheme": false,
-   "isIonic": false,
-   "balanced": true,
-   "note": "в книге с. 143: CuCl2 + H2O → Cu + Cl2↑ + H2O (вода не изменяется); на с. 139–141 процесс описан словами и полуреакциями"
-  },
-  {
    "id": "g11-nap-e--na",
    "equation": "Na⁺ + e⁻ → Na",
    "equationAscii": "Na^+ + e^- -> Na",
@@ -6689,25 +6648,17 @@
    "balanced": true
   },
   {
-   "id": "g11-k2co3-h2o--k2co3-h2-o2",
-   "equation": "K₂CO₃ + 2H₂O → K₂CO₃ + 2H₂↑ + O₂↑",
-   "equationAscii": "K2CO3 + 2H2O -> K2CO3 + 2H2 + O2",
+   "id": "g11-h2o--h2-o2",
+   "equation": "2H2O -> 2H2 + O₂",
+   "equationAscii": "2H2O -> 2H2 + O2",
    "equationAsInBook": "K2CO3 + 2H2O → K2CO3 + 2H2↑ + O2↑",
    "reactants": [
-    {
-     "formula": "K2CO3",
-     "coeff": 1
-    },
     {
      "formula": "H2O",
      "coeff": 2
     }
    ],
    "products": [
-    {
-     "formula": "K2CO3",
-     "coeff": 1
-    },
     {
      "formula": "H2",
      "coeff": 2
@@ -6717,17 +6668,20 @@
      "coeff": 1
     }
    ],
-   "conditions": "электролиз раствора",
+   "conditions": "электролиз раствора K₂CO₃",
    "type": "decomposition",
    "subtype": "electrolysis",
    "sections": [
     "c8-s01",
-    "c8-s02"
+    "c8-s02",
+    "c8-s03"
    ],
    "page": 142,
    "pages": [
     142,
-    146
+    146,
+    149,
+    152
    ],
    "bankId": null,
    "isGeneralScheme": false,
@@ -6831,6 +6785,43 @@
    "balanced": true
   },
   {
+   "id": "g11-cucl2--cu-cl2",
+   "equation": "CuCl₂ → Cu + Cl₂↑",
+   "equationAscii": "CuCl2 -> Cu + Cl2",
+   "equationAsInBook": "CuCl2 + H2O → Cu + Cl2↑ + H2O",
+   "reactants": [
+    {
+     "formula": "CuCl2",
+     "coeff": 1
+    }
+   ],
+   "products": [
+    {
+     "formula": "Cu",
+     "coeff": 1
+    },
+    {
+     "formula": "Cl2",
+     "coeff": 1
+    }
+   ],
+   "conditions": "электролиз раствора",
+   "type": "redox",
+   "subtype": "electrolysis",
+   "sections": [
+    "c8-s01"
+   ],
+   "page": 143,
+   "pages": [
+    143
+   ],
+   "bankId": null,
+   "isGeneralScheme": false,
+   "isIonic": false,
+   "balanced": true,
+   "note": "в книге с. 143: CuCl2 + H2O → Cu + Cl2↑ + H2O (вода не изменяется); на с. 139–141 процесс описан словами и полуреакциями"
+  },
+  {
    "id": "g11-mncl2-h2o--mn-h2-cl2-mnoh2",
    "equation": "2MnCl₂ + 2H₂O → Mn + H₂↑ + 2Cl₂↑ + Mn(OH)₂",
    "equationAscii": "2MnCl2 + 2H2O -> Mn + H2 + 2Cl2 + Mn(OH)2",
@@ -6929,7 +6920,7 @@
   },
   {
    "id": "g11-scheme-meso4-2h2o-to-meso4-2h2-o2",
-   "equation": "MeSO4 + 2H₂O → MeSO4 + 2H₂ + O₂",
+   "equation": "MeSO4 + 2H2O -> MeSO4 + 2H₂ + O₂",
    "equationAscii": "MeSO4 + 2H2O -> MeSO4 + 2H2 + O2",
    "equationAsInBook": "MeSO4 + 2H2O → MeSO4 + 2H2 + O2",
    "reactants": [
@@ -6956,7 +6947,7 @@
      "coeff": 1
     }
    ],
-   "conditions": "электролиз раствора; активные металлы (Li … Be)",
+   "conditions": "электролиз раствора; активные металлы (Li … Al)",
    "type": "decomposition",
    "subtype": "electrolysis",
    "sections": [
@@ -6973,7 +6964,7 @@
   },
   {
    "id": "g11-scheme-meso4-2h2o-to-me-h2-o2-h2so4",
-   "equation": "MeSO4 + 2H₂O → Me + H₂ + O₂ + H₂SO₄",
+   "equation": "MeSO4 + 2H2O -> Me + H₂ + O₂ + H₂SO₄",
    "equationAscii": "MeSO4 + 2H2O -> Me + H2 + O2 + H2SO4",
    "equationAsInBook": "MeSO4 + 2H2O → Me + H2 + O2 + H2SO4",
    "reactants": [
@@ -7004,7 +6995,7 @@
      "coeff": 1
     }
    ],
-   "conditions": "электролиз раствора; металлы средней активности (Al … Pb)",
+   "conditions": "электролиз раствора; металлы средней активности (после Al до H)",
    "type": "redox",
    "subtype": "electrolysis",
    "sections": [
@@ -7020,14 +7011,14 @@
    "balanced": null
   },
   {
-   "id": "g11-scheme-meso4-2h2o-to-me-o2-h2so4",
-   "equation": "MeSO4 + 2H₂O → Me + O₂ + H₂SO₄",
-   "equationAscii": "MeSO4 + 2H2O -> Me + O2 + H2SO4",
+   "id": "g11-scheme-2meso4-2h2o-to-2me-o2-2h2so4",
+   "equation": "2MeSO4 + 2H2O -> 2Me + O₂ + 2H₂SO₄",
+   "equationAscii": "2MeSO4 + 2H2O -> 2Me + O2 + 2H2SO4",
    "equationAsInBook": "MeSO4 + 2H2O → Me + O2 + H2SO4",
    "reactants": [
     {
      "formula": "MeSO4",
-     "coeff": 1
+     "coeff": 2
     },
     {
      "formula": "H2O",
@@ -7037,7 +7028,7 @@
    "products": [
     {
      "formula": "Me",
-     "coeff": 1
+     "coeff": 2
     },
     {
      "formula": "O2",
@@ -7045,10 +7036,10 @@
     },
     {
      "formula": "H2SO4",
-     "coeff": 1
+     "coeff": 2
     }
    ],
-   "conditions": "электролиз раствора; пассивные металлы (Cu … Au)",
+   "conditions": "электролиз раствора; малоактивные металлы (после H: Cu … Au)",
    "type": "redox",
    "subtype": "electrolysis",
    "sections": [
@@ -7064,14 +7055,14 @@
    "balanced": null
   },
   {
-   "id": "g11-scheme-mecl-2h2o-to-meoh-h2-cl2",
-   "equation": "MeCl + 2H₂O → MeOH + H₂ + Cl₂",
-   "equationAscii": "MeCl + 2H2O -> MeOH + H2 + Cl2",
+   "id": "g11-scheme-2mecl-2h2o-to-2meoh-h2-cl2",
+   "equation": "2MeCl + 2H2O -> 2MeOH + H₂ + Cl₂",
+   "equationAscii": "2MeCl + 2H2O -> 2MeOH + H2 + Cl2",
    "equationAsInBook": "MeCl + 2H2O → MeOH + H2 + Cl2",
    "reactants": [
     {
      "formula": "MeCl",
-     "coeff": 1
+     "coeff": 2
     },
     {
      "formula": "H2O",
@@ -7081,7 +7072,7 @@
    "products": [
     {
      "formula": "MeOH",
-     "coeff": 1
+     "coeff": 2
     },
     {
      "formula": "H2",
@@ -7108,14 +7099,14 @@
    "balanced": null
   },
   {
-   "id": "g11-scheme-mecl-2h2o-to-meoh-me-h2-cl2",
-   "equation": "MeCl + 2H₂O → MeOH + Me + H₂ + Cl₂",
-   "equationAscii": "MeCl + 2H2O -> MeOH + Me + H2 + Cl2",
+   "id": "g11-scheme-2mecl2-2h2o-to-me-h2-2cl2-me-oh-2",
+   "equation": "2MeCl2 + 2H2O -> Me + H₂ + 2Cl₂ + Me(OH)2",
+   "equationAscii": "2MeCl2 + 2H2O -> Me + H2 + 2Cl2 + Me(OH)2",
    "equationAsInBook": "MeCl + 2H2O → MeOH + Me + H2 + Cl2",
    "reactants": [
     {
-     "formula": "MeCl",
-     "coeff": 1
+     "formula": "MeCl2",
+     "coeff": 2
     },
     {
      "formula": "H2O",
@@ -7123,10 +7114,6 @@
     }
    ],
    "products": [
-    {
-     "formula": "MeOH",
-     "coeff": 1
-    },
     {
      "formula": "Me",
      "coeff": 1
@@ -7137,10 +7124,14 @@
     },
     {
      "formula": "Cl2",
+     "coeff": 2
+    },
+    {
+     "formula": "Me(OH)2",
      "coeff": 1
     }
    ],
-   "conditions": "электролиз раствора; металлы средней активности",
+   "conditions": "электролиз раствора; металлы средней активности (после Al до H)",
    "type": "redox",
    "subtype": "electrolysis",
    "sections": [
@@ -7156,18 +7147,14 @@
    "balanced": null
   },
   {
-   "id": "g11-scheme-mecl-2h2o-to-me-cl2-h2o",
-   "equation": "MeCl + 2H₂O → Me + Cl₂ + H₂O",
-   "equationAscii": "MeCl + 2H2O -> Me + Cl2 + H2O",
+   "id": "g11-scheme-mecl2-to-me-cl2",
+   "equation": "MeCl2 -> Me + Cl₂",
+   "equationAscii": "MeCl2 -> Me + Cl2",
    "equationAsInBook": "MeCl + 2H2O → Me + Cl2 + H2O",
    "reactants": [
     {
-     "formula": "MeCl",
+     "formula": "MeCl2",
      "coeff": 1
-    },
-    {
-     "formula": "H2O",
-     "coeff": 2
     }
    ],
    "products": [
@@ -7178,13 +7165,9 @@
     {
      "formula": "Cl2",
      "coeff": 1
-    },
-    {
-     "formula": "H2O",
-     "coeff": 1
     }
    ],
-   "conditions": "электролиз раствора; пассивные металлы",
+   "conditions": "электролиз раствора; малоактивные металлы (после H)",
    "type": "redox",
    "subtype": "electrolysis",
    "sections": [
@@ -7240,27 +7223,27 @@
    "balanced": null
   },
   {
-   "id": "g11-scheme-mecl-to-me-cl2",
-   "equation": "MeCl → Me + Cl₂",
-   "equationAscii": "MeCl -> Me + Cl2",
+   "id": "g11-scheme-2mecl-to-2me-cl2",
+   "equation": "2MeCl -> 2Me + Cl₂",
+   "equationAscii": "2MeCl -> 2Me + Cl2",
    "equationAsInBook": "MeCl → Me + Cl2",
    "reactants": [
     {
      "formula": "MeCl",
-     "coeff": 1
+     "coeff": 2
     }
    ],
    "products": [
     {
      "formula": "Me",
-     "coeff": 1
+     "coeff": 2
     },
     {
      "formula": "Cl2",
      "coeff": 1
     }
    ],
-   "conditions": "электролиз расплава; все группы металлов",
+   "conditions": "электролиз расплава; все металлы",
    "type": "redox",
    "subtype": "electrolysis",
    "sections": [
@@ -7361,44 +7344,6 @@
    "balanced": true,
    "describedInWords": true,
    "note": "описано словами (выделение железа и хлора из FeCl3 при пропускании 1 F); уравнение в книге не записано"
-  },
-  {
-   "id": "g11-h2o--h2-o2",
-   "equation": "2H₂O → 2H₂↑ + O₂↑",
-   "equationAscii": "2H2O -> 2H2 + O2",
-   "equationAsInBook": "2H2O → 2H2↑ + O2↑",
-   "reactants": [
-    {
-     "formula": "H2O",
-     "coeff": 2
-    }
-   ],
-   "products": [
-    {
-     "formula": "H2",
-     "coeff": 2
-    },
-    {
-     "formula": "O2",
-     "coeff": 1
-    }
-   ],
-   "conditions": "электролиз",
-   "type": "decomposition",
-   "subtype": "electrolysis",
-   "sections": [
-    "c8-s03"
-   ],
-   "page": 149,
-   "pages": [
-    149,
-    152
-   ],
-   "bankId": null,
-   "isGeneralScheme": false,
-   "isIonic": false,
-   "balanced": true,
-   "note": "на с. 149 электролиз воды после выделения меди описан словами"
   },
   {
    "id": "g11-cdso4-h2o--cd-o2-h2so4",

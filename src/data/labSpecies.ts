@@ -2,8 +2,10 @@
  * Частицы реактора, которых нет в каталоге веществ, но которые встречаются в уравнениях
  * учебников 7–9 классов:
  *  • ионы (Na⁺, Cl⁻, SO₄²⁻, NO₃⁻, NH₄⁺, H₃O⁺ …) — краткие ионные уравнения, диссоциация, электролиз;
+ *    11 класс: MnO₄⁻, MnO₄²⁻, NO₂⁻, Cr₂O₇²⁻, AsO₄³⁻, Pb²⁺, Mn²⁺, Cr³⁺ (ОВР методом полуреакций), ацетат-ион CH₃COO⁻;
  *  • электрон e⁻ — полуреакции на электродах;
- *  • органика школьных уравнений (CH₄, C₂H₅OH, C₃H₈, C₆H₁₂O₆, HCHO, CH₃OH, C₂H₂) — в каталоге
+ *  • органика школьных уравнений (CH₄, C₂H₅OH, C₃H₈, C₆H₁₂O₆, HCHO, CH₃OH, C₂H₂; 11 класс — CH₃COOH,
+ *    CH₃COOCH₃, CH₃COONH₄ — эти узнаются только по записи формулы, у них есть изомеры того же состава) — в каталоге
  *    она живёт в органической лаборатории (organicMoleculeRegistry), здесь — её формульные единицы;
  *  • простое вещество в роли главного продукта (2H₂O → 2H₂ + O₂, 2HgO → 2Hg + O₂).
  *
@@ -118,6 +120,16 @@ const ION_SPECS: readonly IonSpec[] = [
   { core: 'IO3', charge: -1, nameRu: 'Иодат-ион', geo: 'IO3' },
   { core: 'CrO4', charge: -2, nameRu: 'Хромат-ион', geo: 'CrO4' },
   { core: 'AlOH', charge: 2, nameRu: 'Гидроксокатион алюминия', geo: 'AlOH' },
+  // 11 класс: ионные уравнения, ОВР методом полуреакций (§ 10, 28–30)
+  { core: 'Pb', charge: 2, nameRu: 'Катион свинца(II)' },
+  { core: 'Mn', charge: 2, nameRu: 'Катион марганца(II)' },
+  { core: 'Cr', charge: 3, nameRu: 'Катион хрома(III)' },
+  { core: 'NO2', charge: -1, nameRu: 'Нитрит-ион', geo: 'NO2' },
+  { core: 'AsO4', charge: -3, nameRu: 'Арсенат-ион', geo: 'AsO4' },
+  { core: 'MnO4', charge: -1, nameRu: 'Перманганат-ион', geo: 'MnO4' },
+  { core: 'MnO4', charge: -2, nameRu: 'Манганат-ион', geo: 'MnO4_2' },
+  { core: 'Cr2O7', charge: -2, nameRu: 'Дихромат-ион', geo: 'Cr2O7' },
+  { core: 'CH3COO', charge: -1, nameRu: 'Ацетат-ион (этаноат-ион)', geo: 'CH3COO' },
 ]
 
 function ionId(core: string, charge: number): string {
@@ -155,9 +167,24 @@ const ELECTRON: CompoundDef = makeSpecies({
 
 // ── органика ────────────────────────────────────────────────────────────────
 
-type OrganicSpec = { id: string; geo: string; formulaUnicode: string; nameRu: string; organicId: string }
+type OrganicSpec = {
+  id: string
+  geo: string
+  formulaUnicode: string
+  nameRu: string
+  /** id в каталоге органики; нет — вещества там нет (соль ацетат аммония). */
+  organicId?: string
+  /**
+   * Только по записи формулы (ASCII без пробелов и дефисов): состав C₂H₄O₂ — это и уксусная кислота, и
+   * метилформиат HCOOCH₃, C₃H₆O₂ — и метилацетат, и пропановая кислота; по одному составу их не узнать.
+   */
+  formulas?: readonly string[]
+}
 
-/** Органические вещества уравнений 7–9 классов; organicId — id в каталоге органики. */
+/**
+ * Органические вещества уравнений 7–9 классов и 11 класса (гидролиз ацетатов, этерификация);
+ * organicId — id в каталоге органики.
+ */
 const ORGANIC_SPECS: readonly OrganicSpec[] = [
   { id: 'org_methane', geo: 'CH4', formulaUnicode: 'CH₄', nameRu: 'Метан', organicId: 'methane' },
   { id: 'org_methanol', geo: 'CH3OH', formulaUnicode: 'CH₃OH', nameRu: 'Метанол', organicId: 'methanol' },
@@ -166,12 +193,40 @@ const ORGANIC_SPECS: readonly OrganicSpec[] = [
   { id: 'org_formaldehyde', geo: 'HCHO', formulaUnicode: 'HCHO', nameRu: 'Формальдегид (метаналь)', organicId: 'formaldehyde' },
   { id: 'org_acetylene', geo: 'C2H2', formulaUnicode: 'C₂H₂', nameRu: 'Ацетилен (этин)', organicId: 'acetylene' },
   { id: 'org_glucose', geo: 'C6H12O6', formulaUnicode: 'C₆H₁₂O₆', nameRu: 'Глюкоза', organicId: 'glucose-pyranose' },
+  {
+    id: 'org_acetic_acid',
+    geo: 'CH3COOH',
+    formulaUnicode: 'CH₃COOH',
+    nameRu: 'Уксусная кислота (этановая кислота)',
+    organicId: 'acetic-acid',
+    formulas: ['CH3COOH'],
+  },
+  {
+    id: 'org_methyl_acetate',
+    geo: 'CH3COOCH3',
+    formulaUnicode: 'CH₃COOCH₃',
+    nameRu: 'Метилацетат (метилэтаноат)',
+    organicId: 'methyl-acetate',
+    formulas: ['CH3COOCH3'],
+  },
+  {
+    id: 'org_ammonium_acetate',
+    geo: 'CH3COONH4',
+    formulaUnicode: 'CH₃COONH₄',
+    nameRu: 'Ацетат аммония',
+    formulas: ['CH3COONH4'],
+  },
 ]
 
 /** id вещества реактора → id молекулы в каталоге органики. */
 export const LAB_ORGANIC_CATALOG_ID: Readonly<Record<string, string>> = Object.fromEntries(
-  ORGANIC_SPECS.map((s) => [s.id, s.organicId]),
+  ORGANIC_SPECS.flatMap((s) => (s.organicId ? [[s.id, s.organicId]] : [])),
 )
+
+/** Запись формулы для сравнения: ASCII-цифры, без пробелов, дефисов и тире («CH₃–COOH» → «CH3COOH»). */
+function formulaSpelling(formula: string): string {
+  return formula.replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080)).replace(/[\s\-–—]/g, '')
+}
 
 function organicSpecies(spec: OrganicSpec): CompoundDef | null {
   const geometry = organicGeometry(spec.geo)
@@ -213,6 +268,8 @@ const kindById = new Map<string, LabSpeciesKind>()
 const extra: Record<string, CompoundDef> = {}
 const ionByKey = new Map<string, CompoundDef>()
 const organicByKey = new Map<string, CompoundDef>()
+const organicBySpelling = new Map<string, CompoundDef>()
+const organicAll: CompoundDef[] = []
 
 function register(c: CompoundDef | null, kind: LabSpeciesKind) {
   if (!c || compoundById[c.id]) return
@@ -229,7 +286,10 @@ register(ELECTRON, 'electron')
 for (const spec of ORGANIC_SPECS) {
   const c = organicSpecies(spec)
   register(c, 'organic')
-  if (c) organicByKey.set(formulaCompositionKey(c.composition), c)
+  if (!c) continue
+  organicAll.push(c)
+  if (spec.formulas) for (const f of spec.formulas) organicBySpelling.set(formulaSpelling(f), c)
+  else organicByKey.set(formulaCompositionKey(c.composition), c)
 }
 for (let z = 1; z <= 118; z++) {
   register(simpleSpecies(z, 1), 'simple')
@@ -255,8 +315,13 @@ export function ionSpeciesFor(counts: Readonly<FormulaCounts>, charge: number): 
   return ionByKey.get(`${formulaCompositionKey(counts)}#${charge}`) ?? null
 }
 
-/** Органическое вещество школьных уравнений по составу. */
-export function organicSpeciesFor(counts: Readonly<FormulaCounts>): CompoundDef | null {
+/**
+ * Органическое вещество школьных уравнений: по записи формулы (CH₃COOH, CH₃COOCH₃ — изомеры по составу
+ * различаются только так), иначе по составу (CH₄, C₂H₅OH …).
+ */
+export function organicSpeciesFor(counts: Readonly<FormulaCounts>, formula?: string | null): CompoundDef | null {
+  const bySpelling = formula ? organicBySpelling.get(formulaSpelling(formula)) : undefined
+  if (bySpelling && formulaCompositionKey(bySpelling.composition) === formulaCompositionKey(counts)) return bySpelling
   return organicByKey.get(formulaCompositionKey(counts)) ?? null
 }
 
@@ -278,5 +343,5 @@ export function allLabIons(): CompoundDef[] {
 
 /** Все органические частицы реестра — для тестов. */
 export function allLabOrganics(): CompoundDef[] {
-  return [...organicByKey.values()]
+  return [...organicAll]
 }

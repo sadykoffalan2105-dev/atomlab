@@ -13,7 +13,8 @@ const secList = rd('src/data/kb/corpus/kb-sections.json').g10;
 const cat = rd('.smoke/textbook-inventory/catalog-snapshot-g10p2.json');
 const dir = path.join(root, 'scripts/textbook-inventory');
 const mod = await import(pathToFileURL(path.join(dir, 'g10-part1-data.mjs')).href);
-for (const f of ['g10-part1-data-b.mjs', 'g10-part1-data-c.mjs', 'g10-part1-data-d.mjs']) await import(pathToFileURL(path.join(dir, f)).href);
+// -e: сверка глав II с расшифровками docs/textbook/g10-ch2-*.md (дополняет и правит разделы -b…-d)
+for (const f of ['g10-part1-data-b.mjs', 'g10-part1-data-c.mjs', 'g10-part1-data-d.mjs', 'g10-part1-data-e.mjs']) await import(pathToFileURL(path.join(dir, f)).href);
 const data = mod.sections;
 
 const warnings = [];
@@ -231,6 +232,8 @@ for (let i = 0; i < half; i++) {
     }
     if (o.described) rec.describedInTextOnly = true;
     if (o.note) rec.note = o.note;
+    // задание учебника (цепочка, «допишите»): карточка показывает запись учебника, уравнение — ответ
+    if (o.ex) rec.fromExercise = true;
     // catalog card: explanation shown to the student; a general scheme kept as a card; a concrete example (R = CH3)
     // of a scheme — only to pick the organic lab lesson (build-book-reader.mts)
     if (o.show) rec.catalogNote = o.show;

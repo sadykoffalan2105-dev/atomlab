@@ -191,6 +191,23 @@ export const ION_BOND_A = {
   SiO_metasilicate: 1.60,
   /** Al–O(H) в гидроксоаквакомплексе алюминия */
   AlO_hydroxo: 1.83,
+  /** N–O в нитрит-ионе NO₂⁻ (NaNO₂, нейтронография: Kay M. I., Frazer B. C., Acta Cryst. 14 (1961) 56) */
+  NO_nitrite: 1.24,
+  /** As–O в арсенат-ионе AsO₄³⁻ (среднее по кристаллам арсенатов, ≈ 1.69 Å) */
+  AsO_arsenate: 1.69,
+  /** Mn–O в перманганат-ионе MnO₄⁻ (KMnO₄: Palenik G. J., Inorg. Chem. 6 (1967) 503) */
+  MnO_permanganate: 1.629,
+  /** Mn–O в манганат-ионе MnO₄²⁻ (K₂MnO₄: Palenik G. J., Inorg. Chem. 6 (1967) 507) — длиннее, чем в MnO₄⁻ */
+  MnO_manganate: 1.659,
+  /** Cr₂O₇²⁻ (K₂Cr₂O₇): Cr–O концевые 1.63, Cr–O мостиковый 1.79 Å */
+  CrO_dichromate_term: 1.63,
+  CrO_dichromate_bridge: 1.79,
+  /** C–O в карбоксилат-ионе (обе связи одинаковые, заряд делокализован; Allen et al. 1987) */
+  CO_carboxylate: 1.254,
+  /** C–C между метилом и карбоксильным углеродом (ацетат, уксусная кислота) */
+  CC_acetyl: 1.52,
+  /** N···O водородной связи N–H···O в солях аммония с карбоксилатами (≈ 2.8 Å) */
+  NO_hbond_ammonium: 2.83,
 } as const
 
 /** Валентные углы ионов, °, из тех же источников. */
@@ -203,6 +220,34 @@ export const ION_ANGLE_DEG = {
   iodate: 99.0,
   /** X–O–H у гидроксилов оксоанионов (HSO₄⁻, H₂PO₄⁻, HCO₃⁻) */
   xoh: 110,
+  /** O–N–O в NO₂⁻ (NaNO₂) — изогнутый ион, неподелённая пара у N */
+  nitrite: 115,
+  /** Cr–O–Cr мостика в Cr₂O₇²⁻ (K₂Cr₂O₇) */
+  dichromateBridge: 126,
+  /** O–C–O карбоксилат-иона (ацетат); C–C–O = (360 − 125) / 2 = 117.5° — ион плоский */
+  carboxylate: 125,
+} as const
+
+/**
+ * Уксусная кислота CH₃COOH, газ (мономер, syn-конформер): C=O 1.214, C–O 1.364 Å, C–C 1.52 Å,
+ * C–C=O 126.6°, C–C–O 110.6° (O=C–O 122.8°), C–O–H 107° — электронография,
+ * Derissen J. L., J. Mol. Struct. 7 (1971) 67. O–H и C–H — из ядра.
+ */
+export const ACETIC_ACID = { CO_double: 1.214, CO_single: 1.364, CCO_double: 126.6, OCO: 122.8, COH: 107 } as const
+
+/**
+ * Метилацетат CH₃COOCH₃, газ, Z-конформер (метил у O — «цис» к C=O). Справочные газофазные значения
+ * (NIST CCCBDB, экспериментальная геометрия), округлены: C=O 1.209, C(O)–O 1.360, O–CH₃ 1.438, C–C 1.504 Å;
+ * O=C–O 123.0°, C–C=O 125.8°, C–O–C 114.8°.
+ */
+export const METHYL_ACETATE = {
+  CO_double: 1.209,
+  CO_single: 1.36,
+  OMe: 1.438,
+  CC: 1.504,
+  OCO: 123.0,
+  CCO_double: 125.8,
+  COC: 114.8,
 } as const
 
 const OH = () => pm('O-H')
@@ -274,9 +319,61 @@ export function ionGeometry(key: string): LabGeometry | null {
         { sym: 'O', b: 0, r: ION_BOND_A.AlO_hydroxo },
         { sym: 'H', b: 1, r: OH(), a: 0, ang: 120 },
       ])
+    case 'NO2':
+      // изогнутый ион (у N неподелённая пара), обе связи N–O одинаковые
+      return centered('N', coneDirs(2, ION_ANGLE_DEG.nitrite), [0, 1].map(() => ({ sym: 'O', r: ION_BOND_A.NO_nitrite })))
+    case 'AsO4':
+      return centered('As', T, [0, 1, 2, 3].map(() => ({ sym: 'O', r: ION_BOND_A.AsO_arsenate })))
+    case 'MnO4':
+      return centered('Mn', T, [0, 1, 2, 3].map(() => ({ sym: 'O', r: ION_BOND_A.MnO_permanganate })))
+    case 'MnO4_2':
+      return centered('Mn', T, [0, 1, 2, 3].map(() => ({ sym: 'O', r: ION_BOND_A.MnO_manganate })))
+    case 'Cr2O7':
+      return dichromateGeometry()
+    case 'CH3COO':
+      return acetateGeometry()
     default:
       return null
   }
+}
+
+/**
+ * Дихромат-ион Cr₂O₇²⁻: два тетраэдра CrO₄ с общим мостиковым O (Cr–O–Cr 126°),
+ * концевые O у каждого хрома — тетраэдрически, в заторможенной конформации.
+ */
+function dichromateGeometry(): LabGeometry {
+  const t = ION_BOND_A.CrO_dichromate_term
+  const b = ION_BOND_A.CrO_dichromate_bridge
+  return buildZMatrix([
+    { sym: 'O' },
+    { sym: 'Cr', b: 0, r: b },
+    { sym: 'Cr', b: 0, r: b, a: 1, ang: ION_ANGLE_DEG.dichromateBridge },
+    { sym: 'O', b: 1, r: t, a: 0, ang: TETRA, d: 2, dih: 180 },
+    { sym: 'O', b: 1, r: t, a: 0, ang: TETRA, d: 2, dih: 60 },
+    { sym: 'O', b: 1, r: t, a: 0, ang: TETRA, d: 2, dih: -60 },
+    { sym: 'O', b: 2, r: t, a: 0, ang: TETRA, d: 1, dih: 180 },
+    { sym: 'O', b: 2, r: t, a: 0, ang: TETRA, d: 1, dih: 60 },
+    { sym: 'O', b: 2, r: t, a: 0, ang: TETRA, d: 1, dih: -60 },
+  ])
+}
+
+/**
+ * Ацетат-ион CH₃COO⁻: плоская карбоксилатная группа, обе связи C–O одинаковые (1.254 Å, заряд
+ * делокализован), O–C–O 125°, C–C–O 117.5°; метил — тетраэдр (C–H из ядра). Первый атом — углерод COO⁻.
+ */
+function acetateGeometry(): LabGeometry {
+  const co = ION_BOND_A.CO_carboxylate
+  const cco = (360 - ION_ANGLE_DEG.carboxylate) / 2
+  const CH = pm('C-H')
+  return buildZMatrix([
+    { sym: 'C' },
+    { sym: 'O', b: 0, r: co },
+    { sym: 'O', b: 0, r: co, a: 1, ang: ION_ANGLE_DEG.carboxylate },
+    { sym: 'C', b: 0, r: ION_BOND_A.CC_acetyl, a: 1, ang: cco, d: 2, dih: 180 },
+    { sym: 'H', b: 3, r: CH, a: 0, ang: TETRA, d: 1, dih: 0 },
+    { sym: 'H', b: 3, r: CH, a: 0, ang: TETRA, d: 1, dih: 120 },
+    { sym: 'H', b: 3, r: CH, a: 0, ang: TETRA, d: 1, dih: -120 },
+  ])
 }
 
 // ── органика (газовая фаза, NIST CCCBDB; C–H, C–C, C–O, C=O, C≡C, O–H — из ядра) ──
@@ -354,9 +451,70 @@ export function organicGeometry(key: string): LabGeometry | null {
       }
     case 'C6H12O6':
       return glucoseGeometry()
+    case 'CH3COOH': {
+      // плоская группа COOH, syn: H гидроксила — по одну сторону с C=O
+      const A = ACETIC_ACID
+      return buildZMatrix([
+        { sym: 'C' },
+        { sym: 'O', b: 0, r: A.CO_double },
+        { sym: 'O', b: 0, r: A.CO_single, a: 1, ang: A.OCO },
+        { sym: 'C', b: 0, r: ION_BOND_A.CC_acetyl, a: 1, ang: A.CCO_double, d: 2, dih: 180 },
+        { sym: 'H', b: 2, r: OH(), a: 0, ang: A.COH, d: 1, dih: 0 },
+        { sym: 'H', b: 3, r: CH, a: 0, ang: SP3, d: 1, dih: 0 },
+        { sym: 'H', b: 3, r: CH, a: 0, ang: SP3, d: 1, dih: 120 },
+        { sym: 'H', b: 3, r: CH, a: 0, ang: SP3, d: 1, dih: -120 },
+      ])
+    }
+    case 'CH3COOCH3': {
+      const M = METHYL_ACETATE
+      return buildZMatrix([
+        { sym: 'C' },
+        { sym: 'O', b: 0, r: M.CO_double },
+        { sym: 'O', b: 0, r: M.CO_single, a: 1, ang: M.OCO },
+        { sym: 'C', b: 0, r: M.CC, a: 1, ang: M.CCO_double, d: 2, dih: 180 },
+        { sym: 'C', b: 2, r: M.OMe, a: 0, ang: M.COC, d: 1, dih: 0 },
+        { sym: 'H', b: 3, r: CH, a: 0, ang: SP3, d: 1, dih: 0 },
+        { sym: 'H', b: 3, r: CH, a: 0, ang: SP3, d: 1, dih: 120 },
+        { sym: 'H', b: 3, r: CH, a: 0, ang: SP3, d: 1, dih: -120 },
+        { sym: 'H', b: 4, r: CH, a: 2, ang: SP3, d: 0, dih: 180 },
+        { sym: 'H', b: 4, r: CH, a: 2, ang: SP3, d: 0, dih: 60 },
+        { sym: 'H', b: 4, r: CH, a: 2, ang: SP3, d: 0, dih: -60 },
+      ])
+    }
+    case 'CH3COONH4':
+      return ammoniumAcetateGeometry()
     default:
       return null
   }
+}
+
+/**
+ * Ацетат аммония CH₃COONH₄ — формульная единица соли: ацетат-ион и ион аммония, связанные водородной
+ * связью N–H···O (N···O 2.83 Å, угол C–O···N 120° в плоскости карбоксилата). Связь H···O не рисуется —
+ * это два иона, а не одна молекула.
+ */
+function ammoniumAcetateGeometry(): LabGeometry {
+  const ac = acetateGeometry()
+  const P = ac.atoms.map((a) => [...a.pos] as V)
+  // N — у первого O карбоксилата, в плоскости иона, «наружу» от метила
+  const N = place(P[2]!, P[0]!, P[1]!, ION_BOND_A.NO_hbond_ammonium, 120, 180)
+  const toO = norm(subV(P[1]!, N))
+  // перпендикулярный базис к оси N→O
+  const helper: V = Math.abs(toO[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0]
+  const e1 = norm(cross(toO, helper))
+  const e2 = cross(toO, e1)
+  const r = ION_BOND_A.NH_ammonium
+  const tetraCos = Math.cos(TETRA * DEG)
+  const tetraSin = Math.sin(TETRA * DEG)
+  const hs: V[] = [mul(toO, r)]
+  for (let k = 0; k < 3; k++) {
+    const phi = (2 * Math.PI * k) / 3
+    hs.push(mul(add(mul(toO, tetraCos), add(mul(e1, tetraSin * Math.cos(phi)), mul(e2, tetraSin * Math.sin(phi)))), r))
+  }
+  const atoms: Atom3D[] = [...ac.atoms, { symbol: 'N', pos: N as Vec3 }, ...hs.map((h) => ({ symbol: 'H', pos: add(N, h) as Vec3 }))]
+  const n = ac.atoms.length
+  const bonds: [number, number][] = [...ac.bonds, [n, n + 1], [n, n + 2], [n, n + 3], [n, n + 4]]
+  return { atoms, bonds }
 }
 
 /**
