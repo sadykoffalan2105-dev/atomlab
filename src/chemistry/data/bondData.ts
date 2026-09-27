@@ -45,6 +45,12 @@ export type BondKey =
   | 'N=N'
   | 'N-O'
   | 'N=O'
+  /** N–O в радикале NO₂: две равные связи, порядок 1½ */
+  | 'N-O(NO2)'
+  /** N–N в N₂O (линейная N–N–O): порядок между 2 и 3 */
+  | 'N-N(N2O)'
+  /** N–O в N₂O: порядок между 1 и 2 */
+  | 'N-O(N2O)'
   | 'O-O'
   | 'S-S'
   | 'S=O'
@@ -209,6 +215,46 @@ export const BOND_DATA: Readonly<Record<BondKey, BondDatum>> = {
     note:
       'выведено из ΔH°f той же таблицы: 472.7 + 249.2 − 91.3 = 630.6 кДж/моль (D₀(NO) ≈ 631). ' +
       'Табличные 607 кДж/моль — среднее «N=O» по многим соединениям, а не связь в самой NO.',
+  },
+  'N-O(NO2)': {
+    key: 'N-O(NO2)',
+    label: 'N–O (в NO₂)',
+    // NIST CCCBDB, экспериментальная геометрия NO₂: rNO = 1.193 Å, ∠ONO = 134.1° (Herzberg 1966) — один набор
+    // с BOND_ANGLES.nitrogenDioxide. Тип (r_e/r_0) источник не различает — lengthType не ставим.
+    lengthPm: 119.3,
+    enthalpyKJ: 469.0,
+    context: 'NO₂ (г), радикал; две равные связи N–O, порядок 1½; энергия — средняя по двум связям',
+    derived: true,
+    note:
+      'энергия выведена из атомизации по ΔH°f этой же таблицы: (472.7 + 2·249.2 − 33.2)/2 = 937.9/2 = 468.95 ≈ 469.0 ' +
+      'кДж/моль на связь. Последовательные энергии разные: D(O–NO) = 249.2 + 91.3 − 33.2 = 307.3, остаток — связь в NO. ' +
+      'Часто печатаемые 119,7 пм — другой (эффективный r_0) набор; ядро держит ОДИН набор CCCBDB вместе с углом 134.1°, ' +
+      'равновесные значения ≈ 119,5 пм и ≈ 133,9° (микроволны) — различие меньше 0,5 %.',
+  },
+  'N-N(N2O)': {
+    key: 'N-N(N2O)',
+    label: 'N–N (в N₂O)',
+    // NIST CCCBDB, N₂O: rNN = 1.128 Å, rNO = 1.184 Å, ∠NNO = 180° (Herzberg 1966)
+    lengthPm: 112.8,
+    enthalpyKJ: 482.4,
+    context: 'N₂O (г), линейная N–N–O; энергия — отрыв концевого атома N: N₂O → N + NO',
+    derived: true,
+    note:
+      'D(N–NO) = ΔH°f(N, г) + ΔH°f(NO, г) − ΔH°f(N₂O, г) = 472.7 + 91.3 − 81.6 = 482.4 кДж/моль; ' +
+      'ΔH°f(N₂O, г) = +81.6 (Gurvich, NIST CCCBDB). Длина 112.8 пм — между двойной N=N (125) и тройной N≡N (109.77): ' +
+      'порядок связи между 2 и 3 (резонанс N≡N⁺–O⁻ ↔ ⁻N=N⁺=O).',
+  },
+  'N-O(N2O)': {
+    key: 'N-O(N2O)',
+    label: 'N–O (в N₂O)',
+    lengthPm: 118.4,
+    enthalpyKJ: 167.6,
+    context: 'N₂O (г), линейная N–N–O; энергия — отрыв атома O: N₂O → N₂ + O',
+    derived: true,
+    note:
+      'D(NN–O) = ΔH°f(N₂) + ΔH°f(O, г) − ΔH°f(N₂O, г) = 0 + 249.2 − 81.6 = 167.6 кДж/моль. Энергия мала не потому, ' +
+      'что связь «одинарная»: при отрыве O связь N–N становится полноценной тройной N≡N и возвращает энергию. ' +
+      'Длина 118.4 пм — между N–O (140) и N=O (115.1): порядок между 1 и 2.',
   },
   'O-O': {
     key: 'O-O',
@@ -488,6 +534,7 @@ export type AngleKey =
   | 'methane'
   | 'ozone'
   | 'nitrogenDioxide'
+  | 'nitrousOxide'
   | 'chlorineDioxide'
   | 'chlorite'
   | 'ethylene'
@@ -539,7 +586,10 @@ export const BOND_ANGLES: Readonly<Record<AngleKey, AngleDatum>> = {
   carbonDioxide: { key: 'carbonDioxide', label: 'O–C–O', deg: 180, context: 'CO₂ (г), линейная молекула' },
   methane: { key: 'methane', label: 'H–C–H', deg: 109.47, context: 'CH₄ (г), правильный тетраэдр' },
   ozone: { key: 'ozone', label: 'O–O–O', deg: 116.8, context: 'O₃ (г)' },
+  // NIST CCCBDB (Herzberg 1966) — тот же набор, что N–O 119.3 пм (BOND_DATA 'N-O(NO2)')
   nitrogenDioxide: { key: 'nitrogenDioxide', label: 'O–N–O', deg: 134.1, context: 'NO₂ (г), радикал' },
+  // NIST CCCBDB: N₂O линейна (C∞v), порядок атомов N–N–O, а не N–O–N
+  nitrousOxide: { key: 'nitrousOxide', label: 'N–N–O', deg: 180, context: 'N₂O (г), линейная несимметричная молекула N–N–O (C∞v)' },
   chlorineDioxide: { key: 'chlorineDioxide', label: 'O–Cl–O', deg: 117.4, context: 'ClO₂ (г), радикал' },
   chlorite: { key: 'chlorite', label: 'O–Cl–O', deg: 110.5, context: 'ион ClO₂⁻' },
   ethylene: { key: 'ethylene', label: 'H–C–H', deg: 117.4, context: 'C₂H₄ (г)' },
@@ -660,7 +710,15 @@ export const DIPOLE_MOMENTS: Readonly<Record<string, DipoleDatum>> = {
   HI: { formula: 'HI', debye: 0.45 },
   H2S: { formula: 'H₂S', debye: 0.97 },
   SO2: { formula: 'SO₂', debye: 1.63 },
-  CO: { formula: 'CO', debye: 0.11 },
+  CO: {
+    formula: 'CO',
+    debye: 0.11,
+    note: 'отрицательный конец диполя — на атоме C, а не на более электроотрицательном O: донорно-акцепторная пара O→C почти компенсирует полярность связи',
+  },
+  // NIST CCCBDB: NO 0.159 D (Byfleet, Carrington & Russell 1971); NO₂ 0.316 D и N₂O 0.161 D (NSRDS-NBS 10, 1967)
+  NO: { formula: 'NO', debye: 0.159, note: 'радикал: связь почти неполярна — у N и O близкие электроотрицательности' },
+  NO2: { formula: 'NO₂', debye: 0.316, note: 'угловая молекула: векторы двух связей N–O не гасят друг друга' },
+  N2O: { formula: 'N₂O', debye: 0.161, note: 'линейная, но НЕсимметричная N–N–O — поэтому диполь не равен нулю' },
   CO2: { formula: 'CO₂', debye: 0, note: 'линейная симметричная: связи полярны, молекула — нет' },
   CH4: { formula: 'CH₄', debye: 0, note: 'тетраэдр: векторная сумма четырёх C–H равна нулю' },
   H2: { formula: 'H₂', debye: 0, note: 'гомоядерная молекула' },
@@ -685,7 +743,17 @@ export function dipoleDebye(formula: string): number | null {
  * Каждая запись — ОДИН набор одного метода (lengthType), наборы не смешиваются.
  * Ключи bondsPm / anglesDeg — подписи, как на доске: 'S=O', 'S–O(H)', '∠O=S=O'.
  */
-export type ReagentGeometryKey = 'h2so4' | 'hclo4' | 'p4o10' | 'sulfate' | 's3o9' | 'peroxide' | 'permanganate'
+export type ReagentGeometryKey =
+  | 'h2so4'
+  | 'hclo4'
+  | 'p4o10'
+  | 'sulfate'
+  | 's3o9'
+  | 'peroxide'
+  | 'permanganate'
+  | 'n2o5'
+  | 'n2o5Crystal'
+  | 'hno3'
 
 export type ReagentGeometry = {
   readonly key: ReagentGeometryKey
@@ -806,6 +874,59 @@ export const REAGENT_GEOMETRY: Readonly<Record<ReagentGeometryKey, ReagentGeomet
     bondCounts: { 'Mn–O': 4 },
     pointGroup: 'Td',
     source: 'Palenik, Inorg. Chem. 6 (1967) 503 (KMnO₄) — см. BOND_DATA «Mn-O(MnO4)»',
+  },
+  // N₂O₅ (г): McClelland, Hedberg, Hedberg & Hagen, Helv. Chim. Acta 84 (2001) 1612 — электронография + ab initio;
+  // ранняя работа тех же авторов: J. Am. Chem. Soc. 105 (1983) 3789. В CCCBDB экспериментальной геометрии нет.
+  n2o5: {
+    key: 'n2o5',
+    formula: 'N₂O₅',
+    phase: 'г',
+    lengthType: 'r_g',
+    bondsPm: { 'N=O': 118.8, 'N–O(мост)': 150.5 },
+    anglesDeg: { '∠N–O–N': 112.3, '∠O=N=O': 134.2 },
+    bondCounts: { 'N=O': 4, 'N–O(мост)': 2 },
+    pointGroup: 'C₂',
+    source: 'McClelland, Hedberg, Hedberg & Hagen, Helv. Chim. Acta 84 (2001) 1612 (газовая электронография, r_g)',
+    note:
+      'O₂N–O–NO₂: две группы NO₂ на общем мостиковом кислороде, «пропеллер» C₂ (группы повёрнуты из плоскости N–O–N ' +
+      'и заметно качаются вокруг связей с мостиком). Две концевые N–O каждой группы РАВНЫ (порядок 1½); подпись «N=O» — ' +
+      'как на доске. Мостиковая N–O (150.5 пм) длинная и слабая — по ней молекула рвётся в реакции с водой. У азота ' +
+      'ЧЕТЫРЕ общие пары (по 1½ с каждым концевым O + 1 с мостиком); пяти связей у N быть не может.',
+  },
+  // Кристалл N₂O₅ — нитрат нитрония NO₂⁺NO₃⁻: Grison, Eriks & de Vries, Acta Cryst. 3 (1950) 290
+  n2o5Crystal: {
+    key: 'n2o5Crystal',
+    formula: 'NO₂⁺NO₃⁻',
+    phase: 'тв',
+    lengthType: 'crystal',
+    bondsPm: { 'N–O(NO₂⁺)': 115, 'N–O(NO₃⁻)': 124 },
+    anglesDeg: { '∠O–N–O(NO₂⁺)': 180, '∠O–N–O(NO₃⁻)': 120 },
+    bondCounts: { 'N–O(NO₂⁺)': 2, 'N–O(NO₃⁻)': 3 },
+    pointGroup: 'D∞h (NO₂⁺) + D₃h (NO₃⁻)',
+    source: 'Grison, Eriks & de Vries, Acta Cryst. 3 (1950) 290 (рентгеноструктурный анализ кристалла N₂O₅)',
+    note:
+      'твёрдый N₂O₅ (белые кристаллы, возгоняется около 33 °C) — ионный: линейный катион нитрония NO₂⁺ и плоский ' +
+      'нитрат-ион NO₃⁻; молекулы O₂N–O–NO₂ есть только в газе. Углы заданы симметрией ионов. Длины округлены до пм, ' +
+      'как в первоисточнике.',
+  },
+  // HNO₃ (г): Cox & Riveros, J. Chem. Phys. 42 (1965) 3106 — микроволновый спектр изотопологов (NIST CCCBDB)
+  hno3: {
+    key: 'hno3',
+    formula: 'HNO₃',
+    phase: 'г',
+    lengthType: 'r_0',
+    bondsPm: { 'N=O(цис)': 121.1, 'N=O(транс)': 119.9, 'N–O(H)': 140.6, 'O–H': 96.4 },
+    // 130°16′ = 130.27°, 115°53′ = 115.88°, 113°51′ = 113.85° (сумма 360.00° — молекула плоская)
+    anglesDeg: { '∠O=N=O': 130.27, '∠HO–N=O(цис)': 115.88, '∠HO–N=O(транс)': 113.85, '∠H–O–N': 102.15 },
+    bondCounts: { 'N=O(цис)': 1, 'N=O(транс)': 1, 'N–O(H)': 1, 'O–H': 1 },
+    pointGroup: 'Cs',
+    source: 'Cox & Riveros, J. Chem. Phys. 42 (1965) 3106 (микроволны, газ; NIST CCCBDB)',
+    note:
+      'плоская молекула HO–NO₂. Две концевые N–O почти равны (121.1 и 119.9 пм, порядок ≈ 1½: резонанс N=O ↔ N–O⁻), ' +
+      'связь N–OH (140.6 пм) одинарная. У азота четыре связи — ковалентность 4, степень окисления +5. ' +
+      '«цис» — кислород на стороне атома H (по координатам CCCBDB у него длина 121.1). Структура получена по ' +
+      'вращательным постоянным нескольких изотопологов (близка к r_s). В таблице CCCBDB угол цис-HO–N=O напечатан ' +
+      '«115.0883» — это ошибка перевода 115°53′ (= 115.88°): только с ним три угла при азоте дают 360° плоской молекулы.',
   },
 }
 
