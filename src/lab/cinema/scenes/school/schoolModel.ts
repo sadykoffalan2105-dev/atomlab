@@ -276,7 +276,7 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
   // Угол — у первой молекулы каждой формулы (у одинаковых молекул он одинаков): N₂O и H₂O — оба.
   const angled = new Set<string>()
   const angleMols = spec.products.filter((mol) => !angled.has(mol.formula) && angled.add(mol.formula))
-  for (const ang of angleMols.flatMap((mol) => mol.angles ?? [])) {
+  for (const ang of angleMols.flatMap((mol) => (mol.angles ?? []).filter((x) => x.label !== false))) {
     const deg = angleDegOf(spec, ang)
     const txt = `∠${ang.a.replace(/\d+$/, '')}${ang.center.replace(/\d+$/, '')}${ang.b.replace(/\d+$/, '')} = ${deg}°`
     labels.push({
@@ -745,16 +745,29 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       const bl = Math.hypot(bx, by) > 0.05 ? Math.hypot(bx, by) : 0
       // Подпись угла — с внешней стороны атома (против биссектрисы угла), над облаком. У линейной
       // молекулы (CO₂, 180°) биссектрисы нет — подпись над центральным атомом. Если у центра три
-      // соседа и больше (N в HNO₃), снаружи стоит третий атом — тогда подпись внутри угла.
+      // соседа и больше (N в HNO₃), снаружи стоит третий атом, а внутри угла — концевые атомы:
+      // подпись — над всей молекулой (на телефоне плашка крупнее молекулы и закрыла бы атомы).
       let nb = 0
       for (const b of a.P.bonds) if (b.a === an.center || b.b === an.center) nb++
-      const sgn = nb >= 3 ? 1 : -1
-      const r = m.cloudR[an.center]! * 1.6 + 20
-      const ux = bl > 1e-3 ? (sgn * bx) / bl : 0
-      const uy = bl > 1e-3 ? (sgn * by) / bl : 1
-      s.labelPos[o] = s.atomPos[c]! + ux * r
-      s.labelPos[o + 1] = s.atomPos[c + 1]! + uy * r
-      s.labelPos[o + 2] = s.atomPos[c + 2]!
+      if (nb >= 3) {
+        const id = a.atoms[an.center]!.id
+        const mol = m.spec.products.find((p) => p.atoms.includes(id))
+        let top = s.atomPos[c + 1]! + m.cloudR[an.center]!
+        for (const aid of mol?.atoms ?? []) {
+          const i = a.index.get(aid)!
+          top = Math.max(top, s.atomPos[i * 3 + 1]! + m.cloudR[i]!)
+        }
+        s.labelPos[o] = s.atomPos[c]!
+        s.labelPos[o + 1] = top + 30
+        s.labelPos[o + 2] = s.atomPos[c + 2]!
+      } else {
+        const r = m.cloudR[an.center]! * 1.6 + 20
+        const ux = bl > 1e-3 ? -bx / bl : 0
+        const uy = bl > 1e-3 ? -by / bl : 1
+        s.labelPos[o] = s.atomPos[c]! + ux * r
+        s.labelPos[o + 1] = s.atomPos[c + 1]! + uy * r
+        s.labelPos[o + 2] = s.atomPos[c + 2]!
+      }
     } else if (an.kind === 'top') {
       s.labelPos[o] = (minX + maxX) / 2
       s.labelPos[o + 1] = maxY + 40

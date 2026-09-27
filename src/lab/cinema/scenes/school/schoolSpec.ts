@@ -89,6 +89,8 @@ export type SchoolAngleSpec = {
   readonly angleKey?: AngleKey
   readonly deg?: number
   readonly source?: string
+  /** false — угол только проверяется тестом, в кадре не подписывается (второй угол той же молекулы). */
+  readonly label?: boolean
 }
 
 export type SchoolMoleculeSpec = {

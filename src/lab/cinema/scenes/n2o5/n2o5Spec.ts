@@ -169,7 +169,8 @@ export const N2O5_SCENE_SPEC: SchoolSceneSpec = {
       coords: { N1: K1.N, O1: K1.Oh, O2: K1.Ocis, O3: K1.Otrans, H1: K1.H },
       angles: [
         { a: 'O2', center: 'N1', b: 'O3', deg: HA('∠O=N=O'), source: SRC_HNO3 },
-        { a: 'H1', center: 'O1', b: 'N1', deg: HA('∠H–O–N'), source: SRC_HNO3 },
+        // Угол H–O–N проверяет тест; в кадре подписан главный угол O–N–O (о нём говорит урок).
+        { a: 'H1', center: 'O1', b: 'N1', deg: HA('∠H–O–N'), source: SRC_HNO3, label: false },
       ],
       place: P1,
     },
@@ -188,7 +189,7 @@ export const N2O5_SCENE_SPEC: SchoolSceneSpec = {
       coords: { N2: K2.N, O6: K2.Oh, O4: K2.Ocis, O5: K2.Otrans, H2: K2.H },
       angles: [
         { a: 'O4', center: 'N2', b: 'O5', deg: HA('∠O=N=O'), source: SRC_HNO3 },
-        { a: 'H2', center: 'O6', b: 'N2', deg: HA('∠H–O–N'), source: SRC_HNO3 },
+        { a: 'H2', center: 'O6', b: 'N2', deg: HA('∠H–O–N'), source: SRC_HNO3, label: false },
       ],
       place: P2,
     },
