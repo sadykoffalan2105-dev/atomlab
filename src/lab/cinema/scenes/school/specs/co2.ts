@@ -107,7 +107,8 @@ export const CO2_SPEC: SchoolScienceSpec = {
           uz: 'qoʻzgʻalgan uglerod: 2s jufti ajralgan, toʻrtta bogʻ uchun toʻrtta juftlashmagan elektron',
         },
       },
-    ],    breaks: [
+    ],
+    breaks: [
       {
         particle: 'O2',
         a: 'Oa',

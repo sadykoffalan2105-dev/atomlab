@@ -109,7 +109,8 @@ export const SO3_SPEC: SchoolScienceSpec = {
           uz: 'SO₂ dagi oltingugurtning boʻlinmagan jufti uchinchi qoʻsh bogʻ uchun ajraladi',
         },
       },
-    ],    breaks: [
+    ],
+    breaks: [
       {
         particle: 'O2',
         a: 'Oa',

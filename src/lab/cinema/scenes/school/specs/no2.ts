@@ -110,16 +110,17 @@ export const NO2_SPEC: SchoolScienceSpec = {
   particles: [{ ...P_NO, role: 'reactant' }, P_O2, P_NO2],
   mechanism: {
     splitElectrons: (['Oa', 'Ob'] as const).map((atom) => ({
-        particle: 'O2',
-        atom,
-        lone: 3,
-        unpaired: 0,
-        why: {
-          ru: 'атом кислорода — акцептор: спаривает два своих электрона и освобождает орбиталь для пары азота',
-          en: 'the oxygen atom is the acceptor: it pairs its two electrons and frees an orbital for the nitrogen pair',
-          uz: 'kislorod atomi — akseptor: ikki elektronini juftlaydi va azot jufti uchun orbitalni boʻshatadi',
-        },
-      })),    breaks: [
+      particle: 'O2',
+      atom,
+      lone: 3,
+      unpaired: 0,
+      why: {
+        ru: 'атом кислорода — акцептор: спаривает два своих электрона и освобождает орбиталь для пары азота',
+        en: 'the oxygen atom is the acceptor: it pairs its two electrons and frees an orbital for the nitrogen pair',
+        uz: 'kislorod atomi — akseptor: ikki elektronini juftlaydi va azot jufti uchun orbitalni boʻshatadi',
+      },
+    })),
+    breaks: [
       {
         particle: 'O2',
         a: 'Oa',

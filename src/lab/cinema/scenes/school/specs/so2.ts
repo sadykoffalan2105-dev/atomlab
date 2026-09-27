@@ -65,7 +65,8 @@ export const SO2_SPEC: SchoolScienceSpec = {
           uz: 'ikkita qoʻsh bogʻ uchun oltingugurtga toʻrtta elektron kerak; bitta juft boʻlinmagan qoladi',
         },
       },
-    ],    breaks: [
+    ],
+    breaks: [
       {
         particle: 'O2',
         a: 'Oa',
