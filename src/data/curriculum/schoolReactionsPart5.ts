@@ -852,6 +852,8 @@ export const SCHOOL_REACTIONS_PART5: readonly SchoolReactionDef[] = [
     howToRu: 'Осторожное нагревание небольшой порции NH₄NO₃ → «веселящий газ» N₂O и пары воды (8 кл., с. 168). Запись 7 кл. «N₂ + O₃ → N₂O + O₂» на деле почти не идёт.',
     howToEn: 'Gentle heating of a small portion of NH₄NO₃ gives laughing gas N₂O and water vapour (grade 8, p. 168).',
     passport: { heatEffect: 'exo', isRedox: true },
+    // Разложение идёт только при нагревании (8 кл., с. 168).
+    labNeeds: { needsHeat: true },
   },
   {
     // Kimyo 7, § 6.4, с. 139 — школьная сцена оксида азота(V) (scenes/n2o5): кислотный оксид + вода → кислота.
@@ -872,6 +874,8 @@ export const SCHOOL_REACTIONS_PART5: readonly SchoolReactionDef[] = [
     howToRu: 'Кислотный оксид + вода → кислота (7 кл., с. 139): N₂O₅ + H₂O → 2HNO₃, как SO₃ + H₂O → H₂SO₄.',
     howToEn: 'Acidic oxide + water → acid (grade 7, p. 139): N₂O₅ + H₂O → 2HNO₃, like SO₃ + H₂O → H₂SO₄.',
     passport: { heatEffect: 'exo' },
+    // Без условий: кислотный оксид сразу реагирует с водой (у HNO₃ в данных — процесс Оствальда).
+    labNeeds: {},
   },
   {
     id: 'ostwald-hno3',
