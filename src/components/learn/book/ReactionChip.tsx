@@ -298,6 +298,16 @@ export function ReactionCard({ rx, gradeId, unitId, anchor, sheet, contextLabel,
         </p>
       ) : null}
 
+      {/* общая схема или формула с «n» — в реакторе конкретный пример учебника */}
+      {rx.lab.example ? (
+        <p className={styles.rxCardCond} data-book-rx-example={rx.id}>
+          <span className={styles.rxCardCondLabel}>
+            {t(rx.lab.ok ? 'learn.book.rx.labExample' : 'learn.book.rx.labExampleWaiting')}
+          </span>
+          {rx.lab.example}
+        </p>
+      ) : null}
+
       {rx.lab.ok ? (
         <>
           <p className={styles.rxCardReady}>

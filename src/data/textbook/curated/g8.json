@@ -197,7 +197,7 @@
     {"page":146,"unit":"p35","eq":"4FeS2 + 11O2 -> 2Fe2O3 + 8SO2","type":"combustion","cond":"этап 1: обжиг пирита (основное сырьё)"},
     {"page":146,"unit":"p35","eq":"Cu2S + 2O2 -> 2CuO + SO2","type":"combustion","cond":"этап 1: обжиг сульфидов цветных металлов"},
     {"page":149,"eq":"SO3 + H2O -> H2SO4","type":"combination","cond":"этап 3: вода в 98 %-й H2SO4 гидратирует SO3; +Q"},
-    {"page":149,"eq":"H2SO4 + nSO3 -> H2SO4*nSO3","type":"combination","cond":"обезвоженная H2SO4 поглощает SO3 — олеум"},
+    {"page":149,"eq":"H2SO4 + nSO3 -> H2SO4*nSO3","type":"combination","cond":"обезвоженная H2SO4 поглощает SO3 — олеум","labExample":"H2SO4 + SO3 -> H2S2O7","note":"Олеум — раствор SO₃ в безводной серной кислоте: n — сколько молекул SO₃ приходится на одну H₂SO₄. Пример n = 1: H₂SO₄ + SO₃ → H₂S₂O₇ (H₂SO₄·SO₃ — дисерная кислота)."},
     {"page":151,"eq":"2NO + O2 -> 2NO2","type":"combination","cond":"пример 2: при повышении давления в 3 раза скорость возрастает в 27 раз"},
     {"page":151,"eq":"CO + H2O <-> CO2 + H2","type":"exchange","book":"CO + H2O ⇄ CO2 + H2","cond":"пример 3: константа равновесия K = [CO2][H2] / ([CO][H2O])"},
     {"page":152,"eq":"3O2 <-> 2O3","type":"other","book":"3O2 ⇄ 2O3 + 192,46 кДж","cond":"пример 5: принцип Ле Шателье"},

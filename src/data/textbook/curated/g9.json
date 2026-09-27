@@ -466,7 +466,7 @@
     {"page":164,"unit":"p35","eq":"Fe(OH)2 + 2HNO3 -> Fe(NO3)2 + 2H2O","type":"neutralization","exercise":true,"book":"г) Fe(OH)2 → Fe(NO3)2"},
     {"page":165,"eq":"C + O2 -> CO2","type":"combustion","cond":"доменный процесс, стадия 1: сгорание части кокса"},
     {"page":165,"eq":"CO2 + C -> 2CO","type":"redox","cond":"стадия 2: CO2 с коксом при высокой температуре превращается в CO"},
-    {"page":165,"eq":"Fe2O3*nH2O -> Fe2O3 + nH2O","type":"decomposition","cond":"стадия 3: 500–700 °C"},
+    {"page":165,"eq":"Fe2O3*nH2O -> Fe2O3 + nH2O","type":"decomposition","cond":"стадия 3: 500–700 °C","labExample":"2Fe(OH)3 -> Fe2O3 + 3H2O","note":"Fe₂O₃·nH₂O — гидратированный оксид железа(III) в руде (бурый железняк), n — число молекул воды. Пример из учебника: при n = 3 это 2Fe(OH)₃ (с. 81: 4Fe + 2nH₂O + 3O₂ = 2Fe₂O₃·nH₂O, или 4Fe + 6H₂O + 3O₂ = 4Fe(OH)₃) — 2Fe(OH)₃ → Fe₂O₃ + 3H₂O."},
     {"page":165,"eq":"3Fe2O3 + CO -> 2Fe3O4 + CO2","type":"redox","cond":"стадия 3: восстановление руды, 450–500 °C"},
     {"page":166,"eq":"Fe3O4 + CO -> 3FeO + CO2","type":"redox","cond":"стадия 3: 500–700 °C"},
     {"page":166,"eq":"FeO + CO -> Fe + CO2","type":"redox","cond":"стадия 3: 700–800 °C — свободное железо"},

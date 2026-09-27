@@ -6,12 +6,36 @@ import path from 'node:path'
 import { readerUnitHref } from '../../src/data/textbook/bookReader'
 import { reactorHrefForBank, reactorHrefForEquation, resolveReactorEquation } from '../../src/lab/reactorDeepLink'
 import { SCHOOL_REACTION_BANK } from '../../src/chemistry/schoolReactionBank'
+import { exampleDisplay, exampleLab, resolveExample } from './scheme-example.mts'
+
+/** Почему пример не открылся: код реактора и вещества, которых в нём нет. */
+function describeExample(example: string): string {
+  const { res } = resolveExample(example)
+  if (res.ok) return 'ok'
+  const formulas = (res.details as { formulas?: string[] }).formulas
+  return `${res.code}${formulas?.length ? `: ${formulas.join(', ')}` : ''}`
+}
 
 // Банк школьных реакций: если уравнение совпадает, ссылка идёт через id банка (у него есть условия и кино-анимации).
 const norm = (s: string) => s.replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080)).replace(/[↑↓\s]/g, '').replace(/<->|<=>|→|=|⇄|⇌/g, '->')
 const bankByEq = new Map(SCHOOL_REACTION_BANK.map((r) => [norm(r.equationRu), r.id]))
 
-type Curated = { page: number; unit?: string; eq: string; type?: string; cond?: string | null; book?: string; exercise?: boolean; ionic?: boolean }
+/**
+ * labExample — формула с «n» (полимер, олеум, ржавчина) открывается в реакторе по конкретному примеру учебника
+ * (scheme-example.mts); note — пояснение карточки («пример: …»).
+ */
+type Curated = {
+  page: number
+  unit?: string
+  eq: string
+  type?: string
+  cond?: string | null
+  book?: string
+  exercise?: boolean
+  ionic?: boolean
+  labExample?: string
+  note?: string
+}
 type Unit = { unitId: string; pageStart: number | null; pageEnd: number | null; reactions: unknown[] }
 type GradeFile = { grade: number; gradeId: string; generatedAt: string; units: Unit[] }
 
@@ -59,12 +83,14 @@ for (const g of files) {
       const bankRes = bankId ? resolveReactorEquation({ reactionId: bankId }) : null
       // Ионные уравнения и полуреакции тоже открываются — ионы и e⁻ стали частицами реактора.
       const res = bankRes?.ok ? bankRes : resolveReactorEquation({ equation: r.eq })
+      // только формула с «n» (полимер, олеум, ржавчина) — по примеру учебника
+      const byExample = !res.ok && res.code === 'generalFormula' ? exampleLab(r.labExample, src) : null
       const lab = res.ok
         ? { ok: true as const, href: bankRes?.ok && bankId ? reactorHrefForBank(bankId, { src }) : reactorHrefForEquation(r.eq, { src }) }
-        : { ok: false as const, reason: res.code }
+        : (byExample ?? { ok: false as const, reason: res.code, ...(r.labExample ? { example: exampleDisplay(r.labExample) } : {}) })
       total++
       if (lab.ok) ok++
-      else fails.push(`${u.unitId}/${id} ${r.eq} → ${res.code}`)
+      else fails.push(`${u.unitId}/${id} ${r.eq} → ${res.ok ? '?' : res.code}${r.labExample ? ` (пример ${r.labExample} → ${describeExample(r.labExample)})` : ''}`)
       return {
         id,
         page: r.page,
@@ -78,6 +104,7 @@ for (const g of files) {
         isGeneralScheme: false,
         bankId: bankRes?.ok ? bankId : null,
         lab,
+        ...(r.note ? { note: r.note } : {}),
       }
     })
   }

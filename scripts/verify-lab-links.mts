@@ -246,14 +246,17 @@ const normEq = (s: string) =>
 const bankByEq = new Map(SCHOOL_REACTION_BANK.map((rx) => [normEq(rx.equationRu), rx.id]))
 const coverage: string[] = []
 for (const g of [7, 8, 9]) {
-  const curated = JSON.parse(fs.readFileSync(`src/data/textbook/curated/g${g}.json`, 'utf8')) as { reactions: { eq: string; page: number }[] }
+  const curated = JSON.parse(fs.readFileSync(`src/data/textbook/curated/g${g}.json`, 'utf8')) as { reactions: { eq: string; page: number; labExample?: string }[] }
   let ok = 0
   const stage: Record<string, number> = {}
   const fails: Record<string, string[]> = {}
   for (const rx of curated.reactions) {
     const bankId = bankByEq.get(normEq(rx.eq)) ?? null
     const bankRes = bankId ? resolveReactorEquation({ reactionId: bankId }, { newId }) : null
-    const r = bankRes?.ok ? bankRes : resolveReactorEquation({ equation: rx.eq }, { newId })
+    const r0 = bankRes?.ok ? bankRes : resolveReactorEquation({ equation: rx.eq }, { newId })
+    // формула с «n» открывается по примеру учебника (labExample: n = 3 у Fe₂O₃·nH₂O — 2Fe(OH)₃, с. 81)
+    const byExample = !r0.ok && r0.code === 'generalFormula' && rx.labExample ? resolveReactorEquation({ equation: rx.labExample }, { newId }) : null
+    const r = byExample?.ok ? byExample : r0
     if (r.ok) {
       ok++
       if (r.stageOnly) stage[r.stageOnly] = (stage[r.stageOnly] ?? 0) + 1
@@ -305,7 +308,8 @@ for (const grade of [10, 11]) {
       const label = `g${grade} ${u.unitId} ${rx.id} p${rx.page} ${rx.equationAscii}`
       if (rx.isGeneralScheme) {
         schemes++
-        if (rx.lab.ok) tbProblems.push(`${label}: общая схема открывается в реакторе`)
+        // общая схема открывается только по конкретному примеру учебника (lab.example — scripts/test-book-schemes.mts)
+        if (rx.lab.ok && !(rx.lab as { example?: string }).example) tbProblems.push(`${label}: общая схема открывается в реакторе без примера учебника`)
         continue
       }
       n++
