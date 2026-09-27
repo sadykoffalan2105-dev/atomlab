@@ -678,7 +678,16 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
   }
 
   // ——— направления мест у атомов ———
-  const dirsFor = (bonds: readonly PhaseBond[], pos: readonly V3[], lone: readonly number[], single: readonly number[], singleTargets?: (i: number) => V3[]): PhaseAtom[] =>
+  const dirsFor = (
+    bonds: readonly PhaseBond[],
+    pos: readonly V3[],
+    lone: readonly number[],
+    single: readonly number[],
+    singleTargets?: (i: number) => V3[],
+    loneTargets?: (i: number) => V3[],
+    avoid?: (i: number) => V3[],
+    lewis = false,
+  ): PhaseAtom[] =>
     atoms.map((_, i) => {
       const fixed: V3[] = []
       for (const b of bonds) {
@@ -688,17 +697,27 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
       const targets = singleTargets?.(i) ?? []
       const singleDirs: V3[] = targets.slice(0, single[i]!)
       const nFreeSingle = single[i]! - singleDirs.length
+      const loneFixed: V3[] = (loneTargets?.(i) ?? []).slice(0, lone[i]!)
+      const nFreeLone = lone[i]! - loneFixed.length
+      // Не больше трёх направлений (соседи + пары + неспаренные) — атом плоский (sp², sp): его пары
+      // лежат в плоскости связей. Если связи в плоскости кадра, пары рисуем в ней же — так их не
+      // прячет шар (NO, NO₂, O₂, концевой N в N₂O). У концевого атома (одна связь) формы нет —
+      // его пары тоже в плоскости, как в точечной формуле учебника (O в N₂O, O⁻ нитрата).
+      // Центральный атом с четырьмя направлениями (O в H₂O, N в NH₄⁺) — объём (тетраэдр) — но только
+      // у продуктов (шаг molecule показывает форму); реагенты и атомы после разрыва (lewis) рисуются
+      // точечной формулой учебника в плоскости кадра, иначе две пары O воды слились бы в проекции.
+      const flat = (lewis || fixed.length <= 1 || fixed.length + lone[i]! + single[i]! <= 3) && fixed.every((f) => Math.abs(f[2]) < 0.2)
       const relaxed = relaxDomains(
-        [...fixed, ...singleDirs],
-        lone[i]! + nFreeSingle,
-        [...new Array<number>(lone[i]!).fill(1.25), ...new Array<number>(nFreeSingle).fill(0.8)],
-        fixed.length === 0,
+        [...fixed, ...singleDirs, ...loneFixed, ...(avoid?.(i) ?? [])],
+        nFreeLone + nFreeSingle,
+        [...new Array<number>(nFreeLone).fill(1.25), ...new Array<number>(nFreeSingle).fill(0.8)],
+        fixed.length === 0 || flat,
       )
       return {
         lone: lone[i]!,
         single: single[i]!,
-        loneDirs: relaxed.slice(0, lone[i]!),
-        singleDirs: [...singleDirs, ...relaxed.slice(lone[i]!)],
+        loneDirs: [...loneFixed, ...relaxed.slice(0, nFreeLone)],
+        singleDirs: [...singleDirs, ...relaxed.slice(nFreeLone)],
       }
     })
 
@@ -725,6 +744,23 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
     })
     return out
   }
+  // Донорно-акцепторная пара в фазе S: неподелённая пара донора (первые пары атома — их и берёт
+  // takeLone) смотрит на акцептор, а пары акцептора обходят направление на донора — «свободное место».
+  const dativeDirs = (i: number, role: 'donor' | 'acceptor'): V3[] => {
+    const out: V3[] = []
+    for (const fp of formed) {
+      const b = pBonds[fp.pBond]!
+      const o = b.pairs[fp.pair]!
+      if (o === 'ab') continue
+      const donor = o === 'a' ? b.a : b.b
+      const acc = donor === b.a ? b.b : b.a
+      const [from, to] = role === 'donor' ? [donor, acc] : [acc, donor]
+      if (from !== i) continue
+      const d0 = sub(sPos[to]!, sPos[i]!)
+      out.push(norm(Math.hypot(d0[0], d0[1]) > 1e-3 ? [d0[0], d0[1], 0] : d0))
+    }
+    return out
+  }
   // Формирующиеся неспаренные электроны идут первыми в списке слотов S.
   atoms.forEach((_, i) => {
     const slots = sSingleSlots[i]!
@@ -736,8 +772,13 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
     slots.forEach((x, q) => (placeS[x] = { kind: 'single', atom: i, index: q }))
   })
 
-  const R: Phase = { bonds: rBonds, atoms: dirsFor(rBonds, rPos, rLone, rSingle), pos: rPos, charge: rQ }
-  const S: Phase = { bonds: sBonds, atoms: dirsFor(sBonds, sPos, sLone, sSingle, sTargets), pos: sPos, charge: sQ }
+  const R: Phase = { bonds: rBonds, atoms: dirsFor(rBonds, rPos, rLone, rSingle, undefined, undefined, undefined, true), pos: rPos, charge: rQ }
+  const S: Phase = {
+    bonds: sBonds,
+    atoms: dirsFor(sBonds, sPos, sLone, sSingle, sTargets, (i) => dativeDirs(i, 'donor'), (i) => dativeDirs(i, 'acceptor'), true),
+    pos: sPos,
+    charge: sQ,
+  }
   const P: Phase = { bonds: pBonds, atoms: dirsFor(pBonds, pPos, pLone, pSingle), pos: pPos, charge: pQ }
 
   const electrons: SchoolElectron[] = []

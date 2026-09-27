@@ -189,6 +189,12 @@ export type SchoolSceneSpec = {
    * сохраняет заряд, который получился при разрыве. splitElectrons применяется уже после переноса.
    */
   readonly splitCharges?: Readonly<Record<string, number>>
+  /**
+   * Доля поворота молекул продукта на шагах molecule / result (1 — по умолчанию: наклон и рыскание,
+   * чтобы увидеть неподелённые пары вне плоскости, как у H₂O). Плоским и линейным молекулам (NO₂,
+   * N₂O, HNO₃) хватает лёгкого поворота — иначе угол «сплющивается» и пары уходят за шары.
+   */
+  readonly productTurn?: number
   /** Шесть шагов по порядку SCHOOL_STEP_IDS. */
   readonly steps: readonly SchoolStepTiming[]
   /** Подписи в 3D (коротко): условия реакции, «газ», наблюдение. */
