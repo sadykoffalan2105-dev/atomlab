@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { SchoolReactionScene } from '../SchoolReactionScene'
 import { H2O_SPEC } from '../../h2o/h2oSpec'
-import { FIX_CO, FIX_NO2 } from '../schoolFixtures'
+import { FIX_CO, FIX_NH4CL, FIX_NO2 } from '../schoolFixtures'
 import type { SchoolSceneSpec } from '../schoolSpec'
 
 /**
@@ -15,6 +15,7 @@ const SPECS: Record<string, SchoolSceneSpec> = {
   h2o: H2O_SPEC,
   'fixture-co': FIX_CO,
   'fixture-no2': FIX_NO2,
+  'fixture-nh4cl': FIX_NH4CL,
 }
 
 const q = new URLSearchParams(location.search)

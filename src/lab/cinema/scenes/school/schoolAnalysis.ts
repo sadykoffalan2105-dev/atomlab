@@ -33,6 +33,8 @@ export type PhaseBond = {
   readonly lengthPm: number
   /** Индекс молекулы фазы. */
   readonly molecule: number
+  /** Гетеролиз: атом, которому достаются оба электрона разрываемых пар (−1 — гомолиз). */
+  readonly breakTo: number
 }
 
 export type PhaseAtom = {
@@ -46,6 +48,8 @@ export type PhaseAtom = {
 export type Phase = {
   readonly bonds: PhaseBond[]
   readonly atoms: PhaseAtom[]
+  /** Заряд атома в фазе: электронов у него = электроны внешнего слоя − заряд. */
+  readonly charge: number[]
   /** Координаты атомов в фазе, пм (система сцены). */
   readonly pos: V3[]
 }
@@ -272,7 +276,7 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
         const key = pairKey(a, c)
         if (seen.has(key)) fail(spec, `${side}: связь ${b.a}–${b.b} объявлена дважды`)
         seen.add(key)
-        out.push({ a, b: c, pairs: b.pairs, lengthPm: bondLengthOf(spec, b), molecule: k })
+        out.push({ a, b: c, pairs: b.pairs, lengthPm: bondLengthOf(spec, b), molecule: k, breakTo: b.breakTo ? (b.breakTo === 'a' ? a : c) : -1 })
       }
     })
     return out
@@ -312,7 +316,7 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
     if (kept > 0) {
       rToS[k] = sBonds.length
       pToS[pk] = sBonds.length
-      sBonds.push({ a: b.a, b: b.b, pairs: b.pairs.slice(0, kept), lengthPm: b.lengthPm, molecule: -1 })
+      sBonds.push({ a: b.a, b: b.b, pairs: b.pairs.slice(0, kept), lengthPm: b.lengthPm, molecule: -1, breakTo: -1 })
     }
   })
   const broken: BrokenPair[] = []
@@ -341,7 +345,7 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
   const brokenOf = new Array<number>(nE).fill(-1)
   const formedOf = new Array<number>(nE).fill(-1)
 
-  const countMap = (list: readonly SchoolMoleculeSpec[], field: 'lonePairs' | 'unpaired'): number[] => {
+  const countMap = (list: readonly SchoolMoleculeSpec[], field: 'lonePairs' | 'unpaired' | 'charges'): number[] => {
     const out = new Array<number>(n).fill(0)
     for (const mol of list) {
       const m = mol[field]
@@ -358,15 +362,33 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
   const rSingle = countMap(spec.reactants, 'unpaired')
   const pLone = countMap(spec.products, 'lonePairs')
   const pSingle = countMap(spec.products, 'unpaired')
+  const rQ = countMap(spec.reactants, 'charges')
+  const pQ = countMap(spec.products, 'charges')
+  const sumQ = (q: number[]) => q.reduce((x, y) => x + y, 0)
+  if (sumQ(rQ) !== sumQ(pQ)) fail(spec, `сумма зарядов реагентов (${sumQ(rQ)}) ≠ продуктов (${sumQ(pQ)})`)
+
+  // Электроны, которыми атом распоряжается в фазе R: свои минус отданные (заряд > 0) плюс принятые
+  // (заряд < 0). Перенос — по порядку атомов (ионы NH₄⁺ / NO₃⁻ и т. п.).
+  const holdR: number[][] = atoms.map((a, i) => Array.from({ length: a.valence }, (_, k) => firstE[i]! + k))
+  {
+    const pool: number[] = []
+    atoms.forEach((a, i) => {
+      for (let c = 0; c < rQ[i]!; c++) pool.push(holdR[i]!.pop() ?? fail(spec, `реагенты: заряд ${a.id} больше числа его электронов`))
+    })
+    atoms.forEach((a, i) => {
+      for (let c = 0; c < -rQ[i]!; c++) holdR[i]!.push(pool.shift() ?? fail(spec, `реагенты: заряду ${a.id} не хватает электронов других атомов`))
+    })
+  }
 
   // Электроны атома в фазе R: вклад в пары (по порядку связей), неподелённые пары, неспаренные.
   const rPairSlots: number[][][] = rBonds.map((b) => b.pairs.map(() => [-1, -1]))
   const rLoneSlots: number[][][] = atoms.map((_, i) => Array.from({ length: rLone[i]! }, () => [-1, -1]))
   const rSingleSlots: number[][] = atoms.map((_, i) => new Array<number>(rSingle[i]!).fill(-1))
   atoms.forEach((a, i) => {
-    let e = firstE[i]!
-    const end = e + a.valence
-    const take = (): number => (e < end ? e++ : fail(spec, `реагенты: у атома ${a.id} не хватает электронов внешнего слоя (${a.valence})`))
+    const hold = holdR[i]!
+    let e = 0
+    const end = hold.length
+    const take = (): number => (e < end ? hold[e++]! : fail(spec, `реагенты: у атома ${a.id} не хватает электронов (${end})`))
     rBonds.forEach((b, k) => {
       if (b.a !== i && b.b !== i) return
       b.pairs.forEach((o, q) => {
@@ -396,7 +418,7 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
       rSingleSlots[i]![q] = x
       placeR[x] = { kind: 'single', atom: i, index: q }
     }
-    if (e !== end) fail(spec, `реагенты: у атома ${a.id} ${end - e} электрон(а) внешнего слоя без места (всего ${a.valence})`)
+    if (e !== end) fail(spec, `реагенты: у атома ${a.id} ${end - e} электрон(а) без места (всего ${end})`)
   })
 
   // ——— фаза S: разрыв ———
@@ -418,7 +440,10 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
       const [x0, x1] = rPairSlots[bp.rBond]![bp.pair]! as [number, number]
       brokenOf[x0] = bi
       brokenOf[x1] = bi
-      if (o === 'ab') {
+      if (b.breakTo >= 0) {
+        // Гетеролиз: пара целиком уходит к атому breakTo (H–Cl → H⁺ + Cl⁻).
+        pairedFree[b.breakTo]!.push(x0, x1)
+      } else if (o === 'ab') {
         singleFree[b.a]!.push(x0)
         singleFree[b.b]!.push(x1)
       } else {
@@ -463,8 +488,49 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
     })
   }
 
+  // Заряды фазы S: сколько электронов у атома после разрыва (сохранённые пары + свободные).
+  const heldS = atoms.map((_, i) => {
+    let c = 2 * sLone[i]! + sSingle[i]!
+    for (const b of sBonds) {
+      for (const o of b.pairs) {
+        if (o === 'ab') {
+          if (b.a === i || b.b === i) c += 1
+        } else if ((o === 'a' && b.a === i) || (o === 'b' && b.b === i)) c += 2
+      }
+    }
+    return c
+  })
+  const sQ = atoms.map((a, i) => a.valence - heldS[i]!)
+
   // ——— фаза P: образование пар ———
   const pPairSlots: number[][][] = pBonds.map((b) => b.pairs.map(() => [-1, -1]))
+  // Доступные для продуктов электроны атома (копии списков S): при смене зарядов (ионы) лишние
+  // электроны атома переходят к атому, которому их не хватает, — неспаренными.
+  const availSingle: number[][] = sSingleSlots.map((l) => [...l])
+  const availLone: number[][][] = sLoneSlots.map((l) => l.map((pr) => [...pr]))
+  {
+    const moved: number[] = []
+    atoms.forEach((a, i) => {
+      let surplus = heldS[i]! - (a.valence - pQ[i]!)
+      while (surplus > 0) {
+        const x = availSingle[i]!.pop()
+        if (x !== undefined) moved.push(x)
+        else {
+          const pr = availLone[i]!.pop() ?? fail(spec, `продукты: у атома ${a.id} нечего отдать для заряда ${pQ[i]}`)
+          moved.push(pr[1]!)
+          availSingle[i]!.push(pr[0]!)
+        }
+        surplus--
+      }
+    })
+    atoms.forEach((a, i) => {
+      let deficit = a.valence - pQ[i]! - heldS[i]!
+      while (deficit > 0) {
+        availSingle[i]!.push(moved.shift() ?? fail(spec, `продукты: атому ${a.id} не хватает электронов для заряда ${pQ[i]}`))
+        deficit--
+      }
+    })
+  }
   {
     const usedSingle = atoms.map(() => new Set<number>())
     const usedLone = atoms.map(() => new Set<number>())
@@ -483,7 +549,7 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
       }
     })
     const takeSingle = (i: number, what: string): number => {
-      const list = sSingleSlots[i]!
+      const list = availSingle[i]!
       for (const x of list) {
         if (!usedSingle[i]!.has(x)) {
           usedSingle[i]!.add(x)
@@ -493,7 +559,7 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
       return fail(spec, `${what}: у атома ${atoms[i]!.id} нет неспаренного электрона для общей пары`)
     }
     const takeLone = (i: number, what: string): [number, number] => {
-      const list = sLoneSlots[i]!
+      const list = availLone[i]!
       for (let q = 0; q < list.length; q++) {
         if (!usedLone[i]!.has(q)) {
           usedLone[i]!.add(q)
@@ -522,10 +588,10 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
     })
     atoms.forEach((a, i) => {
       const rest: number[] = []
-      sLoneSlots[i]!.forEach((pr, q) => {
+      availLone[i]!.forEach((pr, q) => {
         if (!usedLone[i]!.has(q)) rest.push(pr[0]!, pr[1]!)
       })
-      for (const x of sSingleSlots[i]!) if (!usedSingle[i]!.has(x)) rest.push(x)
+      for (const x of availSingle[i]!) if (!usedSingle[i]!.has(x)) rest.push(x)
       if (2 * pLone[i]! + pSingle[i]! !== rest.length) {
         fail(spec, `продукты: у атома ${a.id} после образования пар осталось ${rest.length} электрон(ов), а задано ${pLone[i]} неподелённых пар + ${pSingle[i]} неспаренных`)
       }
@@ -597,9 +663,9 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
     slots.forEach((x, q) => (placeS[x] = { kind: 'single', atom: i, index: q }))
   })
 
-  const R: Phase = { bonds: rBonds, atoms: dirsFor(rBonds, rPos, rLone, rSingle), pos: rPos }
-  const S: Phase = { bonds: sBonds, atoms: dirsFor(sBonds, sPos, sLone, sSingle, sTargets), pos: sPos }
-  const P: Phase = { bonds: pBonds, atoms: dirsFor(pBonds, pPos, pLone, pSingle), pos: pPos }
+  const R: Phase = { bonds: rBonds, atoms: dirsFor(rBonds, rPos, rLone, rSingle), pos: rPos, charge: rQ }
+  const S: Phase = { bonds: sBonds, atoms: dirsFor(sBonds, sPos, sLone, sSingle, sTargets), pos: sPos, charge: sQ }
+  const P: Phase = { bonds: pBonds, atoms: dirsFor(pBonds, pPos, pLone, pSingle), pos: pPos, charge: pQ }
 
   const electrons: SchoolElectron[] = []
   for (let e = 0; e < nE; e++) {

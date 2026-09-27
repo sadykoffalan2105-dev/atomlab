@@ -28,7 +28,7 @@ import { buildSchoolModel, createSchoolState, sampleSchoolState, type SchoolMode
 import { SCHOOL_STEP_IDS, type SchoolLocale, type SchoolSceneSpec } from '../src/lab/cinema/scenes/school/schoolSpec.ts'
 import { H2O_SPEC } from '../src/lab/cinema/scenes/h2o/h2oSpec.ts'
 import { H2O_FINISH } from '../src/lab/cinema/scenes/h2o/h2oSteps.ts'
-import { FIX_CO, FIX_NO2 } from '../src/lab/cinema/scenes/school/schoolFixtures.ts'
+import { FIX_CO, FIX_NH4CL, FIX_NO2 } from '../src/lab/cinema/scenes/school/schoolFixtures.ts'
 import { bondAngleDeg, bondLengthPm } from '../src/chemistry/data/bondData.ts'
 
 let passed = 0
@@ -46,7 +46,8 @@ const SUB: Record<string, string> = { '₀': '0', '₁': '1', '₂': '2', '₃':
 /** «H₂O» → { H: 2, O: 1 } (без скобок — у школьных оксидов их нет). */
 function parseFormula(f: string): Map<string, number> {
   const out = new Map<string, number>()
-  const s = [...f].map((c) => SUB[c] ?? c).join('')
+  // Заряд иона (NH₄⁺, Cl⁻, SO₄²⁻) в счёт атомов не входит.
+  const s = [...f.replace(/[⁺⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+$/u, '')].map((c) => SUB[c] ?? c).join('')
   const re = /([A-Z][a-z]?)(\d*)/g
   let m: RegExpExecArray | null
   let seen = 0
@@ -106,12 +107,18 @@ function checkSpec(spec: SchoolSceneSpec, opts: { texts?: boolean } = {}): { a: 
 
   ok(`${tag} электроны внешнего слоя по фазам`, () => {
     for (const [name, ph] of [['R', a.R], ['S', a.S], ['P', a.P]] as [string, Phase][]) {
-      a.atoms.forEach((x, i) => assert.equal(electronsOfAtom(ph, i), x.valence, `${tag} фаза ${name}: у ${x.id} не ${x.valence} электронов`))
+      a.atoms.forEach((x, i) =>
+        assert.equal(electronsOfAtom(ph, i), x.valence - ph.charge[i]!, `${tag} фаза ${name}: у ${x.id} не ${x.valence - ph.charge[i]!} электронов`),
+      )
+    }
+    for (const [name, ph] of [['R', a.R], ['P', a.P]] as [string, Phase][]) {
+      assert.equal(ph.charge.reduce((x, y) => x + y, 0), a.R.charge.reduce((x, y) => x + y, 0), `${tag} фаза ${name}: заряд не сохраняется`)
     }
     const total = a.atoms.reduce((s, x) => s + x.valence, 0)
     assert.equal(a.electrons.length, total)
   })
 
+  const ionic = [...spec.reactants, ...spec.products].some((mol) => mol.charges || mol.bonds.some((b) => b.breakTo))
   ok(`${tag} общие пары = порядкам связей; пары по два электрона`, () => {
     const order = a.P.bonds.reduce((s, b) => s + b.pairs.length, 0)
     const inBonds = a.electrons.filter((e) => e.p.kind === 'bond').length
@@ -122,12 +129,14 @@ function checkSpec(spec: SchoolSceneSpec, opts: { texts?: boolean } = {}): { a: 
       const key = p.kind === 'bond' ? `b${p.bond}:${p.pair}:${p.slot}` : p.kind === 'lone' ? `l${p.atom}:${p.pair}:${p.slot}` : `s${p.atom}:${p.index}`
       assert.ok(!slots.has(key), `${tag} два электрона на одном месте ${key}`)
       slots.set(key, 1)
-      if (p.kind === 'lone') assert.equal(e.owner, p.atom, `${tag} неподелённая пара у атома ${a.atoms[p.atom]!.id} из чужого электрона`)
-      if (p.kind === 'single') assert.equal(e.owner, p.atom, `${tag} неспаренный электрон не своего атома`)
+      // С ионами (заряды) электроны переходят между атомами — «свой электрон» проверяем у нейтральных.
+      if (!ionic && p.kind === 'lone') assert.equal(e.owner, p.atom, `${tag} неподелённая пара у атома ${a.atoms[p.atom]!.id} из чужого электрона`)
+      if (!ionic && p.kind === 'single') assert.equal(e.owner, p.atom, `${tag} неспаренный электрон не своего атома`)
     }
     a.P.bonds.forEach((b, k) => b.pairs.forEach((o, q) => {
       const two = a.electrons.filter((e) => e.p.kind === 'bond' && e.p.bond === k && e.p.pair === q)
       assert.equal(two.length, 2)
+      if (ionic) return
       if (o === 'ab') assert.deepEqual(new Set(two.map((e) => e.owner)), new Set([b.a, b.b]), `${tag} пара 'ab' не из двух атомов`)
       else two.forEach((e) => assert.equal(e.owner, o === 'a' ? b.a : b.b, `${tag} донорская пара не от донора`))
     }))
@@ -250,10 +259,20 @@ const built = SPECS.map(checkSpec)
 
 // ——— Прочность движка: учебные «заготовки» с донорно-акцепторной парой, тройной связью,
 // сохранённой связью и неспаренным электроном (не сцены — только механика движка, без текстов) ———
-for (const fx of [FIX_CO, FIX_NO2]) {
+for (const fx of [FIX_CO, FIX_NO2, FIX_NH4CL]) {
   const { a } = checkSpec(fx, { texts: false })
   ok(`[${fx.id}] механика`, () => {
-    if (fx.id === 'fixture-co') {
+    if (fx.id === 'fixture-nh4cl') {
+      const n = a.index.get('N1')!
+      const h = a.index.get('H4')!
+      const cl = a.index.get('Cl1')!
+      assert.equal(a.S.charge[h], 1, 'после гетеролиза — H⁺')
+      assert.equal(a.S.charge[cl], -1, 'после гетеролиза — Cl⁻')
+      assert.equal(a.P.charge[n], 1, 'N⁺ в NH₄⁺')
+      assert.equal(a.P.atoms[cl]!.lone, 4, 'Cl⁻: 4 неподелённые пары')
+      assert.equal(a.formed.length, 1, 'образуется одна связь N–H')
+      assert.equal(a.broken.length, 1)
+    } else if (fx.id === 'fixture-co') {
       assert.equal(a.formed.length, 6, 'CO: 3 пары × 2 молекулы')
       assert.equal(a.formed.filter((f) => a.P.bonds[f.pBond]!.pairs[f.pair] !== 'ab').length, 2, 'по одной донорной паре')
     } else {
