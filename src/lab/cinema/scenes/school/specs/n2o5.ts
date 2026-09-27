@@ -124,7 +124,7 @@ export const N2O5_SPEC: SchoolScienceSpec = {
     products: [{ formula: 'HNO₃', coef: 2, phase: 'ж', particle: 'HNO3' }],
     reversible: false,
     kind: 'combination',
-    bankId: null,
+    bankId: 'n2o5-h2o-hno3',
     sources: [T7_WATER_CHEM, T7_OXIDES],
     conditions: {
       heating: false,

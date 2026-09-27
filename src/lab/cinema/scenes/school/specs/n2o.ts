@@ -49,7 +49,8 @@ const P_NH4NO3: ParticleSpec = {
     { a: 'Nam', b: 'H3', pairs: 1, polar: true, length: { bond: 'N-H' } },
     { a: 'Nam', b: 'H4', pairs: 1, polar: true, length: { bond: 'N-H' } },
     { a: 'Nni', b: 'Ox1', pairs: 2, realOrder: 4 / 3, polar: true, length: { reagent: 'n2o5Crystal', name: 'N–O(NO₃⁻)' } },
-    { a: 'Nni', b: 'Ox2', pairs: 1, realOrder: 4 / 3, polar: true, length: { reagent: 'n2o5Crystal', name: 'N–O(NO₃⁻)' } },
+    // N→O: пара азота (как в N₂O и HNO₃); именно эта связь сохраняется и переходит в N≡N→O.
+    { a: 'Nni', b: 'Ox2', pairs: 1, dative: { donor: 'Nni' }, realOrder: 4 / 3, polar: true, length: { reagent: 'n2o5Crystal', name: 'N–O(NO₃⁻)' } },
     { a: 'Nni', b: 'Ox3', pairs: 1, realOrder: 4 / 3, polar: true, length: { reagent: 'n2o5Crystal', name: 'N–O(NO₃⁻)' } },
   ],
   lonePairs: { Ox1: 2, Ox2: 3, Ox3: 3 },
@@ -133,7 +134,7 @@ export const N2O_SPEC: SchoolScienceSpec = {
     ],
     reversible: false,
     kind: 'decomposition',
-    bankId: null,
+    bankId: 'nh4no3-n2o',
     sources: [T8_AMMONIUM_NITRATE, T7_OZONE],
     conditions: {
       heating: true,
@@ -156,7 +157,7 @@ export const N2O_SPEC: SchoolScienceSpec = {
         b: h,
         why: { ru: 'ион аммония отдаёт атомы водорода', en: 'the ammonium ion gives up its hydrogen atoms', uz: 'ammoniy ioni vodorod atomlarini beradi' },
       })),
-      ...(['Ox2', 'Ox3'] as const).map((o) => ({
+      ...(['Ox1', 'Ox3'] as const).map((o) => ({
         particle: 'NH4NO3',
         a: 'Nni',
         b: o,
@@ -164,7 +165,16 @@ export const N2O_SPEC: SchoolScienceSpec = {
       })),
     ],
     kept: [
-      { particle: 'NH4NO3', a: 'Nni', b: 'Ox1', why: { ru: 'одна связь N–O нитрата сохраняется', en: 'one N–O bond of the nitrate is kept', uz: 'nitratning bitta N–O bogʻi saqlanadi' } },
+      {
+        particle: 'NH4NO3',
+        a: 'Nni',
+        b: 'Ox2',
+        why: {
+          ru: 'связь N→O нитрата (пара азота) сохраняется — это будущая связь N→O в N₂O',
+          en: 'the N→O bond of the nitrate (nitrogen’s pair) is kept — it becomes the N→O bond of N₂O',
+          uz: 'nitratning N→O bogʻi (azot jufti) saqlanadi — u N₂O dagi N→O bogʻiga aylanadi',
+        },
+      },
       { particle: 'N2O', a: 'N2', b: 'O', why: { ru: 'кислород остаётся у «нитратного» азота', en: 'the oxygen stays on the «nitrate» nitrogen', uz: 'kislorod «nitrat» azotida qoladi' } },
     ],
     forms: [
