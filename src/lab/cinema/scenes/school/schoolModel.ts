@@ -89,6 +89,8 @@ export type SchoolModel = {
   readonly movePairs: Win[]
   /** Позиции «рыхлой» молекулы продукта (конец шага pairs). */
   readonly loose: V3[]
+  /** Место (центр) молекулы продукта, в которую входит атом, пм: вокруг него молекула поворачивается. */
+  readonly pPlace: V3[]
   readonly sticks: SchoolStick[]
   readonly labels: SchoolLabelDef[]
   readonly fillR: number[]
@@ -120,6 +122,9 @@ export type SchoolState = {
   labelOpacity: Float32Array
   yaw: number
   pitch: number
+  /** Поворот КАЖДОЙ молекулы продукта вокруг своего центра (шаги molecule, result): рыскание и наклон. */
+  molYaw: number
+  molPitch: number
 }
 
 export function schoolSmooth(a: number, b: number, t: number): number {
@@ -214,10 +219,12 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
 
   // ——— «рыхлые» позиции продукта: координаты молекулы × loose от места молекулы ———
   const loose: V3[] = new Array(n)
+  const pPlace: V3[] = new Array(n)
   for (const mol of spec.products) {
     for (const id of mol.atoms) {
       const i = a.index.get(id)!
       const c = mol.coords[id]!
+      pPlace[i] = [mol.place[0], mol.place[1], mol.place[2]]
       loose[i] = [mol.place[0] + c[0] * SCHOOL_DRAW.loose, mol.place[1] + c[1] * SCHOOL_DRAW.loose, mol.place[2] + c[2] * SCHOOL_DRAW.loose]
     }
   }
@@ -333,6 +340,7 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     moveBreak,
     movePairs,
     loose,
+    pPlace,
     sticks,
     labels,
     fillR: fill(a.R),
@@ -367,10 +375,28 @@ export function createSchoolState(m: SchoolModel): SchoolState {
     labelOpacity: new Float32Array(l),
     yaw: 0,
     pitch: 0,
+    molYaw: 0,
+    molPitch: 0,
   }
 }
 
+/** Поворот вектора (x, y, z) наклоном p вокруг x, затем рысканием y вокруг вертикали → out. */
+function rotYX(x: number, y: number, z: number, yaw: number, pitch: number, out: number[]): void {
+  const cp = Math.cos(pitch)
+  const sp = Math.sin(pitch)
+  const cy = Math.cos(yaw)
+  const sy = Math.sin(yaw)
+  const y1 = y * cp - z * sp
+  const z1 = y * sp + z * cp
+  out[0] = x * cy + z1 * sy
+  out[1] = y1
+  out[2] = -x * sy + z1 * cy
+}
+const _r: number[] = [0, 0, 0]
+
 // ——— рабочие буферы (ноль аллокаций в кадре) ———
+/** Текущий поворот молекул продукта (ставит sampleSchoolState до расчёта мест электронов). */
+const rot = { yaw: 0, pitch: 0 }
 const _p: number[] = [0, 0, 0]
 const _q: number[] = [0, 0, 0]
 
@@ -416,21 +442,26 @@ function placePos(m: SchoolModel, ph: Phase, place: ElectronPlace, pos: Float32A
   }
   const i = place.atom
   const pa = ph.atoms[i]!
-  const d = place.kind === 'lone' ? pa.loneDirs[place.pair]! : pa.singleDirs[place.index]!
+  let d: readonly number[] = place.kind === 'lone' ? pa.loneDirs[place.pair]! : pa.singleDirs[place.index]!
+  // Молекула продукта повёрнута вокруг своего центра — её неподелённые пары поворачиваются вместе с ней.
+  if (ph === m.a.P && (rot.yaw !== 0 || rot.pitch !== 0)) {
+    rotYX(d[0]!, d[1]!, d[2]!, rot.yaw, rot.pitch, _r)
+    d = _r
+  }
   const r = m.ballR[i]! + D.shellGap
-  let cx = pos[i * 3]! + d[0] * r
-  let cy = pos[i * 3 + 1]! + d[1] * r
-  let cz = pos[i * 3 + 2]! + d[2] * r
+  let cx = pos[i * 3]! + d[0]! * r
+  let cy = pos[i * 3 + 1]! + d[1]! * r
+  let cz = pos[i * 3 + 2]! + d[2]! * r
   if (place.kind === 'lone') {
     // Два электрона пары — поперёк направления пары.
-    let tx = d[1]
-    let ty = -d[0]
+    let tx = d[1]!
+    let ty = -d[0]!
     let tz = 0
     let tl = Math.hypot(tx, ty)
     if (tl < 0.2) {
       tx = 0
-      ty = d[2]
-      tz = -d[1]
+      ty = d[2]!
+      tz = -d[1]!
       tl = Math.hypot(ty, tz) || 1
     }
     const s = ((place.slot === 0 ? -1 : 1) * D.dotSep * 0.5) / tl
@@ -462,6 +493,15 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
   s.fade = 1 - schoolSmooth(m.finish.from, m.finish.to - 0.2, t)
   const n = a.atoms.length
 
+  // ——— поворот каждой молекулы продукта вокруг своего центра (без общего облёта: у далёких от центра
+  // молекул перспектива не раздувает размер). Наклон показывает обе неподелённые пары O (они вне
+  // плоскости H–O–H), рыскание — объём молекулы. ———
+  const mt = schoolSmooth(step.molecule.from + 1.0, step.molecule.to - 0.3, t)
+  rot.pitch = lerp(0, 0.5, mt)
+  rot.yaw = t < step.result.from ? lerp(0, 0.42, mt) : lerp(0.42, -0.62, schoolSmooth(step.result.from, m.finish.from, t))
+  s.molYaw = rot.yaw
+  s.molPitch = rot.pitch
+
   // ——— атомы ———
   const inBreak = t < step.pairs.from
   for (let i = 0; i < n; i++) {
@@ -477,6 +517,14 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       writeLerpPos(s.atomPos, i, S, L, schoolSmooth(w.t0, w.t1, t))
     } else {
       writeLerpPos(s.atomPos, i, L, P, schoolSmooth(step.molecule.from, step.molecule.from + 1.3, t))
+      if (rot.yaw !== 0 || rot.pitch !== 0) {
+        const c = m.pPlace[i]!
+        const o = i * 3
+        rotYX(s.atomPos[o]! - c[0], s.atomPos[o + 1]! - c[1], s.atomPos[o + 2]! - c[2], rot.yaw, rot.pitch, _r)
+        s.atomPos[o] = c[0] + _r[0]!
+        s.atomPos[o + 1] = c[1] + _r[1]!
+        s.atomPos[o + 2] = c[2] + _r[2]!
+      }
     }
   }
 
@@ -678,18 +726,9 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
     s.labelOpacity[k] = op * s.fade
   }
 
-  // ——— план: лёгкий взгляд сверху; на шаге molecule — доворот, на result — мягкий облёт ———
-  // На шагах molecule/result взгляд выше: видны обе неподелённые пары (они вне плоскости H–O–H).
-  s.pitch = lerp(0.1, 0.42, schoolSmooth(step.molecule.from + 0.8, step.molecule.to, t))
-  const y0 = -0.08
-  const y1 = 0.3
-  const y2 = -0.36
-  s.yaw =
-    t < step.molecule.from
-      ? y0
-      : t < step.result.from
-        ? lerp(y0, y1, schoolSmooth(step.molecule.from + 0.8, step.molecule.to, t))
-        : lerp(y1, y2, schoolSmooth(step.result.from, m.finish.from, t))
+  // ——— план: лёгкий взгляд сверху, без облёта всей композиции ———
+  s.pitch = 0.12
+  s.yaw = -0.06
   return s
 }
 

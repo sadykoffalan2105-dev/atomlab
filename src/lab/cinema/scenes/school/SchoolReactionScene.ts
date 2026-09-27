@@ -152,6 +152,8 @@ export class SchoolReactionScene {
       col.setHex(cpkHex(a.element as ElementSymbol))
       // Белый водород чуть приглушён: матовый шар под ключевым светом иначе «выгорает».
       if (a.element === 'H') col.multiplyScalar(0.9)
+      // Углерод CPK почти чёрный (0x2a2a32) и пропадает на тёмном поле — графитово-серый (вариант CPK/Jmol).
+      if (a.element === 'C') col.setHex(0x6a707c)
       this.atoms.setColorAt(i, col)
     })
     this.stage.add(this.atoms)
