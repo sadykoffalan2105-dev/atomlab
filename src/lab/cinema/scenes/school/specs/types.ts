@@ -312,7 +312,10 @@ export type CaveatKind =
 export type Caveat = {
   readonly id: string
   readonly kind: CaveatKind
+  /** Где это сказано в учебнике (или что упрощено). */
   readonly source?: SchoolSource
+  /** Чем подтверждается поправка (справочник, другой учебник). Числа оговорки берутся из source / evidence / ядра. */
+  readonly evidence?: SchoolSource
   readonly text: L10n
 }
 

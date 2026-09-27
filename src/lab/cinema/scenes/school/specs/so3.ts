@@ -380,6 +380,7 @@ export const SO3_SPEC: SchoolSceneSpec = {
       id: 'so3-not-gas',
       kind: 'textbook-error',
       source: T7_GASEOUS_OXIDES,
+      evidence: T8_SULFUR_OXIDES,
       text: {
         ru: 'В 7 кл. (с. 140) SO₃ назван газообразным оксидом. При комнатной температуре SO₃ — жидкость (кипит при 45 °C, ниже 17 °C — твёрдый; 8 кл., с. 136). Газом он бывает в реакторе при нагревании — таким его и показывает сцена.',
         en: 'Grade 7 (p. 140) calls SO₃ a gaseous oxide. At room temperature SO₃ is a liquid (boils at 45 °C, solid below 17 °C; grade 8, p. 136). It is a gas in the heated reactor — and that is how the scene shows it.',

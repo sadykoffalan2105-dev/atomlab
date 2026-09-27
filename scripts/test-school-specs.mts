@@ -90,6 +90,10 @@ const near = (a: number, b: number, tol: number) => Math.abs(a - b) <= tol
   ok('N₂O₅: угол O=N=O близок к NO₂, N–O–N меньше', near(reagentAngleDeg('n2o5', '∠O=N=O'), BOND_ANGLES.nitrogenDioxide.deg, 1) && reagentAngleDeg('n2o5', '∠N–O–N') < 120)
   ok('кристалл N₂O₅: N–O в NO₂⁺ короче, чем в NO₃⁻', reagentBondPm('n2o5Crystal', 'N–O(NO₂⁺)') < reagentBondPm('n2o5Crystal', 'N–O(NO₃⁻)'))
   ok('HNO₃: N–OH одинарная длиннее концевых', reagentBondPm('hno3', 'N–O(H)') > reagentBondPm('hno3', 'N=O(цис)') && reagentBondPm('hno3', 'N=O(цис)') > reagentBondPm('hno3', 'N=O(транс)'))
+  ok(
+    'HNO₃ плоская: три угла при азоте в сумме 360°',
+    near(reagentAngleDeg('hno3', '∠O=N=O') + reagentAngleDeg('hno3', '∠HO–N=O(цис)') + reagentAngleDeg('hno3', '∠HO–N=O(транс)'), 360, 0.02),
+  )
   const h = REAGENT_GEOMETRY.hno3.bondCounts
   const f = parseFormula('HNO3')
   ok('HNO₃: число связей согласовано с формулой', h['N=O(цис)']! + h['N=O(транс)']! + h['N–O(H)']! === f.O && h['O–H'] === f.H)
@@ -420,6 +424,27 @@ for (const spec of specs) {
       ok(`${P} ${s.id}.${k}: числа RU/EN/UZ совпадают`, sortedNums(s.text.ru[k]) === sortedNums(s.text.en[k]) && sortedNums(s.text.ru[k]) === sortedNums(s.text.uz[k]), `${sortedNums(s.text.ru[k])} | ${sortedNums(s.text.en[k])} | ${sortedNums(s.text.uz[k])}`)
     }
     ok(`${P} ${s.id}: что показать — описано`, s.show.length > 0)
+  }
+  // Числа вне шагов (оговорки, наблюдения, пояснения) — из ядра, страниц или СВОЕГО источника (строка ссылки
+  // обязана содержать число: «t кип. −21,3 °С» учебника, «99,2 %» и т. п.).
+  const srcNums = (s?: SchoolSource): number[] =>
+    s ? numbers(isTextbookRef(s) ? `${s.what} ${s.asInBook ?? ''} ${s.pages.join(' ')} ${s.section}` : s.reference).map((n) => n.v) : []
+  const checkNums = (label: string, t: L10n, extra: number[]) => {
+    for (const n of numbers(t.ru)) {
+      if (isCount(n)) continue
+      ok(`${P} ${label}: число ${n.raw} — из ядра, страницы или источника`, allowed.some((v) => matches(n, v)) || extra.some((v) => matches(n, v)), t.ru.slice(0, 100))
+    }
+  }
+  for (const c of spec.caveats) checkNums(`оговорка ${c.id}`, c.text, [...srcNums(c.source), ...srcNums(c.evidence)])
+  for (const c of spec.caveats) if (c.kind === 'textbook-error') ok(`${P} оговорка ${c.id}: ошибка учебника — со ссылкой на учебник`, Boolean(c.source && isTextbookRef(c.source)))
+  for (const o of [...spec.observations, ...spec.uses]) checkNums('наблюдение', o.text, srcNums(o.source))
+  checkNums('условия', r.conditions.text, [...srcNums(r.conditions.temperatureSource), ...r.sources.flatMap((s) => srcNums(s))])
+  checkNums('валентность', spec.valence.explain, srcNums(spec.valence.schoolSource))
+  checkNums('безопасность', spec.safety, [])
+  checkNums('вступление', spec.intro.speak, [])
+  for (const p of spec.particles) {
+    if (p.resonance) (checkNums(`${p.id} показ`, p.resonance.show, []), checkNums(`${p.id} на деле`, p.resonance.real, []))
+    if (p.schematic) checkNums(`${p.id} схема`, p.schematic, [])
   }
   const sum = spec.steps.find((s) => s.id === 'summary')!
   for (const loc of SCHOOL_LOCALES) ok(`${P} итог [${loc}] = уравнение реакции`, sum.text[loc].equation === r.equation, sum.text[loc].equation)

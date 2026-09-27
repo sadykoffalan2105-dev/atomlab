@@ -331,6 +331,7 @@ export const NO_SPEC: SchoolSceneSpec = {
       id: 'no-1200-typo',
       kind: 'textbook-error',
       source: T7_OXYGEN_PROPS,
+      evidence: T8_NITROGEN_OXIDES,
       text: {
         ru: 'В 7 кл. (с. 95) напечатано «при температуре выше -1200 °С» — знак минус лишний (опечатка). В 8 кл. (с. 163) — 2000 °C; заметно реакция идёт только при таких температурах или в электрическом разряде.',
         en: 'Grade 7 (p. 95) prints «at a temperature above -1200 °C» — the minus sign is a misprint. Grade 8 (p. 163) gives 2000 °C; the reaction goes noticeably only at such temperatures or in an electric discharge.',
@@ -341,6 +342,7 @@ export const NO_SPEC: SchoolSceneSpec = {
       id: 'no-bp',
       kind: 'textbook-error',
       source: T8_NITROGEN_OXIDES,
+      evidence: ref('CRC Handbook of Chemistry and Physics, 97th ed., «Physical constants of inorganic compounds»: NO — t кип. −151,8 °C'),
       text: {
         ru: 'В 8 кл. (с. 163) температура кипения NO указана −154,8 °C; по справочнику CRC — −151,8 °C. На сцену это не влияет.',
         en: 'Grade 8 (p. 163) gives the boiling point of NO as −154.8 °C; the CRC Handbook gives −151.8 °C. This does not affect the scene.',

@@ -223,7 +223,7 @@ export const N2O5_SPEC: SchoolSceneSpec = {
         en: 'Nitrogen(V) oxide is colourless (white) crystals that sublime at about 33 °C; the substance is unstable and slowly decomposes.',
         uz: 'Azot(V) oksidi — taxminan 33 °C da sublimatsiyalanadigan rangsiz (oq) kristallar; modda beqaror va asta-sekin parchalanadi.',
       },
-      source: ref('Greenwood & Earnshaw (1997), § 11.3.7; кристалл NO₂⁺NO₃⁻ — Grison, Eriks & de Vries, Acta Cryst. 3 (1950) 290'),
+      source: ref('Greenwood & Earnshaw (1997), § 11.3.7: N₂O₅ — бесцветные кристаллы, возгоняются при ≈ 33 °C, неустойчив; кристалл NO₂⁺NO₃⁻ — Grison, Eriks & de Vries, Acta Cryst. 3 (1950) 290'),
     },
     {
       text: {
@@ -461,7 +461,7 @@ export const N2O5_SPEC: SchoolSceneSpec = {
     {
       id: 'n2o5-solid-ionic',
       kind: 'scene-simplification',
-      source: ref('REAGENT_GEOMETRY.n2o5Crystal (ядро): Grison, Eriks & de Vries, Acta Cryst. 3 (1950) 290'),
+      source: ref('REAGENT_GEOMETRY.n2o5Crystal (ядро): N–O в NO₂⁺ 115 пм, в NO₃⁻ 124 пм — Grison, Eriks & de Vries, Acta Cryst. 3 (1950) 290'),
       text: {
         ru: 'Твёрдый N₂O₅ — ионный кристалл: линейные ионы NO₂⁺ (N–O 115 пм) и плоские ионы NO₃⁻ (N–O 124 пм). Молекула O₂N–O–NO₂ существует в паре; сцена показывает её, потому что на ней видно, какие связи рвутся.',
         en: 'Solid N₂O₅ is an ionic crystal: linear NO₂⁺ ions (N–O 115 pm) and flat NO₃⁻ ions (N–O 124 pm). The O₂N–O–NO₂ molecule exists in the vapour; the scene shows it because it makes clear which bonds break.',

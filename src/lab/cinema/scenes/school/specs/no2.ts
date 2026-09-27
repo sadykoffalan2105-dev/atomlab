@@ -390,10 +390,11 @@ export const NO2_SPEC: SchoolSceneSpec = {
       id: 'no2-bp-sign',
       kind: 'textbook-error',
       source: T8_NITROGEN_OXIDES,
+      evidence: ref('CRC Handbook of Chemistry and Physics, 97th ed.: N₂O₄ (⇄ 2NO₂) — t пл. −9,3 °C, t кип. 21,15 °C; Greenwood & Earnshaw (1997), гл. 11: t пл. −11,2 °C'),
       text: {
-        ru: 'В 8 кл. (с. 163) у NO₂ указана температура кипения «−21,3 °С». Правильно — около +21 °C (смесь NO₂ и N₂O₄ кипит при 21 °C), поэтому в холодный день NO₂ может сжижаться. Температура −9,3 °C, при которой образуются бесцветные кристаллы (N₂O₄), дана верно.',
-        en: 'Grade 8 (p. 163) gives the boiling point of NO₂ as «−21.3 °C». Correct is about +21 °C (the NO₂/N₂O₄ mixture boils at 21 °C), so on a cold day NO₂ can liquefy. The temperature −9.3 °C at which colourless crystals (N₂O₄) form is given correctly.',
-        uz: '8-sinfda (163-bet) NO₂ ning qaynash harorati «−21,3 °C» deb berilgan. Toʻgʻrisi — taxminan +21 °C (NO₂ va N₂O₄ aralashmasi 21 °C da qaynaydi), shuning uchun sovuq kunda NO₂ suyuqlanishi mumkin. Rangsiz kristallar (N₂O₄) hosil boʻladigan −9,3 °C harorat toʻgʻri berilgan.',
+        ru: 'В 8 кл. (с. 163) у NO₂ указана температура кипения «−21,3 °С». Правильно — около +21 °C (смесь NO₂ и N₂O₄ кипит при 21 °C), поэтому в холодный день NO₂ может сжижаться. Бесцветные кристаллы N₂O₄ образуются около −9,3 °C (по разным справочникам до −11,2 °C) — это в учебнике верно.',
+        en: 'Grade 8 (p. 163) gives the boiling point of NO₂ as «−21.3 °C». Correct is about +21 °C (the NO₂/N₂O₄ mixture boils at 21 °C), so on a cold day NO₂ can liquefy. Colourless N₂O₄ crystals form at about −9.3 °C (down to −11.2 °C in some handbooks) — this the textbook has right.',
+        uz: '8-sinfda (163-bet) NO₂ ning qaynash harorati «−21,3 °C» deb berilgan. Toʻgʻrisi — taxminan +21 °C (NO₂ va N₂O₄ aralashmasi 21 °C da qaynaydi), shuning uchun sovuq kunda NO₂ suyuqlanishi mumkin. Rangsiz N₂O₄ kristallari taxminan −9,3 °C da hosil boʻladi (baʼzi maʼlumotnomalarda −11,2 °C gacha) — bu darslikda toʻgʻri.',
       },
     },
     {
