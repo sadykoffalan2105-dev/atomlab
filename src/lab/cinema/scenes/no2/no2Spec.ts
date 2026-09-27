@@ -128,6 +128,8 @@ export const NO2_SCENE_SPEC: SchoolSceneSpec = {
   },
   // Атом O — акцептор донорно-акцепторной пары азота: 3 неподелённые пары, неспаренных нет (specs/no2.ts).
   splitElectrons: { O3: { lone: 3, unpaired: 0 }, O4: { lone: 3, unpaired: 0 } },
+  // Плоские / линейные молекулы: лёгкий поворот, чтобы угол и пары не уходили за шары.
+  productTurn: 0.3,
   steps: stepTimings(NO2_SCIENCE),
   captions: NO2_SCIENCE.captions,
   text: { ru: lessonText(NO2_SCIENCE, 'ru'), en: lessonText(NO2_SCIENCE, 'en'), uz: lessonText(NO2_SCIENCE, 'uz') },

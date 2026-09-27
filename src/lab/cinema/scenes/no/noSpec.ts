@@ -86,6 +86,8 @@ export const NO_SCENE_SPEC: SchoolSceneSpec = {
     O1: [-205, -112, 0],
     O2: [205, -112, 0],
   },
+  // Плоские / линейные молекулы: лёгкий поворот, чтобы угол и пары не уходили за шары.
+  productTurn: 0.4,
   steps: stepTimings(NO_SCIENCE),
   captions: NO_SCIENCE.captions,
   text: { ru: lessonText(NO_SCIENCE, 'ru'), en: lessonText(NO_SCIENCE, 'en'), uz: lessonText(NO_SCIENCE, 'uz') },

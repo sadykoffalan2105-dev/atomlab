@@ -153,6 +153,9 @@ export const N2O_SCENE_SPEC: SchoolSceneSpec = {
   splitCharges: { N1: 0, O3: 0 },
   // Свободный атом азота: пара + 3 неспаренных (N +7 )2 )5).
   splitElectrons: { N1: { lone: 1, unpaired: 3 } },
+  // Линейная N₂O — лёгкий поворот (угол 180° не «сплющивается»), но достаточный, чтобы у воды были
+  // видны обе неподелённые пары вне плоскости H–O–H.
+  productTurn: 0.6,
   steps: stepTimings(N2O_SCIENCE),
   captions: N2O_SCIENCE.captions,
   text: { ru: lessonText(N2O_SCIENCE, 'ru'), en: lessonText(N2O_SCIENCE, 'en'), uz: lessonText(N2O_SCIENCE, 'uz') },

@@ -84,7 +84,7 @@ const WY = OH_W * Math.cos(half)
 const P1: SchoolVec3 = [-235, -10, 0]
 const P2: SchoolVec3 = [235, -10, 0]
 const N2O5_PLACE: SchoolVec3 = [0, 50, 0]
-const WATER_PLACE: SchoolVec3 = [0, -200, 0]
+const WATER_PLACE: SchoolVec3 = [0, -262, 0]
 const WATER_COORDS: Record<string, SchoolVec3> = { O6: [0, WY / 2, 0], H1: [-WX, -WY / 2, 0], H2: [WX, -WY / 2, 0] }
 /** Позиция атома реагента в сцене, сдвинутая на d (фрагменты с сохранёнными связями сдвигаются целиком). */
 const moved = (coords: Record<string, SchoolVec3>, place: SchoolVec3, id: string, d: readonly [number, number]): SchoolVec3 => {
@@ -93,7 +93,7 @@ const moved = (coords: Record<string, SchoolVec3>, place: SchoolVec3, id: string
 }
 const NO3_SHIFT = [-50, -10] as const
 const NO2_SHIFT = [60, -10] as const
-const OH_SHIFT = [40, 40] as const
+const OH_SHIFT = [40, 95] as const
 
 export const N2O5_SCENE_SPEC: SchoolSceneSpec = {
   id: 'n2o5',
@@ -205,8 +205,10 @@ export const N2O5_SCENE_SPEC: SchoolSceneSpec = {
     O5: moved(N2O5_COORDS, N2O5_PLACE, 'O5', NO2_SHIFT),
     O6: moved(WATER_COORDS, WATER_PLACE, 'O6', OH_SHIFT),
     H2: moved(WATER_COORDS, WATER_PLACE, 'H2', OH_SHIFT),
-    H1: [-40, -70, 0],
+    H1: [-40, -95, 0],
   },
+  // Плоская HNO₃: умеренный поворот — плоскость читается, а две пары O группы OH (вне плоскости) видны.
+  productTurn: 0.6,
   steps: stepTimings(N2O5_SCIENCE),
   captions: N2O5_SCIENCE.captions,
   text: { ru: lessonText(N2O5_SCIENCE, 'ru'), en: lessonText(N2O5_SCIENCE, 'en'), uz: lessonText(N2O5_SCIENCE, 'uz') },
