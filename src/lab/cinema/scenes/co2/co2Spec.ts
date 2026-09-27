@@ -14,7 +14,9 @@ import type { SchoolSceneSpec } from '../school/schoolSpec'
  *   • CO₂: O=C=O, две двойные связи (C=O 116,0 пм — ядро 'C=O(CO2)'), 180°, у каждого O две
  *     неподелённые пары, у C неподелённых пар нет.
  *
- * Раскладка: O₂ сверху, атом C снизу; атомы O расходятся влево и вправо, молекула собирается в центре.
+ * Раскладка (широкий кадр, как у H₂O): атом C слева сверху, O₂ снизу по центру; атомы O расходятся
+ * влево и вправо, C встаёт между ними — молекула собирается в центре. Подписи слоёв (над атомами) и
+ * формул (под молекулами) не сталкиваются.
  */
 
 const P_C = particleOf(CO2_SCIENCE, 'C')
@@ -49,7 +51,7 @@ export const CO2_SCHOOL_SPEC: SchoolSceneSpec = {
       lonePairs: sceneCounts(P_C.lonePairs, R_IDS),
       unpaired: sceneCounts(P_C.unpaired, R_IDS),
       coords: { C1: [0, 0, 0] },
-      place: [0, -75, 0],
+      place: [-225, 55, 0],
     },
     {
       id: 'O2',
@@ -59,7 +61,7 @@ export const CO2_SCHOOL_SPEC: SchoolSceneSpec = {
       bonds: [sceneBond(P_O2, 'Oa', 'Ob', R_IDS)],
       lonePairs: sceneCounts(P_O2.lonePairs, R_IDS),
       coords: { O1: [-OO / 2, 0, 0], O2: [OO / 2, 0, 0] },
-      place: [0, 80, 0],
+      place: [0, -65, 0],
     },
   ],
   products: [
@@ -76,9 +78,9 @@ export const CO2_SCHOOL_SPEC: SchoolSceneSpec = {
     },
   ],
   split: {
-    O1: [-215, 70, 0],
-    O2: [215, 70, 0],
-    C1: [0, -40, 0],
+    O1: [-225, -45, 0],
+    O2: [225, -45, 0],
+    C1: [-20, 85, 0],
   },
   ...(excited ? { splitElectrons: { C1: { lone: excited.lone, unpaired: excited.unpaired } } } : {}),
   steps,

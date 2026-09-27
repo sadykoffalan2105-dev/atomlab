@@ -14,8 +14,8 @@ import type { SchoolSceneSpec, SchoolVec3 } from '../school/schoolSpec'
  *     пара — молекула угловая, ∠OSO = 119,5° (ядро 'sulfurDioxide'); оговорка о расширенном
  *     октете — в тексте спецификации.
  *
- * Раскладка: атом S сверху, O₂ снизу; S встаёт вершиной угла, атомы O — вниз влево и вправо,
- * неподелённая пара S смотрит вверх (от атомов O).
+ * Раскладка (широкий кадр, как у H₂O): атом S слева сверху, O₂ снизу по центру; S встаёт вершиной
+ * угла, атомы O — вниз влево и вправо, неподелённая пара S смотрит вверх (от атомов O).
  */
 
 const P_S = particleOf(SO2_SCIENCE, 'S')
@@ -57,7 +57,7 @@ export const SO2_SCHOOL_SPEC: SchoolSceneSpec = {
       lonePairs: sceneCounts(P_S.lonePairs, R_IDS),
       unpaired: sceneCounts(P_S.unpaired, R_IDS),
       coords: { S1: [0, 0, 0] },
-      place: [0, 85, 0],
+      place: [-235, 60, 0],
     },
     {
       id: 'O2',
@@ -67,7 +67,7 @@ export const SO2_SCHOOL_SPEC: SchoolSceneSpec = {
       bonds: [sceneBond(P_O2, 'Oa', 'Ob', R_IDS)],
       lonePairs: sceneCounts(P_O2.lonePairs, R_IDS),
       coords: { O1: [-OO / 2, 0, 0], O2: [OO / 2, 0, 0] },
-      place: [0, -75, 0],
+      place: [0, -70, 0],
     },
   ],
   products: [
@@ -84,9 +84,9 @@ export const SO2_SCHOOL_SPEC: SchoolSceneSpec = {
     },
   ],
   split: {
-    S1: [0, 60, 0],
-    O1: [-220, -55, 0],
-    O2: [220, -55, 0],
+    S1: [-30, 100, 0],
+    O1: [-230, -60, 0],
+    O2: [230, -60, 0],
   },
   ...(split ? { splitElectrons: { S1: { lone: split.lone, unpaired: split.unpaired } } } : {}),
   steps,
