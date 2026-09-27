@@ -41,7 +41,8 @@ export type StageAtom = {
   radius: number
 }
 
-export type StageBond = { unit: number; a: number; b: number }
+/** order/index — кратная связь: стержень index из order параллельных. */
+export type StageBond = { unit: number; a: number; b: number; order?: number; index?: number }
 
 export type StageUnit = {
   /** стабильный ключ копии: `${termKey}#${copy}` — по нему анимируется появление */
@@ -966,7 +967,20 @@ export function scientificStageLayout(
               radius: role.radius,
             })
           }
-          for (const [a, b] of tpl.bonds) bonds.push({ unit: unitIndex, a: atomStart + a, b: atomStart + b })
+          // кратная связь — несколько одинаковых записей (как в MoleculeMesh): C=C, C≡C, C=O — параллельные стержни
+          const mult = new Map<string, number>()
+          for (const [a, b] of tpl.bonds) {
+            const k = a < b ? `${a}-${b}` : `${b}-${a}`
+            mult.set(k, (mult.get(k) ?? 0) + 1)
+          }
+          const seenBond = new Map<string, number>()
+          for (const [a, b] of tpl.bonds) {
+            const k = a < b ? `${a}-${b}` : `${b}-${a}`
+            const n = mult.get(k) ?? 1
+            const i = seenBond.get(k) ?? 0
+            seenBond.set(k, i + 1)
+            bonds.push({ unit: unitIndex, a: atomStart + a, b: atomStart + b, ...(n > 1 ? { order: n, index: i } : {}) })
+          }
         }
         units.push({
           key: `${p.key}#${copy}`,
