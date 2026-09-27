@@ -87,6 +87,12 @@ const SPELLING_OVERRIDES: Readonly<Record<string, Override>> = {
   },
   '[(C2H5)2OH]HSO4': { smiles: 'CC[OH]CC.OS(=O)(=O)[O]', nameRu: 'Гидросульфат диэтилоксония' },
   'CH2OH(CHOH)4COONH4': { smiles: 'OCC(O)C(O)C(O)C(O)C(=O)[O].[NH4]', nameRu: 'Глюконат аммония' },
+  // радикалы механизма хлорирования (10 кл., с. 28; пример учебника R = CH₃): «•» в записи → «*»
+  'CH3*': { smiles: '[CH3]', nameRu: 'Метил-радикал CH₃•' },
+  // резолвер реактора снимает точку радикала: отдельного вещества «CH₃» не бывает — это тот же метил-радикал
+  CH3: { smiles: '[CH3]', nameRu: 'Метил-радикал CH₃•' },
+  // звено крахмала без «n» — пример «на одно звено» (10 кл., с. 165: 2C₆H₁₀O₅ + H₂O → C₁₂H₂₂O₁₁)
+  C6H10O5: { smiles: 'C1(*)OC(CO)C(O*)C(O)C1O', nameRu: 'Звено крахмала C₆H₁₀O₅ (на одно звено)' },
   // звенья полимеров (n — в подписи)
   '(C6H10O5)n': { smiles: 'C1(*)OC(CO)C(O*)C(O)C1O', nameRu: 'Звено крахмала / целлюлозы (C₆H₁₀O₅)ₙ' },
   '(C6H7O2(OH)3)n': { smiles: 'C1(*)OC(CO)C(O*)C(O)C1O', nameRu: 'Звено целлюлозы' },
@@ -386,7 +392,8 @@ export function labOrganicById(id: string): CompoundDef | null {
   const at = body.lastIndexOf('@')
   const spelling = at >= 0 ? body.slice(0, at) : body
   const hint = at >= 0 ? body.slice(at + 1) : null
-  const parsed = parseFormula(spelling.replace(/\)n$/, ')').replace(/-/g, ''))
+  // радикальная точка записи («CH3*», «Cl*») в состав не входит
+  const parsed = parseFormula(spelling.replace(/\)n$/, ')').replace(/-/g, '').replace(/^\*+|\*+$/g, ''))
   let result: CompoundDef | null = null
   if (parsed && !parsed.electron) {
     const pick = pickOrganic(spelling, parsed.counts, hint)
@@ -406,7 +413,8 @@ export function labOrganicSpeciesFor(
   if (!pick) return null
   const id = labOrganicSpeciesId(formula, pick.how === 'hint' ? hint : null)
   const cached = cache.get(id)
-  const compound = cached !== undefined ? cached : buildSpecies(id, organicSpelling(formula), pick, counts)
+  // null в кэше мог остаться от запроса по id, который не разобрался; раз вещество подобрано — строим заново
+  const compound = cached ?? buildSpecies(id, organicSpelling(formula), pick, counts)
   cache.set(id, compound)
   if (!compound || !sameComposition(compound.composition, counts)) return null
   return { compound, pick }

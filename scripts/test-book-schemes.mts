@@ -167,7 +167,8 @@ const problems: string[] = []
   const eq = (a: unknown, b: unknown, what: string) => {
     if (JSON.stringify(a) !== JSON.stringify(b)) problems.push(`${what}: ${JSON.stringify(a)} ≠ ${JSON.stringify(b)}`)
   }
-  eq(reactorExampleTexts('CH4 + Cl* → CH3* + HCl'), ['CH4 + Cl* -> CH3* + HCl', 'CH4 + Cl -> CH3 + HCl'], 'радикалы')
+  // «*» радикала — сначала как «•» (реактор читает «*» как заполнитель схемы), затем как есть и без точки
+  eq(reactorExampleTexts('CH4 + Cl* → CH3* + HCl'), ['CH4 + Cl• -> CH3• + HCl', 'CH4 + Cl* -> CH3* + HCl', 'CH4 + Cl -> CH3 + HCl'], 'радикалы')
   eq(reactorExampleTexts('CH2Cl-CH2Cl + 2NaOH → HOCH2CH2OH + 2NaCl').at(-1), 'CH2ClCH2Cl + 2NaOH -> HOCH2CH2OH + 2NaCl', 'связи')
   eq(reactorExampleTexts('2CuSO4 + 2H2O -> 2Cu + O2 + 2H2SO4'), ['2CuSO4 + 2H2O -> 2Cu + O2 + 2H2SO4'], 'неорганика без изменений')
   eq(exampleDisplay('H2SO4 + SO3 -> H2S2O7'), 'H₂SO₄ + SO₃ → H₂S₂O₇', 'отображение')
@@ -232,7 +233,7 @@ for (const grade of [7, 8, 9, 10, 11]) {
         const p = parseReactorLinkParams(new URLSearchParams((r.lab.href ?? '').split('?')[1] ?? ''))
         // условия над стрелкой («->(электролиз раствора)») — от карточки, вещества — от примера
         const linked = p?.spec.equation?.replace(/(->|<=>)\([^)]*\)/, '$1')
-        if (linked !== text) problems.push(`${label}: ссылка ведёт не на пример (${p?.spec.equation})`)
+        if (linked !== text) problems.push(`${label}: ссылка ведёт не на пример (${p?.spec.equation}; ждали ${text})`)
         opened.push(`${label}  ⇒  ${ex}`)
       } else {
         const formulas = (res.ok ? [] : ((res.details as { formulas?: string[] }).formulas ?? [])).join(', ')

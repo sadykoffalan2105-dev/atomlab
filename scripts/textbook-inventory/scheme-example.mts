@@ -35,7 +35,10 @@ export function reactorExampleTexts(example: string): string[] {
   }
   const side = (s: string) => s.split(/\s+\+\s+/).map((t) => term(t.trim())).join(' + ')
   const plain = `${side(parts[0]!)} ${parts[1]} ${side(parts[2]!)}`
-  return [...new Set([ascii, plain])]
+  // радикал в данных учебника записан звёздочкой («CH3*»), а реактор читает «*» как заполнитель схемы —
+  // первым пробуем ту же запись с «•», чтобы на экране реакции остались CH₃• и Cl•
+  const dotted = ascii.replace(/(?<=[A-Za-z0-9)\]])\*(?=\s|$)/g, '•')
+  return [...new Set([dotted, ascii, plain])]
 }
 
 /** Пример для карточки: «2NaCl → 2Na + Cl₂», «C₆H₁₀O₅», радикал «Cl*» → «Cl•», гидрат «H₂SO₄*SO₃» → «H₂SO₄·SO₃». */
