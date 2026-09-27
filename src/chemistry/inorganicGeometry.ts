@@ -987,8 +987,7 @@ const MOLECULES: Record<string, () => Frag> = {
 }
 
 /** Молекулы, чья геометрия берётся из научного ядра (для карточек каталога — catalogGeometryOverrides). */
-const CORE_MOLECULES = ['CO', 'NO', 'NO2', 'SO2', 'N2O', 'N2O5'] as const
-export type CoreMoleculeFormula = (typeof CORE_MOLECULES)[number]
+export type CoreMoleculeFormula = 'CO' | 'NO' | 'NO2' | 'SO2' | 'N2O' | 'N2O5'
 
 /**
  * Масштаб ручных моделей карточки каталога (catalogGeometryOverrides: SO₂ ≈ 0,55 ед. на S=O) — 0,004 ед. на пм,
