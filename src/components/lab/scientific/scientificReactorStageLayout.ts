@@ -681,7 +681,7 @@ function elementTemplate(z: number, diatomic: boolean): UnitTemplate | null {
   )
 }
 
-/** Ряд ужат сильнее — члены раздвигаются до ширины подписи. */
+/** Ряд с крупной молекулой ужат сильнее — члены раздвигаются до ширины подписи. */
 const LABEL_AWARE_FIT = 0.75
 /** Ширина символа подписи члена в мировых единицах при масштабе 1 (подстрочные цифры уже). */
 const LABEL_WORLD_PER_CHAR = 0.19
@@ -890,8 +890,9 @@ export function scientificStageLayout(
   const arrowAt = items.findIndex((it) => it.kind === 'sep' && it.glyph === '→')
   const split = Boolean(opts?.twoRows) && arrowAt > 0
   // Крупные молекулы (жир, мыло): сцена ужимается, а подписи «3 NaOH», «1 C₃H₅(OH)₃» — нет, и у мелких
-  // соседей они наезжают друг на друга. Раздвигаем члены до ширины подписи в масштабе сцены.
-  {
+  // соседей они наезжают друг на друга. Раздвигаем члены до ширины подписи в масштабе сцены
+  // (только при крупной молекуле в ряду — раскладка реакций 7–9 классов не меняется).
+  if (placed.some((p) => (p.template?.atoms.length ?? 0) >= LARGE_FRAGMENT_ATOMS)) {
     const widest = () =>
       split ? Math.max(rowWidthOf(items.slice(0, arrowAt)), rowWidthOf(items.slice(arrowAt))) : rowWidthOf(items)
     // сцена не шире видимой ширины кадра (узкий экран телефона ужимает её сильнее MAX_ROW_WIDTH)

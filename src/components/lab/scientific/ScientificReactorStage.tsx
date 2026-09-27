@@ -40,6 +40,8 @@ const STAGE_WIDTH_FILL = 0.9
 const STAGE_TWO_ROWS_FIT = 0.6
 /** Свободная область над панелью реактора ≈ половина высоты канвы: её пропорция ≈ 2,2 × пропорция канвы. */
 const STAGE_REGION_ASPECT = 2.2
+/** Крупная молекула (жир, мыло, звено целлюлозы): только с ней пробуем два ряда на широком экране. */
+const STAGE_LARGE_MOLECULE_ATOMS = 40
 const _stageCenter = new THREE.Vector3()
 
 /**
@@ -374,7 +376,8 @@ export function ScientificReactorStage({
     // Крупные молекулы (жир — ~170 атомов, мыло, звено целлюлозы): ряд ужимается так, что шары не разглядеть.
     // Пробуем «реагенты сверху, → продукты снизу» и берём раскладку, которая крупнее влезает в свободную
     // область над панелью реактора (по ширине и по высоте; область — примерно вдвое шире канвы по пропорции).
-    if (!twoRows && one.fitScale < STAGE_TWO_ROWS_FIT && leftTerms.length > 0) {
+    const hasLarge = one.units.some((u) => u.atomCount >= STAGE_LARGE_MOLECULE_ATOMS)
+    if (!twoRows && hasLarge && one.fitScale < STAGE_TWO_ROWS_FIT && leftTerms.length > 0) {
       const two = scientificStageLayout(leftTerms, coProducts, productId, productCoeff, productIndex, { twoRows: true, maxWidth })
       const regionAspect = aspect * STAGE_REGION_ASPECT
       const score = (l: typeof one) => {
