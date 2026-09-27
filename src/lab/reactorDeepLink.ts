@@ -43,7 +43,7 @@ import {
   simpleSpeciesFor,
   type LabSpeciesKind,
 } from '../data/labSpecies'
-import { labOrganicSpeciesFor, pickOrganic, registryIdsForComposition } from '../data/labOrganicSpecies'
+import { labOrganicSpeciesFor, pickOrganic } from '../data/labOrganicSpecies'
 import type { CompoundDef } from '../types/chemistry'
 
 /**
@@ -169,14 +169,6 @@ function chargeSuffix(q: number): string {
   return `^${mag === 1 ? '' : mag}${q > 0 ? '+' : '-'}`
 }
 
-/** Вещество каталога — то же, что имеет в виду запись учебника (по строению, если есть изомеры). */
-function catalogMatchesOrganic(compound: CompoundDef, s: EquationSpecies, counts: Readonly<Record<string, number>>, hint?: string | null): boolean {
-  if (registryIdsForComposition(counts).length === 0) return true
-  const book = pickOrganic(s.formula, counts, hint)
-  const cat = pickOrganic(compound.formulaUnicode, counts)
-  return book != null && cat != null && book.registryId === cat.registryId && book.registryId != null
-}
-
 function resolveSpecies(s: EquationSpecies, hint?: string | null): ResolvedSpecies {
   const counts = s.counts ?? {}
   const syms = Object.keys(counts)
@@ -204,12 +196,10 @@ function resolveSpecies(s: EquationSpecies, hint?: string | null): ResolvedSpeci
     }
   }
   const organic = isOrganicFormula(s.formula, counts)
-  const compound = compoundByCompositionKey(formulaCompositionKey(counts))
-  if (compound && !s.polymer && (!organic || catalogMatchesOrganic(compound, s, counts, hint))) {
-    return { kind: 'compound', compound, glowZ: glowZForCounts(counts) }
-  }
   // соль органической кислоты без водорода (оксалат калия «KOOC–COOK») — тоже органика
   const organicSalt = !organic && (counts.C ?? 0) > 0 && /COO|OOC/.test(s.formula) && !/CO3/.test(s.formula)
+  const compound = compoundByCompositionKey(formulaCompositionKey(counts))
+  if (compound && !organic && !organicSalt) return { kind: 'compound', compound, glowZ: glowZForCounts(counts) }
   if (organic || organicSalt) {
     // Органика: формульная единица школьных уравнений 7–9 кл. (CH₄, C₂H₅OH …) — если запись о том же
     // веществе; иначе вещество реестра органики по строению записи (изомеры различаются) или скелет записи.
@@ -222,6 +212,9 @@ function resolveSpecies(s: EquationSpecies, hint?: string | null): ResolvedSpeci
     const org = labOrganicSpeciesFor(s.formula, counts, hint)
     if (org) return { kind: 'compound', compound: org.compound, glowZ: 6, lab: 'organic' }
   }
+  // Органическая соль каталога (tb_…) — только если строения записи не нашлось: у этих частиц каталога нет
+  // связей (заготовка), и экран реакции «шарами» строится по скелету записи учебника.
+  if (compound && !s.polymer) return { kind: 'compound', compound, glowZ: glowZForCounts(counts) }
   return { kind: 'missing', organic, formula }
 }
 

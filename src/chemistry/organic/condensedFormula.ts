@@ -288,7 +288,13 @@ function parseChain(b: Builder, text: string): { units: Unit[]; first: number | 
       const freeOf = (c: { units: Unit[] }) => {
         let f = 0
         const seen = new Set<number>()
-        for (const u of c.units) for (const i of u.attach) if (!seen.has(i)) (seen.add(i), (f += b.free(i)))
+        for (const u of c.units) {
+          for (const i of u.attach) {
+            if (seen.has(i)) continue
+            seen.add(i)
+            f += b.free(i)
+          }
+        }
         return f
       }
       const f = freeOf(copies[0]!)

@@ -421,7 +421,7 @@ function parseCoeffText(text: string): number | null {
 }
 
 /** Связи в записи формулы: «CH₃–CH₂Cl», «CH₂=CH₂», «HC≡CH»; звено полимера «(–CH₂–CH₂–)n». */
-const STRUCT_BOND_RE = /[A-Za-z0-9)\]][-–=≡][A-Z(\[]|[A-Z][a-z]?\d*[-–][A-Z(\[]/
+const STRUCT_BOND_RE = /[A-Za-z0-9)\]][-–=≡][A-Z([]|[A-Z][a-z]?\d*[-–][A-Z([]/
 const POLYMER_RE = /^\([-–].*[-–]\)(?:n|ₙ)$/
 
 /** Структурная запись органики: связи убираются только для счёта атомов, запись остаётся. */
@@ -459,7 +459,7 @@ function parseSpecies(termRaw: string): EquationSpecies {
     }
   }
   // «nCH₂=CHCl», «3nHNO₃» — коэффициент на звено полимера
-  const nm = /^(\d*)n(?=[A-Z(\[])/.exec(body)
+  const nm = /^(\d*)n(?=[A-Z([])/.exec(body)
   if (nm) {
     // «6nCO₂»: число уже снято выше; «3nHNO₃» без пробела — здесь
     if (nm[1]) coeff = Number(nm[1])
@@ -607,7 +607,7 @@ function speciesToUnicode(s: EquationSpecies): string {
   if (s.polymer || s.charge === 0) {
     // структурная запись: связи — тире, звено полимера — «(–CH₂–CH₂–)ₙ»
     const f = s.polymer ? `${formulaToUnicode(s.formula.replace(/\)n$/, ')'))}ₙ` : formulaToUnicode(s.formula)
-    return `${formatCoeff(s.coeff)}${n}${f.replace(/(?<=[A-Za-z0-9₀-₉)\](])-|-(?=[A-Z(\[)])/g, '–')}${s.radical ? '•' : ''}`
+    return `${formatCoeff(s.coeff)}${n}${f.replace(/(?<=[A-Za-z0-9₀-₉)\](])-|-(?=[A-Z([)])/g, '–')}${s.radical ? '•' : ''}`
   }
   return `${formatCoeff(s.coeff)}${n}${formulaToUnicode(s.formula + chargeText)}`
 }

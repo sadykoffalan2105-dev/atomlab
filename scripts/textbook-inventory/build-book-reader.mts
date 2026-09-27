@@ -1247,7 +1247,8 @@ function equationSignature(text: string): string | null {
   const min = Math.min(...all.map((s) => s.coeff))
   if (!(min > 0)) return null
   const side = (list: typeof p.reactants) =>
-    list.map((s) => `${s.counts ? formulaCompositionKey(s.counts) : s.formula}^${s.charge}*${+(s.coeff / min).toFixed(3)}`).sort().join('+')
+    // «nCH₂=CHCl» и «CH₂=CHCl» — разные записи (коэффициент на звено полимера)
+    list.map((s) => `${s.counts ? formulaCompositionKey(s.counts) : s.formula}^${s.charge}*${+(s.coeff / min).toFixed(3)}${s.perUnit ? 'n' : ''}`).sort().join('+')
   return `${side(p.reactants)}=${side(p.products)}`
 }
 
