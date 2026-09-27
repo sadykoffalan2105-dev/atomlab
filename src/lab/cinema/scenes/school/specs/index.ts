@@ -12,9 +12,9 @@ import { NO_SPEC } from './no'
 import { NO2_SPEC } from './no2'
 import { SO2_SPEC } from './so2'
 import { SO3_SPEC } from './so3'
-import type { SchoolSceneSpec, SchoolSpecId } from './types'
+import type { SchoolScienceSpec, SchoolSpecId } from './types'
 
-export const SCHOOL_SPECS: Readonly<Partial<Record<SchoolSpecId, SchoolSceneSpec>>> = {
+export const SCHOOL_SPECS: Readonly<Record<SchoolSpecId, SchoolScienceSpec>> = {
   h2o: H2O_SPEC,
   co2: CO2_SPEC,
   nacl: NACL_SPEC,
@@ -27,8 +27,8 @@ export const SCHOOL_SPECS: Readonly<Partial<Record<SchoolSpecId, SchoolSceneSpec
   n2o5: N2O5_SPEC,
 }
 
-export function schoolSpecFor(id: string): SchoolSceneSpec | null {
-  return (SCHOOL_SPECS as Record<string, SchoolSceneSpec | undefined>)[id] ?? null
+export function schoolSpecFor(id: string): SchoolScienceSpec | null {
+  return (SCHOOL_SPECS as Record<string, SchoolScienceSpec | undefined>)[id] ?? null
 }
 
 export * from './types'

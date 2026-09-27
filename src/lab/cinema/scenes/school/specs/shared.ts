@@ -3,7 +3,7 @@
  * Числа (заряды ядер, слои, длины) — из ядра через ./core.
  */
 import { atomSpec } from './core'
-import type { AtomSpec, ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
+import type { AtomSpec, ParticleSpec, SchoolScienceSpec, TextbookRef } from './types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Учебники (рус. издание Kimyo; номера страниц = страницы PDF)
@@ -128,7 +128,7 @@ export const T9_CARBON_EXCITED: TextbookRef = {
 // Легенда значков (общая для всех сцен; вариант с донорно-акцепторной стрелкой)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const LEGEND: SchoolSceneSpec['legend'] = {
+export const LEGEND: SchoolScienceSpec['legend'] = {
   electron: {
     ru: 'Точка у атома — электрон внешнего слоя; их можно пересчитать.',
     en: 'A dot at an atom is an outer-shell electron; they can be counted.',
@@ -151,7 +151,7 @@ export const LEGEND: SchoolSceneSpec['legend'] = {
   },
 }
 
-export const LEGEND_DATIVE: SchoolSceneSpec['legend'] = {
+export const LEGEND_DATIVE: SchoolScienceSpec['legend'] = {
   ...LEGEND,
   sharedPair: {
     ru: 'Две точки между ядрами — общая электронная пара (одна черта). Стрелка у пары — донорно-акцепторная связь: обе точки пришли от одного атома.',

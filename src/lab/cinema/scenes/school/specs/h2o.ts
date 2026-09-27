@@ -4,7 +4,7 @@
  */
 import { ref } from './core'
 import { ATOM_H, ATOM_O, P_H2, P_H2O, P_O2, T7_OXYGEN_PROPS, T7_VALENCE, T8_COVALENT, T8_LEVELS, LEGEND } from './shared'
-import type { SchoolSceneSpec, TextbookRef } from './types'
+import type { SchoolScienceSpec, TextbookRef } from './types'
 
 const T7_HYDROGEN: TextbookRef = {
   grade: 7,
@@ -30,7 +30,7 @@ const T7_WATER_PHYSICAL: TextbookRef = {
   what: 'чистая вода — прозрачное бесцветное жидкое вещество без запаха',
 }
 
-export const H2O_SPEC: SchoolSceneSpec = {
+export const H2O_SPEC: SchoolScienceSpec = {
   id: 'h2o',
   substance: 'H₂O',
   focus: 'H2O',

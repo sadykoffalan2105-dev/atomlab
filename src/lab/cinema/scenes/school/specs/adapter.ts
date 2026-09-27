@@ -10,7 +10,7 @@
  * Координаты атомов, позиции split и place выбирает движок: это постановка кадра, а не химия.
  */
 import { resolveAngleDeg, resolveLengthPm } from './core'
-import { SCHOOL_STEP_IDS, type BondSpec, type ParticleSpec, type SchoolLocale, type SchoolSceneSpec, type SchoolStepId, type SchoolStepText } from './types'
+import { SCHOOL_STEP_IDS, type BondSpec, type ParticleSpec, type SchoolLocale, type SchoolScienceSpec, type SchoolStepId, type SchoolStepText } from './types'
 
 export type PairOriginLike = 'ab' | 'a' | 'b'
 
@@ -31,7 +31,7 @@ export type LessonTextLike = {
 }
 
 /** Тексты урока на языке locale в форме SchoolLessonText движка. */
-export function lessonText(spec: SchoolSceneSpec, locale: SchoolLocale): LessonTextLike {
+export function lessonText(spec: SchoolScienceSpec, locale: SchoolLocale): LessonTextLike {
   const steps = {} as Record<SchoolStepId, SchoolStepText>
   for (const id of SCHOOL_STEP_IDS) {
     const s = spec.steps.find((x) => x.id === id)
@@ -52,7 +52,7 @@ export function lessonText(spec: SchoolSceneSpec, locale: SchoolLocale): LessonT
 }
 
 /** Сплошная разметка времени сюжета: to шага = from следующего. */
-export function stepTimings(spec: SchoolSceneSpec): { readonly id: SchoolStepId; readonly from: number; readonly to: number }[] {
+export function stepTimings(spec: SchoolScienceSpec): { readonly id: SchoolStepId; readonly from: number; readonly to: number }[] {
   let t = 0
   return spec.steps.map((s) => {
     const from = t
@@ -62,7 +62,7 @@ export function stepTimings(spec: SchoolSceneSpec): { readonly id: SchoolStepId;
 }
 
 /** Главная ссылка на учебник: класс, параграф, первая страница. */
-export function textbookOf(spec: SchoolSceneSpec): { readonly grade: number; readonly section: string; readonly page: number } {
+export function textbookOf(spec: SchoolScienceSpec): { readonly grade: number; readonly section: string; readonly page: number } {
   const main = spec.reaction.sources[0]!
   return { grade: main.grade, section: main.section, page: main.pages[0]! }
 }

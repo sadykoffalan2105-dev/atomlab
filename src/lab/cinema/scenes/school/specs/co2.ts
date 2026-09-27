@@ -4,7 +4,7 @@
  */
 import { ref } from './core'
 import { ATOM_C, ATOM_O, P_C_GRAPHITE, P_O2, T7_OXYGEN_PROPS, T7_STRUCTURAL_FORMULA, T7_VALENCE, T8_COVALENT, T8_LEVELS, T9_CARBON_EXCITED, LEGEND } from './shared'
-import type { ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
+import type { ParticleSpec, SchoolScienceSpec, TextbookRef } from './types'
 
 const T7_FLAME_PRACTICE: TextbookRef = {
   grade: 7,
@@ -63,7 +63,7 @@ const P_CO2: ParticleSpec = {
   polarity: 'nonpolar',
 }
 
-export const CO2_SPEC: SchoolSceneSpec = {
+export const CO2_SPEC: SchoolScienceSpec = {
   id: 'co2',
   substance: 'CO₂',
   focus: 'CO2',

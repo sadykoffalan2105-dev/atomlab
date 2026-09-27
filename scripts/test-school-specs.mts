@@ -49,7 +49,7 @@ import {
   SCHOOL_STEP_IDS,
   type L10n,
   type ParticleSpec,
-  type SchoolSceneSpec,
+  type SchoolScienceSpec,
   type SchoolSource,
   type TextbookRef,
 } from '../src/lab/cinema/scenes/school/specs/index.ts'
@@ -206,7 +206,7 @@ function allL10n(x: unknown, path: string, out: Array<[string, L10n]>): void {
   }
   for (const [k, v] of Object.entries(o)) allL10n(v, `${path}.${k}`, out)
 }
-function refsOf(spec: SchoolSceneSpec): TextbookRef[] {
+function refsOf(spec: SchoolScienceSpec): TextbookRef[] {
   const all: SchoolSource[] = [
     ...spec.reaction.sources,
     ...(spec.reaction.heatSource ? [spec.reaction.heatSource] : []),
@@ -224,7 +224,7 @@ function refsOf(spec: SchoolSceneSpec): TextbookRef[] {
 // ─────────────────────────────────────────────────────────────────────────────
 // По спецификациям
 // ─────────────────────────────────────────────────────────────────────────────
-const specs = SCHOOL_SPEC_IDS.map((id) => SCHOOL_SPECS[id]).filter((s): s is SchoolSceneSpec => Boolean(s))
+const specs = SCHOOL_SPEC_IDS.map((id) => SCHOOL_SPECS[id]).filter((s): s is SchoolScienceSpec => Boolean(s))
 ok('спецификации всех 10 веществ на месте', specs.length === SCHOOL_SPEC_IDS.length, `${specs.length} из ${SCHOOL_SPEC_IDS.length}: ${specs.map((s) => s.id).join(', ')}`)
 
 for (const spec of specs) {

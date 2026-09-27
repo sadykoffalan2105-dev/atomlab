@@ -6,7 +6,7 @@
  */
 import { ref } from './core'
 import { ATOM_H, ATOM_N, ATOM_O, P_H2O, T7_OXIDES, T7_VALENCE_EXERCISES, T8_DATIVE, T8_LEVELS, LEGEND_DATIVE } from './shared'
-import type { ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
+import type { ParticleSpec, SchoolScienceSpec, TextbookRef } from './types'
 
 const T8_AMMONIUM_NITRATE: TextbookRef = {
   grade: 8,
@@ -118,7 +118,7 @@ const P_N2O: ParticleSpec = {
   },
 }
 
-export const N2O_SPEC: SchoolSceneSpec = {
+export const N2O_SPEC: SchoolScienceSpec = {
   id: 'n2o',
   substance: 'N₂O',
   focus: 'N2O',

@@ -67,7 +67,7 @@ export type ReactionTerm = {
   readonly formula: string
   readonly coef: number
   readonly phase: Phase
-  /** id частицы из SchoolSceneSpec.particles */
+  /** id частицы из SchoolScienceSpec.particles */
   readonly particle: string
 }
 
@@ -322,7 +322,7 @@ export type Caveat = {
   readonly text: L10n
 }
 
-export type SchoolSceneSpec = {
+export type SchoolScienceSpec = {
   readonly id: SchoolSpecId
   /** Вещество каталога 7 класса (формула с индексами). */
   readonly substance: string
@@ -346,7 +346,7 @@ export type SchoolSceneSpec = {
     readonly lonePair: L10n
     readonly unpaired: L10n
   }
-  /** Короткие 3D-подписи (как SchoolSceneSpec.captions движка). */
+  /** Короткие 3D-подписи (как SchoolSceneSpec.captions движка A). */
   readonly captions: {
     /** над реагентами на шаге reactants */
     readonly reactants: L10n

@@ -4,7 +4,7 @@
  */
 import { ref } from './core'
 import { ATOM_CL, ATOM_NA, P_CL2, P_NA_METAL, T7_VALENCE, T8_IONIC, T8_LEVELS, LEGEND } from './shared'
-import type { ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
+import type { ParticleSpec, SchoolScienceSpec, TextbookRef } from './types'
 
 const T7_NACL_TASK: TextbookRef = {
   grade: 7,
@@ -55,7 +55,7 @@ const P_NACL: ParticleSpec = {
   },
 }
 
-export const NACL_SPEC: SchoolSceneSpec = {
+export const NACL_SPEC: SchoolScienceSpec = {
   id: 'nacl',
   substance: 'NaCl',
   focus: 'NaCl',

@@ -5,7 +5,7 @@
  */
 import { ref } from './core'
 import { ATOM_C, ATOM_O, P_C_GRAPHITE, P_O2, T7_OXIDES, T7_OXYGEN_PROPS, T7_VALENCE_EXERCISES, T8_DATIVE, T8_LEVELS, LEGEND_DATIVE } from './shared'
-import type { ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
+import type { ParticleSpec, SchoolScienceSpec, TextbookRef } from './types'
 
 const T7_CO_EXAMPLE: TextbookRef = {
   grade: 7,
@@ -58,7 +58,7 @@ const P_CO: ParticleSpec = {
   },
 }
 
-export const CO_SPEC: SchoolSceneSpec = {
+export const CO_SPEC: SchoolScienceSpec = {
   id: 'co',
   substance: 'CO',
   focus: 'CO',

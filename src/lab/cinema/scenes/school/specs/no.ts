@@ -5,7 +5,7 @@
  */
 import { ref } from './core'
 import { ATOM_N, ATOM_O, P_N2, P_NO, P_O2, T7_OXIDES, T7_OXYGEN_PROPS, T8_COVALENT, T8_LEVELS, T8_NITROGEN_OXIDES, LEGEND } from './shared'
-import type { SchoolSceneSpec, TextbookRef } from './types'
+import type { SchoolScienceSpec, TextbookRef } from './types'
 
 const T7_LIGHTNING: TextbookRef = {
   grade: 7,
@@ -23,7 +23,7 @@ const T7_NITROGEN_II: TextbookRef = {
   what: 'задание: «азот N(II) + кислород → ?»',
 }
 
-export const NO_SPEC: SchoolSceneSpec = {
+export const NO_SPEC: SchoolScienceSpec = {
   id: 'no',
   substance: 'NO',
   focus: 'NO',

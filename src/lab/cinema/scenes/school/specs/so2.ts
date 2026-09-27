@@ -4,7 +4,7 @@
  */
 import { ref } from './core'
 import { ATOM_O, ATOM_S, P_O2, P_S_SOLID, P_SO2, T7_FLAME_PRACTICE, T7_OXYGEN_PROPS, T7_VALENCE, T8_COVALENT, T8_LEVELS, T8_SULFUR_OXIDES, LEGEND } from './shared'
-import type { SchoolSceneSpec, TextbookRef } from './types'
+import type { SchoolScienceSpec, TextbookRef } from './types'
 
 const T7_ACID_RAIN: TextbookRef = {
   grade: 7,
@@ -22,7 +22,7 @@ const T7_WATER_CHEM: TextbookRef = {
   what: 'SO₂ + H₂O = H₂SO₃; SO₃ + H₂O = H₂SO₄; CO₂ + H₂O = H₂CO₃',
 }
 
-export const SO2_SPEC: SchoolSceneSpec = {
+export const SO2_SPEC: SchoolScienceSpec = {
   id: 'so2',
   substance: 'SO₂',
   focus: 'SO2',
