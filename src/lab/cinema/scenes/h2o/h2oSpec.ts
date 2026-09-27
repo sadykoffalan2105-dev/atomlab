@@ -14,8 +14,8 @@ import { H2O_LESSON_TEXT } from './h2oMechanismText'
  *   • H₂O: у O две общие пары O–H (по электрону от O и от H) и две неподелённые пары; H–O–H 104,5°,
  *     O–H 95,8 пм (r₀, NIST CCCBDB) — числа только из ядра bondData.
  *
- * Раскладка (пм): H₂ слева и справа, O₂ в центре; после разрыва атомы расходятся, затем собираются в
- * две молекулы воды — зеркально сверху и снизу (атом O снаружи, атомы H к центру).
+ * Раскладка (пм, кадр широкий): O₂ сверху по центру, H₂ снизу слева и справа; после разрыва атомы
+ * расходятся, затем собираются в две одинаково повёрнутые молекулы воды слева и справа («2H₂O»).
  */
 
 const OH = bondLengthPm('O-H')
@@ -24,16 +24,13 @@ const HH = bondLengthPm('H-H')
 const OO = bondLengthPm('O=O')
 
 const half = ((HOH / 2) * Math.PI) / 180
-/** Координаты воды: O выше центра, атомы H ниже (sign = 1) или зеркально (sign = −1). */
-function water(sign: 1 | -1): { O: SchoolVec3; Ha: SchoolVec3; Hb: SchoolVec3 } {
+/** Координаты воды: O выше центра, атомы H ниже; центр — середина по высоте (молекула стоит на place). */
+function water(): { O: SchoolVec3; Ha: SchoolVec3; Hb: SchoolVec3 } {
   const hx = OH * Math.sin(half)
   const hy = OH * Math.cos(half)
-  // центр — середина по высоте, чтобы молекула стояла ровно на месте place
-  const oy = (hy / 2) * sign
-  return { O: [0, oy, 0], Ha: [-hx, oy - hy * sign, 0], Hb: [hx, oy - hy * sign, 0] }
+  return { O: [0, hy / 2, 0], Ha: [-hx, -hy / 2, 0], Hb: [hx, -hy / 2, 0] }
 }
-const W1 = water(1)
-const W2 = water(-1)
+const W = water()
 
 export const H2O_SPEC: SchoolSceneSpec = {
   id: 'h2o',
@@ -55,8 +52,8 @@ export const H2O_SPEC: SchoolSceneSpec = {
       state: 'g',
       atoms: ['H1', 'H2'],
       bonds: [{ a: 'H1', b: 'H2', pairs: ['ab'], bondKey: 'H-H' }],
-      coords: { H1: [0, HH / 2, 0], H2: [0, -HH / 2, 0] },
-      place: [-235, 0, 0],
+      coords: { H1: [-HH / 2, 0, 0], H2: [HH / 2, 0, 0] },
+      place: [-235, -55, 0],
     },
     {
       id: 'O2',
@@ -65,8 +62,8 @@ export const H2O_SPEC: SchoolSceneSpec = {
       atoms: ['O1', 'O2'],
       bonds: [{ a: 'O1', b: 'O2', pairs: ['ab', 'ab'], bondKey: 'O=O' }],
       lonePairs: { O1: 2, O2: 2 },
-      coords: { O1: [0, OO / 2, 0], O2: [0, -OO / 2, 0] },
-      place: [0, 0, 0],
+      coords: { O1: [-OO / 2, 0, 0], O2: [OO / 2, 0, 0] },
+      place: [0, 70, 0],
     },
     {
       id: 'H2b',
@@ -74,8 +71,8 @@ export const H2O_SPEC: SchoolSceneSpec = {
       state: 'g',
       atoms: ['H3', 'H4'],
       bonds: [{ a: 'H3', b: 'H4', pairs: ['ab'], bondKey: 'H-H' }],
-      coords: { H3: [0, HH / 2, 0], H4: [0, -HH / 2, 0] },
-      place: [235, 0, 0],
+      coords: { H3: [-HH / 2, 0, 0], H4: [HH / 2, 0, 0] },
+      place: [235, -55, 0],
     },
   ],
   products: [
@@ -83,38 +80,38 @@ export const H2O_SPEC: SchoolSceneSpec = {
       id: 'W1',
       formula: 'H₂O',
       state: 'l',
-      atoms: ['O1', 'H1', 'H3'],
+      atoms: ['O1', 'H1', 'H2'],
       bonds: [
         { a: 'O1', b: 'H1', pairs: ['ab'], bondKey: 'O-H' },
-        { a: 'O1', b: 'H3', pairs: ['ab'], bondKey: 'O-H' },
+        { a: 'O1', b: 'H2', pairs: ['ab'], bondKey: 'O-H' },
       ],
       lonePairs: { O1: 2 },
-      coords: { O1: W1.O, H1: W1.Ha, H3: W1.Hb },
-      angles: [{ a: 'H1', center: 'O1', b: 'H3', angleKey: 'water' }],
-      place: [0, 118, 0],
+      coords: { O1: W.O, H1: W.Ha, H2: W.Hb },
+      angles: [{ a: 'H1', center: 'O1', b: 'H2', angleKey: 'water' }],
+      place: [-150, 0, 0],
     },
     {
       id: 'W2',
       formula: 'H₂O',
       state: 'l',
-      atoms: ['O2', 'H2', 'H4'],
+      atoms: ['O2', 'H3', 'H4'],
       bonds: [
-        { a: 'O2', b: 'H2', pairs: ['ab'], bondKey: 'O-H' },
+        { a: 'O2', b: 'H3', pairs: ['ab'], bondKey: 'O-H' },
         { a: 'O2', b: 'H4', pairs: ['ab'], bondKey: 'O-H' },
       ],
       lonePairs: { O2: 2 },
-      coords: { O2: W2.O, H2: W2.Ha, H4: W2.Hb },
-      angles: [{ a: 'H2', center: 'O2', b: 'H4', angleKey: 'water' }],
-      place: [0, -118, 0],
+      coords: { O2: W.O, H3: W.Ha, H4: W.Hb },
+      angles: [{ a: 'H3', center: 'O2', b: 'H4', angleKey: 'water' }],
+      place: [150, 0, 0],
     },
   ],
   split: {
-    H1: [-245, 150, 0],
-    H2: [-245, -150, 0],
-    H3: [245, 150, 0],
-    H4: [245, -150, 0],
-    O1: [0, 185, 0],
-    O2: [0, -185, 0],
+    H1: [-300, -95, 0],
+    H2: [-150, -115, 0],
+    H3: [150, -115, 0],
+    H4: [300, -95, 0],
+    O1: [-150, 125, 0],
+    O2: [150, 125, 0],
   },
   steps: [
     { id: 'reactants', from: 0, to: 4.5 },

@@ -27,6 +27,8 @@ const SCENE_BG = new THREE.Color('#0a0b10')
 const FILL = 0.9
 const WARMUP_TIMEOUT_MS = 1500
 const DONE_DELAY_MS = 320
+/** Во сколько раз корень сцены отодвинут от камеры (и увеличен) — меньше перспективных искажений. */
+const LONG_LENS = 3.2
 
 const LIGHTS = new WeakMap<THREE.Scene, SchoolLightRig>()
 /** Свет живёт в сцене R3F постоянно (после урока — нулевой): число источников у лаборатории не меняется. */
@@ -103,8 +105,12 @@ function frameRoot(rt: Runtime, cam: THREE.PerspectiveCamera, controls: Controls
   _up.setFromMatrixColumn(cam.matrixWorld, 1)
   const root = rt.scene.root
   root.position.copy(_target).addScaledVector(_right, rt.ox).addScaledVector(_up, rt.oy)
+  // Длиннофокусная перспектива (как у NaCl): корень отодвигается от камеры в LONG_LENS раз и во
+  // столько же увеличивается — гомотетия с центром в камере. Кадр тот же, а глубинное искажение
+  // (ближний шар «раздут») падает в LONG_LENS раз.
+  root.position.sub(cam.position).multiplyScalar(LONG_LENS).add(cam.position)
   root.quaternion.copy(cam.quaternion)
-  root.scale.setScalar(rt.scale)
+  root.scale.setScalar(rt.scale * LONG_LENS)
   rt.scene.setViewport(h, cam.fov)
 }
 
@@ -185,8 +191,12 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
     )
     setRt(runtime)
     if (import.meta.env.DEV || new URLSearchParams(window.location.search).has('schoolSeek')) {
-      // Отладка и кадры: перемотка сюжета (__schoolSeek(t)).
-      ;(window as unknown as Record<string, unknown>).__schoolSeek = (t: number) => scene.seek(t)
+      // Отладка и кадры: перемотка сюжета (__schoolSeek(t)) — панель урока встаёт на шаг момента t.
+      ;(window as unknown as Record<string, unknown>).__schoolSeek = (t: number) => {
+        started = true
+        void scene.goToStep(scene.model.timing.stepIndexAt(t), { instant: true })
+        scene.seek(t)
+      }
     }
 
     const start = () => {

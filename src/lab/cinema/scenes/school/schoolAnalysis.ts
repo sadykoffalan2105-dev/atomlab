@@ -139,8 +139,9 @@ function scale(a: readonly number[], k: number): V3 {
  * связи и заданные направления закреплены, свободные расталкиваются (модель отталкивания
  * электронных пар — как в VSEPR). Детерминированно: одинаковый результат в каждом прогоне.
  */
-function relaxDomains(fixed: readonly V3[], freeCount: number, weights: readonly number[]): V3[] {
+function relaxDomains(fixed: readonly V3[], freeCount: number, weights: readonly number[], planar = false): V3[] {
   if (freeCount === 0) return []
+  if (planar) return relaxPlanar(fixed, freeCount, weights)
   const out: V3[] = []
   // Начальные направления: против суммы закреплённых, с разведением по кругу в плоскости,
   // перпендикулярной ей; лёгкий сдвиг к зрителю (+z), чтобы пары не прятались за шаром.
@@ -174,6 +175,42 @@ function relaxDomains(fixed: readonly V3[], freeCount: number, weights: readonly
     }
   }
   return out
+}
+
+/**
+ * Свободный атом (нет связей в фазе): у одиночного атома нет «формы», и его электроны рисуют в
+ * плоскости рисунка, как точечную формулу учебника (·Ö·). Закреплённые направления (неспаренные
+ * электроны к будущему партнёру) проецируются в плоскость; свободные расталкиваются по окружности.
+ */
+function relaxPlanar(fixed: readonly V3[], freeCount: number, weights: readonly number[]): V3[] {
+  const fa = fixed.map((f) => Math.atan2(f[1], f[0]))
+  let back = 0
+  if (fa.length) {
+    let sx = 0
+    let sy = 0
+    for (const a of fa) {
+      sx -= Math.cos(a)
+      sy -= Math.sin(a)
+    }
+    back = Math.hypot(sx, sy) > 1e-6 ? Math.atan2(sy, sx) : fa[0]! + Math.PI
+  } else back = Math.PI / 2
+  const ang: number[] = []
+  for (let k = 0; k < freeCount; k++) ang.push(back + ((k - (freeCount - 1) / 2) * 2 * Math.PI) / (freeCount + fa.length + 0.001))
+  for (let it = 0; it < 500; it++) {
+    for (let i = 0; i < ang.length; i++) {
+      let f = 0
+      const push = (a: number, w: number) => {
+        let d = ang[i]! - a
+        d = Math.atan2(Math.sin(d), Math.cos(d))
+        const dd = Math.max(0.08, Math.abs(d))
+        f += (Math.sign(d) * w) / (dd * dd)
+      }
+      for (const a of fa) push(a, 1)
+      for (let j = 0; j < ang.length; j++) if (j !== i) push(ang[j]!, weights[j] ?? 1)
+      ang[i] = ang[i]! + Math.max(-0.05, Math.min(0.05, f * 0.004))
+    }
+  }
+  return ang.map((a) => [Math.cos(a), Math.sin(a), 0] as V3)
 }
 
 /** Сведения об элементе: z, электроны внешнего слоя, ёмкость слоя, CPK, ЭО. */
@@ -512,7 +549,12 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
       const targets = singleTargets?.(i) ?? []
       const singleDirs: V3[] = targets.slice(0, single[i]!)
       const nFreeSingle = single[i]! - singleDirs.length
-      const relaxed = relaxDomains([...fixed, ...singleDirs], lone[i]! + nFreeSingle, [...new Array<number>(lone[i]!).fill(1.25), ...new Array<number>(nFreeSingle).fill(0.8)])
+      const relaxed = relaxDomains(
+        [...fixed, ...singleDirs],
+        lone[i]! + nFreeSingle,
+        [...new Array<number>(lone[i]!).fill(1.25), ...new Array<number>(nFreeSingle).fill(0.8)],
+        fixed.length === 0,
+      )
       return {
         lone: lone[i]!,
         single: single[i]!,
@@ -537,7 +579,8 @@ export function analyzeSchoolSpec(spec: SchoolSceneSpec): SchoolAnalysis {
       if (p < 0) return
       const same = partners.filter((v) => v === p).length
       const j = partners.slice(0, q).filter((v) => v === p).length
-      const d = norm(sub(sPos[p]!, sPos[i]!))
+      const d0 = sub(sPos[p]!, sPos[i]!)
+      const d = norm(Math.hypot(d0[0], d0[1]) > 1e-3 ? [d0[0], d0[1], 0] : d0)
       const perp = Math.hypot(d[0], d[1]) > 1e-3 ? norm([-d[1], d[0], 0]) : ([0, 1, 0] as V3)
       out.push(norm(add(d, scale(perp, (j - (same - 1) / 2) * 0.46))))
     })

@@ -61,7 +61,7 @@ const K = pmToScene(1)
 const LIGHT = { ambient: 0.34, key: 0.9, point: 0.45 } as const
 const ELECTRON_COLOR = new THREE.Color(0x9ee4ff)
 /** Матовый шар: без лака, высокая шероховатость, лёгкий блик. */
-const MATTE = { roughness: 0.66, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.35 } as const
+const MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.16 } as const
 
 export class SchoolReactionScene {
   readonly root = new THREE.Group()
@@ -184,6 +184,8 @@ export class SchoolReactionScene {
 
     // ——— облака внешнего слоя ———
     this.clouds = createElectronClouds({ atoms: n, lowPower: opts.lowPower, color: ELECTRON_COLOR })
+    // Облако — фон для точек-электронов: приглушено, чтобы считаемые электроны читались поверх.
+    this.clouds.material.uniforms.uOpacity!.value = 0.36
     this.stage.add(this.clouds.points)
 
     // ——— подписи ———
@@ -483,8 +485,8 @@ export class SchoolReactionScene {
       const g = s.elGlow[k]!
       h.visible = a > 0.02
       h.position.copy(this._v)
-      h.scale.setScalar((g > 0.6 ? 30 : 17) * K)
-      this.haloMats[k]!.opacity = a * (0.22 + 0.6 * g)
+      h.scale.setScalar((g > 0.6 ? 46 : 26) * K)
+      this.haloMats[k]!.opacity = a * (0.35 + 0.55 * g)
     }
     this.electrons.instanceMatrix.needsUpdate = true
 
@@ -500,7 +502,10 @@ export class SchoolReactionScene {
     for (let k = 0; k < this.labels.length; k++) {
       const l = this.labels[k]!
       l.pos.set(s.labelPos[k * 3]! * K, s.labelPos[k * 3 + 1]! * K, s.labelPos[k * 3 + 2]! * K).applyMatrix4(this.stage.matrix)
-      l.opacity = s.labelOpacity[k]! * (this.model.labels[k]!.anchor.kind === 'atom' ? this.insideVis[k]! : 1)
+      const an = this.model.labels[k]!.anchor
+      // Символ — на передней точке шара (к зрителю в системе root), чтобы шар его не заслонял.
+      if (an.kind === 'atom') l.pos.z += m.ballR[an.atom]! * K * s.appear
+      l.opacity = s.labelOpacity[k]! * (an.kind === 'atom' ? this.insideVis[k]! : 1)
     }
   }
 

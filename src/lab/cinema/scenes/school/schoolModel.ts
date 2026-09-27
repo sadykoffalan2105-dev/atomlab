@@ -27,15 +27,15 @@ export const SCHOOL_DRAW = {
   /** Доля ковалентного радиуса (Cordero) для шара: меньше, чем 0,72 у ball-and-stick, чтобы между ядрами
    * было место для общей пары. Доля одна на все атомы — отношения размеров честные. */
   ballScale: 0.62,
-  dotR: 4.4,
+  dotR: 6,
   /** Расстояние между двумя электронами пары. */
-  dotSep: 10,
+  dotSep: 13,
   /** Шаг между парами кратной связи (поперёк оси) — и между штрихами. */
-  pairSpacing: 17,
+  pairSpacing: 19,
   stickSpacing: 15,
   stickR: 5.2,
   /** Зазор точек неподелённых пар / неспаренных электронов над поверхностью шара. */
-  shellGap: 10,
+  shellGap: 12,
   /** Облако внешнего слоя: радиус-параметр kit/electronClouds = max(k · r_шара, min). */
   cloudK: 1.25,
   cloudMin: 30,
@@ -65,7 +65,13 @@ export type SchoolLabelDef = {
   readonly to: number
 }
 
-export type SchoolStick = { readonly phase: 'r' | 'p'; readonly bond: number; readonly pair: number }
+export type SchoolStick = {
+  readonly phase: 'r' | 'p'
+  readonly bond: number
+  readonly pair: number
+  /** Номер разорванной пары (SchoolAnalysis.broken) для штриха реагента, иначе −1. */
+  readonly broken: number
+}
 
 type Win = { t0: number; t1: number }
 
@@ -218,8 +224,10 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
 
   // ——— штрихи: по одному на пару ———
   const sticks: SchoolStick[] = []
-  a.R.bonds.forEach((b, k) => b.pairs.forEach((_, q) => sticks.push({ phase: 'r', bond: k, pair: q })))
-  a.P.bonds.forEach((b, k) => b.pairs.forEach((_, q) => sticks.push({ phase: 'p', bond: k, pair: q })))
+  a.R.bonds.forEach((b, k) =>
+    b.pairs.forEach((_, q) => sticks.push({ phase: 'r', bond: k, pair: q, broken: a.broken.findIndex((x) => x.rBond === k && x.pair === q) })),
+  )
+  a.P.bonds.forEach((b, k) => b.pairs.forEach((_, q) => sticks.push({ phase: 'p', bond: k, pair: q, broken: -1 })))
 
   const fill = (ph: Phase) => a.atoms.map((x, i) => Math.min(1, shellElectronsOfAtom(ph, i) / x.capacity))
 
@@ -299,9 +307,17 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     }
     if (s.id === 'molecule' || s.id === 'result') probe(a.P.pos)
     // Полосы подписей сверху и снизу.
-    const pad = 70
+    const pad = 48
     return { w: maxX - minX, h: maxY - minY + 2 * pad, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 }
   })
+
+  // Кадр не «прыгает» по масштабу между шагами: габарит шага — не меньше 0,8 общего.
+  const gw = Math.max(...extent.map((e) => e.w))
+  const gh = Math.max(...extent.map((e) => e.h))
+  for (const e of extent) {
+    e.w = Math.max(e.w, 0.8 * gw)
+    e.h = Math.max(e.h, 0.8 * gh)
+  }
 
   return {
     a,
@@ -466,7 +482,8 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
   // ——— электроны ———
   const eOn = schoolSmooth(step.atoms.from + 0.5, step.atoms.from + 1.5, t)
   const shrink = schoolSmooth(step.molecule.from + 0.5, step.molecule.from + 1.8, t)
-  a.electrons.forEach((e, k) => {
+  for (let k = 0; k < a.electrons.length; k++) {
+    const e = a.electrons[k]!
     let alpha = eOn
     let glow = 0.3
     if (t < step.breaking.from) {
@@ -501,12 +518,13 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
     }
     s.elAlpha[k] = alpha * s.fade
     s.elGlow[k] = glow
-  })
+  }
 
   // ——— штрихи ———
   const rDim = lerp(1, 0.22, schoolSmooth(step.atoms.from + 0.3, step.atoms.from + 1.3, t))
   const pOn = schoolSmooth(step.molecule.from + 0.5, step.molecule.from + 1.8, t)
-  m.sticks.forEach((st, k) => {
+  for (let k = 0; k < m.sticks.length; k++) {
+    const st = m.sticks[k]!
     const ph = st.phase === 'r' ? a.R : a.P
     const b = ph.bonds[st.bond]!
     let alpha: number
@@ -515,8 +533,7 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       const kept = st.pair < a.keptPairs[st.bond]!
       if (kept) alpha *= 1 - pOn
       else {
-        const bi = a.broken.findIndex((x) => x.rBond === st.bond && x.pair === st.pair)
-        const w = m.breakWin[bi]!
+        const w = m.breakWin[st.broken]!
         alpha *= 1 - schoolSmooth(w.t0, w.t0 + 0.5, t)
       }
     } else alpha = pOn
@@ -538,11 +555,11 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
     s.stickB[k * 3 + 2] = s.atomPos[ib + 2]!
     s.stickAlpha[k] = alpha * s.appear * s.fade
     void ux
-  })
+  }
 
   // ——— облака внешнего слоя ———
   s.cloudAmount =
-    schoolSmooth(step.atoms.from, step.atoms.from + 1.1, t) * lerp(1, 0.3, schoolSmooth(step.molecule.from + 0.4, step.molecule.from + 1.8, t)) * s.fade
+    schoolSmooth(step.atoms.from, step.atoms.from + 1.1, t) * lerp(1, 0.14, schoolSmooth(step.molecule.from + 0.4, step.molecule.from + 1.8, t)) * s.fade
   for (let i = 0; i < n; i++) {
     let f: number
     let stretch = 0
@@ -557,9 +574,10 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       // Заполнение растёт с каждой образованной парой атома; облако тянется к партнёру.
       let got = 0
       let need = 0
-      a.formed.forEach((fp, k) => {
+      for (let k = 0; k < a.formed.length; k++) {
+        const fp = a.formed[k]!
         const b = a.P.bonds[fp.pBond]!
-        if (b.a !== i && b.b !== i) return
+        if (b.a !== i && b.b !== i) continue
         need++
         const w = m.formWin[k]!
         got += schoolSmooth(w.t0 + 0.9, w.t1, t)
@@ -578,7 +596,7 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
             s.cloudDir[i * 3 + 2] = dz / dl
           }
         }
-      })
+      }
       f = need > 0 ? lerp(m.fillS[i]!, m.fillP[i]!, got / need) : lerp(m.fillS[i]!, m.fillP[i]!, schoolSmooth(step.pairs.from, step.molecule.from, t))
     }
     s.cloudFill[i] = f
@@ -597,14 +615,16 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
     minY = Math.min(minY, s.atomPos[i * 3 + 1]! - r)
     maxY = Math.max(maxY, s.atomPos[i * 3 + 1]! + r)
   }
-  m.labels.forEach((l, k) => {
+  for (let k = 0; k < m.labels.length; k++) {
+    const l = m.labels[k]!
     const o = k * 3
     const an = l.anchor
     let op = edge(t, l.from, l.to)
     if (an.kind === 'atom') {
       s.labelPos[o] = s.atomPos[an.atom * 3]!
       s.labelPos[o + 1] = s.atomPos[an.atom * 3 + 1]!
-      s.labelPos[o + 2] = s.atomPos[an.atom * 3 + 2]! + m.ballR[an.atom]!
+      // Сдвиг к зрителю на радиус шара добавляет сцена — в системе root (после поворота плана).
+      s.labelPos[o + 2] = s.atomPos[an.atom * 3 + 2]!
       op = s.appear
     } else if (an.kind === 'layers') {
       s.labelPos[o] = s.atomPos[an.atom * 3]!
@@ -655,13 +675,14 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       s.labelPos[o + 2] = 0
     }
     s.labelOpacity[k] = op * s.fade
-  })
+  }
 
   // ——— план: лёгкий взгляд сверху; на шаге molecule — доворот, на result — мягкий облёт ———
-  s.pitch = 0.2
-  const y0 = -0.12
+  // На шагах molecule/result взгляд выше: видны обе неподелённые пары (они вне плоскости H–O–H).
+  s.pitch = lerp(0.1, 0.42, schoolSmooth(step.molecule.from + 0.8, step.molecule.to, t))
+  const y0 = -0.08
   const y1 = 0.3
-  const y2 = -0.5
+  const y2 = -0.36
   s.yaw =
     t < step.molecule.from
       ? y0
