@@ -3,6 +3,7 @@
  * Скелет — тяжёлые атомы без H; kit — полный набор по формуле.
  */
 import type { OrganicElement, SkeletonSpec } from '../../chemistry/organic/organicGraph'
+import { G10_CH2_BUILD_CHALLENGES } from './organicBuildCatalogG10ch2'
 
 export type IrPeak = {
   wavenumber: number
@@ -1831,6 +1832,7 @@ export const ORGANIC_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
     skeleton: carbSkel(6, [], { ring: true, hetero: [[0, 'Cl']] }),
     equationRu: 'C₆H₁₂ + Cl₂ → C₆H₁₁Cl + HCl',
   }),
+  ...G10_CH2_BUILD_CHALLENGES, // Kimyo 10, гл. II § 2.6–2.24 (с. 55–102) — organicBuildCatalogG10ch2.ts
 ]
 
 export function organicBuildChallengeById(id: string): OrganicBuildChallenge | undefined {
