@@ -3,7 +3,7 @@
  * Две двойные связи O=C=O, 180°, неполярная молекула с полярными связями (ядро: C=O(CO2) 116,0 пм).
  */
 import { ref } from './core'
-import { ATOM_C, ATOM_O, P_C_GRAPHITE, P_O2, T7_OXYGEN_PROPS, T7_STRUCTURAL_FORMULA, T7_VALENCE, T8_COVALENT, T8_LEVELS, T9_CARBON_EXCITED } from './shared'
+import { ATOM_C, ATOM_O, P_C_GRAPHITE, P_O2, T7_OXYGEN_PROPS, T7_STRUCTURAL_FORMULA, T7_VALENCE, T8_COVALENT, T8_LEVELS, T9_CARBON_EXCITED, LEGEND } from './shared'
 import type { ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
 
 const T7_FLAME_PRACTICE: TextbookRef = {
@@ -181,6 +181,12 @@ export const CO2_SPEC: SchoolSceneSpec = {
     en: 'Burning in pure oxygen is very bright; the experiment is done in a flask of oxygen only under the teacher’s guidance.',
     uz: 'Toza kislorodda yonish juda yorqin boradi; tajriba kislorodli kolbada faqat oʻqituvchi rahbarligida oʻtkaziladi.',
   },
+  legend: LEGEND,
+  captions: {
+    reactants: { ru: 'уголь + кислород', en: 'charcoal + oxygen', uz: 'koʻmir + kislorod' },
+    result: { ru: 'O=C=O, 180°, неполярная', en: 'O=C=O, 180°, non-polar', uz: 'O=C=O, 180°, qutbsiz' },
+    condition: { ru: 't°', en: 't°', uz: 't°' },
+  },
   steps: [
     {
       id: 'reactants',
@@ -275,7 +281,7 @@ export const CO2_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'bonding',
+      id: 'pairs',
       level: 8,
       seconds: 6,
       show: [
@@ -308,7 +314,7 @@ export const CO2_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'product',
+      id: 'molecule',
       level: 7,
       seconds: 5.5,
       show: ['молекула O=C=O на одной прямой, дуга 180°', 'стрелки полярности связей направлены в разные стороны и гасят друг друга'],
@@ -338,7 +344,7 @@ export const CO2_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'summary',
+      id: 'result',
       level: 7,
       seconds: 4.5,
       show: ['молекула CO₂', 'уравнение C + O₂ → CO₂, подсчёт атомов; стакан известковой воды мутнеет'],

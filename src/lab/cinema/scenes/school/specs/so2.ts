@@ -3,7 +3,7 @@
  * Показываем O=S=O (сера IV) с неподелённой парой у S; угол 119,5°, S=O 143,1 пм (ядро), полярная молекула.
  */
 import { ref } from './core'
-import { ATOM_O, ATOM_S, P_O2, P_S_SOLID, P_SO2, T7_FLAME_PRACTICE, T7_OXYGEN_PROPS, T7_VALENCE, T8_COVALENT, T8_LEVELS, T8_SULFUR_OXIDES } from './shared'
+import { ATOM_O, ATOM_S, P_O2, P_S_SOLID, P_SO2, T7_FLAME_PRACTICE, T7_OXYGEN_PROPS, T7_VALENCE, T8_COVALENT, T8_LEVELS, T8_SULFUR_OXIDES, LEGEND } from './shared'
 import type { SchoolSceneSpec, TextbookRef } from './types'
 
 const T7_ACID_RAIN: TextbookRef = {
@@ -147,6 +147,12 @@ export const SO2_SPEC: SchoolSceneSpec = {
     en: 'Sulfur dioxide is poisonous and irritates the airways. The experiment is done in a closed flask in a fume hood, and the vessel is stoppered afterwards.',
     uz: 'Sulfit angidrid zaharli va nafas yoʻllarini qitiqlaydi. Tajriba tortuv shkafida yopiq kolbada oʻtkaziladi, idish tajribadan keyin tiqin bilan yopiladi.',
   },
+  legend: LEGEND,
+  captions: {
+    reactants: { ru: 'сера + кислород', en: 'sulfur + oxygen', uz: 'oltingugurt + kislorod' },
+    result: { ru: 'O=S=O, 119,5°', en: 'O=S=O, 119.5°', uz: 'O=S=O, 119,5°' },
+    condition: { ru: 't°', en: 't°', uz: 't°' },
+  },
   steps: [
     {
       id: 'reactants',
@@ -237,7 +243,7 @@ export const SO2_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'bonding',
+      id: 'pairs',
       level: 8,
       seconds: 6,
       show: ['с каждым атомом O — по две пары между ядрами (двойные связи)', 'у S остаётся одна неподелённая пара (две точки сверху)'],
@@ -267,7 +273,7 @@ export const SO2_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'product',
+      id: 'molecule',
       level: 7,
       seconds: 5.5,
       show: ['молекула O=S=O изогнута, дуга 119,5°', 'неподелённая пара S над вершиной угла; δ+ на S, δ− на O'],
@@ -296,7 +302,7 @@ export const SO2_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'summary',
+      id: 'result',
       level: 7,
       seconds: 4.5,
       show: ['молекула SO₂', 'уравнение S + O₂ → SO₂, подсчёт атомов'],

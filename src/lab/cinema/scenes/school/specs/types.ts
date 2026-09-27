@@ -268,8 +268,11 @@ export type ValenceSpec = {
 // Шаги и тексты
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Шесть шагов школьного стандарта (docs/plans/g7-first10-school-scenes.md). */
-export const SCHOOL_STEP_IDS = ['reactants', 'atoms', 'breaking', 'bonding', 'product', 'summary'] as const
+/**
+ * Шесть шагов школьного стандарта (docs/plans/g7-first10-school-scenes.md). Имена — как у движка
+ * школьной сцены (агент A, school/schoolSpec.ts): reactants → atoms → breaking → pairs → molecule → result.
+ */
+export const SCHOOL_STEP_IDS = ['reactants', 'atoms', 'breaking', 'pairs', 'molecule', 'result'] as const
 export type SchoolStepId = (typeof SCHOOL_STEP_IDS)[number]
 
 export type SchoolStepText = {
@@ -336,6 +339,22 @@ export type SchoolSceneSpec = {
   readonly uses: readonly Observation[]
   readonly intro: { readonly title: L10n; readonly speak: L10n }
   readonly safety: L10n
+  /** Легенда значков (как SchoolLessonText.legend движка). */
+  readonly legend: {
+    readonly electron: L10n
+    readonly sharedPair: L10n
+    readonly lonePair: L10n
+    readonly unpaired: L10n
+  }
+  /** Короткие 3D-подписи (как SchoolSceneSpec.captions движка). */
+  readonly captions: {
+    /** над реагентами на шаге reactants */
+    readonly reactants: L10n
+    /** над продуктами на шаге result */
+    readonly result: L10n
+    /** условие над стрелкой: «t°», «кат. V₂O₅», «молния» */
+    readonly condition?: L10n
+  }
   readonly steps: readonly SchoolStepSpec[]
   readonly caveats: readonly Caveat[]
 }

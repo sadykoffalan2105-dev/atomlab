@@ -4,7 +4,7 @@
  * Разрыв тройной связи N≡N; в NO 11 внешних электронов — один неспаренный; порядок связи 2½ (показываем N=O).
  */
 import { ref } from './core'
-import { ATOM_N, ATOM_O, P_N2, P_NO, P_O2, T7_OXIDES, T7_OXYGEN_PROPS, T8_COVALENT, T8_LEVELS, T8_NITROGEN_OXIDES } from './shared'
+import { ATOM_N, ATOM_O, P_N2, P_NO, P_O2, T7_OXIDES, T7_OXYGEN_PROPS, T8_COVALENT, T8_LEVELS, T8_NITROGEN_OXIDES, LEGEND } from './shared'
 import type { SchoolSceneSpec, TextbookRef } from './types'
 
 const T7_LIGHTNING: TextbookRef = {
@@ -146,6 +146,12 @@ export const NO_SPEC: SchoolSceneSpec = {
     en: 'Nitrogen oxides are poisonous. The reaction of nitrogen with oxygen is not done at school — it only happens in lightning, an electric arc or an engine.',
     uz: 'Azot oksidlari zaharli. Azotning kislorod bilan reaksiyasi maktabda oʻtkazilmaydi — u faqat chaqmoqda, elektr yoyida yoki dvigatelda boradi.',
   },
+  legend: LEGEND,
+  captions: {
+    reactants: { ru: 'азот и кислород воздуха', en: 'nitrogen and oxygen of air', uz: 'havo azoti va kislorodi' },
+    result: { ru: 'N=O и неспаренный электрон', en: 'N=O and an unpaired electron', uz: 'N=O va juftlashmagan elektron' },
+    condition: { ru: 'молния или 2000 °C', en: 'lightning or 2000 °C', uz: 'chaqmoq yoki 2000 °C' },
+  },
   steps: [
     {
       id: 'reactants',
@@ -237,7 +243,7 @@ export const NO_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'bonding',
+      id: 'pairs',
       level: 8,
       seconds: 6,
       show: ['у каждого атома N два одиночных электрона встают в две пары с электронами O', 'третий одиночный электрон N остаётся — яркая точка без пары'],
@@ -267,7 +273,7 @@ export const NO_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'product',
+      id: 'molecule',
       level: 7,
       seconds: 5.5,
       show: ['молекула N=O: две пары между ядрами, у N — пара и одиночный электрон, у O — две пары', 'одиночный электрон слегка «размазан» по обоим атомам'],
@@ -296,7 +302,7 @@ export const NO_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'summary',
+      id: 'result',
       level: 7,
       seconds: 4.5,
       show: ['две молекулы NO', 'уравнение N₂ + O₂ → 2NO, подсчёт атомов; значок «поглощается теплота»'],

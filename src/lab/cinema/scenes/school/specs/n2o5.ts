@@ -5,7 +5,7 @@
  * у азота ЧЕТЫРЕ общие пары, «валентность V» — степень окисления +5 (Kimyo 8, с. 164: высшая валентность азота — 4).
  */
 import { ref } from './core'
-import { ATOM_H, ATOM_N, ATOM_O, P_H2O, T7_OXIDES, T7_VALENCE, T8_COVALENT, T8_LEVELS, T8_NITRIC_ACID } from './shared'
+import { ATOM_H, ATOM_N, ATOM_O, P_H2O, T7_OXIDES, T7_VALENCE, T8_COVALENT, T8_LEVELS, T8_NITRIC_ACID, LEGEND_DATIVE } from './shared'
 import type { ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
 
 const T7_WATER_CHEM: TextbookRef = {
@@ -257,6 +257,11 @@ export const N2O5_SPEC: SchoolSceneSpec = {
     en: 'N₂O₅ and nitric acid are corrosive substances and strong oxidizers. This experiment is not done at school — it is only shown.',
     uz: 'N₂O₅ va nitrat kislota — oʻyuvchi moddalar, kuchli oksidlovchilar. Maktabda bu tajriba oʻtkazilmaydi — faqat namoyish qilinadi.',
   },
+  legend: LEGEND_DATIVE,
+  captions: {
+    reactants: { ru: 'кислотный оксид + вода', en: 'acidic oxide + water', uz: 'kislotali oksid + suv' },
+    result: { ru: '2HNO₃ — азотная кислота', en: '2HNO₃ — nitric acid', uz: '2HNO₃ — nitrat kislota' },
+  },
   steps: [
     {
       id: 'reactants',
@@ -347,7 +352,7 @@ export const N2O5_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'bonding',
+      id: 'pairs',
       level: 8,
       seconds: 6,
       show: ['водород воды садится на бывший мостиковый кислород — первая HNO₃', 'группа OH воды соединяется с азотом второй группы NO₂ — вторая HNO₃'],
@@ -377,7 +382,7 @@ export const N2O5_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'product',
+      id: 'molecule',
       level: 8,
       seconds: 5.5,
       show: ['плоская молекула H–O–NO₂', 'у N четыре связи: O–N, N=O и N→O; концевые N–O почти одинаковы', 'угол O–N–O около 130°'],
@@ -407,7 +412,7 @@ export const N2O5_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'summary',
+      id: 'result',
       level: 7,
       seconds: 4.5,
       show: ['две молекулы HNO₃', 'уравнение N₂O₅ + H₂O → 2HNO₃, подсчёт атомов; схема «кислотный оксид + вода → кислота»'],

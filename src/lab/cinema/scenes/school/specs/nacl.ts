@@ -3,7 +3,7 @@
  * Эталонная школьная сцена уже есть (scenes/nacl); спецификация — её научная опора для сверки и пояснений.
  */
 import { ref } from './core'
-import { ATOM_CL, ATOM_NA, P_CL2, P_NA_METAL, T7_VALENCE, T8_IONIC, T8_LEVELS } from './shared'
+import { ATOM_CL, ATOM_NA, P_CL2, P_NA_METAL, T7_VALENCE, T8_IONIC, T8_LEVELS, LEGEND } from './shared'
 import type { ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
 
 const T7_NACL_TASK: TextbookRef = {
@@ -150,6 +150,12 @@ export const NACL_SPEC: SchoolSceneSpec = {
     en: 'Chlorine is poisonous, sodium catches fire with water. Only the teacher shows the «sodium in chlorine» experiment, in a fume hood.',
     uz: 'Xlor zaharli, natriy suvdan olov oladi. «Natriy xlorda» tajribasini faqat oʻqituvchi tortuv shkafida koʻrsatadi.',
   },
+  legend: LEGEND,
+  captions: {
+    reactants: { ru: 'металл + жёлто-зелёный газ', en: 'metal + yellow-green gas', uz: 'metall + sargʻish-yashil gaz' },
+    result: { ru: 'Na⁺Cl⁻ — ионный кристалл', en: 'Na⁺Cl⁻ — ionic crystal', uz: 'Na⁺Cl⁻ — ionli kristall' },
+    condition: { ru: 't°', en: 't°', uz: 't°' },
+  },
   steps: [
     {
       id: 'reactants',
@@ -240,7 +246,7 @@ export const NACL_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'bonding',
+      id: 'pairs',
       level: 8,
       seconds: 7,
       show: ['электрон летит от Na к «окну» облака Cl (по одному на каждую пару атомов)', 'в кадр поглощения: Na → Na⁺ (меньше), Cl → Cl⁻ (больше)'],
@@ -270,7 +276,7 @@ export const NACL_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'product',
+      id: 'molecule',
       level: 8,
       seconds: 5.5,
       show: ['ионы Na⁺ и Cl⁻ притягиваются', 'фрагмент кубической решётки: у иона шесть соседей противоположного знака'],
@@ -300,7 +306,7 @@ export const NACL_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'summary',
+      id: 'result',
       level: 7,
       seconds: 4.5,
       show: ['решётка NaCl медленно поворачивается', 'уравнение 2Na + Cl₂ → 2NaCl и баланс электронов'],

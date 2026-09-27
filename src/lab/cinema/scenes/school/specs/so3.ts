@@ -3,7 +3,7 @@
  * Плоский правильный треугольник, 120°, μ = 0; S=O 141,98 пм (ядро: 'S=O(SO3)'); сера VI.
  */
 import { ref } from './core'
-import { ATOM_O, ATOM_S, P_O2, P_SO2, T7_OXIDES, T7_OXYGEN_PROPS, T7_VALENCE, T8_COVALENT, T8_LEVELS, T8_SULFUR_OXIDES } from './shared'
+import { ATOM_O, ATOM_S, P_O2, P_SO2, T7_OXIDES, T7_OXYGEN_PROPS, T7_VALENCE, T8_COVALENT, T8_LEVELS, T8_SULFUR_OXIDES, LEGEND } from './shared'
 import type { ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
 
 const T8_CONTACT_PROCESS: TextbookRef = {
@@ -186,6 +186,12 @@ export const SO3_SPEC: SchoolSceneSpec = {
     en: 'SO₃ and its vapour are corrosive: with moisture in the air they form a mist of sulfuric acid. The experiment is not done at school — only shown or on video.',
     uz: 'SO₃ va uning bugʻlari oʻyuvchi: havo namligi bilan sulfat kislota tumanini hosil qiladi. Tajriba maktabda oʻtkazilmaydi — faqat namoyish va video.',
   },
+  legend: LEGEND,
+  captions: {
+    reactants: { ru: '2SO₂ + O₂ на катализаторе', en: '2SO₂ + O₂ on the catalyst', uz: '2SO₂ + O₂ katalizatorda' },
+    result: { ru: 'SO₃ — плоский треугольник, 120°', en: 'SO₃ — flat triangle, 120°', uz: 'SO₃ — yassi uchburchak, 120°' },
+    condition: { ru: 't°, кат. V₂O₅', en: 't°, cat. V₂O₅', uz: 't°, kat. V₂O₅' },
+  },
   steps: [
     {
       id: 'reactants',
@@ -276,7 +282,7 @@ export const SO3_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'bonding',
+      id: 'pairs',
       level: 8,
       seconds: 6,
       show: ['атом O подходит к S со стороны неподелённой пары', 'пара S и два электрона O встают двумя парами между ядрами — третья S=O'],
@@ -306,7 +312,7 @@ export const SO3_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'product',
+      id: 'molecule',
       level: 7,
       seconds: 5.5,
       show: ['молекула SO₃ — плоский правильный треугольник, три дуги по 120°', 'три стрелки полярности гасят друг друга'],
@@ -335,7 +341,7 @@ export const SO3_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'summary',
+      id: 'result',
       level: 7,
       seconds: 5,
       show: ['две молекулы SO₃ над катализатором', 'уравнение 2SO₂ + O₂ ⇄ 2SO₃ с двойной стрелкой; катализатор остался прежним'],

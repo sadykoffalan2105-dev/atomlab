@@ -36,7 +36,11 @@ import {
 import { atomLevels } from '../src/chemistry/data/electronLevels.ts'
 import {
   isTextbookRef,
+  lessonText,
+  pairOrigins,
   particleDipoleD,
+  stepTimings,
+  textbookOf,
   resolveAngleDeg,
   resolveLengthPm,
   SCHOOL_LOCALES,
@@ -446,7 +450,38 @@ for (const spec of specs) {
     if (p.resonance) (checkNums(`${p.id} показ`, p.resonance.show, []), checkNums(`${p.id} на деле`, p.resonance.real, []))
     if (p.schematic) checkNums(`${p.id} схема`, p.schematic, [])
   }
-  const sum = spec.steps.find((s) => s.id === 'summary')!
+  // Подписи в 3D — числа только из ядра; легенда и подписи на трёх языках (равенство чисел — выше, allL10n).
+  checkNums('подпись реагентов', spec.captions.reactants, [])
+  checkNums('подпись итога', spec.captions.result, [])
+  if (spec.captions.condition) checkNums('подпись условия', spec.captions.condition, [])
+  // Мост к движку A: тексты урока и время шагов.
+  for (const loc of SCHOOL_LOCALES) {
+    const lt = lessonText(spec, loc)
+    ok(`${P} [${loc}] lessonText: шесть шагов движка`, SCHOOL_STEP_IDS.every((id) => lt.steps[id]?.title.length > 0))
+    ok(`${P} [${loc}] lessonText: легенда заполнена`, Object.values(lt.legend).every((s) => s.length > 0))
+  }
+  {
+    const tm = stepTimings(spec)
+    ok(`${P} время шагов сплошное и = сумме длительностей`, tm.every((x, i) => i === 0 || x.from === tm[i - 1]!.to) && near(tm[tm.length - 1]!.to, total, 1e-9))
+    const tb = textbookOf(spec)
+    ok(`${P} textbookOf = главная ссылка`, tb.grade === r.sources[0]!.grade && tb.page === r.sources[0]!.pages[0])
+  }
+  // Учёт электронов «по-движковому» (агент A): вклад в пары ('ab' — 1, донор 'a'/'b' — 2) + 2·неподелённые
+  // + неспаренные = электроны внешнего слоя НЕЙТРАЛЬНОГО атома. Для нейтральных молекул это обязано сходиться —
+  // иначе донорно-акцепторные пары размечены не там.
+  for (const p of spec.particles) {
+    if (p.kind !== 'molecule' || p.charge !== 0) continue
+    for (const a of p.atoms) {
+      let contrib = 0
+      for (const b of p.bonds) {
+        if (b.a !== a.id && b.b !== a.id) continue
+        for (const o of pairOrigins(b)) contrib += o === 'ab' ? 1 : (o === 'a') === (b.a === a.id) ? 2 : 0
+      }
+      const total2 = contrib + 2 * (p.lonePairs[a.id] ?? 0) + (p.unpaired[a.id] ?? 0)
+      ok(`${P} ${p.id} ${a.id}: учёт движка — ${ATOMIC_DATA[a.element].valenceElectrons} внешних электронов`, total2 === ATOMIC_DATA[a.element].valenceElectrons, total2)
+    }
+  }
+  const sum = spec.steps.find((s) => s.id === 'result')!
   for (const loc of SCHOOL_LOCALES) ok(`${P} итог [${loc}] = уравнение реакции`, sum.text[loc].equation === r.equation, sum.text[loc].equation)
   const atomsStep = spec.steps.find((s) => s.id === 'atoms')!
   for (const a of spec.atoms) {

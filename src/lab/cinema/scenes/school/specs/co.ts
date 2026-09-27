@@ -4,7 +4,7 @@
  * По формуле учебник даёт C(II) (с. 63) — на деле у обоих атомов по три связи. Длина 112,8 пм (ядро: 'C#O').
  */
 import { ref } from './core'
-import { ATOM_C, ATOM_O, P_C_GRAPHITE, P_O2, T7_OXIDES, T7_OXYGEN_PROPS, T7_VALENCE_EXERCISES, T8_DATIVE, T8_LEVELS } from './shared'
+import { ATOM_C, ATOM_O, P_C_GRAPHITE, P_O2, T7_OXIDES, T7_OXYGEN_PROPS, T7_VALENCE_EXERCISES, T8_DATIVE, T8_LEVELS, LEGEND_DATIVE } from './shared'
 import type { ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
 
 const T7_CO_EXAMPLE: TextbookRef = {
@@ -173,6 +173,12 @@ export const CO_SPEC: SchoolSceneSpec = {
     en: 'Carbon monoxide is deadly poisonous and has no smell. Never close the stove damper while coals are still smouldering.',
     uz: 'Is gazi oʻlim darajasida zaharli va hidsiz. Pechda koʻmir choʻgʻlanib turganda pech moʻrisini yopib boʻlmaydi.',
   },
+  legend: LEGEND_DATIVE,
+  captions: {
+    reactants: { ru: 'кислорода мало', en: 'little oxygen', uz: 'kislorod kam' },
+    result: { ru: 'C≡O, 112,8 пм', en: 'C≡O, 112.8 pm', uz: 'C≡O, 112,8 pm' },
+    condition: { ru: 't°, недостаток O₂', en: 't°, lack of O₂', uz: 't°, O₂ yetishmaydi' },
+  },
   steps: [
     {
       id: 'reactants',
@@ -263,7 +269,7 @@ export const CO_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'bonding',
+      id: 'pairs',
       level: 8,
       seconds: 7,
       show: [
@@ -297,7 +303,7 @@ export const CO_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'product',
+      id: 'molecule',
       level: 8,
       seconds: 5.5,
       show: ['молекула C≡O: три пары между ядрами, по одной неподелённой паре у C и у O', 'подпись длины 112,8 пм'],
@@ -327,7 +333,7 @@ export const CO_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'summary',
+      id: 'result',
       level: 7,
       seconds: 4.5,
       show: ['две молекулы CO', 'уравнение 2C + O₂ → 2CO и подсчёт атомов'],

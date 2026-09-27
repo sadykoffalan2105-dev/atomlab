@@ -33,3 +33,4 @@ export function schoolSpecFor(id: string): SchoolSceneSpec | null {
 
 export * from './types'
 export { resolveAngleDeg, resolveLengthPm, particleDipoleD } from './core'
+export { geometryOf, lessonText, pairOrigins, stepTimings, textbookOf, type LessonTextLike, type PairOriginLike } from './adapter'

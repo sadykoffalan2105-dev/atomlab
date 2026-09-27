@@ -5,7 +5,7 @@
  * (донорно-акцепторная от азота), как в школьном объяснении азота IV.
  */
 import { ref } from './core'
-import { ATOM_N, ATOM_O, P_NO, P_O2, T7_OXYGEN_PROPS, T8_DATIVE, T8_LEVELS, T8_NITROGEN_OXIDES } from './shared'
+import { ATOM_N, ATOM_O, P_NO, P_O2, T7_OXYGEN_PROPS, T8_DATIVE, T8_LEVELS, T8_NITROGEN_OXIDES, LEGEND_DATIVE } from './shared'
 import type { ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
 
 const T7_LIGHTNING: TextbookRef = {
@@ -196,6 +196,12 @@ export const NO2_SPEC: SchoolSceneSpec = {
     en: 'NO₂ is very poisonous: it must not be inhaled even in small amounts. At school it is made only in a fume hood, and the teacher shows the experiment.',
     uz: 'NO₂ juda zaharli: uni hatto oz miqdorda ham nafasga olish mumkin emas. Maktabda u faqat tortuv shkafida olinadi, tajribani oʻqituvchi koʻrsatadi.',
   },
+  legend: LEGEND_DATIVE,
+  captions: {
+    reactants: { ru: 'бесцветный NO на воздухе', en: 'colourless NO in air', uz: 'havodagi rangsiz NO' },
+    result: { ru: 'бурый NO₂, 134,1°', en: 'brown NO₂, 134.1°', uz: 'qoʻngʻir NO₂, 134,1°' },
+    condition: { ru: 'без нагревания', en: 'no heating', uz: 'qizdirishsiz' },
+  },
   steps: [
     {
       id: 'reactants',
@@ -286,7 +292,7 @@ export const NO2_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'bonding',
+      id: 'pairs',
       level: 8,
       seconds: 6,
       show: ['неподелённая пара N перетекает к новому атому O — стрелка N→O (донорно-акцепторная)', 'одиночный электрон N остаётся; счётчик «17 электронов»'],
@@ -316,7 +322,7 @@ export const NO2_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'product',
+      id: 'molecule',
       level: 7,
       seconds: 5.5,
       show: ['изогнутая молекула NO₂, дуга 134,1°', 'две одинаковые «полуторные» связи (черта + пунктир)', 'одиночный электрон у N; молекула бурого цвета'],
@@ -345,7 +351,7 @@ export const NO2_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'summary',
+      id: 'result',
       level: 7,
       seconds: 4.5,
       show: ['две бурые молекулы NO₂', 'уравнение 2NO + O₂ → 2NO₂, подсчёт атомов; бесцветный фон становится бурым'],

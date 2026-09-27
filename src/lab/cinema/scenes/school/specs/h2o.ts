@@ -3,7 +3,7 @@
  * Ковалентная полярная связь, две неподелённые пары у O, угол H–O–H 104,5° (ядро: BOND_ANGLES.water, r_0).
  */
 import { ref } from './core'
-import { ATOM_H, ATOM_O, P_H2, P_H2O, P_O2, T7_OXYGEN_PROPS, T7_VALENCE, T8_COVALENT, T8_LEVELS } from './shared'
+import { ATOM_H, ATOM_O, P_H2, P_H2O, P_O2, T7_OXYGEN_PROPS, T7_VALENCE, T8_COVALENT, T8_LEVELS, LEGEND } from './shared'
 import type { SchoolSceneSpec, TextbookRef } from './types'
 
 const T7_HYDROGEN: TextbookRef = {
@@ -145,6 +145,12 @@ export const H2O_SPEC: SchoolSceneSpec = {
     en: 'A mixture of hydrogen with oxygen or air is explosive. Only the teacher performs the experiment; the purity of hydrogen is always tested before ignition.',
     uz: 'Vodorodning kislorod yoki havo bilan aralashmasi portlovchi. Tajribani faqat oʻqituvchi koʻrsatadi; yondirishdan oldin vodorodning tozaligi albatta tekshiriladi.',
   },
+  legend: LEGEND,
+  captions: {
+    reactants: { ru: 'гремучая смесь 2 : 1', en: 'oxyhydrogen 2 : 1', uz: 'qaldiroq gaz 2 : 1' },
+    result: { ru: 'вода: H–O–H, 104,5°', en: 'water: H–O–H, 104.5°', uz: 'suv: H–O–H, 104,5°' },
+    condition: { ru: 'поджиг', en: 'ignition', uz: 'yondirish' },
+  },
   steps: [
     {
       id: 'reactants',
@@ -241,7 +247,7 @@ export const H2O_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'bonding',
+      id: 'pairs',
       level: 8,
       seconds: 6.5,
       show: [
@@ -274,7 +280,7 @@ export const H2O_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'product',
+      id: 'molecule',
       level: 7,
       seconds: 5.5,
       show: ['молекула H₂O: две черты O–H, две неподелённые пары у O', 'дуга угла 104,5°; δ− у O, δ+ у H'],
@@ -304,7 +310,7 @@ export const H2O_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'summary',
+      id: 'result',
       level: 7,
       seconds: 4.5,
       show: ['две молекулы H₂O', 'уравнение 2H₂ + O₂ → 2H₂O и подсчёт атомов слева и справа'],

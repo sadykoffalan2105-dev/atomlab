@@ -5,7 +5,7 @@
  * центрального азота к кислороду. Концевой N — из иона аммония, центральный — из нитрат-иона (метка ¹⁵N).
  */
 import { ref } from './core'
-import { ATOM_H, ATOM_N, ATOM_O, P_H2O, T7_OXIDES, T7_VALENCE_EXERCISES, T8_DATIVE, T8_LEVELS } from './shared'
+import { ATOM_H, ATOM_N, ATOM_O, P_H2O, T7_OXIDES, T7_VALENCE_EXERCISES, T8_DATIVE, T8_LEVELS, LEGEND_DATIVE } from './shared'
 import type { ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
 
 const T8_AMMONIUM_NITRATE: TextbookRef = {
@@ -256,6 +256,12 @@ export const N2O_SPEC: SchoolSceneSpec = {
     en: 'Ammonium nitrate can explode when strongly heated or in large amounts. Only the teacher does the experiment, with a small portion and in a fume hood.',
     uz: 'Ammoniy nitrat kuchli qizdirilganda yoki koʻp miqdorda portlashi mumkin. Tajribani faqat oʻqituvchi, kichik porsiya bilan va tortuv shkafida oʻtkazadi.',
   },
+  legend: LEGEND_DATIVE,
+  captions: {
+    reactants: { ru: 'ионы NH₄⁺ и NO₃⁻', en: 'NH₄⁺ and NO₃⁻ ions', uz: 'NH₄⁺ va NO₃⁻ ionlari' },
+    result: { ru: 'N–N–O, 180°', en: 'N–N–O, 180°', uz: 'N–N–O, 180°' },
+    condition: { ru: 't°', en: 't°', uz: 't°' },
+  },
   steps: [
     {
       id: 'reactants',
@@ -346,7 +352,7 @@ export const N2O_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'bonding',
+      id: 'pairs',
       level: 8,
       seconds: 6.5,
       show: ['азот из NH₄⁺ и азот из NO₃⁻ сходятся: три пары между ними (N≡N)', 'у «нитратного» азота к кислороду — стрелка N→O (пару отдал азот)', 'атомы H и O собираются в две молекулы H₂O'],
@@ -376,7 +382,7 @@ export const N2O_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'product',
+      id: 'molecule',
       level: 8,
       seconds: 5.5,
       show: ['линейная молекула N–N–O, дуга 180°', 'длины N–N 112,8 пм и N–O 118,4 пм; кислород — с краю'],
@@ -405,7 +411,7 @@ export const N2O_SPEC: SchoolSceneSpec = {
       },
     },
     {
-      id: 'summary',
+      id: 'result',
       level: 8,
       seconds: 4.5,
       show: ['молекула N₂O и две молекулы H₂O', 'уравнение NH₄NO₃ → N₂O + 2H₂O, подсчёт атомов'],

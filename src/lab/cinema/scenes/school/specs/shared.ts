@@ -3,7 +3,7 @@
  * Числа (заряды ядер, слои, длины) — из ядра через ./core.
  */
 import { atomSpec } from './core'
-import type { AtomSpec, ParticleSpec, TextbookRef } from './types'
+import type { AtomSpec, ParticleSpec, SchoolSceneSpec, TextbookRef } from './types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Учебники (рус. издание Kimyo; номера страниц = страницы PDF)
@@ -122,6 +122,42 @@ export const T9_CARBON_EXCITED: TextbookRef = {
   section: '§ 1',
   title: 'Повторение важнейших тем курса химии 8 класса (изменение свойств элементов в периодах и группах)',
   what: 'внешний слой углерода s²p², в возбуждённом состоянии s¹p³',
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Легенда значков (общая для всех сцен; вариант с донорно-акцепторной стрелкой)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const LEGEND: SchoolSceneSpec['legend'] = {
+  electron: {
+    ru: 'Точка у атома — электрон внешнего слоя; их можно пересчитать.',
+    en: 'A dot at an atom is an outer-shell electron; they can be counted.',
+    uz: 'Atom yonidagi nuqta — tashqi pogʻona elektroni; ularni sanash mumkin.',
+  },
+  sharedPair: {
+    ru: 'Две точки между ядрами — общая электронная пара; в формуле это одна черта.',
+    en: 'Two dots between the nuclei are a shared electron pair; in the formula it is one dash.',
+    uz: 'Yadrolar orasidagi ikki nuqta — umumiy elektron jufti; formulada bu bitta chiziqcha.',
+  },
+  lonePair: {
+    ru: 'Две точки у одного атома — неподелённая пара: в связи она не участвует.',
+    en: 'Two dots at one atom are a lone pair: it takes no part in bonding.',
+    uz: 'Bitta atom yonidagi ikki nuqta — boʻlinmagan juft: u bogʻda qatnashmaydi.',
+  },
+  unpaired: {
+    ru: 'Одна светящаяся точка без пары — неспаренный электрон.',
+    en: 'A single glowing dot without a partner is an unpaired electron.',
+    uz: 'Juftsiz yakka yorugʻ nuqta — juftlashmagan elektron.',
+  },
+}
+
+export const LEGEND_DATIVE: SchoolSceneSpec['legend'] = {
+  ...LEGEND,
+  sharedPair: {
+    ru: 'Две точки между ядрами — общая электронная пара (одна черта). Стрелка у пары — донорно-акцепторная связь: обе точки пришли от одного атома.',
+    en: 'Two dots between the nuclei are a shared electron pair (one dash). An arrow at a pair marks a donor-acceptor bond: both dots came from one atom.',
+    uz: 'Yadrolar orasidagi ikki nuqta — umumiy elektron jufti (bitta chiziqcha). Juft yonidagi strelka — donor-akseptor bogʻ: ikkala nuqta bitta atomdan kelgan.',
+  },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
