@@ -822,8 +822,12 @@ export function CatalogPage() {
   const simpleShown = useMemo(() => {
     if (category !== 'all') return []
     const list = simpleSearched.filter((s) => grade === 'all' || s.grades.includes(grade))
+    // «Все»: сначала младший класс, внутри — страница учебника; в классе — страница этого класса
     return [...list].sort(
-      (a, b) => (simpleSubstanceFirstPage(a, grade) ?? 999) - (simpleSubstanceFirstPage(b, grade) ?? 999) || a.z - b.z,
+      (a, b) =>
+        (grade === 'all' ? a.grades[0]! - b.grades[0]! : 0) ||
+        (simpleSubstanceFirstPage(a, grade) ?? 999) - (simpleSubstanceFirstPage(b, grade) ?? 999) ||
+        a.z - b.z,
     )
   }, [simpleSearched, grade, category])
 
