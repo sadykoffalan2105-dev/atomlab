@@ -592,8 +592,10 @@ function ringPathLen(adj: number[][], a: number, b: number, center: number, limi
  */
 export function relaxOrganicGeometry(graph: OrganicGraph, maxIterations = 320, stereo?: StereoSpec): OrganicGraph {
   const n = graph.atoms.length
-  // крупные молекулы (жиры, каротин) — меньше итераций: пар «через 3+ связи» там десятки тысяч
-  const iterations = n > 90 ? Math.round(maxIterations / 2) : maxIterations
+  // Полное число итераций и для крупных молекул (жиры, каротин): с плоскими π-связями и цис/транс раскладка
+  // на половине итераций не сходилась — у жиров оставались углы sp³-C 125–130°. Цена — разовые 0,2–0,45 с при
+  // открытии такой молекулы (геометрия считается лениво, при первом обращении к graph).
+  const iterations = maxIterations
   if (n < 3) return graph
   const idx = new Map(graph.atoms.map((a, i) => [a.id, i]))
   const el = graph.atoms.map((a) => a.element)
