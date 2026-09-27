@@ -722,6 +722,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'learn.book.rx.chipAria': 'Reaction {equation} — details',
   'learn.book.rx.labReady': 'Ready to run in the reactor',
   'learn.book.rx.labExample': 'Textbook example for the reactor',
+  'learn.book.rx.labExampleWaiting': 'Textbook example (opens in the reactor once its substance is added)',
   'learn.book.rx.unsupportedTitle': 'Not available in the reactor yet',
   'learn.book.rx.ionicBadge': 'Ionic',
   'learn.book.rx.schemeBadge': 'Scheme',

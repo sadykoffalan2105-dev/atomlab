@@ -477,7 +477,10 @@ const TextbookReactionRow = memo(function TextbookReactionRow({
 
       {showLab && r.lab.example ? (
         <p className={styles.rxMeta} data-rx-lab-example={`${unitId}-${r.id}`}>
-          <span className={styles.rxMetaLabel}>{t('learn.book.rx.labExample')}:</span> {r.lab.example}
+          <span className={styles.rxMetaLabel}>
+            {t(r.lab.ok ? 'learn.book.rx.labExample' : 'learn.book.rx.labExampleWaiting')}:
+          </span>{' '}
+          {r.lab.example}
         </p>
       ) : null}
 

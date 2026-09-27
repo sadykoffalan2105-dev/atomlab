@@ -722,6 +722,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'learn.book.rx.chipAria': '{equation} reaksiyasi — batafsil',
   'learn.book.rx.labReady': 'Reaktorda ishga tushirishga tayyor',
   'learn.book.rx.labExample': 'Reaktor uchun darslikdagi misol',
+  'learn.book.rx.labExampleWaiting': 'Darslikdagi misol (modda qo‘shilgach, reaktorda ochiladi)',
   'learn.book.rx.unsupportedTitle': 'Reaktorda hozircha mavjud emas',
   'learn.book.rx.ionicBadge': 'Ionli',
   'learn.book.rx.schemeBadge': 'Sxema',
