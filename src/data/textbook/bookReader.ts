@@ -17,7 +17,10 @@
  * noCompoundProduct | tooManyTerms | unbalanced; ionic — только в старых данных: ионы теперь частицы реактора);
  * altHref — запасная ссылка (например, органическая лаборатория).
  */
-export type ReaderLab = { ok: true; href: string } | { ok: false; reason: string; altHref?: string }
+export type ReaderLab =
+  /** altHref у открываемой реакции — вторая кнопка (органика: реактор «шарами» + органическая лаборатория). */
+  | { ok: true; href: string; altHref?: string }
+  | { ok: false; reason: string; altHref?: string }
 
 /**
  * Реакция параграфа. id — «r1», «r2»… (уникален в юните, для ?rx=). lab.href — путь роутера

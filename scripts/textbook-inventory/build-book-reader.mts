@@ -28,6 +28,7 @@ import {
   parseEquationText,
   parseFormula,
 } from '../../src/chemistry/equationFormula.ts'
+import { pickOrganic, registryIdsForComposition } from '../../src/data/labOrganicSpecies.ts'
 import {
   isOrganicFormula,
   parseReactorLinkParams,
@@ -1383,6 +1384,59 @@ function labProbe(r: InvReaction): InvReaction {
   return { ...r, reactants: side(l), products: side(p) }
 }
 
+/**
+ * Изомер брутто-формулы, который учебник имеет в виду на этой странице (по тексту и пояснению карточки):
+ * «класс:страница:уравнение» → номер члена уравнения (реагенты, затем продукты, с 0) → id реестра органики.
+ * Без записи — самый школьный изомер (labOrganicSpecies.DEFAULT_ISOMER), и это в пояснении карточки.
+ */
+const REACTOR_ISOMERS: Readonly<Record<string, Readonly<Record<number, string>>>> = {
+  // крекинг додекана: гексен и гексан
+  '10:47:C12H26 -> C6H12 + C6H14': { 1: 'hex-1-ene' },
+  // циклоалканы: 1,5-дибромпентан → циклопентан; гидрирование малых циклов
+  '10:54:BrCH2-CH2-CH2-CH2-CH2Br + Zn -> C5H10 + ZnBr2': { 2: 'cyclopentane' },
+  '10:54:C3H6 + H2 -> CH3-CH2-CH3': { 0: 'cyclopropane' },
+  '10:54:C5H10 + H2 -> CH3-CH2-CH2-CH2-CH3': { 0: 'cyclopentane' },
+  // окисление этилена на серебре — этиленоксид; его гидратация — этиленгликоль
+  '10:61:2C2H4 + O2 -> 2C2H4O': { 2: 'ethylene-oxide' },
+  '10:118:C2H4O + H2O -> HOCH2CH2OH': { 0: 'ethylene-oxide' },
+  // горение алкадиена (с. 67 — пропадиен) и алкинов (с. 75 — пентин)
+  '10:67:C3H4 + 4O2 -> 3CO2 + 2H2O': { 0: 'propadiene' },
+  '10:75:C5H8 + 7O2 -> 5CO2 + 4H2O': { 0: 'pent-1-yne' },
+  // межмолекулярная дегидратация этиленгликоля — 1,4-диоксан
+  '10:119:2HOCH2CH2OH -> C4H8O2 + 2H2O': { 1: '1-4-dioxane' },
+  // гидролиз сахарозы — α-глюкоза и фруктоза; последняя ступень гидролиза крахмала — мальтоза → α-глюкоза
+  '10:161:C12H22O11 + H2O -> C6H12O6 + C6H12O6': { 2: 'alpha-glucopyranose', 3: 'fructose' },
+  '10:168:C12H22O11 + H2O -> C6H12O6 + C6H12O6': { 2: 'alpha-glucopyranose', 3: 'fructose' },
+  '10:165:C12H22O11 + H2O -> 2C6H12O6': { 0: 'maltose', 2: 'alpha-glucopyranose' },
+}
+
+/** Пояснение к карточке: какое вещество реактор показывает вместо брутто-формулы (или неоднозначной группы). */
+function reactorIsomerNote(ascii: string, isomers: Readonly<Record<number, string>> | undefined): string | null {
+  const p = parseEquationText(ascii)
+  if (!p) return null
+  const parts: string[] = []
+  const seen = new Set<string>()
+  ;[...p.reactants, ...p.products].forEach((s, i) => {
+    if (!s.counts || !isOrganicFormula(s.formula, s.counts) || s.polymer) return
+    const pick = pickOrganic(s.formula, s.counts, isomers?.[i])
+    if (!pick) return
+    const isomersKnown = registryIdsForComposition(s.counts).length > 1
+    const ambiguousGroup = /C3H7|C4H9|C7H7/.test(s.formula)
+    const brutto = pick.how === 'default' || pick.how === 'hint' || pick.how === 'unique' || pick.how === 'alkane'
+    if (!((brutto && isomersKnown) || pick.how === 'alkane' || ambiguousGroup)) return
+    const key = `${s.formula}@${pick.registryId}`
+    if (seen.has(key)) return
+    seen.add(key)
+    const f = s.formula.replace(/(?<=[A-Za-z)])(\d+)/g, (d) => d.replace(/\d/g, (x) => '₀₁₂₃₄₅₆₇₈₉'[Number(x)]!))
+    const name = pick.nameRu.charAt(0).toLowerCase() + pick.nameRu.slice(1)
+    parts.push(`${f} — ${pick.how === 'hint' ? name : `${name}${pick.how === 'alkane' ? '' : ' (самый школьный изомер)'}`}`)
+  })
+  return parts.length ? `В реакторе: ${parts.join('; ')}.` : null
+}
+
+/** Пояснение «что показывает реактор» к карточке, найденное labFor (по карточке инвентаря). */
+const REACTOR_NOTES = new WeakMap<InvRx, string>()
+
 function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx, rxId: string): ReaderLab {
   const src = readerUnitHref(`g${grade}`, unitId, { rx: rxId, page: pageStart })
   // a scheme «R–H + Cl• → R• + HCl» picks its organic lesson by the book's concrete example (R = CH₃)
@@ -1403,16 +1457,26 @@ function labFor(grade: Grade, unitId: string, pageStart: number | null, r: InvRx
     res = resolveReactorEquation({ reactionId: r.bankId })
     if (res.ok) return { ok: true, href: reactorHrefForBank(r.bankId, { src }) }
   }
+  // органика открывается в реакторе «шарами» (stageOnly organic): изомер брутто-формулы — по странице,
+  // органическая лаборатория остаётся второй кнопкой (altHref)
+  const isomers = organic ? REACTOR_ISOMERS[`${grade}:${r.page ?? r.pages?.[0] ?? ''}:${r.ascii}`] : undefined
+  const okWith = (href: string, rr: ReactorLinkResult): ReaderLab => {
+    if (!rr.ok || rr.stageOnly !== 'organic') return { ok: true, href }
+    const note = reactorIsomerNote(r.ascii, isomers)
+    if (note) REACTOR_NOTES.set(r, note)
+    const alt = exactLessonHref(r, src) ?? (organic ? organicAltHref(probe, src) : null)
+    return alt ? { ok: true, href, altHref: alt } : { ok: true, href }
+  }
   // conditions over the arrow go into the link when they survive the round trip
   const clean = cleanConditions(r.conditions)
   const cond = clean && clean.length <= 30 && !/[()]/.test(clean) ? clean : null
   const withCond = cond ? r.ascii.replace(/ (->|<=>) /, (_m, a: string) => ` ${a}(${cond}) `) : null
   if (withCond) {
-    const rc = resolveReactorEquation({ equation: withCond })
-    if (rc.ok && rc.conditions === cond) return { ok: true, href: reactorHrefForEquation(withCond, { src }) }
+    const rc = resolveReactorEquation({ equation: withCond, isomers })
+    if (rc.ok && rc.conditions === cond) return okWith(reactorHrefForEquation(withCond, { src, isomers }), rc)
   }
-  res = resolveReactorEquation({ equation: r.ascii })
-  if (res.ok) return { ok: true, href: reactorHrefForEquation(r.ascii, { src }) }
+  res = resolveReactorEquation({ equation: r.ascii, isomers })
+  if (res.ok) return okWith(reactorHrefForEquation(r.ascii, { src, isomers }), res)
   return failWith(res.code)
 }
 
@@ -1583,6 +1647,8 @@ function buildUnit(grade: Grade, sec: InvSection, draft: DraftBlock[], stats: Gr
   const reactions: ReaderReaction[] = reactionsInv.map((r, i) => {
     const id = `r${i + 1}`
     const lab = labFor(grade, unitId, sec.pageStart ?? null, r, id)
+    const reactorNote = REACTOR_NOTES.get(r)
+    const note = [r.catalogNote ? norm(r.catalogNote) : null, reactorNote ?? null].filter(Boolean).join(' ')
     return {
       id,
       page: r.page ?? r.pages?.[0] ?? null,
@@ -1594,7 +1660,7 @@ function buildUnit(grade: Grade, sec: InvSection, draft: DraftBlock[], stats: Gr
       isGeneralScheme: r.isGeneralScheme === true,
       bankId: r.bankId ?? null,
       lab,
-      ...(r.catalogNote ? { note: norm(r.catalogNote) } : {}),
+      ...(note ? { note } : {}),
     }
   })
   reactionsInv.forEach((r, i) => {

@@ -24,6 +24,7 @@ import {
 } from '../chemistry/labSpeciesGeometry'
 import { compoundById } from './compounds'
 import { getElementByZ } from './elements'
+import { labOrganicById } from './labOrganicSpecies'
 
 export type LabSpeciesKind = 'ion' | 'electron' | 'organic' | 'simple'
 
@@ -301,12 +302,26 @@ export const LAB_EXTRA_SPECIES: Readonly<Record<string, CompoundDef>> = extra
 
 /**
  * Всё, что может стоять в уравнении реактора: каталог + частицы вне каталога.
- * Каталог приоритетнее (одинаковых id нет, но так надёжнее).
+ * Каталог приоритетнее (одинаковых id нет, но так надёжнее). Органика 10–11 классов («org:CH3-CH2Cl») —
+ * по запросу: частица строится из записи формулы (labOrganicSpecies) при первом обращении по id.
  */
-export const labCompoundById: Readonly<Record<string, CompoundDef>> = { ...extra, ...compoundById }
+export const labCompoundById: Readonly<Record<string, CompoundDef>> = new Proxy(
+  { ...extra, ...compoundById } as Record<string, CompoundDef>,
+  {
+    get(target, key, receiver) {
+      const hit = Reflect.get(target, key, receiver) as CompoundDef | undefined
+      if (hit !== undefined || typeof key !== 'string' || !key.startsWith('org:')) return hit
+      return labOrganicById(key) ?? undefined
+    },
+    has(target, key) {
+      return Reflect.has(target, key) || (typeof key === 'string' && key.startsWith('org:') && labOrganicById(key) != null)
+    },
+  },
+)
 
 /** Вид частицы вне каталога; null — обычное вещество каталога. */
 export function labSpeciesKind(id: string | null | undefined): LabSpeciesKind | null {
+  if (id?.startsWith('org:')) return 'organic'
   return id ? (kindById.get(id) ?? null) : null
 }
 
