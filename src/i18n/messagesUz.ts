@@ -721,7 +721,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'learn.book.rx.note': 'Izoh',
   'learn.book.rx.chipAria': '{equation} reaksiyasi — batafsil',
   'learn.book.rx.labReady': 'Reaktorda ishga tushirishga tayyor',
-  'learn.book.rx.labExample': 'Reaktorda — darslikdagi misol: {equation}',
+  'learn.book.rx.labExample': 'Reaktor uchun darslikdagi misol',
   'learn.book.rx.unsupportedTitle': 'Reaktorda hozircha mavjud emas',
   'learn.book.rx.ionicBadge': 'Ionli',
   'learn.book.rx.schemeBadge': 'Sxema',

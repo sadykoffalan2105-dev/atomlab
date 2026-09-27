@@ -203,6 +203,12 @@ for (const grade of [7, 8, 9, 10, 11]) {
         continue
       }
       const ex = r.lab.example
+      if (!ex && r.lab.ok) {
+        // формулу с «n» реактор может собрать и сам — на одно звено (органика: (C₆H₁₀O₅)ₙ, полимеры); схема — никогда
+        if (r.isGeneralScheme) problems.push(`${label}: общая схема открывается в реакторе без примера учебника`)
+        else opened.push(`${label}  ⇒  напрямую (на одно звено)`)
+        continue
+      }
       if (!ex) {
         const why =
           NO_EXAMPLE.find((x) => x.grade === grade && x.page === r.page && r.equationAscii.startsWith(x.startsWith))?.why ??

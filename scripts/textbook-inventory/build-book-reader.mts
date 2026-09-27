@@ -1584,7 +1584,7 @@ type GradeStats = {
  * лаборатории («Cl₂ → Cl• + Cl•» — не «CH₄ + Cl₂»). Реактор примера не собирает (нет вещества) — отказ остаётся, пример
  * записывается в lab.example; ссылка в органическую лабораторию (altHref) сохраняется второй кнопкой.
  */
-function withSchemeExample(grade: Grade, unitId: string, pageStart: number | null, r: InvRx, rx: ReaderReaction): ReaderLab {
+function withSchemeExample(grade: Grade, unitId: string, pageStart: number | null, r: InvRx, rx: ReaderReaction): ReaderReaction['lab'] {
   const lab = rx.lab
   const example = r.labExample?.trim()
   if (lab.ok || !example) return lab

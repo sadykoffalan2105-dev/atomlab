@@ -16,13 +16,8 @@
  * reason — код отказа resolveReactorEquation (scheme | generalFormula | unknownSubstance | organic |
  * noCompoundProduct | tooManyTerms | unbalanced; ionic — только в старых данных: ионы теперь частицы реактора);
  * altHref — запасная ссылка (например, органическая лаборатория).
- * example — общая схема (R, Me, Hal) или формула с «n» (полимер, олеум) открывается в реакторе по конкретному
- * примеру учебника; здесь это уравнение примера (Unicode), href ведёт именно на него. У отказа example — пример есть,
- * но реактор его пока не собирает (нет вещества).
  */
-export type ReaderLab =
-  | { ok: true; href: string; altHref?: string; example?: string }
-  | { ok: false; reason: string; altHref?: string; example?: string }
+export type ReaderLab = { ok: true; href: string } | { ok: false; reason: string; altHref?: string }
 
 /**
  * Реакция параграфа. id — «r1», «r2»… (уникален в юните, для ?rx=). lab.href — путь роутера
@@ -46,13 +41,20 @@ export type ReaderReaction = {
   isIonic: boolean
   isGeneralScheme: boolean
   bankId: string | null
-  lab: ReaderLab
+  lab: ReaderLab & ReaderLabExample
   /**
    * Пояснение к карточке (по-русски, как и conditions): названия веществ из учебника с IUPAC-вариантом,
    * исправленная опечатка учебника, «пример R = CH₃» к общей схеме. Нет — пояснения нет.
    */
   note?: string
 }
+
+/**
+ * Пример учебника у общей схемы (R, Me, Hal) или формулы с «n» (олеум, ржавчина): example — уравнение примера
+ * (Unicode). У lab.ok href ведёт именно на него («2MeCl → 2Me + Cl₂» — «2NaCl → 2Na + Cl₂»); у отказа — пример есть,
+ * но реактор его пока не собирает (нет вещества). altHref — органическая лаборатория второй кнопкой.
+ */
+export type ReaderLabExample = { example?: string; altHref?: string }
 
 /**
  * Параграф книги.

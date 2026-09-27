@@ -276,12 +276,11 @@ for (const g of [7, 8, 9]) {
 // Всё остальное открывается, и поле lab в json совпадает с резолвером (json не устарел).
 {
   const g11 = JSON.parse(fs.readFileSync('src/data/textbook/equations-g11.json', 'utf8')) as {
-    units: { unitId: string; reactions: { id: string; page: number | null; equationAscii: string; isGeneralScheme: boolean; bankId: string | null; lab: { ok: boolean; reason?: string; href?: string; example?: string } }[] }[]
+    units: { unitId: string; reactions: { id: string; page: number | null; equationAscii: string; isGeneralScheme: boolean; bankId: string | null; lab: { ok: boolean; reason?: string } }[] }[]
   }
   let n = 0
   let ok = 0
   let schemes = 0
-  let schemesByExample = 0
   const stage: Record<string, number> = {}
   const fails: Record<string, string[]> = {}
   for (const u of g11.units) {
@@ -289,14 +288,8 @@ for (const g of [7, 8, 9]) {
       const label = `g11 ${u.unitId} ${rx.id} p${rx.page} ${rx.equationAscii}`
       if (rx.isGeneralScheme) {
         schemes++
-        // общая схема открывается только по конкретному примеру учебника (lab.example; scripts/test-book-schemes.mts)
-        if (rx.lab.ok && !rx.lab.example) tbProblems.push(`${label}: общая схема открывается в реакторе без примера учебника`)
-        if (rx.lab.ok && rx.lab.example) {
-          schemesByExample++
-          const p = parseReactorLinkParams(new URLSearchParams((rx.lab.href ?? '').split('?')[1] ?? ''))
-          const r = p ? resolveReactorEquation(p.spec, { newId }) : null
-          if (!r?.ok) tbProblems.push(`${label}: пример схемы ${rx.lab.example} не открывается в реакторе`)
-        }
+        // общая схема открывается только по конкретному примеру учебника (lab.example — scripts/test-book-schemes.mts)
+        if (rx.lab.ok && !(rx.lab as { example?: string }).example) tbProblems.push(`${label}: общая схема открывается в реакторе без примера учебника`)
         continue
       }
       n++
@@ -320,7 +313,7 @@ for (const g of [7, 8, 9]) {
   const failText = Object.entries(fails)
     .map(([k, v]) => `${k} ${v.length}`)
     .join(', ')
-  const line = `g11: ${ok}/${n} открываются (${((ok / n) * 100).toFixed(1)}%), из них только «шарами»: ${stageText || '0'}; не открываются: ${failText || '0'}; общих схем: ${schemes} (по примеру учебника в реакторе: ${schemesByExample})`
+  const line = `g11: ${ok}/${n} открываются (${((ok / n) * 100).toFixed(1)}%), из них только «шарами»: ${stageText || '0'}; не открываются: ${failText || '0'}; общих схем (карточки без реактора): ${schemes}`
   coverage.push(line)
   console.log(`\n${line}`)
   for (const [code, list] of Object.entries(fails)) console.log(`  ${code}: ${list.length}\n    - ${list.join('\n    - ')}`)
