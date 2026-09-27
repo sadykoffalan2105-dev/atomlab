@@ -27,7 +27,7 @@
  */
 import assert from 'node:assert/strict'
 import { analyzeSchoolSpec, angleDegOf, bondLengthOf, electronsOfAtom, type Phase, type SchoolAnalysis } from '../src/lab/cinema/scenes/school/schoolAnalysis.ts'
-import { buildSchoolModel, createSchoolState, sampleSchoolState, type SchoolModel } from '../src/lab/cinema/scenes/school/schoolModel.ts'
+import { buildSchoolModel, createSchoolState, EQUATION_PART_SEP, sampleSchoolState, type SchoolModel } from '../src/lab/cinema/scenes/school/schoolModel.ts'
 import { SCHOOL_STEP_IDS, type SchoolLocale, type SchoolSceneSpec } from '../src/lab/cinema/scenes/school/schoolSpec.ts'
 import { H2O_SPEC } from '../src/lab/cinema/scenes/h2o/h2oSpec.ts'
 import { H2O_FINISH } from '../src/lab/cinema/scenes/h2o/h2oSteps.ts'
@@ -528,6 +528,16 @@ ok('CO: C≡O — 2 обменные пары + донорная пара O; п�
   // Донорная пара — электроны O: после образования у O 2 (обменные) + 2 (донор) + 2 (своя пара) = 6.
   assert.equal(visibleAt(m, m.step.atoms.to - 0.3), 2 * 4 + 2 * 6)
   assert.equal(visibleAt(m, m.step.molecule.to - 0.01), 8, 'после шага molecule — 4 неподелённые пары')
+  // Стрелка донорной пары «O → C» у первой молекулы; «окошко» свободного места у обоих C.
+  const dat = m.labels.filter((l) => l.id.startsWith('dative-'))
+  assert.equal(dat.length, 1)
+  assert.equal(dat[0]!.text.ru, 'донорная пара O → C')
+  assert.deepEqual(m.acceptors.map((x) => a.atoms[x.atom]!.element), ['C', 'C'])
+  const st = createSchoolState(m)
+  sampleSchoolState(m, m.step.atoms.to - 0.3, st)
+  for (const x of m.acceptors) assert.ok(st.cloudHole[x.atom]! > 0.9, 'окошко у C на шаге atoms')
+  sampleSchoolState(m, m.step.molecule.from + 0.1, st)
+  for (const x of m.acceptors) assert.equal(st.cloudHole[x.atom], 0, 'окошко закрылось, когда пара O встала')
 })
 ok('SO₂: S +16 )2 )8 )6; перед связями пара + 4 неспаренных; у S одна неподелённая пара снаружи угла', () => {
   const { a, m } = analysisOf(SO2_SCHOOL_SPEC)
@@ -561,6 +571,15 @@ ok('SO₃: S=O молекул SO₂ сохраняются, рвётся тол�
   assert.equal(kept.length, 8)
   for (const k of kept) assert.ok(st.stickAlpha[k]! > 0.1, 'штрих сохранённой S=O погас при разрыве')
   assert.equal(visibleAt(m, m.step.molecule.to - 0.01), 24, 'по две пары у шести O')
+  // Неподелённая пара S в SO₂ подсвечена на шаге atoms (она распарится для новой связи).
+  sampleSchoolState(m, m.step.atoms.to - 0.3, st)
+  const lit = a.electrons.map((e, k) => (e.r.kind === 'lone' && a.atoms[e.owner]!.element === 'S' ? st.elGlow[k]! : -1)).filter((g) => g >= 0)
+  assert.equal(lit.length, 4)
+  for (const g of lit) assert.ok(g > 0.6)
+  // Итог: обратимая стрелка и катализатор над ней.
+  const eq = m.labels.find((l) => l.id === 'equation')!
+  assert.equal(eq.kind, 'equation')
+  assert.deepEqual(eq.text.ru.split(EQUATION_PART_SEP), ['2SO₂ + O₂', '⇄', 't°, кат. V₂O₅', '2SO₃'])
 })
 
 console.log(`✓ school scenes: ${passed} проверок, спецификаций: ${SPECS.length}`)
