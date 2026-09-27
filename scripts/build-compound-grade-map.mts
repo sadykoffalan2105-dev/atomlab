@@ -293,8 +293,9 @@ for (const id of Object.keys(TEXTBOOK_EVIDENCE)) {
 
 /*
  * Органика из реакций учебников: класс реакции добавляется первой видимой молекуле этого состава
- * (порядок реестра), если ни одна молекула этого состава ещё не показана в этом классе.
- * База — свидетельства учебников, иначе ступень 3D-модели (как organicGradesForMolecule).
+ * (порядок реестра), если ни одна молекула этого состава ещё не показана в этом классе
+ * (показана — по свидетельствам учебников или, без них, по ступени 3D-модели, как organicGradesForMolecule).
+ * Молекула без свидетельств получает только классы реакций учебника.
  */
 const HIDDEN_ORGANIC = new Set(
   ORGANIC_MOLECULES.filter((m) => !isTextbookVisible(m.id)).map((m) => m.id),
@@ -322,7 +323,8 @@ for (const [k, rx] of BOOK_RX) {
   for (const g of rx.grades) {
     if (mols.some((m) => organicBase(m).includes(g))) continue
     const m = mols[0]!
-    const grades = mergeGrades(organicBase(m), [g])
+    // без свидетельств текста — только классы реакций учебника (догадка «ступень 3D-модели» не добавляется)
+    const grades = mergeGrades(organicMap[m.id]?.grades ?? [], [g])
     const firstPage = organicMap[m.id]?.firstPage ?? rx.firstPage
     organicMap[m.id] = { grades, ...(typeof firstPage === 'number' ? { firstPage } : {}) }
     organicRxAdded++

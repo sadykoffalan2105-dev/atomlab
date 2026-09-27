@@ -76,8 +76,8 @@ function startKit(challenge: OrganicBuildChallenge): OrganicGraph {
   return createFormulaKit(challenge.kit)
 }
 
-/** Без каркаса (адамантан и т.п.) — только цепи, кольца, функциональные классы. */
-const STUDIO_CHALLENGES = ORGANIC_BUILD_CHALLENGES.filter((c) => challengeBuildStage(c) !== 'cage')
+/** Без каркаса (адамантан и т.п.) и без «только просмотр» — только цепи, кольца, функциональные классы. */
+const STUDIO_CHALLENGES = ORGANIC_BUILD_CHALLENGES.filter((c) => challengeBuildStage(c) !== 'cage' && !c.viewOnly)
 
 export function ResearchBuilderMode({
   onMacro,

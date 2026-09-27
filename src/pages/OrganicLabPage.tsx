@@ -65,7 +65,7 @@ function pickEq(m: OrganicMoleculeDef, locale: string) {
 
 function buildableIds(lesson: OrganicLesson): string[] {
   const catalog = new Set(
-    ORGANIC_BUILD_CHALLENGES.filter((c) => challengeBuildStage(c) !== 'cage').map((c) => c.id),
+    ORGANIC_BUILD_CHALLENGES.filter((c) => challengeBuildStage(c) !== 'cage' && !c.viewOnly).map((c) => c.id),
   )
   return lesson.challengeIds.filter((id) => catalog.has(id))
 }

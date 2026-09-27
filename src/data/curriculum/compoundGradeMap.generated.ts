@@ -2,7 +2,7 @@
  * АВТОГЕНЕРАЦИЯ — не редактировать вручную.
  * Пересборка: npx tsx scripts/build-compound-grade-map.mts
  * Источники: сверка учебников Kimyo 7–11 (evidence + TEXTBOOK_EXTRA_GRADES), schoolInorganicManifest, правила ФГОС.
- * Статистика: 7 кл.=178, 8 кл.=277, 9 кл.=307, 10 кл.=106, 11 кл.=181, всего=493; органика=62
+ * Статистика: 7 кл.=178, 8 кл.=277, 9 кл.=307, 10 кл.=106, 11 кл.=181, всего=493; органика=68
  */
 import type { InorganicSchoolGrade } from './compoundGradeIndex'
 
@@ -4392,95 +4392,118 @@ export const ORGANIC_GRADE_MAP: Readonly<Record<string, OrganicGradeEntry>> = {
     ],
     "firstPage": 67
   },
+  "nitrobenzene": {
+    "grades": [
+      10
+    ],
+    "firstPage": 79
+  },
+  "2-4-6-trinitrotoluene": {
+    "grades": [
+      10
+    ],
+    "firstPage": 80
+  },
   "ethylbenzene": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 82
   },
   "1-phenylethane-1-2-diol": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 83
   },
   "cumene": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 101
   },
   "ethyl-benzoate": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 102
   },
+  "ethyl-nitrate": {
+    "grades": [
+      10
+    ],
+    "firstPage": 110
+  },
+  "ethyl-hydrogen-sulfate": {
+    "grades": [
+      10
+    ],
+    "firstPage": 110
+  },
   "ethyl-pent-2-enoate": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 112
   },
   "ethylene-glycol-monoacetate": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 119
   },
+  "nitroglycerin": {
+    "grades": [
+      10
+    ],
+    "firstPage": 120
+  },
   "2-4-6-tribromophenol": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 125
   },
   "salicyl-alcohol": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 126
   },
   "dihydroxydiphenylmethane": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 126
   },
   "tristearin": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 142
   },
   "triolein": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 153
   },
   "tripalmitin": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 155
   },
   "sorbitol": {
     "grades": [
-      10,
-      11
+      10
     ],
     "firstPage": 159
+  },
+  "pentanamide": {
+    "grades": [
+      10
+    ],
+    "firstPage": 179
   }
 } as const

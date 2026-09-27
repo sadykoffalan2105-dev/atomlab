@@ -5,6 +5,7 @@
 import type { OrganicElement, SkeletonSpec } from '../../chemistry/organic/organicGraph'
 import { G10_CH2_BUILD_CHALLENGES } from './organicBuildCatalogG10ch2'
 import { G10_CH3_BUILD_CHALLENGES } from './organicBuildCatalogG10ch3'
+import { G10_TEXTBOOK_EXTRA_CHALLENGES } from './organicBuildCatalogTextbookExtra'
 
 export type IrPeak = {
   wavenumber: number
@@ -34,7 +35,7 @@ export type OrganicClassId =
 /** Учебный этап сборки: цепь → кольцо → каркас (как на схеме в учебнике). */
 export type OrganicBuildStage = 'chain' | 'ring' | 'cage'
 
-export type OrganicKit = Readonly<Partial<Record<'C' | 'H' | 'O' | 'N' | 'Cl' | 'Br' | 'S', number>>>
+export type OrganicKit = Readonly<Partial<Record<'C' | 'H' | 'O' | 'N' | 'Cl' | 'Br' | 'I' | 'S', number>>>
 
 export type OrganicBuildChallenge = {
   id: string
@@ -60,6 +61,11 @@ export type OrganicBuildChallenge = {
   allowChlorine?: boolean
   /** Подписать над каждым C его тип: I — первичный … IV — четвертичный (изооктан, с. 44) */
   showCarbonDegrees?: boolean
+  /**
+   * Только просмотр в каталоге и уроках: в студии сборки не предлагается (атомы с особой валентностью —
+   * N⁺/O⁻ нитрогруппы, S(VI) — набор студии собрать не даёт).
+   */
+  viewOnly?: boolean
   /** Учебное уравнение (для панели в студии) */
   equationRu: string
   equationEn: string
@@ -1835,6 +1841,7 @@ export const ORGANIC_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
   }),
   ...G10_CH2_BUILD_CHALLENGES, // Kimyo 10, гл. II § 2.6–2.24 (с. 55–102) — organicBuildCatalogG10ch2.ts
   ...G10_CH3_BUILD_CHALLENGES, // ——— Kimyo 10, гл. III (§ 3.1–3.21, с. 103–167): organicBuildCatalogG10ch3.ts ———
+  ...G10_TEXTBOOK_EXTRA_CHALLENGES, // ——— вещества реакций Kimyo 10 вне реестра (нитросоединения, иодоформ …): organicBuildCatalogTextbookExtra.ts ———
 ]
 
 export function organicBuildChallengeById(id: string): OrganicBuildChallenge | undefined {
