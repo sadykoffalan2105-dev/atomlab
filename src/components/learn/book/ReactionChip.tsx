@@ -302,13 +302,19 @@ export function ReactionCard({ rx, gradeId, unitId, anchor, sheet, contextLabel,
         <>
           <p className={styles.rxCardReady}>
             <IconSpark />
-            {t('learn.book.rx.labReady')}
+            {isOrganicLabHref(rx.lab.altHref) ? t('learn.book.rx.organicStageReady') : t('learn.book.rx.labReady')}
           </p>
           <div className={styles.rxCardActions}>
             <Link ref={setPrimary} className={styles.btnPrimary} to={rx.lab.href} data-book-rx-open-lab={rx.id}>
               <IconFlask />
-              {t('learn.book.rx.openLab')}
+              {isOrganicLabHref(rx.lab.altHref) ? t('learn.book.rx.openReactor') : t('learn.book.rx.openLab')}
             </Link>
+            {rx.lab.altHref && isOrganicLabHref(rx.lab.altHref) ? (
+              <Link className={styles.btnGlass} to={rx.lab.altHref} data-book-rx-open-organic={rx.id}>
+                <IconFlask />
+                {t('learn.book.rx.openOrganicLab')}
+              </Link>
+            ) : null}
           </div>
           <div className={styles.rxCardSecondary}>
             {balanceHref ? (

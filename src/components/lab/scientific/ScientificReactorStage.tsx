@@ -36,6 +36,8 @@ const DEFAULT_LABELS: ScientificReactorStageLabels = {
 const ORIGIN: StageVec3 = [0, 0, 0]
 /** Доля видимой ширины кадра, которую может занять ряд «реагенты → продукты». */
 const STAGE_WIDTH_FILL = 0.9
+/** Ряд ужат сильнее этого — пробуем два ряда (крупные органические молекулы). */
+const STAGE_TWO_ROWS_FIT = 0.6
 const _stageCenter = new THREE.Vector3()
 
 /**
@@ -354,10 +356,17 @@ export function ScientificReactorStage({
   // Портретный экран и 4+ вещества: в один ряд шары мельче 10 px и символы в них не видны — два ряда.
   const aspect = useThree((st) => st.size.width / Math.max(1, st.size.height))
   const twoRows = aspect < 0.95 && leftTerms.length + coProducts.length + (productId ? 1 : 0) >= 4
-  const layout = useMemo(
-    () => (visible ? scientificStageLayout(leftTerms, coProducts, productId, productCoeff, productIndex, { twoRows }) : null),
-    [visible, leftTerms, coProducts, productId, productCoeff, productIndex, twoRows],
-  )
+  const layout = useMemo(() => {
+    if (!visible) return null
+    const one = scientificStageLayout(leftTerms, coProducts, productId, productCoeff, productIndex, { twoRows })
+    // Крупные молекулы (жир — ~170 атомов, мыло, звено целлюлозы): в один ряд сцена ужимается так, что шары
+    // не разглядеть — реагенты сверху, «→ продукты» снизу, и масштаб вдвое крупнее.
+    if (!twoRows && one.fitScale < STAGE_TWO_ROWS_FIT && leftTerms.length > 0) {
+      const two = scientificStageLayout(leftTerms, coProducts, productId, productCoeff, productIndex, { twoRows: true })
+      if (two.fitScale > one.fitScale * 1.2) return two
+    }
+    return one
+  }, [visible, leftTerms, coProducts, productId, productCoeff, productIndex, twoRows])
   const ui = useUiScale()
   const groupRef = useRef<THREE.Group>(null)
 
