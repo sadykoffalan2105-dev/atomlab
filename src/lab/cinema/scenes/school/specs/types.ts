@@ -238,6 +238,20 @@ export type SchoolMechanism = {
   readonly kept?: readonly BondEvent[]
   /** Ионная связь: переход электронов (сколько от каждого атома). */
   readonly electronTransfer?: { readonly from: ElementSymbol; readonly to: ElementSymbol; readonly perAtom: number }
+  /**
+   * Как разложить электроны атома реагента ПЕРЕД образованием связей, если не так, как в основном
+   * состоянии (как SchoolSceneSpec.splitElectrons движка A): C в CO₂ — 4 неспаренных (возбуждение);
+   * S в SO₂ — пара + 4 неспаренных; атом O — акцептор донорно-акцепторной пары — 3 пары, 0 неспаренных.
+   * 2·lone + unpaired = электроны внешнего слоя (тест).
+   */
+  readonly splitElectrons?: readonly {
+    /** id частицы-реагента и её атома */
+    readonly particle: string
+    readonly atom: string
+    readonly lone: number
+    readonly unpaired: number
+    readonly why: L10n
+  }[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

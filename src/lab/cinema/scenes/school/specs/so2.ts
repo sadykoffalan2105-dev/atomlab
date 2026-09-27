@@ -53,7 +53,19 @@ export const SO2_SPEC: SchoolScienceSpec = {
   atoms: [ATOM_S, ATOM_O],
   particles: [P_S_SOLID, P_O2, P_SO2],
   mechanism: {
-    breaks: [
+    splitElectrons: [
+      {
+        particle: 'S',
+        atom: 'S',
+        lone: 1,
+        unpaired: 4,
+        why: {
+          ru: 'для двух двойных связей сере нужны четыре электрона; одна пара остаётся неподелённой',
+          en: 'for two double bonds sulfur needs four electrons; one pair stays unshared',
+          uz: 'ikkita qoʻsh bogʻ uchun oltingugurtga toʻrtta elektron kerak; bitta juft boʻlinmagan qoladi',
+        },
+      },
+    ],    breaks: [
       {
         particle: 'O2',
         a: 'Oa',

@@ -97,7 +97,19 @@ export const SO3_SPEC: SchoolScienceSpec = {
   atoms: [ATOM_S, ATOM_O],
   particles: [{ ...P_SO2, role: 'reactant' }, P_O2, P_SO3],
   mechanism: {
-    breaks: [
+    splitElectrons: [
+      {
+        particle: 'SO2',
+        atom: 'S',
+        lone: 0,
+        unpaired: 2,
+        why: {
+          ru: 'неподелённая пара серы в SO₂ распаривается для третьей двойной связи',
+          en: 'the lone pair of sulfur in SO₂ unpairs for the third double bond',
+          uz: 'SO₂ dagi oltingugurtning boʻlinmagan jufti uchinchi qoʻsh bogʻ uchun ajraladi',
+        },
+      },
+    ],    breaks: [
       {
         particle: 'O2',
         a: 'Oa',

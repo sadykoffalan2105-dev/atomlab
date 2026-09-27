@@ -95,7 +95,19 @@ export const CO2_SPEC: SchoolScienceSpec = {
   atoms: [ATOM_C, ATOM_O],
   particles: [P_C_GRAPHITE, P_O2, P_CO2],
   mechanism: {
-    breaks: [
+    splitElectrons: [
+      {
+        particle: 'C',
+        atom: 'C',
+        lone: 0,
+        unpaired: 4,
+        why: {
+          ru: 'возбуждённый углерод: пара 2s распарена, четыре неспаренных электрона для четырёх связей',
+          en: 'excited carbon: the 2s pair is unpaired, four unpaired electrons for four bonds',
+          uz: 'qoʻzgʻalgan uglerod: 2s jufti ajralgan, toʻrtta bogʻ uchun toʻrtta juftlashmagan elektron',
+        },
+      },
+    ],    breaks: [
       {
         particle: 'O2',
         a: 'Oa',

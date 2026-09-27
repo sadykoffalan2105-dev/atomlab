@@ -373,6 +373,21 @@ for (const spec of specs) {
     }
   }
   if (spec.bondType === 'ionic') ok(`${P} ионная связь — переход электрона`, Boolean(m.electronTransfer))
+  // Раскладка электронов атома реагента перед связыванием: вклад в НЕразорванные связи + 2·пары + неспаренные
+  // = внешние электроны (C* в CO₂: 0 + 0 + 4; S в SO₂ внутри SO₃: 4 + 0 + 2; акцептор O: 0 + 6 + 0).
+  for (const se of m.splitElectrons ?? []) {
+    const p = byId.get(se.particle)
+    const at = p?.atoms.find((a) => a.id === se.atom)
+    ok(`${P} splitElectrons ${se.particle}.${se.atom}: атом реагента`, p?.role === 'reactant' && Boolean(at))
+    if (!p || !at) continue
+    let contrib = 0
+    for (const b of p.bonds) {
+      if (b.a !== at.id && b.b !== at.id) continue
+      if (m.breaks.some((e) => e.particle === p.id && ((e.a === b.a && e.b === b.b) || (e.a === b.b && e.b === b.a)))) continue
+      for (const o of pairOrigins(b)) contrib += o === 'ab' ? 1 : (o === 'a') === (b.a === at.id) ? 2 : 0
+    }
+    ok(`${P} splitElectrons ${se.particle}.${se.atom}: электроны сходятся`, contrib + 2 * se.lone + se.unpaired === ATOMIC_DATA[at.element].valenceElectrons, `${contrib} + 2·${se.lone} + ${se.unpaired}`)
+  }
 
   // 6. Валентность
   {
