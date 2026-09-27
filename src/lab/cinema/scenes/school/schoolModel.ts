@@ -36,6 +36,8 @@ export const SCHOOL_DRAW = {
   stickR: 5.2,
   /** Зазор точек неподелённых пар / неспаренных электронов над поверхностью шара. */
   shellGap: 12,
+  /** Добавка к зазору для пар, смотрящих от зрителя (× доля направления на −z), — чтобы шар их не закрывал. */
+  backLift: 34,
   /** Облако внешнего слоя: радиус-параметр kit/electronClouds = max(k · r_шара, min). */
   cloudK: 1.25,
   cloudMin: 30,
@@ -43,14 +45,30 @@ export const SCHOOL_DRAW = {
   loose: 1.14,
 } as const
 
-export type SchoolLabelKind = 'atom' | 'atomDark' | 'species' | 'measure' | 'token'
+export type SchoolLabelKind = 'atom' | 'atomDark' | 'species' | 'measure' | 'token' | 'equation'
+
+/** Разделитель частей уравнения «левая часть ␟ стрелка ␟ условие ␟ правая часть» (подпись kind 'equation'). */
+export const EQUATION_PART_SEP = '␟'
+
+/**
+ * Уравнение с условием НАД стрелкой: «2SO₂ + O₂ ⇄ 2SO₃» + «t°, кат. V₂O₅» → части через EQUATION_PART_SEP
+ * (CinemaDomLabels рисует условие мелко над стрелкой). Без условия или без стрелки — уравнение как есть.
+ */
+export function equationWithCondition(equation: string, condition: string | undefined): string {
+  const m = /^(.*?)\s*([→⇄⇌])\s*(.*)$/.exec(equation)
+  if (!condition || !m) return equation
+  return [m[1], m[2], condition, m[3]].join(EQUATION_PART_SEP)
+}
 
 export type SchoolLabelAnchor =
   | { readonly kind: 'atom'; readonly atom: number }
   | { readonly kind: 'layers'; readonly atom: number }
   | { readonly kind: 'molR'; readonly mol: number }
   | { readonly kind: 'molP'; readonly mol: number }
-  | { readonly kind: 'angle'; readonly a: number; readonly center: number; readonly b: number }
+  /** others — прочие соседи центрального атома в продукте (SO₃: третий O): подпись их обходит. */
+  | { readonly kind: 'angle'; readonly a: number; readonly center: number; readonly b: number; readonly others: readonly number[] }
+  /** Середина связи продукта (подпись донорно-акцепторной пары «O → C»), сдвиг поперёк оси. */
+  | { readonly kind: 'bond'; readonly bond: number }
   | { readonly kind: 'top' }
   | { readonly kind: 'bottom' }
   | { readonly kind: 'center' }
@@ -98,6 +116,11 @@ export type SchoolModel = {
   readonly fillR: number[]
   readonly fillS: number[]
   readonly fillP: number[]
+  /**
+   * Акцепторы донорно-акцепторных пар (CO: атом C): «окошко» в облаке — свободное место для чужой пары —
+   * смотрит на донора с шага atoms, пока пара не встанет между ядрами (окно формирования пары).
+   */
+  readonly acceptors: { readonly atom: number; readonly donor: number; readonly closeAt: number }[]
   /** Габарит кадра по шагам (пм, система сцены без поворота): w, h, cx, cy. */
   readonly extent: { w: number; h: number; cx: number; cy: number }[]
 }
@@ -120,6 +143,9 @@ export type SchoolState = {
   cloudFill: Float32Array
   cloudStretch: Float32Array
   cloudDir: Float32Array
+  /** «Окошко» свободного места в облаке акцептора (0…1) и его направление. */
+  cloudHole: Float32Array
+  cloudHoleDir: Float32Array
   labelPos: Float32Array
   labelOpacity: Float32Array
   yaw: number
@@ -278,21 +304,61 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
   for (const ang of firstP?.angles ?? []) {
     const deg = angleDegOf(spec, ang)
     const txt = `∠${ang.a.replace(/\d+$/, '')}${ang.center.replace(/\d+$/, '')}${ang.b.replace(/\d+$/, '')} = ${deg}°`
+    const [ia, ic, ib] = [a.index.get(ang.a)!, a.index.get(ang.center)!, a.index.get(ang.b)!]
+    const others = a.P.bonds
+      .filter((b) => b.a === ic || b.b === ic)
+      .map((b) => (b.a === ic ? b.b : b.a))
+      .filter((j) => j !== ia && j !== ib)
     labels.push({
       id: `angle-${ang.a}-${ang.center}-${ang.b}`,
       kind: 'measure',
       text: all(txt),
-      anchor: { kind: 'angle', a: a.index.get(ang.a)!, center: a.index.get(ang.center)!, b: a.index.get(ang.b)! },
+      anchor: { kind: 'angle', a: ia, center: ic, b: ib, others },
       from: step.molecule.from + 1.8,
       to: end,
     })
   }
+  // Донорно-акцепторная пара (у первой молекулы продукта): стрелка «O → C» над связью, пока пара
+  // целиком переходит от донора к связи.
+  const acceptors: { atom: number; donor: number; closeAt: number }[] = []
+  a.formed.forEach((fp, k) => {
+    const b = a.P.bonds[fp.pBond]!
+    const o = b.pairs[fp.pair]!
+    if (o === 'ab') return
+    const donor = o === 'a' ? b.a : b.b
+    const acc = donor === b.a ? b.b : b.a
+    acceptors.push({ atom: acc, donor, closeAt: formWin[k]!.t1 })
+    if (b.molecule !== 0) return
+    const D = a.atoms[donor]!.element
+    const A = a.atoms[acc]!.element
+    labels.push({
+      id: `dative-${fp.pBond}-${fp.pair}`,
+      kind: 'token',
+      text: { ru: `донорная пара ${D} → ${A}`, en: `donor pair ${D} → ${A}`, uz: `donor juft ${D} → ${A}` },
+      anchor: { kind: 'bond', bond: fp.pBond },
+      from: formWin[k]!.t0,
+      to: step.molecule.from + 0.6,
+    })
+  })
   labels.push({ id: 'caption-reactants', kind: 'species', text: spec.captions.reactants, anchor: { kind: 'top' }, from: 0.3, to: step.atoms.to - 0.2 })
   if (spec.captions.condition) {
     labels.push({ id: 'condition', kind: 'token', text: spec.captions.condition, anchor: { kind: 'center' }, from: step.breaking.from + 0.1, to: step.breaking.from + 2.4 })
   }
   labels.push({ id: 'caption-result', kind: 'species', text: spec.captions.result, anchor: { kind: 'top' }, from: step.result.from + 0.3, to: end })
-  labels.push({ id: 'equation', kind: 'species', text: all(spec.equation), anchor: { kind: 'bottom' }, from: step.result.from + 0.8, to: end })
+  // Итог: уравнение, условие реакции — над стрелкой (как в учебнике: →t°, ⇄ кат. V₂O₅).
+  const cond = spec.captions.condition
+  labels.push({
+    id: 'equation',
+    kind: 'equation',
+    text: {
+      ru: equationWithCondition(spec.equation, cond?.ru),
+      en: equationWithCondition(spec.equation, cond?.en),
+      uz: equationWithCondition(spec.equation, cond?.uz),
+    },
+    anchor: { kind: 'bottom' },
+    from: step.result.from + 0.8,
+    to: end,
+  })
 
   // ——— габарит кадра по шагам ———
   const extent = spec.steps.map((s) => {
@@ -353,6 +419,7 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     fillR: fill(a.R),
     fillS: fill(a.S),
     fillP: fill(a.P),
+    acceptors,
     extent,
   }
 }
@@ -378,6 +445,8 @@ export function createSchoolState(m: SchoolModel): SchoolState {
     cloudFill: new Float32Array(n),
     cloudStretch: new Float32Array(n),
     cloudDir: new Float32Array(n * 3),
+    cloudHole: new Float32Array(n),
+    cloudHoleDir: new Float32Array(n * 3),
     labelPos: new Float32Array(l * 3),
     labelOpacity: new Float32Array(l),
     yaw: 0,
@@ -458,7 +527,9 @@ function placePos(m: SchoolModel, ph: Phase, place: ElectronPlace, pos: Float32A
     rotYX(d[0]!, d[1]!, d[2]!, rot.yaw, rot.pitch, _r)
     d = _r
   }
-  const r = m.ballR[i]! + D.shellGap
+  // Пара, смотрящая от зрителя (−z), при перспективе прячется за свой шар: отодвигаем её от ядра
+  // по тому же направлению (число и направление пар не меняются — только читаемость кадра).
+  const r = m.ballR[i]! + D.shellGap + D.backLift * Math.max(0, -d[2]!)
   let cx = pos[i * 3]! + d[0]! * r
   let cy = pos[i * 3 + 1]! + d[1]! * r
   let cz = pos[i * 3 + 2]! + d[2]! * r
@@ -550,14 +621,15 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       s.elPos[k * 3] = _p[0]!
       s.elPos[k * 3 + 1] = _p[1]!
       s.elPos[k * 3 + 2] = _p[2]!
-      glow = e.r.kind === 'single' ? 1 : 0.3
+      // Пара, которая перед связыванием распарится (splitElectrons: C в CO₂, S в SO₂ / SO₃), подсвечена.
+      glow = e.r.kind === 'single' ? 1 : e.r.kind === 'lone' && e.s.kind === 'single' ? 0.7 : 0.3
     } else if (t < step.pairs.from) {
       const w = e.broken >= 0 ? m.breakWin[e.broken]! : m.moveBreak[e.owner]!
       const u = schoolSmooth(w.t0 + 0.15, w.t1, t)
       placePos(m, a.R, e.r, s.atomPos, 1, _p)
       placePos(m, a.S, e.s, s.atomPos, 1, _q)
       writeLerpPos(s.elPos, k, _p, _q, u)
-      glow = lerp(e.r.kind === 'single' ? 1 : 0.3, e.s.kind === 'single' ? 1 : 0.3, u)
+      glow = lerp(e.r.kind === 'single' ? 1 : e.r.kind === 'lone' && e.s.kind === 'single' ? 0.7 : 0.3, e.s.kind === 'single' ? 1 : 0.3, u)
     } else if (t < step.molecule.from) {
       const w = e.formed >= 0 ? m.formWin[e.formed]! : m.movePairs[e.owner]!
       const u = e.formed >= 0 ? schoolSmooth(w.t0 + 0.55, w.t1, t) : schoolSmooth(w.t0, w.t1, t)
@@ -674,6 +746,21 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
     }
     s.cloudFill[i] = f
     s.cloudStretch[i] = stretch
+    s.cloudHole[i] = 0
+  }
+  // «Окошко» свободного места у акцептора — на донора; закрывается, когда донорная пара встала.
+  for (const ac of m.acceptors) {
+    const h = schoolSmooth(step.atoms.from + 1.2, step.atoms.from + 2.2, t) * (1 - schoolSmooth(ac.closeAt - 0.6, ac.closeAt, t))
+    if (h <= s.cloudHole[ac.atom]!) continue
+    const i = ac.atom
+    const dx = s.atomPos[ac.donor * 3]! - s.atomPos[i * 3]!
+    const dy = s.atomPos[ac.donor * 3 + 1]! - s.atomPos[i * 3 + 1]!
+    const dz = s.atomPos[ac.donor * 3 + 2]! - s.atomPos[i * 3 + 2]!
+    const dl = Math.hypot(dx, dy, dz) || 1
+    s.cloudHole[i] = h
+    s.cloudHoleDir[i * 3] = dx / dl
+    s.cloudHoleDir[i * 3 + 1] = dy / dl
+    s.cloudHoleDir[i * 3 + 2] = dz / dl
   }
 
   // ——— подписи (позиции в системе сцены, пм) ———
@@ -733,11 +820,43 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       // Подпись угла — с внешней стороны атома (против биссектрисы угла), над облаком. У линейной
       // молекулы (CO₂, 180°) биссектрисы нет — подпись над центральным атомом.
       const r = m.cloudR[an.center]! * 1.6 + 20
-      const ux = bl > 1e-3 ? -bx / bl : 0
-      const uy = bl > 1e-3 ? -by / bl : 1
+      let ux = bl > 1e-3 ? -bx / bl : 0
+      let uy = bl > 1e-3 ? -by / bl : 1
+      // Снаружи угла стоит другой сосед центра (плоский треугольник SO₃: против биссектрисы любого угла —
+      // третий атом O) — тогда подпись внутри угла, по биссектрисе.
+      for (const j of an.others) {
+        const ox = s.atomPos[j * 3]! - s.atomPos[c]!
+        const oy = s.atomPos[j * 3 + 1]! - s.atomPos[c + 1]!
+        const ol = Math.hypot(ox, oy)
+        if (bl > 1e-3 && ol > 1e-3 && (ox * ux + oy * uy) / ol > 0.77) {
+          ux = -ux
+          uy = -uy
+          break
+        }
+      }
       s.labelPos[o] = s.atomPos[c]! + ux * r
       s.labelPos[o + 1] = s.atomPos[c + 1]! + uy * r
       s.labelPos[o + 2] = s.atomPos[c + 2]!
+    } else if (an.kind === 'bond') {
+      const b = a.P.bonds[an.bond]!
+      const ax = s.atomPos[b.a * 3]!
+      const ay = s.atomPos[b.a * 3 + 1]!
+      const bx = s.atomPos[b.b * 3]!
+      const by = s.atomPos[b.b * 3 + 1]!
+      // Над серединой связи, поперёк оси (вверх по кадру), за облаками атомов.
+      let nx = -(by - ay)
+      let ny = bx - ax
+      const nl = Math.hypot(nx, ny) || 1
+      nx /= nl
+      ny /= nl
+      if (ny < 0) {
+        nx = -nx
+        ny = -ny
+      }
+      const r = Math.max(m.cloudR[b.a]!, m.cloudR[b.b]!) * 1.25 + 14
+      s.labelPos[o] = (ax + bx) / 2 + nx * r
+      s.labelPos[o + 1] = (ay + by) / 2 + ny * r
+      s.labelPos[o + 2] = (s.atomPos[b.a * 3 + 2]! + s.atomPos[b.b * 3 + 2]!) / 2
     } else if (an.kind === 'top') {
       s.labelPos[o] = (minX + maxX) / 2
       s.labelPos[o + 1] = maxY + 40

@@ -542,7 +542,9 @@ export class SchoolReactionScene {
     for (let i = 0; i < n; i++) {
       this._v.set(s.atomPos[i * 3]! * K, s.atomPos[i * 3 + 1]! * K, s.atomPos[i * 3 + 2]! * K)
       this._w.set(s.cloudDir[i * 3]!, s.cloudDir[i * 3 + 1]!, s.cloudDir[i * 3 + 2]!)
-      this.clouds.set(i, this._v, m.cloudR[i]! * K * s.appear, s.cloudFill[i]!, s.cloudAmount, 0, this._hole, s.cloudStretch[i]!, this._w)
+      this._hole.set(s.cloudHoleDir[i * 3]!, s.cloudHoleDir[i * 3 + 1]!, s.cloudHoleDir[i * 3 + 2]!)
+      if (this._hole.lengthSq() < 1e-6) this._hole.set(1, 0, 0)
+      this.clouds.set(i, this._v, m.cloudR[i]! * K * s.appear, s.cloudFill[i]!, s.cloudAmount, s.cloudHole[i]!, this._hole, s.cloudStretch[i]!, this._w)
     }
     this.clouds.points.visible = s.cloudAmount > 0.005
 
@@ -584,6 +586,14 @@ export class SchoolReactionScene {
       D[o + 1] = (this._v.y - cam.y) / depth
       D[o + 2] = depth
       D[o + 3] = (m.ballR[i]! * K * s.appear) / depth
+      // Символ — на передней точке шара ВДОЛЬ ЛУЧА КАМЕРЫ: при перспективе точка «центр + r по z»
+      // проецируется со сдвигом наружу от центра кадра (у крайних шаров — на треть радиуса), а точка
+      // на луче камеры — ровно в центр шара.
+      const li = this.labelIndexOfAtom[i]!
+      if (li >= 0) {
+        this._w.copy(cam).sub(this._v).normalize()
+        this.labels[li]!.pos.copy(this._v).addScaledVector(this._w, m.ballR[i]! * K * s.appear)
+      }
     }
     const blend = Math.min(1, this.lastDt * 12)
     for (let i = 0; i < n; i++) {

@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { SchoolReactionScene } from '../SchoolReactionScene'
 import { H2O_SPEC } from '../../h2o/h2oSpec'
 import { FIX_CO, FIX_NH4CL, FIX_NO2 } from '../schoolFixtures'
+import { EQUATION_PART_SEP } from '../schoolModel'
 import type { SchoolSceneSpec } from '../schoolSpec'
 
 /**
@@ -31,6 +32,7 @@ const LABEL_STYLE: Record<string, string> = {
   measure:
     'font:600 12.5px/1 Inter,system-ui,sans-serif;color:#cfeeff;padding:3px 7px;border-radius:6px;background:rgba(6,12,26,.78);border:1px solid rgba(150,205,255,.35);',
   token: 'font:700 13px/1 Inter,system-ui,sans-serif;color:#fff3c4;text-shadow:0 0 10px rgba(255,190,80,.9);',
+  equation: 'font:600 15px/1.1 Inter,system-ui,sans-serif;color:#f4f8ff;text-shadow:0 0 6px rgba(0,0,0,.95);',
 }
 
 const renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -89,7 +91,9 @@ function frame(now: number): void {
     }
     v.copy(l.pos).applyMatrix4(sch.root.matrixWorld).project(camera)
     el.style.display = 'block'
-    el.textContent = l.text
+    // Уравнение итога: условие над стрелкой в предпросмотре — в скобках после стрелки.
+    const parts = l.text.split(EQUATION_PART_SEP)
+    el.textContent = parts.length === 4 ? `${parts[0]} ${parts[1]}(${parts[2]}) ${parts[3]}` : l.text
     el.style.opacity = String(l.opacity)
     el.style.transform = `translate(${(v.x * 0.5 + 0.5) * w}px, ${(-v.y * 0.5 + 0.5) * h}px) translate(-50%, -50%)`
   })

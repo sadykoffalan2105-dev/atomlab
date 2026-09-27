@@ -65,6 +65,29 @@ const KIND_STYLE: Record<string, string> = {
     'text-shadow: 0 0 3px rgba(255,255,255,0.75), 0 0 8px rgba(255,255,255,0.35);',
   token:
     'font: 700 13px/1 "Inter", system-ui, sans-serif; color: #fff3c4; text-shadow: 0 0 10px rgba(255,190,80,0.9);',
+  // Уравнение итога: «левая ␟ стрелка ␟ условие ␟ правая» — условие мелко НАД стрелкой (renderEquation).
+  equation:
+    'font: 600 15px/1.1 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em; padding-top: 13px;' +
+    'text-shadow: 0 0 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.8);',
+}
+
+/** Разделитель частей уравнения (как EQUATION_PART_SEP школьной сцены). */
+const EQ_SEP = '␟'
+
+/** Уравнение с условием над стрелкой: части — текстом (textContent), без HTML из строки. */
+function renderEquation(el: HTMLDivElement, text: string): void {
+  const [left = '', arrow = '→', cond = '', right = ''] = text.split(EQ_SEP)
+  const span = (t: string, css = '') => {
+    const s = document.createElement('span')
+    s.textContent = t
+    if (css) s.style.cssText = css
+    return s
+  }
+  // Стрелка — в строке (на базовой линии), условие — над ней по центру (место сверху даёт padding-top
+  // стиля 'equation', чтобы раскладка подписей учитывала его высоту).
+  const col = span(arrow, 'position:relative;display:inline-block;margin:0 0.45em;font-size:17px;line-height:1;')
+  col.append(span(cond, 'position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:1px;font-size:11px;font-weight:600;line-height:1;color:#ffe3a3;white-space:nowrap;'))
+  el.replaceChildren(span(left), col, span(right))
 }
 
 function oxColor(text: string): { border: string; color: string } {
@@ -106,7 +129,8 @@ function writeLabel(n: LabelNode, src: DomLabelSource, px: number, py: number, s
     n.shown = true
   }
   if (n.text !== src.text) {
-    n.el.textContent = src.text
+    if (src.kind === 'equation' && src.text.includes(EQ_SEP)) renderEquation(n.el, src.text)
+    else n.el.textContent = src.text
     n.text = src.text
   }
   if (src.kind === 'ox' && n.ox !== src.text) {
@@ -179,7 +203,8 @@ export function CinemaDomLabels({
       el.style.cssText =
         'position:absolute; left:0; top:0; white-space:nowrap; will-change:transform,opacity; opacity:0; display:none;' +
         (KIND_STYLE[l.kind] ?? KIND_STYLE.species)
-      el.textContent = l.text
+      if (l.kind === 'equation' && l.text.includes(EQ_SEP)) renderEquation(el, l.text)
+      else el.textContent = l.text
       layer.appendChild(el)
       return { el, text: l.text, shown: false, ox: '', x: NaN, y: NaN, opacity: NaN, scale: NaN }
     })

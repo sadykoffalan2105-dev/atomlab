@@ -2,7 +2,7 @@ import { useEffect, useMemo, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { primaryReactionForCompound } from '../../chemistry/schoolReactionBank'
-import { isBankReactionReactorReady, reactorHrefForBank } from '../../lab/reactorDeepLink'
+import { schoolSceneLinkForCompound } from '../../lab/schoolSceneLinks'
 import { compoundById } from '../../data/compounds'
 import { getElementBySymbol } from '../../data/elements'
 import { getCompoundLocaleStrings, type CompoundLocaleStrings } from '../../i18n/compoundLocale'
@@ -157,6 +157,10 @@ export function CompoundDetailModal({
     () => (compoundId ? primaryReactionForCompound(compoundId) : undefined),
     [compoundId],
   )
+  // Реакция школьной сцены вещества и ссылка в лабораторию (первые 10 веществ 7 класса — реакция их
+  // сцены; остальные — предпочтительная реакция банка). hasScene — кнопка зовёт смотреть анимацию.
+  const sceneLink = useMemo(() => (compoundId ? schoolSceneLinkForCompound(compoundId) : null), [compoundId])
+  const rxBankId = sceneLink ? sceneLink.bankId : (schoolRx?.id ?? null)
 
   useEffect(() => {
     if (compoundId == null) return
@@ -280,19 +284,25 @@ export function CompoundDetailModal({
                 )}
               </section>
 
-              {schoolRx ? (
+              {sceneLink || schoolRx ? (
                 <section className={styles.section}>
                   <h3 className={styles.metaLabel}>{t('compound.schoolReaction')}</h3>
                   <div className={styles.schoolRx}>
                     <p className={styles.schoolRxEq}>
-                      {locale === 'en' ? schoolRx.equationEn : schoolRx.equationRu}
+                      {sceneLink
+                        ? locale === 'en'
+                          ? sceneLink.equationEn
+                          : sceneLink.equationRu
+                        : locale === 'en'
+                          ? schoolRx?.equationEn
+                          : schoolRx?.equationRu}
                     </p>
-                    {onOpenSchoolReaction ? (
+                    {onOpenSchoolReaction && rxBankId ? (
                       <button
                         type="button"
                         className={styles.schoolRxBtn}
                         aria-label={t('compound.schoolReactionAria')}
-                        onClick={() => onOpenSchoolReaction(schoolRx.id)}
+                        onClick={() => onOpenSchoolReaction(rxBankId)}
                       >
                         {t('compound.openInReactions')}
                         <span className={styles.btnArrow} aria-hidden>
@@ -300,13 +310,14 @@ export function CompoundDetailModal({
                         </span>
                       </button>
                     ) : null}
-                    {isBankReactionReactorReady(schoolRx.id) ? (
+                    {sceneLink ? (
                       <Link
                         className={styles.schoolRxBtn}
-                        to={reactorHrefForBank(schoolRx.id, { main: c.id })}
-                        data-rx-lab-link={schoolRx.id}
+                        to={sceneLink.href}
+                        data-rx-lab-link={sceneLink.bankId ?? 'eq'}
+                        data-rx-scene={sceneLink.hasScene ? '1' : undefined}
                       >
-                        {t('catalog.rx.openLab')}
+                        {sceneLink.hasScene ? t('compound.watchFormation') : t('catalog.rx.openLab')}
                         <span className={styles.btnArrow} aria-hidden>
                           →
                         </span>

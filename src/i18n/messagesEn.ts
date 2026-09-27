@@ -405,6 +405,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'compound.obtainingSteps': 'Obtaining steps',
   'compound.schoolReaction': 'School reaction',
   'compound.openInReactions': 'Open in Reactions',
+  'compound.watchFormation': '▶ Watch how it forms',
   'compound.schoolReactionAria': 'Open school reaction in the catalog',
   'compound.preview3d': 'Three-dimensional model',
   'compound.labExampleAria': 'How the substance is obtained',

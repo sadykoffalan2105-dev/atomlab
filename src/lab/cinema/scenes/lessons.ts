@@ -4,7 +4,9 @@ import type { CinemaLessonId } from './clo2/clo2StepStore'
 import { CAO_STEP_IDS } from './cao/caoSteps'
 import { getCaoMechanismText } from './cao/caoMechanismText'
 import { CO2_STEP_IDS } from './co2/co2Steps'
-import { getCo2MechanismText } from './co2/co2MechanismText'
+import { CO2_SCHOOL_SPEC } from './co2/co2Spec'
+import { CO_STEP_IDS } from './co/coSteps'
+import { CO_SCHOOL_SPEC } from './co/coSpec'
 import { FES_STEP_IDS } from './fes/fesSteps'
 import { getFesMechanismText } from './fes/fesMechanismText'
 import { H2O_STEP_IDS } from './h2o/h2oSteps'
@@ -19,7 +21,9 @@ import { getNaclMechanismText } from './nacl/naclMechanismText'
 import { NH3_STEP_IDS } from './nh3/nh3Steps'
 import { getNh3MechanismText } from './nh3/nh3MechanismText'
 import { SO2_STEP_IDS } from './so2/so2Steps'
-import { getSo2MechanismText } from './so2/so2MechanismText'
+import { SO2_SCHOOL_SPEC } from './so2/so2Spec'
+import { SO3_STEP_IDS } from './so3/so3Steps'
+import { SO3_SCHOOL_SPEC } from './so3/so3Spec'
 import { ZNCL2_STEP_IDS } from './zncl2/zncl2Steps'
 import { getZncl2MechanismText } from './zncl2/zncl2MechanismText'
 
@@ -99,9 +103,20 @@ const LESSONS: Record<string, CinemaLesson> = {
   co2: {
     id: 'co2',
     stepIds: CO2_STEP_IDS,
-    safetyStepId: 'energy',
+    // Горение в чистом кислороде: предупреждение — на шаге нагревания (разрыв O=O).
+    safetyStepId: 'breaking',
     narrated: false,
-    getText: (locale) => getCo2MechanismText(locale),
+    school: true,
+    getText: (locale) => schoolLessonText(CO2_SCHOOL_SPEC.text[locale]),
+  },
+  co: {
+    id: 'co',
+    stepIds: CO_STEP_IDS,
+    // Угарный газ ядовит: предупреждение — на итоге (газ получен).
+    safetyStepId: 'result',
+    narrated: false,
+    school: true,
+    getText: (locale) => schoolLessonText(CO_SCHOOL_SPEC.text[locale]),
   },
   cao: {
     id: 'cao',
@@ -129,9 +144,20 @@ const LESSONS: Record<string, CinemaLesson> = {
   so2: {
     id: 'so2',
     stepIds: SO2_STEP_IDS,
-    safetyStepId: 'properties',
+    // Сернистый газ ядовит: предупреждение — на итоге (газ получен).
+    safetyStepId: 'result',
     narrated: false,
-    getText: (locale) => getSo2MechanismText(locale),
+    school: true,
+    getText: (locale) => schoolLessonText(SO2_SCHOOL_SPEC.text[locale]),
+  },
+  so3: {
+    id: 'so3',
+    stepIds: SO3_STEP_IDS,
+    // SO₃ с водой даёт серную кислоту: предупреждение — на итоге.
+    safetyStepId: 'result',
+    narrated: false,
+    school: true,
+    getText: (locale) => schoolLessonText(SO3_SCHOOL_SPEC.text[locale]),
   },
   mgo: {
     id: 'mgo',

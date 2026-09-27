@@ -83,6 +83,8 @@ const FORBIDDEN_FROM_ELEMENTS = new Set<string>([
 
 /** Предпочтительная школьная реакция в каталоге «Реакции» (если есть в банке). */
 const PREFERRED_SCHOOL_REACTION: Readonly<Record<string, string>> = {
+  // CO₂: реакция школьной сцены (Kimyo 7, § 4.5) — горение угля, а не дожигание CO.
+  co2: 'c-o2-co2',
   so3: 'so2-o2-so3',
   no2: 'no-o2-no2',
   ca_oh_2: 'cao-h2o',
