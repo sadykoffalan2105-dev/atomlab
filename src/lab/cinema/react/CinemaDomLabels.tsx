@@ -67,7 +67,7 @@ const KIND_STYLE: Record<string, string> = {
     'font: 700 13px/1 "Inter", system-ui, sans-serif; color: #fff3c4; text-shadow: 0 0 10px rgba(255,190,80,0.9);',
   // Уравнение итога: «левая ␟ стрелка ␟ условие ␟ правая» — условие мелко НАД стрелкой (renderEquation).
   equation:
-    'font: 600 15px/1.1 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em;' +
+    'font: 600 15px/1.1 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em; padding-top: 13px;' +
     'text-shadow: 0 0 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.8);',
 }
 
@@ -83,9 +83,10 @@ function renderEquation(el: HTMLDivElement, text: string): void {
     if (css) s.style.cssText = css
     return s
   }
-  // column-reverse: первым в DOM идёт стрелка — по ней базовая линия блока, условие встаёт НАД ней.
-  const col = span('', 'display:inline-flex;flex-direction:column-reverse;align-items:center;margin:0 0.4em;')
-  col.append(span(arrow, 'line-height:1;font-size:17px;'), span(cond, 'font-size:11px;font-weight:600;line-height:1;color:#ffe3a3;margin-bottom:1px;'))
+  // Стрелка — в строке (на базовой линии), условие — над ней по центру (место сверху даёт padding-top
+  // стиля 'equation', чтобы раскладка подписей учитывала его высоту).
+  const col = span(arrow, 'position:relative;display:inline-block;margin:0 0.45em;font-size:17px;line-height:1;')
+  col.append(span(cond, 'position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:1px;font-size:11px;font-weight:600;line-height:1;color:#ffe3a3;white-space:nowrap;'))
   el.replaceChildren(span(left), col, span(right))
 }
 
