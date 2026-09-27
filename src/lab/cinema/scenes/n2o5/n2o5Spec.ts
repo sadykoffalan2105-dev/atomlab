@@ -81,8 +81,8 @@ const half = rad(HOH / 2)
 const WX = OH_W * Math.sin(half)
 const WY = OH_W * Math.cos(half)
 
-const P1: SchoolVec3 = [-235, -10, 0]
-const P2: SchoolVec3 = [235, -10, 0]
+const P1: SchoolVec3 = [-255, -10, 0]
+const P2: SchoolVec3 = [255, -10, 0]
 const N2O5_PLACE: SchoolVec3 = [0, 50, 0]
 const WATER_PLACE: SchoolVec3 = [0, -262, 0]
 const WATER_COORDS: Record<string, SchoolVec3> = { O6: [0, WY / 2, 0], H1: [-WX, -WY / 2, 0], H2: [WX, -WY / 2, 0] }
