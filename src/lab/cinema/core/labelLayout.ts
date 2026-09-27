@@ -38,9 +38,9 @@ export function createLabelLayoutBuffers(n: number): LabelLayoutBuffers {
 }
 
 /** Средняя ширина глифа и высота строки по стилю подписи, px (шрифты CinemaDomLabels). */
-const GLYPH_W: Record<string, number> = { atom: 9.6, species: 8.2, ox: 7.4, delta: 8.4, token: 8.0 }
-const LINE_H: Record<string, number> = { atom: 18, species: 17, ox: 19, delta: 17, token: 15 }
-const PAD_W: Record<string, number> = { atom: 2, species: 4, ox: 14, delta: 4, token: 4 }
+const GLYPH_W: Record<string, number> = { atom: 9.6, atomDark: 9.6, species: 8.2, ox: 7.4, delta: 8.4, token: 8.0 }
+const LINE_H: Record<string, number> = { atom: 18, atomDark: 18, species: 17, ox: 19, delta: 17, token: 15 }
+const PAD_W: Record<string, number> = { atom: 2, atomDark: 2, species: 4, ox: 14, delta: 4, token: 4 }
 
 /** Оценка размера подписи в px (без чтения DOM). */
 export function estimateLabelSize(kind: string, text: string, scale: number, out: { w: number; h: number }): void {

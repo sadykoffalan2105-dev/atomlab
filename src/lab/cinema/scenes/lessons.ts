@@ -9,6 +9,7 @@ import { FES_STEP_IDS } from './fes/fesSteps'
 import { getFesMechanismText } from './fes/fesMechanismText'
 import { H2O_STEP_IDS } from './h2o/h2oSteps'
 import { getH2oMechanismText } from './h2o/h2oMechanismText'
+import type { SchoolLessonText } from './school/schoolSpec'
 import { HCL_STEP_IDS } from './hcl/hclSteps'
 import { getHclMechanismText } from './hcl/hclMechanismText'
 import { MGO_STEP_IDS } from './mgo/mgoSteps'
@@ -43,6 +44,10 @@ export type LessonMechanismText = {
     water?: string
     orbitalPhase?: string
     vibration?: string
+    /** школьные сцены (scenes/school): общая пара, неподелённая пара, неспаренный электрон */
+    sharedPair?: string
+    lonePair?: string
+    unpaired?: string
   }
   safety: string
   energy: { title: string; axisG?: string }
@@ -55,7 +60,25 @@ export type CinemaLesson = {
   safetyStepId: string
   /** есть ли у урока сценарий озвучки преподавателя (LabTeacherNarrator) */
   narrated: boolean
+  /** Школьная сцена образования молекулы (scenes/school): без энергетики — как NaCl. */
+  school?: boolean
   getText: (locale: LessonLocale) => LessonMechanismText
+}
+
+/** Текст школьной сцены (SchoolLessonText) → вид, который читает панель урока. */
+export function schoolLessonText(text: SchoolLessonText): LessonMechanismText {
+  return {
+    intro: text.intro,
+    steps: text.steps,
+    legend: {
+      electron: text.legend.electron,
+      sharedPair: text.legend.sharedPair,
+      lonePair: text.legend.lonePair,
+      unpaired: text.legend.unpaired || undefined,
+    },
+    safety: text.safety,
+    energy: { title: '' },
+  }
 }
 
 const LESSONS: Record<string, CinemaLesson> = {
@@ -90,9 +113,11 @@ const LESSONS: Record<string, CinemaLesson> = {
   h2o: {
     id: 'h2o',
     stepIds: H2O_STEP_IDS,
-    safetyStepId: 'spark',
+    // Гремучая смесь: предупреждение — на шаге поджига.
+    safetyStepId: 'breaking',
     narrated: false,
-    getText: (locale) => getH2oMechanismText(locale),
+    school: true,
+    getText: (locale) => schoolLessonText(getH2oMechanismText(locale)),
   },
   nh3: {
     id: 'nh3',

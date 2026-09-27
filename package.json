@@ -76,7 +76,7 @@
     "test:mgo-cinema": "tsx scripts/test-mgo-cinema.mts",
     "test:fes-cinema": "tsx scripts/test-fes-cinema.mts",
     "test:hcl-cinema": "tsx scripts/test-hcl-cinema.mts",
-    "test:h2o-cinema": "tsx scripts/test-h2o-cinema.mts",
+    "test:school-scene": "tsx scripts/test-school-scene.mts",
     "test:zncl2-cinema": "tsx scripts/test-zncl2-cinema.mts",
     "test:cao-cinema": "tsx scripts/test-cao-cinema.mts",
     "test:chem-data": "tsx scripts/test-chem-data.mts",
