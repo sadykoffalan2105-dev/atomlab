@@ -93,6 +93,8 @@ export class SchoolReactionScene {
   private disposed = false
   private viewportH = 800
   private viewportFov = 46
+  /** Плотность пикселей рендерера (0 — не задана: облака берут devicePixelRatio окна). */
+  private viewportDpr = 0
 
   private readonly stage = new THREE.Group()
   private readonly lights: SchoolLightRig
@@ -342,9 +344,16 @@ export class SchoolReactionScene {
     this.hostBackground = color
   }
 
-  setViewport(heightPx: number, fovDeg: number): void {
+  /**
+   * Размер вида: высота (CSS px), угол обзора и — необязательно — плотность пикселей рендерера.
+   * Лаборатория рисует холст с пониженной плотностью (на телефоне с DPR 2 — 1), а облака внешнего слоя
+   * по умолчанию считают размер точек по devicePixelRatio окна: без поправки точки облака вдвое крупнее
+   * и сливаются в пересвеченное пятно, пряча электроны.
+   */
+  setViewport(heightPx: number, fovDeg: number, pixelRatio?: number): void {
     if (heightPx > 1) this.viewportH = heightPx
     if (fovDeg > 1) this.viewportFov = fovDeg
+    if (pixelRatio && pixelRatio > 0) this.viewportDpr = pixelRatio
   }
 
   async warmup(renderer: THREE.WebGLRenderer, camera: THREE.Camera, targetScene?: THREE.Scene): Promise<void> {
@@ -603,7 +612,8 @@ export class SchoolReactionScene {
       this.insideVis[li] = this.insideVis[li]! + (target - this.insideVis[li]!) * blend
       this.labels[li]!.opacity = s.labelOpacity[li]! * this.insideVis[li]!
     }
-    this.clouds.frame(this.visual, px)
+    const windowDpr = typeof window !== 'undefined' ? Math.min(2, window.devicePixelRatio || 1) : 1
+    this.clouds.frame(this.visual, this.viewportDpr > 0 ? (px * this.viewportDpr) / windowDpr : px)
   }
 }
 

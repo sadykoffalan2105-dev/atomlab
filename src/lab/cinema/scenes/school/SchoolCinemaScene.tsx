@@ -79,7 +79,7 @@ const _target = new THREE.Vector3()
 type Controls = { target?: THREE.Vector3 } | null
 
 /** Кадрирование root: центр композиции — в середину свободной области, габарит шага вписан в неё. */
-function frameRoot(rt: Runtime, cam: THREE.PerspectiveCamera, controls: Controls, canvas: HTMLCanvasElement, w: number, h: number, dt: number): void {
+function frameRoot(rt: Runtime, cam: THREE.PerspectiveCamera, controls: Controls, canvas: HTMLCanvasElement, w: number, h: number, dt: number, dpr: number): void {
   const safe = rt.safe
   if (safe.counter++ % SAFE_AREA_EVERY === 0) {
     if (safe.ready) measureSafeAreaAfterPaint(safe, canvas)
@@ -117,7 +117,7 @@ function frameRoot(rt: Runtime, cam: THREE.PerspectiveCamera, controls: Controls
   // целиком — каждая молекула поворачивается вокруг своего центра (schoolModel), и размеры честные.
   root.quaternion.copy(cam.quaternion)
   root.scale.setScalar(rt.scale)
-  rt.scene.setViewport(h, cam.fov)
+  rt.scene.setViewport(h, cam.fov, dpr)
 }
 
 const STATUS: Record<SchoolStatus, Clo2StepStatus | null> = {
@@ -230,7 +230,7 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
     if (!rt) return
     const cam = state.camera as THREE.PerspectiveCamera
     const controls = state.controls as unknown as Controls
-    frameRoot(rt, cam, controls, state.gl.domElement, state.size.width, state.size.height, dt)
+    frameRoot(rt, cam, controls, state.gl.domElement, state.size.width, state.size.height, dt, state.gl.getPixelRatio())
     rt.scene.update(dt, cam)
     cinemaPlayhead.t = rt.scene.time
     cinemaPlayhead.runId = runId
