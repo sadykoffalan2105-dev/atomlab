@@ -53,22 +53,26 @@ function isHexagonal(c: CrystalDatum): boolean {
   return c.setting === 'hexagonal' || c.latticeType === 'ГПУ' || (c.latticeType === 'гексагональная' && c.cellPm.c != null)
 }
 
-/** Ячейка «как на рисунке в учебнике»: все узлы внутри и на гранях/рёбрах/вершинах, связи — ближайшие соседи. Å. */
+/**
+ * Ячейка «как на рисунке в учебнике»: все узлы внутри и на гранях/рёбрах/вершинах, связи — ближайшие соседи. Å.
+ * Гексагональные решётки (ГПУ, графит) — блок 2×2×1 ячейки: в одной ячейке ГПУ всего два атома.
+ */
 function cellModel(c: CrystalDatum): { atoms: SimpleModelAtom[]; bonds: { a: number; b: number }[] } {
   const a = c.cellPm.a / 100
   const b = (c.cellPm.b ?? c.cellPm.a) / 100
   const cc = (c.cellPm.c ?? c.cellPm.a) / 100
   const hex = isHexagonal(c)
+  const nx = hex ? 2 : 1
   const el = c.formula.replace(/[₀-₉]/g, '')
   const eps = 1e-6
   const seen = new Set<string>()
   const atoms: SimpleModelAtom[] = []
   for (const f of basisFor(c)) {
-    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (let k = -1; k <= 1; k++) {
+    for (let i = -1; i <= nx; i++) for (let j = -1; j <= nx; j++) for (let k = -1; k <= 1; k++) {
       const x = f[0] + i
       const y = f[1] + j
       const z = f[2] + k
-      if (x < -eps || y < -eps || z < -eps || x > 1 + eps || y > 1 + eps || z > 1 + eps) continue
+      if (x < -eps || y < -eps || z < -eps || x > nx + eps || y > nx + eps || z > 1 + eps) continue
       const key = `${x.toFixed(4)},${y.toFixed(4)},${z.toFixed(4)}`
       if (seen.has(key)) continue
       seen.add(key)
