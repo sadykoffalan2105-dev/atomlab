@@ -1,8 +1,10 @@
 /**
- * Каталог: ровно 200 неорганических веществ — и ничего при этом не сломалось.
+ * Каталог: каждое вещество учебников видно — и ничего при этом не сломалось.
+ * (Имя файла историческое: раньше здесь проверялось правило «ровно 200 видимых неорганических», его больше нет.)
  *
  * Проверяет:
- *  1) видимых неорганических веществ ровно 200 (compoundById × isCatalogVisibleId);
+ *  1) каждое вещество из реакций книг 7–11 есть в каталоге своего класса — scripts/test-catalog-textbook-substances.mts;
+ *     скрыты только CATALOG_HIDDEN_IDS; рейтинг школьной значимости (catalogRank.json) покрывает всю неорганику;
  *  2) органика не пострадала — скрыта только та, что в CATALOG_HIDDEN_IDS;
  *  3) продукты всех сцен анимации и все вещества рецептов реактора видимы;
  *  4) обязательное ядро школьного курса (H₂O, HCl, H₂SO₄, NaOH …) видимо;
@@ -22,9 +24,8 @@ import path from 'node:path'
 import { compoundById } from '../src/data/compounds.ts'
 import { labCompoundById } from '../src/data/labSpecies.ts'
 import {
-  CATALOG_DEMOTED_IDS,
   CATALOG_HIDDEN_IDS,
-  CATALOG_TOP_INORGANIC_IDS,
+  CATALOG_INORGANIC_RANK,
   isCatalogVisibleId,
 } from '../src/data/textbook/catalogWhitelist.ts'
 import { SCHOOL_REACTION_BANK } from '../src/chemistry/schoolReactionBank.ts'
@@ -36,7 +37,6 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..')
 const TB = path.join(ROOT, 'src', 'data', 'textbook')
 const GRADES = [7, 8, 9, 10, 11] as const
-const TARGET = 200
 const SKIP_SUITES = process.argv.includes('--skip-suites')
 /** Запускаем соседние проверки напрямую через node + tsx (без npx и без shell). */
 const TSX_CLI = path.join(ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs')
@@ -46,24 +46,22 @@ const check = (cond: boolean, msg: string) => {
   if (!cond) problems.push(msg)
 }
 
-// ── 1. ровно 200 видимых неорганических ─────────────────────────────────────
+// ── 1. каждое вещество книг видно в каталоге своего класса ────────────────────
 const allInorganic = Object.values(compoundById)
 const visible = allInorganic.filter((c) => isCatalogVisibleId(c.id))
-check(
-  visible.length === TARGET,
-  `видимых неорганических ${visible.length}, ожидалось ${TARGET}`,
-)
-check(
-  CATALOG_TOP_INORGANIC_IDS.size === TARGET,
-  `CATALOG_TOP_INORGANIC_IDS = ${CATALOG_TOP_INORGANIC_IDS.size}, ожидалось ${TARGET}`,
-)
-for (const id of CATALOG_TOP_INORGANIC_IDS) {
-  check(Boolean(compoundById[id]), `в списке 200 есть неизвестный id ${id}`)
-  check(isCatalogVisibleId(id), `id ${id} из списка 200 не виден`)
+for (const c of allInorganic) {
+  check(isCatalogVisibleId(c.id) || CATALOG_HIDDEN_IDS.has(c.id), `${c.id} скрыт не через CATALOG_HIDDEN_IDS`)
 }
-for (const id of CATALOG_DEMOTED_IDS) {
-  check(Boolean(compoundById[id]), `в списке скрытых есть неизвестный id ${id}`)
-  check(!CATALOG_TOP_INORGANIC_IDS.has(id), `id ${id} одновременно в 200 и в скрытых`)
+const rankSet = new Set(CATALOG_INORGANIC_RANK)
+for (const c of visible) check(rankSet.has(c.id), `${c.id} (${c.formulaUnicode}) нет в рейтинге — запустите npm run catalog:rank -- --write`)
+for (const id of rankSet) check(Boolean(compoundById[id]), `в рейтинге неизвестный id ${id}`)
+try {
+  execFileSync(process.execPath, [TSX_CLI, 'scripts/test-catalog-textbook-substances.mts'], { cwd: ROOT, stdio: 'pipe' })
+  console.log('  ✓ test-catalog-textbook-substances')
+} catch (e) {
+  const err = e as { stdout?: Buffer; stderr?: Buffer }
+  const tail = `${err.stdout?.toString() ?? ''}${err.stderr?.toString() ?? ''}`.trim().split('\n').slice(-12).join('\n')
+  problems.push(`вещества книг в каталоге:\n${tail}`)
 }
 
 const byCategory = new Map<string, number>()
@@ -173,9 +171,10 @@ for (const rx of SCHOOL_REACTION_BANK) {
 check(bankOk > 0, 'банк реакций перестал резолвиться целиком')
 
 // ── 7. скрытое остаётся в данных ─────────────────────────────────────────────
-for (const id of CATALOG_DEMOTED_IDS) {
+for (const id of CATALOG_HIDDEN_IDS) {
   const c = compoundById[id]
-  check(Boolean(c?.formulaUnicode), `скрытое вещество ${id} исчезло из данных — так нельзя`)
+  if (!c) continue // скрытая органика живёт в своём реестре
+  check(Boolean(c.formulaUnicode), `скрытое вещество ${id} исчезло из данных — так нельзя`)
 }
 
 // ── 8. сторонние проверки ────────────────────────────────────────────────────
@@ -210,5 +209,5 @@ if (problems.length > 0) {
   for (const p of problems) console.error(`  ✗ ${p}`)
   process.exit(1)
 }
-assert.equal(visible.length, TARGET)
-console.log('\nverify-catalog-200: каталог = ровно 200 неорганических веществ, лаборатория и учебник целы')
+assert.ok(visible.length > 0)
+console.log('\nverify-catalog-200: каждое вещество учебников видно в каталоге, лаборатория и учебник целы')

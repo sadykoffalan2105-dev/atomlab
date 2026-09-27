@@ -2,7 +2,7 @@
  * АВТОГЕНЕРАЦИЯ — не редактировать вручную.
  * Пересборка: npx tsx scripts/build-compound-grade-map.mts
  * Источники: сверка учебников Kimyo 7–11 (evidence + TEXTBOOK_EXTRA_GRADES), schoolInorganicManifest, правила ФГОС.
- * Статистика: 7 кл.=176, 8 кл.=277, 9 кл.=306, 10 кл.=93, 11 кл.=180, всего=480; органика=49
+ * Статистика: 7 кл.=178, 8 кл.=277, 9 кл.=307, 10 кл.=94, 11 кл.=180, всего=480; органика=62
  */
 import type { InorganicSchoolGrade } from './compoundGradeIndex'
 
@@ -795,7 +795,8 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     "grades": [
       7,
       8,
-      9
+      9,
+      10
     ],
     "chapter": "соли",
     "firstPage": 143
@@ -1517,7 +1518,8 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "salt_pb_cl": {
     "grades": [
-      8
+      8,
+      9
     ],
     "chapter": "соли",
     "firstPage": 117
@@ -2531,6 +2533,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "tb_rboh": {
     "grades": [
+      7,
       8,
       9
     ],
@@ -2647,6 +2650,7 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
   },
   "tb_cf4": {
     "grades": [
+      7,
       9,
       10
     ],
@@ -3936,13 +3940,15 @@ export const COMPOUND_GRADE_MAP: Readonly<Record<string, CompoundGradeEntry>> = 
     "grades": [
       9
     ],
-    "chapter": "соли"
+    "chapter": "соли",
+    "firstPage": 36
   },
   "tb_khso3": {
     "grades": [
       9
     ],
-    "chapter": "соли"
+    "chapter": "соли",
+    "firstPage": 36
   }
 } as const
 
@@ -3998,7 +4004,8 @@ export const ORGANIC_GRADE_MAP: Readonly<Record<string, OrganicGradeEntry>> = {
     "grades": [
       7,
       9,
-      10
+      10,
+      11
     ],
     "firstPage": 54
   },
@@ -4293,5 +4300,96 @@ export const ORGANIC_GRADE_MAP: Readonly<Record<string, OrganicGradeEntry>> = {
       10
     ],
     "firstPage": 67
+  },
+  "ethylbenzene": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 82
+  },
+  "1-phenylethane-1-2-diol": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 83
+  },
+  "cumene": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 101
+  },
+  "ethyl-benzoate": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 102
+  },
+  "ethyl-pent-2-enoate": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 112
+  },
+  "ethylene-glycol-monoacetate": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 119
+  },
+  "2-4-6-tribromophenol": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 125
+  },
+  "salicyl-alcohol": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 126
+  },
+  "dihydroxydiphenylmethane": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 126
+  },
+  "tristearin": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 142
+  },
+  "triolein": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 153
+  },
+  "tripalmitin": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 155
+  },
+  "sorbitol": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 159
   }
 } as const
