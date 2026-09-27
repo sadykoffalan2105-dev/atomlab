@@ -168,6 +168,9 @@ function checkSpec(spec: SchoolSceneSpec, opts: { texts?: boolean } = {}): { a: 
     let first = true
     for (let t = 0; t <= m.finish.to + 1e-9; t += 1 / 60) {
       sampleSchoolState(m, t, st)
+      if (t < step.pairs.from || t >= step.molecule.from) {
+        st.flashAmount.forEach((x) => assert.equal(x, 0, `${tag} вспышка пары вне шага pairs (t = ${t.toFixed(2)})`))
+      }
       if (t < step.atoms.from) {
         st.elAlpha.forEach((x) => assert.equal(x, 0, `${tag} электрон виден до шага atoms (t = ${t.toFixed(2)})`))
         assert.equal(st.cloudAmount, 0)

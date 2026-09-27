@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import * as GSAP from 'gsap'
 import { cpkHex, pmToScene } from '../kit/cpkAtoms'
 import { localizeLabelText, type SceneLocale } from '../kit/sceneKit'
-import { createElectronClouds, type ElectronCloudView } from '../kit/electronClouds'
+import { createElectronClouds, ringFlashTexture, type ElectronCloudView } from '../kit/electronClouds'
 import { naclHaloTexture, naclSphereGeometry, NACL_RIM, withNaclRim } from '../nacl/naclLatticeView'
 import type { ElementSymbol } from '../../../../chemistry/data/atomicData'
 import {
@@ -108,6 +108,9 @@ export class SchoolReactionScene {
   private readonly halos: THREE.Sprite[] = []
   private readonly haloMats: THREE.SpriteMaterial[] = []
   private readonly clouds: ElectronCloudView
+  /** Кольца-вспышки образования общих пар. */
+  private readonly rings: THREE.Sprite[] = []
+  private readonly ringMats: THREE.SpriteMaterial[] = []
   /** Видимость символов внутри шаров (плавно). */
   private readonly insideVis: Float32Array
   /** Экранные круги атомов: x, y, глубина, радиус (проективные единицы). */
@@ -198,6 +201,18 @@ export class SchoolReactionScene {
     // Облако — фон для точек-электронов: приглушено, чтобы считаемые электроны читались поверх.
     this.clouds.material.uniforms.uOpacity!.value = 0.36
     this.stage.add(this.clouds.points)
+
+    // ——— кольца-вспышки: пара встала между ядрами ———
+    const ringTex = ringFlashTexture()
+    for (let k = 0; k < m.a.formed.length; k++) {
+      const rm = new THREE.SpriteMaterial({ map: ringTex, color: ELECTRON_COLOR, blending: THREE.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, fog: false })
+      const ring = new THREE.Sprite(rm)
+      ring.visible = false
+      ring.renderOrder = 12
+      this.rings.push(ring)
+      this.ringMats.push(rm)
+      this.stage.add(ring)
+    }
 
     // ——— подписи ———
     this.labels = m.labels.map((l) => ({ id: l.id, kind: l.kind, pos: new THREE.Vector3(), opacity: 0, text: this.localize(l.text[this.locale]) }))
@@ -364,6 +379,7 @@ export class SchoolReactionScene {
     this.electronMat.dispose()
     this.electrons.dispose()
     for (const m of this.haloMats) m.dispose()
+    for (const m of this.ringMats) m.dispose()
     this.clouds.dispose()
     if (!this.ownLights) {
       this.lights.ambient.intensity = 0
@@ -510,6 +526,17 @@ export class SchoolReactionScene {
       this.haloMats[k]!.opacity = a * (0.35 + 0.55 * g)
     }
     this.electrons.instanceMatrix.needsUpdate = true
+
+    // ——— вспышки образования пар ———
+    for (let k = 0; k < this.rings.length; k++) {
+      const amt = s.flashAmount[k]!
+      const ring = this.rings[k]!
+      ring.visible = amt > 0.01
+      if (!ring.visible) continue
+      ring.position.set(s.flashPos[k * 3]! * K, s.flashPos[k * 3 + 1]! * K, s.flashPos[k * 3 + 2]! * K)
+      ring.scale.setScalar(s.flashSize[k]! * K)
+      this.ringMats[k]!.opacity = 0.9 * amt
+    }
 
     // ——— облака ———
     for (let i = 0; i < n; i++) {

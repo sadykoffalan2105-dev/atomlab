@@ -91,6 +91,8 @@ export type SchoolModel = {
   readonly loose: V3[]
   /** Место (центр) молекулы продукта, в которую входит атом, пм: вокруг него молекула поворачивается. */
   readonly pPlace: V3[]
+  /** Место каждой образуемой пары (для вспышки в её центре). */
+  readonly formedPlace: ElectronPlace[]
   readonly sticks: SchoolStick[]
   readonly labels: SchoolLabelDef[]
   readonly fillR: number[]
@@ -125,6 +127,10 @@ export type SchoolState = {
   /** Поворот КАЖДОЙ молекулы продукта вокруг своего центра (шаги molecule, result): рыскание и наклон. */
   molYaw: number
   molPitch: number
+  /** Вспышка-кольцо в момент, когда общая пара встала между ядрами: позиция (пм), размер (пм), яркость. */
+  flashPos: Float32Array
+  flashSize: Float32Array
+  flashAmount: Float32Array
 }
 
 export function schoolSmooth(a: number, b: number, t: number): number {
@@ -341,6 +347,7 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     movePairs,
     loose,
     pPlace,
+    formedPlace: a.formed.map((fp) => ({ kind: 'bond', bond: fp.pBond, pair: fp.pair, slot: 0 }) as const),
     sticks,
     labels,
     fillR: fill(a.R),
@@ -377,6 +384,9 @@ export function createSchoolState(m: SchoolModel): SchoolState {
     pitch: 0,
     molYaw: 0,
     molPitch: 0,
+    flashPos: new Float32Array(m.a.formed.length * 3),
+    flashSize: new Float32Array(m.a.formed.length),
+    flashAmount: new Float32Array(m.a.formed.length),
   }
 }
 
@@ -567,6 +577,22 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
     }
     s.elAlpha[k] = alpha * s.fade
     s.elGlow[k] = glow
+  }
+
+  // ——— вспышка образования пары: кольцо расходится от середины пары, когда оба электрона на месте ———
+  for (let k = 0; k < a.formed.length; k++) {
+    const w = m.formWin[k]!
+    const x = (t - (w.t1 - 0.25)) / 0.8
+    if (x <= 0 || x >= 1 || t >= step.molecule.from) {
+      s.flashAmount[k] = 0
+      continue
+    }
+    placePos(m, a.P, m.formedPlace[k]!, s.atomPos, 0, _p)
+    s.flashPos[k * 3] = _p[0]!
+    s.flashPos[k * 3 + 1] = _p[1]!
+    s.flashPos[k * 3 + 2] = _p[2]!
+    s.flashSize[k] = 18 + 46 * x
+    s.flashAmount[k] = Math.sin(Math.PI * Math.min(1, x * 1.6)) * (1 - x) * s.fade
   }
 
   // ——— штрихи ———
