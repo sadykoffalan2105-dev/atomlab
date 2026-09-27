@@ -101,6 +101,8 @@ import {
 } from '../src/lab/cinema/scenes/nacl/naclEnergetics.ts'
 import { getNaclMechanismText, type NaclLocale, type NaclMechanismText } from '../src/lab/cinema/scenes/nacl/naclMechanismText.ts'
 import { naclScientificWatchdogMs } from '../src/lab/scientificSynthesis/naclScenarioTiming.ts'
+import { NACL_SPEC } from '../src/lab/cinema/scenes/school/specs/nacl.ts'
+import { isTextbookRef, type SchoolSource } from '../src/lab/cinema/scenes/school/specs/types.ts'
 
 const LOCALES: NaclLocale[] = ['ru', 'en', 'uz']
 const state = createNaclState()
@@ -815,6 +817,21 @@ ok('справочный разброс U охватывает значение 
 }
 
 const isCount = (n: Num) => n.dec === 0 && n.v <= 12
+/** Страницы учебников из научной спецификации NaCl (specs/nacl.ts): на них можно ссылаться в note (с. 70, с. 142). */
+const BOOK_PAGES: number[] = (() => {
+  const out = new Set<number>()
+  const add = (src?: SchoolSource) => {
+    if (src && isTextbookRef(src)) for (const pg of src.pages) out.add(pg)
+  }
+  NACL_SPEC.reaction.sources.forEach(add)
+  for (const c of NACL_SPEC.caveats) {
+    add(c.source)
+    add(c.evidence)
+  }
+  for (const o of [...NACL_SPEC.observations, ...NACL_SPEC.uses]) add(o.source)
+  for (const st of NACL_SPEC.steps) st.sources?.forEach(add)
+  return [...out]
+})()
 
 const fields = (t: NaclMechanismText): Record<string, string> => {
   const out: Record<string, string> = {}
@@ -845,7 +862,8 @@ for (const locale of LOCALES) {
   for (const [key, s] of Object.entries(f)) {
     for (const n of numbers(s)) {
       if (isCount(n)) continue
-      ok(`[${locale}] ${key}: число ${n.raw.trim()} есть в ядре`, CORE_VALUES.some((v) => matches(n, v)), s.slice(0, 80))
+      const page = key.endsWith('.note') && n.dec === 0 && BOOK_PAGES.includes(n.v)
+      ok(`[${locale}] ${key}: число ${n.raw.trim()} есть в ядре (или страница учебника в note)`, page || CORE_VALUES.some((v) => matches(n, v)), s.slice(0, 80))
     }
     numbersByField[locale][key] = numbers(s)
       .map((n) => n.v)
