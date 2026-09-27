@@ -1377,7 +1377,9 @@ const labReasonCounts = new Map<string, number>()
 /** Species of the reaction for the organic lab match: the concrete example (labExample) of a scheme, else itself. */
 function labProbe(r: InvReaction): InvReaction {
   if (!r.labExample) return r
-  const [l, p] = r.labExample.split(/\s*(?:→|->|=|⇌|<=>)\s*/)
+  // «=» — стрелка только без настоящей стрелки: в «CH2=C=CH2 + 4O2 → …» это двойная связь
+  const arrow = /→|->|⇌|<=>/.test(r.labExample) ? /\s*(?:→|->|⇌|<=>)\s*/ : /\s*=\s*/
+  const [l, p] = r.labExample.split(arrow)
   if (!l || !p) return r
   const side = (t: string): InvSpecies[] =>
     t.split(/\s+\+\s+/).map((x) => {
