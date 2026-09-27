@@ -353,7 +353,8 @@ for (const spec of specs) {
   for (const e of m.forms) {
     const b = bondOf(e.particle, e.a, e.b)
     ok(`${P} образуется ${e.particle} ${e.a}–${e.b}: связь продукта`, byId.get(e.particle)?.role === 'product' && Boolean(b))
-    ok(`${P} ${e.particle} ${e.a}–${e.b}: донорно-акцепторная ↔ how`, (e.how === 'dative') === Boolean(b?.dative))
+    ok(`${P} ${e.particle} ${e.a}–${e.b}: донорно-акцепторная ↔ how`, (e.how !== 'shared-pair') === Boolean(b?.dative))
+    if (b?.dative) ok(`${P} ${e.particle} ${e.a}–${e.b}: «только д-а» ↔ одна пара`, (e.how === 'dative') === (b.pairs === 1))
   }
   for (const e of m.kept ?? []) ok(`${P} сохраняется ${e.particle} ${e.a}–${e.b}`, Boolean(bondOf(e.particle, e.a, e.b)))
   for (const p of spec.particles) {
@@ -402,7 +403,7 @@ for (const spec of specs) {
     if (d != null) allowed.push(d)
   }
   if (r.conditions.temperatureC != null) allowed.push(r.conditions.temperatureC)
-  for (const t of refsOf(spec)) allowed.push(...t.pages, t.grade)
+  for (const t of refsOf(spec)) allowed.push(...t.pages, t.grade, ...numbers(t.section).map((n) => n.v))
   for (const s of spec.steps) {
     for (const loc of SCHOOL_LOCALES) {
       const tx = s.text[loc]

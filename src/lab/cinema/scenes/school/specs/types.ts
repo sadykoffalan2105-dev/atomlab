@@ -165,7 +165,11 @@ export type BondSpec = {
 export type AtomInParticle = {
   readonly id: string
   readonly element: ElementSymbol
-  /** Формальный заряд (молекула) или заряд иона (кристалл). 0 — не пишем. */
+  /**
+   * Формальный заряд (молекула) или заряд иона (кристалл). 0 — не пишем. Формальные заряды молекул
+   * (C⁻≡O⁺, N≡N⁺–O⁻) в 7 классе НЕ рисуются — это данные для проверки и для пояснений старших классов;
+   * заряды ионов (Na⁺, Cl⁻) рисуются.
+   */
   readonly charge?: number
 }
 
@@ -226,7 +230,10 @@ export type SchoolMechanism = {
   /** Связи исходных частиц, которые рвутся. */
   readonly breaks: readonly BondEvent[]
   /** Связи итоговых частиц, которые образуются (частица — продукт). */
-  readonly forms: readonly (BondEvent & { readonly how: 'shared-pair' | 'dative' | 'electron-transfer' })[]
+  readonly forms: readonly (BondEvent & {
+    /** shared-pair — пары из неспаренных электронов обоих; dative — только донорно-акцепторная; shared+dative — обе (C≡O) */
+    readonly how: 'shared-pair' | 'dative' | 'shared+dative'
+  })[]
   /** Связи, которые переходят в продукт без разрыва (SO₂ → SO₃, NO → NO₂). */
   readonly kept?: readonly BondEvent[]
   /** Ионная связь: переход электронов (сколько от каждого атома). */
