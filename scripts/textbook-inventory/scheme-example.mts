@@ -65,10 +65,20 @@ export function resolveExample(example: string): { text: string; res: ReactorLin
   return fail!
 }
 
-/** Ссылка в реактор на пример схемы; null — примера нет или реактор его пока не собирает (вещества нет в реакторе). */
-export function exampleLab(example: string | null | undefined, src: string): ExampleLab | null {
+/**
+ * Ссылка в реактор на пример схемы; null — примера нет или реактор его пока не собирает (вещества нет в реакторе).
+ * conditions — условия карточки над стрелкой («электролиз раствора»), если переживают разбор реактора (как у labFor).
+ */
+export function exampleLab(example: string | null | undefined, src: string, conditions?: string | null): ExampleLab | null {
   const ex = example?.trim()
   if (!ex) return null
   const { text, res } = resolveExample(ex)
-  return res.ok ? { ok: true, href: reactorHrefForEquation(text, { src }), example: exampleDisplay(ex) } : null
+  if (!res.ok) return null
+  const cond = conditions?.trim()
+  if (cond && cond.length <= 30 && !/[()]/.test(cond)) {
+    const withCond = text.replace(/ (->|<=>) /, (_m, a: string) => ` ${a}(${cond}) `)
+    const rc = resolveReactorEquation({ equation: withCond })
+    if (rc.ok && rc.conditions === cond) return { ok: true, href: reactorHrefForEquation(withCond, { src }), example: exampleDisplay(ex) }
+  }
+  return { ok: true, href: reactorHrefForEquation(text, { src }), example: exampleDisplay(ex) }
 }

@@ -230,7 +230,9 @@ for (const grade of [7, 8, 9, 10, 11]) {
       if (res.ok !== r.lab.ok) problems.push(`${label}: lab.ok ${r.lab.ok}, а реактор по примеру — ${res.ok} (перегенерируйте книгу)`)
       if (r.lab.ok) {
         const p = parseReactorLinkParams(new URLSearchParams((r.lab.href ?? '').split('?')[1] ?? ''))
-        if (p?.spec.equation !== text) problems.push(`${label}: ссылка ведёт не на пример (${p?.spec.equation})`)
+        // условия над стрелкой («->(электролиз раствора)») — от карточки, вещества — от примера
+        const linked = p?.spec.equation?.replace(/(->|<=>)\([^)]*\)/, '$1')
+        if (linked !== text) problems.push(`${label}: ссылка ведёт не на пример (${p?.spec.equation})`)
         opened.push(`${label}  ⇒  ${ex}`)
       } else {
         const formulas = (res.ok ? [] : ((res.details as { formulas?: string[] }).formulas ?? [])).join(', ')

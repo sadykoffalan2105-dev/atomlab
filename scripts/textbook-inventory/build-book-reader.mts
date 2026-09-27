@@ -1589,7 +1589,9 @@ function withSchemeExample(grade: Grade, unitId: string, pageStart: number | nul
   const example = r.labExample?.trim()
   if (lab.ok || !example) return lab
   if (r.isGeneralScheme !== true && !isGeneralFormula(r.ascii)) return lab
-  const byExample = exampleLabFor(example, readerUnitHref(`g${grade}`, unitId, { rx: rx.id, page: pageStart }))
+  // условия схемы до «;» («электролиз раствора; активные металлы») — над стрелкой примера
+  const cond = cleanConditions(r.conditions)?.split(';')[0]?.trim() ?? null
+  const byExample = exampleLabFor(example, readerUnitHref(`g${grade}`, unitId, { rx: rx.id, page: pageStart }), cond)
   if (!byExample) return { ...lab, example: exampleDisplay(example) }
   return lab.altHref ? { ...byExample, altHref: lab.altHref } : byExample
 }
