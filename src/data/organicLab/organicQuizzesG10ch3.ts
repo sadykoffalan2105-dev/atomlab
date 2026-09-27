@@ -11,8 +11,11 @@ function o(id: string, correct: boolean, label: Tri): NomenclatureOption {
   return { id, labelRu: label[0], labelEn: label[1], labelUz: label[2], correct }
 }
 
+/** Варианты сдвигаются по кругу на число, зависящее от id вопроса, — верный ответ не стоит всегда на одном месте. */
 function q(id: string, prompt: Tri, formula: string | undefined, options: readonly NomenclatureOption[]): NomenclatureQuestion {
-  return { id, promptRu: prompt[0], promptEn: prompt[1], promptUz: prompt[2], formula, options }
+  const k = [...id].reduce((s, ch) => s + ch.charCodeAt(0), 0) % options.length
+  const rotated = [...options.slice(k), ...options.slice(0, k)].map((op, i) => ({ ...op, id: 'abcdefgh'[i]! }))
+  return { id, promptRu: prompt[0], promptEn: prompt[1], promptUz: prompt[2], formula, options: rotated }
 }
 
 const same = (s: string): Tri => [s, s, s]
