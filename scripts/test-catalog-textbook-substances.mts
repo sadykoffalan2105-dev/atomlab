@@ -15,7 +15,6 @@ import { compoundById } from '../src/data/compounds.ts'
 import { inorganicGradesForId, organicGradesForMolecule } from '../src/data/curriculum/compoundGradeIndex.ts'
 import { ORGANIC_MOLECULES } from '../src/data/organicLab/organicMoleculeRegistry.ts'
 import { isCatalogVisibleId } from '../src/data/textbook/catalogWhitelist.ts'
-import { BOOK_SIMPLE_SUBSTANCES, simpleSubstanceModel } from '../src/data/catalog/simpleSubstances.ts'
 import { getElementBySymbol } from '../src/data/elements.ts'
 import { ATOMIC_NOTATION_ALIAS, collectBookSpecies, compositionKey, formulaCounts } from './plan/bookSpecies.mts'
 
@@ -38,7 +37,6 @@ for (const m of ORGANIC_MOLECULES) {
   if (f && compositionKey(f) !== k && isCatalogVisibleId(m.id)) problems.push(`органика ${m.id}: формула ${m.formula} ≠ составу графа ${k}`)
 }
 const orgById = new Map(ORGANIC_MOLECULES.map((m) => [m.id, m]))
-const simpleBySymbol = new Map(BOOK_SIMPLE_SUBSTANCES.map((s) => [s.symbol, s]))
 
 const stats = { total: 0, inorganic: 0, organic: 0, simple: 0, atomic: 0 }
 const rows: string[] = []
@@ -50,7 +48,9 @@ for (const sp of collectBookSpecies().values()) {
   const inorg = inorgByKey.get(key) ?? []
   const org = orgByKey.get(key) ?? []
   const els = Object.keys(sp.counts)
-  const simple = els.length === 1 && sp.counts[els[0]!] === 1 && key === sp.key ? simpleBySymbol.get(els[0]!) : undefined
+  // Простые вещества (Zn, Fe, S …) в каталог веществ не входят по решению владельца (27.09.2026): их карточки —
+  // элементы таблицы Менделеева. Проверяем только, что элемент там есть.
+  const simple = els.length === 1 && sp.counts[els[0]!] === 1 && key === sp.key ? els[0]! : undefined
   if (inorg.length) {
     stats.inorganic++
     const vis = inorg.filter(isCatalogVisibleId)
@@ -70,11 +70,8 @@ for (const sp of collectBookSpecies().values()) {
     rows.push(`org    ${sp.formula.padEnd(22)} ${org.join(',')}  g${grades.join(',')}`)
   } else if (simple) {
     stats.simple++
-    for (const g of grades) if (!simple.grades.includes(g as 7)) problems.push(`простое вещество ${simple.symbol}: нет ${g} класса`)
-    if (!getElementBySymbol(simple.symbol)) problems.push(`простое вещество ${simple.symbol}: нет элемента в таблице`)
-    const model = simpleSubstanceModel(simple.symbol)
-    if (!model.atoms.length) problems.push(`простое вещество ${simple.symbol}: нет модели`)
-    rows.push(`simple ${sp.formula.padEnd(22)} ${model.kind}${model.crystalId ? `:${model.crystalId}` : ''}  g${grades.join(',')}`)
+    if (!getElementBySymbol(simple)) problems.push(`простое вещество ${simple}: нет элемента в таблице Менделеева`)
+    rows.push(`simple ${sp.formula.padEnd(22)} → таблица Менделеева  g${grades.join(',')}`)
   } else {
     problems.push(`${sp.formula} (g${grades.join(',')}): нет в каталоге`)
   }
@@ -82,7 +79,7 @@ for (const sp of collectBookSpecies().values()) {
 
 if (LIST) for (const r of rows) console.log(r)
 console.log(
-  `веществ в реакциях книг: ${stats.total} — неорганика ${stats.inorganic}, органика ${stats.organic}, простые ${stats.simple} (атомарные обозначения ${stats.atomic})`,
+  `веществ в реакциях книг: ${stats.total} — неорганика ${stats.inorganic}, органика ${stats.organic}, простые ${stats.simple} — в таблице Менделеева, не в каталоге (атомарные обозначения ${stats.atomic})`,
 )
 if (problems.length) {
   console.error(`\n${problems.length} проблем(ы):`)

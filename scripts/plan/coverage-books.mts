@@ -9,7 +9,6 @@ import { compoundById } from '../../src/data/compounds'
 import { inorganicGradesForId, organicGradesForMolecule } from '../../src/data/curriculum/compoundGradeIndex'
 import { isCatalogVisibleId } from '../../src/data/textbook/catalogWhitelist'
 import { ORGANIC_MOLECULES } from '../../src/data/organicLab/organicMoleculeRegistry'
-import { BOOK_SIMPLE_SUBSTANCES } from '../../src/data/catalog/simpleSubstances'
 import { ATOMIC_NOTATION_ALIAS, BOOK_GRADES, collectBookSpecies, compositionKey, readBook } from './bookSpecies.mts'
 
 const LIST = process.argv.includes('--list')
@@ -27,7 +26,6 @@ for (const m of ORGANIC_MOLECULES) {
   const k = compositionKey(c)
   orgByKey.set(k, [...(orgByKey.get(k) ?? []), m])
 }
-const simpleBySymbol = new Map(BOOK_SIMPLE_SUBSTANCES.map((s) => [s.symbol, s]))
 
 // ── реакции ──
 const report: Record<string, unknown> = {}
@@ -48,7 +46,8 @@ for (const sp of collectBookSpecies().values()) {
   const inorg = inorgByKey.get(key) ?? []
   const org = orgByKey.get(key) ?? []
   const els = Object.keys(sp.counts)
-  const simple = els.length === 1 && sp.counts[els[0]!] === 1 && key === sp.key ? simpleBySymbol.get(els[0]!) : undefined
+  // простые вещества — в таблице Менделеева, в каталог веществ не входят (решение владельца, 27.09.2026)
+  const simple = els.length === 1 && sp.counts[els[0]!] === 1 && key === sp.key ? els[0]! : undefined
   let status: string
   let ids: string[] = []
   if (inorg.length) {
@@ -68,8 +67,8 @@ for (const sp of collectBookSpecies().values()) {
         ? 'organic-visible'
         : 'organic-wrong-grade'
   } else if (simple) {
-    ids = [simple.symbol]
-    status = grades.every((g) => simple.grades.includes(g as 7)) ? 'simple-substance-card' : 'simple-wrong-grade'
+    ids = [simple]
+    status = 'simple-periodic-table'
   } else status = els.length === 1 ? 'simple-no-card' : 'missing'
   rows.push({ formula: sp.formula, grades, status, ids })
 }

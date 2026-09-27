@@ -659,11 +659,6 @@
     box-shadow var(--lt-dur) var(--lt-ease);
 }
 
-/* Карточка-ссылка (простое вещество → таблица Менделеева) */
-.cardLink {
-  text-decoration: none;
-}
-
 .card:hover {
   transform: translateY(-4px);
   border-color: color-mix(in srgb, var(--tone-a) 58%, transparent);

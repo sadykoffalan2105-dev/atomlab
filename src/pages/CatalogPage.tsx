@@ -39,16 +39,7 @@ import {
   type InorganicChapter,
   type SchoolGrade,
 } from '../data/curriculum/compoundGradeIndex'
-import {
-  BOOK_SIMPLE_SUBSTANCES,
-  simpleSubstanceCrystal,
-  simpleSubstanceFirstPage,
-  simpleSubstanceModel,
-  type SimpleSubstance,
-} from '../data/catalog/simpleSubstances'
 import { compoundById } from '../data/compounds'
-import { elementDisplayName } from '../data/elementDisplayName'
-import { getElementBySymbol } from '../data/elements'
 import { ORGANIC_MOLECULES as ALL_ORGANIC_MOLECULES, organicMoleculeById } from '../data/organicLab/organicMoleculeRegistry'
 import type { OrganicMoleculeDef } from '../data/organicLab/organicMoleculeTypes'
 import { ORGANIC_CLASS_LABELS, type OrganicClassId } from '../data/researchLab/organicBuildCatalog'
@@ -65,7 +56,6 @@ import {
 import { compoundSearchBlob, getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import type { MessageKey } from '../i18n/useT'
 import { useT } from '../i18n/useT'
-import type { AppLocale } from '../i18n/types'
 import type { CompoundCategory, CompoundDef } from '../types/chemistry'
 import styles from './CatalogPage.module.css'
 
@@ -303,95 +293,6 @@ const SubstanceCard = memo(function SubstanceCard({
         </span>
       </span>
     </button>
-  )
-})
-
-// —— Простые вещества (металлы, C, Si, P, S …) из реакций учебника ——
-
-const SIMPLE_TONE = { metal: ['#fbbf24', '#f97316'], nonmetal: ['#a78bfa', '#6366f1'] } as const
-
-function isMetalElement(symbol: string): boolean {
-  const g = getElementBySymbol(symbol)?.groupBlock ?? ''
-  return /metal/i.test(g) && !/nonmetal|metalloid/i.test(g)
-}
-
-const LATTICE_KEY: Readonly<Record<string, MessageKey>> = {
-  'ОЦК': 'catalog.simple.lattice.bcc',
-  'ГЦК': 'catalog.simple.lattice.fcc',
-  'ГПУ': 'catalog.simple.lattice.hcp',
-  'гексагональная': 'catalog.simple.lattice.hex',
-  'алмазоподобная': 'catalog.simple.lattice.diamond',
-}
-
-const simpleThumbCache = new Map<string, { atoms: ThumbAtom[]; bonds: ThumbBond[] }>()
-
-function simpleThumb(symbol: string) {
-  let v = simpleThumbCache.get(symbol)
-  if (!v) {
-    const m = simpleSubstanceModel(symbol)
-    v = { atoms: m.atoms.map((a) => ({ el: a.el, pos: a.pos })), bonds: m.bonds.map((b) => ({ ...b })) }
-    simpleThumbCache.set(symbol, v)
-  }
-  return v
-}
-
-function simpleDescription(s: SimpleSubstance, t: ReturnType<typeof useT>['t'], locale: AppLocale): string {
-  const crystal = simpleSubstanceCrystal(s.symbol)
-  if (crystal) {
-    const key = LATTICE_KEY[crystal.latticeType]
-    const lattice = key ? t(key) : crystal.latticeType
-    if (isMetalElement(s.symbol)) return t('catalog.simple.metalLattice', { lattice })
-    const structure = t(s.symbol === 'C' ? 'catalog.simple.structure.graphite' : 'catalog.simple.structure.si')
-    return t('catalog.simple.atomicLattice', { lattice, structure })
-  }
-  const model = simpleSubstanceModel(s.symbol)
-  const mol = model.moleculeId ? compoundById[model.moleculeId] : undefined
-  if (mol) {
-    return t('catalog.simple.molecule', { formula: mol.formulaUnicode, name: getCompoundLocaleStrings(mol, locale, t).name })
-  }
-  return t('catalog.simple.atom', { symbol: s.symbol })
-}
-
-/** Карточка простого вещества: решётка / молекула / атом; ссылка — элемент в таблице Менделеева. */
-const SimpleSubstanceCard = memo(function SimpleSubstanceCard({ s }: { s: SimpleSubstance }) {
-  const { locale, t } = useT()
-  const el = getElementBySymbol(s.symbol)
-  const name = el ? capitalize(elementDisplayName(el, locale)) : s.symbol
-  const tone = isMetalElement(s.symbol) ? SIMPLE_TONE.metal : SIMPLE_TONE.nonmetal
-  const thumb = simpleThumb(s.symbol)
-  const label = t('catalog.simple.openPeriodic', { name, symbol: s.symbol })
-  return (
-    <Link
-      to={`/periodic?el=${encodeURIComponent(s.symbol)}`}
-      className={`${styles.card} ${styles.cardLink}`}
-      style={toneStyle(tone[0], tone[1])}
-      aria-label={label}
-      title={label}
-    >
-      <span className={styles.visual}>
-        <span className={styles.catPill}>{t('catalog.simple.pill')}</span>
-        <span className={styles.gradePill}>
-          {formatGradeRange(s.grades)} {t('catalog.gradeShort')}
-        </span>
-        <MoleculeThumb className={styles.thumb} atoms={thumb.atoms} bonds={thumb.bonds} />
-      </span>
-      <span className={styles.body}>
-        <span className={styles.formula}>{s.symbol}</span>
-        <span className={styles.name}>{name}</span>
-        <span className={styles.desc}>{simpleDescription(s, t, locale)}</span>
-      </span>
-      <span className={styles.foot}>
-        <ElementChips symbols={[s.symbol]} />
-        {el ? (
-          <span className={styles.mass}>
-            {formatMolarMass(el.atomicMass, locale)} <small>{t('catalog.molarMassUnit')}</small>
-          </span>
-        ) : null}
-        <span className={styles.go} aria-hidden>
-          →
-        </span>
-      </span>
-    </Link>
   )
 })
 
@@ -815,40 +716,12 @@ export function CatalogPage() {
     [inorganicByChapter, q, searchBlob],
   )
 
-  /** Простые вещества: поиск по символу и названию, тема «металлы» / «неметаллы». */
-  const simpleSearched = useMemo(() => {
-    const qq = q.trim().toLowerCase()
-    return BOOK_SIMPLE_SUBSTANCES.filter((s) => {
-      if (inorganicChapter !== 'all') {
-        if (inorganicChapter !== 'металлы' && inorganicChapter !== 'неметаллы') return false
-        if ((inorganicChapter === 'металлы') !== isMetalElement(s.symbol)) return false
-      }
-      if (!qq) return true
-      const el = getElementBySymbol(s.symbol)
-      const names = el ? `${el.nameRu} ${elementDisplayName(el, 'en')} ${elementDisplayName(el, 'uz')}` : ''
-      return s.symbol.toLowerCase() === qq || names.toLowerCase().includes(qq)
-    })
-  }, [q, inorganicChapter])
-
   const inorganicGradeCounts = useMemo(() => {
-    const m: Partial<Record<SchoolGrade | 'all', number>> = { all: inorganicSearched.length + simpleSearched.length }
+    const m: Partial<Record<SchoolGrade | 'all', number>> = { all: inorganicSearched.length }
     for (const g of SCHOOL_GRADES) m[g] = 0
     for (const c of inorganicSearched) for (const g of inorganicGradesForId(c.id)) m[g] = (m[g] ?? 0) + 1
-    for (const s of simpleSearched) for (const g of s.grades) m[g] = (m[g] ?? 0) + 1
     return m
-  }, [inorganicSearched, simpleSearched])
-
-  const simpleShown = useMemo(() => {
-    if (category !== 'all') return []
-    const list = simpleSearched.filter((s) => grade === 'all' || s.grades.includes(grade))
-    // «Все»: сначала младший класс, внутри — страница учебника; в классе — страница этого класса
-    return [...list].sort(
-      (a, b) =>
-        (grade === 'all' ? a.grades[0]! - b.grades[0]! : 0) ||
-        (simpleSubstanceFirstPage(a, grade) ?? 999) - (simpleSubstanceFirstPage(b, grade) ?? 999) ||
-        a.z - b.z,
-    )
-  }, [simpleSearched, grade, category])
+  }, [inorganicSearched])
 
   const searched = useMemo(
     () => filterInorganicCompoundsByGrade(inorganicSearched, grade),
@@ -1021,16 +894,12 @@ export function CatalogPage() {
     setReactionType('all')
   }, [tab])
 
-  const shownCount = isOrganic
-    ? organicFiltered.length
-    : isReactions
-      ? filteredRows
-      : filtered.length + simpleShown.length
+  const shownCount = isOrganic ? organicFiltered.length : isReactions ? filteredRows : filtered.length
   const totalCount = isOrganic
     ? ORGANIC_MOLECULES.length
     : isReactions
       ? (currentGradeStats?.total ?? 0)
-      : list.length + BOOK_SIMPLE_SUBSTANCES.length
+      : list.length
 
   const empty = (
     <div className={styles.empty}>
@@ -1046,7 +915,7 @@ export function CatalogPage() {
   const stats = [
     {
       id: 'substances',
-      value: String(list.length + BOOK_SIMPLE_SUBSTANCES.length),
+      value: String(list.length),
       label: t('catalog.statSubstances'),
       active: tab === 'inorganic',
       tone: ['#38bdf8', '#6366f1'],
@@ -1364,30 +1233,8 @@ export function CatalogPage() {
               </>
             )}
           </section>
-        ) : filtered.length > 0 || simpleShown.length > 0 ? (
-          <>
-          {simpleShown.length > 0 ? (
-            <section className={styles.section} style={toneStyle(SIMPLE_TONE.metal[0], SIMPLE_TONE.nonmetal[0])}>
-              <header className={styles.sectionHead}>
-                <span className={styles.sectionGlyph} aria-hidden>
-                  E
-                </span>
-                <div className={styles.sectionText}>
-                  <h2 className={styles.sectionTitle}>{t('catalog.simple.sectionTitle')}</h2>
-                  <p className={styles.sectionLead}>{t('catalog.simple.sectionLead')}</p>
-                </div>
-                <span className={styles.sectionCount}>{simpleShown.length}</span>
-              </header>
-              <ul className={styles.grid}>
-                {simpleShown.map((s) => (
-                  <li key={s.symbol} className={styles.item}>
-                    <SimpleSubstanceCard s={s} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-          {COMPOUND_CATEGORY_ORDER.map((cat) => {
+        ) : filtered.length > 0 ? (
+          COMPOUND_CATEGORY_ORDER.map((cat) => {
             const items = byCategory.get(cat) ?? []
             if (items.length === 0) return null
             const tone = CATEGORY_TONE[cat]
@@ -1412,8 +1259,7 @@ export function CatalogPage() {
                 </ul>
               </section>
             )
-          })}
-          </>
+          })
         ) : (
           empty
         )}
