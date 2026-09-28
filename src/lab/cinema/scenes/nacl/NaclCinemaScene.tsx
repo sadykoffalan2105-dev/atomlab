@@ -165,7 +165,8 @@ function frameRoot(rt: Runtime, cam: THREE.PerspectiveCamera, controls: Controls
   naclExtentAt(rt.scene.time, _extent)
   // Портретный кадр (телефон): решётка и пары у краёв, перспектива повёрнутой решётки выносит ближние
   // углы за габарит, подписи окружения «6 Na⁺» ложились на ионы — поле кадра шире.
-  const fill = right - left < bottom - top ? FILL_PORTRAIT : FILL
+  // Портрет — по холсту (у телефона свободная область над листом урока бывает «альбомной»).
+  const fill = w < h ? FILL_PORTRAIT : FILL
   const s = fill * Math.min((right - left) / pxPerUnit / _extent.w, (bottom - top) / pxPerUnit / _extent.h)
   // Габарит несимметричен (полоса итога — только под решёткой): в центр свободной области ставим
   // ЦЕНТР КОМПОЗИЦИИ, а не цель кадра, иначе сверху остаётся пустая полоса в размер полосы подписей.

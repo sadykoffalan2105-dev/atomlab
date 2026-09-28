@@ -300,12 +300,15 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
   })
   // Свободное место у точки (x, y) на шагах reactants / atoms (позиции реагентов): расстояние до
   // ближайшего облака, кроме своих атомов; по x — с поправкой на ширину подписи (она шире, чем выше).
+  /** Места уже поставленных подписей реагентов (схемы слоёв, формулы): новая подпись их обходит. */
+  const placed: [number, number][] = []
   const roomAt = (x: number, y: number, skip: (j: number) => boolean) => {
     let best = Infinity
     a.R.pos.forEach((p, j) => {
       if (skip(j)) return
       best = Math.min(best, Math.hypot((p[0] - x) / 2.4, p[1] - y) - cloudR[j]!)
     })
+    for (const q of placed) best = Math.min(best, Math.hypot((q[0] - x) / 2.4, q[1] - y) - 22)
     return best
   }
   const layerLift = (i: number) => cloudR[i]! * 1.55 + 16
@@ -324,6 +327,8 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
         if (room > pick.room + 1e-6) pick = { atom: j, side, room }
       }
     })
+    const pp = a.R.pos[pick.atom]!
+    placed.push([pp[0], pp[1] + pick.side * layerLift(pick.atom)])
     labels.push({
       id: `layers-${x.element}`,
       kind: 'measure',
@@ -347,6 +352,7 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     }
     const below = roomAt(xc, y0 - 26, (j) => own.has(j)) + 8
     const above = roomAt(xc, y1 + 26, (j) => own.has(j))
+    placed.push([xc, below >= above ? y0 - 26 : y1 + 26])
     labels.push({ id: `molR-${m.id}`, kind: 'species', text: all(`${m.formula} ({${m.state}})`), anchor: { kind: 'molR', mol: k, side: below >= above ? -1 : 1 }, from: 0.3, to: step.breaking.from + 0.7 })
   })
   spec.products.forEach((m, k) => {

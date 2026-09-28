@@ -91,6 +91,20 @@ function avoidObstacles(b: LabelLayoutBuffers, n: number, i: number, gap: number
   }
 }
 
+/** Задела бы подпись i с центром на высоте y шар-препятствие. */
+function hitsObstacle(b: LabelLayoutBuffers, n: number, i: number, y: number): boolean {
+  const hw = b.w[i]! * 0.5
+  const hh = b.h[i]! * 0.5
+  for (let j = 0; j < n; j++) {
+    const r = b.r[j]!
+    if (b.on[j] !== 2 || !(r > 0)) continue
+    const gx = Math.max(0, Math.abs(b.x[i]! - b.x[j]!) - hw)
+    const gy = Math.max(0, Math.abs(y - b.y[j]!) - hh)
+    if (gx * gx + gy * gy < r * r) return true
+  }
+  return false
+}
+
 /**
  * Раскладка: зажим в rect (если задан) → вертикальный разнос пересекающихся
  * подписей (сверху вниз, нижняя сдвигается под верхнюю с зазором gap) → если
@@ -112,16 +126,27 @@ export function layoutLabels(b: LabelLayoutBuffers, n: number, rect: LabelRect |
     b.order[k] = i
   }
   for (let a = 0; a < m; a++) avoidObstacles(b, n, b.order[a]!, gap)
-  for (let a = 0; a < m; a++) {
-    const j = b.order[a]!
+  // Разнос: нижняя уступает верхней. Если после разноса подпись легла на шар, она обходит его — но не
+  // ценой нового наложения на подписи выше (подпись на подписи хуже, чем подпись у края шара).
+  const below = (a: number, j: number) => {
     for (let c = 0; c < a; c++) {
       const i = b.order[c]!
       const dx = Math.abs(b.x[i]! - b.x[j]!) * 2
       if (dx >= b.w[i]! + b.w[j]!) continue
       const need = (b.h[i]! + b.h[j]!) * 0.5 + gap
-      if (b.y[j]! - b.y[i]! < need) b.y[j] = b.y[i]! + need
+      if (Math.abs(b.y[j]! - b.y[i]!) >= need) continue
+      // Под верхней подписью — если там не шар; иначе над ней (подпись угла под заголовком итога
+      // ложилась на атом O).
+      const down = b.y[i]! + need
+      const up = b.y[i]! - need
+      b.y[j] = hitsObstacle(b, n, j, down) && !hitsObstacle(b, n, j, up) ? up : down
     }
+  }
+  for (let a = 0; a < m; a++) {
+    const j = b.order[a]!
+    below(a, j)
     avoidObstacles(b, n, j, gap)
+    below(a, j)
   }
   if (!rect) return
   for (let a = 0; a < m; a++) {
