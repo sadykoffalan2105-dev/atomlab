@@ -577,11 +577,11 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
    * Свободный путь иона в растворе: ключи + зигзаг на шаге «встреча» + дрожь; к посадке — плавный
    * переход в позу узла кристалла (s = 0 → 1 на [land0, land]).
    */
-  const makeFree = (keys: Key[], w: Wobble, zigAmp: number, zigAxis: V3) => {
+  const makeFree = (keys: Key[], w: Wobble, zigAmp: number, zigAxis: V3, half = 3) => {
     const tmp: V3 = [0, 0, 0]
     return (t: number, out: V3) => {
       keyed(keys, t, out)
-      const z = zig(t, S.meet.from, T.meet1, zigAmp, 3)
+      const z = zig(t, S.meet.from, T.meet1, zigAmp, half)
       out[0] += z * zigAxis[0]
       out[1] += z * zigAxis[1]
       out[2] += z * zigAxis[2]
@@ -674,7 +674,8 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   const pyr = pyramidLocal(core.h3oOH, core.h3oHOH)
   for (let k = 0; k < 2; k++) {
     const w = wob()
-    const free = makeFree(specKeys(spec.start.anions[k]!, spec.mixed.anions[k]!, spec.spectators.anions[k]!, spec.result.anions[k]!), w, k ? -70 : 70, [0, 1, 0])
+    // верхний проходит поверху, нижний — понизу: мимо встречающейся пары Ba²⁺ и SO₄²⁻
+    const free = makeFree(specKeys(spec.start.anions[k]!, spec.mixed.anions[k]!, spec.spectators.anions[k]!, spec.result.anions[k]!), w, k ? -170 : 150, [0, 1, 0], 1)
     anions.push(addBody({ id: `Cl${k + 1}`, kind: 'anion', formula: 'Cl⁻', charge: -1 }, [{ el: 'Cl', local: [0, 0, 0], radiusPm: core.cl, symbol: microLabelWin }], [], false))
     pose.push((t, p, q) => {
       free(t, p)
@@ -684,7 +685,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   }
   for (let k = 0; k < 2; k++) {
     const w = makeWobble(r, 11, 0.16)
-    const free = makeFree(specKeys(spec.start.protons[k]!, spec.mixed.protons[k]!, spec.spectators.protons[k]!, spec.result.protons[k]!), w, k ? 70 : -70, [0, 1, 0])
+    const free = makeFree(specKeys(spec.start.protons[k]!, spec.mixed.protons[k]!, spec.spectators.protons[k]!, spec.result.protons[k]!), w, k ? -170 : 150, [0, 1, 0], 1)
     protons.push(
       addBody(
         { id: `H3O${k + 1}`, kind: 'proton', formula: 'H₃O⁺', charge: 1 },
@@ -915,8 +916,9 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   const eqL10n = (s: string): L10n => ({ ru: s, en: s, uz: s })
   const chargeText = (s: string) => eqL10n(s)
   const Lcharge = {
-    cation: addLabel({ id: 'q-Ba', kind: 'species', text: chargeText('Ba²⁺'), from: T.micro1 - 0.2, to: finish.to }),
-    group: addLabel({ id: 'q-SO4', kind: 'species', text: chargeText('[SO₄]²⁻'), from: T.micro1 - 0.2, to: finish.to }),
+    // в кристалле заряды пары бледнее, на итоге не подписываются (у соседей по решётке их тоже нет)
+    cation: addLabel({ id: 'q-Ba', kind: 'species', text: chargeText('Ba²⁺'), from: T.micro1 - 0.2, to: S.nucleus.to }),
+    group: addLabel({ id: 'q-SO4', kind: 'species', text: chargeText('[SO₄]²⁻'), from: T.micro1 - 0.2, to: S.nucleus.to }),
     anions: anions.map((_, k) => addLabel({ id: `q-Cl${k}`, kind: 'species', text: chargeText('Cl⁻'), from: T.micro1 - 0.2, to: finish.to })),
     protons: protons.map((_, k) => addLabel({ id: `q-H3O${k}`, kind: 'species', text: chargeText('H₃O⁺'), from: T.micro1 - 0.2, to: finish.to })),
   }
@@ -1058,8 +1060,9 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   out.fade = 1 - smooth(m.finish.from, m.finish.to, t)
 
   // ——— макро ↔ микро ———
-  const macroA = Math.max(1 - smooth(T.micro0, T.micro0 + 0.9, t), Math.min(smooth(T.microOut0, T.microOut1, t), 1 - smooth(T.micro2, T.micro2 + 0.8, t)))
-  const microA = Math.max(Math.min(smooth(T.micro0 + 0.2, T.micro1, t), 1 - smooth(T.microOut0, T.microOut1, t)), smooth(T.micro2 + 0.2, T.micro3, t))
+  // «лупа»: сначала гаснет один слой, почти сразу проявляется другой (перекрытие ≈ 0,1 с)
+  const macroA = Math.max(1 - smooth(T.micro0, T.micro0 + 0.6, t), Math.min(smooth(T.microOut0 + 0.3, T.microOut1 + 0.2, t), 1 - smooth(T.micro2, T.micro2 + 0.6, t)))
+  const microA = Math.max(Math.min(smooth(T.micro0 + 0.5, T.micro1, t), 1 - smooth(T.microOut0, T.microOut0 + 0.4, t)), smooth(T.micro2 + 0.5, T.micro3, t))
   out.macroAlpha = macroA * out.fade
   out.microAlpha = microA * out.fade
   out.macroScale = 1 + 0.9 * (1 - macroA)
@@ -1182,9 +1185,9 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   const ma = out.macroAlpha
   setLabel(L.tubeA, out.tubeA.x, out.tubeA.y - 90, 0, windowAlpha(m.labels[L.tubeA]!.from, m.labels[L.tubeA]!.to, t) * ma)
   setLabel(L.tubeB, 210, -H / 2 - 90, 0, windowAlpha(m.labels[L.tubeB]!.from, m.labels[L.tubeB]!.to, t) * ma)
-  setLabel(L.precip, out.tubeA.x + m.tube.r + 400, out.tubeA.y + sedTop * 0.6, 0, windowAlpha(m.labels[L.precip]!.from, m.labels[L.precip]!.to, t) * ma)
-  setLabel(L.acid, out.tubeA.x + m.tube.r + 470, out.tubeA.y + out.tubeA.level * H * 0.62, 0, windowAlpha(m.labels[L.acid]!.from, m.labels[L.acid]!.to, t) * ma)
-  setLabel(L.nitric, out.tubeA.x, out.tubeA.y + H + 110, 0, windowAlpha(m.labels[L.nitric]!.from, m.labels[L.nitric]!.to, t) * ma)
+  setLabel(L.precip, out.tubeA.x + m.tube.r + 300, out.tubeA.y + sedTop * 0.6, 0, windowAlpha(m.labels[L.precip]!.from, m.labels[L.precip]!.to, t) * ma)
+  setLabel(L.acid, out.tubeA.x + m.tube.r + 380, out.tubeA.y + out.tubeA.level * H * 0.62, 0, windowAlpha(m.labels[L.acid]!.from, m.labels[L.acid]!.to, t) * ma)
+  setLabel(L.nitric, out.tubeA.x, out.tubeA.y + H + 230, 0, windowAlpha(m.labels[L.nitric]!.from, m.labels[L.nitric]!.to, t) * ma)
   // подписи микро-кадра
   k = out.microScale
   const mi = out.microAlpha
@@ -1195,8 +1198,8 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   setLabel(L.neighbors, out.crystal.c[0], cBottom - 150, 0, windowAlpha(m.labels[L.neighbors]!.from, m.labels[L.neighbors]!.to, t) * mi)
   // уравнение шага есть в панели урока — в 3D его не дублируем
   setLabel(L.stepEq, out.crystal.c[0], cBottom - 300, 0, 0)
-  setLabel(L.equation, 150, -700, 0, windowAlpha(m.labels[L.equation]!.from, m.labels[L.equation]!.to, t) * mi)
-  setLabel(L.ionic, 150, -860, 0, windowAlpha(m.labels[L.ionic]!.from, m.labels[L.ionic]!.to, t) * mi)
+  setLabel(L.equation, 150, -680, 0, windowAlpha(m.labels[L.equation]!.from, m.labels[L.equation]!.to, t) * mi)
+  setLabel(L.ionic, 150, -920, 0, windowAlpha(m.labels[L.ionic]!.from, m.labels[L.ionic]!.to, t) * mi)
   return out
 }
 
