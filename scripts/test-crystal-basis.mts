@@ -121,7 +121,7 @@ section('1. Обязательные базисы присутствуют')
 
 const REQUIRED = [
   'nacl', 'mgo', 'na_metal', 'mg_metal', 'graphite',
-  'si', 'quartz', 'litharge', 'massicot', 'pb_metal', 'al_metal', 'corundum', 'ice', 'dry_ice',
+  'si', 'quartz', 'litharge', 'massicot', 'pb_metal', 'al_metal', 'corundum', 'ice', 'dry_ice', 'barite',
 ] as const
 for (const id of REQUIRED) {
   const c = CRYSTAL_DATA[id]
@@ -329,6 +329,9 @@ const CN_SPEC: ReadonlyArray<readonly [string, ElementSymbol, ElementSymbol, num
   ['ice', 'O', 'O', 290, 'O (по O)'],
   ['dry_ice', 'C', 'O', 130, 'C (по O)'],
   ['dry_ice', 'C', 'C', 420, 'CO₂ (соседних молекул)'],
+  // барит (Hill 1977): 12 O вокруг Ba на 276.6…331.5 пм, следующий — 402.4; S–O внутри SO₄²⁻
+  ['barite', 'Ba', 'O', 340, 'Ba²⁺ (по O)'],
+  ['barite', 'S', 'O', 200, 'S (по O)'],
 ]
 for (const [id, A, B, cutoff, key] of CN_SPEC) {
   const c = CRYSTAL_DATA[id]

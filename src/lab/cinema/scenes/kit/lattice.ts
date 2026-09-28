@@ -308,6 +308,78 @@ export function latticeFragment(crystalId: string, cells: Readonly<Vec3>, opts: 
   }
 }
 
+// ─── Фрагмент с многоатомными ионами (SO₄²⁻ барита) ───────────────────────────
+
+/** Многоатомный ион решётки: центр и число ближайших к нему лигандов (SO₄²⁻: S и 4 O). */
+export type LatticeGroupSpec = { readonly center: ElementSymbol; readonly ligand: ElementSymbol; readonly ligands: number }
+
+export type GroupedSite = {
+  el: ElementSymbol
+  charge: number
+  /** пм, система сцены, центр рамки ячеек — в начале координат */
+  posPm: Vec3
+  posScene: Vec3
+  /** 'ion' — простой ион (Ba²⁺), 'center' / 'ligand' — атомы многоатомного иона */
+  role: 'ion' | 'center' | 'ligand'
+  /** индекс центра своей группы в sites (у простого иона −1, у центра — он сам) */
+  group: number
+  basisIndex: number
+}
+
+export type GroupedFragment = {
+  sites: GroupedSite[]
+  /** связи центр–лиганд внутри групп: [центр, лиганд, длина пм] */
+  bonds: LatticeBond[]
+  cellEdges: LatticeSegment[]
+}
+
+/**
+ * Фрагмент из целых ячеек, где многоатомные ионы ЦЕЛЫЕ: узлы простых ионов и центров групп — как в
+ * latticeFragment, а лиганды каждого центра — его ближайшие соседи-лиганды из ПЕРИОДИЧЕСКОЙ решётки
+ * (группа, пересекающая грань ячейки, не обрезается). Лиганды, не попавшие в группы фрагмента, не рисуются.
+ */
+export function latticeGroupedFragment(crystalId: string, cells: Readonly<Vec3>, groups: readonly LatticeGroupSpec[]): GroupedFragment {
+  const cr = requireCrystal(crystalId)
+  const m = cellMatrix(crystalId)
+  const frag = latticeFragment(crystalId, cells, { includeBoundary: false })
+  const mid = fracToPm(m, [cells[0] / 2, cells[1] / 2, cells[2] / 2])
+  const ligandEls = new Set(groups.map((g) => g.ligand))
+  const sites: GroupedSite[] = []
+  const bonds: LatticeBond[] = []
+  const toSceneV = (p: Vec3): Vec3 => [pmToScene(p[0]), pmToScene(p[1]), pmToScene(p[2])]
+  frag.sites.forEach((s, i) => {
+    if (ligandEls.has(s.el)) return
+    const p = frag.posPm[i]!
+    const posPm: Vec3 = [p[0] - mid[0], p[1] - mid[1], p[2] - mid[2]]
+    const g = groups.find((x) => x.center === s.el)
+    const idx = sites.length
+    sites.push({ el: s.el, charge: s.charge, posPm, posScene: toSceneV(posPm), role: g ? 'center' : 'ion', group: g ? idx : -1, basisIndex: s.basisIndex })
+    if (!g) return
+    // ближайшие лиганды центра среди образов ячеек −1…+1
+    const cand: { d: number; pos: Vec3; bi: number; charge: number }[] = []
+    const q: Vec3 = [0, 0, 0]
+    cr.basis.forEach((b, bi) => {
+      if (b.el !== g.ligand) return
+      for (let u = -1; u <= 1; u++) {
+        for (let v = -1; v <= 1; v++) {
+          for (let w = -1; w <= 1; w++) {
+            const cellOf = [Math.floor(s.frac[0] + EPS_FRAC), Math.floor(s.frac[1] + EPS_FRAC), Math.floor(s.frac[2] + EPS_FRAC)]
+            fracToPm(m, [b.frac[0] + cellOf[0]! + u, b.frac[1] + cellOf[1]! + v, b.frac[2] + cellOf[2]! + w], q)
+            const d = dist(p, q)
+            cand.push({ d, pos: [q[0] - mid[0], q[1] - mid[1], q[2] - mid[2]], bi, charge: b.charge ?? 0 })
+          }
+        }
+      }
+    })
+    cand.sort((x, y) => x.d - y.d)
+    for (const c of cand.slice(0, g.ligands)) {
+      bonds.push([idx, sites.length, c.d])
+      sites.push({ el: g.ligand, charge: c.charge, posPm: c.pos, posScene: toSceneV(c.pos), role: 'ligand', group: idx, basisIndex: c.bi })
+    }
+  })
+  return { sites, bonds, cellEdges: cellEdges(crystalId, cells) }
+}
+
 function inRange(f: number, n: number, boundary: boolean): boolean {
   return boundary ? f >= -EPS_FRAC && f <= n + EPS_FRAC : f >= -EPS_FRAC && f < n - EPS_FRAC
 }

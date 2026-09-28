@@ -38,6 +38,19 @@ export type CrystalHeroSpec = {
   readonly phase: 'solid'
   /** ключ FORMATION_ENTHALPY для карточки */
   readonly formationKey: string
+  /**
+   * Многоатомные ионы решётки (SO₄²⁻ барита) — ЦЕЛЫЕ группы: центр и ближайшие к нему лиганды
+   * (из периодической решётки, а не обрезанные границей фрагмента), шары — ковалентные радиусы
+   * (Кордеро, как у молекул), связи внутри группы — палочки; подпись группы — формулой иона.
+   * Простые ионы (Ba²⁺) остаются шарами Шеннона при КЧ из coordination кристалла.
+   */
+  readonly groups?: readonly {
+    readonly center: ElementSymbol
+    readonly ligand: ElementSymbol
+    readonly ligands: number
+    /** подпись группы (формула иона) */
+    readonly label: string
+  }[]
 }
 
 export type MoleculeGeometry =
@@ -89,6 +102,18 @@ export const HERO_STRUCTURES: Readonly<Record<string, HeroSpec>> = {
   sio2: { kind: 'crystal', crystalId: 'quartz', cells: [2, 2, 2], radiusModel: 'covalent', drawBonds: true, phase: 'solid', formationKey: 'SiO2(s)' },
   // Глёт (α-PbO, красный) — устойчивая форма ниже 489 °C; КЧ Pb 4 → радиус Шеннона для КЧ 4
   pbo: { kind: 'crystal', crystalId: 'litharge', cells: [2, 2, 2], radiusModel: 'ionic', drawBonds: false, phase: 'solid', formationKey: 'PbO(litharge)' },
+  // Барит BaSO₄ (Hill 1977): ячейка Z = 4 — четыре Ba²⁺ (шары Шеннона при КЧ 12) и четыре ЦЕЛЫХ тетраэдра SO₄²⁻
+  // (палочки S–O внутри иона). Этим кристаллом кончается школьная сцена BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl (scenes/baso4).
+  salt_ba_so4: {
+    kind: 'crystal',
+    crystalId: 'barite',
+    cells: [1, 1, 1],
+    radiusModel: 'ionic',
+    drawBonds: false,
+    phase: 'solid',
+    formationKey: 'BaSO4(s)',
+    groups: [{ center: 'S', ligand: 'O', ligands: 4, label: 'SO₄²⁻' }],
+  },
 
   // ── молекулярные вещества ──
   // r_0-набор воды: O–H 95.8 пм и ∠ 104.5° — не смешивать с r_e

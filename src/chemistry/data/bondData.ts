@@ -754,6 +754,7 @@ export type ReagentGeometryKey =
   | 'n2o5'
   | 'n2o5Crystal'
   | 'hno3'
+  | 'hydronium'
 
 export type ReagentGeometry = {
   readonly key: ReagentGeometryKey
@@ -927,6 +928,22 @@ export const REAGENT_GEOMETRY: Readonly<Record<ReagentGeometryKey, ReagentGeomet
       '«цис» — кислород на стороне атома H (по координатам CCCBDB у него длина 121.1). Структура получена по ' +
       'вращательным постоянным нескольких изотопологов (близка к r_s). В таблице CCCBDB угол цис-HO–N=O напечатан ' +
       '«115.0883» — это ошибка перевода 115°53′ (= 115.88°): только с ним три угла при азоте дают 360° плоской молекулы.',
+  },
+  // Ион гидроксония H₃O⁺ (газ): Tang & Oka, J. Mol. Spectrosc. 196 (1999) 120 — ИК-спектр, r_0-структура
+  hydronium: {
+    key: 'hydronium',
+    formula: 'H₃O⁺',
+    phase: 'г',
+    lengthType: 'r_0',
+    bondsPm: { 'O–H': 97.4 },
+    anglesDeg: { '∠H–O–H': 113.6 },
+    bondCounts: { 'O–H': 3 },
+    pointGroup: 'C₃v',
+    source: 'Tang & Oka, J. Mol. Spectrosc. 196 (1999) 120 (ИК-спектроскопия, газ; r_0 = 0.974 Å, ∠HOH = 113.6°)',
+    note:
+      'тригональная пирамида, как NH₃ (изоэлектронна ему), но почти плоская: барьер инверсии мал. В воде протон ' +
+      'не бывает «голым» — он всегда на молекуле воды (H₃O⁺ и более крупные гидраты); в кристаллах гидратов ' +
+      'O–H ≈ 96–102 пм. Сцена раствора рисует H₃O⁺ по газовой геометрии и называет это схемой.',
   },
 }
 

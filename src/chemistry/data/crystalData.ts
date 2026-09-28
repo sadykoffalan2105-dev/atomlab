@@ -728,6 +728,62 @@ export const CRYSTAL_DATA: Readonly<Record<string, CrystalDatum>> = {
       'между молекулами только ван-дер-ваальсово притяжение → сублимация при −78.5 °C (1 атм). Рентгеновская ρ при 150 K 1.643; ' +
       'справочные ≈ 1.56 г/см³ при 195 K — насыпной/пористый продукт.',
   },
+  barite: {
+    id: 'barite',
+    formula: 'BaSO₄',
+    nameRu: 'сульфат бария (барит)',
+    structureType: 'барит (ионы Ba²⁺ и тетраэдры SO₄²⁻)',
+    spaceGroup: 'Pnma',
+    spaceGroupNo: 62,
+    latticeType: 'ромбическая',
+    // R. J. Hill, «A further refinement of the barite structure», Can. Mineral. 15 (1977) 522 (COD 9004122,
+    // установка Pnma); Jacobsen et al., Can. Mineral. 36 (1998) 1053 (COD 9004485, Pbnm): 8.879 / 5.454 / 7.154 Å
+    cellPm: { a: 888.42, b: 545.59, c: 715.69 },
+    // кратчайшее расстояние в решётке — S–O1 ВНУТРИ сульфат-иона (145.4); кратчайшее Ba–O — 276.6 пм
+    cationAnionPm: 145.4,
+    // КЧ Ba: 12 атомов O на 276.6…331.5 пм (из 7 разных групп SO₄), следующий O — 402.4 пм
+    coordination: { 'Ba²⁺ (по O)': 12, 'S (по O)': 4 },
+    z: 4,
+    densityGCm3: 4.469,
+    ionic: true,
+    meltingC: 1580,
+    setting: 'orthorhombic',
+    // Hill 1977, Pnma: Ba 4c (0.1845, ¼, 0.1585), S 4c (0.4373, ¾, 0.1913), O1 4c (0.5890, ¾, 0.1066),
+    // O2 4c (0.3183, ¾, 0.0518), O3 8d (0.4204, 0.9700, 0.3116); размножено 8 операциями Pnma того же CIF.
+    // Заряды узлов — ФОРМАЛЬНЫЕ заряды структуры сульфат-иона с четырьмя одинарными S–O (S +2, каждый O −1;
+    // в сумме SO₄²⁻), как её рисует школьная сцена; степени окисления S +6, O −2 — в note.
+    basis: [
+      { el: 'Ba', charge: 2, frac: [0.1845, 0.25, 0.1585], wyckoff: '4c' },
+      { el: 'Ba', charge: 2, frac: [0.8155, 0.75, 0.8415], wyckoff: '4c' },
+      { el: 'Ba', charge: 2, frac: [0.3155, 0.75, 0.6585], wyckoff: '4c' },
+      { el: 'Ba', charge: 2, frac: [0.6845, 0.25, 0.3415], wyckoff: '4c' },
+      { el: 'S', charge: 2, frac: [0.4373, 0.75, 0.1913], wyckoff: '4c' },
+      { el: 'S', charge: 2, frac: [0.5627, 0.25, 0.8087], wyckoff: '4c' },
+      { el: 'S', charge: 2, frac: [0.0627, 0.25, 0.6913], wyckoff: '4c' },
+      { el: 'S', charge: 2, frac: [0.9373, 0.75, 0.3087], wyckoff: '4c' },
+      { el: 'O', charge: -1, frac: [0.589, 0.75, 0.1066], wyckoff: '4c' },
+      { el: 'O', charge: -1, frac: [0.411, 0.25, 0.8934], wyckoff: '4c' },
+      { el: 'O', charge: -1, frac: [0.911, 0.25, 0.6066], wyckoff: '4c' },
+      { el: 'O', charge: -1, frac: [0.089, 0.75, 0.3934], wyckoff: '4c' },
+      { el: 'O', charge: -1, frac: [0.3183, 0.75, 0.0518], wyckoff: '4c' },
+      { el: 'O', charge: -1, frac: [0.6817, 0.25, 0.9482], wyckoff: '4c' },
+      { el: 'O', charge: -1, frac: [0.1817, 0.25, 0.5518], wyckoff: '4c' },
+      { el: 'O', charge: -1, frac: [0.8183, 0.75, 0.4482], wyckoff: '4c' },
+      { el: 'O', charge: -1, frac: [0.4204, 0.97, 0.3116], wyckoff: '8d' },
+      { el: 'O', charge: -1, frac: [0.4204, 0.53, 0.3116], wyckoff: '8d' },
+      { el: 'O', charge: -1, frac: [0.5796, 0.47, 0.6884], wyckoff: '8d' },
+      { el: 'O', charge: -1, frac: [0.0796, 0.47, 0.8116], wyckoff: '8d' },
+      { el: 'O', charge: -1, frac: [0.9204, 0.53, 0.1884], wyckoff: '8d' },
+      { el: 'O', charge: -1, frac: [0.9204, 0.97, 0.1884], wyckoff: '8d' },
+      { el: 'O', charge: -1, frac: [0.0796, 0.03, 0.8116], wyckoff: '8d' },
+      { el: 'O', charge: -1, frac: [0.5796, 0.03, 0.6884], wyckoff: '8d' },
+    ],
+    note:
+      'ионный кристалл из Ba²⁺ и жёстких тетраэдров SO₄²⁻: отдельных молекул BaSO₄ нет. S–O 145.4…148.5 пм (среднее 147.5), ' +
+      '∠O–S–O 107.9…112.4°; каждый Ba²⁺ касается 12 атомов O семи разных групп SO₄ (Ba–O 276.6…331.5 пм). Степени окисления ' +
+      'Ba +2, S +6, O −2; заряды в basis — формальные заряды структуры с четырьмя одинарными S–O. Рентгеновская ρ 4.469 г/см³ ' +
+      '(ячейка Hill 1977). Ksp = 1.08·10⁻¹⁰ (25 °C, CRC) — в литре воды растворяется ≈ 2.4 мг.',
+  },
 }
 
 export const CRYSTAL_IDS = Object.keys(CRYSTAL_DATA)
