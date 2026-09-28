@@ -274,7 +274,9 @@ export const NACL_T = {
   clFree: [naclCueAt('bondBreak') + 0.1, naclCueAt('bondBreak') + 1.4] as const,
   /** валентные точки «до переноса» */
   valenceIn: [stepTo(1) - 1.1, stepTo(1) - 0.6] as const,
-  valenceOut: [stepFrom(3) + 0.1, stepFrom(3) + 0.7] as const,
+  // Внешний слой Cl⁻ (8 точек) виден весь шаг «Ионная связь» — текст говорит о перешедшем электроне;
+  // гаснет в самом конце шага, до решётки.
+  valenceOut: [stepTo(3) - 0.35, stepTo(3)] as const,
   e: [NACL_ELECTRONS.e1, NACL_ELECTRONS.e2] as const,
   /** «разгон» электрона перед вылетом: точка разгорается */
   windUp: 0.8,
