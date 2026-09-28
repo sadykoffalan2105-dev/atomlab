@@ -51,7 +51,8 @@ export function SchoolCatalogCanvas({ shape }: { shape: CatalogShape }) {
         data-school-catalog-3d={model.source}
       >
         <color attach="background" args={[SCHOOL_CATALOG_BG]} />
-        <FitCamera radius={1} />
+        {/* Кристалл (куб из ячеек) на экране меньше описанной сферы — кадр по половине проекции куба. */}
+        <FitCamera radius={model.kind === 'crystal' ? 0.82 : 1} />
         <SchoolMoleculeView model={model} fitRadius={1} showLabels tone="dark" caption={false} />
         <OrbitControls enableZoom={false} enablePan={false} rotateSpeed={0.6} />
       </Canvas>

@@ -170,6 +170,7 @@ export function SchoolMoleculeView({
   motion = true,
   caption = false,
   tone,
+  sceneBody = false,
 }: {
   model: SchoolHeroModel
   /** радиус описанной сферы после нормировки, мир */
@@ -186,6 +187,8 @@ export function SchoolMoleculeView({
   caption?: boolean
   /** тон фона, на котором стоит вид (каталог — тёмная карточка в обеих темах); по умолчанию — тема приложения */
   tone?: 'dark' | 'light'
+  /** лаборатория: NaCl — тело решётки сцены урока (NaclHeroBody, передача кадра «сцена → герой») */
+  sceneBody?: boolean
 }) {
   const locale = toSceneLocale(useLocale().locale)
   const { theme } = useAppTheme()
@@ -197,7 +200,9 @@ export function SchoolMoleculeView({
   const labelOpacity = useRef(0)
   const scale = fitRadius / Math.max(1e-6, model.radius)
   const crystal = model.kind === 'crystal'
-  const naclBody = model.compoundId === 'nacl'
+  // Тело решётки сцены урока — только в лаборатории (передача кадра); в каталоге своего света нет,
+  // и глянцевые материалы сцены там чёрные — NaCl рисуется тем же матовым видом, что и остальные.
+  const naclBody = sceneBody && model.compoundId === 'nacl'
 
   const res = useMemo(() => {
     const atomMat = createSchoolMatteMaterial()

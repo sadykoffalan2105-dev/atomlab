@@ -333,6 +333,15 @@ function axnCore(center: ElementSymbol, lig: ElementSymbol, n: 3 | 4, bondKey: '
     }
   }
   for (let i = 1; i < atoms.length; i++) bonds.push({ a: 0, b: i, order: 1 })
+  if (n === 4) {
+    // Вид вдоль оси S₄ (биссектриса двух C–H): четыре H — по углам квадрата вокруг C, ни один не за
+    // атомом углерода и не перед ним (иначе одна связь пряталась за шаром C).
+    const u1 = atoms[1]!.pos
+    const u2 = atoms[2]!.pos
+    const b: V3 = [u1[0] + u2[0], u1[1] + u2[1], u1[2] + u2[2]]
+    const bl = Math.hypot(b[0], b[1], b[2])
+    if (bl > 1e-9) rotateAtoms(atoms, [b[0] / bl, b[1] / bl, b[2] / bl], [0, 0, 1])
+  }
   return { atoms, bonds }
 }
 
@@ -341,7 +350,11 @@ function fromCore(compoundId: string, comp: Composition): SchoolHeroModel | null
   let pitch = 0.18
   let yaw = 0.42
   if (sameComposition(comp, { H: 2, S: 1, O: 4 })) built = h2so4Core()
-  else if (sameComposition(comp, { C: 1, H: 4 })) built = axnCore('C', 'H', 4, 'C-H', 'methane')
+  else if (sameComposition(comp, { C: 1, H: 4 })) {
+    built = axnCore('C', 'H', 4, 'C-H', 'methane')
+    pitch = 0.22
+    yaw = 0.3
+  }
   else if (sameComposition(comp, { N: 1, H: 3 })) {
     built = axnCore('N', 'H', 3, 'N-H', 'ammonia')
     pitch = 0.35

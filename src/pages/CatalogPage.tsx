@@ -40,6 +40,7 @@ import {
   type SchoolGrade,
 } from '../data/curriculum/compoundGradeIndex'
 import { compoundById } from '../data/compounds'
+import { buildSchoolHeroModel } from '../components/lab/hero/schoolHeroModel'
 import { ORGANIC_MOLECULES as ALL_ORGANIC_MOLECULES, organicMoleculeById } from '../data/organicLab/organicMoleculeRegistry'
 import type { OrganicMoleculeDef } from '../data/organicLab/organicMoleculeTypes'
 import { ORGANIC_CLASS_LABELS, type OrganicClassId } from '../data/researchLab/organicBuildCatalog'
@@ -208,10 +209,19 @@ const compoundThumbCache = new Map<string, { atoms: ThumbAtom[]; bonds: ThumbBon
 function compoundThumb(c: CompoundDef) {
   let v = compoundThumbCache.get(c.id)
   if (!v) {
-    v = {
-      atoms: c.atoms.map((a) => ({ el: a.symbol, pos: a.pos })),
-      bonds: c.bonds.map(([a, b]) => ({ a, b })),
-    }
+    // Превью — та же молекула, что в 3D карточки (hero/schoolHeroModel): геометрия и кратность связей
+    // школьной сцены / ядра. Решётку (125 ионов) в превью не рисуем — остаётся пара ионов каталога.
+    const m = buildSchoolHeroModel(c)
+    v =
+      m && m.kind === 'molecule'
+        ? {
+            atoms: m.atoms.map((a) => ({ el: a.el, pos: a.pos })),
+            bonds: m.bonds.map((b) => ({ a: b.a, b: b.b, order: Math.max(1, Math.min(3, b.order)) as 1 | 2 | 3 })),
+          }
+        : {
+            atoms: c.atoms.map((a) => ({ el: a.symbol, pos: a.pos })),
+            bonds: c.bonds.map(([a, b]) => ({ a, b })),
+          }
     compoundThumbCache.set(c.id, v)
   }
   return v

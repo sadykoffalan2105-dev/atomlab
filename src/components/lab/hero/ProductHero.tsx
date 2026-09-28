@@ -30,7 +30,7 @@ export function ProductHero({
 }) {
   const model = useMemo(() => buildSchoolHeroModel(compound), [compound])
   if (model) {
-    return <SchoolMoleculeView model={model} fitRadius={HERO_FIT_RADIUS} showLabels={showLabels} lowPower={lowPower} handoff={handoff} cancelParentRotation caption={model.kind === 'crystal'} />
+    return <SchoolMoleculeView model={model} fitRadius={HERO_FIT_RADIUS} showLabels={showLabels} lowPower={lowPower} handoff={handoff} cancelParentRotation sceneBody caption={model.kind === 'crystal'} />
   }
   return (
     <CatalogSubstanceDisplay
