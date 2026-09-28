@@ -123,6 +123,19 @@ function writeSticks(model: SchoolHeroModel, mesh: THREE.InstancedMesh): number 
   return k
 }
 
+/** Фон сцены светлый? (яркость sRGB > 0,5); не цвет — ответ темы приложения. */
+function backgroundIsLight(bg: THREE.Scene['background'], fallback: boolean): boolean {
+  if (!(bg instanceof THREE.Color)) return fallback
+  _bg.copy(bg).convertLinearToSRGB()
+  return 0.2126 * _bg.r + 0.7152 * _bg.g + 0.0722 * _bg.b > 0.5
+}
+const _bg = new THREE.Color()
+
+function applyTone(res: { stickMat: THREE.MeshMatcapMaterial; edges: THREE.LineSegments | null }, light: boolean): void {
+  res.stickMat.color.setHex(light ? SCHOOL_STICK_HEX.light : SCHOOL_STICK_HEX.dark)
+  if (res.edges) (res.edges.material as THREE.LineBasicMaterial).color.setHex(light ? SCHOOL_EDGE_HEX.light : SCHOOL_EDGE_HEX.dark)
+}
+
 /**
  * Подпись кристалла под моделью: строки через фиксированные CSS-пиксели при любом масштабе кадра.
  * Вне компонента: подписи — изменяемые буферы CinemaDomLabels (как stepHeroFrame прежнего героя).
@@ -218,10 +231,12 @@ export function SchoolMoleculeView({
     return { atoms, atomMat, sticks, stickMat, drawn, edges }
   }, [model, lowPower])
 
-  // Тема: палочки и рёбра темнее на светлом фоне.
+  // Тон фона: палочки и рёбра темнее на СВЕТЛОМ фоне. Лаборатория с открытым реактором тёмная и в
+  // светлой теме приложения — поэтому без явного tone тон берётся из фона сцены (scene.background),
+  // а тема приложения — только запасной ответ (прозрачный канвас).
+  const lightRef = useRef<boolean | null>(null)
   useEffect(() => {
-    res.stickMat.color.setHex(light ? SCHOOL_STICK_HEX.light : SCHOOL_STICK_HEX.dark)
-    if (res.edges) (res.edges.material as THREE.LineBasicMaterial).color.setHex(light ? SCHOOL_EDGE_HEX.light : SCHOOL_EDGE_HEX.dark)
+    lightRef.current = null
   }, [res, light])
 
   useEffect(
@@ -258,6 +273,11 @@ export function SchoolMoleculeView({
   )
 
   useFrame((state, dt) => {
+    const isLight = tone ? tone === 'light' : backgroundIsLight(state.scene.background, light)
+    if (isLight !== lightRef.current) {
+      lightRef.current = isLight
+      applyTone(res, isLight)
+    }
     const d = Math.min(0.1, Math.max(0, dt))
     if (motion) time.current += d
     const t = time.current
