@@ -39,7 +39,8 @@ import type { SchoolSceneSpec } from './schoolSpec'
 
 export type SchoolStatus = 'idle' | 'playing' | 'paused' | 'finishing' | 'done'
 
-export type SchoolSceneLabel = { id: string; kind: SchoolLabelKind; pos: THREE.Vector3; opacity: number; text: string }
+/** avoidR — радиус (система root) вокруг символа атома, который другие подписи обходят (шар + точки). */
+export type SchoolSceneLabel = { id: string; kind: SchoolLabelKind; pos: THREE.Vector3; opacity: number; text: string; avoidR?: number }
 
 export type SchoolLightRig = { ambient: THREE.AmbientLight; key: THREE.DirectionalLight; point: THREE.PointLight }
 
@@ -60,6 +61,10 @@ const gsap: typeof GSAP.gsap =
 const K = pmToScene(1)
 const LIGHT = { ambient: 0.34, key: 0.9, point: 0.45 } as const
 const ELECTRON_COLOR = new THREE.Color(0x9ee4ff)
+/** Наконечник стрелки донорно-акцепторной пары, пм: длина и радиус основания. */
+const ARROW = { len: 22, r: 10 } as const
+/** Тёплый оттенок штриха и наконечника донорно-акцепторной пары (множитель к цвету штриха). */
+const DATIVE_TINT = 0xffd27a
 /** Матовый шар: без лака, высокая шероховатость, лёгкий блик. */
 const MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.16 } as const
 
@@ -107,6 +112,10 @@ export class SchoolReactionScene {
   private readonly stickGeo: THREE.CylinderGeometry
   private readonly electrons: THREE.InstancedMesh
   private readonly electronMat: THREE.MeshBasicMaterial
+  /** Наконечники стрелок донорно-акцепторных пар (штрих пары → акцептор). */
+  private readonly arrows: THREE.InstancedMesh
+  private readonly arrowGeo: THREE.ConeGeometry
+  private readonly arrowMat: THREE.MeshPhysicalMaterial
   private readonly halos: THREE.Sprite[] = []
   private readonly haloMats: THREE.SpriteMaterial[] = []
   private readonly clouds: ElectronCloudView
@@ -178,10 +187,30 @@ export class SchoolReactionScene {
     this.sticks = new THREE.InstancedMesh(this.stickGeo, this.stickMat, Math.max(1, m.sticks.length))
     this.sticks.name = 'school-bonds'
     this.sticks.frustumCulled = false
+    // Штрих донорно-акцепторной пары — тёплого оттенка (вместе с наконечником читается как стрелка O → C).
+    const stickCol = new THREE.Color()
+    m.sticks.forEach((_, k) => {
+      stickCol.setHex(m.arrows.some((ar) => ar.stick === k) ? DATIVE_TINT : 0xffffff)
+      this.sticks.setColorAt(k, stickCol)
+    })
     this.stage.add(this.sticks)
 
+    // ——— стрелки донорно-акцепторных пар: конус на штрихе пары у акцептора (школьная запись O → C) ———
+    this.arrowGeo = new THREE.ConeGeometry(1, 1, 18, 1)
+    this.arrowMat = withNaclRim(
+      new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0xd4dce6).multiply(new THREE.Color(DATIVE_TINT)), ...MATTE, transparent: true, fog: false }),
+      0xffffff,
+      NACL_RIM.atom,
+    )
+    this.arrows = new THREE.InstancedMesh(this.arrowGeo, this.arrowMat, Math.max(1, m.arrows.length))
+    this.arrows.name = 'school-dative-arrows'
+    this.arrows.frustumCulled = false
+    this.arrows.count = m.arrows.length
+    this.stage.add(this.arrows)
+
     // ——— электроны: яркие точки (без тонмаппинга) + ореолы ———
-    this.electronMat = new THREE.MeshBasicMaterial({ color: ELECTRON_COLOR.clone().lerp(new THREE.Color(0xffffff), 0.45), toneMapped: false, fog: false })
+    // Прозрачный: в хвосте («Завершить») точки гаснут вместе с шарами, а не остаются белыми «призраками».
+    this.electronMat = new THREE.MeshBasicMaterial({ color: ELECTRON_COLOR.clone().lerp(new THREE.Color(0xffffff), 0.45), toneMapped: false, fog: false, transparent: true })
     this.electrons = new THREE.InstancedMesh(this.sphere, this.electronMat, Math.max(1, nE))
     this.electrons.name = 'school-electrons'
     this.electrons.frustumCulled = false
@@ -217,7 +246,15 @@ export class SchoolReactionScene {
     }
 
     // ——— подписи ———
-    this.labels = m.labels.map((l) => ({ id: l.id, kind: l.kind, pos: new THREE.Vector3(), opacity: 0, text: this.localize(l.text[this.locale]) }))
+    this.labels = m.labels.map((l) => ({
+      id: l.id,
+      kind: l.kind,
+      pos: new THREE.Vector3(),
+      opacity: 0,
+      text: this.localize(l.text[this.locale]),
+      // Символ атома — препятствие для подписей (схема слоёв, формулы на телефоне ложились на шары).
+      ...(l.anchor.kind === 'atom' ? { avoidR: (m.ballR[l.anchor.atom]! + SCHOOL_DRAW.shellGap) * K } : {}),
+    }))
     this.insideVis = new Float32Array(m.labels.length).fill(1)
     this.discs = new Float32Array(n * 4)
     this.labelIndexOfAtom = new Int32Array(n).fill(-1)
@@ -385,6 +422,9 @@ export class SchoolReactionScene {
     this.stickMat.dispose()
     this.sticks.dispose()
     this.stickGeo.dispose()
+    this.arrows.dispose()
+    this.arrowGeo.dispose()
+    this.arrowMat.dispose()
     this.electronMat.dispose()
     this.electrons.dispose()
     for (const m of this.haloMats) m.dispose()
@@ -518,6 +558,43 @@ export class SchoolReactionScene {
     this.sticks.instanceMatrix.needsUpdate = true
     this.stickMat.opacity = Math.min(1, s.fade)
 
+    // ——— стрелки донорных пар: остриё — у поверхности шара акцептора, на оси штриха пары ———
+    for (let k = 0; k < m.arrows.length; k++) {
+      const ar = m.arrows[k]!
+      const alpha = s.stickAlpha[ar.stick]!
+      const b = m.a.P.bonds[m.sticks[ar.stick]!.bond]!
+      // Концы штриха: A — у атома b.a, B — у атома b.b; наконечник — у акцептора.
+      const accIsB = ar.acceptor === b.b
+      const o = ar.stick * 3
+      this._v.set(s.stickA[o]! * K, s.stickA[o + 1]! * K, s.stickA[o + 2]! * K)
+      this._w.set(s.stickB[o]! * K, s.stickB[o + 1]! * K, s.stickB[o + 2]! * K)
+      if (!accIsB) {
+        this._c.copy(this._v)
+        this._v.copy(this._w)
+        this._w.copy(this._c)
+      }
+      // _v — у донора, _w — у акцептора; _c — единичное направление донор → акцептор.
+      this._c.subVectors(this._w, this._v)
+      const len = this._c.length()
+      if (alpha < 0.01 || len < 1e-6) {
+        this._s.set(0, 0, 0)
+        this._q.identity()
+        this._m.compose(this._w, this._q, this._s)
+      } else {
+        this._c.divideScalar(len)
+        this._q.setFromUnitVectors(this._up, this._c)
+        const h = ARROW.len * K
+        const r = ARROW.r * K * (0.35 + 0.65 * alpha)
+        // Остриё на поверхности шара акцептора (чуть внутри, чтобы не висело в воздухе).
+        this._w.addScaledVector(this._c, -(m.ballR[ar.acceptor]! - 1) * K - h / 2)
+        this._s.set(r, h, r)
+        this._m.compose(this._w, this._q, this._s)
+      }
+      this.arrows.setMatrixAt(k, this._m)
+    }
+    this.arrows.instanceMatrix.needsUpdate = true
+    this.arrowMat.opacity = Math.min(1, s.fade)
+
     // ——— электроны и ореолы ———
     this._q.identity()
     for (let k = 0; k < m.a.electrons.length; k++) {
@@ -535,6 +612,7 @@ export class SchoolReactionScene {
       this.haloMats[k]!.opacity = a * (0.35 + 0.55 * g)
     }
     this.electrons.instanceMatrix.needsUpdate = true
+    this.electronMat.opacity = s.fade
 
     // ——— вспышки образования пар ———
     for (let k = 0; k < this.rings.length; k++) {

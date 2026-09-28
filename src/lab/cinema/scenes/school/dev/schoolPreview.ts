@@ -8,6 +8,10 @@ import { NO2_SCENE_SPEC } from '../../no2/no2Spec'
 import { N2O_SCENE_SPEC } from '../../n2o/n2oSpec'
 import { N2O5_SCENE_SPEC } from '../../n2o5/n2o5Spec'
 import type { SchoolSceneSpec } from '../schoolSpec'
+import { CO2_SCHOOL_SPEC } from '../../co2/co2Spec'
+import { CO_SCHOOL_SPEC } from '../../co/coSpec'
+import { SO2_SCHOOL_SPEC } from '../../so2/so2Spec'
+import { SO3_SCHOOL_SPEC } from '../../so3/so3Spec'
 
 /**
  * ПРЕДПРОСМОТР школьной сцены без лаборатории (только для разработки: `npx vite` →
@@ -18,6 +22,10 @@ import type { SchoolSceneSpec } from '../schoolSpec'
 
 const SPECS: Record<string, SchoolSceneSpec> = {
   h2o: H2O_SPEC,
+  co2: CO2_SCHOOL_SPEC,
+  co: CO_SCHOOL_SPEC,
+  so2: SO2_SCHOOL_SPEC,
+  so3: SO3_SCHOOL_SPEC,
   no: NO_SCENE_SPEC,
   no2: NO2_SCENE_SPEC,
   n2o: N2O_SCENE_SPEC,

@@ -62,8 +62,9 @@ export function equationWithCondition(equation: string, condition: string | unde
 
 export type SchoolLabelAnchor =
   | { readonly kind: 'atom'; readonly atom: number }
-  | { readonly kind: 'layers'; readonly atom: number }
-  | { readonly kind: 'molR'; readonly mol: number }
+  /** side: +1 — над облаком атома, −1 — под ним (сторона, где меньше соседних атомов). */
+  | { readonly kind: 'layers'; readonly atom: number; readonly side: 1 | -1 }
+  | { readonly kind: 'molR'; readonly mol: number; readonly side: 1 | -1 }
   | { readonly kind: 'molP'; readonly mol: number }
   /** others — прочие соседи центрального атома в продукте (SO₃: третий O); при трёх соседях и больше подпись угла — над молекулой. */
   | { readonly kind: 'angle'; readonly a: number; readonly center: number; readonly b: number; readonly others: readonly number[] }
@@ -297,22 +298,56 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     const light = x.element === 'H' || x.element === 'S' || x.element === 'Cl'
     labels.push({ id: `atom-${x.id}`, kind: light ? 'atomDark' : 'atom', text: all(x.element), anchor: { kind: 'atom', atom: i }, from: 0, to: end })
   })
+  // Свободное место у точки (x, y) на шагах reactants / atoms (позиции реагентов): расстояние до
+  // ближайшего облака, кроме своих атомов; по x — с поправкой на ширину подписи (она шире, чем выше).
+  const roomAt = (x: number, y: number, skip: (j: number) => boolean) => {
+    let best = Infinity
+    a.R.pos.forEach((p, j) => {
+      if (skip(j)) return
+      best = Math.min(best, Math.hypot((p[0] - x) / 2.4, p[1] - y) - cloudR[j]!)
+    })
+    return best
+  }
+  const layerLift = (i: number) => cloudR[i]! * 1.55 + 16
   const seenEl = new Set<string>()
-  a.atoms.forEach((x, i) => {
+  a.atoms.forEach((x) => {
     if (seenEl.has(x.element)) return
     seenEl.add(x.element)
+    // Схема слоёв — у того атома элемента и с той стороны (над / под облаком), где просторнее:
+    // «H +1 )1» у воды N₂O₅ лежала на шаре O, на телефоне схемы ложились на соседние атомы.
+    let pick = { atom: -1, side: 1 as 1 | -1, room: -Infinity }
+    a.atoms.forEach((y, j) => {
+      if (y.element !== x.element) return
+      for (const side of [1, -1] as const) {
+        const p = a.R.pos[j]!
+        const room = roomAt(p[0], p[1] + side * layerLift(j), (q) => q === j) + (side === 1 ? 8 : 0)
+        if (room > pick.room + 1e-6) pick = { atom: j, side, room }
+      }
+    })
     labels.push({
       id: `layers-${x.element}`,
       kind: 'measure',
       text: all(layersText(x.element, x.z)),
-      anchor: { kind: 'layers', atom: i },
+      anchor: { kind: 'layers', atom: pick.atom, side: pick.side },
       from: step.atoms.from + 1.6,
       to: step.breaking.from + 1.0,
     })
   })
   spec.reactants.forEach((m, k) => {
     // Состояние вещества — токеном ({g} → «г.» / «g» / «gaz»), как у подписей NaCl.
-    labels.push({ id: `molR-${m.id}`, kind: 'species', text: all(`${m.formula} ({${m.state}})`), anchor: { kind: 'molR', mol: k }, from: 0.3, to: step.breaking.from + 0.7 })
+    // Формула — под молекулой, если там свободно, иначе над ней (N₂O₅ над водой: подпись ложилась на O воды).
+    const own = new Set(m.atoms.map((id) => a.index.get(id)!))
+    let y0 = Infinity
+    let y1 = -Infinity
+    let xc = 0
+    for (const i of own) {
+      y0 = Math.min(y0, a.R.pos[i]![1] - cloudR[i]!)
+      y1 = Math.max(y1, a.R.pos[i]![1] + cloudR[i]!)
+      xc += a.R.pos[i]![0] / own.size
+    }
+    const below = roomAt(xc, y0 - 26, (j) => own.has(j)) + 8
+    const above = roomAt(xc, y1 + 26, (j) => own.has(j))
+    labels.push({ id: `molR-${m.id}`, kind: 'species', text: all(`${m.formula} ({${m.state}})`), anchor: { kind: 'molR', mol: k, side: below >= above ? -1 : 1 }, from: 0.3, to: step.breaking.from + 0.7 })
   })
   spec.products.forEach((m, k) => {
     labels.push({ id: `molP-${m.id}`, kind: 'species', text: all(m.formula), anchor: { kind: 'molP', mol: k }, from: step.molecule.from + 1.0, to: end })
@@ -1077,7 +1112,7 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       op = s.appear
     } else if (an.kind === 'layers') {
       s.labelPos[o] = s.atomPos[an.atom * 3]!
-      s.labelPos[o + 1] = s.atomPos[an.atom * 3 + 1]! + m.cloudR[an.atom]! * 1.55 + 16
+      s.labelPos[o + 1] = s.atomPos[an.atom * 3 + 1]! + an.side * (m.cloudR[an.atom]! * 1.55 + 16)
       s.labelPos[o + 2] = s.atomPos[an.atom * 3 + 2]!
     } else if (an.kind === 'molR' || an.kind === 'molP') {
       const mol = an.kind === 'molR' ? m.spec.reactants[an.mol]! : m.spec.products[an.mol]!
@@ -1095,7 +1130,7 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       }
       if (an.kind === 'molR') {
         s.labelPos[o] = (x0 + x1) / 2
-        s.labelPos[o + 1] = y0 - 26
+        s.labelPos[o + 1] = an.side < 0 ? y0 - 26 : y1 + 26
       } else {
         // Формула продукта — с внешней стороны: у левой молекулы слева, у правой (и центральной) справа,
         // чтобы подпись в промежутке не читалась как подпись соседней молекулы.

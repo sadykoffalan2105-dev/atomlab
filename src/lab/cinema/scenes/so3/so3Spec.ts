@@ -136,6 +136,8 @@ export const SO3_SCHOOL_SPEC: SchoolSceneSpec = {
     O6: [125, 165, 0],
   },
   ...(split ? { splitElectrons: { S1: { lone: split.lone, unpaired: split.unpaired }, S2: { lone: split.lone, unpaired: split.unpaired } } } : {}),
+  // Плоская SO₃: умеренный поворот — треугольник читается, нижний O не уходит за шар S.
+  productTurn: 0.6,
   steps,
   captions: SO3_SCIENCE.captions,
   text: sceneTexts(SO3_SCIENCE),

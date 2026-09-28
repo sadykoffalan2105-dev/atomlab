@@ -40,6 +40,8 @@ export type DomLabelSource = {
   pos: THREE.Vector3
   opacity: number
   text: string
+  /** Радиус (система группы) вокруг закреплённой подписи-символа: другие подписи его обходят (шар атома). */
+  avoidR?: number
 }
 
 const KIND_STYLE: Record<string, string> = {
@@ -65,9 +67,13 @@ const KIND_STYLE: Record<string, string> = {
     'text-shadow: 0 0 3px rgba(255,255,255,0.75), 0 0 8px rgba(255,255,255,0.35);',
   token:
     'font: 700 13px/1 "Inter", system-ui, sans-serif; color: #fff3c4; text-shadow: 0 0 10px rgba(255,190,80,0.9);',
+  // Условие реакции (t°, кат. V₂O₅) — крупной плашкой: читается на облаках и на телефоне.
+  condition:
+    'font: 700 17px/1 "Inter", system-ui, sans-serif; color: #ffe3a3; padding: 5px 12px; border-radius: 999px;' +
+    'background: rgba(34, 24, 6, 0.8); border: 1px solid rgba(255, 210, 120, 0.55); text-shadow: 0 0 8px rgba(255,190,80,0.6);',
   // Уравнение итога: «левая ␟ стрелка ␟ условие ␟ правая» — условие мелко НАД стрелкой (renderEquation).
   equation:
-    'font: 600 15px/1.1 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em; padding-top: 13px;' +
+    'font: 600 15px/1.1 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em; padding-top: 16px;' +
     'text-shadow: 0 0 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.8);',
 }
 
@@ -86,7 +92,7 @@ function renderEquation(el: HTMLDivElement, text: string): void {
   // Стрелка — в строке (на базовой линии), условие — над ней по центру (место сверху даёт padding-top
   // стиля 'equation', чтобы раскладка подписей учитывала его высоту).
   const col = span(arrow, 'position:relative;display:inline-block;margin:0 0.45em;font-size:17px;line-height:1;')
-  col.append(span(cond, 'position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:1px;font-size:11px;font-weight:600;line-height:1;color:#ffe3a3;white-space:nowrap;'))
+  col.append(span(cond, 'position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:2px;font-size:13px;font-weight:700;line-height:1;color:#ffe3a3;white-space:nowrap;'))
   el.replaceChildren(span(left), col, span(right))
 }
 
@@ -231,13 +237,20 @@ export function CinemaDomLabels({
     for (let i = 0; i < n; i++) {
       const src = labels[i]!
       b.on[i] = 0
-      if (!(src.opacity > 0.01)) continue
+      // Символ атома с avoidR — препятствие для подписей даже тогда, когда сам не виден (мелкий шар).
+      if (!(src.opacity > 0.01) && !src.avoidR) continue
       _v.copy(src.pos).applyMatrix4(g.matrixWorld).project(camera)
       if (_v.z > 1 || _v.z < -1) continue
       // Символ внутри шара закреплён за центром шара: раскладка его не двигает (on = 2).
       b.on[i] = src.kind === 'atom' || src.kind === 'atomDark' ? 2 : 1
       b.x[i] = (_v.x * 0.5 + 0.5) * w
       b.y[i] = (-_v.y * 0.5 + 0.5) * h
+      b.r[i] = 0
+      if (src.avoidR && b.on[i] === 2) {
+        // Радиус препятствия на экране: сдвиг на avoidR вдоль оси x группы (у сцены — вправо по кадру).
+        _v.set(src.pos.x + src.avoidR, src.pos.y, src.pos.z).applyMatrix4(g.matrixWorld).project(camera)
+        b.r[i] = Math.abs((_v.x * 0.5 + 0.5) * w - b.x[i]!)
+      }
       estimateLabelSize(src.kind, src.text, scale, _size)
       b.w[i] = _size.w
       b.h[i] = _size.h
@@ -250,7 +263,7 @@ export function CinemaDomLabels({
     // 3) запись в DOM только изменившегося
     for (let i = 0; i < n; i++) {
       const node = list[i]!
-      if (!b.on[i]) {
+      if (!b.on[i] || !(labels[i]!.opacity > 0.01)) {
         hideLabel(node)
         continue
       }

@@ -21,6 +21,8 @@ export type LabelLayoutBuffers = {
   h: Float32Array
   /** 1 — подпись видима и участвует в раскладке; 2 — видима, но закреплена (символ внутри шара) */
   on: Uint8Array
+  /** Радиус препятствия, px, вокруг закреплённой подписи (шар атома): подвижные подписи его обходят; 0 — нет. */
+  r: Float32Array
   /** порядок обхода по y (индексы видимых), заполняется layoutLabels */
   order: Int32Array
 }
@@ -33,14 +35,15 @@ export function createLabelLayoutBuffers(n: number): LabelLayoutBuffers {
     w: new Float32Array(m),
     h: new Float32Array(m),
     on: new Uint8Array(m),
+    r: new Float32Array(m),
     order: new Int32Array(m),
   }
 }
 
 /** Средняя ширина глифа и высота строки по стилю подписи, px (шрифты CinemaDomLabels). */
-const GLYPH_W: Record<string, number> = { atom: 9.6, atomDark: 9.6, species: 8.2, ox: 7.4, delta: 8.4, token: 8.0 }
-const LINE_H: Record<string, number> = { atom: 18, atomDark: 18, species: 17, ox: 19, delta: 17, token: 15 }
-const PAD_W: Record<string, number> = { atom: 2, atomDark: 2, species: 4, ox: 14, delta: 4, token: 4 }
+const GLYPH_W: Record<string, number> = { atom: 9.6, atomDark: 9.6, species: 8.2, ox: 7.4, delta: 8.4, token: 8.0, measure: 7.6, condition: 10.5 }
+const LINE_H: Record<string, number> = { atom: 18, atomDark: 18, species: 17, ox: 19, delta: 17, token: 15, measure: 20, condition: 27 }
+const PAD_W: Record<string, number> = { atom: 2, atomDark: 2, species: 4, ox: 14, delta: 4, token: 4, measure: 16, condition: 26 }
 
 /** Оценка размера подписи в px (без чтения DOM). */
 export function estimateLabelSize(kind: string, text: string, scale: number, out: { w: number; h: number }): void {
@@ -65,6 +68,30 @@ function clampInto(b: LabelLayoutBuffers, i: number, rect: LabelRect, margin: nu
 }
 
 /**
+ * Подвижная подпись i не лежит на препятствиях (шарах атомов, on = 2 и r > 0): если коробка задевает
+ * круг, подпись уходит по вертикали на ту сторону, где её центр (над центром шара — вверх).
+ */
+function avoidObstacles(b: LabelLayoutBuffers, n: number, i: number, gap: number): void {
+  const hw = b.w[i]! * 0.5
+  const hh = b.h[i]! * 0.5
+  for (let pass = 0; pass < 3; pass++) {
+    let moved = false
+    for (let j = 0; j < n; j++) {
+      const r = b.r[j]!
+      if (b.on[j] !== 2 || !(r > 0)) continue
+      const gx = Math.max(0, Math.abs(b.x[i]! - b.x[j]!) - hw)
+      if (gx >= r) continue
+      const gy = Math.max(0, Math.abs(b.y[i]! - b.y[j]!) - hh)
+      if (gx * gx + gy * gy >= r * r) continue
+      const need = hh + Math.sqrt(r * r - gx * gx) + gap
+      b.y[i] = b.y[j]! + (b.y[i]! < b.y[j]! ? -need : need)
+      moved = true
+    }
+    if (!moved) return
+  }
+}
+
+/**
  * Раскладка: зажим в rect (если задан) → вертикальный разнос пересекающихся
  * подписей (сверху вниз, нижняя сдвигается под верхнюю с зазором gap) → если
  * разнос вытолкнул подпись за нижний край, вся колонка поднимается, а затем
@@ -84,6 +111,7 @@ export function layoutLabels(b: LabelLayoutBuffers, n: number, rect: LabelRect |
     }
     b.order[k] = i
   }
+  for (let a = 0; a < m; a++) avoidObstacles(b, n, b.order[a]!, gap)
   for (let a = 0; a < m; a++) {
     const j = b.order[a]!
     for (let c = 0; c < a; c++) {
@@ -93,6 +121,7 @@ export function layoutLabels(b: LabelLayoutBuffers, n: number, rect: LabelRect |
       const need = (b.h[i]! + b.h[j]!) * 0.5 + gap
       if (b.y[j]! - b.y[i]! < need) b.y[j] = b.y[i]! + need
     }
+    avoidObstacles(b, n, j, gap)
   }
   if (!rect) return
   for (let a = 0; a < m; a++) {
