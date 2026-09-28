@@ -399,7 +399,7 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
   if (spec.captions.condition) {
     // Условие (t°, кат.) — крупной плашкой над композицией: в центре кадра оно «плавало» между
     // расходящимися атомами и терялось на облаках.
-    labels.push({ id: 'condition', kind: 'condition', text: spec.captions.condition, anchor: { kind: 'top' }, from: step.breaking.from + 0.1, to: step.breaking.from + 2.4 })
+    labels.push({ id: 'condition', kind: 'condition', text: spec.captions.condition, anchor: { kind: 'top' }, from: step.breaking.from + 0.1, to: Math.max(step.breaking.from + 2.4, step.breaking.to - 0.8) })
   }
   labels.push({ id: 'caption-result', kind: 'species', text: spec.captions.result, anchor: { kind: 'top' }, from: step.result.from + 0.3, to: end })
   // Итог: уравнение, условие реакции — над стрелкой (как в учебнике: →t°, ⇄ кат. V₂O₅).
