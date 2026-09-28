@@ -25,10 +25,16 @@ export const SCHOOL_LOCALES: readonly SchoolLocale[] = ['ru', 'en', 'uz']
 /** Строка на трёх языках. */
 export type L10n = Readonly<Record<SchoolLocale, string>>
 
-export type SchoolSpecId = 'h2o' | 'co2' | 'nacl' | 'co' | 'so2' | 'so3' | 'no' | 'no2' | 'n2o' | 'n2o5'
+/** Сцены «образование молекулы» (первые 10 веществ каталога 7 класса, движок SchoolReactionScene). */
+export type MoleculeSchoolSpecId = 'h2o' | 'co2' | 'nacl' | 'co' | 'so2' | 'so3' | 'no' | 'no2' | 'n2o' | 'n2o5'
+
+/** Сцены «обмен в растворе» (движок school/solution, спецификация SolutionScienceSpec). */
+export type SolutionSchoolSpecId = 'baso4'
+
+export type SchoolSpecId = MoleculeSchoolSpecId | SolutionSchoolSpecId
 
 /** Порядок — порядок каталога 7 класса (catalogRank.json). */
-export const SCHOOL_SPEC_IDS: readonly SchoolSpecId[] = ['h2o', 'co2', 'nacl', 'co', 'so2', 'so3', 'no', 'no2', 'n2o', 'n2o5']
+export const SCHOOL_SPEC_IDS: readonly MoleculeSchoolSpecId[] = ['h2o', 'co2', 'nacl', 'co', 'so2', 'so3', 'no', 'no2', 'n2o', 'n2o5']
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Источники
@@ -139,7 +145,7 @@ export type AtomSpec = {
 export type LengthRef =
   | { readonly bond: BondKey }
   | { readonly reagent: ReagentGeometryKey; readonly name: string }
-  | { readonly crystal: 'nacl' | 'graphite' | 'na_metal' }
+  | { readonly crystal: 'nacl' | 'graphite' | 'na_metal' | 'barite' }
 
 /** Откуда угол: ключ BOND_ANGLES или запись REAGENT_GEOMETRY. */
 export type AngleRef = { readonly angle: AngleKey } | { readonly reagent: ReagentGeometryKey; readonly name: string }
@@ -182,8 +188,25 @@ export type ParticleKind =
   | 'metal'
   /** ионный кристалл */
   | 'ionic-crystal'
+  /** ион в растворе, окружённый молекулами воды (Ba²⁺, Cl⁻, SO₄²⁻, H₃O⁺) */
+  | 'ion'
+  /** осадок — ионный кристалл, выпадающий из раствора (BaSO₄↓) */
+  | 'precipitate'
 
-export type ParticleShape = 'atom' | 'diatomic' | 'linear' | 'bent' | 'trigonal-planar' | 'planar' | 'propeller' | 'lattice' | 'ions'
+export type ParticleShape =
+  | 'atom'
+  | 'diatomic'
+  | 'linear'
+  | 'bent'
+  | 'trigonal-planar'
+  | 'planar'
+  | 'propeller'
+  | 'lattice'
+  | 'ions'
+  /** правильный тетраэдр (SO₄²⁻) */
+  | 'tetrahedral'
+  /** тригональная пирамида (H₃O⁺) */
+  | 'pyramidal'
 
 export type ParticleSpec = {
   readonly id: string
@@ -370,5 +393,122 @@ export type SchoolScienceSpec = {
     readonly condition?: L10n
   }
   readonly steps: readonly SchoolStepSpec[]
+  readonly caveats: readonly Caveat[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Обмен в растворе (BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl): свои шаги и свой вид реакции
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Шесть шагов сцены «обмен в растворе» (движок school/solution):
+ *   tubes   — что видно в пробирке (7 кл.): два бесцветных раствора, сливают — белая муть;
+ *   ions    — из чего состоят растворы: ионы в воде (9 кл. простыми словами);
+ *   meet    — ионы находят друг друга: притяжение Ba²⁺ и SO₄²⁻, H₃O⁺ и Cl⁻ остаются в растворе (8 кл.);
+ *   nucleus — растёт кристаллик барита (8 кл.);
+ *   settle  — осадок на дне и соляная кислота над ним (8 кл.);
+ *   result  — итог: уравнение обмена и сокращённое ионное (7 кл. + пометка 9 кл.).
+ */
+export const SOLUTION_STEP_IDS = ['tubes', 'ions', 'meet', 'nucleus', 'settle', 'result'] as const
+export type SolutionStepId = (typeof SOLUTION_STEP_IDS)[number]
+
+export type SolutionStepSpec = {
+  readonly id: SolutionStepId
+  /** Уровень материала шага: 7, 8 или 9 класс. */
+  readonly level: 7 | 8 | 9
+  /** Рекомендуемая длительность шага, с (4–7). */
+  readonly seconds: number
+  readonly show: readonly string[]
+  readonly sources?: readonly SchoolSource[]
+  readonly text: Readonly<Record<SchoolLocale, SchoolStepText>>
+}
+
+/**
+ * Член уравнения в растворе: формула + water · H₂O = частицы раствора (ионы) или осадок.
+ * H₂SO₄ + 2H₂O → 2H₃O⁺ + SO₄²⁻ (water 2); HCl + H₂O → H₃O⁺ + Cl⁻ (water 1); BaCl₂ → Ba²⁺ + 2Cl⁻.
+ */
+export type SolutionTerm = {
+  readonly formula: string
+  readonly coef: number
+  readonly phase: Phase
+  /** Стрелка у осадка (↓) — как в учебнике. */
+  readonly precipitate?: boolean
+  readonly particles: readonly { readonly particle: string; readonly count: number }[]
+  /** Сколько молекул воды входит в частицы (протон на молекуле воды — H₃O⁺). */
+  readonly water?: number
+}
+
+export type SolutionReaction = {
+  /** Уравнение учебника со стрелкой осадка: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl'. */
+  readonly equation: string
+  readonly reactants: readonly SolutionTerm[]
+  readonly products: readonly SolutionTerm[]
+  /** Полное и сокращённое ионные уравнения (9 кл., § 6). */
+  readonly ionicFull: string
+  readonly ionicShort: string
+  readonly kind: 'exchange'
+  readonly bankId: string
+  /** Где в учебниках; ПЕРВАЯ ссылка — главная (по ней сцена). */
+  readonly sources: readonly TextbookRef[]
+  readonly conditions: ReactionConditions
+  /** Тепловой эффект — только словами; у этой реакции он незаметен (числа не показываются). */
+  readonly heat: 'exo' | 'endo' | null
+  readonly heatSource?: SchoolSource
+}
+
+/** Число из справочника или расчёта, которое встречается в текстах (сверяет тест). */
+export type SolutionFact = {
+  readonly id: string
+  readonly value: number
+  /** что это (RU, для ведущего) */
+  readonly what: string
+  readonly source: SchoolSource
+}
+
+export type SolutionScienceSpec = {
+  readonly id: SolutionSchoolSpecId
+  readonly substance: string
+  /** id частицы вещества каталога (осадок) */
+  readonly focus: string
+  readonly name: L10n
+  readonly bondType: 'ionic'
+  readonly reaction: SolutionReaction
+  readonly particles: readonly ParticleSpec[]
+  /** Гидратная оболочка: сколько молекул воды на самом деле и сколько в кадре; чем ион обращён к воде. */
+  readonly hydration: readonly {
+    readonly particle: string
+    readonly realCount: number
+    readonly shown: number
+    /** 'O' — к катиону обращён кислород воды, 'H' — к аниону водород */
+    readonly facing: 'O' | 'H'
+    readonly source: SchoolSource
+  }[]
+  readonly facts: readonly SolutionFact[]
+  readonly observations: readonly Observation[]
+  readonly uses: readonly Observation[]
+  readonly intro: { readonly title: L10n; readonly speak: L10n }
+  readonly safety: L10n
+  readonly legend: {
+    /** шар с символом — ион, заряд подписан */
+    readonly ion: L10n
+    /** серая палочка — связь внутри частицы */
+    readonly sharedPair: L10n
+    /** молекулы воды вокруг ионов */
+    readonly water: L10n
+    /** белый осадок / кристаллик */
+    readonly precipitate: L10n
+  }
+  readonly captions: {
+    readonly tubeA: L10n
+    readonly tubeB: L10n
+    readonly solutionA: L10n
+    readonly solutionB: L10n
+    readonly crystal: L10n
+    readonly neighbors: L10n
+    readonly precipitate: L10n
+    readonly acid: L10n
+    readonly nitric: L10n
+  }
+  readonly steps: readonly SolutionStepSpec[]
   readonly caveats: readonly Caveat[]
 }
