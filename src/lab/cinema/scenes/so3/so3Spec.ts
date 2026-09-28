@@ -122,7 +122,8 @@ export const SO3_SCHOOL_SPEC: SchoolSceneSpec = {
     },
     so2('SO2b', SO2_B, RB),
   ],
-  products: [so3('SO3a', SO3_A, [-170, -25, 0], false), so3('SO3b', SO3_B, [170, -25, 0], true)],
+  // Молекулы SO₃ разнесены: при ±170 пм внутренние O двух молекул перекрывались шарами (шаги pairs, result).
+  products: [so3('SO3a', SO3_A, [-235, -25, 0], false), so3('SO3b', SO3_B, [235, -25, 0], true)],
   // Фрагменты SO₂ стоят на месте (их связи S=O не рвутся), атомы O из O₂ расходятся к атомам S.
   split: {
     S1: at(RA, RA_C.S1!),

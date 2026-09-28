@@ -121,7 +121,7 @@ export const N2O_SCENE_SPEC: SchoolSceneSpec = {
       lonePairs: { O1: 2 },
       coords: { O1: [0, WY / 2, 0], H1: [-WX, -WY / 2, 0], H3: [WX, -WY / 2, 0] },
       angles: [{ a: 'H1', center: 'O1', b: 'H3', angleKey: 'water' }],
-      place: [-190, 120, 0],
+      place: [-235, 140, 0],
     },
     {
       id: 'W2',
@@ -136,7 +136,7 @@ export const N2O_SCENE_SPEC: SchoolSceneSpec = {
       // Обе воды стоят одинаково (O сверху, как в эталоне h2o): при повороте продукта видны обе пары O.
       coords: { O3: [0, WY / 2, 0], H2: [-WX, -WY / 2, 0], H4: [WX, -WY / 2, 0] },
       angles: [{ a: 'H2', center: 'O3', b: 'H4', angleKey: 'water' }],
-      place: [-190, -120, 0],
+      place: [-235, -140, 0],
     },
   ],
   split: {
