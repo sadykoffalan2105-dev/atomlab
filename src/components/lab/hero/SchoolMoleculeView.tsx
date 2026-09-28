@@ -123,6 +123,30 @@ function writeSticks(model: SchoolHeroModel, mesh: THREE.InstancedMesh): number 
   return k
 }
 
+/**
+ * Подпись кристалла под моделью: строки через фиксированные CSS-пиксели при любом масштабе кадра.
+ * Вне компонента: подписи — изменяемые буферы CinemaDomLabels (как stepHeroFrame прежнего героя).
+ */
+function layoutCaption(
+  labels: DomLabelSource[],
+  state: { camera: THREE.Camera; size: { height: number } },
+  o: THREE.Object3D,
+  radius: number,
+  op: number,
+  worldScale: number,
+): void {
+  const cam = state.camera as THREE.PerspectiveCamera
+  o.getWorldPosition(_p)
+  const dist = cam.position.distanceTo(_p)
+  const h = Math.max(1, state.size.height)
+  const localPerPx = (2 * dist * Math.tan(((cam.fov || 46) * Math.PI) / 360)) / h / Math.max(1e-6, worldScale)
+  for (let i = 0; i < labels.length; i++) {
+    const c = labels[i]!
+    c.pos.y = -radius - (CAPTION_GAP_PX + (i + 0.5) * CAPTION_LINE_PX) * localPerPx
+    c.opacity = op * 0.92
+  }
+}
+
 export function SchoolMoleculeView({
   model,
   fitRadius,
@@ -262,18 +286,7 @@ export function SchoolMoleculeView({
       op = THREE.MathUtils.smoothstep(_sc.x, 0.82 * scale, 0.98 * scale)
     }
     labelOpacity.current = op
-    if (captionLabels.length > 0 && o) {
-      const cam = state.camera as THREE.PerspectiveCamera
-      o.getWorldPosition(_p)
-      const dist = cam.position.distanceTo(_p)
-      const h = Math.max(1, state.size.height)
-      const localPerPx = (2 * dist * Math.tan(((cam.fov || 46) * Math.PI) / 360)) / h / Math.max(1e-6, _sc.x || scale)
-      for (let i = 0; i < captionLabels.length; i++) {
-        const c = captionLabels[i]!
-        c.pos.y = -model.radius - (CAPTION_GAP_PX + (i + 0.5) * CAPTION_LINE_PX) * localPerPx
-        c.opacity = op * 0.92
-      }
-    }
+    if (captionLabels.length > 0 && o) layoutCaption(captionLabels, state, o, model.radius, op, _sc.x || scale)
   })
 
   return (

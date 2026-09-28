@@ -19,10 +19,11 @@ const FOV = 38
 export const SCHOOL_CATALOG_BG = '#0b0e1a'
 
 function FitCamera({ radius }: { radius: number }) {
-  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
+  const get = useThree((s) => s.get)
   const size = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
   useLayoutEffect(() => {
+    const camera = get().camera as THREE.PerspectiveCamera
     const aspect = size.width / Math.max(1, size.height)
     const tanH = Math.tan((camera.fov * Math.PI) / 360)
     const dist = radius / (FILL * tanH * Math.min(1, aspect))
@@ -33,7 +34,7 @@ function FitCamera({ radius }: { radius: number }) {
     camera.far = dist + radius * 6
     camera.updateProjectionMatrix()
     invalidate()
-  }, [camera, size.width, size.height, radius, invalidate])
+  }, [get, size.width, size.height, radius, invalidate])
   return null
 }
 

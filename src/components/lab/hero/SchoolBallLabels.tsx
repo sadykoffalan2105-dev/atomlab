@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type MutableRefObject } from 'react'
+import { useEffect, useRef, type MutableRefObject } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { SchoolHeroAtom } from './schoolHeroModel'
@@ -24,6 +24,28 @@ const _cam = new THREE.Vector3()
 const _f = new THREE.Vector3()
 const _s = new THREE.Vector3()
 
+type Scratch = {
+  x: Float32Array
+  y: Float32Array
+  d: Float32Array
+  r: Float32Array
+  open: Uint8Array
+  shown: Uint8Array
+  order: number[]
+}
+
+function createScratch(n: number): Scratch {
+  return {
+    x: new Float32Array(n),
+    y: new Float32Array(n),
+    d: new Float32Array(n),
+    r: new Float32Array(n),
+    open: new Uint8Array(n),
+    shown: new Uint8Array(n),
+    order: Array.from({ length: n }, (_, i) => i),
+  }
+}
+
 /** Подписей одного сорта у кристалла. */
 const CRYSTAL_PER_KIND = 3
 
@@ -47,18 +69,7 @@ export function SchoolBallLabels({
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
   const nodes = useRef<Node[]>([])
-  const scratch = useMemo(
-    () => ({
-      x: new Float32Array(atoms.length),
-      y: new Float32Array(atoms.length),
-      d: new Float32Array(atoms.length),
-      r: new Float32Array(atoms.length),
-      open: new Uint8Array(atoms.length),
-      shown: new Uint8Array(atoms.length),
-      order: atoms.map((_, i) => i),
-    }),
-    [atoms],
-  )
+  const scratchRef = useRef<Scratch | null>(null)
 
   useEffect(() => {
     const host = gl.domElement.parentElement
@@ -81,8 +92,10 @@ export function SchoolBallLabels({
       return { el, shown: false, x: NaN, y: NaN, fs: NaN, op: NaN }
     })
     host.appendChild(layer)
+    scratchRef.current = createScratch(atoms.length)
     return () => {
       nodes.current = []
+      scratchRef.current = null
       layer.remove()
     }
   }, [gl, atoms])
@@ -90,7 +103,8 @@ export function SchoolBallLabels({
   useFrame(() => {
     const g = group.current
     const list = nodes.current
-    if (!g || list.length === 0) return
+    const scratch = scratchRef.current
+    if (!g || list.length === 0 || !scratch) return
     const op = Math.round(Math.min(1, Math.max(0, opacity.current)) * 100) / 100
     const n = atoms.length
     const cam = camera as THREE.PerspectiveCamera
@@ -120,14 +134,14 @@ export function SchoolBallLabels({
     }
     // 2) открыт ли центр шара (не закрыт ближним шаром) и достаточно ли он крупный
     const minR = crystal ? 12 : 9
-    for (let i = 0; i < n; i++) {
-      let open = scratch.r[i]! >= minR
-      for (let j = 0; j < n && open; j++) {
+    const openCenter = (i: number) => {
+      for (let j = 0; j < n; j++) {
         if (j === i || scratch.d[j]! >= scratch.d[i]! - 1e-6) continue
-        if (Math.hypot(scratch.x[j]! - scratch.x[i]!, scratch.y[j]! - scratch.y[i]!) < scratch.r[j]! + 0.35 * scratch.r[i]!) open = false
+        if (Math.hypot(scratch.x[j]! - scratch.x[i]!, scratch.y[j]! - scratch.y[i]!) < scratch.r[j]! + 0.35 * scratch.r[i]!) return false
       }
-      scratch.open[i] = open ? 1 : 0
+      return true
     }
+    for (let i = 0; i < n; i++) scratch.open[i] = scratch.r[i]! >= minR && openCenter(i) ? 1 : 0
     // 3) кристалл: несколько передних открытых узлов каждого сорта, разнесённых по экрану
     if (crystal) {
       const ord = scratch.order
@@ -135,21 +149,29 @@ export function SchoolBallLabels({
       const count = new Map<string, number>()
       const picked: number[] = []
       scratch.shown.fill(0)
-      for (const i of ord) {
-        if (!scratch.open[i]) continue
+      const tryPick = (i: number, minPx: number) => {
+        if (!scratch.open[i] && !(minPx < minR && scratch.r[i]! >= minPx && openCenter(i))) return
         const lab = atoms[i]!.label
-        if ((count.get(lab) ?? 0) >= CRYSTAL_PER_KIND) continue
-        let far = true
+        if ((count.get(lab) ?? 0) >= CRYSTAL_PER_KIND) return
         for (const j of picked) {
-          if (Math.hypot(scratch.x[j]! - scratch.x[i]!, scratch.y[j]! - scratch.y[i]!) < 2.6 * Math.max(scratch.r[i]!, scratch.r[j]!)) {
-            far = false
-            break
-          }
+          if (Math.hypot(scratch.x[j]! - scratch.x[i]!, scratch.y[j]! - scratch.y[i]!) < 2.6 * Math.max(scratch.r[i]!, scratch.r[j]!, 12)) return
         }
-        if (!far) continue
         picked.push(i)
         count.set(lab, (count.get(lab) ?? 0) + 1)
         scratch.shown[i] = 1
+      }
+      for (const i of ord) tryPick(i, minR)
+      // Мелкие ионы (Na⁺ рядом с Cl⁻): если ни один не набрал порога размера — одна подпись на самом
+      // крупном открытом переднем узле сорта (буква может чуть выйти за шар, но сорт назван).
+      const labels = new Set(atoms.map((a) => a.label))
+      for (const lab of labels) {
+        if ((count.get(lab) ?? 0) > 0) continue
+        for (const i of ord) {
+          if (atoms[i]!.label !== lab) continue
+          const before = count.get(lab) ?? 0
+          tryPick(i, 5)
+          if ((count.get(lab) ?? 0) > before) break
+        }
       }
     } else {
       for (let i = 0; i < n; i++) scratch.shown[i] = scratch.open[i]!

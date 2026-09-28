@@ -47,8 +47,10 @@ export function heroFrameGeometry(compoundId: string | null | undefined): HeroFr
   const model = compoundId ? buildHeroModel(compoundId) : null
   const lines = model ? heroCaptionLines(model.caption).length : 0
   // Единый школьный вид: символы ВНУТРИ шаров — композиция не шире описанной сферы модели.
+  // Кристалл (куб из ячеек) на экране заметно меньше описанной сферы: половина проекции вращающегося
+  // куба ≤ 0,82 радиуса сферы — кадр по сфере уменьшал решётку после сцены урока.
   return {
-    fitRadius: HERO_FIT_RADIUS * 1.02,
+    fitRadius: HERO_FIT_RADIUS * (school.kind === 'crystal' ? 0.82 : 1.02),
     captionPx: lines > 0 ? CAPTION_GAP_PX + lines * CAPTION_LINE_PX : 0,
   }
 }
