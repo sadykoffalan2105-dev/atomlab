@@ -195,7 +195,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'hero.why.nacl': 'Na elektron beradi, Cl uni qabul qiladi, Na⁺ va Cl⁻ ionlari barcha tomonga tortiladi — shuning uchun tuz molekula emas, balki har bir ion oltita qarama-qarshi ion bilan o‘ralgan kristall.',
   'hero.note.crystal': 'Panjara bo‘lagi: {cells} elementar yacheyka, chiziqlar — ularning qirralari.',
   'hero.note.gas': 'Qo‘shni molekulalar ko‘rsatilmagan: 25 °C va 1 atm da ular orasidagi o‘rtacha masofa ≈ {d} nm — molekulaning o‘zidan 10–30 marta katta.',
-  'hero.note.hbond': 'Punktir — qo‘shni molekulalar bilan O–H···O vodorod bog‘lari.',
+  'hero.note.hbond': 'Bitta molekula ko‘rsatilgan; suyuq suvda har bir molekula qo‘shnilari bilan O–H···O vodorod bog‘lari orqali bog‘langan (to‘rttagacha).',
   'hero.note.single': 'Bitta molekula ko‘rsatilgan; suyuqlikda qo‘shni molekulalar unga tegib turadi, lekin bog‘lanmagan.',
   'hero.note.sio2': 'α-kvars karkasi ko‘rsatilgan — 25 °C dagi barqaror shakl; kremniyning o‘zidagi oksid amorf.',
   'hero.note.pbo': 'Qizil glyot (α-PbO) — 25 °C dagi barqaror shakl; sariq massikot (β) — yuqori haroratli shakl.',
