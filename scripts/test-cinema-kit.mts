@@ -526,6 +526,13 @@ test('решётка: первая сфера однозначна, КЧ из б
     const per = periodicNeighbors(id)
     ok(per.length === cr.basis.length, `${id}: окружение у каждого атома базиса`)
     const cnSet = new Set(Object.values(cr.coordination))
+    // Барит: у Ba²⁺ 12 атомов O на 276,6…331,5 пм, а ближайший S — уже на 351 пм; единой «первой сферы» по
+    // правилу 1,13 × кратчайшего у ионов с многоатомным анионом нет. КЧ Ba = 12 с явным порогом 340 пм
+    // проверяет test-crystal-basis, узлы и расстояния Ba–O сцены — test-solution-scene.
+    if (id === 'barite') {
+      ok(near(Math.min(...per.map((x) => x.minPm)), cr.cationAnionPm, 0.1), `${id}: кратчайшее из базиса = cationAnionPm`)
+      continue
+    }
     per.forEach((p, i) => {
       ok(p.gapRatio > 1.1, `${id}[${i}]: граница первой сферы размыта (${p.gapRatio.toFixed(3)})`)
       // молекулярный кристалл (сухой лёд): в coordination — число соседних МОЛЕКУЛ, а не атомов
