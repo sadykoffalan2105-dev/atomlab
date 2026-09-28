@@ -75,15 +75,15 @@ export const BASO4_SOLUTION_SPEC: SolutionSceneSpec = {
   seedUnits: 4,
   laterUnits: 3,
   start: {
-    cation: [-470, -10, 0],
+    cation: [-450, -10, 0],
     anions: [
-      [-980, 430, 0],
-      [-960, -440, 0],
+      [-960, 360, 0],
+      [-940, -370, 0],
     ],
-    group: [500, -10, 0],
+    group: [480, -10, 0],
     protons: [
-      [1000, 430, 0],
-      [980, -450, 0],
+      [980, 360, 0],
+      [960, -380, 0],
     ],
   },
   meet: { center: [0, -40, 0], gapPm: 380 },
@@ -97,26 +97,26 @@ export const BASO4_SOLUTION_SPEC: SolutionSceneSpec = {
       [-620, -450, -60],
     ],
   },
-  nucleus: { center: [0, -650, 0], yaw: -0.55, yawRate: 0.02 },
+  nucleus: { center: [0, -520, 0], yaw: -0.55, yawRate: 0.02 },
   spectators: {
     anions: [
-      [-900, 380, -40],
-      [380, 520, 40],
+      [-860, 430, -40],
+      [360, 520, 40],
     ],
     protons: [
-      [-320, 560, 40],
-      [940, 360, -40],
+      [-280, 560, 40],
+      [900, 420, -40],
     ],
   },
   result: {
-    crystal: [-640, -60, 0],
+    crystal: [-620, 40, 0],
     anions: [
-      [1150, 430, 0],
-      [1150, -560, 0],
+      [1120, 400, 0],
+      [1120, -420, 0],
     ],
     protons: [
-      [560, 430, 0],
-      [580, -540, 0],
+      [540, 420, 0],
+      [560, -400, 0],
     ],
   },
   laterFrom: [

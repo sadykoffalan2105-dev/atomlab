@@ -237,7 +237,7 @@ export class SolutionExchangeScene {
       )
     this.glassGeo = lathe(roundTestTubeProfile(R, H))
     this.glassMat = new THREE.MeshPhysicalMaterial({ color: 0xe8f4ff, roughness: 0.05, metalness: 0, transmission: 0, transparent: true, opacity: 0.1, side: THREE.FrontSide, depthWrite: false, fog: false })
-    this.rimMat = new THREE.MeshBasicMaterial({ color: 0xbfdcff, transparent: true, opacity: 0.3, side: THREE.BackSide, depthWrite: false, fog: false })
+    this.rimMat = new THREE.MeshBasicMaterial({ color: 0xd8ecff, transparent: true, opacity: 0.45, side: THREE.BackSide, depthWrite: false, fog: false })
     // жидкость: полусферическое дно (не тянется) + столбик до уровня (масштаб по y)
     this.liquidGeo = lathe(liquidProfile(R, R))
     this.columnGeo = new THREE.CylinderGeometry(R * 0.9 * K, R * 0.9 * K, 1, opts.lowPower ? 28 : 48, 1, false)
@@ -400,8 +400,10 @@ export class SolutionExchangeScene {
       }
     })
     try {
-      if (typeof renderer.compileAsync === 'function') await renderer.compileAsync(this.root, camera, targetScene ?? null)
-      else renderer.compile(this.root, camera, targetScene ?? null)
+      // Синхронно: compileAsync опрашивает программы таймером и падает (isReady у undefined), если сцену
+      // успели снять с экрана до конца опроса (быстрый перезапуск синтеза).
+      renderer.compile(this.root, camera, targetScene ?? null)
+      await Promise.resolve()
     } catch {
       /* прогрев — не критичный путь */
     } finally {
@@ -573,8 +575,8 @@ export class SolutionExchangeScene {
     this.columnA.scale.set(1, Math.max(0.001, (s.tubeA.level * H - m.tube.r) * K), 1)
     this.columnB.scale.set(1, Math.max(0.001, (s.tubeB.level * H - m.tube.r) * K), 1)
     this.liquidB.visible = s.tubeB.liquid > 0.02
-    this.glassMat.opacity = 0.1 * s.macroAlpha
-    this.rimMat.opacity = 0.3 * s.macroAlpha
+    this.glassMat.opacity = 0.13 * s.macroAlpha
+    this.rimMat.opacity = 0.45 * s.macroAlpha
     // мутная жидкость белеет
     const milk = s.turbidity
     this.liquidMatA.color.setRGB(0.7 + 0.3 * milk, 0.84 + 0.16 * milk, 1)

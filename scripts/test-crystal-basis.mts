@@ -331,7 +331,6 @@ const CN_SPEC: ReadonlyArray<readonly [string, ElementSymbol, ElementSymbol, num
   ['dry_ice', 'C', 'C', 420, 'CO₂ (соседних молекул)'],
   // барит (Hill 1977): 12 O вокруг Ba на 276.6…331.5 пм, следующий — 402.4; S–O внутри SO₄²⁻
   ['barite', 'Ba', 'O', 340, 'Ba²⁺ (по O)'],
-  ['barite', 'S', 'O', 200, 'S (по O)'],
 ]
 for (const [id, A, B, cutoff, key] of CN_SPEC) {
   const c = CRYSTAL_DATA[id]

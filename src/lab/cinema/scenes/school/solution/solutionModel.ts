@@ -1182,20 +1182,21 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   const ma = out.macroAlpha
   setLabel(L.tubeA, out.tubeA.x, out.tubeA.y - 90, 0, windowAlpha(m.labels[L.tubeA]!.from, m.labels[L.tubeA]!.to, t) * ma)
   setLabel(L.tubeB, 210, -H / 2 - 90, 0, windowAlpha(m.labels[L.tubeB]!.from, m.labels[L.tubeB]!.to, t) * ma)
-  setLabel(L.precip, out.tubeA.x + m.tube.r + 40, out.tubeA.y + sedTop * 0.6, 0, windowAlpha(m.labels[L.precip]!.from, m.labels[L.precip]!.to, t) * ma)
-  setLabel(L.acid, out.tubeA.x + m.tube.r + 40, out.tubeA.y + out.tubeA.level * H * 0.62, 0, windowAlpha(m.labels[L.acid]!.from, m.labels[L.acid]!.to, t) * ma)
+  setLabel(L.precip, out.tubeA.x + m.tube.r + 400, out.tubeA.y + sedTop * 0.6, 0, windowAlpha(m.labels[L.precip]!.from, m.labels[L.precip]!.to, t) * ma)
+  setLabel(L.acid, out.tubeA.x + m.tube.r + 470, out.tubeA.y + out.tubeA.level * H * 0.62, 0, windowAlpha(m.labels[L.acid]!.from, m.labels[L.acid]!.to, t) * ma)
   setLabel(L.nitric, out.tubeA.x, out.tubeA.y + H + 110, 0, windowAlpha(m.labels[L.nitric]!.from, m.labels[L.nitric]!.to, t) * ma)
   // подписи микро-кадра
   k = out.microScale
   const mi = out.microAlpha
-  setLabel(L.solA, -620, 900, 0, windowAlpha(m.labels[L.solA]!.from, m.labels[L.solA]!.to, t) * mi)
-  setLabel(L.solB, 620, 900, 0, windowAlpha(m.labels[L.solB]!.from, m.labels[L.solB]!.to, t) * mi)
-  const cBottom = out.crystal.c[1] - 520
+  setLabel(L.solA, -620, 780, 0, windowAlpha(m.labels[L.solA]!.from, m.labels[L.solA]!.to, t) * mi)
+  setLabel(L.solB, 620, 780, 0, windowAlpha(m.labels[L.solB]!.from, m.labels[L.solB]!.to, t) * mi)
+  const cBottom = out.crystal.c[1] - 470
   setLabel(L.crystal, out.crystal.c[0], cBottom, 0, windowAlpha(m.labels[L.crystal]!.from, m.labels[L.crystal]!.to, t) * mi * out.crystal.alpha)
-  setLabel(L.neighbors, out.crystal.c[0] + 1180, out.crystal.c[1] + 60, 0, windowAlpha(m.labels[L.neighbors]!.from, m.labels[L.neighbors]!.to, t) * mi)
-  setLabel(L.stepEq, out.crystal.c[0], out.crystal.c[1] - 720, 0, windowAlpha(m.labels[L.stepEq]!.from, m.labels[L.stepEq]!.to, t) * mi)
-  setLabel(L.equation, 150, -1080, 0, windowAlpha(m.labels[L.equation]!.from, m.labels[L.equation]!.to, t) * mi)
-  setLabel(L.ionic, 150, -1260, 0, windowAlpha(m.labels[L.ionic]!.from, m.labels[L.ionic]!.to, t) * mi)
+  setLabel(L.neighbors, out.crystal.c[0], cBottom - 150, 0, windowAlpha(m.labels[L.neighbors]!.from, m.labels[L.neighbors]!.to, t) * mi)
+  // уравнение шага есть в панели урока — в 3D его не дублируем
+  setLabel(L.stepEq, out.crystal.c[0], cBottom - 300, 0, 0)
+  setLabel(L.equation, 150, -700, 0, windowAlpha(m.labels[L.equation]!.from, m.labels[L.equation]!.to, t) * mi)
+  setLabel(L.ionic, 150, -860, 0, windowAlpha(m.labels[L.ionic]!.from, m.labels[L.ionic]!.to, t) * mi)
   return out
 }
 
@@ -1210,14 +1211,14 @@ export function solutionExtentAt(m: SolutionModel, t: number): { w: number; h: n
     { t: T.pour1, e: [1600, 1750, 230, 150] },
     { t: T.pour1 + 0.6, e: [900, 1250, 0, -120] },
     { t: T.micro0 + 0.2, e: [900, 1250, 0, -120] },
-    { t: T.micro1, e: [2750, 1950, 0, 40] },
-    { t: S.meet.from, e: [2750, 1950, 0, 40] },
-    { t: S.meet.to - 0.6, e: [2500, 2050, 0, -20] },
-    { t: S.nucleus.from + 1.2, e: [2500, 2250, 0, -200] },
-    { t: S.nucleus.to - 0.2, e: [2500, 2250, 0, -200] },
-    { t: T.microOut0 + 0.2, e: [900, 1300, 90, -80] },
-    { t: T.micro2 + 0.1, e: [900, 1300, 90, -80] },
-    { t: T.micro3 + 0.3, e: [2800, 2600, 100, -300] },
+    { t: T.micro1, e: [2600, 1560, 0, 20] },
+    { t: S.meet.from, e: [2600, 1560, 0, 20] },
+    { t: S.meet.to - 0.6, e: [2300, 1650, 0, 0] },
+    { t: S.nucleus.from + 1.2, e: [2400, 1950, 0, -150] },
+    { t: S.nucleus.to - 0.2, e: [2400, 1950, 0, -150] },
+    { t: T.microOut0 + 0.2, e: [1150, 1250, 230, -100] },
+    { t: T.micro2 + 0.1, e: [1150, 1250, 230, -100] },
+    { t: T.micro3 + 0.3, e: [3000, 1850, -120, -60] },
   ]
   const out = { w: 0, h: 0, cx: 0, cy: 0 }
   let a = keys[0]!

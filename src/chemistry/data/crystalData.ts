@@ -742,7 +742,8 @@ export const CRYSTAL_DATA: Readonly<Record<string, CrystalDatum>> = {
     // кратчайшее расстояние в решётке — S–O1 ВНУТРИ сульфат-иона (145.4); кратчайшее Ba–O — 276.6 пм
     cationAnionPm: 145.4,
     // КЧ Ba: 12 атомов O на 276.6…331.5 пм (из 7 разных групп SO₄), следующий O — 402.4 пм
-    coordination: { 'Ba²⁺ (по O)': 12, 'S (по O)': 4 },
+    // S — 4 атома O своей группы (связи внутри иона, не координация иона): в подписи героя только КЧ Ba²⁺
+    coordination: { 'Ba²⁺ (по O)': 12 },
     z: 4,
     densityGCm3: 4.469,
     ionic: true,
