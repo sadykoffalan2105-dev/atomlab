@@ -270,6 +270,15 @@ ok('наблюдатели H₃O⁺ и Cl⁻ не ближе 300 пм к узл�
   const book = (g: number) => (JSON.parse(readFileSync(new URL(`../src/data/textbook/equations-g${g}.json`, import.meta.url), 'utf8')) as { units: { unitId: string; reactions: Row[] }[] }).units
   const g7 = book(7).flatMap((u) => u.reactions.map((x) => ({ ...x, unit: u.unitId }))).find((x) => x.page === 67 && x.equation.startsWith('BaCl₂ + H₂SO₄'))
   ok('7 кл. с. 67: реакция размечена и ведёт на банк bacl2-h2so4', g7?.bankId === 'bacl2-h2so4', g7)
+  {
+    // ссылка «в лабораторию» из учебника: ?reactor=1&reaction=…&src=… (без main) — главный продукт BaSO₄, сцена играет
+    const href = (g7 as unknown as { lab?: { href?: string } })?.lab?.href ?? ''
+    const q = new URLSearchParams(href.split('?')[1] ?? '')
+    const spec = { reactionId: q.get('reaction') ?? undefined, main: q.get('main') ?? undefined }
+    const rr = resolveReactorEquation(spec)
+    ok('учебник 7 кл. r1: ссылка в реактор с bacl2-h2so4', q.get('reactor') === '1' && spec.reactionId === 'bacl2-h2so4', href)
+    ok('учебник 7 кл. r1: реактор → BaSO₄ и школьная сцена', rr.ok && rr.productCompoundId === 'salt_ba_so4' && reactorLinkHasScene(spec))
+  }
   const g8 = book(8).flatMap((u) => u.reactions).find((x) => x.page === 139 && x.equation.startsWith('H₂SO₄ + BaCl₂'))
   ok('8 кл. § 32 с. 139: реакция ведёт на банк bacl2-h2so4', g8?.bankId === 'bacl2-h2so4', g8)
   const lesson = getCinemaLesson('baso4')
