@@ -311,7 +311,9 @@ export function SchoolMoleculeView({
       op = THREE.MathUtils.smoothstep(_sc.x, 0.82 * scale, 0.98 * scale)
     }
     labelOpacity.current = op
-    if (captionLabels.length > 0 && o) layoutCaption(captionLabels, state, o, model.radius, op, _sc.x || scale)
+    // Низ наклонённого куба ≈ 0,8 радиуса описанной сферы (кадр героя вписывает 0,82 — heroFrame):
+    // подпись под сферой уходила на панель реактора.
+    if (captionLabels.length > 0 && o) layoutCaption(captionLabels, state, o, model.radius * (crystal ? 0.8 : 1), op, _sc.x || scale)
   })
 
   return (
