@@ -38,6 +38,15 @@ export const G7_FIRST10_SCENE_REACTIONS: Readonly<Record<string, SchoolSceneReac
   n2o5: { bankId: 'n2o5-h2o-hno3', equation: 'N₂O₅ + H₂O → 2HNO₃', main: 'hno3' },
 }
 
+/**
+ * Вещества со школьной сценой «обмен в растворе» (scenes/school/solution): карточка ведёт на реакцию сцены,
+ * а не на предпочтительную реакцию банка (для BaSO₄ это была бы нейтрализация Ba(OH)₂ + H₂SO₄ без сцены).
+ * Совпадение со спецификацией (specs/baso4.ts) проверяет scripts/test-solution-scene.mts.
+ */
+export const SOLUTION_SCENE_REACTIONS: Readonly<Record<string, SchoolSceneReaction>> = {
+  salt_ba_so4: { bankId: 'bacl2-h2so4', equation: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl', main: 'salt_ba_so4' },
+}
+
 export type SchoolSceneLink = {
   /** id реакции банка (для «Открыть в реакциях»), null — только ссылка по уравнению. */
   readonly bankId: string | null
@@ -63,7 +72,7 @@ export function schoolSceneLinkForCompound(compoundId: string): SchoolSceneLink 
   const hit = cache.get(compoundId)
   if (hit !== undefined) return hit
   let out: SchoolSceneLink | null = null
-  const g7 = G7_FIRST10_SCENE_REACTIONS[compoundId]
+  const g7 = G7_FIRST10_SCENE_REACTIONS[compoundId] ?? SOLUTION_SCENE_REACTIONS[compoundId]
   if (g7) {
     const spec: ReactorLinkSpec = g7.bankId ? { reactionId: g7.bankId, main: g7.main } : { equation: g7.equation, main: g7.main }
     const bank = g7.bankId ? getSchoolReaction(g7.bankId) : undefined

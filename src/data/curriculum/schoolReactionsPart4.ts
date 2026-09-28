@@ -188,10 +188,11 @@ export const SCHOOL_REACTIONS_PART4: readonly SchoolReactionDef[] = [
     titleRu: 'Обмен: BaCl₂ + H₂SO₄',
     titleEn: 'BaCl₂ + H₂SO₄ exchange',
     reactionClass: 'exchange',
-    grades: [8, 9],
+    // 7 кл. гл. II тема 12, с. 67 (признак «осадок»); 8 кл. § 32, с. 139; 9 кл. § 6
+    grades: [7, 8, 9],
     equationRu: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',
     equationEn: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',
-    productId: null,
+    productId: 'salt_ba_so4',
     kind: 'practice_only',
     compoundIds: ['salt_ba_cl', 'h2so4', 'salt_ba_so4', 'hcl'],
     reactants: [
@@ -200,6 +201,8 @@ export const SCHOOL_REACTIONS_PART4: readonly SchoolReactionDef[] = [
     ],
     howToRu: 'BaCl₂ + H₂SO₄ → BaSO₄↓. Качественная реакция на SO₄²⁻.',
     howToEn: 'Barium sulfate precipitate from acid and barium chloride.',
+    // Без нагрева: растворы сливают при комнатной температуре, осадок выпадает сразу.
+    labNeeds: {},
   },
   {
     id: 'nahco3-hcl',

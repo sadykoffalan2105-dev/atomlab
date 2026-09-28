@@ -8,6 +8,7 @@ import { H2oCinemaScene } from '../cinema/scenes/h2o/H2oCinemaScene'
 import { HclCinemaScene } from '../cinema/scenes/hcl/HclCinemaScene'
 import { Co2CinemaScene } from '../cinema/scenes/co2/Co2CinemaScene'
 import { CoCinemaScene } from '../cinema/scenes/co/CoCinemaScene'
+import { Baso4CinemaScene } from '../cinema/scenes/baso4/Baso4CinemaScene'
 import { NaclCinemaScene } from '../cinema/scenes/nacl/NaclCinemaScene'
 import { NoCinemaScene } from '../cinema/scenes/no/NoCinemaScene'
 import { No2CinemaScene } from '../cinema/scenes/no2/No2CinemaScene'
@@ -73,6 +74,9 @@ const REGISTRY: Record<ScientificSceneProductId, ComponentType<ScientificSynthes
   mgo: MgoCinemaScene,
   // Учебник 8: получение водорода, Zn + 2 HCl → ZnCl₂ + H₂↑ (bank 'zn-hcl', productId 'salt_zn_cl'). Прямой синтез Zn + Cl₂ ('zn-cl2-zncl2') эту сцену больше не включает.
   salt_zn_cl: Zncl2CinemaScene,
+  // Учебник 7 (гл. II, тема 12, с. 67): школьная сцена «обмен в растворе», BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl
+  // (bank 'bacl2-h2so4'): ионы в воде, H₃O⁺, SO₄²⁻ целиком, кристаллик барита, осадок и соляная кислота.
+  salt_ba_so4: Baso4CinemaScene,
   // Ключ 'ch4_combustion' не совпадает ни с одним productId каталога —
   // готово к запуску, ждёт UI-переключателя маршрута для CO₂/H₂O (не ломает C+O₂ / 2H₂+O₂ по умолчанию).
   ch4_combustion: Ch4CombustionSciFx,

@@ -751,10 +751,30 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
             defaultOpen={false}
           >
             <ul className={styles.legend} aria-label={t('lab.mechanism.legend')}>
-              <li>
-                <ElectronIcon />
-                <span>{text.legend.electron}</span>
-              </li>
+              {text.legend.electron ? (
+                <li>
+                  <ElectronIcon />
+                  <span>{text.legend.electron}</span>
+                </li>
+              ) : null}
+              {text.legend.ion ? (
+                <li>
+                  <IonIcon />
+                  <span>{text.legend.ion}</span>
+                </li>
+              ) : null}
+              {text.legend.stick ? (
+                <li>
+                  <StickIcon />
+                  <span>{text.legend.stick}</span>
+                </li>
+              ) : null}
+              {text.legend.precipitate ? (
+                <li>
+                  <PrecipitateIcon />
+                  <span>{text.legend.precipitate}</span>
+                </li>
+              ) : null}
               {text.legend.pairArrow ? (
                 <li>
                   <PairArrowIcon />
@@ -1048,6 +1068,41 @@ function VibrationIcon() {
   return (
     <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
       <path d="M2 7c2-4 4-4 6 0s4 4 6 0 4-4 6 0 4 4 6 0" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** Сцена раствора: шар иона со знаком заряда. */
+function IonIcon() {
+  return (
+    <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
+      <circle cx="11" cy="7.5" r="5.2" fill="currentColor" opacity="0.5" />
+      <path d="M20 4h5M22.5 1.5v5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** Сцена раствора: два шара и серая палочка — связь внутри частицы. */
+function StickIcon() {
+  return (
+    <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
+      <path d="M6 7h16" stroke="currentColor" strokeWidth="2" opacity="0.55" />
+      <circle cx="5" cy="7" r="3.6" fill="currentColor" opacity="0.5" />
+      <circle cx="23" cy="7" r="3.6" fill="currentColor" opacity="0.5" />
+    </svg>
+  )
+}
+
+/** Сцена раствора: белый осадок на дне. */
+function PrecipitateIcon() {
+  return (
+    <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
+      <path d="M3 12.5h22" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="8" cy="10" r="1.6" fill="currentColor" />
+      <circle cx="13" cy="10.4" r="1.6" fill="currentColor" />
+      <circle cx="18" cy="10" r="1.6" fill="currentColor" />
+      <circle cx="11" cy="5" r="1.1" fill="currentColor" opacity="0.6" />
+      <circle cx="17" cy="3.5" r="1.1" fill="currentColor" opacity="0.6" />
     </svg>
   )
 }
