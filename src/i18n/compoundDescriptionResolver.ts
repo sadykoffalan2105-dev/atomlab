@@ -118,6 +118,10 @@ const MANUAL_DESC: Record<string, { en: string; uz: string }> = {
     en: 'Polar molecule and universal solvent. Essential for life, acid–base chemistry, and hydrolysis. In ATOMLAB the bent shape and hydrogen bonds are shown in 3D.',
     uz: 'Polyar molekula va universal erituvchi. Hayot, kislota–asos kimyosi va gidroliz uchun zarur. ATOMLABda buklangan shakl va vodorod bog\'lari 3D ko\'rsatiladi.',
   },
+  salt_mg_cl: {
+    en: 'Magnesium chloride MgCl₂ is a white ionic salt (Mg²⁺ and Cl⁻ ions) that dissolves well in water; its solution is an electrolyte. It occurs in seawater; metallic magnesium is made by electrolysis of molten MgCl₂. It forms when magnesium burns in chlorine: Mg + Cl₂ → MgCl₂.',
+    uz: 'Magniy xlorid MgCl₂ — oq ionli tuz (Mg²⁺ va Cl⁻ ionlari), suvda yaxshi eriydi; eritmasi elektrolit. Dengiz suvida uchraydi; suyuqlantirilgan MgCl₂ ni elektroliz qilib metall magniy olinadi. Magniy xlorda yonganda hosil boʻladi: Mg + Cl₂ → MgCl₂.',
+  },
   co2: {
     en: 'Linear molecule of carbon dioxide — product of respiration and combustion. Dissolves in water forming carbonic acid; studied with lime water and the carbon cycle.',
     uz: 'Karbonat angidrid — nafas olish va yonish mahsuloti. Suvda erib uglerod kislotasini hosil qiladi; ohak suvi va uglerod aylanishi bilan o\'rganiladi.',
@@ -131,16 +135,16 @@ const MANUAL_DESC: Record<string, { en: string; uz: string }> = {
     uz: 'To\'liq bo\'lmagan yonishdan hosil bo\'ladigan hidsiz zaharli gaz. Gemoglobinga kisloroddan kuchliroq bog\'lanadi — yomon shamollatishda xavfli. Darslarda CO₂ bilan solishtiriladi.',
   },
   so2: {
-    en: 'Pungent gas that dissolves in water forming acidic solution. Used industrially for sulfuric acid; food preservative in trace amounts. School demos cover solubility and redox of sulfur.',
-    uz: 'Keskin hidli gaz, suvda erib kislota muhit hosil qiladi. Sanoatda oltingugurt kislotasi uchun; oz miqdorda konservant. Maktabda eruvchanlik va oltingugurt OKV jarayonlari ko\'rsatiladi.',
+    en: 'Colourless gas with the pungent smell of a burning match; dissolves in water forming acidic solution. Used industrially for sulfuric acid; food preservative in trace amounts. School demos cover solubility and redox of sulfur.',
+    uz: 'Yonayotgan gugurt hidiga oʻxshash keskin hidli rangsiz gaz, suvda erib kislota muhit hosil qiladi. Sanoatda oltingugurt kislotasi uchun; oz miqdorda konservant. Maktabda eruvchanlik va oltingugurt OKV jarayonlari ko\'rsatiladi.',
   },
   so3: {
     en: 'Strong acidic oxide; reacts vigorously with water to form sulfuric acid. Key step in the contact process. Handled with extreme care in the lab.',
     uz: 'Kuchli kislota oksidi; suv bilan issiqlik ajratib oltingugurt kislotasini hosil qiladi. Kontakt jarayonining asosiy bosqichi. Laboratoriyada juda ehtiyotkorlik bilan ishlatiladi.',
   },
   no: {
-    en: 'Neutral gas that quickly oxidizes in air to NO₂. Role in nitric acid synthesis and nitrogen redox series NO → NO₂ → HNO₃.',
-    uz: 'Neytral gaz, havoda tez NO₂ ga oksidlanadi. Azot kislotasi sintezi va NO → NO₂ → HNO₃ zanjirida muhim.',
+    en: 'Colourless non-salt-forming gas; in air it is quickly oxidized to brown NO₂ (2NO + O₂ → 2NO₂). Role in nitric acid synthesis and nitrogen redox series NO → NO₂ → HNO₃.',
+    uz: 'Rangsiz, tuz hosil qilmaydigan gaz; havoda tez qoʻngʻir NO₂ gacha oksidlanadi (2NO + O₂ → 2NO₂). Azot kislotasi sintezi va NO → NO₂ → HNO₃ zanjirida muhim.',
   },
   no2: {
     en: 'Red-brown toxic gas involved in smog and acid rain. Made in school by copper and nitric acid. Used to study equilibrium 2NO₂ ⇌ N₂O₄.',
