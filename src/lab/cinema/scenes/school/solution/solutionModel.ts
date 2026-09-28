@@ -1,0 +1,1241 @@
+/**
+ * МОДЕЛЬ КАДРА сцены «обмен в растворе» — единственный источник правды: sampleSolutionState(m, t).
+ * Чистые функции без three: класс SolutionExchangeScene только переносит состояние в объекты,
+ * тест scripts/test-solution-scene.mts проверяет его на любом t. Все длины — пм (система сцены).
+ *
+ * Сюжет по шагам (SOLUTION_STEP_IDS):
+ *   tubes   — макро: две пробирки, вторую сливают в первую, белая муть, первые крупинки на дне;
+ *   ions    — микро: Ba²⁺ и 2Cl⁻ | [SO₄]²⁻ и 2H₃O⁺ в своих водных оболочках, частицы дрожат;
+ *   meet    — растворы смешиваются: ионы блуждают зигзагами, Ba²⁺ и SO₄²⁻ сближаются (пунктир
+ *             притяжения), вода между ними отходит; H₃O⁺ и Cl⁻ проходят мимо друг друга;
+ *   nucleus — зародыш барита (узлы — решётка ядра), пара садится в свои узлы, Ba²⁺ меняет радиус
+ *             142 → 161 пм в кадр посадки (КЧ 8 в воде → КЧ 12 в кристалле), SO₄ поворачивается
+ *             в ориентацию узла; за ней садятся ещё две пары из остального объёма;
+ *   settle  — макро: муть оседает, слой осадка растёт, над ним соляная кислота;
+ *   result  — микро: кристаллик и наблюдатели H₃O⁺, Cl⁻ в воде, уравнения.
+ *
+ * Химия — из ядра: радиусы Шеннона (Ba²⁺ КЧ 8/12, Cl⁻), S–O и ∠O–S–O сульфат-иона, O–H и ∠ H₃O⁺,
+ * O–H и ∠ воды, H···O водородной связи, ковалентные радиусы (Кордеро) для шаров внутри частиц,
+ * узлы и ориентации групп — решётка барита (kit/lattice, CRYSTAL_DATA.barite).
+ * Блуждание — детерминированное (синусы от зерна): тест воспроизводим.
+ */
+import {
+  ATOMIC_DATA,
+  bondAngleDeg,
+  bondLengthPm,
+  ionicRadiusPm,
+  reagentAngleDeg,
+  reagentBondPm,
+  type ElementSymbol,
+} from '../../../../../chemistry/data'
+import { latticeGroupedFragment } from '../../kit/lattice'
+import { defineSceneTiming, type SceneFinish, type SceneStep, type SceneTiming } from '../../kit/sceneKit'
+import { SOLUTION_STEP_IDS, type L10n, type SolutionStepId } from '../specs/types'
+import type { SolutionSceneSpec, SV3 } from './solutionSpec'
+
+export type V3 = [number, number, number]
+/** Кватернион [x, y, z, w]. */
+export type Q4 = [number, number, number, number]
+
+export type SolutionCueId = 'mix' | 'meet' | 'land' | 'embryo' | 'birth' | 'complete'
+
+/** Параметры рисунка (как SCHOOL_DRAW школьных сцен): шар — доля радиуса, палочки, подписи. */
+export const SOLUTION_DRAW = {
+  /** Доля радиуса для шара (как у школьных сцен: 0,62 — у ионов от радиуса Шеннона, у атомов частиц — от Кордеро). */
+  ballScale: 0.62,
+  stickR: 5.2,
+  waterStickR: 4,
+} as const
+
+// ─── Числа ядра ──────────────────────────────────────────────────────────────
+
+/** Все числа геометрии сцены — из ядра (тест сверяет каждое). */
+export function solutionCore() {
+  const baWater = ionicRadiusPm('Ba', 2, 8)!
+  const baCrystal = ionicRadiusPm('Ba', 2, 12)!
+  const cl = ionicRadiusPm('Cl', -1)!
+  // Контакт «ион — кислород воды»: сумма радиусов Шеннона (O²⁻ при КЧ 6 у катиона, КЧ 2 у аниона):
+  // Ba–O 142 + 140 = 282 пм (Persson 1995: 282), Cl···O 181 + 135 = 316 пм (Ohtaki & Radnai: 310–320).
+  const o6 = ionicRadiusPm('O', -2, 6)!
+  const o2 = ionicRadiusPm('O', -2, 2)!
+  return {
+    baWater,
+    baCrystal,
+    cl,
+    baO: baWater + o6,
+    clO: cl + o2,
+    so: reagentBondPm('sulfate', 'S–O'),
+    oso: reagentAngleDeg('sulfate', '∠O–S–O'),
+    h3oOH: reagentBondPm('hydronium', 'O–H'),
+    h3oHOH: reagentAngleDeg('hydronium', '∠H–O–H'),
+    wOH: bondLengthPm('O-H'),
+    wHOH: bondAngleDeg('water'),
+    hbond: bondLengthPm('O-H...O'),
+  }
+}
+
+// ─── Векторная алгебра (без аллокаций в кадре) ───────────────────────────────
+
+const smooth = (a: number, b: number, t: number) => {
+  if (b <= a) return t >= b ? 1 : 0
+  const x = Math.min(1, Math.max(0, (t - a) / (b - a)))
+  return x * x * (3 - 2 * x)
+}
+export { smooth as solutionSmooth }
+const lerp = (a: number, b: number, u: number) => a + (b - a) * u
+const norm = (v: V3): V3 => {
+  const l = Math.hypot(v[0], v[1], v[2]) || 1
+  return [v[0] / l, v[1] / l, v[2] / l]
+}
+function qMul(a: Q4, b: Q4, out: Q4 = [0, 0, 0, 1]): Q4 {
+  const [ax, ay, az, aw] = a
+  const [bx, by, bz, bw] = b
+  out[0] = aw * bx + ax * bw + ay * bz - az * by
+  out[1] = aw * by - ax * bz + ay * bw + az * bx
+  out[2] = aw * bz + ax * by - ay * bx + az * bw
+  out[3] = aw * bw - ax * bx - ay * by - az * bz
+  return out
+}
+function qAxis(axis: V3, ang: number, out: Q4 = [0, 0, 0, 1]): Q4 {
+  const n = norm(axis)
+  const s = Math.sin(ang / 2)
+  out[0] = n[0] * s
+  out[1] = n[1] * s
+  out[2] = n[2] * s
+  out[3] = Math.cos(ang / 2)
+  return out
+}
+function qRot(q: Q4, v: Readonly<V3>, out: V3 = [0, 0, 0]): V3 {
+  const [x, y, z, w] = q
+  const [vx, vy, vz] = v
+  const tx = 2 * (y * vz - z * vy)
+  const ty = 2 * (z * vx - x * vz)
+  const tz = 2 * (x * vy - y * vx)
+  out[0] = vx + w * tx + (y * tz - z * ty)
+  out[1] = vy + w * ty + (z * tx - x * tz)
+  out[2] = vz + w * tz + (x * ty - y * tx)
+  return out
+}
+function qSlerp(a: Q4, b: Q4, u: number, out: Q4 = [0, 0, 0, 1]): Q4 {
+  let [bx, by, bz, bw] = b
+  let cos = a[0] * bx + a[1] * by + a[2] * bz + a[3] * bw
+  if (cos < 0) {
+    cos = -cos
+    bx = -bx
+    by = -by
+    bz = -bz
+    bw = -bw
+  }
+  let k0 = 1 - u
+  let k1 = u
+  if (cos < 0.9995) {
+    const th = Math.acos(cos)
+    const s = Math.sin(th)
+    k0 = Math.sin((1 - u) * th) / s
+    k1 = Math.sin(u * th) / s
+  }
+  out[0] = a[0] * k0 + bx * k1
+  out[1] = a[1] * k0 + by * k1
+  out[2] = a[2] * k0 + bz * k1
+  out[3] = a[3] * k0 + bw * k1
+  const l = Math.hypot(out[0], out[1], out[2], out[3]) || 1
+  out[0] /= l
+  out[1] /= l
+  out[2] /= l
+  out[3] /= l
+  return out
+}
+/** Поворот, переводящий единичный вектор a в b. */
+function qFromTo(a: V3, b: V3): Q4 {
+  const u = norm(a)
+  const v = norm(b)
+  const d = u[0] * v[0] + u[1] * v[1] + u[2] * v[2]
+  if (d < -0.999999) {
+    const axis: V3 = Math.abs(u[0]) < 0.9 ? [0, -u[2], u[1]] : [-u[2], 0, u[0]]
+    return qAxis(axis, Math.PI)
+  }
+  const c: V3 = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]]
+  const q: Q4 = [c[0], c[1], c[2], 1 + d]
+  const l = Math.hypot(...q)
+  return [q[0] / l, q[1] / l, q[2] / l, q[3] / l]
+}
+
+/**
+ * Лучший поворот (метод Хорна): переводит идеальные векторы e_i в векторы узла u_i (минимум Σ|R·e − u|²).
+ * Перебираются все 24 соответствия вершин тетраэдра.
+ */
+function hornFit(e: readonly V3[], u: readonly V3[]): { q: Q4; rms: number } {
+  const perms: number[][] = []
+  const permute = (arr: number[], k: number) => {
+    if (k === arr.length) perms.push([...arr])
+    for (let i = k; i < arr.length; i++) {
+      ;[arr[k], arr[i]] = [arr[i]!, arr[k]!]
+      permute(arr, k + 1)
+      ;[arr[k], arr[i]] = [arr[i]!, arr[k]!]
+    }
+  }
+  permute(e.map((_, i) => i), 0)
+  let best: { q: Q4; rms: number } = { q: [0, 0, 0, 1], rms: Infinity }
+  for (const p of perms) {
+    const S = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    for (let i = 0; i < u.length; i++) {
+      const a = e[p[i]!]!
+      const b = u[i]!
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) S[r * 3 + c]! += a[r]! * b[c]!
+    }
+    const [xx, xy, xz, yx, yy, yz, zx, zy, zz] = S as [number, number, number, number, number, number, number, number, number]
+    const N = [
+      [xx + yy + zz, yz - zy, zx - xz, xy - yx],
+      [yz - zy, xx - yy - zz, xy + yx, zx + xz],
+      [zx - xz, xy + yx, -xx + yy - zz, yz + zy],
+      [xy - yx, zx + xz, yz + zy, -xx - yy + zz],
+    ]
+    const shift = 10
+    let v = [1, 0.1, 0.1, 0.1]
+    for (let it = 0; it < 200; it++) {
+      const w = [0, 0, 0, 0]
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) w[r]! += (N[r]![c]! + (r === c ? shift : 0)) * v[c]!
+      const l = Math.hypot(...w)
+      v = w.map((x) => x / l)
+    }
+    const q: Q4 = [v[1]!, v[2]!, v[3]!, v[0]!]
+    let err = 0
+    for (let i = 0; i < u.length; i++) {
+      const r = qRot(q, e[p[i]!]!)
+      err += (r[0] - u[i]![0]) ** 2 + (r[1] - u[i]![1]) ** 2 + (r[2] - u[i]![2]) ** 2
+    }
+    const rms = Math.sqrt(err / u.length)
+    if (rms < best.rms) best = { q, rms }
+  }
+  return best
+}
+
+// ─── Детерминированное блуждание ─────────────────────────────────────────────
+
+function rng(seed: number): () => number {
+  let s = seed >>> 0
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0
+    let t = s
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+type Wobble = { amp: number; f: V3; ph: V3; rotAmp: number; rf: V3; rph: V3 }
+function makeWobble(r: () => number, amp: number, rotAmp: number): Wobble {
+  const f = (): V3 => [0.9 + 0.9 * r(), 0.8 + 0.9 * r(), 0.7 + 0.8 * r()]
+  const ph = (): V3 => [6.283 * r(), 6.283 * r(), 6.283 * r()]
+  return { amp, f: f(), ph: ph(), rotAmp, rf: f(), rph: ph() }
+}
+function wobblePos(w: Wobble, t: number, out: V3): V3 {
+  out[0] = w.amp * Math.sin(w.f[0] * t + w.ph[0])
+  out[1] = w.amp * Math.sin(w.f[1] * t + w.ph[1])
+  out[2] = 0.6 * w.amp * Math.sin(w.f[2] * t + w.ph[2])
+  return out
+}
+const _wq1: Q4 = [0, 0, 0, 1]
+const _wq2: Q4 = [0, 0, 0, 1]
+function wobbleRot(w: Wobble, t: number, out: Q4): Q4 {
+  qAxis([1, 0, 0], w.rotAmp * Math.sin(w.rf[0] * t + w.rph[0]), _wq1)
+  qAxis([0, 1, 0], w.rotAmp * Math.sin(w.rf[1] * t + w.rph[1]), _wq2)
+  qMul(_wq1, _wq2, out)
+  qAxis([0, 0, 1], w.rotAmp * Math.sin(w.rf[2] * t + w.rph[2]), _wq1)
+  return qMul(out, _wq1, out)
+}
+
+/** Ключевые точки пути: гладко (smoothstep) между соседними, вне — держим крайние. */
+type Key = { readonly t: number; readonly p: SV3 }
+function keyed(keys: readonly Key[], t: number, out: V3): V3 {
+  if (t <= keys[0]!.t) {
+    out[0] = keys[0]!.p[0]
+    out[1] = keys[0]!.p[1]
+    out[2] = keys[0]!.p[2]
+    return out
+  }
+  for (let i = 1; i < keys.length; i++) {
+    const b = keys[i]!
+    if (t <= b.t) {
+      const a = keys[i - 1]!
+      const u = smooth(a.t, b.t, t)
+      out[0] = lerp(a.p[0], b.p[0], u)
+      out[1] = lerp(a.p[1], b.p[1], u)
+      out[2] = lerp(a.p[2], b.p[2], u)
+      return out
+    }
+  }
+  const z = keys[keys.length - 1]!
+  out[0] = z.p[0]
+  out[1] = z.p[1]
+  out[2] = z.p[2]
+  return out
+}
+/** Зигзаг поперёк пути: ноль на концах окна (непрерывно). */
+function zig(t: number, t0: number, t1: number, amp: number, half: number): number {
+  if (t <= t0 || t >= t1) return 0
+  const u = (t - t0) / (t1 - t0)
+  return amp * Math.sin(Math.PI * half * u) * Math.sin(Math.PI * u)
+}
+
+// ─── Модель ──────────────────────────────────────────────────────────────────
+
+export type BodyKind = 'cation' | 'anion' | 'group' | 'proton' | 'water' | 'lattice-cation' | 'lattice-group'
+
+export type SolutionAtom = {
+  readonly el: ElementSymbol
+  readonly body: number
+  /** координата в системе частицы, пм */
+  readonly local: V3
+  /** радиус шара, пм, до масштаба ballScale; у катиона-иона меняется при посадке (см. radiusAt) */
+  readonly radiusPm: number
+  /** подпись символа внутри шара (индекс подписи или −1) */
+  label: number
+}
+
+export type SolutionBody = {
+  readonly id: string
+  readonly kind: BodyKind
+  /** формула частицы: 'Ba²⁺', 'SO₄²⁻', 'H₃O⁺', 'H₂O' */
+  readonly formula: string
+  readonly charge: number
+  readonly atoms: number[]
+  /** посадка в кристалл: время и индекс узла (у ионов, которые садятся) */
+  readonly land?: { readonly t: number; readonly site: number }
+}
+
+export type SolutionStick = { readonly a: number; readonly b: number; readonly water: boolean }
+
+export type SolutionLabelKind = 'atom' | 'atomDark' | 'species' | 'measure' | 'equation'
+
+export type SolutionLabelDef = {
+  readonly id: string
+  readonly kind: SolutionLabelKind
+  readonly text: L10n
+  readonly from: number
+  readonly to: number
+  /** непрозрачность в окне (заряды в решётке — бледнее) */
+  readonly peak?: number
+}
+
+/** Узел кристалла в системе кристалла (центр фрагмента), пм. */
+export type CrystalSite = { readonly el: ElementSymbol; readonly pos: V3; readonly q?: Q4 }
+
+export type SolutionModel = {
+  readonly spec: SolutionSceneSpec
+  readonly core: ReturnType<typeof solutionCore>
+  readonly timing: SceneTiming<SolutionStepId, SolutionCueId>
+  readonly finish: SceneFinish
+  readonly step: Readonly<Record<SolutionStepId, { from: number; to: number }>>
+  readonly atoms: SolutionAtom[]
+  readonly bodies: SolutionBody[]
+  readonly sticks: SolutionStick[]
+  readonly labels: SolutionLabelDef[]
+  /** узлы Ba и S (центры групп) кристалла, использованные сценой, и ориентация групп */
+  readonly sites: CrystalSite[]
+  /** все O групп из решётки (для проверки расстояний Ba–O) */
+  readonly siteLigands: V3[][]
+  /** кратчайшее Ba–O в решётке барита, пм */
+  readonly shortestCationO: number
+  /** точки мути в пробирке */
+  readonly turbidPoints: number
+  /** макро: размеры пробирки */
+  readonly tube: { readonly r: number; readonly h: number }
+  /** индексы тел по ролям */
+  readonly roles: {
+    readonly cation: number
+    readonly group: number
+    readonly anions: readonly number[]
+    readonly protons: readonly number[]
+    readonly lattice: readonly number[]
+    readonly later: readonly number[]
+    readonly waters: readonly number[]
+  }
+  /** внутреннее: функции позы тел */
+  readonly pose: readonly ((t: number, p: V3, q: Q4) => number)[]
+  readonly radiusAt: (atom: number, t: number) => number
+  readonly turbid: { readonly x: Float32Array; readonly y0: Float32Array; readonly z: Float32Array; readonly v: Float32Array }
+}
+
+export type SolutionState = {
+  t: number
+  step: number
+  /** затухание хвоста (1 → 0) */
+  fade: number
+  microAlpha: number
+  microScale: number
+  macroAlpha: number
+  macroScale: number
+  atomPos: Float32Array
+  /** радиус шара, пм (0 — не виден) */
+  atomR: Float32Array
+  stickA: Float32Array
+  stickB: Float32Array
+  stickAlpha: Float32Array
+  labelPos: Float32Array
+  labelOpacity: Float32Array
+  /** проявление каждого тела (0…1) */
+  bodyAppear: Float32Array
+  /** пунктир притяжения Ba²⁺ ↔ SO₄²⁻ и граница двух растворов */
+  attract: { a: V3; b: V3; alpha: number }
+  divider: { alpha: number }
+  /** пробирки: положение дна (x, y), наклон (рад), уровень (доля высоты), видимость */
+  tubeA: { x: number; y: number; rot: number; level: number; alpha: number }
+  tubeB: { x: number; y: number; rot: number; level: number; alpha: number; liquid: number }
+  stream: { a: V3; b: V3; alpha: number }
+  /** муть (0…1), высота слоя осадка (доля высоты пробирки), сколько всего образовалось осадка */
+  turbidity: number
+  sediment: number
+  formed: number
+  turbidPos: Float32Array
+  /** поза кристалла: центр и поворот вокруг вертикали */
+  crystal: { c: V3; yaw: number; alpha: number }
+}
+
+const TUBE = { r: 115, h: 950 }
+const TURBID_N = 240
+
+/** Тетраэдр SO₄: вершины (±1, ±1, ±1) с чётным числом минусов — ось C₂ по z (ни один O не закрывает S). */
+function tetraLocal(so: number): V3[] {
+  const k = so / Math.sqrt(3)
+  return [
+    [k, k, k],
+    [k, -k, -k],
+    [-k, k, -k],
+    [-k, -k, k],
+  ]
+}
+/** Пирамида H₃O⁺: ось C₃ по +z (к зрителю), три H под углом ∠H–O–H. */
+function pyramidLocal(oh: number, hoh: number): V3[] {
+  const cosA = Math.cos((hoh * Math.PI) / 180)
+  const cosB = Math.sqrt((2 * cosA + 1) / 3)
+  const sinB = Math.sqrt(1 - cosB * cosB)
+  return [0, 1, 2].map((i) => {
+    const phi = Math.PI / 2 + (i * 2 * Math.PI) / 3
+    return [oh * sinB * Math.cos(phi), oh * sinB * Math.sin(phi), oh * cosB] as V3
+  })
+}
+/** Вода: O в начале, биссектриса H–O–H по +y. */
+function waterLocal(oh: number, hoh: number): V3[] {
+  const a = ((hoh / 2) * Math.PI) / 180
+  return [
+    [oh * Math.sin(a), oh * Math.cos(a), 0],
+    [-oh * Math.sin(a), oh * Math.cos(a), 0],
+  ]
+}
+
+const cov = (el: ElementSymbol) => ATOMIC_DATA[el].covalentRadiusPm
+
+export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
+  const core = solutionCore()
+  const r = rng(spec.seed)
+  if (spec.steps.length !== SOLUTION_STEP_IDS.length) throw new Error(`solution scene «${spec.id}»: нужно ровно 6 шагов`)
+  spec.steps.forEach((s, i) => {
+    if (s.id !== SOLUTION_STEP_IDS[i]) throw new Error(`solution scene «${spec.id}»: шаг ${i + 1} — «${SOLUTION_STEP_IDS[i]}», а не «${s.id}»`)
+  })
+  const step = Object.fromEntries(spec.steps.map((s) => [s.id, { from: s.from, to: s.to }])) as Record<SolutionStepId, { from: number; to: number }>
+  const last = spec.steps[spec.steps.length - 1]!
+  const finish: SceneFinish = { from: last.to, to: last.to + 1.5, wall: 1.5, ease: 'none' }
+  const steps: SceneStep<SolutionStepId>[] = spec.steps.map((s) => ({ id: s.id, from: s.from, to: s.to, wall: s.to - s.from, ease: 'none' }))
+  const S = step
+  // ключевые моменты сюжета
+  const T = {
+    pour0: S.tubes.from + 1.6,
+    pour1: S.tubes.from + 3.6,
+    micro0: S.ions.from - 0.55,
+    micro1: S.ions.from + 0.6,
+    mix0: S.meet.from,
+    meet1: S.meet.to - 0.4,
+    seed0: S.nucleus.from,
+    seed1: S.nucleus.from + 0.9,
+    shed: S.nucleus.from + 0.35,
+    land0: S.nucleus.from + 0.8,
+    land: S.nucleus.from + 3.2,
+    microOut0: S.settle.from + 0.25,
+    microOut1: S.settle.from + 1.0,
+    micro2: S.result.from - 0.6,
+    micro3: S.result.from + 0.35,
+    relocate: (S.settle.from + S.result.from) / 2,
+  }
+  const timing = defineSceneTiming<SolutionStepId, SolutionCueId>({
+    steps,
+    finish,
+    cues: [
+      { at: T.pour0 + 0.6, id: 'mix' },
+      { at: S.meet.from + 1.5, id: 'meet' },
+      { at: T.land, id: 'land' },
+      { at: finish.from + 0.2, id: 'embryo' },
+      { at: finish.from + 0.2, id: 'birth' },
+      { at: finish.to, id: 'complete' },
+    ],
+  })
+  timing.validate()
+
+  const atoms: SolutionAtom[] = []
+  const bodies: SolutionBody[] = []
+  const sticks: SolutionStick[] = []
+  const labels: SolutionLabelDef[] = []
+  const pose: ((t: number, p: V3, q: Q4) => number)[] = []
+  const addLabel = (d: SolutionLabelDef) => {
+    labels.push(d)
+    return labels.length - 1
+  }
+  const sym = (el: ElementSymbol): L10n => ({ ru: el, en: el, uz: el })
+  const symKind = (el: ElementSymbol): SolutionLabelKind => (el === 'H' || el === 'S' || el === 'Cl' ? 'atomDark' : 'atom')
+  const addBody = (b: Omit<SolutionBody, 'atoms'>, parts: { el: ElementSymbol; local: V3; radiusPm: number; symbol?: [number, number] }[], bonds: [number, number][], water: boolean) => {
+    const bi = bodies.length
+    const ids: number[] = []
+    for (const p of parts) {
+      const label = p.symbol ? addLabel({ id: `${b.id}-${p.el}${ids.length}`, kind: symKind(p.el), text: sym(p.el), from: p.symbol[0], to: p.symbol[1] }) : -1
+      atoms.push({ el: p.el, body: bi, local: p.local, radiusPm: p.radiusPm, label })
+      ids.push(atoms.length - 1)
+    }
+    for (const [x, y] of bonds) sticks.push({ a: ids[x]!, b: ids[y]!, water })
+    bodies.push({ ...b, atoms: ids })
+    return bi
+  }
+
+  // ——— решётка барита: узлы зародыша, нашей пары и следующих пар ———
+  const frag = latticeGroupedFragment(spec.crystalId, [spec.crystalCells[0], spec.crystalCells[1], spec.crystalCells[2]], [{ center: 'S', ligand: 'O', ligands: 4 }])
+  const tetra = tetraLocal(core.so)
+  const ions = frag.sites.map((s, i) => ({ s, i })).filter((x) => x.s.role === 'ion')
+  const centers = frag.sites.map((s, i) => ({ s, i })).filter((x) => x.s.role === 'center')
+  const dist = (a: V3, b: V3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
+  const units = spec.seedUnits + 1 + spec.laterUnits
+  const pickedBa: typeof ions = []
+  const pickedS: typeof centers = []
+  // Зародыш — самые близкие к центру Ba и S; затем пары выбираются снизу вверх по соседству с уже выбранными.
+  const byCenter = (x: { s: { posPm: V3 } }) => Math.hypot(...x.s.posPm)
+  const freeBa = [...ions].sort((a, b) => byCenter(a) - byCenter(b))
+  const freeS = [...centers].sort((a, b) => byCenter(a) - byCenter(b))
+  for (let k = 0; k < units; k++) {
+    const pool = k < spec.seedUnits ? freeBa : freeBa.filter((x) => pickedBa.length === 0 || Math.min(...pickedS.map((s) => dist(s.s.posPm, x.s.posPm))) < 420)
+    const ba = (k < spec.seedUnits ? pool[0] : pool.sort((a, b) => b.s.posPm[1] - a.s.posPm[1] + 0.2 * (byCenter(a) - byCenter(b)))[0]) ?? freeBa[0]!
+    freeBa.splice(freeBa.indexOf(ba), 1)
+    const s = [...freeS].sort((a, b) => dist(a.s.posPm, ba.s.posPm) - dist(b.s.posPm, ba.s.posPm))[0]!
+    freeS.splice(freeS.indexOf(s), 1)
+    pickedBa.push(ba)
+    pickedS.push(s)
+  }
+  // центр кластера — в начало координат кристалла
+  const all = [...pickedBa, ...pickedS].map((x) => x.s.posPm)
+  const mid: V3 = [0, 1, 2].map((a) => (Math.min(...all.map((p) => p[a]!)) + Math.max(...all.map((p) => p[a]!))) / 2) as V3
+  const sites: CrystalSite[] = []
+  const siteLigands: V3[][] = []
+  for (let k = 0; k < units; k++) {
+    const b = pickedBa[k]!.s.posPm
+    sites.push({ el: 'Ba', pos: [b[0] - mid[0], b[1] - mid[1], b[2] - mid[2]] })
+    const sPos = pickedS[k]!.s.posPm
+    const ligs = frag.sites.filter((x) => x.role === 'ligand' && x.group === pickedS[k]!.i).map((x) => x.posPm)
+    const u = ligs.map((p) => norm([p[0] - sPos[0], p[1] - sPos[1], p[2] - sPos[2]]))
+    const fit = hornFit(tetra.map((v) => norm(v)), u)
+    sites.push({ el: 'S', pos: [sPos[0] - mid[0], sPos[1] - mid[1], sPos[2] - mid[2]], q: fit.q })
+    siteLigands.push(ligs.map((p) => [p[0] - mid[0], p[1] - mid[1], p[2] - mid[2]] as V3))
+  }
+  // кратчайшее Ba–O решётки (для теста и подписи)
+  let shortestCationO = Infinity
+  for (const x of ions) for (const y of frag.sites) if (y.role === 'ligand') shortestCationO = Math.min(shortestCationO, dist(x.s.posPm, y.posPm))
+
+  // ——— поза кристалла ———
+  const crystalC = (t: number, out: V3) => (t < T.relocate ? ((out[0] = spec.nucleus.center[0]), (out[1] = spec.nucleus.center[1]), (out[2] = spec.nucleus.center[2])) : ((out[0] = spec.result.crystal[0]), (out[1] = spec.result.crystal[1]), (out[2] = spec.result.crystal[2])), out)
+  const crystalYaw = (t: number) => spec.nucleus.yaw + spec.nucleus.yawRate * Math.max(0, t - S.nucleus.from)
+  const _cc: V3 = [0, 0, 0]
+  const _cq: Q4 = [0, 0, 0, 1]
+  /** Поза узла кристалла в момент t: позиция (и ориентация группы). */
+  const sitePose = (site: CrystalSite, t: number, p: V3, q: Q4) => {
+    crystalC(t, _cc)
+    qAxis([0, 1, 0], crystalYaw(t), _cq)
+    qRot(_cq, site.pos, p)
+    p[0] += _cc[0]
+    p[1] += _cc[1]
+    p[2] += _cc[2]
+    if (site.q) qMul(_cq, site.q, q)
+    else q.splice(0, 4, ..._cq)
+  }
+
+  const Rw = (el: ElementSymbol) => cov(el)
+  const sulfateParts = (symbol?: [number, number]) => [
+    { el: 'S' as ElementSymbol, local: [0, 0, 0] as V3, radiusPm: Rw('S'), symbol },
+    ...tetra.map((v) => ({ el: 'O' as ElementSymbol, local: v, radiusPm: Rw('O'), symbol })),
+  ]
+  const sulfateBonds: [number, number][] = [
+    [0, 1],
+    [0, 2],
+    [0, 3],
+    [0, 4],
+  ]
+  const microLabelWin: [number, number] = [T.micro0 + 0.4, finish.to]
+
+  // ——— главные ионы ———
+  const wob = () => makeWobble(r, 11, 0.07)
+  const startQ: Q4 = [0, 0, 0, 1]
+  const meetDir: V3 = [1, 0, 0]
+  const meetBa: V3 = [spec.meet.center[0] - (spec.meet.gapPm / 2) * meetDir[0], spec.meet.center[1], spec.meet.center[2]]
+  const meetS: V3 = [spec.meet.center[0] + (spec.meet.gapPm / 2) * meetDir[0], spec.meet.center[1], spec.meet.center[2]]
+
+  /**
+   * Свободный путь иона в растворе: ключи + зигзаг на шаге «встреча» + дрожь; к посадке — плавный
+   * переход в позу узла кристалла (s = 0 → 1 на [land0, land]).
+   */
+  const makeFree = (keys: Key[], w: Wobble, zigAmp: number, zigAxis: V3) => {
+    const tmp: V3 = [0, 0, 0]
+    return (t: number, out: V3) => {
+      keyed(keys, t, out)
+      const z = zig(t, S.meet.from, T.meet1, zigAmp, 3)
+      out[0] += z * zigAxis[0]
+      out[1] += z * zigAxis[1]
+      out[2] += z * zigAxis[2]
+      wobblePos(w, t, tmp)
+      out[0] += tmp[0]
+      out[1] += tmp[1]
+      out[2] += tmp[2]
+      return out
+    }
+  }
+  const landing = (free: (t: number, out: V3) => V3, freeQ: (t: number, out: Q4) => Q4, site: CrystalSite, t0: number, t1: number) => {
+    const fp: V3 = [0, 0, 0]
+    const fq: Q4 = [0, 0, 0, 1]
+    const sp: V3 = [0, 0, 0]
+    const sq: Q4 = [0, 0, 0, 1]
+    return (t: number, p: V3, q: Q4) => {
+      const s = smooth(t0, t1, t)
+      if (s >= 1) {
+        sitePose(site, t, p, q)
+        return 1
+      }
+      free(t, fp)
+      freeQ(t, fq)
+      if (s <= 0) {
+        p[0] = fp[0]
+        p[1] = fp[1]
+        p[2] = fp[2]
+        q.splice(0, 4, ...fq)
+        return 1
+      }
+      sitePose(site, t, sp, sq)
+      p[0] = lerp(fp[0], sp[0], s)
+      p[1] = lerp(fp[1], sp[1], s)
+      p[2] = lerp(fp[2], sp[2], s)
+      qSlerp(fq, sq, s, q)
+      return 1
+    }
+  }
+
+  // катион Ba²⁺ (наша пара — узел spec.seedUnits)
+  const ourBa = sites[spec.seedUnits * 2]!
+  const ourS = sites[spec.seedUnits * 2 + 1]!
+  const baFree = makeFree(
+    [
+      { t: S.ions.from, p: spec.start.cation },
+      { t: S.meet.from + 0.3, p: spec.start.cation },
+      { t: T.meet1, p: meetBa },
+      { t: S.nucleus.from + 0.6, p: [meetBa[0], meetBa[1] - 60, meetBa[2]] },
+    ],
+    wob(),
+    90,
+    [0, 1, 0],
+  )
+  const baW = wob()
+  const cation = addBody({ id: 'Ba', kind: 'cation', formula: 'Ba²⁺', charge: 2, land: { t: T.land, site: spec.seedUnits * 2 } }, [{ el: 'Ba', local: [0, 0, 0], radiusPm: core.baWater, symbol: microLabelWin }], [], false)
+  pose.push(landing(baFree, (t, q) => wobbleRot(baW, t, q), ourBa, T.land0, T.land))
+
+  // сульфат-ион
+  const sW = makeWobble(r, 11, 0.12)
+  const sFree = makeFree(
+    [
+      { t: S.ions.from, p: spec.start.group },
+      { t: S.meet.from + 0.3, p: spec.start.group },
+      { t: T.meet1, p: meetS },
+      { t: S.nucleus.from + 0.6, p: [meetS[0], meetS[1] - 60, meetS[2]] },
+    ],
+    sW,
+    -80,
+    [0, 1, 0],
+  )
+  const group = addBody({ id: 'SO4', kind: 'group', formula: 'SO₄²⁻', charge: -2, land: { t: T.land, site: spec.seedUnits * 2 + 1 } }, sulfateParts(microLabelWin), sulfateBonds, false)
+  const sQ = (t: number, q: Q4) => {
+    wobbleRot(sW, t, q)
+    return qMul(startQ, q, q)
+  }
+  pose.push(landing(sFree, sQ, ourS, T.land0, T.land))
+
+  // наблюдатели: 2 Cl⁻ и 2 H₃O⁺
+  const specKeys = (a: SV3, b: SV3, c: SV3, d: SV3): Key[] => [
+    { t: S.ions.from, p: a },
+    { t: S.meet.from + 0.2, p: a },
+    { t: T.meet1 + 0.2, p: b },
+    { t: S.nucleus.from + 2.4, p: c },
+    { t: T.relocate - 0.01, p: c },
+    { t: T.relocate, p: d },
+  ]
+  const anions: number[] = []
+  const protons: number[] = []
+  const pyr = pyramidLocal(core.h3oOH, core.h3oHOH)
+  for (let k = 0; k < 2; k++) {
+    const w = wob()
+    const free = makeFree(specKeys(spec.start.anions[k]!, spec.mixed.anions[k]!, spec.spectators.anions[k]!, spec.result.anions[k]!), w, k ? -70 : 70, [0, 1, 0])
+    anions.push(addBody({ id: `Cl${k + 1}`, kind: 'anion', formula: 'Cl⁻', charge: -1 }, [{ el: 'Cl', local: [0, 0, 0], radiusPm: core.cl, symbol: microLabelWin }], [], false))
+    pose.push((t, p, q) => {
+      free(t, p)
+      wobbleRot(w, t, q)
+      return 1
+    })
+  }
+  for (let k = 0; k < 2; k++) {
+    const w = makeWobble(r, 11, 0.16)
+    const free = makeFree(specKeys(spec.start.protons[k]!, spec.mixed.protons[k]!, spec.spectators.protons[k]!, spec.result.protons[k]!), w, k ? 70 : -70, [0, 1, 0])
+    protons.push(
+      addBody(
+        { id: `H3O${k + 1}`, kind: 'proton', formula: 'H₃O⁺', charge: 1 },
+        [{ el: 'O', local: [0, 0, 0], radiusPm: Rw('O'), symbol: microLabelWin }, ...pyr.map((v) => ({ el: 'H' as ElementSymbol, local: v, radiusPm: Rw('H'), symbol: microLabelWin }))],
+        [
+          [0, 1],
+          [0, 2],
+          [0, 3],
+        ],
+        false,
+      ),
+    )
+    pose.push((t, p, q) => {
+      free(t, p)
+      wobbleRot(w, t, q)
+      return 1
+    })
+  }
+
+  // ——— кристалл: зародыш и следующие пары ———
+  const lattice: number[] = []
+  const later: number[] = []
+  const _p: V3 = [0, 0, 0]
+  for (let k = 0; k < spec.seedUnits; k++) {
+    const siteBa = sites[k * 2]!
+    const siteS = sites[k * 2 + 1]!
+    lattice.push(addBody({ id: `seedBa${k}`, kind: 'lattice-cation', formula: 'Ba²⁺', charge: 2 }, [{ el: 'Ba', local: [0, 0, 0], radiusPm: core.baCrystal, symbol: [T.seed0 + 0.3, finish.to] }], [], false))
+    pose.push((t, p, q) => (sitePose(siteBa, t, p, q), smooth(T.seed0, T.seed1, t)))
+    lattice.push(addBody({ id: `seedSO4${k}`, kind: 'lattice-group', formula: 'SO₄²⁻', charge: -2 }, sulfateParts(), sulfateBonds, false))
+    pose.push((t, p, q) => (sitePose(siteS, t, p, q), smooth(T.seed0, T.seed1, t)))
+  }
+  for (let k = 0; k < spec.laterUnits; k++) {
+    const siteIdx = (spec.seedUnits + 1 + k) * 2
+    const siteBa = sites[siteIdx]!
+    const siteS = sites[siteIdx + 1]!
+    const t0 = T.land + 0.1 + k * 0.7
+    const t1 = t0 + 1.7
+    const from = spec.laterFrom[k] ?? spec.laterFrom[0]!
+    for (const [site, kind, isBa] of [
+      [siteBa, 'lattice-cation', true],
+      [siteS, 'lattice-group', false],
+    ] as const) {
+      const w = wob()
+      const start: V3 = [from[0] + (isBa ? -190 : 190), from[1], from[2]]
+      const free = (t: number, out: V3) => {
+        out[0] = start[0]
+        out[1] = start[1]
+        out[2] = start[2]
+        wobblePos(w, t, _p)
+        out[0] += _p[0]
+        out[1] += _p[1]
+        out[2] += _p[2]
+        return out
+      }
+      const b = isBa
+        ? addBody({ id: `laterBa${k}`, kind, formula: 'Ba²⁺', charge: 2, land: { t: t1, site: siteIdx } }, [{ el: 'Ba', local: [0, 0, 0], radiusPm: core.baWater, symbol: [t0 + 0.3, finish.to] }], [], false)
+        : addBody({ id: `laterSO4${k}`, kind, formula: 'SO₄²⁻', charge: -2, land: { t: t1, site: siteIdx + 1 } }, sulfateParts(), sulfateBonds, false)
+      later.push(b)
+      const land = landing(free, (t, q) => wobbleRot(w, t, q), site, t0, t1)
+      pose.push((t, p, q) => (land(t, p, q), smooth(t0 - 0.2, t0 + 0.5, t)))
+    }
+  }
+
+  // ——— вода: ближние оболочки и фон ———
+  const wLocal = waterLocal(core.wOH, core.wHOH)
+  const waters: number[] = []
+  const hyd = new Map(spec.science.hydration.map((h) => [h.particle, h]))
+  /** Вода, прикреплённая к хозяину (поза в системе хозяина), с отрывом в момент detach и дрейфом наружу. */
+  const addWater = (id: string, host: number | null, localPos: V3, localQ: Q4, detach: number | null, drift: V3, resultPos: V3) => {
+    const w = makeWobble(r, 14, 0.25)
+    const bi = addBody(
+      { id, kind: 'water', formula: 'H₂O', charge: 0 },
+      [
+        { el: 'O', local: [0, 0, 0], radiusPm: Rw('O') },
+        { el: 'H', local: wLocal[0]!, radiusPm: Rw('H') },
+        { el: 'H', local: wLocal[1]!, radiusPm: Rw('H') },
+      ],
+      [
+        [0, 1],
+        [0, 2],
+      ],
+      true,
+    )
+    waters.push(bi)
+    const hp: V3 = [0, 0, 0]
+    const hq: Q4 = [0, 0, 0, 1]
+    const d0: V3 = [0, 0, 0]
+    const dq: Q4 = [0, 0, 0, 1]
+    const tmp: V3 = [0, 0, 0]
+    const tq: Q4 = [0, 0, 0, 1]
+    let cached = false
+    const attached = (t: number, p: V3, q: Q4) => {
+      if (host == null) {
+        p[0] = localPos[0]
+        p[1] = localPos[1]
+        p[2] = localPos[2]
+        q.splice(0, 4, ...localQ)
+        return
+      }
+      pose[host]!(t, hp, hq)
+      qRot(hq, localPos, p)
+      p[0] += hp[0]
+      p[1] += hp[1]
+      p[2] += hp[2]
+      qMul(hq, localQ, q)
+    }
+    const free = host == null || detach != null
+    pose.push((t, p, q) => {
+      if (free && t >= T.relocate) {
+        p[0] = resultPos[0]
+        p[1] = resultPos[1]
+        p[2] = resultPos[2]
+        wobblePos(w, t, tmp)
+        p[0] += tmp[0]
+        p[1] += tmp[1]
+        p[2] += tmp[2]
+        wobbleRot(w, t, q)
+        qMul(localQ, q, q)
+        return 1
+      }
+      if (detach == null || t <= detach) {
+        attached(t, p, q)
+        if (host == null) {
+          wobblePos(w, t, tmp)
+          p[0] += tmp[0]
+          p[1] += tmp[1]
+          p[2] += tmp[2]
+          wobbleRot(w, t, tq)
+          qMul(q, tq, q)
+        }
+        return 1
+      }
+      if (!cached) {
+        attached(detach, d0, dq)
+        cached = true
+      }
+      const u = smooth(detach, detach + 1.6, t)
+      p[0] = d0[0] + drift[0] * u
+      p[1] = d0[1] + drift[1] * u
+      p[2] = d0[2] + drift[2] * u
+      // дрожь нарастает от нуля в момент отрыва (непрерывно)
+      wobblePos(w, t, tmp)
+      p[0] += tmp[0] * u
+      p[1] += tmp[1] * u
+      p[2] += tmp[2] * u
+      qAxis([0.3, 1, 0.2], 0.9 * u * Math.sin(0.7 * (t - detach)), tq)
+      qMul(dq, tq, q)
+      return 1
+    })
+  }
+  const resultSpots: V3[] = []
+  for (let i = 0; i < 40; i++) resultSpots.push([-1250 + 2500 * r(), -950 + 1900 * r(), -200 + 400 * r()])
+  let spot = 0
+  const nextSpot = (): V3 => {
+    // вне кристалла итога (кристалл слева), подальше от наблюдателей
+    for (let tries = 0; tries < 40; tries++) {
+      const p = resultSpots[spot++ % resultSpots.length]!
+      const c = spec.result.crystal
+      const far = [...spec.result.anions, ...spec.result.protons].every((q) => Math.hypot(p[0] - q[0], p[1] - q[1]) > 420)
+      if (Math.hypot(p[0] - c[0], p[1] - c[1]) > 700 && far) return p
+    }
+    return resultSpots[spot++ % resultSpots.length]!
+  }
+  // Ba²⁺: октаэдр с осью C₃ по z (передние три — не на луче к зрителю), кислород к иону.
+  const baH = hyd.get('Ba')
+  const octa: V3[] = []
+  for (let i = 0; i < 6; i++) {
+    const front = i % 2 === 0
+    const pol = front ? Math.acos(1 / Math.sqrt(3)) : Math.PI - Math.acos(1 / Math.sqrt(3))
+    const az = (i * Math.PI) / 3
+    octa.push([Math.sin(pol) * Math.cos(az), Math.sin(pol) * Math.sin(az), Math.cos(pol)])
+  }
+  octa.slice(0, baH?.shown ?? 6).forEach((n, i) => {
+    const pos: V3 = [n[0] * core.baO, n[1] * core.baO, n[2] * core.baO]
+    const q = qMul(qFromTo([0, 1, 0], n), qAxis([0, 1, 0], r() * 6.28))
+    // к партнёру (+x) смотрят две молекулы — они уходят при встрече, остальные — при посадке
+    const toward = n[0] > 0.3
+    const det = toward ? S.meet.from + 1.4 + 0.3 * i : T.shed + 0.15 * i
+    addWater(`wBa${i}`, cation, pos, q, det, [n[0] * 260, n[1] * 260 + (toward ? (n[1] >= 0 ? 280 : -280) : 0), n[2] * 200], nextSpot())
+  })
+  // Cl⁻: 4 молекулы, к иону обращён атом H (связь O–H смотрит на ион)
+  const clH = hyd.get('Cl')
+  const tetDirs: V3[] = [
+    [0.82, 0, 0.57],
+    [-0.82, 0, 0.57],
+    [0, 0.82, -0.57],
+    [0, -0.82, -0.57],
+  ]
+  anions.forEach((host, k) => {
+    tetDirs.slice(0, clH?.shown ?? 4).forEach((n0, i) => {
+      const n = norm(n0)
+      const pos: V3 = [n[0] * core.clO, n[1] * core.clO, n[2] * core.clO]
+      const q = qMul(qFromTo(norm(wLocal[0]!), [-n[0], -n[1], -n[2]]), qAxis(norm(wLocal[0]!), r() * 6.28))
+      addWater(`wCl${k}${i}`, host, pos, q, null, [0, 0, 0], [0, 0, 0])
+    })
+  })
+  // SO₄²⁻: по одной молекуле на атом O, H воды к O сульфата (водородная связь O–H···O)
+  const soH = hyd.get('SO4')
+  tetra.slice(0, soH?.shown ?? 4).forEach((v, i) => {
+    const n = norm(v)
+    const d = core.so + core.hbond + core.wOH
+    const pos: V3 = [n[0] * d, n[1] * d, n[2] * d]
+    const q = qMul(qFromTo(norm(wLocal[0]!), [-n[0], -n[1], -n[2]]), qAxis(norm(wLocal[0]!), r() * 6.28))
+    const toward = n[0] < 0
+    const det = toward ? S.meet.from + 1.6 + 0.3 * i : T.shed + 0.25 + 0.15 * i
+    addWater(`wSO4${i}`, group, pos, q, det, [n[0] * 260, n[1] * 260 + (toward ? (n[1] >= 0 ? 260 : -260) : 0), n[2] * 200], nextSpot())
+  })
+  // H₃O⁺: по молекуле на каждый H, кислород воды к H (O–H···O), водороды наружу
+  const pH = hyd.get('H3O')
+  protons.forEach((host, k) => {
+    pyr.slice(0, pH?.shown ?? 3).forEach((v, i) => {
+      const n = norm(v)
+      const d = core.h3oOH + core.hbond
+      const pos: V3 = [n[0] * d, n[1] * d, n[2] * d]
+      const q = qMul(qFromTo([0, 1, 0], n), qAxis([0, 1, 0], r() * 6.28))
+      addWater(`wH3O${k}${i}`, host, pos, q, null, [0, 0, 0], [0, 0, 0])
+    })
+  })
+  // фоновые молекулы воды
+  spec.waters.forEach((p, i) => {
+    const q = qMul(qAxis([0, 0, 1], r() * 6.28), qAxis([1, 0, 0], r() * 6.28))
+    addWater(`wBg${i}`, null, [p[0], p[1], p[2]], q, null, [0, 0, 0], nextSpot())
+  })
+
+  // ——— подписи ———
+  const cap = spec.science.captions
+  const eqL10n = (s: string): L10n => ({ ru: s, en: s, uz: s })
+  const chargeText = (s: string) => eqL10n(s)
+  const Lcharge = {
+    cation: addLabel({ id: 'q-Ba', kind: 'species', text: chargeText('Ba²⁺'), from: T.micro1 - 0.2, to: finish.to }),
+    group: addLabel({ id: 'q-SO4', kind: 'species', text: chargeText('[SO₄]²⁻'), from: T.micro1 - 0.2, to: finish.to }),
+    anions: anions.map((_, k) => addLabel({ id: `q-Cl${k}`, kind: 'species', text: chargeText('Cl⁻'), from: T.micro1 - 0.2, to: finish.to })),
+    protons: protons.map((_, k) => addLabel({ id: `q-H3O${k}`, kind: 'species', text: chargeText('H₃O⁺'), from: T.micro1 - 0.2, to: finish.to })),
+  }
+  const Lcap = {
+    tubeA: addLabel({ id: 'tubeA', kind: 'species', text: cap.tubeA, from: S.tubes.from + 0.2, to: S.tubes.to }),
+    tubeB: addLabel({ id: 'tubeB', kind: 'species', text: cap.tubeB, from: S.tubes.from + 0.2, to: T.pour0 + 0.1 }),
+    solA: addLabel({ id: 'solA', kind: 'measure', text: cap.solutionA, from: T.micro1, to: S.meet.from + 0.6 }),
+    solB: addLabel({ id: 'solB', kind: 'measure', text: cap.solutionB, from: T.micro1, to: S.meet.from + 0.6 }),
+    crystal: addLabel({ id: 'crystal', kind: 'measure', text: cap.crystal, from: T.seed1, to: finish.to }),
+    neighbors: addLabel({ id: 'neighbors', kind: 'measure', text: cap.neighbors, from: T.land + 0.3, to: S.nucleus.to }),
+    precip: addLabel({ id: 'precip', kind: 'species', text: cap.precipitate, from: S.settle.from + 1.2, to: S.settle.to }),
+    acid: addLabel({ id: 'acid', kind: 'species', text: cap.acid, from: S.settle.from + 1.8, to: S.settle.to }),
+    nitric: addLabel({ id: 'nitric', kind: 'measure', text: cap.nitric, from: S.settle.from + 2.6, to: S.settle.to }),
+    equation: addLabel({ id: 'equation', kind: 'equation', text: eqL10n(spec.science.reaction.equation), from: S.result.from + 0.4, to: finish.to }),
+    ionic: addLabel({ id: 'ionic', kind: 'measure', text: eqL10n(spec.science.reaction.ionicShort), from: S.result.from + 1.2, to: finish.to }),
+    stepEq: addLabel({ id: 'stepEq', kind: 'equation', text: eqL10n(spec.science.reaction.ionicShort), from: T.land + 0.6, to: S.nucleus.to }),
+  }
+
+  // ——— муть ———
+  const tx = new Float32Array(TURBID_N)
+  const ty = new Float32Array(TURBID_N)
+  const tz = new Float32Array(TURBID_N)
+  const tv = new Float32Array(TURBID_N)
+  for (let i = 0; i < TURBID_N; i++) {
+    const a = r() * Math.PI * 2
+    const rr = Math.sqrt(r()) * TUBE.r * 0.78
+    tx[i] = Math.cos(a) * rr
+    tz[i] = Math.sin(a) * rr
+    ty[i] = TUBE.r * 0.4 + r() * (0.6 * TUBE.h - TUBE.r * 0.4)
+    tv[i] = 0.6 + 0.8 * r()
+  }
+
+  const radiusAt = (atom: number, t: number) => {
+    const a = atoms[atom]!
+    const b = bodies[a.body]!
+    if (a.el === 'Ba' && b.land) return t >= b.land.t ? core.baCrystal : core.baWater
+    return a.radiusPm
+  }
+
+  const model: SolutionModel = {
+    spec,
+    core,
+    timing,
+    finish,
+    step,
+    atoms,
+    bodies,
+    sticks,
+    labels,
+    sites,
+    siteLigands,
+    shortestCationO,
+    turbidPoints: TURBID_N,
+    tube: TUBE,
+    roles: { cation, group, anions, protons, lattice, later, waters },
+    pose,
+    radiusAt,
+    turbid: { x: tx, y0: ty, z: tz, v: tv },
+  }
+  ;(model as unknown as { _T: typeof T; _L: typeof Lcap; _Q: typeof Lcharge })._T = T
+  ;(model as unknown as { _L: typeof Lcap })._L = Lcap
+  ;(model as unknown as { _Q: typeof Lcharge })._Q = Lcharge
+  return model
+}
+
+type Internals = {
+  _T: {
+    pour0: number
+    pour1: number
+    micro0: number
+    micro1: number
+    mix0: number
+    meet1: number
+    seed0: number
+    seed1: number
+    shed: number
+    land0: number
+    land: number
+    microOut0: number
+    microOut1: number
+    micro2: number
+    micro3: number
+    relocate: number
+  }
+  _L: Record<'tubeA' | 'tubeB' | 'solA' | 'solB' | 'crystal' | 'neighbors' | 'precip' | 'acid' | 'nitric' | 'equation' | 'ionic' | 'stepEq', number>
+  _Q: { cation: number; group: number; anions: number[]; protons: number[] }
+}
+const internals = (m: SolutionModel) => m as unknown as SolutionModel & Internals
+
+export function createSolutionState(m: SolutionModel): SolutionState {
+  const n = m.atoms.length
+  const k = m.sticks.length
+  const l = m.labels.length
+  return {
+    t: 0,
+    step: 0,
+    fade: 1,
+    microAlpha: 0,
+    microScale: 1,
+    macroAlpha: 1,
+    macroScale: 1,
+    atomPos: new Float32Array(n * 3),
+    atomR: new Float32Array(n),
+    stickA: new Float32Array(k * 3),
+    stickB: new Float32Array(k * 3),
+    stickAlpha: new Float32Array(k),
+    labelPos: new Float32Array(l * 3),
+    labelOpacity: new Float32Array(l),
+    bodyAppear: new Float32Array(m.bodies.length),
+    attract: { a: [0, 0, 0], b: [0, 0, 0], alpha: 0 },
+    divider: { alpha: 0 },
+    tubeA: { x: 0, y: 0, rot: 0, level: 0, alpha: 0 },
+    tubeB: { x: 0, y: 0, rot: 0, level: 0, alpha: 0, liquid: 0 },
+    stream: { a: [0, 0, 0], b: [0, 0, 0], alpha: 0 },
+    turbidity: 0,
+    sediment: 0,
+    formed: 0,
+    turbidPos: new Float32Array(m.turbidPoints * 3),
+    crystal: { c: [0, 0, 0], yaw: 0, alpha: 0 },
+  }
+}
+
+const _bp: V3 = [0, 0, 0]
+const _bq: Q4 = [0, 0, 0, 1]
+const _v: V3 = [0, 0, 0]
+
+/** Окно подписи с мягкими краями. */
+function windowAlpha(from: number, to: number, t: number, edge = 0.35): number {
+  return Math.min(smooth(from, from + edge, t), 1 - smooth(to - edge, to, t))
+}
+
+/** Состояние кадра в момент t (без аллокаций). */
+export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionState): SolutionState {
+  const { _T: T, _L: L, _Q: Q } = internals(m)
+  const S = m.step
+  out.t = t
+  out.step = m.timing.stepIndexAt(t)
+  out.fade = 1 - smooth(m.finish.from, m.finish.to, t)
+
+  // ——— макро ↔ микро ———
+  const macroA = Math.max(1 - smooth(T.micro0, T.micro0 + 0.9, t), Math.min(smooth(T.microOut0, T.microOut1, t), 1 - smooth(T.micro2, T.micro2 + 0.8, t)))
+  const microA = Math.max(Math.min(smooth(T.micro0 + 0.2, T.micro1, t), 1 - smooth(T.microOut0, T.microOut1, t)), smooth(T.micro2 + 0.2, T.micro3, t))
+  out.macroAlpha = macroA * out.fade
+  out.microAlpha = microA * out.fade
+  out.macroScale = 1 + 0.9 * (1 - macroA)
+  out.microScale = 0.35 + 0.65 * microA
+
+  // ——— тела и атомы ———
+  const n = m.atoms.length
+  for (let bi = 0; bi < m.bodies.length; bi++) {
+    const b = m.bodies[bi]!
+    const appear = m.pose[bi]!(t, _bp, _bq)
+    for (const ai of b.atoms) {
+      const a = m.atoms[ai]!
+      qRot(_bq, a.local, _v)
+      const o = ai * 3
+      out.atomPos[o] = _bp[0] + _v[0]
+      out.atomPos[o + 1] = _bp[1] + _v[1]
+      out.atomPos[o + 2] = _bp[2] + _v[2]
+      out.atomR[ai] = m.radiusAt(ai, t) * SOLUTION_DRAW.ballScale * appear
+    }
+    out.bodyAppear[bi] = appear
+  }
+  // ——— палочки ———
+  for (let k = 0; k < m.sticks.length; k++) {
+    const s = m.sticks[k]!
+    for (let c = 0; c < 3; c++) {
+      out.stickA[k * 3 + c] = out.atomPos[s.a * 3 + c]!
+      out.stickB[k * 3 + c] = out.atomPos[s.b * 3 + c]!
+    }
+    out.stickAlpha[k] = Math.min(out.atomR[s.a]! > 0 ? 1 : 0, out.bodyAppear[m.atoms[s.a]!.body]!)
+  }
+
+  // ——— кристалл ———
+  out.crystal.alpha = smooth(T.seed0, T.seed1, t)
+  const relocated = t >= T.relocate
+  const cc = relocated ? m.spec.result.crystal : m.spec.nucleus.center
+  out.crystal.c[0] = cc[0]
+  out.crystal.c[1] = cc[1]
+  out.crystal.c[2] = cc[2]
+  out.crystal.yaw = m.spec.nucleus.yaw + m.spec.nucleus.yawRate * Math.max(0, t - S.nucleus.from)
+
+  // ——— пунктир притяжения и граница растворов ———
+  const ba = m.bodies[m.roles.cation]!.atoms[0]!
+  const sAtom = m.bodies[m.roles.group]!.atoms[0]!
+  for (let c = 0; c < 3; c++) {
+    out.attract.a[c] = out.atomPos[ba * 3 + c]!
+    out.attract.b[c] = out.atomPos[sAtom * 3 + c]!
+  }
+  out.attract.alpha = windowAlpha(S.meet.from + 1.2, T.land0 + 0.6, t, 0.5)
+  out.divider.alpha = windowAlpha(T.micro1 - 0.3, S.meet.from + 0.9, t, 0.5)
+
+  // ——— пробирки ———
+  const H = m.tube.h
+  const pour = smooth(T.pour0, T.pour0 + 0.6, t) * (1 - smooth(T.pour1, T.pour1 + 0.6, t))
+  const pourFlow = smooth(T.pour0 + 0.6, T.pour1, t)
+  const settleView = t >= T.relocate
+  out.tubeA.x = settleView ? 0 : -210
+  out.tubeA.y = -H / 2
+  out.tubeA.rot = 0
+  out.tubeA.level = 0.33 + 0.27 * pourFlow
+  out.tubeA.alpha = 1
+  const pourPos: V3 = [760, 470, 0]
+  out.tubeB.x = lerp(210, pourPos[0], pour)
+  out.tubeB.y = lerp(-H / 2, pourPos[1], pour)
+  out.tubeB.rot = lerp(0, (104 * Math.PI) / 180, pour)
+  out.tubeB.level = 0.33 - 0.25 * pourFlow
+  out.tubeB.alpha = settleView ? 0 : 1
+  out.tubeB.liquid = 1 - smooth(T.pour0, T.pour0 + 0.35, t) + smooth(T.pour1 + 0.3, T.pour1 + 0.6, t)
+  // струя: от горлышка B к поверхности жидкости A
+  const up: V3 = [-Math.sin(out.tubeB.rot), Math.cos(out.tubeB.rot), 0]
+  out.stream.a[0] = out.tubeB.x + up[0] * H
+  out.stream.a[1] = out.tubeB.y + up[1] * H
+  out.stream.a[2] = 0
+  out.stream.b[0] = out.tubeA.x
+  out.stream.b[1] = out.tubeA.y + out.tubeA.level * H
+  out.stream.b[2] = 0
+  out.stream.alpha = windowAlpha(T.pour0 + 0.55, T.pour1, t, 0.2) * (settleView ? 0 : 1)
+  // муть и осадок: осадок образуется при сливании (formed), часть оседает (sediment) — обе величины не убывают
+  out.formed = smooth(T.pour0 + 0.7, T.pour1 + 0.2, t)
+  const fall = 0.25 * smooth(T.pour1, S.tubes.to + 0.5, t) + 0.75 * smooth(S.settle.from + 0.6, S.settle.to - 0.4, t)
+  out.sediment = 0.13 * out.formed * fall
+  out.turbidity = out.formed * (1 - 0.88 * fall)
+  const sedTop = m.tube.r * 0.25 + out.sediment * H
+  const tb = m.turbid
+  for (let i = 0; i < m.turbidPoints; i++) {
+    const y = Math.max(sedTop, tb.y0[i]! * (0.35 + 0.65 * out.tubeA.level / 0.6) - tb.v[i]! * fall * H * 0.7)
+    out.turbidPos[i * 3] = tb.x[i]!
+    out.turbidPos[i * 3 + 1] = y
+    out.turbidPos[i * 3 + 2] = tb.z[i]!
+  }
+
+  // ——— подписи ———
+  let k = out.microScale
+  const setLabel = (li: number, x: number, y: number, z: number, alpha: number) => {
+    out.labelPos[li * 3] = x * k
+    out.labelPos[li * 3 + 1] = y * k
+    out.labelPos[li * 3 + 2] = z * k
+    out.labelOpacity[li] = alpha
+  }
+  // символы внутри шаров (видимы с микро-слоем)
+  for (let ai = 0; ai < n; ai++) {
+    const a = m.atoms[ai]!
+    if (a.label < 0) continue
+    const d = m.labels[a.label]!
+    const o = ai * 3
+    const vis = out.atomR[ai]! > 1 ? 1 : 0
+    setLabel(a.label, out.atomPos[o]!, out.atomPos[o + 1]!, out.atomPos[o + 2]!, windowAlpha(d.from, d.to, t) * out.microAlpha * vis)
+  }
+  // заряды — справа сверху от иона
+  const chargeAt = (li: number, atom: number, off: number, peak: number) => {
+    const o = atom * 3
+    setLabel(li, out.atomPos[o]! + off * 0.72, out.atomPos[o + 1]! + off * 0.86, out.atomPos[o + 2]!, windowAlpha(m.labels[li]!.from, m.labels[li]!.to, t) * out.microAlpha * peak)
+  }
+  const landed = t >= T.land
+  chargeAt(Q.cation, ba, m.core.baWater * SOLUTION_DRAW.ballScale + 70, landed ? 0.55 : 1)
+  chargeAt(Q.group, sAtom, 250, landed ? 0.55 : 1)
+  Q.anions.forEach((li, k) => chargeAt(li, m.bodies[m.roles.anions[k]!]!.atoms[0]!, m.core.cl * SOLUTION_DRAW.ballScale + 70, 1))
+  Q.protons.forEach((li, k) => chargeAt(li, m.bodies[m.roles.protons[k]!]!.atoms[0]!, 190, 1))
+  // подписи макро-кадра — в системе пробирок, с масштабом макро-слоя
+  k = out.macroScale
+  const ma = out.macroAlpha
+  setLabel(L.tubeA, out.tubeA.x, out.tubeA.y - 90, 0, windowAlpha(m.labels[L.tubeA]!.from, m.labels[L.tubeA]!.to, t) * ma)
+  setLabel(L.tubeB, 210, -H / 2 - 90, 0, windowAlpha(m.labels[L.tubeB]!.from, m.labels[L.tubeB]!.to, t) * ma)
+  setLabel(L.precip, out.tubeA.x + m.tube.r + 40, out.tubeA.y + sedTop * 0.6, 0, windowAlpha(m.labels[L.precip]!.from, m.labels[L.precip]!.to, t) * ma)
+  setLabel(L.acid, out.tubeA.x + m.tube.r + 40, out.tubeA.y + out.tubeA.level * H * 0.62, 0, windowAlpha(m.labels[L.acid]!.from, m.labels[L.acid]!.to, t) * ma)
+  setLabel(L.nitric, out.tubeA.x, out.tubeA.y + H + 110, 0, windowAlpha(m.labels[L.nitric]!.from, m.labels[L.nitric]!.to, t) * ma)
+  // подписи микро-кадра
+  k = out.microScale
+  const mi = out.microAlpha
+  setLabel(L.solA, -620, 900, 0, windowAlpha(m.labels[L.solA]!.from, m.labels[L.solA]!.to, t) * mi)
+  setLabel(L.solB, 620, 900, 0, windowAlpha(m.labels[L.solB]!.from, m.labels[L.solB]!.to, t) * mi)
+  const cBottom = out.crystal.c[1] - 520
+  setLabel(L.crystal, out.crystal.c[0], cBottom, 0, windowAlpha(m.labels[L.crystal]!.from, m.labels[L.crystal]!.to, t) * mi * out.crystal.alpha)
+  setLabel(L.neighbors, out.crystal.c[0] + 820, out.crystal.c[1] - 60, 0, windowAlpha(m.labels[L.neighbors]!.from, m.labels[L.neighbors]!.to, t) * mi)
+  setLabel(L.stepEq, out.crystal.c[0], out.crystal.c[1] - 720, 0, windowAlpha(m.labels[L.stepEq]!.from, m.labels[L.stepEq]!.to, t) * mi)
+  setLabel(L.equation, 150, -1080, 0, windowAlpha(m.labels[L.equation]!.from, m.labels[L.equation]!.to, t) * mi)
+  setLabel(L.ionic, 150, -1260, 0, windowAlpha(m.labels[L.ionic]!.from, m.labels[L.ionic]!.to, t) * mi)
+  return out
+}
+
+/** Габарит кадра по времени (пм): w, h, центр — хост вписывает его в свободную область. */
+export function solutionExtentAt(m: SolutionModel, t: number): { w: number; h: number; cx: number; cy: number } {
+  const S = m.step
+  const T = internals(m)._T
+  const keys: { t: number; e: [number, number, number, number] }[] = [
+    { t: S.tubes.from, e: [900, 1250, 0, -120] },
+    { t: T.pour0, e: [900, 1250, 0, -120] },
+    { t: T.pour0 + 0.6, e: [1600, 1750, 230, 150] },
+    { t: T.pour1, e: [1600, 1750, 230, 150] },
+    { t: T.pour1 + 0.6, e: [900, 1250, 0, -120] },
+    { t: T.micro0 + 0.2, e: [900, 1250, 0, -120] },
+    { t: T.micro1, e: [2750, 1950, 0, 40] },
+    { t: S.meet.from, e: [2750, 1950, 0, 40] },
+    { t: S.meet.to - 0.6, e: [2500, 2050, 0, -20] },
+    { t: S.nucleus.from + 1.2, e: [2500, 2250, 0, -200] },
+    { t: S.nucleus.to - 0.2, e: [2500, 2250, 0, -200] },
+    { t: T.microOut0 + 0.2, e: [900, 1300, 90, -80] },
+    { t: T.micro2 + 0.1, e: [900, 1300, 90, -80] },
+    { t: T.micro3 + 0.3, e: [2800, 2600, 100, -300] },
+  ]
+  const out = { w: 0, h: 0, cx: 0, cy: 0 }
+  let a = keys[0]!
+  let b = keys[0]!
+  for (let i = 0; i < keys.length; i++) {
+    if (keys[i]!.t <= t) a = keys[i]!
+    if (keys[i]!.t >= t) {
+      b = keys[i]!
+      break
+    }
+    b = keys[i]!
+  }
+  const u = b.t > a.t ? smooth(a.t, b.t, t) : 1
+  out.w = lerp(a.e[0], b.e[0], u)
+  out.h = lerp(a.e[1], b.e[1], u)
+  out.cx = lerp(a.e[2], b.e[2], u)
+  out.cy = lerp(a.e[3], b.e[3], u)
+  return out
+}
+
+/** Внутренние моменты сюжета — для теста. */
+export function solutionMoments(m: SolutionModel): Internals['_T'] {
+  return internals(m)._T
+}

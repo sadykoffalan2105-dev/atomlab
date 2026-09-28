@@ -1,20 +1,14 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { useVrLabPerf } from './vrLabPerformance'
+import { TEST_TUBE_PROFILE } from '../../lab/cinema/scenes/kit/glassware'
 
 export type GlassProfile = readonly (readonly [number, number])[]
 
 /** Профили lathe-стекла — школьная лаборатория + sci-fi акценты. */
 export const GLASS_PROFILES = {
   /** Классическая пробирка с округлым дном и узким горлом. */
-  testTube: [
-    [0, 0],
-    [0.03, 0],
-    [0.038, 0.025],
-    [0.04, 0.48],
-    [0.024, 0.545],
-    [0.02, 0.595],
-  ],
+  testTube: TEST_TUBE_PROFILE,
   /** Эrlenmeyer — широкий конус, цилиндрическое горло. */
   erlenmeyer: (scale = 1) =>
     [
