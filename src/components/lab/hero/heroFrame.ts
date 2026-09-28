@@ -9,7 +9,9 @@
  */
 import { createSafeArea, measureSafeArea, writeSafeRect } from '../../../lab/cinema/core/safeArea'
 import { CATALOG_HERO_VIEW } from '../labOrbitConstants'
+import { compoundById } from '../../../data/compounds'
 import { buildHeroModel } from './heroGeometry'
+import { buildSchoolHeroModel } from './schoolHeroModel'
 
 /** Радиус описанной сферы модели героя в мире после нормировки (кристалл и молекула одинаково). */
 export const HERO_FIT_RADIUS = 1
@@ -39,12 +41,14 @@ export type HeroFrameGeometry = {
 }
 
 export function heroFrameGeometry(compoundId: string | null | undefined): HeroFrameGeometry {
+  const compound = compoundId ? compoundById[compoundId] : undefined
+  const school = compound ? buildSchoolHeroModel(compound) : null
+  if (!school) return { fitRadius: FALLBACK_FIT_RADIUS, captionPx: 0 }
   const model = compoundId ? buildHeroModel(compoundId) : null
-  if (!model) return { fitRadius: FALLBACK_FIT_RADIUS, captionPx: 0 }
-  const lines = heroCaptionLines(model.caption).length
-  // Подписи символов стоят над атомами — чуть больше радиуса модели.
+  const lines = model ? heroCaptionLines(model.caption).length : 0
+  // Единый школьный вид: символы ВНУТРИ шаров — композиция не шире описанной сферы модели.
   return {
-    fitRadius: HERO_FIT_RADIUS * 1.08,
+    fitRadius: HERO_FIT_RADIUS * 1.02,
     captionPx: lines > 0 ? CAPTION_GAP_PX + lines * CAPTION_LINE_PX : 0,
   }
 }
