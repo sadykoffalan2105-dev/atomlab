@@ -28,6 +28,7 @@ import {
   reagentBondPm,
   type ElementSymbol,
 } from '../../../../../chemistry/data'
+import { pmToScene } from '../../kit/cpkAtoms'
 import { latticeGroupedFragment } from '../../kit/lattice'
 import { defineSceneTiming, type SceneFinish, type SceneStep, type SceneTiming } from '../../kit/sceneKit'
 import { SOLUTION_STEP_IDS, type L10n, type SolutionStepId } from '../specs/types'
@@ -335,6 +336,8 @@ export type SolutionModel = {
   readonly sites: CrystalSite[]
   /** все O групп из решётки (для проверки расстояний Ba–O) */
   readonly siteLigands: V3[][]
+  /** рёбра ячеек фрагмента в системе кристалла, пм */
+  readonly cellEdges: readonly (readonly [V3, V3])[]
   /** кратчайшее Ba–O в решётке барита, пм */
   readonly shortestCationO: number
   /** точки мути в пробирке */
@@ -446,8 +449,8 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     micro1: S.ions.from + 0.6,
     mix0: S.meet.from,
     meet1: S.meet.to - 0.4,
-    seed0: S.nucleus.from,
-    seed1: S.nucleus.from + 0.9,
+    seed0: S.nucleus.from + 0.5,
+    seed1: S.nucleus.from + 1.3,
     shed: S.nucleus.from + 0.35,
     land0: S.nucleus.from + 0.8,
     land: S.nucleus.from + 3.2,
@@ -501,37 +504,34 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   const ions = frag.sites.map((s, i) => ({ s, i })).filter((x) => x.s.role === 'ion')
   const centers = frag.sites.map((s, i) => ({ s, i })).filter((x) => x.s.role === 'center')
   const dist = (a: V3, b: V3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
-  const units = spec.seedUnits + 1 + spec.laterUnits
-  const pickedBa: typeof ions = []
-  const pickedS: typeof centers = []
-  // Зародыш — самые близкие к центру Ba и S; затем пары выбираются снизу вверх по соседству с уже выбранными.
-  const byCenter = (x: { s: { posPm: V3 } }) => Math.hypot(...x.s.posPm)
-  const freeBa = [...ions].sort((a, b) => byCenter(a) - byCenter(b))
-  const freeS = [...centers].sort((a, b) => byCenter(a) - byCenter(b))
-  for (let k = 0; k < units; k++) {
-    const pool = k < spec.seedUnits ? freeBa : freeBa.filter((x) => pickedBa.length === 0 || Math.min(...pickedS.map((s) => dist(s.s.posPm, x.s.posPm))) < 420)
-    const ba = (k < spec.seedUnits ? pool[0] : pool.sort((a, b) => b.s.posPm[1] - a.s.posPm[1] + 0.2 * (byCenter(a) - byCenter(b)))[0]) ?? freeBa[0]!
-    freeBa.splice(freeBa.indexOf(ba), 1)
-    const s = [...freeS].sort((a, b) => dist(a.s.posPm, ba.s.posPm) - dist(b.s.posPm, ba.s.posPm))[0]!
-    freeS.splice(freeS.indexOf(s), 1)
-    pickedBa.push(ba)
-    pickedS.push(s)
+  // Единицы BaSO₄ по ячейкам: Ba — с ближайшим S той же ячейки. Ячейка x = 0 — зародыш, x = 1 — наша пара
+  // (самая верхняя: она садится сверху) и следующие пары.
+  type Unit = { ba: (typeof ions)[number]; s: (typeof centers)[number] }
+  const unitsOf = (cx: number): Unit[] => {
+    const bas = ions.filter((x) => x.s.cell[0] === cx)
+    const ss = centers.filter((x) => x.s.cell[0] === cx)
+    return bas.map((ba) => {
+      const s = [...ss].sort((a, b) => dist(a.s.posPm, ba.s.posPm) - dist(b.s.posPm, ba.s.posPm))[0]!
+      ss.splice(ss.indexOf(s), 1)
+      return { ba, s }
+    })
   }
-  // центр кластера — в начало координат кристалла
-  const all = [...pickedBa, ...pickedS].map((x) => x.s.posPm)
-  const mid: V3 = [0, 1, 2].map((a) => (Math.min(...all.map((p) => p[a]!)) + Math.max(...all.map((p) => p[a]!))) / 2) as V3
+  const seedU = unitsOf(0)
+  const nextU = unitsOf(1).sort((a, b) => b.ba.s.posPm[1] + b.s.s.posPm[1] - (a.ba.s.posPm[1] + a.s.s.posPm[1]))
+  if (seedU.length !== spec.seedUnits || nextU.length !== 1 + spec.laterUnits) throw new Error(`solution scene «${spec.id}»: ячейки дают ${seedU.length} + ${nextU.length} единиц`)
+  const units = [...seedU, ...nextU]
   const sites: CrystalSite[] = []
   const siteLigands: V3[][] = []
-  for (let k = 0; k < units; k++) {
-    const b = pickedBa[k]!.s.posPm
-    sites.push({ el: 'Ba', pos: [b[0] - mid[0], b[1] - mid[1], b[2] - mid[2]] })
-    const sPos = pickedS[k]!.s.posPm
-    const ligs = frag.sites.filter((x) => x.role === 'ligand' && x.group === pickedS[k]!.i).map((x) => x.posPm)
-    const u = ligs.map((p) => norm([p[0] - sPos[0], p[1] - sPos[1], p[2] - sPos[2]]))
-    const fit = hornFit(tetra.map((v) => norm(v)), u)
-    sites.push({ el: 'S', pos: [sPos[0] - mid[0], sPos[1] - mid[1], sPos[2] - mid[2]], q: fit.q })
-    siteLigands.push(ligs.map((p) => [p[0] - mid[0], p[1] - mid[1], p[2] - mid[2]] as V3))
+  for (const u of units) {
+    sites.push({ el: 'Ba', pos: [...u.ba.s.posPm] as V3 })
+    const sPos = u.s.s.posPm
+    const ligs = frag.sites.filter((x) => x.role === 'ligand' && x.group === u.s.i).map((x) => x.posPm)
+    const dirs = ligs.map((p) => norm([p[0] - sPos[0], p[1] - sPos[1], p[2] - sPos[2]]))
+    const fit = hornFit(tetra.map((v) => norm(v)), dirs)
+    sites.push({ el: 'S', pos: [...sPos] as V3, q: fit.q })
+    siteLigands.push(ligs.map((p) => [...p] as V3))
   }
+  const cellEdgesPm: [V3, V3][] = frag.cellEdges.map(([a, b]) => [a.map((v) => v / pmToScene(1)) as V3, b.map((v) => v / pmToScene(1)) as V3])
   // кратчайшее Ba–O решётки (для теста и подписи)
   let shortestCationO = Infinity
   for (const x of ions) for (const y of frag.sites) if (y.role === 'ligand') shortestCationO = Math.min(shortestCationO, dist(x.s.posPm, y.posPm))
@@ -664,7 +664,8 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     { t: S.ions.from, p: a },
     { t: S.meet.from + 0.2, p: a },
     { t: T.meet1 + 0.2, p: b },
-    { t: S.nucleus.from + 2.4, p: c },
+    // наблюдатели уходят вверх раньше, чем проявится зародыш (он внизу)
+    { t: S.nucleus.from + 1.2, p: c },
     { t: T.relocate - 0.01, p: c },
     { t: T.relocate, p: d },
   ]
@@ -719,8 +720,8 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     const siteIdx = (spec.seedUnits + 1 + k) * 2
     const siteBa = sites[siteIdx]!
     const siteS = sites[siteIdx + 1]!
-    const t0 = T.land + 0.1 + k * 0.7
-    const t1 = t0 + 1.7
+    const t0 = T.land + 0.05 + k * 0.45
+    const t1 = t0 + 1.6
     const from = spec.laterFrom[k] ?? spec.laterFrom[0]!
     for (const [site, kind, isBa] of [
       [siteBa, 'lattice-cation', true],
@@ -834,19 +835,19 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
       return 1
     })
   }
+  // места воды на шаге «итог»: не ближе 300 пм друг к другу, в стороне от кристалла и наблюдателей
   const resultSpots: V3[] = []
-  for (let i = 0; i < 40; i++) resultSpots.push([-1250 + 2500 * r(), -950 + 1900 * r(), -200 + 400 * r()])
-  let spot = 0
-  const nextSpot = (): V3 => {
-    // вне кристалла итога (кристалл слева), подальше от наблюдателей
-    for (let tries = 0; tries < 40; tries++) {
-      const p = resultSpots[spot++ % resultSpots.length]!
-      const c = spec.result.crystal
-      const far = [...spec.result.anions, ...spec.result.protons].every((q) => Math.hypot(p[0] - q[0], p[1] - q[1]) > 420)
-      if (Math.hypot(p[0] - c[0], p[1] - c[1]) > 700 && far) return p
-    }
-    return resultSpots[spot++ % resultSpots.length]!
+  const blockers = [...spec.result.anions, ...spec.result.protons]
+  for (let tries = 0; tries < 4000 && resultSpots.length < 44; tries++) {
+    const p: V3 = [-1500 + 3000 * r(), -1000 + 2000 * r(), -220 + 440 * r()]
+    const c = spec.result.crystal
+    const inCrystal = Math.abs(p[0] - c[0]) < 1050 && Math.abs(p[1] - c[1]) < 560
+    const nearIon = blockers.some((q) => Math.hypot(p[0] - q[0], p[1] - q[1]) < 460)
+    const crowded = resultSpots.some((q) => Math.hypot(p[0] - q[0], p[1] - q[1]) < 300)
+    if (!inCrystal && !nearIon && !crowded) resultSpots.push(p)
   }
+  let spot = 0
+  const nextSpot = (): V3 => resultSpots[spot++ % resultSpots.length]!
   // Ba²⁺: октаэдр с осью C₃ по z (передние три — не на луче к зрителю), кислород к иону.
   const baH = hyd.get('Ba')
   const octa: V3[] = []
@@ -862,7 +863,8 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     // к партнёру (+x) смотрят две молекулы — они уходят при встрече, остальные — при посадке
     const toward = n[0] > 0.3
     const det = toward ? S.meet.from + 1.4 + 0.3 * i : T.shed + 0.15 * i
-    addWater(`wBa${i}`, cation, pos, q, det, [n[0] * 260, n[1] * 260 + (toward ? (n[1] >= 0 ? 280 : -280) : 0), n[2] * 200], nextSpot())
+    // вода уходит вверх и в глубину — в сторону от будущего кристаллика (он внизу)
+    addWater(`wBa${i}`, cation, pos, q, det, [n[0] * 260, 380 + Math.abs(n[1]) * 140, (n[2] >= 0 ? 1 : -1) * 260], nextSpot())
   })
   // Cl⁻: 4 молекулы, к иону обращён атом H (связь O–H смотрит на ион)
   const clH = hyd.get('Cl')
@@ -889,7 +891,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     const q = qMul(qFromTo(norm(wLocal[0]!), [-n[0], -n[1], -n[2]]), qAxis(norm(wLocal[0]!), r() * 6.28))
     const toward = n[0] < 0
     const det = toward ? S.meet.from + 1.6 + 0.3 * i : T.shed + 0.25 + 0.15 * i
-    addWater(`wSO4${i}`, group, pos, q, det, [n[0] * 260, n[1] * 260 + (toward ? (n[1] >= 0 ? 260 : -260) : 0), n[2] * 200], nextSpot())
+    addWater(`wSO4${i}`, group, pos, q, det, [n[0] * 260, 400 + Math.abs(n[1]) * 140, (n[2] >= 0 ? 1 : -1) * 260], nextSpot())
   })
   // H₃O⁺: по молекуле на каждый H, кислород воды к H (O–H···O), водороды наружу
   const pH = hyd.get('H3O')
@@ -966,6 +968,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     labels,
     sites,
     siteLigands,
+    cellEdges: cellEdgesPm,
     shortestCationO,
     turbidPoints: TURBID_N,
     tube: TUBE,
@@ -1189,7 +1192,7 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   setLabel(L.solB, 620, 900, 0, windowAlpha(m.labels[L.solB]!.from, m.labels[L.solB]!.to, t) * mi)
   const cBottom = out.crystal.c[1] - 520
   setLabel(L.crystal, out.crystal.c[0], cBottom, 0, windowAlpha(m.labels[L.crystal]!.from, m.labels[L.crystal]!.to, t) * mi * out.crystal.alpha)
-  setLabel(L.neighbors, out.crystal.c[0] + 820, out.crystal.c[1] - 60, 0, windowAlpha(m.labels[L.neighbors]!.from, m.labels[L.neighbors]!.to, t) * mi)
+  setLabel(L.neighbors, out.crystal.c[0] + 1180, out.crystal.c[1] + 60, 0, windowAlpha(m.labels[L.neighbors]!.from, m.labels[L.neighbors]!.to, t) * mi)
   setLabel(L.stepEq, out.crystal.c[0], out.crystal.c[1] - 720, 0, windowAlpha(m.labels[L.stepEq]!.from, m.labels[L.stepEq]!.to, t) * mi)
   setLabel(L.equation, 150, -1080, 0, windowAlpha(m.labels[L.equation]!.from, m.labels[L.equation]!.to, t) * mi)
   setLabel(L.ionic, 150, -1260, 0, windowAlpha(m.labels[L.ionic]!.from, m.labels[L.ionic]!.to, t) * mi)

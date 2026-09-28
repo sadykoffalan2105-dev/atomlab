@@ -20,7 +20,10 @@ export type SolutionSceneSpec = {
   /** кристалл осадка из ядра и число ячеек фрагмента, из которого берутся узлы зародыша */
   readonly crystalId: string
   readonly crystalCells: readonly [number, number, number]
-  /** сколько формульных единиц в зародыше до посадки нашей пары и сколько садится после неё */
+  /**
+   * Зародыш — все формульные единицы первой ячейки (Z = 4); наша пара и следующие садятся в соседнюю
+   * ячейку: к концу шага кристаллик — целые ячейки фрагмента crystalCells.
+   */
   readonly seedUnits: number
   readonly laterUnits: number
   /** стартовые места (шаг «ионы»): слева раствор соли, справа раствор кислоты */
@@ -68,9 +71,9 @@ export const BASO4_SOLUTION_SPEC: SolutionSceneSpec = {
   science: BASO4_SPEC,
   steps: solutionStepTimings(BASO4_SPEC),
   crystalId: 'barite',
-  crystalCells: [2, 2, 2],
-  seedUnits: 5,
-  laterUnits: 2,
+  crystalCells: [2, 1, 1],
+  seedUnits: 4,
+  laterUnits: 3,
   start: {
     cation: [-470, -10, 0],
     anions: [
@@ -87,14 +90,14 @@ export const BASO4_SOLUTION_SPEC: SolutionSceneSpec = {
   mixed: {
     anions: [
       [-380, 600, -80],
-      [420, -640, 60],
+      [620, -440, 60],
     ],
     protons: [
       [420, 640, 60],
-      [-420, -660, -60],
+      [-620, -450, -60],
     ],
   },
-  nucleus: { center: [0, -680, 0], yaw: 0.62, yawRate: 0.05 },
+  nucleus: { center: [0, -650, 0], yaw: -0.55, yawRate: 0.02 },
   spectators: {
     anions: [
       [-900, 380, -40],
@@ -106,19 +109,20 @@ export const BASO4_SOLUTION_SPEC: SolutionSceneSpec = {
     ],
   },
   result: {
-    crystal: [-560, -120, 0],
+    crystal: [-640, -60, 0],
     anions: [
-      [930, 420, 0],
-      [930, -520, 0],
+      [1150, 430, 0],
+      [1150, -560, 0],
     ],
     protons: [
-      [380, 360, 0],
-      [400, -480, 0],
+      [560, 430, 0],
+      [580, -540, 0],
     ],
   },
   laterFrom: [
-    [-1500, -1150, 0],
-    [1500, -1200, 0],
+    [1650, -1250, 0],
+    [1700, -300, 0],
+    [-1650, -1250, 0],
   ],
   waters: [
     [-60, 620, -120],

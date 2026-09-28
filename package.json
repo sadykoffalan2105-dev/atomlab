@@ -75,6 +75,7 @@
     "test:fes-cinema": "tsx scripts/test-fes-cinema.mts",
     "test:hcl-cinema": "tsx scripts/test-hcl-cinema.mts",
     "test:school-scene": "tsx scripts/test-school-scene.mts",
+    "test:solution-scene": "tsx scripts/test-solution-scene.mts",
     "test:g7-first10-links": "tsx scripts/test-g7-first10-links.mts",
     "test:zncl2-cinema": "tsx scripts/test-zncl2-cinema.mts",
     "test:cao-cinema": "tsx scripts/test-cao-cinema.mts",

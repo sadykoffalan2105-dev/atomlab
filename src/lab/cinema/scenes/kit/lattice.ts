@@ -324,6 +324,8 @@ export type GroupedSite = {
   /** индекс центра своей группы в sites (у простого иона −1, у центра — он сам) */
   group: number
   basisIndex: number
+  /** номер ячейки фрагмента (целые части дробей узла; у лиганда — как у его центра) */
+  cell: Vec3
 }
 
 export type GroupedFragment = {
@@ -353,7 +355,8 @@ export function latticeGroupedFragment(crystalId: string, cells: Readonly<Vec3>,
     const posPm: Vec3 = [p[0] - mid[0], p[1] - mid[1], p[2] - mid[2]]
     const g = groups.find((x) => x.center === s.el)
     const idx = sites.length
-    sites.push({ el: s.el, charge: s.charge, posPm, posScene: toSceneV(posPm), role: g ? 'center' : 'ion', group: g ? idx : -1, basisIndex: s.basisIndex })
+    const cell: Vec3 = [Math.floor(s.frac[0] + EPS_FRAC), Math.floor(s.frac[1] + EPS_FRAC), Math.floor(s.frac[2] + EPS_FRAC)]
+    sites.push({ el: s.el, charge: s.charge, posPm, posScene: toSceneV(posPm), role: g ? 'center' : 'ion', group: g ? idx : -1, basisIndex: s.basisIndex, cell })
     if (!g) return
     // ближайшие лиганды центра среди образов ячеек −1…+1
     const cand: { d: number; pos: Vec3; bi: number; charge: number }[] = []
@@ -374,7 +377,7 @@ export function latticeGroupedFragment(crystalId: string, cells: Readonly<Vec3>,
     cand.sort((x, y) => x.d - y.d)
     for (const c of cand.slice(0, g.ligands)) {
       bonds.push([idx, sites.length, c.d])
-      sites.push({ el: g.ligand, charge: c.charge, posPm: c.pos, posScene: toSceneV(c.pos), role: 'ligand', group: idx, basisIndex: c.bi })
+      sites.push({ el: g.ligand, charge: c.charge, posPm: c.pos, posScene: toSceneV(c.pos), role: 'ligand', group: idx, basisIndex: c.bi, cell })
     }
   })
   return { sites, bonds, cellEdges: cellEdges(crystalId, cells) }

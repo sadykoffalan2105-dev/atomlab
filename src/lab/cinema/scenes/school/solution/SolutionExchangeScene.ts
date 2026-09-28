@@ -39,7 +39,7 @@ const gsap: typeof GSAP.gsap =
 
 const K = pmToScene(1)
 const MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.16 } as const
-const WATER_OPACITY = 0.5
+const WATER_OPACITY = 0.62
 
 export type SolutionSceneOptions = {
   locale?: SceneLocale
@@ -104,6 +104,10 @@ export class SolutionExchangeScene {
   private readonly attractMat: THREE.LineDashedMaterial
   private readonly divider: THREE.Line
   private readonly dividerMat: THREE.LineDashedMaterial
+  /** рёбра ячеек кристаллика (система кристалла: центр и поворот вокруг вертикали) */
+  private readonly crystalFrame = new THREE.Group()
+  private readonly edges: THREE.LineSegments
+  private readonly edgeMat: THREE.LineBasicMaterial
   // макро
   private readonly glassGeo: THREE.LatheGeometry
   private readonly glassMat: THREE.MeshPhysicalMaterial
@@ -215,6 +219,13 @@ export class SolutionExchangeScene {
     this.divider.computeLineDistances()
     this.divider.frustumCulled = false
     this.micro.add(this.attract, this.divider)
+    const edgePts: THREE.Vector3[] = []
+    for (const [a, b] of m.cellEdges) edgePts.push(new THREE.Vector3(a[0] * K, a[1] * K, a[2] * K), new THREE.Vector3(b[0] * K, b[1] * K, b[2] * K))
+    this.edgeMat = new THREE.LineBasicMaterial({ color: 0x8fb8e0, transparent: true, opacity: 0, depthWrite: false, fog: false })
+    this.edges = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(edgePts), this.edgeMat)
+    this.edges.frustumCulled = false
+    this.crystalFrame.add(this.edges)
+    this.micro.add(this.crystalFrame)
 
     // ——— макро: пробирки ———
     const R = m.tube.r
@@ -225,13 +236,13 @@ export class SolutionExchangeScene {
         opts.lowPower ? 28 : 48,
       )
     this.glassGeo = lathe(roundTestTubeProfile(R, H))
-    this.glassMat = new THREE.MeshPhysicalMaterial({ color: 0xdfefff, roughness: 0.08, metalness: 0, transmission: 0, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false, fog: false })
-    this.rimMat = new THREE.MeshBasicMaterial({ color: 0xcfe6ff, transparent: true, opacity: 0.5, side: THREE.BackSide, depthWrite: false, fog: false })
+    this.glassMat = new THREE.MeshPhysicalMaterial({ color: 0xe8f4ff, roughness: 0.05, metalness: 0, transmission: 0, transparent: true, opacity: 0.1, side: THREE.FrontSide, depthWrite: false, fog: false })
+    this.rimMat = new THREE.MeshBasicMaterial({ color: 0xbfdcff, transparent: true, opacity: 0.3, side: THREE.BackSide, depthWrite: false, fog: false })
     // жидкость: полусферическое дно (не тянется) + столбик до уровня (масштаб по y)
     this.liquidGeo = lathe(liquidProfile(R, R))
     this.columnGeo = new THREE.CylinderGeometry(R * 0.9 * K, R * 0.9 * K, 1, opts.lowPower ? 28 : 48, 1, false)
     this.columnGeo.translate(0, 0.5, 0)
-    this.liquidMatA = new THREE.MeshPhysicalMaterial({ color: 0xcfe6ff, roughness: 0.2, transparent: true, opacity: 0.2, depthWrite: false, fog: false })
+    this.liquidMatA = new THREE.MeshPhysicalMaterial({ color: 0xb3d6ff, roughness: 0.2, transparent: true, opacity: 0.3, depthWrite: false, fog: false })
     this.liquidMatB = this.liquidMatA.clone()
     this.columnA = new THREE.Mesh(this.columnGeo, this.liquidMatA)
     this.columnB = new THREE.Mesh(this.columnGeo, this.liquidMatB)
@@ -404,7 +415,8 @@ export class SolutionExchangeScene {
     this.disposed = true
     this.killTween()
     this.root.removeFromParent()
-    for (const x of [this.ionMat, this.waterAtomMat, this.stickMat, this.waterStickMat, this.attractMat, this.dividerMat, this.glassMat, this.rimMat, this.liquidMatA, this.liquidMatB, this.sedimentMat, this.turbidMat, this.streamMat]) x.dispose()
+    this.edges.geometry.dispose()
+    for (const x of [this.edgeMat, this.ionMat, this.waterAtomMat, this.stickMat, this.waterStickMat, this.attractMat, this.dividerMat, this.glassMat, this.rimMat, this.liquidMatA, this.liquidMatB, this.sedimentMat, this.turbidMat, this.streamMat]) x.dispose()
     for (const x of [this.ions, this.waterAtoms, this.sticks, this.waterSticks]) x.dispose()
     for (const g of [this.stickGeo, this.glassGeo, this.liquidGeo, this.columnGeo, this.sedimentGeo, this.turbidGeo, this.streamGeo, this.attract.geometry, this.divider.geometry]) g.dispose()
     if (!this.ownLights) {
@@ -544,6 +556,10 @@ export class SolutionExchangeScene {
     }
     this.dividerMat.opacity = 0.45 * s.divider.alpha * s.microAlpha
     this.divider.visible = this.dividerMat.opacity > 0.01
+    this.crystalFrame.position.set(s.crystal.c[0] * K, s.crystal.c[1] * K, s.crystal.c[2] * K)
+    this.crystalFrame.rotation.set(0, s.crystal.yaw, 0)
+    this.edgeMat.opacity = 0.32 * s.crystal.alpha * s.microAlpha
+    this.edges.visible = this.edgeMat.opacity > 0.01
 
     // ——— пробирки ———
     const H = m.tube.h
@@ -557,13 +573,13 @@ export class SolutionExchangeScene {
     this.columnA.scale.set(1, Math.max(0.001, (s.tubeA.level * H - m.tube.r) * K), 1)
     this.columnB.scale.set(1, Math.max(0.001, (s.tubeB.level * H - m.tube.r) * K), 1)
     this.liquidB.visible = s.tubeB.liquid > 0.02
-    this.glassMat.opacity = 0.22 * s.macroAlpha
-    this.rimMat.opacity = 0.42 * s.macroAlpha
+    this.glassMat.opacity = 0.1 * s.macroAlpha
+    this.rimMat.opacity = 0.3 * s.macroAlpha
     // мутная жидкость белеет
     const milk = s.turbidity
-    this.liquidMatA.color.setRGB(0.81 + 0.19 * milk, 0.9 + 0.1 * milk, 1)
-    this.liquidMatA.opacity = (0.2 + 0.55 * milk) * s.macroAlpha
-    this.liquidMatB.opacity = 0.2 * s.macroAlpha * s.tubeB.liquid
+    this.liquidMatA.color.setRGB(0.7 + 0.3 * milk, 0.84 + 0.16 * milk, 1)
+    this.liquidMatA.opacity = (0.3 + 0.5 * milk) * s.macroAlpha
+    this.liquidMatB.opacity = 0.3 * s.macroAlpha * s.tubeB.liquid
     const sedH = m.tube.r * 0.25 + s.sediment * H
     this.sediment.scale.set(1, Math.max(0.001, sedH / (m.tube.r * 0.25 + 0.2 * H)), 1)
     this.sediment.visible = s.sediment > 0.0005
