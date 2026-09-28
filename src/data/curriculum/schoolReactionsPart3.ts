@@ -21,6 +21,9 @@ export const SCHOOL_REACTIONS_PART3: readonly SchoolReactionDef[] = [
     howToRu: 'Zn вытесняет H из кислоты. Для синтеза ZnCl₂: Zn + Cl в реакторе. Газ H₂ — признак реакции.',
     howToEn: 'Zinc displaces hydrogen from HCl.',
     passport: { isRedox: true },
+    // Без условий: цинк реагирует с соляной кислотой уже при комнатной температуре (Kimyo 8) — нагрев не нужен
+    // (у ZnCl₂ в данных — синтез из простых веществ Zn + Cl₂ с нагревом).
+    labNeeds: {},
   },
   {
     id: 'fe-hcl',

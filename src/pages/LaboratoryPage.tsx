@@ -1373,6 +1373,7 @@ export function LaboratoryPage() {
         className={styles.canvasWrap}
         data-lab-synthesis-view={laboratorySynthesisView}
         data-reactor-open={reactorOpen ? 'true' : undefined}
+        data-back-to-book={deepLinkBackHref ? 'true' : undefined}
         data-synth-ignite={synthIgnite ? 'true' : undefined}
         data-synth-phase={synthRunActive || showSettledSynthesisView ? synthPhaseUi || undefined : undefined}
         style={

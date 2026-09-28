@@ -21,7 +21,7 @@ import { REACTOR_COEFF_MAX } from '../../chemistry/reactorLimits'
 import { getReactorVisualTier } from '../../chemistry/reactorVisualTier'
 // Каталог + частицы реактора вне каталога (ионы, e⁻, органика): подписи членов уравнения.
 import { labCompoundById as compoundById } from '../../data/labSpecies'
-import { getSchoolReaction } from '../../chemistry/schoolReactionBank'
+import { getSchoolReaction, passportForReaction } from '../../chemistry/schoolReactionBank'
 import { useLocation } from 'react-router-dom'
 import { clo2StepStore } from '../../lab/cinema/scenes/clo2/clo2StepStore'
 import { ReactorBalancePanel } from './ReactorBalancePanel'
@@ -695,6 +695,10 @@ export function SynthesisReactorPanel({
     () => (linkedReactionId ? (getSchoolReaction(linkedReactionId) ?? null) : null),
     [linkedReactionId],
   )
+  // Обратимая реакция банка (2SO₂ + O₂ ⇄ 2SO₃, N₂ + O₂ ⇄ 2NO): между частями уравнения — ⇄, как в эталоне.
+  const reversibleLink = linkedReaction
+    ? passportForReaction(linkedReaction).reversibility === 'reversible' || /[⇄⇌]/.test(linkedReaction.equationRu)
+    : false
   // Реакция «шарами»: «эталон» получения главного продукта (H₂O из 2H₂ + O₂ при CH₄ + 2O₂) сбил бы с толку.
   const recipeText = productCompound && !runUnavailableHint
     ? linkedReaction
@@ -876,7 +880,7 @@ export function SynthesisReactorPanel({
               <div className={panelStyles.equalsColumn}>
                 {leftTerms.length > 0 ? <ReactorAtomLedger ledger={atomLedger.ledger} /> : null}
                 <span className={panelStyles.equalsSign} aria-hidden="true">
-                  {scientificMode ? '→' : '='}
+                  {reversibleLink ? '⇄' : scientificMode ? '→' : '='}
                 </span>
               </div>
 

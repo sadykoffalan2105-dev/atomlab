@@ -612,10 +612,10 @@ function speciesToUnicode(s: EquationSpecies): string {
   return `${formatCoeff(s.coeff)}${n}${formulaToUnicode(s.formula + chargeText)}`
 }
 
-/** Обратно в текст: «2H₂ + O₂ → 2H₂O». */
+/** Обратно в текст: «2H₂ + O₂ → 2H₂O». Обратимая реакция — школьным знаком ⇄ (как в учебнике и в реакторе). */
 export function formatEquationUnicode(eq: Pick<ParsedEquationText, 'reactants' | 'products' | 'arrow'>): string {
   const side = (list: readonly EquationSpecies[]) => list.map(speciesToUnicode).join(' + ')
-  return `${side(eq.reactants)} ${eq.arrow} ${side(eq.products)}`
+  return `${side(eq.reactants)} ${eq.arrow === '⇌' ? '⇄' : eq.arrow} ${side(eq.products)}`
 }
 
 /** ASCII-запись для URL: «2H2 + O2 = 2H2O». */
