@@ -22,6 +22,8 @@
  *   9. Сцены из научных спецификаций (school/specs: CO₂, CO, SO₂, SO₃): уравнение, шаги, тексты,
  *      связи (порядок, донор пары, ключ длины), неподелённые пары, неспаренные электроны, углы и
  *      splitElectrons сцены = научной спецификации; ключевые фазы каждого вещества — поштучно.
+ *  10. Кадр: электроны не заходят в шары атомов (переход по дуге), две неподелённые пары атома не
+ *      совпадают в проекции, молекулы продукта не наезжают, стрелки донорных пар — от донора к акцептору.
  *
  * Запуск: npx tsx scripts/test-school-scene.mts
  */
@@ -46,6 +48,7 @@ import { SO2_FINISH } from '../src/lab/cinema/scenes/so2/so2Steps.ts'
 import { SO3_SCHOOL_SPEC } from '../src/lab/cinema/scenes/so3/so3Spec.ts'
 import { SO3_FINISH } from '../src/lab/cinema/scenes/so3/so3Steps.ts'
 import { SCHOOL_SPECS, lessonText, pairOrigins, stepTimings, type ParticleSpec, type SchoolScienceSpec } from '../src/lab/cinema/scenes/school/specs/index.ts'
+import { effectiveLabNeeds } from '../src/lab/reactionLabNeeds.ts'
 
 let passed = 0
 function ok(name: string, fn: () => void): void {
@@ -664,6 +667,112 @@ ok('SO₃: S=O молекул SO₂ сохраняются, рвётся тол�
   const eq = m.labels.find((l) => l.id === 'equation')!
   assert.equal(eq.kind, 'equation')
   assert.deepEqual(eq.text.ru.split(EQUATION_PART_SEP), ['2SO₂ + O₂', '⇄', 't°, кат. V₂O₅', '2SO₃'])
+})
+
+// ——— кадр: электроны вне шаров, пары не сливаются, молекулы продукта не наезжают, стрелки донорных пар ———
+for (const [si, spec] of SPECS.entries()) {
+  const { a, m } = built[si]!
+  const tag = `[${spec.id}]`
+  const st = createSchoolState(m)
+  const molOf = new Map<number, number>()
+  spec.products.forEach((p, k) => p.atoms.forEach((id) => molOf.set(a.index.get(id)!, k)))
+  ok(`${tag} электроны не заходят в шары атомов (каждые 1/60 с шагов atoms…result)`, () => {
+    for (let t = m.step.atoms.from; t < m.finish.from; t += 1 / 60) {
+      sampleSchoolState(m, t, st)
+      for (let k = 0; k < a.electrons.length; k++) {
+        if (st.elAlpha[k]! < 0.3) continue
+        for (let i = 0; i < a.atoms.length; i++) {
+          const d = Math.hypot(st.elPos[k * 3]! - st.atomPos[i * 3]!, st.elPos[k * 3 + 1]! - st.atomPos[i * 3 + 1]!, st.elPos[k * 3 + 2]! - st.atomPos[i * 3 + 2]!)
+          // Допуск 1 пм: точка радиусом 6 пм у поверхности шара видна.
+          assert.ok(d >= m.ballR[i]! - 1, `${tag} t = ${t.toFixed(2)}: электрон ${k} (${a.atoms[a.electrons[k]!.owner]!.id}) в шаре ${a.atoms[i]!.id}: ${d.toFixed(1)} < ${m.ballR[i]!.toFixed(1)} пм`)
+        }
+      }
+    }
+  })
+  ok(`${tag} неподелённые пары одного атома не совпадают в проекции кадра`, () => {
+    // Кадры покоя: конец шагов atoms, breaking, pairs и всё время после того, как встала геометрия.
+    const times: number[] = []
+    for (const w of [m.step.atoms, m.step.breaking, m.step.pairs]) times.push(w.to - 0.02)
+    for (let t = m.step.molecule.from + 1.3; t < m.finish.from; t += 1 / 30) times.push(t)
+    for (const t of times) {
+      sampleSchoolState(m, t, st)
+      const phase = t < m.step.breaking.from ? 'r' : t < m.step.pairs.from ? 's' : 'p'
+      for (let i = 0; i < a.atoms.length; i++) {
+        const c = new Map<number, [number, number]>()
+        a.electrons.forEach((e, k) => {
+          const pl = phase === 'r' ? e.r : phase === 's' ? e.s : e.p
+          if (pl.kind !== 'lone' || pl.atom !== i || st.elAlpha[k]! < 0.3) return
+          const q = c.get(pl.pair) ?? [0, 0]
+          c.set(pl.pair, [q[0] + st.elPos[k * 3]! / 2, q[1] + st.elPos[k * 3 + 1]! / 2])
+        })
+        const pts = [...c.values()]
+        for (let x = 0; x < pts.length; x++) {
+          for (let y = x + 1; y < pts.length; y++) {
+            const d = Math.hypot(pts[x]![0] - pts[y]![0], pts[x]![1] - pts[y]![1])
+            // Центры пар дальше 20 пм — в кадре две пары по две точки, а не одна.
+            assert.ok(d >= 20, `${tag} t = ${t.toFixed(2)}: две пары ${a.atoms[i]!.id} совпадают в проекции (${d.toFixed(1)} пм)`)
+          }
+        }
+      }
+    }
+  })
+  ok(`${tag} молекулы продукта не наезжают друг на друга (шаги pairs…result)`, () => {
+    for (let t = m.step.pairs.to - 0.3; t < m.finish.from; t += 1 / 30) {
+      sampleSchoolState(m, t, st)
+      for (let i = 0; i < a.atoms.length; i++) {
+        for (let j = i + 1; j < a.atoms.length; j++) {
+          if (molOf.get(i) === molOf.get(j)) continue
+          // В проекции кадра: облака внешнего слоя соседних молекул не перекрываются.
+          const d = Math.hypot(st.atomPos[i * 3]! - st.atomPos[j * 3]!, st.atomPos[i * 3 + 1]! - st.atomPos[j * 3 + 1]!)
+          assert.ok(d >= m.cloudR[i]! + m.cloudR[j]!, `${tag} t = ${t.toFixed(2)}: ${a.atoms[i]!.id} и ${a.atoms[j]!.id} разных молекул: ${d.toFixed(1)} пм`)
+        }
+      }
+    }
+  })
+  ok(`${tag} стрелки донорно-акцепторных пар: по одной на каждую пару 'a' / 'b' продукта`, () => {
+    const want = a.P.bonds.reduce((s, b) => s + b.pairs.filter((o) => o !== 'ab').length, 0)
+    assert.equal(m.arrows.length, want)
+    for (const ar of m.arrows) {
+      const stick = m.sticks[ar.stick]!
+      assert.equal(stick.phase, 'p')
+      const b = a.P.bonds[stick.bond]!
+      const o = b.pairs[stick.pair]!
+      assert.equal(ar.donor, o === 'a' ? b.a : b.b, `${tag} стрелка не от донора`)
+      assert.equal(ar.acceptor, o === 'a' ? b.b : b.a)
+    }
+  })
+  ok(`${tag} подпись угла — не больше одного знака после запятой`, () => {
+    for (const l of m.labels.filter((x) => x.id.startsWith('angle-'))) assert.match(l.text.ru, /= \d+(\.\d)?°$/, `${tag} ${l.text.ru}`)
+  })
+}
+ok('стрелки: CO — O → C, NO₂ и N₂O — N → O, HNO₃ — N → O (у каждой молекулы)', () => {
+  const pairsOf = (spec: SchoolSceneSpec) => {
+    const { a, m } = analysisOf(spec)
+    return m.arrows.map((x) => `${a.atoms[x.donor]!.element}→${a.atoms[x.acceptor]!.element}`)
+  }
+  assert.deepEqual(pairsOf(CO_SCHOOL_SPEC), ['O→C', 'O→C'])
+  assert.deepEqual(pairsOf(NO2_SCENE_SPEC), ['N→O', 'N→O'])
+  assert.deepEqual(pairsOf(N2O_SCENE_SPEC), ['N→O'])
+  assert.deepEqual(pairsOf(N2O5_SCENE_SPEC), ['N→O', 'N→O'])
+  assert.deepEqual(pairsOf(H2O_SPEC), [])
+})
+ok('CO₂: в итоговой подписи 180° не повторяется (угол подписан у молекулы)', () => {
+  const { m } = analysisOf(CO2_SCHOOL_SPEC)
+  assert.ok(m.labels.some((l) => l.id.startsWith('angle-') && l.text.ru.includes('180')))
+  assert.ok(!CO2_SCHOOL_SPEC.captions.result.ru.includes('180'))
+})
+ok('N₂O₅: ∠ONO подписан с одним знаком (130,3°)', () => {
+  const { m } = analysisOf(N2O5_SCENE_SPEC)
+  assert.ok(m.labels.some((l) => l.text.ru === '∠ONO = 130.3°'), m.labels.filter((l) => l.id.startsWith('angle-')).map((l) => l.text.ru).join('; '))
+})
+ok('CO₂: кадр шага atoms — по центру композиции (C слева, O₂ справа)', () => {
+  const { m } = analysisOf(CO2_SCHOOL_SPEC)
+  const e = m.extent[1]!
+  assert.ok(e.cx < -20, `центр габарита ${e.cx.toFixed(1)} пм — не у центра композиции`)
+})
+ok('zn-hcl: без условий (цинк реагирует с соляной кислотой без нагрева)', () => {
+  const needs = effectiveLabNeeds({ needsHeat: true }, 'salt_zn_cl', 'zn-hcl')
+  assert.ok(needs && !needs.needsHeat && !needs.needsCatalyst && !needs.needsPressure, JSON.stringify(needs))
 })
 
 console.log(`✓ school scenes: ${passed} проверок, спецификаций: ${SPECS.length}`)

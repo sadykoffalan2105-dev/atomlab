@@ -210,7 +210,7 @@ export const NO2_SPEC: SchoolScienceSpec = {
   legend: LEGEND_DATIVE,
   captions: {
     reactants: { ru: 'бесцветный NO на воздухе', en: 'colourless NO in air', uz: 'havodagi rangsiz NO' },
-    result: { ru: 'бурый NO₂, 134,1°', en: 'brown NO₂, 134.1°', uz: 'qoʻngʻir NO₂, 134,1°' },
+    result: { ru: 'бурый газ NO₂ — угловая', en: 'brown gas NO₂ — bent', uz: 'qoʻngʻir gaz NO₂ — burchakli' },
     condition: { ru: 'без нагревания', en: 'no heating', uz: 'qizdirishsiz' },
   },
   steps: [

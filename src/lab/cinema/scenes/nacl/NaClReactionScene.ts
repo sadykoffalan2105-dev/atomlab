@@ -12,7 +12,8 @@ import {
   naclSphereGeometry,
   setNaclSiteTint,
   NACL_EDGE_COLOR,
-  NACL_GLOSS,
+  NACL_ION_MATTE,
+  naclNaIonColor,
   NACL_MATTE_METAL,
   NACL_RIM,
   withNaclRim,
@@ -289,7 +290,7 @@ export class NaClReactionScene {
   private readonly hEndQuat = new THREE.Quaternion()
   private readonly hEndScale = new THREE.Vector3()
   private readonly colorNaMetal = naclMetalColor()
-  private readonly colorNaIon = new THREE.Color(cpkHex('Na'))
+  private readonly colorNaIon = naclNaIonColor()
   private readonly colorClAtom = new THREE.Color(cpkHex('Cl')).multiplyScalar(0.82)
   private readonly colorClIon = new THREE.Color(cpkHex('Cl'))
 
@@ -318,7 +319,7 @@ export class NaClReactionScene {
       const na = NACL_STORY[i]!.el === 'Na'
       const mat: StoryMat = na
         ? withNaclRim(new THREE.MeshPhysicalMaterial({ color: this.colorNaMetal.clone(), ...NACL_MATTE_METAL, fog: false }), this.colorNaIon.clone().lerp(new THREE.Color(0xffffff), 0.35), NACL_RIM.metal)
-        : withNaclRim(new THREE.MeshPhysicalMaterial({ color: this.colorClAtom.clone(), ...NACL_GLOSS, fog: false }), this.colorClIon.clone().lerp(new THREE.Color(0xffffff), 0.35), NACL_RIM.atom)
+        : withNaclRim(new THREE.MeshPhysicalMaterial({ color: this.colorClAtom.clone(), ...NACL_ION_MATTE, fog: false }), this.colorClIon.clone().lerp(new THREE.Color(0xffffff), 0.35), NACL_RIM.atom)
       const mesh = new THREE.Mesh(this.geo, mat)
       mesh.name = `nacl-${NACL_STORY[i]!.id}`
       this.story.push(mesh)
@@ -352,7 +353,7 @@ export class NaClReactionScene {
     // ——— σ-связь Cl–Cl: ОДИН цилиндр (одинарная связь) ———
     this.bondGeo = new THREE.CylinderGeometry(1, 1, 1, 18, 1, true)
     this.ownGeos.push(this.bondGeo)
-    this.bondMat = withNaclRim(new THREE.MeshPhysicalMaterial({ color: this.colorClAtom.clone().lerp(new THREE.Color(0xffffff), 0.25), ...NACL_GLOSS, transparent: true, fog: false }), 0xffffff, NACL_RIM.atom)
+    this.bondMat = withNaclRim(new THREE.MeshPhysicalMaterial({ color: this.colorClAtom.clone().lerp(new THREE.Color(0xffffff), 0.25), ...NACL_ION_MATTE, transparent: true, fog: false }), 0xffffff, NACL_RIM.atom)
     this.bond = new THREE.Mesh(this.bondGeo, this.bondMat)
     this.bond.name = 'nacl-cl-cl'
     this.stage.add(this.bond)
@@ -782,12 +783,12 @@ export class NaClReactionScene {
       const m = s.morph[i]!
       const rim = mat.userData.rim
       if (i < 2) {
-        // Na: матовый металл → глянцевый ион Na⁺ (clearcoat появляется только с поглощением).
+        // Na: матовый металл → матовый ион Na⁺ (цвет светлеет, металличность уходит; без лака).
         mat.color.copy(this.colorNaMetal).lerp(this.colorNaIon, m)
-        mat.roughness = NACL_MATTE_METAL.roughness + (NACL_GLOSS.roughness - NACL_MATTE_METAL.roughness) * m
+        mat.roughness = NACL_MATTE_METAL.roughness + (NACL_ION_MATTE.roughness - NACL_MATTE_METAL.roughness) * m
         mat.metalness = NACL_MATTE_METAL.metalness * (1 - m)
-        mat.clearcoat = NACL_GLOSS.clearcoat * m
-        mat.specularIntensity = NACL_MATTE_METAL.specularIntensity + (1 - NACL_MATTE_METAL.specularIntensity) * m
+        mat.clearcoat = NACL_ION_MATTE.clearcoat * m
+        mat.specularIntensity = NACL_MATTE_METAL.specularIntensity + (NACL_ION_MATTE.specularIntensity - NACL_MATTE_METAL.specularIntensity) * m
         rim.strength.value = NACL_RIM.metal + (NACL_RIM.ion - NACL_RIM.metal) * m + 0.5 * s.flash[i]!
       } else {
         mat.color.copy(this.colorClAtom).lerp(this.colorClIon, m)

@@ -45,7 +45,7 @@ export const SCHOOL_DRAW = {
   loose: 1.14,
 } as const
 
-export type SchoolLabelKind = 'atom' | 'atomDark' | 'species' | 'measure' | 'token' | 'equation'
+export type SchoolLabelKind = 'atom' | 'atomDark' | 'species' | 'measure' | 'token' | 'condition' | 'equation'
 
 /** Разделитель частей уравнения «левая часть ␟ стрелка ␟ условие ␟ правая часть» (подпись kind 'equation'). */
 export const EQUATION_PART_SEP = '␟'
@@ -62,8 +62,9 @@ export function equationWithCondition(equation: string, condition: string | unde
 
 export type SchoolLabelAnchor =
   | { readonly kind: 'atom'; readonly atom: number }
-  | { readonly kind: 'layers'; readonly atom: number }
-  | { readonly kind: 'molR'; readonly mol: number }
+  /** side: +1 — над облаком атома, −1 — под ним (сторона, где меньше соседних атомов). */
+  | { readonly kind: 'layers'; readonly atom: number; readonly side: 1 | -1 }
+  | { readonly kind: 'molR'; readonly mol: number; readonly side: 1 | -1 }
   | { readonly kind: 'molP'; readonly mol: number }
   /** others — прочие соседи центрального атома в продукте (SO₃: третий O); при трёх соседях и больше подпись угла — над молекулой. */
   | { readonly kind: 'angle'; readonly a: number; readonly center: number; readonly b: number; readonly others: readonly number[] }
@@ -123,6 +124,20 @@ export type SchoolModel = {
   readonly acceptors: { readonly atom: number; readonly donor: number; readonly closeAt: number }[]
   /** Габарит кадра по шагам (пм, система сцены без поворота): w, h, cx, cy. */
   readonly extent: { w: number; h: number; cx: number; cy: number }[]
+  /**
+   * Атом, вокруг которого электрон переходит по дуге (шаги breaking и pairs): у него электрон и был, и
+   * будет (−1 — электрон переходит к другому атому, тогда по прямой). Дуга вокруг ядра не заходит в шар.
+   */
+  readonly hostBreak: Int16Array
+  readonly hostPairs: Int16Array
+  /** Угол дуги каждого электрона (сторона обхода ядра), рад. */
+  readonly turnBreak: Float32Array
+  readonly turnPairs: Float32Array
+  /**
+   * Стрелки донорно-акцепторных пар продукта (школьная запись O → C): штрих пары с наконечником у
+   * акцептора. stick — индекс в sticks.
+   */
+  readonly arrows: readonly { readonly stick: number; readonly donor: number; readonly acceptor: number }[]
 }
 
 export type SchoolState = {
@@ -248,6 +263,10 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     if (!Number.isFinite(t0)) return { t0: pr.from + 0.4, t1: pr.to - 0.4 }
     return { t0: t0 - 0.2, t1: Math.min(pr.to - 0.2, t1 - 0.3) }
   })
+  // Фрагмент с сохранённой связью (OH⁻ в N₂O₅ + H₂O, SO₂ в SO₃) движется ЦЕЛИКОМ — одним окном: иначе
+  // атомы фрагмента шли в разное время, связь сжималась (O–H до 57 пм), шары наезжали друг на друга.
+  unifyFragments(a.S.bonds, moveBreak)
+  unifyFragments(a.S.bonds, movePairs)
 
   // ——— «рыхлые» позиции продукта: координаты молекулы × loose от места молекулы ———
   const loose: V3[] = new Array(n)
@@ -279,22 +298,62 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     const light = x.element === 'H' || x.element === 'S' || x.element === 'Cl'
     labels.push({ id: `atom-${x.id}`, kind: light ? 'atomDark' : 'atom', text: all(x.element), anchor: { kind: 'atom', atom: i }, from: 0, to: end })
   })
+  // Свободное место у точки (x, y) на шагах reactants / atoms (позиции реагентов): расстояние до
+  // ближайшего облака, кроме своих атомов; по x — с поправкой на ширину подписи (она шире, чем выше).
+  /** Места уже поставленных подписей реагентов (схемы слоёв, формулы): новая подпись их обходит. */
+  const placed: [number, number][] = []
+  const roomAt = (x: number, y: number, skip: (j: number) => boolean) => {
+    let best = Infinity
+    a.R.pos.forEach((p, j) => {
+      if (skip(j)) return
+      best = Math.min(best, Math.hypot((p[0] - x) / 2.4, p[1] - y) - cloudR[j]!)
+    })
+    for (const q of placed) best = Math.min(best, Math.hypot((q[0] - x) / 2.4, q[1] - y) - 22)
+    return best
+  }
+  const layerLift = (i: number) => cloudR[i]! * 1.55 + 16
   const seenEl = new Set<string>()
-  a.atoms.forEach((x, i) => {
+  a.atoms.forEach((x) => {
     if (seenEl.has(x.element)) return
     seenEl.add(x.element)
+    // Схема слоёв — у того атома элемента и с той стороны (над / под облаком), где просторнее:
+    // «H +1 )1» у воды N₂O₅ лежала на шаре O, на телефоне схемы ложились на соседние атомы.
+    let pick = { atom: -1, side: 1 as 1 | -1, room: -Infinity }
+    a.atoms.forEach((y, j) => {
+      if (y.element !== x.element) return
+      for (const side of [1, -1] as const) {
+        const p = a.R.pos[j]!
+        const room = roomAt(p[0], p[1] + side * layerLift(j), (q) => q === j) + (side === 1 ? 8 : 0)
+        if (room > pick.room + 1e-6) pick = { atom: j, side, room }
+      }
+    })
+    const pp = a.R.pos[pick.atom]!
+    placed.push([pp[0], pp[1] + pick.side * layerLift(pick.atom)])
     labels.push({
       id: `layers-${x.element}`,
       kind: 'measure',
       text: all(layersText(x.element, x.z)),
-      anchor: { kind: 'layers', atom: i },
+      anchor: { kind: 'layers', atom: pick.atom, side: pick.side },
       from: step.atoms.from + 1.6,
       to: step.breaking.from + 1.0,
     })
   })
   spec.reactants.forEach((m, k) => {
     // Состояние вещества — токеном ({g} → «г.» / «g» / «gaz»), как у подписей NaCl.
-    labels.push({ id: `molR-${m.id}`, kind: 'species', text: all(`${m.formula} ({${m.state}})`), anchor: { kind: 'molR', mol: k }, from: 0.3, to: step.breaking.from + 0.7 })
+    // Формула — под молекулой, если там свободно, иначе над ней (N₂O₅ над водой: подпись ложилась на O воды).
+    const own = new Set(m.atoms.map((id) => a.index.get(id)!))
+    let y0 = Infinity
+    let y1 = -Infinity
+    let xc = 0
+    for (const i of own) {
+      y0 = Math.min(y0, a.R.pos[i]![1] - cloudR[i]!)
+      y1 = Math.max(y1, a.R.pos[i]![1] + cloudR[i]!)
+      xc += a.R.pos[i]![0] / own.size
+    }
+    const below = roomAt(xc, y0 - 26, (j) => own.has(j)) + 8
+    const above = roomAt(xc, y1 + 26, (j) => own.has(j))
+    placed.push([xc, below >= above ? y0 - 26 : y1 + 26])
+    labels.push({ id: `molR-${m.id}`, kind: 'species', text: all(`${m.formula} ({${m.state}})`), anchor: { kind: 'molR', mol: k, side: below >= above ? -1 : 1 }, from: 0.3, to: step.breaking.from + 0.7 })
   })
   spec.products.forEach((m, k) => {
     labels.push({ id: `molP-${m.id}`, kind: 'species', text: all(m.formula), anchor: { kind: 'molP', mol: k }, from: step.molecule.from + 1.0, to: end })
@@ -303,8 +362,9 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
   const angled = new Set<string>()
   const angleMols = spec.products.filter((mol) => !angled.has(mol.formula) && angled.add(mol.formula))
   for (const ang of angleMols.flatMap((mol) => (mol.angles ?? []).filter((x) => x.label !== false))) {
-    const deg = angleDegOf(spec, ang)
-    const txt = `∠${ang.a.replace(/\d+$/, '')}${ang.center.replace(/\d+$/, '')}${ang.b.replace(/\d+$/, '')} = ${deg}°`
+    // Угол в подписи — с одним знаком после запятой, как остальные углы (130,27° ядра → 130,3°).
+    const deg = Math.round(angleDegOf(spec, ang) * 10) / 10
+    const txt =`∠${ang.a.replace(/\d+$/, '')}${ang.center.replace(/\d+$/, '')}${ang.b.replace(/\d+$/, '')} = ${deg}°`
     const [ia, ic, ib] = [a.index.get(ang.a)!, a.index.get(ang.center)!, a.index.get(ang.b)!]
     const others = a.P.bonds
       .filter((b) => b.a === ic || b.b === ic)
@@ -343,7 +403,9 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
   })
   labels.push({ id: 'caption-reactants', kind: 'species', text: spec.captions.reactants, anchor: { kind: 'top' }, from: 0.3, to: step.atoms.to - 0.2 })
   if (spec.captions.condition) {
-    labels.push({ id: 'condition', kind: 'token', text: spec.captions.condition, anchor: { kind: 'center' }, from: step.breaking.from + 0.1, to: step.breaking.from + 2.4 })
+    // Условие (t°, кат.) — крупной плашкой над композицией: в центре кадра оно «плавало» между
+    // расходящимися атомами и терялось на облаках.
+    labels.push({ id: 'condition', kind: 'condition', text: spec.captions.condition, anchor: { kind: 'top' }, from: step.breaking.from + 0.1, to: Math.max(step.breaking.from + 2.4, step.breaking.to - 0.8) })
   }
   labels.push({ id: 'caption-result', kind: 'species', text: spec.captions.result, anchor: { kind: 'top' }, from: step.result.from + 0.3, to: end })
   // Итог: уравнение, условие реакции — над стрелкой (как в учебнике: →t°, ⇄ кат. V₂O₅).
@@ -367,26 +429,31 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     let maxX = -Infinity
     let minY = Infinity
     let maxY = -Infinity
-    const probe = (P: readonly V3[]) => {
+    // Габарит — по настоящим позициям (центр кадра = центр композиции: у CO₂ атом C слева, и
+    // симметричный габарит сдвигал её влево). Молекулы продукта поворачиваются вокруг своего центра —
+    // для них запас на поворот: радиус атома от центра молекулы по x (рыскание) и по y (наклон).
+    const probe = (P: readonly V3[], turn: boolean) => {
       P.forEach((p, i) => {
         const r = cloudR[i]! * 1.35
-        const rx = Math.max(Math.abs(p[0]), Math.abs(p[2]))
-        minX = Math.min(minX, -rx - r, p[0] - r)
-        maxX = Math.max(maxX, rx + r, p[0] + r)
-        minY = Math.min(minY, p[1] - r)
-        maxY = Math.max(maxY, p[1] + r)
+        const c = turn ? pPlace[i]! : p
+        const rx = turn ? Math.hypot(p[0] - c[0], p[2] - c[2]) : 0
+        const ry = turn ? Math.hypot(p[1] - c[1], p[2] - c[2]) : 0
+        minX = Math.min(minX, p[0] - r, c[0] - rx - r)
+        maxX = Math.max(maxX, p[0] + r, c[0] + rx + r)
+        minY = Math.min(minY, p[1] - r, c[1] - ry - r)
+        maxY = Math.max(maxY, p[1] + r, c[1] + ry + r)
       })
     }
-    if (s.id === 'reactants' || s.id === 'atoms') probe(a.R.pos)
+    if (s.id === 'reactants' || s.id === 'atoms') probe(a.R.pos, false)
     if (s.id === 'breaking') {
-      probe(a.R.pos)
-      probe(a.S.pos)
+      probe(a.R.pos, false)
+      probe(a.S.pos, false)
     }
     if (s.id === 'pairs') {
-      probe(a.S.pos)
-      probe(loose)
+      probe(a.S.pos, false)
+      probe(loose, false)
     }
-    if (s.id === 'molecule' || s.id === 'result') probe(a.P.pos)
+    if (s.id === 'molecule' || s.id === 'result') probe(a.P.pos, true)
     // Полосы подписей сверху и снизу; на шагах molecule / result — и формулы продуктов по бокам.
     const pad = 48
     const side = s.id === 'molecule' || s.id === 'result' ? 70 : 0
@@ -401,7 +468,21 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     e.h = Math.max(e.h, 0.8 * gh)
   }
 
-  return {
+  // ——— дуги переходов электронов и стрелки донорных пар ———
+  const hostBreak = new Int16Array(a.electrons.map((e) => transitHost(a.R, e.r, a.S, e.s, e.owner)))
+  const hostPairs = new Int16Array(a.electrons.map((e) => transitHost(a.S, e.s, a.P, e.p, e.owner)))
+  const arrows: { stick: number; donor: number; acceptor: number }[] = []
+  for (let k = 0; k < sticks.length; k++) {
+    const st = sticks[k]!
+    if (st.phase !== 'p') continue
+    const b = a.P.bonds[st.bond]!
+    const o = b.pairs[st.pair]!
+    if (o === 'ab') continue
+    const donor = o === 'a' ? b.a : b.b
+    arrows.push({ stick: k, donor, acceptor: donor === b.a ? b.b : b.a })
+  }
+
+  const model: SchoolModel = {
     a,
     spec,
     timing,
@@ -423,7 +504,56 @@ export function buildSchoolModel(spec: SchoolSceneSpec): SchoolModel {
     fillP: fill(a.P),
     acceptors,
     extent,
+    hostBreak,
+    hostPairs,
+    turnBreak: new Float32Array(a.electrons.length),
+    turnPairs: new Float32Array(a.electrons.length),
+    arrows,
   }
+  model.turnBreak.set(arcTurns(model, a.R, a.S, a.R.pos, a.S.pos, hostBreak, 'break'))
+  model.turnPairs.set(arcTurns(model, a.S, a.P, a.S.pos, loose, hostPairs, 'pairs'))
+  return model
+}
+
+/** Общее окно движения атомам, связанным сохранёнными связями (bonds — связи фазы S): от раннего t0 к позднему t1. */
+function unifyFragments(bonds: readonly { a: number; b: number }[], win: Win[]): void {
+  const root = win.map((_, i) => i)
+  const find = (i: number): number => (root[i] === i ? i : (root[i] = find(root[i]!)))
+  for (const b of bonds) root[find(b.a)] = find(b.b)
+  const t0 = new Map<number, number>()
+  const t1 = new Map<number, number>()
+  win.forEach((w, i) => {
+    const r = find(i)
+    t0.set(r, Math.min(t0.get(r) ?? Infinity, w.t0))
+    t1.set(r, Math.max(t1.get(r) ?? -Infinity, w.t1))
+  })
+  win.forEach((w, i) => {
+    w.t0 = t0.get(find(i))!
+    w.t1 = t1.get(find(i))!
+  })
+}
+
+/** Атомы, у которых стоит место электрона: у общей пары — оба атома связи, иначе — свой атом. */
+function placeHosts(ph: Phase, pl: ElectronPlace): [number, number] {
+  if (pl.kind === 'bond') {
+    const b = ph.bonds[pl.bond]!
+    return [b.a, b.b]
+  }
+  return [pl.atom, pl.atom]
+}
+
+/**
+ * Атом, вокруг которого электрон переходит из места X (фаза phX) в место Y (фаза phY): тот, у которого
+ * он и был, и будет (сначала — хозяин электрона). −1 — электрон уходит к другому атому (ионы).
+ */
+function transitHost(phX: Phase, X: ElectronPlace, phY: Phase, Y: ElectronPlace, owner: number): number {
+  const [xa, xb] = placeHosts(phX, X)
+  const [ya, yb] = placeHosts(phY, Y)
+  const inX = (i: number) => i === xa || i === xb
+  if (inX(owner) && (owner === ya || owner === yb)) return owner
+  if (inX(ya)) return ya
+  if (inX(yb)) return yb
+  return -1
 }
 
 export function createSchoolState(m: SchoolModel): SchoolState {
@@ -475,8 +605,107 @@ function rotYX(x: number, y: number, z: number, yaw: number, pitch: number, out:
 }
 const _r: number[] = [0, 0, 0]
 const _sq: number[] = [0, 0, 0]
-/** Доля z у неподелённой пары, смотрящей в камеру (см. electronPlace): 1 — как есть, 0 — в плоскости кадра. */
+/** Наибольшая доля z у неподелённой пары в кадре (см. lonePairView): остальное — в плоскости кадра. */
 const FRONT_SQUASH = 0.35
+/** Разведение двух пар объёмного атома в кадре: вес искусственного сдвига поперёк внешней стороны. */
+const LONE_SPREAD = 1.2
+const _o: number[] = [0, 0, 0]
+
+/**
+ * Направление неподелённой пары В КАДРЕ (единичное) → _sq. Химия пар (число, сторона атома) не
+ * меняется — только читаемость проекции, как в точечной формуле учебника:
+ *   • пара, смотрящая почти в камеру, ложилась на символ элемента — её направление в плоскости кадра
+ *     плавно уходит к внешней стороне атома (против биссектрисы его связей);
+ *   • у объёмного атома с ДВУМЯ парами (O в H₂O, в группе OH: над и под плоскостью молекулы) пары
+ *     проецировались в одну точку. Пары = общая часть c ± половина разности e; в кадре пара сдвинута
+ *     от c на ±(e в плоскости кадра + LONE_SPREAD · e_z · поперёк внешней стороны) — когда e смотрит в
+ *     камеру, пары расходятся веером, когда лежит в плоскости кадра — как есть;
+ *   • доля z не больше FRONT_SQUASH: пара остаётся по свою сторону плоскости, но не прячется за шар.
+ * Все переходы плавные — при повороте молекулы пары не прыгают.
+ */
+function lonePairView(ph: Phase, i: number, pair: number, d: readonly number[], pos: Float32Array, turned: boolean): number[] {
+  const pa = ph.atoms[i]!
+  // Внешняя сторона атома: против суммы единичных векторов к соседям (в плоскости кадра).
+  let ox = 0
+  let oy = 0
+  for (const b of ph.bonds) {
+    if (b.a !== i && b.b !== i) continue
+    const j = b.a === i ? b.b : b.a
+    const vx = pos[j * 3]! - pos[i * 3]!
+    const vy = pos[j * 3 + 1]! - pos[i * 3 + 1]!
+    const vz = pos[j * 3 + 2]! - pos[i * 3 + 2]!
+    const l = Math.hypot(vx, vy, vz) || 1
+    ox -= vx / l
+    oy -= vy / l
+  }
+  // Общая часть c и половина разности e двух пар (у атома с одной парой или тремя: c = d, e = 0).
+  let cx = d[0]!
+  let cy = d[1]!
+  let cz = d[2]!
+  let ex = 0
+  let ey = 0
+  let ez = 0
+  if (pa.lone === 2) {
+    const o = pa.loneDirs[1 - pair]!
+    let q: readonly number[] = o
+    if (turned) {
+      rotYX(o[0]!, o[1]!, o[2]!, rot.yaw, rot.pitch, _o)
+      q = _o
+    }
+    ex = (d[0]! - q[0]!) / 2
+    ey = (d[1]! - q[1]!) / 2
+    ez = (d[2]! - q[2]!) / 2
+    cx -= ex
+    cy -= ey
+    cz -= ez
+  }
+  const h = Math.hypot(cx, cy)
+  const cl = Math.hypot(cx, cy, cz) || 1
+  const ol = Math.hypot(ox, oy)
+  if (ol > 0.2) {
+    ox /= ol
+    oy /= ol
+  } else if (h > 1e-6) {
+    ox = cx / h
+    oy = cy / h
+  } else {
+    ox = 0
+    oy = 1
+  }
+  // Общая часть, смотрящая в камеру, — к внешней стороне атома.
+  const w = 1 - schoolSmooth(0.3, 0.65, h / cl)
+  let px = (h > 1e-6 ? cx / h : ox) * (1 - w) + ox * w
+  let py = (h > 1e-6 ? cy / h : oy) * (1 - w) + oy * w
+  let pl = Math.hypot(px, py)
+  if (pl < 1e-3) {
+    px = ox
+    py = oy
+  } else {
+    px /= pl
+    py /= pl
+  }
+  // Разведение пар: собственный сдвиг в кадре + веер поперёк внешней стороны, пока e смотрит в камеру.
+  // Общая часть — со своей длиной в плоскости кадра (не меньше 0,45): у плоского атома (O в SO₂)
+  // пары остаются там же, где в точечной формуле.
+  const mc = Math.max(h, 0.45)
+  px = px * mc + ex - LONE_SPREAD * ez * oy
+  py = py * mc + ey + LONE_SPREAD * ez * ox
+  pl = Math.hypot(px, py)
+  if (pl < 1e-3) {
+    px = ox
+    py = oy
+  } else {
+    px /= pl
+    py /= pl
+  }
+  const dz = d[2]!
+  const z = Math.sign(dz) * Math.min(Math.abs(dz), FRONT_SQUASH)
+  const xy = Math.sqrt(1 - z * z)
+  _sq[0] = px * xy
+  _sq[1] = py * xy
+  _sq[2] = z
+  return _sq
+}
 
 // ——— рабочие буферы (ноль аллокаций в кадре) ———
 /** Текущий поворот молекул продукта (ставит sampleSchoolState до расчёта мест электронов). */
@@ -532,19 +761,7 @@ function placePos(m: SchoolModel, ph: Phase, place: ElectronPlace, pos: Float32A
     rotYX(d[0]!, d[1]!, d[2]!, rot.yaw, rot.pitch, _r)
     d = _r
   }
-  // Пара объёмного атома (O в H₂O, в группе OH), смотрящая почти в камеру, ложилась на символ элемента:
-  // прижимаем её к плоскости кадра (z × FRONT_SQUASH), как в точечной формуле учебника — пара остаётся
-  // по ту же сторону плоскости (знак z) и с той же стороны атома, только не закрывает букву.
-  // Прижатие плавное (по z и по доле направления в плоскости) — при повороте молекулы пара не прыгает.
-  const sq = place.kind === 'lone' ? schoolSmooth(0.2, 0.5, d[2]!) * schoolSmooth(0.1, 0.3, Math.hypot(d[0]!, d[1]!)) : 0
-  if (sq > 0) {
-    const z = d[2]! * (1 - (1 - FRONT_SQUASH) * sq)
-    const l = Math.hypot(d[0]!, d[1]!, z)
-    _sq[0] = d[0]! / l
-    _sq[1] = d[1]! / l
-    _sq[2] = z / l
-    d = _sq
-  }
+  if (place.kind === 'lone') d = lonePairView(ph, i, place.pair, d, pos, d === _r)
   // Пара, смотрящая от зрителя (−z), при перспективе прячется за свой шар: отодвигаем её от ядра
   // по тому же направлению (число и направление пар не меняются — только читаемость кадра).
   const r = m.ballR[i]! + D.shellGap + D.backLift * Math.max(0, -d[2]!)
@@ -577,6 +794,98 @@ function writeLerpPos(out: Float32Array, i: number, A: readonly number[], B: rea
   out[i * 3] = lerp(A[0]!, B[0]!, u)
   out[i * 3 + 1] = lerp(A[1]!, B[1]!, u)
   out[i * 3 + 2] = lerp(A[2]!, B[2]!, u)
+}
+
+const TAU = Math.PI * 2
+/** Угол x в полуинтервал (c − π, c + π]. */
+function wrapAround(x: number, c: number): number {
+  return x - TAU * Math.ceil((x - c - Math.PI) / TAU)
+}
+
+/**
+ * Переход электрона из A в B по ДУГЕ вокруг ядра атома h (позиции атомов pos): угол в плоскости кадра —
+ * от угла A к углу B, расстояние от ядра в плоскости — от |A − h| к |B − h|, z — по прямой. Обе точки
+ * вне шара — и весь путь вне шара (по хорде электрон проходил сквозь шар и пропадал: C в CO₂, O в H₂O
+ * и SO₃). Сторону обхода задаёт turn (угол B − A в середине окна, из модели), чтобы при почти
+ * противоположных A и B дуга не перескакивала на другую сторону ядра. h < 0 — по прямой.
+ */
+function writeArcPos(out: Float32Array, k: number, A: readonly number[], B: readonly number[], u: number, pos: Float32Array, h: number, turn: number): void {
+  if (h < 0 || u <= 0 || u >= 1) {
+    writeLerpPos(out, k, A, B, u <= 0 ? 0 : u >= 1 ? 1 : u)
+    return
+  }
+  const cx = pos[h * 3]!
+  const cy = pos[h * 3 + 1]!
+  const ax = A[0]! - cx
+  const ay = A[1]! - cy
+  const bx = B[0]! - cx
+  const by = B[1]! - cy
+  const ra = Math.hypot(ax, ay)
+  const rb = Math.hypot(bx, by)
+  if (ra < 1e-6 || rb < 1e-6) {
+    writeLerpPos(out, k, A, B, u)
+    return
+  }
+  const a0 = Math.atan2(ay, ax)
+  const delta = wrapAround(Math.atan2(by, bx) - a0, turn)
+  const a = a0 + delta * u
+  const r = lerp(ra, rb, u)
+  out[k * 3] = cx + Math.cos(a) * r
+  out[k * 3 + 1] = cy + Math.sin(a) * r
+  out[k * 3 + 2] = lerp(A[2]!, B[2]!, u)
+}
+
+/** Зазор точки-электрона над поверхностью шара при выталкивании (пм). */
+const OUT_GAP = 4
+
+/**
+ * Электрон в пути не заходит в шар НИ ОДНОГО атома: если точка внутри шара (с зазором OUT_GAP), она
+ * выталкивается по радиусу на его поверхность. Непрерывно (кроме самого центра шара) — без скачков.
+ * Нужна для переходов к другому атому (ионы: электрон O⁻ нитрата уходит к N аммония — по прямой).
+ */
+function pushOutOfBalls(m: SchoolModel, pos: Float32Array, out: Float32Array, k: number): void {
+  const n = m.ballR.length
+  for (let pass = 0; pass < 2; pass++) {
+    let moved = false
+    for (let i = 0; i < n; i++) {
+      const dx = out[k * 3]! - pos[i * 3]!
+      const dy = out[k * 3 + 1]! - pos[i * 3 + 1]!
+      const dz = out[k * 3 + 2]! - pos[i * 3 + 2]!
+      const d = Math.hypot(dx, dy, dz)
+      const need = m.ballR[i]! + OUT_GAP
+      if (d >= need || d < 1e-6) continue
+      const f = need / d
+      out[k * 3] = pos[i * 3]! + dx * f
+      out[k * 3 + 1] = pos[i * 3 + 1]! + dy * f
+      out[k * 3 + 2] = pos[i * 3 + 2]! + dz * f
+      moved = true
+    }
+    if (!moved) return
+  }
+}
+
+/** Угол дуги B − A (в плоскости кадра) у каждого электрона в середине окна перехода: X (фаза phX) → Y (phY). */
+function arcTurns(m: SchoolModel, phX: Phase, phY: Phase, posX: readonly V3[], posY: readonly V3[], hosts: Int16Array, which: 'break' | 'pairs'): Float32Array {
+  const out = new Float32Array(hosts.length)
+  const pos = new Float32Array(posX.length * 3)
+  posX.forEach((p, i) => {
+    for (let c = 0; c < 3; c++) pos[i * 3 + c] = (p[c]! + posY[i]![c]!) / 2
+  })
+  const saved = { yaw: rot.yaw, pitch: rot.pitch }
+  rot.yaw = 0
+  rot.pitch = 0
+  m.a.electrons.forEach((e, k) => {
+    const h = hosts[k]!
+    if (h < 0) return
+    placePos(m, phX, which === 'break' ? e.r : e.s, pos, 1, _p)
+    placePos(m, phY, which === 'break' ? e.s : e.p, pos, 1, _q)
+    const a0 = Math.atan2(_p[1]! - pos[h * 3 + 1]!, _p[0]! - pos[h * 3]!)
+    const a1 = Math.atan2(_q[1]! - pos[h * 3 + 1]!, _q[0]! - pos[h * 3]!)
+    out[k] = wrapAround(a1 - a0, 0)
+  })
+  rot.yaw = saved.yaw
+  rot.pitch = saved.pitch
+  return out
 }
 
 function edge(t: number, from: number, to: number, fade = 0.45): number {
@@ -647,14 +956,16 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       const u = schoolSmooth(w.t0 + 0.15, w.t1, t)
       placePos(m, a.R, e.r, s.atomPos, 1, _p)
       placePos(m, a.S, e.s, s.atomPos, 1, _q)
-      writeLerpPos(s.elPos, k, _p, _q, u)
+      writeArcPos(s.elPos, k, _p, _q, u, s.atomPos, m.hostBreak[k]!, m.turnBreak[k]!)
+      pushOutOfBalls(m, s.atomPos, s.elPos, k)
       glow = lerp(e.r.kind === 'single' ? 1 : e.r.kind === 'lone' && e.s.kind === 'single' ? 0.7 : 0.3, e.s.kind === 'single' ? 1 : 0.3, u)
     } else if (t < step.molecule.from) {
       const w = e.formed >= 0 ? m.formWin[e.formed]! : m.movePairs[e.owner]!
       const u = e.formed >= 0 ? schoolSmooth(w.t0 + 0.55, w.t1, t) : schoolSmooth(w.t0, w.t1, t)
       placePos(m, a.S, e.s, s.atomPos, 1, _p)
       placePos(m, a.P, e.p, s.atomPos, 1, _q)
-      writeLerpPos(s.elPos, k, _p, _q, u)
+      writeArcPos(s.elPos, k, _p, _q, u, s.atomPos, m.hostPairs[k]!, m.turnPairs[k]!)
+      pushOutOfBalls(m, s.atomPos, s.elPos, k)
       glow = lerp(e.s.kind === 'single' ? 1 : 0.3, e.p.kind === 'single' ? 1 : 0.3, u)
     } else {
       const bond = e.p.kind === 'bond'
@@ -807,7 +1118,7 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       op = s.appear
     } else if (an.kind === 'layers') {
       s.labelPos[o] = s.atomPos[an.atom * 3]!
-      s.labelPos[o + 1] = s.atomPos[an.atom * 3 + 1]! + m.cloudR[an.atom]! * 1.55 + 16
+      s.labelPos[o + 1] = s.atomPos[an.atom * 3 + 1]! + an.side * (m.cloudR[an.atom]! * 1.55 + 16)
       s.labelPos[o + 2] = s.atomPos[an.atom * 3 + 2]!
     } else if (an.kind === 'molR' || an.kind === 'molP') {
       const mol = an.kind === 'molR' ? m.spec.reactants[an.mol]! : m.spec.products[an.mol]!
@@ -825,7 +1136,7 @@ export function sampleSchoolState(m: SchoolModel, t: number, s: SchoolState): Sc
       }
       if (an.kind === 'molR') {
         s.labelPos[o] = (x0 + x1) / 2
-        s.labelPos[o + 1] = y0 - 26
+        s.labelPos[o + 1] = an.side < 0 ? y0 - 26 : y1 + 26
       } else {
         // Формула продукта — с внешней стороны: у левой молекулы слева, у правой (и центральной) справа,
         // чтобы подпись в промежутке не читалась как подпись соседней молекулы.

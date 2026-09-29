@@ -202,7 +202,7 @@ export const SO3_SPEC: SchoolScienceSpec = {
   legend: LEGEND,
   captions: {
     reactants: { ru: '2SO₂ + O₂ на катализаторе', en: '2SO₂ + O₂ on the catalyst', uz: '2SO₂ + O₂ katalizatorda' },
-    result: { ru: 'SO₃ — плоский треугольник, 120°', en: 'SO₃ — flat triangle, 120°', uz: 'SO₃ — yassi uchburchak, 120°' },
+    result: { ru: 'SO₃ — плоский треугольник', en: 'SO₃ — flat triangle', uz: 'SO₃ — yassi uchburchak' },
     condition: { ru: 't°, кат. V₂O₅', en: 't°, cat. V₂O₅', uz: 't°, kat. V₂O₅' },
   },
   steps: [

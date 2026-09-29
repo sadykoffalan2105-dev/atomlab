@@ -197,7 +197,8 @@ export const CO2_SPEC: SchoolScienceSpec = {
   legend: LEGEND,
   captions: {
     reactants: { ru: 'уголь + кислород', en: 'charcoal + oxygen', uz: 'koʻmir + kislorod' },
-    result: { ru: 'O=C=O, 180°, неполярная', en: 'O=C=O, 180°, non-polar', uz: 'O=C=O, 180°, qutbsiz' },
+    // Угол 180° уже подписан у молекулы (∠OCO = 180°) — в итоговой подписи его не повторяем.
+    result: { ru: 'O=C=O — линейная, неполярная', en: 'O=C=O — linear, non-polar', uz: 'O=C=O — chiziqli, qutbsiz' },
     condition: { ru: 't°', en: 't°', uz: 't°' },
   },
   steps: [

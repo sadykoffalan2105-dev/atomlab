@@ -47,6 +47,8 @@ const SCENE_BG = new THREE.Color('#0a0b10')
  */
 const _extent = { w: 7, h: 3.9, cx: 0, cy: 0 }
 const FILL = 0.92
+/** Доля свободной области в портретном кадре (телефон). */
+const FILL_PORTRAIT = 0.72
 /** Страховка прогрева, мс: дольше шаг 0 не ждёт. */
 const WARMUP_TIMEOUT_MS = 1500
 /** Задержка отчёта «урок закончен» после complete, мс (свой кадр для перерисовки страницы). */
@@ -161,7 +163,11 @@ function frameRoot(rt: Runtime, cam: THREE.PerspectiveCamera, controls: Controls
   const ox = ((left + right) / 2 - w / 2) / pxPerUnit
   const oy = -((top + bottom) / 2 - h / 2) / pxPerUnit
   naclExtentAt(rt.scene.time, _extent)
-  const s = FILL * Math.min((right - left) / pxPerUnit / _extent.w, (bottom - top) / pxPerUnit / _extent.h)
+  // Портретный кадр (телефон): решётка и пары у краёв, перспектива повёрнутой решётки выносит ближние
+  // углы за габарит, подписи окружения «6 Na⁺» ложились на ионы — поле кадра шире.
+  // Портрет — по холсту (у телефона свободная область над листом урока бывает «альбомной»).
+  const fill = w < h ? FILL_PORTRAIT : FILL
+  const s = fill * Math.min((right - left) / pxPerUnit / _extent.w, (bottom - top) / pxPerUnit / _extent.h)
   // Габарит несимметричен (полоса итога — только под решёткой): в центр свободной области ставим
   // ЦЕНТР КОМПОЗИЦИИ, а не цель кадра, иначе сверху остаётся пустая полоса в размер полосы подписей.
   const oxc = ox - _extent.cx * s

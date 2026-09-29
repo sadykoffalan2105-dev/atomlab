@@ -99,7 +99,7 @@ export const NO2_SCENE_SPEC: SchoolSceneSpec = {
       unpaired: { N1: 1 },
       coords: { N1: P1.N, O1: P1.Oout, O3: P1.Oin },
       angles: [{ a: 'O1', center: 'N1', b: 'O3', angleKey: 'nitrogenDioxide' }],
-      place: [-185, -5, 0],
+      place: [-215, -5, 0],
     },
     {
       id: 'NO2b',
@@ -114,7 +114,7 @@ export const NO2_SCENE_SPEC: SchoolSceneSpec = {
       unpaired: { N2: 1 },
       coords: { N2: P2.N, O2: P2.Oout, O4: P2.Oin },
       angles: [{ a: 'O2', center: 'N2', b: 'O4', angleKey: 'nitrogenDioxide' }],
-      place: [185, -5, 0],
+      place: [215, -5, 0],
     },
   ],
   // Фрагменты NO не рвутся — стоят на месте (длина N=O сохраняется); атомы O уходят к азоту.

@@ -74,8 +74,19 @@ export function withNaclRim<M extends THREE.MeshPhysicalMaterial>(mat: M, color:
   return mat as M & { userData: { rim: NaclRim } }
 }
 
-/** Параметры глянца ионов (ТЗ: roughness 0,2, clearcoat 0,5, clearcoatRoughness 0,15). */
-export const NACL_GLOSS = { roughness: 0.2, metalness: 0, clearcoat: 0.5, clearcoatRoughness: 0.15 } as const
+/**
+ * Матовые ионы — как шары школьных сцен (scenes/school MATTE): высокая шероховатость, без лака, слабый
+ * блик. Глянцевые блики (clearcoat) читались как «пластиковые шарики» и спорили с точками-электронами.
+ */
+export const NACL_ION_MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.16 } as const
+
+/**
+ * Цвет иона Na⁺: CPK натрия (фиолетовый, 0x8a2be2) — светлее на 0,14 по светлоте HSL: тёмно-индиго
+ * на тёмном поле решётки почти не читался. Оттенок и насыщенность — CPK.
+ */
+export function naclNaIonColor(): THREE.Color {
+  return new THREE.Color(cpkHex('Na')).offsetHSL(0, 0, 0.14)
+}
 /** Матовый металл: без clearcoat, высокая шероховатость, лёгкая металличность, приглушённый блик. */
 export const NACL_MATTE_METAL = { roughness: 0.7, metalness: 0.22, clearcoat: 0, clearcoatRoughness: 0.15, specularIntensity: 0.45 } as const
 
@@ -84,10 +95,10 @@ export const NACL_RIM = { ion: 0.34, atom: 0.12, metal: 0.05 } as const
 
 /** Материал иона решётки (Na⁺ или Cl⁻). */
 export function createNaclIonMaterial(el: 'Na' | 'Cl'): THREE.MeshPhysicalMaterial & { userData: { rim: NaclRim } } {
-  const color = new THREE.Color(cpkHex(el))
+  const color = el === 'Na' ? naclNaIonColor() : new THREE.Color(cpkHex(el))
   const mat = new THREE.MeshPhysicalMaterial({
     color,
-    ...NACL_GLOSS,
+    ...NACL_ION_MATTE,
     fog: false,
   })
   return withNaclRim(mat, color.clone().lerp(new THREE.Color(0xffffff), 0.35), NACL_RIM.ion)

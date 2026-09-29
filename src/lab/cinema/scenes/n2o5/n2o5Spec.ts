@@ -84,7 +84,8 @@ const WY = OH_W * Math.cos(half)
 const P1: SchoolVec3 = [-255, -10, 0]
 const P2: SchoolVec3 = [255, -10, 0]
 const N2O5_PLACE: SchoolVec3 = [0, 50, 0]
-const WATER_PLACE: SchoolVec3 = [0, -262, 0]
+// Вода ниже N₂O₅ с запасом: подпись «N₂O₅ (г.)» и схема слоёв H не ложатся на её атомы.
+const WATER_PLACE: SchoolVec3 = [0, -300, 0]
 const WATER_COORDS: Record<string, SchoolVec3> = { O6: [0, WY / 2, 0], H1: [-WX, -WY / 2, 0], H2: [WX, -WY / 2, 0] }
 /** Позиция атома реагента в сцене, сдвинутая на d (фрагменты с сохранёнными связями сдвигаются целиком). */
 const moved = (coords: Record<string, SchoolVec3>, place: SchoolVec3, id: string, d: readonly [number, number]): SchoolVec3 => {
@@ -93,7 +94,7 @@ const moved = (coords: Record<string, SchoolVec3>, place: SchoolVec3, id: string
 }
 const NO3_SHIFT = [-50, -10] as const
 const NO2_SHIFT = [60, -10] as const
-const OH_SHIFT = [40, 95] as const
+const OH_SHIFT = [40, 133] as const
 
 export const N2O5_SCENE_SPEC: SchoolSceneSpec = {
   id: 'n2o5',
