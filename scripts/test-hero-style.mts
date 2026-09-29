@@ -180,6 +180,25 @@ for (const id of ['h2o', 'co2', 'co', 'so2', 'so3', 'no', 'no2', 'n2o', 'n2o5', 
   ok(m.source === 'core', 'CH₄: по ядру')
   for (let i = 1; i < 5; i++) ok(Math.abs(dist(m, 0, i) - bondLengthPm('C-H')) <= 0.5, 'CH₄: C–H')
   for (let i = 1; i < 5; i++) for (let j = i + 1; j < 5; j++) ok(Math.abs(angle(m, i, 0, j) - bondAngleDeg('methane')) <= 0.5, `CH₄: ∠H${i}CH${j}`)
+  // Ни одна задняя H не уходит за шар C во всём размахе покачивания (кадр карточки каталога 28.09:
+  // при рыскании 0,3 четвёртая H пряталась за углеродом). Размах — из SchoolMoleculeView.
+  const swayAmp = Number(/const SWAY_AMP = ([\d.]+)/.exec(readFileSync('src/components/lab/hero/SchoolMoleculeView.tsx', 'utf8'))?.[1])
+  ok(swayAmp > 0, 'CH₄: SWAY_AMP прочитан')
+  let clear = Infinity
+  for (let s = -1; s <= 1.0001; s += 0.05) {
+    const outer = new THREE.Object3D()
+    const inner = new THREE.Object3D()
+    outer.add(inner)
+    outer.rotation.set(0, m.yaw + swayAmp * s, 0)
+    inner.rotation.set(m.pitch, 0, 0)
+    outer.updateMatrixWorld(true)
+    const c = new THREE.Vector3(...m.atoms[0]!.pos).applyMatrix4(inner.matrixWorld)
+    for (let i = 1; i < 5; i++) {
+      const p = new THREE.Vector3(...m.atoms[i]!.pos).applyMatrix4(inner.matrixWorld)
+      if (p.z < c.z) clear = Math.min(clear, Math.hypot(p.x - c.x, p.y - c.y) - m.atoms[0]!.r - m.atoms[i]!.r)
+    }
+  }
+  ok(clear > 0, `CH₄: задние H не за шаром C при покачивании (зазор ${clear.toFixed(3)})`)
 }
 // Радиусы шаров молекул: 0,62 ковалентного
 for (const id of ['h2o', 'co2', 'so3', 'h2so4', 'hno3']) {

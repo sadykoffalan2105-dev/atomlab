@@ -353,7 +353,9 @@ function fromCore(compoundId: string, comp: Composition): SchoolHeroModel | null
   else if (sameComposition(comp, { C: 1, H: 4 })) {
     built = axnCore('C', 'H', 4, 'C-H', 'methane')
     pitch = 0.22
-    yaw = 0.3
+    // Без постоянного рыскания: задняя пара H лежит по горизонтали, и при рыскании 0,3 + покачивание 0,3
+    // одна задняя H уходила за шар C. С одним покачиванием (±0,3) все четыре H видны всегда.
+    yaw = 0
   }
   else if (sameComposition(comp, { N: 1, H: 3 })) {
     built = axnCore('N', 'H', 3, 'N-H', 'ammonia')
