@@ -45,8 +45,21 @@ export const SOLUTION_DRAW = {
   /** Доля радиуса для шара (как у школьных сцен: 0,62 — у ионов от радиуса Шеннона, у атомов частиц — от Кордеро). */
   ballScale: 0.62,
   stickR: 5.2,
-  waterStickR: 4,
+  waterStickR: 3.2,
+  /**
+   * Рисуемый шар одноатомного иона (Ba²⁺, Cl⁻) крупнее: символ с зарядом читается внутри и на телефоне.
+   * Модельный радиус (atomR) — прежний, Шеннона; зазоры до воды и до O в кристалле остаются.
+   */
+  ionView: 1.32,
+  /** вода — второй план: шары мельче */
+  waterView: 0.78,
 } as const
+
+/** Во сколько раз рисуемый шар атома больше модельного atomR (вид: ионы крупнее, вода мельче). */
+export function solutionViewScale(el: ElementSymbol, water: boolean): number {
+  if (water) return SOLUTION_DRAW.waterView
+  return el === 'Ba' || el === 'Cl' ? SOLUTION_DRAW.ionView : 1
+}
 
 // ─── Числа ядра ──────────────────────────────────────────────────────────────
 
@@ -307,7 +320,7 @@ export type SolutionBody = {
 
 export type SolutionStick = { readonly a: number; readonly b: number; readonly water: boolean }
 
-export type SolutionLabelKind = 'atom' | 'atomDark' | 'species' | 'measure' | 'equation' | 'equationPlate'
+export type SolutionLabelKind = 'atom' | 'atomDark' | 'species' | 'measure' | 'equation' | 'equationPlate' | 'callout'
 
 export type SolutionLabelDef = {
   readonly id: string
@@ -354,10 +367,28 @@ export type SolutionModel = {
     readonly later: readonly number[]
     readonly waters: readonly number[]
   }
+  /**
+   * Ореолы (микромир): кольцо-свечение вокруг иона по знаку заряда (+ тёплое, − холодное), подсветка H⁺
+   * в H₃O⁺ и 12 атомов O вокруг одного Ba²⁺ в кристалле. atom ≥ 0 — ореол едет за атомом; иначе — узел
+   * кристалла pos (система кристалла).
+   */
+  readonly halos: readonly SolutionHaloDef[]
   /** внутреннее: функции позы тел */
   readonly pose: readonly ((t: number, p: V3, q: Q4) => number)[]
   readonly radiusAt: (atom: number, t: number) => number
   readonly turbid: { readonly x: Float32Array; readonly y0: Float32Array; readonly z: Float32Array; readonly v: Float32Array }
+}
+
+export type SolutionHaloKind = 'plus' | 'minus' | 'proton' | 'neighbor'
+export type SolutionHaloDef = {
+  readonly kind: SolutionHaloKind
+  /** атом, за которым едет ореол (−1 — точка кристалла pos) */
+  readonly atom: number
+  readonly pos?: V3
+  /** радиус кольца, пм (у шара — чуть больше рисуемого радиуса) */
+  readonly radiusPm: number
+  /** true — точка O соседней группы, которой нет во фрагменте кадра (светится без шара) */
+  readonly ghost?: boolean
 }
 
 export type SolutionState = {
@@ -393,6 +424,16 @@ export type SolutionState = {
   turbidPos: Float32Array
   /** поза кристалла: центр и поворот вокруг вертикали */
   crystal: { c: V3; yaw: number; alpha: number }
+  /** рёбра ячеек (проявляются после первых ионов зародыша) */
+  edgeAlpha: number
+  /** ореолы: центр, радиус (пм) и яркость 0…1 */
+  haloPos: Float32Array
+  haloR: Float32Array
+  haloAlpha: Float32Array
+  /** приглушение тела (1 — как есть, меньше — в тени: выделена другая пара) */
+  bodyDim: Float32Array
+  /** линии поля притяжения Ba²⁺ ↔ SO₄²⁻ (концы — attract.a/b) */
+  field: { alpha: number }
 }
 
 const TUBE = { r: 115, h: 950 }
@@ -428,6 +469,11 @@ function waterLocal(oh: number, hoh: number): V3[] {
 }
 
 const cov = (el: ElementSymbol) => ATOMIC_DATA[el].covalentRadiusPm
+/**
+ * Проявление частицы кристалла: сразу с половины размера и до целого (без «точек» и голых палочек,
+ * которые мелькали, пока шары росли из нуля). Палочки — только когда шары почти целые (sampleSolutionState).
+ */
+const popIn = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : 0.5 + 0.5 * x)
 
 export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   const core = solutionCore()
@@ -459,6 +505,9 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     micro2: S.result.from - 0.6,
     micro3: S.result.from + 0.35,
     relocate: (S.settle.from + S.result.from) / 2,
+    /** выноска «что такое H₃O⁺» и подсветка его H⁺ */
+    explain0: S.ions.from + 1.4,
+    explain1: S.ions.to - 0.2,
   }
   const timing = defineSceneTiming<SolutionStepId, SolutionCueId>({
     steps,
@@ -484,12 +533,15 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     return labels.length - 1
   }
   const sym = (el: ElementSymbol): L10n => ({ ru: el, en: el, uz: el })
+  const eqText = (x: string): L10n => ({ ru: x, en: x, uz: x })
   const symKind = (el: ElementSymbol): SolutionLabelKind => (el === 'H' || el === 'S' || el === 'Cl' ? 'atomDark' : 'atom')
+  /** Одноатомный ион — символ с зарядом прямо в шаре («Ba²⁺», «Cl⁻»): отдельная подпись заряда не нужна. */
+  const ionSym = (el: ElementSymbol): L10n | null => (el === 'Ba' ? eqText('Ba²⁺') : el === 'Cl' ? eqText('Cl⁻') : null)
   const addBody = (b: Omit<SolutionBody, 'atoms'>, parts: { el: ElementSymbol; local: V3; radiusPm: number; symbol?: [number, number] }[], bonds: [number, number][], water: boolean) => {
     const bi = bodies.length
     const ids: number[] = []
     for (const p of parts) {
-      const label = p.symbol ? addLabel({ id: `${b.id}-${p.el}${ids.length}`, kind: symKind(p.el), text: sym(p.el), from: p.symbol[0], to: p.symbol[1] }) : -1
+      const label = p.symbol ? addLabel({ id: `${b.id}-${p.el}${ids.length}`, kind: symKind(p.el), text: ionSym(p.el) ?? sym(p.el), from: p.symbol[0], to: p.symbol[1] }) : -1
       atoms.push({ el: p.el, body: bi, local: p.local, radiusPm: p.radiusPm, label })
       ids.push(atoms.length - 1)
     }
@@ -713,9 +765,9 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     const siteBa = sites[k * 2]!
     const siteS = sites[k * 2 + 1]!
     lattice.push(addBody({ id: `seedBa${k}`, kind: 'lattice-cation', formula: 'Ba²⁺', charge: 2 }, [{ el: 'Ba', local: [0, 0, 0], radiusPm: core.baCrystal, symbol: [T.seed0 + 0.3, finish.to] }], [], false))
-    pose.push((t, p, q) => (sitePose(siteBa, t, p, q), smooth(T.seed0, T.seed1, t)))
+    pose.push((t, p, q) => (sitePose(siteBa, t, p, q), popIn(smooth(T.seed0 + 0.1 * k, T.seed1 + 0.1 * k, t))))
     lattice.push(addBody({ id: `seedSO4${k}`, kind: 'lattice-group', formula: 'SO₄²⁻', charge: -2 }, sulfateParts(), sulfateBonds, false))
-    pose.push((t, p, q) => (sitePose(siteS, t, p, q), smooth(T.seed0, T.seed1, t)))
+    pose.push((t, p, q) => (sitePose(siteS, t, p, q), popIn(smooth(T.seed0 + 0.1 * k, T.seed1 + 0.1 * k, t))))
   }
   for (let k = 0; k < spec.laterUnits; k++) {
     const siteIdx = (spec.seedUnits + 1 + k) * 2
@@ -745,7 +797,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
         : addBody({ id: `laterSO4${k}`, kind, formula: 'SO₄²⁻', charge: -2, land: { t: t1, site: siteIdx + 1 } }, sulfateParts(), sulfateBonds, false)
       later.push(b)
       const land = landing(free, (t, q) => wobbleRot(w, t, q), site, t0, t1)
-      pose.push((t, p, q) => (land(t, p, q), smooth(t0 - 0.2, t0 + 0.5, t)))
+      pose.push((t, p, q) => (land(t, p, q), popIn(smooth(t0 - 0.2, t0 + 0.5, t))))
     }
   }
 
@@ -906,20 +958,19 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     })
   })
   // фоновые молекулы воды
+  // фон — второй план: чуть глубже ионов (мельче в перспективе, класс ещё и приглушает их цвет)
   spec.waters.forEach((p, i) => {
     const q = qMul(qAxis([0, 0, 1], r() * 6.28), qAxis([1, 0, 0], r() * 6.28))
-    addWater(`wBg${i}`, null, [p[0], p[1], p[2]], q, null, [0, 0, 0], nextSpot())
+    addWater(`wBg${i}`, null, [p[0], p[1], p[2] - 220], q, null, [0, 0, 0], nextSpot())
   })
 
   // ——— подписи ———
   const cap = spec.science.captions
   const eqL10n = (s: string): L10n => ({ ru: s, en: s, uz: s })
   const chargeText = (s: string) => eqL10n(s)
+  // Заряды Ba²⁺ и Cl⁻ — внутри их шаров (ionSym); подписью рядом — только у групп: [SO₄]²⁻ и H₃O⁺.
   const Lcharge = {
-    // в кристалле заряды пары бледнее, на итоге не подписываются (у соседей по решётке их тоже нет)
-    cation: addLabel({ id: 'q-Ba', kind: 'species', text: chargeText('Ba²⁺'), from: T.micro1 - 0.2, to: S.nucleus.to }),
     group: addLabel({ id: 'q-SO4', kind: 'species', text: chargeText('[SO₄]²⁻'), from: T.micro1 - 0.2, to: S.nucleus.to }),
-    anions: anions.map((_, k) => addLabel({ id: `q-Cl${k}`, kind: 'species', text: chargeText('Cl⁻'), from: T.micro1 - 0.2, to: finish.to })),
     protons: protons.map((_, k) => addLabel({ id: `q-H3O${k}`, kind: 'species', text: chargeText('H₃O⁺'), from: T.micro1 - 0.2, to: finish.to })),
   }
   const Lcap = {
@@ -933,8 +984,71 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     acid: addLabel({ id: 'acid', kind: 'species', text: cap.acid, from: S.settle.from + 1.8, to: S.settle.to }),
     nitric: addLabel({ id: 'nitric', kind: 'measure', text: cap.nitric, from: S.settle.from + 2.6, to: S.settle.to }),
     equation: addLabel({ id: 'equation', kind: 'equationPlate', text: eqL10n(spec.science.reaction.equation), from: S.result.from + 0.4, to: finish.to }),
-    ionic: addLabel({ id: 'ionic', kind: 'measure', text: eqL10n(spec.science.reaction.ionicShort), from: S.result.from + 1.2, to: finish.to }),
+    ionic: addLabel({ id: 'ionic', kind: 'measure', text: { ru: `9 кл.: ${spec.science.reaction.ionicShort}`, en: `Grade 9: ${spec.science.reaction.ionicShort}`, uz: `9-sinf: ${spec.science.reaction.ionicShort}` }, from: S.result.from + 1.8, to: finish.to }),
     stepEq: addLabel({ id: 'stepEq', kind: 'equation', text: eqL10n(spec.science.reaction.ionicShort), from: T.land + 0.6, to: S.nucleus.to }),
+    // пояснения микромира: что такое H₃O⁺, притяжение пары, наблюдатели не соединяются, сверка атомов итога
+    hydronium: addLabel({ id: 'hydronium', kind: 'callout', text: cap.hydronium, from: T.explain0, to: T.explain1 }),
+    attract: addLabel({ id: 'attract', kind: 'measure', text: cap.attract, from: S.meet.from + 1.6, to: T.meet1 }),
+    spectators: addLabel({ id: 'spectators', kind: 'measure', text: cap.spectators, from: T.meet1 - 1.7, to: S.nucleus.from + 0.9 }),
+    balance: addLabel({ id: 'balance', kind: 'measure', text: cap.balance, from: S.result.from + 1.0, to: finish.to }),
+    resultAcid: addLabel({ id: 'resultAcid', kind: 'species', text: cap.acid, from: S.result.from + 1.4, to: finish.to }),
+  }
+
+  // ——— ореолы ———
+  const halos: SolutionHaloDef[] = []
+  const atomOf = (body: number, k = 0) => bodies[body]!.atoms[k]!
+  halos.push({ kind: 'plus', atom: atomOf(cation), radiusPm: -1 })
+  halos.push({ kind: 'minus', atom: atomOf(group), radiusPm: core.so + cov('O') * SOLUTION_DRAW.ballScale + 44 })
+  for (const a of anions) halos.push({ kind: 'minus', atom: atomOf(a), radiusPm: -1 })
+  for (const p of protons) halos.push({ kind: 'plus', atom: atomOf(p), radiusPm: core.h3oOH + cov('H') * SOLUTION_DRAW.ballScale + 46 })
+  // «вот он, H⁺»: один из трёх H первого H₃O⁺ — тот, что пришёл от кислоты и сел на молекулу воды
+  halos.push({ kind: 'proton', atom: atomOf(protons[0]!, 1), radiusPm: cov('H') * SOLUTION_DRAW.ballScale + 26 })
+  // 12 атомов O вокруг одного Ba²⁺ кристалла (Hill 1977): решётка побольше — все соседние группы на месте
+  const neighborCount = (u: Unit): number => {
+    let c = 0
+    for (const ligs of siteLigands) for (const o of ligs) if (dist(o, u.ba.s.posPm) < 340) c++
+    return c
+  }
+  const hiUnit = units.reduce((best, u, i) => (i < spec.seedUnits && neighborCount(u) > neighborCount(units[best]!) ? i : best), 0)
+  const hiBa = units[hiUnit]!.ba.s
+  const big = latticeGroupedFragment(spec.crystalId, [3, 3, 3], [{ center: 'S', ligand: 'O', ligands: 4 }])
+  const bigBa = big.sites.find((x) => x.role === 'ion' && x.basisIndex === hiBa.basisIndex && x.cell.every((c) => c === 1))
+  const neighborO: V3[] = []
+  if (bigBa) {
+    const rel = big.sites
+      .filter((x) => x.role === 'ligand')
+      .map((x) => [x.posPm[0] - bigBa.posPm[0], x.posPm[1] - bigBa.posPm[1], x.posPm[2] - bigBa.posPm[2]] as V3)
+      .sort((a, b) => Math.hypot(...a) - Math.hypot(...b))
+      .slice(0, 12)
+    for (const v of rel) neighborO.push([hiBa.posPm[0] + v[0], hiBa.posPm[1] + v[1], hiBa.posPm[2] + v[2]])
+  }
+  // O во фрагменте кадра — ореол едет за своим атомом; O соседних групп за кадром — светящаяся точка узла
+  const siteBody = new Map<number, number>()
+  lattice.forEach((b, k) => siteBody.set(k, b))
+  siteBody.set(spec.seedUnits * 2, cation)
+  siteBody.set(spec.seedUnits * 2 + 1, group)
+  later.forEach((b, k) => siteBody.set((spec.seedUnits + 1) * 2 + k, b))
+  const hiBaBody = siteBody.get(hiUnit * 2)!
+  const neighborAtoms: number[] = []
+  for (const o of neighborO) {
+    let hit = -1
+    let best = 18
+    sites.forEach((site, si) => {
+      if (!site.q) return
+      const b = siteBody.get(si)
+      if (b == null) return
+      bodies[b]!.atoms.forEach((ai, k) => {
+        if (k === 0) return
+        const w = qRot(site.q!, atoms[ai]!.local)
+        const d = dist([site.pos[0] + w[0], site.pos[1] + w[1], site.pos[2] + w[2]], o)
+        if (d < best) {
+          best = d
+          hit = ai
+        }
+      })
+    })
+    if (hit >= 0) neighborAtoms.push(hit)
+    halos.push(hit >= 0 ? { kind: 'neighbor', atom: hit, radiusPm: cov('O') * SOLUTION_DRAW.ballScale + 20 } : { kind: 'neighbor', atom: -1, pos: o, radiusPm: cov('O') * SOLUTION_DRAW.ballScale + 6, ghost: true })
   }
 
   // ——— муть ———
@@ -973,6 +1087,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     cellEdges: cellEdgesPm,
     shortestCationO,
     turbidPoints: TURBID_N,
+    halos,
     tube: TUBE,
     roles: { cation, group, anions, protons, lattice, later, waters },
     pose,
@@ -982,6 +1097,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   ;(model as unknown as { _T: typeof T; _L: typeof Lcap; _Q: typeof Lcharge })._T = T
   ;(model as unknown as { _L: typeof Lcap })._L = Lcap
   ;(model as unknown as { _Q: typeof Lcharge })._Q = Lcharge
+  ;(model as unknown as { _H: Internals['_H'] })._H = { hiBa: atomOf(hiBaBody), hiBaBody, neighborAtoms, neighborCount: neighborO.length }
   return model
 }
 
@@ -1003,9 +1119,13 @@ type Internals = {
     micro2: number
     micro3: number
     relocate: number
+    explain0: number
+    explain1: number
   }
-  _L: Record<'tubeA' | 'tubeB' | 'solA' | 'solB' | 'crystal' | 'neighbors' | 'precip' | 'acid' | 'nitric' | 'equation' | 'ionic' | 'stepEq', number>
-  _Q: { cation: number; group: number; anions: number[]; protons: number[] }
+  _L: Record<'tubeA' | 'tubeB' | 'solA' | 'solB' | 'crystal' | 'neighbors' | 'precip' | 'acid' | 'nitric' | 'equation' | 'ionic' | 'stepEq' | 'hydronium' | 'attract' | 'spectators' | 'balance' | 'resultAcid', number>
+  _Q: { group: number; protons: number[] }
+  /** подсветка «12 O вокруг Ba²⁺»: атом и тело этого Ba²⁺, атомы O кадра среди 12 соседей */
+  _H: { hiBa: number; hiBaBody: number; neighborAtoms: number[]; neighborCount: number }
 }
 const internals = (m: SolutionModel) => m as unknown as SolutionModel & Internals
 
@@ -1039,6 +1159,12 @@ export function createSolutionState(m: SolutionModel): SolutionState {
     formed: 0,
     turbidPos: new Float32Array(m.turbidPoints * 3),
     crystal: { c: [0, 0, 0], yaw: 0, alpha: 0 },
+    edgeAlpha: 0,
+    haloPos: new Float32Array(m.halos.length * 3),
+    haloR: new Float32Array(m.halos.length),
+    haloAlpha: new Float32Array(m.halos.length),
+    bodyDim: new Float32Array(m.bodies.length).fill(1),
+    field: { alpha: 0 },
   }
 }
 
@@ -1053,7 +1179,7 @@ function windowAlpha(from: number, to: number, t: number, edge = 0.35): number {
 
 /** Состояние кадра в момент t (без аллокаций). */
 export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionState): SolutionState {
-  const { _T: T, _L: L, _Q: Q } = internals(m)
+  const { _T: T, _L: L, _Q: Q, _H: HI } = internals(m)
   const S = m.step
   out.t = t
   out.step = m.timing.stepIndexAt(t)
@@ -1091,7 +1217,8 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
       out.stickA[k * 3 + c] = out.atomPos[s.a * 3 + c]!
       out.stickB[k * 3 + c] = out.atomPos[s.b * 3 + c]!
     }
-    out.stickAlpha[k] = Math.min(out.atomR[s.a]! > 0 ? 1 : 0, out.bodyAppear[m.atoms[s.a]!.body]!)
+    // палочка — только у почти целых шаров: без голых «спичек» при проявлении кристалла
+    out.stickAlpha[k] = out.atomR[s.a]! > 0 ? smooth(0.78, 1, out.bodyAppear[m.atoms[s.a]!.body]!) : 0
   }
 
   // ——— кристалл ———
@@ -1102,6 +1229,8 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   out.crystal.c[1] = cc[1]
   out.crystal.c[2] = cc[2]
   out.crystal.yaw = m.spec.nucleus.yaw + m.spec.nucleus.yawRate * Math.max(0, t - S.nucleus.from)
+  // рёбра ячеек — после того как проявились ионы зародыша (не раньше: пустая коробка читалась как мусор)
+  out.edgeAlpha = smooth(T.seed1 + 0.1, T.seed1 + 0.9, t)
 
   // ——— пунктир притяжения и граница растворов ———
   const ba = m.bodies[m.roles.cation]!.atoms[0]!
@@ -1121,6 +1250,8 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
     }
   }
   out.attract.alpha = windowAlpha(S.meet.from + 1.2, T.land0 + 0.6, t, 0.5)
+  out.field.alpha = out.attract.alpha
+  sampleMicroFocus(m, t, out, T, HI)
   out.divider.alpha = windowAlpha(T.micro1 - 0.3, S.meet.from + 0.9, t, 0.5)
 
   // ——— пробирки ———
@@ -1186,9 +1317,7 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
     setLabel(li, out.atomPos[o]! + off * 0.72, out.atomPos[o + 1]! + off * 0.86, out.atomPos[o + 2]!, windowAlpha(m.labels[li]!.from, m.labels[li]!.to, t) * out.microAlpha * peak)
   }
   const landed = t >= T.land
-  chargeAt(Q.cation, ba, m.core.baWater * SOLUTION_DRAW.ballScale + 70, landed ? 0.55 : 1)
   chargeAt(Q.group, sAtom, 250, landed ? 0.55 : 1)
-  Q.anions.forEach((li, k) => chargeAt(li, m.bodies[m.roles.anions[k]!]!.atoms[0]!, m.core.cl * SOLUTION_DRAW.ballScale + 70, 1))
   Q.protons.forEach((li, k) => chargeAt(li, m.bodies[m.roles.protons[k]!]!.atoms[0]!, 190, 1))
   // подписи макро-кадра — в системе пробирок, с масштабом макро-слоя
   k = out.macroScale
@@ -1206,12 +1335,103 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   setLabel(L.solB, 620, 780, 0, windowAlpha(m.labels[L.solB]!.from, m.labels[L.solB]!.to, t) * mi)
   const cBottom = out.crystal.c[1] - 470
   setLabel(L.crystal, out.crystal.c[0], cBottom, 0, windowAlpha(m.labels[L.crystal]!.from, m.labels[L.crystal]!.to, t) * mi * out.crystal.alpha)
-  setLabel(L.neighbors, out.crystal.c[0], cBottom - 150, 0, windowAlpha(m.labels[L.neighbors]!.from, m.labels[L.neighbors]!.to, t) * mi)
+  // «у Ba²⁺ — 12 соседних O» — над подсвеченным ионом
+  {
+    const o = HI.hiBa * 3
+    setLabel(L.neighbors, out.atomPos[o]!, out.atomPos[o + 1]! + 430, out.atomPos[o + 2]!, windowAlpha(m.labels[L.neighbors]!.from, m.labels[L.neighbors]!.to, t) * mi)
+  }
   // уравнение шага есть в панели урока — в 3D его не дублируем
   setLabel(L.stepEq, out.crystal.c[0], cBottom - 300, 0, 0)
-  setLabel(L.equation, 150, -680, 0, windowAlpha(m.labels[L.equation]!.from, m.labels[L.equation]!.to, t) * mi)
-  setLabel(L.ionic, 150, -920, 0, windowAlpha(m.labels[L.ionic]!.from, m.labels[L.ionic]!.to, t) * mi)
+  setLabel(L.equation, 150, -700, 0, windowAlpha(m.labels[L.equation]!.from, m.labels[L.equation]!.to, t) * mi)
+  setLabel(L.balance, 150, -870, 0, windowAlpha(m.labels[L.balance]!.from, m.labels[L.balance]!.to, t) * mi)
+  setLabel(L.ionic, 150, -1010, 0, windowAlpha(m.labels[L.ionic]!.from, m.labels[L.ionic]!.to, t) * mi)
+  sampleMicroLabels(m, t, out, L, setLabel)
   return out
+}
+
+// ─── Микромир: фокус кадра (ореолы зарядов, приглушение, пояснения) ─────────
+
+type SetLabel = (li: number, x: number, y: number, z: number, alpha: number) => void
+
+/**
+ * Фокус микромира: кольца зарядов (+ тёплое, − холодное), «вот он, H⁺» в H₃O⁺, на встрече — пара
+ * Ba²⁺ + SO₄²⁻ ярко, остальное в тени; в кристаллике — 12 атомов O вокруг одного Ba²⁺.
+ */
+function sampleMicroFocus(m: SolutionModel, t: number, out: SolutionState, T: Internals['_T'], HI: Internals['_H']): void {
+  const S = m.step
+  const R = m.roles
+  const mi = out.microAlpha
+  const meetDim = windowAlpha(S.meet.from + 0.9, T.land0 + 0.3, t, 0.6)
+  const nbDim = windowAlpha(T.land + 0.5, S.nucleus.to - 0.05, t, 0.5)
+  for (let bi = 0; bi < m.bodies.length; bi++) {
+    const kind = m.bodies[bi]!.kind
+    let d = 1
+    if (bi !== R.cation && bi !== R.group) d -= (kind === 'water' ? 0.6 : 0.4) * meetDim
+    if ((kind === 'lattice-cation' || kind === 'lattice-group' || bi === R.cation || bi === R.group) && bi !== HI.hiBaBody) d -= 0.62 * nbDim
+    out.bodyDim[bi] = d
+  }
+  const pairWin = Math.max(windowAlpha(T.micro1 - 0.2, T.land + 0.3, t, 0.45), windowAlpha(S.result.from + 0.8, m.finish.to, t, 0.5))
+  const specWin = windowAlpha(T.micro1 - 0.2, m.finish.to, t, 0.45)
+  const pairAtoms0 = m.bodies[R.cation]!.atoms[0]!
+  const pairAtoms1 = m.bodies[R.group]!.atoms[0]!
+  const cy = Math.cos(out.crystal.yaw)
+  const sy = Math.sin(out.crystal.yaw)
+  let nb = 0
+  for (let h = 0; h < m.halos.length; h++) {
+    const def = m.halos[h]!
+    const o = h * 3
+    let seen = 1
+    if (def.atom >= 0) {
+      const a = def.atom * 3
+      out.haloPos[o] = out.atomPos[a]!
+      out.haloPos[o + 1] = out.atomPos[a + 1]!
+      out.haloPos[o + 2] = out.atomPos[a + 2]!
+      seen = out.atomR[def.atom]! > 0 ? 1 : 0
+      out.haloR[h] = def.radiusPm < 0 ? out.atomR[def.atom]! * solutionViewScale(m.atoms[def.atom]!.el, false) * 1.16 + 12 : def.radiusPm
+    } else if (def.pos) {
+      const p = def.pos
+      out.haloPos[o] = out.crystal.c[0] + p[0] * cy + p[2] * sy
+      out.haloPos[o + 1] = out.crystal.c[1] + p[1]
+      out.haloPos[o + 2] = out.crystal.c[2] - p[0] * sy + p[2] * cy
+      out.haloR[h] = def.radiusPm
+    }
+    let a = 0
+    if (def.kind === 'plus' || def.kind === 'minus') {
+      a = def.atom === pairAtoms0 || def.atom === pairAtoms1 ? pairWin : specWin * out.bodyDim[m.atoms[def.atom]!.body]!
+    } else if (def.kind === 'proton') {
+      a = windowAlpha(T.explain0 + 0.3, T.explain1, t, 0.4) * (0.8 + 0.2 * Math.sin(t * 5.5))
+    } else {
+      a = windowAlpha(T.land + 0.6 + 0.07 * nb, S.nucleus.to - 0.05, t, 0.35)
+      nb++
+    }
+    out.haloAlpha[h] = a * mi * seen
+  }
+}
+
+/** Подписи-пояснения микромира: выноска H₃O⁺, притяжение пары, наблюдатели, соляная кислота на итоге. */
+function sampleMicroLabels(m: SolutionModel, t: number, out: SolutionState, L: Internals['_L'], setLabel: SetLabel): void {
+  const mi = out.microAlpha
+  const win = (li: number) => windowAlpha(m.labels[li]!.from, m.labels[li]!.to, t) * mi
+  const P = out.atomPos
+  const R = m.roles
+  const h0 = m.bodies[R.protons[0]!]!.atoms[0]! * 3
+  setLabel(L.hydronium, P[h0]! - 80, P[h0 + 1]! + 380, P[h0 + 2]!, win(L.hydronium))
+  const a = out.attract
+  setLabel(L.attract, (a.a[0] + a.b[0]) / 2, Math.max(a.a[1], a.b[1]) + 250, (a.a[2] + a.b[2]) / 2, win(L.attract))
+  const c0 = m.bodies[R.anions[0]!]!.atoms[0]! * 3
+  setLabel(L.spectators, (P[c0]! + P[h0]!) / 2, Math.max(P[c0 + 1]!, P[h0 + 1]!) + 270, 0, win(L.spectators))
+  let x = 0
+  let y = 0
+  const spect = R.anions.length + R.protons.length
+  for (const b of R.anions) {
+    x += P[m.bodies[b]!.atoms[0]! * 3]!
+    y += P[m.bodies[b]!.atoms[0]! * 3 + 1]!
+  }
+  for (const b of R.protons) {
+    x += P[m.bodies[b]!.atoms[0]! * 3]!
+    y += P[m.bodies[b]!.atoms[0]! * 3 + 1]!
+  }
+  setLabel(L.resultAcid, x / spect, y / spect, 0, win(L.resultAcid))
 }
 
 /** Габарит кадра по времени (пм): w, h, центр — хост вписывает его в свободную область. */
@@ -1232,7 +1452,7 @@ export function solutionExtentAt(m: SolutionModel, t: number): { w: number; h: n
     { t: S.nucleus.to - 0.2, e: [2400, 1950, 0, -150] },
     { t: T.microOut0 + 0.2, e: [1150, 1250, 230, -100] },
     { t: T.micro2 + 0.1, e: [1150, 1250, 230, -100] },
-    { t: T.micro3 + 0.3, e: [3000, 1850, -120, -60] },
+    { t: T.micro3 + 0.3, e: [3000, 2150, -120, -180] },
   ]
   const out = { w: 0, h: 0, cx: 0, cy: 0 }
   let a = keys[0]!

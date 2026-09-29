@@ -41,15 +41,33 @@ export function createLabelLayoutBuffers(n: number): LabelLayoutBuffers {
 }
 
 /** Средняя ширина глифа и высота строки по стилю подписи, px (шрифты CinemaDomLabels). */
-const GLYPH_W: Record<string, number> = { atom: 9.6, atomDark: 9.6, species: 8.2, ox: 7.4, delta: 8.4, token: 8.0, measure: 7.6, condition: 10.5 }
-const LINE_H: Record<string, number> = { atom: 18, atomDark: 18, species: 17, ox: 19, delta: 17, token: 15, measure: 20, condition: 27 }
-const PAD_W: Record<string, number> = { atom: 2, atomDark: 2, species: 4, ox: 14, delta: 4, token: 4, measure: 16, condition: 26 }
+const GLYPH_W: Record<string, number> = { atom: 9.6, atomDark: 9.6, species: 8.2, ox: 7.4, delta: 8.4, token: 8.0, measure: 7.6, condition: 10.5, callout: 7.4, equationPlate: 9.4 }
+const LINE_H: Record<string, number> = { atom: 18, atomDark: 18, species: 17, ox: 19, delta: 17, token: 15, measure: 20, condition: 27, callout: 18.5, equationPlate: 31 }
+const PAD_W: Record<string, number> = { atom: 2, atomDark: 2, species: 4, ox: 14, delta: 4, token: 4, measure: 16, condition: 26, callout: 28, equationPlate: 30 }
+/** Подписи в несколько строк (выноска-пояснение): строки разделены переводом строки, высота — по их числу. */
+const MULTILINE_PAD_H: Record<string, number> = { callout: 18 }
 
 /** Оценка размера подписи в px (без чтения DOM). */
 export function estimateLabelSize(kind: string, text: string, scale: number, out: { w: number; h: number }): void {
   const g = GLYPH_W[kind] ?? GLYPH_W.species!
   const lh = LINE_H[kind] ?? LINE_H.species!
   const pad = PAD_W[kind] ?? PAD_W.species!
+  const padH = MULTILINE_PAD_H[kind]
+  if (padH != null) {
+    // самая длинная строка и число строк — без аллокаций (text.split в кадре не зовём)
+    let lines = 1
+    let run = 0
+    let longest = 0
+    for (let i = 0; i < text.length; i++) {
+      if (text.charCodeAt(i) === 10) {
+        lines++
+        run = 0
+      } else if (++run > longest) longest = run
+    }
+    out.w = (longest * g + pad) * scale
+    out.h = (lines * lh + padH) * scale
+    return
+  }
   out.w = (text.length * g + pad) * scale
   out.h = lh * scale
 }

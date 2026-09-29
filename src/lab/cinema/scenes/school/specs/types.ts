@@ -508,6 +508,14 @@ export type SolutionScienceSpec = {
     readonly precipitate: L10n
     readonly acid: L10n
     readonly nitric: L10n
+    /** выноска микромира при первом появлении H₃O⁺ (строки — через '\n') */
+    readonly hydronium: L10n
+    /** подпись к линиям притяжения пары катион — анион-группа */
+    readonly attract: L10n
+    /** наблюдатели встречаются, но не соединяются */
+    readonly spectators: L10n
+    /** итог: сверка атомов слева и справа */
+    readonly balance: L10n
   }
   readonly steps: readonly SolutionStepSpec[]
   readonly caveats: readonly Caveat[]

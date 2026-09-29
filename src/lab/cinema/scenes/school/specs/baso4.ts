@@ -504,6 +504,18 @@ export const BASO4_SPEC: SolutionScienceSpec = {
     precipitate: { ru: 'BaSO₄↓ — белый осадок', en: 'BaSO₄↓ — white precipitate', uz: 'BaSO₄↓ — oq choʻkma' },
     acid: { ru: 'соляная кислота: H₃O⁺ + Cl⁻', en: 'hydrochloric acid: H₃O⁺ + Cl⁻', uz: 'xlorid kislota: H₃O⁺ + Cl⁻' },
     nitric: { ru: '+ HNO₃ — осадок не растворяется', en: '+ HNO₃ — the precipitate stays', uz: '+ HNO₃ — choʻkma erimaydi' },
+    hydronium: {
+      ru: 'H₃O⁺ — это ион водорода H⁺,\nкоторый сидит на молекуле воды:\nH₂O + H⁺ → H₃O⁺\nСвободных H⁺ в воде не бывает.',
+      en: 'H₃O⁺ is a hydrogen ion H⁺\nsitting on a water molecule:\nH₂O + H⁺ → H₃O⁺\nThere are no free H⁺ in water.',
+      uz: 'H₃O⁺ — bu suv molekulasiga\noʻtirgan vodorod ioni H⁺:\nH₂O + H⁺ → H₃O⁺\nSuvda erkin H⁺ boʻlmaydi.',
+    },
+    attract: { ru: '+ и − притягиваются', en: '+ and − attract', uz: '+ va − tortishadi' },
+    spectators: { ru: 'H₃O⁺ и Cl⁻ не соединяются', en: 'H₃O⁺ and Cl⁻ do not join', uz: 'H₃O⁺ va Cl⁻ birikmaydi' },
+    balance: {
+      ru: 'слева и справа: 1 Ba · 2 Cl · 2 H · 1 S · 4 O',
+      en: 'left and right: 1 Ba · 2 Cl · 2 H · 1 S · 4 O',
+      uz: 'chapda va oʻngda: 1 Ba · 2 Cl · 2 H · 1 S · 4 O',
+    },
   },
   steps: [
     {

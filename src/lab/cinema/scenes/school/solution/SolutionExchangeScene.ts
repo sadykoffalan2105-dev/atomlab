@@ -13,6 +13,7 @@ import {
   solutionExtentAt,
   solutionSmooth,
   SOLUTION_DRAW,
+  solutionViewScale,
   type SolutionCueId,
   type SolutionModel,
   type SolutionState,
@@ -39,7 +40,12 @@ const gsap: typeof GSAP.gsap =
 
 const K = pmToScene(1)
 const MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.16 } as const
-const WATER_OPACITY = 0.62
+const WATER_OPACITY = 0.46
+/** Ореол заряда: + тёплый (янтарь), − холодный (голубой); H⁺ в H₃O⁺ — ярче; соседи Ba²⁺ в кристалле — белые. */
+const HALO_COLOR = { plus: 0xffa64d, minus: 0x4fc3ff, proton: 0xffd27a, neighbor: 0xeaf6ff } as const
+/** Линии поля притяжения: дуги между Ba²⁺ и SO₄²⁻ (веретено, как силовые линии двух зарядов). */
+const FIELD_ARCS = 6
+const FIELD_SEG = 18
 
 export type SolutionSceneOptions = {
   locale?: SceneLocale
@@ -49,12 +55,19 @@ export type SolutionSceneOptions = {
   lights?: SchoolLightRig
 }
 
-function atomColor(el: string, water: boolean): THREE.Color {
+function atomColor(el: string, water: boolean, far = false): THREE.Color {
+  // Ba (0x00c900) и Cl (0x1ff01f) в CPK оба зелёные: барий — насыщенный изумрудный, хлор — светлый
+  // жёлто-зелёный (та же CPK-семья), плюс разные размеры по Шеннону — различимы и без подписи.
+  if (el === 'Ba') return new THREE.Color(0x0fa860)
+  if (el === 'Cl') return new THREE.Color(0xc9f266)
   const c = new THREE.Color(cpkHex(el as never))
   if (el === 'H') c.multiplyScalar(0.9)
-  // Ba (0x00c900) и Cl (0x1ff01f) в CPK оба зелёные: барий темнее, чтобы ионы различались и без подписи.
-  if (el === 'Ba') c.multiplyScalar(0.72)
-  if (water) c.lerp(new THREE.Color(0x9fb4c8), 0.3)
+  if (water) {
+    // вода — светлая школьная: розовато-коралловый O, белые H; фон ещё и «дальше» (к цвету фона)
+    if (el === 'O') c.set(0xf08e8e)
+    else c.set(0xf2f5fa)
+    if (far) c.lerp(new THREE.Color(0x3a4658), 0.42)
+  }
   return c
 }
 
@@ -141,6 +154,19 @@ export class SolutionExchangeScene {
   private readonly insideVis: Float32Array
   private readonly discs: Float32Array
   private readonly labelIndexOfAtom: Int32Array
+  // фокус микромира: базовые цвета шаров (приглушение — множителем), ореолы зарядов, линии поля
+  private readonly baseColor: Float32Array
+  private readonly appliedDim: Float32Array
+  private readonly viewK: Float32Array
+  private readonly haloGeo: THREE.PlaneGeometry
+  private readonly haloMat: THREE.ShaderMaterial
+  private readonly halos: THREE.InstancedMesh
+  private readonly haloBase: THREE.Color[]
+  private readonly fieldMat: THREE.MeshBasicMaterial
+  private readonly field: THREE.InstancedMesh
+  private readonly _col = new THREE.Color()
+  private readonly _e1 = new THREE.Vector3()
+  private readonly _e2 = new THREE.Vector3()
 
   private readonly _v = new THREE.Vector3()
   private readonly _w = new THREE.Vector3()
@@ -193,11 +219,64 @@ export class SolutionExchangeScene {
     this.ions.frustumCulled = false
     this.waterAtoms.frustumCulled = false
     this.waterAtoms.renderOrder = 2
+    this.baseColor = new Float32Array(n * 3)
+    this.appliedDim = new Float32Array(n).fill(1)
+    this.viewK = new Float32Array(n)
     m.atoms.forEach((a, i) => {
-      const mesh = this.isWaterAtom[i] ? this.waterAtoms : this.ions
-      mesh.setColorAt(this.slotOf[i]!, atomColor(a.el, this.isWaterAtom[i] === 1))
+      const water = this.isWaterAtom[i] === 1
+      const mesh = water ? this.waterAtoms : this.ions
+      const c = atomColor(a.el, water, m.bodies[a.body]!.id.startsWith('wBg'))
+      c.toArray(this.baseColor, i * 3)
+      mesh.setColorAt(this.slotOf[i]!, c)
+      this.viewK[i] = solutionViewScale(a.el, water)
     })
     this.micro.add(this.ions, this.waterAtoms)
+
+    // ——— ореолы зарядов: кольцо + мягкое свечение, всегда лицом к камере (billboard в шейдере) ———
+    this.haloGeo = new THREE.PlaneGeometry(2, 2)
+    this.haloMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      vertexShader: /* glsl */ `
+        varying vec2 vP;
+        varying vec3 vCol;
+        void main() {
+          vP = position.xy;
+          vCol = instanceColor;
+          vec3 c = (instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+          float r = length(instanceMatrix[0].xyz);
+          vec4 mv = modelViewMatrix * vec4(c, 1.0);
+          mv.xy += position.xy * r * length(modelViewMatrix[0].xyz);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        varying vec2 vP;
+        varying vec3 vCol;
+        void main() {
+          float d = length(vP);
+          if (d > 1.0) discard;
+          float ring = smoothstep(0.72, 0.86, d) * (1.0 - smoothstep(0.9, 1.0, d));
+          float glow = pow(1.0 - d, 1.7) * 0.5;
+          gl_FragColor = vec4(vCol, ring + glow);
+        }
+      `,
+    })
+    this.halos = new THREE.InstancedMesh(this.haloGeo, this.haloMat, Math.max(1, m.halos.length))
+    this.halos.name = 'solution-halos'
+    this.halos.frustumCulled = false
+    this.halos.renderOrder = 6
+    this.haloBase = m.halos.map((h) => new THREE.Color(HALO_COLOR[h.kind]))
+    for (let h = 0; h < Math.max(1, m.halos.length); h++) this.halos.setColorAt(h, this._col.setRGB(0, 0, 0))
+    // ——— линии поля Ba²⁺ ↔ SO₄²⁻: тонкие светящиеся дуги из отрезков, импульсы бегут к середине ———
+    this.fieldMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })
+    this.field = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 6, 1, true), this.fieldMat, FIELD_ARCS * FIELD_SEG)
+    this.field.name = 'solution-field'
+    this.field.frustumCulled = false
+    this.field.renderOrder = 7
+    for (let k = 0; k < FIELD_ARCS * FIELD_SEG; k++) this.field.setColorAt(k, this._col.setRGB(0, 0, 0))
+    this.micro.add(this.halos, this.field)
 
     // ——— палочки ———
     this.stickGeo = new THREE.CylinderGeometry(1, 1, 1, 12, 1, true)
@@ -456,7 +535,11 @@ export class SolutionExchangeScene {
     this.root.removeFromParent()
     this.edges.geometry.dispose()
     for (const x of [this.edgeMat, this.ionMat, this.waterAtomMat, this.stickMat, this.waterStickMat, this.attractMat, this.dividerMat, this.glassMat, this.rimMat, this.liquidMatA, this.liquidMatB, this.sedimentMat, this.turbidMat, this.streamMat]) x.dispose()
-    for (const x of [this.ions, this.waterAtoms, this.sticks, this.waterSticks]) x.dispose()
+    for (const x of [this.ions, this.waterAtoms, this.sticks, this.waterSticks, this.halos, this.field]) x.dispose()
+    this.haloGeo.dispose()
+    this.haloMat.dispose()
+    this.field.geometry.dispose()
+    this.fieldMat.dispose()
     for (const g of this.sedimentGeos.values()) g.dispose()
     for (const g of [this.stickGeo, this.glassGeo, this.rimGeo, this.liquidGeo, this.columnGeo, this.sedimentGeo, this.turbidGeo, this.streamGeo, this.attract.geometry, this.divider.geometry]) g.dispose()
     if (!this.ownLights) {
@@ -550,15 +633,31 @@ export class SolutionExchangeScene {
 
     // ——— шары ———
     this._q.identity()
+    let dimIons = false
+    let dimWater = false
     for (let i = 0; i < m.atoms.length; i++) {
       this._v.set(s.atomPos[i * 3]! * K, s.atomPos[i * 3 + 1]! * K, s.atomPos[i * 3 + 2]! * K)
-      const r = s.atomR[i]! * K
+      const r = s.atomR[i]! * K * this.viewK[i]!
       this._s.set(r, r, r)
       this._m.compose(this._v, this._q, this._s)
-      ;(this.isWaterAtom[i] ? this.waterAtoms : this.ions).setMatrixAt(this.slotOf[i]!, this._m)
+      const water = this.isWaterAtom[i] === 1
+      const mesh = water ? this.waterAtoms : this.ions
+      mesh.setMatrixAt(this.slotOf[i]!, this._m)
+      // приглушение (фокус на паре / на соседях Ba²⁺) — множителем к базовому цвету, только при изменении
+      const d = s.bodyDim[m.atoms[i]!.body]!
+      if (Math.abs(d - this.appliedDim[i]!) > 0.004) {
+        this.appliedDim[i] = d
+        this._col.fromArray(this.baseColor, i * 3).multiplyScalar(d)
+        mesh.setColorAt(this.slotOf[i]!, this._col)
+        if (water) dimWater = true
+        else dimIons = true
+      }
     }
     this.ions.instanceMatrix.needsUpdate = true
     this.waterAtoms.instanceMatrix.needsUpdate = true
+    if (dimIons && this.ions.instanceColor) this.ions.instanceColor.needsUpdate = true
+    if (dimWater && this.waterAtoms.instanceColor) this.waterAtoms.instanceColor.needsUpdate = true
+    this.applyFocus(s)
 
     // ——— палочки ———
     for (let k = 0; k < m.sticks.length; k++) {
@@ -585,7 +684,8 @@ export class SolutionExchangeScene {
     this.waterSticks.instanceMatrix.needsUpdate = true
 
     // ——— пунктиры ———
-    this.attractMat.opacity = 0.85 * s.attract.alpha * s.microAlpha
+    // пунктир — тонкая ось между парой; главное — линии поля (applyFocus)
+    this.attractMat.opacity = 0.3 * s.attract.alpha * s.microAlpha
     this.attract.visible = this.attractMat.opacity > 0.01
     if (this.attract.visible) {
       const pos = this.attract.geometry.getAttribute('position') as THREE.BufferAttribute
@@ -598,7 +698,7 @@ export class SolutionExchangeScene {
     this.divider.visible = this.dividerMat.opacity > 0.01
     this.crystalFrame.position.set(s.crystal.c[0] * K, s.crystal.c[1] * K, s.crystal.c[2] * K)
     this.crystalFrame.rotation.set(0, s.crystal.yaw, 0)
-    this.edgeMat.opacity = 0.32 * s.crystal.alpha * s.microAlpha
+    this.edgeMat.opacity = 0.32 * s.edgeAlpha * s.microAlpha
     this.edges.visible = this.edgeMat.opacity > 0.01
 
     // ——— пробирки ———
@@ -664,6 +764,82 @@ export class SolutionExchangeScene {
     }
   }
 
+  /** Ореолы зарядов и линии поля притяжения (микромир). Без аллокаций. */
+  private applyFocus(s: SolutionState): void {
+    const m = this.model
+    for (let h = 0; h < m.halos.length; h++) {
+      const a = s.haloAlpha[h]!
+      const r = a > 0.01 ? s.haloR[h]! * K : 0
+      this._v.set(s.haloPos[h * 3]! * K, s.haloPos[h * 3 + 1]! * K, s.haloPos[h * 3 + 2]! * K)
+      this._s.set(r, r, r)
+      this._q.identity()
+      this._m.compose(this._v, this._q, this._s)
+      this.halos.setMatrixAt(h, this._m)
+      this.halos.setColorAt(h, this._col.copy(this.haloBase[h]!).multiplyScalar(a * (m.halos[h]!.ghost ? 0.8 : 0.62)))
+    }
+    this.halos.instanceMatrix.needsUpdate = true
+    if (this.halos.instanceColor) this.halos.instanceColor.needsUpdate = true
+    this.halos.visible = m.halos.length > 0
+
+    const fa = s.field.alpha * s.microAlpha
+    this.field.visible = fa > 0.01
+    if (!this.field.visible) return
+    const ba = m.bodies[m.roles.cation]!.atoms[0]!
+    const sa = m.bodies[m.roles.group]!.atoms[0]!
+    const A = this._c.set(s.atomPos[ba * 3]! * K, s.atomPos[ba * 3 + 1]! * K, s.atomPos[ba * 3 + 2]! * K)
+    const dir = this._w.set(s.atomPos[sa * 3]! * K, s.atomPos[sa * 3 + 1]! * K, s.atomPos[sa * 3 + 2]! * K).sub(A)
+    const len = dir.length()
+    if (len < 1e-6) {
+      this.field.visible = false
+      return
+    }
+    dir.divideScalar(len)
+    this._e1.set(0, 0, 1).cross(dir)
+    if (this._e1.lengthSq() < 1e-6) this._e1.set(0, 1, 0)
+    this._e1.normalize()
+    this._e2.copy(dir).cross(this._e1).normalize()
+    const bulge = Math.max(0.42 * len, 150 * K)
+    const tt = this.clock.t
+    const rr = 3.2 * K
+    const A0 = A.x
+    const A1 = A.y
+    const A2 = A.z
+    for (let a = 0; a < FIELD_ARCS; a++) {
+      const th = ((a + 0.5) * 2 * Math.PI) / FIELD_ARCS
+      const ox = Math.cos(th) * this._e1.x + Math.sin(th) * this._e2.x
+      const oy = Math.cos(th) * this._e1.y + Math.sin(th) * this._e2.y
+      const oz = Math.cos(th) * this._e1.z + Math.sin(th) * this._e2.z
+      for (let k = 0; k < FIELD_SEG; k++) {
+        const u0 = k / FIELD_SEG
+        const u1 = (k + 1) / FIELD_SEG
+        const b0 = bulge * Math.sin(Math.PI * u0)
+        const b1 = bulge * Math.sin(Math.PI * u1)
+        this._v.set(A0 + dir.x * len * u0 + ox * b0, A1 + dir.y * len * u0 + oy * b0, A2 + dir.z * len * u0 + oz * b0)
+        this._s.set(A0 + dir.x * len * u1 + ox * b1, A1 + dir.y * len * u1 + oy * b1, A2 + dir.z * len * u1 + oz * b1)
+        const mx = (this._v.x + this._s.x) / 2
+        const my = (this._v.y + this._s.y) / 2
+        const mz = (this._v.z + this._s.z) / 2
+        this._s.sub(this._v)
+        const sl = this._s.length()
+        this._s.divideScalar(Math.max(1e-9, sl))
+        this._q.setFromUnitVectors(this._up, this._s)
+        this._v.set(mx, my, mz)
+        this._s.set(rr, sl, rr)
+        this._m.compose(this._v, this._q, this._s)
+        const idx = a * FIELD_SEG + k
+        this.field.setMatrixAt(idx, this._m)
+        // тёплый у Ba²⁺ → холодный у SO₄²⁻; импульсы бегут от обоих ионов к середине — «тяга»
+        const u = (u0 + u1) / 2
+        const flow = 0.5 + 0.5 * Math.sin(22 * Math.abs(u - 0.5) + tt * 6.5)
+        const k2 = fa * (0.3 + 0.7 * flow * flow) * Math.min(1, Math.sin(Math.PI * u) * 3)
+        this._col.setRGB((1 - 0.7 * u) * k2, (0.62 + 0.14 * u) * k2, (0.3 + 0.7 * u) * k2)
+        this.field.setColorAt(idx, this._col)
+      }
+    }
+    this.field.instanceMatrix.needsUpdate = true
+    if (this.field.instanceColor) this.field.instanceColor.needsUpdate = true
+  }
+
   private pxPerProjUnit(): number {
     return this.viewportH / (2 * Math.tan((this.viewportFov * Math.PI) / 360))
   }
@@ -691,11 +867,14 @@ export class SolutionExchangeScene {
       D[o] = (this._v.x - cam.x) / depth
       D[o + 1] = (this._v.y - cam.y) / depth
       D[o + 2] = depth
-      D[o + 3] = (s.atomR[i]! * K * ms) / depth
+      const rDraw = s.atomR[i]! * K * ms * this.viewK[i]!
+      D[o + 3] = rDraw / depth
       const li = this.labelIndexOfAtom[i]!
       if (li >= 0) {
         this._w.copy(cam).sub(this._v).normalize()
-        this.labels[li]!.pos.copy(this._v).addScaledVector(this._w, s.atomR[i]! * K * ms)
+        this.labels[li]!.pos.copy(this._v).addScaledVector(this._w, rDraw)
+        // шар — препятствие для подписей рядом (заряды групп, пояснения): на телефоне не ложатся на шары
+        this.labels[li]!.avoidR = s.microAlpha > 0.05 ? rDraw * 1.05 : 0
       }
     }
     const blend = Math.min(1, this.lastDt * 12)

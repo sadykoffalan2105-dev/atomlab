@@ -77,8 +77,14 @@ const KIND_STYLE: Record<string, string> = {
     'text-shadow: 0 0 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.8);',
   // Уравнение итога поверх «живого» фона (молекулы воды в растворе): тот же шрифт на тёмной плашке.
   equationPlate:
-    'font: 600 15px/1.1 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em; padding: 5px 10px 6px;' +
-    'border-radius: 8px; background: rgba(6, 12, 26, 0.84); border: 1px solid rgba(150, 205, 255, 0.35);',
+    'font: 700 18px/1.15 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em; padding: 6px 14px 7px;' +
+    'border-radius: 10px; background: rgba(6, 12, 26, 0.86); border: 1px solid rgba(150, 205, 255, 0.45);' +
+    'box-shadow: 0 6px 24px rgba(0,0,0,0.45);',
+  // Выноска-пояснение (что такое H₃O⁺): несколько строк через перевод строки, тёплая рамка — как ореол катиона.
+  callout:
+    'font: 500 13px/1.42 "Inter", system-ui, sans-serif; color: #fff4e3; padding: 8px 13px 9px; border-radius: 10px;' +
+    'white-space: pre-line; text-align: left; background: rgba(28, 16, 6, 0.9); border: 1px solid rgba(255, 184, 96, 0.7);' +
+    'box-shadow: 0 0 18px rgba(255, 170, 70, 0.28), 0 6px 22px rgba(0,0,0,0.5);',
 }
 
 /** Разделитель частей уравнения (как EQUATION_PART_SEP школьной сцены). */
