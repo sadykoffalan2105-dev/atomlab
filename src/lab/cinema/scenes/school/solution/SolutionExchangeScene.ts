@@ -110,8 +110,11 @@ export class SolutionExchangeScene {
   private readonly edgeMat: THREE.LineBasicMaterial
   // макро
   private readonly glassGeo: THREE.LatheGeometry
-  private readonly glassMat: THREE.MeshPhysicalMaterial
+  /** стекло: френель (кромки светлые, середина прозрачна), обе стороны стенки */
+  private readonly glassMat: THREE.ShaderMaterial
+  /** отогнутый край горлышка — тонкое кольцо */
   private readonly rimMat: THREE.MeshBasicMaterial
+  private readonly rimGeo: THREE.TorusGeometry
   private readonly tubeA = new THREE.Group()
   private readonly tubeB = new THREE.Group()
   private readonly liquidGeo: THREE.LatheGeometry
@@ -123,6 +126,10 @@ export class SolutionExchangeScene {
   private readonly columnA: THREE.Mesh
   private readonly columnB: THREE.Mesh
   private readonly sedimentGeo: THREE.LatheGeometry
+  /** осадок по уровню (шаг 4 пм-единицы сцены): сжатая по высоте полусфера торчала бы «блином» за круглое дно */
+  private readonly sedimentGeos = new Map<number, THREE.LatheGeometry>()
+  private sedimentKey = -1
+  private readonly latheSegments: number
   private readonly sedimentMat: THREE.MeshStandardMaterial
   private readonly sediment: THREE.Mesh
   private readonly turbidGeo: THREE.BufferGeometry
@@ -235,9 +242,41 @@ export class SolutionExchangeScene {
         pts.map(([x, y]) => new THREE.Vector2(x * K, y * K)),
         opts.lowPower ? 28 : 48,
       )
+    this.latheSegments = opts.lowPower ? 28 : 48
     this.glassGeo = lathe(roundTestTubeProfile(R, H))
-    this.glassMat = new THREE.MeshPhysicalMaterial({ color: 0xe8f4ff, roughness: 0.05, metalness: 0, transmission: 0, transparent: true, opacity: 0.1, side: THREE.FrontSide, depthWrite: false, fog: false })
-    this.rimMat = new THREE.MeshBasicMaterial({ color: 0xd8ecff, transparent: true, opacity: 0.45, side: THREE.BackSide, depthWrite: false, fog: false })
+    // Стекло без серой «заливки»: светятся только кромки (там взгляд идёт вдоль стенки), середина почти
+    // прозрачна — пробирка читается как стекло, жидкость и осадок видны сквозь неё.
+    this.glassMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      uniforms: { uColor: { value: new THREE.Color(0xe4f2ff) }, uOpacity: { value: 1 } },
+      vertexShader: /* glsl */ `
+        varying vec3 vN;
+        varying vec3 vV;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vN = normalize(normalMatrix * normal);
+          vV = normalize(-mv.xyz);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uColor;
+        uniform float uOpacity;
+        varying vec3 vN;
+        varying vec3 vV;
+        void main() {
+          float f = 1.0 - abs(dot(normalize(vN), normalize(vV)));
+          float a = 0.035 + 0.62 * pow(f, 2.2);
+          gl_FragColor = vec4(uColor, a * uOpacity);
+        }
+      `,
+    })
+    this.rimMat = new THREE.MeshBasicMaterial({ color: 0xe8f4ff, transparent: true, opacity: 0.6, depthWrite: false, fog: false })
+    this.rimGeo = new THREE.TorusGeometry(R * 1.1 * K, R * 0.045 * K, 8, opts.lowPower ? 28 : 48)
+    this.rimGeo.rotateX(Math.PI / 2)
+    this.rimGeo.translate(0, H * K, 0)
     // жидкость: полусферическое дно (не тянется) + столбик до уровня (масштаб по y)
     this.liquidGeo = lathe(liquidProfile(R, R))
     this.columnGeo = new THREE.CylinderGeometry(R * 0.9 * K, R * 0.9 * K, 1, opts.lowPower ? 28 : 48, 1, false)
@@ -260,10 +299,8 @@ export class SolutionExchangeScene {
     this.turbid.frustumCulled = false
     const glassA = new THREE.Mesh(this.glassGeo, this.glassMat)
     const glassB = new THREE.Mesh(this.glassGeo, this.glassMat)
-    const rimA = new THREE.Mesh(this.glassGeo, this.rimMat)
-    const rimB = new THREE.Mesh(this.glassGeo, this.rimMat)
-    rimA.scale.setScalar(1.015)
-    rimB.scale.setScalar(1.015)
+    const rimA = new THREE.Mesh(this.rimGeo, this.rimMat)
+    const rimB = new THREE.Mesh(this.rimGeo, this.rimMat)
     this.tubeA.add(this.liquidA, this.sediment, this.turbid, glassA, rimA)
     this.tubeB.add(this.liquidB, glassB, rimB)
     this.streamGeo = new THREE.CylinderGeometry(1, 1, 1, 10, 1, true)
@@ -420,7 +457,8 @@ export class SolutionExchangeScene {
     this.edges.geometry.dispose()
     for (const x of [this.edgeMat, this.ionMat, this.waterAtomMat, this.stickMat, this.waterStickMat, this.attractMat, this.dividerMat, this.glassMat, this.rimMat, this.liquidMatA, this.liquidMatB, this.sedimentMat, this.turbidMat, this.streamMat]) x.dispose()
     for (const x of [this.ions, this.waterAtoms, this.sticks, this.waterSticks]) x.dispose()
-    for (const g of [this.stickGeo, this.glassGeo, this.liquidGeo, this.columnGeo, this.sedimentGeo, this.turbidGeo, this.streamGeo, this.attract.geometry, this.divider.geometry]) g.dispose()
+    for (const g of this.sedimentGeos.values()) g.dispose()
+    for (const g of [this.stickGeo, this.glassGeo, this.rimGeo, this.liquidGeo, this.columnGeo, this.sedimentGeo, this.turbidGeo, this.streamGeo, this.attract.geometry, this.divider.geometry]) g.dispose()
     if (!this.ownLights) {
       this.lights.ambient.intensity = 0
       this.lights.key.intensity = 0
@@ -575,15 +613,27 @@ export class SolutionExchangeScene {
     this.columnA.scale.set(1, Math.max(0.001, (s.tubeA.level * H - m.tube.r) * K), 1)
     this.columnB.scale.set(1, Math.max(0.001, (s.tubeB.level * H - m.tube.r) * K), 1)
     this.liquidB.visible = s.tubeB.liquid > 0.02
-    this.glassMat.opacity = 0.13 * s.macroAlpha
-    this.rimMat.opacity = 0.45 * s.macroAlpha
+    this.glassMat.uniforms.uOpacity!.value = s.macroAlpha
+    this.rimMat.opacity = 0.6 * s.macroAlpha
     // мутная жидкость белеет
     const milk = s.turbidity
     this.liquidMatA.color.setRGB(0.7 + 0.3 * milk, 0.84 + 0.16 * milk, 1)
     this.liquidMatA.opacity = (0.3 + 0.5 * milk) * s.macroAlpha
     this.liquidMatB.opacity = 0.3 * s.macroAlpha * s.tubeB.liquid
     const sedH = m.tube.r * 0.25 + s.sediment * H
-    this.sediment.scale.set(1, Math.max(0.001, sedH / (m.tube.r * 0.25 + 0.2 * H)), 1)
+    const sedKey = Math.max(1, Math.round(sedH / 4))
+    if (sedKey !== this.sedimentKey) {
+      let g = this.sedimentGeos.get(sedKey)
+      if (!g) {
+        g = new THREE.LatheGeometry(
+          liquidProfile(m.tube.r, sedKey * 4, 0.9).map(([x, y]) => new THREE.Vector2(x * K, y * K)),
+          this.latheSegments,
+        )
+        this.sedimentGeos.set(sedKey, g)
+      }
+      this.sediment.geometry = g
+      this.sedimentKey = sedKey
+    }
     this.sediment.visible = s.sediment > 0.0005
     this.sedimentMat.opacity = 0.96 * s.macroAlpha
     const tp = this.turbidGeo.getAttribute('position') as THREE.BufferAttribute

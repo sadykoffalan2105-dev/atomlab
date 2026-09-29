@@ -307,7 +307,7 @@ export type SolutionBody = {
 
 export type SolutionStick = { readonly a: number; readonly b: number; readonly water: boolean }
 
-export type SolutionLabelKind = 'atom' | 'atomDark' | 'species' | 'measure' | 'equation'
+export type SolutionLabelKind = 'atom' | 'atomDark' | 'species' | 'measure' | 'equation' | 'equationPlate'
 
 export type SolutionLabelDef = {
   readonly id: string
@@ -932,7 +932,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     precip: addLabel({ id: 'precip', kind: 'species', text: cap.precipitate, from: S.settle.from + 1.2, to: S.settle.to }),
     acid: addLabel({ id: 'acid', kind: 'species', text: cap.acid, from: S.settle.from + 1.8, to: S.settle.to }),
     nitric: addLabel({ id: 'nitric', kind: 'measure', text: cap.nitric, from: S.settle.from + 2.6, to: S.settle.to }),
-    equation: addLabel({ id: 'equation', kind: 'equation', text: eqL10n(spec.science.reaction.equation), from: S.result.from + 0.4, to: finish.to }),
+    equation: addLabel({ id: 'equation', kind: 'equationPlate', text: eqL10n(spec.science.reaction.equation), from: S.result.from + 0.4, to: finish.to }),
     ionic: addLabel({ id: 'ionic', kind: 'measure', text: eqL10n(spec.science.reaction.ionicShort), from: S.result.from + 1.2, to: finish.to }),
     stepEq: addLabel({ id: 'stepEq', kind: 'equation', text: eqL10n(spec.science.reaction.ionicShort), from: T.land + 0.6, to: S.nucleus.to }),
   }
@@ -1106,9 +1106,19 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   // ——— пунктир притяжения и граница растворов ———
   const ba = m.bodies[m.roles.cation]!.atoms[0]!
   const sAtom = m.bodies[m.roles.group]!.atoms[0]!
-  for (let c = 0; c < 3; c++) {
-    out.attract.a[c] = out.atomPos[ba * 3 + c]!
-    out.attract.b[c] = out.atomPos[sAtom * 3 + c]!
+  // пунктир — от поверхности шара Ba²⁺ до поверхности шара S: не перечёркивает символы внутри шаров
+  {
+    const dx = out.atomPos[sAtom * 3]! - out.atomPos[ba * 3]!
+    const dy = out.atomPos[sAtom * 3 + 1]! - out.atomPos[ba * 3 + 1]!
+    const dz = out.atomPos[sAtom * 3 + 2]! - out.atomPos[ba * 3 + 2]!
+    const len = Math.hypot(dx, dy, dz)
+    const ra = len > 1e-6 ? Math.min(0.45, (out.atomR[ba]! * 1.08) / len) : 0
+    const rb = len > 1e-6 ? Math.min(0.45, (out.atomR[sAtom]! * 1.1) / len) : 0
+    const d = [dx, dy, dz]
+    for (let c = 0; c < 3; c++) {
+      out.attract.a[c] = out.atomPos[ba * 3 + c]! + d[c]! * ra
+      out.attract.b[c] = out.atomPos[sAtom * 3 + c]! - d[c]! * rb
+    }
   }
   out.attract.alpha = windowAlpha(S.meet.from + 1.2, T.land0 + 0.6, t, 0.5)
   out.divider.alpha = windowAlpha(T.micro1 - 0.3, S.meet.from + 0.9, t, 0.5)
@@ -1185,9 +1195,10 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   const ma = out.macroAlpha
   setLabel(L.tubeA, out.tubeA.x, out.tubeA.y - 90, 0, windowAlpha(m.labels[L.tubeA]!.from, m.labels[L.tubeA]!.to, t) * ma)
   setLabel(L.tubeB, 210, -H / 2 - 90, 0, windowAlpha(m.labels[L.tubeB]!.from, m.labels[L.tubeB]!.to, t) * ma)
-  setLabel(L.precip, out.tubeA.x + m.tube.r + 300, out.tubeA.y + sedTop * 0.6, 0, windowAlpha(m.labels[L.precip]!.from, m.labels[L.precip]!.to, t) * ma)
+  setLabel(L.precip, out.tubeA.x + m.tube.r + 340, out.tubeA.y + sedTop * 0.6, 0, windowAlpha(m.labels[L.precip]!.from, m.labels[L.precip]!.to, t) * ma)
   setLabel(L.acid, out.tubeA.x + m.tube.r + 380, out.tubeA.y + out.tubeA.level * H * 0.62, 0, windowAlpha(m.labels[L.acid]!.from, m.labels[L.acid]!.to, t) * ma)
-  setLabel(L.nitric, out.tubeA.x, out.tubeA.y + H + 230, 0, windowAlpha(m.labels[L.nitric]!.from, m.labels[L.nitric]!.to, t) * ma)
+  // «+ HNO₃» — подписью под пробиркой: справа места нет на узком экране (подписи справа — осадок и кислота)
+  setLabel(L.nitric, out.tubeA.x, out.tubeA.y - 125, 0, windowAlpha(m.labels[L.nitric]!.from, m.labels[L.nitric]!.to, t) * ma)
   // подписи микро-кадра
   k = out.microScale
   const mi = out.microAlpha

@@ -69,6 +69,10 @@ const KIND_STYLE: Record<string, string> = {
   equation:
     'font: 600 15px/1.1 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em; padding-top: 13px;' +
     'text-shadow: 0 0 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.8);',
+  // Уравнение итога поверх «живого» фона (молекулы воды в растворе): тот же шрифт на тёмной плашке.
+  equationPlate:
+    'font: 600 15px/1.1 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em; padding: 5px 10px 6px;' +
+    'border-radius: 8px; background: rgba(6, 12, 26, 0.84); border: 1px solid rgba(150, 205, 255, 0.35);',
 }
 
 /** Разделитель частей уравнения (как EQUATION_PART_SEP школьной сцены). */
