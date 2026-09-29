@@ -241,9 +241,8 @@
   font-size: var(--lt-fs-xs);
   font-weight: 750;
   line-height: 1.2;
-  /* узкая разрядка: длинные uz/en заголовки («REAKSIYA MEXANIZMI») помещаются рядом со счётчиком шага */
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  /* без прописных: в заголовке урока формулы (BaCl₂, NaCl) — «BACL₂» читалось бы как углерод + L */
+  letter-spacing: 0.02em;
   color: #9eeadf;
 }
 
