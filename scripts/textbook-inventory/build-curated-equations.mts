@@ -19,6 +19,19 @@ function describeExample(example: string): string {
 // Банк школьных реакций: если уравнение совпадает, ссылка идёт через id банка (у него есть условия и кино-анимации).
 const norm = (s: string) => s.replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080)).replace(/[↑↓\s]/g, '').replace(/<->|<=>|→|=|⇄|⇌/g, '->')
 const bankByEq = new Map(SCHOOL_REACTION_BANK.map((r) => [norm(r.equationRu), r.id]))
+/** Те же члены уравнения в любом порядке: «a + b → c + d» → отсортированные части. */
+const canonEq = (s: string) =>
+  norm(s)
+    .split('->')
+    .map((side) => side.split('+').sort().join('+'))
+    .join('->')
+/** Явная привязка к банку: только если уравнение банка — та же реакция (иначе генератор падает). */
+function bankMatches(r: { eq: string; bankId?: string }): string | null {
+  if (!r.bankId) return null
+  const bank = SCHOOL_REACTION_BANK.find((x) => x.id === r.bankId)
+  if (!bank || canonEq(bank.equationRu) !== canonEq(unicode(r.eq))) throw new Error(`curated: bankId «${r.bankId}» не совпадает с «${r.eq}»`)
+  return bank.id
+}
 
 /**
  * labExample — формула с «n» (полимер, олеум, ржавчина) открывается в реакторе по конкретному примеру учебника
@@ -35,6 +48,11 @@ type Curated = {
   ionic?: boolean
   labExample?: string
   note?: string
+  /**
+   * Реакция банка, если запись учебника та же реакция, но в другом порядке веществ (8 кл. с. 139:
+   * «H₂SO₄ + BaCl₂» = банк bacl2-h2so4 «BaCl₂ + H₂SO₄»): уравнения сверяются по составу (bankMatches).
+   */
+  bankId?: string
 }
 type Unit = { unitId: string; pageStart: number | null; pageEnd: number | null; reactions: unknown[] }
 type GradeFile = { grade: number; gradeId: string; generatedAt: string; units: Unit[] }
@@ -79,7 +97,7 @@ for (const g of files) {
     u.reactions = list.map((r, i) => {
       const id = `r${i + 1}`
       const src = readerUnitHref(gradeId, u.unitId, { rx: id, page: u.pageStart })
-      const bankId = r.ionic ? null : (bankByEq.get(norm(r.eq)) ?? null)
+      const bankId = r.ionic ? null : (bankMatches(r) ?? bankByEq.get(norm(r.eq)) ?? null)
       const bankRes = bankId ? resolveReactorEquation({ reactionId: bankId }) : null
       // Ионные уравнения и полуреакции тоже открываются — ионы и e⁻ стали частицами реактора.
       const res = bankRes?.ok ? bankRes : resolveReactorEquation({ equation: r.eq })

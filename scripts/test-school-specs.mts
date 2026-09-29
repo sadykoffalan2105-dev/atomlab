@@ -34,6 +34,7 @@ import {
   type ElementSymbol,
 } from '../src/chemistry/data/index.ts'
 import { atomLevels } from '../src/chemistry/data/electronLevels.ts'
+import { ionicRadiusPm } from '../src/chemistry/data/atomicData.ts'
 import {
   isTextbookRef,
   lessonText,
@@ -47,6 +48,8 @@ import {
   SCHOOL_SPEC_IDS,
   SCHOOL_SPECS,
   SCHOOL_STEP_IDS,
+  SOLUTION_SPECS,
+  SOLUTION_STEP_IDS,
   type L10n,
   type ParticleSpec,
   type SchoolScienceSpec,
@@ -562,12 +565,184 @@ const unpairedTotal = (p?: ParticleSpec) => Object.values(p?.unpaired ?? {}).red
   if (nacl) ok('NaCl: ионы Na⁺ и Cl⁻, связей-пар нет', nacl.bonds.length === 0 && nacl.atoms.some((a) => a.charge === 1) && nacl.atoms.some((a) => a.charge === -1))
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. Обмен в растворе (BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl): ионы, вода, осадок
+// ─────────────────────────────────────────────────────────────────────────────
+const SUP_DIGIT: Record<string, string> = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9' }
+/** Сумма зарядов стороны ионного уравнения: «Ba²⁺ + 2Cl⁻» → 0. */
+function ionicSideCharge(side: string): number {
+  let q = 0
+  for (const raw of side.split(' + ')) {
+    const t = raw.trim().replace(/[↓↑]/g, '')
+    const m = /^(\d*)(.*?)([⁰¹²³⁴⁵⁶⁷⁸⁹]*)([⁺⁻])?$/.exec(t)!
+    const coef = Number(m[1] || '1')
+    const mag = m[4] ? Number([...m[3]!].map((c) => SUP_DIGIT[c]).join('') || '1') : 0
+    q += coef * (m[4] === '⁻' ? -mag : mag)
+  }
+  return q
+}
+const solutionSpecs = Object.values(SOLUTION_SPECS)
+ok('обмен в растворе: спецификация BaSO₄ на месте', solutionSpecs.length === 1 && SOLUTION_SPECS.baso4?.id === 'baso4')
+for (const spec of solutionSpecs) {
+  const P = `[${spec.id}]`
+  const byId = new Map(spec.particles.map((p) => [p.id, p]))
+  ok(`${P} вещество каталога — осадок`, byId.get(spec.focus)?.formula === spec.substance && byId.get(spec.focus)?.kind === 'precipitate')
+  // шаги
+  ok(`${P} шесть шагов обмена в растворе`, spec.steps.map((s) => s.id).join() === SOLUTION_STEP_IDS.join())
+  for (const s of spec.steps) ok(`${P} ${s.id}: 4–7 с`, s.seconds >= 4 && s.seconds <= 7, s.seconds)
+  const total = spec.steps.reduce((a, s) => a + s.seconds, 0)
+  ok(`${P} всего 26–34 с`, total >= 26 && total <= 34, total)
+  // реакция: баланс атомов по формулам, уравнение = членам
+  const r = spec.reaction
+  const left: Partial<Record<string, number>> = {}
+  const right: Partial<Record<string, number>> = {}
+  const WATER = parseFormula('H2O')
+  for (const [terms, into, side] of [
+    [r.reactants, left, 'reactant'],
+    [r.products, right, 'product'],
+  ] as const) {
+    for (const t of terms) {
+      const f = parseFormula(t.formula)
+      for (const [el, n] of Object.entries(f)) into[el] = (into[el] ?? 0) + (n as number) * t.coef
+      // формула + water·H₂O = атомы частиц раствора; сумма зарядов частиц = 0
+      const want: Partial<Record<string, number>> = { ...f }
+      for (const [el, n] of Object.entries(WATER)) want[el] = (want[el] ?? 0) + (n as number) * (t.water ?? 0)
+      const got: Partial<Record<string, number>> = {}
+      let q = 0
+      for (const x of t.particles) {
+        const p = byId.get(x.particle)
+        ok(`${P} ${t.formula}: частица ${x.particle} есть`, Boolean(p))
+        if (!p) continue
+        if (side === 'product' && p.kind === 'precipitate') ok(`${P} ${t.formula}: осадок — продукт`, p.role === 'product')
+        for (const a of p.atoms) got[a.element] = (got[a.element] ?? 0) + x.count
+        q += p.charge * x.count
+      }
+      ok(`${P} ${t.formula} + ${t.water ?? 0}H₂O = частицам раствора`, sameCounts(want, got), { want, got })
+      ok(`${P} ${t.formula}: сумма зарядов частиц = 0`, q === 0, q)
+      ok(`${P} ${t.formula}: осадок помечен ↓ ↔ частица-осадок`, Boolean(t.precipitate) === t.particles.some((x) => byId.get(x.particle)?.kind === 'precipitate'))
+    }
+  }
+  ok(`${P} баланс атомов`, sameCounts(left, right), { left, right })
+  const term = (t: { coef: number; formula: string; precipitate?: boolean }) => `${t.coef > 1 ? t.coef : ''}${t.formula}${t.precipitate ? '↓' : ''}`
+  const built = `${r.reactants.map(term).join(' + ')} → ${r.products.map(term).join(' + ')}`
+  ok(`${P} уравнение = членам`, built === r.equation, `${built} | ${r.equation}`)
+  {
+    const main = r.sources[0]!
+    const hit = books[main.grade]!.find((b) => main.pages.includes(b.page) && canon(b.equation) === canon(r.equation))
+    ok(`${P} главная ссылка: реакция есть в учебнике ${main.grade} кл. на с. ${main.pages.join(', ')}`, Boolean(hit), canon(r.equation))
+    if (hit) ok(`${P} bankId = разметке учебника`, hit.bankId === r.bankId, `${hit.bankId} | ${r.bankId}`)
+    for (const g of [8, 9] as const) ok(`${P} источник ${g} кл. есть`, r.sources.some((x) => x.grade === g))
+    const g8 = r.sources.find((x) => x.grade === 8)!
+    ok(`${P} 8 кл. § 32: реакция есть в разметке на с. 139`, books[8]!.some((b) => g8.pages.includes(b.page) && canon(b.equation) === canon(r.equation)))
+    for (const s of r.sources) ok(`${P} ссылка ${s.grade} кл. ${s.section}: страницы и тема`, s.pages.length > 0 && s.title.length > 3 && s.what.length > 3)
+  }
+  ok(`${P} без нагревания`, r.conditions.heating === false)
+  // ионные уравнения: заряды сторон сходятся
+  for (const eq of [r.ionicFull, r.ionicShort]) {
+    const [l, rr] = eq.split('→')
+    ok(`${P} ионное «${eq}»: сумма зарядов слева = справа = 0`, ionicSideCharge(l!) === 0 && ionicSideCharge(rr!) === 0, `${ionicSideCharge(l!)} | ${ionicSideCharge(rr!)}`)
+  }
+  ok(`${P} сокращённое ионное = Ba²⁺ + SO₄²⁻ → BaSO₄↓`, r.ionicShort === 'Ba²⁺ + SO₄²⁻ → BaSO₄↓')
+  // частицы: электроны, формальные заряды, длины и углы — в ядро
+  for (const p of spec.particles) {
+    const Q = `${P} ${p.id}`
+    const ids = new Set(p.atoms.map((a) => a.id))
+    ok(`${Q}: состав = формуле`, sameCounts(formula(p), parseFormula(p.formula.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]/g, ''))), p.formula)
+    const shared = p.bonds.reduce((acc, b) => acc + b.pairs, 0)
+    const lp = Object.values(p.lonePairs).reduce((acc, n) => acc + n, 0)
+    const un = Object.values(p.unpaired).reduce((acc, n) => acc + n, 0)
+    ok(`${Q}: валентные электроны − заряд = 2·общие + 2·неподелённые + неспаренные`, particleElectrons(p) === 2 * shared + 2 * lp + un)
+    let chargeSum = 0
+    for (const a of p.atoms) {
+      const bp = bondPairsOf(p, a.id)
+      const fc = valenceE(a.element) - 2 * (p.lonePairs[a.id] ?? 0) - (p.unpaired[a.id] ?? 0) - bp
+      ok(`${Q}: формальный заряд ${a.id} = ${fc}`, fc === (a.charge ?? 0), `указано ${a.charge ?? 0}`)
+      chargeSum += a.charge ?? 0
+      const around = 2 * (bp + (p.lonePairs[a.id] ?? 0)) + (p.unpaired[a.id] ?? 0)
+      if (PERIOD2.has(a.element)) ok(`${Q}: у ${a.id} не больше 8 электронов`, around <= 8, around)
+    }
+    ok(`${Q}: сумма зарядов атомов = заряд частицы`, chargeSum === p.charge)
+    for (const b of p.bonds) {
+      ok(`${Q}: связь ${b.a}–${b.b} внутри частицы`, ids.has(b.a) && ids.has(b.b))
+      const len = resolveLengthPm(b.length)
+      ok(`${Q}: длина ${b.a}–${b.b} из ядра`, len > 50 && len < 400, len)
+    }
+    for (const an of p.angles ?? []) ok(`${Q}: угол из ядра`, resolveAngleDeg(an.ref) > 60 && resolveAngleDeg(an.ref) <= 180)
+    if (p.kind === 'ion' || p.kind === 'precipitate') ok(`${Q}: ион/осадок — ионная полярность`, p.polarity === 'ionic')
+  }
+  const so4 = byId.get('SO4')!
+  ok(`${P} SO₄²⁻: 4 одинаковые S–O из ядра, резонанс не рисуется`, so4.bonds.length === 4 && so4.bonds.every((b) => b.pairs === 1 && resolveLengthPm(b.length) === reagentBondPm('sulfate', 'S–O') && b.realOrder === 1.5) && Boolean(so4.resonance))
+  ok(`${P} SO₄²⁻: тетраэдр 109,47°`, so4.shape === 'tetrahedral' && resolveAngleDeg(so4.angles![0]!.ref) === reagentAngleDeg('sulfate', '∠O–S–O'))
+  const h3o = byId.get('H3O')!
+  ok(`${P} H₃O⁺: пирамида, O–H и угол из ядра (Tang & Oka)`, h3o.shape === 'pyramidal' && resolveLengthPm(h3o.bonds[0]!.length) === reagentBondPm('hydronium', 'O–H') && resolveAngleDeg(h3o.angles![0]!.ref) < 120)
+  const baso4 = byId.get('BaSO4')!
+  ok(`${P} BaSO₄: без связей Ba–O (ионный кристалл)`, baso4.bonds.every((b) => b.a !== 'Ba' && b.b !== 'Ba') && baso4.charge === 0)
+  // вода: реальные и показанные оболочки; ориентация по знаку заряда
+  for (const h of spec.hydration) {
+    const p = byId.get(h.particle)
+    ok(`${P} оболочка ${h.particle}: частица есть`, Boolean(p))
+    ok(`${P} оболочка ${h.particle}: показано ≤ реального`, h.shown >= 1 && h.shown <= h.realCount)
+    if (p) ok(`${P} оболочка ${h.particle}: к катиону O, к аниону H`, h.facing === (p.charge > 0 ? 'O' : 'H'))
+  }
+  // тексты: заполнены, числа RU/EN/UZ совпадают, числа — из ядра / страниц / facts, без энергетики
+  const l10n: Array<[string, L10n]> = []
+  allL10n(spec, spec.id, l10n)
+  for (const [path, t] of l10n) {
+    for (const loc of SCHOOL_LOCALES) ok(`${path} [${loc}] заполнено`, t[loc].trim().length > 0)
+    ok(`${path}: числа RU/EN/UZ совпадают`, sortedNums(t.ru) === sortedNums(t.en) && sortedNums(t.ru) === sortedNums(t.uz), `${sortedNums(t.ru)} | ${sortedNums(t.en)} | ${sortedNums(t.uz)}`)
+  }
+  const allowed: number[] = []
+  for (const p of spec.particles) {
+    for (const b of p.bonds) allowed.push(resolveLengthPm(b.length))
+    for (const an of p.angles ?? []) allowed.push(resolveAngleDeg(an.ref))
+    for (const a of p.atoms) {
+      if (!a.charge || p.kind === 'molecule') continue
+      for (const cn of [6, 8, 12]) {
+        const rr = ionicRadiusPm(a.element, a.charge, cn)
+        if (rr != null) allowed.push(rr)
+      }
+    }
+  }
+  for (const f of spec.facts) {
+    allowed.push(f.value)
+    ok(`${P} число ${f.id} названо в источнике`, numbers(isTextbookRef(f.source) ? f.source.what : f.source.reference).some((n) => matches(n, f.value)), f.value)
+  }
+  for (const h of spec.hydration) allowed.push(h.realCount, h.shown)
+  const refs = [...r.sources, ...spec.steps.flatMap((s) => (s.sources ?? []).filter(isTextbookRef)), ...spec.caveats.flatMap((c) => (c.source && isTextbookRef(c.source) ? [c.source] : []))]
+  for (const t of refs) allowed.push(...t.pages, t.grade, ...numbers(t.section).map((n) => n.v))
+  const srcNums = (x?: SchoolSource): number[] =>
+    x ? numbers(isTextbookRef(x) ? `${x.what} ${x.asInBook ?? ''} ${x.pages.join(' ')} ${x.section}` : x.reference).map((n) => n.v) : []
+  for (const s of spec.steps) {
+    for (const loc of SCHOOL_LOCALES) {
+      const tx = s.text[loc]
+      for (const k of ['title', 'body', 'equation', 'note', 'speak'] as const) {
+        ok(`${P} ${s.id} [${loc}] ${k} заполнено`, tx[k].trim().length > 0)
+        for (const n of numbers(tx[k])) {
+          if (isCount(n)) continue
+          ok(`${P} ${s.id} [${loc}] ${k}: число ${n.raw} из ядра / страниц / facts`, allowed.some((v) => matches(n, v)), tx[k].slice(0, 90))
+        }
+      }
+      ok(`${P} ${s.id} [${loc}]: без энергетики`, !/кДж|kJ|ΔH|Дж\b/.test(JSON.stringify(tx)))
+    }
+    ok(`${P} ${s.id}: что показать — описано`, s.show.length > 0)
+  }
+  for (const c of spec.caveats) {
+    for (const n of numbers(c.text.ru)) {
+      if (isCount(n)) continue
+      ok(`${P} оговорка ${c.id}: число ${n.raw} — из ядра, страницы или источника`, allowed.some((v) => matches(n, v)) || [...srcNums(c.source), ...srcNums(c.evidence)].some((v) => matches(n, v)), c.text.ru.slice(0, 100))
+    }
+  }
+  for (const loc of SCHOOL_LOCALES) ok(`${P} итог [${loc}] = уравнение реакции`, spec.steps.find((s) => s.id === 'result')!.text[loc].equation === r.equation)
+  ok(`${P} уровни: пробирка — 7 кл., ионы — 9 кл., кристаллик — 8 кл.`, spec.steps.find((s) => s.id === 'ions')?.level === 9 && spec.steps.find((s) => s.id === 'nucleus')?.level === 8 && spec.steps.find((s) => s.id === 'tubes')?.level === 7)
+  ok(`${P} есть оговорки и наблюдения`, spec.caveats.length > 0 && spec.observations.length > 0)
+}
+
 if (failures.length > 0) {
   console.error(`✗ school specs: ${failures.length} из ${checks} проверок не прошли:`)
   for (const f of failures.slice(0, 200)) console.error(`  ✗ ${f}`)
   process.exit(1)
 }
-console.log(`✓ school specs: ${checks} проверок пройдено (${specs.map((s) => s.id).join(', ')})`)
+console.log(`✓ school specs: ${checks} проверок пройдено (${[...specs, ...solutionSpecs].map((s) => s.id).join(', ')})`)
 for (const s of specs) {
   const focus = s.particles.find((p) => p.id === s.focus)!
   console.log(`  ${s.substance.padEnd(5)} ${s.reaction.equation.padEnd(28)} ${s.steps.reduce((a, x) => a + x.seconds, 0)} с; ${focus.bonds.map((b) => `${b.a}–${b.b}×${b.pairs}${b.dative ? '(д-а)' : ''}`).join(' ') || 'ионы'}`)

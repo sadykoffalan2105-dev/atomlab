@@ -12,6 +12,8 @@ import { getFesMechanismText } from './fes/fesMechanismText'
 import { H2O_STEP_IDS } from './h2o/h2oSteps'
 import { getH2oMechanismText } from './h2o/h2oMechanismText'
 import { SCHOOL_STEP_IDS, type SchoolLessonText } from './school/schoolSpec'
+import { SOLUTION_STEP_IDS, type SchoolLocale, type SolutionScienceSpec } from './school/specs/types'
+import { BASO4_SPEC } from './school/specs/baso4'
 import { NO_SCENE_SPEC } from './no/noSpec'
 import { NO2_SCENE_SPEC } from './no2/no2Spec'
 import { N2O_SCENE_SPEC } from './n2o/n2oSpec'
@@ -56,6 +58,10 @@ export type LessonMechanismText = {
     sharedPair?: string
     lonePair?: string
     unpaired?: string
+    /** сцена раствора (scenes/school/solution): ион с зарядом, палочка связи внутри частицы, осадок */
+    ion?: string
+    stick?: string
+    precipitate?: string
   }
   safety: string
   energy: { title: string; axisG?: string }
@@ -85,6 +91,25 @@ export function schoolLessonText(text: SchoolLessonText): LessonMechanismText {
       unpaired: text.legend.unpaired || undefined,
     },
     safety: text.safety,
+    energy: { title: '' },
+  }
+}
+
+/** Текст сцены «обмен в растворе» (научная спецификация) → вид панели урока. */
+export function solutionLessonText(spec: SolutionScienceSpec, locale: SchoolLocale): LessonMechanismText {
+  const steps: Record<string, Clo2StepText> = {}
+  for (const s of spec.steps) steps[s.id] = s.text[locale]
+  return {
+    intro: { title: spec.intro.title[locale], speak: spec.intro.speak[locale] },
+    steps,
+    legend: {
+      electron: '',
+      ion: spec.legend.ion[locale],
+      stick: spec.legend.sharedPair[locale],
+      water: spec.legend.water[locale],
+      precipitate: spec.legend.precipitate[locale],
+    },
+    safety: spec.safety[locale],
     energy: { title: '' },
   }
 }
@@ -219,6 +244,16 @@ const LESSONS: Record<string, CinemaLesson> = {
     safetyStepId: 'energy',
     narrated: false,
     getText: (locale) => getHclMechanismText(locale),
+  },
+  // Школьная сцена «обмен в растворе»: BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl (Kimyo 7, с. 67; 8 кл. § 32; 9 кл. § 6).
+  // Предупреждение — на первом шаге (BaCl₂ — яд, кислота едкая): опыт в пробирке.
+  baso4: {
+    id: 'baso4',
+    stepIds: SOLUTION_STEP_IDS,
+    safetyStepId: 'tubes',
+    narrated: false,
+    school: true,
+    getText: (locale) => solutionLessonText(BASO4_SPEC, locale),
   },
   zncl2: {
     id: 'zncl2',

@@ -9,12 +9,14 @@ import { CinemaDomLabels } from '../../react/CinemaDomLabels'
 import { cinemaPlayhead, clo2StepStore, type Clo2StepStatus } from '../clo2/clo2StepStore'
 import { toSceneLocale } from '../kit/sceneKit'
 import type { ScientificSynthesisFxProps } from '../../../scientificSynthesis/types'
-import { SchoolReactionScene, type SchoolLightRig, type SchoolStatus } from './SchoolReactionScene'
+import { SchoolReactionScene, type SchoolLightRig } from './SchoolReactionScene'
+import type { SchoolRuntimeScene, SchoolRuntimeStatus, SchoolSceneFactory } from './schoolRuntime'
 import type { SchoolSceneSpec } from './schoolSpec'
 
 /**
- * R3F-АДАПТЕР школьной сцены образования молекулы (по образцу NaclCinemaScene, без передачи решётки
- * герою). Вся сцена — класс SchoolReactionScene; адаптер:
+ * R3F-АДАПТЕР школьной сцены (по образцу NaclCinemaScene, без передачи решётки герою). Сцена — класс
+ * с интерфейсом SchoolRuntimeScene: SchoolReactionScene («образование молекулы», по spec) или любой
+ * другой через фабрику create (solution/SolutionExchangeScene — «обмен в растворе»); адаптер:
  *   • создаёт сцену на прогон, кладёт root в сцену R3F и зовёт update в useFrame;
  *   • прогревает шейдеры и лишь потом запускает шаг 0;
  *   • связывает панель урока (clo2StepStore) с goToStep / replay / finish;
@@ -51,7 +53,7 @@ function persistentLights(scene: THREE.Scene): SchoolLightRig {
 }
 
 type Runtime = {
-  scene: SchoolReactionScene
+  scene: SchoolRuntimeScene
   safe: SafeArea
   ox: number
   oy: number
@@ -59,7 +61,7 @@ type Runtime = {
 }
 
 /** Фон урока — фоном сцены R3F; возвращает прежний фон лаборатории (или null). */
-function takeBackground(threeScene: THREE.Scene, scene: SchoolReactionScene): THREE.Color | null {
+function takeBackground(threeScene: THREE.Scene, scene: SchoolRuntimeScene): THREE.Color | null {
   const prev = threeScene.background instanceof THREE.Color ? threeScene.background : null
   scene.setHostBackground(prev)
   threeScene.background = scene.background
@@ -67,7 +69,7 @@ function takeBackground(threeScene: THREE.Scene, scene: SchoolReactionScene): TH
 }
 
 /** Вернуть фон лаборатории (если его за время урока не заменили). */
-function restoreBackground(threeScene: THREE.Scene, scene: SchoolReactionScene, prev: THREE.Color | null): void {
+function restoreBackground(threeScene: THREE.Scene, scene: SchoolRuntimeScene, prev: THREE.Color | null): void {
   if (threeScene.background === scene.background) threeScene.background = prev
 }
 
@@ -120,7 +122,7 @@ function frameRoot(rt: Runtime, cam: THREE.PerspectiveCamera, controls: Controls
   rt.scene.setViewport(h, cam.fov, dpr)
 }
 
-const STATUS: Record<SchoolStatus, Clo2StepStatus | null> = {
+const STATUS: Record<SchoolRuntimeStatus, Clo2StepStatus | null> = {
   idle: null,
   playing: 'playing',
   paused: 'paused',
@@ -129,14 +131,17 @@ const STATUS: Record<SchoolStatus, Clo2StepStatus | null> = {
 }
 
 export type SchoolCinemaSceneProps = ScientificSynthesisFxProps & {
-  spec: SchoolSceneSpec
+  /** Сцена «образование молекулы» по спецификации (SchoolReactionScene). */
+  spec?: SchoolSceneSpec
+  /** Любая другая сцена с интерфейсом SchoolRuntimeScene (стабильная ссылка на модуль). */
+  create?: SchoolSceneFactory
   /** id урока панели (lessons.ts) — обычно spec.id. */
   lesson?: string
 }
 
 export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
-  const { runId = 0, lowPower = false, spec } = props
-  const lesson = props.lesson ?? spec.id
+  const { runId = 0, lowPower = false, spec, create } = props
+  const lesson = props.lesson ?? spec?.id ?? 'school'
   const gl = useThree((s) => s.gl)
   const camera = useThree((s) => s.camera)
   const threeScene = useThree((s) => s.scene)
@@ -157,11 +162,11 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
     let started = false
     let cancelled = false
     let doneTimer = 0
-    const scene = new SchoolReactionScene(spec, {
+    const options = {
       locale: localeRef.current,
       lowPower,
       lights: persistentLights(threeScene),
-      onStatus: (status, step) => {
+      onStatus: (status: SchoolRuntimeStatus, step: number) => {
         const s = STATUS[status]
         if (!s) return
         if (status === 'done') {
@@ -170,14 +175,15 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
         }
         clo2StepStore.report(runId, step, s)
       },
-      onCue: (id) => {
+      onCue: (id: string) => {
         const cb = cbRef.current
         if (id === 'embryo') startTransition(() => cb.onEmbryoReady?.())
         else if (id === 'birth') startTransition(() => cb.onBirthReady?.())
         else if (id === 'complete') cb.onComplete()
         else cb.onNarrationCue?.(id)
       },
-    })
+    }
+    const scene: SchoolRuntimeScene = create ? create(options) : new SchoolReactionScene(spec!, options)
     const prevBg = takeBackground(threeScene, scene)
     const runtime: Runtime = { scene, safe: createSafeArea(), ox: 0, oy: 0, scale: 0 }
     clo2StepStore.attach(
@@ -224,7 +230,7 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
       restoreBackground(threeScene, scene, prevBg)
       setRt(null)
     }
-  }, [runId, lowPower, gl, camera, threeScene, spec, lesson])
+  }, [runId, lowPower, gl, camera, threeScene, spec, create, lesson])
 
   useFrame((state, dt) => {
     if (!rt) return

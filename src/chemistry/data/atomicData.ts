@@ -784,6 +784,8 @@ export const ATOMIC_DATA: Readonly<Record<ElementSymbol, AtomicDatum>> = {
     metallicRadiusPm: 222,
     vdwRadiusPm: 268,
     ionicRadiiPm: { '+2': 135 },
+    // Shannon 1976: КЧ 8 — ион в воде (Ba²⁺·8H₂O, Persson et al. 1995), КЧ 12 — барит BaSO₄ (Hill 1977)
+    ionicRadiiByCnPm: { '+2': { '6': 135, '8': 142, '12': 161 } },
     cpk: 0x00c900,
     electronegativity: 0.89,
     ie1KJ: 502.9,

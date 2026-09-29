@@ -30,7 +30,7 @@ import {
   writeTrigonalPlanar,
 } from '../../../lab/cinema/core/vsepr'
 import { LATTICE_BALL_SCALE, pmToScene, SPECIES_SCALE, speciesLabel } from '../../../lab/cinema/scenes/kit/cpkAtoms'
-import { latticeCaption, latticeFragment, type LatticeSegment, type Vec3 } from '../../../lab/cinema/scenes/kit/lattice'
+import { latticeCaption, latticeFragment, latticeGroupedFragment, type LatticeSegment, type Vec3 } from '../../../lab/cinema/scenes/kit/lattice'
 import type { SubstanceKind } from '../../../lab/cinema/scenes/kit/materials'
 
 export type HeroAtom = {
@@ -112,7 +112,56 @@ function boundsRadius(atoms: readonly HeroAtom[], edges: readonly LatticeSegment
 
 // ─── Кристалл ────────────────────────────────────────────────────────────────
 
+/**
+ * Кристалл с многоатомными ионами (барит): простые ионы — шары Шеннона при КЧ из coordination кристалла,
+ * многоатомный ион — целая группа «шар-палочка» с ковалентными радиусами (как молекула), подпись — формулой иона.
+ */
+function buildGroupedCrystal(compoundId: string, spec: CrystalHeroSpec): HeroModel {
+  const cr = getCrystal(spec.crystalId)!
+  const groups = spec.groups ?? []
+  const frag = latticeGroupedFragment(spec.crystalId, [spec.cells[0], spec.cells[1], spec.cells[2]], groups)
+  const cnOf = (el: ElementSymbol) => Object.entries(cr.coordination).find(([k]) => k.startsWith(el))?.[1] ?? 6
+  const atoms: HeroAtom[] = frag.sites.map((s) => {
+    if (s.role === 'ion') {
+      const cn = cnOf(s.el)
+      const radiusPm = radiusForSpecies(s.el, s.charge, { cn, model: 'ionic' })
+      return { el: s.el, charge: s.charge, cn, pos: [...s.posScene] as Vec3, radiusPm, radius: ballRadius(radiusPm, CRYSTAL_BALL_SCALE), surface: 'ion', neighbor: false }
+    }
+    const radiusPm = radiusForSpecies(s.el, 0, { model: 'covalent' })
+    return { el: s.el, charge: 0, cn: 0, pos: [...s.posScene] as Vec3, radiusPm, radius: ballRadius(radiusPm, CRYSTAL_BALL_SCALE), surface: 'covalent', neighbor: false }
+  })
+  const bonds: HeroBond[] = frag.bonds.map(([a, b, len]) => ({ a, b, order: 1, kind: 'sigma' as const, lengthPm: len }))
+  const labels: HeroLabel[] = []
+  const topOf = (idx: number[]) => {
+    const yTop = Math.max(...idx.map((i) => atoms[i]!.pos[1]))
+    return idx.filter((i) => atoms[i]!.pos[1] >= yTop - 1e-3)
+  }
+  const ions = frag.sites.map((s, i) => (s.role === 'ion' ? i : -1)).filter((i) => i >= 0)
+  if (ions.length) {
+    const top = topOf(ions)
+    labels.push({ atom: top[0]!, text: speciesLabel(atoms[top[0]!]!.el, atoms[top[0]!]!.charge), kind: 'species', candidates: top })
+  }
+  for (const g of groups) {
+    const centers = frag.sites.map((s, i) => (s.role === 'center' && s.el === g.center ? i : -1)).filter((i) => i >= 0)
+    if (!centers.length) continue
+    const top = topOf(centers)
+    labels.push({ atom: top[0]!, text: g.label, kind: 'species', candidates: top })
+  }
+  return {
+    compoundId,
+    spec,
+    atoms,
+    bonds,
+    cellEdges: frag.cellEdges,
+    radius: boundsRadius(atoms, frag.cellEdges),
+    labels,
+    caption: latticeCaption(spec.crystalId),
+    cells: [spec.cells[0], spec.cells[1], spec.cells[2]],
+  }
+}
+
 function buildCrystal(compoundId: string, spec: CrystalHeroSpec): HeroModel {
+  if (spec.groups?.length) return buildGroupedCrystal(compoundId, spec)
   const frag = latticeFragment(spec.crystalId, [spec.cells[0], spec.cells[1], spec.cells[2]])
   const surface: SubstanceKind = spec.radiusModel === 'covalent' ? 'polar' : 'ion'
   const atoms: HeroAtom[] = frag.sites.map((s) => {

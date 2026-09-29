@@ -12,6 +12,9 @@ import { CO2_SCHOOL_SPEC } from '../../co2/co2Spec'
 import { CO_SCHOOL_SPEC } from '../../co/coSpec'
 import { SO2_SCHOOL_SPEC } from '../../so2/so2Spec'
 import { SO3_SCHOOL_SPEC } from '../../so3/so3Spec'
+import type { SchoolRuntimeScene } from '../schoolRuntime'
+import { SolutionExchangeScene } from '../solution/SolutionExchangeScene'
+import { BASO4_SOLUTION_SPEC } from '../solution/solutionSpec'
 
 /**
  * ПРЕДПРОСМОТР школьной сцены без лаборатории (только для разработки: `npx vite` →
@@ -36,7 +39,8 @@ const SPECS: Record<string, SchoolSceneSpec> = {
 }
 
 const q = new URLSearchParams(location.search)
-const spec = SPECS[q.get('spec') ?? 'h2o'] ?? H2O_SPEC
+const specId = q.get('spec') ?? 'h2o'
+const spec = SPECS[specId] ?? H2O_SPEC
 const lang = q.get('lang')
 const locale = lang === 'en' || lang === 'uz' ? lang : 'ru'
 const t0 = Number(q.get('t') ?? '0')
@@ -66,7 +70,8 @@ camera.position.set(0, 0, 9)
 camera.lookAt(0, 0, 0)
 const scene = new THREE.Scene()
 scene.background = new THREE.Color('#0a0b10')
-const sch = new SchoolReactionScene(spec, { locale })
+// Сцены «обмен в растворе» (school/solution) — свой класс с тем же интерфейсом.
+const sch: SchoolRuntimeScene = specId === 'baso4' ? new SolutionExchangeScene(BASO4_SOLUTION_SPEC, { locale }) : new SchoolReactionScene(spec, { locale })
 scene.add(sch.root)
 
 const els = sch.labels.map((l) => {

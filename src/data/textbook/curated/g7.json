@@ -2,7 +2,7 @@
   "grade": 7,
   "note": "Уравнения учебника «Химия. 7 класс», выписанные вручную постранично. Формат: eq — сбалансированное уравнение (ASCII, -> стрелка), page — страница, type — тип реакции, cond — условия, book — как напечатано в учебнике (для заданий: exercise=true, ответ скрыт до нажатия).",
   "reactions": [
-    {"page":67,"eq":"BaCl2 + H2SO4 -> BaSO4 + 2HCl","type":"exchange","cond":"образование осадка BaSO4↓"},
+    {"page":67,"eq":"BaCl2 + H2SO4 -> BaSO4 + 2HCl","type":"exchange","cond":"образование осадка BaSO₄↓"},
     {"page":67,"eq":"CH4 + 2O2 -> CO2 + 2H2O","type":"combustion","cond":"выделение тепла (+Q)"},
     {"page":67,"eq":"Zn + 2HCl -> ZnCl2 + H2","type":"substitution","cond":"выделение газа H2↑"},
     {"page":69,"eq":"2Mg + O2 -> 2MgO","type":"combination","book":"Mg + O2 -> MgO","cond":"пример составления уравнения (шаги 1–3)"},

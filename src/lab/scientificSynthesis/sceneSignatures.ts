@@ -70,6 +70,9 @@ export const SCIENTIFIC_SCENE_SIGNATURES = {
   mgo: [{ elements: ['Mg', 'O'] }],
   // Zn + 2 HCl → ZnCl₂ + H₂↑ (bank 'zn-hcl'); прямой синтез Zn + Cl₂ — не эта сцена
   salt_zn_cl: [{ elements: ['Zn'], compounds: ['hcl'] }],
+  // BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl (bank 'bacl2-h2so4', 7 кл. с. 67, 8 кл. § 32). Нейтрализация Ba(OH)₂ + H₂SO₄
+  // и обмен CuSO₄ + BaCl₂ — другие частицы в растворе (вода из OH⁻, наблюдатели Cu²⁺) — не эта сцена.
+  salt_ba_so4: [{ compounds: ['salt_ba_cl', 'h2so4'] }],
   // CH₄ + 2 O₂ → CO₂ + 2 H₂O. Ключ не совпадает ни с одним productId каталога — сцена ждёт
   // UI-переключателя маршрута; сигнатура задана, чтобы при подключении не показать её для C + O₂.
   // Метана в каталоге неорганики пока нет: 'ch4' — будущий id, при подключении сверить с compoundById.

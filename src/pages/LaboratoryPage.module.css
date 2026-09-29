@@ -90,6 +90,16 @@
   box-shadow: var(--lt-ring);
 }
 
+/* Идёт урок: слева сверху стоит панель шагов (data-lab-lesson-panel) — ссылка перекрыла бы её заголовок,
+ * поэтому на широком экране она уходит вправо, под кнопки «Неорганика · Органика · Синтез». */
+@media (min-width: 721px) {
+  :global(body:has([data-lab-lesson-panel])) .backToBook {
+    left: auto;
+    right: 16px;
+    top: calc(var(--app-header-h, 3.4rem) + 74px);
+  }
+}
+
 /* Телефон: верх занят .rightHud — ссылка строкой ниже. */
 @media (max-width: 720px) {
   .backToBook {

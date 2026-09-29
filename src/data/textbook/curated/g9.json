@@ -23,7 +23,7 @@
     {"page":29,"eq":"HCl + KOH -> KCl + H2O","type":"neutralization","cond":"реакция нейтрализации: лакмус из красного становится фиолетовым"},
     {"page":29,"eq":"H⁺ + Cl⁻ + K⁺ + OH⁻ -> K⁺ + Cl⁻ + H2O","ionic":true,"type":"neutralization","cond":"полное ионное уравнение нейтрализации"},
     {"page":29,"eq":"H⁺ + OH⁻ -> H2O","ionic":true,"type":"neutralization","cond":"краткое ионное уравнение нейтрализации"},
-    {"page":29,"eq":"BaCl2 + Na2SO4 -> 2NaCl + BaSO4","type":"exchange","cond":"реакция с образованием осадка BaSO4↓ идёт до конца"},
+    {"page":29,"eq":"BaCl2 + Na2SO4 -> 2NaCl + BaSO4","type":"exchange","cond":"реакция с образованием осадка BaSO₄↓ идёт до конца"},
     {"page":30,"eq":"Ba²⁺ + 2Cl⁻ + 2Na⁺ + SO4²⁻ -> 2Na⁺ + 2Cl⁻ + BaSO4","ionic":true,"type":"exchange","cond":"полное ионное уравнение"},
     {"page":30,"eq":"Ba²⁺ + SO4²⁻ -> BaSO4","ionic":true,"type":"exchange","cond":"краткое ионное уравнение: ионы бария и сульфата образуют осадок"},
     {"page":30,"eq":"Ba(NO3)2 + K2SO4 -> BaSO4 + 2KNO3","type":"exchange","exercise":true,"book":"Ba(NO3)2 + K2SO4 → ? (составьте уравнение и его ионный вид)"},
