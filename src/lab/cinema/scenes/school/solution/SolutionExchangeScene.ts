@@ -314,7 +314,7 @@ export class SolutionExchangeScene {
     this.turbidGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(m.turbidPoints * 3), 3))
     // хлопья мути — мягкие круглые точки (не квадраты)
     this.dotTex = softDotTexture()
-    this.turbidMat = new THREE.PointsMaterial({ color: 0xffffff, map: this.dotTex, size: 38 * K, sizeAttenuation: true, transparent: true, opacity: 0, depthWrite: false, fog: false })
+    this.turbidMat = new THREE.PointsMaterial({ color: 0xffffff, map: this.dotTex, size: 50 * K, sizeAttenuation: true, transparent: true, opacity: 0, depthWrite: false, fog: false })
     this.turbid = new THREE.Points(this.turbidGeo, this.turbidMat)
     this.turbid.frustumCulled = false
     const glassA = new THREE.Mesh(this.glassGeo, this.glassMat)
