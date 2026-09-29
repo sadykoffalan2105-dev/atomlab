@@ -269,7 +269,7 @@ export const N2O_SPEC: SchoolScienceSpec = {
   legend: LEGEND_DATIVE,
   captions: {
     reactants: { ru: 'ионы NH₄⁺ и NO₃⁻', en: 'NH₄⁺ and NO₃⁻ ions', uz: 'NH₄⁺ va NO₃⁻ ionlari' },
-    result: { ru: 'N–N–O, 180°', en: 'N–N–O, 180°', uz: 'N–N–O, 180°' },
+    result: { ru: 'N–N–O — линейная', en: 'N–N–O — linear', uz: 'N–N–O — chiziqli' },
     condition: { ru: 't°', en: 't°', uz: 't°' },
   },
   steps: [

@@ -476,7 +476,8 @@ for (const k of [0, 1] as const) {
       sc.setScalar(colLen(m))
       if (sc.x > 0 || st.saltEdges > 0 || st.octa > 0) fail ||= `решётка видна до шага 5 (t=${t.toFixed(2)})`
     }
-    if (step >= 4 && st.valence > 0) fail ||= `валентные точки на шаге ${step + 1}`
+    // слой Cl⁻ гаснет в начале шага «Решётка» (NACL_T.valenceOut): на паузе конца шага 4 он ещё виден
+    if (step >= 4 && t > NACL_T.valenceOut[1] && st.valence > 0) fail ||= `валентные точки на шаге ${step + 1}`
     if (t >= NACL_T.handover && obj('nacl-na1')[0]!.visible) fail ||= 'частица сюжета после передачи узлов решётке'
     if (step <= 1 && st.labelOpacity[NACL_LABELS.findIndex((l) => l.id === 'octaNa')]! > 0) fail ||= 'подпись окружения до шага 5'
   }

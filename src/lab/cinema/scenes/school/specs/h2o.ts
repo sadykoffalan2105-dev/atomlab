@@ -148,7 +148,7 @@ export const H2O_SPEC: SchoolScienceSpec = {
   legend: LEGEND,
   captions: {
     reactants: { ru: 'гремучая смесь 2 : 1', en: 'oxyhydrogen 2 : 1', uz: 'qaldiroq gaz 2 : 1' },
-    result: { ru: 'вода: H–O–H, 104,5°', en: 'water: H–O–H, 104.5°', uz: 'suv: H–O–H, 104,5°' },
+    result: { ru: 'вода: H–O–H — угловая', en: 'water: H–O–H — bent', uz: 'suv: H–O–H — burchakli' },
     condition: { ru: 'поджиг', en: 'ignition', uz: 'yondirish' },
   },
   steps: [

@@ -163,7 +163,7 @@ export const SO2_SPEC: SchoolScienceSpec = {
   legend: LEGEND,
   captions: {
     reactants: { ru: 'сера + кислород', en: 'sulfur + oxygen', uz: 'oltingugurt + kislorod' },
-    result: { ru: 'O=S=O, 119,5°', en: 'O=S=O, 119.5°', uz: 'O=S=O, 119,5°' },
+    result: { ru: 'O=S=O — угловая', en: 'O=S=O — bent', uz: 'O=S=O — burchakli' },
     condition: { ru: 't°', en: 't°', uz: 't°' },
   },
   steps: [
