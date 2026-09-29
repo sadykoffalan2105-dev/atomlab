@@ -288,7 +288,6 @@ export function LabProductHeroSlot({
     }, 2_400)
 
     let cancelChunk: (() => void) | undefined
-    let cancelBudget: (() => void) | undefined
     let releaseBudget: (() => void) | null = null
 
     const runCompile = () => {
@@ -321,7 +320,7 @@ export function LabProductHeroSlot({
       )
     }
 
-    cancelBudget = enqueueGpuCompile(
+    const cancelBudget = enqueueGpuCompile(
       `visible:${compound.id}:${runId}`,
       (release) => {
         releaseBudget = release

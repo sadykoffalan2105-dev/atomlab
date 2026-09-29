@@ -241,7 +241,6 @@ export function HeroMoleculeRig({
   compound,
   labScaleBoost = CATALOG_HERO_DEFAULT_LAB_SCALE,
   renderQuality = 'high',
-  fxLevel: _fxLevel = 'full',
   chaoticWobble = false,
 }: {
   compound: CompoundDef
