@@ -40,7 +40,7 @@ const gsap: typeof GSAP.gsap =
 
 const K = pmToScene(1)
 const MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.16 } as const
-const WATER_OPACITY = 0.46
+const WATER_OPACITY = 0.5
 /** Ореол заряда: + тёплый (янтарь), − холодный (голубой); H⁺ в H₃O⁺ — ярче; соседи Ba²⁺ в кристалле — белые. */
 const HALO_COLOR = { plus: 0xffa64d, minus: 0x4fc3ff, proton: 0xffd27a, neighbor: 0xeaf6ff } as const
 /** Линии поля притяжения: дуги между Ba²⁺ и SO₄²⁻ (веретено, как силовые линии двух зарядов). */
@@ -64,9 +64,9 @@ function atomColor(el: string, water: boolean, far = false): THREE.Color {
   if (el === 'H') c.multiplyScalar(0.9)
   if (water) {
     // вода — светлая школьная: розовато-коралловый O, белые H; фон ещё и «дальше» (к цвету фона)
-    if (el === 'O') c.set(0xf08e8e)
-    else c.set(0xf2f5fa)
-    if (far) c.lerp(new THREE.Color(0x3a4658), 0.42)
+    if (el === 'O') c.set(0xffb0b0)
+    else c.set(0xf6f8fc)
+    if (far) c.lerp(new THREE.Color(0x46536a), 0.4)
   }
   return c
 }
@@ -257,8 +257,8 @@ export class SolutionExchangeScene {
         void main() {
           float d = length(vP);
           if (d > 1.0) discard;
-          float ring = smoothstep(0.72, 0.86, d) * (1.0 - smoothstep(0.9, 1.0, d));
-          float glow = pow(1.0 - d, 1.7) * 0.5;
+          float ring = smoothstep(0.8, 0.9, d) * (1.0 - smoothstep(0.93, 1.0, d));
+          float glow = pow(1.0 - d, 1.8) * 0.42;
           gl_FragColor = vec4(vCol, ring + glow);
         }
       `,
@@ -267,7 +267,8 @@ export class SolutionExchangeScene {
     this.halos.name = 'solution-halos'
     this.halos.frustumCulled = false
     this.halos.renderOrder = 6
-    this.haloBase = m.halos.map((h) => new THREE.Color(HALO_COLOR[h.kind]))
+    // подсвеченный Ba²⁺ среди 12 соседних O — тёплым кольцом катиона, сами O — белыми
+    this.haloBase = m.halos.map((h) => new THREE.Color(HALO_COLOR[h.kind === 'neighbor' && h.atom >= 0 && m.atoms[h.atom]!.el === 'Ba' ? 'plus' : h.kind]))
     for (let h = 0; h < Math.max(1, m.halos.length); h++) this.halos.setColorAt(h, this._col.setRGB(0, 0, 0))
     // ——— линии поля Ba²⁺ ↔ SO₄²⁻: тонкие светящиеся дуги из отрезков, импульсы бегут к середине ———
     this.fieldMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })
@@ -775,7 +776,7 @@ export class SolutionExchangeScene {
       this._q.identity()
       this._m.compose(this._v, this._q, this._s)
       this.halos.setMatrixAt(h, this._m)
-      this.halos.setColorAt(h, this._col.copy(this.haloBase[h]!).multiplyScalar(a * (m.halos[h]!.ghost ? 0.8 : 0.62)))
+      this.halos.setColorAt(h, this._col.copy(this.haloBase[h]!).multiplyScalar(a * (m.halos[h]!.ghost ? 0.8 : 0.5)))
     }
     this.halos.instanceMatrix.needsUpdate = true
     if (this.halos.instanceColor) this.halos.instanceColor.needsUpdate = true

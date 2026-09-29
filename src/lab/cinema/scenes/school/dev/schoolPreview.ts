@@ -53,6 +53,10 @@ const LABEL_STYLE: Record<string, string> = {
     'font:600 12.5px/1 Inter,system-ui,sans-serif;color:#cfeeff;padding:3px 7px;border-radius:6px;background:rgba(6,12,26,.78);border:1px solid rgba(150,205,255,.35);',
   token: 'font:700 13px/1 Inter,system-ui,sans-serif;color:#fff3c4;text-shadow:0 0 10px rgba(255,190,80,.9);',
   equation: 'font:600 15px/1.1 Inter,system-ui,sans-serif;color:#f4f8ff;text-shadow:0 0 6px rgba(0,0,0,.95);',
+  equationPlate:
+    'font:700 18px/1.15 Inter,system-ui,sans-serif;color:#f4f8ff;padding:6px 14px 7px;border-radius:10px;background:rgba(6,12,26,.86);border:1px solid rgba(150,205,255,.45);',
+  callout:
+    'font:500 13px/1.42 Inter,system-ui,sans-serif;color:#fff4e3;padding:8px 13px 9px;border-radius:10px;white-space:pre-line;background:rgba(28,16,6,.9);border:1px solid rgba(255,184,96,.7);box-shadow:0 0 18px rgba(255,170,70,.28);',
 }
 
 const renderer = new THREE.WebGLRenderer({ antialias: true })

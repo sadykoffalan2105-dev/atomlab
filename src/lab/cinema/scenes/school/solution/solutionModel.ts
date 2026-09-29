@@ -1003,7 +1003,8 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   for (const p of protons) halos.push({ kind: 'plus', atom: atomOf(p), radiusPm: core.h3oOH + cov('H') * SOLUTION_DRAW.ballScale + 46 })
   // «вот он, H⁺»: один из трёх H первого H₃O⁺ — тот, что пришёл от кислоты и сел на молекулу воды
   halos.push({ kind: 'proton', atom: atomOf(protons[0]!, 1), radiusPm: cov('H') * SOLUTION_DRAW.ballScale + 26 })
-  // 12 атомов O вокруг одного Ba²⁺ кристалла (Hill 1977): решётка побольше — все соседние группы на месте
+  // 12 атомов O вокруг одного Ba²⁺ кристалла (Hill 1977): решётка побольше — все соседние группы на месте.
+  // Сам этот Ba²⁺ — с тёплым кольцом (halo 'plus' в окне подсветки: kind 'neighbor' у атома Ba).
   const neighborCount = (u: Unit): number => {
     let c = 0
     for (const ligs of siteLigands) for (const o of ligs) if (dist(o, u.ba.s.posPm) < 340) c++
@@ -1029,6 +1030,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   siteBody.set(spec.seedUnits * 2 + 1, group)
   later.forEach((b, k) => siteBody.set((spec.seedUnits + 1) * 2 + k, b))
   const hiBaBody = siteBody.get(hiUnit * 2)!
+  halos.push({ kind: 'neighbor', atom: atomOf(hiBaBody), radiusPm: -1 })
   const neighborAtoms: number[] = []
   for (const o of neighborO) {
     let hit = -1
@@ -1316,8 +1318,9 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
     const o = atom * 3
     setLabel(li, out.atomPos[o]! + off * 0.72, out.atomPos[o + 1]! + off * 0.86, out.atomPos[o + 2]!, windowAlpha(m.labels[li]!.from, m.labels[li]!.to, t) * out.microAlpha * peak)
   }
-  const landed = t >= T.land
-  chargeAt(Q.group, sAtom, 250, landed ? 0.55 : 1)
+
+  // после посадки заряд группы не подписываем: в кристалле у соседей его тоже нет (на итоге — кольцом)
+  chargeAt(Q.group, sAtom, 250, 1 - smooth(T.land - 0.3, T.land + 0.2, t))
   Q.protons.forEach((li, k) => chargeAt(li, m.bodies[m.roles.protons[k]!]!.atoms[0]!, 190, 1))
   // подписи макро-кадра — в системе пробирок, с масштабом макро-слоя
   k = out.macroScale
