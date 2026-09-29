@@ -1398,7 +1398,7 @@ function sampleMicroFocus(m: SolutionModel, t: number, out: SolutionState, T: In
       out.haloPos[o + 2] = out.crystal.c[2] - p[0] * sy + p[2] * cy
       out.haloR[h] = def.radiusPm
     }
-    let a = 0
+    let a: number
     if (def.kind === 'plus' || def.kind === 'minus') {
       a = def.atom === pairAtoms0 || def.atom === pairAtoms1 ? pairWin : specWin * out.bodyDim[m.atoms[def.atom]!.body]!
     } else if (def.kind === 'proton') {
