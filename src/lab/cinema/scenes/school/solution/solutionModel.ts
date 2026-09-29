@@ -1345,9 +1345,9 @@ function tubeBPose(m: SolutionModel, t: number, out: V3): V3 {
   }
   // возврат: сначала носик вверх и вправо (прочь от A), потом вниз на своё место
   const tm = T.back0 + 0.55 * (T.back1 - T.back0)
-  _pb[0] = 560
-  _pb[1] = 420
-  _pb[2] = 0.6
+  _pb[0] = 600
+  _pb[1] = 150
+  _pb[2] = 0.75
   if (t <= tm) {
     poseByLip(m, lipX, lipY, rot1, _pa)
     const u = smooth(T.back0, tm, t)
@@ -1445,7 +1445,7 @@ function sampleMacro(m: SolutionModel, t: number, out: SolutionState): void {
   const pipIn = smooth(T.pip0, T.pip0 + 0.55, t)
   const pipOut = smooth(T.pip1, T.pip1 + 0.55, t)
   const tipX = TUBE_A_X
-  const tipY = H / 2 + 120
+  const tipY = H / 2 + 70
   const pu = pipIn * (1 - pipOut)
   out.pipette.x = lerp(TUBE_A_X + 620, tipX, pu)
   out.pipette.y = lerp(H / 2 + 760, tipY, pu)
@@ -1497,6 +1497,7 @@ export function solutionExtentAt(m: SolutionModel, t: number): { w: number; h: n
     { t: T.lift0, e: [900, 1250, 0, -120] },
     { t: T.pour0 - 0.2, e: [1450, 1800, 200, 300] },
     { t: T.pour1 + 0.1, e: [1450, 1800, 200, 300] },
+    { t: T.back0 + 0.55 * (T.back1 - T.back0), e: [1450, 1800, 200, 300] },
     { t: T.back1, e: [900, 1250, 0, -120] },
     // лёгкий наезд на пробирку с мутью перед «лупой»
     { t: T.micro0, e: [720, 1080, -190, -60] },
@@ -1507,7 +1508,11 @@ export function solutionExtentAt(m: SolutionModel, t: number): { w: number; h: n
     { t: S.nucleus.to, e: [2400, 1950, 0, -150] },
     // шаг «осадок»: одна пробирка и выноски справа, медленный наезд
     { t: T.microOut1, e: [1250, 1320, 110, 10] },
-    { t: T.micro2, e: [1150, 1240, 90, -10] },
+    // пипетка HNO₃ въезжает сверху — кадр чуть выше
+    { t: T.pip0, e: [1250, 1320, 110, 10] },
+    { t: T.pip0 + 0.6, e: [1250, 1600, 110, 110] },
+    { t: T.pip1, e: [1250, 1600, 110, 110] },
+    { t: T.micro2, e: [1150, 1280, 90, -10] },
     { t: T.micro3 + 0.2, e: [3000, 1850, -120, -60] },
   ]
   const out = { w: 0, h: 0, cx: 0, cy: 0 }
