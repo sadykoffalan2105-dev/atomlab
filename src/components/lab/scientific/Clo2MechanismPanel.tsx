@@ -429,7 +429,10 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
   const clo2Locale = toClo2Locale(locale)
 
   useReactorBottomGap(panelRef, visible, isMobile)
-  useCollapseReactorForLesson(visible && isSheet, t('reactor.hidePanel'))
+  // Школьные уроки — и на десктопе: док реактора 7 с закрывал низ кадра (пробирки, выноски); при старте
+  // урока он сворачивается сразу, вернуть — «Показать реактор».
+  const schoolLesson = getCinemaLesson(snapshot.lesson).school === true
+  useCollapseReactorForLesson(visible && (isSheet || schoolLesson), t('reactor.hidePanel'))
   useScrollFade(scrollWrapRef, scrollRef, `${visible ? 1 : 0}:${runId}:${step}:${collapsed ? 1 : 0}:${locale}`)
 
   // Ручная высота листа живёт только на узком телефоне: на широком экране

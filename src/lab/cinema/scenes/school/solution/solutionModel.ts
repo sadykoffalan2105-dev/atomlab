@@ -357,7 +357,8 @@ export type SolutionModel = {
   /** внутреннее: функции позы тел */
   readonly pose: readonly ((t: number, p: V3, q: Q4) => number)[]
   readonly radiusAt: (atom: number, t: number) => number
-  readonly turbid: { readonly x: Float32Array; readonly y0: Float32Array; readonly z: Float32Array; readonly v: Float32Array }
+  /** муть: место (x, z), доля глубины y0, скорость оседания v, доля времени рождения birth (0…1 сливания) */
+  readonly turbid: { readonly x: Float32Array; readonly y0: Float32Array; readonly z: Float32Array; readonly v: Float32Array; readonly birth: Float32Array }
 }
 
 export type SolutionState = {
@@ -382,10 +383,26 @@ export type SolutionState = {
   /** пунктир притяжения Ba²⁺ ↔ SO₄²⁻ и граница двух растворов */
   attract: { a: V3; b: V3; alpha: number }
   divider: { alpha: number }
-  /** пробирки: положение дна (x, y), наклон (рад), уровень (доля высоты), видимость */
-  tubeA: { x: number; y: number; rot: number; level: number; alpha: number }
-  tubeB: { x: number; y: number; rot: number; level: number; alpha: number; liquid: number }
-  stream: { a: V3; b: V3; alpha: number }
+  /**
+   * Пробирки: положение дна (x, y), наклон (рад), уровень (доля высоты, «как если бы стояла»), видимость;
+   * surface — высота горизонтальной поверхности жидкости в системе макро-слоя (у наклонённой B жидкость
+   * остаётся горизонтальной: рисуется всё, что ниже этой плоскости).
+   */
+  tubeA: { x: number; y: number; rot: number; level: number; alpha: number; surface: number }
+  tubeB: { x: number; y: number; rot: number; level: number; alpha: number; liquid: number; surface: number }
+  /** струя: a — носик B, b — вход в жидкость A; pts/rad — осевая линия параболы и радиус (сужается) */
+  stream: { a: V3; b: V3; alpha: number; pts: Float32Array; rad: Float32Array }
+  /** «лупа» макро ↔ микро: центр (система сцены), радиус круга, видимость оправы; u — 0 макро … 1 микро */
+  lens: { c: V3; r: number; alpha: number; u: number }
+  /** сдвиг слоёв при наезде (слой масштабируется вокруг центра лупы) */
+  macroOffset: V3
+  microOffset: V3
+  /** пипетка HNO₃: кончик (x, y), видимость; капли — x, y, z, радиус */
+  pipette: { x: number; y: number; alpha: number }
+  drops: Float32Array
+  /** выноски шага «осадок»: [цель, колено, конец полки] по x, y для осадка и раствора; видимость */
+  callouts: Float32Array
+  calloutAlpha: Float32Array
   /** муть (0…1), высота слоя осадка (доля высоты пробирки), сколько всего образовалось осадка */
   turbidity: number
   sediment: number
@@ -396,7 +413,13 @@ export type SolutionState = {
 }
 
 const TUBE = { r: 115, h: 950 }
-const TURBID_N = 240
+const TURBID_N = 360
+/** точек осевой линии струи, капель HNO₃ */
+export const STREAM_N = 18
+export const DROP_N = 3
+/** макро: пробирка A (куда сливают) и B (кислота) в штативе */
+const TUBE_A_X = -210
+const TUBE_B_X = 210
 
 /** Тетраэдр SO₄: вершины (±1, ±1, ±1) с чётным числом минусов — ось C₂ по z (ни один O не закрывает S). */
 function tetraLocal(so: number): V3[] {
@@ -443,10 +466,16 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   const S = step
   // ключевые моменты сюжета
   const T = {
-    pour0: S.tubes.from + 1.6,
-    pour1: S.tubes.from + 3.6,
-    micro0: S.ions.from - 0.55,
-    micro1: S.ions.from + 0.6,
+    // макро шага 1: подъём B (lift0…lift1), перенос к устью A (…pour0), струя (pour0…pour1), возврат (back0…back1)
+    lift0: S.tubes.from + 0.35,
+    lift1: S.tubes.from + 0.8,
+    pour0: S.tubes.from + 1.75,
+    pour1: S.tubes.from + 3.3,
+    back0: S.tubes.from + 3.4,
+    back1: S.tubes.from + 4.55,
+    // «лупа» — целиком ВНУТРИ шага: на паузе между шагами кадр всегда в одном слое (без провалов)
+    micro0: S.ions.from,
+    micro1: S.ions.from + 1.1,
     mix0: S.meet.from,
     meet1: S.meet.to - 0.4,
     seed0: S.nucleus.from + 0.5,
@@ -454,10 +483,14 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     shed: S.nucleus.from + 0.35,
     land0: S.nucleus.from + 0.8,
     land: S.nucleus.from + 3.2,
-    microOut0: S.settle.from + 0.25,
+    microOut0: S.settle.from,
     microOut1: S.settle.from + 1.0,
-    micro2: S.result.from - 0.6,
-    micro3: S.result.from + 0.35,
+    // пипетка HNO₃: въезд, три капли, отъезд
+    pip0: S.settle.from + 2.0,
+    drop0: S.settle.from + 2.6,
+    pip1: S.settle.from + 4.1,
+    micro2: S.result.from,
+    micro3: S.result.from + 1.0,
     relocate: (S.settle.from + S.result.from) / 2,
   }
   const timing = defineSceneTiming<SolutionStepId, SolutionCueId>({
@@ -924,31 +957,35 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   }
   const Lcap = {
     tubeA: addLabel({ id: 'tubeA', kind: 'species', text: cap.tubeA, from: S.tubes.from + 0.2, to: S.tubes.to }),
-    tubeB: addLabel({ id: 'tubeB', kind: 'species', text: cap.tubeB, from: S.tubes.from + 0.2, to: T.pour0 + 0.1 }),
+    tubeB: addLabel({ id: 'tubeB', kind: 'species', text: cap.tubeB, from: S.tubes.from + 0.2, to: T.lift0 + 0.3 }),
     solA: addLabel({ id: 'solA', kind: 'measure', text: cap.solutionA, from: T.micro1, to: S.meet.from + 0.6 }),
     solB: addLabel({ id: 'solB', kind: 'measure', text: cap.solutionB, from: T.micro1, to: S.meet.from + 0.6 }),
     crystal: addLabel({ id: 'crystal', kind: 'measure', text: cap.crystal, from: T.seed1, to: finish.to }),
     neighbors: addLabel({ id: 'neighbors', kind: 'measure', text: cap.neighbors, from: T.land + 0.3, to: S.nucleus.to }),
-    precip: addLabel({ id: 'precip', kind: 'species', text: cap.precipitate, from: S.settle.from + 1.2, to: S.settle.to }),
-    acid: addLabel({ id: 'acid', kind: 'species', text: cap.acid, from: S.settle.from + 1.8, to: S.settle.to }),
-    nitric: addLabel({ id: 'nitric', kind: 'measure', text: cap.nitric, from: S.settle.from + 2.6, to: S.settle.to }),
+    precip: addLabel({ id: 'precip', kind: 'species', text: spec.callouts?.precipitate ?? cap.precipitate, from: S.settle.from + 1.2, to: S.settle.to + 0.3 }),
+    acid: addLabel({ id: 'acid', kind: 'species', text: spec.callouts?.acid ?? cap.acid, from: S.settle.from + 1.7, to: S.settle.to + 0.3 }),
+    nitric: addLabel({ id: 'nitric', kind: 'measure', text: cap.nitric, from: T.drop0 + 0.9, to: S.settle.to + 0.3 }),
     equation: addLabel({ id: 'equation', kind: 'equationPlate', text: eqL10n(spec.science.reaction.equation), from: S.result.from + 0.4, to: finish.to }),
     ionic: addLabel({ id: 'ionic', kind: 'measure', text: eqL10n(spec.science.reaction.ionicShort), from: S.result.from + 1.2, to: finish.to }),
     stepEq: addLabel({ id: 'stepEq', kind: 'equation', text: eqL10n(spec.science.reaction.ionicShort), from: T.land + 0.6, to: S.nucleus.to }),
   }
 
   // ——— муть ———
+  // Хлопья мути рождаются там, где струя входит в раствор (время рождения — за время сливания),
+  // растекаются к своему месту в жидкости (не выше точки входа) и потом оседают каждая со своей скоростью.
   const tx = new Float32Array(TURBID_N)
   const ty = new Float32Array(TURBID_N)
   const tz = new Float32Array(TURBID_N)
   const tv = new Float32Array(TURBID_N)
+  const tb = new Float32Array(TURBID_N)
   for (let i = 0; i < TURBID_N; i++) {
     const a = r() * Math.PI * 2
-    const rr = Math.sqrt(r()) * TUBE.r * 0.78
+    const rr = Math.sqrt(r()) * TUBE.r * 0.8
     tx[i] = Math.cos(a) * rr
     tz[i] = Math.sin(a) * rr
-    ty[i] = TUBE.r * 0.4 + r() * (0.6 * TUBE.h - TUBE.r * 0.4)
-    tv[i] = 0.6 + 0.8 * r()
+    tb[i] = r()
+    ty[i] = r()
+    tv[i] = 0.55 + 0.9 * r()
   }
 
   const radiusAt = (atom: number, t: number) => {
@@ -977,7 +1014,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     roles: { cation, group, anions, protons, lattice, later, waters },
     pose,
     radiusAt,
-    turbid: { x: tx, y0: ty, z: tz, v: tv },
+    turbid: { x: tx, y0: ty, z: tz, v: tv, birth: tb },
   }
   ;(model as unknown as { _T: typeof T; _L: typeof Lcap; _Q: typeof Lcharge })._T = T
   ;(model as unknown as { _L: typeof Lcap })._L = Lcap
@@ -987,8 +1024,12 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
 
 type Internals = {
   _T: {
+    lift0: number
+    lift1: number
     pour0: number
     pour1: number
+    back0: number
+    back1: number
     micro0: number
     micro1: number
     mix0: number
@@ -1000,6 +1041,9 @@ type Internals = {
     land: number
     microOut0: number
     microOut1: number
+    pip0: number
+    drop0: number
+    pip1: number
     micro2: number
     micro3: number
     relocate: number
@@ -1031,9 +1075,16 @@ export function createSolutionState(m: SolutionModel): SolutionState {
     bodyAppear: new Float32Array(m.bodies.length),
     attract: { a: [0, 0, 0], b: [0, 0, 0], alpha: 0 },
     divider: { alpha: 0 },
-    tubeA: { x: 0, y: 0, rot: 0, level: 0, alpha: 0 },
-    tubeB: { x: 0, y: 0, rot: 0, level: 0, alpha: 0, liquid: 0 },
-    stream: { a: [0, 0, 0], b: [0, 0, 0], alpha: 0 },
+    tubeA: { x: 0, y: 0, rot: 0, level: 0, alpha: 0, surface: 0 },
+    tubeB: { x: 0, y: 0, rot: 0, level: 0, alpha: 0, liquid: 0, surface: 0 },
+    stream: { a: [0, 0, 0], b: [0, 0, 0], alpha: 0, pts: new Float32Array(STREAM_N * 3), rad: new Float32Array(STREAM_N) },
+    lens: { c: [0, 0, 0], r: 0, alpha: 0, u: 0 },
+    macroOffset: [0, 0, 0],
+    microOffset: [0, 0, 0],
+    pipette: { x: 0, y: 0, alpha: 0 },
+    drops: new Float32Array(DROP_N * 4),
+    callouts: new Float32Array(2 * 6),
+    calloutAlpha: new Float32Array(2),
     turbidity: 0,
     sediment: 0,
     formed: 0,
@@ -1059,20 +1110,35 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   out.step = m.timing.stepIndexAt(t)
   out.fade = 1 - smooth(m.finish.from, m.finish.to, t)
 
-  // ——— макро ↔ микро ———
-  // «лупа»: сначала гаснет один слой, почти сразу проявляется другой (перекрытие ≈ 0,1 с)
-  const macroA = Math.max(1 - smooth(T.micro0, T.micro0 + 0.6, t), Math.min(smooth(T.microOut0 + 0.3, T.microOut1 + 0.2, t), 1 - smooth(T.micro2, T.micro2 + 0.6, t)))
-  const microA = Math.max(Math.min(smooth(T.micro0 + 0.5, T.micro1, t), 1 - smooth(T.microOut0, T.microOut0 + 0.4, t)), smooth(T.micro2 + 0.5, T.micro3, t))
+  // ——— макро ↔ микро: «лупа» ———
+  // Круг наплывает на точку пробирки (облачко мути, слой осадка), макро-слой наезжает на неё и гаснет,
+  // мир частиц растёт из той же точки внутри круга. Переходы целиком внутри шага: на паузе между
+  // шагами кадр всегда полностью в одном слое (без тёмных провалов и «пробирок-призраков»).
+  const u = lensAt(m, t, out.lens.c)
+  out.lens.u = u
+  const macroA = 1 - smooth(0.5, 0.95, u)
+  const microA = smooth(0.04, 0.4, u)
   out.macroAlpha = macroA * out.fade
-  out.microAlpha = microA * out.fade
-  out.macroScale = 1 + 0.9 * (1 - macroA)
-  out.microScale = 0.35 + 0.65 * microA
+  // мир частиц в хвосте не гаснет целиком: вода и ионы-наблюдатели растворяются, кристалл остаётся и
+  // передаёт кадр герою (без передачи класс гасит его по fade)
+  out.microAlpha = microA
+  out.macroScale = 1 + 2.4 * Math.pow(u, 1.4)
+  out.microScale = 0.22 + 0.78 * smooth(0, 1, u)
+  out.lens.r = 60 + 2300 * Math.pow(u, 1.6)
+  out.lens.alpha = u > 0 && u < 1 ? smooth(0, 0.12, u) * (1 - smooth(0.78, 0.98, u)) : 0
+  for (let c = 0; c < 2; c++) {
+    out.macroOffset[c] = out.lens.c[c]! * (1 - out.macroScale)
+    out.microOffset[c] = out.lens.c[c]! * (1 - out.microScale)
+  }
+  out.macroOffset[2] = 0
+  out.microOffset[2] = 0
 
   // ——— тела и атомы ———
+  const finKeep = 1 - smooth(m.finish.from, m.finish.from + 0.8, t)
   const n = m.atoms.length
   for (let bi = 0; bi < m.bodies.length; bi++) {
     const b = m.bodies[bi]!
-    const appear = m.pose[bi]!(t, _bp, _bq)
+    const appear = m.pose[bi]!(t, _bp, _bq) * (b.land || b.kind === 'lattice-cation' || b.kind === 'lattice-group' ? 1 : finKeep)
     for (const ai of b.atoms) {
       const a = m.atoms[ai]!
       qRot(_bq, a.local, _v)
@@ -1123,52 +1189,15 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   out.attract.alpha = windowAlpha(S.meet.from + 1.2, T.land0 + 0.6, t, 0.5)
   out.divider.alpha = windowAlpha(T.micro1 - 0.3, S.meet.from + 0.9, t, 0.5)
 
-  // ——— пробирки ———
-  const H = m.tube.h
-  const pour = smooth(T.pour0, T.pour0 + 0.6, t) * (1 - smooth(T.pour1, T.pour1 + 0.6, t))
-  const pourFlow = smooth(T.pour0 + 0.6, T.pour1, t)
-  const settleView = t >= T.relocate
-  out.tubeA.x = settleView ? 0 : -210
-  out.tubeA.y = -H / 2
-  out.tubeA.rot = 0
-  out.tubeA.level = 0.33 + 0.27 * pourFlow
-  out.tubeA.alpha = 1
-  const pourPos: V3 = [760, 470, 0]
-  out.tubeB.x = lerp(210, pourPos[0], pour)
-  out.tubeB.y = lerp(-H / 2, pourPos[1], pour)
-  out.tubeB.rot = lerp(0, (104 * Math.PI) / 180, pour)
-  out.tubeB.level = 0.33 - 0.25 * pourFlow
-  out.tubeB.alpha = settleView ? 0 : 1
-  out.tubeB.liquid = 1 - smooth(T.pour0, T.pour0 + 0.35, t) + smooth(T.pour1 + 0.3, T.pour1 + 0.6, t)
-  // струя: от горлышка B к поверхности жидкости A
-  const up: V3 = [-Math.sin(out.tubeB.rot), Math.cos(out.tubeB.rot), 0]
-  out.stream.a[0] = out.tubeB.x + up[0] * H
-  out.stream.a[1] = out.tubeB.y + up[1] * H
-  out.stream.a[2] = 0
-  out.stream.b[0] = out.tubeA.x
-  out.stream.b[1] = out.tubeA.y + out.tubeA.level * H
-  out.stream.b[2] = 0
-  out.stream.alpha = windowAlpha(T.pour0 + 0.55, T.pour1, t, 0.2) * (settleView ? 0 : 1)
-  // муть и осадок: осадок образуется при сливании (formed), часть оседает (sediment) — обе величины не убывают
-  out.formed = smooth(T.pour0 + 0.7, T.pour1 + 0.2, t)
-  const fall = 0.25 * smooth(T.pour1, S.tubes.to + 0.5, t) + 0.75 * smooth(S.settle.from + 0.6, S.settle.to - 0.4, t)
-  out.sediment = 0.13 * out.formed * fall
-  out.turbidity = out.formed * (1 - 0.88 * fall)
-  const sedTop = m.tube.r * 0.25 + out.sediment * H
-  const tb = m.turbid
-  for (let i = 0; i < m.turbidPoints; i++) {
-    const y = Math.max(sedTop, tb.y0[i]! * (0.35 + 0.65 * out.tubeA.level / 0.6) - tb.v[i]! * fall * H * 0.7)
-    out.turbidPos[i * 3] = tb.x[i]!
-    out.turbidPos[i * 3 + 1] = y
-    out.turbidPos[i * 3 + 2] = tb.z[i]!
-  }
+  sampleMacro(m, t, out)
 
   // ——— подписи ———
   let k = out.microScale
+  let off = out.microOffset
   const setLabel = (li: number, x: number, y: number, z: number, alpha: number) => {
-    out.labelPos[li * 3] = x * k
-    out.labelPos[li * 3 + 1] = y * k
-    out.labelPos[li * 3 + 2] = z * k
+    out.labelPos[li * 3] = x * k + off[0]
+    out.labelPos[li * 3 + 1] = y * k + off[1]
+    out.labelPos[li * 3 + 2] = z * k + off[2]
     out.labelOpacity[li] = alpha
   }
   // символы внутри шаров (видимы с микро-слоем)
@@ -1190,15 +1219,23 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   chargeAt(Q.group, sAtom, 250, landed ? 0.55 : 1)
   Q.anions.forEach((li, k) => chargeAt(li, m.bodies[m.roles.anions[k]!]!.atoms[0]!, m.core.cl * SOLUTION_DRAW.ballScale + 70, 1))
   Q.protons.forEach((li, k) => chargeAt(li, m.bodies[m.roles.protons[k]!]!.atoms[0]!, 190, 1))
-  // подписи макро-кадра — в системе пробирок, с масштабом макро-слоя
+  // подписи макро-кадра — в системе пробирок, с масштабом и сдвигом макро-слоя
   k = out.macroScale
+  off = out.macroOffset
+  const H = m.tube.h
   const ma = out.macroAlpha
-  setLabel(L.tubeA, out.tubeA.x, out.tubeA.y - 90, 0, windowAlpha(m.labels[L.tubeA]!.from, m.labels[L.tubeA]!.to, t) * ma)
-  setLabel(L.tubeB, 210, -H / 2 - 90, 0, windowAlpha(m.labels[L.tubeB]!.from, m.labels[L.tubeB]!.to, t) * ma)
-  setLabel(L.precip, out.tubeA.x + m.tube.r + 340, out.tubeA.y + sedTop * 0.6, 0, windowAlpha(m.labels[L.precip]!.from, m.labels[L.precip]!.to, t) * ma)
-  setLabel(L.acid, out.tubeA.x + m.tube.r + 380, out.tubeA.y + out.tubeA.level * H * 0.62, 0, windowAlpha(m.labels[L.acid]!.from, m.labels[L.acid]!.to, t) * ma)
-  // «+ HNO₃» — подписью под пробиркой: справа места нет на узком экране (подписи справа — осадок и кислота)
-  setLabel(L.nitric, out.tubeA.x, out.tubeA.y - 125, 0, windowAlpha(m.labels[L.nitric]!.from, m.labels[L.nitric]!.to, t) * ma)
+  const win = (li: number) => windowAlpha(m.labels[li]!.from, m.labels[li]!.to, t)
+  setLabel(L.tubeA, TUBE_A_X, -H / 2 - 90, 0, win(L.tubeA) * ma)
+  setLabel(L.tubeB, TUBE_B_X, -H / 2 - 90, 0, win(L.tubeB) * ma)
+  // выноски шага «осадок»: подпись — у конца полки (класс сдвигает её вправо на полширины текста)
+  const co = out.callouts
+  setLabel(L.precip, co[4]!, co[5]!, 0, win(L.precip) * ma)
+  setLabel(L.acid, co[10]!, co[11]!, 0, win(L.acid) * ma)
+  out.calloutAlpha[0] = win(L.precip) * ma
+  out.calloutAlpha[1] = win(L.acid) * ma
+  // «+ HNO₃ — осадок не растворяется» — справа от устья, куда капала пипетка
+  setLabel(L.nitric, TUBE_A_X + m.tube.r + 150, H / 2 + 70, 0, win(L.nitric) * ma)
+  off = out.microOffset
   // подписи микро-кадра
   k = out.microScale
   const mi = out.microAlpha
@@ -1211,7 +1248,249 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   setLabel(L.stepEq, out.crystal.c[0], cBottom - 300, 0, 0)
   setLabel(L.equation, 150, -680, 0, windowAlpha(m.labels[L.equation]!.from, m.labels[L.equation]!.to, t) * mi)
   setLabel(L.ionic, 150, -920, 0, windowAlpha(m.labels[L.ionic]!.from, m.labels[L.ionic]!.to, t) * mi)
+  // хвост: подписи уходят вместе с водой (у героя — свои)
+  if (finKeep < 1) for (let li = 0; li < m.labels.length; li++) out.labelOpacity[li] = out.labelOpacity[li]! * finKeep
   return out
+}
+
+// ─── Макро: пробирки, струя, муть, пипетка ───────────────────────────────────
+
+/** Прогресс «лупы» (0 — макро, 1 — микро) и её центр (система сцены) в момент t. */
+function lensAt(m: SolutionModel, t: number, c: V3): number {
+  const T = internals(m)._T
+  const H = m.tube.h
+  const bottom = -H / 2
+  c[0] = TUBE_A_X
+  c[2] = 0
+  if (t < T.microOut0) {
+    // в облачко мути (середина жидкости)
+    c[1] = bottom + 0.4 * H
+    return smooth(T.micro0, T.micro1, t)
+  }
+  if (t < T.micro2) {
+    // обратно — к белому слою на дне (кристаллики и есть осадок)
+    c[1] = bottom + m.tube.r * 0.6
+    return 1 - smooth(T.microOut0, T.microOut1, t)
+  }
+  // в раствор над осадком (соляная кислота и кристаллик)
+  c[1] = bottom + 0.26 * H
+  return smooth(T.micro2, T.micro3, t)
+}
+
+const _pa: V3 = [0, 0, 0]
+const _pb: V3 = [0, 0, 0]
+
+/** Поза пробирки (дно x, y и наклон) с носиком — нижней точкой отогнутого края — в точке (lipX, lipY). */
+function poseByLip(m: SolutionModel, lipX: number, lipY: number, rot: number, out: V3): V3 {
+  const H = m.tube.h
+  const rim = m.tube.r * 1.1
+  out[0] = lipX + Math.sin(rot) * H + Math.cos(rot) * rim
+  out[1] = lipY - Math.cos(rot) * H + Math.sin(rot) * rim
+  out[2] = rot
+  return out
+}
+
+/** Носик (нижняя точка кромки устья) пробирки с дном в (x, y) и наклоном rot. */
+export function tubeLip(m: SolutionModel, x: number, y: number, rot: number, out: V3): V3 {
+  const H = m.tube.h
+  const rim = m.tube.r * 1.1
+  out[0] = x - Math.sin(rot) * H - Math.cos(rot) * rim
+  out[1] = y + Math.cos(rot) * H - Math.sin(rot) * rim
+  out[2] = 0
+  return out
+}
+
+/**
+ * Поверхность жидкости в наклонённой пробирке — горизонтальная плоскость. Объём «как у стоящей» до
+ * уровня level; для прямого цилиндра плоскость через точку оси на той же длине отсекает тот же объём
+ * (клинья выше и ниже равны). Наклон больше 90° — жидкость собирается у устья.
+ */
+function tiltedSurface(m: SolutionModel, y: number, rot: number, level: number): number {
+  const H = m.tube.h
+  const lv = level * H
+  const c = Math.cos(rot)
+  const s = c >= 0 ? lv : H - Math.max(0, lv - m.tube.r * 0.35)
+  return y + s * c
+}
+
+/** Поза пробирки B (кислота): стоит → поднимается → носиком над устьем A → льёт → возвращается. */
+function tubeBPose(m: SolutionModel, t: number, out: V3): V3 {
+  const T = internals(m)._T
+  const H = m.tube.h
+  const bottom = -H / 2
+  // носик на 50 пм выше кромки A и чуть правее оси: струя падает в середину устья
+  const lipX = TUBE_A_X + 40
+  const lipY = H / 2 + 50
+  const rot0 = (100 * Math.PI) / 180
+  const rot1 = (115 * Math.PI) / 180
+  const liftY = bottom + 270
+  if (t <= T.lift0) {
+    out[0] = TUBE_B_X
+    out[1] = bottom
+    out[2] = 0
+    return out
+  }
+  if (t <= T.lift1) {
+    out[0] = TUBE_B_X
+    out[1] = lerp(bottom, liftY, smooth(T.lift0, T.lift1, t))
+    out[2] = 0
+    return out
+  }
+  if (t <= T.pour0) {
+    const u = smooth(T.lift1, T.pour0, t)
+    poseByLip(m, lipX, lipY, rot0, _pa)
+    out[0] = lerp(TUBE_B_X, _pa[0], u)
+    out[1] = lerp(liftY, _pa[1], u)
+    out[2] = lerp(0, _pa[2], u)
+    return out
+  }
+  if (t <= T.back0) {
+    // льёт: поворот вокруг носика (жидкости всё меньше — наклон больше)
+    return poseByLip(m, lipX, lipY, lerp(rot0, rot1, smooth(T.pour0, T.pour1, t)), out)
+  }
+  // возврат: сначала носик вверх и вправо (прочь от A), потом вниз на своё место
+  const tm = T.back0 + 0.55 * (T.back1 - T.back0)
+  _pb[0] = 600
+  _pb[1] = 150
+  _pb[2] = 0.75
+  if (t <= tm) {
+    poseByLip(m, lipX, lipY, rot1, _pa)
+    const u = smooth(T.back0, tm, t)
+    for (let c = 0; c < 3; c++) out[c] = lerp(_pa[c]!, _pb[c]!, u)
+    return out
+  }
+  const u = smooth(tm, T.back1, t)
+  out[0] = lerp(_pb[0], TUBE_B_X, u)
+  out[1] = lerp(_pb[1], bottom, u)
+  out[2] = lerp(_pb[2], 0, u)
+  return out
+}
+
+const _pose: V3 = [0, 0, 0]
+const _lip: V3 = [0, 0, 0]
+
+/** Макро-слой: пробирки, уровни, струя, муть, осадок, пипетка HNO₃ и выноски. */
+function sampleMacro(m: SolutionModel, t: number, out: SolutionState): void {
+  const T = internals(m)._T
+  const S = m.step
+  const H = m.tube.h
+  const R = m.tube.r
+  const bottom = -H / 2
+
+  // уровни: в A прибывает, в B убывает (немного остаётся на стенках и на дне)
+  const flow = smooth(T.pour0 + 0.15, T.pour1 + 0.05, t)
+  out.tubeA.x = TUBE_A_X
+  out.tubeA.y = bottom
+  out.tubeA.rot = 0
+  out.tubeA.level = 0.3 + 0.26 * flow
+  out.tubeA.alpha = 1
+  out.tubeA.surface = bottom + out.tubeA.level * H
+  tubeBPose(m, t, _pose)
+  out.tubeB.x = _pose[0]
+  out.tubeB.y = _pose[1]
+  out.tubeB.rot = _pose[2]
+  out.tubeB.level = 0.3 - 0.24 * flow
+  // после шага 1 вторая пробирка не нужна: в кадре осадка — одна пробирка
+  out.tubeB.alpha = t < S.ions.from + 0.5 ? 1 : 0
+  out.tubeB.liquid = 1
+  out.tubeB.surface = tiltedSurface(m, out.tubeB.y, out.tubeB.rot, out.tubeB.level)
+
+  // струя: носик B → поверхность в A; парабола (x ∝ √падения), сужается по мере разгона
+  tubeLip(m, out.tubeB.x, out.tubeB.y, out.tubeB.rot, _lip)
+  const ex = Math.min(TUBE_A_X + 0.55 * R, Math.max(TUBE_A_X - 0.55 * R, _lip[0] - 45))
+  const ey = out.tubeA.surface
+  out.stream.a[0] = _lip[0]
+  out.stream.a[1] = _lip[1]
+  out.stream.a[2] = 0
+  out.stream.b[0] = ex
+  out.stream.b[1] = ey
+  out.stream.b[2] = 0
+  const head = smooth(T.pour0, T.pour0 + 0.3, t)
+  const tail = smooth(T.pour1, T.pour1 + 0.3, t)
+  out.stream.alpha = head - tail > 0.004 ? Math.min(1, (head - tail) * 10) : 0
+  const drop = _lip[1] - ey
+  for (let i = 0; i < STREAM_N; i++) {
+    const f = lerp(tail, head, i / (STREAM_N - 1))
+    out.stream.pts[i * 3] = _lip[0] + (ex - _lip[0]) * Math.sqrt(f)
+    out.stream.pts[i * 3 + 1] = _lip[1] - f * drop
+    out.stream.pts[i * 3 + 2] = 0
+    out.stream.rad[i] = 15 * Math.pow(1 + 12 * f, -0.25)
+  }
+
+  // муть: хлопья рождаются в точке входа струи, растекаются, потом оседают; слой на дне растёт
+  out.formed = smooth(T.pour0 + 0.2, T.pour1 + 0.4, t)
+  const fall = 0.12 * smooth(T.back0, S.tubes.to, t) + 0.88 * smooth(S.settle.from + 0.4, S.settle.from + 3.4, t)
+  out.sediment = 0.12 * out.formed * fall
+  out.turbidity = out.formed * (1 - 0.8 * fall)
+  const sedTop = R * 0.25 + out.sediment * H
+  const tb = m.turbid
+  const b0 = T.pour0 + 0.2
+  const bSpan = T.pour1 - T.pour0 - 0.1
+  for (let i = 0; i < m.turbidPoints; i++) {
+    const bt = b0 + tb.birth[i]! * bSpan
+    const o = i * 3
+    if (t < bt) {
+      // ещё не родилась — вне кадра
+      out.turbidPos[o] = 0
+      out.turbidPos[o + 1] = -1e5
+      out.turbidPos[o + 2] = 0
+      continue
+    }
+    // точка входа струи в момент рождения (уровень A тогда ниже)
+    const eyB = (0.3 + 0.26 * smooth(T.pour0 + 0.15, T.pour1 + 0.05, bt)) * H
+    const ty = R * 0.35 + Math.pow(tb.y0[i]!, 0.8) * (eyB - 30 - R * 0.35)
+    const w = 1 - Math.pow(1 - Math.min(1, (t - bt) / 0.95), 3)
+    const ySpread = eyB - 10 + (ty - eyB + 10) * w
+    out.turbidPos[o] = (ex - TUBE_A_X) * (1 - w) + tb.x[i]! * w
+    out.turbidPos[o + 1] = Math.max(sedTop, ySpread - tb.v[i]! * fall * H * 0.7)
+    out.turbidPos[o + 2] = tb.z[i]! * w
+  }
+
+  // пипетка HNO₃ (шаг «осадок»): въезжает сверху справа, три капли в раствор, уезжает
+  const pipIn = smooth(T.pip0, T.pip0 + 0.55, t)
+  const pipOut = smooth(T.pip1, T.pip1 + 0.55, t)
+  const tipX = TUBE_A_X
+  const tipY = H / 2 + 70
+  const pu = pipIn * (1 - pipOut)
+  out.pipette.x = lerp(TUBE_A_X + 620, tipX, pu)
+  out.pipette.y = lerp(H / 2 + 760, tipY, pu)
+  out.pipette.alpha = pipIn > 0 && pipOut < 1 ? smooth(0, 0.25, pipIn) * (1 - smooth(0.75, 1, pipOut)) : 0
+  const surfA = out.tubeA.surface
+  for (let d = 0; d < DROP_N; d++) {
+    const tau = t - (T.drop0 + d * 0.4)
+    const o = d * 4
+    out.drops[o] = tipX
+    out.drops[o + 2] = 0
+    if (tau >= -0.28 && tau < 0) {
+      // капля набухает на кончике
+      out.drops[o + 1] = tipY - 12
+      out.drops[o + 3] = 13 * (1 + tau / 0.28)
+    } else if (tau >= 0 && tau <= 0.34) {
+      const u = tau / 0.34
+      out.drops[o + 1] = tipY - 12 - (tipY - 12 - surfA) * u * u
+      out.drops[o + 3] = 13
+    } else {
+      out.drops[o + 1] = tipY
+      out.drops[o + 3] = 0
+    }
+  }
+
+  // выноски: осадок (слой на дне) и раствор над ним; полка вправо, подпись — у её конца
+  const co = out.callouts
+  const kneeX = TUBE_A_X + R + 80
+  const endX = TUBE_A_X + R + 200
+  co[0] = TUBE_A_X + 0.3 * R
+  co[1] = bottom + Math.max(R * 0.3, sedTop * 0.55)
+  co[2] = kneeX
+  co[3] = bottom - 40
+  co[4] = endX
+  co[5] = bottom - 40
+  co[6] = TUBE_A_X + 0.35 * R
+  co[7] = bottom + (sedTop + out.tubeA.level * H) * 0.5
+  co[8] = kneeX
+  co[9] = bottom + out.tubeA.level * H * 0.8
+  co[10] = endX
+  co[11] = bottom + out.tubeA.level * H * 0.8
 }
 
 /** Габарит кадра по времени (пм): w, h, центр — хост вписывает его в свободную область. */
@@ -1220,19 +1499,26 @@ export function solutionExtentAt(m: SolutionModel, t: number): { w: number; h: n
   const T = internals(m)._T
   const keys: { t: number; e: [number, number, number, number] }[] = [
     { t: S.tubes.from, e: [900, 1250, 0, -120] },
-    { t: T.pour0, e: [900, 1250, 0, -120] },
-    { t: T.pour0 + 0.6, e: [1600, 1750, 230, 150] },
-    { t: T.pour1, e: [1600, 1750, 230, 150] },
-    { t: T.pour1 + 0.6, e: [900, 1250, 0, -120] },
-    { t: T.micro0 + 0.2, e: [900, 1250, 0, -120] },
+    { t: T.lift0, e: [900, 1250, 0, -120] },
+    { t: T.pour0 - 0.2, e: [1450, 1800, 200, 300] },
+    { t: T.pour1 + 0.1, e: [1450, 1800, 200, 300] },
+    { t: T.back0 + 0.55 * (T.back1 - T.back0), e: [1450, 1800, 200, 300] },
+    { t: T.back1, e: [900, 1250, 0, -120] },
+    // лёгкий наезд на пробирку с мутью перед «лупой»
+    { t: T.micro0, e: [720, 1080, -190, -60] },
     { t: T.micro1, e: [2600, 1560, 0, 20] },
     { t: S.meet.from, e: [2600, 1560, 0, 20] },
     { t: S.meet.to - 0.6, e: [2300, 1650, 0, 0] },
     { t: S.nucleus.from + 1.2, e: [2400, 1950, 0, -150] },
-    { t: S.nucleus.to - 0.2, e: [2400, 1950, 0, -150] },
-    { t: T.microOut0 + 0.2, e: [1150, 1250, 230, -100] },
-    { t: T.micro2 + 0.1, e: [1150, 1250, 230, -100] },
-    { t: T.micro3 + 0.3, e: [3000, 1850, -120, -60] },
+    { t: S.nucleus.to, e: [2400, 1950, 0, -150] },
+    // шаг «осадок»: одна пробирка и выноски справа, медленный наезд
+    { t: T.microOut1, e: [1250, 1320, 110, 10] },
+    // пипетка HNO₃ въезжает сверху — кадр чуть выше
+    { t: T.pip0, e: [1250, 1320, 110, 10] },
+    { t: T.pip0 + 0.6, e: [1250, 1600, 110, 110] },
+    { t: T.pip1, e: [1250, 1600, 110, 110] },
+    { t: T.micro2, e: [1150, 1280, 90, -10] },
+    { t: T.micro3 + 0.2, e: [3000, 1850, -120, -60] },
   ]
   const out = { w: 0, h: 0, cx: 0, cy: 0 }
   let a = keys[0]!
