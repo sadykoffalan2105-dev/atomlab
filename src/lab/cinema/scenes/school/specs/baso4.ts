@@ -130,7 +130,7 @@ const SRC_PKA = ref('CRC Handbook, «Dissociation constants of inorganic acids»
 const SRC_WATER = ref('расчёт: 55,5 моль H₂O в 1 л / 0,3 моль ионов в 0,1 М BaCl₂ ≈ 185 молекул воды на ион')
 const SRC_BA_AQ = ref('Persson et al., Z. Naturforsch. 50a (1995) 21 (LAXS/EXAFS): Ba²⁺ в воде — 8 молекул H₂O (Ba–O 282 пм); D’Angelo, Migliorati et al., Inorg. Chem. 58 (2019): 8 ⇄ 9')
 const SRC_CL_AQ = ref('Ohtaki & Radnai, Chem. Rev. 93 (1993) 1157: Cl⁻ в воде — около 6 молекул H₂O (по методам 4–8), к иону обращены атомы H')
-const SRC_SO4_AQ = ref('Vchirawongkwin et al., J. Comput. Chem. 28 (2007) 1006 (QMCF MD + LAXS): SO₄²⁻ принимает водородные связи примерно от 12 молекул воды')
+const SRC_SO4_AQ = ref('Vchirawongkwin, Rode, Persson, J. Phys. Chem. B 111 (2007) 4150 (QMCF MD + LAXS): SO₄²⁻ принимает водородные связи примерно от 12 молекул воды')
 const SRC_H3O_AQ = ref('Agmon, Chem. Phys. Lett. 244 (1995) 456: катион Эйгена H₉O₄⁺ — H₃O⁺ отдаёт три водородные связи трём молекулам воды')
 const SRC_HEAT = ref('NBS Tables (1982): реакция слабо экзотермическая; при 0,05 М смесь теплеет на доли градуса — тепло незаметно')
 const SRC_SAFETY = ref('паспорта безопасности: BaCl₂·2H₂O — GHS H301, H332 (токсично при проглатывании и вдыхании); H₂SO₄ — H314 (вызывает тяжёлые ожоги)')
@@ -639,21 +639,21 @@ export const BASO4_SPEC: SolutionScienceSpec = {
       text: {
         ru: {
           title: 'Осадок и соляная кислота',
-          body: 'Кристаллики растут, и их становится видно — это белая муть. Они тяжёлые и оседают на дно. Сульфат бария почти не растворяется ни в воде, ни в кислотах. А ионы водорода и хлора остались в растворе — это соляная кислота.',
+          body: 'Кристаллики растут, и их становится видно — это белая муть. Они тяжёлые и оседают на дно. Сульфат бария почти не растворяется ни в воде, ни в разбавленных кислотах — например, в азотной (8 кл., с. 139). А ионы водорода и хлора остались в растворе — это соляная кислота.',
           equation: 'над осадком: H₃O⁺ + Cl⁻ (соляная кислота)',
           note: 'В литре воды растворяется всего около 2,4 мг BaSO₄ (Ksp = 1,08·10⁻¹⁰ при 25 °C). «Не распадается на ионы» (9 кл.) значит «почти не растворяется»: сам кристалл состоит из ионов. Молекул HCl в растворе нет — «2HCl» это 2H₃O⁺ и 2Cl⁻.',
           speak: 'Белый осадок не исчезает даже в кислоте — поэтому хлорид бария служит реактивом на серную кислоту и сульфаты.',
         },
         en: {
           title: 'The precipitate and hydrochloric acid',
-          body: 'The tiny crystals grow and become visible — this is the white cloudiness. They are heavy and settle to the bottom. Barium sulfate hardly dissolves in water or in acids. The hydrogen and chloride ions stayed in the solution — this is hydrochloric acid.',
+          body: 'The tiny crystals grow and become visible — this is the white cloudiness. They are heavy and settle to the bottom. Barium sulfate hardly dissolves in water or in dilute acids such as nitric acid (grade 8, p. 139). The hydrogen and chloride ions stayed in the solution — this is hydrochloric acid.',
           equation: 'above the precipitate: H₃O⁺ + Cl⁻ (hydrochloric acid)',
           note: 'Only about 2.4 mg of BaSO₄ dissolves in a litre of water (Ksp = 1.08·10⁻¹⁰ at 25 °C). «Does not break up into ions» (grade 9) means «hardly dissolves»: the crystal itself is made of ions. There are no HCl molecules in the solution — «2HCl» means 2H₃O⁺ and 2Cl⁻.',
           speak: 'The white precipitate does not disappear even in acid — that is why barium chloride is the reagent for sulfuric acid and sulfates.',
         },
         uz: {
           title: 'Choʻkma va xlorid kislota',
-          body: 'Kristallchalar oʻsadi va koʻrinadigan boʻladi — bu oq loyqa. Ular ogʻir va tubga choʻkadi. Bariy sulfat na suvda, na kislotalarda deyarli erimaydi. Vodorod va xlor ionlari esa eritmada qoldi — bu xlorid kislota.',
+          body: 'Kristallchalar oʻsadi va koʻrinadigan boʻladi — bu oq loyqa. Ular ogʻir va tubga choʻkadi. Bariy sulfat na suvda, na suyultirilgan kislotalarda (masalan, nitrat kislotada) deyarli erimaydi (8-sinf, 139-bet). Vodorod va xlor ionlari esa eritmada qoldi — bu xlorid kislota.',
           equation: 'choʻkma ustida: H₃O⁺ + Cl⁻ (xlorid kislota)',
           note: 'Bir litr suvda atigi 2,4 mg ga yaqin BaSO₄ eriydi (Ksp = 1,08·10⁻¹⁰, 25 °C da). «Ionlarga ajralmaydi» (9-sinf) degani «deyarli erimaydi»: kristallning oʻzi ionlardan iborat. Eritmada HCl molekulalari yoʻq — «2HCl» bu 2H₃O⁺ va 2Cl⁻.',
           speak: 'Oq choʻkma hatto kislotada ham yoʻqolmaydi — shuning uchun bariy xlorid sulfat kislota va sulfatlar uchun reaktiv.',
@@ -669,21 +669,21 @@ export const BASO4_SPEC: SolutionScienceSpec = {
       text: {
         ru: {
           title: 'Итог: реакция обмена',
-          body: 'Два сложных вещества обменялись составными частями: барий соединился с сульфатной группой, а водород остался с хлором. Такие реакции называют реакциями обмена. Признак — белый осадок.',
+          body: 'Два сложных вещества обменялись составными частями: барий соединился с сульфатной группой, а ионы водорода и хлора остались в растворе поодиночке — это соляная кислота. Такие реакции называют реакциями обмена. Признак — белый осадок.',
           equation: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',
           note: '9 класс: полное ионное уравнение Ba²⁺ + 2Cl⁻ + 2H⁺ + SO₄²⁻ → BaSO₄↓ + 2H⁺ + 2Cl⁻, сокращённое Ba²⁺ + SO₄²⁻ → BaSO₄↓. Слева и справа по 1 Ba, 2 Cl, 2 H, 1 S и 4 O.',
           speak: 'Барий и сульфат ушли в осадок, водород и хлор остались в растворе — вот и весь обмен.',
         },
         en: {
           title: 'Summary: an exchange reaction',
-          body: 'Two compounds exchanged their parts: barium joined the sulfate group, and hydrogen stayed with chlorine. Such reactions are called exchange reactions. The sign is a white precipitate.',
+          body: 'Two compounds exchanged their parts: barium joined the sulfate group, while the hydrogen and chloride ions stayed separate in the solution — this is hydrochloric acid. Such reactions are called exchange reactions. The sign is a white precipitate.',
           equation: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',
           note: 'Grade 9: the full ionic equation Ba²⁺ + 2Cl⁻ + 2H⁺ + SO₄²⁻ → BaSO₄↓ + 2H⁺ + 2Cl⁻, the short one Ba²⁺ + SO₄²⁻ → BaSO₄↓. On each side: 1 Ba, 2 Cl, 2 H, 1 S and 4 O.',
           speak: 'Barium and sulfate went into the precipitate, hydrogen and chlorine stayed in the solution — that is the whole exchange.',
         },
         uz: {
           title: 'Xulosa: almashinish reaksiyasi',
-          body: 'Ikkita murakkab modda tarkibiy qismlari bilan almashdi: bariy sulfat guruhi bilan birikdi, vodorod esa xlor bilan qoldi. Bunday reaksiyalar almashinish reaksiyalari deyiladi. Belgisi — oq choʻkma.',
+          body: 'Ikkita murakkab modda tarkibiy qismlari bilan almashdi: bariy sulfat guruhi bilan birikdi, vodorod va xlor ionlari esa eritmada alohida qoldi — bu xlorid kislota. Bunday reaksiyalar almashinish reaksiyalari deyiladi. Belgisi — oq choʻkma.',
           equation: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',
           note: '9-sinf: toʻliq ionli tenglama Ba²⁺ + 2Cl⁻ + 2H⁺ + SO₄²⁻ → BaSO₄↓ + 2H⁺ + 2Cl⁻, qisqasi Ba²⁺ + SO₄²⁻ → BaSO₄↓. Chapda va oʻngda 1 Ba, 2 Cl, 2 H, 1 S va 4 O dan.',
           speak: 'Bariy va sulfat choʻkmaga oʻtdi, vodorod va xlor eritmada qoldi — almashinish shu.',

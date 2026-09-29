@@ -726,13 +726,15 @@ export function LaboratoryPage() {
       setProductCoeff(res.productCoeff)
       // Реакция только «шарами» (ионы, электроны, органика, простое вещество-продукт):
       // запуска синтеза нет — говорим об этом сразу, спокойно, без «ошибки».
+      // Названия реакций есть только по-русски: на en/uz вместо названия — само уравнение (без «Обмен: …»).
+      const title = locale === 'ru' ? res.titleRu : res.equationUnicode
       const loaded = res.stageOnly
         ? link.balanceSelf
-          ? t('lab.deepLink.loadedStageOnlyBalance', { title: res.titleRu })
-          : t('lab.deepLink.loadedStageOnly', { title: res.titleRu, equation: res.equationUnicode })
+          ? t('lab.deepLink.loadedStageOnlyBalance', { title })
+          : t('lab.deepLink.loadedStageOnly', { title, equation: res.equationUnicode })
         : link.balanceSelf
-          ? t('lab.deepLink.loadedBalance', { title: res.titleRu })
-          : t('lab.deepLink.loaded', { title: res.titleRu, equation: res.equationUnicode })
+          ? t('lab.deepLink.loadedBalance', { title })
+          : t('lab.deepLink.loaded', { title, equation: res.equationUnicode })
       const conditions = res.conditions ? ` ${t('lab.deepLink.conditions', { conditions: res.conditions })}` : ''
       // Ссылка без заголовка: заголовок = само уравнение — не повторяем его дважды.
       const loadedOnce = loaded.replace(`${res.equationUnicode}: ${res.equationUnicode}`, res.equationUnicode)
@@ -743,7 +745,7 @@ export function LaboratoryPage() {
         warmupLabSynthesisReactorOpen(catalogList, compound, res.recipe ? undefined : res.leftTerms)
       }
     },
-    [clearReactorSlots, t, catalogList],
+    [clearReactorSlots, t, locale, catalogList],
   )
 
   useEffect(() => {
