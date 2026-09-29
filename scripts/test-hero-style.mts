@@ -21,7 +21,7 @@ import {
   type ElementSymbol,
 } from '../src/chemistry/data'
 import { compoundById } from '../src/data/compounds'
-import { buildSchoolHeroModel, findSchoolMolecule, inferOrders, type SchoolHeroModel } from '../src/components/lab/hero/schoolHeroModel'
+import { buildSchoolHeroModel, findSchoolMolecule, inferOrders, schoolBondOrders, type SchoolHeroModel } from '../src/components/lab/hero/schoolHeroModel'
 import { SCHOOL_CARBON_HEX, SCHOOL_STICK_HEX, schoolAtomHex, schoolLabelDark } from '../src/components/lab/hero/schoolHeroStyle'
 import { LATTICE_BALL_SCALE, pmToScene, speciesLabel } from '../src/lab/cinema/scenes/kit/cpkAtoms'
 import { SCHOOL_DRAW } from '../src/lab/cinema/scenes/school/schoolModel'
@@ -111,6 +111,14 @@ ok(JSON.stringify(inferOrders(['N', 'N'], [[0, 1]])) === '[3]', 'inferOrders N�
 ok(JSON.stringify(inferOrders(['P', 'O', 'O', 'O', 'O', 'H', 'H', 'H'], [[0, 1], [0, 2], [0, 3], [0, 4], [1, 5], [2, 6], [3, 7]])) === '[1,1,1,2,1,1,1]', 'inferOrders H₃PO₄ → одна P=O')
 ok(JSON.stringify(inferOrders(['N', 'O', 'O', 'O', 'H'], [[0, 1], [0, 2], [0, 3], [1, 4]])) === '[1,2,1,1]', 'inferOrders HNO₃ → одна N=O')
 ok(JSON.stringify(inferOrders(['C', 'H', 'H', 'H', 'H'], [[0, 1], [0, 2], [0, 3], [0, 4]])) === '[1,1,1,1]', 'inferOrders CH₄ — одинарные')
+// schoolBondOrders — кратность только когда химия сходится (ревью 29.09: сульфит как SO₃, K₂O₂ как O=O, C≡C у солей)
+const J = (x: number[]) => JSON.stringify(x)
+ok(J(schoolBondOrders(['S', 'O', 'O', 'O', 'Na', 'Na'], [[0, 1], [0, 2], [0, 3], [1, 4], [2, 5]])) === '[1,1,1,1,1]', 'Na₂SO₃ (металл) — без выдуманных S=O')
+ok(J(schoolBondOrders(['S', 'O', 'O', 'O', 'H', 'H'], [[0, 1], [0, 2], [0, 3], [1, 4], [2, 5]])) === '[1,1,2,1,1]', 'H₂SO₃ → одна S=O (S +4)')
+ok(J(schoolBondOrders(['K', 'K', 'O', 'O'], [[0, 2], [1, 3], [2, 3]])) === '[1,1,1]', 'K₂O₂ — пероксид без O=O')
+ok(J(schoolBondOrders(['O', 'O', 'O'], [[0, 1], [1, 2]])) === '[1,1]', 'O₃ — валентность не сходится → без кратности')
+ok(J(schoolBondOrders(['N', 'C', 'C', 'N'], [[0, 1], [1, 2], [2, 3]])) === '[3,1,3]', '(CN)₂ → N≡C–C≡N')
+ok(J(schoolBondOrders(['Si', 'O', 'O', 'O', 'H', 'H'], [[0, 1], [0, 2], [0, 3], [1, 4], [2, 5]])) === '[1,1,2,1,1]', 'H₂SiO₃ → Si=O, Si IV')
 
 // ─── 2. Цвета и палочки ───
 console.log('2) цвета CPK школьной сцены')

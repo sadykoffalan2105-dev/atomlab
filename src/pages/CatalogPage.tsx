@@ -204,6 +204,20 @@ function IconEmpty({ className }: { className?: string }) {
   )
 }
 
+/** Координаты школьной модели в масштабе превью каталога: медиана длины связи = 1,2. */
+function thumbScale(m: { atoms: readonly { pos: readonly [number, number, number] }[]; bonds: readonly { a: number; b: number }[] }): [number, number, number][] {
+  const lens = m.bonds
+    .map((b) => {
+      const p = m.atoms[b.a]!.pos
+      const q = m.atoms[b.b]!.pos
+      return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2])
+    })
+    .filter((x) => x > 1e-9)
+    .sort((x, y) => x - y)
+  const k = lens.length ? 1.2 / lens[Math.floor(lens.length / 2)]! : 1
+  return m.atoms.map((a) => [a.pos[0] * k, a.pos[1] * k, a.pos[2] * k])
+}
+
 const compoundThumbCache = new Map<string, { atoms: ThumbAtom[]; bonds: ThumbBond[] }>()
 
 function compoundThumb(c: CompoundDef) {
@@ -215,7 +229,9 @@ function compoundThumb(c: CompoundDef) {
     v =
       m && m.kind === 'molecule'
         ? {
-            atoms: m.atoms.map((a) => ({ el: a.el, pos: a.pos })),
+            // Школьная модель — в мировых единицах сцены (C=O ≈ 0,33); радиусы шаров превью рассчитаны на ångström
+            // каталога (C=O ≈ 1,16) — приводим медиану длины связи к 1,2, иначе шары сливаются в кляксу.
+            atoms: thumbScale(m).map((pos, i) => ({ el: m.atoms[i]!.el, pos })),
             bonds: m.bonds.map((b) => ({ a: b.a, b: b.b, order: Math.max(1, Math.min(3, b.order)) as 1 | 2 | 3 })),
           }
         : {

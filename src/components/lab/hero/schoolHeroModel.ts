@@ -333,15 +333,8 @@ function axnCore(center: ElementSymbol, lig: ElementSymbol, n: 3 | 4, bondKey: '
     }
   }
   for (let i = 1; i < atoms.length; i++) bonds.push({ a: 0, b: i, order: 1 })
-  if (n === 4) {
-    // Вид вдоль оси S₄ (биссектриса двух C–H): четыре H — по углам квадрата вокруг C, ни один не за
-    // атомом углерода и не перед ним (иначе одна связь пряталась за шаром C).
-    const u1 = atoms[1]!.pos
-    const u2 = atoms[2]!.pos
-    const b: V3 = [u1[0] + u2[0], u1[1] + u2[1], u1[2] + u2[2]]
-    const bl = Math.hypot(b[0], b[1], b[2])
-    if (bl > 1e-9) rotateAtoms(atoms, [b[0] / bl, b[1] / bl, b[2] / bl], [0, 0, 1])
-  }
+  // CH₄ и другие AX₄ — «тренога»: одна связь вверх, три вниз — видно, что молекула объёмная (углы 109,5°), а не
+  // плоский квадрат с углами 90° (вид вдоль оси S₄ давал именно это школьное заблуждение).
   return { atoms, bonds }
 }
 
@@ -352,9 +345,9 @@ function fromCore(compoundId: string, comp: Composition): SchoolHeroModel | null
   if (sameComposition(comp, { H: 2, S: 1, O: 4 })) built = h2so4Core()
   else if (sameComposition(comp, { C: 1, H: 4 })) {
     built = axnCore('C', 'H', 4, 'C-H', 'methane')
-    pitch = 0.22
-    // Без постоянного рыскания: задняя пара H лежит по горизонтали, и при рыскании 0,3 + покачивание 0,3
-    // одна задняя H уходила за шар C. С одним покачиванием (±0,3) все четыре H видны всегда.
+    // «Тренога»: одна C–H вверх, три вниз; передняя H — ниже центра C (наклон), задние — по бокам и при
+    // покачивании ±0,3 не уходят за шар C.
+    pitch = 0.25
     yaw = 0
   }
   else if (sameComposition(comp, { N: 1, H: 3 })) {
@@ -390,7 +383,7 @@ export type CatalogShape = {
 
 const NONMETAL = new Set(['H', 'B', 'C', 'N', 'O', 'F', 'Si', 'P', 'S', 'Cl', 'Se', 'Br', 'Te', 'I', 'Xe', 'As', 'Kr'])
 /** Наибольшая валентность центра, при которой концевой O/S ещё добирает двойную связь. */
-const MAX_VALENCE: Record<string, number> = { C: 4, N: 4, P: 5, S: 6, Se: 6, Te: 6, Cl: 7, Br: 7, I: 7, Xe: 8, As: 5 }
+const MAX_VALENCE: Record<string, number> = { C: 4, Si: 4, N: 4, P: 5, S: 6, Se: 6, Te: 6, Cl: 7, Br: 7, I: 7, Xe: 8, As: 5 }
 /** Обычная валентность (C, N, O) — для кратных связей между ними (N≡N, C=C, C≡N). */
 const STD_VALENCE: Record<string, number> = { C: 4, N: 3, O: 2 }
 
@@ -429,12 +422,77 @@ export function inferOrders(els: readonly string[], pairs: readonly (readonly [n
   })
   // C, N, O: недобор валентности → кратная связь между ними
   const deficit = (i: number) => (STD_VALENCE[els[i]!] ?? 0) - sum(i)
-  for (let pass = 0; pass < 3; pass++) {
+  // Сначала связи концевых атомов: (CN)₂ — N≡C–C≡N, а не N=C=C=N; недобор закрывается сразу целиком.
+  const byEnd = pairs.map((_, k) => k).sort((a, b) => Math.min(deg0[pairs[a]![0]]!, deg0[pairs[a]![1]]!) - Math.min(deg0[pairs[b]![0]]!, deg0[pairs[b]![1]]!))
+  for (const k of byEnd) {
+    const [i, j] = pairs[k]!
+    if (!(els[i]! in STD_VALENCE) || !(els[j]! in STD_VALENCE)) continue
+    const add = Math.min(deficit(i), deficit(j), 3 - order[k]!)
+    if (add > 0) order[k]! += add
+  }
+  return order
+}
+
+/** Допустимые школьные валентности (сумма кратностей связей атома). */
+const ALLOWED_VALENCE: Record<string, readonly number[]> = { H: [1], B: [3], C: [4], N: [3, 4], O: [2], F: [1], Si: [4], P: [3, 5], S: [2, 4, 6], Se: [2, 4, 6], Cl: [1, 3, 5, 7], Br: [1, 3, 5, 7], I: [1, 3, 5, 7] }
+/** Степени окисления, известные по формуле (для сверки единственного «неизвестного» элемента). */
+const KNOWN_OX: Record<string, number> = { H: 1, O: -2, F: -1 }
+
+function connected(n: number, pairs: readonly (readonly [number, number])[]): boolean {
+  if (n <= 1) return true
+  const seen = new Set<number>([0])
+  const stack = [0]
+  while (stack.length) {
+    const v = stack.pop()!
+    for (const [i, j] of pairs) {
+      const w = i === v ? j : j === v ? i : -1
+      if (w >= 0 && !seen.has(w)) {
+        seen.add(w)
+        stack.push(w)
+      }
+    }
+  }
+  return seen.size === n
+}
+
+/**
+ * Кратность связей для модели каталога БЕЗ ложных утверждений: правило inferOrders принимается, только если
+ * результат химически сходится, иначе — одинарные палочки (как раньше, без кратности).
+ *  • металл в веществе (соли, пероксиды, сульфиды металлов) — ионные контакты: кратность не выводим
+ *    (иначе сульфит Na₂SO₃ получал три S=O, как SO₃, а K₂O₂ — O=O);
+ *  • несколько частиц (соли аммония) — не выводим;
+ *  • у каждого атома — допустимая валентность;
+ *  • степень окисления единственного элемента кроме H, O, F по связям = по формуле (H₂SO₃: S +4 → одна S=O);
+ *    у N не сверяем: в HNO₃ валентность IV при степени окисления +5 (донорно-акцепторная связь).
+ */
+export function schoolBondOrders(els: readonly string[], pairs: readonly (readonly [number, number])[]): number[] {
+  const single = pairs.map(() => 1)
+  if (els.some((e) => !NONMETAL.has(e))) return single
+  if (!connected(els.length, pairs)) return single
+  const order = inferOrders(els, pairs)
+  const sum = els.map(() => 0)
+  pairs.forEach(([i, j], k) => {
+    sum[i]! += order[k]!
+    sum[j]! += order[k]!
+  })
+  for (let i = 0; i < els.length; i++) {
+    const al = ALLOWED_VALENCE[els[i]!]
+    if (!al || !al.includes(sum[i]!)) return single
+  }
+  const unknown = [...new Set(els.filter((e) => !(e in KNOWN_OX)))]
+  if (unknown.length === 1 && unknown[0] !== 'N' && els.includes('O')) {
+    const x = unknown[0]!
+    const n = els.filter((e) => e === x).length
+    const expected = -els.reduce((acc, e) => acc + (KNOWN_OX[e] ?? 0), 0) / n
+    const en = (e: string) => ATOMIC_DATA[e as ElementSymbol]?.electronegativity ?? 0
+    let ox = 0
     pairs.forEach(([i, j], k) => {
-      if (!(els[i]! in STD_VALENCE) || !(els[j]! in STD_VALENCE)) return
-      if (order[k]! >= 3) return
-      if (deficit(i) > 0 && deficit(j) > 0) order[k]! += 1
+      for (const [a, b] of [[i, j], [j, i]] as const) {
+        if (els[a] !== x || en(els[a]!) === en(els[b]!)) continue
+        ox += en(els[a]!) < en(els[b]!) ? order[k]! : -order[k]!
+      }
     })
+    if (Math.abs(ox / n - expected) > 1e-6) return single
   }
   return order
 }
@@ -454,7 +512,7 @@ function fromCatalog(shape: CatalogShape): SchoolHeroModel | null {
   const list = [...groups.values()]
   const els = shape.atoms.map((a) => a.symbol)
   const repeated = list.some((g) => g.n > 1)
-  const orders = repeated ? list.map((g) => Math.min(3, g.n)) : inferOrders(els, list.map((g) => [g.i, g.j] as const))
+  const orders = repeated ? list.map((g) => Math.min(3, g.n)) : schoolBondOrders(els, list.map((g) => [g.i, g.j] as const))
   // Масштаб каталога → пм: медиана «длина / (r₁ + r₂)» по связям (кратные короче: × 0,9 и × 0,84).
   const ratios: number[] = []
   list.forEach((g, k) => {
