@@ -6,7 +6,7 @@
  * Модуль без three и React: его читают модель кадра (solutionModel.ts), класс сцены и тест в Node.
  */
 import { BASO4_SPEC } from '../specs/baso4'
-import type { SolutionScienceSpec, SolutionStepId } from '../specs/types'
+import type { L10n, SolutionScienceSpec, SolutionStepId } from '../specs/types'
 
 export type SV3 = readonly [number, number, number]
 
@@ -53,6 +53,11 @@ export type SolutionSceneSpec = {
   readonly waters: readonly SV3[]
   /** зерно детерминированного блуждания */
   readonly seed: number
+  /**
+   * Выноски макро-кадра «осадок» (линия к своему месту в пробирке): осадок на дне и раствор над ним.
+   * Без них — подписи captions научной спецификации.
+   */
+  readonly callouts?: { readonly precipitate: L10n; readonly acid: L10n }
 }
 
 /** Сплошная разметка времени сюжета из рекомендуемых длительностей шагов научной спецификации. */
@@ -139,4 +144,8 @@ export const BASO4_SOLUTION_SPEC: SolutionSceneSpec = {
     [60, -900, 160],
   ],
   seed: 20260928,
+  callouts: {
+    precipitate: { ru: 'осадок BaSO₄↓ (белый)', en: 'BaSO₄↓ precipitate (white)', uz: 'BaSO₄↓ choʻkma (oq)' },
+    acid: { ru: 'раствор HCl: ионы H₃O⁺ и Cl⁻', en: 'HCl solution: H₃O⁺ and Cl⁻ ions', uz: 'HCl eritmasi: H₃O⁺ va Cl⁻ ionlari' },
+  },
 }

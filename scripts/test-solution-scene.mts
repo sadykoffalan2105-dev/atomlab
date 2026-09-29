@@ -204,6 +204,120 @@ ok('наблюдатели H₃O⁺ и Cl⁻ не ближе 300 пм к узл�
   ok('число атомов каждого элемента постоянно', JSON.stringify(counts) === JSON.stringify(counts0))
 }
 
+// ─── 8. Макро: физика пробирок, струя, без провалов ──────────────────────────
+// Пробирка — тело вращения: дно-полусфера радиуса R, стенка R, у устья отогнутый край 1,1R (+ толщина).
+// Стенки не пересекаются ни в одном кадре: точки поверхности одной пробирки лежат вне тела другой.
+{
+  const { r: TR, h: TH } = m.tube
+  const outerR = (h: number) => (h > TH - 0.15 * TR ? 1.15 * TR : 1.02 * TR)
+  /** Расстояние со знаком от точки (система пробирки: ось y от дна-кончика) до тела пробирки. */
+  const sdTube = (x: number, y: number, z: number) => {
+    const rho = Math.hypot(x, z)
+    const top = TH + 0.05 * TR
+    if (y > top) return Math.hypot(Math.max(0, rho - 1.15 * TR), y - top)
+    if (y >= TR) return rho - outerR(y)
+    return Math.hypot(rho, y - TR) - 1.02 * TR
+  }
+  const surface: [number, number, number][] = []
+  for (let h = 0; h <= TH; h += 18) {
+    const rho = h < TR ? Math.sqrt(Math.max(0, TR * TR - (TR - h) ** 2)) : TR
+    for (let k = 0; k < 24; k++) surface.push([rho * Math.cos((k * Math.PI) / 12), h, rho * Math.sin((k * Math.PI) / 12)])
+  }
+  for (let k = 0; k < 36; k++) {
+    const a = (k * Math.PI) / 18
+    for (const rr of [1.055 * TR, 1.145 * TR]) surface.push([rr * Math.cos(a), TH, rr * Math.sin(a)])
+    surface.push([1.1 * TR * Math.cos(a), TH - 0.045 * TR, 1.1 * TR * Math.sin(a)])
+  }
+  const toWorld = (p: readonly number[], x0: number, y0: number, rot: number) => [x0 + p[0]! * Math.cos(rot) - p[1]! * Math.sin(rot), y0 + p[0]! * Math.sin(rot) + p[1]! * Math.cos(rot), p[2]!]
+  const toLocal = (w: readonly number[], x0: number, y0: number, rot: number) => {
+    const dx = w[0]! - x0
+    const dy = w[1]! - y0
+    return [dx * Math.cos(rot) + dy * Math.sin(rot), -dx * Math.sin(rot) + dy * Math.cos(rot), w[2]!]
+  }
+  let minGap = Infinity
+  let gapAt = ''
+  let streamBad = 0
+  let streamFrames = 0
+  let maxTubeJump = 0
+  let prevB: number[] | null = null
+  for (let k = 0; k * dt <= m.step.tubes.to + 0.6; k++) {
+    const t = k * dt
+    sampleSolutionState(m, t, s)
+    const A = s.tubeA
+    const B = s.tubeB
+    if (B.alpha > 0.01 && s.macroAlpha > 0.01) {
+      let g = Infinity
+      for (const p of surface) {
+        const w = toWorld(p, B.x, B.y, B.rot)
+        const l = toLocal(w, A.x, A.y, A.rot)
+        g = Math.min(g, sdTube(l[0]!, l[1]!, l[2]!))
+        const w2 = toWorld(p, A.x, A.y, A.rot)
+        const l2 = toLocal(w2, B.x, B.y, B.rot)
+        g = Math.min(g, sdTube(l2[0]!, l2[1]!, l2[2]!))
+      }
+      if (g < minGap) {
+        minGap = g
+        gapAt = `t=${t.toFixed(3)}`
+      }
+      if (prevB) maxTubeJump = Math.max(maxTubeJump, Math.hypot(B.x - prevB[0]!, B.y - prevB[1]!), Math.abs(B.rot - prevB[2]!) * TH)
+      prevB = [B.x, B.y, B.rot]
+    }
+    // струя: ниже кромки A — внутри устья (не задевает стекло), кончается на поверхности жидкости A
+    if (s.stream.alpha > 0.01) {
+      streamFrames++
+      const topA = A.y + TH
+      for (let i = 0; i < 18; i++) {
+        const x = s.stream.pts[i * 3]!
+        const y = s.stream.pts[i * 3 + 1]!
+        const r = s.stream.rad[i]!
+        if (y <= topA + 1 && Math.abs(x - A.x) + r > 0.9 * TR) streamBad++
+        if (y < A.surface - 0.5) streamBad++
+      }
+    }
+  }
+  ok('стенки пробирок не пересекаются ни в одном кадре (зазор > 0)', minGap > 0, `${minGap.toFixed(1)} пм (${gapAt})`)
+  ok('струя течёт в устье A и кончается на поверхности жидкости', streamFrames > 30 && streamBad === 0, { streamFrames, streamBad })
+  ok('пробирка B движется плавно (≤ 60 пм за 1/60 с)', maxTubeJump <= 60, maxTubeJump.toFixed(1))
+}
+{
+  // В каждый момент хотя бы один слой — макро или микро — виден; на паузе между шагами кадр целиком в одном слое.
+  let worst = Infinity
+  let worstAt = ''
+  const lastTo = m.timing.steps[m.timing.steps.length - 1]!.to
+  for (let k = 0; k * dt <= lastTo + 1e-9; k++) {
+    const t = Math.min(lastTo, k * dt)
+    sampleSolutionState(m, t, s)
+    const v = Math.max(s.macroAlpha, s.microAlpha)
+    if (v < worst) {
+      worst = v
+      worstAt = `t=${t.toFixed(3)}`
+    }
+  }
+  ok('нет «провалов»: хотя бы один слой виден ≥ 0,5 в каждом кадре', worst >= 0.5, `${worst.toFixed(3)} (${worstAt})`)
+  for (const st of m.timing.steps) {
+    sampleSolutionState(m, st.to, s)
+    ok(`пауза после шага «${st.id}»: кадр целиком в одном слое`, Math.max(s.macroAlpha, s.microAlpha) >= 0.98 && Math.min(s.macroAlpha, s.microAlpha) <= 0.02, [s.macroAlpha, s.microAlpha])
+  }
+  // шаг «осадок»: одна пробирка (вторая убрана), выноски видны
+  sampleSolutionState(m, m.step.settle.to - 0.05, s)
+  ok('шаг «осадок»: в кадре одна пробирка', s.tubeB.alpha === 0 && s.macroAlpha > 0.98)
+  ok('шаг «осадок»: выноски к осадку и к раствору', s.calloutAlpha[0]! > 0.9 && s.calloutAlpha[1]! > 0.9)
+  ok('шаг «осадок»: цель выноски осадка — в слое на дне', s.callouts[1]! <= s.tubeA.y + m.tube.r * 0.25 + s.sediment * m.tube.h + 1)
+  ok('шаг «осадок»: цель выноски раствора — в жидкости над осадком', s.callouts[7]! > s.tubeA.y + m.tube.r * 0.25 + s.sediment * m.tube.h && s.callouts[7]! < s.tubeA.surface)
+  // HNO₃: капли падают в раствор, осадок после них не убывает
+  const T8 = solutionMoments(m)
+  sampleSolutionState(m, T8.drop0 - 0.05, s)
+  const sedBefore = s.sediment
+  let dropsSeen = 0
+  for (let t = T8.drop0; t < T8.drop0 + 1.4; t += dt) {
+    sampleSolutionState(m, t, s)
+    for (let d = 0; d < 3; d++) if (s.drops[d * 4 + 3]! > 0 && s.drops[d * 4 + 1]! < s.tubeA.y + m.tube.h) dropsSeen |= 1 << d
+  }
+  ok('HNO₃: три капли падают в пробирку', dropsSeen === 7, dropsSeen)
+  sampleSolutionState(m, m.step.settle.to, s)
+  ok('HNO₃: осадок не растворяется (слой не убывает)', s.sediment >= sedBefore - 1e-9)
+}
+
 // ─── 4. Кристалл = решётке барита ────────────────────────────────────────────
 {
   const frag = latticeGroupedFragment('barite', [...BASO4_SOLUTION_SPEC.crystalCells] as [number, number, number], [{ center: 'S', ligand: 'O', ligands: 4 }])
