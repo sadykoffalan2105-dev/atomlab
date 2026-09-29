@@ -1119,7 +1119,9 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   const macroA = 1 - smooth(0.5, 0.95, u)
   const microA = smooth(0.04, 0.4, u)
   out.macroAlpha = macroA * out.fade
-  out.microAlpha = microA * out.fade
+  // мир частиц в хвосте не гаснет целиком: вода и ионы-наблюдатели растворяются, кристалл остаётся и
+  // передаёт кадр герою (без передачи класс гасит его по fade)
+  out.microAlpha = microA
   out.macroScale = 1 + 2.4 * Math.pow(u, 1.4)
   out.microScale = 0.22 + 0.78 * smooth(0, 1, u)
   out.lens.r = 60 + 2300 * Math.pow(u, 1.6)
@@ -1132,10 +1134,11 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   out.microOffset[2] = 0
 
   // ——— тела и атомы ———
+  const finKeep = 1 - smooth(m.finish.from, m.finish.from + 0.8, t)
   const n = m.atoms.length
   for (let bi = 0; bi < m.bodies.length; bi++) {
     const b = m.bodies[bi]!
-    const appear = m.pose[bi]!(t, _bp, _bq)
+    const appear = m.pose[bi]!(t, _bp, _bq) * (b.land || b.kind === 'lattice-cation' || b.kind === 'lattice-group' ? 1 : finKeep)
     for (const ai of b.atoms) {
       const a = m.atoms[ai]!
       qRot(_bq, a.local, _v)
@@ -1245,6 +1248,8 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   setLabel(L.stepEq, out.crystal.c[0], cBottom - 300, 0, 0)
   setLabel(L.equation, 150, -680, 0, windowAlpha(m.labels[L.equation]!.from, m.labels[L.equation]!.to, t) * mi)
   setLabel(L.ionic, 150, -920, 0, windowAlpha(m.labels[L.ionic]!.from, m.labels[L.ionic]!.to, t) * mi)
+  // хвост: подписи уходят вместе с водой (у героя — свои)
+  if (finKeep < 1) for (let li = 0; li < m.labels.length; li++) out.labelOpacity[li] = out.labelOpacity[li]! * finKeep
   return out
 }
 

@@ -24,7 +24,7 @@ export interface SchoolRuntimeScene {
   readonly root: THREE.Group
   readonly background: THREE.Color
   readonly labels: DomLabelSource[]
-  readonly model: { readonly timing: { stepIndexAt: (t: number) => number } }
+  readonly model: { readonly timing: { stepIndexAt: (t: number) => number }; readonly finish?: { readonly from: number; readonly to: number } }
   readonly stepCount: number
   readonly time: number
   goToStep(index: number, opts?: { instant?: boolean }): Promise<void>
@@ -38,6 +38,12 @@ export interface SchoolRuntimeScene {
   warmup(renderer: THREE.WebGLRenderer, camera: THREE.Camera, targetScene?: THREE.Scene): Promise<void>
   update(dt: number, camera: THREE.Camera): void
   dispose(): void
+  /**
+   * Передача кадра герою продукта (hero/heroHandoff), необязательно: в хвосте кристалл урока встаёт на
+   * место тела героя (его matrixWorld), после показа героя сцена прячет свой кадр.
+   */
+  setHandoffTarget?(target: THREE.Object3D | null, estimated?: boolean): void
+  releaseToHero?(): void
 }
 
 /** Фабрика сцены для адаптера (стабильная ссылка — иначе сцена пересоздаётся). */

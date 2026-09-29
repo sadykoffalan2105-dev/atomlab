@@ -12,5 +12,5 @@ import { BASO4_SOLUTION_SPEC } from '../school/solution/solutionSpec'
 const createBaso4: SchoolSceneFactory = (opts) => new SolutionExchangeScene(BASO4_SOLUTION_SPEC, opts)
 
 export function Baso4CinemaScene(props: ScientificSynthesisFxProps) {
-  return <SchoolCinemaScene {...props} create={createBaso4} lesson="baso4" />
+  return <SchoolCinemaScene {...props} create={createBaso4} lesson="baso4" heroCompound="salt_ba_so4" />
 }

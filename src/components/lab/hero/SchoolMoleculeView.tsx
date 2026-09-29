@@ -8,6 +8,7 @@ import { CinemaDomLabels, type DomLabelSource } from '../../../lab/cinema/react/
 import { localizeLabelText, toSceneLocale } from '../../../lab/cinema/scenes/kit/sceneKit'
 import { useAppTheme } from '../../../theme/appTheme'
 import { CAPTION_GAP_PX, CAPTION_LINE_PX, heroCaptionLines, HERO_ORBIT_RAD_PER_SEC } from './heroFrame'
+import { heroHandoff } from './heroHandoff'
 import { NaclHeroBody } from './NaclHeroBody'
 import { SchoolBallLabels } from './SchoolBallLabels'
 import type { SchoolHeroModel } from './schoolHeroModel'
@@ -261,6 +262,16 @@ export function SchoolMoleculeView({
   useEffect(() => {
     time.current = 0
   }, [model])
+
+  // Передача кадра от школьной сцены урока (не NaCl — у него своё тело NaclHeroBody): регистрируем
+  // группу вида, сцена в хвосте ставит свой кристалл на её место (hero/heroHandoff).
+  useEffect(() => {
+    if (!handoff || naclBody) return
+    const g = turnB.current
+    if (!g) return
+    heroHandoff.setBody(model.compoundId, g)
+    return () => heroHandoff.setBody(model.compoundId, null)
+  }, [handoff, naclBody, model.compoundId])
 
   // Подпись кристалла под моделью: строки через фиксированные CSS-пиксели при любом масштабе кадра.
   const captionLabels = useMemo<DomLabelSource[]>(

@@ -82,6 +82,17 @@ export class SolutionExchangeScene {
   private disposed = false
   private viewportH = 800
   private viewportFov = 46
+  /** передача кадра герою: тело героя (hero/heroHandoff), на место которого встаёт кристалл */
+  private handoffTarget: THREE.Object3D | null = null
+  /** цель — оценка места героя (центр кадра героя), тело ещё не смонтировано: масштаб считаем сами */
+  private handoffEstimated = false
+  private handedOff = false
+  /** радиус описанной сферы одной ячейки кристалла (пм) — таким герой вписывается в кадр (HERO_FIT_RADIUS = 1) */
+  private readonly heroCellRadiusPm: number
+  private readonly _hp = new THREE.Vector3()
+  private readonly _hq = new THREE.Quaternion()
+  private readonly _hs = new THREE.Vector3()
+  private readonly _rs = new THREE.Vector3()
 
   private readonly stage = new THREE.Group()
   private readonly micro = new THREE.Group()
@@ -153,6 +164,22 @@ export class SolutionExchangeScene {
     this.locale = opts.locale ?? 'ru'
     this.model = buildSolutionModel(spec)
     this.state = createSolutionState(this.model)
+    {
+      // габарит фрагмента ячеек (crystalCells) → одна ячейка → половина её диагонали (+ выступ шаров)
+      const lo = [Infinity, Infinity, Infinity]
+      const hi = [-Infinity, -Infinity, -Infinity]
+      for (const [a, b] of this.model.cellEdges) {
+        for (const p of [a, b]) {
+          for (let k = 0; k < 3; k++) {
+            lo[k] = Math.min(lo[k]!, p[k]!)
+            hi[k] = Math.max(hi[k]!, p[k]!)
+          }
+        }
+      }
+      const cells = spec.crystalCells
+      const d = [0, 1, 2].map((k) => (hi[k]! - lo[k]!) / cells[k]!)
+      this.heroCellRadiusPm = Number.isFinite(d[0]!) ? 0.5 * Math.hypot(d[0]!, d[1]!, d[2]!) * 1.12 : 700
+    }
     const m = this.model
     this.root.name = `school-${spec.id}-root`
     this.root.add(this.stage)
@@ -424,6 +451,18 @@ export class SolutionExchangeScene {
     this.hostBackground = color
   }
 
+  setHandoffTarget(target: THREE.Object3D | null, estimated = false): void {
+    this.handoffTarget = target
+    this.handoffEstimated = estimated
+  }
+
+  /** Герой показан — кадр урока больше не нужен (в каждый момент виден ровно один кристалл). */
+  releaseToHero(): void {
+    if (this.handedOff) return
+    this.handedOff = true
+    this.root.visible = false
+  }
+
   setViewport(heightPx: number, fovDeg: number): void {
     if (heightPx > 1) this.viewportH = heightPx
     if (fovDeg > 1) this.viewportFov = fovDeg
@@ -474,6 +513,7 @@ export class SolutionExchangeScene {
     const t = this.clock.t
     this.fireCues(t)
     this.apply(t, false)
+    this.followHero(t)
     this.animate(camera)
     if (this.hostBackground) {
       const fin = this.model.finish
@@ -552,10 +592,12 @@ export class SolutionExchangeScene {
     if (lensOn) {
       for (let k = 0; k < this.labels.length; k++) if (!this.isMacroLabel[k]) s.labelOpacity[k] = s.labelOpacity[k]! * reveal(s.labelPos[k * 3]!, s.labelPos[k * 3 + 1]!)
     }
-    this.ionMat.opacity = s.microAlpha
-    this.stickMat.opacity = s.microAlpha
-    this.waterAtomMat.opacity = WATER_OPACITY * s.microAlpha
-    this.waterStickMat.opacity = WATER_OPACITY * s.microAlpha
+    // без передачи кадра герою мир частиц в хвосте гаснет; с передачей — кристалл остаётся до показа героя
+    const hold = this.handoffTarget ? 1 : s.fade
+    this.ionMat.opacity = s.microAlpha * hold
+    this.stickMat.opacity = s.microAlpha * hold
+    this.waterAtomMat.opacity = WATER_OPACITY * s.microAlpha * hold
+    this.waterStickMat.opacity = WATER_OPACITY * s.microAlpha * hold
     this.ionMat.depthWrite = s.microAlpha > 0.98
 
     // ——— шары ———
@@ -608,7 +650,7 @@ export class SolutionExchangeScene {
     this.divider.visible = this.dividerMat.opacity > 0.01
     this.crystalFrame.position.set(s.crystal.c[0] * K, s.crystal.c[1] * K, s.crystal.c[2] * K)
     this.crystalFrame.rotation.set(0, s.crystal.yaw, 0)
-    this.edgeMat.opacity = 0.32 * s.crystal.alpha * s.microAlpha
+    this.edgeMat.opacity = 0.32 * s.crystal.alpha * s.microAlpha * hold
     this.edges.visible = this.edgeMat.opacity > 0.01
 
     // ——— пробирки ———
@@ -653,6 +695,37 @@ export class SolutionExchangeScene {
     }
   }
 
+  /**
+   * Хвост с передачей кадра: мир частиц (в нём остался только кристалл) плавно переезжает и масштабируется
+   * так, что центр кристалла встаёт в центр тела героя, а пикометр — в его масштаб (шары того же размера).
+   */
+  private followHero(t: number): void {
+    const s = this.state
+    const fin = this.model.finish
+    const body = this.handoffTarget
+    const ms0 = s.microScale
+    if (!body || t <= fin.from) return
+    const u = solutionSmooth(fin.from, fin.to - 0.2, t)
+    body.updateWorldMatrix(true, false)
+    body.matrixWorld.decompose(this._hp, this._hq, this._hs)
+    this.root.updateWorldMatrix(true, false)
+    this._inv.copy(this.root.matrixWorld).invert()
+    this._hp.applyMatrix4(this._inv)
+    this.root.getWorldScale(this._rs)
+    // тело героя: мир на пм = K · масштаб тела; оценка: герой (одна ячейка) вписан в сферу радиуса 1
+    const bodyScale = this.handoffEstimated ? 1 / (this.heroCellRadiusPm * K) : this._hs.x
+    const msT = bodyScale / Math.max(1e-9, this._rs.x)
+    const ms = ms0 + (msT - ms0) * u
+    const c = s.crystal.c
+    for (let k = 0; k < 3; k++) {
+      const off0 = s.microOffset[k]! * K
+      const from = off0 + c[k]! * K * ms0
+      const to = this._hp.getComponent(k)
+      this.micro.position.setComponent(k, from + (to - from) * u - c[k]! * K * ms)
+    }
+    this.micro.scale.setScalar(ms)
+  }
+
   private pxPerProjUnit(): number {
     return this.viewportH / (2 * Math.tan((this.viewportFov * Math.PI) / 360))
   }
@@ -668,9 +741,10 @@ export class SolutionExchangeScene {
     const cam = this._c
     const px = this.pxPerProjUnit()
     const D = this.discs
-    const ms = s.microScale
+    const ms = this.micro.scale.x
+    const mp = this.micro.position
     for (let i = 0; i < n; i++) {
-      this._v.set(s.atomPos[i * 3]! * K * ms, s.atomPos[i * 3 + 1]! * K * ms, s.atomPos[i * 3 + 2]! * K * ms)
+      this._v.set(s.atomPos[i * 3]! * K * ms + mp.x, s.atomPos[i * 3 + 1]! * K * ms + mp.y, s.atomPos[i * 3 + 2]! * K * ms + mp.z)
       const o = i * 4
       const depth = cam.z - this._v.z
       if (depth < 0.02 || s.atomR[i]! <= 0) {
