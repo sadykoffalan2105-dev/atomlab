@@ -81,11 +81,15 @@ export function withNaclRim<M extends THREE.MeshPhysicalMaterial>(mat: M, color:
 export const NACL_ION_MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.16 } as const
 
 /**
- * Цвет иона Na⁺: CPK натрия (фиолетовый, 0x8a2be2) — светлее на 0,14 по светлоте HSL: тёмно-индиго
- * на тёмном поле решётки почти не читался. Оттенок и насыщенность — CPK.
+ * Цвет иона Na⁺: оттенок и насыщенность CPK натрия (фиолетовый), светлота 0,66 — В ЭКРАННОМ пространстве sRGB.
+ * Прежний сдвиг offsetHSL(+0,14) шёл в линейном рабочем пространстве three и на экране почти не светлел:
+ * ион оставался тёмно-индиго (#1a0750) и не читался на тёмном поле решётки.
  */
 export function naclNaIonColor(): THREE.Color {
-  return new THREE.Color(cpkHex('Na')).offsetHSL(0, 0, 0.14)
+  const c = new THREE.Color(cpkHex('Na'))
+  const hsl = { h: 0, s: 0, l: 0 }
+  c.getHSL(hsl, THREE.SRGBColorSpace)
+  return c.setHSL(hsl.h, hsl.s, Math.max(hsl.l, 0.66), THREE.SRGBColorSpace)
 }
 /** Матовый металл: без clearcoat, высокая шероховатость, лёгкая металличность, приглушённый блик. */
 export const NACL_MATTE_METAL = { roughness: 0.7, metalness: 0.22, clearcoat: 0, clearcoatRoughness: 0.15, specularIntensity: 0.45 } as const

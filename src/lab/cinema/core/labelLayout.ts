@@ -155,6 +155,26 @@ export function layoutLabels(b: LabelLayoutBuffers, n: number, rect: LabelRect |
     if (over > 0) b.y[i] = b.y[i]! - over
     clampInto(b, i, rect, margin)
   }
+  // Зажим мог снова положить подписи друг на друга (на телефоне обе упираются в верх кадра — «N +7 )2 )5»
+  // на «O +8 )2 )6» у N₂O₅): разводим такие пары по горизонтали, каждую на половину перекрытия.
+  for (let pass = 0; pass < 3; pass++) {
+    let moved = false
+    for (let a = 0; a < m; a++) {
+      for (let c = a + 1; c < m; c++) {
+        const i = b.order[a]!
+        const j = b.order[c]!
+        if (!labelsOverlap(b, i, j)) continue
+        const need = (b.w[i]! + b.w[j]!) * 0.5 + gap - Math.abs(b.x[i]! - b.x[j]!)
+        const s = b.x[i]! <= b.x[j]! ? -1 : 1
+        b.x[i] = b.x[i]! + s * need * 0.5
+        b.x[j] = b.x[j]! - s * need * 0.5
+        clampInto(b, i, rect, margin)
+        clampInto(b, j, rect, margin)
+        moved = true
+      }
+    }
+    if (!moved) break
+  }
 }
 
 /** Пересекаются ли коробки i и j (для тестов). */

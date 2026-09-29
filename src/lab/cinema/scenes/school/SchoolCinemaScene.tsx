@@ -237,6 +237,10 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
     const cam = state.camera as THREE.PerspectiveCamera
     const controls = state.controls as unknown as Controls
     frameRoot(rt, cam, controls, state.gl.domElement, state.size.width, state.size.height, dt, state.gl.getPixelRatio())
+    // Точечный свет — перед молекулой и чуть выше (между сценой и камерой), а не в начале координат лаборатории:
+    // оттуда, снизу, он давал розовый блик на нижней кромке шаров (O у NO, N₂O₅).
+    const pl = LIGHTS.get(state.scene)?.point
+    if (pl) pl.position.copy(rt.scene.root.position).lerp(cam.position, 0.35).addScaledVector(_up, 0.08 * cam.position.distanceTo(rt.scene.root.position))
     rt.scene.update(dt, cam)
     cinemaPlayhead.t = rt.scene.time
     cinemaPlayhead.runId = runId

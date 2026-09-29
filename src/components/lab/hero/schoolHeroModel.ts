@@ -148,7 +148,59 @@ function screenPose(atoms: SchoolHeroAtom[], pitch3d: number, yaw3d: number): { 
     if (Math.abs(n[2]) < 0.985) rotateAtoms(atoms, n, [0, 0, 1])
     return { pitch: 0.14, yaw: 0 }
   }
-  return { pitch: pitch3d, yaw: yaw3d }
+  return bestPose(atoms, pitch3d, yaw3d)
+}
+
+/**
+ * Доля времени покачивания (рыскание ±0,3 рад, как в SchoolMoleculeView), когда символ какого-то атома закрыт
+ * ближним к зрителю шаром (центр дальнего атома — внутри диска ближнего с запасом 0,35 r).
+ */
+function hiddenShare(atoms: readonly SchoolHeroAtom[], pitch: number, yaw0: number): number {
+  const N = 28
+  let hidden = 0
+  const cp = Math.cos(pitch)
+  const sp = Math.sin(pitch)
+  const P = atoms.map(() => [0, 0, 0])
+  for (let k = 0; k < N; k++) {
+    const yaw = yaw0 + 0.3 * Math.sin((2 * Math.PI * k) / N)
+    const cy = Math.cos(yaw)
+    const sy = Math.sin(yaw)
+    atoms.forEach((a, i) => {
+      const [x, y, z] = a.pos
+      const y1 = y * cp - z * sp
+      const z1 = y * sp + z * cp
+      P[i]![0] = x * cy + z1 * sy
+      P[i]![1] = y1
+      P[i]![2] = -x * sy + z1 * cy
+    })
+    let any = false
+    for (let i = 0; i < atoms.length && !any; i++) {
+      for (let j = 0; j < atoms.length; j++) {
+        if (i === j || P[j]![2]! <= P[i]![2]!) continue
+        if (Math.hypot(P[j]![0]! - P[i]![0]!, P[j]![1]! - P[i]![1]!) < atoms[j]!.r + 0.35 * atoms[i]!.r) {
+          any = true
+          break
+        }
+      }
+    }
+    if (any) hidden++
+  }
+  return hidden / N
+}
+
+/** Объёмная молекула (до 16 атомов): ракурс, при котором ни один символ не прячется за шаром при покачивании. */
+function bestPose(atoms: readonly SchoolHeroAtom[], pitch3d: number, yaw3d: number): { pitch: number; yaw: number } {
+  let best = { pitch: pitch3d, yaw: yaw3d, h: hiddenShare(atoms, pitch3d, yaw3d) }
+  if (best.h === 0 || atoms.length > 16) return { pitch: best.pitch, yaw: best.yaw }
+  for (const pitch of [pitch3d, 0.3, 0.45, 0.6, 0.8]) {
+    for (let k = 0; k < 24; k++) {
+      const yaw = yaw3d + (k * Math.PI) / 12
+      const h = hiddenShare(atoms, pitch, yaw)
+      if (h < best.h - 1e-9) best = { pitch, yaw, h }
+      if (best.h === 0) return { pitch: best.pitch, yaw: best.yaw }
+    }
+  }
+  return { pitch: best.pitch, yaw: best.yaw }
 }
 
 const sub3 = (a: readonly number[], b: readonly number[]): V3 => [a[0]! - b[0]!, a[1]! - b[1]!, a[2]! - b[2]!]
@@ -497,6 +549,51 @@ export function schoolBondOrders(els: readonly string[], pairs: readonly (readon
   return order
 }
 
+const ANION_CHARGE: Record<string, number> = { F: -1, Cl: -1, Br: -1, I: -1, O: -2, S: -2 }
+
+/**
+ * Бинарное ионное вещество (MgCl₂, K₂O, FeCl₃, Ag₂O…): заряды ионов по формуле. null — не оно: молекула,
+ * пероксид / дисульфид (связь O–O, S–S в данных — K₂O₂, FeS₂), молекулярный галогенид (AlBr₃, BeCl₂, HgCl₂)
+ * или заряд катиона не 1…3 (SnCl₄, TiCl₄ — молекулярные).
+ */
+function ionicCharges(els: readonly string[], pairs: readonly { i: number; j: number }[]): Record<string, number> | null {
+  const kinds = [...new Set(els)]
+  if (kinds.length !== 2) return null
+  const metal = kinds.find((e) => !NONMETAL.has(e))
+  const anion = kinds.find((e) => e in ANION_CHARGE)
+  if (!metal || !anion) return null
+  // Молекулярные галогениды (Al₂Br₆ / Al₂Cl₆ — димеры, BeCl₂ — полимерные цепи, HgCl₂ — линейные молекулы) — не ионы.
+  if ((metal === 'Al' || metal === 'Be' || metal === 'Hg') && anion !== 'O' && anion !== 'F') return null
+  if (pairs.some((p) => els[p.i] === anion && els[p.j] === anion)) return null
+  const nM = els.filter((e) => e === metal).length
+  const q = (-ANION_CHARGE[anion]! * (els.length - nM)) / nM
+  if (!Number.isInteger(q) || q < 1 || q > 3) return null
+  return { [metal]: q, [anion]: ANION_CHARGE[anion]! }
+}
+
+/** Формульная единица ионного вещества: ионы (радиусы Шеннона, подписи Mg²⁺, Cl⁻), касаются друг друга, без палочек. */
+function ionicFromCatalog(shape: CatalogShape, els: readonly string[], list: readonly { i: number; j: number }[], charges: Record<string, number>): SchoolHeroModel {
+  const rPm = (e: string) => radiusForSpecies(e as ElementSymbol, charges[e]!, { model: 'ionic' })
+  const ratios = list
+    .filter((g) => charges[els[g.i]!]! * charges[els[g.j]!]! < 0)
+    .map((g) => {
+      const p = shape.atoms[g.i]!.pos
+      const q = shape.atoms[g.j]!.pos
+      return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) / (rPm(els[g.i]!) + rPm(els[g.j]!))
+    })
+    .filter((x) => x > 1e-9)
+    .sort((a, b) => a - b)
+  const u = ratios.length > 0 ? ratios[Math.floor(ratios.length / 2)]! : 0.0032
+  const atoms: SchoolHeroAtom[] = shape.atoms.map((a) => {
+    const el = a.symbol as ElementSymbol
+    const q = charges[a.symbol]!
+    const radiusPm = rPm(a.symbol)
+    return { el, label: speciesLabel(el, q), charge: q, pos: [(a.pos[0] / u) * K, (a.pos[1] / u) * K, (a.pos[2] / u) * K], r: radiusPm * K * 0.94, radiusPm }
+  })
+  const radius = centerAndBound(atoms)
+  return { compoundId: shape.id, kind: 'molecule', source: 'catalog', atoms, bonds: [], cellEdges: [], radius, ...screenPose(atoms, 0.16, 0.35), motion: 'sway', caption: [] }
+}
+
 function fromCatalog(shape: CatalogShape): SchoolHeroModel | null {
   const valid = shape.atoms.filter((a) => a.symbol in ATOMIC_DATA)
   if (valid.length === 0 || valid.length !== shape.atoms.length) return null
@@ -511,6 +608,8 @@ function fromCatalog(shape: CatalogShape): SchoolHeroModel | null {
   }
   const list = [...groups.values()]
   const els = shape.atoms.map((a) => a.symbol)
+  const ionic = ionicCharges(els, list)
+  if (ionic) return ionicFromCatalog(shape, els, list, ionic)
   const repeated = list.some((g) => g.n > 1)
   const orders = repeated ? list.map((g) => Math.min(3, g.n)) : schoolBondOrders(els, list.map((g) => [g.i, g.j] as const))
   // Масштаб каталога → пм: медиана «длина / (r₁ + r₂)» по связям (кратные короче: × 0,9 и × 0,84).
