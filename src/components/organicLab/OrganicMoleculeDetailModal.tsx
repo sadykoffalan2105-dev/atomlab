@@ -78,6 +78,9 @@ export function OrganicMoleculeDetailModal({
           tabIndex={-1}
           className={`${styles.card} ${own.wideCard}`}
           style={accentStyle}
+          // Как у карточки неорганики: карточка тёмная в обеих темах, внутри — ночные токены.
+          // Без этого в светлой теме название, заголовки разделов и «Состав» были тёмными на тёмном.
+          data-app-night=""
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}

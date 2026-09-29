@@ -40,6 +40,7 @@ import {
   type SchoolGrade,
 } from '../data/curriculum/compoundGradeIndex'
 import { compoundById } from '../data/compounds'
+import { buildSchoolHeroModel } from '../components/lab/hero/schoolHeroModel'
 import { ORGANIC_MOLECULES as ALL_ORGANIC_MOLECULES, organicMoleculeById } from '../data/organicLab/organicMoleculeRegistry'
 import type { OrganicMoleculeDef } from '../data/organicLab/organicMoleculeTypes'
 import { ORGANIC_CLASS_LABELS, type OrganicClassId } from '../data/researchLab/organicBuildCatalog'
@@ -203,15 +204,40 @@ function IconEmpty({ className }: { className?: string }) {
   )
 }
 
+/** Координаты школьной модели в масштабе превью каталога: медиана длины связи = 1,2. */
+function thumbScale(m: { atoms: readonly { pos: readonly [number, number, number] }[]; bonds: readonly { a: number; b: number }[] }): [number, number, number][] {
+  const lens = m.bonds
+    .map((b) => {
+      const p = m.atoms[b.a]!.pos
+      const q = m.atoms[b.b]!.pos
+      return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2])
+    })
+    .filter((x) => x > 1e-9)
+    .sort((x, y) => x - y)
+  const k = lens.length ? 1.2 / lens[Math.floor(lens.length / 2)]! : 1
+  return m.atoms.map((a) => [a.pos[0] * k, a.pos[1] * k, a.pos[2] * k])
+}
+
 const compoundThumbCache = new Map<string, { atoms: ThumbAtom[]; bonds: ThumbBond[] }>()
 
 function compoundThumb(c: CompoundDef) {
   let v = compoundThumbCache.get(c.id)
   if (!v) {
-    v = {
-      atoms: c.atoms.map((a) => ({ el: a.symbol, pos: a.pos })),
-      bonds: c.bonds.map(([a, b]) => ({ a, b })),
-    }
+    // Превью — та же молекула, что в 3D карточки (hero/schoolHeroModel): геометрия и кратность связей
+    // школьной сцены / ядра. Решётку (125 ионов) в превью не рисуем — остаётся пара ионов каталога.
+    const m = buildSchoolHeroModel(c)
+    v =
+      m && m.kind === 'molecule'
+        ? {
+            // Школьная модель — в мировых единицах сцены (C=O ≈ 0,33); радиусы шаров превью рассчитаны на ångström
+            // каталога (C=O ≈ 1,16) — приводим медиану длины связи к 1,2, иначе шары сливаются в кляксу.
+            atoms: thumbScale(m).map((pos, i) => ({ el: m.atoms[i]!.el, pos })),
+            bonds: m.bonds.map((b) => ({ a: b.a, b: b.b, order: Math.max(1, Math.min(3, b.order)) as 1 | 2 | 3 })),
+          }
+        : {
+            atoms: c.atoms.map((a) => ({ el: a.symbol, pos: a.pos })),
+            bonds: c.bonds.map(([a, b]) => ({ a, b })),
+          }
     compoundThumbCache.set(c.id, v)
   }
   return v

@@ -49,6 +49,8 @@ const CPK = new Map(ELEMENTS.map((e) => [e.symbol, e.cpkHex]))
 
 /** Цвет атома: CPK из таблицы, слишком тёмные цвета осветляем для тёмной карточки. */
 export function atomColor(el: string): string {
+  // Углерод — графитово-серый, как шар в 3D (школьная сцена, hero/schoolHeroStyle): CPK почти чёрный.
+  if (el === 'C') return '#6a707c'
   const hex = CPK.get(el)
   if (!hex || !/^#?[0-9a-f]{6}$/i.test(hex)) return '#c8d0e0'
   const h = hex.startsWith('#') ? hex : `#${hex}`

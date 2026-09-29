@@ -14,7 +14,7 @@ import {
 import { enqueueGpuCompile } from '../../lab/gpuCompileBudget'
 import type { CompoundDef } from '../../types/chemistry'
 import { ProductHero } from './hero/ProductHero'
-import { buildHeroModel } from './hero/heroGeometry'
+import { buildSchoolHeroModel } from './hero/schoolHeroModel'
 import { heroHandoff } from './hero/heroHandoff'
 import { getLowPowerDeviceProfile } from '../../lab/lowPowerDeviceProfile'
 import { getSynthesisDeviceTier } from '../../lab/synthesisDeviceTier'
@@ -96,13 +96,13 @@ export function LabProductHeroSlot({
     [],
   )
   /**
-   * Герой по данным ядра рисуется материалами кино-ядра (импостер атомов, полосы связей), которые
-   * освобождаются при размонтировании слота. three.compileAsync опрашивает готовность программ
+   * Герой — единый школьный вид (hero/SchoolMoleculeView): его материалы освобождаются при
+   * размонтировании слота. three.compileAsync опрашивает готовность программ
    * по таймеру и падает («reading 'isReady'»), если материал освобождён посреди опроса — очередь
    * прогрева монтирует и снимает слоты часто. Поэтому для такого героя — только поштучный
    * gl.compile (программы те же, что у сцен, и уже в кэше рендерера), без compileAsync.
    */
-  const dataHero = useMemo(() => buildHeroModel(compound.id) !== null, [compound.id])
+  const dataHero = useMemo(() => buildSchoolHeroModel(compound) !== null, [compound])
 
   /**
    * Передача кадра от сцены урока (hero/heroHandoff): герой этого прогона стоит в полный размер,
@@ -288,7 +288,6 @@ export function LabProductHeroSlot({
     }, 2_400)
 
     let cancelChunk: (() => void) | undefined
-    let cancelBudget: (() => void) | undefined
     let releaseBudget: (() => void) | null = null
 
     const runCompile = () => {
@@ -321,7 +320,7 @@ export function LabProductHeroSlot({
       )
     }
 
-    cancelBudget = enqueueGpuCompile(
+    const cancelBudget = enqueueGpuCompile(
       `visible:${compound.id}:${runId}`,
       (release) => {
         releaseBudget = release

@@ -185,6 +185,7 @@ export function CompoundDetailModal({
             ref={cardRef}
             tabIndex={-1}
             className={`${styles.card} ${styles.cardFallback}`}
+            data-app-night=""
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
@@ -216,6 +217,9 @@ export function CompoundDetailModal({
           tabIndex={-1}
           className={styles.card}
           data-category={c.category}
+          // Карточка тёмная в обеих темах (жёсткий тёмный фон и 3D): внутри — ночные токены, иначе в
+          // светлой теме заголовок вещества и заголовки разделов были тёмными на тёмном.
+          data-app-night=""
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}

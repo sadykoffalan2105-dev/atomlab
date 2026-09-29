@@ -195,7 +195,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'hero.why.nacl': 'Na gives up an electron, Cl takes it, and Na⁺ and Cl⁻ attract in all directions — so salt is not a molecule but a crystal in which every ion is surrounded by six counter-ions.',
   'hero.note.crystal': 'Lattice fragment: {cells} unit cells; the lines are the cell edges.',
   'hero.note.gas': 'Neighbouring molecules are not shown: at 25 °C and 1 atm they are ≈ {d} nm apart on average — 10–30 times the size of the molecule.',
-  'hero.note.hbond': 'Dashed lines are O–H···O hydrogen bonds to neighbouring molecules.',
+  'hero.note.hbond': 'One molecule is shown; in liquid water each molecule is linked to its neighbours by O–H···O hydrogen bonds (up to four).',
   'hero.note.single': 'One molecule is shown; in the liquid its neighbours touch it but are not bonded to it.',
   'hero.note.sio2': 'Shown is the α-quartz framework, the stable form at 25 °C; the oxide on silicon itself is amorphous.',
   'hero.note.pbo': 'Red litharge (α-PbO) is the stable form at 25 °C; yellow massicot (β) is the high-temperature form.',

@@ -32,8 +32,11 @@ export function ProductHeroCard({
   if (!spec || !model) {
     return (
       <div className={styles.card} data-lab-hero-card="">
-        <span className={styles.formula}>{compound.formulaUnicode}</span>
-        <span className={styles.name}>{name}</span>
+        {/* .head — формула и название раздельно (без обёртки строчные span слипались: «COУгарный газ») */}
+        <div className={styles.head}>
+          <span className={styles.formula}>{compound.formulaUnicode}</span>
+          <span className={styles.name}>{name}</span>
+        </div>
         <p className={styles.why}>{description}</p>
       </div>
     )
