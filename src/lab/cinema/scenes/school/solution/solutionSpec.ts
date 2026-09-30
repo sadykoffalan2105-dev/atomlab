@@ -100,7 +100,7 @@ export const BASO4_SOLUTION_SPEC: SolutionSceneSpec = {
     ],
     protons: [
       [380, 650, 40],
-      [-620, -450, -60],
+      [-720, -470, -60],
     ],
   },
   nucleus: { center: [0, -520, 0], yaw: -0.55, yawRate: 0.02 },

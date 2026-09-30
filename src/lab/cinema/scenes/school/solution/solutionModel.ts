@@ -54,6 +54,7 @@ export const SOLUTION_DRAW = {
   /** вода — второй план: шары мельче; ближняя оболочка у ионов — чуть крупнее фоновой */
   waterView: 0.78,
   bgWaterView: 0.62,
+  hydroniumView: 1.15,
   bgWaterStickR: 2.4,
   /**
    * Зазор (пм) между рисуемыми шарами воды и чужими шарами, который держит раздвижка воды в каждом кадре
@@ -518,7 +519,7 @@ function pyramidLocal(oh: number, hoh: number): V3[] {
   const cosA = Math.cos((hoh * Math.PI) / 180)
   const cosB = Math.sqrt((2 * cosA + 1) / 3)
   const sinB = Math.sqrt(1 - cosB * cosB)
-  const tilt = qMul(qAxis([0, 1, 0], 0.18), qFromTo([0, 0, 1], norm([0, -1, -0.55])))
+  const tilt = qFromTo([0, 0, 1], norm([0, -1, -0.35]))
   return [0, 1, 2].map((i) => {
     const phi = Math.PI / 2 + (i * 2 * Math.PI) / 3
     return qRot(tilt, [oh * sinB * Math.cos(phi), oh * sinB * Math.sin(phi), oh * cosB])
@@ -1166,9 +1167,10 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   }
 
   // ——— вид и раздвижка воды ———
+  // H₃O⁺ — чуть крупнее (пирамида и подсвеченный H⁺ читаются и на телефоне)
   const viewK = Float32Array.from(atoms, (a) => {
     const b = bodies[a.body]!
-    return solutionViewScale(a.el, b.kind === 'water', b.id.startsWith('wBg'))
+    return solutionViewScale(a.el, b.kind === 'water', b.id.startsWith('wBg')) * (b.kind === 'proton' ? SOLUTION_DRAW.hydroniumView : 1)
   })
   const bs = SOLUTION_DRAW.ballScale
   const wIdx = bodies.map((b, i) => ({ b, i })).filter((x) => x.b.kind === 'water')

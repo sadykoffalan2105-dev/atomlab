@@ -49,9 +49,11 @@ const MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness:
 const HALO_COLOR = { plus: 0xffa64d, minus: 0x4fc3ff, proton: 0xffd27a, neighbor: 0xeaf6ff } as const
 /** Сила ореола (billboard) и френель-кромки шара по виду подсветки. */
 const HALO_GAIN = { plus: 0.5, minus: 0.5, proton: 0.75, neighbor: 0.55 } as const
-const RIM_GAIN = { plus: 1.0, minus: 1.0, proton: 1.3, neighbor: 0.9 } as const
+const RIM_GAIN = { plus: 0.8, minus: 0.85, proton: 1.3, neighbor: 0.9 } as const
 /** Вода: доля смешения с цветом фона (глубина) — фон сильнее, ближняя оболочка у ионов слабее. */
-const WATER_FOG = { bg: 0.6, shell: 0.36 } as const
+const WATER_FOG = { bg: 0.68, shell: 0.38 } as const
+/** В кристалле (тетраэдры видны) шары O и S группы мельче — грани полиэдра читаются, как в кристаллографии. */
+const POLY_SHRINK = { O: 0.4, S: 0.3 } as const
 /** Тетраэдр SO₄ в кристалле: грани (индексы O группы 0…3). */
 const TETRA_FACES = [
   [0, 1, 2],
@@ -210,6 +212,8 @@ export class SolutionExchangeScene {
   /** тетраэдры SO₄ кристалла (координационные полиэдры): тела групп, геометрия граней */
   private readonly polyBodies: number[]
   private readonly polyFrom: Float32Array
+  /** проявление тетраэдра по телу (0…1) — шары O и S группы мельче на эту долю */
+  private readonly polyOn: Float32Array
   private readonly polyGeo: THREE.BufferGeometry
   private readonly polyMat: THREE.ShaderMaterial
   private readonly poly: THREE.Mesh
@@ -293,7 +297,8 @@ export class SolutionExchangeScene {
     m.atoms.forEach((a, i) => {
       const water = this.isWaterAtom[i] === 1
       const mesh = water ? this.waterAtoms : this.ions
-      const c = atomColor(a.el, water, m.bodies[a.body]!.id.startsWith('wBg'))
+      // оболочка H₃O⁺ — тише прочей ближней воды: не читается «лишними связями» иона
+      const c = atomColor(a.el, water, m.bodies[a.body]!.id.startsWith('wBg') || m.bodies[a.body]!.id.startsWith('wH3O'))
       c.toArray(this.baseColor, i * 3)
       mesh.setColorAt(this.slotOf[i]!, c)
       this.viewK[i] = m.viewK[i]!
@@ -407,10 +412,10 @@ export class SolutionExchangeScene {
             float f = sin(3.14159 * ph);
             pul += f * (exp(-pow((u - 0.5 * ph) / 0.05, 2.0)) + exp(-pow((u - 1.0 + 0.5 * ph) / 0.05, 2.0)));
           }
-          float thin = exp(-v * v * 7.0);
+          float thin = exp(-v * v * 30.0);
           vec3 col = mix(uWarm, uCold, smoothstep(0.2, 0.8, u));
           col = mix(col, vec3(1.0), clamp(0.45 * pul * thin, 0.0, 0.6));
-          gl_FragColor = vec4(col, uAlpha * ends * (0.34 * glow + 0.7 * pul * thin));
+          gl_FragColor = vec4(col, uAlpha * ends * (0.5 * glow + 0.85 * pul * thin));
         }
       `,
     })
@@ -425,6 +430,7 @@ export class SolutionExchangeScene {
     this.polyBodies = m.bodies.map((b, i) => ({ b, i })).filter((x) => x.b.kind === 'lattice-group' || x.i === m.roles.group).map((x) => x.i)
     const Tm = solutionMoments(m)
     this.polyFrom = Float32Array.from(this.polyBodies, (bi) => m.bodies[bi]!.land?.t ?? Tm.seed1)
+    this.polyOn = new Float32Array(m.bodies.length)
     const nv = Math.max(1, this.polyBodies.length) * 12
     this.polyGeo = new THREE.BufferGeometry()
     this.polyGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nv * 3), 3).setUsage(THREE.DynamicDrawUsage))
@@ -436,7 +442,7 @@ export class SolutionExchangeScene {
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
-      uniforms: { uColor: { value: new THREE.Color(0xf0cf3a) }, uEdge: { value: new THREE.Color(0xfff3b8) } },
+      uniforms: { uColor: { value: new THREE.Color(0xffd94a) }, uEdge: { value: new THREE.Color(0xfff6c8) } },
       vertexShader: /* glsl */ `
         attribute vec3 aBary;
         attribute float aAlpha;
@@ -465,7 +471,8 @@ export class SolutionExchangeScene {
           float e = min(min(vBary.x, vBary.y), vBary.z);
           float edge = 1.0 - smoothstep(0.0, 0.05, e);
           vec3 col = mix(uColor * lit, uEdge, 0.85 * edge);
-          gl_FragColor = vec4(col, vAlpha * (0.2 + 0.16 * (1.0 - facing) + 0.5 * edge));
+          gl_FragColor = vec4(col, vAlpha * (0.26 + 0.16 * (1.0 - facing) + 0.5 * edge));
+          #include <colorspace_fragment>
         }
       `,
     })
@@ -863,12 +870,15 @@ export class SolutionExchangeScene {
     this.waterStickMat.depthWrite = this.waterAtomMat.depthWrite
 
     // ——— шары ———
+    this.polyAlphas(s, hold)
     this._q.identity()
     let dimIons = false
     let dimWater = false
     for (let i = 0; i < m.atoms.length; i++) {
       this._v.set(s.atomPos[i * 3]! * K, s.atomPos[i * 3 + 1]! * K, s.atomPos[i * 3 + 2]! * K)
-      const r = s.atomR[i]! * K * this.viewK[i]! * (lensOn ? reveal(s.atomPos[i * 3]! * s.microScale + s.microOffset[0], s.atomPos[i * 3 + 1]! * s.microScale + s.microOffset[1]) : 1)
+      const po = this.polyOn[m.atoms[i]!.body]!
+      const shrink = po > 0 ? 1 - po * (m.atoms[i]!.el === 'S' ? POLY_SHRINK.S : POLY_SHRINK.O) : 1
+      const r = s.atomR[i]! * K * this.viewK[i]! * shrink * (lensOn ? reveal(s.atomPos[i * 3]! * s.microScale + s.microOffset[0], s.atomPos[i * 3 + 1]! * s.microScale + s.microOffset[1]) : 1)
       this._s.set(r, r, r)
       this._m.compose(this._v, this._q, this._s)
       const water = this.isWaterAtom[i] === 1
@@ -1060,19 +1070,24 @@ export class SolutionExchangeScene {
     u.uAlpha!.value = fa
   }
 
+  /** Проявление тетраэдров по телам: после посадки группы; в хвосте гаснут (у героя их нет) — шары возвращают размер. */
+  private polyAlphas(s: SolutionState, hold: number): void {
+    const fin = this.model.finish
+    const tail = hold > 0 ? 1 - solutionSmooth(fin.from, fin.from + 1.1, s.t) : 0
+    for (let k = 0; k < this.polyBodies.length; k++) this.polyOn[this.polyBodies[k]!] = solutionSmooth(this.polyFrom[k]!, this.polyFrom[k]! + 0.9, s.t) * tail
+  }
+
   /** Тетраэдры SO₄ кристалла: вершины — атомы O группы, проявляются после посадки, в хвосте гаснут (у героя их нет). */
   private applyPolyhedra(s: SolutionState, hold: number): void {
     const m = this.model
     const pos = this.polyGeo.getAttribute('position') as THREE.BufferAttribute
     const al = this.polyGeo.getAttribute('aAlpha') as THREE.BufferAttribute
     const P = s.atomPos
-    const fin = m.finish
-    const tail = 1 - solutionSmooth(fin.from, fin.from + 1.1, s.t)
     let any = false
     for (let k = 0; k < this.polyBodies.length; k++) {
       const bi = this.polyBodies[k]!
       const b = m.bodies[bi]!
-      const a = solutionSmooth(this.polyFrom[k]!, this.polyFrom[k]! + 0.9, s.t) * s.bodyAppear[bi]! * s.bodyDim[bi]! * s.microAlpha * hold * tail
+      const a = this.polyOn[bi]! * s.bodyAppear[bi]! * s.bodyDim[bi]! * s.microAlpha * hold
       if (a > 0.003) any = true
       for (let f = 0; f < 4; f++) {
         for (let c = 0; c < 3; c++) {
