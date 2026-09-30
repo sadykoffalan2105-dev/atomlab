@@ -25,6 +25,7 @@ import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import { checkTeacherServiceHealth, requestTeacherChat } from '../../learn/teacherServiceClient'
 import { preloadTeacherKnowledge } from '../../learn/teacherKnowledge'
 import { filterAssistantReply } from '../../learn/learnAssistantGuard'
+import { applyFeedback, forgetEverything } from '../../learn/brain/human/studentProfile'
 import { LiveDialogButton } from './LearnLiveTutorPanel'
 import { warmupPuterFromUserGesture } from '../../learn/learnPuterTts'
 import {
@@ -95,6 +96,8 @@ type ChatMessage = {
   kind?: 'homework'
   /** Печать ответа остановлена учеником. */
   stopped?: boolean
+  /** Отзыв ученика 👍/👎 (меняет стиль следующих ответов). */
+  rating?: 'up' | 'down'
 }
 
 const QUICK_KEYS = [
@@ -687,6 +690,23 @@ export function LearnAssistantPanel({
     window.setTimeout(() => setCopiedAt((cur) => (cur === m.at ? null : cur)), 1600)
   }, [])
 
+  /** 👍/👎: учитель подстраивает длину ответов и количество примеров под ученика. */
+  const rateMessage = useCallback(
+    (m: ChatMessage, rating: 'up' | 'down') => {
+      if (m.rating === rating) return
+      applyFeedback(m.text, rating === 'up')
+      setMessages((list) => list.map((x) => (x.at === m.at ? { ...x, rating } : x)))
+    },
+    [setMessages],
+  )
+
+  /** «Забыть всё»: стереть память учителя об ученике на этом устройстве. */
+  const forgetMe = useCallback(() => {
+    if (typeof window !== 'undefined' && !window.confirm(t('learn.teacherUi.forgetConfirm'))) return
+    forgetEverything()
+    setMessages((list) => [...list, { role: 'assistant', text: t('learn.teacherUi.forgetDone'), at: Date.now(), source: 'local' }])
+  }, [setMessages, t])
+
   const clearChat = useCallback(() => {
     pendingRef.current?.ctrl.abort()
     pendingRef.current = null
@@ -955,6 +975,18 @@ export function LearnAssistantPanel({
             </button>
             <button
               type="button"
+              className={`${kit.iconBtn} ${styles.toolBtn}`}
+              onClick={forgetMe}
+              aria-label={t('learn.teacherUi.forget')}
+              title={t('learn.teacherUi.forgetHint')}
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M9.5 4.5a3.5 3.5 0 0 0-3.4 4.3A3.6 3.6 0 0 0 4 12a3.6 3.6 0 0 0 2.2 3.3 3.5 3.5 0 0 0 5.8 2.9V5.6a3.4 3.4 0 0 0-2.5-1.1Z" />
+                <path d="M15 9l5 5M20 9l-5 5" />
+              </svg>
+            </button>
+            <button
+              type="button"
               className={`${kit.iconBtn} ${kit.iconBtnDanger} ${styles.toolBtn}`}
               onClick={clearChat}
               disabled={!hasMessages && !loading}
@@ -1180,6 +1212,33 @@ export function LearnAssistantPanel({
                               >
                                 {speakingId === m.at ? <IconStop /> : <IconSpeaker />}
                               </button>
+                            ) : null}
+                            {m.kind !== 'homework' ? (
+                              <>
+                                <button
+                                  type="button"
+                                  className={`${kit.iconBtn} ${styles.actionBtn} ${styles.rateBtn}`}
+                                  aria-pressed={m.rating === 'up'}
+                                  data-done={m.rating === 'up' ? '1' : undefined}
+                                  onClick={() => rateMessage(m, 'up')}
+                                  aria-label={t('learn.teacherUi.rateUp')}
+                                  title={t('learn.teacherUi.rateUp')}
+                                >
+                                  <span aria-hidden>👍</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`${kit.iconBtn} ${styles.actionBtn} ${styles.rateBtn}`}
+                                  aria-pressed={m.rating === 'down'}
+                                  data-down={m.rating === 'down' ? '1' : undefined}
+                                  onClick={() => rateMessage(m, 'down')}
+                                  aria-label={t('learn.teacherUi.rateDown')}
+                                  title={t('learn.teacherUi.rateDown')}
+                                >
+                                  <span aria-hidden>👎</span>
+                                </button>
+                                {m.rating ? <span className={styles.rateNote}>{t(m.rating === 'up' ? 'learn.teacherUi.rateThanksUp' : 'learn.teacherUi.rateThanksDown')}</span> : null}
+                              </>
                             ) : null}
                             <button
                               type="button"

@@ -914,6 +914,44 @@
   height: 15px;
 }
 
+.panel .rateBtn > span {
+  font-size: 14px;
+  line-height: 1;
+  filter: grayscale(1);
+  opacity: 0.7;
+  transition: filter 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+
+.panel .rateBtn:hover > span,
+.panel .rateBtn[aria-pressed='true'] > span {
+  filter: none;
+  opacity: 1;
+}
+
+.panel .rateBtn[aria-pressed='true'] > span {
+  transform: scale(1.12);
+}
+
+.panel .rateBtn[data-down='1'] {
+  border-color: color-mix(in srgb, var(--lt-warning, #f59e0b) 40%, transparent);
+  background: color-mix(in srgb, var(--lt-warning, #f59e0b) 12%, transparent);
+}
+
+.rateNote {
+  font-size: 12px;
+  color: var(--lt-text-muted, currentColor);
+  opacity: 0.85;
+  margin-inline: 4px;
+  white-space: nowrap;
+}
+
+/* На телефоне подпись не помещается в ряд кнопок — хватает подсвеченной 👍/👎. */
+@media (max-width: 640px) {
+  .rateNote {
+    display: none;
+  }
+}
+
 .panel .actionBtn[data-done='1'] {
   color: var(--lt-success);
   border-color: color-mix(in srgb, var(--lt-success) 40%, transparent);
