@@ -7,6 +7,8 @@ import { compoundById } from '../../data/compounds'
 import type { CompoundCategory, CompoundDef } from '../../types/chemistry'
 import { MoleculeMesh } from './MoleculeMesh'
 import { SchoolCatalogCanvas } from './hero/SchoolCatalogCanvas'
+import { FormationCanvas } from './formation/FormationCanvas'
+import type { FormationControl } from './formation/useFormation'
 import { useT } from '../../i18n/useT'
 import { isWebGLAvailable } from '../../utils/webgl'
 import { CATALOG_HERO_DEFAULT_LAB_SCALE, catalogMoleculeFitScale, categoryAccentRgb, moleculeCenterOffset } from './catalogMoleculeHeroShared'
@@ -289,7 +291,13 @@ export function HeroMoleculeRig({
   )
 }
 
-export function CatalogMoleculeHero({ compoundId }: { compoundId: string }) {
+/** Телефон / сенсорный экран: облегчённый показ «Как образуется». */
+function isLowPowerDevice(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return false
+  return window.matchMedia('(max-width: 700px), (pointer: coarse)').matches
+}
+
+export function CatalogMoleculeHero({ compoundId, formation }: { compoundId: string; formation?: FormationControl }) {
   const { t } = useT()
   const c = compoundById[compoundId]
   const webglOk = isWebGLAvailable()
@@ -319,6 +327,8 @@ export function CatalogMoleculeHero({ compoundId }: { compoundId: string }) {
     )
   }
 
+  // «Как образуется» — тот же школьный вид, частицы собираются по плану (formation/FormationCanvas).
+  if (formation?.active) return <FormationCanvas shape={c} clock={formation.clock} lowPower={isLowPowerDevice()} />
   // Единый школьный вид (hero/SchoolCatalogCanvas) — тот же, что у героя лаборатории.
   return <SchoolCatalogCanvas shape={c} />
 }
