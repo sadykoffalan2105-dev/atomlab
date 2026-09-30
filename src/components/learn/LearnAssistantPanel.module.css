@@ -945,6 +945,13 @@
   white-space: nowrap;
 }
 
+/* На телефоне подпись не помещается в ряд кнопок — хватает подсвеченной 👍/👎. */
+@media (max-width: 640px) {
+  .rateNote {
+    display: none;
+  }
+}
+
 .panel .actionBtn[data-done='1'] {
   color: var(--lt-success);
   border-color: color-mix(in srgb, var(--lt-success) 40%, transparent);

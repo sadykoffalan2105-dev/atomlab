@@ -455,7 +455,7 @@ export function answerFormula(formula: string, property: ChemProperty, lang: Mat
   }
   if (property === 'mass' || property === 'about' || property === 'formula') {
     const massLine = L(
-      `Молярная масса ${label}: M = ${sum} = ${total} г/моль.`,
+      hit ? `${label}. Молярная масса: M = ${sum} = ${total} г/моль.` : `Молярная масса ${label}: M = ${sum} = ${total} г/моль.`,
       `Molar mass of ${label}: M = ${sum} = ${total} g/mol.`,
       `${label} ning molyar massasi: M = ${sum} = ${total} g/mol.`,
     )
@@ -471,7 +471,8 @@ export function answerFormula(formula: string, property: ChemProperty, lang: Mat
         ? L(`${hit.nameRu} (${pf}) — ${cls}.`, `${pf} is ${cls ? `a ${cls}` : 'a substance from the catalogue'}.`, `${pf} — ${cls}.`)
         : L(`${pf} — такого вещества нет в каталоге ATOMLAB, но посчитать могу.`, `${pf} is not in the ATOMLAB catalogue, but I can still calculate.`, `${pf} ATOMLAB katalogida yoʻq, lekin hisoblay olaman.`)
       const desc = hit && lang === 'ru' && hit.description ? ` ${firstSentences(hit.description, 2)}` : ''
-      text = `${intro}${desc}\n${massLine}`
+      const massOnly = L(`Молярная масса: M = ${sum} = ${total} г/моль.`, `Molar mass: M = ${sum} = ${total} g/mol.`, `Molyar massa: M = ${sum} = ${total} g/mol.`)
+      text = `${intro}${desc}\n${massOnly}`
     }
     return { text, entity, property: property === 'formula' ? 'about' : property, numbers }
   }
