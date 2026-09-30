@@ -1855,6 +1855,12 @@ function sampleMacro(m: SolutionModel, t: number, out: SolutionState, tp: number
   const tb = m.turbid
   const b0 = T.pour0 + 0.2
   const bSpan = T.pour1 - T.pour0 - 0.1
+  // оседание «под гравитацией»: пока хлопья взвешены — медленный дрейф (12 %), на шаге «осадок» каждое
+  // хлопье со своей задержкой разгоняется до своей предельной скорости (вязкость воды) и мягко тормозит у
+  // своего «пола» — внутри будущего слоя осадка (итоговая высота слоя — sedFinal); слой потом накрывает его
+  const pre = smooth(T.back0, S.tubes.to, t)
+  const sedFinal = R * 0.25 + 0.12 * H
+  const fall0 = S.settle.from + 0.3
   for (let i = 0; i < m.turbidPoints; i++) {
     const bt = b0 + tb.birth[i]! * bSpan
     const o = i * 3
@@ -1870,8 +1876,20 @@ function sampleMacro(m: SolutionModel, t: number, out: SolutionState, tp: number
     const ty = R * 0.35 + Math.pow(tb.y0[i]!, 0.8) * (eyB - 30 - R * 0.35)
     const w = 1 - Math.pow(1 - Math.min(1, (t - bt) / 0.95), 3)
     const ySpread = eyB - 10 + (ty - eyB + 10) * w
+    const v = tb.v[i]!
+    const drift = 0.084 * H * v
+    const j1 = (v * 37.1) % 1
+    const j2 = (v * 91.7) % 1
+    // своя задержка старта и предельная скорость (пм-единицы/с); разгон с постоянной времени TAU
+    const tau = t - (fall0 + 0.9 * j1)
+    const vT = 60 + 170 * v
+    const TAU = 0.55
+    const dFall = tau > 0 ? vT * (tau - TAU * (1 - Math.exp(-tau / TAU))) : 0
+    const yRaw = ySpread - drift * pre - dFall
+    // «пол» хлопья — внутри итогового слоя, не выше места, где оно висело до оседания
+    const floor = Math.min(ty - drift, sedFinal * (0.4 + 0.6 * j2))
     out.turbidPos[o] = (ex - TUBE_A_X) * (1 - w) + tb.x[i]! * w
-    out.turbidPos[o + 1] = Math.max(sedTop, ySpread - tb.v[i]! * fall * H * 0.7)
+    out.turbidPos[o + 1] = Math.max(sedTop, floor + softLand(yRaw - floor, 14))
     out.turbidPos[o + 2] = tb.z[i]! * w
   }
 
@@ -2010,6 +2028,13 @@ function sampleMicroLabels(m: SolutionModel, t: number, out: SolutionState, L: I
 }
 
 /** Габарит кадра по времени (пм): w, h, центр — хост вписывает его в свободную область. */
+/** Мягкая посадка: x при x ≥ 2k, парабола x²/4k до нуля (C¹), 0 ниже — хлопье тормозит и садится. */
+function softLand(x: number, k: number): number {
+  if (x >= 2 * k) return x - k
+  if (x <= 0) return 0
+  return (x * x) / (4 * k)
+}
+
 export function solutionExtentAt(m: SolutionModel, t: number): { w: number; h: number; cx: number; cy: number } {
   const S = m.step
   const T = internals(m)._T

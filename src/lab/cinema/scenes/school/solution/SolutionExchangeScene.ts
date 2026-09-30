@@ -21,6 +21,7 @@ import {
 } from './solutionModel'
 import type { SolutionSceneSpec } from './solutionSpec'
 import { SolutionMacroView, softDotTexture } from './solutionMacroView'
+import { createPhotoGlassMaterial, createPhotoRimMaterial, createTurbidMaterial, macroEnvironment, SolutionVolume, turbidSeeds } from './solutionPhotoLook'
 
 /**
  * ШКОЛЬНАЯ СЦЕНА «ОБМЕН В РАСТВОРЕ» (BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl) — класс на Three.js + GSAP с тем же
@@ -74,9 +75,25 @@ const TETRA_FACES = [
   [1, 3, 2],
 ] as const
 
+/**
+ * Ион (план § 5): полуматовый шар с бархатным отливом — roughness 0.45, sheen 0.6 светлым оттенком своего
+ * CPK-цвета (цвет экземпляра, смешанный с белым), тонкий лак clearcoat 0.15.
+ */
+const ION_LOOK = { roughness: 0.45, metalness: 0, sheen: 0.6, sheenRoughness: 0.5, clearcoat: 0.15, clearcoatRoughness: 0.35, specularIntensity: 0.35 } as const
+/** Доля белого в цвете отлива (светлый оттенок CPK). */
+const ION_SHEEN_TINT = 0.55
+
 /** Матовый шар с белой кромкой и свечением заряда по краю (френель) — цвет и сила из атрибута экземпляра aGlow. */
 function withChargeGlow(mat: THREE.MeshPhysicalMaterial): THREE.MeshPhysicalMaterial {
   mat.onBeforeCompile = (shader) => {
+    // отлив (sheen) — светлый оттенок цвета шара: sheenColor × mix(цвет экземпляра, белый)
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <lights_physical_fragment>',
+      `#include <lights_physical_fragment>
+#ifdef USE_SHEEN
+  material.sheenColor *= mix( diffuseColor.rgb, vec3( 1.0 ), ${ION_SHEEN_TINT.toFixed(2)} );
+#endif`,
+    )
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nattribute vec3 aGlow;\nvarying vec3 vGlow;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = aGlow;')
@@ -90,8 +107,20 @@ function withChargeGlow(mat: THREE.MeshPhysicalMaterial): THREE.MeshPhysicalMate
 }`,
     )
   }
-  mat.customProgramCacheKey = () => 'solution-charge-glow-1'
+  mat.customProgramCacheKey = () => 'solution-charge-glow-2'
   return mat
+}
+
+/** Подписи макро-кадра и итога этой сцены — «стеклянными» карточками (glass* в CinemaDomLabels). */
+const GLASS_NOTE_IDS = new Set(['tubeA', 'tubeB', 'precip', 'acid', 'resultAcid'])
+
+/** Вид подписи на экране: уравнения, выноски, плашки и пояснения — стеклянные карточки; символы и заряды — как были. */
+function glassKind(id: string, kind: string): string {
+  if (kind === 'equationPlate' || kind === 'equation') return 'glassEquation'
+  if (kind === 'measure') return 'glassMeasure'
+  if (kind === 'callout') return 'glassCallout'
+  if (kind === 'species' && GLASS_NOTE_IDS.has(id)) return 'glassNote'
+  return kind
 }
 
 export type SolutionSceneOptions = {
@@ -100,6 +129,11 @@ export type SolutionSceneOptions = {
   onCue?: (id: SolutionCueId) => void
   onStatus?: (status: SchoolStatus, step: number) => void
   lights?: SchoolLightRig
+  /**
+   * «Объём раствора» микромира — мягкая голубоватая глубина и редкие блики за частицами (школьный режим без
+   * молекул воды). По умолчанию выключен; меняется и на ходу — setSolutionVolume.
+   */
+  solutionVolume?: boolean
 }
 
 function atomColor(el: string, water: boolean, far = false): THREE.Color {
@@ -183,10 +217,18 @@ export class SolutionExchangeScene {
   private readonly edgeMat: THREE.LineBasicMaterial
   // макро
   private readonly glassGeo: THREE.LatheGeometry
-  /** стекло: френель (кромки светлые, середина прозрачна), обе стороны стенки */
-  private readonly glassMat: THREE.ShaderMaterial
+  /**
+   * стекло: desktop — физическое (transmission, ior 1.52, лак, окружение PMREM комнаты); телефон — френель
+   * (кромки светлые, середина прозрачна), обе стороны стенки
+   */
+  private readonly glassMat: THREE.ShaderMaterial | THREE.MeshPhysicalMaterial
   /** отогнутый край горлышка — тонкое кольцо */
-  private readonly rimMat: THREE.MeshBasicMaterial
+  private readonly rimMat: THREE.MeshBasicMaterial | THREE.MeshPhysicalMaterial
+  /** физическое стекло и жидкость (desktop): окружение PMREM ставится в warmup */
+  private readonly photo: boolean
+  /** «объём раствора» микромира (школьный режим) */
+  private readonly volume: SolutionVolume
+  private volumeK = 0
   private readonly rimGeo: THREE.TorusGeometry
   private readonly tubeA = new THREE.Group()
   private readonly tubeB = new THREE.Group()
@@ -204,7 +246,9 @@ export class SolutionExchangeScene {
   private readonly sedimentMat: THREE.MeshStandardMaterial
   private readonly sediment: THREE.Mesh
   private readonly turbidGeo: THREE.BufferGeometry
-  private readonly turbidMat: THREE.PointsMaterial
+  /** хлопья мути — мягкие спрайты рассеяния (сложение цвета), ярче в луче Тиндаля */
+  private readonly turbidMat: THREE.ShaderMaterial
+  private readonly _dbs = new THREE.Vector2()
   private readonly turbid: THREE.Points
   private readonly insideVis: Float32Array
   private readonly discs: Float32Array
@@ -294,7 +338,7 @@ export class SolutionExchangeScene {
       this.isWaterAtom[i] = water ? 1 : 0
       this.slotOf[i] = water ? nWater++ : nIon++
     })
-    this.ionMat = withChargeGlow(new THREE.MeshPhysicalMaterial({ color: 0xffffff, ...MATTE, transparent: true, fog: false }))
+    this.ionMat = withChargeGlow(new THREE.MeshPhysicalMaterial({ color: 0xffffff, ...ION_LOOK, sheenColor: new THREE.Color(0xffffff), transparent: true, fog: false }))
     this.ionGeo = this.sphere.clone()
     this.ionGlow = new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, nIon) * 3), 3)
     this.ionGlow.setUsage(THREE.DynamicDrawUsage)
@@ -551,9 +595,10 @@ export class SolutionExchangeScene {
       )
     this.latheSegments = opts.lowPower ? 28 : 48
     this.glassGeo = lathe(roundTestTubeProfile(R, H))
-    // Стекло без серой «заливки»: светятся только кромки (там взгляд идёт вдоль стенки), середина почти
-    // прозрачна — пробирка читается как стекло, жидкость и осадок видны сквозь неё.
-    this.glassMat = new THREE.ShaderMaterial({
+    this.photo = !opts.lowPower
+    // Desktop — физическое стекло (план § 5). Телефон: стекло без серой «заливки» — светятся только кромки
+    // (там взгляд идёт вдоль стенки), середина почти прозрачна; без transmission-пасса.
+    this.glassMat = this.photo ? createPhotoGlassMaterial(0.07 * R * K) : new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
@@ -584,28 +629,48 @@ export class SolutionExchangeScene {
         }
       `,
     })
-    this.rimMat = new THREE.MeshBasicMaterial({ color: 0xe8f4ff, transparent: true, opacity: 0.6, depthWrite: false, fog: false })
+    this.rimMat = this.photo ? createPhotoRimMaterial(0.07 * R * K) : new THREE.MeshBasicMaterial({ color: 0xe8f4ff, transparent: true, opacity: 0.6, depthWrite: false, fog: false })
     this.rimGeo = new THREE.TorusGeometry(R * 1.1 * K, R * 0.045 * K, 8, opts.lowPower ? 28 : 48)
     this.rimGeo.rotateX(Math.PI / 2)
     this.rimGeo.translate(0, H * K, 0)
     // жидкость, мениск, струя, пипетка, выноски, «лупа» — solutionMacroView
     this.macroView = new SolutionMacroView(m, opts.lowPower === true, SCHOOL_SCENE_BG)
     this.sedimentGeo = lathe(liquidProfile(R, R * 0.25 + 0.2 * H, 0.9))
-    this.sedimentMat = new THREE.MeshStandardMaterial({ color: 0xf4f6f8, roughness: 0.95, transparent: true, opacity: 0.96, fog: false })
+    this.sedimentMat = new THREE.MeshStandardMaterial({ color: 0xf4f6f8, roughness: 0.95, transparent: true, opacity: 0.96, fog: false, envMapIntensity: 0.55 })
     this.sediment = new THREE.Mesh(this.sedimentGeo, this.sedimentMat)
+    // слой осадка по уровням — заранее (без аллокаций и загрузки буферов посреди оседания)
+    for (let k = 1; k <= Math.ceil((R * 0.25 + 0.13 * H) / 4); k++) {
+      this.sedimentGeos.set(
+        k,
+        new THREE.LatheGeometry(
+          liquidProfile(R, k * 4, 0.9).map(([x, y]) => new THREE.Vector2(x * K, y * K)),
+          this.latheSegments,
+        ),
+      )
+    }
     this.turbidGeo = new THREE.BufferGeometry()
     this.turbidGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(m.turbidPoints * 3), 3))
-    // хлопья мути — мягкие круглые точки (не квадраты)
+    this.turbidGeo.setAttribute('aSeed', turbidSeeds(m.turbidPoints))
+    // хлопья мути — мягкие спрайты рассеяния (сложение цвета), размер растёт с перспективой
     this.dotTex = softDotTexture()
-    this.turbidMat = new THREE.PointsMaterial({ color: 0xffffff, map: this.dotTex, size: 50 * K, sizeAttenuation: true, transparent: true, opacity: 0, depthWrite: false, fog: false })
+    this.turbidMat = createTurbidMaterial(this.dotTex, 105 * K)
     this.turbid = new THREE.Points(this.turbidGeo, this.turbidMat)
     this.turbid.frustumCulled = false
+    this.turbid.renderOrder = 3
+    this.turbid.onBeforeRender = (renderer) => {
+      renderer.getDrawingBufferSize(this._dbs)
+      this.turbidMat.uniforms.uScale!.value = this._dbs.y * 0.5
+    }
     const glassA = new THREE.Mesh(this.glassGeo, this.glassMat)
     const glassB = new THREE.Mesh(this.glassGeo, this.glassMat)
     const rimA = new THREE.Mesh(this.rimGeo, this.rimMat)
     const rimB = new THREE.Mesh(this.rimGeo, this.rimMat)
     const mv = this.macroView
-    this.tubeA.add(mv.liquidA, mv.meniscus, this.sediment, this.turbid, glassA, rimA)
+    this.tubeA.add(mv.liquidA, mv.meniscus, this.sediment, this.turbid, mv.beam.mesh, mv.wallDrops.mesh, glassA, rimA)
+    {
+      const b = mv.beam.spec
+      ;(this.turbidMat.uniforms.uBeam!.value as THREE.Vector4).set(b.y, b.slope, b.halfW, b.r)
+    }
     this.tubeB.add(mv.liquidB, glassB, rimB)
     this.macro.add(this.tubeA, this.tubeB, mv.stream, mv.pipette, mv.drops, mv.callouts)
     // камера чуть выше пробирок: видны мениск и кромки устья
@@ -615,9 +680,15 @@ export class SolutionExchangeScene {
     mv.lens.renderOrder = 1
     this.micro.renderOrder = 2
     this.crystalFrame.renderOrder = 2
+    // «объём раствора» — первым в мире частиц (за ионами), виден только при включённом режиме
+    this.volume = new SolutionVolume(this.dotTex)
+    this.micro.add(this.volume.group)
+    // ?solutionVolume в адресе — проверка вида без переключателя режимов (кадры, отладка)
+    const forced = typeof location !== 'undefined' && new URLSearchParams(location.search).has('solutionVolume')
+    this.volumeK = opts.solutionVolume || forced ? 1 : 0
 
     // ——— подписи ———
-    this.labels = m.labels.map((l) => ({ id: l.id, kind: l.kind as SchoolLabelKind, pos: new THREE.Vector3(), opacity: 0, text: this.localize(l.text[this.locale]) }))
+    this.labels = m.labels.map((l) => ({ id: l.id, kind: glassKind(l.id, l.kind) as SchoolLabelKind, pos: new THREE.Vector3(), opacity: 0, text: this.localize(l.text[this.locale]) }))
     const macroIds = new Set(['tubeA', 'tubeB', 'precip', 'acid', 'nitric', 'phMacro'])
     this.isMacroLabel = Uint8Array.from(m.labels, (l) => (macroIds.has(l.id) ? 1 : 0))
     this.calloutLabels = m.labels.map((l, k) => (l.id === 'precip' || l.id === 'acid' || l.id === 'nitric' || l.id === 'phMacro' ? k : -1)).filter((k) => k >= 0)
@@ -754,7 +825,30 @@ export class SolutionExchangeScene {
     if (fovDeg > 1) this.viewportFov = fovDeg
   }
 
+  /** «Объём раствора» микромира: 0 — выключен (продвинутый режим), 1 — полностью (школьный режим). */
+  setSolutionVolume(k: number | boolean): void {
+    this.volumeK = typeof k === 'boolean' ? (k ? 1 : 0) : Math.max(0, Math.min(1, k))
+    this.appliedT = NaN
+  }
+
+  /** Окружение PMREM комнаты — только физическим материалам макро-слоя (desktop); свет других сцен не меняется. */
+  private applyMacroEnvironment(renderer: THREE.WebGLRenderer): void {
+    if (!this.photo) return
+    let env: THREE.Texture
+    try {
+      env = macroEnvironment(renderer)
+    } catch {
+      return
+    }
+    for (const m of [this.glassMat, this.rimMat, this.sedimentMat] as THREE.Material[]) {
+      ;(m as THREE.MeshStandardMaterial).envMap = env
+      m.needsUpdate = true
+    }
+    this.macroView.setEnvMap(env)
+  }
+
   async warmup(renderer: THREE.WebGLRenderer, camera: THREE.Camera, targetScene?: THREE.Scene): Promise<void> {
+    this.applyMacroEnvironment(renderer)
     const hidden: THREE.Object3D[] = []
     this.root.traverse((o) => {
       if (!o.visible) {
@@ -773,6 +867,28 @@ export class SolutionExchangeScene {
       for (const o of hidden) o.visible = false
       this.appliedT = NaN
     }
+    await this.waitProgramsReady(renderer)
+  }
+
+  /**
+   * Дождаться сборки программ (KHR_parallel_shader_compile): compile только ставит их в очередь, и первый кадр
+   * урока ждал бы сборку физического стекла и жидкости — фриз в начале шага 1. Опрос isReady по кадрам (без
+   * блокировки), не дольше ~1 с; сцену сняли — выходим.
+   */
+  private async waitProgramsReady(renderer: THREE.WebGLRenderer): Promise<void> {
+    const progs = renderer.info.programs as unknown as { isReady?: () => boolean }[] | null
+    if (!progs || typeof requestAnimationFrame !== 'function') return
+    for (let i = 0; i < 60 && !this.disposed; i++) {
+      let ready = true
+      for (const p of progs) {
+        if (p.isReady && !p.isReady()) {
+          ready = false
+          break
+        }
+      }
+      if (ready) return
+      await new Promise<void>((r) => requestAnimationFrame(() => r()))
+    }
   }
 
   dispose(): void {
@@ -782,6 +898,7 @@ export class SolutionExchangeScene {
     this.root.removeFromParent()
     this.edges.geometry.dispose()
     for (const x of [this.edgeMat, this.ionMat, this.waterAtomMat, this.stickMat, this.waterStickMat, this.bridgeMat, this.polyMat, this.dividerMat, this.glassMat, this.rimMat, this.sedimentMat, this.turbidMat, this.dotTex]) x.dispose()
+    this.volume.dispose()
     this.macroView.dispose()
     for (const x of [this.ions, this.waterAtoms, this.sticks, this.waterSticks, this.halos]) x.dispose()
     this.haloGeo.dispose()
@@ -996,12 +1113,20 @@ export class SolutionExchangeScene {
     setTube(this.tubeA, s.tubeA.x, s.tubeA.y, s.tubeA.rot)
     setTube(this.tubeB, s.tubeB.x, s.tubeB.y, s.tubeB.rot)
     this.tubeB.visible = s.tubeB.alpha > 0.01
-    this.glassMat.uniforms.uOpacity!.value = s.macroAlpha
-    this.rimMat.opacity = 0.6 * s.macroAlpha
+    if (this.glassMat instanceof THREE.ShaderMaterial) this.glassMat.uniforms.uOpacity!.value = s.macroAlpha
+    else {
+      this.glassMat.opacity = s.macroAlpha
+      this.glassMat.visible = s.macroAlpha > 0.004
+    }
+    this.rimMat.opacity = (this.photo ? 1 : 0.6) * s.macroAlpha
     // мутная жидкость белеет (облачко растекается), над осевшим осадком снова светлеет
-    this.macroView.update(s, m, this.tubeA, this.tubeB, 0.5 * s.turbidity * solutionSmooth(solutionMoments(m).pour1 - 0.7, solutionMoments(m).pour1 + 1.1, s.t))
+    const Tm = solutionMoments(m)
+    const milk = 0.5 * s.turbidity * solutionSmooth(Tm.pour1 - 0.7, Tm.pour1 + 1.1, s.t)
+    this.macroView.update(s, m, this.tubeA, this.tubeB, milk)
+    // брызги на стенке — во время сливания; луч Тиндаля — ∝ мутности (в прозрачном растворе луча не видно)
+    this.macroView.updatePhoto(solutionSmooth(Tm.pour0 + 0.15, Tm.pour1 + 0.3, s.t), 0.55 * Math.pow(solutionSmooth(0.35, 0.95, s.turbidity), 1.5), this.tubeA, s.tubeA.surface * K, s.macroAlpha)
     const sedH = m.tube.r * 0.25 + s.sediment * H
-    const sedKey = Math.max(1, Math.round(sedH / 4))
+    const sedKey = Math.min(this.sedimentGeos.size, Math.max(1, Math.round(sedH / 4)))
     if (sedKey !== this.sedimentKey) {
       let g = this.sedimentGeos.get(sedKey)
       if (!g) {
@@ -1019,14 +1144,38 @@ export class SolutionExchangeScene {
     const tp = this.turbidGeo.getAttribute('position') as THREE.BufferAttribute
     for (let i = 0; i < m.turbidPoints; i++) tp.setXYZ(i, s.turbidPos[i * 3]! * K, s.turbidPos[i * 3 + 1]! * K, s.turbidPos[i * 3 + 2]! * K)
     tp.needsUpdate = true
-    this.turbidMat.opacity = 0.95 * Math.min(1, 1.4 * s.turbidity) * s.macroAlpha
-    this.turbid.visible = this.turbidMat.opacity > 0.01
+    const tOp = Math.min(1, 1.4 * s.turbidity) * s.macroAlpha
+    this.turbidMat.uniforms.uOpacity!.value = 0.34 * tOp
+    this.turbidMat.uniforms.uBeamOn!.value = Math.min(1, 1.3 * s.turbidity)
+    this.turbid.visible = tOp > 0.01
+    this.applyVolume(s, lensOn)
     // ——— подписи ———
     for (let k = 0; k < this.labels.length; k++) {
       const l = this.labels[k]!
       l.pos.set(s.labelPos[k * 3]! * K, s.labelPos[k * 3 + 1]! * K, s.labelPos[k * 3 + 2]! * K)
       l.opacity = s.labelOpacity[k]! * (m.labels[k]!.kind === 'atom' || m.labels[k]!.kind === 'atomDark' ? this.insideVis[k]! : 1)
     }
+  }
+
+  /** «Объём раствора» (школьный режим): за частицами, во весь кадр микромира; в «лупе» — только внутри круга. */
+  private applyVolume(s: SolutionState, lensOn: boolean): void {
+    const fin = this.model.finish
+    const a = this.volumeK * s.microAlpha * (1 - solutionSmooth(fin.from, fin.from + 1.2, s.t))
+    if (a <= 0.004) {
+      this.volume.update(0, 0, 0, 0, 0, 1, 1, 0, 0, -1)
+      return
+    }
+    const e = solutionExtentAt(this.model, s.t)
+    const ms = Math.max(1e-6, s.microScale)
+    // центр и полуразмеры области — в системе мира частиц (micro: смещение и масштаб слоя)
+    const cx = (e.cx * K - this.micro.position.x) / ms
+    const cy = (e.cy * K - this.micro.position.y) / ms
+    const hw = (1.5 * Math.max(e.w, e.h * 1.7) * K) / ms
+    const hh = (1.3 * Math.max(e.h, e.w * 0.6) * K) / ms
+    const lx = lensOn ? (s.lens.c[0] * K - this.micro.position.x) / ms : 0
+    const ly = lensOn ? (s.lens.c[1] * K - this.micro.position.y) / ms : 0
+    const lr = lensOn ? (s.lens.r * K) / ms : -1
+    this.volume.update(a, s.t, cx, cy, (-900 * K) / ms, hw, hh, lx, ly, lr)
   }
 
   /**
@@ -1218,7 +1367,7 @@ export class SolutionExchangeScene {
     const pxPerUnit = px / depth
     for (const li of this.calloutLabels) {
       const l = this.labels[li]!
-      const halfPx = this.model.labels[li]!.kind === 'ph' ? PH_METER_W / 2 : (longestLine(l.text) * 6.9 + 18) / 2
+      const halfPx = this.model.labels[li]!.kind === 'ph' ? PH_METER_W / 2 : (longestLine(l.text) * 7.8 + 24) / 2
       l.pos.x = s.labelPos[li * 3]! * K + (halfPx + 6) / pxPerUnit
     }
   }
