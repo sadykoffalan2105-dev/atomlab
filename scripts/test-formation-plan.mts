@@ -109,6 +109,20 @@ const cuEn = ref('salt_cu_so4') ? formationTexts(ref('salt_cu_so4')!, 'en', OBTA
 ok(/Cu²⁺ — copper\(II\) ion/.test(cuEn), `CuSO₄ EN — «${cuEn}»`)
 const feRu = ref('salt_fe3_cl') ? formationTexts(ref('salt_fe3_cl')!, 'ru', OBTAINING.ru).steps[0].sub : ''
 ok(/Fe³⁺ — ион железа\(III\)/.test(feRu), `FeCl₃ RU — «${feRu}»`)
+// Связи «внутри корня» — только самого иона (у кристаллогидрата O–H воды туда не входит).
+const innerLabels = (id: string) => (ref(id)?.innerBonds ?? []).flatMap((x) => x.kinds.map((k) => k.label.replace(/[–=≡]/, '-')))
+ok(innerLabels('tb_cuso4_5h2o').every((l) => /^S-O$/.test(l)) && innerLabels('tb_cuso4_5h2o').length > 0, `CuSO₄·5H₂O — внутри SO₄²⁻ только S–O (${innerLabels('tb_cuso4_5h2o')})`)
+ok(innerLabels('salt_nh4_cl').join() === 'N-H', `NH₄Cl — внутри NH₄⁺ только N–H (${innerLabels('salt_nh4_cl')})`)
+for (const p of plans.values()) {
+  if (p.mode !== 'ionic') continue
+  for (const x of p.innerBonds) {
+    const sp = p.species.find((s) => s.formula === x.of)
+    const els = new Set(Object.keys(sp?.comp ?? {}))
+    ok(x.kinds.every((k) => k.label.split(/[–=≡]/).every((e) => els.has(e))), `${p.formula}: связи внутри ${x.of} — из его элементов (${x.kinds.map((k) => k.label)})`)
+  }
+}
+const nh4so4 = ref('salt_nh4_so4') ? formationTexts(ref('salt_nh4_so4')!, 'ru', OBTAINING.ru).steps[3].main : ''
+ok(/внутри NH₄⁺ \(в том числе донорно-акцепторная\) и SO₄²⁻/.test(nh4so4), `(NH₄)₂SO₄ RU — донорно-акцепторная только у NH₄⁺: «${nh4so4}»`)
 
 if (warnings.length) {
   console.log(`Предупреждения по моделям (${warnings.length}) — модели ведёт schoolHeroModel / геометрия каталога:`)

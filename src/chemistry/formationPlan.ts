@@ -92,6 +92,8 @@ export type FormationPlan = {
   balance: string | null
   /** ковалентные связи модели по видам: «S=O» ×2 */
   bondKinds: { label: string; count: number }[]
+  /** ионное: связи внутри одного многоатомного иона каждого вида (SO₄²⁻: S–O ×4), без воды и других частиц */
+  innerBonds: { of: string; kinds: { label: string; count: number }[] }[]
   shapes: FormationShape[]
   crystal: boolean
   /** есть ли 3D-модель */
@@ -718,6 +720,19 @@ function buildPlan(compoundId: string): FormationPlan | null {
   }
   const bondOrder = model ? bondSequence(model, covalentBonds) : []
 
+  // Связи внутри многоатомных ионов — по одному иону каждого вида (в том же порядке, что и частицы).
+  const innerBonds: FormationPlan['innerBonds'] = []
+  if (model && mode === 'ionic') {
+    species.forEach((sp, si) => {
+      if (sp.kind !== 'polyion') return
+      const u = units.find((x) => x.species === si)
+      if (!u) return
+      const own = new Set(u.atoms)
+      const idx = covalentBonds.filter((k) => own.has(model.bonds[k]!.a) && own.has(model.bonds[k]!.b))
+      if (idx.length) innerBonds.push({ of: sp.formula, kinds: bondKinds(model, idx) })
+    })
+  }
+
   // Валентности (ковалентное).
   let alsoNonpolar = false
   if (mode === 'molecular' && model) {
@@ -772,14 +787,13 @@ function buildPlan(compoundId: string): FormationPlan | null {
     }
   }
   if (model && mode === 'ionic') {
-    const seen = new Set<number>()
-    for (const u of units) {
-      const s = species[u.species]!
-      if (u.atoms.length < 2 || seen.has(u.species)) continue
-      seen.add(u.species)
+    // По одной частице каждого вида, в порядке частиц формулы (SO₄²⁻, затем H₂O).
+    species.forEach((s, si) => {
+      const u = units.find((x) => x.species === si && x.atoms.length >= 2)
+      if (!u) return
       const sh = shapeOfGroup(model, u.atoms, covalentBonds, s.formula)
       if (sh) shapes.push(sh)
-    }
+    })
     if (!crystal) shapes.push({ key: 'formula-unit', of: '' })
   }
   if (!model && mode === 'ionic') shapes.push({ key: 'formula-unit', of: '' })
@@ -800,6 +814,7 @@ function buildPlan(compoundId: string): FormationPlan | null {
     species,
     balance,
     bondKinds: model ? bondKinds(model, covalentBonds) : [],
+    innerBonds,
     shapes,
     crystal: !!crystal,
     hasModel: !!model,

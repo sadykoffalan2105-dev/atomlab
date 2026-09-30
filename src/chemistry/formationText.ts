@@ -116,7 +116,7 @@ const joinList = (items: readonly string[], loc: FormationLocale): string => {
 
 const SHAPE: Record<FormationShape['key'], [string, string, string]> = {
   linear: ['линейная', 'linear', 'chiziqli'],
-  angular: ['угловая', 'bent (angular)', 'burchakli'],
+  angular: ['угловая', 'bent', 'burchakli'],
   'trigonal-planar': ['плоский треугольник', 'trigonal planar', 'yassi uchburchak'],
   'trigonal-pyramidal': ['треугольная пирамида', 'trigonal pyramid', 'uchburchakli piramida'],
   tetrahedral: ['тетраэдр', 'tetrahedron', 'tetraedr'],
@@ -214,9 +214,10 @@ function bondTypeText(p: FormationPlan, loc: FormationLocale): string {
     loc === 'ru' ? `${kind} — внутри ${joinList(list, loc)}` : loc === 'en' ? `${kind} inside ${joinList(list, loc)}` : `${joinList(list, loc)} ichida — ${kind}`
   const out = [between]
   if (polarIn.length) {
-    let k = polar
-    if (da.length) k += loc === 'ru' ? ' (в том числе донорно-акцепторная)' : loc === 'en' ? ' (including donor–acceptor)' : ' (shu jumladan donor-akseptor)'
-    out.push(inside(k, polarIn))
+    const daNote = loc === 'ru' ? ' (в том числе донорно-акцепторная)' : loc === 'en' ? ' (including donor–acceptor)' : ' (shu jumladan donor-akseptor)'
+    // Одна частица — пометка к виду связи; несколько — только у той, где она есть: «внутри NH₄⁺ (…) и SO₄²⁻».
+    if (da.length && polarIn.length === 1) out.push(inside(polar + daNote, polarIn))
+    else out.push(inside(polar, polarIn.map((f) => (da.includes(f) ? f + daNote : f))))
   }
   if (nonpolarIn.length) out.push(inside(nonpolar, nonpolarIn))
   return out.join('; ')
@@ -241,7 +242,8 @@ function step3Sub(p: FormationPlan, loc: FormationLocale): string {
         : 'Qarama-qarshi zaryadlangan ionlar bir-biriga tortiladi — ular orasida umumiy elektron juft yoʻq, shuning uchun tayoqchalar ham yoʻq.'
   const inner = p.species.filter((x) => x.kind === 'polyion').map((x) => x.formula)
   if (inner.length) {
-    const kinds = p.bondKinds.map((b) => `${b.label} ×${b.count}`).join(', ')
+    // Только связи внутри самих ионов (у кристаллогидрата O–H воды сюда не входят).
+    const kinds = p.innerBonds.map((x) => x.kinds.map((b) => `${b.label} ×${b.count}`).join(', ')).join('; ')
     s +=
       loc === 'ru'
         ? ` Внутри ${joinList(inner, loc)} атомы связаны ковалентно${kinds ? ` (${kinds})` : ''}.`
