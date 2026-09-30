@@ -51,6 +51,10 @@ const KIND_STYLE: Record<string, string> = {
   species:
     'font: 600 14px/1.1 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em;' +
     'text-shadow: 0 0 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.8);',
+  // Подпись вещества в несколько строк (перевод строки в тексте) — выноска школьного режима BaSO₄.
+  speciesLines:
+    'font: 600 14px/1.2 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em; white-space: pre-line; text-align: left;' +
+    'text-shadow: 0 0 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.8);',
   delta:
     'font: italic 700 15px/1 "Times New Roman", Georgia, serif; color: #8fe6ff; text-shadow: 0 0 8px rgba(0,0,0,0.9);',
   // Размер (длина, параметр ячейки): прямой шрифт героя на тёмной плашке — читается поверх сфер.
@@ -85,6 +89,43 @@ const KIND_STYLE: Record<string, string> = {
     'font: 500 13px/1.42 "Inter", system-ui, sans-serif; color: #fff4e3; padding: 8px 13px 9px; border-radius: 10px;' +
     'white-space: pre-line; text-align: left; background: rgba(28, 16, 6, 0.9); border: 1px solid rgba(255, 184, 96, 0.7);' +
     'box-shadow: 0 0 18px rgba(255, 170, 70, 0.28), 0 6px 22px rgba(0,0,0,0.5);',
+  // pH-метр (renderPh): стеклянная карточка фиксированной ширины (labelLayout FIXED_BOX) — шкала 0–14 и подпись.
+  ph:
+    'box-sizing: border-box; width: 232px; padding: 9px 12px 10px; border-radius: 12px; white-space: normal;' +
+    'font: 600 12.5px/1.35 "Inter", system-ui, sans-serif; color: #eef6ff; text-align: left;' +
+    'background: linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 55%), rgba(10, 18, 36, 0.52);' +
+    '-webkit-backdrop-filter: blur(10px) saturate(1.25); backdrop-filter: blur(10px) saturate(1.25);' +
+    'border: 1px solid rgba(214, 232, 255, 0.34); box-shadow: 0 8px 26px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.18);',
+}
+
+/** Ширина карточки pH-метра, px: 232 на широком холсте, на узком — меньше половины его ширины (не меньше 176). */
+function phWidth(canvasW: number): number {
+  return Math.round(Math.min(232, Math.max(176, canvasW * 0.46)))
+}
+
+/**
+ * pH-метр: «pH», шкала 0–14 (красная → зелёная → синяя), стрелка в кислой зоне (без точного числа — концентрации
+ * в опыте не заданы) и подпись. Всё — узлами с textContent, без HTML из строки.
+ */
+function renderPh(el: HTMLDivElement, caption: string): void {
+  const node = (tag: string, css: string, text = '') => {
+    const n = document.createElement(tag)
+    n.style.cssText = css
+    if (text) n.textContent = text
+    return n
+  }
+  const head = node('div', 'display:flex;align-items:center;gap:8px;margin-bottom:5px;')
+  head.append(node('span', 'font-weight:800;font-size:13px;letter-spacing:0.02em;color:#ffffff;', 'pH'))
+  const track = node('div', 'position:relative;flex:1;height:9px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.25);' +
+    'background:linear-gradient(90deg,#e5322d 0%,#f07a26 14%,#f5c928 29%,#8fcf3a 43%,#2fb36b 50%,#1e9fb0 64%,#2f6fd8 79%,#5b3fb8 100%);')
+  // стрелка — в красной (кислой) зоне
+  track.append(node('span', 'position:absolute;left:12%;top:-8px;width:0;height:0;transform:translateX(-50%);' +
+    'border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #ffffff;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7));'))
+  track.append(node('span', 'position:absolute;left:12%;top:-1px;bottom:-1px;width:2px;transform:translateX(-50%);background:#ffffff;box-shadow:0 0 4px rgba(0,0,0,0.6);'))
+  head.append(track)
+  const ticks = node('div', 'display:flex;justify-content:space-between;margin:0 0 5px 30px;font-size:10.5px;font-weight:600;color:rgba(230,240,255,0.72);font-variant-numeric:tabular-nums;')
+  for (const x of ['0', '7', '14']) ticks.append(node('span', '', x))
+  el.replaceChildren(head, ticks, node('div', '', caption))
 }
 
 /** Разделитель частей уравнения (как EQUATION_PART_SEP школьной сцены). */
@@ -146,6 +187,7 @@ function writeLabel(n: LabelNode, src: DomLabelSource, px: number, py: number, s
   }
   if (n.text !== src.text) {
     if (src.kind === 'equation' && src.text.includes(EQ_SEP)) renderEquation(n.el, src.text)
+    else if (src.kind === 'ph') renderPh(n.el, src.text)
     else n.el.textContent = src.text
     n.text = src.text
   }
@@ -220,6 +262,7 @@ export function CinemaDomLabels({
         'position:absolute; left:0; top:0; white-space:nowrap; will-change:transform,opacity; opacity:0; display:none;' +
         (KIND_STYLE[l.kind] ?? KIND_STYLE.species)
       if (l.kind === 'equation' && l.text.includes(EQ_SEP)) renderEquation(el, l.text)
+      else if (l.kind === 'ph') renderPh(el, l.text)
       else el.textContent = l.text
       layer.appendChild(el)
       return { el, text: l.text, shown: false, ox: '', x: NaN, y: NaN, opacity: NaN, scale: NaN }
@@ -264,6 +307,16 @@ export function CinemaDomLabels({
       estimateLabelSize(src.kind, src.text, scale, _size)
       b.w[i] = _size.w
       b.h[i] = _size.h
+      if (src.kind === 'ph') {
+        // карточка pH-метра на узком холсте (телефон) — уже половины кадра, подпись в две строки (высота та же)
+        const pw = phWidth(w)
+        if (pw < _size.w) b.w[i] = pw * scale
+        const node = list[i]
+        if (node && node.ox !== String(pw)) {
+          node.el.style.width = `${pw}px`
+          node.ox = String(pw)
+        }
+      }
     }
     // 2) раскладка: зажим в свободную область и разнос по вертикали
     if (layout) {

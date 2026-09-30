@@ -733,6 +733,28 @@ for (const spec of solutionSpecs) {
     }
   }
   for (const loc of SCHOOL_LOCALES) ok(`${P} итог [${loc}] = уравнение реакции`, spec.steps.find((s) => s.id === 'result')!.text[loc].equation === r.equation)
+  // школьный режим (docs/plans/baso4-modes.md): тексты шагов заполнены, числа — из ядра / страниц / facts,
+  // без H₃O⁺ и HSO₄⁻, итог — три уравнения РИО со знаком «=» (молекулярное = уравнению учебника)
+  if (spec.school) {
+    const sc = spec.school
+    const eqs = [sc.equations.molecular.formula, sc.equations.full.formula, sc.equations.short.formula]
+    ok(`${P} школьный: молекулярное = уравнению учебника со знаком «=»`, eqs[0] === r.equation.replace('→', '='))
+    ok(`${P} школьный: сокращённое ионное = ${r.ionicShort.replace('→', '=')}`, eqs[2] === r.ionicShort.replace('→', '=') && eqs[1] === r.ionicFull.replace('→', '='))
+    for (const id of SOLUTION_STEP_IDS) {
+      for (const loc of SCHOOL_LOCALES) {
+        const tx = sc.steps[id][loc]
+        for (const k of ['title', 'body', 'equation', 'note', 'speak'] as const) {
+          ok(`${P} школьный ${id} [${loc}] ${k} заполнено`, tx[k].trim().length > 0)
+          for (const n of numbers(tx[k])) {
+            if (isCount(n)) continue
+            ok(`${P} школьный ${id} [${loc}] ${k}: число ${n.raw} из ядра / страниц / facts`, allowed.some((v) => matches(n, v)), tx[k].slice(0, 90))
+          }
+        }
+        ok(`${P} школьный ${id} [${loc}]: без H₃O⁺, HSO₄⁻ и энергетики`, !/H₃O|HSO₄|кДж|kJ|ΔH/.test(JSON.stringify(tx)))
+      }
+    }
+    for (const loc of SCHOOL_LOCALES) ok(`${P} школьный итог [${loc}] = три уравнения РИО`, sc.steps.result[loc].equation.split(/\s*;\s*/).join('|') === eqs.join('|'))
+  }
   ok(`${P} уровни: пробирка — 7 кл., ионы — 9 кл., кристаллик — 8 кл.`, spec.steps.find((s) => s.id === 'ions')?.level === 9 && spec.steps.find((s) => s.id === 'nucleus')?.level === 8 && spec.steps.find((s) => s.id === 'tubes')?.level === 7)
   ok(`${P} есть оговорки и наблюдения`, spec.caveats.length > 0 && spec.observations.length > 0)
 }

@@ -411,6 +411,8 @@ export type SchoolScienceSpec = {
  */
 export const SOLUTION_STEP_IDS = ['tubes', 'ions', 'meet', 'nucleus', 'settle', 'result'] as const
 export type SolutionStepId = (typeof SOLUTION_STEP_IDS)[number]
+/** Режим сцены «обмен в растворе»: школьный стандарт (по умолчанию) или продвинутый (научный). */
+export type SolutionMode = 'school' | 'advanced'
 
 export type SolutionStepSpec = {
   readonly id: SolutionStepId
@@ -516,7 +518,42 @@ export type SolutionScienceSpec = {
     readonly spectators: L10n
     /** итог: сверка атомов слева и справа */
     readonly balance: L10n
+    /** pH-метр в кадре (шаги «осадок» и «итог», оба режима): «pH < 7 — кислая среда (ионы H⁺)» */
+    readonly ph: L10n
   }
   readonly steps: readonly SolutionStepSpec[]
   readonly caveats: readonly Caveat[]
+  /**
+   * Школьный режим (по умолчанию; docs/plans/baso4-modes.md): стандарт ОГЭ/ЕГЭ — ион водорода H⁺ (без H₃O⁺),
+   * без молекул воды и гидратных оболочек, осадок без рамки ячейки и полиэдров, уравнения со знаком «=».
+   * Научные тексты выше — продвинутый режим.
+   */
+  readonly school?: SolutionSchoolTexts
+}
+
+/** Уравнение реакции ионного обмена с подписью карточки («Молекулярное», «Полное ионное», …). */
+export type SolutionEquationCard = { readonly label: L10n; readonly formula: string }
+
+/** Тексты и подписи школьного режима сцены «обмен в растворе». */
+export type SolutionSchoolTexts = {
+  /** уравнения школьного стандарта (знак «=»): молекулярное, полное и сокращённое ионные */
+  readonly equations: { readonly molecular: SolutionEquationCard; readonly full: SolutionEquationCard; readonly short: SolutionEquationCard }
+  readonly safety: L10n
+  readonly legend: {
+    readonly ion: L10n
+    /** свечение по краю шара — знак заряда */
+    readonly charge: L10n
+    readonly stick: L10n
+    readonly precipitate: L10n
+  }
+  /** подписи микромира и макро-выноски школьного режима (без H₃O⁺) */
+  readonly captions: {
+    readonly acid: L10n
+    readonly spectators: L10n
+    readonly precipitate: L10n
+    readonly acidCallout: L10n
+    readonly nitric: L10n
+  }
+  /** тексты шагов (RU — дословно из плана; EN/UZ — точный перевод) */
+  readonly steps: Readonly<Record<SolutionStepId, Readonly<Record<SchoolLocale, SchoolStepText>>>>
 }

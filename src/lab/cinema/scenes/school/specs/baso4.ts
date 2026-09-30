@@ -18,7 +18,7 @@
  * Проверка: scripts/test-school-specs.mts (раздел «Обмен в растворе») и scripts/test-solution-scene.mts.
  */
 import { ref } from './core'
-import type { Caveat, ParticleSpec, SolutionScienceSpec, TextbookRef } from './types'
+import type { Caveat, ParticleSpec, SolutionSchoolTexts, SolutionScienceSpec, TextbookRef } from './types'
 
 // ─── Учебники ────────────────────────────────────────────────────────────────
 
@@ -378,6 +378,198 @@ const CAVEATS: readonly Caveat[] = [
   },
 ]
 
+// ─── Школьный режим (по умолчанию): стандарт ОГЭ/ЕГЭ ─────────────────────────
+// docs/plans/baso4-modes.md, § 2–3: RU — дословно из плана, EN/UZ — точный перевод (формулы и числа те же).
+// Ион водорода — H⁺ (без H₃O⁺), воды и гидратных оболочек нет, диссоциация H₂SO₄ — только полная,
+// уравнения — со знаком «=». Химия проверена по Kimyo 8 § 32 (с. 138–139), Kimyo 9 § 3–6 (с. 20–31).
+
+const EQ_MOLECULAR = 'BaCl₂ + H₂SO₄ = BaSO₄↓ + 2HCl'
+const EQ_FULL = 'Ba²⁺ + 2Cl⁻ + 2H⁺ + SO₄²⁻ = BaSO₄↓ + 2H⁺ + 2Cl⁻'
+const EQ_SHORT = 'Ba²⁺ + SO₄²⁻ = BaSO₄↓'
+const EQ_ALL = `${EQ_MOLECULAR};  ${EQ_FULL};  ${EQ_SHORT}`
+
+const BASO4_SCHOOL: SolutionSchoolTexts = {
+  equations: {
+    molecular: { label: { ru: 'Молекулярное', en: 'Molecular', uz: 'Molekulyar' }, formula: EQ_MOLECULAR },
+    full: { label: { ru: 'Полное ионное', en: 'Full ionic', uz: 'Toʻliq ionli' }, formula: EQ_FULL },
+    short: { label: { ru: 'Сокращённое ионное', en: 'Net ionic', uz: 'Qisqartirilgan ionli' }, formula: EQ_SHORT },
+  },
+  safety: {
+    ru: 'BaCl₂ ядовит, серная кислота едкая. Опыт — только с учителем, в очках и перчатках; остатки с солями бария — в отдельную ёмкость.',
+    en: 'BaCl₂ is poisonous, sulfuric acid is corrosive. The experiment is done only with the teacher, in goggles and gloves; residues with barium salts go into a separate container.',
+    uz: 'BaCl₂ zaharli, sulfat kislota oʻyuvchi. Tajriba — faqat oʻqituvchi bilan, koʻzoynak va qoʻlqopda; bariy tuzlari qoldiqlari — alohida idishga.',
+  },
+  legend: {
+    ion: {
+      ru: 'Шар с символом — ион: Ba²⁺ (изумрудный), Cl⁻ (светло-зелёный, крупнее), H⁺ (маленький белый), сульфат-ион SO₄²⁻ (сера и четыре кислорода). Цвета шаров условные: растворы бесцветные.',
+      en: 'A ball with a symbol is an ion: Ba²⁺ (emerald), Cl⁻ (light green, bigger), H⁺ (small, white), the sulfate ion SO₄²⁻ (sulfur and four oxygens). The ball colours are only symbols: the solutions are colourless.',
+      uz: 'Belgili shar — ion: Ba²⁺ (zumrad), Cl⁻ (och yashil, kattaroq), H⁺ (kichkina, oq), sulfat ioni SO₄²⁻ (oltingugurt va toʻrtta kislorod). Sharlar ranglari shartli: eritmalar rangsiz.',
+    },
+    charge: {
+      ru: 'Тёплое свечение по краю шара — заряд «+», холодное — «−». Разноимённые заряды притягиваются.',
+      en: 'A warm glow at the edge of a ball means charge «+», a cold one «−». Opposite charges attract.',
+      uz: 'Shar chetidagi iliq nur — «+» zaryad, sovuq nur — «−». Qarama-qarshi zaryadlar tortishadi.',
+    },
+    stick: {
+      ru: 'Серая палочка — связь S–O внутри сульфат-иона. Между ионами палочек нет: их держит притяжение зарядов.',
+      en: 'A grey stick is an S–O bond inside the sulfate ion. There are no sticks between ions: they are held by the attraction of charges.',
+      uz: 'Kulrang tayoqcha — sulfat ioni ichidagi S–O bogʻi. Ionlar orasida tayoqcha yoʻq: ularni zaryadlar tortishuvi ushlab turadi.',
+    },
+    precipitate: {
+      ru: 'Белая муть и слой на дне — осадок BaSO₄↓; в кадре частиц — кристаллик из ионов Ba²⁺ и SO₄²⁻.',
+      en: 'The white cloudiness and the layer at the bottom are the BaSO₄↓ precipitate; in the particle view it is a tiny crystal of Ba²⁺ and SO₄²⁻ ions.',
+      uz: 'Oq loyqa va tubdagi qatlam — BaSO₄↓ choʻkmasi; zarrachalar kadrida — Ba²⁺ va SO₄²⁻ ionlaridan iborat kristallcha.',
+    },
+  },
+  captions: {
+    acid: { ru: 'соляная кислота: H⁺ + Cl⁻', en: 'hydrochloric acid: H⁺ + Cl⁻', uz: 'xlorid kislota: H⁺ + Cl⁻' },
+    spectators: { ru: 'H⁺ и Cl⁻ не соединяются', en: 'H⁺ and Cl⁻ do not join', uz: 'H⁺ va Cl⁻ birikmaydi' },
+    precipitate: { ru: 'осадок BaSO₄↓ (белый)', en: 'BaSO₄↓ precipitate (white)', uz: 'BaSO₄↓ choʻkma (oq)' },
+    acidCallout: { ru: 'раствор соляной кислоты (H⁺ и Cl⁻)', en: 'hydrochloric acid solution (H⁺ and Cl⁻)', uz: 'xlorid kislota eritmasi (H⁺ va Cl⁻)' },
+    nitric: { ru: '+ HNO₃ — осадок не растворяется', en: '+ HNO₃ — the precipitate does not dissolve', uz: '+ HNO₃ — choʻkma erimaydi' },
+  },
+  steps: {
+    tubes: {
+      ru: {
+        title: 'Что видно в пробирке',
+        body: 'Два бесцветных прозрачных раствора: хлорид бария BaCl₂ и разбавленная серная кислота H₂SO₄. Приливаем кислоту к раствору соли — сразу появляется белая муть, а затем на дно оседает белый осадок. Образование осадка — признак химической реакции.',
+        equation: 'BaCl₂ + H₂SO₄ → ?',
+        note: 'Нагревать не нужно — реакция идёт сразу при сливании растворов.',
+        speak: 'Два бесцветных раствора дали белый осадок — значит, прошла химическая реакция.',
+      },
+      en: {
+        title: 'What we see in the test tube',
+        body: 'Two colourless clear solutions: barium chloride BaCl₂ and dilute sulfuric acid H₂SO₄. We pour the acid into the salt solution — a white cloudiness appears at once, and then a white precipitate settles to the bottom. The formation of a precipitate is a sign of a chemical reaction.',
+        equation: 'BaCl₂ + H₂SO₄ → ?',
+        note: 'No heating is needed — the reaction happens as soon as the solutions are mixed.',
+        speak: 'Two colourless solutions gave a white precipitate — so a chemical reaction has taken place.',
+      },
+      uz: {
+        title: 'Probirkada nima koʻrinadi',
+        body: 'Ikkita rangsiz tiniq eritma: bariy xlorid BaCl₂ va suyultirilgan sulfat kislota H₂SO₄. Kislotani tuz eritmasiga quyamiz — darhol oq loyqa paydo boʻladi, keyin tubga oq choʻkma tushadi. Choʻkma hosil boʻlishi — kimyoviy reaksiya belgisi.',
+        equation: 'BaCl₂ + H₂SO₄ → ?',
+        note: 'Qizdirish kerak emas — eritmalar qoʻshilishi bilan reaksiya darhol boradi.',
+        speak: 'Ikkita rangsiz eritma oq choʻkma berdi — demak, kimyoviy reaksiya bordi.',
+      },
+    },
+    ions: {
+      ru: {
+        title: 'Из чего состоят растворы',
+        body: 'В воде соль и кислота распадаются на ионы — заряженные частицы. Хлорид бария даёт ион бария Ba²⁺ и два хлорид-иона Cl⁻. Серная кислота — сильная кислота: она даёт два иона водорода H⁺ и сульфат-ион SO₄²⁻ — кислотный остаток из одного атома серы и четырёх атомов кислорода с общим зарядом 2−. Такой распад на ионы называют электролитической диссоциацией.',
+        equation: 'BaCl₂ → Ba²⁺ + 2Cl⁻;  H₂SO₄ → 2H⁺ + SO₄²⁻',
+        note: 'Заряд иона совпадает с валентностью: барий II — Ba²⁺, кислотный остаток SO₄ II — SO₄²⁻. В каждом растворе сумма зарядов равна нулю.',
+        speak: 'В растворах нет молекул соли и кислоты — есть ионы: Ba²⁺ и Cl⁻, H⁺ и SO₄²⁻.',
+      },
+      en: {
+        title: 'What the solutions are made of',
+        body: 'In water the salt and the acid break up into ions — charged particles. Barium chloride gives a barium ion Ba²⁺ and two chloride ions Cl⁻. Sulfuric acid is a strong acid: it gives two hydrogen ions H⁺ and a sulfate ion SO₄²⁻ — an acid residue of one sulfur atom and four oxygen atoms with a common charge of 2−. This breaking up into ions is called electrolytic dissociation.',
+        equation: 'BaCl₂ → Ba²⁺ + 2Cl⁻;  H₂SO₄ → 2H⁺ + SO₄²⁻',
+        note: 'The charge of an ion equals its valence: barium II — Ba²⁺, the acid residue SO₄ II — SO₄²⁻. In each solution the sum of the charges is zero.',
+        speak: 'The solutions contain no salt or acid molecules — only ions: Ba²⁺ and Cl⁻, H⁺ and SO₄²⁻.',
+      },
+      uz: {
+        title: 'Eritmalar nimadan iborat',
+        body: 'Suvda tuz va kislota ionlarga — zaryadli zarrachalarga ajraladi. Bariy xlorid bariy ioni Ba²⁺ va ikkita xlorid ioni Cl⁻ ni beradi. Sulfat kislota — kuchli kislota: u ikkita vodorod ioni H⁺ va sulfat ioni SO₄²⁻ ni beradi — bitta oltingugurt atomi va toʻrtta kislorod atomidan iborat, umumiy zaryadi 2− boʻlgan kislota qoldigʻi. Ionlarga bunday ajralish elektrolitik dissotsilanish deyiladi.',
+        equation: 'BaCl₂ → Ba²⁺ + 2Cl⁻;  H₂SO₄ → 2H⁺ + SO₄²⁻',
+        note: 'Ion zaryadi valentlikka teng: bariy II — Ba²⁺, SO₄ kislota qoldigʻi II — SO₄²⁻. Har bir eritmada zaryadlar yigʻindisi nolga teng.',
+        speak: 'Eritmalarda tuz va kislota molekulalari yoʻq — ionlar bor: Ba²⁺ va Cl⁻, H⁺ va SO₄²⁻.',
+      },
+    },
+    meet: {
+      ru: {
+        title: 'Ионы встречаются',
+        body: 'Растворы смешиваются, ионы беспорядочно движутся. Разноимённо заряженные ионы притягиваются. Ионы Ba²⁺ и SO₄²⁻ связываются прочно — получается вещество, которое почти не растворяется в воде. Ионы H⁺ и Cl⁻ тоже встречаются, но остаются в растворе свободными: осадка они не образуют.',
+        equation: 'Ba²⁺ + SO₄²⁻ → …',
+        note: 'Реакция ионного обмена идёт до конца, если образуется осадок, газ или вода. Здесь — осадок BaSO₄.',
+        speak: 'Ba²⁺ и SO₄²⁻ притягиваются и держатся вместе, а H⁺ и Cl⁻ остаются в растворе.',
+      },
+      en: {
+        title: 'The ions meet',
+        body: 'The solutions mix, and the ions move about randomly. Oppositely charged ions attract each other. The ions Ba²⁺ and SO₄²⁻ bind firmly — a substance forms that hardly dissolves in water. The ions H⁺ and Cl⁻ also meet, but they stay free in the solution: they do not form a precipitate.',
+        equation: 'Ba²⁺ + SO₄²⁻ → …',
+        note: 'An ion exchange reaction goes to completion if a precipitate, a gas or water forms. Here it is the BaSO₄ precipitate.',
+        speak: 'Ba²⁺ and SO₄²⁻ attract and hold together, while H⁺ and Cl⁻ stay in the solution.',
+      },
+      uz: {
+        title: 'Ionlar uchrashadi',
+        body: 'Eritmalar aralashadi, ionlar tartibsiz harakatlanadi. Qarama-qarshi zaryadli ionlar tortishadi. Ba²⁺ va SO₄²⁻ ionlari mustahkam bogʻlanadi — suvda deyarli erimaydigan modda hosil boʻladi. H⁺ va Cl⁻ ionlari ham uchrashadi, lekin eritmada erkin qoladi: ular choʻkma hosil qilmaydi.',
+        equation: 'Ba²⁺ + SO₄²⁻ → …',
+        note: 'Ion almashinish reaksiyasi choʻkma, gaz yoki suv hosil boʻlsa, oxirigacha boradi. Bu yerda — BaSO₄ choʻkmasi.',
+        speak: 'Ba²⁺ va SO₄²⁻ tortishib birga turadi, H⁺ va Cl⁻ esa eritmada qoladi.',
+      },
+    },
+    nucleus: {
+      ru: {
+        title: 'Образуется осадок',
+        body: 'Ионы бария и сульфат-ионы собираются и укладываются в строгом порядке — растёт крошечный кристаллик сульфата бария. Таких кристалликов миллиарды, поэтому раствор мутнеет. Сульфат бария — вещество ионного строения: он состоит из ионов Ba²⁺ и SO₄²⁻, отдельных молекул BaSO₄ нет.',
+        equation: EQ_SHORT,
+        note: 'Стрелка ↓ после формулы означает «выпадает в осадок».',
+        speak: 'Ионы бария и сульфат-ионы встают в строгом порядке — так растёт кристаллик осадка.',
+      },
+      en: {
+        title: 'A precipitate forms',
+        body: 'Barium ions and sulfate ions gather and line up in a strict order — a tiny crystal of barium sulfate grows. There are billions of such tiny crystals, which is why the solution turns cloudy. Barium sulfate is a substance of ionic structure: it consists of Ba²⁺ and SO₄²⁻ ions; there are no separate BaSO₄ molecules.',
+        equation: EQ_SHORT,
+        note: 'The arrow ↓ after a formula means «drops out as a precipitate».',
+        speak: 'Barium ions and sulfate ions line up in a strict order — this is how a tiny crystal of the precipitate grows.',
+      },
+      uz: {
+        title: 'Choʻkma hosil boʻladi',
+        body: 'Bariy ionlari va sulfat ionlari yigʻilib, qatʼiy tartibda joylashadi — bariy sulfatning kichkina kristallchasi oʻsadi. Bunday kristallchalar milliardlab, shuning uchun eritma loyqalanadi. Bariy sulfat — ionli tuzilishli modda: u Ba²⁺ va SO₄²⁻ ionlaridan iborat, alohida BaSO₄ molekulalari yoʻq.',
+        equation: EQ_SHORT,
+        note: 'Formuladan keyingi ↓ strelka «choʻkmaga tushadi» degani.',
+        speak: 'Bariy ionlari va sulfat ionlari qatʼiy tartibda joylashadi — choʻkma kristallchasi shunday oʻsadi.',
+      },
+    },
+    settle: {
+      ru: {
+        title: 'Осадок и соляная кислота',
+        body: 'Кристаллики тяжёлые и оседают на дно. BaSO₄ — белый мелкокристаллический осадок, нерастворимый в воде и сильных кислотах (HCl, HNO₃). Поэтому это качественная реакция: по белому осадку узнают сульфат-ион SO₄²⁻, а с помощью сульфатов или серной кислоты — ион бария Ba²⁺. Над осадком остаётся раствор соляной кислоты — ионы H⁺ и Cl⁻; среда кислая, pH < 7.',
+        equation: 'над осадком: H⁺ + Cl⁻ (соляная кислота)',
+        note: 'Добавим азотную кислоту HNO₃ — осадок не растворяется. Так BaSO₄ отличают от белых осадков BaCO₃ и BaSO₃, которые в кислотах растворяются.',
+        speak: 'Белый осадок BaSO₄ не растворяется даже в кислоте — по нему узнают сульфат-ион.',
+      },
+      en: {
+        title: 'The precipitate and hydrochloric acid',
+        body: 'The tiny crystals are heavy and settle to the bottom. BaSO₄ is a white finely crystalline precipitate, insoluble in water and in strong acids (HCl, HNO₃). That is why this is a qualitative reaction: the white precipitate reveals the sulfate ion SO₄²⁻, and sulfates or sulfuric acid reveal the barium ion Ba²⁺. Above the precipitate a solution of hydrochloric acid remains — H⁺ and Cl⁻ ions; the medium is acidic, pH < 7.',
+        equation: 'above the precipitate: H⁺ + Cl⁻ (hydrochloric acid)',
+        note: 'Let us add nitric acid HNO₃ — the precipitate does not dissolve. This is how BaSO₄ is told apart from the white precipitates BaCO₃ and BaSO₃, which dissolve in acids.',
+        speak: 'The white BaSO₄ precipitate does not dissolve even in acid — it reveals the sulfate ion.',
+      },
+      uz: {
+        title: 'Choʻkma va xlorid kislota',
+        body: 'Kristallchalar ogʻir va tubga choʻkadi. BaSO₄ — suvda va kuchli kislotalarda (HCl, HNO₃) erimaydigan oq mayda kristall choʻkma. Shuning uchun bu sifat reaksiyasi: oq choʻkma orqali sulfat ioni SO₄²⁻, sulfatlar yoki sulfat kislota yordamida esa bariy ioni Ba²⁺ aniqlanadi. Choʻkma ustida xlorid kislota eritmasi qoladi — H⁺ va Cl⁻ ionlari; muhit kislotali, pH < 7.',
+        equation: 'choʻkma ustida: H⁺ + Cl⁻ (xlorid kislota)',
+        note: 'Nitrat kislota HNO₃ qoʻshamiz — choʻkma erimaydi. BaSO₄ ni kislotalarda eriydigan BaCO₃ va BaSO₃ oq choʻkmalaridan shunday farqlashadi.',
+        speak: 'Oq BaSO₄ choʻkmasi hatto kislotada ham erimaydi — u orqali sulfat ioni aniqlanadi.',
+      },
+    },
+    result: {
+      ru: {
+        title: 'Итог: реакция ионного обмена',
+        body: 'Два сложных вещества обменялись составными частями — это реакция ионного обмена. В полном ионном уравнении одинаковые ионы слева и справа (2H⁺ и 2Cl⁻) в реакции не участвуют — их сокращают. Остаётся сокращённое ионное уравнение: оно показывает суть реакции — ионы бария и сульфат-ионы образуют осадок. Атомов каждого элемента и суммарный заряд слева и справа одинаковы.',
+        equation: EQ_ALL,
+        note: 'Сильные электролиты (BaCl₂, H₂SO₄, HCl) записывают ионами, осадок BaSO₄ — формулой целиком.',
+        speak: 'Ионы бария и сульфат-ионы ушли в осадок, H⁺ и Cl⁻ остались в растворе — это и есть ионный обмен.',
+      },
+      en: {
+        title: 'Summary: an ion exchange reaction',
+        body: 'Two compounds exchanged their component parts — this is an ion exchange reaction. In the full ionic equation the identical ions on the left and on the right (2H⁺ and 2Cl⁻) do not take part in the reaction — they are cancelled. What remains is the net ionic equation: it shows the essence of the reaction — barium ions and sulfate ions form a precipitate. The number of atoms of each element and the total charge are the same on the left and on the right.',
+        equation: EQ_ALL,
+        note: 'Strong electrolytes (BaCl₂, H₂SO₄, HCl) are written as ions, the BaSO₄ precipitate as a whole formula.',
+        speak: 'Barium ions and sulfate ions went into the precipitate, H⁺ and Cl⁻ stayed in the solution — that is ion exchange.',
+      },
+      uz: {
+        title: 'Xulosa: ion almashinish reaksiyasi',
+        body: 'Ikkita murakkab modda tarkibiy qismlarini almashtirdi — bu ion almashinish reaksiyasi. Toʻliq ionli tenglamada chap va oʻngdagi bir xil ionlar (2H⁺ va 2Cl⁻) reaksiyada qatnashmaydi — ular qisqartiriladi. Qisqartirilgan ionli tenglama qoladi: u reaksiya mohiyatini koʻrsatadi — bariy ionlari va sulfat ionlari choʻkma hosil qiladi. Har bir element atomlari soni va umumiy zaryad chapda va oʻngda bir xil.',
+        equation: EQ_ALL,
+        note: 'Kuchli elektrolitlar (BaCl₂, H₂SO₄, HCl) ionlar bilan, BaSO₄ choʻkmasi esa butun formula bilan yoziladi.',
+        speak: 'Bariy ionlari va sulfat ionlari choʻkmaga oʻtdi, H⁺ va Cl⁻ eritmada qoldi — ion almashinish shu.',
+      },
+    },
+  },
+}
+
 // ─── Спецификация ────────────────────────────────────────────────────────────
 
 export const BASO4_SPEC: SolutionScienceSpec = {
@@ -516,6 +708,7 @@ export const BASO4_SPEC: SolutionScienceSpec = {
       en: 'left and right: 1 Ba · 2 Cl · 2 H · 1 S · 4 O',
       uz: 'chapda va oʻngda: 1 Ba · 2 Cl · 2 H · 1 S · 4 O',
     },
+    ph: { ru: 'pH < 7 — кислая среда (ионы H⁺)', en: 'pH < 7 — acidic medium (H⁺ ions)', uz: 'pH < 7 — kislotali muhit (H⁺ ionlari)' },
   },
   steps: [
     {
@@ -563,21 +756,21 @@ export const BASO4_SPEC: SolutionScienceSpec = {
           title: 'Из чего состоят растворы',
           body: 'Заглянем в каплю. Видим заряженные шарики — ионы, а не «молекулы BaCl₂»: вода растащила соль на ион бария Ba²⁺ и два хлорид-иона Cl⁻. Кислота дала сульфат-ион SO₄²⁻ (атом серы и четыре атома кислорода с общим зарядом 2−) и два иона водорода. Голый H⁺ в воде не живёт: он сразу садится на молекулу воды — получается H₃O⁺. Вокруг каждого иона — «шубка» из воды: к «+» вода повёрнута кислородом, к «−» — водородом.',
           equation: 'BaCl₂ → Ba²⁺ + 2Cl⁻;  H₂SO₄ → 2H⁺ + SO₄²⁻',
-          note: 'Ион — атом или группа атомов, у которой электронов больше или меньше, чем протонов. Заряды равны валентностям: барий II, кислотный остаток SO₄ II. На самом деле вокруг иона сотни молекул воды (около 185 на ион в 0,1 М растворе), в кадре — только ближние. Все четыре связи S–O одинаковые: 147 пм, угол 109,5°.',
+          note: 'H⁺ в воде существует как H₃O⁺. Ион — атом или группа атомов, у которой электронов больше или меньше, чем протонов. Заряды равны валентностям: барий II, кислотный остаток SO₄ II. На самом деле вокруг иона сотни молекул воды (около 185 на ион в 0,1 М растворе), в кадре — только ближние. Все четыре связи S–O одинаковые: 147 пм, угол 109,5°.',
           speak: 'Вода растаскивает соль и кислоту на ионы — у каждого иона своя «шубка» из молекул воды.',
         },
         en: {
           title: 'What the solutions are made of',
           body: 'Let us look inside a drop. We see charged balls — ions, not «BaCl₂ molecules»: water has pulled the salt apart into a barium ion Ba²⁺ and two chloride ions Cl⁻. The acid gave the sulfate ion SO₄²⁻ (a sulfur atom and four oxygen atoms with a common charge of 2−) and two hydrogen ions. A bare H⁺ does not live in water: it at once sits on a water molecule — that is H₃O⁺. Every ion wears a «coat» of water: water turns its oxygen to «+» and its hydrogen to «−».',
           equation: 'BaCl₂ → Ba²⁺ + 2Cl⁻;  H₂SO₄ → 2H⁺ + SO₄²⁻',
-          note: 'An ion is an atom or a group of atoms with more or fewer electrons than protons. The charges equal the valences: barium II, the acid residue SO₄ II. In reality an ion has hundreds of water molecules around it (about 185 per ion in a 0.1 M solution); the frame shows only the nearest ones. All four S–O bonds are identical: 147 pm, angle 109.5°.',
+          note: 'In water H⁺ exists as H₃O⁺. An ion is an atom or a group of atoms with more or fewer electrons than protons. The charges equal the valences: barium II, the acid residue SO₄ II. In reality an ion has hundreds of water molecules around it (about 185 per ion in a 0.1 M solution); the frame shows only the nearest ones. All four S–O bonds are identical: 147 pm, angle 109.5°.',
           speak: 'Water pulls the salt and the acid apart into ions — every ion wears its own «coat» of water molecules.',
         },
         uz: {
           title: 'Eritmalar nimadan iborat',
           body: 'Tomchi ichiga qaraymiz. Zaryadli sharchalar — ionlarni koʻramiz, «BaCl₂ molekulalari» emas: suv tuzni bariy ioni Ba²⁺ va ikkita xlorid ioni Cl⁻ ga ajratgan. Kislota sulfat ioni SO₄²⁻ (bitta oltingugurt atomi va umumiy zaryadi 2− boʻlgan toʻrtta kislorod atomi) va ikkita vodorod ionini berdi. Yalangʻoch H⁺ suvda yashamaydi: u darhol suv molekulasiga oʻtiradi — H₃O⁺ hosil boʻladi. Har bir ion atrofida suvdan «poʻstin»: «+» ga suv kislorodi bilan, «−» ga vodorodi bilan qaraydi.',
           equation: 'BaCl₂ → Ba²⁺ + 2Cl⁻;  H₂SO₄ → 2H⁺ + SO₄²⁻',
-          note: 'Ion — elektronlari protonlaridan koʻp yoki kam boʻlgan atom yoki atomlar guruhi. Zaryadlar valentliklarga teng: bariy II, SO₄ kislota qoldigʻi II. Aslida ion atrofida yuzlab suv molekulasi bor (0,1 M eritmada bir ionga taxminan 185 ta), kadrda faqat yaqinlari. Toʻrtala S–O bogʻi bir xil: 147 pm, burchak 109,5°.',
+          note: 'Suvda H⁺ H₃O⁺ holida mavjud. Ion — elektronlari protonlaridan koʻp yoki kam boʻlgan atom yoki atomlar guruhi. Zaryadlar valentliklarga teng: bariy II, SO₄ kislota qoldigʻi II. Aslida ion atrofida yuzlab suv molekulasi bor (0,1 M eritmada bir ionga taxminan 185 ta), kadrda faqat yaqinlari. Toʻrtala S–O bogʻi bir xil: 147 pm, burchak 109,5°.',
           speak: 'Suv tuz va kislotani ionlarga ajratadi — har bir ionning suv molekulalaridan oʻz «poʻstini» bor.',
         },
       },
@@ -704,6 +897,7 @@ export const BASO4_SPEC: SolutionScienceSpec = {
     },
   ],
   caveats: CAVEATS,
+  school: BASO4_SCHOOL,
 }
 
 /** Источники сцены (для теста и панели): учебники по классам. */

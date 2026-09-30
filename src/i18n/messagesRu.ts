@@ -371,6 +371,8 @@ export const messagesRu = {
   'lab.mechanism.replay': 'Повторить шаг',
   'lab.mechanism.autoplay': 'Автоплей',
   'lab.mechanism.autoplayHint': 'Сам переходить к следующему шагу после объяснения',
+  'lab.mechanism.advancedMode': 'Продвинутый режим',
+  'lab.mechanism.advancedModeHint': 'Научная модель: H₃O⁺, молекулы воды, решётка барита. Выключено — школьный стандарт (H⁺, ОГЭ/ЕГЭ)',
   'lab.mechanism.playing': 'Идёт анимация',
   'lab.mechanism.legend': 'Обозначения',
   'lab.mechanism.note': 'Примечание',

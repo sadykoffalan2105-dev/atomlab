@@ -211,6 +211,9 @@ export type SchoolCinemaSceneProps = ScientificSynthesisFxProps & {
   heroCompound?: string
 }
 
+/** Где был урок, когда сцену пересоздали в том же прогоне (смена режима урока): с этого шага и продолжаем. */
+type Resume = { runId: number; step: number }
+
 export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
   const { runId = 0, lowPower = false, spec, create, heroCompound } = props
   const lesson = props.lesson ?? spec?.id ?? 'school'
@@ -219,6 +222,7 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
   const threeScene = useThree((s) => s.scene)
   const locale = toSceneLocale(useLocale().locale)
   const [rt, setRt] = useState<Runtime | null>(null)
+  const resumeRef = useRef<Resume | null>(null)
 
   const cbRef = useRef(props)
   useEffect(() => {
@@ -234,11 +238,17 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
     let started = false
     let cancelled = false
     let doneTimer = 0
+    // Та же сцена пересоздана в том же прогоне (новая фабрика — смена режима урока): продолжаем с шага, на
+    // котором был урок, — шаг играет с начала; хвост (finishing/done) не повторяем.
+    const prev = resumeRef.current
+    const resume = prev && prev.runId === runId ? prev.step : null
+    let curStep = resume ?? 0
     const options = {
       locale: localeRef.current,
       lowPower,
       lights: persistentLights(threeScene),
       onStatus: (status: SchoolRuntimeStatus, step: number) => {
+        curStep = step
         const s = STATUS[status]
         if (!s) return
         if (status === 'done') {
@@ -288,10 +298,17 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
         },
         replayStep: () => void scene.replay(),
         finish: () => void scene.finish(),
+        action: scene.runAction ? (id) => scene.runAction?.(id) : undefined,
       },
       lesson,
       scene.stepCount,
     )
+    if (resume != null && resume > 0) {
+      // кадр сразу на начале шага (пока греются шейдеры), панель — на том же шаге
+      const i = Math.min(resume, scene.stepCount - 1)
+      scene.goToStep(Math.max(0, i - 1), { instant: true })
+      clo2StepStore.report(runId, i, 'playing')
+    }
     setRt(runtime)
     if (import.meta.env.DEV || new URLSearchParams(window.location.search).has('schoolSeek')) {
       // Отладка и кадры: перемотка сюжета (__schoolSeek(t)) — панель урока встаёт на шаг момента t.
@@ -305,7 +322,7 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
     const start = () => {
       if (cancelled || started) return
       started = true
-      void scene.goToStep(0)
+      void scene.goToStep(resume != null ? Math.min(resume, scene.stepCount - 1) : 0)
     }
     const timer = window.setTimeout(start, WARMUP_TIMEOUT_MS)
     // Прогрев и программы героя (matcap, instanced): в хвосте герой монтируется без компиляции шейдера.
@@ -329,6 +346,7 @@ export function SchoolCinemaScene(props: SchoolCinemaSceneProps) {
 
     return () => {
       cancelled = true
+      resumeRef.current = { runId, step: curStep }
       window.clearTimeout(timer)
       window.clearTimeout(doneTimer)
       cancelAnimationFrame(raf)

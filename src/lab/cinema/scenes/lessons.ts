@@ -12,7 +12,8 @@ import { getFesMechanismText } from './fes/fesMechanismText'
 import { H2O_STEP_IDS } from './h2o/h2oSteps'
 import { getH2oMechanismText } from './h2o/h2oMechanismText'
 import { SCHOOL_STEP_IDS, type SchoolLessonText } from './school/schoolSpec'
-import { SOLUTION_STEP_IDS, type SchoolLocale, type SolutionScienceSpec } from './school/specs/types'
+import { SOLUTION_STEP_IDS, type SchoolLocale, type SolutionMode, type SolutionScienceSpec } from './school/specs/types'
+import { getLessonMode } from './lessonMode'
 import { BASO4_SPEC } from './school/specs/baso4'
 import { NO_SCENE_SPEC } from './no/noSpec'
 import { NO2_SCENE_SPEC } from './no2/no2Spec'
@@ -62,10 +63,17 @@ export type LessonMechanismText = {
     ion?: string
     stick?: string
     precipitate?: string
+    /** свечение по краю шара — знак заряда (школьный режим сцены раствора) */
+    charge?: string
   }
   safety: string
   energy: { title: string; axisG?: string }
+  /** крупные карточки уравнений шага (школьный режим, итог: молекулярное, полное и сокращённое ионные) */
+  cards?: Readonly<Record<string, readonly { label: string; formula: string }[]>>
 }
+
+/** Действие урока на шаге (кнопка в панели): «Добавить HNO₃» на шаге «осадок». */
+export type LessonAction = { id: string; stepId: string; label: Readonly<Record<LessonLocale, string>> }
 
 export type CinemaLesson = {
   id: CinemaLessonId
@@ -76,6 +84,10 @@ export type CinemaLesson = {
   narrated: boolean
   /** Школьная сцена образования молекулы (scenes/school): без энергетики — как NaCl. */
   school?: boolean
+  /** У урока два режима (школьный по умолчанию и продвинутый): переключатель в панели, lessonMode.ts. */
+  modes?: boolean
+  /** Действия на шагах (кнопки панели), сцена выполняет их через clo2StepStore.action. */
+  actions?: readonly LessonAction[]
   getText: (locale: LessonLocale) => LessonMechanismText
 }
 
@@ -95,9 +107,31 @@ export function schoolLessonText(text: SchoolLessonText): LessonMechanismText {
   }
 }
 
-/** Текст сцены «обмен в растворе» (научная спецификация) → вид панели урока. */
-export function solutionLessonText(spec: SolutionScienceSpec, locale: SchoolLocale): LessonMechanismText {
+/**
+ * Текст сцены «обмен в растворе» → вид панели урока. Школьный режим (по умолчанию) — тексты spec.school
+ * (стандарт ОГЭ/ЕГЭ, H⁺, уравнения со знаком «=» и карточки уравнений итога); продвинутый — научные.
+ */
+export function solutionLessonText(spec: SolutionScienceSpec, locale: SchoolLocale, mode: SolutionMode = 'advanced'): LessonMechanismText {
   const steps: Record<string, Clo2StepText> = {}
+  const school = mode === 'school' ? spec.school : undefined
+  if (school) {
+    for (const s of spec.steps) steps[s.id] = school.steps[s.id][locale]
+    const eq = school.equations
+    return {
+      intro: { title: spec.intro.title[locale].replace(/→/g, '='), speak: spec.intro.speak[locale] },
+      steps,
+      legend: {
+        electron: '',
+        ion: school.legend.ion[locale],
+        charge: school.legend.charge[locale],
+        stick: school.legend.stick[locale],
+        precipitate: school.legend.precipitate[locale],
+      },
+      safety: school.safety[locale],
+      energy: { title: '' },
+      cards: { result: [eq.molecular, eq.full, eq.short].map((c) => ({ label: c.label[locale], formula: c.formula })) },
+    }
+  }
   for (const s of spec.steps) steps[s.id] = s.text[locale]
   return {
     intro: { title: spec.intro.title[locale], speak: spec.intro.speak[locale] },
@@ -253,7 +287,9 @@ const LESSONS: Record<string, CinemaLesson> = {
     safetyStepId: 'tubes',
     narrated: false,
     school: true,
-    getText: (locale) => solutionLessonText(BASO4_SPEC, locale),
+    modes: true,
+    actions: [{ id: 'nitric', stepId: 'settle', label: { ru: 'Добавить HNO₃', en: 'Add HNO₃', uz: 'HNO₃ qoʻshish' } }],
+    getText: (locale) => solutionLessonText(BASO4_SPEC, locale, getLessonMode()),
   },
   zncl2: {
     id: 'zncl2',
