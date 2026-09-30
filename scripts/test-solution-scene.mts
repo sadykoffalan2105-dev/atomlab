@@ -14,6 +14,9 @@
  *   5. Осадок: муть ∈ [0, 1], образовавшийся осадок и слой на дне не убывают; частицы мути после сливания
  *      движутся только вниз (или лежат на слое осадка).
  *   6. Плавность: видимые атомы не прыгают между кадрами (≤ 40 пм за 1/60 с).
+ *   6а. Вода не проходит сквозь частицы: в каждом кадре рисуемые шары воды (радиус × viewK) не ближе
+ *      SOLUTION_DRAW.minGap к шарам чужих частиц и других молекул воды, палочки воды — к чужим шарам,
+ *      чужие палочки — к шарам воды.
  *   7. Подключение: сигнатура {BaCl₂, H₂SO₄} (не Ba(OH)₂ + H₂SO₄ и не CuSO₄ + BaCl₂), реактор, банк 7–9 кл.
  *      без нагрева, карточка BaSO₄ → сцена, ссылка учебника 7 кл. с. 67 и 8 кл. с. 139, урок панели, герой.
  *
@@ -104,6 +107,17 @@ let prevFormed = -1
 let prevSed = -1
 const prevTurb = new Float32Array(m.turbidPoints)
 let minSpectatorToNode = Infinity
+let minWaterGap = Infinity
+let waterGapAt = ''
+/** расстояние от точки p до отрезка ab */
+const segDist = (p: readonly number[], a: readonly number[], b: readonly number[]) => {
+  const ab = [b[0]! - a[0]!, b[1]! - a[1]!, b[2]! - a[2]!]
+  const ap = [p[0]! - a[0]!, p[1]! - a[1]!, p[2]! - a[2]!]
+  const l2 = ab[0]! ** 2 + ab[1]! ** 2 + ab[2]! ** 2
+  const u = l2 > 0 ? Math.max(0, Math.min(1, (ap[0]! * ab[0]! + ap[1]! * ab[1]! + ap[2]! * ab[2]!) / l2)) : 0
+  return Math.hypot(ap[0]! - ab[0]! * u, ap[1]! - ab[1]! * u, ap[2]! - ab[2]! * u)
+}
+const isWater = m.atoms.map((a) => m.bodies[a.body]!.kind === 'water')
 let maxJump = 0
 let jumpAt = ''
 const end = m.timing.end
@@ -157,6 +171,39 @@ for (let k = 0; k * dt <= end + 1e-9; k++) {
       ok(`t=${t.toFixed(3)} ${b.id}: угол воды`, near(angle(P(H1!), P(O!), P(H2!)), bondAngleDeg('water'), 0.5))
     }
   }
+  // вода не проходит сквозь частицы и другие молекулы воды (рисуемые радиусы, viewK)
+  if (micro) {
+    const nA = m.atoms.length
+    const rD = (i: number) => s.atomR[i]! * m.viewK[i]!
+    const seen = (i: number) => s.atomR[i]! > 0.5 && s.bodyAppear[m.atoms[i]!.body]! > 0.001
+    const note = (g: number, what: string) => {
+      if (g < minWaterGap) {
+        minWaterGap = g
+        waterGapAt = `t=${t.toFixed(3)} ${what}`
+      }
+    }
+    for (let i = 0; i < nA; i++) {
+      if (!isWater[i] || !seen(i)) continue
+      const bi = m.atoms[i]!.body
+      for (let j = 0; j < nA; j++) {
+        if (m.atoms[j]!.body === bi || !seen(j) || (isWater[j] && j < i)) continue
+        const g = dist(P(i), P(j)) - rD(i) - rD(j)
+        if (g < minWaterGap) note(g, `${m.bodies[bi]!.id}·${m.atoms[i]!.el} ↔ ${m.bodies[m.atoms[j]!.body]!.id}·${m.atoms[j]!.el}`)
+      }
+    }
+    for (const st of m.sticks) {
+      if (!seen(st.a) || !seen(st.b) || s.stickAlpha[m.sticks.indexOf(st)]! < 0.01) continue
+      const bi = m.atoms[st.a]!.body
+      const sr = st.water ? SOLUTION_DRAW.waterStickR : SOLUTION_DRAW.stickR
+      for (let j = 0; j < nA; j++) {
+        if (m.atoms[j]!.body === bi || !seen(j)) continue
+        // палочка воды — к любому чужому шару; палочка частицы — к шарам воды
+        if (!st.water && !isWater[j]) continue
+        const g = segDist(P(j), P(st.a), P(st.b)) - sr - rD(j)
+        if (g < minWaterGap) note(g, `палочка ${m.bodies[bi]!.id} ↔ ${m.bodies[m.atoms[j]!.body]!.id}·${m.atoms[j]!.el}`)
+      }
+    }
+  }
   // наблюдатели далеко от узлов кристалла
   if (micro && s.crystal.alpha > 0.5) {
     // узлы, уже занятые в кристалле: зародыш и севшие пары (идущие к кристаллу ионы — ещё в растворе)
@@ -197,6 +244,7 @@ for (let k = 0; k * dt <= end + 1e-9; k++) {
 ok('видимые атомы не прыгают (≤ 40 пм за 1/60 с)', maxJump <= 40, `${maxJump.toFixed(1)} пм (${jumpAt})`)
 ok('радиус Ba²⁺ меняется ровно один раз — в кадр посадки', [m.bodies[R.cation]!.atoms[0]!].every((a) => radiusChanges.get(a) === 1), [...radiusChanges.entries()])
 for (const i of R.later) if (m.bodies[i]!.formula === 'Ba²⁺') ok(`${m.bodies[i]!.id}: радиус меняется один раз`, radiusChanges.get(m.bodies[i]!.atoms[0]!) === 1)
+ok(`вода не проходит сквозь частицы и воду: зазор шаров и палочек ≥ ${SOLUTION_DRAW.minGap} пм в каждом кадре`, minWaterGap >= SOLUTION_DRAW.minGap, `${minWaterGap.toFixed(1)} пм (${waterGapAt})`)
 ok('наблюдатели H₃O⁺ и Cl⁻ не ближе 300 пм к узлам кристалла', minSpectatorToNode >= 300, minSpectatorToNode.toFixed(1))
 {
   const counts: Record<string, number> = {}
@@ -421,5 +469,5 @@ if (failures.length > 0) {
   for (const f of failures.slice(0, 60)) console.error(`  ✗ ${f}`)
   process.exit(1)
 }
-console.log(`✓ solution scene (BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl): ${checks} проверок пройдено; скачок ≤ ${maxJump.toFixed(1)} пм/кадр, наблюдатели ≥ ${minSpectatorToNode.toFixed(0)} пм от узлов`)
+console.log(`✓ solution scene (BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl): ${checks} проверок пройдено; скачок ≤ ${maxJump.toFixed(1)} пм/кадр, наблюдатели ≥ ${minSpectatorToNode.toFixed(0)} пм от узлов, вода ≥ ${minWaterGap.toFixed(1)} пм от шаров`)
 process.exit(0)
