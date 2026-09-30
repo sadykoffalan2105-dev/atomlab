@@ -28,6 +28,7 @@ import {
   CATALOG_INORGANIC_RANK,
   isCatalogVisibleId,
 } from '../src/data/textbook/catalogWhitelist.ts'
+import { CATALOG_TOP200 } from '../src/data/catalog/catalogTop200'
 import { SCHOOL_REACTION_BANK } from '../src/chemistry/schoolReactionBank.ts'
 import { SCIENTIFIC_REACTOR_RECIPES } from '../src/chemistry/scientificReactorRecipes.ts'
 import { ORGANIC_MOLECULES } from '../src/data/organicLab/organicMoleculeRegistry.ts'
@@ -48,10 +49,14 @@ const check = (cond: boolean, msg: string) => {
 
 // ── 1. каждое вещество книг видно в каталоге своего класса ────────────────────
 const allInorganic = Object.values(compoundById)
+const RANKED = new Set(CATALOG_INORGANIC_RANK)
 const visible = allInorganic.filter((c) => isCatalogVisibleId(c.id))
 for (const c of allInorganic) {
-  check(isCatalogVisibleId(c.id) || CATALOG_HIDDEN_IDS.has(c.id), `${c.id} скрыт не через CATALOG_HIDDEN_IDS`)
+  check(isCatalogVisibleId(c.id) || CATALOG_HIDDEN_IDS.has(c.id) || (RANKED.has(c.id) && !CATALOG_TOP200.has(c.id)), `${c.id} скрыт не через CATALOG_HIDDEN_IDS и не отбором 200`)
 }
+// 30.09.2026: видно ровно 200 неорганических веществ (catalogTop200.ts) — решение владельца
+check(visible.length === 200, `видимых неорганических ${visible.length}, нужно ровно 200`)
+for (const id of CATALOG_TOP200) check(isCatalogVisibleId(id) && Boolean(compoundById[id]?.atoms?.length), `${id}: из 200 не видно или нет 3D-модели`)
 const rankSet = new Set(CATALOG_INORGANIC_RANK)
 for (const c of visible) check(rankSet.has(c.id), `${c.id} (${c.formulaUnicode}) нет в рейтинге — запустите npm run catalog:rank -- --write`)
 for (const id of rankSet) check(Boolean(compoundById[id]), `в рейтинге неизвестный id ${id}`)
@@ -96,7 +101,9 @@ for (const recipe of Object.values(SCIENTIFIC_REACTOR_RECIPES)) {
   ]
   for (const id of ids) {
     if (!id || CATALOG_HIDDEN_IDS.has(id)) continue
-    check(isCatalogVisibleId(id), `вещество рецепта реактора ${id} скрыто рейтингом`)
+    // вне 200 вещество скрыто из каталога, но реактор работает по данным — оно обязано остаться в compoundById
+    if (!CATALOG_TOP200.has(id)) check(Boolean(compoundById[id]), `вещество рецепта реактора ${id} пропало из данных`)
+    else check(isCatalogVisibleId(id), `вещество рецепта реактора ${id} скрыто`)
   }
 }
 
