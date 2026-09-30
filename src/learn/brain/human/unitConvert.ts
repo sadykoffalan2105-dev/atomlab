@@ -111,7 +111,7 @@ export function convertUnitsQuery(raw: string, lang: MathLang): UnitAnswer | nul
   }
   const n = NAMES[lang]
   const line = `${formatNumber(value, lang)} ${n[from]} = ${formatNumber(result, lang)} ${n[to]}`
-  let rule = ''
+  let rule: string
   if (dim === 'temp') {
     rule =
       lang === 'en'

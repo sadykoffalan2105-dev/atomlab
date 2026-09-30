@@ -118,7 +118,7 @@ type HumanStep =
  */
 function humanStep(messages: { role: string; content: string }[], ctx: LearnLocalAssistantContext): HumanStep {
   const text = lastUserText(messages)
-  let turn: ReturnType<typeof humanTurn> = null
+  let turn: ReturnType<typeof humanTurn>
   try {
     turn = humanTurn(text, { lang: ctx.locale, lastTeacher: lastTeacherText(messages) })
   } catch {
