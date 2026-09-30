@@ -16,7 +16,8 @@ import { isSmartAiConnected, streamTeacherChat, type ChatMessage } from '../../l
 import { buildSectionOutlineBlock } from '../../learnSectionKnowledge'
 import { citationForDisplay, retrieveForTeacher, type TeacherKnowledgeResult } from '../../teacherKnowledge'
 import type { EmotionState } from '../brainTypes'
-import { SentenceStreamSplitter } from '../voice/sentenceStream'
+import { SentenceStreamSplitter, splitIntoSentences } from '../voice/sentenceStream'
+import { humanTurn } from '../human/humanTeacher'
 import { emotionPromptHint } from './cameraEmotionCoach'
 import { detectNonQuestion, replyForNonQuestion, resolveTurn, type ResolvedTurn } from './followUps'
 import { buildLiveOnlineBrainDirective } from './liveOnlineBrain'
@@ -125,8 +126,44 @@ export class TrainingModeEngine {
     })
   }
 
-  /** Ответ на ход ученика (стриминг фраз через колбэки). */
+  /**
+   * Ответ на ход ученика (стриминг фраз через колбэки). Сначала — «человеческий» слой:
+   * приветствие, эмоции, память, расчёты и химия из данных проекта отвечаются сразу;
+   * «привет, а что такое моль?» — приветствие звучит первым, вопрос идёт в базу знаний.
+   */
   async answer(req: TrainingAnswerRequest): Promise<TrainingAnswer> {
+    const lastTeacher = [...req.history].reverse().find((m) => m.role === 'assistant')?.content
+    const human = humanTurn(req.text, { lang: this.cfg.lang, lastTeacher })
+    if (human?.kind === 'reply') {
+      const t0 = now()
+      const sentences = splitIntoSentences(human.text)
+      for (const s of sentences) req.onSentence?.(s)
+      req.onText?.(human.text)
+      const resolved = resolveTurn(req.text, req.previousQuestions, this.cfg.lang, this.cfg.sectionTitle)
+      const ms = Math.round(now() - t0)
+      return {
+        display: human.text,
+        text: human.text,
+        sentences,
+        source: 'local',
+        confident: true,
+        citations: [],
+        resolved,
+        fellBack: false,
+        timings: { knowledgeMs: 0, firstSentenceMs: ms, firstTokenMs: null, totalMs: ms },
+      }
+    }
+    if (human?.kind === 'prefix') {
+      const pre = human.prefix
+      req.onSentence?.(pre)
+      const onText = req.onText
+      const res = await this.answerCore({ ...req, text: human.rest, onText: onText ? (t) => onText(`${pre} ${t}`) : undefined })
+      return { ...res, display: `${pre} ${res.display}`, text: `${pre} ${res.text}`, sentences: [pre, ...res.sentences] }
+    }
+    return this.answerCore(req)
+  }
+
+  private async answerCore(req: TrainingAnswerRequest): Promise<TrainingAnswer> {
     const t0 = now()
     const signal = req.signal
     const resolved = resolveTurn(req.text, req.previousQuestions, this.cfg.lang, this.cfg.sectionTitle)

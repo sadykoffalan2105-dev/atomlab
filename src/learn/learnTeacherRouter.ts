@@ -7,6 +7,9 @@ import { buildTeacherChatPayload, isSmartAiConnected, requestPuterChat } from '.
 import { citationForDisplay, retrieveForTeacher, type TeacherKnowledgeResult } from './teacherKnowledge'
 import { detectNonQuestion, isSubstantiveQuestion, replyForNonQuestion, resolveTurn } from './brain/dualMode/followUps'
 import { composeLocalAnswer } from './brain/dualMode/localAnswerComposer'
+import { humanTurn, humanizeBookAnswer } from './brain/human/humanTeacher'
+import { loadProfile, preferredDetail } from './brain/human/studentProfile'
+import { askTeacherModels } from './brain/human/teacherModelRegistry'
 
 export type TeacherReplySource = 'faq' | 'local' | 'ollama' | 'api' | 'puter'
 
@@ -21,6 +24,8 @@ export type TeacherRouterOptions = {
   onDelta?: (fullText: string) => void
   /** Уже найденные знания (иначе ищем через teacherKnowledge). */
   knowledge?: TeacherKnowledgeResult
+  /** «Человеческий» слой уже отработал (не запускать его повторно). */
+  humanHandled?: boolean
 }
 
 export type TeacherRouterResult = { text: string; source: TeacherReplySource; citations: string[] }
@@ -96,6 +101,45 @@ async function tryOllamaReply(
   }
 }
 
+function lastTeacherText(messages: { role: string; content: string }[]): string | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role === 'assistant') return messages[i]!.content
+  }
+  return undefined
+}
+
+type HumanStep =
+  | { done: true; result: TeacherRouterResult & { confident: boolean } }
+  | { done: false; messages: { role: string; content: string }[]; prefix: string }
+
+/**
+ * «Человеческий» слой (офлайн): разговор, эмоции, память, расчёты, химия из данных проекта.
+ * Полный ответ — сразу; смешанная фраза — префикс + остаток-вопрос для базы знаний.
+ */
+function humanStep(messages: { role: string; content: string }[], ctx: LearnLocalAssistantContext): HumanStep {
+  const text = lastUserText(messages)
+  let turn: ReturnType<typeof humanTurn> = null
+  try {
+    turn = humanTurn(text, { lang: ctx.locale, lastTeacher: lastTeacherText(messages) })
+  } catch {
+    turn = null
+  }
+  if (turn?.kind === 'reply') return { done: true, result: { text: turn.text, source: 'local', citations: [], confident: true } }
+  if (turn?.kind === 'prefix') {
+    const next = [...messages]
+    for (let i = next.length - 1; i >= 0; i--) {
+      if (next[i]?.role === 'user') {
+        next[i] = { ...next[i]!, content: turn.rest }
+        break
+      }
+    }
+    return { done: false, messages: next, prefix: turn.prefix }
+  }
+  return { done: false, messages, prefix: '' }
+}
+
+const withPrefix = <T extends { text: string }>(prefix: string, r: T): T => (prefix && r.text ? { ...r, text: `${prefix} ${r.text}` } : r)
+
 /** Короткий фактический вопрос, на который есть готовая карточка FAQ. */
 function isShortFactualFaqQuery(query: string): boolean {
   const q = query.trim()
@@ -112,8 +156,16 @@ function isShortFactualFaqQuery(query: string): boolean {
 export async function composeLocalTeacherReply(
   messages: { role: string; content: string }[],
   ctx: LearnLocalAssistantContext,
-  opts: { signal?: AbortSignal; knowledge?: TeacherKnowledgeResult; detail?: 'brief' | 'more' } = {},
+  opts: { signal?: AbortSignal; knowledge?: TeacherKnowledgeResult; detail?: 'brief' | 'more'; humanHandled?: boolean } = {},
 ): Promise<TeacherRouterResult & { confident: boolean }> {
+  if (!opts.humanHandled) {
+    const step = humanStep(messages, ctx)
+    if (step.done) return step.result
+    if (step.prefix) {
+      const inner = await composeLocalTeacherReply(step.messages, ctx, { ...opts, knowledge: undefined, humanHandled: true })
+      return withPrefix(step.prefix, inner)
+    }
+  }
   const text = lastUserText(messages)
   const previous = messages
     .slice(0, -1)
@@ -143,6 +195,8 @@ export async function composeLocalTeacherReply(
           timeoutMs: 2_500,
           signal: opts.signal,
         })
+  // Отзывы 👍/👎 ученика: любит подробнее/короче, больше примеров.
+  const detail = opts.detail ?? resolved.style.detail ?? preferredDetail() ?? 'brief'
   const composed = composeLocalAnswer({
     query: resolved.query,
     hits: knowledge.hits,
@@ -150,8 +204,9 @@ export async function composeLocalTeacherReply(
     // Чат: коротко и по делу (прямой ответ + до 2 поясняющих фраз, ≈80 слов); длинно — только по «подробнее».
     style: {
       ...resolved.style,
-      detail: opts.detail ?? resolved.style.detail ?? 'brief',
-      maxWords: (opts.detail ?? resolved.style.detail) === 'more' ? 140 : resolved.style.simpler ? 50 : 80,
+      wantExample: resolved.style.wantExample || loadProfile().examples >= 1,
+      detail,
+      maxWords: detail === 'more' ? 140 : resolved.style.simpler ? 50 : 80,
       channel: 'chat',
       helper: ctx.mode === 'helper',
     },
@@ -168,7 +223,8 @@ export async function composeLocalTeacherReply(
       ),
     ),
   ].slice(0, 3)
-  const body = composed.confident && citations.length ? `${composed.text}\n\n${citations.join(' ')}` : composed.text
+  const answer = composed.confident ? humanizeBookAnswer(composed.text, ctx.locale, messages.length) : composed.text
+  const body = composed.confident && citations.length ? `${answer}\n\n${citations.join(' ')}` : answer
   return { text: body, source: 'local', citations, confident: composed.confident }
 }
 
@@ -184,6 +240,20 @@ export async function routeTeacherReply(
   opts?: TeacherRouterOptions,
 ): Promise<TeacherRouterResult> {
   const signal = opts?.signal
+  // 0) «Человеческий» слой — офлайн, раньше любых сетей (память и расчёты никуда не уходят).
+  if (!opts?.humanHandled) {
+    const step = humanStep(messages, ctx)
+    if (step.done) return step.result
+    if (step.prefix) {
+      const inner = await routeTeacherReply(step.messages, ctx, {
+        ...opts,
+        knowledge: undefined,
+        onDelta: opts?.onDelta ? (full) => opts.onDelta?.(`${step.prefix} ${full}`) : undefined,
+        humanHandled: true,
+      })
+      return withPrefix(step.prefix, inner)
+    }
+  }
   const q = lastUserText(messages)
   const knowledge =
     opts?.knowledge ??
@@ -199,6 +269,14 @@ export async function routeTeacherReply(
       signal,
     }))
   if (isAbort(signal)) return { text: '', source: 'local', citations: [] }
+
+  // 0b) Подключённая внешняя модель (реестр; сейчас пуст — учитель офлайн).
+  const external = await askTeacherModels(
+    messages.map((m) => ({ role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const), content: m.content })),
+    { lang: ctx.locale, sectionTitle: ctx.sectionTitle },
+    signal,
+  )
+  if (external) return { text: filterAssistantReply(external.text, ctx.locale), source: 'api', citations: knowledge.citations.slice(0, 3) }
 
   // 1) Локальная Ollama — если пользователь её поднял (максимальная приватность).
   if (ollamaEnabled(opts)) {
@@ -219,7 +297,7 @@ export async function routeTeacherReply(
   }
 
   // 3) Локальный ответ из базы знаний.
-  const local = await composeLocalTeacherReply(messages, ctx, { signal, knowledge })
+  const local = await composeLocalTeacherReply(messages, ctx, { signal, knowledge, humanHandled: true })
   if (local.confident) return local
 
   // 4) Готовая карточка FAQ для короткого фактического вопроса.
