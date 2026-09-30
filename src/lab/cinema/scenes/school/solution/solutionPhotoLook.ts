@@ -420,7 +420,9 @@ const VOL_FRAG = /* glsl */ `
     vec3 deep = vec3(0.10, 0.22, 0.42);
     vec3 lit = vec3(0.30, 0.52, 0.80);
     vec3 col = mix(deep, lit, body * top);
-    float a = uAlpha * (0.1 + 0.34 * body) * top;
+    // края плоскости растворяются в фоне — ни одной видимой границы
+    float fade = (1.0 - smoothstep(0.55, 1.0, abs(vP.x))) * (1.0 - smoothstep(0.55, 1.0, abs(vP.y)));
+    float a = uAlpha * (0.05 + 0.3 * body) * top * fade;
     // «лупа»: объём виден только внутри круга перехода макро ↔ микро
     if (uLens.z > 0.0) a *= 1.0 - smoothstep(uLens.z * 0.94, uLens.z, length(vP * uHalf - uLens.xy));
     gl_FragColor = vec4(col, a);

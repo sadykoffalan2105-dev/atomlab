@@ -843,6 +843,28 @@ export class SolutionExchangeScene {
       for (const o of hidden) o.visible = false
       this.appliedT = NaN
     }
+    await this.waitProgramsReady(renderer)
+  }
+
+  /**
+   * Дождаться сборки программ (KHR_parallel_shader_compile): compile только ставит их в очередь, и первый кадр
+   * урока ждал бы сборку физического стекла и жидкости — фриз в начале шага 1. Опрос isReady по кадрам (без
+   * блокировки), не дольше ~1 с; сцену сняли — выходим.
+   */
+  private async waitProgramsReady(renderer: THREE.WebGLRenderer): Promise<void> {
+    const progs = renderer.info.programs as unknown as { isReady?: () => boolean }[] | null
+    if (!progs || typeof requestAnimationFrame !== 'function') return
+    for (let i = 0; i < 60 && !this.disposed; i++) {
+      let ready = true
+      for (const p of progs) {
+        if (p.isReady && !p.isReady()) {
+          ready = false
+          break
+        }
+      }
+      if (ready) return
+      await new Promise<void>((r) => requestAnimationFrame(() => r()))
+    }
   }
 
   dispose(): void {
@@ -1094,8 +1116,8 @@ export class SolutionExchangeScene {
     // центр и полуразмеры области — в системе мира частиц (micro: смещение и масштаб слоя)
     const cx = (e.cx * K - this.micro.position.x) / ms
     const cy = (e.cy * K - this.micro.position.y) / ms
-    const hw = (0.95 * Math.max(e.w, e.h * 1.7) * K) / ms
-    const hh = (0.8 * Math.max(e.h, e.w * 0.6) * K) / ms
+    const hw = (1.5 * Math.max(e.w, e.h * 1.7) * K) / ms
+    const hh = (1.3 * Math.max(e.h, e.w * 0.6) * K) / ms
     const lx = lensOn ? (s.lens.c[0] * K - this.micro.position.x) / ms : 0
     const ly = lensOn ? (s.lens.c[1] * K - this.micro.position.y) / ms : 0
     const lr = lensOn ? (s.lens.r * K) / ms : -1
