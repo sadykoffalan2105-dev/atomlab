@@ -7,11 +7,9 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { LearnSlideDeckVisual } from './LearnSlideDeckVisual'
-import { LearnColumnPanelTools } from './LearnColumnPanelTools'
 import { LearnLessonSidebar } from './LearnLessonSidebar'
 import { LearnWorkspace } from './LearnWorkspace'
 import { LearnShellIcon } from './LearnShellIcon'
@@ -27,42 +25,35 @@ import { learnNextSection, learnSectionPathId } from '../../data/learnCurriculum
 import { textbookSectionPage, gradeHasTextbook } from '../../data/learnTextbook'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { compoundById } from '../../data/compounds'
-import { writeLearnPanelLayout, type LearnPanelId } from '../../learn/learnPanelLayoutStorage'
 import { hasCyberDashboard } from '../../learn/learnCyberDashboard'
 import { useMediaQuery } from './book/bookUi'
-import { StudioEmptyState } from './studio/StudioKit'
-import { StudioColumnTabs, StudioPanelSwitch, StudioSheet, StudioWorkspaceSwitch } from './studio/StudioControls'
-import { StudioShortcutsButton } from './studio/StudioShortcuts'
 import { StudioResizer } from './studio/StudioResizer'
 import { StudioWorkspaceChooser } from './studio/StudioWorkspaceChooser'
 import { useStudioShortcuts } from './studio/useStudioShortcuts'
 import {
-  readStudioPrefs,
-  resizePair,
-  STUDIO_DEFAULT_WIDTHS,
-  STUDIO_PANEL_LABEL as PANEL_LABEL,
-  STUDIO_PANELS,
-  studioGridTemplate,
-  studioToneStyle,
-  writeStudioPrefs,
-  type StudioColumnId,
-  type StudioWidths,
-} from './studio/studioLayout'
-import {
-  readLessonWorkspace,
-  workspacePanels,
-  workspaceToneStyle,
+  initialLessonWorkspace,
+  readDefaultWorkspace,
+  readFocusPanelPrefs,
+  writeDefaultWorkspace,
+  writeFocusPanelPrefs,
   writeLessonWorkspace,
+  FOCUS_MODE_LABEL,
+  FOCUS_STAGE,
+  FOCUS_TOOLS,
+  FOCUS_TOOL_ICON,
+  FOCUS_TOOL_LABEL,
   STUDIO_WORKSPACES,
   STUDIO_WORKSPACE_BY_KEY,
-  STUDIO_WORKSPACE_COLUMNS,
   STUDIO_WORKSPACE_ICON,
+  STUDIO_WORKSPACE_KEY,
   STUDIO_WORKSPACE_LABEL,
-  STUDIO_WORKSPACE_WIDTHS,
+  type FocusPanelPrefs,
+  type FocusTool,
   type StudioWorkspace,
 } from './studio/studioWorkspaces'
 import kit from './studio/StudioKit.module.css'
 import shell from './studio/StudioShell.module.css'
+import focus from './studio/FocusLesson.module.css'
 import styles from '../../pages/LearnPage.module.css'
 
 // Ленивая загрузка: LearnAssistantPanel тянет за собой learnKnowledgeRetrieval →
@@ -73,11 +64,6 @@ import styles from '../../pages/LearnPage.module.css'
 const LearnAssistantPanel = lazy(() =>
   import('./LearnAssistantPanel').then((m) => ({ default: m.LearnAssistantPanel })),
 )
-
-type OptionalPanel = LearnPanelId
-type MobileTab = 'main' | '3d' | 'work' | 'assistant'
-
-const LEAVE_MS = 170
 
 /** Подписи из словаря начинаются со стрелки «← …» — в шапке стрелку рисует иконка. */
 function stripLeadingArrow(label: string): string {
@@ -124,9 +110,32 @@ function slideText(
   }
 }
 
-function isOptionalPanel(v: string | null | undefined): v is OptionalPanel {
-  return v === '3d' || v === 'work' || v === 'assistant'
+
+/** Ширина панели инструментов, px (десктоп). */
+const PANEL_W_KEY = 'atomlab-learn-focus-panel-w-v1'
+const PANEL_W_DEFAULT = 420
+const PANEL_W_MIN = 320
+const PANEL_W_MAX = 760
+
+function readPanelWidth(): number {
+  try {
+    const v = Number(localStorage.getItem(PANEL_W_KEY))
+    return Number.isFinite(v) && v >= PANEL_W_MIN && v <= PANEL_W_MAX ? v : PANEL_W_DEFAULT
+  } catch {
+    return PANEL_W_DEFAULT
+  }
 }
+
+function writePanelWidth(w: number): void {
+  try {
+    localStorage.setItem(PANEL_W_KEY, String(Math.round(w)))
+  } catch {
+    /* приватный режим */
+  }
+}
+
+/** Телефон: что сейчас на экране — сцена или один инструмент. */
+type MobileView = 'stage' | FocusTool
 
 export function LearnSectionRunner({
   grade,
@@ -145,32 +154,22 @@ export function LearnSectionRunner({
   const fromBook = searchParams.get('from') === 'book'
   const [slideIndex, setSlideIndex] = useState(0)
   const [doneBanner, setDoneBanner] = useState(false)
-  const [mobileTab, setMobileTab] = useState<MobileTab>('main')
-  // Рабочее пространство урока: «Обучение» · «Интерактивная доска» · «ИИ-учитель».
-  // null — выбор ещё не сделан, показываем экран выбора.
+  // Режим урока: «Урок» · «Доска» · «ИИ-учитель». null — ещё не выбран, показываем окно выбора.
   const [workspace, setWorkspace] = useState<StudioWorkspace | null>(() =>
-    readLessonWorkspace(learnSectionPathId(section)),
+    initialLessonWorkspace(learnSectionPathId(section)),
   )
+  const [rememberedWs, setRememberedWs] = useState<StudioWorkspace | null>(() => readDefaultWorkspace())
   const [chooserOpen, setChooserOpen] = useState(false)
-  const [expandedPanel, setExpandedPanel] = useState<'3d' | 'work' | 'assistant' | null>(null)
-  const [hiddenPanels, setHiddenPanels] = useState<Set<OptionalPanel>>(() => {
-    const panels = workspacePanels(readLessonWorkspace(learnSectionPathId(section)) ?? 'teach')
-    return new Set(STUDIO_PANELS.filter((id) => !panels.includes(id)))
-  })
-  // Lesson Studio: ширины колонок, уходящие панели, подсказка, шторка, перетаскивание
-  const [widths, setWidths] = useState<StudioWidths>(() => readStudioPrefs().widths)
-  const [leaving, setLeaving] = useState<Set<OptionalPanel>>(() => new Set())
-  const [shortcutsOpen, setShortcutsOpen] = useState(false)
-  const [sheetOpen, setSheetOpen] = useState(false)
+  // Открытая вкладка панели инструментов для каждого режима (null — панель скрыта).
+  const [panelPrefs, setPanelPrefs] = useState<FocusPanelPrefs>(() => readFocusPanelPrefs())
+  const [panelW, setPanelW] = useState<number>(() => readPanelWidth())
+  const [mobileView, setMobileView] = useState<MobileView>('stage')
+  const [expandedTool, setExpandedTool] = useState<FocusTool | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [dragging, setDragging] = useState(false)
-  const leaveTimers = useRef(new Map<OptionalPanel, number>())
-  const layoutRef = useRef<HTMLDivElement>(null)
-  const lastPointerPanel = useRef<OptionalPanel | null>(null)
-  const dragSnap = useRef<{ widths: StudioWidths; leftPx: number; rightPx: number } | null>(null)
+  const dragStartW = useRef<number | null>(null)
 
   const isDesktop = useMediaQuery('(min-width: 1024px)')
-  const isWide = useMediaQuery('(min-width: 1440px)')
-  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
   const fgosMeta = useMemo(
     () => getLearnFgosMeta(section.gradeId, chapter.id, section.id),
@@ -225,208 +224,109 @@ export function LearnSectionRunner({
     setLastPosition(grade.id, chapter.id, section.id, slideIndex)
   }, [grade.id, chapter.id, section.id, slideIndex])
 
-  useEffect(() => {
-    const timers = leaveTimers.current
-    return () => {
-      timers.forEach((id) => window.clearTimeout(id))
-      timers.clear()
-    }
-  }, [])
-
-  const isPanelHidden = useCallback((id: OptionalPanel) => hiddenPanels.has(id), [hiddenPanels])
-
-  const persistHidden = useCallback((next: Set<OptionalPanel>) => {
-    writeLearnPanelLayout({ hidden: [...next] })
-  }, [])
-
-  const commitHide = useCallback(
-    (id: OptionalPanel) => {
-      setHiddenPanels((prev) => {
-        if (prev.has(id)) return prev
-        const next = new Set(prev)
-        next.add(id)
-        persistHidden(next)
-        return next
-      })
-      setExpandedPanel((cur) => (cur === id ? null : cur))
-      setMobileTab((cur) => (cur === id ? 'main' : cur))
-    },
-    [persistHidden],
-  )
-
-  /** Скрыть панель: на десктопе — с коротким исчезновением, иначе сразу. */
-  const hidePanel = useCallback(
-    (id: OptionalPanel) => {
-      if (!isDesktop || reduceMotion || leaveTimers.current.has(id)) {
-        commitHide(id)
-        return
-      }
-      setLeaving((prev) => new Set(prev).add(id))
-      const timer = window.setTimeout(() => {
-        leaveTimers.current.delete(id)
-        setLeaving((prev) => {
-          const next = new Set(prev)
-          next.delete(id)
-          return next
-        })
-        commitHide(id)
-      }, LEAVE_MS)
-      leaveTimers.current.set(id, timer)
-    },
-    [commitHide, isDesktop, reduceMotion],
-  )
-
-  const showPanel = useCallback(
-    (id: OptionalPanel) => {
-      const pending = leaveTimers.current.get(id)
-      if (pending != null) {
-        window.clearTimeout(pending)
-        leaveTimers.current.delete(id)
-        setLeaving((prev) => {
-          const next = new Set(prev)
-          next.delete(id)
-          return next
-        })
-      }
-      setHiddenPanels((prev) => {
-        if (!prev.has(id)) return prev
-        const next = new Set(prev)
-        next.delete(id)
-        persistHidden(next)
-        return next
-      })
-      setMobileTab(id === '3d' ? '3d' : id === 'work' ? 'work' : 'assistant')
-    },
-    [persistHidden],
-  )
-
-  const togglePanelVisibility = useCallback(
-    (id: OptionalPanel) => {
-      if (hiddenPanels.has(id) || leaveTimers.current.has(id)) showPanel(id)
-      else hidePanel(id)
-    },
-    [hiddenPanels, hidePanel, showPanel],
-  )
-
-  // Хуки ниже раньше вызывались после раннего return экрана «Параграф завершён»,
-  // из-за чего «Завершить урок» ронял React («Rendered fewer hooks than expected»).
-  const toggleExpanded = useCallback((panel: '3d' | 'work' | 'assistant') => {
-    if (hiddenPanels.has(panel)) {
-      showPanel(panel)
-      return
-    }
-    setExpandedPanel((prev) => (prev === panel ? null : panel))
-    setMobileTab(panel === '3d' ? '3d' : panel === 'work' ? 'work' : 'assistant')
-  }, [hiddenPanels, showPanel])
-
-  /** Переход в рабочее пространство: монтируются только его колонки. */
-  const pickWorkspace = useCallback(
-    (ws: StudioWorkspace) => {
-      leaveTimers.current.forEach((timer) => window.clearTimeout(timer))
-      leaveTimers.current.clear()
-      setLeaving(new Set())
-      setWorkspace(ws)
-      writeLessonWorkspace(pathId, ws)
-      setChooserOpen(false)
-      setExpandedPanel(null)
-      const panels = workspacePanels(ws)
-      const next = new Set<OptionalPanel>(STUDIO_PANELS.filter((id) => !panels.includes(id)))
-      setHiddenPanels(next)
-      persistHidden(next)
-      setMobileTab(STUDIO_WORKSPACE_COLUMNS[ws][0] ?? 'main')
-      setWidths((prev) => {
-        const next = { ...prev, ...STUDIO_WORKSPACE_WIDTHS[ws] }
-        writeStudioPrefs({ widths: next, preset: ws === 'board' ? 'board' : null })
-        return next
-      })
-    },
-    [pathId, persistHidden],
-  )
-
   /**
-   * Смена урока без размонтирования компонента — восстанавливаем пространство
+   * Смена урока без размонтирования компонента — восстанавливаем режим
    * этого урока прямо в рендере (паттерн React «adjusting state when props change»).
    */
   const [seenPathId, setSeenPathId] = useState(pathId)
   if (seenPathId !== pathId) {
     setSeenPathId(pathId)
-    const ws = readLessonWorkspace(pathId)
-    const panels = workspacePanels(ws ?? 'teach')
-    setWorkspace(ws)
+    setWorkspace(initialLessonWorkspace(pathId))
     setChooserOpen(false)
-    setExpandedPanel(null)
-    setHiddenPanels(new Set(STUDIO_PANELS.filter((id) => !panels.includes(id))))
-    setMobileTab(STUDIO_WORKSPACE_COLUMNS[ws ?? 'teach'][0] ?? 'main')
+    setExpandedTool(null)
+    setMobileView('stage')
   }
 
   const activeWs: StudioWorkspace = workspace ?? 'teach'
-  const wsPanels = workspacePanels(activeWs)
   const presentationMode = activeWs === 'board'
   const showChooser = workspace == null || chooserOpen
+  const stageTool = FOCUS_STAGE[activeWs]
+  const tools = FOCUS_TOOLS[activeWs]
+  const openTool = panelPrefs[activeWs]
+  /** Инструмент, который сейчас смонтирован в панели (телефон — выбранная вкладка). */
+  const panelTool: FocusTool | null = isDesktop ? openTool : mobileView === 'stage' ? null : mobileView
+
+  const updatePanel = useCallback((ws: StudioWorkspace, tool: FocusTool | null) => {
+    setPanelPrefs((prev) => {
+      if (prev[ws] === tool) return prev
+      const next = { ...prev, [ws]: tool }
+      writeFocusPanelPrefs(next)
+      return next
+    })
+  }, [])
+
+  /** Переход в режим: сцена меняется, панель помнит свою вкладку для режима. */
+  const pickWorkspace = useCallback(
+    (ws: StudioWorkspace) => {
+      setWorkspace(ws)
+      writeLessonWorkspace(pathId, ws)
+      setChooserOpen(false)
+      setExpandedTool(null)
+      setMobileView('stage')
+    },
+    [pathId],
+  )
+
+  const pickFromChooser = useCallback(
+    (ws: StudioWorkspace, remember: boolean) => {
+      writeDefaultWorkspace(remember ? ws : null)
+      setRememberedWs(remember ? ws : null)
+      pickWorkspace(ws)
+    },
+    [pickWorkspace],
+  )
+
+  const toggleAskMode = useCallback(() => {
+    const next = rememberedWs ? null : activeWs
+    writeDefaultWorkspace(next)
+    setRememberedWs(next)
+  }, [activeWs, rememberedWs])
+
+  /** Вкладка на рейке: открыть инструмент; повторный клик по открытому — спрятать панель. */
+  const pickTool = useCallback(
+    (tool: FocusTool) => {
+      setExpandedTool(null)
+      updatePanel(activeWs, openTool === tool ? null : tool)
+    },
+    [activeWs, openTool, updatePanel],
+  )
+
+  const togglePanel = useCallback(() => {
+    setExpandedTool(null)
+    updatePanel(activeWs, openTool ? null : (tools[0] ?? null))
+  }, [activeWs, openTool, tools, updatePanel])
 
   const toggleBoard = useCallback(() => {
     pickWorkspace(workspace === 'board' ? 'teach' : 'board')
   }, [pickWorkspace, workspace])
 
-  const visibleCols = useMemo<StudioColumnId[]>(
-    () => STUDIO_WORKSPACE_COLUMNS[activeWs].filter((c) => c === 'main' || !hiddenPanels.has(c)),
-    [activeWs, hiddenPanels],
-  )
+  /* ——— Ширина панели ——— */
 
-  const visiblePanelCount = visibleCols.length
-  const onlyCockpit = visiblePanelCount === 1 && visibleCols[0] === 'main' && !expandedPanel
-  const showResizers = isDesktop && !expandedPanel && visiblePanelCount > 1 && (isWide || visiblePanelCount < 4)
-
-  const gridTemplateColumns = useMemo(() => {
-    if (expandedPanel) return undefined
-    if (visibleCols.length === 1) return visibleCols[0] === 'main' ? 'minmax(250px, 1fr) minmax(0, 1.6fr)' : '1fr'
-    if (showResizers) return studioGridTemplate(visibleCols, widths)
-    return visibleCols.map((c) => `minmax(0, ${widths[c]}fr)`).join(' ')
-  }, [visibleCols, widths, expandedPanel, showResizers])
-
-  /* ——— Изменение ширины колонок ——— */
-
-  const columnPx = useCallback((id: StudioColumnId): number => {
-    const el = layoutRef.current?.querySelector<HTMLElement>(`[data-studio-col="${id}"]`)
-    return el ? el.getBoundingClientRect().width : 0
-  }, [])
-
-  const persistWidths = useCallback((w: StudioWidths) => writeStudioPrefs({ widths: w }), [])
-
-  const resizeBetween = useCallback(
-    (left: StudioColumnId, right: StudioColumnId, deltaPx: number, phase: 'move' | 'end') => {
-      if (!dragSnap.current) {
-        dragSnap.current = { widths, leftPx: columnPx(left), rightPx: columnPx(right) }
-      }
-      const snap = dragSnap.current
-      const next = resizePair(snap.widths, left, right, snap.leftPx, snap.rightPx, deltaPx)
-      setWidths(next)
+  const onPanelDelta = useCallback(
+    (d: number, phase: 'move' | 'end') => {
+      if (dragStartW.current == null) dragStartW.current = panelW
+      const w = Math.min(PANEL_W_MAX, Math.max(PANEL_W_MIN, dragStartW.current - d))
+      setPanelW(w)
       if (phase === 'end') {
-        dragSnap.current = null
-        persistWidths(next)
+        dragStartW.current = null
+        writePanelWidth(w)
       }
     },
-    [columnPx, persistWidths, widths],
+    [panelW],
   )
 
-  const resetBetween = useCallback(
-    (left: StudioColumnId, right: StudioColumnId) => {
-      dragSnap.current = null
-      setWidths((prev) => {
-        const next = { ...prev, [left]: STUDIO_DEFAULT_WIDTHS[left], [right]: STUDIO_DEFAULT_WIDTHS[right] }
-        persistWidths(next)
-        return next
-      })
-    },
-    [persistWidths],
-  )
+  const onPanelReset = useCallback(() => {
+    dragStartW.current = null
+    setPanelW(PANEL_W_DEFAULT)
+    writePanelWidth(PANEL_W_DEFAULT)
+  }, [])
 
   const onDragState = useCallback((on: boolean) => {
     setDragging(on)
-    if (!on) dragSnap.current = null
+    if (!on) dragStartW.current = null
   }, [])
 
-  /* ——— Горячие клавиши ——— */
+  /* ——— Горячие клавиши: 1·2·3 режимы, B доска, F инструмент на весь экран, ? меню, Esc ——— */
 
   const onPanelKey = useCallback(
     (key: '1' | '2' | '3') => {
@@ -436,21 +336,15 @@ export function LearnSectionRunner({
   )
 
   const onFullscreenKey = useCallback(() => {
-    if (expandedPanel) {
-      setExpandedPanel(null)
+    if (expandedTool) {
+      setExpandedTool(null)
       return
     }
-    const focused = document.activeElement?.closest<HTMLElement>('[data-studio-col]')?.dataset.studioCol
-    const id = isOptionalPanel(focused) ? focused : lastPointerPanel.current
-    if (id && !hiddenPanels.has(id) && !(presentationMode && id === 'assistant')) toggleExpanded(id)
-  }, [expandedPanel, hiddenPanels, presentationMode, toggleExpanded])
+    if (panelTool) setExpandedTool(panelTool)
+  }, [expandedTool, panelTool])
 
-  const onHelpKey = useCallback(() => setShortcutsOpen((v) => !v), [])
-  const closeShortcuts = useCallback(() => setShortcutsOpen(false), [])
-  const onEscapeKey = useCallback(() => {
-    setShortcutsOpen(false)
-    setSheetOpen(false)
-  }, [])
+  const onHelpKey = useCallback(() => setMenuOpen((v) => !v), [])
+  const onEscapeKey = useCallback(() => setMenuOpen(false), [])
 
   useStudioShortcuts({
     onPanelKey,
@@ -461,26 +355,21 @@ export function LearnSectionRunner({
     enabled: !doneBanner && !showChooser,
   })
 
-  const rememberPointerPanel = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
-    const id = (e.target as HTMLElement).closest<HTMLElement>('[data-studio-col]')?.dataset.studioCol
-    lastPointerPanel.current = isOptionalPanel(id) ? id : null
-  }, [])
-
   useEffect(() => {
-    if (!expandedPanel) return
+    if (!expandedTool) return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setExpandedPanel(null)
+      if (e.key === 'Escape') setExpandedTool(null)
     }
     window.addEventListener('keydown', onKey)
     return () => {
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
     }
-  }, [expandedPanel])
+  }, [expandedTool])
 
-  /** Цвет класса (g7…g11) из дизайн-системы — для бейджа § и акцентов шапки. */
+  /** Цвет класса (g7…g11) из дизайн-системы — для экрана «Параграф завершён». */
   const gradeToneStyle = useMemo(
     () =>
       ({
@@ -541,35 +430,6 @@ export function LearnSectionRunner({
   const rosterSectionId =
     moleculeHubSection && section.defaultVisualId ? section.defaultVisualId : pathId
 
-  const theoryCol = (
-    <LearnLessonSidebar
-      grade={grade}
-      chapter={chapter}
-      section={section}
-      rosterSectionId={rosterSectionId}
-      fromBook={fromBook}
-    />
-  )
-
-  const layoutClass = [
-    styles.learnLessonLayout,
-    expandedPanel ? styles.learnLessonLayoutFs : '',
-    dragging ? shell.layoutDragging : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
-
-  const colClass = (id: OptionalPanel, base: string) =>
-    [
-      base,
-      shell.col,
-      mobileTab !== id && !expandedPanel ? styles.learnColHideMobile : '',
-      expandedPanel === id ? styles.learnColFullscreen : '',
-      leaving.has(id) ? shell.colLeaving : '',
-    ]
-      .filter(Boolean)
-      .join(' ')
-
   const bookHref = `/learn/g/${grade.id}/book?chapter=${chapter.id}&section=${section.id}&page=${textbookSectionPage(grade.id, chapter.id, section.id)}`
   const backHref = fromBook && gradeHasTextbook(grade.id) ? bookHref : `/learn/g/${grade.id}/c/${chapter.id}`
   const backLabel = stripLeadingArrow(fromBook ? t('learn.bookTopic.backToBook') : t('learn.backChapters'))
@@ -578,317 +438,62 @@ export function LearnSectionRunner({
   const hasLab = grade.id === 'g10'
   const labHref = `/organic?chapter=${chapter.id.replace(/\D/g, '') || '1'}&section=${section.id.replace(/\D/g, '') || '1'}`
 
-  // Сетка колонок: на десктопе берётся из CSS-переменной (в мобильной раскладке
-  // одна колонка — inline grid-template-columns больше не ломает телефон).
-  const layoutStyle = gridTemplateColumns
-    ? ({ '--learn-cols': gridTemplateColumns } as CSSProperties)
-    : undefined
+  const sectionIndex = Math.max(0, chapter.sections.findIndex((s) => s.id === section.id))
+  const sectionTotal = Math.max(1, chapter.sections.length)
+  const progressLabel = t('learn.focus.progress', { n: sectionIndex + 1, total: sectionTotal })
 
-  const colLabel = (id: StudioColumnId) => (id === 'main' ? t('learn.studio.cockpit') : t(PANEL_LABEL[id]))
-
-  /** Ручка между соседними видимыми колонками. */
-  const resizerAfter = (id: StudioColumnId) => {
-    if (!showResizers) return null
-    const i = visibleCols.indexOf(id)
-    const right = visibleCols[i + 1]
-    if (i < 0 || !right) return null
-    return (
-      <StudioResizer
-        key={`rz-${id}-${right}`}
-        label={t('learn.studio.resize', { a: colLabel(id), b: colLabel(right) })}
-        hint={t('learn.studio.resizeHint')}
-        onDelta={(d, phase) => resizeBetween(id, right, d, phase)}
-        onReset={() => resetBetween(id, right)}
-        onDragState={onDragState}
-      />
-    )
-  }
-
-  const linkButtons = (labelClass: string) => (
-    <>
-      <Link className={`${kit.btn} ${shell.linkBtn}`} to="/learn/tasks" title={t('learn.grades.tasks')}>
-        <LearnShellIcon name="tasks" size={16} />
-        <span className={labelClass}>{t('learn.grades.tasks')}</span>
-      </Link>
-      {gradeHasTextbook(grade.id) ? (
-        <Link className={`${kit.btn} ${shell.linkBtn}`} to={bookHref} title={t('learn.textbook.openSection')}>
-          <LearnShellIcon name="book" size={16} />
-          <span className={labelClass}>{t('learn.textbook.openSection')}</span>
-        </Link>
-      ) : null}
-      {hasLab ? (
-        <Link className={`${kit.btn} ${shell.linkBtn}`} to={labHref} title={t('organicLab.openInLab')}>
-          <LearnShellIcon name="flask" size={16} />
-          <span className={labelClass}>{t('organicLab.openInLab')}</span>
-        </Link>
-      ) : null}
-    </>
-  )
-
-  return (
-    <div
-      className={`${styles.page} ${styles.learnLessonOneScreen}`}
-      data-studio-ws={activeWs}
-      style={gradeToneStyle}
-    >
-      <header className={presentationMode ? `${shell.bar} ${shell.barPresent}` : shell.bar}>
-        <div className={shell.lead}>
-          <Link className={`${kit.btn} ${shell.back}`} to={backHref} title={backLabel} aria-label={backLabel}>
-            <LearnShellIcon name="arrowLeft" size={16} />
-            <span className={shell.backLabel}>{backLabel}</span>
-          </Link>
-          <div className={shell.titleBlock}>
-            <h1 className={shell.title} title={lessonTitle}>
-              {titleParts.badge ? <span className={shell.paraBadge}>{titleParts.badge}</span> : null}
-              <span className={shell.titleText}>{titleParts.text}</span>
-            </h1>
-            <p className={shell.meta}>
-              <span className={kit.chip}>
-                <LearnShellIcon name="clock" size={13} />
-                {t('learn.estimatedMin', { n: section.estimatedMin })}
-              </span>
-              <span className={`${kit.chip} ${shell.metaWide}`} title={fgosLabel}>
-                <LearnShellIcon name="award" size={13} />
-                <span className={shell.metaText}>{fgosLabel}</span>
-              </span>
-            </p>
-          </div>
-        </div>
-        <div className={shell.actions}>
-          <button
-            type="button"
-            className={`${kit.btnPrimary} ${shell.primaryBtn}`}
-            onClick={finishSection}
-            title={t('learn.finish')}
-          >
-            <LearnShellIcon name="check" size={16} strokeWidth={2.4} />
-            <span className={shell.linkLabel}>{t('learn.finish')}</span>
-          </button>
-          <div className={shell.actionGroup}>{linkButtons(shell.linkLabel)}</div>
-          <span className={shell.vDivider} aria-hidden="true" />
-          <div className={shell.actionGroup}>
-            <StudioWorkspaceSwitch active={activeWs} onPick={pickWorkspace} />
-            <button
-              type="button"
-              className={`${kit.btn} ${shell.changeBtn}`}
-              onClick={() => setChooserOpen(true)}
-              title={t('learn.studio.ws.change')}
-              aria-haspopup="dialog"
-              data-studio-ws-change="1"
-            >
-              <LearnShellIcon name="layers" size={15} />
-              <span className={shell.linkLabel}>{t('learn.studio.ws.change')}</span>
-            </button>
-            <StudioPanelSwitch
-              hidden={hiddenPanels}
-              expanded={expandedPanel}
-              panels={wsPanels}
-              onToggle={togglePanelVisibility}
+  /** Содержимое инструмента. `onStage` — главная сцена режима. */
+  const renderTool = (tool: FocusTool, onStage: boolean) => {
+    switch (tool) {
+      case 'cockpit':
+        return (
+          <div className={`${styles.learnColTheory} ${focus.plain}`} data-studio-col="main">
+            <LearnLessonSidebar
+              grade={grade}
+              chapter={chapter}
+              section={section}
+              rosterSectionId={rosterSectionId}
+              fromBook={fromBook}
             />
           </div>
-          <StudioShortcutsButton open={shortcutsOpen} onToggle={onHelpKey} onClose={closeShortcuts} />
-          <button
-            type="button"
-            className={`${kit.iconBtn} ${shell.moreBtn}`}
-            onClick={() => setSheetOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={sheetOpen}
-            title={t('learn.studio.more')}
-            aria-label={t('learn.studio.more')}
-            data-studio-more="1"
-          >
-            <LearnShellIcon name="more" size={18} strokeWidth={3} />
-          </button>
-        </div>
-      </header>
-
-      <StudioSheet open={sheetOpen} title={t('learn.studio.moreTitle')} onClose={() => setSheetOpen(false)}>
-        <div className={shell.sheetSection}>
-          <p className={shell.sheetLabel}>{t('learn.studio.links')}</p>
-          <div className={shell.sheetRow}>{linkButtons(kit.btnLabel)}</div>
-        </div>
-        <div className={shell.sheetSection}>
-          <p className={shell.sheetLabel}>{t('learn.studio.ws.switch')}</p>
-          <StudioWorkspaceSwitch
-            active={activeWs}
-            onPick={(ws) => {
-              pickWorkspace(ws)
-              setSheetOpen(false)
-            }}
-            wrap
-          />
-          <div className={shell.sheetRow}>
-            <button
-              type="button"
-              className={kit.btn}
-              onClick={() => {
-                setSheetOpen(false)
-                setChooserOpen(true)
-              }}
-            >
-              <LearnShellIcon name="layers" size={16} />
-              <span className={kit.btnLabel}>{t('learn.studio.ws.change')}</span>
-            </button>
-          </div>
-        </div>
-        <div className={shell.sheetSection}>
-          <p className={shell.sheetLabel}>{t('learn.panel.menu')}</p>
-          <div className={shell.sheetRow}>
-            {wsPanels.map((id) => (
-              <button
-                key={id}
-                type="button"
-                className={isPanelHidden(id) ? kit.btn : `${kit.btn} ${kit.chipOn}`}
-                style={studioToneStyle(id)}
-                onClick={() => togglePanelVisibility(id)}
-                aria-pressed={!isPanelHidden(id)}
-              >
-                <LearnShellIcon name={isPanelHidden(id) ? 'plus' : 'check'} size={16} />
-                <span className={kit.btnLabel}>{t(PANEL_LABEL[id])}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </StudioSheet>
-
-      {expandedPanel ? (
-        <button
-          type="button"
-          className={styles.learnFsBackdrop}
-          aria-label={t('learn.panel.collapse')}
-          onClick={() => setExpandedPanel(null)}
-        />
-      ) : null}
-
-      <div className={shell.dock} role="tablist" aria-label={t('learn.studio.ws.switch')} data-studio-dock="1">
-        {STUDIO_WORKSPACES.map((ws) => (
-          <button
-            key={ws}
-            type="button"
-            role="tab"
-            aria-selected={activeWs === ws}
-            className={activeWs === ws ? shell.dockTabOn : shell.dockTab}
-            style={workspaceToneStyle(ws)}
-            onClick={() => pickWorkspace(ws)}
-            data-studio-ws-dock={ws}
-          >
-            <span className={shell.dockIcon}>
-              <LearnShellIcon name={STUDIO_WORKSPACE_ICON[ws]} size={17} strokeWidth={2.2} />
-            </span>
-            <span className={shell.dockLabel}>{t(STUDIO_WORKSPACE_LABEL[ws])}</span>
-          </button>
-        ))}
-      </div>
-
-      <StudioColumnTabs
-        cols={visibleCols}
-        active={mobileTab}
-        onPick={(id) => setMobileTab(id)}
-        label={t('learn.panel.menu')}
-      />
-
-      {workspace ? (
-      <div
-        ref={layoutRef}
-        className={layoutClass}
-        style={layoutStyle}
-        data-panels={visiblePanelCount}
-        data-resizable={showResizers ? '1' : undefined}
-        onPointerDownCapture={rememberPointerPanel}
-      >
-        {visibleCols.includes('main') ? (
+        )
+      case '3d':
+        return (
           <div
-            className={`${styles.learnColTheory} ${mobileTab !== 'main' ? styles.learnColHideMobile : ''}`}
-            data-studio-col="main"
-          >
-            <LearnColumnPanelTools label={t('learn.studio.cockpit')} subtitle={chapterTitle} icon="users" />
-            {theoryCol}
-          </div>
-        ) : null}
-        {visibleCols.includes('main') ? resizerAfter('main') : null}
-        {onlyCockpit && isDesktop ? (
-          <div className={shell.emptyCol}>
-            <StudioEmptyState
-              className={shell.emptyCard}
-              title={t('learn.studio.emptyTitle')}
-              lead={t('learn.studio.emptyLead')}
-              actions={
-                <>
-                  {wsPanels.map((id) => (
-                    <button
-                      key={id}
-                      type="button"
-                      className={`${kit.btn} ${shell.emptyBtn}`}
-                      style={studioToneStyle(id)}
-                      onClick={() => showPanel(id)}
-                    >
-                      <LearnShellIcon name="plus" size={14} strokeWidth={2.4} />
-                      <span>{t(PANEL_LABEL[id])}</span>
-                    </button>
-                  ))}
-                  <StudioWorkspaceSwitch className={shell.emptyPresets} active={activeWs} onPick={pickWorkspace} wrap />
-                </>
-              }
-            />
-          </div>
-        ) : null}
-        {visibleCols.includes('3d') ? (
-          <div
-            className={colClass('3d', styles.learnCol3d)}
+            className={`${styles.learnCol3d} ${focus.plain}`}
             data-studio-col="3d"
-            data-studio-fs={expandedPanel === '3d' ? '1' : undefined}
+            data-studio-fs={expandedTool === '3d' ? '1' : undefined}
           >
-            <LearnColumnPanelTools
-              expanded={expandedPanel === '3d'}
-              label={t('learn.panel.open3d')}
-              icon="cube"
-              onExpand={() => toggleExpanded('3d')}
-              onHide={() => hidePanel('3d')}
-            />
             <LearnSlideDeckVisual
               slide={slide}
               visualId={visualId}
               sectionSceneId={section.defaultVisualId}
               accent={accent}
-              presentationMode={presentationMode || expandedPanel === '3d'}
+              presentationMode={onStage ? false : expandedTool === '3d'}
             />
           </div>
-        ) : null}
-        {visibleCols.includes('3d') ? resizerAfter('3d') : null}
-        {visibleCols.includes('work') ? (
+        )
+      case 'work':
+        return (
           <div
-            className={colClass('work', styles.learnColWork)}
+            className={`${styles.learnColWork} ${focus.plain}`}
             data-studio-col="work"
-            data-studio-fs={expandedPanel === 'work' ? '1' : undefined}
+            data-studio-fs={expandedTool === 'work' ? '1' : undefined}
           >
-            <LearnColumnPanelTools
-              expanded={expandedPanel === 'work'}
-              label={presentationMode ? t('learn.studio.ws.board') : t('learn.panel.openWork')}
-              icon={presentationMode ? 'board' : 'pencil'}
-              onExpand={() => toggleExpanded('work')}
-              onHide={wsPanels.length > 1 ? () => hidePanel('work') : undefined}
-            />
             <LearnWorkspace
               sectionPathId={pathId}
               taskCategoryId={taskCategoryId}
-              presentationMode={presentationMode}
+              presentationMode={onStage && presentationMode}
             />
           </div>
-        ) : null}
-        {visibleCols.includes('work') ? resizerAfter('work') : null}
-        {visibleCols.includes('assistant') ? (
+        )
+      case 'assistant':
+        return (
           <div
-            className={colClass('assistant', styles.learnColAssistant)}
+            className={`${styles.learnColAssistant} ${focus.plain}`}
             data-studio-col="assistant"
-            data-studio-fs={expandedPanel === 'assistant' ? '1' : undefined}
+            data-studio-fs={expandedTool === 'assistant' ? '1' : undefined}
           >
-            <LearnColumnPanelTools
-              expanded={expandedPanel === 'assistant'}
-              label={t('learn.panel.openAssistant')}
-              icon="sparkles"
-              onExpand={() => toggleExpanded('assistant')}
-              onHide={wsPanels.length > 1 ? () => hidePanel('assistant') : undefined}
-            />
             <Suspense
               fallback={
                 <div className={styles.learnColLoading} aria-hidden="true">
@@ -910,8 +515,332 @@ export function LearnSectionRunner({
               />
             </Suspense>
           </div>
-        ) : null}
-      </div>
+        )
+    }
+  }
+
+  const stageNavLabel = activeWs === 'board' ? t(FOCUS_MODE_LABEL.board) : t(FOCUS_TOOL_LABEL[stageTool])
+  const stageNavIcon = activeWs === 'board' ? STUDIO_WORKSPACE_ICON.board : FOCUS_TOOL_ICON[stageTool]
+
+  const panelClass = [
+    focus.panel,
+    expandedTool && expandedTool === panelTool ? styles.learnColFullscreen : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const bodyStyle = { '--focus-panel-w': `${panelW}px` } as CSSProperties
+
+  return (
+    <div
+      className={`${styles.page} ${styles.learnLessonOneScreen} ${focus.root}`}
+      data-studio-ws={activeWs}
+      data-focus-lesson="1"
+      style={gradeToneStyle}
+    >
+      <header className={focus.bar}>
+        <Link className={focus.back} to={backHref} title={backLabel} aria-label={backLabel}>
+          <LearnShellIcon name="arrowLeft" size={18} />
+          <span className={focus.backLabel}>{backLabel}</span>
+        </Link>
+        <div className={focus.titleBlock}>
+          <h1 className={focus.title} title={lessonTitle}>
+            {titleParts.badge ? <span className={focus.para}>{titleParts.badge}</span> : null}
+            <span className={focus.titleText}>{titleParts.text}</span>
+          </h1>
+          <p className={focus.progress} title={`${chapterTitle} · ${progressLabel}`}>
+            <span className={focus.progressTrack} aria-hidden="true">
+              <span
+                className={focus.progressFill}
+                style={{ width: `${Math.round(((sectionIndex + 1) / sectionTotal) * 100)}%` }}
+              />
+            </span>
+            <span className={focus.progressText}>
+              <span className={focus.progressChapter}>{chapterTitle} · </span>
+              {progressLabel}
+            </span>
+          </p>
+        </div>
+
+        <div className={focus.modes} role="group" aria-label={t('learn.focus.modes')}>
+          {STUDIO_WORKSPACES.map((ws) => {
+            const on = activeWs === ws
+            return (
+              <button
+                key={ws}
+                type="button"
+                className={on ? `${focus.modeItem} ${focus.modeItemOn}` : focus.modeItem}
+                onClick={() => pickWorkspace(ws)}
+                aria-pressed={on}
+                title={`${t(STUDIO_WORKSPACE_LABEL[ws])} (${STUDIO_WORKSPACE_KEY[ws]})`}
+                data-studio-ws={ws}
+              >
+                <LearnShellIcon name={STUDIO_WORKSPACE_ICON[ws]} size={16} />
+                <span className={focus.modeLabel}>{t(FOCUS_MODE_LABEL[ws])}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        <button type="button" className={focus.finish} onClick={finishSection} title={t('learn.finish')}>
+          <LearnShellIcon name="check" size={18} strokeWidth={2.4} />
+          <span className={focus.finishLabel}>{t('learn.finish')}</span>
+        </button>
+
+        <div className={focus.moreWrap}>
+          <button
+            type="button"
+            className={focus.iconBtn}
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            title={t('learn.studio.more')}
+            aria-label={t('learn.studio.more')}
+            data-studio-more="1"
+          >
+            <LearnShellIcon name="more" size={20} strokeWidth={3} />
+          </button>
+          {menuOpen ? (
+            <>
+              <button
+                type="button"
+                className={focus.menuBackdrop}
+                aria-label={t('learn.studio.close')}
+                onClick={() => setMenuOpen(false)}
+              />
+              <div className={focus.menu} role="menu" aria-label={t('learn.studio.moreTitle')} data-studio-sheet="1">
+                <div className={focus.menuSection}>
+                  <p className={focus.menuLabel}>{t('learn.focus.more.lesson')}</p>
+                  <p className={focus.menuInfo}>
+                    <LearnShellIcon name="clock" size={16} />
+                    <span>{t('learn.estimatedMin', { n: section.estimatedMin })}</span>
+                  </p>
+                  <p className={focus.menuInfo}>
+                    <LearnShellIcon name="award" size={16} />
+                    <span>{fgosLabel}</span>
+                  </p>
+                </div>
+                <div className={focus.menuSection}>
+                  <p className={focus.menuLabel}>{t('learn.studio.links')}</p>
+                  <Link className={focus.menuItem} to="/learn/tasks" role="menuitem">
+                    <LearnShellIcon name="tasks" size={18} />
+                    <span className={focus.menuItemText}>{t('learn.grades.tasks')}</span>
+                  </Link>
+                  {gradeHasTextbook(grade.id) ? (
+                    <Link className={focus.menuItem} to={bookHref} role="menuitem">
+                      <LearnShellIcon name="book" size={18} />
+                      <span className={focus.menuItemText}>{t('learn.textbook.openSection')}</span>
+                    </Link>
+                  ) : null}
+                  {hasLab ? (
+                    <Link className={focus.menuItem} to={labHref} role="menuitem">
+                      <LearnShellIcon name="flask" size={18} />
+                      <span className={focus.menuItemText}>{t('organicLab.openInLab')}</span>
+                    </Link>
+                  ) : null}
+                </div>
+                <div className={focus.menuSection}>
+                  <p className={focus.menuLabel}>{t('learn.focus.more.mode')}</p>
+                  <button
+                    type="button"
+                    className={focus.menuItem}
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      setChooserOpen(true)
+                    }}
+                    data-studio-ws-change="1"
+                  >
+                    <LearnShellIcon name="layers" size={18} />
+                    <span className={focus.menuItemText}>{t('learn.focus.more.chooseMode')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={focus.menuItem}
+                    role="menuitemcheckbox"
+                    aria-checked={!rememberedWs}
+                    onClick={toggleAskMode}
+                  >
+                    <LearnShellIcon name="list" size={18} />
+                    <span className={focus.menuItemText}>{t('learn.focus.more.askMode')}</span>
+                    <input type="checkbox" className={focus.menuCheck} checked={!rememberedWs} readOnly tabIndex={-1} aria-hidden="true" />
+                  </button>
+                  {isDesktop ? (
+                    <button
+                      type="button"
+                      className={focus.menuItem}
+                      role="menuitemcheckbox"
+                      aria-checked={openTool != null}
+                      onClick={() => {
+                        togglePanel()
+                        setMenuOpen(false)
+                      }}
+                    >
+                      <LearnShellIcon name="layout" size={18} />
+                      <span className={focus.menuItemText}>{t('learn.focus.tools.show')}</span>
+                      <input type="checkbox" className={focus.menuCheck} checked={openTool != null} readOnly tabIndex={-1} aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </div>
+                {isDesktop ? (
+                  <div className={focus.menuSection}>
+                    <p className={focus.menuLabel}>{t('learn.studio.shortcuts')}</p>
+                    <div className={focus.keyRow}>
+                      <span>{t('learn.focus.key.modes')}</span>
+                      <span className={focus.kbds}>
+                        <kbd className={focus.kbd}>1</kbd>
+                        <kbd className={focus.kbd}>2</kbd>
+                        <kbd className={focus.kbd}>3</kbd>
+                      </span>
+                    </div>
+                    <div className={focus.keyRow}>
+                      <span>{t('learn.focus.key.board')}</span>
+                      <kbd className={focus.kbd}>B</kbd>
+                    </div>
+                    <div className={focus.keyRow}>
+                      <span>{t('learn.focus.key.fullscreen')}</span>
+                      <kbd className={focus.kbd}>F</kbd>
+                    </div>
+                    <div className={focus.keyRow}>
+                      <span>{t('learn.focus.key.escape')}</span>
+                      <kbd className={focus.kbd}>Esc</kbd>
+                    </div>
+                    <div className={focus.keyRow}>
+                      <span>{t('learn.focus.key.help')}</span>
+                      <kbd className={focus.kbd}>?</kbd>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+        </div>
+      </header>
+
+      {expandedTool ? (
+        <button
+          type="button"
+          className={styles.learnFsBackdrop}
+          aria-label={t('learn.panel.collapse')}
+          onClick={() => setExpandedTool(null)}
+        />
+      ) : null}
+
+      {workspace ? (
+        <div
+          className={dragging ? `${focus.body} ${shell.layoutDragging}` : focus.body}
+          style={bodyStyle}
+          data-focus-body="1"
+        >
+          <section
+            className={!isDesktop && mobileView !== 'stage' ? `${focus.stage} ${focus.hideMobile}` : focus.stage}
+            aria-label={stageNavLabel}
+            data-focus-stage={stageTool}
+          >
+            {renderTool(stageTool, true)}
+          </section>
+
+          {panelTool ? (
+            <>
+              {isDesktop && !expandedTool ? (
+                <div className={focus.resizer}>
+                  <StudioResizer
+                    label={t('learn.studio.resize', { a: stageNavLabel, b: t(FOCUS_TOOL_LABEL[panelTool]) })}
+                    hint={t('learn.studio.resizeHint')}
+                    onDelta={onPanelDelta}
+                    onReset={onPanelReset}
+                    onDragState={onDragState}
+                  />
+                </div>
+              ) : null}
+              <aside
+                className={panelClass}
+                aria-label={t(FOCUS_TOOL_LABEL[panelTool])}
+                data-focus-panel={panelTool}
+              >
+                <div className={focus.panelHead}>
+                  <h2 className={focus.panelTitle}>{t(FOCUS_TOOL_LABEL[panelTool])}</h2>
+                  <button
+                    type="button"
+                    className={`${focus.iconBtn} ${focus.panelExpand}`}
+                    onClick={() => setExpandedTool((cur) => (cur ? null : panelTool))}
+                    aria-pressed={expandedTool === panelTool}
+                    title={expandedTool ? `${t('learn.panel.collapse')} (Esc)` : `${t('learn.panel.fullscreen')} (F)`}
+                    aria-label={expandedTool ? t('learn.panel.collapse') : t('learn.panel.fullscreen')}
+                    data-studio-expand="1"
+                  >
+                    <LearnShellIcon name={expandedTool ? 'minimize' : 'maximize'} size={16} />
+                  </button>
+                  {isDesktop ? (
+                    <button
+                      type="button"
+                      className={focus.iconBtn}
+                      onClick={() => {
+                        setExpandedTool(null)
+                        updatePanel(activeWs, null)
+                      }}
+                      title={t('learn.focus.tools.hide')}
+                      aria-label={t('learn.focus.tools.hide')}
+                      data-studio-hide="1"
+                    >
+                      <LearnShellIcon name="close" size={16} />
+                    </button>
+                  ) : null}
+                </div>
+                <div className={focus.panelBody}>{renderTool(panelTool, false)}</div>
+              </aside>
+            </>
+          ) : null}
+
+          <nav className={focus.rail} aria-label={t('learn.focus.tools')}>
+            {tools.map((tool) => {
+              const on = openTool === tool
+              const label = t(FOCUS_TOOL_LABEL[tool])
+              return (
+                <button
+                  key={tool}
+                  type="button"
+                  className={on ? `${focus.railItem} ${focus.railItemOn}` : focus.railItem}
+                  onClick={() => pickTool(tool)}
+                  aria-pressed={on}
+                  title={on ? `${label} · ${t('learn.focus.tools.hide')}` : label}
+                  data-focus-tool={tool}
+                >
+                  <LearnShellIcon name={FOCUS_TOOL_ICON[tool]} size={20} />
+                  <span className={focus.railLabel}>{label}</span>
+                </button>
+              )
+            })}
+          </nav>
+        </div>
+      ) : null}
+
+      {workspace ? (
+        <nav className={focus.nav} aria-label={t('learn.focus.tools')} data-studio-dock="1">
+          <button
+            type="button"
+            className={mobileView === 'stage' ? `${focus.navItem} ${focus.navItemOn}` : focus.navItem}
+            onClick={() => setMobileView('stage')}
+            aria-pressed={mobileView === 'stage'}
+            data-focus-nav="stage"
+          >
+            <LearnShellIcon name={stageNavIcon} size={20} />
+            <span className={focus.navLabel}>{stageNavLabel}</span>
+          </button>
+          {tools.map((tool) => (
+            <button
+              key={tool}
+              type="button"
+              className={mobileView === tool ? `${focus.navItem} ${focus.navItemOn}` : focus.navItem}
+              onClick={() => setMobileView(tool)}
+              aria-pressed={mobileView === tool}
+              data-focus-nav={tool}
+            >
+              <LearnShellIcon name={FOCUS_TOOL_ICON[tool]} size={20} />
+              <span className={focus.navLabel}>{t(FOCUS_TOOL_LABEL[tool])}</span>
+            </button>
+          ))}
+        </nav>
       ) : null}
 
       {showChooser ? (
@@ -919,7 +848,8 @@ export function LearnSectionRunner({
           lessonTitle={titleParts.text}
           badge={titleParts.badge}
           current={workspace}
-          onPick={pickWorkspace}
+          remembered={rememberedWs != null}
+          onPick={pickFromChooser}
           onClose={workspace ? () => setChooserOpen(false) : undefined}
         />
       ) : null}
