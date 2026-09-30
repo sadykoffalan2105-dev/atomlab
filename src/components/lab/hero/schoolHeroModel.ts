@@ -132,7 +132,7 @@ function centerAndBound(atoms: SchoolHeroAtom[], edges: [V3, V3][] = []): number
  * экрана (лёгкий наклон, чтобы читался объём шаров), объёмная — ракурс (pitch, yaw). Атомы при необходимости
  * поворачиваются на месте (центр уже в начале координат): ось линейной — на X, нормаль плоской — на Z.
  */
-function screenPose(atoms: SchoolHeroAtom[], pitch3d: number, yaw3d: number): { pitch: number; yaw: number } {
+function screenPose(atoms: SchoolHeroAtom[], pitch3d: number, yaw3d: number, maxPoseAtoms = 16): { pitch: number; yaw: number } {
   if (atoms.length < 2) return { pitch: 0, yaw: 0 }
   const P = atoms.map((a) => a.pos)
   const tol = 6 * K
@@ -164,19 +164,22 @@ function screenPose(atoms: SchoolHeroAtom[], pitch3d: number, yaw3d: number): { 
     if (Math.abs(n[2]) < 0.985) rotateAtoms(atoms, n, [0, 0, 1])
     return { pitch: 0.14, yaw: 0 }
   }
-  return bestPose(atoms, pitch3d, yaw3d)
+  return bestPose(atoms, pitch3d, yaw3d, maxPoseAtoms)
 }
 
 /**
  * Доля времени покачивания (рыскание ±0,3 рад, как в SchoolMoleculeView), когда символ какого-то атома закрыт
  * ближним к зрителю шаром (центр дальнего атома — внутри диска ближнего с запасом 0,35 r).
  */
-function hiddenShare(atoms: readonly SchoolHeroAtom[], pitch: number, yaw0: number): number {
+function hiddenShare(atoms: readonly SchoolHeroAtom[], pitch: number, yaw0: number, margin = 0.35, perAtom = false): number {
   const N = 28
   let hidden = 0
   const cp = Math.cos(pitch)
   const sp = Math.sin(pitch)
   const P = atoms.map(() => [0, 0, 0])
+  // perAtom (формульная единица): доля закрытых символов, простой ион (Na⁺, O²⁻) весит втрое больше атома в ионе
+  const w = atoms.map((a) => (a.charge !== 0 ? 3 : 1))
+  const wSum = w.reduce((s, x) => s + x, 0)
   for (let k = 0; k < N; k++) {
     const yaw = yaw0 + 0.3 * Math.sin((2 * Math.PI * k) / N)
     const cy = Math.cos(yaw)
@@ -189,29 +192,36 @@ function hiddenShare(atoms: readonly SchoolHeroAtom[], pitch: number, yaw0: numb
       P[i]![1] = y1
       P[i]![2] = -x * sy + z1 * cy
     })
-    let any = false
-    for (let i = 0; i < atoms.length && !any; i++) {
+    let frame = 0
+    for (let i = 0; i < atoms.length && (perAtom || frame === 0); i++) {
       for (let j = 0; j < atoms.length; j++) {
         if (i === j || P[j]![2]! <= P[i]![2]!) continue
-        if (Math.hypot(P[j]![0]! - P[i]![0]!, P[j]![1]! - P[i]![1]!) < atoms[j]!.r + 0.35 * atoms[i]!.r) {
-          any = true
+        if (Math.hypot(P[j]![0]! - P[i]![0]!, P[j]![1]! - P[i]![1]!) < atoms[j]!.r + margin * atoms[i]!.r) {
+          frame += perAtom ? w[i]! / wSum : 1
           break
         }
       }
     }
-    if (any) hidden++
+    hidden += frame
   }
   return hidden / N
 }
 
-/** Объёмная молекула (до 16 атомов): ракурс, при котором ни один символ не прячется за шаром при покачивании. */
-function bestPose(atoms: readonly SchoolHeroAtom[], pitch3d: number, yaw3d: number): { pitch: number; yaw: number } {
-  let best = { pitch: pitch3d, yaw: yaw3d, h: hiddenShare(atoms, pitch3d, yaw3d) }
-  if (best.h === 0 || atoms.length > 16) return { pitch: best.pitch, yaw: best.yaw }
-  for (const pitch of [pitch3d, 0.3, 0.45, 0.6, 0.8]) {
+/**
+ * Объёмная молекула (до 16 атомов; формульная единица — до 48): ракурс, при котором ни один символ не прячется
+ * за шаром при покачивании (или прячется реже всего).
+ */
+function bestPose(atoms: readonly SchoolHeroAtom[], pitch3d: number, yaw3d: number, maxAtoms = 16): { pitch: number; yaw: number } {
+  // у формульной единицы (maxAtoms > 16) символ иона должен читаться почти целиком: запас 0,8 r вместо 0,35 r
+  const unit = maxAtoms > 16
+  const margin = unit ? 0.8 : 0.35
+  let best = { pitch: pitch3d, yaw: yaw3d, h: hiddenShare(atoms, pitch3d, yaw3d, margin, unit) }
+  if (best.h === 0 || atoms.length > maxAtoms) return { pitch: best.pitch, yaw: best.yaw }
+  // у единицы — и строго сбоку (pitch 0): так видны оба катиона бипирамиды M₂O₃
+  for (const pitch of unit ? [pitch3d, 0, 0.3, 0.45, 0.6, 0.8] : [pitch3d, 0.3, 0.45, 0.6, 0.8]) {
     for (let k = 0; k < 24; k++) {
       const yaw = yaw3d + (k * Math.PI) / 12
-      const h = hiddenShare(atoms, pitch, yaw)
+      const h = hiddenShare(atoms, pitch, yaw, margin, unit)
       if (h < best.h - 1e-9) best = { pitch, yaw, h }
       if (best.h === 0) return { pitch: best.pitch, yaw: best.yaw }
     }
@@ -662,7 +672,8 @@ function fromUnit(compoundId: string): SchoolHeroModel | null {
     bonds: u.bonds.map((b) => ({ ...b })),
     cellEdges: [],
     radius,
-    ...screenPose(atoms, 0.16, 0.35),
+    // ионы разного размера легко закрывают друг друга (Fe³⁺ между O²⁻, Cu²⁺ среди H₂O) — ракурс ищется и у больших единиц
+    ...screenPose(atoms, 0.16, 0.35, 48),
     motion: 'sway',
     caption: [],
     ions,

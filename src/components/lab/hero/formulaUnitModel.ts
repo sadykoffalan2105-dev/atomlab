@@ -634,6 +634,11 @@ class Assembler {
     return this.put(key, R, add(anchor, mul(d, tBest)))
   }
 
+  /** Повернуть всю собранную единицу (вокруг начала координат). */
+  rotateAll(R: M3): void {
+    for (const a of this.atoms) a.p = mv(R, a.p)
+  }
+
   /** Минимальный «зазор касания» между частицами i и j (≥ 0 — не перекрываются). */
   gap(i: number, j: number): number {
     let g = Infinity
@@ -758,7 +763,15 @@ function bipyramid(A: Assembler, ring: string, apex: string): void {
   }
   if (!best) throw new Error(`formulaUnitModel: бипирамида ${ring}/${apex} не собралась`)
   Object.assign(A, best)
+  A.rotateAll(AXIS_UP)
 }
+
+/** Ось z сборки → вертикаль экрана (y): бипирамида стоит «вершинами вверх и вниз», кольцо — поперёк. */
+const AXIS_UP: M3 = [
+  [1, 0, 0],
+  [0, 0, 1],
+  [0, -1, 0],
+]
 
 /** Шпинель M₃O₄ (Fe₃O₄, Mn₃O₄): O²⁻ — тетраэдр касающихся ионов, катионы — над тремя гранями (M²⁺ и 2 M³⁺). */
 function spinel(A: Assembler, el: 'Fe' | 'Mn'): void {
