@@ -1,0 +1,743 @@
+/* =====================================================================
+   Фокус-урок: тонкая верхняя полоса · одна главная сцена по центру ·
+   одна выдвижная панель инструментов справа (вкладки-иконки на «рейке»).
+   Телефон: сцена или один инструмент на весь экран + нижняя панель вкладок.
+   Сетка 8 pt, один акцент (--lt-primary), без свечений и градиентов.
+   Только токены --lt-* — светлая и тёмная тема получаются сами.
+   ===================================================================== */
+
+.root.root {
+  --focus-bar-h: 64px;
+  --focus-gap: 16px;
+  --focus-radius: 16px;
+  --focus-rail-w: 64px;
+  background: var(--lt-bg);
+  padding: 0 16px 16px;
+  gap: 0;
+}
+
+/* ——— Верхняя полоса ——— */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: var(--focus-bar-h);
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 12px 0 8px;
+  border-radius: 12px;
+  color: var(--lt-text-2);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.back:hover {
+  background: var(--lt-surface-hover);
+  color: var(--lt-text);
+}
+
+.back:focus-visible,
+.iconBtn:focus-visible,
+.modeItem:focus-visible,
+.railItem:focus-visible,
+.finish:focus-visible,
+.menuItem:focus-visible,
+.navItem:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding-left: 16px;
+  border-left: 1px solid var(--lt-border);
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+  font-family: var(--lt-font-display, var(--lt-font));
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--lt-text);
+}
+
+.para {
+  flex-shrink: 0;
+  color: var(--lt-primary);
+}
+
+.titleText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--lt-text-3);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.progressTrack {
+  position: relative;
+  flex: 0 0 96px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--lt-surface-3, var(--lt-surface-2));
+  overflow: hidden;
+}
+
+.progressFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--lt-primary);
+}
+
+.progressText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Переключатель режима: Урок · Доска · ИИ-учитель */
+.modes {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--lt-surface-2);
+}
+
+.modeItem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--lt-text-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--lt-dur-fast, 140ms) var(--lt-ease, ease),
+    color var(--lt-dur-fast, 140ms) var(--lt-ease, ease);
+}
+
+.modeItem:hover {
+  color: var(--lt-text);
+}
+
+.modeItemOn,
+.modeItemOn:hover {
+  background: var(--lt-surface-solid);
+  color: var(--lt-text);
+  box-shadow: 0 1px 2px color-mix(in srgb, #000 16%, transparent);
+}
+
+.modeItemOn svg {
+  color: var(--lt-primary);
+}
+
+.finish {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--lt-primary);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: filter var(--lt-dur-fast, 140ms) var(--lt-ease, ease);
+}
+
+.finish:hover {
+  filter: brightness(1.08);
+}
+
+.iconBtn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--lt-text-2);
+  cursor: pointer;
+}
+
+.iconBtn:hover,
+.iconBtn[aria-expanded='true'] {
+  background: var(--lt-surface-hover);
+  color: var(--lt-text);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* ——— Меню «⋯» ——— */
+
+.moreWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 960;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 970;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 340px;
+  max-height: min(640px, calc(100vh - 160px));
+  overflow: auto;
+  padding: 8px;
+  border-radius: 16px;
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-solid);
+  box-shadow: var(--lt-shadow-lg);
+  font-family: var(--lt-font);
+  color: var(--lt-text);
+  animation: focusMenuIn var(--lt-dur-fast, 140ms) var(--lt-ease, ease) both;
+}
+
+@keyframes focusMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.menuSection {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+}
+
+.menuSection + .menuSection {
+  border-top: 1px solid var(--lt-border);
+  padding-top: 8px;
+}
+
+.menuLabel {
+  margin: 0;
+  padding: 4px 12px;
+  color: var(--lt-text-3);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.menuInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  padding: 6px 12px;
+  color: var(--lt-text-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.menuInfo svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--lt-text-3);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--lt-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background: var(--lt-surface-hover);
+}
+
+.menuItem svg {
+  flex-shrink: 0;
+  color: var(--lt-text-2);
+}
+
+.menuItemText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.menuItemOn svg {
+  color: var(--lt-primary);
+}
+
+.menuCheck {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--lt-primary);
+  pointer-events: none;
+}
+
+.keyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  color: var(--lt-text-2);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.kbds {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--lt-border);
+  color: var(--lt-text-2);
+  font-family: var(--lt-font-mono, monospace);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ——— Тело: сцена · панель · рейка ——— */
+
+.body {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+  gap: 0;
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--focus-radius);
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-solid);
+  overflow: hidden;
+}
+
+.stage > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.resizer {
+  flex: 0 0 16px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--focus-panel-w, 400px);
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--focus-radius);
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface-solid);
+  overflow: hidden;
+  animation: focusPanelIn var(--lt-dur, 200ms) var(--lt-ease, ease) both;
+}
+
+@keyframes focusPanelIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 56px;
+  padding: 8px 8px 8px 16px;
+  border-bottom: 1px solid var(--lt-border);
+}
+
+.panelTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panelHead .iconBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.panelBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.panelBody > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Рейка с вкладками-иконками */
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 var(--focus-rail-w);
+  padding: 0 0 0 8px;
+}
+
+.railItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 56px;
+  min-height: 56px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--lt-text-2);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--lt-dur-fast, 140ms) var(--lt-ease, ease),
+    color var(--lt-dur-fast, 140ms) var(--lt-ease, ease);
+}
+
+.railItem:hover {
+  background: var(--lt-surface-hover);
+  color: var(--lt-text);
+}
+
+.railItemOn,
+.railItemOn:hover {
+  background: color-mix(in srgb, var(--lt-primary) 14%, transparent);
+  color: var(--lt-primary);
+}
+
+.railLabel {
+  max-width: 100%;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.railSpacer {
+  flex: 1 1 auto;
+}
+
+/* Нижняя панель вкладок (телефон/планшет) */
+.nav {
+  display: none;
+}
+
+/* ——— Панели-обёртки старых колонок: без рамок, свечений и кромок ——— */
+
+.plain.plain {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.plain.plain::before {
+  display: none;
+}
+
+/* ——— Планшет и телефон ——— */
+
+@media (max-width: 1023px) {
+  .root.root {
+    --focus-bar-h: auto;
+    padding: 0 12px calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bar {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 12px 0;
+  }
+
+  .titleBlock {
+    flex: 1 1 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .title {
+    font-size: 17px;
+  }
+
+  .progressTrack {
+    flex-basis: 64px;
+  }
+
+  .back {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .backLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .modes {
+    order: 10;
+    flex: 1 1 100%;
+  }
+
+  .modeItem {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 40px;
+    padding: 0 8px;
+  }
+
+  .modeLabel {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .finish {
+    width: 44px;
+    padding: 0;
+  }
+
+  .finishLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .body {
+    flex: 0 0 auto;
+    height: calc(100svh - 152px - env(safe-area-inset-bottom, 0px));
+    min-height: 480px;
+  }
+
+  .rail,
+  .resizer,
+  .panelHead .panelExpand {
+    display: none;
+  }
+
+  .panel {
+    flex: 1 1 auto;
+    animation: none;
+  }
+
+  .hideMobile {
+    display: none;
+  }
+
+  .nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--lt-border);
+    background: var(--lt-surface-solid);
+  }
+
+  .navItem {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    min-height: 56px;
+    padding: 6px 4px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--lt-text-2);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .navItemOn {
+    background: color-mix(in srgb, var(--lt-primary) 14%, transparent);
+    color: var(--lt-primary);
+  }
+
+  .navLabel {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .menuBackdrop {
+    background: color-mix(in srgb, var(--lt-bg) 60%, transparent);
+  }
+
+  .menu {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 80svh;
+    padding: 12px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px 20px 0 0;
+    border-bottom: 0;
+  }
+
+  .menuItem {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 1279px) and (min-width: 1024px) {
+  .backLabel,
+  .progressText {
+    display: none;
+  }
+
+  .modeItem {
+    padding: 0 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu,
+  .panel {
+    animation: none;
+  }
+
+  .modeItem,
+  .railItem,
+  .finish {
+    transition: none;
+  }
+}

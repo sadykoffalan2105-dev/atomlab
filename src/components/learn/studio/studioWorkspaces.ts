@@ -121,3 +121,107 @@ export function writeLessonWorkspace(lessonId: string, ws: StudioWorkspace): voi
     /* quota / приватный режим */
   }
 }
+
+/* ——— Фокус-урок: одна сцена по центру + одна панель инструментов ——— */
+
+/** Инструмент урока: кабинет (тест/класс), 3D-каталог, рабочая зона, ИИ-учитель. */
+export type FocusTool = 'cockpit' | '3d' | 'work' | 'assistant'
+
+/** Главная сцена режима — то, что стоит по центру. */
+export const FOCUS_STAGE: Record<StudioWorkspace, FocusTool> = {
+  teach: '3d',
+  board: 'work',
+  ai: 'assistant',
+}
+
+/** Вкладки правой панели режима — всё, что не на сцене. */
+export const FOCUS_TOOLS: Record<StudioWorkspace, readonly FocusTool[]> = {
+  teach: ['cockpit', 'work'],
+  board: ['cockpit', '3d'],
+  ai: ['cockpit', '3d', 'work'],
+}
+
+export const FOCUS_TOOL_ICON: Record<FocusTool, LearnShellIconName> = {
+  cockpit: 'clipboard',
+  '3d': 'cube',
+  work: 'keyboard',
+  assistant: 'sparkles',
+}
+
+export const FOCUS_TOOL_LABEL: Record<FocusTool, MessageKey> = {
+  cockpit: 'learn.focus.tool.cockpit',
+  '3d': 'learn.focus.tool.3d',
+  work: 'learn.focus.tool.work',
+  assistant: 'learn.focus.tool.assistant',
+}
+
+/** Короткие подписи режимов для переключателя в верхней полосе. */
+export const FOCUS_MODE_LABEL: Record<StudioWorkspace, MessageKey> = {
+  teach: 'learn.focus.mode.teach',
+  board: 'learn.focus.mode.board',
+  ai: 'learn.focus.mode.ai',
+}
+
+/** Одна строка-пояснение режима (окно выбора). */
+export const FOCUS_MODE_DESC: Record<StudioWorkspace, MessageKey> = {
+  teach: 'learn.focus.mode.teachDesc',
+  board: 'learn.focus.mode.boardDesc',
+  ai: 'learn.focus.mode.aiDesc',
+}
+
+const DEFAULT_WS_KEY = 'atomlab-learn-workspace-default-v1'
+const FOCUS_PANEL_KEY = 'atomlab-learn-focus-panel-v1'
+
+/** «Запомнить выбор»: режим для всех уроков без вопроса (null — спрашивать). */
+export function readDefaultWorkspace(): StudioWorkspace | null {
+  try {
+    const v = localStorage.getItem(DEFAULT_WS_KEY)
+    return isWorkspace(v) ? v : null
+  } catch {
+    return null
+  }
+}
+
+export function writeDefaultWorkspace(ws: StudioWorkspace | null): void {
+  try {
+    if (ws) localStorage.setItem(DEFAULT_WS_KEY, ws)
+    else localStorage.removeItem(DEFAULT_WS_KEY)
+  } catch {
+    /* приватный режим */
+  }
+}
+
+/** Режим урока при входе: свой для урока → «запомненный» → null (спросить). */
+export function initialLessonWorkspace(lessonId: string): StudioWorkspace | null {
+  return readLessonWorkspace(lessonId) ?? readDefaultWorkspace()
+}
+
+/** Открытая вкладка панели инструментов по режимам (null — панель скрыта). */
+export type FocusPanelPrefs = Record<StudioWorkspace, FocusTool | null>
+
+export const FOCUS_PANEL_DEFAULTS: FocusPanelPrefs = { teach: 'cockpit', board: null, ai: 'cockpit' }
+
+export function readFocusPanelPrefs(): FocusPanelPrefs {
+  const out: FocusPanelPrefs = { ...FOCUS_PANEL_DEFAULTS }
+  try {
+    const raw = localStorage.getItem(FOCUS_PANEL_KEY)
+    if (!raw) return out
+    const p = JSON.parse(raw) as Record<string, unknown>
+    for (const ws of STUDIO_WORKSPACES) {
+      const v = p[ws]
+      if (v === null) out[ws] = null
+      else if (typeof v === 'string' && (FOCUS_TOOLS[ws] as readonly string[]).includes(v)) out[ws] = v as FocusTool
+    }
+  } catch {
+    /* повреждённая запись — значения по умолчанию */
+  }
+  return out
+}
+
+export function writeFocusPanelPrefs(prefs: FocusPanelPrefs): void {
+  try {
+    localStorage.setItem(FOCUS_PANEL_KEY, JSON.stringify(prefs))
+  } catch {
+    /* quota / приватный режим */
+  }
+}
