@@ -403,8 +403,8 @@ export class SolutionExchangeScene {
         void main() {
           float u = vUv.x;
           float v = (vUv.y - 0.5) * 2.0;
-          float w = 0.5 + 0.5 * pow(abs(u - 0.5) * 2.0, 2.0);
-          float glow = exp(-pow(v / w, 2.0) * 2.6);
+          float w = 0.72 + 0.28 * pow(abs(u - 0.5) * 2.0, 2.0);
+          float glow = exp(-pow(v / w, 2.0) * 1.8);
           float ends = smoothstep(0.0, uE0, u) * smoothstep(0.0, uE1, 1.0 - u);
           float pul = 0.0;
           for (int k = 0; k < 3; k++) {
@@ -415,7 +415,7 @@ export class SolutionExchangeScene {
           float thin = exp(-v * v * 30.0);
           vec3 col = mix(uWarm, uCold, smoothstep(0.2, 0.8, u));
           col = mix(col, vec3(1.0), clamp(0.45 * pul * thin, 0.0, 0.6));
-          gl_FragColor = vec4(col, uAlpha * ends * (0.5 * glow + 0.85 * pul * thin));
+          gl_FragColor = vec4(col, uAlpha * ends * (0.6 * glow + 0.8 * pul * thin));
         }
       `,
     })

@@ -428,6 +428,13 @@ export type SolutionClearance = {
   readonly oTo: Float32Array
   /** рабочий буфер кадра: центр описанной сферы воды после раздвижки и до неё (6 чисел на молекулу) */
   readonly scratch: Float32Array
+  /** кристаллик — ещё и эллипсоид вокруг коробки ячеек (её полуразмеры в системе кристалла, пм): вода не заходит внутрь */
+  readonly box: V3
+  /** коробка «вырастает» из центра до появления зародыша: 0 → 1 на [from, to] */
+  readonly boxFrom: number
+  readonly boxTo: number
+  /** 1 — вода, которую коробка выталкивает (фон и отставшая оболочка Ba²⁺/SO₄²⁻); шубки наблюдателей едут с ионом */
+  readonly boxed: Uint8Array
 }
 
 export type SolutionState = {
@@ -1208,6 +1215,10 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     oFrom: Float32Array.from(oIdx, (x) => presence.get(x.i)?.[0] ?? -1e9),
     oTo: Float32Array.from(oIdx, (x) => presence.get(x.i)?.[1] ?? -1e9),
     scratch: new Float32Array(wIdx.length * 6),
+    box: [0, 1, 2].map((k) => Math.max(...cellEdgesPm.flatMap(([a, b]) => [Math.abs(a[k]!), Math.abs(b[k]!)]))) as V3,
+    boxFrom: T.seed0 - 1.4,
+    boxTo: T.seed0,
+    boxed: Uint8Array.from(wIdx, (x) => (x.b.id.startsWith('wCl') || x.b.id.startsWith('wH3O') ? 0 : 1)),
   }
 
   const model: SolutionModel = {
@@ -1566,6 +1577,37 @@ function resolveWaterClearance(m: SolutionModel, t: number, out: SolutionState):
         c[w * 6] = c[w * 6]! + dx * k
         c[w * 6 + 1] = c[w * 6 + 1]! + (d > 1e-6 ? dy * k : need)
         c[w * 6 + 2] = c[w * 6 + 2]! + dz * k
+      }
+    }
+    // вода ↔ коробка ячеек кристалла: выталкивается через ближнюю грань (в системе кристалла)
+    const bp = smooth(C.boxFrom, C.boxTo, t)
+    if (bp > 0) {
+      const cc = out.crystal.c
+      const cy = Math.cos(out.crystal.yaw)
+      const sy = Math.sin(out.crystal.yaw)
+      for (let w = 0; w < nw; w++) {
+        if (!C.boxed[w]) continue
+        const dx = c[w * 6]! - cc[0]
+        const dy = c[w * 6 + 1]! - cc[1]
+        const dz = c[w * 6 + 2]! - cc[2]
+        const l0 = dx * cy - dz * sy
+        const l2 = dx * sy + dz * cy
+        // эллипсоид вокруг коробки ячеек: вытолкнуть по лучу из центра — непрерывно (у коробки на
+        // стыке граней вода перескакивала бы с одной грани на другую)
+        const e = (C.wR[w]! + gap) * bp
+        const h0 = C.box[0] * 1.12 * bp + e
+        const h1 = C.box[1] * 1.12 * bp + e
+        const h2 = C.box[2] * 1.12 * bp + e
+        const q = (l0 / h0) ** 2 + (dy / h1) ** 2 + (l2 / h2) ** 2
+        if (q >= 1 || q < 1e-9) continue
+        const k = 1 / Math.sqrt(q)
+        const n0 = l0 * k
+        const n1 = dy * k
+        const n2 = l2 * k
+        // обратно в систему сцены (поворот вокруг y на yaw)
+        c[w * 6] = cc[0] + n0 * cy + n2 * sy
+        c[w * 6 + 1] = cc[1] + n1
+        c[w * 6 + 2] = cc[2] - n0 * sy + n2 * cy
       }
     }
   }
