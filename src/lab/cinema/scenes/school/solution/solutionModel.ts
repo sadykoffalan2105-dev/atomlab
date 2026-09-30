@@ -805,7 +805,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     const w = wob()
     // верхний проходит поверху, нижний — понизу: мимо встречающейся пары Ba²⁺ и SO₄²⁻; нижние Cl⁻ и H₃O⁺
     // расходятся ещё и по глубине (Cl⁻ — позади, H₃O⁺ — впереди): не проходят друг сквозь друга
-    const free = makeFree(specKeys(spec.start.anions[k]!, spec.mixed.anions[k]!, spec.spectators.anions[k]!, spec.result.anions[k]!), w, k ? 1 : 150, k ? [0, -170, -340] : [0, 1, 0], 1)
+    const free = makeFree(specKeys(spec.start.anions[k]!, spec.mixed.anions[k]!, spec.spectators.anions[k]!, spec.result.anions[k]!), w, k ? 1 : 150, k ? [0, -300, -520] : [0, 1, 0], 1)
     anions.push(addBody({ id: `Cl${k + 1}`, kind: 'anion', formula: 'Cl⁻', charge: -1 }, [{ el: 'Cl', local: [0, 0, 0], radiusPm: core.cl, symbol: microLabelWin }], [], false))
     pose.push((t, p, q) => {
       free(t, p)
@@ -815,7 +815,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   }
   for (let k = 0; k < 2; k++) {
     const w = makeWobble(r, 11, 0.16)
-    const free = makeFree(specKeys(spec.start.protons[k]!, spec.mixed.protons[k]!, spec.spectators.protons[k]!, spec.result.protons[k]!), w, k ? 1 : 150, k ? [0, -120, 340] : [0, 1, 0], 1)
+    const free = makeFree(specKeys(spec.start.protons[k]!, spec.mixed.protons[k]!, spec.spectators.protons[k]!, spec.result.protons[k]!), w, k ? 1 : 150, k ? [0, -100, 500] : [0, 1, 0], 1)
     protons.push(
       addBody(
         { id: `H3O${k + 1}`, kind: 'proton', formula: 'H₃O⁺', charge: 1 },
