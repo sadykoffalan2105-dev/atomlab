@@ -945,7 +945,9 @@ function s8(): Mol {
   const R = d * Math.sqrt(1 - Math.cos(th))
   const h = Math.sqrt(Math.max(0, d * d - 2 * R * R * (1 - Math.cos(Math.PI / 4)))) / 2
   const atoms: MolAtom[] = []
-  for (let k = 0; k < 8; k++) atoms.push({ el: 'S', p: [R * Math.cos((k * Math.PI) / 4), (k % 2 ? -1 : 1) * h, R * Math.sin((k * Math.PI) / 4)] })
+  // ось короны наклонена к зрителю на 55°: видно и кольцо из 8 атомов, и «зубцы» короны (сбоку корона — цепочка)
+  const T = rotAxis([1, 0, 0], rad(55))
+  for (let k = 0; k < 8; k++) atoms.push({ el: 'S', p: mv(T, [R * Math.cos((k * Math.PI) / 4), (k % 2 ? -1 : 1) * h, R * Math.sin((k * Math.PI) / 4)]) })
   return { atoms, bonds: atoms.map((_, k) => [k, (k + 1) % 8, 1] as [number, number, number]), geometry: [] }
 }
 

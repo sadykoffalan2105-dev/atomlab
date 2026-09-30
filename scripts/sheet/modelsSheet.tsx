@@ -4,7 +4,7 @@
  * Скрипт scripts/sheet/capture-models-sheet.mts переключает вещество через window.__sheetSet(id, size)
  * и снимает кадр. Сборка: npx vite build --config scripts/sheet/vite.sheet.config.ts
  */
-import { StrictMode, useEffect, useState } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '../../src/index.css'
 import '../../src/theme/appTheme.css'
@@ -12,7 +12,7 @@ import { LocaleProvider } from '../../src/i18n/LocaleProvider'
 import { compoundById } from '../../src/data/compounds'
 import { CATALOG_TOP200_IDS } from '../../src/data/catalog/catalogTop200'
 import { familyOf } from '../../src/data/catalog/catalogFamilies'
-import { SchoolCatalogCanvas } from '../../src/components/lab/hero/SchoolCatalogCanvas'
+import { Sheet } from './ModelsSheetView'
 import { buildSchoolHeroModel } from '../../src/components/lab/hero/schoolHeroModel'
 
 declare global {
@@ -39,20 +39,6 @@ window.__sheetInfo = (id) => {
     ions: [...ions].map(([l, n]) => (n > 1 ? `${n}·${l}` : l)).join(' + '),
     schematic: m?.schematic ?? [],
   }
-}
-
-function Sheet() {
-  const [state, setState] = useState<{ id: string; size: number }>({ id: CATALOG_TOP200_IDS[0]!, size: 360 })
-  useEffect(() => {
-    window.__sheetSet = (id, size) => setState({ id, size })
-  }, [])
-  const c = compoundById[state.id]
-  if (!c) return <p style={{ color: '#fff' }}>нет {state.id}</p>
-  return (
-    <div id="tile" key={state.id} style={{ width: state.size, height: state.size, position: 'relative' }}>
-      <SchoolCatalogCanvas shape={c} />
-    </div>
-  )
 }
 
 createRoot(document.getElementById('root')!).render(
