@@ -51,13 +51,22 @@ export const SOLUTION_DRAW = {
    * Модельный радиус (atomR) — прежний, Шеннона; зазоры до воды и до O в кристалле остаются.
    */
   ionView: 1.32,
-  /** вода — второй план: шары мельче */
+  /** вода — второй план: шары мельче; ближняя оболочка у ионов — чуть крупнее фоновой */
   waterView: 0.78,
+  bgWaterView: 0.62,
+  hydroniumView: 1.15,
+  bgWaterStickR: 2.4,
+  /**
+   * Зазор (пм) между рисуемыми шарами воды и чужими шарами, который держит раздвижка воды в каждом кадре
+   * (по описанным сферам — с запасом); тест требует ≥ minGap между самими шарами и палочками.
+   */
+  pushGap: 18,
+  minGap: 6,
 } as const
 
 /** Во сколько раз рисуемый шар атома больше модельного atomR (вид: ионы крупнее, вода мельче). */
-export function solutionViewScale(el: ElementSymbol, water: boolean): number {
-  if (water) return SOLUTION_DRAW.waterView
+export function solutionViewScale(el: ElementSymbol, water: boolean, background = false): number {
+  if (water) return background ? SOLUTION_DRAW.bgWaterView : SOLUTION_DRAW.waterView
   return el === 'Ba' || el === 'Cl' ? SOLUTION_DRAW.ionView : 1
 }
 
@@ -373,6 +382,9 @@ export type SolutionModel = {
    * кристалла pos (система кристалла).
    */
   readonly halos: readonly SolutionHaloDef[]
+  /** во сколько раз рисуемый шар атома больше atomR (ионы крупнее, вода мельче, фон — ещё мельче) */
+  readonly viewK: Float32Array
+  readonly clearance: SolutionClearance
   /** внутреннее: функции позы тел */
   readonly pose: readonly ((t: number, p: V3, q: Q4) => number)[]
   readonly radiusAt: (atom: number, t: number) => number
@@ -380,16 +392,49 @@ export type SolutionModel = {
   readonly turbid: { readonly x: Float32Array; readonly y0: Float32Array; readonly z: Float32Array; readonly v: Float32Array; readonly birth: Float32Array }
 }
 
+/** Ореол шара: внешний радиус свечения — во столько раз больше рисуемого шара (кромки нет, спад мягкий). */
+export const SOLUTION_HALO_BALL = 1.42
+
 export type SolutionHaloKind = 'plus' | 'minus' | 'proton' | 'neighbor'
 export type SolutionHaloDef = {
   readonly kind: SolutionHaloKind
   /** атом, за которым едет ореол (−1 — точка кристалла pos) */
   readonly atom: number
   readonly pos?: V3
-  /** радиус кольца, пм (у шара — чуть больше рисуемого радиуса) */
+  /**
+   * Внешний радиус мягкого свечения, пм: у шара ('ball') — около 1,4 рисуемого радиуса (свечение по краю
+   * шара, без резкой кромки); у многоатомного иона ('cloud') — облако чуть больше описанной сферы частицы.
+   * −1 — от рисуемого радиуса шара (меняется при посадке Ba²⁺).
+   */
   readonly radiusPm: number
+  readonly shape: 'ball' | 'cloud'
+  /** все атомы частицы, которые светятся по краю (френель) цветом знака */
+  readonly rimAtoms: readonly number[]
   /** true — точка O соседней группы, которой нет во фрагменте кадра (светится без шара) */
   readonly ghost?: boolean
+}
+
+/** Раздвижка воды: описанные сферы молекул воды и «препятствия» — остальные частицы (пм, по рисуемым шарам). */
+export type SolutionClearance = {
+  /** тела воды, радиус описанной сферы, доля пути O → середина H–H до её центра */
+  readonly waters: Int32Array
+  readonly wR: Float32Array
+  readonly wK: Float32Array
+  /** тела-препятствия: центр — первый атом (Ba, Cl, S, O иона H₃O⁺), радиус описанной сферы */
+  readonly obst: Int32Array
+  readonly oR: Float32Array
+  /** препятствие «вырастает» до появления тела (без рывка воды): 0 → 1 на [from, to] */
+  readonly oFrom: Float32Array
+  readonly oTo: Float32Array
+  /** рабочий буфер кадра: центр описанной сферы воды после раздвижки и до неё (6 чисел на молекулу) */
+  readonly scratch: Float32Array
+  /** кристаллик — ещё и эллипсоид вокруг коробки ячеек (её полуразмеры в системе кристалла, пм): вода не заходит внутрь */
+  readonly box: V3
+  /** коробка «вырастает» из центра до появления зародыша: 0 → 1 на [from, to] */
+  readonly boxFrom: number
+  readonly boxTo: number
+  /** 1 — вода, которую коробка выталкивает (фон и отставшая оболочка Ba²⁺/SO₄²⁻); шубки наблюдателей едут с ионом */
+  readonly boxed: Uint8Array
 }
 
 export type SolutionState = {
@@ -472,14 +517,19 @@ function tetraLocal(so: number): V3[] {
     [-k, -k, k],
   ]
 }
-/** Пирамида H₃O⁺: ось C₃ по +z (к зрителю), три H под углом ∠H–O–H. */
+/**
+ * Пирамида H₃O⁺: три H под углом ∠H–O–H. Ось C₃ (от O к плоскости трёх H) — вниз и от зрителя:
+ * O — вершина над плоскостью H, плоскость видна сверху наискосок (треножник читается объёмным, а не плоской «Y»).
+ * Первый H (пришедший от кислоты) — впереди снизу, два других — по бокам.
+ */
 function pyramidLocal(oh: number, hoh: number): V3[] {
   const cosA = Math.cos((hoh * Math.PI) / 180)
   const cosB = Math.sqrt((2 * cosA + 1) / 3)
   const sinB = Math.sqrt(1 - cosB * cosB)
+  const tilt = qFromTo([0, 0, 1], norm([0, -1, -0.35]))
   return [0, 1, 2].map((i) => {
     const phi = Math.PI / 2 + (i * 2 * Math.PI) / 3
-    return [oh * sinB * Math.cos(phi), oh * sinB * Math.sin(phi), oh * cosB] as V3
+    return qRot(tilt, [oh * sinB * Math.cos(phi), oh * sinB * Math.sin(phi), oh * cosB])
   })
 }
 /** Вода: O в начале, биссектриса H–O–H по +y. */
@@ -558,6 +608,8 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
 
   const atoms: SolutionAtom[] = []
   const bodies: SolutionBody[] = []
+  /** тело-препятствие для воды «вырастает» до своего появления: [from, to] (нет — есть всегда) */
+  const presence = new Map<number, [number, number]>()
   const sticks: SolutionStick[] = []
   const labels: SolutionLabelDef[] = []
   const pose: ((t: number, p: V3, q: Q4) => number)[] = []
@@ -759,8 +811,9 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   const pyr = pyramidLocal(core.h3oOH, core.h3oHOH)
   for (let k = 0; k < 2; k++) {
     const w = wob()
-    // верхний проходит поверху, нижний — понизу: мимо встречающейся пары Ba²⁺ и SO₄²⁻
-    const free = makeFree(specKeys(spec.start.anions[k]!, spec.mixed.anions[k]!, spec.spectators.anions[k]!, spec.result.anions[k]!), w, k ? -170 : 150, [0, 1, 0], 1)
+    // верхний проходит поверху, нижний — понизу: мимо встречающейся пары Ba²⁺ и SO₄²⁻; нижние Cl⁻ и H₃O⁺
+    // расходятся ещё и по глубине (Cl⁻ — позади, H₃O⁺ — впереди): не проходят друг сквозь друга
+    const free = makeFree(specKeys(spec.start.anions[k]!, spec.mixed.anions[k]!, spec.spectators.anions[k]!, spec.result.anions[k]!), w, k ? 1 : 150, k ? [0, -300, -520] : [0, 1, 0], 1)
     anions.push(addBody({ id: `Cl${k + 1}`, kind: 'anion', formula: 'Cl⁻', charge: -1 }, [{ el: 'Cl', local: [0, 0, 0], radiusPm: core.cl, symbol: microLabelWin }], [], false))
     pose.push((t, p, q) => {
       free(t, p)
@@ -770,7 +823,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   }
   for (let k = 0; k < 2; k++) {
     const w = makeWobble(r, 11, 0.16)
-    const free = makeFree(specKeys(spec.start.protons[k]!, spec.mixed.protons[k]!, spec.spectators.protons[k]!, spec.result.protons[k]!), w, k ? -170 : 150, [0, 1, 0], 1)
+    const free = makeFree(specKeys(spec.start.protons[k]!, spec.mixed.protons[k]!, spec.spectators.protons[k]!, spec.result.protons[k]!), w, k ? 1 : 150, k ? [0, -100, 500] : [0, 1, 0], 1)
     protons.push(
       addBody(
         { id: `H3O${k + 1}`, kind: 'proton', formula: 'H₃O⁺', charge: 1 },
@@ -801,6 +854,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     pose.push((t, p, q) => (sitePose(siteBa, t, p, q), popIn(smooth(T.seed0 + 0.1 * k, T.seed1 + 0.1 * k, t))))
     lattice.push(addBody({ id: `seedSO4${k}`, kind: 'lattice-group', formula: 'SO₄²⁻', charge: -2 }, sulfateParts(), sulfateBonds, false))
     pose.push((t, p, q) => (sitePose(siteS, t, p, q), popIn(smooth(T.seed0 + 0.1 * k, T.seed1 + 0.1 * k, t))))
+    for (const b of lattice.slice(-2)) presence.set(b, [T.seed0 + 0.1 * k - 0.9, T.seed0 + 0.1 * k])
   }
   for (let k = 0; k < spec.laterUnits; k++) {
     const siteIdx = (spec.seedUnits + 1 + k) * 2
@@ -829,6 +883,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
         ? addBody({ id: `laterBa${k}`, kind, formula: 'Ba²⁺', charge: 2, land: { t: t1, site: siteIdx } }, [{ el: 'Ba', local: [0, 0, 0], radiusPm: core.baWater, symbol: [t0 + 0.3, finish.to] }], [], false)
         : addBody({ id: `laterSO4${k}`, kind, formula: 'SO₄²⁻', charge: -2, land: { t: t1, site: siteIdx + 1 } }, sulfateParts(), sulfateBonds, false)
       later.push(b)
+      presence.set(b, [t0 - 1.1, t0 - 0.2])
       const land = landing(free, (t, q) => wobbleRot(w, t, q), site, t0, t1)
       pose.push((t, p, q) => (land(t, p, q), popIn(smooth(t0 - 0.2, t0 + 0.5, t))))
     }
@@ -840,7 +895,8 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   const hyd = new Map(spec.science.hydration.map((h) => [h.particle, h]))
   /** Вода, прикреплённая к хозяину (поза в системе хозяина), с отрывом в момент detach и дрейфом наружу. */
   const addWater = (id: string, host: number | null, localPos: V3, localQ: Q4, detach: number | null, drift: V3, resultPos: V3) => {
-    const w = makeWobble(r, 14, 0.25)
+    // вода — второй план: дрожит спокойнее ионов
+    const w = makeWobble(r, 8, 0.12)
     const bi = addBody(
       { id, kind: 'water', formula: 'H₂O', charge: 0 },
       [
@@ -1030,12 +1086,14 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   // ——— ореолы ———
   const halos: SolutionHaloDef[] = []
   const atomOf = (body: number, k = 0) => bodies[body]!.atoms[k]!
-  halos.push({ kind: 'plus', atom: atomOf(cation), radiusPm: -1 })
-  halos.push({ kind: 'minus', atom: atomOf(group), radiusPm: core.so + cov('O') * SOLUTION_DRAW.ballScale + 44 })
-  for (const a of anions) halos.push({ kind: 'minus', atom: atomOf(a), radiusPm: -1 })
-  for (const p of protons) halos.push({ kind: 'plus', atom: atomOf(p), radiusPm: core.h3oOH + cov('H') * SOLUTION_DRAW.ballScale + 46 })
+  // Заряд — мягким свечением по краю шара (френель) цветом знака и ореолом без кромки: у одноатомного
+  // иона — вокруг шара, у многоатомного — облако чуть больше описанной сферы частицы.
+  halos.push({ kind: 'plus', atom: atomOf(cation), radiusPm: -1, shape: 'ball', rimAtoms: [atomOf(cation)] })
+  halos.push({ kind: 'minus', atom: atomOf(group), radiusPm: 1.22 * (core.so + cov('O') * SOLUTION_DRAW.ballScale), shape: 'cloud', rimAtoms: [...bodies[group]!.atoms] })
+  for (const a of anions) halos.push({ kind: 'minus', atom: atomOf(a), radiusPm: -1, shape: 'ball', rimAtoms: [atomOf(a)] })
+  for (const p of protons) halos.push({ kind: 'plus', atom: atomOf(p), radiusPm: 1.3 * (core.h3oOH + cov('H') * SOLUTION_DRAW.ballScale), shape: 'cloud', rimAtoms: [...bodies[p]!.atoms] })
   // «вот он, H⁺»: один из трёх H первого H₃O⁺ — тот, что пришёл от кислоты и сел на молекулу воды
-  halos.push({ kind: 'proton', atom: atomOf(protons[0]!, 1), radiusPm: cov('H') * SOLUTION_DRAW.ballScale + 26 })
+  halos.push({ kind: 'proton', atom: atomOf(protons[0]!, 1), radiusPm: -1, shape: 'ball', rimAtoms: [atomOf(protons[0]!, 1)] })
   // 12 атомов O вокруг одного Ba²⁺ кристалла (Hill 1977): решётка побольше — все соседние группы на месте.
   // Сам этот Ba²⁺ — с тёплым кольцом (halo 'plus' в окне подсветки: kind 'neighbor' у атома Ba).
   const neighborCount = (u: Unit): number => {
@@ -1063,7 +1121,7 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
   siteBody.set(spec.seedUnits * 2 + 1, group)
   later.forEach((b, k) => siteBody.set((spec.seedUnits + 1) * 2 + k, b))
   const hiBaBody = siteBody.get(hiUnit * 2)!
-  halos.push({ kind: 'neighbor', atom: atomOf(hiBaBody), radiusPm: -1 })
+  halos.push({ kind: 'neighbor', atom: atomOf(hiBaBody), radiusPm: -1, shape: 'ball', rimAtoms: [atomOf(hiBaBody)] })
   const neighborAtoms: number[] = []
   for (const o of neighborO) {
     let hit = -1
@@ -1083,7 +1141,11 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
       })
     })
     if (hit >= 0) neighborAtoms.push(hit)
-    halos.push(hit >= 0 ? { kind: 'neighbor', atom: hit, radiusPm: cov('O') * SOLUTION_DRAW.ballScale + 20 } : { kind: 'neighbor', atom: -1, pos: o, radiusPm: cov('O') * SOLUTION_DRAW.ballScale + 6, ghost: true })
+    halos.push(
+      hit >= 0
+        ? { kind: 'neighbor', atom: hit, radiusPm: -1, shape: 'ball', rimAtoms: [hit] }
+        : { kind: 'neighbor', atom: -1, pos: o, radiusPm: cov('O') * SOLUTION_DRAW.ballScale, shape: 'cloud', rimAtoms: [], ghost: true },
+    )
   }
 
   // ——— муть ———
@@ -1111,6 +1173,54 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     return a.radiusPm
   }
 
+  // ——— вид и раздвижка воды ———
+  // H₃O⁺ — чуть крупнее (пирамида и подсвеченный H⁺ читаются и на телефоне)
+  const viewK = Float32Array.from(atoms, (a) => {
+    const b = bodies[a.body]!
+    return solutionViewScale(a.el, b.kind === 'water', b.id.startsWith('wBg')) * (b.kind === 'proton' ? SOLUTION_DRAW.hydroniumView : 1)
+  })
+  const bs = SOLUTION_DRAW.ballScale
+  const wIdx = bodies.map((b, i) => ({ b, i })).filter((x) => x.b.kind === 'water')
+  const wK = new Float32Array(wIdx.length)
+  const wR = new Float32Array(wIdx.length)
+  wIdx.forEach(({ b }, w) => {
+    // описанная сфера молекулы воды: центр на биссектрисе H–O–H (доля k пути O → середина H–H)
+    const [o, h1, h2] = b.atoms.map((ai) => atoms[ai]!)
+    const mid: V3 = [(h1!.local[0] + h2!.local[0]) / 2, (h1!.local[1] + h2!.local[1]) / 2, (h1!.local[2] + h2!.local[2]) / 2]
+    const rO = o!.radiusPm * bs * viewK[b.atoms[0]!]!
+    const rH = h1!.radiusPm * bs * viewK[b.atoms[1]!]!
+    let best = Infinity
+    let bestK = 0
+    for (let k = 0; k <= 1.4; k += 0.005) {
+      const c: V3 = [mid[0] * k, mid[1] * k, mid[2] * k]
+      const rr = Math.max(Math.hypot(...c) + rO, dist(h1!.local, c) + rH, dist(h2!.local, c) + rH)
+      if (rr < best) {
+        best = rr
+        bestK = k
+      }
+    }
+    wK[w] = bestK
+    wR[w] = best + 0.5
+  })
+  const oIdx = bodies.map((b, i) => ({ b, i })).filter((x) => x.b.kind !== 'water')
+  const clearance: SolutionClearance = {
+    waters: Int32Array.from(wIdx, (x) => x.i),
+    wR,
+    wK,
+    obst: Int32Array.from(oIdx, (x) => x.i),
+    // описанная сфера частицы по рисуемым шарам (у Ba²⁺ — наибольший радиус, КЧ 12: без скачка при посадке)
+    oR: Float32Array.from(oIdx, ({ b }) =>
+      Math.max(...b.atoms.map((ai) => Math.hypot(...atoms[ai]!.local) + (atoms[ai]!.el === 'Ba' ? core.baCrystal : atoms[ai]!.radiusPm) * bs * viewK[ai]!)),
+    ),
+    oFrom: Float32Array.from(oIdx, (x) => presence.get(x.i)?.[0] ?? -1e9),
+    oTo: Float32Array.from(oIdx, (x) => presence.get(x.i)?.[1] ?? -1e9),
+    scratch: new Float32Array(wIdx.length * 6),
+    box: [0, 1, 2].map((k) => Math.max(...cellEdgesPm.flatMap(([a, b]) => [Math.abs(a[k]!), Math.abs(b[k]!)]))) as V3,
+    boxFrom: T.seed0 - 1.4,
+    boxTo: T.seed0,
+    boxed: Uint8Array.from(wIdx, (x) => (x.b.id.startsWith('wCl') || x.b.id.startsWith('wH3O') ? 0 : 1)),
+  }
+
   const model: SolutionModel = {
     spec,
     core,
@@ -1127,6 +1237,8 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     shortestCationO,
     turbidPoints: TURBID_N,
     halos,
+    viewK,
+    clearance,
     tube: TUBE,
     roles: { cation, group, anions, protons, lattice, later, waters },
     pose,
@@ -1278,6 +1390,7 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
     }
     out.bodyAppear[bi] = appear
   }
+  resolveWaterClearance(m, t, out)
   // ——— палочки ———
   for (let k = 0; k < m.sticks.length; k++) {
     const s = m.sticks[k]!
@@ -1389,6 +1502,126 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   // хвост: подписи уходят вместе с водой (у героя — свои)
   if (finKeep < 1) for (let li = 0; li < m.labels.length; li++) out.labelOpacity[li] = out.labelOpacity[li]! * finKeep
   return out
+}
+
+/** Проходов раздвижки воды за кадр (Гаусс — Зейдель по описанным сферам). */
+const PUSH_ITERS = 6
+
+/**
+ * Раздвижка воды: молекула воды (жёсткая — сдвигается целиком) никогда не заходит в чужие частицы и в
+ * другие молекулы воды. Чистая функция кадра: от поз из pose, без памяти между кадрами; непрерывна по t
+ * (препятствие, которое ещё проявится, «вырастает» заранее — вода отходит плавно, без рывка).
+ */
+function resolveWaterClearance(m: SolutionModel, t: number, out: SolutionState): void {
+  const C = m.clearance
+  const nw = C.waters.length
+  const no = C.obst.length
+  const P = out.atomPos
+  const c = C.scratch
+  const gap = SOLUTION_DRAW.pushGap
+  for (let w = 0; w < nw; w++) {
+    const at = m.bodies[C.waters[w]!]!.atoms
+    const o = at[0]! * 3
+    const h1 = at[1]! * 3
+    const h2 = at[2]! * 3
+    const k = C.wK[w]!
+    for (let d = 0; d < 3; d++) {
+      const v = P[o + d]! + ((P[h1 + d]! + P[h2 + d]!) / 2 - P[o + d]!) * k
+      c[w * 6 + d] = v
+      c[w * 6 + 3 + d] = v
+    }
+  }
+  for (let it = 0; it < PUSH_ITERS; it++) {
+    // вода ↔ вода: расходятся поровну
+    for (let a = 0; a < nw; a++) {
+      const ra = C.wR[a]!
+      for (let b = a + 1; b < nw; b++) {
+        const need = ra + C.wR[b]! + gap
+        const dx = c[a * 6]! - c[b * 6]!
+        const dy = c[a * 6 + 1]! - c[b * 6 + 1]!
+        const dz = c[a * 6 + 2]! - c[b * 6 + 2]!
+        const d2 = dx * dx + dy * dy + dz * dz
+        if (d2 >= need * need) continue
+        const d = Math.sqrt(d2)
+        const inv = d > 1e-6 ? 1 / d : 0
+        const push = (need - d) / 2
+        const nx = d > 1e-6 ? dx * inv : 0
+        const ny = d > 1e-6 ? dy * inv : 1
+        const nz = d > 1e-6 ? dz * inv : 0
+        c[a * 6] = c[a * 6]! + nx * push
+        c[a * 6 + 1] = c[a * 6 + 1]! + ny * push
+        c[a * 6 + 2] = c[a * 6 + 2]! + nz * push
+        c[b * 6] = c[b * 6]! - nx * push
+        c[b * 6 + 1] = c[b * 6 + 1]! - ny * push
+        c[b * 6 + 2] = c[b * 6 + 2]! - nz * push
+      }
+    }
+    // вода ↔ ионы и частицы: сдвигается только вода
+    for (let o = 0; o < no; o++) {
+      const pres = C.oTo[o]! < -1e8 ? 1 : smooth(C.oFrom[o]!, C.oTo[o]!, t)
+      if (pres <= 0) continue
+      const ai = m.bodies[C.obst[o]!]!.atoms[0]! * 3
+      const ox = P[ai]!
+      const oy = P[ai + 1]!
+      const oz = P[ai + 2]!
+      const ro = C.oR[o]! * pres + gap
+      for (let w = 0; w < nw; w++) {
+        const need = C.wR[w]! + ro
+        const dx = c[w * 6]! - ox
+        const dy = c[w * 6 + 1]! - oy
+        const dz = c[w * 6 + 2]! - oz
+        const d2 = dx * dx + dy * dy + dz * dz
+        if (d2 >= need * need) continue
+        const d = Math.sqrt(d2)
+        const k = d > 1e-6 ? (need - d) / d : 0
+        c[w * 6] = c[w * 6]! + dx * k
+        c[w * 6 + 1] = c[w * 6 + 1]! + (d > 1e-6 ? dy * k : need)
+        c[w * 6 + 2] = c[w * 6 + 2]! + dz * k
+      }
+    }
+    // вода ↔ коробка ячеек кристалла: выталкивается через ближнюю грань (в системе кристалла)
+    const bp = smooth(C.boxFrom, C.boxTo, t)
+    if (bp > 0) {
+      const cc = out.crystal.c
+      const cy = Math.cos(out.crystal.yaw)
+      const sy = Math.sin(out.crystal.yaw)
+      for (let w = 0; w < nw; w++) {
+        if (!C.boxed[w]) continue
+        const dx = c[w * 6]! - cc[0]
+        const dy = c[w * 6 + 1]! - cc[1]
+        const dz = c[w * 6 + 2]! - cc[2]
+        const l0 = dx * cy - dz * sy
+        const l2 = dx * sy + dz * cy
+        // эллипсоид вокруг коробки ячеек: вытолкнуть по лучу из центра — непрерывно (у коробки на
+        // стыке граней вода перескакивала бы с одной грани на другую)
+        const e = (C.wR[w]! + gap) * bp
+        const h0 = C.box[0] * 1.12 * bp + e
+        const h1 = C.box[1] * 1.12 * bp + e
+        const h2 = C.box[2] * 1.12 * bp + e
+        const q = (l0 / h0) ** 2 + (dy / h1) ** 2 + (l2 / h2) ** 2
+        if (q >= 1 || q < 1e-9) continue
+        const k = 1 / Math.sqrt(q)
+        const n0 = l0 * k
+        const n1 = dy * k
+        const n2 = l2 * k
+        // обратно в систему сцены (поворот вокруг y на yaw)
+        c[w * 6] = cc[0] + n0 * cy + n2 * sy
+        c[w * 6 + 1] = cc[1] + n1
+        c[w * 6 + 2] = cc[2] - n0 * sy + n2 * cy
+      }
+    }
+  }
+  for (let w = 0; w < nw; w++) {
+    const dx = c[w * 6]! - c[w * 6 + 3]!
+    const dy = c[w * 6 + 1]! - c[w * 6 + 4]!
+    const dz = c[w * 6 + 2]! - c[w * 6 + 5]!
+    if (dx === 0 && dy === 0 && dz === 0) continue
+    for (const ai of m.bodies[C.waters[w]!]!.atoms) {
+      P[ai * 3] = P[ai * 3]! + dx
+      P[ai * 3 + 1] = P[ai * 3 + 1]! + dy
+      P[ai * 3 + 2] = P[ai * 3 + 2]! + dz
+    }
+  }
 }
 
 // ─── Макро: пробирки, струя, муть, пипетка ───────────────────────────────────
@@ -1669,7 +1902,7 @@ function sampleMicroFocus(m: SolutionModel, t: number, out: SolutionState, T: In
       out.haloPos[o + 1] = out.atomPos[a + 1]!
       out.haloPos[o + 2] = out.atomPos[a + 2]!
       seen = out.atomR[def.atom]! > 0 ? 1 : 0
-      out.haloR[h] = def.radiusPm < 0 ? out.atomR[def.atom]! * solutionViewScale(m.atoms[def.atom]!.el, false) * 1.16 + 12 : def.radiusPm
+      out.haloR[h] = def.radiusPm < 0 ? out.atomR[def.atom]! * m.viewK[def.atom]! * SOLUTION_HALO_BALL : def.radiusPm
     } else if (def.pos) {
       const p = def.pos
       out.haloPos[o] = out.crystal.c[0] + p[0] * cy + p[2] * sy
@@ -1702,18 +1935,19 @@ function sampleMicroLabels(m: SolutionModel, t: number, out: SolutionState, L: I
   setLabel(L.attract, (a.a[0] + a.b[0]) / 2, Math.max(a.a[1], a.b[1]) + 250, (a.a[2] + a.b[2]) / 2, win(L.attract))
   const c0 = m.bodies[R.anions[0]!]!.atoms[0]! * 3
   setLabel(L.spectators, (P[c0]! + P[h0]!) / 2, Math.max(P[c0 + 1]!, P[h0 + 1]!) + 270, 0, win(L.spectators))
+  // «соляная кислота» — над наблюдателями (не между ними: на узком экране подпись ложилась на нижнюю пару)
   let x = 0
-  let y = 0
+  let y = -Infinity
   const spect = R.anions.length + R.protons.length
   for (const b of R.anions) {
     x += P[m.bodies[b]!.atoms[0]! * 3]!
-    y += P[m.bodies[b]!.atoms[0]! * 3 + 1]!
+    y = Math.max(y, P[m.bodies[b]!.atoms[0]! * 3 + 1]!)
   }
   for (const b of R.protons) {
     x += P[m.bodies[b]!.atoms[0]! * 3]!
-    y += P[m.bodies[b]!.atoms[0]! * 3 + 1]!
+    y = Math.max(y, P[m.bodies[b]!.atoms[0]! * 3 + 1]!)
   }
-  setLabel(L.resultAcid, x / spect, y / spect, 0, win(L.resultAcid))
+  setLabel(L.resultAcid, x / spect, y + 440, 0, win(L.resultAcid))
 }
 
 /** Габарит кадра по времени (пм): w, h, центр — хост вписывает его в свободную область. */
