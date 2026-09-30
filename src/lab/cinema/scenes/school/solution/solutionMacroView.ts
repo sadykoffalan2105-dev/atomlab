@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { pmToScene } from '../../kit/cpkAtoms'
 import { liquidProfile } from '../../kit/glassware'
 import { DROP_N, STREAM_N, type SolutionModel, type SolutionState } from './solutionModel'
+import { createPhotoLiquidMaterial, setPhotoLiquidMilk, TyndallBeam, WallDrops, type PhotoLiquidUniforms } from './solutionPhotoLook'
 
 /**
  * МАКРО-ДЕТАЛИ сцены «обмен в растворе» (живут в макро-слое SolutionExchangeScene):
@@ -52,6 +53,42 @@ const LIQUID_FRAG = /* glsl */ `
   }
 `
 
+/** Жидкость пробирки: шейдер (телефон) или физический материал с пропусканием (desktop) — общий интерфейс. */
+type Liquid = {
+  readonly mat: THREE.ShaderMaterial | THREE.MeshPhysicalMaterial
+  readonly u: PhotoLiquidUniforms
+  setOpacity(a: number): void
+  setMilk(milk: number): void
+}
+
+function shaderLiquid(): Liquid {
+  const mat = liquidMaterial()
+  const u = mat.uniforms as unknown as PhotoLiquidUniforms & { uOpacity: { value: number } }
+  return {
+    mat,
+    u,
+    setOpacity: (a) => {
+      u.uOpacity.value = a
+    },
+    setMilk: (milk) => {
+      u.uMilk.value = milk
+    },
+  }
+}
+
+function photoLiquid(tag: string): Liquid {
+  const { mat, uniforms } = createPhotoLiquidMaterial(tag)
+  return {
+    mat,
+    u: uniforms,
+    setOpacity: (a) => {
+      mat.opacity = a
+      mat.visible = a > 0.004
+    },
+    setMilk: (milk) => setPhotoLiquidMilk(mat, uniforms, milk),
+  }
+}
+
 function liquidMaterial(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     transparent: true,
@@ -96,10 +133,16 @@ export class SolutionMacroView {
   readonly callouts: THREE.LineSegments
   /** «лупа»: диск фона и оправа — своя группа между макро и микро */
   readonly lens = new THREE.Group()
+  /** брызги на стенке пробирки A над жидкостью (система пробирки A) */
+  readonly wallDrops: WallDrops
+  /** луч бокового света в мутной жидкости пробирки A (эффект Тиндаля) */
+  readonly beam: TyndallBeam
+  /** физические материалы (desktop): им окружение PMREM макро-слоя */
+  readonly photo: boolean
 
   private readonly liquidGeo: THREE.LatheGeometry
-  private readonly matA: THREE.ShaderMaterial
-  private readonly matB: THREE.ShaderMaterial
+  private readonly liqA: Liquid
+  private readonly liqB: Liquid
   private readonly meniscusGeo: THREE.LatheGeometry
   private readonly meniscusMat: THREE.MeshBasicMaterial
   private readonly meniscusRingGeo: THREE.TorusGeometry
@@ -136,10 +179,11 @@ export class SolutionMacroView {
       liquidProfile(R, H * 0.985, 0.9).map(([x, y]) => new THREE.Vector2(x * K, y * K)),
       seg,
     )
-    this.matA = liquidMaterial()
-    this.matB = liquidMaterial()
-    this.liquidA = new THREE.Mesh(this.liquidGeo, this.matA)
-    this.liquidB = new THREE.Mesh(this.liquidGeo, this.matB)
+    this.photo = !lowPower
+    this.liqA = lowPower ? shaderLiquid() : photoLiquid('A')
+    this.liqB = lowPower ? shaderLiquid() : photoLiquid('B')
+    this.liquidA = new THREE.Mesh(this.liquidGeo, this.liqA.mat)
+    this.liquidB = new THREE.Mesh(this.liquidGeo, this.liqB.mat)
     this.liquidA.name = 'solution-liquid-a'
     this.liquidB.name = 'solution-liquid-b'
 
@@ -221,6 +265,9 @@ export class SolutionMacroView {
     this.glowMat = new THREE.MeshBasicMaterial({ color: 0x7fb6ff, transparent: true, opacity: 0, depthTest: false, depthWrite: false, fog: false, blending: THREE.AdditiveBlending })
     this.glow = new THREE.Mesh(this.glowGeo, this.glowMat)
     for (const o of [this.disc, this.ring, this.glow]) o.frustumCulled = false
+    // брызги — выше итогового уровня жидкости в A (≈ 0,56 H), луч — в толще мути
+    this.wallDrops = new WallDrops(R * K, H * 0.6 * K, H * 0.84 * K, lowPower)
+    this.beam = new TyndallBeam({ y: H * 0.3 * K, slope: -0.12, halfW: R * 0.17 * K, r: R * 0.9 * K })
     this.disc.renderOrder = 0
     this.glow.renderOrder = 1
     this.ring.renderOrder = 2
@@ -235,14 +282,14 @@ export class SolutionMacroView {
     // жидкость: плоскость поверхности — в системе макро-слоя (горизонтальна при любом наклоне)
     tubeA.updateMatrix()
     tubeB.updateMatrix()
-    this.matA.uniforms.uToLayer!.value.copy(tubeA.matrix)
-    this.matB.uniforms.uToLayer!.value.copy(tubeB.matrix)
-    this.matA.uniforms.uSurface!.value = s.tubeA.surface * K
-    this.matB.uniforms.uSurface!.value = s.tubeB.surface * K
-    this.matA.uniforms.uOpacity!.value = ma
-    this.matB.uniforms.uOpacity!.value = ma * s.tubeB.alpha
-    this.matA.uniforms.uMilk!.value = milk
-    this.matB.uniforms.uMilk!.value = 0
+    this.liqA.u.uToLayer.value.copy(tubeA.matrix)
+    this.liqB.u.uToLayer.value.copy(tubeB.matrix)
+    this.liqA.u.uSurface.value = s.tubeA.surface * K
+    this.liqB.u.uSurface.value = s.tubeB.surface * K
+    this.liqA.setOpacity(ma)
+    this.liqB.setOpacity(ma * s.tubeB.alpha)
+    this.liqA.setMilk(milk)
+    this.liqB.setMilk(0)
     this.meniscus.position.set(0, (s.tubeA.surface - s.tubeA.y) * K, 0)
     this.meniscusMat.opacity = (0.14 + 0.3 * milk) * ma
     this.meniscusRingMat.opacity = 0.4 * ma
@@ -336,9 +383,31 @@ export class SolutionMacroView {
     }
   }
 
+  /**
+   * Фотореализм макро-слоя: splash — доля сливания (брызги на стенке), beam — яркость луча Тиндаля
+   * (∝ мутности), surfaceA — уровень жидкости A в системе макро-слоя, ma — прозрачность слоя.
+   */
+  updatePhoto(splash: number, beam: number, tubeA: THREE.Group, surfaceA: number, ma: number): void {
+    this.wallDrops.update(splash, ma)
+    this.beam.update(beam * ma, surfaceA, tubeA.matrix)
+  }
+
+  /** Окружение PMREM — только физическим материалам макро-слоя (desktop). */
+  setEnvMap(env: THREE.Texture | null): void {
+    const mats: THREE.Material[] = [this.streamMat, this.pipMat, this.dropMat]
+    if (this.photo) mats.push(this.liqA.mat, this.liqB.mat)
+    for (const m of mats) {
+      ;(m as THREE.MeshPhysicalMaterial).envMap = env
+      m.needsUpdate = true
+    }
+    this.wallDrops.setEnvMap(env)
+  }
+
   dispose(): void {
+    this.wallDrops.dispose()
+    this.beam.dispose()
     for (const g of [this.liquidGeo, this.meniscusGeo, this.meniscusRingGeo, this.streamGeo, this.pipGeo, this.bulbGeo, this.dropGeo, this.callouts.geometry, this.discGeo, this.ringGeo, this.glowGeo]) g.dispose()
-    for (const x of [this.matA, this.matB, this.meniscusMat, this.meniscusRingMat, this.streamMat, this.pipMat, this.bulbMat, this.dropMat, this.calloutMat, this.discMat, this.ringMat, this.glowMat]) x.dispose()
+    for (const x of [this.liqA.mat, this.liqB.mat, this.meniscusMat, this.meniscusRingMat, this.streamMat, this.pipMat, this.bulbMat, this.dropMat, this.calloutMat, this.discMat, this.ringMat, this.glowMat]) x.dispose()
     this.drops.dispose()
   }
 }
