@@ -6,13 +6,18 @@
  * Модуль без three и React: его читают модель кадра (solutionModel.ts), класс сцены и тест в Node.
  */
 import { BASO4_SPEC } from '../specs/baso4'
-import type { L10n, SolutionScienceSpec, SolutionStepId } from '../specs/types'
+import type { L10n, SolutionMode, SolutionScienceSpec, SolutionStepId } from '../specs/types'
 
 export type SV3 = readonly [number, number, number]
 
 /** Сцена обмена в растворе: катион + анион-группа → осадок; наблюдатели остаются в растворе. */
 export type SolutionSceneSpec = {
   readonly id: string
+  /**
+   * Режим (docs/plans/baso4-modes.md): 'school' — стандарт ОГЭ/ЕГЭ (H⁺ вместо H₃O⁺, без воды и оболочек,
+   * осадок без рамки ячейки и полиэдров, тексты science.school); 'advanced' — научная сцена.
+   */
+  readonly mode: SolutionMode
   /** id урока панели (lessons.ts) */
   readonly lesson: string
   readonly science: SolutionScienceSpec
@@ -72,6 +77,7 @@ export function solutionStepTimings(spec: SolutionScienceSpec): { id: SolutionSt
 
 export const BASO4_SOLUTION_SPEC: SolutionSceneSpec = {
   id: 'baso4',
+  mode: 'advanced',
   lesson: 'baso4',
   science: BASO4_SPEC,
   steps: solutionStepTimings(BASO4_SPEC),
@@ -152,3 +158,23 @@ export const BASO4_SOLUTION_SPEC: SolutionSceneSpec = {
     acid: { ru: 'раствор HCl: ионы H₃O⁺ и Cl⁻', en: 'HCl solution: H₃O⁺ and Cl⁻ ions', uz: 'HCl eritmasi: H₃O⁺ va Cl⁻ ionlari' },
   },
 }
+
+/**
+ * Та же постановка в нужном режиме: школьный — выноски из science.school (без H₃O⁺); продвинутый — как есть.
+ * Спецификации кэшируются: фабрика сцены получает стабильную ссылку на режим.
+ */
+const BY_MODE = new Map<string, SolutionSceneSpec>()
+export function solutionSpecForMode(base: SolutionSceneSpec, mode: SolutionMode): SolutionSceneSpec {
+  const school = base.science.school
+  if (mode === 'advanced' || !school) return base.mode === 'advanced' ? base : { ...base, mode: 'advanced' }
+  const key = `${base.id}:${mode}`
+  let spec = BY_MODE.get(key)
+  if (!spec) {
+    spec = { ...base, mode: 'school', callouts: { precipitate: school.captions.precipitate, acid: school.captions.acidCallout } }
+    BY_MODE.set(key, spec)
+  }
+  return spec
+}
+
+/** Школьный режим BaSO₄ (по умолчанию). */
+export const BASO4_SCHOOL_SOLUTION_SPEC = solutionSpecForMode(BASO4_SOLUTION_SPEC, 'school')
