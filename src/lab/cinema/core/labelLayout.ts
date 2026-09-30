@@ -41,11 +41,11 @@ export function createLabelLayoutBuffers(n: number): LabelLayoutBuffers {
 }
 
 /** Средняя ширина глифа и высота строки по стилю подписи, px (шрифты CinemaDomLabels). */
-const GLYPH_W: Record<string, number> = { atom: 9.6, atomDark: 9.6, species: 8.2, ox: 7.4, delta: 8.4, token: 8.0, measure: 7.6, condition: 10.5, callout: 7.4, equationPlate: 9.4 }
-const LINE_H: Record<string, number> = { atom: 18, atomDark: 18, species: 17, ox: 19, delta: 17, token: 15, measure: 20, condition: 27, callout: 18.5, equationPlate: 31 }
-const PAD_W: Record<string, number> = { atom: 2, atomDark: 2, species: 4, ox: 14, delta: 4, token: 4, measure: 16, condition: 26, callout: 28, equationPlate: 30 }
+const GLYPH_W: Record<string, number> = { speciesLines: 8.2, atom: 9.6, atomDark: 9.6, species: 8.2, ox: 7.4, delta: 8.4, token: 8.0, measure: 7.6, condition: 10.5, callout: 7.4, equationPlate: 9.4 }
+const LINE_H: Record<string, number> = { speciesLines: 17, atom: 18, atomDark: 18, species: 17, ox: 19, delta: 17, token: 15, measure: 20, condition: 27, callout: 18.5, equationPlate: 31 }
+const PAD_W: Record<string, number> = { speciesLines: 4, atom: 2, atomDark: 2, species: 4, ox: 14, delta: 4, token: 4, measure: 16, condition: 26, callout: 28, equationPlate: 30 }
 /** Подписи в несколько строк (выноска-пояснение): строки разделены переводом строки, высота — по их числу. */
-const MULTILINE_PAD_H: Record<string, number> = { callout: 18 }
+const MULTILINE_PAD_H: Record<string, number> = { callout: 18, speciesLines: 2 }
 
 /** Карточки фиксированного размера (px): pH-метр — шкала 0–14 и подпись в две строки (CinemaDomLabels). */
 const FIXED_BOX: Record<string, { w: number; h: number }> = { ph: { w: 232, h: 96 } }

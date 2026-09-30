@@ -334,7 +334,10 @@ export type SolutionBody = {
 
 export type SolutionStick = { readonly a: number; readonly b: number; readonly water: boolean }
 
-export type SolutionLabelKind = 'atom' | 'atomDark' | 'species' | 'measure' | 'equation' | 'equationPlate' | 'callout' | 'ph'
+export type SolutionLabelKind = 'atom' | 'atomDark' | 'species' | 'speciesLines' | 'measure' | 'equation' | 'equationPlate' | 'callout' | 'ph'
+
+/** Подпись в две строки: перенос перед скобкой («раствор соляной кислоты⏎(H⁺ и Cl⁻)»). */
+const twoLines = (t: L10n): L10n => ({ ru: t.ru.replace(' (', '\n('), en: t.en.replace(' (', '\n('), uz: t.uz.replace(' (', '\n(') })
 
 export type SolutionLabelDef = {
   readonly id: string
@@ -1097,7 +1100,8 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     // школьный режим: осадок без подписей решётки (КЧ, a/b/c) — подписи «12 соседних O» нет
     neighbors: school ? -1 : addLabel({ id: 'neighbors', kind: 'measure', text: cap.neighbors, from: T.land + 0.3, to: S.nucleus.to }),
     precip: addLabel({ id: 'precip', kind: 'species', text: spec.callouts?.precipitate ?? cap.precipitate, from: S.settle.from + 1.2, to: S.settle.to + 0.3 }),
-    acid: addLabel({ id: 'acid', kind: 'species', text: spec.callouts?.acid ?? cap.acid, from: S.settle.from + 1.7, to: S.settle.to + 0.3 }),
+    // школьная выноска длиннее («раствор соляной кислоты (H⁺ и Cl⁻)») — в две строки: на телефоне не наезжает на пробирку
+    acid: addLabel({ id: 'acid', kind: school ? 'speciesLines' : 'species', text: school ? twoLines(spec.callouts?.acid ?? cap.acid) : spec.callouts?.acid ?? cap.acid, from: S.settle.from + 1.7, to: S.settle.to + 0.3 }),
     nitric: addLabel({ id: 'nitric', kind: 'measure', text: school?.captions.nitric ?? cap.nitric, from: T.drop0 + 0.9, to: S.settle.to + 0.3 }),
     equation: addLabel({ id: 'equation', kind: 'equationPlate', text: eqL10n(eqPlate), from: S.result.from + 0.4, to: finish.to }),
     ionic: addLabel({ id: 'ionic', kind: 'measure', text: ionicText, from: S.result.from + 1.8, to: finish.to }),

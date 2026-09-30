@@ -51,6 +51,10 @@ const KIND_STYLE: Record<string, string> = {
   species:
     'font: 600 14px/1.1 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em;' +
     'text-shadow: 0 0 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.8);',
+  // Подпись вещества в несколько строк (перевод строки в тексте) — выноска школьного режима BaSO₄.
+  speciesLines:
+    'font: 600 14px/1.2 "Inter", system-ui, sans-serif; color: #f4f8ff; letter-spacing: 0.01em; white-space: pre-line; text-align: left;' +
+    'text-shadow: 0 0 6px rgba(0,0,0,0.95), 0 0 14px rgba(0,0,0,0.8);',
   delta:
     'font: italic 700 15px/1 "Times New Roman", Georgia, serif; color: #8fe6ff; text-shadow: 0 0 8px rgba(0,0,0,0.9);',
   // Размер (длина, параметр ячейки): прямой шрифт героя на тёмной плашке — читается поверх сфер.
@@ -94,9 +98,9 @@ const KIND_STYLE: Record<string, string> = {
     'border: 1px solid rgba(214, 232, 255, 0.34); box-shadow: 0 8px 26px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.18);',
 }
 
-/** Ширина карточки pH-метра, px: 232 на широком холсте, на узком — половина его ширины (не меньше 180). */
+/** Ширина карточки pH-метра, px: 232 на широком холсте, на узком — меньше половины его ширины (не меньше 176). */
 function phWidth(canvasW: number): number {
-  return Math.round(Math.min(232, Math.max(180, canvasW * 0.5)))
+  return Math.round(Math.min(232, Math.max(176, canvasW * 0.46)))
 }
 
 /**

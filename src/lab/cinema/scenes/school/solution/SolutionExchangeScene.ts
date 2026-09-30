@@ -54,6 +54,16 @@ const RIM_GAIN = { plus: 0.8, minus: 0.85, proton: 1.3, neighbor: 0.9 } as const
 const WATER_FOG = { bg: 0.68, shell: 0.38 } as const
 /** В кристалле (тетраэдры видны) шары O и S группы мельче — грани полиэдра читаются, как в кристаллографии. */
 const POLY_SHRINK = { O: 0.4, S: 0.3 } as const
+/** Самая длинная строка подписи (символов): выноска в две строки выравнивается по ней. */
+function longestLine(text: string): number {
+  let best = 0
+  let run = 0
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10) run = 0
+    else if (++run > best) best = run
+  }
+  return best
+}
 /** Ширина карточки pH-метра, px (как в CinemaDomLabels и labelLayout: левый край — у полки выносок). */
 const PH_METER_W = 232
 /** Тетраэдр SO₄ в кристалле: грани (индексы O группы 0…3). */
@@ -1208,7 +1218,7 @@ export class SolutionExchangeScene {
     const pxPerUnit = px / depth
     for (const li of this.calloutLabels) {
       const l = this.labels[li]!
-      const halfPx = this.model.labels[li]!.kind === 'ph' ? PH_METER_W / 2 : (l.text.length * 6.9 + 18) / 2
+      const halfPx = this.model.labels[li]!.kind === 'ph' ? PH_METER_W / 2 : (longestLine(l.text) * 6.9 + 18) / 2
       l.pos.x = s.labelPos[li * 3]! * K + (halfPx + 6) / pxPerUnit
     }
   }
