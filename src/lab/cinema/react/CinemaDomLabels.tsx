@@ -308,12 +308,9 @@ export function CinemaDomLabels({
       b.w[i] = _size.w
       b.h[i] = _size.h
       if (src.kind === 'ph') {
-        // карточка pH-метра на узком холсте (телефон) — не шире половины кадра, подпись в две строки
+        // карточка pH-метра на узком холсте (телефон) — уже половины кадра, подпись в две строки (высота та же)
         const pw = phWidth(w)
-        if (pw < _size.w) {
-          b.w[i] = pw * scale
-          b.h[i] = _size.h + 16 * scale
-        }
+        if (pw < _size.w) b.w[i] = pw * scale
         const node = list[i]
         if (node && node.ox !== String(pw)) {
           node.el.style.width = `${pw}px`

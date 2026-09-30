@@ -3,7 +3,7 @@ import type { ScientificSynthesisFxProps } from '../../../scientificSynthesis/ty
 import { lessonModeStore, type LessonMode } from '../lessonMode'
 import { SchoolCinemaScene } from '../school/SchoolCinemaScene'
 import type { SchoolSceneFactory } from '../school/schoolRuntime'
-import { SolutionExchangeScene } from '../school/solution/SolutionExchangeScene'
+import { SolutionExchangeScene, type SolutionSceneOptions } from '../school/solution/SolutionExchangeScene'
 import { BASO4_SOLUTION_SPEC, solutionSpecForMode } from '../school/solution/solutionSpec'
 
 /**
@@ -13,9 +13,17 @@ import { BASO4_SOLUTION_SPEC, solutionSpecForMode } from '../school/solution/sol
  * уравнения РИО со знаком «=»; продвинутый — ионы в воде, H₃O⁺, ячейка барита. Химия — school/specs/baso4.ts.
  * Смена режима даёт новую фабрику: адаптер пересоздаёт сцену и продолжает с текущего шага.
  */
+/** Опции сцены + флаг «объём раствора» (фон мира частиц без молекул воды — рисует класс сцены). */
+type Baso4SceneOptions = SolutionSceneOptions & { solutionVolume?: boolean }
 const FACTORIES: Record<LessonMode, SchoolSceneFactory> = {
-  school: (opts) => new SolutionExchangeScene(solutionSpecForMode(BASO4_SOLUTION_SPEC, 'school'), opts),
-  advanced: (opts) => new SolutionExchangeScene(BASO4_SOLUTION_SPEC, opts),
+  school: (opts) => {
+    const o: Baso4SceneOptions = { ...opts, solutionVolume: true }
+    return new SolutionExchangeScene(solutionSpecForMode(BASO4_SOLUTION_SPEC, 'school'), o)
+  },
+  advanced: (opts) => {
+    const o: Baso4SceneOptions = { ...opts, solutionVolume: false }
+    return new SolutionExchangeScene(BASO4_SOLUTION_SPEC, o)
+  },
 }
 
 export function Baso4CinemaScene(props: ScientificSynthesisFxProps) {
