@@ -672,8 +672,9 @@ function fromUnit(compoundId: string): SchoolHeroModel | null {
     bonds: u.bonds.map((b) => ({ ...b })),
     cellEdges: [],
     radius,
-    // ионы разного размера легко закрывают друг друга (Fe³⁺ между O²⁻, Cu²⁺ среди H₂O) — ракурс ищется и у больших единиц
-    ...screenPose(atoms, 0.16, 0.35, 48),
+    // ионы разного размера легко закрывают друг друга (Fe³⁺ между O²⁻, Cu²⁺ среди H₂O) — у ионной единицы ракурс
+    // ищется строже и до 48 атомов; молекулы — как у школьных сцен
+    ...screenPose(atoms, 0.16, 0.35, u.kind === 'ionic' ? 48 : 16),
     motion: 'sway',
     caption: [],
     ions,

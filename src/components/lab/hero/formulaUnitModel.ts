@@ -519,11 +519,12 @@ function build(key: string): Template {
         geometry: g,
         atoms,
         bonds,
+        // катионы — в плоскости Cr–O–Cr (над мостиком и под ним): сбоку от плоскости они закрывают ион на экране
         sites: [
-          { dir: [0, 0, 1], kind: 'side' },
-          { dir: [0, 0, -1], kind: 'side' },
           { dir: [0, -1, 0], kind: 'edge' },
           { dir: [0, 1, 0], kind: 'edge' },
+          { dir: [0, 0, 1], kind: 'side' },
+          { dir: [0, 0, -1], kind: 'side' },
         ],
         up: [0, 1, 0],
         schematic: REAGENT_GEOMETRY[g].schematic,
