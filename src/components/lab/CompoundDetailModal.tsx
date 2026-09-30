@@ -10,6 +10,8 @@ import type { MessageKey } from '../../i18n/useT'
 import { useT } from '../../i18n/useT'
 import type { CompoundCategory, CompoundDef } from '../../types/chemistry'
 import { CatalogMoleculeHero } from './CatalogMoleculeHero'
+import { FormationCaptions } from './formation/FormationPanel'
+import { useFormation } from './formation/useFormation'
 import { useDialogFocus } from './useDialogFocus'
 import styles from './CompoundDetailModal.module.css'
 
@@ -172,6 +174,8 @@ export function CompoundDetailModal({
   }, [compoundId, onClose])
 
   const cardRef = useDialogFocus(compoundId != null)
+  // «Как образуется»: модель строения в 3D карточки (частицы → заряды / валентности → сборка → готово).
+  const formation = useFormation(detail && detail !== 'missing' ? compoundId : null)
 
   const titleId = 'compound-detail-title'
 
@@ -355,11 +359,12 @@ export function CompoundDetailModal({
             </div>
             <div className={styles.previewCol}>
               <div className={styles.previewWrap} aria-label={t('compound.preview3d')}>
-                <CatalogMoleculeHero compoundId={compoundId} />
+                <CatalogMoleculeHero compoundId={compoundId} formation={formation} />
                 <span className={styles.previewBadge} aria-hidden>
                   3D
                 </span>
               </div>
+              <FormationCaptions compoundId={compoundId} control={formation} locale={locale} obtainingSection={t('compound.obtainingSteps')} />
               <section className={styles.section}>
                 <h3 className={styles.metaLabel}>{t('compound.composition')}</h3>
                 <CompositionTiles
