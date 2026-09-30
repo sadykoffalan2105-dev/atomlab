@@ -715,32 +715,46 @@ function star(A: Assembler, center: string, sat: string, n: number): void {
 
 /**
  * Бипирамида M₂X₃ / M₃X₂: трое — кольцом в плоскости xy (радиус R), двое — на оси ±z, подведены до касания.
- * R — наименьший, при котором частицы не перекрываются, с минимальным описанным радиусом.
+ * Многоатомный ион кольца пробует повернуться к оси ребром, гранью или вершиной: годится раскладка, где частица
+ * на оси КАСАЕТСЯ кольца (маленький Al³⁺ проваливается в дыру между сульфатами, повёрнутыми ребром, — тогда
+ * сульфаты смотрят на ось вершиной O). Из годных — с наименьшим описанным радиусом.
  */
 function bipyramid(A: Assembler, ring: string, apex: string): void {
   let best: Assembler | null = null
   let bestR = Infinity
   const ringT = ionTemplate(ring)
   const r0 = isMono(ring) ? monoRadius(ring) : 60
-  for (let R = r0 * 0.8; R < r0 * 6 + 600; R += 2) {
-    const B = new Assembler()
-    for (let k = 0; k < 3; k++) {
-      const a = rad(90 + 120 * k)
-      const radial: P3 = [Math.cos(a), Math.sin(a), 0]
-      const rot = isMono(ring) ? I3 : orient(ringT, firstSite(ring, ['edge', 'side']), mul(radial, -1), [0, 0, 1])
-      B.put(ring, rot, mul(radial, R))
+  const kinds: SiteKind[] = isMono(ring) ? ['side'] : (['edge', 'face', 'vertex', 'side', 'end'] as SiteKind[]).filter((k) => ringT.sites.some((s) => s.kind === k))
+  const siteApex = firstSite(apex, ['face', 'edge', 'side', 'end'])
+  for (const kind of kinds) {
+    const site = isMono(ring) ? null : ringT.sites.find((s) => s.kind === kind)!.dir
+    let found = false
+    for (let R = r0 * 0.8; R < r0 * 6 + 600; R += 2) {
+      const B = new Assembler()
+      for (let k = 0; k < 3; k++) {
+        const a = rad(90 + 120 * k)
+        const radial: P3 = [Math.cos(a), Math.sin(a), 0]
+        const rot = site ? orient(ringT, site, mul(radial, -1), [0, 0, 1]) : I3
+        B.put(ring, rot, mul(radial, R))
+      }
+      if (B.gap(0, 1) < -1e-6) continue
+      B.dock(apex, [0, 0, 1], siteApex, [1, 0, 0])
+      B.dock(apex, [0, 0, -1], siteApex, [1, 0, 0])
+      if (B.gap(3, 4) < -1e-6) continue
+      // частица на оси должна касаться кольца, а не провалиться в его середину
+      const touches = (i: number) => [0, 1, 2].some((k) => B.gap(i, k) <= 0.5)
+      if (!touches(3) || !touches(4)) {
+        if (found) break
+        continue
+      }
+      found = true
+      let br = 0
+      for (const a of B.atoms) br = Math.max(br, len(a.p) + a.drawPm)
+      if (br < bestR - 0.5) {
+        bestR = br
+        best = B
+      } else break
     }
-    if (B.gap(0, 1) < -1e-6) continue
-    const siteApex = firstSite(apex, ['face', 'edge', 'side', 'end'])
-    B.dock(apex, [0, 0, 1], siteApex, [1, 0, 0])
-    B.dock(apex, [0, 0, -1], siteApex, [1, 0, 0])
-    if (B.gap(3, 4) < -1e-6) continue
-    let br = 0
-    for (const a of B.atoms) br = Math.max(br, len(a.p) + a.drawPm)
-    if (br < bestR - 0.5) {
-      bestR = br
-      best = B
-    } else if (best) break
   }
   if (!best) throw new Error(`formulaUnitModel: бипирамида ${ring}/${apex} не собралась`)
   Object.assign(A, best)
