@@ -15,6 +15,7 @@ import { compoundById } from '../src/data/compounds.ts'
 import { inorganicGradesForId, organicGradesForMolecule } from '../src/data/curriculum/compoundGradeIndex.ts'
 import { ORGANIC_MOLECULES } from '../src/data/organicLab/organicMoleculeRegistry.ts'
 import { isCatalogVisibleId } from '../src/data/textbook/catalogWhitelist.ts'
+import { CATALOG_TOP200 } from '../src/data/catalog/catalogTop200.ts'
 import { getElementBySymbol } from '../src/data/elements.ts'
 import { ATOMIC_NOTATION_ALIAS, collectBookSpecies, compositionKey, formulaCounts } from './plan/bookSpecies.mts'
 
@@ -38,7 +39,7 @@ for (const m of ORGANIC_MOLECULES) {
 }
 const orgById = new Map(ORGANIC_MOLECULES.map((m) => [m.id, m]))
 
-const stats = { total: 0, inorganic: 0, organic: 0, simple: 0, atomic: 0 }
+const stats = { total: 0, inorganic: 0, organic: 0, simple: 0, atomic: 0, outsideTop200: 0 }
 const rows: string[] = []
 for (const sp of collectBookSpecies().values()) {
   stats.total++
@@ -54,6 +55,13 @@ for (const sp of collectBookSpecies().values()) {
   if (inorg.length) {
     stats.inorganic++
     const vis = inorg.filter(isCatalogVisibleId)
+    // 30.09.2026: неорганика в каталоге — только 200 самых употребительных (catalogTop200.ts); остальное скрыто
+    // намеренно, но остаётся в данных (реактор, уравнения учебника)
+    if (!vis.length && inorg.some((id) => !CATALOG_TOP200.has(id))) {
+      stats.outsideTop200++
+      rows.push(`hidden ${sp.formula.padEnd(22)} ${inorg.join(',')} — вне 200`)
+      continue
+    }
     if (!vis.length) problems.push(`${sp.formula}: в каталоге есть (${inorg.join(', ')}), но скрыто`)
     for (const g of grades) {
       if (!vis.some((id) => inorganicGradesForId(id).includes(g as 7))) problems.push(`${sp.formula}: не показано в каталоге ${g} класса (${vis.join(', ')})`)
@@ -79,7 +87,7 @@ for (const sp of collectBookSpecies().values()) {
 
 if (LIST) for (const r of rows) console.log(r)
 console.log(
-  `веществ в реакциях книг: ${stats.total} — неорганика ${stats.inorganic}, органика ${stats.organic}, простые ${stats.simple} — в таблице Менделеева, не в каталоге (атомарные обозначения ${stats.atomic})`,
+  `веществ в реакциях книг: ${stats.total} — неорганика ${stats.inorganic}, органика ${stats.organic}, простые ${stats.simple} — в таблице Менделеева, не в каталоге (атомарные обозначения ${stats.atomic}); неорганика вне 200 (скрыта, в данных есть): ${stats.outsideTop200}`,
 )
 if (problems.length) {
   console.error(`\n${problems.length} проблем(ы):`)
