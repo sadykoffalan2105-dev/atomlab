@@ -99,7 +99,8 @@
 .main {
   margin: 4px 0 0;
   color: var(--lt-text, #f1f5f9);
-  font-family: var(--lt-font-display, var(--lt-font, system-ui, sans-serif));
+  /* Основной шрифт, не заголовочный: в нём есть надстрочные ²⁺ ⁻ (Cu²⁺, SO₄²⁻ не слипаются). */
+  font-family: var(--lt-font, system-ui, sans-serif);
   font-size: clamp(18px, 1.55vw, 22px);
   font-weight: 700;
   line-height: 1.3;
