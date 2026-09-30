@@ -374,6 +374,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab.mechanism.replay': 'Replay step',
   'lab.mechanism.autoplay': 'Autoplay',
   'lab.mechanism.autoplayHint': 'Move on to the next step automatically after the explanation',
+  'lab.mechanism.advancedMode': 'Advanced mode',
+  'lab.mechanism.advancedModeHint': 'Scientific model: H₃O⁺, water molecules, the barite lattice. Off — school standard (H⁺)',
   'lab.mechanism.playing': 'Animating',
   'lab.mechanism.legend': 'Legend',
   'lab.mechanism.note': 'Note',

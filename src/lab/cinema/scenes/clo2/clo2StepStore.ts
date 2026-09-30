@@ -38,6 +38,8 @@ export type Clo2StepControls = {
   replayStep: () => void
   /** доиграть хвост сцены и отдать кадр лаборатории */
   finish: () => void
+  /** действие урока на текущем шаге (lessons.ts, actions): «Добавить HNO₃» и т. п.; сюжет не двигает */
+  action?: (id: string) => void
 }
 
 const AUTOPLAY_KEY = 'atomlab-clo2-autoplay'
@@ -136,6 +138,13 @@ export const clo2StepStore = {
     if (!controls || snapshot.runId === 0) return
     if (snapshot.status === 'finishing' || snapshot.status === 'done') return
     controls.finish()
+  },
+
+  /** Действие урока (кнопка панели на шаге): только на паузе шага — сюжет при этом не двигается. */
+  action(id: string): void {
+    if (!controls?.action || snapshot.runId === 0) return
+    if (snapshot.status !== 'paused' && snapshot.status !== 'playing') return
+    controls.action(id)
   },
 
   setAutoplay(on: boolean): void {

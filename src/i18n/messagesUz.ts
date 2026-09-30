@@ -374,6 +374,8 @@ export const messagesUz: Record<MessageKey, string> = {
   'lab.mechanism.replay': 'Bosqichni takrorlash',
   'lab.mechanism.autoplay': 'Avtoijro',
   'lab.mechanism.autoplayHint': 'Tushuntirishdan keyin keyingi bosqichga oʻzi oʻtsin',
+  'lab.mechanism.advancedMode': 'Kengaytirilgan rejim',
+  'lab.mechanism.advancedModeHint': 'Ilmiy model: H₃O⁺, suv molekulalari, barit panjarasi. Oʻchiq — maktab standarti (H⁺)',
   'lab.mechanism.playing': 'Animatsiya ketmoqda',
   'lab.mechanism.legend': 'Belgilar',
   'lab.mechanism.note': 'Izoh',

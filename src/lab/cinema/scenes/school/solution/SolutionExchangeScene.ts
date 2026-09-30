@@ -54,6 +54,8 @@ const RIM_GAIN = { plus: 0.8, minus: 0.85, proton: 1.3, neighbor: 0.9 } as const
 const WATER_FOG = { bg: 0.68, shell: 0.38 } as const
 /** В кристалле (тетраэдры видны) шары O и S группы мельче — грани полиэдра читаются, как в кристаллографии. */
 const POLY_SHRINK = { O: 0.4, S: 0.3 } as const
+/** Ширина карточки pH-метра, px (как в CinemaDomLabels и labelLayout: левый край — у полки выносок). */
+const PH_METER_W = 232
 /** Тетраэдр SO₄ в кристалле: грани (индексы O группы 0…3). */
 const TETRA_FACES = [
   [0, 1, 2],
@@ -119,6 +121,9 @@ export class SolutionExchangeScene {
   private readonly state: SolutionState
   private readonly clock = { t: 0 }
   private tween: gsap.core.Tween | null = null
+  /** своё время пипетки HNO₃ (кнопка «Добавить HNO₃», runAction): −1 — пипетка идёт по сюжету */
+  private readonly pip = { t: -1 }
+  private pipTween: gsap.core.Tween | null = null
   private speed = 1
   private status: SchoolStatus = 'idle'
   private stepIndex = 0
@@ -427,7 +432,8 @@ export class SolutionExchangeScene {
     this.micro.add(this.halos, this.bridge)
 
     // ——— тетраэдры SO₄ кристалла: полупрозрачные жёлтые грани, O в вершинах, S внутри, светлые рёбра ———
-    this.polyBodies = m.bodies.map((b, i) => ({ b, i })).filter((x) => x.b.kind === 'lattice-group' || x.i === m.roles.group).map((x) => x.i)
+    // школьный режим: осадок без полиэдров (те же узлы барита, шары S и O целые)
+    this.polyBodies = m.mode === 'school' ? [] : m.bodies.map((b, i) => ({ b, i })).filter((x) => x.b.kind === 'lattice-group' || x.i === m.roles.group).map((x) => x.i)
     const Tm = solutionMoments(m)
     this.polyFrom = Float32Array.from(this.polyBodies, (bi) => m.bodies[bi]!.land?.t ?? Tm.seed1)
     this.polyOn = new Float32Array(m.bodies.length)
@@ -597,9 +603,9 @@ export class SolutionExchangeScene {
 
     // ——— подписи ———
     this.labels = m.labels.map((l) => ({ id: l.id, kind: l.kind as SchoolLabelKind, pos: new THREE.Vector3(), opacity: 0, text: this.localize(l.text[this.locale]) }))
-    const macroIds = new Set(['tubeA', 'tubeB', 'precip', 'acid', 'nitric'])
+    const macroIds = new Set(['tubeA', 'tubeB', 'precip', 'acid', 'nitric', 'phMacro'])
     this.isMacroLabel = Uint8Array.from(m.labels, (l) => (macroIds.has(l.id) ? 1 : 0))
-    this.calloutLabels = m.labels.map((l, k) => (l.id === 'precip' || l.id === 'acid' || l.id === 'nitric' ? k : -1)).filter((k) => k >= 0)
+    this.calloutLabels = m.labels.map((l, k) => (l.id === 'precip' || l.id === 'acid' || l.id === 'nitric' || l.id === 'phMacro' ? k : -1)).filter((k) => k >= 0)
     this.insideVis = new Float32Array(m.labels.length).fill(1)
     this.discs = new Float32Array(n * 4)
     this.labelIndexOfAtom = new Int32Array(n).fill(-1)
@@ -682,6 +688,7 @@ export class SolutionExchangeScene {
   setSpeed(k: number): void {
     this.speed = Math.max(0.05, k)
     this.tween?.timeScale(this.speed)
+    this.pipTween?.timeScale(this.speed)
   }
 
   seek(t: number): void {
@@ -701,7 +708,8 @@ export class SolutionExchangeScene {
   }
 
   extentAt(t: number, out: { w: number; h: number; cx: number; cy: number }): { w: number; h: number; cx: number; cy: number } {
-    const e = solutionExtentAt(this.model, t)
+    // пипетка HNO₃ по кнопке: кадр — как у сюжетной пипетки (она въезжает сверху)
+    const e = solutionExtentAt(this.model, this.pip.t >= 0 ? this.pip.t : t)
     out.w = e.w * K
     out.h = e.h * K
     out.cx = e.cx * K
@@ -774,12 +782,37 @@ export class SolutionExchangeScene {
     }
   }
 
+  /**
+   * Действие урока: «nitric» — пипетка HNO₃ въезжает и роняет капли заново (своё время пипетки, сюжет стоит:
+   * осадок не убывает, подпись «+ HNO₃ — осадок не растворяется» на месте). Только на шаге «осадок».
+   */
+  runAction(id: string): void {
+    if (id !== 'nitric' || this.disposed) return
+    const st = this.model.step.settle
+    if (this.clock.t < st.from + 0.5 || this.clock.t > st.to + 1e-3) return
+    const T = solutionMoments(this.model)
+    this.pipTween?.kill()
+    this.pip.t = T.pip0
+    const end = T.pip1 + 0.6
+    this.pipTween = gsap.to(this.pip, {
+      t: end,
+      duration: end - T.pip0,
+      ease: 'none',
+      onComplete: () => {
+        this.pipTween = null
+        this.pip.t = -1
+        this.appliedT = NaN
+      },
+    })
+    this.pipTween.timeScale(this.speed)
+  }
+
   update(dt: number, camera: THREE.Camera): void {
     if (this.disposed) return
     this.lastDt = Math.min(0.1, Math.max(0, dt))
     const t = this.clock.t
     this.fireCues(t)
-    this.apply(t, false)
+    this.apply(t, this.pip.t >= 0)
     this.followHero(t)
     this.animate(camera)
     if (this.hostBackground) {
@@ -804,6 +837,11 @@ export class SolutionExchangeScene {
     if (this.tween) {
       this.tween.kill()
       this.tween = null
+    }
+    if (this.pipTween) {
+      this.pipTween.kill()
+      this.pipTween = null
+      this.pip.t = -1
     }
     const r = this.pendingResolve
     this.pendingResolve = null
@@ -843,7 +881,7 @@ export class SolutionExchangeScene {
   private apply(t: number, force: boolean): void {
     if (!force && t === this.appliedT) return
     this.appliedT = t
-    const s = sampleSolutionState(this.model, t, this.state)
+    const s = sampleSolutionState(this.model, t, this.state, this.pip.t >= 0 ? this.pip.t : t)
     const m = this.model
 
     // ——— слои ———
@@ -1164,7 +1202,7 @@ export class SolutionExchangeScene {
     const pxPerUnit = px / depth
     for (const li of this.calloutLabels) {
       const l = this.labels[li]!
-      const halfPx = (l.text.length * 6.9 + 18) / 2
+      const halfPx = this.model.labels[li]!.kind === 'ph' ? PH_METER_W / 2 : (l.text.length * 6.9 + 18) / 2
       l.pos.x = s.labelPos[li * 3]! * K + (halfPx + 6) / pxPerUnit
     }
   }

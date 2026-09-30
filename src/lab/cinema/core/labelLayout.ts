@@ -47,8 +47,17 @@ const PAD_W: Record<string, number> = { atom: 2, atomDark: 2, species: 4, ox: 14
 /** Подписи в несколько строк (выноска-пояснение): строки разделены переводом строки, высота — по их числу. */
 const MULTILINE_PAD_H: Record<string, number> = { callout: 18 }
 
+/** Карточки фиксированного размера (px): pH-метр — шкала 0–14 и подпись в две строки (CinemaDomLabels). */
+const FIXED_BOX: Record<string, { w: number; h: number }> = { ph: { w: 232, h: 96 } }
+
 /** Оценка размера подписи в px (без чтения DOM). */
 export function estimateLabelSize(kind: string, text: string, scale: number, out: { w: number; h: number }): void {
+  const box = FIXED_BOX[kind]
+  if (box) {
+    out.w = box.w * scale
+    out.h = box.h * scale
+    return
+  }
   const g = GLYPH_W[kind] ?? GLYPH_W.species!
   const lh = LINE_H[kind] ?? LINE_H.species!
   const pad = PAD_W[kind] ?? PAD_W.species!

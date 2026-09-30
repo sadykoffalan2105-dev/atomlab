@@ -15,6 +15,7 @@ import { CLO2_STEP_IDS, type Clo2StepId } from '../../../lab/cinema/scenes/clo2/
 import { clo2StepStore, type Clo2StepStatus } from '../../../lab/cinema/scenes/clo2/clo2StepStore'
 import type { Clo2Locale } from '../../../lab/cinema/scenes/clo2/clo2MechanismText'
 import { getCinemaLesson, lessonStepIdAt } from '../../../lab/cinema/scenes/lessons'
+import { lessonModeStore } from '../../../lab/cinema/scenes/lessonMode'
 import { CaoEnergyPanel } from '../../../lab/cinema/scenes/cao/CaoEnergyPanel'
 import { FesEnergyPanel } from '../../../lab/cinema/scenes/fes/FesEnergyPanel'
 import { HclEnergyPanel } from '../../../lab/cinema/scenes/hcl/HclEnergyPanel'
@@ -412,6 +413,8 @@ type NarrationMark = { runId: number; step: number; status: Clo2StepStatus }
 
 export function Clo2MechanismPanel({ active }: { active: boolean }) {
   const snapshot = useSyncExternalStore(clo2StepStore.subscribe, clo2StepStore.getSnapshot)
+  // режим урока (школьный / продвинутый): тексты урока и сцена читают его же — панель перерисуется
+  const lessonMode = useSyncExternalStore(lessonModeStore.subscribe, lessonModeStore.getSnapshot)
   const { t, locale } = useT()
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const narrationMark = useRef<NarrationMark | null>(null)
@@ -523,6 +526,12 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
   const canReplay = status === 'playing' || status === 'paused'
   const counter = t('lab.mechanism.stepOf', { n: step + 1, total: stepCount })
   const equationParts = stepText.equation.split(/\s*;\s*/).filter(Boolean)
+  // крупные карточки уравнений шага (школьный режим, итог: молекулярное, полное и сокращённое ионные)
+  const cards = text.cards?.[stepId]
+  const action = lesson.actions?.find((a) => a.stepId === stepId)
+  const actionReady = status === 'paused' || status === 'playing'
+  const modeLocked = status === 'finishing' || status === 'done'
+
   const collapseLabel = collapsed ? t('lab.mechanism.showDetails') : t('lab.mechanism.hideDetails')
   const replayLabel = t('lab.mechanism.replay')
 
@@ -671,6 +680,21 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
             />
           ))}
         </div>
+        {lesson.modes ? (
+          // Школьный стандарт (H⁺, ОГЭ/ЕГЭ) по умолчанию; «Продвинутый режим» — научная сцена. Смена режима
+          // перезапускает сцену с текущего шага (Baso4CinemaScene → SchoolCinemaScene).
+          <button
+            type="button"
+            className={styles.modeBtn}
+            aria-pressed={lessonMode === 'advanced'}
+            title={t('lab.mechanism.advancedModeHint')}
+            disabled={modeLocked}
+            onClick={() => lessonModeStore.set(lessonMode === 'advanced' ? 'school' : 'advanced')}
+          >
+            <span className={styles.switch} aria-hidden />
+            {t('lab.mechanism.advancedMode')}
+          </button>
+        ) : null}
       </header>
 
       <div className={styles.scrollWrap} ref={scrollWrapRef}>
@@ -680,13 +704,37 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
           {/* Шапка шага: заголовок и уравнение стадии — видны и в свёрнутой панели; объяснение ниже. */}
           <div className={styles.stepText} aria-live="polite" aria-atomic="true">
             <h3 className={styles.title}>{stepText.title}</h3>
-            <p className={styles.equation} translate="no">
-              {equationParts.map((part, i) => (
-                <span key={i} className={styles.equationLine}>
-                  {part}
-                </span>
-              ))}
-            </p>
+            {cards ? (
+              <div className={styles.eqCards} translate="no">
+                {cards.map((c, i) => (
+                  <div key={i} className={styles.eqCard} data-short={i === cards.length - 1 ? '1' : undefined}>
+                    <span className={styles.eqCardLabel}>{c.label}</span>
+                    <span className={styles.eqCardFormula}>{c.formula}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.equation} translate="no">
+                {equationParts.map((part, i) => (
+                  <span key={i} className={styles.equationLine}>
+                    {part}
+                  </span>
+                ))}
+              </p>
+            )}
+            {action ? (
+              <button
+                type="button"
+                className={styles.actionBtn}
+                aria-disabled={!actionReady}
+                onClick={() => {
+                  if (actionReady) clo2StepStore.action(action.id)
+                }}
+              >
+                <DropIcon />
+                <span translate="no">{action.label[clo2Locale]}</span>
+              </button>
+            ) : null}
             <p className={`${styles.body} ${styles.details}`}>{stepText.body}</p>
           </div>
 
@@ -764,6 +812,12 @@ export function Clo2MechanismPanel({ active }: { active: boolean }) {
                 <li>
                   <IonIcon />
                   <span>{text.legend.ion}</span>
+                </li>
+              ) : null}
+              {text.legend.charge ? (
+                <li>
+                  <ChargeIcon />
+                  <span>{text.legend.charge}</span>
                 </li>
               ) : null}
               {text.legend.stick ? (
@@ -1081,6 +1135,26 @@ function IonIcon() {
     <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
       <circle cx="11" cy="7.5" r="5.2" fill="currentColor" opacity="0.5" />
       <path d="M20 4h5M22.5 1.5v5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** Сцена раствора (школьный режим): шар со светящимся краем — знак заряда. */
+function ChargeIcon() {
+  return (
+    <svg className={styles.icon} viewBox="0 0 28 14" aria-hidden>
+      <circle cx="8" cy="7" r="4.6" fill="none" stroke="#ffa64d" strokeWidth="1.8" />
+      <circle cx="20" cy="7" r="4.6" fill="none" stroke="#4fc3ff" strokeWidth="1.8" />
+    </svg>
+  )
+}
+
+/** Кнопка действия «Добавить HNO₃»: капля из пипетки. */
+function DropIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
+      <path d="M8 2.2c2.2 3 3.9 5.1 3.9 7.3a3.9 3.9 0 0 1-7.8 0C4.1 7.3 5.8 5.2 8 2.2Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M6.3 10.2a1.9 1.9 0 0 0 1.5 1.6" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   )
 }

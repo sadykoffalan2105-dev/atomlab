@@ -44,6 +44,8 @@ export interface SchoolRuntimeScene {
    */
   setHandoffTarget?(target: THREE.Object3D | null, estimated?: boolean): void
   releaseToHero?(): void
+  /** Действие урока на шаге (кнопка панели, lessons.ts actions), необязательно: сюжет не двигает. */
+  runAction?(id: string): void
 }
 
 /** Фабрика сцены для адаптера (стабильная ссылка — иначе сцена пересоздаётся). */
