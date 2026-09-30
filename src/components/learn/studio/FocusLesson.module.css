@@ -28,6 +28,7 @@
 }
 
 .back {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -311,6 +312,7 @@
 }
 
 .menuItem {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -494,6 +496,7 @@
 }
 
 .railItem {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -638,7 +641,8 @@
 
   .rail,
   .resizer,
-  .panelHead .panelExpand {
+  .panelHead,
+  .progressChapter {
     display: none;
   }
 
@@ -665,6 +669,7 @@
   }
 
   .navItem {
+    box-sizing: border-box;
     display: flex;
     flex: 1 1 0;
     flex-direction: column;
@@ -715,6 +720,12 @@
 
   .menuItem {
     min-height: 48px;
+  }
+}
+
+@media (max-width: 420px) {
+  .modeItem svg {
+    display: none;
   }
 }
 

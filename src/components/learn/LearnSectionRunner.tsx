@@ -556,7 +556,8 @@ export function LearnSectionRunner({
               />
             </span>
             <span className={focus.progressText}>
-              {chapterTitle} · {progressLabel}
+              <span className={focus.progressChapter}>{chapterTitle} · </span>
+              {progressLabel}
             </span>
           </p>
         </div>

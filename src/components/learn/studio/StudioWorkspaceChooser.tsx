@@ -3,6 +3,7 @@ import { useT } from '../../../i18n/useT'
 import { LearnShellIcon } from '../LearnShellIcon'
 import {
   FOCUS_MODE_DESC,
+  FOCUS_MODE_LABEL,
   STUDIO_WORKSPACES,
   STUDIO_WORKSPACE_BY_KEY,
   STUDIO_WORKSPACE_ICON,
@@ -103,7 +104,9 @@ export function StudioWorkspaceChooser({
                   <LearnShellIcon name={STUDIO_WORKSPACE_ICON[ws]} size={22} />
                 </span>
                 <span className={styles.optionText}>
-                  <span className={styles.optionTitle}>{t(STUDIO_WORKSPACE_LABEL[ws])}</span>
+                  <span className={styles.optionTitle}>
+                    {t(ws === 'board' ? STUDIO_WORKSPACE_LABEL.board : FOCUS_MODE_LABEL[ws])}
+                  </span>
                   <span className={styles.optionDesc}>{t(FOCUS_MODE_DESC[ws])}</span>
                 </span>
                 <span className={styles.optionKey} aria-hidden="true">
