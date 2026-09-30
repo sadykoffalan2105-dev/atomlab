@@ -41,17 +41,10 @@ const _up = new THREE.Vector3(0, 1, 0)
 
 type BondAnim = { a: number; b: number; n: number; side: THREE.Vector3 | null; t0: number; t1: number }
 type AtomAnim = { t0: number; t1: number }
-type Badge = { text: string; atoms: number[]; fromStep: number; kind: 'group' | 'valence' }
+/** group — многоатомный ион (весь показ); water — кристаллизационная вода (шаги 1–2); valence — валентность (шаг 2 и начало сборки). */
+type Badge = { text: string; atoms: number[]; fromStep: number; kind: 'group' | 'water' | 'valence' }
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']
-
-function hash01(i: number): number {
-  let v = (i + 1) * 0x9e3779b1
-  v ^= v >>> 16
-  v = Math.imul(v, 0x7feb352d)
-  v ^= v >>> 15
-  return ((v >>> 0) % 10000) / 10000
-}
 
 /** Смещение кратных палочек (в плоскости σ-соседей, иначе ⟂ оси и Z) — по итоговой геометрии. */
 function sideFor(model: SchoolHeroModel, a: number, b: number, nbrs: number[][]): THREE.Vector3 {
@@ -111,12 +104,11 @@ export function FormationMoleculeView({
     for (const p of final) maxD = Math.max(maxD, Math.hypot(p[0], p[1], p[2]))
     const bonds: BondAnim[] = []
     if (plan.mode === 'molecular') {
-      // Разлёт: атомы от центра наружу (центральный атом остаётся на месте).
+      // Разлёт: атомы от центра наружу (центральный атом остаётся на месте); решётка — ровно, без шума.
       const E = crystal ? 1.5 : 1.9
       final.forEach((p, i) => {
         const d = Math.hypot(p[0], p[1], p[2])
-        const j = crystal ? 1 + 0.25 * hash01(i) : 1
-        const k = d < 0.2 * maxD ? 1 : E * j
+        const k = d < 0.2 * maxD ? 1 : E
         start[i] = [p[0] * k, p[1] * k, p[2] * k]
       })
       // Связи по одной (порядок плана), атом приходит к своей первой связи.
@@ -144,11 +136,11 @@ export function FormationMoleculeView({
         const c: V3 = [0, 0, 0]
         for (const a of u.atoms) for (let q = 0; q < 3; q++) c[q] += final[a]![q]! / u.atoms.length
         const d = Math.hypot(c[0], c[1], c[2])
-        const jit = crystal ? 1 + 0.3 * hash01(ui) : 1
-        const k = d < 0.15 * maxD ? 0 : E * jit - 1
+        const k = d < 0.15 * maxD ? 0 : E - 1
         for (const a of u.atoms) start[a] = [final[a]![0] + c[0] * k, final[a]![1] + c[1] * k, final[a]![2] + c[2] * k]
-        const dur = crystal ? 0.4 : m === 1 ? 1 : 0.55
-        const t0 = m === 1 ? 0 : crystal ? 0.6 * (j / m) : ((1 - dur) * j) / (m - 1)
+        // Решётка сжимается слоями (ближние к центру — раньше), отдельные ионы приходят по очереди.
+        const dur = crystal ? 0.45 : m === 1 ? 1 : 0.55
+        const t0 = m === 1 ? 0 : crystal ? 0.55 * (d / Math.max(1e-6, maxD)) : ((1 - dur) * j) / (m - 1)
         for (const a of u.atoms) atomT[a] = { t0, t1: t0 + dur }
       })
       // Ковалентные связи внутри «корней» — с самого начала (корень уже собран).
@@ -158,9 +150,6 @@ export function FormationMoleculeView({
       })
     }
     for (const b of bonds) if (b.n > 1) b.side = sideFor(model, b.a, b.b, nbrs)
-    // Радиус кадра: разлёт и итог.
-    const bound = (P: V3[]) => P.reduce((r, p, i) => Math.max(r, Math.hypot(p[0], p[1], p[2]) + model.atoms[i]!.r), 1e-6)
-    const rStart = bound(start)
     const rEnd = model.radius
     // Подписи: шаг 1 — символы элементов, со 2-го — ионы (Na⁺) у одноатомных ионов. Позиции общие (live).
     const neutral: SchoolHeroAtom[] = model.atoms.map((a, i) => ({ ...a, label: a.el, pos: live[i]! }))
@@ -177,7 +166,7 @@ export function FormationMoleculeView({
     if (plan.mode === 'ionic' && !crystal) {
       for (const u of plan.units) {
         const s = plan.species[u.species]
-        if (s && u.atoms.length > 1) badges.push({ text: s.formula, atoms: u.atoms, fromStep: 0, kind: 'group' })
+        if (s && u.atoms.length > 1) badges.push({ text: s.formula, atoms: u.atoms, fromStep: 0, kind: s.kind === 'molecule' ? 'water' : 'group' })
       }
     } else if (plan.mode === 'molecular' && n <= 24) {
       const sums = model.atoms.map(() => 0)
@@ -192,7 +181,7 @@ export function FormationMoleculeView({
         if (v) badges.push({ text: ROMAN[v] ?? String(v), atoms: [i], fromStep: 1, kind: 'valence' })
       })
     }
-    return { final, live, start, atomT, bonds, rStart, rEnd, neutral, ionic, badges }
+    return { final, live, start, atomT, bonds, rEnd, neutral, ionic, badges }
   }, [model, plan, crystal])
 
   // Меши: шары, палочки, рёбра ячеек.
@@ -251,7 +240,9 @@ export function FormationMoleculeView({
         'font-family:"Inter", system-ui, sans-serif; font-weight:700; line-height:1; border-radius:999px;' +
         (b.kind === 'group'
           ? 'font-size:15px; padding:5px 10px; color:#fde68a; background:rgba(12,16,32,0.78); border:1px solid rgba(251,191,36,0.55);'
-          : 'font-size:12px; padding:3px 7px; color:#bae6fd; background:rgba(12,16,32,0.8); border:1px solid rgba(125,211,252,0.55);')
+          : b.kind === 'water'
+            ? 'font-size:12px; padding:3px 8px; color:#e2e8f0; background:rgba(12,16,32,0.72); border:1px solid rgba(148,163,184,0.5);'
+            : 'font-size:12px; padding:3px 7px; color:#bae6fd; background:rgba(12,16,32,0.8); border:1px solid rgba(125,211,252,0.55);')
       layer.appendChild(el)
       return { el, shown: false, x: NaN, y: NaN }
     })
@@ -314,8 +305,13 @@ export function FormationMoleculeView({
     res.sticks.count = k
     res.sticks.instanceMatrix.needsUpdate = true
     if (res.edges) (res.edges.material as THREE.LineBasicMaterial).opacity = 0.55 * clamp01((t - tl.starts[3]) / 1.2)
-    // Кадр: от разлёта к итогу.
-    const R = anim.rStart + (anim.rEnd - anim.rStart) * easeInOut(f)
+    // Кадр: описанная сфера текущих положений (все частицы всегда в окне), не меньше итоговой.
+    let R = anim.rEnd
+    for (let i = 0; i < live.length; i++) {
+      const L = live[i]!
+      const d = Math.hypot(L[0], L[1], L[2]) + model.atoms[i]!.r
+      if (d > R) R = d
+    }
     const o = outer.current
     if (o) o.scale.setScalar(fitRadius / Math.max(1e-6, R))
     const a = turnA.current
@@ -341,7 +337,9 @@ export function FormationMoleculeView({
       anim.badges.forEach((bd, i) => {
         const node = list[i]
         if (!node) return
-        const show = step >= bd.fromStep && (bd.kind === 'group' || step <= 2)
+        // Вода и валентности уходят, когда частицы сближаются, — подписи не лезут друг на друга.
+        const show =
+          step >= bd.fromStep && (bd.kind === 'group' || (bd.kind === 'water' ? step <= 1 || (step === 2 && f < 0.25) : step === 1 || (step === 2 && f < 0.35)))
         if (!show) {
           if (node.shown) {
             node.el.style.display = 'none'
@@ -366,7 +364,7 @@ export function FormationMoleculeView({
         const pxR = dist > 1e-6 ? ((top * sc) / dist) * pxK : 0
         _p.project(cam)
         const x = Math.round(((_p.x * 0.5 + 0.5) * size.width) * 2) / 2
-        const y = Math.round(((-_p.y * 0.5 + 0.5) * size.height - pxR - (bd.kind === 'group' ? 10 : 4)) * 2) / 2
+        const y = Math.round(((-_p.y * 0.5 + 0.5) * size.height - pxR - (bd.kind === 'valence' ? 4 : 10)) * 2) / 2
         if (!node.shown) {
           node.el.style.display = 'block'
           node.shown = true

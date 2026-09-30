@@ -285,7 +285,8 @@ export function formationTexts(p: FormationPlan, loc: FormationLocale, obtaining
         title: ['Валентности', 'Valences', 'Valentliklar'][L]!,
         main: p.species
           .filter((s) => s.valences && s.valences.length > 0)
-          .map((s) => `${s.formula} — ${s.valences!.map(roman).join(loc === 'ru' ? ' и ' : loc === 'en' ? ' and ' : ' va ')}`)
+          // Школьная запись валентности: S(VI) — римская цифра в скобках после символа.
+          .map((s) => `${s.formula}(${s.valences!.map(roman).join(', ')})`)
           .join(' · '),
         sub: [
           'Валентность — число общих электронных пар (связей), которые образует атом.',

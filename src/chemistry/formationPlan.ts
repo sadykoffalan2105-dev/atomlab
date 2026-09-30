@@ -660,7 +660,13 @@ function buildPlan(compoundId: string): FormationPlan | null {
     if (species.length === 0) mode = 'molecular'
   }
   if (mode === 'molecular') {
-    const order = Object.keys(comp).sort((a, b) => SCHOOL_EL_ORDER.indexOf(a) - SCHOOL_EL_ORDER.indexOf(b))
+    // Порядок — как в формуле (H₂SO₄: H, S, O); не найденные в записи — по школьному ряду.
+    const seen = [...plain.matchAll(/[A-Z][a-z]?/g)].map((m) => m[0])
+    const pos = (el: string) => {
+      const i = seen.indexOf(el)
+      return i >= 0 ? i : 100 + SCHOOL_EL_ORDER.indexOf(el)
+    }
+    const order = Object.keys(comp).sort((a, b) => pos(a) - pos(b))
     species = order.map((el) => ({ formula: el, kind: 'atom' as const, charge: 0, count: comp[el]!, comp: { [el]: 1 }, nameKey: `el:${el}` }))
   }
 
