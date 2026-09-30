@@ -41,6 +41,7 @@ import { NO2_SCENE_SPEC } from '../../../lab/cinema/scenes/no2/no2Spec'
 import { SO2_SCHOOL_SPEC } from '../../../lab/cinema/scenes/so2/so2Spec'
 import { SO3_SCHOOL_SPEC } from '../../../lab/cinema/scenes/so3/so3Spec'
 import { buildHeroModel } from './heroGeometry'
+import { buildFormulaUnit } from './formulaUnitModel'
 
 export type V3 = [number, number, number]
 
@@ -64,7 +65,16 @@ export type SchoolHeroBond = {
   order: number
 }
 
-export type SchoolHeroSource = 'crystal' | 'school' | 'core' | 'catalog'
+export type SchoolHeroSource = 'crystal' | 'school' | 'core' | 'unit' | 'catalog'
+
+/** Частица формульной единицы (ион или молекула воды): подпись с зарядом и её атомы. */
+export type SchoolHeroIon = {
+  key: string
+  /** SO₄²⁻, Na⁺, H₂O */
+  label: string
+  charge: number
+  atoms: number[]
+}
 
 export type SchoolHeroModel = {
   compoundId: string
@@ -83,6 +93,12 @@ export type SchoolHeroModel = {
   motion: 'sway' | 'orbit'
   /** у кристалла — подпись под моделью (a, группа, КЧ) */
   caption: string[]
+  /** ионное вещество (формульная единица): частицы — ионы и вода; у молекул и кристаллов нет */
+  ions?: SchoolHeroIon[]
+  /** что в модели упрощено (схема) — тексты из ядра */
+  schematic?: string[]
+  /** модель больше формулы в n раз (P₂O₅ → молекула P₄O₁₀) */
+  formulaMultiple?: number
 }
 
 /** Мировых единиц на пикометр (1 Å = 0,285 — как у сцен). */
@@ -630,6 +646,31 @@ function fromCatalog(shape: CatalogShape): SchoolHeroModel | null {
   return { compoundId: shape.id, kind: 'molecule', source: 'catalog', atoms, bonds, cellEdges: [], radius, ...screenPose(atoms, 0.16, 0.35), motion: 'sway', caption: [] }
 }
 
+// ─── 4а. Формульная единица / молекула по ядру (каталог 200) ─────────────────
+
+function fromUnit(compoundId: string): SchoolHeroModel | null {
+  const u = buildFormulaUnit(compoundId)
+  if (!u) return null
+  const atoms: SchoolHeroAtom[] = u.atoms.map((a) => ({ el: a.el, label: a.label, charge: a.charge, pos: [a.p[0] * K, a.p[1] * K, a.p[2] * K], r: a.drawPm * K, radiusPm: a.radiusPm }))
+  const radius = centerAndBound(atoms)
+  const ions = u.kind === 'ionic' ? u.ions.map((i) => ({ key: i.key, label: i.label, charge: i.charge, atoms: [...i.atoms] })) : undefined
+  return {
+    compoundId,
+    kind: 'molecule',
+    source: 'unit',
+    atoms,
+    bonds: u.bonds.map((b) => ({ ...b })),
+    cellEdges: [],
+    radius,
+    ...screenPose(atoms, 0.16, 0.35),
+    motion: 'sway',
+    caption: [],
+    ions,
+    schematic: u.schematic,
+    formulaMultiple: u.formulaMultiple,
+  }
+}
+
 // ─── Вход ──────────────────────────────────────────────────────────────────
 
 function compositionOf(shape: CatalogShape): Composition {
@@ -649,7 +690,7 @@ export function buildSchoolHeroModel(shape: CatalogShape): SchoolHeroModel | nul
   const hit = cache.get(shape.id)
   if (hit !== undefined) return hit
   const comp = compositionOf(shape)
-  const model = fromCrystal(shape.id) ?? fromSchool(shape.id, comp) ?? fromCore(shape.id, comp) ?? fromCatalog(shape)
+  const model = fromCrystal(shape.id) ?? fromSchool(shape.id, comp) ?? fromCore(shape.id, comp) ?? fromUnit(shape.id) ?? fromCatalog(shape)
   cache.set(shape.id, model)
   return model
 }

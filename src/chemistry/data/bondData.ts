@@ -755,6 +755,44 @@ export type ReagentGeometryKey =
   | 'n2o5Crystal'
   | 'hno3'
   | 'hydronium'
+  // Корни (кислотные остатки и другие многоатомные ионы) каталога 200 — шаблоны 3D-моделей
+  | 'sulfite'
+  | 'nitrite'
+  | 'nitrate'
+  | 'carbonate'
+  | 'hydrogencarbonate'
+  | 'phosphate'
+  | 'phosphoricAcid'
+  | 'metaphosphate'
+  | 'pyrophosphate'
+  | 'silicateSchool'
+  | 'chromate'
+  | 'dichromate'
+  | 'manganate'
+  | 'hypochlorite'
+  | 'chlorite'
+  | 'chlorate'
+  | 'perchlorate'
+  | 'hydroxide'
+  | 'superoxide'
+  | 'ammonium'
+  | 'aluminateSchool'
+  | 'zincateSchool'
+  | 'tetrahydroxoaluminate'
+  | 'tetrahydroxozincate'
+  | 'disulfide'
+  | 'acetylide'
+  | 'acidOH'
+  | 'ozone'
+  | 'phosphine'
+  | 'silane'
+  | 'sif4'
+  | 'cs2'
+  | 'n2o4'
+  | 'n2o3'
+  | 'cro3School'
+  | 'v2o5School'
+  | 'ammoniaHydrate'
 
 export type ReagentGeometry = {
   readonly key: ReagentGeometryKey
@@ -772,7 +810,29 @@ export type ReagentGeometry = {
   readonly pointGroup: string
   readonly source: string
   readonly note?: string
+  /**
+   * Что в модели УПРОЩЕНО (надёжного измерения нет или частицы в свободном виде не существует) — модель
+   * называется схемой, а не структурой. Нет поля — все числа измерены.
+   */
+  readonly schematic?: string
 }
+
+/** Сумма радиусов Шеннона (оценка длины M–O там, где измерения для отдельного иона нет), пм. */
+const SHANNON_SUM = (a: number, b: number) => Math.round((a + b) * 10) / 10
+
+/**
+ * Радиусы многоатомных ионов КАК ЦЕЛОГО (для касания в формульной единице), пм:
+ *  • OH⁻ — Shannon, Acta Cryst. A32 (1976) 751: 137 при КЧ 6 (центр — атом O);
+ *  • NH₄⁺ — Pauling, «The Nature of the Chemical Bond», 3rd ed. (1960): 148 (как Rb⁺), центр — атом N.
+ */
+export const POLYATOMIC_ION_RADIUS_PM: Readonly<Record<'OH-' | 'NH4+', number>> = { 'OH-': 137, 'NH4+': 148 }
+
+/**
+ * Формальные анионы, которых нет у Шеннона (радиус Полинга, «The Nature of the Chemical Bond», 1960), пм.
+ * C⁴⁻ (метанид в Al₄C₃) — ФОРМАЛЬНЫЙ ион: реальная связь Al–C во многом ковалентна (190–220 пм в кристалле),
+ * модель формульной единицы это называет.
+ */
+export const FORMAL_ANION_RADIUS_PM: Readonly<Record<'C4-', number>> = { 'C4-': 260 }
 
 export const REAGENT_GEOMETRY: Readonly<Record<ReagentGeometryKey, ReagentGeometry>> = {
   // Kuczkowski, Suenram & Lovas, J. Am. Chem. Soc. 103 (1981) 2561 — микроволновый спектр паров H₂SO₄
@@ -944,6 +1004,460 @@ export const REAGENT_GEOMETRY: Readonly<Record<ReagentGeometryKey, ReagentGeomet
       'тригональная пирамида, как NH₃ (изоэлектронна ему), но почти плоская: барьер инверсии мал. В воде протон ' +
       'не бывает «голым» — он всегда на молекуле воды (H₃O⁺ и более крупные гидраты); в кристаллах гидратов ' +
       'O–H ≈ 96–102 пм. Сцена раствора рисует H₃O⁺ по газовой геометрии и называет это схемой.',
+  },
+
+  // ─── Корни каталога 200 (кислотные остатки, OH⁻, NH₄⁺, O₂²⁻ …) ───────────────────────────────────
+  // Средние по кристаллам значения из обзоров; где источника для отдельной частицы нет — поле schematic.
+  sulfite: {
+    key: 'sulfite',
+    formula: 'SO₃²⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'S–O': 151 },
+    anglesDeg: { '∠O–S–O': 106 },
+    bondCounts: { 'S–O': 3 },
+    pointGroup: 'C₃v',
+    source: 'Greenwood & Earnshaw, «Chemistry of the Elements», 2nd ed. (1997), гл. 15 (сульфиты: Na₂SO₃)',
+    note: 'тригональная пирамида: у S(+4) неподелённая пара (AX₃E), поэтому ион не плоский, как SO₃, а «зонтик».',
+  },
+  nitrite: {
+    key: 'nitrite',
+    formula: 'NO₂⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'N–O': 124 },
+    anglesDeg: { '∠O–N–O': 115 },
+    bondCounts: { 'N–O': 2 },
+    pointGroup: 'C₂v',
+    source: 'Greenwood & Earnshaw (1997), гл. 11 (нитриты: NaNO₂)',
+    note: 'угловой ион (AX₂E): две равные связи N–O порядка 1½; угол меньше 120° из-за неподелённой пары азота.',
+  },
+  nitrate: {
+    key: 'nitrate',
+    formula: 'NO₃⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'N–O': 124 },
+    anglesDeg: { '∠O–N–O': 120 },
+    bondCounts: { 'N–O': 3 },
+    pointGroup: 'D₃h',
+    source: 'Grison, Eriks & de Vries, Acta Cryst. 3 (1950) 290 (NO₃⁻ в кристалле N₂O₅ — запись n2o5Crystal); Greenwood & Earnshaw (1997), гл. 11',
+    note: 'плоский правильный треугольник, три равные связи порядка 1⅓ (как CO₃²⁻); угол задан симметрией.',
+  },
+  carbonate: {
+    key: 'carbonate',
+    formula: 'CO₃²⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'C–O': BOND_DATA['C-O(CO3)'].lengthPm },
+    anglesDeg: { '∠O–C–O': 120 },
+    bondCounts: { 'C–O': 3 },
+    pointGroup: 'D₃h',
+    source: 'кальцит CaCO₃ (ICSD) — см. BOND_DATA «C-O(CO3)» и BOND_ANGLES.carbonate',
+  },
+  hydrogencarbonate: {
+    key: 'hydrogencarbonate',
+    formula: 'HCO₃⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'C–O': BOND_DATA['C-O(CO3)'].lengthPm, 'O–H': 97.0 },
+    anglesDeg: { '∠O–C–O': 120, '∠C–O–H': 104.5 },
+    bondCounts: { 'C–O': 3, 'O–H': 1 },
+    pointGroup: 'Cs',
+    source: 'треугольник CO₃ — как карбонат (кальцит); O–H — как в H₂SO₄ (Kuczkowski 1981); ∠C–O–H — как H–O–H воды',
+    schematic:
+      'в NaHCO₃ связь C–OH длиннее двух других (≈134 против ≈126 пм); здесь все три C–O взяты по карбонату, а H ' +
+      'присоединён к одному O по воде — схема «карбонат + H⁺».',
+  },
+  // Baur, Acta Cryst. B30 (1974) 1195: среднее P–O по 157 тетраэдрам PO₄ в фосфатах — 1.537 Å
+  phosphate: {
+    key: 'phosphate',
+    formula: 'PO₄³⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'P–O': 153.7 },
+    anglesDeg: { '∠O–P–O': 109.47 },
+    bondCounts: { 'P–O': 4 },
+    pointGroup: 'Td',
+    source: 'Baur, Acta Cryst. B30 (1974) 1195 (среднее P–O ортофосфатов 1.537 Å); Greenwood & Earnshaw (1997), гл. 12',
+    note: 'правильный тетраэдр, четыре равные связи (заряд 3− делокализован).',
+  },
+  phosphoricAcid: {
+    key: 'phosphoricAcid',
+    formula: 'H₃PO₄',
+    phase: 'тв',
+    lengthType: 'crystal',
+    bondsPm: { 'P=O': 152, 'P–O(H)': 157, 'O–H': 97.0 },
+    anglesDeg: { '∠O–P–O': 109.47, '∠P–O–H': 104.5 },
+    bondCounts: { 'P=O': 1, 'P–O(H)': 3, 'O–H': 3 },
+    pointGroup: 'C₃v',
+    source: 'кристалл H₃PO₄: P=O 152, P–OH 157 пм — Greenwood & Earnshaw (1997), гл. 12; O–H — как в H₂SO₄ (Kuczkowski 1981)',
+    schematic: 'углы у P — идеальный тетраэдр, ∠P–O–H — как H–O–H воды; те же длины — для HPO₄²⁻ и H₂PO₄⁻ (P–O и P–OH).',
+  },
+  metaphosphate: {
+    key: 'metaphosphate',
+    formula: 'PO₃⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'P–O': 153.7 },
+    anglesDeg: { '∠O–P–O': 120 },
+    bondCounts: { 'P–O': 3 },
+    pointGroup: 'D₃h',
+    source: 'длина — P–O фосфатов (Baur 1974); форма — VSEPR для AX₃',
+    schematic: 'HPO₃ в свободном виде — полимер (HPO₃)ₙ из тетраэдров; модель — мономер по школьной формуле H–O–P(=O)=O.',
+  },
+  pyrophosphate: {
+    key: 'pyrophosphate',
+    formula: 'P₂O₇⁴⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'P–O': 153.7, 'P–O(мост)': 160.4 },
+    anglesDeg: { '∠O–P–O': 109.47, '∠P–O–P': 123.5 },
+    bondCounts: { 'P–O': 6, 'P–O(мост)': 2 },
+    pointGroup: 'C₂v',
+    source: 'концевые P–O — фосфаты (Baur 1974); мостик P–O–P — P₄O₁₀ (Beagley 1969, запись p4o10)',
+    schematic: 'два тетраэдра PO₄ на общем O; углы у P — идеальный тетраэдр, мостик взят из P₄O₁₀.',
+  },
+  silicateSchool: {
+    key: 'silicateSchool',
+    formula: 'SiO₃²⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Si–O': BOND_DATA['Si-O'].lengthPm },
+    anglesDeg: { '∠O–Si–O': 120 },
+    bondCounts: { 'Si–O': 3 },
+    pointGroup: 'D₃h',
+    source: 'Si–O — α-кварц (BOND_DATA «Si-O»); форма — школьная формула SiO₃²⁻',
+    schematic:
+      'отдельного иона SiO₃²⁻ НЕТ: в Na₂SiO₃ и CaSiO₃ — бесконечные цепи тетраэдров SiO₄. Модель — «формульная» ' +
+      'частица по школьной записи (треугольник, как CO₃²⁻), так и подписано.',
+  },
+  chromate: {
+    key: 'chromate',
+    formula: 'CrO₄²⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Cr–O': 166 },
+    anglesDeg: { '∠O–Cr–O': 109.47 },
+    bondCounts: { 'Cr–O': 4 },
+    pointGroup: 'Td',
+    source: 'Greenwood & Earnshaw (1997), гл. 23 (хроматы, K₂CrO₄: Cr–O 166 пм)',
+  },
+  dichromate: {
+    key: 'dichromate',
+    formula: 'Cr₂O₇²⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Cr–O': 163, 'Cr–O(мост)': 179 },
+    anglesDeg: { '∠O–Cr–O': 109.47, '∠Cr–O–Cr': 126 },
+    bondCounts: { 'Cr–O': 6, 'Cr–O(мост)': 2 },
+    pointGroup: 'C₂v',
+    source: 'Greenwood & Earnshaw (1997), гл. 23 (K₂Cr₂O₇: Cr–O 163, мостик 179 пм, ∠Cr–O–Cr 126°)',
+    schematic: 'углы внутри тетраэдров — идеальные 109,47°.',
+  },
+  manganate: {
+    key: 'manganate',
+    formula: 'MnO₄²⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Mn–O': 165.9 },
+    anglesDeg: { '∠O–Mn–O': 109.47 },
+    bondCounts: { 'Mn–O': 4 },
+    pointGroup: 'Td',
+    source: 'Palenik, Inorg. Chem. 6 (1967) 507 (K₂MnO₄)',
+    note: 'длиннее, чем в перманганате (162,9): лишний электрон Mn(+6) d¹ ослабляет связь.',
+  },
+  hypochlorite: {
+    key: 'hypochlorite',
+    formula: 'ClO⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Cl–O': 170 },
+    anglesDeg: {},
+    bondCounts: { 'Cl–O': 1 },
+    pointGroup: 'C∞v',
+    source: 'Greenwood & Earnshaw (1997), гл. 17 (оксоанионы хлора: ClO⁻ 170, ClO₂⁻ 156, ClO₃⁻ 149, ClO₄⁻ 143 пм)',
+  },
+  chlorite: {
+    key: 'chlorite',
+    formula: 'ClO₂⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Cl–O': BOND_DATA['Cl-O'].lengthPm },
+    anglesDeg: { '∠O–Cl–O': 110.5 },
+    bondCounts: { 'Cl–O': 2 },
+    pointGroup: 'C₂v',
+    source: 'ион хлорита — BOND_DATA «Cl-O» и BOND_ANGLES.chlorite (одно место истины)',
+  },
+  chlorate: {
+    key: 'chlorate',
+    formula: 'ClO₃⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Cl–O': 149 },
+    anglesDeg: { '∠O–Cl–O': 107 },
+    bondCounts: { 'Cl–O': 3 },
+    pointGroup: 'C₃v',
+    source: 'Greenwood & Earnshaw (1997), гл. 17 (KClO₃)',
+    note: 'пирамида AX₃E, как SO₃²⁻.',
+  },
+  perchlorate: {
+    key: 'perchlorate',
+    formula: 'ClO₄⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Cl–O': 143 },
+    anglesDeg: { '∠O–Cl–O': 109.47 },
+    bondCounts: { 'Cl–O': 4 },
+    pointGroup: 'Td',
+    source: 'Greenwood & Earnshaw (1997), гл. 17',
+  },
+  hydroxide: {
+    key: 'hydroxide',
+    formula: 'OH⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'r_0',
+    bondsPm: { 'O–H': BOND_DATA['O-H'].lengthPm },
+    anglesDeg: {},
+    bondCounts: { 'O–H': 1 },
+    pointGroup: 'C∞v',
+    source: 'O–H воды (BOND_DATA «O-H», NIST CCCBDB); радиус OH⁻ как целого — Shannon 1976 (137 пм, КЧ 6)',
+    note: 'в кристаллах гидроксидов O–H 94–98 пм — в пределах этого разброса берём длину воды.',
+  },
+  // Abrahams & Kalnajs, Acta Cryst. 8 (1955) 503 — надпероксид калия KO₂
+  superoxide: {
+    key: 'superoxide',
+    formula: 'O₂⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'O–O': 128 },
+    anglesDeg: {},
+    bondCounts: { 'O–O': 1 },
+    pointGroup: 'D∞h',
+    source: 'Abrahams & Kalnajs, Acta Cryst. 8 (1955) 503 (KO₂)',
+    note: 'порядок связи 1½: короче пероксида O₂²⁻ (149), длиннее O₂ (121).',
+  },
+  // Levy & Peterson, Phys. Rev. 86 (1952) 766 — нейтронография NH₄Cl: N–H 1.03 Å
+  ammonium: {
+    key: 'ammonium',
+    formula: 'NH₄⁺',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'N–H': 103 },
+    anglesDeg: { '∠H–N–H': 109.47 },
+    bondCounts: { 'N–H': 4 },
+    pointGroup: 'Td',
+    source: 'Levy & Peterson, Phys. Rev. 86 (1952) 766 (нейтронография NH₄Cl); радиус иона как целого 148 пм — Pauling, «The Nature of the Chemical Bond» (1960)',
+    note: 'четвёртая связь N–H — донорно-акцепторная, но в ионе все четыре одинаковы (правильный тетраэдр).',
+  },
+  aluminateSchool: {
+    key: 'aluminateSchool',
+    formula: 'AlO₂⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Al–O': SHANNON_SUM(39, 138) },
+    anglesDeg: { '∠O–Al–O': 180 },
+    bondCounts: { 'Al–O': 2 },
+    pointGroup: 'D∞h',
+    source: 'длина — сумма радиусов Шеннона Al³⁺ (КЧ 4, 39) + O²⁻ (КЧ 4, 138), Shannon 1976',
+    schematic:
+      'отдельного иона AlO₂⁻ НЕТ: NaAlO₂ — каркас тетраэдров AlO₄. Модель — частица по школьной формуле (метаалюминат), ' +
+      'длина — оценка по радиусам.',
+  },
+  zincateSchool: {
+    key: 'zincateSchool',
+    formula: 'ZnO₂²⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Zn–O': SHANNON_SUM(60, 138) },
+    anglesDeg: { '∠O–Zn–O': 180 },
+    bondCounts: { 'Zn–O': 2 },
+    pointGroup: 'D∞h',
+    source: 'длина — сумма радиусов Шеннона Zn²⁺ (КЧ 4, 60) + O²⁻ (КЧ 4, 138), Shannon 1976',
+    schematic: 'отдельного иона ZnO₂²⁻ в кристалле Na₂ZnO₂ нет (тетраэдры ZnO₄); модель — по школьной формуле (сплавление).',
+  },
+  tetrahydroxoaluminate: {
+    key: 'tetrahydroxoaluminate',
+    formula: '[Al(OH)₄]⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Al–O': SHANNON_SUM(39, 135), 'O–H': BOND_DATA['O-H'].lengthPm },
+    anglesDeg: { '∠O–Al–O': 109.47, '∠Al–O–H': 104.5 },
+    bondCounts: { 'Al–O': 4, 'O–H': 4 },
+    pointGroup: 'S₄',
+    source: 'Al–O — сумма радиусов Шеннона Al³⁺ (КЧ 4, 39) + OH⁻ (КЧ 4, 135), Shannon 1976; O–H — вода',
+    schematic: 'тетраэдр AlO₄ идеальный, ∠Al–O–H — как H–O–H воды.',
+  },
+  tetrahydroxozincate: {
+    key: 'tetrahydroxozincate',
+    formula: '[Zn(OH)₄]²⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'Zn–O': SHANNON_SUM(60, 135), 'O–H': BOND_DATA['O-H'].lengthPm },
+    anglesDeg: { '∠O–Zn–O': 109.47, '∠Zn–O–H': 104.5 },
+    bondCounts: { 'Zn–O': 4, 'O–H': 4 },
+    pointGroup: 'S₄',
+    source: 'Zn–O — сумма радиусов Шеннона Zn²⁺ (КЧ 4, 60) + OH⁻ (КЧ 4, 135), Shannon 1976; O–H — вода',
+    schematic: 'тетраэдр ZnO₄ идеальный, ∠Zn–O–H — как H–O–H воды.',
+  },
+  // Bayliss, Am. Mineral. 62 (1977) 1168 — пирит FeS₂: S–S 2.16 Å
+  disulfide: {
+    key: 'disulfide',
+    formula: 'S₂²⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'S–S': 216 },
+    anglesDeg: {},
+    bondCounts: { 'S–S': 1 },
+    pointGroup: 'D∞h',
+    source: 'Bayliss, Am. Mineral. 62 (1977) 1168 (пирит FeS₂)',
+  },
+  // Atoji, J. Chem. Phys. 35 (1961) 1950 — нейтронография CaC₂: C–C 1.19 Å
+  acetylide: {
+    key: 'acetylide',
+    formula: 'C₂²⁻',
+    phase: 'ион в кристалле',
+    lengthType: 'crystal',
+    bondsPm: { 'C≡C': 119 },
+    anglesDeg: {},
+    bondCounts: { 'C≡C': 1 },
+    pointGroup: 'D∞h',
+    source: 'Atoji, J. Chem. Phys. 35 (1961) 1950 (CaC₂)',
+    note: 'тройная связь, как в ацетилене (120 пм): ион C₂²⁻ изоэлектронен N₂.',
+  },
+  acidOH: {
+    key: 'acidOH',
+    formula: 'Э–O–H',
+    phase: 'г',
+    lengthType: 'r_0',
+    bondsPm: { 'O–H': 97.0 },
+    anglesDeg: { '∠Э–O–H': 104.5 },
+    bondCounts: { 'O–H': 1 },
+    pointGroup: 'Cs',
+    source: 'O–H — H₂SO₄ (Kuczkowski 1981, 97.0 пм); угол — H–O–H воды (BOND_ANGLES.water)',
+    schematic:
+      'кислоты, у которых нет газовой структуры (H₂SO₃, H₂CO₃, H₂SiO₃, HClO₃, HMnO₄ …), строятся как кислотный остаток ' +
+      '(ион из этой таблицы) + H у кислорода; кратность — по школьной графической формуле.',
+  },
+  // NIST CCCBDB (экспериментальные геометрии) — O₃, PH₃, SiH₄, SiF₄, CS₂
+  ozone: {
+    key: 'ozone',
+    formula: 'O₃',
+    phase: 'г',
+    lengthType: 'r_e',
+    bondsPm: { 'O–O': 127.8 },
+    anglesDeg: { '∠O–O–O': 116.8 },
+    bondCounts: { 'O–O': 2 },
+    pointGroup: 'C₂v',
+    source: 'NIST CCCBDB (O₃: 1.278 Å, 116.8°)',
+    note: 'две равные связи порядка 1½; школьная формула O=O→O.',
+  },
+  phosphine: {
+    key: 'phosphine',
+    formula: 'PH₃',
+    phase: 'г',
+    lengthType: 'r_e',
+    bondsPm: { 'P–H': 142.0 },
+    anglesDeg: { '∠H–P–H': 93.5 },
+    bondCounts: { 'P–H': 3 },
+    pointGroup: 'C₃v',
+    source: 'NIST CCCBDB (PH₃: 1.420 Å, 93.5°)',
+  },
+  silane: {
+    key: 'silane',
+    formula: 'SiH₄',
+    phase: 'г',
+    lengthType: 'r_e',
+    bondsPm: { 'Si–H': 148.0 },
+    anglesDeg: { '∠H–Si–H': 109.47 },
+    bondCounts: { 'Si–H': 4 },
+    pointGroup: 'Td',
+    source: 'NIST CCCBDB (SiH₄: 1.480 Å)',
+  },
+  sif4: {
+    key: 'sif4',
+    formula: 'SiF₄',
+    phase: 'г',
+    lengthType: 'r_e',
+    bondsPm: { 'Si–F': 155.4 },
+    anglesDeg: { '∠F–Si–F': 109.47 },
+    bondCounts: { 'Si–F': 4 },
+    pointGroup: 'Td',
+    source: 'NIST CCCBDB (SiF₄: 1.554 Å)',
+  },
+  cs2: {
+    key: 'cs2',
+    formula: 'CS₂',
+    phase: 'г',
+    lengthType: 'r_e',
+    bondsPm: { 'C=S': 155.3 },
+    anglesDeg: { '∠S=C=S': 180 },
+    bondCounts: { 'C=S': 2 },
+    pointGroup: 'D∞h',
+    source: 'NIST CCCBDB (CS₂: 1.553 Å)',
+  },
+  // McClelland, Gundersen & Hedberg, J. Chem. Phys. 56 (1972) 4541 — электронография N₂O₄
+  n2o4: {
+    key: 'n2o4',
+    formula: 'N₂O₄',
+    phase: 'г',
+    lengthType: 'r_g',
+    bondsPm: { 'N–N': 178.2, 'N–O': 119.0 },
+    anglesDeg: { '∠O–N–O': 135.4 },
+    bondCounts: { 'N–N': 1, 'N–O': 4 },
+    pointGroup: 'D₂h',
+    source: 'McClelland, Gundersen & Hedberg, J. Chem. Phys. 56 (1972) 4541 (газовая электронография)',
+    note: 'плоский димер NO₂: длинная слабая связь N–N (178 пм) — поэтому N₂O₄ ⇄ 2NO₂ уже при нагревании.',
+  },
+  // Brittain, Cox & Kuczkowski, Trans. Faraday Soc. 65 (1969) 1963 — микроволны, ON–NO₂
+  n2o3: {
+    key: 'n2o3',
+    formula: 'N₂O₃',
+    phase: 'г',
+    lengthType: 'r_0',
+    bondsPm: { 'N–N': 186.4, 'N=O': 114.2, 'N–O(a)': 120.2, 'N–O(b)': 121.7 },
+    anglesDeg: { '∠O=N–N': 105.1, '∠N–N–O(a)': 112.7, '∠N–N–O(b)': 117.5 },
+    bondCounts: { 'N–N': 1, 'N=O': 1, 'N–O(a)': 1, 'N–O(b)': 1 },
+    pointGroup: 'Cs',
+    source: 'Brittain, Cox & Kuczkowski, Trans. Faraday Soc. 65 (1969) 1963 (микроволны, газ)',
+    note: 'плоская молекула O=N–NO₂; связь N–N очень длинная — N₂O₃ легко распадается на NO и NO₂.',
+  },
+  cro3School: {
+    key: 'cro3School',
+    formula: 'CrO₃',
+    phase: 'тв',
+    lengthType: 'crystal',
+    bondsPm: { 'Cr=O': 163 },
+    anglesDeg: { '∠O=Cr=O': 120 },
+    bondCounts: { 'Cr=O': 3 },
+    pointGroup: 'D₃h',
+    source: 'длина — концевая Cr=O дихромата (Greenwood & Earnshaw, гл. 23); форма — VSEPR для AX₃',
+    schematic: 'в кристалле CrO₃ — цепи тетраэдров CrO₄; модель — молекула по графической формуле O=Cr(=O)=O.',
+  },
+  // Enjalbert & Galy, Acta Cryst. C42 (1986) 1467 — V₂O₅: ванадильная V=O 1.58 Å, мостик V–O–V 1.78 Å
+  v2o5School: {
+    key: 'v2o5School',
+    formula: 'V₂O₅',
+    phase: 'тв',
+    lengthType: 'crystal',
+    bondsPm: { 'V=O': 158, 'V–O(мост)': 178 },
+    anglesDeg: { '∠O=V=O': 120, '∠V–O–V': 120 },
+    bondCounts: { 'V=O': 4, 'V–O(мост)': 2 },
+    pointGroup: 'C₂v',
+    source: 'Enjalbert & Galy, Acta Cryst. C42 (1986) 1467 (длины V=O и V–O–V в кристалле V₂O₅)',
+    schematic: 'кристалл — слои пирамид VO₅; модель — молекула по графической формуле O₂V–O–VO₂, углы — VSEPR 120°.',
+  },
+  ammoniaHydrate: {
+    key: 'ammoniaHydrate',
+    formula: 'NH₃·H₂O',
+    phase: 'тв',
+    lengthType: 'crystal',
+    bondsPm: { 'N···H': BOND_DATA['O-H...O'].lengthPm },
+    anglesDeg: { '∠O–H···N': 180 },
+    bondCounts: { 'N···H': 1 },
+    pointGroup: 'Cs',
+    source: 'длина водородной связи — как O–H···O (BOND_DATA «O-H...O»); NH₃ и H₂O — геометрии ядра',
+    schematic: 'две молекулы, связанные водородной связью H–O–H···N (палочкой не рисуется); длина — как у O–H···O.',
   },
 }
 
