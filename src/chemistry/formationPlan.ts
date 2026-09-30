@@ -850,7 +850,8 @@ function buildPlan(compoundId: string): FormationPlan | null {
   if (model && mode === 'ionic') {
     // По одной частице каждого вида, в порядке частиц формулы (SO₄²⁻, затем H₂O).
     species.forEach((s, si) => {
-      const u = units.find((x) => x.species === si && x.atoms.length >= 2)
+      // Двухатомные ионы (OH⁻, O₂²⁻, C₂²⁻, ClO⁻) — «линейная» очевидна, форму не называем.
+      const u = units.find((x) => x.species === si && x.atoms.length >= 3)
       if (!u) return
       const sh = shapeOfGroup(model, u.atoms, covalentBonds, s.formula)
       // Справочная форма иона (POLY_IONS.shape; H₂O — угловая): модель с другой формой — форму не называем.
