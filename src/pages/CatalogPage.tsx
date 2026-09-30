@@ -41,6 +41,7 @@ import {
 } from '../data/curriculum/compoundGradeIndex'
 import { compoundById } from '../data/compounds'
 import { buildSchoolHeroModel } from '../components/lab/hero/schoolHeroModel'
+import { FAMILIES, familyName, familyOf, type FamilyId } from '../data/catalog/catalogFamilies'
 import { ORGANIC_MOLECULES as ALL_ORGANIC_MOLECULES, organicMoleculeById } from '../data/organicLab/organicMoleculeRegistry'
 import type { OrganicMoleculeDef } from '../data/organicLab/organicMoleculeTypes'
 import { ORGANIC_CLASS_LABELS, type OrganicClassId } from '../data/researchLab/organicBuildCatalog'
@@ -639,6 +640,8 @@ export function CatalogPage() {
   )
   const [inorganicChapter, setInorganicChapter] = useState<InorganicChapter | 'all'>('all')
   const [category, setCategory] = useState<CompoundCategory | 'all'>('all')
+  /** семейство «по корню» (хлориды, сульфаты …) — docs/plans/catalog-top200.md, §1 */
+  const [family, setFamily] = useState<FamilyId | 'all'>('all')
   const [reactionType, setReactionType] = useState<string | 'all'>('all')
   /** Лимит строк «показать ещё» привязан к ключу фильтров: смена класса/типа/поиска сбрасывает его. */
   const [rowLimitState, setRowLimitState] = useState<{ key: string; limit: number }>({ key: '', limit: PAGE_ROWS })
@@ -760,9 +763,24 @@ export function CatalogPage() {
     return m
   }, [searched])
 
-  const filtered = useMemo(
+  const inCategory = useMemo(
     () => (category === 'all' ? searched : searched.filter((c) => c.category === category)),
     [searched, category],
+  )
+
+  /** Счётчики семейств — по уже выбранному классу (чипы «Хлориды · Сульфаты · …»). */
+  const familyCounts = useMemo(() => {
+    const m = new Map<FamilyId, number>()
+    for (const c of inCategory) {
+      const f = familyOf(c.id)?.family.id
+      if (f) m.set(f, (m.get(f) ?? 0) + 1)
+    }
+    return m
+  }, [inCategory])
+
+  const filtered = useMemo(
+    () => (family === 'all' ? inCategory : inCategory.filter((c) => familyOf(c.id)?.family.id === family)),
+    [inCategory, family],
   )
 
   const byCategory = useMemo(() => {
@@ -917,6 +935,7 @@ export function CatalogPage() {
     setGrade(tab === 'reactions' ? 7 : 'all')
     setInorganicChapter('all')
     setCategory('all')
+    setFamily('all')
     setReactionType('all')
   }, [tab])
 
@@ -1101,6 +1120,40 @@ export function CatalogPage() {
                     >
                       <span className={styles.chipDot} aria-hidden />
                       {t(sectionTitleKey(cat))}
+                      <span className={styles.chipCount}>{n}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {tab === 'inorganic' ? (
+            <div className={styles.scrollRow}>
+              <span className={styles.filterLabel}>{t('catalog.familyLabel')}</span>
+              <div className={styles.scrollChips} role="group" aria-label={t('catalog.familyAria')}>
+                <button
+                  type="button"
+                  aria-pressed={family === 'all'}
+                  className={family === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                  onClick={() => setFamily('all')}
+                >
+                  {t('catalog.gradeAll')}
+                </button>
+                {FAMILIES.map((f) => {
+                  const n = familyCounts.get(f.id) ?? 0
+                  if (n === 0 && family !== f.id) return null
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      aria-pressed={family === f.id}
+                      className={family === f.id ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                      title={f.root ? f.root.formula : undefined}
+                      onClick={() => setFamily(family === f.id ? 'all' : f.id)}
+                    >
+                      {familyName(f, locale)}
+                      {f.root ? <span className={styles.chipRoot}>{f.root.formula}</span> : null}
                       <span className={styles.chipCount}>{n}</span>
                     </button>
                   )

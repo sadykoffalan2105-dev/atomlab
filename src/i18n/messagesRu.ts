@@ -98,6 +98,8 @@ export const messagesRu = {
   'catalog.viewSubstances': 'Вещества',
   'catalog.viewReactions': 'Реакции',
   'catalog.chapterAria': 'Раздел программы',
+  'catalog.familyLabel': 'Семейство',
+  'catalog.familyAria': 'Семейство по кислотному остатку (корню)',
   'catalog.reactionClassAria': 'Тип реакции',
   'catalog.reactionsSection': 'Школьные реакции',
   'catalog.fallbackDescription':

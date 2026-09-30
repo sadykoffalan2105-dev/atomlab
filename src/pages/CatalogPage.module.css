@@ -487,6 +487,19 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* корень семейства (SO₄²⁻, OH⁻) — тихо, рядом с названием */
+.chipRoot {
+  color: var(--lt-text-3);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chipOn .chipRoot {
+  color: inherit;
+  opacity: 0.8;
+}
+
 .chipOn .chipCount {
   background: rgba(255, 255, 255, 0.16);
   color: var(--lt-on-tint, #fff);

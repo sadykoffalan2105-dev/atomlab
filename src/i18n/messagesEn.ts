@@ -99,6 +99,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'catalog.viewSubstances': 'Substances',
   'catalog.viewReactions': 'Reactions',
   'catalog.chapterAria': 'Curriculum topic',
+  'catalog.familyLabel': 'Family',
+  'catalog.familyAria': 'Family by acid residue (root ion)',
   'catalog.reactionClassAria': 'Reaction type',
   'catalog.reactionsSection': 'School reactions',
   'catalog.fallbackDescription':

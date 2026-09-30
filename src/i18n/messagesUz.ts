@@ -99,6 +99,8 @@ export const messagesUz: Record<MessageKey, string> = {
   'catalog.viewSubstances': 'Moddalar',
   'catalog.viewReactions': 'Reaksiyalar',
   'catalog.chapterAria': 'Dastur boʻlimi',
+  'catalog.familyLabel': 'Oila',
+  'catalog.familyAria': 'Kislota qoldigʻi (ildiz) boʻyicha oila',
   'catalog.reactionClassAria': 'Reaksiya turi',
   'catalog.reactionsSection': 'Maktab reaksiyalari',
   'catalog.fallbackDescription':
