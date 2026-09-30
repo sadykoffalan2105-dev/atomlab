@@ -63,6 +63,8 @@ export type ElementSymbol =
   | 'Ba'
   | 'W'
   | 'Pb'
+  | 'Au'
+  | 'Hg'
 
 /** Ионные радиусы: ключ — заряд иона (строка, чтобы «+2» читалось в коде), значение — пм. */
 export type IonicRadiiPm = Readonly<Record<string, number>>
@@ -835,6 +837,50 @@ export const ATOMIC_DATA: Readonly<Record<ElementSymbol, AtomicDatum>> = {
     electronAffinityKJ: -35.1,
     configuration: '[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²',
     valenceElectrons: 4,
+  },
+  // Au и Hg — вещества каталога 200 (AuCl₃, HgO); значения из тех же таблиц (Slater, Cordero, CRC, Bondi, Shannon).
+  Au: {
+    symbol: 'Au',
+    z: 79,
+    atomicMassU: 196.97,
+    nameRu: 'золото',
+    atomicRadiusPm: 135,
+    covalentRadiusPm: 136,
+    metallicRadiusPm: 144,
+    vdwRadiusPm: 166,
+    // Shannon 1976: Au⁺ КЧ 6 — 137; Au³⁺ КЧ 4 (квадрат) — 68, КЧ 6 — 85
+    ionicRadiiPm: { '+1': 137, '+3': 85 },
+    ionicRadiiByCnPm: { '+3': { '4': 68, '6': 85 } },
+    cpk: 0xffd123,
+    electronegativity: 2.54,
+    ie1KJ: 890.1,
+    ie2KJ: 1980,
+    electronAffinityKJ: -222.8,
+    configuration: '[Xe] 4f¹⁴ 5d¹⁰ 6s¹',
+    valenceElectrons: 11,
+    valenceElectronsNote: 'как у Cu и Ag: 5d-оболочка раскрывается — Au(III) в AuCl₃, поэтому s+d формально верно.',
+  },
+  Hg: {
+    symbol: 'Hg',
+    z: 80,
+    atomicMassU: 200.59,
+    nameRu: 'ртуть',
+    atomicRadiusPm: 150,
+    covalentRadiusPm: 132,
+    metallicRadiusPm: 151,
+    vdwRadiusPm: 155,
+    // Shannon 1976: Hg⁺ КЧ 6 — 119; Hg²⁺ КЧ 2 — 69, КЧ 4 — 96, КЧ 6 — 102
+    ionicRadiiPm: { '+1': 119, '+2': 102 },
+    ionicRadiiByCnPm: { '+2': { '2': 69, '4': 96, '6': 102 } },
+    cpk: 0xb8b8d0,
+    electronegativity: 2.0,
+    ie1KJ: 1007.1,
+    ie2KJ: 1810,
+    electronAffinityKJ: 0,
+    electronAffinityNote: 'аниона Hg⁻ нет: у ртути заполнены 5d¹⁰ 6s², присоединение электрона эндотермично',
+    configuration: '[Xe] 4f¹⁴ 5d¹⁰ 6s²',
+    valenceElectrons: 2,
+    valenceElectronsNote: '5d¹⁰ закрыта (как у Zn): в соединениях только Hg(I) и Hg(II).',
   },
 }
 

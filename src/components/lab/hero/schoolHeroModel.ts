@@ -41,6 +41,7 @@ import { NO2_SCENE_SPEC } from '../../../lab/cinema/scenes/no2/no2Spec'
 import { SO2_SCHOOL_SPEC } from '../../../lab/cinema/scenes/so2/so2Spec'
 import { SO3_SCHOOL_SPEC } from '../../../lab/cinema/scenes/so3/so3Spec'
 import { buildHeroModel } from './heroGeometry'
+import { buildFormulaUnit } from './formulaUnitModel'
 
 export type V3 = [number, number, number]
 
@@ -64,7 +65,16 @@ export type SchoolHeroBond = {
   order: number
 }
 
-export type SchoolHeroSource = 'crystal' | 'school' | 'core' | 'catalog'
+export type SchoolHeroSource = 'crystal' | 'school' | 'core' | 'unit' | 'catalog'
+
+/** Частица формульной единицы (ион или молекула воды): подпись с зарядом и её атомы. */
+export type SchoolHeroIon = {
+  key: string
+  /** SO₄²⁻, Na⁺, H₂O */
+  label: string
+  charge: number
+  atoms: number[]
+}
 
 export type SchoolHeroModel = {
   compoundId: string
@@ -83,6 +93,12 @@ export type SchoolHeroModel = {
   motion: 'sway' | 'orbit'
   /** у кристалла — подпись под моделью (a, группа, КЧ) */
   caption: string[]
+  /** ионное вещество (формульная единица): частицы — ионы и вода; у молекул и кристаллов нет */
+  ions?: SchoolHeroIon[]
+  /** что в модели упрощено (схема) — тексты из ядра */
+  schematic?: string[]
+  /** модель больше формулы в n раз (P₂O₅ → молекула P₄O₁₀) */
+  formulaMultiple?: number
 }
 
 /** Мировых единиц на пикометр (1 Å = 0,285 — как у сцен). */
@@ -116,7 +132,7 @@ function centerAndBound(atoms: SchoolHeroAtom[], edges: [V3, V3][] = []): number
  * экрана (лёгкий наклон, чтобы читался объём шаров), объёмная — ракурс (pitch, yaw). Атомы при необходимости
  * поворачиваются на месте (центр уже в начале координат): ось линейной — на X, нормаль плоской — на Z.
  */
-function screenPose(atoms: SchoolHeroAtom[], pitch3d: number, yaw3d: number): { pitch: number; yaw: number } {
+function screenPose(atoms: SchoolHeroAtom[], pitch3d: number, yaw3d: number, maxPoseAtoms = 16): { pitch: number; yaw: number } {
   if (atoms.length < 2) return { pitch: 0, yaw: 0 }
   const P = atoms.map((a) => a.pos)
   const tol = 6 * K
@@ -148,19 +164,22 @@ function screenPose(atoms: SchoolHeroAtom[], pitch3d: number, yaw3d: number): { 
     if (Math.abs(n[2]) < 0.985) rotateAtoms(atoms, n, [0, 0, 1])
     return { pitch: 0.14, yaw: 0 }
   }
-  return bestPose(atoms, pitch3d, yaw3d)
+  return bestPose(atoms, pitch3d, yaw3d, maxPoseAtoms)
 }
 
 /**
  * Доля времени покачивания (рыскание ±0,3 рад, как в SchoolMoleculeView), когда символ какого-то атома закрыт
  * ближним к зрителю шаром (центр дальнего атома — внутри диска ближнего с запасом 0,35 r).
  */
-function hiddenShare(atoms: readonly SchoolHeroAtom[], pitch: number, yaw0: number): number {
+function hiddenShare(atoms: readonly SchoolHeroAtom[], pitch: number, yaw0: number, margin = 0.35, perAtom = false): number {
   const N = 28
   let hidden = 0
   const cp = Math.cos(pitch)
   const sp = Math.sin(pitch)
   const P = atoms.map(() => [0, 0, 0])
+  // perAtom (формульная единица): доля закрытых символов, простой ион (Na⁺, O²⁻) весит втрое больше атома в ионе
+  const w = atoms.map((a) => (a.charge !== 0 ? 3 : 1))
+  const wSum = w.reduce((s, x) => s + x, 0)
   for (let k = 0; k < N; k++) {
     const yaw = yaw0 + 0.3 * Math.sin((2 * Math.PI * k) / N)
     const cy = Math.cos(yaw)
@@ -173,29 +192,36 @@ function hiddenShare(atoms: readonly SchoolHeroAtom[], pitch: number, yaw0: numb
       P[i]![1] = y1
       P[i]![2] = -x * sy + z1 * cy
     })
-    let any = false
-    for (let i = 0; i < atoms.length && !any; i++) {
+    let frame = 0
+    for (let i = 0; i < atoms.length && (perAtom || frame === 0); i++) {
       for (let j = 0; j < atoms.length; j++) {
         if (i === j || P[j]![2]! <= P[i]![2]!) continue
-        if (Math.hypot(P[j]![0]! - P[i]![0]!, P[j]![1]! - P[i]![1]!) < atoms[j]!.r + 0.35 * atoms[i]!.r) {
-          any = true
+        if (Math.hypot(P[j]![0]! - P[i]![0]!, P[j]![1]! - P[i]![1]!) < atoms[j]!.r + margin * atoms[i]!.r) {
+          frame += perAtom ? w[i]! / wSum : 1
           break
         }
       }
     }
-    if (any) hidden++
+    hidden += frame
   }
   return hidden / N
 }
 
-/** Объёмная молекула (до 16 атомов): ракурс, при котором ни один символ не прячется за шаром при покачивании. */
-function bestPose(atoms: readonly SchoolHeroAtom[], pitch3d: number, yaw3d: number): { pitch: number; yaw: number } {
-  let best = { pitch: pitch3d, yaw: yaw3d, h: hiddenShare(atoms, pitch3d, yaw3d) }
-  if (best.h === 0 || atoms.length > 16) return { pitch: best.pitch, yaw: best.yaw }
-  for (const pitch of [pitch3d, 0.3, 0.45, 0.6, 0.8]) {
+/**
+ * Объёмная молекула (до 16 атомов; формульная единица — до 48): ракурс, при котором ни один символ не прячется
+ * за шаром при покачивании (или прячется реже всего).
+ */
+function bestPose(atoms: readonly SchoolHeroAtom[], pitch3d: number, yaw3d: number, maxAtoms = 16): { pitch: number; yaw: number } {
+  // у формульной единицы (maxAtoms > 16) символ иона должен читаться почти целиком: запас 0,8 r вместо 0,35 r
+  const unit = maxAtoms > 16
+  const margin = unit ? 0.8 : 0.35
+  let best = { pitch: pitch3d, yaw: yaw3d, h: hiddenShare(atoms, pitch3d, yaw3d, margin, unit) }
+  if (best.h === 0 || atoms.length > maxAtoms) return { pitch: best.pitch, yaw: best.yaw }
+  // у единицы — и строго сбоку (pitch 0): так видны оба катиона бипирамиды M₂O₃
+  for (const pitch of unit ? [pitch3d, 0, 0.3, 0.45, 0.6, 0.8] : [pitch3d, 0.3, 0.45, 0.6, 0.8]) {
     for (let k = 0; k < 24; k++) {
       const yaw = yaw3d + (k * Math.PI) / 12
-      const h = hiddenShare(atoms, pitch, yaw)
+      const h = hiddenShare(atoms, pitch, yaw, margin, unit)
       if (h < best.h - 1e-9) best = { pitch, yaw, h }
       if (best.h === 0) return { pitch: best.pitch, yaw: best.yaw }
     }
@@ -630,6 +656,33 @@ function fromCatalog(shape: CatalogShape): SchoolHeroModel | null {
   return { compoundId: shape.id, kind: 'molecule', source: 'catalog', atoms, bonds, cellEdges: [], radius, ...screenPose(atoms, 0.16, 0.35), motion: 'sway', caption: [] }
 }
 
+// ─── 4а. Формульная единица / молекула по ядру (каталог 200) ─────────────────
+
+function fromUnit(compoundId: string): SchoolHeroModel | null {
+  const u = buildFormulaUnit(compoundId)
+  if (!u) return null
+  const atoms: SchoolHeroAtom[] = u.atoms.map((a) => ({ el: a.el, label: a.label, charge: a.charge, pos: [a.p[0] * K, a.p[1] * K, a.p[2] * K], r: a.drawPm * K, radiusPm: a.radiusPm }))
+  const radius = centerAndBound(atoms)
+  const ions = u.kind === 'ionic' ? u.ions.map((i) => ({ key: i.key, label: i.label, charge: i.charge, atoms: [...i.atoms] })) : undefined
+  return {
+    compoundId,
+    kind: 'molecule',
+    source: 'unit',
+    atoms,
+    bonds: u.bonds.map((b) => ({ ...b })),
+    cellEdges: [],
+    radius,
+    // ионы разного размера легко закрывают друг друга (Fe³⁺ между O²⁻, Cu²⁺ среди H₂O) — у ионной единицы ракурс
+    // ищется строже и до 48 атомов; молекулы — как у школьных сцен
+    ...screenPose(atoms, 0.16, 0.35, u.kind === 'ionic' ? 48 : 16),
+    motion: 'sway',
+    caption: [],
+    ions,
+    schematic: u.schematic,
+    formulaMultiple: u.formulaMultiple,
+  }
+}
+
 // ─── Вход ──────────────────────────────────────────────────────────────────
 
 function compositionOf(shape: CatalogShape): Composition {
@@ -649,7 +702,7 @@ export function buildSchoolHeroModel(shape: CatalogShape): SchoolHeroModel | nul
   const hit = cache.get(shape.id)
   if (hit !== undefined) return hit
   const comp = compositionOf(shape)
-  const model = fromCrystal(shape.id) ?? fromSchool(shape.id, comp) ?? fromCore(shape.id, comp) ?? fromCatalog(shape)
+  const model = fromCrystal(shape.id) ?? fromSchool(shape.id, comp) ?? fromCore(shape.id, comp) ?? fromUnit(shape.id) ?? fromCatalog(shape)
   cache.set(shape.id, model)
   return model
 }
