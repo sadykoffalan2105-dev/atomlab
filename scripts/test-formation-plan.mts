@@ -127,7 +127,8 @@ ok(/внутри NH₄⁺ \(в том числе донорно-акцептор
 ok(ref('p2o5')?.shapes[0]?.key === 'p4o10', `P₂O₅ — простейшая формула, молекулы P₄O₁₀ (${ref('p2o5')?.shapes.map((x) => x.key)})`)
 ok(!ref('hclo3')?.shapes.some((x) => x.key === 'trigonal-planar'), `HClO₃ — не «плоский треугольник» (${ref('hclo3')?.shapes.map((x) => x.key)})`)
 ok(!ref('salt_na_sio3')?.shapes.some((x) => x.of === 'SiO₃²⁻'), 'Na₂SiO₃ — у SiO₃²⁻ отдельной формы нет (цепи SiO₄)')
-ok(ref('tb_v2o5')?.alsoNonpolar === false && ref('tb_v2o5')?.bondsReliable === false, 'V₂O₅ — нет «O–O неполярной», виды связей модели не перечисляются')
+// V₂O₅: модель каталога 200 — школьная графическая формула O=V(=O)–O–V(=O)=O (V — валентность V): связи перечисляются, O–O нет
+ok(ref('tb_v2o5')?.alsoNonpolar === false && ref('tb_v2o5')?.bondsReliable === true, 'V₂O₅ — нет «O–O неполярной», связи V=O ×4 и V–O ×2 по графической формуле')
 ok(ref('h2o2')?.alsoNonpolar === true, 'H₂O₂ — O–O неполярная')
 const polyShapes: Record<string, string> = { 'SO₄²⁻': 'tetrahedral', 'SO₃²⁻': 'trigonal-pyramidal', 'NO₃⁻': 'trigonal-planar', 'CO₃²⁻': 'trigonal-planar', 'PO₄³⁻': 'tetrahedral', 'NH₄⁺': 'tetrahedral', 'ClO₃⁻': 'trigonal-pyramidal', 'NO₂⁻': 'angular' }
 for (const p of plans.values()) for (const sh of p.shapes) if (polyShapes[sh.of]) ok(sh.key === polyShapes[sh.of], `${p.formula}: ${sh.of} — ${polyShapes[sh.of]} (${sh.key})`)
