@@ -60,6 +60,10 @@ export type FormationShapeKey =
   | 'ionic-lattice'
   | 'atomic-lattice'
   | 'formula-unit'
+  /** простейшая формула полимерного вещества (CrO₃, V₂O₅, H₂SiO₃, HPO₃) — одной формы молекулы нет */
+  | 'polymeric'
+  /** P₂O₅ — простейшая формула, настоящие молекулы P₄O₁₀ */
+  | 'p4o10'
 
 export type FormationShape = {
   key: FormationShapeKey
@@ -104,6 +108,8 @@ export type FormationPlan = {
   bondOrder: number[]
   /** порядок прихода частиц на место (индексы units) */
   unitOrder: number[]
+  /** молекула: связи модели согласуются с формулой (связная, валентности совпадают) — можно перечислять виды связей */
+  bondsReliable: boolean
   /** расхождения модели с формулой (для тестов и заметок; план всё равно строится) */
   modelIssues: string[]
 }
@@ -121,37 +127,42 @@ export const VARIABLE_METALS = new Set(['Fe', 'Cu', 'Cr', 'Mn', 'Pb', 'Sn', 'Hg'
 /** Одноатомные анионы: заряд по положению в ПСХЭ (8 − номер группы). */
 const MONO_ANION: Record<string, number> = { F: -1, Cl: -1, Br: -1, I: -1, O: -2, S: -2, N: -3, P: -3, H: -1, C: -4 }
 
-type PolyIon = { key: string; formula: string; comp: Record<string, number>; charge: number; donorAcceptor?: boolean }
+/**
+ * shape — справочная форма иона (теория отталкивания электронных пар, школьный курс 10–11; Greenwood & Earnshaw,
+ * «Chemistry of the Elements»): форма модели сверяется с ней, при расхождении форма не называется.
+ * null — у иона в веществе нет отдельной формы (метасиликаты, метаалюминаты, цинкаты — полимерные цепи / каркасы).
+ */
+type PolyIon = { key: string; formula: string; comp: Record<string, number>; charge: number; donorAcceptor?: boolean; shape: FormationShapeKey | null }
 
 /** Многоатомные ионы школьного курса (кислотные остатки, OH⁻, NH₄⁺, пероксид-ион…). */
 export const POLY_IONS: readonly PolyIon[] = [
-  { key: 'OH', formula: 'OH⁻', comp: { O: 1, H: 1 }, charge: -1 },
-  { key: 'NH4', formula: 'NH₄⁺', comp: { N: 1, H: 4 }, charge: 1, donorAcceptor: true },
-  { key: 'SO4', formula: 'SO₄²⁻', comp: { S: 1, O: 4 }, charge: -2 },
-  { key: 'HSO4', formula: 'HSO₄⁻', comp: { H: 1, S: 1, O: 4 }, charge: -1 },
-  { key: 'SO3', formula: 'SO₃²⁻', comp: { S: 1, O: 3 }, charge: -2 },
-  { key: 'CO3', formula: 'CO₃²⁻', comp: { C: 1, O: 3 }, charge: -2 },
-  { key: 'HCO3', formula: 'HCO₃⁻', comp: { H: 1, C: 1, O: 3 }, charge: -1 },
-  { key: 'NO3', formula: 'NO₃⁻', comp: { N: 1, O: 3 }, charge: -1 },
-  { key: 'NO2', formula: 'NO₂⁻', comp: { N: 1, O: 2 }, charge: -1 },
-  { key: 'PO4', formula: 'PO₄³⁻', comp: { P: 1, O: 4 }, charge: -3 },
-  { key: 'HPO4', formula: 'HPO₄²⁻', comp: { H: 1, P: 1, O: 4 }, charge: -2 },
-  { key: 'H2PO4', formula: 'H₂PO₄⁻', comp: { H: 2, P: 1, O: 4 }, charge: -1 },
-  { key: 'SiO3', formula: 'SiO₃²⁻', comp: { Si: 1, O: 3 }, charge: -2 },
-  { key: 'MnO4', formula: 'MnO₄⁻', comp: { Mn: 1, O: 4 }, charge: -1 },
-  { key: 'MnO4_2', formula: 'MnO₄²⁻', comp: { Mn: 1, O: 4 }, charge: -2 },
-  { key: 'CrO4', formula: 'CrO₄²⁻', comp: { Cr: 1, O: 4 }, charge: -2 },
-  { key: 'Cr2O7', formula: 'Cr₂O₇²⁻', comp: { Cr: 2, O: 7 }, charge: -2 },
-  { key: 'ClO3', formula: 'ClO₃⁻', comp: { Cl: 1, O: 3 }, charge: -1 },
-  { key: 'ClO2', formula: 'ClO₂⁻', comp: { Cl: 1, O: 2 }, charge: -1 },
-  { key: 'ClO', formula: 'ClO⁻', comp: { Cl: 1, O: 1 }, charge: -1 },
-  { key: 'AlO2', formula: 'AlO₂⁻', comp: { Al: 1, O: 2 }, charge: -1 },
-  { key: 'ZnO2', formula: 'ZnO₂²⁻', comp: { Zn: 1, O: 2 }, charge: -2 },
-  { key: 'ZnOH4', formula: '[Zn(OH)₄]²⁻', comp: { Zn: 1, O: 4, H: 4 }, charge: -2, donorAcceptor: true },
-  { key: 'O2_2', formula: 'O₂²⁻', comp: { O: 2 }, charge: -2 },
-  { key: 'O2_1', formula: 'O₂⁻', comp: { O: 2 }, charge: -1 },
-  { key: 'S2', formula: 'S₂²⁻', comp: { S: 2 }, charge: -2 },
-  { key: 'C2', formula: 'C₂²⁻', comp: { C: 2 }, charge: -2 },
+  { key: 'OH', formula: 'OH⁻', comp: { O: 1, H: 1 }, charge: -1, shape: 'linear' },
+  { key: 'NH4', formula: 'NH₄⁺', comp: { N: 1, H: 4 }, charge: 1, donorAcceptor: true, shape: 'tetrahedral' },
+  { key: 'SO4', formula: 'SO₄²⁻', comp: { S: 1, O: 4 }, charge: -2, shape: 'tetrahedral' },
+  { key: 'HSO4', formula: 'HSO₄⁻', comp: { H: 1, S: 1, O: 4 }, charge: -1, shape: 'tetrahedral' },
+  { key: 'SO3', formula: 'SO₃²⁻', comp: { S: 1, O: 3 }, charge: -2, shape: 'trigonal-pyramidal' },
+  { key: 'CO3', formula: 'CO₃²⁻', comp: { C: 1, O: 3 }, charge: -2, shape: 'trigonal-planar' },
+  { key: 'HCO3', formula: 'HCO₃⁻', comp: { H: 1, C: 1, O: 3 }, charge: -1, shape: 'trigonal-planar' },
+  { key: 'NO3', formula: 'NO₃⁻', comp: { N: 1, O: 3 }, charge: -1, shape: 'trigonal-planar' },
+  { key: 'NO2', formula: 'NO₂⁻', comp: { N: 1, O: 2 }, charge: -1, shape: 'angular' },
+  { key: 'PO4', formula: 'PO₄³⁻', comp: { P: 1, O: 4 }, charge: -3, shape: 'tetrahedral' },
+  { key: 'HPO4', formula: 'HPO₄²⁻', comp: { H: 1, P: 1, O: 4 }, charge: -2, shape: 'tetrahedral' },
+  { key: 'H2PO4', formula: 'H₂PO₄⁻', comp: { H: 2, P: 1, O: 4 }, charge: -1, shape: 'tetrahedral' },
+  { key: 'SiO3', formula: 'SiO₃²⁻', comp: { Si: 1, O: 3 }, charge: -2, shape: null },
+  { key: 'MnO4', formula: 'MnO₄⁻', comp: { Mn: 1, O: 4 }, charge: -1, shape: 'tetrahedral' },
+  { key: 'MnO4_2', formula: 'MnO₄²⁻', comp: { Mn: 1, O: 4 }, charge: -2, shape: 'tetrahedral' },
+  { key: 'CrO4', formula: 'CrO₄²⁻', comp: { Cr: 1, O: 4 }, charge: -2, shape: 'tetrahedral' },
+  { key: 'Cr2O7', formula: 'Cr₂O₇²⁻', comp: { Cr: 2, O: 7 }, charge: -2, shape: 'tetrahedral' },
+  { key: 'ClO3', formula: 'ClO₃⁻', comp: { Cl: 1, O: 3 }, charge: -1, shape: 'trigonal-pyramidal' },
+  { key: 'ClO2', formula: 'ClO₂⁻', comp: { Cl: 1, O: 2 }, charge: -1, shape: 'angular' },
+  { key: 'ClO', formula: 'ClO⁻', comp: { Cl: 1, O: 1 }, charge: -1, shape: 'linear' },
+  { key: 'AlO2', formula: 'AlO₂⁻', comp: { Al: 1, O: 2 }, charge: -1, shape: null },
+  { key: 'ZnO2', formula: 'ZnO₂²⁻', comp: { Zn: 1, O: 2 }, charge: -2, shape: null },
+  { key: 'ZnOH4', formula: '[Zn(OH)₄]²⁻', comp: { Zn: 1, O: 4, H: 4 }, charge: -2, donorAcceptor: true, shape: 'tetrahedral' },
+  { key: 'O2_2', formula: 'O₂²⁻', comp: { O: 2 }, charge: -2, shape: 'linear' },
+  { key: 'O2_1', formula: 'O₂⁻', comp: { O: 2 }, charge: -1, shape: 'linear' },
+  { key: 'S2', formula: 'S₂²⁻', comp: { S: 2 }, charge: -2, shape: 'linear' },
+  { key: 'C2', formula: 'C₂²⁻', comp: { C: 2 }, charge: -2, shape: 'linear' },
 ]
 
 const polyByKey = new Map(POLY_IONS.map((p) => [p.key, p]))
@@ -390,6 +401,44 @@ function shapeAround(model: SchoolHeroModel, c: number, nb: readonly number[]): 
   if (nb.length === 4) return Math.max(...angs) < 150 ? 'tetrahedral' : null
   if (nb.length === 6) return 'octahedral'
   return null
+}
+
+/**
+ * Простейшие (школьные) формулы веществ, у которых в твёрдом состоянии нет отдельных молекул такого состава
+ * (Greenwood & Earnshaw, «Chemistry of the Elements»): CrO₃ — цепи тетраэдров CrO₄; V₂O₅ — слои; H₂SiO₃ — полимер
+ * (xSiO₂·yH₂O); HPO₃ — полимер (HPO₃)ₙ; P₂O₅ — молекулы P₄O₁₀. Форму «молекулы» по модели не называем.
+ */
+const POLYMERIC_FORMULA: Record<string, 'polymeric' | 'p4o10'> = { CrO3: 'polymeric', V2O5: 'polymeric', H2SiO3: 'polymeric', HPO3: 'polymeric', P2O5: 'p4o10' }
+
+/**
+ * Валентные электроны p-элементов (номер группы) — для проверки формы нейтральной молекулы. Азота нет: в школьной
+ * графической формуле донорно-акцепторная N→O рисуется одной палочкой (HNO₃, N₂O₄), и счёт пар по палочкам неверен.
+ */
+const VALENCE_E: Record<string, number> = { B: 3, C: 4, Si: 4, P: 5, As: 5, O: 6, S: 6, Se: 6, Te: 6, F: 7, Cl: 7, Br: 7, I: 7 }
+/** Форма по числу соседей n и неподелённых пар e (теория отталкивания электронных пар). */
+const VSEPR: Record<string, FormationShapeKey> = {
+  '2,0': 'linear', '2,1': 'angular', '2,2': 'angular', '2,3': 'linear',
+  '3,0': 'trigonal-planar', '3,1': 'trigonal-pyramidal', '4,0': 'tetrahedral', '6,0': 'octahedral',
+}
+/**
+ * Форма вокруг атома нейтральной молекулы по электронным парам: e = (валентные электроны − сумма кратностей связей) / 2.
+ * null — не определяется однозначно (дробное e: радикал NO₂, формальные заряды N в HNO₃, O₃; d-элементы).
+ */
+function vseprAround(model: SchoolHeroModel, c: number, bondIdx: readonly number[]): FormationShapeKey | null {
+  const el = model.atoms[c]!.el
+  const V = VALENCE_E[el]
+  if (V == null) return null
+  let n = 0
+  let sum = 0
+  for (const k of bondIdx) {
+    const b = model.bonds[k]!
+    if (b.a !== c && b.b !== c) continue
+    n++
+    sum += b.order
+  }
+  const e2 = V - sum
+  if (e2 < 0 || e2 % 2 !== 0) return null
+  return VSEPR[`${n},${e2 / 2}`] ?? null
 }
 
 /** Форма связной группы атомов модели (молекула или многоатомный ион). */
@@ -734,6 +783,7 @@ function buildPlan(compoundId: string): FormationPlan | null {
   }
 
   // Валентности (ковалентное).
+  const issuesBeforeValence = issues.length
   let alsoNonpolar = false
   if (mode === 'molecular' && model) {
     const sums = model.atoms.map(() => 0)
@@ -768,13 +818,24 @@ function buildPlan(compoundId: string): FormationPlan | null {
   // Форма.
   const shapes: FormationShape[] = []
   const crystal = model?.kind === 'crystal'
+  let bondsReliable = mode === 'molecular' && !!model && issues.length === issuesBeforeValence
   if (crystal) shapes.push({ key: mode === 'ionic' ? 'ionic-lattice' : 'atomic-lattice', of: '' })
-  if (model && mode === 'molecular' && !crystal) {
+  const polymeric = POLYMERIC_FORMULA[plain]
+  if (polymeric) shapes.push({ key: polymeric, of: '' })
+  if (model && mode === 'molecular' && !crystal && !polymeric) {
     const comps = components(model.atoms.length, model.bonds.map((b) => [b.a, b.b] as [number, number]))
     if (comps.length === 1) {
-      const sh = shapeOfGroup(model, comps[0]!, model.bonds.map((_, k) => k), '')
-      if (sh) shapes.push(sh)
+      const all = model.bonds.map((_, k) => k)
+      const sh = shapeOfGroup(model, comps[0]!, all, '')
+      // Сверка с теорией электронных пар: модель с другой формой — форму не называем (ведёт schoolHeroModel).
+      const deg = (a: number) => model.bonds.reduce((d, b) => d + (b.a === a || b.b === a ? 1 : 0), 0)
+      const maxDeg = Math.max(...comps[0]!.map(deg))
+      const centerIdx = sh?.center ? comps[0]!.find((a) => model.atoms[a]!.el === sh.center && deg(a) === maxDeg) : undefined
+      const ref = sh && sh.key !== 'ring' && sh.key !== 'tetrahedron-p4' && centerIdx != null ? vseprAround(model, centerIdx, all) : null
+      if (sh && ref && ref !== sh.key) issues.push(`форма модели ${sh.key} ≠ по электронным парам ${ref} (вокруг ${sh.center}) — форма не называется`)
+      else if (sh) shapes.push(sh)
     } else if (partsRaw.length === 1) {
+      bondsReliable = false
       // Одна молекула по формуле, а модель из нескольких несвязанных частей — форму не называем.
       issues.push(`молекулярная модель распалась на ${comps.length} части`)
     } else {
@@ -792,6 +853,13 @@ function buildPlan(compoundId: string): FormationPlan | null {
       const u = units.find((x) => x.species === si && x.atoms.length >= 2)
       if (!u) return
       const sh = shapeOfGroup(model, u.atoms, covalentBonds, s.formula)
+      // Справочная форма иона (POLY_IONS.shape; H₂O — угловая): модель с другой формой — форму не называем.
+      const ref = s.kind === 'molecule' ? 'angular' : s.nameKey.startsWith('poly:') ? polyByKey.get(s.nameKey.slice(5))?.shape : undefined
+      if (ref === null) return
+      if (sh && ref && sh.key !== ref) {
+        issues.push(`форма ${s.formula} в модели ${sh.key} ≠ справочной ${ref} — форма не называется`)
+        return
+      }
       if (sh) shapes.push(sh)
     })
     if (!crystal) shapes.push({ key: 'formula-unit', of: '' })
@@ -810,11 +878,13 @@ function buildPlan(compoundId: string): FormationPlan | null {
     mode,
     bondType,
     hydrogenBond,
-    alsoNonpolar,
+    // Связь одинаковых атомов называем, только если связи модели согласуются с формулой (у V₂O₅ модели O–O нет в веществе).
+    alsoNonpolar: alsoNonpolar && bondsReliable,
     species,
     balance,
     bondKinds: model ? bondKinds(model, covalentBonds) : [],
     innerBonds,
+    bondsReliable,
     shapes,
     crystal: !!crystal,
     hasModel: !!model,

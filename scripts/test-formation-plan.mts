@@ -123,6 +123,14 @@ for (const p of plans.values()) {
 }
 const nh4so4 = ref('salt_nh4_so4') ? formationTexts(ref('salt_nh4_so4')!, 'ru', OBTAINING.ru).steps[3].main : ''
 ok(/внутри NH₄⁺ \(в том числе донорно-акцепторная\) и SO₄²⁻/.test(nh4so4), `(NH₄)₂SO₄ RU — донорно-акцепторная только у NH₄⁺: «${nh4so4}»`)
+// Формы — только справочные: модель с другой формой не озвучивается; у полимерных веществ «молекулы» нет.
+ok(ref('p2o5')?.shapes[0]?.key === 'p4o10', `P₂O₅ — простейшая формула, молекулы P₄O₁₀ (${ref('p2o5')?.shapes.map((x) => x.key)})`)
+ok(!ref('hclo3')?.shapes.some((x) => x.key === 'trigonal-planar'), `HClO₃ — не «плоский треугольник» (${ref('hclo3')?.shapes.map((x) => x.key)})`)
+ok(!ref('salt_na_sio3')?.shapes.some((x) => x.of === 'SiO₃²⁻'), 'Na₂SiO₃ — у SiO₃²⁻ отдельной формы нет (цепи SiO₄)')
+ok(ref('tb_v2o5')?.alsoNonpolar === false && ref('tb_v2o5')?.bondsReliable === false, 'V₂O₅ — нет «O–O неполярной», виды связей модели не перечисляются')
+ok(ref('h2o2')?.alsoNonpolar === true, 'H₂O₂ — O–O неполярная')
+const polyShapes: Record<string, string> = { 'SO₄²⁻': 'tetrahedral', 'SO₃²⁻': 'trigonal-pyramidal', 'NO₃⁻': 'trigonal-planar', 'CO₃²⁻': 'trigonal-planar', 'PO₄³⁻': 'tetrahedral', 'NH₄⁺': 'tetrahedral', 'ClO₃⁻': 'trigonal-pyramidal', 'NO₂⁻': 'angular' }
+for (const p of plans.values()) for (const sh of p.shapes) if (polyShapes[sh.of]) ok(sh.key === polyShapes[sh.of], `${p.formula}: ${sh.of} — ${polyShapes[sh.of]} (${sh.key})`)
 
 if (warnings.length) {
   console.log(`Предупреждения по моделям (${warnings.length}) — модели ведёт schoolHeroModel / геометрия каталога:`)

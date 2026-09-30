@@ -125,6 +125,16 @@ const SHAPE: Record<FormationShape['key'], [string, string, string]> = {
   'tetrahedron-p4': ['тетраэдр из четырёх атомов', 'tetrahedron of four atoms', 'toʻrt atomdan iborat tetraedr'],
   'ionic-lattice': ['ионная кристаллическая решётка', 'ionic crystal lattice', 'ion kristall panjara'],
   'atomic-lattice': ['атомная кристаллическая решётка', 'atomic (covalent network) crystal lattice', 'atom kristall panjara'],
+  polymeric: [
+    'формула простейшая: в твёрдом веществе атомы соединены в полимерные цепи или слои, отдельных молекул такого состава нет — модель показывает графическую формулу',
+    'this is the simplest formula: in the solid the atoms are joined into polymeric chains or layers, there are no separate molecules of this composition — the model shows the structural formula',
+    'formula eng oddiy: qattiq moddada atomlar polimer zanjir yoki qatlamlarga birikkan, bunday tarkibli alohida molekulalar yoʻq — model grafik formulani koʻrsatadi',
+  ],
+  p4o10: [
+    'формула простейшая: настоящие молекулы — P₄O₁₀ (вокруг каждого P — тетраэдр)',
+    'this is the simplest formula: the real molecules are P₄O₁₀ (a tetrahedron around each P)',
+    'formula eng oddiy: haqiqiy molekulalar — P₄O₁₀ (har bir P atrofida — tetraedr)',
+  ],
   'formula-unit': [
     'модель — одна формульная единица; в твёрдом веществе ионы образуют кристаллическую решётку',
     'the model is one formula unit; in the solid, ions form a crystal lattice',
@@ -149,7 +159,7 @@ function shapeText(sh: FormationShape, loc: FormationLocale): string {
             ? ` (har bir ${sh.center} atrofida)`
             : ` (${sh.center} atrofida)`
   }
-  if (sh.key === 'formula-unit' || sh.key === 'ionic-lattice' || sh.key === 'atomic-lattice') return cap(name)
+  if (sh.key === 'formula-unit' || sh.key === 'ionic-lattice' || sh.key === 'atomic-lattice' || sh.key === 'polymeric' || sh.key === 'p4o10') return cap(name)
   if (sh.of) return `${sh.of} — ${name}${around}`
   const lead = loc === 'ru' ? 'Форма' : loc === 'en' ? 'Shape' : 'Shakli'
   return `${lead}: ${name}${around}`
@@ -300,7 +310,8 @@ export function formationTexts(p: FormationPlan, loc: FormationLocale, obtaining
     title: ['Сборка', 'Assembly', 'Yigʻilishi'][L]!,
     main: ionic
       ? ['Катионы и анионы притягиваются', 'Cations and anions attract', 'Kationlar va anionlar tortishadi'][L]!
-      : p.bondKinds.map((b) => `${b.label} ×${b.count}`).join(' · ') || ['Атомы соединяются', 'Atoms join', 'Atomlar birikadi'][L]!,
+      : (p.bondsReliable ? p.bondKinds.map((b) => `${b.label} ×${b.count}`).join(' · ') : '') ||
+        ['Атомы соединяются общими электронными парами', 'Atoms join through shared electron pairs', 'Atomlar umumiy elektron juftlar orqali birikadi'][L]!,
     sub: step3Sub(p, loc),
   }
   const shapes = p.shapes.map((sh) => shapeText(sh, loc))
