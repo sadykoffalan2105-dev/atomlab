@@ -44,6 +44,17 @@ export type DomLabelSource = {
   avoidR?: number
 }
 
+/**
+ * «Стеклянная» карточка в кадре (glassmorphism, план BaSO₄ § 5): полупрозрачный тёмный фон с лёгким бликом,
+ * размытие того, что за ней (backdrop-filter: blur(10px)), тонкая светлая рамка. Кадр микромира тёмный в
+ * обеих темах приложения — светлый текст на ней контрастен и днём. Экспорт — для DOM-виджетов в кадре (pH-метр).
+ */
+export const GLASS_CARD_STYLE =
+  'background: linear-gradient(160deg, rgba(255,255,255,0.13), rgba(255,255,255,0.03) 58%), rgba(10, 18, 36, 0.52);' +
+  '-webkit-backdrop-filter: blur(10px) saturate(1.25); backdrop-filter: blur(10px) saturate(1.25);' +
+  'border: 1px solid rgba(214, 234, 255, 0.3); box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 26px rgba(0,0,0,0.34);' +
+  'text-shadow: 0 1px 2px rgba(0,0,0,0.45); font-variant-numeric: tabular-nums;'
+
 const KIND_STYLE: Record<string, string> = {
   ox:
     'font: 600 12px/1 "Inter", system-ui, sans-serif; padding: 3px 6px; border-radius: 999px;' +
@@ -85,6 +96,22 @@ const KIND_STYLE: Record<string, string> = {
     'font: 500 13px/1.42 "Inter", system-ui, sans-serif; color: #fff4e3; padding: 8px 13px 9px; border-radius: 10px;' +
     'white-space: pre-line; text-align: left; background: rgba(28, 16, 6, 0.9); border: 1px solid rgba(255, 184, 96, 0.7);' +
     'box-shadow: 0 0 18px rgba(255, 170, 70, 0.28), 0 6px 22px rgba(0,0,0,0.5);',
+  // Стеклянные карточки (сцена «обмен в растворе»): уравнение, выноска-подпись, мелкая плашка, пояснение.
+  glassEquation:
+    'font: 700 18px/1.15 "Inter", system-ui, sans-serif; color: #f7faff; letter-spacing: 0.01em; padding: 7px 15px 8px;' +
+    'border-radius: 12px;' +
+    GLASS_CARD_STYLE,
+  glassNote:
+    'font: 600 13.5px/1.2 "Inter", system-ui, sans-serif; color: #f2f7ff; letter-spacing: 0.005em; padding: 5px 11px 6px;' +
+    'border-radius: 9px;' +
+    GLASS_CARD_STYLE,
+  glassMeasure:
+    'font: 600 12.5px/1 "Inter", system-ui, sans-serif; color: #dcefff; padding: 4px 9px; border-radius: 8px;' + GLASS_CARD_STYLE,
+  glassCallout:
+    'font: 500 13px/1.42 "Inter", system-ui, sans-serif; color: #fff6ea; padding: 8px 13px 9px; border-radius: 12px;' +
+    'white-space: pre-line; text-align: left;' +
+    GLASS_CARD_STYLE +
+    'border-color: rgba(255, 196, 120, 0.5);',
 }
 
 /** Разделитель частей уравнения (как EQUATION_PART_SEP школьной сцены). */
@@ -145,7 +172,7 @@ function writeLabel(n: LabelNode, src: DomLabelSource, px: number, py: number, s
     n.shown = true
   }
   if (n.text !== src.text) {
-    if (src.kind === 'equation' && src.text.includes(EQ_SEP)) renderEquation(n.el, src.text)
+    if ((src.kind === 'equation' || src.kind === 'glassEquation') && src.text.includes(EQ_SEP)) renderEquation(n.el, src.text)
     else n.el.textContent = src.text
     n.text = src.text
   }
@@ -219,7 +246,7 @@ export function CinemaDomLabels({
       el.style.cssText =
         'position:absolute; left:0; top:0; white-space:nowrap; will-change:transform,opacity; opacity:0; display:none;' +
         (KIND_STYLE[l.kind] ?? KIND_STYLE.species)
-      if (l.kind === 'equation' && l.text.includes(EQ_SEP)) renderEquation(el, l.text)
+      if ((l.kind === 'equation' || l.kind === 'glassEquation') && l.text.includes(EQ_SEP)) renderEquation(el, l.text)
       else el.textContent = l.text
       layer.appendChild(el)
       return { el, text: l.text, shown: false, ox: '', x: NaN, y: NaN, opacity: NaN, scale: NaN }
