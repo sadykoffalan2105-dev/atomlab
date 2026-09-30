@@ -336,6 +336,8 @@ export type SolutionStick = { readonly a: number; readonly b: number; readonly w
 
 export type SolutionLabelKind = 'atom' | 'atomDark' | 'species' | 'speciesLines' | 'measure' | 'equation' | 'equationPlate' | 'callout' | 'ph'
 
+/** Подпись в две строки: перенос после двоеточия («соляная кислота:⏎H⁺ + Cl⁻»). */
+const afterColon = (t: L10n): L10n => ({ ru: t.ru.replace(': ', ':\n'), en: t.en.replace(': ', ':\n'), uz: t.uz.replace(': ', ':\n') })
 /** Подпись в две строки: перенос перед скобкой («раствор соляной кислоты⏎(H⁺ и Cl⁻)»). */
 const twoLines = (t: L10n): L10n => ({ ru: t.ru.replace(' (', '\n('), en: t.en.replace(' (', '\n('), uz: t.uz.replace(' (', '\n(') })
 
@@ -1112,7 +1114,8 @@ export function buildSolutionModel(spec: SolutionSceneSpec): SolutionModel {
     attract: addLabel({ id: 'attract', kind: 'measure', text: cap.attract, from: S.meet.from + 1.6, to: T.meet1 }),
     spectators: addLabel({ id: 'spectators', kind: 'measure', text: school?.captions.spectators ?? cap.spectators, from: T.meet1 - 1.7, to: S.nucleus.from + 0.9 }),
     balance: addLabel({ id: 'balance', kind: 'measure', text: cap.balance, from: S.result.from + 1.0, to: finish.to }),
-    resultAcid: addLabel({ id: 'resultAcid', kind: 'species', text: school?.captions.acid ?? cap.acid, from: S.result.from + 1.4, to: finish.to }),
+    // в две строки («соляная кислота:⏎H⁺ + Cl⁻»): на телефоне рядом с pH-метром итога помещается у правого края
+    resultAcid: addLabel({ id: 'resultAcid', kind: 'speciesLines', text: afterColon(school?.captions.acid ?? cap.acid), from: S.result.from + 1.4, to: finish.to }),
     // pH-метр (оба режима): на шаге «осадок» — у пробирки (макро), на итоге — в мире частиц
     phMacro: addLabel({ id: 'phMacro', kind: 'ph', text: cap.ph, from: S.settle.from + 1.5, to: S.settle.to + 0.3 }),
     phMicro: addLabel({ id: 'phMicro', kind: 'ph', text: cap.ph, from: T.micro3 - 0.1, to: finish.to }),
