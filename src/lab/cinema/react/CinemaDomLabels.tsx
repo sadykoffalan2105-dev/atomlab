@@ -94,6 +94,11 @@ const KIND_STYLE: Record<string, string> = {
     'border: 1px solid rgba(214, 232, 255, 0.34); box-shadow: 0 8px 26px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.18);',
 }
 
+/** Ширина карточки pH-метра, px: 232 на широком холсте, на узком — половина его ширины (не меньше 180). */
+function phWidth(canvasW: number): number {
+  return Math.round(Math.min(232, Math.max(180, canvasW * 0.5)))
+}
+
 /**
  * pH-метр: «pH», шкала 0–14 (красная → зелёная → синяя), стрелка в кислой зоне (без точного числа — концентрации
  * в опыте не заданы) и подпись. Всё — узлами с textContent, без HTML из строки.
@@ -298,6 +303,19 @@ export function CinemaDomLabels({
       estimateLabelSize(src.kind, src.text, scale, _size)
       b.w[i] = _size.w
       b.h[i] = _size.h
+      if (src.kind === 'ph') {
+        // карточка pH-метра на узком холсте (телефон) — не шире половины кадра, подпись в две строки
+        const pw = phWidth(w)
+        if (pw < _size.w) {
+          b.w[i] = pw * scale
+          b.h[i] = _size.h + 16 * scale
+        }
+        const node = list[i]
+        if (node && node.ox !== String(pw)) {
+          node.el.style.width = `${pw}px`
+          node.ox = String(pw)
+        }
+      }
     }
     // 2) раскладка: зажим в свободную область и разнос по вертикали
     if (layout) {

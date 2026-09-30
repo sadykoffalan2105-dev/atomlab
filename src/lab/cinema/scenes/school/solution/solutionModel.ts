@@ -57,9 +57,9 @@ export const SOLUTION_DRAW = {
   hydroniumView: 1.15,
   /**
    * Школьный режим: ион водорода H⁺ — маленький шар (голый протон в масштабе не виден): рисуемый радиус
-   * около 70 пм (ковалентный радиус H × ballScale × protonView) — меньше Ba²⁺ и Cl⁻, символ «H⁺» читается.
+   * около 77 пм (ковалентный радиус H × ballScale × protonView) — меньше Ba²⁺ и Cl⁻, символ «H⁺» читается.
    */
-  protonView: 3.6,
+  protonView: 4,
   bgWaterStickR: 2.4,
   /**
    * Зазор (пм) между рисуемыми шарами воды и чужими шарами, который держит раздвижка воды в каждом кадре
@@ -1547,8 +1547,8 @@ export function sampleSolutionState(m: SolutionModel, t: number, out: SolutionSt
   setLabel(L.equation, 150, -700, 0, windowAlpha(m.labels[L.equation]!.from, m.labels[L.equation]!.to, t) * mi)
   setLabel(L.balance, 150, -870, 0, windowAlpha(m.labels[L.balance]!.from, m.labels[L.balance]!.to, t) * mi)
   setLabel(L.ionic, 150, -1010, 0, windowAlpha(m.labels[L.ionic]!.from, m.labels[L.ionic]!.to, t) * mi)
-  // pH-метр итога — слева вверху, над кристалликом
-  setLabel(L.phMicro, -1000, 800, 0, windowAlpha(m.labels[L.phMicro]!.from, m.labels[L.phMicro]!.to, t) * mi)
+  // pH-метр итога — слева вверху, выше кристаллика и подписи «соляная кислота» (на телефоне не ложится на них)
+  setLabel(L.phMicro, -900, 1080, 0, windowAlpha(m.labels[L.phMicro]!.from, m.labels[L.phMicro]!.to, t) * mi)
   sampleMicroLabels(m, t, out, L, setLabel)
   // хвост: подписи уходят вместе с водой (у героя — свои)
   if (finKeep < 1) for (let li = 0; li < m.labels.length; li++) out.labelOpacity[li] = out.labelOpacity[li]! * finKeep

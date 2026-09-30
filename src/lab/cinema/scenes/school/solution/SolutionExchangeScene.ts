@@ -199,6 +199,8 @@ export class SolutionExchangeScene {
   private readonly insideVis: Float32Array
   private readonly discs: Float32Array
   private readonly labelIndexOfAtom: Int32Array
+  /** с какого радиуса шара на экране (px) виден символ внутри: у маленького H⁺ школьного режима — раньше */
+  private readonly labelMinPx: Float32Array
   // фокус микромира: базовые цвета шаров (приглушение — множителем), ореолы зарядов, линии поля
   private readonly baseColor: Float32Array
   private readonly appliedDim: Float32Array
@@ -291,6 +293,8 @@ export class SolutionExchangeScene {
     // вода непрозрачная (палочки не просвечивают), кромка — слабая и холодная: второй план не спорит с ионами
     this.waterAtomMat = withNaclRim(new THREE.MeshPhysicalMaterial({ color: 0xffffff, ...MATTE, transparent: true, fog: false }), 0x8ea3c0, 0.05)
     this.waterAtoms = new THREE.InstancedMesh(this.sphere, this.waterAtomMat, Math.max(1, nWater))
+    // школьный режим: воды нет — пустой экземпляр (единичная матрица) нарисовался бы белым шаром в центре
+    this.waterAtoms.count = nWater
     this.ions.name = 'solution-ions'
     this.waterAtoms.name = 'solution-water'
     this.ions.frustumCulled = false
@@ -500,6 +504,7 @@ export class SolutionExchangeScene {
     })
     this.sticks = new THREE.InstancedMesh(this.stickGeo, this.stickMat, Math.max(1, sIon))
     this.waterSticks = new THREE.InstancedMesh(this.stickGeo, this.waterStickMat, Math.max(1, sWater))
+    this.waterSticks.count = sWater
     this.sticks.frustumCulled = false
     this.waterSticks.frustumCulled = false
     this.waterSticks.renderOrder = 2
@@ -609,6 +614,7 @@ export class SolutionExchangeScene {
     this.insideVis = new Float32Array(m.labels.length).fill(1)
     this.discs = new Float32Array(n * 4)
     this.labelIndexOfAtom = new Int32Array(n).fill(-1)
+    this.labelMinPx = Float32Array.from(m.atoms, (a) => (m.bodies[a.body]!.formula === 'H⁺' ? 4.5 : 8))
     m.atoms.forEach((a, i) => {
       if (a.label >= 0) this.labelIndexOfAtom[i] = a.label
     })
@@ -1186,7 +1192,7 @@ export class SolutionExchangeScene {
       const o = i * 4
       let target = 0
       if (D[o + 2]! > 0) {
-        target = solutionSmooth(8, 12, D[o + 3]! * px)
+        target = solutionSmooth(this.labelMinPx[i]!, this.labelMinPx[i]! + 4, D[o + 3]! * px)
         for (let j = 0; j < n && target > 0; j++) {
           if (j === i || this.isWaterAtom[j]) continue
           const q = j * 4

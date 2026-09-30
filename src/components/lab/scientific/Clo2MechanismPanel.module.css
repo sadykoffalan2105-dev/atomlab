@@ -693,6 +693,11 @@
   opacity: 0.5;
 }
 
+/* свёрнутая панель (одна строка шапки на телефоне) — без переключателя: он в развёрнутой */
+.panel[data-collapsed='1'] .modeBtn {
+  display: none;
+}
+
 .modeBtn:focus-visible,
 .actionBtn:focus-visible {
   outline: none;
