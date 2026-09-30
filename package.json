@@ -102,7 +102,8 @@
     "verify:catalog-books": "tsx scripts/verify-catalog-200.mts",
     "test:catalog-textbook-substances": "tsx scripts/test-catalog-textbook-substances.mts",
     "book:g10": "node scripts/textbook-inventory/build-g10-part1.mjs && node scripts/textbook-inventory/build-g10-part2.mjs && node scripts/textbook-inventory/merge-parts.mjs 10 && tsx scripts/textbook-inventory/build-book-reader.mts --grade 10",
-    "verify:book-g10": "tsx scripts/verify-book-g10-ch1-2.mts && tsx scripts/verify-book-g10-ch2-3.mts"
+    "verify:book-g10": "tsx scripts/verify-book-g10-ch1-2.mts && tsx scripts/verify-book-g10-ch2-3.mts",
+    "test:formation-plan": "tsx scripts/test-formation-plan.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
