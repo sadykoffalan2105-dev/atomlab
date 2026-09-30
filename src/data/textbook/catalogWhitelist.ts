@@ -4,6 +4,7 @@
  */
 import whitelist from './catalogWhitelist.json'
 import rank from './catalogRank.json'
+import { CATALOG_TOP200 } from '../catalog/catalogTop200'
 
 /**
  * Вещества не из учебников, на которые опираются реактор и банк реакций (ClO₂-рецепт, реакции с KClO₄ и т. п.).
@@ -94,7 +95,8 @@ export const CATALOG_HIDDEN_IDS: ReadonlySet<string> = new Set([
 const TEXTBOOK_IDS: ReadonlySet<string> = new Set([...whitelist.inorganic, ...whitelist.organic])
 
 /*
- * Правила «ровно 200 видимых неорганических» больше нет: каталог показывает каждое вещество из реакций учебников 7–11
+ * 30.09.2026: снова ровно 200 видимых неорганических (catalogTop200.ts) — решение владельца. Ниже — прежняя история:
+ * правила «ровно 200 видимых неорганических» не было: каталог показывает каждое вещество из реакций учебников 7–11
  * (проверка — scripts/test-catalog-textbook-substances.mts). Из CATALOG_HIDDEN_IDS убраны вещества, которые стоят
  * в реакциях книг: Zn(OH)Cl и KHSO₃ (9 кл., гидролиз, с. 36), Fe₂(CO₃)₃ (9 кл., с. 37 — полный гидролиз),
  * FeN (9 кл., с. 159 — Fe + N₂), NOCl (11 кл., с. 120 — 2NO + Cl₂ ⇌ 2NOCl).
@@ -115,10 +117,16 @@ export function isTextbookCompoundId(id: string): boolean {
   return id.startsWith('tb_') || TEXTBOOK_IDS.has(id) || CATALOG_HIDDEN_IDS.has(id)
 }
 
+/** Все неорганические вещества рейтинга (439) — чтобы отличить неорганику от органики без импорта compounds (цикл). */
+const RANKED_INORGANIC: ReadonlySet<string> = new Set(CATALOG_INORGANIC_RANK)
+
 /**
- * Показывать ли вещество в каталоге и списках выбора: всё из учебников, кроме CATALOG_HIDDEN_IDS.
- * Скрытие не удаляет данные: compoundById, реактор и уравнения учебника видят вещество по-прежнему.
+ * Показывать ли вещество в каталоге и списках выбора. Неорганика — только 200 самых употребительных веществ
+ * школьной химии (src/data/catalog/catalogTop200.ts, решение владельца 30.09.2026); органика — всё из учебников,
+ * кроме CATALOG_HIDDEN_IDS. Скрытие не удаляет данные: compoundById, реактор и уравнения учебника видят вещество.
  */
 export function isCatalogVisibleId(id: string): boolean {
-  return !CATALOG_HIDDEN_IDS.has(id)
+  if (CATALOG_HIDDEN_IDS.has(id)) return false
+  if (RANKED_INORGANIC.has(id)) return CATALOG_TOP200.has(id)
+  return true
 }
