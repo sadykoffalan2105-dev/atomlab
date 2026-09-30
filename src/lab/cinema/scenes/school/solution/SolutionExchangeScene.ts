@@ -14,7 +14,7 @@ import {
   solutionMoments,
   solutionSmooth,
   SOLUTION_DRAW,
-  solutionViewScale,
+  SOLUTION_HALO_BALL,
   type SolutionCueId,
   type SolutionModel,
   type SolutionState,
@@ -31,8 +31,11 @@ import { SolutionMacroView, softDotTexture } from './solutionMacroView'
  *   • макро — пробирки (lathe по профилю kit/glassware), жидкость, струя при сливании, белая муть
  *     (точки) и слой осадка на дне;
  *   • микро — ионы и частицы школьным языком (SCHOOL-материалы: матовые CPK-шары, символ внутри шара,
- *     серые палочки связей внутри частиц), вода — полупрозрачные уголки O + 2H; пунктир притяжения
- *     Ba²⁺ ↔ SO₄²⁻, граница двух растворов; заряды — подписями; точек-электронов на ионах нет.
+ *     серые палочки связей внутри частиц), вода — непрозрачные уголки O + 2H, приглушённые к цвету фона
+ *     (второй план), ближняя оболочка у ионов чуть ярче; заряд — мягким свечением по краю шара (френель)
+ *     цветом знака и ореолом без кромки; притяжение Ba²⁺ ↔ SO₄²⁻ — светящийся «мост» между облаками ионов
+ *     с импульсами к середине (не палочки); в кристалле группы SO₄ — полупрозрачные жёлтые тетраэдры
+ *     (координационные полиэдры), рёбра ячеек — тонкие светящиеся линии; точек-электронов на ионах нет.
  * Переход макро ↔ микро — «лупа»: один слой гаснет и растёт, другой проявляется из меньшего масштаба.
  * Производительность: шары и палочки — InstancedMesh (отдельно для воды), ноль аллокаций в update.
  */
@@ -42,12 +45,40 @@ const gsap: typeof GSAP.gsap =
 
 const K = pmToScene(1)
 const MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.16 } as const
-const WATER_OPACITY = 0.5
 /** Ореол заряда: + тёплый (янтарь), − холодный (голубой); H⁺ в H₃O⁺ — ярче; соседи Ba²⁺ в кристалле — белые. */
 const HALO_COLOR = { plus: 0xffa64d, minus: 0x4fc3ff, proton: 0xffd27a, neighbor: 0xeaf6ff } as const
-/** Линии поля притяжения: дуги между Ba²⁺ и SO₄²⁻ (веретено, как силовые линии двух зарядов). */
-const FIELD_ARCS = 6
-const FIELD_SEG = 18
+/** Сила ореола (billboard) и френель-кромки шара по виду подсветки. */
+const HALO_GAIN = { plus: 0.5, minus: 0.5, proton: 0.75, neighbor: 0.55 } as const
+const RIM_GAIN = { plus: 1.0, minus: 1.0, proton: 1.3, neighbor: 0.9 } as const
+/** Вода: доля смешения с цветом фона (глубина) — фон сильнее, ближняя оболочка у ионов слабее. */
+const WATER_FOG = { bg: 0.6, shell: 0.36 } as const
+/** Тетраэдр SO₄ в кристалле: грани (индексы O группы 0…3). */
+const TETRA_FACES = [
+  [0, 1, 2],
+  [0, 3, 1],
+  [0, 2, 3],
+  [1, 3, 2],
+] as const
+
+/** Матовый шар с белой кромкой и свечением заряда по краю (френель) — цвет и сила из атрибута экземпляра aGlow. */
+function withChargeGlow(mat: THREE.MeshPhysicalMaterial): THREE.MeshPhysicalMaterial {
+  mat.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute vec3 aGlow;\nvarying vec3 vGlow;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = aGlow;')
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vGlow;').replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+{
+  float rimF = 1.0 - saturate( dot( normalize( normal ), normalize( vViewPosition ) ) );
+  totalEmissiveRadiance += vec3( ${NACL_RIM.atom.toFixed(3)} ) * pow( rimF, 2.6 );
+  totalEmissiveRadiance += vGlow * ( 0.16 * rimF + 1.35 * pow( rimF, 2.4 ) );
+}`,
+    )
+  }
+  mat.customProgramCacheKey = () => 'solution-charge-glow-1'
+  return mat
+}
 
 export type SolutionSceneOptions = {
   locale?: SceneLocale
@@ -65,10 +96,11 @@ function atomColor(el: string, water: boolean, far = false): THREE.Color {
   const c = new THREE.Color(cpkHex(el as never))
   if (el === 'H') c.multiplyScalar(0.9)
   if (water) {
-    // вода — светлая школьная: розовато-коралловый O, белые H; фон ещё и «дальше» (к цвету фона)
-    if (el === 'O') c.set(0xffb0b0)
-    else c.set(0xf6f8fc)
-    if (far) c.lerp(new THREE.Color(0x46536a), 0.4)
+    // вода — второй план: приглушённый розовато-серый O и светло-серые H, смешаны с цветом фона
+    // (глубина, как в тумане); фоновая — сильнее, ближняя оболочка у ионов — чуть ярче
+    if (el === 'O') c.set(0xd99a9a)
+    else c.set(0xdfe5ee)
+    c.lerp(SCHOOL_SCENE_BG, far ? WATER_FOG.bg : WATER_FOG.shell)
   }
   return c
 }
@@ -126,8 +158,6 @@ export class SolutionExchangeScene {
   private readonly waterSticks: THREE.InstancedMesh
   private readonly waterStickMat: THREE.MeshPhysicalMaterial
   private readonly stickSlot: Int32Array
-  private readonly attract: THREE.Line
-  private readonly attractMat: THREE.LineDashedMaterial
   private readonly divider: THREE.Line
   private readonly dividerMat: THREE.LineDashedMaterial
   /** рёбра ячеек кристаллика (система кристалла: центр и поворот вокруг вертикали) */
@@ -170,11 +200,20 @@ export class SolutionExchangeScene {
   private readonly haloMat: THREE.ShaderMaterial
   private readonly halos: THREE.InstancedMesh
   private readonly haloBase: THREE.Color[]
-  private readonly fieldMat: THREE.MeshBasicMaterial
-  private readonly field: THREE.InstancedMesh
+  private readonly haloShape: THREE.InstancedBufferAttribute
+  /** шары ионов: своя геометрия со свечением заряда по краю (aGlow на экземпляр) */
+  private readonly ionGeo: THREE.BufferGeometry
+  private readonly ionGlow: THREE.InstancedBufferAttribute
+  /** «мост» притяжения Ba²⁺ ↔ SO₄²⁻: светящаяся лента между облаками ионов с импульсами к середине */
+  private readonly bridgeMat: THREE.ShaderMaterial
+  private readonly bridge: THREE.Mesh
+  /** тетраэдры SO₄ кристалла (координационные полиэдры): тела групп, геометрия граней */
+  private readonly polyBodies: number[]
+  private readonly polyFrom: Float32Array
+  private readonly polyGeo: THREE.BufferGeometry
+  private readonly polyMat: THREE.ShaderMaterial
+  private readonly poly: THREE.Mesh
   private readonly _col = new THREE.Color()
-  private readonly _e1 = new THREE.Vector3()
-  private readonly _e2 = new THREE.Vector3()
 
   private readonly _v = new THREE.Vector3()
   private readonly _w = new THREE.Vector3()
@@ -234,9 +273,14 @@ export class SolutionExchangeScene {
       this.isWaterAtom[i] = water ? 1 : 0
       this.slotOf[i] = water ? nWater++ : nIon++
     })
-    this.ionMat = withNaclRim(new THREE.MeshPhysicalMaterial({ color: 0xffffff, ...MATTE, transparent: true, fog: false }), 0xffffff, NACL_RIM.atom)
-    this.ions = new THREE.InstancedMesh(this.sphere, this.ionMat, Math.max(1, nIon))
-    this.waterAtomMat = withNaclRim(new THREE.MeshPhysicalMaterial({ color: 0xffffff, ...MATTE, transparent: true, depthWrite: false, fog: false }), 0xffffff, NACL_RIM.atom)
+    this.ionMat = withChargeGlow(new THREE.MeshPhysicalMaterial({ color: 0xffffff, ...MATTE, transparent: true, fog: false }))
+    this.ionGeo = this.sphere.clone()
+    this.ionGlow = new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, nIon) * 3), 3)
+    this.ionGlow.setUsage(THREE.DynamicDrawUsage)
+    this.ionGeo.setAttribute('aGlow', this.ionGlow)
+    this.ions = new THREE.InstancedMesh(this.ionGeo, this.ionMat, Math.max(1, nIon))
+    // вода непрозрачная (палочки не просвечивают), кромка — слабая и холодная: второй план не спорит с ионами
+    this.waterAtomMat = withNaclRim(new THREE.MeshPhysicalMaterial({ color: 0xffffff, ...MATTE, transparent: true, fog: false }), 0x8ea3c0, 0.05)
     this.waterAtoms = new THREE.InstancedMesh(this.sphere, this.waterAtomMat, Math.max(1, nWater))
     this.ions.name = 'solution-ions'
     this.waterAtoms.name = 'solution-water'
@@ -252,22 +296,29 @@ export class SolutionExchangeScene {
       const c = atomColor(a.el, water, m.bodies[a.body]!.id.startsWith('wBg'))
       c.toArray(this.baseColor, i * 3)
       mesh.setColorAt(this.slotOf[i]!, c)
-      this.viewK[i] = solutionViewScale(a.el, water)
+      this.viewK[i] = m.viewK[i]!
     })
     this.micro.add(this.ions, this.waterAtoms)
 
-    // ——— ореолы зарядов: кольцо + мягкое свечение, всегда лицом к камере (billboard в шейдере) ———
+    // ——— ореолы зарядов: мягкое свечение без кромки, всегда лицом к камере (billboard в шейдере) ———
+    // 'ball' — вокруг шара: спадает от края шара наружу (внутри шара его закрывает сам шар);
+    // 'cloud' — облако многоатомного иона (SO₄²⁻, H₃O⁺): мягкое радиальное, без резкой границы.
     this.haloGeo = new THREE.PlaneGeometry(2, 2)
+    this.haloShape = new THREE.InstancedBufferAttribute(Float32Array.from({ length: Math.max(1, m.halos.length) }, (_, h) => (m.halos[h]?.shape === 'cloud' ? 1 : 0)), 1)
+    this.haloGeo.setAttribute('aShape', this.haloShape)
     this.haloMat = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       vertexShader: /* glsl */ `
+        attribute float aShape;
         varying vec2 vP;
         varying vec3 vCol;
+        varying float vShape;
         void main() {
           vP = position.xy;
           vCol = instanceColor;
+          vShape = aShape;
           vec3 c = (instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
           float r = length(instanceMatrix[0].xyz);
           vec4 mv = modelViewMatrix * vec4(c, 1.0);
@@ -278,12 +329,19 @@ export class SolutionExchangeScene {
       fragmentShader: /* glsl */ `
         varying vec2 vP;
         varying vec3 vCol;
+        varying float vShape;
         void main() {
           float d = length(vP);
           if (d > 1.0) discard;
-          float ring = smoothstep(0.8, 0.9, d) * (1.0 - smoothstep(0.93, 1.0, d));
-          float glow = pow(1.0 - d, 1.8) * 0.42;
-          gl_FragColor = vec4(vCol, ring + glow);
+          float a;
+          if (vShape < 0.5) {
+            float d0 = ${(1 / SOLUTION_HALO_BALL).toFixed(4)};
+            float x = max(0.0, d - d0) / (1.0 - d0);
+            a = exp(-x * x * 4.5) * (1.0 - smoothstep(0.82, 1.0, d)) * smoothstep(d0 - 0.2, d0, d);
+          } else {
+            a = 0.62 * exp(-d * d * 3.0) * (1.0 - smoothstep(0.75, 1.0, d));
+          }
+          gl_FragColor = vec4(vCol, a);
         }
       `,
     })
@@ -294,19 +352,133 @@ export class SolutionExchangeScene {
     // подсвеченный Ba²⁺ среди 12 соседних O — тёплым кольцом катиона, сами O — белыми
     this.haloBase = m.halos.map((h) => new THREE.Color(HALO_COLOR[h.kind === 'neighbor' && h.atom >= 0 && m.atoms[h.atom]!.el === 'Ba' ? 'plus' : h.kind]))
     for (let h = 0; h < Math.max(1, m.halos.length); h++) this.halos.setColorAt(h, this._col.setRGB(0, 0, 0))
-    // ——— линии поля Ba²⁺ ↔ SO₄²⁻: тонкие светящиеся дуги из отрезков, импульсы бегут к середине ———
-    this.fieldMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })
-    this.field = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 6, 1, true), this.fieldMat, FIELD_ARCS * FIELD_SEG)
-    this.field.name = 'solution-field'
-    this.field.frustumCulled = false
-    this.field.renderOrder = 7
-    for (let k = 0; k < FIELD_ARCS * FIELD_SEG; k++) this.field.setColorAt(k, this._col.setRGB(0, 0, 0))
-    this.micro.add(this.halos, this.field)
+    // ——— «мост» притяжения Ba²⁺ ↔ SO₄²⁻: лента лицом к камере между облаками ионов ———
+    // Мягкий градиент тёплый → холодный без резких краёв; концы растворяются в облаках (ни одна линия не
+    // упирается в атом S или O); по ленте от обоих ионов к середине бегут светлые импульсы — «тяга».
+    this.bridgeMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      uniforms: {
+        uA: { value: new THREE.Vector3() },
+        uB: { value: new THREE.Vector3(1, 0, 0) },
+        uHalf: { value: 1 },
+        uTime: { value: 0 },
+        uAlpha: { value: 0 },
+        uE0: { value: 0.2 },
+        uE1: { value: 0.3 },
+        uWarm: { value: new THREE.Color(HALO_COLOR.plus) },
+        uCold: { value: new THREE.Color(HALO_COLOR.minus) },
+      },
+      vertexShader: /* glsl */ `
+        uniform vec3 uA;
+        uniform vec3 uB;
+        uniform float uHalf;
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vec4 a = modelViewMatrix * vec4(uA, 1.0);
+          vec4 b = modelViewMatrix * vec4(uB, 1.0);
+          vec3 axis = b.xyz - a.xyz;
+          vec3 mid = 0.5 * (a.xyz + b.xyz);
+          vec3 side = normalize(cross(axis, mid));
+          float sc = length(modelViewMatrix[0].xyz);
+          vec3 p = mix(a.xyz, b.xyz, uv.x) + side * (uv.y - 0.5) * 2.0 * uHalf * sc;
+          gl_Position = projectionMatrix * vec4(p, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform float uTime;
+        uniform float uAlpha;
+        uniform float uE0;
+        uniform float uE1;
+        uniform vec3 uWarm;
+        uniform vec3 uCold;
+        varying vec2 vUv;
+        void main() {
+          float u = vUv.x;
+          float v = (vUv.y - 0.5) * 2.0;
+          float w = 0.5 + 0.5 * pow(abs(u - 0.5) * 2.0, 2.0);
+          float glow = exp(-pow(v / w, 2.0) * 2.6);
+          float ends = smoothstep(0.0, uE0, u) * smoothstep(0.0, uE1, 1.0 - u);
+          float pul = 0.0;
+          for (int k = 0; k < 3; k++) {
+            float ph = fract(uTime * 0.6 + float(k) / 3.0);
+            float f = sin(3.14159 * ph);
+            pul += f * (exp(-pow((u - 0.5 * ph) / 0.05, 2.0)) + exp(-pow((u - 1.0 + 0.5 * ph) / 0.05, 2.0)));
+          }
+          float thin = exp(-v * v * 7.0);
+          vec3 col = mix(uWarm, uCold, smoothstep(0.2, 0.8, u));
+          col = mix(col, vec3(1.0), clamp(0.45 * pul * thin, 0.0, 0.6));
+          gl_FragColor = vec4(col, uAlpha * ends * (0.34 * glow + 0.7 * pul * thin));
+        }
+      `,
+    })
+    this.bridge = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.bridgeMat)
+    this.bridge.name = 'solution-bridge'
+    this.bridge.frustumCulled = false
+    this.bridge.renderOrder = 7
+    this.bridge.visible = false
+    this.micro.add(this.halos, this.bridge)
+
+    // ——— тетраэдры SO₄ кристалла: полупрозрачные жёлтые грани, O в вершинах, S внутри, светлые рёбра ———
+    this.polyBodies = m.bodies.map((b, i) => ({ b, i })).filter((x) => x.b.kind === 'lattice-group' || x.i === m.roles.group).map((x) => x.i)
+    const Tm = solutionMoments(m)
+    this.polyFrom = Float32Array.from(this.polyBodies, (bi) => m.bodies[bi]!.land?.t ?? Tm.seed1)
+    const nv = Math.max(1, this.polyBodies.length) * 12
+    this.polyGeo = new THREE.BufferGeometry()
+    this.polyGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nv * 3), 3).setUsage(THREE.DynamicDrawUsage))
+    this.polyGeo.setAttribute('aAlpha', new THREE.BufferAttribute(new Float32Array(nv), 1).setUsage(THREE.DynamicDrawUsage))
+    const bary = new Float32Array(nv * 3)
+    for (let v = 0; v < nv; v++) bary[v * 3 + (v % 3)] = 1
+    this.polyGeo.setAttribute('aBary', new THREE.BufferAttribute(bary, 3))
+    this.polyMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      uniforms: { uColor: { value: new THREE.Color(0xf0cf3a) }, uEdge: { value: new THREE.Color(0xfff3b8) } },
+      vertexShader: /* glsl */ `
+        attribute vec3 aBary;
+        attribute float aAlpha;
+        varying vec3 vBary;
+        varying float vAlpha;
+        varying vec3 vView;
+        void main() {
+          vBary = aBary;
+          vAlpha = aAlpha;
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vView = mv.xyz;
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uColor;
+        uniform vec3 uEdge;
+        varying vec3 vBary;
+        varying float vAlpha;
+        varying vec3 vView;
+        void main() {
+          if (vAlpha < 0.003) discard;
+          vec3 n = normalize(cross(dFdx(vView), dFdy(vView)));
+          float facing = abs(dot(n, normalize(-vView)));
+          float lit = 0.62 + 0.38 * abs(dot(n, normalize(vec3(0.35, 0.8, 0.5))));
+          float e = min(min(vBary.x, vBary.y), vBary.z);
+          float edge = 1.0 - smoothstep(0.0, 0.05, e);
+          vec3 col = mix(uColor * lit, uEdge, 0.85 * edge);
+          gl_FragColor = vec4(col, vAlpha * (0.2 + 0.16 * (1.0 - facing) + 0.5 * edge));
+        }
+      `,
+    })
+    this.poly = new THREE.Mesh(this.polyGeo, this.polyMat)
+    this.poly.name = 'solution-sulfate-tetrahedra'
+    this.poly.frustumCulled = false
+    this.poly.renderOrder = 3
+    this.micro.add(this.poly)
 
     // ——— палочки ———
     this.stickGeo = new THREE.CylinderGeometry(1, 1, 1, 12, 1, true)
     this.stickMat = withNaclRim(new THREE.MeshPhysicalMaterial({ color: 0xd4dce6, ...MATTE, transparent: true, fog: false }), 0xffffff, NACL_RIM.atom)
-    this.waterStickMat = withNaclRim(new THREE.MeshPhysicalMaterial({ color: 0xc4ccd6, ...MATTE, transparent: true, depthWrite: false, fog: false }), 0xffffff, NACL_RIM.atom)
+    this.waterStickMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, ...MATTE, transparent: true, fog: false })
     this.stickSlot = new Int32Array(m.sticks.length)
     let sIon = 0
     let sWater = 0
@@ -318,21 +490,24 @@ export class SolutionExchangeScene {
     this.sticks.frustumCulled = false
     this.waterSticks.frustumCulled = false
     this.waterSticks.renderOrder = 2
+    // палочки воды — тоже второй план: к цвету фона (фон — сильнее)
+    m.sticks.forEach((st, k) => {
+      if (!st.water) return
+      const far = m.bodies[m.atoms[st.a]!.body]!.id.startsWith('wBg')
+      this.waterSticks.setColorAt(this.stickSlot[k]!, this._col.set(0xb8c2ce).lerp(SCHOOL_SCENE_BG, far ? WATER_FOG.bg : WATER_FOG.shell))
+    })
     this.micro.add(this.sticks, this.waterSticks)
 
-    // ——— пунктир притяжения и граница растворов ———
-    this.attractMat = new THREE.LineDashedMaterial({ color: 0xffd98a, dashSize: 26 * K, gapSize: 18 * K, transparent: true, opacity: 0, depthTest: false, fog: false })
-    this.attract = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1, 0, 0)]), this.attractMat)
-    this.attract.renderOrder = 8
-    this.attract.frustumCulled = false
+    // ——— граница двух растворов ———
     this.dividerMat = new THREE.LineDashedMaterial({ color: 0x9fc4e8, dashSize: 40 * K, gapSize: 34 * K, transparent: true, opacity: 0, depthWrite: false, fog: false })
     this.divider = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -980 * K, -300 * K), new THREE.Vector3(0, 980 * K, -300 * K)]), this.dividerMat)
     this.divider.computeLineDistances()
     this.divider.frustumCulled = false
-    this.micro.add(this.attract, this.divider)
+    this.micro.add(this.divider)
     const edgePts: THREE.Vector3[] = []
     for (const [a, b] of m.cellEdges) edgePts.push(new THREE.Vector3(a[0] * K, a[1] * K, a[2] * K), new THREE.Vector3(b[0] * K, b[1] * K, b[2] * K))
-    this.edgeMat = new THREE.LineBasicMaterial({ color: 0x8fb8e0, transparent: true, opacity: 0, depthWrite: false, fog: false })
+    // рёбра ячеек — тонкие светящиеся линии (сложение цвета), не серая «проволока»
+    this.edgeMat = new THREE.LineBasicMaterial({ color: 0x7cc8ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })
     this.edges = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(edgePts), this.edgeMat)
     this.edges.frustumCulled = false
     this.crystalFrame.add(this.edges)
@@ -575,15 +750,16 @@ export class SolutionExchangeScene {
     this.killTween()
     this.root.removeFromParent()
     this.edges.geometry.dispose()
-    for (const x of [this.edgeMat, this.ionMat, this.waterAtomMat, this.stickMat, this.waterStickMat, this.attractMat, this.dividerMat, this.glassMat, this.rimMat, this.sedimentMat, this.turbidMat, this.dotTex]) x.dispose()
+    for (const x of [this.edgeMat, this.ionMat, this.waterAtomMat, this.stickMat, this.waterStickMat, this.bridgeMat, this.polyMat, this.dividerMat, this.glassMat, this.rimMat, this.sedimentMat, this.turbidMat, this.dotTex]) x.dispose()
     this.macroView.dispose()
-    for (const x of [this.ions, this.waterAtoms, this.sticks, this.waterSticks, this.halos, this.field]) x.dispose()
+    for (const x of [this.ions, this.waterAtoms, this.sticks, this.waterSticks, this.halos]) x.dispose()
     this.haloGeo.dispose()
     this.haloMat.dispose()
-    this.field.geometry.dispose()
-    this.fieldMat.dispose()
+    this.bridge.geometry.dispose()
+    this.polyGeo.dispose()
+    this.ionGeo.dispose()
     for (const g of this.sedimentGeos.values()) g.dispose()
-    for (const g of [this.stickGeo, this.glassGeo, this.rimGeo, this.sedimentGeo, this.turbidGeo, this.attract.geometry, this.divider.geometry]) g.dispose()
+    for (const g of [this.stickGeo, this.glassGeo, this.rimGeo, this.sedimentGeo, this.turbidGeo, this.divider.geometry]) g.dispose()
     if (!this.ownLights) {
       this.lights.ambient.intensity = 0
       this.lights.key.intensity = 0
@@ -680,9 +856,11 @@ export class SolutionExchangeScene {
     const hold = this.handoffTarget ? 1 : s.fade
     this.ionMat.opacity = s.microAlpha * hold
     this.stickMat.opacity = s.microAlpha * hold
-    this.waterAtomMat.opacity = WATER_OPACITY * s.microAlpha * hold
-    this.waterStickMat.opacity = WATER_OPACITY * s.microAlpha * hold
+    this.waterAtomMat.opacity = s.microAlpha * hold
+    this.waterStickMat.opacity = s.microAlpha * hold
     this.ionMat.depthWrite = s.microAlpha > 0.98
+    this.waterAtomMat.depthWrite = s.microAlpha * hold > 0.98
+    this.waterStickMat.depthWrite = this.waterAtomMat.depthWrite
 
     // ——— шары ———
     this._q.identity()
@@ -727,7 +905,7 @@ export class SolutionExchangeScene {
       } else {
         this._w.divideScalar(len)
         this._q.setFromUnitVectors(this._up, this._w)
-        const rr = (st.water ? SOLUTION_DRAW.waterStickR : SOLUTION_DRAW.stickR) * K * alpha
+        const rr = (st.water ? (this.viewK[st.a]! < SOLUTION_DRAW.waterView ? SOLUTION_DRAW.bgWaterStickR : SOLUTION_DRAW.waterStickR) : SOLUTION_DRAW.stickR) * K * alpha
         this._s.set(rr, len, rr)
       }
       this._m.compose(this._c, this._q, this._s)
@@ -736,22 +914,13 @@ export class SolutionExchangeScene {
     this.sticks.instanceMatrix.needsUpdate = true
     this.waterSticks.instanceMatrix.needsUpdate = true
 
-    // ——— пунктиры ———
-    // пунктир — тонкая ось между парой; главное — линии поля (applyFocus)
-    this.attractMat.opacity = 0.3 * s.attract.alpha * s.microAlpha
-    this.attract.visible = this.attractMat.opacity > 0.01
-    if (this.attract.visible) {
-      const pos = this.attract.geometry.getAttribute('position') as THREE.BufferAttribute
-      pos.setXYZ(0, s.attract.a[0] * K, s.attract.a[1] * K, s.attract.a[2] * K)
-      pos.setXYZ(1, s.attract.b[0] * K, s.attract.b[1] * K, s.attract.b[2] * K)
-      pos.needsUpdate = true
-      this.attract.computeLineDistances()
-    }
+    // ——— граница растворов, тетраэдры SO₄ кристалла ———
+    this.applyPolyhedra(s, hold)
     this.dividerMat.opacity = 0.45 * s.divider.alpha * s.microAlpha
     this.divider.visible = this.dividerMat.opacity > 0.01
     this.crystalFrame.position.set(s.crystal.c[0] * K, s.crystal.c[1] * K, s.crystal.c[2] * K)
     this.crystalFrame.rotation.set(0, s.crystal.yaw, 0)
-    this.edgeMat.opacity = 0.32 * s.edgeAlpha * s.microAlpha * hold
+    this.edgeMat.opacity = 0.42 * s.edgeAlpha * s.microAlpha * hold
     this.edges.visible = this.edgeMat.opacity > 0.01
 
     // ——— пробирки ———
@@ -827,10 +996,16 @@ export class SolutionExchangeScene {
     this.micro.scale.setScalar(ms)
   }
 
-  /** Ореолы зарядов и линии поля притяжения (микромир). Без аллокаций. */
+  /**
+   * Заряды и притяжение (микромир), без аллокаций: мягкий ореол у шара / облако у многоатомного иона,
+   * свечение по краю самих шаров (френель) цветом знака, «мост» Ba²⁺ ↔ SO₄²⁻.
+   */
   private applyFocus(s: SolutionState): void {
     const m = this.model
+    const glow = this.ionGlow.array as Float32Array
+    glow.fill(0)
     for (let h = 0; h < m.halos.length; h++) {
+      const def = m.halos[h]!
       const a = s.haloAlpha[h]!
       const r = a > 0.01 ? s.haloR[h]! * K : 0
       this._v.set(s.haloPos[h * 3]! * K, s.haloPos[h * 3 + 1]! * K, s.haloPos[h * 3 + 2]! * K)
@@ -838,69 +1013,79 @@ export class SolutionExchangeScene {
       this._q.identity()
       this._m.compose(this._v, this._q, this._s)
       this.halos.setMatrixAt(h, this._m)
-      this.halos.setColorAt(h, this._col.copy(this.haloBase[h]!).multiplyScalar(a * (m.halos[h]!.ghost ? 0.8 : 0.5)))
+      const base = this.haloBase[h]!
+      const cloud = def.shape === 'cloud'
+      this.halos.setColorAt(h, this._col.copy(base).multiplyScalar(a * (def.ghost ? 0.8 : cloud ? 0.34 : HALO_GAIN[def.kind])))
+      if (a <= 0.01) continue
+      const g = a * RIM_GAIN[def.kind] * (cloud ? 0.8 : 1)
+      for (const ai of def.rimAtoms) {
+        if (this.isWaterAtom[ai]) continue
+        const o = this.slotOf[ai]! * 3
+        glow[o] = Math.min(1.2, glow[o]! + base.r * g)
+        glow[o + 1] = Math.min(1.2, glow[o + 1]! + base.g * g)
+        glow[o + 2] = Math.min(1.2, glow[o + 2]! + base.b * g)
+      }
     }
+    this.ionGlow.needsUpdate = true
     this.halos.instanceMatrix.needsUpdate = true
     if (this.halos.instanceColor) this.halos.instanceColor.needsUpdate = true
     this.halos.visible = m.halos.length > 0
 
+    // «мост»: от края шара Ba²⁺ до края облака SO₄²⁻ (описанная сфера группы); концы гаснут в облаках
     const fa = s.field.alpha * s.microAlpha
-    this.field.visible = fa > 0.01
-    if (!this.field.visible) return
+    this.bridge.visible = fa > 0.01
+    if (!this.bridge.visible) return
     const ba = m.bodies[m.roles.cation]!.atoms[0]!
     const sa = m.bodies[m.roles.group]!.atoms[0]!
-    const A = this._c.set(s.atomPos[ba * 3]! * K, s.atomPos[ba * 3 + 1]! * K, s.atomPos[ba * 3 + 2]! * K)
-    const dir = this._w.set(s.atomPos[sa * 3]! * K, s.atomPos[sa * 3 + 1]! * K, s.atomPos[sa * 3 + 2]! * K).sub(A)
+    const A = this._c.set(s.atomPos[ba * 3]!, s.atomPos[ba * 3 + 1]!, s.atomPos[ba * 3 + 2]!)
+    const dir = this._w.set(s.atomPos[sa * 3]!, s.atomPos[sa * 3 + 1]!, s.atomPos[sa * 3 + 2]!).sub(A)
     const len = dir.length()
     if (len < 1e-6) {
-      this.field.visible = false
+      this.bridge.visible = false
       return
     }
     dir.divideScalar(len)
-    this._e1.set(0, 0, 1).cross(dir)
-    if (this._e1.lengthSq() < 1e-6) this._e1.set(0, 1, 0)
-    this._e1.normalize()
-    this._e2.copy(dir).cross(this._e1).normalize()
-    const bulge = Math.max(0.42 * len, 150 * K)
-    const tt = this.clock.t
-    const rr = 3.2 * K
-    const A0 = A.x
-    const A1 = A.y
-    const A2 = A.z
-    for (let a = 0; a < FIELD_ARCS; a++) {
-      const th = ((a + 0.5) * 2 * Math.PI) / FIELD_ARCS
-      const ox = Math.cos(th) * this._e1.x + Math.sin(th) * this._e2.x
-      const oy = Math.cos(th) * this._e1.y + Math.sin(th) * this._e2.y
-      const oz = Math.cos(th) * this._e1.z + Math.sin(th) * this._e2.z
-      for (let k = 0; k < FIELD_SEG; k++) {
-        const u0 = k / FIELD_SEG
-        const u1 = (k + 1) / FIELD_SEG
-        const b0 = bulge * Math.sin(Math.PI * u0)
-        const b1 = bulge * Math.sin(Math.PI * u1)
-        this._v.set(A0 + dir.x * len * u0 + ox * b0, A1 + dir.y * len * u0 + oy * b0, A2 + dir.z * len * u0 + oz * b0)
-        this._s.set(A0 + dir.x * len * u1 + ox * b1, A1 + dir.y * len * u1 + oy * b1, A2 + dir.z * len * u1 + oz * b1)
-        const mx = (this._v.x + this._s.x) / 2
-        const my = (this._v.y + this._s.y) / 2
-        const mz = (this._v.z + this._s.z) / 2
-        this._s.sub(this._v)
-        const sl = this._s.length()
-        this._s.divideScalar(Math.max(1e-9, sl))
-        this._q.setFromUnitVectors(this._up, this._s)
-        this._v.set(mx, my, mz)
-        this._s.set(rr, sl, rr)
-        this._m.compose(this._v, this._q, this._s)
-        const idx = a * FIELD_SEG + k
-        this.field.setMatrixAt(idx, this._m)
-        // тёплый у Ba²⁺ → холодный у SO₄²⁻; импульсы бегут от обоих ионов к середине — «тяга»
-        const u = (u0 + u1) / 2
-        const flow = 0.5 + 0.5 * Math.sin(22 * Math.abs(u - 0.5) + tt * 6.5)
-        const k2 = fa * (0.3 + 0.7 * flow * flow) * Math.min(1, Math.sin(Math.PI * u) * 3)
-        this._col.setRGB((1 - 0.7 * u) * k2, (0.62 + 0.14 * u) * k2, (0.3 + 0.7 * u) * k2)
-        this.field.setColorAt(idx, this._col)
+    const rBa = s.atomR[ba]! * this.viewK[ba]!
+    const rGroup = m.core.so + s.atomR[sa + 1]! * this.viewK[sa + 1]!
+    const a0 = rBa * 0.8
+    const b0 = len - rGroup * 0.55
+    const span = Math.max(1, b0 - a0)
+    const u = this.bridgeMat.uniforms
+    ;(u.uA!.value as THREE.Vector3).copy(A).addScaledVector(dir, a0).multiplyScalar(K)
+    ;(u.uB!.value as THREE.Vector3).copy(A).addScaledVector(dir, b0).multiplyScalar(K)
+    u.uHalf!.value = rBa * 0.72 * K
+    u.uE0!.value = Math.min(0.45, (rBa * 0.45) / span)
+    u.uE1!.value = Math.min(0.6, (rGroup * 0.75) / span)
+    u.uTime!.value = this.clock.t
+    u.uAlpha!.value = fa
+  }
+
+  /** Тетраэдры SO₄ кристалла: вершины — атомы O группы, проявляются после посадки, в хвосте гаснут (у героя их нет). */
+  private applyPolyhedra(s: SolutionState, hold: number): void {
+    const m = this.model
+    const pos = this.polyGeo.getAttribute('position') as THREE.BufferAttribute
+    const al = this.polyGeo.getAttribute('aAlpha') as THREE.BufferAttribute
+    const P = s.atomPos
+    const fin = m.finish
+    const tail = 1 - solutionSmooth(fin.from, fin.from + 1.1, s.t)
+    let any = false
+    for (let k = 0; k < this.polyBodies.length; k++) {
+      const bi = this.polyBodies[k]!
+      const b = m.bodies[bi]!
+      const a = solutionSmooth(this.polyFrom[k]!, this.polyFrom[k]! + 0.9, s.t) * s.bodyAppear[bi]! * s.bodyDim[bi]! * s.microAlpha * hold * tail
+      if (a > 0.003) any = true
+      for (let f = 0; f < 4; f++) {
+        for (let c = 0; c < 3; c++) {
+          const v = k * 12 + f * 3 + c
+          const ai = b.atoms[1 + TETRA_FACES[f]![c]!]!
+          pos.setXYZ(v, P[ai * 3]! * K, P[ai * 3 + 1]! * K, P[ai * 3 + 2]! * K)
+          al.setX(v, a)
+        }
       }
     }
-    this.field.instanceMatrix.needsUpdate = true
-    if (this.field.instanceColor) this.field.instanceColor.needsUpdate = true
+    pos.needsUpdate = true
+    al.needsUpdate = true
+    this.poly.visible = any
   }
 
   private pxPerProjUnit(): number {
