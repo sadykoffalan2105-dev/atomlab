@@ -1935,18 +1935,19 @@ function sampleMicroLabels(m: SolutionModel, t: number, out: SolutionState, L: I
   setLabel(L.attract, (a.a[0] + a.b[0]) / 2, Math.max(a.a[1], a.b[1]) + 250, (a.a[2] + a.b[2]) / 2, win(L.attract))
   const c0 = m.bodies[R.anions[0]!]!.atoms[0]! * 3
   setLabel(L.spectators, (P[c0]! + P[h0]!) / 2, Math.max(P[c0 + 1]!, P[h0 + 1]!) + 270, 0, win(L.spectators))
+  // «соляная кислота» — над наблюдателями (не между ними: на узком экране подпись ложилась на нижнюю пару)
   let x = 0
-  let y = 0
+  let y = -Infinity
   const spect = R.anions.length + R.protons.length
   for (const b of R.anions) {
     x += P[m.bodies[b]!.atoms[0]! * 3]!
-    y += P[m.bodies[b]!.atoms[0]! * 3 + 1]!
+    y = Math.max(y, P[m.bodies[b]!.atoms[0]! * 3 + 1]!)
   }
   for (const b of R.protons) {
     x += P[m.bodies[b]!.atoms[0]! * 3]!
-    y += P[m.bodies[b]!.atoms[0]! * 3 + 1]!
+    y = Math.max(y, P[m.bodies[b]!.atoms[0]! * 3 + 1]!)
   }
-  setLabel(L.resultAcid, x / spect, y / spect, 0, win(L.resultAcid))
+  setLabel(L.resultAcid, x / spect, y + 440, 0, win(L.resultAcid))
 }
 
 /** Габарит кадра по времени (пм): w, h, центр — хост вписывает его в свободную область. */
