@@ -19,19 +19,13 @@ export type FormationControl = {
 
 export function useFormation(compoundId: string | null): FormationControl {
   const clock = useRef<FormationClock>({ t: 0, playing: false })
-  const [active, setActive] = useState(false)
+  // Показ привязан к веществу: смена вещества — показ закрыт (без сброса состояния в эффекте).
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const active = activeId != null && activeId === compoundId
   const [playing, setPlaying] = useState(false)
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0)
   const plan = useMemo(() => (compoundId ? formationPlan(compoundId) : null), [compoundId])
   const tl = useMemo(() => (plan ? formationTimeline(plan) : null), [plan])
-
-  // Смена вещества — показ закрывается.
-  useEffect(() => {
-    setActive(false)
-    setPlaying(false)
-    setStep(0)
-    clock.current = { t: 0, playing: false }
-  }, [compoundId])
 
   useEffect(() => {
     if (!active || !tl) return
@@ -54,8 +48,8 @@ export function useFormation(compoundId: string | null): FormationControl {
     clock.current = { t: 0, playing: true }
     setStep(0)
     setPlaying(true)
-    setActive(true)
-  }, [])
+    setActiveId(compoundId)
+  }, [compoundId])
   const toggle = useCallback(() => {
     clock.current.playing = !clock.current.playing
     setPlaying(clock.current.playing)
@@ -69,7 +63,7 @@ export function useFormation(compoundId: string | null): FormationControl {
   const close = useCallback(() => {
     clock.current.playing = false
     setPlaying(false)
-    setActive(false)
+    setActiveId(null)
   }, [])
   return { active, playing, step, clock, start, toggle, replay, close }
 }
