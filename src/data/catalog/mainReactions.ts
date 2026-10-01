@@ -23,7 +23,7 @@ export function mainReactionSkeleton(equation: string): string {
         ? part
         : part
             .split(/(\s\+\s)/)
-            .map((t) => (/^\s\+\s$/.test(t) ? t : t.replace(/^(\s*)\d+(?=[A-Z(\[])/, '$1')))
+            .map((t) => (/^\s\+\s$/.test(t) ? t : t.replace(/^(\s*)\d+(?=[A-Z([])/, '$1')))
             .join(''),
     )
     .join('')

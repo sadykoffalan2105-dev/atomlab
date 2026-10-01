@@ -21,8 +21,8 @@ export function normalizeReactionQuery(q: string): string {
     .replace(/\s+/g, ' ')
 }
 
-/** Предикат поиска (пустой запрос — всё). */
-export function useMainReactionSearch(query: string, locale: AppLocale, t: T): (r: MainReaction) => boolean {
+/** Реакции, подходящие под запрос (пустой запрос — все 200, в порядке списка). */
+export function useMainReactionSearch(query: string, locale: AppLocale, t: T): readonly MainReaction[] {
   const blobs = useMemo(() => {
     const m = new Map<string, string>()
     for (const r of MAIN_REACTIONS_200) {
@@ -37,13 +37,13 @@ export function useMainReactionSearch(query: string, locale: AppLocale, t: T): (
     }
     return m
   }, [locale, t])
-  const q = normalizeReactionQuery(query)
   return useMemo(() => {
-    if (q.length === 0) return () => true
+    const q = normalizeReactionQuery(query)
+    if (q.length === 0) return MAIN_REACTIONS_200
     const compact = q.replace(/\s+/g, '')
-    return (r: MainReaction) => {
+    return MAIN_REACTIONS_200.filter((r) => {
       const b = blobs.get(r.id) ?? ''
       return b.includes(q) || b.includes(compact)
-    }
-  }, [q, blobs])
+    })
+  }, [query, blobs])
 }

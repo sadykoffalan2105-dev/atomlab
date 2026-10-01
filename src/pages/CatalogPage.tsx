@@ -973,8 +973,7 @@ export function CatalogPage() {
   const currentGradeStats = useMemo(() => (reader ? gradeReactionStats(reader) : null), [reader])
 
   // —— 200 основных реакций: класс, поиск, тип ——
-  const mainMatches = useMainReactionSearch(isMainRx ? q : '', locale, t)
-  const mainSearched = useMemo(() => MAIN_REACTIONS_200.filter(mainMatches), [mainMatches])
+  const mainSearched = useMainReactionSearch(isMainRx ? q : '', locale, t)
   const mainGradeCounts = useMemo(() => {
     const m: Partial<Record<SchoolGrade | 'all', number>> = { all: mainSearched.length }
     for (const g of SCHOOL_GRADES) m[g] = mainSearched.filter((r) => r.grades.includes(g)).length

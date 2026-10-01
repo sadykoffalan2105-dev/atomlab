@@ -6,7 +6,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMainReactionSearch } from '../catalog/mainReactionSearch'
 import {
-  MAIN_REACTIONS_200,
   MAIN_REACTION_TYPE_ORDER,
   mainReactionSkeleton,
   type MainReaction,
@@ -60,7 +59,7 @@ export function MainReactionPicker({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  const searched = useMemo(() => MAIN_REACTIONS_200.filter(matches), [matches])
+  const searched = matches
   const counts = useMemo(() => {
     const m = new Map<MainReactionType, number>()
     for (const r of searched) m.set(r.type, (m.get(r.type) ?? 0) + 1)
