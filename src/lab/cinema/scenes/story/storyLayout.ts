@@ -347,7 +347,7 @@ function termCluster(side: StorySide, term: number, r: (i: number) => number): M
       put(it, ci)
     }
     for (const it of majority) put(it, byCenter.find((k) => !used.has(k))!)
-    if (kind === 'ionic') compactIons(items.map((x) => x.atoms), out, r)
+    if (kind === 'ionic') compactIons(items.map((x) => x.atoms), out, r, el)
     centerMap(out, r)
     return out
   }
@@ -374,7 +374,7 @@ function termCluster(side: StorySide, term: number, r: (i: number) => number): M
  * многоатомных ионов (Fe²⁺ … SO₄²⁻ — кислород не на линии сетки). Ионы по очереди (от центра наружу) сдвигаются
  * к центру, пока не коснутся уже стоящих (зазор 0.02).
  */
-function compactIons(items: readonly (readonly number[])[], pos: Map<number, V>, r: (i: number) => number): void {
+function compactIons(items: readonly (readonly number[])[], pos: Map<number, V>, r: (i: number) => number, elOf: (i: number) => string): void {
   if (items.length < 2) return
   const centre = (it: readonly number[]): V => {
     const c: V = [0, 0, 0]
@@ -395,6 +395,23 @@ function compactIons(items: readonly (readonly number[])[], pos: Map<number, V>,
   }
   gx /= cnt
   gy /= cnt
+  // ион с водородом (OH⁻, HCO₃⁻ …) — водородом наружу: к катиону обращён кислород (иначе Ca²⁺ «касался» H)
+  for (const it of items) {
+    const hs = it.filter((i) => elOf(i) === 'H')
+    if (hs.length === 0 || hs.length === it.length) continue
+    const c = centre(it)
+    let hx = 0
+    let hy = 0
+    for (const i of hs) {
+      hx += pos.get(i)![0] / hs.length - c[0] / hs.length
+      hy += pos.get(i)![1] / hs.length - c[1] / hs.length
+    }
+    if (hx * (gx - c[0]) + hy * (gy - c[1]) <= 0) continue
+    for (const i of it) {
+      const p = pos.get(i)!
+      pos.set(i, [2 * c[0] - p[0], 2 * c[1] - p[1], p[2]])
+    }
+  }
   const order = items.map((it, k) => ({ it, k, d: Math.hypot(centre(it)[0] - gx, centre(it)[1] - gy) })).sort((a, b) => a.d - b.d)
   const fixed: number[] = [...order[0]!.it]
   const clash = (it: readonly number[], dx: number, dy: number) => {
