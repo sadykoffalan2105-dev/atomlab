@@ -11,7 +11,8 @@
  *  • анимация (storyLayout): летящих e⁻ (с учётом групп «×n») = Σ Δ степеней окисления, каждая точка — от донора
  *    к акцептору; подсвеченные доноры/акцепторы = атомы, у которых степень окисления растёт/падает; Σ ≤ 6 — по
  *    одному, иначе не больше 6 волн; полёты — внутри шага переноса, до паузы-акцента; атомы есть в каждом кадре;
- *    в итоге газ/осадок не налезают на другие продукты.
+ *    в итоге газ/осадок не налезают на другие продукты; огромные реакции — компактный вид (по одной лицевой копии
+ *    члена, у каждого члена с ролью светится лицевой атом).
  * Запуск: npx tsx scripts/test-reaction-story.mts
  */
 import { existsSync, readFileSync } from 'node:fs'
@@ -20,7 +21,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { SCHOOL_REACTION_BANK } from '../src/chemistry/schoolReactionBank'
 import { buildReactionStory, unitOxSum, type ReactionStory } from '../src/chemistry/reactionStory'
 import { parseEquationText, equationImbalance } from '../src/chemistry/equationFormula'
-import { buildStoryLayout, E_SINGLE_MAX, E_WAVES_MAX, storyAtomPos } from '../src/lab/cinema/scenes/story/storyLayout'
+import { buildStoryLayout, E_SINGLE_MAX, E_WAVES_MAX, STORY_COMPACT_ATOMS, STORY_COMPACT_ATOMS_LOW, storyAtomPos } from '../src/lab/cinema/scenes/story/storyLayout'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -139,7 +140,34 @@ function checkLayout(label: string, s: ReactionStory): void {
     if (lay.eSingle) ok(lay.electrons.every((e) => e.n === 1) && lay.electrons.length <= E_SINGLE_MAX, `${tag}: по одному — только при Σ ≤ ${E_SINGLE_MAX}`)
     else {
       const frac = lay.electrons.some((e) => Math.abs(e.n - Math.round(e.n)) > 1e-6)
-      ok(lay.waves.length <= E_WAVES_MAX && (sumN > E_SINGLE_MAX - 1e-9 || frac), `${tag}: группами — не больше ${E_WAVES_MAX} волн`)
+      ok(lay.waves.length <= E_WAVES_MAX && (sumN > E_SINGLE_MAX - 1e-9 || frac || lay.compact), `${tag}: группами — не больше ${E_WAVES_MAX} волн`)
+    }
+    // компактный вид огромных реакций: у каждого члена ровно одна лицевая копия; светятся (лицевые) доноры и
+    // акцепторы — у каждого члена с ролью есть свой светящийся атом; волна «×n» — поток одного члена к одному
+    const leftTerm = (i: number) => L.units[L.atoms[i]!.unit]!.term
+    ok(lay.compact === lay.n > (lowPower ? STORY_COMPACT_ATOMS_LOW : STORY_COMPACT_ATOMS), `${tag}: компактный вид — только у огромных реакций`)
+    if (lay.compact) {
+      for (const [side, layer, atomUnit] of [
+        [L, lay.layerL, (i: number) => L.atoms[i]!.unit],
+        [R, lay.layerR, (i: number) => R.atoms[s.map[i]!]!.unit],
+      ] as const) {
+        const frontUnits = new Map<number, Set<number>>()
+        for (let i = 0; i < lay.n; i++) {
+          if (layer[i]) continue
+          const u = side.units[atomUnit(i)]!
+          const g = frontUnits.get(u.term) ?? new Set<number>()
+          g.add(u.id)
+          frontUnits.set(u.term, g)
+        }
+        const terms = new Set(side.units.map((u) => u.term))
+        ok([...terms].every((tm) => frontUnits.get(tm)?.size === 1), `${tag}: компактный вид — по одной лицевой копии у каждого члена`)
+      }
+      for (const [list, what] of [[up, 'донор'], [down, 'акцептор']] as const) {
+        const termsWith = new Set(list.map(leftTerm))
+        const glowTerms = new Set(list.filter((i) => !lay.layerL[i]).map(leftTerm))
+        ok([...termsWith].every((tm) => glowTerms.has(tm)), `${tag}: компактный вид — у каждого члена с ролью «${what}» светится лицевой атом`)
+      }
+      ok(lay.waves.every((w) => new Set(w.tokens.map((k) => `${leftTerm(lay.electrons[k]!.from)}>${leftTerm(lay.electrons[k]!.to)}`)).size >= 1), `${tag}: волны компактного вида`)
     }
     const sE = lay.steps.find((x) => x.id === 'electrons')
     if (s.redox && sE) ok(lay.electrons.every((e) => e.t0 >= sE.from && e.t1 <= sE.to - 1.5), `${tag}: полёты внутри шага переноса, пауза-акцент ≥ 1.5 с`)
@@ -304,7 +332,18 @@ const oxOf = (s: ReactionStory, side: 'left' | 'right', el: string) => [...new S
   const s = ref('2KMnO₄ + 16HCl → 2KCl + 2MnCl₂ + 5Cl₂ + 8H₂O')
   ok(s.electrons === 10, 'KMnO₄ + HCl: 10e⁻')
   const lay = buildStoryLayout(s)
-  ok(!lay.eSingle && lay.waves.length === 2 && lay.waves.every((w) => w.n === 5), 'KMnO₄ + HCl: две волны «e⁻ ×5» — к каждому Mn')
+  // 44 атома — компактный вид: одна волна «e⁻ ×10» от стопки HCl к стопке KMnO₄ (10Cl⁻ − 10e⁻ → 5Cl₂, 2Mn⁺⁷ + 10e⁻)
+  ok(lay.compact && !lay.eSingle && lay.waves.length === 1 && lay.waves[0]!.n === 10, 'KMnO₄ + HCl: компактно, одна волна «e⁻ ×10»')
+  const small = buildStoryLayout(ref('MnO₂ + 4HCl → MnCl₂ + Cl₂ + 2H₂O'))
+  ok(!small.compact && small.eSingle && small.electrons.length === 2, 'MnO₂ + 4HCl: обычный вид, два e⁻ по одному')
+}
+{
+  // 128 атомов: у каждого из 7 членов одна лицевая копия; поток FeSO₄ → KMnO₄ — одна волна «e⁻ ×10»
+  const s = ref('2KMnO₄ + 10FeSO₄ + 8H₂SO₄ → K₂SO₄ + 2MnSO₄ + 5Fe₂(SO₄)₃ + 8H₂O')
+  const lay = buildStoryLayout(s)
+  const frontL = new Set<number>()
+  for (let i = 0; i < lay.n; i++) if (!lay.layerL[i]) frontL.add(s.left.atoms[i]!.unit)
+  ok(lay.compact && frontL.size === 3 && lay.waves.length === 1 && lay.waves[0]!.n === 10, 'KMnO₄ + FeSO₄: компактно, 3 лицевые копии слева, волна «e⁻ ×10»')
 }
 {
   const s = ref('Fe + CuSO₄ → FeSO₄ + Cu')

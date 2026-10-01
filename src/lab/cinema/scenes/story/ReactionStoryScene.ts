@@ -5,7 +5,7 @@ import type { DomLabelSource } from '../../react/CinemaDomLabels'
 import type { SceneLocale } from '../kit/sceneKit'
 import { naclHaloTexture, naclSphereGeometry, NACL_RIM, withNaclRim } from '../nacl/naclLatticeView'
 import type { SchoolRuntimeOptions, SchoolRuntimeScene, SchoolRuntimeStatus } from '../school/schoolRuntime'
-import { buildStoryLayout, smooth, storyAtomPos, storyAtomRadius, type StoryLayout } from './storyLayout'
+import { buildStoryLayout, smooth, storyAtomPos, storyAtomRadius, STORY_LAYER_BRIGHT, type StoryLayout } from './storyLayout'
 
 /**
  * СЦЕНА «СЮЖЕТ РЕАКЦИИ» — анимация после синтеза для реакций без своей школьной сцены (интерфейс
@@ -22,6 +22,8 @@ import { buildStoryLayout, smooth, storyAtomPos, storyAtomRadius, type StoryLayo
  * Номер шага и уравнение — в панели урока, в кадре их не дублируем.
  * Кадр — чистая функция времени (storyLayout.storyAtomPos): перемотка и повтор шага дают тот же кадр.
  * Атомы одни и те же весь ролик — ни один не исчезает и не появляется из ниоткуда.
+ * Огромные реакции (lay.compact): у члена читается одна лицевая копия, остальные — тёмная стопка позади; подписи,
+ * чипы, свечение ролей и вспышки — только у лицевых копий, e⁻ летят волной «×n» от стопки к стопке.
  * Производительность: атомы, палочки, электроны — три InstancedMesh; ноль аллокаций в update.
  */
 
@@ -102,7 +104,9 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
   private readonly eLabelIdx: number[] = []
   private readonly waveLabelIdx: number[] = []
   private halfIdx = -1
-  private lastDim = 0
+  /** текущая яркость атома (слой стопки × притушение зрителей) — цвет пишется, только когда она изменилась */
+  private readonly bright: Float32Array
+  private readonly stickBright: Float32Array
 
   private readonly _m = new THREE.Matrix4()
   private readonly _q = new THREE.Quaternion()
@@ -138,6 +142,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     const n = lay.n
     this.pos = new Float32Array(n * 3)
     this.rad = new Float32Array(n)
+    this.bright = new Float32Array(n).fill(-1)
     const sphere = naclSphereGeometry(opts.lowPower)
 
     // ——— атомы ———
@@ -150,15 +155,20 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       this.baseColors.push(c)
       this.atoms.setColorAt(i, c)
     }
+    // роль (свечение, полная яркость на шаге переноса) — у доноров и акцепторов лицевых копий
     this.roleOf = new Int8Array(n)
-    for (const i of lay.donors) this.roleOf[i] = 1
-    for (const i of lay.acceptors) this.roleOf[i] = -1
+    for (const i of lay.donors) if (!lay.layerL[i]) this.roleOf[i] = 1
+    for (const i of lay.acceptors) if (!lay.layerL[i]) this.roleOf[i] = -1
     this.root.add(this.atoms)
 
     // ——— палочки ———
     this.stickGeo = new THREE.CylinderGeometry(1, 1, 1, opts.lowPower ? 8 : 14, 1, true)
     this.stickMat = withNaclRim(new THREE.MeshPhysicalMaterial({ color: 0xc9d1dc, ...MATTE, transparent: true, fog: false }), 0xffffff, NACL_RIM.atom)
-    this.sticks = new THREE.InstancedMesh(this.stickGeo, this.stickMat, Math.max(1, lay.sticks.reduce((n, x) => n + x.order, 0)))
+    const stickCount = Math.max(1, lay.sticks.reduce((n, x) => n + x.order, 0))
+    this.sticks = new THREE.InstancedMesh(this.stickGeo, this.stickMat, stickCount)
+    this.stickBright = new Float32Array(stickCount).fill(-1)
+    // палочки стопки (компактный вид) темнее — цвет экземпляра
+    if (lay.compact) for (let k = 0; k < stickCount; k++) this.sticks.setColorAt(k, this._c.setRGB(1, 1, 1))
     this.sticks.name = 'reaction-story-bonds'
     this.sticks.frustumCulled = false
     this.root.add(this.sticks)
@@ -194,14 +204,14 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       this.haloMats.push(m)
     }
     // свечение ролей: все доноры и акцепторы (на слабом устройстве — первые 10)
-    this.glowAtoms = [...lay.donors, ...lay.acceptors].slice(0, opts.lowPower ? 10 : 48)
+    this.glowAtoms = [...lay.donors, ...lay.acceptors].filter((i) => this.roleOf[i]).slice(0, opts.lowPower ? 10 : 48)
     for (const i of this.glowAtoms) {
       const { s, m } = sprite(this.roleOf[i]! > 0 ? DONOR_COLOR : ACCEPTOR_COLOR, 2)
       this.glows.push(s)
       this.glowMats.push(m)
     }
     // вспышки новых связей (каждая палочка-«formed»; если их много — каждая k-я, не больше 40 / 8 на слабом)
-    const formed = lay.sticks.map((x, k) => (x.kind === 'formed' ? k : -1)).filter((k) => k >= 0)
+    const formed = lay.sticks.map((x, k) => (x.kind === 'formed' && !lay.layerR[x.a] && !lay.layerR[x.b] ? k : -1)).filter((k) => k >= 0)
     const flashCap = opts.lowPower ? 8 : 40
     const every = Math.max(1, Math.ceil(formed.length / flashCap))
     formed.forEach((k, q) => {
@@ -209,17 +219,22 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const { s, m } = sprite(BOND_FLASH_COLOR, 3)
       this.bondFlashes.push({ sprite: s, mat: m, stick: k })
     })
-    for (const g of lay.keptGroups.slice(0, opts.lowPower ? 4 : 12)) {
+    for (const g of lay.keptGroups.filter((x) => x.atoms.every((i) => !lay.layerL[i] && !lay.layerR[i])).slice(0, opts.lowPower ? 4 : 12)) {
       const { s, m } = sprite(KEPT_COLOR, 1)
       this.keptGlows.push({ sprite: s, mat: m, atoms: g.atoms })
     }
 
     // ——— подписи ———
     this.atomLabelIdx = new Int32Array(n).fill(-1)
-    const many = n > MAX_ATOM_LABELS_ALL
+    // символ — у атомов лицевых копий (слева или справа); у стопки подписей нет
+    const front = (i: number) => !lay.layerL[i] || !lay.layerR[i]
+    let frontCount = 0
+    for (let i = 0; i < n; i++) if (front(i)) frontCount++
+    const many = frontCount > MAX_ATOM_LABELS_ALL
     const oxSet = new Set(lay.oxAtoms)
     for (let i = 0; i < n; i++) {
       const e = lay.el[i]!
+      if (!front(i)) continue
       if (many && (e === 'H' || e === 'O') && !oxSet.has(i)) continue
       this.atomLabelIdx[i] = this.labels.length
       this.labels.push({ id: `a${i}`, kind: schoolLabelDark(schoolAtomHex(e)) ? 'atomDark' : 'atom', pos: new THREE.Vector3(), opacity: 0, text: lay.labelL[i]!, avoidR: lay.radius[i]! })
@@ -227,10 +242,11 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     // чипы степеней окисления — у меняющих её атомов (по два на строку изменения, если атомов много)
     // у многих атомов — по два чипа на строку изменения (остальные доноры/акцепторы видны по свечению)
     const chipAtoms: number[] = []
-    if (lay.oxAtoms.length <= MAX_OX_CHIPS_ALL) chipAtoms.push(...lay.oxAtoms)
+    const oxFront = lay.oxAtoms.filter((i) => !lay.layerL[i])
+    if (oxFront.length <= MAX_OX_CHIPS_ALL) chipAtoms.push(...oxFront)
     else {
       const per = new Map<string, number>()
-      for (const i of lay.oxAtoms) {
+      for (const i of oxFront) {
         const k = `${lay.el[i]}|${lay.oxL[i]}|${lay.oxR[i]}`
         const c = per.get(k) ?? 0
         if (c < 2) chipAtoms.push(i)
@@ -480,21 +496,41 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       this.atoms.setMatrixAt(i, this._m)
     }
     this.atoms.instanceMatrix.needsUpdate = true
-    // шаг переноса: атомы-зрители притушены — доноры и акцепторы читаются сразу
+    // шаг переноса: атомы-зрители притушены — доноры и акцепторы читаются сразу; стопка копий — тёмная
     const dimU = Number.isFinite(lay.eOn) ? smooth(lay.eOn, lay.eOn + 0.5, t) * (1 - smooth(lay.eOff - 0.2, lay.eOff + 0.5, t)) : 0
-    if (Math.abs(dimU - this.lastDim) > 0.004 || (dimU === 0 && this.lastDim !== 0)) {
-      this.lastDim = dimU
-      for (let i = 0; i < n; i++) this.atoms.setColorAt(i, this._c.copy(this.baseColors[i]!).multiplyScalar(this.roleOf[i] ? 1 : 1 - SPECTATOR_DIM * dimU))
-      if (this.atoms.instanceColor) this.atoms.instanceColor.needsUpdate = true
+    let colorDirty = false
+    for (let i = 0; i < n; i++) {
+      const bl = STORY_LAYER_BRIGHT[lay.layerL[i]!]!
+      const br = STORY_LAYER_BRIGHT[lay.layerR[i]!]!
+      const layerB = bl === br ? bl : bl + (br - bl) * smooth(lay.moveFrom[i]!, lay.moveFrom[i]! + lay.moveDur, t)
+      const b = layerB * (this.roleOf[i] ? 1 : 1 - SPECTATOR_DIM * dimU)
+      if (Math.abs(b - this.bright[i]!) > 0.004 || (b === 1 && this.bright[i] !== 1)) {
+        this.bright[i] = b
+        this.atoms.setColorAt(i, this._c.copy(this.baseColors[i]!).multiplyScalar(b))
+        colorDirty = true
+      }
     }
+    if (colorDirty && this.atoms.instanceColor) this.atoms.instanceColor.needsUpdate = true
     this.atomMat.opacity = fade
     this.atoms.visible = fade > 0.002
 
     // ——— палочки ———
     const sticks = lay.sticks
     let inst = 0
+    let stickDirty = false
     for (let k = 0; k < sticks.length; k++) {
       const s = sticks[k]!
+      if (lay.compact) {
+        // палочка стопки — темнее (по более тёмному из двух атомов, без притушения зрителей)
+        const sb = Math.min(this.layerBright(s.a, t), this.layerBright(s.b, t))
+        if (Math.abs(sb - this.stickBright[inst]!) > 0.004) {
+          for (let o = 0; o < s.order; o++) {
+            this.stickBright[inst + o] = sb
+            this.sticks.setColorAt(inst + o, this._c.setRGB(sb, sb, sb))
+          }
+          stickDirty = true
+        }
+      }
       const alpha = s.kind === 'kept' ? 1 : s.kind === 'broken' ? 1 - smooth(s.t0, s.t1, t) : smooth(s.t0, s.t1, t)
       // кратная связь — параллельные палочки потоньше (как в школьной сцене: двойная — две, тройная — три)
       const rad = STICK_R * alpha * (s.order > 1 ? 0.72 : 1)
@@ -520,6 +556,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       }
     }
     this.sticks.instanceMatrix.needsUpdate = true
+    if (stickDirty && this.sticks.instanceColor) this.sticks.instanceColor.needsUpdate = true
     this.stickMat.opacity = fade
     this.sticks.visible = fade > 0.002 && sticks.length > 0
 
@@ -665,8 +702,13 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const r = R[i]!
       L.pos.set(P[i * 3]!, P[i * 3 + 1]!, P[i * 3 + 2]! + r)
       L.avoidR = r
-      // символ атома-зрителя на шаге переноса притушен вместе с шаром
-      L.opacity = fade * (this.roleOf[i] ? 1 : 1 - 0.45 * dimU)
+      // символ атома-зрителя на шаге переноса притушен вместе с шаром; у атома, уходящего в стопку (или
+      // приходящего из неё) символ гаснет при отлёте (проявляется при прилёте)
+      const fl = lay.layerL[i] ? 0 : 1
+      const fr = lay.layerR[i] ? 0 : 1
+      const mf = lay.moveFrom[i]!
+      const fm = fl === fr ? fl : fl ? 1 - smooth(mf, mf + 0.35 * lay.moveDur, t) : smooth(mf + 0.65 * lay.moveDur, mf + lay.moveDur, t)
+      L.opacity = fade * fm * (this.roleOf[i] ? 1 : 1 - 0.45 * dimU)
     }
     // чип степени окисления: над шаром на шаге переноса; в момент отлёта/прилёта — «щелчок» и новое значение
     for (const { atom, label } of this.oxLabelIdx) {
@@ -715,6 +757,14 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     }
     void stepId
     void stepFrom
+  }
+
+  /** Яркость атома по слою стопки в момент t (лицевая копия — 1). */
+  private layerBright(i: number, t: number): number {
+    const lay = this.lay
+    const bl = STORY_LAYER_BRIGHT[lay.layerL[i]!]!
+    const br = STORY_LAYER_BRIGHT[lay.layerR[i]!]!
+    return bl === br ? bl : bl + (br - bl) * smooth(lay.moveFrom[i]!, lay.moveFrom[i]! + lay.moveDur, t)
   }
 
   /** Точка дуги электрона (u ∈ [0, 1]) от поверхности донора к поверхности акцептора, приподнята к зрителю. */
