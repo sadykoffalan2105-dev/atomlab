@@ -19,6 +19,8 @@ import { AtomStructureModel } from './AtomStructureModel'
 import { MoleculeMesh } from './MoleculeMesh'
 import { SynthesisOnLabScene } from './SynthesisOnLabScene'
 import { SynthesisElementsCollapseFx } from './SynthesisElementsCollapseFx'
+import { ReactionStoryFx } from '../../lab/cinema/scenes/story/ReactionStoryFx'
+import { storyEquationFromFlight, storyEquationFromReactor } from '../../lab/cinema/scenes/story/storyLesson'
 import { setCinemaActive } from '../../lab/cinemaActive'
 import { clo2StepStore } from '../../lab/cinema/scenes/clo2/clo2StepStore'
 import { InstantLabSynthesis } from './InstantLabSynthesis'
@@ -704,11 +706,27 @@ function SceneContent({
     (elementsCollapsePlaying || collapseFxLinger)
   // Научная сцена — по РЕАКЦИИ, а не по продукту: реагенты синтеза (flyTerms) обязаны совпасть
   // с сигнатурой сцены. «NaOH + HCl → NaCl» не играет «2 Na + Cl₂», Mg(OH)₂ → MgO — не горение Mg.
+  // ?story=1 — показать «сюжет реакции» и там, где есть своя школьная сцена (сравнение, кадры).
+  const forceStory = useMemo(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('story') === '1'
+    } catch {
+      return false
+    }
+  }, [])
+  const sceneFxMatch = !forceStory && hasScientificSynthesisFx(synthesis?.product?.id, synthesis?.flyTerms)
+  // Реакции без своей сцены — «сюжет реакции» (scenes/story): частицы по коэффициентам, разрыв, перенос e⁻,
+  // образование, итог. Уравнение — с экрана реакции (или из полёта «элементы → вещество»).
+  const storyEquation = useMemo(() => {
+    if (!synthActive || !synthesis || sceneFxMatch) return null
+    if (scientificStage && scientificStage.productId === synthesis.product?.id) {
+      return storyEquationFromReactor(scientificStage)
+    }
+    return storyEquationFromFlight(synthesis.flyTerms, synthesis.product)
+  }, [synthActive, synthesis, sceneFxMatch, scientificStage])
   const scientificMicroworldActive =
-    synthActive &&
-    showElementsCollapseFx &&
-    hasScientificSynthesisFx(synthesis?.product?.id, synthesis?.flyTerms)
-  const ScientificFx = scientificMicroworldActive
+    synthActive && showElementsCollapseFx && (sceneFxMatch || storyEquation != null)
+  const ScientificFx = scientificMicroworldActive && sceneFxMatch
     ? getScientificSynthesisFx(synthesis?.product?.id, synthesis?.flyTerms)
     : null
   void collapseRev
@@ -2572,6 +2590,20 @@ function SceneContent({
                   key={`sci-${synthesis.product?.id ?? 'unknown'}-${synthesis.runId}`}
                   runId={synthesis.runId}
                   // Зафиксировано на старте запуска — без смены материалов посреди урока.
+                  lowPower={cinemaLowPower}
+                  teacherMode={teacherMode}
+                  onNarrationCue={onNarrationCue}
+                  onEmbryoReady={handleElementsCollapseEmbryoReady}
+                  onBirthReady={handleElementsCollapseBirthReady}
+                  onComplete={handleElementsCollapseComplete}
+                />
+              </group>
+            ) : storyEquation ? (
+              <group name="lab-cinema-scene-root">
+                <ReactionStoryFx
+                  key={`story-${synthesis.runId}`}
+                  equation={storyEquation}
+                  runId={synthesis.runId}
                   lowPower={cinemaLowPower}
                   teacherMode={teacherMode}
                   onNarrationCue={onNarrationCue}
