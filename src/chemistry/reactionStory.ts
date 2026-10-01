@@ -398,7 +398,7 @@ function bondPolyGroup(ub: UnitBuilder, ids: readonly number[]): void {
     return
   }
   const [c1, c2] = nonOH
-  let rest = Os.slice()
+  const rest = Os.slice()
   if (Os.length % 2 === 1 && ub.atoms[c1!]!.el === ub.atoms[c2!]!.el) {
     const bridge = rest.shift()!
     ub.bond(c1!, bridge)
@@ -528,7 +528,7 @@ function buildUnitSpec(sp: EquationSpecies): UnitSpec | null {
   const ub = new UnitBuilder()
   const toks = flatTokens(items)
   const elementsInMain = new Set(toks.map((t) => t.el))
-  let kind: StoryUnitKind = 'molecule'
+  let kind: StoryUnitKind
   let acid = false
 
   // ——— ион (ионные уравнения): Na⁺, SO₄²⁻, NH₄⁺ ———
