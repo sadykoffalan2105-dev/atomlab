@@ -308,6 +308,30 @@ const oxOf = (s: ReactionStory, side: 'left' | 'right', el: string) => [...new S
   ok(ord(n.right, 'N', 'O').length === 2 && ord(n.right, 'N', 'O').every((o) => o === 2), 'N₂ + O₂: N=O')
 }
 {
+  const ord = (side: ReactionStory['left'], a: string, b: string) =>
+    side.bonds.filter((x) => [side.atoms[x.a]!.el, side.atoms[x.b]!.el].sort().join('') === [a, b].sort().join('')).map((x) => x.order)
+  const pairOf = (side: ReactionStory['left'], i: number) => [side.atoms[side.bonds[i]!.a]!.el, side.atoms[side.bonds[i]!.b]!.el].sort().join('')
+  // H₂CO₃ — H–O–C(=O)–O–H: нет C–H, ровно одна C=O; при разложении рвутся только C–O(H) и O–H
+  const c = ref('H₂CO₃ → H₂O + CO₂')
+  ok(ord(c.left, 'C', 'H').length === 0, 'H₂CO₃: связи C–H нет')
+  ok(ord(c.left, 'C', 'O').filter((o) => o === 2).length === 1, 'H₂CO₃: одна C=O')
+  ok(c.bondsBroken.every((i) => pairOf(c.left, i) === 'CO' || pairOf(c.left, i) === 'HO'), 'H₂CO₃ → H₂O + CO₂: рвутся только C–O и O–H')
+  // пероксид диспропорционирует: O₂ — из пероксида, 2e⁻; кислород воды остаётся −2
+  const p = ref('2Na₂O₂ + 2H₂O → 4NaOH + O₂')
+  ok(p.electrons === 2, '2Na₂O₂ + 2H₂O: 2e⁻ (диспропорционирование пероксида)')
+  ok(p.oxidations.every((x) => x.el === 'O' && x.from === -1 && x.to === 0) && p.reductions.every((x) => x.el === 'O' && x.from === -1 && x.to === -2), '2Na₂O₂ + 2H₂O: O⁻¹ → O⁰ и O⁻¹ → O⁻²')
+  // кислородный анион соли — как в кислоте: SO₄²⁻ две S=O, ClO₃⁻ две Cl=O
+  const z = ref('Zn + H₂SO₄ → ZnSO₄ + H₂')
+  ok(ord(z.right, 'S', 'O').filter((o) => o === 2).length === 2, 'ZnSO₄: две S=O, как в H₂SO₄')
+  const k = ref('2KClO₃ → 2KCl + 3O₂')
+  ok(ord(k.left, 'Cl', 'O').filter((o) => o === 2).length === 4, '2KClO₃: по две Cl=O')
+  // горение — по типу каталога; восстановление оксида — без «оседает»
+  ok(!ref('4NO₂ + 2H₂O + O₂ → 4HNO₃').combustion, '4NO₂ + 2H₂O + O₂: не горение')
+  ok(!ref('2Cu + O₂ → 2CuO').combustion && ref('2Mg + O₂ → 2MgO').combustion, 'горение по каталогу: Cu — нет, Mg — да')
+  ok(ref('CuO + H₂ → Cu + H₂O').terms.find((t) => t.formula === 'Cu')?.fate !== 'deposit', 'CuO + H₂: Cu без ↓')
+  ok(ref('Fe + CuSO₄ → FeSO₄ + Cu').terms.find((t) => t.formula === 'Cu')?.fate === 'deposit', 'Fe + CuSO₄: Cu оседает')
+}
+{
   const s = ref('BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl')
   ok(!s.redox && s.electrons === 0, 'BaCl₂ + H₂SO₄: ОВР нет')
   ok(s.conserved.some(([, g]) => s.right.groups[g]!.label === 'SO₄²⁻'), 'BaCl₂ + H₂SO₄: SO₄²⁻ сохраняется')
