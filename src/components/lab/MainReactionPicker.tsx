@@ -86,8 +86,16 @@ export function MainReactionPicker({
 
   return (
     <>
-      <div className={styles.backdrop} onClick={onClose} aria-hidden />
-      <section className={styles.panel} role="dialog" aria-modal="true" aria-labelledby="main-rx-picker-title" data-main-rx-picker="">
+      <div className={styles.backdrop} onClick={onClose} aria-hidden data-app-night="" />
+      {/* Лаборатория тёмная в обеих темах: шторка — «ночной остров» (src/theme/appTheme.css). */}
+      <section
+        className={styles.panel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="main-rx-picker-title"
+        data-main-rx-picker=""
+        data-app-night=""
+      >
         <header className={styles.head}>
           <div className={styles.headText}>
             <h2 id="main-rx-picker-title" className={styles.title}>

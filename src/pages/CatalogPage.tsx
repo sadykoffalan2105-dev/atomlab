@@ -622,28 +622,24 @@ const MainReactionRow = memo(function MainReactionRow({ r }: { r: MainReaction }
   const tone = REACTION_TYPE_TONE[r.type] ?? REACTION_TYPE_TONE.other!
   const cond = mainReactionConditions(t, r)
   const grades = formatGradeRange(r.grades.filter((g): g is SchoolGrade => (SCHOOL_GRADES as readonly number[]).includes(g)))
+  const title = r.titleRu && locale === 'ru' ? r.titleRu : null
   return (
-    <li className={styles.rxRow} style={toneStyle(tone, tone)} data-main-rx={r.id}>
-      <div className={styles.rxRowTop}>
-        <span className={styles.rxClass}>
-          <span className={styles.chipDot} aria-hidden />
-          {t(reactionTypeKey(r.type))}
+    <li className={styles.mrRow} style={toneStyle(tone, tone)} data-main-rx={r.id}>
+      <div className={styles.mrTop}>
+        <span className={revealed ? `${styles.mrEq} ${styles.mrEqAnswer}` : styles.mrEq}>
+          {revealed ? r.equation : mainReactionSkeleton(r.equation)}
         </span>
-        {r.redox && r.type !== 'redox' ? <span className={styles.rxBadge}>{t('catalog.rx.redox')}</span> : null}
-        {r.qualitative ? <span className={styles.rxBadge}>{t('catalog.rx.qualitative', { ion: r.qualitative })}</span> : null}
-        {grades ? <span className={styles.rxPage}>{t('catalog.rx.gradesShort', { grades })}</span> : null}
+        {grades ? <span className={styles.mrGrades}>{t('catalog.rx.gradesShort', { grades })}</span> : null}
       </div>
-      {r.titleRu && locale === 'ru' ? <p className={styles.rxAsInBook}>{r.titleRu}</p> : null}
-      <p className={styles.equation}>
-        {revealed ? <span className={styles.rxAnswerTag}>{t('learn.book.rx.answer')}</span> : null}
-        {revealed ? r.equation : mainReactionSkeleton(r.equation)}
-      </p>
-      {cond ? (
-        <p className={styles.rxMeta}>
-          <span className={styles.rxMetaLabel}>{t('learn.book.rx.conditions')}:</span> {cond}
-        </p>
+      {title || cond || r.qualitative || (r.redox && r.type !== 'redox') ? (
+        <div className={styles.mrMeta}>
+          {title ? <span>{title}</span> : null}
+          {r.qualitative ? <span className={styles.mrBadge}>{t('catalog.rx.qualitative', { ion: r.qualitative })}</span> : null}
+          {r.redox && r.type !== 'redox' ? <span className={styles.mrBadge}>{t('catalog.rx.redox')}</span> : null}
+          {cond ? <span>{`${t('learn.book.rx.conditions')}: ${cond}`}</span> : null}
+        </div>
       ) : null}
-      <div className={styles.rxBtns}>
+      <div className={styles.mrBtns}>
         <Link
           className={styles.rxLabLink}
           to={reactorHrefForMainReaction(r.id, { src: '/catalog?view=reactions' })}
@@ -652,7 +648,7 @@ const MainReactionRow = memo(function MainReactionRow({ r }: { r: MainReaction }
           {t('catalog.rx.balanceInReactor')}
           <span aria-hidden>→</span>
         </Link>
-        <button type="button" className={styles.rxToggle} onClick={() => setRevealed((v) => !v)} aria-expanded={revealed}>
+        <button type="button" className={styles.mrAnswerBtn} onClick={() => setRevealed((v) => !v)} aria-expanded={revealed}>
           {revealed ? t('catalog.rx.hideAnswer') : t('learn.book.rx.showAnswer')}
         </button>
       </div>
@@ -1480,14 +1476,22 @@ export function CatalogPage() {
             ) : (
               <div className={styles.rxUnits}>
                 {mainByType.map(([type, items]) => (
-                  <section key={type} className={styles.rxUnit} id={`main-rx-${type}`}>
+                  <section
+                    key={type}
+                    className={styles.rxUnit}
+                    id={`main-rx-${type}`}
+                    style={toneStyle(REACTION_TYPE_TONE[type] ?? '#94a3b8', REACTION_TYPE_TONE[type] ?? '#94a3b8')}
+                  >
                     <header className={styles.rxUnitHead}>
-                      <h3 className={styles.rxUnitTitle}>{t(reactionTypeKey(type))}</h3>
+                      <h3 className={`${styles.rxUnitTitle} ${styles.mrGroupTitle}`}>
+                        <span className={styles.chipDot} aria-hidden />
+                        {t(reactionTypeKey(type))}
+                      </h3>
                       <span className={styles.rxUnitMeta}>
                         <span className={styles.sectionCount}>{items.length}</span>
                       </span>
                     </header>
-                    <ul className={styles.rxList}>
+                    <ul className={styles.mrList}>
                       {items.map((r) => (
                         <MainReactionRow key={r.id} r={r} />
                       ))}

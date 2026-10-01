@@ -550,7 +550,10 @@ export function SynthesisReactorPanel({
   onTeacherReplay,
   mainReaction = null,
   onOpenMainReaction,
+  productIndex,
 }: {
+  /** Место главного продукта среди продуктов уравнения (рецепт); нет — после побочных. */
+  productIndex?: number
   /**
    * Одна из 200 основных реакций (ссылка mr=): вещества стоят, ученик только уравнивает — без «эталона»,
    * «этапов получения» (там ответ), условия — этой реакции; при верном уравнении — ясный сигнал «запускайте».
@@ -674,6 +677,10 @@ export function SynthesisReactorPanel({
   /** Счётчик атомов «слева | справа» и комментарий к последнему ±. */
   const atomLedger = useAtomLedger({ leftTerms, coProducts, productCompound, productCoeff }, synthesisRunning)
   const hasDiatomic = leftTerms.some((t) => t.diatomic)
+  // Продукты — в порядке уравнения (как на сцене): главный продукт на своём месте среди побочных.
+  const mainAt = productIndex != null && productIndex >= 0 ? Math.min(productIndex, coProducts.length) : coProducts.length
+  const coBefore = coProducts.slice(0, mainAt)
+  const coAfter = coProducts.slice(mainAt)
 
   // «Этапы получения» показывают готовые уравнения с коэффициентами — для основной реакции это подсказка ответа.
   const hasObtainingSteps = Boolean(
@@ -923,7 +930,7 @@ export function SynthesisReactorPanel({
                   </span>
                 </div>
                 <div className={`${panelStyles.equationTerms} ${panelStyles.productTerms}`}>
-                  {coProducts.map((cp, idx) => (
+                  {coBefore.map((cp, idx) => (
                     <div key={cp.id} className={panelStyles.termCluster}>
                       {idx > 0 ? (
                         <span className={panelStyles.equationPlus} aria-hidden>
@@ -951,7 +958,7 @@ export function SynthesisReactorPanel({
                       </div>
                     </div>
                   ))}
-                  {coProducts.length > 0 ? (
+                  {coBefore.length > 0 ? (
                     <span className={panelStyles.equationPlus} aria-hidden>
                       +
                     </span>
@@ -995,6 +1002,32 @@ export function SynthesisReactorPanel({
                       </button>
                     )}
                   </div>
+                  {coAfter.map((cp) => (
+                    <div key={cp.id} className={panelStyles.termCluster}>
+                      <span className={panelStyles.equationPlus} aria-hidden>
+                        +
+                      </span>
+                      <div
+                        className={`${panelStyles.reagentBubble} ${coeffErr ? panelStyles.reagentBubbleError : ''}`}
+                        style={{ ['--reagent-glow' as string]: coProductGlowHex(cp) }}
+                      >
+                        <CoeffStepper
+                          value={cp.coeff}
+                          min={1}
+                          max={COEFF_MAX}
+                          highlightError={coeffErr}
+                          dimWhenOne
+                          ariaLabel={t('reactor.coeffFor', { symbol: coProductSymbolDisplay(cp) })}
+                          symbol={coProductSymbolDisplay(cp)}
+                          decLabel={t('reactor.coeffDecrease')}
+                          incLabel={t('reactor.coeffIncrease')}
+                          onChange={(n) => onCoProductCoeffChange?.(cp.id, n)}
+                          onFocusChange={reportCoeffFocus}
+                        />
+                        <span className={panelStyles.termSymbol}>{coProductSymbolDisplay(cp)}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

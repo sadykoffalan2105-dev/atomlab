@@ -1508,6 +1508,7 @@ export function LaboratoryPage() {
         open={reactorOpen}
         onOpenGenerateEquationCatalog={() => setMainPickerOpen(true)}
         mainReaction={mainReaction}
+        productIndex={activeRecipe?.productIndex}
         onOpenMainReaction={openMainReaction}
         leftTerms={leftTerms}
         coProducts={coProducts}
