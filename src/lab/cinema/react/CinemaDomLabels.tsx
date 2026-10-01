@@ -374,6 +374,26 @@ export function CinemaDomLabels({
       estimateLabelSize(src.kind, src.text, scale, _size)
       b.w[i] = _size.w
       b.h[i] = _size.h
+      if (src.kind === 'glassHalf') {
+        // узкий холст (телефон): карточка полуреакций мельче и без слов «восстановитель/окислитель» — роли
+        // видны по цвету метки и свечению атомов, карточка не закрывает частицы
+        const narrow = w < 560
+        if (narrow) {
+          b.w[i] = b.w[i]! * 0.6
+          b.h[i] = b.h[i]! * 0.82
+        }
+        const node = list[i]
+        const mode = narrow ? 'n' : 'w'
+        if (node && (node.ox !== mode || node.text !== src.text)) {
+          node.el.style.fontSize = narrow ? '13px' : ''
+          node.el.style.padding = narrow ? '6px 10px 7px' : ''
+          for (const row of Array.from(node.el.children)) {
+            const tag = row.children[2] as HTMLElement | undefined
+            if (tag) tag.style.display = narrow ? 'none' : ''
+          }
+          node.ox = node.text === src.text ? mode : ''
+        }
+      }
       if (src.kind === 'ph') {
         // карточка pH-метра на узком холсте (телефон) — уже половины кадра, подпись в две строки (высота та же)
         const pw = phWidth(w)
