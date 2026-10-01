@@ -33,6 +33,7 @@ import { SO3_STEP_IDS } from './so3/so3Steps'
 import { SO3_SCHOOL_SPEC } from './so3/so3Spec'
 import { ZNCL2_STEP_IDS } from './zncl2/zncl2Steps'
 import { getZncl2MechanismText } from './zncl2/zncl2MechanismText'
+import { STORY4_STEP_IDS, STORY_STEP_IDS, storyLessonText } from './story/storyLesson'
 
 /**
  * Уроки по шагам, известные панели механизма (Clo2MechanismPanel).
@@ -297,6 +298,24 @@ const LESSONS: Record<string, CinemaLesson> = {
     safetyStepId: 'energy',
     narrated: false,
     getText: (locale) => getZncl2MechanismText(locale),
+  },
+  // Сюжет реакции (scenes/story) — анимация после синтеза для реакций без своей сцены: тексты — из сюжета,
+  // который играет сейчас (chemistry/reactionStory). 'story' — с шагом переноса электронов (ОВР), 'story4' — без.
+  story: {
+    id: 'story',
+    stepIds: STORY_STEP_IDS,
+    safetyStepId: '',
+    narrated: false,
+    school: true,
+    getText: (locale) => storyLessonText(locale),
+  },
+  story4: {
+    id: 'story4',
+    stepIds: STORY4_STEP_IDS,
+    safetyStepId: '',
+    narrated: false,
+    school: true,
+    getText: (locale) => storyLessonText(locale),
   },
 }
 
