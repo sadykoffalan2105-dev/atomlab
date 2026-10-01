@@ -34,6 +34,8 @@ import {
 } from '../chemistry/schoolReactionBank'
 import { fromElementsPolicy } from '../chemistry/substanceSynthesisRoute'
 import { compoundById } from '../data/compounds'
+import { mainReactionById, mainReactionSkeleton, type MainReaction } from '../data/catalog/mainReactions'
+export { reactorHrefForMainReaction } from '../data/catalog/mainReactions'
 import { getElementBySymbol } from '../data/elements'
 import {
   electronSpecies,
@@ -472,7 +474,8 @@ export function resolveReactorEquation(
     if (validateReactorEquation(targetTerms, mainCompound, productTargetCoeff).ok) {
       return {
         ...base,
-        leftTerms: one ? targetTerms.map((t) => ({ ...t, coeff: 1 })) : targetTerms,
+        // «Уравнять самому»: вещества заданы — удалить их нельзя, меняются только коэффициенты.
+        leftTerms: one ? targetTerms.map((t) => ({ ...t, coeff: 1, locked: true as const })) : targetTerms,
         coProducts: [],
       }
     }
@@ -560,6 +563,11 @@ export function reactorHrefForBank(reactionId: string, opts?: ReactorHrefOptions
   return appendOptions(`/?reactor=1&reaction=${encodeURIComponent(reactionId)}`, opts)
 }
 
+/** Состояние реактора для основной реакции. Заголовок без коэффициентов — сообщение не подсказывает ответ. */
+export function mainReactionLinkSpec(r: MainReaction): ReactorLinkSpec {
+  return { equation: r.equation, main: r.main, titleRu: r.titleRu ?? mainReactionSkeleton(r.equation) }
+}
+
 /** «/?reactor=1&eq=<уравнение>» для <Link to>. */
 export function reactorHrefForEquation(equation: string, opts?: ReactorHrefOptions): string {
   return appendOptions(`/?reactor=1&eq=${encodeURIComponent(equation)}`, opts)
@@ -570,6 +578,8 @@ export type ReactorLinkParams = {
   balanceSelf: boolean
   /** Безопасный путь роутера для «← назад к учебнику» или null. */
   backHref: string | null
+  /** Одна из 200 основных реакций (mr=<id>): свои условия, без «эталона» и «этапов получения» — только уравнять. */
+  mainReactionId?: string | null
 }
 
 /** Путь возврата: только внутренние пути роутера. */
@@ -639,6 +649,15 @@ function productFallbackLinkParams(params: URLSearchParams): ReactorLinkParams |
 
 /** Параметры reaction= / eq= из query-строки; null — ссылка не про реакцию. */
 export function parseReactorLinkParams(params: URLSearchParams): ReactorLinkParams | null {
+  const main = mainReactionById(params.get('mr'))
+  if (main) {
+    return {
+      spec: mainReactionLinkSpec(main),
+      balanceSelf: params.get('balance') === '1',
+      backHref: sanitizeBackHref(params.get('src')),
+      mainReactionId: main.id,
+    }
+  }
   const reactionId = params.get('reaction')
   const equation = params.get('eq')
   if (!reactionId && !equation) return productFallbackLinkParams(params)

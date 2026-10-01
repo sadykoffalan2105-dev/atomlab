@@ -562,6 +562,8 @@
 
 .equationEmpty {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   align-items: center;
   max-width: 420px;
   min-height: var(--rx-bubble-h);
@@ -2040,4 +2042,9 @@
     animation: none;
     transition: none;
   }
+}
+
+/* Пустой реактор: кнопка «Реакции» рядом с подсказкой — выбор одной из 200 основных реакций. */
+.emptyPickBtn {
+  flex: none;
 }

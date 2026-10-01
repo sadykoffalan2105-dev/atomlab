@@ -11,7 +11,16 @@ import {
   lazy,
   Suspense,
 } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { MainReactionPicker } from '../components/lab/MainReactionPicker'
+import {
+  MAIN_REACTIONS_200,
+  mainReactionById,
+  mainReactionLabNeeds,
+  mainReactionSkeleton,
+  reactorHrefForMainReaction,
+  type MainReaction,
+} from '../data/catalog/mainReactions'
 import { LabDomainTabs } from '../components/lab/LabDomainTabs'
 import { ProductHeroCard } from '../components/lab/hero/ProductHeroCard'
 import { isDiatomicNativeElement } from '../chemistry/diatomicElements'
@@ -174,6 +183,13 @@ export function LaboratoryPage() {
   const [deepLinkBackHref, setDeepLinkBackHref] = useState<string | null>(null)
   /** id реакции банка из ссылки — условия реактора берутся по реакции, а не по продукту. */
   const [linkedBankId, setLinkedBankId] = useState<string | null>(null)
+  /**
+   * Одна из 200 основных реакций (ссылка mr=): вещества стоят, коэффициенты 1 — ученик только уравнивает;
+   * условия реактора — этой реакции. Выбор реакции в реакторе — только из 200 (MainReactionPicker).
+   */
+  const [mainReactionId, setMainReactionId] = useState<string | null>(null)
+  const [mainPickerOpen, setMainPickerOpen] = useState(false)
+  const mainReaction = useMemo(() => mainReactionById(mainReactionId) ?? null, [mainReactionId])
   const [labHeatOn, setLabHeatOn] = useState(false)
   const [labPressureOn, setLabPressureOn] = useState(false)
   const [labCatalystOn, setLabCatalystOn] = useState(false)
@@ -254,7 +270,8 @@ export function LaboratoryPage() {
   const [laboratorySynthesisView, setLaboratorySynthesisView] = useState<'reactor' | 'substance'>('reactor')
   const [reactorGpuIdleReady, setReactorGpuIdleReady] = useState(false)
   const productLockedRef = useRef(false)
-  const periodicUiHidden = reactorCatalogOpen && reactorCatalogIntent === 'generateEquation'
+  // Основная реакция «только уравнять»: вещества заданы — таблица Менделеева (добавить атомы) не нужна.
+  const periodicUiHidden = (reactorCatalogOpen && reactorCatalogIntent === 'generateEquation') || (reactorOpen && mainReactionId != null)
 
   const catalogList = useMemo(() => Object.values(compoundById), [])
 
@@ -598,11 +615,29 @@ export function LaboratoryPage() {
     setReactorCatalogOpen(true)
   }, [])
 
+  // «Подобрать уравнение» (genEq=1, кнопка «Уравнение») — выбор только из 200 основных реакций.
   useEffect(() => {
     if (!pendingGenEq || !reactorOpen) return
-    openReactorCatalog('generateEquation')
+    setMainPickerOpen(true)
     setPendingGenEq(false)
-  }, [pendingGenEq, reactorOpen, openReactorCatalog])
+  }, [pendingGenEq, reactorOpen])
+
+  const navigate = useNavigate()
+  const openMainReaction = useCallback(
+    (id: string) => {
+      setMainPickerOpen(false)
+      // Через ссылку: тот же путь, что из каталога (сброс реактора, вещества, коэффициенты 1, сообщение).
+      navigate(reactorHrefForMainReaction(id, { src: deepLinkBackHref }))
+    },
+    [navigate, deepLinkBackHref],
+  )
+  const onPickMainReaction = useCallback((r: MainReaction) => openMainReaction(r.id), [openMainReaction])
+  /** Раздел учебника (learnG/learnC/learnS): сначала реакции, где есть вещества раздела. */
+  const lessonMainIds = useMemo(() => {
+    if (!learnAllowedProductIds?.length) return null
+    const allowed = new Set(learnAllowedProductIds)
+    return MAIN_REACTIONS_200.filter((r) => r.species.some((id) => allowed.has(id))).map((r) => r.id)
+  }, [learnAllowedProductIds])
 
   const handleReactorCatalogPick = useCallback(
     (id: string) => {
@@ -657,6 +692,8 @@ export function LaboratoryPage() {
     reactorCatalogPickModeRef.current = 'selectProduct'
     setReactorCatalogIntent('selectProduct')
     setReactorCatalogOpen(false)
+    setMainReactionId(null)
+    setMainPickerOpen(false)
   }, [resetEquation])
 
   const toggleReactor = useCallback(() => {
@@ -681,6 +718,8 @@ export function LaboratoryPage() {
         settledSnapshotRef.current = null
         setLaboratorySynthesisView('reactor')
         setReactorCatalogOpen(false)
+        setMainReactionId(null)
+        setMainPickerOpen(false)
         productLockedRef.current = false
         reactorCatalogPickModeRef.current = 'selectProduct'
         setReactorCatalogIntent('selectProduct')
@@ -710,6 +749,7 @@ export function LaboratoryPage() {
       setPanelOpen(false)
       setDeepLinkBackHref(link.backHref)
       setLinkedBankId(res.ok ? res.bankId : null)
+      setMainReactionId(res.ok ? (link.mainReactionId ?? null) : null)
       if (!res.ok) {
         const reason = t(`lab.deepLink.unsupported.${res.code}`, {
           formulas: res.details.formulas?.join(', ') ?? '',
@@ -727,7 +767,9 @@ export function LaboratoryPage() {
       // Реакция только «шарами» (ионы, электроны, органика, простое вещество-продукт):
       // запуска синтеза нет — говорим об этом сразу, спокойно, без «ошибки».
       // Названия реакций есть только по-русски: на en/uz вместо названия — само уравнение (без «Обмен: …»).
-      const title = locale === 'ru' ? res.titleRu : res.equationUnicode
+      // Основная реакция «только уравнять»: на en/uz — уравнение без коэффициентов (ответ не подсказываем).
+      const title =
+        locale === 'ru' ? res.titleRu : link.mainReactionId ? mainReactionSkeleton(res.equationUnicode) : res.equationUnicode
       const loaded = res.stageOnly
         ? link.balanceSelf
           ? t('lab.deepLink.loadedStageOnlyBalance', { title })
@@ -1116,7 +1158,8 @@ export function LaboratoryPage() {
     } else if (!isReactorBalancedFast(deferredLeftTerms, product, productCoeff)) {
       return false
     }
-    const lab = effectiveLabNeeds(product.synthesisLab, product.id, linkedBankId)
+    // Основная реакция — условия ЭТОЙ реакции (NaOH + HCl — без нагрева, хотя NaCl из Na и Cl₂ — с нагревом).
+    const lab = mainReaction ? mainReactionLabNeeds(mainReaction) : effectiveLabNeeds(product.synthesisLab, product.id, linkedBankId)
     if (lab?.needsHeat && !labHeatOn) return false
     if (lab?.needsPressure && !labPressureOn) return false
     if (lab?.needsCatalyst && !labCatalystOn) return false
@@ -1131,6 +1174,7 @@ export function LaboratoryPage() {
     labPressureOn,
     labCatalystOn,
     linkedBankId,
+    mainReaction,
   ])
 
   useEffect(() => {
@@ -1462,7 +1506,10 @@ export function LaboratoryPage() {
       {/* Вне canvasWrap: contain:layout + fixed-реактор → 0×0 WebGL / белый canvas. */}
       <SynthesisReactorPanel
         open={reactorOpen}
-        onOpenGenerateEquationCatalog={() => openReactorCatalog('generateEquation')}
+        onOpenGenerateEquationCatalog={() => setMainPickerOpen(true)}
+        mainReaction={mainReaction}
+        productIndex={activeRecipe?.productIndex}
+        onOpenMainReaction={openMainReaction}
         leftTerms={leftTerms}
         coProducts={coProducts}
         productCompound={productCompound}
@@ -1508,6 +1555,14 @@ export function LaboratoryPage() {
         teacherLineText={teacherVoiceOn ? teacherLine?.speak : undefined}
         onTeacherVoiceToggle={onTeacherVoiceToggle}
         onTeacherReplay={onTeacherReplay}
+      />
+
+      <MainReactionPicker
+        open={mainPickerOpen}
+        onClose={() => setMainPickerOpen(false)}
+        onPick={onPickMainReaction}
+        currentId={mainReactionId}
+        preferIds={lessonMainIds}
       />
 
       <ReactorCompoundCatalogPanel

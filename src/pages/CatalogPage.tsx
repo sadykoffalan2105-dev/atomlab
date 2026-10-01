@@ -55,6 +55,15 @@ import {
   type ReaderReaction,
   type ReaderUnit,
 } from '../data/textbook/bookReader'
+import {
+  MAIN_REACTIONS_200,
+  MAIN_REACTION_TYPE_ORDER,
+  mainReactionSkeleton,
+  reactorHrefForMainReaction,
+  type MainReaction,
+  type MainReactionType,
+} from '../data/catalog/mainReactions'
+import { useMainReactionSearch } from '../components/catalog/mainReactionSearch'
 import { compoundSearchBlob, getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import type { MessageKey } from '../i18n/useT'
 import { useT } from '../i18n/useT'
@@ -594,6 +603,59 @@ function UnitGroup({
   )
 }
 
+/** «нагрев · давление · кат. Fe» — условия реакции в реакторе. */
+function mainReactionConditions(t: ReturnType<typeof useT>['t'], r: MainReaction): string | null {
+  const parts: string[] = []
+  if (r.lab.heat) parts.push(t('catalog.rx.condHeat'))
+  if (r.lab.pressure) parts.push(t('catalog.rx.condPressure'))
+  if (r.lab.catalyst) parts.push(t('catalog.rx.condCatalyst', { name: r.lab.catalyst }))
+  return parts.length ? parts.join(' · ') : null
+}
+
+/**
+ * Одна из 200 основных реакций: уравнение без коэффициентов (их расставляет ученик), «Уравнять в реакторе»,
+ * ответ — по кнопке.
+ */
+const MainReactionRow = memo(function MainReactionRow({ r }: { r: MainReaction }) {
+  const { locale, t } = useT()
+  const [revealed, setRevealed] = useState(false)
+  const tone = REACTION_TYPE_TONE[r.type] ?? REACTION_TYPE_TONE.other!
+  const cond = mainReactionConditions(t, r)
+  const grades = formatGradeRange(r.grades.filter((g): g is SchoolGrade => (SCHOOL_GRADES as readonly number[]).includes(g)))
+  const title = r.titleRu && locale === 'ru' ? r.titleRu : null
+  return (
+    <li className={styles.mrRow} style={toneStyle(tone, tone)} data-main-rx={r.id}>
+      <div className={styles.mrTop}>
+        <span className={revealed ? `${styles.mrEq} ${styles.mrEqAnswer}` : styles.mrEq}>
+          {revealed ? r.equation : mainReactionSkeleton(r.equation)}
+        </span>
+        {grades ? <span className={styles.mrGrades}>{t('catalog.rx.gradesShort', { grades })}</span> : null}
+      </div>
+      {title || cond || r.qualitative || (r.redox && r.type !== 'redox') ? (
+        <div className={styles.mrMeta}>
+          {title ? <span>{title}</span> : null}
+          {r.qualitative ? <span className={styles.mrBadge}>{t('catalog.rx.qualitative', { ion: r.qualitative })}</span> : null}
+          {r.redox && r.type !== 'redox' ? <span className={styles.mrBadge}>{t('catalog.rx.redox')}</span> : null}
+          {cond ? <span>{`${t('learn.book.rx.conditions')}: ${cond}`}</span> : null}
+        </div>
+      ) : null}
+      <div className={styles.mrBtns}>
+        <Link
+          className={styles.rxLabLink}
+          to={reactorHrefForMainReaction(r.id, { src: '/catalog?view=reactions' })}
+          data-main-rx-link={r.id}
+        >
+          {t('catalog.rx.balanceInReactor')}
+          <span aria-hidden>→</span>
+        </Link>
+        <button type="button" className={styles.mrAnswerBtn} onClick={() => setRevealed((v) => !v)} aria-expanded={revealed}>
+          {revealed ? t('catalog.rx.hideAnswer') : t('learn.book.rx.showAnswer')}
+        </button>
+      </div>
+    </li>
+  )
+})
+
 type RxTarget = { gradeId: ReaderGradeId; unitId: string; rxId: string | null }
 
 const PAGE_ROWS = 60
@@ -635,9 +697,16 @@ export function CatalogPage() {
   const [selectedOrganic, setSelectedOrganic] = useState<OrganicMoleculeDef | null>(null)
   const [q, setQ] = useState('')
   const [tab, setTab] = useState<CatalogTab>(initial.tab ?? 'inorganic')
+  /**
+   * Вкладка «Реакции»: 200 основных (по умолчанию) или реакции учебника по параграфам — для ссылок из книги
+   * (?view=reactions&grade=g8&unit=p24&rx=r3 и старые ?rx=<id банка>).
+   */
+  const [rxMode, setRxMode] = useState<'main' | 'book'>(initial.target || initial.legacyBankId ? 'book' : 'main')
   const [grade, setGrade] = useState<SchoolGrade | 'all'>(
-    initial.grade ?? (initial.tab === 'reactions' ? 7 : 'all'),
+    initial.grade ?? (initial.tab === 'reactions' && (initial.target || initial.legacyBankId) ? 7 : 'all'),
   )
+  /** Тип основной реакции или «качественные». */
+  const [mainType, setMainType] = useState<MainReactionType | 'qualitative' | 'all'>('all')
   const [inorganicChapter, setInorganicChapter] = useState<InorganicChapter | 'all'>('all')
   const [category, setCategory] = useState<CompoundCategory | 'all'>('all')
   /** семейство «по корню» (хлориды, сульфаты …) — docs/plans/catalog-top200.md, §1 */
@@ -662,6 +731,7 @@ export function CatalogPage() {
     if (p.grade) setGrade(p.grade)
     if (p.target) setRxTarget(p.target)
     if (p.legacyBankId) setPendingBankId(p.legacyBankId)
+    if (p.target || p.legacyBankId) setRxMode('book')
   }
 
   const ensureGrade = useCallback((id: ReaderGradeId) => {
@@ -679,22 +749,25 @@ export function CatalogPage() {
   }, [])
 
   const isReactions = tab === 'reactions'
+  const isMainRx = isReactions && rxMode === 'main'
+  const isBookRx = isReactions && rxMode === 'book'
   const isOrganic = tab === 'organic'
   const rxGrade: SchoolGrade = grade === 'all' ? 7 : grade
   const rxGradeId = gradeToReaderId(rxGrade)
   const reader = readerGrades[rxGradeId]
 
   useEffect(() => {
-    if (isReactions && !readerGrades[rxGradeId]) ensureGrade(rxGradeId)
-  }, [isReactions, rxGradeId, readerGrades, ensureGrade])
+    if (isBookRx && !readerGrades[rxGradeId]) ensureGrade(rxGradeId)
+  }, [isBookRx, rxGradeId, readerGrades, ensureGrade])
 
-  /** Остальные классы — в фоне, для счётчиков и общего числа реакций в шапке. */
+  /** Остальные классы учебника — в фоне, для счётчиков классов (только в режиме «По учебнику»). */
   useEffect(() => {
+    if (!isBookRx) return
     const timer = window.setTimeout(() => {
       for (const id of READER_GRADE_IDS) ensureGrade(id)
     }, 2000)
     return () => window.clearTimeout(timer)
-  }, [ensureGrade])
+  }, [ensureGrade, isBookRx])
 
   /** Старая ссылка ?rx=<id банка>: найти реакцию учебника с таким bankId (классы по порядку). */
   useEffect(() => {
@@ -727,6 +800,7 @@ export function CatalogPage() {
   const openSchoolReaction = useCallback((reactionId: string) => {
     setSelectedId(null)
     setTab('reactions')
+    setRxMode('book')
     setPendingBankId(reactionId)
   }, [])
 
@@ -898,6 +972,42 @@ export function CatalogPage() {
 
   const currentGradeStats = useMemo(() => (reader ? gradeReactionStats(reader) : null), [reader])
 
+  // —— 200 основных реакций: класс, поиск, тип ——
+  const mainSearched = useMainReactionSearch(isMainRx ? q : '', locale, t)
+  const mainGradeCounts = useMemo(() => {
+    const m: Partial<Record<SchoolGrade | 'all', number>> = { all: mainSearched.length }
+    for (const g of SCHOOL_GRADES) m[g] = mainSearched.filter((r) => r.grades.includes(g)).length
+    return m
+  }, [mainSearched])
+  const mainInGrade = useMemo(
+    () => (grade === 'all' ? mainSearched : mainSearched.filter((r) => r.grades.includes(grade))),
+    [mainSearched, grade],
+  )
+  const mainTypeCounts = useMemo(() => {
+    const m = new Map<MainReactionType | 'qualitative', number>()
+    for (const r of mainInGrade) {
+      m.set(r.type, (m.get(r.type) ?? 0) + 1)
+      if (r.qualitative) m.set('qualitative', (m.get('qualitative') ?? 0) + 1)
+    }
+    return m
+  }, [mainInGrade])
+  const mainFiltered = useMemo(
+    () =>
+      mainType === 'all'
+        ? mainInGrade
+        : mainType === 'qualitative'
+          ? mainInGrade.filter((r) => r.qualitative)
+          : mainInGrade.filter((r) => r.type === mainType),
+    [mainInGrade, mainType],
+  )
+  const mainByType = useMemo(
+    () =>
+      MAIN_REACTION_TYPE_ORDER.map((type) => [type, mainFiltered.filter((r) => r.type === type)] as const).filter(
+        ([, items]) => items.length > 0,
+      ),
+    [mainFiltered],
+  )
+
   /** Прокрутка к реакции из ссылки после загрузки класса. */
   useEffect(() => {
     if (!isReactions || !rxTarget || rxTarget.gradeId !== rxGradeId || !reader) return
@@ -932,19 +1042,28 @@ export function CatalogPage() {
 
   const resetFilters = useCallback(() => {
     setQ('')
-    setGrade(tab === 'reactions' ? 7 : 'all')
+    setGrade(tab === 'reactions' && rxMode === 'book' ? 7 : 'all')
     setInorganicChapter('all')
     setCategory('all')
     setFamily('all')
     setReactionType('all')
-  }, [tab])
+    setMainType('all')
+  }, [tab, rxMode])
 
-  const shownCount = isOrganic ? organicFiltered.length : isReactions ? filteredRows : filtered.length
+  const shownCount = isOrganic
+    ? organicFiltered.length
+    : isMainRx
+      ? mainFiltered.length
+      : isReactions
+        ? filteredRows
+        : filtered.length
   const totalCount = isOrganic
     ? ORGANIC_MOLECULES.length
-    : isReactions
-      ? (currentGradeStats?.total ?? 0)
-      : list.length
+    : isMainRx
+      ? MAIN_REACTIONS_200.length
+      : isReactions
+        ? (currentGradeStats?.total ?? 0)
+        : list.length
 
   const empty = (
     <div className={styles.empty}>
@@ -968,8 +1087,8 @@ export function CatalogPage() {
     },
     {
       id: 'reactions',
-      value: reactionsTotal > 0 ? String(reactionsTotal) : '…',
-      label: t('catalog.statReactions'),
+      value: rxMode === 'main' ? String(MAIN_REACTIONS_200.length) : reactionsTotal > 0 ? String(reactionsTotal) : '…',
+      label: rxMode === 'main' ? t('catalog.statMainReactions') : t('catalog.statReactions'),
       active: isReactions,
       tone: ['#fb7185', '#f97316'],
       go: () => setTab('reactions'),
@@ -1067,12 +1186,49 @@ export function CatalogPage() {
             </label>
           </div>
 
+          {isReactions ? (
+            <div className={styles.toolbarRow}>
+              <div className={styles.segment} role="tablist" aria-label={t('catalog.rx.modeAria')}>
+                {(
+                  [
+                    ['main', 'catalog.rx.modeMain'],
+                    ['book', 'catalog.rx.modeBook'],
+                  ] as const
+                ).map(([id, key]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={rxMode === id}
+                    className={rxMode === id ? `${styles.segBtn} ${styles.segBtnOn}` : styles.segBtn}
+                    onClick={() => {
+                      setRxMode(id)
+                      // учебник — по одному классу, основные реакции — все классы сразу
+                      setGrade(id === 'book' ? (grade === 'all' ? 7 : grade) : 'all')
+                    }}
+                    data-rx-mode={id}
+                  >
+                    {t(key)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className={styles.toolbarRow}>
             <GradeSegment
-              value={isReactions ? rxGrade : grade}
+              value={isBookRx ? rxGrade : grade}
               onChange={setGrade}
-              counts={isOrganic ? organicGradeCounts : isReactions ? reactionGradeCounts : inorganicGradeCounts}
-              allowAll={!isReactions}
+              counts={
+                isOrganic
+                  ? organicGradeCounts
+                  : isMainRx
+                    ? mainGradeCounts
+                    : isReactions
+                      ? reactionGradeCounts
+                      : inorganicGradeCounts
+              }
+              allowAll={!isBookRx}
               ariaLabel={
                 isOrganic
                   ? t('catalog.organicGradeAria')
@@ -1172,7 +1328,43 @@ export function CatalogPage() {
                 role="group"
                 aria-label={isReactions ? t('catalog.reactionClassAria') : t('catalog.chapterAria')}
               >
-                {isReactions ? (
+                {isMainRx ? (
+                  <>
+                    <button
+                      type="button"
+                      aria-pressed={mainType === 'all'}
+                      className={mainType === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                      onClick={() => setMainType('all')}
+                    >
+                      {t('catalog.gradeAll')}
+                      <span className={styles.chipCount}>{mainInGrade.length}</span>
+                    </button>
+                    {([...MAIN_REACTION_TYPE_ORDER, 'qualitative'] as const).map((type) => {
+                      const n = mainTypeCounts.get(type) ?? 0
+                      const tone = REACTION_TYPE_TONE[type] ?? '#e879f9'
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          aria-pressed={mainType === type}
+                          disabled={n === 0 && mainType !== type}
+                          className={
+                            mainType === type
+                              ? `${styles.chip} ${styles.chipTone} ${styles.chipOn}`
+                              : `${styles.chip} ${styles.chipTone}`
+                          }
+                          style={toneStyle(tone, tone)}
+                          onClick={() => setMainType(mainType === type ? 'all' : type)}
+                          data-main-type={type}
+                        >
+                          <span className={styles.chipDot} aria-hidden />
+                          {type === 'qualitative' ? t('catalog.rx.qualitativeChip') : t(reactionTypeKey(type))}
+                          <span className={styles.chipCount}>{n}</span>
+                        </button>
+                      )
+                    })}
+                  </>
+                ) : isReactions ? (
                   <>
                     <button
                       type="button"
@@ -1266,6 +1458,48 @@ export function CatalogPage() {
           ) : (
             empty
           )
+        ) : isMainRx ? (
+          <section className={styles.section} style={toneStyle('#fb7185', '#f97316')} data-main-reactions="">
+            <header className={styles.sectionHead}>
+              <span className={styles.sectionGlyph} aria-hidden>
+                A+B
+              </span>
+              <div className={styles.sectionText}>
+                <h2 className={styles.sectionTitle}>{t('catalog.rx.mainTitle')}</h2>
+                <p className={styles.sectionLead}>{t('catalog.rx.mainLead')}</p>
+              </div>
+              <span className={styles.sectionCount}>{mainFiltered.length}</span>
+            </header>
+            {mainByType.length === 0 ? (
+              empty
+            ) : (
+              <div className={styles.rxUnits}>
+                {mainByType.map(([type, items]) => (
+                  <section
+                    key={type}
+                    className={styles.rxUnit}
+                    id={`main-rx-${type}`}
+                    style={toneStyle(REACTION_TYPE_TONE[type] ?? '#94a3b8', REACTION_TYPE_TONE[type] ?? '#94a3b8')}
+                  >
+                    <header className={styles.rxUnitHead}>
+                      <h3 className={`${styles.rxUnitTitle} ${styles.mrGroupTitle}`}>
+                        <span className={styles.chipDot} aria-hidden />
+                        {t(reactionTypeKey(type))}
+                      </h3>
+                      <span className={styles.rxUnitMeta}>
+                        <span className={styles.sectionCount}>{items.length}</span>
+                      </span>
+                    </header>
+                    <ul className={styles.mrList}>
+                      {items.map((r) => (
+                        <MainReactionRow key={r.id} r={r} />
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              </div>
+            )}
+          </section>
         ) : isReactions ? (
           <section className={styles.section} style={toneStyle('#fb7185', '#f97316')}>
             <header className={styles.sectionHead}>
