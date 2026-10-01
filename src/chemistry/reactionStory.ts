@@ -1376,7 +1376,6 @@ function buildTexts(s: Draft): Record<StoryLocale, Record<StoryStepId, StoryStep
   const water = rights.some((t) => t.fate === 'water')
 
   const balance = s.atomBalance.map((b) => `${b.el} ${b.left} = ${b.right}`).join(', ')
-  const halfs = [...s.oxidations.map((c) => halfLine(c, true)), ...s.reductions.map((c) => halfLine(c, false))].join('; ')
   const reducers = aggregate(s.oxidations.map((c) => `${c.term} (${c.el}${oxText(c.from)} → ${c.el}${oxText(c.to)})`)).map((x) => x.text)
   const oxidizers = aggregate(s.reductions.map((c) => `${c.term} (${c.el}${oxText(c.from)} → ${c.el}${oxText(c.to)})`)).map((x) => x.text)
   const eN = fmtE(s.given)
@@ -1409,7 +1408,8 @@ function buildTexts(s: Draft): Record<StoryLocale, Record<StoryStepId, StoryStep
       body: s.redox
         ? `${W.reducer} — ${reducers.join(', ')}: ${W.gives} ${eN}e⁻. ${W.oxidizer} — ${oxidizers.join(', ')}: ${W.takes} ${eN}e⁻. ${W.givenEqTaken(eN, fmtE(s.accepted))}`
         : W.noRedox,
-      equation: halfs || leftEq,
+      // полуреакции — крупной карточкой в самой сцене; в панели их не повторяем (ничего лишнего)
+      equation: `${leftEq} → …`,
     }
     const fParts: string[] = []
     if (formed.length) fParts.push(`${W.bondsForm}: ${countList(formed)}.`)

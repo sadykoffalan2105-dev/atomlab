@@ -119,7 +119,7 @@ const STACK_DX = 0.2
 const STACK_DY = 0.15
 const STACK_DZ = -0.55
 /** Яркость атома по слою стопки: лицевая копия — полная, позади — тёмные. */
-export const STORY_LAYER_BRIGHT = [1, 0.33, 0.2] as const
+export const STORY_LAYER_BRIGHT = [1, 0.26, 0.15] as const
 
 /** Стопка копий: лицевая единица каждого члена (term → unit id) и слой каждой единицы (unit id → 0, 1, 2). */
 type Stack = { readonly rep: Map<number, number>; readonly layer: Map<number, number> }
