@@ -810,7 +810,7 @@ export const messagesRu = {
   'catalog.rx.hideAnswer': 'Скрыть ответ',
   'catalog.rx.modeAria': 'Какие реакции показать',
   'catalog.rx.modeMain': '200 основных',
-  'catalog.rx.modeBook': 'По учебнику',
+  'catalog.rx.modeBook': 'Школьные реакции',
   'catalog.rx.mainTitle': '200 основных реакций',
   'catalog.rx.mainLead': 'Вещества уже стоят в реакторе, коэффициенты 1 — расставьте их сами.',
   'catalog.rx.balanceInReactor': 'Уравнять в реакторе',

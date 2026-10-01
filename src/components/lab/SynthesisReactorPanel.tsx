@@ -511,6 +511,7 @@ function CoeffStepper(props: {
 export function SynthesisReactorPanel({
   open,
   onOpenGenerateEquationCatalog,
+  onOpenMainPicker,
   leftTerms,
   coProducts = [],
   productCompound,
@@ -563,6 +564,8 @@ export function SynthesisReactorPanel({
   onOpenMainReaction?: (id: string) => void
   open: boolean
   onOpenGenerateEquationCatalog: () => void
+  /** 200 основных реакций «только уравнять» (кнопка в пустом реакторе); школьный каталог «Уравнение» — как был. */
+  onOpenMainPicker?: () => void
   leftTerms: readonly ReactorEquationTerm[]
   coProducts?: readonly ReactorCoProductTerm[]
   productCompound: CompoundDef | null
@@ -817,12 +820,11 @@ export function SynthesisReactorPanel({
             type="button"
             className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnAccent}`}
             onClick={onOpenGenerateEquationCatalog}
-            title={t('reactor.pick.lead')}
-            aria-label={t('reactor.pick.title')}
-            data-main-rx-open=""
+            title={t('reactor.generateEquationTitle')}
+            aria-label={t('reactor.generateEquation')}
           >
             <IconSparkles size={17} />
-            <span>{t('reactor.pick.button')}</span>
+            <span>{t('reactor.generateEquationShort')}</span>
           </button>
           <button
             type="button"
@@ -863,11 +865,11 @@ export function SynthesisReactorPanel({
                       <button
                         type="button"
                         className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnAccent} ${panelStyles.emptyPickBtn}`}
-                        onClick={onOpenGenerateEquationCatalog}
+                        onClick={onOpenMainPicker ?? onOpenGenerateEquationCatalog}
                         data-main-rx-empty=""
                       >
                         <IconSparkles size={16} />
-                        <span>{t('reactor.pick.button')}</span>
+                        <span>{t('reactor.pick.title')}</span>
                       </button>
                     </div>
                   ) : null}

@@ -618,9 +618,9 @@ export function LaboratoryPage() {
   // «Подобрать уравнение» (genEq=1, кнопка «Уравнение») — выбор только из 200 основных реакций.
   useEffect(() => {
     if (!pendingGenEq || !reactorOpen) return
-    setMainPickerOpen(true)
+    openReactorCatalog('generateEquation')
     setPendingGenEq(false)
-  }, [pendingGenEq, reactorOpen])
+  }, [pendingGenEq, reactorOpen, openReactorCatalog])
 
   const navigate = useNavigate()
   const openMainReaction = useCallback(
@@ -1506,10 +1506,10 @@ export function LaboratoryPage() {
       {/* Вне canvasWrap: contain:layout + fixed-реактор → 0×0 WebGL / белый canvas. */}
       <SynthesisReactorPanel
         open={reactorOpen}
-        onOpenGenerateEquationCatalog={() => setMainPickerOpen(true)}
+        onOpenGenerateEquationCatalog={() => openReactorCatalog('generateEquation')}
+        onOpenMainPicker={() => setMainPickerOpen(true)}
         mainReaction={mainReaction}
         productIndex={activeRecipe?.productIndex}
-        onOpenMainReaction={openMainReaction}
         leftTerms={leftTerms}
         coProducts={coProducts}
         productCompound={productCompound}

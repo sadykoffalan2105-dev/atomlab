@@ -701,7 +701,8 @@ export function CatalogPage() {
    * Вкладка «Реакции»: 200 основных (по умолчанию) или реакции учебника по параграфам — для ссылок из книги
    * (?view=reactions&grade=g8&unit=p24&rx=r3 и старые ?rx=<id банка>).
    */
-  const [rxMode, setRxMode] = useState<'main' | 'book'>(initial.target || initial.legacyBankId ? 'book' : 'main')
+  // Школьная программа — по умолчанию: реакции учебников 7–11 (как было); «200 основных» — отдельный режим (решение владельца 01.10).
+  const [rxMode, setRxMode] = useState<'main' | 'book'>('book')
   const [grade, setGrade] = useState<SchoolGrade | 'all'>(
     initial.grade ?? (initial.tab === 'reactions' && (initial.target || initial.legacyBankId) ? 7 : 'all'),
   )
@@ -1087,8 +1088,8 @@ export function CatalogPage() {
     },
     {
       id: 'reactions',
-      value: rxMode === 'main' ? String(MAIN_REACTIONS_200.length) : reactionsTotal > 0 ? String(reactionsTotal) : '…',
-      label: rxMode === 'main' ? t('catalog.statMainReactions') : t('catalog.statReactions'),
+      value: reactionsTotal > 0 ? String(reactionsTotal) : '…',
+      label: t('catalog.statReactions'),
       active: isReactions,
       tone: ['#fb7185', '#f97316'],
       go: () => setTab('reactions'),
@@ -1191,8 +1192,8 @@ export function CatalogPage() {
               <div className={styles.segment} role="tablist" aria-label={t('catalog.rx.modeAria')}>
                 {(
                   [
-                    ['main', 'catalog.rx.modeMain'],
                     ['book', 'catalog.rx.modeBook'],
+                    ['main', 'catalog.rx.modeMain'],
                   ] as const
                 ).map(([id, key]) => (
                   <button
