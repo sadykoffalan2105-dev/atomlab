@@ -385,8 +385,10 @@ export function CinemaDomLabels({
         const node = list[i]
         const mode = narrow ? 'n' : 'w'
         if (node && (node.ox !== mode || node.text !== src.text)) {
-          node.el.style.fontSize = narrow ? '13px' : ''
-          node.el.style.padding = narrow ? '6px 10px 7px' : ''
+          // явные значения, не '': пустая строка снимает font-size из шортхенда «font» стиля — карточка
+          // наследовала 9 px слоя и читалась мелко
+          node.el.style.fontSize = narrow ? '13px' : '16px'
+          node.el.style.padding = narrow ? '6px 10px 7px' : '9px 15px 10px'
           for (const row of Array.from(node.el.children)) {
             const tag = row.children[2] as HTMLElement | undefined
             if (tag) tag.style.display = narrow ? 'none' : ''
