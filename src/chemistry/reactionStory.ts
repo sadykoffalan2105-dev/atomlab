@@ -18,6 +18,7 @@
  */
 import { formulaToUnicode, parseEquationText, type EquationSpecies } from './equationFormula'
 import { schoolBondOrders } from '../components/lab/hero/schoolHeroModel'
+import { MAIN_REACTIONS_200 } from '../data/catalog/mainReactions200'
 
 export type StoryLocale = 'ru' | 'en' | 'uz'
 export type StoryText = Readonly<Record<StoryLocale, string>>
@@ -245,6 +246,20 @@ const INSOLUBLE = new Set([
 type Tok = { el: string; n: number }
 type Item = { kind: 'el'; el: string; n: number } | { kind: 'grp'; items: Item[]; n: number; bracket: boolean }
 
+/**
+ * Кратность связей молекулы для сюжета: школьная графическая формула (schoolBondOrders) и две двухатомные молекулы,
+ * которые общее правило валентностей не выводит (у C в CO и у N в NO валентность «не стандартная»):
+ * C≡O (две связи по обменному механизму и одна донорно-акцепторная) и N=O (с неспаренным электроном у N).
+ */
+function storyBondOrders(els: readonly string[], pairs: readonly (readonly [number, number])[]): number[] {
+  if (els.length === 2 && pairs.length === 1) {
+    const k = [...els].sort().join('')
+    if (k === 'CO') return [3]
+    if (k === 'NO') return [2]
+  }
+  return schoolBondOrders(els, pairs)
+}
+
 function parseItems(src: string): Item[] | null {
   let i = 0
   const readNum = (): number => {
@@ -424,6 +439,36 @@ function bondPolyGroup(ub: UnitBuilder, ids: readonly number[]): void {
  * у кислородных кислот H связан с O; два одинаковых центра — мостиковый O (N₂O₅, P₂O₅, Cl₂O₇) или
  * прямая связь (N₂O₄, H₂O₂, N₂H₄); больше центров — цепочка (органика).
  */
+/**
+ * Кратность связей кислородного аниона в соли — по школьной графической формуле его кислоты:
+ * SO₄²⁻ как в H₂SO₄ (две S=O), CO₃²⁻ как в H₂CO₃ (одна C=O), ClO₃⁻ как в HClO₃ (две Cl=O), ClO⁻ — одинарная.
+ * Заряженные O анионa на время расчёта получают H (прототип кислоты), результат пишется в orders.
+ */
+function anionBondOrders(ub: UnitBuilder, orders: number[]): void {
+  for (const g of ub.groups) {
+    if (g.charge >= 0 || g.atoms.length < 3) continue
+    const inG = new Set(g.atoms)
+    const bondIdx = ub.bonds.map((b, k) => (inG.has(b[0]) && inG.has(b[1]) ? k : -1)).filter((k) => k >= 0)
+    if (bondIdx.length === 0) continue
+    const local = new Map(g.atoms.map((a, i) => [a, i]))
+    const els = g.atoms.map((a) => ub.atoms[a]!.el)
+    const pairs: [number, number][] = bondIdx.map((k) => [local.get(ub.bonds[k]![0])!, local.get(ub.bonds[k]![1])!])
+    const deg = (i: number) => pairs.filter(([a, b]) => a === i || b === i).length
+    const hasH = (i: number) => pairs.some(([a, b]) => (a === i && els[b] === 'H') || (b === i && els[a] === 'H'))
+    const terminalO = els.map((_, i) => i).filter((i) => els[i] === 'O' && deg(i) === 1 && !hasH(i))
+    const need = Math.round(-g.charge)
+    if (terminalO.length < need) continue
+    const protoEls = els.slice()
+    const protoPairs = pairs.slice()
+    for (let k = 0; k < need; k++) {
+      protoEls.push('H')
+      protoPairs.push([terminalO[k]!, protoEls.length - 1])
+    }
+    const po = storyBondOrders(protoEls, protoPairs)
+    bondIdx.forEach((k, j) => (orders[k] = po[j] ?? 1))
+  }
+}
+
 function bondMoleculeGeneric(ub: UnitBuilder, ids: readonly number[], formulaKey = ''): void {
   if (ids.length < 2) return
   const el = (i: number) => ub.atoms[i]!.el
@@ -447,8 +492,10 @@ function bondMoleculeGeneric(ub: UnitBuilder, ids: readonly number[], formulaKey
   if (elements.length === 1) centerEl = elements[0]!
   const centers = heavy.filter((i) => el(i) === centerEl)
   const others = heavy.filter((i) => el(i) !== centerEl)
-  const oxoacid = centerEl !== 'O' && centerEl !== 'C' && others.some((i) => el(i) === 'O') && Hs.length > 0
-  const organic = centerEl === 'C' && Hs.length > 0
+  // H₂CO₃ — кислородная кислота (H–O–C(=O)–O–H), не органика: H к кислородам, а не к углероду
+  const carbonic = formulaKey === 'C1H2O3'
+  const oxoacid = (carbonic || (centerEl !== 'O' && centerEl !== 'C')) && others.some((i) => el(i) === 'O') && Hs.length > 0
+  const organic = centerEl === 'C' && Hs.length > 0 && !carbonic
   if (elements.length === 1) {
     // H₂O₂, N₂H₄, C₂H₆ — цепочка центров, H поровну
     for (let k = 1; k < centers.length; k++) ub.bond(centers[k - 1]!, centers[k]!)
@@ -901,7 +948,8 @@ function buildSide(species: readonly EquationSpecies[], termOffset: number): { s
       })
       // Кратность — только у нейтральных молекул; schoolBondOrders сам отказывается (одинарные), если есть металл
       // или валентности и степени окисления не сходятся — ложных двойных связей не будет.
-      const orders = spec.charge === 0 ? schoolBondOrders(ub.atoms.map((x) => x.el), ub.bonds) : ub.bonds.map(() => 1)
+      const orders = spec.charge === 0 ? storyBondOrders(ub.atoms.map((x) => x.el), ub.bonds) : ub.bonds.map(() => 1)
+      if (spec.kind === 'ionic' || spec.kind === 'ion') anionBondOrders(ub, orders)
       ub.bonds.forEach(([a, b], k) => side.bonds.push({ a: atomBase + a, b: atomBase + b, order: orders[k] ?? 1 }))
       side.units.push({
         id: unitId,
@@ -967,6 +1015,20 @@ function mapAtoms(L: StorySide, R: StorySide): { map: number[]; conserved: [numb
       used[pick] = true
       freeR.splice(freeR.indexOf(pick), 1)
     }
+  }
+
+  // 1b) связь X–X слева (O–O пероксида, S–S, N–N) и свободная молекула X₂ справа — связь сохраняется:
+  //     O₂ из Na₂O₂ / H₂O₂ берётся из пероксида (диспропорционирование), а не из кислорода воды
+  for (const b of L.bonds) {
+    const ea = L.atoms[b.a]!.el
+    if (ea === 'H' || L.atoms[b.b]!.el !== ea || map[b.a]! >= 0 || map[b.b]! >= 0) continue
+    if (Math.abs(L.atoms[b.a]!.ox - L.atoms[b.b]!.ox) > 1e-9) continue
+    const ru = R.units.find((u) => u.atoms.length === 2 && u.atoms.every((r) => !used[r] && R.atoms[r]!.el === ea))
+    if (!ru) continue
+    map[b.a] = ru.atoms[0]!
+    map[b.b] = ru.atoms[1]!
+    used[ru.atoms[0]!] = true
+    used[ru.atoms[1]!] = true
   }
 
   // 2) остальные: распространение по связям (сохранить связь), затем «затравка» — тот же элемент,
@@ -1132,7 +1194,7 @@ function coeffFormula(t: StoryTerm): string {
   return `${t.coeff > 1 ? t.coeff : ''}${t.formula}`
 }
 
-function halfLine(c: StoryOxChange, lossFirst: boolean): string {
+export function halfLine(c: StoryOxChange, lossFirst: boolean): string {
   const n = c.count > 1 ? String(c.count) : ''
   const e = Math.abs(c.electrons)
   const eText = `${Number.isInteger(e) ? e : e.toFixed(2)}e⁻`
@@ -1152,6 +1214,20 @@ function fmtE(n: number): string {
 export type ReactionStoryInput = {
   /** уравнение с коэффициентами (Unicode или ASCII), пометки ↑ ↓ учитываются */
   readonly equation: string
+}
+
+/** Ключ уравнения для сравнения: без пробелов и пометок ↑↓, цифры обычные, стрелка одна. */
+function equationKey(text: string): string {
+  return text
+    .replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080))
+    .replace(/[↑↓\s]/g, '')
+    .replace(/⇌|⇄|<=>|↔|->|=>|⟶|=/g, '→')
+}
+let catalogTypes: Map<string, string> | null = null
+/** Тип реакции из каталога «200 основных» (combustion, combination, …) или null, если уравнения там нет. */
+function catalogTypeOf(text: string): string | null {
+  if (!catalogTypes) catalogTypes = new Map(MAIN_REACTIONS_200.map((r) => [equationKey(r.equation), r.type]))
+  return catalogTypes.get(equationKey(text)) ?? null
 }
 
 /** Пометки ↑ / ↓ у продуктов из текста уравнения (по порядку членов правой части). */
@@ -1273,7 +1349,17 @@ export function buildReactionStory(input: ReactionStoryInput | string): Reaction
     }
   }
   const o2Left = leftUnits.some((u) => u?.formula === 'O₂')
-  const combustion = o2Left && redox && type !== 'decomposition' && rightUnits.every((u) => u != null && R.atoms.filter((a) => a.unit === u.id).some((a) => a.el === 'O'))
+  // «горение» — по типу из каталога 200 основных; вне каталога — O₂ слева, ОВР, без воды слева и не обратимая
+  const catalogType = catalogTypeOf(text)
+  const combustion =
+    catalogType != null
+      ? catalogType === 'combustion'
+      : o2Left && redox && type !== 'decomposition' && eq.arrow !== '⇌' && !leftUnits.some((u) => u?.formula === 'H₂O') && rightUnits.every((u) => u != null && R.atoms.filter((a) => a.unit === u.id).some((a) => a.el === 'O'))
+  // металл «оседает» только при замещении из соли/кислоты в растворе; оксид металла (CuO + H₂, Cr₂O₃ + Al) — не раствор
+  const isOxide = (u: StoryUnit) => {
+    const els = new Set(L.atoms.filter((a) => a.unit === u.id).map((a) => a.el))
+    return els.has('O') && !els.has('H') && els.size === 2
+  }
 
   // судьба продуктов: газ ↑, осадок ↓, металл оседает, вода
   const leftAllGas = leftUnits.every((u) => u != null && GASES.has(asciiOf(u.formula)))
@@ -1287,7 +1373,7 @@ export function buildReactionStory(input: ReactionStoryInput | string): Reaction
     else if (f === 'H2O') fate = 'water'
     else if (GASES.has(f) && !leftAllGas && type !== 'combination' && !SOLUBLE_GASES.has(f)) fate = 'gas'
     else if (INSOLUBLE.has(f) && (type === 'exchange' || type === 'neutralization' || type === 'substitution' || type === 'other') && leftUnits.some((x) => x?.kind === 'ionic' || x?.acid)) fate = 'precipitate'
-    else if (u.kind === 'metal' && type === 'substitution' && leftUnits.some((x) => x?.kind === 'ionic')) fate = 'deposit'
+    else if (u.kind === 'metal' && type === 'substitution' && leftUnits.some((x) => x != null && x.kind === 'ionic' && !isOxide(x))) fate = 'deposit'
     terms.push({ side: 'right', index: nL + i, formula: u.formula, coeff: sp.coeff, charge: sp.charge, kind: u.kind, fate, ions: ionsOf(R, nL + i) })
   })
 
@@ -1362,7 +1448,6 @@ function buildTexts(s: Draft): Record<StoryLocale, Record<StoryStepId, StoryStep
   const water = rights.some((t) => t.fate === 'water')
 
   const balance = s.atomBalance.map((b) => `${b.el} ${b.left} = ${b.right}`).join(', ')
-  const halfs = [...s.oxidations.map((c) => halfLine(c, true)), ...s.reductions.map((c) => halfLine(c, false))].join('; ')
   const reducers = aggregate(s.oxidations.map((c) => `${c.term} (${c.el}${oxText(c.from)} → ${c.el}${oxText(c.to)})`)).map((x) => x.text)
   const oxidizers = aggregate(s.reductions.map((c) => `${c.term} (${c.el}${oxText(c.from)} → ${c.el}${oxText(c.to)})`)).map((x) => x.text)
   const eN = fmtE(s.given)
@@ -1395,7 +1480,8 @@ function buildTexts(s: Draft): Record<StoryLocale, Record<StoryStepId, StoryStep
       body: s.redox
         ? `${W.reducer} — ${reducers.join(', ')}: ${W.gives} ${eN}e⁻. ${W.oxidizer} — ${oxidizers.join(', ')}: ${W.takes} ${eN}e⁻. ${W.givenEqTaken(eN, fmtE(s.accepted))}`
         : W.noRedox,
-      equation: halfs || leftEq,
+      // полуреакции — крупной карточкой в самой сцене; в панели их не повторяем (ничего лишнего)
+      equation: `${leftEq} → …`,
     }
     const fParts: string[] = []
     if (formed.length) fParts.push(`${W.bondsForm}: ${countList(formed)}.`)
