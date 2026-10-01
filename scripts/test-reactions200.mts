@@ -96,6 +96,10 @@ for (const r of MAIN_REACTIONS_200) {
   if (!link) continue
   ok(!/\d/.test((link.spec.titleRu ?? '').replace(/[₀-₉]/g, '')) || Boolean(r.titleRu), `${tag}: заголовок ссылки подсказывает коэффициенты`)
 
+  // условия реактора: нейтрализация — без условий (кислота и щёлочь при комнатной температуре), горение — поджиг
+  if (r.type === 'neutralization') ok(!r.lab.heat && !r.lab.pressure && !r.lab.catalyst, `${tag}: у нейтрализации условия ${JSON.stringify(r.lab)}`)
+  if (r.type === 'combustion') ok(r.lab.heat === true, `${tag}: горение без нагрева (поджига)`)
+
   // 2. реактор
   const res = resolveReactorEquation(link.spec, { balanceSelf: true })
   const target = resolveReactorEquation(link.spec)

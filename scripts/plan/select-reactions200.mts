@@ -501,7 +501,10 @@ const LAB_OVERRIDE: Record<string, Lab> = {
   'Al₂O₃ + 2NaOH → 2NaAlO₂ + H₂O': { heat: true },
   'SiO₂ + 2NaOH → H₂O + Na₂SiO₃': { heat: true },
   '2NH₄Cl + Ca(OH)₂ → CaCl₂ + 2H₂O + 2NH₃': { heat: true },
+  // оксид меди(II) растворяют в кислотах при нагревании (школьный опыт)
   'CuO + H₂SO₄ → CuSO₄ + H₂O': { heat: true },
+  'CuO + 2HCl → CuCl₂ + H₂O': { heat: true },
+  'CuO + 2HNO₃ → Cu(NO₃)₂ + H₂O': { heat: true },
   'Cu + 2H₂SO₄ → CuSO₄ + SO₂ + 2H₂O': { heat: true },
   '2Fe + 6H₂SO₄ → Fe₂(SO₄)₃ + 3SO₂ + 6H₂O': { heat: true },
   'MnO₂ + 4HCl → MnCl₂ + Cl₂ + 2H₂O': { heat: true },
