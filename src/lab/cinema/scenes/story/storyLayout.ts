@@ -119,7 +119,7 @@ const STACK_DX = 0.2
 const STACK_DY = 0.15
 const STACK_DZ = -0.55
 /** Яркость атома по слою стопки: лицевая копия — полная, позади — тёмные. */
-export const STORY_LAYER_BRIGHT = [1, 0.4, 0.24] as const
+export const STORY_LAYER_BRIGHT = [1, 0.33, 0.2] as const
 
 /** Стопка копий: лицевая единица каждого члена (term → unit id) и слой каждой единицы (unit id → 0, 1, 2). */
 type Stack = { readonly rep: Map<number, number>; readonly layer: Map<number, number> }
@@ -489,7 +489,9 @@ function compactIons(items: readonly (readonly number[])[], pos: Map<number, V>,
       const p = pos.get(i)!
       for (const j of fixed) {
         const q = pos.get(j)!
-        if (Math.hypot(p[0] + dx - q[0], p[1] + dy - q[1], p[2] - q[2]) < r(i) + r(j) + 0.02) return true
+        // касание — в плоскости кадра (без глубины): иначе кислород одного SO₄²⁻ встаёт «за» кислород соседа
+        // и в кадре шары и символы налезают друг на друга
+        if (Math.hypot(p[0] + dx - q[0], p[1] + dy - q[1]) < r(i) + r(j) + 0.02) return true
       }
     }
     return false
@@ -860,16 +862,16 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
     }
   }
 
-  // стопка при разрыве — жёстко за лицевой копией (сдвиг слоя тот же, что в p0)
+  // стопка при разрыве — целиком (без своего разлёта: копии рвутся по-разному, а повторять разлёт лицевой копии —
+  // значит растянуть сохранённые связи стопки в длинные палочки), сдвиг — средний сдвиг лицевой копии
   if (stackL) {
     for (const [term, repId] of stackL.rep) {
       const f = L.units[repId]!
+      const sh = [0, 0, 0]
+      for (const b of f.atoms) for (let c = 0; c < 3; c++) sh[c]! += (p1[b * 3 + c]! - p0[b * 3 + c]!) / f.atoms.length
       for (const u of L.units) {
         if (u.term !== term || u.id === repId) continue
-        u.atoms.forEach((a, k) => {
-          const b = f.atoms[k]!
-          for (let c = 0; c < 3; c++) p1[a * 3 + c] = p1[b * 3 + c]! + (p0[a * 3 + c]! - p0[b * 3 + c]!)
-        })
+        for (const a of u.atoms) for (let c = 0; c < 3; c++) p1[a * 3 + c] = p0[a * 3 + c]! + sh[c]!
       }
     }
   }

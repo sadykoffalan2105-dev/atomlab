@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { halfLine, oxPlain, type ReactionStory } from '../../../../chemistry/reactionStory'
+import { halfLine, oxPlain, type ReactionStory, type StoryOxChange } from '../../../../chemistry/reactionStory'
 import { schoolAtomColor, schoolAtomHex, schoolLabelDark } from '../../../../components/lab/hero/schoolHeroStyle'
 import type { DomLabelSource } from '../../react/CinemaDomLabels'
 import type { SceneLocale } from '../kit/sceneKit'
@@ -460,9 +460,19 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
   private halfText(): string {
     const s = this.story
     const tg = HALF_TAGS[this.locale]
+    // одинаковые полуреакции из разных веществ (2H⁺¹ из NaOH и 2H⁺¹ из H₂O) — одной строкой с суммой
+    const merge = (list: readonly StoryOxChange[]) => {
+      const out: StoryOxChange[] = []
+      for (const c of list) {
+        const k = out.findIndex((x) => x.el === c.el && x.from === c.from && x.to === c.to)
+        if (k < 0) out.push(c)
+        else out[k] = { ...out[k]!, count: out[k]!.count + c.count, electrons: out[k]!.electrons + c.electrons, atoms: [...out[k]!.atoms, ...c.atoms] }
+      }
+      return out
+    }
     const rows = [
-      ...s.oxidations.map((c) => `o␟${halfLine(c, true)}␟${tg.reducer}`),
-      ...s.reductions.map((c) => `r␟${halfLine(c, false)}␟${tg.oxidizer}`),
+      ...merge(s.oxidations).map((c) => `o␟${halfLine(c, true)}␟${tg.reducer}`),
+      ...merge(s.reductions).map((c) => `r␟${halfLine(c, false)}␟${tg.oxidizer}`),
       `b␟${tg.balance(fmt(s.given), fmt(s.accepted))}`,
     ]
     return rows.join('\n')
@@ -735,7 +745,8 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       L.pos.set(x, y + 0.2, z + 0.3)
       let mf = Infinity
       for (const i of f.atoms) mf = Math.min(mf, lay.moveFrom[i]!)
-      L.opacity = smooth(lay.breakFrom + 0.6, lay.breakFrom + 1.1, t) * (1 - smooth(mf, mf + 0.4, t)) * fade * (1 - 0.5 * dimU)
+      // на шаге переноса подписи осколков убраны: над атомами — чипы степеней окисления, лишнего в кадре нет
+      L.opacity = smooth(lay.breakFrom + 0.6, lay.breakFrom + 1.1, t) * (1 - smooth(mf, mf + 0.4, t)) * fade * (1 - dimU)
     })
     lay.termLabels.forEach((tl, k) => {
       const L = this.labels[this.termLabelIdx[k]!]!
