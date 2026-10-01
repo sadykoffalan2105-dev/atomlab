@@ -38,3 +38,13 @@ export function mainReactionSearchText(r: MainReaction): string {
 export function mainReactionsByType(type: MainReactionType): MainReaction[] {
   return MAIN_REACTIONS_200.filter((r) => r.type === type)
 }
+
+/**
+ * «/?reactor=1&mr=<id>&balance=1» — реакция в реакторе: все вещества уже стоят, коэффициенты 1, ученику остаётся
+ * только уравнять (docs/plans/reactions-top200.md, п. 2). src — путь «← назад» (каталог).
+ */
+export function reactorHrefForMainReaction(id: string, opts?: { src?: string | null }): string {
+  let href = `/?reactor=1&mr=${encodeURIComponent(id)}&balance=1`
+  if (opts?.src) href += `&src=${encodeURIComponent(opts.src)}`
+  return href
+}

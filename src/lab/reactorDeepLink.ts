@@ -35,6 +35,7 @@ import {
 import { fromElementsPolicy } from '../chemistry/substanceSynthesisRoute'
 import { compoundById } from '../data/compounds'
 import { mainReactionById, mainReactionSkeleton, type MainReaction } from '../data/catalog/mainReactions'
+export { reactorHrefForMainReaction } from '../data/catalog/mainReactions'
 import { getElementBySymbol } from '../data/elements'
 import {
   electronSpecies,
@@ -560,14 +561,6 @@ function appendOptions(base: string, opts?: ReactorHrefOptions): string {
 /** «/?reactor=1&reaction=<id>» для <Link to>. */
 export function reactorHrefForBank(reactionId: string, opts?: ReactorHrefOptions): string {
   return appendOptions(`/?reactor=1&reaction=${encodeURIComponent(reactionId)}`, opts)
-}
-
-/**
- * «/?reactor=1&mr=<id>&balance=1» — одна из 200 основных реакций: все вещества уже стоят, коэффициенты 1,
- * ученику остаётся только уравнять (docs/plans/reactions-top200.md, п. 2).
- */
-export function reactorHrefForMainReaction(id: string, opts?: Pick<ReactorHrefOptions, 'src'>): string {
-  return appendOptions(`/?reactor=1&mr=${encodeURIComponent(id)}`, { balance: true, src: opts?.src })
 }
 
 /** Состояние реактора для основной реакции. Заголовок без коэффициентов — сообщение не подсказывает ответ. */
