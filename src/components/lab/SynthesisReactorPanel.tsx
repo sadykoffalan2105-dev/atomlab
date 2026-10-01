@@ -26,6 +26,7 @@ import { useLocation } from 'react-router-dom'
 import { clo2StepStore } from '../../lab/cinema/scenes/clo2/clo2StepStore'
 import { ReactorBalancePanel } from './ReactorBalancePanel'
 import { effectiveLabNeeds } from '../../lab/reactionLabNeeds'
+import { mainReactionLabNeeds, type MainReaction } from '../../data/catalog/mainReactions'
 import { ReactorAtomLedger, ReactorLedgerComment, useAtomLedger } from './ReactorAtomLedger'
 import type { BalanceLesson } from '../../chemistry/balanceLessonBank'
 import panelStyles from './SynthesisReactorPanel.module.css'
@@ -547,7 +548,16 @@ export function SynthesisReactorPanel({
   teacherLineText,
   onTeacherVoiceToggle,
   onTeacherReplay,
+  mainReaction = null,
+  onOpenMainReaction,
 }: {
+  /**
+   * Одна из 200 основных реакций (ссылка mr=): вещества стоят, ученик только уравнивает — без «эталона»,
+   * «этапов получения» (там ответ), условия — этой реакции; при верном уравнении — ясный сигнал «запускайте».
+   */
+  mainReaction?: MainReaction | null
+  /** Уроки и справочник в «Способах уравнивания» открывают только основные реакции. */
+  onOpenMainReaction?: (id: string) => void
   open: boolean
   onOpenGenerateEquationCatalog: () => void
   leftTerms: readonly ReactorEquationTerm[]
@@ -665,7 +675,10 @@ export function SynthesisReactorPanel({
   const atomLedger = useAtomLedger({ leftTerms, coProducts, productCompound, productCoeff }, synthesisRunning)
   const hasDiatomic = leftTerms.some((t) => t.diatomic)
 
-  const hasObtainingSteps = Boolean(productStrings?.obtainingSteps && productStrings.obtainingSteps.length > 1)
+  // «Этапы получения» показывают готовые уравнения с коэффициентами — для основной реакции это подсказка ответа.
+  const hasObtainingSteps = Boolean(
+    !mainReaction && productStrings?.obtainingSteps && productStrings.obtainingSteps.length > 1,
+  )
   const activeSection: ReactorSection | null =
     openSection === 'steps' && !hasObtainingSteps ? null : openSection
 
@@ -673,7 +686,11 @@ export function SynthesisReactorPanel({
     const query = location.search || (window.location.hash.includes('?') ? window.location.hash.slice(window.location.hash.indexOf('?')) : '')
     return new URLSearchParams(query.startsWith('?') ? query.slice(1) : query).get('reaction')
   }, [location.search])
-  const labNeeds = effectiveLabNeeds(productCompound?.synthesisLab, productCompound?.id, linkedReactionId)
+  const labNeeds = mainReaction
+    ? mainReactionLabNeeds(mainReaction)
+    : effectiveLabNeeds(productCompound?.synthesisLab, productCompound?.id, linkedReactionId)
+  /** Подпись катализатора: у основной реакции — свой (MnO₂ у H₂O₂, V₂O₅ у SO₂), иначе — из данных продукта. */
+  const catalystLabel = mainReaction ? (mainReaction.lab.catalyst ?? '') : (productStrings?.synthesisConditions.catalyst ?? '')
   // Реакция только «шарами» (runUnavailableHint): запуска нет — и условий запуска тоже не показываем.
   const hasLabConditions = Boolean(
     !runUnavailableHint &&
@@ -686,7 +703,9 @@ export function SynthesisReactorPanel({
     (labNeeds?.needsPressure && labPressureOn ? 1 : 0) +
     (labNeeds?.needsCatalyst && labCatalystOn ? 1 : 0)
   const labReady = labNeedCount > 0 && labOnCount >= labNeedCount
-  const showLabConditionsHint = hasLabConditions && equationBalanced && !canRun && !synthesisRunning
+  /** Основная реакция уравнена верно: ясный сигнал вместо подсказок (и «включите условия», если их нет). */
+  const mainBalanced = Boolean(mainReaction && equationBalanced && !synthesisRunning)
+  const showLabConditionsHint = !mainBalanced && hasLabConditions && equationBalanced && !canRun && !synthesisRunning
 
   const messageTone = message ? reactorMessageTone(message, highlightEquationError) : 'info'
   // Эталон — по id реакции из ссылки (решение 9: id, а не продукт): у naoh-hcl продукт тоже NaCl,
@@ -700,7 +719,7 @@ export function SynthesisReactorPanel({
     ? passportForReaction(linkedReaction).reversibility === 'reversible' || /[⇄⇌]/.test(linkedReaction.equationRu)
     : false
   // Реакция «шарами»: «эталон» получения главного продукта (H₂O из 2H₂ + O₂ при CH₄ + 2O₂) сбил бы с толку.
-  const recipeText = productCompound && !runUnavailableHint
+  const recipeText = productCompound && !runUnavailableHint && !mainReaction
     ? linkedReaction
       ? linkedReaction.productId === productCompound.id
         ? (locale === 'ru' ? linkedReaction.equationRu : linkedReaction.equationEn || linkedReaction.equationRu)
@@ -791,11 +810,12 @@ export function SynthesisReactorPanel({
             type="button"
             className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnAccent}`}
             onClick={onOpenGenerateEquationCatalog}
-            title={t('reactor.generateEquationTitle')}
-            aria-label={t('reactor.generateEquation')}
+            title={t('reactor.pick.lead')}
+            aria-label={t('reactor.pick.title')}
+            data-main-rx-open=""
           >
             <IconSparkles size={17} />
-            <span>{t('reactor.generateEquationShort')}</span>
+            <span>{t('reactor.pick.button')}</span>
           </button>
           <button
             type="button"
@@ -880,14 +900,14 @@ export function SynthesisReactorPanel({
               <div className={panelStyles.equalsColumn}>
                 {leftTerms.length > 0 ? <ReactorAtomLedger ledger={atomLedger.ledger} /> : null}
                 <span className={panelStyles.equalsSign} aria-hidden="true">
-                  {reversibleLink ? '⇄' : scientificMode ? '→' : '='}
+                  {mainReaction ? (/[⇄⇌]/.test(mainReaction.equation) ? '⇄' : '→') : reversibleLink ? '⇄' : scientificMode ? '→' : '='}
                 </span>
               </div>
 
               <div className={`${panelStyles.productBlock} ${panelStyles.productBlockEquation}`}>
                 <div className={panelStyles.productEquationMeta}>
                   <span className={panelStyles.productLabelCompact}>
-                    {scientificMode ? t('reactor.products') : t('reactor.productGoal')}
+                    {scientificMode || mainReaction ? t('reactor.products') : t('reactor.productGoal')}
                   </span>
                   {/* Место под плашку зарезервировано всегда (visibility, а не удаление):
                       иначе карточка уравнения прыгает по ширине при каждом ±. */}
@@ -963,7 +983,7 @@ export function SynthesisReactorPanel({
                     ) : (
                       <span className={panelStyles.catalogOpenPlaceholder}>{t('reactor.productEmpty')}</span>
                     )}
-                    {scientificMode ? null : (
+                    {scientificMode || mainReaction ? null : (
                       <button
                         type="button"
                         className={`${panelStyles.catalogFabCompact} ${coeffErr ? panelStyles.catalogFabCompactError : ''}`}
@@ -1069,6 +1089,7 @@ export function SynthesisReactorPanel({
               onExpandedChange={(v) => setOpenSection(v ? 'balance' : null)}
               onApplyCoeffs={(left, k) => onApplyBalanceCoeffs?.(left, k)}
               onLoadLesson={(lesson) => onLoadBalanceLesson?.(lesson)}
+              onOpenMainReaction={onOpenMainReaction}
             />
           ) : null}
         </div>
@@ -1170,7 +1191,7 @@ export function SynthesisReactorPanel({
                     }
                     aria-pressed={labCatalystOn}
                     onClick={() => onLabCatalystChange?.(!labCatalystOn)}
-                    title={productStrings?.synthesisConditions.catalyst || undefined}
+                    title={catalystLabel || undefined}
                   >
                     <span className={panelStyles.labCondIcon} aria-hidden>
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
@@ -1187,9 +1208,9 @@ export function SynthesisReactorPanel({
                     </span>
                     <span className={panelStyles.labCondChipText}>
                       <span className={panelStyles.labCondChipLabel}>{t('reactor.labCatalyst')}</span>
-                      {productStrings?.synthesisConditions.catalyst ? (
+                      {catalystLabel ? (
                         <span className={panelStyles.labCondChipSub}>
-                          {productStrings.synthesisConditions.catalyst}
+                          {catalystLabel}
                         </span>
                       ) : null}
                     </span>
@@ -1198,10 +1219,10 @@ export function SynthesisReactorPanel({
                   </button>
                 ) : null}
               </div>
-              {labCatalystOn && productStrings?.synthesisConditions.catalyst ? (
+              {labCatalystOn && catalystLabel ? (
                 <p className={panelStyles.srOnly} role="status">
                   {t('reactor.labCatalystActive', {
-                    name: productStrings.synthesisConditions.catalyst,
+                    name: catalystLabel,
                   })}
                 </p>
               ) : null}
@@ -1209,7 +1230,16 @@ export function SynthesisReactorPanel({
           ) : null}
 
           <div className={panelStyles.reactorAlerts}>
-            {message ? (
+            {mainBalanced ? (
+              <p className={panelStyles.reactorMsg} data-tone="success" role="status" data-main-balanced="">
+                <span className={panelStyles.reactorMsgIcon} aria-hidden>
+                  <IconTone tone="success" />
+                </span>
+                <span className={panelStyles.reactorMsgText}>
+                  {canRun || !hasLabConditions ? t('reactor.balanced.run') : t('reactor.balanced.runNeedsLab')}
+                </span>
+              </p>
+            ) : message ? (
               <p className={panelStyles.reactorMsg} data-tone={messageTone} role="status">
                 <span className={panelStyles.reactorMsgIcon} aria-hidden>
                   <IconTone tone={messageTone} />

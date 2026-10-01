@@ -18,6 +18,7 @@ import { passportForReaction, reactionsByClass } from '../../chemistry/schoolRea
 import { reactantsSummaryRu } from '../../chemistry/reactionReactantLabels'
 import { describePassportRu } from '../../chemistry/reactionPassport'
 import { REACTION_CLASS_META, type ReactionClass } from '../../chemistry/reactionTypeTaxonomy'
+import { MAIN_REACTIONS_200, mainReactionSkeleton } from '../../data/catalog/mainReactions'
 import styles from './ReactorBalancePanel.module.css'
 
 type TabId = 'substitution' | 'electron' | 'lesson' | 'guide'
@@ -40,6 +41,7 @@ export function ReactorBalancePanel({
   productCoeff,
   onApplyCoeffs,
   onLoadLesson,
+  onOpenMainReaction,
   expanded: expandedProp,
   onExpandedChange,
 }: {
@@ -48,6 +50,8 @@ export function ReactorBalancePanel({
   productCoeff: number
   onApplyCoeffs: (left: Record<string, number>, productCoeff: number) => void
   onLoadLesson: (lesson: BalanceLesson) => void
+  /** Открыть одну из 200 основных реакций (уроки и справочник — только они). */
+  onOpenMainReaction?: (id: string) => void
   /**
    * Управляемое раскрытие (кнопка-переключатель снаружи, в шапке реактора).
    * Если не передано — панель показывает собственную кнопку «Методы балансировки».
@@ -94,6 +98,24 @@ export function ReactorBalancePanel({
 
   const guideReactions = useMemo(() => reactionsByClass(guideClass), [guideClass])
   const guideMeta = useMemo(() => REACTION_CLASS_META.find((m) => m.id === guideClass), [guideClass])
+  /**
+   * Реактор выбирает реакции только из 200 основных (docs/plans/reactions-top200.md): уроки — те, у которых есть
+   * основная реакция, справочник типов — основные реакции этого типа. Без onOpenMainReaction — прежние списки.
+   */
+  const mainOnly = onOpenMainReaction != null
+  const lessonMains = useMemo(
+    () =>
+      BALANCE_LESSON_BANK.flatMap((lesson) => {
+        const main = MAIN_REACTIONS_200.find((r) => r.bankId === lesson.id)
+        return main ? [{ lesson, main }] : []
+      }),
+    [],
+  )
+  const guideMains = useMemo(() => MAIN_REACTIONS_200.filter((r) => r.type === guideClass), [guideClass])
+  const guideClasses = useMemo(
+    () => (mainOnly ? REACTION_CLASS_META.filter((m) => MAIN_REACTIONS_200.some((r) => r.type === m.id)) : REACTION_CLASS_META),
+    [mainOnly],
+  )
 
   const canApplyElectron = Boolean(electron?.isRedox)
 
@@ -292,7 +314,77 @@ export function ReactorBalancePanel({
         </div>
       ) : null}
 
-      {tab === 'lesson' ? (
+      {tab === 'lesson' && mainOnly ? (
+        <div className={styles.body} role="tabpanel">
+          <p className={styles.hint}>{t('reactor.pick.lead')}</p>
+          <ul className={styles.lessonList}>
+            {lessonMains.map(({ lesson, main }) => (
+              <li key={lesson.id} className={styles.lessonItem}>
+                <div className={styles.lessonMeta}>
+                  <strong>{locale === 'en' ? lesson.titleEn : lesson.titleRu}</strong>
+                  <span className={styles.lessonGrade}>{t('reactor.balance.grade', { n: lesson.gradeHint })}</span>
+                  <span className={styles.lessonPractice}>{mainReactionSkeleton(main.equation)}</span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.lessonLoad}
+                  onClick={() => {
+                    onOpenMainReaction?.(main.id)
+                    if (lesson.methodHint === 'electron') setTab('electron')
+                    else setTab('substitution')
+                  }}
+                >
+                  {t('reactor.pick.open')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {tab === 'guide' && mainOnly ? (
+        <div className={styles.body} role="tabpanel">
+          <p className={styles.hint}>{t('reactor.balance.guideHint')}</p>
+          <div className={styles.guideClassRow} role="group" aria-label={t('reactor.balance.guideClassAria')}>
+            {guideClasses.map((meta) => (
+              <button
+                key={meta.id}
+                type="button"
+                className={guideClass === meta.id ? `${styles.guideChip} ${styles.guideChipOn}` : styles.guideChip}
+                onClick={() => setGuideClass(meta.id)}
+              >
+                {locale === 'en' ? meta.titleEn : meta.titleRu}
+              </button>
+            ))}
+          </div>
+          {guideMeta ? (
+            <div className={styles.guideSummary}>
+              <span className={styles.guideScheme}>{guideMeta.schemeRu}</span>
+              <p>{guideMeta.summaryRu}</p>
+            </div>
+          ) : null}
+          <ul className={styles.lessonList}>
+            {guideMains.length === 0 ? (
+              <li className={styles.empty}>{t('reactor.balance.guideEmpty')}</li>
+            ) : (
+              guideMains.map((r) => (
+                <li key={r.id} className={styles.lessonItem}>
+                  <div className={styles.lessonMeta}>
+                    {r.titleRu && locale === 'ru' ? <strong>{r.titleRu}</strong> : null}
+                    <span className={styles.lessonGrade}>{r.grades.map((g) => `${g}`).join(', ')}</span>
+                    <span className={styles.lessonPractice}>{mainReactionSkeleton(r.equation)}</span>
+                  </div>
+                  <button type="button" className={styles.lessonLoad} onClick={() => onOpenMainReaction?.(r.id)}>
+                    {t('reactor.pick.open')}
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      ) : null}
+
+      {tab === 'lesson' && !mainOnly ? (
         <div className={styles.body} role="tabpanel">
           <p className={styles.hint}>{t('reactor.balance.lessonHint')}</p>
           <ul className={styles.lessonList}>
@@ -331,7 +423,7 @@ export function ReactorBalancePanel({
         </div>
       ) : null}
 
-      {tab === 'guide' ? (
+      {tab === 'guide' && !mainOnly ? (
         <div className={styles.body} role="tabpanel">
           <p className={styles.hint}>{t('reactor.balance.guideHint')}</p>
           <div className={styles.guideClassRow} role="group" aria-label={t('reactor.balance.guideClassAria')}>

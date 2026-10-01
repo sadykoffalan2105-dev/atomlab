@@ -826,6 +826,8 @@ export const messagesUz: Record<MessageKey, string> = {
   'catalog.rx.condPressure': 'bosim',
   'catalog.rx.condCatalyst': 'kat. {name}',
   'catalog.statMainReactions': 'asosiy reaksiya',
+  'reactor.pick.button': 'Reaksiyalar',
+  'reactor.pick.lesson': 'Dars reaksiyalari',
   'reactor.pick.title': '200 asosiy reaksiya',
   'reactor.pick.lead': 'Reaksiyani tanlang: moddalar reaktorga koeffitsiyent 1 bilan tushadi — faqat tenglashtirish qoladi.',
   'reactor.pick.search': 'Formula yoki modda nomi…',

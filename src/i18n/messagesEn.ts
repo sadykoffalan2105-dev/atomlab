@@ -826,6 +826,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'catalog.rx.condPressure': 'pressure',
   'catalog.rx.condCatalyst': 'cat. {name}',
   'catalog.statMainReactions': 'key reactions',
+  'reactor.pick.button': 'Reactions',
+  'reactor.pick.lesson': 'This lesson',
   'reactor.pick.title': '200 key reactions',
   'reactor.pick.lead': 'Pick a reaction: its substances enter the reactor with coefficients 1 — you only balance it.',
   'reactor.pick.search': 'Formula or substance name…',

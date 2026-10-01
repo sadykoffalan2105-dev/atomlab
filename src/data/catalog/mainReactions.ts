@@ -35,6 +35,15 @@ export function mainReactionSearchText(r: MainReaction): string {
   return `${r.equation} ${plain} ${r.titleRu ?? ''} ${r.qualitative ?? ''}`.toLowerCase()
 }
 
+/** Условия реактора (переключатели «Нагрев / Давление / Катализатор») для основной реакции. */
+export function mainReactionLabNeeds(r: MainReaction): { needsHeat?: boolean; needsPressure?: boolean; needsCatalyst?: boolean } {
+  return {
+    ...(r.lab.heat ? { needsHeat: true } : {}),
+    ...(r.lab.pressure ? { needsPressure: true } : {}),
+    ...(r.lab.catalyst ? { needsCatalyst: true } : {}),
+  }
+}
+
 export function mainReactionsByType(type: MainReactionType): MainReaction[] {
   return MAIN_REACTIONS_200.filter((r) => r.type === type)
 }

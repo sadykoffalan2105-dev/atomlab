@@ -824,6 +824,8 @@ export const messagesRu = {
   'catalog.rx.condPressure': 'давление',
   'catalog.rx.condCatalyst': 'кат. {name}',
   'catalog.statMainReactions': 'основных реакций',
+  'reactor.pick.button': 'Реакции',
+  'reactor.pick.lesson': 'Реакции урока',
   'reactor.pick.title': '200 основных реакций',
   'reactor.pick.lead': 'Выберите реакцию: вещества встанут в реактор с коэффициентами 1 — останется только уравнять.',
   'reactor.pick.search': 'Формула или название вещества…',
