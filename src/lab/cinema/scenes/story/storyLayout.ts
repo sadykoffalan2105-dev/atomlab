@@ -482,6 +482,19 @@ function compactIons(items: readonly (readonly number[])[], pos: Map<number, V>,
       pos.set(i, [2 * c[0] - p[0], 2 * c[1] - p[1], p[2]])
     }
   }
+  // двухатомный анион с кислородом (ClO⁻: K–O–Cl) — заряд на O, к катиону обращён кислород, а не Cl
+  for (const it of items) {
+    if (it.length !== 2 || it.some((i) => elOf(i) === 'H')) continue
+    const o = it.find((i) => elOf(i) === 'O')
+    if (o == null || it.every((i) => elOf(i) === 'O')) continue
+    const c = centre(it)
+    const p = pos.get(o)!
+    if ((p[0] - c[0]) * (gx - c[0]) + (p[1] - c[1]) * (gy - c[1]) >= 0) continue
+    for (const i of it) {
+      const q = pos.get(i)!
+      pos.set(i, [2 * c[0] - q[0], 2 * c[1] - q[1], q[2]])
+    }
+  }
   const order = items.map((it, k) => ({ it, k, d: Math.hypot(centre(it)[0] - gx, centre(it)[1] - gy) })).sort((a, b) => a.d - b.d)
   const fixed: number[] = [...order[0]!.it]
   const clash = (it: readonly number[], dx: number, dy: number) => {
