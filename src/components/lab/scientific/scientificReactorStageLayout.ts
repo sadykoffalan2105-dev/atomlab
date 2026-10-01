@@ -11,6 +11,7 @@
 import type { ReactorEquationTerm } from '../../../chemistry/reactorEquationBalance'
 import { ATOMIC_DATA, isElementSymbol as isCoreElementSymbol } from '../../../chemistry/data'
 import { diatomicBondA } from '../../../chemistry/labSpeciesGeometry'
+import { formationPlan, type FormationSpecies } from '../../../chemistry/formationPlan'
 import { getElementBySymbol, getElementByZ } from '../../../data/elements'
 import { ELECTRON_SPECIES_ID, labCompoundById as compoundById, labSpeciesKind } from '../../../data/labSpecies'
 import {
@@ -139,7 +140,11 @@ const ROW_LABEL_BLOCK = 0.95
 /** зазор между подписями верхнего ряда и шарами нижнего */
 const ROW_SPLIT_GAP = 0.45
 const TALLY_DROP = 0.1
-export const STAGE_MAX_VISIBLE_COPIES = 4
+/**
+ * Частиц на сцене = коэффициент (решение 01.10: «сколько коэффициент — столько шаров»). 16 — самый большой
+ * коэффициент 200 основных реакций (2KMnO₄ + 16HCl); больше — сетка 4×4 и бэйдж «×N».
+ */
+export const STAGE_MAX_VISIBLE_COPIES = 16
 
 const ROLE_RADIUS: Record<string, number> = { Cl: 0.23, O: 0.15, 'Na+': 0.18, 'Cl-': 0.27 }
 
@@ -470,6 +475,36 @@ function fragmentFormula(symbols: readonly string[]): string {
   return order.map((s) => `${s}${subscript(counts[s]!)}`).join('')
 }
 
+/**
+ * Фрагменты модели ↔ частицы плана «Как образуется» (по составу). Для каждой частицы плана — столько фрагментов,
+ * сколько её в формульной единице; иначе null (модель каталога делится на ионы не так, как в плане).
+ */
+function matchPlanIons(
+  species: readonly FormationSpecies[],
+  fragments: readonly (readonly string[])[],
+): { charge: number; label: string }[] | null {
+  const key = (comp: Readonly<Record<string, number>>) =>
+    Object.keys(comp)
+      .filter((e) => (comp[e] ?? 0) > 0)
+      .sort()
+      .map((e) => `${e}${comp[e]}`)
+      .join('')
+  const pool: { key: string; charge: number; label: string }[] = []
+  for (const s of species) for (let i = 0; i < s.count; i++) pool.push({ key: key(s.comp), charge: s.charge, label: s.formula })
+  if (pool.length !== fragments.length) return null
+  const out: { charge: number; label: string }[] = []
+  for (const f of fragments) {
+    const comp: Record<string, number> = {}
+    for (const sym of f) comp[sym] = (comp[sym] ?? 0) + 1
+    const k = key(comp)
+    const at = pool.findIndex((p) => p.key === k)
+    if (at < 0) return null
+    out.push({ charge: pool[at]!.charge, label: pool[at]!.label })
+    pool.splice(at, 1)
+  }
+  return out
+}
+
 const templateCache = new Map<string, UnitTemplate>()
 
 function compoundTemplate(compoundId: string): UnitTemplate | null {
@@ -526,10 +561,24 @@ function compoundTemplate(compoundId: string): UnitTemplate | null {
     }
     return false
   }
+  // Ионное вещество по плану «Как образуется» (formationPlan): элемент, который в плане только одноатомный ион
+  // (Al³⁺ и O²⁻ в Al₂O₃, Fe²⁺/Fe³⁺ в Fe₃O₄, Mn⁴⁺ в MnO₂), — отдельный шар, связей у него нет.
+  const plan = formationPlan(compoundId)
+  const planIonic = plan?.mode === 'ionic' ? plan : null
+  const monoOnly = new Set<string>()
+  if (planIonic) {
+    const inPoly = new Set<string>()
+    for (const s of planIonic.species) if (s.kind !== 'ion') for (const el of Object.keys(s.comp)) inPoly.add(el)
+    for (const s of planIonic.species) {
+      if (s.kind === 'ion') for (const el of Object.keys(s.comp)) if (!inPoly.has(el)) monoOnly.add(el)
+    }
+  }
   const parent = raw.map((_, i) => i)
   const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i]!)))
   for (const [a, b] of compound.bonds) {
-    if (a < n && b < n && !ionicBond(a, b)) parent[find(a)] = find(b)
+    if (a >= n || b >= n) continue
+    if (monoOnly.has(raw[a]!.symbol) || monoOnly.has(raw[b]!.symbol)) continue
+    if (!ionicBond(a, b)) parent[find(a)] = find(b)
   }
   const groups = new Map<number, number[]>()
   for (let i = 0; i < n; i++) {
@@ -539,6 +588,8 @@ function compoundTemplate(compoundId: string): UnitTemplate | null {
     else groups.set(r, [i])
   }
   const fragments = [...groups.values()]
+  /** Ионы по плану: фрагмент ↔ частица плана по составу; null — модель каталога не делится на ионы плана. */
+  const planIons = planIonic ? matchPlanIons(planIonic.species, fragments.map((f) => f.map((gi) => raw[gi]!.symbol))) : null
 
   // Заряды: только для солей с известным простым катионом.
   const metalFrags = fragments.filter((f) => f.length === 1 && !simpleAnionCharge([raw[f[0]!]!.symbol]) && raw[f[0]!]!.symbol !== 'O')
@@ -583,6 +634,15 @@ function compoundTemplate(compoundId: string): UnitTemplate | null {
     } else {
       fragCharge.fill(0)
     }
+  }
+  // План «Как образуется» важнее догадки по фрагментам: NH₄⁺ NO₃⁻, Fe²⁺ S₂²⁻, Na⁺ HCO₃⁻, 2Al³⁺ 3O²⁻.
+  const planLabel: (string | null)[] = new Array<string | null>(fragments.length).fill(null)
+  if (planIons) {
+    planIons.forEach((m, fi) => {
+      fragCharge[fi] = m.charge
+      planLabel[fi] = m.label
+    })
+    ionic = true
   }
 
   // Масштаб: реальные пропорции из данных, но самая короткая связь в разумных пределах.
@@ -641,7 +701,7 @@ function compoundTemplate(compoundId: string): UnitTemplate | null {
     cursor = start + (box.maxX - box.minX)
 
     if (ionic) {
-      ionParts.push(`${ionLabel(f.map((gi) => raw[gi]!.symbol))}${chargeText(fragCharge[fi]!)}`)
+      ionParts.push(planLabel[fi] ?? `${ionLabel(f.map((gi) => raw[gi]!.symbol))}${chargeText(fragCharge[fi]!)}`)
     }
   }
 
@@ -713,13 +773,19 @@ function copyOffsets(n: number, cellW: number, cellH: number): V[] {
         [-cellW / 2, -cellH / 2, 0.08],
         [cellW / 2, -cellH / 2, 0.08],
       ]
-    default:
-      return [
-        [-cellW / 2, cellH / 2, -0.1],
-        [cellW / 2, cellH / 2, -0.1],
-        [-cellW / 2, -cellH / 2, 0.08],
-        [cellW / 2, -cellH / 2, 0.08],
-      ]
+    default: {
+      // сетка: столбцов ⌈√n⌉ (4 → 2×2, 5–6 → 3+2/3+3, 7–9 → 3×3, 10–12 → 4×3, 13–16 → 4×4), неполный ряд — по центру
+      const cols = Math.ceil(Math.sqrt(n))
+      const rows = Math.ceil(n / cols)
+      const out: V[] = []
+      for (let i = 0; i < n; i++) {
+        const r = Math.floor(i / cols)
+        const inRow = r === rows - 1 ? n - r * cols : cols
+        const c = i - r * cols
+        out.push([(c - (inRow - 1) / 2) * cellW, ((rows - 1) / 2 - r) * cellH, r % 2 ? 0.08 : -0.1])
+      }
+      return out
+    }
   }
 }
 
@@ -749,7 +815,7 @@ function clampCoeff(n: number): number {
 
 /**
  * Ряд «k₁A + k₂B → k₃C + k₄D» из настоящих формульных единиц: по копии на
- * единицу коэффициента (не больше 4), подписи, счёт атомов слева/справа.
+ * единицу коэффициента (не больше STAGE_MAX_VISIBLE_COPIES), подписи, счёт атомов слева/справа.
  * Порядок продуктов как в SynthesisReactorPanel: сначала побочные, затем цель.
  */
 export function scientificStageLayout(
