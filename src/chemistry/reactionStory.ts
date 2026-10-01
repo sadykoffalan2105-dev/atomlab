@@ -1132,7 +1132,7 @@ function coeffFormula(t: StoryTerm): string {
   return `${t.coeff > 1 ? t.coeff : ''}${t.formula}`
 }
 
-function halfLine(c: StoryOxChange, lossFirst: boolean): string {
+export function halfLine(c: StoryOxChange, lossFirst: boolean): string {
   const n = c.count > 1 ? String(c.count) : ''
   const e = Math.abs(c.electrons)
   const eText = `${Number.isInteger(e) ? e : e.toFixed(2)}e⁻`

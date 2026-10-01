@@ -42,6 +42,8 @@ export type DomLabelSource = {
   text: string
   /** Радиус (система группы) вокруг закреплённой подписи-символа: другие подписи его обходят (шар атома). */
   avoidR?: number
+  /** Свой множитель масштаба (короткий «щелчок» чипа при смене степени окисления); по умолчанию 1. */
+  scale?: number
 }
 
 /**
@@ -116,6 +118,16 @@ const KIND_STYLE: Record<string, string> = {
     'white-space: pre-line; text-align: left;' +
     GLASS_CARD_STYLE +
     'border-color: rgba(255, 196, 120, 0.5);',
+  // Карточка полуреакций ОВР (renderHalf, сюжет реакции): строки «o␟Fe⁰ − 2e⁻ → Fe⁺²␟восстановитель»,
+  // «r␟…␟окислитель», «b␟отдано 2e⁻ = принято 2e⁻» — тёплая метка у отдачи, холодная у приёма.
+  glassHalf:
+    'font: 700 16px/1.45 "Inter", system-ui, sans-serif; color: #f7faff; letter-spacing: 0.01em; padding: 9px 15px 10px;' +
+    'border-radius: 13px; text-align: left;' +
+    GLASS_CARD_STYLE,
+  // Группа электронов в полёте («e⁻ ×5»): тёплая плашка, как у одиночного e⁻.
+  eGroup:
+    'font: 800 14px/1 "Inter", system-ui, sans-serif; color: #fff7d6; padding: 4px 8px; border-radius: 999px;' +
+    'background: rgba(40, 26, 4, 0.72); border: 1px solid rgba(255, 214, 120, 0.7); text-shadow: 0 0 8px rgba(255,190,80,0.8);',
   // pH-метр (renderPh): стеклянная карточка фиксированной ширины (labelLayout FIXED_BOX) — шкала 0–14 и подпись.
   ph:
     'box-sizing: border-box; width: 232px; padding: 9px 12px 10px; border-radius: 12px; white-space: normal;' +
@@ -157,6 +169,31 @@ function renderPh(el: HTMLDivElement, caption: string): void {
 
 /** Разделитель частей уравнения (как EQUATION_PART_SEP школьной сцены). */
 const EQ_SEP = '␟'
+
+/** Карточка полуреакций: строки «вид␟текст␟роль» (o — отдача e⁻, r — приём, b — баланс). Только textContent. */
+function renderHalf(el: HTMLDivElement, text: string): void {
+  const rows = text.split('\n').map((line) => {
+    const [kind = 'b', body = '', tag = ''] = line.split(EQ_SEP)
+    const row = document.createElement('div')
+    row.style.cssText = 'display:flex;align-items:center;gap:9px;white-space:nowrap;'
+    if (kind === 'b') {
+      row.style.cssText += 'margin-top:4px;padding-top:5px;border-top:1px solid rgba(214,234,255,0.22);font-size:14px;font-weight:700;color:#e9fbe9;'
+      row.textContent = body
+      return row
+    }
+    const warm = kind === 'o'
+    const dot = document.createElement('span')
+    dot.style.cssText = `flex:none;width:9px;height:9px;border-radius:50%;background:${warm ? '#ffab4d' : '#5cc2ff'};box-shadow:0 0 8px ${warm ? 'rgba(255,160,70,0.9)' : 'rgba(90,190,255,0.9)'};`
+    const main = document.createElement('span')
+    main.textContent = body
+    const role = document.createElement('span')
+    role.textContent = tag
+    role.style.cssText = `font-size:12.5px;font-weight:600;color:${warm ? '#ffd2a3' : '#b9e6ff'};opacity:0.92;`
+    row.append(dot, main, role)
+    return row
+  })
+  el.replaceChildren(...rows)
+}
 
 /** Уравнение с условием над стрелкой: части — текстом (textContent), без HTML из строки. */
 function renderEquation(el: HTMLDivElement, text: string): void {
@@ -215,6 +252,7 @@ function writeLabel(n: LabelNode, src: DomLabelSource, px: number, py: number, s
   if (n.text !== src.text) {
     if ((src.kind === 'equation' || src.kind === 'glassEquation') && src.text.includes(EQ_SEP)) renderEquation(n.el, src.text)
     else if (src.kind === 'ph') renderPh(n.el, src.text)
+    else if (src.kind === 'glassHalf') renderHalf(n.el, src.text)
     else n.el.textContent = src.text
     n.text = src.text
   }
@@ -229,6 +267,7 @@ function writeLabel(n: LabelNode, src: DomLabelSource, px: number, py: number, s
   }
   const x = Math.round(px * 2) / 2
   const y = Math.round(py * 2) / 2
+  if (src.scale != null) scale *= Math.round(src.scale * 100) / 100
   if (x !== n.x || y !== n.y || scale !== n.scale) {
     n.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) scale(${scale})`
     n.x = x
@@ -290,6 +329,7 @@ export function CinemaDomLabels({
         (KIND_STYLE[l.kind] ?? KIND_STYLE.species)
       if ((l.kind === 'equation' || l.kind === 'glassEquation') && l.text.includes(EQ_SEP)) renderEquation(el, l.text)
       else if (l.kind === 'ph') renderPh(el, l.text)
+      else if (l.kind === 'glassHalf') renderHalf(el, l.text)
       else el.textContent = l.text
       layer.appendChild(el)
       return { el, text: l.text, shown: false, ox: '', x: NaN, y: NaN, opacity: NaN, scale: NaN }

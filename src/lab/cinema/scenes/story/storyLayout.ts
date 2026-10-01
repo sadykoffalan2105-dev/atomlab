@@ -28,7 +28,14 @@ export type StoryStickSpec = {
   readonly t1: number
 }
 
-export type StoryElectronSpec = { readonly from: number; readonly to: number; readonly t0: number; readonly t1: number }
+/**
+ * Летящий электрон (или группа): от донора к акцептору. n — сколько e⁻ несёт точка (1 — по одному; у больших чисел
+ * точка = перенос «атом → атом» из сюжета, n — его число e⁻). wave — номер «волны»: точки одной волны летят вместе.
+ */
+export type StoryElectronSpec = { readonly from: number; readonly to: number; readonly t0: number; readonly t1: number; readonly n: number; readonly wave: number }
+
+/** Волна электронов (группа с подписью «e⁻ ×n» у больших чисел): окно полёта и сколько e⁻ она несёт. */
+export type StoryWaveSpec = { readonly t0: number; readonly t1: number; readonly n: number; readonly tokens: readonly number[] }
 
 export type StoryLabelSpec = {
   readonly id: string
@@ -57,6 +64,21 @@ export type StoryLayout = {
   readonly fateTo: number
   readonly sticks: readonly StoryStickSpec[]
   readonly electrons: readonly StoryElectronSpec[]
+  /** волны электронов; single — каждый e⁻ летит отдельно (Σ ≤ E_SINGLE_MAX), иначе группами «×n» */
+  readonly waves: readonly StoryWaveSpec[]
+  readonly eSingle: boolean
+  /** окно шага переноса: подсветка ролей [eOn, eOff], последний прилёт — eLastArrive */
+  readonly eOn: number
+  readonly eOff: number
+  readonly eLastArrive: number
+  /** доноры (степень окисления растёт — восстановитель) и акцепторы (падает — окислитель) */
+  readonly donors: readonly number[]
+  readonly acceptors: readonly number[]
+  /** сохранённые многоатомные группы (SO₄²⁻, OH⁻ …), атомы — id левой стороны */
+  readonly keptGroups: readonly { readonly atoms: readonly number[]; readonly label: string }[]
+  /** окно образования (шаг formation) */
+  readonly formFrom: number
+  readonly formTo: number
   /** момент, когда подпись атома переходит в правое состояние (заряд/степень окисления); Infinity — не меняется до прихода */
   readonly flipAt: Float32Array
   /** подпись атома: слева, после разрыва, справа */
@@ -325,6 +347,7 @@ function termCluster(side: StorySide, term: number, r: (i: number) => number): M
       put(it, ci)
     }
     for (const it of majority) put(it, byCenter.find((k) => !used.has(k))!)
+    if (kind === 'ionic') compactIons(items.map((x) => x.atoms), out, r)
     centerMap(out, r)
     return out
   }
@@ -344,6 +367,65 @@ function termCluster(side: StorySide, term: number, r: (i: number) => number): M
   })
   centerMap(out, r)
   return out
+}
+
+/**
+ * Ионы фрагмента решётки касаются друг друга: сетка шагом «радиус катиона + габарит аниона» оставляет зазор у
+ * многоатомных ионов (Fe²⁺ … SO₄²⁻ — кислород не на линии сетки). Ионы по очереди (от центра наружу) сдвигаются
+ * к центру, пока не коснутся уже стоящих (зазор 0.02).
+ */
+function compactIons(items: readonly (readonly number[])[], pos: Map<number, V>, r: (i: number) => number): void {
+  if (items.length < 2) return
+  const centre = (it: readonly number[]): V => {
+    const c: V = [0, 0, 0]
+    for (const i of it) {
+      const p = pos.get(i)!
+      c[0] += p[0] / it.length
+      c[1] += p[1] / it.length
+    }
+    return c
+  }
+  let gx = 0
+  let gy = 0
+  let cnt = 0
+  for (const it of items) for (const i of it) {
+    gx += pos.get(i)![0]
+    gy += pos.get(i)![1]
+    cnt++
+  }
+  gx /= cnt
+  gy /= cnt
+  const order = items.map((it, k) => ({ it, k, d: Math.hypot(centre(it)[0] - gx, centre(it)[1] - gy) })).sort((a, b) => a.d - b.d)
+  const fixed: number[] = [...order[0]!.it]
+  const clash = (it: readonly number[], dx: number, dy: number) => {
+    for (const i of it) {
+      const p = pos.get(i)!
+      for (const j of fixed) {
+        const q = pos.get(j)!
+        if (Math.hypot(p[0] + dx - q[0], p[1] + dy - q[1], p[2] - q[2]) < r(i) + r(j) + 0.02) return true
+      }
+    }
+    return false
+  }
+  for (let o = 1; o < order.length; o++) {
+    const { it } = order[o]!
+    const c = centre(it)
+    const vx = gx - c[0]
+    const vy = gy - c[1]
+    const d = Math.hypot(vx, vy)
+    if (d > 1e-6 && !clash(it, 0, 0)) {
+      const ux = vx / d
+      const uy = vy / d
+      let s = 0
+      const stepS = 0.02
+      while (s + stepS <= d && !clash(it, ux * (s + stepS), uy * (s + stepS))) s += stepS
+      if (s > 0) for (const i of it) {
+        const p = pos.get(i)!
+        pos.set(i, [p[0] + ux * s, p[1] + uy * s, p[2]])
+      }
+    }
+    fixed.push(...it)
+  }
 }
 
 /** Ряд членов одной стороны: кластеры слева направо, перенос строки, всё по центру. */
@@ -403,13 +485,98 @@ export const STORY_TIMING = {
   finish: 1.5,
 } as const
 
-/** Подпись атома в шаре: символ или символ с зарядом иона. */
+/**
+ * Подпись атома в шаре: символ или символ с зарядом иона. Заряд — только у настоящих одноатомных ионов: ион
+ * ионного вещества (Na⁺, Cl⁻) и ион кислоты, отделившийся при разрыве (HCl → H⁺ + Cl⁻). Атом, вырванный из
+ * многоатомного иона или молекулы (Mn и O из MnO₄⁻), остаётся символом — «Mn⁷⁺», «O²⁻» как частиц нет;
+ * его степень окисления показывает чип над шаром.
+ */
 function atomLabel(side: StorySide, atom: number, freedIon: boolean): string {
   const a = side.atoms[atom]!
   const g = side.groups[a.group]!
   if ((g.kind === 'cation' || g.kind === 'anion') && g.atoms.length === 1) return `${a.el}${ionChargeText(g.charge)}`
-  if (freedIon && Number.isInteger(a.ox) && a.ox !== 0) return `${a.el}${ionChargeText(a.ox)}`
+  if (freedIon && g.atoms.length === 1 && (g.kind === 'acidH' || g.kind === 'residue') && Number.isInteger(a.ox) && a.ox !== 0) return `${a.el}${ionChargeText(a.ox)}`
   return a.el
+}
+
+/** Сколько e⁻ при Σ Δ не больше этого летят по одному; больше — группами (волнами) с подписью «e⁻ ×n». */
+export const E_SINGLE_MAX = 6
+/** Не больше стольких волн у больших чисел (акцепторы подряд объединяются). */
+export const E_WAVES_MAX = 6
+
+export type ElectronToken = { readonly from: number; readonly to: number; readonly n: number; readonly wave: number }
+
+/**
+ * План полёта электронов (без времени): по одному, если Σ Δ ≤ E_SINGLE_MAX и все переносы целые; иначе точка —
+ * перенос «донор → акцептор» из сюжета (n e⁻), волна — акцепторы подряд (у KMnO₄ + HCl: 2 волны «e⁻ ×5» к двум Mn).
+ * Σ n по точкам = Σ Δ степеней окисления (= story.electrons) — проверяет scripts/test-reaction-story.mts.
+ */
+export function planElectronTokens(story: ReactionStory): { tokens: ElectronToken[]; waves: number; single: boolean } {
+  const tr = story.transfers
+  if (!story.redox || tr.length === 0) return { tokens: [], waves: 0, single: true }
+  const total = tr.reduce((s, t) => s + t.n, 0)
+  const allInt = tr.every((t) => Math.abs(t.n - Math.round(t.n)) < 1e-6)
+  const tokens: ElectronToken[] = []
+  if (allInt && total <= E_SINGLE_MAX + 1e-9) {
+    for (const t of tr) for (let q = 0; q < Math.round(t.n); q++) tokens.push({ from: t.from, to: t.to, n: 1, wave: tokens.length })
+    return { tokens, waves: tokens.length, single: true }
+  }
+  if (!allInt && total <= E_SINGLE_MAX + 1e-9) {
+    // дробные степени окисления (KO₂, Fe₃O₄ по средней): одна волна — подпись «e⁻ ×n» с целым n
+    for (const t of tr) tokens.push({ from: t.from, to: t.to, n: t.n, wave: 0 })
+    return { tokens, waves: 1, single: false }
+  }
+  const byTo = new Map<number, typeof tr[number][]>()
+  for (const t of tr) {
+    const g = byTo.get(t.to)
+    if (g) g.push(t)
+    else byTo.set(t.to, [t])
+  }
+  const groups = [...byTo.values()]
+  const per = Math.ceil(groups.length / Math.min(E_WAVES_MAX, groups.length))
+  groups.forEach((g, gi) => {
+    for (const t of g) tokens.push({ from: t.from, to: t.to, n: t.n, wave: Math.floor(gi / per) })
+  })
+  return { tokens, waves: Math.ceil(groups.length / per), single: false }
+}
+
+/** Длительность шага переноса: подсветка ролей → полёты → пауза-акцент с карточкой полуреакций. */
+const E_LEAD = 0.75
+const E_HOLD = 1.9
+const E_TRAVEL_SINGLE = 0.85
+const E_GAP_SINGLE = 0.62
+const E_TRAVEL_WAVE = 0.95
+const E_GAP_WAVE = 0.85
+
+function electronSchedule(plan: ReturnType<typeof planElectronTokens>, from: number): { list: StoryElectronSpec[]; waves: StoryWaveSpec[]; last: number } {
+  const list: StoryElectronSpec[] = []
+  const waves: StoryWaveSpec[] = []
+  if (plan.single) {
+    plan.tokens.forEach((tk, k) => {
+      const t0 = from + E_LEAD + k * E_GAP_SINGLE
+      list.push({ ...tk, t0, t1: t0 + E_TRAVEL_SINGLE })
+      waves.push({ t0, t1: t0 + E_TRAVEL_SINGLE, n: tk.n, tokens: [k] })
+    })
+  } else {
+    for (let w = 0; w < plan.waves; w++) {
+      const idx = plan.tokens.map((tk, k) => (tk.wave === w ? k : -1)).filter((k) => k >= 0)
+      const base = from + E_LEAD + w * E_GAP_WAVE
+      const stag = Math.min(0.07, 0.35 / Math.max(1, idx.length))
+      let t1w = base
+      let nw = 0
+      idx.forEach((k, q) => {
+        const tk = plan.tokens[k]!
+        const t0 = base + q * stag
+        list[k] = { ...tk, t0, t1: t0 + E_TRAVEL_WAVE }
+        t1w = Math.max(t1w, t0 + E_TRAVEL_WAVE)
+        nw += tk.n
+      })
+      waves.push({ t0: base, t1: t1w, n: Math.round(nw * 1e6) / 1e6, tokens: idx })
+    }
+  }
+  let last = from + E_LEAD
+  for (const e of list) last = Math.max(last, e.t1)
+  return { list, waves, last }
 }
 
 export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolean } = {}): StoryLayout {
@@ -548,10 +715,14 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
 
   // ——— расписание шагов ———
   const T = STORY_TIMING
+  const plan = planElectronTokens(story)
+  // шаг переноса — по числу волн: подсветка ролей, полёты по одному (или волнами), пауза-акцент
+  const eSpan = plan.tokens.length === 0 ? 0 : plan.single ? (plan.waves - 1) * E_GAP_SINGLE + E_TRAVEL_SINGLE : (plan.waves - 1) * E_GAP_WAVE + E_TRAVEL_WAVE + 0.35
+  const eDur = Math.max(T.electrons, E_LEAD + eSpan + E_HOLD)
   const steps: StoryStepTiming[] = []
   let t = 0
   for (const id of story.steps) {
-    const dur = T[id]
+    const dur = id === 'electrons' ? eDur : T[id]
     steps.push({ id, from: t, to: t + dur })
     t += dur
   }
@@ -581,14 +752,20 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
   const unitStart = new Map<number, number>()
   runits.forEach((u, k) => unitStart.set(u.id, sF.from + 0.2 + k * stagger))
   for (let i = 0; i < n; i++) moveFrom[i] = unitStart.get(R.atoms[story.map[i]!]!.unit) ?? sF.from + 0.2
-  const formedByUnit = new Map<number, number>()
-  for (const j of story.bondsFormed) {
-    const b = R.bonds[j]!
-    const u = R.atoms[b.a]!.unit
-    const k = formedByUnit.get(u) ?? 0
-    formedByUnit.set(u, k + 1)
-    const t0 = (unitStart.get(u) ?? sF.from) + moveDur * 0.8 + k * 0.2
-    sticks.push({ a: inv[b.a]!, b: inv[b.b]!, order: b.order, kind: 'formed', t0, t1: t0 + 0.35 })
+  // новые связи — по одной (каждая с мягкой вспышкой в сцене): не раньше, чем пришли атомы её единицы, и не
+  // раньше предыдущей + шаг; весь ряд укладывается в шаг «Образование»
+  const formedList = story.bondsFormed
+    .map((j) => {
+      const b = R.bonds[j]!
+      return { b, ready: (unitStart.get(R.atoms[b.a]!.unit) ?? sF.from) + moveDur * 0.8 }
+    })
+    .sort((x, y) => x.ready - y.ready)
+  const fGap = formedList.length > 1 ? Math.min(0.2, Math.max(0.05, (sF.to - 0.45 - (formedList[0]?.ready ?? sF.from)) / (formedList.length - 1))) : 0
+  let prevT0 = -Infinity
+  for (const { b, ready } of formedList) {
+    const t0 = Math.max(ready, prevT0 + fGap)
+    prevT0 = t0
+    sticks.push({ a: inv[b.a]!, b: inv[b.b]!, order: b.order, kind: 'formed', t0, t1: t0 + 0.32 })
   }
 
   // Сохранённая связь, у которой меняется кратность (SO₃ + H₂O: S=O → S–OH): старая кратность гаснет, когда
@@ -609,29 +786,42 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
   const fateFrom = sF.to - 0.9
   const fateTo = sF.to + 0.5
   const termOfRightAtom = (j: number) => R.units[R.atoms[j]!.unit]!.term
-  for (let i = 0; i < n; i++) {
-    const term = story.terms[termOfRightAtom(story.map[i]!)]!
-    if (term.fate === 'gas') p4[i * 3 + 1] = p3[i * 3 + 1]! + 1.05
-    else if (term.fate === 'precipitate' || term.fate === 'deposit') p4[i * 3 + 1] = p3[i * 3 + 1]! - 0.75
+  // Член уходит целиком: газ — вверх, осадок и металл — вниз, на наибольший сдвиг, при котором он не налезает
+  // на другие продукты (в два ряда газ иначе «въезжал» в продукты верхнего ряда).
+  {
+    const termOfAtom = Array.from({ length: n }, (_, i) => termOfRightAtom(story.map[i]!))
+    const moving = new Map<number, number[]>()
+    for (let i = 0; i < n; i++) {
+      const fate = story.terms[termOfAtom[i]!]!.fate
+      if (fate === 'gas' || fate === 'precipitate' || fate === 'deposit') {
+        const g = moving.get(termOfAtom[i]!)
+        if (g) g.push(i)
+        else moving.set(termOfAtom[i]!, [i])
+      }
+    }
+    for (const [term, ids] of moving) {
+      const up = story.terms[term]!.fate === 'gas'
+      const tries = up ? [1.05, 0.85, 0.65, 0.45, 0.3, 0.18] : [-0.75, -0.6, -0.45, -0.3, -0.18]
+      const fits = (dy: number) => {
+        for (const i of ids) {
+          for (let j = 0; j < n; j++) {
+            if (termOfAtom[j] === term) continue
+            const d = Math.hypot(p3[i * 3]! - p4[j * 3]!, p3[i * 3 + 1]! + dy - p4[j * 3 + 1]!)
+            if (d < radiusR[i]! + radiusR[j]! + 0.1) return false
+          }
+        }
+        return true
+      }
+      const dy = tries.find(fits) ?? 0
+      for (const i of ids) p4[i * 3 + 1] = p3[i * 3 + 1]! + dy
+    }
   }
 
   // ——— электроны ———
-  const electrons: StoryElectronSpec[] = []
   const flipAt = new Float32Array(n).fill(Number.POSITIVE_INFINITY)
+  const sched = sE ? electronSchedule(plan, sE.from) : { list: [], waves: [], last: 0 }
+  const electrons: StoryElectronSpec[] = sched.list
   if (sE) {
-    const list: { from: number; to: number }[] = []
-    for (const tr of story.transfers) {
-      const k = Math.max(1, Math.round(tr.n))
-      for (let q = 0; q < k; q++) list.push({ from: tr.from, to: tr.to })
-    }
-    const cap = opts.lowPower ? 10 : 16
-    const shown = list.length > cap ? list.filter((_, q) => q % Math.ceil(list.length / cap) === 0) : list
-    const travel = 0.95
-    const gap = shown.length > 1 ? Math.min(0.32, 1.55 / (shown.length - 1)) : 0
-    shown.forEach((e, q) => {
-      const t0 = sE.from + 0.4 + q * gap
-      electrons.push({ from: e.from, to: e.to, t0, t1: t0 + travel })
-    })
     // донор меняет подпись, когда ушёл его последний электрон; акцептор — когда пришёл последний
     const lastFrom = new Map<number, number>()
     const lastTo = new Map<number, number>()
@@ -641,9 +831,20 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
     }
     for (const [a, tt] of lastFrom) flipAt[a] = tt
     for (const [a, tt] of lastTo) flipAt[a] = tt
-    // атомы с изменённой с.о., электрон которых не показан (прорежено), — в конце шага
-    for (const c of [...story.oxidations, ...story.reductions]) for (const a of c.atoms) if (!Number.isFinite(flipAt[a]!)) flipAt[a] = sE.to - 0.4
+    // все переносы показаны (по одному или волнами), но на всякий случай: атом без своей точки — к паузе-акценту
+    for (const c of [...story.oxidations, ...story.reductions]) for (const a of c.atoms) if (!Number.isFinite(flipAt[a]!)) flipAt[a] = sched.last
   }
+  const donors: number[] = []
+  const acceptors: number[] = []
+  for (let i = 0; i < n; i++) {
+    const d = R.atoms[story.map[i]!]!.ox - L.atoms[i]!.ox
+    if (d > 1e-9) donors.push(i)
+    else if (d < -1e-9) acceptors.push(i)
+  }
+  // сохранённые многоатомные группы (переходят целиком — общая подсветка)
+  const keptGroups = story.conserved
+    .map(([gl, gr]) => ({ atoms: L.groups[gl]!.atoms.slice(), label: R.groups[gr]!.label }))
+    .filter((g) => g.atoms.length >= 2)
 
   // ——— подписи ———
   const fragOf = new Map<number, number>()
@@ -686,9 +887,9 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
       maxY = Math.max(maxY, P[i * 3 + 1]! + rr)
     }
   }
-  // поля: сверху — подпись шага, снизу — подписи членов и уравнение
-  const top = maxY + 0.95
-  const bottom = minY - 1.35
+  // поля: сверху — подписи групп и чипы степеней окисления (у ОВР — ещё карточка полуреакций), снизу — подписи членов
+  const top = maxY + (story.redox ? 1.35 : 0.7)
+  const bottom = minY - 0.8
   const w = Math.max(maxX - minX + 0.8, 4.2)
   const h = top - bottom
   return {
@@ -708,6 +909,16 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
     fateTo,
     sticks,
     electrons,
+    waves: sched.waves,
+    eSingle: plan.single,
+    eOn: sE ? sE.from : Infinity,
+    eOff: sE ? sE.to : Infinity,
+    eLastArrive: sE ? sched.last : Infinity,
+    donors,
+    acceptors,
+    keptGroups,
+    formFrom: sF.from,
+    formTo: sF.to,
     flipAt,
     labelL,
     labelB,

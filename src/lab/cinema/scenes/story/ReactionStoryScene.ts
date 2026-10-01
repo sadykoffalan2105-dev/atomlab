@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { oxPlain, type ReactionStory } from '../../../../chemistry/reactionStory'
+import { halfLine, oxPlain, type ReactionStory } from '../../../../chemistry/reactionStory'
 import { schoolAtomColor, schoolAtomHex, schoolLabelDark } from '../../../../components/lab/hero/schoolHeroStyle'
 import type { DomLabelSource } from '../../react/CinemaDomLabels'
 import type { SceneLocale } from '../kit/sceneKit'
@@ -11,9 +11,15 @@ import { buildStoryLayout, smooth, storyAtomPos, storyAtomRadius, type StoryLayo
  * СЦЕНА «СЮЖЕТ РЕАКЦИИ» — анимация после синтеза для реакций без своей школьной сцены (интерфейс
  * SchoolRuntimeScene: её крутит тот же R3F-адаптер SchoolCinemaScene, панель урока — clo2StepStore).
  *
- * Шаги (без пауз, 13–16 с): Исходные → Разрыв → Перенос электронов (только ОВР) → Образование → Итог.
+ * Шаги (13–20 с): Исходные → Разрыв → Перенос электронов (только ОВР) → Образование → Итог.
  * Школьный вид: матовые CPK-шары с символом внутри (DOM-подписи), серые палочки-связи, ионы ионных веществ
- * касаются друг друга (фрагмент решётки, без палочек), электроны — светящиеся точки с мягким ореолом.
+ * касаются друг друга (фрагмент решётки, без палочек).
+ * Перенос e⁻ — главный момент: восстановитель светится тёплым, окислитель — холодным, остальные атомы притушены;
+ * электроны — яркие точки с хвостом, летят по дуге по одному (у больших чисел — волнами с подписью «e⁻ ×n»);
+ * чип степени окисления над атомом «щёлкает» в момент отлёта/прилёта; рядом — стеклянная карточка полуреакций
+ * и «отдано = принято», после последнего прилёта — пауза-акцент.
+ * Образование: новые связи — по одной, с мягкой вспышкой; сохранённая группа (SO₄²⁻ …) подсвечена целиком.
+ * Номер шага и уравнение — в панели урока, в кадре их не дублируем.
  * Кадр — чистая функция времени (storyLayout.storyAtomPos): перемотка и повтор шага дают тот же кадр.
  * Атомы одни и те же весь ролик — ни один не исчезает и не появляется из ниоткуда.
  * Производительность: атомы, палочки, электроны — три InstancedMesh; ноль аллокаций в update.
@@ -22,10 +28,24 @@ import { buildStoryLayout, smooth, storyAtomPos, storyAtomRadius, type StoryLayo
 const BG = new THREE.Color('#0a0b10')
 const MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.16 } as const
 const ELECTRON_COLOR = new THREE.Color(0x9ee4ff)
+const DONOR_COLOR = new THREE.Color(0xff9a3c)
+const ACCEPTOR_COLOR = new THREE.Color(0x4fb2ff)
+const KEPT_COLOR = new THREE.Color(0xb48cff)
+const BOND_FLASH_COLOR = new THREE.Color(0xfff0c8)
 const STICK_R = 0.052
 const MAX_ATOM_LABELS_ALL = 52
-const MAX_OX_CHIPS = 14
+const MAX_OX_CHIPS_ALL = 6
 const MAX_E_TOKENS = 6
+/** хвост электрона: столько «призраков» позади точки */
+const TAIL = 7
+/** притушить атомы-зрители на шаге переноса (доля яркости) */
+const SPECTATOR_DIM = 0.42
+
+const HALF_TAGS: Readonly<Record<SceneLocale, { reducer: string; oxidizer: string; balance: (g: string, a: string) => string }>> = {
+  ru: { reducer: 'восстановитель', oxidizer: 'окислитель', balance: (g, a) => `отдано ${g}e⁻ = принято ${a}e⁻` },
+  en: { reducer: 'reducing agent', oxidizer: 'oxidizing agent', balance: (g, a) => `given ${g}e⁻ = accepted ${a}e⁻` },
+  uz: { reducer: 'qaytaruvchi', oxidizer: 'oksidlovchi', balance: (g, a) => `berildi ${g}e⁻ = qabul qilindi ${a}e⁻` },
+}
 
 type Cue = { at: number; id: 'embryo' | 'birth' | 'complete' }
 
@@ -55,11 +75,21 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
   private readonly sticks: THREE.InstancedMesh
   private readonly eMat: THREE.MeshBasicMaterial
   private readonly eMesh: THREE.InstancedMesh
+  private readonly tailMat: THREE.MeshBasicMaterial
+  private readonly tailMesh: THREE.InstancedMesh
   private readonly halos: THREE.Sprite[] = []
   private readonly haloMats: THREE.SpriteMaterial[] = []
-  private readonly flashes: THREE.Sprite[] = []
-  private readonly flashMats: THREE.SpriteMaterial[] = []
-  private readonly flashAtoms: number[]
+  /** свечение ролей: донор — тёплое, акцептор — холодное (+ вспышка при смене степени окисления) */
+  private readonly glows: THREE.Sprite[] = []
+  private readonly glowMats: THREE.SpriteMaterial[] = []
+  private readonly glowAtoms: number[]
+  /** вспышки новых связей и подсветка сохранённых групп */
+  private readonly bondFlashes: { sprite: THREE.Sprite; mat: THREE.SpriteMaterial; stick: number }[] = []
+  private readonly keptGlows: { sprite: THREE.Sprite; mat: THREE.SpriteMaterial; atoms: readonly number[] }[] = []
+  private readonly roleOf: Int8Array
+  private readonly baseColors: THREE.Color[] = []
+  private readonly _c = new THREE.Color()
+  private readonly _tail = new THREE.Color()
 
   /** текущие положения атомов (n×3) */
   private readonly pos: Float32Array
@@ -70,9 +100,9 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
   private readonly fragLabelIdx: number[] = []
   private readonly termLabelIdx: number[] = []
   private readonly eLabelIdx: number[] = []
-  private captionIdx = -1
-  private equationIdx = -1
-  private balanceIdx = -1
+  private readonly waveLabelIdx: number[] = []
+  private halfIdx = -1
+  private lastDim = 0
 
   private readonly _m = new THREE.Matrix4()
   private readonly _q = new THREE.Quaternion()
@@ -115,8 +145,14 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     this.atoms = new THREE.InstancedMesh(sphere, this.atomMat, Math.max(1, n))
     this.atoms.name = 'reaction-story-atoms'
     this.atoms.frustumCulled = false
-    const col = new THREE.Color()
-    for (let i = 0; i < n; i++) this.atoms.setColorAt(i, schoolAtomColor(lay.el[i]!, col))
+    for (let i = 0; i < n; i++) {
+      const c = schoolAtomColor(lay.el[i]!, new THREE.Color())
+      this.baseColors.push(c)
+      this.atoms.setColorAt(i, c)
+    }
+    this.roleOf = new Int8Array(n)
+    for (const i of lay.donors) this.roleOf[i] = 1
+    for (const i of lay.acceptors) this.roleOf[i] = -1
     this.root.add(this.atoms)
 
     // ——— палочки ———
@@ -134,27 +170,48 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     this.eMesh.frustumCulled = false
     this.eMesh.renderOrder = 10
     this.root.add(this.eMesh)
+    // хвост: призраки позади точки, аддитивно (темнее цвет — прозрачнее)
+    this.tailMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false, fog: false, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })
+    this.tailMesh = new THREE.InstancedMesh(sphere, this.tailMat, Math.max(1, lay.electrons.length * TAIL))
+    this.tailMesh.name = 'reaction-story-electron-tails'
+    this.tailMesh.frustumCulled = false
+    this.tailMesh.renderOrder = 9
+    for (let k = 0; k < lay.electrons.length * TAIL; k++) this.tailMesh.setColorAt(k, this._tail.setRGB(0, 0, 0))
+    this.root.add(this.tailMesh)
     const halo = naclHaloTexture()
-    const haloCount = opts.lowPower ? Math.min(lay.electrons.length, 6) : lay.electrons.length
-    for (let k = 0; k < haloCount; k++) {
-      const m = new THREE.SpriteMaterial({ map: halo, color: ELECTRON_COLOR, blending: THREE.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, fog: false })
+    const sprite = (color: THREE.Color, order: number) => {
+      const m = new THREE.SpriteMaterial({ map: halo, color, blending: THREE.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, fog: false })
       const s = new THREE.Sprite(m)
       s.visible = false
-      s.renderOrder = 11
+      s.renderOrder = order
+      this.root.add(s)
+      return { s, m }
+    }
+    const haloCount = opts.lowPower ? Math.min(lay.electrons.length, 8) : lay.electrons.length
+    for (let k = 0; k < haloCount; k++) {
+      const { s, m } = sprite(ELECTRON_COLOR, 11)
       this.halos.push(s)
       this.haloMats.push(m)
-      this.root.add(s)
     }
-    // вспышка у атома, когда меняется его степень окисления (мягкое свечение)
-    this.flashAtoms = lay.oxAtoms.slice(0, opts.lowPower ? 6 : 16)
-    for (let k = 0; k < this.flashAtoms.length; k++) {
-      const m = new THREE.SpriteMaterial({ map: halo, color: 0xffd58a, blending: THREE.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, fog: false })
-      const s = new THREE.Sprite(m)
-      s.visible = false
-      s.renderOrder = 9
-      this.flashes.push(s)
-      this.flashMats.push(m)
-      this.root.add(s)
+    // свечение ролей: все доноры и акцепторы (на слабом устройстве — первые 10)
+    this.glowAtoms = [...lay.donors, ...lay.acceptors].slice(0, opts.lowPower ? 10 : 48)
+    for (const i of this.glowAtoms) {
+      const { s, m } = sprite(this.roleOf[i]! > 0 ? DONOR_COLOR : ACCEPTOR_COLOR, 2)
+      this.glows.push(s)
+      this.glowMats.push(m)
+    }
+    // вспышки новых связей (каждая палочка-«formed»; если их много — каждая k-я, не больше 40 / 8 на слабом)
+    const formed = lay.sticks.map((x, k) => (x.kind === 'formed' ? k : -1)).filter((k) => k >= 0)
+    const flashCap = opts.lowPower ? 8 : 40
+    const every = Math.max(1, Math.ceil(formed.length / flashCap))
+    formed.forEach((k, q) => {
+      if (q % every) return
+      const { s, m } = sprite(BOND_FLASH_COLOR, 3)
+      this.bondFlashes.push({ sprite: s, mat: m, stick: k })
+    })
+    for (const g of lay.keptGroups.slice(0, opts.lowPower ? 4 : 12)) {
+      const { s, m } = sprite(KEPT_COLOR, 1)
+      this.keptGlows.push({ sprite: s, mat: m, atoms: g.atoms })
     }
 
     // ——— подписи ———
@@ -168,8 +225,9 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       this.labels.push({ id: `a${i}`, kind: schoolLabelDark(schoolAtomHex(e)) ? 'atomDark' : 'atom', pos: new THREE.Vector3(), opacity: 0, text: lay.labelL[i]!, avoidR: lay.radius[i]! })
     }
     // чипы степеней окисления — у меняющих её атомов (по два на строку изменения, если атомов много)
+    // у многих атомов — по два чипа на строку изменения (остальные доноры/акцепторы видны по свечению)
     const chipAtoms: number[] = []
-    if (lay.oxAtoms.length <= MAX_OX_CHIPS) chipAtoms.push(...lay.oxAtoms)
+    if (lay.oxAtoms.length <= MAX_OX_CHIPS_ALL) chipAtoms.push(...lay.oxAtoms)
     else {
       const per = new Map<string, number>()
       for (const i of lay.oxAtoms) {
@@ -191,16 +249,21 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       this.termLabelIdx.push(this.labels.length)
       this.labels.push({ id: `term${k}`, kind: 'species', pos: new THREE.Vector3(), opacity: 0, text: tl.text })
     })
-    for (let k = 0; k < Math.min(MAX_E_TOKENS, lay.electrons.length); k++) {
-      this.eLabelIdx.push(this.labels.length)
-      this.labels.push({ id: `e${k}`, kind: 'token', pos: new THREE.Vector3(), opacity: 0, text: 'e⁻' })
+    if (lay.eSingle) {
+      for (let k = 0; k < Math.min(MAX_E_TOKENS, lay.electrons.length); k++) {
+        this.eLabelIdx.push(this.labels.length)
+        this.labels.push({ id: `e${k}`, kind: 'token', pos: new THREE.Vector3(), opacity: 0, text: 'e⁻' })
+      }
+    } else {
+      lay.waves.forEach((w, k) => {
+        this.waveLabelIdx.push(this.labels.length)
+        this.labels.push({ id: `wave${k}`, kind: 'eGroup', pos: new THREE.Vector3(), opacity: 0, text: `e⁻ ×${fmt(w.n)}` })
+      })
     }
-    this.captionIdx = this.labels.length
-    this.labels.push({ id: 'caption', kind: 'glassNote', pos: new THREE.Vector3(lay.extent.cx, lay.top - 0.32, 0), opacity: 0, text: '' })
-    this.balanceIdx = this.labels.length
-    this.labels.push({ id: 'balance', kind: 'glassNote', pos: new THREE.Vector3(lay.extent.cx, lay.bottom + 0.98, 0), opacity: 0, text: this.balanceText() })
-    this.equationIdx = this.labels.length
-    this.labels.push({ id: 'equation', kind: 'glassEquation', pos: new THREE.Vector3(lay.extent.cx, lay.bottom + 0.4, 0), opacity: 0, text: story.equation })
+    if (story.redox) {
+      this.halfIdx = this.labels.length
+      this.labels.push({ id: 'half', kind: 'glassHalf', pos: new THREE.Vector3(lay.extent.cx, lay.top - 0.42, 0.4), opacity: 0, text: this.halfText() })
+    }
 
     this.apply(0)
   }
@@ -257,7 +320,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
 
   setLocale(locale: SceneLocale): void {
     this.locale = locale
-    this.labels[this.balanceIdx]!.text = this.balanceText()
+    if (this.halfIdx >= 0) this.labels[this.halfIdx]!.text = this.halfText()
     this.apply(this.t)
   }
 
@@ -339,8 +402,12 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     this.sticks.dispose()
     this.eMat.dispose()
     this.eMesh.dispose()
+    this.tailMat.dispose()
+    this.tailMesh.dispose()
     for (const m of this.haloMats) m.dispose()
-    for (const m of this.flashMats) m.dispose()
+    for (const m of this.glowMats) m.dispose()
+    for (const f of this.bondFlashes) f.mat.dispose()
+    for (const g of this.keptGlows) g.mat.dispose()
     const r = this.endResolve
     this.endResolve = null
     r?.()
@@ -373,16 +440,16 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     for (const c of this.cues) if (c.at > from && c.at <= t) this.opts.onCue?.(c.id)
   }
 
-  private balanceText(): string {
+  /** Карточка полуреакций: «o␟Fe⁰ − 2e⁻ → Fe⁺²␟восстановитель», «r␟Cu⁺² + 2e⁻ → Cu⁰␟окислитель», «b␟отдано 2e⁻ = принято 2e⁻». */
+  private halfText(): string {
     const s = this.story
-    const atoms = s.atomBalance.map((b) => `${b.el} ${b.left} = ${b.right}`).join(' · ')
-    const e = s.redox ? ` · e⁻ ${fmt(s.given)} = ${fmt(s.accepted)}` : ''
-    return `${atoms}${e}`
-  }
-
-  private stepCaption(i: number): string {
-    const id = this.lay.steps[i]!.id
-    return `${i + 1}/${this.lay.steps.length} · ${this.story.text[this.locale][id].title}`
+    const tg = HALF_TAGS[this.locale]
+    const rows = [
+      ...s.oxidations.map((c) => `o␟${halfLine(c, true)}␟${tg.reducer}`),
+      ...s.reductions.map((c) => `r␟${halfLine(c, false)}␟${tg.oxidizer}`),
+      `b␟${tg.balance(fmt(s.given), fmt(s.accepted))}`,
+    ]
+    return rows.join('\n')
   }
 
   /** Кадр момента t (без аллокаций). */
@@ -413,6 +480,13 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       this.atoms.setMatrixAt(i, this._m)
     }
     this.atoms.instanceMatrix.needsUpdate = true
+    // шаг переноса: атомы-зрители притушены — доноры и акцепторы читаются сразу
+    const dimU = Number.isFinite(lay.eOn) ? smooth(lay.eOn, lay.eOn + 0.5, t) * (1 - smooth(lay.eOff - 0.2, lay.eOff + 0.5, t)) : 0
+    if (Math.abs(dimU - this.lastDim) > 0.004 || (dimU === 0 && this.lastDim !== 0)) {
+      this.lastDim = dimU
+      for (let i = 0; i < n; i++) this.atoms.setColorAt(i, this._c.copy(this.baseColors[i]!).multiplyScalar(this.roleOf[i] ? 1 : 1 - SPECTATOR_DIM * dimU))
+      if (this.atoms.instanceColor) this.atoms.instanceColor.needsUpdate = true
+    }
     this.atomMat.opacity = fade
     this.atoms.visible = fade > 0.002
 
@@ -449,71 +523,135 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     this.stickMat.opacity = fade
     this.sticks.visible = fade > 0.002 && sticks.length > 0
 
-    // ——— электроны ———
+    // ——— электроны: точка + хвост + ореол, по дуге от донора к акцептору ———
     const es = lay.electrons
+    const tailCol = this._tail
     for (let k = 0; k < es.length; k++) {
       const e = es[k]!
-      const pre = smooth(e.t0 - 0.35, e.t0, t)
+      const pre = smooth(e.t0 - 0.25, e.t0, t)
       const u = smooth(e.t0, e.t1, t)
-      const post = 1 - smooth(e.t1, e.t1 + 0.35, t)
-      const vis = pre * post
-      const ra = R[e.from]!
-      const rb = R[e.to]!
-      // дуга от поверхности донора к поверхности акцептора, приподнята к зрителю
-      const ax = P[e.from * 3]!
-      const ay = P[e.from * 3 + 1]! + ra * 0.85
-      const az = P[e.from * 3 + 2]! + ra * 0.5
-      const bx = P[e.to * 3]!
-      const by = P[e.to * 3 + 1]! + rb * 0.85
-      const bz = P[e.to * 3 + 2]! + rb * 0.5
-      const cx = (ax + bx) / 2
-      const cy = Math.max(ay, by) + 0.55 + Math.min(0.6, Math.abs(bx - ax) * 0.15)
-      const cz = (az + bz) / 2 + 0.45
-      const w0 = (1 - u) * (1 - u)
-      const w1 = 2 * u * (1 - u)
-      const w2 = u * u
-      this._v.set(w0 * ax + w1 * cx + w2 * bx, w0 * ay + w1 * cy + w2 * by, w0 * az + w1 * cz + w2 * bz)
-      const er = 0.065 * vis * (1 + 0.25 * Math.sin(t * 18 + k))
+      const post = 1 - smooth(e.t1, e.t1 + 0.22, t)
+      const vis = pre * post * fade
+      const flying = smooth(e.t0, e.t0 + 0.08, t) * (1 - smooth(e.t1 - 0.03, e.t1 + 0.12, t))
+      this.arcPoint(e.from, e.to, u, this._v)
+      const er = 0.088 * pre * post * (1 + 0.14 * Math.min(4, e.n - 1)) * (1 + 0.12 * Math.sin(t * 17 + k))
       this._s.set(er, er, er)
       this._m.compose(this._v, this._q.identity(), this._s)
       this.eMesh.setMatrixAt(k, this._m)
+      // шаг хвоста — по длине дуги: хвост ≈ 0.45 единицы сцены и у короткого, и у длинного перелёта
+      const du = 0.065 / Math.max(0.6, Math.hypot(P[e.to * 3]! - P[e.from * 3]!, P[e.to * 3 + 1]! - P[e.from * 3 + 1]!) + 0.6)
+      for (let j = 1; j <= TAIL; j++) {
+        const uj = u - j * du
+        const ii = k * TAIL + j - 1
+        const w = 1 - j / (TAIL + 1)
+        if (uj <= 0 || flying < 0.01 || vis < 0.01) {
+          this._s.set(0, 0, 0)
+          tailCol.setRGB(0, 0, 0)
+        } else {
+          this.arcPoint(e.from, e.to, uj, this._w)
+          const tr = 0.088 * (0.35 + 0.6 * w)
+          this._s.set(tr, tr, tr)
+          tailCol.copy(ELECTRON_COLOR).multiplyScalar(0.8 * w * w * flying * vis)
+        }
+        this._m.compose(this._w, this._q, this._s)
+        this.tailMesh.setMatrixAt(ii, this._m)
+        this.tailMesh.setColorAt(ii, tailCol)
+      }
+      // точка — заново (хвост переписал _v)
+      this.arcPoint(e.from, e.to, u, this._v)
       const halo = this.halos[k]
       if (halo) {
         // после прилёта ореол вспыхивает у акцептора и гаснет
         const arrive = smooth(e.t1 - 0.05, e.t1 + 0.3, t)
         halo.visible = vis > 0.01
         halo.position.copy(this._v)
-        const sc = 0.42 + arrive * 0.5
+        const sc = 0.5 + 0.12 * Math.min(4, e.n - 1) + arrive * 0.55
         halo.scale.set(sc, sc, sc)
-        this.haloMats[k]!.opacity = 0.75 * vis * fade
+        this.haloMats[k]!.opacity = 0.85 * vis
       }
       const li = this.eLabelIdx[k]
       if (li != null) {
         const L = this.labels[li]!
-        L.pos.set(this._v.x, this._v.y + 0.17, this._v.z)
-        L.opacity = vis * smooth(e.t0, e.t0 + 0.15, t) * (1 - smooth(e.t1 - 0.2, e.t1, t)) * fade
+        L.pos.set(this._v.x, this._v.y + 0.2, this._v.z)
+        L.opacity = vis * smooth(e.t0, e.t0 + 0.15, t) * (1 - smooth(e.t1 - 0.2, e.t1, t))
       }
     }
-    if (es.length) this.eMesh.instanceMatrix.needsUpdate = true
+    if (es.length) {
+      this.eMesh.instanceMatrix.needsUpdate = true
+      this.tailMesh.instanceMatrix.needsUpdate = true
+      if (this.tailMesh.instanceColor) this.tailMesh.instanceColor.needsUpdate = true
+    }
     this.eMat.opacity = fade
     this.eMesh.visible = es.length > 0 && fade > 0.002
-
-    // ——— вспышки при смене степени окисления ———
-    for (let k = 0; k < this.flashAtoms.length; k++) {
-      const i = this.flashAtoms[k]!
-      const tf = lay.flipAt[i]!
-      const sp = this.flashes[k]!
-      if (!Number.isFinite(tf)) {
-        sp.visible = false
-        continue
+    this.tailMesh.visible = es.length > 0 && fade > 0.002 && t > lay.eOn && t < lay.eOff + 0.5
+    // волны (группы «e⁻ ×n»): подпись — над центром летящей группы
+    lay.waves.forEach((w, k) => {
+      const li = this.waveLabelIdx[k]
+      if (li == null) return
+      const L = this.labels[li]!
+      let x = 0
+      let y = -Infinity
+      let z = 0
+      for (const q of w.tokens) {
+        const e = es[q]!
+        this.arcPoint(e.from, e.to, smooth(e.t0, e.t1, t), this._w)
+        x += this._w.x / w.tokens.length
+        z += this._w.z / w.tokens.length
+        y = Math.max(y, this._w.y)
       }
-      const x = (t - tf) / 0.32
+      L.pos.set(x, y + 0.34, z)
+      L.opacity = smooth(w.t0, w.t0 + 0.2, t) * (1 - smooth(w.t1 - 0.1, w.t1 + 0.3, t)) * fade
+    })
+
+    // ——— роли: донор — тёплое свечение, акцептор — холодное; вспышка в момент смены степени окисления ———
+    const roleOn = Number.isFinite(lay.eOn) ? smooth(lay.eOn, lay.eOn + 0.5, t) * (1 - smooth(lay.formFrom + 0.1, lay.formFrom + 0.8, t)) : 0
+    for (let k = 0; k < this.glowAtoms.length; k++) {
+      const i = this.glowAtoms[k]!
+      const sp = this.glows[k]!
+      const tf = lay.flipAt[i]!
+      const x = Number.isFinite(tf) ? (t - tf) / 0.24 : 99
       const pulse = Math.exp(-x * x)
-      sp.visible = pulse > 0.02
-      sp.position.set(P[i * 3]!, P[i * 3 + 1]!, P[i * 3 + 2]! + 0.05)
-      const sc = R[i]! * (2.6 + 1.6 * pulse)
+      const a = (0.62 * roleOn * (0.86 + 0.14 * Math.sin(t * 3.4 + i)) + 0.55 * pulse * roleOn) * fade
+      sp.visible = a > 0.01
+      if (!sp.visible) continue
+      sp.position.set(P[i * 3]!, P[i * 3 + 1]!, P[i * 3 + 2]! + R[i]! * 0.35)
+      const sc = R[i]! * (4.3 + 1.6 * pulse) + 0.2
       sp.scale.set(sc, sc, sc)
-      this.flashMats[k]!.opacity = 0.6 * pulse * fade
+      this.glowMats[k]!.opacity = a
+    }
+
+    // ——— новые связи: мягкая вспышка у середины палочки, когда она выросла ———
+    for (const f of this.bondFlashes) {
+      const s = lay.sticks[f.stick]!
+      const x = (t - (s.t1 - 0.04)) / 0.2
+      const pulse = Math.exp(-x * x)
+      f.sprite.visible = pulse > 0.02 && fade > 0.01
+      if (!f.sprite.visible) continue
+      f.sprite.position.set((P[s.a * 3]! + P[s.b * 3]!) / 2, (P[s.a * 3 + 1]! + P[s.b * 3 + 1]!) / 2, (P[s.a * 3 + 2]! + P[s.b * 3 + 2]!) / 2 + 0.15)
+      const sc = 0.5 + 0.4 * pulse
+      f.sprite.scale.set(sc, sc, sc)
+      f.mat.opacity = 0.75 * pulse * fade
+    }
+
+    // ——— сохранённые группы (SO₄²⁻ …): общая подсветка, пока группа переходит целиком ———
+    const keptOn = smooth(lay.breakTo - 0.7, lay.breakTo - 0.1, t) * (1 - smooth(lay.formTo - 0.3, lay.formTo + 0.5, t))
+    for (const g of this.keptGlows) {
+      g.sprite.visible = keptOn * fade > 0.01
+      if (!g.sprite.visible) continue
+      let x = 0
+      let y = 0
+      let z = 0
+      for (const i of g.atoms) {
+        x += P[i * 3]! / g.atoms.length
+        y += P[i * 3 + 1]! / g.atoms.length
+        z += P[i * 3 + 2]! / g.atoms.length
+      }
+      let rr = 0
+      for (const i of g.atoms) rr = Math.max(rr, Math.hypot(P[i * 3]! - x, P[i * 3 + 1]! - y) + R[i]!)
+      g.sprite.position.set(x, y, z - 0.2)
+      const sc = rr * 2.7
+      g.sprite.scale.set(sc, sc, sc)
+      g.mat.opacity = 0.42 * keptOn * fade * (0.88 + 0.12 * Math.sin(t * 2.6))
     }
 
     // ——— подписи ———
@@ -527,17 +665,20 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const r = R[i]!
       L.pos.set(P[i * 3]!, P[i * 3 + 1]!, P[i * 3 + 2]! + r)
       L.avoidR = r
-      L.opacity = fade
+      // символ атома-зрителя на шаге переноса притушен вместе с шаром
+      L.opacity = fade * (this.roleOf[i] ? 1 : 1 - 0.45 * dimU)
     }
-    const sE = steps.find((s) => s.id === 'electrons')
+    // чип степени окисления: над шаром на шаге переноса; в момент отлёта/прилёта — «щелчок» и новое значение
     for (const { atom, label } of this.oxLabelIdx) {
       const L = this.labels[label]!
       const r = R[atom]!
-      L.pos.set(P[atom * 3]! + r * 0.8, P[atom * 3 + 1]! + r + 0.13, P[atom * 3 + 2]! + r)
-      L.text = t >= lay.flipAt[atom]! ? oxPlain(lay.oxR[atom]!) : oxPlain(lay.oxL[atom]!)
-      const on = sE ? smooth(sE.from - 0.1, sE.from + 0.4, t) * (1 - smooth(lay.moveFrom[atom]! + 0.2, lay.moveFrom[atom]! + 0.7, t)) : 0
-      const back = smooth(lay.fateTo, lay.fateTo + 0.5, t)
-      L.opacity = Math.max(on, back) * fade
+      L.pos.set(P[atom * 3]!, P[atom * 3 + 1]! + r + 0.2, P[atom * 3 + 2]! + r)
+      const tf = lay.flipAt[atom]!
+      L.text = t >= tf ? oxPlain(lay.oxR[atom]!) : oxPlain(lay.oxL[atom]!)
+      const x = Number.isFinite(tf) ? (t - tf) / 0.16 : 99
+      L.scale = 1 + 0.55 * Math.exp(-x * x)
+      const on = Number.isFinite(lay.eOn) ? smooth(lay.eOn - 0.1, lay.eOn + 0.4, t) * (1 - smooth(lay.moveFrom[atom]! + 0.2, lay.moveFrom[atom]! + 0.7, t)) : 0
+      L.opacity = on * fade
     }
     lay.fragments.forEach((f, k) => {
       const L = this.labels[this.fragLabelIdx[k]!]!
@@ -552,7 +693,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       L.pos.set(x, y + 0.2, z + 0.3)
       let mf = Infinity
       for (const i of f.atoms) mf = Math.min(mf, lay.moveFrom[i]!)
-      L.opacity = smooth(lay.breakFrom + 0.6, lay.breakFrom + 1.1, t) * (1 - smooth(mf, mf + 0.4, t)) * fade
+      L.opacity = smooth(lay.breakFrom + 0.6, lay.breakFrom + 1.1, t) * (1 - smooth(mf, mf + 0.4, t)) * fade * (1 - 0.5 * dimU)
     })
     lay.termLabels.forEach((tl, k) => {
       const L = this.labels[this.termLabelIdx[k]!]!
@@ -568,13 +709,43 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
           ? 1 - smooth(lay.breakFrom, lay.breakFrom + 0.5, t)
           : smooth(lay.fateTo - 0.3, lay.fateTo + 0.3, t)) * fade
     })
-    const cap = this.labels[this.captionIdx]!
-    cap.text = this.stepCaption(idx)
-    cap.opacity = fade * (0.55 + 0.45 * smooth(stepFrom, stepFrom + 0.35, t))
-    const eq = this.labels[this.equationIdx]!
-    eq.opacity = fade * (stepId === 'result' ? 1 : 0.88)
-    const bal = this.labels[this.balanceIdx]!
-    bal.opacity = stepId === 'result' ? fade * smooth(stepFrom + 0.2, stepFrom + 0.7, t) : 0
+    if (this.halfIdx >= 0) {
+      const H = this.labels[this.halfIdx]!
+      H.opacity = smooth(lay.eOn + 0.15, lay.eOn + 0.6, t) * (1 - smooth(lay.eOff - 0.1, lay.eOff + 0.35, t)) * fade
+    }
+    void stepId
+    void stepFrom
+  }
+
+  /** Точка дуги электрона (u ∈ [0, 1]) от поверхности донора к поверхности акцептора, приподнята к зрителю. */
+  private arcPoint(from: number, to: number, u: number, out: THREE.Vector3): void {
+    const P = this.pos
+    const ra = this.rad[from]!
+    const rb = this.rad[to]!
+    // выход — с той стороны донора, что смотрит на акцептор (чуть выше экватора), вход — так же у акцептора:
+    // чипы степеней окисления над шарами остаются свободными
+    const fx = P[from * 3]!
+    const fy = P[from * 3 + 1]!
+    const tx = P[to * 3]!
+    const ty = P[to * 3 + 1]!
+    let dx = tx - fx
+    let dy = ty - fy
+    const d = Math.hypot(dx, dy) || 1
+    dx /= d
+    dy /= d
+    const ax = fx + (dx * 0.8) * ra
+    const ay = fy + (dy * 0.8 + 0.6) * ra
+    const az = P[from * 3 + 2]! + ra * 0.55
+    const bx = tx - (dx * 0.8) * rb
+    const by = ty + (-dy * 0.8 + 0.6) * rb
+    const bz = P[to * 3 + 2]! + rb * 0.55
+    const cx = (ax + bx) / 2
+    const cy = (ay + by) / 2 + Math.abs(by - ay) * 0.5 + 0.38 + Math.min(0.7, d * 0.2)
+    const cz = (az + bz) / 2 + 0.55
+    const w0 = (1 - u) * (1 - u)
+    const w1 = 2 * u * (1 - u)
+    const w2 = u * u
+    out.set(w0 * ax + w1 * cx + w2 * bx, w0 * ay + w1 * cy + w2 * by, w0 * az + w1 * cz + w2 * bz)
   }
 }
 

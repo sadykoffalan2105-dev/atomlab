@@ -57,6 +57,8 @@ const GLYPH_W: Record<string, number> = {
   glassNote: 7.8,
   glassMeasure: 7.6,
   glassCallout: 7.4,
+  glassHalf: 8.6,
+  eGroup: 8.4,
 }
 const LINE_H: Record<string, number> = {
   speciesLines: 17,
@@ -74,6 +76,8 @@ const LINE_H: Record<string, number> = {
   glassNote: 27,
   glassMeasure: 22,
   glassCallout: 18.5,
+  glassHalf: 23,
+  eGroup: 22,
 }
 const PAD_W: Record<string, number> = {
   speciesLines: 4,
@@ -91,9 +95,11 @@ const PAD_W: Record<string, number> = {
   glassNote: 24,
   glassMeasure: 20,
   glassCallout: 28,
+  glassHalf: 40,
+  eGroup: 18,
 }
 /** Подписи в несколько строк (выноска-пояснение): строки разделены переводом строки, высота — по их числу. */
-const MULTILINE_PAD_H: Record<string, number> = { callout: 18, glassCallout: 19, speciesLines: 2 }
+const MULTILINE_PAD_H: Record<string, number> = { callout: 18, glassCallout: 19, speciesLines: 2, glassHalf: 20 }
 
 /** Карточки фиксированного размера (px): pH-метр — шкала 0–14 и подпись в две строки (CinemaDomLabels). */
 const FIXED_BOX: Record<string, { w: number; h: number }> = { ph: { w: 232, h: 96 } }
