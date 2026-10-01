@@ -555,7 +555,13 @@ export function schoolBondOrders(els: readonly string[], pairs: readonly (readon
   })
   for (let i = 0; i < els.length; i++) {
     const al = ALLOWED_VALENCE[els[i]!]
-    if (!al || !al.includes(sum[i]!)) return single
+    if (al && al.includes(sum[i]!)) continue
+    // Школьная графическая формула азотной кислоты и нитратов H–O–N(=O)→O: концевой O с одной связью к азоту
+    // валентности IV — это донорно-акцепторная связь N→O (одна палочка), а не ошибка валентности.
+    const nb = pairs.filter(([a, b]) => a === i || b === i)
+    const n = nb.length === 1 ? (nb[0]![0] === i ? nb[0]![1] : nb[0]![0]) : -1
+    if (els[i] === 'O' && sum[i] === 1 && n >= 0 && els[n] === 'N' && sum[n] === 4) continue
+    return single
   }
   const unknown = [...new Set(els.filter((e) => !(e in KNOWN_OX)))]
   if (unknown.length === 1 && unknown[0] !== 'N' && els.includes('O')) {
