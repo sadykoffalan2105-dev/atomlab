@@ -206,8 +206,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab.synthButtonClose': 'Close reactor panel',
   'lab.synthButtonOpen': 'Open: reactor with reagents from the table and balance check',
   'lab.panelFabAria': 'Open Mendeleev periodic table (button to the right of the scene)',
-  'lab.reactorOpenHint':
-    'Reagents — periodic table ⊞ on the right. ⚗ — template from catalog. Product — small ◫ button in the bubble.',
+  'lab.reactorOpenHint': 'The «Reactions» button lists 200 key reactions: the substances are placed with coefficients 1 — balance them and run the synthesis.',
   'lab.catalogNoLeft': 'The template has no left side — add reagents from the table (⊞).',
   'lab.synthesisFail': 'Synthesis failed. Check the equation and product.',
   'lab.recipeWarn.noEquals': 'The template has no “=” — enter the left side manually.',
@@ -245,8 +244,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'reactor.showPanel': 'Show reactor',
   'reactor.equationAria': 'Reaction equation',
   'reactor.reagents': 'Reagents',
-  'reactor.emptyHint':
-    'Elements — ⊞ button on the right (periodic table). “Generate equation” — catalog and template without coefficients.',
+  'reactor.emptyHint': 'Press «Reactions» and pick one of the 200 key reactions: the substances enter the reactor, you only balance it.',
   'reactor.coeffDecrease': 'Decrease coefficient (↓)',
   'reactor.coeffIncrease': 'Increase coefficient (↑)',
   'reactor.ledger.title': 'Atoms: left | right',

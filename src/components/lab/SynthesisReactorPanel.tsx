@@ -859,7 +859,16 @@ export function SynthesisReactorPanel({
                 <div className={`${panelStyles.equationTerms} ${panelStyles.equationTermsEquation}`}>
                   {leftTerms.length === 0 ? (
                     <div className={panelStyles.equationEmpty} role="note">
-                      {t('reactor.emptyHint')}
+                      <span>{t('reactor.emptyHint')}</span>
+                      <button
+                        type="button"
+                        className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnAccent} ${panelStyles.emptyPickBtn}`}
+                        onClick={onOpenGenerateEquationCatalog}
+                        data-main-rx-empty=""
+                      >
+                        <IconSparkles size={16} />
+                        <span>{t('reactor.pick.button')}</span>
+                      </button>
                     </div>
                   ) : null}
                   {leftTerms.map((term, idx) => (

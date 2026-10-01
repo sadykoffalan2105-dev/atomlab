@@ -206,8 +206,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'lab.synthButtonClose': 'Reaktor panelini yopish',
   'lab.synthButtonOpen': 'Ochish: jadvaldan reagentlar va muvozanat tekshiruvi bilan reaktor',
   'lab.panelFabAria': 'Mendeleev davriy jadvalini ochish (sahna o\'ngidagi tugma)',
-  'lab.reactorOpenHint':
-    'Reagentlar — o\'ngdagi ⊞ jadval. ⚗ — katalogdan namuna. Mahsulot — pufakchadagi kichik ◫ tugma.',
+  'lab.reactorOpenHint': '«Reaksiyalar» tugmasi — 200 ta asosiy reaksiya: moddalar koeffitsiyent 1 bilan joylashadi, tenglashtirib sintezni boshlang.',
   'lab.catalogNoLeft': 'Namunada chap qism yo\'q — jadvaldan (⊞) reagentlar qo\'shing.',
   'lab.synthesisFail': 'Sintez amalga oshmadi. Tenglama va mahsulotni tekshiring.',
   'lab.recipeWarn.noEquals': 'Namunada «=» yo\'q — chap qismni qo\'lda kiriting.',
@@ -245,8 +244,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'reactor.showPanel': 'Reaktorni ko\'rsatish',
   'reactor.equationAria': 'Reaksiya tenglamasi',
   'reactor.reagents': 'Reagentlar',
-  'reactor.emptyHint':
-    'Elementlar — o\'ngdagi ⊞ tugma (Mendeleev jadvali). «Tenglama yaratish» — katalog va koeffitsientsiz namuna.',
+  'reactor.emptyHint': '«Reaksiyalar» tugmasini bosing va 200 ta asosiy reaksiyadan birini tanlang: moddalar reaktorga tushadi, faqat tenglashtirish qoladi.',
   'reactor.coeffDecrease': 'Koeffitsientni kamaytirish (↓)',
   'reactor.coeffIncrease': 'Koeffitsientni oshirish (↑)',
   'reactor.ledger.title': 'Atomlar: chapda | o‘ngda',
