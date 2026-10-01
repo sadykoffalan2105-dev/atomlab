@@ -245,6 +245,20 @@ const INSOLUBLE = new Set([
 type Tok = { el: string; n: number }
 type Item = { kind: 'el'; el: string; n: number } | { kind: 'grp'; items: Item[]; n: number; bracket: boolean }
 
+/**
+ * Кратность связей молекулы для сюжета: школьная графическая формула (schoolBondOrders) и две двухатомные молекулы,
+ * которые общее правило валентностей не выводит (у C в CO и у N в NO валентность «не стандартная»):
+ * C≡O (две связи по обменному механизму и одна донорно-акцепторная) и N=O (с неспаренным электроном у N).
+ */
+function storyBondOrders(els: readonly string[], pairs: readonly (readonly [number, number])[]): number[] {
+  if (els.length === 2 && pairs.length === 1) {
+    const k = [...els].sort().join('')
+    if (k === 'CO') return [3]
+    if (k === 'NO') return [2]
+  }
+  return schoolBondOrders(els, pairs)
+}
+
 function parseItems(src: string): Item[] | null {
   let i = 0
   const readNum = (): number => {
@@ -901,7 +915,7 @@ function buildSide(species: readonly EquationSpecies[], termOffset: number): { s
       })
       // Кратность — только у нейтральных молекул; schoolBondOrders сам отказывается (одинарные), если есть металл
       // или валентности и степени окисления не сходятся — ложных двойных связей не будет.
-      const orders = spec.charge === 0 ? schoolBondOrders(ub.atoms.map((x) => x.el), ub.bonds) : ub.bonds.map(() => 1)
+      const orders = spec.charge === 0 ? storyBondOrders(ub.atoms.map((x) => x.el), ub.bonds) : ub.bonds.map(() => 1)
       ub.bonds.forEach(([a, b], k) => side.bonds.push({ a: atomBase + a, b: atomBase + b, order: orders[k] ?? 1 }))
       side.units.push({
         id: unitId,

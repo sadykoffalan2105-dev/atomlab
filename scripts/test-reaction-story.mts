@@ -299,6 +299,15 @@ const oxOf = (s: ReactionStory, side: 'left' | 'right', el: string) => [...new S
   ok(s.bondsBroken.length === 3 && s.bondsFormed.length === 4, '2H₂ + O₂: рвутся H–H ×2 и O–O, образуются O–H ×4')
 }
 {
+  // школьная кратность у двухатомных CO и NO: C≡O, N=O; у CO₂ — O=C=O
+  const s = ref('2CO + O₂ → 2CO₂')
+  const ord = (side: typeof s.left, a: string, b: string) =>
+    side.bonds.filter((x) => [side.atoms[x.a]!.el, side.atoms[x.b]!.el].sort().join('') === [a, b].sort().join('')).map((x) => x.order)
+  ok(ord(s.left, 'C', 'O').every((o) => o === 3) && ord(s.right, 'C', 'O').every((o) => o === 2), '2CO + O₂: C≡O → O=C=O')
+  const n = ref('N₂ + O₂ ⇄ 2NO')
+  ok(ord(n.right, 'N', 'O').length === 2 && ord(n.right, 'N', 'O').every((o) => o === 2), 'N₂ + O₂: N=O')
+}
+{
   const s = ref('BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl')
   ok(!s.redox && s.electrons === 0, 'BaCl₂ + H₂SO₄: ОВР нет')
   ok(s.conserved.some(([, g]) => s.right.groups[g]!.label === 'SO₄²⁻'), 'BaCl₂ + H₂SO₄: SO₄²⁻ сохраняется')
