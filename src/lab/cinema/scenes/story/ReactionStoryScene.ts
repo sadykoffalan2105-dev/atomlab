@@ -77,6 +77,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
   private readonly _m = new THREE.Matrix4()
   private readonly _q = new THREE.Quaternion()
   private readonly _v = new THREE.Vector3()
+  private readonly _w = new THREE.Vector3()
   private readonly _s = new THREE.Vector3()
   private readonly _a = new THREE.Vector3()
   private readonly _b = new THREE.Vector3()
@@ -121,7 +122,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     // ——— палочки ———
     this.stickGeo = new THREE.CylinderGeometry(1, 1, 1, opts.lowPower ? 8 : 14, 1, true)
     this.stickMat = withNaclRim(new THREE.MeshPhysicalMaterial({ color: 0xc9d1dc, ...MATTE, transparent: true, fog: false }), 0xffffff, NACL_RIM.atom)
-    this.sticks = new THREE.InstancedMesh(this.stickGeo, this.stickMat, Math.max(1, lay.sticks.length))
+    this.sticks = new THREE.InstancedMesh(this.stickGeo, this.stickMat, Math.max(1, lay.sticks.reduce((n, x) => n + x.order, 0)))
     this.sticks.name = 'reaction-story-bonds'
     this.sticks.frustumCulled = false
     this.root.add(this.sticks)
@@ -417,24 +418,32 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
 
     // ——— палочки ———
     const sticks = lay.sticks
+    let inst = 0
     for (let k = 0; k < sticks.length; k++) {
       const s = sticks[k]!
       const alpha = s.kind === 'kept' ? 1 : s.kind === 'broken' ? 1 - smooth(s.t0, s.t1, t) : smooth(s.t0, s.t1, t)
-      const rad = STICK_R * alpha
+      // кратная связь — параллельные палочки потоньше (как в школьной сцене: двойная — две, тройная — три)
+      const rad = STICK_R * alpha * (s.order > 1 ? 0.72 : 1)
       this._a.set(P[s.a * 3]!, P[s.a * 3 + 1]!, P[s.a * 3 + 2]!)
       this._b.set(P[s.b * 3]!, P[s.b * 3 + 1]!, P[s.b * 3 + 2]!)
       const len = this._a.distanceTo(this._b)
-      if (rad < 0.002 || len < 1e-4) {
-        this._s.set(0, 0, 0)
-        this._m.compose(this._a, this._q.identity(), this._s)
-      } else {
-        this._v.subVectors(this._b, this._a).divideScalar(len)
-        this._q.setFromUnitVectors(this._up, this._v)
-        this._v.addVectors(this._a, this._b).multiplyScalar(0.5)
-        this._s.set(rad, len, rad)
-        this._m.compose(this._v, this._q, this._s)
+      for (let o = 0; o < s.order; o++) {
+        if (rad < 0.002 || len < 1e-4) {
+          this._s.set(0, 0, 0)
+          this._m.compose(this._a, this._q.identity(), this._s)
+        } else {
+          this._v.subVectors(this._b, this._a).divideScalar(len)
+          this._q.setFromUnitVectors(this._up, this._v)
+          // сдвиг поперёк связи в плоскости экрана: (dir × z); у связи «на зрителя» — вверх
+          this._w.set(-this._v.y, this._v.x, 0)
+          if (this._w.lengthSq() < 1e-6) this._w.set(0, 1, 0)
+          this._w.normalize().multiplyScalar(STICK_R * 2.3 * (o - (s.order - 1) / 2))
+          this._v.addVectors(this._a, this._b).multiplyScalar(0.5).add(this._w)
+          this._s.set(rad, len, rad)
+          this._m.compose(this._v, this._q, this._s)
+        }
+        this.sticks.setMatrixAt(inst++, this._m)
       }
-      this.sticks.setMatrixAt(k, this._m)
     }
     this.sticks.instanceMatrix.needsUpdate = true
     this.stickMat.opacity = fade

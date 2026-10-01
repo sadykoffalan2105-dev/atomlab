@@ -17,6 +17,7 @@
  * Проверка — scripts/test-reaction-story.mts (банк реакций, уравнения учебников 7–9, эталоны).
  */
 import { formulaToUnicode, parseEquationText, type EquationSpecies } from './equationFormula'
+import { schoolBondOrders } from '../components/lab/hero/schoolHeroModel'
 
 export type StoryLocale = 'ru' | 'en' | 'uz'
 export type StoryText = Readonly<Record<StoryLocale, string>>
@@ -35,7 +36,8 @@ export type StoryAtom = {
   readonly ox: number
 }
 
-export type StoryBond = { readonly a: number; readonly b: number }
+/** order — кратность по школьной графической формуле (CO₂ — O=C=O, N₂ — N≡N); у ионов и солей — 1 (равноценные связи). */
+export type StoryBond = { readonly a: number; readonly b: number; readonly order: number }
 
 export type StoryGroup = {
   readonly id: number
@@ -897,7 +899,10 @@ function buildSide(species: readonly EquationSpecies[], termOffset: number): { s
       ub.atoms.forEach((a, ai) => {
         side.atoms.push({ id: atomBase + ai, el: a.el, unit: unitId, group: groupBase + a.group, ox: a.ox })
       })
-      for (const [a, b] of ub.bonds) side.bonds.push({ a: atomBase + a, b: atomBase + b })
+      // Кратность — только у нейтральных молекул; schoolBondOrders сам отказывается (одинарные), если есть металл
+      // или валентности и степени окисления не сходятся — ложных двойных связей не будет.
+      const orders = spec.charge === 0 ? schoolBondOrders(ub.atoms.map((x) => x.el), ub.bonds) : ub.bonds.map(() => 1)
+      ub.bonds.forEach(([a, b], k) => side.bonds.push({ a: atomBase + a, b: atomBase + b, order: orders[k] ?? 1 }))
       side.units.push({
         id: unitId,
         term: termOffset + ti,

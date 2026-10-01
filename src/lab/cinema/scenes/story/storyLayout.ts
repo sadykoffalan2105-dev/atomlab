@@ -17,6 +17,8 @@ import { breakFragments, ionChargeText, type ReactionStory, type StorySide, type
 export type StoryStepTiming = { readonly id: StoryStepId; readonly from: number; readonly to: number }
 
 export type StoryStickSpec = {
+  /** кратность связи: столько параллельных палочек */
+  readonly order: number
   /** атомы — id ЛЕВОЙ стороны (у новых связей — прообразы атомов продукта) */
   readonly a: number
   readonly b: number
@@ -566,9 +568,9 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
   L.bonds.forEach((b, i) => {
     if (brokenSet.has(i)) {
       const t0 = sB.from + 0.35 + Math.min(1.2, bi * 0.14)
-      sticks.push({ a: b.a, b: b.b, kind: 'broken', t0, t1: t0 + 0.55 })
+      sticks.push({ a: b.a, b: b.b, order: b.order, kind: 'broken', t0, t1: t0 + 0.55 })
       bi++
-    } else sticks.push({ a: b.a, b: b.b, kind: 'kept', t0: 0, t1: 0 })
+    } else sticks.push({ a: b.a, b: b.b, order: b.order, kind: 'kept', t0: 0, t1: 0 })
   })
 
   // ——— образование: единицы продукта по очереди, связи — по одной после прихода атомов ———
@@ -586,8 +588,21 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
     const k = formedByUnit.get(u) ?? 0
     formedByUnit.set(u, k + 1)
     const t0 = (unitStart.get(u) ?? sF.from) + moveDur * 0.8 + k * 0.2
-    sticks.push({ a: inv[b.a]!, b: inv[b.b]!, kind: 'formed', t0, t1: t0 + 0.35 })
+    sticks.push({ a: inv[b.a]!, b: inv[b.b]!, order: b.order, kind: 'formed', t0, t1: t0 + 0.35 })
   }
+
+  // Сохранённая связь, у которой меняется кратность (SO₃ + H₂O: S=O → S–OH): старая кратность гаснет, когда
+  // единица продукта собирается, новая — проявляется (иначе в H₂SO₄ осталась бы лишняя двойная связь).
+  L.bonds.forEach((b, i) => {
+    if (sticks[i]!.kind !== 'kept') return
+    const ra = story.map[b.a]!
+    const rb = story.map[b.b]!
+    const rBond = R.bonds.find((x) => (x.a === ra && x.b === rb) || (x.a === rb && x.b === ra))
+    if (!rBond || rBond.order === b.order) return
+    const t0 = (unitStart.get(R.atoms[ra]!.unit) ?? sF.from) + moveDur * 0.8
+    sticks[i] = { a: b.a, b: b.b, order: b.order, kind: 'broken', t0, t1: t0 + 0.35 }
+    sticks.push({ a: b.a, b: b.b, order: rBond.order, kind: 'formed', t0: t0 + 0.2, t1: t0 + 0.55 })
+  })
 
   // ——— судьба продуктов: газ ↑, осадок ↓ ———
   const p4 = new Float32Array(p3)
