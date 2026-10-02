@@ -104,6 +104,8 @@ export type StoryLayout = {
    */
   readonly extentL: { readonly w: number; readonly h: number; readonly cx: number; readonly cy: number }
   readonly extentR: { readonly w: number; readonly h: number; readonly cx: number; readonly cy: number }
+  /** Глубина дуги перелёта атома к продукту (дорожка его группы; 0 — атом остаётся на месте). */
+  readonly arcZ: Float32Array
   readonly top: number
   readonly bottom: number
   /**
@@ -618,7 +620,8 @@ function sideRow(side: StorySide, terms: readonly number[], r: (i: number) => nu
     cur.items.push(c)
   }
   if (cur.items.length) lines.push(cur)
-  const LINE_GAP = 0.85
+  // между рядами — место под подпись члена уравнения («2Al(OH)₃»), она не ложится на атомы ряда ниже
+  const LINE_GAP = 1.2
   const totalH = lines.reduce((s, l) => s + l.h, 0) + LINE_GAP * Math.max(0, lines.length - 1)
   const pos = new Map<number, V>()
   const termAtoms = new Map<number, number[]>()
@@ -1061,6 +1064,117 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
     }
   }
 
+  // ——— дорожки перелёта по глубине: каждая летящая группа (ион, OH⁻, PO₄³⁻ — атомы одной группы, летящие в одну
+  // единицу продукта) отходит на свою глубину. Дорожка выбирается проверкой: ближайшая к плоскости кадра, на которой
+  // путь группы за всё время полёта не задевает уже назначенные группы и неподвижные атомы ———
+  const arcZ = new Float32Array(n)
+  {
+    const groupsByKey = new Map<string, { dx: number; atoms: number[]; t0: number }>()
+    const still: number[] = []
+    for (let i = 0; i < n; i++) {
+      // задняя копия компактного вида скрыта и в начале, и в конце — её полёт не виден, не планируем
+      if (layerL[i] && layerR[i]) continue
+      const dx = p3[i * 3]! - p1[i * 3]!
+      if (Math.hypot(dx, p3[i * 3 + 1]! - p1[i * 3 + 1]!) < 0.1) {
+        still.push(i)
+        continue
+      }
+      // одно целое — атомы одной группы, летящие в одну единицу продукта с одинаковым смещением (жёстко); атомы,
+      // которые при перестройке меняются местами (O из HCO₃⁻ → CO₃²⁻ и H₂O), — отдельные и проверяются друг с другом
+      const dy = p3[i * 3 + 1]! - p1[i * 3 + 1]!
+      const key = `${L.atoms[i]!.group}|${R.atoms[story.map[i]!]!.unit}|${Math.round(dx * 20)}|${Math.round(dy * 20)}`
+      const gr = groupsByKey.get(key)
+      if (gr) gr.atoms.push(i)
+      else groupsByKey.set(key, { dx, atoms: [i], t0: moveFrom[i]! })
+    }
+    const groups = [...groupsByKey.values()].sort((a, b) => a.t0 - b.t0 || a.dx - b.dx)
+    const rad = (i: number) => Math.max(radius[i]!, radiusR[i]!)
+    const at = (i: number, t: number, lane: number, out: number[]) => {
+      const m = smooth(moveFrom[i]!, moveFrom[i]! + moveDur, t)
+      const mxy = lane === 0 ? m : smooth(0.16, 0.84, m)
+      out[0] = p1[i * 3]! + (p3[i * 3]! - p1[i * 3]!) * mxy
+      out[1] = p1[i * 3 + 1]! + (p3[i * 3 + 1]! - p1[i * 3 + 1]!) * mxy
+      out[2] = p1[i * 3 + 2]! + (p3[i * 3 + 2]! - p1[i * 3 + 2]!) * m + (lane === 0 ? 0 : lane * smooth(0, 0.2, m) * (1 - smooth(0.8, 1, m)))
+      // газ уже поднимается, осадок опускается (судьба продукта начинается до конца образования)
+      const fz = smooth(fateFrom, fateTo, t)
+      for (let c = 0; c < 3; c++) out[c] = out[c]! + (p4[i * 3 + c]! - p3[i * 3 + c]!) * fz
+    }
+    // габарит пути группы в плоскости кадра (старт, место, судьба ± радиус): далёкие пары не проверяем
+    const pathBox = (atoms: readonly number[]) => {
+      const bx = [Infinity, -Infinity, Infinity, -Infinity]
+      for (const i of atoms) {
+        for (const P of [p1, p3, p4]) {
+          bx[0] = Math.min(bx[0]!, P[i * 3]! - rad(i))
+          bx[1] = Math.max(bx[1]!, P[i * 3]! + rad(i))
+          bx[2] = Math.min(bx[2]!, P[i * 3 + 1]! - rad(i))
+          bx[3] = Math.max(bx[3]!, P[i * 3 + 1]! + rad(i))
+        }
+      }
+      return bx
+    }
+    const waitBox = (atoms: readonly number[]) => {
+      const bx = [Infinity, -Infinity, Infinity, -Infinity]
+      for (const i of atoms) {
+        bx[0] = Math.min(bx[0]!, p1[i * 3]! - rad(i))
+        bx[1] = Math.max(bx[1]!, p1[i * 3]! + rad(i))
+        bx[2] = Math.min(bx[2]!, p1[i * 3 + 1]! - rad(i))
+        bx[3] = Math.max(bx[3]!, p1[i * 3 + 1]! + rad(i))
+      }
+      return bx
+    }
+    const placed: { atoms: number[]; lane: number; t0: number; box: number[] }[] = [{ atoms: still, lane: 0, t0: -Infinity, box: pathBox(still) }]
+    const qa = [0, 0, 0]
+    const qb = [0, 0, 0]
+    // перекрытие пути группы с уже назначенными (доля суммы радиусов; 0 — не задевает)
+    // ожидающие старта группы стоят на месте (p1) до своего t0 — для пролетающих мимо они препятствия
+    const waiting = groups.map((g0) => ({ atoms: g0.atoms, lane: 0, t0: -Infinity, until: g0.t0, box: waitBox(g0.atoms) }))
+    const overlapOf = (g: { atoms: number[]; t0: number; box: number[] }, lane: number, k: number): number => {
+      let worst = 0
+      const obstacles = [...placed.map((h) => ({ ...h, until: Infinity })), ...waiting.slice(k + 1)]
+      for (const h of obstacles) {
+        const from = Math.max(g.t0, h.t0)
+        const to = Math.min(g.t0 + moveDur, h.until)
+        if (to <= from) continue
+        if (g.box[0]! > h.box[1]! || h.box[0]! > g.box[1]! || g.box[2]! > h.box[3]! || h.box[2]! > g.box[3]!) continue
+        // шаг ≈ 0,03 с: ион пролетает свой диаметр быстрее, чем за 0,1 с
+        const S = Math.max(4, Math.round((to - from) / 0.03))
+        for (let s = 0; s <= S; s++) {
+          const t = from + ((to - from) * s) / S
+          for (const i of g.atoms) {
+            at(i, t, lane, qa)
+            for (const j of h.atoms) {
+              at(j, t, h.lane, qb)
+              const d = Math.hypot(qa[0]! - qb[0]!, qa[1]! - qb[1]!, qa[2]! - qb[2]!)
+              worst = Math.max(worst, 1 - d / (rad(i) + rad(j)))
+            }
+          }
+        }
+      }
+      return worst
+    }
+    const LANES = [0.45, 0.75, 1.05, 1.4, 1.8, 2.25, 2.7]
+    groups.forEach((g0, k) => {
+      const g = { ...g0, box: pathBox(g0.atoms) }
+      // летящие вправо — сначала ближе к камере, влево — дальше; дальше по очереди более глубокие дорожки
+      const sign = g.dx < 0 ? -1 : 1
+      let best = sign * LANES[0]!
+      let bestOver = Infinity
+      for (const a of LANES) {
+        for (const lane of [sign * a, -sign * a]) {
+          const over = overlapOf(g, lane, k)
+          if (over < bestOver - 1e-6) {
+            bestOver = over
+            best = lane
+          }
+          if (over <= 0.08) break
+        }
+        if (bestOver <= 0.08) break
+      }
+      for (const i of g.atoms) arcZ[i] = best
+      placed.push({ atoms: g.atoms, lane: best, t0: g.t0, box: g.box })
+    })
+  }
+
   // ——— электроны ———
   const flipAt = new Float32Array(n).fill(Number.POSITIVE_INFINITY)
   const sched = sE ? electronSchedule(plan, sE.from) : { list: [], waves: [], last: 0 }
@@ -1196,6 +1310,7 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
     extent: { w, h, cx: (minX + maxX) / 2, cy: (top + bottom) / 2 },
     extentL,
     extentR,
+    arcZ,
     top,
     bottom,
     compact,
@@ -1218,15 +1333,18 @@ export function storyAtomPos(lay: StoryLayout, i: number, t: number, out: Float3
   const b = smooth(lay.breakFrom, lay.breakTo, t)
   const m = smooth(lay.moveFrom[i]!, lay.moveFrom[i]! + lay.moveDur, t)
   const f = smooth(lay.fateFrom, lay.fateTo, t)
+  // перелёт к продукту — как стыковка: атом отходит по глубине на дорожку своей группы (arcZ), летит в плоскости
+  // кадра и входит в своё место спереди/сзади. На старте и на месте соседей нет — встречные ионы обмена
+  // (Na⁺ ↔ Fe³⁺) не проходят друг сквозь друга ни в пути, ни у цели
+  const lane = lay.arcZ[i]!
+  const mxy = lane === 0 ? m : smooth(0.16, 0.84, m)
   for (let c = 0; c < 3; c++) {
     const a0 = lay.p0[k + c]!
     const a1 = a0 + (lay.p1[k + c]! - a0) * b
-    const a3 = a1 + (lay.p3[k + c]! - a1) * m
+    const a3 = a1 + (lay.p3[k + c]! - a1) * (c < 2 ? mxy : m)
     out[o + c] = a3 + (lay.p4[k + c]! - lay.p3[k + c]!) * f
   }
-  // дуга при перелёте к продукту: атом приподнимается к камере, не проходит сквозь соседей
-  const arc = Math.sin(Math.PI * m) * 0.35
-  out[o + 2] = (out[o + 2] as number) + arc
+  if (lane !== 0) out[o + 2] = (out[o + 2] as number) + lane * smooth(0, 0.2, m) * (1 - smooth(0.8, 1, m))
 }
 
 /** Радиус шара атома i в момент t: меняется, когда атом становится ионом (или перестаёт им быть). */

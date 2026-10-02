@@ -34,6 +34,8 @@ function frontAt(lay: StoryLayout, i: number, t: number): boolean {
   return (left ? lay.layerL[i] : lay.layerR[i]) === 0
 }
 
+let FLIGHT = false
+
 function measure(lay: StoryLayout, t: number): { clash: number; worst: number; box: { minX: number; maxX: number; minY: number; maxY: number }; crop: number } {
   const n = lay.n
   const P = new Float32Array(n * 3)
@@ -62,7 +64,12 @@ function measure(lay: StoryLayout, t: number): { clash: number; worst: number; b
       const i = vis[a]!
       const j = vis[b]!
       if (bonded.has(i * 100000 + j)) continue
-      const d = Math.hypot(P[i * 3]! - P[j * 3]!, P[i * 3 + 1]! - P[j * 3 + 1]!)
+      const dx = P[i * 3]! - P[j * 3]!
+      const dy = P[i * 3 + 1]! - P[j * 3 + 1]!
+      const dz = P[i * 3 + 2]! - P[j * 3 + 2]!
+      // в полёте шар, пролетающий ближе к камере, — нормальный 3D (не дефект); дефект — шары реально входят друг в
+      // друга, или на месте (образование, итог) перекрываются в кадре
+      const d = FLIGHT ? Math.hypot(dx, dy, dz) : Math.hypot(dx, dy)
       const over = 1 - d / (R[i]! + R[j]!)
       if (over > 0.12) {
         clash++
@@ -108,6 +115,7 @@ for (const r of MAIN_REACTIONS_200) {
     let crop = 0
     let res: ReturnType<typeof measure> | null = null
     for (const m of Object.keys(times) as Moment[]) {
+      FLIGHT = m === 'electrons' && !tE
       const x = measure(lay, times[m])
       clash[m] = x.clash
       worst = Math.max(worst, x.worst)
