@@ -42,7 +42,14 @@ export interface StudentProfile {
   recent: Record<string, number[]>
   turns: number
   updatedAt: number
+  /** Настроение ученика по его словам («сложно», «устал», «легко»); null — не говорил. */
+  mood: StudentMood | null
+  moodAt: number
+  /** Темы, с которыми ученику трудно («мне сложно с ОВР») — поднимаются в викторине. */
+  weakTopics: string[]
 }
+
+export type StudentMood = 'confused' | 'tired' | 'bored' | 'scared' | 'easy' | 'down' | 'happy'
 
 const KEY = 'atomlab-teacher-human-v1'
 
@@ -63,6 +70,9 @@ export function emptyProfile(): StudentProfile {
     recent: {},
     turns: 0,
     updatedAt: 0,
+    mood: null,
+    moodAt: 0,
+    weakTopics: [],
   }
 }
 
@@ -127,7 +137,7 @@ export function loadProfile(): StudentProfile {
     const raw = backend.read()
     if (raw) {
       const p = JSON.parse(raw) as Partial<StudentProfile>
-      if (p && p.v === 1) parsed = { ...emptyProfile(), ...p, recent: p.recent ?? {} } as StudentProfile
+      if (p && p.v === 1) parsed = { ...emptyProfile(), ...p, recent: p.recent ?? {}, weakTopics: p.weakTopics ?? [] } as StudentProfile
     }
   } catch {
     parsed = null
@@ -142,6 +152,7 @@ export function saveProfile(next: StudentProfile): StudentProfile {
     likes: next.likes.slice(-12),
     notes: next.notes.slice(-40),
     mistakes: next.mistakes.slice(-20),
+    weakTopics: (next.weakTopics ?? []).slice(-10),
     updatedAt: Date.now(),
   }
   cache = trimmed

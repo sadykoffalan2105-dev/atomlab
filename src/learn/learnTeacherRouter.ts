@@ -10,6 +10,7 @@ import { composeLocalAnswer } from './brain/dualMode/localAnswerComposer'
 import { humanTurn, humanizeBookAnswer } from './brain/human/humanTeacher'
 import { loadProfile, preferredDetail } from './brain/human/studentProfile'
 import { askTeacherModels } from './brain/human/teacherModelRegistry'
+import { dialogStep } from './brain/dialog/dialogManager'
 
 export type TeacherReplySource = 'faq' | 'local' | 'ollama' | 'api' | 'puter'
 
@@ -110,14 +111,18 @@ function lastTeacherText(messages: { role: string; content: string }[]): string 
 
 type HumanStep =
   | { done: true; result: TeacherRouterResult & { confident: boolean } }
-  | { done: false; messages: { role: string; content: string }[]; prefix: string }
+  | { done: false; messages: { role: string; content: string }[]; prefix: string; rewritten?: boolean }
 
 /**
  * «Человеческий» слой (офлайн): разговор, эмоции, память, расчёты, химия из данных проекта.
  * Полный ответ — сразу; смешанная фраза — префикс + остаток-вопрос для базы знаний.
  */
-function humanStep(messages: { role: string; content: string }[], ctx: LearnLocalAssistantContext): HumanStep {
+async function humanStep(messages: { role: string; content: string }[], ctx: LearnLocalAssistantContext): Promise<HumanStep> {
   const text = lastUserText(messages)
+  // Диалоговый менеджер (викторина, поддержка, домашка, обучение в моменте, тема из стека) — раньше всего.
+  const dialog = await dialogStep(text, { lang: ctx.locale, grade: ctx.gradeId, chapterId: ctx.chapterId, sectionId: ctx.sectionId, sectionTitle: ctx.sectionTitle, messages }).catch(() => null)
+  if (dialog?.text) return { done: true, result: { text: dialog.text, source: 'local', citations: dialog.citations, confident: dialog.confident } }
+  if (dialog?.rewrite) return { done: false, messages: messages.map((m, i) => (i === messages.length - 1 && m.role === 'user' ? { ...m, content: dialog.rewrite! } : m)), prefix: '', rewritten: true }
   let turn: ReturnType<typeof humanTurn>
   try {
     turn = humanTurn(text, { lang: ctx.locale, lastTeacher: lastTeacherText(messages) })
@@ -159,11 +164,15 @@ export async function composeLocalTeacherReply(
   opts: { signal?: AbortSignal; knowledge?: TeacherKnowledgeResult; detail?: 'brief' | 'more'; humanHandled?: boolean } = {},
 ): Promise<TeacherRouterResult & { confident: boolean }> {
   if (!opts.humanHandled) {
-    const step = humanStep(messages, ctx)
+    const step = await humanStep(messages, ctx)
     if (step.done) return step.result
     if (step.prefix) {
       const inner = await composeLocalTeacherReply(step.messages, ctx, { ...opts, knowledge: undefined, humanHandled: true })
       return withPrefix(step.prefix, inner)
+    }
+    if (step.rewritten) {
+      messages = step.messages
+      opts = { ...opts, knowledge: undefined }
     }
   }
   const text = lastUserText(messages)
@@ -242,16 +251,20 @@ export async function routeTeacherReply(
   const signal = opts?.signal
   // 0) «Человеческий» слой — офлайн, раньше любых сетей (память и расчёты никуда не уходят).
   if (!opts?.humanHandled) {
-    const step = humanStep(messages, ctx)
+    const step = await humanStep(messages, ctx)
     if (step.done) return step.result
     if (step.prefix) {
       const inner = await routeTeacherReply(step.messages, ctx, {
         ...opts,
         knowledge: undefined,
-        onDelta: opts?.onDelta ? (full) => opts.onDelta?.(`${step.prefix} ${full}`) : undefined,
+        onDelta: opts?.onDelta ? (full) => opts?.onDelta?.(`${step.prefix} ${full}`) : undefined,
         humanHandled: true,
       })
       return withPrefix(step.prefix, inner)
+    }
+    if (step.rewritten) {
+      messages = step.messages
+      opts = { ...opts, knowledge: undefined }
     }
   }
   const q = lastUserText(messages)
