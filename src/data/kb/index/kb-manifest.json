@@ -1,49 +1,49 @@
 {
-  "generatedAt": "2026-09-16T17:16:32.867Z",
+  "generatedAt": "2026-10-02T04:37:13.938Z",
   "analyzer": 4,
   "format": 1,
-  "N": 3477,
+  "N": 3522,
   "avg": [
-    3.829,
-    2.841,
-    58.257
+    3.807,
+    2.94,
+    57.984
   ],
   "shards": {
     "common": {
-      "docs": 1449,
-      "terms": 5334,
-      "postingsBytes": 160545,
-      "fileBytes": 1314933
+      "docs": 1494,
+      "terms": 5741,
+      "postingsBytes": 168236,
+      "fileBytes": 1370401
     },
     "g7": {
       "docs": 445,
       "terms": 4643,
       "postingsBytes": 107408,
-      "fileBytes": 962099
+      "fileBytes": 962114
     },
     "g8": {
       "docs": 382,
       "terms": 2819,
       "postingsBytes": 78704,
-      "fileBytes": 740376
+      "fileBytes": 740386
     },
     "g9": {
       "docs": 408,
       "terms": 3554,
       "postingsBytes": 93941,
-      "fileBytes": 843149
+      "fileBytes": 843158
     },
     "g10": {
       "docs": 461,
       "terms": 4292,
       "postingsBytes": 105742,
-      "fileBytes": 979990
+      "fileBytes": 980004
     },
     "g11": {
       "docs": 332,
       "terms": 2772,
       "postingsBytes": 64844,
-      "fileBytes": 698537
+      "fileBytes": 698547
     },
     "book": {
       "docs": 3590,
@@ -53,9 +53,9 @@
     }
   },
   "lexicon": {
-    "keys": 4980,
+    "keys": 4982,
     "glossaryKeys": 3345,
-    "alignedKeys": 1635,
-    "fileBytes": 252424
+    "alignedKeys": 1637,
+    "fileBytes": 252489
   }
 }

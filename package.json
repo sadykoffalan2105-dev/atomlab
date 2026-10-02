@@ -97,6 +97,7 @@
     "test:homework-review": "tsx scripts/test-homework-review.mts",
     "test:teacher-dialog": "tsx scripts/test-teacher-dialog.mts",
     "test:teacher-dialog-flow": "tsx scripts/test-teacher-dialog-flow.mts",
+    "test:teacher-voice": "tsx scripts/test-teacher-voice.mts",
     "smoke:reactor-preview": "node scripts/smoke-reactor-preview.mjs",
     "teacher:native": "node scripts/build-teacher-native.mjs",
     "teacher:dev": "python -m teacher_service",
