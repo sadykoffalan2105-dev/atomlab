@@ -9,6 +9,7 @@ import { detectNonQuestion, isSubstantiveQuestion, replyForNonQuestion, resolveT
 import { composeLocalAnswer } from './brain/dualMode/localAnswerComposer'
 import { humanTurn, humanizeBookAnswer } from './brain/human/humanTeacher'
 import { loadProfile, preferredDetail } from './brain/human/studentProfile'
+import { answerFromQaBank } from './brain/qa/qaBank'
 import { askTeacherModels } from './brain/human/teacherModelRegistry'
 import { mlIntentStep, mergeIntentStyle, replaceLastUser, type IntentStepResult } from './brain/ml/intentStep'
 import type { ComposeStyle } from './brain/dualMode/localAnswerComposer'
@@ -186,6 +187,9 @@ export async function composeLocalTeacherReply(
     const reply = replyForNonQuestion(nonQuestion, ctx.locale, { topic, seed: messages.length })
     return { text: reply, source: 'local', citations: [], confident: true }
   }
+  // «Большая база данных»: вещества, элементы, реакции учебников, глоссарий — точный факт с подписью источника.
+  const qa = await answerFromQaBank(text, { lang: ctx.locale, grade: Number(ctx.gradeId.replace(/\D/g, '')) || null, lastEntity: loadProfile().lastEntity })
+  if (qa) return { text: qa.text, source: 'local', citations: qa.citations, confident: true }
   const resolved = resolveTurn(text, previous, ctx.locale, ctx.sectionTitle)
   const knowledge =
     // Результат по таймауту пуст — база ещё грузится; ждём тот же (кешированный) поиск ещё раз.
