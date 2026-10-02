@@ -13,6 +13,7 @@ import { answerFromQaBank } from './brain/qa/qaBank'
 import { askTeacherModels } from './brain/human/teacherModelRegistry'
 import { mlIntentStep, mergeIntentStyle, replaceLastUser, type IntentStepResult } from './brain/ml/intentStep'
 import type { ComposeStyle } from './brain/dualMode/localAnswerComposer'
+import { dialogStep, dialogStyleHints } from './brain/dialog/dialogManager'
 
 export type TeacherReplySource = 'faq' | 'local' | 'ollama' | 'api' | 'puter'
 
@@ -113,14 +114,18 @@ function lastTeacherText(messages: { role: string; content: string }[]): string 
 
 type HumanStep =
   | { done: true; result: TeacherRouterResult & { confident: boolean } }
-  | { done: false; messages: { role: string; content: string }[]; prefix: string }
+  | { done: false; messages: { role: string; content: string }[]; prefix: string; rewritten?: boolean }
 
 /**
  * «Человеческий» слой (офлайн): разговор, эмоции, память, расчёты, химия из данных проекта.
  * Полный ответ — сразу; смешанная фраза — префикс + остаток-вопрос для базы знаний.
  */
-function humanStep(messages: { role: string; content: string }[], ctx: LearnLocalAssistantContext): HumanStep {
+async function humanStep(messages: { role: string; content: string }[], ctx: LearnLocalAssistantContext): Promise<HumanStep> {
   const text = lastUserText(messages)
+  // Диалоговый менеджер (викторина, поддержка, домашка, обучение в моменте, тема из стека) — раньше всего.
+  const dialog = await dialogStep(text, { lang: ctx.locale, grade: ctx.gradeId, chapterId: ctx.chapterId, sectionId: ctx.sectionId, sectionTitle: ctx.sectionTitle, messages }).catch(() => null)
+  if (dialog?.text) return { done: true, result: { text: dialog.text, source: 'local', citations: dialog.citations, confident: dialog.confident } }
+  if (dialog?.rewrite) return { done: false, messages: messages.map((m, i) => (i === messages.length - 1 && m.role === 'user' ? { ...m, content: dialog.rewrite! } : m)), prefix: '', rewritten: true }
   let turn: ReturnType<typeof humanTurn>
   try {
     turn = humanTurn(text, { lang: ctx.locale, lastTeacher: lastTeacherText(messages) })
@@ -163,11 +168,15 @@ export async function composeLocalTeacherReply(
 ): Promise<TeacherRouterResult & { confident: boolean }> {
   let ml: IntentStepResult | null = null
   if (!opts.humanHandled) {
-    const step = humanStep(messages, ctx)
+    const step = await humanStep(messages, ctx)
     if (step.done) return step.result
     if (step.prefix) {
       const inner = await composeLocalTeacherReply(step.messages, ctx, { ...opts, knowledge: undefined, humanHandled: true })
       return withPrefix(step.prefix, inner)
+    }
+    if (step.rewritten) {
+      messages = step.messages
+      opts = { ...opts, knowledge: undefined }
     }
     // ML-слой: классификатор намерений (разговор → банк фраз, поправка → переписать вопрос, учебное → стиль).
     ml = await mlIntentStep(lastUserText(messages), ctx.locale, { topic: ctx.sectionTitle })
@@ -210,6 +219,8 @@ export async function composeLocalTeacherReply(
   // Подсказка классификатора намерений (почему / пример / проще / подробнее) поверх регулярок follow-up.
   const style = mergeIntentStyle(resolved.style, ml?.style ?? opts.intentStyle, resolved.followUp.kinds.length > 0)
   const detail = opts.detail ?? style.detail ?? preferredDetail() ?? 'brief'
+  // Слабая тема ученика или недавнее «не понимаю / устал» — объясняем проще и короче.
+  const simpler = style.simpler || dialogStyleHints(resolved.query).simpler
   const composed = composeLocalAnswer({
     query: resolved.query,
     hits: knowledge.hits,
@@ -217,9 +228,10 @@ export async function composeLocalTeacherReply(
     // Чат: коротко и по делу (прямой ответ + до 2 поясняющих фраз, ≈80 слов); длинно — только по «подробнее».
     style: {
       ...style,
+      simpler,
       wantExample: style.wantExample || loadProfile().examples >= 1,
       detail,
-      maxWords: detail === 'more' ? 140 : style.simpler ? 50 : 80,
+      maxWords: detail === 'more' ? 140 : simpler ? 50 : 80,
       channel: 'chat',
       helper: ctx.mode === 'helper',
     },
@@ -256,16 +268,20 @@ export async function routeTeacherReply(
   let ml: IntentStepResult | null = null
   // 0) «Человеческий» слой — офлайн, раньше любых сетей (память и расчёты никуда не уходят).
   if (!opts?.humanHandled) {
-    const step = humanStep(messages, ctx)
+    const step = await humanStep(messages, ctx)
     if (step.done) return step.result
     if (step.prefix) {
       const inner = await routeTeacherReply(step.messages, ctx, {
         ...opts,
         knowledge: undefined,
-        onDelta: opts?.onDelta ? (full) => opts.onDelta?.(`${step.prefix} ${full}`) : undefined,
+        onDelta: opts?.onDelta ? (full) => opts?.onDelta?.(`${step.prefix} ${full}`) : undefined,
         humanHandled: true,
       })
       return withPrefix(step.prefix, inner)
+    }
+    if (step.rewritten) {
+      messages = step.messages
+      opts = { ...opts, knowledge: undefined }
     }
     // 0a) ML-слой: классификатор намерений (разговор → банк фраз; поправка → переписать вопрос; учебное → стиль ниже).
     ml = await mlIntentStep(lastUserText(messages), ctx.locale, { topic: ctx.sectionTitle })
