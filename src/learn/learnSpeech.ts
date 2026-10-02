@@ -255,6 +255,28 @@ export class LearnSpeechController {
     this.recognition.stopListening()
   }
 
+  /** Жёсткая пауза распознавания на время речи учителя (Chrome / без VAD). */
+  pauseOralListening(): void {
+    this.recognition.pauseListening()
+  }
+
+  resumeOralListening(delayMs = 500): void {
+    this.recognition.resumeListening(delayMs)
+  }
+
+  startPushToTalk(
+    locale: LearnSpeechLocale,
+    onUpdate: (interimText: string) => void,
+    onFinal: (text: string) => void,
+    onError?: (code: string) => void,
+  ): boolean {
+    return this.recognition.startPushToTalk(locale, onUpdate, onFinal, onError)
+  }
+
+  stopPushToTalk(): void {
+    this.recognition.stopPushToTalk()
+  }
+
   isListening(): boolean {
     return this.recognition.isListening()
   }

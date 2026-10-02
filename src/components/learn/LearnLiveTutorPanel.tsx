@@ -13,6 +13,7 @@ import { getActiveStudent } from '../../learn/learnClassRosterStorage'
 import { warmupPuterFromUserGesture } from '../../learn/learnPuterTts'
 import { useOralExamMedia } from '../../learn/useOralExamMedia'
 import { isSpeechRecognitionSupported } from '../../learn/learnSpeech'
+import { getVoiceStatus, subscribeVoiceStatus, voiceStatusMessageKey } from '../../learn/brain/speech/voiceStatus'
 import { useDualModeTeacher } from '../../learn/brain'
 import { prewarmLiveTeacher } from '../../learn/brain/dualMode'
 import type { TutorMode } from '../../learn/brain'
@@ -180,6 +181,9 @@ function LiveTutorSession({
   }, [flashUntil])
 
   const micUsable = withVoice && state.micActive && state.sttError !== 'not-allowed'
+  // Статус распознавания (Chrome «не слышит», uz→ru, push-to-talk) — из общего хранилища голоса.
+  const voiceStatus = useSyncExternalStore(subscribeVoiceStatus, getVoiceStatus, getVoiceStatus)
+  const voiceHintKey = withVoice && state.running ? voiceStatusMessageKey(voiceStatus.code) : null
   // Новый ответ важнее вспышки «Перебили»: после перебивания учитель часто уже думает над новым вопросом.
   const avatarState: AvatarState = !state.running
     ? 'connecting'
@@ -327,6 +331,12 @@ function LiveTutorSession({
               <p className={styles.banner} data-tone="info" role="note">
                 <IconMic className={styles.bannerIcon} />
                 <span>{t('learn.teacherUi.micWaiting')}</span>
+              </p>
+            ) : null}
+            {voiceHintKey && !micDenied && !sttBlocked ? (
+              <p className={styles.banner} data-tone="warn" role="status">
+                <IconMic className={styles.bannerIcon} />
+                <span>{t(voiceHintKey as MessageKey)}</span>
               </p>
             ) : null}
             {sttBlocked && !micDenied ? (

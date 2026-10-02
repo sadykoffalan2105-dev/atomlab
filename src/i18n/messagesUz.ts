@@ -1073,5 +1073,13 @@ export const messagesUz: Record<MessageKey, string> = {
   'lab.entry.name.NH3': 'Ammiak',
   'lab.entry.name.HCl': 'Vodorod xlorid',
   'lab.entry.name.NaCl': 'Osh tuzi',
+  'learn.voice.status.noSpeech': 'Nutq eshitilmayapti — balandroq yoki mikrofonga yaqinroq gapiring',
+  'learn.voice.status.network': 'Bu brauzerda nutqni tanish javob bermayapti (Chrome Google serverlarini talab qiladi) — Edge’ni sinab ko‘ring yoki «gapirish» tugmasini bosib turing',
+  'learn.voice.status.notAllowed': 'Eshitmayapman: mikrofon taqiqlangan. Sayt sozlamalarida (manzil chapidagi belgi) ruxsat bering va sahifani yangilang',
+  'learn.voice.status.audioCapture': 'Mikrofon topilmadi — ulanganini va tizimda tanlanganini tekshiring',
+  'learn.voice.status.languageFallback': 'Bu brauzerda o‘zbekcha tanish yo‘q — ruscha eshitaman (Edge’da o‘zbekcha ishlaydi)',
+  'learn.voice.status.pushToTalk': 'Uzluksiz tanish bu yerda ishlamaydi — mikrofon tugmasini bosing, gapiring va qo‘yib yuboring',
+  'learn.voice.status.unresponsive': 'Siz gapiryapsiz, tanish esa 8 s jim — «bos va gapir» rejimiga o‘taman; Edge’da ovoz ishonchliroq',
+  'learn.voice.status.notSupported': 'Bu brauzer nutqni tanimaydi — matn yozing yoki saytni Edge/Chrome’da oching',
   'lab.entry.a11y': 'Laboratoriyaga kirish 3D sahnasi: ikkita vodorod molekulasi va bitta kislorod molekulasidan ikkita suv molekulasi yig‘iladi, atrofida H₂O, CO₂, NH₃ va HCl aylanadi',
 }

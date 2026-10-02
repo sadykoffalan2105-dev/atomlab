@@ -19,6 +19,10 @@ import type { AssistantLang } from '../brainTypes'
 import { AudioActivityDetector } from './audioActivityDetector'
 import { BargeInDetector, TurnEndDetector, realScheduler, type TimingScheduler, type TurnCommit } from './conversationTiming'
 import { looksLikeAnyTeacherEcho, looksLikeTeacherEcho as looksLikeTeacherEchoImpl, sameUtterance } from './echoFilter'
+import { currentBrowserVoiceProfile, type ListenWhileSpeaking } from '../speech/browserProfile'
+import { fixTranscript } from '../speech/chemTranscript'
+import { SpokenPhraseLog } from '../speech/echoGuard'
+import { setVoiceStatus } from '../speech/voiceStatus'
 import type { DialogTurn } from './interruptionController'
 import { LiveSpeechOutput, type LiveTtsPath, type LiveUtterance } from './liveSpeechOutput'
 import { splitIntoSentences } from './sentenceStream'
@@ -51,6 +55,9 @@ export interface RecognitionLike {
     onError?: (code: string, fatal: boolean) => void,
   ): boolean
   stop(): void
+  /** Жёсткая пауза на время речи учителя (Chrome / без VAD). */
+  pause?(): void
+  resume?(delayMs: number): void
 }
 
 export interface VadLike {
@@ -63,6 +70,14 @@ export interface DuplexSessionConfig {
   controller: LearnSpeechController
   /** Перебивание голосом. По умолчанию ВКЛ (раньше было выключено). */
   bargeInEnabled?: boolean
+  /**
+   * Как слушать во время речи учителя: 'hard_pause' — STT останавливается (эхо невозможно,
+   * барджина нет), 'soft_echo_filter' — слушаем и отсекаем эхо. По умолчанию — профиль
+   * браузера (Chrome → hard_pause, Edge → soft); без VAD всегда hard_pause.
+   */
+  listenWhileSpeaking?: ListenWhileSpeaking
+  /** Без результатов STT столько мс при речи по VAD → «распознавание не отвечает». */
+  noResultTimeoutMs?: number
   /** @deprecated больше не нужен: STT не выключается во время речи учителя. */
   postSpeakDelayMs?: number
   onPartial?: (text: string) => void
@@ -110,6 +125,8 @@ const ECHO_TAIL_MS = 1_600
 const INTERIM_SKIP_MS = 3_000
 /** Короче — щелчок, а не речь. */
 const VAD_MIN_SPEECH_MS = 90
+/** После конца речи учителя распознавание (жёсткая пауза) включается снова через столько мс. */
+const RESUME_AFTER_SPEECH_MS = 500
 
 export class DuplexVoiceSession {
   private readonly cfg: DuplexSessionConfig
@@ -137,6 +154,11 @@ export class DuplexVoiceSession {
   private afterBargeIn = false
   private interimSkip: { text: string; at: number } | null = null
   private lastSpeechEndAt: number | null = null
+  /** Что реально ушло в озвучку (prepared-текст) — эхо-страж. */
+  private readonly spokenLog = new SpokenPhraseLog()
+  private listenMode: ListenWhileSpeaking = 'soft_echo_filter'
+  private noResultTimer: unknown = null
+  private noResultFired = false
 
   constructor(config: DuplexSessionConfig) {
     this.cfg = config
@@ -153,10 +175,12 @@ export class DuplexVoiceSession {
     this.recognition = config.recognition ?? {
       start: (locale, session, onUpdate, onError) => config.controller.startOralListening(locale, session, onUpdate, onError),
       stop: () => config.controller.stopOralListening(),
+      pause: () => config.controller.pauseOralListening(),
+      resume: (delayMs) => config.controller.resumeOralListening(delayMs),
     }
     this.bargeIn = new BargeInDetector({
       scheduler: this.s,
-      minSpeechMs: 220,
+      minSpeechMs: 300,
       energyThreshold: 0.04,
       isEcho: (text) => this.isEcho(text),
       onBargeIn: (info) => this.fireBargeIn(info.text, info.speechMs, 'voice'),
@@ -203,8 +227,18 @@ export class DuplexVoiceSession {
     this.vadOk = await this.vad.attach(micStream)
     this.bargeIn.setVadAvailable(this.vadOk)
     this.turnEnd.setVadAvailable(this.vadOk)
+    // Без VAD барджин невозможен (нечем подтвердить голос) → жёсткая пауза STT на время речи учителя.
+    this.listenMode = !this.vadOk
+      ? 'hard_pause'
+      : (this.cfg.listenWhileSpeaking ?? currentBrowserVoiceProfile().listenWhileSpeaking)
+    if (this.listenMode === 'hard_pause') this.bargeIn.setEnabled(false)
     this.startStt()
     return this.vadOk
+  }
+
+  /** Режим прослушивания во время речи учителя (после begin). */
+  getListenMode(): ListenWhileSpeaking {
+    return this.listenMode
   }
 
   end(): void {
@@ -214,6 +248,7 @@ export class DuplexVoiceSession {
     this.output.cancel()
     this.setAiSpeaking(false)
     this.stopStt()
+    this.clearNoResultWatch()
     this.vad?.detach()
     this.vad = null
     this.turnEnd.reset()
@@ -249,7 +284,7 @@ export class DuplexVoiceSession {
 
   setBargeInEnabled(on: boolean): void {
     this.bargeInEnabled = on
-    this.bargeIn.setEnabled(on)
+    this.bargeIn.setEnabled(on && this.listenMode !== 'hard_pause')
   }
 
   private setTurn(turn: DialogTurn): void {
@@ -262,7 +297,15 @@ export class DuplexVoiceSession {
     if (this.aiSpeaking === v) return
     this.aiSpeaking = v
     this.bargeIn.setAiSpeaking(v)
-    if (!v) this.aiEndedAt = this.s.now()
+    if (!v) {
+      this.aiEndedAt = this.s.now()
+      this.spokenLog.closeAll(this.aiEndedAt)
+    }
+    if (this.listenMode === 'hard_pause' && this.listening && !this.muted) {
+      // Chrome / без VAD: пока учитель говорит, микрофон не распознаётся вовсе — петля «слышу себя» невозможна.
+      if (v) this.recognition.pause?.()
+      else this.recognition.resume?.(RESUME_AFTER_SPEECH_MS)
+    }
     this.cfg.onAiSpeakingChange?.(v)
     if (!v) this.replayPendingAfterAi()
   }
@@ -340,7 +383,28 @@ export class DuplexVoiceSession {
   }
 
   private isEcho(text: string): boolean {
-    return looksLikeAnyTeacherEcho(text, this.teacherTexts.slice(-6))
+    return this.spokenLog.matches(text) || looksLikeAnyTeacherEcho(text, this.teacherTexts.slice(-8))
+  }
+
+  /** VAD видит речь, а STT молчит 8 с → подсказка «распознавание не отвечает» (один раз за сессию). */
+  private armNoResultWatch(): void {
+    if (this.noResultTimer || this.noResultFired || !this.listening) return
+    const committedAtArm = this.sttSession.committed.length
+    const interimAtArm = this.lastInterim
+    this.noResultTimer = this.s.setTimeout(() => {
+      this.noResultTimer = null
+      if (!this.active || this.muted || !this.listening) return
+      if (this.sttSession.committed.length !== committedAtArm || this.lastInterim !== interimAtArm) return
+      this.noResultFired = true
+      setVoiceStatus('unresponsive')
+      this.cfg.onSttError?.('unresponsive', false)
+    }, this.cfg.noResultTimeoutMs ?? 8_000)
+  }
+
+  private clearNoResultWatch(): void {
+    if (!this.noResultTimer) return
+    this.s.clearTimeout(this.noResultTimer)
+    this.noResultTimer = null
   }
 
   private freshFinal(full: string): string {
@@ -354,6 +418,7 @@ export class DuplexVoiceSession {
     void fullRaw
     const interim = interimRaw.trim()
     let fresh = this.freshFinal(this.sttSession.committed)
+    if (interim || fresh) this.clearNoResultWatch()
 
     // Финал куска, который мы уже закоммитили из interim при барджине/тишине.
     if (this.interimSkip) {
@@ -402,6 +467,7 @@ export class DuplexVoiceSession {
   private onVadSpeechStart(): void {
     if (!this.active || this.muted) return
     if (this.aiSpeaking) return // барджин решает BargeInDetector по уровню + транскрипту
+    this.armNoResultWatch()
     this.turnEnd.speechStart()
   }
 
@@ -413,7 +479,7 @@ export class DuplexVoiceSession {
   }
 
   private onTurnCommit(commit: TurnCommit): void {
-    const text = commit.text.trim()
+    const text = fixTranscript(commit.text.trim(), this.cfg.lang)
     if (commit.usedInterim) this.interimSkip = { text: this.lastInterim || text, at: this.s.now() }
     this.consumedLen = this.sttSession.committed.length
     this.lastInterim = ''
@@ -493,6 +559,8 @@ export class DuplexVoiceSession {
       onSentence: (sentence) => {
         this.teacherTexts.push(sentence)
         if (this.teacherTexts.length > 24) this.teacherTexts.shift()
+        // Сравниваем эхо с тем, что реально произносится («H₂O» → «аш два о»).
+        this.spokenLog.push(sentence, this.output.prepare(sentence), this.s.now())
       },
       onDone: (outcome) => {
         if (this.currentTurn === turn) this.currentTurn = null
