@@ -58,6 +58,8 @@
     "kb:build": "node scripts/kb/extract-text.mjs && node scripts/kb/ocr-g11.mjs && tsx scripts/kb/build-corpus.mts",
     "kb:index": "tsx scripts/kb/build-index.mts",
     "kb:eval": "tsx scripts/kb/eval.mts",
+    "teacher:qa-bank": "tsx scripts/teacher-ml/build-qa-bank.mts",
+    "test:teacher-qa": "tsx scripts/test-teacher-qa.mts",
     "kb:eval:old": "tsx scripts/kb/eval-old.mts",
     "kb:tune": "tsx scripts/kb/tune.mts",
     "book:reader": "tsx scripts/textbook-inventory/build-book-reader.mts && tsx scripts/textbook-inventory/build-curated-equations.mts",
