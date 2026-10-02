@@ -138,6 +138,7 @@ export function setSemanticVectors(file: KbVectorsFile): void {
   model = { dim, vocab, index, vec, idf: Float32Array.from(file.idf), buckets }
   chunkCache.clear()
   neighborCache.clear()
+  similarCache.clear()
 }
 
 /** Ленивая загрузка kb-vectors.json. Повторные вызовы возвращают тот же промис; ошибка → false, без исключений. */
@@ -292,34 +293,55 @@ function editDistance(a: string, b: string, max: number): number {
   return prev[lb]
 }
 
-/** Похожие основы словаря для неизвестной основы (исправление опечатки); самые частые первыми. */
+const similarCache = new Map<string, { term: string; distance: number }[]>()
+
+/**
+ * Похожие основы словаря для неизвестной основы (исправление опечатки): редакционное расстояние ≤ 1 (короткие)
+ * или ≤ 2, той же письменности; при равном расстоянии — замена букв (та же длина) раньше вставки/пропуска,
+ * затем более частые. Правильная основа-префикс («валентн» для «валентнаст») тоже кандидат.
+ */
 export function similarStems(stem: string, k = 2): { term: string; distance: number }[] {
   if (!model || stem.length < 4) return []
+  const key = `${stem}\u0000${k}`
+  const cached = similarCache.get(key)
+  if (cached) return cached
   const max = stem.length <= 5 ? 1 : 2
-  const out: { term: string; distance: number; rank: number }[] = []
-  const keys = new Set<string>([stem.slice(0, 2)])
-  // опечатка во второй букве / пропуск второй буквы
-  keys.add(stem[0] + stem[2])
-  for (const key of keys) {
-    for (const i of model.buckets.get(key) ?? []) {
-      const cand = model.vocab[i]
-      if (cand === stem || cand.length < 4) continue
+  const cyr = /[а-я]/.test(stem)
+  const out: { term: string; distance: number; lenDiff: number; rank: number }[] = []
+  const m = model
+  for (let i = 0; i < m.vocab.length; i += 1) {
+    const cand = m.vocab[i]
+    if (cand === stem || cand.length < 4 || /[а-я]/.test(cand) !== cyr) continue
+    const lenDiff = Math.abs(cand.length - stem.length)
+    if (lenDiff <= max) {
       const d = editDistance(stem, cand, max)
-      if (d <= max) out.push({ term: cand, distance: d, rank: i })
+      if (d <= max) {
+        out.push({ term: cand, distance: d, lenDiff, rank: i })
+        continue
+      }
+    }
+    // основа словаря — префикс опечатки (стеммер не снял искажённое окончание)
+    if (cand.length >= 5 && stem.length - cand.length <= 4 && stem.startsWith(cand)) {
+      out.push({ term: cand, distance: 2, lenDiff: stem.length - cand.length, rank: i })
     }
   }
-  out.sort((a, b) => a.distance - b.distance || a.rank - b.rank)
-  return out.slice(0, k).map(({ term, distance }) => ({ term, distance }))
+  out.sort((a, b) => a.distance - b.distance || a.lenDiff - b.lenDiff || a.rank - b.rank)
+  const res = out.slice(0, k).map(({ term, distance }) => ({ term, distance }))
+  if (similarCache.size >= NEIGHBOR_CACHE_MAX) similarCache.clear()
+  similarCache.set(key, res)
+  return res
 }
 
 // ---------------------------------------------------------------- расширение запроса
 
 export type Expansion = { term: string; weight: number; source: string; why: 'typo' | 'neighbor' | 'variant' }
 
-function sharesRoot(a: string, b: string): boolean {
+/** Морфологические варианты одной основы: общий префикс 4 буквы или одна основа — начало другой (ат → атом, cos ≥ 0,75). */
+function sharesRoot(a: string, b: string, cos: number): boolean {
   const n = Math.min(a.length, b.length)
-  if (n < 4) return false
-  return a.slice(0, 4) === b.slice(0, 4) || a.startsWith(b) || b.startsWith(a)
+  if (n >= 4 && a.slice(0, 4) === b.slice(0, 4)) return true
+  if (n >= 2 && (a.startsWith(b) || b.startsWith(a))) return n >= 4 || cos >= 0.75
+  return false
 }
 
 /**
@@ -341,7 +363,7 @@ export function expandQuery(stems: readonly string[], df?: (term: string) => num
     out.push(e)
   }
   for (const stem of stems) {
-    if (!/^[a-zа-я]/.test(stem) || stem.length < 3) continue // формулы и символы не расширяем
+    if (!/^[a-zа-я]/.test(stem) || stem.length < 2) continue // формулы и символы не расширяем
     const inVocab = model.index.has(stem)
     const freq = df ? df(stem) : inVocab ? T.rareDf : 0
     let added = 0
@@ -372,7 +394,7 @@ export function expandQuery(stems: readonly string[], df?: (term: string) => num
       for (const nb of nearestTerms(stem, 6)) {
         if (added >= 2) break
         if (nb.cos < T.variantCos) break
-        if (!sharesRoot(stem, nb.term)) continue
+        if (!sharesRoot(stem, nb.term, nb.cos)) continue
         const before = out.length
         push({ term: nb.term, weight: T.weight, source: stem, why: 'variant' })
         if (out.length > before) added += 1
