@@ -549,8 +549,9 @@ function done(text: string, citations: string[], intent: QaIntent, ent: Ent | nu
       /* нет localStorage — не страшно */
     }
   }
-  const body = citations.length ? `${text}\n\n${citations.join(' ')}` : text
-  return { text: body, citations, intent, entity, numbers }
+  const uniq = [...new Set(citations)]
+  const body = uniq.length ? `${text}\n\n${uniq.join(' ')}` : text
+  return { text: body, citations: uniq, intent, entity, numbers }
 }
 
 function breakdown(s: QaSubstance, idx: Index, lang: QaLang): string {

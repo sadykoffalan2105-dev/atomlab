@@ -87,6 +87,10 @@ export function mergeIntentStyle(base: ComposeStyle, hint: Partial<ComposeStyle>
 /** Похоже на химию — offtopic/gibberish от классификатора не применяем (пусть ответит база знаний). */
 const CHEM_GUARD = /(оксид|кислот|основани|соль|соли|солей|реакц|моль|молярн|атом|молекул|хими|элемент|валент|формул|уравнен|раствор|газ|металл|ион|электрон|oxide|acid|base|salt|reaction|mole|molar|atom|molecule|chem|element|valence|formula|equation|solution|metal|ion|electron|oksid|kislota|asos|tuz|reaksiya|mol|molyar|atom|molekula|kimyo|element|valent|formula|tenglama|eritma|metall|ion|elektron)/iu
 
+/** Вопрос «за пределами школы» (учёные, история, промышленность, быт) — не считаем офтопом. */
+const BEYOND_SCHOOL =
+  /(кто\s+так|кто\s+откр|кто\s+созда|кто\s+изобр|кто\s+получил|расскаж|биограф|учен|учён|химик|истори|нобелев|промышлен|в быту|в жизни|зачем нуж|где использ|где примен|применени|who\s+(is|was|discover|invent)|tell me about|history|scientist|chemist|nobel|industr|kim\s*\?|kim\s+edi|kashf|haqida|olim|tarix)/iu
+
 /* ------------------------------------------------------------ шаг */
 
 /**
@@ -136,6 +140,8 @@ export async function mlIntentStep(text: string, lang: ReplyLang, opts: { topic?
 
   if (TALK_INTENTS.has(intent)) {
     if ((intent === 'offtopic' || intent === 'gibberish') && (hasFormula(clean) || CHEM_GUARD.test(clean))) return null
+    // «кто такой / кто открыл / расскажи о / история …» — вопрос об учёном или о химии вокруг нас: отвечают учёные/энциклопедия, не офтоп
+    if (intent === 'offtopic' && BEYOND_SCHOOL.test(clean)) return null
     if (intent === 'feedback_neg') {
       if (session.lastText) session.awaitingRephrase = true
     } else if (intent !== 'feedback_pos') {
