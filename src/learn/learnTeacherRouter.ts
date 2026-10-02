@@ -7,7 +7,8 @@ import { buildTeacherChatPayload, isSmartAiConnected, requestPuterChat } from '.
 import { citationForDisplay, retrieveForTeacher, type TeacherKnowledgeResult } from './teacherKnowledge'
 import { detectNonQuestion, isSubstantiveQuestion, replyForNonQuestion, resolveTurn } from './brain/dualMode/followUps'
 import { composeLocalAnswer } from './brain/dualMode/localAnswerComposer'
-import { humanTurn, humanizeBookAnswer } from './brain/human/humanTeacher'
+import { humanTurn } from './brain/human/humanTeacher'
+import { detectMood, speakLikeHuman } from './brain/human/personaVoice'
 import { loadProfile, preferredDetail } from './brain/human/studentProfile'
 import { askTeacherModels } from './brain/human/teacherModelRegistry'
 
@@ -223,7 +224,15 @@ export async function composeLocalTeacherReply(
       ),
     ),
   ].slice(0, 3)
-  const answer = composed.confident ? humanizeBookAnswer(composed.text, ctx.locale, messages.length) : composed.text
+  // Живая речь поверх ответа (факты и подписи не меняются): «не знаю» — честно, с 2 близкими темами.
+  const answer = speakLikeHuman(composed.text, {
+    lang: ctx.locale,
+    kind: composed.confident ? 'book' : 'noAnswer',
+    seed: messages.length,
+    query: resolved.query,
+    mood: detectMood(text),
+    nearTopics: [...new Set([...knowledge.hits.map((h) => h.title), ctx.sectionTitle ?? ''])].filter(Boolean),
+  })
   const body = composed.confident && citations.length ? `${answer}\n\n${citations.join(' ')}` : answer
   return { text: body, source: 'local', citations, confident: composed.confident }
 }
@@ -302,7 +311,8 @@ export async function routeTeacherReply(
 
   // 4) Готовая карточка FAQ для короткого фактического вопроса.
   const faq = isShortFactualFaqQuery(q) ? matchFaqEntry(q.toLowerCase()) : null
-  if (faq) return { text: pickFaqText(faq, ctx.locale), source: 'faq', citations: [] }
+  // Карточка FAQ — тоже живым голосом (ветка local уже озвучена внутри composeLocalTeacherReply).
+  if (faq) return { text: speakLikeHuman(pickFaqText(faq, ctx.locale), { lang: ctx.locale, kind: 'fact', seed: messages.length, query: q, mood: detectMood(q) }), source: 'faq', citations: [] }
 
   return local
 }

@@ -40,6 +40,7 @@ import {
   type ChemProperty,
 } from './chemFacts'
 import { loadProfile, saveProfile, forgetEverything, type NoteStatus, type StudentProfile, type TalkEntity } from './studentProfile'
+import { scientistTalk } from './scientistTalk'
 
 export type HumanIntent =
   | TalkIntent
@@ -53,6 +54,7 @@ export type HumanIntent =
   | 'mem_correction'
   | 'mem_recall'
   | 'mem_forget'
+  | 'scientist'
 
 export type HumanTurn =
   | { kind: 'reply'; text: string; intent: HumanIntent; intents: HumanIntent[]; numbers?: Record<string, number>; noteStatus?: NoteStatus }
@@ -548,6 +550,11 @@ export function humanTurn(raw: string, opts: HumanTurnOptions): HumanTurn | null
     )
     return wrap(`${shown}.${tail}`, 'arith', { result: value })
   }
+
+  // 3b) Учёный («кто такой Бутлеров», «о Менделееве», «who was Dalton») — до chemTurn,
+  //     иначе «кто такой Бор» ответит про элемент бор. Текст — только из записи, подпись «[ATOMLAB — учёные]».
+  const sci = scientistTalk(bodyRaw, lang, profile.turns)
+  if (sci) return wrap(sci.text, 'scientist')
 
   // 4) Химия из данных проекта (элементы, формулы, «а у него?»).
   const chem = chemTurn(bodyRaw, lang, profile)
