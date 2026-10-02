@@ -653,6 +653,20 @@ export async function dialogStep(raw: string, input: DialogInput): Promise<Dialo
   return null
 }
 
+/**
+ * Подсказки стиля для ответа из базы: слабая тема ученика («мне сложно с ОВР») или недавнее
+ * «не понимаю / устал / я тупой» (20 минут) → объяснять проще и короче.
+ */
+export function dialogStyleHints(query: string): { simpler: boolean; reason: 'weak-topic' | 'mood' | null } {
+  const p = loadProfile()
+  const qs = contentStems(query)
+  const weak = p.weakTopics.some((t) => contentStems(t).some((k) => qs.some((s) => stemsMatch(s, k))))
+  if (weak) return { simpler: true, reason: 'weak-topic' }
+  const soft: StudentMood[] = ['confused', 'tired', 'down', 'scared']
+  if (p.mood && soft.includes(p.mood) && Date.now() - p.moodAt < 20 * 60_000) return { simpler: true, reason: 'mood' }
+  return { simpler: false, reason: null }
+}
+
 /** Для интерфейса/тестов: режим и счёт текущей беседы. */
 export function dialogSnapshot(): { mode: DialogState['mode']; topics: string[]; score: DialogResult['score'] | null; pending: DialogState['pending'] } {
   const d = loadDialog()

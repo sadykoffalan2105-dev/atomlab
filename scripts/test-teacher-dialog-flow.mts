@@ -9,6 +9,7 @@
  *   npm run test:teacher-dialog-flow
  */
 import { dialogStep, dialogSnapshot, setDialogRandom, type DialogInput, type DialogResult } from '../src/learn/brain/dialog/index.ts'
+import { dialogStyleHints } from '../src/learn/brain/dialog/dialogManager.ts'
 import { resetDialog, setDialogBackend } from '../src/learn/brain/dialog/dialogState.ts'
 import { loadProfile, setMemoryProfileBackend, forgetEverything } from '../src/learn/brain/human/studentProfile.ts'
 import { loadOralPool, type GradeOralItem } from '../src/learn/brain/dualMode/gradeOralPools.ts'
@@ -237,11 +238,19 @@ r = await step('plain-2', 'почему вода кипит при 100 град�
 r = await step('plain-3', 'what is a mole?', en9, { intent: null })
 r = await step('plain-4', 'реши задачу: найти массу 2 моль H2O', ru8, { intent: null })
 
+/* ============================== подсказки стиля из профиля ============================== */
+steps++
+if (!dialogStyleHints('что такое ОВР?').simpler || dialogStyleHints('что такое ОВР?').reason !== 'weak-topic') failures.push('style-hints: слабая тема ОВР не делает ответ проще')
+steps++
+if (dialogStyleHints('что такое валентность?').reason === 'weak-topic') failures.push('style-hints: валентность ошибочно сочтена слабой темой')
+
 /* ============================== состояние переживает перезагрузку модуля-кеша ============================== */
 resetDialog()
 forgetEverything()
 r = await step('fresh-quiz', 'давай потренируемся', ru8, { intent: 'quiz_start' })
 r = await step('fresh-stop', 'стоп', ru8, { intent: 'quiz_summary' })
+steps++
+if (dialogStyleHints('что такое ОВР?').simpler) failures.push('style-hints: после «забыть всё» подсказка стиля должна исчезнуть')
 
 /* ============================== итог ============================== */
 const distinct = new Set(teacherLines).size

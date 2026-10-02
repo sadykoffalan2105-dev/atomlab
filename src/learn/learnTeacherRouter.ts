@@ -10,7 +10,7 @@ import { composeLocalAnswer } from './brain/dualMode/localAnswerComposer'
 import { humanTurn, humanizeBookAnswer } from './brain/human/humanTeacher'
 import { loadProfile, preferredDetail } from './brain/human/studentProfile'
 import { askTeacherModels } from './brain/human/teacherModelRegistry'
-import { dialogStep } from './brain/dialog/dialogManager'
+import { dialogStep, dialogStyleHints } from './brain/dialog/dialogManager'
 
 export type TeacherReplySource = 'faq' | 'local' | 'ollama' | 'api' | 'puter'
 
@@ -206,6 +206,8 @@ export async function composeLocalTeacherReply(
         })
   // Отзывы 👍/👎 ученика: любит подробнее/короче, больше примеров.
   const detail = opts.detail ?? resolved.style.detail ?? preferredDetail() ?? 'brief'
+  // Слабая тема ученика или недавнее «не понимаю / устал» — объясняем проще и короче.
+  const simpler = resolved.style.simpler || dialogStyleHints(resolved.query).simpler
   const composed = composeLocalAnswer({
     query: resolved.query,
     hits: knowledge.hits,
@@ -213,9 +215,10 @@ export async function composeLocalTeacherReply(
     // Чат: коротко и по делу (прямой ответ + до 2 поясняющих фраз, ≈80 слов); длинно — только по «подробнее».
     style: {
       ...resolved.style,
+      simpler,
       wantExample: resolved.style.wantExample || loadProfile().examples >= 1,
       detail,
-      maxWords: detail === 'more' ? 140 : resolved.style.simpler ? 50 : 80,
+      maxWords: detail === 'more' ? 140 : simpler ? 50 : 80,
       channel: 'chat',
       helper: ctx.mode === 'helper',
     },
