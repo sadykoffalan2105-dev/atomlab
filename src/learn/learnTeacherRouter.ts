@@ -10,6 +10,8 @@ import { composeLocalAnswer } from './brain/dualMode/localAnswerComposer'
 import { humanTurn, humanizeBookAnswer } from './brain/human/humanTeacher'
 import { loadProfile, preferredDetail } from './brain/human/studentProfile'
 import { askTeacherModels } from './brain/human/teacherModelRegistry'
+import { mlIntentStep, mergeIntentStyle, replaceLastUser, type IntentStepResult } from './brain/ml/intentStep'
+import type { ComposeStyle } from './brain/dualMode/localAnswerComposer'
 
 export type TeacherReplySource = 'faq' | 'local' | 'ollama' | 'api' | 'puter'
 
@@ -156,8 +158,9 @@ function isShortFactualFaqQuery(query: string): boolean {
 export async function composeLocalTeacherReply(
   messages: { role: string; content: string }[],
   ctx: LearnLocalAssistantContext,
-  opts: { signal?: AbortSignal; knowledge?: TeacherKnowledgeResult; detail?: 'brief' | 'more'; humanHandled?: boolean } = {},
+  opts: { signal?: AbortSignal; knowledge?: TeacherKnowledgeResult; detail?: 'brief' | 'more'; humanHandled?: boolean; intentStyle?: Partial<ComposeStyle> } = {},
 ): Promise<TeacherRouterResult & { confident: boolean }> {
+  let ml: IntentStepResult | null = null
   if (!opts.humanHandled) {
     const step = humanStep(messages, ctx)
     if (step.done) return step.result
@@ -165,6 +168,10 @@ export async function composeLocalTeacherReply(
       const inner = await composeLocalTeacherReply(step.messages, ctx, { ...opts, knowledge: undefined, humanHandled: true })
       return withPrefix(step.prefix, inner)
     }
+    // ML-слой: классификатор намерений (разговор → банк фраз, поправка → переписать вопрос, учебное → стиль).
+    ml = await mlIntentStep(lastUserText(messages), ctx.locale, { topic: ctx.sectionTitle })
+    if (ml?.reply) return { text: ml.reply, source: 'local', citations: [], confident: true }
+    if (ml?.rewrite) messages = replaceLastUser(messages, ml.rewrite)
   }
   const text = lastUserText(messages)
   const previous = messages
@@ -196,17 +203,19 @@ export async function composeLocalTeacherReply(
           signal: opts.signal,
         })
   // Отзывы 👍/👎 ученика: любит подробнее/короче, больше примеров.
-  const detail = opts.detail ?? resolved.style.detail ?? preferredDetail() ?? 'brief'
+  // Подсказка классификатора намерений (почему / пример / проще / подробнее) поверх регулярок follow-up.
+  const style = mergeIntentStyle(resolved.style, ml?.style ?? opts.intentStyle, resolved.followUp.kinds.length > 0)
+  const detail = opts.detail ?? style.detail ?? preferredDetail() ?? 'brief'
   const composed = composeLocalAnswer({
     query: resolved.query,
     hits: knowledge.hits,
     lang: ctx.locale,
     // Чат: коротко и по делу (прямой ответ + до 2 поясняющих фраз, ≈80 слов); длинно — только по «подробнее».
     style: {
-      ...resolved.style,
-      wantExample: resolved.style.wantExample || loadProfile().examples >= 1,
+      ...style,
+      wantExample: style.wantExample || loadProfile().examples >= 1,
       detail,
-      maxWords: detail === 'more' ? 140 : resolved.style.simpler ? 50 : 80,
+      maxWords: detail === 'more' ? 140 : style.simpler ? 50 : 80,
       channel: 'chat',
       helper: ctx.mode === 'helper',
     },
@@ -240,6 +249,7 @@ export async function routeTeacherReply(
   opts?: TeacherRouterOptions,
 ): Promise<TeacherRouterResult> {
   const signal = opts?.signal
+  let ml: IntentStepResult | null = null
   // 0) «Человеческий» слой — офлайн, раньше любых сетей (память и расчёты никуда не уходят).
   if (!opts?.humanHandled) {
     const step = humanStep(messages, ctx)
@@ -253,6 +263,10 @@ export async function routeTeacherReply(
       })
       return withPrefix(step.prefix, inner)
     }
+    // 0a) ML-слой: классификатор намерений (разговор → банк фраз; поправка → переписать вопрос; учебное → стиль ниже).
+    ml = await mlIntentStep(lastUserText(messages), ctx.locale, { topic: ctx.sectionTitle })
+    if (ml?.reply) return { text: ml.reply, source: 'local', citations: [] }
+    if (ml?.rewrite) messages = replaceLastUser(messages, ml.rewrite)
   }
   const q = lastUserText(messages)
   const knowledge =
@@ -297,7 +311,7 @@ export async function routeTeacherReply(
   }
 
   // 3) Локальный ответ из базы знаний.
-  const local = await composeLocalTeacherReply(messages, ctx, { signal, knowledge, humanHandled: true })
+  const local = await composeLocalTeacherReply(messages, ctx, { signal, knowledge, humanHandled: true, intentStyle: ml?.style })
   if (local.confident) return local
 
   // 4) Готовая карточка FAQ для короткого фактического вопроса.

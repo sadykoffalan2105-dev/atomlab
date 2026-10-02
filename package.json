@@ -107,7 +107,10 @@
     "test:formation-plan": "tsx scripts/test-formation-plan.mts",
     "test:reactions200": "tsx scripts/test-reactions200.mts",
     "plan:reactions200": "tsx scripts/plan/select-reactions200.mts",
-    "test:reaction-story": "tsx scripts/test-reaction-story.mts"
+    "test:reaction-story": "tsx scripts/test-reaction-story.mts",
+    "teacher:intent-data": "tsx scripts/teacher-ml/intent-dataset.mts",
+    "teacher:intent-train": "tsx scripts/teacher-ml/train-intent.mts",
+    "test:teacher-intent": "tsx scripts/test-teacher-intent.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
