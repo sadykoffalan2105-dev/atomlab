@@ -11,6 +11,7 @@
  *   const block = formatKnowledgeForPrompt(hits, 8000)
  */
 import { KbEngine } from './engine'
+import { attachSemantic } from './semantic'
 import type { KbLexiconFile, KbShardFile, ShardName } from './shardFormat'
 import type { KbChunkType, KbHit, KbSearchOptions } from './types'
 
@@ -96,6 +97,7 @@ function scheduleBackground(grade: number | undefined) {
  * Safe to call repeatedly.
  */
 export async function preloadKnowledge(opts: { grade?: number } = {}): Promise<void> {
+  void attachSemantic(engine) // ML-векторы (semantic.ts): грузятся лениво, не блокируют первый поиск
   const own = shardForGrade(opts.grade)
   if (own) {
     await Promise.all([load('lexicon'), load('common'), load(own)])

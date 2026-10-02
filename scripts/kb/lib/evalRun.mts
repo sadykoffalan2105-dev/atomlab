@@ -3,6 +3,7 @@ import path from 'node:path'
 import { KbEngine, type KbTuning } from '../../../src/learn/kb/engine.ts'
 import { SHARD_NAMES, type KbLexiconFile, type KbShardFile } from '../../../src/learn/kb/shardFormat.ts'
 import { analyzeTerms } from '../../../src/learn/kb/analyzer.ts'
+import { semanticHooks, setSemanticTuning, setSemanticVectors, type KbVectorsFile } from '../../../src/learn/kb/semantic.ts'
 import { answerTerms, bearsAnswer, sectionKey, type EvalItem } from './evalSet.mts'
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
@@ -19,6 +20,15 @@ export function loadEngine(tuning: Partial<KbTuning> = {}): { engine: KbEngine; 
     t = performance.now()
     engine.addShard(JSON.parse(raw) as KbShardFile)
     loadMs[name] = performance.now() - t
+  }
+  // ML-векторы (semantic.ts) — как в рантайме; KB_NO_SEMANTIC=1 выключает для сравнения «до/после»
+  const vectorsFile = path.join(INDEX_DIR, 'kb-vectors.json')
+  if (!process.env.KB_NO_SEMANTIC && fs.existsSync(vectorsFile)) {
+    t = performance.now()
+    setSemanticVectors(JSON.parse(fs.readFileSync(vectorsFile, 'utf8')) as KbVectorsFile)
+    if (process.env.KB_SEMANTIC_TUNING) setSemanticTuning(JSON.parse(process.env.KB_SEMANTIC_TUNING) as Record<string, number>)
+    engine.semantic = semanticHooks
+    loadMs.vectors = performance.now() - t
   }
   return { engine, loadMs }
 }
