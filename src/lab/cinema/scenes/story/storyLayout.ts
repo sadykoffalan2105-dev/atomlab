@@ -374,6 +374,14 @@ function clusterOf(side: StorySide, units: readonly StoryUnit[], r: (i: number) 
   const kind = units[0]!.kind
   const sideBonds: [number, number][] = side.bonds.map((b) => [b.a, b.b])
   const el = (i: number) => side.atoms[i]!.el
+  // несколько формульных единиц с многоатомными ионами (4Fe(OH)₃, 2Na₂CO₃) или с большим числом ионов — каждая
+  // единица своим фрагментом, единицы сеткой: общий фрагмент из 16 ионов сминался, шары налезали друг на друга
+  if (kind === 'ionic' && units.length > 1) {
+    const ions = units.reduce((c, u) => c + u.groups.length, 0)
+    if (ions > 6 || units.some((u) => u.groups.some((g) => side.groups[g]!.atoms.length > 1))) {
+      return gridOf(units.map((u) => clusterOf(side, [u], r)), r)
+    }
+  }
   if (kind === 'ionic' || kind === 'metal') {
     // ионы (или атомы металла) всех копий — одним фрагментом решётки, ионы касаются
     type Item = { atoms: number[]; local: Map<number, V>; R: number; cation: boolean }
@@ -389,6 +397,31 @@ function clusterOf(side: StorySide, units: readonly StoryUnit[], r: (i: number) 
     }
     const cats = items.filter((x) => x.cation)
     const ans = items.filter((x) => !x.cation)
+    // один центральный ион и 3–6 противоионов (Fe(OH)₃, AlCl₃, Na₃PO₄) — противоионы вокруг центра, а не сеткой
+    const lone = cats.length === 1 ? cats : ans.length === 1 ? ans : []
+    const ring = lone === cats ? ans : cats
+    if (kind === 'ionic' && lone.length === 1 && ring.length >= 3 && ring.length <= 6) {
+      const c0 = lone[0]!
+      for (const [i, v] of c0.local) out.set(i, [v[0], v[1], v[2]])
+      ring.forEach((it, k) => {
+        const ang = Math.PI / 2 + (ring.length % 2 ? 0 : Math.PI / ring.length) + (2 * Math.PI * k) / ring.length
+        const d = c0.R + it.R + 0.02
+        for (const [i, v] of it.local) out.set(i, [Math.cos(ang) * d + v[0], Math.sin(ang) * d + v[1], v[2]])
+      })
+      compactIons(items.map((x) => x.atoms), out, r, el)
+      // маленький центральный ион (Fe³⁺ среди O, Al³⁺ среди Cl⁻) — чуть впереди: крупные соседи его не закрывают
+      let rr = 0
+      for (const it of ring) for (const i of it.atoms) rr = Math.max(rr, r(i))
+      let rc = 0
+      for (const i of c0.atoms) rc = Math.max(rc, r(i))
+      const lift = Math.max(0, rr - rc) * 0.9
+      for (const i of c0.atoms) {
+        const p = out.get(i)!
+        out.set(i, [p[0], p[1], p[2] + lift])
+      }
+      centerMap(out, r)
+      return out
+    }
     const total = items.length
     const cols = total <= 3 ? total : Math.ceil(Math.sqrt(total))
     const rows = Math.ceil(total / cols)
@@ -422,11 +455,19 @@ function clusterOf(side: StorySide, units: readonly StoryUnit[], r: (i: number) 
     return out
   }
   // молекулы / атомы: копии сеткой
-  const locals = units.map((u) => embed(u.atoms, sideBonds.filter(([a, b]) => u.atoms.includes(a) && u.atoms.includes(b)), el, r, u.charge !== 0))
+  return gridOf(
+    units.map((u) => embed(u.atoms, sideBonds.filter(([a, b]) => u.atoms.includes(a) && u.atoms.includes(b)), el, r, u.charge !== 0)),
+    r,
+  )
+}
+
+/** Копии (молекулы или формульные единицы) — сеткой, с лёгким шахматным сдвигом по глубине. */
+function gridOf(locals: readonly Map<number, V>[], r: (i: number) => number): Map<number, V> {
+  const out = new Map<number, V>()
   const boxes = locals.map((m) => boxOf(m, r))
   const cw = Math.max(...boxes.map((b) => b.maxX - b.minX)) + 0.32
   const ch = Math.max(...boxes.map((b) => b.maxY - b.minY)) + 0.32
-  const k = units.length
+  const k = locals.length
   const cols = k <= 2 ? k : k <= 4 ? 2 : Math.ceil(Math.sqrt(k * 1.4))
   const rows = Math.ceil(k / cols)
   locals.forEach((m, idx) => {

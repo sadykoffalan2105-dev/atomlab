@@ -90,6 +90,8 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
   private readonly keptGlows: { sprite: THREE.Sprite; mat: THREE.SpriteMaterial; atoms: readonly number[] }[] = []
   private readonly roleOf: Int8Array
   private readonly baseColors: THREE.Color[] = []
+  /** сила притушения зрителя: у тёмных шаров (Cu, Fe, Mn) меньше — символ остаётся читаемым */
+  private readonly specDim: Float32Array
   private readonly _c = new THREE.Color()
   private readonly _tail = new THREE.Color()
 
@@ -143,6 +145,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     this.pos = new Float32Array(n * 3)
     this.rad = new Float32Array(n)
     this.bright = new Float32Array(n).fill(-1)
+    this.specDim = new Float32Array(n)
     const sphere = naclSphereGeometry(opts.lowPower)
 
     // ——— атомы ———
@@ -154,6 +157,8 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const c = schoolAtomColor(lay.el[i]!, new THREE.Color())
       this.baseColors.push(c)
       this.atoms.setColorAt(i, c)
+      const lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
+      this.specDim[i] = SPECTATOR_DIM * Math.min(1, Math.max(0.25, (lum - 0.08) / 0.4))
     }
     // роль (свечение, полная яркость на шаге переноса) — у доноров и акцепторов лицевых копий
     this.roleOf = new Int8Array(n)
@@ -513,7 +518,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const bl = STORY_LAYER_BRIGHT[lay.layerL[i]!]!
       const br = STORY_LAYER_BRIGHT[lay.layerR[i]!]!
       const layerB = bl === br ? bl : bl + (br - bl) * smooth(lay.moveFrom[i]!, lay.moveFrom[i]! + lay.moveDur, t)
-      const b = layerB * (this.roleOf[i] ? 1 : 1 - SPECTATOR_DIM * dimU)
+      const b = layerB * (this.roleOf[i] ? 1 : 1 - this.specDim[i]! * dimU)
       if (Math.abs(b - this.bright[i]!) > 0.004 || (b === 1 && this.bright[i] !== 1)) {
         this.bright[i] = b
         this.atoms.setColorAt(i, this._c.copy(this.baseColors[i]!).multiplyScalar(b))
@@ -718,13 +723,31 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const fr = lay.layerR[i] ? 0 : 1
       const mf = lay.moveFrom[i]!
       const fm = fl === fr ? fl : fl ? 1 - smooth(mf, mf + 0.35 * lay.moveDur, t) : smooth(mf + 0.65 * lay.moveDur, mf + lay.moveDur, t)
-      L.opacity = fade * fm * (this.roleOf[i] ? 1 : 1 - 0.45 * dimU)
+      L.opacity = fade * fm * (this.roleOf[i] ? 1 : 1 - Math.min(0.45, this.specDim[i]!) * dimU)
     }
     // чип степени окисления: над шаром на шаге переноса; в момент отлёта/прилёта — «щелчок» и новое значение
     for (const { atom, label } of this.oxLabelIdx) {
       const L = this.labels[label]!
       const r = R[atom]!
-      L.pos.set(P[atom * 3]!, P[atom * 3 + 1]! + r + 0.2, P[atom * 3 + 2]! + r)
+      // над шаром, но в сторону от соседей (у N в NO₂ чип не ложится на кислород)
+      const px = P[atom * 3]!
+      const py = P[atom * 3 + 1]!
+      let ax = 0
+      let ay = 0.35
+      for (let j = 0; j < n; j++) {
+        if (j === atom) continue
+        const dx = P[j * 3]! - px
+        const dy = P[j * 3 + 1]! - py
+        const d = Math.hypot(dx, dy)
+        const lim = r + R[j]! + 0.6
+        if (d > 1e-4 && d < lim) {
+          const w = (lim - d) / lim
+          ax -= (dx / d) * w
+          ay -= (dy / d) * w
+        }
+      }
+      const al = Math.hypot(ax, ay) || 1
+      L.pos.set(px + (ax / al) * (r + 0.2), py + (ay / al) * (r + 0.2), P[atom * 3 + 2]! + r)
       const tf = lay.flipAt[atom]!
       L.text = t >= tf ? oxPlain(lay.oxR[atom]!) : oxPlain(lay.oxL[atom]!)
       const x = Number.isFinite(tf) ? (t - tf) / 0.16 : 99
