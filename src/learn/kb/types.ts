@@ -4,7 +4,11 @@
  * 'index' (r10): generated textbook index facts (formula and name of a substance, a reaction with its products, the
  * reactions and substances of a §, where a substance is in the book) — shard 'book'; searched only with types: ['index'].
  */
-export type KbChunkType = 'textbook' | 'definition' | 'summary' | 'card' | 'quiz' | 'faq' | 'misconception' | 'index'
+/**
+ * 'encyclopedia' (wf15): Wikipedia intros (CC BY-SA 4.0) — scientists, history, industry, everyday chemistry; shards 'wiki-a'/'wiki-b';
+ * searched only with types: ['encyclopedia'] (src/learn/kb/encyclopedia.ts decides when).
+ */
+export type KbChunkType = 'textbook' | 'definition' | 'summary' | 'card' | 'quiz' | 'faq' | 'misconception' | 'index' | 'encyclopedia'
 export type KbLang = 'ru' | 'en' | 'uz'
 
 export type KbChunk = {

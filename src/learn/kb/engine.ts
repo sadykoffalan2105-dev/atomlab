@@ -16,6 +16,9 @@ import { stemRussian } from './stemRu'
 import { SHARD_FORMAT_VERSION, type KbLexiconFile, type KbShardFile, type ShardDoc } from './shardFormat'
 import type { KbChunk, KbChunkType, KbHit, KbLang, KbSearchOptions } from './types'
 
+/** Types searched only when asked for with `types`: book index (r10) and the Wikipedia encyclopedia (wf15). */
+const onRequestOnly = (type: KbChunkType) => type === 'index' || type === 'encyclopedia'
+
 export type KbTuning = {
   k1: number
   /** field boosts: title, keywords, text */
@@ -69,7 +72,7 @@ export const DEFAULT_TUNING: KbTuning = {
   chapterBoost: 1.25,
   sectionBoost: 1.6,
   kpBoost: 2.2,
-  typePrior: { textbook: 1, definition: 1, summary: 0.92, card: 0.9, quiz: 0.7, faq: 0.9, misconception: 0.85, index: 1 },
+  typePrior: { textbook: 1, definition: 1, summary: 0.92, card: 0.9, quiz: 0.7, faq: 0.9, misconception: 0.85, index: 1, encyclopedia: 1 },
   definitionIntent: 1.35,
   cardIntent: 1.45,
   misconceptionIntent: 1.3,
@@ -405,7 +408,7 @@ export class KbEngine {
     const rows: ShardDoc[] = []
     for (const sh of this.shards.values()) {
       for (const row of sh.docs) {
-        if (row[1] !== grade || row[4] !== kp || (typeFilter ? !typeFilter.has(row[8]) : row[8] === 'index')) continue
+        if (row[1] !== grade || row[4] !== kp || (typeFilter ? !typeFilter.has(row[8]) : onRequestOnly(row[8]))) continue
         rows.push(row)
       }
     }
@@ -481,7 +484,7 @@ export class KbEngine {
       }
       for (const d of touched) {
         const row = shard.docs[d]
-        if (typeFilter ? !typeFilter.has(row[8]) : row[8] === 'index') continue // r10: book index only on request
+        if (typeFilter ? !typeFilter.has(row[8]) : onRequestOnly(row[8])) continue // r10: book index only on request
         cands.push({ shard, doc: d, score: acc[d], concepts: conceptSets[d] ?? new Set() })
       }
     }
@@ -584,7 +587,7 @@ export class KbEngine {
         if (opts.grade != null && row[1] !== opts.grade) continue
         const k = row[4]
         const same = k === String(kp) || (k.endsWith(`.${kp}`) && (!opts.chapterId || row[2] === opts.chapterId))
-        if (!same || (typeFilter ? !typeFilter.has(row[8]) : row[8] === 'index')) continue
+        if (!same || (typeFilter ? !typeFilter.has(row[8]) : onRequestOnly(row[8]))) continue
         rows.push(row)
       }
     }

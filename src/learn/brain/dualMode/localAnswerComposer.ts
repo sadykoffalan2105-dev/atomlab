@@ -3448,7 +3448,7 @@ const CHEMICAL_PROPERTY_RE = /(реагир|взаимодейств|(?<!\p{L})�
  */
 function propertyAnswer(input: ComposeInput, prop: PropertyQuestion, style: ComposeStyle): ComposedAnswer | null {
   const lang = input.lang
-  const hits = input.hits.filter((h) => h.type !== 'index')
+  const hits = input.hits.filter((h) => h.type !== 'index' && h.type !== 'encyclopedia')
   const info = analyzeQuestion(input.query, lang, style, input.topicHint)
   const cands = buildCandidates(hits, { ...info, kind: 'general' }, style)
   const subjectAt = (text: string): number => {
@@ -3605,7 +3605,7 @@ export function composeLocalAnswer(input: ComposeInput): ComposedAnswer {
     if (answer) return answer
   }
   // Указатель — только для этого пути: его строки («Серная кислота — формула H₂SO₄.») не фразы для пересказа.
-  const hits = input.hits.filter((h) => h.type !== 'index')
+  const hits = input.hits.filter((h) => h.type !== 'index' && h.type !== 'encyclopedia')
   const core = composeLocalAnswerCore(hits.length === input.hits.length ? input : { ...input, hits })
   // «Приведи пример реакции присоединения»: ответ без уравнения (рассуждение о катализаторах) — пример из указателя учебника.
   if (hits.length < input.hits.length && !style.helper && input.lang === 'ru' && !core.sentences.some((s) => /[A-Z][a-z]?[₀-₉\d]*[^.]*\s(→|=|⇌)\s/u.test(s))) {

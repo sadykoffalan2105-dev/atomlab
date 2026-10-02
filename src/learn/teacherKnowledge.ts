@@ -350,6 +350,16 @@ async function searchViaKb(rawQuery: string, ctx: TeacherKnowledgeContext): Prom
   } catch {
     /* без указателя — обычный ответ */
   }
+  // wf15: энциклопедия (Википедия, CC BY-SA) — учёные, история, промышленность, быт: «кто такой…», фамилия учёного
+  // или слабые школьные результаты. Фрагменты — ПОСЛЕ школьных (учебник приоритетнее); отвечает brain/wiki/encyclopediaAnswer.
+  try {
+    const { encyclopediaHitsFor } = await import('./kb/encyclopedia')
+    for (const h of await encyclopediaHitsFor(kb, searchQuery, { locale: ctx.locale }, hits)) {
+      out.push({ title: h.title, text: h.text, source: h.source, citation: kb.citationFor(h), score: h.score, type: h.type })
+    }
+  } catch {
+    /* без энциклопедии — школьный ответ */
+  }
   // en/uz: учебники русские — добавляем фразы на языке ученика (переводы тестов) и пары глоссария
   // (после основных фрагментов, чтобы hits[0] и блок промпта не менялись).
   if (ctx.locale !== 'ru') {

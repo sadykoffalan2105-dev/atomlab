@@ -30,7 +30,11 @@ const IMPORTERS: Record<ShardName | 'lexicon', () => Promise<JsonModule>> = {
   g11: () => import('../../data/kb/index/kb-index-g11.json'),
   // r10: textbook index (formulas, reactions, § contents, pages) — loaded on the first request for types: ['index']
   book: () => import('../../data/kb/index/kb-index-book.json'),
+  // wf15: Wikipedia encyclopedia (CC BY-SA) — loaded on the first request for types: ['encyclopedia']
+  'wiki-a': () => import('../../data/kb/index/kb-index-wiki-a.json'),
+  'wiki-b': () => import('../../data/kb/index/kb-index-wiki-b.json'),
 }
+const WIKI_SHARDS: ShardName[] = ['wiki-a', 'wiki-b']
 
 const GRADE_SHARDS: ShardName[] = ['g7', 'g8', 'g9', 'g10', 'g11']
 
@@ -83,6 +87,7 @@ function scheduleBackground(grade: number | undefined) {
     return grade == null ? ga - gb : Math.abs(ga - grade) - Math.abs(gb - grade)
   })
   order.push('book') // r10: textbook index last
+  order.push(...WIKI_SHARDS) // wf15: encyclopedia after everything else, in idle time
   const next = () => {
     const name = order.shift()
     if (!name) return
@@ -115,7 +120,13 @@ export async function searchKnowledge(query: string, opts: KbSearchOptions = {})
   if (!query.trim()) return []
   await preloadKnowledge({ grade: opts.grade })
   if (opts.types?.includes('index')) await load('book')
+  if (opts.types?.includes('encyclopedia')) await Promise.all(WIKI_SHARDS.map((s) => load(s)))
   return engine.search(query, opts)
+}
+
+/** Load the encyclopedia shards (types: ['encyclopedia']) — searchKnowledge does it on request. */
+export function preloadEncyclopedia(): Promise<void> {
+  return Promise.all(WIKI_SHARDS.map((s) => load(s))).then(() => undefined)
 }
 
 /** Load the textbook index shard (types: ['index']) — searchKnowledge does it on request; getChunksById needs it loaded. */
