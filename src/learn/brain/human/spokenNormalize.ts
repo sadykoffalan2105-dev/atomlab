@@ -1,3 +1,5 @@
+import { spokenFormulasToText } from '../speech/chemTranscript'
+
 /**
  * Нормализация живой, надиктованной речи (STT) → канонический вопрос. Без зависимостей, чисто текст.
  *
@@ -186,6 +188,8 @@ export function spokenNormalize(raw: string): string {
   // 4) повторы и числа словами.
   t = collapseRepeats(t)
   t = wordsToDigits(t)
+  // 5) формулы словами — в запись («аш два эс о четыре» → H₂SO₄, «h two o» → H₂O): и для микрофона, и для напечатанного
+  t = spokenFormulasToText(t, /[а-яё]/i.test(t) ? 'ru' : 'en')
   // Ничего содержательного не осталось (одни «э… ну…») — отдаём исходник, пусть решает движок.
   if (!/[\p{L}\p{N}]/u.test(t)) return before
   // Вопрос без знака, но с вопросительным словом — добавим «?» для единообразия поиска.

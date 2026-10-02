@@ -251,6 +251,7 @@ const FORGET = /(забудь\s+(всё|все|обо\s+мне|меня|что\s
 const PRONOUN = /(?<!\p{L})(него|нее|неё|его|ее|её|ним|нем|нём|этого|этом|it|its|this\s+one|uning|u\s+haqida|bunda)(?!\p{L})/iu
 const ELLIPTIC = /^(а|и|and|a|what\s+about|va)\s/iu
 const BOOK_DEPTH = /(свойств|получ|применен|использ|реакц|взаимодейств|значени|роль|где\s+встреча|в\s+природе|propert|obtain|use[sd]?\b|reaction|xossa|olin|ishlatil|reaksiya)/iu
+const NARRATIVE = /(расскажи|поведай|опиши|характеристик|что\s+ты\s+знаешь|tell\s+me\s+about|describe|haqida|ta'rifla)/iu
 const ABOUT = /^(что\s+так\p{L}*|расскажи\s+(мне\s+)?(про|о|об)|что\s+за|кто\s+так\p{L}*|what\s+is|what'?s|tell\s+me\s+about|nima\s+degani|haqida\s+ayt)/iu
 
 function shortPrefix(intent: TalkIntent | 'confused', lang: TalkLang, profile: StudentProfile, d: Date): string {
@@ -359,6 +360,8 @@ function chemTurn(text: string, lang: TalkLang, profile: StudentProfile): { text
   if (!prop) {
     // «Расскажи про кислород» — карточка элемента; «свойства/получение кислорода» — к учебнику.
     if (BOOK_DEPTH.test(norm)) return null
+    // «Расскажи о NaCl / что ты знаешь про серную кислоту» — связный рассказ даёт база фактов (qaBank), а не короткая карточка
+    if (!el && NARRATIVE.test(norm)) return null
     const bare = norm.replace(/[?!.,]/g, '').trim()
     const isBare = el ? bare.split(' ').length <= 2 : !!formula && bare.split(' ').length <= 2
     if (!ABOUT.test(norm) && !isBare) return null
