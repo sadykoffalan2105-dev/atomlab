@@ -110,7 +110,9 @@
     "test:reaction-story": "tsx scripts/test-reaction-story.mts",
     "teacher:intent-data": "tsx scripts/teacher-ml/intent-dataset.mts",
     "teacher:intent-train": "tsx scripts/teacher-ml/train-intent.mts",
-    "test:teacher-intent": "tsx scripts/test-teacher-intent.mts"
+    "test:teacher-intent": "tsx scripts/test-teacher-intent.mts",
+    "teacher:vectors": "tsx scripts/teacher-ml/train-vectors.mts",
+    "test:kb-semantic": "tsx scripts/test-kb-semantic.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

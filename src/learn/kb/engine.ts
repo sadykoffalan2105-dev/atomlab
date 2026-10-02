@@ -135,9 +135,18 @@ const DEF_RE = {
 const MISC_RE = /(ошиб|путают|путать|заблужд|mistake|misconception|confus|xato|adashish)/i
 const KP_RE = /(?:§\s*(\d{1,2})|параграф\w*\s*(\d{1,2})|(\d{1,2})\s*-?\s*(?:тема|mavzu)|тем[аеуы]\s*(\d{1,2})|mavzu\s*(\d{1,2})|paragraph\s*(\d{1,2})|topic\s*(\d{1,2}))/i
 
+/** Семантический слой (src/learn/kb/semantic.ts): необязательные хуки, при ошибке/отсутствии поиск работает как раньше. */
+export type SemanticHooks = {
+  /** после анализа запроса: добавить термы-соседи (опечатки/синонимы) к существующим понятиям */
+  expandQuery?: (q: AnalyzedQuery, df: (term: string) => number) => void
+  /** множители для первых кандидатов (косинус вектора запроса и чанка); null — не менять порядок */
+  rerankHead?: (q: AnalyzedQuery, head: { id: string; title: string; text: string }[]) => ArrayLike<number> | null
+}
+
 export class KbEngine {
   readonly shards = new Map<string, Shard>()
   private lexicon: KbLexiconFile | null = null
+  semantic: SemanticHooks | null = null
   tuning: KbTuning
   private textCache = new Map<string, string>()
   private titleCache = new Map<string, Set<string>>()
@@ -411,6 +420,11 @@ export class KbEngine {
     const limit = Math.max(1, Math.min(50, opts.limit ?? 8))
     const q = this.analyzeQuery(query, opts.locale)
     if (!q.terms.length) return q.kp != null ? this.listParagraph(q.kp, opts, limit) : []
+    try {
+      this.semantic?.expandQuery?.(q, (t) => this.termDf(t)) // ML-расширение запроса (semantic.ts)
+    } catch (err) {
+      console.warn('[kb] semantic expand failed', err)
+    }
     const totalConcept = q.conceptWeights.reduce((s, w) => s + w, 0) || 1
     const typeFilter = opts.types?.length ? new Set(opts.types) : null
 
@@ -528,6 +542,21 @@ export class KbEngine {
       }
       const head = cands.slice(0, depth).sort((x, y) => y.score - x.score)
       cands.splice(0, depth, ...head)
+    }
+
+    // ML-переранжирование первых кандидатов по косинусу векторов (semantic.ts); при ошибке — порядок не меняется
+    if (this.semantic?.rerankHead) {
+      try {
+        const n = Math.min(cands.length, 30)
+        const head = cands.slice(0, n)
+        const f = this.semantic.rerankHead(q, head.map((c) => ({ id: c.shard.docs[c.doc][0], title: c.shard.docs[c.doc][5], text: c.shard.docs[c.doc][11] })))
+        if (f && f.length === n) {
+          head.forEach((c, i) => { c.score *= f[i] })
+          cands.splice(0, n, ...head.sort((x, y) => y.score - x.score))
+        }
+      } catch (err) {
+        console.warn('[kb] semantic rerank failed', err)
+      }
     }
 
     // diversity: cap hits per section (or per chunk group without a section)
