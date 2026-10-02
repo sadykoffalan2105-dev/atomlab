@@ -41,6 +41,7 @@ import {
 } from './chemFacts'
 import { loadProfile, saveProfile, forgetEverything, type NoteStatus, type StudentProfile, type TalkEntity } from './studentProfile'
 import { scientistTalk } from './scientistTalk'
+import { spokenNormalize } from './spokenNormalize'
 
 export type HumanIntent =
   | TalkIntent
@@ -115,9 +116,9 @@ function fill(tpl: string, lang: TalkLang, profile: StudentProfile, withName: bo
     .replace(/\s+([,.!?])/g, '$1')
 }
 
-/** Нормализация: нижний регистр, ё→е, растянутые буквы «приииивет» → «привет». */
+/** Нормализация: речевой мусор («э… ну… типа», хвост «да?»), нижний регистр, ё→е, растянутые буквы «приииивет» → «привет». */
 export function normalizeUtterance(text: string): string {
-  return text
+  return spokenNormalize(text)
     .toLowerCase()
     .replace(/ё/g, 'е')
     .replace(/[ʻʼ‘’`]/g, "'")
@@ -133,6 +134,10 @@ const LEXICON = [
   'скучно', 'страшно', 'боюсь', 'понимаю', 'контрольной', 'контрольная', 'интересный', 'пошути', 'анекдот', 'запомни',
   'забудь', 'зовут', 'сколько', 'который', 'времени', 'молярная', 'масса', 'кислород', 'водород', 'углерод', 'натрий',
   'hello', 'thanks', 'goodbye', 'remember', 'forget', 'tired', 'bored', 'scared', 'joke', 'rahmat', 'salom', 'charchadim',
+  // физиология и быт
+  'голова', 'болит', 'голодный', 'голоден', 'проголодался', 'холодно', 'жарко', 'душно', 'злюсь', 'обидно', 'обидели', 'болею', 'заболел', 'выспался',
+  'температура', 'родители', 'выходные', 'каникулы', 'тренировка', 'футбол', 'майнкрафт', 'друзья', 'оценка', 'двойка', 'пятерка', 'чувства',
+  'hungry', 'sleepy', 'headache', 'angry', 'weekend', 'friends', 'parents', 'ochman', 'sovqotdim', 'kasalman',
 ]
 
 function editDistance(a: string, b: string, max: number): number {
@@ -192,20 +197,44 @@ const INTENT_RE: [TalkIntent, RegExp][] = [
   ['time', /^(а\s+)?(который\s+(сейчас\s+)?час|сколько\s+(сейчас\s+)?(времени|время)|what\s+time\s+is\s+it|what'?s\s+the\s+time|(hozir\s+)?soat\s+necha)[\s?!.]*$/iu],
   ['date', /(какое\s+(сегодня\s+)?число|какой\s+сегодня\s+день|какая\s+сегодня\s+дата|what'?s\s+the\s+date|what\s+day\s+is\s+(it|today)|today'?s\s+date|bugun\s+(nechanchi|qaysi\s+kun|sana))/iu],
   ['howareyou', /(как\s+(у\s+тебя\s+)?(дела|делишки|жизнь|настроение|поживаешь|ты\s+сам|ты)(?!\p{L})(?!\s+(думаешь|считаешь|объясн))|how\s+are\s+you|how'?s\s+it\s+going|how\s+are\s+things|qalaysan|qalaysiz|ishlar\s+qalay|yaxshimisiz|yaxshimisan|а\s+у\s+тебя\s*\??$|and\s+you\s*\??$)/iu],
+  // --- вопросы об учителе (до «кто ты» и до эмоций: «ты устал?» — про учителя, а не про ученика)
+  ['teacher_creator', /(кто\s+тебя\s+(создал|сделал|написал|придумал|разработал|запрограммировал)|кто\s+твой\s+(создатель|автор|разработчик)|кто\s+тебя\s+учил|who\s+(made|created|built|developed|programmed)\s+you|who\s+is\s+your\s+(creator|author|developer)|seni\s+kim\s+(yaratdi|yasadi|yozdi|yaratgan))/iu],
+  ['teacher_age', /(сколько\s+тебе\s+лет|какой\s+у\s+тебя\s+возраст|тебе\s+сколько\s+лет|how\s+old\s+are\s+you|what'?s\s+your\s+age|yoshing\s+nechada|necha\s+yoshdasan|yoshingiz\s+nechada)/iu],
+  ['teacher_feelings', /(у\s+тебя\s+есть\s+(чувства|эмоции|настроение|душа)|ты\s+(чувствуешь|умеешь\s+чувствовать|грустишь|радуешься|обижаешься|любишь|можешь\s+грустить)|тебе\s+(бывает\s+)?(грустно|весело|обидно|скучно)|do\s+you\s+have\s+(feelings|emotions)|can\s+you\s+feel|do\s+you\s+(get\s+)?(sad|happy|bored)|his-?tuyg'?ularing\s+bormi|sen\s+his\s+qilasanmi|xafa\s+bo'?lasanmi)/iu],
+  ['teacher_tired', /(ты\s+(устаешь|устал|устала|не\s+устал|спишь|ешь|кушаешь|отдыхаешь|когда-нибудь\s+спишь)|тебе\s+(надо|нужно)\s+(спать|есть|отдыхать)|do\s+you\s+(get\s+tired|sleep|eat|rest|ever\s+sleep)|are\s+you\s+tired|charchaysanmi|charchadingmi|uxlaysanmi|ovqat\s+yeysanmi|dam\s+olasanmi)/iu],
+  ['teacher_alive', /(ты\s+(живой|живая|настоящий|настоящая|реальный|реальная|человек\s+или\s+(бот|робот|программа)|робот\s+или\s+человек|бот\s+или\s+человек|правда\s+(живой|человек))|are\s+you\s+(alive|real|a\s+real\s+person|human\s+or\s+(a\s+)?(bot|robot)|a\s+robot\s+or\s+(a\s+)?human)|sen\s+(tirikmisan|haqiqiymisan|odammisan|robotmisan))/iu],
   ['whoareyou', /(кто\s+ты|ты\s+кто|ты\s+(бот|робот|человек|ии|нейросеть)|who\s+are\s+you|are\s+you\s+(a\s+)?(bot|robot|human|real|ai)|sen\s+kimsan|siz\s+kimsiz|как\s+тебя\s+зовут|what'?s\s+your\s+name|isming\s+nima)/iu],
   ['whatcanyou', /(что\s+ты\s+(умеешь|можешь)|чем\s+(ты\s+)?(можешь\s+)?помочь|что\s+ты\s+знаешь\s+и\s+умеешь|what\s+can\s+you\s+do|how\s+can\s+you\s+help|nima(lar)?\s+qila\s+olas)/iu],
   ['rude', new RegExp(`${B}(ты\\s+(тупой|дурак|глупый|бесполезный)|отстой|бесишь|идиот|stupid|you\\s+suck|useless|dumb|ahmoq)${E}`, 'iu')],
   ['compliment', /(ты\s+(классн|крут|умн|лучш|молодец|супер|замечательн|хорош)\p{L}*|молодец|отличн\p{L}*\s+объясн|хорошо\s+объясня|you('?re|\s+are)\s+(great|awesome|smart|the\s+best|cool|amazing)|good\s+job|zo'?rsan|barakalla|ajoyib\s+tushuntir)/iu],
   ['laugh', /^(ха(ха)+|ах(ах)+а?|хех|лол|lol|haha+|hehe|xaxa+|😂|🤣)[\s!)]*$/iu],
+  // --- «физиология» ученика: голод/жажда, сон, боль, болезнь, холод/жара, злость, обида
+  ['emo_pain', new RegExp(`${B}(болит\\s+(голова|живот|горло|зуб|ухо|глаза|спина)|(голова|живот|горло|зуб|ухо|спина)\\s+болит|головная\\s+боль|голова\\s+раскалывается|тошнит|мутит|headache|stomach\\s*ache|my\\s+(head|stomach|tummy|throat|tooth)\\s+(hurts|aches)|i\\s+feel\\s+sick|boshim\\s+og'?riyapti|qornim\\s+og'?riyapti|tomog'?im\\s+og'?riyapti|ko'?nglim\\s+ayniyapti)${E}`, 'iu')],
+  ['emo_sick', new RegExp(`${B}(я\\s+)?(болею|заболел\\p{L}*|простудил\\p{L}*|простыл\\p{L}*|у\\s+меня\\s+(температура|насморк|кашель|простуда|грипп)|температур\\p{L}*|насморк|кашля\\p{L}*|i'?m\\s+(sick|ill|unwell)|i\\s+(have|caught)\\s+a\\s+cold|i\\s+have\\s+(a\\s+)?(fever|flu)|kasalman|kasal\\s+bo'?ldim|kasal\\s+bo'?lib\\s+qoldim|shamollab\\s+qoldim|shamolladim|isitmam\\s+bor)${E}`, 'iu')],
+  ['emo_hungry', new RegExp(`${B}(хочу\\s+(есть|кушать|пить|жрать|перекусить)|(есть|кушать|пить)\\s+хочу|голод\\p{L}*|проголодал\\p{L}*|жажда|пить\\s+хочется|есть\\s+хочется|i'?m\\s+(so\\s+)?(hungry|starving|thirsty)|i\\s+want\\s+to\\s+eat|qornim\\s+och|ochman|och\\s+qoldim|chanqadim|suv\\s+ichgim\\s+keldi|ovqat\\s+yegim\\s+kel\\p{L}*)${E}`, 'iu')],
+  ['emo_sleepy', new RegExp(`${B}(не\\s+выспал\\p{L}*|хочу\\s+спать|спать\\s+хочу|спать\\s+хочется|сонн\\p{L}*|зеваю|засыпаю|глаза\\s+слипаются|мало\\s+спал\\p{L}*|didn'?t\\s+sleep\\p{L}*|i'?m\\s+(so\\s+)?sleepy|want\\s+to\\s+sleep|i\\s+barely\\s+slept|uyqum\\s+kel\\p{L}*|uxlagim\\s+kel\\p{L}*|uxlamadim|kam\\s+uxladim)${E}`, 'iu')],
+  ['emo_cold', new RegExp(`${B}(мне\\s+холодно|холодно|замерз\\p{L}*|мерзну|мёрзну|дубак|i'?m\\s+(cold|freezing)|it'?s\\s+(so\\s+)?cold\\s+(here|in\\s+here)|menga\\s+sovuq|sovqotdim|sovuq\\s+qotdim|muzlab\\s+ketdim)${E}`, 'iu')],
+  ['emo_hot', new RegExp(`${B}(мне\\s+жарко|жарко|душно|жара|парилка|i'?m\\s+(so\\s+)?hot|it'?s\\s+(so\\s+|too\\s+)?(hot|stuffy)(\\s+(here|in\\s+here))?|menga\\s+issiq|issiq\\s+bo'?lib\\s+ketdi|dim\\s+bo'?lib\\s+ketdi|juda\\s+issiq)${E}`, 'iu')],
+  ['emo_angry', new RegExp(`${B}(злюсь|я\\s+зол|я\\s+злой|я\\s+злая|разозлил\\p{L}*|бесит|всё\\s+бесит|все\\s+бесит|раздража\\p{L}*|в\\s+ярости|выбешивает|достало|i'?m\\s+(so\\s+)?(angry|mad|furious|annoyed|pissed)|it\\s+makes\\s+me\\s+(angry|mad)|jahlim\\s+chiq\\p{L}*|achchig'?im\\s+chiq\\p{L}*|g'?azabim\\s+kel\\p{L}*|asabim\\s+buzildi)${E}`, 'iu')],
+  ['emo_hurt', new RegExp(`${B}(обидел\\p{L}*|обидно|обижа\\p{L}*|меня\\s+обижают|надо\\s+мной\\s+смеются|i'?m\\s+(hurt|offended)|hurt\\s+my\\s+feelings|they\\s+(laugh|make\\s+fun)|xafa\\s+qil\\p{L}*|xafa\\s+bo'?ldim|ustimdan\\s+kul\\p{L}*)${E}`, 'iu')],
   ['emo_scared', /(боюсь|страшно|волнуюсь|переживаю|нервничаю|паникую|(завтра|скоро|сегодня)\s+(будет\s+)?(контрольн|экзамен|тест|самостоятельн)|scared|nervous|afraid|anxious|worried\s+about|qo'?rqyapman|hayajonlan)/iu],
-  ['emo_tired', /(устал|утомил|нет\s+сил|хочу\s+спать|спать\s+хочу|i'?m\s+(so\s+)?tired|exhausted|sleepy|charchadim|uxlagim\s+kel)/iu],
+  ['emo_tired', /(устал|утомил|нет\s+сил|вымотал|i'?m\s+(so\s+)?tired|i\s+am\s+(so\s+)?tired|exhausted|charchadim|holdan\s+toydim)/iu],
   ['emo_bored', /(скучно|скукота|надоело|неинтересно|i'?m\s+bored|boring|zerikdim|zerikarli)/iu],
   ['emo_sad', /(грустно|плохое\s+настроение|мне\s+плохо|печально|i'?m\s+sad|feel\s+(bad|sad)|upset|xafaman|kayfiyatim\s+yo'?q)/iu],
   ['emo_happy', /((у\s+меня\s+)?(отличное|хорошее|классное)\s+настроение|мне\s+весело|i'?m\s+(so\s+)?happy|i\s+feel\s+great|xursandman|kayfiyatim\s+zo'?r)/iu],
   ['motivation', /(мотивац|замотивируй|подбодри|не\s+могу\s+себя\s+заставить|опускаются\s+руки|хочу\s+бросить|у\s+меня\s+не\s+получится|motivat|encourage\s+me|cheer\s+me\s+up|ruhlantir|motivatsiya)/iu],
   ['joke', /(пошути|шутк|анекдот|рассмеши|tell\s+(me\s+)?a\s+joke|joke|make\s+me\s+laugh|hazil|latifa)/iu],
   ['fact', /(интересн\p{L}*\s+факт|удиви\s+меня|что[\s-]нибудь\s+интересн|fun\s+fact|interesting\s+fact|something\s+interesting|qiziq(arli)?\s+fakt)/iu],
-  ['offline_world', /(погод\p{L}*|новост\p{L}*|курс\s+(доллар|валют|евро)|кто\s+выиграл|футбол|президент|weather|news|exchange\s+rate|who\s+won|ob-?havo|yangilik)/iu],
+  ['offline_world', /(погод\p{L}*|новост\p{L}*|курс\s+(доллар|валют|евро)|кто\s+выиграл|счет\s+матча|президент|weather|news|exchange\s+rate|who\s+won|ob-?havo|yangilik|kim\s+yutdi)/iu],
+  // --- бытовые темы: короткий человеческий отклик + мостик к химии из данных проекта
+  ['life_grades', new RegExp(`${B}((получил\\p{L}*|поставили|схватил\\p{L}*|влепили|заработал\\p{L}*)\\s+(двойку|тройку|четверку|четвёрку|пятерку|пятёрку|двойк\\p{L}*|тройк\\p{L}*|2|3|4|5)|(двойк|тройк|четверк|четвёрк|пятерк|пятёрк)\\p{L}*|плох\\p{L}*\\s+оценк\\p{L}*|оценк\\p{L}*\\s+(плох|по\\s+химии|за\\s+контрольн)|мои\\s+оценки|got\\s+an?\\s+[abcdf]${E}|bad\\s+grade|my\\s+grades?|baho\\p{L}*|ikki\\s+oldim|besh\\s+oldim|uch\\s+oldim)${E}`, 'iu')],
+  ['life_parents', new RegExp(`${B}(родител\\p{L}*|(мама|папа|мать|отец|предки)\\s+(ругает|ругают|ругается|злится|злятся|сказал\\p{L}*|заставля\\p{L}*|не\\s+разреша\\p{L}*|кричит|кричат|накажут|наказали|отобрал\\p{L}*)|(ругают|ругает)\\s+(мама|папа|родители)|parents|my\\s+(mom|mum|dad|mother|father)\\s+(is|are|was|said|told|yell\\p{L}*|won'?t|doesn'?t)|ota-?onam|onam\\s+\\p{L}+|dadam\\s+\\p{L}+|oyim\\s+\\p{L}+|otam\\s+\\p{L}+)${E}`, 'iu')],
+  ['life_school', new RegExp(`${B}((не\\s+хочу|ненавижу|устал\\p{L}*\\s+от)\\s+(в\\s+|ходить\\s+в\\s+)?школ\\p{L}*|школ\\p{L}*\\s+(достала|надоела|бесит|задолбала)|(достала|надоела|бесит)\\s+школ\\p{L}*|в\\s+школе\\s+(скучно|плохо|сложно|трудно|тяжело)|много\\s+(уроков|задали|домашки|домашней)|задали\\s+много|i\\s+hate\\s+school|school\\s+(sucks|is\\s+(boring|hard|too\\s+much))|too\\s+much\\s+homework|maktab\\p{L}*\\s+(zerikarli|yoqmaydi|charchatdi|jonga\\s+tegdi)|maktabni\\s+yomon\\s+ko'?raman|maktabga\\s+borgim\\s+kelmayapti|uy\\s+vazifasi\\s+ko'?p)${E}`, 'iu')],
+  ['life_games', new RegExp(`${B}(игра\\p{L}*\\s+(в|на)\\s+(телефон|компьютер|приставк|плейстейшн|майнкрафт|роблокс|доту|кс|фортнайт|бравл)\\p{L}*|видеоигр\\p{L}*|компьютерн\\p{L}*\\s+игр\\p{L}*|майнкрафт\\p{L}*|minecraft|roblox|роблокс\\p{L}*|дота|dota|фортнайт|fortnite|бравл\\s*старс|brawl\\s*stars|геншин|genshin|cs\\s*go|cs2|пубг|pubg|стандофф|standoff|free\\s*fire|фри\\s*фаер|video\\s*games?|gaming|play(ed|ing)?\\s+(games|minecraft|roblox|on\\s+my\\s+phone)|o'?yin\\s+o'?yna\\p{L}*|telefonda\\s+o'?yna\\p{L}*)${E}`, 'iu')],
+  ['life_sport', new RegExp(`${B}(футбол\\p{L}*|баскетбол\\p{L}*|волейбол\\p{L}*|тренировк\\p{L}*|тренир\\p{L}*|спортзал|качалк\\p{L}*|плаван\\p{L}*|бассейн\\p{L}*|бокс\\p{L}*|борьб\\p{L}*|каратэ|теннис\\p{L}*|пробежк\\p{L}*|бегал\\p{L}*|занимаюсь\\s+спортом|football|soccer|basketball|volleyball|workout|gym|training|swimming|boxing|wrestling|karate|tennis|jogging|went\\s+running|futbol\\p{L}*|basketbol\\p{L}*|voleybol\\p{L}*|mashg'?ulot\\p{L}*|sport\\s+bilan|suzish\\p{L}*|boks\\p{L}*|kurash\\p{L}*)${E}`, 'iu')],
+  ['life_food', new RegExp(`${B}((я\\s+)?(поел\\p{L}*|покушал\\p{L}*|пообедал\\p{L}*|позавтракал\\p{L}*|поужинал\\p{L}*|наелся|наелась)|люблю\\s+(пиццу|плов|шоколад|сладкое|чай|кофе|бургеры|мороженое|манты|самсу|лагман|шашлык)|(плов|пицц|шоколад|бургер|мороженое|манты|самс|лагман|шашлык|вкусняшк|сладост)\\p{L}*|вкусн\\p{L}*|что\\s+(поесть|приготовить)|(ate|had)\\s+(pizza|lunch|dinner|breakfast|chocolate|ice\\s*cream)|i\\s+love\\s+(pizza|chocolate|food|ice\\s*cream)|yummy|tasty|delicious|(palov|osh|pitsa|shokolad|somsa|manti|lag'?mon|shashlik)\\p{L}*\\s+(yedim|yeyman|yaxshi\\s+ko'?raman)|juda\\s+mazali|mazali\\s+bo'?ldi|ovqat\\s+yedim)${E}`, 'iu')],
+  ['life_friends', new RegExp(`${B}(друг(а|у|ом|и|ей|е)?${E}|друзья|друзей|друзьям|друзьями|подруг\\p{L}*|одноклассни\\p{L}*|поссорил\\p{L}*|помирил\\p{L}*|(my\\s+)?(best\\s+)?friends?${E}|classmates?${E}|had\\s+a\\s+fight\\s+with|do'?st\\p{L}*|sinfdosh\\p{L}*|urishib\\s+qoldim|yarashib\\s+oldim)${E}`, 'iu')],
+  ['life_weekend', new RegExp(`${B}(выходн\\p{L}*|каникул\\p{L}*|на\\s+выходных|в\\s+субботу|в\\s+воскресенье|планы\\s+на\\s+(вечер|завтра|лето)|weekend\\p{L}*|holidays?|vacation|on\\s+saturday|on\\s+sunday|dam\\s+olish\\s+kun\\p{L}*|ta'?til\\p{L}*|shanba\\s+kuni|yakshanba\\s+kuni)${E}`, 'iu')],
   ['bye', /^(ну\s+)?(всё,?\s+)?(пока|до\s+свидания|до\s+встречи|до\s+завтра|бывай|увидимся|спокойной\s+ночи|bye|goodbye|see\s+you|good\s+night|xayr|ko'?rishguncha|xayrli\s+tun)(?!\p{L})/iu],
   ['student_fine', /^(да\s+)?(нормально|норм|хорошо|отлично|прекрасно|пойдет|неплохо|все\s+(хорошо|отлично|норм)|fine|good|great|not\s+bad|i'?m\s+(fine|good|ok|great)|yaxshi|zo'?r|a'?lo|chakki\s+emas)[\s!.,)]*(спасибо|thanks|rahmat)?[\s!.,)]*$/iu],
 ]
@@ -471,7 +500,8 @@ export function humanTurn(raw: string, opts: HumanTurnOptions): HumanTurn | null
   const profile: StudentProfile = { ...loadProfile() }
   profile.turns += 1
   const commit = () => saveProfile(profile)
-  const text = raw.trim()
+  // Надиктованная речь: «э… ну… это самое… что такое моль, да?» → «что такое моль?» (регистр и формулы сохраняются).
+  const text = spokenNormalize(raw).trim()
   if (!text) return null
 
   // 1) Память — раньше всего («запомни: …» может содержать что угодно).
@@ -578,7 +608,12 @@ export function humanTurn(raw: string, opts: HumanTurnOptions): HumanTurn | null
       commit()
       return { kind: 'prefix', prefix: [prefix, sympathy].filter(Boolean).join(' '), rest: bodyRaw, intents: [...intents, intent] }
     }
-    if (!isEmotion && !['joke', 'fact', 'offline_world', 'whatcanyou', 'whoareyou', 'howareyou', 'date', 'time'].includes(intent) && words > 7) continue
+    const isLife = intent.startsWith('life_')
+    const isTeacherQ = intent.startsWith('teacher_')
+    // Бытовая тема рядом с химическим вопросом («после футбола спроси про кислород») — к учебнику, не к болтовне.
+    if (isLife && intent !== 'life_grades' && /(хими|реакц|вещест|элемент|формул|моль|валентн|оксид|кислот|chem|formula|reaction|kimyo|reaksiya|modda)/iu.test(body)) continue
+    if (isLife && words > 14) continue
+    if (!isEmotion && !isLife && !isTeacherQ && !['joke', 'fact', 'offline_world', 'whatcanyou', 'whoareyou', 'howareyou', 'date', 'time'].includes(intent) && words > 7) continue
     return wrap(socialReply(intent, lang, profile, d), intent)
   }
 

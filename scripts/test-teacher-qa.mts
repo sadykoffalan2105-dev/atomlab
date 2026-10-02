@@ -156,7 +156,71 @@ for (const d of bank.definitions.filter((x) => x.term.split(' ').length <= 2).fi
 }
 
 /* ---------------------------------------------------------- чужие фразы → null */
+/* ---------------------------------------------------------- надиктованные формы и новые намерения */
+const FILL_RU = ['э ну ', 'слушай, ', 'ну типа ', 'это самое, ', 'короче ', 'скажи ', 'в общем ', 'блин ']
+const TAIL_RU = [' да?', ', а?', ' ну', '', ' правильно?', '']
+let k = 0
+const spoken = (q: string) => `${FILL_RU[k % FILL_RU.length]}${q}${TAIL_RU[k++ % TAIL_RU.length]}`
+const sub40 = subs.slice(0, 40)
+for (const s of sub40) {
+  const M = formatMass(s.M, 'ru')
+  add({ say: spoken(`молярная масса ${genitive(s.ru)}`), lang: 'ru', intent: 'molar', has: [M], group: 'spoken-molar' })
+  add({ say: spoken(`какая формула у ${genitive(s.ru)}`), lang: 'ru', intent: 'formula', has: [s.f], group: 'spoken-formula' })
+  add({ say: spoken(`расскажи про ${s.ru.toLowerCase()}`), lang: 'ru', intent: 'about', has: [s.f, M, /класс|кислота|соль|оксид|основание|вещество/i], group: 'about-story' })
+  if (s.use) add({ say: `что ты знаешь про ${s.fa}`, lang: 'ru', intent: 'about', has: [s.ru, /Применение/], group: 'about-know' })
+  if (s.en) add({ say: `um tell me about ${s.en.toLowerCase()} you know`, lang: 'en', intent: 'about', has: [s.f], group: 'spoken-about-en' })
+}
+for (const s of subs.slice(0, 10)) {
+  if (s.uz) add({ say: `xo'sh ${s.uz.toLowerCase()} molyar massasi a`, lang: 'uz', intent: 'molar', has: [formatMass(s.M, 'uz')], group: 'spoken-molar-uz' })
+}
+for (let i = 0; i + 1 < sub40.length; i += 2) {
+  const a = sub40[i]!
+  const b = sub40[i + 1]!
+  add({ say: `чем отличается ${a.ru.toLowerCase()} от ${genitive(b.ru)}`, lang: 'ru', intent: 'compare', has: [a.f, b.f, formatMass(a.M, 'ru'), formatMass(b.M, 'ru')], group: 'compare-subst' })
+  if (a.en && b.en) add({ say: `compare ${a.en.toLowerCase()} and ${b.en.toLowerCase()}`, lang: 'en', intent: 'compare', has: [a.f, b.f], group: 'compare-en' })
+}
+add({ say: 'чем отличается атом от молекулы', lang: 'ru', intent: 'compare', has: [/атом/i, /молекул/i, /\[Kimyo \d+/], group: 'compare-terms' })
+add({ say: 'сравни кислоты и основания', lang: 'ru', intent: 'compare', has: [/кислот/i, /основани/i, /\[Kimyo \d+/], group: 'compare-terms' })
+const els20 = els.slice(0, 20)
+for (const e of els20) {
+  const metalloid = e.blk === 'Metalloid'
+  const metal = !metalloid && /metal|lanthanide|actinide/i.test(e.blk)
+  add({ say: `${e.ru.toLowerCase()} это металл или неметалл`, lang: 'ru', intent: 'metal', has: [metalloid ? /полуметалл/ : metal ? /— металл/ : /— неметалл/], group: 'metal-ru' })
+  if (bank.substances.some((s) => s.comp[e.s] && Object.keys(s.comp).length > 1 && !s.id.startsWith('org')))
+    add({ say: `какие соединения образует ${e.ru.toLowerCase()}`, lang: 'ru', intent: 'compounds', has: [new RegExp(`${e.s}[₀-₉A-Za-z]`), /\[ATOMLAB/], group: 'compounds-ru' })
+  add({ say: spoken(`расскажи о ${genitive(e.ru)}`), lang: 'ru', intent: 'about', has: [e.s], group: 'spoken-elem-about' })
+}
+for (let i = 0; i + 1 < els20.length && i < 20; i += 2) {
+  const a = els20[i]!
+  const b = els20[i + 1]!
+  add({ say: `чем отличается ${a.ru.toLowerCase()} от ${genitive(b.ru)}`, lang: 'ru', intent: 'compare', has: [a.s, b.s, `Z = ${a.z}`, `Z = ${b.z}`], group: 'compare-elem' })
+}
+let condCount = 0
+for (const r of bank.reactions.filter((x) => x.c && x.r.length === 2 && !x.org && x.r.every((f) => nameOf(f)))) {
+  if (condCount >= 20) break
+  const [a, b] = r.r.map((f) => nameOf(f)!) as [{ ru: string }, { ru: string }]
+  if (a.ru === b.ru) continue
+  condCount++
+  add({ say: `условия реакции ${a.ru.toLowerCase()} и ${b.ru.toLowerCase()}`, lang: 'ru', intent: 'conditions', has: [pretty(r.p[0]!), /—/], group: 'conditions-ru' })
+}
+for (const g of [7, 8, 9, 10, 11]) {
+  const first = bank.sections.find((s) => s.g === g)
+  if (!first) continue
+  add({ say: `что проходят в ${g} классе`, lang: 'ru', intent: 'syllabus', has: [first.title.slice(0, 25), `[Kimyo ${g}]`], group: 'syllabus-ru' })
+  add({ say: `topics of grade ${g}`, lang: 'en', intent: 'syllabus', has: [first.title.slice(0, 25)], group: 'syllabus-en' })
+}
+add({ say: 'что проходят в восьмом классе', lang: 'ru', intent: 'syllabus', has: ['[Kimyo 8]'], group: 'syllabus-spoken' })
+for (const ch of [1, 2, 3]) {
+  const first = bank.sections.find((s) => s.g === 8 && s.id?.startsWith(`c${ch}-`))
+  if (first) add({ say: `какие темы в главе ${ch}`, lang: 'ru', intent: 'syllabus', has: [first.title.slice(0, 25), `глава ${ch}`], group: 'syllabus-chapter' })
+}
+
 const foreign: [string, QaLang][] = [
+  ['э ну как дела', 'ru'],
+  ['слушай привет', 'ru'],
+  ['короче я устал', 'ru'],
+  ['um hello there', 'en'],
+  ['xo‘sh salom ustoz', 'uz'],
   ['привет', 'ru'],
   ['как дела?', 'ru'],
   ['спасибо', 'ru'],
@@ -177,7 +241,6 @@ const foreign: [string, QaLang][] = [
   ['проверь меня', 'ru'],
   ['что такое атом', 'ru'],
   ['что такое молекула', 'ru'],
-  ['чем отличается атом от молекулы', 'ru'],
   ['что такое период в таблице менделеева', 'ru'],
   ['что такое группа', 'ru'],
   ['как найти массовую долю', 'ru'],

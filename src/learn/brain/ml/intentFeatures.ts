@@ -10,6 +10,7 @@
  */
 import { stemRussian } from '../../kb/stemRu'
 import { stemLatin } from '../../kb/analyzer'
+import { spokenNormalize } from '../human/spokenNormalize'
 
 export const INTENTS = [
   'greet', 'bye', 'thanks', 'how_are_you', 'joke', 'about_teacher', 'offtopic', 'gibberish',
@@ -28,7 +29,8 @@ const SUBS = '₀₁₂₃₄₅₆₇₈₉'
 
 /** Свёртка текста: нижний регистр, ё→е, апострофы, подстрочные индексы, повторы букв («приииивет» → «привет»). */
 export function foldIntentText(raw: string): string {
-  return raw
+  // Речевой мусор («э… ну… типа», хвост «да?») снимаем и при обучении, и в браузере — модель видит одно и то же.
+  return spokenNormalize(raw)
     .toLowerCase()
     .replace(/ё/g, 'е')
     .replace(/[ʻʼ‘’`´]/g, "'")
