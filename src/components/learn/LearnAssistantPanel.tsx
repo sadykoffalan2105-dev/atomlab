@@ -21,6 +21,7 @@ import {
   preloadSpeechVoices,
   type SpeechOutputMode,
 } from '../../learn/learnSpeech'
+import { fixTranscript } from '../../learn/brain/speech/chemTranscript'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import { checkTeacherServiceHealth, requestTeacherChat } from '../../learn/teacherServiceClient'
 import { preloadTeacherKnowledge } from '../../learn/teacherKnowledge'
@@ -471,8 +472,10 @@ export function LearnAssistantPanel({
     }
     const started = speech().startListening(
       speechLocale,
-      (transcript) => {
+      (rawTranscript) => {
         setListening(false)
+        // Чёткость: «аш два о» → H₂O, ослышки терминов → словарь, числа словами → цифры.
+        const transcript = fixTranscript(rawTranscript, speechLocale)
         setInput((prev) => (prev.trim() ? `${prev.trimEnd()} ${transcript}` : transcript))
         inputRef.current?.focus()
       },
@@ -480,7 +483,10 @@ export function LearnAssistantPanel({
         setListening(false)
         // Молчаливое выключение микрофона читалось как «учитель не слышит». Называем причину.
         if (code === 'no-speech') setError(t('learn.assistant.micNoSpeech'))
-        else if (code === 'network' || code === 'audio-capture') setError(t('learn.assistant.micNetwork'))
+        else if (code === 'network') setError(t('learn.voice.status.network'))
+        else if (code === 'audio-capture') setError(t('learn.voice.status.audioCapture'))
+        else if (code === 'not-allowed' || code === 'service-not-allowed') setError(t('learn.voice.status.notAllowed'))
+        else if (code === 'language-not-supported') setError(t('learn.voice.status.notSupported'))
       },
     )
     if (started) setError(null)

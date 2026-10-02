@@ -50,11 +50,11 @@ export interface BargeInOptions {
 
 const STOP_WORDS_RE = /(^|[^\p{L}])(стоп|подожди|погоди|хватит|stop|wait|to[‘'`ʻ]?xta|kuting?)([^\p{L}]|$)/iu
 
+/** Барджин подтверждает только транскрипт из ≥ 2 слов (или явное «стоп/подожди»): одно слово — чаще эхо/шум. */
 function meaningfulTranscript(text: string): boolean {
   const words = text.trim().split(/\s+/).filter((w) => /\p{L}{2,}/u.test(w))
   if (STOP_WORDS_RE.test(text)) return true
-  if (words.length >= 2) return true
-  return words.length === 1 && words[0]!.length >= 5
+  return words.length >= 2
 }
 
 /**

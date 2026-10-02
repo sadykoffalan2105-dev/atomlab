@@ -1073,5 +1073,13 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab.entry.name.NH3': 'Ammonia',
   'lab.entry.name.HCl': 'Hydrogen chloride',
   'lab.entry.name.NaCl': 'Table salt',
+  'learn.voice.status.noSpeech': 'I can’t hear speech — speak louder or closer to the microphone',
+  'learn.voice.status.network': 'Speech recognition in this browser is not responding (Chrome needs Google servers) — try Edge, or press “talk” and hold',
+  'learn.voice.status.notAllowed': 'Can’t hear you: the microphone is blocked. Allow it in the site settings (icon left of the address) and reload',
+  'learn.voice.status.audioCapture': 'No microphone found — check that it is connected and selected in the system',
+  'learn.voice.status.languageFallback': 'Uzbek recognition is unavailable in this browser — listening in Russian (Uzbek works in Edge)',
+  'learn.voice.status.pushToTalk': 'Continuous recognition does not work here — press the mic button, say a phrase and release',
+  'learn.voice.status.unresponsive': 'You are speaking but recognition has been silent for 8 s — switching to push-to-talk; voice is more reliable in Edge',
+  'learn.voice.status.notSupported': 'This browser has no speech recognition — type instead, or open the site in Edge/Chrome',
   'lab.entry.a11y': 'A 3D lab entry scene: two hydrogen molecules and one oxygen molecule build two water molecules, with H₂O, CO₂, NH₃ and HCl drifting around them',
 }

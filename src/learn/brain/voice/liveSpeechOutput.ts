@@ -96,6 +96,15 @@ export class LiveSpeechOutput {
     this.path = options.path ?? null
   }
 
+  /** Как текст реально произносится (формулы → «аш два о», числа → слова) — для эхо-стража. */
+  prepare(text: string): string {
+    try {
+      return this.backend.prepare(text, this.o.lang)
+    } catch {
+      return text
+    }
+  }
+
   /** Дождаться загрузки backend (модули озвучки, список голосов). */
   ready(): Promise<void> {
     return this.backend.ready()
