@@ -40,6 +40,12 @@ const MAX_OX_CHIPS_ALL = 6
 const MAX_E_TOKENS = 6
 /** хвост электрона: столько «призраков» позади точки */
 const TAIL = 7
+
+/** Доля пути e⁻ в момент t: плавный разгон и торможение (easeInOutCubic) — без «телепорта» в начале и конце. */
+function flightU(t0: number, t1: number, t: number): number {
+  const x = t <= t0 ? 0 : t >= t1 ? 1 : (t - t0) / (t1 - t0)
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
+}
 /** притушить атомы-зрители на шаге переноса (доля яркости) */
 const SPECTATOR_DIM = 0.42
 
@@ -248,13 +254,13 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     // у многих атомов — по два чипа на строку изменения (остальные доноры/акцепторы видны по свечению)
     const chipAtoms: number[] = []
     const oxFront = lay.oxAtoms.filter((i) => !lay.layerL[i])
-    if (oxFront.length <= MAX_OX_CHIPS_ALL) chipAtoms.push(...oxFront)
+    if (oxFront.length <= (opts.lowPower ? 4 : MAX_OX_CHIPS_ALL)) chipAtoms.push(...oxFront)
     else {
       const per = new Map<string, number>()
       for (const i of oxFront) {
         const k = `${lay.el[i]}|${lay.oxL[i]}|${lay.oxR[i]}`
         const c = per.get(k) ?? 0
-        if (c < 2) chipAtoms.push(i)
+        if (c < (opts.lowPower ? 1 : 2)) chipAtoms.push(i)
         per.set(k, c + 1)
       }
     }
@@ -283,7 +289,10 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     }
     if (story.redox) {
       this.halfIdx = this.labels.length
-      this.labels.push({ id: 'half', kind: 'glassHalf', pos: new THREE.Vector3(lay.extent.cx, lay.top - 0.42, 0.4), opacity: 0, text: this.halfText() })
+      this.refreshHalfTexts()
+      // карточка привязана центром: точка — на полкарточки ниже верха кадра, иначе её верх вылезает за край, раскладчик
+      // подписей сдвигает карточку вниз — на атомы (особенно на телефоне)
+      this.labels.push({ id: 'half', kind: 'glassHalf', pos: new THREE.Vector3(lay.extentL.cx, lay.extentL.cy + lay.extentL.h / 2 - 1.02, 0.4), opacity: 0, text: this.halfTexts.n })
     }
 
     this.apply(0)
@@ -341,17 +350,33 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
 
   setLocale(locale: SceneLocale): void {
     this.locale = locale
-    if (this.halfIdx >= 0) this.labels[this.halfIdx]!.text = this.halfText()
+    if (this.halfIdx >= 0) {
+      this.refreshHalfTexts()
+      this.labels[this.halfIdx]!.text = this.halfTexts.n
+    }
     this.apply(this.t)
   }
 
-  extentAt(_t: number, out: { w: number; h: number; cx: number; cy: number }): { w: number; h: number; cx: number; cy: number } {
-    const e = this.lay.extent
-    out.w = e.w
-    out.h = e.h
-    out.cx = e.cx
-    out.cy = e.cy
+  extentAt(t: number, out: { w: number; h: number; cx: number; cy: number }): { w: number; h: number; cx: number; cy: number } {
+    // исходные и перенос e⁻ — свой кадр, итог — свой: камера плавно наезжает на продукт во время образования
+    const a = this.lay.extentL
+    const b = this.lay.extentR
+    const u = smooth(this.lay.formFrom + 0.2, this.lay.formTo, t)
+    out.w = a.w + (b.w - a.w) * u
+    out.h = a.h + (b.h - a.h) * u
+    out.cx = a.cx + (b.cx - a.cx) * u
+    out.cy = a.cy + (b.cy - a.cy) * u
     return out
+  }
+
+  /** Видимость копии стопки: лицевая — 1, задние копии компактного вида скрыты (не «куча»), при перелёте — плавно. */
+  private layerVis(i: number, t: number): number {
+    const lay = this.lay
+    if (!lay.compact) return 1
+    const fl = lay.layerL[i] ? 0 : 1
+    const fr = lay.layerR[i] ? 0 : 1
+    if (fl === fr) return fl
+    return fl + (fr - fl) * smooth(lay.moveFrom[i]!, lay.moveFrom[i]! + lay.moveDur, t)
   }
 
   setHostBackground(color: THREE.Color | null): void {
@@ -462,7 +487,16 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
   }
 
   /** Карточка полуреакций: «o␟Fe⁰ − 2e⁻ → Fe⁺²␟восстановитель», «r␟Cu⁺² + 2e⁻ → Cu⁰␟окислитель», «b␟отдано 2e⁻ = принято 2e⁻». */
-  private halfText(): string {
+  /** Тексты карточки: без подсветки (n), подсвечена отдача (o) или приём (r) e⁻. */
+  private readonly halfTexts = { n: '', o: '', r: '' }
+
+  private refreshHalfTexts(): void {
+    this.halfTexts.n = this.halfText(null)
+    this.halfTexts.o = this.halfText('o')
+    this.halfTexts.r = this.halfText('r')
+  }
+
+  private halfText(active: 'o' | 'r' | null): string {
     const s = this.story
     const tg = HALF_TAGS[this.locale]
     // одинаковые полуреакции из разных веществ (2H⁺¹ из NaOH и 2H⁺¹ из H₂O) — одной строкой с суммой
@@ -476,8 +510,8 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       return out
     }
     const rows = [
-      ...merge(s.oxidations).map((c) => `o␟${halfLine(c, true)}␟${tg.reducer}`),
-      ...merge(s.reductions).map((c) => `r␟${halfLine(c, false)}␟${tg.oxidizer}`),
+      ...merge(s.oxidations).map((c) => `${active === 'o' ? 'O' : 'o'}␟${halfLine(c, true)}␟${tg.reducer}`),
+      ...merge(s.reductions).map((c) => `${active === 'r' ? 'R' : 'r'}␟${halfLine(c, false)}␟${tg.oxidizer}`),
       `b␟${tg.balance(fmt(s.given), fmt(s.accepted))}`,
     ]
     return rows.join('\n')
@@ -504,7 +538,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       R[i] = storyAtomRadius(lay, i, t)
       // лёгкое «дыхание» частиц на исходных и итоге (детерминированно по времени сюжета)
       P[i * 3 + 1] = P[i * 3 + 1]! + Math.sin(t * 1.6 + i * 0.9) * 0.018 * sway
-      const r = R[i]! * (0.6 + 0.4 * appear)
+      const r = R[i]! * (0.6 + 0.4 * appear) * this.layerVis(i, t)
       this._v.set(P[i * 3]!, P[i * 3 + 1]!, P[i * 3 + 2]!)
       this._s.set(r, r, r)
       this._m.compose(this._v, this._q, this._s)
@@ -548,7 +582,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       }
       const alpha = s.kind === 'kept' ? 1 : s.kind === 'broken' ? 1 - smooth(s.t0, s.t1, t) : smooth(s.t0, s.t1, t)
       // кратная связь — параллельные палочки потоньше (как в школьной сцене: двойная — две, тройная — три)
-      const rad = STICK_R * alpha * (s.order > 1 ? 0.72 : 1)
+      const rad = STICK_R * alpha * (s.order > 1 ? 0.72 : 1) * Math.min(this.layerVis(s.a, t), this.layerVis(s.b, t))
       this._a.set(P[s.a * 3]!, P[s.a * 3 + 1]!, P[s.a * 3 + 2]!)
       this._b.set(P[s.b * 3]!, P[s.b * 3 + 1]!, P[s.b * 3 + 2]!)
       const len = this._a.distanceTo(this._b)
@@ -581,7 +615,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     for (let k = 0; k < es.length; k++) {
       const e = es[k]!
       const pre = smooth(e.t0 - 0.25, e.t0, t)
-      const u = smooth(e.t0, e.t1, t)
+      const u = flightU(e.t0, e.t1, t)
       const post = 1 - smooth(e.t1, e.t1 + 0.22, t)
       const vis = pre * post * fade
       const flying = smooth(e.t0, e.t0 + 0.08, t) * (1 - smooth(e.t1 - 0.03, e.t1 + 0.12, t))
@@ -614,12 +648,15 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const halo = this.halos[k]
       if (halo) {
         // после прилёта ореол вспыхивает у акцептора и гаснет
-        const arrive = smooth(e.t1 - 0.05, e.t1 + 0.3, t)
-        halo.visible = vis > 0.01
+        // в полёте — мягкий ореол; в момент прибытия — вспышка у акцептора: расширяется и гаснет (≈ 0,45 с)
+        const after = t - e.t1
+        const hv = pre * fade * (after > 0 ? Math.exp(-after / 0.2) : 1)
+        halo.visible = hv > 0.01
         halo.position.copy(this._v)
-        const sc = 0.5 + 0.12 * Math.min(4, e.n - 1) + arrive * 0.55
+        const grow = after > 0 ? 1 - Math.exp(-after / 0.12) : 0
+        const sc = 0.5 + 0.12 * Math.min(4, e.n - 1) + grow * 0.95
         halo.scale.set(sc, sc, sc)
-        this.haloMats[k]!.opacity = 0.85 * vis
+        this.haloMats[k]!.opacity = (after > 0 ? 0.95 : 0.8) * hv
       }
       const li = this.eLabelIdx[k]
       if (li != null) {
@@ -646,7 +683,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       let z = 0
       for (const q of w.tokens) {
         const e = es[q]!
-        this.arcPoint(e.from, e.to, smooth(e.t0, e.t1, t), this._w)
+        this.arcPoint(e.from, e.to, flightU(e.t0, e.t1, t), this._w)
         x += this._w.x / w.tokens.length
         z += this._w.z / w.tokens.length
         y = Math.max(y, this._w.y)
@@ -663,7 +700,10 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const tf = lay.flipAt[i]!
       const x = Number.isFinite(tf) ? (t - tf) / 0.24 : 99
       const pulse = Math.exp(-x * x)
-      const a = (0.62 * roleOn * (0.86 + 0.14 * Math.sin(t * 3.4 + i)) + 0.55 * pulse * roleOn) * fade
+      // донор ярок, пока отдаёт, и притухает после отдачи; акцептор разгорается, когда к нему прибывают e⁻
+      const fin = Number.isFinite(tf)
+      const phase = this.roleOf[i]! > 0 ? (fin ? 1 - 0.55 * smooth(tf, tf + 0.5, t) : 1) : fin ? 0.4 + 0.6 * smooth(tf - 0.3, tf + 0.1, t) : 1
+      const a = (0.62 * roleOn * phase * (0.86 + 0.14 * Math.sin(t * 3.4 + i)) + 0.55 * pulse * roleOn) * fade
       sp.visible = a > 0.01
       if (!sp.visible) continue
       sp.position.set(P[i * 3]!, P[i * 3 + 1]!, P[i * 3 + 2]! + R[i]! * 0.35)
@@ -788,6 +828,10 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     if (this.halfIdx >= 0) {
       const H = this.labels[this.halfIdx]!
       H.opacity = smooth(lay.eOn + 0.15, lay.eOn + 0.6, t) * (1 - smooth(lay.eOff - 0.1, lay.eOff + 0.35, t)) * fade
+      // подсветка строки: пока e⁻ уходят от донора — отдача, когда прибывают к акцептору — приём
+      const e0 = lay.electrons[0]
+      const mid = e0 ? (e0.t0 + e0.t1) / 2 : Infinity
+      H.text = t < lay.eOn + 0.2 ? this.halfTexts.n : t < mid ? this.halfTexts.o : t < lay.eLastArrive + 0.35 ? this.halfTexts.r : this.halfTexts.n
     }
     void stepId
     void stepFrom

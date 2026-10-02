@@ -172,8 +172,13 @@ const EQ_SEP = '␟'
 
 /** Карточка полуреакций: строки «вид␟текст␟роль» (o — отдача e⁻, r — приём, b — баланс). Только textContent. */
 function renderHalf(el: HTMLDivElement, text: string): void {
-  const rows = text.split('\n').map((line) => {
-    const [kind = 'b', body = '', tag = ''] = line.split(EQ_SEP)
+  const lines = text.split('\n')
+  // «O»/«R» — строка в фокусе (e⁻ уходят от донора / прибывают к акцептору): подсветка, остальные — приглушены
+  const anyActive = lines.some((l) => l.startsWith(`O${EQ_SEP}`) || l.startsWith(`R${EQ_SEP}`))
+  const rows = lines.map((line) => {
+    const [k0 = 'b', body = '', tag = ''] = line.split(EQ_SEP)
+    const active = k0 === 'O' || k0 === 'R'
+    const kind = k0.toLowerCase()
     const row = document.createElement('div')
     row.style.cssText = 'display:flex;align-items:center;gap:9px;white-space:nowrap;'
     if (kind === 'b') {
@@ -190,6 +195,8 @@ function renderHalf(el: HTMLDivElement, text: string): void {
     role.textContent = tag
     role.style.cssText = `font-size:12.5px;font-weight:600;color:${warm ? '#ffd2a3' : '#b9e6ff'};opacity:0.92;`
     row.append(dot, main, role)
+    if (active) row.style.cssText += `border-radius:8px;margin:0 -6px;padding:1px 6px;background:${warm ? 'rgba(255,171,77,0.17)' : 'rgba(92,194,255,0.17)'};`
+    else if (anyActive) row.style.opacity = '0.5'
     return row
   })
   el.replaceChildren(...rows)
@@ -381,6 +388,9 @@ export function CinemaDomLabels({
         if (narrow) {
           b.w[i] = b.w[i]! * 0.6
           b.h[i] = b.h[i]! * 0.82
+          // сцена на телефоне вписана по ширине, сверху остаётся свободное поле: карточку — к верху свободной
+          // области (раскладчик зажмёт её в рамку), а не к точке над атомами — иначе её сдвигает на частицы
+          if (layout) b.y[i] = -1e4
         }
         const node = list[i]
         const mode = narrow ? 'n' : 'w'

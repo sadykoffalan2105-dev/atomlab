@@ -98,6 +98,12 @@ export type StoryLayout = {
   readonly finish: { readonly from: number; readonly to: number }
   /** габарит всего ролика (с подписями), система сцены */
   readonly extent: { readonly w: number; readonly h: number; readonly cx: number; readonly cy: number }
+  /**
+   * Кадр по фазам: исходные и перенос e⁻ (extentL) → итог (extentR). Камера плавно «наезжает» на продукт во время
+   * образования; наезд не сильнее 1,6×. Задние копии компактного вида (скрыты) в кадр не входят.
+   */
+  readonly extentL: { readonly w: number; readonly h: number; readonly cx: number; readonly cy: number }
+  readonly extentR: { readonly w: number; readonly h: number; readonly cx: number; readonly cy: number }
   readonly top: number
   readonly bottom: number
   /**
@@ -450,7 +456,10 @@ function clusterOf(side: StorySide, units: readonly StoryUnit[], r: (i: number) 
       put(it, ci)
     }
     for (const it of majority) put(it, byCenter.find((k) => !used.has(k))!)
-    if (kind === 'ionic') compactIons(items.map((x) => x.atoms), out, r, el)
+    if (kind === 'ionic') {
+      compactIons(items.map((x) => x.atoms), out, r, el)
+      liftSmallCations(items, out, r)
+    }
     centerMap(out, r)
     return out
   }
@@ -459,6 +468,23 @@ function clusterOf(side: StorySide, units: readonly StoryUnit[], r: (i: number) 
     units.map((u) => embed(u.atoms, sideBonds.filter(([a, b]) => u.atoms.includes(a) && u.atoms.includes(b)), el, r, u.charge !== 0)),
     r,
   )
+}
+
+/**
+ * Маленький одноатомный катион среди крупных анионов (Cr³⁺ в Cr₂(SO₄)₃, Ca²⁺ в Ca₃(PO₄)₂, Al³⁺) — чуть ближе к
+ * камере: кислород тетраэдра SO₄²⁻/PO₄³⁻ выступает к зрителю и иначе закрывает катион.
+ */
+function liftSmallCations(items: readonly { atoms: number[]; cation: boolean }[], pos: Map<number, V>, r: (i: number) => number): void {
+  let rr = 0
+  for (const it of items) if (!it.cation) for (const i of it.atoms) rr = Math.max(rr, r(i))
+  for (const it of items) {
+    if (!it.cation || it.atoms.length !== 1) continue
+    const i = it.atoms[0]!
+    const lift = Math.max(0, rr - r(i)) * 0.9
+    if (lift <= 0) continue
+    const p = pos.get(i)!
+    pos.set(i, [p[0], p[1], p[2] + lift])
+  }
 }
 
 /** Копии (молекулы или формульные единицы) — сеткой, с лёгким шахматным сдвигом по глубине. */
@@ -1103,6 +1129,31 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
   const bottom = minY - 0.8
   const w = Math.max(maxX - minX + 0.8, 4.2)
   const h = top - bottom
+  const phaseBox = (Ps: readonly ArrayLike<number>[], layer: Uint8Array, topPad: number) => {
+    let x0 = Infinity
+    let x1 = -Infinity
+    let y0 = Infinity
+    let y1 = -Infinity
+    for (const P of Ps) {
+      for (let i = 0; i < n; i++) {
+        if (layer[i]) continue
+        const rr = Math.max(radius[i]!, radiusR[i]!)
+        x0 = Math.min(x0, P[i * 3]! - rr)
+        x1 = Math.max(x1, P[i * 3]! + rr)
+        y0 = Math.min(y0, P[i * 3 + 1]! - rr)
+        y1 = Math.max(y1, P[i * 3 + 1]! + rr)
+      }
+    }
+    if (!Number.isFinite(x0)) return { w, h, cx: (minX + maxX) / 2, cy: (top + bottom) / 2 }
+    const tp = y1 + topPad
+    const bt = y0 - 0.8
+    return { w: Math.max(x1 - x0 + 0.8, 4.2), h: tp - bt, cx: (x0 + x1) / 2, cy: (tp + bt) / 2 }
+  }
+  // у ОВР сверху — карточка полуреакций; на телефоне она относительно крупнее — больше поля, чтобы не легла на атомы
+  const extentL = phaseBox([p0, p1], layerL, story.redox ? (opts.lowPower ? 2.5 : 1.95) : 0.7)
+  const extentR0 = phaseBox([p3, p4], layerR, 0.7)
+  // наезд на продукт не сильнее 1,6×: маленький итог (2H₂O) не раздувается на весь экран
+  const extentR = { ...extentR0, w: Math.max(extentR0.w, extentL.w / 1.6), h: Math.max(extentR0.h, extentL.h / 1.6) }
   return {
     n,
     el,
@@ -1143,6 +1194,8 @@ export function buildStoryLayout(story: ReactionStory, opts: { lowPower?: boolea
     end: finish.to,
     finish,
     extent: { w, h, cx: (minX + maxX) / 2, cy: (top + bottom) / 2 },
+    extentL,
+    extentR,
     top,
     bottom,
     compact,
