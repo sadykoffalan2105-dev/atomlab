@@ -26,6 +26,7 @@ import { checkTeacherServiceHealth, requestTeacherChat } from '../../learn/teach
 import { preloadTeacherKnowledge } from '../../learn/teacherKnowledge'
 import { filterAssistantReply } from '../../learn/learnAssistantGuard'
 import { applyFeedback, forgetEverything } from '../../learn/brain/human/studentProfile'
+import { noteNegativeFeedback } from '../../learn/brain/ml/intentStep'
 import { LiveDialogButton } from './LearnLiveTutorPanel'
 import { warmupPuterFromUserGesture } from '../../learn/learnPuterTts'
 import {
@@ -695,6 +696,8 @@ export function LearnAssistantPanel({
     (m: ChatMessage, rating: 'up' | 'down') => {
       if (m.rating === rating) return
       applyFeedback(m.text, rating === 'up')
+      // 👎 → классификатор намерений ждёт переформулировку и дообучается на ней
+      if (rating === 'down') noteNegativeFeedback()
       setMessages((list) => list.map((x) => (x.at === m.at ? { ...x, rating } : x)))
     },
     [setMessages],

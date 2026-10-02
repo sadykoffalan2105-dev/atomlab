@@ -584,7 +584,8 @@ function continuationTurn(text: string, input: DialogInput): DialogResult | null
   if (!topic) return null
   const clean = stripLeadingDiscourse(text)
   // «А он?», «а у него?» — сущность помнит humanTeacher; тема из стека — только если её нет.
-  if (DEICTIC_RE.test(clean) && !loadProfile().lastEntity) {
+  // только короткая реплика без своего предмета: «что такое пенициллин и кто его открыл» — вопрос со своей темой
+  if (DEICTIC_RE.test(clean) && words(clean) <= 4 && !loadProfile().lastEntity) {
     return { rewrite: topic, citations: [], confident: false, intent: 'rewrite' }
   }
   const f = detectFollowUp(clean)

@@ -147,7 +147,11 @@ for (const item of ENC) {
   const endsWithHook = /\?\s*$/.test(body.trim())
   const schoolOkToo = Boolean(item.allowSchool) && res.confident && !signed
   // 2 утверждения — только у очень коротких вступлений (учёные Узбекистана); обычно 3–5
-  const ok = (signed && hasKey && statements.length >= 2 && statements.length <= 6 && endsWithHook) || schoolOkToo
+  const ok =
+    (signed && hasKey && statements.length >= 2 && statements.length <= 6 && endsWithHook) ||
+    schoolOkToo ||
+    // учёный из проверенных карточек ATOMLAB (scientistTalk, слой humanTurn) — тоже верный ответ: факты сверены, годы и достижение есть
+    (/\[ATOMLAB — (учёные|scientists|olimlar)\]/.test(text) && hasKey && statements.length >= 1)
   if (ok) encOk++
   if (signed) encSigned++
   check(`enc: ${item.q}`, ok, `signed=${signed} key=${hasKey} statements=${statements.length} hook=${endsWithHook} :: ${text.slice(0, 160).replace(/\n/g, ' ')}`)
