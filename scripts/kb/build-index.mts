@@ -46,9 +46,12 @@ for (const c of chunks) {
   seenIds.add(c.id)
 }
 
+let wikiCounter = 0
 function shardOf(c: CorpusChunk): ShardName {
   // r10: book index chunks (type 'index') live in their own shard with their own statistics
   if (c.type === 'index') return 'book'
+  // wf15: encyclopedia (Wikipedia) chunks — two files with shared statistics, loaded on request only
+  if (c.type === 'encyclopedia') return wikiCounter++ % 2 === 0 ? 'wiki-a' : 'wiki-b'
   if (c.grade == null) return 'common'
   const name = `g${c.grade}` as ShardName
   return SHARD_NAMES.includes(name) ? name : 'common'
@@ -88,8 +91,10 @@ function statsOf(list: Analyzed[]) {
   const avgs = sumLens.map((s) => Number((s / Math.max(1, n)).toFixed(3))) as [number, number, number]
   return { N: n, df: dfs, avg: avgs }
 }
-const { N, df, avg } = statsOf(analyzed.filter((a) => a.shard !== 'book'))
+const isWiki = (name: ShardName) => name === 'wiki-a' || name === 'wiki-b'
+const { N, df, avg } = statsOf(analyzed.filter((a) => a.shard !== 'book' && !isWiki(a.shard)))
 const bookStats = statsOf(analyzed.filter((a) => a.shard === 'book'))
+const wikiStats = statsOf(analyzed.filter((a) => isWiki(a.shard)))
 
 // ------------------------------------------------------------------ write shards
 function varint(out: number[], n: number) {
@@ -112,7 +117,7 @@ const manifest: Record<string, unknown> = {
 
 for (const name of SHARD_NAMES) {
   const docsA = analyzed.filter((a) => a.shard === name)
-  const st = name === 'book' ? bookStats : { N, df, avg }
+  const st = name === 'book' ? bookStats : isWiki(name) ? wikiStats : { N, df, avg }
   const docs: ShardDoc[] = docsA.map(({ chunk: c }) => [
     c.id,
     c.grade ?? null,
@@ -248,4 +253,4 @@ manifest.lexicon = { keys: phrases.size, glossaryKeys, alignedKeys: alignedAdded
 console.log(`[index] lexicon: ${phrases.size} keys (${glossaryKeys} glossary, ${alignedAdded} aligned), ${(Buffer.byteLength(lexJson) / 1024).toFixed(0)} KB`)
 
 fs.writeFileSync(path.join(OUT, 'kb-manifest.json'), JSON.stringify(manifest, null, 2))
-console.log(`[index] ${analyzed.length} docs total (${bookStats.N} in the book index), done in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
+console.log(`[index] ${analyzed.length} docs total (${bookStats.N} in the book index, ${wikiStats.N} in the encyclopedia), done in ${((Date.now() - t0) / 1000).toFixed(1)}s`)

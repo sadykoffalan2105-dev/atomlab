@@ -214,6 +214,21 @@ export async function composeLocalTeacherReply(
     seed: messages.length,
     suggestSmartAi: !isSmartAiConnected(),
   })
+  // wf15: энциклопедия (Википедия, CC BY-SA) — учёные, история, промышленность, быт: когда школьный ответ слабый
+  // или вопрос явно «за пределами школы» («кто такой…», «кто открыл…», «нобелевск…», «в промышленности»).
+  {
+    const { composeEncyclopediaAnswer, encyclopediaIntent } = await import('./brain/wiki/encyclopediaAnswer')
+    let encHits = knowledge.hits.filter((h) => h.type === 'encyclopedia')
+    const strong = encHits.length || !composed.confident ? (await encyclopediaIntent(resolved.query, ctx.locale)) === 'strong' : false
+    if (!encHits.length && !composed.confident) {
+      const { encyclopediaFallbackHits } = await import('./kb/encyclopedia')
+      encHits = await encyclopediaFallbackHits(resolved.query, ctx.locale)
+    }
+    if (encHits.length && (!composed.confident || strong)) {
+      const enc = composeEncyclopediaAnswer(resolved.query, encHits, ctx.locale, { seed: messages.length })
+      if (enc) return { text: enc.text, source: 'local', citations: [enc.citation], confident: true }
+    }
+  }
   const used = new Set(composed.usedTitles)
   // Значки — из фрагментов, давших фразы ответа (не все фрагменты с тем же заголовком).
   const citations = [

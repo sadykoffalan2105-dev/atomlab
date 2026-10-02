@@ -57,5 +57,6 @@ export type KbLexiconFile = {
 }
 
 /** 'book' (r10): generated textbook index chunks (type 'index') with their own statistics — scripts/kb/lib/bookIndex.mts. */
-export const SHARD_NAMES = ['common', 'g7', 'g8', 'g9', 'g10', 'g11', 'book'] as const
+/** 'wiki-a' / 'wiki-b' (wf15): encyclopedia chunks (type 'encyclopedia') split in two files, shared statistics. */
+export const SHARD_NAMES = ['common', 'g7', 'g8', 'g9', 'g10', 'g11', 'book', 'wiki-a', 'wiki-b'] as const
 export type ShardName = (typeof SHARD_NAMES)[number]

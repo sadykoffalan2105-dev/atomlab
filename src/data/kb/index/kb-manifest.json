@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T17:16:32.867Z",
+  "generatedAt": "2026-10-02T04:48:24.934Z",
   "analyzer": 4,
   "format": 1,
   "N": 3477,
@@ -50,6 +50,18 @@
       "terms": 2338,
       "postingsBytes": 294423,
       "fileBytes": 2931704
+    },
+    "wiki-a": {
+      "docs": 1791,
+      "terms": 19885,
+      "postingsBytes": 366198,
+      "fileBytes": 3140619
+    },
+    "wiki-b": {
+      "docs": 1790,
+      "terms": 19895,
+      "postingsBytes": 364381,
+      "fileBytes": 3120044
     }
   },
   "lexicon": {
