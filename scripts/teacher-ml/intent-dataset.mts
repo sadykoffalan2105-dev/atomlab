@@ -304,6 +304,48 @@ for (const intent of INTENTS) {
   }
 }
 
+// ---------------------------------------------------------------- надиктованная речь (STT): заполнители, хвосты, повторы, без пунктуации
+const SPOKEN_LEAD: Record<Lang, string[]> = {
+  ru: ['э ', 'эм ', 'ну ', 'ну это ', 'это самое ', 'типа ', 'короче ', 'как бы ', 'в общем ', 'значит ', 'блин ', 'слушай ', 'ну вот ', 'э ну ', 'так э ', 'ну короче '],
+  en: ['um ', 'uh ', 'so ', 'like ', 'well ', 'you know ', 'so um ', 'erm ', 'i mean ', 'ok so '],
+  uz: ['xo‘sh ', 'ya’ni ', 'demak ', 'anavi ', 'hali ', 'xullas ', 'endi ', 'mana ', 'xo‘sh demak '],
+}
+const SPOKEN_INNER: Record<Lang, string[]> = { ru: ['ну', 'э', 'типа', 'как бы', 'это самое', 'вот', 'значит'], en: ['um', 'like', 'uh', 'you know'], uz: ['ya’ni', 'anavi', 'demak'] }
+const SPOKEN_TAIL: Record<Lang, string[]> = { ru: [' да', ' а', ' ну', ' вот', ' понимаешь', ' короче', ' или как', ' правильно'], en: [' right', ' yeah', ' huh', ' you know', ' ok'], uz: [' a', ' to‘g‘rimi', ' shundaymi', ' ha'] }
+function spoken(text: string, lang: Lang): string {
+  let s = text.toLowerCase().replace(/[?!.,;:…]+/g, ' ').replace(/\s+/g, ' ').trim()
+  if (rnd() < 0.85) s = pick(SPOKEN_LEAD[lang]) + s
+  const words = s.split(' ')
+  if (words.length >= 3 && rnd() < 0.5) words.splice(1 + Math.floor(rnd() * (words.length - 1)), 0, pick(SPOKEN_INNER[lang]))
+  if (words.length >= 2 && rnd() < 0.3) {
+    const i = Math.floor(rnd() * (words.length - 1))
+    words.splice(i, 0, words[i]!) // оборванный повтор: «что что такое»
+  }
+  s = words.join(' ')
+  if (rnd() < 0.5) s += pick(SPOKEN_TAIL[lang])
+  return s.replace(/\s+/g, ' ').trim()
+}
+const SPOKEN_PER_LANG: Record<Lang, number> = { ru: 25, en: 10, uz: 8 }
+let spokenRows = 0
+for (const intent of INTENTS) {
+  const t = TEMPLATES[intent]
+  for (const lang of langs) {
+    const tpls = t[lang] ?? []
+    if (!tpls.length) continue
+    let guard = 0
+    let made = 0
+    while (made < SPOKEN_PER_LANG[lang] && guard++ < SPOKEN_PER_LANG[lang] * 30) {
+      const s = spoken(fill(pick(tpls), lang), lang)
+      if (s.length < 1 || seen.has(s.toLowerCase())) continue
+      seen.add(s.toLowerCase())
+      rows.push({ text: s, intent, lang })
+      made++
+      spokenRows++
+    }
+  }
+}
+console.log(`[intent-dataset] надиктованных (STT) фраз: ${spokenRows}`)
+
 // отложенная выборка: 15 % случайно, стратифицированно по намерению
 const train: Row[] = []
 const heldout: Row[] = []

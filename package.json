@@ -96,6 +96,7 @@
     "perf:clo2": "node scripts/perf-clo2-cinema.mjs",
     "test:homework-review": "tsx scripts/test-homework-review.mts",
     "test:teacher-dialog": "tsx scripts/test-teacher-dialog.mts",
+    "test:spoken-normalize": "tsx scripts/test-spoken-normalize.mts",
     "test:teacher-dialog-flow": "tsx scripts/test-teacher-dialog-flow.mts",
     "test:teacher-voice": "tsx scripts/test-teacher-voice.mts",
     "test:teacher-encyclopedia": "tsx scripts/test-teacher-encyclopedia.mts",

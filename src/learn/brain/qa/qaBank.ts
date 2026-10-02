@@ -13,6 +13,7 @@
  */
 import { stemRussian } from '../../kb/stemRu'
 import { updateProfile, type TalkEntity } from '../human/studentProfile'
+import { spokenNormalize } from '../human/spokenNormalize'
 import type { QaBank, QaDefinition, QaElement, QaReaction, QaSection, QaSubstance, QaTerm } from './qaBankTypes'
 
 export type QaLang = 'ru' | 'en' | 'uz'
@@ -36,6 +37,11 @@ export type QaIntent =
   | 'config'
   | 'armass'
   | 'translate'
+  | 'compare'
+  | 'metal'
+  | 'compounds'
+  | 'conditions'
+  | 'syllabus'
 
 export interface QaOptions {
   lang: QaLang
@@ -341,7 +347,7 @@ function findEntities(text: string, folded: string, idx: Index): Ent[][] {
   return out
 }
 
-const ELEMENT_INTENTS = new Set<QaIntent>(['position', 'valency', 'config', 'armass'])
+const ELEMENT_INTENTS = new Set<QaIntent>(['position', 'valency', 'config', 'armass', 'metal', 'compounds'])
 
 /** Один кандидат из группы (элемент/вещество с тем же именем, несколько оксидов меди). */
 function choose(group: Ent[], intent: QaIntent | null, grade: number | null | undefined): Ent {
@@ -368,7 +374,12 @@ function talkOf(ent: Ent): TalkEntity {
 /* ============================================================ вопрос */
 
 const INTENTS: [QaIntent, RegExp][] = [
-  ['translate', /как (будет )?по[- ](английск|узбекск|русск)|по[- ]английски|по[- ]узбекски|по[- ]русски|in (english|uzbek|russian)|inglizcha|o'zbekcha|ruscha|translat|перевод|перевед|tarjima/u],
+  ['syllabus', /что (проходят|изучают|учат|будет|будем проходить|будут проходить) в \d{1,2}|(какие|что за) (темы|главы|параграфы|разделы) (в|у|по|для|есть в) (\d{1,2}|глав)|темы \d{1,2}[- ]?(го |м )?класса|программ\p{L}* (по химии )?(за |для )?\d{1,2}|содержание (учебника|главы)|глав[аеы] \d{1,2}|what (do (they|we|you|students) )?(study|learn|cover)\p{L}* in grade|topics (of|in|for) (grade|chapter)|chapter \d|\d{1,2}[- ]?sinfda nima(lar)? o'?t|\d{1,2}[- ]?sinf (mavzulari|dasturi)|\d{1,2}[- ]?bob(da|ning)? mavzular|qaysi mavzular/u],
+  ['compare', /чем отличается|чем отличаются|отличие|отличия|различие|различия|разница между|в чем разница|сравни|сравнить|сравнение|что общего|чем похожи|compare|comparison|difference between|differ from|have in common|how (is|are) .+ different|farqi nima|farq(i|lari)|taqqosla|solishtir|umumiy(ligi)? nima|nima bilan farq/u],
+  ['conditions', /услови\p{L}* (реакции|протекания|проведения|взаимодействия)|при каких условиях|что нужно для реакции|нужен ли (нагрев|катализатор)|conditions? (of|for) (the |this )?reaction|under what conditions|what conditions|qanday sharoitda|reaksiya (sharoiti|shartlari)|qaysi sharoitda/u],
+  ['metal', /металл или неметалл|неметалл или металл|это металл|металл ли|является (ли )?металлом|это неметалл|metal or non-?metal|non-?metal or metal|is (it|this|\p{L}+) (a )?(metal|non-?metal)|metallmi|metall yoki metallmas|metallmasmi/u],
+  ['compounds', /какие соединения (образует|даёт|дает|бывают у|есть у|у)|соединения \p{L}+ (образует|даёт|дает)|с чем образует соединения|what compounds (does|can)|compounds of|birikmalar(i|ini) (hosil|beradi)|qanday birikmalar/u],
+  ['translate',/как (будет )?по[- ](английск|узбекск|русск)|по[- ]английски|по[- ]узбекски|по[- ]русски|in (english|uzbek|russian)|inglizcha|o'zbekcha|ruscha|translat|перевод|перевед|tarjima/u],
   ['products', /что (получится|получается|образуется|выйдет|будет|даст|дадут)|какой продукт|продукт\p{L}* реакции|what (is|are|will be|gets?) (formed|produced|made)|what do (you|we) get|products? of|nima hosil|hosil bo'l|mahsulot/u],
   ['rxtype', /тип\p{L}* (этой |данной )?реакци|какого типа|какая это реакция|к какому типу|это (овр|окислительно)|type of (this |the )?reaction|what (kind|type) of reaction|is (this|it) (a )?redox|reaksiya(ning)? turi|qanday reaksiya|qaysi turga/u],
   ['reacts', /с чем (реагирует|взаимодействует|вступает|может реагировать)|с какими веществами|какие реакции|химические свойства|react(s|ing)? with|what does .+ react|what reacts|nima bilan (reaksiya|ta'sir)|kimyoviy xossa/u],
@@ -385,7 +396,7 @@ const INTENTS: [QaIntent, RegExp][] = [
   ['usage', /применен|применя|использу|где (нужн|использ)|для чего (нужн|использ|служит)|зачем нужн|used for|uses? of|application|where is .+ used|qo'llanil|ishlatil|nima uchun kerak|qayerda ishlat/u],
   ['source', /откуда (берут|получают|добывают|бер[её]тся)|где (добывают|встречается|находится в природе)|в природе|нахождени|месторожден|where (is|does|do) .+ (found|occur|come from)|in nature|tabiatda|qayerdan olinadi|qayerda uchraydi/u],
   ['definition', /что такое|что это (за|такое)|определени|дай определение|what (is|are) (an? |the )?|define|definition|\bnima\b|deganda|ta'rif/u],
-  ['about', /расскажи|поведай|опиши|характеристик|tell me about|describe|\babout\b|haqida|to'g'risida|ta'rifla/u],
+  ['about', /расскажи|поведай|опиши|характеристик|что ты знаешь|знаешь (о|про|что-нибудь)|tell me about|describe|\babout\b|what do you know|haqida|to'g'risida|ta'rifla|nima bilasan/u],
 ]
 
 function detectIntent(folded: string): QaIntent | null {
@@ -561,13 +572,55 @@ function breakdown(s: QaSubstance, idx: Index, lang: QaLang): string {
     .join(' + ')
 }
 
-function answerSubstance(s: QaSubstance, intent: QaIntent, lang: QaLang, idx: Index, seed: number, grade: number | null | undefined): QaAnswer | null {
+function answerSubstance(s: QaSubstance, intent0: QaIntent, lang: QaLang, idx: Index, seed: number, grade: number | null | undefined): QaAnswer | null {
   const name = substanceName(s, lang)
   const ent: Ent = { kind: 'substance', s }
   const cls = tr(CLASS_LABEL[s.cl2 ?? s.cls] ?? CLASS_LABEL.other, lang)
   const fam = s.fam ? (lang === 'en' ? s.fam.en : lang === 'uz' ? s.fam.uz : s.fam.ru) : ''
   const cat = tr(CATALOG_CIT, lang)
+  // «металл или неметалл» про вещество → класс; «какие соединения» про вещество → рассказ.
+  const intent: QaIntent = intent0 === 'metal' ? 'class' : intent0 === 'compounds' ? 'about' : intent0
   switch (intent) {
+    case 'conditions': {
+      // «Условия реакции цинка …» — реакции с участием вещества, у которых в источнике записаны условия.
+      const list = sortByGrade([...(idx.rxByReactant.get(s.fa.toLowerCase()) ?? [])].filter((r) => r.r.length > 1), grade)
+      const withCond = list.filter((r) => conditionsText(r, lang))
+      const shown = (withCond.length ? withCond : list).slice(0, 4)
+      if (!shown.length) return null
+      const head = tr([`Условия реакций с участием ${lower1(name)} (${s.f}) — как записано в учебниках:`, `Conditions of reactions involving ${lower1(name)} (${s.f}) — as given in the textbooks:`, `${name} (${s.f}) ishtirokidagi reaksiyalar sharoiti — darsliklarda yozilganidek:`], lang)
+      const lines = shown.map((r, i) => `${i + 1}) ${rxLine(r, lang, false)} — ${conditionsText(r, lang) || tr(['особых условий в источнике не указано', 'no special conditions listed', 'maxsus sharoit ko‘rsatilmagan'], lang)} ${rxCitation(r, lang)}`)
+      return done([head, ...lines].join('\n'), uniqueCitations(shown, lang), 'conditions', ent)
+    }
+    case 'about': {
+      // Связный рассказ 3–5 предложений — только из полей записи каталога.
+      const A = new Map(idx.bank.elements.map((e) => [e.s, e]))
+      const compList = Object.entries(s.comp).map(([sym, n]) => `${sym}${n > 1 ? `×${n}` : ''} (${A.get(sym) ? lower1(elementName(A.get(sym)!, lang)) : sym})`).join(', ')
+      const M = formatMass(s.M, lang)
+      const grades = s.g.length ? s.g.join(', ') : ''
+      const ru = [
+        `${name} (${s.f}) — ${cls}${fam ? `, семейство «${fam}»` : ''}; состоит из ${compList}, M = ${M} г/моль.`,
+        s.d ? s.d : '',
+        s.use ? `Применение: ${lower1(s.use)}` : '',
+        s.rec ? `Получение: ${s.rec}.` : s.src ? `Откуда берут: ${lower1(s.src)}` : '',
+        grades ? `В школе изучается в ${grades} классе${s.ch ? `, тема «${s.ch}»` : ''}${s.pg ? ` (с. ${s.pg})` : ''}.` : '',
+      ]
+      const en = [
+        `${name} (${s.f}) is ${cls}${fam ? `, family "${fam}"` : ''}; it consists of ${compList}, M = ${M} g/mol.`,
+        s.d ? `Catalog note (Russian): ${s.d}` : '',
+        s.use ? `Uses (catalog, Russian): ${lower1(s.use)}` : '',
+        s.rec ? `Preparation: ${s.rec}.` : s.src ? `Source (catalog, Russian): ${lower1(s.src)}` : '',
+        grades ? `Studied at school in grade ${grades}${s.ch ? `, topic "${s.ch}"` : ''}${s.pg ? ` (p. ${s.pg})` : ''}.` : '',
+      ]
+      const uz = [
+        `${name} (${s.f}) — ${cls}${fam ? `, «${fam}» oilasi` : ''}; tarkibi: ${compList}, M = ${M} g/mol.`,
+        s.d ? `Katalog izohi (ruscha): ${s.d}` : '',
+        s.use ? `Qo'llanilishi (katalog, ruscha): ${lower1(s.use)}` : '',
+        s.rec ? `Olinishi: ${s.rec}.` : s.src ? `Manbasi (katalog, ruscha): ${lower1(s.src)}` : '',
+        grades ? `Maktabda ${grades}-sinfda o'rganiladi${s.ch ? `, mavzu «${s.ch}»` : ''}${s.pg ? ` (${s.pg}-bet)` : ''}.` : '',
+      ]
+      const story = (lang === 'en' ? en : lang === 'uz' ? uz : ru).filter(Boolean).map((x) => (/[.!?]$/.test(x) ? x : `${x}.`))
+      return done(story.join(' '), [cat], 'about', ent, { M: s.M })
+    }
     case 'molar':
     case 'armass': {
       const M = formatMass(s.M, lang)
@@ -681,8 +734,7 @@ function answerSubstance(s: QaSubstance, intent: QaIntent, lang: QaLang, idx: In
       const list = spots.length ? `${tr(['Где смотреть:', 'Where to look:', 'Qayerdan qarash:'], lang)}\n${spots.map((x) => `• ${x}`).join('\n')}` : ''
       return done([head, list].filter(Boolean).join('\n'), [...seen].slice(0, 3), 'where', ent)
     }
-    case 'definition':
-    case 'about': {
+    case 'definition': {
       const desc = s.d ? ` ${s.d}` : ''
       const grades = s.g.length ? tr([` Изучается в ${s.g.join(', ')} классе.`, ` Studied in grade ${s.g.join(', ')}.`, ` ${s.g.join(', ')}-sinfda o'rganiladi.`], lang) : ''
       const ru = [`${name} (${s.f}) — ${cls}${fam ? `, семейство «${fam}»` : ''}, M = ${formatMass(s.M, lang)} г/моль.${desc}${grades}`, `${name}, формула ${s.f}: ${cls}${fam ? ` из семейства «${fam}»` : ''}.${desc}${grades}`, `Коротко о ${s.f} (${lower1(name)}): ${cls}${fam ? `, ${lower1(fam)}` : ''}; молярная масса ${formatMass(s.M, lang)} г/моль.${desc}`]
@@ -733,6 +785,18 @@ function answerElement(e: QaElement, intent: QaIntent, lang: QaLang, seed: numbe
     }
     case 'formula':
     case 'definition':
+    case 'metal': {
+      const isMetalloid = e.blk === 'Metalloid'
+      const isMetal = !isMetalloid && /metal|lanthanide|actinide/i.test(e.blk)
+      const kind = isMetalloid ? tr(['полуметалл (металлоид)', 'a metalloid', 'yarimmetall (metalloid)'], lang) : isMetal ? tr(['металл', 'a metal', 'metall'], lang) : tr(['неметалл', 'a nonmetal', 'metallmas'], lang)
+      const per = e.per ?? '—'
+      const grp = typeof e.grp === 'number' ? e.grp : '—'
+      const text = tr(
+        [`${name} (${e.s}) — ${kind}: по таблице это ${block}; период ${per}, группа ${grp}, Z = ${e.z}.`, `${name} (${e.s}) is ${kind}: in the table it is ${block}; period ${per}, group ${grp}, Z = ${e.z}.`, `${name} (${e.s}) — ${kind}: jadvalda bu ${block}; davr ${per}, guruh ${grp}, Z = ${e.z}.`],
+        lang,
+      )
+      return done(text, cit, 'metal', ent, { z: e.z })
+    }
     case 'about':
     case 'class': {
       const st = e.st ? tr(STATE_LABEL[e.st], lang, e.st) : ''
@@ -759,7 +823,9 @@ function answerReactionsBetween(ents: Ent[], intent: QaIntent, lang: QaLang, idx
   const names = ents.map((e) => entName(e, lang)).map(lower1)
   const joined = lang === 'en' ? names.join(' and ') : lang === 'uz' ? names.join(' va ') : names.join(' и ')
   const head =
-    intent === 'rxtype'
+    intent === 'conditions'
+      ? tr([`Условия реакции ${joined} — как записано в учебниках:`, `Conditions for the reaction of ${joined} — as given in the textbooks:`, `${joined} reaksiyasi sharoiti — darsliklarda yozilganidek:`], lang)
+      : intent === 'rxtype'
       ? pick(
           lang === 'en'
             ? [`Reaction of ${joined} — by type:`, `Here is what kind of reaction it is:`, `Type of the reaction between ${joined}:`]
@@ -776,8 +842,9 @@ function answerReactionsBetween(ents: Ent[], intent: QaIntent, lang: QaLang, idx
               : [`Реагируют ${joined} — получится:`, `${names.map((n) => n[0]!.toUpperCase() + n.slice(1)).join(' + ')} — в учебниках так:`, `Когда реагируют ${joined}, образуется:`],
           seed,
         )
-  const lines = list.map((r, i) => `${list.length > 1 ? `${i + 1}) ` : ''}${rxLine(r, lang)} ${rxCitation(r, lang)}`)
-  return done([head, ...lines].join('\n'), uniqueCitations(list, lang), intent === 'rxtype' ? 'rxtype' : 'products', ents[0]!)
+  const noCond = tr(['особых условий в источнике не указано', 'no special conditions listed', 'maxsus sharoit ko‘rsatilmagan'], lang)
+  const lines = list.map((r, i) => `${list.length > 1 ? `${i + 1}) ` : ''}${rxLine(r, lang, intent !== 'conditions')}${intent === 'conditions' ? ` — ${conditionsText(r, lang) || noCond}` : ''} ${rxCitation(r, lang)}`)
+  return done([head, ...lines].join('\n'), uniqueCitations(list, lang), intent === 'rxtype' ? 'rxtype' : intent === 'conditions' ? 'conditions' : 'products', ents[0]!)
 }
 
 function answerEquation(eq: { r: string[]; p: string[] }, intent: QaIntent | null, lang: QaLang, idx: Index, seed: number, grade: number | null | undefined): QaAnswer | null {
@@ -872,7 +939,8 @@ const wordCount = (s: string) => s.replace(/[—–-]+/g, ' ').split(/\s+/).filt
  * Вызывается ПОСЛЕ humanTurn (элемент по символу, молярная масса по формуле уже отвечены там).
  */
 export async function answerFromQaBank(text: string, opts: QaOptions): Promise<QaAnswer | null> {
-  const t = text.trim()
+  // Надиктованная речь: заполнители, хвост «да?», числа словами — убираем до разбора.
+  const t = spokenNormalize(text).trim()
   if (!t || t.length > 240) return null
   let idx: Index
   try {
@@ -888,6 +956,19 @@ export async function answerFromQaBank(text: string, opts: QaOptions): Promise<Q
   const stems = correctTypos(tokenize(folded), idx).map(stemToken)
 
   if (intent === 'translate') return answerTranslate(stems, idx, lang, seed)
+  // «Что проходят в 8 классе», «какие темы в главе 3» — разделы учебника, сущность не нужна.
+  if (intent === 'syllabus') return answerSyllabus(folded, idx, lang, grade)
+  // «Чем отличается X от Y», «сравни кислоты и основания» — по полям записей или по определениям глоссария.
+  if (intent === 'compare') {
+    const pairs = findEntities(t, folded, idx)
+    if (pairs.length >= 2) {
+      // «натрий и калий» — элементы (даже если в каталоге есть простые вещества); «оксид и гидроксид» — вещества.
+      const two = pairs.slice(0, 2)
+      const bothEl = two.every((g) => g.some((x) => x.kind === 'element'))
+      return answerCompareEnts(two.map((g) => (bothEl ? g.find((x) => x.kind === 'element')! : (g.find((x) => x.kind === 'substance') ?? choose(g, null, grade)))), lang)
+    }
+    return answerCompareTerms(stems, idx, lang, grade)
+  }
 
   const eq = parseEquationText(t)
   if (eq) return answerEquation(eq, intent, lang, idx, seed, grade)
@@ -905,7 +986,7 @@ export async function answerFromQaBank(text: string, opts: QaOptions): Promise<Q
   }
 
   const ents = groups.map((g) => choose(g, intent, grade))
-  if ((intent === 'products' || intent === 'rxtype') && ents.length >= 2) return answerReactionsBetween(ents.slice(0, 3), intent, lang, idx, seed, grade)
+  if ((intent === 'products' || intent === 'rxtype' || intent === 'conditions') && ents.length >= 2) return answerReactionsBetween(ents.slice(0, 3), intent, lang, idx, seed, grade)
   if (!intent && ents.length >= 2 && /\s(и|and|va|\+)\s/u.test(folded) && wordCount(folded) <= 6) return answerReactionsBetween(ents.slice(0, 3), 'products', lang, idx, seed, grade)
   if (intent === 'products' || intent === 'rxtype') return null
 
@@ -942,7 +1023,170 @@ export async function answerFromQaBank(text: string, opts: QaOptions): Promise<Q
     if (finalIntent === 'where') return answerWhereTerm(stems, idx, lang, seed, grade)
     return null
   }
-  return answerElement(ent.e, finalIntent, lang, seed)
+  // «Какие соединения образует натрий» — из каталога по составу; «расскажи о железе» — карточка + соединения.
+  if (finalIntent === 'compounds') return answerCompounds(ent.e, idx, lang, grade)
+  const card = answerElement(ent.e, finalIntent, lang, seed)
+  if (card && finalIntent === 'about') {
+    const more = compoundsLine(ent.e, idx, lang, grade)
+    if (more) card.text = `${card.text}\n${more}`
+  }
+  return card
+}
+
+/* ============================================================ соединения, сравнения, программа */
+
+function compoundsOf(e: QaElement, idx: Index, grade: number | null | undefined, limit = 6): QaSubstance[] {
+  const score = (s: QaSubstance) => (grade && s.g.includes(grade) ? 10 : 0) + (s.g.length ? 5 - Math.min(Math.max(s.g[0]! - 7, 0), 4) : 0) - Object.keys(s.comp).length
+  return idx.bank.substances
+    .filter((s) => s.comp[e.s] && Object.keys(s.comp).length > 1 && !s.id.startsWith('org'))
+    .sort((a, b) => score(b) - score(a) || a.M - b.M)
+    .slice(0, limit)
+}
+
+function compoundsLine(e: QaElement, idx: Index, lang: QaLang, grade: number | null | undefined): string {
+  const list = compoundsOf(e, idx, grade, 4)
+  if (!list.length) return ''
+  const items = list.map((s) => `${s.f} (${lower1(substanceName(s, lang))})`).join(', ')
+  return tr([`Образует соединения (из каталога): ${items}.`, `Forms compounds (from the catalog): ${items}.`, `Birikmalar hosil qiladi (katalogdan): ${items}.`], lang)
+}
+
+function answerCompounds(e: QaElement, idx: Index, lang: QaLang, grade: number | null | undefined): QaAnswer | null {
+  const list = compoundsOf(e, idx, grade)
+  if (!list.length) return null
+  const name = elementName(e, lang)
+  const head = tr([`Соединения ${lower1(name)} (${e.s}) из каталога ATOMLAB:`, `Compounds of ${lower1(name)} (${e.s}) from the ATOMLAB catalog:`, `${name} (${e.s}) birikmalari — ATOMLAB katalogidan:`], lang)
+  const lines = list.map((s) => `• ${s.f} — ${lower1(substanceName(s, lang))}, ${tr(CLASS_LABEL[s.cl2 ?? s.cls] ?? CLASS_LABEL.other, lang)}${s.g.length ? ` (${s.g[0]} ${tr(['класс', 'grade', 'sinf'], lang)})` : ''}`)
+  return done([head, ...lines].join('\n'), [tr(CATALOG_CIT, lang)], 'compounds', { kind: 'element', e }, { count: list.length })
+}
+
+function answerCompareEnts(ents: Ent[], lang: QaLang): QaAnswer | null {
+  const [a, b] = ents
+  if (!a || !b) return null
+  if (a.kind === 'substance' && b.kind === 'substance') {
+    const A = a.s
+    const B = b.s
+    if (A.id === B.id) return null
+    const nA = substanceName(A, lang)
+    const nB = substanceName(B, lang)
+    const clsA = tr(CLASS_LABEL[A.cl2 ?? A.cls] ?? CLASS_LABEL.other, lang)
+    const clsB = tr(CLASS_LABEL[B.cl2 ?? B.cls] ?? CLASS_LABEL.other, lang)
+    const elsA = Object.keys(A.comp)
+    const elsB = Object.keys(B.comp)
+    const common = elsA.filter((x) => elsB.includes(x)).join(', ')
+    const onlyA = elsA.filter((x) => !elsB.includes(x)).join(', ')
+    const onlyB = elsB.filter((x) => !elsA.includes(x)).join(', ')
+    const MA = formatMass(A.M, lang)
+    const MB = formatMass(B.M, lang)
+    const heavier = A.M === B.M ? '' : A.M > B.M ? A.f : B.f
+    const famA = A.fam ? (lang === 'en' ? A.fam.en : lang === 'uz' ? A.fam.uz : A.fam.ru) : ''
+    const famB = B.fam ? (lang === 'en' ? B.fam.en : lang === 'uz' ? B.fam.uz : B.fam.ru) : ''
+    const gA = A.g.join(', ')
+    const gB = B.g.join(', ')
+    const dash = '—'
+    const ru = [
+      `Сравниваем ${nA} (${A.f}) и ${nB} (${B.f}):`,
+      `• класс: ${clsA === clsB ? `оба — ${clsA}` : `${A.f} — ${clsA}, ${B.f} — ${clsB}`}${famA && famB ? ` (семейства: ${famA} / ${famB})` : ''}`,
+      `• молярная масса: ${MA} и ${MB} г/моль${heavier ? ` — ${heavier} тяжелее` : ' — одинаковые'}`,
+      `• состав: общие элементы — ${common || 'нет'}; только в ${A.f}: ${onlyA || dash}; только в ${B.f}: ${onlyB || dash}`,
+      gA || gB ? `• в школе: ${A.f} — ${gA || dash} класс, ${B.f} — ${gB || dash} класс` : '',
+    ]
+    const en = [
+      `Comparing ${nA} (${A.f}) and ${nB} (${B.f}):`,
+      `• class: ${clsA === clsB ? `both are ${clsA}` : `${A.f} is ${clsA}, ${B.f} is ${clsB}`}${famA && famB ? ` (families: ${famA} / ${famB})` : ''}`,
+      `• molar mass: ${MA} vs ${MB} g/mol${heavier ? ` — ${heavier} is heavier` : ' — equal'}`,
+      `• composition: common elements — ${common || 'none'}; only in ${A.f}: ${onlyA || dash}; only in ${B.f}: ${onlyB || dash}`,
+      gA || gB ? `• at school: ${A.f} — grade ${gA || dash}, ${B.f} — grade ${gB || dash}` : '',
+    ]
+    const uz = [
+      `${nA} (${A.f}) va ${nB} (${B.f}) ni solishtiramiz:`,
+      `• sinfi: ${clsA === clsB ? `ikkalasi ham ${clsA}` : `${A.f} — ${clsA}, ${B.f} — ${clsB}`}${famA && famB ? ` (oilalar: ${famA} / ${famB})` : ''}`,
+      `• molyar massa: ${MA} va ${MB} g/mol${heavier ? ` — ${heavier} og'irroq` : ' — teng'}`,
+      `• tarkibi: umumiy elementlar — ${common || "yo'q"}; faqat ${A.f} da: ${onlyA || dash}; faqat ${B.f} da: ${onlyB || dash}`,
+      gA || gB ? `• maktabda: ${A.f} — ${gA || dash}-sinf, ${B.f} — ${gB || dash}-sinf` : '',
+    ]
+    return done((lang === 'en' ? en : lang === 'uz' ? uz : ru).filter(Boolean).join('\n'), [tr(CATALOG_CIT, lang)], 'compare', a, { MA: A.M, MB: B.M })
+  }
+  if (a.kind === 'element' && b.kind === 'element') {
+    const A = a.e
+    const B = b.e
+    if (A.z === B.z) return null
+    const nA = elementName(A, lang)
+    const nB = elementName(B, lang)
+    const blkA = tr(BLOCK_LABEL[A.blk], lang, A.blk)
+    const blkB = tr(BLOCK_LABEL[B.blk], lang, B.blk)
+    const pos = (e: QaElement) => `${tr(['период', 'period', 'davr'], lang)} ${e.per ?? '—'}, ${tr(['группа', 'group', 'guruh'], lang)} ${e.grp ?? '—'}`
+    const same = A.per === B.per ? tr(['один период', 'same period', 'bir davr'], lang) : A.grp === B.grp && A.grp != null ? tr(['одна группа', 'same group', 'bir guruh'], lang) : ''
+    const ru = [
+      `Сравниваем ${nA} (${A.s}, Z = ${A.z}) и ${nB} (${B.s}, Z = ${B.z}):`,
+      `• тип: ${blkA === blkB ? `оба — ${blkA}` : `${A.s} — ${blkA}, ${B.s} — ${blkB}`}`,
+      `• место в таблице: ${A.s} — ${pos(A)}; ${B.s} — ${pos(B)}${same ? ` (${same})` : ''}`,
+      `• атомная масса: Ar(${A.s}) = ${formatMass(A.A, lang)}, Ar(${B.s}) = ${formatMass(B.A, lang)}`,
+      A.ox && B.ox ? `• степени окисления: ${A.s}: ${A.ox}; ${B.s}: ${B.ox}` : '',
+      A.en_ && B.en_ ? `• электроотрицательность: ${A.s} ${A.en_}, ${B.s} ${B.en_} — ${A.en_ > B.en_ ? A.s : B.s} сильнее притягивает электроны` : '',
+    ]
+    const en = [
+      `Comparing ${nA} (${A.s}, Z = ${A.z}) and ${nB} (${B.s}, Z = ${B.z}):`,
+      `• type: ${blkA === blkB ? `both are ${blkA}` : `${A.s} is ${blkA}, ${B.s} is ${blkB}`}`,
+      `• place in the table: ${A.s} — ${pos(A)}; ${B.s} — ${pos(B)}${same ? ` (${same})` : ''}`,
+      `• atomic mass: Ar(${A.s}) = ${formatMass(A.A, lang)}, Ar(${B.s}) = ${formatMass(B.A, lang)}`,
+      A.ox && B.ox ? `• oxidation states: ${A.s}: ${A.ox}; ${B.s}: ${B.ox}` : '',
+      A.en_ && B.en_ ? `• electronegativity: ${A.s} ${A.en_}, ${B.s} ${B.en_} — ${A.en_ > B.en_ ? A.s : B.s} attracts electrons more strongly` : '',
+    ]
+    const uz = [
+      `${nA} (${A.s}, Z = ${A.z}) va ${nB} (${B.s}, Z = ${B.z}) ni solishtiramiz:`,
+      `• turi: ${blkA === blkB ? `ikkalasi ham ${blkA}` : `${A.s} — ${blkA}, ${B.s} — ${blkB}`}`,
+      `• jadvaldagi o'rni: ${A.s} — ${pos(A)}; ${B.s} — ${pos(B)}${same ? ` (${same})` : ''}`,
+      `• atom massasi: Ar(${A.s}) = ${formatMass(A.A, lang)}, Ar(${B.s}) = ${formatMass(B.A, lang)}`,
+      A.ox && B.ox ? `• oksidlanish darajalari: ${A.s}: ${A.ox}; ${B.s}: ${B.ox}` : '',
+      A.en_ && B.en_ ? `• elektromanfiylik: ${A.s} ${A.en_}, ${B.s} ${B.en_} — ${A.en_ > B.en_ ? A.s : B.s} elektronlarni kuchliroq tortadi` : '',
+    ]
+    return done((lang === 'en' ? en : lang === 'uz' ? uz : ru).filter(Boolean).join('\n'), [tr(TABLE_CIT, lang)], 'compare', a, { zA: A.z, zB: B.z })
+  }
+  return null
+}
+
+/** «Сравни кислоты и основания» — два определения из глоссария учебников рядом. */
+function answerCompareTerms(stems: string[], idx: Index, lang: QaLang, grade: number | null | undefined): QaAnswer | null {
+  const found: QaDefinition[] = []
+  const used = new Set<string>()
+  for (let n = Math.min(3, stems.length); n >= 1 && found.length < 2; n--) {
+    for (let i = 0; i + n <= stems.length && found.length < 2; i++) {
+      const k = stems.slice(i, i + n).join(' ')
+      const d = idx.defs.get(k)
+      if (!d?.length) continue
+      const best = [...d].sort((x, y) => (grade && x.g === grade ? -1 : 0) - (grade && y.g === grade ? -1 : 0) || x.g - y.g)[0]!
+      if (used.has(best.term.toLowerCase())) continue
+      used.add(best.term.toLowerCase())
+      found.push(best)
+    }
+  }
+  if (found.length < 2) return null
+  const cits = found.map((d) => `[Kimyo ${d.g}, §${d.kp}]`)
+  const head = tr(['Сравним по определениям учебника:', 'Let us compare by the textbook definitions:', 'Darslik ta’riflari bo‘yicha solishtiramiz:'], lang)
+  const lines = found.map((d, i) => `• ${d.term} — ${d.def} ${cits[i]}`)
+  const tail = tr(['Разница — в ключевых словах определений: сравни, что стоит в начале каждого.', 'The difference is in the key words of the definitions: compare how each one starts.', 'Farq — ta’riflarning kalit so‘zlarida: har birining boshini solishtir.'], lang)
+  return done([head, ...lines, tail].join('\n'), cits, 'compare', null)
+}
+
+/** «Что проходят в 8 классе», «какие темы в главе 3» — разделы учебника. */
+function answerSyllabus(folded: string, idx: Index, lang: QaLang, grade: number | null | undefined): QaAnswer | null {
+  const gm = folded.match(/(\d{1,2})\s*-?\s*(?:го|ом|м|th|st|nd|rd)?\s*-?\s*(?:класс|sinf|grade)|grade\s*(\d{1,2})/u)
+  const g = Number(gm?.[1] ?? gm?.[2]) || grade || null
+  const cm = folded.match(/(?:глав[аеыу]|chapter|bob)\s*(\d{1,2})|(\d{1,2})\s*-?\s*(?:глав|bob)/u)
+  const ch = cm ? Number(cm[1] ?? cm[2]) : null
+  if (!g) return null
+  let secs = idx.sections.filter((s) => s.g === g)
+  if (ch) secs = secs.filter((s) => (s.id ? Number(s.id.match(/^c(\d+)/)?.[1]) === ch : s.kp.startsWith(`${ch}.`)))
+  if (!secs.length) return null
+  const shown = secs.slice(0, 8)
+  const head = ch
+    ? tr([`Kimyo ${g}, глава ${ch} — ${secs.length} параграфов:`, `Kimyo ${g}, chapter ${ch} — ${secs.length} sections:`, `Kimyo ${g}, ${ch}-bob — ${secs.length} ta paragraf:`], lang)
+    : tr([`В ${g} классе по учебнику Kimyo ${g} — ${secs.length} тем. Начало программы:`, `Grade ${g}, textbook Kimyo ${g} — ${secs.length} topics. The programme starts with:`, `${g}-sinfda Kimyo ${g} darsligi bo‘yicha ${secs.length} ta mavzu. Dastur boshi:`], lang)
+  const p = tr(['с.', 'p.', '-bet'], lang)
+  const lines = shown.map((s) => `• §${s.kp} «${s.title.length > 80 ? `${s.title.slice(0, 77)}…` : s.title}»${s.pg ? (lang === 'uz' ? ` (${s.pg}${p})` : ` (${p} ${s.pg})`) : ''}`)
+  const rest = secs.length - shown.length
+  const tail = rest > 0 ? tr([`…и ещё ${rest}. Назови любую тему — расскажу подробнее.`, `…and ${rest} more. Name any topic and I will tell you more.`, `…va yana ${rest} ta. Istalgan mavzuni ayt — batafsil aytaman.`], lang) : tr(['Назови любую тему — расскажу подробнее.', 'Name any topic and I will tell you more.', 'Istalgan mavzuni ayt — batafsil aytaman.'], lang)
+  return done([head, ...lines, tail].join('\n'), [`[Kimyo ${g}]`], 'syllabus', null, { grade: g, sections: secs.length })
 }
 
 /** Размер базы — для отчёта и экрана «что умеет учитель». */
