@@ -3,6 +3,7 @@ import type { FormationRouteKind, FormationScript } from '../../../../chemistry/
 import { schoolBallRadius, type SchoolHeroModel, type V3 } from '../../hero/schoolHeroModel'
 import { SCHOOL_DRAW } from '../../../../lab/cinema/scenes/school/schoolModel'
 import type { ElementSymbol } from '../../../../chemistry/data/atomicData'
+import { buildMoreScene, type MoreShow, type SceneKit } from './routeMore'
 
 /**
  * Этап «Путь получения» на уровне частиц (formationScript(id).routeKind; правила — docs/plans/formation200-rules.md,
@@ -13,7 +14,9 @@ import type { ElementSymbol } from '../../../../chemistry/data/atomicData'
  *  exchange — ионы двух растворов встречаются: осадок (ионы продукта) собирается, ионы-«зрители» остаются в растворе;
  *  oxideWater (основный оксид) — O²⁻ + H₂O → 2OH⁻ (протон переходит от воды к O²⁻);
  *  baseAcidOxide (основный оксид + CO₂/SO₂/SiO₂) — пара O²⁻ присоединяется к C / S / Si, получается XO₃²⁻.
- * Остальные виды пути (разложение, обезвоживание, ОВР, кислотный оксид + вода) — пока без отдельной 3D-сцены.
+ * Остальные виды пути (разложение, обезвоживание, ОВР, кислотный оксид + вода, щёлочь + кислотный оксид, смесь,
+ * основный оксид + кислота, кислота из соли, сближение молекул) — routeMore.ts (buildMoreScene), в том числе у молекул.
+ * Без сцены — только 'elements' / 'atoms': там путь — это сами этапы (простые вещества → атомы → связи).
  * Все положения строятся в плоскости экрана (x вправо, y вверх, z к зрителю) и переводятся в координаты модели.
  */
 
@@ -23,7 +26,7 @@ export type RouteAtom = { el: string; r: number; keys: RouteKey[]; tIn: number; 
 export type RouteStick = { a: number; b: number; t0: number; t1: number; tOut: number }
 export type RouteElectron = { keys: RouteKey[]; tIn: number; tOut: number }
 export type RouteBadge = { text: string; atoms: number[]; from: number; to: number }
-export type RouteShow = 'neutralization' | 'protonTransfer' | 'hydration' | 'exchange' | 'oxideWater' | 'baseAcidOxide'
+export type RouteShow = 'neutralization' | 'protonTransfer' | 'hydration' | 'exchange' | 'oxideWater' | 'baseAcidOxide' | MoreShow
 
 export type RouteStage = {
   kind: FormationRouteKind
@@ -142,7 +145,7 @@ function spectatorsOf(route: string, product: string): { cat: [string, string]; 
   return null
 }
 
-const TEXT: Record<RouteShow, { title: Tri; text: Tri }> = {
+const TEXT: Record<Exclude<RouteShow, MoreShow>, { title: Tri; text: Tri }> = {
   neutralization: {
     title: ['Путь: нейтрализация', 'Route: neutralization', 'Yoʻl: neytrallanish'],
     text: [
@@ -201,7 +204,7 @@ export function buildRouteStage(
   t0: number,
   fitR: number,
 ): RouteStage | null {
-  if (!script || plan.mode !== 'ionic') return null
+  if (!script || script.routeKind === 'elements' || script.routeKind === 'atoms') return null
   const rk = script.routeKind
   const route = script.route
   // Шары — школьные радиусы (ковалентный × ballScale), расстояния — как в моделях карточки: (r₁ + r₂) / ballScale.
@@ -345,7 +348,7 @@ export function buildRouteStage(
     const hb = atom(c, 'H', [[T + 0.5, [2.6 * b + b * s52, b * c52, 0]], [T + 2.4, [0.3 * b + b * s52, b * c52, 0]], [T + 4.2, [0.3 * b + b, 0, 0]], [T + D - 0.6, [2.6 * b, 0.3 * b, 0]]])
     c.sticks.push({ a: ow, b: hb, t0: T + 0.19, t1: T + 0.2, tOut: end }, { a: ow, b: ha, t0: T + 0.19, t1: T + 0.2, tOut: T + 3.0 }, { a: ox, b: ha, t0: T + 3.3, t1: T + 4.0, tOut: end })
     c.badges.push({ text: 'O²⁻', atoms: [ox], from: T + 0.3, to: T + 3.6 }, { text: 'H₂O', atoms: [ow, ha, hb], from: T + 0.3, to: T + 2.8 }, { text: 'OH⁻', atoms: [ox, ha], from: T + 4.2, to: end }, { text: 'OH⁻', atoms: [ow, hb], from: T + 4.2, to: end })
-  } else if (rk === 'baseAcidOxide' && /^[A-Z][a-z]?₂?O \+ (C|S|Si)O₂|^(C|S|Si)O₂ \+ [A-Z][a-z]?₂?O /.test(route)) {
+  } else if (rk === 'baseAcidOxide' && /^[A-Z][a-z]?₂?O \+ (C|S)O₂|^(C|S)O₂ \+ [A-Z][a-z]?₂?O /.test(route)) {
     show = 'baseAcidOxide'
     const X = /(Si|C|S)O₂/.exec(route)![1]!
     const bent = X === 'S'
@@ -360,6 +363,75 @@ export function buildRouteStage(
       c.electrons.push({ keys: [[T + 0.8, [-3.2 * b + 0.6 * b, s * 0.15 * b, 0]], [T + 2.4, [0.6 * b - bx + 0.5 * b, s * 0.15 * b, 0]], [T + 3.4, [0.6 * b - bx / 2, s * 0.08 * b, 0]]], tIn: T + 0.8, tOut: T + 3.8 })
     c.badges.push({ text: 'O²⁻', atoms: [ox], from: T + 0.3, to: T + 3.0 }, { text: `${X}O₂`, atoms: [x, oa, ob], from: T + 0.3, to: T + 3.0 }, { text: `${X}O₃²⁻`, atoms: [x, oa, ob, ox], from: T + 3.6, to: end })
   }
+  let more: { title: Tri; text: Tri } | null = null
+  if (!show) {
+    // Остальные виды пути: строитель сцены в долях b от начала этапа (routeMore.ts).
+    const hide: [number, number][] = []
+    const kit: SceneKit & { _hide?: [number, number][] } = {
+      b,
+      bl: (x, y) => ((c.rOf(x) + c.rOf(y)) * S) / b,
+      A: (el, keys, tIn, tOut, r) =>
+        atom(
+          c,
+          el,
+          keys.map(([tt, x, y, z]) => [T + tt, [x * b, y * b, (z ?? 0) * b]] as [number, V3]),
+          tIn != null ? T + tIn : undefined,
+          tOut != null ? T + tOut : undefined,
+          r != null ? r * b : undefined,
+        ),
+      S: (a, b2, t0 = -1, t1, tOut) => {
+        const s0 = t0 < 0 ? T + 0.19 : T + t0
+        const s1 = t0 < 0 ? T + 0.2 : T + (t1 ?? t0 + 0.6)
+        c.sticks.push({ a, b: b2, t0: s0, t1: s1, tOut: tOut != null ? T + tOut : end })
+      },
+      E: (keys, tIn, tOut) => {
+        c.electrons.push({ keys: keys.map(([tt, x, y, z]) => [T + tt, [x * b, y * b, (z ?? 0) * b]] as RouteKey), tIn: T + tIn, tOut: T + tOut })
+      },
+      L: (text, atoms, from, to) => {
+        c.badges.push({ text, atoms, from: T + from, to: T + to })
+      },
+      model,
+      modelAtoms: (centerKeys, hIn) => {
+        const all = model.atoms.map((_, i) => i)
+        const tpl = scaleTpl(unitTpl(model, all), kR)
+        const ids: number[] = []
+        const h: number[] = []
+        const heavy: number[] = []
+        tpl.atoms.forEach((a) => {
+          const isH = a.el === 'H' && !!hIn
+          const keys: [number, V3][] = isH
+            ? [
+                [T + hIn!.from, plus(toModel([centerKeys[0]![1] * b, centerKeys[0]![2] * b, 0]), a.rel, hIn!.k)],
+                [T + hIn!.to, plus(toModel([centerKeys[0]![1] * b, centerKeys[0]![2] * b, 0]), a.rel)],
+              ]
+            : centerKeys.map(([tt, x, y]) => [T + tt, plus(toModel([x * b, y * b, 0]), a.rel)] as [number, V3])
+          const id = atom(c, a.el, keys, isH ? T + hIn!.from - 0.3 : undefined, undefined, a.r)
+          ;(c.atoms[id] as RouteAtom & { model?: boolean }).model = true
+          ids.push(id)
+          ;(isH ? h : heavy).push(id)
+        })
+        for (const [x, y] of tpl.bonds) {
+          const withH = hIn && (tpl.atoms[x]!.el === 'H' || tpl.atoms[y]!.el === 'H')
+          c.sticks.push(withH ? { a: ids[x]!, b: ids[y]!, t0: T + hIn!.to - 0.5, t1: T + hIn!.to + 0.1, tOut: end } : { a: ids[x]!, b: ids[y]!, t0: T + 0.19, t1: T + 0.2, tOut: end })
+        }
+        return { ids, h, heavy }
+      },
+      end: D - 0.4,
+      _hide: hide,
+    }
+    const r = buildMoreScene(kit, script, plan)
+    if (r) {
+      show = r.show
+      more = { title: r.title, text: r.text }
+      // Подмена атома «копией» на пути: исходный гаснет (с самого начала — не появляется), его палочки — тоже.
+      for (const [i, tt] of kit._hide ?? []) {
+        const a = c.atoms[i]!
+        if (tt <= 0.05) a.tIn = a.tOut = T + D + 1
+        else a.tOut = Math.min(a.tOut, T + tt - 0.35)
+        for (const s of c.sticks) if (s.a === i || s.b === i) s.tOut = Math.min(s.tOut, tt <= 0.05 ? T : T + tt - 0.35)
+      }
+    }
+  }
   if (!show) return null
   // Ключи в плоскости экрана → модель (кроме шаблонов частиц модели — они уже в координатах модели).
   for (const a of c.atoms as (RouteAtom & { model?: boolean })[]) {
@@ -370,7 +442,7 @@ export function buildRouteStage(
     a.keys = a.keys.map(([t, p]) => [t, toModel(p)] as RouteKey)
   }
   for (const e of c.electrons) e.keys = e.keys.map(([t, p]) => [t, toModel(p)] as RouteKey)
-  const tx = TEXT[show]
+  const tx = more ?? TEXT[show as Exclude<RouteShow, MoreShow>]
   return { kind: rk, show, equation: route, title: tx.title, text: tx.text, t0: T, dur: D, atoms: c.atoms, sticks: c.sticks, electrons: c.electrons, badges: c.badges }
 }
 

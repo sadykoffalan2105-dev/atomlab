@@ -45,7 +45,6 @@ const CATS: Record<Cat, string> = {
 const mk = () => Object.fromEntries((Object.keys(CATS) as Cat[]).map((k) => [k, new Set<string>()])) as Record<Cat, Set<string>>
 const before: Record<Cat, Set<string>> = mk()
 const after: Record<Cat, Set<string>> = mk()
-const ROUTE_3D = new Set(['neutralization', 'protonTransfer', 'hydration', 'exchange'])
 const notes: string[] = []
 const flag = (cat: Cat, id: string, msg: string) => {
   after[cat].add(id)
@@ -203,11 +202,22 @@ for (const id of CATALOG_TOP200_IDS) {
   const shortStick = story.sticks.find((x) => x.t1 - x.t0 < 0.6 - 1e-9)
   if (shortStick) flag('K', id, `палочка растёт ${(shortStick.t1 - shortStick.t0).toFixed(2)} с < 0,6 с`)
   // ── L: путь получения в 3D ──
-  const wantRoute = !!sc && ROUTE_3D.has(sc.routeKind) && plan.mode === 'ionic' && (sc.routeKind !== 'protonTransfer' || /NH₃/.test(sc.route))
+  // У всех, кроме 'elements' / 'atoms' (там путь — это сами этапы): сцена ≥ 4 с, есть атомы, подписи, уравнение и текст на 3 языках.
+  const wantRoute = !!sc && sc.routeKind !== 'elements' && sc.routeKind !== 'atoms'
   if (wantRoute) {
     before.L.add(id)
-    if (!story.routeStage || !story.stages.some((x) => x.key === 'route')) flag('L', id, `путь «${sc!.route}» (${sc!.routeKind}) не показан`)
-  }
+    const rs = story.routeStage
+    const stR = story.stages.find((x) => x.key === 'route')
+    if (!rs || !stR) flag('L', id, `путь «${sc!.route}» (${sc!.routeKind}) не показан`)
+    else {
+      if (stR.dur < 4 || rs.dur < 4) flag('L', id, `сцена пути ${rs.dur} с < 4 с`)
+      if (rs.atoms.length < 2 || !rs.badges.length) flag('L', id, 'сцена пути без частиц или подписей')
+      if (!rs.equation || rs.text.some((x) => !x) || rs.title.some((x) => !x)) flag('L', id, 'нет уравнения / текста сцены пути')
+      if (Math.abs(stR.t0 - rs.t0) > 1e-6 || Math.abs(stR.dur - rs.dur) > 1e-6) flag('L', id, 'сцена пути не совпадает с этапом шкалы')
+      const bad = rs.atoms.find((a) => a.keys.some(([tt]) => tt < rs.t0 - 1e-6 || tt > rs.t0 + rs.dur + 1e-6))
+      if (bad) flag('L', id, 'ключи сцены пути выходят за этап')
+    }
+  } else if (sc && story.routeStage) flag('L', id, `у «${sc.routeKind}» не должно быть отдельной сцены пути`)
 }
 
 const N = CATALOG_TOP200_IDS.length
