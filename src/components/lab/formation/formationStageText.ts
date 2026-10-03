@@ -2,6 +2,7 @@ import type { FormationEquation } from '../../../chemistry/formationEquation'
 import type { FormationPlan } from '../../../chemistry/formationPlan'
 import { isMetal } from '../../../chemistry/formationPlan'
 import { formationTexts, type FormationLocale } from '../../../chemistry/formationText'
+import { formationTeacherBoard, formationTeacherLines, formationTeacherSpecial, routeKindKey, routeKindLabel, type TeacherBoard } from '../../../chemistry/formationTeacher'
 import type { FormationStory, StageKey } from './formationStory'
 
 /**
@@ -9,10 +10,14 @@ import type { FormationStory, StageKey } from './formationStory'
  * уравнение образования (из простых веществ или «в лаборатории получают так») и подписи кнопок.
  * Шаблоны без свободного текста — формулы, заряды, валентности и связи берутся из плана / модели / уравнения.
  */
-export type FormationStageText = { key: StageKey; title: string; main: string; sub: string }
+/** ref — ссылка учителя на учебник («Kimyo 8, § 16, с. 71–73»); уже дописана в конец sub (REF_IN_SUB). */
+export type FormationStageText = { key: StageKey; title: string; main: string; sub: string; ref?: string }
 export type FormationStageTexts = {
   stages: FormationStageText[]
-  equation: { lead: string; text: string; lab: string | null; labLead: string }
+  /** kind — вид пути («нейтрализация», «реакция обмена» …), special — «особенность» вещества (таблица правил, 3 языка) */
+  equation: { lead: string; text: string; lab: string | null; labLead: string; kind: string; special: string; specialLead: string }
+  /** «доска» учителя: электронная/структурная формулы, схемы перехода e⁻, тип решётки (null — вещества нет в таблице 200) */
+  board: TeacherBoard | null
   ui: { play: string; pause: string; resume: string; replay: string; close: string; prev: string; next: string; speed: string; time: string; stage: string }
   note: string
 }
@@ -34,6 +39,11 @@ const TITLES: Record<StageKey, Tri> = {
   lattice: ['Кристаллическая решётка', 'Crystal lattice', 'Kristall panjara'],
   final: ['Готово', 'Result', 'Tayyor'],
 }
+
+/** Ссылку учителя на § дописывать в конец пояснения (панель пока показывает только main / sub). */
+const REF_IN_SUB = true
+/** Заголовок этапа, которого нет в TITLES (новые этапы движка, например 'route'). */
+const TITLE_FALLBACK: Tri = ['Путь получения', 'How it is made', 'Olinish yoʻli']
 
 const eCount = (n: number) => `${n === 1 ? '' : n}e⁻`
 
@@ -62,7 +72,7 @@ export function formationStageTexts(
   const els = [...new Set(plan.species.flatMap((s) => Object.keys(s.comp)))]
   const out: FormationStageText[] = []
   for (const st of story.stages) {
-    const title = pick(TITLES[st.key], loc)
+    const title = pick((TITLES as Partial<Record<string, Tri>>)[st.key] ?? TITLE_FALLBACK, loc)
     let main = ''
     let sub = ''
     switch (st.key) {
@@ -223,8 +233,17 @@ export function formationStageTexts(
         sub = s4.sub
         break
     }
-    out.push({ key: st.key, title, main, sub })
+    // Учитель: фразы по типу и пути образования каждого из 200 веществ (formationTeacher.ts); иначе — шаблоны выше.
+    const t = formationTeacherLines(plan.compoundId, st.key, loc)
+    if (t && t.main && t.sub) {
+      main = t.main
+      sub = REF_IN_SUB ? `${t.sub} (${t.ref})` : t.sub
+    }
+    out.push(t ? { key: st.key, title, main, sub, ref: t.ref } : { key: st.key, title, main, sub })
   }
+  const kindKey = routeKindKey(plan.compoundId)
+  const kind = routeKindLabel(plan.compoundId, loc)
+  const kindSuffix = kind && kindKey !== 'elements' && kindKey !== 'atoms' ? ` — ${kind}` : ''
   const condition = eq?.heat || eq?.catalyst ? ` (${[eq.heat ? 't°' : '', eq.catalyst ?? ''].filter(Boolean).join(', ')})` : ''
   const equation = eq?.direct
     ? {
@@ -232,16 +251,23 @@ export function formationStageTexts(
         text: `${eq.direct}${condition}`,
         lab: eq.lab,
         labLead: pick(['В лаборатории / промышленности', 'In the lab / industry', 'Laboratoriyada / sanoatda'], loc),
+        kind,
+        special: formationTeacherSpecial(plan.compoundId, loc),
+        specialLead: pick(['Особенность', 'Key point', 'Oʻziga xoslik'], loc),
       }
     : {
-        lead: pick(['Из простых веществ напрямую не получают. В лаборатории получают так', 'Not made directly from simple substances. In the lab it is made like this', 'Oddiy moddalardan bevosita olinmaydi. Laboratoriyada shunday olinadi'], loc),
+        lead: `${pick(['Из простых веществ напрямую не получают. В лаборатории получают так', 'Not made directly from simple substances. In the lab it is made like this', 'Oddiy moddalardan bevosita olinmaydi. Laboratoriyada shunday olinadi'], loc)}${kindSuffix}`,
         text: `${eq?.lab ?? ''}${condition}`,
         lab: null,
         labLead: '',
+        kind,
+        special: formationTeacherSpecial(plan.compoundId, loc),
+        specialLead: pick(['Особенность', 'Key point', 'Oʻziga xoslik'], loc),
       }
   return {
     stages: out,
     equation,
+    board: formationTeacherBoard(plan.compoundId, loc),
     note: base.note,
     ui: {
       play: base.ui.play,
