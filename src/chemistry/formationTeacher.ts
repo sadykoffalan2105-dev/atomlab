@@ -9,7 +9,7 @@
  */
 import { formationPlan, isMetal, type FormationPlan, type FormationSpecies, type FormationShapeKey } from './formationPlan'
 import { formationScript, type FormationRouteKind, type FormationScript } from './formationScripts'
-import { formationSpecialText } from './formationTeacherSpecial'
+import { formationSpecialRu, formationSpecialText } from './formationTeacherSpecial'
 
 export type TeacherLang = 'ru' | 'en' | 'uz'
 export type TeacherLines = { main: string; sub: string; ref: string }
@@ -351,7 +351,7 @@ function cleanRu(t: string): string {
 export function formationTeacherSpecial(id: string, lang: TeacherLang): string {
   const c = ctx(id)
   if (!c) return ''
-  return lang === 'ru' ? cleanRu(c.s.special) : formationSpecialText(id, lang) ?? ''
+  return lang === 'ru' ? (formationSpecialRu(id) ?? cleanRu(c.s.special)) : (formationSpecialText(id, lang) ?? '')
 }
 
 /** Главная ссылка для вещества (по типу). */

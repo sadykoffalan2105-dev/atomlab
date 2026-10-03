@@ -10,7 +10,7 @@ import type { FormationStory, StageKey } from './formationStory'
  * уравнение образования (из простых веществ или «в лаборатории получают так») и подписи кнопок.
  * Шаблоны без свободного текста — формулы, заряды, валентности и связи берутся из плана / модели / уравнения.
  */
-/** ref — ссылка учителя на учебник («Kimyo 8, § 16, с. 71–73»); уже дописана в конец sub (REF_IN_SUB). */
+/** ref — ссылка учителя на учебник («Kimyo 8, § 16, с. 71–73»); панель выводит её на доске (REF_IN_SUB = false — не в sub). */
 export type FormationStageText = { key: StageKey; title: string; main: string; sub: string; ref?: string }
 export type FormationStageTexts = {
   stages: FormationStageText[]
@@ -41,8 +41,8 @@ const TITLES: Record<StageKey, Tri> = {
   final: ['Готово', 'Result', 'Tayyor'],
 }
 
-/** Ссылку учителя на § дописывать в конец пояснения (панель пока показывает только main / sub). */
-const REF_IN_SUB = true
+/** Ссылку учителя на § дописывать в конец пояснения? Нет: панель показывает ref мелкой строкой на доске (FormationBoard). */
+const REF_IN_SUB = false
 /** Заголовок этапа, которого нет в TITLES (новые этапы движка, например 'route'). */
 const TITLE_FALLBACK: Tri = ['Путь получения', 'How it is made', 'Olinish yoʻli']
 

@@ -5,7 +5,7 @@
  */
 const T: Record<string, readonly [en: string, uz: string]> = {
   co2: ['C is excited (2s¹2p³: 4 unpaired e⁻); two C=O double bonds, linear; a non-polar molecule with polar bonds (the dipoles cancel).', 'C qoʻzgʻaladi (2s¹2p³: 4 ta juftlashmagan e⁻); ikkita C=O qoʻsh bogʻ, chiziqli; bogʻlar qutbli, molekula qutbsiz (dipollar bir-birini yoʻqotadi).'],
-  hcl: ['H 1s¹ + Cl 3p⁵: one shared pair shifted towards Cl (δ+ H, δ− Cl); H₂ + Cl₂ — both molecules break, one e⁻ from each atom.', 'H 1s¹ + Cl 3p⁵: Cl tomon siljigan bitta umumiy juft (δ+ H, δ− Cl); H₂ + Cl₂ — ikkala molekula uziladi, har bir atomdan bittadan e⁻.'],
+  hcl: ['H 1s¹ + Cl 3p⁵: one shared pair shifted towards Cl (δ+ H, δ− Cl); H₂ + Cl₂ — both molecules break, 1 e⁻ from each atom.', 'H 1s¹ + Cl 3p⁵: Cl tomon siljigan bitta umumiy juft (δ+ H, δ− Cl); H₂ + Cl₂ — ikkala molekula uziladi, har bir atomdan 1 tadan e⁻.'],
   h2o: ['O 2s²2p⁴ has two unpaired e⁻; two shared pairs with H; angle 104.5°; two lone pairs on O; the pairs are shifted towards O (δ−).', 'O 2s²2p⁴ — ikkita juftlashmagan e⁻; H bilan ikkita umumiy juft; burchak 104,5°; O da ikkita taqsimlanmagan juft; juftlar O tomon siljigan (δ−).'],
   h2so4: ['S is excited to 6 unpaired e⁻; two S=O and two S–O–H; a tetrahedron; made from SO₃ + H₂O: the water molecule adds to SO₃ (pair of the water O → S).', 'S 6 ta juftlashmagan e⁻ gacha qoʻzgʻaladi; ikkita S=O va ikkita S–O–H; tetraedr; SO₃ + H₂O dan olinadi: suv molekulasi SO₃ ga birikadi (suv O ining jufti → S).'],
   so2: ['Bent, 119°; in the school formula O=S=O both bonds are double (S excited: 4 unpaired e⁻, valency IV); a lone pair on S; another model has one S=O and one donor–acceptor S→O.', 'Burchakli, 119°; maktab yozuvida O=S=O — ikkala bogʻ qoʻsh (S qoʻzgʻalgan: 4 ta juftlashmagan e⁻, valentlik IV); S da taqsimlanmagan juft; boshqa modelda — bitta S=O va bitta donor-akseptor S→O.'],
@@ -204,6 +204,23 @@ const T: Record<string, readonly [en: string, uz: string]> = {
   salt_k_so3: ['Like Na₂SO₃.', 'Na₂SO₃ kabi.'],
   salt_nh4_cr2o7: ['An ionic salt with Cr₂O₇²⁻ and NH₄⁺ (Cr–O–Cr bridge).', 'Cr₂O₇²⁻ va NH₄⁺ li ion tuz (Cr–O–Cr koʻprigi).'],
   tb_mg3po42: ['Exchange.', 'Almashinish.'],
+}
+
+/**
+ * Русский текст «особенности» для панели там, где заметка таблицы для анимации («— показать …», «Этапы: …») несёт
+ * сам факт: автоматическая чистка (formationTeacher.cleanRu) отрезала бы его, и RU стал бы короче EN / UZ.
+ */
+const RU_FULL: Record<string, string> = {
+  sio2: 'НЕ ионная и НЕ молекула! Si (4 валентных e⁻) образует 4 полярные ковалентные связи Si–O; каждый O — мостик между двумя Si; тетраэдры SiO₄ соединяются вершинами в каркас (кварц). Формула SiO₂ — простейшая; атомная решётка (§ 17).',
+  tb_i2: 'Как Cl₂; твёрдое — МОЛЕКУЛЯРНАЯ решётка (молекулы I₂ в узлах, § 17): видна укладка молекул.',
+  salt_k_mno4: 'Mn⁺⁷ в тетраэдре O; получают окислением K₂MnO₄ хлором — ион MnO₄²⁻ теряет 1 e⁻ (зелёный → фиолетовый).',
+  fe3o4: 'Магнетит = FeO·Fe₂O₃: Fe²⁺ и Fe³⁺ в одной решётке (шпинель) — два вида катионов с зарядами +2/+3.',
+  cro3: 'ПОЛИМЕР: цепи тетраэдров CrO₄ с общими вершинами, (CrO₃)ₙ; на модели — цепь из 3–4 звеньев, Cr⁺⁶.',
+  tb_na2so4_10h2o: 'Глауберова соль: вода вокруг Na⁺ (по 6) — все 10 молекул воды на модели.',
+}
+
+export function formationSpecialRu(id: string): string | null {
+  return RU_FULL[id] ?? null
 }
 
 export function formationSpecialText(id: string, lang: 'en' | 'uz'): string | null {
