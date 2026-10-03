@@ -4,6 +4,7 @@
  * Реактивы, наблюдения и уравнения — по учебнику; цель каждого шага — объект установки (rigTargets.ts).
  */
 import type { LabExperimentDef, LabExperimentId, LabText } from '../../components/lab3d/labContract'
+import type { LabItemId } from '../../components/lab3d/labEvents'
 
 const t = (ru: string, en: string, uz: string): LabText => ({ ru, en, uz })
 
@@ -453,4 +454,242 @@ export function isLabExperimentId(v: unknown): v is LabExperimentId {
 export const LAB_SIDE_EQUATIONS: Readonly<Partial<Record<LabExperimentId, readonly string[]>>> = {
   'ch4-burn': ['CO₂ + Ca(OH)₂ → CaCO₃↓ + H₂O'],
   'h2-practical': ['2H₂ + O₂ → 2H₂O'],
+}
+
+/* ── Действие руками на каждом шаге (жест, как его сделать, нужный предмет со стеллажа) ── */
+
+export type LabGestureKind = 'tap' | 'drag' | 'swipe'
+export interface LabStepAction {
+  /** Жест: нажать / перетащить предмет / провести (чиркнуть, повернуть, наклонить). Траектория — rigTargets.ts. */
+  readonly gesture: LabGestureKind
+  /** Как сделать это руками (крупно на доске). */
+  readonly how: LabText
+  /** Предмет со стеллажа или из шкафа, который нужен на этом шаге (сцена подсвечивает его). */
+  readonly need?: LabItemId
+}
+
+const tap = (how: LabText, need?: LabItemId): LabStepAction => ({ gesture: 'tap', how, need })
+const drag = (how: LabText, need?: LabItemId): LabStepAction => ({ gesture: 'drag', how, need })
+const swipe = (how: LabText): LabStepAction => ({ gesture: 'swipe', how })
+
+export const LAB_STEP_ACTIONS: Readonly<Record<LabExperimentId, readonly LabStepAction[]>> = {
+  baso4: [
+    tap(t('Нажмите на пробирку BaCl₂ — она поднимется, рассмотрите раствор.', 'Tap the BaCl₂ tube: it lifts up so you can look at the solution.', 'BaCl₂ probirkasini bosing — u ko‘tariladi, eritmani ko‘rib chiqing.')),
+    drag(t('Перетащите пробирку H₂SO₄ вверх и к пробирке BaCl₂.', 'Drag the H₂SO₄ tube up and over to the BaCl₂ tube.', 'H₂SO₄ probirkasini yuqoriga va BaCl₂ probirkasi tomon torting.')),
+    swipe(t('Проведите влево — пробирка наклонится, кислота польётся струйкой.', 'Swipe left: the tube tilts and the acid pours in a thin stream.', 'Chapga suring — probirka egiladi, kislota ingichka oqim bo‘lib quyiladi.')),
+    drag(t('Перетащите пустую пробирку обратно в штатив и смотрите на осадок.', 'Drag the empty tube back to the rack and watch the precipitate.', 'Bo‘sh probirkani shtativga qaytaring va cho‘kmani kuzating.')),
+  ],
+  'ch4-burn': [
+    swipe(t('Чиркните спичкой о коробок: проведите вправо.', 'Strike the match on the box: swipe to the right.', 'Gugurtni qutiga chaqing: o‘ngga suring.')),
+    swipe(t('Поверните кран (проведите к себе) — газ пойдёт, спичку поднесут сбоку к горелке.', 'Turn the tap (swipe towards you): gas flows and the match is brought to the burner from the side.', 'Jo‘mrakni buring (o‘zingizga suring) — gaz keladi, gugurt gorelkaga yondan tutiladi.')),
+    drag(t('Перетащите холодный сухой стакан к пламени — он перевернётся над горелкой.', 'Drag the cold dry beaker to the flame: it turns upside down over the burner.', 'Sovuq quruq stakanni alangaga torting — u gorelka ustida to‘ntariladi.')),
+    drag(t('Перетащите стакан с известковой водой к пламени.', 'Drag the limewater beaker to the flame.', 'Ohakli suvli stakanni alangaga torting.')),
+    swipe(t('Закройте кран: проведите от себя.', 'Close the tap: swipe away from you.', 'Jo‘mrakni yoping: o‘zingizdan nariga suring.')),
+  ],
+  'zn-hcl': [
+    tap(t('Нажмите на гранулу цинка — рассмотрите металл.', 'Tap the zinc granule to look at the metal.', 'Rux granulasini bosing — metallni ko‘rib chiqing.')),
+    drag(
+      t('Возьмите склянку HCl (со стеллажа или на столе) и перетащите к пробирке — кислота нальётся.', 'Take the HCl bottle (from the shelf or the bench) and drag it to the tube: the acid pours in.', 'HCl shishasini oling (tokchadan yoki stoldan) va probirkaga torting — kislota quyiladi.'),
+      'reagent:HCl',
+    ),
+    drag(t('Перетащите гранулу цинка пинцетом к пробирке и отпустите.', 'Drag the zinc granule with tweezers to the tube and let go.', 'Rux granulasini pinset bilan probirkaga torting va qo‘yib yuboring.')),
+    tap(t('Нажмите на пробирку и наблюдайте: пузырьки газа, цинк уменьшается.', 'Tap the tube and watch: gas bubbles, the zinc gets smaller.', 'Probirkani bosing va kuzating: gaz pufakchalari, rux kichrayadi.')),
+  ],
+  'h2-practical': [
+    drag(
+      t('Возьмите склянку HCl и перетащите к пробирке в лапке штатива — налейте кислоту.', 'Take the HCl bottle and drag it to the tube in the stand clamp: pour the acid.', 'HCl shishasini oling va shtativ panjasidagi probirkaga torting — kislota quying.'),
+      'reagent:HCl',
+    ),
+    drag(t('Перетащите гранулы цинка к пробирке.', 'Drag the zinc granules to the tube.', 'Rux granulalarini probirkaga torting.'), 'reagent:Zn'),
+    drag(t('Перетащите пробку с газоотводной трубкой на пробирку.', 'Drag the stopper with the gas outlet tube onto the test tube.', 'Gaz o‘tkazgich nayli tiqinni probirkaga torting.')),
+    drag(
+      t('Перетащите пустую пробирку к концу трубки — она перевернётся вверх дном.', 'Drag the empty tube to the end of the outlet tube: it turns upside down.', 'Bo‘sh probirkani nay uchiga torting — u to‘ntariladi.'),
+      'glass:testTube',
+    ),
+    swipe(t('Проведите вверх — снимите колпачок; спиртовку зажгут спичкой.', 'Swipe up to take the cap off; the lamp is lit with a match.', 'Yuqoriga suring — qalpoqchani oling; lampa gugurt bilan yoqiladi.')),
+    drag(t('Перетащите пробирку с водородом отверстием вниз к пламени спиртовки.', 'Drag the hydrogen tube, mouth down, to the spirit-lamp flame.', 'Vodorodli probirkani og‘zi pastga qaratib spirt lampasi alangasiga torting.')),
+    drag(t('Перетащите холодную стеклянную пластинку к пламени водорода.', 'Drag the cold glass plate to the hydrogen flame.', 'Sovuq shisha plastinkani vodorod alangasiga torting.')),
+  ],
+}
+
+/* ── «Что произошло»: короткое объяснение на уровне частиц (доска рисует анимацию по этим данным) ── */
+
+export interface LabParticleStory {
+  /** Уравнение, которое показывает анимация (ионное — для обмена и замещения). */
+  readonly equation: string
+  readonly text: LabText
+}
+
+export const LAB_PARTICLE_STORY: Readonly<Record<LabExperimentId, LabParticleStory>> = {
+  baso4: {
+    equation: 'Ba²⁺ + SO₄²⁻ → BaSO₄↓',
+    text: t(
+      'В растворах есть ионы. Ионы Ba²⁺ и SO₄²⁻ встречаются и связываются в нерастворимый BaSO₄ — он выпадает белым осадком. Ионы H⁺ и Cl⁻ остаются в растворе (это соляная кислота).',
+      'The solutions contain ions. Ba²⁺ and SO₄²⁻ ions meet and bind into insoluble BaSO₄, which falls out as a white precipitate. H⁺ and Cl⁻ ions stay in the solution (that is hydrochloric acid).',
+      'Eritmalarda ionlar bor. Ba²⁺ va SO₄²⁻ ionlari uchrashib, erimaydigan BaSO₄ ga birikadi — u oq cho‘kma bo‘lib tushadi. H⁺ va Cl⁻ ionlari eritmada qoladi (bu xlorid kislota).',
+    ),
+  },
+  'ch4-burn': {
+    equation: 'CH₄ + 2O₂ → CO₂ + 2H₂O',
+    text: t(
+      'Молекула метана CH₄ встречает две молекулы кислорода O₂. Атомы перестраиваются: углерод уходит в CO₂, водород — в две молекулы воды H₂O. При этом выделяется тепло Q.',
+      'A methane molecule CH₄ meets two oxygen molecules O₂. The atoms rearrange: carbon goes into CO₂, hydrogen into two water molecules H₂O. Heat Q is released.',
+      'Metan CH₄ molekulasi ikkita kislorod O₂ molekulasi bilan uchrashadi. Atomlar qayta joylashadi: uglerod CO₂ ga, vodorod ikkita suv H₂O molekulasiga o‘tadi. Bunda issiqlik Q ajraladi.',
+    ),
+  },
+  'zn-hcl': {
+    equation: 'Zn + 2H⁺ → Zn²⁺ + H₂↑',
+    text: t(
+      'Атом цинка отдаёт два электрона двум ионам водорода H⁺ из кислоты. Цинк переходит в раствор (ZnCl₂), а атомы водорода соединяются в молекулу H₂ — это пузырьки газа.',
+      'A zinc atom gives two electrons to two hydrogen ions H⁺ from the acid. Zinc goes into the solution (ZnCl₂), and the hydrogen atoms join into an H₂ molecule: these are the gas bubbles.',
+      'Rux atomi kislotadagi ikkita vodorod ioni H⁺ ga ikkita elektron beradi. Rux eritmaga o‘tadi (ZnCl₂), vodorod atomlari esa H₂ molekulasiga birikadi — bular gaz pufakchalari.',
+    ),
+  },
+  'h2-practical': {
+    equation: '2H₂ + O₂ → 2H₂O',
+    text: t(
+      'Цинк вытесняет водород из кислоты: Zn + 2HCl → ZnCl₂ + H₂↑. Водород легче воздуха, поэтому его собирают в пробирку вверх дном. При горении две молекулы H₂ соединяются с молекулой O₂ — образуются две молекулы воды.',
+      'Zinc displaces hydrogen from the acid: Zn + 2HCl → ZnCl₂ + H₂↑. Hydrogen is lighter than air, so it is collected in an upside-down tube. When it burns, two H₂ molecules combine with one O₂ molecule to form two water molecules.',
+      'Rux kislotadan vodorodni siqib chiqaradi: Zn + 2HCl → ZnCl₂ + H₂↑. Vodorod havodan yengil, shuning uchun u to‘ntarilgan probirkaga yig‘iladi. Yonganda ikkita H₂ molekulasi bitta O₂ molekulasi bilan birikib, ikkita suv molekulasini hosil qiladi.',
+    ),
+  },
+}
+
+/* ── Мини-проверка после опыта: признак реакции, тип реакции, продукт ── */
+
+export interface LabQuizQuestion {
+  readonly id: 'sign' | 'type' | 'product'
+  readonly q: LabText
+  readonly options: readonly LabText[]
+  /** Индекс правильного варианта. */
+  readonly correct: number
+  /** Объяснение после ответа. */
+  readonly why: LabText
+}
+
+const SIGN_Q = t('Какой признак реакции вы наблюдали?', 'Which sign of a reaction did you observe?', 'Qaysi reaksiya belgisini kuzatdingiz?')
+const TYPE_Q = t('К какому типу относится реакция?', 'What type of reaction is it?', 'Reaksiya qaysi turga kiradi?')
+const PRODUCT_Q = t('Какое вещество образовалось?', 'Which substance was formed?', 'Qaysi modda hosil bo‘ldi?')
+const O_PRECIP = t('Выпал осадок', 'A precipitate formed', 'Cho‘kma tushdi')
+const O_GAS = t('Выделился газ', 'A gas was given off', 'Gaz ajraldi')
+const O_HEAT = t('Выделились тепло и свет', 'Heat and light were given off', 'Issiqlik va yorug‘lik ajraldi')
+const O_COLOR = t('Изменился цвет', 'The colour changed', 'Rang o‘zgardi')
+const T_EXCHANGE = t('Обмена', 'Exchange', 'Almashinish')
+const T_SUBST = t('Замещения', 'Substitution', 'O‘rin olish')
+const T_COMB = t('Соединения', 'Combination', 'Birikish')
+const T_DECOMP = t('Разложения', 'Decomposition', 'Parchalanish')
+
+export const LAB_QUIZ: Readonly<Record<LabExperimentId, readonly LabQuizQuestion[]>> = {
+  baso4: [
+    {
+      id: 'sign',
+      q: SIGN_Q,
+      options: [O_GAS, O_PRECIP, O_COLOR],
+      correct: 1,
+      why: t('Сразу появилась белая муть, затем осадок осел на дно.', 'A white cloudiness appeared at once, then the solid settled to the bottom.', 'Darhol oq loyqa paydo bo‘ldi, keyin cho‘kma tubga cho‘kdi.'),
+    },
+    {
+      id: 'type',
+      q: TYPE_Q,
+      options: [T_SUBST, T_COMB, T_EXCHANGE],
+      correct: 2,
+      why: t('Два сложных вещества обменялись составными частями: Ba и H поменялись местами.', 'Two compounds swapped their parts: Ba and H changed places.', 'Ikki murakkab modda tarkibiy qismlari bilan almashdi: Ba va H o‘rin almashdi.'),
+    },
+    {
+      id: 'product',
+      q: PRODUCT_Q,
+      options: [t('BaSO₄ — белый осадок', 'BaSO₄, a white precipitate', 'BaSO₄ — oq cho‘kma'), t('H₂ — газ', 'H₂, a gas', 'H₂ — gaz'), t('BaCl₂ — соль', 'BaCl₂, a salt', 'BaCl₂ — tuz')],
+      correct: 0,
+      why: t('Сульфат бария BaSO₄ не растворяется в воде, поэтому выпадает в осадок (↓).', 'Barium sulfate BaSO₄ does not dissolve in water, so it precipitates (↓).', 'Bariy sulfat BaSO₄ suvda erimaydi, shuning uchun cho‘kmaga tushadi (↓).'),
+    },
+  ],
+  'ch4-burn': [
+    {
+      id: 'sign',
+      q: SIGN_Q,
+      options: [O_PRECIP, O_HEAT, O_COLOR],
+      correct: 1,
+      why: t('Метан горит голубым пламенем, выделяется тепло Q — это главный признак опыта.', 'Methane burns with a blue flame and releases heat Q: the main sign in this experiment.', 'Metan ko‘k alanga bilan yonadi, issiqlik Q ajraladi — tajribaning asosiy belgisi.'),
+    },
+    {
+      id: 'type',
+      q: TYPE_Q,
+      options: [t('Горение (реакция с кислородом)', 'Combustion (reaction with oxygen)', 'Yonish (kislorod bilan reaksiya)'), T_EXCHANGE, T_DECOMP],
+      correct: 0,
+      why: t('Метан соединяется с кислородом воздуха O₂ с выделением тепла и света — это горение.', 'Methane combines with oxygen O₂ from the air, releasing heat and light: this is combustion.', 'Metan havodagi kislorod O₂ bilan issiqlik va yorug‘lik chiqarib birikadi — bu yonish.'),
+    },
+    {
+      id: 'product',
+      q: t('Как доказали, что образовался CO₂?', 'How did we prove that CO₂ was formed?', 'CO₂ hosil bo‘lganini qanday isbotladik?'),
+      options: [
+        t('Известковая вода помутнела', 'The limewater turned milky', 'Ohakli suv loyqalandi'),
+        t('На стакане появились капли', 'Droplets appeared on the beaker', 'Stakanda tomchilar paydo bo‘ldi'),
+        t('Пламя стало голубым', 'The flame turned blue', 'Alanga ko‘k bo‘ldi'),
+      ],
+      correct: 0,
+      why: t(
+        'CO₂ + Ca(OH)₂ → CaCO₃↓ + H₂O: нерастворимый карбонат кальция делает известковую воду мутной. Капли на стакане доказывают воду H₂O.',
+        'CO₂ + Ca(OH)₂ → CaCO₃↓ + H₂O: insoluble calcium carbonate makes limewater milky. The droplets prove water H₂O.',
+        'CO₂ + Ca(OH)₂ → CaCO₃↓ + H₂O: erimaydigan kalsiy karbonat ohakli suvni loyqa qiladi. Stakandagi tomchilar suv H₂O ni isbotlaydi.',
+      ),
+    },
+  ],
+  'zn-hcl': [
+    {
+      id: 'sign',
+      q: SIGN_Q,
+      options: [O_PRECIP, O_COLOR, O_GAS],
+      correct: 2,
+      why: t('На поверхности цинка появляются пузырьки газа и поднимаются вверх.', 'Gas bubbles appear on the zinc surface and rise.', 'Rux sirtida gaz pufakchalari paydo bo‘lib, yuqoriga ko‘tariladi.'),
+    },
+    {
+      id: 'type',
+      q: TYPE_Q,
+      options: [T_EXCHANGE, T_SUBST, T_COMB],
+      correct: 1,
+      why: t('Простое вещество цинк замещает водород в сложном веществе HCl.', 'The simple substance zinc replaces hydrogen in the compound HCl.', 'Oddiy modda rux murakkab modda HCl dagi vodorod o‘rnini oladi.'),
+    },
+    {
+      id: 'product',
+      q: t('Какой газ выделяется?', 'Which gas is given off?', 'Qaysi gaz ajraladi?'),
+      options: [t('Водород H₂', 'Hydrogen H₂', 'Vodorod H₂'), t('Кислород O₂', 'Oxygen O₂', 'Kislorod O₂'), t('Углекислый газ CO₂', 'Carbon dioxide CO₂', 'Karbonat angidrid CO₂')],
+      correct: 0,
+      why: t('Zn + 2HCl → ZnCl₂ + H₂↑ — водород выделяется в виде пузырьков.', 'Zn + 2HCl → ZnCl₂ + H₂↑: hydrogen is given off as bubbles.', 'Zn + 2HCl → ZnCl₂ + H₂↑ — vodorod pufakchalar holida ajraladi.'),
+    },
+  ],
+  'h2-practical': [
+    {
+      id: 'sign',
+      q: t('Как узнать, что водород чистый?', 'How do you know the hydrogen is pure?', 'Vodorod toza ekanini qanday bilasiz?'),
+      options: [
+        t('Глухой хлопок у пламени', 'A dull pop at the flame', 'Alangada bo‘g‘iq qarsillash'),
+        t('Резкий лающий звук', 'A sharp barking sound', 'Keskin hurgan ovoz'),
+        t('Пробирка нагревается', 'The tube gets hot', 'Probirka qiziydi'),
+      ],
+      correct: 0,
+      why: t(
+        'Чистый водород сгорает с глухим хлопком; резкий лающий звук — смесь с воздухом, поджигать её нельзя.',
+        'Pure hydrogen burns with a dull pop; a sharp barking sound means a mixture with air, which must not be lit.',
+        'Toza vodorod bo‘g‘iq qarsillab yonadi; keskin hurgan ovoz — havo bilan aralashma, uni yoqish mumkin emas.',
+      ),
+    },
+    {
+      id: 'type',
+      q: t('Почему пробирку для сбора держат вверх дном?', 'Why is the collecting tube held upside down?', 'Nega yig‘uvchi probirka to‘ntarib tutiladi?'),
+      options: [
+        t('Водород тяжелее воздуха', 'Hydrogen is heavier than air', 'Vodorod havodan og‘ir'),
+        t('Водород легче воздуха', 'Hydrogen is lighter than air', 'Vodorod havodan yengil'),
+        t('Так быстрее нагревается', 'It heats up faster', 'Shunday tezroq qiziydi'),
+      ],
+      correct: 1,
+      why: t('Водород — самый лёгкий газ: он поднимается и вытесняет воздух из перевёрнутой пробирки.', 'Hydrogen is the lightest gas: it rises and pushes the air out of the upside-down tube.', 'Vodorod — eng yengil gaz: u ko‘tarilib, to‘ntarilgan probirkadan havoni siqib chiqaradi.'),
+    },
+    {
+      id: 'product',
+      q: t('Что образуется при горении водорода?', 'What forms when hydrogen burns?', 'Vodorod yonganda nima hosil bo‘ladi?'),
+      options: [t('Вода H₂O', 'Water H₂O', 'Suv H₂O'), t('Углекислый газ CO₂', 'Carbon dioxide CO₂', 'Karbonat angidrid CO₂'), t('Соляная кислота HCl', 'Hydrochloric acid HCl', 'Xlorid kislota HCl')],
+      correct: 0,
+      why: t('2H₂ + O₂ → 2H₂O: на холодной пластинке появляются капли воды.', '2H₂ + O₂ → 2H₂O: water droplets appear on the cold plate.', '2H₂ + O₂ → 2H₂O: sovuq plastinkada suv tomchilari paydo bo‘ladi.'),
+    },
+  ],
 }

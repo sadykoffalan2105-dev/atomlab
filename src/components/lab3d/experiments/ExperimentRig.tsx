@@ -1,14 +1,22 @@
 /**
  * Установка опыта на рабочем месте стола (локальные координаты: начало — WORK_AREA_CENTER, верх столешницы — y = 0;
- * ничего не выходит за WORK_AREA_SIZE). Цель текущего шага подсвечена; нажатие мышью или пальцем
- * проигрывает действие шага и вызывает onAdvance().
+ * ничего не выходит за WORK_AREA_SIZE). Цель текущего шага подсвечена; действие — руками:
+ *  • нажать (tap) — проигрывается действие шага;
+ *  • перетащить / провести (drag / swipe) — палец или мышь ведут прогресс шага (предмет идёт за рукой по своей
+ *    траектории); отпустил дальше половины пути или в «магните» у цели — действие засчитано и доигрывается само.
+ * Призрачная рука показывает траекторию жеста, пока ученик не начал. Шаги, где нужен реактив со стеллажа,
+ * публикуют labEvents 'need' и засчитываются по 'picked'/'placed' этого предмета (или жестом на столе).
+ * В момент реакции — labEvents 'focus' (крупный план) и стеклянные подписи наблюдений.
  */
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from 'react'
-import { useFrame } from '@react-three/fiber'
-import type { ExperimentRigProps, LabExperimentId } from '../labContract'
-import { getLabExperiment } from '../../../data/labWorks/labExperiments'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from 'react'
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
+import * as THREE from 'three'
+import { WORK_AREA_CENTER, type ExperimentRigProps, type LabExperimentId } from '../labContract'
+import { labEvents, type LabItemId } from '../labEvents'
+import { getLabExperiment, LAB_STEP_ACTIONS } from '../../../data/labWorks/labExperiments'
 import { RigContext, type RigContextValue } from './rigCore'
-import { RIG_STEP_SECONDS } from './rigTargets'
+import { RIG_FOCUS, RIG_GESTURES, RIG_STEP_SECONDS } from './rigTargets'
+import { GestureGhost, ObsLabels } from './rigGuides'
 import { Baso4Rig } from './rigs/Baso4Rig'
 import { Ch4BurnRig } from './rigs/Ch4BurnRig'
 import { H2PracticalRig } from './rigs/H2PracticalRig'
@@ -21,10 +29,32 @@ const RIGS: Record<LabExperimentId, ComponentType> = {
   'h2-practical': H2PracticalRig,
 }
 
+/** Доля пути, после которой отпускание засчитывается; «магнит» — дальше этой доли действие засчитывается сразу. */
+const RELEASE_OK = 0.5
+const MAGNET = 0.9
+
 export function ExperimentRig(props: ExperimentRigProps) {
   // новый опыт — новая установка (прогресс и анимации с нуля)
   return <RigRunner key={props.experimentId} {...props} />
 }
+
+interface Scrub {
+  step: number
+  target: string
+  start: THREE.Vector3
+  normal: THREE.Vector3
+  dir: THREE.Vector3
+  len2: number
+  lead: number
+  k: number
+}
+
+const tmpRay = new THREE.Ray()
+const tmpPlane = new THREE.Plane()
+const tmpHit = new THREE.Vector3()
+const tmpNdc = new THREE.Vector2()
+const tmpCaster = new THREE.Raycaster()
+const tmpInv = new THREE.Matrix4()
 
 function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentRigProps) {
   const def = getLabExperiment(experimentId)
@@ -32,13 +62,34 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
   const p = useRef(Math.min(step, total))
   const time = useRef(0)
   const anim = useRef<{ from: number; dur: number } | null>(null)
+  const scrub = useRef<Scrub | null>(null)
+  const root = useRef<THREE.Group>(null)
   const [busy, setBusy] = useState(false)
+  const [dragging, setDragging] = useState(false)
   const stepRef = useRef(step)
   const advanceRef = useRef(onAdvance)
   useLayoutEffect(() => {
     stepRef.current = step
     advanceRef.current = onAdvance
   })
+  const { camera, gl, controls } = useThree((s) => ({ camera: s.camera, gl: s.gl, controls: s.controls }))
+  const controlsRef = useRef(controls)
+  useLayoutEffect(() => {
+    controlsRef.current = controls
+  })
+
+  /** Запустить доигрывание действия шага s с текущего прогресса. */
+  const play = useCallback(
+    (s: number) => {
+      if (anim.current || s >= total) return
+      const start = Math.max(s, Math.min(p.current, s + 0.999))
+      p.current = start
+      const full = RIG_STEP_SECONDS[experimentId][s] ?? 2
+      anim.current = { from: s, dur: Math.max(0.35, full) }
+      setBusy(true)
+    },
+    [experimentId, total],
+  )
 
   useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05)
@@ -59,6 +110,13 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
         return
       }
     }
+    const sc = scrub.current
+    if (sc && sc.step === stepRef.current) {
+      // палец ведёт действие: прогресс плавно идёт за ним
+      const want = sc.step + sc.k * sc.lead
+      p.current += (want - p.current) * (1 - Math.exp(-dt * 16))
+      return
+    }
     const target = Math.min(stepRef.current, total)
     const d = target - p.current
     if (Math.abs(d) < 1e-4) p.current = target
@@ -71,19 +129,138 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
       if (anim.current || s >= total) return
       if (def.steps[s]?.target !== name) return
       p.current = s
-      anim.current = { from: s, dur: RIG_STEP_SECONDS[experimentId][s] ?? 2 }
-      setBusy(true)
+      play(s)
     },
-    [def, experimentId, total],
+    [def, play, total],
   )
 
+  /** Луч указателя → точка на плоскости жеста (локальные координаты установки). */
+  const hitOnPlane = useCallback(
+    (clientX: number, clientY: number, sc: Scrub): THREE.Vector3 | null => {
+      const g = root.current
+      if (!g) return null
+      const r = gl.domElement.getBoundingClientRect()
+      tmpNdc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1)
+      tmpCaster.setFromCamera(tmpNdc, camera)
+      tmpInv.copy(g.matrixWorld).invert()
+      tmpRay.copy(tmpCaster.ray).applyMatrix4(tmpInv)
+      tmpPlane.setFromNormalAndCoplanarPoint(sc.normal, sc.start)
+      return tmpRay.intersectPlane(tmpPlane, tmpHit)
+    },
+    [camera, gl],
+  )
+
+  const beginGesture = useCallback(
+    (name: string, e: ThreeEvent<PointerEvent>) => {
+      const s = stepRef.current
+      const gst = RIG_GESTURES[experimentId][s]
+      const g = root.current
+      if (anim.current || s >= total || !g || !gst || gst.kind === 'tap' || def.steps[s]?.target !== name) return
+      const dir = new THREE.Vector3(gst.to[0] - gst.from[0], gst.to[1] - gst.from[1], gst.to[2] - gst.from[2])
+      const len2 = Math.max(1e-6, dir.lengthSq())
+      // плоскость жеста: содержит направление пути и как можно сильнее обращена к камере
+      g.updateWorldMatrix(true, false)
+      tmpInv.copy(g.matrixWorld).invert()
+      const view = camera.getWorldDirection(new THREE.Vector3()).transformDirection(tmpInv)
+      const dn = dir.clone().normalize()
+      const normal = view.clone().sub(dn.clone().multiplyScalar(view.dot(dn)))
+      if (normal.lengthSq() < 1e-6) normal.set(0, 0, 1)
+      normal.normalize()
+      const start = g.worldToLocal(e.point.clone())
+      const sc: Scrub = { step: s, target: name, start, normal, dir, len2, lead: gst.lead, k: 0 }
+      scrub.current = sc
+      setDragging(true)
+      const ctl = controlsRef.current as unknown as { enabled?: boolean } | null
+      if (ctl) ctl.enabled = false
+      document.body.style.cursor = 'grabbing'
+
+      const finish = (ok: boolean) => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onCancel)
+        if (ctl) ctl.enabled = true
+        document.body.style.cursor = ''
+        scrub.current = null
+        setDragging(false)
+        if (ok && stepRef.current === sc.step) play(sc.step)
+      }
+      const onMove = (ev: PointerEvent) => {
+        const hit = hitOnPlane(ev.clientX, ev.clientY, sc)
+        if (!hit) return
+        const k = hit.sub(sc.start).dot(sc.dir) / sc.len2
+        sc.k = Math.max(0, Math.min(1, k))
+        // «магнит» в последних сантиметрах — действие засчитано без точного попадания
+        if (sc.k >= MAGNET) finish(true)
+      }
+      const onUp = () => finish(sc.k >= RELEASE_OK)
+      const onCancel = () => finish(false)
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+      window.addEventListener('pointercancel', onCancel)
+    },
+    [camera, def, experimentId, hitOnPlane, play, total],
+  )
+
+  // реактив со стеллажа: сцена подсвечивает его; взял/поставил — шаг засчитан
+  const need = step < total ? (LAB_STEP_ACTIONS[experimentId][step]?.need ?? null) : null
+  useEffect(() => {
+    labEvents.emit({ type: 'need', itemIds: need ? [need] : [] })
+    if (!need) return
+    const onItem = (e: { itemId: LabItemId }) => {
+      if (e.itemId !== need) return
+      const s = stepRef.current
+      const tg = def.steps[s]?.target
+      if (tg) act(tg)
+    }
+    const off1 = labEvents.on('picked', onItem)
+    const off2 = labEvents.on('placed', onItem)
+    return () => {
+      off1()
+      off2()
+    }
+  }, [need, act, def])
+  useEffect(() => () => labEvents.emit({ type: 'need', itemIds: [] }), [])
+
+  // крупный план реакции: камера наезжает, потом обратно
+  const focusIdx = useRef(-1)
+  useFrame(() => {
+    const v = p.current
+    const list = RIG_FOCUS[experimentId]
+    let idx = -1
+    for (let i = 0; i < list.length; i++) if (v >= list[i]!.from && v < list[i]!.to) idx = i
+    // только при действии (а не при перемотке шагов доской)
+    if (idx !== focusIdx.current) {
+      const prev = focusIdx.current
+      focusIdx.current = idx
+      if (idx >= 0 && (anim.current || scrub.current)) {
+        const f = list[idx]!
+        const c = WORK_AREA_CENTER
+        const target: [number, number, number] = [c.x + f.point[0], c.y + f.point[1], c.z + f.point[2]]
+        const position: [number, number, number] = [target[0] + f.dist * 0.18, target[1] + f.dist * 0.42, target[2] + f.dist * 0.9]
+        labEvents.emit({ type: 'focus', position, target })
+      } else if (prev >= 0) labEvents.emit({ type: 'focusReset' })
+    }
+  })
+  useEffect(
+    () => () => {
+      if (focusIdx.current >= 0) labEvents.emit({ type: 'focusReset' })
+    },
+    [],
+  )
+
+  const gesture = step < total ? (RIG_GESTURES[experimentId][step] ?? null) : null
   const activeTarget = !busy && step < total ? (def.steps[step]?.target ?? null) : null
-  const ctx = useMemo<RigContextValue>(() => ({ p, time, quality, lang, activeTarget, act }), [quality, lang, activeTarget, act])
+  const ctx = useMemo<RigContextValue>(
+    () => ({ p, time, quality, lang, activeTarget, act, gesture, beginGesture, dragging }),
+    [quality, lang, activeTarget, act, gesture, beginGesture, dragging],
+  )
   const Rig = RIGS[experimentId]
   return (
     <RigContext.Provider value={ctx}>
-      <group name={`lab3d-rig:${experimentId}`}>
+      <group ref={root} name={`lab3d-rig:${experimentId}`}>
         <Rig />
+        {activeTarget && gesture && gesture.kind !== 'tap' && !dragging ? <GestureGhost gesture={gesture} /> : null}
+        <ObsLabels experimentId={experimentId} />
       </group>
     </RigContext.Provider>
   )

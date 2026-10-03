@@ -10,6 +10,7 @@ import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { LAB_COLORS, type LabLang } from '../labContract'
+import type { RigGesture } from './rigTargets'
 
 export type Quality = 'low' | 'high'
 
@@ -23,6 +24,12 @@ export interface RigContextValue {
   /** Цель текущего шага (null — идёт действие или опыт завершён). */
   readonly activeTarget: string | null
   readonly act: (target: string) => void
+  /** Жест текущего шага (нажать / перетащить / провести). */
+  readonly gesture: RigGesture | null
+  /** Начать перетаскивание или «провести» по цели (палец/мышь ведут прогресс шага). */
+  readonly beginGesture: (target: string, e: ThreeEvent<PointerEvent>) => void
+  /** Идёт перетаскивание — призрачная рука прячется. */
+  readonly dragging: boolean
 }
 
 export const RigContext = createContext<RigContextValue | null>(null)
@@ -77,10 +84,14 @@ export function Pose({ pose, children }: { pose: (p: number, t: number) => PoseV
 /** Значение-функция прогресса для свойств деталей. */
 export type PFn = (p: number) => number
 
-/** Подпись-подсказка над целью шага («Нажмите»), для пальца и мыши. */
-const HINT: Record<LabLang, string> = { ru: 'Нажмите', en: 'Tap', uz: 'Bosing' }
+/** Подпись-подсказка над целью шага: «Нажмите» / «Перетащите» / «Проведите», для пальца и мыши. */
+const HINT: Record<RigGesture['kind'], Record<LabLang, string>> = {
+  tap: { ru: 'Нажмите', en: 'Tap', uz: 'Bosing' },
+  drag: { ru: 'Перетащите', en: 'Drag', uz: 'Torting' },
+  swipe: { ru: 'Проведите', en: 'Swipe', uz: 'Suring' },
+}
 
-function HandIcon() {
+export function HandIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10" />
@@ -167,14 +178,21 @@ export function Target({
   ring?: boolean
   children?: ReactNode
 }) {
-  const { activeTarget, act, lang } = useRig()
+  const { activeTarget, act, lang, gesture, beginGesture, dragging } = useRig()
   const active = activeTarget === name
+  const kind = active ? (gesture?.kind ?? 'tap') : 'tap'
   const c: V3 = center ?? [0, size[1] / 2, 0]
   const [hover, setHover] = useState(false)
   ensureHintCss()
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
-    act(name)
+    // у перетаскивания и «провести» простое нажатие не засчитывается — нужен жест (рука-подсказка показывает какой)
+    if (kind === 'tap') act(name)
+  }
+  const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
+    if (!active || kind === 'tap') return
+    e.stopPropagation()
+    beginGesture(name, e)
   }
   return (
     <group name={`target:${name}`}>
@@ -182,10 +200,11 @@ export function Target({
       <mesh
         position={c as unknown as THREE.Vector3Tuple}
         onClick={onClick}
+        onPointerDown={onPointerDown}
         onPointerOver={(e) => {
           e.stopPropagation()
           setHover(true)
-          if (active) document.body.style.cursor = 'pointer'
+          if (active) document.body.style.cursor = kind === 'tap' ? 'pointer' : 'grab'
         }}
         onPointerOut={() => {
           setHover(false)
@@ -196,13 +215,13 @@ export function Target({
         <boxGeometry args={[Math.max(size[0], 0.07), Math.max(size[1], 0.07), Math.max(size[2], 0.07)]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
       </mesh>
-      {active ? (
+      {active && !dragging ? (
         <>
           <ActiveGlow size={size} center={c} ringR={Math.min(0.07, ringR ?? Math.max(size[0], size[2]) * 0.75)} ring={ring} />
           <Html position={[c[0], hintY ?? c[1] + size[1] / 2 + 0.03, c[2]]} center zIndexRange={[30, 10]} style={{ pointerEvents: 'none' }}>
             <div style={{ ...hintStyle, transform: hover ? 'scale(1.06)' : undefined }} data-lab3d-hint={name}>
               <HandIcon />
-              {HINT[lang]}
+              {HINT[kind][lang]}
             </div>
           </Html>
         </>

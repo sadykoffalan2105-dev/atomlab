@@ -45,8 +45,8 @@ function collectPose(p: number) {
   const aboveLamp: V3 = [LAMP[0], 0.3, LAMP[2]]
   const atLamp: V3 = [LAMP[0] - 0.006, LAMP_FLAME_Y + 0.062, LAMP[2]]
   let pos = mixV(rest, lifted, ease(p, 3, 3.25))
-  pos = mixV(pos, aboveOut, ease(p, 3.2, 3.6))
-  pos = mixV(pos, atOut, ease(p, 3.62, 3.9))
+  pos = mixV(pos, aboveOut, ease(p, 3.2, 3.45))
+  pos = mixV(pos, atOut, ease(p, 3.45, 3.62))
   // проверка на чистоту: вверх с трубки → к спиртовке
   pos = mixV(pos, aboveOut, ease(p, 5, 5.12))
   pos = mixV(pos, aboveLamp, ease(p, 5.1, 5.34))
@@ -54,7 +54,7 @@ function collectPose(p: number) {
   // обратно в штатив (уже снова горлышком вверх)
   pos = mixV(pos, lifted, ease(p, 5.66, 5.86))
   pos = mixV(pos, rest, ease(p, 5.86, 6))
-  const flip = ease(p, 3.22, 3.55) * (1 - ease(p, 5.68, 5.88))
+  const flip = ease(p, 3.22, 3.45) * (1 - ease(p, 5.68, 5.88))
   const tiltToFlame = ease(p, 5.32, 5.48) * (1 - ease(p, 5.66, 5.75))
   return { pos, rot: [0, 0, Math.PI * flip - 0.3 * tiltToFlame] as V3 }
 }
