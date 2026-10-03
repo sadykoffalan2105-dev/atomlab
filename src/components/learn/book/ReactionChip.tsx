@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import type { ReaderReaction } from '../../../data/textbook/bookReader'
 import { useT } from '../../../i18n/useT'
+import { findLabExperimentForEquation, labExperimentHref } from '../../../data/labWorks/labExperimentMatch'
 import { useDialogFocus } from '../../lab/useDialogFocus'
 import { IconBook, IconClose, IconFlask, IconGrid, IconInfo, IconScale, IconSpark } from './BookIcons'
 import {
@@ -34,6 +35,8 @@ export function ReactionChip({ rx, index, open, flash, onOpen }: ChipProps) {
   const quick = reactionQuickHref(rx)
   const label = reactionLabel(rx, t)
   const state = rx.exercise ? 'task' : rx.lab.ok ? 'ok' : quick ? 'alt' : 'off'
+  // опыт новой 3D-лаборатории (§ 2.12: BaCl₂ + H₂SO₄, CH₄ + 2O₂, Zn + 2HCl)
+  const exp3d = rx.exercise ? null : findLabExperimentForEquation(rx.equation)
   return (
     <span
       id={rxAnchorId(rx.id)}
@@ -76,6 +79,17 @@ export function ReactionChip({ rx, index, open, flash, onOpen }: ChipProps) {
           data-rx-lab-link={rx.id}
         >
           <IconFlask />
+        </Link>
+      ) : null}
+      {exp3d ? (
+        <Link
+          className={styles.rxChipLab}
+          to={labExperimentHref(exp3d)}
+          title={t('learn.book.rx.open3d')}
+          data-rx-3d-link={exp3d}
+          style={{ width: 'auto', padding: '0 10px', marginLeft: 4, borderRadius: 11, border: '1px solid', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}
+        >
+          {t('learn.book.rx.open3d')} →
         </Link>
       ) : null}
     </span>

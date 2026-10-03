@@ -66,6 +66,7 @@
     "test:elements-collapse": "tsx scripts/test-elements-collapse.mts",
     "test:synthesis-stability": "tsx scripts/test-synthesis-stability.mts",
     "test:lab3d-visibility": "tsx scripts/test-lab3d-visibility.mts",
+    "test:lab3d": "tsx scripts/test-lab3d-experiments.mts",
     "test:coeff-edit-atom-pin": "tsx scripts/test-coeff-edit-atom-pin.mts",
     "test:reactor-preview-motion": "tsx scripts/test-reactor-preview-motion.mts",
     "test:catalog-coeff-stress": "tsx scripts/test-catalog-coeff-stress.mts",

@@ -722,6 +722,7 @@ export const messagesRu = {
   'learn.book.sourceNote': 'Текст распознан из учебника «Kimyo» и может содержать неточности — сверяйтесь со страницей PDF.',
   'learn.book.labWorkAria': 'перейти к странице {n}',
   'learn.book.rx.openLab': 'Открыть в лаборатории',
+  'learn.book.rx.open3d': '3D-опыт',
   'learn.book.rx.openLabAria': 'Открыть в лаборатории: {equation}',
   'learn.book.rx.openOrganic': 'Органическая лаборатория',
   'learn.book.rx.openReactor': 'В реакторе',

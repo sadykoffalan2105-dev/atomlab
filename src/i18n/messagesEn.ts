@@ -724,6 +724,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'learn.book.sourceNote': 'The text was recognised from the “Kimyo” textbook and may contain errors — check the PDF page.',
   'learn.book.labWorkAria': 'go to page {n}',
   'learn.book.rx.openLab': 'Open in the lab',
+  'learn.book.rx.open3d': '3D experiment',
   'learn.book.rx.openLabAria': 'Open in the lab: {equation}',
   'learn.book.rx.openOrganic': 'Organic lab',
   'learn.book.rx.openReactor': 'In the reactor',
