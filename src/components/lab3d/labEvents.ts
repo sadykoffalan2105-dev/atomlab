@@ -41,6 +41,9 @@ export type LabItemId = (typeof LAB_REAGENT_IDS)[number] | (typeof LAB_GLASS_IDS
 
 export type Vec3Tuple = readonly [number, number, number]
 
+/** Средства защиты (то же, что LabGear в контракте; продублировано, чтобы шина не зависела от three). */
+export type LabGearId = 'goggles' | 'gloves' | 'coat'
+
 export type LabEvent =
   | { readonly type: 'picked'; readonly itemId: LabItemId }
   /** zone 'work' — предмет поставлен на рабочее место опыта (WORK_AREA), 'bench' — на стол, 'shelf' — обратно. */
@@ -49,15 +52,26 @@ export type LabEvent =
   | { readonly type: 'focusReset' }
   | { readonly type: 'need'; readonly itemIds: readonly LabItemId[] }
   | { readonly type: 'hint'; readonly at: Vec3Tuple; readonly text: string }
+  /** Ученик надел/снял средство защиты (сцена публикует; опыт ждёт нужное перед началом). */
+  | { readonly type: 'safety'; readonly gear: LabGearId; readonly on: boolean }
+  /** Опыт просит надеть средства защиты (сцена подсвечивает их на крючке/в шкафу). */
+  | { readonly type: 'needGear'; readonly gear: readonly LabGearId[] }
+  /** Звук события (сцена проигрывает пространственно у точки at; опыт может звучать и сам). */
+  | { readonly type: 'sound'; readonly name: string; readonly at?: Vec3Tuple; readonly gain?: number }
 
 type Handler<T extends LabEvent['type']> = (e: Extract<LabEvent, { type: T }>) => void
 
 const handlers = new Map<LabEvent['type'], Set<(e: LabEvent) => void>>()
 let lastNeed: Extract<LabEvent, { type: 'need' }> | null = null
+const worn = new Set<LabGearId>()
 
 export const labEvents = {
   emit(e: LabEvent): void {
     if (e.type === 'need') lastNeed = e
+    if (e.type === 'safety') {
+      if (e.on) worn.add(e.gear)
+      else worn.delete(e.gear)
+    }
     for (const h of handlers.get(e.type) ?? []) h(e)
   },
   /** Подписка; возвращает отписку (удобно для useEffect). */
@@ -72,9 +86,14 @@ export const labEvents = {
   currentNeed(): readonly LabItemId[] {
     return lastNeed?.itemIds ?? []
   },
+  /** Что сейчас надето (опыт, смонтированный позже, сразу знает). */
+  wornGear(): readonly LabGearId[] {
+    return [...worn]
+  },
   /** Для тестов. */
   reset(): void {
     handlers.clear()
     lastNeed = null
+    worn.clear()
   },
 }
