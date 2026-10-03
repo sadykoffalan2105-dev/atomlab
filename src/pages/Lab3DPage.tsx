@@ -3,9 +3,11 @@
  * мышь на компьютере, пальцы на телефоне/планшете/интерактивной доске. Опыты из Kimyo 7 (§ 2.12 и практическое § 5.2).
  * Состояние опыта (LabRunState) живёт здесь; ?exp=<id> в адресе выбирает опыт.
  */
-import { lazy, Suspense, useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { LAB_EXPERIMENTS } from '../components/lab3d/experiments'
+import { LabHandBar } from '../components/lab3d/interaction/LabHandBar'
+import { labHand } from '../components/lab3d/interaction/labHandStore'
 import type { LabExperimentId, LabLang, LabRunState } from '../components/lab3d/labContract'
 import { createLabSceneBridge } from '../components/lab3d/scene/labBridge'
 import type { LabViewId } from '../components/lab3d/scene/labSceneLayout'
@@ -34,6 +36,7 @@ const VIEWS: ReadonlyArray<{ id: LabViewId; key: MessageKey }> = [
   { id: 'board', key: 'lab3d.view.board' },
   { id: 'shelves', key: 'lab3d.view.shelves' },
   { id: 'hood', key: 'lab3d.view.hood' },
+  { id: 'cabinets', key: 'lab3d.scene.view.cabinets' },
 ]
 
 function isExperimentId(v: string | null): v is LabExperimentId {
@@ -89,6 +92,10 @@ export function Lab3DPage() {
     ro.observe(el)
     return () => ro.disconnect()
   }, [narrow, panelOpen])
+  // Смена опыта: предметы возвращаются на полки и в шкафы, рука пуста
+  useEffect(() => {
+    labHand.reset()
+  }, [run.experimentId])
   const [ready, setReady] = useState(false)
   const quality = useMemo(resolveQuality, [])
   const hasWebgl = useMemo(() => webglSupported(), [])
@@ -171,6 +178,9 @@ export function Lab3DPage() {
           </div>
         )}
       </div>
+
+      {/* «Рука»: подсказка о взятии и слот «В руке» (на телефоне — пока панель опыта свёрнута) */}
+      {hasWebgl && ready && !(narrow && panelOpen) && <LabHandBar lang={lang} leftInsetPx={leftInset} />}
 
       {/* Чипы камеры */}
       <div className={styles.views} role="toolbar" aria-label={t('lab3d.viewAria')}>

@@ -4,9 +4,11 @@
  * плакаты, огнетушитель, аптечка, часы. Только процедурная геометрия.
  */
 import { RoundedBox } from '@react-three/drei'
-import { useEffect, useMemo } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { LabLang } from '../labContract'
+import { BenchCabinet, WallCabinet } from '../interaction/LabCabinets'
 import { BENCH, COUNTER, HOOD, ROOM, SINK_X } from './labSceneLayout'
 import type { LabMaterials } from './labMaterials'
 import {
@@ -346,7 +348,8 @@ function StudentBench({ mats }: { mats: LabMaterials }) {
         castShadow
         receiveShadow
       />
-      <CabinetRun mats={mats} width={BENCH.w - 0.08} depth={BENCH.d - 0.12} x={0} z={BENCH.centerZ} doors={4} />
+      {/* Полая тумба с открывающимися дверцами — внутри посуда (interaction/LabCabinets) */}
+      <BenchCabinet mats={mats} />
       {/* Газовые краны у задней кромки стола */}
       {[-1.0, 1.0].map((x) => (
         <group key={x} position={[x, BENCH.topY, BENCH.centerZ - BENCH.d / 2 + 0.07]}>
@@ -432,6 +435,52 @@ function FumeHood({ mats }: { mats: LabMaterials }) {
   )
 }
 
+/** Капля воды из крана: срывается, падает в мойку, по дну расходится кружок. */
+function SinkDrop({ mats, x, z, topY, bottomY }: { mats: LabMaterials; x: number; z: number; topY: number; bottomY: number }) {
+  const drop = useRef<THREE.Mesh>(null)
+  const ripple = useRef<THREE.Mesh>(null)
+  const rippleMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#dfeefc', transparent: true, opacity: 0, depthWrite: false }), [])
+  useEffect(() => () => rippleMat.dispose(), [rippleMat])
+  useFrame((s) => {
+    const period = 2.6
+    const t = s.clock.elapsedTime % period
+    const d = drop.current
+    const r = ripple.current
+    if (!d || !r) return
+    const grow = 1.4
+    const fall = Math.sqrt((2 * (topY - bottomY)) / 9.8)
+    if (t < grow) {
+      // Капля набухает на носике
+      const k = t / grow
+      d.visible = true
+      d.position.set(x, topY - 0.004 * k, z)
+      d.scale.set(0.6 + 0.4 * k, 0.6 + 0.6 * k, 0.6 + 0.4 * k)
+    } else if (t < grow + fall) {
+      const ft = t - grow
+      d.position.set(x, topY - 4.9 * ft * ft, z)
+      d.scale.set(0.85, 1.35, 0.85)
+    } else {
+      d.visible = false
+    }
+    const rt = t - grow - fall
+    if (rt > 0 && rt < 0.7) {
+      r.visible = true
+      r.scale.setScalar(1 + rt * 14)
+      rippleMat.opacity = 0.55 * (1 - rt / 0.7)
+    } else r.visible = false
+  })
+  return (
+    <group>
+      <mesh ref={drop} material={mats.water}>
+        <sphereGeometry args={[0.0045, 12, 10]} />
+      </mesh>
+      <mesh ref={ripple} position={[x, bottomY + 0.002, z]} rotation-x={-Math.PI / 2} material={rippleMat}>
+        <ringGeometry args={[0.004, 0.0055, 24]} />
+      </mesh>
+    </group>
+  )
+}
+
 function SinkCounter({ mats }: { mats: LabMaterials }) {
   const w = COUNTER.x1 - COUNTER.x0
   const cx = (COUNTER.x0 + COUNTER.x1) / 2
@@ -507,8 +556,11 @@ function SinkCounter({ mats }: { mats: LabMaterials }) {
       <mesh position={[cx, top + 0.25, z0 + 0.004]} material={mats.wallAccent}>
         <planeGeometry args={[w, 0.5]} />
       </mesh>
-      {/* Настенные полки для реактивов и посуды */}
-      {[1.42, 1.82, 2.2].map((y) => (
+      {/* Навесной шкаф со стеклянными дверцами (посуда) */}
+      <WallCabinet mats={mats} />
+      <SinkDrop mats={mats} x={SINK_X} topY={top + 0.235} z={sinkZ - 0.06} bottomY={top - 0.19} />
+      {/* Настенные полки для реактивов */}
+      {[1.42, 1.82].map((y) => (
         <group key={y}>
           <mesh position={[(COUNTER.x0 + SINK_X - 0.3) / 2 + 0.02, y, z0 + 0.15]} material={mats.whitePlastic} castShadow receiveShadow>
             <boxGeometry args={[SINK_X - 0.3 - COUNTER.x0 - 0.04, 0.025, 0.3]} />

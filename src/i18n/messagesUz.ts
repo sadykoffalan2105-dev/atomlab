@@ -1114,4 +1114,10 @@ export const messagesUz: Record<MessageKey, string> = {
   'lab3d.hint': 'Aylantirish — sichqoncha yoki bitta barmoq, yaqinlashtirish — g‘ildirak yoki ikki barmoq. Doskadagi tugmalar barmoq bilan bosiladi.',
   'lab3d.classic': 'Eski VR laboratoriya →',
   'lab3d.canvasAria': 'Yorug‘ maktab kimyo laboratoriyasi: tajriba qurilmasi turgan stol, elektron doska, mo‘rili shkaf, rakovina, reaktiv va idishlar javonlari',
+  'lab3d.grab.hint': 'Buyumni olish uchun idishni bosing yoki shkafni oching',
+  'lab3d.grab.inHand': 'Qo‘lda: {name}',
+  'lab3d.grab.putBack': 'Joyiga qo‘yish',
+  'lab3d.grab.toWork': 'Ish joyiga qo‘yish',
+  'lab3d.grab.handAria': 'Qo‘ldagi buyum',
+  'lab3d.scene.view.cabinets': 'Shkaflar',
 }

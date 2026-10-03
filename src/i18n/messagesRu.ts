@@ -1112,6 +1112,12 @@ export const messagesRu = {
   'lab3d.hint': 'Повернуть — мышь или один палец, приблизить — колесо или два пальца. Кнопки на доске нажимаются пальцем.',
   'lab3d.classic': 'Старая VR-лаборатория →',
   'lab3d.canvasAria': 'Светлая школьная химическая лаборатория: рабочий стол с установкой опыта, электронная доска, вытяжной шкаф, раковина, полки с реактивами и посудой',
+  'lab3d.grab.hint': 'Нажмите на склянку или откройте шкаф, чтобы взять предмет',
+  'lab3d.grab.inHand': 'В руке: {name}',
+  'lab3d.grab.putBack': 'Положить на место',
+  'lab3d.grab.toWork': 'Поставить на рабочее место',
+  'lab3d.grab.handAria': 'Предмет в руке',
+  'lab3d.scene.view.cabinets': 'Шкафы',
 } as const
 
 export type MessageKey = keyof typeof messagesRu

@@ -364,3 +364,35 @@ export function signTexture(text: string, bg: string, fg = '#ffffff', w = 512, h
   ctx.fillText(text, w / 2, h / 2 + 2)
   return toTexture(c)
 }
+
+/** Химстойкая столешница: светлый «камень» с мелкой крапинкой и лёгкими разводами (без пластикового вида). */
+export function benchTopTexture(): THREE.CanvasTexture {
+  const S = 512
+  const [c, ctx] = makeCanvas(S, S)
+  const r = rng(23)
+  ctx.fillStyle = '#f3f5f7'
+  ctx.fillRect(0, 0, S, S)
+  // Мягкие разводы
+  for (let i = 0; i < 26; i++) {
+    const x = r() * S
+    const y = r() * S
+    const g = ctx.createRadialGradient(x, y, 0, x, y, 60 + r() * 120)
+    const tone = r() > 0.5 ? '228,233,238' : '251,252,253'
+    g.addColorStop(0, `rgba(${tone},0.4)`)
+    g.addColorStop(1, `rgba(${tone},0)`)
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, S, S)
+  }
+  // Крапинка
+  for (let i = 0; i < 2600; i++) {
+    const v = 150 + Math.floor(r() * 80)
+    ctx.fillStyle = `rgba(${v},${v + 4},${v + 10},${0.18 + r() * 0.3})`
+    const s = r() < 0.92 ? 1 : 2
+    ctx.fillRect(r() * S, r() * S, s, s)
+  }
+  const t = toTexture(c)
+  t.wrapS = THREE.RepeatWrapping
+  t.wrapT = THREE.RepeatWrapping
+  t.repeat.set(3, 1.1)
+  return t
+}

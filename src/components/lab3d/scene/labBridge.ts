@@ -9,8 +9,10 @@ export interface LabSceneBridge {
   panBoard: ((dxPx: number) => void) | null
   /** Листание доски кнопками: −1 — левее, +1 — правее. */
   shiftBoard: ((dir: -1 | 1) => void) | null
+  /** Двойной клик/тап по предмету — камера плавно приближается к точке (дистанция в метрах). */
+  zoomTo: ((point: { x: number; y: number; z: number }, dist?: number) => void) | null
 }
 
 export function createLabSceneBridge(): LabSceneBridge {
-  return { boardPanEnabled: false, panBoard: null, shiftBoard: null }
+  return { boardPanEnabled: false, panBoard: null, shiftBoard: null, zoomTo: null }
 }
