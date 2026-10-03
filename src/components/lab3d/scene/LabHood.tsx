@@ -22,22 +22,22 @@ const CANOPY_H = 0.42
 const SASH_TOP = HOOD.h - CANOPY_H
 export const SASH_MAX_LIFT = 0.4
 
-/** Текущее положение створки (м подъёма) — читают струйки тяги и кадры. */
-export const hoodSash = { lift: 0.06 }
+/** Положение створки (м подъёма): lift — текущее, target — куда её ведёт рука (можно задать и из кода). */
+export const hoodSash = { lift: 0.06, target: 0.06 }
 
 function HoodSash({ mats }: { mats: LabMaterials }) {
   const ref = useRef<THREE.Group>(null)
   const controls = useThree((s) => s.controls) as unknown as OrbitControlsImpl | null
   const [hover, setHover] = useState(false)
   useCursor(hover, 'ns-resize', 'auto')
-  const ph = useRef({ y: hoodSash.lift, v: 0, target: hoodSash.lift })
+  const ph = useRef({ y: hoodSash.lift, v: 0 })
   useFrame((_, dtRaw) => {
     const g = ref.current
     if (!g) return
     const dt = Math.min(dtRaw, 1 / 30)
     const p = ph.current
     // Противовес: створка догоняет руку с лёгкой инерцией, у упоров — мягкий отскок
-    p.v += ((p.target - p.y) * 90 - p.v * 15) * dt
+    p.v += ((hoodSash.target - p.y) * 90 - p.v * 15) * dt
     p.y += p.v * dt
     if (p.y < 0) {
       if (p.v < -0.25) labAudio.play('door-close', { at: [HOOD.x, SASH_BOTTOM, ROOM.frontZ + HOOD.d], gain: 0.5 })
@@ -56,9 +56,8 @@ function HoodSash({ mats }: { mats: LabMaterials }) {
     if (controls) controls.enabled = false
     let ly = e.clientY
     const move = (ev: PointerEvent) => {
-      const p = ph.current
       // Вверх по экрану — створка поднимается; масштаб — примерно как реальное движение в кадре
-      p.target = Math.min(SASH_MAX_LIFT, Math.max(0, p.target - (ev.clientY - ly) / 380))
+      hoodSash.target = Math.min(SASH_MAX_LIFT, Math.max(0, hoodSash.target - (ev.clientY - ly) / 380))
       ly = ev.clientY
     }
     const up = () => {
@@ -286,4 +285,13 @@ export function LabHoodControls({ mats, quality }: { mats: LabMaterials; quality
       <HoodDraft quality={quality} />
     </group>
   )
+}
+
+// Для автоматических кадров: …#/vr-lab?debugHand=1 — window.__labHood.lift(м)
+if (typeof window !== 'undefined' && /[?&]debugHand=1/.test(window.location.hash)) {
+  ;(window as unknown as { __labHood?: { lift: (m: number) => void } }).__labHood = {
+    lift: (m: number) => {
+      hoodSash.target = Math.min(SASH_MAX_LIFT, Math.max(0, m))
+    },
+  }
 }

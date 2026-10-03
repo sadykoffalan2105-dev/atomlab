@@ -114,8 +114,9 @@ export function LabWidgets({ experimentId, step, finished, lang, view, onView, v
   const { t } = useT()
   const hand = useHand()
   const audio = useSyncExternalStore(labAudio.subscribe, labAudio.getSnapshot, labAudio.getSnapshot)
-  const [open, setOpen] = useState(() => !narrow)
-  const [sec, setSec] = useState<Record<string, boolean>>({ timer: true, journal: !narrow, gear: true, sound: false, map: false })
+  // Свёрнуто по умолчанию: в шапке уже видно время и что надето, а сцена (и предмет в руке справа) не закрыта
+  const [open, setOpen] = useState(false)
+  const [sec, setSec] = useState<Record<string, boolean>>({ timer: true, journal: true, gear: !narrow, sound: false, map: false })
   const toggle = (k: string) => setSec((s) => ({ ...s, [k]: !s[k] }))
 
   // Секундомер: идёт с первого действия в опыте, останавливается на выводе, сбрасывается при смене опыта

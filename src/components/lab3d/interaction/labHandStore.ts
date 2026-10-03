@@ -166,9 +166,15 @@ export const labHand = {
   pick(id: LabItemId) {
     if (state.held === id) return
     if (state.held) labHand.putBack()
+    const from = zoneOf(id)
+    const xz = itemXZ.get(id)
+    const home = LAB_ITEM_BY_ID.get(id)?.home
     itemXZ.delete(id)
     setZone(id, 'hand', { held: id, pickedOnce: true })
     labEvents.emit({ type: 'picked', itemId: id })
+    // Стекло тихо звякает, когда его снимают с полки/со стола
+    const at: [number, number, number] | undefined = xz ? [xz[0], BENCH_Y + 0.05, xz[1]] : from === 'home' && home ? [home[0], home[1] + 0.05, home[2]] : undefined
+    labEvents.emit({ type: 'sound', name: 'glass-clink', at, gain: 0.3 })
   },
   /** Положить предмет из руки на своё место на полке/в шкафу. */
   putBack() {
