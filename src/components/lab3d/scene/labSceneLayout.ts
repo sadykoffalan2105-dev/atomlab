@@ -34,7 +34,7 @@ export function cameraPoseFor(view: LabViewId, aspect: number, fovDeg: number): 
   switch (view) {
     case 'board': {
       const dH = (BOARD_SIZE.h * 0.56) / tanHalf
-      const dW = (BOARD_SIZE.w * 0.54) / (tanHalf * aspect)
+      const dW = (BOARD_SIZE.w * 0.57) / (tanHalf * aspect)
       // На телефоне доска влезает по высоте — по ширине её листают (кнопки ◀ ▶ или перетаскивание)
       const d = aspect < 1 ? dH * 1.02 : Math.max(dH, dW)
       return {
