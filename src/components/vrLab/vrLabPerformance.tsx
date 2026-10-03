@@ -76,14 +76,21 @@ const PRESETS: Record<VrLabQualityTier, Omit<VrLabPerfSettings, 'tier'>> = {
   },
 }
 
+let webglSupportedCache: boolean | null = null
+
 function webglSupported(): boolean {
   if (typeof document === 'undefined') return true
+  if (webglSupportedCache !== null) return webglSupportedCache
   try {
     const canvas = document.createElement('canvas')
-    return !!(canvas.getContext('webgl2') ?? canvas.getContext('webgl'))
+    const gl = (canvas.getContext('webgl2') ?? canvas.getContext('webgl')) as WebGLRenderingContext | null
+    webglSupportedCache = !!gl
+    // пробный контекст сразу освобождаем — не занимает место в лимите живых WebGL-контекстов браузера
+    gl?.getExtension('WEBGL_lose_context')?.loseContext()
   } catch {
-    return false
+    webglSupportedCache = false
   }
+  return webglSupportedCache
 }
 
 /** Качество VR: high на мощных устройствах, medium на слабых. */
