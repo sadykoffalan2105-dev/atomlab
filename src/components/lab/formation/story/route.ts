@@ -252,8 +252,8 @@ export function buildRouteStage(
     const an = anions[0]!
     const ct = unitTpl(model, cu.atoms)
     const at = unitTpl(model, an.atoms)
-    const ci = placeTpl(c, scaleTpl(ct, kR), [[T, [-2.6 * b, -2.4 * b, 0]], [T + D, [-2.2 * b, -2.0 * b, 0]]])
-    const ai = placeTpl(c, scaleTpl(at, kR), [[T, [2.8 * b, -2.4 * b, 0]], [T + D, [2.4 * b, -2.0 * b, 0]]])
+    const ci = placeTpl(c, scaleTpl(ct, kR), [[T, [-2.6 * b, -2.8 * b, 0]], [T + D, [-2.2 * b, -2.4 * b, 0]]])
+    const ai = placeTpl(c, scaleTpl(at, kR), [[T, [2.9 * b, -2.8 * b, 0]], [T + D, [2.5 * b, -2.4 * b, 0]]])
     c.badges.push({ text: spOf(cu).formula, atoms: ci, from: T + 0.3, to: end }, { text: spOf(an).formula, atoms: ai, from: T + 0.3, to: end })
   } else if (rk === 'protonTransfer' && /NH₃/.test(route) && plan.species.some((s) => s.formula === 'NH₄⁺')) {
     show = 'protonTransfer'
@@ -333,8 +333,9 @@ export function buildRouteStage(
     const ai = placeTpl(c, at, [[T + 0.8, [3.3 * b, -0.9 * b, 0]], [T + 3.4, [0.5 * dd, 0, 0]]])
     const spec = spectatorsOf(route, script.formula)
     if (spec) {
-      const sc = atom(c, spec.cat[0], [[T + 0.8, [3.4 * b, 1.4 * b, 0]], [T + 3.6, [2.6 * b, 2.3 * b, 0]]])
-      const sa = atom(c, spec.an[0], [[T + 0.8, [-3.4 * b, -1.4 * b, 0]], [T + 3.6, [-2.6 * b, -2.3 * b, 0]]])
+      // «зрители» — в стороне от пути ионов продукта (не задевают их при сближении)
+      const sc = atom(c, spec.cat[0], [[T + 0.8, [3.4 * b, 2.6 * b, 0]], [T + 3.6, [2.6 * b, 2.6 * b, 0]]])
+      const sa = atom(c, spec.an[0], [[T + 0.8, [-3.4 * b, -2.6 * b, 0]], [T + 3.6, [-2.6 * b, -2.6 * b, 0]]])
       c.badges.push({ text: spec.cat[1], atoms: [sc], from: T + 0.3, to: end }, { text: spec.an[1], atoms: [sa], from: T + 0.3, to: end })
     }
     c.badges.push({ text: spOf(cu).formula, atoms: ci, from: T + 0.3, to: T + 3.4 }, { text: spOf(an).formula, atoms: ai, from: T + 0.3, to: T + 3.4 }, { text: `${script.formula}`, atoms: [...ci, ...ai], from: T + 3.7, to: end })

@@ -118,7 +118,8 @@ for (const id of ids) {
     for (const L of story.latticeAtoms)
       for (let i = 0; i < n; i++) {
         const d = dist(L.pos, model.atoms[i]!.pos as V3)
-        if (ionic && Number.isFinite(dCA)) {
+        // 0,45·d(кат–ан) — для «тяжёлых» атомов; H (OH⁻, NH₄⁺, H₂O) соседних частиц законно ближе — для них правило 25 %
+        if (ionic && Number.isFinite(dCA) && L.el !== 'H' && model.atoms[i]!.el !== 'H') {
           if (d < 0.45 * dCA) add(id, `T решётка: ${L.el} ближе ${(d / dCA).toFixed(2)}·d(кат–ан) к ${model.atoms[i]!.el}${i}`)
         } else {
           const rL = L.r

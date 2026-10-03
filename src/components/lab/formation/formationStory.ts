@@ -136,6 +136,15 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
   const unitOf = new Map<number, number>()
   plan.units.forEach((u, i) => u.atoms.forEach((a) => unitOf.set(a, i)))
   const speciesOfAtom = (i: number) => plan.species[plan.units[unitOf.get(i) ?? -1]?.species ?? -1]
+  /** радиус нейтрального атома (до перехода e⁻): у иона металла больше, у аниона меньше ионного — физически верно */
+  const rNeutralOf = (i: number): number => {
+    const a = model.atoms[i]!
+    const sp = speciesOfAtom(i)
+    // Кристалл (125 ионов) — радиусы как в модели: смена радиусов сотен шаров отвлекает от решётки.
+    if (!ionic || crystal || !sp || sp.kind !== 'ion' || sp.charge === 0) return a.r
+    // Не больше чем вдвое против ионного — шары не перекрывают соседей.
+    return Math.max(0.5 * a.r, Math.min(2 * a.r, schoolBallRadius(a.el)))
+  }
 
   // ── P2 / P3: разлёт от итоговых мест ──
   const P2: V3[] = PF.map((p) => [...p] as V3)
@@ -239,7 +248,8 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     } else if (g.kind === 'metal') {
       // Плотная упаковка: центр + шестиугольник (атомы касаются — металлическая решётка).
       g.atoms.forEach((a, k) => {
-        const rr = model.atoms[a]!.r
+        // шаг — по радиусу НЕЙТРАЛЬНОГО атома (на этапе «Исходные» шар металла ещё атом, он крупнее иона)
+        const rr = rNeutralOf(a)
         const off: V3 = k === 0 ? [0, 0, 0] : [Math.cos(((k - 1) * Math.PI) / 3) * 2.05 * rr, Math.sin(((k - 1) * Math.PI) / 3) * 2.05 * rr, 0]
         P0[a] = screenToModel(model, add(c, off))
         P1[a] = screenToModel(model, add(c, off, 1.7))
@@ -555,14 +565,7 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     sharedPairs,
     valenceE,
     atomEl: model.atoms.map((a) => a.el),
-    rNeutral: model.atoms.map((a, i) => {
-      const sp = speciesOfAtom(i)
-      // Кристалл (125 ионов) — радиусы как в модели: смена радиусов сотен шаров отвлекает от решётки.
-      if (!ionic || crystal || !sp || sp.kind !== 'ion' || sp.charge === 0) return a.r
-      const rn = schoolBallRadius(a.el)
-      // Не больше чем вдвое против ионного — шары не перекрывают соседей.
-      return Math.max(0.5 * a.r, Math.min(2 * a.r, rn))
-    }),
+    rNeutral: model.atoms.map((_, i) => rNeutralOf(i)),
     ionWin: tr ? [tr.t0 + 0.45 * tr.dur, tr.t0 + tr.dur] : [Infinity, Infinity],
   }
 }

@@ -192,7 +192,7 @@ export function buildMoreScene(k: SceneKit, script: FormationScript, plan: Forma
       const M = mc[1]!
       const l = k.bl('C', 'O')
       const C0: [number, number] = [0.6, 0]
-      const m = k.A(M, [[0, -2.2, -0.3]])
+      const m = k.A(M, [[0, -2.7, -0.3]])
       const c = k.A('C', [[0, C0[0], C0[1]], [2.6, C0[0], C0[1]], [5.6, C0[0] + 0.8, 2.6]])
       // O к металлу (останется O²⁻) и два O, которые с C уходят (треугольник → линейная CO₂)
       const oM = k.A('O', [[0, C0[0] - l, 0], [2.6, C0[0] - l, 0], [4.4, -0.9, -0.2]])
@@ -430,10 +430,10 @@ export function buildMoreScene(k: SceneKit, script: FormationScript, plan: Forma
       const oL = others(xL - 1.0, xL, -1, nH)
       const oR = others(xR + 1.0, xR, 1, nH)
       // OH левой (уйдёт водой) и OH правой (станет мостиком)
-      const ow = k.A('O', [[0, xL - 1.0 + l, 0.15], [2.0, xL + l * 0.92, 0.3], [3.4, xL + l * 0.92, 0.6], [4.4, -0.4, -1.9], [6.2, -0.4, -3.2]])
-      const hw = k.A('H', [[0, xL - 1.0 + l + 0.4, 1.05], [2.0, xL + l * 0.92 + 0.3, 1.2], [4.4, -1.0, -1.4], [6.2, -1.0, -2.7]])
+      const ow = k.A('O', [[0, xL - 1.0 + l, 0.15], [2.0, xL + l * 0.92, 0.3], [3.4, xL + l * 0.92, 0.6], [4.4, -0.5, 1.0, 2.4], [6.2, -0.5, 1.6, 3.8]])
+      const hw = k.A('H', [[0, xL - 1.0 + l + 0.4, 1.05], [2.0, xL + l * 0.92 + 0.3, 1.2], [3.4, xL + l * 0.92 + 0.3, 1.5], [4.4, -1.1, 1.6, 2.4], [6.2, -1.1, 2.2, 3.8]])
       const ob = k.A('O', [[0, xR + 1.0 - l, -0.3], [2.0, xR - l * 0.92, -0.6], [3.6, xR - l * 0.92, -0.6], [4.6, 0, -0.35]])
-      const hb = k.A('H', [[0, xR + 1.0 - l - 0.3, -1.25], [2.0, xR - l * 0.92 - 0.2, -1.55], [3.0, 0.2, -0.9], [3.6, xL + l * 0.92 + 0.85, -0.2], [4.4, 0.2, -2.3], [6.2, 0.2, -3.6]])
+      const hb = k.A('H', [[0, xR + 1.0 - l - 0.3, -1.25], [2.0, xR - l * 0.92 - 0.2, -1.55], [3.0, 0.2, -0.9], [3.6, xL + l * 0.92 + 0.85, -0.2], [4.4, 0.1, 1.6, 2.4], [6.2, 0.1, 2.2, 3.8]])
       k.S(left, ow, -1, -1, 3.6)
       k.S(ow, hw, -1, -1)
       k.S(right, ob, -1, -1)
@@ -630,15 +630,17 @@ export function buildMoreScene(k: SceneKit, script: FormationScript, plan: Forma
       const l = k.bl(M, 'O')
       const m = k.A(M, [[0, -0.9, -0.3], [3.4, -0.9, -0.3], [6.0, -1.5, -0.6]])
       const o = k.A('O', [[0, -0.9 + l, -0.3], [3.0, -0.9 + l, -0.3], [4.6, 0.6, 1.4], [6.2, 0.9, 2.6]])
-      const ha = k.A('H', [[0.4, 2.8, 1.6], [3.0, -0.9 + l + 0.5, 0.5], [4.6, 1.2, 2.0], [6.2, 1.5, 3.2]])
-      const hb = k.A('H', [[0.4, 2.8, -1.8], [3.0, -0.9 + l + 0.5, -1.1], [4.6, 1.2, 0.8], [6.2, 1.5, 2.0]])
+      const ha = k.A('H', [[0.4, 0.9, 3.0], [3.0, -0.9 + l + 0.5, 0.5], [4.6, 1.2, 2.0], [6.2, 1.5, 3.2]])
+      const hb = k.A('H', [[0.4, 0.9, -3.2], [3.0, -0.9 + l + 0.5, -1.1], [4.6, 1.2, 0.8], [6.2, 1.5, 2.0]])
       k.S(m, o, -1, -1, 3.6)
       k.S(o, ha, 3.0, 3.6)
       k.S(o, hb, 3.2, 3.8)
       const anEl = /SO₄/.test(route) ? 'S' : 'N'
-      const an = /SO₄/.test(route) ? xon(k, 'S', 4, [[0.4, 2.6, -0.2], [3.6, 2.6, -0.2], [6.0, 0.9, -1.4]]) : xon(k, 'N', 3, [[0.4, 2.8, -0.4], [3.6, 2.8, -0.4], [6.0, 0.8, -1.6]])
+      // кислотный остаток — правее пути H⁺ (у крупного Pb²⁺ связь M–O длиннее)
+      const ax = Math.max(3.4, l + 1.9)
+      const an = /SO₄/.test(route) ? xon(k, 'S', 4, [[0.4, ax, -0.6], [3.6, ax, -0.6], [6.0, ax - 2.0, -1.8]]) : xon(k, 'N', 3, [[0.4, ax, -0.6], [3.6, ax, -0.6], [6.0, ax - 2.1, -1.9]])
       void anEl
-      const an2 = /SO₄/.test(route) ? null : xon(k, 'N', 3, [[0.4, -3.4, 1.6], [3.6, -3.4, 1.6], [6.0, -3.1, 0.6]])
+      const an2 = /SO₄/.test(route) ? null : xon(k, 'N', 3, [[0.4, -3.6, 1.8], [3.6, -3.6, 1.8], [6.0, -3.8, 1.4]])
       k.L(`${M}O`, [m, o], 0.3, 3.0)
       k.L('H⁺', [ha], 0.6, 3.0)
       k.L('H⁺', [hb], 0.6, 3.0)
@@ -903,10 +905,10 @@ function redoxScene(k: SceneKit, script: FormationScript, plan: FormationPlan): 
       k.L('H₂O', [o, h, h2], 0.3, 2.8)
     } else {
       // H⁺ уходит ко второму OH⁻ (вода)
-      const o2 = k.A('O', [[0.4, 3.4, -2.2], [4.6, 3.2, -1.6], [6.2, 3.4, -2.6]])
-      const hh = k.A('H', [[0.4, 4.1, -2.7], [4.6, 3.9, -2.1], [6.2, 4.1, -3.1]])
+      const o2 = k.A('O', [[0.4, 3.8, -2.2], [4.6, 3.6, -1.75], [6.2, 3.8, -2.6]])
+      const hh = k.A('H', [[0.4, 4.5, -2.7], [4.6, 4.3, -2.25], [6.2, 4.5, -3.1]])
       k.S(o2, hh, -1, -1)
-      k.A('H', [[4.7, l / 2 + lo + 0.7, 0.7], [5.6, 3.0, -0.75]], 4.7)
+      k.A('H', [[4.7, l / 2 + lo + 0.7, 0.7], [5.1, l / 2 + lo + 1.4, 0.2], [5.6, 3.0 + 0.4, -0.85]], 4.7)
       hideAt(k, h, 4.7)
       k.L('OH⁻', [o, h], 0.3, 3.0)
       k.L('OH⁻ + H⁺ → H₂O', [o2, hh], 4.8, E)
@@ -963,7 +965,7 @@ function redoxScene(k: SceneKit, script: FormationScript, plan: FormationPlan): 
     )
   }
   if (/^FeS \+ S/.test(route)) {
-    const fe = k.A('Fe', [[0, -2.2, 0]])
+    const fe = k.A('Fe', [[0, -2.9, 0]])
     const l = k.bl('S', 'S')
     const s1 = k.A('S', [[0, -0.6, 0], [3.0, -0.6, 0], [4.2, -l / 2, 0]])
     const s2 = k.A('S', [[0.4, 2.8, 0.5], [2.4, -0.6 + l + 0.3, 0.2], [4.2, l / 2, 0]])
@@ -1031,13 +1033,14 @@ function redoxScene(k: SceneKit, script: FormationScript, plan: FormationPlan): 
     const key = mk[1]!
     if (/FeSO₄/.test(key)) {
       const p = xon(k, 'Mn', 4, [[0, 0, -0.2]])
+      // пять ионов Fe²⁺ — кольцом, между атомами O тетраэдра (не над ними)
       const fes = Array.from({ length: 5 }, (_, i) => {
-        const a = 90 + 72 * i
-        return k.A('Fe', [[0.4, 3.0 * Math.cos(a * deg), -0.2 + 3.0 * Math.sin(a * deg)], [2.0, 2.6 * Math.cos(a * deg), -0.2 + 2.6 * Math.sin(a * deg)]])
+        const a = 54 + 72 * i
+        return k.A('Fe', [[0.4, 3.7 * Math.cos(a * deg), -0.2 + 3.7 * Math.sin(a * deg)], [2.0, 3.2 * Math.cos(a * deg), -0.2 + 3.2 * Math.sin(a * deg)]])
       })
       fes.forEach((x, i) => {
-        const a = 90 + 72 * i
-        eFly(k, [2.2 * Math.cos(a * deg), -0.2 + 2.2 * Math.sin(a * deg)], [0.45 * Math.cos((a + 36) * deg), -0.2 + 0.45 * Math.sin((a + 36) * deg)], 0.6, 2.0 + 0.4 * i, 2.9 + 0.4 * i)
+        const a = 54 + 72 * i
+        eFly(k, [2.6 * Math.cos(a * deg), -0.2 + 2.6 * Math.sin(a * deg)], [0.45 * Math.cos((a + 36) * deg), -0.2 + 0.45 * Math.sin((a + 36) * deg)], 0.6, 2.0 + 0.4 * i, 2.9 + 0.4 * i)
         k.L(i === 0 ? `${ion('Fe', 2)} → ${ion('Fe', 3)}` : ion('Fe', 2), [x], i === 0 ? 0.3 : 0.3, i === 0 ? E : 2.9 + 0.4 * i)
         if (i > 0) k.L(ion('Fe', 3), [x], 3.0 + 0.4 * i, E)
       })
@@ -1065,11 +1068,11 @@ function redoxScene(k: SceneKit, script: FormationScript, plan: FormationPlan): 
         const a = 60 * i + 30
         // соседние I⁻ (пары 0–1, 2–3, 4–5) сходятся в молекулы I₂
         const a2 = a + (i % 2 ? -14 : 14)
-        return k.A('I', [[0.4, 3.1 * Math.cos(a * deg), 3.1 * Math.sin(a * deg)], [4.0, 3.1 * Math.cos(a * deg), 3.1 * Math.sin(a * deg)], [5.4, 3.3 * Math.cos(a2 * deg), 3.3 * Math.sin(a2 * deg)]])
+        return k.A('I', [[0.4, 4.1 * Math.cos(a * deg), 4.1 * Math.sin(a * deg)], [4.0, 4.1 * Math.cos(a * deg), 4.1 * Math.sin(a * deg)], [5.4, 4.3 * Math.cos(a2 * deg), 4.3 * Math.sin(a2 * deg)]])
       })
       is.forEach((_, i) => {
         const a = 60 * i + 30
-        eFly(k, [2.6 * Math.cos(a * deg), 2.6 * Math.sin(a * deg)], [(Math.cos(a * deg) < 0 ? -1 : 1) * 0.95 * l, 0.25 * (i % 3 - 1)], 0.6, 1.8 + 0.35 * i, 2.7 + 0.35 * i)
+        eFly(k, [3.4 * Math.cos(a * deg), 3.4 * Math.sin(a * deg)], [(Math.cos(a * deg) < 0 ? -1 : 1) * 0.95 * l, 0.25 * (i % 3 - 1)], 0.6, 1.8 + 0.35 * i, 2.7 + 0.35 * i)
       })
       for (let i = 0; i < 6; i += 2) {
         k.S(is[i]!, is[i + 1]!, 5.4, 6.0)

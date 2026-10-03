@@ -181,7 +181,14 @@ function schemaFragment(plan: FormationPlan, model: SchoolHeroModel, screenToMod
           const tpl = cation ? C0.tpl : A0.tpl
           list.push({ center: pos, atoms: tpl.map((t) => ({ el: t.el, pos: addv(pos, t.rel), r: t.r, charge: t.charge })) })
         }
-    return withK(list, addv(C0.c, u, 0.5 * d), 150)
+    // Многоатомный ион длиннее шага сетки (NaAlO₂: O–Al–O) — копии легли бы на атомы модели: тогда — формульные единицы.
+    const heavy = model.atoms.filter((a) => a.el !== 'H')
+    // мера — ближайшие атомы катион–анион модели (K–O у KClO₃), а не центры ионов
+    let dMin = d
+    for (const x of C0.tpl) for (const y of A0.tpl) dMin = Math.min(dMin, lenv(sub(addv(C0.c, x.rel), addv(A0.c, y.rel))))
+    const covers = list.some((u) => u.atoms.some((x) => x.el !== 'H' && heavy.some((a) => lenv(sub(a.pos, x.pos)) < 0.45 * dMin)))
+    if (!covers) return withK(list, addv(C0.c, u, 0.5 * d), 150)
+    list.length = 0
   }
   // Формульная единица целиком (верное соотношение ионов и молекул воды), копии — в узлах кубической сетки;
   // в соседних узлах единица повёрнута на 180° — катионы одной единицы обращены к анионам соседней.
