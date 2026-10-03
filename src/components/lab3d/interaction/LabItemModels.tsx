@@ -131,7 +131,8 @@ function ReagentModel({ def, mats, lang, quality }: { def: LabItemDef; mats: Lab
       <mesh geometry={bottle ? G.bottle : G.jar} material={glass} castShadow={false} />
       {bottle ? (
         <>
-          <mesh geometry={G.bottleLiquid} material={mats.water} />
+          {/* name="liquid" — рука находит раствор и колышет его поверхность при движении */}
+          <mesh name="liquid" geometry={G.bottleLiquid} material={mats.water} />
           {/* Притёртая стеклянная пробка */}
           <mesh geometry={G.stopper} material={glass} />
         </>

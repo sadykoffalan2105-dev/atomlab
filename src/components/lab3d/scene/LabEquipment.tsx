@@ -379,50 +379,20 @@ function WashBottle({ mats, position }: ItemProps) {
   )
 }
 
-function Goggles({ mats, position, rotationY }: ItemProps) {
-  return (
-    <Place position={position} rotationY={rotationY}>
-      <RoundedBox args={[0.16, 0.05, 0.06]} radius={0.02} position-y={0.026} material={mats.glass} />
-      <RoundedBox args={[0.165, 0.054, 0.012]} radius={0.005} position={[0, 0.027, 0.03]} material={mats.rubberBlue} />
-      <mesh position={[0, 0.006, -0.04]} rotation-x={Math.PI / 2} material={mats.blackPlastic}>
-        <torusGeometry args={[0.07, 0.004, 6, 24, Math.PI]} />
-      </mesh>
-    </Place>
-  )
-}
-
-function Gloves({ mats, position, rotationY }: ItemProps) {
-  return (
-    <Place position={position} rotationY={rotationY}>
-      {[0, 0.05].map((dx, i) => (
-        <group key={i} position={[dx, 0.008, i * 0.02]} rotation-y={i * 0.3}>
-          <mesh rotation-z={Math.PI / 2} scale={[1, 1, 0.35]} material={mats.rubberBlue}>
-            <capsuleGeometry args={[0.03, 0.1, 6, 12]} />
-          </mesh>
-          {[-0.02, -0.007, 0.007, 0.02].map((fz) => (
-            <mesh key={fz} position={[-0.1, 0, fz]} rotation-z={Math.PI / 2} scale={[1, 1, 0.8]} material={mats.rubberBlue}>
-              <capsuleGeometry args={[0.006, 0.04, 4, 8]} />
-            </mesh>
-          ))}
-        </group>
-      ))}
-    </Place>
-  )
-}
-
 interface EquipmentProps {
   readonly mats: LabMaterials
   readonly lang: LabLang
+  /** В вытяжке идёт опыт — её собственная посуда убирается, чтобы не стоять в установке. */
+  readonly hoodBusy?: boolean
 }
 
-export function LabEquipment({ mats }: EquipmentProps) {
+export function LabEquipment({ mats, hoodBusy = false }: EquipmentProps) {
   const display = useMemo(() => scalesDisplayTexture(), [])
   useEffect(() => () => display.dispose(), [display])
   const top = BENCH_TOP_Y
   // Края стола вне рабочего места: x ∈ ±[0.7, 1.25]
   const edgeL = -(WORK_AREA_SIZE.w / 2 + 0.33)
   const edgeR = WORK_AREA_SIZE.w / 2 + 0.33
-  const frontZ = BENCH.centerZ + BENCH.d / 2 - 0.12
   const backZ = BENCH.centerZ - BENCH.d / 2 + 0.16
   const counterTop = BENCH_TOP_Y
   const cz = ROOM.frontZ + COUNTER.d / 2
@@ -431,8 +401,7 @@ export function LabEquipment({ mats }: EquipmentProps) {
     <group>
       {/* Левый край стола: штатив с пробирками, очки, перчатки (спиртовка — в тумбе, её берут рукой) */}
       <TestTubeRack mats={mats} position={[edgeL - 0.0, top, backZ + 0.03]} rotationY={0.15} />
-      <Gloves mats={mats} position={[edgeL - 0.12, top, 0.0]} rotationY={0.3} />
-      <Goggles mats={mats} position={[edgeL - 0.09, top, frontZ - 0.03]} rotationY={0.2} />
+      {/* Очки и перчатки — интерактивные (interaction/LabSafetyGear): нажал — надел */}
       {/* Правый край: штатив с кольцом и лапкой (свободные места стола — для предметов из шкафов) */}
       <RetortStand mats={mats} position={[edgeR + 0.12, top, backZ + 0.02]} rotationY={-0.25} />
 
@@ -450,10 +419,14 @@ export function LabEquipment({ mats }: EquipmentProps) {
       <Funnel mats={mats} position={[COUNTER.x0 + 0.34, counterTop, cz - 0.17]} />
 
       {/* В вытяжном шкафу: горелка, штатив с колбой */}
-      <GasBurner mats={mats} position={[HOOD.x - 0.3, top, hoodZ]} />
-      <RetortStand mats={mats} position={[HOOD.x + 0.15, top, hoodZ]} />
-      <RoundFlask mats={mats} position={[HOOD.x + 0.4, top, hoodZ + 0.1]} scale={1.2} />
-      <Beaker mats={mats} position={[HOOD.x - 0.05, top, hoodZ + 0.15]} liquid={mats.pinkLiquid} />
+      {!hoodBusy && (
+        <>
+          <GasBurner mats={mats} position={[HOOD.x - 0.3, top, hoodZ]} />
+          <RetortStand mats={mats} position={[HOOD.x + 0.15, top, hoodZ]} />
+          <RoundFlask mats={mats} position={[HOOD.x + 0.4, top, hoodZ + 0.1]} scale={1.2} />
+          <Beaker mats={mats} position={[HOOD.x - 0.05, top, hoodZ + 0.15]} liquid={mats.pinkLiquid} />
+        </>
+      )}
 
       {/* Подоконник: растение */}
       <group position={[-ROOM.w / 2 + 0.14, 0.95, 1.9]}>

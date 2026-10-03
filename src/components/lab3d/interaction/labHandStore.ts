@@ -1,14 +1,28 @@
 /**
  * «Рука» ученика: маленький стор (useSyncExternalStore) — что в руке, где стоит каждый предмет, какие дверцы
- * открыты, что сейчас нужно опыту. Публикует события шины labEvents ('picked' / 'placed').
+ * и ящики открыты, что сейчас нужно опыту, что надето из средств защиты, где рабочее место (стол или вытяжка).
+ * Публикует события шины labEvents ('picked' / 'placed' / 'safety' / 'sound').
  * Живые координаты предметов на столе — в изменяемой карте (перетаскивание не перерисовывает React).
  */
 import { useSyncExternalStore } from 'react'
-import { labEvents, type LabItemId } from '../labEvents'
-import { BENCH_BOUNDS, BENCH_SLOTS, BENCH_STATIC, LAB_ITEM_BY_ID, WORK_RECT, WORK_SLOTS } from './labItems'
+import { labEvents, type LabGearId, type LabItemId } from '../labEvents'
+import {
+  BENCH_BOUNDS,
+  BENCH_SLOTS,
+  BENCH_STATIC,
+  BENCH_Y,
+  HOOD_BOUNDS,
+  HOOD_RECT,
+  HOOD_SLOTS,
+  LAB_ITEM_BY_ID,
+  WORK_RECT,
+  WORK_SLOTS,
+} from './labItems'
 
 /** home — на своей полке/в шкафу; hand — в руке; bench — на столе; work — на рабочем месте. */
 export type ItemZone = 'home' | 'hand' | 'bench' | 'work'
+/** Где установка опыта: на рабочем месте стола или в вытяжном шкафу. */
+export type WorkSite = 'bench' | 'hood'
 
 export interface HandState {
   readonly held: LabItemId | null
@@ -19,9 +33,29 @@ export interface HandState {
   readonly pickedOnce: boolean
   /** Предмет, который сейчас тащат по столу. */
   readonly dragging: LabItemId | null
+  /** Надетые средства защиты и те, что просит надеть опыт. */
+  readonly worn: readonly LabGearId[]
+  readonly gearNeed: readonly LabGearId[]
+  readonly site: WorkSite
+  /** Вентилятор вытяжки включён. */
+  readonly hoodFan: boolean
+  /** Открыт список правил ТБ (нажатие на плакат). */
+  readonly rulesOpen: boolean
 }
 
-const EMPTY: HandState = { held: null, zones: {}, doors: {}, need: [], pickedOnce: false, dragging: null }
+const EMPTY: HandState = {
+  held: null,
+  zones: {},
+  doors: {},
+  need: [],
+  pickedOnce: false,
+  dragging: null,
+  worn: [],
+  gearNeed: [],
+  site: 'bench',
+  hoodFan: false,
+  rulesOpen: false,
+}
 let state: HandState = EMPTY
 const listeners = new Set<() => void>()
 /** Координаты [x, z] предметов на столе (bench/work). */
@@ -43,9 +77,15 @@ export function useHand(): HandState {
 
 export const zoneOf = (id: LabItemId): ItemZone => state.zones[id] ?? 'home'
 
+const workRect = () => (state.site === 'hood' ? HOOD_RECT : WORK_RECT)
+const workSlots = () => (state.site === 'hood' ? HOOD_SLOTS : WORK_SLOTS)
+/** Поверхность по точке: столешница вытяжки (слева) или рабочий стол. */
+const onHood = (x: number) => x < HOOD_BOUNDS.x1 + 0.12
+const boundsAt = (x: number) => (onHood(x) ? HOOD_BOUNDS : BENCH_BOUNDS)
+
 /** Занят ли круг (x, z, r) другими предметами или декором. */
 function blocked(x: number, z: number, r: number, except: LabItemId | null): boolean {
-  for (const [sx, sz, sr] of BENCH_STATIC) if (Math.hypot(x - sx, z - sz) < r + sr) return true
+  if (!onHood(x)) for (const [sx, sz, sr] of BENCH_STATIC) if (Math.hypot(x - sx, z - sz) < r + sr) return true
   for (const [id, [ix, iz]] of itemXZ) {
     if (id === except) continue
     const zn = zoneOf(id)
@@ -59,32 +99,48 @@ function blocked(x: number, z: number, r: number, except: LabItemId | null): boo
 /** Первый свободный слот рабочего места / стола (или null). */
 export function freeSlot(zone: 'work' | 'bench', id: LabItemId | null): readonly [number, number] | null {
   const r = id ? (LAB_ITEM_BY_ID.get(id)?.r ?? 0.04) : 0.04
-  const slots = zone === 'work' ? WORK_SLOTS : BENCH_SLOTS
+  const slots = zone === 'work' ? workSlots() : BENCH_SLOTS
   return slots.find(([x, z]) => !blocked(x, z, r, id)) ?? null
 }
 
-export const insideWork = (x: number, z: number) => x > WORK_RECT.x0 && x < WORK_RECT.x1 && z > WORK_RECT.z0 && z < WORK_RECT.z1
+export const insideWork = (x: number, z: number) => {
+  const w = workRect()
+  return x > w.x0 && x < w.x1 && z > w.z0 && z < w.z1
+}
+export const currentWorkRect = workRect
 
-/** Сдвинуть точку (x, z) так, чтобы предмет не входил в другие и не выходил за край стола. */
-export function resolveOnBench(id: LabItemId, x: number, z: number): [number, number] {
+/**
+ * Сдвинуть точку (x, z) так, чтобы предмет не входил в другие и не выходил за край стола.
+ * overhang > 0 — разрешить временно свеситься за край на эту долю радиуса (при перетаскивании; потом
+ * предмет соскальзывает обратно). Возвращает точку и признак «упёрся в соседа».
+ */
+export function resolveOnBench(id: LabItemId, x: number, z: number, overhang = 0): [number, number] {
+  return resolveWithContact(id, x, z, overhang).p
+}
+function resolveWithContact(id: LabItemId, x: number, z: number, overhang = 0): { p: [number, number]; contact: boolean } {
   const r = LAB_ITEM_BY_ID.get(id)?.r ?? 0.04
+  const b = boundsAt(x)
+  const hood = onHood(x)
+  const m = r * (1 - overhang)
   let px = x
   let pz = z
+  let contact = false
   for (let it = 0; it < 5; it++) {
-    px = Math.min(BENCH_BOUNDS.x1 - r, Math.max(BENCH_BOUNDS.x0 + r, px))
-    pz = Math.min(BENCH_BOUNDS.z1 - r, Math.max(BENCH_BOUNDS.z0 + r, pz))
+    px = Math.min(b.x1 - m, Math.max(b.x0 + m, px))
+    pz = Math.min(b.z1 - m, Math.max(b.z0 + m, pz))
     const push = (ox: number, oz: number, or: number) => {
       const dx = px - ox
       const dz = pz - oz
       const d = Math.hypot(dx, dz)
       const min = r + or
       if (d < min) {
+        contact = true
         const k = d > 1e-5 ? (min - d) / d : 1
         px += d > 1e-5 ? dx * k : min
         pz += d > 1e-5 ? dz * k : 0
       }
     }
-    for (const [sx, sz, sr] of BENCH_STATIC) push(sx, sz, sr)
+    if (!hood) for (const [sx, sz, sr] of BENCH_STATIC) push(sx, sz, sr)
     for (const [oid, [ox, oz]] of itemXZ) {
       if (oid === id) continue
       const zn = zoneOf(oid)
@@ -92,7 +148,7 @@ export function resolveOnBench(id: LabItemId, x: number, z: number): [number, nu
       push(ox, oz, LAB_ITEM_BY_ID.get(oid)?.r ?? 0.04)
     }
   }
-  return [px, pz]
+  return { p: [px, pz], contact }
 }
 
 function setZone(id: LabItemId, zone: ItemZone, extra: Partial<HandState> = {}) {
@@ -101,6 +157,9 @@ function setZone(id: LabItemId, zone: ItemZone, extra: Partial<HandState> = {}) 
   else zones[id] = zone
   set({ ...extra, zones })
 }
+
+let lastContact: LabItemId | null = null
+let lastClinkAt = 0
 
 export const labHand = {
   /** Взять предмет в руку (если в руке был другой — он возвращается на своё место). */
@@ -122,7 +181,8 @@ export const labHand = {
   place(zone: 'work' | 'bench', at?: readonly [number, number]) {
     const id = state.held
     if (!id) return false
-    const slot = at ?? freeSlot(zone, id) ?? (zone === 'work' ? WORK_SLOTS[0] : BENCH_SLOTS[0])
+    const slots = zone === 'work' ? workSlots() : BENCH_SLOTS
+    const slot = at ?? freeSlot(zone, id) ?? slots[0]
     const [x, z] = resolveOnBench(id, slot[0], slot[1])
     itemXZ.set(id, [x, z])
     setZone(id, zone, { held: null })
@@ -131,10 +191,22 @@ export const labHand = {
   },
   /** Перетаскивание по столу: начало, ход (живые координаты), конец. */
   dragStart(id: LabItemId) {
+    lastContact = null
     set({ dragging: id })
   },
   dragMove(id: LabItemId, x: number, z: number) {
-    itemXZ.set(id, resolveOnBench(id, x, z))
+    // Можно чуть свесить предмет за край — при отпускании он соскользнёт обратно
+    const { p, contact } = resolveWithContact(id, x, z, 0.55)
+    itemXZ.set(id, p)
+    // Упёрся в соседний предмет — лёгкий звон стекла (не чаще раза в 0,25 с)
+    if (contact && lastContact !== id) {
+      const now = performance.now()
+      if (now - lastClinkAt > 250) {
+        lastClinkAt = now
+        labEvents.emit({ type: 'sound', name: 'glass-clink', at: [p[0], BENCH_Y + 0.05, p[1]], gain: 0.7 })
+      }
+    }
+    lastContact = contact ? id : null
   },
   dragEnd(id: LabItemId) {
     const p = itemXZ.get(id)
@@ -144,21 +216,49 @@ export const labHand = {
       // На рабочем месте — в ближайший свободный слот у края, чтобы не мешать установке
       zone = 'work'
       itemXZ.delete(id)
-      const free = WORK_SLOTS.filter(([sx, sz]) => !blocked(sx, sz, LAB_ITEM_BY_ID.get(id)?.r ?? 0.04, id))
-      const best = (free.length ? free : WORK_SLOTS).reduce((a, b) => (Math.hypot(a[0] - p[0], a[1] - p[1]) <= Math.hypot(b[0] - p[0], b[1] - p[1]) ? a : b))
+      const slots = workSlots()
+      const free = slots.filter(([sx, sz]) => !blocked(sx, sz, LAB_ITEM_BY_ID.get(id)?.r ?? 0.04, id))
+      const best = (free.length ? free : slots).reduce((a, b) => (Math.hypot(a[0] - p[0], a[1] - p[1]) <= Math.hypot(b[0] - p[0], b[1] - p[1]) ? a : b))
       itemXZ.set(id, resolveOnBench(id, best[0], best[1]))
+    } else {
+      // Свесился за край — соскальзывает обратно на столешницу (визуально догоняет с трением)
+      itemXZ.set(id, resolveOnBench(id, p[0], p[1]))
     }
     setZone(id, zone, { dragging: null })
     labEvents.emit({ type: 'placed', itemId: id, zone })
   },
   toggleDoor(doorId: string) {
-    set({ doors: { ...state.doors, [doorId]: !state.doors[doorId] } })
+    labHand.setDoor(doorId, !state.doors[doorId])
+  },
+  setDoor(doorId: string, open: boolean) {
+    if (!!state.doors[doorId] !== open) set({ doors: { ...state.doors, [doorId]: open } })
   },
   openDoor(doorId: string) {
-    if (!state.doors[doorId]) set({ doors: { ...state.doors, [doorId]: true } })
+    labHand.setDoor(doorId, true)
   },
   setNeed(ids: readonly LabItemId[]) {
     set({ need: ids })
+  },
+  /** Надеть/снять средство защиты (опыт узнаёт из события 'safety'). */
+  wear(gear: LabGearId, on = true) {
+    const has = state.worn.includes(gear)
+    if (has === on) return
+    set({ worn: on ? [...state.worn, gear] : state.worn.filter((g) => g !== gear), gearNeed: on ? state.gearNeed.filter((g) => g !== gear) : state.gearNeed })
+    labEvents.emit({ type: 'safety', gear, on })
+  },
+  setGearNeed(gear: readonly LabGearId[]) {
+    set({ gearNeed: gear.filter((g) => !state.worn.includes(g)) })
+  },
+  setSite(site: WorkSite) {
+    if (state.site !== site) set({ site })
+  },
+  setHoodFan(on: boolean) {
+    if (state.hoodFan === on) return
+    set({ hoodFan: on })
+    labEvents.emit({ type: 'sound', name: 'hood-fan', gain: on ? 1 : 0 })
+  },
+  setRulesOpen(open: boolean) {
+    set({ rulesOpen: open })
   },
   /** Смена опыта: всё возвращается на полки и в шкафы, рука пуста (подсказка о первом взятии остаётся скрытой). */
   reset() {

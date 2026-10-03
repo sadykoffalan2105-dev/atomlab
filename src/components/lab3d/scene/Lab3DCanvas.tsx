@@ -8,18 +8,21 @@ import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { Suspense, useCallback, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { LabInteractiveItems } from '../interaction/LabInteractiveItems'
+import { LabAudioListener } from '../audio/LabAudioListener'
 import {
   BENCH_TOP_Y,
+  HOOD_WORK_CENTER,
   WORK_AREA_CENTER,
   type BoardPanelProps,
   type ExperimentRigProps,
   type LabExperimentId,
   type LabLang,
 } from '../labContract'
-import { ExperimentRig } from '../experiments'
+import { ExperimentRig, LAB_EXPERIMENTS } from '../experiments'
 import { LabBoard } from './LabBoard'
 import { LabCameraRig } from './LabCameraRig'
 import { LabEquipment } from './LabEquipment'
+import { LabHoodControls } from './LabHood'
 import { LabRoom } from './LabRoom'
 import type { LabSceneBridge } from './labBridge'
 import { useLabMaterials } from './labMaterials'
@@ -54,6 +57,11 @@ function isInteractive(obj: THREE.Object3D | null, stop: THREE.Object3D | null):
   return false
 }
 
+/** Опыт с place: 'hood' ставится в вытяжной шкаф, остальные — на рабочее место стола. */
+export function rigCenterFor(id: LabExperimentId): THREE.Vector3 {
+  return LAB_EXPERIMENTS.find((e) => e.id === id)?.place === 'hood' ? HOOD_WORK_CENTER : WORK_AREA_CENTER
+}
+
 function RigSlot(props: ExperimentRigProps) {
   const [hover, setHover] = useState(false)
   const [root, setRoot] = useState<THREE.Group | null>(null)
@@ -61,7 +69,7 @@ function RigSlot(props: ExperimentRigProps) {
   const onOver = useCallback((e: ThreeEvent<PointerEvent>) => setHover(isInteractive(e.object, root)), [root])
   const onOut = useCallback(() => setHover(false), [])
   return (
-    <group ref={setRoot} position={WORK_AREA_CENTER} onPointerOver={onOver} onPointerMove={onOver} onPointerOut={onOut}>
+    <group ref={setRoot} position={rigCenterFor(props.experimentId)} onPointerOver={onOver} onPointerMove={onOver} onPointerOut={onOut}>
       <Suspense fallback={null}>
         <ExperimentRig {...props} />
       </Suspense>
@@ -100,6 +108,8 @@ function SceneContent(props: Lab3DCanvasProps) {
     return l
   }, [])
   const bridge = props.bridge
+  const rigCenter = rigCenterFor(props.experimentId)
+  const inHood = rigCenter === HOOD_WORK_CENTER
   const onSceneDoubleClick = useCallback(
     (e: ThreeEvent<MouseEvent>) => {
       e.stopPropagation()
@@ -144,8 +154,8 @@ function SceneContent(props: Lab3DCanvasProps) {
       {/* Мягкие контактные тени под рабочим местом (только ПК) */}
       {high && (
         <ContactShadows
-          position={[WORK_AREA_CENTER.x, WORK_AREA_CENTER.y + 0.0015, WORK_AREA_CENTER.z]}
-          scale={[2.5, 0.95]}
+          position={[rigCenter.x, rigCenter.y + 0.0015, rigCenter.z]}
+          scale={inHood ? [1.05, 0.6] : [2.5, 0.95]}
           resolution={512}
           blur={2.2}
           far={0.5}
@@ -156,11 +166,14 @@ function SceneContent(props: Lab3DCanvasProps) {
       {/* Двойной клик/тап по любой поверхности — камера приближается к этой точке */}
       <group onDoubleClick={onSceneDoubleClick}>
         <LabRoom mats={mats} lang={lang} quality={quality} />
-        <LabEquipment mats={mats} lang={lang} />
+        <LabEquipment mats={mats} lang={lang} hoodBusy={inHood} />
       </group>
       <LabBoard mats={mats} panel={panel} bridge={props.bridge} />
       <RigSlot experimentId={props.experimentId} step={props.step} onAdvance={props.onAdvance} quality={quality} lang={lang} />
       <LabInteractiveItems mats={mats} lang={lang} quality={quality} bridge={props.bridge} />
+      {/* Вытяжка: створка, тумблер тяги, струйки воздуха; звук — слушатель у камеры */}
+      <LabHoodControls mats={mats} quality={quality} />
+      <LabAudioListener />
       <LabCameraRig view={props.view} viewNonce={props.viewNonce} bridge={props.bridge} leftInsetPx={props.leftInsetPx} />
     </>
   )
