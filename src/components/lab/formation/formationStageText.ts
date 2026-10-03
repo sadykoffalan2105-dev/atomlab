@@ -23,6 +23,7 @@ const pick = (t: Tri, loc: FormationLocale) => t[L3[loc]]
 
 const TITLES: Record<StageKey, Tri> = {
   reagents: ['Исходные вещества', 'Starting substances', 'Boshlangʻich moddalar'],
+  route: ['Путь получения', 'How it is obtained', 'Olinish yoʻli'],
   break: ['Связи рвутся', 'Bonds break', 'Bogʻlar uziladi'],
   approach: ['Атомы сближаются', 'Atoms approach', 'Atomlar yaqinlashadi'],
   valence: ['Валентные электроны', 'Valence electrons', 'Valent elektronlar'],
@@ -200,7 +201,7 @@ export function formationStageTexts(
       case 'lattice':
         main = pick(['Ионная кристаллическая решётка', 'Ionic crystal lattice', 'Ion kristall panjara'], loc)
         sub =
-          story.latticeCopies.length > 0
+          story.latticeAtoms.length > 0
             ? pick(
                 [
                   'Формульная единица повторяется во всех направлениях — так строится кристалл (показан фрагмент). Каждый ион окружён ионами противоположного знака.',
@@ -222,6 +223,13 @@ export function formationStageTexts(
         main = s4.main
         sub = s4.sub
         break
+      case 'route': {
+        // Путь на уровне частиц (formationStory.routeStage): уравнение пути и фраза учителя.
+        const r = story.routeStage
+        main = r ? r.equation : (eq?.lab ?? eq?.direct ?? '')
+        sub = r ? pick(r.text, loc) : main
+        break
+      }
     }
     out.push({ key: st.key, title, main, sub })
   }
