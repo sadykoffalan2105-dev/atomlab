@@ -10,6 +10,9 @@ import { SCHOOL_CATALOG_BG } from '../hero/SchoolCatalogCanvas'
 import { buildSchoolHeroModel, type CatalogShape } from '../hero/schoolHeroModel'
 import { FormationMoleculeView } from './FormationMoleculeView'
 import type { FormationClock } from './formationTimeline'
+import { formationScript } from '../../../chemistry/formationScripts'
+import { FormationClouds } from './FormationClouds'
+import { useCloudsOn } from './board/cloudsStore'
 
 /** Доля меньшей стороны кадра под описанную сферу — как у SchoolCatalogCanvas. */
 const FILL = 0.86
@@ -40,6 +43,8 @@ export function FormationCanvas({ shape, clock, lowPower }: { shape: CatalogShap
   const model = useMemo(() => buildSchoolHeroModel(shape), [shape])
   const plan = useMemo(() => formationPlan(shape.id), [shape.id])
   const story = useMemo(() => formationStoryFor(shape.id), [shape.id])
+  const cloudsOn = useCloudsOn()
+  const ftype = useMemo(() => formationScript(shape.id)?.type ?? null, [shape.id])
   if (!model || !plan || !story) return null
   return (
     <CanvasErrorBoundary fallback={<CanvasSceneErrorFallback />} resetKey={`formation-${shape.id}`}>
@@ -54,6 +59,8 @@ export function FormationCanvas({ shape, clock, lowPower }: { shape: CatalogShap
         <FitCamera />
         {/* Кристалл на экране меньше описанной сферы — как в SchoolCatalogCanvas. */}
         <FormationMoleculeView model={model} plan={plan} story={story} clock={clock} fitRadius={model.kind === 'crystal' ? 1.1 : 1} lowPower={lowPower} />
+        {/* Электронные облака — после вида атомов: читают ту же группу и те же часы (переключатель на доске). */}
+        {cloudsOn ? <FormationClouds model={model} story={story} clock={clock} type={ftype} lowPower={lowPower} /> : null}
         <OrbitControls enableZoom={false} enablePan={false} rotateSpeed={0.6} />
       </Canvas>
     </CanvasErrorBoundary>
