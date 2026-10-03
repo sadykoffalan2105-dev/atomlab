@@ -1,0 +1,514 @@
+import type { FormationPlan } from '../../../chemistry/formationPlan'
+import { formationPlan, isMetal } from '../../../chemistry/formationPlan'
+import { DIATOMIC, formationEquation, type FormationEquation } from '../../../chemistry/formationEquation'
+import { buildSchoolHeroModel, type SchoolHeroModel, type V3 } from '../hero/schoolHeroModel'
+import { compoundById } from '../../../data/compounds'
+
+/**
+ * Сценарий «Как образуется» от и до (чистые функции — их читают 3D-вид, подписи и аудит):
+ *  исходные вещества (H₂, O₂ — молекулы, металл — атомы кристалла) → разрыв связей в исходных молекулах →
+ *  атомы сближаются → валентные электроны (точки Льюиса) → [сборка кислотного остатка] → переход e⁻ (ионная)
+ *  или общие электронные пары (ковалентная) → связи по одной (кратные — по очереди) → сборка формульной единицы /
+ *  форма молекулы → [фрагмент решётки — ионные] → итоговая модель карточки (тот же buildSchoolHeroModel).
+ * Итоговые положения атомов — РОВНО положения модели карточки (ничего не придумывается), меняется только путь.
+ */
+
+export type StageKey = 'reagents' | 'break' | 'approach' | 'valence' | 'inner' | 'transfer' | 'pairs' | 'bonds' | 'assemble' | 'lattice' | 'final'
+export type Stage = { key: StageKey; t0: number; dur: number }
+
+/** Палочка связи (кратная — несколько палочек, каждая со своим временем). */
+export type StoryStick = { a: number; b: number; n: number; s: number; t0: number; t1: number; bond: number }
+/** Палочка исходной молекулы (H–H, O=O): b < 0 — партнёр-«призрак» (−1 − индекс). */
+export type ReagentStick = { a: number; b: number; n: number; s: number }
+/** Атом-призрак: второй атом исходной молекулы (O₂ → один O в молекулу, другой — в соседнюю). */
+export type GhostAtom = { el: string; r: number; p0: V3; p1: V3 }
+
+/**
+ * Электрон: дом (атом + смещение в плоскости экрана), затем переход — к атому (перенос e⁻) или к середине связи
+ * (общая пара). Смещения — в координатах модели (уже с учётом позы модели на экране).
+ */
+export type StoryElectron = {
+  home: number
+  homeOff: V3
+  /** появление (этап «валентные электроны») */
+  tIn: number
+  move: null | { t0: number; t1: number; toAtom?: number; toOff?: V3; bond?: { a: number; b: number; slot: number; n: number; sign: -1 | 1; k: number } }
+  /** исчезновение: общая пара — когда выросла палочка; остальные — в начале «Готово» */
+  tOut: number
+  kind: 'lone' | 'transfer' | 'pair'
+}
+
+export type FormationStory = {
+  stages: Stage[]
+  total: number
+  /** ключевые положения атомов: P0 исходные, P1 после разрыва, P2 сближение, P3 перед сборкой, PF — модель */
+  P: [V3[], V3[], V3[], V3[], V3[]]
+  /** окно сборки каждого атома (P3 → PF) и окно «внутренней» сборки (P2 → P3) */
+  assembleWin: [number, number][]
+  innerWin: [number, number][]
+  sticks: StoryStick[]
+  reagentSticks: ReagentStick[]
+  ghosts: GhostAtom[]
+  electrons: StoryElectron[]
+  /** смещения копий формульной единицы (фрагмент решётки), мир модели */
+  latticeCopies: V3[]
+  /** ионное: подписи с зарядами — с этого времени */
+  ionLabelsFrom: number
+  /** радиус электрона, мир */
+  eR: number
+  /** число переданных электронов (ионное) и общих пар (ковалентное) — для аудита */
+  transferred: number
+  sharedPairs: number
+  /** валентные электроны по атомам (для подписей и аудита) */
+  valenceE: number[]
+  /** элементы атомов модели */
+  atomEl: string[]
+}
+
+/** Валентные электроны главных подгрупп (номер группы). */
+const VALENCE_E: Record<string, number> = {
+  H: 1, Li: 1, Na: 1, K: 1, Rb: 1, Cs: 1, Ag: 1, Au: 1, Be: 2, Mg: 2, Ca: 2, Sr: 2, Ba: 2, Zn: 2, Hg: 2,
+  B: 3, Al: 3, C: 4, Si: 4, Ge: 4, Sn: 4, Pb: 4, N: 5, P: 5, As: 5, O: 6, S: 6, Se: 6, Te: 6, F: 7, Cl: 7, Br: 7, I: 7,
+}
+
+const D = { reagents: 3.5, break: 3, approach: 3.5, valence: 4, transfer: 4.5, pairs: 4, assemble: 4, lattice: 4.5, final: 5 }
+const clamp = (x: number, a: number, b: number) => (x < a ? a : x > b ? b : x)
+
+// ─── Поворот позы модели (как в FormationMoleculeView: sway — Ry(yaw)·Rx(pitch), orbit — Rx(pitch)·Ry(yaw)) ───
+const rotX = (p: V3, a: number): V3 => [p[0], p[1] * Math.cos(a) - p[2] * Math.sin(a), p[1] * Math.sin(a) + p[2] * Math.cos(a)]
+const rotY = (p: V3, a: number): V3 => [p[0] * Math.cos(a) + p[2] * Math.sin(a), p[1], -p[0] * Math.sin(a) + p[2] * Math.cos(a)]
+/** Смещение в плоскости экрана (x вправо, y вверх) → координаты модели. */
+export function screenToModel(model: SchoolHeroModel, s: V3): V3 {
+  return model.motion === 'orbit' ? rotY(rotX(s, -model.pitch), -model.yaw) : rotX(rotY(s, -model.yaw), -model.pitch)
+}
+function modelToScreen(model: SchoolHeroModel, p: V3): V3 {
+  return model.motion === 'orbit' ? rotX(rotY(p, model.yaw), model.pitch) : rotY(rotX(p, model.pitch), model.yaw)
+}
+const add = (a: V3, b: V3, k = 1): V3 => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k]
+const len = (a: V3) => Math.hypot(a[0], a[1], a[2])
+
+export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel, eq: FormationEquation | null): FormationStory {
+  const n = model.atoms.length
+  const crystal = model.kind === 'crystal'
+  const ionic = plan.mode === 'ionic'
+  const PF = model.atoms.map((a) => [...a.pos] as V3)
+  let maxD = 0
+  for (const p of PF) maxD = Math.max(maxD, len(p))
+  maxD = Math.max(maxD, 0.25)
+  const avgR = model.atoms.reduce((s, a) => s + a.r, 0) / Math.max(1, n)
+  const eR = clamp(0.2 * avgR, 0.012, 0.05)
+  const unitOf = new Map<number, number>()
+  plan.units.forEach((u, i) => u.atoms.forEach((a) => unitOf.set(a, i)))
+  const speciesOfAtom = (i: number) => plan.species[plan.units[unitOf.get(i) ?? -1]?.species ?? -1]
+
+  // ── P2 / P3: разлёт от итоговых мест ──
+  const P2: V3[] = PF.map((p) => [...p] as V3)
+  const P3: V3[] = PF.map((p) => [...p] as V3)
+  if (!ionic) {
+    const E = crystal ? 1.5 : 1.9
+    PF.forEach((p, i) => {
+      const k = len(p) < 0.2 * maxD ? 1 : E
+      P2[i] = [p[0] * k, p[1] * k, p[2] * k]
+      P3[i] = add(p, [p[0] * (k - 1), p[1] * (k - 1), p[2] * (k - 1)], 0.35)
+    })
+  } else {
+    const E = crystal ? 1.55 : 2.0
+    for (const u of plan.units) {
+      const c: V3 = [0, 0, 0]
+      for (const a of u.atoms) for (let q = 0; q < 3; q++) c[q] += PF[a]![q]! / u.atoms.length
+      const d = len(c)
+      const k = d < 0.15 * maxD ? (plan.units.length > 1 && !crystal ? 0.35 : 0) : E - 1
+      // Одна частица в центре: всё равно чуть отводим, чтобы было видно, куда приходят другие.
+      const shift: V3 = d < 1e-6 ? [0, 0, 0] : [c[0] * k, c[1] * k, c[2] * k]
+      const inner = u.atoms.length > 1 ? 1.75 : 1
+      for (const a of u.atoms) {
+        const rel: V3 = [PF[a]![0] - c[0], PF[a]![1] - c[1], PF[a]![2] - c[2]]
+        P3[a] = add(add(c, shift), rel)
+        P2[a] = add(add(c, shift), rel, inner)
+      }
+    }
+  }
+
+  // ── Исходные вещества: группы атомов (X₂ — пары, металл — кластер, прочие — по одному) ──
+  type Group = { atoms: number[]; ghost: boolean; kind: 'pair' | 'metal' | 'atom' }
+  const groups: Group[] = []
+  const atomsMode = eq?.directKind === 'atoms' && eq.reagents[0] !== 'O₂'
+  const byEl = new Map<string, number[]>()
+  model.atoms.forEach((a, i) => {
+    if (!byEl.has(a.el)) byEl.set(a.el, [])
+    byEl.get(a.el)!.push(i)
+  })
+  const scr2 = P2.map((p) => modelToScreen(model, p))
+  const ang = (i: number) => Math.atan2(scr2[i]![1], scr2[i]![0])
+  for (const [el, list] of byEl) {
+    const sorted = [...list].sort((a, b) => ang(a) - ang(b))
+    if (!atomsMode && DIATOMIC.has(el)) {
+      for (let i = 0; i + 1 < sorted.length; i += 2) groups.push({ atoms: [sorted[i]!, sorted[i + 1]!], ghost: false, kind: 'pair' })
+      if (sorted.length % 2 === 1) groups.push({ atoms: [sorted[sorted.length - 1]!], ghost: true, kind: 'pair' })
+    } else if (isMetal(el)) {
+      for (let i = 0; i < sorted.length; i += 7) groups.push({ atoms: sorted.slice(i, i + 7), ghost: false, kind: 'metal' })
+    } else for (const a of sorted) groups.push({ atoms: [a], ghost: false, kind: 'atom' })
+  }
+  // Места групп: кольцо в плоскости экрана (кристалл — сфера), порядок — по углу к их будущим местам.
+  const cen = (g: Group): V3 => {
+    const c: V3 = [0, 0, 0]
+    for (const a of g.atoms) for (let q = 0; q < 3; q++) c[q] += scr2[a]![q]! / g.atoms.length
+    return c
+  }
+  groups.sort((a, b) => Math.atan2(cen(a)[1], cen(a)[0]) - Math.atan2(cen(b)[1], cen(b)[0]))
+  const G = groups.length
+  const ringR = maxD * (crystal ? 1.75 : 1.55) + 2.2 * avgR
+  const P0: V3[] = PF.map(() => [0, 0, 0])
+  const P1: V3[] = PF.map(() => [0, 0, 0])
+  const ghosts: GhostAtom[] = []
+  const reagentSticks: ReagentStick[] = []
+  const bondN = (el: string) => (el === 'N' ? 3 : el === 'O' ? 2 : 1)
+  groups.forEach((g, gi) => {
+    let c: V3
+    let tan: V3
+    if (crystal || G > 14) {
+      // Сфера Фибоначчи (много групп) — в координатах экрана.
+      const y = 1 - (2 * (gi + 0.5)) / G
+      const rr = Math.sqrt(Math.max(0, 1 - y * y))
+      const phi = gi * 2.399963
+      c = [Math.cos(phi) * rr * ringR, y * ringR, Math.sin(phi) * rr * ringR * 0.6]
+      tan = [-Math.sin(phi), 0, Math.cos(phi)]
+    } else if (G === 1) {
+      c = [0, 0, 0]
+      tan = [1, 0, 0]
+    } else {
+      const a = G <= 2 ? (gi === 0 ? Math.PI : 0) : (2 * Math.PI * gi) / G + Math.PI / G
+      c = [Math.cos(a) * ringR, Math.sin(a) * ringR, 0]
+      tan = [-Math.sin(a), Math.cos(a), 0]
+    }
+    const el = model.atoms[g.atoms[0]!]!.el
+    const r = model.atoms[g.atoms[0]!]!.r
+    if (g.kind === 'pair') {
+      const d = 1.55 * r
+      const p0 = add(c, tan, -d)
+      const p1 = add(c, tan, d)
+      const a = g.atoms[0]!
+      P0[a] = screenToModel(model, p0)
+      P1[a] = screenToModel(model, add(p0, tan, -0.9 * r))
+      if (g.atoms.length === 2) {
+        const b = g.atoms[1]!
+        P0[b] = screenToModel(model, p1)
+        P1[b] = screenToModel(model, add(p1, tan, 0.9 * r))
+        for (let s = 0; s < bondN(el); s++) reagentSticks.push({ a, b, n: bondN(el), s })
+      } else {
+        // Второй атом молекулы уходит в другую молекулу продукта (призрак).
+        ghosts.push({ el, r, p0: screenToModel(model, p1), p1: screenToModel(model, add(p1, tan, 4 * r)) })
+        for (let s = 0; s < bondN(el); s++) reagentSticks.push({ a, b: -ghosts.length, n: bondN(el), s })
+      }
+    } else if (g.kind === 'metal') {
+      // Плотная упаковка: центр + шестиугольник (атомы касаются — металлическая решётка).
+      g.atoms.forEach((a, k) => {
+        const rr = model.atoms[a]!.r
+        const off: V3 = k === 0 ? [0, 0, 0] : [Math.cos(((k - 1) * Math.PI) / 3) * 2.05 * rr, Math.sin(((k - 1) * Math.PI) / 3) * 2.05 * rr, 0]
+        P0[a] = screenToModel(model, add(c, off))
+        P1[a] = screenToModel(model, add(c, off, 1.7))
+      })
+    } else {
+      const a = g.atoms[0]!
+      P0[a] = screenToModel(model, c)
+      P1[a] = P0[a]!
+    }
+  })
+
+  // ── Палочки итоговой модели и их порядок ──
+  const nbrs: number[][] = model.atoms.map(() => [])
+  for (const b of model.bonds) {
+    nbrs[b.a]!.push(b.b)
+    nbrs[b.b]!.push(b.a)
+  }
+  const stickList: { a: number; b: number; n: number; s: number; bond: number }[] = []
+  for (const k of plan.bondOrder) {
+    const b = model.bonds[k]!
+    const nn = Math.max(1, Math.min(3, Math.round(b.order)))
+    for (let s = 0; s < nn; s++) stickList.push({ a: b.a, b: b.b, n: nn, s, bond: k })
+  }
+
+  // ── Этапы ──
+  const hasBreak = reagentSticks.length > 0 || groups.some((g) => g.kind === 'metal' && g.atoms.length > 1)
+  const stages: Stage[] = []
+  let t = 0
+  const push = (key: StageKey, dur: number) => {
+    if (dur <= 0) return
+    stages.push({ key, t0: t, dur })
+    t += dur
+  }
+  push('reagents', D.reagents)
+  if (hasBreak) push('break', D.break)
+  push('approach', D.approach)
+  push('valence', D.valence)
+  if (ionic) {
+    push('inner', stickList.length ? clamp(2.5 + 0.35 * stickList.length, 4, 9) : 0)
+    push('transfer', D.transfer)
+    push('assemble', D.assemble)
+    push('lattice', D.lattice)
+  } else {
+    push('pairs', D.pairs)
+    push('bonds', clamp(1.5 + 0.6 * stickList.length, 4, 12))
+    push('assemble', D.assemble)
+  }
+  push('final', D.final)
+  const st = (k: StageKey) => stages.find((s) => s.key === k)
+
+  // Палочки: молекула — в «связях», ионное — в «кислотном остатке».
+  const sticks: StoryStick[] = []
+  const bondStage = ionic ? st('inner') : st('bonds')
+  if (bondStage) {
+    const from = ionic ? bondStage.t0 + 0.4 * bondStage.dur : bondStage.t0 + 0.3
+    const span = ionic ? 0.55 * bondStage.dur : bondStage.dur - 0.6
+    const m = Math.max(1, stickList.length)
+    const slot = span / m
+    stickList.forEach((x, i) => sticks.push({ ...x, t0: from + i * slot, t1: from + i * slot + Math.max(slot, Math.min(1.2, span / 2)) * 0.95 }))
+  }
+
+  // Окна сборки атомов.
+  const assembleWin: [number, number][] = PF.map(() => [0, 0])
+  const innerWin: [number, number][] = PF.map(() => [0, 0])
+  const sa = st('assemble')!
+  if (ionic) {
+    const ins = st('inner')
+    for (let i = 0; i < n; i++) innerWin[i] = ins ? [ins.t0 + 0.4 * ins.dur, ins.t0 + 0.95 * ins.dur] : [sa.t0, sa.t0]
+    const lat = st('lattice')!
+    // Кристалл: центральная формульная единица собирается в «притяжении», остальные — в «решётке».
+    const order = plan.unitOrder
+    const core = crystal ? Math.max(2, Math.round(order.length * 0.12)) : order.length
+    order.forEach((ui, j) => {
+      const u = plan.units[ui]!
+      let w: [number, number]
+      if (j < core) {
+        const k = core <= 1 ? 0 : j / (core - 1)
+        const t0 = sa.t0 + 0.15 + k * 0.45 * sa.dur
+        w = [t0, Math.min(sa.t0 + sa.dur - 0.1, t0 + 0.5 * sa.dur)]
+      } else {
+        const k = (j - core) / Math.max(1, order.length - core)
+        const t0 = lat.t0 + 0.1 + k * 0.5 * lat.dur
+        w = [t0, t0 + 0.45 * lat.dur]
+      }
+      for (const a of u.atoms) assembleWin[a] = w
+    })
+  } else {
+    // Атом сближается со своей первой связью (P2 → P3), затем вся молекула принимает форму (P3 → PF).
+    const placed = new Set<number>()
+    for (const s of sticks) {
+      for (const x of [s.a, s.b]) {
+        if (placed.has(x)) continue
+        placed.add(x)
+        innerWin[x] = [s.t0 - 0.3, s.t1]
+      }
+    }
+    const bs = st('bonds')!
+    for (let i = 0; i < n; i++) {
+      if (!placed.has(i)) innerWin[i] = [bs.t0, bs.t0 + 1]
+      assembleWin[i] = [sa.t0 + 0.2, sa.t0 + sa.dur - 0.3]
+    }
+  }
+
+  // ── Электроны ──
+  const sv = st('valence')!
+  const fin = st('final')!
+  const sums = model.atoms.map(() => 0)
+  for (const b of model.bonds) {
+    sums[b.a]! += b.order
+    sums[b.b]! += b.order
+  }
+  const valenceE = model.atoms.map((a, i) => {
+    const sp = speciesOfAtom(i)
+    if (isMetal(a.el)) {
+      if (ionic && sp && sp.charge > 0 && sp.kind === 'ion') return sp.charge
+      return ionic ? (VALENCE_E[a.el] ?? 2) : Math.max(1, Math.round(sums[i]!))
+    }
+    return VALENCE_E[a.el] ?? 0
+  })
+  // Электроны — только у частиц ближе к центру у больших кристаллов (иначе это сотни точек).
+  const showE = model.atoms.map((_, i) => !crystal || len(PF[i]!) <= 0.62 * maxD || n <= 30)
+  const electrons: StoryElectron[] = []
+  const pool: number[][] = model.atoms.map(() => [])
+  const lewisOff = (i: number, k: number, total: number): V3 => {
+    // 4 стороны (верх, право, низ, лево), сначала по одному, затем пары — как в схемах Льюиса.
+    const side = k % 4
+    const second = k >= 4 || total > 4 + side ? 1 : 0
+    const paired = total > 4 + side
+    const r = model.atoms[i]!.r
+    const d = r + 2.2 * eR
+    const sp = paired ? (second ? 1 : -1) * 1.6 * eR : 0
+    const base: V3[] = [[sp, d, 0], [d, sp, 0], [sp, -d, 0], [-d, sp, 0]]
+    return screenToModel(model, [base[side]![0], base[side]![1], 0.35 * r])
+  }
+  model.atoms.forEach((_, i) => {
+    if (!showE[i]) return
+    const total = Math.min(8, valenceE[i]!)
+    for (let k = 0; k < total; k++) {
+      pool[i]!.push(electrons.length)
+      electrons.push({ home: i, homeOff: lewisOff(i, k, total), tIn: sv.t0 + 0.3 + (0.5 * k) / Math.max(1, total), move: null, tOut: fin.t0 + 1.2, kind: 'lone' })
+    }
+  })
+  const take = (i: number): number | null => (pool[i]!.length ? pool[i]!.shift()! : null)
+  const phantom = (i: number): number => {
+    electrons.push({ home: i, homeOff: lewisOff(i, 0, 1), tIn: sv.t0 + 0.8, move: null, tOut: fin.t0 + 1.2, kind: 'lone' })
+    return electrons.length - 1
+  }
+  // Общие пары: по одному электрону от каждого атома (нет своего — оба от партнёра: донорно-акцепторная).
+  let sharedPairs = 0
+  const pairStage = ionic ? st('inner') : st('pairs')
+  if (pairStage) {
+    const seen = new Set<number>()
+    const bondsInOrder = plan.bondOrder.filter((k) => !seen.has(k) && seen.add(k))
+    const m = Math.max(1, bondsInOrder.length)
+    const span = ionic ? 0.4 * pairStage.dur : pairStage.dur - 0.6
+    bondsInOrder.forEach((k, j) => {
+      const b = model.bonds[k]!
+      if (!showE[b.a] || !showE[b.b]) return
+      const nn = Math.max(1, Math.min(3, Math.round(b.order)))
+      for (let p = 0; p < nn; p++) {
+        sharedPairs++
+        const e1 = take(b.a) ?? take(b.b) ?? phantom(b.a)
+        const e2 = take(b.b) ?? take(b.a) ?? phantom(b.b)
+        const t0 = pairStage.t0 + 0.2 + (j / m) * span * 0.7
+        const t1 = t0 + Math.max(0.9, Math.min(1.6, span * 0.5))
+        const stick = sticks.find((s) => s.bond === k && s.s === p)
+        const tOut = stick ? stick.t1 : fin.t0 + 1.2
+        for (const [e, sign] of [[e1, -1], [e2, 1]] as const) {
+          const E = electrons[e]!
+          E.move = { t0, t1, bond: { a: b.a, b: b.b, slot: p, n: nn, sign, k } }
+          E.tOut = tOut
+          E.kind = 'pair'
+        }
+      }
+    })
+  }
+  // Переход электронов (ионное): от атомов металла (и H иона аммония) к анионам.
+  let transferred = 0
+  const ts = st('transfer')
+  if (ionic && ts) {
+    type Slot = { atom: number }
+    const slots: Slot[] = []
+    const donors: { atom: number; left: number }[] = []
+    plan.units.forEach((u) => {
+      const sp = plan.species[u.species]!
+      if (sp.charge < 0) {
+        // Многоатомный анион: электроны — к концевым атомам O (меньше всего связей), по очереди.
+        const targets = u.atoms.length === 1 ? u.atoms : [...u.atoms].filter((a) => model.atoms[a]!.el !== 'H').sort((a, b) => nbrs[a]!.length - nbrs[b]!.length)
+        for (let q = 0; q < -sp.charge; q++) slots.push({ atom: targets[q % targets.length]! })
+      } else if (sp.charge > 0) {
+        if (u.atoms.length === 1) donors.push({ atom: u.atoms[0]!, left: sp.charge })
+        else {
+          const h = u.atoms.find((a) => model.atoms[a]!.el === 'H')
+          if (h != null) donors.push({ atom: h, left: sp.charge })
+        }
+      }
+    })
+    const P3d = (a: number, b: number) => len([P3[a]![0] - P3[b]![0], P3[a]![1] - P3[b]![1], P3[a]![2] - P3[b]![2]])
+    const moves: { e: number; to: number }[] = []
+    for (const s of slots) {
+      if (!showE[s.atom]) continue
+      const d = donors.filter((x) => x.left > 0 && showE[x.atom]).sort((x, y) => P3d(x.atom, s.atom) - P3d(y.atom, s.atom))[0]
+      if (!d) continue
+      d.left--
+      const e = take(d.atom) ?? phantom(d.atom)
+      moves.push({ e, to: s.atom })
+    }
+    const m = Math.max(1, moves.length)
+    const per = Math.max(1.1, Math.min(1.8, (ts.dur - 0.8) / Math.max(1, Math.min(m, 3))))
+    moves.forEach(({ e, to }, j) => {
+      const t0 = ts.t0 + 0.3 + (m === 1 ? 0 : (j / (m - 1)) * Math.max(0, ts.dur - 0.6 - per))
+      const k = pool[to]!.length + j
+      electrons[e]!.move = { t0, t1: t0 + per, toAtom: to, toOff: lewisOff(to, 7 - (k % 8), 8) }
+      electrons[e]!.kind = 'transfer'
+      transferred++
+    })
+  }
+
+  // ── Фрагмент решётки (ионное, модель — одна формульная единица) ──
+  const latticeCopies: V3[] = []
+  if (ionic && !crystal) {
+    const d = 2.1 * maxD + 2 * avgR
+    for (const [x, y] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]] as const) latticeCopies.push(screenToModel(model, [x * d, y * d, 0]))
+  }
+
+  const tr = st('transfer')
+  return {
+    stages,
+    total: t,
+    P: [P0, P1, P2, P3, PF],
+    assembleWin,
+    innerWin,
+    sticks,
+    reagentSticks,
+    ghosts,
+    electrons,
+    latticeCopies,
+    ionLabelsFrom: tr ? tr.t0 + tr.dur - 0.2 : Infinity,
+    eR,
+    transferred,
+    sharedPairs,
+    valenceE,
+    atomEl: model.atoms.map((a) => a.el),
+  }
+}
+
+export const clamp01 = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x)
+export const easeInOut = (x: number): number => {
+  const u = clamp01(x)
+  return u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2
+}
+
+export function stageIndexAt(story: FormationStory, t: number): number {
+  let k = 0
+  for (let i = 0; i < story.stages.length; i++) if (t >= story.stages[i]!.t0) k = i
+  return k
+}
+
+const lerp3 = (out: V3, a: V3, b: V3, u: number) => {
+  out[0] = a[0] + (b[0] - a[0]) * u
+  out[1] = a[1] + (b[1] - a[1]) * u
+  out[2] = a[2] + (b[2] - a[2]) * u
+}
+const winU = (t: number, w: readonly [number, number]) => easeInOut((t - w[0]) / Math.max(1e-6, w[1] - w[0]))
+
+/** Положение атома i в момент t (пишет в out). */
+export function atomPosAt(story: FormationStory, i: number, t: number, out: V3): V3 {
+  const [P0, P1, P2, P3, PF] = story.P
+  const sb = story.stages.find((s) => s.key === 'break')
+  const sa = story.stages.find((s) => s.key === 'approach')!
+  if (t < (sb ? sb.t0 : sa.t0)) {
+    out[0] = P0[i]![0]
+    out[1] = P0[i]![1]
+    out[2] = P0[i]![2]
+    return out
+  }
+  if (sb && t < sa.t0) {
+    lerp3(out, P0[i]!, P1[i]!, easeInOut((t - sb.t0 - 0.6) / (sb.dur - 0.9)))
+    return out
+  }
+  if (t < sa.t0 + sa.dur) {
+    // Сближение — с небольшим разбросом по атомам (не строем).
+    const lag = 0.25 * ((i * 0.618) % 1)
+    lerp3(out, P1[i]!, P2[i]!, easeInOut((t - sa.t0 - lag) / (sa.dur - 0.3)))
+    return out
+  }
+  const iw = story.innerWin[i]!
+  const aw = story.assembleWin[i]!
+  if (t < aw[0]) {
+    lerp3(out, P2[i]!, P3[i]!, winU(t, iw))
+    return out
+  }
+  lerp3(out, P3[i]!, PF[i]!, winU(t, aw))
+  return out
+}
+
+// ─── Сценарий по id вещества (кэш): план + модель карточки + уравнение ───
+
+const storyCache = new Map<string, FormationStory | null>()
+export function formationStoryFor(compoundId: string): FormationStory | null {
+  if (storyCache.has(compoundId)) return storyCache.get(compoundId)!
+  const c = compoundById[compoundId]
+  const plan = formationPlan(compoundId)
+  const model = c ? buildSchoolHeroModel(c) : null
+  const s = c && plan && model ? buildFormationStory(plan, model, formationEquation(compoundId)) : null
+  storyCache.set(compoundId, s)
+  return s
+}

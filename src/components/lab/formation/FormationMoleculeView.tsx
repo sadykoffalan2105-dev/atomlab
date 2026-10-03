@@ -15,16 +15,14 @@ import {
   schoolSphereGeometry,
   schoolStickGeometry,
 } from '../hero/schoolHeroStyle'
-import { clamp01, easeAttract, easeInOut, formationTimeline, stepAt, type FormationClock } from './formationTimeline'
+import { atomPosAt, clamp01, easeInOut, screenToModel, stageIndexAt, type FormationStory } from './formationStory'
+import type { FormationClock } from './formationTimeline'
 
 /**
- * «Как образуется» в 3D карточки каталога: тот же школьный вид (матовые шары, символы в шарах, серые палочки),
- * что и SchoolMoleculeView, но частицы модели разнесены и собираются по плану formationPlan:
- *  1 Состав — частицы по отдельности (ионы-«корни» уже собраны внутри);
- *  2 Заряды / валентности — подписи ионов (Na⁺), значки многоатомных ионов (SO₄²⁻) или валентностей (VI);
- *  3 Сборка — молекула: атомы подходят, связи вырастают по одной; ионное: ионы притягиваются без палочек;
- *  4 Готово — модель как в обычном 3D, мягкое покачивание (кристалл — облёт) и рёбра ячеек.
- * Координаты и радиусы — модели buildSchoolHeroModel (ничего не придумывается), меняется только путь частиц.
+ * «Как образуется» в 3D карточки каталога — от и до (сценарий formationStory): исходные вещества (молекулы H₂, O₂ с
+ * палочками, металл — кластер атомов) → разрыв связей → сближение → валентные электроны (жёлтые точки) → переход e⁻
+ * (ионная) или общие пары (бирюзовые, ковалентная) → палочки по одной → сборка → фрагмент решётки → модель карточки.
+ * Итоговые положения и радиусы — модели buildSchoolHeroModel (тот же школьный вид), меняется только путь частиц.
  */
 
 const K = pmToScene(1)
@@ -37,13 +35,15 @@ const _p = new THREE.Vector3()
 const _s = new THREE.Vector3()
 const _a = new THREE.Vector3()
 const _b = new THREE.Vector3()
+const _ax = new THREE.Vector3()
 const _up = new THREE.Vector3(0, 1, 0)
+const _c = new THREE.Color()
 
-type BondAnim = { a: number; b: number; n: number; side: THREE.Vector3 | null; t0: number; t1: number }
-type AtomAnim = { t0: number; t1: number }
-/** group — многоатомный ион (весь показ); water — кристаллизационная вода (шаги 1–2); valence — валентность (шаг 2 и начало сборки). */
-type Badge = { text: string; atoms: number[]; fromStep: number; kind: 'group' | 'water' | 'valence' }
+const E_LONE = new THREE.Color('#facc15')
+const E_PAIR = new THREE.Color('#22d3ee')
+const E_MOVE = new THREE.Color('#fb923c')
 
+type Badge = { text: string; atoms: number[]; from: number; to: number; kind: 'group' | 'water' | 'valence' }
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']
 
 /** Смещение кратных палочек (в плоскости σ-соседей, иначе ⟂ оси и Z) — по итоговой геометрии. */
@@ -67,12 +67,14 @@ function sideFor(model: SchoolHeroModel, a: number, b: number, nbrs: number[][])
 export function FormationMoleculeView({
   model,
   plan,
+  story,
   clock,
   fitRadius,
   lowPower = false,
 }: {
   model: SchoolHeroModel
   plan: FormationPlan
+  story: FormationStory
   clock: MutableRefObject<FormationClock>
   fitRadius: number
   lowPower?: boolean
@@ -87,71 +89,18 @@ export function FormationMoleculeView({
   const swayT = useRef(0)
   const [ionLabels, setIonLabels] = useState(false)
   const crystal = model.kind === 'crystal'
-  const tl = useMemo(() => formationTimeline(plan), [plan])
+  const finalT0 = story.stages[story.stages.length - 1]!.t0
+  const latStage = story.stages.find((s) => s.key === 'lattice')
 
   const anim = useMemo(() => {
-    const n = model.atoms.length
-    const final = model.atoms.map((a) => [...a.pos] as V3)
     const live = model.atoms.map((a) => [...a.pos] as V3)
-    const start = model.atoms.map((a) => [...a.pos] as V3)
-    const atomT: AtomAnim[] = model.atoms.map(() => ({ t0: 0, t1: 0.5 }))
     const nbrs: number[][] = model.atoms.map(() => [])
     for (const b of model.bonds) {
       nbrs[b.a]!.push(b.b)
       nbrs[b.b]!.push(b.a)
     }
-    let maxD = 0
-    for (const p of final) maxD = Math.max(maxD, Math.hypot(p[0], p[1], p[2]))
-    const bonds: BondAnim[] = []
-    if (plan.mode === 'molecular') {
-      // Разлёт: атомы от центра наружу (центральный атом остаётся на месте); решётка — ровно, без шума.
-      const E = crystal ? 1.5 : 1.9
-      final.forEach((p, i) => {
-        const d = Math.hypot(p[0], p[1], p[2])
-        const k = d < 0.2 * maxD ? 1 : E
-        start[i] = [p[0] * k, p[1] * k, p[2] * k]
-      })
-      // Связи по одной (порядок плана), атом приходит к своей первой связи.
-      const nb = Math.max(1, plan.bondOrder.length)
-      const dt = 1 / nb
-      const placed = new Set<number>()
-      plan.bondOrder.forEach((k, slot) => {
-        const b = model.bonds[k]!
-        const t0 = slot * dt
-        for (const x of [b.a, b.b]) {
-          if (placed.has(x)) continue
-          placed.add(x)
-          atomT[x] = { t0, t1: t0 + 0.7 * dt }
-        }
-        bonds.push({ a: b.a, b: b.b, n: Math.max(1, Math.min(3, Math.round(b.order))), side: null, t0: t0 + 0.45 * dt, t1: t0 + dt })
-      })
-      for (let i = 0; i < n; i++) if (!placed.has(i)) atomT[i] = { t0: 0, t1: 0.5 }
-    } else {
-      // Ионное: частица (ион / «корень» / H₂O) уходит от центра целиком, без поворота.
-      const E = crystal ? 1.55 : 2.0
-      const order = plan.unitOrder
-      const m = Math.max(1, order.length)
-      order.forEach((ui, j) => {
-        const u = plan.units[ui]!
-        const c: V3 = [0, 0, 0]
-        for (const a of u.atoms) for (let q = 0; q < 3; q++) c[q] += final[a]![q]! / u.atoms.length
-        const d = Math.hypot(c[0], c[1], c[2])
-        const k = d < 0.15 * maxD ? 0 : E - 1
-        for (const a of u.atoms) start[a] = [final[a]![0] + c[0] * k, final[a]![1] + c[1] * k, final[a]![2] + c[2] * k]
-        // Решётка сжимается слоями (ближние к центру — раньше), отдельные ионы приходят по очереди.
-        const dur = crystal ? 0.45 : m === 1 ? 1 : 0.55
-        const t0 = m === 1 ? 0 : crystal ? 0.55 * (d / Math.max(1e-6, maxD)) : ((1 - dur) * j) / (m - 1)
-        for (const a of u.atoms) atomT[a] = { t0, t1: t0 + dur }
-      })
-      // Ковалентные связи внутри «корней» — с самого начала (корень уже собран).
-      const inner = new Set(plan.bondOrder)
-      model.bonds.forEach((b, k) => {
-        if (inner.has(k)) bonds.push({ a: b.a, b: b.b, n: Math.max(1, Math.min(3, Math.round(b.order))), side: null, t0: -1, t1: -1 })
-      })
-    }
-    for (const b of bonds) if (b.n > 1) b.side = sideFor(model, b.a, b.b, nbrs)
-    const rEnd = model.radius
-    // Подписи: шаг 1 — символы элементов, со 2-го — ионы (Na⁺) у одноатомных ионов. Позиции общие (live).
+    const sides = new Map<number, THREE.Vector3>()
+    for (const s of story.sticks) if (s.n > 1 && !sides.has(s.bond)) sides.set(s.bond, sideFor(model, s.a, s.b, nbrs))
     const neutral: SchoolHeroAtom[] = model.atoms.map((a, i) => ({ ...a, label: a.el, pos: live[i]! }))
     const unitOf = new Map<number, number>()
     plan.units.forEach((u, i) => u.atoms.forEach((a) => unitOf.set(a, i)))
@@ -161,41 +110,75 @@ export function FormationMoleculeView({
       const label = s && u!.atoms.length === 1 && s.charge !== 0 ? s.formula : a.el
       return { ...a, label, pos: live[i]! }
     })
-    // Значки: многоатомные ионы и H₂O (ионное) или валентности атомов (молекула до 24 атомов).
     const badges: Badge[] = []
+    const stage = (k: string) => story.stages.find((s) => s.key === k)
     if (plan.mode === 'ionic' && !crystal) {
       for (const u of plan.units) {
         const s = plan.species[u.species]
-        if (s && u.atoms.length > 1) badges.push({ text: s.formula, atoms: u.atoms, fromStep: 0, kind: s.kind === 'molecule' ? 'water' : 'group' })
+        if (!s || u.atoms.length < 2) continue
+        if (s.kind === 'molecule') badges.push({ text: s.formula, atoms: u.atoms, from: stage('inner')?.t0 ?? story.ionLabelsFrom, to: stage('assemble')!.t0 + 1, kind: 'water' })
+        else badges.push({ text: s.formula, atoms: u.atoms, from: story.ionLabelsFrom, to: Infinity, kind: 'group' })
       }
-    } else if (plan.mode === 'molecular' && n <= 24) {
+    } else if (plan.mode === 'molecular' && model.atoms.length <= 24) {
       const sums = model.atoms.map(() => 0)
       for (const b of model.bonds) {
         sums[b.a]! += b.order
         sums[b.b]! += b.order
       }
+      const from = stage('pairs')!.t0
+      const to = stage('assemble')!.t0 + 0.5
       model.atoms.forEach((a, i) => {
         const s = plan.species.find((x) => x.formula === a.el)
         const vals = s?.valences ?? []
         const v = vals.length === 1 ? vals[0]! : vals.includes(sums[i]!) ? sums[i]! : vals[0]
-        if (v) badges.push({ text: ROMAN[v] ?? String(v), atoms: [i], fromStep: 1, kind: 'valence' })
+        if (v) badges.push({ text: ROMAN[v] ?? String(v), atoms: [i], from, to, kind: 'valence' })
       })
     }
-    return { final, live, start, atomT, bonds, rEnd, neutral, ionic, badges }
-  }, [model, plan, crystal])
+    // Направление «вверх» экрана в координатах модели — дуга перелёта электронов.
+    const up = new THREE.Vector3(...screenToModel(model, [0, 1, 0]))
+    let maxD = 0
+    for (const a of model.atoms) maxD = Math.max(maxD, Math.hypot(...a.pos))
+    return { live, sides, neutral, ionic, badges, up, maxD: Math.max(0.25, maxD) }
+  }, [model, plan, story, crystal])
 
-  // Меши: шары, палочки, рёбра ячеек.
+  // Меши.
   const res = useMemo(() => {
+    const n = model.atoms.length
     const atomMat = createSchoolMatteMaterial()
-    const atoms = new THREE.InstancedMesh(schoolSphereGeometry(lowPower), atomMat, Math.max(1, model.atoms.length))
+    const atoms = new THREE.InstancedMesh(schoolSphereGeometry(lowPower), atomMat, Math.max(1, n))
     atoms.frustumCulled = false
-    const col = new THREE.Color()
-    model.atoms.forEach((a, i) => atoms.setColorAt(i, schoolAtomColor(a.el, col)))
+    model.atoms.forEach((a, i) => atoms.setColorAt(i, schoolAtomColor(a.el, _c)))
     const stickMat = createSchoolMatteMaterial(SCHOOL_STICK_HEX.dark)
-    const nSticks = anim.bonds.reduce((s, b) => s + b.n, 0)
-    const sticks = new THREE.InstancedMesh(schoolStickGeometry(), stickMat, Math.max(1, nSticks))
+    const sticks = new THREE.InstancedMesh(schoolStickGeometry(), stickMat, Math.max(1, story.sticks.length + story.reagentSticks.length))
     sticks.frustumCulled = false
     sticks.count = 0
+    const ghostMat = createSchoolMatteMaterial()
+    ghostMat.transparent = true
+    ghostMat.opacity = 0.9
+    const ghosts = new THREE.InstancedMesh(schoolSphereGeometry(true), ghostMat, Math.max(1, story.ghosts.length))
+    ghosts.frustumCulled = false
+    ghosts.count = story.ghosts.length
+    story.ghosts.forEach((g, i) => ghosts.setColorAt(i, schoolAtomColor(g.el as never, _c)))
+    const eMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })
+    const electrons = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), eMat, Math.max(1, story.electrons.length))
+    electrons.frustumCulled = false
+    story.electrons.forEach((_, i) => electrons.setColorAt(i, E_LONE))
+    const copies = story.latticeCopies.length
+    const latMat = createSchoolMatteMaterial()
+    latMat.transparent = true
+    latMat.opacity = 0
+    latMat.depthWrite = false
+    const lattice = new THREE.InstancedMesh(schoolSphereGeometry(true), latMat, Math.max(1, copies * n))
+    lattice.frustumCulled = false
+    lattice.count = copies * n
+    for (let c = 0; c < copies; c++) {
+      const off = story.latticeCopies[c]!
+      model.atoms.forEach((a, i) => {
+        _m.compose(_p.set(a.pos[0] + off[0], a.pos[1] + off[1], a.pos[2] + off[2]), _q.identity(), _s.setScalar(a.r))
+        lattice.setMatrixAt(c * n + i, _m)
+        lattice.setColorAt(c * n + i, schoolAtomColor(a.el, _c))
+      })
+    }
     let edges: THREE.LineSegments | null = null
     if (model.cellEdges.length > 0) {
       const pos = new Float32Array(model.cellEdges.length * 6)
@@ -205,15 +188,15 @@ export function FormationMoleculeView({
       edges = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: SCHOOL_EDGE_HEX.dark, transparent: true, opacity: 0, depthWrite: false, fog: false }))
       edges.frustumCulled = false
     }
-    return { atoms, atomMat, sticks, stickMat, edges }
-  }, [model, anim, lowPower])
+    return { atoms, atomMat, sticks, stickMat, ghosts, ghostMat, electrons, eMat, lattice, latMat, edges }
+  }, [model, story, lowPower])
 
   useEffect(
     () => () => {
-      res.atomMat.dispose()
-      res.stickMat.dispose()
-      res.atoms.dispose()
-      res.sticks.dispose()
+      for (const m of [res.atomMat, res.stickMat, res.ghostMat, res.eMat, res.latMat]) m.dispose()
+      for (const x of [res.atoms, res.sticks, res.ghosts, res.lattice]) x.dispose()
+      res.electrons.geometry.dispose()
+      res.electrons.dispose()
       if (res.edges) {
         res.edges.geometry.dispose()
         ;(res.edges.material as THREE.Material).dispose()
@@ -222,7 +205,7 @@ export function FormationMoleculeView({
     [res],
   )
 
-  // Слой значков (SO₄²⁻, валентности): DOM поверх холста, как символы в шарах.
+  // Слой значков (SO₄²⁻, валентности): DOM поверх холста.
   const badgeEls = useRef<{ el: HTMLDivElement; shown: boolean; x: number; y: number }[]>([])
   useEffect(() => {
     const host = gl.domElement.parentElement
@@ -236,7 +219,7 @@ export function FormationMoleculeView({
       el.textContent = b.text
       el.dataset.formationBadge = b.kind
       el.style.cssText =
-        'position:absolute; left:0; top:0; white-space:nowrap; display:none; will-change:transform,opacity; transition:opacity .35s ease;' +
+        'position:absolute; left:0; top:0; white-space:nowrap; display:none; will-change:transform,opacity;' +
         'font-family:"Inter", system-ui, sans-serif; font-weight:700; line-height:1; border-radius:999px;' +
         (b.kind === 'group'
           ? 'font-size:15px; padding:5px 10px; color:#fde68a; background:rgba(12,16,32,0.78); border:1px solid rgba(251,191,36,0.55);'
@@ -253,76 +236,156 @@ export function FormationMoleculeView({
     }
   }, [gl, anim])
 
-  const lastStep = useRef(-1)
+  const lastStage = useRef(-1)
 
   useFrame((_, dt) => {
     const c = clock.current
     const t = c.t
-    const step = stepAt(tl, t)
-    if (step !== lastStep.current) {
-      lastStep.current = step
-      const wantIons = step >= 1
-      if (wantIons !== ionLabels) setIonLabels(wantIons)
-    }
-    if (c.playing) swayT.current += Math.min(0.1, Math.max(0, dt))
-    const f = clamp01((t - tl.starts[2]) / tl.assembly)
-    // Положения частиц.
-    const { final, live, start, atomT } = anim
+    lastStage.current = stageIndexAt(story, t)
+    const wantIons = t >= story.ionLabelsFrom
+    if (wantIons !== ionLabels) setIonLabels(wantIons)
+    if (c.playing && t >= finalT0) swayT.current += Math.min(0.1, Math.max(0, dt))
+    if (t < finalT0) swayT.current = 0
+    const { live } = anim
+    // Атомы.
     for (let i = 0; i < live.length; i++) {
-      const w = atomT[i]!
-      const u = plan.mode === 'ionic' ? easeAttract((f - w.t0) / Math.max(1e-6, w.t1 - w.t0)) : easeInOut((f - w.t0) / Math.max(1e-6, w.t1 - w.t0))
-      const s = start[i]!
-      const e = final[i]!
-      const L = live[i]!
-      L[0] = s[0] + (e[0] - s[0]) * u
-      L[1] = s[1] + (e[1] - s[1]) * u
-      L[2] = s[2] + (e[2] - s[2]) * u
+      const L = atomPosAt(story, i, t, live[i]!)
       _m.compose(_p.set(L[0], L[1], L[2]), _q.identity(), _s.setScalar(model.atoms[i]!.r))
       res.atoms.setMatrixAt(i, _m)
     }
     res.atoms.instanceMatrix.needsUpdate = true
-    // Палочки: растут от середины связи.
+    // Призраки — второй атом исходной молекулы: уходит и тает при разрыве связи.
+    const sb = story.stages.find((s) => s.key === 'break')
+    const gu = sb ? easeInOut((t - sb.t0 - 0.6) / (sb.dur - 0.6)) : 1
+    story.ghosts.forEach((g, i) => {
+      const k = 1 - gu
+      _p.set(g.p0[0] + (g.p1[0] - g.p0[0]) * gu, g.p0[1] + (g.p1[1] - g.p0[1]) * gu, g.p0[2] + (g.p1[2] - g.p0[2]) * gu)
+      _m.compose(_p, _q.identity(), _s.setScalar(g.r * Math.max(0.001, k)))
+      res.ghosts.setMatrixAt(i, _m)
+    })
+    res.ghosts.instanceMatrix.needsUpdate = true
+    // Палочки.
     const r = SCHOOL_DRAW.stickR * K
     const stepD = SCHOOL_DRAW.stickSpacing * K
     let k = 0
-    for (const b of anim.bonds) {
-      const g = b.t0 < 0 ? 1 : easeInOut((f - b.t0) / Math.max(1e-6, b.t1 - b.t0))
-      if (g <= 0.001) continue
-      _a.set(...live[b.a]!)
-      _b.set(...live[b.b]!)
-      const axis = _b.clone().sub(_a)
-      const len = axis.length()
-      if (len < 1e-9) continue
-      axis.divideScalar(len)
-      _q.setFromUnitVectors(_up, axis)
-      for (let s = 0; s < b.n; s++) {
-        _p.copy(_a).add(_b).multiplyScalar(0.5)
-        if (b.side) _p.addScaledVector(b.side, (s - (b.n - 1) / 2) * stepD)
-        _m.compose(_p, _q, _s.set(r * Math.min(1, 0.4 + g), len * g, r * Math.min(1, 0.4 + g)))
-        res.sticks.setMatrixAt(k++, _m)
+    const drawStick = (A: THREE.Vector3, B: THREE.Vector3, sOff: THREE.Vector3 | null, slot: number, nn: number, g: number) => {
+      _ax.copy(B).sub(A)
+      const L = _ax.length()
+      if (L < 1e-9) return
+      _ax.divideScalar(L)
+      _q.setFromUnitVectors(_up, _ax)
+      _p.copy(A).add(B).multiplyScalar(0.5)
+      if (sOff) _p.addScaledVector(sOff, (slot - (nn - 1) / 2) * stepD)
+      _m.compose(_p, _q, _s.set(r * Math.min(1, 0.4 + g), L * g, r * Math.min(1, 0.4 + g)))
+      res.sticks.setMatrixAt(k++, _m)
+    }
+    // Исходные молекулы: палочки до разрыва (H–H, O=O, N≡N).
+    const breakG = sb ? 1 - easeInOut((t - sb.t0) / Math.max(0.1, sb.dur * 0.55)) : 0
+    if (breakG > 0.001) {
+      const rs = new THREE.Vector3()
+      for (const s of story.reagentSticks) {
+        _a.set(...live[s.a]!)
+        if (s.b >= 0) _b.set(...live[s.b]!)
+        else {
+          const g = story.ghosts[-1 - s.b]!
+          _b.set(g.p0[0] + (g.p1[0] - g.p0[0]) * gu, g.p0[1] + (g.p1[1] - g.p0[1]) * gu, g.p0[2] + (g.p1[2] - g.p0[2]) * gu)
+        }
+        rs.copy(_b).sub(_a).cross(anim.up).normalize()
+        drawStick(_a.clone(), _b.clone(), s.n > 1 ? rs : null, s.s, s.n, breakG)
       }
+    }
+    for (const s of story.sticks) {
+      const g = easeInOut((t - s.t0) / Math.max(1e-6, s.t1 - s.t0))
+      if (g <= 0.001) continue
+      _a.set(...live[s.a]!)
+      _b.set(...live[s.b]!)
+      drawStick(_a.clone(), _b.clone(), anim.sides.get(s.bond) ?? null, s.s, s.n, g)
     }
     res.sticks.count = k
     res.sticks.instanceMatrix.needsUpdate = true
-    if (res.edges) (res.edges.material as THREE.LineBasicMaterial).opacity = 0.55 * clamp01((t - tl.starts[3]) / 1.2)
-    // Кадр: описанная сфера текущих положений (все частицы всегда в окне), не меньше итоговой.
-    let R = anim.rEnd
+    // Электроны.
+    const eR = story.eR
+    story.electrons.forEach((e, i) => {
+      const appear = clamp01((t - e.tIn) / 0.4)
+      const vanish = 1 - clamp01((t - e.tOut) / 0.5)
+      let sc = eR * appear * vanish
+      const H = live[e.home]!
+      let x = H[0] + e.homeOff[0]
+      let y = H[1] + e.homeOff[1]
+      let z = H[2] + e.homeOff[2]
+      let col = e.kind === 'pair' && e.move && t >= e.move.t1 ? E_PAIR : E_LONE
+      if (e.move && t >= e.move.t0) {
+        const u = easeInOut((t - e.move.t0) / Math.max(1e-6, e.move.t1 - e.move.t0))
+        let tx: number, ty: number, tz: number
+        if (e.move.toAtom != null) {
+          const T = live[e.move.toAtom]!
+          const o = e.move.toOff!
+          tx = T[0] + o[0]
+          ty = T[1] + o[1]
+          tz = T[2] + o[2]
+        } else {
+          const bd = e.move.bond!
+          const A = live[bd.a]!
+          const B = live[bd.b]!
+          _ax.set(B[0] - A[0], B[1] - A[1], B[2] - A[2])
+          const L = _ax.length() || 1
+          _ax.divideScalar(L)
+          tx = (A[0] + B[0]) / 2 + _ax.x * bd.sign * 1.5 * eR
+          ty = (A[1] + B[1]) / 2 + _ax.y * bd.sign * 1.5 * eR
+          tz = (A[2] + B[2]) / 2 + _ax.z * bd.sign * 1.5 * eR
+          const sd = anim.sides.get(bd.k)
+          if (sd && bd.n > 1) {
+            const off = (bd.slot - (bd.n - 1) / 2) * stepD
+            tx += sd.x * off
+            ty += sd.y * off
+            tz += sd.z * off
+          }
+        }
+        const lift = Math.sin(Math.PI * u) * (e.kind === 'transfer' ? 0.18 : 0.06) * anim.maxD
+        x = x + (tx - x) * u + anim.up.x * lift
+        y = y + (ty - y) * u + anim.up.y * lift
+        z = z + (tz - z) * u + anim.up.z * lift
+        if (u > 0 && u < 1) {
+          col = E_MOVE
+          sc *= 1.35
+        } else if (e.kind === 'pair') col = E_PAIR
+      }
+      _m.compose(_p.set(x, y, z), _q.identity(), _s.setScalar(Math.max(1e-5, sc)))
+      res.electrons.setMatrixAt(i, _m)
+      res.electrons.setColorAt(i, col)
+    })
+    res.electrons.instanceMatrix.needsUpdate = true
+    if (res.electrons.instanceColor) res.electrons.instanceColor.needsUpdate = true
+    // Фрагмент решётки и рёбра ячеек.
+    let latO = 0
+    if (latStage && story.latticeCopies.length) latO = clamp01((t - latStage.t0 - 0.3) / 1.4) * (1 - clamp01((t - finalT0) / 1.4))
+    res.latMat.opacity = 0.42 * latO
+    res.lattice.visible = latO > 0.01
+    if (res.edges) (res.edges.material as THREE.LineBasicMaterial).opacity = 0.55 * clamp01((t - finalT0) / 1.2)
+    // Кадр: описанная сфера текущих положений (+ призраки и копии решётки, пока видны).
+    let R = model.radius
     for (let i = 0; i < live.length; i++) {
       const L = live[i]!
-      const d = Math.hypot(L[0], L[1], L[2]) + model.atoms[i]!.r
-      if (d > R) R = d
+      R = Math.max(R, Math.hypot(L[0], L[1], L[2]) + model.atoms[i]!.r)
     }
+    if (gu < 1) for (const g of story.ghosts) R = Math.max(R, Math.hypot(...g.p0) + g.r)
+    if (latO > 0) for (const off of story.latticeCopies) R = Math.max(R, model.radius + (Math.hypot(...off) * latO))
     const o = outer.current
-    if (o) o.scale.setScalar(fitRadius / Math.max(1e-6, R))
+    if (o) {
+      const target = fitRadius / Math.max(1e-6, R)
+      // Плавный «зум» (без рывков при смене этапа).
+      const cur = o.scale.x || target
+      o.scale.setScalar(cur + (target - cur) * Math.min(1, 6 * Math.max(0.016, dt)))
+    }
     const a = turnA.current
     const bb = turnB.current
-    const st = swayT.current
+    const stt = swayT.current
     if (a && bb) {
       if (model.motion === 'orbit') {
         a.rotation.set(model.pitch, 0, 0)
-        bb.rotation.set(0, model.yaw + st * HERO_ORBIT_RAD_PER_SEC, 0)
+        bb.rotation.set(0, model.yaw + stt * HERO_ORBIT_RAD_PER_SEC, 0)
       } else {
-        a.rotation.set(0, model.yaw + SWAY_AMP * Math.sin((2 * Math.PI * st) / SWAY_PERIOD), 0)
+        a.rotation.set(0, model.yaw + SWAY_AMP * Math.sin((2 * Math.PI * stt) / SWAY_PERIOD), 0)
         bb.rotation.set(model.pitch, 0, 0)
       }
     }
@@ -337,9 +400,7 @@ export function FormationMoleculeView({
       anim.badges.forEach((bd, i) => {
         const node = list[i]
         if (!node) return
-        // Вода и валентности уходят, когда частицы сближаются, — подписи не лезут друг на друга.
-        const show =
-          step >= bd.fromStep && (bd.kind === 'group' || (bd.kind === 'water' ? step <= 1 || (step === 2 && f < 0.25) : step === 1 || (step === 2 && f < 0.35)))
+        const show = t >= bd.from && t < bd.to
         if (!show) {
           if (node.shown) {
             node.el.style.display = 'none'
@@ -363,7 +424,7 @@ export function FormationMoleculeView({
         const dist = cam.position.distanceTo(_p)
         const pxR = dist > 1e-6 ? ((top * sc) / dist) * pxK : 0
         _p.project(cam)
-        const x = Math.round(((_p.x * 0.5 + 0.5) * size.width) * 2) / 2
+        const x = Math.round((_p.x * 0.5 + 0.5) * size.width * 2) / 2
         const y = Math.round(((-_p.y * 0.5 + 0.5) * size.height - pxR - (bd.kind === 'valence' ? 4 : 10)) * 2) / 2
         if (!node.shown) {
           node.el.style.display = 'block'
@@ -384,6 +445,9 @@ export function FormationMoleculeView({
         <group ref={turnB}>
           <primitive object={res.atoms} />
           <primitive object={res.sticks} />
+          <primitive object={res.ghosts} />
+          <primitive object={res.electrons} />
+          <primitive object={res.lattice} />
           {res.edges ? <primitive object={res.edges} /> : null}
           <SchoolBallLabels atoms={ionLabels ? anim.ionic : anim.neutral} crystal={crystal} opacity={labelOpacity} />
         </group>

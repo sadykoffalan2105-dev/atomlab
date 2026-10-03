@@ -179,3 +179,176 @@
     font-size: 14px;
   }
 }
+
+/* Показ «от и до»: шкала этапов (ширина сегмента — по длительности этапа). */
+.track {
+  display: flex;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seg {
+  flex: 1 1 0;
+  min-width: 6px;
+}
+
+.segBtn {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 14px;
+  margin: 0;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.segBtn::before {
+  content: '';
+  position: absolute;
+  inset: 5px 0;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+}
+
+.segFill {
+  position: absolute;
+  inset: 5px 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #38bdf8, #7dd3fc);
+  transform-origin: left center;
+}
+
+.segBtn:focus-visible,
+.ctrlIcon:focus-visible,
+.speed:focus-visible,
+.speedOn:focus-visible,
+.range:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring, 0 0 0 3px rgba(125, 211, 252, 0.6));
+}
+
+.stageHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 2px 0 0;
+}
+
+.stageNum {
+  flex: none;
+  color: #7dd3fc;
+  font-size: var(--lt-fs-xs, 12px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.stageTitle {
+  min-width: 0;
+  color: var(--lt-text, #f1f5f9);
+  font-size: var(--lt-fs-body, 15px);
+  font-weight: 700;
+}
+
+.eqBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 12px;
+  background: rgba(250, 204, 21, 0.07);
+}
+
+.eqLead {
+  color: #fde68a;
+  font-size: var(--lt-fs-small, 13px);
+  font-weight: 600;
+}
+
+.eqText {
+  color: var(--lt-text, #f8fafc);
+  font-size: var(--lt-fs-body, 15px);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.eqLab {
+  flex-basis: 100%;
+  color: var(--lt-text-2, #cbd5e1);
+  font-size: var(--lt-fs-small, 13px);
+  overflow-wrap: anywhere;
+}
+
+.ctrlIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #e0f2fe;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.ctrlIcon:hover {
+  background: rgba(56, 189, 248, 0.22);
+}
+
+.speeds {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  border-radius: 999px;
+}
+
+.speed,
+.speedOn {
+  min-width: 44px;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--lt-text-2, #cbd5e1);
+  font-family: var(--lt-font, system-ui, sans-serif);
+  font-size: var(--lt-fs-small, 13px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.speedOn {
+  background: rgba(56, 189, 248, 0.3);
+  color: #f0f9ff;
+}
+
+.timeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timeText {
+  flex: none;
+  color: var(--lt-text-3, #94a3b8);
+  font-size: var(--lt-fs-xs, 12px);
+  font-variant-numeric: tabular-nums;
+}
+
+.range {
+  flex: 1 1 auto;
+  min-width: 0;
+  accent-color: #38bdf8;
+}
