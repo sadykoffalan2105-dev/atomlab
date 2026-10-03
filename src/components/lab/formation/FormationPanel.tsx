@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { formationEquation } from '../../../chemistry/formationEquation'
 import { formationPlan } from '../../../chemistry/formationPlan'
 import { formationTexts, type FormationLocale } from '../../../chemistry/formationText'
 import { formationStageTexts } from './formationStageText'
 import { formationStoryFor } from './formationStory'
 import { FORMATION_SPEEDS, type FormationControl } from './useFormation'
+import { FormationBoard } from './board/FormationBoard'
 import styles from './FormationPanel.module.css'
 
 function toFormationLocale(locale: string): FormationLocale {
@@ -34,6 +35,25 @@ export function FormationCaptions({
   const loc = toFormationLocale(locale)
   const texts = useMemo(() => (plan && story ? formationStageTexts(plan, story, eq, loc, obtainingSection) : null), [plan, story, eq, loc, obtainingSection])
   const playLabel = useMemo(() => (plan ? formationTexts(plan, loc, obtainingSection).ui.play : null), [plan, loc, obtainingSection])
+  // Шаг по этапам стрелками ← → (кроме полей ввода: у ползунка стрелки — свои).
+  const { active, prev, next } = control
+  useEffect(() => {
+    if (!active) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
+      const el = e.target as HTMLElement | null
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return
+      if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        next()
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        prev()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [active, prev, next])
   if (!plan || !playLabel) return null
   if (!control.active || !texts || !story) {
     return (
@@ -67,6 +87,7 @@ export function FormationCaptions({
       </p>
       <p className={styles.main}>{s.main}</p>
       <p className={styles.sub}>{s.sub}</p>
+      <FormationBoard compoundId={compoundId} plan={plan} stage={story.stages[i]?.key ?? 'final'} loc={loc} />
       <div className={styles.eqBox} data-formation-equation="">
         <span className={styles.eqLead}>{texts.equation.lead}:</span>
         <span className={styles.eqText}>{texts.equation.text}</span>

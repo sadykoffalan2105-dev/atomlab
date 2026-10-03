@@ -352,3 +352,35 @@
   min-width: 0;
   accent-color: #38bdf8;
 }
+
+/* Телефон: крупные кнопки управления показом (палец, а не мышь). */
+@media (max-width: 640px) {
+  .ctrl,
+  .ctrlGhost,
+  .ctrlIcon {
+    min-width: 48px;
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  .speed,
+  .speedOn {
+    min-width: 52px;
+    min-height: 46px;
+    font-size: 15px;
+  }
+
+  .range {
+    min-height: 32px;
+  }
+
+  .segBtn {
+    height: 22px;
+    padding: 9px 0;
+  }
+
+  .segBtn::before,
+  .segFill {
+    inset: 9px 0;
+  }
+}
