@@ -72,7 +72,9 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
     stepRef.current = step
     advanceRef.current = onAdvance
   })
-  const { camera, gl, controls } = useThree((s) => ({ camera: s.camera, gl: s.gl, controls: s.controls }))
+  const camera = useThree((s) => s.camera)
+  const gl = useThree((s) => s.gl)
+  const controls = useThree((s) => s.controls)
   const controlsRef = useRef(controls)
   useLayoutEffect(() => {
     controlsRef.current = controls

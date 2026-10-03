@@ -568,7 +568,7 @@
 /* ── Итог опыта: «Что произошло» (частицы) и проверка ── */
 .finalBody {
   display: grid;
-  grid-template-columns: 1.15fr 1fr;
+  grid-template-columns: 1.4fr 1fr;
   gap: 18px;
   min-height: 0;
 }
