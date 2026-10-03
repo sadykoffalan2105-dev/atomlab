@@ -154,10 +154,10 @@ export function FormationMoleculeView({
     else if (story.latticeKind === 'molecular')
       badges.push({ text: ['Молекулярная решётка: молекулы в узлах', 'Molecular lattice: molecules at the sites', 'Molekulyar panjara: tugunlarda molekulalar'][L]!, atoms: all, from: fin.t0 + 0.4, to: fin.t0 + fin.dur - 1.4, kind: 'caption' })
     else if (story.latticeKind === 'chain')
-      badges.push({ text: [`(${f})ₙ — цепь звеньев; ${f} — простейшая формула`, `(${f})ₙ — a chain of units; ${f} is the simplest formula`, `(${f})ₙ — boʻgʻinlar zanjiri; ${f} — eng oddiy formula`][L]!, atoms: all, from: fin.t0 + 0.4, to: fin.t0 + fin.dur - 1.4, kind: 'caption' })
+      badges.push({ text: [`(${f})ₙ — цепь звеньев`, `(${f})ₙ — a chain of units`, `(${f})ₙ — boʻgʻinlar zanjiri`][L]!, atoms: all, from: fin.t0 + 0.4, to: fin.t0 + fin.dur - 1.4, kind: 'caption' })
     else if (story.latticeKind === 'network') {
       const sa = stage('assemble')!
-      badges.push({ text: ['Каркас тетраэдров SiO₄ — молекул нет, SiO₂ — простейшая формула', 'Framework of SiO₄ tetrahedra — no molecules, SiO₂ is the simplest formula', 'SiO₄ tetraedrlari karkasi — molekula yoʻq, SiO₂ — eng oddiy formula'][L]!, atoms: all, from: sa.t0 + 0.3, to: Infinity, kind: 'caption' })
+      badges.push({ text: ['Каркас тетраэдров SiO₄ (молекул нет)', 'Framework of SiO₄ tetrahedra (no molecules)', 'SiO₄ tetraedrlari karkasi (molekula yoʻq)'][L]!, atoms: all, from: sa.t0 + 0.3, to: Infinity, kind: 'caption' })
     }
     // Направление «вверх» экрана в координатах модели — дуга перелёта электронов.
     const up = new THREE.Vector3(...screenToModel(model, [0, 1, 0]))
@@ -287,10 +287,15 @@ export function FormationMoleculeView({
     if (c.playing && t >= finalT0) swayT.current += Math.min(0.1, Math.max(0, dt))
     if (t < finalT0) swayT.current = 0
     const { live } = anim
+    // Этап «Путь получения»: исходные вещества кольцом на время сцены пути уходят (не мешают), затем возвращаются.
+    const rs = story.routeStage
+    const hide = rs ? clamp01((t - rs.t0) / 0.5) * (1 - clamp01((t - (rs.t0 + rs.dur - 0.5)) / 0.5)) : 0
+    const keep = Math.max(1e-4, 1 - hide)
+    labelOpacity.current = 1 - hide
     // Атомы.
     for (let i = 0; i < live.length; i++) {
       const L = atomPosAt(story, i, t, live[i]!)
-      _m.compose(_p.set(L[0], L[1], L[2]), _q.identity(), _s.setScalar(atomRadiusAt(story, i, t, model.atoms[i]!.r)))
+      _m.compose(_p.set(L[0], L[1], L[2]), _q.identity(), _s.setScalar(atomRadiusAt(story, i, t, model.atoms[i]!.r) * keep))
       res.atoms.setMatrixAt(i, _m)
     }
     res.atoms.instanceMatrix.needsUpdate = true
@@ -300,7 +305,7 @@ export function FormationMoleculeView({
     story.ghosts.forEach((g, i) => {
       const k = 1 - gu
       _p.set(g.p0[0] + (g.p1[0] - g.p0[0]) * gu, g.p0[1] + (g.p1[1] - g.p0[1]) * gu, g.p0[2] + (g.p1[2] - g.p0[2]) * gu)
-      _m.compose(_p, _q.identity(), _s.setScalar(g.r * Math.max(0.001, k)))
+      _m.compose(_p, _q.identity(), _s.setScalar(g.r * Math.max(0.001, k) * keep))
       res.ghosts.setMatrixAt(i, _m)
     })
     res.ghosts.instanceMatrix.needsUpdate = true
@@ -333,7 +338,7 @@ export function FormationMoleculeView({
       res.sticks.setMatrixAt(k++, _m)
     }
     // Исходные молекулы: палочки до разрыва (H–H, O=O, N≡N).
-    const breakG = sb ? 1 - easeInOut((t - sb.t0) / Math.max(0.1, sb.dur * 0.55)) : 0
+    const breakG = (sb ? 1 - easeInOut((t - sb.t0) / Math.max(0.1, sb.dur * 0.55)) : 0) * keep
     if (breakG > 0.001) {
       const rs = new THREE.Vector3()
       for (const s of story.reagentSticks) {
@@ -441,7 +446,8 @@ export function FormationMoleculeView({
       if (latO > 0.01) {
         story.latticeAtoms.forEach((a, i) => {
           const g = easeInOut((t - (w0 + a.k * (w1 - w0))) / 0.7)
-          _m.compose(_p.set(...a.pos), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * g)))
+          // Ионы фрагмента чуть меньше (0,8 r): в плотной решётке видно расположение соседей, а не сплошная стена шаров.
+          _m.compose(_p.set(...a.pos), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * g * (story.latticeKind === 'ionic' ? 0.8 : 1))))
           res.lattice.setMatrixAt(i, _m)
         })
         res.lattice.instanceMatrix.needsUpdate = true
@@ -457,8 +463,13 @@ export function FormationMoleculeView({
       R = Math.max(R, Math.hypot(L[0], L[1], L[2]) + model.atoms[i]!.r)
     }
     if (gu < 1) for (const g of story.ghosts) R = Math.max(R, Math.hypot(...g.p0) + g.r)
+    if (rs && hide > 0.5) {
+      // Кадр — по сцене пути (крупно), исходные вещества спрятаны.
+      R = 0
+      for (let i = 0; i < rl.length; i++) R = Math.max(R, Math.hypot(...rl[i]!) + rs.atoms[i]!.r)
+      R = Math.max(R * 1.08, 0.35 * model.radius)
+    }
     if (latO > 0) for (const a of story.latticeAtoms) R = Math.max(R, model.radius + (Math.hypot(...a.pos) + a.r - model.radius) * latO)
-    if (route && t > route.t0 - 0.1 && t < route.t0 + route.dur) for (let i = 0; i < rl.length; i++) R = Math.max(R, Math.hypot(...rl[i]!) + route.atoms[i]!.r)
     const o = outer.current
     if (o) {
       const target = fitRadius / Math.max(1e-6, R)
@@ -515,8 +526,13 @@ export function FormationMoleculeView({
         const dist = cam.position.distanceTo(_p)
         const pxR = dist > 1e-6 ? ((top * sc) / dist) * pxK : 0
         _p.project(cam)
-        const x = Math.round((_p.x * 0.5 + 0.5) * size.width * 2) / 2
-        const y = Math.round(((-_p.y * 0.5 + 0.5) * size.height - pxR - (bd.kind === 'valence' ? 4 : 10)) * 2) / 2
+        let x = Math.round((_p.x * 0.5 + 0.5) * size.width * 2) / 2
+        let y = Math.round(((-_p.y * 0.5 + 0.5) * size.height - pxR - (bd.kind === 'valence' ? 4 : 10)) * 2) / 2
+        if (bd.kind === 'caption') {
+          // Подпись решётки / каркаса — над кадром, не на частицах.
+          x = Math.round(size.width / 2)
+          y = 52
+        }
         if (!node.shown) {
           node.el.style.display = 'block'
           node.shown = true

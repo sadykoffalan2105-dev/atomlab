@@ -171,12 +171,15 @@ function schemaFragment(plan: FormationPlan, model: SchoolHeroModel, screenToMod
   }
   // Формульная единица целиком (верное соотношение ионов и молекул воды), копии — в узлах кубической сетки;
   // в соседних узлах единица повёрнута на 180° — катионы одной единицы обращены к анионам соседней.
-  let ext = 0
-  for (const a of model.atoms) ext = Math.max(ext, lenv(sub(a.pos, origin)) + a.r)
-  const L = 2 * ext + 0.4 * ext
   const X = norm(screenToModel([1, 0, 0]))
   const Y = norm(screenToModel([0, 1, 0]))
   const Z = norm(screenToModel([0, 0, 1]))
+  // Шаг по каждой оси — по протяжённости единицы вдоль неё (+ зазор): плотная, но без наложений укладка.
+  const avgR = model.atoms.reduce((q, a) => q + a.r, 0) / Math.max(1, model.atoms.length)
+  const extOn = (ax: V3) => Math.max(...model.atoms.map((a) => Math.abs(dot(sub(a.pos, origin), ax)) + a.r))
+  const LX = 2 * extOn(X) + 0.9 * avgR
+  const LY = 2 * extOn(Y) + 0.9 * avgR
+  const LZ = 2 * extOn(Z) + 0.9 * avgR
   const flip = (p: V3): V3 => {
     // поворот на 180° вокруг экранной оси Y: x → −x, z → −z
     const r = sub(p, origin)
@@ -189,7 +192,7 @@ function schemaFragment(plan: FormationPlan, model: SchoolHeroModel, screenToMod
     for (let j = -1; j <= 1; j++)
       for (let k = -1; k <= 1; k++) {
         if (i === 0 && j === 0 && k === 0) continue
-        const off = addv(addv(scale(X, i * L), Y, j * L), Z, k * L)
+        const off = addv(addv(scale(X, i * LX), Y, j * LY), Z, k * LZ)
         const odd = (((i + j + k) % 2) + 2) % 2 === 1
         const center = addv(origin, off)
         list.push({
@@ -255,7 +258,10 @@ export function latticeFor(
     // Модель карточки уже кристалл (NaCl, MgO, Al₂O₃, PbO, BaSO₄): фрагмент — она сама, растёт слоями.
     if (model.kind === 'crystal') return { kind: 'ionic', atoms: [] }
     if (plan.mode !== 'ionic') return { kind: 'none', atoms: [] }
-    const gen = script?.latticeKind === 'generator' && script.latticeGen ? generatorFragment(script.latticeGen, plan, model) : null
+    // «типа NaCl / ZnS / корунда» в таблице — тот же структурный тип: берём его генератор (верная координация 6:6, 4:4, 6:4).
+    const hint = script?.latticeKind === 'schema' ? (/типа NaCl/.test(script.lattice) ? 'nacl' : /типа ZnS/.test(script.lattice) ? 'sphalerite' : /типа корунда/.test(script.lattice) ? 'corundum' : null) : null
+    const genKey = script?.latticeKind === 'generator' && script.latticeGen ? script.latticeGen : hint
+    const gen = genKey ? generatorFragment(genKey, plan, model) : null
     return { kind: 'ionic', atoms: gen && gen.length ? gen : schemaFragment(plan, model, screenToModel) }
   }
   if (script?.latticeKind === 'molecular') return { kind: 'molecular', atoms: copiesFragment('molecular', model, screenToModel) }

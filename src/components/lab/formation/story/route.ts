@@ -1,6 +1,7 @@
 import type { FormationPlan } from '../../../../chemistry/formationPlan'
 import type { FormationRouteKind, FormationScript } from '../../../../chemistry/formationScripts'
 import { schoolBallRadius, type SchoolHeroModel, type V3 } from '../../hero/schoolHeroModel'
+import { SCHOOL_DRAW } from '../../../../lab/cinema/scenes/school/schoolModel'
 import type { ElementSymbol } from '../../../../chemistry/data/atomicData'
 
 /**
@@ -203,15 +204,15 @@ export function buildRouteStage(
   if (!script || plan.mode !== 'ionic') return null
   const rk = script.routeKind
   const route = script.route
-  const rModel = new Map<string, number>()
-  for (const a of model.atoms) if (!rModel.has(a.el)) rModel.set(a.el, a.r)
-  const rOf = (el: string) => rModel.get(el) ?? schoolBallRadius(el as ElementSymbol)
+  // Шары — школьные радиусы (ковалентный × ballScale), расстояния — как в моделях карточки: (r₁ + r₂) / ballScale.
+  const rOf = (el: string) => schoolBallRadius(el as ElementSymbol)
   const rO = schoolBallRadius('O' as ElementSymbol)
   const rH = schoolBallRadius('H' as ElementSymbol)
-  // Масштаб сцены: «длина связи» b; вся сцена — в круге ~0,7 радиуса кольца исходных веществ.
-  let b = 1.15 * (rO + rH)
+  const S = 1 / SCHOOL_DRAW.ballScale
+  // Масштаб сцены: «длина связи» O–H = b; вся сцена — в круге ~0,7 радиуса кольца исходных веществ.
+  let b = (rO + rH) * S
   b = Math.min(b, (0.7 * fitR) / 4.2)
-  const kR = b / (1.15 * (rO + rH))
+  const kR = b / ((rO + rH) * S)
   const c: Ctx = { T: t0, D: ROUTE_DUR, toModel, atoms: [], sticks: [], electrons: [], badges: [], rOf: (el) => rOf(el) * kR }
   const T = t0
   const D = ROUTE_DUR
@@ -289,12 +290,13 @@ export function buildRouteStage(
     const cEl = model.atoms[cu.atoms[0]!]!.el as string
     const nWaterAll = plan.units.filter((u) => spOf(u).formula === 'H₂O').length
     const nW = cEl === 'Cu' ? 4 : cEl === 'Ca' ? 2 : Math.min(6, nWaterAll)
-    const rC = c.rOf(cEl)
-    const k = atom(c, cEl, [[T, [0, 0, 0]]])
+    // Катион — радиус иона из модели карточки (Cu²⁺ меньше атома Cu).
+    const rC = (model.atoms[cu.atoms[0]!]!.r ?? rOf(cEl)) * kR
+    const k = atom(c, cEl, [[T, [0, 0, 0]]], undefined, undefined, rC)
     const dirs: V3[] = nW === 2 ? [[1, 0, 0], [-1, 0, 0]] : nW === 3 ? [[1, 0, 0], [-0.5, 0.866, 0], [-0.5, -0.866, 0]] : nW === 4 ? [[1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0]] : [[1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].slice(0, nW) as V3[]
     const ids: number[] = [k]
     dirs.forEach((d, i) => {
-      const near = rC + c.rOf('O') * 1.05
+      const near = (rC + c.rOf('O')) * S * 0.9
       const lag = 0.25 * i
       // перпендикуляр к d в плоскости (для «поворота» молекулы)
       const p: V3 = Math.abs(d[2]) > 0.5 ? [1, 0, 0] : [-d[1], d[0], 0]
@@ -347,7 +349,7 @@ export function buildRouteStage(
     show = 'baseAcidOxide'
     const X = /(Si|C|S)O₂/.exec(route)![1]!
     const bent = X === 'S'
-    const bx = c.rOf(X) + c.rOf('O')
+    const bx = (c.rOf(X) + c.rOf('O')) * S
     const x = atom(c, X, [[T, [0.6 * b, 0, 0]]])
     // O=X=O (линейная у CO₂/SiO₂, уголок у SO₂) → плоский XO₃²⁻ (120°)
     const oa = atom(c, 'O', [[T + 0.5, bent ? plus([0.6 * b, 0, 0], dirA(150 * deg), bx) : plus([0.6 * b, 0, 0], [0, 1, 0], bx)], [T + 2.6, bent ? plus([0.6 * b, 0, 0], dirA(150 * deg), bx) : plus([0.6 * b, 0, 0], [0, 1, 0], bx)], [T + 4.0, plus([0.6 * b, 0, 0], dirA(60 * deg), bx)]])
