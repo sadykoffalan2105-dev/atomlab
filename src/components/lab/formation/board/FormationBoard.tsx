@@ -6,6 +6,7 @@ import { compoundById } from '../../../../data/compounds'
 import { buildSchoolHeroModel } from '../../hero/schoolHeroModel'
 import type { StageKey } from '../formationStory'
 import { setCloudsOn, useCloudsOn } from './cloudsStore'
+import { bridgedDimer, fragmentKind, unitFragment, waterGraph, type FragmentKind } from './fragment'
 import { ionicParts, moleculeGraph, valenceAtom, VALENCE, type LAtom, type LGraph, type LPart } from './lewis'
 import { FormulaSvg, TransferSvg, type TransferArc, type TransferNode } from './LewisSvg'
 import styles from './FormationBoard.module.css'
@@ -99,23 +100,54 @@ function atomsOf(plan: FormationPlan): { atom: LAtom; count: number }[] {
     .map(([el, n]) => ({ atom: valenceAtom(el), count: n }))
 }
 
-/** Фрагмент атомного каркаса SiO₂: Si — 4 мостиковых O — соседние Si. */
-function networkGraph(formula: string): LGraph | null {
-  const m = formula.match(/^([A-Z][a-z]?)O₂$/)
-  if (!m) return null
-  const c = m[1]!
-  const atoms: LAtom[] = [{ el: c, x: 0, y: 0, lone: 0, single: 0 }]
-  const bonds: LGraph['bonds'] = []
-  const dirs: [number, number][] = [[1, 0], [0, 1], [-1, 0], [0, -1]]
-  dirs.forEach(([x, y]) => {
-    atoms.push({ el: 'O', x, y, lone: 2, single: 0 })
-    const o = atoms.length - 1
-    bonds.push({ a: 0, b: o, order: 1 })
-    atoms.push({ el: c, x: 2 * x, y: 2 * y, lone: 0, single: 0 })
-    bonds.push({ a: o, b: atoms.length - 1, order: 1 })
-  })
-  return { atoms, bonds, charge: 0 }
+/** Состав молекулы (ковалентный план): {P: 4, O: 10}. */
+function molComp(plan: FormationPlan): Record<string, number> {
+  const comp: Record<string, number> = {}
+  for (const sp of plan.species) for (const [el, n] of Object.entries(sp.comp)) comp[el] = (comp[el] ?? 0) + n * (sp.kind === 'molecule' ? 1 : sp.count)
+  return comp
 }
+
+/**
+ * Повторяющийся фрагмент вместо всей частицы (fragment.ts): каркас N (SiO₂), звено полимера PM ((CrO₃)ₙ, (HPO₃)ₙ),
+ * клетка P₄O₁₀ (узел P), мостик X–O–X (Cl₂O₇, Mn₂O₇, N₂O₅, H₄P₂O₇). null — обычная молекула.
+ */
+function fragmentGraph(plan: FormationPlan, type: string): LGraph | null {
+  const comp = molComp(plan)
+  if (type === 'N') return unitFragment(comp, 0)
+  if (type === 'PM') {
+    const g = unitFragment(comp, 0)
+    return g?.poly ? g : null
+  }
+  if (Object.keys(comp).length === 2 && comp.P && comp.O && comp.O / comp.P === 2.5) return unitFragment(comp, 0)
+  return bridgedDimer(comp, 0)
+}
+
+/** Многоатомный ион фрагментом: Cr₂O₇²⁻ (мостик Cr–O–Cr), (SiO₃²⁻)ₙ — звено цепи силиката. */
+function ionFragment(comp: Record<string, number>, charge: number): LGraph | null {
+  const b = bridgedDimer(comp, charge)
+  if (b) return b
+  const u = unitFragment(comp, charge)
+  return u?.poly ? u : null
+}
+
+const FRAG_NOTE: Record<FragmentKind, (x: string) => [string, string, string]> = {
+  node: (x) => [
+    `повторяющийся фрагмент: у ${x} — 4 связи, каждый мостиковый O связывает два ${x}; бледные — соседние атомы`,
+    `repeating fragment: ${x} has 4 bonds, each bridging O joins two ${x}; pale — neighbouring atoms`,
+    `takrorlanuvchi boʻlak: ${x} da 4 ta bogʻ, har bir koʻprik O ikki ${x} ni bogʻlaydi; xira — qoʻshni atomlar`,
+  ],
+  chain: (x) => [
+    `звено цепи: мостиковый O связывает соседние звенья ${x}; n — число звеньев`,
+    `chain unit: the bridging O joins neighbouring ${x} units; n — the number of units`,
+    `zanjir boʻgʻini: koʻprik O qoʻshni ${x} boʻgʻinlarini bogʻlaydi; n — boʻgʻinlar soni`,
+  ],
+  bridge: (x) => [
+    `две половины связаны мостиком ${x}–O–${x}`,
+    `the two halves are joined by an ${x}–O–${x} bridge`,
+    `ikki yarmi ${x}–O–${x} koʻprigi bilan bogʻlangan`,
+  ],
+}
+const fragCenter = (g: LGraph) => g.atoms.find((a) => !a.ghost && a.el !== 'O' && a.el !== 'H')?.el ?? ''
 
 /** Схема перехода: узлы, дуги и строки «Na⁰ − 1e⁻ → Na⁺». */
 function transferScheme(plan: FormationPlan, script: FormationScript | null, loc: FormationLocale) {
@@ -205,7 +237,7 @@ function DenScale({ dEN, loc }: { dEN: number; loc: FormationLocale }) {
   )
 }
 
-export function FormationBoard({ compoundId, plan, stage, loc }: { compoundId: string; plan: FormationPlan; stage: StageKey; loc: FormationLocale }) {
+export function FormationBoard({ compoundId, plan, stage, loc, refText }: { compoundId: string; plan: FormationPlan; stage: StageKey; loc: FormationLocale; refText?: string }) {
   const script = useMemo(() => formationScript(compoundId), [compoundId])
   const model = useMemo(() => {
     const c = compoundById[compoundId]
@@ -213,8 +245,26 @@ export function FormationBoard({ compoundId, plan, stage, loc }: { compoundId: s
   }, [compoundId])
   const ionic = plan.mode === 'ionic'
   const type = script?.type ?? (ionic ? 'IB' : 'MP')
-  const mol = useMemo(() => (ionic ? null : type === 'N' ? networkGraph(plan.formula) : moleculeGraph(model, plan.formula, script?.special)), [ionic, type, plan.formula, model, script])
-  const parts: LPart[] | null = useMemo(() => (ionic ? ionicParts(plan, model) : null), [ionic, plan, model])
+  const frag = useMemo(() => (ionic ? null : fragmentGraph(plan, type)), [ionic, plan, type])
+  const mol = useMemo(() => (ionic ? null : (frag ?? moleculeGraph(model, plan.formula, script?.special))), [ionic, frag, plan.formula, model, script])
+  const parts: LPart[] | null = useMemo(() => {
+    if (!ionic) return null
+    return ionicParts(plan, model).map((p, k): LPart => {
+      const sp = plan.species[k]
+      if (sp?.kind === 'polyion') {
+        const f = ionFragment(sp.comp, sp.charge)
+        if (f) return { ...p, graph: f, bracket: !f.poly }
+      }
+      // кристаллизационная вода: «· 5» и рисунок одной молекулы H–O–H (пары O — к катиону)
+      if (sp?.kind === 'molecule' && sp.comp.H === 2 && sp.comp.O === 1 && Object.keys(sp.comp).length === 2) return { ...p, graph: waterGraph(), bracket: false, lead: '·' }
+      return p
+    })
+  }, [ionic, plan, model])
+  const fragNote = useMemo(() => {
+    const g = frag ?? parts?.map((p) => p.graph).find((x) => x && (x.poly || x.atoms.some((a) => a.ghost) || x.atoms.filter((a) => a.el !== 'O' && a.el !== 'H').length === 2 && x.bonds.length > 6))
+    return g ? pick(FRAG_NOTE[fragmentKind(g)](fragCenter(g)), loc) : null
+  }, [frag, parts, loc])
+  const hydrate = !!parts?.some((p) => p.lead)
   const atoms = useMemo(() => atomsOf(plan), [plan])
   const scheme = useMemo(() => (ionic ? transferScheme(plan, script, loc) : null), [ionic, plan, script, loc])
   const clouds = useCloudsOn()
@@ -263,8 +313,24 @@ export function FormationBoard({ compoundId, plan, stage, loc }: { compoundId: s
           <>
             <div className={styles.rowLabel}>{L(loc, 'атомы: валентные электроны', 'atoms: valence electrons', 'atomlar: valent elektronlar')}</div>
             <FormulaSvg atoms={atoms} mode="dots" label={lewisLabel} />
-            <div className={styles.rowLabel}>{ionic ? L(loc, 'ионы', 'ions', 'ionlar') : type === 'N' ? L(loc, 'фрагмент каркаса', 'framework fragment', 'karkas bo‘lagi') : L(loc, 'молекула', 'molecule', 'molekula')}</div>
+            <div className={styles.rowLabel}>
+              {ionic
+                ? L(loc, 'ионы', 'ions', 'ionlar')
+                : frag && fragmentKind(frag) !== 'bridge'
+                  ? `${plan.formula}: ${L(loc, 'повторяющийся фрагмент', 'repeating fragment', 'takrorlanuvchi boʻlak')}`
+                  : L(loc, 'молекула', 'molecule', 'molekula')}
+            </div>
             {ionic ? <FormulaSvg parts={parts ?? []} mode="dots" label={lewisLabel} /> : mol ? <FormulaSvg graph={mol} mode="dots" label={lewisLabel} /> : <p className={styles.big}>{plan.formula}</p>}
+            {hydrate ? (
+              <p className={styles.small} data-board-hydrate="">
+                {L(
+                  loc,
+                  'кристаллизационная вода: молекула H₂O обращена к катиону неподелённой парой O',
+                  'water of crystallisation: the H₂O molecule faces the cation with a lone pair of O',
+                  'kristallizatsiya suvi: H₂O molekulasi kationga O ning taqsimlanmagan jufti bilan qaragan',
+                )}
+              </p>
+            ) : null}
           </>,
         )}
         {card(
@@ -278,6 +344,11 @@ export function FormationBoard({ compoundId, plan, stage, loc }: { compoundId: s
             ) : (
               <p className={styles.big}>{plan.formula}</p>
             )}
+            {fragNote ? (
+              <p className={styles.small} data-board-fragment="">
+                {fragNote}
+              </p>
+            ) : null}
             <p className={styles.small}>
               {plan.bondKinds.length
                 ? plan.bondKinds.map((b) => `${b.label}${b.count > 1 ? ` ×${b.count}` : ''}`).join(' · ')
@@ -335,6 +406,11 @@ export function FormationBoard({ compoundId, plan, stage, loc }: { compoundId: s
           </>,
         )}
       </div>
+      {refText ? (
+        <p className={styles.ref} data-board-ref="">
+          {refText}
+        </p>
+      ) : null}
     </div>
   )
 }

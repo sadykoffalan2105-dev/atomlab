@@ -20,14 +20,18 @@ const en = (el: string) => EN[el] ?? 1.5
 /** Элементы 2-го периода: не больше четырёх электронных пар вокруг атома. */
 const PERIOD2 = new Set(['B', 'C', 'N', 'O', 'F'])
 
-/** faces — у отдельного атома (схема перехода): неспаренный электрон смотрит в эту сторону (рад, 0 — вправо). */
-export type LAtom = { el: string; x: number; y: number; lone: number; single: number; faces?: number }
+/**
+ * faces — у отдельного атома (схема перехода): неспаренный электрон смотрит в эту сторону (рад, 0 — вправо);
+ * ghost — сосед вне фрагмента (бледный, без электронов); q — заряд атома во фрагменте (O⁻ у звена силиката).
+ */
+export type LAtom = { el: string; x: number; y: number; lone: number; single: number; faces?: number; ghost?: boolean; q?: number }
 /** dative — донорно-акцепторная: from — атом-донор пары (стрелка от него). */
 export type LBond = { a: number; b: number; order: number; dative?: number }
-export type LGraph = { atoms: LAtom[]; bonds: LBond[]; charge: number }
+/** poly — звено цепи: скобки «( … )ₙ» между x0 и x1 (в длинах связи). */
+export type LGraph = { atoms: LAtom[]; bonds: LBond[]; charge: number; poly?: { x0: number; x1: number } }
 
 /** Часть электронной формулы ионного вещества: [Na]⁺, 2[:Cl:]⁻, [SO₄]²⁻ (graph = null — только подпись). */
-export type LPart = { graph: LGraph | null; label: string; charge: number; count: number; bracket: boolean }
+export type LPart = { graph: LGraph | null; label: string; charge: number; count: number; bracket: boolean; lead?: string }
 
 // ─── Электроны ─────────────────────────────────────────────────────────────
 

@@ -12,6 +12,8 @@ const DOT = 2.4
 const INK = 'var(--fb-ink, #1e293b)'
 const SHARED = 'var(--fb-shared, #0f766e)'
 const SINGLE = 'var(--fb-single, #2563eb)'
+/** Сосед вне фрагмента (каркас, клетка, цепь) — бледнее. */
+const GHOST = 0.4
 
 type Box = { x0: number; y0: number; x1: number; y1: number }
 type Drawn = { nodes: ReactNode[]; box: Box }
@@ -113,13 +115,21 @@ function drawGraph(g: LGraph, mode: LewisMode, key: string, markerId: string, sh
   g.atoms.forEach((a: LAtom, i) => {
     const [x, y] = P[i]!
     nodes.push(
-      <text key={`${key}a${i}`} x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={FS} fontWeight={700} fill={INK}>
+      <text key={`${key}a${i}`} x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={FS} fontWeight={700} fill={INK} opacity={a.ghost ? GHOST : undefined}>
         {a.el}
       </text>,
     )
+    if (a.q) {
+      // заряд атома во фрагменте (O⁻ у звена силиката) — справа сверху
+      nodes.push(
+        <text key={`${key}q${i}`} x={x + halfW(a.el) + 1} y={y - 9} fontSize={13} fontWeight={700} fill={a.q > 0 ? '#b91c1c' : '#1d4ed8'}>
+          {chargeText(a.q)}
+        </text>,
+      )
+    }
     grow(box, x - halfW(a.el), y - 11)
     grow(box, x + halfW(a.el), y + 11)
-    if (!showLone) return
+    if (!showLone || a.ghost) return
     const groups = a.lone + a.single
     if (!groups) return
     // Схема перехода: неспаренный e⁻ — навстречу стрелке; остальные — пары. Иначе — сначала пары.
@@ -141,6 +151,24 @@ function drawGraph(g: LGraph, mode: LewisMode, key: string, markerId: string, sh
       }
     })
   })
+  if (g.poly) {
+    // звено цепи: высокие скобки поперёк связей и индекс n справа внизу
+    const top = box.y0 - 4
+    const bot = box.y1 + 4
+    const h = bot - top
+    for (const [xx, side] of [
+      [g.poly.x0 * B, -1],
+      [g.poly.x1 * B, 1],
+    ] as const) {
+      nodes.push(<path key={`${key}poly${side}`} d={`M${xx - side * 2} ${top} Q${xx + side * 9} ${top + h / 2} ${xx - side * 2} ${bot}`} fill="none" stroke={INK} strokeWidth={1.8} />)
+    }
+    nodes.push(
+      <text key={`${key}polyn`} x={g.poly.x1 * B + 6} y={bot + 2} fontSize={15} fontWeight={700} fontStyle="italic" fill={INK}>
+        n
+      </text>,
+    )
+    grow(box, g.poly.x1 * B + 16, bot + 4)
+  }
   return { nodes, box }
 }
 
@@ -148,13 +176,22 @@ const SUP: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³
 export const chargeText = (q: number) => (q === 0 ? '' : `${Math.abs(q) === 1 ? '' : [...String(Math.abs(q))].map((d) => SUP[d]).join('')}${q > 0 ? '⁺' : '⁻'}`)
 
 /** Части в строку: коэффициент, [группа]заряд — и общий viewBox. */
-function row(drawn: { d: Drawn | null; label: string; charge: number; count: number; bracket: boolean }[], sep: string): { nodes: ReactNode[]; w: number; h: number; y0: number } {
+function row(drawn: { d: Drawn | null; label: string; charge: number; count: number; bracket: boolean; lead?: string }[], sep: string): { nodes: ReactNode[]; w: number; h: number; y0: number } {
   const nodes: ReactNode[] = []
   let x = 0
   let y0 = -16
   let y1 = 16
   drawn.forEach((p, k) => {
-    if (k > 0 && sep) {
+    if (p.lead) {
+      // «·» перед кристаллизационной водой: CuSO₄ · 5H₂O
+      x += 6
+      nodes.push(
+        <text key={`lead${k}`} x={x} y={0} textAnchor="middle" dominantBaseline="central" fontSize={FS + 4} fontWeight={800} fill={INK}>
+          {p.lead}
+        </text>,
+      )
+      x += 14
+    } else if (k > 0 && sep) {
       nodes.push(
         <text key={`sep${k}`} x={x + 9} y={0} textAnchor="middle" dominantBaseline="central" fontSize={FS} fill={INK} opacity={0.6}>
           {sep}
@@ -227,10 +264,10 @@ export function FormulaSvg({
 }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '')
   const marker = `fbArrow${uid}`
-  let items: { d: Drawn | null; label: string; charge: number; count: number; bracket: boolean }[] = []
+  let items: { d: Drawn | null; label: string; charge: number; count: number; bracket: boolean; lead?: string }[] = []
   let sep = ''
-  if (graph) items = [{ d: drawGraph(graph, mode, 'm', marker, showLone), label: '', charge: graph.charge, count: 1, bracket: graph.charge !== 0 }]
-  else if (parts) items = parts.map((p, k) => ({ d: p.graph ? drawGraph(p.graph, mode, `p${k}`, marker, showLone) : null, label: p.label, charge: p.charge, count: p.count, bracket: p.bracket }))
+  if (graph) items = [{ d: drawGraph(graph, mode, 'm', marker, showLone), label: '', charge: graph.charge, count: 1, bracket: graph.charge !== 0 && !graph.poly }]
+  else if (parts) items = parts.map((p, k) => ({ d: p.graph ? drawGraph(p.graph, mode, `p${k}`, marker, showLone) : null, label: p.label, charge: p.charge, count: p.count, bracket: p.bracket, lead: p.lead }))
   else if (atoms) {
     sep = '+'
     items = atoms.map((a, k) => ({ d: drawGraph({ atoms: [a.atom], bonds: [], charge: 0 }, 'dots', `v${k}`, marker, true), label: a.atom.el, charge: 0, count: a.count, bracket: false }))

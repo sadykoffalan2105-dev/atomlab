@@ -87,7 +87,7 @@ export function FormationCaptions({
       </p>
       <p className={styles.main}>{s.main}</p>
       <p className={styles.sub}>{s.sub}</p>
-      <FormationBoard compoundId={compoundId} plan={plan} stage={story.stages[i]?.key ?? 'final'} loc={loc} />
+      <FormationBoard compoundId={compoundId} plan={plan} stage={story.stages[i]?.key ?? 'final'} loc={loc} refText={s.ref} />
       <div className={styles.eqBox} data-formation-equation="">
         <span className={styles.eqLead}>{texts.equation.lead}:</span>
         <span className={styles.eqText}>{texts.equation.text}</span>

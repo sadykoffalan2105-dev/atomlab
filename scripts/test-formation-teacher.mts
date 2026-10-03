@@ -25,6 +25,11 @@ const LANGS: TeacherLang[] = ['ru', 'en', 'uz']
 const CYR = /[А-Яа-яЁё]/
 const BAD = /undefined|NaN(?![A-Za-z₀-₉])|\bnull\b|\[object/
 const errors: string[] = []
+/** Формулы в тексте: Na₂SO₄, Cr₂O₇²⁻, H⁺, NaCl (латиница с индексами / зарядами или из ≥ 2 символов элементов). */
+const formulasOf = (t: string) =>
+  new Set((t.match(/(?<![A-Za-z])[A-Z][A-Za-z₀-₉⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻()·]*[₀-₉⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]|(?<![A-Za-z])(?:[A-Z][a-z]?){2,}[₀-₉]*/g) ?? []).filter((x) => /[₀-₉⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]|[A-Z].*[A-Z]/.test(x)))
+/** Числа (104,5 = 104.5) — отсортированный список. */
+const numbersOf = (t: string) => (t.replace(/(\d)[,.](\d)/g, '$1$2').match(/\d+/g) ?? []).sort().join(',')
 const fail = (m: string) => errors.push(m)
 let phrases = 0
 
@@ -49,10 +54,20 @@ for (const id of CATALOG_TOP200) {
         if (lang !== 'ru' && CYR.test(v)) fail(`${id}/${st}/${lang}.${k}: кириллица — «${v.slice(0, 120)}»`)
       }
       if (!/Kimyo \d/.test(t.ref) || !/§/.test(t.ref)) fail(`${id}/${st}/${lang}: ref без § — «${t.ref}»`)
+      // ref — отдельной строкой на доске, не в пояснении (без дублей)
+      if (t.sub.includes(t.ref)) fail(`${id}/${st}/${lang}: ref продублирован в пояснении`)
     }
     const sp = formationTeacherSpecial(id, lang)
     if (!sp) fail(`${id}/${lang}: нет «особенности»`)
     else if (lang !== 'ru' && CYR.test(sp)) fail(`${id}/${lang}: «особенность» с кириллицей`)
+    else if (lang !== 'ru') {
+      // Полный перевод: не короче 60 % русского, те же формулы и числа.
+      const ru = formationTeacherSpecial(id, 'ru')
+      if (sp.length < 0.6 * ru.length) fail(`${id}/${lang}: «особенность» короче 60 % RU (${sp.length} / ${ru.length})`)
+      const lost = [...formulasOf(ru)].filter((f) => !sp.includes(f))
+      if (lost.length) fail(`${id}/${lang}: в «особенности» нет формул ${lost.join(', ')}`)
+      if (numbersOf(sp) !== numbersOf(ru)) fail(`${id}/${lang}: числа «особенности» ${numbersOf(sp)} ≠ RU ${numbersOf(ru)}`)
+    }
     if (!/§/.test(formationTeacherRef(id, lang))) fail(`${id}/${lang}: нет ref`)
     if (!routeKindLabel(id, lang)) fail(`${id}/${lang}: нет вида пути`)
     const board = formationTeacherBoard(id, lang)
