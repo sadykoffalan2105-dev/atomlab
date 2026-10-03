@@ -22,7 +22,7 @@ const LearnPathwayPage = lazy(() =>
   import('./pages/LearnPathwayPage').then((m) => ({ default: m.LearnPathwayPage })),
 )
 const VrLabPage = lazy(() => import('./pages/VrLabPage').then((m) => ({ default: m.VrLabPage })))
-const ExperimentSandbox = lazy(() => import('./components/lab3d/experiments/dev/ExperimentSandbox').then((m) => ({ default: m.ExperimentSandbox }))) // ВРЕМЕННО: песочница опытов
+const Lab3DPage = lazy(() => import('./pages/Lab3DPage').then((m) => ({ default: m.Lab3DPage })))
 const LearnTalkPage = lazy(() =>
   import('./pages/LearnTalkPage').then((m) => ({ default: m.LearnTalkPage })),
 )
@@ -68,8 +68,8 @@ export default function App() {
             <Route path="/" element={<AppShell />}>
               <Route index element={<LaboratoryPage />} />
               <Route path="organic" element={<OrganicLabPage />} />
-              <Route path="vr-lab" element={<VrLabPage />} />
-              <Route path="lab3d-sandbox" element={<ExperimentSandbox />} />
+              <Route path="vr-lab" element={<Lab3DPage />} />
+              <Route path="vr-lab-classic" element={<VrLabPage />} />
               <Route path="periodic" element={<PeriodicTablePage />} />
               <Route path="catalog" element={<CatalogPage />} />
               <Route path="school-login" element={<SchoolLoginPage />} />
