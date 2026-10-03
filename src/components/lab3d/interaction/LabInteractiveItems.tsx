@@ -10,14 +10,24 @@ import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
-import { labEvents, type LabItemId } from '../labEvents'
-import { WORK_AREA_SIZE, type LabLang, type LabText } from '../labContract'
+import { labAudio } from '../audio/labAudio'
+import { labEvents, type LabGearId, type LabItemId } from '../labEvents'
+import type { LabLang, LabText } from '../labContract'
 import type { LabSceneBridge } from '../scene/labBridge'
 import type { LabMaterials } from '../scene/labMaterials'
 import { LabItemModel } from './LabItemModels'
-import { BENCH_Y, LAB_ITEMS, TAKE_LABEL, WORK_RECT, type LabItemDef } from './labItems'
-import { freeSlot, itemXZ, labHand, useHand, type ItemZone } from './labHandStore'
+import { BENCH_Y, LAB_ITEMS, TAKE_LABEL, itemSoundMaterial, type LabItemDef } from './labItems'
+import { currentWorkRect, freeSlot, itemXZ, labHand, useHand, type ItemZone } from './labHandStore'
+import { HeldHand, LabSafetyGear } from './LabSafetyGear'
 import css from './labInteraction.module.css'
+
+const tmpVel = new THREE.Vector3()
+const tmpAcc = new THREE.Vector3()
+const tmpRight = new THREE.Vector3()
+const tmpPivot = new THREE.Vector3()
+const liqEuler = new THREE.Euler()
+/** Середина столба раствора в склянке (м от дна) — ось колыхания. */
+const LIQ_PIVOT = 0.05
 
 const WORK_LABEL: LabText = { ru: 'Рабочее место', en: 'Work area', uz: 'Ish joyi' }
 const ease = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2)
@@ -54,9 +64,11 @@ interface ItemProps extends Shared {
   readonly needed: boolean
   readonly dragging: boolean
   readonly glow: GlowMats
+  /** Надетые средства защиты: в руке видна перчатка и рукав халата. */
+  readonly worn: readonly LabGearId[]
 }
 
-const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragging, mats, lang, quality, bridge, glow }: ItemProps) {
+const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragging, mats, lang, quality, bridge, glow, worn }: ItemProps) {
   const ref = useRef<THREE.Group>(null)
   const ringRef = useRef<THREE.Mesh>(null)
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
@@ -65,14 +77,28 @@ const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragg
   const [hover, setHover] = useState(false)
   useCursor(hover && zone !== 'hand', dragging ? 'grabbing' : zone === 'bench' || zone === 'work' ? 'grab' : 'pointer', 'auto')
   const anim = useRef({ zone: zone as ItemZone, from: new THREE.Vector3(...def.home), t: 1, yaw: 0, first: true })
+  // Физика: скорость (пружина в руке, трение на столе), ускорение для наклона и колыхания раствора, «посадка»
+  const phys = useRef({
+    vel: new THREE.Vector3(),
+    prev: new THREE.Vector3(),
+    prevVel: new THREE.Vector3(),
+    acc: new THREE.Vector3(),
+    settle: 1,
+    slosh: { x: 0, z: 0, vx: 0, vz: 0 },
+    roll: 0,
+    pitch: 0,
+    liquid: null as THREE.Object3D | null | undefined,
+  })
   const clickTimer = useRef<number | undefined>(undefined)
   const suppressClick = useRef(false)
   useEffect(() => () => window.clearTimeout(clickTimer.current), [])
 
-  useFrame((state, dt) => {
+  useFrame((state, dtRaw) => {
     const g = ref.current
     if (!g) return
+    const dt = Math.min(dtRaw, 1 / 30)
     const a = anim.current
+    const ph = phys.current
     // Цель: дом, рука перед камерой, место на столе
     const target = tmpV
     let yaw = 0
@@ -83,23 +109,26 @@ const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragg
       const halfW = halfH * camera.aspect
       const time = state.clock.elapsedTime
       const phone = camera.aspect < 1
-      target.set(halfW * (phone ? 0.5 : 0.76), -halfH * (phone ? 0.12 : 0.06) - def.h * 0.5 + Math.sin(time * 1.7) * 0.004, -d)
+      // Лёгкое «дыхание» руки
+      target.set(halfW * (phone ? 0.5 : 0.76), -halfH * (phone ? 0.12 : 0.06) - def.h * 0.5 + Math.sin(time * 1.7) * 0.003, -d)
       target.applyQuaternion(camera.quaternion).add(camera.position)
-      yaw = Math.atan2(camera.position.x - target.x, camera.position.z - target.z) + Math.sin(time * 1.1) * 0.05
+      yaw = Math.atan2(camera.position.x - target.x, camera.position.z - target.z) + Math.sin(time * 1.1) * 0.04
     } else if (zone === 'bench' || zone === 'work') {
       const p = itemXZ.get(def.id)
-      target.set(p?.[0] ?? def.home[0], BENCH_Y + (dragging ? 0.018 : 0), p?.[1] ?? def.home[2])
+      target.set(p?.[0] ?? def.home[0], BENCH_Y + (dragging ? 0.004 : 0), p?.[1] ?? def.home[2])
     } else {
       target.set(def.home[0], def.home[1], def.home[2])
     }
     if (a.first) {
       g.position.copy(target)
+      ph.prev.copy(target)
       a.first = false
     }
     if (a.zone !== zone) {
       a.from.copy(g.position)
       a.t = 0
       a.zone = zone
+      ph.vel.set(0, 0, 0)
     }
     if (a.t < 1 && !dragging) {
       a.t = Math.min(1, a.t + dt / (zone === 'hand' ? 0.7 : 0.6))
@@ -107,11 +136,79 @@ const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragg
       g.position.lerpVectors(a.from, target, k)
       // Дуга: предмет приподнимается над полкой/столом, а не едет сквозь мебель
       g.position.y += Math.sin(Math.PI * a.t) * (zone === 'hand' ? 0.12 : 0.09)
+      if (a.t >= 1 && zone !== 'hand') {
+        // Коснулся поверхности: мягкая «посадка» с маленьким отскоком и стук по материалу
+        ph.settle = 0
+        labAudio.play('glass-place', { at: [target.x, target.y, target.z], material: itemSoundMaterial(def.id), gain: zone === 'home' ? 0.6 : 0.9 })
+      }
+    } else if (zone === 'hand') {
+      // Пружина с затуханием: при повороте камеры предмет чуть отстаёт и покачивается (инерция)
+      const kS = 230
+      const c = 2 * Math.sqrt(kS) * 0.62
+      ph.vel.x += ((target.x - g.position.x) * kS - ph.vel.x * c) * dt
+      ph.vel.y += ((target.y - g.position.y) * kS - ph.vel.y * c) * dt
+      ph.vel.z += ((target.z - g.position.z) * kS - ph.vel.z * c) * dt
+      g.position.addScaledVector(ph.vel, dt)
+      // Слишком далеко отстал (резкий перелёт камеры) — догоняет сразу
+      if (g.position.distanceToSquared(target) > 0.09) g.position.copy(target)
+    } else if (dragging || zone === 'bench' || zone === 'work') {
+      // Скольжение по столу с трением: визуально догоняет точку под пальцем, при отпускании у края — съезжает обратно
+      g.position.x = THREE.MathUtils.damp(g.position.x, target.x, dragging ? 16 : 9, dt)
+      g.position.z = THREE.MathUtils.damp(g.position.z, target.z, dragging ? 16 : 9, dt)
+      g.position.y = target.y
     } else {
       g.position.copy(target)
     }
+    // Посадка: затухающий отскок 6 мм → 0 за ~0,35 с
+    if (ph.settle < 1) {
+      ph.settle = Math.min(1, ph.settle + dt / 0.35)
+      const s = ph.settle
+      g.position.y += 0.006 * Math.exp(-s * 5) * Math.abs(Math.sin(s * Math.PI * 3))
+    }
+    // Скорость и ускорение (сглаженные) — для наклона предмета и колыхания жидкости
+    if (dt > 0) {
+      tmpVel.copy(g.position).sub(ph.prev).divideScalar(dt)
+      tmpAcc.copy(tmpVel).sub(ph.prevVel).divideScalar(dt)
+      ph.acc.lerp(tmpAcc, 0.25)
+      ph.prevVel.copy(tmpVel)
+      ph.prev.copy(g.position)
+    }
+    // Ускорение в осях камеры: вправо — предмет наклоняется влево (инерция), вперёд — кивает
+    tmpRight.set(1, 0, 0).applyQuaternion(camera.quaternion)
+    const accRight = ph.acc.dot(tmpRight)
+    let roll = 0
+    let pitch = 0
+    if (zone === 'hand') {
+      roll = THREE.MathUtils.clamp(-accRight * 0.012, -0.22, 0.22) + Math.sin(state.clock.elapsedTime * 1.3) * 0.025
+      pitch = -0.12 + THREE.MathUtils.clamp(ph.acc.y * 0.006, -0.12, 0.12)
+    } else if (dragging) {
+      // Трение о стол: верх предмета чуть «запаздывает» в сторону, обратную движению
+      roll = THREE.MathUtils.clamp(-ph.prevVel.x * 0.18, -0.09, 0.09)
+      pitch = THREE.MathUtils.clamp(ph.prevVel.z * 0.18, -0.09, 0.09)
+    }
+    ph.roll = THREE.MathUtils.damp(ph.roll, roll, 10, dt)
+    ph.pitch = THREE.MathUtils.damp(ph.pitch, pitch, 10, dt)
     a.yaw = THREE.MathUtils.damp(a.yaw, yaw, 8, dt)
-    g.rotation.set(zone === 'hand' ? -0.12 : 0, a.yaw, zone === 'hand' ? Math.sin(state.clock.elapsedTime * 1.3) * 0.03 : 0)
+    g.rotation.set(ph.pitch, a.yaw, ph.roll)
+    // Раствор в склянке колышется: затухающие колебания поверхности, которые раскачивает ускорение
+    if (ph.liquid === undefined) ph.liquid = g.getObjectByName('liquid') ?? null
+    const liq = ph.liquid
+    if (liq) {
+      const sl = ph.slosh
+      const w = 9
+      const z = 0.14
+      const driveX = THREE.MathUtils.clamp(ph.acc.z * 0.01, -0.08, 0.08) - ph.pitch * 0.85
+      const driveZ = THREE.MathUtils.clamp(-ph.acc.x * 0.01, -0.08, 0.08) - ph.roll * 0.85
+      sl.vx += (-(sl.x - driveX) * w * w - 2 * z * w * sl.vx) * dt
+      sl.vz += (-(sl.z - driveZ) * w * w - 2 * z * w * sl.vz) * dt
+      sl.x = THREE.MathUtils.clamp(sl.x + sl.vx * dt, -0.12, 0.12)
+      sl.z = THREE.MathUtils.clamp(sl.z + sl.vz * dt, -0.12, 0.12)
+      // Поворот вокруг середины столба жидкости — края не вылезают из стекла
+      liqEuler.set(sl.x, 0, sl.z)
+      tmpPivot.set(0, LIQ_PIVOT, 0).applyEuler(liqEuler)
+      liq.rotation.copy(liqEuler)
+      liq.position.set(-tmpPivot.x, LIQ_PIVOT - tmpPivot.y, -tmpPivot.z)
+    }
     const ring = ringRef.current
     if (ring) {
       const s = 1 + 0.18 * Math.sin(state.clock.elapsedTime * 4)
@@ -193,6 +290,7 @@ const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragg
       onPointerOut={() => setHover(false)}
     >
       <LabItemModel def={def} mats={mats} lang={lang} quality={quality} />
+      {zone === 'hand' && <HeldHand r={def.r} h={def.h} gloved={worn.includes('gloves')} coat={worn.includes('coat')} mats={mats} />}
       {/* Невидимая «ручка» для попадания пальцем: цилиндр чуть шире предмета */}
       <mesh position-y={def.h / 2} visible={false}>
         <cylinderGeometry args={[def.r + 0.012, def.r + 0.012, Math.max(0.05, def.h + 0.02), 10]} />
@@ -215,7 +313,7 @@ const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragg
 function PlaceTargets({ held, lang, glow }: { held: LabItemId; lang: LabLang; glow: GlowMats }) {
   const def = LAB_ITEMS.find((d) => d.id === held)
   const hand = useHand()
-  const work = useMemo(() => freeSlot('work', held), [held, hand.zones])
+  const work = useMemo(() => freeSlot('work', held), [held, hand.zones, hand.site])
   const bench = useMemo(() => freeSlot('bench', held), [held, hand.zones])
   const pulse = useRef<THREE.Group>(null)
   const [hoverKey, setHoverKey] = useState<string | null>(null)
@@ -229,10 +327,12 @@ function PlaceTargets({ held, lang, glow }: { held: LabItemId; lang: LabLang; gl
   })
   if (!def) return null
   const r = def.r + 0.02
-  const W = WORK_AREA_SIZE.w
-  const D = WORK_AREA_SIZE.d
-  const cx = (WORK_RECT.x0 + WORK_RECT.x1) / 2
-  const cz = (WORK_RECT.z0 + WORK_RECT.z1) / 2
+  // Рабочее место — на столе или в вытяжке (по опыту)
+  const wr = currentWorkRect()
+  const W = wr.x1 - wr.x0
+  const D = wr.z1 - wr.z0
+  const cx = (wr.x0 + wr.x1) / 2
+  const cz = (wr.z0 + wr.z1) / 2
   const y = BENCH_Y + 0.002
   const hov = (k: string) => ({
     onPointerOver: (e: ThreeEvent<PointerEvent>) => {
@@ -356,10 +456,12 @@ export function LabInteractiveItems(props: Shared) {
           needed={hand.need.includes(def.id) && hand.held !== def.id}
           dragging={hand.dragging === def.id}
           glow={glow}
+          worn={hand.worn}
           {...props}
         />
       ))}
       {hand.held && <PlaceTargets held={hand.held} lang={props.lang} glow={glow} />}
+      <LabSafetyGear mats={props.mats} lang={props.lang} />
       <LabHints />
     </group>
   )

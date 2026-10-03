@@ -3,12 +3,13 @@
  * лабораторный остров с белой химстойкой столешницей, вытяжной шкаф, столешница с раковиной и полками,
  * плакаты, огнетушитель, аптечка, часы. Только процедурная геометрия.
  */
-import { RoundedBox } from '@react-three/drei'
+import { RoundedBox, useCursor } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { LabLang } from '../labContract'
 import { BenchCabinet, WallCabinet } from '../interaction/LabCabinets'
+import { labHand } from '../interaction/labHandStore'
 import { BENCH, COUNTER, HOOD, ROOM, SINK_X } from './labSceneLayout'
 import type { LabMaterials } from './labMaterials'
 import {
@@ -38,6 +39,8 @@ function useDisposable<T extends { dispose: () => void }>(make: () => T, deps: r
 }
 
 export function LabRoom({ mats, lang }: Props) {
+  const [posterHover, setPosterHover] = useState(false)
+  useCursor(posterHover)
   const floorMap = useDisposable(() => {
     const t = floorTexture()
     t.repeat.set(ROOM.w / 2.4, DEPTH / 2.4)
@@ -102,8 +105,20 @@ export function LabRoom({ mats, lang }: Props) {
       <FumeHood mats={mats} />
       <SinkCounter mats={mats} />
 
-      {/* Плакат «Техника безопасности» слева от вытяжки */}
-      <group position={[-halfW + 0.36, 1.62, ROOM.frontZ + 0.012]}>
+      {/* Плакат «Техника безопасности» слева от вытяжки — нажатие открывает правила § 1.3–1.4 */}
+      <group
+        position={[-halfW + 0.36, 1.62, ROOM.frontZ + 0.012]}
+        onClick={(e) => {
+          e.stopPropagation()
+          labHand.setRulesOpen(true)
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation()
+          setPosterHover(true)
+        }}
+        onPointerOut={() => setPosterHover(false)}
+        userData={{ interactive: true }}
+      >
         <mesh material={mats.whitePlastic} position-z={-0.004}>
           <boxGeometry args={[0.5, 0.7, 0.008]} />
         </mesh>
@@ -373,7 +388,6 @@ function FumeHood({ mats }: { mats: LabMaterials }) {
   const cz = z0 + HOOD.d / 2
   const innerH = HOOD.h - BENCH.topY
   const canopyH = 0.42
-  const sashBottom = 1.26
   const sashTop = HOOD.h - canopyH
   const interior = useMemo(
     () => new THREE.MeshStandardMaterial({ color: '#eef3f9', emissive: '#dce9f8', emissiveIntensity: 0.35, roughness: 0.6 }),
@@ -402,31 +416,11 @@ function FumeHood({ mats }: { mats: LabMaterials }) {
       <mesh position={[HOOD.w / 2 - 0.2, HOOD.h - canopyH / 2, z0 + HOOD.d + 0.001]} material={mats.screenBlack}>
         <planeGeometry args={[0.22, 0.08]} />
       </mesh>
-      <mesh position={[HOOD.w / 2 - 0.25, HOOD.h - canopyH / 2, z0 + HOOD.d + 0.002]}>
-        <circleGeometry args={[0.012, 16]} />
-        <meshBasicMaterial color="#38d27a" toneMapped={false} />
-      </mesh>
       {/* Подсветка внутри */}
       <mesh position={[0, sashTop - 0.012, cz - 0.05]} rotation-x={Math.PI / 2} material={mats.hoodLight}>
         <planeGeometry args={[HOOD.w - 0.18, 0.12]} />
       </mesh>
-      {/* Подъёмная стеклянная створка */}
-      <group position={[0, 0, z0 + HOOD.d - 0.03]}>
-        <mesh position-y={(sashBottom + sashTop) / 2} material={mats.hoodGlass}>
-          <planeGeometry args={[HOOD.w - 0.14, sashTop - sashBottom]} />
-        </mesh>
-        <mesh position-y={sashBottom} material={mats.metal}>
-          <boxGeometry args={[HOOD.w - 0.12, 0.05, 0.03]} />
-        </mesh>
-        <mesh position={[0, sashBottom - 0.035, 0.03]} rotation-z={Math.PI / 2} material={mats.chrome}>
-          <cylinderGeometry args={[0.011, 0.011, HOOD.w * 0.6, 12]} />
-        </mesh>
-        {[-1, 1].map((s) => (
-          <mesh key={s} position={[s * (HOOD.w / 2 - 0.075), (sashBottom + sashTop) / 2, 0]} material={mats.metal}>
-            <boxGeometry args={[0.02, sashTop - sashBottom, 0.03]} />
-          </mesh>
-        ))}
-      </group>
+      {/* Подъёмная стеклянная створка и тумблер тяги — интерактивные (LabHood) */}
       {/* Воздуховод */}
       <mesh position={[0, HOOD.h + (ROOM.h - HOOD.h) / 2, z0 + 0.3]} material={mats.steel}>
         <cylinderGeometry args={[0.13, 0.13, ROOM.h - HOOD.h, 24]} />

@@ -4,8 +4,8 @@
  * (круг-коллайдер на столе), название на трёх языках и места на столе, куда предметы ставятся.
  */
 import { LAB_GLASS_IDS, LAB_REAGENT_IDS, type LabItemId } from '../labEvents'
-import { BENCH_TOP_Y, WORK_AREA_CENTER, WORK_AREA_SIZE, type LabText } from '../labContract'
-import { BENCH, COUNTER, ROOM } from '../scene/labSceneLayout'
+import { BENCH_TOP_Y, HOOD_WORK_CENTER, HOOD_WORK_SIZE, WORK_AREA_CENTER, WORK_AREA_SIZE, type LabText } from '../labContract'
+import { BENCH, COUNTER, HOOD, ROOM } from '../scene/labSceneLayout'
 
 export type V3 = readonly [number, number, number]
 
@@ -186,3 +186,33 @@ export const BENCH_Y = BENCH_TOP_Y
 
 /** Подпись метки «Возьмите» над нужным предметом. */
 export const TAKE_LABEL: LabText = { ru: 'Возьмите', en: 'Take it', uz: 'Oling' }
+
+/** Рабочее место в вытяжном шкафу (опыты с place: 'hood'): прямоугольник и слоты у краёв. */
+export const HOOD_RECT = {
+  x0: HOOD_WORK_CENTER.x - HOOD_WORK_SIZE.w / 2,
+  x1: HOOD_WORK_CENTER.x + HOOD_WORK_SIZE.w / 2,
+  z0: HOOD_WORK_CENTER.z - HOOD_WORK_SIZE.d / 2,
+  z1: HOOD_WORK_CENTER.z + HOOD_WORK_SIZE.d / 2,
+} as const
+/** Столешница вытяжки, по которой можно двигать предметы (между боковинами, за створкой). */
+export const HOOD_BOUNDS = {
+  x0: HOOD.x - HOOD.w / 2 + 0.09,
+  x1: HOOD.x + HOOD.w / 2 - 0.09,
+  z0: ROOM.frontZ + 0.06,
+  z1: ROOM.frontZ + HOOD.d - 0.06,
+} as const
+export const HOOD_SLOTS: ReadonlyArray<readonly [number, number]> = [
+  [HOOD_RECT.x1 - 0.07, HOOD_RECT.z1 - 0.07],
+  [HOOD_RECT.x0 + 0.07, HOOD_RECT.z1 - 0.07],
+  [HOOD_RECT.x1 - 0.19, HOOD_RECT.z1 - 0.06],
+  [HOOD_RECT.x0 + 0.19, HOOD_RECT.z1 - 0.06],
+  [HOOD_RECT.x1 - 0.07, HOOD_RECT.z0 + 0.08],
+  [HOOD_RECT.x0 + 0.07, HOOD_RECT.z0 + 0.08],
+]
+
+/** Материал предмета — для звука «поставили на стол». */
+export function itemSoundMaterial(id: LabItemId): 'glass' | 'plastic' | 'metal' | 'porcelain' | 'wood' {
+  if (id === 'glass:porcelainDish') return 'porcelain'
+  if (id === 'tool:matches' || id === 'tool:splint') return 'wood'
+  return 'glass'
+}

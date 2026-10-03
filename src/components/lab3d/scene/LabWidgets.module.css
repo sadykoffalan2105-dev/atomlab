@@ -1,0 +1,439 @@
+/* Виджеты лаборатории: светлое стекло справа сверху, сворачиваются */
+.dock {
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  right: 12px;
+  width: 300px;
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - 110px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px) saturate(1.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  border: 1px solid rgba(24, 32, 42, 0.1);
+  box-shadow: 0 12px 34px rgba(30, 50, 80, 0.16);
+  color: #18202a;
+  font: 500 14px/1.35 system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  overflow: hidden;
+}
+
+.dockClosed {
+  width: auto;
+}
+
+.dockHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 12px 6px 14px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dockTitle {
+  font-weight: 700;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.miniTime {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #2f7cf6;
+}
+
+.miniGear {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.gearOn,
+.gearOff,
+.gearNeed {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+}
+
+.gearOn {
+  color: #fff;
+  background: #1f9d63;
+}
+
+.gearOff {
+  color: #8a949e;
+  background: rgba(24, 32, 42, 0.06);
+}
+
+.gearNeed {
+  color: #fff;
+  background: #e8590c;
+  animation: blink 1s ease-in-out infinite;
+}
+
+.caret {
+  color: #5a6573;
+  width: 14px;
+  text-align: center;
+}
+
+.dockBody {
+  overflow-y: auto;
+  padding: 0 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.section {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(24, 32, 42, 0.07);
+}
+
+.secHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 650;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.secIcon {
+  display: inline-flex;
+  color: #2f7cf6;
+}
+
+.secTitle {
+  flex: 1;
+}
+
+.secBody {
+  padding: 0 10px 10px;
+}
+
+.timerRow,
+.soundRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time {
+  font: 700 26px/1 ui-monospace, 'SF Mono', Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  flex: 1;
+  color: #23303e;
+}
+
+.timeRun {
+  color: #2f7cf6;
+}
+
+.btn,
+.btnGhost {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btn {
+  color: #fff;
+  background: #2f7cf6;
+}
+
+.btnGhost {
+  color: #23303e;
+  background: rgba(24, 32, 42, 0.05);
+  border-color: rgba(24, 32, 42, 0.1);
+}
+
+.gearRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.gearBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 60px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(24, 32, 42, 0.12);
+  background: #fff;
+  color: #5a6573;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.gearBtnOn {
+  color: #fff;
+  background: #1f9d63;
+  border-color: #1f9d63;
+}
+
+.gearBtnNeed {
+  color: #b54708;
+  border-color: #e8590c;
+  box-shadow: 0 0 0 3px rgba(232, 89, 12, 0.18);
+}
+
+.need {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  color: #8a2c00;
+  background: #fff1e6;
+  font-weight: 650;
+}
+
+.small {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: #5a6573;
+}
+
+.link {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #2f7cf6;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.journal {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.journal li {
+  display: flex;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  border-left: 3px solid transparent;
+}
+
+.journal time {
+  font: 600 12px/1.6 ui-monospace, Consolas, monospace;
+  color: #5a6573;
+  flex: none;
+}
+
+.jAct {
+  background: rgba(47, 124, 246, 0.06);
+  border-left-color: #2f7cf6 !important;
+}
+
+.jObs {
+  background: rgba(31, 157, 99, 0.08);
+  border-left-color: #1f9d63 !important;
+  font-weight: 600;
+}
+
+.jGear {
+  background: rgba(232, 89, 12, 0.07);
+  border-left-color: #e8590c !important;
+}
+
+.vol {
+  flex: 1;
+  display: flex;
+}
+
+.vol input {
+  width: 100%;
+  accent-color: #2f7cf6;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: #1f9d63;
+}
+
+.map {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.mapRoom {
+  fill: #f2f5f8;
+  stroke: rgba(24, 32, 42, 0.25);
+  stroke-width: 1;
+}
+
+.mapZone {
+  cursor: pointer;
+  outline: none;
+}
+
+.mapOff {
+  fill: #cddbe9;
+  stroke: #8fa6bd;
+  stroke-width: 0.8;
+}
+
+.mapZone:hover .mapOff,
+.mapZone:focus-visible .mapOff {
+  fill: #a9c6f6;
+}
+
+.mapOn {
+  fill: #2f7cf6;
+  stroke: #1d5fd0;
+  stroke-width: 0.8;
+}
+
+.mapCam {
+  fill: #e8590c;
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* «Очки надеты»: едва заметная рамка по краям кадра и лёгкая голубая виньетка */
+.goggles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 48px;
+  box-shadow:
+    inset 0 0 0 3px rgba(60, 110, 170, 0.18),
+    inset 0 0 70px 18px rgba(80, 130, 190, 0.16);
+  background: radial-gradient(ellipse at center, transparent 62%, rgba(150, 190, 230, 0.1) 100%);
+  animation: fadeIn 0.6s ease-out;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(20, 30, 45, 0.32);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.dialog {
+  width: min(560px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 20px 22px;
+  border-radius: 20px;
+  background: #fff;
+  color: #18202a;
+  box-shadow: 0 24px 60px rgba(20, 30, 45, 0.3);
+  font: 500 15px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+.dlgTitle {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+}
+
+.rules {
+  margin: 0 0 16px;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 820px) {
+  .dock {
+    top: 8px;
+    right: 8px;
+    width: min(320px, calc(100% - 16px));
+    max-height: calc(100% - 200px);
+  }
+
+  .goggles {
+    border-radius: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gearNeed,
+  .goggles,
+  .backdrop {
+    animation: none;
+  }
+}
+
+.dock[hidden] {
+  display: none;
+}

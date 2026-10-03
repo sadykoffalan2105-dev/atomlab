@@ -80,3 +80,9 @@
     animation: none;
   }
 }
+
+/* Метка «Наденьте» над средством защиты */
+.tagGear {
+  composes: tag;
+  background: #e8590c;
+}
