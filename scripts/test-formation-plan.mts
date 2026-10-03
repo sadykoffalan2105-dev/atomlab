@@ -15,6 +15,9 @@ import { compoundById } from '../src/data/compounds'
 import { formationPlan, type FormationPlan } from '../src/chemistry/formationPlan'
 import { formationTexts, type FormationLocale } from '../src/chemistry/formationText'
 import { buildSchoolHeroModel } from '../src/components/lab/hero/schoolHeroModel'
+import { formationEquation, isBalanced, equationSides } from '../src/chemistry/formationEquation'
+import { atomPosAt, formationStoryFor } from '../src/components/lab/formation/formationStory'
+import { formationStageTexts } from '../src/components/lab/formation/formationStageText'
 
 let fails = 0
 let checks = 0
@@ -132,6 +135,63 @@ ok(ref('tb_v2o5')?.alsoNonpolar === false && ref('tb_v2o5')?.bondsReliable === t
 ok(ref('h2o2')?.alsoNonpolar === true, 'H₂O₂ — O–O неполярная')
 const polyShapes: Record<string, string> = { 'SO₄²⁻': 'tetrahedral', 'SO₃²⁻': 'trigonal-pyramidal', 'NO₃⁻': 'trigonal-planar', 'CO₃²⁻': 'trigonal-planar', 'PO₄³⁻': 'tetrahedral', 'NH₄⁺': 'tetrahedral', 'ClO₃⁻': 'trigonal-pyramidal', 'NO₂⁻': 'angular' }
 for (const p of plans.values()) for (const sh of p.shapes) if (polyShapes[sh.of]) ok(sh.key === polyShapes[sh.of], `${p.formula}: ${sh.of} — ${polyShapes[sh.of]} (${sh.key})`)
+
+// «От и до» (formationStory): итог = модель карточки, уравнение образования уравнено, этапы не короче нормы.
+for (const id of CATALOG_TOP200_IDS) {
+  const c = compoundById[id]
+  const p = plans.get(id)
+  if (!c || !p) continue
+  const f = c.formulaUnicode
+  const model = buildSchoolHeroModel(c)
+  const story = formationStoryFor(id)
+  ok(!!story === !!model, `${f}: сценарий «от и до» строится вместе с моделью`)
+  if (!story || !model) continue
+  const q: [number, number, number] = [0, 0, 0]
+  let dev = 0
+  for (let i = 0; i < model.atoms.length; i++) {
+    atomPosAt(story, i, story.total + 0.01, q)
+    const m = model.atoms[i]!.pos
+    dev = Math.max(dev, Math.hypot(q[0] - m[0], q[1] - m[1], q[2] - m[2]))
+  }
+  ok(dev < 1e-6, `${f}: в конце показа атомы — ровно на местах модели карточки (отклонение ${dev})`)
+  const sticks = new Map<number, number>()
+  for (const s of story.sticks) sticks.set(s.bond, (sticks.get(s.bond) ?? 0) + 1)
+  ok(model.bonds.every((b, k) => (sticks.get(k) ?? 0) === Math.max(1, Math.min(3, Math.round(b.order)))), `${f}: палочки в конце показа — все связи модели с их кратностью`)
+  ok(story.total >= 25 && story.total <= 45, `${f}: показ ${story.total.toFixed(1)} с (25–45 с)`)
+  for (const st of story.stages) {
+    ok(st.dur >= 2.5, `${f}: этап ${st.key} — не короче 2,5 с (${st.dur.toFixed(1)})`)
+    if (['transfer', 'pairs', 'bonds', 'inner'].includes(st.key)) ok(st.dur >= 4, `${f}: этап ${st.key} (e⁻ / связи) — не короче 4 с (${st.dur.toFixed(1)})`)
+  }
+  ok(story.stages[0]?.key === 'reagents' && story.stages[story.stages.length - 1]?.key === 'final', `${f}: от исходных веществ до итоговой модели`)
+  if (p.mode === 'ionic') ok(story.stages.some((s) => s.key === 'transfer') && story.transferred > 0, `${f}: ионное — показан переход e⁻ (${story.transferred})`)
+  else ok(story.stages.some((s) => s.key === 'pairs') && story.sharedPairs > 0, `${f}: ковалентное — показаны общие пары (${story.sharedPairs})`)
+  const eq = formationEquation(id)
+  ok(!!eq && !!(eq.direct || eq.lab), `${f}: есть уравнение образования`)
+  for (const e of [eq?.direct, eq?.lab]) {
+    if (!e) continue
+    ok(isBalanced(e), `${f}: уравнение уравнено — ${e}`)
+    ok(!!equationSides(e)?.right.some(([, x]) => x === f), `${f}: справа — само вещество (${e})`)
+  }
+  for (const loc of ['ru', 'en', 'uz'] as const) {
+    const t = formationStageTexts(p, story, eq, loc, OBTAINING[loc])
+    const all = [...t.stages.flatMap((s) => [s.title, s.main, s.sub]), t.equation.lead, t.equation.text, ...Object.values(t.ui)]
+    ok(t.stages.length === story.stages.length && all.every((s) => typeof s === 'string' && s.trim().length > 0 && !/undefined|NaN(?!O)|null|\[object/.test(s)), `${f} [${loc}]: подписи этапов без пустот (NaNO₃ — формула, не NaN)`)
+    if (loc !== 'ru') ok(!/[А-Яа-яЁё]/.test(all.join('')), `${f} [${loc}]: подписи этапов без кириллицы`)
+  }
+}
+const eqOf = (id: string) => formationEquation(id)
+ok(eqOf('nacl')?.direct === '2Na + Cl₂ → 2NaCl', `NaCl: 2Na + Cl₂ → 2NaCl (${eqOf('nacl')?.direct})`)
+ok(eqOf('h2o')?.direct === '2H₂ + O₂ → 2H₂O', `H₂O: 2H₂ + O₂ → 2H₂O (${eqOf('h2o')?.direct})`)
+ok(eqOf('nh3')?.direct === 'N₂ + 3H₂ ⇄ 2NH₃', `NH₃: N₂ + 3H₂ ⇄ 2NH₃ (${eqOf('nh3')?.direct})`)
+ok(!eqOf('h2so4')?.direct && eqOf('h2so4')?.lab === 'SO₃ + H₂O → H₂SO₄', `H₂SO₄: из простых не получают; SO₃ + H₂O → H₂SO₄ (${eqOf('h2so4')?.lab})`)
+ok(!eqOf('salt_ca_co3')?.direct && /CaO \+ CO₂ → CaCO₃/.test(eqOf('salt_ca_co3')?.lab ?? ''), `CaCO₃: CaO + CO₂ → CaCO₃ (${eqOf('salt_ca_co3')?.lab})`)
+ok(!eqOf('no2')?.direct && !eqOf('so3')?.direct && !eqOf('salt_fe2_cl')?.direct, 'NO₂, SO₃, FeCl₂ — не из простых веществ напрямую')
+const naclStory = formationStoryFor('salt_na_so4')
+ok(naclStory?.transferred === 2, `Na₂SO₄: переходят 2 e⁻ (${naclStory?.transferred})`)
+const h2oStory = formationStoryFor('h2o')
+ok(h2oStory?.sharedPairs === 2 && h2oStory.reagentSticks.length === 3, `H₂O: 2 общие пары; H–H и O=O у исходных (${h2oStory?.sharedPairs}, ${h2oStory?.reagentSticks.length})`)
+const n2Story = formationStoryFor('nh3')
+ok(n2Story?.reagentSticks.filter((s) => s.n === 3).length === 3, 'NH₃: у N₂ — тройная связь N≡N (3 палочки)')
 
 if (warnings.length) {
   console.log(`Предупреждения по моделям (${warnings.length}) — модели ведёт schoolHeroModel / геометрия каталога:`)

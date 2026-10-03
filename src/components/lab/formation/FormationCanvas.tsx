@@ -3,6 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import type * as THREE from 'three'
 import { formationPlan } from '../../../chemistry/formationPlan'
+import { formationStoryFor } from './formationStory'
 import { CanvasErrorBoundary } from '../../common/CanvasErrorBoundary'
 import { CanvasSceneErrorFallback } from '../../common/CanvasSceneErrorFallback'
 import { SCHOOL_CATALOG_BG } from '../hero/SchoolCatalogCanvas'
@@ -38,7 +39,8 @@ function FitCamera() {
 export function FormationCanvas({ shape, clock, lowPower }: { shape: CatalogShape; clock: MutableRefObject<FormationClock>; lowPower: boolean }) {
   const model = useMemo(() => buildSchoolHeroModel(shape), [shape])
   const plan = useMemo(() => formationPlan(shape.id), [shape.id])
-  if (!model || !plan) return null
+  const story = useMemo(() => formationStoryFor(shape.id), [shape.id])
+  if (!model || !plan || !story) return null
   return (
     <CanvasErrorBoundary fallback={<CanvasSceneErrorFallback />} resetKey={`formation-${shape.id}`}>
       <Canvas
@@ -51,7 +53,7 @@ export function FormationCanvas({ shape, clock, lowPower }: { shape: CatalogShap
         <color attach="background" args={[SCHOOL_CATALOG_BG]} />
         <FitCamera />
         {/* Кристалл на экране меньше описанной сферы — как в SchoolCatalogCanvas. */}
-        <FormationMoleculeView model={model} plan={plan} clock={clock} fitRadius={model.kind === 'crystal' ? 1.1 : 1} lowPower={lowPower} />
+        <FormationMoleculeView model={model} plan={plan} story={story} clock={clock} fitRadius={model.kind === 'crystal' ? 1.1 : 1} lowPower={lowPower} />
         <OrbitControls enableZoom={false} enablePan={false} rotateSpeed={0.6} />
       </Canvas>
     </CanvasErrorBoundary>
