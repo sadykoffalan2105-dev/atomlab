@@ -96,6 +96,11 @@ export function FormationCaptions({
             {texts.equation.labLead}: {texts.equation.lab}
           </span>
         ) : null}
+        {texts.equation.special ? (
+          <span className={styles.eqLab} data-formation-special="">
+            <b>{texts.equation.specialLead}:</b> {texts.equation.special}
+          </span>
+        ) : null}
       </div>
       <div className={styles.controls}>
         <button type="button" className={styles.ctrlIcon} onClick={control.prev} aria-label={texts.ui.prev} title={texts.ui.prev} data-formation-prev="">

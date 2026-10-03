@@ -21,6 +21,8 @@ const FOCUS: Record<StageKey, CardKey> = {
   reagents: 'lattice',
   break: 'lewis',
   approach: 'den',
+  // путь получения (нейтрализация, обмен, гидратация …) — уравнение пути в карточке итога
+  route: 'lattice',
   valence: 'lewis',
   inner: 'struct',
   transfer: 'transfer',

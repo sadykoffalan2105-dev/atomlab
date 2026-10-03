@@ -94,9 +94,22 @@ function ionsOf(plan: FormationPlan, model: SchoolHeroModel): Ions {
 }
 
 /** Настоящий фрагмент по CRYSTAL_DATA (узлы катионов — шаблон катиона модели, узлы анионов — шаблон аниона). */
+/**
+ * Структурные типы, которых нет в crystalData, — кубическая ячейка задаётся здесь (доли ребра).
+ * Антифлюорит (Na₂O, K₂O, Li₂O, Na₂S, K₂S): анионы — в узлах ГЦК, катионы — во всех 8 тетраэдрических пустотах
+ * (¼ ¼ ¼ …): у катиона 4 соседа-аниона, у аниона 8 соседей-катионов.
+ */
+const FCC: V3[] = [[0, 0, 0], [0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]]
+const TETRA: V3[] = [0.25, 0.75].flatMap((x) => [0.25, 0.75].flatMap((y) => [0.25, 0.75].map((z) => [x, y, z] as V3)))
+const SYNTH: Record<string, { a: number; basis: { charge: number; frac: V3 }[] }> = {
+  antifluorite: { a: 555, basis: [...FCC.map((frac) => ({ charge: -2, frac })), ...TETRA.map((frac) => ({ charge: 1, frac }))] },
+}
+
 function generatorFragment(gen: string, plan: FormationPlan, model: SchoolHeroModel): LatticeAtom[] | null {
-  const cr = getCrystal(gen)
-  if (!cr?.basis?.length) return null
+  const syn = SYNTH[gen]
+  const cr = syn ? null : getCrystal(gen)
+  const basis: readonly { el?: string; charge?: number; frac: readonly number[] }[] | undefined = syn ? syn.basis : cr?.basis
+  if (!basis?.length) return null
   const { cat, an } = ionsOf(plan, model)
   if (!cat.length || !an.length) return null
   // Пара «катион — ближайший анион» модели задаёт масштаб и поворот фрагмента.
@@ -105,16 +118,17 @@ function generatorFragment(gen: string, plan: FormationPlan, model: SchoolHeroMo
   const dModel = lenv(sub(A0.c, C0.c))
   if (dModel < 1e-6) return null
   const catEl = new Set(cat.flatMap((x) => x.tpl.map((t) => t.el)))
-  const m = cellMatrix(gen)
-  const nC = cr.basis.length > 12 ? 2 : 3
+  const m = syn ? null : cellMatrix(gen)
+  const toPm = (f: V3): V3 => (syn ? [f[0] * syn.a, f[1] * syn.a, f[2] * syn.a] : fracToPm(m!, f))
+  const nC = syn || basis.length > 12 ? 2 : 3
   const lo = -Math.floor(nC / 2)
   const sites: { cation: boolean; p: V3 }[] = []
   for (let i = lo; i < lo + nC; i++)
     for (let j = lo; j < lo + nC; j++)
       for (let k = lo; k < lo + nC; k++)
-        for (const b of cr.basis) {
-          const cation = b.charge != null ? b.charge > 0 : catEl.has(b.el)
-          sites.push({ cation, p: fracToPm(m, [b.frac[0] + i, b.frac[1] + j, b.frac[2] + k]) })
+        for (const b of basis) {
+          const cation = b.charge != null ? b.charge > 0 : catEl.has(b.el ?? '')
+          sites.push({ cation, p: toPm([b.frac[0]! + i, b.frac[1]! + j, b.frac[2]! + k]) })
         }
   const mid: V3 = [0, 0, 0]
   for (const s of sites) for (let q = 0; q < 3; q++) mid[q] += s.p[q]! / sites.length
@@ -259,7 +273,8 @@ export function latticeFor(
     if (model.kind === 'crystal') return { kind: 'ionic', atoms: [] }
     if (plan.mode !== 'ionic') return { kind: 'none', atoms: [] }
     // «типа NaCl / ZnS / корунда» в таблице — тот же структурный тип: берём его генератор (верная координация 6:6, 4:4, 6:4).
-    const hint = script?.latticeKind === 'schema' ? (/типа NaCl/.test(script.lattice) ? 'nacl' : /типа ZnS/.test(script.lattice) ? 'sphalerite' : /типа корунда/.test(script.lattice) ? 'corundum' : null) : null
+    // смесь (KCl·NaCl — сильвинит) — не одна решётка: схема из формульных единиц сохраняет оба катиона
+    const hint = script?.latticeKind === 'schema' && script.routeKind !== 'mixture' ? (/типа NaCl/.test(script.lattice) ? 'nacl' : /типа ZnS/.test(script.lattice) ? 'sphalerite' : /типа корунда/.test(script.lattice) ? 'corundum' : /антифлюорит/.test(script.lattice) ? 'antifluorite' : null) : null
     const genKey = script?.latticeKind === 'generator' && script.latticeGen ? script.latticeGen : hint
     const gen = genKey ? generatorFragment(genKey, plan, model) : null
     return { kind: 'ionic', atoms: gen && gen.length ? gen : schemaFragment(plan, model, screenToModel) }
