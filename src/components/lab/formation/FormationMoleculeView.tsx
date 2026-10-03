@@ -15,7 +15,7 @@ import {
   schoolSphereGeometry,
   schoolStickGeometry,
 } from '../hero/schoolHeroStyle'
-import { atomPosAt, clamp01, easeInOut, screenToModel, stageIndexAt, type FormationStory } from './formationStory'
+import { atomPosAt, atomRadiusAt, clamp01, easeInOut, screenToModel, stageIndexAt, type FormationStory } from './formationStory'
 import type { FormationClock } from './formationTimeline'
 
 /**
@@ -136,9 +136,11 @@ export function FormationMoleculeView({
     }
     // Направление «вверх» экрана в координатах модели — дуга перелёта электронов.
     const up = new THREE.Vector3(...screenToModel(model, [0, 1, 0]))
+    // К зрителю — для палочек исходных молекул (O=O: две палочки рядом в плоскости экрана).
+    const toward = new THREE.Vector3(...screenToModel(model, [0, 0, 1]))
     let maxD = 0
     for (const a of model.atoms) maxD = Math.max(maxD, Math.hypot(...a.pos))
-    return { live, sides, neutral, ionic, badges, up, maxD: Math.max(0.25, maxD) }
+    return { live, sides, neutral, ionic, badges, up, toward, maxD: Math.max(0.25, maxD) }
   }, [model, plan, story, crystal])
 
   // Меши.
@@ -154,7 +156,7 @@ export function FormationMoleculeView({
     sticks.count = 0
     const ghostMat = createSchoolMatteMaterial()
     ghostMat.transparent = true
-    ghostMat.opacity = 0.9
+    ghostMat.opacity = 0.6
     const ghosts = new THREE.InstancedMesh(schoolSphereGeometry(true), ghostMat, Math.max(1, story.ghosts.length))
     ghosts.frustumCulled = false
     ghosts.count = story.ghosts.length
@@ -250,7 +252,7 @@ export function FormationMoleculeView({
     // Атомы.
     for (let i = 0; i < live.length; i++) {
       const L = atomPosAt(story, i, t, live[i]!)
-      _m.compose(_p.set(L[0], L[1], L[2]), _q.identity(), _s.setScalar(model.atoms[i]!.r))
+      _m.compose(_p.set(L[0], L[1], L[2]), _q.identity(), _s.setScalar(atomRadiusAt(story, i, t, model.atoms[i]!.r)))
       res.atoms.setMatrixAt(i, _m)
     }
     res.atoms.instanceMatrix.needsUpdate = true
@@ -290,7 +292,7 @@ export function FormationMoleculeView({
           const g = story.ghosts[-1 - s.b]!
           _b.set(g.p0[0] + (g.p1[0] - g.p0[0]) * gu, g.p0[1] + (g.p1[1] - g.p0[1]) * gu, g.p0[2] + (g.p1[2] - g.p0[2]) * gu)
         }
-        rs.copy(_b).sub(_a).cross(anim.up).normalize()
+        rs.copy(_b).sub(_a).cross(anim.toward).normalize()
         drawStick(_a.clone(), _b.clone(), s.n > 1 ? rs : null, s.s, s.n, breakG)
       }
     }

@@ -1,7 +1,7 @@
 import type { FormationPlan } from '../../../chemistry/formationPlan'
 import { formationPlan, isMetal } from '../../../chemistry/formationPlan'
 import { DIATOMIC, formationEquation, type FormationEquation } from '../../../chemistry/formationEquation'
-import { buildSchoolHeroModel, type SchoolHeroModel, type V3 } from '../hero/schoolHeroModel'
+import { buildSchoolHeroModel, schoolBallRadius, type SchoolHeroModel, type V3 } from '../hero/schoolHeroModel'
 import { compoundById } from '../../../data/compounds'
 
 /**
@@ -63,6 +63,10 @@ export type FormationStory = {
   valenceE: number[]
   /** элементы атомов модели */
   atomEl: string[]
+  /** радиус нейтрального атома (до перехода e⁻): у иона металла больше, у аниона меньше ионного — физически верно */
+  rNeutral: number[]
+  /** окно смены радиуса атом → ион (этап перехода e⁻) */
+  ionWin: [number, number]
 }
 
 /** Валентные электроны главных подгрупп (номер группы). */
@@ -330,7 +334,7 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
   const lewisOff = (i: number, k: number, total: number): V3 => {
     // 4 стороны (верх, право, низ, лево), сначала по одному, затем пары — как в схемах Льюиса.
     const side = k % 4
-    const second = k >= 4 || total > 4 + side ? 1 : 0
+    const second = k >= 4 ? 1 : 0
     const paired = total > 4 + side
     const r = model.atoms[i]!.r
     const d = r + 2.2 * eR
@@ -447,7 +451,24 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     sharedPairs,
     valenceE,
     atomEl: model.atoms.map((a) => a.el),
+    rNeutral: model.atoms.map((a, i) => {
+      const sp = speciesOfAtom(i)
+      // Кристалл (125 ионов) — радиусы как в модели: смена радиусов сотен шаров отвлекает от решётки.
+      if (!ionic || crystal || !sp || sp.kind !== 'ion' || sp.charge === 0) return a.r
+      const rn = schoolBallRadius(a.el)
+      // Не больше чем вдвое против ионного — шары не перекрывают соседей.
+      return Math.max(0.5 * a.r, Math.min(2 * a.r, rn))
+    }),
+    ionWin: tr ? [tr.t0 + 0.45 * tr.dur, tr.t0 + tr.dur] : [Infinity, Infinity],
   }
+}
+
+/** Радиус шара атома i в момент t: нейтральный атом → ион во время перехода e⁻. */
+export function atomRadiusAt(story: FormationStory, i: number, t: number, rFinal: number): number {
+  const rn = story.rNeutral[i]!
+  if (rn === rFinal) return rFinal
+  const u = easeInOut((t - story.ionWin[0]) / Math.max(1e-6, story.ionWin[1] - story.ionWin[0]))
+  return rn + (rFinal - rn) * u
 }
 
 export const clamp01 = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x)
