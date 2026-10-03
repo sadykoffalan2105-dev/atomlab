@@ -5,6 +5,13 @@
  */
 import type { LabExperimentDef, LabExperimentId, LabText } from '../../components/lab3d/labContract'
 import type { LabItemId } from '../../components/lab3d/labEvents'
+import {
+  LAB_PRACTICAL_EXPERIMENTS,
+  LAB_PRACTICAL_QUIZ,
+  LAB_PRACTICAL_SIDE_EQUATIONS,
+  LAB_PRACTICAL_STEP_ACTIONS,
+  LAB_PRACTICAL_STORY,
+} from './labExperimentsPractical'
 
 const t = (ru: string, en: string, uz: string): LabText => ({ ru, en, uz })
 
@@ -437,6 +444,17 @@ export const LAB_EXPERIMENTS: readonly LabExperimentDef[] = [
       'Hydrogen is obtained by the action of hydrochloric acid on zinc (a substitution reaction). Hydrogen is a light gas, collected in an upturned tube; pure hydrogen burns with a bluish flame forming water.',
       'Vodorod ruxga xlorid kislota ta’sir ettirib olinadi (o‘rin olish reaksiyasi). Vodorod — yengil gaz, u to‘nkarilgan probirkaga yig‘iladi; toza vodorod havorang alanga bilan yonib, suv hosil qiladi.',
     ),
+  },  // практические и лабораторные работы (Kimyo 7 § 1.6, Kimyo 8 ПР 3 и ЛР 5)
+  ...LAB_PRACTICAL_EXPERIMENTS,
+]
+
+/** Группы карточек выбора на доске. */
+export const LAB_EXPERIMENT_GROUPS: readonly { readonly id: 'signs' | 'practical'; readonly title: LabText; readonly ids: readonly LabExperimentId[] }[] = [
+  { id: 'signs', title: t('§ 2.12 · Признаки реакций', '§ 2.12 · Signs of reactions', '§ 2.12 · Reaksiya belgilari'), ids: ['baso4', 'ch4-burn', 'zn-hcl'] },
+  {
+    id: 'practical',
+    title: t('Практические и лабораторные работы', 'Practical and laboratory work', 'Amaliy va laboratoriya ishlari'),
+    ids: ['h2-practical', 'salt-purify', 'nh3', 'halogens'],
   },
 ]
 
@@ -454,6 +472,7 @@ export function isLabExperimentId(v: unknown): v is LabExperimentId {
 export const LAB_SIDE_EQUATIONS: Readonly<Partial<Record<LabExperimentId, readonly string[]>>> = {
   'ch4-burn': ['CO₂ + Ca(OH)₂ → CaCO₃↓ + H₂O'],
   'h2-practical': ['2H₂ + O₂ → 2H₂O'],
+  ...LAB_PRACTICAL_SIDE_EQUATIONS,
 }
 
 /* ── Действие руками на каждом шаге (жест, как его сделать, нужный предмет со стеллажа) ── */
@@ -509,7 +528,7 @@ export const LAB_STEP_ACTIONS: Readonly<Record<LabExperimentId, readonly LabStep
     swipe(t('Проведите вверх — снимите колпачок; спиртовку зажгут спичкой.', 'Swipe up to take the cap off; the lamp is lit with a match.', 'Yuqoriga suring — qalpoqchani oling; lampa gugurt bilan yoqiladi.')),
     drag(t('Перетащите пробирку с водородом отверстием вниз к пламени спиртовки.', 'Drag the hydrogen tube, mouth down, to the spirit-lamp flame.', 'Vodorodli probirkani og‘zi pastga qaratib spirt lampasi alangasiga torting.')),
     drag(t('Перетащите холодную стеклянную пластинку к пламени водорода.', 'Drag the cold glass plate to the hydrogen flame.', 'Sovuq shisha plastinkani vodorod alangasiga torting.')),
-  ],
+  ],  ...LAB_PRACTICAL_STEP_ACTIONS,
 }
 
 /* ── «Что произошло»: короткое объяснение на уровне частиц (доска рисует анимацию по этим данным) ── */
@@ -552,7 +571,7 @@ export const LAB_PARTICLE_STORY: Readonly<Record<LabExperimentId, LabParticleSto
       'Zinc displaces hydrogen from the acid: Zn + 2HCl → ZnCl₂ + H₂↑. Hydrogen is lighter than air, so it is collected in an upside-down tube. When it burns, two H₂ molecules combine with one O₂ molecule to form two water molecules.',
       'Rux kislotadan vodorodni siqib chiqaradi: Zn + 2HCl → ZnCl₂ + H₂↑. Vodorod havodan yengil, shuning uchun u to‘ntarilgan probirkaga yig‘iladi. Yonganda ikkita H₂ molekulasi bitta O₂ molekulasi bilan birikib, ikkita suv molekulasini hosil qiladi.',
     ),
-  },
+  },  ...LAB_PRACTICAL_STORY,
 }
 
 /* ── Мини-проверка после опыта: признак реакции, тип реакции, продукт ── */
@@ -692,4 +711,5 @@ export const LAB_QUIZ: Readonly<Record<LabExperimentId, readonly LabQuizQuestion
       why: t('2H₂ + O₂ → 2H₂O: на холодной пластинке появляются капли воды.', '2H₂ + O₂ → 2H₂O: water droplets appear on the cold plate.', '2H₂ + O₂ → 2H₂O: sovuq plastinkada suv tomchilari paydo bo‘ladi.'),
     },
   ],
+  ...LAB_PRACTICAL_QUIZ,
 }

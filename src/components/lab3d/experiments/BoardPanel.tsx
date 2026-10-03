@@ -2,11 +2,12 @@
  * Содержимое электронной доски (1280 × 720 CSS px): выбор опыта, уравнение, оборудование и ТБ,
  * шаги с отметками, текущая инструкция, наблюдение, вывод. Крупные элементы (≥ 56 px) — для пальцев.
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { BoardPanelProps, LabExperimentDef, LabLang } from '../labContract'
-import { LAB_EXPERIMENTS, LAB_STEP_ACTIONS, getLabExperiment } from '../../../data/labWorks/labExperiments'
-import type { LabItemId } from '../labEvents'
+import { LAB_EXPERIMENT_GROUPS, LAB_STEP_ACTIONS, getLabExperiment } from '../../../data/labWorks/labExperiments'
+import { labEvents, type LabItemId } from '../labEvents'
 import { ActionIcon, LabQuiz, ParticleStory } from './BoardStory'
+import { GearBar, Instrument, ScoreCard, TimerChip, fmtTime, useLabClock } from './BoardWidgets'
 import styles from './BoardPanel.module.css'
 
 /** Запасная кнопка «Взять …» (если сцена со стеллажами не прислала событие). */
@@ -36,6 +37,7 @@ type UiKey =
   | 'exchange'
   | 'combustion'
   | 'substitution'
+  | 'physical'
   | 'hide'
 
 const UI: Record<UiKey, Record<LabLang, string>> = {
@@ -60,6 +62,7 @@ const UI: Record<UiKey, Record<LabLang, string>> = {
   exchange: { ru: 'Обмен', en: 'Exchange', uz: 'Almashinish' },
   combustion: { ru: 'Горение', en: 'Combustion', uz: 'Yonish' },
   substitution: { ru: 'Замещение', en: 'Substitution', uz: 'O‘rin olish' },
+  physical: { ru: 'Физ. явление', en: 'Physical change', uz: 'Fizik hodisa' },
   hide: { ru: 'Скрыть', en: 'Hide', uz: 'Yashirish' },
 }
 
@@ -80,31 +83,62 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
   const current = finished ? null : def.steps[s]
   const lastDone = s > 0 ? def.steps[s - 1] : null
   const action = finished ? null : (LAB_STEP_ACTIONS[experimentId][s] ?? null)
+  const clock = useLabClock(experimentId, s, finished)
+  // журнал: время каждого выполненного шага; пропуски кнопками — для оценки аккуратности
+  const [marks, setMarks] = useState<Record<number, number>>({})
+  const [skips, setSkips] = useState(0)
+  const prevStep = useRef(s)
+  useEffect(() => {
+    if (s === 0) {
+      setMarks({})
+      setSkips(0)
+    } else if (s === prevStep.current + 1) setMarks((m) => ({ ...m, [s - 1]: clock.total }))
+    prevStep.current = s
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- отметка по смене шага
+  }, [s, experimentId])
+  const skipTo = (n: number) => {
+    setSkips((k) => k + 1)
+    onStep(n)
+  }
+  const putOn = () => {
+    // запасной путь без сцены: «надеть» кнопкой на доске (опыт ждёт события 'safety')
+    for (const g of def.gear ?? []) labEvents.emit({ type: 'safety', gear: g, on: true })
+    if (current?.target === 'ppe') onStep(s + 1)
+  }
 
   return (
     <div className={styles.board} data-lab3d-board lang={lang}>
       <aside className={styles.side}>
         <p className={styles.sideTitle}>{UI.experiments[lang]}</p>
-        {LAB_EXPERIMENTS.map((e) => (
-          <button
-            key={e.id}
-            type="button"
-            className={styles.card}
-            data-active={e.id === experimentId || undefined}
-            data-kind={e.kind}
-            onClick={() => onSelectExperiment(e.id)}
-            data-lab3d-exp={e.id}
-          >
-            <span className={styles.cardTop}>
-              <KindTag def={e} lang={lang} />
-              <span className={styles.cardPage}>
-                {e.grade} {UI.grade[lang]} · {UI.page[lang]} {e.page}
-              </span>
-            </span>
-            <span className={styles.cardTitle}>{e.title[lang]}</span>
-            <span className={styles.cardEq}>{e.equation}</span>
-          </button>
-        ))}
+        <div className={styles.sideScroll}>
+          {LAB_EXPERIMENT_GROUPS.map((g) => (
+            <div key={g.id} className={styles.sideGroup}>
+              <p className={styles.groupTitle}>{g.title[lang]}</p>
+              {g.ids.map((id) => {
+                const e = getLabExperiment(id)
+                return (
+                  <button
+                    key={e.id}
+                    type="button"
+                    className={`${styles.card} ${styles.cardCompact}`}
+                    data-active={e.id === experimentId || undefined}
+                    data-kind={e.kind}
+                    onClick={() => onSelectExperiment(e.id)}
+                    data-lab3d-exp={e.id}
+                  >
+                    <span className={styles.cardTop}>
+                      <KindTag def={e} lang={lang} />
+                      <span className={styles.cardPage}>
+                        {e.grade} {UI.grade[lang]} · {UI.page[lang]} {e.page}
+                      </span>
+                    </span>
+                    <span className={styles.cardTitle}>{e.title[lang]}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+        </div>
       </aside>
 
       <section className={styles.main}>
@@ -112,8 +146,9 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
           <div className={styles.headMeta}>
             <KindTag def={def} lang={lang} />
             <span className={styles.source}>
-              {def.source[lang]} · {UI.page[lang]} {def.page}
+              {def.source[lang]} · {def.grade} {UI.grade[lang]} · {UI.page[lang]} {def.page}
             </span>
+            <TimerChip seconds={clock.total} lang={lang} />
           </div>
           <h2 className={styles.title}>{def.title[lang]}</h2>
           <p className={styles.equation}>{def.equation}</p>
@@ -146,6 +181,7 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
                 <p className={styles.label}>{UI.conclusion[lang]}</p>
                 <p className={styles.obsText}>{def.conclusion[lang]}</p>
               </div>
+              <ScoreCard def={def} skips={skips} seconds={clock.total} lang={lang} />
               <LabQuiz experimentId={experimentId} lang={lang} />
             </div>
           </div>
@@ -164,6 +200,7 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
                     {i < s ? '✓' : i + 1}
                   </span>
                   <span className={styles.stepText}>{st.instruction[lang]}</span>
+                  {i < s && marks[i] != null ? <span className={styles.stepTime}>{fmtTime(marks[i]!)}</span> : null}
                 </button>
               </li>
             ))}
@@ -207,17 +244,19 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
                   )}
                   {action?.need ? (
                     // запасной путь, если сцена со стеллажами не отвечает: взять предмет кнопкой
-                    <button type="button" className={styles.needBtn} onClick={() => onStep(s + 1)} data-lab3d-need={action.need}>
+                    <button type="button" className={styles.needBtn} onClick={() => skipTo(s + 1)} data-lab3d-need={action.need}>
                       {TAKE[lang]} {needName(action.need, lang)}
                     </button>
                   ) : null}
                 </div>
+                <GearBar def={def} lang={lang} onPutOn={putOn} />
                 {lastDone?.observation ? (
                   <div className={styles.observation}>
                     <p className={styles.label}>{UI.observation[lang]}</p>
                     <p className={styles.obsText}>{lastDone.observation[lang]}</p>
                   </div>
                 ) : null}
+                <Instrument experimentId={experimentId} step={s} inStep={clock.inStep} lang={lang} />
               </>
             )}
           </div>
@@ -238,7 +277,7 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
               ↺ {UI.repeat[lang]}
             </button>
           ) : (
-            <button type="button" className={styles.navBtnPrimary} onClick={() => onStep(s + 1)}>
+            <button type="button" className={styles.navBtnPrimary} onClick={() => skipTo(s + 1)}>
               {UI.next[lang]} ›
             </button>
           )}

@@ -5,7 +5,9 @@
  */
 import { LAB_EXPERIMENTS, LAB_PARTICLE_STORY, LAB_QUIZ, LAB_SIDE_EQUATIONS, LAB_STEP_ACTIONS } from '../src/data/labWorks/labExperiments.ts'
 import { findLabExperimentForEquation, stripHeatTerm } from '../src/data/labWorks/labExperimentMatch.ts'
+import { LAB_EXPERIMENT_GROUPS } from '../src/data/labWorks/labExperiments.ts'
 import { RIG_FOCUS, RIG_GESTURES, RIG_LABELS, RIG_STEP_SECONDS, RIG_TARGETS } from '../src/components/lab3d/experiments/rigTargets.ts'
+import { HOOD_WORK_SIZE, WORK_AREA_SIZE } from '../src/components/lab3d/labContract.ts'
 import { LAB_GLASS_IDS, LAB_REAGENT_IDS } from '../src/components/lab3d/labEvents.ts'
 import { equationImbalance, parseEquationText } from '../src/chemistry/equationFormula.ts'
 import type { LabText } from '../src/components/lab3d/labContract.ts'
@@ -32,26 +34,44 @@ function checkBalanced(where: string, eq: string) {
 }
 
 const ids = LAB_EXPERIMENTS.map((e) => e.id)
-for (const want of ['baso4', 'ch4-burn', 'zn-hcl', 'h2-practical'] as const) if (!ids.includes(want)) fail(`нет опыта ${want}`)
+for (const want of ['baso4', 'ch4-burn', 'zn-hcl', 'h2-practical', 'salt-purify', 'nh3', 'halogens'] as const) if (!ids.includes(want)) fail(`нет опыта ${want}`)
 if (new Set(ids).size !== ids.length) fail('повторяются id опытов')
 
-const PAGES: Record<string, number> = { baso4: 67, 'ch4-burn': 67, 'zn-hcl': 67, 'h2-practical': 115 }
-const KINDS: Record<string, string> = { baso4: 'exchange', 'ch4-burn': 'combustion', 'zn-hcl': 'substitution', 'h2-practical': 'substitution' }
+const PAGES: Record<string, number> = { baso4: 67, 'ch4-burn': 67, 'zn-hcl': 67, 'h2-practical': 115, 'salt-purify': 24, nh3: 169, halogens: 202 }
+const KINDS: Record<string, string> = {
+  baso4: 'exchange',
+  'ch4-burn': 'combustion',
+  'zn-hcl': 'substitution',
+  'h2-practical': 'substitution',
+  'salt-purify': 'physical',
+  nh3: 'exchange',
+  halogens: 'substitution',
+}
+const GRADES: Record<string, number> = { baso4: 7, 'ch4-burn': 7, 'zn-hcl': 7, 'h2-practical': 7, 'salt-purify': 7, nh3: 8, halogens: 8 }
+// по ТБ: аммиак, хлор и бром — только в вытяжном шкафу, в очках и перчатках
+const HOOD: Record<string, readonly string[]> = { nh3: ['goggles', 'gloves', 'coat'], halogens: ['goggles', 'gloves'] }
 
 for (const e of LAB_EXPERIMENTS) {
   checkText(`${e.id}.source`, e.source)
   checkText(`${e.id}.title`, e.title)
   checkText(`${e.id}.conclusion`, e.conclusion)
-  if (e.grade !== 7) fail(`${e.id}: класс ${e.grade}, ожидался 7`)
+  if (e.grade !== GRADES[e.id]) fail(`${e.id}: класс ${e.grade}, ожидался ${GRADES[e.id]}`)
   if (e.page !== PAGES[e.id]) fail(`${e.id}: страница ${e.page}, ожидалась ${PAGES[e.id]}`)
   if (e.kind !== KINDS[e.id]) fail(`${e.id}: тип ${e.kind}, ожидался ${KINDS[e.id]}`)
-  checkBalanced(`${e.id}.equation`, e.equation)
+  // физическое явление (очистка соли) — не реакция, уравнения нет
+  if (e.kind !== 'physical') checkBalanced(`${e.id}.equation`, e.equation)
+  const hood = HOOD[e.id]
+  if (hood) {
+    if (e.place !== 'hood') fail(`${e.id}: опыт должен идти в вытяжном шкафу (place: 'hood')`)
+    if ((e.gear ?? []).join() !== hood.join()) fail(`${e.id}: средства защиты ${(e.gear ?? []).join()} ≠ ${hood.join()}`)
+    if (e.steps[0]?.target !== 'ppe') fail(`${e.id}: первый шаг — «наденьте средства защиты» (цель ppe)`)
+  } else if (e.place === 'hood') fail(`${e.id}: лишняя вытяжка`)
   for (const side of LAB_SIDE_EQUATIONS[e.id] ?? []) checkBalanced(`${e.id} (наблюдение)`, side)
   if (e.equipment.length < 2) fail(`${e.id}: мало оборудования`)
   if (e.safety.length < 2) fail(`${e.id}: мало правил ТБ`)
   e.equipment.forEach((t, i) => checkText(`${e.id}.equipment[${i}]`, t))
   e.safety.forEach((t, i) => checkText(`${e.id}.safety[${i}]`, t))
-  if (e.steps.length < 4 || e.steps.length > 7) fail(`${e.id}: шагов ${e.steps.length}, нужно 4–7`)
+  if (e.steps.length < 4 || e.steps.length > 9) fail(`${e.id}: шагов ${e.steps.length}, нужно 4–9`)
   const targets: readonly string[] = RIG_TARGETS[e.id]
   const stepIds = new Set<string>()
   e.steps.forEach((s, i) => {
@@ -96,7 +116,8 @@ for (const e of LAB_EXPERIMENTS) {
       const len = Math.hypot(g.to[0] - g.from[0], g.to[1] - g.from[1], g.to[2] - g.from[2])
       if (len < 0.05) fail(`${e.id}.steps[${i}]: путь жеста ${len.toFixed(3)} м — слишком короткий`)
       if (!(g.lead > 0 && g.lead <= 1)) fail(`${e.id}.steps[${i}]: доля шага под пальцем ${g.lead} вне (0, 1]`)
-      for (const v of [g.from, g.to]) if (Math.abs(v[0]) > 0.65 || Math.abs(v[2]) > 0.3 || v[1] < 0 || v[1] > 0.5) fail(`${e.id}.steps[${i}]: точка жеста ${v.join(',')} вне рабочего места`)
+      const area = e.place === 'hood' ? HOOD_WORK_SIZE : WORK_AREA_SIZE
+      for (const v of [g.from, g.to]) if (Math.abs(v[0]) > area.w / 2 || Math.abs(v[2]) > area.d / 2 || v[1] < 0 || v[1] > 0.5) fail(`${e.id}.steps[${i}]: точка жеста ${v.join(',')} вне рабочего места`)
     }
   })
   if (moving < 2) fail(`${e.id}: меньше двух действий «перетащить/провести» (${moving})`)
@@ -123,7 +144,7 @@ for (const e of LAB_EXPERIMENTS) {
   ok(`${e.id}: жестов «перетащить/провести» ${moving}, крупных планов ${RIG_FOCUS[e.id].length}, подписей ${RIG_LABELS[e.id].length}, вопросов ${quiz.length}`)
 }
 // типы реакций в проверке совпадают с типом опыта
-const typeWant: Record<string, RegExp> = { baso4: /Обмен/, 'zn-hcl': /Замещ/, 'ch4-burn': /Горение/ }
+const typeWant: Record<string, RegExp> = { baso4: /Обмен/, 'zn-hcl': /Замещ/, 'ch4-burn': /Горение/, 'salt-purify': /Физическ/, halogens: /Замещ/ }
 for (const [id, re] of Object.entries(typeWant)) {
   const q = LAB_QUIZ[id as keyof typeof LAB_QUIZ].find((x) => x.id === 'type')!
   if (!re.test(q.options[q.correct]!.ru)) fail(`${id}: правильный тип реакции «${q.options[q.correct]!.ru}»`)
@@ -143,12 +164,45 @@ const chip: Array<[string, string | null]> = [
   ['NaOH + HCl → NaCl + H₂O', null],
   ['C + O₂ → CO₂', null],
   ['BaCl₂ + Na₂SO₄ → BaSO₄↓ + 2NaCl', null],
+  ['2NH₄Cl + Ca(OH)₂ → CaCl₂ + 2NH₃↑ + 2H₂O', 'nh3'],
+  ['2NH4Cl + Ca(OH)2 = CaCl2 + 2NH3 + 2H2O', 'nh3'],
+  ['Cl₂ + 2NaBr → 2NaCl + Br₂', 'halogens'],
+  ['Cl2 + 2KI = 2KCl + I2', 'halogens'],
+  ['Br₂ + 2NaI → 2NaBr + I₂', 'halogens'],
+  ['NH₃ + HCl → NH₄Cl', null],
 ]
 for (const [eq, want] of chip) {
   const got = findLabExperimentForEquation(eq)
   if (got !== want) fail(`3D-ссылка для «${eq}»: ${got ?? 'нет'}, ожидалось ${want ?? 'нет'}`)
 }
 ok(`3D-ссылка: ${chip.length} уравнений`)
+
+// практические работы: порядок шагов и ключевые наблюдения — по учебнику
+const order: Record<string, string> = {
+  'salt-purify': 'add-salt,dissolve,fold,filter-in,filter,to-dish,heat,evaporate,stop',
+  nh3: 'gear,mix,fill,assemble,collect,heat,smell,litmus,hcl',
+  halogens: 'gear,cl-nabr,cl-nai,br-nai,br-nacl,starch,compare',
+}
+for (const [id, want] of Object.entries(order)) {
+  const e = LAB_EXPERIMENTS.find((x) => x.id === id)
+  if (!e) continue
+  if (e.steps.map((s) => s.id).join() !== want) fail(`${id}: порядок шагов ${e.steps.map((s) => s.id).join()} ≠ ${want}`)
+}
+const obs = (id: string, step: string) => LAB_EXPERIMENTS.find((e) => e.id === id)?.steps.find((s) => s.id === step)?.observation?.ru ?? ''
+if (!/фильтрат/.test(obs('salt-purify', 'filter'))) fail('salt-purify: при фильтровании нет «фильтрата»')
+if (!/кристаллы/.test(obs('salt-purify', 'evaporate'))) fail('salt-purify: при выпаривании нет «кристаллов»')
+if (!/синеет/.test(obs('nh3', 'litmus'))) fail('nh3: лакмус должен синеть')
+if (!/белый/i.test(obs('nh3', 'hcl'))) fail('nh3: с HCl нет белого дыма')
+if (!/помахиванием|Помахиванием/.test(LAB_EXPERIMENTS.find((e) => e.id === 'nh3')!.steps.find((s) => s.id === 'smell')!.instruction.ru)) fail('nh3: запах — только помахиванием')
+if (!/жёлто-оранжев/.test(obs('halogens', 'cl-nabr'))) fail('halogens: Br₂ — жёлто-оранжевый')
+if (!/бур/.test(obs('halogens', 'cl-nai'))) fail('halogens: I₂ — жёлто-бурый')
+if (!/Изменений нет/.test(obs('halogens', 'br-nacl'))) fail('halogens: бром не вытесняет хлор')
+if (!/синее/.test(obs('halogens', 'starch'))) fail('halogens: крахмал с йодом — синее окрашивание')
+// карточки на доске: все опыты в группах ровно по одному разу
+const grouped = LAB_EXPERIMENT_GROUPS.flatMap((g) => g.ids)
+if (grouped.length !== ids.length || new Set(grouped).size !== ids.length || ids.some((i) => !grouped.includes(i))) fail(`группы карточек: ${grouped.join()} ≠ ${ids.join()}`)
+LAB_EXPERIMENT_GROUPS.forEach((g) => checkText(`группа ${g.id}`, g.title))
+ok(`практические работы: порядок шагов, наблюдения, ТБ, ${LAB_EXPERIMENT_GROUPS.length} группы карточек`)
 
 if (failed) {
   console.error(`\n${failed} ошибок`)

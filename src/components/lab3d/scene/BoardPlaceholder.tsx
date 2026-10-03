@@ -11,12 +11,18 @@ const NAMES: Readonly<Record<LabExperimentId, Readonly<Record<LabLang, string>>>
   'ch4-burn': { ru: '§ 2.12 Горение', en: '§ 2.12 Combustion', uz: '§ 2.12 Yonish' },
   'zn-hcl': { ru: '§ 2.12 Замещение', en: '§ 2.12 Substitution', uz: '§ 2.12 O‘rin olish' },
   'h2-practical': { ru: 'Практическое § 5.2', en: 'Practical § 5.2', uz: 'Amaliy § 5.2' },
+  'salt-purify': { ru: 'Практическое § 1.6', en: 'Practical § 1.6', uz: 'Amaliy § 1.6' },
+  nh3: { ru: 'Практическая работа 3', en: 'Practical work 3', uz: '3-amaliy ish' },
+  halogens: { ru: 'Лабораторная работа 5', en: 'Laboratory work 5', uz: '5-laboratoriya ishi' },
 }
 const EQUATIONS: Readonly<Record<LabExperimentId, string>> = {
   baso4: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',
   'ch4-burn': 'CH₄ + 2O₂ → CO₂ + 2H₂O + Q',
   'zn-hcl': 'Zn + 2HCl → ZnCl₂ + H₂↑',
   'h2-practical': 'Zn + 2HCl → ZnCl₂ + H₂↑',
+  'salt-purify': 'NaCl (+ SiO₂) → NaCl',
+  nh3: '2NH₄Cl + Ca(OH)₂ → CaCl₂ + 2NH₃↑ + 2H₂O',
+  halogens: 'Cl₂ + 2NaBr → 2NaCl + Br₂',
 }
 const IDS = Object.keys(NAMES) as LabExperimentId[]
 

@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from 'react'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
-import { WORK_AREA_CENTER, type ExperimentRigProps, type LabExperimentId } from '../labContract'
+import { HOOD_WORK_CENTER, WORK_AREA_CENTER, type ExperimentRigProps, type LabExperimentId } from '../labContract'
 import { labEvents, type LabItemId } from '../labEvents'
 import { getLabExperiment, LAB_STEP_ACTIONS } from '../../../data/labWorks/labExperiments'
 import { RigContext, type RigContextValue } from './rigCore'
@@ -21,12 +21,18 @@ import { Baso4Rig } from './rigs/Baso4Rig'
 import { Ch4BurnRig } from './rigs/Ch4BurnRig'
 import { H2PracticalRig } from './rigs/H2PracticalRig'
 import { ZnHclRig } from './rigs/ZnHclRig'
+import { SaltPurifyRig } from './rigs/SaltPurifyRig'
+import { Nh3Rig } from './rigs/Nh3Rig'
+import { HalogensRig } from './rigs/HalogensRig'
 
 const RIGS: Record<LabExperimentId, ComponentType> = {
   baso4: Baso4Rig,
   'ch4-burn': Ch4BurnRig,
   'zn-hcl': ZnHclRig,
   'h2-practical': H2PracticalRig,
+  'salt-purify': SaltPurifyRig,
+  nh3: Nh3Rig,
+  halogens: HalogensRig,
 }
 
 /** Доля пути, после которой отпускание засчитывается; «магнит» — дальше этой доли действие засчитывается сразу. */
@@ -59,6 +65,9 @@ const tmpInv = new THREE.Matrix4()
 function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentRigProps) {
   const def = getLabExperiment(experimentId)
   const total = def.steps.length
+  // начало координат установки: рабочее место стола или вытяжного шкафа (опыты с NH₃, Cl₂, Br₂ — под тягой);
+  // крупные планы и звуки считаются от фактического положения группы установки (её ставит сцена)
+  const center = def.place === 'hood' ? HOOD_WORK_CENTER : WORK_AREA_CENTER
   const p = useRef(Math.min(step, total))
   const time = useRef(0)
   const anim = useRef<{ from: number; dur: number } | null>(null)
@@ -79,6 +88,17 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
   useLayoutEffect(() => {
     controlsRef.current = controls
   })
+
+  const toWorld = useCallback(
+    (v: readonly [number, number, number]): [number, number, number] => {
+      const g = root.current
+      if (!g) return [center.x + v[0], center.y + v[1], center.z + v[2]]
+      g.updateWorldMatrix(true, false)
+      const w = g.localToWorld(new THREE.Vector3(v[0], v[1], v[2]))
+      return [w.x, w.y, w.z]
+    },
+    [center],
+  )
 
   /** Запустить доигрывание действия шага s с текущего прогресса. */
   const play = useCallback(
@@ -266,8 +286,7 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
       focusIdx.current = idx
       if (idx >= 0 && (anim.current || scrub.current)) {
         const f = list[idx]!
-        const c = WORK_AREA_CENTER
-        const target: [number, number, number] = [c.x + f.point[0], c.y + f.point[1], c.z + f.point[2]]
+        const target = toWorld(f.point)
         const position: [number, number, number] = [target[0] + f.dist * 0.18, target[1] + f.dist * 0.42, target[2] + f.dist * 0.9]
         labEvents.emit({ type: 'focus', position, target })
       } else if (prev >= 0) labEvents.emit({ type: 'focusReset' })
@@ -283,8 +302,8 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
   const gesture = step < total ? (RIG_GESTURES[experimentId][step] ?? null) : null
   const activeTarget = !busy && step < total ? (def.steps[step]?.target ?? null) : null
   const ctx = useMemo<RigContextValue>(
-    () => ({ p, time, quality, lang, activeTarget, act, gesture, beginGesture, dragging }),
-    [quality, lang, activeTarget, act, gesture, beginGesture, dragging],
+    () => ({ p, time, quality, lang, activeTarget, act, gesture, beginGesture, dragging, toWorld }),
+    [quality, lang, activeTarget, act, gesture, beginGesture, dragging, toWorld],
   )
   const Rig = RIGS[experimentId]
   return (
