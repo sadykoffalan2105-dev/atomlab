@@ -17,6 +17,16 @@ export const BENCH_TOP_Y = 0.9
 export const WORK_AREA_CENTER = new THREE.Vector3(0, BENCH_TOP_Y, 0)
 /** Размер рабочего места (м): ширина по X, глубина по Z. Установка не выходит за него. */
 export const WORK_AREA_SIZE = { w: 1.3, d: 0.6 } as const
+/**
+ * Рабочее место в вытяжном шкафу (опыты с аммиаком, хлором и бромом — по ТБ только под тягой): центр на столешнице
+ * вытяжки и размер. Установка опыта с place: 'hood' рисуется относительно этой точки и не выходит за размер.
+ */
+export const HOOD_WORK_CENTER = new THREE.Vector3(-2.05, BENCH_TOP_Y, -0.86)
+export const HOOD_WORK_SIZE = { w: 0.95, d: 0.5 } as const
+
+/** Средства защиты ученика. */
+export type LabGear = 'goggles' | 'gloves' | 'coat'
+
 /** Электронная доска: центр и размер экрана (м), смотрит в +Z. */
 export const BOARD_CENTER = new THREE.Vector3(0, 1.62, -1.15)
 export const BOARD_SIZE = { w: 1.9, h: 1.07 } as const
@@ -26,7 +36,7 @@ export const BOARD_PX = { w: 1280, h: 720 } as const
 export type LabLang = 'ru' | 'en' | 'uz'
 export type LabText = Readonly<Record<LabLang, string>>
 
-export type LabExperimentId = 'baso4' | 'ch4-burn' | 'zn-hcl' | 'h2-practical'
+export type LabExperimentId = 'baso4' | 'ch4-burn' | 'zn-hcl' | 'h2-practical' | 'salt-purify' | 'nh3' | 'halogens'
 
 export interface LabExperimentDef {
   readonly id: LabExperimentId
@@ -35,8 +45,8 @@ export interface LabExperimentDef {
   readonly title: LabText
   /** Уравнение (Unicode-индексы), как в учебнике. */
   readonly equation: string
-  /** Тип реакции для цветной метки: обмен / горение / замещение. */
-  readonly kind: 'exchange' | 'combustion' | 'substitution'
+  /** Тип реакции для цветной метки: обмен / горение / замещение; physical — физическое явление (очистка смеси). */
+  readonly kind: 'exchange' | 'combustion' | 'substitution' | 'physical'
   /** Класс и страница учебника Kimyo. */
   readonly grade: 7 | 8 | 9
   readonly page: number
@@ -45,6 +55,10 @@ export interface LabExperimentDef {
   readonly equipment: readonly LabText[]
   readonly safety: readonly LabText[]
   readonly conclusion: LabText
+  /** Где ставится установка: на рабочее место стола (по умолчанию) или в вытяжной шкаф. */
+  readonly place?: 'bench' | 'hood'
+  /** Какие средства защиты нужно надеть перед опытом (сцена даёт их надеть; опыт ждёт события 'safety'). */
+  readonly gear?: readonly LabGear[]
 }
 
 export interface LabStepDef {

@@ -5,11 +5,18 @@
 import { parseEquationText } from '../../chemistry/equationFormula'
 import type { LabExperimentId } from '../../components/lab3d/labContract'
 
-/** Уравнение → опыт (только опыты § 2.12; практическое занятие открывается из списка на доске). */
+/** Уравнение → опыт (опыты § 2.12, получение аммиака и вытеснение галогенов; § 5.2 открывается из списка на доске). */
 const CHIP_EQUATIONS: ReadonlyArray<{ id: LabExperimentId; equation: string }> = [
   { id: 'baso4', equation: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl' },
   { id: 'ch4-burn', equation: 'CH₄ + 2O₂ → CO₂ + 2H₂O + Q' },
   { id: 'zn-hcl', equation: 'Zn + 2HCl → ZnCl₂ + H₂↑' },
+  { id: 'nh3', equation: '2NH₄Cl + Ca(OH)₂ → CaCl₂ + 2NH₃↑ + 2H₂O' },
+  { id: 'halogens', equation: 'Cl₂ + 2NaBr → 2NaCl + Br₂' },
+  { id: 'halogens', equation: 'Cl₂ + 2KBr → 2KCl + Br₂' },
+  { id: 'halogens', equation: 'Cl₂ + 2NaI → 2NaCl + I₂' },
+  { id: 'halogens', equation: 'Cl₂ + 2KI → 2KCl + I₂' },
+  { id: 'halogens', equation: 'Br₂ + 2NaI → 2NaBr + I₂' },
+  { id: 'halogens', equation: 'Br₂ + 2KI → 2KBr + I₂' },
 ]
 
 /** Убрать тепловой эффект «+ Q» / «– Q» / «+ 890 кДж» — его нет в составе веществ. */

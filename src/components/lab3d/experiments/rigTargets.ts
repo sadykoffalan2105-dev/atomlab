@@ -17,6 +17,9 @@ export const RIG_TARGETS = {
   'ch4-burn': ['match', 'gas-valve', 'beaker-dry', 'beaker-lime'],
   'zn-hcl': ['zn-granule', 'bottle-hcl', 'tube-acid'],
   'h2-practical': ['bottle-hcl', 'zn-granule', 'stopper', 'collect-tube', 'spirit-lamp', 'glass-plate'],
+  'salt-purify': ['salt-dish', 'stir-rod', 'filter', 'beaker-mix', 'beaker-filtrate', 'spirit-lamp', 'dish-rod', 'lamp-cap'],
+  nh3: ['ppe', 'pestle', 'mortar', 'reactor-tube', 'collect-tube', 'spirit-lamp', 'waft', 'litmus', 'hcl-rod'],
+  halogens: ['ppe', 'cl-water', 'br-water', 'starch', 'rack'],
 } as const satisfies Record<LabExperimentId, readonly string[]>
 
 /** Сколько секунд длится анимация действия шага (шаг s: прогресс p идёт от s к s + 1). */
@@ -25,6 +28,9 @@ export const RIG_STEP_SECONDS: Readonly<Record<LabExperimentId, readonly number[
   'ch4-burn': [1.2, 2.4, 4.2, 4.6, 1.4],
   'zn-hcl': [1.4, 2.6, 2.2, 6],
   'h2-practical': [2.6, 2.2, 1.8, 4.2, 2.2, 2.8, 4.2],
+  'salt-purify': [2.6, 3.4, 2.4, 2, 6.5, 3, 2.6, 7.5, 1.8],
+  nh3: [1.6, 3, 2.6, 2.8, 2.2, 5.5, 2.4, 3, 4.8],
+  halogens: [1.6, 3.6, 3.6, 3.6, 3.2, 3.4, 2.4],
 }
 
 /**
@@ -84,6 +90,56 @@ export const RIG_GESTURES: Readonly<Record<LabExperimentId, readonly RigGesture[
     // холодное стекло — над пламенем водорода
     drag([0.18, 0.01, 0.2], [-0.17, 0.2, -0.05], 0.8),
   ],
+  // Kimyo 7, § 1.6 — на столе
+  'salt-purify': [
+    // часовое стекло с солью — к стакану с водой, соль высыпается
+    drag([-0.52, 0.02, 0.17], [-0.36, 0.15, 0.06], 0.5),
+    // провести по палочке — она мешает раствор по кругу
+    swipe([-0.36, 0.02, 0.19], [-0.24, 0.02, 0.19], 0.5),
+    tap,
+    // конус фильтра — в воронку на кольце
+    drag([-0.18, 0.02, 0.19], [-0.02, 0.24, -0.12], 0.55),
+    // стакан с мутным раствором — к воронке, наклон, струя по палочке
+    drag([-0.36, 0.05, 0.06], [-0.08, 0.27, -0.12], 0.35),
+    // стакан с фильтратом — к фарфоровой чашке
+    drag([-0.02, 0.05, -0.12], [0.3, 0.22, -0.06], 0.4),
+    // снять колпачок спиртовки вправо (дальше — спичка)
+    swipe([0.34, 0.07, -0.06], [0.45, 0.07, -0.06], 0.35),
+    // палочкой мешать раствор в чашке
+    swipe([0.16, 0.01, 0.12], [0.28, 0.01, 0.12], 0.3),
+    // колпачок — на пламя
+    drag([0.415, 0.02, -0.05], [0.34, 0.11, -0.06], 0.6),
+  ],
+  // Kimyo 8, ПР 3 — в вытяжном шкафу (локальные координаты внутри HOOD_WORK_SIZE)
+  nh3: [
+    tap,
+    // растереть пестиком
+    swipe([0.03, 0.07, 0.15], [0.11, 0.07, 0.15], 0.5),
+    // ступку — к пробирке в штативе
+    drag([0.06, 0.03, 0.15], [0.16, 0.23, -0.14], 0.45),
+    // пробирку — в лапку штатива (пробка с трубкой, наклон)
+    drag([0.16, 0.1, -0.14], [-0.3, 0.15, -0.06], 0.6),
+    // сухую пробирку — вверх дном на трубку
+    drag([0.24, 0.1, -0.14], [-0.17, 0.3, -0.06], 0.6),
+    // снять колпачок спиртовки
+    swipe([-0.3, 0.06, -0.06], [-0.19, 0.06, -0.06], 0.35),
+    // помахать рукой к себе
+    swipe([-0.12, 0.25, -0.02], [-0.06, 0.2, 0.14], 0.6),
+    // влажную красную лакмусовую бумажку — к отверстию
+    drag([0.18, 0.02, 0.17], [-0.17, 0.225, -0.06], 0.6),
+    // палочку с HCl — к отверстию
+    drag([0.36, 0.17, -0.06], [-0.15, 0.225, -0.06], 0.6),
+  ],
+  // Kimyo 8, ЛР 5 — в вытяжном шкафу
+  halogens: [
+    tap,
+    drag([-0.3, 0.12, 0.13], [-0.15, 0.22, -0.08], 0.5),
+    drag([-0.3, 0.12, 0.13], [-0.05, 0.22, -0.08], 0.5),
+    drag([-0.12, 0.12, 0.13], [0.05, 0.22, -0.08], 0.5),
+    drag([-0.12, 0.12, 0.13], [0.15, 0.22, -0.08], 0.5),
+    drag([0.06, 0.12, 0.13], [-0.05, 0.22, -0.08], 0.5),
+    tap,
+  ],
 }
 
 /** Крупный план: когда прогресс p проходит from — камера наезжает на point (с расстояния dist), на to — обратно. */
@@ -110,6 +166,22 @@ export const RIG_FOCUS: Readonly<Record<LabExperimentId, readonly RigFocus[]>> =
     { from: 3.6, to: 3.99, point: [-0.17, 0.27, -0.05], dist: 0.36 },
     { from: 5.4, to: 5.85, point: [0.3, 0.13, 0.06], dist: 0.34 },
     { from: 6.6, to: 6.98, point: [-0.17, 0.2, -0.05], dist: 0.34 },
+  ],
+  'salt-purify': [
+    { from: 0.45, to: 0.95, point: [-0.36, 0.06, 0.06], dist: 0.3 },
+    { from: 4.35, to: 4.95, point: [-0.02, 0.17, -0.12], dist: 0.36 },
+    { from: 7.2, to: 7.95, point: [0.34, 0.15, -0.06], dist: 0.3 },
+  ],
+  nh3: [
+    { from: 5.4, to: 5.95, point: [-0.25, 0.16, -0.06], dist: 0.42 },
+    { from: 7.45, to: 7.98, point: [-0.17, 0.24, -0.06], dist: 0.3 },
+    { from: 8.4, to: 8.98, point: [-0.16, 0.26, -0.06], dist: 0.36 },
+  ],
+  halogens: [
+    { from: 1.5, to: 1.97, point: [-0.15, 0.09, -0.08], dist: 0.3 },
+    { from: 2.5, to: 2.97, point: [-0.05, 0.09, -0.08], dist: 0.3 },
+    { from: 3.5, to: 3.97, point: [0.05, 0.09, -0.08], dist: 0.3 },
+    { from: 5.5, to: 5.97, point: [-0.05, 0.09, -0.08], dist: 0.28 },
   ],
 }
 
@@ -141,5 +213,25 @@ export const RIG_LABELS: Readonly<Record<LabExperimentId, readonly RigLabel[]>> 
     { at: 3.7, pos: [-0.1, 0.36, -0.05], text: L('H₂ вытесняет воздух', 'H₂ pushes out the air', 'H₂ havoni siqib chiqaradi') },
     { at: 5.52, pos: [0.3, 0.24, 0.06], text: L('глухой хлопок — водород чистый', 'dull pop — the hydrogen is pure', 'bo‘g‘iq qarsillash — vodorod toza') },
     { at: 6.85, pos: [-0.08, 0.27, -0.05], text: L('капли воды', 'water droplets', 'suv tomchilari') },
+  ],
+  'salt-purify': [
+    { at: 1.7, pos: [-0.3, 0.12, 0.06], text: L('соль растворилась, песок — нет', 'the salt dissolved, the sand did not', 'tuz eridi, qum erimadi') },
+    { at: 4.6, pos: [0.04, 0.1, -0.12], text: L('прозрачный фильтрат', 'clear filtrate', 'tiniq filtrat') },
+    { at: 4.85, pos: [0.04, 0.27, -0.12], text: L('песок остался на фильтре', 'the sand stays on the filter', 'qum filtrda qoldi') },
+    { at: 7.65, pos: [0.4, 0.2, -0.06], text: L('кристаллы NaCl', 'NaCl crystals', 'NaCl kristallari') },
+  ],
+  nh3: [
+    { at: 5.7, pos: [-0.1, 0.36, -0.06], text: L('NH₃↑ — бесцветный газ', 'NH₃↑, a colourless gas', 'NH₃↑ — rangsiz gaz') },
+    { at: 5.85, pos: [-0.2, 0.1, 0], text: L('капли воды у отверстия', 'water droplets at the mouth', 'og‘izda suv tomchilari') },
+    { at: 7.6, pos: [-0.1, 0.2, -0.04], text: L('лакмус синеет — щелочь', 'litmus turns blue: alkaline', 'lakmus ko‘karadi — ishqor') },
+    { at: 8.6, pos: [-0.08, 0.3, -0.04], text: L('белый дым NH₄Cl', 'white smoke of NH₄Cl', 'NH₄Cl oq tutuni') },
+  ],
+  halogens: [
+    { at: 1.7, pos: [-0.15, 0.2, -0.04], text: L('Br₂ — жёлто-оранжевый', 'Br₂: yellow-orange', 'Br₂ — sariq-to‘q sariq') },
+    { at: 2.7, pos: [-0.05, 0.2, -0.04], text: L('I₂ — жёлто-бурый', 'I₂: yellowish-brown', 'I₂ — sarg‘ish-qo‘ng‘ir') },
+    { at: 3.7, pos: [0.05, 0.2, -0.04], text: L('I₂ — бурый', 'I₂: brown', 'I₂ — qo‘ng‘ir') },
+    { at: 4.7, pos: [0.15, 0.2, -0.04], text: L('без изменений', 'no change', 'o‘zgarishsiz') },
+    { at: 5.7, pos: [-0.05, 0.2, -0.04], text: L('синий: крахмал + I₂', 'blue: starch + I₂', 'ko‘k: kraxmal + I₂') },
+    { at: 6.6, pos: [0, 0.27, -0.08], text: L('Cl₂ > Br₂ > I₂', 'Cl₂ > Br₂ > I₂ (activity)', 'Cl₂ > Br₂ > I₂ (faollik)') },
   ],
 }

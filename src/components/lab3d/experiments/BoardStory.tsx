@@ -101,9 +101,55 @@ const STORIES: Record<LabExperimentId, { atoms: readonly Atom[]; product?: { at:
       atom('O', O, 16, [210, 150], [380, 190]),
     ],
   },
+  // ионы из раствора собираются в кубическую решётку NaCl, молекулы воды улетают паром
+  'salt-purify': {
+    atoms: [
+      atom('Na⁺', '#9a78d6', 15, [70, 70], [290, 120]),
+      atom('Cl⁻', '#54b06a', 19, [150, 190], [330, 120]),
+      atom('Na⁺', '#9a78d6', 15, [210, 60], [330, 160]),
+      atom('Cl⁻', '#54b06a', 19, [90, 150], [290, 160]),
+      atom('Na⁺', '#9a78d6', 15, [190, 130], [370, 120]),
+      atom('Cl⁻', '#54b06a', 19, [40, 200], [370, 160]),
+      atom('H₂O', '#7fb7ec', 16, [120, 105], [470, 34]),
+      atom('H₂O', '#7fb7ec', 16, [230, 190], [500, 70]),
+    ],
+    product: { at: [330, 140], w: 140, label: 'NaCl' },
+  },
+  // NH₃ своей электронной парой присоединяет H⁺ от HCl
+  nh3: {
+    atoms: [
+      atom('N', '#3f6fd8', 22, [110, 130], [300, 130]),
+      atom('H', H, 11, [80, 102], [270, 100], { dark: true }),
+      atom('H', H, 11, [140, 102], [330, 100], { dark: true }),
+      atom('H', H, 11, [110, 168], [300, 168], { dark: true }),
+      atom('H⁺', '#f08080', 12, [400, 130], [340, 150], { mid: [360, 120] }),
+      atom('Cl⁻', '#54b06a', 20, [440, 130], [430, 170], { mid: [445, 150] }),
+    ],
+    product: { at: [350, 140], w: 210, label: 'NH₄Cl' },
+  },
+  // Cl₂ забирает по электрону у двух ионов Br⁻: 2Cl⁻ + Br₂
+  halogens: {
+    atoms: [
+      atom('Cl', '#54b06a', 18, [80, 110], [110, 70], { toLabel: 'Cl⁻' }),
+      atom('Cl', '#54b06a', 18, [116, 110], [110, 190], { toLabel: 'Cl⁻' }),
+      atom('Br⁻', '#a0412d', 21, [360, 80], [380, 130]),
+      atom('Br⁻', '#a0412d', 21, [420, 180], [422, 130]),
+      atom('e⁻', '#2f7cf6', 7, [350, 92], [110, 84], { mid: [230, 80], electron: true }),
+      atom('e⁻', '#2f7cf6', 7, [410, 168], [110, 176], { mid: [250, 180], electron: true }),
+    ],
+    product: { at: [401, 130], w: 110, label: 'Br₂' },
+  },
 }
 
-const LEFT: Record<LabExperimentId, string> = { baso4: 'BaCl₂ + H₂SO₄', 'zn-hcl': 'Zn + 2HCl', 'ch4-burn': 'CH₄ + 2O₂', 'h2-practical': '2H₂ + O₂' }
+const LEFT: Record<LabExperimentId, string> = {
+  baso4: 'BaCl₂ + H₂SO₄',
+  'zn-hcl': 'Zn + 2HCl',
+  'ch4-burn': 'CH₄ + 2O₂',
+  'h2-practical': '2H₂ + O₂',
+  'salt-purify': 'Na⁺ + Cl⁻ (H₂O↑)',
+  nh3: 'NH₃ + HCl',
+  halogens: 'Cl₂ + 2Br⁻',
+}
 
 const UI = {
   what: { ru: 'Что произошло', en: 'What happened', uz: 'Nima sodir bo‘ldi' },

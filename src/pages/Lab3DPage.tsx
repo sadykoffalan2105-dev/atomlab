@@ -17,19 +17,25 @@ import styles from './Lab3DPage.module.css'
 
 const Lab3DCanvas = lazy(() => import('../components/lab3d/scene/Lab3DCanvas'))
 
-const EXPERIMENT_IDS: readonly LabExperimentId[] = ['baso4', 'ch4-burn', 'zn-hcl', 'h2-practical']
+const EXPERIMENT_IDS: readonly LabExperimentId[] = ['baso4', 'ch4-burn', 'zn-hcl', 'h2-practical', 'salt-purify', 'nh3', 'halogens']
 /** Уравнения по учебнику — запасной вариант, пока часть «опыты» не отдала свои описания. */
 const FALLBACK_EQUATION: Readonly<Record<LabExperimentId, string>> = {
   baso4: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',
   'ch4-burn': 'CH₄ + 2O₂ → CO₂ + 2H₂O',
   'zn-hcl': 'Zn + 2HCl → ZnCl₂ + H₂↑',
   'h2-practical': 'Zn + 2HCl → ZnCl₂ + H₂↑',
+  'salt-purify': 'NaCl (+ SiO₂) → NaCl',
+  nh3: '2NH₄Cl + Ca(OH)₂ → CaCl₂ + 2NH₃↑ + 2H₂O',
+  halogens: 'Cl₂ + 2NaBr → 2NaCl + Br₂',
 }
-const KIND: Readonly<Record<LabExperimentId, 'exchange' | 'combustion' | 'substitution'>> = {
+const KIND: Readonly<Record<LabExperimentId, 'exchange' | 'combustion' | 'substitution' | 'physical'>> = {
   baso4: 'exchange',
   'ch4-burn': 'combustion',
   'zn-hcl': 'substitution',
   'h2-practical': 'substitution',
+  'salt-purify': 'physical',
+  nh3: 'exchange',
+  halogens: 'substitution',
 }
 const VIEWS: ReadonlyArray<{ id: LabViewId; key: MessageKey }> = [
   { id: 'desk', key: 'lab3d.view.desk' },
