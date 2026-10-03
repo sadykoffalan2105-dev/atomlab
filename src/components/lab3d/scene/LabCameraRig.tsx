@@ -26,17 +26,18 @@ interface Props {
   /** Меняется при каждом нажатии чипа — повторное нажатие того же вида возвращает камеру в точку. */
   readonly viewNonce: number
   readonly bridge: LabSceneBridge
+  /** Ширина панели интерфейса слева (CSS px): вид сдвигается, чтобы стол и доска были в свободной части экрана. */
+  readonly leftInsetPx?: number
 }
 
 const ease = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2)
 
-export function LabCameraRig({ view, viewNonce, bridge }: Props) {
+export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props) {
   const controls = useRef<OrbitControlsImpl>(null)
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const size = useThree((s) => s.size)
   const flight = useRef<Flight | null>(null)
   const portrait = size.width < size.height
-  const aspect = size.width / Math.max(1, size.height)
   const boardPhone = view === 'board' && portrait
 
   // Поле зрения: на телефоне шире, чтобы стол помещался по ширине
@@ -46,6 +47,24 @@ export function LabCameraRig({ view, viewNonce, bridge }: Props) {
     camera.far = 40
     camera.updateProjectionMatrix()
   }, [camera, portrait])
+
+  /** Поза вида с учётом панели слева: подбираем по свободной ширине и сдвигаем вправо по экрану. */
+  const poseFor = (v: LabViewId) => {
+    const fov = portrait ? 58 : 48
+    const inset = portrait ? 0 : Math.min(leftInsetPx, size.width * 0.45)
+    const effAspect = (size.width - inset) / Math.max(1, size.height)
+    const pose = cameraPoseFor(v, effAspect, fov)
+    if (inset > 0) {
+      const dist = pose.position.distanceTo(pose.target)
+      const worldPerPx = (2 * dist * Math.tan(THREE.MathUtils.degToRad(fov) / 2)) / Math.max(1, size.height)
+      const dir = pose.target.clone().sub(pose.position).normalize()
+      const right = dir.cross(new THREE.Vector3(0, 1, 0)).normalize()
+      const shift = right.multiplyScalar(-(inset / 2) * worldPerPx)
+      pose.position.add(shift)
+      pose.target.add(shift)
+    }
+    return pose
+  }
 
   const flyTo = (toP: THREE.Vector3, toT: THREE.Vector3, dur = 0.9) => {
     const c = controls.current
@@ -61,7 +80,7 @@ export function LabCameraRig({ view, viewNonce, bridge }: Props) {
   const placed = useRef(false)
   useLayoutEffect(() => {
     if (placed.current) return
-    const pose = cameraPoseFor(view, aspect, portrait ? 58 : 48)
+    const pose = poseFor(view)
     camera.position.copy(pose.position)
     camera.lookAt(pose.target)
     controls.current?.target.copy(pose.target)
@@ -71,10 +90,10 @@ export function LabCameraRig({ view, viewNonce, bridge }: Props) {
 
   useEffect(() => {
     if (!placed.current) return
-    const pose = cameraPoseFor(view, aspect, portrait ? 58 : 48)
+    const pose = poseFor(view)
     flyTo(pose.position, pose.target)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, viewNonce, portrait])
+  }, [view, viewNonce, portrait, leftInsetPx])
 
   // Листание доски на телефоне
   useEffect(() => {

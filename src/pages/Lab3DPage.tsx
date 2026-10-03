@@ -3,7 +3,7 @@
  * мышь на компьютере, пальцы на телефоне/планшете/интерактивной доске. Опыты из Kimyo 7 (§ 2.12 и практическое § 5.2).
  * Состояние опыта (LabRunState) живёт здесь; ?exp=<id> в адресе выбирает опыт.
  */
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { LAB_EXPERIMENTS } from '../components/lab3d/experiments'
 import type { LabExperimentId, LabLang, LabRunState } from '../components/lab3d/labContract'
@@ -54,6 +54,14 @@ function resolveQuality(): 'low' | 'high' {
   return detectVrLabQuality() === 'high' ? 'high' : 'low'
 }
 
+const NARROW_QUERY = '(max-width: 820px)'
+function subscribeNarrow(cb: () => void): () => void {
+  const mq = window.matchMedia?.(NARROW_QUERY)
+  mq?.addEventListener('change', cb)
+  return () => mq?.removeEventListener('change', cb)
+}
+const isNarrowNow = () => (typeof window !== 'undefined' ? !!window.matchMedia?.(NARROW_QUERY).matches : false)
+
 export function Lab3DPage() {
   const { t, locale } = useT()
   const lang: LabLang = locale
@@ -67,7 +75,20 @@ export function Lab3DPage() {
 
   const [view, setView] = useState<LabViewId>('desk')
   const [viewNonce, setViewNonce] = useState(0)
-  const [panelOpen, setPanelOpen] = useState(true)
+  const narrow = useSyncExternalStore(subscribeNarrow, isNarrowNow, () => false)
+  // На телефоне панель снизу и свёрнута — сцена видна целиком
+  const [panelOpen, setPanelOpen] = useState(() => !isNarrowNow())
+  const panelRef = useRef<HTMLElement>(null)
+  const [leftInset, setLeftInset] = useState(0)
+  useLayoutEffect(() => {
+    const el = panelRef.current
+    if (!el) return
+    const measure = () => setLeftInset(!narrow && panelOpen ? el.offsetLeft + el.offsetWidth : 0)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [narrow, panelOpen])
   const [ready, setReady] = useState(false)
   const quality = useMemo(resolveQuality, [])
   const hasWebgl = useMemo(() => webglSupported(), [])
@@ -93,6 +114,7 @@ export function Lab3DPage() {
   )
   const advance = useCallback(() => setRun((r) => ({ ...r, step: Math.min(r.step + 1, totalSteps) })), [totalSteps])
   const chooseView = (id: LabViewId) => {
+    if (narrow) setPanelOpen(false)
     setView(id)
     setViewNonce((n) => n + 1)
   }
@@ -133,6 +155,7 @@ export function Lab3DPage() {
               onStep={setStep}
               onReady={() => setReady(true)}
               ariaLabel={t('lab3d.canvasAria')}
+              leftInsetPx={leftInset}
             />
             {!ready && (
               <div className={styles.loading} role="status">
@@ -175,7 +198,7 @@ export function Lab3DPage() {
       </div>
 
       {/* Панель опыта */}
-      <aside className={panelOpen ? styles.panel : `${styles.panel} ${styles.panelClosed}`} aria-label={t('lab3d.title')}>
+      <aside ref={panelRef} className={panelOpen ? styles.panel : `${styles.panel} ${styles.panelClosed}`} aria-label={t('lab3d.title')}>
         <button
           type="button"
           className={styles.panelHead}

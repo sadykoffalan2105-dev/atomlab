@@ -477,8 +477,8 @@ function ReagentJar({ mats, position, def, lang }: ItemProps & { def: ReagentDef
         <cylinderGeometry args={[isBottle ? 0.013 : 0.022, isBottle ? 0.013 : 0.022, isBottle ? 0.022 : 0.018, 16]} />
       </mesh>
       {/* Этикетка, обёрнутая вокруг передней части */}
-      <mesh position-y={0.055} rotation-y={-Math.PI / 2 - 0.9}>
-        <cylinderGeometry args={[bodyR + 0.0015, bodyR + 0.0015, 0.05, 20, 1, true, 0, 1.8]} />
+      <mesh position-y={0.055}>
+        <cylinderGeometry args={[bodyR + 0.0015, bodyR + 0.0015, 0.05, 20, 1, true, -0.9, 1.8]} />
         <meshStandardMaterial map={label} roughness={0.6} />
       </mesh>
     </Place>

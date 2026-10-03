@@ -12,6 +12,7 @@ export interface LabMaterials {
   benchBody: THREE.MeshStandardMaterial
   plinth: THREE.MeshStandardMaterial
   handle: THREE.MeshStandardMaterial
+  door: THREE.MeshStandardMaterial
   metal: THREE.MeshStandardMaterial
   chrome: THREE.MeshStandardMaterial
   steel: THREE.MeshStandardMaterial
@@ -55,8 +56,9 @@ export function useLabMaterials(quality: 'low' | 'high'): LabMaterials {
         clearcoatRoughness: 0.25,
       }),
       benchBody: new THREE.MeshStandardMaterial({ color: LAB_COLORS.benchBody, roughness: 0.55 }),
-      plinth: new THREE.MeshStandardMaterial({ color: '#9aa4b0', roughness: 0.7 }),
-      handle: new THREE.MeshStandardMaterial({ color: '#8d97a3', roughness: 0.3, metalness: 0.8 }),
+      plinth: new THREE.MeshStandardMaterial({ color: '#7d8794', roughness: 0.7 }),
+      handle: new THREE.MeshStandardMaterial({ color: '#6f7a87', roughness: 0.3, metalness: 0.8 }),
+      door: new THREE.MeshStandardMaterial({ color: '#cddbe9', roughness: 0.5 }),
       metal: new THREE.MeshStandardMaterial({ color: LAB_COLORS.metal, roughness: 0.35, metalness: 0.75 }),
       chrome: new THREE.MeshStandardMaterial({ color: '#e7ebf0', roughness: 0.12, metalness: 1 }),
       steel: new THREE.MeshStandardMaterial({ color: '#c3c9d0', roughness: 0.28, metalness: 0.9 }),

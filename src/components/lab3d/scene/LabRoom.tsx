@@ -79,6 +79,11 @@ export function LabRoom({ mats, lang }: Props) {
       </mesh>
       <LeftWallWithWindow mats={mats} viewMap={viewMap} />
 
+      {/* Мягкая акустическая панель за доской — светлый акцент передней стены */}
+      <mesh position={[0, 1.66, ROOM.frontZ + 0.004]}>
+        <planeGeometry args={[2.5, 1.5]} />
+        <meshStandardMaterial color="#dbe7f3" roughness={0.95} />
+      </mesh>
       {/* Плинтусы */}
       <mesh position={[0, 0.05, ROOM.frontZ + 0.006]} material={mats.whitePlastic}>
         <boxGeometry args={[ROOM.w, 0.1, 0.012]} />
@@ -306,7 +311,7 @@ function CabinetRun({
         const doorH = bodyH - drawerH - 0.03
         return (
           <group key={i} position={[cx, 0, frontZ]}>
-            <mesh position={[0, 0.115 + doorH / 2, 0.009]} material={mats.whitePlastic} castShadow>
+            <mesh position={[0, 0.115 + doorH / 2, 0.009]} material={mats.door} castShadow>
               <boxGeometry args={[doorW - 0.012, doorH, 0.018]} />
             </mesh>
             <mesh position={[0, 0.115 + doorH - 0.05, 0.026]} material={mats.handle}>
@@ -314,7 +319,7 @@ function CabinetRun({
             </mesh>
             {drawers && (
               <>
-                <mesh position={[0, 0.1 + bodyH - drawerH / 2 - 0.006, 0.009]} material={mats.whitePlastic}>
+                <mesh position={[0, 0.1 + bodyH - drawerH / 2 - 0.006, 0.009]} material={mats.door}>
                   <boxGeometry args={[doorW - 0.012, drawerH - 0.012, 0.018]} />
                 </mesh>
                 <mesh position={[0, 0.1 + bodyH - drawerH / 2 - 0.006, 0.026]} material={mats.handle}>

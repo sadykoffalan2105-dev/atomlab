@@ -45,7 +45,7 @@ export function cameraPoseFor(view: LabViewId, aspect: number, fovDeg: number): 
     case 'shelves':
       return aspect < 1
         ? { position: new THREE.Vector3(1.55, 1.55, 1.6), target: new THREE.Vector3(2.25, 1.35, -0.95) }
-        : { position: new THREE.Vector3(1.05, 1.62, 1.05), target: new THREE.Vector3(2.3, 1.38, -0.95) }
+        : { position: new THREE.Vector3(1.0, 1.7, 1.25), target: new THREE.Vector3(2.25, 1.5, -0.95) }
     case 'hood':
       return aspect < 1
         ? { position: new THREE.Vector3(-1.45, 1.6, 1.55), target: new THREE.Vector3(-2.05, 1.3, -0.9) }
@@ -53,10 +53,14 @@ export function cameraPoseFor(view: LabViewId, aspect: number, fovDeg: number): 
     case 'desk':
     default: {
       // Рабочее место (1,3 м) и доска должны поместиться по ширине
-      const target = new THREE.Vector3(0, 1.18, -0.42)
-      const needHalfW = aspect < 1 ? 0.78 : 1.02
-      const dist = Math.max(2.25, needHalfW / (tanHalf * Math.min(aspect, 1.9)) + 0.4)
-      const elev = THREE.MathUtils.degToRad(aspect < 1 ? 24 : 17)
+      // На телефоне (портрет) смотрим круче сверху: рабочее место крупно внизу, доска целиком вверху
+      const phone = aspect < 1
+      const target = phone ? new THREE.Vector3(0, 1.05, -0.2) : new THREE.Vector3(0, 1.22, -0.45)
+      const needHalfW = phone ? 0.78 : 1.25
+      const dist = phone
+        ? THREE.MathUtils.clamp(needHalfW / (tanHalf * aspect), 2.5, 3.1)
+        : Math.max(2.7, needHalfW / (tanHalf * Math.min(aspect, 1.9)) + 0.5)
+      const elev = THREE.MathUtils.degToRad(phone ? 32 : 16)
       tmp.set(0, Math.sin(elev), Math.cos(elev)).multiplyScalar(dist)
       return { position: target.clone().add(tmp), target }
     }

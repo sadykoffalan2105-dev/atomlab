@@ -36,6 +36,8 @@ export interface Lab3DCanvasProps {
   readonly onStep: (step: number) => void
   readonly onReady?: () => void
   readonly ariaLabel: string
+  /** Ширина панели интерфейса слева (CSS px) — камера сдвигает вид в свободную часть. */
+  readonly leftInsetPx?: number
 }
 
 /** Есть ли у объекта (или его предков внутри установки) свой обработчик клика — тогда курсор «рука». */
@@ -70,7 +72,7 @@ function SceneContent(props: Lab3DCanvasProps) {
   const mats = useLabMaterials(quality)
   const high = quality === 'high'
   const sun = useMemo(() => {
-    const l = new THREE.DirectionalLight('#fff4e2', high ? 2.4 : 2.0)
+    const l = new THREE.DirectionalLight('#fff1dc', high ? 2.3 : 1.9)
     l.position.set(-5.2, 4.4, 1.6)
     l.target.position.set(0, 0.9, -0.2)
     if (high) {
@@ -99,12 +101,12 @@ function SceneContent(props: Lab3DCanvasProps) {
   return (
     <>
       <color attach="background" args={['#e9eef3']} />
-      <hemisphereLight args={['#ffffff', '#d9d2c4', high ? 0.55 : 0.85]} />
+      <hemisphereLight args={['#f4f8ff', '#cfc6b6', high ? 0.42 : 0.75]} />
       <primitive object={sun} />
       <primitive object={sun.target} />
       <directionalLight position={[1.5, 2.9, 2.6]} intensity={high ? 0.55 : 0.8} color="#f3f7ff" />
       <Suspense fallback={null}>
-        <Environment frames={1} resolution={high ? 256 : 128} environmentIntensity={0.85}>
+        <Environment frames={1} resolution={high ? 256 : 128} environmentIntensity={0.72}>
           <color attach="background" args={['#dfe5ec']} />
           {/* Потолочные панели */}
           {[-1.4, 1.4].map((x) =>
@@ -124,7 +126,7 @@ function SceneContent(props: Lab3DCanvasProps) {
       <LabEquipment mats={mats} lang={lang} />
       <LabBoard mats={mats} panel={panel} bridge={props.bridge} />
       <RigSlot experimentId={props.experimentId} step={props.step} onAdvance={props.onAdvance} quality={quality} lang={lang} />
-      <LabCameraRig view={props.view} viewNonce={props.viewNonce} bridge={props.bridge} />
+      <LabCameraRig view={props.view} viewNonce={props.viewNonce} bridge={props.bridge} leftInsetPx={props.leftInsetPx} />
     </>
   )
 }
@@ -135,7 +137,7 @@ export default function Lab3DCanvas(props: Lab3DCanvasProps) {
     <Canvas
       shadows={high ? 'percentage' : false}
       dpr={high ? [1, 1.75] : [1, 1.25]}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.02 }}
+      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.94 }}
       camera={{ fov: 48, near: 0.03, far: 40, position: [0, 1.8, 1.8] }}
       onCreated={() => props.onReady?.()}
       aria-label={props.ariaLabel}

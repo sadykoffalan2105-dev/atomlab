@@ -42,7 +42,7 @@ export function floorTexture(): THREE.CanvasTexture {
   const cell = S / n
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      const v = 222 + Math.floor(r() * 10)
+      const v = 206 + Math.floor(r() * 12)
       ctx.fillStyle = `rgb(${v - 4},${v - 1},${v + 3})`
       ctx.fillRect(i * cell, j * cell, cell, cell)
     }
