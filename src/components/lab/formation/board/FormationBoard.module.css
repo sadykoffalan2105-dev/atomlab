@@ -65,7 +65,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
   gap: 8px;
 }
 
@@ -87,11 +87,18 @@
 }
 
 .cardOn {
+  /* Карточка текущего этапа — во всю ширину доски. */
+  grid-column: 1 / -1;
   border-color: #f59e0b;
   box-shadow:
     0 0 0 2px rgba(245, 158, 11, 0.35),
     0 4px 14px rgba(245, 158, 11, 0.18);
   opacity: 1;
+}
+
+/* Шкала ΔЭО и итог — во всю ширину: мелкие подписи шкалы читаются. */
+.wide {
+  grid-column: 1 / -1;
 }
 
 .cardTitle {

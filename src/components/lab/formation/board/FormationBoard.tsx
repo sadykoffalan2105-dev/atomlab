@@ -81,6 +81,12 @@ const LATTICE_KIND: Record<FormationScript['latticeKind'], [string, string, stri
 const pick = (t: [string, string, string], loc: FormationLocale) => (loc === 'en' ? t[1] : loc === 'uz' ? t[2] : t[0])
 const num = (x: number, loc: FormationLocale) => (loc === 'en' ? x.toFixed(2) : x.toFixed(2).replace('.', ','))
 
+/** Решётка по-русски: вид решётки + подробности из таблицы правил (без служебных пометок). */
+function ruLattice(s: FormationScript): string {
+  const t = s.lattice.replace(/\s*\(генератор есть\)/g, '').replace(/\s*\(школьная формула\)/g, '')
+  return /решётк|молекул|каркас|цеп/i.test(t.split(/[;,]/)[0]!) ? t : `${pick(LATTICE_KIND[s.latticeKind], 'ru')}: ${t}`
+}
+
 /** Атомы до связи (по одному на элемент, с коэффициентом): 2 H· + ·Ö·. */
 function atomsOf(plan: FormationPlan): { atom: LAtom; count: number }[] {
   const comp: Record<string, number> = {}
@@ -125,12 +131,13 @@ function transferScheme(plan: FormationPlan, script: FormationScript | null, loc
       note: L(loc, 'неподелённая пара N становится общей с H⁺ — донорно-акцепторная связь', 'the lone pair of N becomes shared with H⁺ — a donor–acceptor bond', 'N ning bo‘linmagan jufti H⁺ bilan umumiy bo‘ladi — donor-akseptor bog‘'),
     }
   }
-  const node = (sp: typeof cat): TransferNode => {
+  /** faces — куда смотрит неспаренный e⁻: у отдающего — к принимающему, у принимающего — навстречу стрелке. */
+  const node = (sp: typeof cat, faces: number): TransferNode => {
     const els = Object.keys(sp.comp)
     if (els.length === 1) {
       const el = els[0]!
-      if (sp.charge > 0) return { atom: { el, x: 0, y: 0, lone: 0, single: Math.min(4, sp.charge) } }
-      return { atom: valenceAtom(el) }
+      if (sp.charge > 0) return { atom: { el, x: 0, y: 0, lone: 0, single: Math.min(4, sp.charge), faces } }
+      return { atom: { ...valenceAtom(el), faces } }
     }
     return { text: bare(sp.formula) }
   }
@@ -139,19 +146,19 @@ function transferScheme(plan: FormationPlan, script: FormationScript | null, loc
   let nodes: TransferNode[]
   let arcs: TransferArc[]
   if (cat.count === 1 && an.count === 2) {
-    nodes = [node(an), node(cat), node(an)]
+    nodes = [node(an, 0), node(cat, 0), node(an, Math.PI)]
     arcs = [
       { from: 1, to: 0, text: `${a}e⁻` },
       { from: 1, to: 2, text: `${a}e⁻` },
     ]
   } else if (cat.count === 2 && an.count === 1) {
-    nodes = [node(cat), node(an), node(cat)]
+    nodes = [node(cat, 0), node(an, Math.PI), node(cat, Math.PI)]
     arcs = [
       { from: 0, to: 1, text: `${q}e⁻` },
       { from: 2, to: 1, text: `${q}e⁻` },
     ]
   } else {
-    nodes = [node(cat), node(an)]
+    nodes = [node(cat, 0), node(an, Math.PI)]
     arcs = [{ from: 0, to: 1, text: `${q}e⁻` }]
   }
   const line = (sp: typeof cat, give: boolean) => {
@@ -179,7 +186,7 @@ function DenScale({ dEN, loc }: { dEN: number; loc: FormationLocale }) {
       <text x={X(0)} y={52} fontSize={10.5} fill="#334155">
         0 · {L(loc, 'неполярная', 'nonpolar', 'qutbsiz')}
       </text>
-      <text x={(X(0.5) + X(1.5)) / 2} y={52} fontSize={10.5} textAnchor="middle" fill="#1d4ed8">
+      <text x={X(1.3)} y={52} fontSize={10.5} textAnchor="middle" fill="#1d4ed8">
         {L(loc, 'полярная', 'polar', 'qutbli')}
       </text>
       <text x={X(1.7)} y={62} fontSize={9.5} textAnchor="middle" fill="#334155">
@@ -217,7 +224,7 @@ export function FormationBoard({ compoundId, plan, stage, loc }: { compoundId: s
 
   const latticeText = script
     ? loc === 'ru'
-      ? script.lattice.replace(/\s*\(генератор есть\)/g, '').replace(/\s*\(школьная формула\)/g, '')
+      ? ruLattice(script)
       : `${pick(LATTICE_KIND[script.latticeKind], loc)}${script.lattice.match(/\d+\s?:\s?\d+/) ? `, ${script.lattice.match(/\d+\s?:\s?\d+/)![0]}` : ''}`
     : plan.crystal
       ? pick(LATTICE_KIND.schema, loc)
@@ -226,7 +233,7 @@ export function FormationBoard({ compoundId, plan, stage, loc }: { compoundId: s
 
   const card = (key: CardKey, title: string, body: React.ReactNode) =>
     !open && key !== focus ? null : (
-      <section key={key} className={key === focus ? styles.cardOn : styles.card} data-board-card={key} data-board-focus={key === focus ? '' : undefined}>
+      <section key={key} className={`${key === focus ? styles.cardOn : styles.card}${key === 'den' || key === 'lattice' ? ` ${styles.wide}` : ''}`} data-board-card={key} data-board-focus={key === focus ? '' : undefined}>
         <h4 className={styles.cardTitle}>{title}</h4>
         {body}
       </section>

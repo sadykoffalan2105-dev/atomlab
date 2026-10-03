@@ -24,32 +24,27 @@ const grow = (b: Box, x: number, y: number, r = 0) => {
 }
 const halfW = (el: string) => 6.5 + 5 * (el.length - 1)
 
-/** Направления групп электронов вокруг атома: подальше от связей, сначала стороны «крестом». */
-const CANDIDATES = (() => {
-  const out: number[] = [0, 90, 180, 270, 45, 135, 225, 315]
-  for (let a = 0; a < 360; a += 15) if (!out.includes(a)) out.push(a)
-  return out.map((d) => (d * Math.PI) / 180)
-})()
-const angDist = (a: number, b: number) => {
-  const d = Math.abs(a - b) % (2 * Math.PI)
-  return d > Math.PI ? 2 * Math.PI - d : d
-}
+/**
+ * Направления групп электронов вокруг атома. Без связей — по Льюису: справа, сверху, слева, снизу. Со связями —
+ * в самые большие промежутки между связями, поровну (у H₂O две пары — над атомом O, «ушками»).
+ */
+const CARDINAL = [0, -Math.PI / 2, Math.PI, Math.PI / 2]
 function groupDirs(taken: number[], k: number): number[] {
-  const used = [...taken]
-  const out: number[] = []
-  for (let g = 0; g < k; g++) {
-    let best = CANDIDATES[0]!
-    let bestD = -1
-    for (const c of CANDIDATES) {
-      const d = used.length ? Math.min(...used.map((u) => angDist(u, c))) : Math.PI
-      if (d > bestD + 1e-6) {
-        bestD = d
-        best = c
-      }
-    }
-    used.push(best)
-    out.push(best)
+  if (!taken.length) return CARDINAL.slice(0, k).concat(Array.from({ length: Math.max(0, k - 4) }, (_, i) => Math.PI / 4 + (i * Math.PI) / 2))
+  if (taken.length === 1 && k <= 3) {
+    // Концевой атом (H:Cl:, :N≡N:, Ö::Ö): одна группа — напротив связи, две — сверху и снизу, три — «крестом».
+    const b = taken[0]!
+    return k === 1 ? [b + Math.PI] : k === 2 ? [b - Math.PI / 2, b + Math.PI / 2] : [b - Math.PI / 2, b + Math.PI, b + Math.PI / 2]
   }
+  const a = [...taken].map((x) => (x + 2 * Math.PI) % (2 * Math.PI)).sort((x, y) => x - y)
+  const gaps = a.map((x, i) => ({ from: x, size: (i + 1 < a.length ? a[i + 1]! : a[0]! + 2 * Math.PI) - x, m: 0 }))
+  for (let g = 0; g < k; g++) {
+    let best = gaps[0]!
+    for (const x of gaps) if (x.size / (x.m + 1) > best.size / (best.m + 1) + 1e-6) best = x
+    best.m++
+  }
+  const out: number[] = []
+  for (const x of gaps) for (let j = 0; j < x.m; j++) out.push(x.from + (x.size * (j + 1)) / (x.m + 1))
   return out
 }
 
@@ -127,9 +122,12 @@ function drawGraph(g: LGraph, mode: LewisMode, key: string, markerId: string, sh
     if (!showLone) return
     const groups = a.lone + a.single
     if (!groups) return
-    const dirs = groupDirs(taken[i]!, groups)
+    // Схема перехода: неспаренный e⁻ — навстречу стрелке; остальные — пары. Иначе — сначала пары.
+    const f = a.faces
+    const facing = f != null && !taken[i]!.length
+    const dirs = facing ? [f, f + Math.PI, f - Math.PI / 2, f + Math.PI / 2].slice(0, groups) : groupDirs(taken[i]!, groups)
     dirs.forEach((th, gi) => {
-      const pair = gi < a.lone
+      const pair = facing ? gi >= a.single : gi < a.lone
       const rx = halfW(a.el) + 6
       const ry = 15
       const cx = x + Math.cos(th) * rx
@@ -170,7 +168,7 @@ function row(drawn: { d: Drawn | null; label: string; charge: number; count: num
           {p.count}
         </text>,
       )
-      x += 13
+      x += 17
     }
     if (!p.d) {
       nodes.push(

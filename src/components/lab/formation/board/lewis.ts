@@ -20,7 +20,8 @@ const en = (el: string) => EN[el] ?? 1.5
 /** Элементы 2-го периода: не больше четырёх электронных пар вокруг атома. */
 const PERIOD2 = new Set(['B', 'C', 'N', 'O', 'F'])
 
-export type LAtom = { el: string; x: number; y: number; lone: number; single: number }
+/** faces — у отдельного атома (схема перехода): неспаренный электрон смотрит в эту сторону (рад, 0 — вправо). */
+export type LAtom = { el: string; x: number; y: number; lone: number; single: number; faces?: number }
 /** dative — донорно-акцепторная: from — атом-донор пары (стрелка от него). */
 export type LBond = { a: number; b: number; order: number; dative?: number }
 export type LGraph = { atoms: LAtom[]; bonds: LBond[]; charge: number }

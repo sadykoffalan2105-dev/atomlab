@@ -18,8 +18,9 @@ const MAX = 200
 const C_S = new THREE.Color('#67e8f9')
 const C_P = new THREE.Color('#818cf8')
 const C_SIGMA = new THREE.Color('#7dd3fc')
-const C_OVER = new THREE.Color('#e0f2fe')
-const C_PI = new THREE.Color('#c084fc')
+// Общая область σ — ярче соседних облаков, но без «засветки» (аддитивно ложится поверх двух σ-облаков).
+const C_OVER = new THREE.Color('#e0f2fe').multiplyScalar(0.55)
+const C_PI = new THREE.Color('#c084fc').multiplyScalar(0.8)
 const C_CAT = new THREE.Color('#fdba74')
 const C_AN = new THREE.Color('#93c5fd')
 
@@ -157,7 +158,7 @@ export function FormationClouds({
     const env = clamp01((t - w0) / 0.8) * (1 - clamp01((t - w1) / 0.8))
     mesh.visible = env > 0.01
     if (!mesh.visible) return
-    mat.opacity = (plan.covalent ? 0.2 : 0.24) * env
+    mat.opacity = (plan.covalent ? 0.16 : 0.24) * env
     let k = 0
     const put = (c: THREE.Vector3, axis: THREE.Vector3 | null, half: number, wide: number, col: THREE.Color) => {
       if (k >= plan.count) return
