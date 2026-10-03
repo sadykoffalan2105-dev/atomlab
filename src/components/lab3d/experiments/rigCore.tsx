@@ -31,8 +31,8 @@ export interface RigContextValue {
   readonly beginGesture: (target: string, e: ThreeEvent<PointerEvent>) => void
   /** Идёт перетаскивание — призрачная рука прячется. */
   readonly dragging: boolean
-  /** Мировая точка начала координат установки (центр рабочего места стола или вытяжки) — для звуков и крупных планов. */
-  readonly origin: readonly [number, number, number]
+  /** Локальная точка установки → мировые координаты (где бы сцена ни поставила установку: стол или вытяжка). */
+  readonly toWorld: (local: readonly [number, number, number]) => [number, number, number]
 }
 
 export const RigContext = createContext<RigContextValue | null>(null)
@@ -256,8 +256,6 @@ export function useCrossing(threshold: number, fn: () => void) {
 
 /** Звук события через шину labEvents (сцена проигрывает его пространственно в точке установки local). */
 export function useSoundAt(threshold: number, name: string, local: V3, gain?: number) {
-  const { origin } = useRig()
-  useCrossing(threshold, () =>
-    labEvents.emit({ type: 'sound', name, at: [origin[0] + local[0], origin[1] + local[1], origin[2] + local[2]], gain }),
-  )
+  const { toWorld } = useRig()
+  useCrossing(threshold, () => labEvents.emit({ type: 'sound', name, at: toWorld(local), gain }))
 }

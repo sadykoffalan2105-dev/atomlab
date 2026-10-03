@@ -1058,3 +1058,10 @@
 .stars span[data-on] {
   color: #f2b01e;
 }
+
+/* Правая колонка доски с виджетами прокручивается, если не помещается (1280 × 720) */
+.focus {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
