@@ -86,14 +86,21 @@ const num = (x: number, loc: FormationLocale) => (loc === 'en' ? x.toFixed(2) : 
 
 /** Решётка по-русски: вид решётки + подробности из таблицы правил (без служебных пометок). */
 function ruLattice(s: FormationScript): string {
-  const t = s.lattice.replace(/\s*\(генератор есть\)/g, '').replace(/\s*\(школьная формула\)/g, '')
+  // служебные пометки таблицы правил: «(генератор есть)», «, генератор quartz есть», «подпись «…»»
+  const t = s.lattice
+    .replace(/\s*\(генератор есть\)/g, '')
+    .replace(/\s*\(школьная формула\)/g, '')
+    .replace(/,\s*генератор[^),;]*/g, '')
+    .replace(/;\s*подпись[^;]*/g, '')
+    .trim()
   return /решётк|молекул|каркас|цеп/i.test(t.split(/[;,]/)[0]!) ? t : `${pick(LATTICE_KIND[s.latticeKind], 'ru')}: ${t}`
 }
 
 /** Атомы до связи (по одному на элемент, с коэффициентом): 2 H· + ·Ö·. */
 function atomsOf(plan: FormationPlan): { atom: LAtom; count: number }[] {
   const comp: Record<string, number> = {}
-  for (const sp of plan.species) for (const [el, n] of Object.entries(sp.comp)) comp[el] = (comp[el] ?? 0) + n * (sp.kind === 'molecule' && plan.mode === 'ionic' ? sp.count : sp.kind === 'molecule' ? 1 : sp.count)
+  for (const sp of plan.species)
+    for (const [el, n] of Object.entries(sp.comp)) comp[el] = (comp[el] ?? 0) + n * (sp.kind === 'molecule' && plan.mode === 'ionic' ? sp.count : sp.kind === 'molecule' ? 1 : sp.count)
   return Object.entries(comp)
     .filter(([el]) => VALENCE[el] != null)
     .slice(0, 4)
@@ -141,13 +148,25 @@ const FRAG_NOTE: Record<FragmentKind, (x: string) => [string, string, string]> =
     `chain unit: the bridging O joins neighbouring ${x} units; n — the number of units`,
     `zanjir boʻgʻini: koʻprik O qoʻshni ${x} boʻgʻinlarini bogʻlaydi; n — boʻgʻinlar soni`,
   ],
-  bridge: (x) => [
-    `две половины связаны мостиком ${x}–O–${x}`,
-    `the two halves are joined by an ${x}–O–${x} bridge`,
-    `ikki yarmi ${x}–O–${x} koʻprigi bilan bogʻlangan`,
-  ],
+  bridge: (x) => [`две половины связаны мостиком ${x}–O–${x}`, `the two halves are joined by an ${x}–O–${x} bridge`, `ikki yarmi ${x}–O–${x} koʻprigi bilan bogʻlangan`],
 }
 const fragCenter = (g: LGraph) => g.atoms.find((a) => !a.ghost && a.el !== 'O' && a.el !== 'H')?.el ?? ''
+
+/** Связи одного центра фрагмента: «у каждого Si: Si–O ×4», «у каждого Cr: Cr=O ×2 · Cr–O ×2». */
+function centerBonds(g: LGraph, loc: FormationLocale): string {
+  const c = g.atoms.findIndex((a) => !a.ghost && a.el !== 'O' && a.el !== 'H')
+  if (c < 0) return ''
+  const X = g.atoms[c]!.el
+  const kinds = new Map<string, number>()
+  for (const b of g.bonds) {
+    if (b.a !== c && b.b !== c) continue
+    const o = g.atoms[b.a === c ? b.b : b.a]!.el
+    const k = `${X}${b.dative != null ? '→' : b.order === 2 ? '=' : b.order === 3 ? '≡' : '–'}${o}`
+    kinds.set(k, (kinds.get(k) ?? 0) + 1)
+  }
+  const list = [...kinds].map(([k, n]) => `${k} ×${n}`).join(' · ')
+  return `${L(loc, `у каждого ${X}`, `each ${X}`, `har bir ${X}`)}: ${list}`
+}
 
 /** Схема перехода: узлы, дуги и строки «Na⁰ − 1e⁻ → Na⁺». */
 function transferScheme(plan: FormationPlan, script: FormationScript | null, loc: FormationLocale) {
@@ -162,7 +181,12 @@ function transferScheme(plan: FormationPlan, script: FormationScript | null, loc
       arcs: [{ from: 0, to: 1, text: L(loc, 'пара e⁻', 'e⁻ pair', 'e⁻ jufti') }] as TransferArc[],
       lines: [`${acid} → H⁺ + ${an.formula}`, `:NH₃ + H⁺ → NH₄⁺`],
       given: null as null | [number, number],
-      note: L(loc, 'неподелённая пара N становится общей с H⁺ — донорно-акцепторная связь', 'the lone pair of N becomes shared with H⁺ — a donor–acceptor bond', 'N ning bo‘linmagan jufti H⁺ bilan umumiy bo‘ladi — donor-akseptor bog‘'),
+      note: L(
+        loc,
+        'неподелённая пара N становится общей с H⁺ — донорно-акцепторная связь',
+        'the lone pair of N becomes shared with H⁺ — a donor–acceptor bond',
+        'N ning bo‘linmagan jufti H⁺ bilan umumiy bo‘ladi — donor-akseptor bog‘',
+      ),
     }
   }
   /** faces — куда смотрит неспаренный e⁻: у отдающего — к принимающему, у принимающего — навстречу стрелке. */
@@ -261,7 +285,7 @@ export function FormationBoard({ compoundId, plan, stage, loc, refText }: { comp
     })
   }, [ionic, plan, model])
   const fragNote = useMemo(() => {
-    const g = frag ?? parts?.map((p) => p.graph).find((x) => x && (x.poly || x.atoms.some((a) => a.ghost) || x.atoms.filter((a) => a.el !== 'O' && a.el !== 'H').length === 2 && x.bonds.length > 6))
+    const g = frag ?? parts?.map((p) => p.graph).find((x) => x && (x.poly || x.atoms.some((a) => a.ghost) || (x.atoms.filter((a) => a.el !== 'O' && a.el !== 'H').length === 2 && x.bonds.length > 6)))
     return g ? pick(FRAG_NOTE[fragmentKind(g)](fragCenter(g)), loc) : null
   }, [frag, parts, loc])
   const hydrate = !!parts?.some((p) => p.lead)
@@ -285,7 +309,12 @@ export function FormationBoard({ compoundId, plan, stage, loc, refText }: { comp
 
   const card = (key: CardKey, title: string, body: React.ReactNode) =>
     !open && key !== focus ? null : (
-      <section key={key} className={`${key === focus ? styles.cardOn : styles.card}${key === 'den' || key === 'lattice' ? ` ${styles.wide}` : ''}`} data-board-card={key} data-board-focus={key === focus ? '' : undefined}>
+      <section
+        key={key}
+        className={`${key === focus ? styles.cardOn : styles.card}${key === 'den' || key === 'lattice' ? ` ${styles.wide}` : ''}`}
+        data-board-card={key}
+        data-board-focus={key === focus ? '' : undefined}
+      >
         <h4 className={styles.cardTitle}>{title}</h4>
         {body}
       </section>
@@ -349,12 +378,18 @@ export function FormationBoard({ compoundId, plan, stage, loc, refText }: { comp
                 {fragNote}
               </p>
             ) : null}
-            <p className={styles.small}>
-              {plan.bondKinds.length
-                ? plan.bondKinds.map((b) => `${b.label}${b.count > 1 ? ` ×${b.count}` : ''}`).join(' · ')
-                : plan.innerBonds.map((x) => `${x.of}: ${x.kinds.map((k) => `${k.label}${k.count > 1 ? ` ×${k.count}` : ''}`).join(', ')}`).join(' · ')}
-              {(mol?.bonds.some((b) => b.dative != null) || parts?.some((p) => p.graph?.bonds.some((b) => b.dative != null))) ? ` · → ${L(loc, 'донорно-акцепторная', 'donor–acceptor', 'donor-akseptor')}` : ''}
-            </p>
+            {frag && (type === 'N' || type === 'PM') ? (
+              <p className={styles.small}>{centerBonds(frag, loc)}</p>
+            ) : (
+              <p className={styles.small}>
+                {plan.bondKinds.length
+                  ? plan.bondKinds.map((b) => `${b.label}${b.count > 1 ? ` ×${b.count}` : ''}`).join(' · ')
+                  : plan.innerBonds.map((x) => `${x.of}: ${x.kinds.map((k) => `${k.label}${k.count > 1 ? ` ×${k.count}` : ''}`).join(', ')}`).join(' · ')}
+                {mol?.bonds.some((b) => b.dative != null) || parts?.some((p) => p.graph?.bonds.some((b) => b.dative != null))
+                  ? ` · → ${L(loc, 'донорно-акцепторная', 'donor–acceptor', 'donor-akseptor')}`
+                  : ''}
+              </p>
+            )}
           </>,
         )}
         {scheme
@@ -402,7 +437,11 @@ export function FormationBoard({ compoundId, plan, stage, loc, refText }: { comp
                 <span className={styles.eq}>{script.route}</span>
               </p>
             ) : null}
-            {script?.lab ? <p className={styles.small}>{L(loc, 'в лаборатории', 'in the lab', 'laboratoriyada')}: {script.lab}</p> : null}
+            {script?.lab ? (
+              <p className={styles.small}>
+                {L(loc, 'в лаборатории', 'in the lab', 'laboratoriyada')}: {script.lab}
+              </p>
+            ) : null}
           </>,
         )}
       </div>

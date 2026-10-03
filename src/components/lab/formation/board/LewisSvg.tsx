@@ -267,7 +267,8 @@ export function FormulaSvg({
   let items: { d: Drawn | null; label: string; charge: number; count: number; bracket: boolean; lead?: string }[] = []
   let sep = ''
   if (graph) items = [{ d: drawGraph(graph, mode, 'm', marker, showLone), label: '', charge: graph.charge, count: 1, bracket: graph.charge !== 0 && !graph.poly }]
-  else if (parts) items = parts.map((p, k) => ({ d: p.graph ? drawGraph(p.graph, mode, `p${k}`, marker, showLone) : null, label: p.label, charge: p.charge, count: p.count, bracket: p.bracket, lead: p.lead }))
+  else if (parts)
+    items = parts.map((p, k) => ({ d: p.graph ? drawGraph(p.graph, mode, `p${k}`, marker, showLone) : null, label: p.label, charge: p.charge, count: p.count, bracket: p.bracket, lead: p.lead }))
   else if (atoms) {
     sep = '+'
     items = atoms.map((a, k) => ({ d: drawGraph({ atoms: [a.atom], bonds: [], charge: 0 }, 'dots', `v${k}`, marker, true), label: a.atom.el, charge: 0, count: a.count, bracket: false }))

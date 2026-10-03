@@ -129,7 +129,18 @@ function nodeFragment(X: string, terms: Term[], bridges: number, chain: boolean,
     return { ...localElectrons({ atoms, bonds, charge }), poly: { x0: -1.5, x1: 0.5 } }
   }
   // каркас / клетка: концевые — вверх, мостики — влево, вправо, вниз (и вверх, если концевых нет)
-  const bdirs: [number, number][] = terms.length ? [[-1, 0], [1, 0], [0, 1]] : [[0, -1], [1, 0], [0, 1], [-1, 0]]
+  const bdirs: [number, number][] = terms.length
+    ? [
+        [-1, 0],
+        [1, 0],
+        [0, 1],
+      ]
+    : [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+      ]
   terms.forEach((t) => addTerm(atoms, bonds, 0, t, 0, -1))
   for (const [dx, dy] of bdirs.slice(0, bridges)) {
     atoms.push({ el: 'O', x: dx, y: dy, lone: 0, single: 0 })
