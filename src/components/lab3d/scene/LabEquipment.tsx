@@ -10,7 +10,7 @@ import * as THREE from 'three'
 import { BENCH_TOP_Y, WORK_AREA_SIZE, type LabLang } from '../labContract'
 import { BENCH, COUNTER, HOOD, ROOM, SINK_X } from './labSceneLayout'
 import { lathe, type LabMaterials } from './labMaterials'
-import { jarLabelTexture, scalesDisplayTexture, type JarLabel } from './labTextures'
+import { scalesDisplayTexture } from './labTextures'
 
 type V3 = readonly [number, number, number]
 interface ItemProps {
@@ -278,28 +278,6 @@ function RetortStand({ mats, position, rotationY }: ItemProps) {
   )
 }
 
-/** Спиртовка: стеклянный корпус со спиртом, трубка с фитилём, колпачок рядом. */
-function SpiritLamp({ mats, position }: ItemProps) {
-  return (
-    <Place position={position}>
-      <mesh geometry={GEO.lampBody} material={mats.glass} castShadow={false} />
-      <mesh position-y={0.018} material={mats.water}>
-        <cylinderGeometry args={[0.042, 0.045, 0.034, 24]} />
-      </mesh>
-      <mesh position-y={0.083} material={mats.metal}>
-        <cylinderGeometry args={[0.018, 0.018, 0.016, 16]} />
-      </mesh>
-      <mesh position-y={0.1} material={mats.porcelain}>
-        <cylinderGeometry args={[0.005, 0.005, 0.02, 8]} />
-      </mesh>
-      {/* Колпачок, снятый и поставленный рядом */}
-      <mesh position={[0.08, 0.025, 0.01]} material={mats.glass}>
-        <cylinderGeometry args={[0.018, 0.022, 0.05, 16]} />
-      </mesh>
-    </Place>
-  )
-}
-
 /** Газовая горелка (Бунзена): основание, трубка, регулятор воздуха, штуцер шланга. */
 function GasBurner({ mats, position }: ItemProps) {
   return (
@@ -432,65 +410,12 @@ function Gloves({ mats, position, rotationY }: ItemProps) {
   )
 }
 
-interface ReagentDef extends JarLabel {
-  readonly kind: 'bottle' | 'jar' | 'amber'
-  readonly fill: string
-}
-
-const REAGENTS: readonly ReagentDef[] = [
-  { formula: 'HCl', name: { ru: 'соляная кислота', en: 'hydrochloric acid', uz: 'xlorid kislota' }, band: '#d93a2e', kind: 'bottle', fill: '#eef6ff' },
-  { formula: 'H₂SO₄', name: { ru: 'серная кислота', en: 'sulfuric acid', uz: 'sulfat kislota' }, band: '#d93a2e', kind: 'amber', fill: '#f5efe2' },
-  { formula: 'BaCl₂', name: { ru: 'хлорид бария', en: 'barium chloride', uz: 'bariy xlorid' }, band: '#2f9e5b', kind: 'jar', fill: '#ffffff' },
-  { formula: 'Zn', name: { ru: 'цинк (гранулы)', en: 'zinc granules', uz: 'rux (donador)' }, band: '#6b7683', kind: 'jar', fill: '#9aa3ad' },
-  { formula: 'NaOH', name: { ru: 'гидроксид натрия', en: 'sodium hydroxide', uz: 'natriy gidroksid' }, band: '#2f7cf6', kind: 'jar', fill: '#f4f6f8' },
-  { formula: 'CaO', name: { ru: 'оксид кальция', en: 'calcium oxide', uz: 'kalsiy oksid' }, band: '#2f7cf6', kind: 'jar', fill: '#f1efe8' },
-  { formula: 'CuO', name: { ru: 'оксид меди (II)', en: 'copper(II) oxide', uz: 'mis (II) oksid' }, band: '#6b7683', kind: 'jar', fill: '#1e1f22' },
-  { formula: 'CuSO₄', name: { ru: 'сульфат меди (II)', en: 'copper(II) sulfate', uz: 'mis (II) sulfat' }, band: '#2f9e5b', kind: 'jar', fill: '#2d7fd6' },
-  { formula: 'Fe', name: { ru: 'железо (опилки)', en: 'iron filings', uz: 'temir (qipiq)' }, band: '#6b7683', kind: 'jar', fill: '#55575c' },
-  { formula: 'Al', name: { ru: 'алюминий', en: 'aluminium', uz: 'alyuminiy' }, band: '#6b7683', kind: 'jar', fill: '#c9ced4' },
-  { formula: 'NaCl', name: { ru: 'хлорид натрия', en: 'sodium chloride', uz: 'natriy xlorid' }, band: '#2f9e5b', kind: 'jar', fill: '#ffffff' },
-  { formula: 'C₂H₅OH', name: { ru: 'спирт', en: 'ethanol', uz: 'spirt' }, band: '#f0a020', kind: 'bottle', fill: '#f4f9ff' },
-]
-
-function ReagentJar({ mats, position, def, lang }: ItemProps & { def: ReagentDef; lang: LabLang }) {
-  const label = useMemo(() => jarLabelTexture(def, lang), [def, lang])
-  const fillMat = useMemo(() => new THREE.MeshStandardMaterial({ color: def.fill, roughness: 0.8 }), [def.fill])
-  useEffect(
-    () => () => {
-      label.dispose()
-      fillMat.dispose()
-    },
-    [label, fillMat],
-  )
-  const glass = def.kind === 'amber' ? mats.amberGlass : mats.glass
-  const isBottle = def.kind !== 'jar'
-  const bodyR = isBottle ? 0.032 : 0.036
-  return (
-    <Place position={position}>
-      <mesh geometry={isBottle ? GEO.bottle : GEO.jar} material={glass} />
-      {/* Содержимое: порошок/гранулы или раствор */}
-      <mesh position-y={isBottle ? 0.05 : 0.035} material={isBottle ? mats.water : fillMat}>
-        <cylinderGeometry args={[bodyR - 0.004, bodyR - 0.004, isBottle ? 0.09 : 0.06, 20]} />
-      </mesh>
-      {/* Крышка */}
-      <mesh position-y={isBottle ? 0.178 : 0.142} material={def.kind === 'jar' ? mats.blackPlastic : mats.red}>
-        <cylinderGeometry args={[isBottle ? 0.013 : 0.022, isBottle ? 0.013 : 0.022, isBottle ? 0.022 : 0.018, 16]} />
-      </mesh>
-      {/* Этикетка, обёрнутая вокруг передней части */}
-      <mesh position-y={0.055}>
-        <cylinderGeometry args={[bodyR + 0.0015, bodyR + 0.0015, 0.05, 20, 1, true, -0.9, 1.8]} />
-        <meshStandardMaterial map={label} roughness={0.6} />
-      </mesh>
-    </Place>
-  )
-}
-
 interface EquipmentProps {
   readonly mats: LabMaterials
   readonly lang: LabLang
 }
 
-export function LabEquipment({ mats, lang }: EquipmentProps) {
+export function LabEquipment({ mats }: EquipmentProps) {
   const display = useMemo(() => scalesDisplayTexture(), [])
   useEffect(() => () => display.dispose(), [display])
   const top = BENCH_TOP_Y
@@ -501,22 +426,15 @@ export function LabEquipment({ mats, lang }: EquipmentProps) {
   const backZ = BENCH.centerZ - BENCH.d / 2 + 0.16
   const counterTop = BENCH_TOP_Y
   const cz = ROOM.frontZ + COUNTER.d / 2
-  const shelfZ = ROOM.frontZ + 0.16
-  const shelves = [1.4325, 1.8325, 2.2125]
-  const shelfX0 = COUNTER.x0 + 0.12
   const hoodZ = ROOM.frontZ + 0.33
   return (
     <group>
-      {/* Левый край стола: штатив с пробирками, спиртовка, очки, перчатки */}
-      <TestTubeRack mats={mats} position={[edgeL - 0.05, top, backZ]} rotationY={0.15} />
-      <SpiritLamp mats={mats} position={[edgeL + 0.13, top, 0.05]} />
-      <Gloves mats={mats} position={[edgeL - 0.14, top, 0.04]} rotationY={0.3} />
-      <Goggles mats={mats} position={[edgeL - 0.02, top, frontZ]} rotationY={0.2} />
-      {/* Правый край: штатив с кольцом и лапкой, стаканы, колба, цилиндр */}
+      {/* Левый край стола: штатив с пробирками, очки, перчатки (спиртовка — в тумбе, её берут рукой) */}
+      <TestTubeRack mats={mats} position={[edgeL - 0.0, top, backZ + 0.03]} rotationY={0.15} />
+      <Gloves mats={mats} position={[edgeL - 0.12, top, 0.0]} rotationY={0.3} />
+      <Goggles mats={mats} position={[edgeL - 0.09, top, frontZ - 0.03]} rotationY={0.2} />
+      {/* Правый край: штатив с кольцом и лапкой (свободные места стола — для предметов из шкафов) */}
       <RetortStand mats={mats} position={[edgeR + 0.12, top, backZ + 0.02]} rotationY={-0.25} />
-      <Beaker mats={mats} position={[edgeR - 0.02, top, frontZ - 0.04]} liquid={mats.water} />
-      <ConicalFlask mats={mats} position={[edgeR + 0.13, top, frontZ - 0.06]} liquid={mats.blueLiquid} />
-      <GraduatedCylinder mats={mats} position={[edgeR + 0.26, top, frontZ - 0.1]} />
 
       {/* Столешница у мойки: весы, плитка, ступка, чашка, промывалка */}
       <Scales mats={mats} position={[COUNTER.x0 + 0.2, counterTop, cz + 0.04]} display={display} />
@@ -526,20 +444,10 @@ export function LabEquipment({ mats, lang }: EquipmentProps) {
       <PorcelainDish mats={mats} position={[COUNTER.x0 + 0.95, counterTop, cz - 0.08]} />
       <WashBottle mats={mats} position={[SINK_X + 0.36, counterTop, cz - 0.1]} />
 
-      {/* Полки: реактивы и посуда */}
-      {REAGENTS.slice(0, 6).map((def, i) => (
-        <ReagentJar key={def.formula} mats={mats} lang={lang} def={def} position={[shelfX0 + i * 0.165, shelves[0], shelfZ]} />
-      ))}
-      {REAGENTS.slice(6).map((def, i) => (
-        <ReagentJar key={def.formula} mats={mats} lang={lang} def={def} position={[shelfX0 + i * 0.165, shelves[1], shelfZ]} />
-      ))}
-      <ConicalFlask mats={mats} position={[shelfX0, shelves[2], shelfZ]} />
-      <ConicalFlask mats={mats} position={[shelfX0 + 0.14, shelves[2], shelfZ]} scale={0.8} />
-      <RoundFlask mats={mats} position={[shelfX0 + 0.3, shelves[2], shelfZ]} />
-      <Beaker mats={mats} position={[shelfX0 + 0.46, shelves[2], shelfZ]} scale={1.3} />
-      <Beaker mats={mats} position={[shelfX0 + 0.6, shelves[2], shelfZ]} />
-      <Funnel mats={mats} position={[shelfX0 + 0.74, shelves[2], shelfZ]} />
-      <GraduatedCylinder mats={mats} position={[shelfX0 + 0.88, shelves[2], shelfZ]} scale={0.8} />
+      {/* Банки реактивов на полках и посуда в шкафах — интерактивные (interaction/LabInteractiveItems) */}
+      <ConicalFlask mats={mats} position={[COUNTER.x0 + 0.95, counterTop, cz + 0.12]} scale={0.85} liquid={mats.blueLiquid} />
+      <GraduatedCylinder mats={mats} position={[COUNTER.x0 + 0.08, counterTop, cz - 0.16]} scale={0.8} />
+      <Funnel mats={mats} position={[COUNTER.x0 + 0.34, counterTop, cz - 0.17]} />
 
       {/* В вытяжном шкафу: горелка, штатив с колбой */}
       <GasBurner mats={mats} position={[HOOD.x - 0.3, top, hoodZ]} />

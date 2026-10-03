@@ -19,7 +19,7 @@ export const COUNTER = { x0: 1.32, x1: ROOM.w / 2, d: 0.62 } as const
 export const SINK_X = 2.78
 
 /** Точки камеры (поза: где стоит камера и куда смотрит). */
-export type LabViewId = 'desk' | 'board' | 'shelves' | 'hood'
+export type LabViewId = 'desk' | 'board' | 'shelves' | 'hood' | 'cabinets'
 
 export interface CameraPose {
   readonly position: THREE.Vector3
@@ -46,6 +46,11 @@ export function cameraPoseFor(view: LabViewId, aspect: number, fovDeg: number): 
       return aspect < 1
         ? { position: new THREE.Vector3(1.55, 1.55, 1.6), target: new THREE.Vector3(2.25, 1.35, -0.95) }
         : { position: new THREE.Vector3(1.0, 1.7, 1.25), target: new THREE.Vector3(2.25, 1.5, -0.95) }
+    case 'cabinets':
+      // Тумба под столом: камера ниже, смотрит на дверцы (на телефоне — левые секции со спиртовкой)
+      return aspect < 1
+        ? { position: new THREE.Vector3(-0.55, 1.12, 1.55), target: new THREE.Vector3(-0.62, 0.48, 0.3) }
+        : { position: new THREE.Vector3(0, 1.2, 2.05), target: new THREE.Vector3(0, 0.55, 0.3) }
     case 'hood':
       return aspect < 1
         ? { position: new THREE.Vector3(-1.45, 1.6, 1.55), target: new THREE.Vector3(-2.05, 1.3, -0.9) }

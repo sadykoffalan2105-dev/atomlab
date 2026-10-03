@@ -3,11 +3,13 @@
  * комната, оборудование, электронная доска, установка опыта на рабочем месте, камера.
  * Всё, что может «подвиснуть» (Suspense), — в своей Suspense внутри Canvas, чтобы не прятать холст целиком.
  */
-import { Environment, Lightformer, useCursor } from '@react-three/drei'
+import { ContactShadows, Environment, Lightformer, useCursor } from '@react-three/drei'
 import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { Suspense, useCallback, useMemo, useState } from 'react'
 import * as THREE from 'three'
+import { LabInteractiveItems } from '../interaction/LabInteractiveItems'
 import {
+  BENCH_TOP_Y,
   WORK_AREA_CENTER,
   type BoardPanelProps,
   type ExperimentRigProps,
@@ -21,7 +23,7 @@ import { LabEquipment } from './LabEquipment'
 import { LabRoom } from './LabRoom'
 import type { LabSceneBridge } from './labBridge'
 import { useLabMaterials } from './labMaterials'
-import { ROOM, type LabViewId } from './labSceneLayout'
+import { HOOD, ROOM, type LabViewId } from './labSceneLayout'
 
 export interface Lab3DCanvasProps {
   readonly experimentId: LabExperimentId
@@ -91,6 +93,20 @@ function SceneContent(props: Lab3DCanvasProps) {
     }
     return l
   }, [high])
+  const hoodSpot = useMemo(() => {
+    const l = new THREE.SpotLight('#f4f9ff', 2.2, 2.4, 0.95, 0.85, 1.6)
+    l.position.set(HOOD.x, HOOD.h - 0.46, ROOM.frontZ + HOOD.d / 2 - 0.05)
+    l.target.position.set(HOOD.x, BENCH_TOP_Y, ROOM.frontZ + HOOD.d / 2)
+    return l
+  }, [])
+  const bridge = props.bridge
+  const onSceneDoubleClick = useCallback(
+    (e: ThreeEvent<MouseEvent>) => {
+      e.stopPropagation()
+      bridge.zoomTo?.(e.point, 0.75)
+    },
+    [bridge],
+  )
   const panel: BoardPanelProps = {
     experimentId: props.experimentId,
     step: props.step,
@@ -122,10 +138,29 @@ function SceneContent(props: Lab3DCanvasProps) {
           <Lightformer form="rect" intensity={0.5} color="#e8e2d6" position={[0, 0, 1]} rotation-x={-Math.PI / 2} scale={[6, 6, 1]} />
         </Environment>
       </Suspense>
-      <LabRoom mats={mats} lang={lang} quality={quality} />
-      <LabEquipment mats={mats} lang={lang} />
+      {/* Подсвеченная рабочая зона вытяжного шкафа */}
+      {high && <primitive object={hoodSpot} />}
+      {high && <primitive object={hoodSpot.target} />}
+      {/* Мягкие контактные тени под рабочим местом (только ПК) */}
+      {high && (
+        <ContactShadows
+          position={[WORK_AREA_CENTER.x, WORK_AREA_CENTER.y + 0.0015, WORK_AREA_CENTER.z]}
+          scale={[2.5, 0.95]}
+          resolution={512}
+          blur={2.2}
+          far={0.5}
+          opacity={0.42}
+          color="#1d2a3a"
+        />
+      )}
+      {/* Двойной клик/тап по любой поверхности — камера приближается к этой точке */}
+      <group onDoubleClick={onSceneDoubleClick}>
+        <LabRoom mats={mats} lang={lang} quality={quality} />
+        <LabEquipment mats={mats} lang={lang} />
+      </group>
       <LabBoard mats={mats} panel={panel} bridge={props.bridge} />
       <RigSlot experimentId={props.experimentId} step={props.step} onAdvance={props.onAdvance} quality={quality} lang={lang} />
+      <LabInteractiveItems mats={mats} lang={lang} quality={quality} bridge={props.bridge} />
       <LabCameraRig view={props.view} viewNonce={props.viewNonce} bridge={props.bridge} leftInsetPx={props.leftInsetPx} />
     </>
   )

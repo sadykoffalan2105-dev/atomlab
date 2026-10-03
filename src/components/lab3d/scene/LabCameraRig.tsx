@@ -9,6 +9,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { BOARD_CENTER, BOARD_SIZE } from '../labContract'
+import { labEvents } from '../labEvents'
 import type { LabSceneBridge } from './labBridge'
 import { CAMERA_BOUNDS, TARGET_BOUNDS, cameraPoseFor, type LabViewId } from './labSceneLayout'
 
@@ -95,6 +96,33 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, viewNonce, portrait, leftInsetPx])
 
+  // Крупный план от опыта ('focus') и возврат в текущий вид ('focusReset'); двойной клик по предмету — приближение
+  const poseRef = useRef(poseFor)
+  poseRef.current = poseFor
+  const viewRef = useRef(view)
+  viewRef.current = view
+  useEffect(() => {
+    const offFocus = labEvents.on('focus', (e) => flyTo(new THREE.Vector3(...e.position).clamp(CAMERA_BOUNDS.min, CAMERA_BOUNDS.max), new THREE.Vector3(...e.target), 1.1))
+    const offReset = labEvents.on('focusReset', () => {
+      const pose = poseRef.current(viewRef.current)
+      flyTo(pose.position, pose.target, 1.0)
+    })
+    bridge.zoomTo = (p, dist = 0.6) => {
+      const target = new THREE.Vector3(p.x, p.y, p.z)
+      const dir = camera.position.clone().sub(target)
+      dir.y = Math.max(dir.y, dir.length() * 0.35)
+      const pos = target.clone().add(dir.normalize().multiplyScalar(dist))
+      pos.clamp(CAMERA_BOUNDS.min, CAMERA_BOUNDS.max)
+      flyTo(pos, target.clamp(TARGET_BOUNDS.min, TARGET_BOUNDS.max), 0.8)
+    }
+    return () => {
+      offFocus()
+      offReset()
+      bridge.zoomTo = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridge, camera])
+
   // Листание доски на телефоне
   useEffect(() => {
     bridge.boardPanEnabled = boardPhone
@@ -156,13 +184,13 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
       ref={controls}
       makeDefault
       enableDamping
-      dampingFactor={0.09}
+      dampingFactor={0.06}
       rotateSpeed={0.55}
       zoomSpeed={0.8}
       panSpeed={0.7}
       screenSpacePanning
       enableRotate={!boardPhone}
-      minDistance={0.35}
+      minDistance={0.2}
       maxDistance={5}
       minPolarAngle={0.25}
       maxPolarAngle={1.52}

@@ -1114,4 +1114,10 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab3d.hint': 'Rotate with the mouse or one finger, zoom with the wheel or two fingers. Board buttons work with a tap.',
   'lab3d.classic': 'Classic VR lab →',
   'lab3d.canvasAria': 'A bright school chemistry lab: a bench with the experiment setup, a smart board, a fume hood, a sink and shelves with reagents and glassware',
+  'lab3d.grab.hint': 'Tap a bottle or open a cabinet to take an item',
+  'lab3d.grab.inHand': 'In hand: {name}',
+  'lab3d.grab.putBack': 'Put back',
+  'lab3d.grab.toWork': 'Put on the work area',
+  'lab3d.grab.handAria': 'Item in hand',
+  'lab3d.scene.view.cabinets': 'Cabinets',
 }
