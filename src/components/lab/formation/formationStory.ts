@@ -3,6 +3,13 @@ import { formationPlan, isMetal } from '../../../chemistry/formationPlan'
 import { DIATOMIC, formationEquation, type FormationEquation } from '../../../chemistry/formationEquation'
 import { buildSchoolHeroModel, schoolBallRadius, type SchoolHeroModel, type V3 } from '../hero/schoolHeroModel'
 import { compoundById } from '../../../data/compounds'
+import { formationScript, type FormationType } from '../../../chemistry/formationScripts'
+import { latticeFor, type LatticeAtom, type StoryLatticeKind } from './story/lattice'
+import { buildRouteStage, ROUTE_DUR, type RouteStage } from './story/route'
+
+export type { LatticeAtom, StoryLatticeKind } from './story/lattice'
+export type { RouteStage, RouteAtom, RouteStick, RouteElectron, RouteBadge, RouteShow } from './story/route'
+export { routeKeyAt } from './story/route'
 
 /**
  * Сценарий «Как образуется» от и до (чистые функции — их читают 3D-вид, подписи и аудит):
@@ -13,7 +20,8 @@ import { compoundById } from '../../../data/compounds'
  * Итоговые положения атомов — РОВНО положения модели карточки (ничего не придумывается), меняется только путь.
  */
 
-export type StageKey = 'reagents' | 'break' | 'approach' | 'valence' | 'inner' | 'transfer' | 'pairs' | 'bonds' | 'assemble' | 'lattice' | 'final'
+/** 'route' — путь получения на уровне частиц (H⁺ + OH⁻ → H₂O, NH₃ + H⁺ → NH₄⁺, гидратация, обмен …), см. routeStage. */
+export type StageKey = 'reagents' | 'route' | 'break' | 'approach' | 'valence' | 'inner' | 'transfer' | 'pairs' | 'bonds' | 'assemble' | 'lattice' | 'final'
 export type Stage = { key: StageKey; t0: number; dur: number }
 
 /** Палочка связи (кратная — несколько палочек, каждая со своим временем). */
@@ -50,8 +58,20 @@ export type FormationStory = {
   reagentSticks: ReagentStick[]
   ghosts: GhostAtom[]
   electrons: StoryElectron[]
-  /** смещения копий формульной единицы (фрагмент решётки), мир модели */
-  latticeCopies: V3[]
+  /**
+   * Фрагмент решётки вокруг модели (мир модели): ионы IB/IC/IH (настоящий из CRYSTAL_DATA или обобщённый 3D),
+   * молекулы в узлах (I₂, S₈, P₄, P₄O₁₀ …) или соседние звенья цепи (CrO₃, V₂O₅ …). k — порядок роста (слоями от центра).
+   * Пусто у газов/жидкостей, у SiO₂ и у кристаллических моделей карточки (решётка — сама модель).
+   */
+  latticeAtoms: LatticeAtom[]
+  /** вид итоговой «решётки»: ionic — ионная (только IB/IC/IH), molecular, chain (полимер), network (SiO₂), none */
+  latticeKind: StoryLatticeKind
+  /** окно роста фрагмента: атом с порядком k появляется в latticeWin[0] + k·(latticeWin[1] − latticeWin[0]) */
+  latticeWin: [number, number]
+  /** тип образования по таблице правил (formationScripts): S, MP, N, PM, IB, IC, IH */
+  type: FormationType | null
+  /** путь получения на уровне частиц (этап 'route'); null — путь показан только уравнением */
+  routeStage: RouteStage | null
   /** ионное: подписи с зарядами — с этого времени */
   ionLabelsFrom: number
   /** радиус электрона, мир */
@@ -75,7 +95,15 @@ const VALENCE_E: Record<string, number> = {
   B: 3, Al: 3, C: 4, Si: 4, Ge: 4, Sn: 4, Pb: 4, N: 5, P: 5, As: 5, O: 6, S: 6, Se: 6, Te: 6, F: 7, Cl: 7, Br: 7, I: 7,
 }
 
-const D = { reagents: 3.5, break: 3, approach: 3.5, valence: 4, transfer: 4.5, pairs: 4, assemble: 4, lattice: 4.5, final: 5 }
+const D = { reagents: 3.5, break: 3, approach: 3.5, valence: 4, assemble: 4, lattice: 5.5, final: 5 }
+/** Темп (правила, раздел 2): переход e⁻ — каждый электрон отдельно ≈ 1,2 с; общие пары — по одной; палочка ≥ 0,6 с. */
+const E_PER = 1.2
+const transferDur = (n: number) => clamp(1.5 + 1.25 * n, 4.5, 16)
+const pairsDur = (n: number) => clamp(2 + 1.1 * n, 4, 14)
+const bondsDur = (n: number) => clamp(1.5 + 0.6 * n, 4, 14)
+const STICK_MIN = 0.6
+const MIN_TOTAL = 30
+const MAX_TOTAL = 60
 const clamp = (x: number, a: number, b: number) => (x < a ? a : x > b ? b : x)
 
 // ─── Поворот позы модели (как в FormationMoleculeView: sway — Ry(yaw)·Rx(pitch), orbit — Rx(pitch)·Ry(yaw)) ───
@@ -95,6 +123,10 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
   const n = model.atoms.length
   const crystal = model.kind === 'crystal'
   const ionic = plan.mode === 'ionic'
+  const script = formationScript(plan.compoundId)
+  const type = script?.type ?? null
+  /** N — атомный каркас SiO₂: растёт от центрального тетраэдра SiO₄ к соседним (по удалённости). */
+  const network = type === 'N'
   const PF = model.atoms.map((a) => [...a.pos] as V3)
   let maxD = 0
   for (const p of PF) maxD = Math.max(maxD, len(p))
@@ -226,11 +258,86 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     nbrs[b.b]!.push(b.a)
   }
   const stickList: { a: number; b: number; n: number; s: number; bond: number }[] = []
-  for (const k of plan.bondOrder) {
+  const midD = (k: number) => {
+    const b = model.bonds[k]!
+    return len([(PF[b.a]![0] + PF[b.b]![0]) / 2, (PF[b.a]![1] + PF[b.b]![1]) / 2, (PF[b.a]![2] + PF[b.b]![2]) / 2])
+  }
+  const bondOrder = network ? model.bonds.map((_, k) => k).sort((x, y) => midD(x) - midD(y)) : plan.bondOrder
+  for (const k of bondOrder) {
     const b = model.bonds[k]!
     const nn = Math.max(1, Math.min(3, Math.round(b.order)))
     for (let s = 0; s < nn; s++) stickList.push({ a: b.a, b: b.b, n: nn, s, bond: k })
   }
+
+  // ── Какие частицы показывают электроны (у больших кристаллов — только центральные) ──
+  const showE: boolean[] = model.atoms.map(() => true)
+  if (crystal && ionic) {
+    // Кристалл из ~100 ионов: переход e⁻ — только у ионов ближе к центру, не больше 10 электронов.
+    showE.fill(false)
+    const cen = (u: { atoms: number[] }) => {
+      const c: V3 = [0, 0, 0]
+      for (const a of u.atoms) for (let q = 0; q < 3; q++) c[q] += PF[a]![q]! / u.atoms.length
+      return len(c)
+    }
+    let give = 0
+    let takeQ = 0
+    for (const u of [...plan.units].sort((x, y) => cen(x) - cen(y))) {
+      const q = plan.species[u.species]!.charge
+      if (q > 0 && give + q <= 10) give += q
+      else if (q < 0 && takeQ - q <= 10) takeQ -= q
+      else continue
+      for (const a of u.atoms) showE[a] = true
+      if (give >= 10 && takeQ >= 10) break
+    }
+  } else if (network) {
+    // SiO₂: электроны — у центрального Si и четырёх его O (тетраэдр SiO₄), каркас дальше — палочками.
+    showE.fill(false)
+    const si = model.atoms.map((_, i) => i).filter((i) => model.atoms[i]!.el === 'Si').sort((x, y) => len(PF[x]!) - len(PF[y]!))[0]
+    if (si != null) {
+      showE[si] = true
+      for (const o of nbrs[si]!) showE[o] = true
+    }
+  } else if (crystal) for (let i = 0; i < n; i++) showE[i] = len(PF[i]!) <= 0.62 * maxD || n <= 30
+
+  // ── Переход e⁻ (ионное): от атомов металла (и H иона аммония) к анионам — заранее, чтобы знать длительность ──
+  const P3d = (a: number, b: number) => len([P3[a]![0] - P3[b]![0], P3[a]![1] - P3[b]![1], P3[a]![2] - P3[b]![2]])
+  const plannedMoves: { from: number; to: number }[] = []
+  if (ionic) {
+    const slots: number[] = []
+    const donors: { atom: number; left: number }[] = []
+    plan.units.forEach((u) => {
+      const sp = plan.species[u.species]!
+      if (sp.charge < 0) {
+        // Многоатомный анион: электроны — к концевым атомам O (меньше всего связей), по очереди.
+        const targets = u.atoms.length === 1 ? u.atoms : [...u.atoms].filter((a) => model.atoms[a]!.el !== 'H').sort((a, b) => nbrs[a]!.length - nbrs[b]!.length)
+        for (let q = 0; q < -sp.charge; q++) slots.push(targets[q % targets.length]!)
+      } else if (sp.charge > 0) {
+        if (u.atoms.length === 1) donors.push({ atom: u.atoms[0]!, left: sp.charge })
+        else {
+          const h = u.atoms.find((a) => model.atoms[a]!.el === 'H')
+          if (h != null) donors.push({ atom: h, left: sp.charge })
+        }
+      }
+    })
+    for (const to of slots) {
+      if (!showE[to]) continue
+      const d = donors.filter((x) => x.left > 0 && showE[x.atom]).sort((x, y) => P3d(x.atom, to) - P3d(y.atom, to))[0]
+      if (!d) continue
+      d.left--
+      plannedMoves.push({ from: d.atom, to })
+    }
+  }
+  // Общие пары (по одной): число — для длительности этапа.
+  const seenB = new Set<number>()
+  const bondsInOrder = bondOrder.filter((k) => !seenB.has(k) && seenB.add(k))
+  let pairCount = 0
+  for (const k of bondsInOrder) {
+    const b = model.bonds[k]!
+    if (showE[b.a] && showE[b.b]) pairCount += Math.max(1, Math.min(3, Math.round(b.order)))
+  }
+
+  // ── Решётка по типу (только IB / IC / IH — ионная; молекулярная укладка; цепь полимера) ──
+  const lat = latticeFor(script, plan, model, (sv) => screenToModel(model, sv))
 
   // ── Этапы ──
   const hasBreak = reagentSticks.length > 0 || groups.some((g) => g.kind === 'metal' && g.atoms.length > 1)
@@ -242,20 +349,23 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     t += dur
   }
   push('reagents', D.reagents)
+  const routeStage = buildRouteStage(script, plan, model, (sv) => screenToModel(model, sv), t, ringR)
+  if (routeStage) push('route', ROUTE_DUR)
   if (hasBreak) push('break', D.break)
   push('approach', D.approach)
   push('valence', D.valence)
   if (ionic) {
-    push('inner', stickList.length ? clamp(2.5 + 0.35 * stickList.length, 4, 9) : 0)
-    push('transfer', D.transfer)
+    push('inner', stickList.length ? pairsDur(pairCount) : 0)
+    push('transfer', transferDur(plannedMoves.length))
     push('assemble', D.assemble)
     push('lattice', D.lattice)
   } else {
-    push('pairs', D.pairs)
-    push('bonds', clamp(1.5 + 0.6 * stickList.length, 4, 12))
-    push('assemble', D.assemble)
+    push('pairs', pairsDur(pairCount))
+    push('bonds', bondsDur(stickList.length))
+    push('assemble', network ? D.assemble + 2 : D.assemble)
   }
-  push('final', D.final)
+  const extraFinal = lat.kind === 'molecular' || lat.kind === 'chain' ? 2.5 : 0
+  push('final', Math.min(MAX_TOTAL - t, Math.max(D.final + extraFinal, MIN_TOTAL - t)))
   const st = (k: StageKey) => stages.find((s) => s.key === k)
 
   // Палочки: молекула — в «связях», ионное — в «кислотном остатке».
@@ -266,7 +376,7 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     const span = ionic ? 0.55 * bondStage.dur : bondStage.dur - 0.6
     const m = Math.max(1, stickList.length)
     const slot = span / m
-    stickList.forEach((x, i) => sticks.push({ ...x, t0: from + i * slot, t1: from + i * slot + Math.max(slot, Math.min(1.2, span / 2)) * 0.95 }))
+    stickList.forEach((x, i) => sticks.push({ ...x, t0: from + i * slot, t1: from + i * slot + Math.max(STICK_MIN, Math.max(slot, Math.min(1.2, span / 2)) * 0.95) }))
   }
 
   // Окна сборки атомов.
@@ -276,9 +386,16 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
   if (ionic) {
     const ins = st('inner')
     for (let i = 0; i < n; i++) innerWin[i] = ins ? [ins.t0 + 0.4 * ins.dur, ins.t0 + 0.95 * ins.dur] : [sa.t0, sa.t0]
-    const lat = st('lattice')!
+    const latS = st('lattice')!
     // Кристалл: центральная формульная единица собирается в «притяжении», остальные — в «решётке».
-    const order = plan.unitOrder
+    // Кристалл растёт слоями: частицы — по удалённости от центра.
+    const ucen = (ui: number) => {
+      const u = plan.units[ui]!
+      const c: V3 = [0, 0, 0]
+      for (const a of u.atoms) for (let q = 0; q < 3; q++) c[q] += PF[a]![q]! / u.atoms.length
+      return len(c)
+    }
+    const order = crystal ? [...plan.unitOrder].sort((x, y) => ucen(x) - ucen(y)) : plan.unitOrder
     const core = crystal ? Math.max(2, Math.round(order.length * 0.12)) : order.length
     order.forEach((ui, j) => {
       const u = plan.units[ui]!
@@ -289,8 +406,8 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
         w = [t0, Math.min(sa.t0 + sa.dur - 0.1, t0 + 0.5 * sa.dur)]
       } else {
         const k = (j - core) / Math.max(1, order.length - core)
-        const t0 = lat.t0 + 0.1 + k * 0.5 * lat.dur
-        w = [t0, t0 + 0.45 * lat.dur]
+        const t0 = latS.t0 + 0.1 + k * 0.5 * latS.dur
+        w = [t0, t0 + 0.45 * latS.dur]
       }
       for (const a of u.atoms) assembleWin[a] = w
     })
@@ -307,7 +424,12 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     const bs = st('bonds')!
     for (let i = 0; i < n; i++) {
       if (!placed.has(i)) innerWin[i] = [bs.t0, bs.t0 + 1]
-      assembleWin[i] = [sa.t0 + 0.2, sa.t0 + sa.dur - 0.3]
+      if (network) {
+        // Каркас: сначала центральный тетраэдр, затем соседние — по удалённости от центра.
+        const k = clamp(len(PF[i]!) / maxD, 0, 1)
+        const t0 = sa.t0 + 0.2 + k * 0.6 * sa.dur
+        assembleWin[i] = [t0, Math.min(sa.t0 + sa.dur - 0.1, t0 + 0.35 * sa.dur)]
+      } else assembleWin[i] = [sa.t0 + 0.2, sa.t0 + sa.dur - 0.3]
     }
   }
 
@@ -327,8 +449,6 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     }
     return VALENCE_E[a.el] ?? 0
   })
-  // Электроны — только у частиц ближе к центру у больших кристаллов (иначе это сотни точек).
-  const showE = model.atoms.map((_, i) => !crystal || len(PF[i]!) <= 0.62 * maxD || n <= 30)
   const electrons: StoryElectron[] = []
   const pool: number[][] = model.atoms.map(() => [])
   const lewisOff = (i: number, k: number, total: number): V3 => {
@@ -356,14 +476,16 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     return electrons.length - 1
   }
   // Общие пары: по одному электрону от каждого атома (нет своего — оба от партнёра: донорно-акцепторная).
+  // Пары появляются ПО ОДНОЙ (перекрытие соседних ≤ 30 %); у ионных (кислотный остаток) за парой сразу растёт палочка.
   let sharedPairs = 0
   const pairStage = ionic ? st('inner') : st('pairs')
   if (pairStage) {
-    const seen = new Set<number>()
-    const bondsInOrder = plan.bondOrder.filter((k) => !seen.has(k) && seen.add(k))
-    const m = Math.max(1, bondsInOrder.length)
-    const span = ionic ? 0.4 * pairStage.dur : pairStage.dur - 0.6
-    bondsInOrder.forEach((k, j) => {
+    const P = Math.max(1, pairCount)
+    const span = ionic ? 0.75 * pairStage.dur - 0.2 : pairStage.dur - 0.6
+    const per = P <= 1 ? Math.min(E_PER, span) : clamp(span / (1 + 0.7 * (P - 1)), STICK_MIN, E_PER)
+    const step = P <= 1 ? 0 : (span - per) / (P - 1)
+    let q = 0
+    bondsInOrder.forEach((k) => {
       const b = model.bonds[k]!
       if (!showE[b.a] || !showE[b.b]) return
       const nn = Math.max(1, Math.min(3, Math.round(b.order)))
@@ -371,9 +493,14 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
         sharedPairs++
         const e1 = take(b.a) ?? take(b.b) ?? phantom(b.a)
         const e2 = take(b.b) ?? take(b.a) ?? phantom(b.b)
-        const t0 = pairStage.t0 + 0.2 + (j / m) * span * 0.7
-        const t1 = t0 + Math.max(0.9, Math.min(1.6, span * 0.5))
+        const t0 = pairStage.t0 + 0.2 + q * step
+        const t1 = t0 + per
+        q++
         const stick = sticks.find((s) => s.bond === k && s.s === p)
+        if (stick && ionic) {
+          stick.t0 = t1 - 0.15
+          stick.t1 = stick.t0 + Math.max(STICK_MIN, per)
+        }
         const tOut = stick ? stick.t1 : fin.t0 + 1.2
         for (const [e, sign] of [[e1, -1], [e2, 1]] as const) {
           const E = electrons[e]!
@@ -384,41 +511,16 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
       }
     })
   }
-  // Переход электронов (ионное): от атомов металла (и H иона аммония) к анионам.
+  // Переход электронов (ионное): каждый e⁻ отдельно и по очереди (≈ 1,2 с, перекрытие соседних ≤ 30 %).
   let transferred = 0
   const ts = st('transfer')
   if (ionic && ts) {
-    type Slot = { atom: number }
-    const slots: Slot[] = []
-    const donors: { atom: number; left: number }[] = []
-    plan.units.forEach((u) => {
-      const sp = plan.species[u.species]!
-      if (sp.charge < 0) {
-        // Многоатомный анион: электроны — к концевым атомам O (меньше всего связей), по очереди.
-        const targets = u.atoms.length === 1 ? u.atoms : [...u.atoms].filter((a) => model.atoms[a]!.el !== 'H').sort((a, b) => nbrs[a]!.length - nbrs[b]!.length)
-        for (let q = 0; q < -sp.charge; q++) slots.push({ atom: targets[q % targets.length]! })
-      } else if (sp.charge > 0) {
-        if (u.atoms.length === 1) donors.push({ atom: u.atoms[0]!, left: sp.charge })
-        else {
-          const h = u.atoms.find((a) => model.atoms[a]!.el === 'H')
-          if (h != null) donors.push({ atom: h, left: sp.charge })
-        }
-      }
-    })
-    const P3d = (a: number, b: number) => len([P3[a]![0] - P3[b]![0], P3[a]![1] - P3[b]![1], P3[a]![2] - P3[b]![2]])
-    const moves: { e: number; to: number }[] = []
-    for (const s of slots) {
-      if (!showE[s.atom]) continue
-      const d = donors.filter((x) => x.left > 0 && showE[x.atom]).sort((x, y) => P3d(x.atom, s.atom) - P3d(y.atom, s.atom))[0]
-      if (!d) continue
-      d.left--
-      const e = take(d.atom) ?? phantom(d.atom)
-      moves.push({ e, to: s.atom })
-    }
-    const m = Math.max(1, moves.length)
-    const per = Math.max(1.1, Math.min(1.8, (ts.dur - 0.8) / Math.max(1, Math.min(m, 3))))
+    const moves = plannedMoves.map(({ from, to }) => ({ e: take(from) ?? phantom(from), to }))
+    const m = moves.length
+    const per = E_PER
+    const step = m <= 1 ? 0 : Math.max(0.7 * per, (ts.dur - 0.8 - per) / (m - 1))
     moves.forEach(({ e, to }, j) => {
-      const t0 = ts.t0 + 0.3 + (m === 1 ? 0 : (j / (m - 1)) * Math.max(0, ts.dur - 0.6 - per))
+      const t0 = ts.t0 + 0.4 + j * step
       const k = pool[to]!.length + j
       electrons[e]!.move = { t0, t1: t0 + per, toAtom: to, toOff: lewisOff(to, 7 - (k % 8), 8) }
       electrons[e]!.kind = 'transfer'
@@ -426,12 +528,10 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     })
   }
 
-  // ── Фрагмент решётки (ионное, модель — одна формульная единица) ──
-  const latticeCopies: V3[] = []
-  if (ionic && !crystal) {
-    const d = 2.1 * maxD + 2 * avgR
-    for (const [x, y] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]] as const) latticeCopies.push(screenToModel(model, [x * d, y * d, 0]))
-  }
+  // Фрагмент решётки: появление по слоям (k) в этапе «Решётка» (ионные) или «Готово» (молекулярная, цепь).
+  const latticeStage = st('lattice') ?? fin
+  const latticeAtoms = lat.atoms
+  const latticeWin: [number, number] = lat.kind === 'ionic' ? [latticeStage.t0 + 0.3, latticeStage.t0 + 0.75 * latticeStage.dur] : [fin.t0 + 0.2, fin.t0 + 2.2]
 
   const tr = st('transfer')
   return {
@@ -444,7 +544,11 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     reagentSticks,
     ghosts,
     electrons,
-    latticeCopies,
+    latticeAtoms,
+    latticeKind: lat.kind,
+    latticeWin,
+    type,
+    routeStage,
     ionLabelsFrom: tr ? tr.t0 + tr.dur - 0.2 : Infinity,
     eR,
     transferred,

@@ -10,7 +10,12 @@
  *    нужной кратности (H–H, O=O, N≡N);
  *  G уравнение образования: нет, не уравнено или продукт не тот;
  *  H длительность: показ не 25–45 с, этап с переносом e⁻ / связями короче 4 с;
- *  I расхождения модели с формулой (предупреждения formationPlan.modelIssues).
+ *  I расхождения модели с формулой (предупреждения formationPlan.modelIssues);
+ *  J решётка по типу (formationScripts, правила раздел 1): ионная — только у IB/IC/IH (фрагмент latticeAtoms или модель-
+ *    кристалл), у S/MP/N/PM ионной решётки нет; молекулярная укладка у 'molecular', цепь у PM, каркас у N;
+ *  K темп (раздел 2): переход e⁻ — каждый электрон ≥ 1,1 с, перекрытие соседних ≤ 30 %, этап = clamp(1,5 + 1,25·n, 4,5, 16);
+ *    общие пары — по одной (перекрытие ≤ 30 %); палочка растёт ≥ 0,6 с;
+ *  L путь получения в 3D (этап 'route'): нейтрализация, перенос протона, гидратация, обмен (ионные продукты).
  * «До» — прежний показ (4 шага: Состав → Заряды → Сборка 6–10 с → Готово, без электронов, исходных веществ и уравнения).
  * Запуск: npx tsx scripts/audit-formation-200.mts [--list]
  */
@@ -20,8 +25,9 @@ import { formationPlan } from '../src/chemistry/formationPlan'
 import { formationEquation, isBalanced, equationSides, DIATOMIC, simpleFormula } from '../src/chemistry/formationEquation'
 import { buildSchoolHeroModel } from '../src/components/lab/hero/schoolHeroModel'
 import { atomPosAt, formationStoryFor } from '../src/components/lab/formation/formationStory'
+import { formationScript } from '../src/chemistry/formationScripts'
 
-type Cat = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I'
+type Cat = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L'
 const CATS: Record<Cat, string> = {
   A: 'план / 3D-модель не строятся',
   B: 'итог анимации ≠ модель карточки',
@@ -32,9 +38,14 @@ const CATS: Record<Cat, string> = {
   G: 'уравнение образования',
   H: 'длительность этапов',
   I: 'модель ≠ формула (предупр.)',
+  J: 'решётка не по типу вещества',
+  K: 'темп: e⁻ / пары / палочки',
+  L: 'путь получения не показан в 3D',
 }
-const before: Record<Cat, Set<string>> = { A: new Set(), B: new Set(), C: new Set(), D: new Set(), E: new Set(), F: new Set(), G: new Set(), H: new Set(), I: new Set() }
-const after: Record<Cat, Set<string>> = { A: new Set(), B: new Set(), C: new Set(), D: new Set(), E: new Set(), F: new Set(), G: new Set(), H: new Set(), I: new Set() }
+const mk = () => Object.fromEntries((Object.keys(CATS) as Cat[]).map((k) => [k, new Set<string>()])) as Record<Cat, Set<string>>
+const before: Record<Cat, Set<string>> = mk()
+const after: Record<Cat, Set<string>> = mk()
+const ROUTE_3D = new Set(['neutralization', 'protonTransfer', 'hydration', 'exchange'])
 const notes: string[] = []
 const flag = (cat: Cat, id: string, msg: string) => {
   after[cat].add(id)
@@ -112,7 +123,7 @@ for (const id of CATALOG_TOP200_IDS) {
         return s + (sp.charge < 0 ? -sp.charge : 0)
       }, 0)
       if (story.transferred !== Math.min(need, acc) || need !== acc) flag('D', id, `перешло e⁻ ${story.transferred}, катионы отдают ${need}, анионы принимают ${acc}`)
-    } else if (story.transferred < 1) flag('D', id, 'в кристалле не показан переход e⁻')
+    } else if (story.transferred < 1 || story.transferred > 10) flag('D', id, `в кристалле переход e⁻ у центральных ионов: ${story.transferred} (нужно 1–10)`)
   } else {
     const pairs = plan.bondOrder.reduce((s, k) => s + Math.max(1, Math.min(3, Math.round(model.bonds[k]!.order))), 0)
     if (!plan.crystal && story.sharedPairs !== pairs) flag('E', id, `общих пар ${story.sharedPairs}, связей (с кратностью) ${pairs}`)
@@ -145,10 +156,57 @@ for (const id of CATALOG_TOP200_IDS) {
     if (!eq.direct && !eq.lab) flag('G', id, 'пустое уравнение')
   }
   // ── H: длительность ──
-  if (story.total < 25 || story.total > 45) flag('H', id, `показ ${story.total.toFixed(1)} с`)
+  if (story.total < 30 || story.total > 60) flag('H', id, `показ ${story.total.toFixed(1)} с (нужно 30–60)`)
   for (const st of story.stages) {
     if (['transfer', 'pairs', 'bonds', 'inner'].includes(st.key) && st.dur < 4) flag('H', id, `этап ${st.key} ${st.dur.toFixed(1)} с < 4 с`)
     if (st.dur < 2.5) flag('H', id, `этап ${st.key} ${st.dur.toFixed(1)} с`)
+  }
+  // ── J: решётка по типу ──
+  const sc = formationScript(id)
+  const type = sc?.type
+  const ionicType = type === 'IB' || type === 'IC' || type === 'IH'
+  // «До»: ионным — кольцо из 8 копий в плоскости экрана; молекулярной укладки, цепи и роста каркаса не было.
+  if ((ionicType && model.kind !== 'crystal') || sc?.latticeKind === 'molecular' || type === 'PM' || type === 'N') before.J.add(id)
+  if (!sc) flag('J', id, 'нет сценария formationScripts')
+  else if (ionicType) {
+    if (story.latticeKind !== 'ionic') flag('J', id, `ионное (${type}), а решётка ${story.latticeKind}`)
+    if (model.kind !== 'crystal' && story.latticeAtoms.length === 0) flag('J', id, 'нет фрагмента ионной решётки')
+    if (model.kind !== 'crystal') {
+      // соотношение ионов во фрагменте = формуле (по элементам)
+      const cnt: Record<string, number> = {}
+      for (const a of story.latticeAtoms) cnt[a.el] = (cnt[a.el] ?? 0) + 1
+      const els2 = Object.keys(comp)
+      const ratio = els2.map((e) => (cnt[e] ?? 0) / comp[e]!)
+      if (ratio.length && Math.max(...ratio) - Math.min(...ratio) > 0.34 * Math.max(...ratio)) flag('J', id, `соотношение во фрагменте ≠ формуле: ${els2.map((e) => `${e}:${cnt[e] ?? 0}`).join(' ')}`)
+    }
+  } else {
+    if (story.latticeKind === 'ionic') flag('J', id, `${type}: ионной решётки быть не должно`)
+    if (sc.latticeKind === 'molecular' && (story.latticeKind !== 'molecular' || story.latticeAtoms.length === 0)) flag('J', id, 'нет молекулярной укладки')
+    if (type === 'PM' && (story.latticeKind !== 'chain' || story.latticeAtoms.length === 0)) flag('J', id, 'нет цепи звеньев')
+    if (type === 'N' && story.latticeKind !== 'network') flag('J', id, 'нет каркаса')
+    if (story.latticeAtoms.some((a) => a.charge !== 0)) flag('J', id, 'у молекулярного вещества заряженные частицы во фрагменте')
+  }
+  // ── K: темп ──
+  const tr = story.electrons.filter((e) => e.kind === 'transfer' && e.move).map((e) => e.move!).sort((a, b) => a.t0 - b.t0)
+  // «До»: переход всех e⁻ — в 4,5 с; пары — с перекрытием (оценка по прежнему расписанию).
+  const oldPer = Math.max(1.1, Math.min(1.8, 3.7 / Math.max(1, Math.min(story.transferred, 3))))
+  const oldStep = story.transferred > 1 ? (4.5 - 0.6 - oldPer) / (story.transferred - 1) : 99
+  if ((plan.mode === 'ionic' && oldStep < 0.7 * oldPer) || (plan.mode === 'molecular' && plan.bondOrder.length >= 3)) before.K.add(id)
+  for (let j = 0; j < tr.length; j++) {
+    if (tr[j]!.t1 - tr[j]!.t0 < 1.1 - 1e-9) flag('K', id, `e⁻ ${j + 1}: ${(tr[j]!.t1 - tr[j]!.t0).toFixed(2)} с < 1,1 с`)
+    if (j > 0 && tr[j]!.t0 - tr[j - 1]!.t0 < 0.7 * (tr[j - 1]!.t1 - tr[j - 1]!.t0) - 1e-9) flag('K', id, `e⁻ ${j} и ${j + 1} перекрываются > 30 %`)
+  }
+  const tst = story.stages.find((x) => x.key === 'transfer')
+  if (tst && Math.abs(tst.dur - Math.min(16, Math.max(4.5, 1.5 + 1.25 * tr.length))) > 1e-6) flag('K', id, `этап transfer ${tst.dur.toFixed(1)} с ≠ clamp(1,5 + 1,25·${tr.length})`)
+  const pm = [...new Map(story.electrons.filter((e) => e.kind === 'pair' && e.move?.bond).map((e) => [`${e.move!.bond!.k}:${e.move!.bond!.slot}`, e.move!] as const)).values()].sort((a, b) => a.t0 - b.t0)
+  for (let j = 1; j < pm.length; j++) if (pm[j]!.t0 - pm[j - 1]!.t0 < 0.7 * (pm[j - 1]!.t1 - pm[j - 1]!.t0) - 1e-6) { flag('K', id, `общие пары ${j} и ${j + 1} перекрываются > 30 %`); break }
+  const shortStick = story.sticks.find((x) => x.t1 - x.t0 < 0.6 - 1e-9)
+  if (shortStick) flag('K', id, `палочка растёт ${(shortStick.t1 - shortStick.t0).toFixed(2)} с < 0,6 с`)
+  // ── L: путь получения в 3D ──
+  const wantRoute = !!sc && ROUTE_3D.has(sc.routeKind) && plan.mode === 'ionic' && (sc.routeKind !== 'protonTransfer' || /NH₃/.test(sc.route))
+  if (wantRoute) {
+    before.L.add(id)
+    if (!story.routeStage || !story.stages.some((x) => x.key === 'route')) flag('L', id, `путь «${sc!.route}» (${sc!.routeKind}) не показан`)
   }
 }
 
@@ -158,5 +216,17 @@ console.log('Категория                                  | до  | по�
 console.log('-------------------------------------------|-----|------')
 for (const k of Object.keys(CATS) as Cat[]) console.log(`${k} ${CATS[k].padEnd(41)}| ${String(before[k].size).padStart(3)} | ${String(after[k].size).padStart(4)}`)
 const fails = (Object.keys(CATS) as Cat[]).filter((k) => k !== 'I').reduce((s, k) => s + after[k].size, 0)
+// Сводка по типам и путям (что показано)
+const byType: Record<string, number> = {}
+const byLat: Record<string, number> = {}
+const byRoute: Record<string, number> = {}
+for (const id of CATALOG_TOP200_IDS) {
+  const st = formationStoryFor(id)
+  if (!st) continue
+  byType[st.type ?? '?'] = (byType[st.type ?? '?'] ?? 0) + 1
+  byLat[st.latticeKind] = (byLat[st.latticeKind] ?? 0) + 1
+  if (st.routeStage) byRoute[st.routeStage.show] = (byRoute[st.routeStage.show] ?? 0) + 1
+}
+console.log(`Типы: ${JSON.stringify(byType)}; решётка: ${JSON.stringify(byLat)}; путь в 3D: ${JSON.stringify(byRoute)}`)
 if (process.argv.includes('--list') || fails > 0) for (const n of notes) console.log(`  ${n}`)
-console.log(fails === 0 ? 'ОК: проблем A–H нет' : `Проблем A–H: ${fails}`)
+console.log(fails === 0 ? 'ОК: проблем A–L (кроме I) нет' : `Проблем A–L: ${fails}`)

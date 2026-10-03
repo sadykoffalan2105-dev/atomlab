@@ -157,7 +157,8 @@ for (const id of CATALOG_TOP200_IDS) {
   const sticks = new Map<number, number>()
   for (const s of story.sticks) sticks.set(s.bond, (sticks.get(s.bond) ?? 0) + 1)
   ok(model.bonds.every((b, k) => (sticks.get(k) ?? 0) === Math.max(1, Math.min(3, Math.round(b.order)))), `${f}: палочки в конце показа — все связи модели с их кратностью`)
-  ok(story.total >= 25 && story.total <= 45, `${f}: показ ${story.total.toFixed(1)} с (25–45 с)`)
+  // wf20: темп по правилам (раздел 2) — каждый e⁻ и каждая общая пара по одной, этап «Путь получения» — показ 30–60 с.
+  ok(story.total >= 30 && story.total <= 60, `${f}: показ ${story.total.toFixed(1)} с (30–60 с)`)
   for (const st of story.stages) {
     ok(st.dur >= 2.5, `${f}: этап ${st.key} — не короче 2,5 с (${st.dur.toFixed(1)})`)
     if (['transfer', 'pairs', 'bonds', 'inner'].includes(st.key)) ok(st.dur >= 4, `${f}: этап ${st.key} (e⁻ / связи) — не короче 4 с (${st.dur.toFixed(1)})`)
