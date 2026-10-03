@@ -9,7 +9,8 @@ let warmed = false
 
 const ROUTE_IMPORTS = {
   organic: () => import('../pages/OrganicLabPage'),
-  vrLab: () => import('../pages/VrLabPage'),
+  // /vr-lab — новая светлая 3D-лаборатория (старая — /vr-lab-classic, без предзагрузки)
+  vrLab: () => import('../pages/Lab3DPage'),
   periodic: () => import('../pages/PeriodicTablePage'),
   catalog: () => import('../pages/CatalogPage'),
   learn: () => import('../pages/LearnPage'),

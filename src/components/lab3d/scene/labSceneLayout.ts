@@ -55,12 +55,13 @@ export function cameraPoseFor(view: LabViewId, aspect: number, fovDeg: number): 
       // Рабочее место (1,3 м) и доска должны поместиться по ширине
       // На телефоне (портрет) смотрим круче сверху: рабочее место крупно внизу, доска целиком вверху
       const phone = aspect < 1
-      const target = phone ? new THREE.Vector3(0, 1.05, -0.2) : new THREE.Vector3(0, 1.22, -0.45)
-      const needHalfW = phone ? 0.78 : 1.25
+      // опыт — главное: на телефоне рабочее место крупно (доска читается через «Доска»), на компьютере — опыт и доска целиком
+      const target = phone ? new THREE.Vector3(0, 1.0, -0.12) : new THREE.Vector3(0, 1.16, -0.4)
+      const needHalfW = phone ? 0.7 : 1.05
       const dist = phone
-        ? THREE.MathUtils.clamp(needHalfW / (tanHalf * aspect), 2.5, 3.1)
-        : Math.max(2.7, needHalfW / (tanHalf * Math.min(aspect, 1.9)) + 0.5)
-      const elev = THREE.MathUtils.degToRad(phone ? 32 : 16)
+        ? THREE.MathUtils.clamp(needHalfW / (tanHalf * aspect), 1.7, 2.4)
+        : Math.max(2.3, needHalfW / (tanHalf * Math.min(aspect, 1.9)) + 0.45)
+      const elev = THREE.MathUtils.degToRad(phone ? 36 : 18)
       tmp.set(0, Math.sin(elev), Math.cos(elev)).multiplyScalar(dist)
       return { position: target.clone().add(tmp), target }
     }
