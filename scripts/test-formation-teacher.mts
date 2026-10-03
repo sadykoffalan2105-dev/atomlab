@@ -76,7 +76,9 @@ for (const id of CATALOG_TOP200) {
       if (!schemes.includes(want)) fail(`${id}: нет схемы «${want}» (${schemes.join(' | ')})`)
     }
     for (const a of ans) {
-      if (a.kind === 'ion') {
+      if (a.kind === 'ion' && !cats.length) {
+        if (!schemes.includes(`H${Object.keys(a.comp)[0]!} → H⁺ + ${a.formula}`)) fail(`${id}: нет схемы H–X → H⁺ + ${a.formula}`)
+      } else if (a.kind === 'ion') {
         const el = Object.keys(a.comp)[0]!
         const want = `${el}⁰ + ${-a.charge}e⁻ → ${a.formula}`
         if (!schemes.includes(want)) fail(`${id}: нет схемы «${want}»`)

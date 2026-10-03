@@ -213,7 +213,8 @@ export function transferSchemes(id: string, lang: TeacherLang): string[] {
   for (const n of nh4) out.push(n.formula === 'NH₄⁺' ? 'NH₃ + H⁺ → NH₄⁺' : n.formula)
   for (const a of anions) {
     const q = -a.charge
-    if (a.kind === 'ion') out.push(`${elOf(a)}⁰ + ${q}e⁻ → ${a.formula}`)
+    if (a.kind === 'ion' && !metalCations.length) out.push(`H${elOf(a)} → H⁺ + ${a.formula}`)
+    else if (a.kind === 'ion') out.push(`${elOf(a)}⁰ + ${q}e⁻ → ${a.formula}`)
     else {
       const poly = POLY[a.formula]
       const from = metalCations.length ? pick([`${q}e⁻ от металла`, `${q}e⁻ from the metal`, `${q}e⁻ metalldan`], lang) : pick([`заряд ${q}− от ушедших H⁺`, `charge ${q}− left by the H⁺ that moved away`, `${q}− zaryad ketgan H⁺ dan`], lang)
@@ -236,7 +237,9 @@ function excitation(p: FormationPlan): { el: string; v: number } | null {
     const el = elOf(sp)
     const v = Math.max(...(sp.valences ?? [0]))
     const u = UNPAIRED[el]
-    if (u !== undefined && el !== 'N' && el !== 'O' && v > u) return { el, v }
+    // возбуждение распаривает пары: неспаренных становится больше на 2, 4 … (C: 2 → 4; S: 2 → 4, 6; P: 3 → 5; Cl: 1 → 3, 5, 7).
+    // Валентность III у C в CO — не возбуждение, а донорно-акцепторная связь.
+    if (u !== undefined && el !== 'N' && el !== 'O' && v > u && (v - u) % 2 === 0) return { el, v }
   }
   return null
 }
@@ -428,6 +431,13 @@ function approachLines(c: Ctx, l: TeacherLang): TeacherLines {
       ref: pick(REF.cov, l),
     }
   }
+  if (c.ionic && !ions(c).metalCations.length) {
+    return {
+      main: `${pick(['ΔЭО', 'ΔEN', 'ΔEM'], l)} = ${d}`,
+      sub: pick(['Металла нет: молекула NH₃ и кислота сближаются, ион H⁺ кислоты притягивается к неподелённой паре атома N.', 'There is no metal: an NH₃ molecule and the acid approach, and the acid’s H⁺ ion is drawn to the lone pair of the N atom.', 'Metall yoʻq: NH₃ molekulasi va kislota yaqinlashadi, kislotaning H⁺ ioni N atomining taqsimlanmagan juftiga tortiladi.'], l),
+      ref: pick(REF.da, l),
+    }
+  }
   if (c.ionic) {
     return {
       main: `ΔЭО = ${d}`.replace('ΔЭО', pick(['ΔЭО', 'ΔEN', 'ΔEM'], l)),
@@ -465,12 +475,28 @@ function valenceLines(c: Ctx, l: TeacherLang): TeacherLines {
           ? pick([`H (1s¹) — как галоген: до заполнения уровня не хватает 1 e⁻ → H⁻`, `H (1s¹) acts like a halogen: it lacks 1 e⁻ to fill its level → H⁻`, `H (1s¹) — galogen kabi: pogʻonani toʻldirishga 1 e⁻ yetmaydi → H⁻`], l)
           : pick([`у ${el} до октета не хватает ${q} e⁻`, `${el} lacks ${q} e⁻ to complete the octet`, `${el} ga oktetgacha ${q} e⁻ yetmaydi`], l)
       })
-    return { main, sub: `${[...give, ...take].join('; ')}. ${dEN}.`, ref: pick(REF.e, l) }
+    const parts = metalCations.length ? [...give, ...take] : []
+    if (!parts.length)
+      parts.push(pick(['металла нет: у N аммиака после трёх связей N–H остаётся неподелённая пара — её получит ион H⁺ кислоты', 'there is no metal: after three N–H bonds the N of ammonia keeps a lone pair — the acid’s H⁺ ion will get it', 'metall yoʻq: ammiak N ida uchta N–H bogʻidan keyin taqsimlanmagan juft qoladi — uni kislotaning H⁺ ioni oladi'], l))
+    return { main, sub: `${parts.join('; ')}. ${dEN}.`, ref: pick(REF.e, l) }
   }
   const ex = p ? excitation(p) : null
   const exLine = ex
     ? pick([` Атом ${ex.el} переходит в возбуждённое состояние: ${ex.v} неспаренных e⁻ (валентность ${ex.v}).`, ` The ${ex.el} atom goes into an excited state: ${ex.v} unpaired e⁻ (valency ${ex.v}).`, ` ${ex.el} atomi qoʻzgʻalgan holatga oʻtadi: ${ex.v} ta juftlashmagan e⁻ (valentlik ${ex.v}).`], l)
     : ''
+  if (c.s.type === 'S' && p) {
+    const sp = p.species[0]
+    const el = sp ? elOf(sp) : ''
+    const u = UNPAIRED[el]
+    if (u !== undefined) {
+      const tail = sp && sp.count === 2 && (u === 2 || u === 3) ? pick([`, поэтому связь ${u === 2 ? 'двойная' : 'тройная'}`, `, so the bond is ${u === 2 ? 'double' : 'triple'}`, `, shuning uchun bogʻ ${u === 2 ? 'qoʻsh' : 'uchlamchi'}`], l) : ''
+      return {
+        main,
+        sub: `${pick([`У атома ${el} на внешнем уровне ${VAL_E[el]} e⁻, из них неспаренных — ${u}${tail}. Неспаренные электроны и образуют общие пары.`, `The ${el} atom has ${VAL_E[el]} e⁻ on its outer level, ${u} of them unpaired${tail}. The unpaired electrons form the shared pairs.`, `${el} atomining tashqi pogʻonasida ${VAL_E[el]} e⁻, ulardan juftlashmagani — ${u}${tail}. Juftlashmagan elektronlar umumiy juftlarni hosil qiladi.`], l)} ${dEN}.`,
+        ref: pick(REF.e, l),
+      }
+    }
+  }
   const dMetal = els.find((e) => D_METALS.has(e))
   const dLine = dMetal ? pick([` У ${dMetal} валентными становятся и d-электроны предвнешнего уровня.`, ` In ${dMetal} the d-electrons of the inner level also become valence electrons.`, ` ${dMetal} da tashqi oldi pogʻonaning d-elektronlari ham valent boʻladi.`], l) : ''
   const radical = c.id === 'no' || c.id === 'no2' ? pick([' Число валентных e⁻ нечётное — один электрон остаётся неспаренным (радикал).', ' The number of valence e⁻ is odd — one electron stays unpaired (a radical).', ' Valent e⁻ soni toq — bitta elektron juftlashmagan qoladi (radikal).'], l) : ''
@@ -502,7 +528,10 @@ function innerLines(c: Ctx, l: TeacherLang): TeacherLines {
   const q = neg.map((x) => `${x.formula} — ${-x.charge}e⁻`).join(', ')
   const sub =
     pick(['Внутри многоатомного иона атомы неметаллов соединяются общими электронными парами — ковалентные полярные связи, по одной.', 'Inside the polyatomic ion the non-metal atoms join through shared electron pairs — polar covalent bonds, one at a time.', 'Koʻp atomli ion ichida metallmas atomlari umumiy elektron juftlar orqali birikadi — kovalent qutbli bogʻlar, birma-bir.'], l) +
-    (q ? pick([` Недостающие электроны (${q}) приходят от металла и завершают октеты концевых O — заряд иона появляется именно тогда.`, ` The missing electrons (${q}) come from the metal and complete the octets of the end O atoms — that is when the ion’s charge appears.`, ` Yetishmagan elektronlar (${q}) metalldan keladi va chetki O atomlarining oktetini toʻldiradi — ion zaryadi aynan shunda paydo boʻladi.`], l) : '') +
+    (q && !ions(c).metalCations.length
+      ? pick([` Заряд аниона (${q}) — от ушедшего иона H⁺: электрон атома H остался у кислотного остатка.`, ` The anion’s charge (${q}) comes from the H⁺ ion that left: the H atom’s electron stayed with the acid residue.`, ` Anion zaryadi (${q}) — ketgan H⁺ ionidan: H atomining elektroni kislota qoldigʻida qolgan.`], l)
+      : '') +
+    (q && ions(c).metalCations.length ? pick([` Недостающие электроны (${q}) приходят от металла и завершают октеты концевых O — заряд иона появляется именно тогда.`, ` The missing electrons (${q}) come from the metal and complete the octets of the end O atoms — that is when the ion’s charge appears.`, ` Yetishmagan elektronlar (${q}) metalldan keladi va chetki O atomlarining oktetini toʻldiradi — ion zaryadi aynan shunda paydo boʻladi.`], l) : '') +
     (da ? pick([' Донорно-акцепторная связь: один атом даёт неподелённую пару, другой — свободную орбиталь.', ' Donor–acceptor bond: one atom provides a lone pair, the other a free orbital.', ' Donor-akseptor bogʻ: bir atom taqsimlanmagan juftni, ikkinchisi boʻsh orbitalni beradi.'], l) : '')
   if (!polys.length)
     return {
@@ -522,7 +551,7 @@ function pairsLines(c: Ctx, l: TeacherLang): TeacherLines {
     ? pick(['Общие пары появляются по одной; они посередине между одинаковыми атомами — связь ковалентная неполярная. Двойная связь — две пары, тройная — три.', 'Shared pairs appear one at a time; they sit midway between identical atoms — a non-polar covalent bond. A double bond is two pairs, a triple — three.', 'Umumiy juftlar birma-bir paydo boʻladi; ular bir xil atomlar oʻrtasida — kovalent qutbsiz bogʻ. Qoʻsh bogʻ — ikki juft, uchlamchi — uch.'], l)
     : `${pick(['Общие пары появляются по одной. Каждая связь — общая электронная пара: по одному e⁻ от каждого атома.', 'Shared pairs appear one at a time. Each bond is a shared electron pair: one e⁻ from each atom.', 'Umumiy juftlar birma-bir paydo boʻladi. Har bir bogʻ — umumiy elektron juft: har bir atomdan bittadan e⁻.'], l)} ${shiftLine(c.p, l)}`
   if (n > 0) sub += pick([` Всего общих пар в показанной модели: ${n}.`, ` Shared pairs in the model shown: ${n}.`, ` Koʻrsatilgan modelda jami umumiy juftlar: ${n}.`], l)
-  if (da) sub += pick([' Стрелка → — донорно-акцепторная связь: оба электрона пары даёт один атом.', ' The arrow → is a donor–acceptor bond: both electrons of the pair come from one atom.', ' → strelka — donor-akseptor bogʻ: juftning ikkala elektronini bitta atom beradi.'], l)
+  if (da) sub += pick([' Одна из связей — донорно-акцепторная: оба электрона пары даёт один атом (в записи часто — стрелка →).', ' One of the bonds is donor–acceptor: both electrons of the pair come from one atom (often drawn as an arrow →).', ' Bogʻlardan biri — donor-akseptor: juftning ikkala elektronini bitta atom beradi (koʻpincha → strelka bilan yoziladi).'], l)
   return { main, sub, ref: pick(da ? REF.da : REF.cov, l) }
 }
 
