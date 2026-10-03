@@ -186,7 +186,7 @@ function schemaFragment(plan: FormationPlan, model: SchoolHeroModel, screenToMod
     // мера — ближайшие атомы катион–анион модели (K–O у KClO₃), а не центры ионов
     let dMin = d
     for (const x of C0.tpl) for (const y of A0.tpl) dMin = Math.min(dMin, lenv(sub(addv(C0.c, x.rel), addv(A0.c, y.rel))))
-    const covers = list.some((u) => u.atoms.some((x) => x.el !== 'H' && heavy.some((a) => lenv(sub(a.pos, x.pos)) < 0.45 * dMin)))
+    const covers = list.some((u) => u.atoms.some((x) => x.el !== 'H' && heavy.some((a) => lenv(sub(a.pos, x.pos)) < 0.45 * Math.max(dMin, d))))
     if (!covers) return withK(list, addv(C0.c, u, 0.5 * d), 150)
     list.length = 0
   }
@@ -198,9 +198,9 @@ function schemaFragment(plan: FormationPlan, model: SchoolHeroModel, screenToMod
   // Шаг по каждой оси — по протяжённости единицы вдоль неё (+ зазор): плотная, но без наложений укладка.
   const avgR = model.atoms.reduce((q, a) => q + a.r, 0) / Math.max(1, model.atoms.length)
   const extOn = (ax: V3) => Math.max(...model.atoms.map((a) => Math.abs(dot(sub(a.pos, origin), ax)) + a.r))
-  const LX = 2 * extOn(X) + 0.9 * avgR
-  const LY = 2 * extOn(Y) + 0.9 * avgR
-  const LZ = 2 * extOn(Z) + 0.9 * avgR
+  const LX = 2 * extOn(X) + 1.15 * avgR
+  const LY = 2 * extOn(Y) + 1.15 * avgR
+  const LZ = 2 * extOn(Z) + 1.15 * avgR
   const flip = (p: V3): V3 => {
     // поворот на 180° вокруг экранной оси Y: x → −x, z → −z
     const r = sub(p, origin)
@@ -229,6 +229,43 @@ function schemaFragment(plan: FormationPlan, model: SchoolHeroModel, screenToMod
 }
 
 /** Молекулы в узлах (центр — модель, + 8 вершин куба) или соседние звенья цепи. */
+/**
+ * Сдвиг звена цепи с общей вершиной: у единственного центрального атома (Cr, P, Si …) с атомами O — свободное направление
+ * тетраэдра (против суммы направлений на O; у плоского звена — перпендикуляр к плоскости); мостиковый O звена (без H)
+ * переносится туда. Из кандидатов берётся тот, при котором цепь идёт ближе всего вдоль экрана. null — звено не такое.
+ */
+function chainShift(model: SchoolHeroModel, X: V3, Z: V3): V3 | null {
+  const centers = model.atoms.flatMap((a, i) => (/^(Cr|P|Si|V|Mn|S)$/.test(a.el) ? [i] : []))
+  if (centers.length !== 1) return null
+  const C = model.atoms[centers[0]!]!.pos
+  const os = model.atoms.flatMap((a, i) => (a.el === 'O' ? [i] : []))
+  if (os.length < 2) return null
+  const hasH = (i: number) => model.bonds.some((b) => (b.a === i && model.atoms[b.b]!.el === 'H') || (b.b === i && model.atoms[b.a]!.el === 'H'))
+  const us = os.map((i) => norm(sub(model.atoms[i]!.pos, C)))
+  let d4: V3 = [0, 0, 0]
+  for (const u of us) d4 = addv(d4, u, -1)
+  if (lenv(d4) < 0.25) {
+    const [a, b] = [us[0]!, us[1]!]
+    d4 = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+  }
+  d4 = norm(d4)
+  const dCO = os.reduce((sum, i) => sum + lenv(sub(model.atoms[i]!.pos, C)), 0) / os.length
+  const oRight = addv(C, scale(d4, dCO))
+  let best: V3 | null = null
+  let score = -Infinity
+  for (const i of os) {
+    if (hasH(i)) continue
+    const T = sub(oRight, model.atoms[i]!.pos)
+    const n = norm(T)
+    const sc = Math.abs(dot(n, X)) - Math.abs(dot(n, Z))
+    if (lenv(T) > 1e-6 && sc > score) {
+      score = sc
+      best = T
+    }
+  }
+  return best
+}
+
 function copiesFragment(kind: 'molecular' | 'chain', model: SchoolHeroModel, screenToModel: (s: V3) => V3): LatticeAtom[] {
   const origin = centroid(model, model.atoms.map((_, i) => i))
   let ext = 0
@@ -241,6 +278,11 @@ function copiesFragment(kind: 'molecular' | 'chain', model: SchoolHeroModel, scr
   if (kind === 'molecular') {
     const a = 1.35 * ext
     for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) offs.push(addv(addv(scale(X, sx * a), Y, sy * a), Z, sz * a))
+  } else if (chainShift(model, X, Z)) {
+    // Цепь тетраэдров с общими вершинами ((CrO₃)ₙ, (HPO₃)ₙ, (SiO₃)ₙ): соседнее звено сдвинуто так, что его мостиковый O
+    // занимает свободную вершину тетраэдра этого звена — звенья делят один атом O, как в настоящем полимере.
+    const T = chainShift(model, X, Z)!
+    for (const s of [-1, 1, 2]) offs.push(scale(T, s))
   } else {
     // Ось цепи — направление наибольшей протяжённости звена (в плоскости экрана — по X, если звено «круглое»).
     let axis = X
@@ -282,7 +324,11 @@ export function latticeFor(
     // «типа NaCl / ZnS / корунда» в таблице — тот же структурный тип: берём его генератор (верная координация 6:6, 4:4, 6:4).
     // смесь (KCl·NaCl — сильвинит) — не одна решётка: схема из формульных единиц сохраняет оба катиона
     const hint = script?.latticeKind === 'schema' && script.routeKind !== 'mixture' ? (/типа NaCl/.test(script.lattice) ? 'nacl' : /типа ZnS/.test(script.lattice) ? 'sphalerite' : /типа корунда/.test(script.lattice) ? 'corundum' : /антифлюорит/.test(script.lattice) ? 'antifluorite' : null) : null
-    const genKey = script?.latticeKind === 'generator' && script.latticeGen ? script.latticeGen : hint
+    // кальцит (CaCO₃, MgCO₃) и NaNO₃ — «искажённый тип NaCl»: катионы и группы XO₃ в узлах каменной соли
+    // (в crystalData у calcite нет базиса — берём генератор nacl, группы CO₃/NO₃ — как в модели)
+    const calciteLike = plan.compoundId === 'salt_ca_co3' || plan.compoundId === 'salt_mg_co3' || plan.compoundId === 'salt_na_no3'
+    const genKey0 = script?.latticeKind === 'generator' && script.latticeGen ? script.latticeGen : hint
+    const genKey = calciteLike ? 'nacl' : genKey0
     const gen = genKey ? generatorFragment(genKey, plan, model) : null
     return { kind: 'ionic', atoms: gen && gen.length ? gen : schemaFragment(plan, model, screenToModel) }
   }
