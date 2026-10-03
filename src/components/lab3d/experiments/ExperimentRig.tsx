@@ -203,6 +203,36 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
     [camera, def, experimentId, hitOnPlane, play, total],
   )
 
+  // Для автоматической проверки жестов (Playwright): …#/vr-lab?debugLab=1 — window.__labGesture() отдаёт экранные
+  // точки начала и конца жеста текущего шага (CSS px), как их проходит палец ученика
+  useEffect(() => {
+    if (typeof window === 'undefined' || !/[?&]debugLab=1/.test(window.location.hash)) return
+    const w = window as unknown as { __labGesture?: () => unknown }
+    w.__labGesture = () => {
+      const s = stepRef.current
+      const gst = RIG_GESTURES[experimentId][s]
+      const g = root.current
+      if (!gst || !g || s >= total) return null
+      const r = gl.domElement.getBoundingClientRect()
+      const px = (v: readonly number[]) => {
+        const p = g.localToWorld(new THREE.Vector3(v[0], v[1], v[2])).project(camera)
+        return [r.left + ((p.x + 1) / 2) * r.width, r.top + ((1 - p.y) / 2) * r.height]
+      }
+      // центр невидимой «зоны нажатия» цели (mesh с userData.labTarget) — туда нажимает ученик
+      const name = def.steps[s]?.target
+      let hit: number[] | null = null
+      g.traverse((o) => {
+        if (hit || (o.userData as { labTarget?: string }).labTarget !== name) return
+        const p = o.getWorldPosition(new THREE.Vector3()).project(camera)
+        hit = [r.left + ((p.x + 1) / 2) * r.width, r.top + ((1 - p.y) / 2) * r.height]
+      })
+      return gst.kind === 'tap' ? { kind: 'tap', step: s, target: name, at: hit } : { kind: gst.kind, step: s, target: name, at: hit, from: px(gst.from), to: px(gst.to) }
+    }
+    return () => {
+      delete w.__labGesture
+    }
+  }, [camera, def, experimentId, gl, total])
+
   // реактив со стеллажа: сцена подсвечивает его; взял/поставил — шаг засчитан
   const need = step < total ? (LAB_STEP_ACTIONS[experimentId][step]?.need ?? null) : null
   useEffect(() => {

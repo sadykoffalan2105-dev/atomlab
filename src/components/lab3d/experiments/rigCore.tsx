@@ -185,6 +185,8 @@ export function Target({
   const [hover, setHover] = useState(false)
   ensureHintCss()
   const onClick = (e: ThreeEvent<MouseEvent>) => {
+    // неактивная цель (гранула, уже лежащая в пробирке) не гасит нажатие — оно доходит до текущей цели за ней
+    if (!active) return
     e.stopPropagation()
     // у перетаскивания и «провести» простое нажатие не засчитывается — нужен жест (рука-подсказка показывает какой)
     if (kind === 'tap') act(name)
