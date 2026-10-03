@@ -3,8 +3,8 @@
  * Шаги: 0 рассмотреть гранулу цинка · 1 налить соляную кислоту · 2 опустить цинк · 3 наблюдать (цинк растворяется).
  */
 import * as THREE from 'three'
-import { Pose, Target, ease, hill, mix, mixV, type PFn, type V3 } from '../rigCore'
-import { Bubbles, PourStream } from '../parts/effects'
+import { Pose, Target, ease, hill, mix, mixV, useCrossing, type PFn, type V3 } from '../rigCore'
+import { Bubbles, PourStream, playFizz } from '../parts/effects'
 import { BOTTLE_H, ReagentBottle, TUBE_H, TestTube, TubeRack, TubeTag, WatchGlass, ZnGranule } from '../parts/glassware'
 
 const TUBE_X = 0
@@ -18,6 +18,7 @@ const level: PFn = (p) => LEVEL * ease(p, 1.42, 1.72)
 const bubbles: PFn = (p) => ease(p, 2.72, 2.95) * (1 - 0.35 * ease(p, 3.6, 4))
 
 export function ZnHclRig() {
+  useCrossing(2.72, () => playFizz(4.5))
   return (
     <group>
       <TubeRack xs={[-0.04, TUBE_X, 0.04]} />

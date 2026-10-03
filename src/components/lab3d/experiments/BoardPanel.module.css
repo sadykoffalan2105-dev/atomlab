@@ -416,3 +416,383 @@
   background: var(--accent);
   transform: scale(1.2);
 }
+
+/* ── Действие шага: иконка жеста и «как сделать» ── */
+.instrRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+.actIcon {
+  flex: 0 0 96px;
+  width: 96px;
+  height: 72px;
+  color: var(--accent);
+  border-radius: 14px;
+  background: #e8f0ff;
+}
+.actHand {
+  animation: actTap 1.4s ease-in-out infinite;
+}
+.actIcon[data-kind='drag'] .actHand {
+  animation: actDrag 2.2s ease-in-out infinite;
+}
+.actIcon[data-kind='swipe'] .actHand {
+  animation: actSwipe 1.6s ease-in-out infinite;
+}
+.actRipple {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: actRipple 1.4s ease-out infinite;
+}
+.actPath {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-dasharray: 6 6;
+  opacity: 0.6;
+}
+.actGoal {
+  fill: rgba(47, 124, 246, 0.18);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.actStroke {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 80;
+  animation: actStroke 1.6s ease-in-out infinite;
+}
+@keyframes actTap {
+  0%,
+  100% {
+    transform: translate(0, 4px);
+  }
+  45% {
+    transform: translate(0, -2px);
+  }
+  60% {
+    transform: translate(0, 4px) scale(0.97);
+  }
+}
+@keyframes actRipple {
+  0%,
+  50% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+@keyframes actDrag {
+  0%,
+  10% {
+    transform: translate(-22px, 26px);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  75%,
+  88% {
+    transform: translate(40px, -8px);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(40px, -8px);
+    opacity: 0;
+  }
+}
+@keyframes actSwipe {
+  0% {
+    transform: translate(-26px, 14px);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    transform: translate(34px, 14px);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(34px, 14px);
+    opacity: 0;
+  }
+}
+@keyframes actStroke {
+  0% {
+    stroke-dashoffset: 80;
+    opacity: 0.2;
+  }
+  70% {
+    stroke-dashoffset: 0;
+    opacity: 0.9;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+.howText {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  color: #24456f;
+  font-weight: 600;
+}
+.needBtn {
+  align-self: flex-start;
+  margin-top: 12px;
+  min-height: 56px;
+  padding: 0 20px;
+  border-radius: 14px;
+  border: 2px dashed var(--accent);
+  background: #fff;
+  color: var(--accent) !important;
+  font-size: 18px !important;
+  font-weight: 700;
+}
+
+/* ── Итог опыта: «Что произошло» (частицы) и проверка ── */
+.finalBody {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 18px;
+  min-height: 0;
+}
+.story,
+.quiz {
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 2px solid #d7e5fb;
+  background: linear-gradient(180deg, #f7faff, #ffffff);
+}
+.storySvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+}
+.storyBg {
+  fill: #eef4fb;
+}
+.storyCap {
+  font-size: 15px;
+  fill: #6c7a89;
+}
+.atom,
+.electron {
+  transform: translate(var(--x0), var(--y0));
+}
+.atom {
+  animation: storyMove 6s ease-in-out infinite;
+}
+.electron {
+  animation: storyElectron 6s ease-in-out infinite;
+}
+.atom text,
+.electron text,
+.storyProduct text {
+  font-weight: 700;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.storyProduct rect {
+  fill: rgba(255, 255, 255, 0.85);
+  stroke: #9fb3c8;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+.storyProduct text {
+  font-size: 18px;
+  font-weight: 800;
+  fill: #18212b;
+}
+.storyProduct {
+  animation: storyProduct 6s ease-in-out infinite;
+}
+.atomLabelA {
+  animation: storyLabelA 6s linear infinite;
+}
+.atomLabelB {
+  animation: storyLabelB 6s linear infinite;
+}
+@keyframes storyMove {
+  0% {
+    transform: translate(var(--x0), var(--y0));
+    opacity: 0;
+  }
+  6%,
+  16% {
+    transform: translate(var(--x0), var(--y0));
+    opacity: 1;
+  }
+  40% {
+    transform: translate(var(--xm), var(--ym));
+    opacity: 1;
+  }
+  64%,
+  92% {
+    transform: translate(var(--x1), var(--y1));
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--x1), var(--y1));
+    opacity: 0;
+  }
+}
+@keyframes storyElectron {
+  0%,
+  14% {
+    transform: translate(var(--x0), var(--y0));
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  30% {
+    transform: translate(var(--xm), var(--ym));
+    opacity: 1;
+  }
+  40% {
+    transform: translate(var(--x1), var(--y1));
+    opacity: 1;
+  }
+  46%,
+  100% {
+    transform: translate(var(--x1), var(--y1));
+    opacity: 0;
+  }
+}
+@keyframes storyProduct {
+  0%,
+  56% {
+    opacity: 0;
+  }
+  64%,
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes storyLabelA {
+  0%,
+  40% {
+    opacity: 1;
+  }
+  46%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes storyLabelB {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  46%,
+  100% {
+    opacity: 1;
+  }
+}
+.storyEq {
+  margin: 6px 0 4px;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+}
+.storyText {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.32;
+  color: #34414f;
+}
+.quiz {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.quizQ {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+.quizOpts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quizOpt {
+  min-height: 56px;
+  padding: 8px 16px;
+  text-align: left;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: #fff;
+  font-size: 19px !important;
+  transition: border-color 0.2s, background 0.2s;
+}
+.quizOpt[data-state='right'] {
+  border-color: var(--exchange);
+  background: #e6f7ed;
+}
+.quizOpt[data-state='wrong'] {
+  border-color: var(--combustion);
+  background: #fdecea;
+}
+.quizOpt[data-state='off'] {
+  opacity: 0.55;
+}
+.quizWhy {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff5e8;
+  font-size: 16px;
+  line-height: 1.3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quizWhy[data-ok] {
+  background: #eaf8ef;
+}
+.quizNext {
+  align-self: flex-end;
+  min-height: 52px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #fff !important;
+  font-size: 18px !important;
+  font-weight: 700;
+}
+.quizDone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 0;
+}
+.quizScore {
+  margin: 0;
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--accent);
+}

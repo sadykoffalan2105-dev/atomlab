@@ -7,7 +7,7 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { Pose, Target, ease, hill, mix, mixV, useCrossing, useRig, type PFn, type V3 } from '../rigCore'
-import { Bubbles, Droplets, OUTLET, PopFlash, PourStream, StopperWithTube, playPop, plateDropPoints } from '../parts/effects'
+import { Bubbles, Droplets, GasFill, OUTLET, PopFlash, PourStream, StopperWithTube, playFizz, playPop, plateDropPoints } from '../parts/effects'
 import { BOTTLE_H, GlassPlate, LabStand, ReagentBottle, TUBE_H, TestTube, TubeRack, TubeTag, WatchGlass, ZnGranule } from '../parts/glassware'
 import { Flame, FlameLight, Match, Matchbox, SpiritLamp } from '../parts/fire'
 
@@ -37,7 +37,7 @@ const outletFlame: PFn = (p) => ease(p, 6.05, 6.25)
 const popFlash: PFn = (p) => hill(p, 5.5, 5.66, 0.3)
 
 /** Пробирка-приёмник C (начало — горлышко): в штативе → перевёрнута над трубкой → к пламени → обратно в штатив. */
-function collectPose(p: number) {
+function collectPose(p: number, t: number) {
   const rest: V3 = [C_X, 0.012 + TUBE_H, RACK_Z]
   const lifted: V3 = [C_X, 0.32, RACK_Z]
   const aboveOut: V3 = [OUT_X, 0.34, Z0]
@@ -45,8 +45,8 @@ function collectPose(p: number) {
   const aboveLamp: V3 = [LAMP[0], 0.3, LAMP[2]]
   const atLamp: V3 = [LAMP[0] - 0.006, LAMP_FLAME_Y + 0.062, LAMP[2]]
   let pos = mixV(rest, lifted, ease(p, 3, 3.25))
-  pos = mixV(pos, aboveOut, ease(p, 3.2, 3.6))
-  pos = mixV(pos, atOut, ease(p, 3.62, 3.9))
+  pos = mixV(pos, aboveOut, ease(p, 3.2, 3.45))
+  pos = mixV(pos, atOut, ease(p, 3.45, 3.62))
   // проверка на чистоту: вверх с трубки → к спиртовке
   pos = mixV(pos, aboveOut, ease(p, 5, 5.12))
   pos = mixV(pos, aboveLamp, ease(p, 5.1, 5.34))
@@ -54,14 +54,17 @@ function collectPose(p: number) {
   // обратно в штатив (уже снова горлышком вверх)
   pos = mixV(pos, lifted, ease(p, 5.66, 5.86))
   pos = mixV(pos, rest, ease(p, 5.86, 6))
-  const flip = ease(p, 3.22, 3.55) * (1 - ease(p, 5.68, 5.88))
+  const flip = ease(p, 3.22, 3.45) * (1 - ease(p, 5.68, 5.88))
   const tiltToFlame = ease(p, 5.32, 5.48) * (1 - ease(p, 5.66, 5.75))
-  return { pos, rot: [0, 0, Math.PI * flip - 0.3 * tiltToFlame] as V3 }
+  // хлопок: пробирка вздрагивает в руке
+  const shake = Math.sin(t * 90) * 0.0028 * hill(p, 5.5, 5.64, 0.2)
+  return { pos: [pos[0] + shake, pos[1] + shake * 0.5, pos[2]] as V3, rot: [0, 0, Math.PI * flip - 0.3 * tiltToFlame + shake * 3] as V3 }
 }
 
 export function H2PracticalRig() {
   const { quality } = useRig()
   const drops = useMemo(() => plateDropPoints(0.09, 0.06, -0.0022, quality === 'high' ? 70 : 30), [quality])
+  useCrossing(1.62, () => playFizz(2.5))
   useCrossing(5.52, () => playPop('dull'))
   useCrossing(6.03, () => playPop('dull'))
   return (
@@ -152,6 +155,8 @@ export function H2PracticalRig() {
       <Pose pose={collectPose}>
         <group position={[0, -TUBE_H, 0]}>
           <TestTube />
+          {/* водород вытесняет воздух: граница газа опускается от дна к отверстию; после хлопка газа нет */}
+          <GasFill fill={(p) => ease(p, 3.62, 3.98) * (1 - ease(p, 5.5, 5.6))} length={TUBE_H - 0.012} />
           <Target name="collect-tube" size={[0.045, 0.17, 0.045]} center={[0, 0.085, 0]} ring={false} hintY={0.2} />
         </group>
         <PopFlash flash={popFlash} size={0.026} />

@@ -25,7 +25,15 @@ export function Bubbles({ level, rate, fromY = 0.008, spread = 0.75 }: { level: 
   const { quality, p, time } = useRig()
   const n = quality === 'high' ? 70 : 26
   const ref = useRef<THREE.InstancedMesh>(null)
-  const seeds = useMemo(() => Array.from({ length: n }, (_, i) => ({ a: rand(i, 1) * Math.PI * 2, r: rand(i, 2), s: 0.6 + rand(i, 3) * 0.8, ph: rand(i, 4), size: 0.5 + rand(i, 5) })), [n])
+  // размер пузырьков разный: много мелких, немного крупных (крупные всплывают быстрее)
+  const seeds = useMemo(
+    () =>
+      Array.from({ length: n }, (_, i) => {
+        const size = 0.35 + Math.pow(rand(i, 5), 2.2) * 1.5
+        return { a: rand(i, 1) * Math.PI * 2, r: rand(i, 2), s: 0.55 + rand(i, 3) * 0.5 + size * 0.35, ph: rand(i, 4), size }
+      }),
+    [n],
+  )
   useFrame(() => {
     const m = ref.current
     if (!m) return
@@ -37,12 +45,15 @@ export function Bubbles({ level, rate, fromY = 0.008, spread = 0.75 }: { level: 
     for (let i = 0; i < n; i++) {
       const sd = seeds[i]!
       const on = sd.ph < k
-      const f = (t * 0.55 * sd.s + sd.ph) % 1
-      const y = fromY + f * span
+      const f = (t * 0.5 * sd.s + sd.ph) % 1
+      // отрываются от поверхности металла медленно и ускоряются вверх
+      const y = fromY + (0.35 * f * f + 0.65 * f) * span
       const rr = TUBE_R * 0.7 * spread * Math.sqrt(sd.r) * (1 - 0.3 * f)
-      const wob = Math.sin(t * 9 + i) * 0.0006
-      tmp.position.set(Math.cos(sd.a) * rr + wob, y, Math.sin(sd.a) * rr)
-      const sc = on && lv > fromY + 0.004 ? (0.0009 + 0.0011 * sd.size) * (0.6 + 0.6 * f) : 0
+      const wob = Math.sin(t * 9 + i) * 0.0006 * f
+      tmp.position.set(Math.cos(sd.a) * rr + wob, Math.min(y, lv - 0.0008), Math.sin(sd.a) * rr)
+      // у поверхности пузырёк раздувается и лопается
+      const pop = f > 0.93 ? Math.max(0, 1 - (f - 0.93) / 0.07) * 1.5 : f > 0.86 ? 1 + (f - 0.86) * 7 : 1
+      const sc = on && lv > fromY + 0.004 ? (0.0008 + 0.001 * sd.size) * (0.55 + 0.6 * f) * pop : 0
       tmp.scale.setScalar(Math.max(sc, 1e-6))
       tmp.updateMatrix()
       m.setMatrixAt(i, tmp.matrix)
@@ -91,7 +102,9 @@ export function Precipitate({ level, appear, settle, layer = 0.008 }: { level: P
         y0 + (y1 - y0) * k + Math.sin(t * 0.9 + i * 0.7) * drift,
         Math.sin(sd.a + t * 0.2 * (1 - k)) * rr,
       )
-      const sc = sd.ph < ap ? 0.0007 * sd.s : 0
+      // муть расходится от места, куда бьёт струя (сверху раствора), вниз и к стенкам
+      const order = 0.72 * (1 - sd.y) + 0.18 * sd.r + 0.1 * sd.ph
+      const sc = order < ap * 1.02 ? 0.0007 * sd.s : 0
       tmp.scale.setScalar(Math.max(sc, 1e-6))
       tmp.updateMatrix()
       m.setMatrixAt(i, tmp.matrix)
@@ -275,4 +288,110 @@ export function playPop(kind: 'dull' | 'sharp' = 'dull') {
   } catch {
     /* звук не обязателен */
   }
+}
+
+/** Шипение выделяющегося газа: высокий шум с потрескиванием, плавно затухает (WebAudio, без файлов). */
+export function playFizz(seconds = 2.5) {
+  if (typeof window === 'undefined' || isVrLabSoundMuted()) return
+  try {
+    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!Ctor) return
+    audio ??= new Ctor()
+    const ctx = audio
+    if (ctx.state === 'suspended') void ctx.resume()
+    const len = Math.floor(ctx.sampleRate * seconds)
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate)
+    const data = buf.getChannelData(0)
+    for (let i = 0; i < len; i++) {
+      const env = Math.min(1, i / (ctx.sampleRate * 0.25)) * Math.min(1, (len - i) / (ctx.sampleRate * 0.8))
+      // редкие «щелчки» лопающихся пузырьков поверх ровного шипения
+      const crackle = Math.random() < 0.0016 ? (Math.random() * 2 - 1) * 3 : 0
+      data[i] = ((Math.random() * 2 - 1) * 0.35 + crackle) * env
+    }
+    const src = ctx.createBufferSource()
+    src.buffer = buf
+    const f = ctx.createBiquadFilter()
+    f.type = 'highpass'
+    f.frequency.value = 3200
+    const g = ctx.createGain()
+    g.gain.value = 0.16
+    src.connect(f).connect(g).connect(ctx.destination)
+    src.start()
+  } catch {
+    /* звук не обязателен */
+  }
+}
+
+/**
+ * Дрожание горячего воздуха над пламенем: прозрачные «струйки» поднимаются, расширяются и тают.
+ * intensity(p) — 0…1 (пламя горит). Начало — верх горелки.
+ */
+export function HeatHaze({ intensity, height = 0.16 }: { intensity: PFn; height?: number }) {
+  const { quality, p, time } = useRig()
+  const n = quality === 'high' ? 34 : 12
+  const ref = useRef<THREE.InstancedMesh>(null)
+  const mat = useRef<THREE.MeshBasicMaterial>(null)
+  const seeds = useMemo(() => Array.from({ length: n }, (_, i) => ({ ph: rand(i, 51), a: rand(i, 52) * Math.PI * 2, s: 0.7 + rand(i, 53) * 0.6 })), [n])
+  useFrame(() => {
+    const m = ref.current
+    if (!m) return
+    const k = intensity(p.current ?? 0)
+    const t = time.current ?? 0
+    m.visible = k > 0.02
+    if (mat.current) mat.current.opacity = 0.07 * k
+    for (let i = 0; i < n; i++) {
+      const sd = seeds[i]!
+      const f = (t * 0.7 * sd.s + sd.ph) % 1
+      const r = 0.004 + f * 0.012
+      tmp.position.set(Math.cos(sd.a + t) * r + Math.sin(t * 7 + i) * 0.002 * f, 0.05 + f * height, Math.sin(sd.a + t) * r)
+      tmp.scale.setScalar(0.004 + f * 0.012 * (1 - f * 0.5))
+      tmp.updateMatrix()
+      m.setMatrixAt(i, tmp.matrix)
+    }
+    m.instanceMatrix.needsUpdate = true
+  })
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, n]} renderOrder={8} frustumCulled={false}>
+      <sphereGeometry args={[1, 10, 8]} />
+      <meshBasicMaterial ref={mat} color="#fff6e8" transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+    </instancedMesh>
+  )
+}
+
+/**
+ * Газ в перевёрнутой пробирке (начало — дно пробирки, ось вдоль пробирки): fill(p) 0…1 — сколько воздуха уже
+ * вытеснено. Граница «газ / воздух» — светлое кольцо с пузырьками, она движется от дна к отверстию.
+ */
+export function GasFill({ fill, length }: { fill: PFn; length: number }) {
+  const { p, time } = useRig()
+  const col = useRef<THREE.Mesh>(null)
+  const edge = useRef<THREE.Mesh>(null)
+  useFrame(() => {
+    const k = fill(p.current ?? 0)
+    const h = Math.max(1e-4, length * k)
+    const c = col.current
+    if (c) {
+      c.visible = k > 0.01
+      c.scale.set(1, h, 1)
+      c.position.y = 0.003 + h / 2
+    }
+    const e = edge.current
+    if (e) {
+      e.visible = k > 0.01 && k < 0.99
+      e.position.y = 0.003 + h
+      e.scale.setScalar(1 + 0.06 * Math.sin((time.current ?? 0) * 12))
+    }
+  })
+  return (
+    <>
+      <mesh ref={col} renderOrder={2}>
+        <cylinderGeometry args={[TUBE_R * 0.86, TUBE_R * 0.86, 1, 20, 1, true]} />
+        <meshBasicMaterial color="#bfe0ff" transparent opacity={0.28} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh ref={edge} rotation={[Math.PI / 2, 0, 0]} renderOrder={3}>
+        <torusGeometry args={[TUBE_R * 0.7, 0.0011, 6, 20]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.8} depthWrite={false} />
+      </mesh>
+    </>
+  )
 }

@@ -6,7 +6,7 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { Pose, Target, ease, mix, mixV, useRig, type PFn, type V3 } from '../rigCore'
-import { Droplets, beakerDropPoints } from '../parts/effects'
+import { Droplets, HeatHaze, beakerDropPoints } from '../parts/effects'
 import { BEAKER_H, BEAKER_R, Beaker } from '../parts/glassware'
 import { BURNER_TOP, GasBurner, GasTap, Hose, Match, Matchbox } from '../parts/fire'
 import { useAnimatedMaterial } from '../rigCore'
@@ -67,6 +67,9 @@ export function Ch4BurnRig() {
     <group>
       <group position={BURNER as unknown as THREE.Vector3Tuple}>
         <GasBurner flame={flame} />
+        <group position={[0, BURNER_TOP, 0]}>
+          <HeatHaze intensity={flame} />
+        </group>
       </group>
       <Hose points={hose} />
       <group position={TAP as unknown as THREE.Vector3Tuple}>
