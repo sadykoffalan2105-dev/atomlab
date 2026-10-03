@@ -724,6 +724,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'learn.book.sourceNote': 'Matn «Kimyo» darsligidan tanib olingan va xatolar bo‘lishi mumkin — PDF sahifa bilan solishtiring.',
   'learn.book.labWorkAria': '{n}-betga o‘tish',
   'learn.book.rx.openLab': 'Laboratoriyada ochish',
+  'learn.book.rx.open3d': '3D tajriba',
   'learn.book.rx.openLabAria': 'Laboratoriyada ochish: {equation}',
   'learn.book.rx.openOrganic': 'Organik laboratoriya',
   'learn.book.rx.openReactor': 'Reaktorda',
