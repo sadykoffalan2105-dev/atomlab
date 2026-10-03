@@ -39,7 +39,7 @@ function LimeFilm() {
   const mat = useAnimatedMaterial(
     () => new THREE.MeshStandardMaterial({ color: '#ffffff', transparent: true, opacity: 0.1, roughness: 0.9, depthWrite: false, side: THREE.DoubleSide }),
     (m, p) => {
-      m.opacity = 0.1 + 0.72 * ease(p, 3.5, 3.95)
+      m.opacity = 0.1 + 0.72 * ease(p, 3.45, 3.75)
     },
   )
   return (
@@ -94,15 +94,15 @@ export function Ch4BurnRig() {
       </Pose>
 
       {/* Холодный сухой стакан */}
-      <Pose pose={beakerPose(DRY, 2, 2.55, 3, 3.3)}>
+      <Pose pose={beakerPose(DRY, 2, 2.45, 2.8, 3)}>
         <Beaker>
-          <Droplets points={drops} show={(p) => ease(p, 2.6, 2.95)} />
+          <Droplets points={drops} show={(p) => ease(p, 2.45, 2.75)} />
         </Beaker>
         <Target name="beaker-dry" size={[0.06, 0.08, 0.06]} center={[0, 0.04, 0]} hintY={0.11} />
       </Pose>
 
       {/* Стакан, смоченный известковой водой */}
-      <Pose pose={beakerPose(LIME, 3.2, 3.6, 4.0, 4.3)}>
+      <Pose pose={beakerPose(LIME, 3, 3.45, 3.8, 4)}>
         <Beaker>
           <LimeFilm />
         </Beaker>

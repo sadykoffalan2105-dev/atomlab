@@ -11,12 +11,24 @@ import { BENCH_TOP_Y, BOARD_PX, LAB_COLORS, WORK_AREA_CENTER, WORK_AREA_SIZE, ty
 import { detectVrLabQuality } from '../../../vrLab/vrLabPerformance'
 import { BoardPanel, ExperimentRig, getLabExperiment, isLabExperimentId } from '../index'
 
+/** Кадр камеры под размер установки: [высота над столом, отступ по Z, высота цели]. */
+const VIEW: Record<LabExperimentId, readonly [number, number, number]> = {
+  baso4: [0.26, 0.44, 0.09],
+  'ch4-burn': [0.42, 0.88, 0.12],
+  'zn-hcl': [0.3, 0.62, 0.1],
+  'h2-practical': [0.55, 1.2, 0.14],
+}
+
 export function ExperimentSandbox() {
   const [params, setParams] = useSearchParams()
   const expParam = params.get('exp')
   const experimentId: LabExperimentId = isLabExperimentId(expParam) ? expParam : 'baso4'
   const stepParam = Number(params.get('step') ?? 0)
   const [step, setStep] = useState(Number.isFinite(stepParam) ? stepParam : 0)
+  // ?step= в адресе (кадры по шагам) — без перезагрузки страницы
+  useEffect(() => {
+    if (Number.isFinite(stepParam)) setStep(stepParam)
+  }, [stepParam, experimentId])
   const lang = (['ru', 'en', 'uz'].includes(params.get('lang') ?? '') ? params.get('lang') : 'ru') as LabLang
   const quality = useMemo(() => (params.get('q') === 'low' || detectVrLabQuality() === 'low' ? 'low' : 'high') as 'low' | 'high', [params])
   const total = getLabExperiment(experimentId).steps.length
@@ -36,12 +48,13 @@ export function ExperimentSandbox() {
   const goto = (s: number) => setStep(Math.max(0, Math.min(total, s)))
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#eef2f6', display: 'flex', flexDirection: narrow ? 'column' : 'row' }} data-lab3d-sandbox>
+    <div style={{ position: 'fixed', inset: '64px 0 0 0', background: '#eef2f6', display: 'flex', flexDirection: narrow ? 'column' : 'row' }} data-lab3d-sandbox>
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         <Canvas
           shadows={quality === 'high'}
           dpr={quality === 'high' ? [1, 1.75] : [1, 1.25]}
-          camera={{ position: [0, BENCH_TOP_Y + 0.42, 0.78], fov: 42, near: 0.02, far: 20 }}
+          key={experimentId}
+          camera={{ position: [0, BENCH_TOP_Y + VIEW[experimentId][0], VIEW[experimentId][1]], fov: 42, near: 0.02, far: 20 }}
           gl={{ antialias: true, preserveDrawingBuffer: true }}
           onCreated={({ gl }) => {
             gl.toneMapping = THREE.ACESFilmicToneMapping
@@ -80,7 +93,7 @@ export function ExperimentSandbox() {
           <group position={WORK_AREA_CENTER}>
             <ExperimentRig experimentId={experimentId} step={step} onAdvance={() => goto(step + 1)} quality={quality} lang={lang} />
           </group>
-          <OrbitControls target={[0, BENCH_TOP_Y + 0.12, 0]} enableDamping minDistance={0.25} maxDistance={2.2} maxPolarAngle={Math.PI / 2 - 0.05} />
+          <OrbitControls target={[0, BENCH_TOP_Y + VIEW[experimentId][2], 0]} enableDamping minDistance={0.25} maxDistance={2.2} maxPolarAngle={Math.PI / 2 - 0.05} />
         </Canvas>
       </div>
       <div

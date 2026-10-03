@@ -163,7 +163,6 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
             ) : finished ? (
               <div className={styles.doneCard}>
                 <p className={styles.label}>{UI.done[lang]}</p>
-                {lastDone?.observation ? <p className={styles.obsText}>{lastDone.observation[lang]}</p> : null}
                 <p className={styles.label}>{UI.conclusion[lang]}</p>
                 <p className={styles.conclusion}>{def.conclusion[lang]}</p>
               </div>

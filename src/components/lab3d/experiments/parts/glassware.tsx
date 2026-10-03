@@ -26,6 +26,23 @@ export function sharedGlass(q: Quality): THREE.MeshPhysicalMaterial {
   return m
 }
 
+let edgeMat: THREE.ShaderMaterial | null = null
+/**
+ * Контур стекла (френель): края посуды чуть темнее и голубее — на светлом фоне лаборатории
+ * прозрачная посуда остаётся читаемой. Рисуется вторым слоем той же геометрии.
+ */
+export function sharedGlassEdge(): THREE.ShaderMaterial {
+  edgeMat ??= new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    uniforms: { uColor: { value: new THREE.Color('#5d7690') } },
+    vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }',
+    fragmentShader: 'uniform vec3 uColor; varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); float a = pow(f, 2.6) * 0.62; gl_FragColor = vec4(uColor, a); }',
+  })
+  return edgeMat
+}
+
 export const TUBE_R = 0.009
 export const TUBE_H = 0.15
 
@@ -45,9 +62,9 @@ function tubeProfile(r: number, h: number): THREE.Vector2[] {
  */
 export function TestTube({
   level,
-  liquidColor = '#dff1ff',
+  liquidColor = '#cfe6fb',
   cloud,
-  liquidOpacity = 0.55,
+  liquidOpacity = 0.62,
 }: {
   level?: PFn
   liquidColor?: THREE.ColorRepresentation
@@ -58,7 +75,7 @@ export function TestTube({
   const glassGeo = useMemo(() => new THREE.LatheGeometry(tubeProfile(TUBE_R, TUBE_H), quality === 'high' ? 32 : 18), [quality])
   const liqMat = useMemo(() => labLiquidMaterial(liquidColor, liquidOpacity), [liquidColor, liquidOpacity])
   const base = useMemo(() => new THREE.Color(liquidColor), [liquidColor])
-  const milk = useMemo(() => new THREE.Color('#f3f5f7'), [])
+  const milk = useMemo(() => new THREE.Color('#dde3ea'), [])
   const hemi = useRef<THREE.Mesh>(null)
   const cyl = useRef<THREE.Mesh>(null)
   const men = useRef<THREE.Mesh>(null)
@@ -86,6 +103,7 @@ export function TestTube({
   return (
     <group>
       <mesh geometry={glassGeo} material={sharedGlass(quality)} renderOrder={3} />
+      <mesh geometry={glassGeo} material={sharedGlassEdge()} renderOrder={4} />
       <mesh ref={hemi} position={[0, TUBE_R, 0]} material={liqMat} renderOrder={2}>
         <sphereGeometry args={[ri, 20, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2]} />
       </mesh>
@@ -121,6 +139,7 @@ export function Beaker({ children }: { children?: ReactNode }) {
   return (
     <group>
       <mesh geometry={geo} material={sharedGlass(quality)} renderOrder={3} />
+      <mesh geometry={geo} material={sharedGlassEdge()} renderOrder={4} />
       {[0.022, 0.034, 0.046, 0.058].map((y, i) => (
         <mesh key={y} position={[0, y, BEAKER_R + 0.0004]}>
           <planeGeometry args={[i % 2 ? 0.006 : 0.011, 0.0011]} />
@@ -197,6 +216,7 @@ export function ReagentBottle({ formula, name, level, color = '#e3f2ff' }: { for
     <group>
       <group position={[0, -BOTTLE_H, 0]}>
         <mesh geometry={geo} material={sharedGlass(quality)} renderOrder={3} />
+      <mesh geometry={geo} material={sharedGlassEdge()} renderOrder={4} />
         <mesh position={[0, 0.045, 0]} rotation={[0, -0.8, 0]}>
           <cylinderGeometry args={[0.0284, 0.0284, 0.042, 24, 1, true, 0, 1.6]} />
           <meshStandardMaterial map={tex} roughness={0.7} side={THREE.DoubleSide} />
@@ -294,7 +314,12 @@ export function WatchGlass() {
     }
     return new THREE.LatheGeometry(pts, quality === 'high' ? 32 : 18)
   }, [quality])
-  return <mesh geometry={geo} material={sharedGlass(quality)} renderOrder={3} />
+  return (
+    <>
+      <mesh geometry={geo} material={sharedGlass(quality)} renderOrder={3} />
+      <mesh geometry={geo} material={sharedGlassEdge()} renderOrder={4} />
+    </>
+  )
 }
 
 /** Стеклянная пластинка 9 × 6 см (начало — центр). */

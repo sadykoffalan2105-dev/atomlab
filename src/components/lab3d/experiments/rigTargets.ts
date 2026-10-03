@@ -5,7 +5,7 @@
 import type { LabExperimentId } from '../labContract'
 
 export const RIG_TARGETS = {
-  baso4: ['tube-bacl2', 'tube-h2so4', 'rack'],
+  baso4: ['tube-bacl2', 'tube-h2so4'],
   'ch4-burn': ['match', 'gas-valve', 'beaker-dry', 'beaker-lime'],
   'zn-hcl': ['zn-granule', 'bottle-hcl', 'tube-acid'],
   'h2-practical': ['bottle-hcl', 'zn-granule', 'stopper', 'collect-tube', 'spirit-lamp', 'glass-plate'],
@@ -14,7 +14,7 @@ export const RIG_TARGETS = {
 /** Сколько секунд длится анимация действия шага (шаг s: прогресс p идёт от s к s + 1). */
 export const RIG_STEP_SECONDS: Readonly<Record<LabExperimentId, readonly number[]>> = {
   baso4: [1.4, 1.8, 3.2, 5.5],
-  'ch4-burn': [1.2, 2.4, 3.2, 3.6, 1.4],
+  'ch4-burn': [1.2, 2.4, 4.2, 4.6, 1.4],
   'zn-hcl': [1.4, 2.6, 2.2, 6],
   'h2-practical': [2.6, 2.2, 1.8, 3.2, 2.2, 2.8, 4.2],
 }

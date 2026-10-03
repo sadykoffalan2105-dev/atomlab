@@ -8,7 +8,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { LAB_COLORS } from '../../labContract'
 import { useRig, type PFn } from '../rigCore'
-import { sharedGlass } from './glassware'
+import { sharedGlass, sharedGlassEdge } from './glassware'
 
 const FLAME_VERT = /* glsl */ `
 uniform float uTime;
@@ -158,6 +158,7 @@ export function SpiritLamp({ flame, capOff }: { flame: PFn; capOff: PFn }) {
   return (
     <group>
       <mesh geometry={body} material={sharedGlass(quality)} renderOrder={3} />
+        <mesh geometry={body} material={sharedGlassEdge()} renderOrder={4} />
       <mesh position={[0, 0.017, 0]} renderOrder={2}>
         <cylinderGeometry args={[0.033, 0.034, 0.028, 28]} />
         <meshPhysicalMaterial color="#e9f4ff" transparent opacity={0.35} roughness={0.1} depthWrite={false} />
@@ -189,6 +190,7 @@ export function SpiritLamp({ flame, capOff }: { flame: PFn; capOff: PFn }) {
       </group>
       <group ref={capRef}>
         <mesh geometry={cap} material={sharedGlass(quality)} renderOrder={4} />
+        <mesh geometry={cap} material={sharedGlassEdge()} renderOrder={5} />
       </group>
     </group>
   )

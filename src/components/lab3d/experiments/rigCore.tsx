@@ -123,7 +123,7 @@ function ActiveGlow({ size, center, ringR, ring: showRing }: { size: V3; center:
   useFrame(() => {
     const t = time.current ?? 0
     const k = 0.5 + 0.5 * Math.sin(t * 4)
-    if (halo.current) halo.current.opacity = 0.07 + 0.08 * k
+    if (halo.current) halo.current.opacity = 0.035 + 0.05 * k
     if (ring.current) {
       ring.current.scale.setScalar(1 + 0.12 * k)
       ;(ring.current.material as THREE.MeshBasicMaterial).opacity = 0.35 + 0.35 * (1 - k)
@@ -132,7 +132,7 @@ function ActiveGlow({ size, center, ringR, ring: showRing }: { size: V3; center:
   return (
     <>
       <mesh position={center as unknown as THREE.Vector3Tuple} renderOrder={5}>
-        <capsuleGeometry args={[Math.max(size[0], size[2]) * 0.62, Math.max(0.001, size[1] - Math.max(size[0], size[2])), 6, 16]} />
+        <capsuleGeometry args={[Math.max(size[0], size[2]) * 0.4, Math.max(0.001, size[1] - Math.max(size[0], size[2]) * 0.8), 6, 16]} />
         <meshBasicMaterial ref={halo} color={LAB_COLORS.accent} transparent opacity={0.1} depthWrite={false} side={THREE.BackSide} />
       </mesh>
       {showRing ? <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} position={[center[0], 0.0015, center[2]]} renderOrder={5}>
@@ -198,7 +198,7 @@ export function Target({
       </mesh>
       {active ? (
         <>
-          <ActiveGlow size={size} center={c} ringR={ringR ?? Math.max(size[0], size[2]) * 0.75} ring={ring} />
+          <ActiveGlow size={size} center={c} ringR={Math.min(0.07, ringR ?? Math.max(size[0], size[2]) * 0.75)} ring={ring} />
           <Html position={[c[0], hintY ?? c[1] + size[1] / 2 + 0.03, c[2]]} center zIndexRange={[30, 10]} style={{ pointerEvents: 'none' }}>
             <div style={{ ...hintStyle, transform: hover ? 'scale(1.06)' : undefined }} data-lab3d-hint={name}>
               <HandIcon />

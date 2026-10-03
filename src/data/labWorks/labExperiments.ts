@@ -102,7 +102,7 @@ export const LAB_EXPERIMENTS: readonly LabExperimentDef[] = [
       },
       {
         id: 'settle',
-        target: 'rack',
+        target: 'tube-h2so4',
         instruction: t(
           'Поставьте пустую пробирку в штатив и понаблюдайте.',
           'Put the empty tube back into the rack and watch.',

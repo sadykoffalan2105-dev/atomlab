@@ -24,7 +24,6 @@ export function Baso4Rig() {
   return (
     <group>
       <TubeRack xs={[-0.09, XA, XB, 0.09]} />
-      <Target name="rack" size={[0.24, 0.09, 0.07]} center={[0, 0.045, 0]} hintY={0.2} />
 
       {/* Пробирка A — раствор BaCl₂ */}
       <Pose
@@ -34,7 +33,7 @@ export function Baso4Rig() {
         }}
       >
         <TestTube level={levelA} cloud={cloudA} liquidColor="#e8f4ff" />
-        <Precipitate level={levelA} appear={(p) => ease(p, 2.3, 2.8)} settle={(p) => ease(p, 3.05, 3.98)} layer={0.009} />
+        <Precipitate level={levelA} appear={(p) => ease(p, 2.3, 2.8)} settle={(p) => ease(p, 3.05, 3.98)} layer={0.015} />
         <group position={[0, 0.118, 0]}>
           <TubeTag text="BaCl₂" />
         </group>
