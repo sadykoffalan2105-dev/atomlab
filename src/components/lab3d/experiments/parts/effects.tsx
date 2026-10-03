@@ -42,7 +42,7 @@ export function Bubbles({ level, rate, fromY = 0.008, spread = 0.75 }: { level: 
       const rr = TUBE_R * 0.7 * spread * Math.sqrt(sd.r) * (1 - 0.3 * f)
       const wob = Math.sin(t * 9 + i) * 0.0006
       tmp.position.set(Math.cos(sd.a) * rr + wob, y, Math.sin(sd.a) * rr)
-      const sc = on && lv > fromY + 0.004 ? (0.0006 + 0.0009 * sd.size) * (0.6 + 0.6 * f) : 0
+      const sc = on && lv > fromY + 0.004 ? (0.0009 + 0.0011 * sd.size) * (0.6 + 0.6 * f) : 0
       tmp.scale.setScalar(Math.max(sc, 1e-6))
       tmp.updateMatrix()
       m.setMatrixAt(i, tmp.matrix)

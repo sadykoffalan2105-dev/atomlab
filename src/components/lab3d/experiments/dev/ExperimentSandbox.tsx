@@ -15,7 +15,7 @@ import { BoardPanel, ExperimentRig, getLabExperiment, isLabExperimentId } from '
 const VIEW: Record<LabExperimentId, readonly [number, number, number]> = {
   baso4: [0.26, 0.44, 0.09],
   'ch4-burn': [0.42, 0.88, 0.12],
-  'zn-hcl': [0.3, 0.62, 0.1],
+  'zn-hcl': [0.36, 0.82, 0.1],
   'h2-practical': [0.55, 1.2, 0.14],
 }
 
