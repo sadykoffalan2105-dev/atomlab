@@ -4,8 +4,19 @@
  */
 import { useState } from 'react'
 import type { BoardPanelProps, LabExperimentDef, LabLang } from '../labContract'
-import { LAB_EXPERIMENTS, getLabExperiment } from '../../../data/labWorks/labExperiments'
+import { LAB_EXPERIMENTS, LAB_STEP_ACTIONS, getLabExperiment } from '../../../data/labWorks/labExperiments'
+import type { LabItemId } from '../labEvents'
+import { ActionIcon, LabQuiz, ParticleStory } from './BoardStory'
 import styles from './BoardPanel.module.css'
+
+/** Запасная кнопка «Взять …» (если сцена со стеллажами не прислала событие). */
+const TAKE: Record<LabLang, string> = { ru: 'Взять', en: 'Take', uz: 'Olish' }
+const NEED_NAMES: Partial<Record<LabItemId, Record<LabLang, string>>> = {
+  'reagent:HCl': { ru: 'склянку HCl', en: 'the HCl bottle', uz: 'HCl shishasini' },
+  'reagent:Zn': { ru: 'цинк Zn', en: 'zinc Zn', uz: 'rux Zn' },
+  'glass:testTube': { ru: 'пробирку', en: 'a test tube', uz: 'probirkani' },
+}
+const needName = (id: LabItemId, lang: LabLang) => NEED_NAMES[id]?.[lang] ?? id.split(':')[1] ?? id
 
 type UiKey =
   | 'experiments'
@@ -68,6 +79,7 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
   const [info, setInfo] = useState<'none' | 'equipment' | 'safety'>('none')
   const current = finished ? null : def.steps[s]
   const lastDone = s > 0 ? def.steps[s - 1] : null
+  const action = finished ? null : (LAB_STEP_ACTIONS[experimentId][s] ?? null)
 
   return (
     <div className={styles.board} data-lab3d-board lang={lang}>
@@ -126,6 +138,18 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
           </div>
         </header>
 
+        {finished && info === 'none' ? (
+          <div className={styles.finalBody} key={experimentId}>
+            <ParticleStory experimentId={experimentId} lang={lang} />
+            <div className={styles.focus}>
+              <div className={styles.observation}>
+                <p className={styles.label}>{UI.conclusion[lang]}</p>
+                <p className={styles.obsText}>{def.conclusion[lang]}</p>
+              </div>
+              <LabQuiz experimentId={experimentId} lang={lang} />
+            </div>
+          </div>
+        ) : (
         <div className={styles.body}>
           <ol className={styles.steps} aria-label={UI.steps[lang]}>
             {def.steps.map((st, i) => (
@@ -173,7 +197,20 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
                     {UI.step[lang]} {s + 1} / {total}
                   </p>
                   <p className={styles.instrText}>{current?.instruction[lang]}</p>
-                  <p className={styles.tapHint}>{UI.tapHint[lang]}</p>
+                  {action ? (
+                    <div className={styles.instrRow}>
+                      <ActionIcon kind={action.gesture} />
+                      <p className={styles.howText}>{action.how[lang]}</p>
+                    </div>
+                  ) : (
+                    <p className={styles.tapHint}>{UI.tapHint[lang]}</p>
+                  )}
+                  {action?.need ? (
+                    // запасной путь, если сцена со стеллажами не отвечает: взять предмет кнопкой
+                    <button type="button" className={styles.needBtn} onClick={() => onStep(s + 1)} data-lab3d-need={action.need}>
+                      {TAKE[lang]} {needName(action.need, lang)}
+                    </button>
+                  ) : null}
                 </div>
                 {lastDone?.observation ? (
                   <div className={styles.observation}>
@@ -185,6 +222,7 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
             )}
           </div>
         </div>
+        )}
 
         <footer className={styles.nav}>
           <button type="button" className={styles.navBtn} disabled={s <= 0} onClick={() => onStep(s - 1)}>
