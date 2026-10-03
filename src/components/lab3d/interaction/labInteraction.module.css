@@ -26,10 +26,16 @@
   z-index: -1;
 }
 
+/* Метка рабочего места тянется влево от слота (слот у правого края — метка не уходит за экран) */
 .tagWork {
   composes: tag;
   background: #1f9d63;
   animation: none;
+  transform: translate(-86%, -100%);
+}
+
+.tagWork::after {
+  left: 86%;
 }
 
 .hint {

@@ -167,3 +167,8 @@ export const labHand = {
   },
   getState,
 }
+
+// Для автоматических кадров (Playwright): …#/vr-lab?debugHand=1 открывает руку в window.__labHand
+if (typeof window !== 'undefined' && /[?&]debugHand=1/.test(window.location.hash)) {
+  ;(window as unknown as { __labHand?: typeof labHand }).__labHand = labHand
+}

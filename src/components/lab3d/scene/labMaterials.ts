@@ -4,6 +4,7 @@
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { LAB_COLORS, labGlassMaterial, labLiquidMaterial } from '../labContract'
+import { benchTopTexture } from './labTextures'
 
 export interface LabMaterials {
   wall: THREE.MeshStandardMaterial
@@ -51,9 +52,10 @@ export function useLabMaterials(quality: 'low' | 'high'): LabMaterials {
       wallAccent: new THREE.MeshStandardMaterial({ color: '#d8e4ef', roughness: 0.85 }),
       benchTop: new THREE.MeshPhysicalMaterial({
         color: LAB_COLORS.benchTop,
-        roughness: 0.32,
-        clearcoat: 0.5,
-        clearcoatRoughness: 0.25,
+        map: benchTopTexture(),
+        roughness: 0.34,
+        clearcoat: quality === 'high' ? 0.6 : 0.4,
+        clearcoatRoughness: 0.18,
       }),
       benchBody: new THREE.MeshStandardMaterial({ color: LAB_COLORS.benchBody, roughness: 0.55 }),
       plinth: new THREE.MeshStandardMaterial({ color: '#7d8794', roughness: 0.7 }),
@@ -81,7 +83,13 @@ export function useLabMaterials(quality: 'low' | 'high'): LabMaterials {
       screenBlack: new THREE.MeshStandardMaterial({ color: '#0d1117', roughness: 0.2, metalness: 0.1 }),
     }
   }, [quality])
-  useEffect(() => () => Object.values(mats).forEach((m) => m.dispose()), [mats])
+  useEffect(
+    () => () => {
+      mats.benchTop.map?.dispose()
+      Object.values(mats).forEach((m) => m.dispose())
+    },
+    [mats],
+  )
   return mats
 }
 

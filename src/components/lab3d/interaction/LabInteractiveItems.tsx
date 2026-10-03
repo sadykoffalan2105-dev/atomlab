@@ -77,11 +77,13 @@ const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragg
     const target = tmpV
     let yaw = 0
     if (zone === 'hand') {
-      const d = 0.42 + def.h * 1.25
+      // Чем выше предмет, тем дальше от камеры — в кадре он занимает примерно четверть высоты
+      const d = 0.5 + def.h * 1.6
       const halfH = d * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)
       const halfW = halfH * camera.aspect
       const time = state.clock.elapsedTime
-      target.set(halfW * (camera.aspect < 1 ? 0.42 : 0.58), -halfH * 0.62 - def.h * 0.35 + Math.sin(time * 1.7) * 0.004, -d)
+      const phone = camera.aspect < 1
+      target.set(halfW * (phone ? 0.5 : 0.76), -halfH * (phone ? 0.12 : 0.06) - def.h * 0.5 + Math.sin(time * 1.7) * 0.004, -d)
       target.applyQuaternion(camera.quaternion).add(camera.position)
       yaw = Math.atan2(camera.position.x - target.x, camera.position.z - target.z) + Math.sin(time * 1.1) * 0.05
     } else if (zone === 'bench' || zone === 'work') {

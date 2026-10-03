@@ -50,7 +50,7 @@ export function cameraPoseFor(view: LabViewId, aspect: number, fovDeg: number): 
       // Тумба под столом: камера ниже, смотрит на дверцы (на телефоне — левые секции со спиртовкой)
       return aspect < 1
         ? { position: new THREE.Vector3(-0.55, 1.12, 1.55), target: new THREE.Vector3(-0.62, 0.48, 0.3) }
-        : { position: new THREE.Vector3(0, 1.2, 2.05), target: new THREE.Vector3(0, 0.55, 0.3) }
+        : { position: new THREE.Vector3(0, 1.3, 2.75), target: new THREE.Vector3(0, 0.5, 0.35) }
     case 'hood':
       return aspect < 1
         ? { position: new THREE.Vector3(-1.45, 1.6, 1.55), target: new THREE.Vector3(-2.05, 1.3, -0.9) }
