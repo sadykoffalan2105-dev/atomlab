@@ -205,7 +205,7 @@ function row(drawn: { d: Drawn | null; label: string; charge: number; count: num
           {p.count}
         </text>,
       )
-      x += 17
+      x += 6 + 11 * String(p.count).length
     }
     if (!p.d) {
       nodes.push(

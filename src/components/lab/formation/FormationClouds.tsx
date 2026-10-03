@@ -380,8 +380,8 @@ export function FormationClouds({
         }
         if (!units.length) continue
         for (const dir of loneDirs(units, x.L, upModel)) {
-          put(_p.set(A[0] + dir.x * r * 1.4, A[1] + dir.y * r * 1.4, A[2] + dir.z * r * 1.4), dir, r * 0.68, r * 0.36, C_LONE)
-          if (plan.perLone > 1) put(_p.set(A[0] + dir.x * r * 1.12, A[1] + dir.y * r * 1.12, A[2] + dir.z * r * 1.12), dir, r * 0.3, r * 0.2, C_LONE_CORE)
+          put(_p.set(A[0] + dir.x * r * 1.7, A[1] + dir.y * r * 1.7, A[2] + dir.z * r * 1.7), dir, r * 0.8, r * 0.4, C_LONE)
+          if (plan.perLone > 1) put(_p.set(A[0] + dir.x * r * 1.25, A[1] + dir.y * r * 1.25, A[2] + dir.z * r * 1.25), dir, r * 0.36, r * 0.22, C_LONE_CORE)
         }
       }
     } else {
